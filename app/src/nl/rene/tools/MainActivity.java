@@ -338,6 +338,13 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public String redialStart(String number, String name, int attempts, int interval,
                                                        boolean stopWhenAnswered, boolean speaker) {
+            return redialStart2(number, name, attempts, interval, 0, 0, stopWhenAnswered, speaker);
+        }
+
+        /** Zoals redialStart, maar met willekeurige wachttijd tussen randomMin en randomMax seconden (0 = vast). */
+        @JavascriptInterface public String redialStart2(String number, String name, int attempts, int interval,
+                                                        int randomMin, int randomMax,
+                                                        boolean stopWhenAnswered, boolean speaker) {
             if (number == null || number.replaceAll("[^0-9]", "").length() < 3) return "Vul een geldig telefoonnummer in";
             if (ctx.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED)
                 return "Geef eerst toestemming om te bellen";
@@ -348,6 +355,8 @@ public class MainActivity extends Activity {
                     .putExtra("name", name == null ? "" : name)
                     .putExtra("attempts", attempts)
                     .putExtra("interval", interval)
+                    .putExtra("randomMin", randomMin)
+                    .putExtra("randomMax", randomMax)
                     .putExtra("stopWhenAnswered", stopWhenAnswered)
                     .putExtra("speaker", speaker);
             try {

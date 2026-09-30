@@ -90,6 +90,9 @@ input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
 .banner button{background:#fff;color:var(--brand-2);border-radius:10px;padding:9px 14px;font-weight:700}
 .foot{text-align:center;color:var(--muted);font-size:13px;margin:18px 0 8px}
 .foot button{color:var(--brand-2);text-decoration:underline;font-size:13px}
+.range{display:none;align-items:center;gap:8px;margin:10px 0 4px;font-size:15px;flex-wrap:wrap}
+.range.on{display:flex}
+.range select{font:inherit;font-weight:600;padding:9px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
 .toast.on{opacity:1}
 </style>
@@ -163,6 +166,10 @@ input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
         <div class="chips" id="c-att"></div>
         <h2>Wachttijd tussen pogingen</h2>
         <div class="chips" id="c-int" style="margin-bottom:4px"></div>
+        <div class="range" id="rand-range">Elke keer willekeurig tussen
+          <select id="r-min" onchange="rangeChanged('min')"></select> en
+          <select id="r-max" onchange="rangeChanged('max')"></select>
+        </div>
       </div>
 
       <div class="card">
@@ -224,6 +231,7 @@ if (!window.Android) window.Android = (function(){
     requestPermissions(){}, openAppSettings(){}, pickContact(){ onContactPicked({number:'010 123 4567', name:'Huisarts'}); },
     setBars(){}, vibrate(){}, toast(m){ toast(m); }, pendingOpen:()=>'',
     redialStart(n,name,a,i){ st={running:true,number:n,name,attempt:1,maxAttempts:a,interval:i,phase:'dialing',message:'Bellen…'}; t0=Date.now(); timer=setInterval(tick,300); return ''; },
+    redialStart2(n,name,a,i,rmin,rmax){ const r=this.redialStart(n,name,a,rmin?rmin:i); st.randomMin=rmin; st.randomMax=rmax; return r; },
     redialStop(){ clearInterval(timer); st={...st,running:false,phase:'done',result:'stopped',message:'Gestopt'}; },
     redialNow(){}, redialStatus:()=>JSON.stringify({...st, now:Date.now()})
   };
@@ -253,11 +261,25 @@ window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnc
 
 /* ---------- Auto redial ---------- */
 const ATT = [[5,'5'],[10,'10'],[25,'25'],[50,'50'],[0,'∞']];
-const INT = [[5,'5 s'],[10,'10 s'],[20,'20 s'],[30,'30 s'],[60,'1 min']];
+const INT = [[5,'5 s'],[10,'10 s'],[20,'20 s'],[30,'30 s'],[60,'1 min'],[-1,'Willekeurig']];
+const RANGE = [5,10,15,20,30,45,60,90,120,180,300];
+const fmtS = v => v < 60 ? v + ' s' : (v % 60 ? (v/60).toFixed(1).replace('.',',') : v/60) + ' min';
+function renderRange(){
+  const on = store.get('interval',10) === -1;
+  $('#rand-range').classList.toggle('on', on);
+  const mn = store.get('rmin',10), mx = store.get('rmax',60);
+  $('#r-min').innerHTML = RANGE.map(v=>'<option value="'+v+'"'+(v===mn?' selected':'')+'>'+fmtS(v)+'</option>').join('');
+  $('#r-max').innerHTML = RANGE.map(v=>'<option value="'+v+'"'+(v===mx?' selected':'')+'>'+fmtS(v)+'</option>').join('');
+}
+function rangeChanged(which){
+  let mn = +$('#r-min').value, mx = +$('#r-max').value;
+  if (mn > mx) { if (which==='min') mx = mn; else mn = mx; }
+  store.set('rmin', mn); store.set('rmax', mx); renderRange();
+}
 function chips(el, opts, key, def){
   const cur = store.get(key, def); el.innerHTML='';
   opts.forEach(([v,l])=>{ const b=document.createElement('button'); b.textContent=l; b.classList.toggle('on', v===cur);
-    b.onclick=()=>{ store.set(key,v); chips(el,opts,key,def); Android.vibrate(10); }; el.appendChild(b); });
+    b.onclick=()=>{ store.set(key,v); chips(el,opts,key,def); Android.vibrate(10); if (key==='interval') renderRange(); }; el.appendChild(b); });
 }
 function tog(b){ b.classList.toggle('on'); store.set(b.id, b.classList.contains('on')); Android.vibrate(10); }
 
@@ -297,7 +319,7 @@ window.onPermissions = function(p){ const all = p.call && p.phoneState && p.call
 
 function enterRedial(){
   chips($('#c-att'), ATT, 'attempts', 10);
-  chips($('#c-int'), INT, 'interval', 10);
+  chips($('#c-int'), INT, 'interval', 10); renderRange();
   $('#t-stop').classList.toggle('on', store.get('t-stop', true));
   $('#t-spk').classList.toggle('on', store.get('t-spk', false));
   if (!$('#num').value) { const r = store.get('recent', []); if (r[0]) { $('#num').value = r[0].number; nameFor = r[0].name||''; $('#pname').textContent = nameFor; } }
@@ -310,7 +332,9 @@ function startRedial(){
   const n = $('#num').value.trim();
   const p = renderPerms();
   if (!p.call || !p.phoneState) { toast('Geef eerst toestemming'); askPerms(); return; }
-  const err = Android.redialStart(n, nameFor, store.get('attempts',10), store.get('interval',10), store.get('t-stop',true), store.get('t-spk',false));
+  const iv = store.get('interval',10), rnd = iv === -1;
+  const rmin = store.get('rmin',10), rmax = store.get('rmax',60);
+  const err = Android.redialStart2(n, nameFor, store.get('attempts',10), rnd ? rmin : iv, rnd ? rmin : 0, rnd ? rmax : 0, store.get('t-stop',true), store.get('t-spk',false));
   if (err) { toast(err); return; }
   remember(n, nameFor); lastResultShown = ''; $('#result').className='result';
   Android.vibrate(25); setTimeout(pollOnce, 150);
@@ -331,10 +355,10 @@ function pollOnce(){
     if (s.phase === 'waiting') {
       const left = Math.max(0, Math.ceil((s.nextAt - s.now)/1000));
       ph = (s.message ? s.message + ' · ' : '') + 'opnieuw over ' + left + ' s';
-      frac = 1 - Math.min(1, (s.nextAt - s.now) / (s.interval*1000));
+      frac = 1 - Math.min(1, (s.nextAt - s.now) / ((s.wait || s.interval)*1000));
     } else if (s.phase === 'incall' || s.phase === 'dialing') frac = 1;
     $('#run-phase').textContent = ph;
-    $('#run-who').textContent = s.name ? s.name + ' · ' + s.number : s.number;
+    $('#run-who').textContent = (s.name ? s.name + ' · ' + s.number : s.number) + (s.randomMin ? ' · wachttijd ' + s.randomMin + '–' + s.randomMax + ' s' : '');
     $('#ring-arc').style.strokeDashoffset = 414.7 * (1 - frac);
     $('#ring-arc').style.stroke = s.phase === 'waiting' ? 'var(--brand-2)' : 'var(--ok)';
     $('#now-btn').style.visibility = s.phase === 'waiting' ? 'visible' : 'hidden';

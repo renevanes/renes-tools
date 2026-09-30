@@ -59,7 +59,10 @@ public class RedialService extends Service {
     // instellingen van de lopende sessie
     private String number = "", name = "";
     private int maxAttempts = 10;      // 0 = onbeperkt
-    private int intervalSec = 10;
+    private int intervalSec = 10;     // vaste wachttijd
+    private int randomMin = 0, randomMax = 0; // > 0: willekeurige wachttijd tussen min en max
+    private int waitSec = 10;         // wachttijd van de huidige pauze
+    private final java.util.Random rnd = new java.util.Random();
     private boolean stopWhenAnswered = true;
     private boolean speaker = false;
 
@@ -92,6 +95,12 @@ public class RedialService extends Service {
             if (name == null) name = "";
             maxAttempts = intent.getIntExtra("attempts", 10);
             intervalSec = Math.max(3, intent.getIntExtra("interval", 10));
+            randomMin = Math.max(0, intent.getIntExtra("randomMin", 0));
+            randomMax = Math.max(0, intent.getIntExtra("randomMax", 0));
+            if (randomMin > 0) {
+                randomMin = Math.max(3, randomMin);
+                if (randomMax < randomMin) randomMax = randomMin;
+            }
             stopWhenAnswered = intent.getBooleanExtra("stopWhenAnswered", true);
             speaker = intent.getBooleanExtra("speaker", false);
             goForeground();
@@ -236,7 +245,8 @@ public class RedialService extends Service {
             return;
         }
         phase = "waiting";
-        nextAt = System.currentTimeMillis() + intervalSec * 1000L;
+        waitSec = randomMin > 0 ? randomMin + rnd.nextInt(randomMax - randomMin + 1) : intervalSec;
+        nextAt = System.currentTimeMillis() + waitSec * 1000L;
         message = why != null ? why : (answered ? "Opgenomen" : "Niet opgenomen");
         save();
         tick();
@@ -332,6 +342,9 @@ public class RedialService extends Service {
             o.put("attempt", attempt);
             o.put("maxAttempts", maxAttempts);
             o.put("interval", intervalSec);
+            o.put("wait", waitSec);
+            o.put("randomMin", randomMin);
+            o.put("randomMax", randomMax);
             o.put("phase", phase);
             o.put("result", result);
             o.put("message", message);
