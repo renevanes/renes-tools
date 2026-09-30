@@ -1,0 +1,14 @@
+[
+  {
+    "version": "1.0",
+    "date": "2026-09-30",
+    "changes": [
+      "Eerste versie van Rene's Tools",
+      "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen",
+      "Kies een contact of typ een nummer; je laatste nummers worden onthouden",
+      "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen",
+      "Voortgang en een stopknop in de meldingenbalk",
+      "Automatische updates via GitHub"
+    ]
+  }
+]

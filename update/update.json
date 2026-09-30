@@ -1,0 +1,24 @@
+{
+  "app": "Rene's Tools",
+  "versionName": "1.0",
+  "versionCode": 1,
+  "nativeLevel": 1,
+  "web": "index.html",
+  "webSha256": "fbf357b19013d9acec633d5e242e45ded2aaa009401b0de38dbf60a595a2f863",
+  "apk": "Renes-Tools.apk",
+  "apkSha256": "32a7a469c39df729b5d88a8d2969a8c5f543bdb648cec1b040e3d5ba5a79fa3e",
+  "changelog": [
+    {
+      "version": "1.0",
+      "date": "2026-09-30",
+      "changes": [
+        "Eerste versie van Rene's Tools",
+        "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen",
+        "Kies een contact of typ een nummer; je laatste nummers worden onthouden",
+        "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen",
+        "Voortgang en een stopknop in de meldingenbalk",
+        "Automatische updates via GitHub"
+      ]
+    }
+  ]
+}

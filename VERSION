@@ -1,0 +1,8 @@
+# Versiebeheer van Rene's Tools.
+# VERSION_CODE en VERSION_NAME gaan bij ELKE wijziging omhoog (./bump.sh doet dat).
+# NATIVE_LEVEL gaat alleen omhoog als de Java-code of het manifest verandert;
+# dan moet de telefoon een nieuwe APK installeren. Anders is het een stille
+# update van alleen de interface (web/index.html).
+VERSION_NAME=1.0
+VERSION_CODE=1
+NATIVE_LEVEL=1

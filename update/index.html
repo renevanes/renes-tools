@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<!-- RENES-TOOLS-UI versie 1.0 (1) -->
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Rene's Tools</title>
+<style>
+:root{
+  --brand:#1E5AA8; --brand-2:#2F74CF; --brand-ink:#fff;
+  --bg:#F3F5F9; --card:#FFFFFF; --ink:#16202E; --muted:#5C6B80; --line:#E1E6EE;
+  --ok:#1D8A4E; --warn:#B26A00; --bad:#C0392B; --chip:#EAF0F9; --chip-on:#1E5AA8;
+  --shadow:0 1px 2px rgba(16,32,64,.06),0 4px 14px rgba(16,32,64,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --brand:#173F75; --brand-2:#3B82E0; --bg:#0F141B; --card:#18202B; --ink:#E7ECF3; --muted:#9AA8BA;
+    --line:#2A3544; --chip:#223044; --chip-on:#3B82E0; --shadow:none; --ok:#3DBF78; --warn:#E0A040; --bad:#EF6B5E;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.hdr{background:var(--brand);color:var(--brand-ink);padding:14px 16px 18px;display:flex;align-items:center;gap:10px;min-height:60px}
+.hdr h1{font-size:21px;margin:0;font-weight:700;letter-spacing:.2px;flex:1}
+.hdr .back{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;margin-left:-8px}
+.hdr .back:active{background:rgba(255,255,255,.15)}
+.hdr .ver{font-size:13px;opacity:.85}
+.hdr .icon-btn{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;margin-right:-8px}
+main{padding:16px;max-width:560px;margin:0 auto}
+.screen{display:none}.screen.on{display:block}
+.card{background:var(--card);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px;border:1px solid var(--line)}
+.card h2{font-size:15px;margin:0 0 10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.6px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 14px;text-align:left;box-shadow:var(--shadow);min-height:132px;display:flex;flex-direction:column;gap:10px;position:relative}
+.tile:active{transform:scale(.98)}
+.tile .ic{width:48px;height:48px;border-radius:14px;background:var(--brand-2);display:grid;place-items:center;color:#fff}
+.tile b{font-size:17px}
+.tile small{color:var(--muted);font-size:13px}
+.tile.soon{opacity:.55;box-shadow:none;border-style:dashed}
+.tile .dot{position:absolute;top:14px;right:14px;width:10px;height:10px;border-radius:5px;background:var(--ok);box-shadow:0 0 0 4px rgba(29,138,78,.18);display:none}
+.tile.live .dot{display:block}
+label.f{display:block;font-size:14px;color:var(--muted);margin-bottom:6px}
+.row{display:flex;gap:8px;align-items:center}
+input[type=tel]{flex:1;min-width:0;font-size:22px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);letter-spacing:.5px}
+input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
+.sq{width:52px;height:52px;border-radius:12px;background:var(--chip);display:grid;place-items:center;flex:none;color:var(--brand-2)}
+.name{font-size:14px;color:var(--muted);margin-top:6px;min-height:19px}
+.recent{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.recent button{background:var(--chip);border-radius:999px;padding:6px 12px;font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.chips button{min-width:52px;padding:9px 12px;border-radius:999px;background:var(--chip);font-weight:600;font-size:15px}
+.chips button.on{background:var(--chip-on);color:#fff}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.sw:first-of-type{border-top:0}
+.sw span small{display:block;color:var(--muted);font-size:13px}
+.tg{width:52px;height:32px;border-radius:16px;background:var(--line);position:relative;flex:none;transition:background .15s}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:13px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .15s}
+.tg.on{background:var(--brand-2)}.tg.on::after{left:23px}
+.big{width:100%;padding:16px;border-radius:14px;background:var(--brand-2);color:#fff;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;gap:10px}
+.big:active{filter:brightness(.92)}
+.big.stop{background:var(--bad)}
+.big.ghost{background:var(--chip);color:var(--brand-2)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.status{text-align:center;padding:22px 16px}
+.ring{width:150px;height:150px;margin:0 auto 12px;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring .n{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .n b{font-size:40px;line-height:1}
+.ring .n small{color:var(--muted);font-size:13px;margin-top:4px}
+.phase{font-size:18px;font-weight:600}
+.who{color:var(--muted);margin-top:4px}
+.result{font-size:15px;padding:12px;border-radius:12px;margin-bottom:14px;display:none}
+.result.on{display:block}
+.result.answered{background:rgba(29,138,78,.12);color:var(--ok)}
+.result.other{background:var(--chip);color:var(--ink)}
+.result.error{background:rgba(192,57,43,.12);color:var(--bad)}
+.perm{border-color:var(--warn)}
+.perm p{margin:0 0 12px;font-size:15px}
+.note{font-size:13px;color:var(--muted);margin:4px 2px 0}
+.kv{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
+.kv:first-of-type{border-top:0}
+.kv span:last-child{color:var(--muted)}
+.log h3{font-size:16px;margin:12px 0 4px}
+.log h3 small{color:var(--muted);font-weight:400;font-size:13px}
+.log ul{margin:0;padding-left:20px;font-size:15px}
+.banner{background:var(--brand-2);color:#fff;border-radius:14px;padding:14px;margin-bottom:14px;display:none;align-items:center;gap:12px}
+.banner.on{display:flex}
+.banner div{flex:1;font-size:15px}
+.banner button{background:#fff;color:var(--brand-2);border-radius:10px;padding:9px 14px;font-weight:700}
+.foot{text-align:center;color:var(--muted);font-size:13px;margin:18px 0 8px}
+.foot button{color:var(--brand-2);text-decoration:underline;font-size:13px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<section class="screen on" id="s-home">
+  <div class="hdr"><h1>Rene's Tools</h1><span class="ver" id="hver"></span></div>
+  <main>
+    <div class="banner" id="upd-banner"><div id="upd-text">Nieuwe versie beschikbaar</div><button onclick="installUpdate()">Installeren</button></div>
+    <div class="tiles">
+      <button class="tile" id="tile-redial" onclick="show('redial')">
+        <span class="dot"></span>
+        <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/><path d="M15 2.5a6.5 6.5 0 0 1 6.5 6.5"/><path d="M21.5 3v4h-4"/></svg></span>
+        <b>Auto redial</b>
+        <small id="tile-redial-sub">Blijft bellen tot er wordt opgenomen</small>
+      </button>
+      <div class="tile soon">
+        <span class="ic" style="background:var(--muted)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        <b>Meer tools</b>
+        <small>Volgen binnenkort</small>
+      </div>
+    </div>
+    <div class="foot"><button onclick="show('info')">Versie en updates</button></div>
+  </main>
+</section>
+
+<!-- ============ AUTO REDIAL ============ -->
+<section class="screen" id="s-redial">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Auto redial</h1>
+  </div>
+  <main>
+    <div class="card perm" id="perm-card" style="display:none">
+      <p id="perm-text">Auto redial heeft toestemming nodig om te bellen en om te zien wanneer een gesprek voorbij is.</p>
+      <button class="big" id="perm-btn" onclick="askPerms()">Toestemming geven</button>
+    </div>
+
+    <div class="result" id="result"></div>
+
+    <!-- lopend -->
+    <div class="card status" id="run-card" style="display:none">
+      <div class="ring">
+        <svg width="150" height="150" viewBox="0 0 150 150"><circle cx="75" cy="75" r="66" fill="none" stroke="var(--line)" stroke-width="10"/><circle id="ring-arc" cx="75" cy="75" r="66" fill="none" stroke="var(--brand-2)" stroke-width="10" stroke-linecap="round" stroke-dasharray="414.7" stroke-dashoffset="414.7"/></svg>
+        <div class="n"><b id="run-att">1</b><small id="run-of">van 10</small></div>
+      </div>
+      <div class="phase" id="run-phase">Bellen…</div>
+      <div class="who" id="run-who"></div>
+      <div class="btns">
+        <button class="big stop" onclick="stopRedial()">Stoppen</button>
+        <button class="big ghost" id="now-btn" onclick="Android.redialNow()">Nu bellen</button>
+      </div>
+    </div>
+
+    <!-- instellen -->
+    <div id="setup">
+      <div class="card">
+        <h2>Nummer</h2>
+        <div class="row">
+          <input type="tel" id="num" placeholder="06 12345678" autocomplete="tel" inputmode="tel" oninput="nameFor=''; $('#pname').textContent=''">
+          <button class="sq" onclick="Android.pickContact()" aria-label="Contact kiezen"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></button>
+        </div>
+        <div class="name" id="pname"></div>
+        <div class="recent" id="recent"></div>
+      </div>
+
+      <div class="card">
+        <h2>Aantal pogingen</h2>
+        <div class="chips" id="c-att"></div>
+        <h2>Wachttijd tussen pogingen</h2>
+        <div class="chips" id="c-int" style="margin-bottom:4px"></div>
+      </div>
+
+      <div class="card">
+        <div class="sw"><span>Stoppen als er wordt opgenomen<small>Anders belt hij alle pogingen af</small></span><button class="tg on" id="t-stop" onclick="tog(this)"></button></div>
+        <div class="sw"><span>Luidspreker aan<small>Handig als de telefoon op tafel ligt</small></span><button class="tg" id="t-spk" onclick="tog(this)"></button></div>
+      </div>
+
+      <button class="big" onclick="startRedial()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.4c-1.2 0-2.4-.2-3.5-.6-.4-.1-.7 0-1 .2l-1.6 2c-2.8-1.4-5.5-3.9-6.9-6.8l2-1.7c.3-.3.4-.7.2-1-.4-1.1-.6-2.3-.6-3.5 0-.5-.4-1-1-1H4.2C3.7 3 3 3.2 3 4c0 9.3 7.7 17 17 17 .7 0 1-.6 1-1.2v-3.4c0-.6-.4-1-1-1z"/></svg>
+        Start auto redial
+      </button>
+      <p class="note" id="how-note">De app belt het nummer, wacht tot het gesprek voorbij is en kijkt in je oproepgeschiedenis of er is opgenomen. Een voicemail telt ook als opgenomen.</p>
+    </div>
+  </main>
+</section>
+
+<!-- ============ INFO ============ -->
+<section class="screen" id="s-info">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Versie en updates</h1>
+  </div>
+  <main>
+    <div class="card">
+      <div class="kv"><span>Versie</span><span id="i-ver"></span></div>
+      <div class="kv"><span>App-onderdeel</span><span id="i-app"></span></div>
+      <div class="kv"><span>Android</span><span id="i-android"></span></div>
+    </div>
+    <div class="banner" id="upd-banner2"><div id="upd-text2">Nieuwe versie beschikbaar</div><button onclick="installUpdate()">Installeren</button></div>
+    <button class="big" id="chk-btn" onclick="checkUpdates()">Controleren op updates</button>
+    <p class="note">De app zoekt zelf naar updates als je hem opent. Kleine updates worden meteen toegepast; voor een nieuwe versie van de app zelf vraagt Android om te bevestigen.</p>
+    <div class="card log" style="margin-top:16px">
+      <h2>Wat is er nieuw</h2>
+      <div id="log"></div>
+    </div>
+  </main>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const VERSION_NAME = "1.0";
+const VERSION_CODE = 1;
+const CHANGELOG = [{"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+
+/* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
+if (!window.Android) window.Android = (function(){
+  let st = {running:false, phase:'idle'}, t0 = 0, timer = null;
+  const tick = () => {
+    const el = Date.now() - t0, per = st.interval*1000 + 6000, a = Math.floor(el/per)+1, inCall = (el%per) < 6000;
+    if (st.maxAttempts && a > st.maxAttempts) { st = {...st, running:false, phase:'done', result:'maxed', message:'Niet opgenomen na '+st.maxAttempts+' pogingen'}; clearInterval(timer); return; }
+    st.attempt = a; st.phase = inCall ? 'incall' : 'waiting'; st.message = inCall ? 'Gaat over…' : 'Niet opgenomen';
+    st.nextAt = t0 + (a-1)*per + per; st.now = Date.now();
+  };
+  return {
+    version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0}),
+    lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',manual:true,versionName:VERSION_NAME}),400),
+    installUpdate(){}, permissions:()=>JSON.stringify({call:true,phoneState:true,callLog:true,notifications:true}),
+    requestPermissions(){}, openAppSettings(){}, pickContact(){ onContactPicked({number:'010 123 4567', name:'Huisarts'}); },
+    setBars(){}, vibrate(){}, toast(m){ toast(m); }, pendingOpen:()=>'',
+    redialStart(n,name,a,i){ st={running:true,number:n,name,attempt:1,maxAttempts:a,interval:i,phase:'dialing',message:'Bellen…'}; t0=Date.now(); timer=setInterval(tick,300); return ''; },
+    redialStop(){ clearInterval(timer); st={...st,running:false,phase:'done',result:'stopped',message:'Gestopt'}; },
+    redialNow(){}, redialStatus:()=>JSON.stringify({...st, now:Date.now()})
+  };
+})();
+
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('rt.'+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem('rt.'+k, JSON.stringify(v)); } catch(e){} }
+};
+let current = 'home', poll = null, nameFor = '', lastResultShown = '';
+
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2600); }
+function dark(){ return matchMedia('(prefers-color-scheme: dark)').matches; }
+function bars(){ const cs=getComputedStyle(document.documentElement); Android.setBars(cs.getPropertyValue('--brand').trim(), cs.getPropertyValue('--bg').trim(), !dark()); }
+
+function show(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
+  current = name; window.scrollTo(0,0);
+  if (name==='redial') enterRedial(); else stopPoll();
+  if (name==='info') renderInfo();
+  if (name==='home') refreshTile();
+}
+window.goBack = function(){ if (current!=='home'){ show('home'); return true; } return false; };
+window.openTool = function(n){ if (n==='redial') show('redial'); };
+window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } refreshTile(); };
+
+/* ---------- Auto redial ---------- */
+const ATT = [[5,'5'],[10,'10'],[25,'25'],[50,'50'],[0,'∞']];
+const INT = [[5,'5 s'],[10,'10 s'],[20,'20 s'],[30,'30 s'],[60,'1 min']];
+function chips(el, opts, key, def){
+  const cur = store.get(key, def); el.innerHTML='';
+  opts.forEach(([v,l])=>{ const b=document.createElement('button'); b.textContent=l; b.classList.toggle('on', v===cur);
+    b.onclick=()=>{ store.set(key,v); chips(el,opts,key,def); Android.vibrate(10); }; el.appendChild(b); });
+}
+function tog(b){ b.classList.toggle('on'); store.set(b.id, b.classList.contains('on')); Android.vibrate(10); }
+
+function renderRecent(){
+  const r = store.get('recent', []), el = $('#recent'); el.innerHTML='';
+  r.forEach(x=>{ const b=document.createElement('button'); b.textContent = x.name ? x.name : x.number;
+    b.onclick=()=>{ $('#num').value=x.number; nameFor=x.name||''; $('#pname').textContent=nameFor; }; el.appendChild(b); });
+}
+function remember(number, name){
+  let r = store.get('recent', []).filter(x=>norm(x.number)!==norm(number));
+  r.unshift({number, name}); store.set('recent', r.slice(0,5)); renderRecent();
+}
+const norm = n => (n||'').replace(/[^0-9+*#]/g,'');
+
+window.onContactPicked = function(c){ $('#num').value = c.number; nameFor = c.name||''; $('#pname').textContent = nameFor; };
+
+function perms(){ try { return JSON.parse(Android.permissions()); } catch(e){ return {}; } }
+function renderPerms(){
+  const p = perms(), need = !p.call || !p.phoneState || !p.callLog || !p.notifications;
+  $('#perm-card').style.display = need ? 'block' : 'none';
+  const asked = store.get('askedPerms', false);
+  let txt = 'Auto redial heeft toestemming nodig om te bellen en om te zien wanneer een gesprek voorbij is.';
+  if (p.call && p.phoneState && !p.callLog) txt = 'Geef ook toegang tot je oproepgeschiedenis. Dan kan de app zien of er is opgenomen. Zonder die toegang telt een gesprek van langer dan 1 minuut als opgenomen.';
+  else if (p.call && p.phoneState && p.callLog && !p.notifications) txt = 'Sta meldingen toe, dan zie je de voortgang en kun je stoppen vanuit de meldingenbalk.';
+  $('#perm-text').textContent = txt;
+  $('#perm-btn').textContent = asked ? 'Instellingen openen' : 'Toestemming geven';
+  $('#how-note').textContent = p.callLog
+    ? 'De app belt het nummer, wacht tot het gesprek voorbij is en kijkt in je oproepgeschiedenis of er is opgenomen. Een voicemail telt ook als opgenomen.'
+    : 'Zonder toegang tot je oproepgeschiedenis telt een gesprek van langer dan 1 minuut als opgenomen.';
+  return p;
+}
+function askPerms(){
+  if (store.get('askedPerms', false)) { Android.openAppSettings(); return; }
+  store.set('askedPerms', true); Android.requestPermissions();
+}
+window.onPermissions = function(p){ const all = p.call && p.phoneState && p.callLog && p.notifications; if (all) store.set('askedPerms', false); renderPerms(); };
+
+function enterRedial(){
+  chips($('#c-att'), ATT, 'attempts', 10);
+  chips($('#c-int'), INT, 'interval', 10);
+  $('#t-stop').classList.toggle('on', store.get('t-stop', true));
+  $('#t-spk').classList.toggle('on', store.get('t-spk', false));
+  if (!$('#num').value) { const r = store.get('recent', []); if (r[0]) { $('#num').value = r[0].number; nameFor = r[0].name||''; $('#pname').textContent = nameFor; } }
+  renderRecent(); renderPerms(); pollOnce();
+  stopPoll(); poll = setInterval(pollOnce, 500);
+}
+function stopPoll(){ if (poll) { clearInterval(poll); poll = null; } }
+
+function startRedial(){
+  const n = $('#num').value.trim();
+  const p = renderPerms();
+  if (!p.call || !p.phoneState) { toast('Geef eerst toestemming'); askPerms(); return; }
+  const err = Android.redialStart(n, nameFor, store.get('attempts',10), store.get('interval',10), store.get('t-stop',true), store.get('t-spk',false));
+  if (err) { toast(err); return; }
+  remember(n, nameFor); lastResultShown = ''; $('#result').className='result';
+  Android.vibrate(25); setTimeout(pollOnce, 150);
+}
+function stopRedial(){ Android.redialStop(); Android.vibrate(25); setTimeout(pollOnce, 200); }
+
+const PHASE = {dialing:'Bellen…', incall:'Gaat over of in gesprek', checking:'Controleren…', waiting:'Wachten'};
+function pollOnce(){
+  let s; try { s = JSON.parse(Android.redialStatus()); } catch(e){ return; }
+  const run = !!s.running;
+  $('#run-card').style.display = run ? 'block' : 'none';
+  $('#setup').style.display = run ? 'none' : 'block';
+  if (run) {
+    $('#run-att').textContent = s.attempt || 1;
+    $('#run-of').textContent = s.maxAttempts ? 'van ' + s.maxAttempts : 'pogingen';
+    let ph = s.message || PHASE[s.phase] || '';
+    let frac = 0;
+    if (s.phase === 'waiting') {
+      const left = Math.max(0, Math.ceil((s.nextAt - s.now)/1000));
+      ph = (s.message ? s.message + ' · ' : '') + 'opnieuw over ' + left + ' s';
+      frac = 1 - Math.min(1, (s.nextAt - s.now) / (s.interval*1000));
+    } else if (s.phase === 'incall' || s.phase === 'dialing') frac = 1;
+    $('#run-phase').textContent = ph;
+    $('#run-who').textContent = s.name ? s.name + ' · ' + s.number : s.number;
+    $('#ring-arc').style.strokeDashoffset = 414.7 * (1 - frac);
+    $('#ring-arc').style.stroke = s.phase === 'waiting' ? 'var(--brand-2)' : 'var(--ok)';
+    $('#now-btn').style.visibility = s.phase === 'waiting' ? 'visible' : 'hidden';
+  } else if (s.phase === 'done' && s.result && s.result !== 'stopped') {
+    const key = s.result + s.message + s.attempt;
+    const r = $('#result');
+    r.textContent = (s.result === 'answered' ? '✓ ' : '') + s.message + (s.number ? ' — ' + (s.name || s.number) : '');
+    r.className = 'result on ' + (s.result === 'answered' ? 'answered' : s.result === 'error' ? 'error' : 'other');
+    if (lastResultShown && lastResultShown !== key) Android.vibrate(60);
+    lastResultShown = key;
+  }
+  refreshTile(s);
+}
+function refreshTile(s){
+  if (!s) { try { s = JSON.parse(Android.redialStatus()); } catch(e){ return; } }
+  $('#tile-redial').classList.toggle('live', !!s.running);
+  $('#tile-redial-sub').textContent = s.running ? 'Bezig: poging ' + (s.attempt||1) + (s.maxAttempts ? ' van ' + s.maxAttempts : '') : 'Blijft bellen tot er wordt opgenomen';
+}
+
+/* ---------- Versie & updates ---------- */
+function ver(){ try { return JSON.parse(Android.version()); } catch(e){ return {}; } }
+function renderInfo(){
+  const v = ver();
+  $('#i-ver').textContent = v.webName + ' (' + v.webCode + ')';
+  $('#i-app').textContent = v.appName + ' (' + v.appCode + ')';
+  $('#i-android').textContent = v.android;
+  let log = CHANGELOG;
+  try { const m = JSON.parse(Android.lastManifest()); if (m && m.changelog && m.versionCode >= VERSION_CODE) log = m.changelog; } catch(e){}
+  $('#log').innerHTML = log.map(e => '<h3>Versie ' + esc(e.version) + ' <small>' + esc(e.date||'') + '</small></h3><ul>' + e.changes.map(c=>'<li>'+esc(c)+'</li>').join('') + '</ul>').join('');
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function checkUpdates(){ $('#chk-btn').textContent = 'Bezig met controleren…'; Android.checkUpdates(); }
+function installUpdate(){ toast('Update wordt gedownload…'); Android.installUpdate(); }
+window.onUpdateStatus = function(r){
+  $('#chk-btn').textContent = 'Controleren op updates';
+  if (r.state === 'apk') {
+    ['#upd-banner','#upd-banner2'].forEach(b=>$(b).classList.add('on'));
+    $('#upd-text').textContent = $('#upd-text2').textContent = 'Nieuwe versie ' + r.versionName + ' is beschikbaar';
+  } else if (r.state === 'uptodate' && r.manual) toast('Je hebt de nieuwste versie (' + ver().webName + ') ✓');
+  else if (r.state === 'needs-permission') toast('Sta "Installeren van onbekende apps" toe en tik daarna nog eens op Installeren');
+  else if (r.state === 'error' && (r.manual || r.error.indexOf('nstall') >= 0 || r.error.indexOf('pdate') >= 0)) toast(r.error);
+};
+
+/* ---------- start ---------- */
+$('#hver').textContent = 'v' + ver().webName;
+bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
+refreshTile();
+const po = Android.pendingOpen(); if (po) openTool(po);
+</script>
+</body>
+</html>
