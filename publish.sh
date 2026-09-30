@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Zet de gebouwde versie op GitHub: commit, tag vX.Y en push.
+# Zet de gebouwde versie op GitHub: één commit "Versie X.Y" en push.
 # Daarna halen telefoons de update automatisch op.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -13,7 +13,5 @@ $(python3 -c "import json;print('\n'.join('- '+c for c in json.load(open('change
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01XcmSGKzsXEZ3nh64hG9xd2" || true
-git tag -f "v$VERSION_NAME"
 git push origin HEAD:main
-git push -f origin "v$VERSION_NAME"
 echo "Gepubliceerd: versie $VERSION_NAME"

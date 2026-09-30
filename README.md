@@ -13,7 +13,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Zonder toegang tot de oproepgeschiedenis telt een gesprek van langer dan 1 minuut als opgenomen.
 
 ## Versies en updates
-- `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie krijgt in git een tag `vX.Y`.
+- `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.
 - De app leest `update/update.json` van GitHub (raw) wanneer je hem opent, hooguit eens per 30 minuten:
   - **Alleen de interface is veranderd** (`web/index.html`, `NATIVE_LEVEL` blijft gelijk): de nieuwe versie wordt stil gedownload, gecontroleerd met SHA-256 en direct gebruikt.
@@ -26,7 +26,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 ./bump.sh "Wat er veranderd is"          # versie +0.1, met regel voor het wijzigingslog
 NATIVE=1 ./bump.sh "Nieuwe app-functie"   # als de Java-code of het manifest is veranderd
 ./build.sh                    # bouwt de APK en vult update/
-./publish.sh                  # commit, tag vX.Y en push naar GitHub
+./publish.sh                  # commit "Versie X.Y" en push naar GitHub
 ```
 
 De ondertekeningssleutel staat alleen versleuteld in de repository (`keys/signing-key.enc`, AES-256). Rene heeft de wachtwoordzin. Elke update moet met dezelfde sleutel ondertekend zijn, anders kan de telefoon hem niet installeren.
