@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.4",
+    "date": "2026-10-01",
+    "changes": [
+      "Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks",
+      "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat",
+      "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan",
+      "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"
+    ]
+  },
+  {
     "version": "1.3",
     "date": "2026-10-01",
     "changes": [

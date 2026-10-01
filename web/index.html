@@ -133,6 +133,24 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 .bub .lb{font-style:italic;color:var(--muted)}.bub.me .lb{color:#4d5e48}
 .dsep{align-self:center;font-size:12px;color:var(--muted);background:var(--chip);border-radius:8px;padding:3px 10px;margin:10px 0 2px}
 .more{align-self:center;background:var(--chip);color:var(--brand-2);border-radius:999px;padding:7px 16px;font-size:14px;font-weight:600;margin:6px 0}
+.bigstat{text-align:center;margin:8px 0}
+.bigstat .v{font-size:52px;font-weight:800;line-height:1;letter-spacing:-1px}
+.bigstat .u{font-size:15px;color:var(--muted);margin-top:4px}
+.statrow{display:flex;gap:10px;margin:4px 0}
+.statrow .b{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.statrow .b .v{font-size:22px;font-weight:700}
+.statrow .b .u{font-size:12px;color:var(--muted);margin-top:2px}
+.map{width:100%;aspect-ratio:3/2;background:var(--card);border:1px solid var(--line);border-radius:14px;margin:4px 0;display:block}
+.map path{fill:none;stroke:var(--brand-2);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.map .start{fill:#1D8A4E}.map .end{fill:#C0392B}
+.tlist button{display:block;width:100%;text-align:left;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--card);margin-bottom:10px;display:flex;gap:12px;align-items:center}
+.tlist .mini{width:72px;height:48px;flex:none;background:var(--bg);border-radius:8px}
+.tlist .mini path{fill:none;stroke:var(--brand-2);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.tlist .info{flex:1;min-width:0}
+.tlist .info b{display:block;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tlist .info small{color:var(--muted);font-size:13px}
+.rec-dot{display:inline-block;width:10px;height:10px;border-radius:5px;background:#C0392B;margin-right:6px;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.3}}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
 .toast.on{opacity:1}
 </style>
@@ -156,6 +174,12 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
         <span class="ic" style="background:#25A35A"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/><path d="M12 8v6M9.5 11.5 12 14l2.5-2.5"/></svg></span>
         <b>WhatsApp backup</b>
         <small id="tile-wa-sub">Chats en media veilig bewaren</small>
+      </button>
+      <button class="tile" id="tile-tracks" onclick="show('tracks')">
+        <span class="dot"></span>
+        <span class="ic" style="background:#C0392B"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+        <b>Mijn routes</b>
+        <small id="tile-tracks-sub">Leg je route vast met gps</small>
       </button>
       <div class="tile soon">
         <span class="ic" style="background:var(--muted)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
@@ -352,6 +376,90 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
   <main><div class="msgs" id="chat-msgs"></div></main>
 </section>
 
+<!-- ============ MIJN ROUTES ============ -->
+<section class="screen" id="s-tracks">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Mijn routes</h1>
+  </div>
+  <main>
+    <div class="card perm" id="tr-perm" style="display:none">
+      <p id="tr-perm-text">Mijn routes heeft toegang tot je locatie nodig om je route te kunnen opnemen.</p>
+      <button class="big" id="tr-perm-btn" onclick="trAskPerm()">Toestemming geven</button>
+    </div>
+    <div class="card perm" id="tr-gps" style="display:none">
+      <p>Zet locatie (gps) aan op je telefoon om een route op te nemen.</p>
+      <button class="big" onclick="Android.trackOpenLocationSettings()">Locatie-instellingen openen</button>
+    </div>
+
+    <!-- opnemen -->
+    <div class="card" id="tr-rec" style="display:none">
+      <div class="bigstat"><div class="v" id="tr-dist">0,00</div><div class="u">kilometer</div></div>
+      <svg class="map" id="tr-map" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet"><path id="tr-map-path" d=""></path></svg>
+      <div class="statrow">
+        <div class="b"><div class="v" id="tr-time">0:00</div><div class="u">tijd</div></div>
+        <div class="b"><div class="v" id="tr-speed">0,0</div><div class="u">km/u nu</div></div>
+        <div class="b"><div class="v" id="tr-avg">0,0</div><div class="u">km/u gem.</div></div>
+      </div>
+      <div class="statrow" style="margin-bottom:10px">
+        <div class="b"><div class="v" id="tr-ele">–</div><div class="u">hoogte</div></div>
+        <div class="b"><div class="v" id="tr-acc">–</div><div class="u">gps ± m</div></div>
+        <div class="b"><div class="v" id="tr-pts">0</div><div class="u">punten</div></div>
+      </div>
+      <p class="note" id="tr-wait" style="text-align:center">Wachten op gps-signaal…</p>
+      <div class="btns">
+        <button class="big" id="tr-pause" onclick="trPause()">Pauze</button>
+        <button class="big stop" onclick="trStop()">Stoppen</button>
+      </div>
+      <p class="note">Je kunt de app sluiten; het opnemen gaat door. De voortgang staat in de meldingenbalk.</p>
+    </div>
+
+    <!-- opslaan na stoppen -->
+    <div class="card" id="tr-save" style="display:none">
+      <h2>Route opslaan</h2>
+      <div id="tr-save-sum" class="sub"></div>
+      <label class="f">Naam van de route</label>
+      <input type="text" id="tr-name" class="search" placeholder="Bijv. Rondje Kralingse Plas">
+      <div class="btns">
+        <button class="big" onclick="trSave()">Opslaan</button>
+        <button class="big ghost" onclick="trDiscard()">Weggooien</button>
+      </div>
+    </div>
+
+    <!-- startknop + lijst -->
+    <div id="tr-home">
+      <button class="big" id="tr-start" style="margin-bottom:14px" onclick="trStart()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
+        Route opnemen
+      </button>
+      <div class="tlist" id="tr-list"></div>
+      <p class="note" id="tr-empty" style="text-align:center;display:none">Nog geen routes. Tik op "Route opnemen" om te beginnen.</p>
+    </div>
+  </main>
+</section>
+
+<!-- ============ ROUTEDETAIL ============ -->
+<section class="screen" id="s-track">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 id="td-title" style="font-size:18px">Route</h1>
+  </div>
+  <main>
+    <svg class="map" id="td-map" viewBox="0 0 320 213" preserveAspectRatio="xMidYMid meet"><path id="td-path" d=""></path></svg>
+    <div class="statrow"><div class="b"><div class="v" id="td-dist"></div><div class="u">km</div></div><div class="b"><div class="v" id="td-time"></div><div class="u">tijd</div></div><div class="b"><div class="v" id="td-avg"></div><div class="u">km/u gem.</div></div></div>
+    <div class="statrow" style="margin-bottom:10px"><div class="b"><div class="v" id="td-max"></div><div class="u">km/u max</div></div><div class="b"><div class="v" id="td-gain"></div><div class="u">↑ hoogte</div></div><div class="b"><div class="v" id="td-when"></div><div class="u">opgenomen</div></div></div>
+    <svg id="td-ele" class="map" style="aspect-ratio:auto;height:90px" viewBox="0 0 320 90" preserveAspectRatio="none"></svg>
+    <div class="btns">
+      <button class="big" onclick="tdShare()">Delen (GPX)</button>
+      <button class="big ghost" onclick="tdExport()">Opslaan in backup-map</button>
+    </div>
+    <div class="btns">
+      <button class="big ghost" onclick="tdRename()">Naam wijzigen</button>
+      <button class="big ghost" style="color:var(--bad)" onclick="tdDelete()">Verwijderen</button>
+    </div>
+  </main>
+</section>
+
 <!-- ============ INFO ============ -->
 <section class="screen" id="s-info">
   <div class="hdr">
@@ -431,7 +539,29 @@ if (!window.Android) window.Android = (function(){
     waChats(){ return JSON.stringify({chats:this._rd.chats,from:Date.now()-72e5}); },
     waMessages(id,before,limit){ const all=this._rd.msgs[id]||[]; const b=+before; const f=all.filter(m=>b<=0||m.t<b); return JSON.stringify(f.slice(Math.max(0,f.length-limit))); },
     waSearch(q){ const out=[]; const ql=q.toLowerCase(); for(const c of this._rd.chats){ for(const m of this._rd.msgs[c.id]){ if(m.text&&m.text.toLowerCase().includes(ql)){ out.push({...m,chat:c.id,chatName:c.name}); } } } return JSON.stringify(out.slice(0,200)); },
-    waRequestContacts(){ this._rd.contacts=true; setTimeout(()=>onWaChanged(),100); }
+    waRequestContacts(){ this._rd.contacts=true; setTimeout(()=>onWaChanged(),100); },
+    _tr:{perm:false,gps:true,running:false,paused:false,list:[],t:null,start:0,dist:0,pts:0,just:null},
+    trackHasPermission(){ return this._tr.perm; },
+    trackRequestPermission(){ this._tr.perm=true; setTimeout(()=>onTrackPerm(),200); },
+    trackGpsOn(){ return this._tr.gps; },
+    trackOpenLocationSettings(){ this._tr.gps=true; },
+    trackStart(){ const t=this._tr; if(!t.perm) return 'Geef eerst toestemming voor je locatie'; t.running=true;t.paused=false;t.start=Date.now();t.dist=0;t.pts=0;t.path='';
+      let lon=4.47917; const lat=51.9225;
+      t.t=setInterval(()=>{ if(t.paused)return; lon+=0.00008; t.dist+=6*2; t.pts++; t.lat=lat; t.lon=lon; t.acc=5+Math.random()*4; t.ele=5+Math.sin(t.pts/15)*3;
+        t.pathpts=(t.pathpts||[]); t.pathpts.push([lon,lat+Math.sin(t.pts/20)*0.0006]); },2000); return ''; },
+    trackPause(){ this._tr.paused=true; }, trackResume(){ this._tr.paused=false; },
+    trackStop(){ const t=this._tr; clearInterval(t.t); t.running=false; t.just={points:t.pts,stats:{distance:t.dist,movingMs:t.pts*2000,totalMs:Date.now()-t.start,avgSpeed:6,maxSpeed:7.2,eleGain:42,eleLoss:40}}; },
+    trackStatus(){ const t=this._tr; let path=''; if(t.pathpts&&t.pathpts.length>1){ const xs=t.pathpts.map(p=>p[0]),ys=t.pathpts.map(p=>p[1]);const mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys);const sx=280/((mxx-mnx)||1e-9),sy=140/((mxy-mny)||1e-9),s=Math.min(sx,sy); path=t.pathpts.map((p,i)=>(i?'L':'M')+(10+(p[0]-mnx)*s).toFixed(1)+' '+(150-(p[1]-mny)*s).toFixed(1)).join(' '); }
+      return JSON.stringify({running:t.running,paused:t.paused,startT:t.start,distance:t.dist,maxSpeed:7.2,movingMs:t.pts*2000,points:t.pts,now:Date.now(),lat:t.lat,lon:t.lon,acc:t.acc,ele:t.ele,error:'',path}); },
+    trackJustStopped(){ return this._tr.just?JSON.stringify(this._tr.just):''; },
+    trackSave(title){ const t=this._tr; const id=Date.now()+'__'+(title||'Route').replace(/ /g,'_')+'.trk'; t.list.unshift({id,title:title||'Route',t:t.start,stats:t.just.stats,path:'M10 120 L80 40 L160 90 L240 30 L290 70'}); t.just=null; return ''; },
+    trackDiscard(){ this._tr.just=null; },
+    trackList(){ return JSON.stringify(this._tr.list); },
+    trackDetail(id,w,h){ const r=this._tr.list.find(x=>x.id===id); if(!r) return JSON.stringify({error:'niet gevonden'}); return JSON.stringify({...r,path:'M12 180 L90 50 L180 110 L260 40 L308 90',ele:[[0,5],[500,12],[1000,8],[1500,18],[2000,6]]}); },
+    trackRename(id,title){ const r=this._tr.list.find(x=>x.id===id); if(r)r.title=title; return ''; },
+    trackDelete(id){ this._tr.list=this._tr.list.filter(x=>x.id!==id); return ''; },
+    trackExportBackup(id){ return this._wa.info.dest?'':'Kies eerst een backup-map (bij WhatsApp backup)'; },
+    trackShare(id){ return ''; }
   };
 })();
 
@@ -452,13 +582,14 @@ function show(name){
   if (name==='redial') enterRedial(); else stopPoll();
   if (name==='wa') enterWa(); else stopWaPoll();
   if (name==='chats') enterChats();
+  if (name==='tracks') enterTracks(); else stopTrackPoll();
   if (name==='info') renderInfo();
-  if (name==='home') refreshTile();
+  if (name==='home') { refreshTile(); refreshTrackTile(); }
 }
-const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats'};
+const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks'};
 window.goBack = function(){ if (current!=='home'){ show(BACK[current]||'home'); return true; } return false; };
-window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); };
-window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); refreshTile(); refreshWaTile(); };
+window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); };
+window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
 /* ---------- Auto redial ---------- */
 const ATT = [[5,'5'],[10,'10'],[25,'25'],[50,'50'],[0,'∞']];
@@ -806,6 +937,133 @@ function chatSearch(q){
   }, 250);
 }
 
+/* ---------- Mijn routes ---------- */
+let trackPoll = null;
+const fmtKm = m => (m/1000).toFixed(2).replace('.', ',');
+const fmtDur = ms => { const s = Math.floor(ms/1000), h = Math.floor(s/3600), m = Math.floor(s%3600/60), ss = s%60;
+  return h > 0 ? h + ':' + String(m).padStart(2,'0') + ':' + String(ss).padStart(2,'0') : m + ':' + String(ss).padStart(2,'0'); };
+const kmh = ms => (ms*3.6).toFixed(1).replace('.', ',');
+
+function enterTracks(){
+  const perm = Android.trackHasPermission();
+  const gps = Android.trackGpsOn();
+  $('#tr-perm').style.display = perm ? 'none' : 'block';
+  $('#tr-gps').style.display = (perm && !gps) ? 'block' : 'none';
+  $('#tr-perm-btn').textContent = store.get('trAsked', false) ? 'Instellingen openen' : 'Toestemming geven';
+  loadTrackList();
+  trackPollOnce();
+  stopTrackPoll(); trackPoll = setInterval(trackPollOnce, 1000);
+}
+function stopTrackPoll(){ if (trackPoll) { clearInterval(trackPoll); trackPoll = null; } }
+window.onTrackPerm = function(){ store.set('trAsked', false); enterTracks(); };
+
+function trAskPerm(){
+  if (store.get('trAsked', false) && !Android.trackHasPermission()) { Android.openAppSettings(); return; }
+  store.set('trAsked', true); Android.trackRequestPermission();
+}
+function trStart(){
+  if (!Android.trackGpsOn()) { toast('Zet eerst locatie (gps) aan'); return; }
+  const err = Android.trackStart();
+  if (err) { toast(err); if (!Android.trackHasPermission()) trAskPerm(); return; }
+  Android.vibrate(25); setTimeout(trackPollOnce, 200);
+}
+function trPause(){ const s = tstat(); if (s.paused) Android.trackResume(); else Android.trackPause(); Android.vibrate(10); setTimeout(trackPollOnce, 100); }
+function trStop(){ if (!confirm('Opname stoppen?')) return; Android.trackStop(); Android.vibrate(25); setTimeout(trackPollOnce, 200); }
+function tstat(){ try { return JSON.parse(Android.trackStatus()); } catch(e){ return {running:false}; } }
+
+function trackPollOnce(){
+  const s = tstat();
+  const just = !s.running ? Android.trackJustStopped() : '';
+  const saving = !!just;
+  $('#tr-rec').style.display = s.running ? 'block' : 'none';
+  $('#tr-save').style.display = saving ? 'block' : 'none';
+  $('#tr-home').style.display = (s.running || saving) ? 'none' : 'block';
+  if (s.running) {
+    $('#tr-pause').textContent = s.paused ? 'Hervatten' : 'Pauze';
+    $('#tr-dist').textContent = fmtKm(s.distance || 0);
+    $('#tr-time').textContent = fmtDur((s.now || Date.now()) - s.startT);
+    $('#tr-speed').textContent = s.paused ? '–' : kmh(lastSpeed(s));
+    $('#tr-avg').textContent = s.movingMs ? kmh((s.distance||0)/(s.movingMs/1000)) : '0,0';
+    $('#tr-ele').textContent = s.ele != null ? Math.round(s.ele) + ' m' : '–';
+    $('#tr-acc').textContent = s.acc != null ? '± ' + Math.round(s.acc) : '–';
+    $('#tr-pts').textContent = s.points || 0;
+    $('#tr-wait').style.display = (s.points > 0) ? 'none' : 'block';
+    if (s.error) { $('#tr-wait').style.display = 'block'; $('#tr-wait').textContent = s.error; }
+    $('#tr-map-path').setAttribute('d', s.path || '');
+  } else if (saving) {
+    try {
+      const j = JSON.parse(just), st = j.stats || {};
+      $('#tr-save-sum').textContent = fmtKm(st.distance||0) + ' km · ' + fmtDur(st.totalMs||0) + ' · ' + j.points + ' punten';
+      if (!$('#tr-name').value) $('#tr-name').value = defaultName();
+    } catch(e){}
+  }
+  refreshTrackTile(s);
+}
+let _spd = {t:0,d:0,v:0};
+function lastSpeed(s){ // afgeleide snelheid uit afstandsverschil
+  if (s.distance == null) return 0;
+  const now = s.now || Date.now();
+  if (_spd.t && now > _spd.t) { const dv = (s.distance - _spd.d) / ((now - _spd.t)/1000); _spd.v = dv >= 0 && dv < 50 ? dv : _spd.v; }
+  _spd.t = now; _spd.d = s.distance; return _spd.v;
+}
+function defaultName(){ const d = new Date(); const h = d.getHours();
+  const tod = h < 6 ? 'Nacht' : h < 12 ? 'Ochtend' : h < 18 ? 'Middag' : 'Avond';
+  return tod + 'route ' + d.toLocaleDateString('nl-NL', {day:'numeric', month:'short'}); }
+function trSave(){ const err = Android.trackSave($('#tr-name').value.trim()); if (err) { toast(err); return; } $('#tr-name').value=''; toast('Route opgeslagen ✓'); loadTrackList(); trackPollOnce(); }
+function trDiscard(){ if (!confirm('Deze opname weggooien?')) return; Android.trackDiscard(); $('#tr-name').value=''; trackPollOnce(); }
+
+function loadTrackList(){
+  let list; try { list = JSON.parse(Android.trackList()); } catch(e){ list = []; }
+  const el = $('#tr-list');
+  $('#tr-empty').style.display = list.length ? 'none' : 'block';
+  el.innerHTML = list.map(r => {
+    const st = r.stats || {};
+    return '<button onclick="openTrack(' + JSON.stringify(r.id).replace(/"/g,'&quot;') + ')">' +
+      '<svg class=mini viewBox="0 0 300 160" preserveAspectRatio="xMidYMid meet"><path d="' + (r.path||'') + '"></path></svg>' +
+      '<span class=info><b>' + esc(r.title || 'Route') + '</b>' +
+      '<small>' + fmtKm(st.distance||0) + ' km · ' + fmtDur(st.totalMs||0) + ' · ' + fmtD(r.t) + '</small></span></button>';
+  }).join('');
+}
+
+let tdId = null;
+function openTrack(id){ tdId = id; show('track'); loadTrack(); }
+function loadTrack(){
+  let d; try { d = JSON.parse(Android.trackDetail(tdId, 320, 213)); } catch(e){ return; }
+  if (d.error) { toast(d.error); goBack(); return; }
+  const st = d.stats || {};
+  $('#td-title').textContent = d.title || 'Route';
+  $('#td-path').setAttribute('d', d.path || '');
+  $('#td-dist').textContent = fmtKm(st.distance||0);
+  $('#td-time').textContent = fmtDur(st.totalMs||0);
+  $('#td-avg').textContent = st.avgSpeed != null ? kmh(st.avgSpeed) : '–';
+  $('#td-max').textContent = st.maxSpeed != null ? kmh(st.maxSpeed) : '–';
+  $('#td-gain').textContent = st.eleGain != null ? Math.round(st.eleGain) + ' m' : '–';
+  $('#td-when').textContent = new Date(d.t).toLocaleDateString('nl-NL', {day:'numeric', month:'short'});
+  drawEle(d.ele || []);
+}
+function drawEle(pts){
+  const svg = $('#td-ele');
+  if (pts.length < 2) { svg.innerHTML = '<text x=160 y=48 text-anchor=middle fill=#999 font-size=13>Geen hoogtegegevens</text>'; return; }
+  const xs = pts.map(p=>p[0]), ys = pts.map(p=>p[1]);
+  const mnx = Math.min(...xs), mxx = Math.max(...xs), mny = Math.min(...ys), mxy = Math.max(...ys);
+  const sx = 320/((mxx-mnx)||1), sy = 70/((mxy-mny)||1);
+  const d = pts.map((p,i)=>(i?'L':'M')+((p[0]-mnx)*sx).toFixed(1)+' '+(80-(p[1]-mny)*sy).toFixed(1)).join(' ');
+  svg.innerHTML = '<path d="' + d + ' L320 90 L0 90 Z" fill="rgba(47,116,207,.18)" stroke="none"/><path d="' + d + '" fill=none stroke="var(--brand-2)" stroke-width=2/>';
+}
+function tdShare(){ const e = Android.trackShare(tdId); if (e) toast(e); }
+function tdExport(){ const e = Android.trackExportBackup(tdId); toast(e ? e : 'Opgeslagen in backup-map ✓'); }
+function tdRename(){ const n = prompt('Nieuwe naam:', $('#td-title').textContent); if (n == null) return; const e = Android.trackRename(tdId, n.trim()); if (e) { toast(e); return; } loadTrack(); }
+function tdDelete(){ if (!confirm('Deze route verwijderen?')) return; const e = Android.trackDelete(tdId); if (e) { toast(e); return; } toast('Verwijderd'); goBack(); loadTrackList(); }
+
+function refreshTrackTile(s){
+  if (!s) s = tstat();
+  const live = !!s.running;
+  const tile = $('#tile-tracks'); if (tile) tile.classList.toggle('live', live);
+  const sub = $('#tile-tracks-sub');
+  if (sub) sub.textContent = live ? (s.paused ? 'Opname gepauzeerd' : 'Bezig: ' + fmtKm(s.distance||0) + ' km') : 'Leg je route vast met gps';
+}
+function enterTracksList(){ loadTrackList(); }
+
 /* ---------- Versie & updates ---------- */
 function ver(){ try { return JSON.parse(Android.version()); } catch(e){ return {}; } }
 function renderInfo(){
@@ -833,7 +1091,7 @@ window.onUpdateStatus = function(r){
 /* ---------- start ---------- */
 $('#hver').textContent = 'v' + ver().webName;
 bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
-refreshTile(); refreshWaTile();
+refreshTile(); refreshWaTile(); refreshTrackTile();
 const po = Android.pendingOpen(); if (po) openTool(po);
 </script>
 </body>

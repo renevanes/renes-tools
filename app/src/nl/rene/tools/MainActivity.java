@@ -51,6 +51,7 @@ public class MainActivity extends Activity {
     private static final int REQ_TREE = 13;
     private static final int REQ_STORAGE = 14;
     private static final int REQ_CONTACTS = 15;
+    private static final int REQ_LOCATION = 16;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -581,6 +582,127 @@ public class MainActivity extends Activity {
 
         private static String errJson(Exception e) {
             try { return new JSONObject().put("error", String.valueOf(e.getMessage())).toString(); } catch (Exception x) { return "{}"; }
+        }
+
+        // ----- Mijn routes -----
+
+        @JavascriptInterface public boolean trackHasPermission() {
+            return ctx.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                    || ctx.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface public void trackRequestPermission() {
+            a.h.post(() -> {
+                java.util.ArrayList<String> l = new java.util.ArrayList<>();
+                l.add(Manifest.permission.ACCESS_FINE_LOCATION);
+                l.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+                if (Build.VERSION.SDK_INT >= 33) l.add(Manifest.permission.POST_NOTIFICATIONS);
+                a.requestPermissions(l.toArray(new String[0]), REQ_LOCATION);
+            });
+        }
+
+        @JavascriptInterface public boolean trackGpsOn() {
+            try {
+                android.location.LocationManager lm = (android.location.LocationManager) ctx.getSystemService(LOCATION_SERVICE);
+                return lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)
+                        || lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER);
+            } catch (Exception e) { return false; }
+        }
+
+        @JavascriptInterface public void trackOpenLocationSettings() {
+            a.h.post(() -> { try { a.startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)); } catch (Exception ignored) { } });
+        }
+
+        @JavascriptInterface public String trackStart() {
+            if (TracksService.running) return "Er loopt al een opname";
+            if (!trackHasPermission()) return "Geef eerst toestemming voor je locatie";
+            Intent i = new Intent(ctx, TracksService.class).setAction(TracksService.ACTION_START);
+            try {
+                if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i); else ctx.startService(i);
+                return "";
+            } catch (Exception e) { return "Starten mislukt: " + e.getMessage(); }
+        }
+
+        @JavascriptInterface public void trackPause() { send(TracksService.ACTION_PAUSE); }
+        @JavascriptInterface public void trackResume() { send(TracksService.ACTION_RESUME); }
+        @JavascriptInterface public void trackStop() { send(TracksService.ACTION_STOP); }
+
+        private void send(String action) {
+            try { ctx.startService(new Intent(ctx, TracksService.class).setAction(action)); } catch (Exception ignored) { }
+        }
+
+        @JavascriptInterface public String trackStatus() { return TracksService.status(ctx); }
+
+        /** Na stoppen: slaat de opgenomen route op onder een titel. Geeft "" of een fout. */
+        @JavascriptInterface public String trackSave(String title) {
+            try {
+                android.content.SharedPreferences p = Tracks.prefs(ctx);
+                long startT = p.getLong("lastStartT", System.currentTimeMillis());
+                Tracks.finalize(ctx, startT, title);
+                p.edit().remove("justStopped").apply();
+                return "";
+            } catch (Exception e) { return "Opslaan mislukt: " + e.getMessage(); }
+        }
+
+        @JavascriptInterface public void trackDiscard() {
+            Tracks.liveFile(ctx).delete();
+            Tracks.prefs(ctx).edit().remove("justStopped").apply();
+        }
+
+        @JavascriptInterface public String trackJustStopped() {
+            android.content.SharedPreferences p = Tracks.prefs(ctx);
+            if (!p.getBoolean("justStopped", false)) return "";
+            try {
+                JSONObject o = new JSONObject();
+                o.put("points", p.getInt("lastPoints", 0));
+                o.put("stats", new JSONObject(p.getString("lastStats", "{}")));
+                return o.toString();
+            } catch (Exception e) { return ""; }
+        }
+
+        @JavascriptInterface public String trackList() {
+            try { return Tracks.listJson(ctx); } catch (Exception e) { return "[]"; }
+        }
+
+        @JavascriptInterface public String trackDetail(String id, int w, int h) {
+            try { return Tracks.detailJson(ctx, id, w, h); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String trackRename(String id, String title) {
+            File f = Tracks.byId(ctx, id);
+            if (f == null) return "Route niet gevonden";
+            return Tracks.rename(ctx, f, title) ? "" : "Naam wijzigen lukt niet";
+        }
+
+        @JavascriptInterface public String trackDelete(String id) {
+            File f = Tracks.byId(ctx, id);
+            if (f == null) return "Route niet gevonden";
+            return f.delete() ? "" : "Verwijderen lukt niet";
+        }
+
+        @JavascriptInterface public String trackExportBackup(String id) {
+            File f = Tracks.byId(ctx, id);
+            if (f == null) return "Route niet gevonden";
+            if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map (bij WhatsApp backup)";
+            try { return Tracks.exportToBackup(ctx, f) ? "" : "Export mislukt"; }
+            catch (Exception e) { return "Export mislukt: " + e.getMessage(); }
+        }
+
+        @JavascriptInterface public String trackShare(String id) {
+            File f = Tracks.byId(ctx, id);
+            if (f == null) return "Route niet gevonden";
+            a.h.post(() -> {
+                try {
+                    File gpx = Tracks.writeGpxFile(ctx, f);
+                    Uri u = Uri.parse("content://" + a.getPackageName() + ".files/" + gpx.getName());
+                    Intent i = new Intent(Intent.ACTION_SEND).setType("application/gpx+xml")
+                            .putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    a.startActivity(Intent.createChooser(i, "Route delen"));
+                } catch (Exception e) {
+                    Toast.makeText(ctx, "Delen lukt niet: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            });
+            return "";
         }
 
         @JavascriptInterface public String pendingOpen() {

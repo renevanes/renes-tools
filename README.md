@@ -26,6 +26,13 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Exporteert per chat een HTML-bestand naar `WhatsApp backup/Leesbare chats/`, met foto's uit de Media-map. In de app worden foto's getoond via een afgeschermde `https://app.renes-tools.local/wa-media/`-route (`MediaActivity`/`MediaClient`).
 - De sleutel staat alleen in de app, op de telefoon. Na een gewone of automatische backup worden de chats desgewenst vanzelf opnieuw leesbaar gemaakt.
 
+## Mijn routes
+- GPS-routeopname (zoals het vroegere My Tracks) via een voorgrondservice met `LocationManager` (geen Google Play Services). Loopt door met het scherm uit; pauzeren/hervatten kan (`TracksService.java`).
+- Live afstand (haversine), tijd, snelheid, hoogte; de route wordt als SVG-pad getekend zonder kaarttegels. Statistiek en GPX-schrijven zitten in `Tracks.java` (pure Java, los getest).
+- Punten worden per stuk naar `tracks/live.trk` weggeschreven (crashbestendig) en bij stoppen hernoemd naar `<tijd>__<titel>.trk`.
+- Routes terugkijken met hoogteprofiel, delen als GPX (eigen `GpxProvider`, geen AndroidX) of opslaan in de backup-map onder `Routes/`.
+- Nodig: locatietoestemming en `FOREGROUND_SERVICE_LOCATION`.
+
 ## Versies en updates
 - `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.

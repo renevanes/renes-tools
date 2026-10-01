@@ -1,13 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.3",
-  "versionCode": 4,
-  "nativeLevel": 4,
+  "versionName": "1.4",
+  "versionCode": 5,
+  "nativeLevel": 5,
   "web": "index.html",
-  "webSha256": "7aac6db85f5d4ebea99de1fc6acb376ff5343c6c568d760bbe17b1b905fa4f83",
+  "webSha256": "f5371b0d6fed038a182c13f6f11243666c517038456313360d6dbdfe0dc4f408",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "230806e77490ebb8e899c2d0637c76b60b021b1e6998800e17be8849179881dd",
+  "apkSha256": "66c0cbd2ffac06725729b12ad8610beb58efb7efd0659f5ed3be9f518e159a84",
   "changelog": [
+    {
+      "version": "1.4",
+      "date": "2026-10-01",
+      "changes": [
+        "Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks",
+        "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat",
+        "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan",
+        "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"
+      ]
+    },
     {
       "version": "1.3",
       "date": "2026-10-01",
