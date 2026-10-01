@@ -1,10 +1,12 @@
 <!DOCTYPE html>
-<!-- RENES-TOOLS-UI versie 1.4 (5) -->
+<!-- RENES-TOOLS-UI versie 1.5 (6) -->
 <html lang="nl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Rene's Tools</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<script src="vendor/leaflet.js"></script>
 <style>
 :root{
   --brand:#1E5AA8; --brand-2:#2F74CF; --brand-ink:#fff;
@@ -151,6 +153,9 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 .tlist .info small{color:var(--muted);font-size:13px}
 .rec-dot{display:inline-block;width:10px;height:10px;border-radius:5px;background:#C0392B;margin-right:6px;animation:blink 1.2s infinite}
 @keyframes blink{50%{opacity:.3}}
+.lmap{width:100%;aspect-ratio:3/2;border:1px solid var(--line);border-radius:14px;margin:4px 0;background:var(--card);overflow:hidden;z-index:0}
+.leaflet-container{background:#dfe3ea}
+.leaflet-control-attribution{font-size:10px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
 .toast.on{opacity:1}
 </style>
@@ -445,16 +450,20 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
     <h1 id="td-title" style="font-size:18px">Route</h1>
   </div>
   <main>
-    <svg class="map" id="td-map" viewBox="0 0 320 213" preserveAspectRatio="xMidYMid meet"><path id="td-path" d=""></path></svg>
+    <div id="td-map" class="lmap"></div>
+    <svg class="map" id="td-shape" viewBox="0 0 320 213" preserveAspectRatio="xMidYMid meet" style="display:none"><path id="td-path" d=""></path></svg>
     <div class="statrow"><div class="b"><div class="v" id="td-dist"></div><div class="u">km</div></div><div class="b"><div class="v" id="td-time"></div><div class="u">tijd</div></div><div class="b"><div class="v" id="td-avg"></div><div class="u">km/u gem.</div></div></div>
     <div class="statrow" style="margin-bottom:10px"><div class="b"><div class="v" id="td-max"></div><div class="u">km/u max</div></div><div class="b"><div class="v" id="td-gain"></div><div class="u">↑ hoogte</div></div><div class="b"><div class="v" id="td-when"></div><div class="u">opgenomen</div></div></div>
     <svg id="td-ele" class="map" style="aspect-ratio:auto;height:90px" viewBox="0 0 320 90" preserveAspectRatio="none"></svg>
     <div class="btns">
-      <button class="big" onclick="tdShare()">Delen (GPX)</button>
-      <button class="big ghost" onclick="tdExport()">Opslaan in backup-map</button>
+      <button class="big" onclick="tdMaps()">Openen in Google Maps</button>
+      <button class="big ghost" onclick="tdShare()">Delen (GPX)</button>
     </div>
     <div class="btns">
+      <button class="big ghost" onclick="tdExport()">Opslaan in backup-map</button>
       <button class="big ghost" onclick="tdRename()">Naam wijzigen</button>
+    </div>
+    <div class="btns">
       <button class="big ghost" style="color:var(--bad)" onclick="tdDelete()">Verwijderen</button>
     </div>
   </main>
@@ -485,9 +494,9 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 <div class="toast" id="toast"></div>
 
 <script>
-const VERSION_NAME = "1.4";
-const VERSION_CODE = 5;
-const CHANGELOG = [{"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+const VERSION_NAME = "1.5";
+const VERSION_CODE = 6;
+const CHANGELOG = [{"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
 
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
 if (!window.Android) window.Android = (function(){
@@ -557,7 +566,9 @@ if (!window.Android) window.Android = (function(){
     trackSave(title){ const t=this._tr; const id=Date.now()+'__'+(title||'Route').replace(/ /g,'_')+'.trk'; t.list.unshift({id,title:title||'Route',t:t.start,stats:t.just.stats,path:'M10 120 L80 40 L160 90 L240 30 L290 70'}); t.just=null; return ''; },
     trackDiscard(){ this._tr.just=null; },
     trackList(){ return JSON.stringify(this._tr.list); },
-    trackDetail(id,w,h){ const r=this._tr.list.find(x=>x.id===id); if(!r) return JSON.stringify({error:'niet gevonden'}); return JSON.stringify({...r,path:'M12 180 L90 50 L180 110 L260 40 L308 90',ele:[[0,5],[500,12],[1000,8],[1500,18],[2000,6]]}); },
+    trackDetail(id,w,h){ const r=this._tr.list.find(x=>x.id===id); if(!r) return JSON.stringify({error:'niet gevonden'});
+      const line=[]; let la=51.9225, lo=4.47917; for(let i=0;i<40;i++){ la+=0.0006*Math.sin(i/6); lo+=0.0008; line.push([Math.round(la*1e6)/1e6, Math.round(lo*1e6)/1e6]); }
+      return JSON.stringify({...r,path:'M12 180 L90 50 L180 110 L260 40 L308 90',line,ele:[[0,5],[500,12],[1000,8],[1500,18],[2000,6]]}); },
     trackRename(id,title){ const r=this._tr.list.find(x=>x.id===id); if(r)r.title=title; return ''; },
     trackDelete(id){ this._tr.list=this._tr.list.filter(x=>x.id!==id); return ''; },
     trackExportBackup(id){ return this._wa.info.dest?'':'Kies eerst een backup-map (bij WhatsApp backup)'; },
@@ -1025,12 +1036,13 @@ function loadTrackList(){
   }).join('');
 }
 
-let tdId = null;
+let tdId = null, tdLine = null, lmap = null, lmapLayer = null;
 function openTrack(id){ tdId = id; show('track'); loadTrack(); }
 function loadTrack(){
   let d; try { d = JSON.parse(Android.trackDetail(tdId, 320, 213)); } catch(e){ return; }
   if (d.error) { toast(d.error); goBack(); return; }
   const st = d.stats || {};
+  tdLine = d.line || [];
   $('#td-title').textContent = d.title || 'Route';
   $('#td-path').setAttribute('d', d.path || '');
   $('#td-dist').textContent = fmtKm(st.distance||0);
@@ -1040,6 +1052,42 @@ function loadTrack(){
   $('#td-gain').textContent = st.eleGain != null ? Math.round(st.eleGain) + ' m' : '–';
   $('#td-when').textContent = new Date(d.t).toLocaleDateString('nl-NL', {day:'numeric', month:'short'});
   drawEle(d.ele || []);
+  drawMap(tdLine);
+}
+function drawMap(line){
+  const hasMap = typeof L !== 'undefined';
+  $('#td-map').style.display = hasMap ? 'block' : 'none';
+  $('#td-shape').style.display = hasMap ? 'none' : 'block';
+  if (!hasMap || !line || line.length < 1) return;
+  try {
+    if (!lmap) {
+      lmap = L.map('td-map', { attributionControl: true, zoomControl: true });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '© OpenStreetMap'
+      }).addTo(lmap);
+    }
+    if (lmapLayer) { lmap.removeLayer(lmapLayer); lmapLayer = null; }
+    const grp = L.featureGroup();
+    if (line.length >= 2) L.polyline(line, { color: '#2F74CF', weight: 5, opacity: .9 }).addTo(grp);
+    L.circleMarker(line[0], { radius: 7, color: '#fff', weight: 2, fillColor: '#1D8A4E', fillOpacity: 1 }).addTo(grp);
+    L.circleMarker(line[line.length-1], { radius: 7, color: '#fff', weight: 2, fillColor: '#C0392B', fillOpacity: 1 }).addTo(grp);
+    grp.addTo(lmap);
+    lmapLayer = grp;
+    // kaart heeft zijn uiteindelijke grootte pas na het tonen van het scherm
+    setTimeout(() => { lmap.invalidateSize(); try { lmap.fitBounds(grp.getBounds(), { padding: [24, 24] }); } catch(e){ lmap.setView(line[0], 15); } }, 60);
+  } catch(e) {
+    $('#td-map').style.display = 'none';
+    $('#td-shape').style.display = 'block';
+  }
+}
+function tdMaps(){
+  if (!tdLine || !tdLine.length) { toast('Geen locatie beschikbaar'); return; }
+  const s = tdLine[0], e = tdLine[tdLine.length-1];
+  // toon de route van start naar eind in Google Maps (wandelroute)
+  const url = tdLine.length >= 2
+    ? 'https://www.google.com/maps/dir/?api=1&origin=' + s[0] + ',' + s[1] + '&destination=' + e[0] + ',' + e[1] + '&travelmode=walking'
+    : 'https://www.google.com/maps/search/?api=1&query=' + s[0] + ',' + s[1];
+  window.open(url, '_blank');
 }
 function drawEle(pts){
   const svg = $('#td-ele');

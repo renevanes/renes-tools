@@ -23,6 +23,10 @@ s = s.replace('__VERSION_NAME__', name).replace('__VERSION_CODE__', code).replac
 open('build/assets/index.html', 'w', encoding='utf-8').write(s)
 PY
 
+# 1b. Kaartbibliotheek (Leaflet) meekopieren naar de assets
+mkdir -p $B/assets/vendor
+cp web/vendor/leaflet.js web/vendor/leaflet.css $B/assets/vendor/
+
 # 2. Versie-informatie voor de Java-code
 cat > $B/gen/Version.java <<JAVA
 package nl.rene.tools;

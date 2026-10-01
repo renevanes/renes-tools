@@ -1,13 +1,21 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.4",
-  "versionCode": 5,
-  "nativeLevel": 5,
+  "versionName": "1.5",
+  "versionCode": 6,
+  "nativeLevel": 6,
   "web": "index.html",
-  "webSha256": "f5371b0d6fed038a182c13f6f11243666c517038456313360d6dbdfe0dc4f408",
+  "webSha256": "58424a419c519944de9f988780f0d3c226aed9547156ba43002df8885c466318",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "66c0cbd2ffac06725729b12ad8610beb58efb7efd0659f5ed3be9f518e159a84",
+  "apkSha256": "3e9c8b362632903a9eecbfde137c4bb5a42f440b702405a05dd0948154234207",
   "changelog": [
+    {
+      "version": "1.5",
+      "date": "2026-10-01",
+      "changes": [
+        "Mijn routes toont je route nu op een echte kaart (OpenStreetMap)",
+        "Knop 'Openen in Google Maps' om de route daar te bekijken"
+      ]
+    },
     {
       "version": "1.4",
       "date": "2026-10-01",

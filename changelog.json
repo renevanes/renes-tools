@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.5",
+    "date": "2026-10-01",
+    "changes": [
+      "Mijn routes toont je route nu op een echte kaart (OpenStreetMap)",
+      "Knop 'Openen in Google Maps' om de route daar te bekijken"
+    ]
+  },
+  {
     "version": "1.4",
     "date": "2026-10-01",
     "changes": [

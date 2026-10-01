@@ -160,6 +160,8 @@ final class Tracks {
 
     private static String round(double v) { return String.valueOf(Math.round(v * 10) / 10.0); }
 
+    private static double round6(double v) { return Math.round(v * 1e6) / 1e6; }
+
     // ---------- opslag ----------
 
     static File liveFile(Context c) { return new File(dir(c), "live.trk"); }
@@ -346,6 +348,18 @@ final class Tracks {
         o.put("t", tsOf(f));
         o.put("stats", statsJson(s));
         o.put("path", svgPath(pts, w, h, 12));
+        // echte lat/lon-punten voor de kaart (afgevlakt tot max ~800 punten)
+        JSONArray line = new JSONArray();
+        int lstep = Math.max(1, pts.size() / 800);
+        for (int i = 0; i < pts.size(); i += lstep) {
+            Pt p = pts.get(i);
+            line.put(new JSONArray().put(round6(p.lat)).put(round6(p.lon)));
+        }
+        if (!pts.isEmpty() && (pts.size() - 1) % lstep != 0) {
+            Pt last = pts.get(pts.size() - 1);
+            line.put(new JSONArray().put(round6(last.lat)).put(round6(last.lon)));
+        }
+        o.put("line", line);
         // hoogteprofiel: afstand (x) tegen hoogte (y), vereenvoudigd
         JSONArray ele = new JSONArray();
         double dist = 0; Pt prev = null;

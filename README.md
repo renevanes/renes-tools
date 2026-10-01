@@ -31,6 +31,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Live afstand (haversine), tijd, snelheid, hoogte; de route wordt als SVG-pad getekend zonder kaarttegels. Statistiek en GPX-schrijven zitten in `Tracks.java` (pure Java, los getest).
 - Punten worden per stuk naar `tracks/live.trk` weggeschreven (crashbestendig) en bij stoppen hernoemd naar `<tijd>__<titel>.trk`.
 - Routes terugkijken met hoogteprofiel, delen als GPX (eigen `GpxProvider`, geen AndroidX) of opslaan in de backup-map onder `Routes/`.
+- Routedetail toont de route op een echte kaart (Leaflet + OpenStreetMap-tegels, meegeleverd in de assets en geserveerd via de `/vendor/`-route van `MediaClient`). Knop "Openen in Google Maps" opent de route (start→eind) in Google Maps.
 - Nodig: locatietoestemming en `FOREGROUND_SERVICE_LOCATION`.
 
 ## Versies en updates

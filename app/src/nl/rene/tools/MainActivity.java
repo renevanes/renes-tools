@@ -96,7 +96,7 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
         s.setTextZoom(100);
-        web.setWebViewClient(new MediaClient());
+        web.setWebViewClient(new MediaClient(this));
         web.setWebChromeClient(new WebChromeClient());
         web.addJavascriptInterface(new Bridge(this), "Android");
         web.setBackgroundColor(Color.parseColor("#F3F5F9"));
@@ -710,14 +710,26 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** Toont foto's uit de WhatsApp-map in de chatweergave via https://app.renes-tools.local/wa-media/... */
+    /** Serveert foto's uit de WhatsApp-map en de meegeleverde kaartbibliotheek aan de WebView. */
     static final class MediaClient extends WebViewClient {
-        MediaClient() { }
+        private final Context ctx;
+        MediaClient(Context c) { ctx = c.getApplicationContext(); }
 
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
             Uri u = req.getUrl();
-            if (u == null || !"app.renes-tools.local".equals(u.getHost()) || u.getPath() == null || !u.getPath().startsWith("/wa-media/")) return null;
+            if (u == null || !"app.renes-tools.local".equals(u.getHost()) || u.getPath() == null) return null;
+            String path = u.getPath();
+            // Kaartbibliotheek (Leaflet) uit de meegeleverde assets
+            if (path.startsWith("/vendor/")) {
+                String name = path.substring("/vendor/".length());
+                if (name.contains("/") || name.contains("..")) return notFound();
+                try {
+                    String mime = name.endsWith(".css") ? "text/css" : name.endsWith(".js") ? "application/javascript" : "application/octet-stream";
+                    return new WebResourceResponse(mime, "utf-8", ctx.getAssets().open("vendor/" + name));
+                } catch (Exception e) { return notFound(); }
+            }
+            if (!path.startsWith("/wa-media/")) return null;
             try {
                 File root = null;
                 for (WaBackup.Source s : WaBackup.sources()) if ("WhatsApp".equals(s.name) && s.dir != null) root = s.dir;
