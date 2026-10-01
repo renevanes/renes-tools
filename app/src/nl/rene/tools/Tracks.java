@@ -337,6 +337,20 @@ final class Tracks {
         return f.getName().endsWith(".trk") && f.isFile() ? f : null;
     }
 
+    /** Lat/lon-punten van de lopende opname (afgevlakt), voor de live kaart. */
+    static String liveLineJson(Context c) {
+        try {
+            List<Pt> pts = readPoints(liveFile(c));
+            JSONArray a = new JSONArray();
+            int step = Math.max(1, pts.size() / 500);
+            for (int i = 0; i < pts.size(); i += step) {
+                Pt p = pts.get(i);
+                a.put(new JSONArray().put(round6(p.lat)).put(round6(p.lon)));
+            }
+            return a.toString();
+        } catch (Exception e) { return "[]"; }
+    }
+
     static String detailJson(Context c, String id, double w, double h) throws Exception {
         File f = byId(c, id);
         if (f == null) throw new Exception("Route niet gevonden");

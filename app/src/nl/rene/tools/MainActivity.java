@@ -649,6 +649,24 @@ public class MainActivity extends Activity {
             Tracks.prefs(ctx).edit().remove("justStopped").apply();
         }
 
+        @JavascriptInterface public String trackLivePoints() {
+            return Tracks.liveLineJson(ctx);
+        }
+
+        /** Opent een http(s)- of geo-link in de bijbehorende app (bijv. Google Maps). */
+        @JavascriptInterface public void openUrl(String url) {
+            if (url == null) return;
+            String low = url.toLowerCase();
+            if (!low.startsWith("https://") && !low.startsWith("http://") && !low.startsWith("geo:")) return;
+            a.h.post(() -> {
+                try {
+                    a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                } catch (Exception e) {
+                    Toast.makeText(ctx, "Geen app gevonden om dit te openen", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         @JavascriptInterface public String trackJustStopped() {
             android.content.SharedPreferences p = Tracks.prefs(ctx);
             if (!p.getBoolean("justStopped", false)) return "";

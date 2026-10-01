@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.6",
+    "date": "2026-10-01",
+    "changes": [
+      "Mijn routes toont nu ook tijdens het opnemen een echte kaart",
+      "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"
+    ]
+  },
+  {
     "version": "1.5",
     "date": "2026-10-01",
     "changes": [

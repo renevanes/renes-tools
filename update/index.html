@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- RENES-TOOLS-UI versie 1.5 (6) -->
+<!-- RENES-TOOLS-UI versie 1.6 (7) -->
 <html lang="nl">
 <head>
 <meta charset="utf-8">
@@ -153,7 +153,24 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 .tlist .info small{color:var(--muted);font-size:13px}
 .rec-dot{display:inline-block;width:10px;height:10px;border-radius:5px;background:#C0392B;margin-right:6px;animation:blink 1.2s infinite}
 @keyframes blink{50%{opacity:.3}}
+.dlg-bg{position:fixed;inset:0;background:rgba(10,16,28,.45);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.dlg-bg.on{display:flex}
+.dlg{background:var(--card);color:var(--ink);border-radius:18px;padding:20px;width:100%;max-width:380px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.dlg-t{font-size:18px;font-weight:700;margin-bottom:6px}
+.dlg-m{font-size:15px;color:var(--muted);white-space:pre-line;margin-bottom:14px}
+.dlg input{margin:0 0 14px}
+.dlg-b{display:flex;gap:10px}
+.dlg-b button{flex:1;padding:13px;border-radius:12px;font-weight:700;font-size:16px;background:var(--chip);color:var(--brand-2)}
+.dlg-b button.ok{background:var(--brand-2);color:#fff}
+.dlg-b button.ok.danger{background:var(--bad)}
 .lmap{width:100%;aspect-ratio:3/2;border:1px solid var(--line);border-radius:14px;margin:4px 0;background:var(--card);overflow:hidden;z-index:0}
+.modal{position:fixed;inset:0;background:rgba(10,16,24,.5);display:none;align-items:center;justify-content:center;z-index:2000;padding:24px}
+.modal.on{display:flex}
+.modal-box{background:var(--card);border-radius:16px;padding:20px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.modal-box h3{margin:0 0 8px;font-size:18px}
+.modal-box p{margin:0 0 14px;color:var(--muted);font-size:15px;white-space:pre-line}
+.modal-btns{display:flex;gap:10px;margin-top:14px}
+.modal-btns .big{flex:1;padding:12px}
 .leaflet-container{background:#dfe3ea}
 .leaflet-control-attribution{font-size:10px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
@@ -400,7 +417,8 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
     <!-- opnemen -->
     <div class="card" id="tr-rec" style="display:none">
       <div class="bigstat"><div class="v" id="tr-dist">0,00</div><div class="u">kilometer</div></div>
-      <svg class="map" id="tr-map" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet"><path id="tr-map-path" d=""></path></svg>
+      <div id="tr-lmap" class="lmap"></div>
+      <svg class="map" id="tr-map" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet" style="display:none"><path id="tr-map-path" d=""></path></svg>
       <div class="statrow">
         <div class="b"><div class="v" id="tr-time">0:00</div><div class="u">tijd</div></div>
         <div class="b"><div class="v" id="tr-speed">0,0</div><div class="u">km/u nu</div></div>
@@ -493,10 +511,28 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 
 <div class="toast" id="toast"></div>
 
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h3 id="modal-title"></h3>
+    <p id="modal-text"></p>
+    <input type="text" id="modal-input" class="search" style="display:none;margin-bottom:0">
+    <div class="modal-btns">
+      <button class="big ghost" id="modal-cancel">Annuleren</button>
+      <button class="big" id="modal-ok">OK</button>
+    </div>
+  </div>
+</div>
+<div class="dlg-bg" id="dlg"><div class="dlg" role="dialog" aria-modal="true">
+  <div class="dlg-t" id="dlg-t"></div>
+  <div class="dlg-m" id="dlg-m"></div>
+  <input type="text" id="dlg-in" class="search" style="display:none">
+  <div class="dlg-b"><button id="dlg-no">Annuleren</button><button id="dlg-ok" class="ok">OK</button></div>
+</div></div>
+
 <script>
-const VERSION_NAME = "1.5";
-const VERSION_CODE = 6;
-const CHANGELOG = [{"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+const VERSION_NAME = "1.6";
+const VERSION_CODE = 7;
+const CHANGELOG = [{"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
 
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
 if (!window.Android) window.Android = (function(){
@@ -563,6 +599,8 @@ if (!window.Android) window.Android = (function(){
     trackStatus(){ const t=this._tr; let path=''; if(t.pathpts&&t.pathpts.length>1){ const xs=t.pathpts.map(p=>p[0]),ys=t.pathpts.map(p=>p[1]);const mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys);const sx=280/((mxx-mnx)||1e-9),sy=140/((mxy-mny)||1e-9),s=Math.min(sx,sy); path=t.pathpts.map((p,i)=>(i?'L':'M')+(10+(p[0]-mnx)*s).toFixed(1)+' '+(150-(p[1]-mny)*s).toFixed(1)).join(' '); }
       return JSON.stringify({running:t.running,paused:t.paused,startT:t.start,distance:t.dist,maxSpeed:7.2,movingMs:t.pts*2000,points:t.pts,now:Date.now(),lat:t.lat,lon:t.lon,acc:t.acc,ele:t.ele,error:'',path}); },
     trackJustStopped(){ return this._tr.just?JSON.stringify(this._tr.just):''; },
+    trackLivePoints(){ const t=this._tr; return JSON.stringify((t.pathpts||[]).map(p=>[Math.round(p[1]*1e6)/1e6, Math.round(p[0]*1e6)/1e6])); },
+    openUrl(u){ toast('Zou openen: '+u.slice(0,40)); },
     trackSave(title){ const t=this._tr; const id=Date.now()+'__'+(title||'Route').replace(/ /g,'_')+'.trk'; t.list.unshift({id,title:title||'Route',t:t.start,stats:t.just.stats,path:'M10 120 L80 40 L160 90 L240 30 L290 70'}); t.just=null; return ''; },
     trackDiscard(){ this._tr.just=null; },
     trackList(){ return JSON.stringify(this._tr.list); },
@@ -584,6 +622,35 @@ const store = {
 let current = 'home', poll = null, nameFor = '', lastResultShown = '';
 
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2600); }
+
+/* Eigen dialogen in plaats van de systeem-popups van de WebView. */
+let _modalCb = null;
+function askConfirm(title, text, okLabel, onOk){
+  openModal(title, text, null, okLabel || 'OK', v => { if (v !== null) onOk(); });
+}
+function askInput(title, text, value, okLabel, onOk){
+  openModal(title, text, value == null ? '' : value, okLabel || 'OK', v => { if (v !== null) onOk(v); });
+}
+function openModal(title, text, inputVal, okLabel, cb){
+  _modalCb = cb;
+  $('#modal-title').textContent = title || '';
+  $('#modal-text').textContent = text || '';
+  $('#modal-text').style.display = text ? 'block' : 'none';
+  const inp = $('#modal-input');
+  if (inputVal === null) { inp.style.display = 'none'; }
+  else { inp.style.display = 'block'; inp.value = inputVal; }
+  $('#modal-ok').textContent = okLabel;
+  $('#modal').classList.add('on');
+  if (inputVal !== null) setTimeout(() => { inp.focus(); inp.select(); }, 50);
+}
+function closeModal(result){
+  $('#modal').classList.remove('on');
+  const cb = _modalCb; _modalCb = null;
+  if (cb) cb(result);
+}
+$('#modal-cancel').onclick = () => closeModal(null);
+$('#modal-ok').onclick = () => { const inp = $('#modal-input'); closeModal(inp.style.display === 'none' ? true : inp.value); };
+$('#modal').onclick = e => { if (e.target === $('#modal')) closeModal(null); };
 function dark(){ return matchMedia('(prefers-color-scheme: dark)').matches; }
 function bars(){ const cs=getComputedStyle(document.documentElement); Android.setBars(cs.getPropertyValue('--brand').trim(), cs.getPropertyValue('--bg').trim(), !dark()); }
 
@@ -790,10 +857,11 @@ function waStart(mode){
   waLastKey = ''; $('#wa-result').className = 'result'; Android.vibrate(25); setTimeout(waPollOnce, 200);
 }
 function waRestore(){
-  if (!confirm('Backup terugzetten naar de WhatsApp-map op deze telefoon?\n\nOntbrekende en afwijkende bestanden worden overgezet. Doe dit voordat je WhatsApp installeert of opnieuw instelt.')) return;
-  const err = Android.waRestore();
-  if (err) { toast(err); return; }
-  waLastKey = ''; $('#wa-result').className = 'result'; setTimeout(waPollOnce, 200);
+  askConfirm('Backup terugzetten?', 'Ontbrekende en afwijkende bestanden worden naar de WhatsApp-map op deze telefoon gezet. Doe dit voordat je WhatsApp installeert of opnieuw instelt.', 'Terugzetten', () => {
+    const err = Android.waRestore();
+    if (err) { toast(err); return; }
+    waLastKey = ''; $('#wa-result').className = 'result'; setTimeout(waPollOnce, 200);
+  });
 }
 function waPollOnce(){
   let s; try { s = JSON.parse(Android.waStatus()); } catch(e){ return; }
@@ -862,8 +930,9 @@ window.onWaKeyResult = function(r){
   }
 };
 function rdForget(){
-  if (!confirm('Je sleutel en de ontsleutelde chats uit de app verwijderen? De HTML-bestanden in je backup-map blijven staan.')) return;
-  Android.waForgetKey(); renderReadable(); toast('Sleutel gewist');
+  askConfirm('Sleutel wissen?', 'Je sleutel en de ontsleutelde chats worden uit de app verwijderd. De HTML-bestanden in je backup-map blijven staan.', 'Wissen', () => {
+    Android.waForgetKey(); renderReadable(); toast('Sleutel gewist');
+  });
 }
 function rdRefresh(){
   const err = Android.waMakeReadable();
@@ -979,7 +1048,7 @@ function trStart(){
   Android.vibrate(25); setTimeout(trackPollOnce, 200);
 }
 function trPause(){ const s = tstat(); if (s.paused) Android.trackResume(); else Android.trackPause(); Android.vibrate(10); setTimeout(trackPollOnce, 100); }
-function trStop(){ if (!confirm('Opname stoppen?')) return; Android.trackStop(); Android.vibrate(25); setTimeout(trackPollOnce, 200); }
+function trStop(){ askConfirm('Opname stoppen?', 'Je route wordt daarna opgeslagen.', 'Stoppen', () => { Android.trackStop(); Android.vibrate(25); setTimeout(trackPollOnce, 200); }); }
 function tstat(){ try { return JSON.parse(Android.trackStatus()); } catch(e){ return {running:false}; } }
 
 function trackPollOnce(){
@@ -1001,6 +1070,7 @@ function trackPollOnce(){
     $('#tr-wait').style.display = (s.points > 0) ? 'none' : 'block';
     if (s.error) { $('#tr-wait').style.display = 'block'; $('#tr-wait').textContent = s.error; }
     $('#tr-map-path').setAttribute('d', s.path || '');
+    updateLiveMap(s);
   } else if (saving) {
     try {
       const j = JSON.parse(just), st = j.stats || {};
@@ -1009,6 +1079,38 @@ function trackPollOnce(){
     } catch(e){}
   }
   refreshTrackTile(s);
+}
+// live kaart tijdens het opnemen
+let recMap = null, recLine = null, recPts = [], recFitted = false, recStartT = 0;
+function resetLiveMap(startT){
+  recPts = []; recFitted = false; recStartT = startT || 0;
+  if (recLine && recMap) { recMap.removeLayer(recLine); recLine = null; }
+  // de reeds opgenomen punten ophalen (bij heropenen tijdens een lopende opname)
+  try { const seed = JSON.parse(Android.trackLivePoints()); if (Array.isArray(seed)) recPts = seed; } catch(e){}
+}
+function updateLiveMap(s){
+  if (typeof L === 'undefined') { $('#tr-lmap').style.display = 'none'; $('#tr-map').style.display = 'block'; return; }
+  if (s.startT && s.startT !== recStartT) resetLiveMap(s.startT);
+  $('#tr-lmap').style.display = 'block'; $('#tr-map').style.display = 'none';
+  try {
+    if (!recMap) {
+      recMap = L.map('tr-lmap', { attributionControl: true, zoomControl: true });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(recMap);
+      recMap.setView([52.1, 5.1], 7);
+      setTimeout(() => { if (recMap) recMap.invalidateSize(); }, 60);
+    }
+    if (s.lat != null && s.lon != null) {
+      const last = recPts[recPts.length - 1];
+      if (!last || last[0] !== s.lat || last[1] !== s.lon) recPts.push([s.lat, s.lon]);
+    }
+    if (recPts.length) {
+      if (!recLine) { recLine = L.polyline(recPts, { color: '#C0392B', weight: 5, opacity: .9 }).addTo(recMap); }
+      else recLine.setLatLngs(recPts);
+      const cur = recPts[recPts.length - 1];
+      if (!recFitted) { recMap.setView(cur, 16); recFitted = true; setTimeout(() => { if (recMap) recMap.invalidateSize(); }, 60); }
+      else recMap.panTo(cur, { animate: true });
+    }
+  } catch(e){ $('#tr-lmap').style.display = 'none'; $('#tr-map').style.display = 'block'; }
 }
 let _spd = {t:0,d:0,v:0};
 function lastSpeed(s){ // afgeleide snelheid uit afstandsverschil
@@ -1021,7 +1123,7 @@ function defaultName(){ const d = new Date(); const h = d.getHours();
   const tod = h < 6 ? 'Nacht' : h < 12 ? 'Ochtend' : h < 18 ? 'Middag' : 'Avond';
   return tod + 'route ' + d.toLocaleDateString('nl-NL', {day:'numeric', month:'short'}); }
 function trSave(){ const err = Android.trackSave($('#tr-name').value.trim()); if (err) { toast(err); return; } $('#tr-name').value=''; toast('Route opgeslagen ✓'); loadTrackList(); trackPollOnce(); }
-function trDiscard(){ if (!confirm('Deze opname weggooien?')) return; Android.trackDiscard(); $('#tr-name').value=''; trackPollOnce(); }
+function trDiscard(){ askConfirm('Opname weggooien?', 'De opgenomen punten gaan verloren.', 'Weggooien', () => { Android.trackDiscard(); $('#tr-name').value=''; trackPollOnce(); }); }
 
 function loadTrackList(){
   let list; try { list = JSON.parse(Android.trackList()); } catch(e){ list = []; }
@@ -1087,7 +1189,7 @@ function tdMaps(){
   const url = tdLine.length >= 2
     ? 'https://www.google.com/maps/dir/?api=1&origin=' + s[0] + ',' + s[1] + '&destination=' + e[0] + ',' + e[1] + '&travelmode=walking'
     : 'https://www.google.com/maps/search/?api=1&query=' + s[0] + ',' + s[1];
-  window.open(url, '_blank');
+  Android.openUrl(url);
 }
 function drawEle(pts){
   const svg = $('#td-ele');
@@ -1100,8 +1202,8 @@ function drawEle(pts){
 }
 function tdShare(){ const e = Android.trackShare(tdId); if (e) toast(e); }
 function tdExport(){ const e = Android.trackExportBackup(tdId); toast(e ? e : 'Opgeslagen in backup-map ✓'); }
-function tdRename(){ const n = prompt('Nieuwe naam:', $('#td-title').textContent); if (n == null) return; const e = Android.trackRename(tdId, n.trim()); if (e) { toast(e); return; } loadTrack(); }
-function tdDelete(){ if (!confirm('Deze route verwijderen?')) return; const e = Android.trackDelete(tdId); if (e) { toast(e); return; } toast('Verwijderd'); goBack(); loadTrackList(); }
+function tdRename(){ askInput('Naam wijzigen', '', $('#td-title').textContent, 'Opslaan', n => { const e = Android.trackRename(tdId, n.trim()); if (e) { toast(e); return; } loadTrack(); }); }
+function tdDelete(){ askConfirm('Route verwijderen?', 'Dit kan niet ongedaan worden gemaakt.', 'Verwijderen', () => { const e = Android.trackDelete(tdId); if (e) { toast(e); return; } toast('Verwijderd'); goBack(); loadTrackList(); }); }
 
 function refreshTrackTile(s){
   if (!s) s = tstat();

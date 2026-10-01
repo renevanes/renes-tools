@@ -1,13 +1,21 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.5",
-  "versionCode": 6,
-  "nativeLevel": 6,
+  "versionName": "1.6",
+  "versionCode": 7,
+  "nativeLevel": 7,
   "web": "index.html",
-  "webSha256": "58424a419c519944de9f988780f0d3c226aed9547156ba43002df8885c466318",
+  "webSha256": "9aca6c547d03ec5c1da73293dd0c183ecbfa0b9557332e4f21f6961d64b9f5d1",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3e9c8b362632903a9eecbfde137c4bb5a42f440b702405a05dd0948154234207",
+  "apkSha256": "27c12e89e7476108d338514524870185a00470d6da640c8b3385d7b640bb8424",
   "changelog": [
+    {
+      "version": "1.6",
+      "date": "2026-10-01",
+      "changes": [
+        "Mijn routes toont nu ook tijdens het opnemen een echte kaart",
+        "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"
+      ]
+    },
     {
       "version": "1.5",
       "date": "2026-10-01",
