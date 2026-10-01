@@ -29,6 +29,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 ## Mijn routes
 - GPS-routeopname (zoals het vroegere My Tracks) via een voorgrondservice met `LocationManager` (geen Google Play Services). Loopt door met het scherm uit; pauzeren/hervatten kan (`TracksService.java`).
 - Live afstand (haversine), tijd, snelheid, hoogte; de route wordt als SVG-pad getekend zonder kaarttegels. Statistiek en GPX-schrijven zitten in `Tracks.java` (pure Java, los getest).
+- Ruisfilter tegen gps-sprongen (`Tracks.Smoother`): metingen >30 m onnauwkeurigheid worden overgeslagen, een venster van metingen wordt gemiddeld, en een nieuw routepunt komt er pas bij een duidelijke verplaatsing (≥5 m, meer bij slecht signaal of gemelde stilstand). Max. snelheid over vensters van ≥10 s. Live-cijfers gebruiken exact hetzelfde filter als bij het terugkijken.
 - Punten worden per stuk naar `tracks/live.trk` weggeschreven (crashbestendig) en bij stoppen hernoemd naar `<tijd>__<titel>.trk`.
 - Routes terugkijken met hoogteprofiel, delen als GPX (eigen `GpxProvider`, geen AndroidX) of opslaan in de backup-map onder `Routes/`.
 - Routedetail toont de route op een echte kaart (Leaflet + OpenStreetMap-tegels, meegeleverd in de assets en geserveerd via de `/vendor/`-route van `MediaClient`). Knop "Openen in Google Maps" opent de route (start→eind) in Google Maps.

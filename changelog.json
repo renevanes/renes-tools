@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.7",
+    "date": "2026-10-02",
+    "changes": [
+      "Mijn routes: veel beter ruisfilter tegen gps-sprongen",
+      "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld",
+      "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"
+    ]
+  },
+  {
     "version": "1.6",
     "date": "2026-10-01",
     "changes": [

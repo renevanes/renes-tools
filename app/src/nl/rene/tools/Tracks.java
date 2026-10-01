@@ -92,14 +92,91 @@ final class Tracks {
         double avgSpeed() { return movingMs > 0 ? distance / (movingMs / 1000.0) : 0; }
     }
 
-    /** Berekent statistieken uit de punten. Negeert sprongen door slechte nauwkeurigheid. */
-    static Stats stats(List<Pt> pts) {
+    // ---------- ruisfilter ----------
+
+    /** Metingen met een slechtere nauwkeurigheid dan dit (in meter) tellen niet mee. */
+    static final float MAX_ACC = 30f;
+    /** Kleinste verplaatsing die als een nieuw routepunt telt (in meter). */
+    static final double MIN_MOVE = 5.0;
+    /** Aantal metingen dat wordt gemiddeld tegen losse sprongen. */
+    static final int WIN = 5;
+
+    /**
+     * Ruisfilter voor gps. Stilstaand springt de gemeten positie (vooral binnen) vaak 5-20 m
+     * heen en weer. Daarom:
+     *  1. metingen met een onnauwkeurigheid groter dan MAX_ACC worden overgeslagen;
+     *  2. de laatste paar metingen worden gemiddeld, zodat losse sprongen uitmiddelen;
+     *  3. er komt pas een nieuw routepunt als dat gemiddelde duidelijk verschoven is ten
+     *     opzichte van het vorige routepunt (minstens MIN_MOVE, meer bij slecht signaal of
+     *     als gps zelf stilstand meldt). Zo gaat langzaam lopen niet verloren, maar telt ruis niet mee.
+     * De Smoother verwerkt de metingen één voor één en geeft een nieuw routepunt terug, of null.
+     */
+    static final class Smoother {
+        private final Pt[] win = new Pt[WIN];
+        private int n = 0, head = 0;
+        private Pt last;
+
+        Pt add(Pt p) {
+            if (p.acc > MAX_ACC) return null;
+            win[head] = p; head = (head + 1) % WIN; if (n < WIN) n++;
+            if (n < 3) return null; // eerst een paar metingen verzamelen
+            double la = 0, lo = 0, ac = 0, el = 0; int ne = 0, ns = 0; float sp = 0;
+            for (int i = 0; i < n; i++) {
+                Pt q = win[i];
+                la += q.lat; lo += q.lon; ac += Math.max(1f, q.acc);
+                if (!Double.isNaN(q.ele)) { el += q.ele; ne++; }
+                if (q.speed >= 0) { sp += q.speed; ns++; }
+            }
+            Pt c = new Pt(la / n, lo / n, ne > 0 ? el / ne : Double.NaN, p.t, (float) (ac / n), ns > 0 ? sp / ns : -1f);
+            if (last == null) { last = c; return c; }
+            long dt = c.t - last.t;
+            if (dt <= 0) return null;
+            double d = haversine(last.lat, last.lon, c.lat, c.lon);
+            if (d / (dt / 1000.0) > 50) return null; // onmogelijke sprong
+            double need = Math.max(MIN_MOVE, c.acc * 0.6);
+            if (c.speed < 0.8f) need *= 2; // gps meldt (bijna) stilstand of geen snelheid
+            if (d < need) return null;
+            last = c;
+            return c;
+        }
+    }
+
+    /** Alleen de routepunten die echte beweging zijn (voor statistiek, tekening, kaart en GPX). */
+    static List<Pt> filter(List<Pt> raw) {
+        List<Pt> out = new ArrayList<>();
+        Smoother sm = new Smoother();
+        for (Pt p : raw) { Pt k = sm.add(p); if (k != null) out.add(k); }
+        return out;
+    }
+
+    /** Hoogste snelheid over stukken van minstens 10 seconden; losse uitschieters tellen zo niet mee. */
+    static double maxSpeed(List<Pt> pts) {
+        if (pts.size() < 2) return 0;
+        double[] cum = new double[pts.size()];
+        for (int i = 1; i < pts.size(); i++)
+            cum[i] = cum[i - 1] + haversine(pts.get(i - 1).lat, pts.get(i - 1).lon, pts.get(i).lat, pts.get(i).lon);
+        double best = 0;
+        int j = 0;
+        for (int i = 1; i < pts.size(); i++) {
+            while (j < i - 1 && pts.get(i).t - pts.get(j + 1).t >= 10000) j++;
+            long dt = pts.get(i).t - pts.get(j).t;
+            if (dt >= 10000) {
+                double v = (cum[i] - cum[j]) / (dt / 1000.0);
+                if (v > best && v <= 50) best = v;
+            }
+        }
+        return best;
+    }
+
+    /** Berekent statistieken; ruis door stilstaan telt niet mee. */
+    static Stats stats(List<Pt> raw) {
         Stats s = new Stats();
-        s.points = pts.size();
-        if (pts.isEmpty()) return s;
-        s.startT = pts.get(0).t;
-        s.endT = pts.get(pts.size() - 1).t;
+        if (raw.isEmpty()) return s;
+        s.startT = raw.get(0).t;
+        s.endT = raw.get(raw.size() - 1).t;
         s.totalMs = Math.max(0, s.endT - s.startT);
+        List<Pt> pts = filter(raw);
+        s.points = pts.size();
         double eleSmooth = Double.NaN;
         Pt prev = null;
         for (Pt p : pts) {
@@ -109,26 +186,19 @@ final class Tracks {
                 if (Double.isNaN(eleSmooth)) eleSmooth = p.ele;
                 else {
                     double d = p.ele - eleSmooth;
-                    if (Math.abs(d) >= 4) { // drempel tegen GPS-hoogteruis
+                    if (Math.abs(d) >= 10) { // drempel tegen gps-hoogteruis (gps-hoogte is grof)
                         if (d > 0) s.eleGain += d; else s.eleLoss += -d;
                         eleSmooth = p.ele;
                     }
                 }
             }
             if (prev != null) {
-                double d = haversine(prev.lat, prev.lon, p.lat, p.lon);
-                long dt = p.t - prev.t;
-                // sla onrealistische sprongen over (slecht signaal): >50 m/s
-                if (dt > 0 && d / (dt / 1000.0) <= 50) {
-                    s.distance += d;
-                    double v = p.speed >= 0 ? p.speed : d / (dt / 1000.0);
-                    if (v > s.maxSpeed && v <= 50) s.maxSpeed = v;
-                    if (d >= 1.0) s.movingMs += dt; // beweegt als er meetbaar verplaatst is
-                }
+                s.distance += haversine(prev.lat, prev.lon, p.lat, p.lon);
+                s.movingMs += p.t - prev.t;
             }
             prev = p;
         }
-        if (s.movingMs == 0) s.movingMs = s.totalMs;
+        s.maxSpeed = maxSpeed(pts);
         return s;
     }
 
@@ -263,7 +333,7 @@ final class Tracks {
     static File writeGpxFile(Context c, File trk) throws Exception {
         File out = new File(dir(c), gpxName(trk));
         try (Writer w = new OutputStreamWriter(new java.io.FileOutputStream(out), StandardCharsets.UTF_8)) {
-            writeGpx(w, title(trk).isEmpty() ? "Route" : title(trk), readPoints(trk));
+            writeGpx(w, title(trk).isEmpty() ? "Route" : title(trk), filter(readPoints(trk)));
         }
         return out;
     }
@@ -286,7 +356,7 @@ final class Tracks {
         try { o = dest.cr.openOutputStream(u, "wt"); } catch (Exception e) { o = dest.cr.openOutputStream(u, "w"); }
         if (o == null) throw new Exception("Schrijven lukt niet");
         try (Writer w = new OutputStreamWriter(o, StandardCharsets.UTF_8)) {
-            writeGpx(w, title(trk).isEmpty() ? "Route" : title(trk), readPoints(trk));
+            writeGpx(w, title(trk).isEmpty() ? "Route" : title(trk), filter(readPoints(trk)));
         }
         return true;
     }
@@ -318,8 +388,9 @@ final class Tracks {
     static String listJson(Context c) throws Exception {
         JSONArray a = new JSONArray();
         for (File f : saved(c)) {
-            List<Pt> pts = readPoints(f);
-            Stats s = stats(pts);
+            List<Pt> raw = readPoints(f);
+            Stats s = stats(raw);
+            List<Pt> pts = filter(raw);
             JSONObject o = new JSONObject();
             o.put("id", f.getName());
             o.put("title", title(f));
@@ -340,7 +411,7 @@ final class Tracks {
     /** Lat/lon-punten van de lopende opname (afgevlakt), voor de live kaart. */
     static String liveLineJson(Context c) {
         try {
-            List<Pt> pts = readPoints(liveFile(c));
+            List<Pt> pts = filter(readPoints(liveFile(c)));
             JSONArray a = new JSONArray();
             int step = Math.max(1, pts.size() / 500);
             for (int i = 0; i < pts.size(); i += step) {
@@ -354,8 +425,9 @@ final class Tracks {
     static String detailJson(Context c, String id, double w, double h) throws Exception {
         File f = byId(c, id);
         if (f == null) throw new Exception("Route niet gevonden");
-        List<Pt> pts = readPoints(f);
-        Stats s = stats(pts);
+        List<Pt> raw = readPoints(f);
+        Stats s = stats(raw);
+        List<Pt> pts = filter(raw);
         JSONObject o = new JSONObject();
         o.put("id", id);
         o.put("title", title(f));

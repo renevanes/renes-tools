@@ -56,6 +56,8 @@ public class TracksService extends Service implements LocationListener {
     private double distance;
     private double maxSpeed;
     private long movingMs;
+    private int routePts;        // aantal routepunten na het ruisfilter
+    private float fixAcc = -1f;  // nauwkeurigheid van de laatste meting (ook als die is afgewezen)
 
     @Override public IBinder onBind(Intent i) { return null; }
 
@@ -80,7 +82,7 @@ public class TracksService extends Service implements LocationListener {
         running = true;
         paused = false;
         startT = System.currentTimeMillis();
-        pts.clear(); last = null; distance = 0; maxSpeed = 0; movingMs = 0;
+        pts.clear(); last = null; distance = 0; maxSpeed = 0; movingMs = 0; routePts = 0; fixAcc = -1f;
 
         boolean hasPerm = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
@@ -145,25 +147,23 @@ public class TracksService extends Service implements LocationListener {
         if (!running || paused) return;
         double ele = loc.hasAltitude() ? loc.getAltitude() : Double.NaN;
         float sp = loc.hasSpeed() ? loc.getSpeed() : -1f;
-        Tracks.Pt p = new Tracks.Pt(loc.getLatitude(), loc.getLongitude(), ele, System.currentTimeMillis(), loc.getAccuracy(), sp);
-        // sla te onnauwkeurige punten over (binnen gps: >50 m)
-        if (loc.hasAccuracy() && loc.getAccuracy() > 50) return;
-        if (last != null) {
-            double d = Tracks.haversine(last.lat, last.lon, p.lat, p.lon);
-            long dt = p.t - last.t;
-            if (dt > 0 && d / (dt / 1000.0) <= 50) {
-                if (d < 1.5 && (sp < 0 || sp < 0.5)) return; // stilstand/ruis: niet opslaan
-                distance += d;
-                if (d >= 1.0) movingMs += dt;
-                double v = sp >= 0 ? sp : d / (dt / 1000.0);
-                if (v > maxSpeed && v <= 50) maxSpeed = v;
-            }
-        }
-        last = p;
+        float acc = loc.hasAccuracy() ? loc.getAccuracy() : 999f;
+        Tracks.Pt p = new Tracks.Pt(loc.getLatitude(), loc.getLongitude(), ele, System.currentTimeMillis(), acc, sp);
+        fixAcc = acc;
+        // Alle metingen bewaren, zodat het ruisfilter later over alle gegevens beschikt.
         pts.add(p);
         if (writer != null) {
             try { writer.write(p.line()); writer.write("\n"); writer.flush(); } catch (Exception ignored) { }
         }
+        // De huidige positie (voor de kaart) alleen verzetten bij een redelijk nauwkeurige meting,
+        // zodat een uitschieter de kaart niet laat springen.
+        if (acc <= Tracks.MAX_ACC || last == null) last = p;
+        // Live-cijfers met exact hetzelfde filter als bij het terugkijken, zodat ze overeenkomen.
+        Tracks.Stats st = Tracks.stats(pts);
+        distance = st.distance;
+        maxSpeed = st.maxSpeed;
+        movingMs = st.movingMs;
+        routePts = st.points;
         save();
     }
 
@@ -186,7 +186,7 @@ public class TracksService extends Service implements LocationListener {
             Tracks.Stats s = Tracks.stats(pts);
             Tracks.prefs(this).edit()
                     .putBoolean("justStopped", true)
-                    .putInt("lastPoints", pts.size())
+                    .putInt("lastPoints", s.points)
                     .putString("lastStats", Tracks.statsJson(s).toString())
                     .putLong("lastStartT", startT)
                     .apply();
@@ -213,11 +213,11 @@ public class TracksService extends Service implements LocationListener {
             o.put("distance", distance);
             o.put("maxSpeed", maxSpeed);
             o.put("movingMs", movingMs);
-            o.put("points", pts.size());
+            o.put("points", routePts);
             o.put("now", System.currentTimeMillis());
+            if (fixAcc >= 0) o.put("acc", fixAcc);
             if (last != null) {
                 o.put("lat", last.lat); o.put("lon", last.lon);
-                o.put("acc", last.acc);
                 if (!Double.isNaN(last.ele)) o.put("ele", last.ele);
             }
             o.put("error", Tracks.prefs(this).getString("error", ""));

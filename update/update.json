@@ -1,13 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.6",
-  "versionCode": 7,
-  "nativeLevel": 7,
+  "versionName": "1.7",
+  "versionCode": 8,
+  "nativeLevel": 8,
   "web": "index.html",
-  "webSha256": "9aca6c547d03ec5c1da73293dd0c183ecbfa0b9557332e4f21f6961d64b9f5d1",
+  "webSha256": "d4b8cffc198602ab1418c0309f247b2fc1fdf7743650430c89722b6676fc249e",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "27c12e89e7476108d338514524870185a00470d6da640c8b3385d7b640bb8424",
+  "apkSha256": "8551999502cdbbb1885b4de1854483fae7f6ff94a2de15369ff7c1134c0182f7",
   "changelog": [
+    {
+      "version": "1.7",
+      "date": "2026-10-02",
+      "changes": [
+        "Mijn routes: veel beter ruisfilter tegen gps-sprongen",
+        "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld",
+        "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"
+      ]
+    },
     {
       "version": "1.6",
       "date": "2026-10-01",
