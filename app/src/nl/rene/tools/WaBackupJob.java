@@ -40,6 +40,8 @@ public class WaBackupJob extends JobService {
             WaBackup.Status st;
             try {
                 st = WaBackup.backup(ctx, "auto", WaBackup.parseCats(cats), s -> WaBackup.saveStatus(ctx, s));
+                if (!stopped && ("ok".equals(st.result) || "partial".equals(st.result)) && WaChats.autoReadable(ctx))
+                    WaChats.makeReadable(ctx, s -> WaBackup.saveStatus(ctx, s));
             } finally {
                 WaBackup.busy = false;
             }

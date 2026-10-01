@@ -1,13 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.2",
-  "versionCode": 3,
-  "nativeLevel": 3,
+  "versionName": "1.3",
+  "versionCode": 4,
+  "nativeLevel": 4,
   "web": "index.html",
-  "webSha256": "cb555b0e36678714bc437b9de8073fa0dffa1d76a681e1d77350a00aac1f1a5b",
+  "webSha256": "7aac6db85f5d4ebea99de1fc6acb376ff5343c6c568d760bbe17b1b905fa4f83",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "2d26ab1eead07188880f77b5661e577811a89b3170fefdb151f7af53922f7b5e",
+  "apkSha256": "230806e77490ebb8e899c2d0637c76b60b021b1e6998800e17be8849179881dd",
   "changelog": [
+    {
+      "version": "1.3",
+      "date": "2026-10-01",
+      "changes": [
+        "Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app",
+        "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen",
+        "Automatisch bijwerken na elke backup"
+      ]
+    },
     {
       "version": "1.2",
       "date": "2026-10-01",

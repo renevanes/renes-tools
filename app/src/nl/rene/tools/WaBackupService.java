@@ -18,6 +18,7 @@ public class WaBackupService extends Service {
     static final String ACTION_BACKUP = "nl.rene.tools.wa.BACKUP";
     static final String ACTION_RESTORE = "nl.rene.tools.wa.RESTORE";
     static final String ACTION_CANCEL = "nl.rene.tools.wa.CANCEL";
+    static final String ACTION_READABLE = "nl.rene.tools.wa.READABLE";
     static final String CHANNEL = "wabackup";
     static final int NOTIF_ID = 2001;
     static final int DONE_ID = 2002;
@@ -35,7 +36,7 @@ public class WaBackupService extends Service {
             WaBackup.cancel = true;
             return START_NOT_STICKY;
         }
-        if (!ACTION_BACKUP.equals(a) && !ACTION_RESTORE.equals(a)) { if (!WaBackup.busy) stopSelf(); return START_NOT_STICKY; }
+        if (!ACTION_BACKUP.equals(a) && !ACTION_RESTORE.equals(a) && !ACTION_READABLE.equals(a)) { if (!WaBackup.busy) stopSelf(); return START_NOT_STICKY; }
         // Altijd direct startForeground: Android eist dat na startForegroundService.
         createChannel(this);
         Notification n = build("Voorbereiden…", 0, 0, true, ACTION_RESTORE.equals(a));
@@ -50,6 +51,7 @@ public class WaBackupService extends Service {
         mine = true;
 
         final boolean restore = ACTION_RESTORE.equals(a);
+        final boolean readableOnly = ACTION_READABLE.equals(a);
         final String mode = intent.getStringExtra("mode");
         final String cats = intent.getStringExtra("cats");
         WaBackup.busy = true;
@@ -68,7 +70,13 @@ public class WaBackupService extends Service {
                 if (s.running && now - lastNotif > 1000) { lastNotif = now; progressNotif(s, restore); }
             };
             try {
-                st = restore ? WaBackup.restore(ctx, l) : WaBackup.backup(ctx, mode, WaBackup.parseCats(cats), l);
+                if (readableOnly) {
+                    st = WaChats.makeReadable(ctx, l);
+                } else {
+                    st = restore ? WaBackup.restore(ctx, l) : WaBackup.backup(ctx, mode, WaBackup.parseCats(cats), l);
+                    if (!restore && ("ok".equals(st.result) || "partial".equals(st.result)) && WaChats.autoReadable(ctx))
+                        WaChats.makeReadable(ctx, l);
+                }
             } finally {
                 WaBackup.busy = false;
             }
@@ -86,7 +94,10 @@ public class WaBackupService extends Service {
             prog = (int) (max * s.bytesDone / Math.max(1, s.bytesTotal));
             t = s.filesDone + " van " + s.filesTotal + " · " + fmt(s.bytesDone) + " van " + fmt(s.bytesTotal);
         } else {
-            t = "compare".equals(s.phase) ? "Vergelijken met de backup…" : "Bestanden zoeken…";
+            t = "compare".equals(s.phase) ? "Vergelijken met de backup…"
+                    : "decrypt".equals(s.phase) ? "Chats ontsleutelen…"
+                    : "export".equals(s.phase) ? "Chats leesbaar maken: " + s.filesDone + " van " + s.filesTotal
+                    : "Bestanden zoeken…";
         }
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, build(t, max, prog, ind, restore));
     }
@@ -97,7 +108,7 @@ public class WaBackupService extends Service {
         stopForeground(true);
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
-        String title = restore ? "Terugzetten" : "WhatsApp backup";
+        String title = restore ? "Terugzetten" : "readable".equals(st.mode) ? "Leesbare chats" : "WhatsApp backup";
         title += "ok".equals(st.result) ? " klaar" : "partial".equals(st.result) ? " klaar met fouten" :
                 "cancelled".equals(st.result) ? " gestopt" : " mislukt";
         nm.notify(DONE_ID, b.setSmallIcon(R.drawable.ic_backup).setContentTitle(title)

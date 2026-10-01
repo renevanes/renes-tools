@@ -492,7 +492,7 @@ final class WaBackup {
         }
     }
 
-    private static void finish(Status st, String result, String msg) {
+    static void finish(Status st, String result, String msg) {
         st.running = false;
         st.phase = "done";
         st.current = "";
@@ -516,7 +516,7 @@ final class WaBackup {
                 n.put(st.json());
                 for (int i = 0; i < h.length() && i < 19; i++) n.put(h.get(i));
                 e.putString("history", n.toString());
-                if (!"restore".equals(st.mode) && ("ok".equals(st.result) || "partial".equals(st.result)))
+                if (!"restore".equals(st.mode) && !"readable".equals(st.mode) && ("ok".equals(st.result) || "partial".equals(st.result)))
                     e.putLong("lastOk", st.finishedAt);
             } catch (Exception ignored) { }
         }

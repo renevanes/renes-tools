@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.3",
+    "date": "2026-10-01",
+    "changes": [
+      "Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app",
+      "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen",
+      "Automatisch bijwerken na elke backup"
+    ]
+  },
+  {
     "version": "1.2",
     "date": "2026-10-01",
     "changes": [

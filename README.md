@@ -20,6 +20,12 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Terugzetten**: zet ontbrekende bestanden terug in de WhatsApp-map. Chatbestanden op de telefoon die nieuwer zijn dan de backup worden nooit overschreven.
 - Heeft *Toegang tot alle bestanden* nodig om de WhatsApp-map te lezen. De chatdatabase is versleuteld door WhatsApp; alleen WhatsApp kan hem terugzetten.
 
+## Leesbare chats
+- Ontsleutelt de WhatsApp-backup met de sleutel van 64 cijfers die WhatsApp toont bij de end-to-end versleutelde back-up (crypt15). De afgeleide AES-sleutel is HMAC-SHA256(HMAC-SHA256(0, root), "backup encryption"||0x01); de database wordt in GCM/CTR gelezen en zlib-gedecomprimeerd (`WaCrypt.java`).
+- Leest `message`/`chat`/`jid`(+`jid_map` voor privacy-ID's) uit de ontsleutelde SQLite en toont de chats in de app, met zoeken (`WaChats.java`). Namen komen uit de contacten als die toestemming is gegeven.
+- Exporteert per chat een HTML-bestand naar `WhatsApp backup/Leesbare chats/`, met foto's uit de Media-map. In de app worden foto's getoond via een afgeschermde `https://app.renes-tools.local/wa-media/`-route (`MediaActivity`/`MediaClient`).
+- De sleutel staat alleen in de app, op de telefoon. Na een gewone of automatische backup worden de chats desgewenst vanzelf opnieuw leesbaar gemaakt.
+
 ## Versies en updates
 - `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.

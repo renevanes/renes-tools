@@ -41,6 +41,8 @@ final class WaChats {
 
     static String key(Context c) { return WaBackup.prefs(c).getString("waKey", null); }
 
+    static boolean autoReadable(Context c) { return key(c) != null && WaBackup.prefs(c).getBoolean("readableAuto", true); }
+
     /** Nieuwste versleutelde backup van gewone WhatsApp op de telefoon. */
     static File latestCrypt() {
         for (WaBackup.Source s : WaBackup.sources()) {
@@ -196,7 +198,7 @@ final class WaChats {
 
     // ---------- JSON voor de app ----------
 
-    static String chatsJson(Context c) throws Exception {
+    static synchronized String chatsJson(Context c) throws Exception {
         SQLiteDatabase d = db(c);
         JSONArray a = new JSONArray();
         try (Cursor cur = d.rawQuery(chatsSql(hasJidMap), null)) {
@@ -240,18 +242,22 @@ final class WaChats {
         return o;
     }
 
-    static String messagesJson(Context c, long chatId, long before, int limit) throws Exception {
+    static synchronized String messagesJson(Context c, long chatId, long before, int limit) throws Exception {
         SQLiteDatabase d = db(c);
-        JSONArray a = new JSONArray();
+        // Nieuwste 'limit' berichten vóór 'before' ophalen (DESC), daarna omdraaien naar oplopend
+        // zodat de weergave ze van oud naar nieuw toont en msgs[0] de oudste van de reeks is.
+        java.util.ArrayList<JSONObject> list = new java.util.ArrayList<>();
         String sql = messagesSql(hasJidMap, hasMedia, mediaCols.contains("media_name"),
                 "m.chat_row_id=? AND m.timestamp<?", "m.timestamp DESC LIMIT " + Math.max(1, Math.min(limit, 1000)));
         try (Cursor cur = d.rawQuery(sql, new String[]{String.valueOf(chatId), String.valueOf(before <= 0 ? Long.MAX_VALUE : before)})) {
-            while (cur.moveToNext()) a.put(msg(c, cur, null));
+            while (cur.moveToNext()) list.add(msg(c, cur, null));
         }
+        JSONArray a = new JSONArray();
+        for (int i = list.size() - 1; i >= 0; i--) a.put(list.get(i));
         return a.toString();
     }
 
-    static String searchJson(Context c, String q) throws Exception {
+    static synchronized String searchJson(Context c, String q) throws Exception {
         SQLiteDatabase d = db(c);
         Map<Long, String> chatNames = new HashMap<>();
         try (Cursor cur = d.rawQuery(chatsSql(hasJidMap), null)) {
@@ -399,5 +405,34 @@ final class WaChats {
         catch (Exception e) { o = dest.cr.openOutputStream(u, "w"); }
         if (o == null) throw new Exception("Schrijven lukt niet: " + name);
         return new java.io.BufferedWriter(new OutputStreamWriter(o, StandardCharsets.UTF_8), 1 << 16);
+    }
+
+    /** Ontsleutelen + HTML maken, met voortgang zoals een backup (mode "readable"). */
+    static WaBackup.Status makeReadable(Context c, WaBackup.Listener l) {
+        WaBackup.Status st = new WaBackup.Status();
+        st.mode = "readable"; st.running = true; st.startedAt = System.currentTimeMillis(); st.phase = "decrypt";
+        l.progress(st);
+        try {
+            String k = key(c);
+            if (k == null) throw new Exception("Vul eerst je sleutel van 64 tekens in");
+            decryptLatest(c, k);
+            int n = 0;
+            boolean haveDest = WaBackup.destUri(c) != null;
+            if (haveDest) {
+                st.phase = "export";
+                l.progress(st);
+                n = exportHtml(c, (done, total, name) -> {
+                    st.filesDone = done; st.filesTotal = total; st.current = name; l.progress(st);
+                });
+                st.filesDone = st.filesTotal;
+            }
+            if (WaBackup.cancel) WaBackup.finish(st, "cancelled", null);
+            else WaBackup.finish(st, "ok", haveDest ? n + " chats leesbaar gemaakt"
+                    : "Chats leesbaar in de app (kies een backup-map voor de HTML-bestanden)");
+        } catch (Exception e) {
+            WaBackup.finish(st, "error", e.getMessage());
+        }
+        l.progress(st);
+        return st;
     }
 }

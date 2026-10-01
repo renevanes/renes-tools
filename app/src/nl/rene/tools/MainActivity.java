@@ -29,6 +29,9 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.MimeTypeMap;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.window.OnBackInvokedCallback;
@@ -36,6 +39,7 @@ import android.window.OnBackInvokedDispatcher;
 
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -46,6 +50,7 @@ public class MainActivity extends Activity {
     private static final int REQ_CONTACT = 12;
     private static final int REQ_TREE = 13;
     private static final int REQ_STORAGE = 14;
+    private static final int REQ_CONTACTS = 15;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -90,7 +95,7 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
         s.setTextZoom(100);
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new MediaClient());
         web.setWebChromeClient(new WebChromeClient());
         web.addJavascriptInterface(new Bridge(this), "Android");
         web.setBackgroundColor(Color.parseColor("#F3F5F9"));
@@ -243,7 +248,7 @@ public class MainActivity extends Activity {
 
     @Override
     public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
-        if (req == REQ_STORAGE) js("onWaChanged", "");
+        if (req == REQ_STORAGE || req == REQ_CONTACTS) js("onWaChanged", "");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
     }
 
@@ -501,8 +506,115 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void waCancel() { WaBackup.cancel = true; }
         @JavascriptInterface public String waStatus() { return WaBackup.status(ctx); }
 
+        // ----- Leesbare chats -----
+
+        @JavascriptInterface public String waReadInfo() {
+            try {
+                android.content.SharedPreferences p = WaBackup.prefs(ctx);
+                JSONObject o = new JSONObject();
+                o.put("hasKey", WaChats.key(ctx) != null);
+                o.put("auto", p.getBoolean("readableAuto", true));
+                o.put("hasDb", WaChats.dbFile(ctx).exists());
+                o.put("dbFrom", p.getLong("waDbFrom", 0));
+                o.put("dest", WaBackup.destUri(ctx) != null);
+                o.put("contacts", ctx.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED);
+                return o.toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        /** Controleert de sleutel door de nieuwste backup te ontsleutelen; resultaat via onWaKeyResult. */
+        @JavascriptInterface public void waSetKey(final String hex) {
+            new Thread(() -> {
+                JSONObject r = new JSONObject();
+                try {
+                    if (!hasFilesAccess(ctx)) throw new Exception("Geef eerst toegang tot bestanden");
+                    WaCrypt.parseKey(hex);
+                    WaChats.decryptLatest(ctx, hex);
+                    WaBackup.prefs(ctx).edit().putString("waKey", hex.toLowerCase().replaceAll("[^0-9a-f]", "")).apply();
+                    int chats = new JSONObject(WaChats.chatsJson(ctx)).getJSONArray("chats").length();
+                    r.put("ok", true);
+                    r.put("chats", chats);
+                } catch (Exception e) {
+                    try { r.put("ok", false); r.put("error", String.valueOf(e.getMessage())); } catch (Exception ignored) { }
+                }
+                a.js("onWaKeyResult", r.toString());
+            }).start();
+        }
+
+        @JavascriptInterface public void waForgetKey() {
+            WaBackup.prefs(ctx).edit().remove("waKey").remove("waDbFrom").apply();
+            WaChats.closeDb();
+            WaChats.dbFile(ctx).delete();
+        }
+
+        @JavascriptInterface public void waSetReadableAuto(boolean on) {
+            WaBackup.prefs(ctx).edit().putBoolean("readableAuto", on).apply();
+        }
+
+        @JavascriptInterface public String waMakeReadable() {
+            if (WaBackup.busy) return "Er loopt al een backup";
+            if (WaChats.key(ctx) == null) return "Vul eerst je sleutel in";
+            if (!hasFilesAccess(ctx)) return "Geef eerst toegang tot bestanden";
+            Intent i = new Intent(ctx, WaBackupService.class).setAction(WaBackupService.ACTION_READABLE);
+            try {
+                if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i); else ctx.startService(i);
+                return "";
+            } catch (Exception e) { return "Starten mislukt: " + e.getMessage(); }
+        }
+
+        @JavascriptInterface public String waChats() {
+            try { return WaChats.chatsJson(ctx); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String waMessages(String chatId, String before, int limit) {
+            try { return WaChats.messagesJson(ctx, Long.parseLong(chatId), Long.parseLong(before), limit); }
+            catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String waSearch(String q) {
+            try { return WaChats.searchJson(ctx, q); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public void waRequestContacts() {
+            a.h.post(() -> a.requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, REQ_CONTACTS));
+        }
+
+        private static String errJson(Exception e) {
+            try { return new JSONObject().put("error", String.valueOf(e.getMessage())).toString(); } catch (Exception x) { return "{}"; }
+        }
+
         @JavascriptInterface public String pendingOpen() {
             String p = a.pendingOpen; a.pendingOpen = null; return p == null ? "" : p;
+        }
+    }
+
+    /** Toont foto's uit de WhatsApp-map in de chatweergave via https://app.renes-tools.local/wa-media/... */
+    static final class MediaClient extends WebViewClient {
+        MediaClient() { }
+
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+            Uri u = req.getUrl();
+            if (u == null || !"app.renes-tools.local".equals(u.getHost()) || u.getPath() == null || !u.getPath().startsWith("/wa-media/")) return null;
+            try {
+                File root = null;
+                for (WaBackup.Source s : WaBackup.sources()) if ("WhatsApp".equals(s.name) && s.dir != null) root = s.dir;
+                if (root == null) return notFound();
+                File media = new File(root, "Media").getCanonicalFile();
+                File f = new File(root, Uri.decode(u.getPath().substring("/wa-media/".length()))).getCanonicalFile();
+                if (!f.getPath().startsWith(media.getPath() + File.separator) || !f.isFile()) return notFound();
+                String ext = MimeTypeMap.getFileExtensionFromUrl(f.getName());
+                String mime = ext == null ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase());
+                return new WebResourceResponse(mime != null ? mime : "application/octet-stream", null, new java.io.FileInputStream(f));
+            } catch (Exception e) {
+                return notFound();
+            }
+        }
+
+        private static WebResourceResponse notFound() {
+            WebResourceResponse r = new WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0]));
+            r.setStatusCodeAndReasonPhrase(404, "Not found");
+            return r;
         }
     }
 }

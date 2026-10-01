@@ -113,6 +113,26 @@ input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
 .steps{margin:0 0 12px;padding-left:20px;font-size:15px}
 .steps li{margin-bottom:4px}
 .sub{font-size:14px;color:var(--muted);margin:6px 2px 12px;text-align:center}
+textarea.key{width:100%;box-sizing:border-box;font:16px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);resize:none;letter-spacing:1px}
+textarea.key:focus{outline:none;border-color:var(--brand-2)}
+.search{width:100%;box-sizing:border-box;font-size:16px;padding:11px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);margin-bottom:10px}
+.search:focus{outline:none;border-color:var(--brand-2)}
+.clist button{display:block;width:100%;text-align:left;padding:12px 2px;border-top:1px solid var(--line)}
+.clist button:first-child{border-top:0}
+.clist .r1{display:flex;gap:8px;align-items:baseline}
+.clist .r1 b{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clist .r1 time,.clist .r2{color:var(--muted);font-size:13px}
+.clist .r2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.msgs{display:flex;flex-direction:column;gap:4px;padding-bottom:24px}
+.bub{max-width:84%;padding:7px 10px 5px;border-radius:12px;background:var(--card);border:1px solid var(--line);align-self:flex-start;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere;font-size:15px}
+.bub.me{align-self:flex-end;background:#DCF8C6;color:#111;border-color:#c9e9b0}
+.bub .snd{display:block;font-size:12px;font-weight:700;color:#1f8a5c;margin-bottom:1px}
+.bub .tm{display:block;text-align:right;font-size:11px;color:var(--muted);margin-top:2px}
+.bub.me .tm{color:#5b6b56}
+.bub img{max-width:100%;max-height:300px;border-radius:8px;display:block;margin:2px 0 3px}
+.bub .lb{font-style:italic;color:var(--muted)}.bub.me .lb{color:#4d5e48}
+.dsep{align-self:center;font-size:12px;color:var(--muted);background:var(--chip);border-radius:8px;padding:3px 10px;margin:10px 0 2px}
+.more{align-self:center;background:var(--chip);color:var(--brand-2);border-radius:999px;padding:7px 16px;font-size:14px;font-weight:600;margin:6px 0}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
 .toast.on{opacity:1}
 </style>
@@ -270,6 +290,26 @@ input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
         <div id="wa-hist"></div>
       </div>
 
+      <div class="card" id="rd-card">
+        <h2>Leesbare chats</h2>
+        <div id="rd-setup">
+          <p class="note" style="margin-top:0">Hiermee maak je je chats leesbaar: in de app en als webpagina per chat in de backup-map. Daarvoor is in WhatsApp de end-to-end versleutelde back-up met een <b>sleutel van 64 cijfers</b> nodig. Zet die aan in <i>WhatsApp › Instellingen › Chats › Chatback-up › End-to-end versleutelde back-up</i> en kies <b>sleutel</b> in plaats van wachtwoord.</p>
+          <label class="f">Jouw sleutel van 64 cijfers</label>
+          <textarea class="key" id="rd-key" rows="3" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="abcd 1234 …"></textarea>
+          <button class="big" style="margin-top:10px" onclick="rdSaveKey()">Controleer sleutel en maak leesbaar</button>
+          <p class="note">De sleutel blijft alleen op je telefoon, in deze app. Bewaar hem ook zelf goed.</p>
+        </div>
+        <div id="rd-ready" style="display:none">
+          <button class="big" onclick="show('chats')">Open mijn chats</button>
+          <div class="sw" style="margin-top:6px"><span>Automatisch bijwerken<small>Na elke backup de chats opnieuw leesbaar maken</small></span><button class="tg on" id="rd-auto" onclick="tog(this); Android.waSetReadableAuto(this.classList.contains('on'))"></button></div>
+          <p class="note" id="rd-from"></p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="big ghost" style="flex:1" onclick="rdRefresh()">Nu bijwerken</button>
+            <button class="big ghost" style="flex:1" onclick="rdForget()">Sleutel wissen</button>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <h2>Terugzetten op een (nieuwe) telefoon</h2>
         <ol class="steps">
@@ -284,6 +324,32 @@ input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
       <p class="note">De chats zijn versleuteld door WhatsApp. Alleen WhatsApp kan ze terugzetten, je kunt ze niet los lezen. Foto's, video's en documenten zijn gewone bestanden die je overal kunt openen.</p>
     </div>
   </main>
+</section>
+
+<!-- ============ CHATLIJST ============ -->
+<section class="screen" id="s-chats">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Chats</h1>
+  </div>
+  <main>
+    <input class="search" id="chat-search" type="search" placeholder="Zoek in alle berichten…" oninput="chatSearch(this.value)">
+    <div class="card" id="chat-contacts" style="display:none">
+      <p style="margin:0 0 10px">Geef toegang tot je contacten om namen te tonen in plaats van telefoonnummers.</p>
+      <button class="big ghost" onclick="Android.waRequestContacts()">Contacten tonen</button>
+    </div>
+    <div class="clist card" id="chat-list"></div>
+    <div id="search-results"></div>
+  </main>
+</section>
+
+<!-- ============ CHATWEERGAVE ============ -->
+<section class="screen" id="s-chat">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 id="chat-title" style="font-size:18px">Chat</h1>
+  </div>
+  <main><div class="msgs" id="chat-msgs"></div></main>
 </section>
 
 <!-- ============ INFO ============ -->
@@ -344,7 +410,28 @@ if (!window.Android) window.Android = (function(){
       w.t=setInterval(()=>{ w.st.filesDone+=60; w.st.bytesDone+=6e7; if(w.st.filesDone>=2400){ clearInterval(w.t); w.st={running:false,phase:'done',mode,result:'ok',message:'2400 bestanden gekopieerd',bytesDone:2.4e9,finishedAt:Date.now()}; w.info.history.unshift(w.st); } },200); return ''; },
     waRestore(){ return this.waStart('restore'); },
     waCancel(){ const w=this._wa; clearInterval(w.t); w.st={running:false,phase:'done',mode:w.st.mode,result:'cancelled',message:'Gestopt',finishedAt:Date.now()}; },
-    waStatus(){ return JSON.stringify(this._wa.st); }
+    waStatus(){ return JSON.stringify(this._wa.st); },
+    _rd:{hasKey:false,auto:true,contacts:false,chats:[],msgs:{}},
+    _mkDemo(){ const r=this._rd; const names=['Huisarts','Familie Van Es','Jos','Pietje Puk','Sportclub']; r.chats=[]; r.msgs={};
+      for(let i=0;i<5;i++){ const id=i+1,n=40+i*20,grp=i===1||i===4; const ms=[]; let t=Date.now()-n*36e5;
+        for(let k=0;k<n;k++){ const me=k%2===0; t+=Math.random()*72e5;
+          let o={id:k+1,me,t:Math.round(t),type:0,text:'Voorbeeldbericht '+(k+1)+' in '+names[i],label:'',sender:me?'Ik':(grp?['Jos','Anne','Kees'][k%3]:names[i]),media:'',mime:'',fileName:''};
+          if(k%13===4){o.type=1;o.label='📷 Foto';o.text='';o.media='Media/WhatsApp Images/x.jpg';o.mime='image/jpeg';}
+          if(k%17===3){o.type=2;o.label='🎤 Spraakbericht';o.text='';o.media='Media/WhatsApp Voice Notes/x.opus';}
+          ms.push(o); }
+        r.msgs[id]=ms; const last=ms[ms.length-1];
+        r.chats.push({id,name:names[i],group:grp,n,last:last.t,lastText:last.text||last.label}); }
+      r.chats.sort((a,b)=>b.last-a.last); },
+    waReadInfo(){ const r=this._rd; return JSON.stringify({hasKey:r.hasKey,auto:r.auto,hasDb:r.hasKey,dbFrom:r.hasKey?Date.now()-72e5:0,dest:this._wa.info.dest,contacts:r.contacts}); },
+    waSetKey(hex){ setTimeout(()=>{ const h=(hex||'').replace(/[^0-9a-f]/gi,''); if(h.length!==64){ onWaKeyResult({ok:false,error:'De sleutel moet 64 tekens hebben; je hebt er '+h.length}); return; } this._rd.hasKey=true; this._mkDemo(); onWaKeyResult({ok:true,chats:this._rd.chats.length}); },500); },
+    waForgetKey(){ this._rd.hasKey=false; this._rd.chats=[]; },
+    waSetReadableAuto(on){ this._rd.auto=on; },
+    waMakeReadable(){ const w=this._wa; w.st={running:true,mode:'readable',phase:'export',filesTotal:5,filesDone:0}; let i=0;
+      w.t=setInterval(()=>{ w.st.filesDone=++i; if(i>=5){ clearInterval(w.t); w.st={running:false,phase:'done',mode:'readable',result:'ok',message:'5 chats leesbaar gemaakt',finishedAt:Date.now()}; } },300); return ''; },
+    waChats(){ return JSON.stringify({chats:this._rd.chats,from:Date.now()-72e5}); },
+    waMessages(id,before,limit){ const all=this._rd.msgs[id]||[]; const b=+before; const f=all.filter(m=>b<=0||m.t<b); return JSON.stringify(f.slice(Math.max(0,f.length-limit))); },
+    waSearch(q){ const out=[]; const ql=q.toLowerCase(); for(const c of this._rd.chats){ for(const m of this._rd.msgs[c.id]){ if(m.text&&m.text.toLowerCase().includes(ql)){ out.push({...m,chat:c.id,chatName:c.name}); } } } return JSON.stringify(out.slice(0,200)); },
+    waRequestContacts(){ this._rd.contacts=true; setTimeout(()=>onWaChanged(),100); }
   };
 })();
 
@@ -364,10 +451,12 @@ function show(name){
   current = name; window.scrollTo(0,0);
   if (name==='redial') enterRedial(); else stopPoll();
   if (name==='wa') enterWa(); else stopWaPoll();
+  if (name==='chats') enterChats();
   if (name==='info') renderInfo();
   if (name==='home') refreshTile();
 }
-window.goBack = function(){ if (current!=='home'){ show('home'); return true; } return false; };
+const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats'};
+window.goBack = function(){ if (current!=='home'){ show(BACK[current]||'home'); return true; } return false; };
 window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); };
 window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); refreshTile(); refreshWaTile(); };
 
@@ -527,10 +616,11 @@ function renderWa(rescan){
   $('#wa-next').textContent = nx;
   const h = (i.history || []).slice(0, 5);
   $('#wa-hist-card').style.display = h.length ? 'block' : 'none';
-  const ML = {all:'Alles', selection:'Selectie', auto:'Automatisch', restore:'Terugzetten'};
+  const ML = {all:'Alles', selection:'Selectie', auto:'Automatisch', restore:'Terugzetten', readable:'Leesbaar maken'};
   $('#wa-hist').innerHTML = h.map(x => '<div class="hist"><b>' + esc(ML[x.mode] || x.mode) + '</b> · ' + esc(fmtD(x.finishedAt)) +
     '<small>' + (x.result === 'ok' ? '✓ ' : x.result === 'error' ? '✗ ' : '') + esc(x.message || '') + (x.bytesDone > 0 ? ' · ' + fmtB(x.bytesDone) : '') + '</small></div>').join('');
   renderWaCats();
+  renderReadable();
   if (rescan && i.filesAccess && (i.sources||[]).length) Android.waScanSizes();
 }
 function renderWaCats(){
@@ -596,6 +686,124 @@ function refreshWaTile(s){
   if (s.running) sub = s.mode === 'restore' ? 'Bezig met terugzetten' : 'Bezig met backup' + (s.phase === 'copy' && s.bytesTotal ? ' · ' + Math.round(100*s.bytesDone/s.bytesTotal) + '%' : '');
   else { const i = waInfo(); if (i.lastOk) sub = 'Laatste backup: ' + fmtD(i.lastOk); }
   $('#tile-wa-sub').textContent = sub;
+}
+
+/* ---------- Leesbare chats ---------- */
+function readInfo(){ try { return JSON.parse(Android.waReadInfo()); } catch(e){ return {}; } }
+function renderReadable(){
+  const r = readInfo();
+  $('#rd-setup').style.display = r.hasKey ? 'none' : 'block';
+  $('#rd-ready').style.display = r.hasKey ? 'block' : 'none';
+  $('#rd-auto').classList.toggle('on', r.auto !== false);
+  let f = '';
+  if (r.hasKey) {
+    f = r.dbFrom ? 'Chats bijgewerkt uit de backup van ' + fmtD(r.dbFrom) + '.' : '';
+    if (!r.dest) f += (f ? ' ' : '') + 'Kies bovenaan een backup-map om ook HTML-bestanden te krijgen.';
+  }
+  $('#rd-from').textContent = f;
+}
+function rdSaveKey(){
+  const k = $('#rd-key').value.replace(/[^0-9a-fA-F]/g, '');
+  if (k.length !== 64) { toast('De sleutel moet 64 tekens hebben; je hebt er ' + k.length); return; }
+  if (!JSON.parse(Android.waInfo()).filesAccess) { toast('Geef eerst toegang tot bestanden'); return; }
+  toast('Sleutel controleren…');
+  Android.waSetKey(k);
+}
+window.onWaKeyResult = function(r){
+  if (r.ok) {
+    $('#rd-key').value = '';
+    toast(r.chats + ' chats gevonden ✓');
+    renderReadable();
+    show('chats');
+  } else {
+    toast(r.error || 'De sleutel klopt niet');
+  }
+};
+function rdForget(){
+  if (!confirm('Je sleutel en de ontsleutelde chats uit de app verwijderen? De HTML-bestanden in je backup-map blijven staan.')) return;
+  Android.waForgetKey(); renderReadable(); toast('Sleutel gewist');
+}
+function rdRefresh(){
+  const err = Android.waMakeReadable();
+  if (err) { toast(err); return; }
+  toast('Chats bijwerken…'); setTimeout(waPollOnce, 200);
+}
+
+let chatCur = null, chatOldest = 0, chatLoading = false, chatGroup = false;
+function enterChats(){
+  const r = readInfo();
+  $('#chat-contacts').style.display = r.contacts ? 'none' : 'block';
+  $('#chat-search').value = ''; $('#search-results').innerHTML = '';
+  loadChatList();
+}
+function loadChatList(){
+  let data; try { data = JSON.parse(Android.waChats()); } catch(e){ return; }
+  if (data.error) { $('#chat-list').innerHTML = '<p class=note style="padding:14px">' + esc(data.error) + '</p>'; return; }
+  const el = $('#chat-list');
+  el.innerHTML = (data.chats || []).map(c =>
+    '<button onclick="openChat(' + c.id + ',' + JSON.stringify(c.name).replace(/"/g,'&quot;') + ',' + (c.group?1:0) + ')">' +
+    '<span class=r1><b>' + esc(c.name) + '</b><time>' + esc(fmtD(c.last)) + '</time></span>' +
+    '<span class=r2>' + (c.group ? '👥 ' : '') + esc(c.lastText || '') + ' · ' + c.n + '</span></button>').join('');
+  if (!(data.chats || []).length) el.innerHTML = '<p class=note style="padding:14px">Geen chats gevonden.</p>';
+}
+function openChat(id, name, group){
+  chatCur = id; chatOldest = 0; chatGroup = !!group;
+  $('#chat-title').textContent = name;
+  $('#chat-msgs').innerHTML = '';
+  show('chat');
+  loadMore(true);
+}
+function loadMore(initial){
+  if (chatLoading || chatCur == null) return;
+  chatLoading = true;
+  let msgs; try { msgs = JSON.parse(Android.waMessages(String(chatCur), String(chatOldest), 300)); } catch(e){ chatLoading = false; return; }
+  const box = $('#chat-msgs');
+  const oldH = box.scrollHeight;
+  const btn = $('#load-older'); if (btn) btn.remove();
+  if (Array.isArray(msgs) && msgs.length) {
+    chatOldest = msgs[0].t;
+    const html = renderMsgs(msgs);
+    box.insertAdjacentHTML('afterbegin', html);
+    if (msgs.length >= 300) box.insertAdjacentHTML('afterbegin', '<button class=more id=load-older onclick="loadMore(false)">Oudere berichten</button>');
+    if (initial) { const m = document.getElementById('msg-anchor'); window.scrollTo(0, document.body.scrollHeight); }
+    else window.scrollTo(0, document.body.scrollHeight - oldH);
+  }
+  chatLoading = false;
+}
+function renderMsgs(msgs){
+  let out = '', lastDay = '';
+  for (const m of msgs) {
+    const d = new Date(m.t), dd = d.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    if (dd !== lastDay) { out += '<div class=dsep>' + esc(dd) + '</div>'; lastDay = dd; }
+    out += '<div class="bub' + (m.me ? ' me' : '') + '">';
+    if (!m.me && m.sender && chatGroup) out += '<span class=snd>' + esc(m.sender) + '</span>';
+    if (m.media && m.mime && m.mime.indexOf('image/') === 0 && m.type !== 20)
+      out += '<img loading=lazy src="https://app.renes-tools.local/wa-media/' + encMedia(m.media) + '" alt="">';
+    else if (m.label && !m.text) out += '<span class=lb>' + esc(m.label) + '</span>';
+    else if (m.label && m.media) out += '<span class=lb>' + esc(m.label) + '</span>\n';
+    if (m.text) out += esc(m.text);
+    out += '<span class=tm>' + d.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) + '</span></div>';
+  }
+  return out;
+}
+function encMedia(rel){ return rel.split('/').map(s=>encodeURIComponent(s)).join('/'); }
+
+let searchTmr = null;
+function chatSearch(q){
+  clearTimeout(searchTmr);
+  const sr = $('#search-results'), cl = $('#chat-list');
+  if (!q || q.trim().length < 2) { sr.innerHTML = ''; cl.style.display = 'block'; return; }
+  searchTmr = setTimeout(() => {
+    let msgs; try { msgs = JSON.parse(Android.waSearch(q.trim())); } catch(e){ return; }
+    cl.style.display = 'none';
+    if (msgs.error) { sr.innerHTML = '<p class=note>' + esc(msgs.error) + '</p>'; return; }
+    if (!msgs.length) { sr.innerHTML = '<p class=note style="text-align:center">Niets gevonden voor "' + esc(q) + '"</p>'; return; }
+    sr.innerHTML = '<p class=note>' + msgs.length + ' resultaten</p><div class="msgs">' + msgs.map(m => {
+      return '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openChat(' + m.chat + ',' + JSON.stringify(m.chatName||'').replace(/"/g,'&quot;') + ')">' +
+        '<span class=snd>' + esc(m.chatName || '') + (m.sender && !m.me ? ' · ' + esc(m.sender) : '') + '</span>' +
+        esc(m.text || m.label || '') + '<span class=tm>' + fmtD(m.t) + '</span></div>';
+    }).join('') + '</div>';
+  }, 250);
 }
 
 /* ---------- Versie & updates ---------- */
