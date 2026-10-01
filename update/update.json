@@ -1,13 +1,25 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.1",
-  "versionCode": 2,
-  "nativeLevel": 2,
+  "versionName": "1.2",
+  "versionCode": 3,
+  "nativeLevel": 3,
   "web": "index.html",
-  "webSha256": "320a32782b9a2f009037db0392799d916b6e66a67eb5a9733646363234485a7f",
+  "webSha256": "cb555b0e36678714bc437b9de8073fa0dffa1d76a681e1d77350a00aac1f1a5b",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1689c792496753abf7d07e85501d7ff19a1180c7f5616b6ff83a0ae25fadc0a7",
+  "apkSha256": "2d26ab1eead07188880f77b5661e577811a89b3170fefdb151f7af53922f7b5e",
   "changelog": [
+    {
+      "version": "1.2",
+      "date": "2026-10-01",
+      "changes": [
+        "Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)",
+        "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer",
+        "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen",
+        "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder",
+        "Backup terugzetten op een nieuwe telefoon",
+        "Updates zijn nu direct na het publiceren zichtbaar"
+      ]
+    },
     {
       "version": "1.1",
       "date": "2026-09-30",

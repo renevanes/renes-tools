@@ -17,6 +17,7 @@ import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.ContactsContract;
+import android.provider.DocumentsContract;
 import android.provider.Settings;
 import android.view.View;
 import android.view.ViewGroup;
@@ -43,6 +44,8 @@ public class MainActivity extends Activity {
     static final String ACTION_INSTALL_STATUS = "nl.rene.tools.INSTALL_STATUS";
     private static final int REQ_PERMS = 11;
     private static final int REQ_CONTACT = 12;
+    private static final int REQ_TREE = 13;
+    private static final int REQ_STORAGE = 14;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -54,6 +57,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         RedialService.createChannel(this);
+        WaBackupService.createChannel(this);
+        WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -238,6 +243,7 @@ public class MainActivity extends Activity {
 
     @Override
     public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
+        if (req == REQ_STORAGE) js("onWaChanged", "");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
     }
 
@@ -250,6 +256,27 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == REQ_TREE) {
+            if (res == RESULT_OK && data != null && data.getData() != null) {
+                Uri t = data.getData();
+                String tid = "";
+                try { tid = DocumentsContract.getTreeDocumentId(t); } catch (Exception ignored) { }
+                if (tid.startsWith("primary:Android/media/com.whatsapp")) {
+                    Toast.makeText(this, "Kies een map buiten de WhatsApp-map", Toast.LENGTH_LONG).show();
+                    js("onWaChanged", "");
+                    return;
+                }
+                try {
+                    getContentResolver().takePersistableUriPermission(t,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                    WaBackup.prefs(this).edit().putString("dest", t.toString()).apply();
+                } catch (Exception e) {
+                    Toast.makeText(this, "Deze map kan niet worden gebruikt", Toast.LENGTH_LONG).show();
+                }
+            }
+            js("onWaChanged", "");
+            return;
+        }
         if (req != REQ_CONTACT || res != RESULT_OK || data == null || data.getData() == null) return;
         try (Cursor c = getContentResolver().query(data.getData(), new String[]{
                 ContactsContract.CommonDataKinds.Phone.NUMBER,
@@ -263,6 +290,32 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             Toast.makeText(this, "Contact lezen lukt niet", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    static boolean hasFilesAccess(Context c) {
+        if (Build.VERSION.SDK_INT >= 30) return android.os.Environment.isExternalStorageManager();
+        return c.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+                && c.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    void requestFilesAccess() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                startActivity(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:" + getPackageName())));
+            } catch (Exception e) {
+                startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+            }
+        } else {
+            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQ_STORAGE);
+        }
+    }
+
+    void pickBackupFolder() {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+        try { startActivityForResult(i, REQ_TREE); }
+        catch (ActivityNotFoundException e) { Toast.makeText(this, "Mappenkiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
     }
 
     void openAppSettings() {
@@ -378,6 +431,75 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public String redialStatus() { return RedialService.status(ctx); }
+
+        // ----- WhatsApp backup -----
+
+        @JavascriptInterface public String waInfo() {
+            try {
+                android.content.SharedPreferences p = WaBackup.prefs(ctx);
+                JSONObject o = new JSONObject();
+                o.put("filesAccess", hasFilesAccess(ctx));
+                org.json.JSONArray src = new org.json.JSONArray();
+                for (WaBackup.Source s : WaBackup.sources())
+                    if (s.dir != null) src.put(new JSONObject().put("name", s.name).put("path", s.dir.getAbsolutePath()));
+                o.put("sources", src);
+                o.put("dest", WaBackup.destUri(ctx) != null);
+                o.put("destName", WaBackup.destName(ctx));
+                o.put("auto", p.getBoolean("auto", false));
+                o.put("autoCharging", p.getBoolean("autoCharging", true));
+                o.put("autoMode", p.getString("autoMode", "all"));
+                o.put("sel", p.getString("sel", "chats,images,voice,documents"));
+                o.put("nextAuto", p.getLong("nextAuto", 0));
+                o.put("lastOk", p.getLong("lastOk", 0));
+                o.put("history", new org.json.JSONArray(p.getString("history", "[]")));
+                return o.toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        @JavascriptInterface public void waRequestFilesAccess() { a.h.post(a::requestFilesAccess); }
+        @JavascriptInterface public void waPickFolder() { a.h.post(a::pickBackupFolder); }
+
+        @JavascriptInterface public void waScanSizes() {
+            new Thread(() -> {
+                String r;
+                try { r = WaBackup.sizes().toString(); } catch (Exception e) { r = "null"; }
+                a.js("onWaSizes", r);
+            }).start();
+        }
+
+        @JavascriptInterface public void waSaveSettings(boolean auto, boolean charging, String autoMode, String sel) {
+            WaBackup.prefs(ctx).edit().putBoolean("auto", auto).putBoolean("autoCharging", charging)
+                    .putString("autoMode", autoMode).putString("sel", sel).apply();
+            // Tijdens een lopende backup niet opnieuw plannen (dat zou hem stoppen); hij plant zichzelf na afloop.
+            if (!WaBackup.busy) WaBackupJob.schedule(ctx);
+        }
+
+        @JavascriptInterface public String waStart(String mode, String cats) {
+            if (WaBackup.busy) return "Er loopt al een backup";
+            if (!hasFilesAccess(ctx)) return "Geef eerst toegang tot bestanden";
+            if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map";
+            if (cats == null || cats.trim().isEmpty()) return "Kies minstens één onderdeel";
+            Intent i = new Intent(ctx, WaBackupService.class).setAction(WaBackupService.ACTION_BACKUP)
+                    .putExtra("mode", mode).putExtra("cats", "all".equals(mode) ? WaBackup.ALL : cats);
+            try {
+                if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i); else ctx.startService(i);
+                return "";
+            } catch (Exception e) { return "Starten mislukt: " + e.getMessage(); }
+        }
+
+        @JavascriptInterface public String waRestore() {
+            if (WaBackup.busy) return "Er loopt al een backup";
+            if (!hasFilesAccess(ctx)) return "Geef eerst toegang tot bestanden";
+            if (WaBackup.destUri(ctx) == null) return "Kies eerst de map met de backup";
+            Intent i = new Intent(ctx, WaBackupService.class).setAction(WaBackupService.ACTION_RESTORE);
+            try {
+                if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i); else ctx.startService(i);
+                return "";
+            } catch (Exception e) { return "Starten mislukt: " + e.getMessage(); }
+        }
+
+        @JavascriptInterface public void waCancel() { WaBackup.cancel = true; }
+        @JavascriptInterface public String waStatus() { return WaBackup.status(ctx); }
 
         @JavascriptInterface public String pendingOpen() {
             String p = a.pendingOpen; a.pendingOpen = null; return p == null ? "" : p;

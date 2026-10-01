@@ -93,6 +93,26 @@ input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
 .range{display:none;align-items:center;gap:8px;margin:10px 0 4px;font-size:15px;flex-wrap:wrap}
 .range.on{display:flex}
 .range select{font:inherit;font-weight:600;padding:9px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin:12px 0 8px}
+.bar i{display:block;height:100%;width:0;background:var(--brand-2);border-radius:5px;transition:width .3s}
+.cur{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cats{margin:6px 0 12px}
+.cat{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);width:100%;text-align:left}
+.cat:first-child{border-top:0}
+.cat .cb{width:24px;height:24px;border-radius:7px;border:2px solid var(--line);flex:none;display:grid;place-items:center}
+.cat.on .cb{background:var(--brand-2);border-color:var(--brand-2)}
+.cat.on .cb::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.cat span{flex:1}
+.cat small{color:var(--muted);font-size:13px;white-space:nowrap}
+.dest{display:flex;align-items:center;gap:12px}
+.dest b{flex:1;font-size:17px;word-break:break-word}
+.dest button{background:var(--chip);color:var(--brand-2);border-radius:10px;padding:9px 14px;font-weight:600;flex:none}
+.hist{font-size:14px;padding:8px 0;border-top:1px solid var(--line)}
+.hist:first-child{border-top:0}
+.hist small{display:block;color:var(--muted)}
+.steps{margin:0 0 12px;padding-left:20px;font-size:15px}
+.steps li{margin-bottom:4px}
+.sub{font-size:14px;color:var(--muted);margin:6px 2px 12px;text-align:center}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
 .toast.on{opacity:1}
 </style>
@@ -110,6 +130,12 @@ input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
         <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/><path d="M15 2.5a6.5 6.5 0 0 1 6.5 6.5"/><path d="M21.5 3v4h-4"/></svg></span>
         <b>Auto redial</b>
         <small id="tile-redial-sub">Blijft bellen tot er wordt opgenomen</small>
+      </button>
+      <button class="tile" id="tile-wa" onclick="show('wa')">
+        <span class="dot"></span>
+        <span class="ic" style="background:#25A35A"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/><path d="M12 8v6M9.5 11.5 12 14l2.5-2.5"/></svg></span>
+        <b>WhatsApp backup</b>
+        <small id="tile-wa-sub">Chats en media veilig bewaren</small>
       </button>
       <div class="tile soon">
         <span class="ic" style="background:var(--muted)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
@@ -186,6 +212,80 @@ input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
   </main>
 </section>
 
+<!-- ============ WHATSAPP BACKUP ============ -->
+<section class="screen" id="s-wa">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>WhatsApp backup</h1>
+  </div>
+  <main>
+    <div class="card perm" id="wa-perm" style="display:none">
+      <p>Geef Rene's Tools toegang tot alle bestanden. Alleen dan kan de app de WhatsApp-map op je telefoon lezen. Zet daarna in het scherm dat opent de schakelaar aan en ga terug.</p>
+      <button class="big" onclick="Android.waRequestFilesAccess()">Toegang geven</button>
+    </div>
+    <div class="card perm" id="wa-nosrc" style="display:none">
+      <p>Er is geen WhatsApp-map gevonden op deze telefoon. Staat WhatsApp erop en heeft het al een keer een backup gemaakt? In WhatsApp: <i>Instellingen › Chats › Chatback-up › Back-up maken</i>.</p>
+    </div>
+
+    <div class="result" id="wa-result"></div>
+
+    <div class="card" id="wa-run" style="display:none">
+      <h2 id="wa-run-title">Backup bezig</h2>
+      <div class="phase" id="wa-run-phase">Bestanden zoeken…</div>
+      <div class="bar"><i id="wa-bar"></i></div>
+      <div class="who" id="wa-run-count" style="margin:0 0 4px"></div>
+      <div class="cur" id="wa-run-cur"></div>
+      <button class="big stop" style="margin-top:14px" onclick="Android.waCancel()">Stoppen</button>
+      <p class="note">Je kunt de app gerust sluiten. De voortgang staat in de meldingenbalk.</p>
+    </div>
+
+    <div id="wa-setup">
+      <div class="card">
+        <h2>Backup-map</h2>
+        <div class="dest"><b id="wa-dest">Nog niet gekozen</b><button id="wa-dest-btn" onclick="Android.waPickFolder()">Kies map</button></div>
+        <p class="note" style="margin-top:10px">Kies of maak een map, bijvoorbeeld op een USB-stick of SD-kaart, of in OneDrive of Dropbox. De backup komt daarin in de map <b>WhatsApp backup</b>.</p>
+      </div>
+
+      <div class="card">
+        <h2>Backup maken</h2>
+        <button class="big" onclick="waStart('all')">Alles back-uppen</button>
+        <div class="sub" id="wa-all-size">Chats en alle media, zonder statussen</div>
+        <h2 style="margin-top:6px">Of kies zelf</h2>
+        <div class="cats" id="wa-cats"></div>
+        <button class="big ghost" onclick="waStart('selection')">Selectie back-uppen</button>
+        <p class="note">Alleen nieuwe en gewijzigde bestanden worden gekopieerd. De eerste keer duurt het dus het langst. In de backup wordt nooit iets verwijderd, ook niet als je het op je telefoon weggooit.</p>
+      </div>
+
+      <div class="card">
+        <h2>Automatisch</h2>
+        <div class="sw"><span>Elke nacht automatisch<small>Na 03:00, als WhatsApp zijn eigen backup heeft gemaakt</small></span><button class="tg" id="wa-auto" onclick="tog(this); waSave()"></button></div>
+        <div class="sw"><span>Alleen tijdens opladen<small>Aanbevolen: de eerste backup kan lang duren</small></span><button class="tg on" id="wa-charging" onclick="tog(this); waSave()"></button></div>
+        <div class="sw" style="display:block"><span>Wat<small>Wat er automatisch wordt meegenomen</small></span>
+          <div class="chips" id="wa-automode" style="margin:10px 0 0"></div></div>
+        <p class="note" id="wa-next"></p>
+      </div>
+
+      <div class="card" id="wa-hist-card" style="display:none">
+        <h2>Laatste backups</h2>
+        <div id="wa-hist"></div>
+      </div>
+
+      <div class="card">
+        <h2>Terugzetten op een (nieuwe) telefoon</h2>
+        <ol class="steps">
+          <li>Installeer Rene's Tools en kies hierboven de map waarin de backup staat.</li>
+          <li>Tik op <b>Backup terugzetten</b>. De bestanden gaan terug naar de WhatsApp-map.</li>
+          <li>Installeer daarna pas WhatsApp en registreer met hetzelfde nummer.</li>
+          <li>Kies <b>Herstellen</b> als WhatsApp een backup vindt.</li>
+        </ol>
+        <button class="big ghost" onclick="waRestore()">Backup terugzetten</button>
+        <p class="note">Gebruik je de versleutelde back-up van WhatsApp (end-to-end)? Dan vraagt WhatsApp bij het herstellen om je wachtwoord of je sleutel van 64 cijfers.</p>
+      </div>
+      <p class="note">De chats zijn versleuteld door WhatsApp. Alleen WhatsApp kan ze terugzetten, je kunt ze niet los lezen. Foto's, video's en documenten zijn gewone bestanden die je overal kunt openen.</p>
+    </div>
+  </main>
+</section>
+
 <!-- ============ INFO ============ -->
 <section class="screen" id="s-info">
   <div class="hdr">
@@ -233,7 +333,18 @@ if (!window.Android) window.Android = (function(){
     redialStart(n,name,a,i){ st={running:true,number:n,name,attempt:1,maxAttempts:a,interval:i,phase:'dialing',message:'Bellen…'}; t0=Date.now(); timer=setInterval(tick,300); return ''; },
     redialStart2(n,name,a,i,rmin,rmax){ const r=this.redialStart(n,name,a,rmin?rmin:i); st.randomMin=rmin; st.randomMax=rmax; return r; },
     redialStop(){ clearInterval(timer); st={...st,running:false,phase:'done',result:'stopped',message:'Gestopt'}; },
-    redialNow(){}, redialStatus:()=>JSON.stringify({...st, now:Date.now()})
+    redialNow(){}, redialStatus:()=>JSON.stringify({...st, now:Date.now()}),
+    _wa:{info:{filesAccess:false,sources:[{name:'WhatsApp',path:'/storage/emulated/0/Android/media/com.whatsapp/WhatsApp'}],dest:false,destName:null,auto:false,autoCharging:true,autoMode:'all',sel:'chats,images,voice,documents',nextAuto:0,lastOk:0,history:[]}, st:{running:false,phase:'idle'}, t:null},
+    waInfo(){ return JSON.stringify(this._wa.info); },
+    waRequestFilesAccess(){ this._wa.info.filesAccess=true; setTimeout(()=>onWaChanged(),100); },
+    waPickFolder(){ Object.assign(this._wa.info,{dest:true,destName:'USB-stick Rene'}); setTimeout(()=>onWaChanged(),100); },
+    waScanSizes(){ setTimeout(()=>onWaSizes({chats:{bytes:48e6,files:9},images:{bytes:3.1e9,files:8200},video:{bytes:5.6e9,files:610},voice:{bytes:420e6,files:3100},audio:{bytes:90e6,files:80},documents:{bytes:800e6,files:450},stickers:{bytes:60e6,files:900},other:{bytes:20e6,files:120},statuses:{bytes:150e6,files:40}}),300); },
+    waSaveSettings(a,c,m,sel){ Object.assign(this._wa.info,{auto:a,autoCharging:c,autoMode:m,sel,nextAuto:a?Date.now()+3600e3*14:0}); },
+    waStart(mode,cats){ const w=this._wa; w.st={running:true,mode,phase:'copy',filesTotal:2400,filesDone:0,bytesTotal:2.4e9,bytesDone:0,current:'IMG-20260930-WA0001.jpg'};
+      w.t=setInterval(()=>{ w.st.filesDone+=60; w.st.bytesDone+=6e7; if(w.st.filesDone>=2400){ clearInterval(w.t); w.st={running:false,phase:'done',mode,result:'ok',message:'2400 bestanden gekopieerd',bytesDone:2.4e9,finishedAt:Date.now()}; w.info.history.unshift(w.st); } },200); return ''; },
+    waRestore(){ return this.waStart('restore'); },
+    waCancel(){ const w=this._wa; clearInterval(w.t); w.st={running:false,phase:'done',mode:w.st.mode,result:'cancelled',message:'Gestopt',finishedAt:Date.now()}; },
+    waStatus(){ return JSON.stringify(this._wa.st); }
   };
 })();
 
@@ -252,12 +363,13 @@ function show(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
   current = name; window.scrollTo(0,0);
   if (name==='redial') enterRedial(); else stopPoll();
+  if (name==='wa') enterWa(); else stopWaPoll();
   if (name==='info') renderInfo();
   if (name==='home') refreshTile();
 }
 window.goBack = function(){ if (current!=='home'){ show('home'); return true; } return false; };
-window.openTool = function(n){ if (n==='redial') show('redial'); };
-window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } refreshTile(); };
+window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); };
+window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); refreshTile(); refreshWaTile(); };
 
 /* ---------- Auto redial ---------- */
 const ATT = [[5,'5'],[10,'10'],[25,'25'],[50,'50'],[0,'∞']];
@@ -378,6 +490,114 @@ function refreshTile(s){
   $('#tile-redial-sub').textContent = s.running ? 'Bezig: poging ' + (s.attempt||1) + (s.maxAttempts ? ' van ' + s.maxAttempts : '') : 'Blijft bellen tot er wordt opgenomen';
 }
 
+/* ---------- WhatsApp backup ---------- */
+const WA_CATS = [['chats','Chats','backup van al je berichten'],['images',"Foto's"],['video',"Video's"],['voice','Spraakberichten'],
+  ['audio','Audio'],['documents','Documenten'],['stickers',"Stickers en GIF's"],['other','Overig','profielfoto\'s, achtergronden'],['statuses','Statussen','van anderen, verdwijnen na 24 uur']];
+const WA_ALL = ['chats','images','video','voice','audio','documents','stickers','other'];
+let waPoll = null, waInfoC = {}, waSizesC = null, waSel = new Set(), waLastKey = '', waWasRunning = false;
+function fmtB(b){ if (b < 1048576) return Math.max(1, Math.round(b/1024)) + ' kB'; if (b < 1073741824) return (b/1048576).toFixed(0) + ' MB'; return (b/1073741824).toFixed(1).replace('.', ',') + ' GB'; }
+function fmtD(t){ const d = new Date(t), n = new Date(), y = new Date(Date.now()-864e5);
+  const hm = d.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'});
+  if (d.toDateString() === n.toDateString()) return 'vandaag ' + hm;
+  if (d.toDateString() === y.toDateString()) return 'gisteren ' + hm;
+  return d.toLocaleDateString('nl-NL', {day:'numeric', month:'short'}) + ' ' + hm; }
+function waInfo(){ try { return JSON.parse(Android.waInfo()); } catch(e){ return {}; } }
+function enterWa(){ renderWa(true); stopWaPoll(); waPoll = setInterval(waPollOnce, 700); waPollOnce(); }
+function stopWaPoll(){ if (waPoll) { clearInterval(waPoll); waPoll = null; } }
+window.onWaChanged = function(){ renderWa(true); };
+window.onWaSizes = function(sz){ waSizesC = sz; renderWaCats(); };
+function renderWa(rescan){
+  const i = waInfoC = waInfo();
+  waSel = new Set((i.sel || '').split(',').filter(Boolean));
+  $('#wa-perm').style.display = i.filesAccess ? 'none' : 'block';
+  $('#wa-nosrc').style.display = i.filesAccess && !(i.sources||[]).length ? 'block' : 'none';
+  $('#wa-dest').textContent = i.dest ? (i.destName || 'Gekozen map') : 'Nog niet gekozen';
+  $('#wa-dest-btn').textContent = i.dest ? 'Andere map' : 'Kies map';
+  $('#wa-auto').classList.toggle('on', !!i.auto);
+  $('#wa-charging').classList.toggle('on', i.autoCharging !== false);
+  const am = $('#wa-automode'); am.innerHTML = '';
+  [['all','Alles'],['selection','Mijn selectie']].forEach(([v,l])=>{ const b=document.createElement('button'); b.textContent=l; b.classList.toggle('on', (i.autoMode||'all')===v);
+    b.onclick=()=>{ waInfoC.autoMode=v; waSave(); renderWa(false); }; am.appendChild(b); });
+  let nx = '';
+  if (i.auto) {
+    if (!i.filesAccess || !i.dest) nx = 'Automatisch staat aan, maar er ontbreekt nog toegang of een backup-map.';
+    else if (i.nextAuto && i.nextAuto > Date.now() + 60000) nx = 'Volgende automatische backup: ' + fmtD(i.nextAuto).replace(/ 0?3:00$/, ' na 03:00') + (i.autoCharging !== false ? ', als de telefoon aan de lader ligt.' : '.');
+    else nx = 'De volgende automatische backup start zo snel mogelijk' + (i.autoCharging !== false ? ' als de telefoon aan de lader ligt.' : '.');
+  }
+  $('#wa-next').textContent = nx;
+  const h = (i.history || []).slice(0, 5);
+  $('#wa-hist-card').style.display = h.length ? 'block' : 'none';
+  const ML = {all:'Alles', selection:'Selectie', auto:'Automatisch', restore:'Terugzetten'};
+  $('#wa-hist').innerHTML = h.map(x => '<div class="hist"><b>' + esc(ML[x.mode] || x.mode) + '</b> · ' + esc(fmtD(x.finishedAt)) +
+    '<small>' + (x.result === 'ok' ? '✓ ' : x.result === 'error' ? '✗ ' : '') + esc(x.message || '') + (x.bytesDone > 0 ? ' · ' + fmtB(x.bytesDone) : '') + '</small></div>').join('');
+  renderWaCats();
+  if (rescan && i.filesAccess && (i.sources||[]).length) Android.waScanSizes();
+}
+function renderWaCats(){
+  const el = $('#wa-cats'); el.innerHTML = '';
+  let all = 0, allF = 0;
+  WA_CATS.forEach(([k, label, sub]) => {
+    const z = waSizesC && waSizesC[k];
+    if (z && WA_ALL.includes(k)) { all += z.bytes; allF += z.files; }
+    const b = document.createElement('button'); b.className = 'cat' + (waSel.has(k) ? ' on' : '');
+    b.innerHTML = '<i class="cb"></i><span>' + esc(label) + (sub ? '<br><small style="white-space:normal">' + esc(sub) + '</small>' : '') + '</span><small>' + (z ? fmtB(z.bytes) : '') + '</small>';
+    b.onclick = () => { waSel.has(k) ? waSel.delete(k) : waSel.add(k); Android.vibrate(10); waSave(); renderWaCats(); };
+    el.appendChild(b);
+  });
+  $('#wa-all-size').textContent = 'Chats en alle media, zonder statussen' + (waSizesC ? ' · ' + fmtB(all) + ' in ' + allF.toLocaleString('nl-NL') + ' bestanden' : '');
+}
+function waSave(){
+  const sel = WA_CATS.map(c=>c[0]).filter(k=>waSel.has(k)).join(',');
+  Android.waSaveSettings($('#wa-auto').classList.contains('on'), $('#wa-charging').classList.contains('on'), waInfoC.autoMode || 'all', sel);
+  setTimeout(()=>renderWa(false), 50);
+}
+function waStart(mode){
+  const cats = mode === 'all' ? WA_ALL.join(',') : WA_CATS.map(c=>c[0]).filter(k=>waSel.has(k)).join(',');
+  const err = Android.waStart(mode, cats);
+  if (err) { toast(err); if (err.indexOf('map') >= 0 && !waInfoC.dest) Android.waPickFolder(); return; }
+  waLastKey = ''; $('#wa-result').className = 'result'; Android.vibrate(25); setTimeout(waPollOnce, 200);
+}
+function waRestore(){
+  if (!confirm('Backup terugzetten naar de WhatsApp-map op deze telefoon?\n\nOntbrekende en afwijkende bestanden worden overgezet. Doe dit voordat je WhatsApp installeert of opnieuw instelt.')) return;
+  const err = Android.waRestore();
+  if (err) { toast(err); return; }
+  waLastKey = ''; $('#wa-result').className = 'result'; setTimeout(waPollOnce, 200);
+}
+function waPollOnce(){
+  let s; try { s = JSON.parse(Android.waStatus()); } catch(e){ return; }
+  const run = !!s.running;
+  if (waWasRunning && !run) renderWa(true);
+  waWasRunning = run;
+  $('#wa-run').style.display = run ? 'block' : 'none';
+  $('#wa-setup').style.display = run ? 'none' : 'block';
+  if (run) {
+    $('#wa-run-title').textContent = s.mode === 'restore' ? 'Terugzetten bezig' : s.mode === 'auto' ? 'Automatische backup bezig' : 'Backup bezig';
+    const ph = {scan:'Bestanden zoeken…', compare:'Vergelijken met de backup…', copy:'Kopiëren…'}[s.phase] || '';
+    $('#wa-run-phase').textContent = ph;
+    const pct = s.phase === 'copy' && s.bytesTotal > 0 ? 100 * s.bytesDone / s.bytesTotal : 0;
+    $('#wa-bar').style.width = pct.toFixed(1) + '%';
+    $('#wa-run-count').textContent = s.phase === 'copy' ? (s.filesDone||0).toLocaleString('nl-NL') + ' van ' + (s.filesTotal||0).toLocaleString('nl-NL') + ' bestanden · ' + fmtB(s.bytesDone||0) + ' van ' + fmtB(s.bytesTotal||0) : '';
+    $('#wa-run-cur').textContent = s.current || '';
+  } else if (s.phase === 'done' && s.finishedAt) {
+    const key = s.finishedAt + s.result;
+    const r = $('#wa-result');
+    const T = {ok:'✓ Klaar: ', partial:'Klaar met fouten: ', cancelled:'', error:'Mislukt: '};
+    r.textContent = (T[s.result] || '') + (s.message || '') + (s.bytesDone > 0 ? ' (' + fmtB(s.bytesDone) + ')' : '');
+    r.className = 'result on ' + (s.result === 'ok' ? 'answered' : s.result === 'error' ? 'error' : 'other');
+    if (waLastKey && waLastKey !== key) Android.vibrate(60);
+    waLastKey = key;
+  }
+  refreshWaTile(s);
+}
+function refreshWaTile(s){
+  if (!s) { try { s = JSON.parse(Android.waStatus()); } catch(e){ return; } }
+  $('#tile-wa').classList.toggle('live', !!s.running);
+  let sub = 'Chats en media veilig bewaren';
+  if (s.running) sub = s.mode === 'restore' ? 'Bezig met terugzetten' : 'Bezig met backup' + (s.phase === 'copy' && s.bytesTotal ? ' · ' + Math.round(100*s.bytesDone/s.bytesTotal) + '%' : '');
+  else { const i = waInfo(); if (i.lastOk) sub = 'Laatste backup: ' + fmtD(i.lastOk); }
+  $('#tile-wa-sub').textContent = sub;
+}
+
 /* ---------- Versie & updates ---------- */
 function ver(){ try { return JSON.parse(Android.version()); } catch(e){ return {}; } }
 function renderInfo(){
@@ -405,7 +625,7 @@ window.onUpdateStatus = function(r){
 /* ---------- start ---------- */
 $('#hver').textContent = 'v' + ver().webName;
 bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
-refreshTile();
+refreshTile(); refreshWaTile();
 const po = Android.pendingOpen(); if (po) openTool(po);
 </script>
 </body>

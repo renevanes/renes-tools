@@ -54,9 +54,36 @@ final class Updater {
         catch (Exception e) { return null; }
     }
 
+    /**
+     * Adres van de update-map. Via de GitHub-API wordt eerst de nieuwste commit opgezocht,
+     * zodat een nieuwe versie direct zichtbaar is (de gewone raw-link wordt tot 5 minuten
+     * gecachet). Lukt dat niet, dan de gewone link.
+     */
+    static String base() {
+        try {
+            HttpURLConnection con = (HttpURLConnection) new URL(
+                    "https://api.github.com/repos/renevanes/renes-tools/commits/main").openConnection();
+            con.setConnectTimeout(10000);
+            con.setReadTimeout(15000);
+            con.setUseCaches(false);
+            con.setRequestProperty("Accept", "application/vnd.github.sha");
+            try {
+                if (con.getResponseCode() == 200) {
+                    String sha = new String(readAll(con.getInputStream()), StandardCharsets.UTF_8).trim();
+                    if (sha.matches("[0-9a-f]{40}"))
+                        return "https://raw.githubusercontent.com/renevanes/renes-tools/" + sha + "/update/";
+                }
+            } finally { con.disconnect(); }
+        } catch (Exception ignored) { }
+        return Version.UPDATE_BASE;
+    }
+
     static JSONObject fetchManifest() throws Exception {
-        byte[] b = get(Version.UPDATE_BASE + "update.json?t=" + System.currentTimeMillis());
-        return new JSONObject(new String(b, StandardCharsets.UTF_8));
+        String base = base();
+        byte[] b = get(base + "update.json?t=" + System.currentTimeMillis());
+        JSONObject m = new JSONObject(new String(b, StandardCharsets.UTF_8));
+        m.put("_base", base);
+        return m;
     }
 
     /**
@@ -89,7 +116,7 @@ final class Updater {
     }
 
     private static void applyWeb(Context c, JSONObject m) throws Exception {
-        byte[] html = get(Version.UPDATE_BASE + m.optString("web", "index.html") + "?v=" + m.getInt("versionCode"));
+        byte[] html = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("web", "index.html") + "?v=" + m.getInt("versionCode"));
         String sha = m.optString("webSha256", "");
         if (!sha.isEmpty() && !sha.equalsIgnoreCase(sha256(html))) throw new Exception("Controlegetal interface klopt niet");
         String s = new String(html, StandardCharsets.UTF_8);
@@ -110,7 +137,7 @@ final class Updater {
             if (Build.VERSION.SDK_INT >= 26 && !c.getPackageManager().canRequestPackageInstalls()) {
                 return "needs-permission";
             }
-            byte[] apk = get(Version.UPDATE_BASE + m.optString("apk", "Renes-Tools.apk") + "?v=" + m.getInt("versionCode"));
+            byte[] apk = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("apk", "Renes-Tools.apk") + "?v=" + m.getInt("versionCode"));
             String sha = m.optString("apkSha256", "");
             if (!sha.isEmpty() && !sha.equalsIgnoreCase(sha256(apk))) return "Controlegetal van de download klopt niet";
 

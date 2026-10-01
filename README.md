@@ -12,10 +12,18 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Of er is opgenomen, leest de app af uit de oproepgeschiedenis. Een gesprek dat verbonden is geweest, telt als opgenomen. Een voicemail telt dus ook als opgenomen.
 - Zonder toegang tot de oproepgeschiedenis telt een gesprek van langer dan 1 minuut als opgenomen.
 
+## WhatsApp backup
+- Kopieert de lokale WhatsApp-map (`Android/media/com.whatsapp/WhatsApp`, en WhatsApp Business) naar een map die je zelf kiest: een USB-stick, SD-kaart of OneDrive/Dropbox via de bestandskiezer van Android. Alles komt in de submap `WhatsApp backup/`.
+- **Alles back-uppen**: chats (Databases + Backups) en alle media, behalve statussen. **Selectie**: kies zelf welke onderdelen.
+- **Automatisch**: elke nacht na 03:00, eventueel alleen tijdens het opladen. WhatsApp maakt om 02:00 zijn eigen backup.
+- Kopieert alleen nieuwe en gewijzigde bestanden en verwijdert nooit iets uit de backup. Een bestaand bestand wordt eerst volledig naar `.rt-part` gekopieerd en pas daarna vervangen, zodat een onderbroken kopie de vorige versie niet kapotmaakt.
+- **Terugzetten**: zet ontbrekende bestanden terug in de WhatsApp-map. Chatbestanden op de telefoon die nieuwer zijn dan de backup worden nooit overschreven.
+- Heeft *Toegang tot alle bestanden* nodig om de WhatsApp-map te lezen. De chatdatabase is versleuteld door WhatsApp; alleen WhatsApp kan hem terugzetten.
+
 ## Versies en updates
 - `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.
-- De app leest `update/update.json` van GitHub (raw) wanneer je hem opent, hooguit eens per 30 minuten:
+- De app leest `update/update.json` van GitHub wanneer je hem opent, hooguit eens per 30 minuten. Via de GitHub-API zoekt hij eerst de nieuwste commit op, zodat een nieuwe versie direct zichtbaar is:
   - **Alleen de interface is veranderd** (`web/index.html`, `NATIVE_LEVEL` blijft gelijk): de nieuwe versie wordt stil gedownload, gecontroleerd met SHA-256 en direct gebruikt.
   - **`NATIVE_LEVEL` is hoger** (de Java-code of het manifest is veranderd): de app toont *Nieuwe versie beschikbaar* met een knop **Installeren**. Die downloadt de APK, controleert hem en biedt hem aan via de pakketinstaller van Android.
 

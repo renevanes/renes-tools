@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.2",
+    "date": "2026-10-01",
+    "changes": [
+      "Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)",
+      "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer",
+      "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen",
+      "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder",
+      "Backup terugzetten op een nieuwe telefoon",
+      "Updates zijn nu direct na het publiceren zichtbaar"
+    ]
+  },
+  {
     "version": "1.1",
     "date": "2026-09-30",
     "changes": [
