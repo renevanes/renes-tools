@@ -1,13 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.7",
-  "versionCode": 8,
-  "nativeLevel": 8,
+  "versionName": "1.8",
+  "versionCode": 9,
+  "nativeLevel": 9,
   "web": "index.html",
-  "webSha256": "d4b8cffc198602ab1418c0309f247b2fc1fdf7743650430c89722b6676fc249e",
+  "webSha256": "284b43db06363d5671623299cf26d1d54c4485be13dd0a89e32bbcce4d86f58c",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "8551999502cdbbb1885b4de1854483fae7f6ff94a2de15369ff7c1134c0182f7",
+  "apkSha256": "f68e40359e4fba7ff5adfb1af0fea6dbabc358338c5024760a6ca0a5925ae009",
   "changelog": [
+    {
+      "version": "1.8",
+      "date": "2026-10-02",
+      "changes": [
+        "Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map",
+        "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina",
+        "Je berichten lezen en doorzoeken in de app; namen uit je contacten"
+      ]
+    },
     {
       "version": "1.7",
       "date": "2026-10-02",

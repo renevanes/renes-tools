@@ -52,6 +52,7 @@ public class MainActivity extends Activity {
     private static final int REQ_STORAGE = 14;
     private static final int REQ_CONTACTS = 15;
     private static final int REQ_LOCATION = 16;
+    private static final int REQ_SMS = 17;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -250,6 +251,7 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
         if (req == REQ_STORAGE || req == REQ_CONTACTS) js("onWaChanged", "");
+        if (req == REQ_SMS) js("onSmsChanged", "");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
     }
 
@@ -339,6 +341,7 @@ public class MainActivity extends Activity {
     static final class Bridge {
         private final MainActivity a;
         private final Context ctx;
+        static volatile boolean smsBusy = false;
         Bridge(MainActivity act) { a = act; ctx = act.getApplicationContext(); }
 
         @JavascriptInterface public String version() {
@@ -721,6 +724,76 @@ public class MainActivity extends Activity {
                 }
             });
             return "";
+        }
+
+        // ----- SMS-backup -----
+
+        @JavascriptInterface public boolean smsHasPermission() {
+            return ctx.checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface public void smsRequestPermission() {
+            a.h.post(() -> a.requestPermissions(new String[]{Manifest.permission.READ_SMS}, REQ_SMS));
+        }
+
+        @JavascriptInterface public String smsInfo() {
+            try {
+                JSONObject o = new JSONObject();
+                o.put("perm", smsHasPermission());
+                o.put("dest", WaBackup.destUri(ctx) != null);
+                o.put("contacts", ctx.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED);
+                o.put("lastExport", Sms.prefs(ctx).getLong("lastExport", 0));
+                o.put("lastCount", Sms.prefs(ctx).getInt("lastCount", 0));
+                o.put("total", smsHasPermission() ? Sms.countTotal(ctx) : 0);
+                return o.toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        @JavascriptInterface public void smsRequestContacts() {
+            a.h.post(() -> a.requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, REQ_SMS));
+        }
+
+        @JavascriptInterface public String smsConversations() {
+            try { return Sms.conversationsJson(ctx); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String smsMessages(String threadId) {
+            try { return Sms.messagesJson(ctx, Long.parseLong(threadId)); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String smsSearch(String q) {
+            try { return Sms.searchJson(ctx, q); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String smsExport() {
+            if (smsBusy) return "Er loopt al een export";
+            if (!smsHasPermission()) return "Geef eerst toegang tot sms";
+            if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map (bij WhatsApp backup)";
+            smsBusy = true;
+            Sms.prefs(ctx).edit().putString("status", "{\"running\":true,\"done\":0,\"total\":0}").apply();
+            new Thread(() -> {
+                String err = null; int n = 0;
+                try {
+                    n = Sms.export(ctx, (done, total) -> {
+                        try { Sms.prefs(ctx).edit().putString("status",
+                                new JSONObject().put("running", true).put("done", done).put("total", total).toString()).apply(); } catch (Exception ignored) { }
+                    });
+                } catch (Throwable e) {
+                    err = e.getMessage() != null ? e.getMessage() : "onvoldoende geheugen of fout";
+                } finally {
+                    try {
+                        JSONObject o = new JSONObject().put("running", false);
+                        if (err == null) o.put("ok", true).put("count", n); else o.put("ok", false).put("error", err);
+                        Sms.prefs(ctx).edit().putString("status", o.toString()).apply();
+                    } catch (Exception ignored) { }
+                    smsBusy = false;
+                }
+            }, "sms-export").start();
+            return "";
+        }
+
+        @JavascriptInterface public String smsStatus() {
+            return Sms.prefs(ctx).getString("status", "{\"running\":false}");
         }
 
         @JavascriptInterface public String pendingOpen() {

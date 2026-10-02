@@ -35,6 +35,12 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Routedetail toont de route op een echte kaart (Leaflet + OpenStreetMap-tegels, meegeleverd in de assets en geserveerd via de `/vendor/`-route van `MediaClient`). Knop "Openen in Google Maps" opent de route (start→eind) in Google Maps.
 - Nodig: locatietoestemming en `FOREGROUND_SERVICE_LOCATION`.
 
+## SMS-backup
+- Leest de eigen sms-berichten via `content://sms` (READ_SMS), toont gesprekken in de app met zoeken, en exporteert naar de gekozen backup-map onder `SMS backup/` (`Sms.java`).
+- Twee uitvoerbestanden: een herstelbaar XML in het formaat van "SMS Backup & Restore", en per gesprek een leesbare HTML-pagina + index. Export draait op een achtergrondthread met voortgang in de voorkeuren; de interface pollt `smsStatus()`.
+- Namen komen uit de contacten als die toestemming is gegeven. Alleen lezen; er wordt niets op de telefoon gewijzigd. Herstellen gaat via de app "SMS Backup & Restore" (standaard-sms-app worden is op moderne Android nodig om terug te schrijven).
+- XML-escaping behoudt regeleindes/tabs (numerieke entiteiten) en laat in XML verboden stuurtekens weg, zodat het backupbestand altijd herstelbaar blijft.
+
 ## Versies en updates
 - `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.

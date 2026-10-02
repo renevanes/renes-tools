@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.8",
+    "date": "2026-10-02",
+    "changes": [
+      "Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map",
+      "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina",
+      "Je berichten lezen en doorzoeken in de app; namen uit je contacten"
+    ]
+  },
+  {
     "version": "1.7",
     "date": "2026-10-02",
     "changes": [

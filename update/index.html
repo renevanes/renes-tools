@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- RENES-TOOLS-UI versie 1.7 (8) -->
+<!-- RENES-TOOLS-UI versie 1.8 (9) -->
 <html lang="nl">
 <head>
 <meta charset="utf-8">
@@ -202,6 +202,11 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
         <span class="ic" style="background:#C0392B"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
         <b>Mijn routes</b>
         <small id="tile-tracks-sub">Leg je route vast met gps</small>
+      </button>
+      <button class="tile" id="tile-sms" onclick="show('sms')">
+        <span class="ic" style="background:#8E44AD"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/></svg></span>
+        <b>SMS-backup</b>
+        <small id="tile-sms-sub">Bewaar je sms-berichten</small>
       </button>
       <div class="tile soon">
         <span class="ic" style="background:var(--muted)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
@@ -487,6 +492,57 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
   </main>
 </section>
 
+<!-- ============ SMS-BACKUP ============ -->
+<section class="screen" id="s-sms">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>SMS-backup</h1>
+  </div>
+  <main>
+    <div class="card perm" id="sms-perm" style="display:none">
+      <p id="sms-perm-text">SMS-backup heeft toegang tot je sms-berichten nodig om ze te kunnen bewaren.</p>
+      <button class="big" id="sms-perm-btn" onclick="smsAskPerm()">Toegang geven</button>
+    </div>
+
+    <div class="result" id="sms-result"></div>
+
+    <div class="card" id="sms-run" style="display:none">
+      <h2>Bezig met exporteren</h2>
+      <div class="bar"><i id="sms-bar"></i></div>
+      <div class="who" id="sms-run-count"></div>
+    </div>
+
+    <div id="sms-home">
+      <div class="card">
+        <h2>Exporteren</h2>
+        <p class="note" style="margin-top:0" id="sms-count-note"></p>
+        <button class="big" onclick="smsExport()">Sms-berichten exporteren</button>
+        <p class="note">Naar de map <b>SMS backup</b> in je gekozen backup-map. Er komt een herstelbaar bestand (leesbaar door de app "SMS Backup &amp; Restore") en per gesprek een webpagina die je op elke computer kunt openen.</p>
+      </div>
+
+      <div class="card" id="sms-contacts" style="display:none">
+        <p style="margin:0 0 10px">Geef toegang tot je contacten om namen te tonen in plaats van nummers.</p>
+        <button class="big ghost" onclick="Android.smsRequestContacts()">Contacten tonen</button>
+      </div>
+
+      <input class="search" id="sms-search" type="search" placeholder="Zoek in je berichten…" oninput="smsSearchDo(this.value)">
+      <div class="clist card" id="sms-list"></div>
+      <div id="sms-results"></div>
+
+      <p class="note" style="margin-top:14px">Let op: sms-berichten bevatten soms verificatiecodes van je bank of beveiligingscodes. Bewaar de backup op een plek die alleen jij kunt bij.</p>
+    </div>
+  </main>
+</section>
+
+<!-- ============ SMS-GESPREK ============ -->
+<section class="screen" id="s-smschat">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 id="sms-title" style="font-size:18px">Gesprek</h1>
+  </div>
+  <main><div class="msgs" id="sms-msgs"></div></main>
+</section>
+
 <!-- ============ INFO ============ -->
 <section class="screen" id="s-info">
   <div class="hdr">
@@ -530,9 +586,9 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 </div></div>
 
 <script>
-const VERSION_NAME = "1.7";
-const VERSION_CODE = 8;
-const CHANGELOG = [{"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+const VERSION_NAME = "1.8";
+const VERSION_CODE = 9;
+const CHANGELOG = [{"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
 
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
 if (!window.Android) window.Android = (function(){
@@ -601,6 +657,22 @@ if (!window.Android) window.Android = (function(){
     trackJustStopped(){ return this._tr.just?JSON.stringify(this._tr.just):''; },
     trackLivePoints(){ const t=this._tr; return JSON.stringify((t.pathpts||[]).map(p=>[Math.round(p[1]*1e6)/1e6, Math.round(p[0]*1e6)/1e6])); },
     openUrl(u){ toast('Zou openen: '+u.slice(0,40)); },
+    _sms:{perm:false,contacts:false,convs:null,st:{running:false},done:false},
+    _smsDemo(){ const names=['Bank','Moeder','Pakketdienst','+31 6 12345678','Tandarts']; const convs=[]; const msgs={};
+      for(let i=0;i<5;i++){ const th=i+1,n=8+i*5; const l=[]; let t=Date.now()-n*36e5;
+        for(let k=0;k<n;k++){ t+=Math.random()*54e5; l.push({id:k+1,me:k%3===0,t:Math.round(t),text:'Voorbeeld-sms '+(k+1)+' met '+names[i],type:k%3===0?2:1}); }
+        msgs[th]=l; const last=l[l.length-1]; convs.push({thread:th,name:names[i],count:n,last:last.t,lastText:last.text}); }
+      convs.sort((a,b)=>b.last-a.last); this._sms.convs=convs; this._sms.msgs=msgs; },
+    smsHasPermission(){ return this._sms.perm; },
+    smsRequestPermission(){ this._sms.perm=true; this._smsDemo(); setTimeout(()=>onSmsChanged(),150); },
+    smsRequestContacts(){ this._sms.contacts=true; setTimeout(()=>onSmsChanged(),100); },
+    smsInfo(){ const s=this._sms; return JSON.stringify({perm:s.perm,dest:this._wa.info.dest,contacts:s.contacts,lastExport:s.done?Date.now()-3600e3:0,lastCount:s.done?31:0,total:s.perm?31:0}); },
+    smsConversations(){ const s=this._sms; return JSON.stringify({conversations:s.convs||[],total:31}); },
+    smsMessages(th){ return JSON.stringify((this._sms.msgs[th]||[])); },
+    smsSearch(q){ const out=[]; const ql=q.toLowerCase(); const s=this._sms; for(const c of s.convs){ for(const m of s.msgs[c.thread]){ if(m.text.toLowerCase().includes(ql)) out.push({...m,name:c.name,thread:c.thread}); } } return JSON.stringify(out.slice(0,200)); },
+    smsExport(){ const s=this._sms; if(!s.perm) return 'Geef eerst toegang tot sms'; if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)';
+      s.st={running:true,done:0,total:31}; let i=0; s.t=setInterval(()=>{ i+=8; s.st={running:true,done:Math.min(i,31),total:31}; if(i>=31){ clearInterval(s.t); s.done=true; s.st={running:false,ok:true,count:31}; } },250); return ''; },
+    smsStatus(){ return JSON.stringify(this._sms.st); },
     trackSave(title){ const t=this._tr; const id=Date.now()+'__'+(title||'Route').replace(/ /g,'_')+'.trk'; t.list.unshift({id,title:title||'Route',t:t.start,stats:t.just.stats,path:'M10 120 L80 40 L160 90 L240 30 L290 70'}); t.just=null; return ''; },
     trackDiscard(){ this._tr.just=null; },
     trackList(){ return JSON.stringify(this._tr.list); },
@@ -661,12 +733,13 @@ function show(name){
   if (name==='wa') enterWa(); else stopWaPoll();
   if (name==='chats') enterChats();
   if (name==='tracks') enterTracks(); else stopTrackPoll();
+  if (name==='sms') enterSms(); else stopSmsPoll();
   if (name==='info') renderInfo();
   if (name==='home') { refreshTile(); refreshTrackTile(); }
 }
-const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks'};
+const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms'};
 window.goBack = function(){ if (current!=='home'){ show(BACK[current]||'home'); return true; } return false; };
-window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); };
+window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); };
 window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
 /* ---------- Auto redial ---------- */
@@ -1217,6 +1290,102 @@ function refreshTrackTile(s){
 }
 function enterTracksList(){ loadTrackList(); }
 
+/* ---------- SMS-backup ---------- */
+let smsPoll = null, smsSearchTmr = null;
+function smsInfo(){ try { return JSON.parse(Android.smsInfo()); } catch(e){ return {}; } }
+function enterSms(){
+  const i = smsInfo();
+  $('#sms-perm').style.display = i.perm ? 'none' : 'block';
+  $('#sms-perm-btn').textContent = store.get('smsAsked', false) && !i.perm ? 'Instellingen openen' : 'Toegang geven';
+  $('#sms-home').style.display = i.perm ? 'block' : 'none';
+  $('#sms-contacts').style.display = (i.perm && !i.contacts) ? 'block' : 'none';
+  $('#sms-count-note').textContent = i.total ? i.total.toLocaleString('nl-NL') + ' berichten op deze telefoon' +
+    (i.lastExport ? ' · laatste export ' + fmtD(i.lastExport) : '') : '';
+  $('#sms-search').value = ''; $('#sms-results').innerHTML = '';
+  if (i.perm) loadSmsList();
+  smsPollOnce();
+  stopSmsPoll(); smsPoll = setInterval(smsPollOnce, 600);
+}
+function stopSmsPoll(){ if (smsPoll) { clearInterval(smsPoll); smsPoll = null; } }
+window.onSmsChanged = function(){ enterSms(); };
+function smsAskPerm(){
+  if (store.get('smsAsked', false) && !Android.smsHasPermission()) { Android.openAppSettings(); return; }
+  store.set('smsAsked', true); Android.smsRequestPermission();
+}
+function loadSmsList(){
+  let d; try { d = JSON.parse(Android.smsConversations()); } catch(e){ return; }
+  if (d.error) { $('#sms-list').innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
+  const el = $('#sms-list');
+  el.innerHTML = (d.conversations || []).map(cv =>
+    '<button onclick="openSms(' + cv.thread + ',' + JSON.stringify(cv.name).replace(/"/g,'&quot;') + ')">' +
+    '<span class=r1><b>' + esc(cv.name) + '</b><time>' + esc(fmtD(cv.last)) + '</time></span>' +
+    '<span class=r2>' + esc(cv.lastText || '') + ' · ' + cv.count + '</span></button>').join('');
+  if (!(d.conversations || []).length) el.innerHTML = '<p class=note style="padding:14px">Geen sms-berichten gevonden.</p>';
+}
+let smsChatCur = null;
+function openSms(thread, name){ smsChatCur = thread; $('#sms-title').textContent = name; show('smschat'); loadSmsMsgs(); }
+function loadSmsMsgs(){
+  let msgs; try { msgs = JSON.parse(Android.smsMessages(String(smsChatCur))); } catch(e){ return; }
+  const box = $('#sms-msgs');
+  if (msgs.error) { box.innerHTML = '<p class=note>' + esc(msgs.error) + '</p>'; return; }
+  box.innerHTML = smsRenderMsgs(msgs);
+  window.scrollTo(0, document.body.scrollHeight);
+}
+function smsRenderMsgs(msgs){
+  let out = '', lastDay = '';
+  for (const m of msgs) {
+    const d = new Date(m.t), dd = d.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    if (dd !== lastDay) { out += '<div class=dsep>' + esc(dd) + '</div>'; lastDay = dd; }
+    out += '<div class="bub' + (m.me ? ' me' : '') + '">' + esc(m.text || '') +
+      '<span class=tm>' + d.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) + '</span></div>';
+  }
+  return out || '<p class=note>Geen berichten.</p>';
+}
+function smsSearchDo(q){
+  clearTimeout(smsSearchTmr);
+  const sr = $('#sms-results'), cl = $('#sms-list');
+  if (!q || q.trim().length < 2) { sr.innerHTML = ''; cl.style.display = 'block'; return; }
+  smsSearchTmr = setTimeout(() => {
+    let msgs; try { msgs = JSON.parse(Android.smsSearch(q.trim())); } catch(e){ return; }
+    cl.style.display = 'none';
+    if (msgs.error) { sr.innerHTML = '<p class=note>' + esc(msgs.error) + '</p>'; return; }
+    if (!msgs.length) { sr.innerHTML = '<p class=note style="text-align:center">Niets gevonden</p>'; return; }
+    sr.innerHTML = '<p class=note>' + msgs.length + ' resultaten</p><div class="msgs">' + msgs.map(m =>
+      '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openSms(' + m.thread + ',' + JSON.stringify(m.name||'').replace(/"/g,'&quot;') + ')">' +
+      '<span class=snd>' + esc(m.name || '') + '</span>' + esc(m.text || '') +
+      '<span class=tm>' + fmtD(m.t) + '</span></div>').join('') + '</div>';
+  }, 250);
+}
+function smsExport(){
+  const err = Android.smsExport();
+  if (err) { toast(err); return; }
+  $('#sms-result').className = 'result'; smsLastDone = false; setTimeout(smsPollOnce, 150);
+}
+let smsLastDone = false;
+function smsPollOnce(){
+  let s; try { s = JSON.parse(Android.smsStatus()); } catch(e){ return; }
+  $('#sms-run').style.display = s.running ? 'block' : 'none';
+  $('#sms-home').style.display = (s.running || !smsInfo().perm) ? 'none' : 'block';
+  if (s.running) {
+    const pct = s.total ? 100 * s.done / s.total : 0;
+    $('#sms-bar').style.width = pct.toFixed(0) + '%';
+    $('#sms-run-count').textContent = (s.done||0) + ' van ' + (s.total||0) + ' berichten';
+  } else if (s.ok !== undefined && !smsLastDone) {
+    smsLastDone = true;
+    const r = $('#sms-result');
+    r.textContent = s.ok ? '✓ ' + s.count + ' berichten geëxporteerd naar de map SMS backup' : 'Mislukt: ' + (s.error || '');
+    r.className = 'result on ' + (s.ok ? 'answered' : 'error');
+    enterSms();
+  }
+  refreshSmsTile(s);
+}
+function refreshSmsTile(s){
+  const t = $('#tile-sms'); if (!t) return;
+  t.classList.toggle('live', !!(s && s.running));
+  const sub = $('#tile-sms-sub');
+  if (sub) { const i = smsInfo(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je sms-berichten'); }
+}
+
 /* ---------- Versie & updates ---------- */
 function ver(){ try { return JSON.parse(Android.version()); } catch(e){ return {}; } }
 function renderInfo(){
@@ -1244,7 +1413,7 @@ window.onUpdateStatus = function(r){
 /* ---------- start ---------- */
 $('#hver').textContent = 'v' + ver().webName;
 bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
-refreshTile(); refreshWaTile(); refreshTrackTile();
+refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile();
 const po = Android.pendingOpen(); if (po) openTool(po);
 </script>
 </body>
