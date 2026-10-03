@@ -1,13 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.10",
-  "versionCode": 11,
-  "nativeLevel": 11,
+  "versionName": "1.11",
+  "versionCode": 12,
+  "nativeLevel": 12,
   "web": "index.html",
-  "webSha256": "bf2f2692ca359a8c296b2b9a6188581e4f36968a18ff36a3c24791364e83c023",
+  "webSha256": "2daad5a60e41e939076fdab3e965241e42cad0f46fa9f8b7fdfcee2a263d14dc",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1ade9daf9e5815728831f81482768b832f5284c3c9773a8cdc5dc3cadffd6121",
+  "apkSha256": "bb655ddf8c179f0fe1390dc225cdc2dabdc655a802d8284043b4a3a1d371be22",
   "changelog": [
+    {
+      "version": "1.11",
+      "date": "2026-10-03",
+      "changes": [
+        "Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst",
+        "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel",
+        "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"
+      ]
+    },
     {
       "version": "1.10",
       "date": "2026-10-03",

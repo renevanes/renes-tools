@@ -37,6 +37,7 @@ import android.widget.Toast;
 import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -55,6 +56,8 @@ public class MainActivity extends Activity {
     private static final int REQ_SMS = 17;
     private static final int REQ_CALLS = 18;
     private static final int REQ_CONTACTS_RW = 19;
+    private static final int REQ_TR = 20;
+    private static final int REQ_RECTREE = 21;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -262,6 +265,7 @@ public class MainActivity extends Activity {
         if (req == REQ_SMS) js("onSmsChanged", "");
         if (req == REQ_CALLS) js("onCallsChanged", "");
         if (req == REQ_CONTACTS_RW) js("onContactsChanged", "");
+        if (req == REQ_TR) js("onTrChanged", "");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
     }
 
@@ -293,6 +297,26 @@ public class MainActivity extends Activity {
                 }
             }
             js("onWaChanged", "");
+            return;
+        }
+        if (req == REQ_RECTREE) {
+            if (res == RESULT_OK && data != null && data.getData() != null) {
+                // Boommap omzetten naar een gewoon pad (de app heeft toegang tot alle bestanden).
+                try {
+                    if (!"com.android.externalstorage.documents".equals(data.getData().getAuthority()))
+                        throw new Exception("geen gewone map");
+                    String tid = DocumentsContract.getTreeDocumentId(data.getData());
+                    int c = tid.indexOf(':');
+                    String vol = c < 0 ? tid : tid.substring(0, c), rel = c < 0 ? "" : tid.substring(c + 1);
+                    File base = "primary".equals(vol) ? android.os.Environment.getExternalStorageDirectory() : new File("/storage/" + vol);
+                    File dir = rel.isEmpty() ? base : new File(base, rel);
+                    if (dir.isDirectory()) Transcribe.prefs(this).edit().putString("folder", dir.getAbsolutePath()).apply();
+                    else Toast.makeText(this, "Deze map kan niet worden gebruikt", Toast.LENGTH_LONG).show();
+                } catch (Exception e) {
+                    Toast.makeText(this, "Deze map kan niet worden gebruikt", Toast.LENGTH_LONG).show();
+                }
+            }
+            js("onTrChanged", "");
             return;
         }
         if (req != REQ_CONTACT || res != RESULT_OK || data == null || data.getData() == null) return;
@@ -953,6 +977,160 @@ public class MainActivity extends Activity {
                     Toast.makeText(a, "Contacten-app openen lukt niet", Toast.LENGTH_LONG).show();
                 }
             });
+        }
+
+        // ----- Gesprekken uitschrijven -----
+
+        @JavascriptInterface public String txInfo() {
+            try {
+                JSONObject o = new JSONObject();
+                o.put("supported", Transcribe.supported());
+                o.put("files", hasFilesAccess(ctx));
+                o.put("calls", ctx.checkSelfPermission(Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED);
+                o.put("dest", WaBackup.destUri(ctx) != null);
+                o.put("folder", Transcribe.prefs(ctx).getString("folder", ""));
+                o.put("lang", Transcribe.prefs(ctx).getString("lang", "nl"));
+                Transcribe.Model act = Transcribe.activeModel(ctx);
+                o.put("model", act == null ? "" : act.id);
+                JSONArray ms = new JSONArray();
+                for (Transcribe.Model m : Transcribe.MODELS)
+                    ms.put(new JSONObject().put("id", m.id).put("label", m.label).put("installed", Transcribe.modelFile(ctx, m).isFile()));
+                o.put("models", ms);
+                o.put("busy", TranscribeService.busy);
+                return o.toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        @JavascriptInterface public void txRequestFiles() { a.h.post(a::requestFilesAccess); }
+
+        @JavascriptInterface public void txRequestCalls() {
+            a.h.post(() -> a.requestPermissions(new String[]{Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_CONTACTS}, REQ_TR));
+        }
+
+        @JavascriptInterface public void txPickFolder() {
+            a.h.post(() -> {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                try { a.startActivityForResult(i, REQ_RECTREE); }
+                catch (ActivityNotFoundException e) { Toast.makeText(a, "Mappenkiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+            });
+        }
+
+        @JavascriptInterface public void txClearFolder() { Transcribe.prefs(ctx).edit().remove("folder").apply(); }
+
+        @JavascriptInterface public void txSetModel(String id) {
+            if (Transcribe.model(id) != null) Transcribe.prefs(ctx).edit().putString("model", id).apply();
+        }
+
+        @JavascriptInterface public void txSetLang(String lang) {
+            if ("nl".equals(lang) || "en".equals(lang) || "auto".equals(lang)) Transcribe.prefs(ctx).edit().putString("lang", lang).apply();
+        }
+
+        @JavascriptInterface public String txDownload(String id) {
+            if (Transcribe.model(id) == null) return "Onbekend model";
+            if (TranscribeService.busy) return "Er loopt al iets; wacht tot dat klaar is";
+            Transcribe.prefs(ctx).edit().putString("status", "{\"running\":true,\"phase\":\"download\",\"pct\":0}").apply();
+            TranscribeService.download(ctx, id);
+            return "";
+        }
+
+        @JavascriptInterface public void txDeleteModel(String id) {
+            Transcribe.Model m = Transcribe.model(id);
+            if (m != null && !TranscribeService.busy) Transcribe.modelFile(ctx, m).delete();
+        }
+
+        @JavascriptInterface public String txList() {
+            if (!hasFilesAccess(ctx)) return "{\"error\":\"Geef eerst toegang tot bestanden\"}";
+            try { return Transcribe.listJson(ctx); } catch (Exception e) { return errJson(e); }
+        }
+
+        /** paths: JSON-array met paden van opnames. */
+        @JavascriptInterface public String txStart(String paths) {
+            if (!Transcribe.supported()) return "Deze telefoon wordt niet ondersteund (64-bit ARM nodig)";
+            if (Transcribe.activeModel(ctx) == null) return "Download eerst een spraakmodel";
+            try {
+                JSONArray a2 = new JSONArray(paths);
+                java.util.ArrayList<String> l = new java.util.ArrayList<>();
+                for (int i = 0; i < a2.length(); i++) if (new File(a2.getString(i)).isFile()) l.add(a2.getString(i));
+                if (l.isEmpty()) return "Geen opnames gekozen";
+                Transcribe.prefs(ctx).edit().putString("status", "{\"running\":true,\"phase\":\"decode\",\"pct\":0}").apply();
+                TranscribeService.run(ctx, l);
+                return "";
+            } catch (Exception e) { return e.getMessage() != null ? e.getMessage() : "Starten mislukt"; }
+        }
+
+        @JavascriptInterface public void txCancel() {
+            Transcribe.cancel = true;
+            Process p = Transcribe.proc;
+            if (p != null) p.destroy();
+        }
+
+        @JavascriptInterface public String txStatus() {
+            String s = Transcribe.prefs(ctx).getString("status", "{\"running\":false}");
+            if (!TranscribeService.busy && s.contains("\"running\":true")) return "{\"running\":false}";
+            return s;
+        }
+
+        @JavascriptInterface public String txGet(String id) {
+            if (id == null || !id.matches("[0-9a-f]+")) return "{\"error\":\"Transcript niet gevonden\"}";
+            JSONObject t = Transcribe.loadTranscript(ctx, id);
+            return t == null ? "{\"error\":\"Transcript niet gevonden\"}" : t.toString();
+        }
+
+        @JavascriptInterface public String txSearch(String q) {
+            try { return Transcribe.searchJson(ctx, q); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String txExport(String id) {
+            try { return "ok:" + Transcribe.export(ctx, id); }
+            catch (Exception e) { return e.getMessage() != null ? e.getMessage() : "Exporteren mislukt"; }
+        }
+
+        @JavascriptInterface public void txDelete(String id) {
+            if (id != null && id.matches("[0-9a-f]+")) Transcribe.delete(ctx, id);
+        }
+
+        // Afspelen van de opname bij een transcript (tik op een zin = daarheen springen).
+        private static android.media.MediaPlayer player;
+        private static String playerPath;
+
+        @JavascriptInterface public String txPlay(String id, String ms) {
+            if (id == null || !id.matches("[0-9a-f]+")) return "Opname niet gevonden";
+            JSONObject t = Transcribe.loadTranscript(ctx, id);
+            String path = t == null ? null : t.optString("path");
+            if (path == null || !new File(path).isFile()) return "De opname is niet meer op de telefoon";
+            try {
+                synchronized (Bridge.class) {
+                    if (player == null || !path.equals(playerPath)) {
+                        if (player != null) player.release();
+                        player = new android.media.MediaPlayer();
+                        player.setDataSource(path);
+                        player.prepare();
+                        playerPath = path;
+                    }
+                    player.seekTo(Integer.parseInt(ms));
+                    player.start();
+                }
+                return "";
+            } catch (Exception e) {
+                synchronized (Bridge.class) { if (player != null) player.release(); player = null; playerPath = null; }
+                return "Afspelen lukt niet";
+            }
+        }
+
+        @JavascriptInterface public void txPause() {
+            synchronized (Bridge.class) { if (player != null && player.isPlaying()) player.pause(); }
+        }
+
+        @JavascriptInterface public String txPlayState() {
+            synchronized (Bridge.class) {
+                if (player == null) return "{\"playing\":false,\"pos\":0}";
+                try { return "{\"playing\":" + player.isPlaying() + ",\"pos\":" + player.getCurrentPosition() + ",\"dur\":" + player.getDuration() + "}"; }
+                catch (Exception e) { return "{\"playing\":false,\"pos\":0}"; }
+            }
+        }
+
+        @JavascriptInterface public void txStop() {
+            synchronized (Bridge.class) { if (player != null) player.release(); player = null; playerPath = null; }
         }
 
         @JavascriptInterface public String pendingOpen() {

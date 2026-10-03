@@ -58,6 +58,14 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Beheer**: zoeken (naam, nummer, e-mail, bedrijf), contactdetails met wijzigingsgeschiedenis, bewerken en nieuw contact via de contacten-app van Android, verwijderde contacten terugzetten (WRITE_CONTACTS, als nieuw contact in de telefoon-opslag).
 - **Backup** naar `Contacten backup/`: `contacten-JJJJ-MM-DD.vcf` (vCard 3.0, met `REV` = wijzigingsdatum), desgewenst `contacten-versie-N.vcf` van een oudere versie, en `wijzigingslog.txt` met alle versies en wijzigingen.
 
+## Gesprekken uitschrijven
+- Android (10+) laat gewone apps het geluid van een telefoongesprek niet opnemen. Deze tool schrijft daarom de opnames uit die de **telefoon-app van het toestel** maakt (Oppo/ColorOS: ODialer → Instellingen → Gespreksopname). Opnames van de Google Telefoon-app zijn voor andere apps afgeschermd.
+- Opnames vinden: bekende mappen (`Music/Recordings/Call Recordings`, `Recordings/Call`, MIUI, Samsung ...), MediaStore (pad met "Call") en een zelf gekozen map. Nodig: toegang tot alle bestanden (had de app al voor WhatsApp backup).
+- Koppelen aan de oproepgeschiedenis op tijdstip/duur en nummer in de bestandsnaam (`Transcribe.matchCall`).
+- Uitschrijven gebeurt **op de telefoon** met [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (MIT): een statisch gelinkt arm64-programma, gebouwd met `tools/whisper-build.sh` (zig, zonder NDK) en meegeleverd als `lib/arm64-v8a/libwhisper.so` (armv8.2 + dotprod) en `libwhisper_generic.so` (elke arm64; automatische terugval bij "illegal instruction"). `extractNativeLibs=true`, zodat Android het uitpakt in `nativeLibraryDir`, van waaruit het uitgevoerd mag worden.
+- Audio wordt met `MediaExtractor`/`MediaCodec` gedecodeerd naar 16 kHz mono WAV. Spraakmodel (`ggml-base-q5_1.bin` 57 MB of `ggml-small-q5_1.bin` 181 MB) wordt eenmalig van Hugging Face gedownload naar de app-map. Er gaat geen geluid of tekst de telefoon uit.
+- Draait in een voorgrondservice (`TranscribeService`, dataSync) met wachtrij, voortgang en stoppen. Transcripten (`files/transcripts/<id>.json`) met tijdcodes; afspelen vanaf een zin, zoeken door alle transcripten, export als tekst naar `Gesprekken/` in de backup-map.
+
 ## Versies en updates
 - `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- RENES-TOOLS-UI versie 1.10 (11) -->
+<!-- RENES-TOOLS-UI versie 1.11 (12) -->
 <html lang="nl">
 <head>
 <meta charset="utf-8">
@@ -157,6 +157,12 @@ ul.chg del{color:var(--bad);grid-column:2}ul.chg ins{color:var(--ok);text-decora
 ul.chg ins::before{content:'→ ';color:var(--muted)}
 button.mini{float:right;padding:6px 12px;border-radius:999px;background:var(--chip);color:var(--brand-2);font-weight:600;font-size:13px}
 button.mini:disabled{opacity:.6}
+.segs p.seg{margin:0;padding:8px 6px;border-radius:8px;line-height:1.45;cursor:pointer}
+.segs p.seg time{display:inline-block;min-width:46px;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.segs p.seg.now{background:var(--chip)}
+.mrow{padding:6px 0}.mrow label{display:flex;gap:8px;align-items:center}
+select.sel{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+b.ok{color:var(--ok);font-weight:600}
 .csum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:0 0 6px}
 .csum b{display:block;font-size:20px}.csum small{color:var(--muted);font-size:12px}
 .msgs{display:flex;flex-direction:column;gap:4px;padding-bottom:24px}
@@ -256,6 +262,11 @@ button.mini:disabled{opacity:.6}
         <span class="ic" style="background:#2C3E50"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
         <b>Contacten</b>
         <small id="tile-contacts-sub">Backup, versies en wijzigingen</small>
+      </button>
+      <button class="tile" id="tile-tr" onclick="show('transcripts')">
+        <span class="ic" style="background:#7D3C98"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 10h16M4 14h12M4 18h7"/><path d="M17 15v6M20 17v2M14 17v2"/></svg></span>
+        <b>Gesprekken uitschrijven</b>
+        <small id="tile-tx-sub">Opnames omzetten naar tekst</small>
       </button>
       <div class="tile soon">
         <span class="ic" style="background:var(--muted)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
@@ -592,6 +603,86 @@ button.mini:disabled{opacity:.6}
   <main><div class="msgs" id="sms-msgs"></div></main>
 </section>
 
+<!-- ============ GESPREKKEN UITSCHRIJVEN ============ -->
+<section class="screen" id="s-transcripts">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Gesprekken uitschrijven</h1>
+  </div>
+  <main>
+    <div class="card perm" id="tx-unsup" style="display:none">
+      <p>Deze telefoon wordt niet ondersteund: uitschrijven op de telefoon heeft een 64-bit ARM-processor nodig.</p>
+    </div>
+    <div class="card perm" id="tx-files" style="display:none">
+      <p>Om de gespreksopnames van je telefoon-app te vinden, heeft de app toegang tot alle bestanden nodig.</p>
+      <button class="big" onclick="Android.txRequestFiles()">Toegang geven</button>
+    </div>
+
+    <div class="card" id="tx-run" style="display:none">
+      <h2 id="tx-run-title">Bezig</h2>
+      <div class="who" id="tx-run-file"></div>
+      <div class="bar"><i id="tx-bar"></i></div>
+      <div class="row" style="margin-top:10px"><small class="note" id="tx-run-sub" style="flex:1;margin:0"></small>
+        <button class="mini" onclick="Android.txCancel()">Stoppen</button></div>
+    </div>
+    <div class="result" id="tx-result"></div>
+
+    <div class="card" id="tx-setup">
+      <h2>Spraakmodel</h2>
+      <p class="note" style="margin-top:0">Het uitschrijven gebeurt helemaal op je telefoon met Whisper. Daarvoor is eenmalig een spraakmodel nodig (via wifi downloaden aangeraden).</p>
+      <div id="tx-models"></div>
+      <div class="row" style="margin-top:10px">
+        <span style="flex:1">Taal van de gesprekken</span>
+        <select id="tx-lang" onchange="Android.txSetLang(this.value)" class="sel">
+          <option value="nl">Nederlands</option><option value="en">Engels</option><option value="auto">Automatisch</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="tx-home">
+      <div class="card" id="tx-calls" style="display:none">
+        <p style="margin:0 0 10px">Geef toegang tot je oproepgeschiedenis om opnames aan het juiste gesprek en contact te koppelen.</p>
+        <button class="big ghost" onclick="Android.txRequestCalls()">Gesprekken koppelen</button>
+      </div>
+      <input class="search" id="tx-search" type="search" placeholder="Zoek in uitgeschreven gesprekken…" oninput="txSearchDo()">
+      <div id="tx-results"></div>
+      <div class="row" id="tx-actions" style="margin-bottom:12px">
+        <button class="big" style="flex:1" id="tx-all" onclick="txStartAll()">Alles uitschrijven</button>
+        <button class="big ghost" style="flex:1" onclick="txExport('')">Exporteren</button>
+      </div>
+      <div class="clist card" id="tx-list"></div>
+      <div class="card">
+        <h2>Geen opnames?</h2>
+        <p class="note" style="margin-top:0">Android laat gewone apps een telefoongesprek niet opnemen. Deze tool schrijft de opnames uit die je <b>telefoon-app</b> zelf maakt. Op een Oppo: open de app <b>Telefoon</b> → ⋮ → <b>Instellingen</b> → <b>Gespreksopname</b> en zet automatisch opnemen aan. Gebruikt je Oppo de Telefoon-app van Google, dan zijn die opnames voor andere apps afgeschermd.</p>
+        <p class="note" id="tx-folder-note"></p>
+        <div class="row"><button class="big ghost" style="flex:1" onclick="Android.txPickFolder()">Map met opnames kiezen</button></div>
+        <p class="note">Laat de ander weten dat je het gesprek opneemt. Transcripten blijven op je telefoon tot je ze exporteert naar de map <b>Gesprekken</b> in je backup-map.</p>
+      </div>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-txd">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 id="txd-title" style="font-size:18px;flex:1">Gesprek</h1>
+  </div>
+  <main>
+    <div class="card">
+      <p class="note" style="margin-top:0" id="txd-sub"></p>
+      <div class="row">
+        <button class="big" style="flex:1" id="txd-play" onclick="txToggle()">▶ Afspelen</button>
+        <button class="big ghost" style="flex:1" onclick="txExport(txCur)">Exporteren</button>
+      </div>
+    </div>
+    <div class="card segs" id="txd-segs"></div>
+    <div class="row" style="margin-top:4px">
+      <button class="big ghost" style="flex:1" onclick="txRedo()">Opnieuw uitschrijven</button>
+      <button class="big ghost" style="flex:1;color:var(--bad)" onclick="txDel()">Transcript verwijderen</button>
+    </div>
+  </main>
+</section>
+
 <!-- ============ CONTACTEN ============ -->
 <section class="screen" id="s-contacts">
   <div class="hdr">
@@ -782,9 +873,9 @@ button.mini:disabled{opacity:.6}
 </div></div>
 
 <script>
-const VERSION_NAME = "1.10";
-const VERSION_CODE = 11;
-const CHANGELOG = [{"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+const VERSION_NAME = "1.11";
+const VERSION_CODE = 12;
+const CHANGELOG = [{"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
 
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
 if (!window.Android) window.Android = (function(){
@@ -900,6 +991,28 @@ if (!window.Android) window.Android = (function(){
     contactsRestore(v,k){ return 'ok:Oude buurman'; },
     contactsExport(v){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+this._ct.list.length; },
     contactsEdit(k,id){ toast(k?'(contacten-app: bewerken '+k+')':'(contacten-app: nieuw contact)'); },
+    _tx:{files:false,calls:false,model:'',models:{base:false,small:false},st:{running:false},done:{},lang:'nl',playing:false,pos:0},
+    txInfo(){ const t=this._tx; return JSON.stringify({supported:true,files:t.files,calls:t.calls,dest:this._wa.info.dest,folder:'',lang:t.lang,model:t.model,busy:t.st.running,
+      models:[{id:'base',label:'Snel (57 MB)',installed:t.models.base},{id:'small',label:'Nauwkeurig (181 MB)',installed:t.models.small}]}); },
+    txRequestFiles(){ this._tx.files=true; setTimeout(()=>onTrChanged(),100); },
+    txRequestCalls(){ this._tx.calls=true; setTimeout(()=>onTrChanged(),100); },
+    txPickFolder(){}, txClearFolder(){}, txSetModel(id){ this._tx.model=id; }, txSetLang(l){ this._tx.lang=l; },
+    txDownload(id){ const t=this._tx; let p=0; t.st={running:true,phase:'download',pct:0}; const h=setInterval(()=>{ p+=25; t.st={running:true,phase:'download',pct:Math.min(p,100)}; if(p>=100){ clearInterval(h); t.models[id]=true; t.model=id; t.st={running:false,done:0,failed:0,stopped:false}; } },200); return ''; },
+    txDeleteModel(id){ this._tx.models[id]=false; if(this._tx.model===id) this._tx.model=''; },
+    _txRecs:[{id:'a1',file:'Moeder_0611122233_20261003101500.m4a',path:'/rec/a.m4a',mtime:Date.now()-3*36e5,duration:312000,name:'Moeder',number:'06 11122233',kind:'in'},
+      {id:'b2',file:'Huisarts_0101234567_20261002091000.m4a',path:'/rec/b.m4a',mtime:Date.now()-27*36e5,duration:95000,name:'Huisarts',number:'010 123 4567',kind:'out'}],
+    txList(){ const t=this._tx; return JSON.stringify({recordings:this._txRecs.map(r=>Object.assign({},r,t.done[r.id]?{done:true,preview:'Hoi mam, ik bel even over zaterdag…'}:{done:false}))}); },
+    txStart(paths){ const t=this._tx; if(!t.model) return 'Download eerst een spraakmodel'; const ids=this._txRecs.filter(r=>JSON.parse(paths).includes(r.path)).map(r=>r.id); let p=0;
+      t.st={running:true,phase:'transcribe',pct:0,file:'opname.m4a',left:ids.length-1}; const h=setInterval(()=>{ p+=20; t.st={running:true,phase:'transcribe',pct:Math.min(p,100),file:'opname.m4a',left:0}; if(p>=100){ clearInterval(h); ids.forEach(i=>t.done[i]=true); t.st={running:false,done:ids.length,failed:0,stopped:false}; } },200); return ''; },
+    txCancel(){ this._tx.st={running:false,done:0,failed:0,stopped:true}; },
+    txStatus(){ return JSON.stringify(this._tx.st); },
+    txGet(id){ const r=this._txRecs.find(x=>x.id===id); if(!r||!this._tx.done[id]) return '{"error":"Transcript niet gevonden"}';
+      return JSON.stringify(Object.assign({},r,{callDate:r.mtime-r.duration,model:'base',segments:[{from:0,to:4000,text:'Hoi mam, ik bel even over zaterdag.'},{from:4000,to:9000,text:'Kom je om twee uur of liever later?'},{from:9000,to:15000,text:'Twee uur is prima, dan neem ik taart mee.'}]})); },
+    txSearch(q){ const out=[]; for(const r of this._txRecs) if(this._tx.done[r.id] && 'kom je om twee uur of liever later?'.includes(q.toLowerCase())) out.push({id:r.id,name:r.name,mtime:r.mtime,from:4000,text:'Kom je om twee uur of liever later?'}); return JSON.stringify({results:out}); },
+    txExport(id){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+(id?1:Object.keys(this._tx.done).length); },
+    txDelete(id){ delete this._tx.done[id]; },
+    txPlay(id,ms){ this._tx.playing=true; this._tx.pos=+ms; return ''; }, txPause(){ this._tx.playing=false; },
+    txPlayState(){ const t=this._tx; if(t.playing) t.pos+=400; return JSON.stringify({playing:t.playing,pos:t.pos}); }, txStop(){ this._tx.playing=false; this._tx.pos=0; },
     notesLoad(){ return this._notes; },
     notesSave(j){ this._notes=j; return ''; },
     notesExport(){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+JSON.parse(this._notes).length; },
@@ -969,14 +1082,16 @@ function show(name){
   if (current_prev==='note' && name!=='note') leaveNote();
   if (name==='notes') enterNotes();
   if (name==='contacts') enterContacts();
+  if (name==='transcripts') enterTranscripts(); else stopTrPoll();
+  if (current_prev==='txd' && name!=='txd') leaveTrd();
   if (name==='cversions') enterVersions();
   if (name==='info') renderInfo();
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); }
 }
-const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions'};
+const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts'};
 window.goBack = function(){ if (current!=='home'){ show(BACK[current]||'home'); return true; } return false; };
-window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); };
-window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
+window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); };
+window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
 /* ---------- Auto redial ---------- */
 const ATT = [[5,'5'],[10,'10'],[25,'25'],[50,'50'],[0,'∞']];
@@ -1620,6 +1735,150 @@ function refreshSmsTile(s){
   t.classList.toggle('live', !!(s && s.running));
   const sub = $('#tile-sms-sub');
   if (sub) { const i = smsInfo(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je sms-berichten'); }
+}
+
+/* ---------- Gesprekken uitschrijven ---------- */
+let txPoll = null, txTmr = null, txCur = null, txRecs = [], txT = null, txLastRunning = false, txPlayPoll = null;
+function txJson(s){ try { return JSON.parse(s); } catch(e){ return {error: 'Onverwachte fout'}; } }
+function txInfo(){ return txJson(Android.txInfo()); }
+function fmtMs(ms){ const s = Math.floor((ms||0)/1000); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+  return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(x).padStart(2,'0'); }
+function enterTranscripts(){
+  const i = txInfo();
+  $('#tx-unsup').style.display = i.supported ? 'none' : 'block';
+  $('#tx-files').style.display = i.supported && !i.files ? 'block' : 'none';
+  $('#tx-calls').style.display = i.files && !i.calls ? 'block' : 'none';
+  $('#tx-lang').value = i.lang || 'nl';
+  $('#tx-folder-note').innerHTML = i.folder ? 'Extra map: <b>' + esc(i.folder) + '</b> · <a href="#" onclick="Android.txClearFolder();enterTranscripts();return false">weghalen</a>' : '';
+  $('#tx-models').innerHTML = (i.models || []).map(m =>
+    '<div class="row mrow"><label style="flex:1"><input type=radio name=trm value="' + esc(m.id) + '"' + (i.model === m.id ? ' checked' : '') +
+    (m.installed ? '' : ' disabled') + ' onchange="Android.txSetModel(this.value)"> ' + esc(m.label) + '</label>' +
+    (m.installed ? '<button class="mini" onclick="txDelModel(\'' + esc(m.id) + '\')">Verwijderen</button>'
+                 : '<button class="mini" onclick="txDownload(\'' + esc(m.id) + '\')">Downloaden</button>') + '</div>').join('');
+  $('#tx-home').style.display = i.supported && i.files ? 'block' : 'none';
+  $('#tx-search').value = ''; $('#tx-results').innerHTML = '';
+  if (i.supported && i.files) { if (!txRecs.length) $('#tx-list').innerHTML = '<p class=note style="padding:14px">Opnames zoeken…</p>'; setTimeout(txLoad, 30); }
+  txPollOnce(); stopTrPoll(); txPoll = setInterval(txPollOnce, 700);
+}
+function stopTrPoll(){ if (txPoll) { clearInterval(txPoll); txPoll = null; } }
+window.onTrChanged = function(){ if (current === 'transcripts') enterTranscripts(); };
+function txDownload(id){ const e = Android.txDownload(id); if (e) toast(e); else { $('#tx-result').className = 'result'; txPollOnce(); } }
+function txDelModel(id){ askConfirm('Spraakmodel verwijderen?', 'Je kunt het later opnieuw downloaden. Bestaande transcripten blijven bewaard.', 'Verwijderen', () => { Android.txDeleteModel(id); enterTranscripts(); }); }
+const TXKIND = {in:'Inkomend', out:'Uitgaand', missed:'Gemist', rejected:'Geweigerd'};
+function txLoad(){
+  const d = txJson(Android.txList());
+  const el = $('#tx-list');
+  if (d.error) { el.innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
+  txRecs = d.recordings || [];
+  const todo = txRecs.filter(r => !r.done && !r.gone);
+  $('#tx-all').textContent = todo.length ? 'Alles uitschrijven (' + todo.length + ')' : 'Alles uitgeschreven';
+  $('#tx-all').disabled = !todo.length;
+  el.innerHTML = txRecs.map((r, i) =>
+    '<button onclick="txOpenIdx(' + i + ')"><span class=r1><b>' + esc(r.name || r.file) + '</b><time>' + esc(fmtD(r.mtime)) + '</time></span>' +
+    '<span class=r2>' + (r.kind ? esc(TXKIND[r.kind] || '') + ' · ' : '') + (r.duration ? fmtMs(r.duration) + ' · ' : '') +
+    (r.done ? (r.gone ? 'opname verwijderd · ' : '') + '<b class=ok>uitgeschreven</b>' + (r.preview ? ' — ' + esc(r.preview) : '') : 'nog niet uitgeschreven') +
+    '</span></button>').join('') ||
+    '<p class=note style="padding:14px">Geen gespreksopnames gevonden. Zie hieronder hoe je opnemen aanzet.</p>';
+}
+function txOpenIdx(i){
+  const r = txRecs[i]; if (!r) return;
+  if (r.done) { txOpen(r.id); return; }
+  askConfirm('Gesprek uitschrijven?', (r.name ? r.name + ' · ' : '') + fmtMs(r.duration) + '. Dit duurt even en gaat door als je de app verlaat.', 'Uitschrijven', () => txStart([r.path]));
+}
+function txStart(paths){
+  const e = Android.txStart(JSON.stringify(paths));
+  if (e) { toast(e); return; }
+  $('#tx-result').className = 'result'; txPollOnce();
+}
+function txStartAll(){
+  const todo = txRecs.filter(r => !r.done && !r.gone);
+  if (!todo.length) return;
+  const total = todo.reduce((a, r) => a + (r.duration || 0), 0);
+  askConfirm(todo.length + ' gesprekken uitschrijven?', 'Samen ' + fmtMs(total) + ' aan opnames. Dit kan een tijd duren; het gaat door als je de app verlaat. Laat de telefoon liefst aan de lader.', 'Starten', () => txStart(todo.map(r => r.path)));
+}
+function txPollOnce(){
+  const s = txJson(Android.txStatus());
+  $('#tx-run').style.display = s.running ? 'block' : 'none';
+  $('#tx-setup').style.display = s.running && s.phase === 'download' ? 'none' : 'block';
+  if (s.running) {
+    $('#tx-run-title').textContent = s.phase === 'download' ? 'Spraakmodel downloaden' : s.phase === 'decode' ? 'Opname voorbereiden' : 'Uitschrijven';
+    $('#tx-run-file').textContent = s.file || '';
+    $('#tx-bar').style.width = (s.pct || 0) + '%';
+    $('#tx-run-sub').textContent = (s.pct || 0) + '%' + (s.left ? ' · nog ' + s.left + ' in de wachtrij' : '');
+  } else if (txLastRunning) {
+    txLastRunning = false;
+    const r = $('#tx-result');
+    if (s.error || s.failed) { r.textContent = (s.done ? s.done + ' gelukt, ' : '') + (s.failed || 1) + ' mislukt: ' + (s.error || ''); r.className = 'result on error'; }
+    else if (s.stopped) { r.textContent = 'Gestopt'; r.className = 'result on other'; }
+    else { r.textContent = s.done ? '✓ ' + s.done + (s.done === 1 ? ' gesprek' : ' gesprekken') + ' uitgeschreven' : '✓ Spraakmodel klaar'; r.className = 'result on answered'; }
+    enterTranscripts();
+  }
+  txLastRunning = !!s.running;
+  const t = $('#tile-tx-sub');
+  if (t) t.textContent = s.running ? 'Bezig met uitschrijven…' : 'Opnames omzetten naar tekst';
+  $('#tile-tr').classList.toggle('live', !!s.running);
+}
+function txSearchDo(){
+  clearTimeout(txTmr);
+  txTmr = setTimeout(() => {
+    const q = $('#tx-search').value.trim();
+    const box = $('#tx-results');
+    $('#tx-list').style.display = q.length >= 2 ? 'none' : 'block';
+    $('#tx-actions').style.display = q.length >= 2 ? 'none' : 'flex';
+    if (q.length < 2) { box.innerHTML = ''; return; }
+    const d = txJson(Android.txSearch(q));
+    const ql = q.toLowerCase();
+    box.innerHTML = '<div class="clist card">' + ((d.results || []).map(x =>
+      '<button data-id="' + esc(x.id) + '" data-ms="' + x.from + '" onclick="txOpen(this.dataset.id, +this.dataset.ms)"><span class=r1><b>' + esc(x.name) + '</b><time>' + esc(fmtD(x.mtime)) + ' · ' + fmtMs(x.from) + '</time></span>' +
+      '<span class=r2 style="white-space:normal">' + hl(x.text, ql) + '</span></button>').join('') ||
+      '<p class=note style="padding:14px">Niets gevonden.</p>') + '</div>';
+  }, 300);
+}
+function txOpen(id, ms){
+  const t = txJson(Android.txGet(id));
+  if (t.error) { toast(t.error); return; }
+  txCur = id; txT = t;
+  $('#txd-title').textContent = t.name || t.file;
+  const when = t.callDate || t.mtime;
+  $('#txd-sub').textContent = new Date(when).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}) +
+    ' · ' + fmtMs(t.duration) + (t.kind ? ' · ' + (TXKIND[t.kind] || '') : '') + (t.number && t.number !== t.name ? ' · ' + t.number : '');
+  $('#txd-segs').innerHTML = (t.segments || []).map((s, i) =>
+    '<p class=seg id="seg' + i + '" data-ms="' + s.from + '" onclick="txSeek(+this.dataset.ms)"><time>' + fmtMs(s.from) + '</time>' + esc(s.text) + '</p>').join('') ||
+    '<p class=note>Er is geen spraak herkend in deze opname.</p>';
+  show('txd');
+  if (ms != null) { const i = (t.segments || []).findIndex(s => s.from >= ms); const el = $('#seg' + Math.max(0, i)); if (el) { el.classList.add('now'); el.scrollIntoView({block:'center'}); } }
+}
+function txSeek(ms){ const e = Android.txPlay(txCur, String(ms)); if (e) toast(e); else txWatch(); }
+function txToggle(){
+  const st = txJson(Android.txPlayState());
+  if (st.playing) { Android.txPause(); txWatch(); return; }
+  txSeek(st.dur && st.pos >= st.dur - 500 ? 0 : (st.pos || 0));
+}
+function txWatch(){
+  if (txPlayPoll) clearInterval(txPlayPoll);
+  const tick = () => {
+    const st = txJson(Android.txPlayState());
+    $('#txd-play').textContent = st.playing ? '❚❚ Pauze' : '▶ Afspelen';
+    const segs = (txT && txT.segments) || [];
+    let cur = -1; for (let i = 0; i < segs.length; i++) if (segs[i].from <= st.pos) cur = i;
+    document.querySelectorAll('#txd-segs .seg.now').forEach(e => { if (e.id !== 'seg' + cur) e.classList.remove('now'); });
+    const el = $('#seg' + cur);
+    if (el && !el.classList.contains('now') && st.playing) { el.classList.add('now'); el.scrollIntoView({block:'center', behavior:'smooth'}); }
+    if (!st.playing) { clearInterval(txPlayPoll); txPlayPoll = null; }
+  };
+  tick(); txPlayPoll = setInterval(tick, 400);
+}
+function leaveTrd(){ if (txPlayPoll) { clearInterval(txPlayPoll); txPlayPoll = null; } Android.txStop(); $('#txd-play').textContent = '▶ Afspelen'; }
+function txExport(id){
+  const r = Android.txExport(id || '');
+  toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + (r.slice(3) === '1' ? ' transcript' : ' transcripten') + ' opgeslagen in de map Gesprekken' : r);
+}
+function txDel(){
+  askConfirm('Transcript verwijderen?', 'De opname zelf blijft staan; je kunt hem later opnieuw uitschrijven.', 'Verwijderen', () => { Android.txDelete(txCur); show('transcripts'); });
+}
+function txRedo(){
+  if (!txT || !txT.path) return;
+  askConfirm('Opnieuw uitschrijven?', 'Handig na het kiezen van een ander spraakmodel of andere taal. Het huidige transcript wordt vervangen.', 'Uitschrijven', () => { show('transcripts'); txStart([txT.path]); });
 }
 
 /* ---------- Contacten ---------- */

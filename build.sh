@@ -52,6 +52,8 @@ javac -nowarn -Xlint:-options -source 8 -target 8 -encoding UTF-8 -bootclasspath
 java -cp $BT/lib/d8.jar com.android.tools.r8.D8 --release --min-api 24 --lib $ANDROID_JAR \
   --output $B/dex $(find $B/classes -name '*.class') 2>&1 | grep -v JAVA_TOOL_OPTIONS || true
 (cd $B/dex && zip -q -j ../base.apk classes.dex)
+# 4b. Uitschrijfprogramma (whisper.cpp) als native lib; Android pakt het uit in nativeLibraryDir
+(cd app && zip -q ../$B/base.apk lib/*/*.so)
 
 # 5. Uitlijnen en ondertekenen
 $BT/zipalign -f -p 4 $B/base.apk $B/aligned.apk

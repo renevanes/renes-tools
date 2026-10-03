@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.11",
+    "date": "2026-10-03",
+    "changes": [
+      "Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst",
+      "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel",
+      "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"
+    ]
+  },
+  {
     "version": "1.10",
     "date": "2026-10-03",
     "changes": [
