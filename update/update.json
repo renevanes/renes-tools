@@ -1,13 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.9",
-  "versionCode": 10,
-  "nativeLevel": 10,
+  "versionName": "1.10",
+  "versionCode": 11,
+  "nativeLevel": 11,
   "web": "index.html",
-  "webSha256": "0711349fedbafb4d764212b172a19c4c839b88ca3aaa0c8767852732faf5058a",
+  "webSha256": "bf2f2692ca359a8c296b2b9a6188581e4f36968a18ff36a3c24791364e83c023",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "d2d50b222d3f791af883dfa7204e6c9917ab143e05d3953814469c4c305d82a7",
+  "apkSha256": "1ade9daf9e5815728831f81482768b832f5284c3c9773a8cdc5dc3cadffd6121",
   "changelog": [
+    {
+      "version": "1.10",
+      "date": "2026-10-03",
+      "changes": [
+        "Nieuwe tool Contacten: backup als vCard, zoeken en beheren",
+        "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is",
+        "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"
+      ]
+    },
     {
       "version": "1.9",
       "date": "2026-10-03",

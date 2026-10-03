@@ -54,6 +54,7 @@ public class MainActivity extends Activity {
     private static final int REQ_LOCATION = 16;
     private static final int REQ_SMS = 17;
     private static final int REQ_CALLS = 18;
+    private static final int REQ_CONTACTS_RW = 19;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -260,6 +261,7 @@ public class MainActivity extends Activity {
         if (req == REQ_STORAGE || req == REQ_CONTACTS) js("onWaChanged", "");
         if (req == REQ_SMS) js("onSmsChanged", "");
         if (req == REQ_CALLS) js("onCallsChanged", "");
+        if (req == REQ_CONTACTS_RW) js("onContactsChanged", "");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
     }
 
@@ -871,6 +873,86 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public String notesExport() {
             try { return "ok:" + Notes.export(ctx); } catch (Exception e) { return e.getMessage() != null ? e.getMessage() : "Mislukt"; }
+        }
+
+        // ----- Contacten -----
+
+        private boolean contactsRead() {
+            return ctx.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface public String contactsInfo() {
+            try {
+                JSONObject o = new JSONObject();
+                o.put("perm", contactsRead());
+                o.put("write", ctx.checkSelfPermission(Manifest.permission.WRITE_CONTACTS) == PackageManager.PERMISSION_GRANTED);
+                o.put("dest", WaBackup.destUri(ctx) != null);
+                o.put("lastCheck", ctx.getSharedPreferences("contacts", Context.MODE_PRIVATE).getLong("lastCheck", 0));
+                return o.toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        @JavascriptInterface public void contactsRequestPermission() {
+            a.h.post(() -> a.requestPermissions(new String[]{Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS}, REQ_CONTACTS_RW));
+        }
+
+        /** Legt een nieuwe versie vast als er iets veranderd is; geeft het versienummer of 0. */
+        @JavascriptInterface public String contactsSnapshot() {
+            if (!contactsRead()) return "{\"error\":\"Geen toegang tot contacten\"}";
+            try {
+                ContactsJob.ensureScheduled(ctx);
+                return new JSONObject().put("v", Contacts.snapshot(ctx)).toString();
+            } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String contactsList(String q) {
+            try { return Contacts.listJson(ctx, q); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String contactsDetail(String key, String id) {
+            try { return Contacts.detailJson(ctx, key, id == null || id.isEmpty() ? -1 : Long.parseLong(id)); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String contactsVersions() {
+            try { return Contacts.versionsJson(ctx); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String contactsVersion(String v) {
+            try { return Contacts.versionJson(ctx, Integer.parseInt(v)); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String contactsRestore(String v, String key) {
+            if (ctx.checkSelfPermission(Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED)
+                return "Geef eerst toestemming om contacten te wijzigen";
+            try {
+                String n = Contacts.restoreRemoved(ctx, Integer.parseInt(v), key);
+                Contacts.snapshot(ctx);
+                return "ok:" + n;
+            } catch (Exception e) { return e.getMessage() != null ? e.getMessage() : "Terugzetten mislukt"; }
+        }
+
+        @JavascriptInterface public String contactsExport(String v) {
+            try { return "ok:" + Contacts.export(ctx, Integer.parseInt(v)); }
+            catch (Exception e) { return e.getMessage() != null ? e.getMessage() : "Exporteren mislukt"; }
+        }
+
+        /** Opent de contacten-app om een contact te bewerken (key) of een nieuw contact te maken (leeg). */
+        @JavascriptInterface public void contactsEdit(String key, String id) {
+            a.h.post(() -> {
+                try {
+                    android.content.Intent i;
+                    if (key == null || key.isEmpty()) {
+                        i = new android.content.Intent(android.content.Intent.ACTION_INSERT, android.provider.ContactsContract.Contacts.CONTENT_URI);
+                    } else {
+                        android.net.Uri u = android.provider.ContactsContract.Contacts.getLookupUri(Long.parseLong(id), key);
+                        i = new android.content.Intent(android.content.Intent.ACTION_EDIT).setDataAndType(u, android.provider.ContactsContract.Contacts.CONTENT_ITEM_TYPE);
+                        i.putExtra("finishActivityOnSaveCompleted", true);
+                    }
+                    a.startActivity(i);
+                } catch (Exception e) {
+                    Toast.makeText(a, "Contacten-app openen lukt niet", Toast.LENGTH_LONG).show();
+                }
+            });
         }
 
         @JavascriptInterface public String pendingOpen() {

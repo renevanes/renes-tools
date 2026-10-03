@@ -51,6 +51,13 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Opslag in de app-map (`notes.json`, via tijdelijk bestand + hernoemen). Lege notities worden niet bewaard.
 - Knop *Kopie in backup-map zetten*: `Notities/notities.json` en een leesbaar `notities.txt` met `[x]`/`[ ]`.
 
+## Contacten
+- Leest de contacten via `ContactsContract` (naam, telefoon, e-mail, bedrijf/functie, adres, website, bijnaam, verjaardag, notitie, favoriet) met de wijzigingsdatum van Android (`CONTACT_LAST_UPDATED_TIMESTAMP`) (`Contacts.java`).
+- **Versies**: bij openen van de tool en elke ~6 uur (`ContactsJob`, JobScheduler) wordt vergeleken met de vorige versie; alleen bij een echte wijziging komt er een nieuwe versie. Per versie: datum, aantallen (+nieuw, ~gewijzigd, −verwijderd) en per contact welke velden van wat naar wat gingen. Koppeling op lookup key, daarna op naam (`ContactsDiff.java`, pure Java, los getest).
+- Opslag in de app-map onder `contacts/`: `index.json` (alle versies met wijzigingen; van verwijderde contacten de volledige laatste gegevens) en van de laatste 60 versies de volledige lijst (`v<N>.json.gz`). Schrijven via tijdelijk bestand + hernoemen.
+- **Beheer**: zoeken (naam, nummer, e-mail, bedrijf), contactdetails met wijzigingsgeschiedenis, bewerken en nieuw contact via de contacten-app van Android, verwijderde contacten terugzetten (WRITE_CONTACTS, als nieuw contact in de telefoon-opslag).
+- **Backup** naar `Contacten backup/`: `contacten-JJJJ-MM-DD.vcf` (vCard 3.0, met `REV` = wijzigingsdatum), desgewenst `contacten-versie-N.vcf` van een oudere versie, en `wijzigingslog.txt` met alle versies en wijzigingen.
+
 ## Versies en updates
 - `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.

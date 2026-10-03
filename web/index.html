@@ -147,6 +147,16 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 .donehdr{display:flex;justify-content:space-between;align-items:center;margin:14px 0 4px;color:var(--muted);font-size:13px;font-weight:600}
 .donehdr button{color:var(--muted);font-size:13px;text-decoration:underline}
 .fab{position:fixed;right:18px;bottom:22px;width:58px;height:58px;border-radius:50%;background:var(--chip-on);color:#fff;font-size:30px;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:5}
+dl.fields{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px}
+dl.fields dt{color:var(--muted);font-size:13px;padding-top:2px}dl.fields dd{margin:0;word-break:break-word}
+.hist{padding:10px 0;border-top:1px solid var(--line)}.hist:first-child{border-top:0}.hist small{color:var(--muted)}
+ul.chg{list-style:none;margin:6px 0 0;padding:0;font-size:14px}ul.chg li{margin:4px 0}
+ul.chg li{display:grid;grid-template-columns:80px 1fr;column-gap:8px}
+ul.chg span{grid-row:span 2;color:var(--muted);font-size:13px;padding-top:1px}
+ul.chg del{color:var(--bad);grid-column:2}ul.chg ins{color:var(--ok);text-decoration:none;grid-column:2}
+ul.chg ins::before{content:'→ ';color:var(--muted)}
+button.mini{float:right;padding:6px 12px;border-radius:999px;background:var(--chip);color:var(--brand-2);font-weight:600;font-size:13px}
+button.mini:disabled{opacity:.6}
 .csum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:0 0 6px}
 .csum b{display:block;font-size:20px}.csum small{color:var(--muted);font-size:12px}
 .msgs{display:flex;flex-direction:column;gap:4px;padding-bottom:24px}
@@ -241,6 +251,11 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
         <span class="ic" style="background:#E67E22"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1 1 2-2M3.5 12l1 1 2-2"/><circle cx="5" cy="18" r="1"/></svg></span>
         <b>Notities</b>
         <small id="tile-notes-sub">Lijstjes maken en afstrepen</small>
+      </button>
+      <button class="tile" id="tile-contacts" onclick="show('contacts')">
+        <span class="ic" style="background:#2C3E50"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+        <b>Contacten</b>
+        <small id="tile-contacts-sub">Backup, versies en wijzigingen</small>
       </button>
       <div class="tile soon">
         <span class="ic" style="background:var(--muted)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
@@ -577,6 +592,68 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
   <main><div class="msgs" id="sms-msgs"></div></main>
 </section>
 
+<!-- ============ CONTACTEN ============ -->
+<section class="screen" id="s-contacts">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Contacten</h1>
+  </div>
+  <main>
+    <div class="card perm" id="ct-perm" style="display:none">
+      <p>Contacten heeft toegang tot je contacten nodig om ze te bewaren en wijzigingen bij te houden. Met de toestemming om te wijzigen kun je verwijderde contacten terugzetten.</p>
+      <button class="big" id="ct-perm-btn" onclick="ctAskPerm()">Toegang geven</button>
+    </div>
+    <div id="ct-home">
+      <div class="card">
+        <p class="note" style="margin-top:0" id="ct-ver"></p>
+        <div class="row">
+          <button class="big ghost" style="flex:1" onclick="show('cversions')">Versies</button>
+          <button class="big ghost" style="flex:1" onclick="ctExport(0)">Backup (vCard)</button>
+        </div>
+      </div>
+      <input class="search" id="ct-search" type="search" placeholder="Zoek op naam, nummer, e-mail of bedrijf…" oninput="ctSearchDo()">
+      <div class="clist card" id="ct-list"></div>
+      <p class="note" style="margin-top:14px">De app legt vanzelf een nieuwe versie vast als er iets aan je contacten verandert (bij openen en een paar keer per dag). De versies staan op deze telefoon; met <b>Backup</b> komen de contacten en het wijzigingslog in de map <b>Contacten backup</b>.</p>
+      <div style="height:70px"></div>
+    </div>
+  </main>
+  <button class="fab" id="ct-fab" onclick="Android.contactsEdit('', '')" aria-label="Nieuw contact">+</button>
+</section>
+
+<section class="screen" id="s-contact">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 id="ctd-title" style="font-size:18px;flex:1">Contact</h1>
+  </div>
+  <main>
+    <div class="card"><dl class="fields" id="ctd-fields"></dl>
+      <button class="big" style="margin-top:12px" onclick="ctEdit()">Bewerken</button>
+    </div>
+    <div class="card"><h2>Wijzigingen</h2><div id="ctd-hist"></div></div>
+  </main>
+</section>
+
+<section class="screen" id="s-cversions">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Versies</h1>
+  </div>
+  <main><div class="clist card" id="cv-list"></div></main>
+</section>
+
+<section class="screen" id="s-cversion">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 id="cvd-title">Versie</h1>
+  </div>
+  <main>
+    <div class="card"><p class="note" style="margin-top:0" id="cvd-sum"></p>
+      <button class="big ghost" id="cvd-export" onclick="ctExport(cvCur)">Deze versie als vCard opslaan</button>
+    </div>
+    <div id="cvd-list"></div>
+  </main>
+</section>
+
 <!-- ============ NOTITIES ============ -->
 <section class="screen" id="s-notes">
   <div class="hdr">
@@ -804,6 +881,25 @@ if (!window.Android) window.Android = (function(){
       s.st={running:true,done:0,total:126}; let i=0; s.t=setInterval(()=>{ i+=30; s.st={running:true,done:Math.min(i,126),total:126}; if(i>=126){ clearInterval(s.t); s.done=true; s.st={running:false,ok:true,count:42}; } },250); return ''; },
     callsStatus(){ return JSON.stringify(this._calls.st); },
     _notes:'[{"id":"a1","title":"Boodschappen","text":"","updated":1759480000000,"items":[{"id":"i1","text":"Melk","done":false},{"id":"i2","text":"Brood","done":true},{"id":"i3","text":"Kaas","done":false}]}]',
+    _ct:{perm:false,write:false,v:0,list:[
+      {k:'k1',n:'Moeder',id:1,u:Date.now()-864e5,f:{Naam:'Moeder',Telefoon:'06 11122233 (mobiel)',Favoriet:'ja'}},
+      {k:'k2',n:'Jos de Vries',id:2,u:Date.now()-5*864e5,f:{Naam:'Jos de Vries',Telefoon:'010 999 8888 (werk)','E-mail':'jos@esape.nl',Bedrijf:'ESAPE',Functie:'Ontwikkelaar'}},
+      {k:'k3',n:'Huisarts',id:3,u:Date.now()-40*864e5,f:{Naam:'Huisarts',Telefoon:'010 123 4567',Adres:'Coolsingel 1, Rotterdam'}}],
+      versions:[{v:2,t:Date.now()-864e5,count:3,added:0,removed:1,changed:1,first:false,full:true,changes:[
+        {kind:'~',k:'k1',n:'Moeder',d:[['Telefoon','06 11122200 (mobiel)','06 11122233 (mobiel)']]},
+        {kind:'-',k:'k9',n:'Oude buurman',d:[['Naam','Oude buurman',''],['Telefoon','0612000000 (mobiel)','']]}]},
+        {v:1,t:Date.now()-30*864e5,count:3,added:3,removed:0,changed:0,first:true,full:true,changes:[]}]},
+    contactsInfo(){ const c=this._ct; return JSON.stringify({perm:c.perm,write:c.write,dest:this._wa.info.dest,lastCheck:Date.now()}); },
+    contactsRequestPermission(){ this._ct.perm=true; this._ct.write=true; setTimeout(()=>onContactsChanged(),120); },
+    contactsSnapshot(){ return JSON.stringify({v:0}); },
+    contactsList(q){ const ql=(q||'').toLowerCase(); const c=this._ct.list.filter(x=>!ql||x.n.toLowerCase().includes(ql)||(x.f.Telefoon||'').replace(/\D/g,'').includes(ql.replace(/\D/g,'')||'#'));
+      return JSON.stringify({contacts:c.map(x=>({k:x.k,id:x.id,n:x.n,u:x.u,sub:(x.f.Telefoon||x.f['E-mail']||'').split('\n')[0],fav:!!x.f.Favoriet})),total:this._ct.list.length,version:2,versionT:Date.now()-864e5}); },
+    contactsDetail(k,id){ const x=this._ct.list.find(y=>y.k===k); if(!x) return '{"error":"Contact niet gevonden"}'; const h=[]; for(const v of this._ct.versions) for(const c of v.changes) if(c.k===k) h.push({v:v.v,t:v.t,kind:c.kind,d:c.d}); return JSON.stringify({k:x.k,n:x.n,u:x.u,id:x.id,f:x.f,history:h}); },
+    contactsVersions(){ return JSON.stringify({versions:this._ct.versions.map(v=>({v:v.v,t:v.t,count:v.count,added:v.added,removed:v.removed,changed:v.changed,first:v.first,full:v.full}))}); },
+    contactsVersion(v){ const x=this._ct.versions.find(y=>y.v==v); return x?JSON.stringify(x):'{"error":"Versie niet gevonden"}'; },
+    contactsRestore(v,k){ return 'ok:Oude buurman'; },
+    contactsExport(v){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+this._ct.list.length; },
+    contactsEdit(k,id){ toast(k?'(contacten-app: bewerken '+k+')':'(contacten-app: nieuw contact)'); },
     notesLoad(){ return this._notes; },
     notesSave(j){ this._notes=j; return ''; },
     notesExport(){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+JSON.parse(this._notes).length; },
@@ -872,13 +968,15 @@ function show(name){
   if (name==='calls') enterCalls(); else stopCallsPoll();
   if (current_prev==='note' && name!=='note') leaveNote();
   if (name==='notes') enterNotes();
+  if (name==='contacts') enterContacts();
+  if (name==='cversions') enterVersions();
   if (name==='info') renderInfo();
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); }
 }
-const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', notes:'home', note:'notes'};
+const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions'};
 window.goBack = function(){ if (current!=='home'){ show(BACK[current]||'home'); return true; } return false; };
-window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='notes') show('notes'); };
-window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); refreshTile(); refreshWaTile(); refreshTrackTile(); };
+window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); };
+window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
 /* ---------- Auto redial ---------- */
 const ATT = [[5,'5'],[10,'10'],[25,'25'],[50,'50'],[0,'∞']];
@@ -1522,6 +1620,105 @@ function refreshSmsTile(s){
   t.classList.toggle('live', !!(s && s.running));
   const sub = $('#tile-sms-sub');
   if (sub) { const i = smsInfo(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je sms-berichten'); }
+}
+
+/* ---------- Contacten ---------- */
+let ctTmr = null, ctCur = null, ctCurId = '', cvCur = 0;
+function ctInfo(){ try { return JSON.parse(Android.contactsInfo()); } catch(e){ return {}; } }
+function ctJson(s){ try { return JSON.parse(s); } catch(e){ return {error: 'Onverwachte fout'}; } }
+function enterContacts(){
+  const i = ctInfo();
+  $('#ct-perm').style.display = i.perm ? 'none' : 'block';
+  $('#ct-perm-btn').textContent = store.get('ctAsked', false) && !i.perm ? 'Instellingen openen' : 'Toegang geven';
+  $('#ct-home').style.display = i.perm ? 'block' : 'none';
+  $('#ct-fab').style.display = i.perm ? 'block' : 'none';
+  if (!i.perm) return;
+  const sn = ctJson(Android.contactsSnapshot());
+  if (sn.error) toast(sn.error); else if (sn.v > 1) toast('Wijzigingen vastgelegd als versie ' + sn.v);
+  ctLoad();
+}
+window.onContactsChanged = function(){ if (current === 'contacts') enterContacts(); };
+function ctAskPerm(){
+  if (store.get('ctAsked', false) && !ctInfo().perm) { Android.openAppSettings(); return; }
+  store.set('ctAsked', true); Android.contactsRequestPermission();
+}
+function ctSearchDo(){ clearTimeout(ctTmr); ctTmr = setTimeout(ctLoad, 250); }
+function ctLoad(){
+  const d = ctJson(Android.contactsList($('#ct-search').value.trim()));
+  const el = $('#ct-list');
+  if (d.error) { el.innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
+  $('#ct-ver').textContent = (d.total || 0).toLocaleString('nl-NL') + ' contacten' +
+    (d.version ? ' · versie ' + d.version + ' van ' + fmtD(d.versionT) : '');
+  const list = d.contacts || [];
+  el.innerHTML = list.slice(0, 600).map(c =>
+    '<button data-k="' + esc(c.k) + '" data-id="' + esc(c.id) + '" onclick="ctOpen(this.dataset.k, this.dataset.id)"><span class=r1><b>' + (c.fav ? '★ ' : '') + esc(c.n || '(zonder naam)') + '</b>' +
+    (c.u ? '<time>' + esc(fmtD(c.u)) + '</time>' : '') + '</span><span class=r2>' + esc(c.sub || '') + '</span></button>').join('')
+    || '<p class=note style="padding:14px">Geen contacten gevonden.</p>';
+  if (list.length > 600) el.innerHTML += '<p class=note style="padding:10px 2px 4px">Nog ' + (list.length - 600) + ' contacten; zoek om ze te vinden.</p>';
+}
+let ctDetail = null;
+function ctOpen(k, id){ ctCur = k; ctCurId = id || ''; show('contact'); ctRenderDetail(); }
+function ctRenderDetail(){
+  const d = ctJson(Android.contactsDetail(ctCur, String(ctCurId)));
+  if (d.error) { toast(d.error); show('contacts'); return; }
+  ctDetail = d; ctCur = d.k; ctCurId = String(d.id);
+  $('#ctd-title').textContent = d.n || 'Contact';
+  const f = d.f || {};
+  $('#ctd-fields').innerHTML = Object.keys(f).filter(k => k !== 'Naam').map(k =>
+    '<dt>' + esc(k) + '</dt><dd>' + esc(f[k]).replace(/\n/g, '<br>') + '</dd>').join('') +
+    (d.u ? '<dt>Laatst gewijzigd</dt><dd>' + esc(fmtFull(d.u)) + '</dd>' : '');
+  const h = d.history || [];
+  $('#ctd-hist').innerHTML = h.length ? h.map(x =>
+    '<div class=hist><b>' + ({'+': 'Toegevoegd', '-': 'Verwijderd', '~': 'Gewijzigd'}[x.kind] || '') + '</b> <small>versie ' + x.v + ' · ' + esc(fmtFull(x.t)) + '</small>' +
+    (x.kind === '~' ? ctChanges(x.d) : '') + '</div>').join('')
+    : '<p class=note style="margin:0">Nog geen wijzigingen sinds de eerste versie.</p>';
+}
+function fmtFull(t){ return new Date(t).toLocaleString('nl-NL', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
+function ctChanges(d){
+  return '<ul class=chg>' + (d || []).map(c => '<li><span>' + esc(c[0]) + '</span>' +
+    (c[1] ? '<del>' + esc(c[1]).replace(/\n/g, '<br>') + '</del>' : '') +
+    (c[2] ? '<ins>' + esc(c[2]).replace(/\n/g, '<br>') + '</ins>' : '') + '</li>').join('') + '</ul>';
+}
+function ctEdit(){ if (ctDetail) Android.contactsEdit(ctCur, String(ctDetail.id)); }
+function enterVersions(){
+  const d = ctJson(Android.contactsVersions());
+  const el = $('#cv-list');
+  if (d.error) { el.innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
+  el.innerHTML = (d.versions || []).map(v =>
+    '<button onclick="cvOpen(' + v.v + ')"><span class=r1><b>Versie ' + v.v + '</b><time>' + esc(fmtFull(v.t)) + '</time></span>' +
+    '<span class=r2>' + v.count + ' contacten · ' + (v.first ? 'eerste versie' :
+      [v.added ? '+' + v.added + ' nieuw' : '', v.changed ? '~' + v.changed + ' gewijzigd' : '', v.removed ? '−' + v.removed + ' verwijderd' : ''].filter(Boolean).join(' · ')) +
+    '</span></button>').join('') || '<p class=note style="padding:14px">Nog geen versies.</p>';
+}
+function cvOpen(v){ cvCur = v; show('cversion'); cvRender(); }
+function cvRender(){
+  const d = ctJson(Android.contactsVersion(String(cvCur)));
+  if (d.error) { toast(d.error); return; }
+  $('#cvd-title').textContent = 'Versie ' + d.v;
+  $('#cvd-sum').textContent = fmtFull(d.t) + ' · ' + d.count + ' contacten' + (d.first ? ' · eerste versie' : '');
+  $('#cvd-export').style.display = d.full ? 'block' : 'none';
+  const groups = [['-', 'Verwijderd'], ['~', 'Gewijzigd'], ['+', 'Nieuw']];
+  $('#cvd-list').innerHTML = groups.map(([k, label]) => {
+    const l = (d.changes || []).filter(x => x.kind === k); if (!l.length) return '';
+    return '<div class=card><h2>' + label + ' (' + l.length + ')</h2>' + l.map(x =>
+      '<div class=hist><b>' + esc(x.n || '(zonder naam)') + '</b>' +
+      (k === '-' ? (x.restored ? ' <button class="mini" disabled>Teruggezet</button>'
+        : ' <button class="mini" data-k="' + esc(x.k) + '" onclick="cvRestore(this.dataset.k, this)">Terugzetten</button>') : '') +
+      ctChanges(k === '~' ? x.d : (x.d || []).filter(c => c[0] !== 'Naam')) + '</div>').join('') + '</div>';
+  }).join('') || (d.first ? '' : '<p class=note>Geen wijzigingen.</p>');
+}
+function cvRestore(k, btn){
+  const i = ctInfo();
+  if (!i.write) { toast('Geef eerst toestemming om contacten te wijzigen'); Android.contactsRequestPermission(); return; }
+  askConfirm('Contact terugzetten?', 'Het contact wordt opnieuw aangemaakt op deze telefoon, met de gegevens van vóór het verwijderen.', 'Terugzetten', () => {
+    const r = Android.contactsRestore(String(cvCur), k);
+    if (r.startsWith('ok:')) { toast('✓ ' + r.slice(3) + ' is teruggezet'); btn.disabled = true; btn.textContent = 'Teruggezet'; }
+    else toast(r);
+  });
+}
+function ctExport(v){
+  const r = Android.contactsExport(String(v || 0));
+  toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' contacten opgeslagen in de map Contacten backup' : r);
 }
 
 /* ---------- Notities ---------- */

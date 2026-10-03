@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.10",
+    "date": "2026-10-03",
+    "changes": [
+      "Nieuwe tool Contacten: backup als vCard, zoeken en beheren",
+      "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is",
+      "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"
+    ]
+  },
+  {
     "version": "1.9",
     "date": "2026-10-03",
     "changes": [
