@@ -1,13 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.8",
-  "versionCode": 9,
-  "nativeLevel": 9,
+  "versionName": "1.9",
+  "versionCode": 10,
+  "nativeLevel": 10,
   "web": "index.html",
-  "webSha256": "284b43db06363d5671623299cf26d1d54c4485be13dd0a89e32bbcce4d86f58c",
+  "webSha256": "0711349fedbafb4d764212b172a19c4c839b88ca3aaa0c8767852732faf5058a",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "f68e40359e4fba7ff5adfb1af0fea6dbabc358338c5024760a6ca0a5925ae009",
+  "apkSha256": "d2d50b222d3f791af883dfa7204e6c9917ab143e05d3953814469c4c305d82a7",
   "changelog": [
+    {
+      "version": "1.9",
+      "date": "2026-10-03",
+      "changes": [
+        "Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)",
+        "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina",
+        "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten",
+        "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"
+      ]
+    },
     {
       "version": "1.8",
       "date": "2026-10-02",

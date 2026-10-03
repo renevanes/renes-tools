@@ -125,6 +125,30 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 .clist .r1 b{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .clist .r1 time,.clist .r2{color:var(--muted);font-size:13px}
 .clist .r2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.calls .k{display:inline-block;min-width:78px;margin-right:6px;font-weight:600}
+#calls-filter{flex-wrap:nowrap;gap:6px}#calls-filter button{padding:9px 10px;font-size:14px;min-width:0}
+.calls .in .k{color:#1a7f37}.calls .out .k{color:#1E5AA8}.calls .missed .k,.calls .rejected .k{color:#c62828}
+.nlist button.nrow{display:block;width:100%;text-align:left;padding:12px 2px;border-top:1px solid var(--line)}
+.nlist button.nrow:first-child{border-top:0}
+.nlist .r1{display:flex;gap:8px;align-items:baseline}.nlist .r1 b{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nlist .r1 small,.nlist .r2{color:var(--muted);font-size:13px}.nlist .r2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.nlist mark,.items mark{background:#ffe680;color:inherit;border-radius:3px}
+.ntitle{width:100%;font-size:20px;font-weight:700;border:0;background:transparent;color:var(--ink);padding:4px 0 8px;outline:none}
+.items{list-style:none;margin:0;padding:0}
+.items li{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.items li:first-child{border-top:0}
+.items input[type=checkbox]{width:24px;height:24px;flex:none;accent-color:var(--chip-on)}
+.items .it{flex:1;font-size:16px;border:0;background:transparent;color:var(--ink);outline:none;padding:4px 0;min-width:0}
+.items li.done .it{text-decoration:line-through;color:var(--muted)}
+.items .del{flex:none;width:32px;height:32px;border-radius:50%;color:var(--muted);font-size:20px;line-height:1}
+.additem{display:flex;gap:8px;margin-top:10px}.additem input{flex:1;font-size:16px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.additem button{padding:0 16px;border-radius:12px;background:var(--chip-on);color:#fff;font-weight:700;font-size:20px}
+.ntext{width:100%;min-height:90px;font:inherit;font-size:15px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card);color:var(--ink);box-sizing:border-box;resize:vertical}
+.donehdr{display:flex;justify-content:space-between;align-items:center;margin:14px 0 4px;color:var(--muted);font-size:13px;font-weight:600}
+.donehdr button{color:var(--muted);font-size:13px;text-decoration:underline}
+.fab{position:fixed;right:18px;bottom:22px;width:58px;height:58px;border-radius:50%;background:var(--chip-on);color:#fff;font-size:30px;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:5}
+.csum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:0 0 6px}
+.csum b{display:block;font-size:20px}.csum small{color:var(--muted);font-size:12px}
 .msgs{display:flex;flex-direction:column;gap:4px;padding-bottom:24px}
 .bub{max-width:84%;padding:7px 10px 5px;border-radius:12px;background:var(--card);border:1px solid var(--line);align-self:flex-start;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere;font-size:15px}
 .bub.me{align-self:flex-end;background:#DCF8C6;color:#111;border-color:#c9e9b0}
@@ -207,6 +231,16 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
         <span class="ic" style="background:#8E44AD"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/></svg></span>
         <b>SMS-backup</b>
         <small id="tile-sms-sub">Bewaar je sms-berichten</small>
+      </button>
+      <button class="tile" id="tile-calls" onclick="show('calls')">
+        <span class="ic" style="background:#16A085"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span>
+        <b>Oproepen-backup</b>
+        <small id="tile-calls-sub">Bewaar je belgeschiedenis</small>
+      </button>
+      <button class="tile" id="tile-notes" onclick="show('notes')">
+        <span class="ic" style="background:#E67E22"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1 1 2-2M3.5 12l1 1 2-2"/><circle cx="5" cy="18" r="1"/></svg></span>
+        <b>Notities</b>
+        <small id="tile-notes-sub">Lijstjes maken en afstrepen</small>
       </button>
       <div class="tile soon">
         <span class="ic" style="background:var(--muted)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
@@ -543,6 +577,91 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
   <main><div class="msgs" id="sms-msgs"></div></main>
 </section>
 
+<!-- ============ NOTITIES ============ -->
+<section class="screen" id="s-notes">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Notities</h1>
+  </div>
+  <main>
+    <input class="search" id="notes-search" type="search" placeholder="Zoek in notities en lijstjes…" oninput="renderNotes()">
+    <div class="card nlist" id="notes-list"></div>
+    <button class="big ghost" style="margin-top:14px" onclick="notesBackup()">Kopie in backup-map zetten</button>
+    <p class="note">Je notities staan alleen op deze telefoon. Met de knop hierboven komt er een kopie in de map <b>Notities</b> van je backup-map.</p>
+    <div style="height:70px"></div>
+  </main>
+  <button class="fab" onclick="newNote()" aria-label="Nieuwe notitie">+</button>
+</section>
+
+<section class="screen" id="s-note">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 style="flex:1">Notitie</h1>
+    <button onclick="deleteNote()" aria-label="Verwijderen" style="color:#fff;padding:8px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+  </div>
+  <main>
+    <div class="card">
+      <input class="ntitle" id="note-title" placeholder="Titel" oninput="noteEdit('title', this.value)">
+      <ul class="items" id="note-open"></ul>
+      <div class="additem">
+        <input id="note-add" placeholder="Nieuw item…" enterkeyhint="done" onkeydown="if(event.key==='Enter'){addItem();event.preventDefault();}">
+        <button onclick="addItem()" aria-label="Toevoegen">+</button>
+      </div>
+      <div class="donehdr" id="note-donehdr"><span id="note-donecount"></span><button onclick="clearDone()">Afgevinkte verwijderen</button></div>
+      <ul class="items" id="note-done"></ul>
+    </div>
+    <div class="card">
+      <h2>Notitie</h2>
+      <textarea class="ntext" id="note-text" placeholder="Vrije tekst (optioneel)" oninput="noteEdit('text', this.value)"></textarea>
+    </div>
+  </main>
+</section>
+
+<!-- ============ OPROEPEN-BACKUP ============ -->
+<section class="screen" id="s-calls">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Oproepen-backup</h1>
+  </div>
+  <main>
+    <div class="card perm" id="calls-perm" style="display:none">
+      <p>Oproepen-backup heeft toegang tot je oproepgeschiedenis nodig om die te kunnen bewaren.</p>
+      <button class="big" id="calls-perm-btn" onclick="callsAskPerm()">Toegang geven</button>
+    </div>
+
+    <div class="result" id="calls-result"></div>
+
+    <div class="card" id="calls-run" style="display:none">
+      <h2>Bezig met exporteren</h2>
+      <div class="bar"><i id="calls-bar"></i></div>
+    </div>
+
+    <div id="calls-home">
+      <div class="card">
+        <h2>Exporteren</h2>
+        <div class="csum" id="calls-sum"></div>
+        <button class="big" onclick="callsExport()">Oproepen exporteren</button>
+        <p class="note">Naar de map <b>Oproepen backup</b> in je gekozen backup-map: een herstelbaar bestand (leesbaar door de app "SMS Backup &amp; Restore"), een CSV-bestand voor Excel en een webpagina met alle oproepen.</p>
+      </div>
+
+      <div class="card" id="calls-contacts" style="display:none">
+        <p style="margin:0 0 10px">Geef toegang tot je contacten om namen te tonen in plaats van nummers.</p>
+        <button class="big ghost" onclick="Android.callsRequestPermission()">Contacten tonen</button>
+      </div>
+
+      <div class="chips" id="calls-filter">
+        <button class="on" data-f="all" onclick="callsSetFilter('all')">Alle</button>
+        <button data-f="in" onclick="callsSetFilter('in')">Inkomend</button>
+        <button data-f="out" onclick="callsSetFilter('out')">Uitgaand</button>
+        <button data-f="missed" onclick="callsSetFilter('missed')">Gemist</button>
+      </div>
+      <input class="search" id="calls-search" type="search" placeholder="Zoek op naam of nummer…" oninput="callsSearchDo()">
+      <div class="clist card calls" id="calls-list"></div>
+      <p class="note" style="margin-top:14px">Tik op een oproep om het nummer in Auto redial te zetten. De app toont de laatste 500; de export bevat alles.</p>
+    </div>
+  </main>
+</section>
+
 <!-- ============ INFO ============ -->
 <section class="screen" id="s-info">
   <div class="hdr">
@@ -673,6 +792,21 @@ if (!window.Android) window.Android = (function(){
     smsExport(){ const s=this._sms; if(!s.perm) return 'Geef eerst toegang tot sms'; if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)';
       s.st={running:true,done:0,total:31}; let i=0; s.t=setInterval(()=>{ i+=8; s.st={running:true,done:Math.min(i,31),total:31}; if(i>=31){ clearInterval(s.t); s.done=true; s.st={running:false,ok:true,count:31}; } },250); return ''; },
     smsStatus(){ return JSON.stringify(this._sms.st); },
+    _calls:{perm:false,contacts:false,st:{running:false},done:false,list:null},
+    _callsDemo(){ const ppl=[['Moeder','06 11122233'],['Huisarts','010 123 4567'],['','+31 20 765 4321'],['Kantoor','010 999 8888']]; const kinds=[['in','Inkomend'],['out','Uitgaand'],['missed','Gemist']]; const l=[]; let t=Date.now();
+      for(let i=0;i<42;i++){ t-=Math.random()*9e6; const p=ppl[i%4], k=kinds[(i*7)%3]; l.push({name:p[0]||p[1],number:p[1],date:Math.round(t),duration:k[0]==='missed'?0:Math.round(Math.random()*900),kind:k[0],label:k[1]}); } this._calls.list=l; },
+    callsHasPermission(){ return this._calls.perm; },
+    callsRequestPermission(){ this._calls.perm=true; this._calls.contacts=true; this._callsDemo(); setTimeout(()=>onCallsChanged(),150); },
+    callsInfo(){ const s=this._calls; return JSON.stringify({perm:s.perm,dest:this._wa.info.dest,contacts:s.contacts,lastExport:s.done?Date.now()-3600e3:0,lastCount:s.done?42:0,total:s.perm?42:0}); },
+    callsList(f,q){ const l=this._calls.list||[]; const ql=(q||'').toLowerCase(); const c=l.filter(x=>(f==='all'||x.kind===f)&&(!ql||x.name.toLowerCase().includes(ql)||x.number.includes(ql)));
+      const sum=(k)=>l.filter(x=>x.kind===k); return JSON.stringify({calls:c,total:l.length,in:sum('in').length,out:sum('out').length,missed:sum('missed').length,secIn:sum('in').reduce((a,x)=>a+x.duration,0),secOut:sum('out').reduce((a,x)=>a+x.duration,0)}); },
+    callsExport(){ const s=this._calls; if(!s.perm) return 'Geef eerst toegang tot de oproepgeschiedenis'; if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)';
+      s.st={running:true,done:0,total:126}; let i=0; s.t=setInterval(()=>{ i+=30; s.st={running:true,done:Math.min(i,126),total:126}; if(i>=126){ clearInterval(s.t); s.done=true; s.st={running:false,ok:true,count:42}; } },250); return ''; },
+    callsStatus(){ return JSON.stringify(this._calls.st); },
+    _notes:'[{"id":"a1","title":"Boodschappen","text":"","updated":1759480000000,"items":[{"id":"i1","text":"Melk","done":false},{"id":"i2","text":"Brood","done":true},{"id":"i3","text":"Kaas","done":false}]}]',
+    notesLoad(){ return this._notes; },
+    notesSave(j){ this._notes=j; return ''; },
+    notesExport(){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+JSON.parse(this._notes).length; },
     trackSave(title){ const t=this._tr; const id=Date.now()+'__'+(title||'Route').replace(/ /g,'_')+'.trk'; t.list.unshift({id,title:title||'Route',t:t.start,stats:t.just.stats,path:'M10 120 L80 40 L160 90 L240 30 L290 70'}); t.just=null; return ''; },
     trackDiscard(){ this._tr.just=null; },
     trackList(){ return JSON.stringify(this._tr.list); },
@@ -728,18 +862,22 @@ function bars(){ const cs=getComputedStyle(document.documentElement); Android.se
 
 function show(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
+  const current_prev = current;
   current = name; window.scrollTo(0,0);
   if (name==='redial') enterRedial(); else stopPoll();
   if (name==='wa') enterWa(); else stopWaPoll();
   if (name==='chats') enterChats();
   if (name==='tracks') enterTracks(); else stopTrackPoll();
   if (name==='sms') enterSms(); else stopSmsPoll();
+  if (name==='calls') enterCalls(); else stopCallsPoll();
+  if (current_prev==='note' && name!=='note') leaveNote();
+  if (name==='notes') enterNotes();
   if (name==='info') renderInfo();
-  if (name==='home') { refreshTile(); refreshTrackTile(); }
+  if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); }
 }
-const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms'};
+const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', notes:'home', note:'notes'};
 window.goBack = function(){ if (current!=='home'){ show(BACK[current]||'home'); return true; } return false; };
-window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); };
+window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='notes') show('notes'); };
 window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
 /* ---------- Auto redial ---------- */
@@ -1386,6 +1524,212 @@ function refreshSmsTile(s){
   if (sub) { const i = smsInfo(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je sms-berichten'); }
 }
 
+/* ---------- Notities ---------- */
+let notes = null, noteCur = null, notesSaveTmr = null, notesBroken = false;
+function notesGet(){
+  if (notes === null) {
+    let raw = ''; try { raw = Android.notesLoad(); } catch(e){}
+    try { notes = JSON.parse(raw); if (!Array.isArray(notes)) throw 0; }
+    catch(e){ notes = []; notesBroken = true; toast('Notities konden niet worden gelezen; er wordt niets overschreven'); }
+  }
+  return notes;
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function notesSaveSoon(){ clearTimeout(notesSaveTmr); notesSaveTmr = setTimeout(notesSaveNow, 400); }
+function notesSaveNow(){
+  clearTimeout(notesSaveTmr); notesSaveTmr = null;
+  if (notesBroken || notes === null) return;
+  const err = Android.notesSave(JSON.stringify(notesGet()));
+  if (err) toast('Opslaan mislukt: ' + err);
+}
+function hl(text, q){
+  const t = esc(text); if (!q) return t;
+  const i = text.toLowerCase().indexOf(q); if (i < 0) return t;
+  return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
+}
+function enterNotes(){ renderNotes(); refreshNotesTile(); }
+function renderNotes(){
+  const q = $('#notes-search').value.trim().toLowerCase();
+  const list = notesGet().slice().sort((a, b) => (b.updated||0) - (a.updated||0));
+  const rows = [];
+  for (const n of list) {
+    const items = n.items || [], open = items.filter(i => !i.done).length;
+    const title = n.title || 'Zonder titel', flat = (n.text||'').replace(/\s+/g, ' ');
+    let sub;
+    if (q) {
+      const hits = items.filter(i => i.text.toLowerCase().includes(q));
+      const inTitle = title.toLowerCase().includes(q), inText = flat.toLowerCase().includes(q);
+      if (!inTitle && !inText && !hits.length) continue;
+      sub = hits.length ? hits.slice(0, 4).map(i => (i.done ? '✓ ' : '') + hl(i.text, q)).join(' · ')
+          : inText ? hl(flat.slice(Math.max(0, flat.toLowerCase().indexOf(q) - 20)), q) : '';
+    } else {
+      sub = items.length ? esc(items.filter(i => !i.done).slice(0, 5).map(i => i.text).join(' · ') || 'Alles afgestreept') : esc(flat.slice(0, 80));
+    }
+    rows.push('<button class="nrow" onclick="openNote(\'' + esc(n.id) + '\')"><span class=r1><b>' + hl(title, q) + '</b><small>' +
+      (items.length ? (items.length - open) + '/' + items.length + ' ✓ · ' : '') + esc(fmtD(n.updated||0)) + '</small></span>' +
+      '<span class=r2>' + (sub || '&nbsp;') + '</span></button>');
+  }
+  $('#notes-list').innerHTML = rows.join('') || '<p class=note style="padding:14px">' +
+    (q ? 'Niets gevonden.' : 'Nog geen notities. Tik op + om een lijstje te maken.') + '</p>';
+}
+function noteById(id){ return notesGet().find(n => n.id === id); }
+function newNote(){
+  const n = { id: uid(), title: '', text: '', items: [], updated: Date.now() };
+  notesGet().push(n); openNote(n.id, true);
+}
+function openNote(id, fresh){
+  noteCur = id; const n = noteById(id); if (!n) return;
+  $('#note-title').value = n.title || ''; $('#note-text').value = n.text || ''; $('#note-add').value = '';
+  show('note'); renderItems();
+  if (fresh) setTimeout(() => $('#note-title').focus(), 50);
+}
+function touch(n){ n.updated = Date.now(); notesSaveSoon(); }
+function noteEdit(field, v){ const n = noteById(noteCur); if (!n) return; n[field] = v; touch(n); }
+function renderItems(){
+  const n = noteById(noteCur); if (!n) return;
+  const row = it => '<li class="' + (it.done ? 'done' : '') + '"><input type=checkbox ' + (it.done ? 'checked' : '') +
+    ' onchange="toggleItem(\'' + it.id + '\')" aria-label="Afstrepen"><input class=it value="' + esc(it.text) +
+    '" oninput="typeItem(\'' + it.id + '\', this.value)" onchange="editItem(\'' + it.id + '\', this.value)"><button class=del onclick="delItem(\'' + it.id + '\')" aria-label="Verwijderen">×</button></li>';
+  const items = n.items || [];
+  const done = items.filter(i => i.done);
+  $('#note-open').innerHTML = items.filter(i => !i.done).map(row).join('');
+  $('#note-done').innerHTML = done.map(row).join('');
+  $('#note-donehdr').style.display = done.length ? 'flex' : 'none';
+  $('#note-donecount').textContent = done.length + ' afgestreept';
+}
+function addItem(){
+  const inp = $('#note-add'), t = inp.value.trim(); if (!t) { inp.focus(); return; }
+  const n = noteById(noteCur); if (!n) return;
+  // Meerdere regels plakken = meerdere items
+  t.split(/\n+/).map(x => x.trim()).filter(Boolean).forEach(x => n.items.push({ id: uid(), text: x, done: false }));
+  inp.value = ''; touch(n); renderItems(); inp.focus();
+}
+function toggleItem(id){
+  const n = noteById(noteCur); const it = n && n.items.find(i => i.id === id); if (!it) return;
+  it.done = !it.done; touch(n); renderItems();
+}
+function editItem(id, v){
+  const n = noteById(noteCur); const it = n && n.items.find(i => i.id === id); if (!it) return;
+  if (!v.trim()) { delItem(id); return; }
+  it.text = v.trim(); touch(n);
+}
+function typeItem(id, v){
+  const n = noteById(noteCur); const it = n && n.items.find(i => i.id === id); if (!it || !v.trim()) return;
+  it.text = v; touch(n);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && notesSaveTmr) notesSaveNow(); });
+window.onPauseApp = function(){ if (notesSaveTmr) notesSaveNow(); };
+function delItem(id){ const n = noteById(noteCur); if (!n) return; n.items = n.items.filter(i => i.id !== id); touch(n); renderItems(); }
+function clearDone(){
+  const n = noteById(noteCur); if (!n) return;
+  const k = n.items.filter(i => i.done).length;
+  askConfirm('Afgevinkte verwijderen?', k + ' afgestreepte items worden verwijderd.', 'Verwijderen', () => {
+    n.items = n.items.filter(i => !i.done); touch(n); renderItems(); });
+}
+function deleteNote(){
+  const n = noteById(noteCur); if (!n) return;
+  askConfirm('Notitie verwijderen?', '"' + (n.title || 'Zonder titel') + '" wordt definitief verwijderd.', 'Verwijderen', () => {
+    notes = notesGet().filter(x => x.id !== noteCur); noteCur = null; notesSaveNow(); show('notes'); });
+}
+function leaveNote(){
+  const n = noteById(noteCur);
+  if (n && !(n.title||'').trim() && !(n.text||'').trim() && !(n.items||[]).length) notes = notesGet().filter(x => x.id !== n.id);
+  notesSaveNow(); noteCur = null;
+}
+function notesBackup(){
+  notesSaveNow();
+  const r = Android.notesExport();
+  toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' notities in de map Notities gezet' : r);
+}
+function refreshNotesTile(){
+  const sub = $('#tile-notes-sub'); if (!sub) return;
+  const l = notesGet(); const open = l.reduce((a, n) => a + (n.items||[]).filter(i => !i.done).length, 0);
+  sub.textContent = l.length ? l.length + (l.length === 1 ? ' notitie' : ' notities') + (open ? ' · ' + open + ' open' : '') : 'Lijstjes maken en afstrepen';
+}
+
+/* ---------- Oproepen-backup ---------- */
+let callsPoll = null, callsTmr = null, callsFilter = 'all', callsLastDone = false;
+function callsInfo(){ try { return JSON.parse(Android.callsInfo()); } catch(e){ return {}; } }
+function fmtCallDur(s){ if (!s) return ''; const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+  return h ? h + ':' + String(m).padStart(2,'0') + ':' + String(x).padStart(2,'0') : m + ':' + String(x).padStart(2,'0'); }
+function fmtHours(s){ const h = Math.floor(s/3600), m = Math.round(s%3600/60); return h ? h + ' u ' + m + ' m' : m + ' min'; }
+function enterCalls(){
+  const i = callsInfo(); callsPermCache = !!i.perm;
+  try { const st = JSON.parse(Android.callsStatus()); callsLastDone = !st.running; } catch(e){}
+  $('#calls-result').className = 'result';
+  $('#calls-perm').style.display = i.perm ? 'none' : 'block';
+  $('#calls-perm-btn').textContent = store.get('callsAsked', false) && !i.perm ? 'Instellingen openen' : 'Toegang geven';
+  $('#calls-home').style.display = i.perm ? 'block' : 'none';
+  $('#calls-contacts').style.display = (i.perm && !i.contacts) ? 'block' : 'none';
+  $('#calls-search').value = '';
+  if (i.perm) loadCalls();
+  callsPollOnce();
+  stopCallsPoll(); callsPoll = setInterval(callsPollOnce, 600);
+}
+function stopCallsPoll(){ if (callsPoll) { clearInterval(callsPoll); callsPoll = null; } }
+window.onCallsChanged = function(){ if (current === 'calls') enterCalls(); };
+function callsAskPerm(){
+  if (store.get('callsAsked', false) && !Android.callsHasPermission()) { Android.openAppSettings(); return; }
+  store.set('callsAsked', true); Android.callsRequestPermission();
+}
+function callsSetFilter(f){
+  callsFilter = f;
+  document.querySelectorAll('#calls-filter button').forEach(b => b.classList.toggle('on', b.dataset.f === f));
+  loadCalls();
+}
+function callsSearchDo(){ clearTimeout(callsTmr); callsTmr = setTimeout(loadCalls, 250); }
+let callsShown = [];
+function loadCalls(){
+  let d; try { d = JSON.parse(Android.callsList(callsFilter, $('#calls-search').value.trim())); } catch(e){ return; }
+  const el = $('#calls-list');
+  if (d.error) { el.innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
+  $('#calls-sum').innerHTML =
+    '<div><b>' + (d.in||0) + '</b><small>inkomend<br>' + fmtHours(d.secIn||0) + '</small></div>' +
+    '<div><b>' + (d.out||0) + '</b><small>uitgaand<br>' + fmtHours(d.secOut||0) + '</small></div>' +
+    '<div><b>' + (d.missed||0) + '</b><small>gemist<br>&nbsp;</small></div>';
+  callsShown = d.calls || [];
+  el.innerHTML = callsShown.map((c, i) =>
+    '<button class="' + esc(c.kind) + '" onclick="callsPick(' + i + ')">' +
+    '<span class=r1><b>' + esc(c.name) + '</b><time>' + esc(fmtD(c.date)) + '</time></span>' +
+    '<span class=r2><span class=k>' + esc(c.label) + '</span>' + (c.number && c.number !== c.name ? esc(c.number) + ' · ' : '') + esc(fmtCallDur(c.duration)) + '</span></button>').join('');
+  if (!callsShown.length) el.innerHTML = '<p class=note style="padding:14px">Geen oproepen gevonden.</p>';
+}
+function callsPick(i){
+  const c = callsShown[i]; if (!c || !c.number) { toast('Afgeschermd nummer'); return; }
+  show('redial'); $('#num').value = c.number; nameFor = c.name !== c.number ? c.name : ''; $('#pname').textContent = nameFor;
+}
+function callsExport(){
+  const err = Android.callsExport();
+  if (err) { toast(err); return; }
+  $('#calls-result').className = 'result'; callsLastDone = false; setTimeout(callsPollOnce, 150);
+}
+let callsPermCache = false;
+function callsPollOnce(){
+  let s; try { s = JSON.parse(Android.callsStatus()); } catch(e){ return; }
+  $('#calls-run').style.display = s.running ? 'block' : 'none';
+  $('#calls-home').style.display = (s.running || !callsPermCache) ? 'none' : 'block';
+  if (s.running) {
+    $('#calls-bar').style.width = (s.total ? 100 * s.done / s.total : 0).toFixed(0) + '%';
+  } else if (s.ok !== undefined && !callsLastDone) {
+    callsLastDone = true;
+    const r = $('#calls-result');
+    r.textContent = s.ok ? '✓ ' + s.count + ' oproepen geëxporteerd naar de map Oproepen backup' : 'Mislukt: ' + (s.error || '');
+    r.className = 'result on ' + (s.ok ? 'answered' : 'error');
+    refreshCallsTile(s, true);
+  }
+  if (s.running) refreshCallsTile(s);
+}
+let callsTileRunning = null;
+function refreshCallsTile(s, force){
+  const t = $('#tile-calls'); if (!t) return;
+  const run = !!(s && s.running);
+  if (!force && callsTileRunning === run && s) return;
+  callsTileRunning = run;
+  t.classList.toggle('live', run);
+  const sub = $('#tile-calls-sub');
+  if (sub) { const i = run ? {} : callsInfo(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je belgeschiedenis'); }
+}
+
 /* ---------- Versie & updates ---------- */
 function ver(){ try { return JSON.parse(Android.version()); } catch(e){ return {}; } }
 function renderInfo(){
@@ -1413,7 +1757,7 @@ window.onUpdateStatus = function(r){
 /* ---------- start ---------- */
 $('#hver').textContent = 'v' + ver().webName;
 bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
-refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile();
+refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile();
 const po = Android.pendingOpen(); if (po) openTool(po);
 </script>
 </body>

@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.9",
+    "date": "2026-10-03",
+    "changes": [
+      "Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)",
+      "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina",
+      "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten",
+      "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"
+    ]
+  },
+  {
     "version": "1.8",
     "date": "2026-10-02",
     "changes": [

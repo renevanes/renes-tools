@@ -329,7 +329,17 @@ final class Sms {
             dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(u), 0, 0, false));
         }
         OutputStream o;
-        try { o = dest.cr.openOutputStream(u, "wt"); } catch (Exception e) { o = dest.cr.openOutputStream(u, "w"); }
+        try { o = dest.cr.openOutputStream(u, "wt"); }
+        catch (Exception e) {
+            // "w" kapt bij sommige providers niet af: bestaand bestand dan opnieuw aanmaken.
+            if (ch != null && !ch.dir) {
+                DocumentsContract.deleteDocument(dest.cr, u);
+                u = DocumentsContract.createDocument(dest.cr, dir.uri, mime, name);
+                if (u == null) throw new Exception("Bestand maken lukt niet: " + name);
+                dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(u), 0, 0, false));
+            }
+            o = dest.cr.openOutputStream(u, "w");
+        }
         if (o == null) throw new Exception("Schrijven lukt niet: " + name);
         return new java.io.BufferedWriter(new OutputStreamWriter(o, StandardCharsets.UTF_8), 1 << 16);
     }

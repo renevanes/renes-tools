@@ -41,6 +41,16 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Namen komen uit de contacten als die toestemming is gegeven. Alleen lezen; er wordt niets op de telefoon gewijzigd. Herstellen gaat via de app "SMS Backup & Restore" (standaard-sms-app worden is op moderne Android nodig om terug te schrijven).
 - XML-escaping behoudt regeleindes/tabs (numerieke entiteiten) en laat in XML verboden stuurtekens weg, zodat het backupbestand altijd herstelbaar blijft.
 
+## Oproepen-backup
+- Leest de eigen oproepgeschiedenis via `CallLog.Calls` (READ_CALL_LOG, die de app al had voor Auto redial): inkomend, uitgaand, gemist, geweigerd (`Calls.java`).
+- In de app: totalen (aantal en beltijd), filter Alle/Inkomend/Uitgaand/Gemist, zoeken op naam of nummer (laatste 500). Tik op een oproep om het nummer in Auto redial te zetten.
+- Export naar `Oproepen backup/` in de backup-map: een herstelbaar XML in het `<calls>`-formaat van "SMS Backup & Restore", een CSV (puntkomma, UTF-8 met BOM, voor Excel) en een leesbare HTML-tabel. Alleen lezen.
+
+## Notities
+- Notities met lijstjes: items toevoegen (meerdere regels plakken = meerdere items), afstrepen, bewerken, afgevinkte items opruimen, plus een vrij tekstveld. Zoeken door titels, items en tekst met markering (`Notes.java` + interface).
+- Opslag in de app-map (`notes.json`, via tijdelijk bestand + hernoemen). Lege notities worden niet bewaard.
+- Knop *Kopie in backup-map zetten*: `Notities/notities.json` en een leesbaar `notities.txt` met `[x]`/`[ ]`.
+
 ## Versies en updates
 - `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.

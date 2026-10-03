@@ -53,6 +53,7 @@ public class MainActivity extends Activity {
     private static final int REQ_CONTACTS = 15;
     private static final int REQ_LOCATION = 16;
     private static final int REQ_SMS = 17;
+    private static final int REQ_CALLS = 18;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -144,6 +145,12 @@ public class MainActivity extends Activity {
         }
         String open = i.getStringExtra("open");
         if (open != null) js("openTool", JSONObject.quote(open));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        js("onPauseApp", "");
     }
 
     @Override
@@ -252,6 +259,7 @@ public class MainActivity extends Activity {
     public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
         if (req == REQ_STORAGE || req == REQ_CONTACTS) js("onWaChanged", "");
         if (req == REQ_SMS) js("onSmsChanged", "");
+        if (req == REQ_CALLS) js("onCallsChanged", "");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
     }
 
@@ -342,6 +350,7 @@ public class MainActivity extends Activity {
         private final MainActivity a;
         private final Context ctx;
         static volatile boolean smsBusy = false;
+        static volatile boolean callsBusy = false;
         Bridge(MainActivity act) { a = act; ctx = act.getApplicationContext(); }
 
         @JavascriptInterface public String version() {
@@ -794,6 +803,74 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public String smsStatus() {
             return Sms.prefs(ctx).getString("status", "{\"running\":false}");
+        }
+
+        // ----- Oproepen-backup -----
+
+        @JavascriptInterface public boolean callsHasPermission() {
+            return ctx.checkSelfPermission(Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface public void callsRequestPermission() {
+            a.h.post(() -> a.requestPermissions(new String[]{Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_CONTACTS}, REQ_CALLS));
+        }
+
+        @JavascriptInterface public String callsInfo() {
+            try {
+                JSONObject o = new JSONObject();
+                o.put("perm", callsHasPermission());
+                o.put("dest", WaBackup.destUri(ctx) != null);
+                o.put("contacts", ctx.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED);
+                o.put("lastExport", Calls.prefs(ctx).getLong("lastExport", 0));
+                o.put("lastCount", Calls.prefs(ctx).getInt("lastCount", 0));
+                o.put("total", callsHasPermission() ? Calls.countTotal(ctx) : 0);
+                return o.toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        @JavascriptInterface public String callsList(String filter, String q) {
+            try { return Calls.listJson(ctx, filter, q, 500); } catch (Exception e) { return errJson(e); }
+        }
+
+        @JavascriptInterface public String callsExport() {
+            if (callsBusy) return "Er loopt al een export";
+            if (!callsHasPermission()) return "Geef eerst toegang tot de oproepgeschiedenis";
+            if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map (bij WhatsApp backup)";
+            callsBusy = true;
+            Calls.prefs(ctx).edit().putString("status", "{\"running\":true,\"done\":0,\"total\":0}").apply();
+            new Thread(() -> {
+                String err = null; int n = 0;
+                try {
+                    n = Calls.export(ctx, (done, total) -> {
+                        try { Calls.prefs(ctx).edit().putString("status",
+                                new JSONObject().put("running", true).put("done", done).put("total", total).toString()).apply(); } catch (Exception ignored) { }
+                    });
+                } catch (Throwable e) {
+                    err = e.getMessage() != null ? e.getMessage() : "onvoldoende geheugen of fout";
+                } finally {
+                    try {
+                        JSONObject o = new JSONObject().put("running", false);
+                        if (err == null) o.put("ok", true).put("count", n); else o.put("ok", false).put("error", err);
+                        Calls.prefs(ctx).edit().putString("status", o.toString()).apply();
+                    } catch (Exception ignored) { }
+                    callsBusy = false;
+                }
+            }, "calls-export").start();
+            return "";
+        }
+
+        @JavascriptInterface public String callsStatus() {
+            return Calls.prefs(ctx).getString("status", "{\"running\":false}");
+        }
+
+        // ----- Notities -----
+
+        @JavascriptInterface public String notesLoad() { return Notes.load(ctx); }
+
+        @JavascriptInterface public String notesSave(String json) { return Notes.save(ctx, json); }
+
+        @JavascriptInterface public String notesExport() {
+            try { return "ok:" + Notes.export(ctx); } catch (Exception e) { return e.getMessage() != null ? e.getMessage() : "Mislukt"; }
         }
 
         @JavascriptInterface public String pendingOpen() {
