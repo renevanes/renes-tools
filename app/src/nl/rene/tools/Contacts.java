@@ -513,7 +513,8 @@ final class Contacts {
     static int export(Context c, int v) throws Exception {
         Uri tree = WaBackup.destUri(c);
         if (tree == null) throw new Exception("Kies eerst een backup-map (bij WhatsApp backup)");
-        snapshot(c);
+        // Versie bijwerken; als dat nu niet kan (bijv. de beveiliging tegen massaal verdwijnen), toch de backup maken.
+        try { snapshot(c); } catch (Exception e) { App.log(c, "CONTACTS", "versie niet vastgelegd: " + e.getMessage()); }
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir dir = dest.dir(DIR, true);
         List<ContactsDiff.Rec> list;

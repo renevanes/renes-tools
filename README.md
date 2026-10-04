@@ -85,6 +85,11 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Bij de radio: "Zender op startscherm" maakt een icoon dat de app opent en die zender meteen afspeelt.
 - Lang indrukken van het app-icoon geeft snelle keuzes: Radio, Muziek herkennen, Notities en Auto redial.
 
+## Alles back-uppen
+- Eén knop voor sms, oproepen, contacten (+ wijzigingslog), notities, uitgeschreven gesprekken en herkende muziek naar de backup-map, met per onderdeel de uitkomst (`AllBackup.java`). Onderdelen zijn aan/uit te zetten; optioneel tegelijk de WhatsApp-backup.
+- Automatisch elke nacht na 03:30 (`AllBackupJob`, JobScheduler, desgewenst alleen tijdens opladen). Alleen een melding als er iets misging.
+- **Terugzetten** (`Restore.java`): contacten uit een vCard-bestand (`VCard.java` leest 2.1/3.0/4.0, ook van andere telefoons: gevouwen regels, quoted-printable, tekensets, item-groepen) en notities uit `notities.json`. Eerst een overzicht (nieuw / al aanwezig), dan alleen het nieuwe toevoegen; nooit overschrijven of verwijderen.
+
 ## Instellingen, app-slot en foutrapport
 - **Instellingen**: app-slot, backup-map, AudD-sleutel, overzicht van alle toestemmingen (met "Toestaan" per onderdeel) en het foutrapport.
 - **App-slot** (`Lock.java`): ontgrendelen met de schermvergrendeling van de telefoon (BiometricPrompt met vingerafdruk/gezicht of pincode; Android 7–9 via het bevestigingsscherm van de telefoon). Geen eigen pincode, dus niets te vergeten. Vergrendelt na een instelbare tijd buiten beeld; inhoud verborgen in "recente apps" (Android 13+: `setRecentsScreenshotEnabled(false)`, ouder: `FLAG_SECURE`).

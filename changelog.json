@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.16",
+    "date": "2026-10-04",
+    "changes": [
+      "Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst",
+      "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)",
+      "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"
+    ]
+  },
+  {
     "version": "1.15",
     "date": "2026-10-04",
     "changes": [

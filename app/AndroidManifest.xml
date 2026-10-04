@@ -83,6 +83,11 @@
             android:foregroundServiceType="dataSync" />
 
         <service
+            android:name=".AllBackupJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <service
             android:name=".ContactsJob"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />

@@ -60,6 +60,8 @@ public class MainActivity extends Activity {
     private static final int REQ_RECTREE = 21;
     private static final int REQ_MIC = 22;
     private static final int REQ_SETTINGS = 23;
+    private static final int REQ_IMPORT = 24;
+    String importKind = null;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -73,6 +75,7 @@ public class MainActivity extends Activity {
         RedialService.createChannel(this);
         WaBackupService.createChannel(this);
         WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
+        AllBackupJob.ensureScheduled(this);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -356,6 +359,21 @@ public class MainActivity extends Activity {
             return;
         }
         if (req == Lock.REQ_CONFIRM) { Lock.onConfirmResult(res == RESULT_OK); return; }
+        if (req == REQ_IMPORT) {
+            final String kind = importKind;
+            if (res != RESULT_OK || data == null || data.getData() == null || kind == null) return;
+            final Uri u = data.getData();
+            new Thread(() -> {
+                String r;
+                try { r = Restore.preview(getApplicationContext(), kind, u).toString(); }
+                catch (Exception e) {
+                    try { r = new JSONObject().put("error", e.getMessage() == null ? "Bestand niet te lezen" : e.getMessage()).toString(); }
+                    catch (Exception e2) { r = "{\"error\":\"Bestand niet te lezen\"}"; }
+                }
+                js("onRestorePreview", r);
+            }, "restore-preview").start();
+            return;
+        }
         if (req == REQ_RECTREE) {
             if (res == RESULT_OK && data != null && data.getData() != null) {
                 // Boommap omzetten naar een gewoon pad (de app heeft toegang tot alle bestanden).
@@ -1324,6 +1342,60 @@ public class MainActivity extends Activity {
                 long v = Long.parseLong(ms);
                 if (v >= 0 && v <= 3_600_000L) Lock.prefs(ctx).edit().putLong("timeout", v).apply();
             } catch (Exception ignored) { }
+        }
+
+        // ----- Alles back-uppen en terugzetten -----
+
+        @JavascriptInterface public String backupState(boolean full) { return AllBackup.stateJson(ctx, full); }
+
+        @JavascriptInterface public void backupSetPart(String part, boolean on) {
+            for (String p : AllBackup.PARTS) if (p.equals(part)) AllBackup.prefs(ctx).edit().putBoolean("part_" + p, on).apply();
+        }
+
+        @JavascriptInterface public void backupSetAuto(boolean auto, boolean charging) {
+            AllBackup.prefs(ctx).edit().putBoolean("auto", auto).putBoolean("charging", charging).apply();
+            AllBackupJob.schedule(ctx, 0);
+        }
+
+        /** Start alles nu; met withWa ook de WhatsApp-backup (die loopt in zijn eigen service). */
+        @JavascriptInterface public String backupStart(boolean withWa) {
+            if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map";
+            if (!AllBackup.tryBegin()) return "Er loopt al een backup";
+            new Thread(() -> {
+                org.json.JSONObject r = AllBackup.run(ctx, false);
+                a.js("onBackupDone", r.toString());
+            }, "allbackup").start();
+            if (withWa) {
+                String w = waStart("all", WaBackup.ALL);
+                if (!w.isEmpty()) return "WhatsApp: " + w;
+            }
+            return "";
+        }
+
+        /** Kies een backupbestand om terug te zetten (contacts = vCard, notes = notities.json). */
+        @JavascriptInterface public void restorePick(String kind) {
+            if (!"contacts".equals(kind) && !"notes".equals(kind)) return;
+            a.importKind = kind;
+            a.h.post(() -> {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+                if ("contacts".equals(kind)) i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"text/x-vcard", "text/vcard", "text/directory", "application/octet-stream", "text/plain"});
+                else i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/json", "application/octet-stream", "text/plain"});
+                try { a.startActivityForResult(i, REQ_IMPORT); }
+                catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+            });
+        }
+
+        /** Terugzetten op de achtergrond; uitkomst via window.onRestoreDone("ok:N" of foutmelding). */
+        @JavascriptInterface public String restoreApply() {
+            if ("contacts".equals(Restore.pendingKind) && ctx.checkSelfPermission(Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED)
+                return "Geef eerst toestemming om contacten te wijzigen";
+            new Thread(() -> {
+                String r;
+                try { r = "ok:" + Restore.apply(ctx); }
+                catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Terugzetten mislukt"; }
+                a.js("onRestoreDone", JSONObject.quote(r));
+            }, "restore").start();
+            return "";
         }
 
         // ----- Snelkoppelingen -----

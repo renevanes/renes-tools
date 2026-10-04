@@ -1,13 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.15",
-  "versionCode": 16,
-  "nativeLevel": 16,
+  "versionName": "1.16",
+  "versionCode": 17,
+  "nativeLevel": 17,
   "web": "index.html",
-  "webSha256": "a3abae2e5b458ab3d81172c59e10ddc6a609dc298601a0922546b241cbdc96d8",
+  "webSha256": "c8cff969f8cad1a67fb7649d523fbf915da2227f2dcfe6da5953810392ccfd5e",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "f661ad6318ff52ade400fc5af077f286badd474d5732bd65765907ff476f8b49",
+  "apkSha256": "85a291dbdd1c210b0f9783355d492c6550dcdc3747fe7c40e868f9574eb26781",
   "changelog": [
+    {
+      "version": "1.16",
+      "date": "2026-10-04",
+      "changes": [
+        "Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst",
+        "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)",
+        "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"
+      ]
+    },
     {
       "version": "1.15",
       "date": "2026-10-04",
