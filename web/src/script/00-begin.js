@@ -1,0 +1,5 @@
+<script>
+const VERSION_NAME = "__VERSION_NAME__";
+const VERSION_CODE = __VERSION_CODE__;
+const CHANGELOG = __CHANGELOG__;
+

@@ -1,0 +1,63 @@
+<!-- ============ CONTACTEN ============ -->
+<section class="screen" id="s-contacts">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Contacten</h1>
+  </div>
+  <main>
+    <div class="card perm" id="ct-perm" style="display:none">
+      <p>Contacten heeft toegang tot je contacten nodig om ze te bewaren en wijzigingen bij te houden. Met de toestemming om te wijzigen kun je verwijderde contacten terugzetten.</p>
+      <button class="big" id="ct-perm-btn" onclick="ctAskPerm()">Toegang geven</button>
+    </div>
+    <div id="ct-home">
+      <div class="card">
+        <p class="note" style="margin-top:0" id="ct-ver"></p>
+        <div class="row">
+          <button class="big ghost" style="flex:1" onclick="show('cversions')">Versies</button>
+          <button class="big ghost" style="flex:1" onclick="ctExport(0)">Backup (vCard)</button>
+        </div>
+      </div>
+      <input class="search" id="ct-search" type="search" placeholder="Zoek op naam, nummer, e-mail of bedrijf…" oninput="ctSearchDo()">
+      <div class="clist card" id="ct-list"></div>
+      <p class="note" style="margin-top:14px">De app legt vanzelf een nieuwe versie vast als er iets aan je contacten verandert (bij openen en een paar keer per dag). De versies staan op deze telefoon; met <b>Backup</b> komen de contacten en het wijzigingslog in de map <b>Contacten backup</b>.</p>
+      <div style="height:70px"></div>
+    </div>
+  </main>
+  <button class="fab" id="ct-fab" onclick="Android.contactsEdit('', '')" aria-label="Nieuw contact">+</button>
+</section>
+
+<section class="screen" id="s-contact">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="ctd-title" style="font-size:18px;flex:1">Contact</h1>
+  </div>
+  <main>
+    <div class="card"><dl class="fields" id="ctd-fields"></dl>
+      <button class="big" style="margin-top:12px" onclick="ctEdit()">Bewerken</button>
+    </div>
+    <div class="card" id="ctd-calls" style="display:none"><h2>Oproepen</h2><div id="ctd-calls-body"></div></div>
+    <div class="card"><h2>Wijzigingen</h2><div id="ctd-hist"></div></div>
+  </main>
+</section>
+
+<section class="screen" id="s-cversions">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Versies</h1>
+  </div>
+  <main><div class="clist card" id="cv-list"></div></main>
+</section>
+
+<section class="screen" id="s-cversion">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="cvd-title">Versie</h1>
+  </div>
+  <main>
+    <div class="card"><p class="note" style="margin-top:0" id="cvd-sum"></p>
+      <button class="big ghost" id="cvd-export" onclick="ctExport(cvCur)">Deze versie als vCard opslaan</button>
+    </div>
+    <div id="cvd-list"></div>
+  </main>
+</section>
+

@@ -1,0 +1,20 @@
+<!-- ============ STARTSCHERM AANPASSEN ============ -->
+<section class="screen" id="s-homeedit">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Startscherm aanpassen</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2>Weergave</h2>
+      <label class="chk"><input type="checkbox" id="he-grouped" onchange="heSet('grouped', this.checked)"> In groepen</label>
+      <label class="chk"><input type="checkbox" id="he-compact" onchange="heSet('compact', this.checked)"> Compact (kleinere tegels, drie naast elkaar)</label>
+      <label class="chk"><input type="checkbox" id="he-dash" onchange="heSet('dash', this.checked)"> Overzicht bovenaan (backup, wekker, herinneringen)</label>
+    </div>
+    <div id="he-groups"></div>
+    <button class="big ghost" onclick="heAddGroup()">Groep toevoegen</button>
+    <button class="big ghost" style="margin-top:8px" onclick="heReset()">Standaard herstellen</button>
+    <p class="note">Met de pijlen verplaats je een tool, ook naar de groep erboven of eronder. Tik op de naam van een groep om hem te hernoemen. Verborgen tools blijven bereikbaar via hun snelkoppeling en komen terug als je het vinkje weer aanzet.</p>
+  </main>
+</section>
+

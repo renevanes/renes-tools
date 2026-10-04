@@ -1,0 +1,50 @@
+<!-- ============ NOTITIES ============ -->
+<section class="screen" id="s-notes">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Notities</h1>
+  </div>
+  <main>
+    <input class="search" id="notes-search" type="search" placeholder="Zoek in notities en lijstjes…" oninput="renderNotes()">
+    <div class="card nlist" id="notes-list"></div>
+    <button class="big ghost" style="margin-top:14px" onclick="notesBackup()">Kopie in backup-map zetten</button>
+    <p class="note">Je notities staan alleen op deze telefoon. Met de knop hierboven komt er een kopie in de map <b>Notities</b> van je backup-map.</p>
+    <div style="height:70px"></div>
+  </main>
+  <button class="fab" onclick="newNote()" aria-label="Nieuwe notitie">+</button>
+</section>
+
+<section class="screen" id="s-note">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" style="flex:1">Notitie</h1>
+    <button onclick="deleteNote()" aria-label="Verwijderen" style="color:#fff;padding:8px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+  </div>
+  <main>
+    <div class="card">
+      <input class="ntitle" id="note-title" placeholder="Titel" oninput="noteEdit('title', this.value)">
+      <ul class="items" id="note-open"></ul>
+      <div class="additem">
+        <input id="note-add" placeholder="Nieuw item…" enterkeyhint="done" onkeydown="if(event.key==='Enter'){addItem();event.preventDefault();}">
+        <button onclick="addItem()" aria-label="Toevoegen">+</button>
+      </div>
+      <div class="donehdr" id="note-donehdr"><span id="note-donecount"></span><button onclick="clearDone()">Afgevinkte verwijderen</button></div>
+      <ul class="items" id="note-done"></ul>
+    </div>
+    <div class="card">
+      <h2>Notitie</h2>
+      <textarea class="ntext" id="note-text" placeholder="Vrije tekst (optioneel)" oninput="noteEdit('text', this.value)"></textarea>
+    </div>
+    <div class="card">
+      <h2>Herinnering</h2>
+      <input type="datetime-local" id="note-rem" aria-label="Datum en tijd van de herinnering" class="altime" style="font-size:18px;text-align:left">
+      <div class="row" style="margin-top:10px">
+        <button class="big" style="flex:1" onclick="noteSetRem()">Herinner mij</button>
+        <button class="big ghost" style="flex:1" id="note-rem-del" onclick="noteDelRem()">Weghalen</button>
+      </div>
+      <p class="note" id="note-rem-info"></p>
+    </div>
+    <button class="big ghost" onclick="noteShareNow()">Delen (WhatsApp, mail …)</button>
+  </main>
+</section>
+

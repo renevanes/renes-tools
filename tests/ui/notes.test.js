@@ -13,13 +13,13 @@ const { chromium } = require('playwright');
   await pg.click('#note-open li:nth-child(2) input[type=checkbox]'); await pg.waitForTimeout(100);
   await pg.fill('#note-text', 'Voor zaterdag');
   await pg.waitForTimeout(500);
-  await pg.screenshot({ path: 'n-edit-'+scheme+'.png' });
+  await pg.screenshot({ path: __dirname + '/shots/n-edit-'+scheme+'.png' });
   console.log('open', await pg.$$eval('#note-open li', x=>x.length), 'done', await pg.$$eval('#note-done li', x=>x.length));
   await pg.click('#s-note .back'); await pg.waitForTimeout(200);
-  await pg.screenshot({ path: 'n-list-'+scheme+'.png' });
+  await pg.screenshot({ path: __dirname + '/shots/n-list-'+scheme+'.png' });
   await pg.fill('#notes-search', 'fiets'); await pg.waitForTimeout(100);
   console.log('search', await pg.$$eval('#notes-list .nrow', x=>x.map(e=>e.innerText.replace(/\n/g,' | '))));
-  await pg.screenshot({ path: 'n-search-'+scheme+'.png' });
+  await pg.screenshot({ path: __dirname + '/shots/n-search-'+scheme+'.png' });
   // empty note gets discarded
   await pg.fill('#notes-search', ''); await pg.click('#s-notes .fab'); await pg.click('#s-note .back'); await pg.waitForTimeout(100);
   const saved = JSON.parse(await pg.evaluate(() => Android._notes));

@@ -1,0 +1,58 @@
+<!-- ============ ALLES BACK-UPPEN ============ -->
+<section class="screen" id="s-backup">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Alles back-uppen</h1>
+  </div>
+  <main>
+    <div class="card perm" id="bk-nodest" style="display:none">
+      <p>Kies eerst een backup-map, bijvoorbeeld een USB-stick, SD-kaart of OneDrive.</p>
+      <button class="big" onclick="Android.waPickFolder()">Backup-map kiezen</button>
+    </div>
+    <div class="card">
+      <h2>Laatste backup</h2>
+      <p class="note" style="margin-top:0" id="bk-last">Nog niet gemaakt</p>
+      <div id="bk-parts-res"></div>
+      <button class="big" id="bk-run" onclick="bkRun()">Nu alles back-uppen</button>
+      <label class="chk"><input type="checkbox" id="bk-wa"> Ook WhatsApp (loopt apart, kan lang duren)</label>
+      <p class="note" id="bk-dest"></p>
+    </div>
+    <div class="card">
+      <h2>Wat gaat er mee</h2>
+      <div id="bk-parts"></div>
+    </div>
+    <div class="card">
+      <h2>Automatisch</h2>
+      <label class="chk"><input type="checkbox" id="bk-auto" onchange="bkSaveAuto()"> Elke nacht alles back-uppen (na 03:30)</label>
+      <label class="chk"><input type="checkbox" id="bk-charging" onchange="bkSaveAuto()"> Alleen als de telefoon oplaadt</label>
+      <p class="note" id="bk-next"></p>
+      <p class="note">WhatsApp heeft een eigen nachtelijke backup (zie WhatsApp backup). Je krijgt alleen een melding als er iets misging.</p>
+    </div>
+    <div class="card">
+      <h2>Versleutelen</h2>
+      <p class="note" style="margin-top:0" id="bk-enc-state"></p>
+      <button class="big ghost" id="bk-enc-btn" onclick="bkEncSet()">Wachtwoord instellen</button>
+      <button class="big ghost" id="bk-enc-off" style="margin-top:8px;display:none" onclick="bkEncOff()">Versleutelen uitzetten</button>
+      <p class="note">Met een wachtwoord gaan nieuwe backups in één versleuteld bestand (AES-256) in de map Versleuteld, in plaats van leesbare bestanden. Leesbare bestanden van eerdere backups blijven staan tot je ze zelf weghaalt; WhatsApp backup wordt niet versleuteld. Op de computer open je het met <b>ontsleutelen.html</b> in diezelfde map. <b>Wachtwoord vergeten = backup kwijt</b>; niemand kan hem dan nog openen.</p>
+    </div>
+    <div class="card">
+      <h2>Oude backups opruimen</h2>
+      <label class="chk"><input type="checkbox" id="bk-rotate" onchange="Android.backupSetRotate(this.checked)"> Na elke gelukte backup opruimen</label>
+      <p class="note">Bewaart alles van de laatste 14 dagen en daarvoor de nieuwste per maand. Geldt voor de gedateerde sms-, oproepen- en contactbestanden en de versleutelde backups. De nieuwste blijft altijd staan.</p>
+      <button class="big ghost" onclick="bkRotate()">Nu opruimen</button>
+    </div>
+    <div class="card">
+      <h2>Ruimtegebruik</h2>
+      <div id="bk-space"><p class="note" style="margin-top:0">Hoeveel ruimte elke map in je backup-map inneemt.</p></div>
+      <button class="big ghost" id="bk-space-btn" onclick="bkSpace()">Berekenen</button>
+    </div>
+    <div class="card">
+      <h2>Terugzetten</h2>
+      <button class="big ghost" onclick="Android.restorePick('contacts')">Contacten terugzetten (vCard)</button>
+      <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('notes')">Notities terugzetten</button>
+      <button class="big ghost" style="margin-top:8px" onclick="Android.archivePick()">Versleutelde backup openen</button>
+      <p class="note">Je kiest het bestand in de backup-map (Contacten backup/…vcf of Notities/notities.json). Alleen wat er nog niet is, wordt toegevoegd; er wordt niets overschreven of verwijderd. Sms'jes en oproepen zet je terug met de app "SMS Backup &amp; Restore"; WhatsApp via WhatsApp backup.</p>
+    </div>
+  </main>
+</section>
+

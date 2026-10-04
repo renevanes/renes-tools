@@ -1,0 +1,63 @@
+<!-- ============ INSTELLINGEN ============ -->
+<section class="screen" id="s-settings">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Instellingen</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2>App-slot</h2>
+      <p class="note" style="margin-top:0">Vergrendel Rene's Tools met de schermvergrendeling van je telefoon: vingerafdruk, gezicht of pincode. De inhoud is dan ook niet te zien in "recente apps".</p>
+      <div class="row setrow"><span style="flex:1" id="st-lock-state">Uit</span>
+        <button class="big" style="width:auto;padding:10px 18px" id="st-lock-btn" onclick="stLockToggle()">Aanzetten</button></div>
+      <div class="row setrow" id="st-lock-tw"><span style="flex:1">Vergrendelen na</span>
+        <select class="sel" id="st-lock-timeout" aria-label="Vergrendelen na" onchange="Android.lockTimeout(this.value)">
+          <option value="0">Meteen</option><option value="30000">30 seconden</option><option value="60000">1 minuut</option>
+          <option value="300000">5 minuten</option><option value="900000">15 minuten</option><option value="3600000">1 uur</option>
+        </select></div>
+    </div>
+
+    <div class="card">
+      <h2>Weergave</h2>
+      <div class="row setrow"><label for="st-zoom" style="flex:1">Tekstgrootte</label>
+        <select class="sel" id="st-zoom" onchange="stZoom(this.value)">
+          <option value="0">Zoals de telefoon</option><option value="90">Kleiner</option><option value="100">Normaal</option>
+          <option value="115">Groot</option><option value="130">Groter</option><option value="150">Extra groot</option><option value="175">Maximaal</option>
+        </select></div>
+      <p class="note" id="st-zoom-prev" style="margin-bottom:0">Zo ziet tekst er nu uit.</p>
+    </div>
+
+    <div class="card">
+      <h2>Backup-map</h2>
+      <p class="note" style="margin-top:0" id="st-dest">Nog niet gekozen</p>
+      <button class="big ghost" onclick="Android.waPickFolder()">Map kiezen</button>
+      <p class="note">Hier zetten alle tools hun backups en exports neer, elk in een eigen submap.</p>
+    </div>
+
+    <div class="card">
+      <h2>Muziek herkennen</h2>
+      <p class="note" style="margin-top:0" id="st-audd"></p>
+      <button class="big ghost" onclick="muChangeToken()">AudD-sleutel wijzigen</button>
+    </div>
+
+    <div class="card">
+      <h2>Toestemmingen</h2>
+      <div id="st-perms"></div>
+      <button class="big ghost" style="margin-top:10px" onclick="Android.openAppSettings()">App-instellingen van Android openen</button>
+    </div>
+
+    <div class="card">
+      <h2>Foutrapport</h2>
+      <p class="note" style="margin-top:0" id="st-crash"></p>
+      <div class="row">
+        <button class="big" style="flex:1" onclick="Android.crashShare()">Delen</button>
+        <button class="big ghost" style="flex:1" onclick="stCrashClear()">Wissen</button>
+      </div>
+      <p class="note">Het rapport bevat het toestel, de versie en de technische foutmeldingen, geen berichten, contacten of andere gegevens. Delen gaat via WhatsApp, mail of een andere app naar keuze.</p>
+    </div>
+
+    <button class="big ghost" onclick="show('selftest')">Zelftest</button>
+    <button class="big ghost" style="margin-top:8px" onclick="show('info')">Versie en updates</button>
+  </main>
+</section>
+

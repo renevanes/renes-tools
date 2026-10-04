@@ -1,0 +1,84 @@
+<!-- ============ GESPREKKEN UITSCHRIJVEN ============ -->
+<section class="screen" id="s-transcripts">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Gesprekken uitschrijven</h1>
+  </div>
+  <main>
+    <div class="card perm" id="tx-unsup" style="display:none">
+      <p>Deze telefoon wordt niet ondersteund: uitschrijven op de telefoon heeft een 64-bit ARM-processor nodig.</p>
+    </div>
+    <div class="card perm" id="tx-files" style="display:none">
+      <p>Om de gespreksopnames van je telefoon-app te vinden, heeft de app toegang tot alle bestanden nodig.</p>
+      <button class="big" onclick="Android.txRequestFiles()">Toegang geven</button>
+    </div>
+
+    <div class="card" id="tx-run" style="display:none">
+      <h2 id="tx-run-title">Bezig</h2>
+      <div class="who" id="tx-run-file"></div>
+      <div class="bar"><i id="tx-bar"></i></div>
+      <div class="row" style="margin-top:10px"><small class="note" id="tx-run-sub" style="flex:1;margin:0"></small>
+        <button class="mini" onclick="Android.txCancel()">Stoppen</button></div>
+    </div>
+    <div class="result" id="tx-result"></div>
+
+    <div class="card" id="tx-setup">
+      <h2>Spraakmodel</h2>
+      <p class="note" style="margin-top:0">Het uitschrijven gebeurt helemaal op je telefoon met Whisper. Daarvoor is eenmalig een spraakmodel nodig (via wifi downloaden aangeraden).</p>
+      <div id="tx-models"></div>
+      <div class="row" style="margin-top:10px">
+        <span style="flex:1">Taal van de gesprekken</span>
+        <select id="tx-lang" aria-label="Taal van de gesprekken" onchange="Android.txSetLang(this.value)" class="sel">
+          <option value="nl">Nederlands</option><option value="en">Engels</option><option value="auto">Automatisch</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="tx-home">
+      <div class="card" id="tx-auto-card">
+        <label class="chk" style="font-weight:600"><input type="checkbox" id="tx-auto" onchange="txAutoSet(this.checked)"> 's Nachts automatisch uitschrijven</label>
+        <p class="note" id="tx-auto-note">Nieuwe opnames (van de laatste 14 dagen) worden vanaf 01:00 uitgeschreven terwijl de telefoon oplaadt. Je krijgt een melding als het klaar is.</p>
+      </div>
+      <div class="card" id="tx-calls" style="display:none">
+        <p style="margin:0 0 10px">Geef toegang tot je oproepgeschiedenis om opnames aan het juiste gesprek en contact te koppelen.</p>
+        <button class="big ghost" onclick="Android.txRequestCalls()">Gesprekken koppelen</button>
+      </div>
+      <input class="search" id="tx-search" type="search" placeholder="Zoek in uitgeschreven gesprekken…" oninput="txSearchDo()">
+      <div id="tx-results"></div>
+      <div class="row" id="tx-actions" style="margin-bottom:12px">
+        <button class="big" style="flex:1" id="tx-all" onclick="txStartAll()">Alles uitschrijven</button>
+        <button class="big ghost" style="flex:1" onclick="txExport('')">Exporteren</button>
+      </div>
+      <div class="clist card" id="tx-list"></div>
+      <div class="card">
+        <h2>Geen opnames?</h2>
+        <p class="note" style="margin-top:0">Android laat gewone apps een telefoongesprek niet opnemen. Deze tool schrijft de opnames uit die je <b>telefoon-app</b> zelf maakt. Op een Oppo: open de app <b>Telefoon</b> → ⋮ → <b>Instellingen</b> → <b>Gespreksopname</b> en zet automatisch opnemen aan. Gebruikt je Oppo de Telefoon-app van Google, dan zijn die opnames voor andere apps afgeschermd.</p>
+        <p class="note" id="tx-folder-note"></p>
+        <div class="row"><button class="big ghost" style="flex:1" onclick="Android.txPickFolder()">Map met opnames kiezen</button></div>
+        <p class="note">Laat de ander weten dat je het gesprek opneemt. Transcripten blijven op je telefoon tot je ze exporteert naar de map <b>Gesprekken</b> in je backup-map.</p>
+      </div>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-txd">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="txd-title" style="font-size:18px;flex:1">Gesprek</h1>
+  </div>
+  <main>
+    <div class="card">
+      <p class="note" style="margin-top:0" id="txd-sub"></p>
+      <div class="row">
+        <button class="big" style="flex:1" id="txd-play" onclick="txToggle()">▶ Afspelen</button>
+        <button class="big ghost" style="flex:1" onclick="txExport(txCur)">Exporteren</button>
+      </div>
+    </div>
+    <div class="card segs" id="txd-segs"></div>
+    <div class="row" style="margin-top:4px">
+      <button class="big ghost" style="flex:1" onclick="txRedo()">Opnieuw uitschrijven</button>
+      <button class="big ghost" style="flex:1;color:var(--bad)" onclick="txDel()">Transcript verwijderen</button>
+    </div>
+  </main>
+</section>
+

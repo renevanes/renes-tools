@@ -1,0 +1,27 @@
+<!-- ============ RADIOWEKKER ============ -->
+<section class="screen" id="s-ralarm">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Radiowekker</h1>
+  </div>
+  <main>
+    <div class="card">
+      <label class="chk" style="font-size:17px;font-weight:600"><input type="checkbox" id="al-on"> Wekker aan</label>
+      <div class="row" style="margin:8px 0 14px"><input type="time" id="al-time" class="altime" value="07:00" aria-label="Tijd van de wekker"></div>
+      <div class="flabel">Dagen</div>
+      <div class="chips sm" id="al-days">
+        <button data-d="0">ma</button><button data-d="1">di</button><button data-d="2">wo</button><button data-d="3">do</button>
+        <button data-d="4">vr</button><button data-d="5">za</button><button data-d="6">zo</button>
+      </div>
+      <p class="note" style="margin-top:-6px">Geen dag gekozen = eenmalig.</p>
+      <div class="flabel">Zender</div>
+      <select class="sel" id="al-station" aria-label="Zender" style="width:100%"></select>
+      <button class="big" style="margin-top:14px" onclick="alSave()">Opslaan</button>
+      <p class="note" id="al-next"></p>
+      <button class="big ghost" onclick="alTest()">Proef: over 10 seconden</button>
+      <p class="note">De radio begint zacht en wordt in een halve minuut harder, via het wekkervolume van je telefoon. Is er geen internet, dan klinkt de gewone wekkertoon. In de melding kun je stoppen of 10 minuten snoozen.</p>
+      <div class="result on other" id="al-exact" style="display:none">Android staat precieze wekkers voor deze app niet toe, dus de wekker kan een paar minuten later afgaan. <a href="#" onclick="Android.alarmExactSettings();return false">Toestaan</a></div>
+    </div>
+  </main>
+</section>
+

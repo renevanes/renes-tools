@@ -129,7 +129,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.
 - De app leest `update/update.json` van GitHub wanneer je hem opent, hooguit eens per 30 minuten. Via de GitHub-API zoekt hij eerst de nieuwste commit op, zodat een nieuwe versie direct zichtbaar is:
-  - **Alleen de interface is veranderd** (`web/index.html`, `NATIVE_LEVEL` blijft gelijk): de nieuwe versie wordt stil gedownload, gecontroleerd met SHA-256 en direct gebruikt.
+  - **Alleen de interface is veranderd** (`web/src/`, `NATIVE_LEVEL` blijft gelijk): de nieuwe versie wordt stil gedownload, gecontroleerd met SHA-256 en direct gebruikt.
   - **`NATIVE_LEVEL` is hoger** (de Java-code of het manifest is veranderd): de app toont *Nieuwe versie beschikbaar* met een knop **Installeren**. Die downloadt de APK, controleert hem en biedt hem aan via de pakketinstaller van Android.
 
 ## Bouwen (zonder Android Studio of Gradle)
@@ -142,11 +142,17 @@ NATIVE=1 ./bump.sh "Nieuwe app-functie"   # als de Java-code of het manifest is 
 ./publish.sh                  # commit "Versie X.Y" en push naar GitHub
 ```
 
+### Interface in onderdelen
+De interface is één pagina (`web/index.html`) voor de WebView, maar wordt bewerkt in losse onderdelen in `web/src/`:
+`stijl.css`, `schermen/NN-*.html` (één per scherm), `vensters.html` (meldingen, dialogen) en `script/NN-*.js` (per tool; `01-nepbrug.js` is de nagebootste Android-brug voor tests in de browser).
+`tools/web-samenvoegen.py` voegt ze in de volgorde van `web/src/volgorde.txt` samen; `build.sh` en `tests/run-ui.sh` doen dat zelf. `web/index.html` wordt dus gemaakt en staat niet in git.
+
 ### Testen
 ```sh
 ./tests/run-ui.sh            # interfacetests: Playwright, 390x844, licht en donker, met nagebootste Android-brug
-javac -cp build/classes:$TOOLS/ap/android-36/android.jar -d build/test tests/jvm/nl/rene/tools/LogicTest.java
-java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.LogicTest   # logica (contactversies, vCard, wekker)
+javac -cp build/classes:$TOOLS/ap/android-36/android.jar -d build/test tests/jvm/nl/rene/tools/*.java
+java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.LogicTest       # logica (contactversies, vCard, wekker, versleutelen, opruimen)
+java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.TimeshiftTest   # radiobuffer
 ```
 Bij elke push bouwt GitHub Actions (`.github/workflows/bouwen-en-testen.yml`) de app en draait alle tests. Die APK is ondertekend met een tijdelijke testsleutel en dient alleen als controle; echte updates gaan via `./publish.sh` met de echte sleutel.
 

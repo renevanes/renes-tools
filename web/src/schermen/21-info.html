@@ -1,0 +1,22 @@
+<!-- ============ INFO ============ -->
+<section class="screen" id="s-info">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Versie en updates</h1>
+  </div>
+  <main>
+    <div class="card">
+      <div class="kv"><span>Versie</span><span id="i-ver"></span></div>
+      <div class="kv"><span>App-onderdeel</span><span id="i-app"></span></div>
+      <div class="kv"><span>Android</span><span id="i-android"></span></div>
+    </div>
+    <div class="banner" id="upd-banner2"><div id="upd-text2">Nieuwe versie beschikbaar</div><button onclick="installUpdate()">Installeren</button></div>
+    <button class="big" id="chk-btn" onclick="checkUpdates()">Controleren op updates</button>
+    <p class="note">De app zoekt zelf naar updates als je hem opent. Kleine updates worden meteen toegepast; voor een nieuwe versie van de app zelf vraagt Android om te bevestigen.</p>
+    <div class="card log" style="margin-top:16px">
+      <h2>Wat is er nieuw</h2>
+      <div id="log"></div>
+    </div>
+  </main>
+</section>
+

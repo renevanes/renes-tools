@@ -6,6 +6,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p tests/ui/ui/vendor tests/ui/shots
 cp web/vendor/* tests/ui/ui/vendor/
+python3 tools/web-samenvoegen.py >/dev/null
 python3 - <<'PY'
 import json
 s = open('web/index.html', encoding='utf-8').read()

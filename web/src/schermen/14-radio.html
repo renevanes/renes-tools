@@ -1,0 +1,54 @@
+<!-- ============ RADIO ============ -->
+<section class="screen" id="s-radio">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Radio</h1>
+  </div>
+  <main>
+    <div class="card now" id="rd-now" style="display:none">
+      <div class="nowrow">
+        <span class="logo" id="rd-now-logo"></span>
+        <div style="flex:1;min-width:0">
+          <b id="rd-now-name"></b>
+          <div class="nowt" id="rd-now-title"></div>
+        </div>
+        <button class="star" id="rd-now-fav" onclick="rdFavNow()" aria-label="Favoriet">☆</button>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="big" style="flex:1" id="rd-pp" onclick="rdPlayPause()">❚❚ Pauze</button>
+        <button class="big ghost" style="width:64px;flex:none" onclick="Android.radioStop()" aria-label="Stoppen">■</button>
+      </div>
+      <div class="shift" id="rd-shift" style="display:none">
+        <button class="big ghost" onclick="rdShift('rew')" aria-label="30 seconden terug">⏪ 30 s</button>
+        <span class="shpos" id="rd-shpos" aria-live="off">Live</span>
+        <button class="big ghost" id="rd-fwd" onclick="rdShift('fwd')" aria-label="30 seconden vooruit">30 s ⏩</button>
+        <button class="big ghost" id="rd-live" onclick="rdShift('live')">Live</button>
+      </div>
+      <div class="nowsong" id="rd-song" style="display:none"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="big ghost" style="flex:1" id="rd-rec" onclick="rdRecognize()">♫ Welk nummer is dit?</button>
+        <select class="sel" id="rd-sleep" onchange="rdSleep(this.value)" aria-label="Slaaptimer">
+          <option value="0">Slaaptimer</option><option value="15">15 min</option><option value="30">30 min</option>
+          <option value="45">45 min</option><option value="60">1 uur</option><option value="90">1,5 uur</option>
+          <option value="120">2 uur</option><option value="custom">Eigen tijd…</option><option value="at">Tot tijdstip…</option>
+        </select>
+      </div>
+      <div class="sleepinfo" id="rd-sleepinfo"></div>
+      <button class="mini" style="margin-top:10px;float:none;display:inline-block" onclick="rdPinStation()">📌 Zender op startscherm</button>
+      <details class="rinfo" id="rd-info"><summary>Over deze zender</summary><dl class="fields" id="rd-info-dl"></dl></details>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="rd-ts" onchange="Android.radioSetTimeshift(this.checked); toast(this.checked ? 'Geldt vanaf de volgende zender' : 'Uit; geldt vanaf de volgende zender')"> Pauzeren en terugspoelen (tot ca. 45 min buffer; tijdens pauze loopt de stream door, max. 1 uur)</label>
+      <details class="rinfo" id="rd-recent-wrap"><summary id="rd-recent-sum">Eerder gedraaid</summary><ul class="recent" id="rd-recent"></ul></details>
+    </div>
+
+    <div id="rd-favs-wrap">
+      <div class="flabel" style="margin:4px 2px 8px">Favorieten</div>
+      <div class="card stations" id="rd-favs"></div>
+    </div>
+    <button class="big ghost" style="margin-bottom:12px" onclick="show('ralarm')" id="rd-alarm-btn">⏰ Radiowekker</button>
+    <input class="search" id="rd-search" type="search" placeholder="Zoek een zender…" oninput="rdSearchDo()">
+    <div class="flabel" style="margin:4px 2px 8px" id="rd-list-label">Populair in Nederland</div>
+    <div class="card stations" id="rd-list"><p class="note" style="padding:14px">Zenders laden…</p></div>
+    <p class="note" style="margin-top:14px">Zenders en stream-adressen komen uit de vrije database van radio-browser.info, dus ook gewijzigde adressen van omroepen kloppen. Tik op ☆ om een zender aan je favorieten toe te voegen.</p>
+  </main>
+</section>
+

@@ -1,0 +1,94 @@
+<!-- ============ WHATSAPP BACKUP ============ -->
+<section class="screen" id="s-wa">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">WhatsApp backup</h1>
+  </div>
+  <main>
+    <div class="card perm" id="wa-perm" style="display:none">
+      <p>Geef Rene's Tools toegang tot alle bestanden. Alleen dan kan de app de WhatsApp-map op je telefoon lezen. Zet daarna in het scherm dat opent de schakelaar aan en ga terug.</p>
+      <button class="big" onclick="Android.waRequestFilesAccess()">Toegang geven</button>
+    </div>
+    <div class="card perm" id="wa-nosrc" style="display:none">
+      <p>Er is geen WhatsApp-map gevonden op deze telefoon. Staat WhatsApp erop en heeft het al een keer een backup gemaakt? In WhatsApp: <i>Instellingen › Chats › Chatback-up › Back-up maken</i>.</p>
+    </div>
+
+    <div class="result" id="wa-result"></div>
+
+    <div class="card" id="wa-run" style="display:none">
+      <h2 id="wa-run-title">Backup bezig</h2>
+      <div class="phase" id="wa-run-phase">Bestanden zoeken…</div>
+      <div class="bar"><i id="wa-bar"></i></div>
+      <div class="who" id="wa-run-count" style="margin:0 0 4px"></div>
+      <div class="cur" id="wa-run-cur"></div>
+      <button class="big stop" style="margin-top:14px" onclick="Android.waCancel()">Stoppen</button>
+      <p class="note">Je kunt de app gerust sluiten. De voortgang staat in de meldingenbalk.</p>
+    </div>
+
+    <div id="wa-setup">
+      <div class="card">
+        <h2>Backup-map</h2>
+        <div class="dest"><b id="wa-dest">Nog niet gekozen</b><button id="wa-dest-btn" onclick="Android.waPickFolder()">Kies map</button></div>
+        <p class="note" style="margin-top:10px">Kies of maak een map, bijvoorbeeld op een USB-stick of SD-kaart, of in OneDrive of Dropbox. De backup komt daarin in de map <b>WhatsApp backup</b>.</p>
+      </div>
+
+      <div class="card">
+        <h2>Backup maken</h2>
+        <button class="big" onclick="waStart('all')">Alles back-uppen</button>
+        <div class="sub" id="wa-all-size">Chats en alle media, zonder statussen</div>
+        <h2 style="margin-top:6px">Of kies zelf</h2>
+        <div class="cats" id="wa-cats"></div>
+        <button class="big ghost" onclick="waStart('selection')">Selectie back-uppen</button>
+        <p class="note">Alleen nieuwe en gewijzigde bestanden worden gekopieerd. De eerste keer duurt het dus het langst. In de backup wordt nooit iets verwijderd, ook niet als je het op je telefoon weggooit.</p>
+      </div>
+
+      <div class="card">
+        <h2>Automatisch</h2>
+        <div class="sw"><span>Elke nacht automatisch<small>Na 03:00, als WhatsApp zijn eigen backup heeft gemaakt</small></span><button class="tg" id="wa-auto" onclick="tog(this); waSave()"></button></div>
+        <div class="sw"><span>Alleen tijdens opladen<small>Aanbevolen: de eerste backup kan lang duren</small></span><button class="tg on" id="wa-charging" onclick="tog(this); waSave()"></button></div>
+        <div class="sw" style="display:block"><span>Wat<small>Wat er automatisch wordt meegenomen</small></span>
+          <div class="chips" id="wa-automode" style="margin:10px 0 0"></div></div>
+        <p class="note" id="wa-next"></p>
+      </div>
+
+      <div class="card" id="wa-hist-card" style="display:none">
+        <h2>Laatste backups</h2>
+        <div id="wa-hist"></div>
+      </div>
+
+      <div class="card" id="rd-card">
+        <h2>Leesbare chats</h2>
+        <div id="rd-setup">
+          <p class="note" style="margin-top:0">Hiermee maak je je chats leesbaar: in de app en als webpagina per chat in de backup-map. Daarvoor is in WhatsApp de end-to-end versleutelde back-up met een <b>sleutel van 64 cijfers</b> nodig. Zet die aan in <i>WhatsApp › Instellingen › Chats › Chatback-up › End-to-end versleutelde back-up</i> en kies <b>sleutel</b> in plaats van wachtwoord.</p>
+          <label class="f">Jouw sleutel van 64 cijfers</label>
+          <textarea class="key" id="rd-key" rows="3" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="abcd 1234 …"></textarea>
+          <button class="big" style="margin-top:10px" onclick="rdSaveKey()">Controleer sleutel en maak leesbaar</button>
+          <p class="note">De sleutel blijft alleen op je telefoon, in deze app. Bewaar hem ook zelf goed.</p>
+        </div>
+        <div id="rd-ready" style="display:none">
+          <button class="big" onclick="show('chats')">Open mijn chats</button>
+          <div class="sw" style="margin-top:6px"><span>Automatisch bijwerken<small>Na elke backup de chats opnieuw leesbaar maken</small></span><button class="tg on" id="rd-auto" onclick="tog(this); Android.waSetReadableAuto(this.classList.contains('on'))"></button></div>
+          <p class="note" id="rd-from"></p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="big ghost" style="flex:1" onclick="rdRefresh()">Nu bijwerken</button>
+            <button class="big ghost" style="flex:1" onclick="rdForget()">Sleutel wissen</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Terugzetten op een (nieuwe) telefoon</h2>
+        <ol class="steps">
+          <li>Installeer Rene's Tools en kies hierboven de map waarin de backup staat.</li>
+          <li>Tik op <b>Backup terugzetten</b>. De bestanden gaan terug naar de WhatsApp-map.</li>
+          <li>Installeer daarna pas WhatsApp en registreer met hetzelfde nummer.</li>
+          <li>Kies <b>Herstellen</b> als WhatsApp een backup vindt.</li>
+        </ol>
+        <button class="big ghost" onclick="waRestore()">Backup terugzetten</button>
+        <p class="note">Gebruik je de versleutelde back-up van WhatsApp (end-to-end)? Dan vraagt WhatsApp bij het herstellen om je wachtwoord of je sleutel van 64 cijfers.</p>
+      </div>
+      <p class="note">De chats zijn versleuteld door WhatsApp. Alleen WhatsApp kan ze terugzetten, je kunt ze niet los lezen. Foto's, video's en documenten zijn gewone bestanden die je overal kunt openen.</p>
+    </div>
+  </main>
+</section>
+

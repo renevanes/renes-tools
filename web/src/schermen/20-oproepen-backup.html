@@ -1,0 +1,76 @@
+<!-- ============ OPROEPEN-BACKUP ============ -->
+<section class="screen" id="s-calls">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Oproepen-backup</h1>
+  </div>
+  <main>
+    <div class="card perm" id="calls-perm" style="display:none">
+      <p>Oproepen-backup heeft toegang tot je oproepgeschiedenis nodig om die te kunnen bewaren.</p>
+      <button class="big" id="calls-perm-btn" onclick="callsAskPerm()">Toegang geven</button>
+    </div>
+
+    <div class="result" id="calls-result"></div>
+
+    <div class="card" id="calls-run" style="display:none">
+      <h2>Bezig met exporteren</h2>
+      <div class="bar"><i id="calls-bar"></i></div>
+    </div>
+
+    <div id="calls-home">
+      <div class="card">
+        <h2 id="calls-sum-title">Overzicht</h2>
+        <div class="csum" id="calls-sum"></div>
+        <p class="note" id="calls-sum-note" style="margin:6px 0 12px;text-align:center"></p>
+        <button class="big" onclick="callsExport(false)">Alle oproepen exporteren</button>
+        <button class="big ghost" id="calls-export-sel" style="margin-top:8px;display:none" onclick="callsExport(true)">Alleen deze selectie exporteren</button>
+        <p class="note">Naar de map <b>Oproepen backup</b> in je gekozen backup-map: een herstelbaar bestand (leesbaar door de app "SMS Backup &amp; Restore"), een CSV-bestand voor Excel en een webpagina. Een selectie krijgt eigen bestandsnamen.</p>
+      </div>
+
+      <div class="card" id="calls-contacts" style="display:none">
+        <p style="margin:0 0 10px">Geef toegang tot je contacten om namen te tonen en oproepen aan je contacten te koppelen.</p>
+        <button class="big ghost" onclick="Android.callsRequestPermission()">Contacten koppelen</button>
+      </div>
+
+      <div class="chips" id="calls-filter">
+        <button class="on" data-f="all" onclick="callsSetKind('all')">Alle</button>
+        <button data-f="in" onclick="callsSetKind('in')">Inkomend</button>
+        <button data-f="out" onclick="callsSetKind('out')">Uitgaand</button>
+        <button data-f="missed" onclick="callsSetKind('missed')">Gemist</button>
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <input class="search" id="calls-search" type="search" placeholder="Zoek op naam of nummer…" oninput="callsSearchDo()" style="flex:1;margin:0">
+        <button class="fbtn" id="calls-fbtn" onclick="callsToggleFilters()" aria-label="Filters">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          <span id="calls-fcount"></span></button>
+      </div>
+
+      <div class="card" id="calls-fpanel" style="display:none">
+        <div class="flabel">Periode</div>
+        <div class="chips sm" id="cf-period">
+          <button data-v="all">Altijd</button><button data-v="today">Vandaag</button><button data-v="yesterday">Gisteren</button>
+          <button data-v="7">7 dagen</button><button data-v="30">30 dagen</button><button data-v="year">Dit jaar</button><button data-v="custom">Kiezen…</button>
+        </div>
+        <div class="row" id="cf-custom" style="display:none;margin:-6px 0 12px">
+          <label class="dlab">Van<input type="date" id="cf-from" onchange="callsCustomDates()"></label>
+          <label class="dlab">Tot en met<input type="date" id="cf-to" onchange="callsCustomDates()"></label>
+        </div>
+        <div class="flabel">Wie</div>
+        <div class="chips sm" id="cf-who">
+          <button data-v="all">Iedereen</button><button data-v="contacts">Contacten</button><button data-v="favorites">Favorieten</button><button data-v="unknown">Onbekende nummers</button>
+        </div>
+        <div class="flabel">Duur</div>
+        <div class="chips sm" id="cf-dur">
+          <button data-v="all">Alle</button><button data-v="0">Niet verbonden</button><button data-v="60">1 min of langer</button>
+          <button data-v="300">5 min of langer</button><button data-v="900">15 min of langer</button>
+        </div>
+        <button class="big ghost" onclick="callsClearFilters()">Filters wissen</button>
+      </div>
+
+      <div class="fchips" id="calls-active"></div>
+      <div class="clist card calls" id="calls-list"></div>
+      <p class="note" style="margin-top:14px">Tik op een oproep voor het contact, alle gesprekken met die persoon of opnieuw bellen. De app toont de nieuwste 500 van de selectie; de export bevat alles.</p>
+    </div>
+  </main>
+</section>
+

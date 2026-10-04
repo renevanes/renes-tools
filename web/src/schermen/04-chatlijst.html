@@ -1,0 +1,17 @@
+<!-- ============ CHATLIJST ============ -->
+<section class="screen" id="s-chats">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Chats</h1>
+  </div>
+  <main>
+    <input class="search" id="chat-search" type="search" placeholder="Zoek in alle berichten…" oninput="chatSearch(this.value)">
+    <div class="card" id="chat-contacts" style="display:none">
+      <p style="margin:0 0 10px">Geef toegang tot je contacten om namen te tonen in plaats van telefoonnummers.</p>
+      <button class="big ghost" onclick="Android.waRequestContacts()">Contacten tonen</button>
+    </div>
+    <div class="clist card" id="chat-list"></div>
+    <div id="search-results"></div>
+  </main>
+</section>
+

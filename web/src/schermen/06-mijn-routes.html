@@ -1,0 +1,63 @@
+<!-- ============ MIJN ROUTES ============ -->
+<section class="screen" id="s-tracks">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Mijn routes</h1>
+  </div>
+  <main>
+    <div class="card perm" id="tr-perm" style="display:none">
+      <p id="tr-perm-text">Mijn routes heeft toegang tot je locatie nodig om je route te kunnen opnemen.</p>
+      <button class="big" id="tr-perm-btn" onclick="trAskPerm()">Toestemming geven</button>
+    </div>
+    <div class="card perm" id="tr-gps" style="display:none">
+      <p>Zet locatie (gps) aan op je telefoon om een route op te nemen.</p>
+      <button class="big" onclick="Android.trackOpenLocationSettings()">Locatie-instellingen openen</button>
+    </div>
+
+    <!-- opnemen -->
+    <div class="card" id="tr-rec" style="display:none">
+      <div class="bigstat"><div class="v" id="tr-dist">0,00</div><div class="u">kilometer</div></div>
+      <div id="tr-lmap" class="lmap"></div>
+      <svg class="map" id="tr-map" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet" style="display:none"><path id="tr-map-path" d=""></path></svg>
+      <div class="statrow">
+        <div class="b"><div class="v" id="tr-time">0:00</div><div class="u">tijd</div></div>
+        <div class="b"><div class="v" id="tr-speed">0,0</div><div class="u">km/u nu</div></div>
+        <div class="b"><div class="v" id="tr-avg">0,0</div><div class="u">km/u gem.</div></div>
+      </div>
+      <div class="statrow" style="margin-bottom:10px">
+        <div class="b"><div class="v" id="tr-ele">–</div><div class="u">hoogte</div></div>
+        <div class="b"><div class="v" id="tr-acc">–</div><div class="u">gps ± m</div></div>
+        <div class="b"><div class="v" id="tr-pts">0</div><div class="u">punten</div></div>
+      </div>
+      <p class="note" id="tr-wait" style="text-align:center">Wachten op gps-signaal…</p>
+      <div class="btns">
+        <button class="big" id="tr-pause" onclick="trPause()">Pauze</button>
+        <button class="big stop" onclick="trStop()">Stoppen</button>
+      </div>
+      <p class="note">Je kunt de app sluiten; het opnemen gaat door. De voortgang staat in de meldingenbalk.</p>
+    </div>
+
+    <!-- opslaan na stoppen -->
+    <div class="card" id="tr-save" style="display:none">
+      <h2>Route opslaan</h2>
+      <div id="tr-save-sum" class="sub"></div>
+      <label class="f">Naam van de route</label>
+      <input type="text" id="tr-name" class="search" placeholder="Bijv. Rondje Kralingse Plas">
+      <div class="btns">
+        <button class="big" onclick="trSave()">Opslaan</button>
+        <button class="big ghost" onclick="trDiscard()">Weggooien</button>
+      </div>
+    </div>
+
+    <!-- startknop + lijst -->
+    <div id="tr-home">
+      <button class="big" id="tr-start" style="margin-bottom:14px" onclick="trStart()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
+        Route opnemen
+      </button>
+      <div class="tlist" id="tr-list"></div>
+      <p class="note" id="tr-empty" style="text-align:center;display:none">Nog geen routes. Tik op "Route opnemen" om te beginnen.</p>
+    </div>
+  </main>
+</section>
+

@@ -13,6 +13,9 @@ rm -rf $B && mkdir -p $B/assets $B/gen $B/classes $B/dex
 
 [ -f keys/release.p12 ] || { echo "Sleutel ontbreekt: ./keys/unlock.sh"; exit 1; }
 
+# 0. Interface samenvoegen uit de onderdelen in web/src/
+python3 tools/web-samenvoegen.py
+
 # 1. Interface met versienummer en wijzigingslog
 python3 - "$VERSION_NAME" "$VERSION_CODE" <<'PY'
 import sys, json

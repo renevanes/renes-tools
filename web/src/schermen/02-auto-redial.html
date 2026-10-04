@@ -1,0 +1,79 @@
+<!-- ============ AUTO REDIAL ============ -->
+<section class="screen" id="s-redial">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Auto redial</h1>
+  </div>
+  <main>
+    <div class="card perm" id="perm-card" style="display:none">
+      <p id="perm-text">Auto redial heeft toestemming nodig om te bellen en om te zien wanneer een gesprek voorbij is.</p>
+      <button class="big" id="perm-btn" onclick="askPerms()">Toestemming geven</button>
+    </div>
+
+    <div class="result" id="result"></div>
+
+    <!-- lopend -->
+    <div class="card status" id="run-card" style="display:none">
+      <div class="ring">
+        <svg width="150" height="150" viewBox="0 0 150 150"><circle cx="75" cy="75" r="66" fill="none" stroke="var(--line)" stroke-width="10"/><circle id="ring-arc" cx="75" cy="75" r="66" fill="none" stroke="var(--brand-2)" stroke-width="10" stroke-linecap="round" stroke-dasharray="414.7" stroke-dashoffset="414.7"/></svg>
+        <div class="n"><b id="run-att">1</b><small id="run-of">van 10</small></div>
+      </div>
+      <div class="phase" id="run-phase">Bellen…</div>
+      <div class="who" id="run-who"></div>
+      <div class="btns">
+        <button class="big stop" onclick="stopRedial()">Stoppen</button>
+        <button class="big ghost" id="now-btn" onclick="Android.redialNow()">Nu bellen</button>
+      </div>
+    </div>
+
+    <!-- instellen -->
+    <div id="setup">
+      <div class="card">
+        <h2>Nummer</h2>
+        <div class="row">
+          <input type="tel" id="num" placeholder="06 12345678" autocomplete="tel" inputmode="tel" oninput="nameFor=''; $('#pname').textContent=''">
+          <button class="sq" onclick="Android.pickContact()" aria-label="Contact kiezen"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></button>
+        </div>
+        <div class="name" id="pname"></div>
+        <div class="recent" id="recent"></div>
+      </div>
+
+      <div class="card">
+        <h2>Aantal pogingen</h2>
+        <div class="chips" id="c-att"></div>
+        <h2>Wachttijd tussen pogingen</h2>
+        <div class="chips" id="c-int" style="margin-bottom:4px"></div>
+        <div class="range" id="rand-range">Elke keer willekeurig tussen
+          <select id="r-min" aria-label="Minimaal" onchange="rangeChanged('min')"></select> en
+          <select id="r-max" aria-label="Maximaal" onchange="rangeChanged('max')"></select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sw"><span>Stoppen als er wordt opgenomen<small>Anders belt hij alle pogingen af</small></span><button class="tg on" id="t-stop" onclick="tog(this)"></button></div>
+        <div class="sw"><span>Luidspreker aan<small>Handig als de telefoon op tafel ligt</small></span><button class="tg" id="t-spk" onclick="tog(this)"></button></div>
+      </div>
+
+      <button class="big" onclick="startRedial()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.4c-1.2 0-2.4-.2-3.5-.6-.4-.1-.7 0-1 .2l-1.6 2c-2.8-1.4-5.5-3.9-6.9-6.8l2-1.7c.3-.3.4-.7.2-1-.4-1.1-.6-2.3-.6-3.5 0-.5-.4-1-1-1H4.2C3.7 3 3 3.2 3 4c0 9.3 7.7 17 17 17 .7 0 1-.6 1-1.2v-3.4c0-.6-.4-1-1-1z"/></svg>
+        Start auto redial
+      </button>
+      <p class="note" id="how-note">De app belt het nummer, wacht tot het gesprek voorbij is en kijkt in je oproepgeschiedenis of er is opgenomen. Een voicemail telt ook als opgenomen.</p>
+      <div class="card" id="rp-card" style="margin-top:14px">
+        <h2>Op een tijdstip</h2>
+        <p class="note" style="margin-top:0" id="rp-state">Laat Auto redial vanzelf beginnen, bijvoorbeeld om 08:00 de huisarts. Met het nummer en de instellingen hierboven.</p>
+        <div class="row" style="margin:8px 0 12px"><input type="time" id="rp-time" class="altime" value="08:00" aria-label="Tijd"></div>
+        <div class="flabel">Dagen</div>
+        <div class="chips sm" id="rp-days">
+          <button data-d="0">ma</button><button data-d="1">di</button><button data-d="2">wo</button><button data-d="3">do</button>
+          <button data-d="4">vr</button><button data-d="5">za</button><button data-d="6">zo</button>
+        </div>
+        <p class="note" style="margin-top:-6px">Geen dag gekozen = eenmalig.</p>
+        <button class="big ghost" id="rp-save" onclick="rpSave()">Inplannen</button>
+        <button class="big ghost" id="rp-clear" style="margin-top:8px;display:none" onclick="rpClear()">Planning weghalen</button>
+        <div class="result on other" id="rp-exact" style="display:none">Android staat precieze wekkers voor deze app niet toe. Dan kan Auto redial niet vanzelf beginnen; je krijgt op het tijdstip (of iets later) een melding om met één tik te starten. <a href="#" onclick="Android.alarmExactSettings();return false">Toestaan</a></div>
+      </div>
+    </div>
+  </main>
+</section>
+

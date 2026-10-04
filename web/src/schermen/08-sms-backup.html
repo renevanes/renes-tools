@@ -1,0 +1,42 @@
+<!-- ============ SMS-BACKUP ============ -->
+<section class="screen" id="s-sms">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">SMS-backup</h1>
+  </div>
+  <main>
+    <div class="card perm" id="sms-perm" style="display:none">
+      <p id="sms-perm-text">SMS-backup heeft toegang tot je sms-berichten nodig om ze te kunnen bewaren.</p>
+      <button class="big" id="sms-perm-btn" onclick="smsAskPerm()">Toegang geven</button>
+    </div>
+
+    <div class="result" id="sms-result"></div>
+
+    <div class="card" id="sms-run" style="display:none">
+      <h2>Bezig met exporteren</h2>
+      <div class="bar"><i id="sms-bar"></i></div>
+      <div class="who" id="sms-run-count"></div>
+    </div>
+
+    <div id="sms-home">
+      <div class="card">
+        <h2>Exporteren</h2>
+        <p class="note" style="margin-top:0" id="sms-count-note"></p>
+        <button class="big" onclick="smsExport()">Sms-berichten exporteren</button>
+        <p class="note">Naar de map <b>SMS backup</b> in je gekozen backup-map. Er komt een herstelbaar bestand (leesbaar door de app "SMS Backup &amp; Restore") en per gesprek een webpagina die je op elke computer kunt openen.</p>
+      </div>
+
+      <div class="card" id="sms-contacts" style="display:none">
+        <p style="margin:0 0 10px">Geef toegang tot je contacten om namen te tonen in plaats van nummers.</p>
+        <button class="big ghost" onclick="Android.smsRequestContacts()">Contacten tonen</button>
+      </div>
+
+      <input class="search" id="sms-search" type="search" placeholder="Zoek in je berichten…" oninput="smsSearchDo(this.value)">
+      <div class="clist card" id="sms-list"></div>
+      <div id="sms-results"></div>
+
+      <p class="note" style="margin-top:14px">Let op: sms-berichten bevatten soms verificatiecodes van je bank of beveiligingscodes. Bewaar de backup op een plek die alleen jij kunt bij.</p>
+    </div>
+  </main>
+</section>
+

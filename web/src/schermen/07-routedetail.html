@@ -1,0 +1,26 @@
+<!-- ============ ROUTEDETAIL ============ -->
+<section class="screen" id="s-track">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="td-title" style="font-size:18px">Route</h1>
+  </div>
+  <main>
+    <div id="td-map" class="lmap"></div>
+    <svg class="map" id="td-shape" viewBox="0 0 320 213" preserveAspectRatio="xMidYMid meet" style="display:none"><path id="td-path" d=""></path></svg>
+    <div class="statrow"><div class="b"><div class="v" id="td-dist"></div><div class="u">km</div></div><div class="b"><div class="v" id="td-time"></div><div class="u">tijd</div></div><div class="b"><div class="v" id="td-avg"></div><div class="u">km/u gem.</div></div></div>
+    <div class="statrow" style="margin-bottom:10px"><div class="b"><div class="v" id="td-max"></div><div class="u">km/u max</div></div><div class="b"><div class="v" id="td-gain"></div><div class="u">↑ hoogte</div></div><div class="b"><div class="v" id="td-when"></div><div class="u">opgenomen</div></div></div>
+    <svg id="td-ele" class="map" style="aspect-ratio:auto;height:90px" viewBox="0 0 320 90" preserveAspectRatio="none"></svg>
+    <div class="btns">
+      <button class="big" onclick="tdMaps()">Openen in Google Maps</button>
+      <button class="big ghost" onclick="tdShare()">Delen (GPX)</button>
+    </div>
+    <div class="btns">
+      <button class="big ghost" onclick="tdExport()">Opslaan in backup-map</button>
+      <button class="big ghost" onclick="tdRename()">Naam wijzigen</button>
+    </div>
+    <div class="btns">
+      <button class="big ghost" style="color:var(--bad)" onclick="tdDelete()">Verwijderen</button>
+    </div>
+  </main>
+</section>
+
