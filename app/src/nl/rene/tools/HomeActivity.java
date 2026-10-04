@@ -221,7 +221,10 @@ public class HomeActivity extends Activity {
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
             Uri u = req.getUrl();
-            if (u != null && "start.renes-tools.local".equals(u.getHost()) && u.getPath() != null && u.getPath().startsWith("/icon/")) {
+            // De pagina zelf (loadDataWithBaseURL komt op sommige telefoons ook hierlangs) en data:-adressen gewoon laten laden.
+            if (req.isForMainFrame() || u == null || u.getScheme() == null
+                    || !("http".equals(u.getScheme()) || "https".equals(u.getScheme()))) return null;
+            if ("start.renes-tools.local".equals(u.getHost()) && u.getPath() != null && u.getPath().startsWith("/icon/")) {
                 String key = Uri.decode(u.getPath().substring(6));
                 int size = 144;
                 try { size = Integer.parseInt(u.getQueryParameter("s")); } catch (Exception ignored) { }
@@ -234,6 +237,7 @@ public class HomeActivity extends Activity {
                     return r;
                 }
             }
+            // Verder niets van internet in het startscherm.
             WebResourceResponse r = new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0]));
             r.setStatusCodeAndReasonPhrase(404, "Not found");
             return r;

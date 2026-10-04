@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.24",
-  "versionCode": 25,
-  "nativeLevel": 24,
+  "versionName": "1.25",
+  "versionCode": 26,
+  "nativeLevel": 25,
   "web": "index.html",
-  "webSha256": "2726842030b8a6ebd7d82fa09bed0ba63a604f5609aede5d5d77a13379f6deb2",
+  "webSha256": "31f3af417cf635574202ee4432d0915c3343c4d730e4f3949f483a39d6d700fd",
   "start": "start.html",
   "startSha256": "4c25cb088e81e4c9a1523b72c4c4da1e8e9f61aa8ce57d4265efeebefe5dd863",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "8f15dfb4d80216022bdbc36da726960eab75153da93a724a60b68821f8ab0821",
+  "apkSha256": "27bac956834bf2eb7096d2e9985c24e5cdfdf2053851ee70b426fd676ab195f0",
   "changelog": [
+    {
+      "version": "1.25",
+      "date": "2026-10-04",
+      "changes": [
+        "Telefoon-skin: 'Eerst bekijken' gaf 'Webpagina niet beschikbaar'; opgelost"
+      ]
+    },
     {
       "version": "1.24",
       "date": "2026-10-04",
