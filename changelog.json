@@ -1,11 +1,21 @@
 [
   {
+    "version": "1.13",
+    "date": "2026-10-04",
+    "changes": [
+      "Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer",
+      "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm",
+      "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"
+    ]
+  },
+  {
     "version": "1.12",
     "date": "2026-10-04",
     "changes": [
       "Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen",
       "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon",
-      "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren"
+      "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren",
+      "Tegel 'Meer tools volgen binnenkort' verwijderd"
     ]
   },
   {

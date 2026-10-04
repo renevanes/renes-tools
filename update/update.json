@@ -1,20 +1,30 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.12",
-  "versionCode": 13,
-  "nativeLevel": 13,
+  "versionName": "1.13",
+  "versionCode": 14,
+  "nativeLevel": 14,
   "web": "index.html",
-  "webSha256": "0d3157bbd7dd8710b7b182bd07f1031b61075949e7402f10029b8dbb22d699c5",
+  "webSha256": "fdc84c0244cd399ea85a540a9d54101ce2ef41450b953bb127b7013ce61651e4",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "8def224b0731a46f968efc439fb0de04b6b917be45bbcd2c1c8716e5613ef5aa",
+  "apkSha256": "269f57b5e308e275a76b0d25d52518bb384f047b3a51e85c0b77729d0d2aa0cb",
   "changelog": [
+    {
+      "version": "1.13",
+      "date": "2026-10-04",
+      "changes": [
+        "Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer",
+        "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm",
+        "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"
+      ]
+    },
     {
       "version": "1.12",
       "date": "2026-10-04",
       "changes": [
         "Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen",
         "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon",
-        "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren"
+        "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren",
+        "Tegel 'Meer tools volgen binnenkort' verwijderd"
       ]
     },
     {

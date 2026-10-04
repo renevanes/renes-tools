@@ -58,6 +58,7 @@ public class MainActivity extends Activity {
     private static final int REQ_CONTACTS_RW = 19;
     private static final int REQ_TR = 20;
     private static final int REQ_RECTREE = 21;
+    private static final int REQ_MIC = 22;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -266,6 +267,7 @@ public class MainActivity extends Activity {
         if (req == REQ_CALLS) js("onCallsChanged", "");
         if (req == REQ_CONTACTS_RW) js("onContactsChanged", "");
         if (req == REQ_TR) js("onTrChanged", "");
+        if (req == REQ_MIC) js("onMusicChanged", "");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
     }
 
@@ -1144,6 +1146,113 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void txStop() {
             synchronized (Bridge.class) { if (player != null) player.release(); player = null; playerPath = null; }
+        }
+
+        // ----- Radio -----
+
+        /** Laadt de zenderlijst op de achtergrond; resultaat via window.onRadioStations(json). */
+        @JavascriptInterface public void radioLoad(String q) {
+            new Thread(() -> {
+                String r;
+                try { r = new JSONObject().put("q", q == null ? "" : q).put("stations", new JSONArray(Radio.stations(ctx, q))).toString(); }
+                catch (Exception e) {
+                    try { r = new JSONObject().put("q", q == null ? "" : q).put("error", e.getMessage() == null ? "Zenderlijst niet bereikbaar" : e.getMessage()).toString(); }
+                    catch (Exception e2) { r = "{\"error\":\"Zenderlijst niet bereikbaar\"}"; }
+                }
+                a.js("onRadioStations", r);
+            }, "radio-load").start();
+        }
+
+        @JavascriptInterface public String radioCache() { return Radio.prefs(ctx).getString("cache", "[]"); }
+
+        @JavascriptInterface public String radioFavorites() { return Radio.favorites(ctx).toString(); }
+
+        @JavascriptInterface public boolean radioToggleFav(String station) {
+            try { return Radio.toggleFavorite(ctx, station); } catch (Exception e) { return false; }
+        }
+
+        @JavascriptInterface public void radioMoveFav(String id, int dir) {
+            try { Radio.moveFavorite(ctx, id, dir); } catch (Exception ignored) { }
+        }
+
+        @JavascriptInterface public void radioPlay(String station) {
+            try {
+                JSONObject s = new JSONObject(station);
+                String url = s.optString("url").toLowerCase();
+                if (!url.startsWith("http://") && !url.startsWith("https://")) return;
+                Radio.prefs(ctx).edit().putString("last", station).apply();
+                RadioService.send(ctx, RadioService.PLAY, station);
+                final String id = s.optString("id");
+                new Thread(() -> Radio.click(ctx, id), "radio-click").start();
+            } catch (Exception ignored) { }
+        }
+
+        @JavascriptInterface public void radioPause() { RadioService.send(ctx, RadioService.PAUSE, null); }
+
+        @JavascriptInterface public void radioResume() {
+            if (RadioService.station == null) {
+                String last = Radio.prefs(ctx).getString("last", null);
+                if (last != null) radioPlay(last);
+                return;
+            }
+            RadioService.send(ctx, RadioService.RESUME, null);
+        }
+
+        @JavascriptInterface public void radioStop() { RadioService.send(ctx, RadioService.STOP, null); }
+
+        @JavascriptInterface public void radioSleep(int minutes) { RadioService.send(ctx, RadioService.SLEEP, String.valueOf(minutes)); }
+
+        @JavascriptInterface public String radioState() {
+            String s = RadioService.stateJson();
+            if (RadioService.station == null) {
+                String last = Radio.prefs(ctx).getString("last", null);
+                if (last != null) try { return new JSONObject(s).put("last", new JSONObject(last)).toString(); } catch (Exception ignored) { }
+            }
+            return s;
+        }
+
+        // ----- Muziek herkennen -----
+
+        @JavascriptInterface public boolean musicHasMic() {
+            return ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface public void musicRequestMic() {
+            a.h.post(() -> a.requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_MIC));
+        }
+
+        @JavascriptInterface public void musicSetToken(String t) {
+            Music.prefs(ctx).edit().putString("token", t == null ? "" : t.trim()).apply();
+        }
+
+        @JavascriptInterface public String musicTokenHint() {
+            String t = Music.prefs(ctx).getString("token", "");
+            return t.length() <= 6 ? (t.isEmpty() ? "" : "••••") : t.substring(0, 3) + "…" + t.substring(t.length() - 3);
+        }
+
+        @JavascriptInterface public String musicStart() {
+            if (!musicHasMic()) return "Geef eerst toegang tot de microfoon";
+            return Music.start(ctx, null, 0, null);
+        }
+
+        /** Herkent wat de radio nu speelt, met een stukje van de stream zelf (geen microfoon nodig). */
+        @JavascriptInterface public String musicStartRadio() {
+            String st = RadioService.station;
+            if (st == null) return "Er speelt geen radio";
+            try {
+                JSONObject s = new JSONObject(st);
+                return Music.start(ctx, s.optString("url"), s.optInt("bitrate"), s.optString("name"));
+            } catch (Exception e) { return "Herkennen mislukt"; }
+        }
+
+        @JavascriptInterface public void musicCancel() { Music.cancel(); }
+
+        @JavascriptInterface public String musicState() { return Music.stateJson(ctx); }
+
+        @JavascriptInterface public String musicHistory() { return Music.history(ctx).toString(); }
+
+        @JavascriptInterface public void musicDelete(String t) {
+            try { Music.deleteHistory(ctx, Long.parseLong(t)); } catch (Exception ignored) { }
         }
 
         @JavascriptInterface public String pendingOpen() {

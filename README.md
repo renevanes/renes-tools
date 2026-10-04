@@ -68,6 +68,17 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Audio wordt met `MediaExtractor`/`MediaCodec` gedecodeerd naar 16 kHz mono WAV. Spraakmodel (`ggml-base-q5_1.bin` 57 MB of `ggml-small-q5_1.bin` 181 MB) wordt eenmalig van Hugging Face gedownload naar de app-map. Er gaat geen geluid of tekst de telefoon uit.
 - Draait in een voorgrondservice (`TranscribeService`, dataSync) met wachtrij, voortgang en stoppen. Transcripten (`files/transcripts/<id>.json`) met tijdcodes; afspelen vanaf een zin, zoeken door alle transcripten, export als tekst naar `Gesprekken/` in de backup-map.
 
+## Radio
+- Nederlandse zenders uit de vrije database van [radio-browser.info](https://www.radio-browser.info) (`/json/stations/search?countrycode=NL`, populairste eerst, zoeken op naam; meerdere API-servers met terugval). Zo kloppen stream-adressen ook als omroepen ze wijzigen. Favorieten (met stream-adres) lokaal, laatste lijst in een cache (`Radio.java`).
+- Afspelen in `RadioService` (voorgrondservice `mediaPlayback`, `MediaPlayer`): doorspelen met scherm uit, bediening in de melding en op het vergrendelscherm (`MediaSession` + `MediaStyle`), audiofocus (pauzeert bij een gesprek, zachter bij navigatie), pauze bij loskoppelen koptelefoon, 3× opnieuw verbinden bij haperingen, slaaptimer.
+- "Nu op de radio" uit de ICY-metadata van de stream (elke 20 s), als de zender die meestuurt.
+- `usesCleartextTraffic="true"`, omdat veel radiostreams nog via http lopen.
+
+## Muziek herkennen
+- Eigen "SoundHound": 10 seconden opnemen via de microfoon (`MediaRecorder`, AAC) of rechtstreeks een stukje van de radiostream ophalen, en dat laten herkennen door [AudD](https://audd.io) met de eigen API-sleutel van de gebruiker (300 gratis, daarna betaald). Een app kan dit niet zelf: daarvoor is een database van tientallen miljoenen nummers nodig (`Music.java`).
+- Resultaat met hoes, album en jaar en links naar Spotify, Apple Music, YouTube Music en alle diensten (song.link). Geschiedenis (max. 500) lokaal, doorzoekbaar.
+- Alleen het fragment gaat naar AudD; de opname wordt direct verwijderd. Nodig: `RECORD_AUDIO` (alleen bij herkennen via de microfoon).
+
 ## Versies en updates
 - `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.

@@ -180,6 +180,29 @@ b.ok{color:var(--ok);font-weight:600}
 .sheet-box h3{margin:0;font-size:18px}.sheet-box p{margin:4px 0 12px;color:var(--muted);font-size:14px}
 .sheet-box button{display:block;width:100%;text-align:left;padding:14px 4px;border-top:1px solid var(--line);font-size:16px;color:var(--brand-2);font-weight:600}
 .sheet-box button.cancel{color:var(--muted);font-weight:500}
+.stations .srow{display:flex;align-items:center;border-top:1px solid var(--line)}.stations .srow:first-child{border-top:0}
+.stations{padding-top:4px;padding-bottom:4px}.stations .sbtn{flex:1;display:flex;align-items:center;gap:12px;padding:10px 2px;text-align:left;min-width:0}
+.stations .stxt{flex:1;min-width:0}.stations .stxt b{display:block;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stations .stxt small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stations .srow.playing .stxt b{color:var(--brand-2)}
+.logo{width:44px;height:44px;border-radius:10px;background:var(--chip);color:var(--brand-2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none;overflow:hidden}
+.logo img{width:100%;height:100%;object-fit:contain;background:#fff}
+button.star{width:44px;height:44px;font-size:22px;color:#E0A800;flex:none}
+.eq{display:flex;gap:2px;align-items:flex-end;height:16px}.eq i{width:3px;background:var(--brand-2);animation:eq 1s infinite ease-in-out}
+.eq i:nth-child(2){animation-delay:.2s}.eq i:nth-child(3){animation-delay:.4s}
+@keyframes eq{0%,100%{height:4px}50%{height:16px}}
+.card.now{position:sticky;top:64px;z-index:3}
+.nowrow{display:flex;align-items:center;gap:12px}.nowrow b{display:block;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nowt{color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nowt.err{color:var(--bad)}
+.mubox{display:flex;flex-direction:column;align-items:center;padding:18px 0 22px;gap:8px}
+.mubtn{width:150px;height:150px;border-radius:50%;background:linear-gradient(145deg,#1E5AA8,#7D3C98);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(30,90,168,.35)}
+.mubtn.busy{animation:mupulse 1.2s infinite}
+@keyframes mupulse{0%{box-shadow:0 0 0 0 rgba(125,60,152,.55)}70%{box-shadow:0 0 0 28px rgba(125,60,152,0)}100%{box-shadow:0 0 0 0 rgba(125,60,152,0)}}
+.mustate{font-size:20px;font-weight:700;margin-top:6px}
+.mucard{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center}
+.mucard img,.mucard .noart{width:96px;height:96px;border-radius:12px;object-fit:cover;background:var(--chip);display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--brand-2)}
+.mumeta b{display:block;font-size:19px}.mumeta span{display:block;font-size:16px}.mumeta small{color:var(--muted)}
+.mulinks{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px}
 .csum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:0 0 6px}
 .csum b{display:block;font-size:20px}.csum small{color:var(--muted);font-size:12px}
 .msgs{display:flex;flex-direction:column;gap:4px;padding-bottom:24px}
@@ -284,6 +307,16 @@ b.ok{color:var(--ok);font-weight:600}
         <span class="ic" style="background:#7D3C98"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 10h16M4 14h12M4 18h7"/><path d="M17 15v6M20 17v2M14 17v2"/></svg></span>
         <b>Gesprekken uitschrijven</b>
         <small id="tile-tx-sub">Opnames omzetten naar tekst</small>
+      </button>
+      <button class="tile" id="tile-radio" onclick="show('radio')">
+        <span class="ic" style="background:#D35400"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M7 8l10-5"/><circle cx="8.5" cy="14.5" r="2.5"/><path d="M14 13h4M14 16h4"/></svg></span>
+        <b>Radio</b>
+        <small id="tile-radio-sub">Nederlandse zenders luisteren</small>
+      </button>
+      <button class="tile" id="tile-music" onclick="show('music')">
+        <span class="ic" style="background:#2471A3"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+        <b>Muziek herkennen</b>
+        <small id="tile-music-sub">Welk nummer is dit?</small>
       </button>
     </div>
     <div class="foot"><button onclick="show('info')">Versie en updates</button></div>
@@ -613,6 +646,77 @@ b.ok{color:var(--ok);font-weight:600}
     <h1 id="sms-title" style="font-size:18px">Gesprek</h1>
   </div>
   <main><div class="msgs" id="sms-msgs"></div></main>
+</section>
+
+<!-- ============ RADIO ============ -->
+<section class="screen" id="s-radio">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Radio</h1>
+  </div>
+  <main>
+    <div class="card now" id="rd-now" style="display:none">
+      <div class="nowrow">
+        <span class="logo" id="rd-now-logo"></span>
+        <div style="flex:1;min-width:0">
+          <b id="rd-now-name"></b>
+          <div class="nowt" id="rd-now-title"></div>
+        </div>
+        <button class="star" id="rd-now-fav" onclick="rdFavNow()" aria-label="Favoriet">☆</button>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="big" style="flex:1" id="rd-pp" onclick="rdPlayPause()">❚❚ Pauze</button>
+        <button class="big ghost" style="width:64px;flex:none" onclick="Android.radioStop()" aria-label="Stoppen">■</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="big ghost" style="flex:1" id="rd-rec" onclick="rdRecognize()">♫ Welk nummer is dit?</button>
+        <select class="sel" id="rd-sleep" onchange="Android.radioSleep(+this.value)" aria-label="Slaaptimer">
+          <option value="0">Slaaptimer</option><option value="15">15 min</option><option value="30">30 min</option>
+          <option value="60">1 uur</option><option value="90">1,5 uur</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="rd-favs-wrap">
+      <div class="flabel" style="margin:4px 2px 8px">Favorieten</div>
+      <div class="card stations" id="rd-favs"></div>
+    </div>
+    <input class="search" id="rd-search" type="search" placeholder="Zoek een zender…" oninput="rdSearchDo()">
+    <div class="flabel" style="margin:4px 2px 8px" id="rd-list-label">Populair in Nederland</div>
+    <div class="card stations" id="rd-list"><p class="note" style="padding:14px">Zenders laden…</p></div>
+    <p class="note" style="margin-top:14px">Zenders en stream-adressen komen uit de vrije database van radio-browser.info, dus ook gewijzigde adressen van omroepen kloppen. Tik op ☆ om een zender aan je favorieten toe te voegen.</p>
+  </main>
+</section>
+
+<!-- ============ MUZIEK HERKENNEN ============ -->
+<section class="screen" id="s-music">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Muziek herkennen</h1>
+  </div>
+  <main>
+    <div class="card" id="mu-setup" style="display:none">
+      <h2>Eenmalig instellen</h2>
+      <p class="note" style="margin-top:0">Herkennen vergelijkt een fragment van 10 seconden met een database van tientallen miljoenen nummers. Daarvoor gebruikt de app <b>AudD</b>: 300 herkenningen gratis, daarna ongeveer een halve cent per keer. Maak een account en plak je API-sleutel hieronder.</p>
+      <button class="big ghost" onclick="Android.openUrl('https://dashboard.audd.io/')">Account maken bij AudD</button>
+      <input class="search" id="mu-token" placeholder="Plak hier je API-sleutel" autocomplete="off" style="margin:12px 0 10px">
+      <button class="big" onclick="muSaveToken()">Opslaan</button>
+    </div>
+
+    <div id="mu-main">
+      <div class="mubox">
+        <button class="mubtn" id="mu-btn" onclick="muToggle()" aria-label="Herkennen">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </button>
+        <div class="mustate" id="mu-state">Tik om te herkennen</div>
+        <small class="note" id="mu-sub">Houd de telefoon bij de muziek</small>
+      </div>
+      <div id="mu-result"></div>
+      <input class="search" id="mu-search" type="search" placeholder="Zoek in herkende nummers…" oninput="muRenderHistory()" style="margin-top:6px">
+      <div class="clist card" id="mu-hist"></div>
+      <p class="note" style="margin-top:14px" id="mu-foot"></p>
+    </div>
+  </main>
 </section>
 
 <!-- ============ GESPREKKEN UITSCHRIJVEN ============ -->
@@ -1067,6 +1171,31 @@ if (!window.Android) window.Android = (function(){
     txDelete(id){ delete this._tx.done[id]; },
     txPlay(id,ms){ this._tx.playing=true; this._tx.pos=+ms; return ''; }, txPause(){ this._tx.playing=false; },
     txPlayState(){ const t=this._tx; if(t.playing) t.pos+=400; return JSON.stringify({playing:t.playing,pos:t.pos}); }, txStop(){ this._tx.playing=false; this._tx.pos=0; },
+    _rd:{favs:[],st:{status:'stopped',title:''},list:[
+      {id:'a1',name:'NPO Radio 1',url:'https://icecast.omroep.nl/radio1-bb-mp3',logo:'',tags:'news,talk',codec:'MP3',bitrate:192},
+      {id:'a2',name:'NPO Radio 2',url:'https://icecast.omroep.nl/radio2-bb-mp3',logo:'',tags:'pop,hits',codec:'MP3',bitrate:192},
+      {id:'a3',name:'Qmusic',url:'https://example.org/qmusic',logo:'',tags:'pop,top 40',codec:'AAC',bitrate:96},
+      {id:'a4',name:'Radio 538',url:'https://example.org/538',logo:'',tags:'dance,hits',codec:'AAC',bitrate:64},
+      {id:'a5',name:'Sky Radio',url:'https://example.org/sky',logo:'',tags:'easy listening',codec:'MP3',bitrate:128}]},
+    radioLoad(q){ const l=this._rd.list.filter(s=>!q||s.name.toLowerCase().includes(q.toLowerCase())); setTimeout(()=>onRadioStations({q:q||'',stations:l}),150); },
+    radioCache(){ return '[]'; },
+    radioFavorites(){ return JSON.stringify(this._rd.favs); },
+    radioToggleFav(j){ const s=JSON.parse(j); const i=this._rd.favs.findIndex(f=>f.id===s.id); if(i>=0){ this._rd.favs.splice(i,1); return false; } this._rd.favs.push(s); return true; },
+    radioMoveFav(){},
+    radioPlay(j){ const r=this._rd; r.st={status:'connecting',station:JSON.parse(j),title:''}; setTimeout(()=>{ r.st.status='playing'; r.st.title='Doe Maar - De Bom'; },600); },
+    radioPause(){ this._rd.st.status='paused'; }, radioResume(){ if(this._rd.st.station) this._rd.st.status='playing'; },
+    radioStop(){ this._rd.st={status:'stopped',title:'',last:this._rd.st.station}; }, radioSleep(m){ this._rd.st.sleepAt=m?Date.now()+m*6e4:0; },
+    radioState(){ return JSON.stringify(this._rd.st); },
+    _mu:{token:'',st:{state:'idle'},hist:[],used:0,mic:false},
+    musicHasMic(){ return this._mu.mic; }, musicRequestMic(){ this._mu.mic=true; setTimeout(()=>onMusicChanged(),100); },
+    musicSetToken(t){ this._mu.token=t; }, musicTokenHint(){ return this._mu.token?'abc…xyz':''; },
+    _muRun(src){ const m=this._mu; m.st={state:src?'sending':'recording',at:Date.now()}; setTimeout(()=>{ if(m.st.state==='idle') return; m.st={state:'sending',at:Date.now()}; setTimeout(()=>{ if(m.st.state==='idle') return; m.used++;
+      const r={t:Date.now(),source:src||'mic',title:'Bohemian Rhapsody',artist:'Queen',album:'A Night at the Opera',date:'1975-10-31',art:'',spotify:'https://open.spotify.com/track/x',apple:'',link:'https://lis.tn/x'}; m.hist.unshift(r); m.st={state:'done',at:Date.now(),result:r}; },500); },700); return ''; },
+    musicStart(){ if(!this._mu.token) return 'Vul eerst je AudD-sleutel in'; return this._muRun(null); },
+    musicStartRadio(){ if(this._rd.st.status!=='playing') return 'Er speelt geen radio'; if(!this._mu.token) return 'Vul eerst je AudD-sleutel in'; return this._muRun('radio:'+this._rd.st.station.name); },
+    musicCancel(){ this._mu.st={state:'idle',at:Date.now()}; },
+    musicState(){ const m=this._mu; return JSON.stringify(Object.assign({used:m.used,hasToken:!!m.token},m.st)); },
+    musicHistory(){ return JSON.stringify(this._mu.hist); }, musicDelete(t){ this._mu.hist=this._mu.hist.filter(r=>String(r.t)!==t); },
     notesLoad(){ return this._notes; },
     notesSave(j){ this._notes=j; return ''; },
     notesExport(){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+JSON.parse(this._notes).length; },
@@ -1139,12 +1268,14 @@ function show(name){
   if (name==='notes') enterNotes();
   if (name==='contacts') enterContacts();
   if (name==='transcripts') enterTranscripts(); else stopTrPoll();
+  if (name==='radio') enterRadio(); else stopRdPoll();
+  if (name==='music') enterMusic(); else stopMuPoll();
   if (current_prev==='txd' && name!=='txd') leaveTrd();
   if (name==='cversions') enterVersions();
   if (name==='info') renderInfo();
-  if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); }
+  if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); }
 }
-const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts'};
+const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home'};
 window.goBack = function(){
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
   if (jumpStack.length) { show(jumpStack.pop()); return true; }
@@ -1160,7 +1291,7 @@ function openSheet(title, sub, acts){
 }
 function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.classList.remove('on'); }
 
-window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); };
+window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); };
 window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
 /* ---------- Auto redial ---------- */
@@ -1807,6 +1938,156 @@ function refreshSmsTile(s){
   if (sub) { const i = smsInfo(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je sms-berichten'); }
 }
 
+/* ---------- Radio ---------- */
+let rdPoll = null, rdTmr = null, rdStations = [], rdFavs = [], rdState = {};
+function rdJson(s, d){ try { return JSON.parse(s); } catch(e){ return d; } }
+function rdLogo(s){
+  const ini = esc((s.name || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '♪');
+  // Alleen https-logo's (http wordt in de app geblokkeerd); bij een fout de initialen.
+  return s.logo && /^https:\/\//i.test(s.logo)
+    ? '<span class=logo><img src="' + esc(s.logo) + '" alt="" loading=lazy onerror="this.parentNode.textContent=\'' + ini + '\'"></span>'
+    : '<span class=logo>' + ini + '</span>';
+}
+function rdIsFav(s){ return rdFavs.some(f => s.id ? f.id === s.id : f.url === s.url); }
+function rdRow(s, list, i){
+  const cur = rdState.station && (rdState.station.id ? rdState.station.id === s.id : rdState.station.url === s.url) && rdState.status !== 'stopped';
+  const tags = (s.tags || '').split(',').filter(Boolean).slice(0, 3).join(', ');
+  return '<div class="srow' + (cur ? ' playing' : '') + '"><button class=sbtn onclick="rdPlay(\'' + list + '\',' + i + ')">' + rdLogo(s) +
+    '<span class=stxt><b>' + esc(s.name) + '</b><small>' + esc(tags || (s.codec ? s.codec + (s.bitrate ? ' ' + s.bitrate + ' kbps' : '') : '')) + '</small></span>' +
+    (cur ? '<span class=eq><i></i><i></i><i></i></span>' : '') + '</button>' +
+    '<button class=star onclick="rdFav(\'' + list + '\',' + i + ')" aria-label="Favoriet">' + (rdIsFav(s) ? '★' : '☆') + '</button></div>';
+}
+function enterRadio(){
+  rdFavs = rdJson(Android.radioFavorites(), []);
+  if (!rdStations.length) rdStations = rdJson(Android.radioCache(), []);
+  rdRender();
+  if (!$('#rd-search').value.trim()) Android.radioLoad('');
+  rdPollOnce(); stopRdPoll(); rdPoll = setInterval(rdPollOnce, 1000);
+}
+function stopRdPoll(){ if (rdPoll) { clearInterval(rdPoll); rdPoll = null; } }
+window.onRadioStations = function(d){
+  if ((d.q || '') !== $('#rd-search').value.trim()) return; // verouderd antwoord
+  if (d.error) { if (!rdStations.length) $('#rd-list').innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '. <a href="#" onclick="Android.radioLoad($(\'#rd-search\').value.trim());return false">Opnieuw</a></p>'; return; }
+  rdStations = d.stations || [];
+  rdRender();
+};
+function rdRender(){
+  $('#rd-favs-wrap').style.display = rdFavs.length ? 'block' : 'none';
+  $('#rd-favs').innerHTML = rdFavs.map((s, i) => rdRow(s, 'f', i)).join('');
+  const q = $('#rd-search').value.trim();
+  $('#rd-list-label').textContent = q ? 'Zoekresultaten' : 'Populair in Nederland';
+  $('#rd-list').innerHTML = rdStations.map((s, i) => rdRow(s, 's', i)).join('') ||
+    '<p class=note style="padding:14px">' + (q ? 'Geen zender gevonden.' : 'Zenders laden…') + '</p>';
+}
+function rdSearchDo(){
+  clearTimeout(rdTmr);
+  rdTmr = setTimeout(() => { const q = $('#rd-search').value.trim(); $('#rd-list').innerHTML = '<p class=note style="padding:14px">Zoeken…</p>'; Android.radioLoad(q); }, 400);
+}
+function rdGet(list, i){ return list === 'f' ? rdFavs[i] : rdStations[i]; }
+function rdPlay(list, i){ const s = rdGet(list, i); if (!s) return; Android.radioPlay(JSON.stringify(s)); rdState = { status: 'connecting', station: s, title: '' }; rdShowNow(); rdRender(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function rdFav(list, i){ const s = rdGet(list, i); if (!s) return; const on = Android.radioToggleFav(JSON.stringify(s)); toast(on ? '★ ' + s.name + ' toegevoegd aan favorieten' : s.name + ' uit favorieten gehaald'); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); rdShowNow(); }
+function rdFavNow(){ const s = rdState.station || rdState.last; if (!s) return; Android.radioToggleFav(JSON.stringify(s)); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); rdShowNow(); }
+function rdPlayPause(){ if (rdState.status === 'playing' || rdState.status === 'connecting') Android.radioPause(); else Android.radioResume(); setTimeout(rdPollOnce, 200); }
+function rdPollOnce(){
+  const prev = JSON.stringify([rdState.status, rdState.title, rdState.station && rdState.station.url]);
+  rdState = rdJson(Android.radioState(), {});
+  if (JSON.stringify([rdState.status, rdState.title, rdState.station && rdState.station.url]) !== prev) { rdShowNow(); if (current === 'radio') rdRender(); }
+  const t = $('#tile-radio-sub');
+  if (t) t.textContent = rdState.station && rdState.status === 'playing' ? '▶ ' + rdState.station.name + (rdState.title ? ' · ' + rdState.title : '') : 'Nederlandse zenders luisteren';
+  const tile = $('#tile-radio'); if (tile) tile.classList.toggle('live', rdState.status === 'playing');
+}
+function rdShowNow(){
+  const s = rdState.station || rdState.last;
+  $('#rd-now').style.display = s ? 'block' : 'none';
+  if (!s) return;
+  $('#rd-now-logo').outerHTML = rdLogo(s).replace('<span class=logo>', '<span class=logo id="rd-now-logo">');
+  $('#rd-now-name').textContent = s.name;
+  const st = rdState.status || 'stopped';
+  $('#rd-now-title').textContent = st === 'connecting' ? 'Verbinden…' : st === 'error' ? (rdState.error || 'Zender niet te bereiken')
+    : st === 'paused' ? 'Gepauzeerd' : st === 'stopped' ? 'Tik op afspelen' : (rdState.title ? 'Nu: ' + rdState.title : 'Live');
+  $('#rd-now-title').classList.toggle('err', st === 'error');
+  $('#rd-pp').textContent = st === 'playing' || st === 'connecting' ? '❚❚ Pauze' : '▶ Afspelen';
+  $('#rd-now-fav').textContent = rdIsFav(s) ? '★' : '☆';
+  $('#rd-rec').disabled = st !== 'playing';
+  if (!rdState.sleepAt) $('#rd-sleep').value = '0';
+}
+function rdRecognize(){
+  const e = Android.musicStartRadio();
+  if (e) { toast(e); if (e.includes('sleutel')) jumpTo('music'); return; }
+  jumpTo('music');
+}
+
+/* ---------- Muziek herkennen ---------- */
+let muPoll = null, muHist = [], muLastAt = 0;
+function enterMusic(){
+  const st = rdJson(Android.musicState(), {});
+  $('#mu-setup').style.display = st.hasToken ? 'none' : 'block';
+  $('#mu-main').style.display = st.hasToken ? 'block' : 'none';
+  muHist = rdJson(Android.musicHistory(), []);
+  muRenderHistory();
+  $('#mu-foot').innerHTML = (st.used ? st.used + (st.used === 1 ? ' herkenning' : ' herkenningen') + ' gedaan via deze app (AudD: 300 gratis). ' : '') +
+    'Alleen een fragment van 10 seconden gaat naar AudD. Op je telefoon wordt alleen het resultaat bewaard, niet de opname. ' +
+    '<a href="#" onclick="muChangeToken();return false">Sleutel wijzigen</a>';
+  muLastAt = 0;
+  muPollOnce(); stopMuPoll(); muPoll = setInterval(muPollOnce, 300);
+}
+function stopMuPoll(){ if (muPoll) { clearInterval(muPoll); muPoll = null; } }
+window.onMusicChanged = function(){ if (current !== 'music') return; if (Android.musicHasMic()) muToggle(); else toast('Zonder microfoon kan alleen herkennen vanaf de radio. Toegang geven kan bij de app-instellingen.'); };
+function muSaveToken(){
+  const t = $('#mu-token').value.trim();
+  if (t.length < 10) { toast('Dat lijkt geen geldige sleutel'); return; }
+  Android.musicSetToken(t); $('#mu-token').value = ''; enterMusic();
+}
+function muChangeToken(){ askInput('AudD-sleutel', 'Huidige sleutel: ' + (Android.musicTokenHint() || 'geen'), '', 'Opslaan', v => { if (v.trim()) { Android.musicSetToken(v); enterMusic(); } }); }
+function muToggle(){
+  const st = rdJson(Android.musicState(), {});
+  if (st.state === 'recording' || st.state === 'sending') { Android.musicCancel(); muPollOnce(); return; }
+  if (!Android.musicHasMic()) { Android.musicRequestMic(); return; }
+  const e = Android.musicStart(); if (e) { toast(e); return; }
+  $('#mu-result').innerHTML = ''; muPollOnce();
+}
+function muPollOnce(){
+  const st = rdJson(Android.musicState(), {});
+  const busy = st.state === 'recording' || st.state === 'sending';
+  $('#mu-btn').classList.toggle('busy', busy);
+  $('#mu-state').textContent = st.state === 'recording' ? 'Luisteren…' : st.state === 'sending' ? 'Zoeken…' : 'Tik om te herkennen';
+  $('#mu-sub').textContent = st.state === 'recording' ? 'Tik nogmaals om te stoppen' : st.state === 'sending' ? 'Even geduld' : 'Houd de telefoon bij de muziek';
+  if ((st.state === 'done' || st.state === 'error') && st.at !== muLastAt) {
+    muLastAt = st.at;
+    if (st.state === 'error') $('#mu-result').innerHTML = '<div class="result on error">' + esc(st.error || 'Herkennen mislukt') + '</div>';
+    else if (st.result && st.result.title) { $('#mu-result').innerHTML = muCard(st.result); muHist = rdJson(Android.musicHistory(), []); muRenderHistory(); }
+    else $('#mu-result').innerHTML = '<div class="result on other">Geen nummer gevonden. Probeer het dichter bij de muziek of tijdens het refrein.</div>';
+  }
+}
+function muCard(r){
+  const q = encodeURIComponent(r.artist + ' ' + r.title);
+  const links = [];
+  if (r.spotify) links.push(['Spotify', r.spotify]);
+  if (r.apple) links.push(['Apple Music', r.apple]);
+  links.push(['YouTube', 'https://music.youtube.com/search?q=' + q]);
+  if (r.link) links.push(['Alle diensten', r.link]);
+  return '<div class="card mucard">' + (r.art && /^https:/.test(r.art) ? '<img src="' + esc(r.art) + '" alt="">' : '<div class=noart>♫</div>') +
+    '<div class=mumeta><b>' + esc(r.title) + '</b><span>' + esc(r.artist) + '</span>' +
+    '<small>' + esc([r.album, (r.date || '').slice(0, 4)].filter(Boolean).join(' · ')) + '</small></div>' +
+    '<div class=mulinks>' + links.map(l => '<button class="mini" data-u="' + esc(l[1]) + '" onclick="Android.openUrl(this.dataset.u)">' + esc(l[0]) + '</button>').join('') + '</div></div>';
+}
+function muRenderHistory(){
+  const q = ($('#mu-search').value || '').trim().toLowerCase();
+  const l = muHist.filter(r => !q || (r.title + ' ' + r.artist + ' ' + (r.album || '')).toLowerCase().includes(q));
+  $('#mu-hist').innerHTML = l.map(r =>
+    '<button data-t="' + r.t + '" onclick="muOpen(+this.dataset.t)"><span class=r1><b>' + esc(r.title) + '</b><time>' + esc(fmtD(r.t)) + '</time></span>' +
+    '<span class=r2>' + esc(r.artist) + ((r.source || '').startsWith('radio:') ? ' · ' + esc(r.source.slice(6)) : '') + '</span></button>').join('') ||
+    '<p class=note style="padding:14px">' + (q ? 'Niets gevonden.' : 'Herkende nummers verschijnen hier.') + '</p>';
+}
+function muOpen(t){
+  const r = muHist.find(x => x.t === t); if (!r) return;
+  openSheet(r.title, r.artist + ' · ' + fmtD(r.t), [
+    ['Tonen', () => { $('#mu-result').innerHTML = muCard(r); window.scrollTo({ top: 0, behavior: 'smooth' }); }],
+    ['Zoeken op YouTube', () => Android.openUrl('https://music.youtube.com/search?q=' + encodeURIComponent(r.artist + ' ' + r.title))],
+    ['Uit de lijst verwijderen', () => { Android.musicDelete(String(r.t)); muHist = rdJson(Android.musicHistory(), []); muRenderHistory(); }],
+  ]);
+}
+
 /* ---------- Gesprekken uitschrijven ---------- */
 let txPoll = null, txTmr = null, txCur = null, txRecs = [], txT = null, txLastRunning = false, txPlayPoll = null;
 function txJson(s){ try { return JSON.parse(s); } catch(e){ return {error: 'Onverwachte fout'}; } }
@@ -2389,7 +2670,7 @@ window.onUpdateStatus = function(r){
 /* ---------- start ---------- */
 $('#hver').textContent = 'v' + ver().webName;
 bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
-refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile();
+refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce();
 const po = Android.pendingOpen(); if (po) openTool(po);
 </script>
 </body>
