@@ -1,13 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.13",
-  "versionCode": 14,
-  "nativeLevel": 14,
+  "versionName": "1.14",
+  "versionCode": 15,
+  "nativeLevel": 15,
   "web": "index.html",
-  "webSha256": "fdc84c0244cd399ea85a540a9d54101ce2ef41450b953bb127b7013ce61651e4",
+  "webSha256": "829a17a69c815d51590d0b2d9cc7eb25888f91cbbf8a89a6cb6dc9e92fb8418f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "269f57b5e308e275a76b0d25d52518bb384f047b3a51e85c0b77729d0d2aa0cb",
+  "apkSha256": "3106914d700996dc24ccbd3fc7542dbb678e60fbc8ec5d6237cbc920fced4c56",
   "changelog": [
+    {
+      "version": "1.14",
+      "date": "2026-10-04",
+      "changes": [
+        "Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten",
+        "Radio: een zender als icoon op je startscherm die meteen begint te spelen",
+        "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers",
+        "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"
+      ]
+    },
     {
       "version": "1.13",
       "date": "2026-10-04",

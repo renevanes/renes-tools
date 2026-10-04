@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- RENES-TOOLS-UI versie 1.13 (14) -->
+<!-- RENES-TOOLS-UI versie 1.14 (15) -->
 <html lang="nl">
 <head>
 <meta charset="utf-8">
@@ -191,9 +191,18 @@ button.star{width:44px;height:44px;font-size:22px;color:#E0A800;flex:none}
 .eq{display:flex;gap:2px;align-items:flex-end;height:16px}.eq i{width:3px;background:var(--brand-2);animation:eq 1s infinite ease-in-out}
 .eq i:nth-child(2){animation-delay:.2s}.eq i:nth-child(3){animation-delay:.4s}
 @keyframes eq{0%,100%{height:4px}50%{height:16px}}
-.card.now{position:sticky;top:64px;z-index:3}
+.card.now{margin-bottom:16px}
 .nowrow{display:flex;align-items:center;gap:12px}.nowrow b{display:block;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nowt{color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nowt.err{color:var(--bad)}
+.nowsong{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--chip)}
+.nowsong b{display:block;font-size:17px}.nowsong span{display:block;color:var(--muted);font-size:14px}
+.nowsong .lnk{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}.nowsong .mini{background:var(--card);float:none}
+.sleepinfo{font-size:13px;color:var(--muted);margin-top:6px}.sleepinfo a{color:var(--brand-2)}
+details.rinfo{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+details.rinfo summary{cursor:pointer;color:var(--brand-2);font-weight:600;font-size:14px;padding:4px 0}
+details.rinfo dl{margin:8px 0 0}
+.recent{list-style:none;margin:6px 0 0;padding:0}.recent li{display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
+.recent li:first-child{border-top:0}.recent time{color:var(--muted);font-size:12px;min-width:40px;padding-top:2px}
 .mubox{display:flex;flex-direction:column;align-items:center;padding:18px 0 22px;gap:8px}
 .mubtn{width:150px;height:150px;border-radius:50%;background:linear-gradient(145deg,#1E5AA8,#7D3C98);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(30,90,168,.35)}
 .mubtn.busy{animation:mupulse 1.2s infinite}
@@ -319,6 +328,7 @@ button.star{width:44px;height:44px;font-size:22px;color:#E0A800;flex:none}
         <small id="tile-music-sub">Welk nummer is dit?</small>
       </button>
     </div>
+    <p class="note" style="text-align:center;margin:14px 8px 0">Tip: houd een tegel ingedrukt om er een snelkoppeling op je startscherm van te maken.</p>
     <div class="foot"><button onclick="show('info')">Versie en updates</button></div>
   </main>
 </section>
@@ -668,13 +678,19 @@ button.star{width:44px;height:44px;font-size:22px;color:#E0A800;flex:none}
         <button class="big" style="flex:1" id="rd-pp" onclick="rdPlayPause()">❚❚ Pauze</button>
         <button class="big ghost" style="width:64px;flex:none" onclick="Android.radioStop()" aria-label="Stoppen">■</button>
       </div>
+      <div class="nowsong" id="rd-song" style="display:none"></div>
       <div class="row" style="margin-top:8px">
         <button class="big ghost" style="flex:1" id="rd-rec" onclick="rdRecognize()">♫ Welk nummer is dit?</button>
-        <select class="sel" id="rd-sleep" onchange="Android.radioSleep(+this.value)" aria-label="Slaaptimer">
+        <select class="sel" id="rd-sleep" onchange="rdSleep(this.value)" aria-label="Slaaptimer">
           <option value="0">Slaaptimer</option><option value="15">15 min</option><option value="30">30 min</option>
-          <option value="60">1 uur</option><option value="90">1,5 uur</option>
+          <option value="45">45 min</option><option value="60">1 uur</option><option value="90">1,5 uur</option>
+          <option value="120">2 uur</option><option value="custom">Eigen tijd…</option><option value="at">Tot tijdstip…</option>
         </select>
       </div>
+      <div class="sleepinfo" id="rd-sleepinfo"></div>
+      <button class="mini" style="margin-top:10px;float:none;display:inline-block" onclick="rdPinStation()">📌 Zender op startscherm</button>
+      <details class="rinfo" id="rd-info"><summary>Over deze zender</summary><dl class="fields" id="rd-info-dl"></dl></details>
+      <details class="rinfo" id="rd-recent-wrap"><summary id="rd-recent-sum">Eerder gedraaid</summary><ul class="recent" id="rd-recent"></ul></details>
     </div>
 
     <div id="rd-favs-wrap">
@@ -1002,7 +1018,7 @@ button.star{width:44px;height:44px;font-size:22px;color:#E0A800;flex:none}
 
 <div class="toast" id="toast"></div>
 
-<div class="sheet" id="sheet" onclick="if(event.target===this)closeSheet()">
+<div class="sheet" id="sheet" onclick="if(event.target===this&&Date.now()-sheetAt>500)closeSheet()">
   <div class="sheet-box"><h3 id="sheet-title"></h3><p id="sheet-sub"></p><div id="sheet-acts"></div>
     <button class="cancel" onclick="closeSheet()">Annuleren</button></div>
 </div>
@@ -1025,9 +1041,9 @@ button.star{width:44px;height:44px;font-size:22px;color:#E0A800;flex:none}
 </div></div>
 
 <script>
-const VERSION_NAME = "1.13";
-const VERSION_CODE = 14;
-const CHANGELOG = [{"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+const VERSION_NAME = "1.14";
+const VERSION_CODE = 15;
+const CHANGELOG = [{"version": "1.14", "date": "2026-10-04", "changes": ["Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten", "Radio: een zender als icoon op je startscherm die meteen begint te spelen", "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers", "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"]}, {"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
 
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
 if (!window.Android) window.Android = (function(){
@@ -1182,7 +1198,7 @@ if (!window.Android) window.Android = (function(){
     radioFavorites(){ return JSON.stringify(this._rd.favs); },
     radioToggleFav(j){ const s=JSON.parse(j); const i=this._rd.favs.findIndex(f=>f.id===s.id); if(i>=0){ this._rd.favs.splice(i,1); return false; } this._rd.favs.push(s); return true; },
     radioMoveFav(){},
-    radioPlay(j){ const r=this._rd; r.st={status:'connecting',station:JSON.parse(j),title:''}; setTimeout(()=>{ r.st.status='playing'; r.st.title='Doe Maar - De Bom'; },600); },
+    radioPlay(j){ const r=this._rd; r.st={status:'connecting',station:JSON.parse(j),title:'',info:{},recent:[]}; setTimeout(()=>{ r.st.status='playing'; r.st.title='Doe Maar - De Bom'; r.st.info={name:'NPO Radio 2',desc:'Gouden Uur met Gijs Staverman',genre:'Pop',site:'https://www.nporadio2.nl',br:'192',title:'Doe Maar - De Bom',artist:'Doe Maar',song:'De Bom'}; r.st.recent=[{t:Date.now(),title:'Doe Maar - De Bom'},{t:Date.now()-24e4,title:'Golden Earring - Radar Love'}]; },600); },
     radioPause(){ this._rd.st.status='paused'; }, radioResume(){ if(this._rd.st.station) this._rd.st.status='playing'; },
     radioStop(){ this._rd.st={status:'stopped',title:'',last:this._rd.st.station}; }, radioSleep(m){ this._rd.st.sleepAt=m?Date.now()+m*6e4:0; },
     radioState(){ return JSON.stringify(this._rd.st); },
@@ -1196,6 +1212,7 @@ if (!window.Android) window.Android = (function(){
     musicCancel(){ this._mu.st={state:'idle',at:Date.now()}; },
     musicState(){ const m=this._mu; return JSON.stringify(Object.assign({used:m.used,hasToken:!!m.token},m.st)); },
     musicHistory(){ return JSON.stringify(this._mu.hist); }, musicDelete(t){ this._mu.hist=this._mu.hist.filter(r=>String(r.t)!==t); },
+    shortcutPin(t,l){ return ''; }, shortcutPinStation(j){ return ''; }, shortcutsDynamic(j){ this._dyn=j; },
     notesLoad(){ return this._notes; },
     notesSave(j){ this._notes=j; return ''; },
     notesExport(){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+JSON.parse(this._notes).length; },
@@ -1283,7 +1300,9 @@ window.goBack = function(){
 /* Sprongen tussen tools (oproep → contact → oproepen): terug gaat naar waar je vandaan kwam. */
 const jumpStack = [];
 function jumpTo(name, open){ const from = current; if (open) open(); else show(name); if (current !== from) jumpStack.push(from); }
+let sheetAt = 0;
 function openSheet(title, sub, acts){
+  sheetAt = Date.now(); // het loslaten na lang indrukken mag het menu niet meteen sluiten
   $('#sheet-title').textContent = title; $('#sheet-sub').textContent = sub || '';
   const box = $('#sheet-acts'); box.innerHTML = '';
   acts.forEach(([label, fn]) => { const b = document.createElement('button'); b.textContent = label; b.onclick = () => { closeSheet(); fn(); }; box.appendChild(b); });
@@ -1989,9 +2008,10 @@ function rdFav(list, i){ const s = rdGet(list, i); if (!s) return; const on = An
 function rdFavNow(){ const s = rdState.station || rdState.last; if (!s) return; Android.radioToggleFav(JSON.stringify(s)); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); rdShowNow(); }
 function rdPlayPause(){ if (rdState.status === 'playing' || rdState.status === 'connecting') Android.radioPause(); else Android.radioResume(); setTimeout(rdPollOnce, 200); }
 function rdPollOnce(){
-  const prev = JSON.stringify([rdState.status, rdState.title, rdState.station && rdState.station.url]);
+  const sig = st => JSON.stringify([st.status, st.title, st.station && st.station.url, st.info, (st.recent || []).length, st.sleepAt, Math.floor(Date.now() / 6e4)]);
+  const prev = sig(rdState);
   rdState = rdJson(Android.radioState(), {});
-  if (JSON.stringify([rdState.status, rdState.title, rdState.station && rdState.station.url]) !== prev) { rdShowNow(); if (current === 'radio') rdRender(); }
+  if (sig(rdState) !== prev) { rdShowNow(); if (current === 'radio') rdRender(); }
   const t = $('#tile-radio-sub');
   if (t) t.textContent = rdState.station && rdState.status === 'playing' ? '▶ ' + rdState.station.name + (rdState.title ? ' · ' + rdState.title : '') : 'Nederlandse zenders luisteren';
   const tile = $('#tile-radio'); if (tile) tile.classList.toggle('live', rdState.status === 'playing');
@@ -2003,13 +2023,86 @@ function rdShowNow(){
   $('#rd-now-logo').outerHTML = rdLogo(s).replace('<span class=logo>', '<span class=logo id="rd-now-logo">');
   $('#rd-now-name').textContent = s.name;
   const st = rdState.status || 'stopped';
+  const inf = rdState.info || {};
   $('#rd-now-title').textContent = st === 'connecting' ? 'Verbinden…' : st === 'error' ? (rdState.error || 'Zender niet te bereiken')
-    : st === 'paused' ? 'Gepauzeerd' : st === 'stopped' ? 'Tik op afspelen' : (rdState.title ? 'Nu: ' + rdState.title : 'Live');
+    : st === 'paused' ? 'Gepauzeerd' : st === 'stopped' ? 'Tik op afspelen' : (inf.desc || inf.genre || 'Live');
+  rdShowSong(st === 'playing' ? rdState.title : '', inf);
+  rdShowInfo(s, inf);
+  rdShowRecent(rdState.recent || []);
   $('#rd-now-title').classList.toggle('err', st === 'error');
   $('#rd-pp').textContent = st === 'playing' || st === 'connecting' ? '❚❚ Pauze' : '▶ Afspelen';
   $('#rd-now-fav').textContent = rdIsFav(s) ? '★' : '☆';
   $('#rd-rec').disabled = st !== 'playing';
-  if (!rdState.sleepAt) $('#rd-sleep').value = '0';
+  rdShowSleep();
+}
+/** Het huidige nummer (of programma) zoals de zender het meestuurt. */
+function rdShowSong(t, inf){
+  const box = $('#rd-song');
+  if (!t) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  const q = encodeURIComponent(t);
+  box.innerHTML = (inf.song ? '<b>' + esc(inf.song) + '</b><span>' + esc(inf.artist) + '</span>' : '<b>' + esc(t) + '</b><span>Nu op ' + esc((rdState.station || {}).name || 'de radio') + '</span>') +
+    '<div class=lnk><button class=mini data-u="https://music.youtube.com/search?q=' + q + '" onclick="Android.openUrl(this.dataset.u)">YouTube</button>' +
+    '<button class=mini data-u="https://open.spotify.com/search/' + q + '" onclick="Android.openUrl(this.dataset.u)">Spotify</button>' +
+    (inf.streamUrl && /^https?:\/\//i.test(inf.streamUrl) ? '<button class=mini data-u="' + esc(inf.streamUrl) + '" onclick="Android.openUrl(this.dataset.u)">Meer info</button>' : '') + '</div>';
+}
+function rdShowInfo(s, inf){
+  const rows = [];
+  if (inf.name && inf.name !== s.name) rows.push(['Naam', inf.name]);
+  if (inf.desc) rows.push(['Omschrijving', inf.desc]);
+  if (inf.genre || s.tags) rows.push(['Genre', inf.genre || s.tags]);
+  const br = inf.br || (s.bitrate ? String(s.bitrate) : '');
+  if (br || s.codec) rows.push(['Kwaliteit', [s.codec, br ? br + ' kbps' : ''].filter(Boolean).join(' · ')]);
+  const site = /^https?:\/\//i.test(inf.site || '') ? inf.site : (/^https?:\/\//i.test(s.home || '') ? s.home : '');
+  $('#rd-info').style.display = rows.length || site ? 'block' : 'none';
+  $('#rd-info-dl').innerHTML = rows.map(r => '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>').join('') +
+    (site ? '<dt>Website</dt><dd><a href="#" data-u="' + esc(site) + '" onclick="Android.openUrl(this.dataset.u);return false">' + esc(site.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, '')) + '</a></dd>' : '');
+}
+function rdShowRecent(l){
+  $('#rd-recent-wrap').style.display = l.length ? 'block' : 'none';
+  $('#rd-recent-sum').textContent = 'Eerder gedraaid (' + l.length + ')';
+  $('#rd-recent').innerHTML = l.map(x => '<li data-t="' + esc(x.title) + '" onclick="rdRecentTap(this.dataset.t)"><time>' +
+    new Date(x.t).toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) + '</time><span>' + esc(x.title) + '</span></li>').join('');
+}
+function rdRecentTap(t){
+  const q = encodeURIComponent(t);
+  openSheet(t, 'Eerder gedraaid op ' + ((rdState.station || {}).name || 'de radio'), [
+    ['Zoeken op YouTube', () => Android.openUrl('https://music.youtube.com/search?q=' + q)],
+    ['Zoeken op Spotify', () => Android.openUrl('https://open.spotify.com/search/' + q)],
+  ]);
+}
+function rdPinStation(){
+  const s = rdState.station || rdState.last; if (!s) return;
+  const e = Android.shortcutPinStation(JSON.stringify(s));
+  toast(e || 'Bevestig op je startscherm om ' + s.name + ' toe te voegen');
+}
+/** Slaaptimer: vaste tijden, eigen aantal minuten of tot een tijdstip. */
+function rdSleep(v){
+  if (v === 'custom') {
+    askInput('Slaaptimer', 'Na hoeveel minuten moet de radio stoppen?', '20', 'Instellen', x => {
+      const m = parseInt(x, 10);
+      if (!(m > 0 && m <= 720)) { toast('Kies 1 tot 720 minuten'); return; }
+      Android.radioSleep(m); setTimeout(rdPollOnce, 200);
+    });
+  } else if (v === 'at') {
+    const d = new Date(Date.now() + 60 * 6e4);
+    askInput('Slaaptimer', 'Hoe laat moet de radio stoppen? (bijv. 23:30)', String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'), 'Instellen', x => {
+      const m = /^(\d{1,2})[:.](\d{2})$/.exec(x.trim());
+      if (!m || +m[1] > 23 || +m[2] > 59) { toast('Gebruik uu:mm, bijvoorbeeld 23:30'); return; }
+      const t = new Date(); t.setHours(+m[1], +m[2], 0, 0);
+      if (t.getTime() <= Date.now()) t.setDate(t.getDate() + 1);
+      Android.radioSleep(Math.max(1, Math.ceil((t.getTime() - Date.now()) / 6e4))); setTimeout(rdPollOnce, 200);
+    });
+  } else Android.radioSleep(+v);
+  setTimeout(rdPollOnce, 200);
+}
+function rdShowSleep(){
+  const el = $('#rd-sleepinfo');
+  $('#rd-sleep').value = '0';
+  if (!rdState.sleepAt) { el.innerHTML = ''; return; }
+  const left = Math.max(0, Math.round((rdState.sleepAt - Date.now()) / 6e4));
+  el.innerHTML = '⏾ Stopt om ' + new Date(rdState.sleepAt).toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) +
+    ' (nog ' + (left >= 60 ? Math.floor(left / 60) + ' u ' + (left % 60) + ' min' : left + ' min') + ') · <a href="#" onclick="Android.radioSleep(0);setTimeout(rdPollOnce,200);return false">uitzetten</a>';
 }
 function rdRecognize(){
   const e = Android.musicStartRadio();
@@ -2672,6 +2765,43 @@ $('#hver').textContent = 'v' + ver().webName;
 bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
 refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce();
 const po = Android.pendingOpen(); if (po) openTool(po);
+/* ---------- Snelkoppelingen ---------- */
+// Tool → naam, kleur en symbool (zelfde kleur als de tegel).
+const TOOLS = {
+  radio: ['Radio', '#D35400', '📻'], music: ['Muziek herkennen', '#2471A3', '🎵'], notes: ['Notities', '#E67E22', '📝'],
+  redial: ['Auto redial', '#1E5AA8', '🔁'], calls: ['Oproepen', '#16A085', '📞'], contacts: ['Contacten', '#2C3E50', '👤'],
+  sms: ['SMS-backup', '#8E44AD', '💬'], wa: ['WhatsApp backup', '#25A35A', '💾'], tracks: ['Mijn routes', '#C0392B', '📍'],
+  transcripts: ['Gesprekken uitschrijven', '#7D3C98', '🗒']
+};
+const TILE_TOOL = { 'tile-redial': 'redial', 'tile-wa': 'wa', 'tile-tracks': 'tracks', 'tile-sms': 'sms', 'tile-calls': 'calls',
+  'tile-notes': 'notes', 'tile-contacts': 'contacts', 'tile-tr': 'transcripts', 'tile-radio': 'radio', 'tile-music': 'music' };
+function pinTool(tool){
+  const t = TOOLS[tool]; if (!t) return;
+  const e = Android.shortcutPin(tool, t[0], t[1], t[2]);
+  toast(e || 'Bevestig op je startscherm om ' + t[0] + ' toe te voegen');
+}
+function toolMenu(tool){
+  const t = TOOLS[tool]; if (!t) return;
+  openSheet(t[0], 'Snelkoppeling', [
+    ['Openen', () => show(tool)],
+    ['Snelkoppeling op startscherm', () => pinTool(tool)],
+  ]);
+}
+// Lang indrukken van een tegel opent het menu (de gewone tik opent de tool).
+(function(){
+  let timer = null, fired = false, sx = 0, sy = 0;
+  document.querySelectorAll('.tiles .tile').forEach(el => {
+    const tool = TILE_TOOL[el.id]; if (!tool) return;
+    el.addEventListener('touchstart', e => { fired = false; sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+      timer = setTimeout(() => { fired = true; if (navigator.vibrate) navigator.vibrate(15); toolMenu(tool); }, 550); }, { passive: true });
+    el.addEventListener('touchmove', e => { if (Math.abs(e.touches[0].clientX - sx) > 10 || Math.abs(e.touches[0].clientY - sy) > 10) clearTimeout(timer); }, { passive: true });
+    el.addEventListener('touchend', () => clearTimeout(timer));
+    el.addEventListener('contextmenu', e => { e.preventDefault(); if (!fired) { fired = true; toolMenu(tool); } });
+    el.addEventListener('click', e => { if (fired) { e.stopImmediatePropagation(); e.preventDefault(); fired = false; } }, true);
+  });
+})();
+// Snelle keuzes bij lang indrukken van het app-icoon
+Android.shortcutsDynamic(JSON.stringify(['radio', 'music', 'notes', 'redial'].map(k => [k, TOOLS[k][0], TOOLS[k][1], TOOLS[k][2]])));
 </script>
 </body>
 </html>

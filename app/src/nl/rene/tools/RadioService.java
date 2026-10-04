@@ -46,6 +46,9 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
     static volatile String title = "";         // nu op de radio (ICY)
     static volatile String error = null;
     static volatile long sleepAt = 0;
+    static volatile String info = "{}";        // wat de zender meestuurt (Radio.streamInfo)
+    /** Eerder gehoorde titels op deze zender (nieuwste eerst). */
+    static final java.util.LinkedList<String[]> recent = new java.util.LinkedList<>();
 
     /** De lopende service (alleen op de hoofdthread gebruiken). */
     static RadioService inst;
@@ -87,6 +90,10 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
                     .put("title", title).put("sleepAt", sleepAt);
             if (station != null) o.put("station", new JSONObject(station));
             if (error != null) o.put("error", error);
+            o.put("info", new JSONObject(info));
+            org.json.JSONArray r = new org.json.JSONArray();
+            synchronized (recent) { for (String[] x : recent) r.put(new JSONObject().put("t", Long.parseLong(x[0])).put("title", x[1])); }
+            o.put("recent", r);
             return o.toString();
         } catch (Exception e) { return "{\"status\":\"stopped\"}"; }
     }
@@ -132,7 +139,10 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
     /** Verwerkt een opdracht in de lopende service (hoofdthread). */
     void handle(String a, String x) {
         if (PLAY.equals(a)) {
-            if (x != null) { station = x; retries = 0; start(); } else if (station == null) stopAll();
+            if (x != null) {
+                if (!x.equals(station)) { info = "{}"; synchronized (recent) { recent.clear(); } }
+                station = x; retries = 0; start();
+            } else if (station == null) stopAll();
         } else if (RESUME.equals(a)) {
             if (station != null) { if (!foreground) startFg(); retries = 0; start(); } else stopAll();
         } else if (PAUSE.equals(a)) {
@@ -303,8 +313,18 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
             while (alive && ("playing".equals(status) || "connecting".equals(status))) {
                 String url;
                 try { url = new JSONObject(station).optString("url"); } catch (Exception e) { break; }
-                String t = Radio.nowPlaying(url);
-                if (alive && !t.equals(title)) { title = t; h.post(() -> { if (alive) update(); }); }
+                JSONObject in = Radio.streamInfo(url);
+                if (!alive) break;
+                info = in.toString();
+                String t = in.optString("title");
+                if (!t.equals(title)) {
+                    title = t;
+                    if (!t.isEmpty()) synchronized (recent) {
+                        if (recent.isEmpty() || !recent.getFirst()[1].equals(t)) recent.addFirst(new String[]{String.valueOf(System.currentTimeMillis()), t});
+                        while (recent.size() > 20) recent.removeLast();
+                    }
+                    h.post(() -> { if (alive) update(); });
+                }
                 try { Thread.sleep(20_000); } catch (InterruptedException e) { break; }
             }
         }, "radio-meta");

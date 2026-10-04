@@ -144,9 +144,34 @@ final class Radio {
 
     // ---------- nu op de radio ----------
 
-    /** Leest de titel uit de ICY-metadata van de stream ("Artiest - Titel"), of "" als de zender die niet meestuurt. */
-    static String nowPlaying(String url) {
-        if (url == null || url.contains(".m3u8")) return "";
+    static String header(HttpURLConnection h, String name) {
+        String v = h.getHeaderField(name);
+        if (v == null) return "";
+        // Headers komen binnen als Latin-1; vaak zijn het eigenlijk UTF-8-bytes.
+        try {
+            byte[] raw = v.getBytes(StandardCharsets.ISO_8859_1);
+            String u = new String(raw, StandardCharsets.UTF_8);
+            if (u.indexOf('\uFFFD') < 0) v = u;
+        } catch (Exception ignored) { }
+        return v.trim();
+    }
+
+    static String metaField(String m, String key) {
+        int a = m.indexOf(key + "='");
+        if (a < 0) return "";
+        a += key.length() + 2;
+        int b = m.indexOf("';", a);
+        return (b >= a ? m.substring(a, b) : m.substring(a)).trim();
+    }
+
+    /**
+     * Wat de zender meestuurt: uit de ICY-headers de zendernaam, omschrijving, genre, website en
+     * bitrate, en uit de metadata in de stream de huidige titel (vaak "Artiest - Titel" of de
+     * programmanaam) en soms een extra link. Lege velden als de zender iets niet meestuurt.
+     */
+    static JSONObject streamInfo(String url) {
+        JSONObject o = new JSONObject();
+        if (url == null || url.contains(".m3u8")) return o;
         HttpURLConnection h = null;
         try {
             h = (HttpURLConnection) new URL(url).openConnection();
@@ -154,27 +179,29 @@ final class Radio {
             h.setReadTimeout(8000);
             h.setRequestProperty("Icy-MetaData", "1");
             h.setRequestProperty("User-Agent", UA);
+            o.put("name", header(h, "icy-name")).put("desc", header(h, "icy-description"))
+                    .put("genre", header(h, "icy-genre")).put("site", header(h, "icy-url")).put("br", header(h, "icy-br"));
             int metaint = h.getHeaderFieldInt("icy-metaint", 0);
-            if (metaint <= 0 || metaint > 256_000) return "";
+            if (metaint <= 0 || metaint > 256_000) return o;
             InputStream in = h.getInputStream();
             long skip = metaint;
             byte[] buf = new byte[8192];
-            while (skip > 0) { int n = in.read(buf, 0, (int) Math.min(buf.length, skip)); if (n < 0) return ""; skip -= n; }
+            while (skip > 0) { int n = in.read(buf, 0, (int) Math.min(buf.length, skip)); if (n < 0) return o; skip -= n; }
             int len = in.read() * 16;
-            if (len <= 0) return "";
+            if (len <= 0) return o;
             byte[] meta = new byte[len];
             int got = 0;
             while (got < len) { int n = in.read(meta, got, len - got); if (n < 0) break; got += n; }
             String m = new String(meta, 0, got, StandardCharsets.UTF_8);
             if (m.indexOf('\uFFFD') >= 0) m = new String(meta, 0, got, StandardCharsets.ISO_8859_1); // oudere servers sturen Latin-1
-            int a = m.indexOf("StreamTitle='");
-            if (a < 0) return "";
-            int b = m.indexOf("';", a + 13);
-            String t = (b > a ? m.substring(a + 13, b) : m.substring(a + 13)).trim();
-            return t.replaceAll("^[\\s-]+|[\\s-]+$", "");
-        } catch (Exception e) {
-            return "";
+            String t = metaField(m, "StreamTitle").replaceAll("^[\\s-]+|[\\s-]+$", "");
+            o.put("title", t).put("streamUrl", metaField(m, "StreamUrl"));
+            // "Artiest - Titel" splitsen als het daarop lijkt
+            int d = t.indexOf(" - ");
+            if (d > 0 && t.indexOf(" - ", d + 3) < 0) o.put("artist", t.substring(0, d).trim()).put("song", t.substring(d + 3).trim());
+        } catch (Exception ignored) {
         } finally { if (h != null) h.disconnect(); }
+        return o;
     }
 
     /** Haalt ongeveer 'seconds' seconden van de stream op (zonder metadata) om te laten herkennen. */

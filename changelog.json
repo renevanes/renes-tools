@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.14",
+    "date": "2026-10-04",
+    "changes": [
+      "Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten",
+      "Radio: een zender als icoon op je startscherm die meteen begint te spelen",
+      "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers",
+      "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"
+    ]
+  },
+  {
     "version": "1.13",
     "date": "2026-10-04",
     "changes": [

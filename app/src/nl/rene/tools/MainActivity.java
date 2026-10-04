@@ -114,6 +114,7 @@ public class MainActivity extends Activity {
         }
 
         pendingOpen = getIntent() != null ? getIntent().getStringExtra("open") : null;
+        playFromShortcut(getIntent());
         loadUi();
     }
 
@@ -148,8 +149,23 @@ public class MainActivity extends Activity {
             }
             return;
         }
+        playFromShortcut(i);
         String open = i.getStringExtra("open");
         if (open != null) js("openTool", JSONObject.quote(open));
+    }
+
+    /** Snelkoppeling naar een radiozender: meteen afspelen. */
+    private void playFromShortcut(Intent i) {
+        String play = i == null ? null : i.getStringExtra("play");
+        if (play == null) return;
+        try {
+            JSONObject s = new JSONObject(play);
+            String url = s.optString("url").toLowerCase();
+            if (!url.startsWith("http://") && !url.startsWith("https://")) return;
+            Radio.prefs(this).edit().putString("last", play).apply();
+            RadioService.send(this, RadioService.PLAY, play);
+        } catch (Exception ignored) { }
+        i.removeExtra("play"); // niet opnieuw starten bij draaien van het scherm
     }
 
     @Override
@@ -1146,6 +1162,38 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void txStop() {
             synchronized (Bridge.class) { if (player != null) player.release(); player = null; playerPath = null; }
+        }
+
+        // ----- Snelkoppelingen -----
+
+        @JavascriptInterface public String shortcutPin(String tool, String label, String color, String glyph) {
+            if (tool == null || !tool.matches("[a-z]{2,20}")) return "Onbekende tool";
+            return Shortcuts.pin(ctx, "tool-" + tool, label, tool, null, color, glyph);
+        }
+
+        @JavascriptInterface public String shortcutPinStation(String station) {
+            try {
+                JSONObject s = new JSONObject(station);
+                String url = s.optString("url").toLowerCase();
+                if (!url.startsWith("http://") && !url.startsWith("https://")) return "Geen geldige zender";
+                String id = s.optString("id").replaceAll("[^A-Za-z0-9-]", "");
+                if (id.isEmpty()) id = Integer.toHexString(url.hashCode());
+                return Shortcuts.pin(ctx, "station-" + id, s.optString("name", "Radio"), "radio",
+                        Radio.slimFav(s).toString(), "#D35400", "📻");
+            } catch (Exception e) { return "Snelkoppeling maken lukt niet"; }
+        }
+
+        /** items: JSON [[tool, label, color, glyph], ...] voor lang indrukken van het app-icoon. */
+        @JavascriptInterface public void shortcutsDynamic(String items) {
+            try {
+                JSONArray a2 = new JSONArray(items);
+                String[][] it = new String[a2.length()][];
+                for (int i = 0; i < a2.length(); i++) {
+                    JSONArray x = a2.getJSONArray(i);
+                    it[i] = new String[]{x.getString(0), x.getString(1), x.getString(2), x.getString(3)};
+                }
+                Shortcuts.dynamic(ctx, it);
+            } catch (Exception ignored) { }
         }
 
         // ----- Radio -----
