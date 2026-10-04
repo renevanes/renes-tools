@@ -1367,6 +1367,14 @@ public class MainActivity extends Activity {
 
         // ----- Alles back-uppen en terugzetten -----
 
+        /** Overal zoeken; uitkomst via onSearchAll(json met id). Geeft het id terug. */
+        @JavascriptInterface public int searchAll(String q) {
+            final int id = Search.latest.incrementAndGet();
+            final String query = q == null ? "" : q;
+            Search.pool.execute(() -> Search.run(ctx, query, id, r -> a.js("onSearchAll", r.toString())));
+            return id;
+        }
+
         @JavascriptInterface public String backupState(boolean full) { return AllBackup.stateJson(ctx, full); }
 
         // ----- Versleutelen, opruimen, ruimtegebruik -----

@@ -82,6 +82,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 
 ## Startscherm
 - Tegels in groepen (Bellen & contacten, Berichten & backup, Muziek & radio, Handig). Via "Startscherm aanpassen": volgorde (ook naar een andere groep), tools verbergen, groepen hernoemen/toevoegen, zonder groepen tonen en een compacte weergave met drie tegels naast elkaar. Opgeslagen in de WebView-opslag; nieuwe tools uit een update komen vanzelf in hun groep.
+- **Overal zoeken** (zoekveld bovenaan het startscherm, `Search.java`): zoekt tegelijk in notities, contacten, sms'jes, WhatsApp-chats (als die leesbaar gemaakt zijn), oproepen, uitgeschreven gesprekken en herkende muziek. Per soort de eerste vijf treffers; tik om het te openen, of op "Alle …" om verder te zoeken in die tool. Alleen bronnen waarvoor toestemming is gegeven doen mee.
 - **Overzicht** bovenaan (uit te zetten bij Startscherm aanpassen): laatste backup (oranje als die al dagen oud is, rood bij een mislukt onderdeel), de volgende radiowekker, herinneringen van vandaag, wat de radio speelt en problemen uit de laatste zelftest. Tik op een regel om naar die tool te gaan.
 
 ## Widgets, wekker, herinneringen en Android Auto

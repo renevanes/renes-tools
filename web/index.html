@@ -225,6 +225,11 @@ details.rinfo dl{margin:8px 0 0}
 .dash{padding:6px 14px;margin-bottom:16px}.dash button{display:flex;gap:10px;width:100%;text-align:left;padding:10px 0;border-top:1px solid var(--line);align-items:center;font-size:15px}
 .dash button:first-child{border-top:0}.dash .di{width:24px;text-align:center;flex:none}.dash .dt{flex:1}.dash .warnc{color:var(--warn)}.dash .badc{color:var(--bad)}
 .spc{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}.spc:first-child{border-top:0}.spc small{color:var(--muted)}.spc.tot{font-weight:700}.spc>span:last-child{white-space:nowrap}
+.gsg{padding:4px 14px 8px;margin-bottom:12px}.gsg h3{display:flex;align-items:center;gap:8px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:10px 0 2px}
+.gsg h3 .n{background:var(--line);color:var(--ink);border-radius:10px;padding:0 7px;font-size:12px;letter-spacing:0}.gsg h3 .more{margin-left:auto;background:none;border:0;box-shadow:none;text-transform:none;letter-spacing:0;font-size:14px;color:var(--acc);font-weight:600;padding:6px 0}
+.gsg .gi{display:block;width:100%;text-align:left;padding:9px 0;border-top:1px solid var(--line)}.gsg .gi:first-of-type{border-top:0}.gsg .gi b{display:block;font-size:15px}.gsg .gi small{display:block;color:var(--muted);font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.gsg.stale{opacity:.5}
+.gs-empty{text-align:center;color:var(--muted);padding:24px 0}
 .setrow{padding:10px 0;border-top:1px solid var(--line);align-items:center}.setrow:first-of-type{border-top:0}
 .permok{color:var(--ok);font-weight:700;font-size:14px}
 .wn{display:block;margin:4px 0 12px;color:var(--ink);font-size:14px;line-height:1.5}
@@ -365,9 +370,11 @@ details.rinfo dl{margin:8px 0 0}
         <small id="tile-backup-sub">Alles in één keer bewaren</small>
       </button>
     </div>
+    <input class="search" id="gs-q" type="search" placeholder="Zoek overal: notities, contacten, berichten…" aria-label="Overal zoeken" oninput="gsInput()" autocomplete="off">
+    <div id="gs-res" style="display:none"></div>
     <div class="card dash" id="home-dash" style="display:none"></div>
     <div class="hgroups" id="home-groups"></div>
-    <p class="note" style="text-align:center;margin:14px 8px 0">Tip: houd een tegel ingedrukt om er een snelkoppeling op je startscherm van te maken.</p>
+    <p class="note" id="home-tip" style="text-align:center;margin:14px 8px 0">Tip: houd een tegel ingedrukt om er een snelkoppeling op je startscherm van te maken.</p>
     <div class="foot"><button onclick="show('homeedit')">Startscherm aanpassen</button><button onclick="show('settings')">Instellingen</button><button onclick="show('info')">Versie en updates</button></div>
   </main>
 </section>
@@ -1481,6 +1488,13 @@ if (!window.Android) window.Android = (function(){
       {id:'dest',name:'Backup-map',status:'fail',detail:'Schrijven lukt niet. Kies de map opnieuw.',fix:'dest'},{id:'battery',name:'Batterijbeperking',status:'warn',detail:'Android kan de nachtelijke backup stoppen.',fix:'battery'},
       {id:'audd',name:'Muziek herkennen (AudD)',status:'skip',detail:'Geen sleutel ingesteld.',fix:'audd'}]; this._sf.last=JSON.stringify({t:Date.now(),items}); onSelfTest(items); },300); return ''; },
     selfTestLast(){ return this._sf.last; }, batterySettings(){ this._bat=true; }, notificationSettings(){},
+    searchAll(q){ const id=++this._gsId; const ql=q.toLowerCase(); setTimeout(()=>{ const r={id,q};
+      if('jansen piet'.includes(ql)||ql==='pie'){ r.contacts={total:2,items:[{k:'k1',id:'1',n:'Piet Jansen',sub:'06 12345678'},{k:'k2',id:'2',n:'Pieter de Vries',sub:'010 1234567'}]};
+        r.calls={total:12,items:[{name:'Piet Jansen',number:'0612345678',date:Date.now()-36e5,kind:'in',label:'Inkomend',ck:'k1',cid:1}]}; }
+      if(ql.length>=2){ r.sms={total:7,items:[{thread:3,name:'Moeder',t:Date.now()-864e5,text:'Neem jij morgen de taart mee voor '+q+'? Dan regel ik de rest.'}]};
+        r.wa={total:1,items:[{chat:5,chatName:'Familie',sender:'Jos',t:Date.now()-2*864e5,text:'Wie neemt '+q+' mee naar het feest?'}]};
+        r.tx={total:2,items:[{id:this._txRecs[0].id,name:'Tandarts',mtime:Date.now()-5*864e5,from:42000,text:'Ja, dan zie ik u dinsdag om tien uur, '+q+'.'}]}; }
+      r.done=true; onSearchAll(r); },150); return id; }, _gsId:0,
     notesLoad(){ return this._notes; },
     notesSave(j){ this._notes=j; return ''; },
     notesExport(){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+JSON.parse(this._notes).length; },
@@ -1542,7 +1556,8 @@ function bars(){ const cs=getComputedStyle(document.documentElement); Android.se
 function show(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
   const current_prev = current;
-  if (name==='home') jumpStack.length = 0;
+  if (current_prev === 'home' && !jumpTo.busy) gsResetTool(name);
+  if (name==='home') { jumpStack.length = 0; if (gsQ) setTimeout(gsInput, 0); }
   closeSheet();
   current = name; window.scrollTo(0,0);
   if (name==='redial') enterRedial(); else stopPoll();
@@ -1570,11 +1585,14 @@ function show(name){
 const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings'};
 window.goBack = function(){
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
-  if (jumpStack.length) { show(jumpStack.pop()); return true; }
+  if (current==='home' && gsQ) { $('#gs-q').value = ''; gsInput(); return true; }
+  // Na een sprong: terug naar waar je vandaan kwam, maar alleen vanaf het scherm waar je naartoe sprong
+  // (ben je binnen de tool verder gegaan, dan eerst gewoon terug binnen de tool).
+  if (jumpStack.length && jumpStack[jumpStack.length - 1].to === current) { show(jumpStack.pop().from); return true; }
   if (current!=='home'){ show(BACK[current]||'home'); return true; } return false; };
 /* Sprongen tussen tools (oproep → contact → oproepen): terug gaat naar waar je vandaan kwam. */
 const jumpStack = [];
-function jumpTo(name, open){ const from = current; if (open) open(); else show(name); if (current !== from) jumpStack.push(from); }
+function jumpTo(name, open){ const from = current; jumpTo.busy = true; try { if (open) open(); else show(name); } finally { jumpTo.busy = false; } if (current !== from) jumpStack.push({ from, to: current }); }
 let sheetAt = 0;
 function openSheet(title, sub, acts){
   sheetAt = Date.now(); // het loslaten na lang indrukken mag het menu niet meteen sluiten
@@ -3218,6 +3236,108 @@ window.onArchive = function(r){
 };
 window.onArchiveUnpacked = function(r){ toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' bestanden uitgepakt naar Uitgepakt/' : r); };
 
+/* ---------- Overal zoeken ---------- */
+const GS = {
+  notes:    ['📝', 'Notities', 'notes', 'notes-search', () => renderNotes()],
+  contacts: ['👤', 'Contacten', 'contacts', 'ct-search', () => ctSearchDo()],
+  sms:      ['💬', "Sms'jes", 'sms', 'sms-search', v => smsSearchDo(v)],
+  wa:       ['🟢', 'WhatsApp', 'chats', 'chat-search', v => chatSearch(v)],
+  calls:    ['📞', 'Oproepen', 'calls', 'calls-search', () => callsSearchDo()],
+  tx:       ['🎙️', 'Gesprekken', 'transcripts', 'tx-search', () => txSearchDo()],
+  music:    ['🎵', 'Muziek', 'music', 'mu-search', () => muRenderHistory()]
+};
+let gsTmr = null, gsId = 0, gsQ = '', gsData = {};
+function gsInput(){
+  const q = $('#gs-q').value.trim();
+  clearTimeout(gsTmr);
+  const on = q.length >= 2;
+  $('#gs-res').style.display = on ? 'block' : 'none';
+  $('#home-groups').style.display = on ? 'none' : '';
+  $('#home-tip').style.display = on ? 'none' : '';
+  if (!on) { if (gsQ) Android.searchAll(''); gsQ = ''; gsData = {}; renderDash(); return; }
+  $('#home-dash').style.display = 'none';
+  // Vorige treffers blijven (gedimd) staan tot de nieuwe binnen zijn: geen verspringende pagina.
+  const prev = gsData; gsQ = q; gsData = { notes: gsNotes(q), pending: true, stale: {} };
+  for (const k of Object.keys(GS)) if (k !== 'notes' && prev[k]) gsData.stale[k] = prev[k];
+  gsRender();
+  gsTmr = setTimeout(() => { gsId = Android.searchAll(q); }, 300);
+}
+function gsNotes(q){
+  const ql = q.toLowerCase(), out = [];
+  for (const n of notesGet()) {
+    const title = n.title || 'Zonder titel', text = (n.text || '').replace(/\s+/g, ' ');
+    const item = (n.items || []).find(i => (i.text || '').toLowerCase().includes(ql));
+    if (title.toLowerCase().includes(ql) || text.toLowerCase().includes(ql) || item) out.push({ id: n.id, title, snip: item ? item.text : text, u: n.updated || 0 });
+  }
+  out.sort((a, b) => b.u - a.u);
+  return { items: out.slice(0, 5), total: out.length };
+}
+window.onSearchAll = function(r){
+  if (!r || r.id !== gsId || r.q !== gsQ) return;
+  gsData.stale = gsData.stale || {};
+  for (const k of Object.keys(GS)) if (k !== 'notes') { if (r[k]) gsData[k] = r[k]; if (r.done || r[k]) delete gsData.stale[k]; }
+  if (r.done) { gsData.pending = false; gsData.stale = {}; }
+  gsRender();
+};
+function gsSnip(text, ql){
+  text = String(text || ''); const i = text.toLowerCase().indexOf(ql);
+  if (i > 40) text = '…' + text.slice(i - 30);
+  return hl(text.length > 160 ? text.slice(0, 160) + '…' : text, ql);
+}
+function gsItem(kind, x, ql){
+  const t = (title, sub, act) => '<button class=gi data-k="' + kind + '" data-x="' + esc(JSON.stringify(act)) + '" onclick="gsOpen(this)"><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</button>';
+  switch (kind) {
+    case 'notes': return t(hl(x.title, ql), x.snip && x.snip !== x.title ? gsSnip(x.snip, ql) : '', {id: x.id});
+    case 'contacts': return t(hl(x.n || '(zonder naam)', ql), esc(x.sub || ''), {k: x.k, id: x.id});
+    case 'sms': return t(esc(x.name || x.address || '') + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', gsSnip(x.text, ql), {thread: x.thread, name: x.name || ''});
+    case 'wa': return t(esc(x.chatName || '') + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.sender && !x.me ? esc(x.sender) + ': ' : '') + gsSnip(x.text || x.label, ql), {chat: x.chat, name: x.chatName || ''});
+    case 'calls': return t(hl(x.name || x.number || 'Onbekend', ql), esc((x.label || '') + ' · ' + fmtD(x.date) + (x.number && x.number !== x.name ? ' · ' + x.number : '')), {ck: x.ck || '', cid: x.cid || '', number: x.number || ''});
+    case 'tx': return t(esc(x.name) + ' <small style="display:inline">· ' + esc(fmtD(x.mtime)) + '</small>', gsSnip(x.text, ql), {id: x.id, from: x.from});
+    case 'music': return t(hl(x.title || '', ql), hl(x.artist || '', ql) + ' · ' + esc(fmtD(x.t)), {t: x.t});
+  }
+  return '';
+}
+function gsRender(){
+  const ql = gsQ.toLowerCase();
+  const st = gsData.stale || {};
+  const html = Object.keys(GS).filter(k => (gsData[k] || st[k]) && (gsData[k] || st[k]).total).map(k => {
+    const g = gsData[k] || st[k], d = GS[k], tot = g.total + (g.capped ? '+' : '');
+    return '<div class="card gsg' + (gsData[k] ? '' : ' stale') + '"><h3><span aria-hidden=true>' + d[0] + '</span>' + d[1] + ' <span class=n>' + tot + '</span>' +
+      (g.total > g.items.length ? '<button class=more data-k="' + k + '" onclick="gsMore(this.dataset.k)">Alle ' + tot + ' ›</button>' : '') + '</h3>' +
+      g.items.map(x => gsItem(k, x, ql)).join('') + '</div>';
+  }).join('');
+  $('#gs-res').innerHTML = html || '<p class=gs-empty>' + (gsData.pending ? 'Zoeken…' : 'Niets gevonden voor "' + esc(gsQ) + '"') + '</p>';
+  if (html && gsData.pending) $('#gs-res').innerHTML += '<p class=gs-empty style="padding:8px 0">Verder zoeken…</p>';
+}
+function gsMore(k){
+  const d = GS[k];
+  jumpTo(d[2]);
+  if (k === 'calls') Object.assign(callsF, { kind: 'all', period: 'all', from: '', to: '', who: 'all', dur: 'all', person: null });
+  const inp = $('#' + d[3]); if (inp) { inp.value = gsQ; if (k === 'calls') callsSyncUi(); d[4](gsQ); }
+  gsUsed[d[3]] = gsQ;
+}
+function gsOpen(el){
+  const k = el.dataset.k; let x; try { x = JSON.parse(el.dataset.x); } catch(e){ return; }
+  if (k === 'notes') jumpTo('note', () => openNote(x.id));
+  else if (k === 'contacts') jumpTo('contact', () => ctOpen(x.k, x.id));
+  else if (k === 'sms') jumpTo('smschat', () => openSms(x.thread, x.name));
+  else if (k === 'wa') jumpTo('chat', () => openChat(x.chat, x.name));
+  else if (k === 'calls') { if (x.ck) jumpTo('contact', () => ctOpen(x.ck, x.cid)); else gsMoreCalls(x.number); }
+  else if (k === 'tx') jumpTo('txd', () => txOpen(x.id, x.from));
+  else if (k === 'music') { jumpTo('music'); setTimeout(() => muOpen(x.t), 50); }
+}
+function gsMoreCalls(num){
+  jumpTo('calls'); Object.assign(callsF, { kind: 'all', period: 'all', from: '', to: '', who: 'all', dur: 'all', person: null });
+  const i = $('#calls-search'); if (i) { i.value = num || gsQ; gsUsed['calls-search'] = i.value; callsSyncUi(); callsSearchDo(); }
+}
+/* Zoekterm die overal-zoeken in een tool heeft gezet: weghalen als je die tool later gewoon via de tegel opent. */
+const gsUsed = {};
+function gsResetTool(name){
+  const d = Object.values(GS).find(x => x[2] === name); if (!d) return;
+  const inp = $('#' + d[3]);
+  if (inp && gsUsed[d[3]] != null && inp.value === gsUsed[d[3]]) { inp.value = ''; delete gsUsed[d[3]]; d[4](''); }
+}
+
 /* ---------- Zelftest ---------- */
 const SF_ICON = { ok: '✅', warn: '⚠️', fail: '❌', skip: '➖' };
 const SF_FIX = {
@@ -3246,6 +3366,7 @@ function sfRender(items, t){
 /* ---------- Overzicht op het startscherm ---------- */
 function renderDash(){
   const box = $('#home-dash'); if (!box) return;
+  if (gsQ) { box.style.display = 'none'; return; }
   if (homeCfg().dash === false) { box.style.display = 'none'; return; }
   const rows = [];
   try {

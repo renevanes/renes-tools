@@ -1,13 +1,20 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.20",
-  "versionCode": 21,
-  "nativeLevel": 20,
+  "versionName": "1.21",
+  "versionCode": 22,
+  "nativeLevel": 21,
   "web": "index.html",
-  "webSha256": "bb28da033cf96f2fe513648ae5af6068e1f96e7881d5352d671f521cca5a3465",
+  "webSha256": "30f472a31f96b0c173a44182cd8fdca2cd02432bce883593fc82e41c4b7dfa89",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "91389821b6eac266a4d13839729730db1f766379c01d3ad7d0938367be5eb3fb",
+  "apkSha256": "c25116ae36e8231174ff8ae36ef641b0a61c629ddbc2dc3e6c8cc361002287b2",
   "changelog": [
+    {
+      "version": "1.21",
+      "date": "2026-10-04",
+      "changes": [
+        "Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"
+      ]
+    },
     {
       "version": "1.20",
       "date": "2026-10-04",

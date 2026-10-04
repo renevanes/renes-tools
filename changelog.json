@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.21",
+    "date": "2026-10-04",
+    "changes": [
+      "Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"
+    ]
+  },
+  {
     "version": "1.20",
     "date": "2026-10-04",
     "changes": [
