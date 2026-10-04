@@ -1477,6 +1477,42 @@ public class MainActivity extends Activity {
             return s == null ? "" : s;
         }
 
+        // ----- Zelftest -----
+
+        @JavascriptInterface public String selfTestRun() {
+            if (!SelfTest.busy.compareAndSet(false, true)) return "De zelftest loopt al";
+            new Thread(() -> {
+                try { a.js("onSelfTest", SelfTest.run(ctx).toString()); }
+                catch (Throwable e) { App.log(ctx, "ZELFTEST", String.valueOf(e)); a.js("onSelfTest", "[]"); }
+                finally { SelfTest.busy.set(false); }
+            }, "selftest").start();
+            return "";
+        }
+
+        @JavascriptInterface public String selfTestLast() {
+            return ctx.getSharedPreferences("selftest", Context.MODE_PRIVATE).getString("last", "{}");
+        }
+
+        /** Vraagt Android om de app niet te beperken op de achtergrond (belangrijk op Oppo). */
+        @JavascriptInterface public void batterySettings() {
+            a.h.post(() -> {
+                try {
+                    a.startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + ctx.getPackageName())));
+                } catch (Exception e) {
+                    try { a.startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)); } catch (Exception e2) { a.openAppSettings(); }
+                }
+            });
+        }
+
+        @JavascriptInterface public void notificationSettings() {
+            a.h.post(() -> {
+                try {
+                    if (Build.VERSION.SDK_INT >= 26) a.startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ctx.getPackageName()));
+                    else a.openAppSettings();
+                } catch (Exception e) { a.openAppSettings(); }
+            });
+        }
+
         // ----- Snelkoppelingen -----
 
         @JavascriptInterface public String shortcutPin(String tool, String label, String color, String glyph) {

@@ -67,7 +67,23 @@ public class App extends Application {
                 + "Versie: " + Version.NAME + " (" + Version.CODE + "), onderdeel " + Version.NATIVE_LEVEL + "\n"
                 + "Toestel: " + Build.MANUFACTURER + " " + Build.MODEL + " · Android " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")\n"
                 + "Processor: " + java.util.Arrays.toString(Build.SUPPORTED_ABIS) + "\n\n"
+                + selfTest(c)
                 + (log.isEmpty() ? "Geen fouten vastgelegd.\n" : log);
+    }
+
+    /** Uitkomst van de laatste zelftest, voor in het rapport. */
+    static String selfTest(Context c) {
+        try {
+            org.json.JSONObject o = new org.json.JSONObject(c.getSharedPreferences("selftest", MODE_PRIVATE).getString("last", "{}"));
+            org.json.JSONArray a = o.optJSONArray("items");
+            if (a == null) return "";
+            StringBuilder b = new StringBuilder("Zelftest " + new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(new Date(o.optLong("t"))) + ":\n");
+            for (int i = 0; i < a.length(); i++) {
+                org.json.JSONObject x = a.getJSONObject(i);
+                b.append("  [").append(x.optString("status")).append("] ").append(x.optString("name")).append(": ").append(x.optString("detail")).append('\n');
+            }
+            return b.append('\n').toString();
+        } catch (Exception e) { return ""; }
     }
 
     static int count(Context c) {

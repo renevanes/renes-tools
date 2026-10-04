@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.19",
+    "date": "2026-10-04",
+    "changes": [
+      "Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen",
+      "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"
+    ]
+  },
+  {
     "version": "1.18",
     "date": "2026-10-04",
     "changes": [

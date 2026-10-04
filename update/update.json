@@ -1,13 +1,21 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.18",
-  "versionCode": 19,
-  "nativeLevel": 18,
+  "versionName": "1.19",
+  "versionCode": 20,
+  "nativeLevel": 19,
   "web": "index.html",
-  "webSha256": "5f6d8e28d001d90688e9dfe4ac79cab59ff7a9c56b53c3621e867b1862568e1f",
+  "webSha256": "662a258e6d5e056ac6b5c3b69832493a833956743fc263723a3d62421c17e0de",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "fafbdae1ef9bf17da946c3e31ec4c2d4cb72cfdb74cb53ab9529934263cc3f16",
+  "apkSha256": "86447b58949d05b10b71d4a0117f03e4d048b94bf19a8adc900fa4448918ff22",
   "changelog": [
+    {
+      "version": "1.19",
+      "date": "2026-10-04",
+      "changes": [
+        "Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen",
+        "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"
+      ]
+    },
     {
       "version": "1.18",
       "date": "2026-10-04",

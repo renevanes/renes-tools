@@ -82,6 +82,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 
 ## Startscherm
 - Tegels in groepen (Bellen & contacten, Berichten & backup, Muziek & radio, Handig). Via "Startscherm aanpassen": volgorde (ook naar een andere groep), tools verbergen, groepen hernoemen/toevoegen, zonder groepen tonen en een compacte weergave met drie tegels naast elkaar. Opgeslagen in de WebView-opslag; nieuwe tools uit een update komen vanzelf in hun groep.
+- **Overzicht** bovenaan (uit te zetten bij Startscherm aanpassen): laatste backup (oranje als die al dagen oud is, rood bij een mislukt onderdeel), de volgende radiowekker, herinneringen van vandaag, wat de radio speelt en problemen uit de laatste zelftest. Tik op een regel om naar die tool te gaan.
 
 ## Widgets, wekker, herinneringen en Android Auto
 - **Radio-widget** (`RadioWidget`): zender, wat er nu speelt, afspelen/pauzeren en stoppen; wordt bijgewerkt door `RadioService`. **Herken-widget** (`MusicWidget`): opent Muziek herkennen en begint meteen.
@@ -103,6 +104,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Instellingen**: app-slot, backup-map, AudD-sleutel, overzicht van alle toestemmingen (met "Toestaan" per onderdeel) en het foutrapport.
 - **App-slot** (`Lock.java`): ontgrendelen met de schermvergrendeling van de telefoon (BiometricPrompt met vingerafdruk/gezicht of pincode; Android 7–9 via het bevestigingsscherm van de telefoon). Geen eigen pincode, dus niets te vergeten. Vergrendelt na een instelbare tijd buiten beeld; inhoud verborgen in "recente apps" (Android 13+: `setRecentsScreenshotEnabled(false)`, ouder: `FLAG_SECURE`).
 - **Foutrapport** (`App.java`): een eigen `Application` legt elke crash (ook in achtergrondservices) en elke JavaScript-fout vast in `files/crash.log`. Na een crash vraagt de app bij de volgende start of je het rapport wilt delen. Het rapport bevat alleen toestel, versie en foutmeldingen.
+- **Zelftest** (`SelfTest.java`): controleert op de telefoon zelf het uitschrijfprogramma (Whisper draait echt), schrijven in de backup-map, internet en een radiostream, de AudD-sleutel (zonder herkenning te verbruiken), exacte wekkers, meldingen, batterijbeperking (belangrijk op Oppo/ColorOS), vrije opslag, toestemmingen en hoeveel contacten/oproepen/sms'jes leesbaar zijn. Bij elk probleem een knop om het op te lossen; de uitkomst gaat mee in het foutrapport.
 - **Wat is er nieuw**: na een update eenmalig de wijzigingen sinds de vorige versie die je gebruikte.
 
 ## Versies en updates
