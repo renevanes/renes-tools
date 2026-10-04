@@ -109,7 +109,7 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
-        s.setTextZoom(100);
+        s.setTextZoom(textZoom(this));
         web.setWebViewClient(new MediaClient(this));
         web.setWebChromeClient(new WebChromeClient());
         web.addJavascriptInterface(new Bridge(this), "Android");
@@ -259,6 +259,14 @@ public class MainActivity extends Activity {
                 }
             });
         }).start();
+    }
+
+    /** Tekstgrootte: zelf gekozen percentage, of (0) die van de telefoon volgen. */
+    static int textZoom(Context c) {
+        int z = c.getSharedPreferences("ui", MODE_PRIVATE).getInt("textZoom", 0);
+        if (z >= 80 && z <= 200) return z;
+        float fs = c.getResources().getConfiguration().fontScale;
+        return Math.max(85, Math.min(200, Math.round(fs * 100)));
     }
 
     /** Roept window[fn](arg) aan in de pagina als die functie bestaat. */
@@ -1596,6 +1604,13 @@ public class MainActivity extends Activity {
             return "";
         }
 
+        @JavascriptInterface public int textZoomGet() { return ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).getInt("textZoom", 0); }
+        @JavascriptInterface public int textZoomActual() { return textZoom(ctx); }
+        @JavascriptInterface public void textZoomSet(int z) {
+            ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).edit().putInt("textZoom", z).apply();
+            a.h.post(() -> { if (a.web != null) a.web.getSettings().setTextZoom(textZoom(ctx)); });
+        }
+
         @JavascriptInterface public String selfTestLast() {
             return ctx.getSharedPreferences("selftest", Context.MODE_PRIVATE).getString("last", "{}");
         }
@@ -1696,6 +1711,12 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void radioPause() { RadioService.send(ctx, RadioService.PAUSE, null); }
+        /** Terugspoelen (rew), vooruit (fwd) of terug naar live (live) in de buffer. */
+        @JavascriptInterface public void radioShift(String what) {
+            if (RadioService.REW.equals(what) || RadioService.FWD.equals(what) || RadioService.LIVE.equals(what)) RadioService.send(ctx, what, null);
+        }
+        @JavascriptInterface public boolean radioTimeshift() { return Radio.prefs(ctx).getBoolean("timeshift", true); }
+        @JavascriptInterface public void radioSetTimeshift(boolean on) { Radio.prefs(ctx).edit().putBoolean("timeshift", on).apply(); }
 
         @JavascriptInterface public void radioResume() {
             if (RadioService.station == null) {

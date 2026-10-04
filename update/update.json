@@ -1,13 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.22",
-  "versionCode": 23,
-  "nativeLevel": 22,
+  "versionName": "1.23",
+  "versionCode": 24,
+  "nativeLevel": 23,
   "web": "index.html",
-  "webSha256": "96eb1bc3e16d465cb487365076a56123ce44a2128e7c06e864afc19ba39b46b8",
+  "webSha256": "68582aa20a6ba366e68ce5687c6e5dc7b765846fbb6313dd05ba239ddc70871c",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "8e2ce5704e743fc5e667f3c577fb76832672393e5835ccef280f6a74c62f9640",
+  "apkSha256": "3bacdc52b6efbba73ef1c905415dcac617ec857f8c09615af609b01535591651",
   "changelog": [
+    {
+      "version": "1.23",
+      "date": "2026-10-04",
+      "changes": [
+        "Radio pauzeren en terugspoelen: pauze houdt je plek vast, 30 seconden terug of vooruit, en terug naar live",
+        "Tekstgrootte instelbaar (Instellingen → Weergave), standaard zoals je telefoon",
+        "Beter te gebruiken met TalkBack: alle knoppen hebben een naam, schakelaars melden aan/uit"
+      ]
+    },
     {
       "version": "1.22",
       "date": "2026-10-04",

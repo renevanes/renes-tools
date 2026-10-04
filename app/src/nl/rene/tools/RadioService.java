@@ -40,6 +40,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     static final String CHANNEL = "radio";
     static final int NOTIF_ID = 4401;
     static final String PLAY = "play", PAUSE = "pause", RESUME = "resume", STOP = "stop", SLEEP = "sleep", SNOOZE = "snooze";
+    static final String REW = "rew", FWD = "fwd", LIVE = "live";
     /** Wekkermodus: geluid via het wekkervolume, zacht beginnen, en bij geen verbinding de wekkertoon. */
     static volatile boolean alarm = false;
     private android.media.Ringtone ring;
@@ -47,7 +48,8 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     private boolean ducked = false;
     static final long ACTIONS = PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_STOP
             | PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_PLAY_FROM_MEDIA_ID
-            | PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS;
+            | PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS
+            | PlaybackState.ACTION_REWIND | PlaybackState.ACTION_FAST_FORWARD;
 
     // Toestand voor de interface
     static volatile String station = null;     // JSON van de zender
@@ -56,6 +58,9 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     static volatile String error = null;
     static volatile long sleepAt = 0;
     static volatile String info = "{}";        // wat de zender meestuurt (Radio.streamInfo)
+    /** Pauzeren/terugspoelen: aan, seconden achter live, seconden die nog terug kunnen. */
+    static volatile boolean shiftOn = false;
+    static volatile int shiftBehind = 0, shiftBack = 0;
     /** Eerder gehoorde titels op deze zender (nieuwste eerst). */
     static final java.util.LinkedList<String[]> recent = new java.util.LinkedList<>();
 
@@ -63,6 +68,15 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     static RadioService inst;
 
     private MediaPlayer player;
+    private Timeshift ts;            // buffer voor pauzeren en terugspoelen (null = direct afspelen)
+    private long tsStart = 0;        // bufferpositie waar de huidige speler begon
+    private long pausedPos = -1;     // bufferpositie bij pauze/onderbreking
+    private long lastPos = -1;       // laatst bekende afspeelplek (elke seconde bijgewerkt)
+    private int rateSnap = 16000;    // bytes/s waarmee de huidige speler gerekend wordt
+    private boolean noShiftOnce = false; // na mislukken via de buffer: deze keer direct
+    private PowerManager.WakeLock shiftWl;     // tijdens pauze met buffer: blijven opnemen met scherm uit
+    private android.net.wifi.WifiManager.WifiLock shiftWifi;
+    static final int LIVE_LAG = 6;   // seconden achter live beginnen, zodat de speler een voorraadje heeft
     private MediaSession session;
     private AudioManager am;
     private AudioFocusRequest focusReq;
@@ -111,6 +125,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             if (station != null) o.put("station", new JSONObject(station));
             if (error != null) o.put("error", error);
             o.put("info", new JSONObject(info));
+            if (shiftOn) o.put("shift", new JSONObject().put("behind", shiftBehind).put("back", shiftBack));
             org.json.JSONArray r = new org.json.JSONArray();
             synchronized (recent) { for (String[] x : recent) r.put(new JSONObject().put("t", Long.parseLong(x[0])).put("title", x[1])); }
             o.put("recent", r);
@@ -134,6 +149,8 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         @Override public void onPlayFromMediaId(String id, android.os.Bundle extras) { RadioService s = inst; if (s != null) s.playMedia(id); }
         @Override public void onSkipToNext() { RadioService s = inst; if (s != null) s.skip(1); }
         @Override public void onSkipToPrevious() { RadioService s = inst; if (s != null) s.skip(-1); }
+        @Override public void onRewind() { RadioService s = inst; if (s != null) s.handle(REW, null); }
+        @Override public void onFastForward() { RadioService s = inst; if (s != null) s.handle(FWD, null); }
     }
 
     // ---------- Android Auto / mediabrowser ----------
@@ -222,6 +239,9 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         setSessionToken(session.getSessionToken()); // voor Android Auto en andere mediabedieningen
         session.setPlaybackState(new PlaybackState.Builder().setActions(ACTIONS)
                 .setState(PlaybackState.STATE_STOPPED, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1f).build());
+        // Buffers van een vorige keer (bijv. na een crash) opruimen.
+        java.io.File[] old = getCacheDir().listFiles();
+        if (old != null) for (java.io.File f : old) if (f.getName().startsWith("radio-") && f.getName().endsWith(".buf")) f.delete();
         noisy = new NoisyReceiver();
         IntentFilter f = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(noisy, f, Context.RECEIVER_NOT_EXPORTED);
@@ -261,7 +281,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             } else if (station == null) stopAll();
         } else if (RESUME.equals(a)) {
             if (station == null) station = Radio.prefs(this).getString("last", null); // bijv. vanaf de widget
-            if (station != null) { if (!foreground) startFg(); retries = 0; start(); } else stopAll();
+            if (station != null) { if (!foreground) startFg(); retries = 0; resumeOrStart(); } else stopAll();
         } else if (SNOOZE.equals(a)) {
             stopAll();
             RadioAlarm.snooze(this, 10);
@@ -280,6 +300,14 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             update();
         } else if (STOP.equals(a)) {
             stopAll();
+        } else if (REW.equals(a) || FWD.equals(a) || LIVE.equals(a)) {
+            if (ts == null || !shiftOn) return;
+            alarm = false;
+            long cur = curPos(), r = rateSnap;
+            long target = LIVE.equals(a) ? ts.live() : cur + (REW.equals(a) ? -30 : 30) * r;
+            if ("interrupted".equals(status)) { pausedPos = clampShift(target); tick(); update(); } // tijdens een gesprek: alleen de plek verzetten
+            else if ("paused".equals(status)) { pausedPos = clampShift(target); resumeOrStart(); }
+            else seekShift(target);
         } else if (station == null || player == null) {
             stopAll(); // onbekende of lege opdracht zonder lopende radio
         }
@@ -330,7 +358,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         } else if (change == AudioManager.AUDIOFOCUS_GAIN) {
             ducked = false;
             if (player != null) player.setVolume(1f, 1f);
-            if (pausedByFocus) { pausedByFocus = false; if (station != null) { retries = 0; start(); } }
+            if (pausedByFocus) { pausedByFocus = false; if (station != null) { retries = 0; resumeOrStart(); } }
         }
     }
 
@@ -340,6 +368,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
 
     private void start() {
         release();
+        closeShift();
         alive = true;
         session.setActive(true);
         error = null;
@@ -351,6 +380,38 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         status = "connecting";
         title = "";
         update();
+        boolean direct0 = noShiftOnce;
+        noShiftOnce = false;
+        if (!alarm && !direct0 && Radio.prefs(this).getBoolean("timeshift", true)) {
+            int kbps = 0;
+            try { kbps = new JSONObject(station).optInt("bitrate"); } catch (Exception ignored) { }
+            final Timeshift t = new Timeshift(new java.io.File(getCacheDir(), "radio-" + System.nanoTime() + ".buf"), url, Radio.UA, kbps, Timeshift.CAP_DEFAULT);
+            final String direct = url;
+            ts = t;
+            t.begin((ok, why) -> h.post(() -> {
+                if (ts != t || !alive) { if (ts != t) t.close(); return; }
+                if (!"connecting".equals(status)) {
+                    // Intussen gepauzeerd of onderbroken (gesprek): niet gaan spelen; de buffer neemt wel op.
+                    if (ok) { shiftOn = true; if (pausedPos < 0) pausedPos = t.live(); rateSnap = t.rate(); tick(); }
+                    else closeShift();
+                    return;
+                }
+                if (ok) { shiftOn = true; long p0 = Math.max(0, t.live() - LIVE_LAG * (long) t.rate()); startPlayer(t.url(p0), p0); tick(); }
+                else { closeShift(); startPlayer(direct, -1); } // formaat dat niet midden in kan beginnen: direct afspelen
+            }));
+            return;
+        }
+        startPlayer(url, -1);
+    }
+
+    /** Speler starten op een adres; startPos = plek in de buffer (of -1 bij direct afspelen). */
+    private void startPlayer(String url, long startPos) {
+        release();
+        tsStart = Math.max(0, startPos);
+        lastPos = startPos;
+        pausedPos = -1;
+        if (ts != null) rateSnap = ts.rate();
+        releaseShiftLocks();
         try {
             MediaPlayer p = new MediaPlayer();
             player = p;
@@ -385,6 +446,19 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
 
     /** Netwerkhapering: een paar keer opnieuw proberen voordat we opgeven. */
     private void onStreamError(String msg) {
+        if (ts != null && shiftOn && !ts.dead && station != null && retries < 3) {
+            // Hapering tussen speler en buffer: verder op dezelfde plek (de speler zelf weet die na een fout niet meer).
+            final long at = lastPos >= 0 ? lastPos : tsStart;
+            lastPos = at;
+            release();
+            retries++;
+            status = "connecting";
+            update();
+            h.postDelayed(() -> { if (alive && ts != null && "connecting".equals(status)) startPlayer(ts.url(at), at); }, 1500L * retries);
+            return;
+        }
+        if (ts != null && shiftOn) { retries = 0; noShiftOnce = true; } // via de buffer lukt het niet: zender direct proberen
+        closeShift();
         release();
         if (station != null && retries < 3) {
             retries++;
@@ -438,6 +512,12 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     /** Onderbreken voor een gesprek: speler weg, service blijft op de voorgrond. */
     private void interrupt() {
         stopRing();
+        if (ts != null) {
+            if (shiftOn) pausedPos = curPos();
+            holdShiftLocks();
+            h.removeCallbacks(shiftExpire);
+            h.postDelayed(shiftExpire, pauseLimit());
+        }
         release();
         status = "interrupted";
         update();
@@ -446,10 +526,126 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     /** Pauze door de gebruiker: de melding blijft staan, de service mag weg. */
     private void pause() {
         stopRing();
+        if (ts != null && !ts.dead) {
+            // Met buffer: de radio loopt op de achtergrond door; verder gaan kan straks precies hier.
+            if (shiftOn) pausedPos = curPos();
+            release();
+            status = "paused";
+            holdShiftLocks();
+            h.removeCallbacks(shiftExpire);
+            h.postDelayed(shiftExpire, pauseLimit());
+            update();
+            return;
+        }
         release();
         if (station != null) status = "paused";
         update();
         detach();
+    }
+
+    /** Na een uur pauze (of zodra de buffer vol is) stopt de buffer (scheelt data); daarna begint afspelen gewoon live. */
+    private final Runnable shiftExpire = () -> {
+        if ("paused".equals(status)) { closeShift(); update(); detach(); }
+        else if ("interrupted".equals(status)) { closeShift(); update(); }
+    };
+
+    /** Zo lang mag pauzeren met buffer duren: een uur, of korter als de buffer eerder vol is. */
+    private long pauseLimit() {
+        Timeshift t = ts;
+        long buf = t == null ? 3600 : Math.max(300, t.seconds());
+        return Math.min(3600, buf) * 1000L;
+    }
+
+    private void holdShiftLocks() {
+        try {
+            if (shiftWl == null) {
+                shiftWl = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "renestools:radiobuffer");
+                shiftWl.acquire(61 * 60_000L);
+            }
+            if (shiftWifi == null) {
+                android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+                if (wm != null) { shiftWifi = wm.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "renestools:radiobuffer"); shiftWifi.acquire(); }
+            }
+        } catch (Exception ignored) { }
+    }
+
+    private void releaseShiftLocks() {
+        try { if (shiftWl != null && shiftWl.isHeld()) shiftWl.release(); } catch (Exception ignored) { }
+        shiftWl = null;
+        try { if (shiftWifi != null && shiftWifi.isHeld()) shiftWifi.release(); } catch (Exception ignored) { }
+        shiftWifi = null;
+    }
+
+    /** Verder na pauze of onderbreking: uit de buffer als die er is, anders opnieuw verbinden. */
+    private void resumeOrStart() {
+        if (("playing".equals(status) || "connecting".equals(status)) && player != null) return; // speelt al
+        h.removeCallbacks(shiftExpire);
+        // Ook als de opname intussen gestopt is (bijv. geen netwerk): wat in de buffer zit, kan nog afgespeeld worden.
+        if (ts != null && shiftOn && pausedPos >= 0) {
+            if (!requestFocus()) { error = "Geluid is nu in gebruik (bijvoorbeeld door een gesprek)"; status = "error"; closeShift(); update(); return; }
+            session.setActive(true);
+            seekShift(pausedPos);
+        } else start();
+    }
+
+    /** Huidige plek in de buffer. */
+    private long curPos() {
+        Timeshift t = ts;
+        if (t == null) return -1;
+        if (pausedPos >= 0) return pausedPos;
+        MediaPlayer p = player;
+        if (p == null || !"playing".equals(status)) return lastPos >= 0 ? lastPos : tsStart;
+        long ms = 0;
+        try { ms = p.getCurrentPosition(); } catch (Exception ignored) { }
+        return Math.min(t.live(), tsStart + ms * rateSnap / 1000);
+    }
+
+    private long clampShift(long pos) {
+        Timeshift t = ts;
+        if (t == null) return pos;
+        long live = t.live(), lag = LIVE_LAG * (long) rateSnap;
+        pos = Math.max(t.oldest(), Math.min(pos, live));
+        if (live - pos < lag + 2L * rateSnap) pos = Math.max(t.oldest(), live - lag); // (bijna) live = live, met een voorraadje
+        return pos;
+    }
+
+    /** Naar een plek in de buffer springen (begrensd tussen het oudste en live). */
+    private void seekShift(long pos) {
+        Timeshift t = ts;
+        if (t == null) return;
+        pos = clampShift(pos);
+        if (!requestFocus()) { error = "Geluid is nu in gebruik (bijvoorbeeld door een gesprek)"; status = "error"; closeShift(); update(); return; }
+        session.setActive(true);
+        h.removeCallbacks(shiftExpire);
+        stopRing();
+        status = "connecting";
+        update();
+        startPlayer(t.url(pos), pos);
+    }
+
+    private void closeShift() {
+        if (ts != null) { final Timeshift t = ts; ts = null; new Thread(t::close, "timeshift-close").start(); }
+        shiftOn = false; shiftBehind = 0; shiftBack = 0; pausedPos = -1; lastPos = -1;
+        h.removeCallbacks(tickRun);
+        h.removeCallbacks(shiftExpire);
+        releaseShiftLocks();
+    }
+
+    private final Runnable tickRun = this::tick;
+
+    /** Elke seconde: hoever achter live en hoever terug kan nog (voor de interface en de melding). */
+    private void tick() {
+        h.removeCallbacks(tickRun);
+        Timeshift t = ts;
+        if (t == null || !alive) { shiftOn = false; return; }
+        long cur = curPos(), r = Math.max(1, rateSnap);
+        if ("playing".equals(status)) lastPos = cur;
+        int before = shiftBehind;
+        shiftBehind = (int) Math.max(0, (t.live() - cur) / r);
+        shiftBack = (int) Math.max(0, (cur - t.oldest()) / r);
+        boolean was = before > LIVE_LAG + 2, now = shiftBehind > LIVE_LAG + 2;
+        if ("playing".equals(status) && (was != now || (now && before / 10 != shiftBehind / 10))) update();
+        h.postDelayed(tickRun, 1000);
     }
 
     private void detach() {
@@ -467,6 +663,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         alive = false;
         pausedByFocus = false;
         h.removeCallbacksAndMessages(null);
+        closeShift();
         release();
         abandonFocus();
         status = "stopped";
@@ -515,7 +712,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         int st = "playing".equals(status) ? PlaybackState.STATE_PLAYING : "connecting".equals(status) ? PlaybackState.STATE_BUFFERING
                 : "paused".equals(status) || "interrupted".equals(status) ? PlaybackState.STATE_PAUSED : PlaybackState.STATE_STOPPED;
         session.setPlaybackState(new PlaybackState.Builder()
-                .setActions(ACTIONS)
+                .setActions(shiftOn ? ACTIONS : ACTIONS & ~(PlaybackState.ACTION_REWIND | PlaybackState.ACTION_FAST_FORWARD))
                 .setState(st, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1f).build());
         if (!"stopped".equals(status))
             ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, notif());
@@ -532,23 +729,29 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         String name = "Radio";
         try { name = new JSONObject(station).optString("name", "Radio"); } catch (Exception ignored) { }
         String text = "connecting".equals(status) ? "Verbinden…" : "error".equals(status) ? (error == null ? "Fout" : error)
-                : "paused".equals(status) ? "Gepauzeerd" : "interrupted".equals(status) ? "Onderbroken, gaat zo verder"
-                : title.isEmpty() ? "Live" : title;
+                : "paused".equals(status) ? (ts != null ? "Gepauzeerd · gaat straks verder waar je was" : "Gepauzeerd")
+                : "interrupted".equals(status) ? "Onderbroken, gaat zo verder"
+                : ts != null && shiftBehind > LIVE_LAG + 2 ? behindText(shiftBehind) + " achter live" // de ICY-titel is die van live: niet tonen
+                : (title.isEmpty() ? "Live" : title);
         if (alarm) text = "⏰ Wekker · " + text;
         if (sleepAt > 0) text += " · stopt om " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(new java.util.Date(sleepAt));
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
         boolean playing = "playing".equals(status) || "connecting".equals(status) || "interrupted".equals(status);
+        boolean shift = ts != null && shiftOn && !alarm && !"error".equals(status);
         Intent open = new Intent(this, MainActivity.class).putExtra("open", "radio").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         b.setSmallIcon(R.drawable.ic_radio).setContentTitle(name).setContentText(text)
                 .setContentIntent(PendingIntent.getActivity(this, 22, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT))
                 .setDeleteIntent(action(STOP, 33))
-                .setOngoing(playing).setOnlyAlertOnce(true).setVisibility(Notification.VISIBILITY_PUBLIC)
-                .addAction(alarm ? new Notification.Action.Builder(null, "Snooze 10 min", action(SNOOZE, 34)).build()
+                .setOngoing(playing || shift).setOnlyAlertOnce(true).setVisibility(Notification.VISIBILITY_PUBLIC);
+        if (shift) b.addAction(new Notification.Action.Builder(null, "−30 s", action(REW, 35)).build());
+        b.addAction(alarm ? new Notification.Action.Builder(null, "Snooze 10 min", action(SNOOZE, 34)).build()
                         : new Notification.Action.Builder(null, playing ? "Pauze" : "Afspelen", action(playing ? PAUSE : RESUME, 31)).build())
                 .addAction(new Notification.Action.Builder(null, "Stoppen", action(STOP, 32)).build())
-                .setStyle(new Notification.MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(0, 1));
+                .setStyle(new Notification.MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(shift ? new int[]{0, 1, 2} : new int[]{0, 1}));
         return b.build();
     }
+
+    static String behindText(int s) { return s >= 3600 ? (s / 3600) + ":" + String.format(java.util.Locale.US, "%02d:%02d", s / 60 % 60, s % 60) : (s / 60) + ":" + String.format(java.util.Locale.US, "%02d", s % 60); }
 
     static void createChannel(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
@@ -564,6 +767,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         alive = false;
         if (inst == this) inst = null;
         h.removeCallbacksAndMessages(null);
+        closeShift();
         release();
         abandonFocus();
         try { unregisterReceiver(noisy); } catch (Exception ignored) { }

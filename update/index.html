@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- RENES-TOOLS-UI versie 1.22 (23) -->
+<!-- RENES-TOOLS-UI versie 1.23 (24) -->
 <html lang="nl">
 <head>
 <meta charset="utf-8">
@@ -33,14 +33,15 @@ main{padding:16px;max-width:560px;margin:0 auto}
 .screen{display:none}.screen.on{display:block}
 .card{background:var(--card);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px;border:1px solid var(--line)}
 .card h2{font-size:15px;margin:0 0 10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.6px}
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tile b,.tile small{overflow-wrap:anywhere;hyphens:auto}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 14px;text-align:left;box-shadow:var(--shadow);min-height:132px;display:flex;flex-direction:column;gap:10px;position:relative}
 .tile:active{transform:scale(.98)}
 .tile .ic{width:48px;height:48px;border-radius:14px;background:var(--brand-2);display:grid;place-items:center;color:#fff}
 .tile b{font-size:17px}
 .tile small{color:var(--muted);font-size:13px}
 .hgroup{margin:4px 0 18px}.hgroup h3{margin:0 2px 10px;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.hgroups.compact .tiles{grid-template-columns:1fr 1fr 1fr;gap:10px}
+.hgroups.compact .tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .hgroups.compact .tile{min-height:0;padding:12px 8px;align-items:center;text-align:center;gap:6px;border-radius:16px}
 .hgroups.compact .tile small{display:none}.hgroups.compact .tile b{font-size:13px;line-height:1.2}
 .hgroups.compact .tile .ic{width:42px;height:42px;border-radius:12px}
@@ -54,7 +55,8 @@ main{padding:16px;max-width:560px;margin:0 auto}
 .tile .dot{position:absolute;top:14px;right:14px;width:10px;height:10px;border-radius:5px;background:var(--ok);box-shadow:0 0 0 4px rgba(29,138,78,.18);display:none}
 .tile.live .dot{display:block}
 label.f{display:block;font-size:14px;color:var(--muted);margin-bottom:6px}
-.row{display:flex;gap:8px;align-items:center}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{min-width:0}select.sel{max-width:100%}
+.clist button,.clist .r1,.clist .r2{min-width:0;max-width:100%}.clist button{overflow:hidden}.clist .r2{overflow:hidden;text-overflow:ellipsis}
 input[type=tel]{flex:1;min-width:0;font-size:22px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);letter-spacing:.5px}
 input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
 .sq{width:52px;height:52px;border-radius:12px;background:var(--chip);display:grid;place-items:center;flex:none;color:var(--brand-2)}
@@ -153,7 +155,7 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 .items .it{flex:1;font-size:16px;border:0;background:transparent;color:var(--ink);outline:none;padding:4px 0;min-width:0}
 .items li.done .it{text-decoration:line-through;color:var(--muted)}
 .items .del{flex:none;width:32px;height:32px;border-radius:50%;color:var(--muted);font-size:20px;line-height:1}
-.additem{display:flex;gap:8px;margin-top:10px}.additem input{flex:1;font-size:16px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.additem{display:flex;gap:8px;margin-top:10px}.additem input{flex:1;min-width:0;font-size:16px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 .additem button{padding:0 16px;border-radius:12px;background:var(--chip-on);color:#fff;font-weight:700;font-size:20px}
 .ntext{width:100%;min-height:90px;font:inherit;font-size:15px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card);color:var(--ink);box-sizing:border-box;resize:vertical}
 .donehdr{display:flex;justify-content:space-between;align-items:center;margin:14px 0 4px;color:var(--muted);font-size:13px;font-weight:600}
@@ -230,6 +232,10 @@ details.rinfo dl{margin:8px 0 0}
 .gsg .gi{display:block;width:100%;text-align:left;padding:9px 0;border-top:1px solid var(--line)}.gsg .gi:first-of-type{border-top:0}.gsg .gi b{display:block;font-size:15px}.gsg .gi small{display:block;color:var(--muted);font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .gsg.stale{opacity:.5}
 .gs-empty{text-align:center;color:var(--muted);padding:24px 0}
+.shift{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}.shift .big{flex:1;min-width:0;padding:10px 4px;font-size:15px;margin:0}
+#rd-sleep{flex:none}.shift .shpos{min-width:64px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
+.shift .shpos.behind{color:var(--warn)}
+h1:focus{outline:none}
 .setrow{padding:10px 0;border-top:1px solid var(--line);align-items:center}.setrow:first-of-type{border-top:0}
 .permok{color:var(--ok);font-weight:700;font-size:14px}
 .wn{display:block;margin:4px 0 12px;color:var(--ink);font-size:14px;line-height:1.5}
@@ -307,7 +313,7 @@ details.rinfo dl{margin:8px 0 0}
 
 <!-- ============ HOME ============ -->
 <section class="screen on" id="s-home">
-  <div class="hdr"><h1>Rene's Tools</h1><span class="ver" id="hver"></span></div>
+  <div class="hdr"><h1 tabindex="-1">Rene's Tools</h1><span class="ver" id="hver"></span></div>
   <main>
     <div class="banner" id="upd-banner"><div id="upd-text">Nieuwe versie beschikbaar</div><button onclick="installUpdate()">Installeren</button></div>
     <div class="tiles" id="tile-pool">
@@ -383,7 +389,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-redial">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Auto redial</h1>
+    <h1 tabindex="-1">Auto redial</h1>
   </div>
   <main>
     <div class="card perm" id="perm-card" style="display:none">
@@ -425,8 +431,8 @@ details.rinfo dl{margin:8px 0 0}
         <h2>Wachttijd tussen pogingen</h2>
         <div class="chips" id="c-int" style="margin-bottom:4px"></div>
         <div class="range" id="rand-range">Elke keer willekeurig tussen
-          <select id="r-min" onchange="rangeChanged('min')"></select> en
-          <select id="r-max" onchange="rangeChanged('max')"></select>
+          <select id="r-min" aria-label="Minimaal" onchange="rangeChanged('min')"></select> en
+          <select id="r-max" aria-label="Maximaal" onchange="rangeChanged('max')"></select>
         </div>
       </div>
 
@@ -462,7 +468,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-wa">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>WhatsApp backup</h1>
+    <h1 tabindex="-1">WhatsApp backup</h1>
   </div>
   <main>
     <div class="card perm" id="wa-perm" style="display:none">
@@ -556,7 +562,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-chats">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Chats</h1>
+    <h1 tabindex="-1">Chats</h1>
   </div>
   <main>
     <input class="search" id="chat-search" type="search" placeholder="Zoek in alle berichten…" oninput="chatSearch(this.value)">
@@ -573,7 +579,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-chat">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 id="chat-title" style="font-size:18px">Chat</h1>
+    <h1 tabindex="-1" id="chat-title" style="font-size:18px">Chat</h1>
   </div>
   <main><div class="msgs" id="chat-msgs"></div></main>
 </section>
@@ -582,7 +588,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-tracks">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Mijn routes</h1>
+    <h1 tabindex="-1">Mijn routes</h1>
   </div>
   <main>
     <div class="card perm" id="tr-perm" style="display:none">
@@ -645,7 +651,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-track">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 id="td-title" style="font-size:18px">Route</h1>
+    <h1 tabindex="-1" id="td-title" style="font-size:18px">Route</h1>
   </div>
   <main>
     <div id="td-map" class="lmap"></div>
@@ -671,7 +677,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-sms">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>SMS-backup</h1>
+    <h1 tabindex="-1">SMS-backup</h1>
   </div>
   <main>
     <div class="card perm" id="sms-perm" style="display:none">
@@ -713,7 +719,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-smschat">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 id="sms-title" style="font-size:18px">Gesprek</h1>
+    <h1 tabindex="-1" id="sms-title" style="font-size:18px">Gesprek</h1>
   </div>
   <main><div class="msgs" id="sms-msgs"></div></main>
 </section>
@@ -722,7 +728,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-homeedit">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Startscherm aanpassen</h1>
+    <h1 tabindex="-1">Startscherm aanpassen</h1>
   </div>
   <main>
     <div class="card">
@@ -742,7 +748,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-backup">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Alles back-uppen</h1>
+    <h1 tabindex="-1">Alles back-uppen</h1>
   </div>
   <main>
     <div class="card perm" id="bk-nodest" style="display:none">
@@ -800,7 +806,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-selftest">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Zelftest</h1>
+    <h1 tabindex="-1">Zelftest</h1>
   </div>
   <main>
     <div class="card">
@@ -817,7 +823,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-settings">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Instellingen</h1>
+    <h1 tabindex="-1">Instellingen</h1>
   </div>
   <main>
     <div class="card">
@@ -826,10 +832,20 @@ details.rinfo dl{margin:8px 0 0}
       <div class="row setrow"><span style="flex:1" id="st-lock-state">Uit</span>
         <button class="big" style="width:auto;padding:10px 18px" id="st-lock-btn" onclick="stLockToggle()">Aanzetten</button></div>
       <div class="row setrow" id="st-lock-tw"><span style="flex:1">Vergrendelen na</span>
-        <select class="sel" id="st-lock-timeout" onchange="Android.lockTimeout(this.value)">
+        <select class="sel" id="st-lock-timeout" aria-label="Vergrendelen na" onchange="Android.lockTimeout(this.value)">
           <option value="0">Meteen</option><option value="30000">30 seconden</option><option value="60000">1 minuut</option>
           <option value="300000">5 minuten</option><option value="900000">15 minuten</option><option value="3600000">1 uur</option>
         </select></div>
+    </div>
+
+    <div class="card">
+      <h2>Weergave</h2>
+      <div class="row setrow"><label for="st-zoom" style="flex:1">Tekstgrootte</label>
+        <select class="sel" id="st-zoom" onchange="stZoom(this.value)">
+          <option value="0">Zoals de telefoon</option><option value="90">Kleiner</option><option value="100">Normaal</option>
+          <option value="115">Groot</option><option value="130">Groter</option><option value="150">Extra groot</option><option value="175">Maximaal</option>
+        </select></div>
+      <p class="note" id="st-zoom-prev" style="margin-bottom:0">Zo ziet tekst er nu uit.</p>
     </div>
 
     <div class="card">
@@ -870,7 +886,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-radio">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Radio</h1>
+    <h1 tabindex="-1">Radio</h1>
   </div>
   <main>
     <div class="card now" id="rd-now" style="display:none">
@@ -886,6 +902,12 @@ details.rinfo dl{margin:8px 0 0}
         <button class="big" style="flex:1" id="rd-pp" onclick="rdPlayPause()">❚❚ Pauze</button>
         <button class="big ghost" style="width:64px;flex:none" onclick="Android.radioStop()" aria-label="Stoppen">■</button>
       </div>
+      <div class="shift" id="rd-shift" style="display:none">
+        <button class="big ghost" onclick="rdShift('rew')" aria-label="30 seconden terug">⏪ 30 s</button>
+        <span class="shpos" id="rd-shpos" aria-live="off">Live</span>
+        <button class="big ghost" id="rd-fwd" onclick="rdShift('fwd')" aria-label="30 seconden vooruit">30 s ⏩</button>
+        <button class="big ghost" id="rd-live" onclick="rdShift('live')">Live</button>
+      </div>
       <div class="nowsong" id="rd-song" style="display:none"></div>
       <div class="row" style="margin-top:8px">
         <button class="big ghost" style="flex:1" id="rd-rec" onclick="rdRecognize()">♫ Welk nummer is dit?</button>
@@ -898,6 +920,7 @@ details.rinfo dl{margin:8px 0 0}
       <div class="sleepinfo" id="rd-sleepinfo"></div>
       <button class="mini" style="margin-top:10px;float:none;display:inline-block" onclick="rdPinStation()">📌 Zender op startscherm</button>
       <details class="rinfo" id="rd-info"><summary>Over deze zender</summary><dl class="fields" id="rd-info-dl"></dl></details>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="rd-ts" onchange="Android.radioSetTimeshift(this.checked); toast(this.checked ? 'Geldt vanaf de volgende zender' : 'Uit; geldt vanaf de volgende zender')"> Pauzeren en terugspoelen (tot ca. 45 min buffer; tijdens pauze loopt de stream door, max. 1 uur)</label>
       <details class="rinfo" id="rd-recent-wrap"><summary id="rd-recent-sum">Eerder gedraaid</summary><ul class="recent" id="rd-recent"></ul></details>
     </div>
 
@@ -917,12 +940,12 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-ralarm">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Radiowekker</h1>
+    <h1 tabindex="-1">Radiowekker</h1>
   </div>
   <main>
     <div class="card">
       <label class="chk" style="font-size:17px;font-weight:600"><input type="checkbox" id="al-on"> Wekker aan</label>
-      <div class="row" style="margin:8px 0 14px"><input type="time" id="al-time" class="altime" value="07:00"></div>
+      <div class="row" style="margin:8px 0 14px"><input type="time" id="al-time" class="altime" value="07:00" aria-label="Tijd van de wekker"></div>
       <div class="flabel">Dagen</div>
       <div class="chips sm" id="al-days">
         <button data-d="0">ma</button><button data-d="1">di</button><button data-d="2">wo</button><button data-d="3">do</button>
@@ -930,7 +953,7 @@ details.rinfo dl{margin:8px 0 0}
       </div>
       <p class="note" style="margin-top:-6px">Geen dag gekozen = eenmalig.</p>
       <div class="flabel">Zender</div>
-      <select class="sel" id="al-station" style="width:100%"></select>
+      <select class="sel" id="al-station" aria-label="Zender" style="width:100%"></select>
       <button class="big" style="margin-top:14px" onclick="alSave()">Opslaan</button>
       <p class="note" id="al-next"></p>
       <button class="big ghost" onclick="alTest()">Proef: over 10 seconden</button>
@@ -944,7 +967,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-music">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Muziek herkennen</h1>
+    <h1 tabindex="-1">Muziek herkennen</h1>
   </div>
   <main>
     <div class="card" id="mu-setup" style="display:none">
@@ -975,7 +998,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-transcripts">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Gesprekken uitschrijven</h1>
+    <h1 tabindex="-1">Gesprekken uitschrijven</h1>
   </div>
   <main>
     <div class="card perm" id="tx-unsup" style="display:none">
@@ -1001,7 +1024,7 @@ details.rinfo dl{margin:8px 0 0}
       <div id="tx-models"></div>
       <div class="row" style="margin-top:10px">
         <span style="flex:1">Taal van de gesprekken</span>
-        <select id="tx-lang" onchange="Android.txSetLang(this.value)" class="sel">
+        <select id="tx-lang" aria-label="Taal van de gesprekken" onchange="Android.txSetLang(this.value)" class="sel">
           <option value="nl">Nederlands</option><option value="en">Engels</option><option value="auto">Automatisch</option>
         </select>
       </div>
@@ -1037,7 +1060,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-txd">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 id="txd-title" style="font-size:18px;flex:1">Gesprek</h1>
+    <h1 tabindex="-1" id="txd-title" style="font-size:18px;flex:1">Gesprek</h1>
   </div>
   <main>
     <div class="card">
@@ -1059,7 +1082,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-contacts">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Contacten</h1>
+    <h1 tabindex="-1">Contacten</h1>
   </div>
   <main>
     <div class="card perm" id="ct-perm" style="display:none">
@@ -1086,7 +1109,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-contact">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 id="ctd-title" style="font-size:18px;flex:1">Contact</h1>
+    <h1 tabindex="-1" id="ctd-title" style="font-size:18px;flex:1">Contact</h1>
   </div>
   <main>
     <div class="card"><dl class="fields" id="ctd-fields"></dl>
@@ -1100,7 +1123,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-cversions">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Versies</h1>
+    <h1 tabindex="-1">Versies</h1>
   </div>
   <main><div class="clist card" id="cv-list"></div></main>
 </section>
@@ -1108,7 +1131,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-cversion">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 id="cvd-title">Versie</h1>
+    <h1 tabindex="-1" id="cvd-title">Versie</h1>
   </div>
   <main>
     <div class="card"><p class="note" style="margin-top:0" id="cvd-sum"></p>
@@ -1122,7 +1145,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-notes">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Notities</h1>
+    <h1 tabindex="-1">Notities</h1>
   </div>
   <main>
     <input class="search" id="notes-search" type="search" placeholder="Zoek in notities en lijstjes…" oninput="renderNotes()">
@@ -1137,7 +1160,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-note">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 style="flex:1">Notitie</h1>
+    <h1 tabindex="-1" style="flex:1">Notitie</h1>
     <button onclick="deleteNote()" aria-label="Verwijderen" style="color:#fff;padding:8px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
   </div>
   <main>
@@ -1157,7 +1180,7 @@ details.rinfo dl{margin:8px 0 0}
     </div>
     <div class="card">
       <h2>Herinnering</h2>
-      <input type="datetime-local" id="note-rem" class="altime" style="font-size:18px;text-align:left">
+      <input type="datetime-local" id="note-rem" aria-label="Datum en tijd van de herinnering" class="altime" style="font-size:18px;text-align:left">
       <div class="row" style="margin-top:10px">
         <button class="big" style="flex:1" onclick="noteSetRem()">Herinner mij</button>
         <button class="big ghost" style="flex:1" id="note-rem-del" onclick="noteDelRem()">Weghalen</button>
@@ -1172,7 +1195,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-calls">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Oproepen-backup</h1>
+    <h1 tabindex="-1">Oproepen-backup</h1>
   </div>
   <main>
     <div class="card perm" id="calls-perm" style="display:none">
@@ -1248,7 +1271,7 @@ details.rinfo dl{margin:8px 0 0}
 <section class="screen" id="s-info">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1>Versie en updates</h1>
+    <h1 tabindex="-1">Versie en updates</h1>
   </div>
   <main>
     <div class="card">
@@ -1266,10 +1289,10 @@ details.rinfo dl{margin:8px 0 0}
   </main>
 </section>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <div class="sheet" id="sheet" onclick="if(event.target===this&&Date.now()-sheetAt>500)closeSheet()">
-  <div class="sheet-box"><h3 id="sheet-title"></h3><p id="sheet-sub"></p><div id="sheet-acts"></div>
+  <div class="sheet-box" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><h3 id="sheet-title"></h3><p id="sheet-sub"></p><div id="sheet-acts"></div>
     <button class="cancel" onclick="closeSheet()">Annuleren</button></div>
 </div>
 <div class="lockscr" id="lockscr">
@@ -1279,27 +1302,27 @@ details.rinfo dl{margin:8px 0 0}
   <button onclick="Android.lockUnlock()">Ontgrendelen</button>
 </div>
 <div class="modal" id="modal">
-  <div class="modal-box">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <h3 id="modal-title"></h3>
     <p id="modal-text"></p>
-    <input type="text" id="modal-input" class="search" style="display:none;margin-bottom:0">
+    <input type="text" id="modal-input" class="search" aria-labelledby="modal-title" style="display:none;margin-bottom:0">
     <div class="modal-btns">
       <button class="big ghost" id="modal-cancel">Annuleren</button>
       <button class="big" id="modal-ok">OK</button>
     </div>
   </div>
 </div>
-<div class="dlg-bg" id="dlg"><div class="dlg" role="dialog" aria-modal="true">
+<div class="dlg-bg" id="dlg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
   <div class="dlg-t" id="dlg-t"></div>
   <div class="dlg-m" id="dlg-m"></div>
-  <input type="text" id="dlg-in" class="search" style="display:none">
+  <input type="text" id="dlg-in" class="search" aria-labelledby="dlg-t" style="display:none">
   <div class="dlg-b"><button id="dlg-no">Annuleren</button><button id="dlg-ok" class="ok">OK</button></div>
 </div></div>
 
 <script>
-const VERSION_NAME = "1.22";
-const VERSION_CODE = 23;
-const CHANGELOG = [{"version": "1.22", "date": "2026-10-04", "changes": ["Auto redial op een tijdstip: eenmalig of op vaste dagen automatisch beginnen met bellen (bijv. om 08:00 de huisarts)", "Gesprekken 's nachts automatisch uitschrijven tijdens het opladen"]}, {"version": "1.21", "date": "2026-10-04", "changes": ["Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"]}, {"version": "1.20", "date": "2026-10-04", "changes": ["Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html", "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan", "Ruimtegebruik van de backup-map per map"]}, {"version": "1.19", "date": "2026-10-04", "changes": ["Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen", "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"]}, {"version": "1.18", "date": "2026-10-04", "changes": ["Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen", "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt", "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon", "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools", "Android Auto: je favoriete zenders in de auto"]}, {"version": "1.17", "date": "2026-10-04", "changes": ["Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig", "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"]}, {"version": "1.16", "date": "2026-10-04", "changes": ["Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst", "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)", "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"]}, {"version": "1.15", "date": "2026-10-04", "changes": ["Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen", "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon", "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen", "Na een update zie je eenmalig wat er nieuw is", "Contacten werkt nu ook op Android 7"]}, {"version": "1.14", "date": "2026-10-04", "changes": ["Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten", "Radio: een zender als icoon op je startscherm die meteen begint te spelen", "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers", "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"]}, {"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+const VERSION_NAME = "1.23";
+const VERSION_CODE = 24;
+const CHANGELOG = [{"version": "1.23", "date": "2026-10-04", "changes": ["Radio pauzeren en terugspoelen: pauze houdt je plek vast, 30 seconden terug of vooruit, en terug naar live", "Tekstgrootte instelbaar (Instellingen → Weergave), standaard zoals je telefoon", "Beter te gebruiken met TalkBack: alle knoppen hebben een naam, schakelaars melden aan/uit"]}, {"version": "1.22", "date": "2026-10-04", "changes": ["Auto redial op een tijdstip: eenmalig of op vaste dagen automatisch beginnen met bellen (bijv. om 08:00 de huisarts)", "Gesprekken 's nachts automatisch uitschrijven tijdens het opladen"]}, {"version": "1.21", "date": "2026-10-04", "changes": ["Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"]}, {"version": "1.20", "date": "2026-10-04", "changes": ["Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html", "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan", "Ruimtegebruik van de backup-map per map"]}, {"version": "1.19", "date": "2026-10-04", "changes": ["Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen", "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"]}, {"version": "1.18", "date": "2026-10-04", "changes": ["Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen", "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt", "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon", "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools", "Android Auto: je favoriete zenders in de auto"]}, {"version": "1.17", "date": "2026-10-04", "changes": ["Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig", "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"]}, {"version": "1.16", "date": "2026-10-04", "changes": ["Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst", "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)", "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"]}, {"version": "1.15", "date": "2026-10-04", "changes": ["Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen", "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon", "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen", "Na een update zie je eenmalig wat er nieuw is", "Contacten werkt nu ook op Android 7"]}, {"version": "1.14", "date": "2026-10-04", "changes": ["Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten", "Radio: een zender als icoon op je startscherm die meteen begint te spelen", "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers", "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"]}, {"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
 
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
 if (!window.Android) window.Android = (function(){
@@ -1454,7 +1477,7 @@ if (!window.Android) window.Android = (function(){
     radioFavorites(){ return JSON.stringify(this._rd.favs); },
     radioToggleFav(j){ const s=JSON.parse(j); const i=this._rd.favs.findIndex(f=>f.id===s.id); if(i>=0){ this._rd.favs.splice(i,1); return false; } this._rd.favs.push(s); return true; },
     radioMoveFav(){},
-    radioPlay(j){ const r=this._rd; r.st={status:'connecting',station:JSON.parse(j),title:'',info:{},recent:[]}; setTimeout(()=>{ r.st.status='playing'; r.st.title='Doe Maar - De Bom'; r.st.info={name:'NPO Radio 2',desc:'Gouden Uur met Gijs Staverman',genre:'Pop',site:'https://www.nporadio2.nl',br:'192',title:'Doe Maar - De Bom',artist:'Doe Maar',song:'De Bom'}; r.st.recent=[{t:Date.now(),title:'Doe Maar - De Bom'},{t:Date.now()-24e4,title:'Golden Earring - Radar Love'}]; },600); },
+    radioPlay(j){ const r=this._rd; r.st={status:'connecting',station:JSON.parse(j),title:'',info:{},recent:[]}; setTimeout(()=>{ r.st.status='playing'; if(this._ts) r.st.shift={behind:6,back:600}; r.st.title='Doe Maar - De Bom'; r.st.info={name:'NPO Radio 2',desc:'Gouden Uur met Gijs Staverman',genre:'Pop',site:'https://www.nporadio2.nl',br:'192',title:'Doe Maar - De Bom',artist:'Doe Maar',song:'De Bom'}; r.st.recent=[{t:Date.now(),title:'Doe Maar - De Bom'},{t:Date.now()-24e4,title:'Golden Earring - Radar Love'}]; },600); },
     radioPause(){ this._rd.st.status='paused'; }, radioResume(){ if(this._rd.st.station) this._rd.st.status='playing'; },
     radioStop(){ this._rd.st={status:'stopped',title:'',last:this._rd.st.station}; }, radioSleep(m){ this._rd.st.sleepAt=m?Date.now()+m*6e4:0; },
     radioState(){ return JSON.stringify(this._rd.st); },
@@ -1518,6 +1541,9 @@ if (!window.Android) window.Android = (function(){
     redialPlanClear(){ this._rp=null; },
     redialPlanState(){ const p=this._rp; return JSON.stringify({on:!!p,plan:p,exact:true,next:p?Date.now()+18*36e5:0,last:''}); },
     txAutoSet(on){ this._txa.on=on; }, txAutoState(){ return JSON.stringify({battery:false,blocked:false,on:this._txa.on,next:this._txa.on?Date.now()+10*36e5:0,last:0,found:0,failed:this._txa.on?2:0,model:true}); }, txAutoRetryFailed(){ this._txa.retried=true; },
+    _zoom:0, textZoomGet(){ return this._zoom; }, textZoomActual(){ return this._zoom || 100; }, textZoomSet(z){ this._zoom=z; document.body.style.zoom = (z || 100) / 100; },
+    _ts:true, radioTimeshift(){ return this._ts; }, radioSetTimeshift(on){ this._ts=on; },
+    radioShift(w){ const st=this._rd.st; if(!st.shift) return; st.shift.behind = w==='live' ? 6 : Math.max(6, st.shift.behind + (w==='rew' ? 30 : -30)); },
     notesLoad(){ return this._notes; },
     notesSave(j){ this._notes=j; return ''; },
     notesExport(){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+JSON.parse(this._notes).length; },
@@ -1583,6 +1609,7 @@ function show(name){
   if (name==='home') { jumpStack.length = 0; if (gsQ) setTimeout(gsInput, 0); }
   closeSheet();
   current = name; window.scrollTo(0,0);
+  if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #dlg.on, #lockscr.on, #sheet.on')) h.focus({ preventScroll: true }); }, 0);
   if (name==='redial') enterRedial(); else stopPoll();
   if (name==='wa') enterWa(); else stopWaPoll();
   if (name==='chats') enterChats();
@@ -2327,7 +2354,7 @@ function rdFav(list, i){ const s = rdGet(list, i); if (!s) return; const on = An
 function rdFavNow(){ const s = rdState.station || rdState.last; if (!s) return; Android.radioToggleFav(JSON.stringify(s)); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); rdShowNow(); }
 function rdPlayPause(){ if (rdState.status === 'playing' || rdState.status === 'connecting') Android.radioPause(); else Android.radioResume(); setTimeout(rdPollOnce, 200); }
 function rdPollOnce(){
-  const sig = st => JSON.stringify([st.status, st.title, st.station && st.station.url, st.info, (st.recent || []).length, st.sleepAt, Math.floor(Date.now() / 6e4)]);
+  const sig = st => JSON.stringify([st.status, st.title, st.station && st.station.url, st.info, (st.recent || []).length, st.sleepAt, Math.floor(Date.now() / 6e4), st.shift]);
   const prev = sig(rdState);
   rdState = rdJson(Android.radioState(), {});
   if (sig(rdState) !== prev) { rdShowNow(); if (current === 'radio') rdRender(); }
@@ -2352,7 +2379,8 @@ function rdShowNow(){
   $('#rd-pp').textContent = st === 'playing' || st === 'connecting' ? '❚❚ Pauze' : '▶ Afspelen';
   $('#rd-now-fav').textContent = rdIsFav(s) ? '★' : '☆';
   $('#rd-rec').disabled = st !== 'playing';
-  rdShowSleep();
+  rdShowSleep(); rdShowShift();
+  $('#rd-ts').checked = Android.radioTimeshift();
 }
 /** Het huidige nummer (of programma) zoals de zender het meestuurt. */
 function rdShowSong(t, inf){
@@ -3408,6 +3436,41 @@ function txAutoRender(){
 }
 function txAutoSet(on){ Android.txAutoSet(on); txAutoRender(); if (on) toast("Vanaf vannacht automatisch"); }
 
+/* ---------- Radio pauzeren en terugspoelen ---------- */
+function rdShift(w){ Android.radioShift(w); setTimeout(rdPollOnce, 250); }
+function fmtBehind(s){ s = Math.round(s); return (s >= 3600 ? Math.floor(s / 3600) + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') : Math.floor(s / 60)) + ':' + String(s % 60).padStart(2, '0'); }
+function rdShowShift(){
+  const sh = rdState.shift, st = rdState.status;
+  const on = !!sh && (st === 'playing' || st === 'paused' || st === 'connecting');
+  $('#rd-shift').style.display = on ? 'flex' : 'none';
+  if (!on) return;
+  const behind = sh.behind > 8; // de speler loopt bewust een paar seconden achter (voorraadje)
+  const pos = $('#rd-shpos');
+  pos.textContent = behind ? '−' + fmtBehind(sh.behind) : 'Live';
+  pos.classList.toggle('behind', behind);
+  pos.setAttribute('aria-label', behind ? fmtBehind(sh.behind) + ' achter live' : 'Live');
+  $('#rd-fwd').disabled = !behind; $('#rd-live').disabled = !behind;
+}
+
+/* ---------- Toegankelijkheid ---------- */
+function stZoom(v){ Android.textZoomSet(+v); toast('Tekstgrootte: ' + $('#st-zoom').selectedOptions[0].textContent); }
+/* Schakelaars en keuzeknoppen: TalkBack hoort aan/uit (de klasse "on" bepaalt de stand). */
+function a11yMark(el){
+  if (el.classList.contains('tg')) {
+    el.setAttribute('role', 'switch');
+    el.setAttribute('aria-checked', el.classList.contains('on') ? 'true' : 'false');
+    if (!el.getAttribute('aria-label')) { const sp = el.parentElement && el.parentElement.querySelector('span'); if (sp && sp.firstChild) el.setAttribute('aria-label', sp.firstChild.textContent.trim()); }
+  } else if (el.parentElement && el.parentElement.classList.contains('chips') && el.tagName === 'BUTTON') {
+    el.setAttribute('aria-pressed', el.classList.contains('on') ? 'true' : 'false');
+  }
+}
+function a11yScan(root){ (root || document).querySelectorAll('.tg, .chips > button').forEach(a11yMark); }
+new MutationObserver(ms => { for (const m of ms) {
+  if (m.type === 'attributes') a11yMark(m.target);
+  else m.addedNodes.forEach(n => { if (n.nodeType === 1) { a11yMark(n); a11yScan(n); } });
+} }).observe(document.body, { attributes: true, attributeFilter: ['class'], childList: true, subtree: true });
+a11yScan();
+
 /* ---------- Zelftest ---------- */
 const SF_ICON = { ok: '✅', warn: '⚠️', fail: '❌', skip: '➖' };
 const SF_FIX = {
@@ -3475,6 +3538,7 @@ function renderDash(){
 /* ---------- Instellingen ---------- */
 function stJson(s){ try { return JSON.parse(s); } catch(e){ return {}; } }
 function enterSettings(){
+  $('#st-zoom').value = String(Android.textZoomGet());
   const i = stJson(Android.settingsInfo());
   const lk = i.lock || {};
   $('#st-lock-state').textContent = lk.on ? 'Aan' : (lk.secure ? 'Uit' : 'Uit · stel eerst een schermvergrendeling in op je telefoon');

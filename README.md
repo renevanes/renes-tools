@@ -77,6 +77,15 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Slaaptimer: vaste tijden, een eigen aantal minuten of tot een tijdstip.
 - `usesCleartextTraffic="true"`, omdat veel radiostreams nog via http lopen.
 
+### Pauzeren en terugspoelen
+- `Timeshift.java`: de stream wordt doorlopend opgenomen in een ringbuffer van 48 MB in de cache (ca. 50 min bij 128 kbps) en via een klein HTTP-servertje op 127.0.0.1 aan MediaPlayer gegeven, vanaf elke plek in de buffer. Werkt voor MP3- en AAC-streams; andere formaten (HLS, Ogg) spelen gewoon live.
+- Pauze houdt je plek vast (de stream loopt door, max. 1 uur); verder gaat precies waar je was. Ook na een telefoongesprek ga je verder waar je was. Knoppen −30 s / +30 s / Live in de app, −30 s in de melding, en terug/vooruit via de mediaknoppen en Android Auto.
+- Uit te zetten in het radioscherm ("Pauzeren en terugspoelen").
+
+## Toegankelijkheid
+- **Tekstgrootte** (Instellingen → Weergave): volgt standaard de lettergrootte van de telefoon, of kies kleiner tot maximaal (175%). Via `WebSettings.setTextZoom`; de indeling loopt mee zonder horizontaal scrollen.
+- **TalkBack**: alle knoppen en velden hebben een naam; schakelaars zijn `role=switch` met aan/uit, keuzeknoppen melden of ze gekozen zijn; meldingen (`role=status`), dialogen (`role=dialog`) en bij elk scherm springt de focus naar de titel.
+
 ## Muziek herkennen
 - Eigen "SoundHound": 10 seconden opnemen via de microfoon (`MediaRecorder`, AAC) of rechtstreeks een stukje van de radiostream ophalen, en dat laten herkennen door [AudD](https://audd.io) met de eigen API-sleutel van de gebruiker (300 gratis, daarna betaald). Een app kan dit niet zelf: daarvoor is een database van tientallen miljoenen nummers nodig (`Music.java`).
 - Resultaat met hoes, album en jaar en links naar Spotify, Apple Music, YouTube Music en alle diensten (song.link). Geschiedenis (max. 500) lokaal, doorzoekbaar.

@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.23",
+    "date": "2026-10-04",
+    "changes": [
+      "Radio pauzeren en terugspoelen: pauze houdt je plek vast, 30 seconden terug of vooruit, en terug naar live",
+      "Tekstgrootte instelbaar (Instellingen → Weergave), standaard zoals je telefoon",
+      "Beter te gebruiken met TalkBack: alle knoppen hebben een naam, schakelaars melden aan/uit"
+    ]
+  },
+  {
     "version": "1.22",
     "date": "2026-10-04",
     "changes": [
