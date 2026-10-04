@@ -44,6 +44,8 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 ## Oproepen-backup
 - Leest de eigen oproepgeschiedenis via `CallLog.Calls` (READ_CALL_LOG, die de app al had voor Auto redial): inkomend, uitgaand, gemist, geweigerd (`Calls.java`).
 - In de app: totalen (aantal en beltijd), filter Alle/Inkomend/Uitgaand/Gemist, zoeken op naam of nummer (laatste 500). Tik op een oproep om het nummer in Auto redial te zetten.
+- **Koppeling met contacten**: elk nummer wordt (op de laatste 9 cijfers) aan een contact gekoppeld (`Calls.who`). Vanuit een oproep: contact bekijken, toevoegen aan contacten (onbekend nummer), alle oproepen met die persoon, of opnieuw bellen met Auto redial. In Contacten toont elk contact zijn oproepen met totalen en een knop naar al die oproepen.
+- **Filters**: richting, zoeken, periode (vandaag, gisteren, 7/30 dagen, dit jaar of zelf kiezen), wie (contacten, favorieten, onbekende nummers), duur (niet verbonden, ≥1/5/15 min) en één persoon. Totalen gelden voor de selectie; een selectie kan apart geëxporteerd worden (eigen bestandsnamen).
 - Export naar `Oproepen backup/` in de backup-map: een herstelbaar XML in het `<calls>`-formaat van "SMS Backup & Restore", een CSV (puntkomma, UTF-8 met BOM, voor Excel) en een leesbare HTML-tabel. Alleen lezen.
 
 ## Notities

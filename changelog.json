@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.12",
+    "date": "2026-10-04",
+    "changes": [
+      "Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen",
+      "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon",
+      "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren"
+    ]
+  },
+  {
     "version": "1.11",
     "date": "2026-10-03",
     "changes": [

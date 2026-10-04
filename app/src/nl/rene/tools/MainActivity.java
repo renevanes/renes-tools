@@ -854,11 +854,11 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return "{}"; }
         }
 
-        @JavascriptInterface public String callsList(String filter, String q) {
-            try { return Calls.listJson(ctx, filter, q, 500); } catch (Exception e) { return errJson(e); }
+        @JavascriptInterface public String callsList(String filterJson) {
+            try { return Calls.listJson(ctx, filterJson, 500); } catch (Exception e) { return errJson(e); }
         }
 
-        @JavascriptInterface public String callsExport() {
+        @JavascriptInterface public String callsExport(String filterJson) {
             if (callsBusy) return "Er loopt al een export";
             if (!callsHasPermission()) return "Geef eerst toegang tot de oproepgeschiedenis";
             if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map (bij WhatsApp backup)";
@@ -867,7 +867,7 @@ public class MainActivity extends Activity {
             new Thread(() -> {
                 String err = null; int n = 0;
                 try {
-                    n = Calls.export(ctx, (done, total) -> {
+                    n = Calls.export(ctx, filterJson, (done, total) -> {
                         try { Calls.prefs(ctx).edit().putString("status",
                                 new JSONObject().put("running", true).put("done", done).put("total", total).toString()).apply(); } catch (Exception ignored) { }
                     });
@@ -958,6 +958,19 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String contactsExport(String v) {
             try { return "ok:" + Contacts.export(ctx, Integer.parseInt(v)); }
             catch (Exception e) { return e.getMessage() != null ? e.getMessage() : "Exporteren mislukt"; }
+        }
+
+        /** Opent de contacten-app met een nieuw contact waarin dit nummer al is ingevuld. */
+        @JavascriptInterface public void contactsAddNumber(String number) {
+            a.h.post(() -> {
+                try {
+                    android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_INSERT, android.provider.ContactsContract.Contacts.CONTENT_URI);
+                    i.putExtra(android.provider.ContactsContract.Intents.Insert.PHONE, number);
+                    a.startActivity(i);
+                } catch (Exception e) {
+                    Toast.makeText(a, "Contacten-app openen lukt niet", Toast.LENGTH_LONG).show();
+                }
+            });
         }
 
         /** Opent de contacten-app om een contact te bewerken (key) of een nieuw contact te maken (leeg). */

@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.CallLog;
+import android.provider.ContactsContract;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -13,8 +14,10 @@ import java.io.Writer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Oproepen-backup: leest de eigen oproepgeschiedenis van de telefoon (inkomend, uitgaand,
@@ -88,11 +91,65 @@ final class Calls {
         }
     }
 
+    // ---------- koppeling met contacten ----------
+
+    /** Contact bij een telefoonnummer. */
+    static final class Who {
+        final String name, key;
+        final long id;
+        final boolean fav;
+        Who(String name, String key, long id, boolean fav) { this.name = name; this.key = key; this.id = id; this.fav = fav; }
+    }
+
+    private static Map<String, Who> whoIndex;
+    private static String whoFp;
+    private static long whoAt;
+
+    /** Laatste 9 cijfers: zo zijn 06..., +316... en 00316... hetzelfde nummer. */
+    static String numKey(String n) {
+        if (n == null) return null;
+        String d = n.replaceAll("[^0-9]", "");
+        return d.length() < 6 ? null : d.substring(Math.max(0, d.length() - 9));
+    }
+
+    /** Nummer → contact, uit de contacten van de telefoon; opnieuw opgebouwd als de contacten veranderen. */
+    static synchronized Map<String, Who> who(Context c) {
+        if (c.checkSelfPermission(android.Manifest.permission.READ_CONTACTS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            return new HashMap<>();
+        // Binnen een paar seconden niet opnieuw controleren: een lijst of export vraagt dit per oproep.
+        if (whoIndex != null && System.currentTimeMillis() - whoAt < 5000) return whoIndex;
+        String fp;
+        try { fp = Contacts.fingerprint(c); } catch (Exception e) { fp = ""; }
+        if (whoIndex != null && fp.equals(whoFp)) { whoAt = System.currentTimeMillis(); return whoIndex; }
+        Map<String, Who> m = new HashMap<>();
+        String[] cols = {ContactsContract.CommonDataKinds.Phone.NUMBER, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                ContactsContract.CommonDataKinds.Phone.LOOKUP_KEY, ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
+                ContactsContract.CommonDataKinds.Phone.STARRED};
+        try (Cursor cur = c.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, cols, null, null, null)) {
+            while (cur != null && cur.moveToNext()) {
+                String k = numKey(cur.getString(0));
+                if (k != null && !m.containsKey(k))
+                    m.put(k, new Who(cur.getString(1) == null ? "" : cur.getString(1), cur.getString(2), cur.getLong(3), cur.getInt(4) != 0));
+            }
+        } catch (Exception ignored) { }
+        whoIndex = m;
+        whoFp = fp;
+        whoAt = System.currentTimeMillis();
+        return m;
+    }
+
+    static Who whoFor(Context c, Call k) {
+        if (k.number == null || k.presentation != 1) return null;
+        String key = numKey(k.number);
+        return key == null ? null : who(c).get(key);
+    }
+
     static String name(Context c, Call k) {
         if (k.number == null || k.number.isEmpty() || k.presentation != 1) return "Afgeschermd nummer";
-        String n = Sms.nameFor(c, k.number);
-        if (n.equals(k.number) && k.cachedName != null && !k.cachedName.isEmpty()) return k.cachedName;
-        return n;
+        Who w = whoFor(c, k);
+        if (w != null && !w.name.isEmpty()) return w.name;
+        if (k.cachedName != null && !k.cachedName.isEmpty()) return k.cachedName;
+        return k.number;
     }
 
     static String dur(int s) {
@@ -101,26 +158,85 @@ final class Calls {
         return h > 0 ? String.format(Locale.US, "%d:%02d:%02d", h, m, sec) : String.format(Locale.US, "%d:%02d", m, sec);
     }
 
+    // ---------- filteren ----------
+
+    /** Filter uit de interface (JSON). Lege velden = geen beperking. */
+    static final class Filter {
+        String kind = "all", q = "", who = "all";
+        long from = 0, to = 0;          // ms; to = exclusief
+        int minDur = -1, maxDur = -1;   // seconden
+        java.util.Set<String> nums = null;
+        boolean active;
+
+        static Filter parse(String json) {
+            Filter f = new Filter();
+            if (json == null || json.trim().isEmpty()) return f;
+            try {
+                JSONObject o = new JSONObject(json);
+                f.kind = o.optString("kind", "all");
+                f.q = o.optString("q", "").trim().toLowerCase(Locale.ROOT);
+                f.who = o.optString("who", "all");
+                f.from = o.optLong("from", 0);
+                f.to = o.optLong("to", 0);
+                f.minDur = o.optInt("minDur", -1);
+                f.maxDur = o.optInt("maxDur", -1);
+                JSONArray n = o.optJSONArray("numbers");
+                if (n != null && n.length() > 0) {
+                    f.nums = new java.util.HashSet<>();
+                    for (int i = 0; i < n.length(); i++) { String k = numKey(n.optString(i)); if (k != null) f.nums.add(k); }
+                }
+            } catch (Exception ignored) { }
+            f.active = !f.kind.equals("all") || !f.q.isEmpty() || !f.who.equals("all") || f.from > 0 || f.to > 0
+                    || f.minDur >= 0 || f.maxDur >= 0 || f.nums != null;
+            return f;
+        }
+
+        boolean matches(Context c, Call k, String name, Who w) {
+            String kd = kind(k.type);
+            if (!kind.equals("all") && !kd.equals(kind) && !(kind.equals("missed") && kd.equals("rejected"))) return false;
+            if (from > 0 && k.date < from) return false;
+            if (to > 0 && k.date >= to) return false;
+            if (minDur >= 0 && k.duration < minDur) return false;
+            if (maxDur >= 0 && k.duration > maxDur) return false;
+            if (who.equals("contacts") && w == null) return false;
+            if (who.equals("unknown") && w != null) return false;
+            if (who.equals("favorites") && (w == null || !w.fav)) return false;
+            if (nums != null && !nums.contains(numKey(k.number))) return false;
+            if (!q.isEmpty()) {
+                String digits = q.replaceAll("[^0-9]", "");
+                boolean hit = name.toLowerCase(Locale.ROOT).contains(q)
+                        || (k.number != null && k.number.toLowerCase(Locale.ROOT).contains(q))
+                        || (digits.length() >= 3 && k.number != null && k.number.replaceAll("[^0-9]", "").contains(digits));
+                if (!hit) return false;
+            }
+            return true;
+        }
+    }
+
     // ---------- weergave in de app ----------
 
-    /** Oproepen als JSON, nieuwste eerst. filter: all, in, out, missed. */
-    static String listJson(Context c, String filter, String q, int limit) throws Exception {
+    /** Oproepen die aan het filter voldoen, nieuwste eerst, met totalen over de hele selectie. */
+    static String listJson(Context c, String filterJson, int limit) throws Exception {
+        Filter f = Filter.parse(filterJson);
         List<Call> all = read(c, 0);
-        String f = filter == null ? "all" : filter;
-        String needle = q == null ? "" : q.trim().toLowerCase(Locale.ROOT);
         JSONArray arr = new JSONArray();
-        int nIn = 0, nOut = 0, nMissed = 0;
-        long secIn = 0, secOut = 0;
+        int n = 0, nIn = 0, nOut = 0, nMissed = 0;
+        long secIn = 0, secOut = 0, first = 0, last = 0;
+        java.util.Set<String> people = new java.util.HashSet<>();
         for (Call k : all) {
+            Who w = whoFor(c, k);
+            String nm = name(c, k);
+            if (!f.matches(c, k, nm, w)) continue;
             String kd = kind(k.type);
+            n++;
             if (kd.equals("in")) { nIn++; secIn += k.duration; }
             else if (kd.equals("out")) { nOut++; secOut += k.duration; }
             else if (kd.equals("missed") || kd.equals("rejected")) nMissed++;
-            boolean match = f.equals("all") || kd.equals(f) || (f.equals("missed") && kd.equals("rejected"));
-            if (!match || arr.length() >= limit) continue;
-            String nm = name(c, k);
-            if (!needle.isEmpty() && !nm.toLowerCase(Locale.ROOT).contains(needle)
-                    && (k.number == null || !k.number.contains(needle))) continue;
+            if (last == 0) last = k.date;
+            first = k.date;
+            String pk = numKey(k.number);
+            if (pk != null) people.add(w != null ? "c" + w.id : pk);
+            if (arr.length() >= limit) continue;
             JSONObject o = new JSONObject();
             o.put("name", nm);
             o.put("number", k.presentation == 1 && k.number != null ? k.number : "");
@@ -128,13 +244,15 @@ final class Calls {
             o.put("duration", k.duration);
             o.put("kind", kd);
             o.put("label", label(k.type));
+            if (w != null) o.put("ck", w.key).put("cid", w.id).put("fav", w.fav);
             arr.put(o);
         }
         JSONObject r = new JSONObject();
         r.put("calls", arr);
-        r.put("total", all.size());
+        r.put("total", all.size()).put("count", n).put("people", people.size()).put("filtered", f.active);
         r.put("in", nIn).put("out", nOut).put("missed", nMissed);
-        r.put("secIn", secIn).put("secOut", secOut);
+        r.put("secIn", secIn).put("secOut", secOut).put("first", first).put("last", last);
+        r.put("contacts", c.checkSelfPermission(android.Manifest.permission.READ_CONTACTS) == android.content.pm.PackageManager.PERMISSION_GRANTED);
         return r.toString();
     }
 
@@ -150,11 +268,13 @@ final class Calls {
     }
 
     /** Exporteert de oproepgeschiedenis: XML (herstelbaar), CSV en een leesbare HTML-pagina. */
-    static int export(Context c, Sms.Progress p) throws Exception {
+    static int export(Context c, String filterJson, Sms.Progress p) throws Exception {
         Uri tree = WaBackup.destUri(c);
         if (tree == null) throw new Exception("Kies eerst een backup-map (bij WhatsApp backup)");
-        List<Call> all = read(c, 0);
-        if (all.isEmpty()) throw new Exception("Geen oproepen gevonden op deze telefoon");
+        Filter flt = Filter.parse(filterJson);
+        List<Call> all = new ArrayList<>();
+        for (Call k : read(c, 0)) if (!flt.active || flt.matches(c, k, name(c, k), whoFor(c, k))) all.add(k);
+        if (all.isEmpty()) throw new Exception(flt.active ? "Geen oproepen in deze selectie" : "Geen oproepen gevonden op deze telefoon");
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir dir = dest.dir(DIR, true);
 
@@ -166,10 +286,12 @@ final class Calls {
         SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
         SimpleDateFormat full = new SimpleDateFormat("EEE d MMM yyyy HH:mm", new Locale("nl", "NL"));
         String day = stamp.format(new Date());
+        // Een selectie krijgt eigen bestandsnamen, zodat de volledige backup niet overschreven wordt.
+        String sel = flt.active ? "-selectie-" + new SimpleDateFormat("HHmmss", Locale.US).format(new Date()) : "";
         int total = all.size() * 3, step = 0;
 
         // 1. XML in het formaat van SMS Backup & Restore
-        try (Writer w = Sms.open(dest, dir, "oproepen-" + day + ".xml", "text/xml")) {
+        try (Writer w = Sms.open(dest, dir, "oproepen-" + day + sel + ".xml", "text/xml")) {
             w.write("<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>\n");
             w.write("<calls count=\"" + all.size() + "\" backup_set=\"renes-tools\" backup_date=\"" + System.currentTimeMillis() + "\">\n");
             for (int i = 0; i < all.size(); i++) {
@@ -185,7 +307,7 @@ final class Calls {
         }
 
         // 2. CSV (puntkomma, met BOM zodat Excel UTF-8 herkent)
-        try (Writer w = Sms.open(dest, dir, "oproepen-" + day + ".csv", "text/csv")) {
+        try (Writer w = Sms.open(dest, dir, "oproepen-" + day + sel + ".csv", "text/csv")) {
             w.write("﻿Datum;Richting;Naam;Nummer;Duur (sec);Duur\r\n");
             for (int i = 0; i < all.size(); i++) {
                 Call k = all.get(i);
@@ -197,7 +319,7 @@ final class Calls {
         }
 
         // 3. Leesbare HTML-pagina
-        try (Writer w = Sms.open(dest, dir, "oproepen.html", "text/html")) {
+        try (Writer w = Sms.open(dest, dir, "oproepen" + (sel.isEmpty() ? "" : "-" + day + sel) + ".html", "text/html")) {
             w.write("<!DOCTYPE html><html lang=nl><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
                     + "<title>Oproepen</title><style>" + CSS + "</style><header><h1>Oproepen</h1><small>Gemaakt door Rene's Tools op "
                     + Sms.esc(full.format(new Date())) + " · " + all.size() + " oproepen</small></header><main><table>"
@@ -214,7 +336,7 @@ final class Calls {
         }
 
         p.step(total, total);
-        prefs(c).edit().putLong("lastExport", System.currentTimeMillis()).putInt("lastCount", all.size()).apply();
+        if (!flt.active) prefs(c).edit().putLong("lastExport", System.currentTimeMillis()).putInt("lastCount", all.size()).apply();
         return all.size();
     }
 

@@ -1,13 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.11",
-  "versionCode": 12,
-  "nativeLevel": 12,
+  "versionName": "1.12",
+  "versionCode": 13,
+  "nativeLevel": 13,
   "web": "index.html",
-  "webSha256": "2daad5a60e41e939076fdab3e965241e42cad0f46fa9f8b7fdfcee2a263d14dc",
+  "webSha256": "0d3157bbd7dd8710b7b182bd07f1031b61075949e7402f10029b8dbb22d699c5",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "bb655ddf8c179f0fe1390dc225cdc2dabdc655a802d8284043b4a3a1d371be22",
+  "apkSha256": "8def224b0731a46f968efc439fb0de04b6b917be45bbcd2c1c8716e5613ef5aa",
   "changelog": [
+    {
+      "version": "1.12",
+      "date": "2026-10-04",
+      "changes": [
+        "Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen",
+        "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon",
+        "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren"
+      ]
+    },
     {
       "version": "1.11",
       "date": "2026-10-03",

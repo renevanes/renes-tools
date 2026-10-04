@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- RENES-TOOLS-UI versie 1.11 (12) -->
+<!-- RENES-TOOLS-UI versie 1.12 (13) -->
 <html lang="nl">
 <head>
 <meta charset="utf-8">
@@ -124,6 +124,7 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 .clist .r1{display:flex;gap:8px;align-items:baseline}
 .clist .r1 b{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .clist .r1 time,.clist .r2{color:var(--muted);font-size:13px}
+.clist .crow{padding:10px 2px;border-top:1px solid var(--line)}.clist .crow:first-child{border-top:0}
 .clist .r2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
 .calls .k{display:inline-block;min-width:78px;margin-right:6px;font-weight:600}
 #calls-filter{flex-wrap:nowrap;gap:6px}#calls-filter button{padding:9px 10px;font-size:14px;min-width:0}
@@ -163,6 +164,22 @@ button.mini:disabled{opacity:.6}
 .mrow{padding:6px 0}.mrow label{display:flex;gap:8px;align-items:center}
 select.sel{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 b.ok{color:var(--ok);font-weight:600}
+.fbtn{position:relative;width:48px;height:48px;border-radius:12px;background:var(--chip);color:var(--brand-2);display:flex;align-items:center;justify-content:center;flex:none}
+.fbtn.on{background:var(--chip-on);color:#fff}
+.fbtn span{position:absolute;top:4px;right:6px;font-size:11px;font-weight:700}
+.flabel{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:2px 0 8px}
+.chips.sm button{padding:7px 11px;font-size:14px;min-width:0}
+.dlab{flex:1;display:flex;flex-direction:column;font-size:13px;color:var(--muted);gap:4px}
+.dlab input{font:inherit;font-size:15px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.fchips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.fchips:empty{display:none}
+.fchips button{padding:6px 10px;border-radius:999px;background:var(--chip-on);color:#fff;font-size:13px;font-weight:600}
+.calls .unk{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 5px;vertical-align:2px}
+.sheet{position:fixed;inset:0;background:rgba(10,16,24,.5);display:none;align-items:flex-end;z-index:1900}
+.sheet.on{display:flex}
+.sheet-box{background:var(--card);width:100%;border-radius:18px 18px 0 0;padding:16px 16px 22px;box-shadow:0 -6px 30px rgba(0,0,0,.25)}
+.sheet-box h3{margin:0;font-size:18px}.sheet-box p{margin:4px 0 12px;color:var(--muted);font-size:14px}
+.sheet-box button{display:block;width:100%;text-align:left;padding:14px 4px;border-top:1px solid var(--line);font-size:16px;color:var(--brand-2);font-weight:600}
+.sheet-box button.cancel{color:var(--muted);font-weight:500}
 .csum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:0 0 6px}
 .csum b{display:block;font-size:20px}.csum small{color:var(--muted);font-size:12px}
 .msgs{display:flex;flex-direction:column;gap:4px;padding-bottom:24px}
@@ -268,11 +285,6 @@ b.ok{color:var(--ok);font-weight:600}
         <b>Gesprekken uitschrijven</b>
         <small id="tile-tx-sub">Opnames omzetten naar tekst</small>
       </button>
-      <div class="tile soon">
-        <span class="ic" style="background:var(--muted)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-        <b>Meer tools</b>
-        <small>Volgen binnenkort</small>
-      </div>
     </div>
     <div class="foot"><button onclick="show('info')">Versie en updates</button></div>
   </main>
@@ -720,6 +732,7 @@ b.ok{color:var(--ok);font-weight:600}
     <div class="card"><dl class="fields" id="ctd-fields"></dl>
       <button class="big" style="margin-top:12px" onclick="ctEdit()">Bewerken</button>
     </div>
+    <div class="card" id="ctd-calls" style="display:none"><h2>Oproepen</h2><div id="ctd-calls-body"></div></div>
     <div class="card"><h2>Wijzigingen</h2><div id="ctd-hist"></div></div>
   </main>
 </section>
@@ -806,26 +819,57 @@ b.ok{color:var(--ok);font-weight:600}
 
     <div id="calls-home">
       <div class="card">
-        <h2>Exporteren</h2>
+        <h2 id="calls-sum-title">Overzicht</h2>
         <div class="csum" id="calls-sum"></div>
-        <button class="big" onclick="callsExport()">Oproepen exporteren</button>
-        <p class="note">Naar de map <b>Oproepen backup</b> in je gekozen backup-map: een herstelbaar bestand (leesbaar door de app "SMS Backup &amp; Restore"), een CSV-bestand voor Excel en een webpagina met alle oproepen.</p>
+        <p class="note" id="calls-sum-note" style="margin:6px 0 12px;text-align:center"></p>
+        <button class="big" onclick="callsExport(false)">Alle oproepen exporteren</button>
+        <button class="big ghost" id="calls-export-sel" style="margin-top:8px;display:none" onclick="callsExport(true)">Alleen deze selectie exporteren</button>
+        <p class="note">Naar de map <b>Oproepen backup</b> in je gekozen backup-map: een herstelbaar bestand (leesbaar door de app "SMS Backup &amp; Restore"), een CSV-bestand voor Excel en een webpagina. Een selectie krijgt eigen bestandsnamen.</p>
       </div>
 
       <div class="card" id="calls-contacts" style="display:none">
-        <p style="margin:0 0 10px">Geef toegang tot je contacten om namen te tonen in plaats van nummers.</p>
-        <button class="big ghost" onclick="Android.callsRequestPermission()">Contacten tonen</button>
+        <p style="margin:0 0 10px">Geef toegang tot je contacten om namen te tonen en oproepen aan je contacten te koppelen.</p>
+        <button class="big ghost" onclick="Android.callsRequestPermission()">Contacten koppelen</button>
       </div>
 
       <div class="chips" id="calls-filter">
-        <button class="on" data-f="all" onclick="callsSetFilter('all')">Alle</button>
-        <button data-f="in" onclick="callsSetFilter('in')">Inkomend</button>
-        <button data-f="out" onclick="callsSetFilter('out')">Uitgaand</button>
-        <button data-f="missed" onclick="callsSetFilter('missed')">Gemist</button>
+        <button class="on" data-f="all" onclick="callsSetKind('all')">Alle</button>
+        <button data-f="in" onclick="callsSetKind('in')">Inkomend</button>
+        <button data-f="out" onclick="callsSetKind('out')">Uitgaand</button>
+        <button data-f="missed" onclick="callsSetKind('missed')">Gemist</button>
       </div>
-      <input class="search" id="calls-search" type="search" placeholder="Zoek op naam of nummer…" oninput="callsSearchDo()">
+      <div class="row" style="margin-bottom:10px">
+        <input class="search" id="calls-search" type="search" placeholder="Zoek op naam of nummer…" oninput="callsSearchDo()" style="flex:1;margin:0">
+        <button class="fbtn" id="calls-fbtn" onclick="callsToggleFilters()" aria-label="Filters">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          <span id="calls-fcount"></span></button>
+      </div>
+
+      <div class="card" id="calls-fpanel" style="display:none">
+        <div class="flabel">Periode</div>
+        <div class="chips sm" id="cf-period">
+          <button data-v="all">Altijd</button><button data-v="today">Vandaag</button><button data-v="yesterday">Gisteren</button>
+          <button data-v="7">7 dagen</button><button data-v="30">30 dagen</button><button data-v="year">Dit jaar</button><button data-v="custom">Kiezen…</button>
+        </div>
+        <div class="row" id="cf-custom" style="display:none;margin:-6px 0 12px">
+          <label class="dlab">Van<input type="date" id="cf-from" onchange="callsCustomDates()"></label>
+          <label class="dlab">Tot en met<input type="date" id="cf-to" onchange="callsCustomDates()"></label>
+        </div>
+        <div class="flabel">Wie</div>
+        <div class="chips sm" id="cf-who">
+          <button data-v="all">Iedereen</button><button data-v="contacts">Contacten</button><button data-v="favorites">Favorieten</button><button data-v="unknown">Onbekende nummers</button>
+        </div>
+        <div class="flabel">Duur</div>
+        <div class="chips sm" id="cf-dur">
+          <button data-v="all">Alle</button><button data-v="0">Niet verbonden</button><button data-v="60">1 min of langer</button>
+          <button data-v="300">5 min of langer</button><button data-v="900">15 min of langer</button>
+        </div>
+        <button class="big ghost" onclick="callsClearFilters()">Filters wissen</button>
+      </div>
+
+      <div class="fchips" id="calls-active"></div>
       <div class="clist card calls" id="calls-list"></div>
-      <p class="note" style="margin-top:14px">Tik op een oproep om het nummer in Auto redial te zetten. De app toont de laatste 500; de export bevat alles.</p>
+      <p class="note" style="margin-top:14px">Tik op een oproep voor het contact, alle gesprekken met die persoon of opnieuw bellen. De app toont de nieuwste 500 van de selectie; de export bevat alles.</p>
     </div>
   </main>
 </section>
@@ -854,6 +898,10 @@ b.ok{color:var(--ok);font-weight:600}
 
 <div class="toast" id="toast"></div>
 
+<div class="sheet" id="sheet" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet-box"><h3 id="sheet-title"></h3><p id="sheet-sub"></p><div id="sheet-acts"></div>
+    <button class="cancel" onclick="closeSheet()">Annuleren</button></div>
+</div>
 <div class="modal" id="modal">
   <div class="modal-box">
     <h3 id="modal-title"></h3>
@@ -873,9 +921,9 @@ b.ok{color:var(--ok);font-weight:600}
 </div></div>
 
 <script>
-const VERSION_NAME = "1.11";
-const VERSION_CODE = 12;
-const CHANGELOG = [{"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+const VERSION_NAME = "1.12";
+const VERSION_CODE = 13;
+const CHANGELOG = [{"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
 
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
 if (!window.Android) window.Android = (function(){
@@ -961,14 +1009,20 @@ if (!window.Android) window.Android = (function(){
       s.st={running:true,done:0,total:31}; let i=0; s.t=setInterval(()=>{ i+=8; s.st={running:true,done:Math.min(i,31),total:31}; if(i>=31){ clearInterval(s.t); s.done=true; s.st={running:false,ok:true,count:31}; } },250); return ''; },
     smsStatus(){ return JSON.stringify(this._sms.st); },
     _calls:{perm:false,contacts:false,st:{running:false},done:false,list:null},
-    _callsDemo(){ const ppl=[['Moeder','06 11122233'],['Huisarts','010 123 4567'],['','+31 20 765 4321'],['Kantoor','010 999 8888']]; const kinds=[['in','Inkomend'],['out','Uitgaand'],['missed','Gemist']]; const l=[]; let t=Date.now();
-      for(let i=0;i<42;i++){ t-=Math.random()*9e6; const p=ppl[i%4], k=kinds[(i*7)%3]; l.push({name:p[0]||p[1],number:p[1],date:Math.round(t),duration:k[0]==='missed'?0:Math.round(Math.random()*900),kind:k[0],label:k[1]}); } this._calls.list=l; },
+    _callsDemo(){ const ppl=[['Moeder','06 11122233','k1',1,true],['Huisarts','010 123 4567','k3',3,false],['','+31 20 765 4321'],['Jos de Vries','010 999 8888','k2',2,false]]; const kinds=[['in','Inkomend'],['out','Uitgaand'],['missed','Gemist']]; const l=[]; let t=Date.now();
+      for(let i=0;i<42;i++){ t-=Math.random()*9e6; const p=ppl[i%4], k=kinds[(i*7)%3]; l.push({name:p[0]||p[1],number:p[1],date:Math.round(t),duration:k[0]==='missed'?0:Math.round(Math.random()*900),kind:k[0],label:k[1],ck:p[2],cid:p[3],fav:p[4]}); } this._calls.list=l; },
     callsHasPermission(){ return this._calls.perm; },
     callsRequestPermission(){ this._calls.perm=true; this._calls.contacts=true; this._callsDemo(); setTimeout(()=>onCallsChanged(),150); },
     callsInfo(){ const s=this._calls; return JSON.stringify({perm:s.perm,dest:this._wa.info.dest,contacts:s.contacts,lastExport:s.done?Date.now()-3600e3:0,lastCount:s.done?42:0,total:s.perm?42:0}); },
-    callsList(f,q){ const l=this._calls.list||[]; const ql=(q||'').toLowerCase(); const c=l.filter(x=>(f==='all'||x.kind===f)&&(!ql||x.name.toLowerCase().includes(ql)||x.number.includes(ql)));
-      const sum=(k)=>l.filter(x=>x.kind===k); return JSON.stringify({calls:c,total:l.length,in:sum('in').length,out:sum('out').length,missed:sum('missed').length,secIn:sum('in').reduce((a,x)=>a+x.duration,0),secOut:sum('out').reduce((a,x)=>a+x.duration,0)}); },
-    callsExport(){ const s=this._calls; if(!s.perm) return 'Geef eerst toegang tot de oproepgeschiedenis'; if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)';
+    callsList(j){ const f=JSON.parse(j||'{}'); const all=this._calls.list||[]; const ql=(f.q||'').toLowerCase(); const nk=n=>(n||'').replace(/\D/g,'').slice(-9);
+      const nums=(f.numbers||[]).map(nk);
+      const c=all.filter(x=>(!f.kind||f.kind==='all'||x.kind===f.kind)&&(!ql||x.name.toLowerCase().includes(ql)||x.number.includes(ql))&&(!f.from||x.date>=f.from)&&(!f.to||x.date<f.to)
+        &&(f.minDur==null||x.duration>=f.minDur)&&(f.maxDur==null||x.duration<=f.maxDur)&&(!f.who||f.who==='all'||(f.who==='contacts'?!!x.ck:f.who==='unknown'?!x.ck:!!x.fav))&&(!nums.length||nums.includes(nk(x.number))));
+      const sum=k=>c.filter(x=>x.kind===k); const active=Object.keys(f).some(k=>k==='kind'?f.kind!=='all':k==='who'?f.who!=='all':k==='q'?!!f.q:true);
+      return JSON.stringify({calls:c,total:all.length,count:c.length,people:new Set(c.map(x=>nk(x.number))).size,filtered:active,in:sum('in').length,out:sum('out').length,missed:sum('missed').length,
+        secIn:sum('in').reduce((a,x)=>a+x.duration,0),secOut:sum('out').reduce((a,x)=>a+x.duration,0),first:c.length?c[c.length-1].date:0,last:c.length?c[0].date:0,contacts:true}); },
+    contactsAddNumber(n){ toast('(contacten-app: nieuw contact met '+n+')'); },
+    callsExport(j){ const s=this._calls; if(!s.perm) return 'Geef eerst toegang tot de oproepgeschiedenis'; if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)';
       s.st={running:true,done:0,total:126}; let i=0; s.t=setInterval(()=>{ i+=30; s.st={running:true,done:Math.min(i,126),total:126}; if(i>=126){ clearInterval(s.t); s.done=true; s.st={running:false,ok:true,count:42}; } },250); return ''; },
     callsStatus(){ return JSON.stringify(this._calls.st); },
     _notes:'[{"id":"a1","title":"Boodschappen","text":"","updated":1759480000000,"items":[{"id":"i1","text":"Melk","done":false},{"id":"i2","text":"Brood","done":true},{"id":"i3","text":"Kaas","done":false}]}]',
@@ -1072,13 +1126,15 @@ function bars(){ const cs=getComputedStyle(document.documentElement); Android.se
 function show(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
   const current_prev = current;
+  if (name==='home') jumpStack.length = 0;
+  closeSheet();
   current = name; window.scrollTo(0,0);
   if (name==='redial') enterRedial(); else stopPoll();
   if (name==='wa') enterWa(); else stopWaPoll();
   if (name==='chats') enterChats();
   if (name==='tracks') enterTracks(); else stopTrackPoll();
   if (name==='sms') enterSms(); else stopSmsPoll();
-  if (name==='calls') enterCalls(); else stopCallsPoll();
+  if (name==='calls') enterCalls(current_prev==='home'); else stopCallsPoll();
   if (current_prev==='note' && name!=='note') leaveNote();
   if (name==='notes') enterNotes();
   if (name==='contacts') enterContacts();
@@ -1089,7 +1145,21 @@ function show(name){
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); }
 }
 const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts'};
-window.goBack = function(){ if (current!=='home'){ show(BACK[current]||'home'); return true; } return false; };
+window.goBack = function(){
+  if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
+  if (jumpStack.length) { show(jumpStack.pop()); return true; }
+  if (current!=='home'){ show(BACK[current]||'home'); return true; } return false; };
+/* Sprongen tussen tools (oproep → contact → oproepen): terug gaat naar waar je vandaan kwam. */
+const jumpStack = [];
+function jumpTo(name, open){ const from = current; if (open) open(); else show(name); if (current !== from) jumpStack.push(from); }
+function openSheet(title, sub, acts){
+  $('#sheet-title').textContent = title; $('#sheet-sub').textContent = sub || '';
+  const box = $('#sheet-acts'); box.innerHTML = '';
+  acts.forEach(([label, fn]) => { const b = document.createElement('button'); b.textContent = label; b.onclick = () => { closeSheet(); fn(); }; box.appendChild(b); });
+  $('#sheet').classList.add('on');
+}
+function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.classList.remove('on'); }
+
 window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); };
 window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
@@ -1926,11 +1996,28 @@ function ctRenderDetail(){
   $('#ctd-fields').innerHTML = Object.keys(f).filter(k => k !== 'Naam').map(k =>
     '<dt>' + esc(k) + '</dt><dd>' + esc(f[k]).replace(/\n/g, '<br>') + '</dd>').join('') +
     (d.u ? '<dt>Laatst gewijzigd</dt><dd>' + esc(fmtFull(d.u)) + '</dd>' : '');
+  ctRenderCalls(d);
   const h = d.history || [];
   $('#ctd-hist').innerHTML = h.length ? h.map(x =>
     '<div class=hist><b>' + ({'+': 'Toegevoegd', '-': 'Verwijderd', '~': 'Gewijzigd'}[x.kind] || '') + '</b> <small>versie ' + x.v + ' · ' + esc(fmtFull(x.t)) + '</small>' +
     (x.kind === '~' ? ctChanges(x.d) : '') + '</div>').join('')
     : '<p class=note style="margin:0">Nog geen wijzigingen sinds de eerste versie.</p>';
+}
+/** Oproepen met dit contact (alle nummers van het contact). */
+let ctCallNums = [];
+function ctRenderCalls(d){
+  const box = $('#ctd-calls');
+  ctCallNums = ((d.f || {}).Telefoon || '').split('\n').map(x => x.replace(/ \([^)]*\)$/, '').trim()).filter(Boolean);
+  if (!ctCallNums.length || !Android.callsHasPermission()) { box.style.display = 'none'; return; }
+  let r; try { r = JSON.parse(Android.callsList(JSON.stringify({ numbers: ctCallNums }))); } catch(e){ box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  if (!r.count) { $('#ctd-calls-body').innerHTML = '<p class=note style="margin:0">Geen oproepen met dit contact in de oproepgeschiedenis.</p>'; return; }
+  $('#ctd-calls-body').innerHTML =
+    '<p class=note style="margin-top:0">' + r.count + ' oproepen · ' + (r.in||0) + ' inkomend, ' + (r.out||0) + ' uitgaand, ' + (r.missed||0) + ' gemist · samen ' + fmtHours((r.secIn||0) + (r.secOut||0)) + '</p>' +
+    '<div class="clist calls">' + (r.calls || []).slice(0, 5).map(c =>
+      '<div class="crow ' + esc(c.kind) + '"><span class=r1><b><span class=k>' + esc(c.label) + '</span></b><time>' + esc(fmtD(c.date)) + '</time></span>' +
+      '<span class=r2>' + (c.number ? esc(c.number) : '') + (c.duration ? ' · ' + fmtCallDur(c.duration) : '') + '</span></div>').join('') + '</div>' +
+    '<button class="big ghost" style="margin-top:10px" onclick="callsForPerson(ctDetail.n || \'Contact\', ctCallNums)">Alle ' + r.count + ' oproepen bekijken</button>';
 }
 function fmtFull(t){ return new Date(t).toLocaleString('nl-NL', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
 function ctChanges(d){
@@ -2104,12 +2191,38 @@ function refreshNotesTile(){
 }
 
 /* ---------- Oproepen-backup ---------- */
-let callsPoll = null, callsTmr = null, callsFilter = 'all', callsLastDone = false;
+let callsPoll = null, callsTmr = null, callsLastDone = false;
+// Filterstatus: richting, periode, wie, duur en eventueel één persoon (nummers van een contact).
+const callsF = { kind: 'all', period: 'all', from: '', to: '', who: 'all', dur: 'all', person: null };
 function callsInfo(){ try { return JSON.parse(Android.callsInfo()); } catch(e){ return {}; } }
 function fmtCallDur(s){ if (!s) return ''; const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
   return h ? h + ':' + String(m).padStart(2,'0') + ':' + String(x).padStart(2,'0') : m + ':' + String(x).padStart(2,'0'); }
 function fmtHours(s){ const h = Math.floor(s/3600), m = Math.round(s%3600/60); return h ? h + ' u ' + m + ' m' : m + ' min'; }
-function enterCalls(){
+function dayStart(d){ const x = new Date(d); x.setHours(0,0,0,0); return x.getTime(); }
+/** Filter als JSON voor de app (periode omgerekend naar tijden). */
+function callsFilterJson(){
+  const f = { kind: callsF.kind, q: $('#calls-search').value.trim(), who: callsF.who };
+  const now = Date.now(), today = dayStart(now);
+  switch (callsF.period) {
+    case 'today': f.from = today; break;
+    case 'yesterday': f.from = today - 864e5; f.to = today; break;
+    case '7': f.from = today - 6 * 864e5; break;
+    case '30': f.from = today - 29 * 864e5; break;
+    case 'year': f.from = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
+    case 'custom':
+      if (callsF.from) f.from = dayStart(callsF.from + 'T00:00');
+      if (callsF.to) f.to = dayStart(callsF.to + 'T00:00') + 864e5;
+      break;
+  }
+  if (callsF.dur === '0') f.maxDur = 0; else if (callsF.dur !== 'all') f.minDur = +callsF.dur;
+  if (callsF.person) f.numbers = callsF.person.numbers;
+  return JSON.stringify(f);
+}
+function callsFilterCount(){
+  return (callsF.period !== 'all' ? 1 : 0) + (callsF.who !== 'all' ? 1 : 0) + (callsF.dur !== 'all' ? 1 : 0);
+}
+function enterCalls(fromHome){
+  if (fromHome) callsF.person = null;
   const i = callsInfo(); callsPermCache = !!i.perm;
   try { const st = JSON.parse(Android.callsStatus()); callsLastDone = !st.running; } catch(e){}
   $('#calls-result').className = 'result';
@@ -2117,7 +2230,7 @@ function enterCalls(){
   $('#calls-perm-btn').textContent = store.get('callsAsked', false) && !i.perm ? 'Instellingen openen' : 'Toegang geven';
   $('#calls-home').style.display = i.perm ? 'block' : 'none';
   $('#calls-contacts').style.display = (i.perm && !i.contacts) ? 'block' : 'none';
-  $('#calls-search').value = '';
+  callsSyncUi();
   if (i.perm) loadCalls();
   callsPollOnce();
   stopCallsPoll(); callsPoll = setInterval(callsPollOnce, 600);
@@ -2128,36 +2241,99 @@ function callsAskPerm(){
   if (store.get('callsAsked', false) && !Android.callsHasPermission()) { Android.openAppSettings(); return; }
   store.set('callsAsked', true); Android.callsRequestPermission();
 }
-function callsSetFilter(f){
-  callsFilter = f;
-  document.querySelectorAll('#calls-filter button').forEach(b => b.classList.toggle('on', b.dataset.f === f));
-  loadCalls();
+function callsSyncUi(){
+  document.querySelectorAll('#calls-filter button').forEach(b => b.classList.toggle('on', b.dataset.f === callsF.kind));
+  document.querySelectorAll('#cf-period button').forEach(b => b.classList.toggle('on', b.dataset.v === callsF.period));
+  document.querySelectorAll('#cf-who button').forEach(b => b.classList.toggle('on', b.dataset.v === callsF.who));
+  document.querySelectorAll('#cf-dur button').forEach(b => b.classList.toggle('on', b.dataset.v === callsF.dur));
+  $('#cf-custom').style.display = callsF.period === 'custom' ? 'flex' : 'none';
+  $('#cf-from').value = callsF.from; $('#cf-to').value = callsF.to;
+  const n = callsFilterCount();
+  $('#calls-fcount').textContent = n ? n : '';
+  $('#calls-fbtn').classList.toggle('on', n > 0);
+  // Actieve filters als chips om snel weg te halen
+  const chips = [];
+  const lab = (id, v) => { const b = document.querySelector('#' + id + ' button[data-v="' + v + '"]'); return b ? b.textContent : v; };
+  if (callsF.person) chips.push(['person', 'Met: ' + callsF.person.name]);
+  if (callsF.period !== 'all') chips.push(['period', callsF.period === 'custom'
+      ? (callsF.from ? fmtDay(callsF.from) : '…') + ' – ' + (callsF.to ? fmtDay(callsF.to) : 'nu') : lab('cf-period', callsF.period)]);
+  if (callsF.who !== 'all') chips.push(['who', lab('cf-who', callsF.who)]);
+  if (callsF.dur !== 'all') chips.push(['dur', lab('cf-dur', callsF.dur)]);
+  $('#calls-active').innerHTML = chips.map(c => '<button data-k="' + c[0] + '" onclick="callsDropFilter(this.dataset.k)">' + esc(c[1]) + ' <span aria-hidden=true>×</span></button>').join('');
+}
+function fmtDay(iso){ return new Date(iso + 'T12:00').toLocaleDateString('nl-NL', {day:'numeric', month:'short', year:'numeric'}); }
+function callsSetKind(f){ callsF.kind = f; callsSyncUi(); loadCalls(); }
+function callsToggleFilters(){ const p = $('#calls-fpanel'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; }
+function callsPickChip(group, v){
+  if (group === 'cf-period') { callsF.period = v; if (v === 'custom' && !callsF.from) { const d = new Date(Date.now() - 29 * 864e5); callsF.from = d.toISOString().slice(0, 10); } }
+  if (group === 'cf-who') callsF.who = v;
+  if (group === 'cf-dur') callsF.dur = v;
+  callsSyncUi(); loadCalls();
+}
+function callsCustomDates(){ callsF.from = $('#cf-from').value; callsF.to = $('#cf-to').value; callsSyncUi(); loadCalls(); }
+function callsDropFilter(k){
+  if (k === 'person') callsF.person = null;
+  if (k === 'period') { callsF.period = 'all'; callsF.from = callsF.to = ''; }
+  if (k === 'who') callsF.who = 'all';
+  if (k === 'dur') callsF.dur = 'all';
+  callsSyncUi(); loadCalls();
+}
+function callsClearFilters(){
+  Object.assign(callsF, { kind: 'all', period: 'all', from: '', to: '', who: 'all', dur: 'all', person: null });
+  $('#calls-search').value = '';
+  callsSyncUi(); loadCalls();
 }
 function callsSearchDo(){ clearTimeout(callsTmr); callsTmr = setTimeout(loadCalls, 250); }
-let callsShown = [];
+let callsShown = [], callsSel = { filtered: false, count: 0 };
 function loadCalls(){
-  let d; try { d = JSON.parse(Android.callsList(callsFilter, $('#calls-search').value.trim())); } catch(e){ return; }
+  let d; try { d = JSON.parse(Android.callsList(callsFilterJson())); } catch(e){ return; }
   const el = $('#calls-list');
   if (d.error) { el.innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
+  callsSel = { filtered: !!d.filtered, count: d.count || 0 };
+  $('#calls-sum-title').textContent = d.filtered ? 'Selectie' : 'Overzicht';
   $('#calls-sum').innerHTML =
     '<div><b>' + (d.in||0) + '</b><small>inkomend<br>' + fmtHours(d.secIn||0) + '</small></div>' +
     '<div><b>' + (d.out||0) + '</b><small>uitgaand<br>' + fmtHours(d.secOut||0) + '</small></div>' +
     '<div><b>' + (d.missed||0) + '</b><small>gemist<br>&nbsp;</small></div>';
+  $('#calls-sum-note').textContent = (d.count || 0).toLocaleString('nl-NL') + (d.filtered ? ' van ' + (d.total||0).toLocaleString('nl-NL') : '') +
+    ' oproepen' + (d.people ? ' · ' + d.people + (d.people === 1 ? ' persoon' : ' personen') : '') +
+    (d.count ? ' · ' + fmtDayT(d.first) + (d.first !== d.last ? ' – ' + fmtDayT(d.last) : '') : '');
+  $('#calls-export-sel').style.display = d.filtered && d.count ? 'block' : 'none';
+  $('#calls-export-sel').textContent = 'Alleen deze selectie exporteren (' + (d.count||0).toLocaleString('nl-NL') + ')';
   callsShown = d.calls || [];
   el.innerHTML = callsShown.map((c, i) =>
     '<button class="' + esc(c.kind) + '" onclick="callsPick(' + i + ')">' +
-    '<span class=r1><b>' + esc(c.name) + '</b><time>' + esc(fmtD(c.date)) + '</time></span>' +
-    '<span class=r2><span class=k>' + esc(c.label) + '</span>' + (c.number && c.number !== c.name ? esc(c.number) + ' · ' : '') + esc(fmtCallDur(c.duration)) + '</span></button>').join('');
-  if (!callsShown.length) el.innerHTML = '<p class=note style="padding:14px">Geen oproepen gevonden.</p>';
+    '<span class=r1><b>' + (c.fav ? '★ ' : '') + esc(c.name) + '</b><time>' + esc(fmtD(c.date)) + '</time></span>' +
+    '<span class=r2><span class=k>' + esc(c.label) + '</span>' + (c.ck || !c.number ? '' : '<span class=unk>onbekend</span> ') + (c.number && c.number !== c.name ? esc(c.number) + ' · ' : '') + esc(fmtCallDur(c.duration)) + '</span></button>').join('');
+  if (!callsShown.length) el.innerHTML = '<p class=note style="padding:14px">' + (d.filtered ? 'Geen oproepen met deze filters. <a href="#" onclick="callsClearFilters();return false">Filters wissen</a>' : 'Geen oproepen gevonden.') + '</p>';
 }
+function fmtDayT(t){ return new Date(t).toLocaleDateString('nl-NL', {day:'numeric', month:'short', year:'numeric'}); }
 function callsPick(i){
-  const c = callsShown[i]; if (!c || !c.number) { toast('Afgeschermd nummer'); return; }
-  show('redial'); $('#num').value = c.number; nameFor = c.name !== c.number ? c.name : ''; $('#pname').textContent = nameFor;
+  const c = callsShown[i]; if (!c) return;
+  if (!c.number) { toast('Afgeschermd nummer'); return; }
+  const acts = [];
+  if (c.ck) acts.push(['Contact bekijken', () => jumpTo('contact', () => ctOpen(c.ck, String(c.cid)))]);
+  else acts.push(['Toevoegen aan contacten', () => Android.contactsAddNumber(c.number)]);
+  if (!callsF.person) acts.push(['Alle oproepen met ' + (c.ck ? c.name : c.number), () => { callsF.person = { name: c.ck ? c.name : c.number, numbers: [c.number] }; callsSyncUi(); loadCalls(); window.scrollTo(0, 0); }]);
+  acts.push(['Opnieuw bellen met Auto redial', () => { show('redial'); $('#num').value = c.number; nameFor = c.ck ? c.name : ''; $('#pname').textContent = nameFor; }]);
+  openSheet(c.name, (c.number !== c.name ? c.number + ' · ' : '') + c.label + ' · ' + fmtFullCall(c.date) + (c.duration ? ' · ' + fmtCallDur(c.duration) : ''), acts);
 }
-function callsExport(){
-  const err = Android.callsExport();
+function fmtFullCall(t){ return new Date(t).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
+function callsExport(sel){
+  const err = Android.callsExport(sel ? callsFilterJson() : '');
   if (err) { toast(err); return; }
   $('#calls-result').className = 'result'; callsLastDone = false; setTimeout(callsPollOnce, 150);
+}
+['cf-period', 'cf-who', 'cf-dur'].forEach(id => {
+  const g = document.getElementById(id);
+  if (g) g.addEventListener('click', e => { const b = e.target.closest('button'); if (b) callsPickChip(id, b.dataset.v); });
+});
+/** Alle oproepen met een contact (vanuit Contacten). */
+function callsForPerson(name, numbers){
+  Object.assign(callsF, { kind: 'all', period: 'all', from: '', to: '', who: 'all', dur: 'all' });
+  callsF.person = { name, numbers };
+  $('#calls-search').value = '';
+  jumpTo('calls');
 }
 let callsPermCache = false;
 function callsPollOnce(){
