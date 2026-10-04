@@ -1,13 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.19",
-  "versionCode": 20,
-  "nativeLevel": 19,
+  "versionName": "1.20",
+  "versionCode": 21,
+  "nativeLevel": 20,
   "web": "index.html",
-  "webSha256": "662a258e6d5e056ac6b5c3b69832493a833956743fc263723a3d62421c17e0de",
+  "webSha256": "bb28da033cf96f2fe513648ae5af6068e1f96e7881d5352d671f521cca5a3465",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "86447b58949d05b10b71d4a0117f03e4d048b94bf19a8adc900fa4448918ff22",
+  "apkSha256": "91389821b6eac266a4d13839729730db1f766379c01d3ad7d0938367be5eb3fb",
   "changelog": [
+    {
+      "version": "1.20",
+      "date": "2026-10-04",
+      "changes": [
+        "Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html",
+        "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan",
+        "Ruimtegebruik van de backup-map per map"
+      ]
+    },
     {
       "version": "1.19",
       "date": "2026-10-04",

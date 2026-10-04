@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backup ontsleutelen</title>
+<style>
+:root{--bg:#f3f5f9;--card:#fff;--ink:#14213d;--muted:#5b6478;--acc:#2b6cb0;--bad:#c53030;--ok:#2f855a}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1420;--card:#1a2130;--ink:#e8ecf4;--muted:#9aa4b8;--acc:#63a4ff;--bad:#fc8181;--ok:#68d391}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:560px;margin:0 auto;padding:24px 16px}
+.card{background:var(--card);border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+h1{font-size:22px;margin:0 0 6px}p{color:var(--muted);margin:0 0 16px}
+label{display:block;font-weight:600;margin:14px 0 6px}
+input{width:100%;box-sizing:border-box;font:inherit;padding:12px;border-radius:10px;border:1px solid #8884;background:transparent;color:inherit}
+button{margin-top:18px;width:100%;padding:14px;border:0;border-radius:12px;background:var(--acc);color:#fff;font:600 17px system-ui,sans-serif;cursor:pointer}
+button:disabled{opacity:.5}
+#msg{margin-top:14px;font-weight:600}.bad{color:var(--bad)}.ok{color:var(--ok)}
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+  <h1>Backup ontsleutelen</h1>
+  <p>Zet een versleutelde backup van Rene's Tools (<b>.rtb</b>) om naar een gewoon zip-bestand. Alles gebeurt in deze browser; er gaat niets over internet.</p>
+  <label for="f">Backupbestand</label>
+  <input type="file" id="f" accept=".rtb">
+  <label for="pw">Wachtwoord</label>
+  <input type="password" id="pw" autocomplete="off">
+  <button id="go">Ontsleutelen</button>
+  <div id="msg" role="status" aria-live="polite"></div>
+</div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const msg = (t, cls) => { $('#msg').textContent = t; $('#msg').className = cls || ''; };
+const CHUNK = 65536, TAG = 16, HEADER = 33;
+async function run(){
+  const file = $('#f').files[0], pw = $('#pw').value;
+  if (!file) return msg('Kies eerst een .rtb-bestand', 'bad');
+  if (!window.crypto || !crypto.subtle) return msg('Deze browser kan niet ontsleutelen. Open dit bestand in Chrome, Edge of Firefox.', 'bad');
+  $('#go').disabled = true;
+  try {
+    const head = new Uint8Array(await file.slice(0, HEADER).arrayBuffer());
+    if (String.fromCharCode(...head.slice(0, 4)) !== 'RTB1') throw new Error('Dit is geen versleutelde backup van Rene\'s Tools');
+    const dv = new DataView(head.buffer);
+    const hash = head[4] === 1 ? 'SHA-256' : head[4] === 2 ? 'SHA-1' : null;
+    if (!hash) throw new Error('Onbekende versie van het archief');
+    const iters = dv.getUint32(5);
+    if (iters < 1000 || iters > 10000000) throw new Error('Het archief is beschadigd');
+    msg('Sleutel afleiden…');
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey({name: 'PBKDF2', salt: head.slice(9, 25), iterations: iters, hash}, base, {name: 'AES-GCM', length: 256}, false, ['decrypt']);
+    const parts = [];
+    let off = HEADER, n = 0, last = false;
+    while (!last) {
+      if (off + 4 > file.size) throw new Error('Het archief is onvolledig (afgebroken backup?)');
+      const len = new DataView(await file.slice(off, off + 4).arrayBuffer()).getUint32(0);
+      if (len < TAG || len > CHUNK + TAG || off + 4 + len > file.size) throw new Error('Het archief is onvolledig of beschadigd');
+      const ct = await file.slice(off + 4, off + 4 + len).arrayBuffer();
+      last = len < CHUNK + TAG;
+      const iv = new Uint8Array(12); iv.set(head.slice(25, 33)); new DataView(iv.buffer).setUint32(8, n);
+      const aad = new Uint8Array(HEADER + 1); aad.set(head); aad[HEADER] = last ? 1 : 0;
+      try { parts.push(await crypto.subtle.decrypt({name: 'AES-GCM', iv, additionalData: aad, tagLength: 128}, key, ct)); }
+      catch (e) { throw new Error(n === 0 ? 'Verkeerd wachtwoord' : 'Het archief is beschadigd'); }
+      off += 4 + len; n++;
+      if (last && off !== file.size) throw new Error('Het archief is beschadigd (extra gegevens na het einde)');
+      if (n % 16 === 0) msg('Bezig… ' + Math.round(100 * off / file.size) + '%');
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(parts, {type: 'application/zip'}));
+    a.download = file.name.replace(/\.rtb$/i, '') + '.zip';
+    document.body.appendChild(a); a.click(); a.remove();
+    msg('Klaar: ' + a.download + ' staat in je downloads.', 'ok');
+  } catch (e) { msg(e.message || 'Ontsleutelen mislukt', 'bad'); }
+  finally { $('#go').disabled = false; }
+}
+$('#go').onclick = run;
+$('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+</script>
+</body>
+</html>

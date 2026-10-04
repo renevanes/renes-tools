@@ -61,8 +61,9 @@ public class MainActivity extends Activity {
     private static final int REQ_MIC = 22;
     private static final int REQ_SETTINGS = 23;
     private static final int REQ_IMPORT = 24;
-    String importKind = null;
+    volatile String importKind = null;
     String pendingShare = null;
+    volatile Uri pendingArchive = null;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -382,6 +383,7 @@ public class MainActivity extends Activity {
             final String kind = importKind;
             if (res != RESULT_OK || data == null || data.getData() == null || kind == null) return;
             final Uri u = data.getData();
+            if ("archive".equals(kind)) { pendingArchive = u; Secure.forget(); js("onArchivePicked", ""); return; }
             new Thread(() -> {
                 String r;
                 try { r = Restore.preview(getApplicationContext(), kind, u).toString(); }
@@ -1366,6 +1368,82 @@ public class MainActivity extends Activity {
         // ----- Alles back-uppen en terugzetten -----
 
         @JavascriptInterface public String backupState(boolean full) { return AllBackup.stateJson(ctx, full); }
+
+        // ----- Versleutelen, opruimen, ruimtegebruik -----
+        /** Wachtwoord instellen (sleutel afleiden duurt even); uitkomst via onSecure("" of foutmelding). */
+        @JavascriptInterface public void backupSetPassword(String pw) {
+            new Thread(() -> {
+                String r = "";
+                try { Secure.setPassword(ctx, pw); }
+                catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Instellen mislukt"; App.log(ctx, "SECURE", "wachtwoord: " + e); }
+                a.js("onSecure", JSONObject.quote(r));
+            }, "secure").start();
+        }
+
+        @JavascriptInterface public void backupEncryptOff() { Secure.off(ctx); }
+
+        @JavascriptInterface public void backupSetRotate(boolean on) { AllBackup.prefs(ctx).edit().putBoolean("rotate", on).apply(); }
+
+        /** Opruimen (dry = alleen tellen); uitkomst via onRotate({count, bytes} of {error}). */
+        @JavascriptInterface public void backupRotate(boolean dry) {
+            new Thread(() -> {
+                String r;
+                try { r = Secure.rotate(ctx, dry).put("dry", dry).toString(); }
+                catch (Exception e) { r = errJson(e); }
+                a.js("onRotate", r);
+            }, "rotate").start();
+        }
+
+        @JavascriptInterface public void backupSpace() {
+            new Thread(() -> {
+                String r;
+                try { r = Secure.space(ctx).toString(); }
+                catch (Exception e) { r = errJson(e); }
+                a.js("onSpace", r);
+            }, "space").start();
+        }
+
+        /** Versleutelde backup openen: eerst kiezen (onArchivePicked), dan openen met of zonder wachtwoord (onArchive). */
+        @JavascriptInterface public void archivePick() {
+            a.importKind = "archive";
+            a.h.post(() -> {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+                try { a.startActivityForResult(i, REQ_IMPORT); }
+                catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+            });
+        }
+
+        @JavascriptInterface public void archiveOpen(String pw) {
+            final Uri u = a.pendingArchive;
+            new Thread(() -> {
+                String r;
+                try { r = Secure.open(ctx, u, pw).toString(); }
+                catch (Exception e) { r = errJson(e); }
+                a.js("onArchive", r);
+            }, "archive").start();
+        }
+
+        /** Contacten of notities uit het geopende archief: daarna hetzelfde overzicht als bij gewoon terugzetten. */
+        @JavascriptInterface public void archiveRestore(String kind, String entry) {
+            if (!"contacts".equals(kind) && !"notes".equals(kind)) return;
+            new Thread(() -> {
+                String r;
+                try { r = Restore.previewText(ctx, kind, Secure.readEntry(ctx, entry)).toString(); }
+                catch (Exception e) { r = errJson(e); }
+                a.js("onRestorePreview", r);
+            }, "archive-restore").start();
+        }
+
+        @JavascriptInterface public void archiveUnpack() {
+            new Thread(() -> {
+                String r;
+                try { r = "ok:" + Secure.unpack(ctx); }
+                catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Uitpakken mislukt"; App.log(ctx, "SECURE", "uitpakken: " + e); }
+                a.js("onArchiveUnpacked", JSONObject.quote(r));
+            }, "archive-unpack").start();
+        }
+
+        @JavascriptInterface public void archiveClose() { Secure.forget(); a.pendingArchive = null; }
 
         @JavascriptInterface public void backupSetPart(String part, boolean on) {
             for (String p : AllBackup.PARTS) if (p.equals(part)) AllBackup.prefs(ctx).edit().putBoolean("part_" + p, on).apply();

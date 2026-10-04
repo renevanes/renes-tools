@@ -47,10 +47,21 @@ final class AllBackup {
     /** Voert de backup uit (na tryBegin). Geeft per onderdeel {ok, count, msg}; slaat de uitkomst op. */
     static JSONObject run(Context c, boolean auto) {
         JSONObject res = new JSONObject();
+        Secure.Zip zip = null;
         try {
             if (WaBackup.destUri(c) == null) {
                 put(res, "all", false, 0, "Kies eerst een backup-map (Instellingen)");
                 return res;
+            }
+            if (Secure.on(c)) {
+                try {
+                    zip = Secure.begin(c, Secure.key(c));
+                } catch (Exception e) {
+                    put(res, "all", false, 0, e.getMessage() != null ? e.getMessage() : "Versleuteld archief maken lukt niet");
+                    App.log(c, "BACKUP", "archief: " + e.getMessage());
+                    return res;
+                }
+                Secure.CAPTURE.set(zip);
             }
             for (String part : PARTS) {
                 if (stop) { try { res.put("stopped", true); } catch (Exception ignored) { } break; }
@@ -65,7 +76,27 @@ final class AllBackup {
                     App.log(c, "BACKUP", part + ": " + m);
                 }
             }
+            Secure.CAPTURE.remove();
+            if (zip != null) {
+                boolean any = false;
+                for (String p : PARTS) { JSONObject r = res.optJSONObject(p); if (r != null && r.optBoolean("ok") && r.optInt("count") > 0) any = true; }
+                if (!any || stop) Secure.abort(zip);
+                else {
+                    try { Secure.finish(zip, res); res.put("archive", zip.name); }
+                    catch (Exception e) { put(res, "all", false, 0, "Archief afsluiten mislukt: " + e.getMessage()); App.log(c, "BACKUP", "archief afsluiten: " + e); }
+                }
+                zip = null;
+            }
+            boolean allOk = !res.has("all");
+            for (String p : PARTS) { JSONObject r = res.optJSONObject(p); if (r != null && !r.optBoolean("ok")) allOk = false; }
+            // Alleen opruimen na een volledig gelukte backup, anders kan een onvolledige backup de goede verdringen.
+            if (!stop && allOk && prefs(c).getBoolean("rotate", false)) {
+                try { JSONObject r = Secure.rotate(c, false); if (r.optInt("count") > 0) res.put("rotated", r); }
+                catch (Exception e) { App.log(c, "BACKUP", "opruimen: " + e.getMessage()); }
+            }
         } finally {
+            Secure.CAPTURE.remove();
+            if (zip != null) Secure.abort(zip);
             current = "";
             try {
                 res.put("t", System.currentTimeMillis()).put("auto", auto);
@@ -140,7 +171,11 @@ final class AllBackup {
             o
                     .put("auto", prefs(c).getBoolean("auto", false)).put("charging", prefs(c).getBoolean("charging", true))
                     .put("dest", WaBackup.destUri(c) != null).put("destName", WaBackup.destName(c))
-                    .put("next", prefs(c).getLong("next", 0));
+                    .put("next", prefs(c).getLong("next", 0))
+                    .put("rotate", prefs(c).getBoolean("rotate", false)).put("encrypted", Secure.on(c)).put("encBroken", Secure.broken(c))
+                    .put("encSince", Secure.prefs(c).getLong("since", 0));
+            String space = Secure.prefs(c).getString("space", null);
+            if (space != null) o.put("space", new JSONObject(space));
             JSONObject parts = new JSONObject();
             for (String p : PARTS) parts.put(p, enabledPart(c, p));
             o.put("parts", parts);

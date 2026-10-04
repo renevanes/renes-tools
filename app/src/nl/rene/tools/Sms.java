@@ -320,6 +320,7 @@ final class Sms {
     }
 
     static Writer open(WaBackup.Dest dest, WaBackup.DestDir dir, String name, String mime) throws Exception {
+        if (dest.zip != null) return dest.zip.writer(dir.path, name);
         WaBackup.Child ch = dir.kids.get(name);
         Uri u;
         if (ch != null && !ch.dir) u = DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId);

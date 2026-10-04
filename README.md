@@ -100,6 +100,12 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Automatisch elke nacht na 03:30 (`AllBackupJob`, JobScheduler, desgewenst alleen tijdens opladen). Alleen een melding als er iets misging.
 - **Terugzetten** (`Restore.java`): contacten uit een vCard-bestand (`VCard.java` leest 2.1/3.0/4.0, ook van andere telefoons: gevouwen regels, quoted-printable, tekensets, item-groepen) en notities uit `notities.json`. Eerst een overzicht (nieuw / al aanwezig), dan alleen het nieuwe toevoegen; nooit overschrijven of verwijderen.
 
+## Versleutelde backups, opruimen en ruimtegebruik
+- **Versleutelen** (Alles back-uppen → Versleutelen): met een wachtwoord gaat de hele backup in één archief `Versleuteld/backup-JJJJ-MM-DD_UUMM.rtb` in plaats van leesbare bestanden. Formaat (`Vault.java`): zip, in blokken van 64 kB versleuteld met AES-256-GCM; sleutel via PBKDF2-HMAC-SHA256 (210.000 rondes, SHA-1 op Android 7). Afkappen of wijzigen van het bestand wordt altijd opgemerkt. Het wachtwoord wordt niet bewaard; de afgeleide sleutel staat op de telefoon versleuteld met een sleutel uit de Android-sleutelopslag, zodat de nachtelijke backup zonder wachtwoord kan.
+- **Openen**: in de app via Terugzetten → Versleutelde backup openen (contacten of notities terugzetten, of uitpakken naar `Uitgepakt/`); op de computer met `ontsleutelen.html` in de map Versleuteld (werkt in de browser, zonder internet).
+- **Opruimen** (`Rotate.java`): na elke backup (uit te zetten) of met "Nu opruimen": van sms-, oproepen-, contacten- en versleutelde backups met een datum in de naam blijft alles van de laatste 14 dagen staan, en daarvoor de nieuwste per maand. Selecties, contactversies en de allernieuwste blijven altijd.
+- **Ruimtegebruik**: grootte en aantal bestanden per map in de backup-map.
+
 ## Instellingen, app-slot en foutrapport
 - **Instellingen**: app-slot, backup-map, AudD-sleutel, overzicht van alle toestemmingen (met "Toestaan" per onderdeel) en het foutrapport.
 - **App-slot** (`Lock.java`): ontgrendelen met de schermvergrendeling van de telefoon (BiometricPrompt met vingerafdruk/gezicht of pincode; Android 7–9 via het bevestigingsscherm van de telefoon). Geen eigen pincode, dus niets te vergeten. Vergrendelt na een instelbare tijd buiten beeld; inhoud verborgen in "recente apps" (Android 13+: `setRecentsScreenshotEnabled(false)`, ouder: `FLAG_SECURE`).

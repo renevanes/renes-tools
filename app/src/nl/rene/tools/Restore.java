@@ -42,8 +42,13 @@ final class Restore {
     }
 
     /** Overzicht van wat er toegevoegd zou worden. */
-    static synchronized JSONObject preview(Context c, String kind, Uri u) throws Exception {
-        String text = read(c, u);
+    static JSONObject preview(Context c, String kind, Uri u) throws Exception {
+        return previewText(c, kind, read(c, u));
+    }
+
+    /** Zelfde, met de tekst al gelezen (bijv. uit een versleutelde backup). */
+    static synchronized JSONObject previewText(Context c, String kind, String text) throws Exception {
+        if (text.startsWith("\uFEFF")) text = text.substring(1);
         pendingKind = null;
         if ("contacts".equals(kind)) {
             List<ContactsDiff.Rec> all = VCard.parse(text);

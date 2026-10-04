@@ -26,6 +26,7 @@ PY
 # 1b. Kaartbibliotheek (Leaflet) meekopieren naar de assets
 mkdir -p $B/assets/vendor
 cp web/vendor/leaflet.js web/vendor/leaflet.css $B/assets/vendor/
+cp web/ontsleutelen.html $B/assets/
 
 # 2. Versie-informatie voor de Java-code
 cat > $B/gen/Version.java <<JAVA

@@ -144,18 +144,21 @@ final class WaBackup {
     static final class Child { final String docId; final long size; final long mod; final boolean dir;
         Child(String i, long s, long m, boolean d) { docId = i; size = s; mod = m; dir = d; } }
 
-    static final class DestDir { Uri uri; final Map<String, Child> kids = new HashMap<>(); }
+    static final class DestDir { Uri uri; String path = ""; final Map<String, Child> kids = new HashMap<>(); }
 
     /** Doelmap met cache: één opvraging per map. */
     static final class Dest {
         final ContentResolver cr; final Uri tree;
         final Map<String, DestDir> cache = new HashMap<>();
+        /** Als er een versleuteld archief wordt gemaakt, gaan alle bestanden daarin in plaats van in de map. */
+        final Secure.Zip zip = Secure.CAPTURE.get();
         Dest(ContentResolver r, Uri t) { cr = r; tree = t; }
 
         DestDir root() throws Exception {
             DestDir d = cache.get("");
             if (d == null) {
                 d = new DestDir();
+                if (zip != null) { cache.put("", d); return d; }
                 d.uri = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree));
                 list(d);
                 cache.put("", d);
@@ -180,6 +183,7 @@ final class WaBackup {
         DestDir dir(String rel, boolean create) throws Exception {
             DestDir d = cache.get(rel);
             if (d != null) return d;
+            if (zip != null) { d = new DestDir(); d.path = rel; cache.put(rel, d); return d; }
             int i = rel.lastIndexOf('/');
             DestDir parent = i < 0 ? root() : dir(rel.substring(0, i), create);
             if (parent == null) return null;
@@ -197,6 +201,7 @@ final class WaBackup {
             } else {
                 return null;
             }
+            d.path = rel;
             cache.put(rel, d);
             return d;
         }

@@ -215,6 +215,7 @@ details.rinfo dl{margin:8px 0 0}
 .recent{list-style:none;margin:6px 0 0;padding:0}.recent li{display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
 .recent li:first-child{border-top:0}.recent time{color:var(--muted);font-size:12px;min-width:40px;padding-top:2px}
 .chk{display:flex;gap:10px;align-items:center;padding:8px 0;font-size:15px}.chk input{width:22px;height:22px;accent-color:var(--chip-on);flex:none}
+.note.bad{color:var(--bad)}
 .bkres{display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14px}.bkres:first-child{border-top:0}.bkres b{flex:1;font-weight:600}.bkres .bad{color:var(--bad)}.bkres .good{color:var(--ok)}
 .altime{color-scheme:light dark;font:inherit;font-size:40px;font-weight:700;padding:6px 12px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%;text-align:center}
 .nrem{color:var(--brand-2);font-weight:600}
@@ -223,6 +224,7 @@ details.rinfo dl{margin:8px 0 0}
 .sfrow .mini{float:none;margin-top:6px}
 .dash{padding:6px 14px;margin-bottom:16px}.dash button{display:flex;gap:10px;width:100%;text-align:left;padding:10px 0;border-top:1px solid var(--line);align-items:center;font-size:15px}
 .dash button:first-child{border-top:0}.dash .di{width:24px;text-align:center;flex:none}.dash .dt{flex:1}.dash .warnc{color:var(--warn)}.dash .badc{color:var(--bad)}
+.spc{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}.spc:first-child{border-top:0}.spc small{color:var(--muted)}.spc.tot{font-weight:700}.spc>span:last-child{white-space:nowrap}
 .setrow{padding:10px 0;border-top:1px solid var(--line);align-items:center}.setrow:first-of-type{border-top:0}
 .permok{color:var(--ok);font-weight:700;font-size:14px}
 .wn{display:block;margin:4px 0 12px;color:var(--ink);font-size:14px;line-height:1.5}
@@ -746,9 +748,28 @@ details.rinfo dl{margin:8px 0 0}
       <p class="note">WhatsApp heeft een eigen nachtelijke backup (zie WhatsApp backup). Je krijgt alleen een melding als er iets misging.</p>
     </div>
     <div class="card">
+      <h2>Versleutelen</h2>
+      <p class="note" style="margin-top:0" id="bk-enc-state"></p>
+      <button class="big ghost" id="bk-enc-btn" onclick="bkEncSet()">Wachtwoord instellen</button>
+      <button class="big ghost" id="bk-enc-off" style="margin-top:8px;display:none" onclick="bkEncOff()">Versleutelen uitzetten</button>
+      <p class="note">Met een wachtwoord gaan nieuwe backups in één versleuteld bestand (AES-256) in de map Versleuteld, in plaats van leesbare bestanden. Leesbare bestanden van eerdere backups blijven staan tot je ze zelf weghaalt; WhatsApp backup wordt niet versleuteld. Op de computer open je het met <b>ontsleutelen.html</b> in diezelfde map. <b>Wachtwoord vergeten = backup kwijt</b>; niemand kan hem dan nog openen.</p>
+    </div>
+    <div class="card">
+      <h2>Oude backups opruimen</h2>
+      <label class="chk"><input type="checkbox" id="bk-rotate" onchange="Android.backupSetRotate(this.checked)"> Na elke gelukte backup opruimen</label>
+      <p class="note">Bewaart alles van de laatste 14 dagen en daarvoor de nieuwste per maand. Geldt voor de gedateerde sms-, oproepen- en contactbestanden en de versleutelde backups. De nieuwste blijft altijd staan.</p>
+      <button class="big ghost" onclick="bkRotate()">Nu opruimen</button>
+    </div>
+    <div class="card">
+      <h2>Ruimtegebruik</h2>
+      <div id="bk-space"><p class="note" style="margin-top:0">Hoeveel ruimte elke map in je backup-map inneemt.</p></div>
+      <button class="big ghost" id="bk-space-btn" onclick="bkSpace()">Berekenen</button>
+    </div>
+    <div class="card">
       <h2>Terugzetten</h2>
       <button class="big ghost" onclick="Android.restorePick('contacts')">Contacten terugzetten (vCard)</button>
       <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('notes')">Notities terugzetten</button>
+      <button class="big ghost" style="margin-top:8px" onclick="Android.archivePick()">Versleutelde backup openen</button>
       <p class="note">Je kiest het bestand in de backup-map (Contacten backup/…vcf of Notities/notities.json). Alleen wat er nog niet is, wordt toegevoegd; er wordt niets overschreven of verwijderd. Sms'jes en oproepen zet je terug met de app "SMS Backup &amp; Restore"; WhatsApp via WhatsApp backup.</p>
     </div>
   </main>
@@ -1431,12 +1452,21 @@ if (!window.Android) window.Android = (function(){
     lockState(){ const t=this._st; return JSON.stringify({on:t.lock,locked:!!t.locked,timeout:t.timeout,secure:true}); },
     lockUnlock(){ setTimeout(()=>{ this._st.locked=false; onUnlocked(); },200); },
     lockSet(on){ this._st.lock=on; setTimeout(()=>onSettingsChanged(''),100); }, lockTimeout(v){ this._st.timeout=+v; },
+    _sec:{on:false,since:0,rotate:false,space:null},
+    backupSetPassword(pw){ setTimeout(()=>{ this._sec.on=true; this._sec.since=Date.now(); this._sec.pw=pw; onSecure(''); },200); },
+    backupEncryptOff(){ this._sec.on=false; }, backupSetRotate(on){ this._sec.rotate=on; },
+    backupRotate(dry){ setTimeout(()=>{ if(!dry) this._sec.rotated=true; onRotate({count:6,bytes:48e6,dry}); },100); },
+    backupSpace(){ setTimeout(()=>{ this._sec.space={t:Date.now(),total:5.4e9,dirs:[{name:'WhatsApp backup',bytes:4.9e9,files:8123},{name:'SMS backup',bytes:3.1e8,files:41},{name:'Versleuteld',bytes:1.9e8,files:9}]}; onSpace(this._sec.space); },200); },
+    archivePick(){ setTimeout(()=>onArchivePicked(),100); },
+    archiveOpen(pw){ setTimeout(()=>onArchive(!pw ? {needPw:true} : pw!=='goedwachtwoord' ? {error:'Verkeerd wachtwoord'} : {name:'backup-2026-10-04_0330.rtb',bytes:1.2e7,files:[{n:'SMS backup/sms-2026-10-04.xml',s:1e6}],contacts:'Contacten backup/contacten-2026-10-04.vcf',notes:'Notities/notities.json'}),150); },
+    archiveRestore(k,e){ this._arcRestore=k+'|'+e; setTimeout(()=>onRestorePreview({kind:k,total:320,fresh:2,dup:318,sample:['Oom Kees','Tandarts']}),100); },
+    archiveUnpack(){ setTimeout(()=>onArchiveUnpacked('ok:57'),150); }, archiveClose(){ this._arcClosed=true; },
     _bk:{busy:false,current:'',auto:false,charging:true,parts:{},last:null},
-    backupState(f){ const b=this._bk; return JSON.stringify({busy:b.busy,current:b.current,auto:b.auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:b.auto?Date.now()+5*36e5:0,parts:b.parts,last:b.last}); },
+    backupState(f){ const b=this._bk; return JSON.stringify({busy:b.busy,current:b.current,auto:b.auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:b.auto?Date.now()+5*36e5:0,parts:b.parts,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,space:this._sec.space}); },
     backupSetPart(p,on){ this._bk.parts[p]=on; }, backupSetAuto(a,c){ this._bk.auto=a; this._bk.charging=c; },
     backupStart(wa){ const b=this._bk; if(!this._wa.info.dest) return 'Kies eerst een backup-map'; b.busy=true; const ks=['sms','calls','contacts','notes','transcripts','music']; let i=0;
       const t=setInterval(()=>{ b.current=ks[i++]; if(i>ks.length){ clearInterval(t); b.busy=false; b.current='';
-        b.last={t:Date.now(),auto:false,sms:{ok:true,count:1234},calls:{ok:true,count:842},contacts:{ok:true,count:311},notes:{ok:true,count:4},transcripts:{ok:true,count:0,msg:'Niets te bewaren'},music:{ok:false,count:0,msg:'Geen toestemming'}};
+        b.last={t:Date.now(),auto:false,sms:{ok:true,count:1234},calls:{ok:true,count:842},contacts:{ok:true,count:311},notes:{ok:true,count:4},transcripts:{ok:true,count:0,msg:'Niets te bewaren'},music:{ok:false,count:0,msg:'Geen toestemming'}}; if(this._sec.on) b.last.archive='backup-2026-10-04_1342.rtb'; if(this._sec.rotate) b.last.rotated={count:2,bytes:31e6};
         onBackupDone(b.last); } },150); return ''; },
     restorePick(k){ setTimeout(()=>onRestorePreview(k==='contacts'?{kind:k,total:320,fresh:9,dup:311,sample:['Oom Kees','Tandarts']}:{kind:k,total:5,fresh:1,dup:4,sample:['Vakantie']}),100); },
     restoreApply(){ setTimeout(()=>onRestoreDone('ok:9'),100); return ''; },
@@ -1490,7 +1520,7 @@ function openModal(title, text, inputVal, okLabel, cb){
   $('#modal-text').textContent = text || '';
   $('#modal-text').style.display = text ? 'block' : 'none';
   $('#modal-cancel').style.display = '';
-  const inp = $('#modal-input');
+  const inp = $('#modal-input'); inp.type = 'text'; inp.autocomplete = 'on';
   if (inputVal === null) { inp.style.display = 'none'; }
   else { inp.style.display = 'block'; inp.value = inputVal; }
   $('#modal-ok').textContent = okLabel;
@@ -1500,6 +1530,7 @@ function openModal(title, text, inputVal, okLabel, cb){
 function closeModal(result){
   $('#modal').classList.remove('on');
   const cb = _modalCb; _modalCb = null;
+  $('#modal-input').value = ''; // geen wachtwoord in de pagina laten staan
   if (cb) cb(result);
 }
 $('#modal-cancel').onclick = () => closeModal(null);
@@ -3068,7 +3099,7 @@ function enterBackup(){
     ' onchange="Android.backupSetPart(this.dataset.p, this.checked)"> ' + BK_PARTS[k] + '</label>').join('');
   $('#bk-auto').checked = !!st.auto; $('#bk-charging').checked = st.charging !== false;
   $('#bk-next').textContent = st.auto && st.next ? 'Volgende backup: ' + new Date(st.next).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
-  bkRenderLast(st);
+  bkRenderLast(st); bkRenderSecure(st);
   stopBkPoll(); bkPoll = setInterval(bkPollOnce, 1000);
 }
 function stopBkPoll(){ if (bkPoll) { clearInterval(bkPoll); bkPoll = null; } }
@@ -3081,7 +3112,9 @@ function bkRenderLast(st){
   $('#bk-last').textContent = (l.auto ? 'Automatisch, ' : '') + new Date(l.t).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
   $('#bk-parts-res').innerHTML = Object.keys(BK_PARTS).filter(k => l[k]).map(k => { const r = l[k];
     return '<div class=bkres><b>' + BK_PARTS[k] + '</b>' + (r.ok ? '<span class=good>✓ ' + (r.msg ? esc(r.msg) : r.count.toLocaleString('nl-NL')) + '</span>' : '<span class=bad>✗ ' + esc(r.msg || 'mislukt') + '</span>') + '</div>'; }).join('') +
-    (l.all ? '<div class=bkres><span class=bad>' + esc(l.all.msg || '') + '</span></div>' : '');
+    (l.all ? '<div class=bkres><span class=bad>' + esc(l.all.msg || '') + '</span></div>' : '') +
+    (l.archive ? '<div class=bkres><b>🔒 Versleuteld</b><span class=good>' + esc(l.archive) + '</span></div>' : '') +
+    (l.rotated ? '<div class=bkres><b>Opgeruimd</b><span>' + l.rotated.count + ' oude bestanden (' + fmtB(l.rotated.bytes) + ')</span></div>' : '');
 }
 function bkPollOnce(){ const st = bkState(); if (st.busy !== bkBusy || st.busy) bkRenderLast(st); const t = $('#tile-backup-sub'); if (t) t.textContent = st.busy ? 'Bezig met back-uppen…' : (st.last && st.last.t ? 'Laatst: ' + fmtD(st.last.t) : 'Alles in één keer bewaren'); }
 function bkRun(){ const e = Android.backupStart($('#bk-wa').checked); if (e) toast(e); setTimeout(bkPollOnce, 200); }
@@ -3110,6 +3143,80 @@ window.onRestoreDone = function(r){
     if (restoreKind === 'notes') { notes = null; notesBroken = false; refreshNotesTile(); }
   } else toast(r);
 };
+
+/* ---------- Versleutelen, opruimen, ruimtegebruik ---------- */
+function askPassword(title, text, okLabel, onOk){
+  askInput(title, text, '', okLabel, onOk);
+  const i = $('#modal-input'); i.type = 'password'; i.autocomplete = 'off'; setTimeout(() => i.focus(), 50);
+}
+function bkRenderSecure(st){
+  const on = !!st.encrypted;
+  $('#bk-enc-state').textContent = st.encBroken ? '⚠️ Het wachtwoord moet opnieuw worden ingesteld (bijv. na overzetten naar een andere telefoon). Tot dan mislukken de backups.'
+    : on ? '🔒 Aan sinds ' + (st.encSince ? fmtDayT(st.encSince) : 'onbekend') + '. Nieuwe backups worden versleuteld.' : 'Uit: backups zijn gewone, leesbare bestanden.';
+  $('#bk-enc-state').className = 'note' + (st.encBroken ? ' bad' : '');
+  $('#bk-enc-btn').textContent = on ? 'Wachtwoord wijzigen' : 'Wachtwoord instellen';
+  $('#bk-enc-off').style.display = on ? 'block' : 'none';
+  $('#bk-rotate').checked = !!st.rotate;
+  if (st.space) bkRenderSpace(st.space);
+}
+let bkEncBusy = false;
+function bkEncSet(){
+  if (bkEncBusy) return;
+  const wasOn = !!bkState(true).encrypted;
+  askPassword(wasOn ? 'Nieuw wachtwoord' : 'Wachtwoord kiezen', 'Minstens 8 tekens. Schrijf het ergens veilig op: zonder wachtwoord is de backup niet meer te openen.' + (wasOn ? ' Oudere backups blijven met het oude wachtwoord.' : ''), 'Verder', pw => {
+    if ((pw || '').length < 8) { toast('Kies een wachtwoord van minstens 8 tekens'); return; }
+    setTimeout(() => askPassword('Nog een keer', 'Typ het wachtwoord nog een keer ter controle.', 'Instellen', pw2 => {
+      if (pw2 !== pw) { toast('De wachtwoorden zijn niet gelijk'); return; }
+      bkEncBusy = true; $('#bk-enc-btn').disabled = true; $('#bk-enc-btn').textContent = 'Bezig…';
+      Android.backupSetPassword(pw);
+    }), 80);
+  });
+}
+window.onSecure = function(err){
+  bkEncBusy = false; $('#bk-enc-btn').disabled = false;
+  toast(err ? err : '🔒 Versleutelen staat aan');
+  if (current === 'backup') bkRenderSecure(bkState(true));
+};
+function bkEncOff(){
+  askConfirm('Versleutelen uitzetten?', 'Nieuwe backups worden weer gewone, leesbare bestanden. Bestaande versleutelde backups blijven staan en houden hun wachtwoord.', 'Uitzetten', () => {
+    Android.backupEncryptOff(); bkRenderSecure(bkState(true)); toast('Versleutelen staat uit');
+  });
+}
+function bkRotate(){ toast('Bezig met tellen…'); Android.backupRotate(true); }
+window.onRotate = function(r){
+  if (r.error) { toast(r.error); return; }
+  if (r.dry) {
+    if (!r.count) { toast('Er is niets op te ruimen'); return; }
+    askConfirm(r.count + ' oude bestanden verwijderen?', 'Samen ' + fmtB(r.bytes) + '. Alles van de laatste 14 dagen en de nieuwste van elke maand blijven staan.', 'Verwijderen', () => Android.backupRotate(false));
+  } else { toast('✓ ' + r.count + ' oude bestanden verwijderd (' + fmtB(r.bytes) + ')'); }
+};
+function bkSpace(){ $('#bk-space-btn').disabled = true; $('#bk-space-btn').textContent = 'Bezig met tellen…'; Android.backupSpace(); }
+window.onSpace = function(r){
+  $('#bk-space-btn').disabled = false; $('#bk-space-btn').textContent = 'Opnieuw berekenen';
+  if (r.error) { toast(r.error); return; }
+  bkRenderSpace(r);
+};
+function bkRenderSpace(r){
+  const d = (r.dirs || []).slice().sort((a, b) => b.bytes - a.bytes);
+  $('#bk-space').innerHTML = d.map(x => '<div class=spc><span>' + esc(x.name) + ' <small>' + x.files.toLocaleString('nl-NL') + ' bestanden</small></span><span>' + fmtB(x.bytes) + '</span></div>').join('') +
+    '<div class="spc tot"><span>Totaal</span><span>' + fmtB(r.total || 0) + '</span></div><p class=note>Berekend ' + fmtD(r.t) + '</p>';
+  $('#bk-space-btn').textContent = 'Opnieuw berekenen';
+}
+/* versleutelde backup openen */
+let arcInfo = null;
+window.onArchivePicked = function(){ toast('Bezig met openen…'); Android.archiveOpen(''); };
+window.onArchive = function(r){
+  if (r.needPw) { askPassword('Wachtwoord', 'Het wachtwoord van deze backup.', 'Openen', pw => { toast('Bezig met ontsleutelen…'); Android.archiveOpen(pw); }); return; }
+  if (r.error) { toast(r.error); if (/Verkeerd/.test(r.error)) setTimeout(() => onArchive({needPw: true}), 400); return; }
+  arcInfo = r;
+  const acts = [];
+  if (r.contacts) acts.push(['Contacten terugzetten', () => Android.archiveRestore('contacts', r.contacts)]);
+  if (r.notes) acts.push(['Notities terugzetten', () => Android.archiveRestore('notes', r.notes)]);
+  acts.push(['Uitpakken naar de backup-map', () => askConfirm('Uitpakken?', 'De bestanden komen onversleuteld in de map Uitgepakt in je backup-map. Haal ze weg als je ze niet meer nodig hebt.', 'Uitpakken', () => { toast('Bezig met uitpakken…'); Android.archiveUnpack(); })]);
+  acts.push(['Sluiten', () => Android.archiveClose()]);
+  openSheet('🔒 ' + (r.name || 'Backup'), (r.files || []).length + ' bestanden · ' + fmtB(r.bytes || 0), acts);
+};
+window.onArchiveUnpacked = function(r){ toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' bestanden uitgepakt naar Uitgepakt/' : r); };
 
 /* ---------- Zelftest ---------- */
 const SF_ICON = { ok: '✅', warn: '⚠️', fail: '❌', skip: '➖' };

@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.20",
+    "date": "2026-10-04",
+    "changes": [
+      "Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html",
+      "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan",
+      "Ruimtegebruik van de backup-map per map"
+    ]
+  },
+  {
     "version": "1.19",
     "date": "2026-10-04",
     "changes": [

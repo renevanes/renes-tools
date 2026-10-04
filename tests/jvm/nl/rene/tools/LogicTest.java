@@ -24,6 +24,21 @@ public class LogicTest {
         return x;
     }
 
+    static byte[] open(byte[] sealed, String pw) throws Exception {
+        java.io.InputStream in = new java.io.ByteArrayInputStream(sealed);
+        byte[] h = Vault.readHeader(in);
+        java.io.InputStream d = new Vault.In(in, h, Vault.keyFor(h, pw.toCharArray()));
+        java.io.ByteArrayOutputStream o = new java.io.ByteArrayOutputStream();
+        byte[] buf = new byte[1000];
+        int n;
+        while ((n = d.read(buf)) > 0) o.write(buf, 0, n);
+        return o.toByteArray();
+    }
+
+    static String err(byte[] sealed, String pw) {
+        try { open(sealed, pw); return null; } catch (Exception e) { return e.getMessage(); }
+    }
+
     public static void main(String[] a) throws Exception {
         // ContactsDiff
         List<ContactsDiff.Rec> v1 = Arrays.asList(rec("a", "Moeder", "Telefoon", "0612 (mobiel)"), rec("b", "Jos", "E-mail", "jos@x.nl"), rec("c", "Oud", "Telefoon", "010"));
@@ -73,6 +88,40 @@ public class LogicTest {
         long n2 = RadioAlarm.next(9, 30, 0, fri); // eenmalig 09:30 → dezelfde dag
         c.setTimeInMillis(n2);
         check("wekker: eenmalig later vandaag", c.get(java.util.Calendar.DAY_OF_WEEK) == java.util.Calendar.FRIDAY && c.get(java.util.Calendar.MINUTE) == 30);
+
+        // Versleutelde backup: heen en terug, fout wachtwoord, afgekapt, aangepast
+        Vault.Key k = Vault.derive("geheim-wachtwoord".toCharArray(), new byte[16], 1000, 1);
+        byte[] data = new byte[Vault.CHUNK * 2 + 123];
+        new java.util.Random(7).nextBytes(data);
+        byte[] sealed = Vault.seal(data, k);
+        check("vault: begint met RTB1", new String(sealed, 0, 4, "US-ASCII").equals("RTB1"));
+        check("vault: heen en terug gelijk", Arrays.equals(data, open(sealed, "geheim-wachtwoord")));
+        check("vault: precies 2 volle blokken", Arrays.equals(Arrays.copyOf(data, Vault.CHUNK * 2), open(Vault.seal(Arrays.copyOf(data, Vault.CHUNK * 2), k), "geheim-wachtwoord")));
+        check("vault: leeg archief", open(Vault.seal(new byte[0], k), "geheim-wachtwoord").length == 0);
+        check("vault: verkeerd wachtwoord gemeld", "Verkeerd wachtwoord".equals(err(sealed, "fout")));
+        check("vault: afgekapt gemeld", String.valueOf(err(Arrays.copyOf(sealed, sealed.length - 40), "geheim-wachtwoord")).contains("onvolledig"));
+        byte[] cut = Arrays.copyOf(sealed, Vault.HEADER + 2 * (4 + Vault.CHUNK + Vault.TAG)); // slotblok weggelaten
+        check("vault: zonder slotblok gemeld", String.valueOf(err(cut, "geheim-wachtwoord")).contains("onvolledig"));
+        byte[] bad = sealed.clone(); bad[Vault.HEADER + 4 + Vault.CHUNK + 50] ^= 1;
+        check("vault: aangepast gemeld", "Het archief is beschadigd".equals(err(bad, "geheim-wachtwoord")));
+        byte[] hdr = Arrays.copyOf(sealed, Vault.HEADER);
+        check("vault: eigen sleutel herkend", Vault.matches(k, hdr) && !Vault.matches(Vault.derive("x".toCharArray(), new byte[]{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}, 1000, 1), hdr));
+        java.nio.file.Files.write(java.nio.file.Paths.get(System.getProperty("java.io.tmpdir"), "rt-test.rtb"), Vault.seal("hallo wereld".getBytes("UTF-8"), k));
+
+        // Opruimen: 14 dagen + nieuwste per maand
+        c.set(2026, java.util.Calendar.OCTOBER, 4, 12, 0, 0);
+        long now = c.getTimeInMillis();
+        List<String> names = Arrays.asList("sms-2026-10-04.xml", "sms-2026-09-25.xml", "sms-2026-09-15.xml", "sms-2026-09-10.xml",
+                "sms-2026-08-01.xml", "sms-2026-08-31.xml", "sms-2026-07-02.xml", "oproepen-2026-08-01.csv", "oproepen-2026-08-02-selectie-120000.csv",
+                "contacten-versie-3.vcf", "backup-2026-08-03_0330.rtb", "backup-2026-08-03_1200.rtb", "notities.json", "backup-2026-01-01_0330.rtb");
+        java.util.Set<String> del = new java.util.HashSet<>(Rotate.toDelete(names, now));
+        check("opruimen: binnen 14 dagen blijft", !del.contains("sms-2026-09-25.xml") && !del.contains("sms-2026-10-04.xml"));
+        check("opruimen: oudere in een maand met een recente weg", del.contains("sms-2026-09-10.xml") && del.contains("sms-2026-09-15.xml"));
+        check("opruimen: per maand de nieuwste", del.contains("sms-2026-08-01.xml") && !del.contains("sms-2026-08-31.xml") && !del.contains("sms-2026-07-02.xml"));
+        check("opruimen: tijd telt binnen een dag", del.contains("backup-2026-08-03_0330.rtb") && !del.contains("backup-2026-08-03_1200.rtb"));
+        check("opruimen: selecties, versies en losse bestanden blijven", !del.contains("oproepen-2026-08-02-selectie-120000.csv") && !del.contains("contacten-versie-3.vcf") && !del.contains("notities.json"));
+        check("opruimen: enige van een soort blijft", !del.contains("oproepen-2026-08-01.csv"));
+        check("opruimen: precies 4 weg", del.size() == 4);
 
         System.out.println(failed == 0 ? "Alle logica-tests geslaagd" : failed + " test(s) mislukt");
         System.exit(failed == 0 ? 0 : 1);
