@@ -59,6 +59,7 @@ public class MainActivity extends Activity {
     private static final int REQ_TR = 20;
     private static final int REQ_RECTREE = 21;
     private static final int REQ_MIC = 22;
+    private static final int REQ_SETTINGS = 23;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -166,6 +167,42 @@ public class MainActivity extends Activity {
             RadioService.send(this, RadioService.PLAY, play);
         } catch (Exception ignored) { }
         i.removeExtra("play"); // niet opnieuw starten bij draaien van het scherm
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        applySecure();
+        if (web == null) return;
+        if (Lock.onShown(this)) {
+            // Eerst het slotscherm tekenen, dan pas de WebView weer tonen (geen flits van de inhoud).
+            web.evaluateJavascript("window.onLock&&window.onLock();true", v -> web.setVisibility(View.VISIBLE));
+        } else web.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    protected void onStop() {
+        Lock.onHidden();
+        // Met app-slot de inhoud alvast verbergen; bij terugkomen beslist onStart of hij op slot moet.
+        if (web != null && Lock.active(this) && !Lock.internalNav && !Lock.authBusy) web.setVisibility(View.INVISIBLE);
+        super.onStop();
+    }
+
+    /** Elk scherm dat de app zelf opent (behalve links naar andere apps) telt als "binnen de app". */
+    @Override
+    public void startActivityForResult(Intent intent, int requestCode, android.os.Bundle options) {
+        boolean external = intent != null && Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null
+                && ("http".equals(intent.getData().getScheme()) || "https".equals(intent.getData().getScheme()));
+        if (!external) Lock.internalNav = true;
+        super.startActivityForResult(intent, requestCode, options);
+    }
+
+    /** Met app-slot: inhoud niet tonen in "recente apps". */
+    void applySecure() {
+        boolean on = Lock.enabled(this);
+        if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on);
+        else if (on) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+        else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
     }
 
     @Override
@@ -284,6 +321,7 @@ public class MainActivity extends Activity {
         if (req == REQ_CONTACTS_RW) js("onContactsChanged", "");
         if (req == REQ_TR) js("onTrChanged", "");
         if (req == REQ_MIC) js("onMusicChanged", "");
+        if (req == REQ_SETTINGS) js("onSettingsChanged", "\"\"");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
     }
 
@@ -317,6 +355,7 @@ public class MainActivity extends Activity {
             js("onWaChanged", "");
             return;
         }
+        if (req == Lock.REQ_CONFIRM) { Lock.onConfirmResult(res == RESULT_OK); return; }
         if (req == REQ_RECTREE) {
             if (res == RESULT_OK && data != null && data.getData() != null) {
                 // Boommap omzetten naar een gewoon pad (de app heeft toegang tot alle bestanden).
@@ -1162,6 +1201,129 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void txStop() {
             synchronized (Bridge.class) { if (player != null) player.release(); player = null; playerPath = null; }
+        }
+
+        // ----- Instellingen, foutrapport en app-slot -----
+
+        private boolean has(String p) { return ctx.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED; }
+
+        @JavascriptInterface public String settingsInfo() {
+            try {
+                JSONObject o = new JSONObject();
+                o.put("dest", WaBackup.destUri(ctx) != null).put("destName", WaBackup.destName(ctx));
+                o.put("audd", musicTokenHint());
+                o.put("crashes", App.count(ctx));
+                o.put("lock", new JSONObject(lockState()));
+                JSONArray p = new JSONArray();
+                p.put(perm("phone", "Bellen", "Auto redial", has(Manifest.permission.CALL_PHONE)));
+                p.put(perm("calllog", "Oproepgeschiedenis", "Auto redial, Oproepen, Gesprekken", has(Manifest.permission.READ_CALL_LOG)));
+                p.put(perm("contacts", "Contacten", "Namen, Contacten-tool", has(Manifest.permission.READ_CONTACTS) && has(Manifest.permission.WRITE_CONTACTS)));
+                p.put(perm("sms", "Sms", "SMS-backup", has(Manifest.permission.READ_SMS)));
+                p.put(perm("location", "Locatie", "Mijn routes", has(Manifest.permission.ACCESS_FINE_LOCATION)));
+                p.put(perm("mic", "Microfoon", "Muziek herkennen", has(Manifest.permission.RECORD_AUDIO)));
+                if (Build.VERSION.SDK_INT >= 33) p.put(perm("notif", "Meldingen", "Voortgang en bediening", has(Manifest.permission.POST_NOTIFICATIONS)));
+                p.put(perm("files", "Alle bestanden", "WhatsApp backup, Gesprekken", hasFilesAccess(ctx)));
+                if (Build.VERSION.SDK_INT >= 26) p.put(perm("install", "Updates installeren", "Nieuwe app-versies", ctx.getPackageManager().canRequestPackageInstalls()));
+                o.put("perms", p);
+                return o.toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        private JSONObject perm(String id, String name, String used, boolean ok) throws Exception {
+            return new JSONObject().put("id", id).put("name", name).put("used", used).put("ok", ok);
+        }
+
+        @JavascriptInterface public void permRequest(String id) {
+            a.h.post(() -> {
+                String[] p = null;
+                switch (id == null ? "" : id) {
+                    case "phone": p = new String[]{Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE}; break;
+                    case "calllog": p = new String[]{Manifest.permission.READ_CALL_LOG}; break;
+                    case "contacts": p = new String[]{Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS}; break;
+                    case "sms": p = new String[]{Manifest.permission.READ_SMS}; break;
+                    case "location": p = new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}; break;
+                    case "mic": p = new String[]{Manifest.permission.RECORD_AUDIO}; break;
+                    case "notif": if (Build.VERSION.SDK_INT >= 33) p = new String[]{Manifest.permission.POST_NOTIFICATIONS}; break;
+                    case "files": a.requestFilesAccess(); return;
+                    case "install": a.openInstallSettings(); return;
+                    default: a.openAppSettings(); return;
+                }
+                if (p == null) return;
+                // Al eens geweigerd met "niet meer vragen": Android toont geen vraag meer, dus naar de app-instellingen.
+                android.content.SharedPreferences sp = ctx.getSharedPreferences("perm", Context.MODE_PRIVATE);
+                if (sp.getBoolean(id, false) && !a.shouldShowRequestPermissionRationale(p[0])
+                        && ctx.checkSelfPermission(p[0]) != PackageManager.PERMISSION_GRANTED) { a.openAppSettings(); return; }
+                sp.edit().putBoolean(id, true).apply();
+                a.requestPermissions(p, REQ_SETTINGS);
+            });
+        }
+
+        @JavascriptInterface public void crashShare() {
+            a.h.post(() -> {
+                Intent i = new Intent(Intent.ACTION_SEND).setType("text/plain")
+                        .putExtra(Intent.EXTRA_SUBJECT, "Foutrapport Rene's Tools " + Version.NAME)
+                        .putExtra(Intent.EXTRA_TEXT, App.report(ctx));
+                try { a.startActivity(Intent.createChooser(i, "Foutrapport delen")); }
+                catch (Exception e) { Toast.makeText(a, "Delen lukt niet", Toast.LENGTH_SHORT).show(); }
+            });
+        }
+
+        /** Eerste keer na installeren (niet na een update): dan geen "Wat is er nieuw". */
+        @JavascriptInterface public boolean freshInstall() {
+            try {
+                android.content.pm.PackageInfo pi = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0);
+                return pi.firstInstallTime == pi.lastUpdateTime;
+            } catch (Exception e) { return false; }
+        }
+
+        @JavascriptInterface public void crashClear() {
+            App.file(ctx).delete();
+            ctx.getSharedPreferences("crash", Context.MODE_PRIVATE).edit().remove("new").apply();
+        }
+
+        /** True als de app sinds de vorige keer is vastgelopen (één keer melden). */
+        @JavascriptInterface public boolean crashNew() {
+            boolean n = ctx.getSharedPreferences("crash", Context.MODE_PRIVATE).getBoolean("new", false);
+            if (n) ctx.getSharedPreferences("crash", Context.MODE_PRIVATE).edit().remove("new").apply();
+            return n;
+        }
+
+        /** Fout in de interface (window.onerror) vastleggen. */
+        @JavascriptInterface public void logJs(String msg) {
+            if (msg != null) App.log(ctx, "JS", msg.length() > 2000 ? msg.substring(0, 2000) : msg);
+        }
+
+        @JavascriptInterface public String lockState() {
+            try {
+                return new JSONObject().put("on", Lock.enabled(ctx)).put("locked", Lock.locked(ctx))
+                        .put("timeout", Lock.timeout(ctx)).put("secure", Lock.deviceSecure(ctx)).toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        @JavascriptInterface public void lockUnlock() {
+            a.h.post(() -> Lock.prompt(a, "Rene's Tools ontgrendelen", (ok, msg) -> {
+                if (ok) { Lock.unlocked = true; a.js("onUnlocked", ""); }
+                else a.js("onLockFail", JSONObject.quote(msg == null ? "" : msg));
+            }));
+        }
+
+        /** App-slot aan- of uitzetten; vraagt eerst de schermvergrendeling ter bevestiging. */
+        @JavascriptInterface public void lockSet(boolean on) {
+            a.h.post(() -> Lock.prompt(a, on ? "App-slot aanzetten" : "App-slot uitzetten", (ok, msg) -> {
+                if (ok) {
+                    Lock.prefs(ctx).edit().putBoolean("on", on).apply();
+                    Lock.unlocked = true;
+                    a.applySecure();
+                }
+                a.js("onSettingsChanged", JSONObject.quote(ok ? "" : (msg == null ? "Niet bevestigd" : msg)));
+            }));
+        }
+
+        @JavascriptInterface public void lockTimeout(String ms) {
+            try {
+                long v = Long.parseLong(ms);
+                if (v >= 0 && v <= 3_600_000L) Lock.prefs(ctx).edit().putLong("timeout", v).apply();
+            } catch (Exception ignored) { }
         }
 
         // ----- Snelkoppelingen -----

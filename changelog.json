@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.15",
+    "date": "2026-10-04",
+    "changes": [
+      "Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen",
+      "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon",
+      "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen",
+      "Na een update zie je eenmalig wat er nieuw is",
+      "Contacten werkt nu ook op Android 7"
+    ]
+  },
+  {
     "version": "1.14",
     "date": "2026-10-04",
     "changes": [

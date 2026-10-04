@@ -71,7 +71,7 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
             if (PLAY.equals(action) || RESUME.equals(action)) {
                 Intent i = new Intent(c, RadioService.class).setAction(action);
                 if (extra != null) i.putExtra("x", extra);
-                c.startForegroundService(i);
+                if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
             } else if (s != null) {
                 s.h.post(() -> s.handle(action, extra));
             } else if (STOP.equals(action)) {

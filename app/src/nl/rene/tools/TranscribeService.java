@@ -33,11 +33,13 @@ public class TranscribeService extends Service {
     private Thread worker;
 
     static void download(Context c, String model) {
-        c.startForegroundService(new Intent(c, TranscribeService.class).putExtra("download", model));
+        Intent i = new Intent(c, TranscribeService.class).putExtra("download", model);
+        if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
     }
 
     static void run(Context c, ArrayList<String> paths) {
-        c.startForegroundService(new Intent(c, TranscribeService.class).putStringArrayListExtra("paths", paths));
+        Intent i = new Intent(c, TranscribeService.class).putStringArrayListExtra("paths", paths);
+        if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
     }
 
     @Override

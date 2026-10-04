@@ -42,7 +42,9 @@ final class ContactsDiff {
             String cur = f.get(field);
             if (cur != null) for (String x : cur.split("\n")) if (!x.isEmpty()) s.add(x);
             s.add(v.trim());
-            f.put(field, String.join("\n", s));
+            StringBuilder b = new StringBuilder();
+            for (String x : s) { if (b.length() > 0) b.append('\n'); b.append(x); }
+            f.put(field, b.toString());
         }
 
         /** Inhoud zonder wijzigingsdatum, om te zien of er echt iets veranderd is. */

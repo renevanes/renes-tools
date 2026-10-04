@@ -85,6 +85,12 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Bij de radio: "Zender op startscherm" maakt een icoon dat de app opent en die zender meteen afspeelt.
 - Lang indrukken van het app-icoon geeft snelle keuzes: Radio, Muziek herkennen, Notities en Auto redial.
 
+## Instellingen, app-slot en foutrapport
+- **Instellingen**: app-slot, backup-map, AudD-sleutel, overzicht van alle toestemmingen (met "Toestaan" per onderdeel) en het foutrapport.
+- **App-slot** (`Lock.java`): ontgrendelen met de schermvergrendeling van de telefoon (BiometricPrompt met vingerafdruk/gezicht of pincode; Android 7–9 via het bevestigingsscherm van de telefoon). Geen eigen pincode, dus niets te vergeten. Vergrendelt na een instelbare tijd buiten beeld; inhoud verborgen in "recente apps" (Android 13+: `setRecentsScreenshotEnabled(false)`, ouder: `FLAG_SECURE`).
+- **Foutrapport** (`App.java`): een eigen `Application` legt elke crash (ook in achtergrondservices) en elke JavaScript-fout vast in `files/crash.log`. Na een crash vraagt de app bij de volgende start of je het rapport wilt delen. Het rapport bevat alleen toestel, versie en foutmeldingen.
+- **Wat is er nieuw**: na een update eenmalig de wijzigingen sinds de vorige versie die je gebruikte.
+
 ## Versies en updates
 - `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.

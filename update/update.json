@@ -1,13 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.14",
-  "versionCode": 15,
-  "nativeLevel": 15,
+  "versionName": "1.15",
+  "versionCode": 16,
+  "nativeLevel": 16,
   "web": "index.html",
-  "webSha256": "829a17a69c815d51590d0b2d9cc7eb25888f91cbbf8a89a6cb6dc9e92fb8418f",
+  "webSha256": "a3abae2e5b458ab3d81172c59e10ddc6a609dc298601a0922546b241cbdc96d8",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3106914d700996dc24ccbd3fc7542dbb678e60fbc8ec5d6237cbc920fced4c56",
+  "apkSha256": "f661ad6318ff52ade400fc5af077f286badd474d5732bd65765907ff476f8b49",
   "changelog": [
+    {
+      "version": "1.15",
+      "date": "2026-10-04",
+      "changes": [
+        "Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen",
+        "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon",
+        "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen",
+        "Na een update zie je eenmalig wat er nieuw is",
+        "Contacten werkt nu ook op Android 7"
+      ]
+    },
     {
       "version": "1.14",
       "date": "2026-10-04",
