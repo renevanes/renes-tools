@@ -4,7 +4,6 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -19,7 +18,9 @@ import android.media.session.MediaSession;
 import android.media.session.PlaybackState;
 import android.os.Build;
 import android.os.Handler;
-import android.os.IBinder;
+import android.media.browse.MediaBrowser;
+import android.media.MediaDescription;
+import android.service.media.MediaBrowserService;
 import android.os.Looper;
 import android.os.PowerManager;
 
@@ -34,11 +35,19 @@ import org.json.JSONObject;
  * Bediening vanuit de app gaat via send(); knoppen van de MediaSession en de koptelefoon worden
  * direct in de lopende service afgehandeld (geen startService vanaf de achtergrond).
  */
-public class RadioService extends Service implements AudioManager.OnAudioFocusChangeListener {
+public class RadioService extends MediaBrowserService implements AudioManager.OnAudioFocusChangeListener {
 
     static final String CHANNEL = "radio";
     static final int NOTIF_ID = 4401;
-    static final String PLAY = "play", PAUSE = "pause", RESUME = "resume", STOP = "stop", SLEEP = "sleep";
+    static final String PLAY = "play", PAUSE = "pause", RESUME = "resume", STOP = "stop", SLEEP = "sleep", SNOOZE = "snooze";
+    /** Wekkermodus: geluid via het wekkervolume, zacht beginnen, en bij geen verbinding de wekkertoon. */
+    static volatile boolean alarm = false;
+    private android.media.Ringtone ring;
+    private PowerManager.WakeLock alarmWl;   // houdt de telefoon wakker tot de wekker klinkt
+    private boolean ducked = false;
+    static final long ACTIONS = PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_STOP
+            | PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_PLAY_FROM_MEDIA_ID
+            | PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS;
 
     // Toestand voor de interface
     static volatile String station = null;     // JSON van de zender
@@ -64,12 +73,23 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
     private Thread metaThread;
     private volatile boolean alive = true;
 
+    /**
+     * Geheim per installatie. De service is bereikbaar voor Android Auto; een PLAY-opdracht met een
+     * zelfgekozen stream wordt alleen uitgevoerd als hij van de app zelf komt.
+     */
+    static String secret(Context c) {
+        android.content.SharedPreferences p = c.getSharedPreferences("radio", Context.MODE_PRIVATE);
+        String s = p.getString("secret", null);
+        if (s == null) { s = java.util.UUID.randomUUID().toString(); p.edit().putString("secret", s).apply(); }
+        return s;
+    }
+
     /** Opdracht vanuit de app. Pauze/stop/slaaptimer starten de service nooit opnieuw. */
     static void send(Context c, String action, String extra) {
         RadioService s = inst;
         try {
             if (PLAY.equals(action) || RESUME.equals(action)) {
-                Intent i = new Intent(c, RadioService.class).setAction(action);
+                Intent i = new Intent(c, RadioService.class).setAction(action).putExtra("k", secret(c));
                 if (extra != null) i.putExtra("x", extra);
                 if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
             } else if (s != null) {
@@ -108,9 +128,87 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
 
     /** Knoppen op het vergrendelscherm, de koptelefoon en in de melding (via de MediaSession). */
     static final class SessionCallback extends MediaSession.Callback {
-        @Override public void onPlay() { RadioService s = inst; if (s != null) s.handle(RESUME, null); }
+        @Override public void onPlay() { RadioService s = inst; if (s != null) { alarm = false; s.startCmd(RESUME, null); } }
         @Override public void onPause() { RadioService s = inst; if (s != null) s.handle(PAUSE, null); }
         @Override public void onStop() { RadioService s = inst; if (s != null) s.handle(STOP, null); }
+        @Override public void onPlayFromMediaId(String id, android.os.Bundle extras) { RadioService s = inst; if (s != null) s.playMedia(id); }
+        @Override public void onSkipToNext() { RadioService s = inst; if (s != null) s.skip(1); }
+        @Override public void onSkipToPrevious() { RadioService s = inst; if (s != null) s.skip(-1); }
+    }
+
+    // ---------- Android Auto / mediabrowser ----------
+
+    @Override
+    public BrowserRoot onGetRoot(String clientPackageName, int clientUid, android.os.Bundle rootHints) {
+        return new BrowserRoot("root", null);
+    }
+
+    /** Zenders voor in de auto: favorieten, anders de populaire zenders uit de laatste lijst. */
+    static org.json.JSONArray browseList(Context c) {
+        org.json.JSONArray f = Radio.favorites(c);
+        if (f.length() > 0) return f;
+        try {
+            org.json.JSONArray all = new org.json.JSONArray(Radio.prefs(c).getString("cache", "[]")), out = new org.json.JSONArray();
+            for (int i = 0; i < all.length() && i < 25; i++) out.put(all.get(i));
+            return out;
+        } catch (Exception e) { return f; }
+    }
+
+    @Override
+    public void onLoadChildren(String parentId, Result<java.util.List<MediaBrowser.MediaItem>> result) {
+        java.util.List<MediaBrowser.MediaItem> items = new java.util.ArrayList<>();
+        if ("root".equals(parentId)) {
+            org.json.JSONArray l = browseList(this);
+            for (int i = 0; i < l.length(); i++) {
+                JSONObject s = l.optJSONObject(i);
+                if (s == null) continue;
+                MediaDescription d = new MediaDescription.Builder().setMediaId("u:" + s.optString("url")).setTitle(s.optString("name"))
+                        .setSubtitle(s.optString("tags").replace(",", ", ")).build();
+                items.add(new MediaBrowser.MediaItem(d, MediaBrowser.MediaItem.FLAG_PLAYABLE));
+            }
+        }
+        result.sendResult(items);
+    }
+
+    /** Alleen zenders uit de eigen lijst (favorieten/populair) kunnen vanuit de auto gestart worden. */
+    void playMedia(String id) {
+        if (id == null || !id.startsWith("u:")) return;
+        String url = id.substring(2);
+        org.json.JSONArray l = browseList(this);
+        for (int i = 0; i < l.length(); i++) {
+            JSONObject s = l.optJSONObject(i);
+            if (s != null && url.equals(s.optString("url"))) {
+                Radio.prefs(this).edit().putString("last", s.toString()).apply();
+                alarm = false;
+                startCmd(PLAY, s.toString());
+                return;
+            }
+        }
+    }
+
+    /** Via een echte startopdracht, zodat de radio blijft spelen als de auto of het slotscherm loskoppelt. */
+    void startCmd(String action, String x) {
+        try {
+            Intent it = new Intent(this, RadioService.class).setAction(action).putExtra("k", secret(this));
+            if (x != null) it.putExtra("x", x);
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(it); else startService(it);
+        } catch (Exception e) {
+            if (!foreground) startFg();
+            handle(action, x);
+        }
+    }
+
+    /** Volgende/vorige favoriet (stuurknoppen in de auto, koptelefoon). */
+    void skip(int dir) {
+        org.json.JSONArray l = browseList(this);
+        if (l.length() == 0) return;
+        int cur = -1;
+        try {
+            String url = new JSONObject(station).optString("url");
+            for (int i = 0; i < l.length(); i++) if (url.equals(l.getJSONObject(i).optString("url"))) cur = i;
+        } catch (Exception ignored) { }
+        JSONObject nx = l.optJSONObject((cur + dir + l.length()) % l.length());
+        if (nx != null) playMedia("u:" + nx.optString("url"));
     }
 
     @Override
@@ -120,6 +218,10 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
         am = (AudioManager) getSystemService(AUDIO_SERVICE);
         session = new MediaSession(this, "RenesRadio");
         session.setCallback(new SessionCallback());
+        session.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS | MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
+        setSessionToken(session.getSessionToken()); // voor Android Auto en andere mediabedieningen
+        session.setPlaybackState(new PlaybackState.Builder().setActions(ACTIONS)
+                .setState(PlaybackState.STATE_STOPPED, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1f).build());
         noisy = new NoisyReceiver();
         IntentFilter f = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(noisy, f, Context.RECEIVER_NOT_EXPORTED);
@@ -131,8 +233,22 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
         lastStartId = startId;
         String a = intent == null ? null : intent.getAction();
         // Na startForegroundService moet altijd startForeground volgen, ook als er niets te doen is.
-        if (PLAY.equals(a) || RESUME.equals(a)) startFg();
-        handle(a, intent == null ? null : intent.getStringExtra("x"));
+        String x = intent == null ? null : intent.getStringExtra("x");
+        boolean trusted = intent != null && secret(this).equals(intent.getStringExtra("k"));
+        if (PLAY.equals(a) || RESUME.equals(a)) startFg(); // verplicht na startForegroundService
+        if (!trusted) {
+            // Niet van de app zelf (de service is zichtbaar voor Android Auto): niets doen.
+            if (player == null && !"paused".equals(status)) stopAll();
+            return START_NOT_STICKY;
+        }
+        if (PLAY.equals(a) || RESUME.equals(a)) {
+            alarm = intent.getBooleanExtra("alarm", false) && x != null;
+            if (alarm && alarmWl == null) {
+                alarmWl = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "renestools:radioalarm");
+                alarmWl.acquire(120_000L);
+            }
+        }
+        handle(a, x);
         return START_NOT_STICKY;
     }
 
@@ -144,9 +260,15 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
                 station = x; retries = 0; start();
             } else if (station == null) stopAll();
         } else if (RESUME.equals(a)) {
+            if (station == null) station = Radio.prefs(this).getString("last", null); // bijv. vanaf de widget
             if (station != null) { if (!foreground) startFg(); retries = 0; start(); } else stopAll();
+        } else if (SNOOZE.equals(a)) {
+            stopAll();
+            RadioAlarm.snooze(this, 10);
         } else if (PAUSE.equals(a)) {
             pausedByFocus = false;
+            alarm = false;
+            stopRing();
             if (player == null && !"connecting".equals(status)) { if (!"paused".equals(status)) stopAll(); return; }
             pause();
         } else if (SLEEP.equals(a)) {
@@ -203,8 +325,10 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
             // Bijvoorbeeld een telefoongesprek: onderbreken maar op de voorgrond blijven, zodat we daarna verder kunnen.
             if ("playing".equals(status) || "connecting".equals(status)) { pausedByFocus = true; interrupt(); }
         } else if (change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+            ducked = true;
             if (player != null) player.setVolume(0.3f, 0.3f);
         } else if (change == AudioManager.AUDIOFOCUS_GAIN) {
+            ducked = false;
             if (player != null) player.setVolume(1f, 1f);
             if (pausedByFocus) { pausedByFocus = false; if (station != null) { retries = 0; start(); } }
         }
@@ -219,7 +343,8 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
         alive = true;
         session.setActive(true);
         error = null;
-        if (!requestFocus()) { error = "Geluid is nu in gebruik (bijvoorbeeld door een gesprek)"; status = "error"; update(); return; }
+        stopRing();
+        if (!requestFocus() && !alarm) { error = "Geluid is nu in gebruik (bijvoorbeeld door een gesprek)"; status = "error"; update(); return; }
         String url;
         try { url = new JSONObject(station).optString("url"); } catch (Exception e) { url = ""; }
         if (url.isEmpty()) { error = "Geen stream-adres"; status = "error"; update(); return; }
@@ -229,15 +354,18 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
         try {
             MediaPlayer p = new MediaPlayer();
             player = p;
-            p.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
+            p.setAudioAttributes(new AudioAttributes.Builder().setUsage(alarm ? AudioAttributes.USAGE_ALARM : AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
             p.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
+            if (alarm) p.setVolume(0.15f, 0.15f);
             java.util.Map<String, String> hdr = new java.util.HashMap<>();
             hdr.put("User-Agent", Radio.UA);
             p.setDataSource(this, android.net.Uri.parse(url), hdr);
             p.setOnPreparedListener(mp -> {
                 if (mp != player) return;
                 mp.start();
+                releaseAlarmWl();
+                if (alarm) ramp(0.15f);
                 status = "playing";
                 retries = 0;
                 update();
@@ -267,12 +395,49 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
         }
         status = "error";
         error = msg;
+        if (alarm) { playRing(); return; } // geen internet: dan de gewone wekkertoon
         update();
         detach();
     }
 
+    /** Wekker: in 30 seconden zacht naar vol. */
+    private void ramp(float v) {
+        MediaPlayer p = player;
+        if (p == null || !alarm) return;
+        float nv = Math.min(1f, v + 0.05f);
+        if (!ducked) { try { p.setVolume(nv, nv); } catch (Exception ignored) { } }
+        if (nv < 1f) h.postDelayed(() -> ramp(nv), 1700);
+    }
+
+    private void releaseAlarmWl() {
+        if (alarmWl != null) { try { if (alarmWl.isHeld()) alarmWl.release(); } catch (Exception ignored) { } alarmWl = null; }
+    }
+
+    private void playRing() {
+        releaseAlarmWl();
+        h.postDelayed(this::stopAll, 10 * 60_000L); // wekkertoon stopt vanzelf na 10 minuten
+        try {
+            android.net.Uri u = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM);
+            if (u == null) u = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_RINGTONE);
+            ring = android.media.RingtoneManager.getRingtone(this, u);
+            if (ring != null) {
+                ring.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build());
+                if (Build.VERSION.SDK_INT >= 28) ring.setLooping(true);
+                ring.play();
+            }
+        } catch (Exception ignored) { }
+        error = "Geen verbinding met de zender; wekkertoon";
+        status = "playing";
+        update();
+    }
+
+    private void stopRing() {
+        if (ring != null) { try { ring.stop(); } catch (Exception ignored) { } ring = null; }
+    }
+
     /** Onderbreken voor een gesprek: speler weg, service blijft op de voorgrond. */
     private void interrupt() {
+        stopRing();
         release();
         status = "interrupted";
         update();
@@ -280,6 +445,7 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
 
     /** Pauze door de gebruiker: de melding blijft staan, de service mag weg. */
     private void pause() {
+        stopRing();
         release();
         if (station != null) status = "paused";
         update();
@@ -291,6 +457,13 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
     }
 
     private void stopAll() {
+        stopRing();
+        releaseAlarmWl();
+        alarm = false;
+        try {
+            session.setPlaybackState(new PlaybackState.Builder().setActions(ACTIONS)
+                    .setState(PlaybackState.STATE_STOPPED, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1f).build());
+        } catch (Exception ignored) { }
         alive = false;
         pausedByFocus = false;
         h.removeCallbacksAndMessages(null);
@@ -303,6 +476,7 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
         stopForeground(STOP_FOREGROUND_REMOVE);
         foreground = false;
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIF_ID);
+        RadioWidget.refresh(this);
         stopSelf(lastStartId); // een PLAY die intussen binnenkwam, houdt de service in leven
     }
 
@@ -341,16 +515,17 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
         int st = "playing".equals(status) ? PlaybackState.STATE_PLAYING : "connecting".equals(status) ? PlaybackState.STATE_BUFFERING
                 : "paused".equals(status) || "interrupted".equals(status) ? PlaybackState.STATE_PAUSED : PlaybackState.STATE_STOPPED;
         session.setPlaybackState(new PlaybackState.Builder()
-                .setActions(PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_STOP | PlaybackState.ACTION_PLAY_PAUSE)
+                .setActions(ACTIONS)
                 .setState(st, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1f).build());
         if (!"stopped".equals(status))
             ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, notif());
+        RadioWidget.refresh(this);
     }
 
     private PendingIntent action(String a, int code) {
-        Intent i = new Intent(this, RadioService.class).setAction(a);
-        if (RESUME.equals(a) && Build.VERSION.SDK_INT >= 26) return PendingIntent.getForegroundService(this, code, i, PendingIntent.FLAG_IMMUTABLE);
-        return PendingIntent.getService(this, code, i, PendingIntent.FLAG_IMMUTABLE);
+        Intent i = new Intent(this, RadioService.class).setAction(a).putExtra("k", secret(this));
+        if (RESUME.equals(a) && Build.VERSION.SDK_INT >= 26) return PendingIntent.getForegroundService(this, code, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        return PendingIntent.getService(this, code, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     private Notification notif() {
@@ -359,6 +534,7 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
         String text = "connecting".equals(status) ? "Verbinden…" : "error".equals(status) ? (error == null ? "Fout" : error)
                 : "paused".equals(status) ? "Gepauzeerd" : "interrupted".equals(status) ? "Onderbroken, gaat zo verder"
                 : title.isEmpty() ? "Live" : title;
+        if (alarm) text = "⏰ Wekker · " + text;
         if (sleepAt > 0) text += " · stopt om " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(new java.util.Date(sleepAt));
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
         boolean playing = "playing".equals(status) || "connecting".equals(status) || "interrupted".equals(status);
@@ -367,7 +543,8 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
                 .setContentIntent(PendingIntent.getActivity(this, 22, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT))
                 .setDeleteIntent(action(STOP, 33))
                 .setOngoing(playing).setOnlyAlertOnce(true).setVisibility(Notification.VISIBILITY_PUBLIC)
-                .addAction(new Notification.Action.Builder(null, playing ? "Pauze" : "Afspelen", action(playing ? PAUSE : RESUME, 31)).build())
+                .addAction(alarm ? new Notification.Action.Builder(null, "Snooze 10 min", action(SNOOZE, 34)).build()
+                        : new Notification.Action.Builder(null, playing ? "Pauze" : "Afspelen", action(playing ? PAUSE : RESUME, 31)).build())
                 .addAction(new Notification.Action.Builder(null, "Stoppen", action(STOP, 32)).build())
                 .setStyle(new Notification.MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(0, 1));
         return b.build();
@@ -382,6 +559,8 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
 
     @Override
     public void onDestroy() {
+        stopRing();
+        releaseAlarmWl();
         alive = false;
         if (inst == this) inst = null;
         h.removeCallbacksAndMessages(null);
@@ -391,9 +570,7 @@ public class RadioService extends Service implements AudioManager.OnAudioFocusCh
         session.release();
         if ("interrupted".equals(status) || "connecting".equals(status) || "playing".equals(status)) status = "paused";
         if (!"error".equals(status) && !"paused".equals(status)) status = "stopped";
+        RadioWidget.refresh(this);
         super.onDestroy();
     }
-
-    @Override
-    public IBinder onBind(Intent intent) { return null; }
 }

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Rene\'s Tools</string>
+    <string name="widget_radio_desc">Radio: afspelen, pauzeren en wat er nu speelt</string>
+    <string name="widget_music_desc">Muziek herkennen met één tik</string>
 </resources>

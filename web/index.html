@@ -216,6 +216,8 @@ details.rinfo dl{margin:8px 0 0}
 .recent li:first-child{border-top:0}.recent time{color:var(--muted);font-size:12px;min-width:40px;padding-top:2px}
 .chk{display:flex;gap:10px;align-items:center;padding:8px 0;font-size:15px}.chk input{width:22px;height:22px;accent-color:var(--chip-on);flex:none}
 .bkres{display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14px}.bkres:first-child{border-top:0}.bkres b{flex:1;font-weight:600}.bkres .bad{color:var(--bad)}.bkres .good{color:var(--ok)}
+.altime{color-scheme:light dark;font:inherit;font-size:40px;font-weight:700;padding:6px 12px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%;text-align:center}
+.nrem{color:var(--brand-2);font-weight:600}
 .setrow{padding:10px 0;border-top:1px solid var(--line);align-items:center}.setrow:first-of-type{border-top:0}
 .permok{color:var(--ok);font-weight:700;font-size:14px}
 .wn{display:block;margin:4px 0 12px;color:var(--ink);font-size:14px;line-height:1.5}
@@ -836,10 +838,38 @@ details.rinfo dl{margin:8px 0 0}
       <div class="flabel" style="margin:4px 2px 8px">Favorieten</div>
       <div class="card stations" id="rd-favs"></div>
     </div>
+    <button class="big ghost" style="margin-bottom:12px" onclick="show('ralarm')" id="rd-alarm-btn">⏰ Radiowekker</button>
     <input class="search" id="rd-search" type="search" placeholder="Zoek een zender…" oninput="rdSearchDo()">
     <div class="flabel" style="margin:4px 2px 8px" id="rd-list-label">Populair in Nederland</div>
     <div class="card stations" id="rd-list"><p class="note" style="padding:14px">Zenders laden…</p></div>
     <p class="note" style="margin-top:14px">Zenders en stream-adressen komen uit de vrije database van radio-browser.info, dus ook gewijzigde adressen van omroepen kloppen. Tik op ☆ om een zender aan je favorieten toe te voegen.</p>
+  </main>
+</section>
+
+<!-- ============ RADIOWEKKER ============ -->
+<section class="screen" id="s-ralarm">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1>Radiowekker</h1>
+  </div>
+  <main>
+    <div class="card">
+      <label class="chk" style="font-size:17px;font-weight:600"><input type="checkbox" id="al-on"> Wekker aan</label>
+      <div class="row" style="margin:8px 0 14px"><input type="time" id="al-time" class="altime" value="07:00"></div>
+      <div class="flabel">Dagen</div>
+      <div class="chips sm" id="al-days">
+        <button data-d="0">ma</button><button data-d="1">di</button><button data-d="2">wo</button><button data-d="3">do</button>
+        <button data-d="4">vr</button><button data-d="5">za</button><button data-d="6">zo</button>
+      </div>
+      <p class="note" style="margin-top:-6px">Geen dag gekozen = eenmalig.</p>
+      <div class="flabel">Zender</div>
+      <select class="sel" id="al-station" style="width:100%"></select>
+      <button class="big" style="margin-top:14px" onclick="alSave()">Opslaan</button>
+      <p class="note" id="al-next"></p>
+      <button class="big ghost" onclick="alTest()">Proef: over 10 seconden</button>
+      <p class="note">De radio begint zacht en wordt in een halve minuut harder, via het wekkervolume van je telefoon. Is er geen internet, dan klinkt de gewone wekkertoon. In de melding kun je stoppen of 10 minuten snoozen.</p>
+      <div class="result on other" id="al-exact" style="display:none">Android staat precieze wekkers voor deze app niet toe, dus de wekker kan een paar minuten later afgaan. <a href="#" onclick="Android.alarmExactSettings();return false">Toestaan</a></div>
+    </div>
   </main>
 </section>
 
@@ -1054,6 +1084,16 @@ details.rinfo dl{margin:8px 0 0}
       <h2>Notitie</h2>
       <textarea class="ntext" id="note-text" placeholder="Vrije tekst (optioneel)" oninput="noteEdit('text', this.value)"></textarea>
     </div>
+    <div class="card">
+      <h2>Herinnering</h2>
+      <input type="datetime-local" id="note-rem" class="altime" style="font-size:18px;text-align:left">
+      <div class="row" style="margin-top:10px">
+        <button class="big" style="flex:1" onclick="noteSetRem()">Herinner mij</button>
+        <button class="big ghost" style="flex:1" id="note-rem-del" onclick="noteDelRem()">Weghalen</button>
+      </div>
+      <p class="note" id="note-rem-info"></p>
+    </div>
+    <button class="big ghost" onclick="noteShareNow()">Delen (WhatsApp, mail …)</button>
   </main>
 </section>
 
@@ -1375,6 +1415,12 @@ if (!window.Android) window.Android = (function(){
         onBackupDone(b.last); } },150); return ''; },
     restorePick(k){ setTimeout(()=>onRestorePreview(k==='contacts'?{kind:k,total:320,fresh:9,dup:311,sample:['Oom Kees','Tandarts']}:{kind:k,total:5,fresh:1,dup:4,sample:['Vakantie']}),100); },
     restoreApply(){ setTimeout(()=>onRestoreDone('ok:9'),100); return ''; },
+    _al:{on:false,hour:7,minute:0,days:31,station:null,nextAt:0},
+    alarmState(){ return JSON.stringify(Object.assign({exact:true},this._al)); },
+    alarmSet(on,h,m,d,st){ const a=this._al; Object.assign(a,{on,hour:h,minute:m,days:d}); if(st) a.station=JSON.parse(st); if(on&&!a.station) return 'Kies een zender'; a.nextAt=on?Date.now()+8*36e5:0; return ''; },
+    alarmTest(){ return this._al.station?'':'Kies eerst een zender'; }, alarmExactSettings(){},
+    _rem:{}, noteRemind(id,t,time){ if(+time>0) this._rem[id]=+time; else delete this._rem[id]; }, noteReminders(){ return JSON.stringify(this._rem); },
+    noteShare(t,x){ this._shared=x; }, pendingShare(){ const s=this._ps||''; this._ps=''; return s; },
     notesLoad(){ return this._notes; },
     notesSave(j){ this._notes=j; return ''; },
     notesExport(){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+JSON.parse(this._notes).length; },
@@ -1452,13 +1498,14 @@ function show(name){
   if (name==='settings') enterSettings();
   if (name==='backup') enterBackup(); else stopBkPoll();
   if (name==='homeedit') enterHomeEdit();
+  if (name==='ralarm') enterAlarm();
   if (name==='music') enterMusic(); else stopMuPoll();
   if (current_prev==='txd' && name!=='txd') leaveTrd();
   if (name==='cversions') enterVersions();
   if (name==='info') renderInfo();
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); }
 }
-const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home'};
+const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio'};
 window.goBack = function(){
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
   if (jumpStack.length) { show(jumpStack.pop()); return true; }
@@ -1476,7 +1523,10 @@ function openSheet(title, sub, acts){
 }
 function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.classList.remove('on'); }
 
-window.openTool = function(n){ if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); };
+window.openTool = function(n){
+  if (n === 'share') { noteFromShare(); return; }
+  if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
+  if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); };
 window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
 /* ---------- Auto redial ---------- */
@@ -2276,6 +2326,35 @@ function rdRecognize(){
   jumpTo('music');
 }
 
+/* ---------- Radiowekker ---------- */
+let alDays = 31;
+function enterAlarm(){
+  const a = rdJson(Android.alarmState(), {});
+  $('#al-on').checked = !!a.on;
+  $('#al-time').value = String(a.hour != null ? a.hour : 7).padStart(2, '0') + ':' + String(a.minute || 0).padStart(2, '0');
+  alDays = a.days != null ? a.days : 31; alRenderDays();
+  // Zenders: favorieten, de huidige en de laatst gebruikte
+  const list = [], seen = new Set();
+  const add = s => { if (s && s.url && !seen.has(s.url)) { seen.add(s.url); list.push(s); } };
+  add(a.station); rdJson(Android.radioFavorites(), []).forEach(add); add(rdState.station); add(rdState.last); rdStations.slice(0, 20).forEach(add);
+  alStations = list;
+  $('#al-station').innerHTML = list.map((s, i) => '<option value="' + i + '">' + esc(s.name) + '</option>').join('') || '<option value="">Kies eerst een zender in Radio</option>';
+  $('#al-next').textContent = a.on && a.nextAt ? 'Gaat af: ' + new Date(a.nextAt).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}) : '';
+  $('#al-exact').style.display = a.exact === false ? 'block' : 'none';
+}
+let alStations = [];
+function alRenderDays(){ document.querySelectorAll('#al-days button').forEach(b => b.classList.toggle('on', !!(alDays & (1 << +b.dataset.d)))); }
+document.querySelectorAll('#al-days button').forEach(b => b.addEventListener('click', () => { alDays ^= (1 << +b.dataset.d); alRenderDays(); }));
+function alSave(){
+  const [h, m] = ($('#al-time').value || '07:00').split(':').map(Number);
+  const st = alStations[+$('#al-station').value];
+  const e = Android.alarmSet($('#al-on').checked, h, m, alDays, st ? JSON.stringify(st) : '');
+  if (e) { toast(e); return; }
+  enterAlarm();
+  toast($('#al-on').checked ? '⏰ Wekker opgeslagen' : 'Wekker uit');
+}
+function alTest(){ alSave(); const e = Android.alarmTest(); toast(e || 'De wekker gaat over 10 seconden af'); }
+
 /* ---------- Muziek herkennen ---------- */
 let muPoll = null, muHist = [], muLastAt = 0;
 function enterMusic(){
@@ -2630,7 +2709,7 @@ function hl(text, q){
   const i = text.toLowerCase().indexOf(q); if (i < 0) return t;
   return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
 }
-function enterNotes(){ renderNotes(); refreshNotesTile(); }
+function enterNotes(){ loadRems(); renderNotes(); refreshNotesTile(); }
 function renderNotes(){
   const q = $('#notes-search').value.trim().toLowerCase();
   const list = notesGet().slice().sort((a, b) => (b.updated||0) - (a.updated||0));
@@ -2648,7 +2727,8 @@ function renderNotes(){
     } else {
       sub = items.length ? esc(items.filter(i => !i.done).slice(0, 5).map(i => i.text).join(' · ') || 'Alles afgestreept') : esc(flat.slice(0, 80));
     }
-    rows.push('<button class="nrow" onclick="openNote(\'' + esc(n.id) + '\')"><span class=r1><b>' + hl(title, q) + '</b><small>' +
+    const rem = noteRems[n.id];
+    rows.push('<button class="nrow" onclick="openNote(\'' + esc(n.id) + '\')"><span class=r1><b>' + (rem ? '<span class=nrem>🔔</span> ' : '') + hl(title, q) + '</b><small>' +
       (items.length ? (items.length - open) + '/' + items.length + ' ✓ · ' : '') + esc(fmtD(n.updated||0)) + '</small></span>' +
       '<span class=r2>' + (sub || '&nbsp;') + '</span></button>');
   }
@@ -2663,7 +2743,7 @@ function newNote(){
 function openNote(id, fresh){
   noteCur = id; const n = noteById(id); if (!n) return;
   $('#note-title').value = n.title || ''; $('#note-text').value = n.text || ''; $('#note-add').value = '';
-  show('note'); renderItems();
+  show('note'); renderItems(); noteRemShow();
   if (fresh) setTimeout(() => $('#note-title').focus(), 50);
 }
 function touch(n){ n.updated = Date.now(); notesSaveSoon(); }
@@ -2712,11 +2792,13 @@ function clearDone(){
 function deleteNote(){
   const n = noteById(noteCur); if (!n) return;
   askConfirm('Notitie verwijderen?', '"' + (n.title || 'Zonder titel') + '" wordt definitief verwijderd.', 'Verwijderen', () => {
+    Android.noteRemind(noteCur, '', '0');
     notes = notesGet().filter(x => x.id !== noteCur); noteCur = null; notesSaveNow(); show('notes'); });
 }
 function leaveNote(){
   const n = noteById(noteCur);
-  if (n && !(n.title||'').trim() && !(n.text||'').trim() && !(n.items||[]).length) notes = notesGet().filter(x => x.id !== n.id);
+  if (n && !(n.title||'').trim() && !(n.text||'').trim() && !(n.items||[]).length) { notes = notesGet().filter(x => x.id !== n.id); Android.noteRemind(n.id, '', '0'); }
+  else if (n && noteRems[n.id]) Android.noteRemind(n.id, n.title || 'Notitie', String(noteRems[n.id])); // titel van de herinnering bijwerken
   notesSaveNow(); noteCur = null;
 }
 function notesBackup(){
@@ -2728,6 +2810,47 @@ function refreshNotesTile(){
   const sub = $('#tile-notes-sub'); if (!sub) return;
   const l = notesGet(); const open = l.reduce((a, n) => a + (n.items||[]).filter(i => !i.done).length, 0);
   sub.textContent = l.length ? l.length + (l.length === 1 ? ' notitie' : ' notities') + (open ? ' · ' + open + ' open' : '') : 'Lijstjes maken en afstrepen';
+}
+
+/* ---------- Notities: herinneringen en delen ---------- */
+let noteRems = {};
+function loadRems(){ try { noteRems = JSON.parse(Android.noteReminders()) || {}; } catch(e){ noteRems = {}; } }
+function localIso(t){ const d = new Date(t - new Date(t).getTimezoneOffset() * 6e4); return d.toISOString().slice(0, 16); }
+function noteRemShow(){
+  loadRems();
+  const t = noteRems[noteCur];
+  $('#note-rem').value = t ? localIso(t) : localIso(Date.now() + 36e5);
+  $('#note-rem-del').style.display = t ? 'block' : 'none';
+  $('#note-rem-info').textContent = t ? '🔔 Herinnering op ' + new Date(t).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}) : '';
+}
+function noteSetRem(){
+  const n = noteById(noteCur); if (!n) return;
+  const v = $('#note-rem').value; if (!v) { toast('Kies een datum en tijd'); return; }
+  const t = new Date(v).getTime();
+  if (!(t > Date.now())) { toast('Kies een moment in de toekomst'); return; }
+  notesSaveNow();
+  Android.noteRemind(n.id, n.title || 'Notitie', String(t)); noteRemShow(); toast('🔔 Herinnering gezet');
+}
+function noteDelRem(){ Android.noteRemind(noteCur, '', '0'); noteRemShow(); }
+function noteShareNow(){
+  const n = noteById(noteCur); if (!n) return;
+  const lines = [];
+  (n.items || []).filter(i => !i.done).forEach(i => lines.push('☐ ' + i.text));
+  (n.items || []).filter(i => i.done).forEach(i => lines.push('☑ ' + i.text));
+  const text = (n.title ? n.title + '\n\n' : '') + lines.join('\n') + (n.text ? (lines.length ? '\n\n' : '') + n.text : '');
+  if (!text.trim()) { toast('De notitie is nog leeg'); return; }
+  Android.noteShare(n.title || '', text);
+}
+/** Tekst gedeeld vanuit een andere app → nieuwe notitie. Regels die op een lijstje lijken worden items. */
+function noteFromShare(){
+  let d; try { d = JSON.parse(Android.pendingShare() || '{}'); } catch(e){ d = {}; }
+  if (!d.text) { show('notes'); return; }
+  const lines = d.text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  const listy = lines.length >= 2 && lines.every(x => x.length < 120);
+  const n = { id: uid(), title: (d.title || (listy ? '' : lines[0] || '')).slice(0, 80), text: listy ? '' : d.text, items: [], updated: Date.now() };
+  if (listy) lines.forEach(x => n.items.push({ id: uid(), text: x.replace(/^([-*•☐☑✓]|\[[ x]\])\s*/i, ''), done: /^(☑|✓|\[x\])/i.test(x) }));
+  notesGet().push(n); notesSaveNow();
+  show('notes'); openNote(n.id); toast('Nieuwe notitie gemaakt van gedeelde tekst');
 }
 
 /* ---------- Oproepen-backup ---------- */

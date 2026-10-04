@@ -1,13 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.17",
-  "versionCode": 18,
-  "nativeLevel": 17,
+  "versionName": "1.18",
+  "versionCode": 19,
+  "nativeLevel": 18,
   "web": "index.html",
-  "webSha256": "8c8aa65dfbf2109536119a89fbec98c5fffb971f295a648e8647f485a79d3653",
+  "webSha256": "5f6d8e28d001d90688e9dfe4ac79cab59ff7a9c56b53c3621e867b1862568e1f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "6a33abba6409234a58f3afd6674308e42c5e03469ee308a78c56bd3307737177",
+  "apkSha256": "fafbdae1ef9bf17da946c3e31ec4c2d4cb72cfdb74cb53ab9529934263cc3f16",
   "changelog": [
+    {
+      "version": "1.18",
+      "date": "2026-10-04",
+      "changes": [
+        "Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen",
+        "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt",
+        "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon",
+        "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools",
+        "Android Auto: je favoriete zenders in de auto"
+      ]
+    },
     {
       "version": "1.17",
       "date": "2026-10-04",

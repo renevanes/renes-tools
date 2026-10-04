@@ -83,6 +83,12 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 ## Startscherm
 - Tegels in groepen (Bellen & contacten, Berichten & backup, Muziek & radio, Handig). Via "Startscherm aanpassen": volgorde (ook naar een andere groep), tools verbergen, groepen hernoemen/toevoegen, zonder groepen tonen en een compacte weergave met drie tegels naast elkaar. Opgeslagen in de WebView-opslag; nieuwe tools uit een update komen vanzelf in hun groep.
 
+## Widgets, wekker, herinneringen en Android Auto
+- **Radio-widget** (`RadioWidget`): zender, wat er nu speelt, afspelen/pauzeren en stoppen; wordt bijgewerkt door `RadioService`. **Herken-widget** (`MusicWidget`): opent Muziek herkennen en begint meteen.
+- **Radiowekker** (`RadioAlarm`, `AlarmReceiver`): tijd, dagen en zender; `setAlarmClock` (precies, ook in diepe slaap; `USE_EXACT_ALARM`). Speelt via het wekkervolume (`USAGE_ALARM`), begint zacht en wordt in ~30 s harder; zonder verbinding de gewone wekkertoon. Snooze 10 min in de melding. Na herstarten van de telefoon opnieuw gepland.
+- **Notities**: herinnering op datum/tijd (`Reminders`, melding opent de notitie), delen als tekst (☐/☑), en tekst uit andere apps delen naar Rene's Tools wordt een nieuwe notitie (lijstjes worden items).
+- **Android Auto**: `RadioService` is ook een `MediaBrowserService`; je favorieten (anders de populaire zenders) staan in de auto, met volgende/vorige. Een `PLAY` met eigen stream wordt alleen uitgevoerd met het geheim van de app zelf (de service moet geëxporteerd zijn voor Android Auto).
+
 ## Snelkoppelingen
 - Houd een tegel ingedrukt → "Snelkoppeling op startscherm" (`ShortcutManager.requestPinShortcut`, Android 8+). Het icoon wordt getekend met de kleur en het symbool van de tool (`Shortcuts.java`).
 - Bij de radio: "Zender op startscherm" maakt een icoon dat de app opent en die zender meteen afspeelt.

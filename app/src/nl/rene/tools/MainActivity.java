@@ -62,6 +62,7 @@ public class MainActivity extends Activity {
     private static final int REQ_SETTINGS = 23;
     private static final int REQ_IMPORT = 24;
     String importKind = null;
+    String pendingShare = null;
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
@@ -118,6 +119,8 @@ public class MainActivity extends Activity {
         }
 
         pendingOpen = getIntent() != null ? getIntent().getStringExtra("open") : null;
+        boolean fromHistory = getIntent() != null && (getIntent().getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0;
+        if (b == null && !fromHistory && takeShare(getIntent())) pendingOpen = "share";
         playFromShortcut(getIntent());
         loadUi();
     }
@@ -154,8 +157,24 @@ public class MainActivity extends Activity {
             return;
         }
         playFromShortcut(i);
+        if (takeShare(i)) { js("openTool", "\"share\""); return; }
         String open = i.getStringExtra("open");
         if (open != null) js("openTool", JSONObject.quote(open));
+    }
+
+    /** Gedeelde tekst uit een andere app bewaren voor een nieuwe notitie. */
+    private boolean takeShare(Intent i) {
+        if (i == null || !Intent.ACTION_SEND.equals(i.getAction())) return false;
+        CharSequence t = i.getCharSequenceExtra(Intent.EXTRA_TEXT);
+        if (t == null) return false;
+        try {
+            String subj = i.getStringExtra(Intent.EXTRA_SUBJECT);
+            String text = t.toString();
+            if (text.length() > 20_000) text = text.substring(0, 20_000);
+            pendingShare = new JSONObject().put("title", subj == null ? "" : subj).put("text", text).toString();
+        } catch (Exception ignored) { }
+        i.setAction(Intent.ACTION_MAIN); // niet nog eens verwerken
+        return pendingShare != null;
     }
 
     /** Snelkoppeling naar een radiozender: meteen afspelen. */
@@ -1398,6 +1417,66 @@ public class MainActivity extends Activity {
             return "";
         }
 
+        // ----- Radiowekker -----
+
+        @JavascriptInterface public String alarmState() { return RadioAlarm.stateJson(ctx); }
+
+        @JavascriptInterface public String alarmSet(boolean on, int hour, int minute, int days, String station) {
+            if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || days < 0 || days > 127) return "Ongeldige tijd";
+            android.content.SharedPreferences.Editor e = RadioAlarm.prefs(ctx).edit()
+                    .putBoolean("on", on).putInt("hour", hour).putInt("minute", minute).putInt("days", days);
+            if (station != null && !station.isEmpty()) {
+                try {
+                    JSONObject s = new JSONObject(station);
+                    String url = s.optString("url").toLowerCase();
+                    if (!url.startsWith("http://") && !url.startsWith("https://")) return "Kies een zender";
+                    e.putString("station", Radio.slimFav(s).toString());
+                } catch (Exception ex) { return "Kies een zender"; }
+            }
+            e.apply();
+            if (on && RadioAlarm.prefs(ctx).getString("station", null) == null) return "Kies een zender";
+            RadioAlarm.schedule(ctx);
+            return "";
+        }
+
+        /** Proef: de wekker gaat over 10 seconden af. */
+        @JavascriptInterface public String alarmTest() {
+            if (RadioAlarm.prefs(ctx).getString("station", null) == null) return "Kies eerst een zender";
+            RadioAlarm.setAt(ctx, System.currentTimeMillis() + 10_000L, true); // als snooze: verandert de echte wekker niet
+            return "";
+        }
+
+        @JavascriptInterface public void alarmExactSettings() {
+            if (Build.VERSION.SDK_INT >= 31) a.h.post(() -> {
+                try { a.startActivity(new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + ctx.getPackageName()))); }
+                catch (Exception e) { a.openAppSettings(); }
+            });
+        }
+
+        // ----- Notities: herinneringen, delen, ontvangen -----
+
+        @JavascriptInterface public void noteRemind(String id, String title, String time) {
+            try { Reminders.set(ctx, id, title, Long.parseLong(time)); } catch (Exception ignored) { }
+        }
+
+        @JavascriptInterface public String noteReminders() { return Reminders.all(ctx); }
+
+        @JavascriptInterface public void noteShare(String title, String text) {
+            a.h.post(() -> {
+                Intent i = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text);
+                if (title != null && !title.isEmpty()) i.putExtra(Intent.EXTRA_SUBJECT, title);
+                try { a.startActivity(Intent.createChooser(i, "Notitie delen")); }
+                catch (Exception e) { Toast.makeText(a, "Delen lukt niet", Toast.LENGTH_SHORT).show(); }
+            });
+        }
+
+        /** Tekst die vanuit een andere app met Delen naar Rene's Tools is gestuurd (één keer ophalen). */
+        @JavascriptInterface public String pendingShare() {
+            String s = a.pendingShare;
+            a.pendingShare = null;
+            return s == null ? "" : s;
+        }
+
         // ----- Snelkoppelingen -----
 
         @JavascriptInterface public String shortcutPin(String tool, String label, String color, String glyph) {
@@ -1450,7 +1529,11 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String radioFavorites() { return Radio.favorites(ctx).toString(); }
 
         @JavascriptInterface public boolean radioToggleFav(String station) {
-            try { return Radio.toggleFavorite(ctx, station); } catch (Exception e) { return false; }
+            try {
+                boolean on = Radio.toggleFavorite(ctx, station);
+                a.h.post(() -> { RadioService s = RadioService.inst; if (s != null) s.notifyChildrenChanged("root"); }); // lijst in de auto bijwerken
+                return on;
+            } catch (Exception e) { return false; }
         }
 
         @JavascriptInterface public void radioMoveFav(String id, int dir) {

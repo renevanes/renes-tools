@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.18",
+    "date": "2026-10-04",
+    "changes": [
+      "Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen",
+      "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt",
+      "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon",
+      "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools",
+      "Android Auto: je favoriete zenders in de auto"
+    ]
+  },
+  {
     "version": "1.17",
     "date": "2026-10-04",
     "changes": [
