@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- RENES-TOOLS-UI versie 1.21 (22) -->
+<!-- RENES-TOOLS-UI versie 1.22 (23) -->
 <html lang="nl">
 <head>
 <meta charset="utf-8">
@@ -440,6 +440,20 @@ details.rinfo dl{margin:8px 0 0}
         Start auto redial
       </button>
       <p class="note" id="how-note">De app belt het nummer, wacht tot het gesprek voorbij is en kijkt in je oproepgeschiedenis of er is opgenomen. Een voicemail telt ook als opgenomen.</p>
+      <div class="card" id="rp-card" style="margin-top:14px">
+        <h2>Op een tijdstip</h2>
+        <p class="note" style="margin-top:0" id="rp-state">Laat Auto redial vanzelf beginnen, bijvoorbeeld om 08:00 de huisarts. Met het nummer en de instellingen hierboven.</p>
+        <div class="row" style="margin:8px 0 12px"><input type="time" id="rp-time" class="altime" value="08:00" aria-label="Tijd"></div>
+        <div class="flabel">Dagen</div>
+        <div class="chips sm" id="rp-days">
+          <button data-d="0">ma</button><button data-d="1">di</button><button data-d="2">wo</button><button data-d="3">do</button>
+          <button data-d="4">vr</button><button data-d="5">za</button><button data-d="6">zo</button>
+        </div>
+        <p class="note" style="margin-top:-6px">Geen dag gekozen = eenmalig.</p>
+        <button class="big ghost" id="rp-save" onclick="rpSave()">Inplannen</button>
+        <button class="big ghost" id="rp-clear" style="margin-top:8px;display:none" onclick="rpClear()">Planning weghalen</button>
+        <div class="result on other" id="rp-exact" style="display:none">Android staat precieze wekkers voor deze app niet toe. Dan kan Auto redial niet vanzelf beginnen; je krijgt op het tijdstip (of iets later) een melding om met één tik te starten. <a href="#" onclick="Android.alarmExactSettings();return false">Toestaan</a></div>
+      </div>
     </div>
   </main>
 </section>
@@ -994,6 +1008,10 @@ details.rinfo dl{margin:8px 0 0}
     </div>
 
     <div id="tx-home">
+      <div class="card" id="tx-auto-card">
+        <label class="chk" style="font-weight:600"><input type="checkbox" id="tx-auto" onchange="txAutoSet(this.checked)"> 's Nachts automatisch uitschrijven</label>
+        <p class="note" id="tx-auto-note">Nieuwe opnames (van de laatste 14 dagen) worden vanaf 01:00 uitgeschreven terwijl de telefoon oplaadt. Je krijgt een melding als het klaar is.</p>
+      </div>
       <div class="card" id="tx-calls" style="display:none">
         <p style="margin:0 0 10px">Geef toegang tot je oproepgeschiedenis om opnames aan het juiste gesprek en contact te koppelen.</p>
         <button class="big ghost" onclick="Android.txRequestCalls()">Gesprekken koppelen</button>
@@ -1279,9 +1297,9 @@ details.rinfo dl{margin:8px 0 0}
 </div></div>
 
 <script>
-const VERSION_NAME = "1.21";
-const VERSION_CODE = 22;
-const CHANGELOG = [{"version": "1.21", "date": "2026-10-04", "changes": ["Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"]}, {"version": "1.20", "date": "2026-10-04", "changes": ["Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html", "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan", "Ruimtegebruik van de backup-map per map"]}, {"version": "1.19", "date": "2026-10-04", "changes": ["Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen", "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"]}, {"version": "1.18", "date": "2026-10-04", "changes": ["Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen", "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt", "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon", "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools", "Android Auto: je favoriete zenders in de auto"]}, {"version": "1.17", "date": "2026-10-04", "changes": ["Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig", "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"]}, {"version": "1.16", "date": "2026-10-04", "changes": ["Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst", "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)", "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"]}, {"version": "1.15", "date": "2026-10-04", "changes": ["Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen", "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon", "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen", "Na een update zie je eenmalig wat er nieuw is", "Contacten werkt nu ook op Android 7"]}, {"version": "1.14", "date": "2026-10-04", "changes": ["Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten", "Radio: een zender als icoon op je startscherm die meteen begint te spelen", "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers", "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"]}, {"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+const VERSION_NAME = "1.22";
+const VERSION_CODE = 23;
+const CHANGELOG = [{"version": "1.22", "date": "2026-10-04", "changes": ["Auto redial op een tijdstip: eenmalig of op vaste dagen automatisch beginnen met bellen (bijv. om 08:00 de huisarts)", "Gesprekken 's nachts automatisch uitschrijven tijdens het opladen"]}, {"version": "1.21", "date": "2026-10-04", "changes": ["Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"]}, {"version": "1.20", "date": "2026-10-04", "changes": ["Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html", "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan", "Ruimtegebruik van de backup-map per map"]}, {"version": "1.19", "date": "2026-10-04", "changes": ["Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen", "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"]}, {"version": "1.18", "date": "2026-10-04", "changes": ["Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen", "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt", "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon", "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools", "Android Auto: je favoriete zenders in de auto"]}, {"version": "1.17", "date": "2026-10-04", "changes": ["Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig", "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"]}, {"version": "1.16", "date": "2026-10-04", "changes": ["Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst", "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)", "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"]}, {"version": "1.15", "date": "2026-10-04", "changes": ["Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen", "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon", "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen", "Na een update zie je eenmalig wat er nieuw is", "Contacten werkt nu ook op Android 7"]}, {"version": "1.14", "date": "2026-10-04", "changes": ["Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten", "Radio: een zender als icoon op je startscherm die meteen begint te spelen", "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers", "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"]}, {"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
 
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
 if (!window.Android) window.Android = (function(){
@@ -1495,6 +1513,11 @@ if (!window.Android) window.Android = (function(){
         r.wa={total:1,items:[{chat:5,chatName:'Familie',sender:'Jos',t:Date.now()-2*864e5,text:'Wie neemt '+q+' mee naar het feest?'}]};
         r.tx={total:2,items:[{id:this._txRecs[0].id,name:'Tandarts',mtime:Date.now()-5*864e5,from:42000,text:'Ja, dan zie ik u dinsdag om tien uur, '+q+'.'}]}; }
       r.done=true; onSearchAll(r); },150); return id; }, _gsId:0,
+    _rp:null, _txa:{on:false},
+    redialPlanSet(j){ const p=JSON.parse(j); if(p.number.replace(/\D/g,'').length<3) return 'Vul een geldig telefoonnummer in'; this._rp=p; return ''; },
+    redialPlanClear(){ this._rp=null; },
+    redialPlanState(){ const p=this._rp; return JSON.stringify({on:!!p,plan:p,exact:true,next:p?Date.now()+18*36e5:0,last:''}); },
+    txAutoSet(on){ this._txa.on=on; }, txAutoState(){ return JSON.stringify({battery:false,blocked:false,on:this._txa.on,next:this._txa.on?Date.now()+10*36e5:0,last:0,found:0,failed:this._txa.on?2:0,model:true}); }, txAutoRetryFailed(){ this._txa.retried=true; },
     notesLoad(){ return this._notes; },
     notesSave(j){ this._notes=j; return ''; },
     notesExport(){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+JSON.parse(this._notes).length; },
@@ -1673,7 +1696,7 @@ function enterRedial(){
   $('#t-stop').classList.toggle('on', store.get('t-stop', true));
   $('#t-spk').classList.toggle('on', store.get('t-spk', false));
   if (!$('#num').value) { const r = store.get('recent', []); if (r[0]) { $('#num').value = r[0].number; nameFor = r[0].name||''; $('#pname').textContent = nameFor; } }
-  renderRecent(); renderPerms(); pollOnce();
+  renderRecent(); renderPerms(); pollOnce(); rpRender();
   stopPoll(); poll = setInterval(pollOnce, 500);
 }
 function stopPoll(){ if (poll) { clearInterval(poll); poll = null; } }
@@ -2527,6 +2550,7 @@ function enterTranscripts(){
   $('#tx-home').style.display = i.supported && i.files ? 'block' : 'none';
   $('#tx-search').value = ''; $('#tx-results').innerHTML = '';
   if (i.supported && i.files) { if (!txRecs.length) $('#tx-list').innerHTML = '<p class=note style="padding:14px">Opnames zoeken…</p>'; setTimeout(txLoad, 30); }
+  txAutoRender();
   txPollOnce(); stopTrPoll(); txPoll = setInterval(txPollOnce, 700);
 }
 function stopTrPoll(){ if (txPoll) { clearInterval(txPoll); txPoll = null; } }
@@ -3338,6 +3362,52 @@ function gsResetTool(name){
   if (inp && gsUsed[d[3]] != null && inp.value === gsUsed[d[3]]) { inp.value = ''; delete gsUsed[d[3]]; d[4](''); }
 }
 
+/* ---------- Auto redial op een tijdstip ---------- */
+let rpDays = 0;
+document.querySelectorAll('#rp-days button').forEach(b => b.addEventListener('click', () => { rpDays ^= (1 << +b.dataset.d); rpRenderDays(); }));
+function rpRenderDays(){ document.querySelectorAll('#rp-days button').forEach(b => b.classList.toggle('on', !!(rpDays & (1 << +b.dataset.d)))); }
+const RP_DAYN = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+function rpDaysText(d){ if (!d) return 'eenmalig'; if (d === 127) return 'elke dag'; if (d === 31) return 'werkdagen'; return RP_DAYN.filter((x, i) => d & (1 << i)).join(', '); }
+function rpRender(){
+  const st = rdJson(Android.redialPlanState(), {});
+  const p = st.plan;
+  if (p) {
+    $('#rp-time').value = String(p.hour).padStart(2, '0') + ':' + String(p.minute).padStart(2, '0'); rpDays = p.days || 0;
+    $('#rp-state').innerHTML = '📅 <b>' + esc(p.name || p.number) + '</b> wordt gebeld ' + esc(rpDaysText(p.days)) + ' om ' + esc($('#rp-time').value) +
+      (st.next ? '. Volgende keer: ' + esc(new Date(st.next).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) : '') + '.';
+  } else $('#rp-state').textContent = 'Laat Auto redial vanzelf beginnen, bijvoorbeeld om 08:00 de huisarts. Met het nummer en de instellingen hierboven.' + (st.last ? ' Laatst: ' + st.last + '.' : '');
+  $('#rp-save').textContent = p ? 'Planning bijwerken' : 'Inplannen';
+  $('#rp-clear').style.display = p ? 'block' : 'none';
+  $('#rp-exact').style.display = p && st.exact === false ? 'block' : 'none';
+  rpRenderDays();
+}
+function rpSave(){
+  const n = $('#num').value.trim(), t = ($('#rp-time').value || '').split(':');
+  if (t.length < 2) { toast('Kies een tijd'); return; }
+  const p = renderPerms();
+  if (!p.call || !p.phoneState) { toast('Geef eerst toestemming'); askPerms(); return; }
+  const iv = store.get('interval', 10), rnd = iv === -1, rmin = store.get('rmin', 10), rmax = store.get('rmax', 60);
+  const err = Android.redialPlanSet(JSON.stringify({ number: n, name: nameFor, hour: +t[0], minute: +t[1], days: rpDays,
+    attempts: store.get('attempts', 10), interval: rnd ? rmin : iv, randomMin: rnd ? rmin : 0, randomMax: rnd ? rmax : 0,
+    stopWhenAnswered: store.get('t-stop', true), speaker: store.get('t-spk', false) }));
+  if (err) { toast(err); return; }
+  remember(n, nameFor); rpRender(); renderDash(); toast('📅 Ingepland');
+}
+function rpClear(){ Android.redialPlanClear(); rpDays = 0; rpRender(); renderDash(); toast('Planning weggehaald'); }
+
+/* ---------- Automatisch uitschrijven ---------- */
+function txAutoRender(){
+  const a = rdJson(Android.txAutoState(), {});
+  $('#tx-auto').checked = !!a.on;
+  let note = "Nieuwe opnames (van de laatste 14 dagen) worden vanaf 01:00 uitgeschreven terwijl de telefoon oplaadt. Je krijgt een melding als het klaar is.";
+  if (a.on && !a.model) note = '⚠️ Download eerst een spraakmodel; zonder model wordt er niets uitgeschreven.';
+  else if (a.on) note = (a.next ? 'Volgende keer: vanaf ' + new Date(a.next).toLocaleString('nl-NL', {weekday:'long', hour:'2-digit', minute:'2-digit'}) + ', tijdens opladen.' : '') +
+    (a.last ? ' Laatst gekeken ' + fmtD(a.last) + ': ' + a.found + ' nieuw.' : '');
+  $('#tx-auto-note').innerHTML = esc(note) +
+    (a.on && !a.battery ? '<br>⚠️ Zonder batterij-uitzondering laat Android het niet vanzelf starten; je krijgt dan \'s ochtends een melding om het met één tik te doen. <a href="#" onclick="Android.batterySettings();return false">Uitzondering geven</a>' : '') + (a.failed ? ' <a href="#" onclick="Android.txAutoRetryFailed();txAutoRender();toast(\'Wordt vannacht opnieuw geprobeerd\');return false">' + a.failed + ' mislukte opnieuw proberen</a>' : '');
+}
+function txAutoSet(on){ Android.txAutoSet(on); txAutoRender(); if (on) toast("Vanaf vannacht automatisch"); }
+
 /* ---------- Zelftest ---------- */
 const SF_ICON = { ok: '✅', warn: '⚠️', fail: '❌', skip: '➖' };
 const SF_FIX = {
@@ -3387,6 +3457,10 @@ function renderDash(){
     const r = JSON.parse(Android.noteReminders()), end = new Date(); end.setHours(23, 59, 59, 999);
     const today = Object.values(r).filter(t => t >= Date.now() && t <= end.getTime()).sort();
     if (today.length) rows.push(['🔔', today.length + (today.length === 1 ? ' herinnering' : ' herinneringen') + ' vandaag, eerst om ' + new Date(today[0]).toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}), 'notes', '']);
+  } catch(e){}
+  try {
+    const rp = JSON.parse(Android.redialPlanState());
+    if (rp.plan && rp.next > Date.now() && rp.next - Date.now() < 7 * 864e5) rows.push(['📞', 'Auto redial: ' + (rp.plan.name || rp.plan.number) + ' · ' + new Date(rp.next).toLocaleString('nl-NL', {weekday:'short', hour:'2-digit', minute:'2-digit'}), 'redial', '']);
   } catch(e){}
   if (rdState && rdState.status === 'playing' && rdState.station) rows.push(['📻', rdState.station.name + (rdState.title ? ' · ' + rdState.title : ''), 'radio', '']);
   try {

@@ -78,6 +78,7 @@ public class MainActivity extends Activity {
         WaBackupService.createChannel(this);
         WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
         AllBackupJob.ensureScheduled(this);
+        TranscribeJob.ensureScheduled(this);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -123,6 +124,7 @@ public class MainActivity extends Activity {
         boolean fromHistory = getIntent() != null && (getIntent().getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0;
         if (b == null && !fromHistory && takeShare(getIntent())) pendingOpen = "share";
         playFromShortcut(getIntent());
+        if (b == null && !fromHistory) RedialPlan.startMissed(this, getIntent());
         loadUi();
     }
 
@@ -158,6 +160,7 @@ public class MainActivity extends Activity {
             return;
         }
         playFromShortcut(i);
+        RedialPlan.startMissed(this, i);
         if (takeShare(i)) { js("openTool", "\"share\""); return; }
         String open = i.getStringExtra("open");
         if (open != null) js("openTool", JSONObject.quote(open));
@@ -571,6 +574,24 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public String redialStatus() { return RedialService.status(ctx); }
+
+        // ----- Auto redial op een tijdstip -----
+        @JavascriptInterface public String redialPlanSet(String json) { return RedialPlan.set(ctx, json); }
+        @JavascriptInterface public void redialPlanClear() { RedialPlan.clear(ctx); }
+        @JavascriptInterface public String redialPlanState() { return RedialPlan.stateJson(ctx); }
+
+        // ----- Automatisch uitschrijven -----
+        @JavascriptInterface public void txAutoSet(boolean on) { TranscribeJob.setEnabled(ctx, on); }
+        @JavascriptInterface public String txAutoState() {
+            try {
+                android.content.SharedPreferences p = Transcribe.prefs(ctx);
+                return new JSONObject().put("on", TranscribeJob.enabled(ctx)).put("next", p.getLong("autoNext", 0))
+                        .put("last", p.getLong("autoLast", 0)).put("found", p.getInt("autoFound", 0))
+                        .put("failed", TranscribeJob.failed(ctx).size()).put("model", Transcribe.activeModel(ctx) != null)
+                        .put("blocked", p.getBoolean("autoBlocked", false)).put("battery", SelfTest.battery(ctx).optString("status").equals("ok")).toString();
+            } catch (Exception e) { return "{}"; }
+        }
+        @JavascriptInterface public void txAutoRetryFailed() { Transcribe.prefs(ctx).edit().remove("failedIds").apply(); }
 
         // ----- WhatsApp backup -----
 

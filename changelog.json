@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.22",
+    "date": "2026-10-04",
+    "changes": [
+      "Auto redial op een tijdstip: eenmalig of op vaste dagen automatisch beginnen met bellen (bijv. om 08:00 de huisarts)",
+      "Gesprekken 's nachts automatisch uitschrijven tijdens het opladen"
+    ]
+  },
+  {
     "version": "1.21",
     "date": "2026-10-04",
     "changes": [

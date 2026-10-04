@@ -11,6 +11,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - De voortgang staat in de meldingenbalk, met de knoppen **Stoppen** en **Nu bellen**.
 - Of er is opgenomen, leest de app af uit de oproepgeschiedenis. Een gesprek dat verbonden is geweest, telt als opgenomen. Een voicemail telt dus ook als opgenomen.
 - Zonder toegang tot de oproepgeschiedenis telt een gesprek van langer dan 1 minuut als opgenomen.
+- **Op een tijdstip** (`RedialPlan.java`): eenmalig of op gekozen dagen (bijv. werkdagen 08:00 de huisarts). Een precieze wekker start Auto redial met het nummer en de instellingen van dat moment; staat Android het starten niet toe (geen precieze wekkers), dan komt er een melding; één tik daarop start Auto redial met de geplande instellingen. Een eenmalige planning die gemist is doordat de telefoon uit stond, vervalt (tot 10 minuten te laat wordt hij nog uitgevoerd). Staat ook in het overzicht op het startscherm.
 
 ## WhatsApp backup
 - Kopieert de lokale WhatsApp-map (`Android/media/com.whatsapp/WhatsApp`, en WhatsApp Business) naar een map die je zelf kiest: een USB-stick, SD-kaart of OneDrive/Dropbox via de bestandskiezer van Android. Alles komt in de submap `WhatsApp backup/`.
@@ -67,6 +68,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Uitschrijven gebeurt **op de telefoon** met [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (MIT): een statisch gelinkt arm64-programma, gebouwd met `tools/whisper-build.sh` (zig, zonder NDK) en meegeleverd als `lib/arm64-v8a/libwhisper.so` (armv8.2 + dotprod) en `libwhisper_generic.so` (elke arm64; automatische terugval bij "illegal instruction"). `extractNativeLibs=true`, zodat Android het uitpakt in `nativeLibraryDir`, van waaruit het uitgevoerd mag worden.
 - Audio wordt met `MediaExtractor`/`MediaCodec` gedecodeerd naar 16 kHz mono WAV. Spraakmodel (`ggml-base-q5_1.bin` 57 MB of `ggml-small-q5_1.bin` 181 MB) wordt eenmalig van Hugging Face gedownload naar de app-map. Er gaat geen geluid of tekst de telefoon uit.
 - Draait in een voorgrondservice (`TranscribeService`, dataSync) met wachtrij, voortgang en stoppen. Transcripten (`files/transcripts/<id>.json`) met tijdcodes; afspelen vanaf een zin, zoeken door alle transcripten, export als tekst naar `Gesprekken/` in de backup-map.
+- **'s Nachts automatisch** (`TranscribeJob.java`): vanaf 01:00, alleen tijdens opladen, worden nieuwe opnames van de laatste 14 dagen uitgeschreven (max. 30 per nacht). Het werk loopt in de voorgrondservice (met melding). Android 12+ staat dat op de achtergrond alleen toe met een batterij-uitzondering; zonder komt er een melding om het met één tik te starten. Mislukte opnames worden niet elke nacht opnieuw geprobeerd (knop om ze toch opnieuw te proberen).
 
 ## Radio
 - Nederlandse zenders uit de vrije database van [radio-browser.info](https://www.radio-browser.info) (`/json/stations/search?countrycode=NL`, populairste eerst, zoeken op naam; meerdere API-servers met terugval). Zo kloppen stream-adressen ook als omroepen ze wijzigen. Favorieten (met stream-adres) lokaal, laatste lijst in een cache (`Radio.java`).

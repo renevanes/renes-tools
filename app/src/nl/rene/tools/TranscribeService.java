@@ -115,7 +115,7 @@ public class TranscribeService extends Service {
                     Transcribe.transcribeOne(this, f, (phase, pct) -> progress(phase, f.getName(), pct, rest));
                     done++;
                 } catch (Throwable e) {
-                    if (!Transcribe.cancel) { lastError = f.getName() + ": " + msg(e); failed++; }
+                    if (!Transcribe.cancel) { lastError = f.getName() + ": " + msg(e); failed++; TranscribeJob.markFailed(this, Transcribe.id(f)); }
                 }
             }
         } finally {

@@ -1,13 +1,21 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.21",
-  "versionCode": 22,
-  "nativeLevel": 21,
+  "versionName": "1.22",
+  "versionCode": 23,
+  "nativeLevel": 22,
   "web": "index.html",
-  "webSha256": "30f472a31f96b0c173a44182cd8fdca2cd02432bce883593fc82e41c4b7dfa89",
+  "webSha256": "96eb1bc3e16d465cb487365076a56123ce44a2128e7c06e864afc19ba39b46b8",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "c25116ae36e8231174ff8ae36ef641b0a61c629ddbc2dc3e6c8cc361002287b2",
+  "apkSha256": "8e2ce5704e743fc5e667f3c577fb76832672393e5835ccef280f6a74c62f9640",
   "changelog": [
+    {
+      "version": "1.22",
+      "date": "2026-10-04",
+      "changes": [
+        "Auto redial op een tijdstip: eenmalig of op vaste dagen automatisch beginnen met bellen (bijv. om 08:00 de huisarts)",
+        "Gesprekken 's nachts automatisch uitschrijven tijdens het opladen"
+      ]
+    },
     {
       "version": "1.21",
       "date": "2026-10-04",
