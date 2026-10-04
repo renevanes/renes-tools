@@ -178,6 +178,7 @@ if (!window.Android) window.Android = (function(){
 })();
 
 const $ = s => document.querySelector(s);
+try { if (typeof Android.ready === 'function') Android.ready(); } catch(e){} // meteen: ook als er verderop iets misgaat, werken terug en meldingen
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const J = (s, d) => { try { return JSON.parse(s); } catch(e) { return d; } };
 function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); }

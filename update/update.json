@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.25",
-  "versionCode": 26,
-  "nativeLevel": 25,
+  "versionName": "1.26",
+  "versionCode": 27,
+  "nativeLevel": 26,
   "web": "index.html",
-  "webSha256": "31f3af417cf635574202ee4432d0915c3343c4d730e4f3949f483a39d6d700fd",
+  "webSha256": "37051478bb88c482f7ec3f24a028a519687e68265162e8d8e8ec372a5e8294b2",
   "start": "start.html",
-  "startSha256": "4c25cb088e81e4c9a1523b72c4c4da1e8e9f61aa8ce57d4265efeebefe5dd863",
+  "startSha256": "53546f7222dd338124bf3e192a5f349875a61e717c41efc204daa5fa80bd1ce9",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "27bac956834bf2eb7096d2e9985c24e5cdfdf2053851ee70b426fd676ab195f0",
+  "apkSha256": "c6102f849f64db524b3af2db4ce7169dfd11802d66db92a31ba5d51fe46d301c",
   "changelog": [
+    {
+      "version": "1.26",
+      "date": "2026-10-05",
+      "changes": [
+        "Telefoon-skin: terugknop werkt altijd, ook als het startscherm nog laadt"
+      ]
+    },
     {
       "version": "1.25",
       "date": "2026-10-04",

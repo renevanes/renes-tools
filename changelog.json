@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.26",
+    "date": "2026-10-05",
+    "changes": [
+      "Telefoon-skin: terugknop werkt altijd, ook als het startscherm nog laadt"
+    ]
+  },
+  {
     "version": "1.25",
     "date": "2026-10-04",
     "changes": [

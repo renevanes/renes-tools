@@ -61,7 +61,7 @@ public class HomeActivity extends Activity {
         makeWeb();
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT,
-                    (OnBackInvokedCallback) () -> js("onBack", ""));
+                    (OnBackInvokedCallback) this::back);
         }
         new Thread(() -> pruneIcons(getApplicationContext()), "icon-prune").start();
 
@@ -175,7 +175,13 @@ public class HomeActivity extends Activity {
     }
 
     @SuppressWarnings("deprecation")
-    @Override public void onBackPressed() { js("onBack", ""); } // het startscherm sluit nooit
+    @Override public void onBackPressed() { back(); }
+
+    /** Terug: de pagina sluit wat er open staat. Is de pagina (nog) niet geladen, dan niet vastzitten. */
+    void back() {
+        if (loaded) js("onBack", "");
+        else if (!Launcher.isDefaultHome(this)) finish();
+    }
 
     @Override
     protected void onDestroy() {
@@ -255,6 +261,8 @@ public class HomeActivity extends Activity {
         @JavascriptInterface public String apps() { return Launcher.appsJson(ctx); }
         /** Zelfde, op de achtergrond (de lijst ophalen duurt even): uitkomst via onApps(json). */
         @JavascriptInterface public void appsAsync() { new Thread(() -> a.js("onApps", Launcher.appsJson(ctx)), "apps").start(); }
+        /** De pagina meldt zelf dat hij klaar is (voor het geval onPageFinished uitblijft). */
+        @JavascriptInterface public void ready() { a.h.post(() -> { if (!a.loaded) a.pageReady(); }); }
         @JavascriptInterface public String insets() { return a.insTop + "," + a.insBottom + "," + a.insKb; }
         @JavascriptInterface public boolean isNight() { return night(a); }
         /** Terug zonder iets te sluiten: als dit (nog) niet het startscherm van de telefoon is, gewoon dicht. */
