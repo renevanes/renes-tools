@@ -30,6 +30,7 @@ PY
 mkdir -p $B/assets/vendor
 cp web/vendor/leaflet.js web/vendor/leaflet.css $B/assets/vendor/
 cp web/ontsleutelen.html $B/assets/
+cp web/start.html $B/assets/
 
 # 2. Versie-informatie voor de Java-code
 cat > $B/gen/Version.java <<JAVA
@@ -72,6 +73,7 @@ rm -f $OUT.idsig
 mkdir -p update
 cp $OUT update/Renes-Tools.apk
 cp $B/assets/index.html update/index.html
+cp $B/assets/start.html update/start.html
 python3 - "$VERSION_NAME" "$VERSION_CODE" "$NATIVE_LEVEL" <<'PY'
 import sys, json, hashlib
 name, code, native = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
@@ -79,6 +81,7 @@ sha = lambda p: hashlib.sha256(open(p, 'rb').read()).hexdigest()
 m = {
   "app": "Rene's Tools", "versionName": name, "versionCode": code, "nativeLevel": native,
   "web": "index.html", "webSha256": sha('update/index.html'),
+  "start": "start.html", "startSha256": sha('update/start.html'),
   "apk": "Renes-Tools.apk", "apkSha256": sha('update/Renes-Tools.apk'),
   "changelog": json.load(open('changelog.json'))
 }

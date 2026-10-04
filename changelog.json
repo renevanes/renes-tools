@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.24",
+    "date": "2026-10-04",
+    "changes": [
+      "Nieuw: telefoon-skin. Gebruik Rene's Tools als startscherm met klok, weer, agenda, radio en overzicht, al je apps met zoeken en mappen, en een eigen look (Instellingen → Telefoon-skin)"
+    ]
+  },
+  {
     "version": "1.23",
     "date": "2026-10-04",
     "changes": [

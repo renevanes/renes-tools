@@ -46,6 +46,14 @@ final class Updater {
     }
 
     static File webFile(Context c) { return new File(new File(c.getFilesDir(), "web"), "index.html"); }
+    static File startFile(Context c) { return new File(new File(c.getFilesDir(), "web"), "start.html"); }
+
+    /** Bijgewerkt startscherm uit een stille update, of null (dan die uit de app). */
+    static String downloadedStart(Context c) {
+        if (webCode(c) <= Version.CODE || !startFile(c).isFile()) return null;
+        try { return new String(readAll(new java.io.FileInputStream(startFile(c))), StandardCharsets.UTF_8); }
+        catch (Exception e) { return null; }
+    }
 
     /** Gedownloade interface, of null als de gebundelde nieuwer of gelijk is. */
     static String downloadedHtml(Context c) {
@@ -126,6 +134,17 @@ final class Updater {
         File tmp = new File(f.getParentFile(), "index.tmp");
         try (OutputStream o = new FileOutputStream(tmp)) { o.write(html); }
         if (!tmp.renameTo(f)) throw new Exception("Opslaan mislukt");
+        // Startscherm (telefoon-skin) hoort bij dezelfde versie van de interface (na de interface, zodat beide bij elkaar passen).
+        File sf = startFile(c);
+        if (!m.optString("start").isEmpty()) {
+            byte[] st = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("start") + "?v=" + m.getInt("versionCode"));
+            String ss = m.optString("startSha256", "");
+            if (!ss.isEmpty() && !ss.equalsIgnoreCase(sha256(st))) throw new Exception("Controlegetal startscherm klopt niet");
+            if (!new String(st, StandardCharsets.UTF_8).contains("RENES-TOOLS-START")) throw new Exception("Onverwacht bestand");
+            File stmp = new File(f.getParentFile(), "start.tmp");
+            try (OutputStream o = new FileOutputStream(stmp)) { o.write(st); }
+            if (!stmp.renameTo(sf)) throw new Exception("Opslaan mislukt");
+        } else sf.delete();
         prefs(c).edit().putInt("webCode", m.getInt("versionCode"))
                 .putString("webName", m.getString("versionName")).apply();
     }

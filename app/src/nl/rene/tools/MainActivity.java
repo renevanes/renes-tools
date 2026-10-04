@@ -61,6 +61,7 @@ public class MainActivity extends Activity {
     private static final int REQ_MIC = 22;
     private static final int REQ_SETTINGS = 23;
     private static final int REQ_IMPORT = 24;
+    private static final int REQ_HOME = 25;
     volatile String importKind = null;
     String pendingShare = null;
     volatile Uri pendingArchive = null;
@@ -202,7 +203,7 @@ public class MainActivity extends Activity {
         if (web == null) return;
         if (Lock.onShown(this)) {
             // Eerst het slotscherm tekenen, dan pas de WebView weer tonen (geen flits van de inhoud).
-            web.evaluateJavascript("window.onLock&&window.onLock();true", v -> web.setVisibility(View.VISIBLE));
+            web.evaluateJavascript("window.onLock&&window.onLock();true", v -> { if (web != null) web.setVisibility(View.VISIBLE); });
         } else web.setVisibility(View.VISIBLE);
     }
 
@@ -273,7 +274,7 @@ public class MainActivity extends Activity {
     void js(String fn, String arg) {
         if (web == null) return;
         String code = "window." + fn + "&&window." + fn + "(" + arg + ")";
-        h.post(() -> web.evaluateJavascript(code, null));
+        h.post(() -> { if (web != null) web.evaluateJavascript(code, null); });
     }
 
     private static String jsonErr(String m) {
@@ -281,6 +282,7 @@ public class MainActivity extends Activity {
     }
 
     private void handleBack() {
+        if (web == null) { finish(); return; }
         web.evaluateJavascript("window.goBack?window.goBack():false", v -> {
             if (!"true".equals(v)) finish();
         });
@@ -390,6 +392,7 @@ public class MainActivity extends Activity {
             return;
         }
         if (req == Lock.REQ_CONFIRM) { Lock.onConfirmResult(res == RESULT_OK); return; }
+        if (req == REQ_HOME) { js("onHomeRole", ""); return; }
         if (req == REQ_IMPORT) {
             final String kind = importKind;
             if (res != RESULT_OK || data == null || data.getData() == null || kind == null) return;
@@ -1604,6 +1607,34 @@ public class MainActivity extends Activity {
             return "";
         }
 
+        // ----- Telefoon-skin -----
+        @JavascriptInterface public boolean homeIsDefault() { return Launcher.isDefaultHome(ctx); }
+        /** Vraagt Android om Rene's Tools als startscherm te gebruiken (of opent de instelling ervoor). */
+        @JavascriptInterface public void homeMakeDefault() {
+            a.h.post(() -> {
+                if (Build.VERSION.SDK_INT >= 29) {
+                    try {
+                        android.app.role.RoleManager rm = a.getSystemService(android.app.role.RoleManager.class);
+                        if (rm != null && rm.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME) && !rm.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)) {
+                            a.startActivityForResult(rm.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME), REQ_HOME);
+                            return;
+                        }
+                    } catch (Exception ignored) { }
+                }
+                homeSettings();
+            });
+        }
+        /** Naar de Android-instelling voor het standaard-startscherm (bijv. om terug te gaan naar dat van Oppo). */
+        @JavascriptInterface public void homeSettings() {
+            try { a.startActivity(new Intent(android.provider.Settings.ACTION_HOME_SETTINGS)); }
+            catch (Exception e) { try { a.startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS)); } catch (Exception ignored) { } }
+            Lock.internalNav = false; // je verlaat de app: het app-slot blijft gelden
+        }
+        @JavascriptInterface public void homeOpen() {
+            try { a.startActivity(new Intent(ctx, HomeActivity.class).setAction(Intent.ACTION_MAIN).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { }
+            Lock.internalNav = false;
+        }
+
         @JavascriptInterface public int textZoomGet() { return ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).getInt("textZoom", 0); }
         @JavascriptInterface public int textZoomActual() { return textZoom(ctx); }
         @JavascriptInterface public void textZoomSet(int z) {
@@ -1792,7 +1823,19 @@ public class MainActivity extends Activity {
     /** Serveert foto's uit de WhatsApp-map en de meegeleverde kaartbibliotheek aan de WebView. */
     static final class MediaClient extends WebViewClient {
         private final Context ctx;
-        MediaClient(Context c) { ctx = c.getApplicationContext(); }
+        private final Activity act;
+        MediaClient(Activity c) { act = c; ctx = c.getApplicationContext(); }
+
+        /** Weergaveproces gestopt (vastgelopen of door Android opgeruimd): scherm opnieuw opbouwen i.p.v. de hele app (en de radio) te laten vallen. */
+        @Override
+        public boolean onRenderProcessGone(WebView v, android.webkit.RenderProcessGoneDetail d) {
+            App.log(ctx, "APP", "weergave gestopt" + (Build.VERSION.SDK_INT >= 26 && d.didCrash() ? " (vastgelopen)" : ""));
+            try { ((android.view.ViewGroup) v.getParent()).removeView(v); } catch (Exception ignored) { }
+            v.destroy();
+            if (act instanceof MainActivity) ((MainActivity) act).web = null;
+            if (!act.isFinishing() && !act.isDestroyed()) act.recreate();
+            return true;
+        }
 
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {

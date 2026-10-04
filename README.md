@@ -96,6 +96,15 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Overal zoeken** (zoekveld bovenaan het startscherm, `Search.java`): zoekt tegelijk in notities, contacten, sms'jes, WhatsApp-chats (als die leesbaar gemaakt zijn), oproepen, uitgeschreven gesprekken en herkende muziek. Per soort de eerste vijf treffers; tik om het te openen, of op "Alle …" om verder te zoeken in die tool. Alleen bronnen waarvoor toestemming is gegeven doen mee.
 - **Overzicht** bovenaan (uit te zetten bij Startscherm aanpassen): laatste backup (oranje als die al dagen oud is, rood bij een mislukt onderdeel), de volgende radiowekker, herinneringen van vandaag, wat de radio speelt en problemen uit de laatste zelftest. Tik op een regel om naar die tool te gaan.
 
+## Telefoon-skin (startscherm)
+- Rene's Tools kan het startscherm van je telefoon vervangen (Instellingen → Telefoon-skin → *Als startscherm gebruiken*; via `RoleManager` op Android 10+, anders de Android-instelling). *Eerst bekijken* opent het zonder iets te veranderen; terug naar het startscherm van de telefoon kan altijd via dezelfde kaart.
+- `HomeActivity.java` (eigen taak, `taskAffinity` apart, geen app-slot) met de pagina `web/start.html`; gegevens uit `Launcher.java`:
+  - **Bovenaan**: grote klok en datum, volgende wekker (tik = klok-app), het **weer** (Open-Meteo, zonder sleutel: nu, regenkans komende uren en 3 dagen; plaats zelf kiezen of de locatie van de telefoon), de **agenda** (komende afspraken, met toestemming) en **Rene's Tools**: radio afspelen/pauzeren/terugspoelen, backupstatus, herinneringen van vandaag, geplande Auto redial en snelkoppelingen naar tools (zelf te kiezen).
+  - **Apps**: veeg omhoog voor alle apps (A–Z) met zoeken (Enter opent de eerste treffer, of zoekt op internet). Lang indrukken: op het startscherm, in het dock, in een map, verbergen, app-info, verwijderen. Mappen en volgorde zelf te bepalen; nieuwe en verwijderde apps worden vanzelf bijgewerkt.
+  - **Eigen look** (lang drukken op een leeg stuk of ⚙︎): thema licht/donker/automatisch, accentkleur, achtergrond (je Android-achtergrondfoto of kleurverlopen/kleuren), pictogramgrootte, 4 of 5 per rij, namen aan/uit, welke kaarten je ziet.
+  - Gebaren: omhoog vegen = alle apps, omlaag vegen bovenaan = meldingen (als de telefoon dat toestaat), terug/home sluit overzicht en vensters.
+- Pictogrammen worden als PNG via `/icon/<app>` aan de pagina gegeven en per app-versie bewaard in de cache. Het startscherm wordt samen met de interface stil bijgewerkt (`start.html` in `update.json`).
+
 ## Widgets, wekker, herinneringen en Android Auto
 - **Radio-widget** (`RadioWidget`): zender, wat er nu speelt, afspelen/pauzeren en stoppen; wordt bijgewerkt door `RadioService`. **Herken-widget** (`MusicWidget`): opent Muziek herkennen en begint meteen.
 - **Radiowekker** (`RadioAlarm`, `AlarmReceiver`): tijd, dagen en zender; `setAlarmClock` (precies, ook in diepe slaap; `USE_EXACT_ALARM`). Speelt via het wekkervolume (`USAGE_ALARM`), begint zacht en wordt in ~30 s harder; zonder verbinding de gewone wekkertoon. Snooze 10 min in de melding. Na herstarten van de telefoon opnieuw gepland.

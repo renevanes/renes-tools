@@ -218,6 +218,7 @@ if (!window.Android) window.Android = (function(){
     _zoom:0, textZoomGet(){ return this._zoom; }, textZoomActual(){ return this._zoom || 100; }, textZoomSet(z){ this._zoom=z; document.body.style.zoom = (z || 100) / 100; },
     _ts:true, radioTimeshift(){ return this._ts; }, radioSetTimeshift(on){ this._ts=on; },
     radioShift(w){ const st=this._rd.st; if(!st.shift) return; st.shift.behind = w==='live' ? 6 : Math.max(6, st.shift.behind + (w==='rew' ? 30 : -30)); },
+    _home:false, homeIsDefault(){ return this._home; }, homeMakeDefault(){ this._home=true; setTimeout(()=>onHomeRole(),50); }, homeSettings(){ this._hs=true; }, homeOpen(){ this._ho=true; },
     notesLoad(){ return this._notes; },
     notesSave(j){ this._notes=j; return ''; },
     notesExport(){ if(!this._wa.info.dest) return 'Kies eerst een backup-map (bij WhatsApp backup)'; return 'ok:'+JSON.parse(this._notes).length; },

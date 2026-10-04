@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<!-- RENES-TOOLS-START: telefoon-skin (startscherm) van Rene's Tools -->
+<title>Rene's Start</title>
+<style>
+:root{--st:24px;--sb:16px;--kb:0px;--acc:#3b82f6;--glass:rgba(255,255,255,.72);--glass2:rgba(255,255,255,.55);--ink:#0f172a;--muted:#475569;--line:rgba(15,23,42,.08);--ico:56px;--shadow:0 6px 24px rgba(0,0,0,.18)}
+:root.dark{--glass:rgba(20,24,33,.72);--glass2:rgba(20,24,33,.55);--ink:#f1f5f9;--muted:#a3adbd;--line:rgba(255,255,255,.08)}
+:root.ics{--ico:46px}:root.icl{--ico:66px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:transparent;color:var(--ink);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;overscroll-behavior:none}
+body.bgcol{background:var(--bgc)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.glass{background:var(--glass);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border-radius:22px;box-shadow:var(--shadow)}
+#home{position:absolute;inset:0;padding:calc(var(--st) + 14px) 16px calc(var(--sb) + 108px);overflow-y:auto;scrollbar-width:none;transition:transform .28s ease,opacity .28s ease}
+#home::-webkit-scrollbar{display:none}
+body.drawer-on #home{transform:translateY(-6%) scale(.97);opacity:.25;pointer-events:none}
+.onwall{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.45)}
+#clock{display:block;text-align:left;width:100%;padding:8px 6px 4px}
+#time{display:block;font-size:76px;font-weight:200;letter-spacing:-2px;line-height:1;font-variant-numeric:tabular-nums}
+#date{display:block;font-size:18px;font-weight:500;margin-top:6px}
+#alarm{font-size:14px;padding:2px 6px;opacity:.95;min-height:0}
+.card{padding:14px 16px;margin-top:12px}
+.card h3{margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.card h3 .more{margin-left:auto;text-transform:none;letter-spacing:0;font-size:13px;color:var(--acc);font-weight:600}
+#weather{display:flex;align-items:center;gap:14px;padding:12px 16px;margin-top:14px;width:100%;text-align:left}
+#weather .wi{font-size:40px;line-height:1}#weather .wt{font-size:30px;font-weight:600}#weather .wd{flex:1;min-width:0;font-size:13px;color:var(--muted)}
+#weather .wd b{display:block;color:var(--ink);font-size:14px}
+.wdays{display:flex;gap:6px;margin-top:4px}.wdays span{flex:1;text-align:center;font-size:12px;color:var(--muted)}.wdays b{display:block;font-size:18px}
+.ev{display:flex;gap:10px;width:100%;text-align:left;padding:7px 0;border-top:1px solid var(--line);align-items:flex-start}.ev:first-of-type{border-top:0}
+.ev i{width:4px;align-self:stretch;border-radius:3px;background:var(--acc);flex:none}.ev .et{width:62px;flex:none;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ev b{display:block;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ev small{color:var(--muted);font-size:12px}.ev>div{flex:1;min-width:0}
+.radio{display:flex;align-items:center;gap:10px}.radio .rn{flex:1;min-width:0}.radio .rn b{display:block;font-size:15px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.radio .rn small{display:block;color:var(--muted);font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.rb{width:42px;height:42px;border-radius:50%;background:var(--glass2);display:grid;place-items:center;font-size:16px;flex:none}.rb.main{background:var(--acc);color:#fff}
+.trow{display:flex;gap:10px;width:100%;text-align:left;padding:7px 0;border-top:1px solid var(--line);font-size:14px;align-items:center}.trow span:first-child{width:22px;text-align:center}
+.trow .w{color:#d97706}.trow .b{color:#dc2626}
+.tchips{display:flex;gap:8px;overflow-x:auto;margin-top:10px;scrollbar-width:none;padding-bottom:2px}.tchips::-webkit-scrollbar{display:none}
+.tchip{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;width:64px;font-size:11px;color:var(--ink)}
+.tchip span{width:44px;height:44px;border-radius:14px;background:var(--glass2);display:grid;place-items:center;font-size:22px}
+.grid{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:14px 6px}
+.app{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;padding:4px 0;border-radius:16px;position:relative}
+.app img,.app .ph{width:var(--ico);height:var(--ico);border-radius:calc(var(--ico) * .26);object-fit:cover;display:block}
+.app .ph{display:grid;place-items:center;font-weight:700;font-size:calc(var(--ico) * .42);color:#fff}
+.app .lb{font-size:12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+:root.nolabels .app .lb{display:none}
+.app.fold .fi{width:var(--ico);height:var(--ico);border-radius:calc(var(--ico) * .26);background:var(--glass2);display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:6px}
+.app.fold .fi img,.app.fold .fi .ph{width:100%;height:100%;border-radius:5px;font-size:9px}
+.app:active{transform:scale(.94)}
+#pinned{margin-top:18px}
+#pinned .lb,#dock .lb{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+:root.nowall #pinned .lb{color:var(--ink);text-shadow:none}
+#hint{text-align:center;font-size:12px;margin-top:22px;opacity:.85}
+#dock{position:absolute;left:12px;right:12px;bottom:calc(var(--sb) + 12px);padding:10px 8px;display:grid;grid-template-columns:repeat(var(--dn,5),minmax(0,1fr));gap:6px;transition:opacity .2s}
+#dock .lb{display:none}
+body.drawer-on #dock{opacity:0;pointer-events:none}
+#banner{display:none;margin-top:12px;padding:12px 14px;font-size:14px;align-items:center;gap:10px}#banner.on{display:flex}#banner button{background:var(--acc);color:#fff;border-radius:12px;padding:8px 12px;font-weight:600;white-space:nowrap}
+#drawer{position:absolute;inset:0;background:var(--glass);backdrop-filter:blur(26px) saturate(1.2);-webkit-backdrop-filter:blur(26px) saturate(1.2);transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;padding-top:calc(var(--st) + 10px)}
+body.drawer-on #drawer{transform:none}
+.dhead{display:flex;gap:8px;padding:0 14px 10px;align-items:center}
+#q{flex:1;min-width:0;font:inherit;font-size:16px;padding:12px 16px;border-radius:16px;border:0;background:var(--glass2);color:var(--ink);outline:none}
+.ib{width:44px;height:44px;border-radius:14px;background:var(--glass2);display:grid;place-items:center;font-size:19px;flex:none}
+#dlist{flex:1;overflow-y:auto;padding:4px 14px calc(max(var(--sb), var(--kb)) + 20px)}
+.letter{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--muted);padding:8px 4px 0;letter-spacing:.05em}
+.websearch{display:flex;gap:10px;align-items:center;width:100%;padding:12px;border-radius:16px;background:var(--glass2);margin:6px 0 12px;font-size:15px}
+.empty{color:var(--muted);text-align:center;padding:30px 0}
+.ov{position:absolute;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+.ov.on{display:flex}
+.ovbox{width:100%;max-width:420px;padding:18px;max-height:80vh;overflow:auto}
+.ovbox h2{margin:0 0 14px;font-size:18px;text-align:center}
+#sheet{position:absolute;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-end;z-index:30}
+#sheet.on{display:flex}
+#sheet .sbox{width:100%;padding:14px 14px calc(var(--sb) + 14px);border-radius:24px 24px 0 0}
+#sheet .shd{display:flex;align-items:center;gap:12px;padding:4px 6px 12px}#sheet .shd img,#sheet .shd .ph{width:44px;height:44px;border-radius:12px}
+#sheet .shd b{font-size:17px}
+#sheet .acts button{display:block;width:100%;text-align:left;padding:14px 10px;border-top:1px solid var(--line);font-size:16px}
+#look{position:absolute;inset:0;z-index:25;display:none;overflow-y:auto;padding:calc(var(--st) + 10px) 14px calc(var(--sb) + 20px);background:var(--glass);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px)}
+#look.on{display:block}
+#look h2{display:flex;align-items:center;gap:10px;margin:4px 0 12px;font-size:22px}
+.lsec{padding:14px;margin-bottom:12px;border-radius:18px;background:var(--glass2)}
+.lsec h4{margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg button{padding:9px 14px;border-radius:12px;background:var(--glass);font-size:14px}.seg button.on{background:var(--acc);color:#fff}
+.sw{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:15px}.sw span{flex:1}
+.tg{width:48px;height:28px;border-radius:14px;background:rgba(127,127,127,.4);position:relative;flex:none;transition:background .2s}.tg::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s}
+.tg.on{background:var(--acc)}.tg.on::after{left:23px}
+.sw2{width:36px;height:36px;border-radius:50%;border:3px solid transparent}.sw2.on{border-color:var(--ink)}
+.bgs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.bgs button{height:58px;border-radius:12px;border:3px solid transparent;font-size:12px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)}.bgs button.on{border-color:var(--ink)}
+.hid{display:flex;align-items:center;gap:10px;padding:6px 0}.hid img,.hid .ph{width:34px;height:34px;border-radius:9px}.hid span{flex:1}.hid button{color:var(--acc);font-weight:600}
+.big2{display:block;width:100%;padding:13px;border-radius:14px;background:var(--acc);color:#fff;font-weight:600;margin-top:8px;text-align:center}
+.big2.ghost{background:var(--glass);color:var(--ink)}
+#toast{position:absolute;left:50%;bottom:calc(var(--sb) + 110px);transform:translateX(-50%);background:rgba(15,23,42,.92);color:#fff;padding:10px 16px;border-radius:14px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40;max-width:86%;text-align:center}
+#toast.on{opacity:1}
+#ask input{width:100%;font:inherit;font-size:16px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--glass2);color:var(--ink);margin:4px 0 12px}
+#ask .row{display:flex;gap:8px}#ask .row button{flex:1}
+.cities button{display:block;width:100%;text-align:left;padding:10px 4px;border-top:1px solid var(--line)}.cities small{color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="home" aria-label="Startscherm">
+  <button id="clock" class="onwall" onclick="Android.openClock()" aria-label="Klok en wekkers"><span id="time">--:--</span><span id="date"></span></button>
+  <div id="alarm" class="onwall"></div>
+  <div id="banner" class="glass"><span style="flex:1">Wil je dit als startscherm van je telefoon gebruiken?</span><button onclick="Android.homeSettings()">Instellen</button><button style="background:none;color:var(--muted);padding:8px" aria-label="Niet meer vragen" onclick="cfg.bannerOff=true;save();$('#banner').classList.remove('on')">✕</button></div>
+  <button id="weather" class="glass" onclick="weatherTap()" style="display:none"></button>
+  <div id="cal" class="glass card" style="display:none"></div>
+  <div id="tools" class="glass card" style="display:none"></div>
+  <div id="pinned" class="grid"></div>
+  <div id="hint" class="onwall">︿<br>Veeg omhoog voor al je apps</div>
+</div>
+<div id="dock" class="glass"></div>
+
+<div id="drawer" aria-label="Alle apps">
+  <div class="dhead">
+    <input id="q" type="search" placeholder="Zoek apps…" aria-label="Zoek apps" autocomplete="off" oninput="renderDrawer()" onkeydown="if(event.key==='Enter'){qEnter();event.preventDefault();}">
+    <button class="ib" onclick="openLook()" aria-label="Look aanpassen">⚙︎</button>
+  </div>
+  <div id="dlist"></div>
+</div>
+
+<div class="ov" id="folder" onclick="if(event.target===this)closeFolder()"><div class="ovbox glass"><h2 id="fname"></h2><div class="grid" id="fgrid"></div></div></div>
+<div class="ov" id="ask" onclick="if(event.target===this)closeAsk()"><div class="ovbox glass"><h2 id="asktitle"></h2><input id="askin" autocomplete="off"><div id="askextra"></div><div class="row"><button class="big2 ghost" onclick="closeAsk()">Annuleren</button><button class="big2" id="askok">OK</button></div></div></div>
+<div id="sheet" onclick="if(event.target===this)closeSheet()"><div class="sbox glass"><div class="shd" id="shd"></div><div class="acts" id="sacts"></div></div></div>
+
+<div id="look" aria-label="Look aanpassen">
+  <h2><button class="ib" onclick="closeLook()" aria-label="Terug">‹</button> Look aanpassen</h2>
+  <div class="lsec"><h4>Thema</h4><div class="seg" id="l-theme"></div></div>
+  <div class="lsec"><h4>Accentkleur</h4><div class="seg" id="l-acc"></div></div>
+  <div class="lsec"><h4>Achtergrond</h4><div class="bgs" id="l-bg"></div>
+    <button class="big2 ghost" onclick="Android.wallpaper()">Achtergrondfoto van Android kiezen…</button></div>
+  <div class="lsec"><h4>Pictogrammen</h4>
+    <div class="seg" id="l-ico" style="margin-bottom:10px"></div>
+    <div class="seg" id="l-cols"></div>
+    <div class="sw"><span>Namen onder de apps</span><button class="tg" id="l-labels" role="switch" aria-label="Namen onder de apps" onclick="toggleCfg('labels')"></button></div>
+  </div>
+  <div class="lsec"><h4>Op het startscherm</h4>
+    <div class="sw"><span>Weer</span><button class="tg" id="l-sw-weather" role="switch" aria-label="Weer" onclick="toggleShow('weather')"></button></div>
+    <div class="sw"><span>Agenda</span><button class="tg" id="l-sw-cal" role="switch" aria-label="Agenda" onclick="toggleShow('cal')"></button></div>
+    <div class="sw"><span>Rene's Tools (radio, overzicht)</span><button class="tg" id="l-sw-tools" role="switch" aria-label="Rene's Tools" onclick="toggleShow('tools')"></button></div>
+    <div class="sw"><span>Plaats voor het weer</span><button style="color:var(--acc);font-weight:600" id="l-place" onclick="askPlace()">Automatisch</button></div>
+  </div>
+  <div class="lsec"><h4>Snelkoppelingen naar tools</h4><div class="seg" id="l-tools"></div></div>
+  <div class="lsec"><h4>Verborgen apps</h4><div id="l-hidden"></div></div>
+  <div class="lsec"><h4>Startscherm van de telefoon</h4>
+    <p style="margin:0 0 6px;font-size:14px;color:var(--muted)" id="l-default"></p>
+    <button class="big2 ghost" onclick="Android.homeSettings()">Standaard-startscherm kiezen…</button>
+    <button class="big2 ghost" onclick="Android.openTool('settings')">Rene's Tools openen</button>
+  </div>
+  <p style="text-align:center;font-size:12px;color:var(--muted)">Rene's Start · versie __VERSION_NAME__</p>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
+if (!window.Android) window.Android = (function(){
+  const names = ['Telefoon','Berichten','WhatsApp','Chrome','Camera','Foto\'s','Gmail','Agenda','Klok','Instellingen','Rene\'s Tools','Spotify','Buienradar','NS','ING','NU.nl','Maps','YouTube','Rekenmachine','Notities','Bestanden','Weer','Teams','Outlook'];
+  const pk = ['com.android.dialer','com.google.android.apps.messaging','com.whatsapp','com.android.chrome','com.oplus.camera','com.google.android.apps.photos','com.google.android.gm','com.google.android.calendar','com.android.deskclock','com.android.settings','nl.rene.tools','com.spotify.music','nl.buienradar','nl.ns','com.ing.mobile','nl.sanomamedia.android.nu','com.google.android.apps.maps','com.google.android.youtube','com.android.calculator2','com.oplus.note','com.android.documentsui','com.oplus.weather','com.microsoft.teams','com.microsoft.office.outlook'];
+  const apps = names.map((n, i) => ({k: pk[i] + '/.Main', n, p: pk[i], t: Date.now() - i * 864e5, sys: i < 10}));
+  return {
+    _cfg: '{}', _launched: [], _radio: {status: 'stopped'}, _tool: null,
+    apps(){ return JSON.stringify(apps); }, launch(k){ this._launched.push(k); return ''; }, appInfo(k){ this._info = k; }, uninstall(k){ this._un = k; },
+    cfg(){ return this._cfg; }, cfgSet(j){ this._cfg = j; },
+    calendar(){ const n = Date.now(); return JSON.stringify({perm: true, events: [
+      {title: 'Tandarts', begin: n + 2 * 36e5, end: n + 3 * 36e5, allDay: false, loc: 'Coolsingel 1', id: 1, color: '#e11d48'},
+      {title: 'Overleg ESAPE', begin: n + 26 * 36e5, end: n + 27 * 36e5, allDay: false, loc: '', id: 2, color: '#2563eb'},
+      {title: 'Verjaardag Jos', begin: n + 50 * 36e5, end: n + 74 * 36e5, allDay: true, loc: '', id: 3, color: '#16a34a'}]}); },
+    calendarPermission(){}, openEvent(id){ this._ev = id; }, nextAlarm(){ return Date.now() + 15 * 36e5; }, openClock(){ this._clock = true; },
+    weather(){ setTimeout(() => onWeather({t: Date.now(), temp: 14.6, code: 3, day: true, wind: 18, rainSoon: 60, place: 'Rotterdam',
+      days: [{date: '2026-10-04', code: 3, max: 16, min: 9, rain: 60}, {date: '2026-10-05', code: 61, max: 14, min: 8, rain: 80}, {date: '2026-10-06', code: 1, max: 17, min: 7, rain: 10}, {date: '2026-10-07', code: 2, max: 18, min: 10, rain: 20}]}), 50); },
+    cities(q){ setTimeout(() => onCities([{name: 'Rotterdam', sub: 'Zuid-Holland, Nederland', lat: 51.92, lon: 4.48}, {name: 'Rotterdam', sub: 'New York, Verenigde Staten', lat: 42.8, lon: -73.9}]), 50); },
+    setPlace(n, la, lo){ this._place = n; }, placeName(){ return this._place || ''; }, locationPermission(){},
+    tools(){ return JSON.stringify({backup: {busy: false, last: {t: Date.now() - 864e5 * 4, sms: {ok: true}}}, radio: this._radio, radioLast: {name: 'NPO Radio 2', url: 'x'},
+      reminders: {a: Date.now() + 2 * 36e5}, redial: {on: true, next: Date.now() + 20 * 36e5, plan: {name: 'Huisarts', number: '010'}}}); },
+    radio(w){ this._rw = w; if (w === 'play' || w === 'resume') this._radio = {status: 'playing', station: {name: 'NPO Radio 2'}, title: 'Doe Maar - De Bom'}; else if (w === 'pause') this._radio.status = 'paused'; else if (w === 'stop') this._radio = {status: 'stopped'}; },
+    openTool(n){ this._tool = n; }, isDefault(){ return false; }, homeSettings(){ this._hs = true; }, wallpaper(){}, webSearch(q){ this._ws = q; },
+    notifications(){ this._notif = true; return true; }, vibrate(){}, hasPerm(){ return true; }, logJs(){}, version(){ return '{}'; }
+  };
+})();
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const J = (s, d) => { try { return JSON.parse(s); } catch(e) { return d; } };
+function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); }
+window.addEventListener('error', e => { try { Android.logJs((e.message || 'fout') + ' :' + (e.lineno || 0)); } catch(x){} });
+
+/* ---------- instellingen (indeling en look) ---------- */
+const DEF = {pinned: [], dock: null, hidden: [], folders: {}, theme: 'auto', accent: '#3b82f6', bg: 'wallpaper', icon: 'm', cols: 4, labels: true,
+  show: {weather: true, cal: true, tools: true}, tools: ['radio', 'notes', 'music', 'redial', 'backup']};
+const clone = o => JSON.parse(JSON.stringify(o));
+let cfg = Object.assign(clone(DEF), J(Android.cfg(), {}));
+for (const k of ['pinned', 'hidden', 'tools']) if (!Array.isArray(cfg[k])) cfg[k] = clone(DEF[k]);
+if (cfg.dock != null && !Array.isArray(cfg.dock)) cfg.dock = null;
+if (!cfg.folders || typeof cfg.folders !== 'object' || Array.isArray(cfg.folders)) cfg.folders = {};
+cfg.show = Object.assign(clone(DEF.show), cfg.show && typeof cfg.show === 'object' ? cfg.show : {});
+const hasF = f => Object.prototype.hasOwnProperty.call(cfg.folders, f);
+const badName = v => !v || ['__proto__', 'constructor', 'prototype'].includes(v);
+function save(){ Android.cfgSet(JSON.stringify(cfg)); }
+
+const ACCENTS = ['#3b82f6', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
+const BGS = {wallpaper: ['Foto', ''], g1: ['Avond', 'linear-gradient(160deg,#1e3a8a,#7c3aed 60%,#db2777)'], g2: ['Zee', 'linear-gradient(170deg,#0f766e,#0369a1 55%,#1e3a8a)'],
+  g3: ['Zon', 'linear-gradient(160deg,#f59e0b,#ef4444 55%,#7c2d12)'], g4: ['Bos', 'linear-gradient(165deg,#14532d,#166534 50%,#0f172a)'],
+  g5: ['Mist', 'linear-gradient(170deg,#e2e8f0,#cbd5e1 60%,#94a3b8)'], s1: ['Nacht', '#0b1020'], s2: ['Licht', '#eef2f7']};
+const LIGHTBG = {g5: 1, s2: 1};
+window.applyLook = applyLook;
+function applyLook(){
+  const r = document.documentElement;
+  let sysDark = matchMedia('(prefers-color-scheme: dark)').matches; try { if (typeof Android.isNight === 'function') sysDark = !!Android.isNight(); } catch(e){}
+  const dark = cfg.theme === 'dark' || (cfg.theme === 'auto' && sysDark);
+  r.classList.toggle('dark', dark);
+  r.style.setProperty('--acc', cfg.accent);
+  r.classList.toggle('ics', cfg.icon === 's'); r.classList.toggle('icl', cfg.icon === 'l');
+  r.classList.toggle('nolabels', !cfg.labels);
+  r.style.setProperty('--cols', cfg.cols);
+  const bg = BGS[cfg.bg] ? cfg.bg : 'wallpaper';
+  document.body.classList.toggle('bgcol', bg !== 'wallpaper');
+  document.body.style.setProperty('--bgc', BGS[bg][1]);
+  r.classList.toggle('nowall', !!LIGHTBG[bg]);
+  document.querySelectorAll('.onwall').forEach(e => e.style.color = LIGHTBG[bg] ? '#0f172a' : '');
+  document.querySelectorAll('.onwall').forEach(e => e.style.textShadow = LIGHTBG[bg] ? 'none' : '');
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener && matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyLook);
+window.setInsets = function(t, b, k){ const r = document.documentElement.style; r.setProperty('--st', t + 'px'); r.setProperty('--sb', b + 'px'); r.setProperty('--kb', (k || 0) + 'px'); };
+try { const i = String(Android.insets()).split(','); if (i.length >= 2) setInsets(+i[0], +i[1], +i[2] || 0); } catch(e){}
+
+/* ---------- apps ---------- */
+let apps = [], byKey = {};
+/* De indeling wordt nooit opgeschoond bij het laden: een app die even weg is (bijwerken, uitgeschakeld) houdt zijn plek. */
+function setApps(list){
+  if (!Array.isArray(list) || !list.length) return false;
+  apps = list.filter(a => a && a.k && a.n);
+  apps.sort((a, b) => a.n.localeCompare(b.n, 'nl', {sensitivity: 'base'}));
+  byKey = {}; apps.forEach(a => byKey[a.k] = a);
+  // Activiteit hernoemd bij een update: op pakketnaam terugvinden.
+  const byPkg = {}; apps.forEach(a => { if (!byPkg[a.p]) byPkg[a.p] = a.k; });
+  const fix = k => k.startsWith('f:') || byKey[k] || !byPkg[k.split('/')[0]] ? k : byPkg[k.split('/')[0]];
+  let changed = false;
+  const fixList = l => l.map(k => { const n = fix(k); if (n !== k) changed = true; return n; });
+  cfg.pinned = fixList(cfg.pinned); if (cfg.dock) cfg.dock = fixList(cfg.dock); cfg.hidden = fixList(cfg.hidden);
+  for (const f of Object.keys(cfg.folders)) cfg.folders[f] = fixList(cfg.folders[f]);
+  if (!cfg.dock) { cfg.dock = defaultDock(); changed = true; }
+  if (changed) save();
+  try { localStorage.setItem('apps', JSON.stringify(apps)); } catch(e){}
+  return true;
+}
+function loadApps(){
+  let cached = null; try { cached = J(localStorage.getItem('apps'), null); } catch(e){}
+  if (!setApps(cached)) setApps(J(Android.apps(), []));
+  if (typeof Android.appsAsync === 'function') Android.appsAsync();
+}
+window.onApps = function(list){ if (setApps(list)) { renderPinned(); renderDock(); if (drawerOn()) renderDrawer(); } };
+const exists = k => k.startsWith('f:') ? hasF(k.slice(2)) && cfg.folders[k.slice(2)].some(x => byKey[x]) : !!byKey[k];
+function defaultDock(){
+  const want = [['com.google.android.dialer', 'com.android.dialer', 'com.oplus.dialer', 'com.android.contacts', 'com.samsung.android.dialer'],
+    ['com.google.android.apps.messaging', 'com.android.mms', 'com.samsung.android.messaging'], ['com.whatsapp'],
+    ['com.android.chrome', 'org.mozilla.firefox', 'com.heytap.browser', 'com.sec.android.app.sbrowser'],
+    ['com.oplus.camera', 'com.oppo.camera', 'com.android.camera', 'com.google.android.GoogleCamera', 'com.sec.android.app.camera']];
+  const out = [];
+  for (const list of want) { const a = apps.find(x => list.includes(x.p)); if (a && !out.includes(a.k)) out.push(a.k); }
+  return out;
+}
+const COLORS = ['#ef4444', '#f59e0b', '#10b981', '#0ea5e9', '#6366f1', '#ec4899', '#14b8a6', '#8b5cf6'];
+function icon(k, px){
+  return '<img alt="" loading="lazy" data-k="' + esc(k) + '" src="/icon/' + encodeURIComponent(k) + '?s=' + (px || 144) + '">';
+}
+/* Pictogram niet te laden (bijv. in de browser): gekleurde letter. */
+document.addEventListener('error', e => {
+  const img = e.target; if (!img || img.tagName !== 'IMG' || !img.dataset.k) return;
+  const a = byKey[img.dataset.k] || {n: '?'};
+  const sp = document.createElement('span'); sp.className = 'ph';
+  sp.style.background = COLORS[[...a.n].reduce((s, ch) => s + ch.charCodeAt(0), 0) % COLORS.length];
+  sp.textContent = ([...a.n][0] || '?').toUpperCase();
+  img.replaceWith(sp);
+}, true);
+function appHtml(k, where){
+  if (k.startsWith('f:')) {
+    const f = k.slice(2), l = (hasF(f) ? cfg.folders[f] : []).filter(x => byKey[x]);
+    return '<button class="app fold" data-k="' + esc(k) + '" data-w="' + where + '" aria-label="Map ' + esc(f) + '"><span class=fi>' + l.slice(0, 4).map(x => icon(x, 64)).join('') + '</span><span class=lb>' + esc(f) + '</span></button>';
+  }
+  const a = byKey[k]; if (!a) return '';
+  return '<button class=app data-k="' + esc(k) + '" data-w="' + where + '" aria-label="' + esc(a.n) + '">' + icon(k) + '<span class=lb>' + esc(a.n) + '</span></button>';
+}
+function renderPinned(){ $('#pinned').innerHTML = cfg.pinned.filter(exists).map(k => appHtml(k, 'home')).join(''); $('#hint').style.display = 'block'; }
+function renderDock(){ const d = (cfg.dock || []).filter(exists); document.documentElement.style.setProperty('--dn', Math.max(4, d.length)); $('#dock').innerHTML = d.map(k => appHtml(k, 'dock')).join('') || '<span style="grid-column:1/-1;text-align:center;font-size:13px;color:var(--muted)">Houd een app ingedrukt om hem hier te zetten</span>'; }
+const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function renderDrawer(){
+  const q = norm($('#q').value.trim());
+  const inFolder = new Set(Object.values(cfg.folders).flat());
+  let html = '';
+  if (q) {
+    const hits = apps.filter(a => !cfg.hidden.includes(a.k) && norm(a.n).includes(q))
+      .sort((a, b) => (norm(b.n).startsWith(q) ? 1 : 0) - (norm(a.n).startsWith(q) ? 1 : 0));
+    html = '<div class=grid>' + hits.map(a => appHtml(a.k, 'drawer')).join('') + '</div>';
+    html += '<button class=websearch onclick="Android.webSearch($(\'#q\').value.trim())"><span>🔎</span><span>Zoek op internet naar “' + esc($('#q').value.trim()) + '”</span></button>';
+    if (!hits.length) html = '<p class=empty>Geen app gevonden</p>' + html;
+  } else {
+    const folders = Object.keys(cfg.folders).filter(f => exists('f:' + f)).sort((a, b) => a.localeCompare(b, 'nl'));
+    html = (folders.length ? '<div class=grid style="margin-bottom:14px">' + folders.map(f => appHtml('f:' + f, 'drawer')).join('') + '</div>' : '') + '<div class=grid>';
+    for (const a of apps) if (!cfg.hidden.includes(a.k) && !inFolder.has(a.k)) html += appHtml(a.k, 'drawer');
+    html += '</div>';
+  }
+  $('#dlist').innerHTML = html;
+}
+function qEnter(){
+  const q = norm($('#q').value.trim()); if (!q) return;
+  const a = apps.find(x => !cfg.hidden.includes(x.k) && norm(x.n).startsWith(q)) || apps.find(x => !cfg.hidden.includes(x.k) && norm(x.n).includes(q));
+  if (a) launch(a.k); else Android.webSearch($('#q').value.trim());
+}
+function launch(k){
+  if (k.startsWith('f:')) { openFolder(k.slice(2)); return; }
+  const e = Android.launch(k); if (e) toast(e);
+}
+
+/* ---------- tikken en lang indrukken ---------- */
+let press = null;
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.app'); if (!el) { pressBg(e); return; }
+  press = {el, x: e.clientX, y: e.clientY, long: false, t: setTimeout(() => { press.long = true; Android.vibrate(15); appSheet(el.dataset.k, el.dataset.w); }, 480)};
+});
+document.addEventListener('pointermove', e => { if (press && (Math.abs(e.clientX - press.x) > 10 || Math.abs(e.clientY - press.y) > 10)) { clearTimeout(press.t); press = null; } });
+document.addEventListener('pointerup', e => {
+  if (bgPress) { clearTimeout(bgPress.t); bgPress = null; }
+  if (!press) return; clearTimeout(press.t);
+  const p = press; press = null;
+  if (!p.long && e.target.closest('.app') === p.el) launch(p.el.dataset.k);
+});
+document.addEventListener('pointercancel', () => { if (press) { clearTimeout(press.t); press = null; } if (bgPress) { clearTimeout(bgPress.t); bgPress = null; } });
+document.addEventListener('contextmenu', e => e.preventDefault());
+let lastPtr = 0;
+document.addEventListener('pointerup', () => { lastPtr = Date.now(); }, true);
+document.addEventListener('click', e => {
+  const el = e.target.closest('.app'); if (!el || Date.now() - lastPtr < 700) return;
+  launch(el.dataset.k); // bijv. TalkBack: dubbeltikken geeft alleen een klik
+});
+/* Lang drukken op een leeg stuk startscherm: look aanpassen. */
+let bgPress = null;
+function pressBg(e){
+  if (!e.target.closest('#home') || e.target.closest('button, .card, #weather')) return;
+  bgPress = {x: e.clientX, y: e.clientY, t: setTimeout(() => { Android.vibrate(15); homeSheet(); }, 600)};
+}
+
+function appSheet(k, where){
+  const isF = k.startsWith('f:'), a = byKey[k];
+  const name = isF ? 'Map ' + k.slice(2) : (a ? a.n : '');
+  const acts = [];
+  if (where === 'folder') acts.push(['Uit de map halen', () => { const f = openF; cfg.folders[f] = cfg.folders[f].filter(x => x !== k); if (!cfg.folders[f].length) { dropEmptyFolders(); closeFolder(); } else openFolder(f); saveAll(); }]);
+  if (!cfg.pinned.includes(k)) acts.push(['Op het startscherm zetten', () => { cfg.pinned.push(k); saveAll(); toast('Op je startscherm gezet'); }]);
+  else acts.push(['Van het startscherm halen', () => { cfg.pinned = cfg.pinned.filter(x => x !== k); saveAll(); }]);
+  if (where === 'home' || where === 'dock') {
+    const list = where === 'home' ? cfg.pinned : cfg.dock, i = list.indexOf(k);
+    if (i > 0) acts.push(['← Naar voren', () => { list.splice(i, 1); list.splice(i - 1, 0, k); saveAll(); }]);
+    if (i >= 0 && i < list.length - 1) acts.push(['Naar achteren →', () => { list.splice(i, 1); list.splice(i + 1, 0, k); saveAll(); }]);
+  }
+  if (!isF) {
+    if (!cfg.dock.includes(k)) { if (cfg.dock.length < 6) acts.push(['In het dock (onderbalk)', () => { cfg.dock.push(k); saveAll(); }]); }
+    else acts.push(['Uit het dock', () => { cfg.dock = cfg.dock.filter(x => x !== k); saveAll(); }]);
+    if (where !== 'folder') acts.push(['In een map…', () => askFolder(k)]);
+    acts.push(['Verbergen', () => { cfg.hidden.push(k); cfg.pinned = cfg.pinned.filter(x => x !== k); cfg.dock = cfg.dock.filter(x => x !== k); for (const f of Object.keys(cfg.folders)) cfg.folders[f] = cfg.folders[f].filter(x => x !== k); dropEmptyFolders(); if (openF) closeFolder(); saveAll(); toast(name + ' is verborgen (terug te zetten via Look aanpassen)'); }]);
+    acts.push(['App-info', () => Android.appInfo(k)]);
+    if (a && !a.sys) acts.push(['Verwijderen…', () => Android.uninstall(k)]);
+  } else {
+    acts.push(['Map hernoemen…', () => ask('Map hernoemen', k.slice(2), v => { v = v.trim(); if (badName(v)) { toast('Kies een andere naam'); return; } if (hasF(v)) { toast('Er is al een map ' + v); return; } cfg.folders[v] = cfg.folders[k.slice(2)]; delete cfg.folders[k.slice(2)]; cfg.pinned = cfg.pinned.map(x => x === k ? 'f:' + v : x); saveAll(); })]);
+    acts.push(['Map opheffen (apps blijven)', () => { delete cfg.folders[k.slice(2)]; cfg.pinned = cfg.pinned.filter(x => x !== k); saveAll(); }]);
+  }
+  openSheet(isF ? '<span class=ib>📁</span>' : icon(k, 96), name, acts);
+}
+function homeSheet(){
+  openSheet('<span class=ib>⚙︎</span>', 'Startscherm', [
+    ['Look aanpassen', openLook], ['Achtergrondfoto kiezen', () => Android.wallpaper()],
+    ['Rene\'s Tools openen', () => Android.openTool('')], ['Standaard-startscherm kiezen', () => Android.homeSettings()]]);
+}
+function openSheet(ic, title, acts){
+  $('#shd').innerHTML = ic + '<b>' + esc(title) + '</b>';
+  const box = $('#sacts'); box.innerHTML = '';
+  acts.forEach(([l, fn]) => { const b = document.createElement('button'); b.textContent = l; b.onclick = () => { closeSheet(); fn(); }; box.appendChild(b); });
+  $('#sheet').classList.add('on');
+}
+function dropEmptyFolders(){
+  for (const f of Object.keys(cfg.folders)) if (!cfg.folders[f].length) { delete cfg.folders[f]; cfg.pinned = cfg.pinned.filter(x => x !== 'f:' + f); cfg.dock = (cfg.dock || []).filter(x => x !== 'f:' + f); }
+}
+function closeSheet(){ $('#sheet').classList.remove('on'); }
+function saveAll(){ save(); renderPinned(); renderDock(); renderDrawer(); }
+
+/* ---------- mappen ---------- */
+let openF = null;
+function openFolder(f){ if (!hasF(f)) return; openF = f; $('#fname').textContent = f; $('#fgrid').innerHTML = cfg.folders[f].filter(k => byKey[k]).map(k => appHtml(k, 'folder')).join(''); $('#folder').classList.add('on'); }
+function closeFolder(){ openF = null; $('#folder').classList.remove('on'); }
+function askFolder(k){
+  const names = Object.keys(cfg.folders);
+  ask('In welke map?', '', v => {
+    v = v.trim(); if (badName(v)) { if (v) toast('Kies een andere naam'); return; }
+    Object.keys(cfg.folders).forEach(f => cfg.folders[f] = cfg.folders[f].filter(x => x !== k));
+    if (!hasF(v)) cfg.folders[v] = [];
+    cfg.folders[v].push(k);
+    cfg.pinned = cfg.pinned.filter(x => x !== k);
+    dropEmptyFolders();
+    saveAll(); toast('In map ' + v);
+  }, names.length ? '<div class=seg style="margin-bottom:12px">' + names.map(n => '<button data-n="' + esc(n) + '" onclick="$(\'#askin\').value=this.dataset.n">' + esc(n) + '</button>').join('') + '</div>' : '', 'Naam van een nieuwe of bestaande map');
+}
+let askCb = null;
+function ask(title, val, cb, extra, ph){
+  askCb = cb; $('#asktitle').textContent = title; $('#askin').value = val || ''; $('#askin').placeholder = ph || ''; $('#askextra').innerHTML = extra || '';
+  $('#ask').classList.add('on'); setTimeout(() => $('#askin').focus(), 50);
+}
+$('#askok').onclick = () => { const cb = askCb; const v = $('#askin').value; closeAsk(); if (cb) cb(v); };
+$('#askin').addEventListener('keydown', e => { if (e.key === 'Enter') $('#askok').click(); });
+function closeAsk(){ $('#ask').classList.remove('on'); askCb = null; }
+
+/* ---------- vegen ---------- */
+let sw = null;
+document.addEventListener('touchstart', e => { const t = e.touches[0]; sw = {x: t.clientX, y: t.clientY, inDrawer: !!e.target.closest('#drawer'), top: $('#dlist').scrollTop <= 0, homeTop: $('#home').scrollTop <= 0}; }, {passive: true});
+document.addEventListener('touchend', e => {
+  if (!sw) return; const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; const s = sw; sw = null;
+  if (Math.abs(dy) < 70 || Math.abs(dx) > Math.abs(dy)) return;
+  if (anyOverlay()) return;
+  if (!drawerOn() && !s.inDrawer) {
+    const homeEl = $('#home');
+    if (dy < 0 && homeEl.scrollTop + homeEl.clientHeight >= homeEl.scrollHeight - 4) openDrawer();
+    else if (dy > 0 && s.homeTop) { if (!Android.notifications()) {} }
+  } else if (drawerOn() && dy > 0 && s.top) closeDrawer();
+}, {passive: true});
+function drawerOn(){ return document.body.classList.contains('drawer-on'); }
+function anyOverlay(){ return !!document.querySelector('#sheet.on, #folder.on, #ask.on, #look.on'); }
+function openDrawer(){ renderDrawer(); document.body.classList.add('drawer-on'); $('#dlist').scrollTop = 0; }
+function closeDrawer(){ document.body.classList.remove('drawer-on'); $('#q').value = ''; $('#q').blur(); }
+$('#hint').onclick = openDrawer;
+
+/* ---------- klok, wekker ---------- */
+function tickClock(){
+  const d = new Date();
+  $('#time').textContent = d.toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
+  const ds = d.toLocaleDateString('nl-NL', {weekday: 'long', day: 'numeric', month: 'long'});
+  $('#date').textContent = ds.charAt(0).toUpperCase() + ds.slice(1);
+  const a = Android.nextAlarm();
+  $('#alarm').textContent = a && a - Date.now() < 7 * 864e5 ? '⏰ ' + new Date(a).toLocaleString('nl-NL', {weekday: 'short', hour: '2-digit', minute: '2-digit'}) : '';
+}
+
+/* ---------- weer ---------- */
+const WMO = {0: ['☀️', 'Zonnig', '🌙'], 1: ['🌤️', 'Licht bewolkt', '🌙'], 2: ['⛅', 'Half bewolkt', '☁️'], 3: ['☁️', 'Bewolkt'], 45: ['🌫️', 'Mist'], 48: ['🌫️', 'Rijpmist'],
+  51: ['🌦️', 'Motregen'], 53: ['🌦️', 'Motregen'], 55: ['🌧️', 'Motregen'], 56: ['🌧️', 'IJzel'], 57: ['🌧️', 'IJzel'], 61: ['🌦️', 'Lichte regen'], 63: ['🌧️', 'Regen'], 65: ['🌧️', 'Zware regen'],
+  66: ['🌧️', 'IJzel'], 67: ['🌧️', 'IJzel'], 71: ['🌨️', 'Lichte sneeuw'], 73: ['🌨️', 'Sneeuw'], 75: ['❄️', 'Zware sneeuw'], 77: ['🌨️', 'Korrelsneeuw'],
+  80: ['🌦️', 'Buien'], 81: ['🌧️', 'Buien'], 82: ['⛈️', 'Zware buien'], 85: ['🌨️', 'Sneeuwbuien'], 86: ['🌨️', 'Sneeuwbuien'], 95: ['⛈️', 'Onweer'], 96: ['⛈️', 'Onweer met hagel'], 99: ['⛈️', 'Onweer met hagel']};
+const wmo = (c, day) => { const w = WMO[c] || ['🌡️', '']; return [day === false && w[2] ? w[2] : w[0], w[1]]; };
+let wx = null;
+window.onWeather = function(w){
+  wx = w;
+  const el = $('#weather');
+  if (!cfg.show.weather) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  if (w.noPlace) { el.innerHTML = '<span class=wi>🌤️</span><span class=wd><b>Weer</b>Tik om je plaats te kiezen' + (w.locPerm ? '' : ' of locatie toe te staan') + '</span>'; return; }
+  if (w.error && w.temp == null) { el.innerHTML = '<span class=wi>🌡️</span><span class=wd><b>Weer</b>' + esc(w.error) + '</span>'; return; }
+  const [ic, txt] = wmo(w.code, w.day);
+  const days = (w.days || []).slice(1, 4).map(d => '<span>' + new Date(d.date + 'T12:00').toLocaleDateString('nl-NL', {weekday: 'short'}) + '<b>' + wmo(d.code)[0] + '</b>' + Math.round(d.max) + '°/' + Math.round(d.min) + '°</span>').join('');
+  const today = (w.days || [])[0];
+  el.innerHTML = '<span class=wi>' + ic + '</span><span class=wt>' + Math.round(w.temp) + '°</span><span class=wd><b>' + esc(txt) + (w.place ? ' · ' + esc(w.place) : '') + '</b>' +
+    (today ? Math.round(today.max) + '° / ' + Math.round(today.min) + '°' : '') + (w.rainSoon >= 50 ? ' · ☔ ' + w.rainSoon + '% kans op regen' : '') +
+    '<span class=wdays>' + days + '</span></span>';
+};
+function weatherTap(){ if (wx && wx.noPlace) askPlace(); else Android.weather(true); }
+function askPlace(){
+  ask('Plaats voor het weer', Android.placeName(), v => { v = v.trim(); if (!v) { Android.setPlace('', 0, 0); Android.weather(true); renderLook(); return; } Android.cities(v); toast('Zoeken…'); },
+    '<p style="margin:0 0 8px;font-size:13px;color:var(--muted)">Leeg laten = de locatie van je telefoon gebruiken' + (Android.hasPerm('location') ? '' : ' (<a href="#" onclick="Android.locationPermission();return false" style="color:var(--acc)">toestaan</a>)') + '.</p>', 'Bijv. Rotterdam');
+}
+window.onCities = function(l){
+  if (l.error || !l.length) { toast(l.error || 'Geen plaats gevonden'); return; }
+  openSheet('<span class=ib>📍</span>', 'Welke plaats?', l.map(c => [c.name + ' — ' + c.sub, () => { Android.setPlace(c.name, c.lat, c.lon); Android.weather(true); renderLook(); toast('Weer voor ' + c.name); }]));
+};
+window.onLocationPerm = function(){ Android.weather(true); };
+
+/* ---------- agenda ---------- */
+function renderCal(){
+  const el = $('#cal');
+  if (!cfg.show.cal) { el.style.display = 'none'; return; }
+  const c = J(Android.calendar(), {perm: false});
+  el.style.display = 'block';
+  if (!c.perm) { el.innerHTML = '<h3>📅 Agenda</h3><button class="big2 ghost" onclick="Android.calendarPermission()">Afspraken tonen (toestemming geven)</button>'; return; }
+  const ev = (c.events || []).slice(0, 4);
+  const day = t => { const d = new Date(t), n = new Date(), m = new Date(Date.now() + 864e5);
+    return d.toDateString() === n.toDateString() ? '' : d.toDateString() === m.toDateString() ? 'morgen ' : d.toLocaleDateString('nl-NL', {weekday: 'short'}) + ' '; };
+  el.innerHTML = '<h3>📅 Agenda <button class=more onclick="Android.openEvent(\'0\')">Openen ›</button></h3>' + (ev.map(e =>
+    '<button class=ev data-id="' + e.id + '" onclick="Android.openEvent(this.dataset.id)"><i style="background:' + esc(e.color || '') + '"></i><span class=et>' +
+    (e.allDay ? (day(e.begin) || 'vandaag') + '<br>hele dag' : day(e.begin) + new Date(e.begin).toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'})) +
+    '</span><div><b>' + esc(e.title) + '</b>' + (e.loc ? '<small>' + esc(e.loc) + '</small>' : '') + '</div></button>').join('') || '<p style="margin:0;color:var(--muted);font-size:14px">Geen afspraken de komende week</p>');
+}
+window.onCalendarPerm = renderCal;
+
+/* ---------- Rene's Tools ---------- */
+const TOOLS = {radio: ['📻', 'Radio'], notes: ['📝', 'Notities'], music: ['🎵', 'Muziek'], redial: ['📞', 'Redial'], backup: ['💾', 'Backup'], contacts: ['👤', 'Contacten'],
+  calls: ['📒', 'Oproepen'], transcripts: ['🎙️', 'Gesprekken'], wa: ['🟢', 'WhatsApp'], sms: ['💬', "Sms'jes"], tracks: ['🗺️', 'Routes'], settings: ['⚙️', 'Instellingen']};
+function fmtD(t){ const d = new Date(t), n = new Date(); const hm = d.toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
+  if (d.toDateString() === n.toDateString()) return 'vandaag ' + hm; if (new Date(t + 864e5).toDateString() === n.toDateString()) return 'gisteren ' + hm;
+  return d.toLocaleDateString('nl-NL', {day: 'numeric', month: 'short'}); }
+function renderTools(){
+  const el = $('#tools');
+  if (!cfg.show.tools) { el.style.display = 'none'; return; }
+  const raw = Android.tools();
+  if (raw === renderTools.last && el.style.display === 'block' && !renderTools.force) return;
+  renderTools.last = raw; renderTools.force = false;
+  const t = J(raw, {});
+  const r = t.radio || {}, st = r.status || 'stopped', s = r.station || t.radioLast;
+  const playing = st === 'playing' || st === 'connecting';
+  let h = '<h3>🧰 Rene\'s Tools <button class=more onclick="Android.openTool(\'\')">Openen ›</button></h3>';
+  if (s) h += '<div class=radio><button class=rn style="text-align:left" onclick="Android.openTool(\'radio\')"><b>📻 ' + esc(s.name) + '</b><small>' +
+      esc(st === 'connecting' ? 'Verbinden…' : st === 'paused' ? 'Gepauzeerd' : st === 'playing' ? (r.shift && r.shift.behind > 8 ? 'achter live' : (r.title || 'Live')) : 'Tik ▶ om te luisteren') + '</small></button>' +
+    (r.shift && st !== 'stopped' ? '<button class=rb onclick="radioDo(\'rew\')" aria-label="30 seconden terug">⏪</button>' : '') +
+    '<button class="rb main" onclick="radioDo(\'' + (playing ? 'pause' : st === 'paused' ? 'resume' : 'play') + '\')" aria-label="' + (playing ? 'Pauze' : 'Afspelen') + '">' + (playing ? '❚❚' : '▶') + '</button>' +
+    (st !== 'stopped' ? '<button class=rb onclick="radioDo(\'stop\')" aria-label="Stoppen">■</button>' : '') + '</div>';
+  const rows = [];
+  const bk = t.backup || {}, l = bk.last;
+  if (bk.busy) rows.push(['💾', 'Backup is bezig…', 'backup', '']);
+  else if (l && l.t) { const failed = Object.keys(l).filter(k => l[k] && l[k].ok === false).length, old = Date.now() - l.t > 3 * 864e5;
+    rows.push(['💾', 'Backup: ' + fmtD(l.t) + (failed ? ' · ' + failed + ' mislukt' : old ? ' · al even geleden' : ' ✓'), 'backup', failed ? 'b' : old ? 'w' : '']); }
+  const end = new Date(); end.setHours(23, 59, 59);
+  const rem = Object.values(t.reminders || {}).filter(x => x >= Date.now() && x <= end.getTime()).sort();
+  if (rem.length) rows.push(['🔔', rem.length + (rem.length === 1 ? ' herinnering' : ' herinneringen') + ' vandaag, eerst om ' + new Date(rem[0]).toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'}), 'notes', '']);
+  const rp = t.redial || {};
+  if (rp.plan && rp.next > Date.now() && rp.next - Date.now() < 2 * 864e5) rows.push(['📞', 'Auto redial: ' + (rp.plan.name || rp.plan.number) + ' · ' + new Date(rp.next).toLocaleString('nl-NL', {weekday: 'short', hour: '2-digit', minute: '2-digit'}), 'redial', '']);
+  h += rows.map(x => '<button class=trow data-t="' + x[2] + '" onclick="Android.openTool(this.dataset.t)"><span>' + x[0] + '</span><span class="' + x[3] + '">' + esc(x[1]) + '</span></button>').join('');
+  h += '<div class=tchips>' + cfg.tools.filter(k => TOOLS[k]).map(k => '<button class=tchip data-t="' + k + '" onclick="Android.openTool(this.dataset.t)"><span>' + TOOLS[k][0] + '</span>' + TOOLS[k][1] + '</button>').join('') + '</div>';
+  el.style.display = 'block';
+  el.innerHTML = h;
+}
+function radioDo(w){ Android.radio(w); Android.vibrate(10); setTimeout(renderTools, 300); setTimeout(renderTools, 1500); }
+setInterval(() => { if (document.visibilityState === 'visible') renderTools(); }, 2000); // radio-titel e.d. bijhouden (alleen opnieuw tekenen als er iets veranderde)
+
+/* ---------- look aanpassen ---------- */
+function openLook(){ closeDrawer(); renderLook(); $('#look').classList.add('on'); }
+function closeLook(){ $('#look').classList.remove('on'); }
+function seg(id, opts, cur, fn){ $(id).innerHTML = opts.map(([v, l]) => '<button data-v="' + esc(v) + '"' + (String(v) === String(cur) ? ' class=on' : '') + '>' + l + '</button>').join('');
+  $(id).querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); renderLook(); }); }
+function renderLook(){
+  seg('#l-theme', [['auto', 'Zoals de telefoon'], ['light', 'Licht'], ['dark', 'Donker']], cfg.theme, v => { cfg.theme = v; save(); applyLook(); });
+  $('#l-acc').innerHTML = ACCENTS.map(c => '<button class="sw2' + (c === cfg.accent ? ' on' : '') + '" data-c="' + c + '" style="background:' + c + '" aria-label="Kleur ' + c + '"></button>').join('');
+  $('#l-acc').querySelectorAll('button').forEach(b => b.onclick = () => { cfg.accent = b.dataset.c; save(); applyLook(); renderLook(); });
+  $('#l-bg').innerHTML = Object.keys(BGS).map(k => '<button data-b="' + k + '"' + (k === cfg.bg ? ' class=on' : '') + ' style="background:' + (BGS[k][1] || 'linear-gradient(135deg,#94a3b8,#475569)') + '">' + BGS[k][0] + '</button>').join('');
+  $('#l-bg').querySelectorAll('button').forEach(b => b.onclick = () => { cfg.bg = b.dataset.b; save(); applyLook(); renderLook(); });
+  seg('#l-ico', [['s', 'Klein'], ['m', 'Normaal'], ['l', 'Groot']], cfg.icon, v => { cfg.icon = v; save(); applyLook(); });
+  seg('#l-cols', [[4, '4 per rij'], [5, '5 per rij']], cfg.cols, v => { cfg.cols = +v; save(); applyLook(); });
+  const tg = (id, on) => { $(id).classList.toggle('on', !!on); $(id).setAttribute('aria-checked', on ? 'true' : 'false'); };
+  tg('#l-labels', cfg.labels); tg('#l-sw-weather', cfg.show.weather); tg('#l-sw-cal', cfg.show.cal); tg('#l-sw-tools', cfg.show.tools);
+  $('#l-place').textContent = Android.placeName() || 'Automatisch';
+  $('#l-tools').innerHTML = Object.keys(TOOLS).map(k => '<button data-t="' + k + '"' + (cfg.tools.includes(k) ? ' class=on' : '') + '>' + TOOLS[k][0] + ' ' + TOOLS[k][1] + '</button>').join('');
+  $('#l-tools').querySelectorAll('button').forEach(b => b.onclick = () => { const k = b.dataset.t; cfg.tools = cfg.tools.includes(k) ? cfg.tools.filter(x => x !== k) : cfg.tools.concat(k); save(); renderLook(); renderTools.force = true; renderTools(); });
+  $('#l-hidden').innerHTML = cfg.hidden.filter(k => byKey[k]).map(k => '<div class=hid>' + icon(k, 72) + '<span>' + esc(byKey[k].n) + '</span><button data-k="' + esc(k) + '" onclick="unhide(this.dataset.k)">Tonen</button></div>').join('') || '<p style="margin:0;color:var(--muted);font-size:14px">Geen. Houd een app ingedrukt om hem te verbergen.</p>';
+  $('#l-default').textContent = Android.isDefault() ? '✓ Rene\'s Start is je startscherm.' : 'Nu nog niet je standaard-startscherm.';
+}
+function unhide(k){ cfg.hidden = cfg.hidden.filter(x => x !== k); saveAll(); renderLook(); }
+function toggleCfg(k){ cfg[k] = !cfg[k]; save(); applyLook(); renderLook(); }
+function toggleShow(k){ cfg.show[k] = !cfg.show[k]; save(); renderLook(); renderTools.force = true; refreshCards(true); }
+
+/* ---------- levenscyclus ---------- */
+function refreshCards(all){
+  tickClock(); renderTools();
+  if (all || Date.now() - (refreshCards.cal || 0) > 5 * 6e4) { refreshCards.cal = Date.now(); renderCal(); }
+  if (cfg.show.weather) Android.weather(false); else $('#weather').style.display = 'none';
+  $('#banner').classList.toggle('on', !Android.isDefault() && !cfg.bannerOff);
+}
+window.onResumeHome = function(){ renderTools.force = true; refreshCards(false); clearInterval(window._tick); window._tick = setInterval(tickClock, 10000); };
+window.onPauseHome = function(){ clearInterval(window._tick); closeSheet(); closeAsk(); setTimeout(() => { if (document.visibilityState !== 'visible') { closeDrawer(); closeFolder(); closeLook(); } }, 400); };
+window.onHomePressed = function(){ closeSheet(); closeAsk(); closeFolder(); closeLook(); closeDrawer(); $('#home').scrollTo({top: 0, behavior: 'smooth'}); };
+window.onBack = function(){
+  if ($('#sheet.on')) closeSheet(); else if ($('#ask.on')) closeAsk(); else if ($('#folder.on')) closeFolder(); else if ($('#look.on')) closeLook(); else if (drawerOn()) closeDrawer();
+  else if (typeof Android.backUnhandled === 'function') Android.backUnhandled(); // bekijken zonder startscherm te zijn: terug = dicht
+};
+window.onAppsChanged = function(){ if (typeof Android.appsAsync === 'function') Android.appsAsync(); else window.onApps(J(Android.apps(), [])); };
+
+applyLook(); loadApps(); renderPinned(); renderDock(); refreshCards(true); window.onResumeHome();
+</script>
+</body>
+</html>

@@ -18,6 +18,15 @@
     </div>
 
     <div class="card">
+      <h2>Telefoon-skin</h2>
+      <p class="note" style="margin-top:0">Gebruik Rene's Tools als startscherm van je telefoon: klok, weer, agenda, radio en het overzicht bovenaan, al je apps met zoeken, mappen en een eigen look. Veeg omhoog voor alle apps.</p>
+      <p class="note" id="st-home-state"></p>
+      <button class="big" id="st-home-btn" onclick="Android.homeMakeDefault()">Als startscherm gebruiken</button>
+      <button class="big ghost" style="margin-top:8px" onclick="Android.homeOpen()">Eerst bekijken</button>
+      <button class="big ghost" style="margin-top:8px;display:none" id="st-home-back" onclick="Android.homeSettings()">Terug naar het startscherm van de telefoon…</button>
+    </div>
+
+    <div class="card">
       <h2>Weergave</h2>
       <div class="row setrow"><label for="st-zoom" style="flex:1">Tekstgrootte</label>
         <select class="sel" id="st-zoom" onchange="stZoom(this.value)">
