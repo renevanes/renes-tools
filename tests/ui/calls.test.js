@@ -1,0 +1,25 @@
+const { chromium } = require('playwright');
+(async () => {
+  const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 390, height: 844 } });
+  const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
+  await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html'));
+  await pg.waitForTimeout(400);
+  await pg.screenshot({ path: __dirname + '/shots/calls-home.png' });
+  await pg.click('#tile-calls'); await pg.waitForTimeout(300);
+  await pg.screenshot({ path: __dirname + '/shots/calls-perm.png' });
+  await pg.click('#calls-perm-btn'); await pg.waitForTimeout(500);
+  await pg.screenshot({ path: __dirname + '/shots/calls-list.png' });
+  await pg.click('#calls-filter button[data-f=missed]'); await pg.waitForTimeout(200);
+  console.log('missed rows', await pg.$$eval('#calls-list button', x => x.length));
+  await pg.fill('#calls-search', 'huis'); await pg.waitForTimeout(400);
+  console.log('search rows', await pg.$$eval('#calls-list button', x => x.length));
+  await pg.click('#calls-filter button[data-f=all]'); await pg.fill('#calls-search', ''); await pg.waitForTimeout(400);
+  await pg.evaluate(() => { Android._wa.info.dest = true; });
+  await pg.click('text=Oproepen exporteren'); await pg.waitForTimeout(1800);
+  console.log('result', await pg.textContent('#calls-result'));
+  await pg.screenshot({ path: __dirname + '/shots/calls-done.png' });
+  await pg.click('#calls-list button >> nth=0'); await pg.waitForTimeout(300);
+  console.log('redial num', await pg.inputValue('#num'), await pg.textContent('#pname'));
+  console.log('errors', errs);
+  await b.close();
+})();

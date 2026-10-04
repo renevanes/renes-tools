@@ -1,0 +1,64 @@
+# Bouwt de app en draait alle tests bij elke wijziging (en met de hand via "Run workflow").
+# Dit is een controle: de APK wordt ondertekend met een tijdelijke testsleutel, niet met de echte
+# sleutel. Echte updates (met de echte sleutel) worden nog steeds gepubliceerd met ./publish.sh.
+name: Bouwen en testen
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  bouwen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TOOLS: ${{ github.workspace }}/../toolchain
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bouwgereedschap ophalen (build-tools, aapt2, android.jar)
+        run: ./setup-tools.sh
+
+      - name: Tijdelijke testsleutel maken
+        run: |
+          echo "testsleutel-alleen-voor-ci" > keys/keystore.pass
+          keytool -genkeypair -keystore keys/release.p12 -storetype PKCS12 -alias release \
+            -storepass testsleutel-alleen-voor-ci -keypass testsleutel-alleen-voor-ci \
+            -keyalg RSA -keysize 2048 -validity 30 -dname "CN=CI-test"
+
+      - name: App bouwen
+        run: ./build.sh
+
+      - name: Logica-tests (Java)
+        run: |
+          mkdir -p build/test
+          javac -nowarn -encoding UTF-8 -cp build/classes:$TOOLS/ap/android-36/android.jar -d build/test tests/jvm/nl/rene/tools/LogicTest.java
+          java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.LogicTest
+
+      - name: Playwright installeren
+        run: |
+          npm install --no-save playwright@1
+          npx playwright install --with-deps chromium
+
+      - name: Interfacetests (Playwright, licht en donker)
+        run: ./tests/run-ui.sh
+
+      - name: Test-APK en schermafdrukken bewaren
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: renes-tools-test-build
+          path: |
+            Renes-Tools-v*.apk
+            tests/ui/shots/*.png
+          retention-days: 14

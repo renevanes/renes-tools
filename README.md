@@ -122,6 +122,14 @@ NATIVE=1 ./bump.sh "Nieuwe app-functie"   # als de Java-code of het manifest is 
 ./publish.sh                  # commit "Versie X.Y" en push naar GitHub
 ```
 
+### Testen
+```sh
+./tests/run-ui.sh            # interfacetests: Playwright, 390x844, licht en donker, met nagebootste Android-brug
+javac -cp build/classes:$TOOLS/ap/android-36/android.jar -d build/test tests/jvm/nl/rene/tools/LogicTest.java
+java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.LogicTest   # logica (contactversies, vCard, wekker)
+```
+Bij elke push bouwt GitHub Actions (`.github/workflows/bouwen-en-testen.yml`) de app en draait alle tests. Die APK is ondertekend met een tijdelijke testsleutel en dient alleen als controle; echte updates gaan via `./publish.sh` met de echte sleutel.
+
 De ondertekeningssleutel staat alleen versleuteld in de repository (`keys/signing-key.enc`, AES-256). Rene heeft de wachtwoordzin. Elke update moet met dezelfde sleutel ondertekend zijn, anders kan de telefoon hem niet installeren.
 
 Let op bij Java-code: gebruik geen anonieme of niet-statische binnenklassen. javac 21 geeft hun constructor een parameter zonder naam, en d8 8.2 loopt daarop vast. Gebruik statische geneste klassen of lambda's.

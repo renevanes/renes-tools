@@ -1,0 +1,33 @@
+const { chromium } = require('playwright');
+(async () => {
+  const b = await chromium.launch();
+  const pg = await b.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  const errs = []; pg.on('pageerror', e => errs.push(e.message));
+  const scr = () => pg.evaluate(() => document.querySelector('.screen.on').id);
+  await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
+  console.log('dynamic', await pg.evaluate(() => Android._dyn));
+  await pg.click('#tile-radio', { button: 'right' }); await pg.waitForTimeout(200);
+  console.log('sheet', await pg.textContent('#sheet-title'), await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent)), 'screen', await scr());
+  await pg.screenshot({ path: __dirname + '/shots/sc-sheet.png' });
+  await pg.click('#sheet-acts button >> nth=1'); await pg.waitForTimeout(150);
+  console.log('toast', await pg.textContent('#toast'));
+  // simulated long press with touch
+  const box = await pg.locator('#tile-notes').boundingBox();
+  const cdp = await pg.context().newCDPSession(pg);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + 20, y: box.y + 20 }] });
+  await pg.waitForTimeout(700);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await pg.waitForTimeout(200);
+  console.log('long-press sheet', await pg.textContent('#sheet-title'), 'open', await pg.evaluate(() => document.querySelector('#sheet').classList.contains('on')), 'screen', await scr());
+  await pg.evaluate(() => closeSheet());
+  await pg.tap('#tile-notes'); await pg.waitForTimeout(200);
+  console.log('tap opens', await scr());
+  await pg.evaluate(() => goBack());
+  await pg.click('#tile-radio'); await pg.waitForTimeout(300);
+  await pg.click('#rd-list .srow:nth-child(1) .sbtn'); await pg.waitForTimeout(900);
+  await pg.click('button:has-text("Zender op startscherm")'); await pg.waitForTimeout(100);
+  console.log('station toast', await pg.textContent('#toast'));
+  await pg.screenshot({ path: __dirname + '/shots/sc-radio.png' });
+  console.log('errors', errs);
+  await b.close();
+})();

@@ -3,3 +3,6 @@ keys/release.p12
 keys/keystore.pass
 *.apk
 !update/*.apk
+tests/ui/ui/
+tests/ui/shots/
+node_modules/
