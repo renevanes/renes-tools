@@ -1,13 +1,21 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.16",
-  "versionCode": 17,
+  "versionName": "1.17",
+  "versionCode": 18,
   "nativeLevel": 17,
   "web": "index.html",
-  "webSha256": "c8cff969f8cad1a67fb7649d523fbf915da2227f2dcfe6da5953810392ccfd5e",
+  "webSha256": "8c8aa65dfbf2109536119a89fbec98c5fffb971f295a648e8647f485a79d3653",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "85a291dbdd1c210b0f9783355d492c6550dcdc3747fe7c40e868f9574eb26781",
+  "apkSha256": "6a33abba6409234a58f3afd6674308e42c5e03469ee308a78c56bd3307737177",
   "changelog": [
+    {
+      "version": "1.17",
+      "date": "2026-10-04",
+      "changes": [
+        "Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig",
+        "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"
+      ]
+    },
     {
       "version": "1.16",
       "date": "2026-10-04",

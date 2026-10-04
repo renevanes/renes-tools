@@ -80,6 +80,9 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Resultaat met hoes, album en jaar en links naar Spotify, Apple Music, YouTube Music en alle diensten (song.link). Geschiedenis (max. 500) lokaal, doorzoekbaar.
 - Alleen het fragment gaat naar AudD; de opname wordt direct verwijderd. Nodig: `RECORD_AUDIO` (alleen bij herkennen via de microfoon).
 
+## Startscherm
+- Tegels in groepen (Bellen & contacten, Berichten & backup, Muziek & radio, Handig). Via "Startscherm aanpassen": volgorde (ook naar een andere groep), tools verbergen, groepen hernoemen/toevoegen, zonder groepen tonen en een compacte weergave met drie tegels naast elkaar. Opgeslagen in de WebView-opslag; nieuwe tools uit een update komen vanzelf in hun groep.
+
 ## Snelkoppelingen
 - Houd een tegel ingedrukt → "Snelkoppeling op startscherm" (`ShortcutManager.requestPinShortcut`, Android 8+). Het icoon wordt getekend met de kleur en het symbool van de tool (`Shortcuts.java`).
 - Bij de radio: "Zender op startscherm" maakt een icoon dat de app opent en die zender meteen afspeelt.

@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.17",
+    "date": "2026-10-04",
+    "changes": [
+      "Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig",
+      "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"
+    ]
+  },
+  {
     "version": "1.16",
     "date": "2026-10-04",
     "changes": [
