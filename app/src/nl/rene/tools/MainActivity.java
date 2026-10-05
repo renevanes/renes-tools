@@ -111,6 +111,7 @@ public class MainActivity extends Activity {
         RedialService.createChannel(this);
         WaBackupService.createChannel(this);
         WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
+        Care.ensureScheduled(this);         // dagelijks onderhoud: backup-controle (maandelijks) en batterij (wekelijks)
         AllBackupJob.ensureScheduled(this);
         TranscribeJob.ensureScheduled(this);
         // Automatiseringen: plekken opnieuw instellen als Android ze kwijt kan zijn (bijv. na geforceerd stoppen op Oppo)
@@ -1083,6 +1084,15 @@ public class MainActivity extends Activity {
         // ----- Meldingsgeschiedenis -----
         @JavascriptInterface public String historyList(String query) {
             try { return NotificationHistory.list(ctx, query); } catch (Exception e) { return errJson(e); }
+        }
+        // ----- onderhoud: sinds gisteravond, backup-controle -----
+        @JavascriptInterface public String overnight() { return Care.overnight(ctx); }
+        @JavascriptInterface public void overnightSeen() {
+            Care.prefs(ctx).edit().putLong("seen", System.currentTimeMillis()).putLong("seenBattery", Care.batteryProblem(ctx) != null ? System.currentTimeMillis() : 0).apply();
+        }
+        @JavascriptInterface public String backupCheckLast() { return Care.prefs(ctx).getString("check", "{}"); }
+        @JavascriptInterface public void backupCheckRun() {
+            new Thread(() -> a.js("onBackupCheck", Care.backupCheck(ctx).toString()), "backup-check").start();
         }
         @JavascriptInterface public String historyStamp() { return NotificationHistory.stamp(ctx); }
         @JavascriptInterface public void historySetEnabled(boolean enabled) {

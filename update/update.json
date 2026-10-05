@@ -1,15 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.42",
-  "versionCode": 43,
-  "nativeLevel": 39,
+  "versionName": "1.43",
+  "versionCode": 44,
+  "nativeLevel": 40,
   "web": "index.html",
-  "webSha256": "d0dbdcbd4580ae82c21316e12188e445e8c8ebb92c96a0fe55b7e17afb47001f",
+  "webSha256": "5097f2d57bf2efc579de0f23eaedaf1ed535f17e0b9e0f16c750182abc6ee0eb",
   "start": "start.html",
   "startSha256": "9c5560f0cff0cd341fa5e00137698d7334458f2690247352825fa5173b3c50ec",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "9b9e90913b74ed415f374cbd35e021bb3a9bc4af8c8b95ea8bcbdb88a2fb77e4",
+  "apkSha256": "5ea3738c8078cf5fc366408dbc1fb17e5838f393fa90c14e86500728f15148d2",
   "changelog": [
+    {
+      "version": "1.43",
+      "date": "2026-10-05",
+      "changes": [
+        "Nieuw: 'Sinds gisteravond' bovenaan de app (gemiste oproepen, backup, automatiseringen)",
+        "Elke maand een backup-controle met proef-terugzetten, en 'Nu controleren' bij Alles back-uppen",
+        "Elke week een controle of Android de app op de achtergrond beperkt"
+      ]
+    },
     {
       "version": "1.42",
       "date": "2026-10-05",
@@ -381,5 +390,5 @@
       ]
     }
   ],
-  "webSig": "qNfr9sdom5JYrs1T9SseyrAhifb2EUGcHTaJ7z1JESvSmaRvCGCWL3uPezUg2tMTWR9oNG/IOOmacKbVcwqaNs4HgIsPY+NAYqmcG2Iharv6UTllp8RDN53oyb7gsq1Ic5KRwBw3GWg5U96zkJJ53ScUY2F1HiSMDQP98E5SGIQ8CYC09xkzGteq2V/Csn8LNhb4MKczdYtNKAaYPDIeTQoPu274YgErUxevFJpQTHO+NNydvUUwi1wJ501NPH7fzDB9dHbyPQasqGsqgwartm/aBhEvJeDpLzLUMviNBREVsAzUvC2saKM9ifjkivEoWF7jLhU6GoNPtuJKBtFLmdraHbenkBcecbXXZvDUFUZ2huUXPtHxXwUJTy+RLcX+7Y/qJOuobgSDjU+sN2v+IsVkb4IVkEEkLpjOxfUlcr3MvsKRve5zmYnhm7LUTMna+iRqXhl7OxrL4ZBmshc8Q6oT+louBPLUA19JOzvBvHEioLIZc7sJhViv8sxKs4T5"
+  "webSig": "OPAXeY9hP/kiLUe/NSGQ0BE8wxmSqFP/7NOmAP+K7S0RNdLmuua0ltkz+LHBORbt4xRLcNcjmGOEaTXa8sck6e6JyTC3Jnfz4/dnc3hdCJu8kDofWulVSzYZ//Big1Pwg6zh95K3KAi9Zq+8CrvYnSZP+XKkSVJMy1oVgkhcxNfiYotmBdApv9DUCY/1liMl21hIT4x12mYpu8h/L6VM2ZcaPmEOYANHXSNlAN+N3Mf1B4sLSHRTftTedT2TvxzuggorUwGzlDVurHLKiPU2WY76DLsrFrEgVsernZFkE/G5mB+NQ/Pl6AoGoy62zHgl6fD0UIEvgIxVBgsQAnbD1wit0czuAy9Z43OxeqYJnchVWy+b8H+3QXeMcNalBWQo7bWiSXR9PlX8WeLxD3x7S89LZ45epjC+4MD0M+BGbf2tv/yd2kNgEfpjYVvHIcKVGt/EinUbZHjJDCfiShwy3kbKM5/xHSuVpKELjG9XZ6kjObKev8SMuHImOC1dHd9p"
 }

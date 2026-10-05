@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.43",
+    "date": "2026-10-05",
+    "changes": [
+      "Nieuw: 'Sinds gisteravond' bovenaan de app (gemiste oproepen, backup, automatiseringen)",
+      "Elke maand een backup-controle met proef-terugzetten, en 'Nu controleren' bij Alles back-uppen",
+      "Elke week een controle of Android de app op de achtergrond beperkt"
+    ]
+  },
+  {
     "version": "1.42",
     "date": "2026-10-05",
     "changes": [

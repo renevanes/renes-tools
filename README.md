@@ -169,6 +169,11 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Opruimen** (`Rotate.java`): na elke backup (uit te zetten) of met "Nu opruimen": van sms-, oproepen-, contacten- en versleutelde backups met een datum in de naam blijft alles van de laatste 14 dagen staan, en daarvoor de nieuwste per maand. Selecties, contactversies en de allernieuwste blijven altijd.
 - **Ruimtegebruik**: grootte en aantal bestanden per map in de backup-map.
 
+## Onderhoud
+- **Sinds gisteravond** (bovenaan het startscherm van de app): gemiste oproepen, de nachtelijke backup, automatiseringen die liepen, en problemen (batterijbeperking, mislukte backup-controle). *Gezien* verbergt het tot er iets nieuws is.
+- **Backup-controle** (`Care.java`, dagelijkse taak): elke maand, en met *Nu controleren* bij Alles back-uppen. Controleert de backup-map, de leeftijd van de laatste backup en doet een proef-terugzetten: notities.json inlezen en de nieuwste contacten-vCard tellen, of het nieuwste versleutelde archief helemaal ontsleutelen met de bewaarde sleutel (`Secure.verify`, los van een archief dat je zelf open hebt). Er wordt niets teruggezet. Uitkomst als melding.
+- **Batterijcontrole** (elke week): beperkt Android (ColorOS) Rene's Tools op de achtergrond, dan een melding met de weg naar de oplossing (zelftest).
+
 ## Instellingen, app-slot en foutrapport
 - **Instellingen**: app-slot, backup-map, AudD-sleutel, overzicht van alle toestemmingen (met "Toestaan" per onderdeel) en het foutrapport.
 - **App-slot** (`Lock.java`): ontgrendelen met de schermvergrendeling van de telefoon (BiometricPrompt met vingerafdruk/gezicht of pincode; Android 7–9 via het bevestigingsscherm van de telefoon). Geen eigen pincode, dus niets te vergeten. Vergrendelt na een instelbare tijd buiten beeld; inhoud verborgen in "recente apps" (Android 13+: `setRecentsScreenshotEnabled(false)`, ouder: `FLAG_SECURE`).

@@ -2,7 +2,16 @@
 const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', launcher: 'Startscherm (skin)', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek' };
 let bkPoll = null, bkBusy = false;
 function bkState(full){ try { return JSON.parse(Android.backupState(!!full)); } catch(e){ return {}; } }
+/* ---------- backup-controle (proef-terugzetten) ---------- */
+function bkCheckRender(r){
+  const box = $('#bk-check'); if (!box || !r || !r.t) return;
+  box.innerHTML = '<p class="note" style="margin-top:0">' + (r.ok ? '✓ In orde' : '✗ Er is iets mis') + ' · gecontroleerd ' + esc(fmtD(r.t)) + '</p>' +
+    (r.items || []).map(i => '<div class=bkres><b>' + esc(i.what) + '</b><span class="' + (i.ok ? 'good' : 'bad') + '">' + (i.ok ? '✓ ' : '✗ ') + esc(i.msg) + '</span></div>').join('');
+}
+function bkCheck(){ $('#bk-check-btn').disabled = true; $('#bk-check-btn').textContent = 'Bezig met controleren…'; Android.backupCheckRun(); }
+window.onBackupCheck = function(r){ const b = $('#bk-check-btn'); if (b) { b.disabled = false; b.textContent = 'Nu controleren'; } bkCheckRender(r); toast(r.ok ? '✓ Backup is in orde' : 'Backup-controle: er is iets mis'); };
 function enterBackup(){
+  try { bkCheckRender(JSON.parse(Android.backupCheckLast())); } catch(e){}
   const st = bkState(true);
   $('#bk-nodest').style.display = st.dest ? 'none' : 'block';
   $('#bk-dest').textContent = st.dest ? 'Naar: ' + (st.destName || 'je backup-map') : '';

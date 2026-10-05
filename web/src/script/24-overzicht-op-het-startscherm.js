@@ -12,8 +12,26 @@ function renderNotePins(){
       esc(n.title || 'Notitie') + '</b><small>' + esc(sub) + '</small></button>';
   }).join('');
 }
+/* "Sinds gisteravond": wat er gebeurde terwijl je sliep (gemiste oproepen, backup, automatiseringen, batterij). */
+function renderNight(){
+  const box = $('#home-night'); if (!box) return;
+  if (gsQ || typeof Android.overnight !== 'function') { box.style.display = 'none'; return; }
+  let o = {}; try { o = JSON.parse(Android.overnight()); } catch(e){}
+  const rows = [];
+  const hm = t => new Date(t).toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
+  if (o.backup) rows.push(['💾', 'Backup om ' + hm(o.backup.t) + (o.backup.failed ? ': ' + o.backup.failed + ' onderdeel mislukt' : ' ✓'), 'backup', o.backup.failed ? 'badc' : '']);
+  for (const m of (o.missed || [])) rows.push(['📞', 'Gemist: ' + m.who + ' om ' + hm(m.t), 'calls', 'warnc']);
+  for (const a of (o.auto || [])) rows.push(['⚙️', (a.name ? a.name + ': ' : '') + a.what + ' (' + hm(a.t) + ')', 'auto', '']);
+  if (o.battery) rows.push(['🔋', 'Android beperkt de app: ' + o.battery, 'selftest', 'badc']);
+  if (o.checkBad) rows.push(['🩺', 'Backup-controle: ' + o.checkBad, 'backup', 'badc']);
+  if (!rows.length) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = '<div style="display:flex;align-items:center;padding:8px 0 2px"><b style="flex:1">🌙 Sinds gisteravond</b><button style="width:auto;border:0;padding:4px 8px;color:var(--chip-on);font-weight:600" onclick="Android.overnightSeen();renderNight()">Gezien</button></div>' +
+    rows.map(r => '<button data-t="' + r[2] + '" onclick="jumpTo(this.dataset.t)"><span class=di>' + r[0] + '</span><span class="dt ' + r[3] + '">' + esc(r[1]) + '</span><span aria-hidden=true>›</span></button>').join('');
+}
 function renderDash(){
   renderNotePins();
+  renderNight();
   const box = $('#home-dash'); if (!box) return;
   if (gsQ) { box.style.display = 'none'; return; }
   if (homeCfg().dash === false) { box.style.display = 'none'; return; }

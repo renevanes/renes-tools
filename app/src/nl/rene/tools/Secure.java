@@ -361,6 +361,43 @@ final class Secure {
         return o;
     }
 
+    /**
+     * Proef-terugzetten voor de backup-controle: het archief los openen met de bewaarde sleutel (zonder het archief
+     * te raken dat je zelf geopend hebt), alle bestanden doorlopen en notities.json echt inlezen.
+     * Geeft "bestanden|notities" (notities = -1 als die er niet in zit); gooit bij een verkeerde sleutel of een kapot archief.
+     */
+    static String verify(Context c, Uri u) throws Exception {
+        byte[] h;
+        try (InputStream in = c.getContentResolver().openInputStream(u)) {
+            if (in == null) throw new Exception("Bestand niet te openen");
+            h = Vault.readHeader(in);
+        }
+        Vault.Key k = key(c);
+        if (k == null) throw new Exception("er is geen sleutel bewaard op deze telefoon");
+        if (!Vault.matches(k, h)) throw new Exception("past niet bij de bewaarde sleutel");
+        int files = 0, notes = -1;
+        try {
+            InputStream raw = c.getContentResolver().openInputStream(u);
+            if (raw == null) throw new Exception("Bestand niet te openen");
+            raw = new java.io.BufferedInputStream(raw, 1 << 16);
+            byte[] hh = Vault.readHeader(raw);
+            try (ZipInputStream z = new ZipInputStream(new Vault.In(raw, hh, k))) {
+                ZipEntry e;
+                byte[] buf = new byte[1 << 16];
+                while ((e = z.getNextEntry()) != null) {
+                    files++;
+                    if (e.getName().equals(Notes.DIR + "/notities.json")) {
+                        ByteArrayOutputStream b = new ByteArrayOutputStream();
+                        int r;
+                        while ((r = z.read(buf)) > 0) { b.write(buf, 0, r); if (b.size() > 20_000_000) throw new Exception("notities.json is te groot"); }
+                        notes = new JSONArray(new String(b.toByteArray(), StandardCharsets.UTF_8)).length();
+                    } else while (z.read(buf) > 0) { /* alleen doorlezen: controleert de versleuteling */ }
+                }
+            }
+        } finally { java.util.Arrays.fill(k.key, (byte) 0); }
+        return files + "|" + notes;
+    }
+
     static String displayName(Context c, Uri u) {
         try (Cursor cur = c.getContentResolver().query(u, new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
             if (cur != null && cur.moveToFirst()) return cur.getString(0);
