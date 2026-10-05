@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.34",
+    "date": "2026-10-05",
+    "changes": [
+      "Nieuw: Automatiseringen. Als je auto uitgaat (Bluetooth) of je bij een plek aankomt, vraagt je telefoon of hij de parkeeractie moet starten, of doet het meteen zelf: hij opent EasyPark en drukt de knoppen in die je één keer hebt opgenomen",
+      "Ook: herinnering om de parkeeractie te stoppen als je weer wegrijdt, en zelf automatiseringen samenstellen (dagen, tijden, plek, app)"
+    ]
+  },
+  {
     "version": "1.33",
     "date": "2026-10-05",
     "changes": [

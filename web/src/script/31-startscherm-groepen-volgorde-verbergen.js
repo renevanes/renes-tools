@@ -4,7 +4,7 @@ const HOME_DEFAULT = { grouped: true, compact: false, hidden: [], groups: [
   { name: 'Bellen & contacten', tools: ['redial', 'calls', 'contacts', 'transcripts'] },
   { name: 'Berichten & backup', tools: ['backup', 'wa', 'sms'] },
   { name: 'Muziek & radio', tools: ['radio', 'music'] },
-  { name: 'Handig', tools: ['notes', 'tracks'] } ] };
+  { name: 'Handig', tools: ['notes', 'tracks', 'auto'] } ] };
 const TOOL_TILE = {}; Object.keys(TILE_TOOL).forEach(id => TOOL_TILE[TILE_TOOL[id]] = id);
 function homeCfg(){
   let c = store.get('home', null);

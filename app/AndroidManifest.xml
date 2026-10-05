@@ -30,6 +30,10 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!-- Automatiseringen: plekken op de achtergrond en de Bluetooth van de auto -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <!-- Telefoon-skin: alle apps met een pictogram kunnen tonen en openen -->
     <queries>
@@ -180,6 +184,39 @@
             android:name=".TracksService"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <!-- Automatiseringen -->
+        <receiver
+            android:name=".AutoReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".AutoReceiver$Priv"
+            android:exported="false" />
+
+        <activity
+            android:name=".AutoRunActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity="nl.rene.tools.autorun"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+        <service
+            android:name=".AutoA11y"
+            android:label="Rene's Tools: knoppen indrukken"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/auto_a11y" />
+        </service>
 
         <provider
             android:name=".GpxProvider"

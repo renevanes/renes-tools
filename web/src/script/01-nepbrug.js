@@ -202,7 +202,7 @@ if (!window.Android) window.Android = (function(){
     selfTestRun(){ setTimeout(()=>{ const items=[{id:'whisper',name:'Gesprekken uitschrijven (Whisper)',status:'ok',detail:'Het programma draait (snelle versie). Model: Snel (57 MB).'},
       {id:'dest',name:'Backup-map',status:'fail',detail:'Schrijven lukt niet. Kies de map opnieuw.',fix:'dest'},{id:'battery',name:'Batterijbeperking',status:'warn',detail:'Android kan de nachtelijke backup stoppen.',fix:'battery'},
       {id:'audd',name:'Muziek herkennen (AudD)',status:'skip',detail:'Geen sleutel ingesteld.',fix:'audd'}]; this._sf.last=JSON.stringify({t:Date.now(),items}); onSelfTest(items); },300); return ''; },
-    selfTestLast(){ return this._sf.last; }, batterySettings(){ this._bat=true; }, notificationSettings(){},
+    selfTestLast(){ return this._sf.last; }, batterySettings(){ this._bat=true; if(this._au) this._au.perms.battery=true; }, notificationSettings(){},
     searchAll(q){ const id=++this._gsId; const ql=q.toLowerCase(); setTimeout(()=>{ const r={id,q};
       if('jansen piet'.includes(ql)||ql==='pie'){ r.contacts={total:2,items:[{k:'k1',id:'1',n:'Piet Jansen',sub:'06 12345678'},{k:'k2',id:'2',n:'Pieter de Vries',sub:'010 1234567'}]};
         r.calls={total:12,items:[{name:'Piet Jansen',number:'0612345678',date:Date.now()-36e5,kind:'in',label:'Inkomend',ck:'k1',cid:1}]}; }
@@ -234,7 +234,21 @@ if (!window.Android) window.Android = (function(){
     trackRename(id,title){ const r=this._tr.list.find(x=>x.id===id); if(r)r.title=title; return ''; },
     trackDelete(id){ this._tr.list=this._tr.list.filter(x=>x.id!==id); return ''; },
     trackExportBackup(id){ return this._wa.info.dest?'':'Kies eerst een backup-map (bij WhatsApp backup)'; },
-    trackShare(id){ return ''; }
+    trackShare(id){ return ''; },
+    // Automatiseringen
+    _au:{rules:[],log:[],last:{},perms:{a11y:false,a11yRunning:false,loc:false,bgloc:false,bt:false,notif:true,battery:false,sdk:34},rec:null,tested:null},
+    autoState(){ return JSON.stringify(this._au); },
+    autoSave(j){ const r=JSON.parse(j); if(!r.name) return 'Geef de automatisering een naam'; const a=this._au.rules, i=a.findIndex(x=>x.id===r.id); if(i>=0)a[i]=r; else a.push(r); return ''; },
+    autoDelete(id){ this._au.rules=this._au.rules.filter(r=>r.id!==id); },
+    autoSetOn(id,on){ const r=this._au.rules.find(x=>x.id===id); if(r) r.on=on; },
+    autoBt(){ return this._au.perms.bt ? JSON.stringify({devices:[{a:'00:11:22:33:44:55',n:'VW Golf',car:true},{a:'AA:BB:CC:DD:EE:FF',n:'Galaxy Buds',car:false}]}) : '{"error":"perm"}'; },
+    autoApps(){ return JSON.stringify([{p:'net.easypark.android',n:'EasyPark',park:true},{p:'com.google.android.apps.maps',n:'Maps'},{p:'com.whatsapp',n:'WhatsApp'}]); },
+    autoTest(id){ this._au.tested=id; const r=this._au.rules.find(x=>x.id===id); this._au.log.unshift({t:Date.now(),id,name:r?r.name:'',what:'Test: gevraagd met een melding'}); this._au.last[id]=Date.now(); return ''; },
+    autoHere(){ setTimeout(()=>onAutoHere(this._au.perms.loc?{lat:51.92250,lng:4.47917,acc:12}:{error:'perm'}),150); },
+    autoRecord(p){ if(!this._au.perms.a11yRunning) return 'Zet eerst de toegankelijkheid voor Rene\'s Tools aan'; this._au.rec={pkg:p,steps:[{t:'tap',text:'Start parkeren',id:'net.easypark.android:id/start'},{t:'tap',text:'Bevestigen'}]}; setTimeout(()=>openTool('auto-rec'),200); return ''; },
+    autoRecTake(){ const r=this._au.rec; this._au.rec=null; return JSON.stringify(r); },
+    autoA11ySettings(){ Object.assign(this._au.perms,{a11y:true,a11yRunning:true}); },
+    autoPerm(k){ const P=this._au.perms; if(k==='loc')P.loc=true; if(k==='bgloc'){ if(!P.loc)P.loc=true; else P.bgloc=true; } if(k==='bt')P.bt=true; if(k==='notif')P.notif=true; setTimeout(()=>onAutoChanged(),50); }
   };
 })();
 

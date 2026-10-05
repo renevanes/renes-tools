@@ -18,6 +18,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             if (WIDGET_STOP.equals(a)) RadioService.send(c, RadioService.STOP, null);
             else RadioService.send(c, playing ? RadioService.PAUSE : RadioService.RESUME, null);
             RadioWidget.refresh(c);
+            Auto.armPlaces(c);
         }
         else if (Reminders.ACTION.equals(a)) Reminders.fire(c, i.getStringExtra("id"));
         else if (RedialPlan.ACTION.equals(a)) RedialPlan.fire(c);
@@ -30,6 +31,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             RedialPlan.arm(c);
             TranscribeJob.ensureScheduled(c);
             RadioWidget.refresh(c);
+            Auto.armPlaces(c);
         }
     }
 }

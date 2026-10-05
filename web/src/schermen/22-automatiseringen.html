@@ -1,0 +1,126 @@
+<!-- ============ AUTOMATISERINGEN ============ -->
+<section class="screen" id="s-auto">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Automatiseringen</h1>
+  </div>
+  <main>
+    <div class="card" id="au-perms"></div>
+    <div id="au-list"></div>
+    <div class="card" id="au-empty" style="display:none">
+      <p style="margin:0 0 6px;font-size:16px"><b>Als dit gebeurt, doe dan dat.</b></p>
+      <p class="note" style="margin:0">Bijvoorbeeld: zet je je auto uit bij kantoor, dan vraagt je telefoon of hij de parkeeractie moet starten, of hij doet het meteen zelf.</p>
+    </div>
+    <div class="card">
+      <h2>Nieuw</h2>
+      <button class="big" onclick="autoNew('park-start')">🅿️ Parkeren starten als ik parkeer</button>
+      <button class="big ghost" style="margin-top:10px" onclick="autoNew('park-stop')">🔔 Herinnering: parkeeractie stoppen</button>
+      <button class="big ghost" style="margin-top:10px" onclick="autoNew('')">＋ Zelf samenstellen</button>
+    </div>
+    <div class="card" id="au-logcard" style="display:none">
+      <h2>Laatst gebeurd</h2>
+      <ul class="aulog" id="au-log"></ul>
+    </div>
+    <div class="card">
+      <h2>Hoe het werkt</h2>
+      <p class="note" style="margin:0 0 6px"><b>Wanneer:</b> als de Bluetooth van je auto verbreekt (je zet de motor uit) of verbindt, of als je bij een plek aankomt of weggaat. Eventueel alleen op een bepaalde plek, dagen en tijden.</p>
+      <p class="note" style="margin:0 0 6px"><b>Wat:</b> een melding met de knop <i>Starten</i>, of volledig automatisch: de app openen en de knoppen indrukken die je één keer hebt opgenomen.</p>
+      <p class="note" style="margin:0"><b>Oppo:</b> zet bij Batterij de achtergrondbeperking uit en sta <i>Automatisch starten</i> toe, anders mist de telefoon soms de Bluetooth van de auto.</p>
+    </div>
+  </main>
+</section>
+
+<!-- ============ AUTOMATISERING BEWERKEN ============ -->
+<section class="screen" id="s-autoed">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="ae-h">Automatisering</h1>
+  </div>
+  <main>
+    <div class="card">
+      <div class="flabel"><label for="ae-name">Naam</label></div>
+      <input class="aein" id="ae-name" placeholder="Bijv. Parkeren kantoor" oninput="aeRule.name=this.value" maxlength="40">
+    </div>
+
+    <div class="card">
+      <h2>Wanneer</h2>
+      <div class="aeopts" id="ae-trig" role="radiogroup" aria-label="Wanneer">
+        <button data-v="bt_off" role="radio">🚗 <b>Auto uitgezet</b><small>Bluetooth van de auto verbreekt</small></button>
+        <button data-v="bt_on" role="radio">🚗 <b>Auto aangezet</b><small>Bluetooth van de auto verbindt</small></button>
+        <button data-v="arrive" role="radio">📍 <b>Aankomen op een plek</b><small>Op basis van je locatie</small></button>
+        <button data-v="leave" role="radio">📍 <b>Weggaan van een plek</b><small>Op basis van je locatie</small></button>
+      </div>
+      <div id="ae-btbox">
+        <div class="flabel" style="margin-top:12px">Bluetooth van de auto</div>
+        <div class="chips sm" id="ae-bt"></div>
+        <p class="note" id="ae-btnote"></p>
+      </div>
+    </div>
+
+    <div class="card" id="ae-placecard">
+      <h2>Plek</h2>
+      <div class="sw" id="ae-useplace-row"><span>Alleen op een bepaalde plek<small>Anders overal waar je de auto uitzet</small></span><button class="tg" id="ae-useplace" role="switch" aria-label="Alleen op een bepaalde plek" onclick="tog(this); aeRule.usePlace=this.classList.contains('on'); aeRender()"></button></div>
+      <div id="ae-placebox">
+        <input class="aein" id="ae-pname" placeholder="Naam van de plek, bijv. Kantoor" oninput="aePlace().name=this.value" maxlength="40" style="margin-top:6px">
+        <div id="ae-map" class="lmap" style="margin-top:10px"></div>
+        <p class="note" id="ae-pinfo">Tik op de kaart om de plek te kiezen.</p>
+        <button class="big ghost" style="margin-top:8px" id="ae-here" onclick="aeHere()">📍 Mijn plek nu gebruiken</button>
+        <div class="flabel" style="margin-top:12px">Straal</div>
+        <div class="chips sm" id="ae-radius">
+          <button data-r="100">100 m</button><button data-r="200">200 m</button><button data-r="500">500 m</button><button data-r="1000">1 km</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Dagen en tijden</h2>
+      <div class="chips sm" id="ae-days">
+        <button data-d="0">ma</button><button data-d="1">di</button><button data-d="2">wo</button><button data-d="3">do</button>
+        <button data-d="4">vr</button><button data-d="5">za</button><button data-d="6">zo</button>
+      </div>
+      <p class="note" style="margin-top:-6px">Geen dag gekozen = elke dag.</p>
+      <div class="row" style="margin-top:8px">
+        <label class="aetime">Van <input type="time" id="ae-from" onchange="aeRule.from=this.value"></label>
+        <label class="aetime">tot <input type="time" id="ae-to" onchange="aeRule.to=this.value"></label>
+        <button class="aelink" onclick="aeRule.from='';aeRule.to='';aeRender()">hele dag</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Wat moet er gebeuren</h2>
+      <div class="aeopts" id="ae-mode" role="radiogroup" aria-label="Wat moet er gebeuren">
+        <button data-v="ask" role="radio">🔔 <b>Eerst vragen</b><small>Melding met de knop Starten; één tik en de rest gaat vanzelf</small></button>
+        <button data-v="auto" role="radio">⚡ <b>Volledig automatisch</b><small>App openen en de knoppen indrukken, zonder te vragen</small></button>
+        <button data-v="notify" role="radio">💬 <b>Alleen een melding</b><small>Bijvoorbeeld een herinnering</small></button>
+      </div>
+      <div id="ae-appbox">
+        <div class="flabel" style="margin-top:12px"><label for="ae-app">App</label></div>
+        <select class="sel" id="ae-app" style="width:100%" onchange="aeSetApp(this.value)"></select>
+      </div>
+      <div id="ae-stepsbox">
+        <div class="flabel" style="margin-top:14px">Knoppen indrukken</div>
+        <ol class="aesteps" id="ae-steps"></ol>
+        <p class="note" id="ae-stepsnote"></p>
+        <button class="big" style="margin-top:8px" onclick="aeRecord()">● Opnemen in de app</button>
+        <div class="row" style="margin-top:8px">
+          <button class="big ghost" style="flex:1;font-size:15px;padding:12px" onclick="aeAddText()">＋ Tik op tekst</button>
+          <button class="big ghost" style="flex:1;font-size:15px;padding:12px" onclick="aeAddWait()">＋ Wachten</button>
+        </div>
+      </div>
+      <div class="flabel" style="margin-top:14px"><label for="ae-msg">Tekst van de melding (mag leeg)</label></div>
+      <input class="aein" id="ae-msg" placeholder="" oninput="aeRule.msg=this.value" maxlength="140">
+      <div class="flabel" style="margin-top:14px"><label for="ae-cool">Niet vaker dan</label></div>
+      <select class="sel" id="ae-cool" style="width:100%" onchange="aeRule.cool=+this.value">
+        <option value="5">eens per 5 minuten</option><option value="15">eens per kwartier</option><option value="30">eens per half uur</option><option value="60">eens per uur</option><option value="240">eens per 4 uur</option>
+      </select>
+      <p class="note">Voorkomt dubbel starten als de Bluetooth van de auto even hapert.</p>
+    </div>
+
+    <div class="result error" id="ae-warn"></div>
+    <button class="big" onclick="aeSave()">Opslaan</button>
+    <button class="big ghost" style="margin-top:10px" onclick="aeTest()">Opslaan en nu testen</button>
+    <button class="big ghost" style="margin-top:10px;color:var(--bad)" id="ae-del" onclick="aeDelete()">Verwijderen</button>
+    <p class="note" style="text-align:center;margin-top:12px">Testen voert de actie meteen uit, zonder te kijken naar Bluetooth, plek of tijd.</p>
+  </main>
+</section>
+

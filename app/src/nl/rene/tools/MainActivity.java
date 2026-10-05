@@ -62,6 +62,7 @@ public class MainActivity extends Activity {
     private static final int REQ_SETTINGS = 23;
     private static final int REQ_IMPORT = 24;
     private static final int REQ_HOME = 25;
+    private static final int REQ_AUTO = 26;
     volatile String importKind = null;
     String pendingShare = null;
     volatile Uri pendingArchive = null;
@@ -80,6 +81,8 @@ public class MainActivity extends Activity {
         WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
         AllBackupJob.ensureScheduled(this);
         TranscribeJob.ensureScheduled(this);
+        // Automatiseringen: plekken opnieuw instellen als Android ze kwijt kan zijn (bijv. na geforceerd stoppen op Oppo)
+        if (System.currentTimeMillis() - Auto.prefs(this).getLong("armedAt", 0) > 6 * 3600_000L) Auto.armPlaces(this);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -359,6 +362,7 @@ public class MainActivity extends Activity {
         if (req == REQ_MIC) js("onMusicChanged", "");
         if (req == REQ_SETTINGS) js("onSettingsChanged", "\"\"");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
+        if (req == REQ_AUTO) { Auto.armPlaces(this); js("onAutoChanged", ""); }
     }
 
     void pickContact() {
@@ -1663,6 +1667,77 @@ public class MainActivity extends Activity {
                     if (Build.VERSION.SDK_INT >= 26) a.startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ctx.getPackageName()));
                     else a.openAppSettings();
                 } catch (Exception e) { a.openAppSettings(); }
+            });
+        }
+
+
+        // ----- Automatiseringen -----
+
+        @JavascriptInterface public String autoState() { return Auto.stateJson(ctx); }
+        @JavascriptInterface public String autoSave(String json) { return Auto.save(ctx, json); }
+        @JavascriptInterface public void autoDelete(String id) { Auto.delete(ctx, id); }
+        @JavascriptInterface public void autoSetOn(String id, boolean on) { Auto.setOn(ctx, id, on); }
+        @JavascriptInterface public String autoBt() { return Auto.btDevices(ctx); }
+        @JavascriptInterface public String autoApps() { return Auto.apps(ctx); }
+
+        /** Nu uitvoeren (zonder trigger en voorwaarden), om te testen. */
+        @JavascriptInterface public String autoTest(String id) {
+            JSONObject r = Auto.rule(ctx, id);
+            if (r == null) return "Sla de automatisering eerst op";
+            if (!Auto.notifOk(ctx) && !"auto".equals(r.optString("mode"))) return "Geef eerst toestemming voor meldingen";
+            Auto.run(ctx, r, "Test", true);
+            return "";
+        }
+
+        /** Huidige plek bepalen; antwoord via window.onAutoHere({lat,lng,acc} of {error}). */
+        @JavascriptInterface public void autoHere() {
+            if (!Auto.locOk(ctx)) { a.js("onAutoHere", "{\"error\":\"perm\"}"); return; }
+            Auto.locate(ctx, 15_000, l -> {
+                try {
+                    a.js("onAutoHere", l == null ? "{\"error\":\"Geen locatie gevonden. Staat de locatie (gps) aan?\"}"
+                            : new JSONObject().put("lat", l.getLatitude()).put("lng", l.getLongitude()).put("acc", l.hasAccuracy() ? Math.round(l.getAccuracy()) : 0).toString());
+                } catch (Exception ignored) { }
+            });
+        }
+
+        @JavascriptInterface public String autoRecord(String pkg) {
+            Lock.internalNav = true;
+            return AutoA11y.record(ctx, pkg);
+        }
+
+        /** Opgenomen stappen ophalen (en wissen): {pkg, steps} of null. */
+        @JavascriptInterface public String autoRecTake() {
+            String s = Auto.prefs(ctx).getString("rec", null);
+            Auto.prefs(ctx).edit().remove("rec").apply();
+            return s == null ? "null" : s;
+        }
+
+        @JavascriptInterface public void autoA11ySettings() {
+            a.h.post(() -> {
+                try { a.startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); } catch (Exception e) { a.openAppSettings(); }
+            });
+        }
+
+        @JavascriptInterface public void autoPerm(String kind) {
+            a.h.post(() -> {
+                String[] p = null;
+                switch (kind == null ? "" : kind) {
+                    case "loc": p = new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}; break;
+                    case "bgloc":
+                        if (!Auto.locOk(ctx)) p = new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION};
+                        else if (Build.VERSION.SDK_INT >= 29) p = new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION};
+                        break;
+                    case "bt": if (Build.VERSION.SDK_INT >= 31) p = new String[]{Manifest.permission.BLUETOOTH_CONNECT}; break;
+                    case "notif": if (Build.VERSION.SDK_INT >= 33) p = new String[]{Manifest.permission.POST_NOTIFICATIONS}; break;
+                    default: a.openAppSettings(); return;
+                }
+                if (p == null) { a.js("onAutoChanged", ""); return; }
+                android.content.SharedPreferences sp = ctx.getSharedPreferences("perm", Context.MODE_PRIVATE);
+                String key = "auto_" + kind;
+                if (sp.getBoolean(key, false) && !a.shouldShowRequestPermissionRationale(p[0])
+                        && ctx.checkSelfPermission(p[0]) != PackageManager.PERMISSION_GRANTED) { a.openAppSettings(); return; }
+                sp.edit().putBoolean(key, true).apply();
+                a.requestPermissions(p, REQ_AUTO);
             });
         }
 

@@ -3,4 +3,5 @@
     <string name="app_name">Rene\'s Tools</string>
     <string name="widget_radio_desc">Radio: afspelen, pauzeren en wat er nu speelt</string>
     <string name="widget_music_desc">Muziek herkennen met één tik</string>
+    <string name="a11y_desc">Voor Automatiseringen in Rene\'s Tools: drukt op jouw verzoek knoppen in voor je, bijvoorbeeld \'Start parkeren\' in EasyPark. Alleen in de app die je zelf kiest, en alleen als een automatisering loopt of als je opneemt. Er wordt niets gelezen of bewaard van andere apps.</string>
 </resources>
