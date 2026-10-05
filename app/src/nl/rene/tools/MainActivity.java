@@ -1339,6 +1339,17 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** Foutrapport naar het klembord (om bijv. in een chat te plakken). */
+        @JavascriptInterface public void crashCopy() {
+            a.h.post(() -> {
+                try {
+                    android.content.ClipboardManager cm = (android.content.ClipboardManager) a.getSystemService(Context.CLIPBOARD_SERVICE);
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("Foutrapport Rene's Tools", App.report(ctx)));
+                    if (Build.VERSION.SDK_INT < 33) Toast.makeText(a, "Foutrapport gekopieerd", Toast.LENGTH_SHORT).show(); // nieuwere Android meldt het zelf
+                } catch (Exception e) { Toast.makeText(a, "Kopiëren lukt niet", Toast.LENGTH_SHORT).show(); }
+            });
+        }
+
         /** Eerste keer na installeren (niet na een update): dan geen "Wat is er nieuw". */
         @JavascriptInterface public boolean freshInstall() {
             try {

@@ -68,7 +68,8 @@ final class Desk {
     Dots dots;
     LinearLayout dropBar;
     TextView dropRemove, dropInfo;
-    View todayPage;               // WebView "Vandaag" (pagina 0 van het werkblad)
+    View todayPage;               // plek van "Vandaag" op het werkblad (pagina 0); geeft aanrakingen door
+    View todayWeb;                // de WebView "Vandaag" zelf: achter het werkblad, schuift mee
     FolderPopup folder;
     ResizeFrame resizer;
     int insTop, insBottom;
@@ -83,7 +84,8 @@ final class Desk {
         act = a;
         ctx = a;
         dp = a.getResources().getDisplayMetrics().density;
-        todayPage = today;
+        todayWeb = today;
+        todayPage = new TodayProxy(a, this);
         awm = AppWidgetManager.getInstance(a);
         host = new WHost(a.getApplicationContext(), HOST_ID);
         pendingWidget = WsStore.prefs(a).getInt("pendingWidget", -1);
@@ -293,6 +295,20 @@ final class Desk {
         v.setOnLongClickListener(this::onLongPress);
         v.setContentDescription(i.isFolder() ? "Map " + i.name : label(i.key));
         return v;
+    }
+
+    /**
+     * De Vandaag-pagina staat niet ín het schuivende werkblad maar er direct achter (zoals de klassieke skin, die
+     * goed getekend werd); hij schuift mee met het werkblad. In het werkblad zelf staat een lege plek die de
+     * aanrakingen doorgeeft.
+     */
+    void syncToday() {
+        if (todayWeb == null || ws == null) return;
+        float t = -ws.getScrollX();
+        if (todayWeb.getTranslationX() != t) {
+            todayWeb.setTranslationX(t);
+            if (-t < ws.getWidth()) todayWeb.invalidate(); // (deels) in beeld: opnieuw laten tekenen
+        }
     }
 
     // ---------- apps: pictogrammen en namen ----------
@@ -1150,7 +1166,7 @@ final class Desk {
             if (sc.computeScrollOffset()) {
                 scrollTo(sc.getCurrX(), 0);
                 postInvalidateOnAnimation();
-                if (sc.isFinished() && page == 0 && d.todayPage != null) d.todayPage.invalidate();
+                if (sc.isFinished() && page == 0 && d.todayWeb != null) d.todayWeb.invalidate();
             }
         }
 
@@ -1167,7 +1183,7 @@ final class Desk {
             }
             // De Vandaag-pagina (webpagina) tekent alleen het stuk dat hij zichtbaar denkt; bij opzij schuiven van
             // het werkblad wordt hij niet vanzelf opnieuw getekend en blijft hij half leeg. Dus: zelf laten tekenen.
-            if (w > 0 && l < w && d.todayPage != null) d.todayPage.invalidate();
+            d.syncToday();
             d.dots.invalidate();
         }
 
@@ -1264,6 +1280,23 @@ final class Desk {
                 }
             }
             postDelayed(edgeTick, 900);
+        }
+    }
+
+    /** Lege plek van de Vandaag-pagina op het werkblad: aanrakingen gaan naar de WebView erachter. */
+    static final class TodayProxy extends View {
+        final Desk d;
+        TodayProxy(Context c, Desk desk) { super(c); d = desk; setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO); }
+        @Override
+        public boolean onTouchEvent(MotionEvent e) {
+            View w = d.todayWeb;
+            if (w == null) return false;
+            MotionEvent c = MotionEvent.obtain(e);
+            // van de plek op het werkblad naar de WebView (die met translationX meeschuift)
+            c.offsetLocation(getLeft() - d.ws.getScrollX() - w.getLeft() - w.getTranslationX(), 0);
+            w.dispatchTouchEvent(c);
+            c.recycle();
+            return true;
         }
     }
 

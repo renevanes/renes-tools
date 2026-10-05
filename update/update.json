@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.33",
-  "versionCode": 34,
-  "nativeLevel": 30,
+  "versionName": "1.34",
+  "versionCode": 35,
+  "nativeLevel": 31,
   "web": "index.html",
-  "webSha256": "ecd1e18b8a3929de36ab7d61bc933fab17dddbaece21e17c5387f78e33cd0249",
+  "webSha256": "c77c50452e3f5cdbf72dd22c3842e11644d23855a521ce100d36c01fcacd2174",
   "start": "start.html",
   "startSha256": "9a461413fac6fc8164a492c2634be41ad9427cbe85abfe048f9130e9b8058c55",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "09844d1e58d56dbe23e41ec317a8453ce12e7fbeb09807a43ce631899673044d",
+  "apkSha256": "8aadc1b2fa9e12a5cac9060fb10d4c92d0e8265ae7f6e54daa399884afd57d4c",
   "changelog": [
+    {
+      "version": "1.34",
+      "date": "2026-10-05",
+      "changes": [
+        "Vandaag-pagina staat nu direct op het scherm (werd half getekend)",
+        "Foutrapport kopiëren naar het klembord"
+      ]
+    },
     {
       "version": "1.33",
       "date": "2026-10-05",

@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.34",
+    "date": "2026-10-05",
+    "changes": [
+      "Vandaag-pagina staat nu direct op het scherm (werd half getekend)",
+      "Foutrapport kopiëren naar het klembord"
+    ]
+  },
+  {
     "version": "1.33",
     "date": "2026-10-05",
     "changes": [

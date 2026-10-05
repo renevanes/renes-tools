@@ -138,7 +138,9 @@ public class HomeActivity extends Activity {
         web.getSettings().setOffscreenPreRaster(true);
         desk = new Desk(this, web);
         frame.setBackground(Desk.background(this));
+        frame.addView(web, new FrameLayout.LayoutParams(-1, -1)); // Vandaag direct op het scherm, achter het werkblad
         frame.addView(desk.build(), new FrameLayout.LayoutParams(-1, -1));
+        desk.syncToday();
         overlay = makeWeb("overlay");
         overlay.setVisibility(View.GONE);
         frame.addView(overlay, new FrameLayout.LayoutParams(-1, -1));
@@ -470,7 +472,7 @@ public class HomeActivity extends Activity {
                 android.graphics.Rect r = new android.graphics.Rect();
                 boolean vis = v.getGlobalVisibleRect(r);
                 String java = v.getWidth() + "x" + v.getHeight() + " zichtbaar " + vis + " " + r.toShortString();
-                v.evaluateJavascript("innerWidth+'x'+innerHeight+' dpr '+devicePixelRatio", s -> App.log(this, "START", "Vandaag: view " + java + ", pagina " + s));
+                v.evaluateJavascript("innerWidth+'x'+innerHeight+' dpr '+devicePixelRatio+' inhoud '+document.getElementById('home').scrollHeight", s -> App.log(this, "START", "Vandaag: view " + java + ", pagina " + s));
             }, 800);
         }
     }
