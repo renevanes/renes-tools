@@ -1,15 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.32",
-  "versionCode": 33,
-  "nativeLevel": 29,
+  "versionName": "1.33",
+  "versionCode": 34,
+  "nativeLevel": 30,
   "web": "index.html",
-  "webSha256": "87a2ebea539e314d848bb266e6427dabad5b5b40071b9eb8461b13ff7c56f8fb",
+  "webSha256": "ecd1e18b8a3929de36ab7d61bc933fab17dddbaece21e17c5387f78e33cd0249",
   "start": "start.html",
-  "startSha256": "15aae8038510d6e3558b21602bea89ebad4a10bc0eec570110adff726a97f63a",
+  "startSha256": "9a461413fac6fc8164a492c2634be41ad9427cbe85abfe048f9130e9b8058c55",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a52c48dd79320f2543c3cb1eb23818eee48d2330a64e422d09dc4f5113b27f07",
+  "apkSha256": "09844d1e58d56dbe23e41ec317a8453ce12e7fbeb09807a43ce631899673044d",
   "changelog": [
+    {
+      "version": "1.33",
+      "date": "2026-10-05",
+      "changes": [
+        "Skin afsluiten en terug naar de app (met vingerafdruk)",
+        "Launcher start op de pagina Vandaag",
+        "Vandaag-pagina wordt ook buiten beeld helemaal getekend"
+      ]
+    },
     {
       "version": "1.32",
       "date": "2026-10-05",

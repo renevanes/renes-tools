@@ -63,6 +63,8 @@ const path = require('path');
     await pg.evaluate(() => appSheet('com.spotify.music/.Main', 'drawer')); await pg.click('#sacts button:has-text("In een map")');
     console.log('legacy: folder ask', await pg.textContent('#asktitle'));
     await pg.fill('#askin', 'Muziek'); await pg.click('#askok');
+    await pg.evaluate(() => homeSheet()); await pg.click('#sacts button:has-text("Skin afsluiten")');
+    console.log('legacy: exit skin asked', await pg.evaluate(() => Android._exit === true));
     console.log('legacy: folder made', await pg.evaluate(() => (cfg.folders.Muziek || []).includes('com.spotify.music/.Main')));
     console.log('errors', errs); await ctx.close(); }
   await b.close();

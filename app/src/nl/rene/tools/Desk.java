@@ -504,7 +504,8 @@ final class Desk {
         // Lege pagina's (bijv. na slepen naar een nieuwe pagina en weer terug) opruimen; het hoofdscherm blijft.
         int cur = ws.cellPage();
         WsModel.Page curP = cur >= 0 && cur < model.pages.size() ? model.pages.get(cur) : null;
-        home = model.dropEmptyPages(Math.min(home, model.pages.size() - 1));
+        if (home >= 0) home = model.dropEmptyPages(Math.min(home, model.pages.size() - 1));
+        else model.dropEmptyPages(-1); // hoofdscherm is Vandaag
         save();
         rebuild();
         if (cur < 0) return;
@@ -627,8 +628,9 @@ final class Desk {
             int pg = ws.cellPage();
             if (pg >= 0 && model.pages.get(pg).items.isEmpty() && model.pages.size() > 1)
                 acts.put(new JSONArray().put("Deze pagina verwijderen").put("delpage"));
-            if (pg >= 0 && pg != home) acts.put(new JSONArray().put("Dit als hoofdscherm").put("sethome"));
+            if (pg != home) acts.put(new JSONArray().put("Dit als hoofdscherm").put("sethome"));
             acts.put(new JSONArray().put("Rene's Tools openen").put("tools"));
+            acts.put(new JSONArray().put("Skin afsluiten (vingerafdruk)").put("exit"));
             act.sheet(new JSONObject().put("title", "Startscherm").put("uid", -1).put("glyph", "⚙︎").put("acts", acts));
         } catch (Exception ignored) { }
     }
@@ -651,7 +653,8 @@ final class Desk {
                     save(); rebuild(); ws.snapTo(Math.max(1, pg), true);
                 }
                 break;
-            case "sethome": if (pg >= 0) { home = pg; save(); dots.invalidate(); act.toast("Dit is nu je hoofdscherm"); } break;
+            case "sethome": home = Math.max(-1, pg); save(); dots.invalidate(); act.toast("Dit is nu je hoofdscherm"); break;
+            case "exit": act.exitSkin(); break;
             case "tools": act.openTool(""); break;
             default: break;
         }
@@ -1282,7 +1285,7 @@ final class Desk {
                 p.setAlpha(Math.round(255 * a));
                 if (i == 0) { // zonnetje voor Vandaag
                     p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(d.dp * 1.5f);
-                    c.drawCircle(cx, cy, r * 1.1f, p);
+                    c.drawCircle(cx, cy, d.home < 0 ? r * 1.3f : r * 1.1f, p);
                     p.setStyle(Paint.Style.FILL);
                 } else c.drawCircle(cx + i * gap, cy, i - 1 == d.home ? r * 1.25f : r, p);
             }

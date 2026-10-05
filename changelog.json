@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.33",
+    "date": "2026-10-05",
+    "changes": [
+      "Skin afsluiten en terug naar de app (met vingerafdruk)",
+      "Launcher start op de pagina Vandaag",
+      "Vandaag-pagina wordt ook buiten beeld helemaal getekend"
+    ]
+  },
+  {
     "version": "1.32",
     "date": "2026-10-05",
     "changes": [

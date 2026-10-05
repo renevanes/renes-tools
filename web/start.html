@@ -243,7 +243,7 @@ if (!window.Android) window.Android = (function(){
     overlayDone(seq){ this._ovDone = (this._ovDone || 0) + 1; this._ovSeq = seq; }, openDrawer(){ this._openDrawer = true; }, homeMenu(){ this._homeMenu = true; },
     sheetAction(u, id){ this._sheet = u + ':' + id; }, folderRename(u, n){ this._ren = u + ':' + n; }, widgetAdd(p){ this._wadd = p; },
     widgetPicker(){ widgetPicker(null); setTimeout(() => widgetPicker([{p: 'com.x/.Clock', label: 'Klok', app: 'Klok', w: 2, h: 2, own: false}, {p: 'nl.rene.tools/.NoteWidget', label: 'Notitielijst', app: "Rene's Tools", w: 2, h: 3, own: true}]), 10); },
-    setClassic(on){ this._classic = on; }, classic(){ return MODE === 'legacy'; },
+    setClassic(on){ this._classic = on; }, exitSkin(){ this._exit = true; }, classic(){ return MODE === 'legacy'; },
     notes(){ return JSON.stringify([{id: 'n1', title: 'Boodschappen', open: 7, total: 9, items: ['Melk', 'Brood', 'Kaas', 'Appels', 'Koffie'], text: ''}]); }, isDefault(){ return false; }, homeSettings(){ this._hs = true; }, wallpaper(){}, webSearch(q){ this._ws = q; },
     notifications(){ this._notif = true; return true; }, vibrate(){}, hasPerm(){ return true; }, logJs(){}, version(){ return '{}'; }
   };
@@ -490,7 +490,8 @@ function homeSheet(){
   openSheet('<span class=ib>⚙︎</span>', 'Startscherm', [
     ['Apps op het startscherm kiezen', () => pickApps('pinned')], ['Apps in het dock kiezen', () => pickApps('dock')],
     ['Look aanpassen', openLook], ['Achtergrondfoto kiezen', () => Android.wallpaper()],
-    ['Rene\'s Tools openen', () => Android.openTool('')], ['Standaard-startscherm kiezen', () => Android.homeSettings()]]);
+    ['Rene\'s Tools openen', () => Android.openTool('')], ['Standaard-startscherm kiezen', () => Android.homeSettings()]]
+    .concat(typeof Android.exitSkin === 'function' ? [['Skin afsluiten (vingerafdruk)', () => Android.exitSkin()]] : []));
 }
 function openSheet(ic, title, acts){
   $('#shd').innerHTML = ic + '<b>' + esc(title) + '</b>';

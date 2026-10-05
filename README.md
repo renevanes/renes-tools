@@ -112,6 +112,8 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
   - **Slepen**: lang drukken en slepen verplaatst apps, mappen en widgets; aan de rand van het scherm naar de buurpagina (rechts eventueel een nieuwe); bovenaan *Weghalen* en *App-info*. App op app = map; in een open map lang drukken sleept een app eruit. Lang drukken zonder slepen geeft het menu (bijv. formaat aanpassen, instellen, naam van de map).
   - **Widgets** van alle apps (lang drukken op een leeg stuk → *Widgets toevoegen*, met voorbeeldplaatjes): toestemming per app, instelscherm als de widget dat heeft, formaat aanpassen met grepen (binnen de grenzen van de widget).
   - Alle apps, menu's, de widgetkiezer en *Look aanpassen* komen in een webpagina over het werkblad (modus `overlay`). Bij het eerste gebruik worden de apps en het dock van de skin overgenomen.
+  - Het hoofdscherm is standaard **Vandaag** (lang drukken → *Dit als hoofdscherm* op een andere pagina kan ook).
+  - **Skin afsluiten** (lang drukken op een leeg stuk, of terug op het hoofdscherm als de skin niet je standaard-startscherm is) vraagt eerst je vingerafdruk of pincode en gaat dan terug naar Rene's Tools; is de skin je standaard-startscherm, dan opent daarna de Android-instelling om een ander startscherm te kiezen.
   - **Vangnet**: start het nieuwe startscherm twee keer niet goed op, dan verschijnt de klassieke skin (één scherm). Zelf wisselen kan in *Look aanpassen → Soort startscherm*; na een app-update krijgt de launcher een nieuwe kans.
 - Pictogrammen worden als PNG via `/icon/<app>` aan de pagina gegeven en per app-versie bewaard in de cache. Het startscherm wordt samen met de interface stil bijgewerkt (`start.html` in `update.json`).
 

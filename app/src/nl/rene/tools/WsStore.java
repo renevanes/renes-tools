@@ -38,7 +38,7 @@ final class WsStore {
 
     static String toJson(WsModel m, int home) {
         try {
-            JSONObject o = new JSONObject().put("v", 1).put("cols", m.cols).put("rows", m.rows).put("home", home);
+            JSONObject o = new JSONObject().put("v", 2).put("cols", m.cols).put("rows", m.rows).put("home", home);
             JSONArray pages = new JSONArray();
             for (WsModel.Page p : m.pages) { JSONArray a = new JSONArray(); for (WsModel.Item i : p.items) a.put(item(i)); pages.put(a); }
             JSONArray dock = new JSONArray();
@@ -83,7 +83,8 @@ final class WsStore {
                     WsModel.Item i = dock.optJSONObject(k) == null ? null : item(m, dock.getJSONObject(k));
                     if (i != null && !i.isWidget()) m.dock.add(i);
                 }
-                homeOut[0] = Math.max(0, Math.min(o.optInt("home", 0), m.pages.size() - 1));
+                // Hoofdscherm: -1 = de Vandaag-pagina (standaard sinds v2), anders een gewone pagina
+                homeOut[0] = o.optInt("v", 1) < 2 ? -1 : Math.max(-1, Math.min(o.optInt("home", -1), m.pages.size() - 1));
                 // Kolommen of (zelf gekozen) rijen veranderd: opnieuw verdelen wat niet past. Automatische rijen blijven zoals ze waren.
                 m.setGrid(cols, rowsAuto ? m.rows : rows);
                 return m;
@@ -112,7 +113,7 @@ final class WsStore {
                 WsModel.Item i = m.newItem(WsModel.APP); i.key = key; m.dock.add(i);
             }
         } catch (Exception ignored) { }
-        homeOut[0] = 0;
+        homeOut[0] = -1; // beginnen op Vandaag
         return m;
     }
 }

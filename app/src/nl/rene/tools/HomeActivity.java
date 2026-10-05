@@ -65,7 +65,7 @@ public class HomeActivity extends Activity {
     int ovSeq = 0, pickerSeq = 0;
     private boolean recreating = false;
     private final java.util.List<String[]> ovQueue = new java.util.ArrayList<>();
-    private boolean firstFrame = false;
+    private boolean firstFrame = false, sizeLogged = false;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -135,6 +135,7 @@ public class HomeActivity extends Activity {
     /** Echte launcher opbouwen: werkblad met Vandaag-pagina, plus de overlay (verborgen tot nodig). */
     void buildNative() {
         web = makeWeb("today");
+        web.getSettings().setOffscreenPreRaster(true);
         desk = new Desk(this, web);
         frame.setBackground(Desk.background(this));
         frame.addView(desk.build(), new FrameLayout.LayoutParams(-1, -1));
@@ -310,16 +311,17 @@ public class HomeActivity extends Activity {
             // Op de Vandaag-pagina eerst wat daar open staat (bijv. plaats zoeken voor het weer)
             if (desk.ws.page == 0 && !todayDone && loaded) { jsTo(web, "onBack", ""); return; }
             if (desk.ws.page != desk.home + 1) { desk.ws.snapTo(desk.home + 1, true); return; }
-            if (!Launcher.isDefaultHome(this)) finish();
+            if (!Launcher.isDefaultHome(this)) exitSkin();
             return;
         }
         if (loaded) js("onBack", "");
-        else if (!Launcher.isDefaultHome(this)) finish();
+        else if (!Launcher.isDefaultHome(this)) exitSkin();
     }
 
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == Lock.REQ_CONFIRM) { Lock.onConfirmResult(res == RESULT_OK); return; }
         if (desk != null && (req == Desk.REQ_BIND || req == Desk.REQ_CONFIG)) desk.onActivityResult(req, res, data);
     }
 
@@ -412,6 +414,31 @@ public class HomeActivity extends Activity {
         }, "widgets").start();
     }
 
+    /**
+     * Skin afsluiten en terug naar Rene's Tools. Alleen met vingerafdruk (of pincode) van de telefoon, zodat niet
+     * iedereen die de telefoon pakt het startscherm kan wegzetten. Is de skin het standaard-startscherm, dan
+     * volgt de Android-instelling om een ander startscherm te kiezen (dat kan een app niet zelf).
+     */
+    void exitSkin() {
+        if (!Lock.deviceSecure(this)) { doExitSkin(); return; } // geen schermvergrendeling: niets om mee te bevestigen
+        Lock.prompt(this, "Skin afsluiten", (ok, msg) -> h.post(() -> {
+            if (ok) doExitSkin();
+            else if (msg != null && !msg.isEmpty()) toast(msg);
+        }));
+    }
+
+    private void doExitSkin() {
+        boolean def = Launcher.isDefaultHome(this);
+        Lock.unlocked = true; // net bevestigd: de app niet nog een keer laten vragen
+        Lock.hiddenAt = 0;
+        openTool("");
+        if (def) {
+            try { startActivity(new Intent(android.provider.Settings.ACTION_HOME_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { }
+            toast("Kies hier een ander startscherm (bijv. dat van Oppo) om de skin uit te zetten");
+        }
+        finish();
+    }
+
     void wallpaper() {
         try { startActivity(Intent.createChooser(new Intent(Intent.ACTION_SET_WALLPAPER), "Achtergrond kiezen").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { }
     }
@@ -435,6 +462,17 @@ public class HomeActivity extends Activity {
         // Na het schuiven nog eens laten tekenen (zie Workspace.onScrollChanged)
         WebView v = web;
         if (v != null) for (int ms : new int[]{0, 120, 400}) h.postDelayed(() -> { if (v == web) v.invalidate(); }, ms);
+        // Eenmalig in het foutrapport: hoe groot de pagina is (voor als hij toch half getekend wordt)
+        if (v != null && !sizeLogged) {
+            sizeLogged = true;
+            h.postDelayed(() -> {
+                if (v != web) return;
+                android.graphics.Rect r = new android.graphics.Rect();
+                boolean vis = v.getGlobalVisibleRect(r);
+                String java = v.getWidth() + "x" + v.getHeight() + " zichtbaar " + vis + " " + r.toShortString();
+                v.evaluateJavascript("innerWidth+'x'+innerHeight+' dpr '+devicePixelRatio", s -> App.log(this, "START", "Vandaag: view " + java + ", pagina " + s));
+            }, 800);
+        }
     }
 
     void toast(String m) { h.post(() -> Toast.makeText(this, m, Toast.LENGTH_LONG).show()); }
@@ -550,6 +588,7 @@ public class HomeActivity extends Activity {
             a.h.post(a::recreate);
         }
         @JavascriptInterface public boolean classic() { return !a.nativeMode; }
+        @JavascriptInterface public void exitSkin() { a.h.post(a::exitSkin); }
 
         @JavascriptInterface public String apps() { return Launcher.appsJson(ctx); }
         /** Zelfde, op de achtergrond (de lijst ophalen duurt even): uitkomst via onApps(json). */
@@ -568,7 +607,7 @@ public class HomeActivity extends Activity {
             a.h.post(() -> {
                 if ("overlay".equals(mode)) { a.hideOverlay(); return; }
                 if (a.desk != null) { a.back(true); return; }
-                if (!Launcher.isDefaultHome(ctx)) a.finish();
+                if (!Launcher.isDefaultHome(ctx)) a.exitSkin();
             });
         }
         @JavascriptInterface public boolean locked() { return Lock.active(ctx); }
