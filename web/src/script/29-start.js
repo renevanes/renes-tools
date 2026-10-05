@@ -4,6 +4,8 @@ bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ba
 refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce();
 const po = Android.pendingOpen(); if (po) openTool(po);
 if (stJson(Android.lockState()).locked) showLock();
+// Pas nu mag de app zichtbaar worden (met app-slot staat het slotscherm er dan al; geen flits van het startscherm)
+setTimeout(() => { try { if (typeof Android.uiReady === 'function') Android.uiReady(); } catch(e){} }, 0); // (geen requestAnimationFrame: die loopt niet in een verborgen WebView)
 (function(){
   const owc = window.onWaChanged;
   window.onWaChanged = function(){ if (owc) owc(); if (current === 'settings') enterSettings(); if (current === 'backup') enterBackup(); };

@@ -68,6 +68,8 @@ public class MainActivity extends Activity {
     private static final String BASE_URL = "https://app.renes-tools.local/";
 
     private WebView web;
+    /** De pagina heeft zichzelf getekend (met app-slot: het slotscherm staat er al). Tot dan blijft de WebView verborgen. */
+    private boolean uiReady = false;
     private View topBar, bottomBar;
     private final Handler h = new Handler(Looper.getMainLooper());
     private String pendingOpen = null;
@@ -126,7 +128,20 @@ public class MainActivity extends Activity {
         if (b == null && !fromHistory && takeShare(getIntent())) pendingOpen = "share";
         playFromShortcut(getIntent());
         if (b == null && !fromHistory) RedialPlan.startMissed(this, getIntent());
+        // Met app-slot: niets van de inhoud laten zien voordat het slotscherm er staat (anders flitst het startscherm).
+        if (Lock.active(this)) {
+            web.setVisibility(View.INVISIBLE);
+            h.postDelayed(() -> { if (!uiReady) showUi(); }, 4000); // vangnet als de pagina het niet meldt
+        }
         loadUi();
+    }
+
+    /** Pagina klaar (slotscherm al getekend als de app op slot is): nu pas tonen. */
+    void showUi() {
+        uiReady = true;
+        if (web == null) return;
+        if (Lock.locked(this)) web.evaluateJavascript("window.onLock&&window.onLock();true", v -> { if (web != null) web.setVisibility(View.VISIBLE); });
+        else web.setVisibility(View.VISIBLE);
     }
 
     private void loadUi() {
@@ -201,7 +216,9 @@ public class MainActivity extends Activity {
         super.onStart();
         applySecure();
         if (web == null) return;
-        if (Lock.onShown(this)) {
+        boolean lock = Lock.onShown(this);
+        if (!uiReady && Lock.active(this)) return; // eerste keer: showUi() toont hem zodra de pagina (met slotscherm) klaar is
+        if (lock) {
             // Eerst het slotscherm tekenen, dan pas de WebView weer tonen (geen flits van de inhoud).
             web.evaluateJavascript("window.onLock&&window.onLock();true", v -> { if (web != null) web.setVisibility(View.VISIBLE); });
         } else web.setVisibility(View.VISIBLE);
@@ -1375,6 +1392,8 @@ public class MainActivity extends Activity {
             if (msg != null) App.log(ctx, "JS", msg.length() > 2000 ? msg.substring(0, 2000) : msg);
         }
 
+        /** De pagina is opgebouwd (en toont het slotscherm als dat moet). */
+        @JavascriptInterface public void uiReady() { a.h.postDelayed(a::showUi, 50); }
         @JavascriptInterface public String lockState() {
             try {
                 return new JSONObject().put("on", Lock.enabled(ctx)).put("locked", Lock.locked(ctx))

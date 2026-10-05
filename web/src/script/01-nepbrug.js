@@ -170,7 +170,7 @@ if (!window.Android) window.Android = (function(){
     settingsInfo(){ const t=this._st; return JSON.stringify({dest:this._wa.info.dest,destName:'USB-stick',audd:this._mu.token?'abc…xyz':'',crashes:t.crashes,lock:{on:t.lock,locked:false,timeout:t.timeout,secure:true},
       perms:[{id:'phone',name:'Bellen',used:'Auto redial',ok:true},{id:'mic',name:'Microfoon',used:'Muziek herkennen',ok:this._mu.mic},{id:'files',name:'Alle bestanden',used:'WhatsApp backup, Gesprekken',ok:false}]}); },
     permRequest(id){ if(id==='mic') this._mu.mic=true; setTimeout(()=>onSettingsChanged(''),100); },
-    crashShare(){ toast('(delen foutrapport)'); }, crashCopy(){ this._copied = true; toast('Foutrapport gekopieerd'); }, freshInstall(){ return true; }, crashClear(){ this._st.crashes=0; }, crashNew(){ return false; }, logJs(m){ this._jsErr=m; },
+    crashShare(){ toast('(delen foutrapport)'); }, uiReady(){ this._uiReady = true; }, crashCopy(){ this._copied = true; toast('Foutrapport gekopieerd'); }, freshInstall(){ return true; }, crashClear(){ this._st.crashes=0; }, crashNew(){ return false; }, logJs(m){ this._jsErr=m; },
     lockState(){ const t=this._st; return JSON.stringify({on:t.lock,locked:!!t.locked,timeout:t.timeout,secure:true}); },
     lockUnlock(){ setTimeout(()=>{ this._st.locked=false; onUnlocked(); },200); },
     lockSet(on){ this._st.lock=on; setTimeout(()=>onSettingsChanged(''),100); }, lockTimeout(v){ this._st.timeout=+v; },

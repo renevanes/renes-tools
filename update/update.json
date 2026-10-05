@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.34",
-  "versionCode": 35,
-  "nativeLevel": 31,
+  "versionName": "1.35",
+  "versionCode": 36,
+  "nativeLevel": 32,
   "web": "index.html",
-  "webSha256": "c77c50452e3f5cdbf72dd22c3842e11644d23855a521ce100d36c01fcacd2174",
+  "webSha256": "5021afa2cc154b979d29efcaa54158013a4c88cf8e73e5783322417141b6c0e8",
   "start": "start.html",
   "startSha256": "9a461413fac6fc8164a492c2634be41ad9427cbe85abfe048f9130e9b8058c55",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "8aadc1b2fa9e12a5cac9060fb10d4c92d0e8265ae7f6e54daa399884afd57d4c",
+  "apkSha256": "a349bcfc2923066ddc72562882a1437dcef0148a75dc7123c00e709e69738579",
   "changelog": [
+    {
+      "version": "1.35",
+      "date": "2026-10-05",
+      "changes": [
+        "Met app-slot flitst het startscherm van de app niet meer vóór de vingerafdruk"
+      ]
+    },
     {
       "version": "1.34",
       "date": "2026-10-05",
