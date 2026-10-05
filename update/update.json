@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.29",
-  "versionCode": 30,
-  "nativeLevel": 26,
+  "versionName": "1.30",
+  "versionCode": 31,
+  "nativeLevel": 27,
   "web": "index.html",
-  "webSha256": "f7bc89be37d0ac68c8e3645c7b237013e34ef70370260685f7c84db1211c8200",
+  "webSha256": "daeaa5e9d69203ba906dc072d01df474a8b1b6824e9a03fa97e00bfc210b0c4e",
   "start": "start.html",
-  "startSha256": "4a4e9814251eac074646d30abf7e9448de45f9e467896b1456f50ead0c474b81",
+  "startSha256": "e95666073219b22efe60e42399b5145a331a9a82ddcae0e2f4c66749d6341021",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "2e7f9c075b2621f276921ee786600ca46c729260f045ed6fa7c408b3e15f8794",
+  "apkSha256": "2089601a65bb8daf1a656c202169f36bc9d2a60b026fa4c9ee61da1d03472a78",
   "changelog": [
+    {
+      "version": "1.30",
+      "date": "2026-10-05",
+      "changes": [
+        "Notitie (bijv. boodschappenlijst) met één tik openen: zet hem op het startscherm van Rene's Tools, van je telefoon, of op de telefoon-skin"
+      ]
+    },
     {
       "version": "1.29",
       "date": "2026-10-05",

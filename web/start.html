@@ -40,6 +40,9 @@ body.drawer-on #home{transform:translateY(-6%) scale(.97);opacity:.25;pointer-ev
 .tchips{display:flex;gap:8px;overflow-x:auto;margin-top:10px;scrollbar-width:none;padding-bottom:2px}.tchips::-webkit-scrollbar{display:none}
 .tchip{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;width:64px;font-size:11px;color:var(--ink)}
 .tchip span{width:44px;height:44px;border-radius:14px;background:var(--glass2);display:grid;place-items:center;font-size:22px}
+.nc{display:block;width:100%;text-align:left;padding:12px 16px;margin-top:12px}.nc b{display:flex;gap:8px;align-items:center;font-size:16px}.nc b small{margin-left:auto;color:var(--muted);font-weight:500;font-size:12px}
+.nc ul{list-style:none;margin:6px 0 0;padding:0}.nc li{font-size:14px;padding:3px 0;color:var(--ink);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.nc li::before{content:"☐  ";color:var(--muted)}
+.nc p{margin:6px 0 0;font-size:13px;color:var(--muted)}
 .grid{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:14px 6px}
 .app{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;padding:4px 0;border-radius:16px;position:relative}
 .app img,.app .ph{width:var(--ico);height:var(--ico);border-radius:calc(var(--ico) * .26);object-fit:cover;display:block}
@@ -119,6 +122,7 @@ input[type=range]{width:100%;accent-color:var(--acc)}
   <button id="weather" class="glass" onclick="weatherTap()" style="display:none"></button>
   <div id="cal" class="glass card" style="display:none"></div>
   <div id="tools" class="glass card" style="display:none"></div>
+  <div id="snotes" style="display:none"></div>
   <div id="pinned" class="grid"></div>
   <div id="hint" class="onwall">︿<br>Veeg omhoog voor al je apps</div>
 </div>
@@ -209,7 +213,8 @@ if (!window.Android) window.Android = (function(){
     tools(){ return JSON.stringify({backup: {busy: false, last: {t: Date.now() - 864e5 * 4, sms: {ok: true}}}, radio: this._radio, radioLast: {name: 'NPO Radio 2', url: 'x'},
       reminders: {a: Date.now() + 2 * 36e5}, redial: {on: true, next: Date.now() + 20 * 36e5, plan: {name: 'Huisarts', number: '010'}}}); },
     radio(w){ this._rw = w; if (w === 'play' || w === 'resume') this._radio = {status: 'playing', station: {name: 'NPO Radio 2'}, title: 'Doe Maar - De Bom'}; else if (w === 'pause') this._radio.status = 'paused'; else if (w === 'stop') this._radio = {status: 'stopped'}; },
-    openTool(n){ this._tool = n; }, isDefault(){ return false; }, homeSettings(){ this._hs = true; }, wallpaper(){}, webSearch(q){ this._ws = q; },
+    openTool(n){ this._tool = n; },
+    notes(){ return JSON.stringify([{id: 'n1', title: 'Boodschappen', open: 7, total: 9, items: ['Melk', 'Brood', 'Kaas', 'Appels', 'Koffie'], text: ''}]); }, isDefault(){ return false; }, homeSettings(){ this._hs = true; }, wallpaper(){}, webSearch(q){ this._ws = q; },
     notifications(){ this._notif = true; return true; }, vibrate(){}, hasPerm(){ return true; }, logJs(){}, version(){ return '{}'; }
   };
 })();
@@ -223,15 +228,15 @@ window.addEventListener('error', e => { try { Android.logJs((e.message || 'fout'
 
 /* ---------- instellingen (indeling en look) ---------- */
 const DEF = {pinned: [], dock: null, hidden: [], folders: {}, theme: 'auto', accent: '#3b82f6', bg: 'wallpaper', icon: 'm', cols: 4, labels: true,
-  show: {weather: true, cal: true, tools: true}, tools: ['radio', 'notes', 'music', 'redial', 'backup'],
-  order: ['clock', 'weather', 'cal', 'tools', 'apps'], clock: {size: 'big', date: true, alarm: true}, glass: 72, rad: 'round', sort: 'az', usage: {}};
+  show: {weather: true, cal: true, tools: true, notes: true}, tools: ['radio', 'notes', 'music', 'redial', 'backup'],
+  order: ['clock', 'weather', 'cal', 'tools', 'notes', 'apps'], clock: {size: 'big', date: true, alarm: true}, glass: 72, rad: 'round', sort: 'az', usage: {}};
 const clone = o => JSON.parse(JSON.stringify(o));
 let cfg = Object.assign(clone(DEF), J(Android.cfg(), {}));
 for (const k of ['pinned', 'hidden', 'tools']) if (!Array.isArray(cfg[k])) cfg[k] = clone(DEF[k]);
 if (cfg.dock != null && !Array.isArray(cfg.dock)) cfg.dock = null;
 if (!cfg.folders || typeof cfg.folders !== 'object' || Array.isArray(cfg.folders)) cfg.folders = {};
 if (!Array.isArray(cfg.order)) cfg.order = clone(DEF.order);
-for (const k of DEF.order) if (!cfg.order.includes(k)) cfg.order.push(k); // nieuwe onderdelen uit een update
+for (const k of DEF.order) if (!cfg.order.includes(k)) { const ai = cfg.order.indexOf('apps'); if (k !== 'apps' && ai >= 0) cfg.order.splice(ai, 0, k); else cfg.order.push(k); } // nieuwe onderdelen uit een update
 cfg.order = cfg.order.filter(k => DEF.order.includes(k));
 cfg.clock = Object.assign(clone(DEF.clock), cfg.clock && typeof cfg.clock === 'object' ? cfg.clock : {});
 if (!cfg.usage || typeof cfg.usage !== 'object' || Array.isArray(cfg.usage)) cfg.usage = {};
@@ -247,7 +252,7 @@ const BGS = {wallpaper: ['Foto', ''], g1: ['Avond', 'linear-gradient(160deg,#1e3
 const LIGHTBG = {g5: 1, s2: 1};
 window.applyLook = applyLook;
 /* Onderdelen van het startscherm in de gekozen volgorde (de melding "als startscherm gebruiken" blijft bovenaan). */
-const PARTS = {clock: ['🕒', 'Klok', ['#clock', '#alarm']], weather: ['🌤️', 'Weer', ['#weather']], cal: ['📅', 'Agenda', ['#cal']], tools: ['🧰', "Rene's Tools (radio, overzicht)", ['#tools']], apps: ['🏠', 'Apps op het startscherm', ['#pinned']]};
+const PARTS = {clock: ['🕒', 'Klok', ['#clock', '#alarm']], weather: ['🌤️', 'Weer', ['#weather']], cal: ['📅', 'Agenda', ['#cal']], tools: ['🧰', "Rene's Tools (radio, overzicht)", ['#tools']], notes: ['📝', 'Vastgezette notities', ['#snotes']], apps: ['🏠', 'Apps op het startscherm', ['#pinned']]};
 function applyOrder(){
   const home = $('#home');
   home.appendChild($('#banner'));
@@ -589,8 +594,21 @@ function renderTools(){
   el.style.display = 'block';
   el.innerHTML = h;
 }
+/* ---------- vastgezette notities (bijv. boodschappenlijst) ---------- */
+function renderNotes(){
+  const el = $('#snotes');
+  const l = cfg.show.notes ? J(typeof Android.notes === 'function' ? Android.notes() : '[]', []) : [];
+  const raw = JSON.stringify(l);
+  if (raw === renderNotes.last && !renderNotes.force) return;
+  renderNotes.last = raw; renderNotes.force = false;
+  el.style.display = l.length ? 'block' : 'none';
+  el.innerHTML = l.map(n => '<button class="glass nc" data-id="' + esc(n.id) + '" onclick="Android.openTool(\'note:\' + this.dataset.id)"><b>📝 ' + esc(n.title) +
+    '<small>' + (n.total ? (n.open ? n.open + ' open' : 'alles afgestreept ✓') : '') + '</small></b>' +
+    (n.items.length ? '<ul>' + n.items.map(t => '<li>' + esc(t) + '</li>').join('') + (n.open > n.items.length ? '<li style="color:var(--muted)">en nog ' + (n.open - n.items.length) + '…</li>' : '') + '</ul>'
+      : n.text ? '<p>' + esc(n.text) + '</p>' : '') + '</button>').join('');
+}
 function radioDo(w){ Android.radio(w); Android.vibrate(10); setTimeout(renderTools, 300); setTimeout(renderTools, 1500); }
-setInterval(() => { if (document.visibilityState === 'visible') renderTools(); }, 2000); // radio-titel e.d. bijhouden (alleen opnieuw tekenen als er iets veranderde)
+setInterval(() => { if (document.visibilityState === 'visible') { renderTools(); renderNotes(); } }, 2000); // radio-titel e.d. bijhouden (alleen opnieuw tekenen als er iets veranderde)
 
 /* ---------- apps kiezen (startscherm, dock, zichtbaar bij alle apps) ---------- */
 let pk = null;
@@ -669,7 +687,7 @@ function renderLook(){
   seg('#l-clk', [['big', 'Groot'], ['medium', 'Middel'], ['small', 'Klein'], ['off', 'Uit']], cfg.clock.size, v => { cfg.clock.size = v; save(); applyLook(); });
   seg('#l-rad', [['round', 'Rond'], ['soft', 'Zacht'], ['square', 'Hoekig']], cfg.rad, v => { cfg.rad = v; save(); applyLook(); });
   $('#l-glass').value = cfg.glass;
-  const showable = {weather: 1, cal: 1, tools: 1};
+  const showable = {weather: 1, cal: 1, tools: 1, notes: 1};
   $('#l-order').innerHTML = cfg.order.map((k, i) => '<div class=ordrow><span>' + PARTS[k][0] + '</span><span class=on2>' + esc(PARTS[k][1]) + '</span>' +
     (showable[k] ? '<button class="tg' + (cfg.show[k] ? ' on' : '') + '" role="switch" aria-checked="' + !!cfg.show[k] + '" aria-label="' + esc(PARTS[k][1]) + ' tonen" data-k="' + k + '" onclick="toggleShow(this.dataset.k)"></button>' : '') +
     '<button class=mini2 data-i="' + i + '" data-d="-1" onclick="ordMove(this)"' + (i ? '' : ' disabled') + ' aria-label="Hoger">↑</button>' +
@@ -695,7 +713,7 @@ function toggleShow(k){ cfg.show[k] = !cfg.show[k]; save(); renderLook(); render
 
 /* ---------- levenscyclus ---------- */
 function refreshCards(all){
-  tickClock(); renderTools();
+  tickClock(); renderTools(); renderNotes.force = true; renderNotes();
   if (all || Date.now() - (refreshCards.cal || 0) > 5 * 6e4) { refreshCards.cal = Date.now(); renderCal(); }
   if (cfg.show.weather) Android.weather(false); else $('#weather').style.display = 'none';
   $('#banner').classList.toggle('on', !Android.isDefault() && !cfg.bannerOff);

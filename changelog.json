@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.30",
+    "date": "2026-10-05",
+    "changes": [
+      "Notitie (bijv. boodschappenlijst) met één tik openen: zet hem op het startscherm van Rene's Tools, van je telefoon, of op de telefoon-skin"
+    ]
+  },
+  {
     "version": "1.29",
     "date": "2026-10-05",
     "changes": [

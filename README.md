@@ -54,6 +54,8 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Opslag in de app-map (`notes.json`, via tijdelijk bestand + hernoemen). Lege notities worden niet bewaard.
 - Knop *Kopie in backup-map zetten*: `Notities/notities.json` en een leesbaar `notities.txt` met `[x]`/`[ ]`.
 
+- **Snelkoppeling naar één notitie** (in de notitie → Snelkoppeling): *Op het startscherm van Rene's Tools* (bovenaan, groep Notities, met het aantal open items) en *Op het startscherm van je telefoon* (vastgezette snelkoppeling die direct dat lijstje opent). Is de telefoon-skin je startscherm, dan komt het lijstje als kaart op de skin, met de eerste open items (de skin kan geen Android-snelkoppelingen tonen).
+
 ## Contacten
 - Leest de contacten via `ContactsContract` (naam, telefoon, e-mail, bedrijf/functie, adres, website, bijnaam, verjaardag, notitie, favoriet) met de wijzigingsdatum van Android (`CONTACT_LAST_UPDATED_TIMESTAMP`) (`Contacts.java`).
 - **Versies**: bij openen van de tool en elke ~6 uur (`ContactsJob`, JobScheduler) wordt vergeleken met de vorige versie; alleen bij een echte wijziging komt er een nieuwe versie. Per versie: datum, aantallen (+nieuw, ~gewijzigd, −verwijderd) en per contact welke velden van wat naar wat gingen. Koppeling op lookup key, daarna op naam (`ContactsDiff.java`, pure Java, los getest).

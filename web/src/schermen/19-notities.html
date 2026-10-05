@@ -44,6 +44,12 @@
       </div>
       <p class="note" id="note-rem-info"></p>
     </div>
+    <div class="card">
+      <h2>Snelkoppeling</h2>
+      <label class="chk"><input type="checkbox" id="note-pin-app" onchange="notePinApp(this.checked)"> Op het startscherm van Rene's Tools</label>
+      <button class="big ghost" style="margin-top:8px" id="note-pin-phone" onclick="notePinPhone()">Op het startscherm van je telefoon</button>
+      <p class="note" id="note-pin-info">Zo open je dit lijstje (bijvoorbeeld je boodschappen) met één tik.</p>
+    </div>
     <button class="big ghost" onclick="noteShareNow()">Delen (WhatsApp, mail …)</button>
   </main>
 </section>

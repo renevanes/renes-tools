@@ -1673,6 +1673,15 @@ public class MainActivity extends Activity {
             return Shortcuts.pin(ctx, "tool-" + tool, label, tool, null, color, glyph);
         }
 
+        /** Snelkoppeling naar één notitie op het startscherm van de telefoon. */
+        @JavascriptInterface public String shortcutPinNote(String id, String title) {
+            if (id == null || !id.matches("[A-Za-z0-9_-]{1,64}")) return "Onbekende notitie";
+            String label = title == null || title.trim().isEmpty() ? "Notitie" : title.trim();
+            return Shortcuts.pin(ctx, "note-" + id, label, "note:" + id, null, "#E67E22", "📝");
+        }
+        @JavascriptInterface public String notePins(String where) { return Notes.pinned(ctx, where).toString(); }
+        @JavascriptInterface public void notePinSet(String where, String id, boolean on) { Notes.setPinned(ctx, where, id, on); }
+
         @JavascriptInterface public String shortcutPinStation(String station) {
             try {
                 JSONObject s = new JSONObject(station);

@@ -15,6 +15,7 @@ function gsInput(){
   const on = q.length >= 2;
   $('#gs-res').style.display = on ? 'block' : 'none';
   $('#home-groups').style.display = on ? 'none' : '';
+  if (on) $('#home-notes').style.display = 'none';
   $('#home-tip').style.display = on ? 'none' : '';
   if (!on) { if (gsQ) Android.searchAll(''); gsQ = ''; gsData = {}; renderDash(); return; }
   $('#home-dash').style.display = 'none';

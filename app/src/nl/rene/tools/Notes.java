@@ -30,6 +30,52 @@ final class Notes {
 
     static File file(Context c) { return new File(c.getFilesDir(), "notes.json"); }
 
+    // ----- Vastgezette notities: op het startscherm van Rene's Tools ("app") en van de telefoon-skin ("skin") -----
+
+    static android.content.SharedPreferences pinPrefs(Context c) { return c.getSharedPreferences("notepins", Context.MODE_PRIVATE); }
+
+    static JSONArray pinned(Context c, String where) {
+        try { return new JSONArray(pinPrefs(c).getString(where, "[]")); } catch (Exception e) { return new JSONArray(); }
+    }
+
+    static synchronized void setPinned(Context c, String where, String id, boolean on) {
+        if (!"app".equals(where) && !"skin".equals(where)) return;
+        if (id == null || !id.matches("[A-Za-z0-9_-]{1,64}")) return;
+        JSONArray a = pinned(c, where), out = new JSONArray();
+        for (int i = 0; i < a.length(); i++) if (!id.equals(a.optString(i))) out.put(a.optString(i));
+        if (on) out.put(id);
+        pinPrefs(c).edit().putString(where, out.toString()).apply();
+    }
+
+    /** De vastgezette notities met titel en de eerste open items: [{id, title, open, total, items:[…]}]. Verwijderde notities vallen weg. */
+    static String pinnedJson(Context c, String where) {
+        JSONArray out = new JSONArray();
+        try {
+            String raw = load(c);
+            JSONArray all = new JSONArray(raw.isEmpty() ? "[]" : raw), ids = pinned(c, where);
+            for (int k = 0; k < ids.length(); k++) {
+                String id = ids.optString(k);
+                for (int i = 0; i < all.length(); i++) {
+                    JSONObject n = all.optJSONObject(i);
+                    if (n == null || !id.equals(n.optString("id"))) continue;
+                    JSONArray items = n.optJSONArray("items"), open = new JSONArray();
+                    int total = items == null ? 0 : items.length(), nOpen = 0;
+                    if (items != null) for (int j = 0; j < items.length(); j++) {
+                        JSONObject it = items.optJSONObject(j);
+                        if (it == null || it.optBoolean("done")) continue;
+                        nOpen++;
+                        if (open.length() < 5) open.put(it.optString("text"));
+                    }
+                    String title = n.optString("title").trim();
+                    out.put(new JSONObject().put("id", id).put("title", title.isEmpty() ? "Notitie" : title)
+                            .put("open", nOpen).put("total", total).put("items", open)
+                            .put("text", n.optString("text").length() > 120 ? n.optString("text").substring(0, 120) : n.optString("text")));
+                }
+            }
+        } catch (Exception ignored) { }
+        return out.toString();
+    }
+
     static File bak(Context c) { return new File(c.getFilesDir(), "notes.json.bak"); }
 
     /**

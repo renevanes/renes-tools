@@ -55,7 +55,7 @@ function newNote(){
 function openNote(id, fresh){
   noteCur = id; const n = noteById(id); if (!n) return;
   $('#note-title').value = n.title || ''; $('#note-text').value = n.text || ''; $('#note-add').value = '';
-  show('note'); renderItems(); noteRemShow();
+  show('note'); renderItems(); noteRemShow(); notePinShow();
   if (fresh) setTimeout(() => $('#note-title').focus(), 50);
 }
 function touch(n){ n.updated = Date.now(); notesSaveSoon(); }

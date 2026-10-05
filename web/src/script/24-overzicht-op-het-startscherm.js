@@ -1,5 +1,19 @@
 /* ---------- Overzicht op het startscherm ---------- */
+/* Vastgezette notities (bijv. de boodschappenlijst) bovenaan het startscherm van de app. */
+function renderNotePins(){
+  const wrap = $('#home-notes'); if (!wrap) return;
+  let ids = []; try { ids = JSON.parse(Android.notePins('app')) || []; } catch(e){}
+  const list = ids.map(id => noteById(id)).filter(Boolean);
+  wrap.style.display = list.length && !gsQ ? 'block' : 'none';
+  $('#home-notes-tiles').innerHTML = list.map(n => {
+    const open = (n.items || []).filter(i => !i.done);
+    const sub = (n.items || []).length ? (open.length ? open.length + ' open · ' + open.slice(0, 3).map(i => i.text).join(', ') : 'Alles afgestreept ✓') : (n.text || '').slice(0, 60);
+    return '<button class="tile" data-id="' + esc(n.id) + '" onclick="jumpTo(\'note\', () => openNote(this.dataset.id))"><span class="ic" style="background:#E67E22;font-size:24px">📝</span><b>' +
+      esc(n.title || 'Notitie') + '</b><small>' + esc(sub) + '</small></button>';
+  }).join('');
+}
 function renderDash(){
+  renderNotePins();
   const box = $('#home-dash'); if (!box) return;
   if (gsQ) { box.style.display = 'none'; return; }
   if (homeCfg().dash === false) { box.style.display = 'none'; return; }

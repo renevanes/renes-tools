@@ -307,6 +307,9 @@ public class HomeActivity extends Activity {
         }
 
         @JavascriptInterface public String tools() { return Launcher.toolsJson(ctx); }
+        /** Notities die op de skin staan (met de eerste open items). */
+        @JavascriptInterface public String notes() { return Notes.pinnedJson(ctx, "skin"); }
+        @JavascriptInterface public void noteUnpin(String id) { Notes.setPinned(ctx, "skin", id, false); }
         /** Radio vanaf het startscherm: play (laatste zender), pause, resume, stop. */
         @JavascriptInterface public void radio(String what) {
             if ("play".equals(what)) {
