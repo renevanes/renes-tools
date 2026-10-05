@@ -13,6 +13,12 @@ final class HistoryText {
         if (end > 0 && Character.isHighSurrogate(s.charAt(end - 1))) end--;
         return s.substring(0, end);
     }
+    /** Voor zoeken: kleine letters en zonder accenten ("É" vindt "e", "é" en "E"). */
+    static String fold(String s) {
+        if (s == null || s.isEmpty()) return "";
+        String n = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
+        return n.toLowerCase(java.util.Locale.ROOT);
+    }
     static String html(String s) { return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;"); }
     static String fingerprint(String key, long time, String title, String text) throws Exception {
         MessageDigest sha = MessageDigest.getInstance("SHA-256");

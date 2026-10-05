@@ -38,13 +38,27 @@ final class NotificationHistory {
         return false;
     }
     private static final class Db extends SQLiteOpenHelper {
-        Db(Context c) { super(c.getApplicationContext(), "notification-history.db", null, 1); }
+        Db(Context c) { super(c.getApplicationContext(), "notification-history.db", null, 2); }
         @Override public void onCreate(SQLiteDatabase d) {
-            d.execSQL("CREATE TABLE history (id INTEGER PRIMARY KEY AUTOINCREMENT, fingerprint TEXT NOT NULL UNIQUE, time INTEGER NOT NULL, package TEXT NOT NULL, app TEXT NOT NULL, title TEXT NOT NULL, text TEXT NOT NULL)");
+            d.execSQL("CREATE TABLE history (id INTEGER PRIMARY KEY AUTOINCREMENT, fingerprint TEXT NOT NULL UNIQUE, time INTEGER NOT NULL, package TEXT NOT NULL, app TEXT NOT NULL, title TEXT NOT NULL, text TEXT NOT NULL, fold TEXT NOT NULL DEFAULT '')");
             d.execSQL("CREATE INDEX history_time ON history(time)");
         }
-        @Override public void onUpgrade(SQLiteDatabase d, int oldVersion, int newVersion) { }
+        @Override public void onUpgrade(SQLiteDatabase d, int oldVersion, int newVersion) {
+            if (oldVersion < 2) {
+                // Zoektekst zonder accenten en hoofdletters (SQLite's lower() kent alleen A–Z)
+                d.execSQL("ALTER TABLE history ADD COLUMN fold TEXT NOT NULL DEFAULT ''");
+                try (Cursor cur = d.query("history", new String[]{"id", "app", "package", "title", "text"}, null, null, null, null, null)) {
+                    while (cur.moveToNext()) {
+                        android.content.ContentValues v = new android.content.ContentValues();
+                        v.put("fold", foldOf(cur.getString(1), cur.getString(2), cur.getString(3), cur.getString(4)));
+                        d.update("history", v, "id = ?", new String[]{Long.toString(cur.getLong(0))});
+                    }
+                }
+            }
+        }
     }
+    static String foldOf(String app, String pkg, String title, String text) { return HistoryText.fold(app + " " + pkg + " " + title + " " + text); }
+
     private static synchronized SQLiteDatabase database(Context c) {
         if (db == null) db = new Db(c);
         return db.getWritableDatabase();
@@ -55,16 +69,25 @@ final class NotificationHistory {
         d.beginTransaction();
         try {
             // Reconnects kunnen dezelfde melding opnieuw aanbieden; wijzigingen blijven wel bewaard.
-            d.execSQL("INSERT OR IGNORE INTO history (fingerprint,time,package,app,title,text) VALUES (?,?,?,?,?,?)",
-                    new Object[]{HistoryText.fingerprint(key, time, title, text), time, pkg, app, title, text});
+            d.execSQL("INSERT OR IGNORE INTO history (fingerprint,time,package,app,title,text,fold) VALUES (?,?,?,?,?,?,?)",
+                    new Object[]{HistoryText.fingerprint(key, time, title, text), time, pkg, app, title, text, foldOf(app, pkg, title, text)});
             d.delete("history", "time < ?", new String[]{Long.toString(System.currentTimeMillis() - 30L * 86400000)});
             d.execSQL("DELETE FROM history WHERE id NOT IN (SELECT id FROM history ORDER BY time DESC, id DESC LIMIT 10000)");
             d.setTransactionSuccessful();
         } finally { d.endTransaction(); }
         prefs(c).edit().remove("error").apply();
     }
-    private static String selection(String q) { return q.isEmpty() ? null : "instr(lower(app || ' ' || package || ' ' || title || ' ' || text), ?) > 0"; }
-    private static String[] args(String q) { return q.isEmpty() ? null : new String[]{q.toLowerCase(Locale.ROOT)}; }
+    private static String selection(String q) { return q.isEmpty() ? null : "instr(fold, ?) > 0"; }
+    private static String[] args(String q) { return q.isEmpty() ? null : new String[]{HistoryText.fold(q)}; }
+
+    /** Klein "vingerafdrukje" van de toestand, om alleen opnieuw te laden als er iets veranderd is. */
+    static synchronized String stamp(Context c) {
+        long total = 0, max = 0;
+        try (Cursor cur = database(c).rawQuery("SELECT COUNT(*), COALESCE(MAX(id),0) FROM history", null)) {
+            if (cur.moveToFirst()) { total = cur.getLong(0); max = cur.getLong(1); }
+        } catch (Exception ignored) { }
+        return total + ":" + max + ":" + enabled(c) + ":" + allowed(c) + ":" + connected + ":" + (WaBackup.destUri(c) != null) + ":" + prefs(c).getString("error", "");
+    }
     private static JSONObject row(Cursor cur) throws Exception {
         return new JSONObject().put("time", cur.getLong(0)).put("package", cur.getString(1)).put("app", cur.getString(2))
                 .put("title", cur.getString(3)).put("text", cur.getString(4));
@@ -92,8 +115,17 @@ final class NotificationHistory {
     private static java.io.BufferedReader reader(java.io.File file) throws Exception {
         return new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(file), java.nio.charset.StandardCharsets.UTF_8));
     }
-    static int export(Context c) throws Exception {
-        if (!exporting.compareAndSet(false, true)) throw new Exception("Er loopt al een meldingen-export");
+    static int export(Context c) throws Exception { return export(c, false); }
+
+    /** @param wait wachten als er al een export loopt (de nachtelijke backup), in plaats van te mislukken */
+    static int export(Context c, boolean wait) throws Exception {
+        if (wait) {
+            long until = System.currentTimeMillis() + 15 * 60_000L;
+            while (!exporting.compareAndSet(false, true)) {
+                if (System.currentTimeMillis() > until) throw new Exception("Er loopt al een meldingen-export");
+                Thread.sleep(2000);
+            }
+        } else if (!exporting.compareAndSet(false, true)) throw new Exception("Er loopt al een meldingen-export");
         try {
             if (WaBackup.destUri(c) == null) throw new Exception("Kies eerst een backup-map");
             // Overgebleven tijdelijke kopieën van een afgebroken export (met meldingstekst) eerst weg

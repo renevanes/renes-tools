@@ -174,6 +174,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - `VERSION` bevat het versienummer, de versiecode en `NATIVE_LEVEL`. Elke versie is in git één eigen commit met de naam "Versie X.Y".
 - `changelog.json` bevat het wijzigingslog. De app toont dit onder *Versie en updates*.
 - De app leest `update/update.json` van GitHub wanneer je hem opent, hooguit eens per 30 minuten. Via de GitHub-API zoekt hij eerst de nieuwste commit op, zodat een nieuwe versie direct zichtbaar is:
+  - **Ondertekend**: `build.sh` ondertekent versie en controlegetallen met dezelfde sleutel als de APK (`webSig`, SHA256withRSA). De app controleert die handtekening met zijn eigen certificaat en weigert een interface-update zonder geldige handtekening (`Updater.signatureOk`, test: `WebSigTest`).
   - **Alleen de interface is veranderd** (`web/src/`, `NATIVE_LEVEL` blijft gelijk): de nieuwe versie wordt stil gedownload, gecontroleerd met SHA-256 en direct gebruikt.
   - **`NATIVE_LEVEL` is hoger** (de Java-code of het manifest is veranderd): de app toont *Nieuwe versie beschikbaar* met een knop **Installeren**. Die downloadt de APK, controleert hem en biedt hem aan via de pakketinstaller van Android.
 
@@ -185,6 +186,8 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 NATIVE=1 ./bump.sh "Nieuwe app-functie"   # als de Java-code of het manifest is veranderd
 ./build.sh                    # bouwt de APK en vult update/
 ./publish.sh                  # commit "Versie X.Y" en push naar GitHub
+                              # stopt als er intussen een nieuwere versie op GitHub staat (andere sessie): eerst git pull, dan opnieuw ./bump.sh
+                              # CLAUDE_SESSION_URL=... ./publish.sh zet de link van de publicerende sessie in de commit
 ```
 
 ### Interface in onderdelen

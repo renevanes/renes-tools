@@ -1,8 +1,14 @@
 /* ---------- Meldingsgeschiedenis ---------- */
-let historyPoll = null, historySearchTimer = null, historyExportBusy = false;
-function enterHistory(){ loadHistory(); stopHistoryPoll(); historyPoll = setInterval(loadHistory, 3000); }
+let historyPoll = null, historySearchTimer = null, historyExportBusy = false, historyStamp = '';
+/* Elke 3 s alleen een klein controlegetal ophalen; de lijst pas opnieuw laden als er iets veranderd is. */
+function historyTick(){
+  let s = ''; try { s = typeof Android.historyStamp === 'function' ? String(Android.historyStamp()) : ''; } catch(e){}
+  if (!s || s !== historyStamp) loadHistory();
+}
+function enterHistory(){ loadHistory(); stopHistoryPoll(); historyPoll = setInterval(historyTick, 3000); }
 function stopHistoryPoll(){ if (historyPoll) clearInterval(historyPoll); historyPoll = null; clearTimeout(historySearchTimer); }
 function loadHistory(){
+  try { historyStamp = typeof Android.historyStamp === 'function' ? String(Android.historyStamp()) : ''; } catch(e){ historyStamp = ''; }
   let data;
   try { data = JSON.parse(Android.historyList($('#history-search').value)); } catch(e){ data = {error:'Geschiedenis laden lukt niet'}; }
   $('#history-enabled').checked = !!data.enabled;

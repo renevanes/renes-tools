@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.39",
+    "date": "2026-10-05",
+    "changes": [
+      "Interface-updates zijn nu ondertekend: de app gebruikt alleen een update met de juiste handtekening",
+      "Meldingsgeschiedenis: zoeken zonder op accenten te letten, lijst ververst alleen als er iets nieuws is, export botst niet meer met de nachtelijke backup"
+    ]
+  },
+  {
     "version": "1.38",
     "date": "2026-10-05",
     "changes": [

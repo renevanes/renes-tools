@@ -123,10 +123,53 @@ final class Updater {
         return r;
     }
 
+    /**
+     * Interface-updates moeten ondertekend zijn met dezelfde sleutel als de app zelf (zie build.sh).
+     * Het controlegetal alleen is niet genoeg: dat komt van dezelfde server als het bestand.
+     */
+    static boolean signatureOk(Context c, JSONObject m) {
+        try {
+            String sig = m.optString("webSig", "");
+            if (sig.isEmpty()) return false;
+            String msg = sigMessage(m.getInt("versionCode"), m.optString("webSha256", ""), m.optString("startSha256", ""));
+            byte[] s = android.util.Base64.decode(sig, android.util.Base64.DEFAULT);
+            for (java.security.cert.X509Certificate cert : ownCerts(c)) {
+                java.security.Signature v = java.security.Signature.getInstance("SHA256withRSA");
+                v.initVerify(cert.getPublicKey());
+                v.update(msg.getBytes(StandardCharsets.UTF_8));
+                if (v.verify(s)) return true;
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    /** Wat er ondertekend wordt (moet precies gelijk zijn aan build.sh). */
+    static String sigMessage(int code, String webSha, String startSha) {
+        return "renes-tools-web\n" + code + "\n" + webSha.toLowerCase(java.util.Locale.ROOT) + "\n" + startSha.toLowerCase(java.util.Locale.ROOT) + "\n";
+    }
+
+    @SuppressWarnings("deprecation")
+    private static java.util.List<java.security.cert.X509Certificate> ownCerts(Context c) throws Exception {
+        java.util.List<java.security.cert.X509Certificate> out = new java.util.ArrayList<>();
+        android.content.pm.Signature[] sigs;
+        if (Build.VERSION.SDK_INT >= 28) {
+            android.content.pm.PackageInfo pi = c.getPackageManager().getPackageInfo(c.getPackageName(), android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES);
+            sigs = pi.signingInfo == null ? null : pi.signingInfo.getApkContentsSigners();
+        } else {
+            sigs = c.getPackageManager().getPackageInfo(c.getPackageName(), android.content.pm.PackageManager.GET_SIGNATURES).signatures;
+        }
+        if (sigs == null) return out;
+        java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
+        for (android.content.pm.Signature s : sigs)
+            out.add((java.security.cert.X509Certificate) cf.generateCertificate(new java.io.ByteArrayInputStream(s.toByteArray())));
+        return out;
+    }
+
     private static void applyWeb(Context c, JSONObject m) throws Exception {
+        if (!signatureOk(c, m)) throw new Exception("Handtekening van de interface-update klopt niet; niet geïnstalleerd");
         byte[] html = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("web", "index.html") + "?v=" + m.getInt("versionCode"));
         String sha = m.optString("webSha256", "");
-        if (!sha.isEmpty() && !sha.equalsIgnoreCase(sha256(html))) throw new Exception("Controlegetal interface klopt niet");
+        if (sha.isEmpty() || !sha.equalsIgnoreCase(sha256(html))) throw new Exception("Controlegetal interface klopt niet");
         String s = new String(html, StandardCharsets.UTF_8);
         if (!s.contains("RENES-TOOLS-UI")) throw new Exception("Onverwacht bestand");
         File f = webFile(c);
@@ -139,7 +182,7 @@ final class Updater {
         if (!m.optString("start").isEmpty()) {
             byte[] st = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("start") + "?v=" + m.getInt("versionCode"));
             String ss = m.optString("startSha256", "");
-            if (!ss.isEmpty() && !ss.equalsIgnoreCase(sha256(st))) throw new Exception("Controlegetal startscherm klopt niet");
+            if (ss.isEmpty() || !ss.equalsIgnoreCase(sha256(st))) throw new Exception("Controlegetal startscherm klopt niet");
             if (!new String(st, StandardCharsets.UTF_8).contains("RENES-TOOLS-START")) throw new Exception("Onverwacht bestand");
             File stmp = new File(f.getParentFile(), "start.tmp");
             try (OutputStream o = new FileOutputStream(stmp)) { o.write(st); }

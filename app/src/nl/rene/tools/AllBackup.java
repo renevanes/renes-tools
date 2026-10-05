@@ -127,7 +127,7 @@ final class AllBackup {
                 if (!has(c, Manifest.permission.READ_CALL_LOG)) throw new Exception("Geen toestemming voor de oproepgeschiedenis");
                 return Calls.export(c, "", (d, t) -> { });
             case "notifications":
-                return NotificationHistory.export(c);
+                return NotificationHistory.export(c, true); // loopt er al een handmatige export: even wachten
             case "contacts":
                 if (!has(c, Manifest.permission.READ_CONTACTS)) throw new Exception("Geen toestemming voor contacten");
                 return Contacts.export(c, 0);

@@ -85,6 +85,23 @@ m = {
   "apk": "Renes-Tools.apk", "apkSha256": sha('update/Renes-Tools.apk'),
   "changelog": json.load(open('changelog.json'))
 }
+# Handtekening over versie + controlegetallen, met dezelfde sleutel als de APK.
+# De app controleert die met zijn eigen certificaat: een vervalste interface wordt nooit gebruikt.
+import subprocess, base64
+msg = "renes-tools-web\n%d\n%s\n%s\n" % (code, m["webSha256"], m["startSha256"])
+key = subprocess.run(["openssl", "pkcs12", "-in", "keys/release.p12", "-passin", "file:keys/keystore.pass", "-nocerts", "-nodes"],
+                     capture_output=True, check=True).stdout
+open('build/web-sign.key', 'wb').write(key)
+try:
+    sig = subprocess.run(["openssl", "dgst", "-sha256", "-sign", "build/web-sign.key"], input=msg.encode(), capture_output=True, check=True).stdout
+finally:
+    import os; os.remove('build/web-sign.key')
+m["webSig"] = base64.b64encode(sig).decode()
+# Zelfcontrole met het certificaat (zoals de app doet)
+cert = subprocess.run(["openssl", "pkcs12", "-in", "keys/release.p12", "-passin", "file:keys/keystore.pass", "-nokeys", "-clcerts"], capture_output=True, check=True).stdout
+pub = subprocess.run(["openssl", "x509", "-pubkey", "-noout"], input=cert, capture_output=True, check=True).stdout
+open('build/web-sign.pub', 'wb').write(pub); open('build/web-sign.sig', 'wb').write(sig)
+subprocess.run(["openssl", "dgst", "-sha256", "-verify", "build/web-sign.pub", "-signature", "build/web-sign.sig"], input=msg.encode(), check=True, capture_output=True)
 json.dump(m, open('update/update.json', 'w'), ensure_ascii=False, indent=2)
 PY
 echo "OK: $OUT ($(stat -c %s $OUT) bytes), versie $VERSION_NAME ($VERSION_CODE), native $NATIVE_LEVEL"

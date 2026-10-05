@@ -12,6 +12,8 @@ public final class HistoryTextTest {
         check(!original.equals(HistoryText.fingerprint("app|key", 42, "Titel", "Nieuw bericht")), "bijgewerkte inhoud bewaren");
         check(!original.equals(HistoryText.fingerprint("app|key", 43, "Titel", "Bericht")), "volgende melding bewaren");
         check(!HistoryText.fingerprint("a", 1, "bc", "d").equals(HistoryText.fingerprint("a", 1, "b", "cd")), "geen ambiguïteit tussen velden");
-        System.out.println("Alle 8 meldingsgeschiedenis-teksttests geslaagd");
+        check(HistoryText.fold("Éénmaal Café").equals("eenmaal cafe"), "zoeken zonder accenten en hoofdletters");
+        check(HistoryText.fold("ÉLAN").contains(HistoryText.fold("é")), "É vindt é");
+        System.out.println("Alle 10 meldingsgeschiedenis-teksttests geslaagd");
     }
 }

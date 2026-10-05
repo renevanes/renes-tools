@@ -1083,6 +1083,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String historyList(String query) {
             try { return NotificationHistory.list(ctx, query); } catch (Exception e) { return errJson(e); }
         }
+        @JavascriptInterface public String historyStamp() { return NotificationHistory.stamp(ctx); }
         @JavascriptInterface public void historySetEnabled(boolean enabled) {
             NotificationHistory.prefs(ctx).edit().putBoolean("enabled", enabled).apply();
             if (enabled && NotificationHistory.allowed(ctx))
