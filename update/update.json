@@ -1,15 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.35",
-  "versionCode": 36,
-  "nativeLevel": 32,
+  "versionName": "1.36",
+  "versionCode": 37,
+  "nativeLevel": 33,
   "web": "index.html",
-  "webSha256": "5021afa2cc154b979d29efcaa54158013a4c88cf8e73e5783322417141b6c0e8",
+  "webSha256": "817fb6e63d065de6a1163d6c03b4fe75439f4f1155d263644e116bf4cdd1576a",
   "start": "start.html",
   "startSha256": "9a461413fac6fc8164a492c2634be41ad9427cbe85abfe048f9130e9b8058c55",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a349bcfc2923066ddc72562882a1437dcef0148a75dc7123c00e709e69738579",
+  "apkSha256": "7027b53483821a892556e2567e21d5972d25dff5ac6eb0a156858a0f8eb57d45",
   "changelog": [
+    {
+      "version": "1.36",
+      "date": "2026-10-05",
+      "changes": [
+        "Widget Lijstje: een notitie op het startscherm, afstrepen met een tik",
+        "Launcher: Apps toevoegen en Apps in het dock kiezen (lang drukken op een leeg stuk)",
+        "App-slot: standaard meteen opnieuw vergrendelen, ook als de app al open stond; geen flits van de inhoud"
+      ]
+    },
     {
       "version": "1.35",
       "date": "2026-10-05",

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@drawable/widget_bg"
+    android:paddingTop="10dp" android:paddingBottom="6dp">
+    <LinearLayout android:id="@+id/w_nhead"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical"
+        android:paddingStart="14dp" android:paddingEnd="14dp" android:paddingBottom="4dp">
+        <TextView android:id="@+id/w_ntitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:textColor="#FFFFFFFF" android:textSize="16sp" android:textStyle="bold"
+            android:maxLines="1" android:ellipsize="end" android:text="Lijstje" />
+        <TextView android:id="@+id/w_ncount" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="#CCFFFFFF" android:textSize="13sp" android:maxLines="1" android:text="" />
+    </LinearLayout>
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <ListView android:id="@+id/w_nlist" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:divider="@null" android:dividerHeight="0dp" android:scrollbars="none" />
+        <TextView android:id="@+id/w_nempty" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:gravity="center" android:padding="12dp" android:textColor="#CCFFFFFF" android:textSize="14sp"
+            android:text="Alles afgestreept ✓" />
+    </FrameLayout>
+</LinearLayout>

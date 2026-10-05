@@ -76,6 +76,68 @@ final class Notes {
         return out.toString();
     }
 
+    static long version(Context c) { return pinPrefs(c).getLong("ver", 1); }
+
+    /** Item afstrepen of terugzetten (vanuit de widget). Geeft true als het gelukt is. */
+    static synchronized boolean toggleItem(Context c, String noteId, String itemId) {
+        try {
+            String raw = load(c);
+            if (raw.isEmpty()) return false; // onleesbaar: niets overschrijven
+            JSONArray all = new JSONArray(raw);
+            for (int i = 0; i < all.length(); i++) {
+                JSONObject n = all.optJSONObject(i);
+                if (n == null || !noteId.equals(n.optString("id"))) continue;
+                JSONArray items = n.optJSONArray("items");
+                if (items == null) return false;
+                for (int j = 0; j < items.length(); j++) {
+                    JSONObject it = items.optJSONObject(j);
+                    if (it == null || !itemId.equals(it.optString("id"))) continue;
+                    it.put("done", !it.optBoolean("done"));
+                    n.put("updated", System.currentTimeMillis());
+                    return save(c, all.toString()).isEmpty();
+                }
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    /** Eén notitie (of null). */
+    static JSONObject note(Context c, String id) {
+        try {
+            String raw = load(c);
+            JSONArray all = new JSONArray(raw.isEmpty() ? "[]" : raw);
+            for (int i = 0; i < all.length(); i++) {
+                JSONObject n = all.optJSONObject(i);
+                if (n != null && id != null && id.equals(n.optString("id"))) return n;
+            }
+        } catch (Exception ignored) { }
+        return null;
+    }
+
+    /** Alle notities: [{id, title, open}] (voor het kiezen in de widget), nieuwste eerst. */
+    static java.util.List<String[]> list(Context c) {
+        java.util.List<String[]> out = new java.util.ArrayList<>();
+        java.util.List<Long> when = new java.util.ArrayList<>();
+        try {
+            String raw = load(c);
+            JSONArray all = new JSONArray(raw.isEmpty() ? "[]" : raw);
+            for (int i = 0; i < all.length(); i++) {
+                JSONObject n = all.optJSONObject(i);
+                if (n == null || n.optString("id").isEmpty()) continue;
+                JSONArray items = n.optJSONArray("items");
+                int open = 0, total = items == null ? 0 : items.length();
+                if (items != null) for (int j = 0; j < items.length(); j++) { JSONObject it = items.optJSONObject(j); if (it != null && !it.optBoolean("done")) open++; }
+                String t = n.optString("title").trim();
+                long u = n.optLong("updated");
+                int at = 0;
+                while (at < when.size() && when.get(at) >= u) at++;
+                when.add(at, u);
+                out.add(at, new String[]{n.optString("id"), t.isEmpty() ? "Notitie" : t, total == 0 ? "geen lijstje" : open + " van " + total + " open"});
+            }
+        } catch (Exception ignored) { }
+        return out;
+    }
+
     static File bak(Context c) { return new File(c.getFilesDir(), "notes.json.bak"); }
 
     /**
@@ -104,6 +166,12 @@ final class Notes {
     }
 
     /** Slaat de notities op. Geeft "" bij succes, anders een foutmelding. */
+    /** Opslaan, maar alleen als de notities sinds versie {@code expected} niet elders veranderd zijn; null = conflict. */
+    static synchronized String saveIf(Context c, String json, long expected) {
+        if (expected > 0 && version(c) != expected) return null;
+        return save(c, json);
+    }
+
     static synchronized String save(Context c, String json) {
         try {
             new JSONArray(json); // alleen geldige JSON opslaan
@@ -115,6 +183,9 @@ final class Notes {
             File b = bak(c);
             if (f.exists()) { b.delete(); if (!f.renameTo(b)) throw new Exception("Opslaan lukt niet"); }
             if (!tmp.renameTo(f)) throw new Exception("Opslaan lukt niet");
+            // Volgnummer: zo merken de app en de widgets dat de notities elders veranderd zijn
+            pinPrefs(c).edit().putLong("ver", version(c) + 1).apply();
+            NoteWidget.refresh(c); // widgets met een lijstje bijwerken (ook na terugzetten van een backup)
             return "";
         } catch (Exception e) {
             return e.getMessage() != null ? e.getMessage() : "Opslaan lukt niet";

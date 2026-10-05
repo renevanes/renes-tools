@@ -54,6 +54,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Opslag in de app-map (`notes.json`, via tijdelijk bestand + hernoemen). Lege notities worden niet bewaard.
 - Knop *Kopie in backup-map zetten*: `Notities/notities.json` en een leesbaar `notities.txt` met `[x]`/`[ ]`.
 
+- **Widget Lijstje** (`NoteWidget`, `NoteWidgetService`, `NoteWidgetConfig`): één notitie op het startscherm (van Oppo of de skin). Bij het plaatsen kies je welke (met app-slot eerst vingerafdruk); open items bovenaan, tik = afstrepen of terugzetten, tik op de titel = de notitie openen. Opslaan in de app controleert of de notities intussen in de widget veranderd zijn (volgnummer), zodat afstrepen in de widget nooit overschreven wordt.
 - **Snelkoppeling naar één notitie** (in de notitie → Snelkoppeling): *Op het startscherm van Rene's Tools* (bovenaan, groep Notities, met het aantal open items) en *Op het startscherm van je telefoon* (vastgezette snelkoppeling die direct dat lijstje opent). Is de telefoon-skin je startscherm, dan komt het lijstje als kaart op de skin, met de eerste open items (de skin kan geen Android-snelkoppelingen tonen).
 
 ## Contacten
@@ -110,6 +111,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Launcher met pagina's en widgets** (standaard sinds 1.31; `Desk.java`, model in `WsModel.java`, opslag in `WsStore.java`):
   - Pagina's naast elkaar (max. 12) op een raster (4 of 5 kolommen, rijen naar de schermhoogte); links de pagina **Vandaag** (`start.html` in modus `today`: klok, weer, agenda, Rene's Tools, notities). Onderaan het dock (max. 6) en de pagina-puntjes.
   - **Slepen**: lang drukken en slepen verplaatst apps, mappen en widgets; aan de rand van het scherm naar de buurpagina (rechts eventueel een nieuwe); bovenaan *Weghalen* en *App-info*. App op app = map; in een open map lang drukken sleept een app eruit. Lang drukken zonder slepen geeft het menu (bijv. formaat aanpassen, instellen, naam van de map).
+  - **Apps toevoegen**: lang drukken op een leeg stuk → *Apps toevoegen* (lijst met vinkjes en zoeken) of *Apps in het dock kiezen*.
   - **Widgets** van alle apps (lang drukken op een leeg stuk → *Widgets toevoegen*, met voorbeeldplaatjes): toestemming per app, instelscherm als de widget dat heeft, formaat aanpassen met grepen (binnen de grenzen van de widget).
   - Alle apps, menu's, de widgetkiezer en *Look aanpassen* komen in een webpagina over het werkblad (modus `overlay`). Bij het eerste gebruik worden de apps en het dock van de skin overgenomen.
   - Het hoofdscherm is standaard **Vandaag** (lang drukken → *Dit als hoofdscherm* op een andere pagina kan ook).

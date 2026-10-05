@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.36",
+    "date": "2026-10-05",
+    "changes": [
+      "Widget Lijstje: een notitie op het startscherm, afstrepen met een tik",
+      "Launcher: Apps toevoegen en Apps in het dock kiezen (lang drukken op een leeg stuk)",
+      "App-slot: standaard meteen opnieuw vergrendelen, ook als de app al open stond; geen flits van de inhoud"
+    ]
+  },
+  {
     "version": "1.35",
     "date": "2026-10-05",
     "changes": [

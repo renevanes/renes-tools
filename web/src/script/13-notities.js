@@ -1,7 +1,9 @@
 /* ---------- Notities ---------- */
-let notes = null, noteCur = null, notesSaveTmr = null, notesBroken = false;
+let notes = null, noteCur = null, notesSaveTmr = null, notesBroken = false, notesVer = 0;
+const notesVerNow = () => { try { return +Android.notesVersion() || 0; } catch(e) { return 0; } };
 function notesGet(){
   if (notes === null) {
+    notesVer = notesVerNow(); // vóór het lezen: verandert er tussendoor iets, dan merkt de volgende keer dat op
     let raw = ''; try { raw = Android.notesLoad(); } catch(e){}
     try { notes = JSON.parse(raw); if (!Array.isArray(notes)) throw 0; }
     catch(e){ notes = []; notesBroken = true; toast('Notities konden niet worden gelezen; er wordt niets overschreven'); }
@@ -13,9 +15,33 @@ function notesSaveSoon(){ clearTimeout(notesSaveTmr); notesSaveTmr = setTimeout(
 function notesSaveNow(){
   clearTimeout(notesSaveTmr); notesSaveTmr = null;
   if (notesBroken || notes === null) return;
+  if (typeof Android.notesSaveIf === 'function') {
+    let r; try { r = JSON.parse(Android.notesSaveIf(JSON.stringify(notesGet()), notesVer)); } catch(e) { r = {err: 'Opslaan lukt niet'}; }
+    if (r.conflict) {
+      // Intussen veranderd (bijv. afgestreept in de widget): niet overschrijven, opnieuw inlezen
+      notes = null;
+      if (current === 'note' && noteCur) { if (noteById(noteCur)) { openNote(noteCur); } else show('notes'); }
+      else if (current === 'notes') renderNotes();
+      toast('Het lijstje is intussen veranderd (bijv. in de widget). Je laatste wijziging staat er nog niet in; doe hem opnieuw.');
+    } else if (r.err) toast('Opslaan mislukt: ' + r.err);
+    else notesVer = r.ver || notesVerNow();
+    return;
+  }
   const err = Android.notesSave(JSON.stringify(notesGet()));
-  if (err) toast('Opslaan mislukt: ' + err);
+  if (err) toast('Opslaan mislukt: ' + err); else notesVer = notesVerNow();
 }
+/* Buiten de app veranderd (bijv. afgestreept in de widget op het startscherm): opnieuw inlezen, zodat de app
+   die wijziging niet bij het volgende opslaan overschrijft. */
+window.onNotesMaybeChanged = function(){
+  if (notes === null || notesSaveTmr || notesBroken) return;
+  const v = notesVerNow();
+  if (!v || v === notesVer) return;
+  notes = null;
+  if (current === 'note' && noteCur) { if (noteById(noteCur)) renderItems(); else show('notes'); }
+  else if (current === 'notes') renderNotes();
+  if (typeof refreshNotesTile === 'function') refreshNotesTile();
+};
+document.addEventListener('visibilitychange', () => { if (!document.hidden) window.onNotesMaybeChanged(); });
 function hl(text, q){
   const t = esc(text); if (!q) return t;
   const i = text.toLowerCase().indexOf(q); if (i < 0) return t;

@@ -8,7 +8,7 @@ function enterSettings(){
   $('#st-lock-state').textContent = lk.on ? 'Aan' : (lk.secure ? 'Uit' : 'Uit · stel eerst een schermvergrendeling in op je telefoon');
   $('#st-lock-btn').textContent = lk.on ? 'Uitzetten' : 'Aanzetten';
   $('#st-lock-tw').style.display = lk.on ? 'flex' : 'none';
-  $('#st-lock-timeout').value = String(lk.timeout != null ? lk.timeout : 60000);
+  $('#st-lock-timeout').value = String(lk.timeout != null ? lk.timeout : 0);
   $('#st-dest').textContent = i.dest ? 'Huidige map: ' + (i.destName || 'gekozen') : 'Nog niet gekozen';
   $('#st-audd').textContent = i.audd ? 'Sleutel ingesteld (' + i.audd + ')' : 'Nog geen sleutel ingesteld';
   $('#st-perms').innerHTML = (i.perms || []).map(p =>

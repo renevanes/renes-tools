@@ -26,7 +26,12 @@ final class Lock {
     static boolean enabled(Context c) { return prefs(c).getBoolean("on", false); }
 
     /** Tijd buiten beeld voordat de app weer op slot gaat (ms). */
-    static long timeout(Context c) { return prefs(c).getLong("timeout", 60_000L); }
+    static long timeout(Context c) {
+        SharedPreferences p = prefs(c);
+        // Sinds 1.36 standaard "meteen": ook bij snel terugkomen in de app opnieuw de vingerafdruk (eenmalig omgezet).
+        if (!p.getBoolean("t2", false)) p.edit().putBoolean("t2", true).putLong("timeout", 0L).apply();
+        return p.getLong("timeout", 0L);
+    }
 
     static boolean deviceSecure(Context c) {
         KeyguardManager km = (KeyguardManager) c.getSystemService(Context.KEYGUARD_SERVICE);
@@ -42,6 +47,13 @@ final class Lock {
     static boolean active(Context c) { return enabled(c) && deviceSecure(c); }
 
     static boolean locked(Context c) { return active(c) && !unlocked; }
+
+    /** Zou de app nu op slot gaan als hij in beeld kwam (ook als de tijd buiten beeld verstreken is)? Verandert niets. */
+    static boolean wouldLock(Context c) {
+        if (!active(c)) return false;
+        if (!unlocked) return true;
+        return hiddenAt > 0 && SystemClock.elapsedRealtime() - hiddenAt >= timeout(c);
+    }
 
     /** De app opent zelf een scherm (mappenkiezer, instellingen, delen ...): dat telt niet als "weg". */
     static volatile boolean internalNav = false;

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_irow"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="horizontal" android:gravity="center_vertical"
+    android:minHeight="40dp" android:paddingStart="12dp" android:paddingEnd="14dp">
+    <TextView android:id="@+id/w_icheck" android:layout_width="30dp" android:layout_height="wrap_content"
+        android:textColor="#FFFFFFFF" android:textSize="19sp" android:gravity="center" android:text="☐" />
+    <TextView android:id="@+id/w_itext" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+        android:paddingStart="6dp" android:textColor="#FFFFFFFF" android:textSize="15sp"
+        android:maxLines="2" android:ellipsize="end" android:text="" />
+</LinearLayout>

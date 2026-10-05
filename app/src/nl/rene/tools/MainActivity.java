@@ -70,6 +70,35 @@ public class MainActivity extends Activity {
     private WebView web;
     /** De pagina heeft zichzelf getekend (met app-slot: het slotscherm staat er al). Tot dan blijft de WebView verborgen. */
     private boolean uiReady = false;
+    private View cover;
+    private long coverSeq = 0;
+    /** De app zoals hij nu draait (voor meldingen van buitenaf, bijv. de widget). */
+    static volatile MainActivity live;
+
+    /** Inhoud afdekken (app gaat uit beeld of start nog). */
+    void coverOn() { if (cover != null) { coverSeq++; cover.setVisibility(View.VISIBLE); } }
+
+    /**
+     * Afdekking weg: eerst (als het moet) het slotscherm tonen, en pas als de WebView dat echt getekend heeft
+     * de laag weghalen. Zo is er nooit een flits van de inhoud. Vangnet: na 1,5 s in elk geval weg.
+     */
+    void coverOff(boolean lock) {
+        if (cover == null || web == null) return;
+        final long seq = ++coverSeq;
+        Runnable off = () -> { if (seq == coverSeq && cover != null) cover.setVisibility(View.GONE); };
+        if (!lock) { cover.setVisibility(View.GONE); return; }
+        web.evaluateJavascript("window.onLock&&window.onLock();true", v -> {
+            if (web == null) return;
+            try { web.postVisualStateCallback(seq, new Drawn(off)); } catch (Throwable t) { off.run(); }
+        });
+        h.postDelayed(off, 1500);
+    }
+
+    static final class Drawn extends WebView.VisualStateCallback {
+        private final Runnable r;
+        Drawn(Runnable r) { this.r = r; }
+        @Override public void onComplete(long id) { r.run(); }
+    }
     private View topBar, bottomBar;
     private final Handler h = new Handler(Looper.getMainLooper());
     private String pendingOpen = null;
@@ -77,6 +106,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        live = this;
         RedialService.createChannel(this);
         WaBackupService.createChannel(this);
         WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
@@ -89,7 +119,15 @@ public class MainActivity extends Activity {
         bottomBar = new View(this);
         web = new WebView(this);
         root.addView(topBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
-        root.addView(web, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        // De WebView met daarover een dichte laag: met app-slot blijft die liggen tot het slotscherm echt getekend is.
+        android.widget.FrameLayout holder = new android.widget.FrameLayout(this);
+        holder.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        cover = new View(this);
+        cover.setBackgroundColor(HomeActivity.night(this) ? 0xFF0F172A : 0xFFF3F5F9);
+        cover.setClickable(true); // aanrakingen niet doorlaten naar de inhoud eronder
+        cover.setVisibility(View.GONE);
+        holder.addView(cover, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        root.addView(holder, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         root.addView(bottomBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
         setContentView(root);
         setBars("#1E5AA8", "#F3F5F9", true);
@@ -130,7 +168,7 @@ public class MainActivity extends Activity {
         if (b == null && !fromHistory) RedialPlan.startMissed(this, getIntent());
         // Met app-slot: niets van de inhoud laten zien voordat het slotscherm er staat (anders flitst het startscherm).
         if (Lock.active(this)) {
-            web.setVisibility(View.INVISIBLE);
+            coverOn();
             h.postDelayed(() -> { if (!uiReady) showUi(); }, 4000); // vangnet als de pagina het niet meldt
         }
         loadUi();
@@ -140,8 +178,7 @@ public class MainActivity extends Activity {
     void showUi() {
         uiReady = true;
         if (web == null) return;
-        if (Lock.locked(this)) web.evaluateJavascript("window.onLock&&window.onLock();true", v -> { if (web != null) web.setVisibility(View.VISIBLE); });
-        else web.setVisibility(View.VISIBLE);
+        coverOff(Lock.locked(this));
     }
 
     private void loadUi() {
@@ -217,19 +254,23 @@ public class MainActivity extends Activity {
         applySecure();
         if (web == null) return;
         boolean lock = Lock.onShown(this);
+        if (uiReady) js("onNotesMaybeChanged", ""); // misschien afgestreept in de widget
         if (!uiReady && Lock.active(this)) return; // eerste keer: showUi() toont hem zodra de pagina (met slotscherm) klaar is
-        if (lock) {
-            // Eerst het slotscherm tekenen, dan pas de WebView weer tonen (geen flits van de inhoud).
-            web.evaluateJavascript("window.onLock&&window.onLock();true", v -> { if (web != null) web.setVisibility(View.VISIBLE); });
-        } else web.setVisibility(View.VISIBLE);
+        coverOff(lock); // eerst het slotscherm tekenen, dan pas de afdekking weg (geen flits van de inhoud)
     }
 
     @Override
     protected void onStop() {
         Lock.onHidden();
         // Met app-slot de inhoud alvast verbergen; bij terugkomen beslist onStart of hij op slot moet.
-        if (web != null && Lock.active(this) && !Lock.internalNav && !Lock.authBusy) web.setVisibility(View.INVISIBLE);
+        if (web != null && Lock.active(this) && !Lock.internalNav && !Lock.authBusy) coverOn();
         super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (live == this) live = null;
+        super.onDestroy();
     }
 
     /** Elk scherm dat de app zelf opent (behalve links naar andere apps) telt als "binnen de app". */
@@ -237,7 +278,7 @@ public class MainActivity extends Activity {
     public void startActivityForResult(Intent intent, int requestCode, android.os.Bundle options) {
         boolean external = intent != null && Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null
                 && ("http".equals(intent.getData().getScheme()) || "https".equals(intent.getData().getScheme()));
-        if (!external) Lock.internalNav = true;
+        if (!external && requestCode >= 0) Lock.internalNav = true; // startActivity (andere app, delen) heeft -1: dat is weggaan
         super.startActivityForResult(intent, requestCode, options);
     }
 
@@ -1038,7 +1079,19 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public String notesLoad() { return Notes.load(ctx); }
 
-        @JavascriptInterface public String notesSave(String json) { return Notes.save(ctx, json); }
+        @JavascriptInterface public String notesSave(String json) {
+            return Notes.save(ctx, json);
+        }
+        /** Opslaan alleen als niemand anders (de widget) intussen iets veranderde: {ok, ver} of {conflict} of {err}. */
+        @JavascriptInterface public String notesSaveIf(String json, double expected) {
+            try {
+                String r = Notes.saveIf(ctx, json, (long) expected);
+                if (r == null) return new JSONObject().put("conflict", true).toString();
+                if (!r.isEmpty()) return new JSONObject().put("err", r).toString();
+                return new JSONObject().put("ok", true).put("ver", Notes.version(ctx)).toString();
+            } catch (Exception e) { return "{\"err\":\"Opslaan lukt niet\"}"; }
+        }
+        @JavascriptInterface public long notesVersion() { return Notes.version(ctx); }
 
         @JavascriptInterface public String notesExport() {
             try { return "ok:" + Notes.export(ctx); } catch (Exception e) { return e.getMessage() != null ? e.getMessage() : "Mislukt"; }

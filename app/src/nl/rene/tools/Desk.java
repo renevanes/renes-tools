@@ -637,6 +637,8 @@ final class Desk {
     void homeMenu() {
         try {
             JSONArray acts = new JSONArray()
+                    .put(new JSONArray().put("Apps toevoegen").put("apps"))
+                    .put(new JSONArray().put("Apps in het dock kiezen").put("dockapps"))
                     .put(new JSONArray().put("Widgets toevoegen").put("widgets"))
                     .put(new JSONArray().put("Look aanpassen").put("look"))
                     .put(new JSONArray().put("Achtergrondfoto kiezen").put("wallpaper"))
@@ -655,6 +657,8 @@ final class Desk {
         int pg = ws.cellPage();
         switch (a) {
             case "widgets": act.openWidgetPicker(); break;
+            case "apps": act.ovCall("pickApps", "'pinned'", true); break;
+            case "dockapps": act.ovCall("pickApps", "'dock'", true); break;
             case "look": act.openLook(); break;
             case "wallpaper": act.wallpaper(); break;
             case "addpage":
@@ -1115,6 +1119,19 @@ final class Desk {
         private boolean dragX, dragY;
         private VelocityTracker vt;
         private int edgeDir = 0;
+        private boolean onWidget;
+
+        /** Begint de aanraking op een widget (van de huidige pagina)? */
+        private boolean widgetAt(float x, float y) {
+            CellLayout cl = currentCells();
+            if (cl == null) return false;
+            float px = x + getScrollX() - cl.getLeft(), py = y + getScrollY() - cl.getTop();
+            for (int i = 0; i < cl.getChildCount(); i++) {
+                View v = cl.getChildAt(i);
+                if (v instanceof AppWidgetHostView && px >= v.getLeft() && px < v.getRight() && py >= v.getTop() && py < v.getBottom()) return true;
+            }
+            return false;
+        }
         private final Runnable edgeTick = this::edgeFlip;
 
         Workspace(Context c, Desk desk) {
@@ -1193,13 +1210,14 @@ final class Desk {
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     sx = lx = e.getX(); sy = ly = e.getY(); dragX = dragY = false;
+                    onWidget = widgetAt(e.getX(), e.getY());
                     if (!sc.isFinished()) { sc.abortAnimation(); dragX = true; }
                     break;
                 case MotionEvent.ACTION_MOVE: {
                     float dx = e.getX() - sx, dy = e.getY() - sy;
                     if (!dragX && Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy) * 1.2f) { dragX = true; lx = e.getX(); }
                     // Verticaal vegen alleen op de gewone pagina's (de Vandaag-pagina scrolt zelf)
-                    else if (!dragX && page > 0 && Math.abs(dy) > slop * 2 && Math.abs(dy) > Math.abs(dx) * 1.5f) dragY = true;
+                    else if (!dragX && page > 0 && !onWidget && Math.abs(dy) > slop * 2 && Math.abs(dy) > Math.abs(dx) * 1.5f) dragY = true;
                     break;
                 }
                 default: break;
