@@ -93,6 +93,7 @@ function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.clas
 
 window.openTool = function(n){
   if (n === 'share') { noteFromShare(); return; }
+  if (n === 'skin') { Android.homeOpen(); return; } // snelkoppeling "Telefoon-skin": meteen de skin tonen
   if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
   if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); };
 window.onResumeApp = function(){ if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };

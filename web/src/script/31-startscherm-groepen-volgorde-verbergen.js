@@ -1,5 +1,6 @@
 /* ---------- Startscherm: groepen, volgorde, verbergen ---------- */
 const HOME_DEFAULT = { grouped: true, compact: false, hidden: [], groups: [
+  { name: 'Telefoon', tools: ['skin'] },
   { name: 'Bellen & contacten', tools: ['redial', 'calls', 'contacts', 'transcripts'] },
   { name: 'Berichten & backup', tools: ['backup', 'wa', 'sms'] },
   { name: 'Muziek & radio', tools: ['radio', 'music'] },
@@ -13,6 +14,8 @@ function homeCfg(){
   const known = Object.keys(TOOL_TILE), seen = new Set();
   c.groups.forEach(g => { g.tools = (g.tools || []).filter(t => known.includes(t) && !seen.has(t) && seen.add(t)); });
   if (!c.groups.length) c.groups.push({ name: 'Tools', tools: [] });
+  // Telefoon-skin (nieuw): bovenaan, in een eigen groep
+  if (!seen.has('skin')) { c.groups.unshift({ name: 'Telefoon', tools: ['skin'] }); seen.add('skin'); }
   known.forEach(t => { if (!seen.has(t)) { const d = HOME_DEFAULT.groups.find(g => g.tools.includes(t)); const g = d && c.groups.find(x => x.name === d.name) || c.groups[c.groups.length - 1]; g.tools.push(t); } });
   return c;
 }

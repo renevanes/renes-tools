@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.29",
+    "date": "2026-10-05",
+    "changes": [
+      "Nieuwe tegel 'Telefoon-skin' bovenaan het startscherm van Rene's Tools: één tik en je ziet de skin; ook als snelkoppeling op je telefoon te zetten"
+    ]
+  },
+  {
     "version": "1.28",
     "date": "2026-10-05",
     "changes": [

@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.28",
-  "versionCode": 29,
+  "versionName": "1.29",
+  "versionCode": 30,
   "nativeLevel": 26,
   "web": "index.html",
-  "webSha256": "25ebf74765a4a5279d9495670040a49d3bb8993913c3457369edf6500a528104",
+  "webSha256": "f7bc89be37d0ac68c8e3645c7b237013e34ef70370260685f7c84db1211c8200",
   "start": "start.html",
   "startSha256": "4a4e9814251eac074646d30abf7e9448de45f9e467896b1456f50ead0c474b81",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1410fef8e59603f56b8b3032016c686e183ea4768db65a5cbca44807cbf2673f",
+  "apkSha256": "2e7f9c075b2621f276921ee786600ca46c729260f045ed6fa7c408b3e15f8794",
   "changelog": [
+    {
+      "version": "1.29",
+      "date": "2026-10-05",
+      "changes": [
+        "Nieuwe tegel 'Telefoon-skin' bovenaan het startscherm van Rene's Tools: één tik en je ziet de skin; ook als snelkoppeling op je telefoon te zetten"
+      ]
+    },
     {
       "version": "1.28",
       "date": "2026-10-05",

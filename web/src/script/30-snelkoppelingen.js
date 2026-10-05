@@ -4,10 +4,11 @@ const TOOLS = {
   radio: ['Radio', '#D35400', '📻'], music: ['Muziek herkennen', '#2471A3', '🎵'], notes: ['Notities', '#E67E22', '📝'],
   redial: ['Auto redial', '#1E5AA8', '🔁'], calls: ['Oproepen', '#16A085', '📞'], contacts: ['Contacten', '#2C3E50', '👤'],
   sms: ['SMS-backup', '#8E44AD', '💬'], wa: ['WhatsApp backup', '#25A35A', '💾'], tracks: ['Mijn routes', '#C0392B', '📍'],
-  transcripts: ['Gesprekken uitschrijven', '#7D3C98', '🗒'], backup: ['Alles back-uppen', '#34495E', '🗄']
+  transcripts: ['Gesprekken uitschrijven', '#7D3C98', '🗒'], backup: ['Alles back-uppen', '#34495E', '🗄'],
+  skin: ['Telefoon-skin', '#6D28D9', '📱']
 };
 const TILE_TOOL = { 'tile-redial': 'redial', 'tile-wa': 'wa', 'tile-tracks': 'tracks', 'tile-sms': 'sms', 'tile-calls': 'calls',
-  'tile-notes': 'notes', 'tile-contacts': 'contacts', 'tile-tr': 'transcripts', 'tile-radio': 'radio', 'tile-music': 'music', 'tile-backup': 'backup' };
+  'tile-notes': 'notes', 'tile-contacts': 'contacts', 'tile-tr': 'transcripts', 'tile-radio': 'radio', 'tile-music': 'music', 'tile-backup': 'backup', 'tile-skin': 'skin' };
 function pinTool(tool){
   const t = TOOLS[tool]; if (!t) return;
   const e = Android.shortcutPin(tool, t[0], t[1], t[2]);
@@ -16,7 +17,7 @@ function pinTool(tool){
 function toolMenu(tool){
   const t = TOOLS[tool]; if (!t) return;
   openSheet(t[0], 'Snelkoppeling', [
-    ['Openen', () => show(tool)],
+    ['Openen', () => tool === 'skin' ? Android.homeOpen() : show(tool)],
     ['Snelkoppeling op startscherm', () => pinTool(tool)],
   ]);
 }
