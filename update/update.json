@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.36",
-  "versionCode": 37,
-  "nativeLevel": 33,
+  "versionName": "1.37",
+  "versionCode": 38,
+  "nativeLevel": 34,
   "web": "index.html",
-  "webSha256": "817fb6e63d065de6a1163d6c03b4fe75439f4f1155d263644e116bf4cdd1576a",
+  "webSha256": "565c47bdaf70b50b29c00e6b23dd5e9b33d4cd73746383daf2b7dd200ac0af3b",
   "start": "start.html",
   "startSha256": "9a461413fac6fc8164a492c2634be41ad9427cbe85abfe048f9130e9b8058c55",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "7027b53483821a892556e2567e21d5972d25dff5ac6eb0a156858a0f8eb57d45",
+  "apkSha256": "e0e4281a2017c9d94743857068bcd0fdcfad2bed57be3a1daf8f2534022b6d2d",
   "changelog": [
+    {
+      "version": "1.37",
+      "date": "2026-10-05",
+      "changes": [
+        "Nieuw: Automatiseringen. Als je auto uitgaat (Bluetooth) of je bij een plek aankomt, vraagt je telefoon of hij de parkeeractie moet starten, of doet het meteen zelf: hij opent EasyPark en drukt de knoppen in die je één keer hebt opgenomen",
+        "Ook: herinnering om de parkeeractie te stoppen als je weer wegrijdt, en zelf automatiseringen samenstellen (dagen, tijden, plek, app)"
+      ]
+    },
     {
       "version": "1.36",
       "date": "2026-10-05",

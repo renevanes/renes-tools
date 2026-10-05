@@ -30,6 +30,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             RedialPlan.arm(c);
             TranscribeJob.ensureScheduled(c);
             RadioWidget.refresh(c);
+            Auto.armPlaces(c, true);
         }
     }
 }

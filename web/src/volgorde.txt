@@ -23,6 +23,7 @@ schermen/18-contacten.html
 schermen/19-notities.html
 schermen/20-oproepen-backup.html
 schermen/21-info.html
+schermen/22-automatiseringen.html
 vensters.html
 script/00-begin.js
 script/01-nepbrug.js
@@ -56,4 +57,5 @@ script/28-versie-updates.js
 script/29-start.js
 script/30-snelkoppelingen.js
 script/31-startscherm-groepen-volgorde-verbergen.js
+script/32-automatiseringen.js
 einde.html
