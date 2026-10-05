@@ -22,7 +22,7 @@ final class AllBackup {
 
     private AllBackup() { }
 
-    static final String[] PARTS = {"sms", "calls", "contacts", "notes", "transcripts", "music"};
+    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "transcripts", "music"};
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("allbackup", Context.MODE_PRIVATE); }
 
@@ -42,7 +42,7 @@ final class AllBackup {
 
     static boolean has(Context c, String p) { return c.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED; }
 
-    static boolean enabledPart(Context c, String part) { return prefs(c).getBoolean("part_" + part, true); }
+    static boolean enabledPart(Context c, String part) { return prefs(c).getBoolean("part_" + part, !part.equals("notifications")); }
 
     /** Voert de backup uit (na tryBegin). Geeft per onderdeel {ok, count, msg}; slaat de uitkomst op. */
     static JSONObject run(Context c, boolean auto) {
@@ -126,6 +126,8 @@ final class AllBackup {
             case "calls":
                 if (!has(c, Manifest.permission.READ_CALL_LOG)) throw new Exception("Geen toestemming voor de oproepgeschiedenis");
                 return Calls.export(c, "", (d, t) -> { });
+            case "notifications":
+                return NotificationHistory.export(c);
             case "contacts":
                 if (!has(c, Manifest.permission.READ_CONTACTS)) throw new Exception("Geen toestemming voor contacten");
                 return Contacts.export(c, 0);

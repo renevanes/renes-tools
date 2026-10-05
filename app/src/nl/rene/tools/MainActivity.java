@@ -1079,6 +1079,36 @@ public class MainActivity extends Activity {
             return Calls.prefs(ctx).getString("status", "{\"running\":false}");
         }
 
+        // ----- Meldingsgeschiedenis -----
+        @JavascriptInterface public String historyList(String query) {
+            try { return NotificationHistory.list(ctx, query); } catch (Exception e) { return errJson(e); }
+        }
+        @JavascriptInterface public void historySetEnabled(boolean enabled) {
+            NotificationHistory.prefs(ctx).edit().putBoolean("enabled", enabled).apply();
+            if (enabled && NotificationHistory.allowed(ctx))
+                android.service.notification.NotificationListenerService.requestRebind(new android.content.ComponentName(ctx, HistoryListener.class));
+        }
+        @JavascriptInterface public void historyRequestPermission() {
+            a.h.post(() -> {
+                try { a.startActivity(new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)); }
+                catch (Exception e) { a.js("toast", JSONObject.quote("Meldingentoegang openen lukt niet")); }
+            });
+        }
+        @JavascriptInterface public String historyClear() {
+            try { NotificationHistory.clear(ctx); return ""; } catch (Exception e) { return "Geschiedenis wissen lukt niet"; }
+        }
+        @JavascriptInterface public String historyExport() {
+            if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map";
+            if (NotificationHistory.exporting.get()) return "Er loopt al een meldingen-export";
+            new Thread(() -> {
+                String result;
+                try { int n = NotificationHistory.export(ctx); result = n < 0 ? "Nog geen meldingen om te exporteren" : "✓ " + n + " meldingen geëxporteerd naar Meldingen backup"; }
+                catch (Exception e) { result = e.getMessage() == null ? "Meldingen exporteren mislukt" : e.getMessage(); }
+                a.js("onHistoryExport", JSONObject.quote(result));
+            }, "history-export").start();
+            return "";
+        }
+
         // ----- Notities -----
 
         @JavascriptInterface public String notesLoad() { return Notes.load(ctx); }
@@ -1364,6 +1394,7 @@ public class MainActivity extends Activity {
                 p.put(perm("calllog", "Oproepgeschiedenis", "Auto redial, Oproepen, Gesprekken", has(Manifest.permission.READ_CALL_LOG)));
                 p.put(perm("contacts", "Contacten", "Namen, Contacten-tool", has(Manifest.permission.READ_CONTACTS) && has(Manifest.permission.WRITE_CONTACTS)));
                 p.put(perm("sms", "Sms", "SMS-backup", has(Manifest.permission.READ_SMS)));
+                p.put(perm("history", "Meldingentoegang", "Meldingsgeschiedenis", NotificationHistory.allowed(ctx)));
                 p.put(perm("location", "Locatie", "Mijn routes", has(Manifest.permission.ACCESS_FINE_LOCATION)));
                 p.put(perm("mic", "Microfoon", "Muziek herkennen", has(Manifest.permission.RECORD_AUDIO)));
                 if (Build.VERSION.SDK_INT >= 33) p.put(perm("notif", "Meldingen", "Voortgang en bediening", has(Manifest.permission.POST_NOTIFICATIONS)));
@@ -1385,6 +1416,7 @@ public class MainActivity extends Activity {
                     case "phone": p = new String[]{Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE}; break;
                     case "calllog": p = new String[]{Manifest.permission.READ_CALL_LOG}; break;
                     case "contacts": p = new String[]{Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS}; break;
+                    case "history": historyRequestPermission(); return;
                     case "sms": p = new String[]{Manifest.permission.READ_SMS}; break;
                     case "location": p = new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}; break;
                     case "mic": p = new String[]{Manifest.permission.RECORD_AUDIO}; break;

@@ -1,0 +1,29 @@
+<section class="screen" id="s-history">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug">‹</button>
+    <h1 tabindex="-1">Meldingsgeschiedenis</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2>Meldingen bewaren</h2>
+      <p class="note">Bewaar nieuwe meldingen op deze telefoon, ook nadat je ze wegveegt. Eerdere meldingen uit de Android-geschiedenis kunnen niet worden opgehaald.</p>
+      <label class="chk"><input type="checkbox" id="history-enabled" onchange="historyEnable(this.checked)"> Nieuwe meldingen bewaren</label>
+      <p id="history-state" role="status" aria-live="polite"></p>
+      <button class="big ghost" id="history-permission" onclick="Android.historyRequestPermission();setTimeout(loadHistory,500)">Meldingentoegang instellen</button>
+      <p class="note">Android vraagt toegang tot meldingen van andere apps. Die kunnen persoonlijke berichten bevatten. De geschiedenis blijft lokaal tot je een backup maakt. Je kunt opnemen hier uitzetten en toegang in Android intrekken. Bewaart maximaal 30 dagen en 10.000 meldingen; doorlopende meldingen, groepssamenvattingen en meldingen van Rene’s Tools worden overgeslagen. Android kan gevoelige inhoud afschermen.</p>
+    </div>
+    <div class="card">
+      <h2>Backup</h2>
+      <button class="big ghost" id="history-folder" onclick="Android.waPickFolder()">Backup-map kiezen</button>
+      <button class="big" id="history-export" style="margin-top:8px" onclick="historyExport()">Geschiedenis exporteren</button>
+      <p class="note">Exporteert alle bewaarde meldingen als JSON en leesbare HTML naar ‘Meldingen backup’. Dit zijn leesbare bestanden. Voor een versleutelde backup: vink Meldingsgeschiedenis aan bij Alles back-uppen en schakel daar versleutelen in. Een export kan niet teruggezet worden als Android-meldingen.</p>
+      <p id="history-result" role="status" aria-live="polite"></p>
+    </div>
+    <label for="history-search">Zoeken in de geschiedenis</label>
+    <input class="search" id="history-search" type="search" placeholder="Zoek op app, titel of tekst…" oninput="historySearch()">
+    <p class="note" id="history-count" aria-live="polite"></p>
+    <div id="history-list"></div>
+    <button class="big ghost" id="history-clear" onclick="historyClear()">Geschiedenis op deze telefoon wissen</button>
+    <p class="note">Bestaande backupbestanden blijven bewaard.</p>
+  </main>
+</section>

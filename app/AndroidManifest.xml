@@ -58,6 +58,11 @@
         android:extractNativeLibs="true"
         android:usesCleartextTraffic="true">
 
+        <service android:name=".HistoryListener" android:label="Meldingsgeschiedenis"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" android:exported="true">
+            <intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter>
+        </service>
+
         <!-- Telefoon-skin: Rene's Tools als startscherm (eigen taak, los van de gewone app) -->
         <activity
             android:name=".HomeActivity"
