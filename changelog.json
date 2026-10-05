@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.44",
+    "date": "2026-10-05",
+    "changes": [
+      "Meldingsgeschiedenis: filter per app (bijv. WhatsApp of Drive) en oudere meldingen tonen",
+      "Meldingsgeschiedenis: meldingen die nog in het meldingenpaneel staan worden ook bewaard"
+    ]
+  },
+  {
     "version": "1.43",
     "date": "2026-10-05",
     "changes": [

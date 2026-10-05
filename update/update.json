@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.43",
-  "versionCode": 44,
-  "nativeLevel": 40,
+  "versionName": "1.44",
+  "versionCode": 45,
+  "nativeLevel": 41,
   "web": "index.html",
-  "webSha256": "5097f2d57bf2efc579de0f23eaedaf1ed535f17e0b9e0f16c750182abc6ee0eb",
+  "webSha256": "f6893125e71b0cad1eb4f189fe1fc7ab308536f317b540d6c8e0bffe74b0316e",
   "start": "start.html",
   "startSha256": "9c5560f0cff0cd341fa5e00137698d7334458f2690247352825fa5173b3c50ec",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "5ea3738c8078cf5fc366408dbc1fb17e5838f393fa90c14e86500728f15148d2",
+  "apkSha256": "097ccee480e2f87343b798c2cd0cd3dc91e36f86f2b5115545ad1f2dce28b95b",
   "changelog": [
+    {
+      "version": "1.44",
+      "date": "2026-10-05",
+      "changes": [
+        "Meldingsgeschiedenis: filter per app (bijv. WhatsApp of Drive) en oudere meldingen tonen",
+        "Meldingsgeschiedenis: meldingen die nog in het meldingenpaneel staan worden ook bewaard"
+      ]
+    },
     {
       "version": "1.43",
       "date": "2026-10-05",
@@ -390,5 +398,5 @@
       ]
     }
   ],
-  "webSig": "OPAXeY9hP/kiLUe/NSGQ0BE8wxmSqFP/7NOmAP+K7S0RNdLmuua0ltkz+LHBORbt4xRLcNcjmGOEaTXa8sck6e6JyTC3Jnfz4/dnc3hdCJu8kDofWulVSzYZ//Big1Pwg6zh95K3KAi9Zq+8CrvYnSZP+XKkSVJMy1oVgkhcxNfiYotmBdApv9DUCY/1liMl21hIT4x12mYpu8h/L6VM2ZcaPmEOYANHXSNlAN+N3Mf1B4sLSHRTftTedT2TvxzuggorUwGzlDVurHLKiPU2WY76DLsrFrEgVsernZFkE/G5mB+NQ/Pl6AoGoy62zHgl6fD0UIEvgIxVBgsQAnbD1wit0czuAy9Z43OxeqYJnchVWy+b8H+3QXeMcNalBWQo7bWiSXR9PlX8WeLxD3x7S89LZ45epjC+4MD0M+BGbf2tv/yd2kNgEfpjYVvHIcKVGt/EinUbZHjJDCfiShwy3kbKM5/xHSuVpKELjG9XZ6kjObKev8SMuHImOC1dHd9p"
+  "webSig": "V+VhUmTAnb812V2BgvaKpWAsD1LwfNETYEjVA6fFTdJ2xY1HSNnHksXLHXEFtN4tWEx9ykpauHBD+XK78Re6eAldTycvuIlvO5OqfH+WfIiJEH1C8xtuiFoC6cVK5OBSnlom0pzolU8SqTqERNrrKifD418uCsFy6g2pbnSMlo1gAIu2IrEKUpg9PZqUYJ488oB+7Ww6CXU8H0LxgLn0MwSQP4xD4a+YnBd3tave2iJ8eMGzZKxnhYVzUcYgrQBkzH5qN1CBJ/69ZHCwtLEYvf62dT3VzoOcbzpCP33FLnZrH2cUNOd1TUdSdCHsymz0k4cUGZjKroIjlM8PMKYyFSRAj3ZyKl8TUf1PfCg9NRxZNZ1PmKpnqKg38HNO/kX1yosG3MjqkWvExpFYzQl9tgg0I+xDc50qJ7eNXl2uQBj+LXcQ9Ny5D7jsFWX5DAUhN5+u0YxSEK06r6TQQtz86VMlFkys6t/hynl2DhGLCeseXfkjW26N0//e7eBl7Xvs"
 }

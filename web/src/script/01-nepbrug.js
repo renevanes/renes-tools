@@ -21,6 +21,8 @@ if (!window.Android) window.Android = (function(){
     _historyRows:[{time:Date.now(), package:'com.whatsapp', app:'WhatsApp', title:'Familie', text:'Tot vanavond!'}, {time:Date.now()-60000, package:'com.example.mail', app:'Mail', title:'Afspraak', text:'Je afspraak is bevestigd.'}],
     historyList(q){ const rows=this._historyRows.filter(r => (r.app+' '+r.package+' '+r.title+' '+r.text).toLowerCase().includes((q||'').toLowerCase())); return JSON.stringify({rows, count:rows.length, total:this._historyRows.length, enabled:this._historyEnabled, allowed:this._historyAllowed, connected:this._historyAllowed, dest:this._wa.info.dest}); },
     historySetEnabled(on){this._historyEnabled=on;},
+    historyApps(){ const m = {}; for (const r of this._historyRows) { m[r.package] = m[r.package] || {package: r.package, app: r.app, count: 0}; m[r.package].count++; } return JSON.stringify(Object.values(m).sort((a, b) => b.count - a.count)); },
+    historyListBy(q, pkg, limit){ const all = this._historyRows.filter(r => (!pkg || r.package === pkg) && (r.app+' '+r.package+' '+r.title+' '+r.text).toLowerCase().includes((q||'').toLowerCase())); const rows = all.slice(0, limit); return JSON.stringify({rows, count: all.length, total: this._historyRows.length, enabled: this._historyEnabled, allowed: this._historyAllowed, connected: this._historyAllowed, dest: this._wa.info.dest}); },
     historyRequestPermission(){this._historyAllowed=true;},
     historyClear(){this._historyRows=[];return '';},
     historyExport(){if(!this._wa.info.dest)return 'Kies eerst een backup-map';setTimeout(()=>window.onHistoryExport(this._historyRows.length ? '✓ '+this._historyRows.length+' meldingen geëxporteerd naar Meldingen backup' : 'Nog geen meldingen om te exporteren'),50);return '';},

@@ -1095,8 +1095,13 @@ public class MainActivity extends Activity {
             new Thread(() -> a.js("onBackupCheck", Care.backupCheck(ctx).toString()), "backup-check").start();
         }
         @JavascriptInterface public String historyStamp() { return NotificationHistory.stamp(ctx); }
+        @JavascriptInterface public String historyListBy(String query, String pkg, int limit) {
+            try { return NotificationHistory.list(ctx, query, pkg, limit); } catch (Exception e) { return errJson(e); }
+        }
+        @JavascriptInterface public String historyApps() { return NotificationHistory.apps(ctx); }
         @JavascriptInterface public void historySetEnabled(boolean enabled) {
             NotificationHistory.prefs(ctx).edit().putBoolean("enabled", enabled).apply();
+            if (enabled) HistoryListener.importNow(); // wat nog in het meldingenpaneel staat meteen bewaren
             if (enabled && NotificationHistory.allowed(ctx))
                 android.service.notification.NotificationListenerService.requestRebind(new android.content.ComponentName(ctx, HistoryListener.class));
         }

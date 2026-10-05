@@ -92,21 +92,40 @@ final class NotificationHistory {
         return new JSONObject().put("time", cur.getLong(0)).put("package", cur.getString(1)).put("app", cur.getString(2))
                 .put("title", cur.getString(3)).put("text", cur.getString(4));
     }
-    static synchronized String list(Context c, String query) throws Exception {
+    static String list(Context c, String query) throws Exception { return list(c, query, "", 500); }
+
+    /** Lijst, nieuwste eerst; pkg = alleen deze app (leeg = alle), limit = hoeveel (met "meer laden" groter). */
+    static synchronized String list(Context c, String query, String pkg, int limit) throws Exception {
         String q = HistoryText.clean(query, 200).trim();
+        String p = pkg == null ? "" : HistoryText.clean(pkg, 200).trim();
+        limit = Math.max(20, Math.min(limit, 5000));
         SQLiteDatabase d = database(c);
         prune(d);
+        String sel = selection(q);
+        java.util.List<String> a = new java.util.ArrayList<>();
+        if (!q.isEmpty()) a.add(HistoryText.fold(q));
+        if (!p.isEmpty()) { sel = sel == null ? "package = ?" : sel + " AND package = ?"; a.add(p); }
+        String[] args = a.isEmpty() ? null : a.toArray(new String[0]);
         JSONArray rows = new JSONArray();
-        try (Cursor cur = d.query("history", new String[]{"time", "package", "app", "title", "text"}, selection(q), args(q), null, null, "time DESC, id DESC", "500")) {
+        try (Cursor cur = d.query("history", new String[]{"time", "package", "app", "title", "text"}, sel, args, null, null, "time DESC, id DESC", String.valueOf(limit))) {
             while (cur.moveToNext()) rows.put(row(cur));
         }
         long total, count;
         try (Cursor cur = d.rawQuery("SELECT COUNT(*) FROM history", null)) { cur.moveToFirst(); total = cur.getLong(0); }
-        try (Cursor cur = d.query("history", new String[]{"COUNT(*)"}, selection(q), args(q), null, null, null)) { cur.moveToFirst(); count = cur.getLong(0); }
+        try (Cursor cur = d.query("history", new String[]{"COUNT(*)"}, sel, args, null, null, null)) { cur.moveToFirst(); count = cur.getLong(0); }
         return new JSONObject().put("rows", rows).put("total", total).put("count", count).put("enabled", enabled(c))
                 .put("allowed", allowed(c)).put("connected", connected).put("dest", WaBackup.destUri(c) != null)
                 .put("error", prefs(c).getString("error", "")).toString();
     }
+    /** Apps in de geschiedenis met het aantal meldingen, meeste eerst: [{package, app, count}]. */
+    static synchronized String apps(Context c) {
+        JSONArray out = new JSONArray();
+        try (Cursor cur = database(c).rawQuery("SELECT package, MAX(app), COUNT(*) AS n FROM history GROUP BY package ORDER BY n DESC LIMIT 40", null)) {
+            while (cur.moveToNext()) out.put(new JSONObject().put("package", cur.getString(0)).put("app", cur.getString(1)).put("count", cur.getLong(2)));
+        } catch (Exception ignored) { }
+        return out.toString();
+    }
+
     private static void prune(SQLiteDatabase d) {
         d.delete("history", "time < ?", new String[]{Long.toString(System.currentTimeMillis() - 30L * 86400000)});
     }

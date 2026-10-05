@@ -11,7 +11,23 @@ public final class HistoryListener extends NotificationListenerService {
             1, 1, 0L, java.util.concurrent.TimeUnit.MILLISECONDS, new java.util.concurrent.ArrayBlockingQueue<Runnable>(128));
     static volatile HistoryListener inst;
     private final java.util.concurrent.atomic.AtomicBoolean dotsPending = new java.util.concurrent.atomic.AtomicBoolean(false);
-    @Override public void onListenerConnected() { NotificationHistory.connected = true; inst = this; dots(); }
+    @Override public void onListenerConnected() { NotificationHistory.connected = true; inst = this; dots(); importActive(); }
+
+    /**
+     * Meldingen die nu nog in het meldingenpaneel staan (ook van vóór het aanzetten) ook bewaren.
+     * Oudere meldingen kan geen enkele app ophalen: Android geeft die niet vrij.
+     */
+    void importActive() {
+        if (!NotificationHistory.enabled(this)) return;
+        try {
+            StatusBarNotification[] all = getActiveNotifications();
+            if (all != null) for (StatusBarNotification sbn : all) {
+                try { worker.execute(() -> save(sbn)); } catch (java.util.concurrent.RejectedExecutionException e) { break; }
+            }
+        } catch (Exception ignored) { }
+    }
+
+    static void importNow() { HistoryListener l = inst; if (l != null) l.importActive(); }
     @Override public void onListenerDisconnected() { NotificationHistory.connected = false; if (inst == this) inst = null; NotifDots.clear(); }
     @Override public void onDestroy() { NotificationHistory.connected = false; if (inst == this) inst = null; NotifDots.clear(); worker.shutdown(); super.onDestroy(); }
 

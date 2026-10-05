@@ -17,6 +17,13 @@ const { chromium } = require('playwright');
       await page.evaluate(() => { Android._historyRows.push({ time:Date.now(), app:'<img src=x onerror="window.injected=1">', title:'<script>window.injected=1</script>', text:'Bijzonder & privé', package:'example.test' }); loadHistory(); });
       assert.equal(await page.locator('#history-list img, #history-list script').count(), 0);
       assert.equal(await page.evaluate(() => window.injected), undefined);
+      // filter per app
+      assert.equal(await page.locator('#history-apps button').count(), 4);
+      await page.click('#history-apps button:has-text("WhatsApp")');
+      assert.equal(await page.locator('.history-entry').count(), 1);
+      assert.match(await page.textContent('#history-list'), /Tot vanavond/);
+      await page.click('#history-apps button:has-text("Alle")');
+      assert.equal(await page.locator('.history-entry').count(), 3);
       await page.fill('#history-search', 'bijzonder');
       await page.waitForFunction(() => document.querySelectorAll('.history-entry').length === 1);
       assert.match(await page.textContent('#history-list'), /Bijzonder & privé/);

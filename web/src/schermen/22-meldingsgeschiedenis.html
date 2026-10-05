@@ -6,7 +6,7 @@
   <main>
     <div class="card">
       <h2>Meldingen bewaren</h2>
-      <p class="note">Bewaar nieuwe meldingen op deze telefoon, ook nadat je ze wegveegt. Eerdere meldingen uit de Android-geschiedenis kunnen niet worden opgehaald.</p>
+      <p class="note">Bewaar nieuwe meldingen op deze telefoon, ook nadat je ze wegveegt. Wat nu nog in je meldingenpaneel staat wordt ook bewaard; oudere meldingen geeft Android aan geen enkele app.</p>
       <label class="chk"><input type="checkbox" id="history-enabled" onchange="historyEnable(this.checked)"> Nieuwe meldingen bewaren</label>
       <p id="history-state" role="status" aria-live="polite"></p>
       <button class="big ghost" id="history-permission" onclick="Android.historyRequestPermission();setTimeout(loadHistory,500)">Meldingentoegang instellen</button>
@@ -22,8 +22,10 @@
     </div>
     <label for="history-search">Zoeken in de geschiedenis</label>
     <input class="search" id="history-search" type="search" placeholder="Zoek op app, titel of tekst…" oninput="historySearch()">
+    <div class="chips sm" id="history-apps" role="group" aria-label="Filter op app" style="margin-top:10px"></div>
     <p class="note" id="history-count" aria-live="polite"></p>
     <div id="history-list"></div>
+    <button class="big ghost" id="history-more" style="display:none;margin-bottom:12px" onclick="historyMore()">Oudere meldingen tonen</button>
     <button class="big ghost" id="history-clear" onclick="historyClear()">Geschiedenis op deze telefoon wissen</button>
     <p class="note">Bestaande backupbestanden blijven bewaard.</p>
   </main>
