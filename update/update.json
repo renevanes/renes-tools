@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.31",
-  "versionCode": 32,
-  "nativeLevel": 28,
+  "versionName": "1.32",
+  "versionCode": 33,
+  "nativeLevel": 29,
   "web": "index.html",
-  "webSha256": "f5a735d149db5c383d5fdecd9111500b5558b16843b4b762d1b917dfa1162662",
+  "webSha256": "87a2ebea539e314d848bb266e6427dabad5b5b40071b9eb8461b13ff7c56f8fb",
   "start": "start.html",
   "startSha256": "15aae8038510d6e3558b21602bea89ebad4a10bc0eec570110adff726a97f63a",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "2370decfda07e464ac1f5d27954af58c3b730ec53a10a00bf33fd02075efe24e",
+  "apkSha256": "a52c48dd79320f2543c3cb1eb23818eee48d2330a64e422d09dc4f5113b27f07",
   "changelog": [
+    {
+      "version": "1.32",
+      "date": "2026-10-05",
+      "changes": [
+        "Vandaag-pagina werd maar half getekend na het opzij vegen"
+      ]
+    },
     {
       "version": "1.31",
       "date": "2026-10-05",

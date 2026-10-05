@@ -1144,7 +1144,11 @@ final class Desk {
 
         @Override
         public void computeScroll() {
-            if (sc.computeScrollOffset()) { scrollTo(sc.getCurrX(), 0); postInvalidateOnAnimation(); }
+            if (sc.computeScrollOffset()) {
+                scrollTo(sc.getCurrX(), 0);
+                postInvalidateOnAnimation();
+                if (sc.isFinished() && page == 0 && d.todayPage != null) d.todayPage.invalidate();
+            }
         }
 
         @Override
@@ -1158,6 +1162,9 @@ final class Desk {
                     wm.setWallpaperOffsets(getWindowToken(), Math.max(0, Math.min(1, l / (float) (w * (pages() - 1)))), 0.5f);
                 } catch (Exception ignored) { }
             }
+            // De Vandaag-pagina (webpagina) tekent alleen het stuk dat hij zichtbaar denkt; bij opzij schuiven van
+            // het werkblad wordt hij niet vanzelf opnieuw getekend en blijft hij half leeg. Dus: zelf laten tekenen.
+            if (w > 0 && l < w && d.todayPage != null) d.todayPage.invalidate();
             d.dots.invalidate();
         }
 

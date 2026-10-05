@@ -256,6 +256,7 @@ public class HomeActivity extends Activity {
             return;
         }
         js("onResumeHome", "");
+        if (desk != null && web != null) { WebView v = web; h.postDelayed(() -> { if (v == web) v.invalidate(); }, 150); }
         if (fellBack) { fellBack = false; h.postDelayed(() -> toast("Het nieuwe startscherm startte niet goed; je ziet de klassieke skin. Zie Look aanpassen."), 1500); }
     }
 
@@ -428,7 +429,13 @@ public class HomeActivity extends Activity {
         } catch (Throwable ignored) { }
     }
 
-    void onPageChanged(int p) { if (p == 0) jsTo(web, "onResumeHome", ""); }
+    void onPageChanged(int p) {
+        if (p != 0) return;
+        jsTo(web, "onResumeHome", "");
+        // Na het schuiven nog eens laten tekenen (zie Workspace.onScrollChanged)
+        WebView v = web;
+        if (v != null) for (int ms : new int[]{0, 120, 400}) h.postDelayed(() -> { if (v == web) v.invalidate(); }, ms);
+    }
 
     void toast(String m) { h.post(() -> Toast.makeText(this, m, Toast.LENGTH_LONG).show()); }
 
