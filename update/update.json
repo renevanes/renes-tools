@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.27",
-  "versionCode": 28,
+  "versionName": "1.28",
+  "versionCode": 29,
   "nativeLevel": 26,
   "web": "index.html",
-  "webSha256": "6f04d8ff59e6e8b5f46fe753697f3644fe28211bd1e1fc86ceeac03285531ce7",
+  "webSha256": "25ebf74765a4a5279d9495670040a49d3bb8993913c3457369edf6500a528104",
   "start": "start.html",
   "startSha256": "4a4e9814251eac074646d30abf7e9448de45f9e467896b1456f50ead0c474b81",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1f6770a9603f9d9e14e9ca4e84769036d2939ebf48f52ad92b6d032c9f4f5655",
+  "apkSha256": "1410fef8e59603f56b8b3032016c686e183ea4768db65a5cbca44807cbf2673f",
   "changelog": [
+    {
+      "version": "1.28",
+      "date": "2026-10-05",
+      "changes": [
+        "Telefoon-skin aanzetten staat nu bovenaan Instellingen, en bovenaan het startscherm van Rene's Tools zolang hij nog niet aan staat"
+      ]
+    },
     {
       "version": "1.27",
       "date": "2026-10-05",

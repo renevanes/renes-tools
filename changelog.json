@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.28",
+    "date": "2026-10-05",
+    "changes": [
+      "Telefoon-skin aanzetten staat nu bovenaan Instellingen, en bovenaan het startscherm van Rene's Tools zolang hij nog niet aan staat"
+    ]
+  },
+  {
     "version": "1.27",
     "date": "2026-10-05",
     "changes": [

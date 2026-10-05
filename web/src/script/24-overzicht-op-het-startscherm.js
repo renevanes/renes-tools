@@ -4,6 +4,8 @@ function renderDash(){
   if (gsQ) { box.style.display = 'none'; return; }
   if (homeCfg().dash === false) { box.style.display = 'none'; return; }
   const rows = [];
+  // Telefoon-skin nog niet in gebruik: bovenaan de weg ernaartoe.
+  try { if (!Android.homeIsDefault()) rows.push(['📱', 'Telefoon-skin: Rene\'s Tools als startscherm gebruiken', 'settings', '']); } catch(e){}
   try {
     const bk = JSON.parse(Android.backupState(false));
     const l = bk.last;

@@ -6,6 +6,15 @@
   </div>
   <main>
     <div class="card">
+      <h2>Telefoon-skin</h2>
+      <p class="note" style="margin-top:0">Gebruik Rene's Tools als startscherm van je telefoon: klok, weer, agenda, radio en het overzicht bovenaan, al je apps met zoeken, mappen en een eigen look. Veeg omhoog voor alle apps.</p>
+      <p class="note" id="st-home-state"></p>
+      <button class="big" id="st-home-btn" onclick="Android.homeMakeDefault()">Als startscherm gebruiken</button>
+      <button class="big ghost" style="margin-top:8px" onclick="Android.homeOpen()">Eerst bekijken</button>
+      <button class="big ghost" style="margin-top:8px;display:none" id="st-home-back" onclick="Android.homeSettings()">Terug naar het startscherm van de telefoon…</button>
+    </div>
+
+    <div class="card">
       <h2>App-slot</h2>
       <p class="note" style="margin-top:0">Vergrendel Rene's Tools met de schermvergrendeling van je telefoon: vingerafdruk, gezicht of pincode. De inhoud is dan ook niet te zien in "recente apps".</p>
       <div class="row setrow"><span style="flex:1" id="st-lock-state">Uit</span>
@@ -15,15 +24,6 @@
           <option value="0">Meteen</option><option value="30000">30 seconden</option><option value="60000">1 minuut</option>
           <option value="300000">5 minuten</option><option value="900000">15 minuten</option><option value="3600000">1 uur</option>
         </select></div>
-    </div>
-
-    <div class="card">
-      <h2>Telefoon-skin</h2>
-      <p class="note" style="margin-top:0">Gebruik Rene's Tools als startscherm van je telefoon: klok, weer, agenda, radio en het overzicht bovenaan, al je apps met zoeken, mappen en een eigen look. Veeg omhoog voor alle apps.</p>
-      <p class="note" id="st-home-state"></p>
-      <button class="big" id="st-home-btn" onclick="Android.homeMakeDefault()">Als startscherm gebruiken</button>
-      <button class="big ghost" style="margin-top:8px" onclick="Android.homeOpen()">Eerst bekijken</button>
-      <button class="big ghost" style="margin-top:8px;display:none" id="st-home-back" onclick="Android.homeSettings()">Terug naar het startscherm van de telefoon…</button>
     </div>
 
     <div class="card">
