@@ -107,6 +107,19 @@ body.drawer-on #drawer{transform:none}
 .pk .ph,.hid .ph,#sheet .shd .ph{display:grid;place-items:center;color:#fff;font-weight:700;font-size:17px}
 .chk2{width:28px;height:28px;border-radius:9px;border:2px solid var(--muted);display:grid;place-items:center;flex:none;font-size:15px;color:#fff}.chk2.on{background:var(--acc);border-color:var(--acc)}
 input[type=range]{width:100%;accent-color:var(--acc)}
+/* Launcher-modi: Vandaag-pagina (today) en de laag met alle apps/menu's (overlay); het werkblad zelf is native */
+body.m-today #dock,body.m-today #pinned,body.m-today #drawer,body.m-today #hint{display:none!important}
+body.m-today #home{padding-bottom:calc(var(--sb) + 24px)}
+body.m-overlay #home,body.m-overlay #dock{display:none!important}
+body.m-today,body.m-overlay{background:transparent!important}
+#wpick{position:absolute;inset:0;z-index:27;display:none;flex-direction:column;padding:calc(var(--st) + 10px) 14px 0;background:var(--glass);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px)}
+#wpick.on{display:flex}#wpick h2{display:flex;align-items:center;gap:10px;margin:4px 0 10px;font-size:20px}
+#wp-list{flex:1;overflow-y:auto;padding-bottom:calc(var(--sb) + 20px)}
+.wapp{margin:14px 2px 6px;font-size:13px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:8px}.wapp img,.wapp .ph{width:22px;height:22px;border-radius:6px}
+.wcard{display:block;width:100%;text-align:left;padding:10px;border-radius:16px;background:var(--glass2);margin-bottom:8px}
+.wcard .wprev{display:flex;align-items:center;justify-content:center;min-height:90px;max-height:180px;overflow:hidden;border-radius:10px;background:rgba(127,127,127,.12)}
+.wcard .wprev img{max-width:100%;max-height:170px;object-fit:contain}
+.wcard b{display:block;margin-top:8px;font-size:15px}.wcard small{color:var(--muted);font-size:12px}
 #toast{position:absolute;left:50%;bottom:calc(var(--sb) + 110px);transform:translateX(-50%);background:rgba(15,23,42,.92);color:#fff;padding:10px 16px;border-radius:14px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40;max-width:86%;text-align:center}
 #toast.on{opacity:1}
 #ask input{width:100%;font:inherit;font-size:16px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--glass2);color:var(--ink);margin:4px 0 12px}
@@ -174,6 +187,11 @@ input[type=range]{width:100%;accent-color:var(--acc)}
   </div>
   <div class="lsec"><h4>Snelkoppelingen naar tools</h4><div class="seg" id="l-tools"></div></div>
   <div class="lsec"><h4>Verborgen apps</h4><div id="l-hidden"></div></div>
+  <div class="lsec" id="l-kind"><h4>Soort startscherm</h4>
+    <p style="margin:0 0 6px;font-size:14px;color:var(--muted)" id="l-kind-txt"></p>
+    <button class="big2 ghost" id="l-widgets" onclick="closeLook(); Android.widgetPicker()">Widgets toevoegen…</button>
+    <button class="big2 ghost" id="l-kind-btn" onclick="toggleClassic()"></button>
+  </div>
   <div class="lsec"><h4>Opnieuw beginnen</h4>
     <button class="big2 ghost" onclick="resetLook()">Look en indeling terugzetten naar standaard…</button>
   </div>
@@ -188,6 +206,11 @@ input[type=range]{width:100%;accent-color:var(--acc)}
   <h2><button class="ib" onclick="closePick(false)" aria-label="Annuleren">‹</button><span id="pk-title"></span><button class="done" onclick="closePick(true)">Klaar</button></h2>
   <input id="pk-q" type="search" placeholder="Zoek apps…" aria-label="Zoek apps" autocomplete="off" oninput="renderPick()" style="font:inherit;font-size:16px;padding:11px 14px;border-radius:14px;border:0;background:var(--glass2);color:var(--ink);outline:none">
   <div id="pk-list"></div>
+</div>
+<div id="wpick" aria-label="Widgets toevoegen">
+  <h2><button class="ib" onclick="closeWPick()" aria-label="Terug">‹</button> Widgets toevoegen</h2>
+  <input id="wp-q" type="search" placeholder="Zoek widgets…" aria-label="Zoek widgets" autocomplete="off" oninput="renderWPick()" style="font:inherit;font-size:16px;padding:11px 14px;border-radius:14px;border:0;background:var(--glass2);color:var(--ink);outline:none">
+  <div id="wp-list"></div>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -214,13 +237,33 @@ if (!window.Android) window.Android = (function(){
       reminders: {a: Date.now() + 2 * 36e5}, redial: {on: true, next: Date.now() + 20 * 36e5, plan: {name: 'Huisarts', number: '010'}}}); },
     radio(w){ this._rw = w; if (w === 'play' || w === 'resume') this._radio = {status: 'playing', station: {name: 'NPO Radio 2'}, title: 'Doe Maar - De Bom'}; else if (w === 'pause') this._radio.status = 'paused'; else if (w === 'stop') this._radio = {status: 'stopped'}; },
     openTool(n){ this._tool = n; },
+    _ws: {pinned: ['com.whatsapp/.Main'], dock: ['com.android.dialer/.Main']}, wsApps(){ return JSON.stringify(this._ws); },
+    wsAddApp(k){ this._ws.pinned.push(k); }, wsDock(k, on){ this._ws.dock = this._ws.dock.filter(x => x !== k); if (on) this._ws.dock.push(k); },
+    wsApply(j){ const o = JSON.parse(j); if (o.pinned) this._ws.pinned = o.pinned; if (o.dock) this._ws.dock = o.dock; this._applied = j; },
+    overlayDone(seq){ this._ovDone = (this._ovDone || 0) + 1; this._ovSeq = seq; }, openDrawer(){ this._openDrawer = true; }, homeMenu(){ this._homeMenu = true; },
+    sheetAction(u, id){ this._sheet = u + ':' + id; }, folderRename(u, n){ this._ren = u + ':' + n; }, widgetAdd(p){ this._wadd = p; },
+    widgetPicker(){ widgetPicker(null); setTimeout(() => widgetPicker([{p: 'com.x/.Clock', label: 'Klok', app: 'Klok', w: 2, h: 2, own: false}, {p: 'nl.rene.tools/.NoteWidget', label: 'Notitielijst', app: "Rene's Tools", w: 2, h: 3, own: true}]), 10); },
+    setClassic(on){ this._classic = on; }, classic(){ return MODE === 'legacy'; },
     notes(){ return JSON.stringify([{id: 'n1', title: 'Boodschappen', open: 7, total: 9, items: ['Melk', 'Brood', 'Kaas', 'Appels', 'Koffie'], text: ''}]); }, isDefault(){ return false; }, homeSettings(){ this._hs = true; }, wallpaper(){}, webSearch(q){ this._ws = q; },
     notifications(){ this._notif = true; return true; }, vibrate(){}, hasPerm(){ return true; }, logJs(){}, version(){ return '{}'; }
   };
 })();
 
 const $ = s => document.querySelector(s);
+/* Modus: legacy (klassieke skin, alles in deze pagina), today (Vandaag-pagina van de launcher) of overlay (alle apps, menu's). */
+const MODE = (() => { const m = '__MODE__'; if (!m.startsWith('__')) return m; const h = (location.hash || '').slice(1); return ['today', 'overlay'].includes(h) ? h : 'legacy'; })();
+const NATIVE = MODE !== 'legacy';
+document.body.classList.add('m-' + MODE);
 try { if (typeof Android.ready === 'function') Android.ready(); } catch(e){} // meteen: ook als er verderop iets misgaat, werken terug en meldingen
+/* Overlay: tikken terwijl er niets open is → de (onzichtbare) laag weg, zodat hij nooit het werkblad blokkeert.
+   Het volgnummer (__ovSeq) komt van het werkblad; een verouderd 'klaar' verbergt zo nooit een venster dat net opengaat. */
+window.__ovSeq = 0;
+window.__setSeq = n => { window.__ovSeq = n; };
+if (MODE === 'overlay') document.addEventListener('pointerdown', () => {
+  let open = true;
+  try { open = anyOverlay() || drawerOn(); } catch(e) { open = false; }
+  if (!open) Android.overlayDone(window.__ovSeq | 0);
+}, true);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const J = (s, d) => { try { return JSON.parse(s); } catch(e) { return d; } };
 function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); }
@@ -256,7 +299,7 @@ const PARTS = {clock: ['🕒', 'Klok', ['#clock', '#alarm']], weather: ['🌤️
 function applyOrder(){
   const home = $('#home');
   home.appendChild($('#banner'));
-  for (const k of cfg.order) for (const sel of PARTS[k][2]) home.appendChild($(sel));
+  for (const k of cfg.order) { if (NATIVE && k === 'apps') continue; for (const sel of PARTS[k][2]) home.appendChild($(sel)); }
   home.appendChild($('#hint'));
   // banner direct na de klok als die bovenaan staat
   if (cfg.order[0] === 'clock') $('#alarm').after($('#banner'));
@@ -279,7 +322,7 @@ function applyLook(){
   $('#alarm').style.display = cfg.clock.alarm ? '' : 'none';
   applyOrder();
   const bg = BGS[cfg.bg] ? cfg.bg : 'wallpaper';
-  document.body.classList.toggle('bgcol', bg !== 'wallpaper');
+  document.body.classList.toggle('bgcol', bg !== 'wallpaper' && !NATIVE);
   document.body.style.setProperty('--bgc', BGS[bg][1]);
   r.classList.toggle('nowall', !!LIGHTBG[bg]);
   document.querySelectorAll('.onwall').forEach(e => e.style.color = LIGHTBG[bg] ? '#0f172a' : '');
@@ -351,7 +394,7 @@ function renderDock(){ const d = (cfg.dock || []).filter(exists); document.docum
 const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 function renderDrawer(){
   const q = norm($('#q').value.trim());
-  const inFolder = new Set(Object.values(cfg.folders).flat());
+  const inFolder = new Set(NATIVE ? [] : Object.values(cfg.folders).flat());
   let html = '';
   if (q) {
     const hits = apps.filter(a => !cfg.hidden.includes(a.k) && norm(a.n).includes(q))
@@ -360,7 +403,7 @@ function renderDrawer(){
     html += '<button class=websearch onclick="Android.webSearch($(\'#q\').value.trim())"><span>🔎</span><span>Zoek op internet naar “' + esc($('#q').value.trim()) + '”</span></button>';
     if (!hits.length) html = '<p class=empty>Geen app gevonden</p>' + html;
   } else {
-    const folders = Object.keys(cfg.folders).filter(f => exists('f:' + f)).sort((a, b) => a.localeCompare(b, 'nl'));
+    const folders = NATIVE ? [] : Object.keys(cfg.folders).filter(f => exists('f:' + f)).sort((a, b) => a.localeCompare(b, 'nl'));
     html = (folders.length ? '<div class=grid style="margin-bottom:14px">' + folders.map(f => appHtml('f:' + f, 'drawer')).join('') + '</div>' : '') + '<div class=grid>';
     for (const a of sortedApps()) if (!cfg.hidden.includes(a.k) && !inFolder.has(a.k)) html += appHtml(a.k, 'drawer');
     html += '</div>';
@@ -409,7 +452,7 @@ document.addEventListener('click', e => {
 let bgPress = null;
 function pressBg(e){
   if (!e.target.closest('#home') || e.target.closest('button, .card, #weather')) return;
-  bgPress = {x: e.clientX, y: e.clientY, t: setTimeout(() => { Android.vibrate(15); homeSheet(); }, 600)};
+  bgPress = {x: e.clientX, y: e.clientY, t: setTimeout(() => { Android.vibrate(15); if (MODE === 'today') Android.homeMenu(); else homeSheet(); }, 600)};
 }
 
 function appSheet(k, where){
@@ -417,7 +460,10 @@ function appSheet(k, where){
   const name = isF ? 'Map ' + k.slice(2) : (a ? a.n : '');
   const acts = [];
   if (where === 'folder') acts.push(['Uit de map halen', () => { const f = openF; cfg.folders[f] = cfg.folders[f].filter(x => x !== k); if (!cfg.folders[f].length) { dropEmptyFolders(); closeFolder(); } else openFolder(f); saveAll(); }]);
-  if (!cfg.pinned.includes(k)) acts.push(['Op het startscherm zetten', () => { cfg.pinned.push(k); saveAll(); toast('Op je startscherm gezet'); }]);
+  const ws = NATIVE ? J(Android.wsApps(), {pinned: [], dock: []}) : null;
+  if (NATIVE) {
+    if (!isF) acts.push([ws.pinned.includes(k) ? 'Nog een keer op het startscherm zetten' : 'Op het startscherm zetten', () => Android.wsAddApp(k)]);
+  } else if (!cfg.pinned.includes(k)) acts.push(['Op het startscherm zetten', () => { cfg.pinned.push(k); saveAll(); toast('Op je startscherm gezet'); }]);
   else acts.push(['Van het startscherm halen', () => { cfg.pinned = cfg.pinned.filter(x => x !== k); saveAll(); }]);
   if (where === 'home' || where === 'dock') {
     const list = where === 'home' ? cfg.pinned : cfg.dock, i = list.indexOf(k);
@@ -425,9 +471,12 @@ function appSheet(k, where){
     if (i >= 0 && i < list.length - 1) acts.push(['Naar achteren →', () => { list.splice(i, 1); list.splice(i + 1, 0, k); saveAll(); }]);
   }
   if (!isF) {
-    if (!cfg.dock.includes(k)) { if (cfg.dock.length < 6) acts.push(['In het dock (onderbalk)', () => { cfg.dock.push(k); saveAll(); }]); }
+    if (NATIVE) {
+      if (!ws.dock.includes(k)) acts.push(['In het dock (onderbalk)', () => Android.wsDock(k, true)]);
+      else acts.push(['Uit het dock', () => Android.wsDock(k, false)]);
+    } else if (!cfg.dock.includes(k)) { if (cfg.dock.length < 6) acts.push(['In het dock (onderbalk)', () => { cfg.dock.push(k); saveAll(); }]); }
     else acts.push(['Uit het dock', () => { cfg.dock = cfg.dock.filter(x => x !== k); saveAll(); }]);
-    if (where !== 'folder') acts.push(['In een map…', () => askFolder(k)]);
+    if (where !== 'folder' && !NATIVE) acts.push(['In een map…', () => askFolder(k)]);
     acts.push(['Verbergen', () => { cfg.hidden.push(k); cfg.pinned = cfg.pinned.filter(x => x !== k); cfg.dock = cfg.dock.filter(x => x !== k); for (const f of Object.keys(cfg.folders)) cfg.folders[f] = cfg.folders[f].filter(x => x !== k); dropEmptyFolders(); if (openF) closeFolder(); saveAll(); toast(name + ' is verborgen (terug te zetten via Look aanpassen)'); }]);
     acts.push(['App-info', () => Android.appInfo(k)]);
     if (a && !a.sys) acts.push(['Verwijderen…', () => Android.uninstall(k)]);
@@ -452,13 +501,20 @@ function openSheet(ic, title, acts){
 function dropEmptyFolders(){
   for (const f of Object.keys(cfg.folders)) if (!cfg.folders[f].length) { delete cfg.folders[f]; cfg.pinned = cfg.pinned.filter(x => x !== 'f:' + f); cfg.dock = (cfg.dock || []).filter(x => x !== 'f:' + f); }
 }
-function closeSheet(){ $('#sheet').classList.remove('on'); }
+function closeSheet(){ $('#sheet').classList.remove('on'); ovCheck(); }
+/* Overlay-modus: niets meer open → de laag verbergen (later, zodat een volgend venster eerst open kan gaan). */
+function ovCheck(){
+  if (MODE !== 'overlay') return;
+  clearTimeout(ovCheck.t);
+  const s = window.__ovSeq | 0; // het nummer van nu (niet van een venster dat intussen opengaat)
+  ovCheck.t = setTimeout(() => { if (!anyOverlay() && !drawerOn() && !$('#wpick.on')) Android.overlayDone(s); }, 60);
+}
 function saveAll(){ save(); renderPinned(); renderDock(); renderDrawer(); }
 
 /* ---------- mappen ---------- */
 let openF = null;
 function openFolder(f){ if (!hasF(f)) return; openF = f; $('#fname').textContent = f; $('#fgrid').innerHTML = cfg.folders[f].filter(k => byKey[k]).map(k => appHtml(k, 'folder')).join(''); $('#folder').classList.add('on'); }
-function closeFolder(){ openF = null; $('#folder').classList.remove('on'); }
+function closeFolder(){ openF = null; $('#folder').classList.remove('on'); ovCheck(); }
 function askFolder(k){
   const names = Object.keys(cfg.folders);
   ask('In welke map?', '', v => {
@@ -478,7 +534,7 @@ function ask(title, val, cb, extra, ph){
 }
 $('#askok').onclick = () => { const cb = askCb; const v = $('#askin').value; closeAsk(); if (cb) cb(v); };
 $('#askin').addEventListener('keydown', e => { if (e.key === 'Enter') $('#askok').click(); });
-function closeAsk(){ $('#ask').classList.remove('on'); askCb = null; }
+function closeAsk(){ $('#ask').classList.remove('on'); askCb = null; ovCheck(); }
 
 /* ---------- vegen ---------- */
 let sw = null;
@@ -489,15 +545,16 @@ document.addEventListener('touchend', e => {
   if (anyOverlay()) return;
   if (!drawerOn() && !s.inDrawer) {
     const homeEl = $('#home');
-    if (dy < 0 && homeEl.scrollTop + homeEl.clientHeight >= homeEl.scrollHeight - 4) openDrawer();
+    if (dy < 0 && homeEl.scrollTop + homeEl.clientHeight >= homeEl.scrollHeight - 4) { if (MODE === 'today') Android.openDrawer(); else if (MODE === 'legacy') openDrawer(); }
     else if (dy > 0 && s.homeTop) { if (!Android.notifications()) {} }
   } else if (drawerOn() && dy > 0 && s.top) closeDrawer();
 }, {passive: true});
 function drawerOn(){ return document.body.classList.contains('drawer-on'); }
-function anyOverlay(){ return !!document.querySelector('#sheet.on, #folder.on, #ask.on, #look.on, #pick.on'); }
-function openDrawer(){ renderDrawer(); document.body.classList.add('drawer-on'); $('#dlist').scrollTop = 0; }
-function closeDrawer(){ document.body.classList.remove('drawer-on'); $('#q').value = ''; $('#q').blur(); }
-$('#hint').onclick = openDrawer;
+function anyOverlay(){ return !!document.querySelector('#sheet.on, #folder.on, #ask.on, #look.on, #pick.on, #wpick.on'); }
+function openDrawerInner(){ renderDrawer(); document.body.classList.add('drawer-on'); $('#dlist').scrollTop = 0; }
+function openDrawer(){ if (MODE === 'today') { Android.openDrawer(); return; } clearTimeout(ovCheck.t); openDrawerInner(); }
+function closeDrawer(){ document.body.classList.remove('drawer-on'); $('#q').value = ''; $('#q').blur(); ovCheck(); }
+$('#hint').onclick = () => openDrawer();
 
 /* ---------- klok, wekker ---------- */
 function tickClock(){
@@ -613,7 +670,9 @@ setInterval(() => { if (document.visibilityState === 'visible') { renderTools();
 /* ---------- apps kiezen (startscherm, dock, zichtbaar bij alle apps) ---------- */
 let pk = null;
 function pickApps(mode){
-  pk = {mode, sel: mode === 'drawer' ? apps.filter(a => !cfg.hidden.includes(a.k)).map(a => a.k) : (mode === 'dock' ? cfg.dock : cfg.pinned).filter(exists).slice(),
+  const ws = NATIVE ? J(Android.wsApps(), {pinned: [], dock: []}) : null;
+  pk = {mode, sel: mode === 'drawer' ? apps.filter(a => !cfg.hidden.includes(a.k)).map(a => a.k)
+      : NATIVE ? [...new Set((mode === 'dock' ? ws.dock : ws.pinned).filter(k => byKey[k]))] : (mode === 'dock' ? cfg.dock : cfg.pinned).filter(exists).slice(),
     max: mode === 'dock' ? 6 : 0};
   $('#pk-title').textContent = {pinned: 'Op het startscherm', dock: 'In het dock', drawer: 'Zichtbaar bij alle apps'}[mode];
   $('#pk-q').value = '';
@@ -635,7 +694,7 @@ function renderPick(){
       '<p style="color:var(--muted);font-size:14px;margin:6px 2px">Nog niets gekozen. Tik hieronder op apps om ze toe te voegen.</p>';
     h += '<div class=pkhd>Alle apps</div>';
   } else h += '<div class=pkhd>' + pk.sel.length + ' van ' + apps.length + ' zichtbaar · vinkje weg = verborgen</div>';
-  const list = (pk.mode === 'pinned' ? Object.keys(cfg.folders).filter(f => exists('f:' + f)).map(f => ({k: 'f:' + f, n: '📁 ' + f})) : []).concat(apps)
+  const list = (pk.mode === 'pinned' && !NATIVE ? Object.keys(cfg.folders).filter(f => exists('f:' + f)).map(f => ({k: 'f:' + f, n: '📁 ' + f})) : []).concat(apps)
     .filter(a => !q || norm(a.n).includes(q));
   h += list.map(a => { const on = pk.sel.includes(a.k);
     return '<button class=pk style="width:100%;text-align:left" data-k="' + esc(a.k) + '" onclick="pkToggle(this.dataset.k)" role="checkbox" aria-checked="' + on + '">' + pkIcon(a.k) +
@@ -656,6 +715,9 @@ function closePick(ok){
     if (pk.mode === 'drawer') {
       const keep = cfg.hidden.filter(k => !byKey[k]); // apps die er even niet zijn: niet zomaar weer tonen
       cfg.hidden = keep.concat(apps.filter(a => !pk.sel.includes(a.k)).map(a => a.k));
+    } else if (NATIVE) {
+      Android.wsApply(JSON.stringify(pk.mode === 'dock' ? {dock: pk.sel} : {pinned: pk.sel}));
+      cfg.hidden = cfg.hidden.filter(k => !pk.sel.includes(k));
     } else {
       const gone = (pk.mode === 'dock' ? cfg.dock : cfg.pinned).filter(k => !exists(k)); // tijdelijk weg: plek bewaren
       if (pk.mode === 'dock') cfg.dock = pk.sel.concat(gone); else cfg.pinned = pk.sel.concat(gone);
@@ -663,12 +725,12 @@ function closePick(ok){
     }
     saveAll(); renderLook(); toast('Opgeslagen');
   }
-  pk = null; $('#pick').classList.remove('on'); $('#pk-q').blur();
+  pk = null; $('#pick').classList.remove('on'); $('#pk-q').blur(); ovCheck();
 }
 
 /* ---------- look aanpassen ---------- */
-function openLook(){ closeDrawer(); renderLook(); $('#look').classList.add('on'); }
-function closeLook(){ $('#look').classList.remove('on'); }
+function openLook(){ closeDrawer(); clearTimeout(ovCheck.t); renderLook(); $('#look').classList.add('on'); }
+function closeLook(){ $('#look').classList.remove('on'); ovCheck(); }
 function seg(id, opts, cur, fn){ $(id).innerHTML = opts.map(([v, l]) => '<button data-v="' + esc(v) + '"' + (String(v) === String(cur) ? ' class=on' : '') + '>' + l + '</button>').join('');
   $(id).querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); renderLook(); }); }
 function renderLook(){
@@ -681,24 +743,37 @@ function renderLook(){
   seg('#l-cols', [[4, '4 per rij'], [5, '5 per rij']], cfg.cols, v => { cfg.cols = +v; save(); applyLook(); });
   const tg = (id, on) => { $(id).classList.toggle('on', !!on); $(id).setAttribute('aria-checked', on ? 'true' : 'false'); };
   tg('#l-labels', cfg.labels); tg('#l-sw-date', cfg.clock.date); tg('#l-sw-alarm', cfg.clock.alarm);
-  $('#l-n-pinned').textContent = cfg.pinned.filter(exists).length; $('#l-n-dock').textContent = (cfg.dock || []).filter(exists).length;
+  const wsl = NATIVE ? J(Android.wsApps(), {pinned: [], dock: []}) : null;
+  $('#l-n-pinned').textContent = NATIVE ? new Set(wsl.pinned).size : cfg.pinned.filter(exists).length;
+  $('#l-n-dock').textContent = NATIVE ? wsl.dock.length : (cfg.dock || []).filter(exists).length;
+  $('#l-kind-txt').textContent = typeof Android.classic === 'function' && Android.classic() ? (MODE === 'legacy' ? 'Klassieke skin: één scherm, zonder pagina\'s en widgets.' : '')
+    : 'Launcher: pagina\'s opzij vegen, apps en widgets slepen. Links staat Vandaag.';
+  $('#l-kind-btn').textContent = MODE === 'legacy' ? 'Launcher met pagina\'s en widgets gebruiken' : 'Klassieke skin gebruiken (zonder pagina\'s)';
+  $('#l-widgets').style.display = NATIVE ? 'block' : 'none';
+  $('#l-kind').style.display = typeof Android.setClassic === 'function' ? 'block' : 'none';
   $('#l-n-drawer').textContent = apps.filter(a => !cfg.hidden.includes(a.k)).length + ' van ' + apps.length;
   seg('#l-sort', [['az', 'A–Z'], ['used', 'Meest gebruikt'], ['new', 'Nieuwste eerst']], cfg.sort, v => { cfg.sort = v; save(); renderDrawer(); });
   seg('#l-clk', [['big', 'Groot'], ['medium', 'Middel'], ['small', 'Klein'], ['off', 'Uit']], cfg.clock.size, v => { cfg.clock.size = v; save(); applyLook(); });
   seg('#l-rad', [['round', 'Rond'], ['soft', 'Zacht'], ['square', 'Hoekig']], cfg.rad, v => { cfg.rad = v; save(); applyLook(); });
   $('#l-glass').value = cfg.glass;
   const showable = {weather: 1, cal: 1, tools: 1, notes: 1};
-  $('#l-order').innerHTML = cfg.order.map((k, i) => '<div class=ordrow><span>' + PARTS[k][0] + '</span><span class=on2>' + esc(PARTS[k][1]) + '</span>' +
+  $('#l-order').innerHTML = cfg.order.filter(k => !(NATIVE && k === 'apps')).map((k, i, arr) => '<div class=ordrow><span>' + PARTS[k][0] + '</span><span class=on2>' + esc(PARTS[k][1]) + '</span>' +
     (showable[k] ? '<button class="tg' + (cfg.show[k] ? ' on' : '') + '" role="switch" aria-checked="' + !!cfg.show[k] + '" aria-label="' + esc(PARTS[k][1]) + ' tonen" data-k="' + k + '" onclick="toggleShow(this.dataset.k)"></button>' : '') +
-    '<button class=mini2 data-i="' + i + '" data-d="-1" onclick="ordMove(this)"' + (i ? '' : ' disabled') + ' aria-label="Hoger">↑</button>' +
-    '<button class=mini2 data-i="' + i + '" data-d="1" onclick="ordMove(this)"' + (i < cfg.order.length - 1 ? '' : ' disabled') + ' aria-label="Lager">↓</button></div>').join('');
+    '<button class=mini2 data-k="' + k + '" data-d="-1" onclick="ordMove(this)"' + (i ? '' : ' disabled') + ' aria-label="Hoger">↑</button>' +
+    '<button class=mini2 data-k="' + k + '" data-d="1" onclick="ordMove(this)"' + (i < arr.length - 1 ? '' : ' disabled') + ' aria-label="Lager">↓</button></div>').join('');
   $('#l-place').textContent = Android.placeName() || 'Automatisch';
   $('#l-tools').innerHTML = Object.keys(TOOLS).map(k => '<button data-t="' + k + '"' + (cfg.tools.includes(k) ? ' class=on' : '') + '>' + TOOLS[k][0] + ' ' + TOOLS[k][1] + '</button>').join('');
   $('#l-tools').querySelectorAll('button').forEach(b => b.onclick = () => { const k = b.dataset.t; cfg.tools = cfg.tools.includes(k) ? cfg.tools.filter(x => x !== k) : cfg.tools.concat(k); save(); renderLook(); renderTools.force = true; renderTools(); });
   $('#l-hidden').innerHTML = cfg.hidden.filter(k => byKey[k]).map(k => '<div class=hid>' + icon(k, 72) + '<span>' + esc(byKey[k].n) + '</span><button data-k="' + esc(k) + '" onclick="unhide(this.dataset.k)">Tonen</button></div>').join('') || '<p style="margin:0;color:var(--muted);font-size:14px">Geen. Houd een app ingedrukt om hem te verbergen.</p>';
   $('#l-default').textContent = Android.isDefault() ? '✓ Rene\'s Start is je startscherm.' : 'Nu nog niet je standaard-startscherm.';
 }
-function ordMove(b){ const i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j >= cfg.order.length) return; const x = cfg.order[i]; cfg.order[i] = cfg.order[j]; cfg.order[j] = x; save(); applyOrder(); renderLook(); }
+function ordMove(b){
+  // Verschuiven binnen de zichtbare onderdelen (in de launcher-modus doet 'apps' niet mee)
+  const vis = cfg.order.filter(k => !(NATIVE && k === 'apps')), i = vis.indexOf(b.dataset.k), j = i + +b.dataset.d;
+  if (i < 0 || j < 0 || j >= vis.length) return;
+  const a = cfg.order.indexOf(vis[i]), c = cfg.order.indexOf(vis[j]); const x = cfg.order[a]; cfg.order[a] = cfg.order[c]; cfg.order[c] = x;
+  save(); applyOrder(); renderLook();
+}
 function setGlass(v){ cfg.glass = +v; applyLook(); clearTimeout(setGlass.t); setGlass.t = setTimeout(save, 400); }
 function toggleClock(k){ cfg.clock[k] = !cfg.clock[k]; save(); applyLook(); renderLook(); }
 function resetLook(){
@@ -707,9 +782,52 @@ function resetLook(){
     ['Look én indeling (apps, dock, mappen, volgorde)', () => { const u = cfg.usage, b = cfg.bannerOff; cfg = clone(DEF); cfg.usage = u; cfg.bannerOff = b; cfg.dock = defaultDock(); save(); applyLook(); saveAll(); renderLook(); renderTools.force = true; refreshCards(true); toast('Alles teruggezet'); }],
     ['Annuleren', () => {}]]);
 }
+function toggleClassic(){
+  const toClassic = MODE !== 'legacy';
+  openSheet('<span class=ib>' + (toClassic ? '▭' : '▦') + '</span>', toClassic ? 'Klassieke skin gebruiken?' : 'Launcher gebruiken?', [
+    [toClassic ? 'Ja, één scherm zonder pagina\'s' : 'Ja, met pagina\'s en widgets', () => Android.setClassic(toClassic)], ['Annuleren', () => {}]]);
+}
 function unhide(k){ cfg.hidden = cfg.hidden.filter(x => x !== k); saveAll(); renderLook(); }
 function toggleCfg(k){ cfg[k] = !cfg[k]; save(); applyLook(); renderLook(); }
 function toggleShow(k){ cfg.show[k] = !cfg.show[k]; save(); renderLook(); renderTools.force = true; refreshCards(true); }
+
+/* ---------- launcher: menu's, mapnaam en widgetkiezer (aangeroepen door het werkblad) ---------- */
+window.nativeSheet = function(o){
+  clearTimeout(ovCheck.t);
+  const ic = o.key ? icon(o.key, 96) : '<span class=ib>' + esc(o.glyph || '•') + '</span>';
+  openSheet(ic, o.title || '', (o.acts || []).map(a => [a[0], () => Android.sheetAction(String(o.uid), a[1])]));
+};
+window.askFolderName = function(o){ clearTimeout(ovCheck.t); ask('Naam van de map', o.name || '', v => { if (v.trim()) Android.folderRename(String(o.uid), v.trim()); }, '', 'Bijv. Reizen'); };
+let wpList = null;
+window.widgetPicker = function(list){
+  if (list != null && !$('#wpick.on')) return; // kiezer al dicht: lijst komt te laat
+  clearTimeout(ovCheck.t);
+  wpList = list; $('#wp-q').value = '';
+  $('#wpick').classList.add('on');
+  renderWPick();
+};
+function renderWPick(){
+  const box = $('#wp-list');
+  if (wpList == null) { box.innerHTML = '<p class=empty>Widgets zoeken…</p>'; return; }
+  const q = norm($('#wp-q').value.trim());
+  const l = wpList.filter(w => !q || norm(w.label + ' ' + w.app).includes(q)).sort((a, b) => (b.own - a.own) || a.app.localeCompare(b.app, 'nl') || a.label.localeCompare(b.label, 'nl'));
+  let html = '', last = '';
+  for (const w of l) {
+    if (w.app !== last) { last = w.app; html += '<div class=wapp>' + esc(w.app) + '</div>'; }
+    html += '<button class=wcard data-p="' + esc(w.p) + '" onclick="pickWidget(this.dataset.p)"><span class=wprev><img alt="" loading="lazy" src="/wpreview/' + encodeURIComponent(w.p) + '" onerror="this.remove()"></span>' +
+      '<b>' + esc(w.label) + '</b><small>' + w.w + ' × ' + w.h + '</small></button>';
+  }
+  box.innerHTML = html || '<p class=empty>' + (q ? 'Geen widget gevonden' : 'Geen widgets op deze telefoon') + '</p>';
+}
+function pickWidget(p){ $('#wpick').classList.remove('on'); Android.widgetAdd(p); }
+function closeWPick(){ $('#wpick').classList.remove('on'); ovCheck(); }
+/* Instellingen veranderd in de andere pagina (Vandaag ↔ overlay) */
+window.cfgReload = function(){
+  const c = J(Android.cfg(), null); if (!c) return;
+  for (const k of Object.keys(c)) cfg[k] = c[k];
+  cfg.show = Object.assign(clone(DEF.show), cfg.show || {}); cfg.clock = Object.assign(clone(DEF.clock), cfg.clock || {});
+  applyLook(); renderTools.force = true; refreshCards(true); if (drawerOn()) renderDrawer();
+};
 
 /* ---------- levenscyclus ---------- */
 function refreshCards(all){
@@ -720,14 +838,15 @@ function refreshCards(all){
 }
 window.onResumeHome = function(){ renderTools.force = true; refreshCards(false); clearInterval(window._tick); window._tick = setInterval(tickClock, 10000); };
 window.onPauseHome = function(){ clearInterval(window._tick); closeSheet(); closeAsk(); setTimeout(() => { if (document.visibilityState !== 'visible') { closeDrawer(); closeFolder(); closeLook(); } }, 400); };
-window.onHomePressed = function(){ closeSheet(); closeAsk(); if (pk) closePick(false); closeFolder(); closeLook(); closeDrawer(); $('#home').scrollTo({top: 0, behavior: 'smooth'}); };
+window.onHomePressed = function(){ closeSheet(); closeAsk(); if (pk) closePick(false); $('#wpick').classList.remove('on'); closeFolder(); closeLook(); closeDrawer(); $('#home').scrollTo({top: 0, behavior: 'smooth'}); };
 window.onBack = function(){
-  if ($('#sheet.on')) closeSheet(); else if ($('#ask.on')) closeAsk(); else if ($('#pick.on')) closePick(false); else if ($('#folder.on')) closeFolder(); else if ($('#look.on')) closeLook(); else if (drawerOn()) closeDrawer();
+  if ($('#sheet.on')) closeSheet(); else if ($('#ask.on')) closeAsk(); else if ($('#pick.on')) closePick(false); else if ($('#wpick.on')) closeWPick(); else if ($('#folder.on')) closeFolder(); else if ($('#look.on')) closeLook(); else if (drawerOn()) closeDrawer();
   else if (typeof Android.backUnhandled === 'function') Android.backUnhandled(); // bekijken zonder startscherm te zijn: terug = dicht
 };
 window.onAppsChanged = function(){ if (typeof Android.appsAsync === 'function') Android.appsAsync(); else window.onApps(J(Android.apps(), [])); };
 
 applyLook(); loadApps(); renderPinned(); renderDock(); refreshCards(true); window.onResumeHome();
+ovCheck();
 </script>
 </body>
 </html>

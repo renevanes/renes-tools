@@ -1,15 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.30",
-  "versionCode": 31,
-  "nativeLevel": 27,
+  "versionName": "1.31",
+  "versionCode": 32,
+  "nativeLevel": 28,
   "web": "index.html",
-  "webSha256": "daeaa5e9d69203ba906dc072d01df474a8b1b6824e9a03fa97e00bfc210b0c4e",
+  "webSha256": "f5a735d149db5c383d5fdecd9111500b5558b16843b4b762d1b917dfa1162662",
   "start": "start.html",
-  "startSha256": "e95666073219b22efe60e42399b5145a331a9a82ddcae0e2f4c66749d6341021",
+  "startSha256": "15aae8038510d6e3558b21602bea89ebad4a10bc0eec570110adff726a97f63a",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "2089601a65bb8daf1a656c202169f36bc9d2a60b026fa4c9ee61da1d03472a78",
+  "apkSha256": "2370decfda07e464ac1f5d27954af58c3b730ec53a10a00bf33fd02075efe24e",
   "changelog": [
+    {
+      "version": "1.31",
+      "date": "2026-10-05",
+      "changes": [
+        "Echte launcher: meerdere pagina's om opzij te vegen, apps en mappen slepen, dock",
+        "Widgets van alle apps plaatsen, instellen en van formaat veranderen",
+        "Links de pagina Vandaag (klok, weer, agenda, Rene's Tools); klassieke skin blijft te kiezen in Look aanpassen"
+      ]
+    },
     {
       "version": "1.30",
       "date": "2026-10-05",

@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.31",
+    "date": "2026-10-05",
+    "changes": [
+      "Echte launcher: meerdere pagina's om opzij te vegen, apps en mappen slepen, dock",
+      "Widgets van alle apps plaatsen, instellen en van formaat veranderen",
+      "Links de pagina Vandaag (klok, weer, agenda, Rene's Tools); klassieke skin blijft te kiezen in Look aanpassen"
+    ]
+  },
+  {
     "version": "1.30",
     "date": "2026-10-05",
     "changes": [

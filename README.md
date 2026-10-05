@@ -107,6 +107,12 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
   - **Indeling**: volgorde van klok, weer, agenda, Rene's Tools en de apps op het startscherm, en elk onderdeel aan/uit. Klok groot/middel/klein/uit, met of zonder datum en wekker. Kaarten: doorzichtigheid en ronde of hoekige hoeken. *Opnieuw beginnen* zet alleen de look, of ook de indeling terug.
   - **Eigen look** (lang drukken op een leeg stuk of ⚙︎): thema licht/donker/automatisch, accentkleur, achtergrond (je Android-achtergrondfoto of kleurverlopen/kleuren), pictogramgrootte, 4 of 5 per rij, namen aan/uit, welke kaarten je ziet.
   - Gebaren: omhoog vegen = alle apps, omlaag vegen bovenaan = meldingen (als de telefoon dat toestaat), terug/home sluit overzicht en vensters.
+- **Launcher met pagina's en widgets** (standaard sinds 1.31; `Desk.java`, model in `WsModel.java`, opslag in `WsStore.java`):
+  - Pagina's naast elkaar (max. 12) op een raster (4 of 5 kolommen, rijen naar de schermhoogte); links de pagina **Vandaag** (`start.html` in modus `today`: klok, weer, agenda, Rene's Tools, notities). Onderaan het dock (max. 6) en de pagina-puntjes.
+  - **Slepen**: lang drukken en slepen verplaatst apps, mappen en widgets; aan de rand van het scherm naar de buurpagina (rechts eventueel een nieuwe); bovenaan *Weghalen* en *App-info*. App op app = map; in een open map lang drukken sleept een app eruit. Lang drukken zonder slepen geeft het menu (bijv. formaat aanpassen, instellen, naam van de map).
+  - **Widgets** van alle apps (lang drukken op een leeg stuk → *Widgets toevoegen*, met voorbeeldplaatjes): toestemming per app, instelscherm als de widget dat heeft, formaat aanpassen met grepen (binnen de grenzen van de widget).
+  - Alle apps, menu's, de widgetkiezer en *Look aanpassen* komen in een webpagina over het werkblad (modus `overlay`). Bij het eerste gebruik worden de apps en het dock van de skin overgenomen.
+  - **Vangnet**: start het nieuwe startscherm twee keer niet goed op, dan verschijnt de klassieke skin (één scherm). Zelf wisselen kan in *Look aanpassen → Soort startscherm*; na een app-update krijgt de launcher een nieuwe kans.
 - Pictogrammen worden als PNG via `/icon/<app>` aan de pagina gegeven en per app-versie bewaard in de cache. Het startscherm wordt samen met de interface stil bijgewerkt (`start.html` in `update.json`).
 
 ## Widgets, wekker, herinneringen en Android Auto
