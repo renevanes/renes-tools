@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.42",
+    "date": "2026-10-05",
+    "changes": [
+      "Notities: items slepen of sorteren, en delen met alleen wat nog moet",
+      "Notities: terugkerende lijstjes (bijv. elke zaterdag gaan alle vinkjes weer weg)"
+    ]
+  },
+  {
     "version": "1.41",
     "date": "2026-10-05",
     "changes": [

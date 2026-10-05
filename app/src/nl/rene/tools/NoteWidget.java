@@ -38,6 +38,7 @@ public class NoteWidget extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context c, AppWidgetManager m, int[] ids) {
+        if (Notes.applyRepeats(c)) return; // opgeslagen: Notes.save werkt alle lijstje-widgets al bij
         for (int id : ids) update(c, m, id);
     }
 

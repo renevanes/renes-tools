@@ -257,6 +257,7 @@ public class MainActivity extends Activity {
         applySecure();
         if (web == null) return;
         boolean lock = Lock.onShown(this);
+        Notes.applyRepeats(this); // terugkerende lijstjes die weer leeg moeten
         if (uiReady) js("onNotesMaybeChanged", ""); // misschien afgestreept in de widget
         if (!uiReady && Lock.active(this)) return; // eerste keer: showUi() toont hem zodra de pagina (met slotscherm) klaar is
         coverOff(lock); // eerst het slotscherm tekenen, dan pas de afdekking weg (geen flits van de inhoud)

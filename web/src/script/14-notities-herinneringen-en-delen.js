@@ -42,9 +42,16 @@ function notePinPhone(){
 function noteDelRem(){ Android.noteRemind(noteCur, '', '0'); noteRemShow(); }
 function noteShareNow(){
   const n = noteById(noteCur); if (!n) return;
+  const items = n.items || [];
+  if (items.some(i => i.done) && items.some(i => !i.done))
+    openSheet('Delen', n.title || 'Notitie', [['Hele lijst (met vinkjes)', () => noteShareDo(false)], ['Alleen wat nog moet', () => noteShareDo(true)]]);
+  else noteShareDo(false);
+}
+function noteShareDo(openOnly){
+  const n = noteById(noteCur); if (!n) return;
   const lines = [];
   (n.items || []).filter(i => !i.done).forEach(i => lines.push('☐ ' + i.text));
-  (n.items || []).filter(i => i.done).forEach(i => lines.push('☑ ' + i.text));
+  if (!openOnly) (n.items || []).filter(i => i.done).forEach(i => lines.push('☑ ' + i.text));
   const text = (n.title ? n.title + '\n\n' : '') + lines.join('\n') + (n.text ? (lines.length ? '\n\n' : '') + n.text : '');
   if (!text.trim()) { toast('De notitie is nog leeg'); return; }
   Android.noteShare(n.title || '', text);

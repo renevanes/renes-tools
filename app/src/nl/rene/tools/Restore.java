@@ -122,6 +122,9 @@ final class Restore {
                 items.put(new JSONObject().put("id", it.optString("id", "r" + i + "x" + Long.toString(System.nanoTime(), 36)))
                         .put("text", it.optString("text")).put("done", it.optBoolean("done")));
             }
+            JSONObject rep = n.optJSONObject("repeat");
+            if (rep != null && !rep.optString("every").isEmpty())
+                o.put("repeat", new JSONObject().put("every", rep.optString("every")).put("n", rep.optInt("n", 1)).put("last", System.currentTimeMillis()));
             return o.put("items", items);
         } catch (Exception e) { return null; }
     }

@@ -49,6 +49,7 @@ jobs:
           java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.WsModelTest
           java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.HistoryTextTest
           java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.WebSigTest
+          java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.NotesRepeatTest
 
       - name: Playwright installeren
         run: |

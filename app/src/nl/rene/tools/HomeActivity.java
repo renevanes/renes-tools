@@ -260,6 +260,7 @@ public class HomeActivity extends Activity {
         }
         js("onResumeHome", "");
         if (desk != null) desk.takePinned(); // snelkoppelingen die intussen vastgezet zijn
+        new Thread(() -> { if (Notes.applyRepeats(getApplicationContext())) js("renderNotes", ""); }, "repeats").start();
         if (desk != null && web != null) { WebView v = web; h.postDelayed(() -> { if (v == web) v.invalidate(); }, 150); }
         if (fellBack) { fellBack = false; h.postDelayed(() -> toast("Het nieuwe startscherm startte niet goed; je ziet de klassieke skin. Zie Look aanpassen."), 1500); }
     }

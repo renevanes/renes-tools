@@ -81,14 +81,14 @@ function newNote(){
 function openNote(id, fresh){
   noteCur = id; const n = noteById(id); if (!n) return;
   $('#note-title').value = n.title || ''; $('#note-text').value = n.text || ''; $('#note-add').value = '';
-  show('note'); renderItems(); noteRemShow(); notePinShow();
+  show('note'); renderItems(); noteRemShow(); notePinShow(); noteRepeatShow();
   if (fresh) setTimeout(() => $('#note-title').focus(), 50);
 }
 function touch(n){ n.updated = Date.now(); notesSaveSoon(); }
 function noteEdit(field, v){ const n = noteById(noteCur); if (!n) return; n[field] = v; touch(n); }
 function renderItems(){
   const n = noteById(noteCur); if (!n) return;
-  const row = it => '<li class="' + (it.done ? 'done' : '') + '"><input type=checkbox ' + (it.done ? 'checked' : '') +
+  const row = it => '<li data-id="' + esc(it.id) + '" class="' + (it.done ? 'done' : '') + '">' + (it.done ? '' : '<span class=drag aria-hidden="true">⋮⋮</span>') + '<input type=checkbox ' + (it.done ? 'checked' : '') +
     ' onchange="toggleItem(\'' + it.id + '\')" aria-label="Afstrepen"><input class=it value="' + esc(it.text) +
     '" oninput="typeItem(\'' + it.id + '\', this.value)" onchange="editItem(\'' + it.id + '\', this.value)"><button class=del onclick="delItem(\'' + it.id + '\')" aria-label="Verwijderen">×</button></li>';
   const items = n.items || [];
@@ -97,6 +97,50 @@ function renderItems(){
   $('#note-done').innerHTML = done.map(row).join('');
   $('#note-donehdr').style.display = done.length ? 'flex' : 'none';
   $('#note-donecount').textContent = done.length + ' afgestreept';
+}
+/* ---------- volgorde: slepen aan ⋮⋮, of sorteren ---------- */
+let dragLi = null;
+document.addEventListener('pointerdown', e => {
+  const h = e.target.closest && e.target.closest('#note-open .drag'); if (!h) return;
+  e.preventDefault(); dragLi = h.closest('li'); dragLi.classList.add('dragging');
+  try { h.setPointerCapture(e.pointerId); } catch(x){}
+});
+document.addEventListener('pointermove', e => {
+  if (!dragLi) return;
+  const list = $('#note-open'), over = [...list.children].find(li => { const r = li.getBoundingClientRect(); return e.clientY >= r.top && e.clientY < r.bottom; });
+  if (!over || over === dragLi) return;
+  const r = over.getBoundingClientRect();
+  if (e.clientY < r.top + r.height / 2) list.insertBefore(dragLi, over); else list.insertBefore(dragLi, over.nextSibling);
+});
+function dragEnd(){
+  if (!dragLi) return;
+  dragLi.classList.remove('dragging'); dragLi = null;
+  const n = noteById(noteCur); if (!n) return;
+  const order = [...$('#note-open').children].map(li => li.dataset.id);
+  const byId = Object.fromEntries((n.items || []).map(i => [i.id, i]));
+  const open = order.map(id => byId[id]).filter(Boolean);
+  n.items = open.concat((n.items || []).filter(i => !open.includes(i)));
+  touch(n);
+}
+document.addEventListener('pointerup', dragEnd); document.addEventListener('pointercancel', dragEnd);
+function noteSort(){
+  const n = noteById(noteCur); if (!n) return;
+  const by = f => () => { const open = n.items.filter(i => !i.done).sort(f), done = n.items.filter(i => i.done); n.items = open.concat(done); touch(n); renderItems(); };
+  openSheet('Sorteren', 'De open items', [['A tot Z', by((a, b) => a.text.localeCompare(b.text, 'nl', {sensitivity: 'base'}))], ['Z tot A', by((a, b) => b.text.localeCompare(a.text, 'nl', {sensitivity: 'base'}))]]);
+}
+/* ---------- terugkerend lijstje ---------- */
+const DAYS_NL = ['', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+function noteRepeatShow(){
+  const n = noteById(noteCur); if (!n) return;
+  const r = n.repeat, v = r && r.every ? r.every + ':' + (r.n || 1) : '';
+  const sel = $('#note-repeat'); sel.value = v; if (sel.value !== v) sel.value = '';
+  $('#note-repeat-info').textContent = !v ? 'Voor een vast lijstje, zoals de weekboodschappen: op het gekozen moment gaan alle vinkjes weer weg.'
+    : 'Alle vinkjes gaan weg ' + (r.every === 'day' ? 'elke nacht' : r.every === 'week' ? 'elke ' + DAYS_NL[r.n] + ' om middernacht' : 'op de ' + r.n + 'e van elke maand') + '. De items zelf blijven staan.';
+}
+function noteSetRepeat(v){
+  const n = noteById(noteCur); if (!n) return;
+  if (!v) delete n.repeat; else { const [every, k] = v.split(':'); n.repeat = {every, n: +k, last: Date.now()}; }
+  touch(n); noteRepeatShow(); toast(v ? '🔁 Dit lijstje herhaalt' : 'Herhalen staat uit');
 }
 function addItem(){
   const inp = $('#note-add'), t = inp.value.trim(); if (!t) { inp.focus(); return; }

@@ -61,6 +61,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Opslag in de app-map (`notes.json`, via tijdelijk bestand + hernoemen). Lege notities worden niet bewaard.
 - Knop *Kopie in backup-map zetten*: `Notities/notities.json` en een leesbaar `notities.txt` met `[x]`/`[ ]`.
 
+- **Volgorde, herhalen en delen**: items slepen aan ⋮⋮ of sorteren (A–Z); *Herhalen* zet op een vast moment (elke dag, een weekdag, of een dag van de maand, om middernacht) alle vinkjes weer uit (`Notes.nextReset`/`applyRepeats`, test: `NotesRepeatTest`); delen kan met de hele lijst of alleen wat nog moet.
 - **Widget Lijstje** (`NoteWidget`, `NoteWidgetService`, `NoteWidgetConfig`): één notitie op het startscherm (van Oppo of de skin). Bij het plaatsen kies je welke (met app-slot eerst vingerafdruk); open items bovenaan, tik = afstrepen of terugzetten, tik op de titel = de notitie openen. Opslaan in de app controleert of de notities intussen in de widget veranderd zijn (volgnummer), zodat afstrepen in de widget nooit overschreven wordt.
 - **Snelkoppeling naar één notitie** (in de notitie → Snelkoppeling): *Op het startscherm van Rene's Tools* (bovenaan, groep Notities, met het aantal open items) en *Op het startscherm van je telefoon* (vastgezette snelkoppeling die direct dat lijstje opent). Is de telefoon-skin je startscherm, dan komt het lijstje als kaart op de skin, met de eerste open items (de skin kan geen Android-snelkoppelingen tonen).
 

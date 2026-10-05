@@ -144,6 +144,8 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 .items input[type=checkbox]{width:24px;height:24px;flex:none;accent-color:var(--chip-on)}
 .items .it{flex:1;font-size:16px;border:0;background:transparent;color:var(--ink);outline:none;padding:4px 0;min-width:0}
 .items li.done .it{text-decoration:line-through;color:var(--muted)}
+.items .drag{flex:none;width:26px;text-align:center;color:var(--muted);font-size:16px;letter-spacing:-2px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.items li.dragging{background:var(--chip);border-radius:10px;opacity:.85}
 .items .del{flex:none;width:32px;height:32px;border-radius:50%;color:var(--muted);font-size:20px;line-height:1}
 .additem{display:flex;gap:8px;margin-top:10px}.additem input{flex:1;min-width:0;font-size:16px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 .additem button{padding:0 16px;border-radius:12px;background:var(--chip-on);color:#fff;font-weight:700;font-size:20px}

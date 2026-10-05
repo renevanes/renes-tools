@@ -28,12 +28,23 @@
         <input id="note-add" placeholder="Nieuw item…" enterkeyhint="done" onkeydown="if(event.key==='Enter'){addItem();event.preventDefault();}">
         <button onclick="addItem()" aria-label="Toevoegen">+</button>
       </div>
+      <div class="row" style="margin-top:6px;gap:8px"><button onclick="noteSort()" style="padding:8px 12px;border-radius:12px;background:var(--chip);font-weight:600;flex:none">↕︎ Sorteren</button><span class="note" style="margin:0;flex:1">Of sleep een item aan ⋮⋮ naar een andere plek.</span></div>
       <div class="donehdr" id="note-donehdr"><span id="note-donecount"></span><button onclick="clearDone()">Afgevinkte verwijderen</button></div>
       <ul class="items" id="note-done"></ul>
     </div>
     <div class="card">
       <h2>Notitie</h2>
       <textarea class="ntext" id="note-text" placeholder="Vrije tekst (optioneel)" oninput="noteEdit('text', this.value)"></textarea>
+    </div>
+    <div class="card">
+      <h2>Herhalen</h2>
+      <select class="sel" id="note-repeat" aria-label="Lijstje herhalen" onchange="noteSetRepeat(this.value)" style="width:100%">
+        <option value="">Niet herhalen</option><option value="day:1">Elke dag weer leeg</option>
+        <option value="week:1">Elke maandag weer leeg</option><option value="week:2">Elke dinsdag weer leeg</option><option value="week:3">Elke woensdag weer leeg</option>
+        <option value="week:4">Elke donderdag weer leeg</option><option value="week:5">Elke vrijdag weer leeg</option><option value="week:6">Elke zaterdag weer leeg</option>
+        <option value="week:7">Elke zondag weer leeg</option><option value="month:1">Elke maand op de 1e weer leeg</option><option value="month:15">Elke maand op de 15e weer leeg</option>
+      </select>
+      <p class="note" id="note-repeat-info">Voor een vast lijstje, zoals de weekboodschappen: op het gekozen moment gaan alle vinkjes weer weg.</p>
     </div>
     <div class="card">
       <h2>Herinnering</h2>

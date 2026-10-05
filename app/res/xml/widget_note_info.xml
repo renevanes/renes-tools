@@ -4,7 +4,7 @@
     android:minResizeWidth="110dp" android:minResizeHeight="80dp"
     android:targetCellWidth="3" android:targetCellHeight="3"
     android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen"
-    android:updatePeriodMillis="0" android:initialLayout="@layout/widget_note"
+    android:updatePeriodMillis="1800000" android:initialLayout="@layout/widget_note"
     android:configure="nl.rene.tools.NoteWidgetConfig"
     android:widgetFeatures="reconfigurable"
     android:description="@string/widget_note_desc" />

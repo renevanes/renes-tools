@@ -101,6 +101,55 @@ final class Notes {
         return false;
     }
 
+    /**
+     * Wanneer een terugkerend lijstje weer "leeg" moet (alle vinkjes weg), na het vorige moment {@code last}.
+     * every: day | week (n = 1 maandag … 7 zondag) | month (n = dag van de maand; korte maanden: de laatste dag).
+     * Altijd om 0:00 in de tijdzone van de telefoon. Puur rekenwerk, zodat het op een gewone JVM te testen is.
+     */
+    static long nextReset(String every, int n, long last, java.util.TimeZone tz) {
+        java.util.Calendar c = java.util.Calendar.getInstance(tz);
+        c.setTimeInMillis(last);
+        c.set(java.util.Calendar.HOUR_OF_DAY, 0); c.set(java.util.Calendar.MINUTE, 0); c.set(java.util.Calendar.SECOND, 0); c.set(java.util.Calendar.MILLISECOND, 0);
+        for (int i = 0; i < 400; i++) {
+            c.add(java.util.Calendar.DAY_OF_MONTH, 1);
+            if ("day".equals(every)) return c.getTimeInMillis();
+            if ("week".equals(every)) {
+                int iso = (c.get(java.util.Calendar.DAY_OF_WEEK) + 5) % 7 + 1; // maandag = 1
+                if (iso == Math.max(1, Math.min(7, n))) return c.getTimeInMillis();
+            }
+            if ("month".equals(every)) {
+                int want = Math.min(Math.max(1, n), c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH));
+                if (c.get(java.util.Calendar.DAY_OF_MONTH) == want) return c.getTimeInMillis();
+            }
+        }
+        return Long.MAX_VALUE;
+    }
+
+    /** Terugkerende lijstjes die aan de beurt zijn: alle vinkjes weg. Geeft true als er iets veranderde. */
+    static synchronized boolean applyRepeats(Context c) {
+        try {
+            String raw = load(c);
+            if (raw.isEmpty()) return false;
+            JSONArray all = new JSONArray(raw);
+            long now = System.currentTimeMillis();
+            boolean changed = false;
+            for (int i = 0; i < all.length(); i++) {
+                JSONObject n = all.optJSONObject(i);
+                JSONObject r = n == null ? null : n.optJSONObject("repeat");
+                if (r == null || r.optString("every").isEmpty()) continue;
+                long last = r.optLong("last", now);
+                if (!r.has("last")) { r.put("last", now); changed = true; continue; }
+                if (now < nextReset(r.optString("every"), r.optInt("n", 1), last, java.util.TimeZone.getDefault())) continue;
+                JSONArray items = n.optJSONArray("items");
+                if (items != null) for (int j = 0; j < items.length(); j++) { JSONObject it = items.optJSONObject(j); if (it != null) it.put("done", false); }
+                r.put("last", now);
+                n.put("updated", now);
+                changed = true;
+            }
+            return changed && save(c, all.toString()).isEmpty();
+        } catch (Exception e) { return false; }
+    }
+
     /** Items toevoegen aan een notitie (vanuit de widget). Geeft true als het gelukt is. */
     static synchronized boolean addItems(Context c, String noteId, java.util.List<String> texts) {
         try {
