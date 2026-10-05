@@ -13,13 +13,13 @@
 html,body{margin:0;height:100%;overflow:hidden;background:transparent;color:var(--ink);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;overscroll-behavior:none}
 body.bgcol{background:var(--bgc)}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
-.glass{background:var(--glass);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border-radius:22px;box-shadow:var(--shadow)}
+.glass{background:var(--glass);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);border-radius:var(--rad,22px);box-shadow:var(--shadow)}
 #home{position:absolute;inset:0;padding:calc(var(--st) + 14px) 16px calc(var(--sb) + 108px);overflow-y:auto;scrollbar-width:none;transition:transform .28s ease,opacity .28s ease}
 #home::-webkit-scrollbar{display:none}
 body.drawer-on #home{transform:translateY(-6%) scale(.97);opacity:.25;pointer-events:none}
 .onwall{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.45)}
 #clock{display:block;text-align:left;width:100%;padding:8px 6px 4px}
-#time{display:block;font-size:76px;font-weight:200;letter-spacing:-2px;line-height:1;font-variant-numeric:tabular-nums}
+#time{display:block;font-size:var(--clk,76px);font-weight:200;letter-spacing:-2px;line-height:1;font-variant-numeric:tabular-nums}
 #date{display:block;font-size:18px;font-weight:500;margin-top:6px}
 #alarm{font-size:14px;padding:2px 6px;opacity:.95;min-height:0}
 .card{padding:14px 16px;margin-top:12px}
@@ -90,6 +90,20 @@ body.drawer-on #drawer{transform:none}
 .hid{display:flex;align-items:center;gap:10px;padding:6px 0}.hid img,.hid .ph{width:34px;height:34px;border-radius:9px}.hid span{flex:1}.hid button{color:var(--acc);font-weight:600}
 .big2{display:block;width:100%;padding:13px;border-radius:14px;background:var(--acc);color:#fff;font-weight:600;margin-top:8px;text-align:center}
 .big2.ghost{background:var(--glass);color:var(--ink)}
+.pickrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 2px;border-top:1px solid var(--line);font-size:15px}.pickrow:first-of-type{border-top:0}
+.pickrow span{flex:1}.pickrow small{color:var(--muted);font-size:13px}
+.ordrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:15px}.ordrow:first-child{border-top:0}.ordrow .on2{flex:1}
+.mini2{width:36px;height:36px;border-radius:10px;background:var(--glass);display:grid;place-items:center;font-size:15px;flex:none}.mini2:disabled{opacity:.3}
+#pick{position:absolute;inset:0;z-index:28;display:none;flex-direction:column;padding:calc(var(--st) + 10px) 14px 0;background:var(--glass);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px)}
+#pick.on{display:flex}#pick h2{display:flex;align-items:center;gap:10px;margin:4px 0 10px;font-size:20px}#pick h2 span{flex:1}
+#pick .done{background:var(--acc);color:#fff;border-radius:12px;padding:9px 16px;font-weight:600;font-size:15px}
+#pk-list{flex:1;overflow-y:auto;padding-bottom:calc(max(var(--sb), var(--kb)) + 20px)}
+.pkhd{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 2px 4px}
+.pk{display:flex;align-items:center;gap:12px;padding:7px 2px;border-top:1px solid var(--line)}.pk img,.pk .ph,.pk .ib{width:40px;height:40px;border-radius:11px;flex:none;font-size:16px}
+.pk .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk .ph,.hid .ph,#sheet .shd .ph{display:grid;place-items:center;color:#fff;font-weight:700;font-size:17px}
+.chk2{width:28px;height:28px;border-radius:9px;border:2px solid var(--muted);display:grid;place-items:center;flex:none;font-size:15px;color:#fff}.chk2.on{background:var(--acc);border-color:var(--acc)}
+input[type=range]{width:100%;accent-color:var(--acc)}
 #toast{position:absolute;left:50%;bottom:calc(var(--sb) + 110px);transform:translateX(-50%);background:rgba(15,23,42,.92);color:#fff;padding:10px 16px;border-radius:14px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40;max-width:86%;text-align:center}
 #toast.on{opacity:1}
 #ask input{width:100%;font:inherit;font-size:16px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--glass2);color:var(--ink);margin:4px 0 12px}
@@ -124,6 +138,21 @@ body.drawer-on #drawer{transform:none}
 
 <div id="look" aria-label="Look aanpassen">
   <h2><button class="ib" onclick="closeLook()" aria-label="Terug">‹</button> Look aanpassen</h2>
+  <div class="lsec"><h4>Apps kiezen</h4>
+    <button class="pickrow" onclick="pickApps('pinned')"><span>🏠 Op het startscherm</span><small id="l-n-pinned"></small><b aria-hidden="true">›</b></button>
+    <button class="pickrow" onclick="pickApps('dock')"><span>⬇️ In het dock (onderbalk, max. 6)</span><small id="l-n-dock"></small><b aria-hidden="true">›</b></button>
+    <button class="pickrow" onclick="pickApps('drawer')"><span>📱 Zichtbaar bij alle apps</span><small id="l-n-drawer"></small><b aria-hidden="true">›</b></button>
+    <div style="font-size:13px;color:var(--muted);margin:10px 0 6px">Volgorde bij alle apps</div>
+    <div class="seg" id="l-sort"></div>
+  </div>
+  <div class="lsec"><h4>Indeling van het startscherm</h4><div id="l-order"></div>
+    <div class="sw"><span>Plaats voor het weer</span><button style="color:var(--acc);font-weight:600" id="l-place" onclick="askPlace()">Automatisch</button></div>
+  </div>
+  <div class="lsec"><h4>Klok</h4>
+    <div class="seg" id="l-clk" style="margin-bottom:6px"></div>
+    <div class="sw"><span>Datum</span><button class="tg" id="l-sw-date" role="switch" aria-label="Datum" onclick="toggleClock('date')"></button></div>
+    <div class="sw"><span>Volgende wekker</span><button class="tg" id="l-sw-alarm" role="switch" aria-label="Volgende wekker" onclick="toggleClock('alarm')"></button></div>
+  </div>
   <div class="lsec"><h4>Thema</h4><div class="seg" id="l-theme"></div></div>
   <div class="lsec"><h4>Accentkleur</h4><div class="seg" id="l-acc"></div></div>
   <div class="lsec"><h4>Achtergrond</h4><div class="bgs" id="l-bg"></div>
@@ -133,20 +162,28 @@ body.drawer-on #drawer{transform:none}
     <div class="seg" id="l-cols"></div>
     <div class="sw"><span>Namen onder de apps</span><button class="tg" id="l-labels" role="switch" aria-label="Namen onder de apps" onclick="toggleCfg('labels')"></button></div>
   </div>
-  <div class="lsec"><h4>Op het startscherm</h4>
-    <div class="sw"><span>Weer</span><button class="tg" id="l-sw-weather" role="switch" aria-label="Weer" onclick="toggleShow('weather')"></button></div>
-    <div class="sw"><span>Agenda</span><button class="tg" id="l-sw-cal" role="switch" aria-label="Agenda" onclick="toggleShow('cal')"></button></div>
-    <div class="sw"><span>Rene's Tools (radio, overzicht)</span><button class="tg" id="l-sw-tools" role="switch" aria-label="Rene's Tools" onclick="toggleShow('tools')"></button></div>
-    <div class="sw"><span>Plaats voor het weer</span><button style="color:var(--acc);font-weight:600" id="l-place" onclick="askPlace()">Automatisch</button></div>
+  <div class="lsec"><h4>Kaarten</h4>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Doorzichtigheid</div>
+    <input type="range" id="l-glass" min="30" max="95" step="5" aria-label="Doorzichtigheid van de kaarten" oninput="setGlass(this.value)">
+    <div style="font-size:13px;color:var(--muted);margin:10px 0 6px">Hoeken</div>
+    <div class="seg" id="l-rad"></div>
   </div>
   <div class="lsec"><h4>Snelkoppelingen naar tools</h4><div class="seg" id="l-tools"></div></div>
   <div class="lsec"><h4>Verborgen apps</h4><div id="l-hidden"></div></div>
+  <div class="lsec"><h4>Opnieuw beginnen</h4>
+    <button class="big2 ghost" onclick="resetLook()">Look en indeling terugzetten naar standaard…</button>
+  </div>
   <div class="lsec"><h4>Startscherm van de telefoon</h4>
     <p style="margin:0 0 6px;font-size:14px;color:var(--muted)" id="l-default"></p>
     <button class="big2 ghost" onclick="Android.homeSettings()">Standaard-startscherm kiezen…</button>
     <button class="big2 ghost" onclick="Android.openTool('settings')">Rene's Tools openen</button>
   </div>
   <p style="text-align:center;font-size:12px;color:var(--muted)">Rene's Start · versie __VERSION_NAME__</p>
+</div>
+<div id="pick" aria-label="Apps kiezen">
+  <h2><button class="ib" onclick="closePick(false)" aria-label="Annuleren">‹</button><span id="pk-title"></span><button class="done" onclick="closePick(true)">Klaar</button></h2>
+  <input id="pk-q" type="search" placeholder="Zoek apps…" aria-label="Zoek apps" autocomplete="off" oninput="renderPick()" style="font:inherit;font-size:16px;padding:11px 14px;border-radius:14px;border:0;background:var(--glass2);color:var(--ink);outline:none">
+  <div id="pk-list"></div>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -186,12 +223,18 @@ window.addEventListener('error', e => { try { Android.logJs((e.message || 'fout'
 
 /* ---------- instellingen (indeling en look) ---------- */
 const DEF = {pinned: [], dock: null, hidden: [], folders: {}, theme: 'auto', accent: '#3b82f6', bg: 'wallpaper', icon: 'm', cols: 4, labels: true,
-  show: {weather: true, cal: true, tools: true}, tools: ['radio', 'notes', 'music', 'redial', 'backup']};
+  show: {weather: true, cal: true, tools: true}, tools: ['radio', 'notes', 'music', 'redial', 'backup'],
+  order: ['clock', 'weather', 'cal', 'tools', 'apps'], clock: {size: 'big', date: true, alarm: true}, glass: 72, rad: 'round', sort: 'az', usage: {}};
 const clone = o => JSON.parse(JSON.stringify(o));
 let cfg = Object.assign(clone(DEF), J(Android.cfg(), {}));
 for (const k of ['pinned', 'hidden', 'tools']) if (!Array.isArray(cfg[k])) cfg[k] = clone(DEF[k]);
 if (cfg.dock != null && !Array.isArray(cfg.dock)) cfg.dock = null;
 if (!cfg.folders || typeof cfg.folders !== 'object' || Array.isArray(cfg.folders)) cfg.folders = {};
+if (!Array.isArray(cfg.order)) cfg.order = clone(DEF.order);
+for (const k of DEF.order) if (!cfg.order.includes(k)) cfg.order.push(k); // nieuwe onderdelen uit een update
+cfg.order = cfg.order.filter(k => DEF.order.includes(k));
+cfg.clock = Object.assign(clone(DEF.clock), cfg.clock && typeof cfg.clock === 'object' ? cfg.clock : {});
+if (!cfg.usage || typeof cfg.usage !== 'object' || Array.isArray(cfg.usage)) cfg.usage = {};
 cfg.show = Object.assign(clone(DEF.show), cfg.show && typeof cfg.show === 'object' ? cfg.show : {});
 const hasF = f => Object.prototype.hasOwnProperty.call(cfg.folders, f);
 const badName = v => !v || ['__proto__', 'constructor', 'prototype'].includes(v);
@@ -203,6 +246,16 @@ const BGS = {wallpaper: ['Foto', ''], g1: ['Avond', 'linear-gradient(160deg,#1e3
   g5: ['Mist', 'linear-gradient(170deg,#e2e8f0,#cbd5e1 60%,#94a3b8)'], s1: ['Nacht', '#0b1020'], s2: ['Licht', '#eef2f7']};
 const LIGHTBG = {g5: 1, s2: 1};
 window.applyLook = applyLook;
+/* Onderdelen van het startscherm in de gekozen volgorde (de melding "als startscherm gebruiken" blijft bovenaan). */
+const PARTS = {clock: ['🕒', 'Klok', ['#clock', '#alarm']], weather: ['🌤️', 'Weer', ['#weather']], cal: ['📅', 'Agenda', ['#cal']], tools: ['🧰', "Rene's Tools (radio, overzicht)", ['#tools']], apps: ['🏠', 'Apps op het startscherm', ['#pinned']]};
+function applyOrder(){
+  const home = $('#home');
+  home.appendChild($('#banner'));
+  for (const k of cfg.order) for (const sel of PARTS[k][2]) home.appendChild($(sel));
+  home.appendChild($('#hint'));
+  // banner direct na de klok als die bovenaan staat
+  if (cfg.order[0] === 'clock') $('#alarm').after($('#banner'));
+}
 function applyLook(){
   const r = document.documentElement;
   let sysDark = matchMedia('(prefers-color-scheme: dark)').matches; try { if (typeof Android.isNight === 'function') sysDark = !!Android.isNight(); } catch(e){}
@@ -212,6 +265,14 @@ function applyLook(){
   r.classList.toggle('ics', cfg.icon === 's'); r.classList.toggle('icl', cfg.icon === 'l');
   r.classList.toggle('nolabels', !cfg.labels);
   r.style.setProperty('--cols', cfg.cols);
+  const ga = Math.max(.3, Math.min(.95, (+cfg.glass || 72) / 100)), base = dark ? '20,24,33' : '255,255,255';
+  r.style.setProperty('--glass', 'rgba(' + base + ',' + ga + ')'); r.style.setProperty('--glass2', 'rgba(' + base + ',' + Math.max(.25, ga - .17) + ')');
+  r.style.setProperty('--rad', {round: '22px', soft: '14px', square: '6px'}[cfg.rad] || '22px');
+  r.style.setProperty('--clk', {big: '76px', medium: '56px', small: '38px'}[cfg.clock.size] || '76px');
+  $('#clock').style.display = cfg.clock.size === 'off' ? 'none' : '';
+  $('#date').style.display = cfg.clock.date ? '' : 'none';
+  $('#alarm').style.display = cfg.clock.alarm ? '' : 'none';
+  applyOrder();
   const bg = BGS[cfg.bg] ? cfg.bg : 'wallpaper';
   document.body.classList.toggle('bgcol', bg !== 'wallpaper');
   document.body.style.setProperty('--bgc', BGS[bg][1]);
@@ -296,10 +357,15 @@ function renderDrawer(){
   } else {
     const folders = Object.keys(cfg.folders).filter(f => exists('f:' + f)).sort((a, b) => a.localeCompare(b, 'nl'));
     html = (folders.length ? '<div class=grid style="margin-bottom:14px">' + folders.map(f => appHtml('f:' + f, 'drawer')).join('') + '</div>' : '') + '<div class=grid>';
-    for (const a of apps) if (!cfg.hidden.includes(a.k) && !inFolder.has(a.k)) html += appHtml(a.k, 'drawer');
+    for (const a of sortedApps()) if (!cfg.hidden.includes(a.k) && !inFolder.has(a.k)) html += appHtml(a.k, 'drawer');
     html += '</div>';
   }
   $('#dlist').innerHTML = html;
+}
+function sortedApps(){
+  if (cfg.sort === 'used') return apps.slice().sort((a, b) => (cfg.usage[b.k] || 0) - (cfg.usage[a.k] || 0) || a.n.localeCompare(b.n, 'nl', {sensitivity: 'base'}));
+  if (cfg.sort === 'new') return apps.slice().sort((a, b) => (b.t || 0) - (a.t || 0));
+  return apps;
 }
 function qEnter(){
   const q = norm($('#q').value.trim()); if (!q) return;
@@ -308,7 +374,9 @@ function qEnter(){
 }
 function launch(k){
   if (k.startsWith('f:')) { openFolder(k.slice(2)); return; }
-  const e = Android.launch(k); if (e) toast(e);
+  const e = Android.launch(k); if (e) { toast(e); return; }
+  cfg.usage[k] = (cfg.usage[k] || 0) + 1;
+  clearTimeout(launch.t); launch.t = setTimeout(save, 1500);
 }
 
 /* ---------- tikken en lang indrukken ---------- */
@@ -366,6 +434,7 @@ function appSheet(k, where){
 }
 function homeSheet(){
   openSheet('<span class=ib>⚙︎</span>', 'Startscherm', [
+    ['Apps op het startscherm kiezen', () => pickApps('pinned')], ['Apps in het dock kiezen', () => pickApps('dock')],
     ['Look aanpassen', openLook], ['Achtergrondfoto kiezen', () => Android.wallpaper()],
     ['Rene\'s Tools openen', () => Android.openTool('')], ['Standaard-startscherm kiezen', () => Android.homeSettings()]]);
 }
@@ -420,7 +489,7 @@ document.addEventListener('touchend', e => {
   } else if (drawerOn() && dy > 0 && s.top) closeDrawer();
 }, {passive: true});
 function drawerOn(){ return document.body.classList.contains('drawer-on'); }
-function anyOverlay(){ return !!document.querySelector('#sheet.on, #folder.on, #ask.on, #look.on'); }
+function anyOverlay(){ return !!document.querySelector('#sheet.on, #folder.on, #ask.on, #look.on, #pick.on'); }
 function openDrawer(){ renderDrawer(); document.body.classList.add('drawer-on'); $('#dlist').scrollTop = 0; }
 function closeDrawer(){ document.body.classList.remove('drawer-on'); $('#q').value = ''; $('#q').blur(); }
 $('#hint').onclick = openDrawer;
@@ -523,6 +592,62 @@ function renderTools(){
 function radioDo(w){ Android.radio(w); Android.vibrate(10); setTimeout(renderTools, 300); setTimeout(renderTools, 1500); }
 setInterval(() => { if (document.visibilityState === 'visible') renderTools(); }, 2000); // radio-titel e.d. bijhouden (alleen opnieuw tekenen als er iets veranderde)
 
+/* ---------- apps kiezen (startscherm, dock, zichtbaar bij alle apps) ---------- */
+let pk = null;
+function pickApps(mode){
+  pk = {mode, sel: mode === 'drawer' ? apps.filter(a => !cfg.hidden.includes(a.k)).map(a => a.k) : (mode === 'dock' ? cfg.dock : cfg.pinned).filter(exists).slice(),
+    max: mode === 'dock' ? 6 : 0};
+  $('#pk-title').textContent = {pinned: 'Op het startscherm', dock: 'In het dock', drawer: 'Zichtbaar bij alle apps'}[mode];
+  $('#pk-q').value = '';
+  renderPick();
+  $('#pick').classList.add('on');
+}
+function pkName(k){ return k.startsWith('f:') ? '📁 ' + k.slice(2) : (byKey[k] ? byKey[k].n : k); }
+function pkIcon(k){ return k.startsWith('f:') ? '<span class=ib>📁</span>' : icon(k, 80); }
+function renderPick(){
+  if (!pk) return;
+  const q = norm($('#pk-q').value.trim());
+  let h = '';
+  if (pk.mode !== 'drawer') {
+    h += '<div class=pkhd>Gekozen (' + pk.sel.length + (pk.max ? ' van max. ' + pk.max : '') + ') · in deze volgorde</div>';
+    h += pk.sel.map((k, i) => '<div class=pk>' + pkIcon(k) + '<span class=nm>' + esc(pkName(k)) + '</span>' +
+      '<button class=mini2 data-i="' + i + '" data-d="-1" onclick="pkMove(this)"' + (i ? '' : ' disabled') + ' aria-label="Naar voren">↑</button>' +
+      '<button class=mini2 data-i="' + i + '" data-d="1" onclick="pkMove(this)"' + (i < pk.sel.length - 1 ? '' : ' disabled') + ' aria-label="Naar achteren">↓</button>' +
+      '<button class=mini2 data-k="' + esc(k) + '" onclick="pkToggle(this.dataset.k)" aria-label="Weghalen">✕</button></div>').join('') ||
+      '<p style="color:var(--muted);font-size:14px;margin:6px 2px">Nog niets gekozen. Tik hieronder op apps om ze toe te voegen.</p>';
+    h += '<div class=pkhd>Alle apps</div>';
+  } else h += '<div class=pkhd>' + pk.sel.length + ' van ' + apps.length + ' zichtbaar · vinkje weg = verborgen</div>';
+  const list = (pk.mode === 'pinned' ? Object.keys(cfg.folders).filter(f => exists('f:' + f)).map(f => ({k: 'f:' + f, n: '📁 ' + f})) : []).concat(apps)
+    .filter(a => !q || norm(a.n).includes(q));
+  h += list.map(a => { const on = pk.sel.includes(a.k);
+    return '<button class=pk style="width:100%;text-align:left" data-k="' + esc(a.k) + '" onclick="pkToggle(this.dataset.k)" role="checkbox" aria-checked="' + on + '">' + pkIcon(a.k) +
+      '<span class=nm>' + esc(a.n) + '</span><span class="chk2' + (on ? ' on' : '') + '">' + (on ? '✓' : '') + '</span></button>'; }).join('') || '<p class=empty>Geen app gevonden</p>';
+  const y = $('#pk-list').scrollTop;
+  $('#pk-list').innerHTML = h;
+  $('#pk-list').scrollTop = y;
+}
+function pkToggle(k){
+  const i = pk.sel.indexOf(k);
+  if (i >= 0) pk.sel.splice(i, 1);
+  else { if (pk.max && pk.sel.length >= pk.max) { toast('Het dock heeft plaats voor ' + pk.max + ' apps'); return; } pk.sel.push(k); }
+  Android.vibrate(8); renderPick();
+}
+function pkMove(b){ const i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j >= pk.sel.length) return; const x = pk.sel[i]; pk.sel[i] = pk.sel[j]; pk.sel[j] = x; renderPick(); }
+function closePick(ok){
+  if (ok && pk) {
+    if (pk.mode === 'drawer') {
+      const keep = cfg.hidden.filter(k => !byKey[k]); // apps die er even niet zijn: niet zomaar weer tonen
+      cfg.hidden = keep.concat(apps.filter(a => !pk.sel.includes(a.k)).map(a => a.k));
+    } else {
+      const gone = (pk.mode === 'dock' ? cfg.dock : cfg.pinned).filter(k => !exists(k)); // tijdelijk weg: plek bewaren
+      if (pk.mode === 'dock') cfg.dock = pk.sel.concat(gone); else cfg.pinned = pk.sel.concat(gone);
+      cfg.hidden = cfg.hidden.filter(k => !pk.sel.includes(k)); // gekozen = niet meer verborgen
+    }
+    saveAll(); renderLook(); toast('Opgeslagen');
+  }
+  pk = null; $('#pick').classList.remove('on'); $('#pk-q').blur();
+}
+
 /* ---------- look aanpassen ---------- */
 function openLook(){ closeDrawer(); renderLook(); $('#look').classList.add('on'); }
 function closeLook(){ $('#look').classList.remove('on'); }
@@ -537,12 +662,32 @@ function renderLook(){
   seg('#l-ico', [['s', 'Klein'], ['m', 'Normaal'], ['l', 'Groot']], cfg.icon, v => { cfg.icon = v; save(); applyLook(); });
   seg('#l-cols', [[4, '4 per rij'], [5, '5 per rij']], cfg.cols, v => { cfg.cols = +v; save(); applyLook(); });
   const tg = (id, on) => { $(id).classList.toggle('on', !!on); $(id).setAttribute('aria-checked', on ? 'true' : 'false'); };
-  tg('#l-labels', cfg.labels); tg('#l-sw-weather', cfg.show.weather); tg('#l-sw-cal', cfg.show.cal); tg('#l-sw-tools', cfg.show.tools);
+  tg('#l-labels', cfg.labels); tg('#l-sw-date', cfg.clock.date); tg('#l-sw-alarm', cfg.clock.alarm);
+  $('#l-n-pinned').textContent = cfg.pinned.filter(exists).length; $('#l-n-dock').textContent = (cfg.dock || []).filter(exists).length;
+  $('#l-n-drawer').textContent = apps.filter(a => !cfg.hidden.includes(a.k)).length + ' van ' + apps.length;
+  seg('#l-sort', [['az', 'A–Z'], ['used', 'Meest gebruikt'], ['new', 'Nieuwste eerst']], cfg.sort, v => { cfg.sort = v; save(); renderDrawer(); });
+  seg('#l-clk', [['big', 'Groot'], ['medium', 'Middel'], ['small', 'Klein'], ['off', 'Uit']], cfg.clock.size, v => { cfg.clock.size = v; save(); applyLook(); });
+  seg('#l-rad', [['round', 'Rond'], ['soft', 'Zacht'], ['square', 'Hoekig']], cfg.rad, v => { cfg.rad = v; save(); applyLook(); });
+  $('#l-glass').value = cfg.glass;
+  const showable = {weather: 1, cal: 1, tools: 1};
+  $('#l-order').innerHTML = cfg.order.map((k, i) => '<div class=ordrow><span>' + PARTS[k][0] + '</span><span class=on2>' + esc(PARTS[k][1]) + '</span>' +
+    (showable[k] ? '<button class="tg' + (cfg.show[k] ? ' on' : '') + '" role="switch" aria-checked="' + !!cfg.show[k] + '" aria-label="' + esc(PARTS[k][1]) + ' tonen" data-k="' + k + '" onclick="toggleShow(this.dataset.k)"></button>' : '') +
+    '<button class=mini2 data-i="' + i + '" data-d="-1" onclick="ordMove(this)"' + (i ? '' : ' disabled') + ' aria-label="Hoger">↑</button>' +
+    '<button class=mini2 data-i="' + i + '" data-d="1" onclick="ordMove(this)"' + (i < cfg.order.length - 1 ? '' : ' disabled') + ' aria-label="Lager">↓</button></div>').join('');
   $('#l-place').textContent = Android.placeName() || 'Automatisch';
   $('#l-tools').innerHTML = Object.keys(TOOLS).map(k => '<button data-t="' + k + '"' + (cfg.tools.includes(k) ? ' class=on' : '') + '>' + TOOLS[k][0] + ' ' + TOOLS[k][1] + '</button>').join('');
   $('#l-tools').querySelectorAll('button').forEach(b => b.onclick = () => { const k = b.dataset.t; cfg.tools = cfg.tools.includes(k) ? cfg.tools.filter(x => x !== k) : cfg.tools.concat(k); save(); renderLook(); renderTools.force = true; renderTools(); });
   $('#l-hidden').innerHTML = cfg.hidden.filter(k => byKey[k]).map(k => '<div class=hid>' + icon(k, 72) + '<span>' + esc(byKey[k].n) + '</span><button data-k="' + esc(k) + '" onclick="unhide(this.dataset.k)">Tonen</button></div>').join('') || '<p style="margin:0;color:var(--muted);font-size:14px">Geen. Houd een app ingedrukt om hem te verbergen.</p>';
   $('#l-default').textContent = Android.isDefault() ? '✓ Rene\'s Start is je startscherm.' : 'Nu nog niet je standaard-startscherm.';
+}
+function ordMove(b){ const i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j >= cfg.order.length) return; const x = cfg.order[i]; cfg.order[i] = cfg.order[j]; cfg.order[j] = x; save(); applyOrder(); renderLook(); }
+function setGlass(v){ cfg.glass = +v; applyLook(); clearTimeout(setGlass.t); setGlass.t = setTimeout(save, 400); }
+function toggleClock(k){ cfg.clock[k] = !cfg.clock[k]; save(); applyLook(); renderLook(); }
+function resetLook(){
+  openSheet('<span class=ib>↺</span>', 'Alles terugzetten?', [
+    ['Alleen de look (kleuren, achtergrond, klok, kaarten)', () => { for (const k of ['theme', 'accent', 'bg', 'icon', 'cols', 'labels', 'glass', 'rad']) cfg[k] = clone(DEF)[k]; cfg.clock = clone(DEF.clock); save(); applyLook(); renderLook(); toast('Look teruggezet'); }],
+    ['Look én indeling (apps, dock, mappen, volgorde)', () => { const u = cfg.usage, b = cfg.bannerOff; cfg = clone(DEF); cfg.usage = u; cfg.bannerOff = b; cfg.dock = defaultDock(); save(); applyLook(); saveAll(); renderLook(); renderTools.force = true; refreshCards(true); toast('Alles teruggezet'); }],
+    ['Annuleren', () => {}]]);
 }
 function unhide(k){ cfg.hidden = cfg.hidden.filter(x => x !== k); saveAll(); renderLook(); }
 function toggleCfg(k){ cfg[k] = !cfg[k]; save(); applyLook(); renderLook(); }
@@ -557,9 +702,9 @@ function refreshCards(all){
 }
 window.onResumeHome = function(){ renderTools.force = true; refreshCards(false); clearInterval(window._tick); window._tick = setInterval(tickClock, 10000); };
 window.onPauseHome = function(){ clearInterval(window._tick); closeSheet(); closeAsk(); setTimeout(() => { if (document.visibilityState !== 'visible') { closeDrawer(); closeFolder(); closeLook(); } }, 400); };
-window.onHomePressed = function(){ closeSheet(); closeAsk(); closeFolder(); closeLook(); closeDrawer(); $('#home').scrollTo({top: 0, behavior: 'smooth'}); };
+window.onHomePressed = function(){ closeSheet(); closeAsk(); if (pk) closePick(false); closeFolder(); closeLook(); closeDrawer(); $('#home').scrollTo({top: 0, behavior: 'smooth'}); };
 window.onBack = function(){
-  if ($('#sheet.on')) closeSheet(); else if ($('#ask.on')) closeAsk(); else if ($('#folder.on')) closeFolder(); else if ($('#look.on')) closeLook(); else if (drawerOn()) closeDrawer();
+  if ($('#sheet.on')) closeSheet(); else if ($('#ask.on')) closeAsk(); else if ($('#pick.on')) closePick(false); else if ($('#folder.on')) closeFolder(); else if ($('#look.on')) closeLook(); else if (drawerOn()) closeDrawer();
   else if (typeof Android.backUnhandled === 'function') Android.backUnhandled(); // bekijken zonder startscherm te zijn: terug = dicht
 };
 window.onAppsChanged = function(){ if (typeof Android.appsAsync === 'function') Android.appsAsync(); else window.onApps(J(Android.apps(), [])); };

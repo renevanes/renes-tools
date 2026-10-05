@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.26",
-  "versionCode": 27,
+  "versionName": "1.27",
+  "versionCode": 28,
   "nativeLevel": 26,
   "web": "index.html",
-  "webSha256": "37051478bb88c482f7ec3f24a028a519687e68265162e8d8e8ec372a5e8294b2",
+  "webSha256": "6f04d8ff59e6e8b5f46fe753697f3644fe28211bd1e1fc86ceeac03285531ce7",
   "start": "start.html",
-  "startSha256": "53546f7222dd338124bf3e192a5f349875a61e717c41efc204daa5fa80bd1ce9",
+  "startSha256": "4a4e9814251eac074646d30abf7e9448de45f9e467896b1456f50ead0c474b81",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "c6102f849f64db524b3af2db4ce7169dfd11802d66db92a31ba5d51fe46d301c",
+  "apkSha256": "1f6770a9603f9d9e14e9ca4e84769036d2939ebf48f52ad92b6d032c9f4f5655",
   "changelog": [
+    {
+      "version": "1.27",
+      "date": "2026-10-05",
+      "changes": [
+        "Telefoon-skin aanpasbaar: zelf kiezen welke apps op het startscherm, in het dock en bij alle apps staan (met volgorde), volgorde van klok/weer/agenda/Rene's Tools, klokgrootte, doorzichtigheid en hoeken van de kaarten, sorteren op meest gebruikt"
+      ]
+    },
     {
       "version": "1.26",
       "date": "2026-10-05",

@@ -49,7 +49,7 @@ const { chromium } = require('playwright');
     // look aanpassen
     await pg.evaluate(() => openLook()); await pg.waitForTimeout(150);
     await pg.click('#l-bg button[data-b="g2"]'); await pg.click('#l-acc button[data-c="#10b981"]'); await pg.click('#l-ico button[data-v="l"]'); await pg.click('#l-cols button[data-v="5"]');
-    await pg.click('#l-sw-cal'); await pg.waitForTimeout(100);
+    await pg.click('#l-order button.tg[data-k="cal"]'); await pg.waitForTimeout(100);
     console.log('look', await pg.evaluate(() => [cfg.bg, cfg.accent, cfg.icon, cfg.cols, cfg.show.cal].join(',')), 'hidden list', await pg.$$eval('#l-hidden .hid span', x => x.map(e => e.textContent)));
     await pg.screenshot({ path: __dirname + '/shots/start-look-' + scheme + '.png', fullPage: true });
     await pg.click('#l-hidden button'); console.log('unhidden', await pg.evaluate(() => cfg.hidden.length === 0));

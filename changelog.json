@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.27",
+    "date": "2026-10-05",
+    "changes": [
+      "Telefoon-skin aanpasbaar: zelf kiezen welke apps op het startscherm, in het dock en bij alle apps staan (met volgorde), volgorde van klok/weer/agenda/Rene's Tools, klokgrootte, doorzichtigheid en hoeken van de kaarten, sorteren op meest gebruikt"
+    ]
+  },
+  {
     "version": "1.26",
     "date": "2026-10-05",
     "changes": [
