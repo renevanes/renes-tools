@@ -21,6 +21,13 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Terugzetten**: zet ontbrekende bestanden terug in de WhatsApp-map. Chatbestanden op de telefoon die nieuwer zijn dan de backup worden nooit overschreven.
 - Heeft *Toegang tot alle bestanden* nodig om de WhatsApp-map te lezen. De chatdatabase is versleuteld door WhatsApp; alleen WhatsApp kan hem terugzetten.
 
+## Meldingsgeschiedenis
+- Nieuwe meldingen lokaal bewaren via Androids `NotificationListenerService`, ook nadat ze zijn weggeveegd. Zet **Nieuwe meldingen bewaren** aan en geef Rene’s Tools **meldingentoegang** in de Android-instellingen. Beide staan los van de toestemming om zelf meldingen te tonen.
+- Begint vanaf inschakeling; de eerdere Android-meldingsgeschiedenis is niet toegankelijk. Doorlopende meldingen, groepssamenvattingen en eigen app-meldingen worden overgeslagen. Android kan gevoelige tekst afschermen.
+- Toont app, tijdstip, titel en tekst, met zoeken op app of inhoud. Bewaart maximaal 30 dagen en 10.000 meldingen in een private lokale SQLite-database. Identieke meldingen worden niet dubbel bewaard; gewijzigde tekst wel.
+- **Geschiedenis exporteren** schrijft alle bewaarde meldingen als JSON en leesbare HTML naar `Meldingen backup/` in de gekozen backup-map. Deze exports kunnen persoonlijke gegevens bevatten en zijn niet versleuteld. Selecteer **Meldingsgeschiedenis** bij **Alles back-uppen** voor automatische backups en de bestaande versleutelde archieven; dit nieuwe onderdeel staat standaard uit.
+- **Geschiedenis wissen** verwijdert alleen de lokale geschiedenis na bevestiging; eerdere backups blijven staan. Bewaren uitzetten verwijdert niets. Exports zijn bedoeld om terug te lezen, niet om meldingen opnieuw in Android te plaatsen.
+
 ## Leesbare chats
 - Ontsleutelt de WhatsApp-backup met de sleutel van 64 cijfers die WhatsApp toont bij de end-to-end versleutelde back-up (crypt15). De afgeleide AES-sleutel is HMAC-SHA256(HMAC-SHA256(0, root), "backup encryption"||0x01); de database wordt in GCM/CTR gelezen en zlib-gedecomprimeerd (`WaCrypt.java`).
 - Leest `message`/`chat`/`jid`(+`jid_map` voor privacy-ID's) uit de ontsleutelde SQLite en toont de chats in de app, met zoeken (`WaChats.java`). Namen komen uit de contacten als die toestemming is gegeven.
@@ -191,6 +198,7 @@ De interface is één pagina (`web/index.html`) voor de WebView, maar wordt bewe
 javac -cp build/classes:$TOOLS/ap/android-36/android.jar -d build/test tests/jvm/nl/rene/tools/*.java
 java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.LogicTest       # logica (contactversies, vCard, wekker, versleutelen, opruimen)
 java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.TimeshiftTest   # radiobuffer
+java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.HistoryTextTest # meldingstekst, escaping en deduplicatie
 ```
 Bij elke push bouwt GitHub Actions (`.github/workflows/bouwen-en-testen.yml`) de app en draait alle tests. Die APK is ondertekend met een tijdelijke testsleutel en dient alleen als controle; echte updates gaan via `./publish.sh` met de echte sleutel.
 

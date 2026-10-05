@@ -1,15 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.37",
-  "versionCode": 38,
-  "nativeLevel": 34,
+  "versionName": "1.38",
+  "versionCode": 39,
+  "nativeLevel": 35,
   "web": "index.html",
-  "webSha256": "565c47bdaf70b50b29c00e6b23dd5e9b33d4cd73746383daf2b7dd200ac0af3b",
+  "webSha256": "7e1af66113093ee6eb964c8e97faff7addb5e06e8b2666c5db89108342d4d6a2",
   "start": "start.html",
   "startSha256": "9a461413fac6fc8164a492c2634be41ad9427cbe85abfe048f9130e9b8058c55",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "e0e4281a2017c9d94743857068bcd0fdcfad2bed57be3a1daf8f2534022b6d2d",
+  "apkSha256": "a7cee8eaeb0c73c3f9eda3c8f466c17b0edca5c2e21f859e7ef33bdd3b05a745",
   "changelog": [
+    {
+      "version": "1.38",
+      "date": "2026-10-05",
+      "changes": [
+        "Nieuw: Meldingsgeschiedenis. Bewaar nieuwe meldingen na inschakeling en meldingentoegang, doorzoek ze en exporteer als JSON en leesbare HTML",
+        "Meldingsgeschiedenis kan mee in Alles back-uppen, ook in versleutelde backups; bewaren en dit backup-onderdeel staan standaard uit",
+        "Meldingsgeschiedenis gaat niet mee in de Google-backup van Android; uitleg bij 'Beperkte instelling'"
+      ]
+    },
     {
       "version": "1.37",
       "date": "2026-10-05",

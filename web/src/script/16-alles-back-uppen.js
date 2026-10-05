@@ -1,12 +1,12 @@
 /* ---------- Alles back-uppen ---------- */
-const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', contacts: 'Contacten', notes: 'Notities', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek' };
+const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek' };
 let bkPoll = null, bkBusy = false;
 function bkState(full){ try { return JSON.parse(Android.backupState(!!full)); } catch(e){ return {}; } }
 function enterBackup(){
   const st = bkState(true);
   $('#bk-nodest').style.display = st.dest ? 'none' : 'block';
   $('#bk-dest').textContent = st.dest ? 'Naar: ' + (st.destName || 'je backup-map') : '';
-  $('#bk-parts').innerHTML = Object.keys(BK_PARTS).map(k => '<label class=chk><input type=checkbox data-p="' + k + '"' + ((st.parts || {})[k] !== false ? ' checked' : '') +
+  $('#bk-parts').innerHTML = Object.keys(BK_PARTS).map(k => '<label class=chk><input type=checkbox data-p="' + k + '"' + (((st.parts || {})[k] === true || (k !== 'notifications' && (st.parts || {})[k] !== false)) ? ' checked' : '') +
     ' onchange="Android.backupSetPart(this.dataset.p, this.checked)"> ' + BK_PARTS[k] + '</label>').join('');
   $('#bk-auto').checked = !!st.auto; $('#bk-charging').checked = st.charging !== false;
   $('#bk-next').textContent = st.auto && st.next ? 'Volgende backup: ' + new Date(st.next).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';

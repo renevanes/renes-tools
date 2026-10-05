@@ -24,6 +24,7 @@ schermen/19-notities.html
 schermen/20-oproepen-backup.html
 schermen/21-info.html
 schermen/22-automatiseringen.html
+schermen/22-meldingsgeschiedenis.html
 vensters.html
 script/00-begin.js
 script/01-nepbrug.js
@@ -54,6 +55,7 @@ script/25-instellingen.js
 script/26-app-slot.js
 script/27-wat-is-er-nieuw-foutmelding-na-vastlopen.js
 script/28-versie-updates.js
+script/32-meldingsgeschiedenis.js
 script/29-start.js
 script/30-snelkoppelingen.js
 script/31-startscherm-groepen-volgorde-verbergen.js

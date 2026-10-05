@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android-cloudbackup (Android 7–11): de meldingsgeschiedenis blijft alleen op de telefoon. -->
+<full-backup-content>
+    <exclude domain="database" path="notification-history.db" />
+    <exclude domain="database" path="notification-history.db-journal" />
+    <exclude domain="database" path="notification-history.db-wal" />
+    <exclude domain="database" path="notification-history.db-shm" />
+    <exclude domain="sharedpref" path="notification_history.xml" />
+</full-backup-content>

@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.38",
+    "date": "2026-10-05",
+    "changes": [
+      "Nieuw: Meldingsgeschiedenis. Bewaar nieuwe meldingen na inschakeling en meldingentoegang, doorzoek ze en exporteer als JSON en leesbare HTML",
+      "Meldingsgeschiedenis kan mee in Alles back-uppen, ook in versleutelde backups; bewaren en dit backup-onderdeel staan standaard uit",
+      "Meldingsgeschiedenis gaat niet mee in de Google-backup van Android; uitleg bij 'Beperkte instelling'"
+    ]
+  },
+  {
     "version": "1.37",
     "date": "2026-10-05",
     "changes": [
