@@ -101,6 +101,26 @@ final class Notes {
         return false;
     }
 
+    /** Items toevoegen aan een notitie (vanuit de widget). Geeft true als het gelukt is. */
+    static synchronized boolean addItems(Context c, String noteId, java.util.List<String> texts) {
+        try {
+            String raw = load(c);
+            if (raw.isEmpty() || texts.isEmpty()) return false;
+            JSONArray all = new JSONArray(raw);
+            for (int i = 0; i < all.length(); i++) {
+                JSONObject n = all.optJSONObject(i);
+                if (n == null || !noteId.equals(n.optString("id"))) continue;
+                JSONArray items = n.optJSONArray("items");
+                if (items == null) { items = new JSONArray(); n.put("items", items); }
+                for (String t : texts) items.put(new JSONObject().put("id", Long.toString(System.currentTimeMillis(), 36) + Integer.toString((int) (Math.random() * 1e6), 36))
+                        .put("text", t).put("done", false));
+                n.put("updated", System.currentTimeMillis());
+                return save(c, all.toString()).isEmpty();
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
     /** Eén notitie (of null). */
     static JSONObject note(Context c, String id) {
         try {

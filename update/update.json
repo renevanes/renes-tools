@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.40",
-  "versionCode": 41,
-  "nativeLevel": 37,
+  "versionName": "1.41",
+  "versionCode": 42,
+  "nativeLevel": 38,
   "web": "index.html",
-  "webSha256": "38f43442c74cc66ac0c1e580fbf33405c9e330156e8491ecee10ba078c03f37b",
+  "webSha256": "32a159f726aa7d757365f01576ae07571f13a24096adb32ea1529b8e3d7c2b87",
   "start": "start.html",
   "startSha256": "9c5560f0cff0cd341fa5e00137698d7334458f2690247352825fa5173b3c50ec",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "672a2a32019ac32d3f2607c48b2c845c0c9446598c36062cbaec227d2b580325",
+  "apkSha256": "6bf87004c6a2207860090ac2f66553ca0d06c891ba7827134b3c7f2a3ace479d",
   "changelog": [
+    {
+      "version": "1.41",
+      "date": "2026-10-05",
+      "changes": [
+        "Nieuwe widgets: Agenda, Weer, Rene's Tools overzicht en Parkeren",
+        "Widget Lijstje: met + snel iets toevoegen, en kies donker, licht of doorzichtig"
+      ]
+    },
     {
       "version": "1.40",
       "date": "2026-10-05",
@@ -365,5 +373,5 @@
       ]
     }
   ],
-  "webSig": "mzKqYEU28ZcTLu/njTHPd5sJljvpPZAq6SuUrZio90vXIY5WGJL7f29WfDY3BFj687F4w4U0I/NbKXoTCQhkbkevc8hUpYge/qDPdA9fjwSOo1LCfWmEepE32ghVKYL7ViAX45u+KYs0MU5aQ5lniEAdapi/FgQwpDsrwdCODyMvayRYJxBzVZJ52FjI7c1iYA6ZDTLVfizZrEVebriDhYqM9lWOI99dU4RU501UmOjeDYKWAi5TB5eta1kL+9A17QEKn2OkF+2+IEedI5yNC9BC6ur7Y2WkLEIrtYhpdy1o70BXRT0Ev/+j8ARsGdDrapRbELJzP6v2k/NWeYt90aszGHvm7u06LVQ8PPHiWDkDHtXPO8PVw2GKHfW2J4pMkA5kD5EBj2itPbR2v1ZIP5q6rYQRwZpDxd7KUZfrLyq/4/pDr/4SQLGgSWUnJ7XXJE6pnxyuD2LqO3hk3Dhp77p6NFguytg+3O0HyPxfWoYPizxMelJKlWzKeikDZOTW"
+  "webSig": "Avsq9nsGmUOkeL2BdSimzzsI6qjz7TVpf/DyB/QrrptogYba0587tTMRybHFCdSztzmOjPgw57y+HOymC6eNGgywOn7+COOOngH/VnvJC5xkTpBqekhRNXs77tZTd535hZPyuVryihKVmyTV6TVcBZvtOh8N3eLEibctB2Ui6D/ef0sdQlQZRSxaFexBl7C5DTMGJkTXRqT0rQ0Xu/yibp87SflOkBSHldMYtTD5W3HVlS54hu/eVLJBZACf1W0LB+bSKmLcFUTGcT4S7oMjpyfAAaDW4a6pB30Hwz2DfywxXkDdiPO0qQ9+I/HZBknYLUfJLVMsKVhV8UgG60K67OpvzVmdadPLlw0zNnBot8V1sSOhmYklr1m/YR6eR9mFXdzY+Lh8XAv60bLiitE+3OFprGcjCndswsBmma1LUT+xKXGYKoo7gXSk7UZj7scbv+I16DVp6VSJXl/ZPQQFCyn+/YeoWgyzeUWuzD4dnq1O9kmRxnTopY+a/jnltG0T"
 }

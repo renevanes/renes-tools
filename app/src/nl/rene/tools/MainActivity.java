@@ -1505,6 +1505,9 @@ public class MainActivity extends Activity {
                     Lock.prefs(ctx).edit().putBoolean("on", on).apply();
                     Lock.unlocked = true;
                     a.applySecure();
+                    // Widgets tonen met app-slot minder: meteen bijwerken
+                    HomeWidgets.refresh(ctx, HomeWidgets.Overview.class);
+                    HomeWidgets.refresh(ctx, HomeWidgets.Agenda.class);
                 }
                 a.js("onSettingsChanged", JSONObject.quote(ok ? "" : (msg == null ? "Niet bevestigd" : msg)));
             }));

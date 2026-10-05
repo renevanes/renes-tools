@@ -23,9 +23,11 @@ public class AutoRunActivity extends Activity {
             boolean hasSteps = r.optJSONArray("steps") != null && r.optJSONArray("steps").length() > 0;
             if (doRun && hasSteps && AutoA11y.ready()) {
                 Auto.log(this, r, "Gestart vanuit de melding");
+                HomeWidgets.parkMark(this, r);
                 AutoA11y.run(this, r);
             } else {
                 if (!Auto.openApp(this, r)) Toast.makeText(this, "De app is niet gevonden", Toast.LENGTH_LONG).show();
+                else if (doRun) HomeWidgets.parkMark(this, r);
                 else if (doRun && hasSteps) Toast.makeText(this, "Automatisch tikken staat uit: druk zelf op de knoppen", Toast.LENGTH_LONG).show();
                 if (doRun) Auto.log(this, r, "App geopend vanuit de melding");
             }

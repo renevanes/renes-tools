@@ -47,6 +47,7 @@ final class AllBackup {
     /** Voert de backup uit (na tryBegin). Geeft per onderdeel {ok, count, msg}; slaat de uitkomst op. */
     static JSONObject run(Context c, boolean auto) {
         JSONObject res = new JSONObject();
+        HomeWidgets.refresh(c, HomeWidgets.Overview.class); // "Backup is bezig…"
         Secure.Zip zip = null;
         try {
             if (WaBackup.destUri(c) == null) {
@@ -101,6 +102,7 @@ final class AllBackup {
             try {
                 res.put("t", System.currentTimeMillis()).put("auto", auto);
                 if (!res.optBoolean("stopped")) prefs(c).edit().putString("last", res.toString()).apply();
+                HomeWidgets.refresh(c, HomeWidgets.Overview.class);
             } catch (Exception ignored) { }
             busy = false;
             running.set(false);

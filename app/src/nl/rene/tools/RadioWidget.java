@@ -20,6 +20,7 @@ public class RadioWidget extends AppWidgetProvider {
         try {
             AppWidgetManager m = AppWidgetManager.getInstance(c);
             int[] ids = m.getAppWidgetIds(new ComponentName(c, RadioWidget.class));
+            HomeWidgets.refresh(c, HomeWidgets.Overview.class);
             if (ids == null || ids.length == 0) return;
             m.updateAppWidget(ids, views(c));
         } catch (Exception ignored) { }

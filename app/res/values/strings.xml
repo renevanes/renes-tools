@@ -5,4 +5,8 @@
     <string name="widget_note_desc">Een lijstje uit Notities, afstrepen met een tik</string>
     <string name="widget_music_desc">Muziek herkennen met één tik</string>
     <string name="a11y_desc">Voor Automatiseringen in Rene\'s Tools: drukt op jouw verzoek knoppen in voor je, bijvoorbeeld \'Start parkeren\' in EasyPark. Alleen in de app die je zelf kiest, en alleen als een automatisering loopt of als je opneemt. Er wordt niets gelezen of bewaard van andere apps.</string>
+    <string name="widget_agenda_desc">Agenda: je volgende afspraken</string>
+    <string name="widget_weather_desc">Weer: nu, regen de komende uren en 3 dagen</string>
+    <string name="widget_overview_desc">Overzicht: backup, Auto redial, radio en herinneringen</string>
+    <string name="widget_park_desc">Parkeren: parkeeractie starten en zien hoe lang hij loopt</string>
 </resources>

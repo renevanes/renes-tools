@@ -124,6 +124,7 @@ public class AutoA11y extends AccessibilityService {
             if (System.currentTimeMillis() > s.pendingUntil) return;
             Auto.cancel(s, Auto.notifId(r.optString("id")));
             Auto.log(s, r, "Ontgrendeld: automatisch uitvoeren");
+            HomeWidgets.parkMark(s, r);
             s.h.postDelayed(() -> s.startRun(r), 600);
         }
     }

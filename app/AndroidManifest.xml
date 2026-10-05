@@ -186,6 +186,55 @@
             android:exported="false" />
 
         <activity
+            android:name=".NoteAddActivity"
+            android:label="Toevoegen aan lijstje"
+            android:theme="@android:style/Theme.DeviceDefault.Dialog.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:windowSoftInputMode="stateVisible|adjustResize"
+            android:exported="false" />
+
+        <receiver
+            android:name=".HomeWidgets$Agenda"
+            android:label="Agenda"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_agenda_info" />
+        </receiver>
+
+        <receiver
+            android:name=".HomeWidgets$Weather"
+            android:label="Weer"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_weather_info" />
+        </receiver>
+
+        <receiver
+            android:name=".HomeWidgets$Overview"
+            android:label="Rene's Tools overzicht"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_overview_info" />
+        </receiver>
+
+        <receiver
+            android:name=".HomeWidgets$Park"
+            android:label="Parkeren"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_park_info" />
+        </receiver>
+
+        <activity
             android:name=".NoteWidgetConfig"
             android:label="Lijstje kiezen"
             android:theme="@android:style/Theme.DeviceDefault.Dialog.NoActionBar"

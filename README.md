@@ -146,6 +146,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Pictogrammen worden als PNG via `/icon/<app>` aan de pagina gegeven en per app-versie bewaard in de cache. Het startscherm wordt samen met de interface stil bijgewerkt (`start.html` in `update.json`).
 
 ## Widgets, wekker, herinneringen en Android Auto
+- **Widgets voor elk startscherm** (`HomeWidgets.java`): *Agenda* (volgende afspraken; met app-slot alleen een knop), *Weer* (nu, regen de komende uren, 3 dagen; tik = verversen), *Rene's Tools overzicht* (backup, herinneringen, Auto redial, radio) en *Parkeren* (start de parkeer-automatisering en toont sinds wanneer hij loopt). *Lijstje* heeft een +-knop om items toe te voegen (`NoteAddActivity`) en een keuze voor donker, licht of doorzichtig.
 - **Radio-widget** (`RadioWidget`): zender, wat er nu speelt, afspelen/pauzeren en stoppen; wordt bijgewerkt door `RadioService`. **Herken-widget** (`MusicWidget`): opent Muziek herkennen en begint meteen.
 - **Radiowekker** (`RadioAlarm`, `AlarmReceiver`): tijd, dagen en zender; `setAlarmClock` (precies, ook in diepe slaap; `USE_EXACT_ALARM`). Speelt via het wekkervolume (`USAGE_ALARM`), begint zacht en wordt in ~30 s harder; zonder verbinding de gewone wekkertoon. Snooze 10 min in de melding. Na herstarten van de telefoon opnieuw gepland.
 - **Notities**: herinnering op datum/tijd (`Reminders`, melding opent de notitie), delen als tekst (☐/☑), en tekst uit andere apps delen naar Rene's Tools wordt een nieuwe notitie (lijstjes worden items).

@@ -20,6 +20,7 @@ import java.util.List;
 public class NoteWidgetConfig extends Activity {
 
     private int widgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
+    private String style = null;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -45,6 +46,7 @@ public class NoteWidgetConfig extends Activity {
     private int dp(float v) { return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics())); }
 
     private void show() {
+        if (style == null) style = NoteWidget.style(this, widgetId);
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(20), dp(18), dp(20), dp(12));
@@ -53,6 +55,27 @@ public class NoteWidgetConfig extends Activity {
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19);
         t.setPadding(0, 0, 0, dp(10));
         box.addView(t);
+
+        // Uiterlijk
+        TextView sl = new TextView(this);
+        sl.setText("Uiterlijk");
+        sl.setPadding(0, dp(4), 0, dp(4));
+        box.addView(sl);
+        LinearLayout styles = new LinearLayout(this);
+        styles.setOrientation(LinearLayout.HORIZONTAL);
+        String[][] opts = {{"dark", "Donker"}, {"light", "Licht"}, {"glass", "Doorzichtig"}};
+        for (String[] o : opts) {
+            Button sb = new Button(this);
+            sb.setAllCaps(false);
+            sb.setText((o[0].equals(style) ? "✓ " : "") + o[1]);
+            sb.setOnClickListener(v -> { style = o[0]; show(); });
+            styles.addView(sb, new LinearLayout.LayoutParams(0, -2, 1));
+        }
+        box.addView(styles);
+        TextView ll = new TextView(this);
+        ll.setText("Lijstje");
+        ll.setPadding(0, dp(10), 0, dp(4));
+        box.addView(ll);
 
         List<String[]> notes = Notes.list(this);
         if (notes.isEmpty()) {
@@ -90,6 +113,7 @@ public class NoteWidgetConfig extends Activity {
 
     private void choose(String noteId) {
         NoteWidget.setNote(this, widgetId, noteId);
+        NoteWidget.setStyle(this, widgetId, style);
         AppWidgetManager m = AppWidgetManager.getInstance(this);
         NoteWidget.update(this, m, widgetId);
         m.notifyAppWidgetViewDataChanged(new int[]{widgetId}, R.id.w_nlist);

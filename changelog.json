@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.41",
+    "date": "2026-10-05",
+    "changes": [
+      "Nieuwe widgets: Agenda, Weer, Rene's Tools overzicht en Parkeren",
+      "Widget Lijstje: met + snel iets toevoegen, en kies donker, licht of doorzichtig"
+    ]
+  },
+  {
     "version": "1.40",
     "date": "2026-10-05",
     "changes": [

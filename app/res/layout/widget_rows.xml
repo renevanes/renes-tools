@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@drawable/widget_bg"
+    android:paddingStart="14dp" android:paddingEnd="14dp" android:paddingTop="10dp" android:paddingBottom="8dp">
+    <LinearLayout android:id="@+id/w_head" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:paddingBottom="4dp">
+        <TextView android:id="@+id/w_title" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:textColor="#FFFFFFFF" android:textSize="15sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/w_sub" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="#CCFFFFFF" android:textSize="12sp" android:maxLines="1" />
+    </LinearLayout>
+    <TextView android:id="@+id/w_r0" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="34dp"
+        android:gravity="center_vertical" android:textColor="#FFFFFFFF" android:textSize="14sp" android:maxLines="2" android:ellipsize="end" />
+    <TextView android:id="@+id/w_r1" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="34dp"
+        android:gravity="center_vertical" android:textColor="#FFFFFFFF" android:textSize="14sp" android:maxLines="2" android:ellipsize="end" />
+    <TextView android:id="@+id/w_r2" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="34dp"
+        android:gravity="center_vertical" android:textColor="#FFFFFFFF" android:textSize="14sp" android:maxLines="2" android:ellipsize="end" />
+    <TextView android:id="@+id/w_r3" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="34dp"
+        android:gravity="center_vertical" android:textColor="#FFFFFFFF" android:textSize="14sp" android:maxLines="2" android:ellipsize="end" />
+</LinearLayout>

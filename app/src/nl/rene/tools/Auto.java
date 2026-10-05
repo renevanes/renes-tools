@@ -276,6 +276,7 @@ final class Auto {
             return;
         }
         prefs(c).edit().putLong("last_" + id, now).apply();
+        if (!HomeWidgets.isStartRule(r)) HomeWidgets.parkMark(c, r); // bijv. weer instappen: parkeren is voorbij
         run(c, r, why, false);
     }
 
@@ -292,6 +293,7 @@ final class Auto {
                     return;
                 }
                 log(c, r, why + ": automatisch uitvoeren");
+                if (!test) HomeWidgets.parkMark(c, r);
                 AutoA11y.run(c, r);
                 return;
             }

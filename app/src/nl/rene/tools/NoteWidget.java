@@ -30,6 +30,12 @@ public class NoteWidget extends AppWidgetProvider {
 
     static void setNote(Context c, int id, String noteId) { prefs(c).edit().putString("w" + id, noteId).apply(); }
 
+    /** Uiterlijk per widget: "dark" (standaard), "light" of "glass" (doorzichtig). */
+    static String style(Context c, int id) { return prefs(c).getString("s" + id, "dark"); }
+    static void setStyle(Context c, int id, String s) { prefs(c).edit().putString("s" + id, s).apply(); }
+    static boolean light(String s) { return "light".equals(s); }
+    static int bg(String s) { return "light".equals(s) ? R.drawable.widget_bg_light : "glass".equals(s) ? R.drawable.widget_bg_glass : R.drawable.widget_bg; }
+
     @Override
     public void onUpdate(Context c, AppWidgetManager m, int[] ids) {
         for (int id : ids) update(c, m, id);
@@ -38,7 +44,7 @@ public class NoteWidget extends AppWidgetProvider {
     @Override
     public void onDeleted(Context c, int[] ids) {
         SharedPreferences.Editor e = prefs(c).edit();
-        for (int id : ids) e.remove("w" + id);
+        for (int id : ids) { e.remove("w" + id); e.remove("s" + id); }
         e.apply();
     }
 
@@ -78,6 +84,10 @@ public class NoteWidget extends AppWidgetProvider {
 
     static RemoteViews views(Context c, int id) {
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_note);
+        String st = style(c, id);
+        v.setInt(R.id.w_nroot, "setBackgroundResource", bg(st));
+        int fg = light(st) ? 0xFF0F172A : 0xFFFFFFFF, fg2 = light(st) ? 0xCC0F172A : 0xCCFFFFFF;
+        v.setTextColor(R.id.w_ntitle, fg); v.setTextColor(R.id.w_ncount, fg2); v.setTextColor(R.id.w_nempty, fg2); v.setTextColor(R.id.w_nadd, fg);
         String noteId = noteFor(c, id);
         JSONObject n = noteId == null ? null : Notes.note(c, noteId);
         int imm = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
@@ -93,9 +103,15 @@ public class NoteWidget extends AppWidgetProvider {
             v.setOnClickPendingIntent(R.id.w_nhead, pi);
             v.setOnClickPendingIntent(R.id.w_nempty, pi);
             v.setViewVisibility(R.id.w_nlist, android.view.View.GONE);
+            v.setViewVisibility(R.id.w_nadd, android.view.View.GONE);
             return v;
         }
         v.setViewVisibility(R.id.w_nlist, android.view.View.VISIBLE);
+        v.setViewVisibility(R.id.w_nadd, android.view.View.VISIBLE);
+        // + : snel iets toevoegen zonder de app te openen
+        Intent add = new Intent(c, NoteAddActivity.class).putExtra(EXTRA_NOTE, noteId).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK).setData(Uri.parse("renestools://noteadd/" + id));
+        v.setOnClickPendingIntent(R.id.w_nadd, PendingIntent.getActivity(c, 8500 + id, add, imm));
         String title = n.optString("title").trim();
         v.setTextViewText(R.id.w_ntitle, title.isEmpty() ? "Notitie" : title);
         JSONArray items = n.optJSONArray("items");

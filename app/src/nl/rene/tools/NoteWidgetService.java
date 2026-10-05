@@ -30,6 +30,7 @@ public class NoteWidgetService extends RemoteViewsService {
         private final int widgetId;
         private String noteId;
         private final List<String[]> rows = new ArrayList<>(); // {itemId, tekst, "1" als afgestreept}
+        private boolean light;
 
         Factory(Context ctx, int id) { c = ctx; widgetId = id; }
 
@@ -38,6 +39,7 @@ public class NoteWidgetService extends RemoteViewsService {
         @Override
         public void onDataSetChanged() {
             rows.clear();
+            light = NoteWidget.light(NoteWidget.style(c, widgetId));
             noteId = NoteWidget.noteFor(c, widgetId);
             JSONObject n = noteId == null ? null : Notes.note(c, noteId);
             JSONArray items = n == null ? null : n.optJSONArray("items");
@@ -68,12 +70,14 @@ public class NoteWidgetService extends RemoteViewsService {
                 SpannableString s = new SpannableString(r[1]);
                 s.setSpan(new StrikethroughSpan(), 0, s.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 v.setTextViewText(R.id.w_itext, s);
-                v.setTextColor(R.id.w_itext, 0x99FFFFFF);
-                v.setTextColor(R.id.w_icheck, 0x99FFFFFF);
+                int dim = light ? 0x990F172A : 0x99FFFFFF;
+                v.setTextColor(R.id.w_itext, dim);
+                v.setTextColor(R.id.w_icheck, dim);
             } else {
                 v.setTextViewText(R.id.w_itext, r[1]);
-                v.setTextColor(R.id.w_itext, 0xFFFFFFFF);
-                v.setTextColor(R.id.w_icheck, 0xFFFFFFFF);
+                int fg = light ? 0xFF0F172A : 0xFFFFFFFF;
+                v.setTextColor(R.id.w_itext, fg);
+                v.setTextColor(R.id.w_icheck, fg);
             }
             v.setContentDescription(R.id.w_irow, (done ? "Afgestreept: " : "") + r[1]);
             v.setOnClickFillInIntent(R.id.w_irow, new Intent().putExtra(NoteWidget.EXTRA_NOTE, noteId).putExtra(NoteWidget.EXTRA_ITEM, r[0]));
