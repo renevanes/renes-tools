@@ -138,6 +138,10 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
   - Alle apps, menu's, de widgetkiezer en *Look aanpassen* komen in een webpagina over het werkblad (modus `overlay`). Bij het eerste gebruik worden de apps en het dock van de skin overgenomen.
   - Het hoofdscherm is standaard **Vandaag** (lang drukken → *Dit als hoofdscherm* op een andere pagina kan ook).
   - **Skin afsluiten** (lang drukken op een leeg stuk, of terug op het hoofdscherm als de skin niet je standaard-startscherm is) vraagt eerst je vingerafdruk of pincode en gaat dan terug naar Rene's Tools; is de skin je standaard-startscherm, dan opent daarna de Android-instelling om een ander startscherm te kiezen.
+  - **Zoeken** (zoekbalk op Vandaag, of in alle apps): apps, notities (met app-slot alleen een knop naar de app, geen inhoud), contacten (met toestemming), Rene's Tools en Android-instellingen (`HomeSearch.java`).
+  - **Snelkoppelingen** (`LauncherShortcuts`, `PinShortcutActivity`; alleen als standaard-startscherm): lang drukken op een app toont zijn snelkoppelingen (bijv. *Nieuw bericht*); apps kunnen snelkoppelingen op het startscherm zetten (contact, website).
+  - **Meldingsbolletjes** (Look aanpassen; via dezelfde meldingentoegang als de meldingsgeschiedenis, `NotifDots`): rood bolletje op apps en mappen met een melding. Er wordt niets bewaard.
+  - **Backup**: de indeling (pagina's, mappen, dock, look, vastgezette notities) gaat mee in *Alles back-uppen* (`Startscherm/startscherm.json`) en is terug te zetten; widgets en vastgezette snelkoppelingen niet.
   - **Vangnet**: start het nieuwe startscherm twee keer niet goed op, dan verschijnt de klassieke skin (één scherm). Zelf wisselen kan in *Look aanpassen → Soort startscherm*; na een app-update krijgt de launcher een nieuwe kans.
 - Pictogrammen worden als PNG via `/icon/<app>` aan de pagina gegeven en per app-versie bewaard in de cache. Het startscherm wordt samen met de interface stil bijgewerkt (`start.html` in `update.json`).
 

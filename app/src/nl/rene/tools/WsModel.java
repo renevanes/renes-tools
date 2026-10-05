@@ -9,7 +9,7 @@ import java.util.List;
  */
 final class WsModel {
 
-    static final String APP = "app", FOLDER = "folder", WIDGET = "widget";
+    static final String APP = "app", FOLDER = "folder", WIDGET = "widget", SHORTCUT = "shortcut";
     static final int MAX_PAGES = 12, DOCK_MAX = 6;
 
     static final class Item {
@@ -19,18 +19,20 @@ final class WsModel {
         List<String> apps = new ArrayList<>(); // map: inhoud
         int widgetId = -1;          // widget: id bij AppWidgetHost
         String provider = "";       // widget: component
+        String sid = "";            // snelkoppeling: id bij de app (key = pakket, name = naam)
         int x, y, w = 1, h = 1;
         long uid;                   // vast nummer voor de interface (menu's, slepen)
 
         Item copy() {
             Item i = new Item();
-            i.type = type; i.key = key; i.name = name; i.apps = new ArrayList<>(apps); i.widgetId = widgetId; i.provider = provider;
+            i.type = type; i.key = key; i.name = name; i.apps = new ArrayList<>(apps); i.widgetId = widgetId; i.provider = provider; i.sid = sid;
             i.x = x; i.y = y; i.w = w; i.h = h; i.uid = uid;
             return i;
         }
         boolean isApp() { return APP.equals(type); }
         boolean isFolder() { return FOLDER.equals(type); }
         boolean isWidget() { return WIDGET.equals(type); }
+        boolean isShortcut() { return SHORTCUT.equals(type); }
     }
 
     static final class Page { final List<Item> items = new ArrayList<>(); }

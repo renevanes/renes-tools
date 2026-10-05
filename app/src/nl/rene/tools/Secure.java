@@ -334,7 +334,7 @@ final class Secure {
         openUri = u; openHeader = h; openKey = k;
         openName = displayName(c, u);
         JSONArray files = new JSONArray();
-        String contacts = null, notes = null;
+        String contacts = null, notes = null, launcher = null;
         long total = 0;
         try (ZipInputStream z = new ZipInputStream(stream(c))) {
             ZipEntry e;
@@ -348,6 +348,7 @@ final class Secure {
                 files.put(new JSONObject().put("n", n).put("s", size));
                 if (n.startsWith(Contacts.DIR + "/contacten-") && n.endsWith(".vcf")) contacts = n;
                 if (n.equals(Notes.DIR + "/notities.json")) notes = n;
+                if (n.equals(LauncherBackup.DIR + "/" + LauncherBackup.FILE)) launcher = n;
             }
         } catch (Exception e) {
             forget();
@@ -356,6 +357,7 @@ final class Secure {
         JSONObject o = new JSONObject().put("name", openName).put("files", files).put("bytes", total);
         if (contacts != null) o.put("contacts", contacts);
         if (notes != null) o.put("notes", notes);
+        if (launcher != null) o.put("launcher", launcher);
         return o;
     }
 

@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.40",
+    "date": "2026-10-05",
+    "changes": [
+      "Launcher: zoekbalk op Vandaag voor apps, contacten, notities, instellingen en Rene's Tools",
+      "Launcher: snelkoppelingen van apps bij lang drukken, en apps kunnen snelkoppelingen op het startscherm zetten",
+      "Launcher: meldingsbolletjes op apps (Look aanpassen) en de indeling gaat mee in Alles back-uppen"
+    ]
+  },
+  {
     "version": "1.39",
     "date": "2026-10-05",
     "changes": [

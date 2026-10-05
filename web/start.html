@@ -67,6 +67,11 @@ body.drawer-on #drawer{transform:none}
 .ib{width:44px;height:44px;border-radius:14px;background:var(--glass2);display:grid;place-items:center;font-size:19px;flex:none}
 #dlist{flex:1;overflow-y:auto;padding:4px 14px calc(max(var(--sb), var(--kb)) + 20px)}
 .letter{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--muted);padding:8px 4px 0;letter-spacing:.05em}
+#sbar{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:12px 16px;font-size:15px;color:var(--muted);text-align:left}
+.srh{margin:14px 4px 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.srow{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:14px;background:var(--glass2);margin:0 0 6px;text-align:left}
+.srow .si{font-size:22px;width:30px;text-align:center}.srow b{display:block;font-weight:600}.srow small{display:block;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow span:last-child{min-width:0;flex:1}
 .websearch{display:flex;gap:10px;align-items:center;width:100%;padding:12px;border-radius:16px;background:var(--glass2);margin:6px 0 12px;font-size:15px}
 .empty{color:var(--muted);text-align:center;padding:30px 0}
 .ov{position:absolute;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
@@ -131,6 +136,7 @@ body.m-today,body.m-overlay{background:transparent!important}
 <div id="home" aria-label="Startscherm">
   <button id="clock" class="onwall" onclick="Android.openClock()" aria-label="Klok en wekkers"><span id="time">--:--</span><span id="date"></span></button>
   <div id="alarm" class="onwall"></div>
+  <button id="sbar" class="glass" onclick="openSearch()" aria-label="Zoeken in apps, contacten, notities en instellingen"><span>🔎</span><span>Zoek apps, contacten, notities…</span></button>
   <div id="banner" class="glass"><span style="flex:1">Wil je dit als startscherm van je telefoon gebruiken?</span><button onclick="Android.homeSettings()">Instellen</button><button style="background:none;color:var(--muted);padding:8px" aria-label="Niet meer vragen" onclick="cfg.bannerOff=true;save();$('#banner').classList.remove('on')">✕</button></div>
   <button id="weather" class="glass" onclick="weatherTap()" style="display:none"></button>
   <div id="cal" class="glass card" style="display:none"></div>
@@ -178,6 +184,7 @@ body.m-today,body.m-overlay{background:transparent!important}
     <div class="seg" id="l-ico" style="margin-bottom:10px"></div>
     <div class="seg" id="l-cols"></div>
     <div class="sw"><span>Namen onder de apps</span><button class="tg" id="l-labels" role="switch" aria-label="Namen onder de apps" onclick="toggleCfg('labels')"></button></div>
+    <div class="sw" id="l-dots-row"><span>Meldingsbolletjes op apps<small id="l-dots-note" style="display:block;font-size:12px;color:var(--muted)"></small></span><button class="tg" id="l-dots" role="switch" aria-label="Meldingsbolletjes op apps" onclick="toggleDots()"></button></div>
   </div>
   <div class="lsec"><h4>Kaarten</h4>
     <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Doorzichtigheid</div>
@@ -243,7 +250,10 @@ if (!window.Android) window.Android = (function(){
     overlayDone(seq){ this._ovDone = (this._ovDone || 0) + 1; this._ovSeq = seq; }, openDrawer(){ this._openDrawer = true; }, homeMenu(){ this._homeMenu = true; },
     sheetAction(u, id){ this._sheet = u + ':' + id; }, folderRename(u, n){ this._ren = u + ':' + n; }, widgetAdd(p){ this._wadd = p; },
     widgetPicker(){ widgetPicker(null); setTimeout(() => widgetPicker([{p: 'com.x/.Clock', label: 'Klok', app: 'Klok', w: 2, h: 2, own: false}, {p: 'nl.rene.tools/.NoteWidget', label: 'Notitielijst', app: "Rene's Tools", w: 2, h: 3, own: true}]), 10); },
-    setClassic(on){ this._classic = on; }, exitSkin(){ this._exit = true; }, classic(){ return MODE === 'legacy'; },
+    setClassic(on){ this._classic = on; }, exitSkin(){ this._exit = true; }, openDrawerSearch(){ this._dsearch = true; },
+    searchMore(q){ return JSON.stringify({notes: q.toLowerCase().includes('melk') ? [{id: 'n1', title: 'Boodschappen', snip: 'Melk, brood'}] : [], contacts: q.toLowerCase().startsWith('ki') ? [{name: 'Kim', uri: 'content://com.android.contacts/contacts/lookup/x/1'}] : []}); },
+    openContact(u){ this._contact = u; }, openSetting(k){ this._setting = k; }, appShortcuts(k){ return k.startsWith('com.whatsapp') ? JSON.stringify([{id: 'new', label: 'Nieuw bericht'}]) : '[]'; }, startShortcut(k, id){ this._sc = k + '|' + id; },
+    notifAccess(){ return !!this._na; }, notifAccessSettings(){ this._na = true; }, classic(){ return MODE === 'legacy'; },
     notes(){ return JSON.stringify([{id: 'n1', title: 'Boodschappen', open: 7, total: 9, items: ['Melk', 'Brood', 'Kaas', 'Appels', 'Koffie'], text: ''}]); }, isDefault(){ return false; }, homeSettings(){ this._hs = true; }, wallpaper(){}, webSearch(q){ this._ws = q; },
     notifications(){ this._notif = true; return true; }, vibrate(){}, hasPerm(){ return true; }, logJs(){}, version(){ return '{}'; }
   };
@@ -301,8 +311,9 @@ function applyOrder(){
   home.appendChild($('#banner'));
   for (const k of cfg.order) { if (NATIVE && k === 'apps') continue; for (const sel of PARTS[k][2]) home.appendChild($(sel)); }
   home.appendChild($('#hint'));
-  // banner direct na de klok als die bovenaan staat
-  if (cfg.order[0] === 'clock') $('#alarm').after($('#banner'));
+  // zoekbalk en banner direct na de klok als die bovenaan staat
+  if (cfg.order[0] === 'clock') { $('#alarm').after($('#sbar')); $('#sbar').after($('#banner')); }
+  else home.prepend($('#sbar'));
 }
 function applyLook(){
   const r = document.documentElement;
@@ -400,6 +411,7 @@ function renderDrawer(){
     const hits = apps.filter(a => !cfg.hidden.includes(a.k) && norm(a.n).includes(q))
       .sort((a, b) => (norm(b.n).startsWith(q) ? 1 : 0) - (norm(a.n).startsWith(q) ? 1 : 0));
     html = '<div class=grid>' + hits.map(a => appHtml(a.k, 'drawer')).join('') + '</div>';
+    html += searchMore($('#q').value.trim(), q);
     html += '<button class=websearch onclick="Android.webSearch($(\'#q\').value.trim())"><span>🔎</span><span>Zoek op internet naar “' + esc($('#q').value.trim()) + '”</span></button>';
     if (!hits.length) html = '<p class=empty>Geen app gevonden</p>' + html;
   } else {
@@ -410,6 +422,45 @@ function renderDrawer(){
   }
   $('#dlist').innerHTML = html;
 }
+/* Zoeken op het startscherm: naast apps ook notities, contacten, instellingen en tools. */
+const SETTINGS = [['wifi', 'Wifi', '📶'], ['bt', 'Bluetooth', '🔵'], ['display', 'Scherm en helderheid', '🔆'], ['sound', 'Geluid en trillen', '🔊'], ['battery', 'Batterij', '🔋'],
+  ['apps', 'Apps', '📱'], ['notif', 'Meldingen', '🔔'], ['location', 'Locatie', '📍'], ['security', 'Beveiliging en vingerafdruk', '🔒'], ['storage', 'Opslag', '💾'],
+  ['date', 'Datum en tijd', '🕒'], ['a11y', 'Toegankelijkheid', '♿'], ['data', 'Mobiel netwerk en data', '📡'], ['hotspot', 'Hotspot en verbindingen', '📶'], ['home', 'Standaard-startscherm', '🏠'], ['all', 'Alle instellingen', '⚙️']];
+function srow(icon, title, sub, act, val){ return '<button class=srow data-a="' + act + '" data-v="' + esc(val) + '" onclick="srAct(this)"><span class=si>' + icon + '</span><span><b>' + esc(title) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</span></button>'; }
+/* Notities en contacten na een korte pauze in het typen (niet bij elke toets de notities doorzoeken). */
+function searchMore(raw, nq){
+  if (!raw) return '';
+  clearTimeout(searchMore.t);
+  searchMore.t = setTimeout(() => { const el = $('#smore'); if (el && $('#q').value.trim() === raw) el.innerHTML = searchMoreNow(raw, nq); }, 160);
+  return '<div id=smore>' + (searchMore.last && searchMore.last[0] === raw ? searchMore.last[1] : '') + '</div>';
+}
+function searchMoreNow(raw, nq){
+  let h = '';
+  const r = (raw.length >= 2 && typeof Android.searchMore === 'function') ? J(Android.searchMore(raw), {}) : {};
+  if (r.notes && r.notes.length) h += '<div class=srh>Notities</div>' + r.notes.map(n => srow('📝', n.title, n.snip, 'note', n.id)).join('');
+  else if (r.notesLocked) h += '<div class=srh>Notities</div>' + srow('🔒', 'Zoeken in Notities', 'Notities zijn vergrendeld: openen in Rene\'s Tools', 'tool', 'notes');
+  if (r.contacts && r.contacts.length) h += '<div class=srh>Contacten</div>' + r.contacts.map(c => srow('👤', c.name, '', 'contact', c.uri)).join('');
+  const tl = Object.keys(TOOLS).filter(k => norm(TOOLS[k][1]).includes(nq)).slice(0, 4);
+  if (tl.length) h += '<div class=srh>Rene\'s Tools</div>' + tl.map(k => srow(TOOLS[k][0], TOOLS[k][1], '', 'tool', k)).join('');
+  const st = typeof Android.openSetting === 'function' ? SETTINGS.filter(s => norm(s[1]).includes(nq)).slice(0, 4) : [];
+  if (st.length) h += '<div class=srh>Instellingen</div>' + st.map(s => srow(s[2], s[1], '', 'set', s[0])).join('');
+  searchMore.last = [raw, h];
+  return h;
+}
+function srAct(b){
+  const a = b.dataset.a, v = b.dataset.v;
+  if (a === 'note') Android.openTool('note:' + v);
+  else if (a === 'tool') openToolKey(v);
+  else if (a === 'contact') Android.openContact(v);
+  else if (a === 'set') Android.openSetting(v);
+  if (MODE === 'overlay') closeDrawer();
+}
+function openToolKey(k){ if (typeof openTool === 'function') openTool(k); else Android.openTool(k); }
+function openSearch(){
+  if (MODE === 'today') { if (typeof Android.openDrawerSearch === 'function') Android.openDrawerSearch(); else Android.openDrawer(); return; }
+  openDrawer(); setTimeout(() => $('#q').focus(), 60);
+}
+window.openDrawerSearch = function(){ openDrawer(); setTimeout(() => $('#q').focus(), 60); };
 function sortedApps(){
   if (cfg.sort === 'used') return apps.slice().sort((a, b) => (cfg.usage[b.k] || 0) - (cfg.usage[a.k] || 0) || a.n.localeCompare(b.n, 'nl', {sensitivity: 'base'}));
   if (cfg.sort === 'new') return apps.slice().sort((a, b) => (b.t || 0) - (a.t || 0));
@@ -461,6 +512,8 @@ function appSheet(k, where){
   const acts = [];
   if (where === 'folder') acts.push(['Uit de map halen', () => { const f = openF; cfg.folders[f] = cfg.folders[f].filter(x => x !== k); if (!cfg.folders[f].length) { dropEmptyFolders(); closeFolder(); } else openFolder(f); saveAll(); }]);
   const ws = NATIVE ? J(Android.wsApps(), {pinned: [], dock: []}) : null;
+  if (NATIVE && !isF && typeof Android.appShortcuts === 'function')
+    for (const s of J(Android.appShortcuts(k), [])) acts.push(['↗ ' + s.label, () => Android.startShortcut(k, s.id)]);
   if (NATIVE) {
     if (!isF) acts.push([ws.pinned.includes(k) ? 'Nog een keer op het startscherm zetten' : 'Op het startscherm zetten', () => Android.wsAddApp(k)]);
   } else if (!cfg.pinned.includes(k)) acts.push(['Op het startscherm zetten', () => { cfg.pinned.push(k); saveAll(); toast('Op je startscherm gezet'); }]);
@@ -743,7 +796,9 @@ function renderLook(){
   seg('#l-ico', [['s', 'Klein'], ['m', 'Normaal'], ['l', 'Groot']], cfg.icon, v => { cfg.icon = v; save(); applyLook(); });
   seg('#l-cols', [[4, '4 per rij'], [5, '5 per rij']], cfg.cols, v => { cfg.cols = +v; save(); applyLook(); });
   const tg = (id, on) => { $(id).classList.toggle('on', !!on); $(id).setAttribute('aria-checked', on ? 'true' : 'false'); };
-  tg('#l-labels', cfg.labels); tg('#l-sw-date', cfg.clock.date); tg('#l-sw-alarm', cfg.clock.alarm);
+  tg('#l-labels', cfg.labels); tg('#l-dots', cfg.dots);
+  $('#l-dots-row').style.display = NATIVE && typeof Android.notifAccess === 'function' ? 'flex' : 'none';
+  if (NATIVE && typeof Android.notifAccess === 'function') $('#l-dots-note').textContent = cfg.dots && !Android.notifAccess() ? 'Geef meldingentoegang in Android (tik op de schakelaar)' : 'Een rood bolletje als een app een melding heeft'; tg('#l-sw-date', cfg.clock.date); tg('#l-sw-alarm', cfg.clock.alarm);
   const wsl = NATIVE ? J(Android.wsApps(), {pinned: [], dock: []}) : null;
   $('#l-n-pinned').textContent = NATIVE ? new Set(wsl.pinned).size : cfg.pinned.filter(exists).length;
   $('#l-n-dock').textContent = NATIVE ? wsl.dock.length : (cfg.dock || []).filter(exists).length;
@@ -789,6 +844,10 @@ function toggleClassic(){
     [toClassic ? 'Ja, één scherm zonder pagina\'s' : 'Ja, met pagina\'s en widgets', () => Android.setClassic(toClassic)], ['Annuleren', () => {}]]);
 }
 function unhide(k){ cfg.hidden = cfg.hidden.filter(x => x !== k); saveAll(); renderLook(); }
+function toggleDots(){
+  if (!cfg.dots) { cfg.dots = true; save(); applyLook(); renderLook(); if (!Android.notifAccess()) { toast('Zet Rene\'s Tools aan bij meldingentoegang'); Android.notifAccessSettings(); } }
+  else { cfg.dots = false; save(); applyLook(); renderLook(); }
+}
 function toggleCfg(k){ cfg[k] = !cfg[k]; save(); applyLook(); renderLook(); }
 function toggleShow(k){ cfg.show[k] = !cfg.show[k]; save(); renderLook(); renderTools.force = true; refreshCards(true); }
 

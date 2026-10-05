@@ -1,15 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.39",
-  "versionCode": 40,
-  "nativeLevel": 36,
+  "versionName": "1.40",
+  "versionCode": 41,
+  "nativeLevel": 37,
   "web": "index.html",
-  "webSha256": "d29dc629e8f30e2009fdca25ef8692c6d5fedaa4e56572381979472944b9209b",
+  "webSha256": "38f43442c74cc66ac0c1e580fbf33405c9e330156e8491ecee10ba078c03f37b",
   "start": "start.html",
-  "startSha256": "9a461413fac6fc8164a492c2634be41ad9427cbe85abfe048f9130e9b8058c55",
+  "startSha256": "9c5560f0cff0cd341fa5e00137698d7334458f2690247352825fa5173b3c50ec",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "e2b7ec522107fb86c15ebb349259645cbd7b1e485b789c300f9f970376075c57",
+  "apkSha256": "672a2a32019ac32d3f2607c48b2c845c0c9446598c36062cbaec227d2b580325",
   "changelog": [
+    {
+      "version": "1.40",
+      "date": "2026-10-05",
+      "changes": [
+        "Launcher: zoekbalk op Vandaag voor apps, contacten, notities, instellingen en Rene's Tools",
+        "Launcher: snelkoppelingen van apps bij lang drukken, en apps kunnen snelkoppelingen op het startscherm zetten",
+        "Launcher: meldingsbolletjes op apps (Look aanpassen) en de indeling gaat mee in Alles back-uppen"
+      ]
+    },
     {
       "version": "1.39",
       "date": "2026-10-05",
@@ -356,5 +365,5 @@
       ]
     }
   ],
-  "webSig": "dmjo0RnOdPXV8eXstvGBOIphmANjKjmbKbEY5LCRqVehLA1qv7xw+6kz7SBEQW+YIRypLnK5xHh5tvsWzFJjwWY8Cz2Nl85PVZ8VpTxG8Dlad9QiGrQd582pAFLp+c08E2SLYNs0QtivrhodPBl3Fc9BO38vSby/ZgPeiktRIJIASVGabt01PrMbEvx5agG5xmDMrl426ZKvHKoGFFfda710ShN4d8kxP9t3FaQUkv2uuGWiSPeWz0D0yKHLPnBKSYaM8rC23ybB3tz79ERrA4nYInv8uOGFRjB17DYvMsfj6pGRrU4IHshMCK16UnRuwlEtsPPr/aW1CvypkP6oFDLT4YF+t6cbL0lL+0ny4EcFSQiKn4pUe0m91ZrDWh0gQZv7KaiMUl4jWvk3a2pkCodxiVv13af2tQaWF8sSHAv0AJctVSQNo37oe1JDiMBgYOYsH/Q58BuCY/8h6e8cAleenuV6O1DK9nJLhwXjOXE2T1BuiksTDtF/asnjMEN2"
+  "webSig": "mzKqYEU28ZcTLu/njTHPd5sJljvpPZAq6SuUrZio90vXIY5WGJL7f29WfDY3BFj687F4w4U0I/NbKXoTCQhkbkevc8hUpYge/qDPdA9fjwSOo1LCfWmEepE32ghVKYL7ViAX45u+KYs0MU5aQ5lniEAdapi/FgQwpDsrwdCODyMvayRYJxBzVZJ52FjI7c1iYA6ZDTLVfizZrEVebriDhYqM9lWOI99dU4RU501UmOjeDYKWAi5TB5eta1kL+9A17QEKn2OkF+2+IEedI5yNC9BC6ur7Y2WkLEIrtYhpdy1o70BXRT0Ev/+j8ARsGdDrapRbELJzP6v2k/NWeYt90aszGHvm7u06LVQ8PPHiWDkDHtXPO8PVw2GKHfW2J4pMkA5kD5EBj2itPbR2v1ZIP5q6rYQRwZpDxd7KUZfrLyq/4/pDr/4SQLGgSWUnJ7XXJE6pnxyuD2LqO3hk3Dhp77p6NFguytg+3O0HyPxfWoYPizxMelJKlWzKeikDZOTW"
 }

@@ -18,21 +18,23 @@ final class WsStore {
         if (i.isApp()) o.put("k", i.key);
         if (i.isFolder()) { o.put("n", i.name); JSONArray a = new JSONArray(); for (String k : i.apps) a.put(k); o.put("a", a); }
         if (i.isWidget()) o.put("id", i.widgetId).put("p", i.provider);
+        if (i.isShortcut()) o.put("k", i.key).put("s", i.sid).put("n", i.name);
         return o;
     }
 
     static WsModel.Item item(WsModel m, JSONObject o) {
         String t = o.optString("t", WsModel.APP);
-        if (!WsModel.APP.equals(t) && !WsModel.FOLDER.equals(t) && !WsModel.WIDGET.equals(t)) return null;
+        if (!WsModel.APP.equals(t) && !WsModel.FOLDER.equals(t) && !WsModel.WIDGET.equals(t) && !WsModel.SHORTCUT.equals(t)) return null;
         WsModel.Item i = m.newItem(t);
         i.x = o.optInt("x"); i.y = o.optInt("y"); i.w = Math.max(1, o.optInt("w", 1)); i.h = Math.max(1, o.optInt("h", 1));
         i.key = o.optString("k"); i.name = o.optString("n", "Map");
         JSONArray a = o.optJSONArray("a");
         if (a != null) for (int k = 0; k < a.length(); k++) if (!a.optString(k).isEmpty()) i.apps.add(a.optString(k));
-        i.widgetId = o.optInt("id", -1); i.provider = o.optString("p");
+        i.widgetId = o.optInt("id", -1); i.provider = o.optString("p"); i.sid = o.optString("s");
         if (i.isApp() && i.key.isEmpty()) return null;
         if (i.isFolder() && i.apps.isEmpty()) return null;
         if (i.isWidget() && i.widgetId < 0) return null;
+        if (i.isShortcut() && (i.key.isEmpty() || i.sid.isEmpty())) return null;
         return i;
     }
 

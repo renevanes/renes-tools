@@ -22,7 +22,7 @@ final class AllBackup {
 
     private AllBackup() { }
 
-    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "transcripts", "music"};
+    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "launcher", "transcripts", "music"};
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("allbackup", Context.MODE_PRIVATE); }
 
@@ -138,6 +138,8 @@ final class AllBackup {
                 catch (Exception e) { if (e.getMessage() != null && e.getMessage().startsWith("Nog geen")) return -1; throw e; }
             case "music":
                 return exportMusic(c);
+            case "launcher":
+                return LauncherBackup.export(c);
             default:
                 return -1;
         }

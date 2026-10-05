@@ -259,6 +259,7 @@ public class HomeActivity extends Activity {
             return;
         }
         js("onResumeHome", "");
+        if (desk != null) desk.takePinned(); // snelkoppelingen die intussen vastgezet zijn
         if (desk != null && web != null) { WebView v = web; h.postDelayed(() -> { if (v == web) v.invalidate(); }, 150); }
         if (fellBack) { fellBack = false; h.postDelayed(() -> toast("Het nieuwe startscherm startte niet goed; je ziet de klassieke skin. Zie Look aanpassen."), 1500); }
     }
@@ -395,6 +396,16 @@ public class HomeActivity extends Activity {
     }
 
     void openDrawer() { ovCall("openDrawer", "", true); }
+
+    /** Zoeken vanaf Vandaag: alle apps openen met het zoekveld klaar en het toetsenbord erbij. */
+    void openDrawerSearch() {
+        ovCall("openDrawerSearch", "", true);
+        h.postDelayed(() -> {
+            if (overlay == null || overlay.getVisibility() != View.VISIBLE) return;
+            overlay.requestFocus();
+            try { ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(overlay, 0); } catch (Exception ignored) { }
+        }, 350);
+    }
     void openLook() { ovCall("openLook", "", true); }
 
     void sheet(JSONObject o) { ovCall("nativeSheet", o.toString(), true); }
@@ -591,6 +602,23 @@ public class HomeActivity extends Activity {
         }
         @JavascriptInterface public boolean classic() { return !a.nativeMode; }
         @JavascriptInterface public void exitSkin() { a.h.post(a::exitSkin); }
+        @JavascriptInterface public void openDrawerSearch() { a.h.post(a::openDrawerSearch); }
+
+        // ----- zoeken in alle apps: ook notities, contacten -----
+        @JavascriptInterface public String searchMore(String q) { return HomeSearch.json(ctx, q); }
+        @JavascriptInterface public void openContact(String uri) { HomeSearch.openContact(a, uri); }
+        @JavascriptInterface public void openSetting(String key) { HomeSearch.openSetting(a, key); }
+
+        // ----- snelkoppelingen van apps en meldingsbolletjes -----
+        @JavascriptInterface public String appShortcuts(String key) { return LauncherShortcuts.json(ctx, Desk.pkgOf(key)); }
+        @JavascriptInterface public void startShortcut(String key, String id) {
+            String e = LauncherShortcuts.start(ctx, Desk.pkgOf(key), id);
+            if (!e.isEmpty()) a.toast(e);
+        }
+        @JavascriptInterface public boolean notifAccess() { return NotificationHistory.allowed(ctx); }
+        @JavascriptInterface public void notifAccessSettings() {
+            a.h.post(() -> { try { a.startActivity(new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { } });
+        }
 
         @JavascriptInterface public String apps() { return Launcher.appsJson(ctx); }
         /** Zelfde, op de achtergrond (de lijst ophalen duurt even): uitkomst via onApps(json). */

@@ -27,6 +27,7 @@ final class Restore {
     static String pendingKind = null;
     static List<ContactsDiff.Rec> pendingContacts;
     static JSONArray pendingNotes;
+    static String pendingLauncher;
 
     static String read(Context c, Uri u) throws Exception {
         try (InputStream in = c.getContentResolver().openInputStream(u)) {
@@ -100,6 +101,12 @@ final class Restore {
             return new JSONObject().put("kind", kind).put("total", in.length()).put("fresh", fresh.length())
                     .put("dup", in.length() - fresh.length()).put("sample", sample);
         }
+        if ("launcher".equals(kind)) {
+            JSONObject r = LauncherBackup.preview(text);
+            pendingLauncher = text;
+            pendingKind = kind;
+            return r;
+        }
         throw new Exception("Onbekend soort backup");
     }
 
@@ -139,6 +146,11 @@ final class Restore {
             if (!err.isEmpty()) throw new Exception(err);
             int n = pendingNotes.length();
             pendingNotes = null;
+            return n;
+        }
+        if ("launcher".equals(kind) && pendingLauncher != null) {
+            int n = LauncherBackup.apply(c, pendingLauncher);
+            pendingLauncher = null;
             return n;
         }
         throw new Exception("Niets om terug te zetten");

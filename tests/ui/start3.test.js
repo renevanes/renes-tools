@@ -15,6 +15,7 @@ const path = require('path');
     const pt = await pg.evaluate(() => { for (let y = 830; y > 0; y -= 10) for (const x of [380, 10, 195]) { const e = document.elementFromPoint(x, y); if (e && e.id === 'home') return [x, y]; } return [380, 830]; });
     await pg.mouse.move(pt[0], pt[1]); await pg.mouse.down(); await pg.waitForTimeout(700); await pg.mouse.up();
     console.log('today: long press → native menu', await pg.evaluate(() => Android._homeMenu === true));
+    await pg.click('#sbar'); console.log('today: search bar opens native search', await pg.evaluate(() => Android._dsearch === true));
     console.log('today: order without apps', await pg.evaluate(() => [...document.querySelectorAll('#home > *')].map(e => e.id).filter(x => x).join(',')));
     console.log('errors', errs); await ctx.close();
     // Overlay
@@ -54,6 +55,15 @@ const path = require('path');
     const before = await pg.evaluate(() => { window.__ovSeq = 5; return Android._ovDone; });
     await pg.mouse.click(200, 400);
     console.log('overlay: tap on empty layer hides', await pg.evaluate(b => Android._ovDone > b && Android._ovSeq === 5, before));
+    await pg.evaluate(() => { openDrawer(); $('#q').value = 'melk'; renderDrawer(); });
+    console.log('overlay: search finds notes', await pg.evaluate(() => [...document.querySelectorAll('#dlist .srh')].map(e => e.textContent).join(',')));
+    await pg.click('#dlist .srow[data-a=note]'); console.log('overlay: note opened', await pg.evaluate(() => Android._tool));
+    await pg.evaluate(() => { openDrawer(); $('#q').value = 'blue'; renderDrawer(); });
+    await pg.click('#dlist .srow[data-a=set]'); console.log('overlay: setting opened', await pg.evaluate(() => Android._setting));
+    console.log('overlay: app shortcuts in menu', await pg.evaluate(() => { appSheet('com.whatsapp/.Main', 'drawer'); return $('#sacts').textContent.includes('Nieuw bericht'); }));
+    await pg.click('#sacts button:has-text("Nieuw bericht")'); console.log('overlay: shortcut started', await pg.evaluate(() => Android._sc));
+    await pg.evaluate(() => openLook()); await pg.click('#l-dots'); console.log('overlay: dots on asks access', await pg.evaluate(() => cfg.dots === true && Android._na === true));
+    await pg.evaluate(() => closeLook());
     console.log('overlay: no "In een map"', !(await pg.evaluate(() => { appSheet('com.spotify.music/.Main', 'drawer'); return $('#sacts').textContent.includes('In een map'); })));
     console.log('errors', errs); await ctx.close();
   }

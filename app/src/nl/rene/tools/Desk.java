@@ -59,7 +59,17 @@ final class Desk {
     WsModel model;
     int home = 0;                 // index van de "thuis"-pagina binnen model.pages
     int cols = 4, rows = 5;
-    boolean labels = true, light = false, rowsAuto = true;
+    boolean labels = true, light = false, rowsAuto = true, notifDots = false;
+    /** Meldingsbolletjes aan? (ook gelezen door HistoryListener, ook als het startscherm niet draait) */
+    static volatile Boolean dotsCache;
+    static boolean dotsEnabled(Context c) {
+        Boolean b = dotsCache;
+        if (b == null) {
+            try { b = new JSONObject(Launcher.prefs(c).getString("cfg", "{}")).optBoolean("dots", false); } catch (Exception e) { b = false; }
+            dotsCache = b;
+        }
+        return b;
+    }
     float iconScale = 1f;
 
     DragLayer root;
@@ -102,6 +112,7 @@ final class Desk {
         rows = model.rows;
         home = h[0];
         if (!model.lost.isEmpty()) save();
+        placePinned();
         if (pendingWidget >= 0) { // overgebleven van een vorige keer en nergens geplaatst: vrijgeven
             boolean placed = false;
             for (WsModel.Item w : model.widgets()) if (w.widgetId == pendingWidget) placed = true;
@@ -163,6 +174,14 @@ final class Desk {
             rows = r >= 4 && r <= 8 ? r : 0;
             String bg = c.optString("bg");
             light = "g5".equals(bg) || "s2".equals(bg);
+            boolean was = notifDots;
+            notifDots = c.optBoolean("dots", false);
+            dotsCache = notifDots;
+            if (notifDots && !was) {
+                // Net aangezet: de meldingen opnieuw laten bekijken
+                if (HistoryListener.inst != null) HistoryListener.refreshDots();
+                else try { android.service.notification.NotificationListenerService.requestRebind(new ComponentName(ctx, HistoryListener.class)); } catch (Exception ignored) { }
+            }
         } catch (Exception e) { cols = 4; labels = true; iconScale = 1f; rows = 0; light = false; }
         rowsAuto = rows == 0;
         if (rows == 0) {
@@ -276,6 +295,55 @@ final class Desk {
         for (Integer id : dead) widgetViews.remove(id);
     }
 
+    /** Snelkoppelingen die een app op het startscherm wilde zetten (zie PinShortcutActivity). */
+    private boolean placePinned() {
+        org.json.JSONArray q = LauncherShortcuts.take(ctx);
+        for (int k = 0; k < q.length(); k++) {
+            JSONObject o = q.optJSONObject(k);
+            if (o == null || o.optString("p").isEmpty() || o.optString("s").isEmpty()) continue;
+            WsModel.Item i = model.newItem(WsModel.SHORTCUT);
+            i.key = o.optString("p"); i.sid = o.optString("s"); i.name = o.optString("n", "Snelkoppeling");
+            int pg = ws == null ? home : ws.cellPage();
+            if (model.place(i, pg < 0 ? Math.max(0, home) : pg) < 0) act.toast("Geen plek meer op het startscherm voor " + i.name);
+        }
+        if (q.length() > 0) WsStore.save(ctx, model, home);
+        return q.length() > 0;
+    }
+
+    /** Snelkoppeling weggehaald: bij Android losmaken (de overige van die app blijven vastgezet) en pictogram wissen. */
+    void unpin(WsModel.Item it) {
+        if (android.os.Build.VERSION.SDK_INT < 25) return;
+        try {
+            List<String> keep = new ArrayList<>();
+            for (WsModel.Page p : model.pages) for (WsModel.Item i : p.items) if (i.isShortcut() && i.key.equals(it.key) && !i.sid.equals(it.sid)) keep.add(i.sid);
+            for (WsModel.Item i : model.dock) if (i.isShortcut() && i.key.equals(it.key) && !i.sid.equals(it.sid)) keep.add(i.sid);
+            if (LauncherShortcuts.canHost(ctx)) LauncherShortcuts.la(ctx).pinShortcuts(it.key, keep, android.os.Process.myUserHandle());
+            if (!keep.contains(it.sid)) LauncherShortcuts.iconFile(ctx, it.key, it.sid).delete();
+        } catch (Exception ignored) { }
+    }
+
+    void takePinned() { if (placePinned()) { save(); rebuild(); } }
+
+    /** Meldingen veranderd: bolletjes opnieuw tekenen. */
+    void dotsChanged() {
+        if (ws == null) return;
+        for (int p = 0; p < ws.getChildCount(); p++) {
+            View pg = ws.getChildAt(p);
+            if (pg instanceof ViewGroup) for (int k = 0; k < ((ViewGroup) pg).getChildCount(); k++) ((ViewGroup) pg).getChildAt(k).invalidate();
+        }
+        for (int k = 0; k < dock.getChildCount(); k++) dock.getChildAt(k).invalidate();
+        if (folder != null) folder.invalidate();
+    }
+
+    static String pkgOf(String key) { ComponentName cn = Launcher.component(key); return cn == null ? key : cn.getPackageName(); }
+
+    boolean hasDot(WsModel.Item i) {
+        if (!notifDots) return false;
+        if (i.isApp()) return NotifDots.has(pkgOf(i.key));
+        if (i.isFolder()) { for (String k : i.apps) if (NotifDots.has(pkgOf(k))) return true; }
+        return false;
+    }
+
     View viewFor(WsModel.Item i) {
         if (i.isWidget()) {
             AppWidgetHostView v = widgetViews.get(i.widgetId);
@@ -293,7 +361,7 @@ final class Desk {
         v.setTag(i);
         v.setOnClickListener(x -> onTap(i));
         v.setOnLongClickListener(this::onLongPress);
-        v.setContentDescription(i.isFolder() ? "Map " + i.name : label(i.key));
+        v.setContentDescription(i.isFolder() ? "Map " + i.name : i.isShortcut() ? i.name : label(i.key));
         return v;
     }
 
@@ -340,6 +408,13 @@ final class Desk {
         return b;
     }
 
+    Bitmap shortcutIcon(WsModel.Item i) {
+        String k = "sc:" + i.key + "/" + i.sid;
+        Bitmap b = icons.get(k);
+        if (b == null) { b = LauncherShortcuts.icon(ctx, i.key, i.sid); if (b != null) icons.put(k, b); }
+        return b;
+    }
+
     String label(String key) {
         String l = labelCache.get(key);
         if (l != null) return l;
@@ -382,6 +457,8 @@ final class Desk {
                 String k = resolveKey(i.key);
                 if (k == null) { model.remove(i); changed = true; }
                 else if (!k.equals(i.key)) { i.key = k; changed = true; }
+            } else if (i.isShortcut()) {
+                if (!packageInstalled(i.key)) { model.remove(i); changed = true; }
             } else if (i.isFolder()) {
                 List<String> keep = new ArrayList<>();
                 for (String k : i.apps) { String r = resolveKey(k); if (r != null && !keep.contains(r)) keep.add(r); }
@@ -400,6 +477,9 @@ final class Desk {
         if (root.dragging) return;
         if (i.isApp()) {
             String e = Launcher.launch(act, i.key);
+            if (!e.isEmpty()) act.toast(e);
+        } else if (i.isShortcut()) {
+            String e = LauncherShortcuts.start(ctx, i.key, i.sid);
             if (!e.isEmpty()) act.toast(e);
         } else if (i.isFolder()) openFolder(i);
     }
@@ -455,6 +535,7 @@ final class Desk {
         }
         if (hit(dropInfo, fx, fy)) {
             if (it.isApp()) Launcher.appInfo(act, it.key);
+            else if (it.isShortcut()) Launcher.appInfo(act, it.key + "/x");
             else if (it.isWidget()) widgetInfo(it);
             if (fromFolder && model.locate(it) == null) model.place(it, ws.cellPage());
             done();
@@ -586,8 +667,15 @@ final class Desk {
                 acts.put(new JSONArray().put("Naam wijzigen").put("rename"));
                 acts.put(new JSONArray().put("Map opheffen (apps op het startscherm)").put("ungroup"));
                 acts.put(new JSONArray().put("Weghalen").put("remove"));
+            } else if (it.isShortcut()) {
+                title = it.name;
+                acts.put(new JSONArray().put("Weghalen").put("remove"));
             } else {
                 title = label(it.key);
+                // Snelkoppelingen van de app zelf (bijv. "Nieuw bericht"); alleen als standaard-startscherm
+                if (android.os.Build.VERSION.SDK_INT >= 25)
+                    for (android.content.pm.ShortcutInfo s : LauncherShortcuts.forApp(ctx, pkgOf(it.key)))
+                        acts.put(new JSONArray().put("↗ " + LauncherShortcuts.label(s)).put("sc:" + s.getId()));
                 acts.put(new JSONArray().put("App-info").put("info"));
                 acts.put(new JSONArray().put("Van het startscherm halen").put("remove"));
                 acts.put(new JSONArray().put("App verwijderen…").put("uninstall"));
@@ -600,11 +688,17 @@ final class Desk {
     void itemAction(long uid, String a) {
         WsModel.Item it = model.byUid(uid);
         if (it == null) return;
+        if (a.startsWith("sc:") && it.isApp()) {
+            String e = LauncherShortcuts.start(ctx, pkgOf(it.key), a.substring(3));
+            if (!e.isEmpty()) act.toast(e);
+            return;
+        }
         switch (a) {
             case "info": Launcher.appInfo(act, it.key); break;
             case "uninstall": Launcher.uninstall(act, it.key); break;
             case "remove":
                 model.remove(it);
+                if (it.isShortcut()) unpin(it);
                 if (it.isWidget()) { widgetViews.remove(it.widgetId); try { host.deleteAppWidgetId(it.widgetId); } catch (Exception ignored) { } }
                 done();
                 break;
@@ -1027,14 +1121,25 @@ final class Desk {
             if (it.isFolder()) {
                 p.setColor(0x66FFFFFF);
                 c.drawRoundRect(r, size * .26f, size * .26f, p);
+                p.setColor(Color.WHITE); // pictogrammen niet doorschijnend tekenen
                 float pad = size * .12f, cell = (size - pad * 3) / 2f;
                 for (int k = 0; k < Math.min(4, it.apps.size()); k++) {
                     float x = left + pad + (k % 2) * (cell + pad), y = top + pad + (k / 2) * (cell + pad);
                     c.drawBitmap(d.icon(it.apps.get(k)), null, new RectF(x, y, x + cell, y + cell), p);
                 }
+            } else if (it.isShortcut()) {
+                Bitmap b = d.shortcutIcon(it);
+                if (b != null) c.drawBitmap(b, null, r, p);
+                else c.drawBitmap(d.icon(it.key + "/x"), null, r, p);
             } else c.drawBitmap(d.icon(it.key), null, r, p);
+            if (d.hasDot(it)) {
+                p.setColor(0xFFEF4444);
+                float dr = size * .13f;
+                c.drawCircle(r.right - dr * .6f, r.top + dr * .6f, dr, p);
+                p.setColor(Color.WHITE);
+            }
             if (label) {
-                String l = it.isFolder() ? it.name : d.label(it.key);
+                String l = it.isFolder() || it.isShortcut() ? it.name : d.label(it.key);
                 CharSequence t = TextUtils.ellipsize(l, tp, getWidth() - 6 * d.dp, TextUtils.TruncateAt.END);
                 float tw = tp.measureText(t, 0, t.length());
                 c.drawText(t, 0, t.length(), (getWidth() - tw) / 2f, top + size + 15 * d.dp, tp);

@@ -1585,7 +1585,7 @@ public class MainActivity extends Activity {
 
         /** Contacten of notities uit het geopende archief: daarna hetzelfde overzicht als bij gewoon terugzetten. */
         @JavascriptInterface public void archiveRestore(String kind, String entry) {
-            if (!"contacts".equals(kind) && !"notes".equals(kind)) return;
+            if (!"contacts".equals(kind) && !"notes".equals(kind) && !"launcher".equals(kind)) return;
             new Thread(() -> {
                 String r;
                 try { r = Restore.previewText(ctx, kind, Secure.readEntry(ctx, entry)).toString(); }
@@ -1631,7 +1631,7 @@ public class MainActivity extends Activity {
 
         /** Kies een backupbestand om terug te zetten (contacts = vCard, notes = notities.json). */
         @JavascriptInterface public void restorePick(String kind) {
-            if (!"contacts".equals(kind) && !"notes".equals(kind)) return;
+            if (!"contacts".equals(kind) && !"notes".equals(kind) && !"launcher".equals(kind)) return;
             a.importKind = kind;
             a.h.post(() -> {
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");

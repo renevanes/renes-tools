@@ -9,10 +9,28 @@ import android.service.notification.StatusBarNotification;
 public final class HistoryListener extends NotificationListenerService {
     private final java.util.concurrent.ThreadPoolExecutor worker = new java.util.concurrent.ThreadPoolExecutor(
             1, 1, 0L, java.util.concurrent.TimeUnit.MILLISECONDS, new java.util.concurrent.ArrayBlockingQueue<Runnable>(128));
-    @Override public void onListenerConnected() { NotificationHistory.connected = true; }
-    @Override public void onListenerDisconnected() { NotificationHistory.connected = false; }
-    @Override public void onDestroy() { NotificationHistory.connected = false; worker.shutdown(); super.onDestroy(); }
+    static volatile HistoryListener inst;
+    private final java.util.concurrent.atomic.AtomicBoolean dotsPending = new java.util.concurrent.atomic.AtomicBoolean(false);
+    @Override public void onListenerConnected() { NotificationHistory.connected = true; inst = this; dots(); }
+    @Override public void onListenerDisconnected() { NotificationHistory.connected = false; if (inst == this) inst = null; NotifDots.clear(); }
+    @Override public void onDestroy() { NotificationHistory.connected = false; if (inst == this) inst = null; NotifDots.clear(); worker.shutdown(); super.onDestroy(); }
+
+    /** Bolletjes opnieuw bepalen (bijv. net aangezet in de skin). */
+    static void refreshDots() { HistoryListener l = inst; if (l != null) l.dots(); }
+    @Override public void onNotificationRemoved(StatusBarNotification sbn) { dots(); }
+
+    /** Meldingsbolletjes op het startscherm (alleen als die in de skin aanstaan). */
+    void dots() {
+        if (!Desk.dotsEnabled(this)) { if (!NotifDots.pkgs.isEmpty()) NotifDots.clear(); return; }
+        // Samenvoegen: hoogstens één herberekening tegelijk in de wachtrij (anders verdringt een melding
+        // die steeds bijwerkt, zoals een download, het bewaren van de geschiedenis)
+        if (!dotsPending.compareAndSet(false, true)) return;
+        try { worker.execute(() -> { dotsPending.set(false); NotifDots.refresh(this); }); }
+        catch (java.util.concurrent.RejectedExecutionException e) { dotsPending.set(false); }
+    }
+
     @Override public void onNotificationPosted(StatusBarNotification sbn) {
+        dots();
         if (sbn == null || !NotificationHistory.enabled(this)) return;
         try { worker.execute(() -> save(sbn)); }
         catch (java.util.concurrent.RejectedExecutionException ex) {

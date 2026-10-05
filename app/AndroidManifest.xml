@@ -157,6 +157,19 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_radio_info" />
         </receiver>
 
+        <!-- Apps die een snelkoppeling op het startscherm willen zetten (alleen als Rene's Tools het startscherm is) -->
+        <activity
+            android:name=".PinShortcutActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:noHistory="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
+            </intent-filter>
+        </activity>
+
         <receiver
             android:name=".NoteWidget"
             android:label="Lijstje"

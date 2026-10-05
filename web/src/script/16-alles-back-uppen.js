@@ -1,5 +1,5 @@
 /* ---------- Alles back-uppen ---------- */
-const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek' };
+const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', launcher: 'Startscherm (skin)', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek' };
 let bkPoll = null, bkBusy = false;
 function bkState(full){ try { return JSON.parse(Android.backupState(!!full)); } catch(e){ return {}; } }
 function enterBackup(){
@@ -37,6 +37,13 @@ window.onBackupDone = function(r){
 function bkSaveAuto(){ Android.backupSetAuto($('#bk-auto').checked, $('#bk-charging').checked); enterBackup(); }
 window.onRestorePreview = function(d){
   if (d.error) { toast(d.error); return; }
+  if (d.kind === 'launcher') {
+    askConfirm('Startscherm terugzetten?', 'De indeling van de skin (' + d.pages + (d.pages === 1 ? ' pagina' : ' pagina\'s') + ', ' + d.total + ' apps en mappen' + (d.hasLook ? ', look' : '') + ') vervangt de huidige. Widgets kunnen niet mee terug; die plaats je opnieuw. De huidige indeling wordt bewaard.', 'Terugzetten', () => {
+      restoreWhat = 'onderdelen van het startscherm'; restoreKind = 'launcher';
+      const e = Android.restoreApply(); if (e) toast(e); else toast('Bezig met terugzetten…');
+    });
+    return;
+  }
   const what = d.kind === 'contacts' ? 'contacten' : 'notities';
   if (!d.fresh) { toast('Alle ' + d.total + ' ' + what + ' staan er al; er is niets toe te voegen'); return; }
   askConfirm(d.fresh + ' ' + what + ' toevoegen?', 'In het bestand: ' + d.total + '. Al aanwezig (worden overgeslagen): ' + d.dup + '.\n\n' +
