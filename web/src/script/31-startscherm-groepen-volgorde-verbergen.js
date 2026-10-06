@@ -1,7 +1,7 @@
 /* ---------- Startscherm: groepen, volgorde, verbergen ---------- */
 const HOME_DEFAULT = { grouped: true, compact: false, hidden: [], groups: [
   { name: 'Telefoon', tools: ['skin'] },
-  { name: 'Bellen & contacten', tools: ['redial', 'calls', 'contacts', 'transcripts'] },
+  { name: 'Bellen & contacten', tools: ['redial', 'calls', 'contacts', 'recorder', 'transcripts'] },
   { name: 'Berichten & backup', tools: ['backup', 'wa', 'sms', 'history'] },
   { name: 'Muziek & radio', tools: ['radio', 'music'] },
   { name: 'Handig', tools: ['notes', 'tracks', 'auto'] } ] };

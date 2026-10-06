@@ -21,6 +21,13 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Terugzetten**: zet ontbrekende bestanden terug in de WhatsApp-map. Chatbestanden op de telefoon die nieuwer zijn dan de backup worden nooit overschreven.
 - Heeft *Toegang tot alle bestanden* nodig om de WhatsApp-map te lezen. De chatdatabase is versleuteld door WhatsApp; alleen WhatsApp kan hem terugzetten.
 
+## Gesprekken opnemen
+- **Handmatige microfoonopname** met expliciete start/stop, een blijvende opnamemelding met stopknop en Androids microfoonindicator. Voor telefoongesprekken zet je zelf de luidspreker aan en controleer je met een test of beide stemmen hoorbaar zijn. Gewone apps krijgen geen directe toegang tot de telefoon-audio; veel Android-toestellen blokkeren of dempen de microfoon tijdens bellen. Deze tool garandeert daarom geen opname van beide kanten. Gebruik de gespreksopname van je telefoon-app als de microfoonmethode niet werkt.
+- Vraagt microfoontoegang en (Android 13+) toestemming voor de opnamemelding. Telefoontoegang is optioneel: daarmee kan de opname stoppen zodra een mobiel gesprek eindigt. Andere gesprekken, zoals bellen in WhatsApp, stop je zelf. Laat de ander weten dat je opneemt.
+- AAC-audio in M4A, maximaal 2 uur, ook met het scherm uit. Stilte geeft een waarschuwing. Onvolledige bestanden blijven buiten de lijst; afgebroken of te korte opnames worden niet als geslaagd getoond. Er begint nooit automatisch een opname na een herstart of het geven van toestemming.
+- Opnames staan in de private app-map. Afspelen, expliciet delen met leesrechten voor één bestand, verwijderen na bevestiging en exporteren naar `Gespreksopnames/` in de gekozen backup-map. Deze audio-exports zijn niet versleuteld en worden niet automatisch meegenomen in **Alles back-uppen**.
+- Afgeronde eigen opnames zijn beschikbaar in **Gesprekken uitschrijven** zonder toegang tot alle bestanden; voor externe telefoon-opnamemappen gelden de bestaande rechten. Uitschrijven vereist nog steeds het spraakmodel en een ondersteunde 64-bit ARM-telefoon.
+
 ## Meldingsgeschiedenis
 - Nieuwe meldingen lokaal bewaren via Androids `NotificationListenerService`, ook nadat ze zijn weggeveegd. Zet **Nieuwe meldingen bewaren** aan en geef Rene’s Tools **meldingentoegang** in de Android-instellingen. Beide staan los van de toestemming om zelf meldingen te tonen.
 - Begint vanaf inschakeling; de eerdere Android-meldingsgeschiedenis is niet toegankelijk. Doorlopende meldingen, groepssamenvattingen en eigen app-meldingen worden overgeslagen. Android kan gevoelige tekst afschermen.

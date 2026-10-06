@@ -1264,13 +1264,89 @@ public class MainActivity extends Activity {
             });
         }
 
+        // ----- Handmatige microfoonopname -----
+        @JavascriptInterface public String recorderState() { return CallRecordings.state(ctx); }
+        @JavascriptInterface public void recorderRequestPermissions() {
+            a.h.post(() -> {
+                java.util.ArrayList<String> permissions = new java.util.ArrayList<>();
+                permissions.add(Manifest.permission.RECORD_AUDIO);
+                permissions.add(Manifest.permission.READ_PHONE_STATE);
+                if (Build.VERSION.SDK_INT >= 33) permissions.add(Manifest.permission.POST_NOTIFICATIONS);
+                a.requestPermissions(permissions.toArray(new String[0]), REQ_MIC);
+            });
+        }
+        @JavascriptInterface public void recorderStart() {
+            a.h.post(() -> {
+                if (!a.hasWindowFocus()) { a.js("onRecorderMessage", JSONObject.quote("Start de opname vanuit het geopende opnamescherm")); return; }
+                if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED ||
+                        (Build.VERSION.SDK_INT >= 33 && ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)) {
+                    a.js("onRecorderMessage", JSONObject.quote("Geef eerst toestemming voor de microfoon en opnamemelding")); return;
+                }
+                if ("recording".equals(Music.state)) { a.js("onRecorderMessage", JSONObject.quote("Stop eerst muziekherkenning via de microfoon")); return; }
+                if (!CallRecorderService.reserve()) { a.js("onRecorderMessage", JSONObject.quote("Er loopt al een opname")); return; }
+                recorderStopPlayback();
+                try {
+                    Intent intent = new Intent(a, CallRecorderService.class);
+                    if (Build.VERSION.SDK_INT >= 26) a.startForegroundService(intent); else a.startService(intent);
+                } catch (Exception e) {
+                    CallRecorderService.busy = false;
+                    a.js("onRecorderMessage", JSONObject.quote("Android kon de opnameservice niet starten. Open de app en probeer opnieuw."));
+                }
+            });
+        }
+        @JavascriptInterface public void recorderStop() {
+            a.h.post(() -> { if (CallRecorderService.busy) {
+                try { a.startService(new Intent(a, CallRecorderService.class).setAction("stop")); }
+                catch (Exception e) { a.js("onRecorderMessage", JSONObject.quote("Stop via de opnamemelding of open de app opnieuw")); }
+            } });
+        }
+        private static android.media.MediaPlayer recordingPlayer;
+        @JavascriptInterface public String recorderPlay(String id) {
+            synchronized (Bridge.class) {
+                recorderStopPlayback();
+                if (CallRecorderService.busy) return "Stop eerst de opname";
+                try {
+                    File file = CallRecordings.resolve(ctx, id);
+                    recordingPlayer = new android.media.MediaPlayer();
+                    recordingPlayer.setDataSource(file.getPath()); recordingPlayer.prepare(); recordingPlayer.start(); return "";
+                } catch (Exception e) { recorderStopPlayback(); return "Afspelen lukt niet"; }
+            }
+        }
+        @JavascriptInterface public void recorderStopPlayback() {
+            synchronized (Bridge.class) { if (recordingPlayer != null) { recordingPlayer.release(); recordingPlayer = null; } }
+        }
+        @JavascriptInterface public void recorderShare(String id) {
+            a.h.post(() -> { try {
+                CallRecordings.resolve(ctx, id);
+                Uri uri = new Uri.Builder().scheme("content").authority("nl.rene.tools.recordings").appendPath(id).build();
+                Intent share = new Intent(Intent.ACTION_SEND).setType("audio/mp4").putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                share.setClipData(android.content.ClipData.newUri(ctx.getContentResolver(), "Gespreksopname", uri));
+                a.startActivity(Intent.createChooser(share, "Opname delen"));
+            } catch (Exception e) { a.js("onRecorderMessage", JSONObject.quote("Delen lukt niet")); } });
+        }
+        @JavascriptInterface public String recorderDelete(String id) {
+            try { recorderStopPlayback(); if (!CallRecordings.resolve(ctx, id).delete()) return "Opname verwijderen lukt niet"; return ""; }
+            catch (Exception e) { return "Opname niet gevonden"; }
+        }
+        @JavascriptInterface public String recorderExport(String id) {
+            try { CallRecordings.resolve(ctx, id); } catch (Exception e) { return "Opname niet gevonden"; }
+            if (WaBackup.destUri(ctx) == null) return "Kies eerst een backup-map";
+            new Thread(() -> {
+                String result;
+                try { CallRecordings.export(ctx, id); result = "✓ Opname geëxporteerd naar Gespreksopnames"; }
+                catch (Exception e) { result = "Opname exporteren mislukt; controleer de backup-map"; }
+                a.js("onRecorderMessage", JSONObject.quote(result));
+            }, "recording-export").start();
+            return "";
+        }
+
         // ----- Gesprekken uitschrijven -----
 
         @JavascriptInterface public String txInfo() {
             try {
                 JSONObject o = new JSONObject();
                 o.put("supported", Transcribe.supported());
-                o.put("files", hasFilesAccess(ctx));
+                o.put("files", hasFilesAccess(ctx) || CallRecordings.hasRecordings(ctx));
                 o.put("calls", ctx.checkSelfPermission(Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED);
                 o.put("dest", WaBackup.destUri(ctx) != null);
                 o.put("folder", Transcribe.prefs(ctx).getString("folder", ""));
@@ -1324,7 +1400,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public String txList() {
-            if (!hasFilesAccess(ctx)) return "{\"error\":\"Geef eerst toegang tot bestanden\"}";
+            if (!hasFilesAccess(ctx) && !CallRecordings.hasRecordings(ctx)) return "{\"error\":\"Geef eerst toegang tot bestanden\"}";
             try { return Transcribe.listJson(ctx); } catch (Exception e) { return errJson(e); }
         }
 

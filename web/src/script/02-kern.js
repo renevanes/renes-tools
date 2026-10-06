@@ -53,6 +53,7 @@ function show(name){
   if (name==='chats') enterChats();
   if (name==='tracks') enterTracks(); else stopTrackPoll();
   if (name==='sms') enterSms(); else stopSmsPoll();
+  if (name==='recorder') enterRecorder(); else stopRecorderPoll();
   if (name==='history') enterHistory(); else stopHistoryPoll();
   if (name==='calls') enterCalls(current_prev==='home'); else stopCallsPoll();
   if (current_prev==='note' && name!=='note') leaveNote();
@@ -73,7 +74,7 @@ function show(name){
   if (name==='autoed') enterAutoEd();
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); renderDash(); refreshAutoTile(); }
 }
-const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
+const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
 window.goBack = function(){
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
   if (current==='home' && gsQ) { $('#gs-q').value = ''; gsInput(); return true; }
@@ -100,6 +101,6 @@ window.openTool = function(n){
   if (n === 'auto-rec') { autoRecBack(); return; } // terug na opnemen in een andere app
   if (n === 'auto') { store.set('autoDraft', null); if (current !== 'autoed') show('auto'); return; } // ✕ bij opnemen
   if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
-  if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='history') show('history'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); if (n==='selftest') show('selftest'); };
-window.onResumeApp = function(){ if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
+  if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='history') show('history'); if (n==='recorder') show('recorder'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); if (n==='selftest') show('selftest'); };
+window.onResumeApp = function(){ if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
