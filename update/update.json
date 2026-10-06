@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.45",
-  "versionCode": 46,
-  "nativeLevel": 42,
+  "versionName": "1.46",
+  "versionCode": 47,
+  "nativeLevel": 43,
   "web": "index.html",
-  "webSha256": "af03890299b551bb04acecaad62a5df12aaf30abdcb3f58d1da17179e4f0bdef",
+  "webSha256": "03b36f05a4767c30cb77c463a0edc2b6e619ff5f0631724d5073544b8affa679",
   "start": "start.html",
-  "startSha256": "9c5560f0cff0cd341fa5e00137698d7334458f2690247352825fa5173b3c50ec",
+  "startSha256": "452f8c05e0d720195c4d18f823c32709cd25c1cb5ce5962ca0b74618b368a6fc",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "4066d36ca1916d453d57c84a567de76fd5d5e28b163349c4ee6283abaf94b0be",
+  "apkSha256": "35b08a412db2cadad28b361ebc0ceb549ac9c0be4d732a8084dfaedcb0d82735",
   "changelog": [
+    {
+      "version": "1.46",
+      "date": "2026-10-06",
+      "changes": [
+        "Skin: kies welke apps zichtbaar en te starten zijn; verborgen apps kunnen geblokkeerd worden (wijzigen met vingerafdruk)"
+      ]
+    },
     {
       "version": "1.45",
       "date": "2026-10-06",
@@ -406,5 +413,5 @@
       ]
     }
   ],
-  "webSig": "dxmS0AEQjx9d1kSIgSJb4P3tCl9c71/5wj8YnXXd9VWtXNw94fp3NLyWncZ5MmUU/FnVUg0QNKZ4HiWYmL+V82WX9G5x2pfFY2cvEtVbwND9Ax6nLO+siyQ6Bgp3g/oVSqxWrzki2amHRhguo9G/JGWHaKO+4gDrFFWRtrmSkuhTN+Vc1gExwA/8PWE9JHlFm9Is/5AL6vIEQWmB+vv/24st6LTcY5QhAXNVxPLE6M4WF4ijBm7vXu5k0+ktMJNzGNrizmZRAHpS6pqfUj1d3WVS0IvfQ7TrJJMr22sPOQRJNDHYY2KLXu2WBF/amU2T2T/H6zmFHc/2+rcBeg3U12BiNzdOIpk4r4uNPEhnxzXWfOja7fRErrI7qq5c1XUngybhWu7MF403EhXHrADMIGdL8uaYMnp9KkiS3hcOA3d2TIEsukxHO2UQS0BrrlB57n430scgaVTym7BmiDEiaN5DHudOyWUHXHz7MyfH9HbBSG4j9v8Lsna9Gs2rfvl2"
+  "webSig": "AA747CYOrOL5pJI48dM0C2GomdjfKFNyBFjox6vyqYher+bFIdiApsP1FxP+RHrIVck52SyNL9y7LrF0KV1eIuMUgdeC0ObVUGiHshQA1/HHqW9MKX9o1nuJgLSluyP/CZUpyeimRUwf92assxH95Bu+K6XA47Hex1WqC3pEz1wJbH7JbdmVDdBM98AX5ddkS8XKo+3mVqTdmsOokzBI9csp2Q3GIuuPv4VBYkt4AQGPuzF79K7KchDsVCQRIPvtTHkK0Qai3FIdxwYjmmBzf7qmapPSvCRBz2wjdJ9Rf++YrWhPCfCzmoVbC5eSkslbOpqaWHV0+JAFQv8KdI+l96OOZCdjkJEgubOmDqs4Pf9Gf8+BWhwSITxW70Sc6Bv1C4xN6++/j6bqG6csVjhyMdD2ZJ3ZafplEMXsreIej9U3QkHZXzp193PbfEaF4ZxC4CwJIJy8or3pHec5cQreMyZmLDua/Yj5fqGt5667upo6S1Yqe8ES/zoA2+r16iVa"
 }

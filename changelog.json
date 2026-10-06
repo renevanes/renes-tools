@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.46",
+    "date": "2026-10-06",
+    "changes": [
+      "Skin: kies welke apps zichtbaar en te starten zijn; verborgen apps kunnen geblokkeerd worden (wijzigen met vingerafdruk)"
+    ]
+  },
+  {
     "version": "1.45",
     "date": "2026-10-06",
     "changes": [

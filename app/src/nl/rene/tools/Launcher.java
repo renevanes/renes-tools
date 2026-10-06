@@ -103,6 +103,24 @@ final class Launcher {
         } catch (Exception e) { return null; }
     }
 
+    /** Apps die in de skin geblokkeerd zijn: verborgen én "Verborgen apps blokkeren" aan (Look aanpassen). */
+    static java.util.Set<String> blocked(Context c) {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        try {
+            JSONObject cfg = new JSONObject(prefs(c).getString("cfg", "{}"));
+            if (!cfg.optBoolean("lockHidden", false)) return out;
+            JSONArray h = cfg.optJSONArray("hidden");
+            if (h != null) for (int i = 0; i < h.length(); i++) out.add(h.optString(i));
+        } catch (Exception ignored) { }
+        return out;
+    }
+
+    /** Starten vanuit de skin: geblokkeerde apps niet. */
+    static String launchFromSkin(Context c, String key) {
+        if (key != null && blocked(c).contains(key)) return "Deze app is geblokkeerd in de skin (Look aanpassen → Apps in de skin)";
+        return launch(c, key);
+    }
+
     static String launch(Context c, String key) {
         ComponentName cn = component(key);
         if (cn == null) return "Onbekende app";

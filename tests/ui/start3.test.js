@@ -75,6 +75,15 @@ const path = require('path');
     await pg.fill('#askin', 'Muziek'); await pg.click('#askok');
     await pg.evaluate(() => homeSheet()); await pg.click('#sacts button:has-text("Skin afsluiten")');
     console.log('legacy: exit skin asked', await pg.evaluate(() => Android._exit === true));
+    // Apps in de skin: verbergen + blokkeren (met bevestiging)
+    await pg.evaluate(() => { cfg.pinned = ['com.whatsapp/.Main', 'com.spotify.music/.Main']; saveAll(); pickApps('drawer'); });
+    await pg.click('#pk-list button.pk:has(.nm:text-is("WhatsApp"))'); await pg.click('#pk-list .tg');
+    await pg.click('#pick .done'); await pg.waitForTimeout(80);
+    console.log('legacy: blocked after auth', await pg.evaluate(() => cfg.lockHidden === true && cfg.hidden.includes('com.whatsapp/.Main') && !$('#pinned').textContent.includes('WhatsApp')));
+    await pg.evaluate(() => { Android._authNo = true; unhide('com.whatsapp/.Main'); }); await pg.waitForTimeout(80);
+    console.log('legacy: unhide refused without auth', await pg.evaluate(() => cfg.hidden.includes('com.whatsapp/.Main')));
+    await pg.evaluate(() => { Android._authNo = false; unhide('com.whatsapp/.Main'); }); await pg.waitForTimeout(80);
+    console.log('legacy: unhide with auth', await pg.evaluate(() => !cfg.hidden.includes('com.whatsapp/.Main') && $('#pinned').textContent.includes('WhatsApp')));
     console.log('legacy: folder made', await pg.evaluate(() => (cfg.folders.Muziek || []).includes('com.spotify.music/.Main')));
     console.log('errors', errs); await ctx.close(); }
   await b.close();

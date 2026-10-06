@@ -642,7 +642,14 @@ public class HomeActivity extends Activity {
             });
         }
         @JavascriptInterface public boolean locked() { return Lock.active(ctx); }
-        @JavascriptInterface public String launch(String key) { return Launcher.launch(a, key); }
+        @JavascriptInterface public String launch(String key) { return Launcher.launchFromSkin(a, key); }
+        /** Wijzigen welke apps in de skin staan of geblokkeerd zijn: eerst vingerafdruk/pincode. Uitkomst via onSkinAuth(true|false). */
+        @JavascriptInterface public void skinAuth() {
+            a.h.post(() -> {
+                if (!Lock.deviceSecure(a)) { a.js("onSkinAuth", "true"); return; }
+                Lock.prompt(a, "Apps in de skin wijzigen", (ok, msg) -> a.h.post(() -> a.js("onSkinAuth", ok ? "true" : "false")));
+            });
+        }
         @JavascriptInterface public void appInfo(String key) { Launcher.appInfo(a, key); }
         @JavascriptInterface public void uninstall(String key) { Launcher.uninstall(a, key); }
         @JavascriptInterface public String cfg() { return Launcher.prefs(ctx).getString("cfg", "{}"); }

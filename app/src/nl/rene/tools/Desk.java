@@ -60,6 +60,8 @@ final class Desk {
     int home = 0;                 // index van de "thuis"-pagina binnen model.pages
     int cols = 4, rows = 5;
     boolean labels = true, light = false, rowsAuto = true, notifDots = false;
+    /** Geblokkeerde apps (Look aanpassen → Apps in de skin): niet tonen en niet starten. */
+    java.util.Set<String> blocked = new java.util.HashSet<>();
     /** Meldingsbolletjes aan? (ook gelezen door HistoryListener, ook als het startscherm niet draait) */
     static volatile Boolean dotsCache;
     static boolean dotsEnabled(Context c) {
@@ -174,6 +176,7 @@ final class Desk {
             rows = r >= 4 && r <= 8 ? r : 0;
             String bg = c.optString("bg");
             light = "g5".equals(bg) || "s2".equals(bg);
+            blocked = Launcher.blocked(ctx);
             boolean was = notifDots;
             notifDots = c.optBoolean("dots", false);
             dotsCache = notifDots;
@@ -345,6 +348,8 @@ final class Desk {
     }
 
     View viewFor(WsModel.Item i) {
+        if (i.isApp() && blocked.contains(i.key)) return null; // geblokkeerd: niet tonen (de plek blijft bewaard)
+        if (i.isFolder() && !blocked.isEmpty()) { boolean any = false; for (String k : i.apps) if (!blocked.contains(k)) any = true; if (!any) return null; }
         if (i.isWidget()) {
             AppWidgetHostView v = widgetViews.get(i.widgetId);
             if (v == null) {
@@ -476,7 +481,7 @@ final class Desk {
     void onTap(WsModel.Item i) {
         if (root.dragging) return;
         if (i.isApp()) {
-            String e = Launcher.launch(act, i.key);
+            String e = Launcher.launchFromSkin(act, i.key);
             if (!e.isEmpty()) act.toast(e);
         } else if (i.isShortcut()) {
             String e = LauncherShortcuts.start(ctx, i.key, i.sid);
@@ -1472,22 +1477,24 @@ final class Desk {
             box.addView(title);
             int per = 4;
             LinearLayout row = null;
-            for (int i = 0; i < f.apps.size(); i++) {
+            List<String> shown = new ArrayList<>();
+            for (String k : f.apps) if (!d.blocked.contains(k)) shown.add(k);
+            for (int i = 0; i < shown.size(); i++) {
                 if (i % per == 0) {
                     row = new LinearLayout(c);
                     row.setOrientation(LinearLayout.HORIZONTAL);
                     box.addView(row, new LinearLayout.LayoutParams(-1, d.px(96)));
                 }
-                String key = f.apps.get(i);
+                String key = shown.get(i);
                 WsModel.Item a = d.model.newItem(WsModel.APP);
                 a.key = key;
                 ItemView iv = new ItemView(c, d, a);
                 iv.setContentDescription(d.label(key));
-                iv.setOnClickListener(v -> { d.closeFolder(); String e = Launcher.launch(d.act, key); if (!e.isEmpty()) d.act.toast(e); });
+                iv.setOnClickListener(v -> { d.closeFolder(); String e = Launcher.launchFromSkin(d.act, key); if (!e.isEmpty()) d.act.toast(e); });
                 iv.setOnLongClickListener(v -> { d.act.vibrate(18); d.dragOutOfFolder(f, key, v); return true; });
                 row.addView(iv, new LinearLayout.LayoutParams(0, -1, 1));
             }
-            if (row != null) for (int k = f.apps.size() % per; k > 0 && k < per; k++) row.addView(new View(c), new LinearLayout.LayoutParams(0, -1, 1));
+            if (row != null) for (int k = shown.size() % per; k > 0 && k < per; k++) row.addView(new View(c), new LinearLayout.LayoutParams(0, -1, 1));
             FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-1, -2, Gravity.CENTER);
             lp.leftMargin = lp.rightMargin = d.px(22);
             addView(box, lp);

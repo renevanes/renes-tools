@@ -164,7 +164,7 @@ body.m-today,body.m-overlay{background:transparent!important}
   <div class="lsec"><h4>Apps kiezen</h4>
     <button class="pickrow" onclick="pickApps('pinned')"><span>🏠 Op het startscherm</span><small id="l-n-pinned"></small><b aria-hidden="true">›</b></button>
     <button class="pickrow" onclick="pickApps('dock')"><span>⬇️ In het dock (onderbalk, max. 6)</span><small id="l-n-dock"></small><b aria-hidden="true">›</b></button>
-    <button class="pickrow" onclick="pickApps('drawer')"><span>📱 Zichtbaar bij alle apps</span><small id="l-n-drawer"></small><b aria-hidden="true">›</b></button>
+    <button class="pickrow" onclick="pickApps('drawer')"><span>📱 Apps in de skin (zichtbaar en te starten)</span><small id="l-n-drawer"></small><b aria-hidden="true">›</b></button>
     <div style="font-size:13px;color:var(--muted);margin:10px 0 6px">Volgorde bij alle apps</div>
     <div class="seg" id="l-sort"></div>
   </div>
@@ -250,7 +250,7 @@ if (!window.Android) window.Android = (function(){
     overlayDone(seq){ this._ovDone = (this._ovDone || 0) + 1; this._ovSeq = seq; }, openDrawer(){ this._openDrawer = true; }, homeMenu(){ this._homeMenu = true; },
     sheetAction(u, id){ this._sheet = u + ':' + id; }, folderRename(u, n){ this._ren = u + ':' + n; }, widgetAdd(p){ this._wadd = p; },
     widgetPicker(){ widgetPicker(null); setTimeout(() => widgetPicker([{p: 'com.x/.Clock', label: 'Klok', app: 'Klok', w: 2, h: 2, own: false}, {p: 'nl.rene.tools/.NoteWidget', label: 'Notitielijst', app: "Rene's Tools", w: 2, h: 3, own: true}]), 10); },
-    setClassic(on){ this._classic = on; }, exitSkin(){ this._exit = true; }, openDrawerSearch(){ this._dsearch = true; },
+    setClassic(on){ this._classic = on; }, exitSkin(){ this._exit = true; }, skinAuth(){ setTimeout(() => onSkinAuth(this._authNo ? false : true), 20); }, openDrawerSearch(){ this._dsearch = true; },
     searchMore(q){ return JSON.stringify({notes: q.toLowerCase().includes('melk') ? [{id: 'n1', title: 'Boodschappen', snip: 'Melk, brood'}] : [], contacts: q.toLowerCase().startsWith('ki') ? [{name: 'Kim', uri: 'content://com.android.contacts/contacts/lookup/x/1'}] : []}); },
     openContact(u){ this._contact = u; }, openSetting(k){ this._setting = k; }, appShortcuts(k){ return k.startsWith('com.whatsapp') ? JSON.stringify([{id: 'new', label: 'Nieuw bericht'}]) : '[]'; }, startShortcut(k, id){ this._sc = k + '|' + id; },
     notifAccess(){ return !!this._na; }, notifAccessSettings(){ this._na = true; }, classic(){ return MODE === 'legacy'; },
@@ -400,8 +400,8 @@ function appHtml(k, where){
   const a = byKey[k]; if (!a) return '';
   return '<button class=app data-k="' + esc(k) + '" data-w="' + where + '" aria-label="' + esc(a.n) + '">' + icon(k) + '<span class=lb>' + esc(a.n) + '</span></button>';
 }
-function renderPinned(){ $('#pinned').innerHTML = cfg.pinned.filter(exists).map(k => appHtml(k, 'home')).join(''); $('#hint').style.display = 'block'; }
-function renderDock(){ const d = (cfg.dock || []).filter(exists); document.documentElement.style.setProperty('--dn', Math.max(4, d.length)); $('#dock').innerHTML = d.map(k => appHtml(k, 'dock')).join('') || '<span style="grid-column:1/-1;text-align:center;font-size:13px;color:var(--muted)">Houd een app ingedrukt om hem hier te zetten</span>'; }
+function renderPinned(){ $('#pinned').innerHTML = cfg.pinned.filter(k => exists(k) && !blockedK(k)).map(k => appHtml(k, 'home')).join(''); $('#hint').style.display = 'block'; }
+function renderDock(){ const d = (cfg.dock || []).filter(k => exists(k) && !blockedK(k)); document.documentElement.style.setProperty('--dn', Math.max(4, d.length)); $('#dock').innerHTML = d.map(k => appHtml(k, 'dock')).join('') || '<span style="grid-column:1/-1;text-align:center;font-size:13px;color:var(--muted)">Houd een app ingedrukt om hem hier te zetten</span>'; }
 const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 function renderDrawer(){
   const q = norm($('#q').value.trim());
@@ -567,7 +567,7 @@ function saveAll(){ save(); renderPinned(); renderDock(); renderDrawer(); }
 
 /* ---------- mappen ---------- */
 let openF = null;
-function openFolder(f){ if (!hasF(f)) return; openF = f; $('#fname').textContent = f; $('#fgrid').innerHTML = cfg.folders[f].filter(k => byKey[k]).map(k => appHtml(k, 'folder')).join(''); $('#folder').classList.add('on'); }
+function openFolder(f){ if (!hasF(f)) return; openF = f; $('#fname').textContent = f; $('#fgrid').innerHTML = cfg.folders[f].filter(k => byKey[k] && !blockedK(k)).map(k => appHtml(k, 'folder')).join(''); $('#folder').classList.add('on'); }
 function closeFolder(){ openF = null; $('#folder').classList.remove('on'); ovCheck(); }
 function askFolder(k){
   const names = Object.keys(cfg.folders);
@@ -725,10 +725,10 @@ setInterval(() => { if (document.visibilityState === 'visible') { renderTools();
 let pk = null;
 function pickApps(mode){
   const ws = NATIVE ? J(Android.wsApps(), {pinned: [], dock: []}) : null;
-  pk = {mode, sel: mode === 'drawer' ? apps.filter(a => !cfg.hidden.includes(a.k)).map(a => a.k)
+  pk = {mode, lock: !!cfg.lockHidden, sel: mode === 'drawer' ? apps.filter(a => !cfg.hidden.includes(a.k)).map(a => a.k)
       : NATIVE ? [...new Set((mode === 'dock' ? ws.dock : ws.pinned).filter(k => byKey[k]))] : (mode === 'dock' ? cfg.dock : cfg.pinned).filter(exists).slice(),
     max: mode === 'dock' ? 6 : 0};
-  $('#pk-title').textContent = {pinned: 'Op het startscherm', dock: 'In het dock', drawer: 'Zichtbaar bij alle apps'}[mode];
+  $('#pk-title').textContent = {pinned: 'Op het startscherm', dock: 'In het dock', drawer: 'Apps in de skin'}[mode];
   $('#pk-q').value = '';
   renderPick();
   $('#pick').classList.add('on');
@@ -747,7 +747,11 @@ function renderPick(){
       '<button class=mini2 data-k="' + esc(k) + '" onclick="pkToggle(this.dataset.k)" aria-label="Weghalen">✕</button></div>').join('') ||
       '<p style="color:var(--muted);font-size:14px;margin:6px 2px">Nog niets gekozen. Tik hieronder op apps om ze toe te voegen.</p>';
     h += '<div class=pkhd>Alle apps</div>';
-  } else h += '<div class=pkhd>' + pk.sel.length + ' van ' + apps.length + ' zichtbaar · vinkje weg = verborgen</div>';
+  } else {
+    h += '<div class=sw style="padding:10px 4px"><span>Verborgen apps blokkeren<small style="display:block;font-size:12px;color:var(--muted)">Dan staan ze ook niet op het startscherm of in het dock en zijn ze vanuit de skin niet te starten. Wijzigen vraagt je vingerafdruk.</small></span>' +
+      '<button class="tg' + (pk.lock ? ' on' : '') + '" role="switch" aria-checked="' + pk.lock + '" aria-label="Verborgen apps blokkeren" onclick="pk.lock=!pk.lock;renderPick()"></button></div>';
+    h += '<div class=pkhd>' + pk.sel.length + ' van ' + apps.length + ' zichtbaar · vinkje weg = ' + (pk.lock ? 'geblokkeerd' : 'verborgen') + '</div>';
+  }
   const list = (pk.mode === 'pinned' && !NATIVE ? Object.keys(cfg.folders).filter(f => exists('f:' + f)).map(f => ({k: 'f:' + f, n: '📁 ' + f})) : []).concat(apps)
     .filter(a => !q || norm(a.n).includes(q));
   h += list.map(a => { const on = pk.sel.includes(a.k);
@@ -767,8 +771,18 @@ function pkMove(b){ const i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j
 function closePick(ok){
   if (ok && pk) {
     if (pk.mode === 'drawer') {
-      const keep = cfg.hidden.filter(k => !byKey[k]); // apps die er even niet zijn: niet zomaar weer tonen
-      cfg.hidden = keep.concat(apps.filter(a => !pk.sel.includes(a.k)).map(a => a.k));
+      const p = pk, apply = () => {
+        const keep = cfg.hidden.filter(k => !byKey[k]); // apps die er even niet zijn: niet zomaar weer tonen
+        cfg.hidden = keep.concat(apps.filter(a => !p.sel.includes(a.k)).map(a => a.k));
+        cfg.lockHidden = p.lock;
+        saveAll(); renderLook(); toast(p.lock ? 'Opgeslagen; verborgen apps zijn geblokkeerd' : 'Opgeslagen');
+      };
+      const before = JSON.stringify([cfg.hidden.slice().sort(), !!cfg.lockHidden]);
+      const after = JSON.stringify([apps.filter(a => !p.sel.includes(a.k)).map(a => a.k).concat(cfg.hidden.filter(k => !byKey[k])).sort(), p.lock]);
+      // Blokkeren was of wordt aan: alleen met vingerafdruk wijzigen (anders kan iedereen het terugzetten)
+      if (before !== after && (cfg.lockHidden || p.lock)) skinAuth(apply); else if (before !== after) apply();
+      pk = null; $('#pick').classList.remove('on'); $('#pk-q').blur(); ovCheck();
+      return;
     } else if (NATIVE) {
       Android.wsApply(JSON.stringify(pk.mode === 'dock' ? {dock: pk.sel} : {pinned: pk.sel}));
       cfg.hidden = cfg.hidden.filter(k => !pk.sel.includes(k));
@@ -807,7 +821,7 @@ function renderLook(){
   $('#l-kind-btn').textContent = MODE === 'legacy' ? 'Launcher met pagina\'s en widgets gebruiken' : 'Klassieke skin gebruiken (zonder pagina\'s)';
   $('#l-widgets').style.display = NATIVE ? 'block' : 'none';
   $('#l-kind').style.display = typeof Android.setClassic === 'function' ? 'block' : 'none';
-  $('#l-n-drawer').textContent = apps.filter(a => !cfg.hidden.includes(a.k)).length + ' van ' + apps.length;
+  $('#l-n-drawer').textContent = apps.filter(a => !cfg.hidden.includes(a.k)).length + ' van ' + apps.length + (cfg.lockHidden ? ' · 🔒 rest geblokkeerd' : '');
   seg('#l-sort', [['az', 'A–Z'], ['used', 'Meest gebruikt'], ['new', 'Nieuwste eerst']], cfg.sort, v => { cfg.sort = v; save(); renderDrawer(); });
   seg('#l-clk', [['big', 'Groot'], ['medium', 'Middel'], ['small', 'Klein'], ['off', 'Uit']], cfg.clock.size, v => { cfg.clock.size = v; save(); applyLook(); });
   seg('#l-rad', [['round', 'Rond'], ['soft', 'Zacht'], ['square', 'Hoekig']], cfg.rad, v => { cfg.rad = v; save(); applyLook(); });
@@ -843,7 +857,12 @@ function toggleClassic(){
   openSheet('<span class=ib>' + (toClassic ? '▭' : '▦') + '</span>', toClassic ? 'Klassieke skin gebruiken?' : 'Launcher gebruiken?', [
     [toClassic ? 'Ja, één scherm zonder pagina\'s' : 'Ja, met pagina\'s en widgets', () => Android.setClassic(toClassic)], ['Annuleren', () => {}]]);
 }
-function unhide(k){ cfg.hidden = cfg.hidden.filter(x => x !== k); saveAll(); renderLook(); }
+function unhide(k){ const go = () => { cfg.hidden = cfg.hidden.filter(x => x !== k); saveAll(); renderLook(); }; if (cfg.lockHidden) skinAuth(go); else go(); }
+/* Wijzigen van geblokkeerde apps: eerst bevestigen met de schermvergrendeling. */
+let skinAuthFn = null;
+function skinAuth(fn){ if (typeof Android.skinAuth !== 'function') { fn(); return; } skinAuthFn = fn; Android.skinAuth(); }
+window.onSkinAuth = function(ok){ const f = skinAuthFn; skinAuthFn = null; if (ok && f) f(); else if (f) toast('Niet gewijzigd'); };
+function blockedK(k){ return !!cfg.lockHidden && cfg.hidden.includes(k); }
 function toggleDots(){
   if (!cfg.dots) { cfg.dots = true; save(); applyLook(); renderLook(); if (!Android.notifAccess()) { toast('Zet Rene\'s Tools aan bij meldingentoegang'); Android.notifAccessSettings(); } }
   else { cfg.dots = false; save(); applyLook(); renderLook(); }
