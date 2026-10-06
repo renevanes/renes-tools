@@ -34,8 +34,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Gesprekken uitschrijven. Android laat gewone apps het geluid van een telefoongesprek niet
- * opnemen; deze tool gebruikt daarom de opnames die de telefoon-app van het toestel zelf maakt
+ * Gesprekken uitschrijven. Android laat gewone apps het geluid van een telefoongesprek meestal niet rechtstreeks
+ * opnemen; deze tool gebruikt eigen microfoonopnames en opnames die de telefoon-app zelf maakt
  * (bij Oppo: ODialer), zet ze om naar 16 kHz mono WAV en laat ze uitschrijven door whisper.cpp,
  * dat als programma in de app zit (lib/arm64-v8a/libwhisper.so) en helemaal op de telefoon draait.
  * Het spraakmodel wordt eenmalig gedownload. Er gaat geen geluid of tekst de telefoon uit.
@@ -156,6 +156,14 @@ final class Transcribe {
     /** Alle gevonden opnames (paden), uit de bekende mappen, een zelf gekozen map en MediaStore. */
     static List<File> findRecordings(Context c) {
         Set<String> paths = new HashSet<>();
+        File[] own = CallRecordings.dir(c).listFiles((d, name) -> RecordingFiles.validName(name));
+        if (own != null) for (File f : own) paths.add(f.getAbsolutePath());
+        if (!MainActivity.hasFilesAccess(c)) {
+            List<File> local = new ArrayList<>();
+            for (String p : paths) local.add(new File(p));
+            local.sort((a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+            return local;
+        }
         File root = Environment.getExternalStorageDirectory();
         for (String f : FOLDERS) scan(new File(root, f), 2, paths);
         String extra = prefs(c).getString("folder", "");

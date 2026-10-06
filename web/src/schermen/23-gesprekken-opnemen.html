@@ -1,0 +1,30 @@
+<section class="screen" id="s-recorder">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug">‹</button>
+    <h1 tabindex="-1">Gesprekken opnemen</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2>Handmatige microfoonopname</h2>
+      <p class="note">Deze tool neemt geluid via de microfoon op. Voor een telefoongesprek: zet zelf de luidspreker aan en test of beide stemmen hoorbaar zijn. Android kan tijdens bellen de microfoon blokkeren of dempen. Opname van beide kanten is daarom niet gegarandeerd, ook niet via een headset. Gebruik de opnamefunctie van je telefoon-app als deze methode niet werkt.</p>
+      <p class="note">Laat de ander weten dat je opneemt. Er wordt alleen opgenomen nadat je zelf Start kiest. De opname blijft op deze telefoon tot je hem deelt of exporteert.</p>
+      <button class="big ghost" id="recorder-permissions" onclick="Android.recorderRequestPermissions();setTimeout(loadRecorder,500)">Toestemming geven</button>
+      <p class="note" id="recorder-phone"></p>
+      <p id="recorder-state" role="status" aria-live="polite"></p>
+      <p class="note" id="recorder-warning" style="display:none;color:var(--bad)" role="status">Geen duidelijk microfoongeluid gemeten. Android kan de microfoon tijdens bellen dempen. Stop en luister terug voordat je hierop vertrouwt.</p>
+      <button class="big" id="recorder-start" onclick="recorderStart()">Start opname</button>
+      <button class="big" id="recorder-stop" style="display:none" onclick="Android.recorderStop();setTimeout(loadRecorder,250)">Stoppen en opslaan</button>
+      <p class="note">Tijdens opnemen staat er een blijvende melding met een stopknop. De opname gaat door met het scherm uit, maximaal 2 uur. Een onderbroken of te korte opname kan verloren gaan.</p>
+      <p id="recorder-result" role="status" aria-live="polite"></p>
+    </div>
+    <div class="card">
+      <h2>Opnames</h2>
+      <p class="note">Luister altijd terug om te controleren wat er hoorbaar is. Exporteren bewaart een leesbaar audiobestand in ‘Gespreksopnames’ in je backup-map; het is niet versleuteld. Verwijderen wist alleen de opname op deze telefoon.</p>
+      <button class="big ghost" id="recorder-folder" onclick="Android.waPickFolder()">Backup-map kiezen</button>
+      <button class="big ghost" style="margin-top:8px" onclick="Android.recorderStopPlayback()">Afspelen stoppen</button>
+      <button class="big ghost" style="margin-top:8px" onclick="show('transcripts')">Gesprekken uitschrijven</button>
+      <p class="note" id="recorder-count"></p>
+      <div id="recorder-list"></div>
+    </div>
+  </main>
+</section>

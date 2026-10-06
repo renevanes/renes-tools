@@ -48,6 +48,7 @@ jobs:
           timeout 120 java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.TimeshiftTest
           java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.WsModelTest
           java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.HistoryTextTest
+          java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.RecordingFilesTest
 
       - name: Playwright installeren
         run: |

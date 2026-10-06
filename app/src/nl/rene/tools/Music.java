@@ -44,6 +44,7 @@ final class Music {
 
     /** Neemt 'seconds' seconden op via de microfoon (AAC in .m4a). */
     static File record(Context c, int seconds, int id) throws Exception {
+        if (CallRecorderService.busy) throw new Exception("Stop eerst de gespreksopname voordat je de microfoon gebruikt voor muziekherkenning");
         File f = new File(c.getCacheDir(), "herken-" + id + ".m4a");
         f.delete();
         MediaRecorder r = Build.VERSION.SDK_INT >= 31 ? new MediaRecorder(c) : new MediaRecorder();
