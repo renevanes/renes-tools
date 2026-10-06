@@ -18,6 +18,7 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .hdr .back{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;margin-left:-8px}
 .hdr .back:active{background:rgba(255,255,255,.15)}
 .hdr .ver{font-size:13px;opacity:.85}
+.card.gsflash{box-shadow:0 0 0 3px var(--chip-on);transition:box-shadow .3s}
 .hdr .hbtn{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;margin-right:-8px;color:var(--brand-ink)}
 .hdr .hbtn:active{background:rgba(255,255,255,.15)}
 .nkind{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 0;border-top:1px solid var(--line)}

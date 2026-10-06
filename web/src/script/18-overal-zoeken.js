@@ -1,13 +1,50 @@
 /* ---------- Overal zoeken ---------- */
 const GS = {
+  app:      ['⚙️', 'In de app: functies en instellingen', '', '', () => {}],
   notes:    ['📝', 'Notities', 'notes', 'notes-search', () => renderNotes()],
   contacts: ['👤', 'Contacten', 'contacts', 'ct-search', () => ctSearchDo()],
   sms:      ['💬', "Sms'jes", 'sms', 'sms-search', v => smsSearchDo(v)],
   wa:       ['🟢', 'WhatsApp', 'chats', 'chat-search', v => chatSearch(v)],
   calls:    ['📞', 'Oproepen', 'calls', 'calls-search', () => callsSearchDo()],
   tx:       ['🎙️', 'Gesprekken', 'transcripts', 'tx-search', () => txSearchDo()],
-  music:    ['🎵', 'Muziek', 'music', 'mu-search', () => muRenderHistory()]
+  music:    ['🎵', 'Muziek', 'music', 'mu-search', () => muRenderHistory()],
+  history:  ['🔔', 'Meldingsgeschiedenis', 'history', 'history-search', () => { historyLimit = 200; loadHistory(); }]
 };
+/* ---------- zoeken in de app zelf: schermen, kaarten en instellingen ---------- */
+const GS_SYN = {meldingen: 'notificaties melding geluid trillen', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
+  backup: 'reservekopie back-up opslaan bewaren', 'telefoon-skin': 'startscherm launcher thuisscherm skin', weergave: 'tekstgrootte letters groot thema donker dark mode licht nachtmodus',
+  foutrapport: 'fout crash probleem bug', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
+let gsIndex = null;
+function gsBuildIndex(){
+  gsIndex = [];
+  const fold = t => norm2(t);
+  document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
+    const scr = sec.id.slice(2);
+    if (scr === 'home') return;
+    const h1 = sec.querySelector('.hdr h1'), screen = h1 ? h1.textContent.trim() : scr;
+    gsIndex.push({scr, el: null, title: screen, sub: 'Openen', key: fold(screen + ' ' + scr)});
+    sec.querySelectorAll('.card').forEach(card => {
+      const h = card.querySelector('h2, h3'); if (!h) return;
+      const head = h.textContent.trim(); if (!head) return;
+      const labels = [...card.querySelectorAll('label, .setrow > span, button.big, button.ghost, .chk')].map(e => e.textContent.trim()).filter(Boolean).slice(0, 12);
+      const syn = Object.keys(GS_SYN).filter(k => fold(head).includes(k)).map(k => GS_SYN[k]).join(' ');
+      gsIndex.push({scr, el: card, title: head, sub: screen, key: fold(head + ' ' + screen + ' ' + labels.join(' ') + ' ' + syn)});
+    });
+  });
+}
+function norm2(s){ return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+function gsApp(q){
+  if (!gsIndex) gsBuildIndex();
+  const words = norm2(q).split(/\s+/).filter(Boolean);
+  const hits = gsIndex.map((x, i) => ({x, i, s: words.every(w => x.key.includes(w)) ? (norm2(x.title).includes(words[0]) ? 2 : 1) : 0})).filter(h => h.s).sort((a, b) => b.s - a.s);
+  return {items: hits.slice(0, 6).map(h => ({i: h.i, title: h.x.title, sub: h.x.sub})), total: Math.min(hits.length, 6)};
+}
+function gsHistory(q){
+  if (typeof Android.historyListBy !== 'function') return null;
+  let d; try { d = JSON.parse(Android.historyListBy(q, '', 4)); } catch(e){ return null; }
+  if (!d || !d.rows || !d.count) return null;
+  return {items: d.rows.map(r => ({app: r.app || r.package, title: r.title, text: r.text, t: r.time})), total: d.count};
+}
 let gsTmr = null, gsId = 0, gsQ = '', gsData = {};
 function gsInput(){
   const q = $('#gs-q').value.trim();
@@ -20,8 +57,8 @@ function gsInput(){
   if (!on) { if (gsQ) Android.searchAll(''); gsQ = ''; gsData = {}; renderDash(); return; }
   $('#home-dash').style.display = 'none';
   // Vorige treffers blijven (gedimd) staan tot de nieuwe binnen zijn: geen verspringende pagina.
-  const prev = gsData; gsQ = q; gsData = { notes: gsNotes(q), pending: true, stale: {} };
-  for (const k of Object.keys(GS)) if (k !== 'notes' && prev[k]) gsData.stale[k] = prev[k];
+  const prev = gsData; gsQ = q; gsData = { app: gsApp(q), notes: gsNotes(q), history: gsHistory(q), pending: true, stale: {} };
+  for (const k of Object.keys(GS)) if (!['notes', 'app', 'history'].includes(k) && prev[k]) gsData.stale[k] = prev[k];
   gsRender();
   gsTmr = setTimeout(() => { gsId = Android.searchAll(q); }, 300);
 }
@@ -38,7 +75,7 @@ function gsNotes(q){
 window.onSearchAll = function(r){
   if (!r || r.id !== gsId || r.q !== gsQ) return;
   gsData.stale = gsData.stale || {};
-  for (const k of Object.keys(GS)) if (k !== 'notes') { if (r[k]) gsData[k] = r[k]; if (r.done || r[k]) delete gsData.stale[k]; }
+  for (const k of Object.keys(GS)) if (!['notes', 'app', 'history'].includes(k)) { if (r[k]) gsData[k] = r[k]; if (r.done || r[k]) delete gsData.stale[k]; }
   if (r.done) { gsData.pending = false; gsData.stale = {}; }
   gsRender();
 };
@@ -57,6 +94,8 @@ function gsItem(kind, x, ql){
     case 'calls': return t(hl(x.name || x.number || 'Onbekend', ql), esc((x.label || '') + ' · ' + fmtD(x.date) + (x.number && x.number !== x.name ? ' · ' + x.number : '')), {ck: x.ck || '', cid: x.cid || '', number: x.number || ''});
     case 'tx': return t(esc(x.name) + ' <small style="display:inline">· ' + esc(fmtD(x.mtime)) + '</small>', gsSnip(x.text, ql), {id: x.id, from: x.from});
     case 'music': return t(hl(x.title || '', ql), hl(x.artist || '', ql) + ' · ' + esc(fmtD(x.t)), {t: x.t});
+    case 'app': return t(hl(x.title, ql), esc(x.sub), {i: x.i});
+    case 'history': return t(esc(x.app) + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.title ? esc(x.title) + ': ' : '') + gsSnip(x.text, ql), {});
   }
   return '';
 }
@@ -88,6 +127,12 @@ function gsOpen(el){
   else if (k === 'calls') { if (x.ck) jumpTo('contact', () => ctOpen(x.ck, x.cid)); else gsMoreCalls(x.number); }
   else if (k === 'tx') jumpTo('txd', () => txOpen(x.id, x.from));
   else if (k === 'music') { jumpTo('music'); setTimeout(() => muOpen(x.t), 50); }
+  else if (k === 'history') gsMore('history');
+  else if (k === 'app') {
+    const it = gsIndex && gsIndex[x.i]; if (!it) return;
+    jumpTo(it.scr);
+    if (it.el) setTimeout(() => { it.el.scrollIntoView({block: 'start', behavior: 'smooth'}); it.el.classList.add('gsflash'); setTimeout(() => it.el.classList.remove('gsflash'), 1600); }, 120);
+  }
 }
 function gsMoreCalls(num){
   jumpTo('calls'); Object.assign(callsF, { kind: 'all', period: 'all', from: '', to: '', who: 'all', dur: 'all', person: null });

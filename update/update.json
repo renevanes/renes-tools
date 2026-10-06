@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.46",
-  "versionCode": 47,
+  "versionName": "1.47",
+  "versionCode": 48,
   "nativeLevel": 43,
   "web": "index.html",
-  "webSha256": "03b36f05a4767c30cb77c463a0edc2b6e619ff5f0631724d5073544b8affa679",
+  "webSha256": "ce38fb6b33ad76775a4f7519df069a71914bc93d23ff541d7d0a9ecffd250d53",
   "start": "start.html",
   "startSha256": "452f8c05e0d720195c4d18f823c32709cd25c1cb5ce5962ca0b74618b368a6fc",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "35b08a412db2cadad28b361ebc0ceb549ac9c0be4d732a8084dfaedcb0d82735",
+  "apkSha256": "eabdbd011c0744161a3f6167b105970fe8ecc57c1427ffabc90fd2dd4cdc38a3",
   "changelog": [
+    {
+      "version": "1.47",
+      "date": "2026-10-06",
+      "changes": [
+        "Zoek overal vindt nu ook instellingen en functies (bijv. 'vingerafdruk', 'back-up', 'donker') en springt naar de juiste kaart",
+        "Zoek overal toont ook treffers uit de meldingsgeschiedenis"
+      ]
+    },
     {
       "version": "1.46",
       "date": "2026-10-06",
@@ -413,5 +421,5 @@
       ]
     }
   ],
-  "webSig": "AA747CYOrOL5pJI48dM0C2GomdjfKFNyBFjox6vyqYher+bFIdiApsP1FxP+RHrIVck52SyNL9y7LrF0KV1eIuMUgdeC0ObVUGiHshQA1/HHqW9MKX9o1nuJgLSluyP/CZUpyeimRUwf92assxH95Bu+K6XA47Hex1WqC3pEz1wJbH7JbdmVDdBM98AX5ddkS8XKo+3mVqTdmsOokzBI9csp2Q3GIuuPv4VBYkt4AQGPuzF79K7KchDsVCQRIPvtTHkK0Qai3FIdxwYjmmBzf7qmapPSvCRBz2wjdJ9Rf++YrWhPCfCzmoVbC5eSkslbOpqaWHV0+JAFQv8KdI+l96OOZCdjkJEgubOmDqs4Pf9Gf8+BWhwSITxW70Sc6Bv1C4xN6++/j6bqG6csVjhyMdD2ZJ3ZafplEMXsreIej9U3QkHZXzp193PbfEaF4ZxC4CwJIJy8or3pHec5cQreMyZmLDua/Yj5fqGt5667upo6S1Yqe8ES/zoA2+r16iVa"
+  "webSig": "OVsLlnBNlIi89fcftnICq4JKJ2PGURCt3S5VYraeZzi/IVSCWuq6ARfWlfiGD/74vnz6EBp9X29W7vLUpRi2Lrt7SqoqFQl1xh6ylYIhJvPhGFoK/QOIOnKwCWcN2aD3YxfGErSsKjZSQ6CNKMUqb9bPhAlK4iB7XGUewGjgLEvE4Cu8REXxKmpQZkcT0PTdF6VIoYvl3iUplWj9A50ffYi0ykBbaOQclO090xKu51OQfrJ/WYcqvUZ86MphT7dZGUJyOjZ3SoA2gmtLb1qdbhsh7R/9haJUwXGMtDlMk1E11kueiVv0+Npe/TmignBggoFKNFOG8aEnaLsZwC3Kr/kKxe3JH6yr0licQTJEi29iYmLXWefWVCtYjYgvzZzHCzizXFq03BBNu3ZH3/581sAE5/gz4/JWd/q4XT65O5HhPFQQAztZVImK94prv/ZsygBYFfBjijSVp6UR1OMRc5QEf+QelJjCDC4rdQTwukyIoxn+up1UDhupgbBusKf2"
 }
