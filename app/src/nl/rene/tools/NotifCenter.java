@@ -1,6 +1,7 @@
 package nl.rene.tools;
 
 import android.Manifest;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
@@ -34,6 +35,53 @@ final class NotifCenter {
         {TranscribeService.CHANNEL, "Gesprekken uitschrijven", "Voortgang van het uitschrijven", "2"},
     };
 
+    /** Stil-kanaal: zonder geluid, trillen, pop-up, icoon in de statusbalk of stip. Alleen gebruikt als alles uit staat. */
+    static final String QUIET = "quiet";
+
+    static android.content.SharedPreferences prefs(Context c) { return c.getSharedPreferences("notifcenter", Context.MODE_PRIVATE); }
+
+    /** Alle meldingen van deze app uit (de app-eigen schakelaar, los van Android). */
+    static boolean muted(Context c) { return prefs(c).getBoolean("muted", false); }
+
+    /**
+     * Alles uit/aan. Bij uit verdwijnen ook de meldingen die er al staan.
+     * Een dienst die nú draait (radio, route opnemen, Auto redial, backup, uitschrijven) moet van Android een melding tonen;
+     * die gaat dan via het stille kanaal: geen geluid, geen pop-up, geen icoon in de statusbalk.
+     */
+    static void setMuted(Context c, boolean on) {
+        prefs(c).edit().putBoolean("muted", on).apply();
+        if (!on) return;
+        try {
+            NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (Build.VERSION.SDK_INT >= 23) {
+                for (android.service.notification.StatusBarNotification sb : nm.getActiveNotifications())
+                    if ((sb.getNotification().flags & Notification.FLAG_FOREGROUND_SERVICE) == 0) nm.cancel(sb.getTag(), sb.getId());
+            }
+        } catch (Exception ignored) { }
+    }
+
+    /** Kanaal voor een melding: het eigen kanaal, of het stille als alles uit staat. */
+    static String ch(Context c, String id) {
+        if (Build.VERSION.SDK_INT < 26 || !muted(c)) return id;
+        try {
+            NotificationManager nm = c.getSystemService(NotificationManager.class);
+            if (nm.getNotificationChannel(QUIET) == null) {
+                NotificationChannel q = new NotificationChannel(QUIET, "Stil (alle meldingen uit in de app)", NotificationManager.IMPORTANCE_MIN);
+                q.setDescription("Alleen voor wat Android verplicht toont terwijl iets draait, zoals de radio");
+                q.setSound(null, null); q.enableVibration(false); q.enableLights(false); q.setShowBadge(false);
+                q.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
+                nm.createNotificationChannel(q);
+            }
+            return QUIET;
+        } catch (Exception e) { return id; }
+    }
+
+    /** Losse melding plaatsen, tenzij alles uit staat. */
+    static void post(Context c, int id, Notification n) {
+        if (muted(c)) return;
+        try { ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(id, n); } catch (Exception ignored) { }
+    }
+
     /** Alle soorten aanmaken (met nette namen en uitleg), zodat ze allemaal in Android te zien en in te stellen zijn. */
     static void ensureAll(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
@@ -60,7 +108,7 @@ final class NotifCenter {
         try {
             NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
             ensureAll(c);
-            o.put("allowed", nm.areNotificationsEnabled()).put("perm", permissionOk(c));
+            o.put("muted", muted(c)).put("allowed", nm.areNotificationsEnabled()).put("perm", permissionOk(c));
             JSONArray a = new JSONArray();
             for (String[] k : KINDS) {
                 int level = Integer.parseInt(k[3]);

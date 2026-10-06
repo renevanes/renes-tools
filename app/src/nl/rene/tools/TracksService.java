@@ -248,7 +248,7 @@ public class TracksService extends Service implements LocationListener {
         String txt = paused ? "Gepauzeerd" : String.format(java.util.Locale.GERMANY, "%.2f km", distance / 1000.0);
         long el = (System.currentTimeMillis() - startT) / 1000;
         txt += " · " + (el / 60) + " min";
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         b.setSmallIcon(R.drawable.ic_route)
                 .setContentTitle(paused ? "Route gepauzeerd" : "Route opnemen")
                 .setContentText(txt)

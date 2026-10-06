@@ -11,7 +11,7 @@ const GS = {
   history:  ['🔔', 'Meldingsgeschiedenis', 'history', 'history-search', () => { historyLimit = 200; loadHistory(); }]
 };
 /* ---------- zoeken in de app zelf: schermen, kaarten en instellingen ---------- */
-const GS_SYN = {meldingen: 'notificaties melding geluid trillen', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
+const GS_SYN = {meldingen: 'notificaties melding geluid trillen stil dempen uitzetten', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
   backup: 'reservekopie back-up opslaan bewaren', 'telefoon-skin': 'startscherm launcher thuisscherm skin', weergave: 'tekstgrootte letters groot thema donker dark mode licht nachtmodus',
   foutrapport: 'fout crash probleem bug', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
 let gsIndex = null;

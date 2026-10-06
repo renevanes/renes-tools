@@ -67,8 +67,8 @@ public class WaBackupJob extends JobService {
     private static void notifyProblem(Context c, WaBackup.Status st) {
         WaBackupService.createChannel(c);
         android.app.Notification.Builder b = Build.VERSION.SDK_INT >= 26
-                ? new android.app.Notification.Builder(c, WaBackupService.CHANNEL) : new android.app.Notification.Builder(c);
-        ((NotificationManager) c.getSystemService(NOTIFICATION_SERVICE)).notify(WaBackupService.DONE_ID,
+                ? new android.app.Notification.Builder(c, NotifCenter.ch(c, WaBackupService.CHANNEL)) : new android.app.Notification.Builder(c);
+        NotifCenter.post(c, WaBackupService.DONE_ID,
                 b.setSmallIcon(R.drawable.ic_backup).setContentTitle("Automatische WhatsApp-backup: probleem")
                         .setContentText(st.message).setAutoCancel(true).setContentIntent(WaBackupService.open(c)).build());
     }

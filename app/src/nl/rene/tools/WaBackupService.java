@@ -107,11 +107,11 @@ public class WaBackupService extends Service {
         if (wake != null && wake.isHeld()) wake.release();
         stopForeground(true);
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         String title = restore ? "Terugzetten" : "readable".equals(st.mode) ? "Leesbare chats" : "WhatsApp backup";
         title += "ok".equals(st.result) ? " klaar" : "partial".equals(st.result) ? " klaar met fouten" :
                 "cancelled".equals(st.result) ? " gestopt" : " mislukt";
-        nm.notify(DONE_ID, b.setSmallIcon(R.drawable.ic_backup).setContentTitle(title)
+        if (!NotifCenter.muted(this)) nm.notify(DONE_ID, b.setSmallIcon(R.drawable.ic_backup).setContentTitle(title)
                 .setContentText(st.message + (st.bytesDone > 0 ? " (" + fmt(st.bytesDone) + ")" : ""))
                 .setAutoCancel(true).setContentIntent(open(this)).build());
         stopSelf();
@@ -127,7 +127,7 @@ public class WaBackupService extends Service {
     }
 
     private Notification build(String text, int max, int prog, boolean ind, boolean restore) {
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         b.setSmallIcon(R.drawable.ic_backup)
                 .setContentTitle(restore ? "WhatsApp terugzetten" : "WhatsApp backup")
                 .setContentText(text)

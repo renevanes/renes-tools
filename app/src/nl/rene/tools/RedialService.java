@@ -273,7 +273,7 @@ public class RedialService extends Service {
         stopForeground(true);
         if (was && !"stopped".equals(res)) {
             NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            nm.notify(DONE_NOTIF_ID, buildDone(msg));
+            if (!NotifCenter.muted(this)) nm.notify(DONE_NOTIF_ID, buildDone(msg));
         }
         stopSelf();
     }
@@ -371,7 +371,7 @@ public class RedialService extends Service {
 
     private Notification buildNotification(String text, boolean canSkip) {
         Notification.Builder b = Build.VERSION.SDK_INT >= 26
-                ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
+                ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         b.setSmallIcon(R.drawable.ic_notif)
                 .setContentTitle("Auto redial: " + who())
                 .setContentText(text)
@@ -388,7 +388,7 @@ public class RedialService extends Service {
 
     private Notification buildDone(String text) {
         Notification.Builder b = Build.VERSION.SDK_INT >= 26
-                ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
+                ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         return b.setSmallIcon(R.drawable.ic_notif)
                 .setContentTitle("Auto redial: " + who())
                 .setContentText(text)

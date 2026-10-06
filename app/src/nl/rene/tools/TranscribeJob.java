@@ -97,9 +97,9 @@ public class TranscribeJob extends JobService {
     /** Android liet het niet op de achtergrond starten: melding om het met één tik te doen. */
     static void notifyWaiting(Context c, int n) {
         TranscribeService.createChannel(c);
-        android.app.Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new android.app.Notification.Builder(c, TranscribeService.CHANNEL) : new android.app.Notification.Builder(c);
+        android.app.Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new android.app.Notification.Builder(c, NotifCenter.ch(c, TranscribeService.CHANNEL)) : new android.app.Notification.Builder(c);
         android.app.NotificationManager nm = (android.app.NotificationManager) c.getSystemService(NOTIFICATION_SERVICE);
-        if (nm != null) nm.notify(TranscribeService.DONE_ID, b.setSmallIcon(R.drawable.ic_notif)
+        if (nm != null && !NotifCenter.muted(c)) nm.notify(TranscribeService.DONE_ID, b.setSmallIcon(R.drawable.ic_notif)
                 .setContentTitle(n + (n == 1 ? " nieuwe opname" : " nieuwe opnames") + " om uit te schrijven")
                 .setContentText("Tik om te openen. Geef de app een batterij-uitzondering om dit 's nachts vanzelf te laten gaan.")
                 .setAutoCancel(true).setContentIntent(TranscribeService.open(c)).build());

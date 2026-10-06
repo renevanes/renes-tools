@@ -87,11 +87,11 @@ final class Reminders {
         Intent open = new Intent(c, MainActivity.class).putExtra("open", "note:" + id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .setData(android.net.Uri.fromParts("note", id, null));
         PendingIntent pi = PendingIntent.getActivity(c, 6000 + (id.hashCode() & 0xffff), open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CHANNEL) : new Notification.Builder(c);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
         b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title.isEmpty() ? "Herinnering" : title)
                 .setContentText("Herinnering uit je notities").setAutoCancel(true).setContentIntent(pi)
                 .setCategory(Notification.CATEGORY_REMINDER);
         if (Build.VERSION.SDK_INT < 26) b.setPriority(Notification.PRIORITY_HIGH).setDefaults(Notification.DEFAULT_ALL);
-        ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(7000 + (id.hashCode() & 0xffff), b.build());
+        NotifCenter.post(c, 7000 + (id.hashCode() & 0xffff), b.build());
     }
 }

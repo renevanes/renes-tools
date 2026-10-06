@@ -159,9 +159,9 @@ final class RedialPlan {
         }
         Intent open = new Intent(c, MainActivity.class).putExtra("open", "redial").putExtra("redialPlan", true)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CHANNEL) : new Notification.Builder(c);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (nm != null) nm.notify(1003, b.setSmallIcon(R.drawable.ic_notif).setContentTitle("Tijd om " + (p.optString("name").isEmpty() ? p.optString("number") : p.optString("name")) + " te bellen")
+        if (nm != null && !NotifCenter.muted(c)) nm.notify(1003, b.setSmallIcon(R.drawable.ic_notif).setContentTitle("Tijd om " + (p.optString("name").isEmpty() ? p.optString("number") : p.optString("name")) + " te bellen")
                 .setContentText("Tik om Auto redial te starten").setAutoCancel(true)
                 .setContentIntent(PendingIntent.getActivity(c, 62, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT)).build());
     }

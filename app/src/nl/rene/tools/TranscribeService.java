@@ -165,14 +165,14 @@ public class TranscribeService extends Service {
         if (stopped || (done == 0 && failed == 0)) return;
         String title = failed == 0 ? done + (done == 1 ? " gesprek uitgeschreven" : " gesprekken uitgeschreven")
                 : "Uitschrijven: " + failed + " mislukt";
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
-        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(DONE_ID,
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
+        NotifCenter.post(this, DONE_ID,
                 b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(err == null ? "Tik om te bekijken" : err)
                         .setAutoCancel(true).setContentIntent(open(this)).build());
     }
 
     private Notification notif(String title, String text, int pct) {
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(text).setOngoing(true)
                 .setOnlyAlertOnce(true).setContentIntent(open(this));
         if (pct >= 0) b.setProgress(100, pct, false); else b.setProgress(0, 0, true);

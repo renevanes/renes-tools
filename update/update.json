@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.47",
-  "versionCode": 48,
-  "nativeLevel": 43,
+  "versionName": "1.48",
+  "versionCode": 49,
+  "nativeLevel": 44,
   "web": "index.html",
-  "webSha256": "ce38fb6b33ad76775a4f7519df069a71914bc93d23ff541d7d0a9ecffd250d53",
+  "webSha256": "d748d85d6fb86c49246892a2f955cec60bde6c2b110492087bf9eb5332360b12",
   "start": "start.html",
   "startSha256": "452f8c05e0d720195c4d18f823c32709cd25c1cb5ce5962ca0b74618b368a6fc",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "eabdbd011c0744161a3f6167b105970fe8ecc57c1427ffabc90fd2dd4cdc38a3",
+  "apkSha256": "0bf10de589737b313dd9dd0adc0ebd5e5ddfbdab3b11e91beb98c6a966b7541f",
   "changelog": [
+    {
+      "version": "1.48",
+      "date": "2026-10-06",
+      "changes": [
+        "Instellingen › Meldingen: nieuwe schakelaar 'Alle meldingen uit' zet in één keer alle meldingen van de app uit (geen geluid, trillen of pop-ups)",
+        "Draait de radio, een route-opname of een backup, dan toont Android alleen een stille regel zonder icoon in de statusbalk"
+      ]
+    },
     {
       "version": "1.47",
       "date": "2026-10-06",
@@ -421,5 +429,5 @@
       ]
     }
   ],
-  "webSig": "OVsLlnBNlIi89fcftnICq4JKJ2PGURCt3S5VYraeZzi/IVSCWuq6ARfWlfiGD/74vnz6EBp9X29W7vLUpRi2Lrt7SqoqFQl1xh6ylYIhJvPhGFoK/QOIOnKwCWcN2aD3YxfGErSsKjZSQ6CNKMUqb9bPhAlK4iB7XGUewGjgLEvE4Cu8REXxKmpQZkcT0PTdF6VIoYvl3iUplWj9A50ffYi0ykBbaOQclO090xKu51OQfrJ/WYcqvUZ86MphT7dZGUJyOjZ3SoA2gmtLb1qdbhsh7R/9haJUwXGMtDlMk1E11kueiVv0+Npe/TmignBggoFKNFOG8aEnaLsZwC3Kr/kKxe3JH6yr0licQTJEi29iYmLXWefWVCtYjYgvzZzHCzizXFq03BBNu3ZH3/581sAE5/gz4/JWd/q4XT65O5HhPFQQAztZVImK94prv/ZsygBYFfBjijSVp6UR1OMRc5QEf+QelJjCDC4rdQTwukyIoxn+up1UDhupgbBusKf2"
+  "webSig": "nlSRJZaKc94v4qE1byNjV/nRN5a2lKnAsy9Nh2a+VthBvueRYOaQQPaqEKeidaGpMkJACgh9ionR1abD1hm1AYfSn8n2Q8/4UxGrnKHrz4jb5PGt0vD/mWgE1nGdgcVFbultabeYJA6Alj5PwtfVMYbC09zKGP1XzNWMhnCnyEnsoEg9HHBU2BXGU3WR3hanFlMTWrFns4aRIXHTRG2tNDJH3NkqaxFnqShTwC9y+UXhS+9KhS0Ib6kZr7goQC9IQIGZcgtZc+LwlPmQfWtdxoMPnfsEvlZmFa8Zbx4hk8x5vPNqnnF7i5HcQVx9nL92JyiExuCppboKpJUOe5QryBybWh4lJIUYMd5ND3gLGjb53RQioxciJl+GU5ZCK7lXZaqYhP8+WL6jJN5leRkKmswzi5olSCsyr7vgxbWj2zPXUsNaeSHQY10OCGEN34sygcYMge7hZLYyoeZ+oB6EEYI3jZiaIse6NCXrL2JSPYYYoNzjtwbn+97qezCzL7wG"
 }

@@ -1090,6 +1090,8 @@ public class MainActivity extends Activity {
         }
         // ----- meldingen van deze app -----
         @JavascriptInterface public String notifState() { return NotifCenter.state(ctx); }
+        /** De app-eigen schakelaar: alle meldingen van Rene's Tools uit (true) of weer aan. */
+        @JavascriptInterface public void notifMute(boolean on) { NotifCenter.setMuted(ctx, on); }
         /** Android-instelling van één soort melding (of alle meldingen van de app bij een lege id). */
         @JavascriptInterface public void notifOpen(String id) {
             a.h.post(() -> { try { a.startActivity(NotifCenter.settingsIntent(ctx, id)); } catch (Exception e) { a.openAppSettings(); } });

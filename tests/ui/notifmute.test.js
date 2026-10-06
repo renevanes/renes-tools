@@ -1,0 +1,22 @@
+const { chromium } = require('playwright');
+(async () => {
+  const b = await chromium.launch();
+  const pg = await b.newPage({ viewport: { width: 390, height: 844 } });
+  const errs = []; pg.on('pageerror', e => errs.push(e.message));
+  await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(400);
+  await pg.evaluate(() => show('settings')); await pg.waitForTimeout(250);
+  console.log('start muted', await pg.evaluate(() => $('#st-notif-mute').classList.contains('on')));
+  await pg.click('#st-notif-mute'); await pg.waitForTimeout(150);
+  console.log('bridge', await pg.evaluate(() => Android._notifMuted), 'on', await pg.evaluate(() => $('#st-notif-mute').classList.contains('on')));
+  console.log('state', await pg.textContent('#st-notif-state'));
+  await pg.screenshot({ path: __dirname + '/shots/notifmute.png' });
+  await pg.evaluate(() => goBack()); await pg.evaluate(() => show('settings')); await pg.waitForTimeout(200);
+  console.log('kept after reopen', await pg.evaluate(() => $('#st-notif-mute').classList.contains('on')));
+  await pg.click('#st-notif-mute'); await pg.waitForTimeout(150);
+  console.log('unmuted', await pg.evaluate(() => Android._notifMuted), await pg.textContent('#st-notif-state'));
+  await pg.evaluate(() => goBack());
+  await pg.fill('#gs-q', 'meldingen uit'); await pg.waitForTimeout(600);
+  console.log('search', await pg.$$eval('#gs-res .gi[data-k="app"]', x => x.map(e => e.innerText.split('\n')[0])));
+  console.log('errors', errs);
+  await b.close();
+})();

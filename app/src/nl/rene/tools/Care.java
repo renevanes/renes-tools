@@ -282,10 +282,10 @@ public class Care extends JobService {
             if (Build.VERSION.SDK_INT >= 33 && c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
             Intent open = new Intent(c, MainActivity.class).putExtra("open", tool).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP)
                     .setData(Uri.parse("renestools://care/" + id));
-            Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CHANNEL) : new Notification.Builder(c);
+            Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
             b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setAutoCancel(true).setContentIntent(PendingIntent.getActivity(c, id, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
-            nm.notify(id, b.build());
+            if (!NotifCenter.muted(c)) nm.notify(id, b.build());
         } catch (Exception ignored) { }
     }
 }

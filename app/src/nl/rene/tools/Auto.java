@@ -334,7 +334,7 @@ final class Auto {
 
     private static Notification.Builder builder(Context c) {
         channel(c);
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CHANNEL) : new Notification.Builder(c);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
         b.setSmallIcon(R.drawable.ic_notif).setAutoCancel(true).setCategory(Notification.CATEGORY_REMINDER);
         if (Build.VERSION.SDK_INT < 26) b.setPriority(Notification.PRIORITY_HIGH).setDefaults(Notification.DEFAULT_ALL);
         return b;
@@ -386,7 +386,7 @@ final class Auto {
     }
 
     static void post(Context c, int nid, Notification n) {
-        if (!notifOk(c)) return;
+        if (!notifOk(c) || NotifCenter.muted(c)) return;
         try { ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(nid, n); } catch (Exception ignored) { }
     }
 

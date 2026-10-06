@@ -58,10 +58,10 @@ public class AllBackupJob extends JobService {
         }
         if (failed == 0) return;
         WaBackupService.createChannel(c);
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, WaBackupService.CHANNEL) : new Notification.Builder(c);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, WaBackupService.CHANNEL)) : new Notification.Builder(c);
         android.content.Intent open = new android.content.Intent(c, MainActivity.class).putExtra("open", "backup")
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        ((NotificationManager) c.getSystemService(NOTIFICATION_SERVICE)).notify(4204,
+        NotifCenter.post(c, 4204,
                 b.setSmallIcon(R.drawable.ic_backup).setContentTitle("Nachtelijke backup: " + failed + (failed == 1 ? " onderdeel" : " onderdelen") + " mislukt")
                         .setContentText(first == null ? "" : first).setAutoCancel(true)
                         .setContentIntent(android.app.PendingIntent.getActivity(c, 24, open,
