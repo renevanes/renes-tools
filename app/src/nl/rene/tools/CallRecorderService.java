@@ -24,7 +24,7 @@ import java.util.UUID;
 /** Handmatige microfoonopname. Geen toegang tot afgeschermde telefoon-audiokanalen. */
 public final class CallRecorderService extends Service {
     private static final int NOTIFICATION = 4701;
-    private static final String CHANNEL = "call-recording";
+    static final String CHANNEL = "call-recording";
     static volatile boolean busy, recording, watchingCall;
     private static volatile long since;
     private static volatile boolean heard;

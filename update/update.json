@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.48",
-  "versionCode": 49,
-  "nativeLevel": 44,
+  "versionName": "1.49",
+  "versionCode": 50,
+  "nativeLevel": 45,
   "web": "index.html",
-  "webSha256": "d748d85d6fb86c49246892a2f955cec60bde6c2b110492087bf9eb5332360b12",
+  "webSha256": "542c4cd42705fc92935be5d683c1165e1d36080a447314c3da7b2f69ade1cf82",
   "start": "start.html",
   "startSha256": "452f8c05e0d720195c4d18f823c32709cd25c1cb5ce5962ca0b74618b368a6fc",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "0bf10de589737b313dd9dd0adc0ebd5e5ddfbdab3b11e91beb98c6a966b7541f",
+  "apkSha256": "965f95de479b9ce3654cebf2742733d6fa0b59ed3d4d2927d8be68d50e3c46bc",
   "changelog": [
+    {
+      "version": "1.49",
+      "date": "2026-10-06",
+      "changes": [
+        "Nieuw: Gesprekken opnemen. Een microfoonopname die je zelf start, met een zichtbare melding en stopknop. Daarna afspelen, delen, exporteren en uitschrijven. Android kan de microfoon tijdens bellen blokkeren; zet de luidspreker aan en test eerst"
+      ]
+    },
     {
       "version": "1.48",
       "date": "2026-10-06",
@@ -429,5 +436,5 @@
       ]
     }
   ],
-  "webSig": "nlSRJZaKc94v4qE1byNjV/nRN5a2lKnAsy9Nh2a+VthBvueRYOaQQPaqEKeidaGpMkJACgh9ionR1abD1hm1AYfSn8n2Q8/4UxGrnKHrz4jb5PGt0vD/mWgE1nGdgcVFbultabeYJA6Alj5PwtfVMYbC09zKGP1XzNWMhnCnyEnsoEg9HHBU2BXGU3WR3hanFlMTWrFns4aRIXHTRG2tNDJH3NkqaxFnqShTwC9y+UXhS+9KhS0Ib6kZr7goQC9IQIGZcgtZc+LwlPmQfWtdxoMPnfsEvlZmFa8Zbx4hk8x5vPNqnnF7i5HcQVx9nL92JyiExuCppboKpJUOe5QryBybWh4lJIUYMd5ND3gLGjb53RQioxciJl+GU5ZCK7lXZaqYhP8+WL6jJN5leRkKmswzi5olSCsyr7vgxbWj2zPXUsNaeSHQY10OCGEN34sygcYMge7hZLYyoeZ+oB6EEYI3jZiaIse6NCXrL2JSPYYYoNzjtwbn+97qezCzL7wG"
+  "webSig": "CtK9Sl3Zx6q/Ilv5JRqNwdRJ4VVmRPq0wyJz/jALJ2tRfrSy6gMr/dVJH1B7jJBtymdU6RQVYI5TpKeXZCCN+G240vFUK26y+sVLIzOvzKLu7BRIUDmsq72uLy8gCmYzKcB2znQlMKlS/aiJjQGKG6JkofoUXFiGD61xLURfwP/k67XdmGvg11CvgF5h0hVzSjn8+25gg3w1e4ox+GyyXQFfNevNFInK6DHWHk1UChJQE7iVA6rVZr7H1xHU5lUmQYGQ4xb6ZhbwT8NoOmEsSdkAa/qTSF/fCUliwebtNaxMH0axh42FSwFsyFB0692KwpB67W7adaGvwhTkfBkYltIwvH3xeE2nNI41sbTK3ThmE0h3d/x3W9+b8yythDL+Q8KaQTB7AV8JPu+efwMy7tG1dvVOnjv/WVElEzEY3IlHMVINfm2fpeBsDuvGYmRd2ASX6oucOwzwIn7G4UeO98oB5kI90qaJVMPy4qbiNVu6nMbXWiugrXCuCyHjI9S8"
 }
