@@ -57,6 +57,7 @@ public class MainActivity extends Activity {
     private static final int REQ_CALLS = 18;
     private static final int REQ_CONTACTS_RW = 19;
     private static final int REQ_TR = 20;
+    private static final int REQ_NOTIF = 41;
     private static final int REQ_RECTREE = 21;
     private static final int REQ_MIC = 22;
     private static final int REQ_SETTINGS = 23;
@@ -111,7 +112,8 @@ public class MainActivity extends Activity {
         RedialService.createChannel(this);
         WaBackupService.createChannel(this);
         WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
-        Care.ensureScheduled(this);         // dagelijks onderhoud: backup-controle (maandelijks) en batterij (wekelijks)
+        Care.ensureScheduled(this);
+        NotifCenter.ensureAll(this);        // alle soorten meldingen met nette namen in Android         // dagelijks onderhoud: backup-controle (maandelijks) en batterij (wekelijks)
         AllBackupJob.ensureScheduled(this);
         TranscribeJob.ensureScheduled(this);
         // Automatiseringen: plekken opnieuw instellen als Android ze kwijt kan zijn (bijv. na geforceerd stoppen op Oppo)
@@ -419,6 +421,7 @@ public class MainActivity extends Activity {
         if (req == REQ_CALLS) js("onCallsChanged", "");
         if (req == REQ_CONTACTS_RW) js("onContactsChanged", "");
         if (req == REQ_TR) js("onTrChanged", "");
+        if (req == REQ_NOTIF) js("onSettingsChanged", "");
         if (req == REQ_MIC) js("onMusicChanged", "");
         if (req == REQ_SETTINGS) js("onSettingsChanged", "\"\"");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
@@ -1085,6 +1088,24 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String historyList(String query) {
             try { return NotificationHistory.list(ctx, query); } catch (Exception e) { return errJson(e); }
         }
+        // ----- meldingen van deze app -----
+        @JavascriptInterface public String notifState() { return NotifCenter.state(ctx); }
+        /** Android-instelling van één soort melding (of alle meldingen van de app bij een lege id). */
+        @JavascriptInterface public void notifOpen(String id) {
+            a.h.post(() -> { try { a.startActivity(NotifCenter.settingsIntent(ctx, id)); } catch (Exception e) { a.openAppSettings(); } });
+        }
+        /** Meldingen aanzetten: eerst de vraag van Android, kan dat niet (meer), dan de instelling. */
+        @JavascriptInterface public void notifAsk() {
+            a.h.post(() -> {
+                if (!NotifCenter.permissionOk(ctx) && Build.VERSION.SDK_INT >= 33 && !ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).getBoolean("notifAsked", false)) {
+                    ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).edit().putBoolean("notifAsked", true).apply();
+                    a.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIF);
+                } else {
+                    try { a.startActivity(NotifCenter.settingsIntent(ctx, "")); } catch (Exception e) { a.openAppSettings(); }
+                }
+            });
+        }
+
         // ----- onderhoud: sinds gisteravond, backup-controle -----
         @JavascriptInterface public String overnight() { return Care.overnight(ctx); }
         @JavascriptInterface public void overnightSeen() {

@@ -1,6 +1,18 @@
 /* ---------- Instellingen ---------- */
 function stJson(s){ try { return JSON.parse(s); } catch(e){ return {}; } }
+/* Meldingen van deze app: één lijst met wat aan en uit staat; tikken = die soort in Android. */
+const NLEVEL = ['Uit', 'Stil', 'Zacht', 'Normaal', 'Met geluid'];
+function stNotifRender(){
+  if (typeof Android.notifState !== 'function') return;
+  const s = stJson(Android.notifState());
+  const off = !s.allowed;
+  $('#st-notif-state').textContent = off ? 'Meldingen staan uit voor deze app: je mist herinneringen, de radiowekker en backup-meldingen.' : '✓ Meldingen staan aan.';
+  $('#st-notif-ask').style.display = off ? 'block' : 'none';
+  $('#st-notif-list').innerHTML = (s.kinds || []).map(k => '<button class=nkind data-id="' + esc(k.id) + '" onclick="Android.notifOpen(this.dataset.id)"><span><b>' + esc(k.name) + '</b><small>' + esc(k.desc) + '</small></span>' +
+    '<span class="nst' + (off || !k.on ? ' off' : '') + '">' + (off ? 'Uit' : NLEVEL[k.level] || 'Aan') + '</span><span aria-hidden=true>›</span></button>').join('');
+}
 function enterSettings(){
+  stNotifRender();
   $('#st-zoom').value = String(Android.textZoomGet());
   stHomeRender();
   const i = stJson(Android.settingsInfo());

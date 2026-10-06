@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.44",
-  "versionCode": 45,
-  "nativeLevel": 41,
+  "versionName": "1.45",
+  "versionCode": 46,
+  "nativeLevel": 42,
   "web": "index.html",
-  "webSha256": "f6893125e71b0cad1eb4f189fe1fc7ab308536f317b540d6c8e0bffe74b0316e",
+  "webSha256": "af03890299b551bb04acecaad62a5df12aaf30abdcb3f58d1da17179e4f0bdef",
   "start": "start.html",
   "startSha256": "9c5560f0cff0cd341fa5e00137698d7334458f2690247352825fa5173b3c50ec",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "097ccee480e2f87343b798c2cd0cd3dc91e36f86f2b5115545ad1f2dce28b95b",
+  "apkSha256": "4066d36ca1916d453d57c84a567de76fd5d5e28b163349c4ee6283abaf94b0be",
   "changelog": [
+    {
+      "version": "1.45",
+      "date": "2026-10-06",
+      "changes": [
+        "Instellingen-knop rechtsboven op het startscherm van de app",
+        "Meldingen van de app in één overzicht (Instellingen): zie wat aan en uit staat en tik door naar die soort in Android"
+      ]
+    },
     {
       "version": "1.44",
       "date": "2026-10-05",
@@ -398,5 +406,5 @@
       ]
     }
   ],
-  "webSig": "V+VhUmTAnb812V2BgvaKpWAsD1LwfNETYEjVA6fFTdJ2xY1HSNnHksXLHXEFtN4tWEx9ykpauHBD+XK78Re6eAldTycvuIlvO5OqfH+WfIiJEH1C8xtuiFoC6cVK5OBSnlom0pzolU8SqTqERNrrKifD418uCsFy6g2pbnSMlo1gAIu2IrEKUpg9PZqUYJ488oB+7Ww6CXU8H0LxgLn0MwSQP4xD4a+YnBd3tave2iJ8eMGzZKxnhYVzUcYgrQBkzH5qN1CBJ/69ZHCwtLEYvf62dT3VzoOcbzpCP33FLnZrH2cUNOd1TUdSdCHsymz0k4cUGZjKroIjlM8PMKYyFSRAj3ZyKl8TUf1PfCg9NRxZNZ1PmKpnqKg38HNO/kX1yosG3MjqkWvExpFYzQl9tgg0I+xDc50qJ7eNXl2uQBj+LXcQ9Ny5D7jsFWX5DAUhN5+u0YxSEK06r6TQQtz86VMlFkys6t/hynl2DhGLCeseXfkjW26N0//e7eBl7Xvs"
+  "webSig": "dxmS0AEQjx9d1kSIgSJb4P3tCl9c71/5wj8YnXXd9VWtXNw94fp3NLyWncZ5MmUU/FnVUg0QNKZ4HiWYmL+V82WX9G5x2pfFY2cvEtVbwND9Ax6nLO+siyQ6Bgp3g/oVSqxWrzki2amHRhguo9G/JGWHaKO+4gDrFFWRtrmSkuhTN+Vc1gExwA/8PWE9JHlFm9Is/5AL6vIEQWmB+vv/24st6LTcY5QhAXNVxPLE6M4WF4ijBm7vXu5k0+ktMJNzGNrizmZRAHpS6pqfUj1d3WVS0IvfQ7TrJJMr22sPOQRJNDHYY2KLXu2WBF/amU2T2T/H6zmFHc/2+rcBeg3U12BiNzdOIpk4r4uNPEhnxzXWfOja7fRErrI7qq5c1XUngybhWu7MF403EhXHrADMIGdL8uaYMnp9KkiS3hcOA3d2TIEsukxHO2UQS0BrrlB57n430scgaVTym7BmiDEiaN5DHudOyWUHXHz7MyfH9HbBSG4j9v8Lsna9Gs2rfvl2"
 }
