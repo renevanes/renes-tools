@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.55",
+    "date": "2026-10-07",
+    "changes": [
+      "Onder de motorkap: publiceren gebeurt pas als alle tests slagen; strengere controles bij bouwen en testen",
+      "De app is iets kleiner: de testversie van de Android-koppeling zit er niet meer in",
+      "Opgeruimd: ongebruikte onderdelen weggehaald"
+    ]
+  },
+  {
     "version": "1.54",
     "date": "2026-10-07",
     "changes": [

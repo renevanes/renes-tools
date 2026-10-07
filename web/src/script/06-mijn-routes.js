@@ -196,5 +196,4 @@ function refreshTrackTile(s){
   const sub = $('#tile-tracks-sub');
   if (sub) sub.textContent = live ? (s.paused ? 'Opname gepauzeerd' : 'Bezig: ' + fmtKm(s.distance||0) + ' km') : 'Leg je route vast met gps';
 }
-function enterTracksList(){ loadTrackList(); }
 

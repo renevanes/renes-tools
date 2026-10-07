@@ -14,7 +14,7 @@ rm -rf $B && mkdir -p $B/assets $B/gen $B/classes $B/dex
 [ -f keys/release.p12 ] || { echo "Sleutel ontbreekt: ./keys/unlock.sh"; exit 1; }
 
 # 0. Interface samenvoegen uit de onderdelen in web/src/
-python3 tools/web-samenvoegen.py
+python3 tools/web-samenvoegen.py --zonder-nepbrug
 
 # 1. Interface met versienummer en wijzigingslog
 python3 - "$VERSION_NAME" "$VERSION_CODE" <<'PY'
@@ -51,11 +51,12 @@ $AAPT2 link -I $ANDROID_JAR --manifest app/AndroidManifest.xml -A $B/assets \
   --java $B/gen -o $B/base.apk $B/res.zip
 
 # 4. Java -> dex
-javac -nowarn -Xlint:-options -source 8 -target 8 -encoding UTF-8 -bootclasspath $ANDROID_JAR:$BT/core-lambda-stubs.jar \
-  -d $B/classes $(find app/src $B/gen -name '*.java') 2>&1 | grep -v JAVA_TOOL_OPTIONS || true
-[ -f $B/classes/nl/rene/tools/MainActivity.class ] || { echo "javac mislukt"; exit 1; }
-java -cp $BT/lib/d8.jar com.android.tools.r8.D8 --release --min-api 24 --lib $ANDROID_JAR \
-  --output $B/dex $(find $B/classes -name '*.class') 2>&1 | grep -v JAVA_TOOL_OPTIONS || true
+# Fouten stoppen de bouw meteen (de uitvoer wordt alleen gefilterd op de JAVA_TOOL_OPTIONS-melding)
+run() { local log=$B/step.log; "$@" > $log 2>&1; local c=$?; grep -v JAVA_TOOL_OPTIONS $log || true; return $c; }
+run javac -nowarn -Xlint:-options -source 8 -target 8 -encoding UTF-8 -bootclasspath $ANDROID_JAR:$BT/core-lambda-stubs.jar \
+  -d $B/classes $(find app/src $B/gen -name '*.java') || { echo "javac mislukt"; exit 1; }
+run java -cp $BT/lib/d8.jar com.android.tools.r8.D8 --release --min-api 24 --lib $ANDROID_JAR \
+  --output $B/dex $(find $B/classes -name '*.class') || { echo "d8 mislukt"; exit 1; }
 (cd $B/dex && zip -q -j ../base.apk classes.dex)
 # 4b. Uitschrijfprogramma (whisper.cpp) als native lib; Android pakt het uit in nativeLibraryDir
 (cd app && zip -q ../$B/base.apk lib/*/*.so)
@@ -63,9 +64,9 @@ java -cp $BT/lib/d8.jar com.android.tools.r8.D8 --release --min-api 24 --lib $AN
 # 5. Uitlijnen en ondertekenen
 $BT/zipalign -f -p 4 $B/base.apk $B/aligned.apk
 OUT=Renes-Tools-v$VERSION_NAME.apk
-java -jar $BT/lib/apksigner.jar sign --ks keys/release.p12 --ks-type PKCS12 \
+run java -jar $BT/lib/apksigner.jar sign --ks keys/release.p12 --ks-type PKCS12 \
   --ks-pass file:keys/keystore.pass --ks-key-alias release --v4-signing-enabled false \
-  --out $OUT $B/aligned.apk 2>&1 | grep -v JAVA_TOOL_OPTIONS || true
+  --out $OUT $B/aligned.apk || { echo "ondertekenen mislukt"; exit 1; }
 java -jar $BT/lib/apksigner.jar verify -v $OUT 2>&1 | grep -E "^Verifie|^Verified using v[23]"
 rm -f $OUT.idsig
 
@@ -112,3 +113,5 @@ subprocess.run(["openssl", "dgst", "-sha256", "-verify", "build/web-sign.pub", "
 json.dump(m, open('update/update.json', 'w'), ensure_ascii=False, indent=2)
 PY
 echo "OK: $OUT ($(stat -c %s $OUT) bytes), versie $VERSION_NAME ($VERSION_CODE), native $NATIVE_LEVEL"
+# Alleen de laatste drie gebouwde APK's in de projectmap houden (alle versies staan ook in de git-geschiedenis)
+ls -1 Renes-Tools-v*.apk 2>/dev/null | sort -V | head -n -3 | xargs -r rm -f

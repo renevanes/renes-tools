@@ -330,7 +330,6 @@ function aeSave(after){
   const r = aeRule;
   r.name = (r.name || '').trim();
   if (r.place && !(r.place.name || '').trim()) r.place.name = 'de plek';
-  if (!aeNeedsPlace() && r.trig !== 'arrive' && r.trig !== 'leave' && !r.usePlace) { /* plek bewaren voor later, maar niet gebruiken */ }
   let e = aeCheck();
   if (!e) e = Android.autoSave(JSON.stringify(r));
   const w = $('#ae-warn');

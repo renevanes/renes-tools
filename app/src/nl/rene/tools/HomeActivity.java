@@ -572,7 +572,6 @@ public class HomeActivity extends Activity {
         @JavascriptInterface public void openDrawer() { a.h.post(a::openDrawer); }
         @JavascriptInterface public void overlayDone(int seq) { a.h.post(() -> a.overlayDone(seq)); }
         @JavascriptInterface public void homeMenu() { a.h.post(() -> { if (a.desk != null) a.desk.homeMenu(); }); }
-        @JavascriptInterface public void openLookNative() { a.h.post(a::openLook); }
         @JavascriptInterface public void sheetAction(String uid, String id) {
             a.h.post(() -> {
                 if (a.desk == null || id == null) return;
@@ -641,7 +640,6 @@ public class HomeActivity extends Activity {
                 if (!Launcher.isDefaultHome(ctx)) a.exitSkin();
             });
         }
-        @JavascriptInterface public boolean locked() { return Lock.active(ctx); }
         @JavascriptInterface public String launch(String key) { return Launcher.launchFromSkin(a, key); }
         /** Wijzigen welke apps in de skin staan of geblokkeerd zijn: eerst vingerafdruk/pincode. Uitkomst via onSkinAuth(true|false). */
         @JavascriptInterface public void skinAuth() {

@@ -92,7 +92,7 @@ function show(name){
   if (name==='home') { jumpStack.length = 0; if (gsQ) setTimeout(gsInput, 0); }
   closeSheet();
   current = name; window.scrollTo(0,0);
-  if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #dlg.on, #lockscr.on, #sheet.on')) h.focus({ preventScroll: true }); }, 0);
+  if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #voice.on, #lockscr.on, #sheet.on')) h.focus({ preventScroll: true }); }, 0);
   if (name==='redial') enterRedial(); else stopPoll();
   if (name==='wa') enterWa(); else stopWaPoll();
   if (name==='chats') enterChats();

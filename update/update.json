@@ -1,15 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.54",
-  "versionCode": 55,
-  "nativeLevel": 50,
+  "versionName": "1.55",
+  "versionCode": 56,
+  "nativeLevel": 51,
   "web": "index.html",
-  "webSha256": "84195b4321e66759c063b3492e9fb2732a33deadb9c342a14cfa4b53eea63374",
+  "webSha256": "be1c970afebf4ff762e056249801b406c143514a1066481c3a8c3d47df0fc9d5",
   "start": "start.html",
   "startSha256": "83f8bfc2711e634d3c990f40deb8632b666c7212c6403bf5886bc31c5bd5ac0d",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "5ae53dc9c7f3b03bbcabaecdb959661ed39ad7ec42d287351e64e71c12ec5626",
+  "apkSha256": "587f58a289691f1b1337baf11d282a7ab90ba88bc4aa24b790f7233570061971",
   "changelog": [
+    {
+      "version": "1.55",
+      "date": "2026-10-07",
+      "changes": [
+        "Onder de motorkap: publiceren gebeurt pas als alle tests slagen; strengere controles bij bouwen en testen",
+        "De app is iets kleiner: de testversie van de Android-koppeling zit er niet meer in",
+        "Opgeruimd: ongebruikte onderdelen weggehaald"
+      ]
+    },
     {
       "version": "1.54",
       "date": "2026-10-07",
@@ -493,5 +502,5 @@
       ]
     }
   ],
-  "webSig2": "UUMOa912UD5fZnk1LK6iufO+W1P86XDyZVykK0i5PsFJkNxg7xdHyhmO2YnMHI9yAx4dblbHFyDL7AWGJPghZA1Rc2J5gDxLVfeAV5b9g6j2O1ksFDaP3/TClCrNijV7khiujYJyLlPXQnEj7h1xzyXMMva6aMmQHCjoaiVFgKvKIec9hp2DfwiLbR212MDIIa4ui2zPVMhWbUaGN0wvgDTNtti+77ejw7cqrbQ81AMIZEgLOVzsjCJOOu4xL7c0CVz6MvVA05CXKu8QLbw3s2EdWQIg2YSO5Hv/KBAlAzM6aDOg3QMKAXW+nn5vHz4iZ6mK3ULCVup5KIaFWNm5NIZML2gf1vr4WCAbH99fRi6wTaXA4n8pyrsAiVUz/UOBcP254jkkQWxVhovjJfIKpqyswlG8w+Dw1tnEkFhau2GuxsIqcIGE4HMA5alZ1DtUAZcLngKpjI6dlfApQEK4Ib33G7+I8CSBnBu+nxeeCTwd3ma4xwvGxn3SEUDUB29C"
+  "webSig2": "RUmB778qrRk6YyX0i5dCPQSkIzkQd7C6wfQCqqRoFSGIrbuv8BydovljD4R2ojJN11/175YLSiPCrgAZQ7mOMW5X2bbCVRk4sNOurjtbCUdsApXxs+gy2K9o6EA8KpWsJRZgYp580wk+Z7nVGPXaC5NiOCwdRPazFjpkKXHYEDSrUIETVU4sSlTD+sS8WuXT7e9EpHIo6h42UTC9BMbIb9kZ/7eWWjmOPI8RnCqjvRWTm2x7aPUhOygQRDq6Me7mN/+y49TDSUOhyDh3Qoi4bhwSbOxHW3EgBwgVv2h4Gfht8jlR6VdIPtDSnj7juc5kbepn0x/r51q0kRmJjGvra620yH57Ob2W3VdZ5u64k5+auYhsqwHGWY3uepYEfJZiToOKYJ6R/rcFj+uDqwh/rMK1iw7/LyaluHer1oBFLCYdPskQiH65Qn/FurJlLpLgj0IP34OPI1g5jXbntfWvr8nsCqOBK0cWcTFokGtER7uBqzk5twjMHap0Ce+hCsu9"
 }

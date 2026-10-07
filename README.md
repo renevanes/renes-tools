@@ -206,10 +206,13 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 ./bump.sh "Wat er veranderd is"          # versie +0.1, met regel voor het wijzigingslog
 NATIVE=1 ./bump.sh "Nieuwe app-functie"   # als de Java-code of het manifest is veranderd
 ./build.sh                    # bouwt de APK en vult update/
-./publish.sh                  # commit "Versie X.Y" en push naar GitHub
+./publish.sh                  # draait eerst alle tests, dan commit "Versie X.Y" en push naar GitHub
                               # stopt als er intussen een nieuwere versie op GitHub staat (andere sessie): eerst git pull, dan opnieuw ./bump.sh
+                              # stopt ook als: een test mislukt, er na ./build.sh nog iets veranderd is, app/ veranderd is zonder NATIVE=1,
+                              # de APK >10% groeit (ALLOW_GROW=1), of er onbekende nieuwe bestanden zijn
                               # CLAUDE_SESSION_URL=... ./publish.sh zet de link van de publicerende sessie in de commit
 ```
+De interface-functies van nieuwere onderdelen staan in `FeatureBridge.java` (MainActivity.Bridge erft ze); nieuwe onderdelen horen daar of in een eigen klasse zoals die.
 
 ### Interface in onderdelen
 De interface is één pagina (`web/index.html`) voor de WebView, maar wordt bewerkt in losse onderdelen in `web/src/`:
@@ -218,12 +221,11 @@ De interface is één pagina (`web/index.html`) voor de WebView, maar wordt bewe
 
 ### Testen
 ```sh
-./tests/run-ui.sh            # interfacetests: Playwright, 390x844, licht en donker, met nagebootste Android-brug
-javac -cp build/classes:$TOOLS/ap/android-36/android.jar -d build/test tests/jvm/nl/rene/tools/*.java
-java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.LogicTest       # logica (contactversies, vCard, wekker, versleutelen, opruimen)
-java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.TimeshiftTest   # radiobuffer
-java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.HistoryTextTest # meldingstekst, escaping en deduplicatie
+./tests/run-jvm.sh           # alle Java-logicatests (tests/jvm/**/*Test.java; nieuwe tests doen vanzelf mee)
+./tests/run-ui.sh            # controle van de brug (tools/check-bridge.py) en de interfacetests: Playwright, 390x844,
+                             # licht en donker, met nagebootste Android-brug. Een test mislukt bij een fout in de pagina of een mislukte assert.
 ```
+De app zelf wordt zonder nagebootste brug gebouwd (`web-samenvoegen.py --zonder-nepbrug`).
 Bij elke push bouwt GitHub Actions (`.github/workflows/bouwen-en-testen.yml`) de app en draait alle tests. Die APK is ondertekend met een tijdelijke testsleutel en dient alleen als controle; echte updates gaan via `./publish.sh` met de echte sleutel.
 
 De ondertekeningssleutel staat alleen versleuteld in de repository (`keys/signing-key.enc`, AES-256). Rene heeft de wachtwoordzin. Elke update moet met dezelfde sleutel ondertekend zijn, anders kan de telefoon hem niet installeren.

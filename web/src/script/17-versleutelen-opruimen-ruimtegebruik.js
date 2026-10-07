@@ -57,12 +57,10 @@ function bkRenderSpace(r){
   $('#bk-space-btn').textContent = 'Opnieuw berekenen';
 }
 /* versleutelde backup openen */
-let arcInfo = null;
 window.onArchivePicked = function(){ toast('Bezig met openen…'); Android.archiveOpen(''); };
 window.onArchive = function(r){
   if (r.needPw) { askPassword('Wachtwoord', 'Het wachtwoord van deze backup.', 'Openen', pw => { toast('Bezig met ontsleutelen…'); Android.archiveOpen(pw); }); return; }
   if (r.error) { toast(r.error); if (/Verkeerd/.test(r.error)) setTimeout(() => onArchive({needPw: true}), 400); return; }
-  arcInfo = r;
   const acts = [];
   if (r.contacts) acts.push(['Contacten terugzetten', () => Android.archiveRestore('contacts', r.contacts)]);
   if (r.notes) acts.push(['Notities terugzetten', () => Android.archiveRestore('notes', r.notes)]);

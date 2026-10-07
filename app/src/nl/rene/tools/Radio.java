@@ -147,18 +147,6 @@ final class Radio {
         prefs(c).edit().putString("favs", new JSONArray(l).toString()).apply();
     }
 
-    static synchronized void moveFavorite(Context c, String id, int dir) throws Exception {
-        JSONArray f = favorites(c);
-        int i = -1;
-        for (int k = 0; k < f.length(); k++) if (f.getJSONObject(k).optString("id").equals(id)) i = k;
-        int j = i + dir;
-        if (i < 0 || j < 0 || j >= f.length()) return;
-        JSONObject a = f.getJSONObject(i), b = f.getJSONObject(j);
-        f.put(i, b);
-        f.put(j, a);
-        prefs(c).edit().putString("favs", f.toString()).apply();
-    }
-
     // ---------- nu op de radio ----------
 
     static String header(HttpURLConnection h, String name) {

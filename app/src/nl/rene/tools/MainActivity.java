@@ -64,7 +64,7 @@ public class MainActivity extends Activity {
     private static final int REQ_IMPORT = 24;
     private static final int REQ_HOME = 25;
     private static final int REQ_AUTO = 26;
-    private static final int REQ_KLUIS = 27;
+    static final int REQ_KLUIS = 27;
     volatile String importKind = null;
     String pendingShare = null;
     volatile Uri pendingArchive = null;
@@ -105,7 +105,7 @@ public class MainActivity extends Activity {
         @Override public void onComplete(long id) { r.run(); }
     }
     private View topBar, bottomBar;
-    private final Handler h = new Handler(Looper.getMainLooper());
+    final Handler h = new Handler(Looper.getMainLooper());
     private String pendingOpen = null;
 
     @Override
@@ -587,12 +587,13 @@ public class MainActivity extends Activity {
 
     // ---------- brug naar JavaScript ----------
 
-    static final class Bridge {
+    /** Alle functies voor de interface. Nieuwere onderdelen staan in FeatureBridge (eigen bestand). */
+    static final class Bridge extends FeatureBridge {
         private final MainActivity a;
         private final Context ctx;
         static volatile boolean smsBusy = false;
         static volatile boolean callsBusy = false;
-        Bridge(MainActivity act) { a = act; ctx = act.getApplicationContext(); }
+        Bridge(MainActivity act) { super(act); a = act; ctx = act.getApplicationContext(); }
 
         @JavascriptInterface public String version() {
             try {
@@ -646,11 +647,6 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void toast(String m) {
             a.h.post(() -> Toast.makeText(ctx, m, Toast.LENGTH_SHORT).show());
-        }
-
-        @JavascriptInterface public String redialStart(String number, String name, int attempts, int interval,
-                                                       boolean stopWhenAnswered, boolean speaker) {
-            return redialStart2(number, name, attempts, interval, 0, 0, stopWhenAnswered, speaker);
         }
 
         /** Zoals redialStart, maar met willekeurige wachttijd tussen randomMin en randomMax seconden (0 = vast). */
@@ -849,10 +845,6 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void waRequestContacts() {
             a.h.post(() -> a.requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, REQ_CONTACTS));
-        }
-
-        private static String errJson(Exception e) {
-            try { return new JSONObject().put("error", String.valueOf(e.getMessage())).toString(); } catch (Exception x) { return "{}"; }
         }
 
         // ----- Mijn routes -----
@@ -1130,21 +1122,6 @@ public class MainActivity extends Activity {
         }
         // ----- meldingen van deze app -----
         @JavascriptInterface public String notifState() { return NotifCenter.state(ctx); }
-        /** Interface-instellingen (localStorage) bewaren voor Alles back-uppen. */
-        @JavascriptInterface public void webStoreSave(String json) {
-            if (json == null || json.length() > 300_000) return;
-            ctx.getSharedPreferences("webstore", Context.MODE_PRIVATE).edit().putString("all", json).apply();
-        }
-        /** Na terugzetten: eenmalig de bewaarde interface-instellingen teruggeven. */
-        @JavascriptInterface public String webStorePending() {
-            android.content.SharedPreferences p = ctx.getSharedPreferences("webstore", Context.MODE_PRIVATE);
-            if (!p.getBoolean("pending", false)) return "";
-            String r = p.getString("restoreAll", "");
-            p.edit().remove("pending").remove("restoreAll").apply();
-            return r;
-        }
-        /** De app-eigen schakelaar: alle meldingen van Rene's Tools uit (true) of weer aan. */
-        @JavascriptInterface public void notifMute(boolean on) { NotifCenter.setMuted(ctx, on); }
         /** Android-instelling van één soort melding (of alle meldingen van de app bij een lege id). */
         @JavascriptInterface public void notifOpen(String id) {
             a.h.post(() -> { try { a.startActivity(NotifCenter.settingsIntent(ctx, id)); } catch (Exception e) { a.openAppSettings(); } });
@@ -1871,16 +1848,6 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public String noteReminders() { return Reminders.all(ctx); }
-        @JavascriptInterface public String noteRemindAdd(String note, String title, String time, String rep) {
-            try { return Reminders.add(ctx, note, title, Long.parseLong(time), rep); } catch (Exception e) { return ""; }
-        }
-        @JavascriptInterface public String noteRemindList(String note) { return note == null ? "[]" : Reminders.forNote(ctx, note); }
-        @JavascriptInterface public void noteRemindDel(String rid) { if (rid != null) Reminders.remove(ctx, rid); }
-        @JavascriptInterface public void noteRemindClear(String note) {
-            if (note == null) return;
-            try { org.json.JSONArray l = new org.json.JSONArray(Reminders.forNote(ctx, note)); for (int i = 0; i < l.length(); i++) Reminders.remove(ctx, l.getJSONObject(i).getString("id")); } catch (Exception ignored) { }
-        }
-        @JavascriptInterface public void noteRemindRetitle(String note, String title) { if (note != null && title != null) Reminders.retitle(ctx, note, title); }
 
         @JavascriptInterface public void noteShare(String title, String text) {
             a.h.post(() -> {
@@ -1939,7 +1906,6 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public int textZoomGet() { return ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).getInt("textZoom", 0); }
-        @JavascriptInterface public int textZoomActual() { return textZoom(ctx); }
         @JavascriptInterface public void textZoomSet(int z) {
             ctx.getSharedPreferences("ui", Context.MODE_PRIVATE).edit().putInt("textZoom", z).apply();
             a.h.post(() -> { if (a.web != null) a.web.getSettings().setTextZoom(textZoom(ctx)); });
@@ -1978,24 +1944,6 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void autoSetOn(String id, boolean on) { Auto.setOn(ctx, id, on); }
         @JavascriptInterface public String autoBt() { return Auto.btDevices(ctx); }
 
-        // ----- Mijn auto -----
-        @JavascriptInterface public String carState() { return Car.stateJson(ctx); }
-        @JavascriptInterface public void carSet(String addr, String name, boolean trips, String defType) { Car.setCar(ctx, addr, name, trips, defType); }
-        @JavascriptInterface public void carParkNow() {
-            Auto.locate(ctx, 20_000, loc -> { Car.park(ctx, loc, "hand"); a.js("onCarChanged", loc == null ? "\"noloc\"" : "\"ok\""); });
-        }
-        @JavascriptInterface public void carLeft() { Car.closePark(ctx); }
-        @JavascriptInterface public String carTripSet(String id, String type, String note) { return Car.setTrip(ctx, id, type, note); }
-        @JavascriptInterface public String carTripDelete(String id) { return Car.deleteTrip(ctx, id); }
-        @JavascriptInterface public void carExport(String month) {
-            new Thread(() -> {
-                String r;
-                try { r = "ok:" + Car.exportMonth(ctx, month); } catch (Exception e) { r = e.getMessage() == null ? "Exporteren lukt niet" : e.getMessage(); }
-                a.js("onCarExport", JSONObject.quote(r));
-            }, "car-export").start();
-        }
-        @JavascriptInterface public void carTripStart() { Car.startTrip(ctx); }
-        @JavascriptInterface public void carTripStop() { Car.stopTrip(ctx); }
         @JavascriptInterface public String autoApps() { return Auto.apps(ctx); }
 
         /** Nu uitvoeren (zonder trigger en voorwaarden), om te testen. */
@@ -2127,13 +2075,6 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return false; }
         }
 
-        @JavascriptInterface public void radioMoveFavTo(int from, int to) {
-            try { Radio.moveFavoriteTo(ctx, from, to); RadioWidget.refresh(ctx); } catch (Exception ignored) { }
-        }
-        @JavascriptInterface public void radioMoveFav(String id, int dir) {
-            try { Radio.moveFavorite(ctx, id, dir); } catch (Exception ignored) { }
-        }
-
         @JavascriptInterface public void radioPlay(String station) {
             try {
                 JSONObject s = new JSONObject(station);
@@ -2178,60 +2119,7 @@ public class MainActivity extends Activity {
 
         // ----- Muziek herkennen -----
 
-        // ----- Kluis -----
-        @JavascriptInterface public void kluisUnlock() {
-            a.h.post(() -> {
-                if (Kluis.isOpen()) { Kluis.open(ctx); a.js("onKluis", "true"); return; }
-                if (Lock.authBusy) { a.js("onKluis", JSONObject.quote("Er staat al een vraag om te ontgrendelen open")); return; }
-                Lock.prompt(a, "Kluis openen", (ok, msg) -> a.runOnUiThread(() -> {
-                    if (ok) { Kluis.clearViews(ctx); Kluis.open(ctx); }
-                    a.js("onKluis", ok ? "true" : JSONObject.quote(msg == null ? "Niet ontgrendeld" : msg));
-                }));
-            });
-        }
-        @JavascriptInterface public String kluisList() {
-            if (!Kluis.isOpen()) return "{\"locked\":true}";
-            try { Kluis.open(ctx); return new JSONObject().put("docs", Kluis.list(ctx)).put("left", Kluis.remaining()).toString(); } catch (Exception e) { return errJson(e); }
-        }
-        @JavascriptInterface public void kluisAdd() {
-            if (!Kluis.isOpen()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
-            a.h.post(() -> {
-                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
-                try { a.startActivityForResult(i, REQ_KLUIS); } catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
-            });
-        }
-        @JavascriptInterface public void kluisView(String id) {
-            if (!Kluis.isOpen()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
-            new Thread(() -> {
-                try {
-                    File f = Kluis.view(ctx, id);
-                    JSONObject d = Kluis.find(ctx, id);
-                    String mime = d == null || d.optString("mime").isEmpty() ? ctx.getContentResolver().getType(Uri.fromFile(f)) : d.optString("mime");
-                    Uri u = new Uri.Builder().scheme("content").authority(KluisProvider.AUTH).appendPath(f.getName()).build();
-                    Intent v = new Intent(Intent.ACTION_VIEW).setDataAndType(u, mime == null ? "application/octet-stream" : mime)
-                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-                    a.runOnUiThread(() -> { try { a.startActivity(Intent.createChooser(v, "Openen met").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)); } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote("Geen app om dit te openen")); } });
-                } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote(e.getMessage() == null ? "Openen lukt niet" : e.getMessage())); }
-            }, "kluis-view").start();
-        }
-        @JavascriptInterface public String kluisDelete(String id) {
-            if (!Kluis.isOpen()) return "De kluis is op slot";
-            try { Kluis.delete(ctx, id); return ""; } catch (Exception e) { return "Verwijderen lukt niet"; }
-        }
-        @JavascriptInterface public String kluisRename(String id, String name) {
-            if (!Kluis.isOpen() || name == null || name.trim().isEmpty()) return "Kan niet";
-            try { Kluis.rename(ctx, id, name.trim()); return ""; } catch (Exception e) { return "Hernoemen lukt niet"; }
-        }
-        @JavascriptInterface public void kluisClose() {
-            Kluis.close(ctx);
-            try { ctx.revokeUriPermission(Uri.parse("content://" + KluisProvider.AUTH + "/"), Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception ignored) { }
-        }
 
-        // ----- Spraaknotitie -----
-        @JavascriptInterface public String voiceStart() { return VoiceNote.start(ctx, r -> a.js("onVoiceNote", r)); }
-        @JavascriptInterface public void voiceStop() { VoiceNote.stop(ctx, r -> a.js("onVoiceNote", r)); }
-        @JavascriptInterface public void voiceCancel() { VoiceNote.cancel(); }
-        @JavascriptInterface public long voiceElapsed() { return VoiceNote.elapsed(); }
 
         @JavascriptInterface public boolean musicHasMic() {
             return ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
@@ -2270,24 +2158,6 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String musicState() { return Music.stateJson(ctx); }
 
         @JavascriptInterface public String musicHistory() { return Music.history(ctx).toString(); }
-        /** Nummer van de radio bewaren in Herkende muziek, zonder herkenning (kost geen AudD-tegoed). Geeft "" of "dubbel". */
-        @JavascriptInterface public void radioSaveClip(int seconds) {
-            new Thread(() -> { String r = RadioService.saveClip(ctx, Math.max(30, Math.min(seconds, 3 * 3600))); a.js("onRadioClip", JSONObject.quote(r)); }, "radio-clip").start();
-        }
-        @JavascriptInterface public String musicSaveFromRadio(String artist, String title, String station) {
-            try {
-                if (title == null || title.trim().isEmpty()) return "leeg";
-                org.json.JSONArray h = Music.history(ctx);
-                for (int i = 0; i < Math.min(h.length(), 20); i++) {
-                    JSONObject r = h.getJSONObject(i);
-                    if (r.optString("title").equalsIgnoreCase(title.trim()) && r.optString("artist").equalsIgnoreCase(artist == null ? "" : artist.trim())
-                            && System.currentTimeMillis() - r.optLong("t") < 3 * 60 * 60_000L) return "dubbel";
-                }
-                Music.addHistory(ctx, new JSONObject().put("t", System.currentTimeMillis()).put("artist", artist == null ? "" : artist.trim())
-                        .put("title", title.trim()).put("source", "radio").put("station", station == null ? "" : station));
-                return "";
-            } catch (Exception e) { return "Bewaren lukt niet"; }
-        }
 
         @JavascriptInterface public void musicDelete(String t) {
             try { Music.deleteHistory(ctx, Long.parseLong(t)); } catch (Exception ignored) { }

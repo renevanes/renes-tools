@@ -76,7 +76,7 @@ function loadMore(initial){
     const html = renderMsgs(msgs);
     box.insertAdjacentHTML('afterbegin', html);
     if (msgs.length >= 300) box.insertAdjacentHTML('afterbegin', '<button class=more id=load-older onclick="loadMore(false)">Oudere berichten</button>');
-    if (initial) { const m = document.getElementById('msg-anchor'); window.scrollTo(0, document.body.scrollHeight); }
+    if (initial) window.scrollTo(0, document.body.scrollHeight);
     else window.scrollTo(0, document.body.scrollHeight - oldH);
   }
   chatLoading = false;
