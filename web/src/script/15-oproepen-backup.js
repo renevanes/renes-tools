@@ -123,7 +123,7 @@ function callsPick(i){
   if (c.ck) acts.push(['Contact bekijken', () => jumpTo('contact', () => ctOpen(c.ck, String(c.cid)))]);
   else acts.push(['Toevoegen aan contacten', () => Android.contactsAddNumber(c.number)]);
   if (!callsF.person) acts.push(['Alle oproepen met ' + (c.ck ? c.name : c.number), () => { callsF.person = { name: c.ck ? c.name : c.number, numbers: [c.number] }; callsSyncUi(); loadCalls(); window.scrollTo(0, 0); }]);
-  acts.push(['Opnieuw bellen met Auto redial', () => { show('redial'); $('#num').value = c.number; nameFor = c.ck ? c.name : ''; $('#pname').textContent = nameFor; }]);
+  acts.push(['Opnieuw bellen met Auto redial', () => { jumpTo('redial'); $('#num').value = c.number; nameFor = c.ck ? c.name : ''; $('#pname').textContent = nameFor; }]);
   openSheet(c.name, (c.number !== c.name ? c.number + ' · ' : '') + c.label + ' · ' + fmtFullCall(c.date) + (c.duration ? ' · ' + fmtCallDur(c.duration) : ''), acts);
 }
 function fmtFullCall(t){ return new Date(t).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }

@@ -157,7 +157,19 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
 
     @Override
     public BrowserRoot onGetRoot(String clientPackageName, int clientUid, android.os.Bundle rootHints) {
-        return new BrowserRoot("root", null);
+        // Alleen de auto (Android Auto / Automotive), het systeem en de app zelf zien je zenders
+        return trustedBrowser(clientPackageName, clientUid) ? new BrowserRoot("root", null) : new BrowserRoot("empty", null);
+    }
+
+    static final String[] BROWSERS = {"com.google.android.projection.gearhead", "com.google.android.autosimulator", "com.android.car.media",
+            "com.google.android.carassistant", "com.android.systemui", "com.google.android.googlequicksearchbox", "com.google.android.wearable.app",
+            "com.google.android.apps.automotive.templates.host", "com.android.bluetooth"};
+
+    boolean trustedBrowser(String pkg, int uid) {
+        if (uid == android.os.Process.myUid() || uid == android.os.Process.SYSTEM_UID || uid < android.os.Process.FIRST_APPLICATION_UID) return true;
+        if (pkg == null) return false;
+        for (String b : BROWSERS) if (b.equals(pkg)) return true;
+        return false;
     }
 
     /** Zenders voor in de auto: favorieten, anders de populaire zenders uit de laatste lijst. */
@@ -174,7 +186,11 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     @Override
     public void onLoadChildren(String parentId, Result<java.util.List<MediaBrowser.MediaItem>> result) {
         java.util.List<MediaBrowser.MediaItem> items = new java.util.ArrayList<>();
-        if ("root".equals(parentId)) {
+        boolean allowed = true;
+        if (Build.VERSION.SDK_INT >= 28) {
+            try { android.media.session.MediaSessionManager.RemoteUserInfo ri = getCurrentBrowserInfo(); allowed = trustedBrowser(ri.getPackageName(), ri.getUid()); } catch (Exception ignored) { }
+        }
+        if (allowed && "root".equals(parentId)) {
             org.json.JSONArray l = browseList(this);
             for (int i = 0; i < l.length(); i++) {
                 JSONObject s = l.optJSONObject(i);

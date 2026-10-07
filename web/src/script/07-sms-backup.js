@@ -1,8 +1,10 @@
 /* ---------- SMS-backup ---------- */
 let smsPoll = null, smsSearchTmr = null;
 function smsInfo(){ try { return JSON.parse(Android.smsInfo()); } catch(e){ return {}; } }
+function smsInfoC(){ return cached('smsInfo', 30000, smsInfo); }
 function enterSms(){
-  const i = smsInfo();
+  uncache('smsInfo');
+  const i = smsInfoC();
   $('#sms-perm').style.display = i.perm ? 'none' : 'block';
   $('#sms-perm-btn').textContent = store.get('smsAsked', false) && !i.perm ? 'Instellingen openen' : 'Toegang geven';
   $('#sms-home').style.display = i.perm ? 'block' : 'none';
@@ -25,7 +27,7 @@ function loadSmsList(){
   if (d.error) { $('#sms-list').innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
   const el = $('#sms-list');
   el.innerHTML = (d.conversations || []).map(cv =>
-    '<button onclick="openSms(' + cv.thread + ',' + JSON.stringify(cv.name).replace(/"/g,'&quot;') + ')">' +
+    '<button onclick="openSms(' + cv.thread + ',' + jsq(cv.name) + ')">' +
     '<span class=r1><b>' + esc(cv.name) + '</b><time>' + esc(fmtD(cv.last)) + '</time></span>' +
     '<span class=r2>' + esc(cv.lastText || '') + ' · ' + cv.count + '</span></button>').join('');
   if (!(d.conversations || []).length) el.innerHTML = '<p class=note style="padding:14px">Geen sms-berichten gevonden.</p>';
@@ -59,7 +61,7 @@ function smsSearchDo(q){
     if (msgs.error) { sr.innerHTML = '<p class=note>' + esc(msgs.error) + '</p>'; return; }
     if (!msgs.length) { sr.innerHTML = '<p class=note style="text-align:center">Niets gevonden</p>'; return; }
     sr.innerHTML = '<p class=note>' + msgs.length + ' resultaten</p><div class="msgs">' + msgs.map(m =>
-      '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openSms(' + m.thread + ',' + JSON.stringify(m.name||'').replace(/"/g,'&quot;') + ')">' +
+      '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openSms(' + m.thread + ',' + jsq(m.name||'') + ')">' +
       '<span class=snd>' + esc(m.name || '') + '</span>' + esc(m.text || '') +
       '<span class=tm>' + fmtD(m.t) + '</span></div>').join('') + '</div>';
   }, 250);
@@ -73,7 +75,7 @@ let smsLastDone = false;
 function smsPollOnce(){
   let s; try { s = JSON.parse(Android.smsStatus()); } catch(e){ return; }
   $('#sms-run').style.display = s.running ? 'block' : 'none';
-  $('#sms-home').style.display = (s.running || !smsInfo().perm) ? 'none' : 'block';
+  $('#sms-home').style.display = (s.running || !smsInfoC().perm) ? 'none' : 'block';
   if (s.running) {
     const pct = s.total ? 100 * s.done / s.total : 0;
     $('#sms-bar').style.width = pct.toFixed(0) + '%';
@@ -91,6 +93,6 @@ function refreshSmsTile(s){
   const t = $('#tile-sms'); if (!t) return;
   t.classList.toggle('live', !!(s && s.running));
   const sub = $('#tile-sms-sub');
-  if (sub) { const i = smsInfo(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je sms-berichten'); }
+  if (sub) { const i = smsInfoC(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je sms-berichten'); }
 }
 

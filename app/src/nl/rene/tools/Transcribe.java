@@ -51,14 +51,15 @@ final class Transcribe {
     // ---------- model ----------
 
     static final class Model {
-        final String id, file, label;
+        final String id, file, label, sha256;
         final long size;
-        Model(String id, String file, String label, long size) { this.id = id; this.file = file; this.label = label; this.size = size; }
+        Model(String id, String file, String label, long size, String sha256) { this.id = id; this.file = file; this.label = label; this.size = size; this.sha256 = sha256; }
     }
 
     static final Model[] MODELS = {
-            new Model("base", "ggml-base-q5_1.bin", "Snel (57 MB)", 57_000_000L),
-            new Model("small", "ggml-small-q5_1.bin", "Nauwkeurig (181 MB)", 181_000_000L),
+            // Controlegetallen van Hugging Face (LFS-oid = SHA-256); een ander bestand wordt nooit gebruikt
+            new Model("base", "ggml-base-q5_1.bin", "Snel (57 MB)", 59_707_625L, "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898"),
+            new Model("small", "ggml-small-q5_1.bin", "Nauwkeurig (181 MB)", 190_085_487L, "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb"),
     };
 
     static Model model(String id) { for (Model m : MODELS) if (m.id.equals(id)) return m; return null; }
@@ -95,6 +96,7 @@ final class Transcribe {
             int code = h.getResponseCode();
             if (code >= 300 && code < 400 && h.getHeaderField("Location") != null) {
                 url = new URL(new URL(url), h.getHeaderField("Location")).toString();
+                if (!url.startsWith("https://")) { h.disconnect(); throw new Exception("Download mislukt: onveilige doorverwijzing"); }
                 h.disconnect();
                 continue;
             }
@@ -105,12 +107,14 @@ final class Transcribe {
         if (!ok) throw new Exception("Download mislukt: te veel doorverwijzingen");
         long total = h.getContentLengthLong();
         long got = 0;
+        java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
         try (InputStream in = h.getInputStream(); OutputStream o = new BufferedOutputStream(new FileOutputStream(part), 1 << 16)) {
             byte[] buf = new byte[1 << 16];
             int n, last = -1;
             while ((n = in.read(buf)) > 0) {
                 if (cancel) throw new Exception("Gestopt");
                 o.write(buf, 0, n);
+                md.update(buf, 0, n);
                 got += n;
                 int pct = total > 0 ? (int) (got * 100 / total) : 0;
                 if (pct != last) { p.step("download", pct); last = pct; }
@@ -121,6 +125,9 @@ final class Transcribe {
         } finally { h.disconnect(); }
         if (total > 0 && got != total) { part.delete(); throw new Exception("Download onvolledig"); }
         if (got < 10_000_000L) { part.delete(); throw new Exception("Download is geen geldig model"); }
+        StringBuilder hex = new StringBuilder();
+        for (byte b : md.digest()) hex.append(String.format(java.util.Locale.ROOT, "%02x", b));
+        if (!hex.toString().equals(m.sha256)) { part.delete(); throw new Exception("Controlegetal van het spraakmodel klopt niet; niet geïnstalleerd"); }
         if (!part.renameTo(out)) throw new Exception("Model opslaan lukt niet");
     }
 

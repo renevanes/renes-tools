@@ -377,10 +377,11 @@ final class Secure {
         if (!Vault.matches(k, h)) throw new Exception("past niet bij de bewaarde sleutel");
         int files = 0, notes = -1;
         try {
-            InputStream raw = c.getContentResolver().openInputStream(u);
-            if (raw == null) throw new Exception("Bestand niet te openen");
-            raw = new java.io.BufferedInputStream(raw, 1 << 16);
-            byte[] hh = Vault.readHeader(raw);
+            InputStream raw0 = c.getContentResolver().openInputStream(u);
+            if (raw0 == null) throw new Exception("Bestand niet te openen");
+            InputStream raw = new java.io.BufferedInputStream(raw0, 1 << 16);
+            byte[] hh;
+            try { hh = Vault.readHeader(raw); } catch (Exception he) { try { raw.close(); } catch (Exception ignored) { } throw he; }
             try (ZipInputStream z = new ZipInputStream(new Vault.In(raw, hh, k))) {
                 ZipEntry e;
                 byte[] buf = new byte[1 << 16];

@@ -14,8 +14,8 @@ function enterTranscripts(){
   $('#tx-models').innerHTML = (i.models || []).map(m =>
     '<div class="row mrow"><label style="flex:1"><input type=radio name=trm value="' + esc(m.id) + '"' + (i.model === m.id ? ' checked' : '') +
     (m.installed ? '' : ' disabled') + ' onchange="Android.txSetModel(this.value)"> ' + esc(m.label) + '</label>' +
-    (m.installed ? '<button class="mini" onclick="txDelModel(\'' + esc(m.id) + '\')">Verwijderen</button>'
-                 : '<button class="mini" onclick="txDownload(\'' + esc(m.id) + '\')">Downloaden</button>') + '</div>').join('');
+    (m.installed ? '<button class="mini" onclick="txDelModel(' + jsq(m.id) + ')">Verwijderen</button>'
+                 : '<button class="mini" onclick="txDownload(' + jsq(m.id) + ')">Downloaden</button>') + '</div>').join('');
   $('#tx-home').style.display = i.supported && i.files ? 'block' : 'none';
   $('#tx-search').value = ''; $('#tx-results').innerHTML = '';
   if (i.supported && i.files) { if (!txRecs.length) $('#tx-list').innerHTML = '<p class=note style="padding:14px">Opnames zoeken…</p>'; setTimeout(txLoad, 30); }

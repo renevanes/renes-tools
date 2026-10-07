@@ -30,7 +30,7 @@ final class Vault {
 
     static final byte[] MAGIC = {'R', 'T', 'B', '1'};
     static final int HEADER = 33, CHUNK = 64 * 1024, TAG = 16;
-    static final int ITER = 210_000;
+    static final int ITER = 600_000; // OWASP 2023; oude archieven bewaren hun eigen aantal in de kop
 
     /** Afgeleide sleutel met de bijbehorende instellingen (dezelfde voor alle archieven met hetzelfde wachtwoord). */
     static final class Key {

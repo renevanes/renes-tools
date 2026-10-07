@@ -5,7 +5,7 @@ function rdLogo(s){
   const ini = esc((s.name || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '♪');
   // Alleen https-logo's (http wordt in de app geblokkeerd); bij een fout de initialen.
   return s.logo && /^https:\/\//i.test(s.logo)
-    ? '<span class=logo><img src="' + esc(s.logo) + '" alt="" loading=lazy onerror="this.parentNode.textContent=\'' + ini + '\'"></span>'
+    ? '<span class=logo><img src="' + esc(s.logo) + '" alt="" loading=lazy onerror="this.parentNode.textContent=' + jsq(ini) + '"></span>'
     : '<span class=logo>' + ini + '</span>';
 }
 function rdIsFav(s){ return rdFavs.some(f => s.id ? f.id === s.id : f.url === s.url); }
@@ -50,9 +50,11 @@ function rdFavNow(){ const s = rdState.station || rdState.last; if (!s) return; 
 function rdPlayPause(){ if (rdState.status === 'playing' || rdState.status === 'connecting') Android.radioPause(); else Android.radioResume(); setTimeout(rdPollOnce, 200); }
 function rdPollOnce(){
   const sig = st => JSON.stringify([st.status, st.title, st.station && st.station.url, st.info, (st.recent || []).length, st.sleepAt, Math.floor(Date.now() / 6e4), st.shift]);
-  const prev = sig(rdState);
+  // Lijsten alleen opnieuw opbouwen als zender of afspeelstatus verandert (anders verspringen logo's en scrollpositie)
+  const lsig = st => JSON.stringify([st.status, st.station && st.station.url]);
+  const prev = sig(rdState), lprev = lsig(rdState);
   rdState = rdJson(Android.radioState(), {});
-  if (sig(rdState) !== prev) { rdShowNow(); if (current === 'radio') rdRender(); }
+  if (sig(rdState) !== prev) { rdShowNow(); if (current === 'radio' && lsig(rdState) !== lprev) rdRender(); }
   const t = $('#tile-radio-sub');
   if (t) t.textContent = rdState.station && rdState.status === 'playing' ? '▶ ' + rdState.station.name + (rdState.title ? ' · ' + rdState.title : '') : 'Nederlandse zenders luisteren';
   const tile = $('#tile-radio'); if (tile) tile.classList.toggle('live', rdState.status === 'playing');
@@ -61,7 +63,8 @@ function rdShowNow(){
   const s = rdState.station || rdState.last;
   $('#rd-now').style.display = s ? 'block' : 'none';
   if (!s) return;
-  $('#rd-now-logo').outerHTML = rdLogo(s).replace('<span class=logo>', '<span class=logo id="rd-now-logo">');
+  const logoKey = (s.url || '') + '|' + (s.logo || '');
+  if (rdShowNow.logoKey !== logoKey) { rdShowNow.logoKey = logoKey; $('#rd-now-logo').outerHTML = rdLogo(s).replace('<span class=logo>', '<span class=logo id="rd-now-logo">'); }
   $('#rd-now-name').textContent = s.name;
   const st = rdState.status || 'stopped';
   const inf = rdState.info || {};

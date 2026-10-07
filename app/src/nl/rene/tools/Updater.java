@@ -129,9 +129,10 @@ final class Updater {
      */
     static boolean signatureOk(Context c, JSONObject m) {
         try {
-            String sig = m.optString("webSig", "");
+            // Alleen de v2-handtekening: die dekt ook nativeLevel en de APK (anders kan een oude handtekening hergebruikt worden)
+            String sig = m.optString("webSig2", "");
             if (sig.isEmpty()) return false;
-            String msg = sigMessage(m.getInt("versionCode"), m.optString("webSha256", ""), m.optString("startSha256", ""));
+            String msg = sigMessage2(m.getInt("versionCode"), m.getInt("nativeLevel"), m.optString("webSha256", ""), m.optString("startSha256", ""), m.optString("apkSha256", ""));
             byte[] s = android.util.Base64.decode(sig, android.util.Base64.DEFAULT);
             for (java.security.cert.X509Certificate cert : ownCerts(c)) {
                 java.security.Signature v = java.security.Signature.getInstance("SHA256withRSA");
@@ -144,8 +145,9 @@ final class Updater {
     }
 
     /** Wat er ondertekend wordt (moet precies gelijk zijn aan build.sh). */
-    static String sigMessage(int code, String webSha, String startSha) {
-        return "renes-tools-web\n" + code + "\n" + webSha.toLowerCase(java.util.Locale.ROOT) + "\n" + startSha.toLowerCase(java.util.Locale.ROOT) + "\n";
+    static String sigMessage2(int code, int nativeLevel, String webSha, String startSha, String apkSha) {
+        java.util.Locale r = java.util.Locale.ROOT;
+        return "renes-tools-web2\n" + code + "\n" + nativeLevel + "\n" + webSha.toLowerCase(r) + "\n" + startSha.toLowerCase(r) + "\n" + apkSha.toLowerCase(r) + "\n";
     }
 
     @SuppressWarnings("deprecation")
@@ -172,22 +174,21 @@ final class Updater {
         if (sha.isEmpty() || !sha.equalsIgnoreCase(sha256(html))) throw new Exception("Controlegetal interface klopt niet");
         String s = new String(html, StandardCharsets.UTF_8);
         if (!s.contains("RENES-TOOLS-UI")) throw new Exception("Onverwacht bestand");
-        File f = webFile(c);
-        f.getParentFile().mkdirs();
-        File tmp = new File(f.getParentFile(), "index.tmp");
-        try (OutputStream o = new FileOutputStream(tmp)) { o.write(html); }
-        if (!tmp.renameTo(f)) throw new Exception("Opslaan mislukt");
-        // Startscherm (telefoon-skin) hoort bij dezelfde versie van de interface (na de interface, zodat beide bij elkaar passen).
-        File sf = startFile(c);
+        // Eerst alles downloaden en controleren; pas daarna beide bestanden tegelijk vervangen (nooit een half bijgewerkte versie).
+        byte[] st = null;
         if (!m.optString("start").isEmpty()) {
-            byte[] st = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("start") + "?v=" + m.getInt("versionCode"));
+            st = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("start") + "?v=" + m.getInt("versionCode"));
             String ss = m.optString("startSha256", "");
             if (ss.isEmpty() || !ss.equalsIgnoreCase(sha256(st))) throw new Exception("Controlegetal startscherm klopt niet");
             if (!new String(st, StandardCharsets.UTF_8).contains("RENES-TOOLS-START")) throw new Exception("Onverwacht bestand");
-            File stmp = new File(f.getParentFile(), "start.tmp");
-            try (OutputStream o = new FileOutputStream(stmp)) { o.write(st); }
-            if (!stmp.renameTo(sf)) throw new Exception("Opslaan mislukt");
-        } else sf.delete();
+        }
+        File f = webFile(c), sf = startFile(c);
+        f.getParentFile().mkdirs();
+        File tmp = new File(f.getParentFile(), "index.tmp"), stmp = new File(f.getParentFile(), "start.tmp");
+        try (OutputStream o = new FileOutputStream(tmp)) { o.write(html); }
+        if (st != null) try (OutputStream o = new FileOutputStream(stmp)) { o.write(st); }
+        if (!tmp.renameTo(f)) throw new Exception("Opslaan mislukt");
+        if (st != null) { if (!stmp.renameTo(sf)) { f.delete(); throw new Exception("Opslaan mislukt"); } } else sf.delete();
         prefs(c).edit().putInt("webCode", m.getInt("versionCode"))
                 .putString("webName", m.getString("versionName")).apply();
     }
@@ -214,7 +215,7 @@ final class Updater {
                     s.fsync(o);
                 }
                 Intent back = new Intent(c, MainActivity.class).setAction(MainActivity.ACTION_INSTALL_STATUS)
-                        .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                        .putExtra("tok", App.token(c)).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
                 PendingIntent pend = PendingIntent.getActivity(c, 7, back, fl);
                 s.commit(pend.getIntentSender());

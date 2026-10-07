@@ -88,20 +88,27 @@ m = {
 # Handtekening over versie + controlegetallen, met dezelfde sleutel als de APK.
 # De app controleert die met zijn eigen certificaat: een vervalste interface wordt nooit gebruikt.
 import subprocess, base64
-msg = "renes-tools-web\n%d\n%s\n%s\n" % (code, m["webSha256"], m["startSha256"])
+import os
+# v2 bindt ook nativeLevel en de APK aan de handtekening (zie Updater.sigMessage2)
+msg2 = "renes-tools-web2\n%d\n%d\n%s\n%s\n%s\n" % (code, native, m["webSha256"], m["startSha256"], m["apkSha256"])
 key = subprocess.run(["openssl", "pkcs12", "-in", "keys/release.p12", "-passin", "file:keys/keystore.pass", "-nocerts", "-nodes"],
                      capture_output=True, check=True).stdout
-open('build/web-sign.key', 'wb').write(key)
-try:
-    sig = subprocess.run(["openssl", "dgst", "-sha256", "-sign", "build/web-sign.key"], input=msg.encode(), capture_output=True, check=True).stdout
-finally:
-    import os; os.remove('build/web-sign.key')
-m["webSig"] = base64.b64encode(sig).decode()
+def sign(text):
+    # Sleutel via een pijp, nooit als bestand op schijf
+    r, w = os.pipe()
+    os.write(w, key); os.close(w)
+    try:
+        return subprocess.run(["openssl", "dgst", "-sha256", "-sign", "/dev/fd/%d" % r], input=text.encode(), capture_output=True, check=True, pass_fds=(r,)).stdout
+    finally:
+        os.close(r)
+# (de oude v1-handtekening "webSig" wordt niet meer meegestuurd: apps zonder v2-controle krijgen eerst de nieuwe APK)
+sig2 = sign(msg2)
+m["webSig2"] = base64.b64encode(sig2).decode()
 # Zelfcontrole met het certificaat (zoals de app doet)
 cert = subprocess.run(["openssl", "pkcs12", "-in", "keys/release.p12", "-passin", "file:keys/keystore.pass", "-nokeys", "-clcerts"], capture_output=True, check=True).stdout
 pub = subprocess.run(["openssl", "x509", "-pubkey", "-noout"], input=cert, capture_output=True, check=True).stdout
-open('build/web-sign.pub', 'wb').write(pub); open('build/web-sign.sig', 'wb').write(sig)
-subprocess.run(["openssl", "dgst", "-sha256", "-verify", "build/web-sign.pub", "-signature", "build/web-sign.sig"], input=msg.encode(), check=True, capture_output=True)
+open('build/web-sign.pub', 'wb').write(pub); open('build/web-sign.sig', 'wb').write(sig2)
+subprocess.run(["openssl", "dgst", "-sha256", "-verify", "build/web-sign.pub", "-signature", "build/web-sign.sig"], input=msg2.encode(), check=True, capture_output=True)
 json.dump(m, open('update/update.json', 'w'), ensure_ascii=False, indent=2)
 PY
 echo "OK: $OUT ($(stat -c %s $OUT) bytes), versie $VERSION_NAME ($VERSION_CODE), native $NATIVE_LEVEL"

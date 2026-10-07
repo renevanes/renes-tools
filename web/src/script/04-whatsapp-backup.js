@@ -15,6 +15,7 @@ function stopWaPoll(){ if (waPoll) { clearInterval(waPoll); waPoll = null; } }
 window.onWaChanged = function(){ renderWa(true); };
 window.onWaSizes = function(sz){ waSizesC = sz; renderWaCats(); };
 function renderWa(rescan){
+  uncache('waInfo');
   const i = waInfoC = waInfo();
   waSel = new Set((i.sel || '').split(',').filter(Boolean));
   $('#wa-perm').style.display = i.filesAccess ? 'none' : 'block';
@@ -104,7 +105,7 @@ function refreshWaTile(s){
   $('#tile-wa').classList.toggle('live', !!s.running);
   let sub = 'Chats en media veilig bewaren';
   if (s.running) sub = s.mode === 'restore' ? 'Bezig met terugzetten' : 'Bezig met backup' + (s.phase === 'copy' && s.bytesTotal ? ' · ' + Math.round(100*s.bytesDone/s.bytesTotal) + '%' : '');
-  else { const i = waInfo(); if (i.lastOk) sub = 'Laatste backup: ' + fmtD(i.lastOk); }
+  else { const i = cached('waInfo', 30000, waInfo); if (i.lastOk) sub = 'Laatste backup: ' + fmtD(i.lastOk); }
   $('#tile-wa-sub').textContent = sub;
 }
 

@@ -74,7 +74,11 @@ public class TracksService extends Service implements LocationListener {
         if (ACTION_STOP.equals(a)) { stopRecording(); return START_NOT_STICKY; }
         if (ACTION_PAUSE.equals(a)) { paused = true; save(); updateNotif(); return START_STICKY; }
         if (ACTION_RESUME.equals(a)) { paused = false; last = null; save(); updateNotif(); return START_STICKY; }
-        if (!ACTION_START.equals(a)) { if (!running) stopSelf(); return START_NOT_STICKY; }
+        if (!ACTION_START.equals(a)) {
+            // Herstart door Android na het opruimen van de app: de lopende route niet kwijtraken
+            if (!running) { Tracks.recoverInterrupted(this); stopSelf(); }
+            return START_NOT_STICKY;
+        }
 
         if (running) return START_STICKY;
 
@@ -110,6 +114,12 @@ public class TracksService extends Service implements LocationListener {
         Tracks.prefs(this).edit().remove("error").putLong("startT", startT).apply();
         try {
             File live = Tracks.liveFile(this);
+            // Een onderbroken of nog niet opgeslagen route nooit wissen: eerst bewaren als route
+            if (live.exists() && !Tracks.readPoints(live).isEmpty()) {
+                android.content.SharedPreferences tp = Tracks.prefs(this);
+                Tracks.finalize(this, tp.getLong("lastStartT", tp.getLong("startT", live.lastModified())), "Onderbroken route");
+                tp.edit().remove("justStopped").remove("interrupted").apply();
+            }
             if (live.exists()) live.delete();
             writer = new BufferedWriter(new FileWriter(live, true));
         } catch (Exception e) {
@@ -185,7 +195,7 @@ public class TracksService extends Service implements LocationListener {
         try {
             Tracks.Stats s = Tracks.stats(pts);
             Tracks.prefs(this).edit()
-                    .putBoolean("justStopped", true)
+                    .putBoolean("justStopped", true).remove("interrupted")
                     .putInt("lastPoints", s.points)
                     .putString("lastStats", Tracks.statsJson(s).toString())
                     .putLong("lastStartT", startT)

@@ -58,7 +58,7 @@ function trackPollOnce(){
   } else if (saving) {
     try {
       const j = JSON.parse(just), st = j.stats || {};
-      $('#tr-save-sum').textContent = fmtKm(st.distance||0) + ' km · ' + fmtDur(st.totalMs||0) + ' · ' + j.points + ' punten';
+      $('#tr-save-sum').textContent = (j.interrupted ? 'Android stopte de opname onderweg; dit is wat er tot dan is opgenomen. ' : '') + fmtKm(st.distance||0) + ' km · ' + fmtDur(st.totalMs||0) + ' · ' + j.points + ' punten';
       if (!$('#tr-name').value) $('#tr-name').value = defaultName();
     } catch(e){}
   }
@@ -115,7 +115,7 @@ function loadTrackList(){
   $('#tr-empty').style.display = list.length ? 'none' : 'block';
   el.innerHTML = list.map(r => {
     const st = r.stats || {};
-    return '<button onclick="openTrack(' + JSON.stringify(r.id).replace(/"/g,'&quot;') + ')">' +
+    return '<button onclick="openTrack(' + jsq(r.id) + ')">' +
       '<svg class=mini viewBox="0 0 300 160" preserveAspectRatio="xMidYMid meet"><path d="' + (r.path||'') + '"></path></svg>' +
       '<span class=info><b>' + esc(r.title || 'Route') + '</b>' +
       '<small>' + fmtKm(st.distance||0) + ' km · ' + fmtDur(st.totalMs||0) + ' · ' + fmtD(r.t) + '</small></span></button>';

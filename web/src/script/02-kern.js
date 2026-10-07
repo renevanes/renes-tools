@@ -1,10 +1,28 @@
 const $ = s => document.querySelector(s);
+/* HTML-escapen (ook ' voor attributen tussen enkele aanhalingstekens). */
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* Waarde als JS-tekst binnen een onclick="…": eerst JS-veilig (JSON), dan HTML-veilig. Nooit esc() alleen gebruiken in een handler. */
+const jsq = s => esc(JSON.stringify(String(s == null ? '' : s)));
 const store = {
   get(k, d){ try { const v = localStorage.getItem('rt.'+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
   set(k, v){ try { localStorage.setItem('rt.'+k, JSON.stringify(v)); } catch(e){} }
 };
 let current = 'home', poll = null, nameFor = '', lastResultShown = '';
 
+/* Kort onthouden van dure brugvragen (tellen van alle sms'en, mappen controleren) tijdens het pollen. */
+const _cache = {};
+function cached(key, ms, fn){ const c = _cache[key]; if (c && Date.now() - c.t < ms) return c.v; const v = fn(); _cache[key] = { t: Date.now(), v }; return v; }
+function uncache(key){ delete _cache[key]; }
+/* Pollen stopt als de app op de achtergrond staat (bespaart accu); bij terugkomen draait alles meteen weer. */
+let appPaused = false;
+const _setInterval = window.setInterval.bind(window);
+window.setInterval = function(fn, ms){ const a = Array.prototype.slice.call(arguments, 2); return _setInterval(function(){ if (!appPaused && !document.hidden) fn.apply(null, a); }, ms); };
+/* Melding met "Ongedaan maken" (5 s) in plaats van een vraag vooraf. */
+function undoToast(text, undo){
+  const u = $('#undo'); $('#undo-t').textContent = text; u.classList.add('on');
+  clearTimeout(u._h); u._h = setTimeout(() => u.classList.remove('on'), 5000);
+  $('#undo-b').onclick = () => { clearTimeout(u._h); u.classList.remove('on'); undo(); };
+}
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2600); }
 
 /* Eigen dialogen in plaats van de systeem-popups van de WebView. */
@@ -15,8 +33,14 @@ function askConfirm(title, text, okLabel, onOk){
 function askInput(title, text, value, okLabel, onOk){
   openModal(title, text, value == null ? '' : value, okLabel || 'OK', v => { if (v !== null) onOk(v); });
 }
+/* Twee keuzes, bijv. Opslaan / Weggooien. Terug of buiten tikken = niets doen (blijven). */
+function askChoice(title, text, okLabel, otherLabel, onOk, onOther){
+  openModal(title, text, null, okLabel, v => { if (v === 'other') onOther(); else if (v !== null) onOk(); });
+  const c = $('#modal-cancel'); c.textContent = otherLabel; c.onclick = () => closeModal('other');
+}
 function openModal(title, text, inputVal, okLabel, cb){
   _modalCb = cb;
+  const mc = $('#modal-cancel'); mc.textContent = 'Annuleren'; mc.onclick = () => closeModal(null);
   $('#modal-title').textContent = title || '';
   $('#modal-text').textContent = text || '';
   $('#modal-text').style.display = text ? 'block' : 'none';
@@ -76,7 +100,14 @@ function show(name){
 }
 const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
 window.goBack = function(){
+  // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
+  if ($('#lockscr').classList.contains('on')) return false;
+  if ($('#modal').classList.contains('on')) { closeModal(null); return true; }
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
+  if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
+    askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); show('auto'); });
+    return true;
+  }
   if (current==='home' && gsQ) { $('#gs-q').value = ''; gsInput(); return true; }
   // Na een sprong: terug naar waar je vandaan kwam, maar alleen vanaf het scherm waar je naartoe sprong
   // (ben je binnen de tool verder gegaan, dan eerst gewoon terug binnen de tool).
@@ -102,5 +133,5 @@ window.openTool = function(n){
   if (n === 'auto') { store.set('autoDraft', null); if (current !== 'autoed') show('auto'); return; } // ✕ bij opnemen
   if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
   if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='history') show('history'); if (n==='recorder') show('recorder'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); if (n==='selftest') show('selftest'); };
-window.onResumeApp = function(){ if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
+window.onResumeApp = function(){ appPaused = false; uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 

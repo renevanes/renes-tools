@@ -132,6 +132,7 @@ final class RedialPlan {
     static void startMissed(Context c, Intent i) {
         if (i == null || !i.getBooleanExtra("redialPlan", false)) return;
         i.removeExtra("redialPlan");
+        if (!App.tokenOk(c, i)) return; // alleen vanuit onze eigen melding
         String s = prefs(c).getString("missed", null);
         long at = prefs(c).getLong("missedAt", 0);
         prefs(c).edit().remove("missed").apply();
@@ -157,7 +158,7 @@ final class RedialPlan {
             NotificationManager m = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
             if (m != null) m.createNotificationChannel(new android.app.NotificationChannel(CHANNEL, "Auto redial op tijd", NotificationManager.IMPORTANCE_HIGH));
         }
-        Intent open = new Intent(c, MainActivity.class).putExtra("open", "redial").putExtra("redialPlan", true)
+        Intent open = new Intent(c, MainActivity.class).putExtra("open", "redial").putExtra("redialPlan", true).putExtra("tok", App.token(c))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);

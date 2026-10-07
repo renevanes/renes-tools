@@ -52,7 +52,7 @@ function loadChatList(){
   if (data.error) { $('#chat-list').innerHTML = '<p class=note style="padding:14px">' + esc(data.error) + '</p>'; return; }
   const el = $('#chat-list');
   el.innerHTML = (data.chats || []).map(c =>
-    '<button onclick="openChat(' + c.id + ',' + JSON.stringify(c.name).replace(/"/g,'&quot;') + ',' + (c.group?1:0) + ')">' +
+    '<button onclick="openChat(' + c.id + ',' + jsq(c.name) + ',' + (c.group?1:0) + ')">' +
     '<span class=r1><b>' + esc(c.name) + '</b><time>' + esc(fmtD(c.last)) + '</time></span>' +
     '<span class=r2>' + (c.group ? '👥 ' : '') + esc(c.lastText || '') + ' · ' + c.n + '</span></button>').join('');
   if (!(data.chats || []).length) el.innerHTML = '<p class=note style="padding:14px">Geen chats gevonden.</p>';
@@ -87,7 +87,8 @@ function renderMsgs(msgs){
     const d = new Date(m.t), dd = d.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
     if (dd !== lastDay) { out += '<div class=dsep>' + esc(dd) + '</div>'; lastDay = dd; }
     out += '<div class="bub' + (m.me ? ' me' : '') + '">';
-    if (!m.me && m.sender && chatGroup) out += '<span class=snd>' + esc(m.sender) + '</span>';
+    // Afzender tonen in groepen; ook als de groep via zoeken is geopend (dan is de afzender een ander dan de chatnaam)
+    if (!m.me && m.sender && (chatGroup || m.sender !== $('#chat-title').textContent)) out += '<span class=snd>' + esc(m.sender) + '</span>';
     if (m.media && m.mime && m.mime.indexOf('image/') === 0 && m.type !== 20)
       out += '<img loading=lazy src="https://app.renes-tools.local/wa-media/' + encMedia(m.media) + '" alt="">';
     else if (m.label && !m.text) out += '<span class=lb>' + esc(m.label) + '</span>';
@@ -110,7 +111,7 @@ function chatSearch(q){
     if (msgs.error) { sr.innerHTML = '<p class=note>' + esc(msgs.error) + '</p>'; return; }
     if (!msgs.length) { sr.innerHTML = '<p class=note style="text-align:center">Niets gevonden voor "' + esc(q) + '"</p>'; return; }
     sr.innerHTML = '<p class=note>' + msgs.length + ' resultaten</p><div class="msgs">' + msgs.map(m => {
-      return '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openChat(' + m.chat + ',' + JSON.stringify(m.chatName||'').replace(/"/g,'&quot;') + ')">' +
+      return '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openChat(' + m.chat + ',' + jsq(m.chatName||'') + ')">' +
         '<span class=snd>' + esc(m.chatName || '') + (m.sender && !m.me ? ' · ' + esc(m.sender) : '') + '</span>' +
         esc(m.text || m.label || '') + '<span class=tm>' + fmtD(m.t) + '</span></div>';
     }).join('') + '</div>';

@@ -66,7 +66,7 @@ function renderNotes(){
       sub = items.length ? esc(items.filter(i => !i.done).slice(0, 5).map(i => i.text).join(' · ') || 'Alles afgestreept') : esc(flat.slice(0, 80));
     }
     const rem = noteRems[n.id];
-    rows.push('<button class="nrow" onclick="openNote(\'' + esc(n.id) + '\')"><span class=r1><b>' + (rem ? '<span class=nrem>🔔</span> ' : '') + hl(title, q) + '</b><small>' +
+    rows.push('<button class="nrow" onclick="openNote(' + jsq(n.id) + ')"><span class=r1><b>' + (rem ? '<span class=nrem>🔔</span> ' : '') + hl(title, q) + '</b><small>' +
       (items.length ? (items.length - open) + '/' + items.length + ' ✓ · ' : '') + esc(fmtD(n.updated||0)) + '</small></span>' +
       '<span class=r2>' + (sub || '&nbsp;') + '</span></button>');
   }
@@ -89,8 +89,8 @@ function noteEdit(field, v){ const n = noteById(noteCur); if (!n) return; n[fiel
 function renderItems(){
   const n = noteById(noteCur); if (!n) return;
   const row = it => '<li data-id="' + esc(it.id) + '" class="' + (it.done ? 'done' : '') + '">' + (it.done ? '' : '<span class=drag aria-hidden="true">⋮⋮</span>') + '<input type=checkbox ' + (it.done ? 'checked' : '') +
-    ' onchange="toggleItem(\'' + it.id + '\')" aria-label="Afstrepen"><input class=it value="' + esc(it.text) +
-    '" oninput="typeItem(\'' + it.id + '\', this.value)" onchange="editItem(\'' + it.id + '\', this.value)"><button class=del onclick="delItem(\'' + it.id + '\')" aria-label="Verwijderen">×</button></li>';
+    ' onchange="toggleItem(' + jsq(it.id) + ')" aria-label="Afstrepen"><input class=it value="' + esc(it.text) +
+    '" oninput="typeItem(' + jsq(it.id) + ', this.value)" onchange="editItem(' + jsq(it.id) + ', this.value)"><button class=del onclick="delItem(' + jsq(it.id) + ')" aria-label="Verwijderen">×</button></li>';
   const items = n.items || [];
   const done = items.filter(i => i.done);
   $('#note-open').innerHTML = items.filter(i => !i.done).map(row).join('');
@@ -163,13 +163,21 @@ function typeItem(id, v){
   it.text = v; touch(n);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden && notesSaveTmr) notesSaveNow(); });
-window.onPauseApp = function(){ if (notesSaveTmr) notesSaveNow(); };
-function delItem(id){ const n = noteById(noteCur); if (!n) return; n.items = n.items.filter(i => i.id !== id); touch(n); renderItems(); }
+window.onPauseApp = function(){ appPaused = true; if (notesSaveTmr) notesSaveNow(); };
+function delItem(id){
+  const n = noteById(noteCur); if (!n) return;
+  const at = n.items.findIndex(i => i.id === id); if (at < 0) return;
+  const it = n.items[at];
+  n.items = n.items.filter(i => i.id !== id); touch(n); renderItems();
+  undoToast('"' + (it.text || 'Item') + '" verwijderd', () => { const m = noteById(n.id); if (!m || m.items.some(i => i.id === it.id)) return; m.items.splice(Math.min(at, m.items.length), 0, it); touch(m); if (noteCur === m.id) renderItems(); });
+}
 function clearDone(){
   const n = noteById(noteCur); if (!n) return;
   const k = n.items.filter(i => i.done).length;
-  askConfirm('Afgevinkte verwijderen?', k + ' afgestreepte items worden verwijderd.', 'Verwijderen', () => {
-    n.items = n.items.filter(i => !i.done); touch(n); renderItems(); });
+  if (!k) return;
+  const before = n.items.slice();
+  n.items = n.items.filter(i => !i.done); touch(n); renderItems();
+  undoToast(k + (k === 1 ? ' afgestreept item' : ' afgestreepte items') + ' verwijderd', () => { const m = noteById(n.id); if (!m) return; m.items = before.concat(m.items.filter(i => !before.some(b => b.id === i.id))); touch(m); if (noteCur === m.id) renderItems(); });
 }
 function deleteNote(){
   const n = noteById(noteCur); if (!n) return;

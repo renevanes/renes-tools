@@ -236,6 +236,28 @@ final class Tracks {
 
     static File liveFile(Context c) { return new File(dir(c), "live.trk"); }
 
+    /**
+     * Opname afgebroken (Android stopte de app): het opnamebestand staat er nog, maar de dienst loopt niet.
+     * Dan bieden we het aan als "net gestopt", zodat je de route kunt opslaan in plaats van hem kwijt te raken.
+     * Geeft true als er zo een route klaarstaat.
+     */
+    static synchronized boolean recoverInterrupted(Context c) {
+        if (TracksService.running) return false;
+        SharedPreferences p = prefs(c);
+        if (p.getBoolean("justStopped", false)) return true;
+        File live = liveFile(c);
+        if (!live.exists()) return false;
+        List<Pt> pts = readPoints(live);
+        if (pts.isEmpty()) { live.delete(); return false; }
+        try {
+            Stats s = stats(pts);
+            long start = p.getLong("startT", pts.get(0).t);
+            p.edit().putBoolean("justStopped", true).putBoolean("interrupted", true).putInt("lastPoints", s.points)
+                    .putString("lastStats", statsJson(s).toString()).putLong("lastStartT", start).apply();
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
     static List<Pt> readPoints(File f) {
         List<Pt> out = new ArrayList<>();
         if (!f.exists()) return out;

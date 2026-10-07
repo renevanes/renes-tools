@@ -11,7 +11,10 @@ function loadRecorder(){
   $('#recorder-permissions').style.display = state.mic && state.notifications && state.phone ? 'none' : 'block';
   $('#recorder-permissions').disabled = !!state.busy;
   $('#recorder-phone').textContent = state.busy && !state.autoStop ? 'Automatisch stoppen is niet beschikbaar; stop deze opname zelf.' : state.phone ? 'Bij het einde van een mobiel telefoongesprek wordt de opname automatisch gestopt. Andere gesprekken stop je zelf.' : 'Zonder telefoontoegang moet je de opname zelf stoppen. Geef telefoontoegang als je automatisch stoppen wilt gebruiken.';
-  $('#recorder-state').textContent = state.recording ? (state.automatic ? '● Automatische opname actief · ' : '● Opname actief · ') + fmtMs(state.elapsed) : state.busy || recorderStarting ? 'Opname starten…' : 'Er wordt niet opgenomen.';
+  const rBase = state.recording ? (state.automatic ? '● Automatische opname actief' : '● Opname actief') : state.busy || recorderStarting ? 'Opname starten…' : 'Er wordt niet opgenomen.';
+  $('#recorder-state').textContent = state.recording ? rBase + ' · ' + fmtMs(state.elapsed) : rBase;
+  // Alleen veranderingen voorlezen (niet elke seconde de tijd)
+  if ($('#recorder-live').textContent !== rBase) $('#recorder-live').textContent = rBase;
   $('#recorder-warning').style.display = state.recording && state.silent ? 'block' : 'none';
   $('#recorder-start').style.display = state.busy ? 'none' : 'block';
   $('#recorder-start').disabled = recorderStarting || !state.mic || !state.notifications;

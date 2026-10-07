@@ -1,4 +1,6 @@
 /* ---------- Automatiseringen (als dit gebeurt, doe dan dat) ---------- */
+let aeSnap = null; // de regel zoals hij was bij openen (voor 'Wijzigingen opslaan?')
+function aeDirty(){ return !!aeRule && (aeSnap === null || JSON.stringify(aeRule) !== aeSnap); }
 let auState = { rules: [], log: [], last: {}, perms: {} }, aeRule = null, aeIsNew = false, aeApps = null, aeBt = null;
 let aeMap = null, aeMarker = null, aeCircle = null;
 const AU_TRIG = { bt_off: 'Auto uitgezet', bt_on: 'Auto aangezet', arrive: 'Aankomen bij', leave: 'Weggaan van', manual: 'Met de hand' };
@@ -47,7 +49,7 @@ function auRender(){
   if (!bad.length && auState.rules.length) h = '<div class="auok">✓ Alles staat klaar</div>';
   else {
     h = '<h2>Klaarzetten</h2>' + rows.map(r => '<div class="auperm"><span><b>' + esc(r[1]) + '</b><small>' + esc(r[2]) + '</small></span>' +
-      (r[3] ? '<span class="aucheck" aria-label="In orde">✓</span>' : '<button class="aubtn" onclick="auFix(\'' + r[0] + '\')">Toestaan</button>') + '</div>').join('');
+      (r[3] ? '<span class="aucheck" aria-label="In orde">✓</span>' : '<button class="aubtn" onclick="auFix(' + jsq(r[0]) + ')">Toestaan</button>') + '</div>').join('');
     if (rows.some(r => r[0] === 'a11y' && !r[3]))
       h += '<p class="note" style="margin-top:8px">Bij Toegankelijkheid: kies <i>Rene\'s Tools: knoppen indrukken</i> en zet hem aan. Is hij grijs of staat er <i>Beperkte instelling</i>? Open dan <a href="#" onclick="Android.openAppSettings();return false">App-info</a> → ⋮ (rechtsboven) → <i>Beperkte instellingen toestaan</i>, en probeer opnieuw.</p>';
     if (P.a11y && !P.a11yRunning && rows.some(r => r[0] === 'a11y'))
@@ -58,9 +60,9 @@ function auRender(){
   const list = $('#au-list');
   list.innerHTML = auState.rules.map(r => {
     const last = auState.last && auState.last[r.id];
-    return '<div class="card aurule' + (r.on === false ? ' off' : '') + '"><button class="aumain" onclick="autoEdit(\'' + esc(r.id) + '\')"><b>' + esc(r.name || 'Zonder naam') + '</b>' +
+    return '<div class="card aurule' + (r.on === false ? ' off' : '') + '"><button class="aumain" onclick="autoEdit(' + jsq(r.id) + ')"><b>' + esc(r.name || 'Zonder naam') + '</b>' +
       '<small>' + esc(auSummary(r)) + '</small>' + (last ? '<small class="aulast">Laatst: ' + esc(auWhen(last)) + '</small>' : '') + '</button>' +
-      '<button class="tg' + (r.on === false ? '' : ' on') + '" aria-label="' + esc(r.name) + ' aan" onclick="auToggle(\'' + esc(r.id) + '\', this)"></button></div>';
+      '<button class="tg' + (r.on === false ? '' : ' on') + '" aria-label="' + esc(r.name) + ' aan" onclick="auToggle(' + jsq(r.id) + ', this)"></button></div>';
   }).join('');
   $('#au-empty').style.display = auState.rules.length ? 'none' : 'block';
 
@@ -107,14 +109,14 @@ function autoNew(tpl){
     app: park ? { p: park.p, n: park.n } : null, msg: 'Je auto staat geparkeerd. Parkeeractie starten?' });
   if (tpl === 'park-stop') Object.assign(r, { name: 'Parkeren stoppen', trig: 'bt_on', mode: 'notify',
     app: park ? { p: park.p, n: park.n } : null, msg: 'Je rijdt weer. Vergeet niet je parkeeractie te stoppen.' });
-  aeRule = r; aeIsNew = true;
+  aeRule = r; aeIsNew = true; aeSnap = JSON.stringify(r);
   show('autoed');
 }
 
 function autoEdit(id){
   auLoad();
   const r = auState.rules.find(x => x.id === id); if (!r) return;
-  aeRule = JSON.parse(JSON.stringify(r)); aeIsNew = false;
+  aeRule = JSON.parse(JSON.stringify(r)); aeIsNew = false; aeSnap = JSON.stringify(aeRule);
   show('autoed');
 }
 
@@ -309,7 +311,7 @@ function aeSave(after){
   const w = $('#ae-warn');
   if (e) { w.textContent = e; w.classList.add('on'); w.scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
   w.classList.remove('on');
-  aeIsNew = false;
+  aeIsNew = false; aeSnap = JSON.stringify(r);
   store.set('autoDraft', null);
   if (after) after(); else { toast('✓ Opgeslagen'); show('auto'); }
   return true;

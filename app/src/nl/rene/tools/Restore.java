@@ -110,16 +110,22 @@ final class Restore {
         throw new Exception("Onbekend soort backup");
     }
 
+    /** Id's alleen uit letters, cijfers, - en _ (een vreemd bestand mag geen code in de weergave krijgen). */
+    static String safeId(String id, String prefix) {
+        if (id != null && id.matches("[A-Za-z0-9_-]{1,64}")) return id;
+        return prefix + "x" + Long.toString(System.nanoTime(), 36);
+    }
+
     /** Alleen bekende velden met het juiste type overnemen (een vreemd bestand mag de notities niet breken). */
     static JSONObject cleanNote(JSONObject n) {
         try {
-            JSONObject o = new JSONObject().put("id", n.optString("id")).put("title", n.optString("title", ""))
+            JSONObject o = new JSONObject().put("id", safeId(n.optString("id"), "n")).put("title", n.optString("title", ""))
                     .put("text", n.optString("text", "")).put("updated", n.optLong("updated", System.currentTimeMillis()));
             JSONArray items = new JSONArray(), in = n.optJSONArray("items");
             if (in != null) for (int i = 0; i < in.length(); i++) {
                 JSONObject it = in.optJSONObject(i);
                 if (it == null || it.optString("text").isEmpty()) continue;
-                items.put(new JSONObject().put("id", it.optString("id", "r" + i + "x" + Long.toString(System.nanoTime(), 36)))
+                items.put(new JSONObject().put("id", safeId(it.optString("id"), "r" + i))
                         .put("text", it.optString("text")).put("done", it.optBoolean("done")));
             }
             JSONObject rep = n.optJSONObject("repeat");

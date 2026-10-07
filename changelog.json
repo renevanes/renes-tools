@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.51",
+    "date": "2026-10-07",
+    "changes": [
+      "Beveiliging: andere apps en websites kunnen de app niet meer misbruiken (installatie-status, links op de kaart, radio- en redial-knoppen)",
+      "Beveiliging: namen van chats, sms'en en teruggezette notities kunnen geen code meer uitvoeren",
+      "Gevoelige gegevens (WhatsApp-database en -sleutel, opnames, transcripties, routes, contactbackups) gaan niet meer mee in de Google-backup van Android",
+      "Spraakmodel wordt gecontroleerd met een vast controlegetal; nieuwe backup-wachtwoorden zijn sterker beveiligd; interface-updates zijn strenger ondertekend",
+      "Route-opname gaat niet meer verloren als Android de app stopt: je kunt hem daarna opslaan",
+      "Terug sluit eerst een open venster; bij een gewijzigde automatisering vraagt de app of je wilt opslaan",
+      "Lijstitem of afgestreepte items verwijderd? Tik op 'Ongedaan maken'. De ×-knop is groter",
+      "Minder accuverbruik: schermen vragen niets meer op de achtergrond; de radiolijst knippert niet meer",
+      "Minder crashes als Android achtergrondwerk weigert"
+    ]
+  },
+  {
     "version": "1.50",
     "date": "2026-10-07",
     "changes": [

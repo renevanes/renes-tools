@@ -13,7 +13,8 @@
       <label class="chk"><input type="checkbox" id="recorder-auto" onchange="recorderSetAuto(this.checked)"> Automatisch starten bij mobiele telefoongesprekken</label>
       <p class="note">Staat standaard uit. Na inschakeling probeert de app bij de volgende beantwoorde of uitgaande mobiele oproep een zichtbare microfoonopname te starten en stopt hij bij het einde. Op moderne Android-versies wordt starten vanuit de achtergrond vaak geblokkeerd; dan krijg je een melding om de app te openen en zelf te starten. WhatsApp en andere internetgesprekken worden niet gevolgd. Android kan ook de microfoon tijdens bellen dempen. Zet de luidspreker zelf aan en controleer beide stemmen. Uitschakelen stopt een automatisch begonnen opname.</p>
       <p id="recorder-auto-state" class="note" role="status" aria-live="polite"></p>
-      <p id="recorder-state" role="status" aria-live="polite"></p>
+      <p id="recorder-state"></p>
+      <span id="recorder-live" class="sr-only" role="status" aria-live="polite"></span>
       <p class="note" id="recorder-warning" style="display:none;color:var(--bad)" role="status">Geen duidelijk microfoongeluid gemeten. Android kan de microfoon tijdens bellen dempen. Stop en luister terug voordat je hierop vertrouwt.</p>
       <button class="big" id="recorder-start" onclick="recorderStart()">Start opname</button>
       <button class="big" id="recorder-stop" style="display:none" onclick="Android.recorderStop();setTimeout(loadRecorder,250)">Stoppen en opslaan</button>
@@ -25,7 +26,7 @@
       <p class="note">Luister altijd terug om te controleren wat er hoorbaar is. Exporteren bewaart een leesbaar audiobestand in ‘Gespreksopnames’ in je backup-map; het is niet versleuteld. Verwijderen wist alleen de opname op deze telefoon.</p>
       <button class="big ghost" id="recorder-folder" onclick="Android.waPickFolder()">Backup-map kiezen</button>
       <button class="big ghost" style="margin-top:8px" onclick="Android.recorderStopPlayback()">Afspelen stoppen</button>
-      <button class="big ghost" style="margin-top:8px" onclick="show('transcripts')">Gesprekken uitschrijven</button>
+      <button class="big ghost" style="margin-top:8px" onclick="jumpTo('transcripts')">Gesprekken uitschrijven</button>
       <p class="note" id="recorder-count"></p>
       <div id="recorder-list"></div>
     </div>

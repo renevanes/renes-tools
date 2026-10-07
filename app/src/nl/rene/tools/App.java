@@ -21,6 +21,24 @@ public class App extends Application {
 
     static final int MAX = 120_000;
 
+    /** Geheim van deze installatie in eigen intents (snelkoppelingen, meldingen, installatie-status): andere apps kennen het niet. */
+    static synchronized String token(android.content.Context c) {
+        // Eigen bestand, buiten Android-backup en overzetten (zie backup_rules.xml): het geheim hoort bij deze installatie
+        android.content.SharedPreferences p = c.getSharedPreferences("intent_token", android.content.Context.MODE_PRIVATE);
+        String t = p.getString("intentToken", null);
+        if (t == null) {
+            byte[] b = new byte[16]; new java.security.SecureRandom().nextBytes(b);
+            StringBuilder sb = new StringBuilder(); for (byte x : b) sb.append(String.format(java.util.Locale.ROOT, "%02x", x));
+            t = sb.toString(); p.edit().putString("intentToken", t).apply();
+        }
+        return t;
+    }
+
+    static boolean tokenOk(android.content.Context c, android.content.Intent i) {
+        String t = i == null ? null : i.getStringExtra("tok");
+        return t != null && java.security.MessageDigest.isEqual(t.getBytes(), token(c).getBytes());
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();

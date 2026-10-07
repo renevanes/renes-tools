@@ -28,7 +28,7 @@ final class Shortcuts {
         Intent i = new Intent(c, MainActivity.class).setAction(Intent.ACTION_VIEW)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 .putExtra("open", tool);
-        if (play != null) i.putExtra("play", play);
+        if (play != null) i.putExtra("play", play).putExtra("tok", App.token(c));
         return i;
     }
 
@@ -75,6 +75,30 @@ final class Shortcuts {
         } catch (Exception e) {
             return "Snelkoppeling maken lukt niet";
         }
+    }
+
+    /**
+     * Snelkoppelingen die al op het startscherm staan (van vóór versie 1.51) krijgen eenmalig het installatiegeheim,
+     * zodat zenderknoppen blijven afspelen. Icoon en naam blijven zoals ze zijn.
+     */
+    static void refreshPinned(Context c) {
+        if (Build.VERSION.SDK_INT < 26) return;
+        android.content.SharedPreferences p = c.getSharedPreferences("ui", Context.MODE_PRIVATE);
+        if (p.getBoolean("pinTok", false)) return;
+        try {
+            ShortcutManager sm = c.getSystemService(ShortcutManager.class);
+            if (sm == null) return;
+            List<ShortcutInfo> up = new ArrayList<>();
+            for (ShortcutInfo s : sm.getPinnedShortcuts()) {
+                Intent old = s.getIntent();
+                if (old == null || old.getStringExtra("play") == null) continue;
+                ShortcutInfo.Builder b = new ShortcutInfo.Builder(c, s.getId()).setIntent(intent(c, old.getStringExtra("open"), old.getStringExtra("play")));
+                if (s.getShortLabel() != null) b.setShortLabel(s.getShortLabel());
+                up.add(b.build());
+            }
+            if (!up.isEmpty()) sm.updateShortcuts(up);
+            p.edit().putBoolean("pinTok", true).apply();
+        } catch (Exception ignored) { }
     }
 
     /** Snelle keuzes bij lang indrukken van het app-icoon (max. 4). */

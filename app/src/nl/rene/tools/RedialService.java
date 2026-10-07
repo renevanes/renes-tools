@@ -118,11 +118,7 @@ public class RedialService extends Service {
 
     private void goForeground() {
         Notification n = buildNotification("Auto redial start…", false);
-        if (Build.VERSION.SDK_INT >= 34) {
-            startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
-        } else {
-            startForeground(NOTIF_ID, n);
-        }
+        Fg.start(this, NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE, 34);
     }
 
     private void begin() {

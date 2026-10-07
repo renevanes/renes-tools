@@ -56,9 +56,8 @@ final class CallRecordings {
         if (temp == null) throw new Exception("Backupbestand maken lukt niet");
         boolean done = false;
         try {
-            OutputStream stream = dest.cr.openOutputStream(temp, "w");
-            if (stream == null) throw new Exception("Backupbestand openen lukt niet");
-            try (InputStream in = new FileInputStream(f); OutputStream out = stream) {
+            try (InputStream in = new FileInputStream(f); OutputStream out = dest.cr.openOutputStream(temp, "w")) {
+                if (out == null) throw new Exception("Backupbestand openen lukt niet");
                 byte[] buffer = new byte[32768]; int n;
                 while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
             }

@@ -40,18 +40,7 @@ jobs:
         run: ./build.sh
 
       - name: Logica-tests (Java)
-        run: |
-          mkdir -p build/test
-          javac -nowarn -encoding UTF-8 -cp build/classes:$TOOLS/ap/android-36/android.jar -d build/test tests/jvm/nl/rene/tools/*.java
-          java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.LogicTest
-          java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.AutoTest
-          timeout 120 java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.TimeshiftTest
-          java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.WsModelTest
-          java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.HistoryTextTest
-          java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.WebSigTest
-          java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.NotesRepeatTest
-          java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.RecordingFilesTest
-          java -cp build/test:build/classes:$TOOLS/ap/android-36/android.jar nl.rene.tools.AutoRecordingPolicyTest
+        run: ./tests/run-jvm.sh
 
       - name: Playwright installeren
         run: |

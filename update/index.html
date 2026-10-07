@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- RENES-TOOLS-UI versie 1.50 (51) -->
+<!-- RENES-TOOLS-UI versie 1.51 (52) -->
 <html lang="nl">
 <head>
 <meta charset="utf-8">
@@ -163,7 +163,7 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 .items li.done .it{text-decoration:line-through;color:var(--muted)}
 .items .drag{flex:none;width:26px;text-align:center;color:var(--muted);font-size:16px;letter-spacing:-2px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .items li.dragging{background:var(--chip);border-radius:10px;opacity:.85}
-.items .del{flex:none;width:32px;height:32px;border-radius:50%;color:var(--muted);font-size:20px;line-height:1}
+.items .del{flex:none;width:44px;height:44px;border-radius:50%;color:var(--muted);font-size:20px;line-height:1}
 .additem{display:flex;gap:8px;margin-top:10px}.additem input{flex:1;min-width:0;font-size:16px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 .additem button{padding:0 16px;border-radius:12px;background:var(--chip-on);color:#fff;font-weight:700;font-size:20px}
 .ntext{width:100%;min-height:90px;font:inherit;font-size:15px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card);color:var(--ink);box-sizing:border-box;resize:vertical}
@@ -316,6 +316,9 @@ h1:focus{outline:none}
 .leaflet-control-attribution{font-size:10px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
 .toast.on{opacity:1}
+.undo{position:fixed;left:50%;bottom:24px;transform:translate(-50%,calc(100% + 48px));visibility:hidden;transition:transform .2s,visibility .2s;background:#1f2733;color:#fff;padding:6px 6px 6px 16px;border-radius:12px;font-size:14px;display:flex;align-items:center;gap:10px;max-width:92%;z-index:60;box-shadow:0 4px 16px #0004}
+.undo.on{transform:translate(-50%,0);visibility:visible}
+.undo button{background:none;border:0;color:#8ab4ff;font-weight:700;font-size:14px;min-height:44px;padding:0 12px}
 
 /* ---------- Automatiseringen ---------- */
 .aein{width:100%;font-size:17px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
@@ -352,6 +355,7 @@ h1:focus{outline:none}
 .aulog li{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
 .aulog li:first-child{border-top:0}
 .aulog .t{flex:none;color:var(--muted);min-width:96px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style>
 </head>
 <body>
@@ -1528,7 +1532,7 @@ h1:focus{outline:none}
 
 <section class="screen" id="s-history">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug">‹</button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Meldingsgeschiedenis</h1>
   </div>
   <main>
@@ -1573,7 +1577,8 @@ h1:focus{outline:none}
       <label class="chk"><input type="checkbox" id="recorder-auto" onchange="recorderSetAuto(this.checked)"> Automatisch starten bij mobiele telefoongesprekken</label>
       <p class="note">Staat standaard uit. Na inschakeling probeert de app bij de volgende beantwoorde of uitgaande mobiele oproep een zichtbare microfoonopname te starten en stopt hij bij het einde. Op moderne Android-versies wordt starten vanuit de achtergrond vaak geblokkeerd; dan krijg je een melding om de app te openen en zelf te starten. WhatsApp en andere internetgesprekken worden niet gevolgd. Android kan ook de microfoon tijdens bellen dempen. Zet de luidspreker zelf aan en controleer beide stemmen. Uitschakelen stopt een automatisch begonnen opname.</p>
       <p id="recorder-auto-state" class="note" role="status" aria-live="polite"></p>
-      <p id="recorder-state" role="status" aria-live="polite"></p>
+      <p id="recorder-state"></p>
+      <span id="recorder-live" class="sr-only" role="status" aria-live="polite"></span>
       <p class="note" id="recorder-warning" style="display:none;color:var(--bad)" role="status">Geen duidelijk microfoongeluid gemeten. Android kan de microfoon tijdens bellen dempen. Stop en luister terug voordat je hierop vertrouwt.</p>
       <button class="big" id="recorder-start" onclick="recorderStart()">Start opname</button>
       <button class="big" id="recorder-stop" style="display:none" onclick="Android.recorderStop();setTimeout(loadRecorder,250)">Stoppen en opslaan</button>
@@ -1585,13 +1590,14 @@ h1:focus{outline:none}
       <p class="note">Luister altijd terug om te controleren wat er hoorbaar is. Exporteren bewaart een leesbaar audiobestand in ‘Gespreksopnames’ in je backup-map; het is niet versleuteld. Verwijderen wist alleen de opname op deze telefoon.</p>
       <button class="big ghost" id="recorder-folder" onclick="Android.waPickFolder()">Backup-map kiezen</button>
       <button class="big ghost" style="margin-top:8px" onclick="Android.recorderStopPlayback()">Afspelen stoppen</button>
-      <button class="big ghost" style="margin-top:8px" onclick="show('transcripts')">Gesprekken uitschrijven</button>
+      <button class="big ghost" style="margin-top:8px" onclick="jumpTo('transcripts')">Gesprekken uitschrijven</button>
       <p class="note" id="recorder-count"></p>
       <div id="recorder-list"></div>
     </div>
   </main>
 </section>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="undo" id="undo" role="status" aria-live="polite"><span id="undo-t"></span><button id="undo-b" type="button">Ongedaan maken</button></div>
 
 <div class="sheet" id="sheet" onclick="if(event.target===this&&Date.now()-sheetAt>500)closeSheet()">
   <div class="sheet-box" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><h3 id="sheet-title"></h3><p id="sheet-sub"></p><div id="sheet-acts"></div>
@@ -1622,9 +1628,9 @@ h1:focus{outline:none}
 </div></div>
 
 <script>
-const VERSION_NAME = "1.50";
-const VERSION_CODE = 51;
-const CHANGELOG = [{"version": "1.50", "date": "2026-10-07", "changes": ["Gesprekken opnemen: optioneel automatisch starten bij je eigen mobiele gesprekken (standaard uit). De opnamemelding met stopknop blijft altijd zichtbaar"]}, {"version": "1.49", "date": "2026-10-06", "changes": ["Nieuw: Gesprekken opnemen. Een microfoonopname die je zelf start, met een zichtbare melding en stopknop. Daarna afspelen, delen, exporteren en uitschrijven. Android kan de microfoon tijdens bellen blokkeren; zet de luidspreker aan en test eerst"]}, {"version": "1.48", "date": "2026-10-06", "changes": ["Instellingen › Meldingen: nieuwe schakelaar 'Alle meldingen uit' zet in één keer alle meldingen van de app uit (geen geluid, trillen of pop-ups)", "Draait de radio, een route-opname of een backup, dan toont Android alleen een stille regel zonder icoon in de statusbalk"]}, {"version": "1.47", "date": "2026-10-06", "changes": ["Zoek overal vindt nu ook instellingen en functies (bijv. 'vingerafdruk', 'back-up', 'donker') en springt naar de juiste kaart", "Zoek overal toont ook treffers uit de meldingsgeschiedenis"]}, {"version": "1.46", "date": "2026-10-06", "changes": ["Skin: kies welke apps zichtbaar en te starten zijn; verborgen apps kunnen geblokkeerd worden (wijzigen met vingerafdruk)"]}, {"version": "1.45", "date": "2026-10-06", "changes": ["Instellingen-knop rechtsboven op het startscherm van de app", "Meldingen van de app in één overzicht (Instellingen): zie wat aan en uit staat en tik door naar die soort in Android"]}, {"version": "1.44", "date": "2026-10-05", "changes": ["Meldingsgeschiedenis: filter per app (bijv. WhatsApp of Drive) en oudere meldingen tonen", "Meldingsgeschiedenis: meldingen die nog in het meldingenpaneel staan worden ook bewaard"]}, {"version": "1.43", "date": "2026-10-05", "changes": ["Nieuw: 'Sinds gisteravond' bovenaan de app (gemiste oproepen, backup, automatiseringen)", "Elke maand een backup-controle met proef-terugzetten, en 'Nu controleren' bij Alles back-uppen", "Elke week een controle of Android de app op de achtergrond beperkt"]}, {"version": "1.42", "date": "2026-10-05", "changes": ["Notities: items slepen of sorteren, en delen met alleen wat nog moet", "Notities: terugkerende lijstjes (bijv. elke zaterdag gaan alle vinkjes weer weg)"]}, {"version": "1.41", "date": "2026-10-05", "changes": ["Nieuwe widgets: Agenda, Weer, Rene's Tools overzicht en Parkeren", "Widget Lijstje: met + snel iets toevoegen, en kies donker, licht of doorzichtig"]}, {"version": "1.40", "date": "2026-10-05", "changes": ["Launcher: zoekbalk op Vandaag voor apps, contacten, notities, instellingen en Rene's Tools", "Launcher: snelkoppelingen van apps bij lang drukken, en apps kunnen snelkoppelingen op het startscherm zetten", "Launcher: meldingsbolletjes op apps (Look aanpassen) en de indeling gaat mee in Alles back-uppen"]}, {"version": "1.39", "date": "2026-10-05", "changes": ["Interface-updates zijn nu ondertekend: de app gebruikt alleen een update met de juiste handtekening", "Meldingsgeschiedenis: zoeken zonder op accenten te letten, lijst ververst alleen als er iets nieuws is, export botst niet meer met de nachtelijke backup"]}, {"version": "1.38", "date": "2026-10-05", "changes": ["Nieuw: Meldingsgeschiedenis. Bewaar nieuwe meldingen na inschakeling en meldingentoegang, doorzoek ze en exporteer als JSON en leesbare HTML", "Meldingsgeschiedenis kan mee in Alles back-uppen, ook in versleutelde backups; bewaren en dit backup-onderdeel staan standaard uit", "Meldingsgeschiedenis gaat niet mee in de Google-backup van Android; uitleg bij 'Beperkte instelling'"]}, {"version": "1.37", "date": "2026-10-05", "changes": ["Nieuw: Automatiseringen. Als je auto uitgaat (Bluetooth) of je bij een plek aankomt, vraagt je telefoon of hij de parkeeractie moet starten, of doet het meteen zelf: hij opent EasyPark en drukt de knoppen in die je één keer hebt opgenomen", "Ook: herinnering om de parkeeractie te stoppen als je weer wegrijdt, en zelf automatiseringen samenstellen (dagen, tijden, plek, app)"]}, {"version": "1.36", "date": "2026-10-05", "changes": ["Widget Lijstje: een notitie op het startscherm, afstrepen met een tik", "Launcher: Apps toevoegen en Apps in het dock kiezen (lang drukken op een leeg stuk)", "App-slot: standaard meteen opnieuw vergrendelen, ook als de app al open stond; geen flits van de inhoud"]}, {"version": "1.35", "date": "2026-10-05", "changes": ["Met app-slot flitst het startscherm van de app niet meer vóór de vingerafdruk"]}, {"version": "1.34", "date": "2026-10-05", "changes": ["Vandaag-pagina staat nu direct op het scherm (werd half getekend)", "Foutrapport kopiëren naar het klembord"]}, {"version": "1.33", "date": "2026-10-05", "changes": ["Skin afsluiten en terug naar de app (met vingerafdruk)", "Launcher start op de pagina Vandaag", "Vandaag-pagina wordt ook buiten beeld helemaal getekend"]}, {"version": "1.32", "date": "2026-10-05", "changes": ["Vandaag-pagina werd maar half getekend na het opzij vegen"]}, {"version": "1.31", "date": "2026-10-05", "changes": ["Echte launcher: meerdere pagina's om opzij te vegen, apps en mappen slepen, dock", "Widgets van alle apps plaatsen, instellen en van formaat veranderen", "Links de pagina Vandaag (klok, weer, agenda, Rene's Tools); klassieke skin blijft te kiezen in Look aanpassen"]}, {"version": "1.30", "date": "2026-10-05", "changes": ["Notitie (bijv. boodschappenlijst) met één tik openen: zet hem op het startscherm van Rene's Tools, van je telefoon, of op de telefoon-skin"]}, {"version": "1.29", "date": "2026-10-05", "changes": ["Nieuwe tegel 'Telefoon-skin' bovenaan het startscherm van Rene's Tools: één tik en je ziet de skin; ook als snelkoppeling op je telefoon te zetten"]}, {"version": "1.28", "date": "2026-10-05", "changes": ["Telefoon-skin aanzetten staat nu bovenaan Instellingen, en bovenaan het startscherm van Rene's Tools zolang hij nog niet aan staat"]}, {"version": "1.27", "date": "2026-10-05", "changes": ["Telefoon-skin aanpasbaar: zelf kiezen welke apps op het startscherm, in het dock en bij alle apps staan (met volgorde), volgorde van klok/weer/agenda/Rene's Tools, klokgrootte, doorzichtigheid en hoeken van de kaarten, sorteren op meest gebruikt"]}, {"version": "1.26", "date": "2026-10-05", "changes": ["Telefoon-skin: terugknop werkt altijd, ook als het startscherm nog laadt"]}, {"version": "1.25", "date": "2026-10-04", "changes": ["Telefoon-skin: 'Eerst bekijken' gaf 'Webpagina niet beschikbaar'; opgelost"]}, {"version": "1.24", "date": "2026-10-04", "changes": ["Nieuw: telefoon-skin. Gebruik Rene's Tools als startscherm met klok, weer, agenda, radio en overzicht, al je apps met zoeken en mappen, en een eigen look (Instellingen → Telefoon-skin)"]}, {"version": "1.23", "date": "2026-10-04", "changes": ["Radio pauzeren en terugspoelen: pauze houdt je plek vast, 30 seconden terug of vooruit, en terug naar live", "Tekstgrootte instelbaar (Instellingen → Weergave), standaard zoals je telefoon", "Beter te gebruiken met TalkBack: alle knoppen hebben een naam, schakelaars melden aan/uit"]}, {"version": "1.22", "date": "2026-10-04", "changes": ["Auto redial op een tijdstip: eenmalig of op vaste dagen automatisch beginnen met bellen (bijv. om 08:00 de huisarts)", "Gesprekken 's nachts automatisch uitschrijven tijdens het opladen"]}, {"version": "1.21", "date": "2026-10-04", "changes": ["Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"]}, {"version": "1.20", "date": "2026-10-04", "changes": ["Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html", "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan", "Ruimtegebruik van de backup-map per map"]}, {"version": "1.19", "date": "2026-10-04", "changes": ["Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen", "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"]}, {"version": "1.18", "date": "2026-10-04", "changes": ["Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen", "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt", "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon", "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools", "Android Auto: je favoriete zenders in de auto"]}, {"version": "1.17", "date": "2026-10-04", "changes": ["Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig", "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"]}, {"version": "1.16", "date": "2026-10-04", "changes": ["Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst", "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)", "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"]}, {"version": "1.15", "date": "2026-10-04", "changes": ["Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen", "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon", "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen", "Na een update zie je eenmalig wat er nieuw is", "Contacten werkt nu ook op Android 7"]}, {"version": "1.14", "date": "2026-10-04", "changes": ["Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten", "Radio: een zender als icoon op je startscherm die meteen begint te spelen", "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers", "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"]}, {"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+const VERSION_NAME = "1.51";
+const VERSION_CODE = 52;
+const CHANGELOG = [{"version": "1.51", "date": "2026-10-07", "changes": ["Beveiliging: andere apps en websites kunnen de app niet meer misbruiken (installatie-status, links op de kaart, radio- en redial-knoppen)", "Beveiliging: namen van chats, sms'en en teruggezette notities kunnen geen code meer uitvoeren", "Gevoelige gegevens (WhatsApp-database en -sleutel, opnames, transcripties, routes, contactbackups) gaan niet meer mee in de Google-backup van Android", "Spraakmodel wordt gecontroleerd met een vast controlegetal; nieuwe backup-wachtwoorden zijn sterker beveiligd; interface-updates zijn strenger ondertekend", "Route-opname gaat niet meer verloren als Android de app stopt: je kunt hem daarna opslaan", "Terug sluit eerst een open venster; bij een gewijzigde automatisering vraagt de app of je wilt opslaan", "Lijstitem of afgestreepte items verwijderd? Tik op 'Ongedaan maken'. De ×-knop is groter", "Minder accuverbruik: schermen vragen niets meer op de achtergrond; de radiolijst knippert niet meer", "Minder crashes als Android achtergrondwerk weigert"]}, {"version": "1.50", "date": "2026-10-07", "changes": ["Gesprekken opnemen: optioneel automatisch starten bij je eigen mobiele gesprekken (standaard uit). De opnamemelding met stopknop blijft altijd zichtbaar"]}, {"version": "1.49", "date": "2026-10-06", "changes": ["Nieuw: Gesprekken opnemen. Een microfoonopname die je zelf start, met een zichtbare melding en stopknop. Daarna afspelen, delen, exporteren en uitschrijven. Android kan de microfoon tijdens bellen blokkeren; zet de luidspreker aan en test eerst"]}, {"version": "1.48", "date": "2026-10-06", "changes": ["Instellingen › Meldingen: nieuwe schakelaar 'Alle meldingen uit' zet in één keer alle meldingen van de app uit (geen geluid, trillen of pop-ups)", "Draait de radio, een route-opname of een backup, dan toont Android alleen een stille regel zonder icoon in de statusbalk"]}, {"version": "1.47", "date": "2026-10-06", "changes": ["Zoek overal vindt nu ook instellingen en functies (bijv. 'vingerafdruk', 'back-up', 'donker') en springt naar de juiste kaart", "Zoek overal toont ook treffers uit de meldingsgeschiedenis"]}, {"version": "1.46", "date": "2026-10-06", "changes": ["Skin: kies welke apps zichtbaar en te starten zijn; verborgen apps kunnen geblokkeerd worden (wijzigen met vingerafdruk)"]}, {"version": "1.45", "date": "2026-10-06", "changes": ["Instellingen-knop rechtsboven op het startscherm van de app", "Meldingen van de app in één overzicht (Instellingen): zie wat aan en uit staat en tik door naar die soort in Android"]}, {"version": "1.44", "date": "2026-10-05", "changes": ["Meldingsgeschiedenis: filter per app (bijv. WhatsApp of Drive) en oudere meldingen tonen", "Meldingsgeschiedenis: meldingen die nog in het meldingenpaneel staan worden ook bewaard"]}, {"version": "1.43", "date": "2026-10-05", "changes": ["Nieuw: 'Sinds gisteravond' bovenaan de app (gemiste oproepen, backup, automatiseringen)", "Elke maand een backup-controle met proef-terugzetten, en 'Nu controleren' bij Alles back-uppen", "Elke week een controle of Android de app op de achtergrond beperkt"]}, {"version": "1.42", "date": "2026-10-05", "changes": ["Notities: items slepen of sorteren, en delen met alleen wat nog moet", "Notities: terugkerende lijstjes (bijv. elke zaterdag gaan alle vinkjes weer weg)"]}, {"version": "1.41", "date": "2026-10-05", "changes": ["Nieuwe widgets: Agenda, Weer, Rene's Tools overzicht en Parkeren", "Widget Lijstje: met + snel iets toevoegen, en kies donker, licht of doorzichtig"]}, {"version": "1.40", "date": "2026-10-05", "changes": ["Launcher: zoekbalk op Vandaag voor apps, contacten, notities, instellingen en Rene's Tools", "Launcher: snelkoppelingen van apps bij lang drukken, en apps kunnen snelkoppelingen op het startscherm zetten", "Launcher: meldingsbolletjes op apps (Look aanpassen) en de indeling gaat mee in Alles back-uppen"]}, {"version": "1.39", "date": "2026-10-05", "changes": ["Interface-updates zijn nu ondertekend: de app gebruikt alleen een update met de juiste handtekening", "Meldingsgeschiedenis: zoeken zonder op accenten te letten, lijst ververst alleen als er iets nieuws is, export botst niet meer met de nachtelijke backup"]}, {"version": "1.38", "date": "2026-10-05", "changes": ["Nieuw: Meldingsgeschiedenis. Bewaar nieuwe meldingen na inschakeling en meldingentoegang, doorzoek ze en exporteer als JSON en leesbare HTML", "Meldingsgeschiedenis kan mee in Alles back-uppen, ook in versleutelde backups; bewaren en dit backup-onderdeel staan standaard uit", "Meldingsgeschiedenis gaat niet mee in de Google-backup van Android; uitleg bij 'Beperkte instelling'"]}, {"version": "1.37", "date": "2026-10-05", "changes": ["Nieuw: Automatiseringen. Als je auto uitgaat (Bluetooth) of je bij een plek aankomt, vraagt je telefoon of hij de parkeeractie moet starten, of doet het meteen zelf: hij opent EasyPark en drukt de knoppen in die je één keer hebt opgenomen", "Ook: herinnering om de parkeeractie te stoppen als je weer wegrijdt, en zelf automatiseringen samenstellen (dagen, tijden, plek, app)"]}, {"version": "1.36", "date": "2026-10-05", "changes": ["Widget Lijstje: een notitie op het startscherm, afstrepen met een tik", "Launcher: Apps toevoegen en Apps in het dock kiezen (lang drukken op een leeg stuk)", "App-slot: standaard meteen opnieuw vergrendelen, ook als de app al open stond; geen flits van de inhoud"]}, {"version": "1.35", "date": "2026-10-05", "changes": ["Met app-slot flitst het startscherm van de app niet meer vóór de vingerafdruk"]}, {"version": "1.34", "date": "2026-10-05", "changes": ["Vandaag-pagina staat nu direct op het scherm (werd half getekend)", "Foutrapport kopiëren naar het klembord"]}, {"version": "1.33", "date": "2026-10-05", "changes": ["Skin afsluiten en terug naar de app (met vingerafdruk)", "Launcher start op de pagina Vandaag", "Vandaag-pagina wordt ook buiten beeld helemaal getekend"]}, {"version": "1.32", "date": "2026-10-05", "changes": ["Vandaag-pagina werd maar half getekend na het opzij vegen"]}, {"version": "1.31", "date": "2026-10-05", "changes": ["Echte launcher: meerdere pagina's om opzij te vegen, apps en mappen slepen, dock", "Widgets van alle apps plaatsen, instellen en van formaat veranderen", "Links de pagina Vandaag (klok, weer, agenda, Rene's Tools); klassieke skin blijft te kiezen in Look aanpassen"]}, {"version": "1.30", "date": "2026-10-05", "changes": ["Notitie (bijv. boodschappenlijst) met één tik openen: zet hem op het startscherm van Rene's Tools, van je telefoon, of op de telefoon-skin"]}, {"version": "1.29", "date": "2026-10-05", "changes": ["Nieuwe tegel 'Telefoon-skin' bovenaan het startscherm van Rene's Tools: één tik en je ziet de skin; ook als snelkoppeling op je telefoon te zetten"]}, {"version": "1.28", "date": "2026-10-05", "changes": ["Telefoon-skin aanzetten staat nu bovenaan Instellingen, en bovenaan het startscherm van Rene's Tools zolang hij nog niet aan staat"]}, {"version": "1.27", "date": "2026-10-05", "changes": ["Telefoon-skin aanpasbaar: zelf kiezen welke apps op het startscherm, in het dock en bij alle apps staan (met volgorde), volgorde van klok/weer/agenda/Rene's Tools, klokgrootte, doorzichtigheid en hoeken van de kaarten, sorteren op meest gebruikt"]}, {"version": "1.26", "date": "2026-10-05", "changes": ["Telefoon-skin: terugknop werkt altijd, ook als het startscherm nog laadt"]}, {"version": "1.25", "date": "2026-10-04", "changes": ["Telefoon-skin: 'Eerst bekijken' gaf 'Webpagina niet beschikbaar'; opgelost"]}, {"version": "1.24", "date": "2026-10-04", "changes": ["Nieuw: telefoon-skin. Gebruik Rene's Tools als startscherm met klok, weer, agenda, radio en overzicht, al je apps met zoeken en mappen, en een eigen look (Instellingen → Telefoon-skin)"]}, {"version": "1.23", "date": "2026-10-04", "changes": ["Radio pauzeren en terugspoelen: pauze houdt je plek vast, 30 seconden terug of vooruit, en terug naar live", "Tekstgrootte instelbaar (Instellingen → Weergave), standaard zoals je telefoon", "Beter te gebruiken met TalkBack: alle knoppen hebben een naam, schakelaars melden aan/uit"]}, {"version": "1.22", "date": "2026-10-04", "changes": ["Auto redial op een tijdstip: eenmalig of op vaste dagen automatisch beginnen met bellen (bijv. om 08:00 de huisarts)", "Gesprekken 's nachts automatisch uitschrijven tijdens het opladen"]}, {"version": "1.21", "date": "2026-10-04", "changes": ["Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"]}, {"version": "1.20", "date": "2026-10-04", "changes": ["Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html", "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan", "Ruimtegebruik van de backup-map per map"]}, {"version": "1.19", "date": "2026-10-04", "changes": ["Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen", "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"]}, {"version": "1.18", "date": "2026-10-04", "changes": ["Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen", "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt", "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon", "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools", "Android Auto: je favoriete zenders in de auto"]}, {"version": "1.17", "date": "2026-10-04", "changes": ["Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig", "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"]}, {"version": "1.16", "date": "2026-10-04", "changes": ["Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst", "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)", "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"]}, {"version": "1.15", "date": "2026-10-04", "changes": ["Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen", "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon", "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen", "Na een update zie je eenmalig wat er nieuw is", "Contacten werkt nu ook op Android 7"]}, {"version": "1.14", "date": "2026-10-04", "changes": ["Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten", "Radio: een zender als icoon op je startscherm die meteen begint te spelen", "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers", "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"]}, {"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
 
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
 if (!window.Android) window.Android = (function(){
@@ -1905,12 +1911,30 @@ if (!window.Android) window.Android = (function(){
 })();
 
 const $ = s => document.querySelector(s);
+/* HTML-escapen (ook ' voor attributen tussen enkele aanhalingstekens). */
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* Waarde als JS-tekst binnen een onclick="…": eerst JS-veilig (JSON), dan HTML-veilig. Nooit esc() alleen gebruiken in een handler. */
+const jsq = s => esc(JSON.stringify(String(s == null ? '' : s)));
 const store = {
   get(k, d){ try { const v = localStorage.getItem('rt.'+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
   set(k, v){ try { localStorage.setItem('rt.'+k, JSON.stringify(v)); } catch(e){} }
 };
 let current = 'home', poll = null, nameFor = '', lastResultShown = '';
 
+/* Kort onthouden van dure brugvragen (tellen van alle sms'en, mappen controleren) tijdens het pollen. */
+const _cache = {};
+function cached(key, ms, fn){ const c = _cache[key]; if (c && Date.now() - c.t < ms) return c.v; const v = fn(); _cache[key] = { t: Date.now(), v }; return v; }
+function uncache(key){ delete _cache[key]; }
+/* Pollen stopt als de app op de achtergrond staat (bespaart accu); bij terugkomen draait alles meteen weer. */
+let appPaused = false;
+const _setInterval = window.setInterval.bind(window);
+window.setInterval = function(fn, ms){ const a = Array.prototype.slice.call(arguments, 2); return _setInterval(function(){ if (!appPaused && !document.hidden) fn.apply(null, a); }, ms); };
+/* Melding met "Ongedaan maken" (5 s) in plaats van een vraag vooraf. */
+function undoToast(text, undo){
+  const u = $('#undo'); $('#undo-t').textContent = text; u.classList.add('on');
+  clearTimeout(u._h); u._h = setTimeout(() => u.classList.remove('on'), 5000);
+  $('#undo-b').onclick = () => { clearTimeout(u._h); u.classList.remove('on'); undo(); };
+}
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2600); }
 
 /* Eigen dialogen in plaats van de systeem-popups van de WebView. */
@@ -1921,8 +1945,14 @@ function askConfirm(title, text, okLabel, onOk){
 function askInput(title, text, value, okLabel, onOk){
   openModal(title, text, value == null ? '' : value, okLabel || 'OK', v => { if (v !== null) onOk(v); });
 }
+/* Twee keuzes, bijv. Opslaan / Weggooien. Terug of buiten tikken = niets doen (blijven). */
+function askChoice(title, text, okLabel, otherLabel, onOk, onOther){
+  openModal(title, text, null, okLabel, v => { if (v === 'other') onOther(); else if (v !== null) onOk(); });
+  const c = $('#modal-cancel'); c.textContent = otherLabel; c.onclick = () => closeModal('other');
+}
 function openModal(title, text, inputVal, okLabel, cb){
   _modalCb = cb;
+  const mc = $('#modal-cancel'); mc.textContent = 'Annuleren'; mc.onclick = () => closeModal(null);
   $('#modal-title').textContent = title || '';
   $('#modal-text').textContent = text || '';
   $('#modal-text').style.display = text ? 'block' : 'none';
@@ -1982,7 +2012,14 @@ function show(name){
 }
 const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
 window.goBack = function(){
+  // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
+  if ($('#lockscr').classList.contains('on')) return false;
+  if ($('#modal').classList.contains('on')) { closeModal(null); return true; }
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
+  if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
+    askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); show('auto'); });
+    return true;
+  }
   if (current==='home' && gsQ) { $('#gs-q').value = ''; gsInput(); return true; }
   // Na een sprong: terug naar waar je vandaan kwam, maar alleen vanaf het scherm waar je naartoe sprong
   // (ben je binnen de tool verder gegaan, dan eerst gewoon terug binnen de tool).
@@ -2008,7 +2045,7 @@ window.openTool = function(n){
   if (n === 'auto') { store.set('autoDraft', null); if (current !== 'autoed') show('auto'); return; } // ✕ bij opnemen
   if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
   if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='history') show('history'); if (n==='recorder') show('recorder'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); if (n==='selftest') show('selftest'); };
-window.onResumeApp = function(){ if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
+window.onResumeApp = function(){ appPaused = false; uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
 /* ---------- Auto redial ---------- */
 const ATT = [[5,'5'],[10,'10'],[25,'25'],[50,'50'],[0,'∞']];
@@ -2146,6 +2183,7 @@ function stopWaPoll(){ if (waPoll) { clearInterval(waPoll); waPoll = null; } }
 window.onWaChanged = function(){ renderWa(true); };
 window.onWaSizes = function(sz){ waSizesC = sz; renderWaCats(); };
 function renderWa(rescan){
+  uncache('waInfo');
   const i = waInfoC = waInfo();
   waSel = new Set((i.sel || '').split(',').filter(Boolean));
   $('#wa-perm').style.display = i.filesAccess ? 'none' : 'block';
@@ -2235,7 +2273,7 @@ function refreshWaTile(s){
   $('#tile-wa').classList.toggle('live', !!s.running);
   let sub = 'Chats en media veilig bewaren';
   if (s.running) sub = s.mode === 'restore' ? 'Bezig met terugzetten' : 'Bezig met backup' + (s.phase === 'copy' && s.bytesTotal ? ' · ' + Math.round(100*s.bytesDone/s.bytesTotal) + '%' : '');
-  else { const i = waInfo(); if (i.lastOk) sub = 'Laatste backup: ' + fmtD(i.lastOk); }
+  else { const i = cached('waInfo', 30000, waInfo); if (i.lastOk) sub = 'Laatste backup: ' + fmtD(i.lastOk); }
   $('#tile-wa-sub').textContent = sub;
 }
 
@@ -2293,7 +2331,7 @@ function loadChatList(){
   if (data.error) { $('#chat-list').innerHTML = '<p class=note style="padding:14px">' + esc(data.error) + '</p>'; return; }
   const el = $('#chat-list');
   el.innerHTML = (data.chats || []).map(c =>
-    '<button onclick="openChat(' + c.id + ',' + JSON.stringify(c.name).replace(/"/g,'&quot;') + ',' + (c.group?1:0) + ')">' +
+    '<button onclick="openChat(' + c.id + ',' + jsq(c.name) + ',' + (c.group?1:0) + ')">' +
     '<span class=r1><b>' + esc(c.name) + '</b><time>' + esc(fmtD(c.last)) + '</time></span>' +
     '<span class=r2>' + (c.group ? '👥 ' : '') + esc(c.lastText || '') + ' · ' + c.n + '</span></button>').join('');
   if (!(data.chats || []).length) el.innerHTML = '<p class=note style="padding:14px">Geen chats gevonden.</p>';
@@ -2328,7 +2366,8 @@ function renderMsgs(msgs){
     const d = new Date(m.t), dd = d.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
     if (dd !== lastDay) { out += '<div class=dsep>' + esc(dd) + '</div>'; lastDay = dd; }
     out += '<div class="bub' + (m.me ? ' me' : '') + '">';
-    if (!m.me && m.sender && chatGroup) out += '<span class=snd>' + esc(m.sender) + '</span>';
+    // Afzender tonen in groepen; ook als de groep via zoeken is geopend (dan is de afzender een ander dan de chatnaam)
+    if (!m.me && m.sender && (chatGroup || m.sender !== $('#chat-title').textContent)) out += '<span class=snd>' + esc(m.sender) + '</span>';
     if (m.media && m.mime && m.mime.indexOf('image/') === 0 && m.type !== 20)
       out += '<img loading=lazy src="https://app.renes-tools.local/wa-media/' + encMedia(m.media) + '" alt="">';
     else if (m.label && !m.text) out += '<span class=lb>' + esc(m.label) + '</span>';
@@ -2351,7 +2390,7 @@ function chatSearch(q){
     if (msgs.error) { sr.innerHTML = '<p class=note>' + esc(msgs.error) + '</p>'; return; }
     if (!msgs.length) { sr.innerHTML = '<p class=note style="text-align:center">Niets gevonden voor "' + esc(q) + '"</p>'; return; }
     sr.innerHTML = '<p class=note>' + msgs.length + ' resultaten</p><div class="msgs">' + msgs.map(m => {
-      return '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openChat(' + m.chat + ',' + JSON.stringify(m.chatName||'').replace(/"/g,'&quot;') + ')">' +
+      return '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openChat(' + m.chat + ',' + jsq(m.chatName||'') + ')">' +
         '<span class=snd>' + esc(m.chatName || '') + (m.sender && !m.me ? ' · ' + esc(m.sender) : '') + '</span>' +
         esc(m.text || m.label || '') + '<span class=tm>' + fmtD(m.t) + '</span></div>';
     }).join('') + '</div>';
@@ -2418,7 +2457,7 @@ function trackPollOnce(){
   } else if (saving) {
     try {
       const j = JSON.parse(just), st = j.stats || {};
-      $('#tr-save-sum').textContent = fmtKm(st.distance||0) + ' km · ' + fmtDur(st.totalMs||0) + ' · ' + j.points + ' punten';
+      $('#tr-save-sum').textContent = (j.interrupted ? 'Android stopte de opname onderweg; dit is wat er tot dan is opgenomen. ' : '') + fmtKm(st.distance||0) + ' km · ' + fmtDur(st.totalMs||0) + ' · ' + j.points + ' punten';
       if (!$('#tr-name').value) $('#tr-name').value = defaultName();
     } catch(e){}
   }
@@ -2475,7 +2514,7 @@ function loadTrackList(){
   $('#tr-empty').style.display = list.length ? 'none' : 'block';
   el.innerHTML = list.map(r => {
     const st = r.stats || {};
-    return '<button onclick="openTrack(' + JSON.stringify(r.id).replace(/"/g,'&quot;') + ')">' +
+    return '<button onclick="openTrack(' + jsq(r.id) + ')">' +
       '<svg class=mini viewBox="0 0 300 160" preserveAspectRatio="xMidYMid meet"><path d="' + (r.path||'') + '"></path></svg>' +
       '<span class=info><b>' + esc(r.title || 'Route') + '</b>' +
       '<small>' + fmtKm(st.distance||0) + ' km · ' + fmtDur(st.totalMs||0) + ' · ' + fmtD(r.t) + '</small></span></button>';
@@ -2561,8 +2600,10 @@ function enterTracksList(){ loadTrackList(); }
 /* ---------- SMS-backup ---------- */
 let smsPoll = null, smsSearchTmr = null;
 function smsInfo(){ try { return JSON.parse(Android.smsInfo()); } catch(e){ return {}; } }
+function smsInfoC(){ return cached('smsInfo', 30000, smsInfo); }
 function enterSms(){
-  const i = smsInfo();
+  uncache('smsInfo');
+  const i = smsInfoC();
   $('#sms-perm').style.display = i.perm ? 'none' : 'block';
   $('#sms-perm-btn').textContent = store.get('smsAsked', false) && !i.perm ? 'Instellingen openen' : 'Toegang geven';
   $('#sms-home').style.display = i.perm ? 'block' : 'none';
@@ -2585,7 +2626,7 @@ function loadSmsList(){
   if (d.error) { $('#sms-list').innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
   const el = $('#sms-list');
   el.innerHTML = (d.conversations || []).map(cv =>
-    '<button onclick="openSms(' + cv.thread + ',' + JSON.stringify(cv.name).replace(/"/g,'&quot;') + ')">' +
+    '<button onclick="openSms(' + cv.thread + ',' + jsq(cv.name) + ')">' +
     '<span class=r1><b>' + esc(cv.name) + '</b><time>' + esc(fmtD(cv.last)) + '</time></span>' +
     '<span class=r2>' + esc(cv.lastText || '') + ' · ' + cv.count + '</span></button>').join('');
   if (!(d.conversations || []).length) el.innerHTML = '<p class=note style="padding:14px">Geen sms-berichten gevonden.</p>';
@@ -2619,7 +2660,7 @@ function smsSearchDo(q){
     if (msgs.error) { sr.innerHTML = '<p class=note>' + esc(msgs.error) + '</p>'; return; }
     if (!msgs.length) { sr.innerHTML = '<p class=note style="text-align:center">Niets gevonden</p>'; return; }
     sr.innerHTML = '<p class=note>' + msgs.length + ' resultaten</p><div class="msgs">' + msgs.map(m =>
-      '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openSms(' + m.thread + ',' + JSON.stringify(m.name||'').replace(/"/g,'&quot;') + ')">' +
+      '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openSms(' + m.thread + ',' + jsq(m.name||'') + ')">' +
       '<span class=snd>' + esc(m.name || '') + '</span>' + esc(m.text || '') +
       '<span class=tm>' + fmtD(m.t) + '</span></div>').join('') + '</div>';
   }, 250);
@@ -2633,7 +2674,7 @@ let smsLastDone = false;
 function smsPollOnce(){
   let s; try { s = JSON.parse(Android.smsStatus()); } catch(e){ return; }
   $('#sms-run').style.display = s.running ? 'block' : 'none';
-  $('#sms-home').style.display = (s.running || !smsInfo().perm) ? 'none' : 'block';
+  $('#sms-home').style.display = (s.running || !smsInfoC().perm) ? 'none' : 'block';
   if (s.running) {
     const pct = s.total ? 100 * s.done / s.total : 0;
     $('#sms-bar').style.width = pct.toFixed(0) + '%';
@@ -2651,7 +2692,7 @@ function refreshSmsTile(s){
   const t = $('#tile-sms'); if (!t) return;
   t.classList.toggle('live', !!(s && s.running));
   const sub = $('#tile-sms-sub');
-  if (sub) { const i = smsInfo(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je sms-berichten'); }
+  if (sub) { const i = smsInfoC(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je sms-berichten'); }
 }
 
 /* ---------- Radio ---------- */
@@ -2661,7 +2702,7 @@ function rdLogo(s){
   const ini = esc((s.name || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '♪');
   // Alleen https-logo's (http wordt in de app geblokkeerd); bij een fout de initialen.
   return s.logo && /^https:\/\//i.test(s.logo)
-    ? '<span class=logo><img src="' + esc(s.logo) + '" alt="" loading=lazy onerror="this.parentNode.textContent=\'' + ini + '\'"></span>'
+    ? '<span class=logo><img src="' + esc(s.logo) + '" alt="" loading=lazy onerror="this.parentNode.textContent=' + jsq(ini) + '"></span>'
     : '<span class=logo>' + ini + '</span>';
 }
 function rdIsFav(s){ return rdFavs.some(f => s.id ? f.id === s.id : f.url === s.url); }
@@ -2706,9 +2747,11 @@ function rdFavNow(){ const s = rdState.station || rdState.last; if (!s) return; 
 function rdPlayPause(){ if (rdState.status === 'playing' || rdState.status === 'connecting') Android.radioPause(); else Android.radioResume(); setTimeout(rdPollOnce, 200); }
 function rdPollOnce(){
   const sig = st => JSON.stringify([st.status, st.title, st.station && st.station.url, st.info, (st.recent || []).length, st.sleepAt, Math.floor(Date.now() / 6e4), st.shift]);
-  const prev = sig(rdState);
+  // Lijsten alleen opnieuw opbouwen als zender of afspeelstatus verandert (anders verspringen logo's en scrollpositie)
+  const lsig = st => JSON.stringify([st.status, st.station && st.station.url]);
+  const prev = sig(rdState), lprev = lsig(rdState);
   rdState = rdJson(Android.radioState(), {});
-  if (sig(rdState) !== prev) { rdShowNow(); if (current === 'radio') rdRender(); }
+  if (sig(rdState) !== prev) { rdShowNow(); if (current === 'radio' && lsig(rdState) !== lprev) rdRender(); }
   const t = $('#tile-radio-sub');
   if (t) t.textContent = rdState.station && rdState.status === 'playing' ? '▶ ' + rdState.station.name + (rdState.title ? ' · ' + rdState.title : '') : 'Nederlandse zenders luisteren';
   const tile = $('#tile-radio'); if (tile) tile.classList.toggle('live', rdState.status === 'playing');
@@ -2717,7 +2760,8 @@ function rdShowNow(){
   const s = rdState.station || rdState.last;
   $('#rd-now').style.display = s ? 'block' : 'none';
   if (!s) return;
-  $('#rd-now-logo').outerHTML = rdLogo(s).replace('<span class=logo>', '<span class=logo id="rd-now-logo">');
+  const logoKey = (s.url || '') + '|' + (s.logo || '');
+  if (rdShowNow.logoKey !== logoKey) { rdShowNow.logoKey = logoKey; $('#rd-now-logo').outerHTML = rdLogo(s).replace('<span class=logo>', '<span class=logo id="rd-now-logo">'); }
   $('#rd-now-name').textContent = s.name;
   const st = rdState.status || 'stopped';
   const inf = rdState.info || {};
@@ -2924,8 +2968,8 @@ function enterTranscripts(){
   $('#tx-models').innerHTML = (i.models || []).map(m =>
     '<div class="row mrow"><label style="flex:1"><input type=radio name=trm value="' + esc(m.id) + '"' + (i.model === m.id ? ' checked' : '') +
     (m.installed ? '' : ' disabled') + ' onchange="Android.txSetModel(this.value)"> ' + esc(m.label) + '</label>' +
-    (m.installed ? '<button class="mini" onclick="txDelModel(\'' + esc(m.id) + '\')">Verwijderen</button>'
-                 : '<button class="mini" onclick="txDownload(\'' + esc(m.id) + '\')">Downloaden</button>') + '</div>').join('');
+    (m.installed ? '<button class="mini" onclick="txDelModel(' + jsq(m.id) + ')">Verwijderen</button>'
+                 : '<button class="mini" onclick="txDownload(' + jsq(m.id) + ')">Downloaden</button>') + '</div>').join('');
   $('#tx-home').style.display = i.supported && i.files ? 'block' : 'none';
   $('#tx-search').value = ''; $('#tx-results').innerHTML = '';
   if (i.supported && i.files) { if (!txRecs.length) $('#tx-list').innerHTML = '<p class=note style="padding:14px">Opnames zoeken…</p>'; setTimeout(txLoad, 30); }
@@ -3237,7 +3281,7 @@ function renderNotes(){
       sub = items.length ? esc(items.filter(i => !i.done).slice(0, 5).map(i => i.text).join(' · ') || 'Alles afgestreept') : esc(flat.slice(0, 80));
     }
     const rem = noteRems[n.id];
-    rows.push('<button class="nrow" onclick="openNote(\'' + esc(n.id) + '\')"><span class=r1><b>' + (rem ? '<span class=nrem>🔔</span> ' : '') + hl(title, q) + '</b><small>' +
+    rows.push('<button class="nrow" onclick="openNote(' + jsq(n.id) + ')"><span class=r1><b>' + (rem ? '<span class=nrem>🔔</span> ' : '') + hl(title, q) + '</b><small>' +
       (items.length ? (items.length - open) + '/' + items.length + ' ✓ · ' : '') + esc(fmtD(n.updated||0)) + '</small></span>' +
       '<span class=r2>' + (sub || '&nbsp;') + '</span></button>');
   }
@@ -3260,8 +3304,8 @@ function noteEdit(field, v){ const n = noteById(noteCur); if (!n) return; n[fiel
 function renderItems(){
   const n = noteById(noteCur); if (!n) return;
   const row = it => '<li data-id="' + esc(it.id) + '" class="' + (it.done ? 'done' : '') + '">' + (it.done ? '' : '<span class=drag aria-hidden="true">⋮⋮</span>') + '<input type=checkbox ' + (it.done ? 'checked' : '') +
-    ' onchange="toggleItem(\'' + it.id + '\')" aria-label="Afstrepen"><input class=it value="' + esc(it.text) +
-    '" oninput="typeItem(\'' + it.id + '\', this.value)" onchange="editItem(\'' + it.id + '\', this.value)"><button class=del onclick="delItem(\'' + it.id + '\')" aria-label="Verwijderen">×</button></li>';
+    ' onchange="toggleItem(' + jsq(it.id) + ')" aria-label="Afstrepen"><input class=it value="' + esc(it.text) +
+    '" oninput="typeItem(' + jsq(it.id) + ', this.value)" onchange="editItem(' + jsq(it.id) + ', this.value)"><button class=del onclick="delItem(' + jsq(it.id) + ')" aria-label="Verwijderen">×</button></li>';
   const items = n.items || [];
   const done = items.filter(i => i.done);
   $('#note-open').innerHTML = items.filter(i => !i.done).map(row).join('');
@@ -3334,13 +3378,21 @@ function typeItem(id, v){
   it.text = v; touch(n);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden && notesSaveTmr) notesSaveNow(); });
-window.onPauseApp = function(){ if (notesSaveTmr) notesSaveNow(); };
-function delItem(id){ const n = noteById(noteCur); if (!n) return; n.items = n.items.filter(i => i.id !== id); touch(n); renderItems(); }
+window.onPauseApp = function(){ appPaused = true; if (notesSaveTmr) notesSaveNow(); };
+function delItem(id){
+  const n = noteById(noteCur); if (!n) return;
+  const at = n.items.findIndex(i => i.id === id); if (at < 0) return;
+  const it = n.items[at];
+  n.items = n.items.filter(i => i.id !== id); touch(n); renderItems();
+  undoToast('"' + (it.text || 'Item') + '" verwijderd', () => { const m = noteById(n.id); if (!m || m.items.some(i => i.id === it.id)) return; m.items.splice(Math.min(at, m.items.length), 0, it); touch(m); if (noteCur === m.id) renderItems(); });
+}
 function clearDone(){
   const n = noteById(noteCur); if (!n) return;
   const k = n.items.filter(i => i.done).length;
-  askConfirm('Afgevinkte verwijderen?', k + ' afgestreepte items worden verwijderd.', 'Verwijderen', () => {
-    n.items = n.items.filter(i => !i.done); touch(n); renderItems(); });
+  if (!k) return;
+  const before = n.items.slice();
+  n.items = n.items.filter(i => !i.done); touch(n); renderItems();
+  undoToast(k + (k === 1 ? ' afgestreept item' : ' afgestreepte items') + ' verwijderd', () => { const m = noteById(n.id); if (!m) return; m.items = before.concat(m.items.filter(i => !before.some(b => b.id === i.id))); touch(m); if (noteCur === m.id) renderItems(); });
 }
 function deleteNote(){
   const n = noteById(noteCur); if (!n) return;
@@ -3560,7 +3612,7 @@ function callsPick(i){
   if (c.ck) acts.push(['Contact bekijken', () => jumpTo('contact', () => ctOpen(c.ck, String(c.cid)))]);
   else acts.push(['Toevoegen aan contacten', () => Android.contactsAddNumber(c.number)]);
   if (!callsF.person) acts.push(['Alle oproepen met ' + (c.ck ? c.name : c.number), () => { callsF.person = { name: c.ck ? c.name : c.number, numbers: [c.number] }; callsSyncUi(); loadCalls(); window.scrollTo(0, 0); }]);
-  acts.push(['Opnieuw bellen met Auto redial', () => { show('redial'); $('#num').value = c.number; nameFor = c.ck ? c.name : ''; $('#pname').textContent = nameFor; }]);
+  acts.push(['Opnieuw bellen met Auto redial', () => { jumpTo('redial'); $('#num').value = c.number; nameFor = c.ck ? c.name : ''; $('#pname').textContent = nameFor; }]);
   openSheet(c.name, (c.number !== c.name ? c.number + ' · ' : '') + c.label + ' · ' + fmtFullCall(c.date) + (c.duration ? ' · ' + fmtCallDur(c.duration) : ''), acts);
 }
 function fmtFullCall(t){ return new Date(t).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
@@ -4167,7 +4219,6 @@ function renderInfo(){
   try { const m = JSON.parse(Android.lastManifest()); if (m && m.changelog && m.versionCode >= VERSION_CODE) log = m.changelog; } catch(e){}
   $('#log').innerHTML = log.map(e => '<h3>Versie ' + esc(e.version) + ' <small>' + esc(e.date||'') + '</small></h3><ul>' + e.changes.map(c=>'<li>'+esc(c)+'</li>').join('') + '</ul>').join('');
 }
-const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function checkUpdates(){ $('#chk-btn').textContent = 'Bezig met controleren…'; Android.checkUpdates(); }
 function installUpdate(){ toast('Update wordt gedownload…'); Android.installUpdate(); }
 window.onUpdateStatus = function(r){
@@ -4239,7 +4290,10 @@ function loadRecorder(){
   $('#recorder-permissions').style.display = state.mic && state.notifications && state.phone ? 'none' : 'block';
   $('#recorder-permissions').disabled = !!state.busy;
   $('#recorder-phone').textContent = state.busy && !state.autoStop ? 'Automatisch stoppen is niet beschikbaar; stop deze opname zelf.' : state.phone ? 'Bij het einde van een mobiel telefoongesprek wordt de opname automatisch gestopt. Andere gesprekken stop je zelf.' : 'Zonder telefoontoegang moet je de opname zelf stoppen. Geef telefoontoegang als je automatisch stoppen wilt gebruiken.';
-  $('#recorder-state').textContent = state.recording ? (state.automatic ? '● Automatische opname actief · ' : '● Opname actief · ') + fmtMs(state.elapsed) : state.busy || recorderStarting ? 'Opname starten…' : 'Er wordt niet opgenomen.';
+  const rBase = state.recording ? (state.automatic ? '● Automatische opname actief' : '● Opname actief') : state.busy || recorderStarting ? 'Opname starten…' : 'Er wordt niet opgenomen.';
+  $('#recorder-state').textContent = state.recording ? rBase + ' · ' + fmtMs(state.elapsed) : rBase;
+  // Alleen veranderingen voorlezen (niet elke seconde de tijd)
+  if ($('#recorder-live').textContent !== rBase) $('#recorder-live').textContent = rBase;
   $('#recorder-warning').style.display = state.recording && state.silent ? 'block' : 'none';
   $('#recorder-start').style.display = state.busy ? 'none' : 'block';
   $('#recorder-start').disabled = recorderStarting || !state.mic || !state.notifications;
@@ -4408,6 +4462,8 @@ setTimeout(renderDash, 50);
 // Snelle keuzes bij lang indrukken van het app-icoon
 Android.shortcutsDynamic(JSON.stringify(['radio', 'music', 'notes', 'redial'].map(k => [k, TOOLS[k][0], TOOLS[k][1], TOOLS[k][2]])));
 /* ---------- Automatiseringen (als dit gebeurt, doe dan dat) ---------- */
+let aeSnap = null; // de regel zoals hij was bij openen (voor 'Wijzigingen opslaan?')
+function aeDirty(){ return !!aeRule && (aeSnap === null || JSON.stringify(aeRule) !== aeSnap); }
 let auState = { rules: [], log: [], last: {}, perms: {} }, aeRule = null, aeIsNew = false, aeApps = null, aeBt = null;
 let aeMap = null, aeMarker = null, aeCircle = null;
 const AU_TRIG = { bt_off: 'Auto uitgezet', bt_on: 'Auto aangezet', arrive: 'Aankomen bij', leave: 'Weggaan van', manual: 'Met de hand' };
@@ -4456,7 +4512,7 @@ function auRender(){
   if (!bad.length && auState.rules.length) h = '<div class="auok">✓ Alles staat klaar</div>';
   else {
     h = '<h2>Klaarzetten</h2>' + rows.map(r => '<div class="auperm"><span><b>' + esc(r[1]) + '</b><small>' + esc(r[2]) + '</small></span>' +
-      (r[3] ? '<span class="aucheck" aria-label="In orde">✓</span>' : '<button class="aubtn" onclick="auFix(\'' + r[0] + '\')">Toestaan</button>') + '</div>').join('');
+      (r[3] ? '<span class="aucheck" aria-label="In orde">✓</span>' : '<button class="aubtn" onclick="auFix(' + jsq(r[0]) + ')">Toestaan</button>') + '</div>').join('');
     if (rows.some(r => r[0] === 'a11y' && !r[3]))
       h += '<p class="note" style="margin-top:8px">Bij Toegankelijkheid: kies <i>Rene\'s Tools: knoppen indrukken</i> en zet hem aan. Is hij grijs of staat er <i>Beperkte instelling</i>? Open dan <a href="#" onclick="Android.openAppSettings();return false">App-info</a> → ⋮ (rechtsboven) → <i>Beperkte instellingen toestaan</i>, en probeer opnieuw.</p>';
     if (P.a11y && !P.a11yRunning && rows.some(r => r[0] === 'a11y'))
@@ -4467,9 +4523,9 @@ function auRender(){
   const list = $('#au-list');
   list.innerHTML = auState.rules.map(r => {
     const last = auState.last && auState.last[r.id];
-    return '<div class="card aurule' + (r.on === false ? ' off' : '') + '"><button class="aumain" onclick="autoEdit(\'' + esc(r.id) + '\')"><b>' + esc(r.name || 'Zonder naam') + '</b>' +
+    return '<div class="card aurule' + (r.on === false ? ' off' : '') + '"><button class="aumain" onclick="autoEdit(' + jsq(r.id) + ')"><b>' + esc(r.name || 'Zonder naam') + '</b>' +
       '<small>' + esc(auSummary(r)) + '</small>' + (last ? '<small class="aulast">Laatst: ' + esc(auWhen(last)) + '</small>' : '') + '</button>' +
-      '<button class="tg' + (r.on === false ? '' : ' on') + '" aria-label="' + esc(r.name) + ' aan" onclick="auToggle(\'' + esc(r.id) + '\', this)"></button></div>';
+      '<button class="tg' + (r.on === false ? '' : ' on') + '" aria-label="' + esc(r.name) + ' aan" onclick="auToggle(' + jsq(r.id) + ', this)"></button></div>';
   }).join('');
   $('#au-empty').style.display = auState.rules.length ? 'none' : 'block';
 
@@ -4516,14 +4572,14 @@ function autoNew(tpl){
     app: park ? { p: park.p, n: park.n } : null, msg: 'Je auto staat geparkeerd. Parkeeractie starten?' });
   if (tpl === 'park-stop') Object.assign(r, { name: 'Parkeren stoppen', trig: 'bt_on', mode: 'notify',
     app: park ? { p: park.p, n: park.n } : null, msg: 'Je rijdt weer. Vergeet niet je parkeeractie te stoppen.' });
-  aeRule = r; aeIsNew = true;
+  aeRule = r; aeIsNew = true; aeSnap = JSON.stringify(r);
   show('autoed');
 }
 
 function autoEdit(id){
   auLoad();
   const r = auState.rules.find(x => x.id === id); if (!r) return;
-  aeRule = JSON.parse(JSON.stringify(r)); aeIsNew = false;
+  aeRule = JSON.parse(JSON.stringify(r)); aeIsNew = false; aeSnap = JSON.stringify(aeRule);
   show('autoed');
 }
 
@@ -4718,7 +4774,7 @@ function aeSave(after){
   const w = $('#ae-warn');
   if (e) { w.textContent = e; w.classList.add('on'); w.scrollIntoView({ block: 'center', behavior: 'smooth' }); return false; }
   w.classList.remove('on');
-  aeIsNew = false;
+  aeIsNew = false; aeSnap = JSON.stringify(r);
   store.set('autoDraft', null);
   if (after) after(); else { toast('✓ Opgeslagen'); show('auto'); }
   return true;

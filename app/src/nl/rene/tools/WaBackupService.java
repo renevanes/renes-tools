@@ -40,8 +40,10 @@ public class WaBackupService extends Service {
         // Altijd direct startForeground: Android eist dat na startForegroundService.
         createChannel(this);
         Notification n = build("Voorbereiden…", 0, 0, true, ACTION_RESTORE.equals(a));
-        if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
-        else startForeground(NOTIF_ID, n);
+        if (!Fg.start(this, NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC, 29)) {
+            if (!mine) stopSelf();
+            return START_NOT_STICKY;
+        }
         if (mine) return START_NOT_STICKY; // loopt al
         if (WaBackup.busy) { // de automatische backup is bezig
             stopForeground(true);

@@ -1,9 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android-cloudbackup (Android 7–11): de meldingsgeschiedenis blijft alleen op de telefoon. -->
+<!-- Android-cloudbackup (Android 7–11). Gevoelige gegevens blijven alleen op de telefoon: meldingsgeschiedenis,
+     WhatsApp-database en -sleutel, opnames, transcripties, routes, contactbackups, de AudD-sleutel en sleutelmateriaal.
+     Die gaan alleen mee in Alles back-uppen (versleuteld als je dat kiest). -->
 <full-backup-content>
     <exclude domain="database" path="notification-history.db" />
     <exclude domain="database" path="notification-history.db-journal" />
     <exclude domain="database" path="notification-history.db-wal" />
     <exclude domain="database" path="notification-history.db-shm" />
+    <exclude domain="file" path="wa/" />
+    <exclude domain="file" path="call-recordings/" />
+    <exclude domain="file" path="transcripts/" />
+    <exclude domain="file" path="tracks/" />
+    <exclude domain="file" path="whisper/" />
+    <exclude domain="file" path="contacts/" />
+    <exclude domain="file" path="crash.log" />
+    <exclude domain="file" path="web/" />
     <exclude domain="sharedpref" path="notification_history.xml" />
+    <exclude domain="sharedpref" path="wabackup.xml" />
+    <exclude domain="sharedpref" path="music.xml" />
+    <exclude domain="sharedpref" path="secure.xml" />
+    <exclude domain="sharedpref" path="txmeta.xml" />
+    <exclude domain="sharedpref" path="call_recordings.xml" />
+    <exclude domain="sharedpref" path="crash.xml" />
+        <exclude domain="sharedpref" path="intent_token.xml" />
 </full-backup-content>

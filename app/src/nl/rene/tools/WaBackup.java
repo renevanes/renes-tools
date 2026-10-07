@@ -391,10 +391,10 @@ final class WaBackup {
     }
 
     private static void writeTo(Dest dest, Uri target, Item it, Status st, Listener l) throws Exception {
-        OutputStream out = dest.cr.openOutputStream(target, "w");
-        if (out == null) throw new Exception("Schrijven lukt niet");
         long t = 0, written = 0;
-        try (InputStream in = new FileInputStream(it.file); OutputStream o = out) {
+        // Eerst de bron openen: verdwijnt het bestand (WhatsApp ruimt op), dan blijft er geen schrijfkanaal open hangen
+        try (InputStream in = new FileInputStream(it.file); OutputStream o = dest.cr.openOutputStream(target, "w")) {
+            if (o == null) throw new Exception("Schrijven lukt niet");
             byte[] buf = new byte[256 * 1024];
             int n;
             while ((n = in.read(buf)) > 0) {

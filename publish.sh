@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 source VERSION
 [ -f update/update.json ] || { echo "Eerst ./build.sh"; exit 1; }
 grep -q "\"versionCode\": $VERSION_CODE," update/update.json || { echo "update/ hoort niet bij VERSION, draai ./build.sh"; exit 1; }
-grep -q '"webSig"' update/update.json || { echo "update.json is niet ondertekend, draai ./build.sh"; exit 1; }
+grep -q '"webSig2"' update/update.json || { echo "update.json is niet ondertekend, draai ./build.sh"; exit 1; }
 
 # Werken er meerdere sessies tegelijk? Dan eerst controleren of niemand anders intussen publiceerde.
 git fetch -q origin main

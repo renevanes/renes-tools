@@ -170,6 +170,7 @@ public class MainActivity extends Activity {
         pendingOpen = getIntent() != null ? getIntent().getStringExtra("open") : null;
         boolean fromHistory = getIntent() != null && (getIntent().getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0;
         if (b == null && !fromHistory && takeShare(getIntent())) pendingOpen = "share";
+        Shortcuts.refreshPinned(this);
         playFromShortcut(getIntent());
         if (b == null && !fromHistory) RedialPlan.startMissed(this, getIntent());
         // Met app-slot: niets van de inhoud laten zien voordat het slotscherm er staat (anders flitst het startscherm).
@@ -206,9 +207,11 @@ public class MainActivity extends Activity {
         super.onNewIntent(i);
         if (i == null) return;
         if (ACTION_INSTALL_STATUS.equals(i.getAction())) {
+            if (!App.tokenOk(this, i)) return; // niet van onze eigen installatiesessie
             int st = i.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
             if (st == PackageInstaller.STATUS_PENDING_USER_ACTION) {
                 Intent confirm = i.getParcelableExtra(Intent.EXTRA_INTENT);
+                if (confirm != null && !systemInstaller(confirm)) { js("onUpdateStatus", jsonErr("Installeren kon niet starten (onbekend installatiescherm)")); return; }
                 if (confirm != null) {
                     try { startActivity(confirm); } catch (Exception e) { js("onUpdateStatus", "{\"state\":\"error\",\"error\":\"Installeren kon niet starten\"}"); }
                 }
@@ -223,6 +226,21 @@ public class MainActivity extends Activity {
         if (takeShare(i)) { js("openTool", "\"share\""); return; }
         String open = i.getStringExtra("open");
         if (open != null) js("openTool", JSONObject.quote(open));
+    }
+
+    /** Alleen het installatiescherm van Android zelf starten, zonder doorgegeven bestandsrechten. */
+    @SuppressWarnings("deprecation")
+    private boolean systemInstaller(Intent confirm) {
+        try {
+            confirm.setFlags(confirm.getFlags() & ~(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION));
+            android.content.pm.ResolveInfo ri = getPackageManager().resolveActivity(confirm, 0);
+            if (ri == null || ri.activityInfo == null) return false;
+            String pkg = ri.activityInfo.packageName;
+            if (getPackageName().equals(pkg)) return false;
+            // Het installatiescherm is altijd een systeemapp (de naam verschilt per merk, bijv. bij Oppo)
+            return (ri.activityInfo.applicationInfo.flags & android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0;
+        } catch (Exception e) { return false; }
     }
 
     /** Gedeelde tekst uit een andere app bewaren voor een nieuwe notitie. */
@@ -248,6 +266,8 @@ public class MainActivity extends Activity {
             JSONObject s = new JSONObject(play);
             String url = s.optString("url").toLowerCase();
             if (!url.startsWith("http://") && !url.startsWith("https://")) return;
+            // Alleen onze eigen snelkoppelingen, of (oude snelkoppelingen) een zender uit je favorieten
+            if (!App.tokenOk(this, i) && !Radio.isFavoriteUrl(this, s.optString("url"))) { i.removeExtra("play"); return; }
             Radio.prefs(this).edit().putString("last", play).apply();
             RadioService.send(this, RadioService.PLAY, play);
         } catch (Exception ignored) { }
@@ -848,6 +868,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public String trackStart() {
             if (TracksService.running) return "Er loopt al een opname";
+            if (Tracks.recoverInterrupted(ctx)) return "Er staat nog een route klaar om op te slaan";
             if (!trackHasPermission()) return "Geef eerst toestemming voor je locatie";
             Intent i = new Intent(ctx, TracksService.class).setAction(TracksService.ACTION_START);
             try {
@@ -872,14 +893,14 @@ public class MainActivity extends Activity {
                 android.content.SharedPreferences p = Tracks.prefs(ctx);
                 long startT = p.getLong("lastStartT", System.currentTimeMillis());
                 Tracks.finalize(ctx, startT, title);
-                p.edit().remove("justStopped").apply();
+                p.edit().remove("justStopped").remove("interrupted").apply();
                 return "";
             } catch (Exception e) { return "Opslaan mislukt: " + e.getMessage(); }
         }
 
         @JavascriptInterface public void trackDiscard() {
             Tracks.liveFile(ctx).delete();
-            Tracks.prefs(ctx).edit().remove("justStopped").apply();
+            Tracks.prefs(ctx).edit().remove("justStopped").remove("interrupted").apply();
         }
 
         @JavascriptInterface public String trackLivePoints() {
@@ -902,10 +923,11 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public String trackJustStopped() {
             android.content.SharedPreferences p = Tracks.prefs(ctx);
+            Tracks.recoverInterrupted(ctx);
             if (!p.getBoolean("justStopped", false)) return "";
             try {
                 JSONObject o = new JSONObject();
-                o.put("points", p.getInt("lastPoints", 0));
+                o.put("points", p.getInt("lastPoints", 0)).put("interrupted", p.getBoolean("interrupted", false));
                 o.put("stats", new JSONObject(p.getString("lastStats", "{}")));
                 return o.toString();
             } catch (Exception e) { return ""; }
@@ -2153,6 +2175,17 @@ public class MainActivity extends Activity {
             v.destroy();
             if (act instanceof MainActivity) ((MainActivity) act).web = null;
             if (!act.isFinishing() && !act.isDestroyed()) act.recreate();
+            return true;
+        }
+
+        /** De app-pagina mag nooit naar een andere site: die zou de Android-brug krijgen. Externe links gaan naar de browser. */
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+            Uri u = req.getUrl();
+            if (u != null && "app.renes-tools.local".equals(u.getHost()) && "https".equals(u.getScheme())) return false;
+            if (u != null && req.isForMainFrame() && ("https".equals(u.getScheme()) || "http".equals(u.getScheme()))) {
+                try { act.startActivity(new Intent(Intent.ACTION_VIEW, u).addCategory(Intent.CATEGORY_BROWSABLE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { }
+            }
             return true;
         }
 

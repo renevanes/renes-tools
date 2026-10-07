@@ -104,6 +104,13 @@ final class Radio {
 
     // ---------- favorieten ----------
 
+    static boolean isFavoriteUrl(Context c, String url) {
+        if (url == null || url.isEmpty()) return false;
+        JSONArray f = favorites(c);
+        for (int i = 0; i < f.length(); i++) { JSONObject s = f.optJSONObject(i); if (s != null && url.equals(s.optString("url"))) return true; }
+        return false;
+    }
+
     static JSONArray favorites(Context c) {
         try { return new JSONArray(prefs(c).getString("favs", "[]")); } catch (Exception e) { return new JSONArray(); }
     }

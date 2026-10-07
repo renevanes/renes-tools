@@ -46,8 +46,15 @@ public class TranscribeService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         createChannel(this);
         Notification n = notif("Gesprekken uitschrijven", "Bezig…", -1);
-        if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
-        else startForeground(NOTIF_ID, n);
+        if (!Fg.start(this, NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC, 29)) {
+            // Android staat het nu niet toe (bijv. de dagelijkse limiet voor achtergrondwerk). Loopt er al werk, dan gewoon doorgaan.
+            boolean running; synchronized (queue) { running = worker != null; }
+            if (!running) {
+                try { Transcribe.prefs(this).edit().putString("status", new org.json.JSONObject().put("running", false)
+                        .put("error", "Android staat het nu niet toe; open de app en probeer het opnieuw, of wacht tot morgen").toString()).apply(); } catch (Exception ignored) { }
+                stopSelf(); return START_NOT_STICKY;
+            }
+        }
         synchronized (queue) {
             if (intent != null && intent.getStringExtra("download") != null) modelToGet = intent.getStringExtra("download");
             if (intent != null && intent.getStringArrayListExtra("paths") != null)
