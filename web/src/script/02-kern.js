@@ -5,8 +5,29 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp
 const jsq = s => esc(JSON.stringify(String(s == null ? '' : s)));
 const store = {
   get(k, d){ try { const v = localStorage.getItem('rt.'+k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
-  set(k, v){ try { localStorage.setItem('rt.'+k, JSON.stringify(v)); } catch(e){} }
+  set(k, v){ try { localStorage.setItem('rt.'+k, JSON.stringify(v)); } catch(e){} webStoreSync(); }
 };
+/* Instellingen van de interface (startschermindeling, keuzes) ook in de app bewaren, zodat ze mee kunnen in Alles back-uppen. */
+const WS_SKIP = /^(autoDraft|seenVersion|askedPerms|.*Asked)$/;
+let webStoreTmr = null;
+function webStoreSync(){
+  clearTimeout(webStoreTmr);
+  webStoreTmr = setTimeout(() => {
+    if (typeof Android === 'undefined' || typeof Android.webStoreSave !== 'function') return;
+    const o = {};
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith('rt.') && !WS_SKIP.test(k.slice(3))) o[k] = localStorage.getItem(k); } } catch(e){ return; }
+    Android.webStoreSave(JSON.stringify(o));
+  }, 1500);
+}
+/* Na terugzetten van een backup: ontbrekende interface-instellingen overnemen. */
+function webStoreRestore(){
+  if (typeof Android === 'undefined' || typeof Android.webStorePending !== 'function') return;
+  let o; try { o = JSON.parse(Android.webStorePending() || 'null'); } catch(e){ return; }
+  if (!o) return;
+  try { Object.keys(o).forEach(k => { if (k.startsWith('rt.') && localStorage.getItem(k) == null) localStorage.setItem(k, o[k]); }); } catch(e){}
+}
+webStoreRestore();
+setTimeout(webStoreSync, 3000); // eerste keer na een update meteen bewaren
 let current = 'home', poll = null, nameFor = '', lastResultShown = '';
 
 /* Kort onthouden van dure brugvragen (tellen van alle sms'en, mappen controleren) tijdens het pollen. */

@@ -15,7 +15,17 @@ function rdRow(s, list, i){
   return '<div class="srow' + (cur ? ' playing' : '') + '"><button class=sbtn onclick="rdPlay(\'' + list + '\',' + i + ')">' + rdLogo(s) +
     '<span class=stxt><b>' + esc(s.name) + '</b><small>' + esc(tags || (s.codec ? s.codec + (s.bitrate ? ' ' + s.bitrate + ' kbps' : '') : '')) + '</small></span>' +
     (cur ? '<span class=eq><i></i><i></i><i></i></span>' : '') + '</button>' +
+    (list === 'f' && rdFavs.length > 1 ? '<button class=star onclick="rdFavMenu(' + i + ')" aria-label="Volgorde van ' + esc(s.name) + '">⇅</button>' : '') +
     '<button class=star onclick="rdFav(\'' + list + '\',' + i + ')" aria-label="Favoriet">' + (rdIsFav(s) ? '★' : '☆') + '</button></div>';
+}
+/* Volgorde van de favorieten (ook de volgorde in de auto en in de widget). */
+function rdFavMenu(i){
+  const s = rdFavs[i]; if (!s) return;
+  const n = rdFavs.length, mv = to => { Android.radioMoveFavTo(i, to); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); };
+  const acts = [];
+  if (i > 0) acts.push(['⤒ Bovenaan', () => mv(0)], ['↑ Eén omhoog', () => mv(i - 1)]);
+  if (i < n - 1) acts.push(['↓ Eén omlaag', () => mv(i + 1)], ['⤓ Onderaan', () => mv(n - 1)]);
+  openSheet(s.name, 'Plek ' + (i + 1) + ' van ' + n + ' · ook de volgorde in de auto', acts);
 }
 function enterRadio(){
   rdFavs = rdJson(Android.radioFavorites(), []);

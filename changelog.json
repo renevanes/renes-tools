@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.52",
+    "date": "2026-10-07",
+    "changes": [
+      "Alles back-uppen bewaart nu ook instellingen, automatiseringen (met tikstappen), radiozenders en -wekker, geplande Auto redial, herinneringen en routes (GPX)",
+      "Terugzetten kan nu ook voor instellingen, uitgeschreven gesprekken, herkende muziek en routes; ook uit een versleutelde backup. Alleen wat ontbreekt wordt toegevoegd",
+      "Mijn routes: route importeren uit een GPX-bestand",
+      "Radio: volgorde van je favorieten aanpassen (⇅), ook de volgorde in de auto",
+      "Notities: meerdere herinneringen per notitie, herhalen (elke dag, werkdagen, week, maand) en in de melding uitstellen of Klaar",
+      "Telefoon-skin: vastgezette notitie lang indrukken om hem van het startscherm te halen"
+    ]
+  },
+  {
     "version": "1.51",
     "date": "2026-10-07",
     "changes": [

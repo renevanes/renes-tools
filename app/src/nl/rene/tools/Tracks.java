@@ -236,6 +236,108 @@ final class Tracks {
 
     static File liveFile(Context c) { return new File(dir(c), "live.trk"); }
 
+    // ---------- GPX inlezen (terugzetten uit de backup, of een route uit een andere app) ----------
+
+    static final java.util.regex.Pattern GPX_PT = java.util.regex.Pattern.compile(
+            "<(?:\\w+:)?(trkpt|rtept)\\b([^>]*?)(/>|>(.*?)</(?:\\w+:)?\\1>)", java.util.regex.Pattern.DOTALL);
+    static final java.util.regex.Pattern GPX_ATTR = java.util.regex.Pattern.compile("\\b(lat|lon)\\s*=\\s*[\"']([-0-9.eE+]+)[\"']");
+
+    static final java.util.regex.Pattern GPX_ELE = tagPattern("ele"), GPX_TIME = tagPattern("time"), GPX_NAME = tagPattern("name");
+    static final java.util.regex.Pattern ISO = java.util.regex.Pattern.compile(
+            "\\s*(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:[.,](\\d+))?(Z|[+-]\\d{2}:?\\d{2})?\\s*");
+
+    static java.util.regex.Pattern tagPattern(String name) {
+        return java.util.regex.Pattern.compile("<(?:\\w+:)?" + name + ">(.*?)</(?:\\w+:)?" + name + ">", java.util.regex.Pattern.DOTALL);
+    }
+
+    /** ISO-8601 tijd (met Z, +02:00 of zonder zone = UTC, met willekeurige fractie). 0 als onleesbaar. */
+    static long parseIso(String s) {
+        java.util.regex.Matcher m = ISO.matcher(s);
+        if (!m.matches()) return 0;
+        java.util.Calendar cal = java.util.Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.clear();
+        cal.set(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)) - 1, Integer.parseInt(m.group(3)),
+                Integer.parseInt(m.group(4)), Integer.parseInt(m.group(5)), Integer.parseInt(m.group(6)));
+        long t = cal.getTimeInMillis();
+        if (m.group(7) != null) { String f = (m.group(7) + "000").substring(0, 3); t += Integer.parseInt(f); }
+        String z = m.group(8);
+        if (z != null && !"Z".equals(z)) {
+            String d = z.replace(":", "");
+            int off = Integer.parseInt(d.substring(1, 3)) * 60 + Integer.parseInt(d.substring(3, 5));
+            t -= (z.charAt(0) == '-' ? -1 : 1) * off * 60_000L;
+        }
+        return t;
+    }
+
+    /** Punten uit een GPX-bestand (trkpt of rtept). Ontbreekt een tijd ergens, dan voor de hele route 1 seconde per punt. */
+    static List<Pt> parseGpx(String xml) {
+        List<Pt> out = new ArrayList<>();
+        java.util.regex.Matcher m = GPX_PT.matcher(xml);
+        long base = 0;
+        boolean allTimes = true;
+        while (m.find() && out.size() < 500_000) {
+            double lat = Double.NaN, lon = Double.NaN;
+            java.util.regex.Matcher a = GPX_ATTR.matcher(m.group(2));
+            while (a.find()) { if ("lat".equals(a.group(1))) lat = Double.parseDouble(a.group(2)); else lon = Double.parseDouble(a.group(2)); }
+            if (Double.isNaN(lat) || Double.isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+            String body = m.group(4) == null ? "" : m.group(4);
+            double ele = Double.NaN;
+            java.util.regex.Matcher em = GPX_ELE.matcher(body);
+            if (em.find()) try { ele = Double.parseDouble(em.group(1).trim()); } catch (Exception ignored) { }
+            long t = 0;
+            java.util.regex.Matcher tm = GPX_TIME.matcher(body);
+            if (tm.find()) t = parseIso(tm.group(1));
+            if (t == 0) allTimes = false;
+            out.add(new Pt(lat, lon, ele, t, 5f, -1f));
+        }
+        if (!allTimes) {
+            // Vaste begintijd (1 jan 2000 + plek in het bestand niet nodig): zelfde bestand → zelfde route, zodat dubbel importeren herkend wordt
+            base = 946_684_800_000L + (xml.hashCode() & 0x7fffffffL) * 1000L;
+            List<Pt> fixed = new ArrayList<>(out.size());
+            for (int i = 0; i < out.size(); i++) { Pt p = out.get(i); fixed.add(new Pt(p.lat, p.lon, p.ele, base + i * 1000L, 5f, -1f)); }
+            out = fixed;
+        }
+        return out;
+    }
+
+    static String tag(String body, String name) {
+        java.util.regex.Matcher m = ("name".equals(name) ? GPX_NAME : tagPattern(name)).matcher(body);
+        return m.find() ? m.group(1) : null;
+    }
+
+    static String gpxTitle(String xml) {
+        int trk = Math.max(xml.indexOf("<trk>"), xml.indexOf("<trk "));
+        String name = tag(trk >= 0 ? xml.substring(trk) : xml, "name");
+        if (name == null) name = tag(xml, "name");
+        if (name == null) return "Geïmporteerde route";
+        name = name.replace("<![CDATA[", "").replace("]]>", "").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").trim();
+        return name.isEmpty() ? "Geïmporteerde route" : name;
+    }
+
+    static JSONObject previewGpx(String xml) throws Exception {
+        List<Pt> pts = parseGpx(xml);
+        if (pts.size() < 2) throw new Exception("Geen route gevonden in dit bestand (GPX met trackpunten)");
+        Stats s = stats(pts);
+        return new JSONObject().put("kind", "route").put("total", 1).put("fresh", 1).put("dup", 0)
+                .put("title", gpxTitle(xml)).put("points", pts.size()).put("stats", statsJson(s))
+                .put("sample", new JSONArray().put(gpxTitle(xml)));
+    }
+
+    /** Bewaart een GPX als route. Bestaat er al een route met hetzelfde begintijdstip, dan niets doen (0). */
+    static int importGpx(Context c, String xml) throws Exception {
+        List<Pt> pts = parseGpx(xml);
+        if (pts.size() < 2) throw new Exception("Geen route gevonden in dit bestand");
+        long start = pts.get(0).t;
+        // Al aanwezig? (GPX bewaart tijden per seconde: binnen een minuut van hetzelfde begin = dezelfde route)
+        for (File f : saved(c)) if (Math.abs(tsOf(f) - start) < 60_000L) return 0;
+        String t = safeTitle(gpxTitle(xml));
+        File out = new File(dir(c), start + (t.isEmpty() ? "" : "__" + t) + ".trk");
+        try (java.io.Writer w = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new java.io.FileOutputStream(out), StandardCharsets.UTF_8))) {
+            for (Pt p : pts) { w.write(p.line()); w.write('\n'); }
+        }
+        return 1;
+    }
+
     /**
      * Opname afgebroken (Android stopte de app): het opnamebestand staat er nog, maar de dienst loopt niet.
      * Dan bieden we het aan als "net gestopt", zodat je de route kunt opslaan in plaats van hem kwijt te raken.

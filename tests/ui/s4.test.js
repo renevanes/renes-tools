@@ -20,8 +20,8 @@ const { chromium } = require('playwright');
     // notes reminder + share
     await pg.click('#tile-notes'); await pg.waitForTimeout(200);
     await pg.click('#notes-list .nrow >> nth=0'); await pg.waitForTimeout(200);
-    await pg.click('button:has-text("Herinner mij")'); await pg.waitForTimeout(100);
-    console.log('rem', await pg.textContent('#note-rem-info'));
+    await pg.click('button:has-text("Herinnering toevoegen")'); await pg.waitForTimeout(100);
+    console.log('rem', await pg.textContent('#note-rem-list'));
     await pg.click('button:has-text("Delen (WhatsApp")'); console.log('shared', JSON.stringify(await pg.evaluate(() => Android._shared)));
     await pg.screenshot({ path: __dirname + '/shots/s4-note-' + scheme + '.png', fullPage: true });
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);

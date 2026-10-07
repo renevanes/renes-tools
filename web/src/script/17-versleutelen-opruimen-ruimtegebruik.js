@@ -67,6 +67,9 @@ window.onArchive = function(r){
   if (r.contacts) acts.push(['Contacten terugzetten', () => Android.archiveRestore('contacts', r.contacts)]);
   if (r.notes) acts.push(['Notities terugzetten', () => Android.archiveRestore('notes', r.notes)]);
   if (r.launcher) acts.push(['Startscherm (skin) terugzetten', () => Android.archiveRestore('launcher', r.launcher)]);
+  if (r.settings) acts.push(['Instellingen, automatiseringen en zenders terugzetten', () => Android.archiveRestore('settings', r.settings)]);
+  if (r.transcripts) acts.push(['Uitgeschreven gesprekken terugzetten', () => Android.archiveRestore('transcripts', r.transcripts)]);
+  if (r.music) acts.push(['Herkende muziek terugzetten', () => Android.archiveRestore('music', r.music)]);
   acts.push(['Uitpakken naar de backup-map', () => askConfirm('Uitpakken?', 'De bestanden komen onversleuteld in de map Uitgepakt in je backup-map. Haal ze weg als je ze niet meer nodig hebt.', 'Uitpakken', () => { toast('Bezig met uitpakken…'); Android.archiveUnpack(); })]);
   acts.push(['Sluiten', () => Android.archiveClose()]);
   openSheet('🔒 ' + (r.name || 'Backup'), (r.files || []).length + ' bestanden · ' + fmtB(r.bytes || 0), acts);

@@ -47,13 +47,18 @@
       <p class="note" id="note-repeat-info">Voor een vast lijstje, zoals de weekboodschappen: op het gekozen moment gaan alle vinkjes weer weg.</p>
     </div>
     <div class="card">
-      <h2>Herinnering</h2>
+      <h2>Herinneringen</h2>
+      <div id="note-rem-list"></div>
       <input type="datetime-local" id="note-rem" aria-label="Datum en tijd van de herinnering" class="altime" style="font-size:18px;text-align:left">
+      <select id="note-rem-rep" aria-label="Herhalen" style="margin-top:8px">
+        <option value="">Eén keer</option><option value="day">Elke dag</option><option value="weekdays">Werkdagen</option>
+        <option value="week">Elke week</option><option value="month">Elke maand</option>
+      </select>
       <div class="row" style="margin-top:10px">
-        <button class="big" style="flex:1" onclick="noteSetRem()">Herinner mij</button>
-        <button class="big ghost" style="flex:1" id="note-rem-del" onclick="noteDelRem()">Weghalen</button>
+        <button class="big" style="flex:1" onclick="noteSetRem()">Herinnering toevoegen</button>
+        <button class="big ghost" style="flex:1;display:none" id="note-rem-del" onclick="noteDelRem()">Alle weghalen</button>
       </div>
-      <p class="note" id="note-rem-info"></p>
+      <p class="note" id="note-rem-info">In de melding kun je uitstellen (10 min of 1 uur) of op Klaar tikken.</p>
     </div>
     <div class="card">
       <h2>Snelkoppeling</h2>

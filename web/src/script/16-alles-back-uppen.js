@@ -1,5 +1,5 @@
 /* ---------- Alles back-uppen ---------- */
-const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', launcher: 'Startscherm (skin)', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek' };
+const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', launcher: 'Startscherm (skin)', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek', settings: 'Instellingen, automatiseringen en zenders', routes: 'Routes (GPX)' };
 let bkPoll = null, bkBusy = false;
 function bkState(full){ try { return JSON.parse(Android.backupState(!!full)); } catch(e){ return {}; } }
 /* ---------- backup-controle (proef-terugzetten) ---------- */
@@ -53,7 +53,23 @@ window.onRestorePreview = function(d){
     });
     return;
   }
-  const what = d.kind === 'contacts' ? 'contacten' : 'notities';
+  if (d.kind === 'route') {
+    const st = d.stats || {};
+    askConfirm('Route toevoegen?', '"' + d.title + '": ' + fmtKm(st.distance || 0) + ' km, ' + d.points + ' punten.', 'Toevoegen', () => {
+      restoreWhat = 'route'; restoreKind = 'route';
+      const e = Android.restoreApply(); if (e) toast(e);
+    });
+    return;
+  }
+  const what = { contacts: 'contacten', notes: 'notities', settings: 'instellingen', transcripts: 'uitgeschreven gesprekken', music: 'herkende nummers' }[d.kind] || 'onderdelen';
+  if (d.kind === 'settings' && d.fresh) {
+    const parts = [d.rules ? d.rules + ' automatisering' + (d.rules === 1 ? '' : 'en') : '', d.favs ? d.favs + ' zender' + (d.favs === 1 ? '' : 's') : '', d.alarm ? 'radiowekker' : '', d.plan ? 'geplande Auto redial' : '', d.reminders ? d.reminders + ' herinnering' + (d.reminders === 1 ? '' : 'en') : ''].filter(Boolean);
+    askConfirm('Instellingen terugzetten?', 'Toegevoegd wordt wat hier nog ontbreekt' + (parts.length ? ': ' + parts.join(', ') : '') + '. Bestaande instellingen blijven zoals ze zijn.', 'Terugzetten', () => {
+      restoreWhat = 'instellingen'; restoreKind = 'settings';
+      const e = Android.restoreApply(); if (e) toast(e); else toast('Bezig met terugzetten…');
+    });
+    return;
+  }
   if (!d.fresh) { toast('Alle ' + d.total + ' ' + what + ' staan er al; er is niets toe te voegen'); return; }
   askConfirm(d.fresh + ' ' + what + ' toevoegen?', 'In het bestand: ' + d.total + '. Al aanwezig (worden overgeslagen): ' + d.dup + '.\n\n' +
     (d.sample || []).join(', ') + (d.fresh > (d.sample || []).length ? ', …' : ''), 'Toevoegen', () => {
@@ -66,8 +82,10 @@ window.onRestorePreview = function(d){
 let restoreWhat = '', restoreKind = '';
 window.onRestoreDone = function(r){
   if (r.startsWith('ok:')) {
-    toast('✓ ' + r.slice(3) + ' ' + restoreWhat + ' toegevoegd');
+    toast(restoreKind === 'route' && r === 'ok:0' ? 'Deze route staat er al' : '✓ ' + r.slice(3) + ' ' + restoreWhat + ' toegevoegd');
     if (restoreKind === 'notes') { notes = null; notesBroken = false; refreshNotesTile(); }
+    if (restoreKind === 'route' && current === 'tracks') enterTracks();
+    if (restoreKind === 'settings') { webStoreRestore(); if (typeof renderHome === 'function') try { renderHome(); } catch(e){} }
   } else toast(r);
 };
 

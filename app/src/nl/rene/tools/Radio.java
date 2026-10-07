@@ -137,6 +137,16 @@ final class Radio {
                 .put("bitrate", s.optInt("bitrate")).put("hls", s.optBoolean("hls"));
     }
 
+    /** Favoriet van plek 'from' naar plek 'to' (volgorde = volgorde in de auto en in de widget). */
+    static synchronized void moveFavoriteTo(Context c, int from, int to) throws Exception {
+        JSONArray f = favorites(c);
+        if (from < 0 || from >= f.length() || to < 0 || to >= f.length() || from == to) return;
+        java.util.List<Object> l = new java.util.ArrayList<>();
+        for (int k = 0; k < f.length(); k++) l.add(f.get(k));
+        l.add(to, l.remove(from));
+        prefs(c).edit().putString("favs", new JSONArray(l).toString()).apply();
+    }
+
     static synchronized void moveFavorite(Context c, String id, int dir) throws Exception {
         JSONArray f = favorites(c);
         int i = -1;

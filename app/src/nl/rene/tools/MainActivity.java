@@ -488,7 +488,7 @@ public class MainActivity extends Activity {
             new Thread(() -> {
                 String r;
                 try { r = Restore.preview(getApplicationContext(), kind, u).toString(); }
-                catch (Exception e) {
+                catch (Throwable e) {
                     try { r = new JSONObject().put("error", e.getMessage() == null ? "Bestand niet te lezen" : e.getMessage()).toString(); }
                     catch (Exception e2) { r = "{\"error\":\"Bestand niet te lezen\"}"; }
                 }
@@ -1112,6 +1112,19 @@ public class MainActivity extends Activity {
         }
         // ----- meldingen van deze app -----
         @JavascriptInterface public String notifState() { return NotifCenter.state(ctx); }
+        /** Interface-instellingen (localStorage) bewaren voor Alles back-uppen. */
+        @JavascriptInterface public void webStoreSave(String json) {
+            if (json == null || json.length() > 300_000) return;
+            ctx.getSharedPreferences("webstore", Context.MODE_PRIVATE).edit().putString("all", json).apply();
+        }
+        /** Na terugzetten: eenmalig de bewaarde interface-instellingen teruggeven. */
+        @JavascriptInterface public String webStorePending() {
+            android.content.SharedPreferences p = ctx.getSharedPreferences("webstore", Context.MODE_PRIVATE);
+            if (!p.getBoolean("pending", false)) return "";
+            String r = p.getString("restoreAll", "");
+            p.edit().remove("pending").remove("restoreAll").apply();
+            return r;
+        }
         /** De app-eigen schakelaar: alle meldingen van Rene's Tools uit (true) of weer aan. */
         @JavascriptInterface public void notifMute(boolean on) { NotifCenter.setMuted(ctx, on); }
         /** Android-instelling van één soort melding (of alle meldingen van de app bij een lege id). */
@@ -1726,7 +1739,7 @@ public class MainActivity extends Activity {
 
         /** Contacten of notities uit het geopende archief: daarna hetzelfde overzicht als bij gewoon terugzetten. */
         @JavascriptInterface public void archiveRestore(String kind, String entry) {
-            if (!"contacts".equals(kind) && !"notes".equals(kind) && !"launcher".equals(kind)) return;
+            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music").contains(kind)) return;
             new Thread(() -> {
                 String r;
                 try { r = Restore.previewText(ctx, kind, Secure.readEntry(ctx, entry)).toString(); }
@@ -1772,11 +1785,12 @@ public class MainActivity extends Activity {
 
         /** Kies een backupbestand om terug te zetten (contacts = vCard, notes = notities.json). */
         @JavascriptInterface public void restorePick(String kind) {
-            if (!"contacts".equals(kind) && !"notes".equals(kind) && !"launcher".equals(kind)) return;
+            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music", "route").contains(kind)) return;
             a.importKind = kind;
             a.h.post(() -> {
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
                 if ("contacts".equals(kind)) i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"text/x-vcard", "text/vcard", "text/directory", "application/octet-stream", "text/plain"});
+                else if ("route".equals(kind)) i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/gpx+xml", "application/xml", "text/xml", "application/octet-stream"});
                 else i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/json", "application/octet-stream", "text/plain"});
                 try { a.startActivityForResult(i, REQ_IMPORT); }
                 catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
@@ -1790,7 +1804,7 @@ public class MainActivity extends Activity {
             new Thread(() -> {
                 String r;
                 try { r = "ok:" + Restore.apply(ctx); }
-                catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Terugzetten mislukt"; }
+                catch (Throwable e) { r = e instanceof OutOfMemoryError ? "Bestand is te groot voor deze telefoon" : e.getMessage() != null ? e.getMessage() : "Terugzetten mislukt"; }
                 a.js("onRestoreDone", JSONObject.quote(r));
             }, "restore").start();
             return "";
@@ -1839,6 +1853,16 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public String noteReminders() { return Reminders.all(ctx); }
+        @JavascriptInterface public String noteRemindAdd(String note, String title, String time, String rep) {
+            try { return Reminders.add(ctx, note, title, Long.parseLong(time), rep); } catch (Exception e) { return ""; }
+        }
+        @JavascriptInterface public String noteRemindList(String note) { return note == null ? "[]" : Reminders.forNote(ctx, note); }
+        @JavascriptInterface public void noteRemindDel(String rid) { if (rid != null) Reminders.remove(ctx, rid); }
+        @JavascriptInterface public void noteRemindClear(String note) {
+            if (note == null) return;
+            try { org.json.JSONArray l = new org.json.JSONArray(Reminders.forNote(ctx, note)); for (int i = 0; i < l.length(); i++) Reminders.remove(ctx, l.getJSONObject(i).getString("id")); } catch (Exception ignored) { }
+        }
+        @JavascriptInterface public void noteRemindRetitle(String note, String title) { if (note != null && title != null) Reminders.retitle(ctx, note, title); }
 
         @JavascriptInterface public void noteShare(String title, String text) {
             a.h.post(() -> {
@@ -2066,6 +2090,9 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return false; }
         }
 
+        @JavascriptInterface public void radioMoveFavTo(int from, int to) {
+            try { Radio.moveFavoriteTo(ctx, from, to); RadioWidget.refresh(ctx); } catch (Exception ignored) { }
+        }
         @JavascriptInterface public void radioMoveFav(String id, int dir) {
             try { Radio.moveFavorite(ctx, id, dir); } catch (Exception ignored) { }
         }

@@ -41,7 +41,9 @@ public class TimeshiftTest {
         synchronized (w) { w.wait(5000); }
         check("mp3-stream wordt geaccepteerd", ok[0]);
         check("bitrate uit icy-br", ts.rate() == 16000);
-        while (ts.live() < 120_000 && !ts.dead) Thread.sleep(20);
+        // Wachten tot de hele stream binnen is: anders schuift het oudste punt tijdens het lezen nog op (wankel onder belasting)
+        long until = System.currentTimeMillis() + 30_000;
+        while (ts.live() < 200_000 && !ts.dead && System.currentTimeMillis() < until) Thread.sleep(20);
         long live = ts.live();
         long from = ts.oldest() + 1000;
         byte[] got = read(ts.url(from), 5000);

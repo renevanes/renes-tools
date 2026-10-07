@@ -14,7 +14,7 @@ import java.util.Date;
 import java.util.Locale;
 
 /**
- * Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek in één keer
+ * Alles back-uppen: sms, oproepen, contacten, notities, gesprekken, herkende muziek, routes en instellingen in één keer
  * naar de backup-map, met per onderdeel de uitkomst. Draait op verzoek of elke nacht (AllBackupJob).
  * WhatsApp heeft een eigen nachtelijke backup en wordt alleen bij handmatig starten meegenomen.
  */
@@ -22,7 +22,7 @@ final class AllBackup {
 
     private AllBackup() { }
 
-    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "launcher", "transcripts", "music"};
+    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "launcher", "transcripts", "music", "settings", "routes"};
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("allbackup", Context.MODE_PRIVATE); }
 
@@ -136,8 +136,15 @@ final class AllBackup {
             case "notes":
                 return Notes.export(c);
             case "transcripts":
-                try { return Transcribe.export(c, ""); }
+                int nt;
+                try { nt = Transcribe.export(c, ""); }
                 catch (Exception e) { if (e.getMessage() != null && e.getMessage().startsWith("Nog geen")) return -1; throw e; }
+                SettingsBackup.exportTranscripts(c); // volledig, om terug te kunnen zetten
+                return nt;
+            case "settings":
+                return SettingsBackup.export(c);
+            case "routes":
+                return SettingsBackup.exportRoutes(c);
             case "music":
                 return exportMusic(c);
             case "launcher":

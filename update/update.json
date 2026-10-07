@@ -1,15 +1,27 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.51",
-  "versionCode": 52,
-  "nativeLevel": 47,
+  "versionName": "1.52",
+  "versionCode": 53,
+  "nativeLevel": 48,
   "web": "index.html",
-  "webSha256": "0bd57ba6d7a1d218936ffc5854201bb58d4c3b66250024912de9a644e2c76104",
+  "webSha256": "73caef4749c6e844443d48cc5cfc88ce153c524fc1b66234f4065862a0207a14",
   "start": "start.html",
-  "startSha256": "452f8c05e0d720195c4d18f823c32709cd25c1cb5ce5962ca0b74618b368a6fc",
+  "startSha256": "fe8b3b77fc2cc904ddb2a077efa52244424b65f65a294d69f0fe51efb1c899c0",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "8224f759afa213567878b5620131e87a2e7baddc4c3cf79fee7bc5339cc0ac12",
+  "apkSha256": "a102f86b2b396be1e646f4d89695d618ce25519b89e095fc35f3de48c7af04d4",
   "changelog": [
+    {
+      "version": "1.52",
+      "date": "2026-10-07",
+      "changes": [
+        "Alles back-uppen bewaart nu ook instellingen, automatiseringen (met tikstappen), radiozenders en -wekker, geplande Auto redial, herinneringen en routes (GPX)",
+        "Terugzetten kan nu ook voor instellingen, uitgeschreven gesprekken, herkende muziek en routes; ook uit een versleutelde backup. Alleen wat ontbreekt wordt toegevoegd",
+        "Mijn routes: route importeren uit een GPX-bestand",
+        "Radio: volgorde van je favorieten aanpassen (⇅), ook de volgorde in de auto",
+        "Notities: meerdere herinneringen per notitie, herhalen (elke dag, werkdagen, week, maand) en in de melding uitstellen of Klaar",
+        "Telefoon-skin: vastgezette notitie lang indrukken om hem van het startscherm te halen"
+      ]
+    },
     {
       "version": "1.51",
       "date": "2026-10-07",
@@ -458,5 +470,5 @@
       ]
     }
   ],
-  "webSig2": "islqTyZlVXAGYVmcWg1rrZsA0uBPsS4p9/9RHVJN6JpcWEWaRpfoAoCkGWE9MbGPDyYb+kjygzRrEJLx0j40l5fjpatjMP1wUR0ipbT6xRkrjeGNbbrtFa4nvhOYQHTRHBF0NcZnfw61USm41uuijwbb3k0+X7DD9+AIdIYRXHrMTnvJTb6AY2/wcI092wMoq25Y/i3JjxcVcn3V0/rFj+zFmAQFqjuWd56KQW6wfETNcwNa+eyH+bgZxYBlCsje1snxr4fjg2sZog1i6MwNBa4ViMHTOKGyB+bV012bQdycMGW4ud97Rl4kOWEqbw1h+8nsYPLF1fijU2O2NU11BJK0x8JeOHZfwJOSDStzBS9chp7K1HC8t125vkyqQmDexNVZvuW0drpaZ6p3cARPuEuB9uiio/fdzTIaeJBl6+0ar1JjvHrfejH1pw44LhWLCGTKrcc9G/FgEBu/aiPSkutyyr3XQBCVjFbHqOqCzI8bHhA9gdy0A3PPL7oPzZus"
+  "webSig2": "Qln2UnnpVk1aV0EUlpJ4SOVXKWGh66ETIEbRe75hBqYihJzgO6q6o2+xYccGlucrTanTrro4RrMAOPfjYd0MH9+35uFsSqOCPhkvog3sv8ttRaVcxxwu3bunjlI4h74SvW3ONDQMHg4d0FnqQAB9mezuQSQXf6gm0moYMZqAqfzy4DcKrd0tXZyKveHX8mehWnuehOUbhb9djZDHDwWc4/2wL6G19bn1Z/oOApr75w9q3yLJMRR0has5kquj2u7/27X+4zbM81Gk76Co4t4NhinkbTYACyx34XXIyIKfA+ug2cSnUgA1Qwfkge3upzFPw4p3e5Wim/fnKZ9dSAKOLaRppYD339cEFQr1HpkDQoc0qYaw+9b9jTll4pnq9GcrwDWH1TLm+kUjqR5imjLS718w5Vfsrbl0B95qbpXvipqbiZsouZZW30IxF2ehT62Xxrihy2Wfr80biHwo45ut9ti35v4r5bNVHezoVGvbod3NI+c+bhK8L7gfBF5/argn"
 }

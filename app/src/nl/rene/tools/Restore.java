@@ -27,7 +27,7 @@ final class Restore {
     static String pendingKind = null;
     static List<ContactsDiff.Rec> pendingContacts;
     static JSONArray pendingNotes;
-    static String pendingLauncher;
+    static String pendingLauncher, pendingSettings, pendingRoute;
 
     static String read(Context c, Uri u) throws Exception {
         try (InputStream in = c.getContentResolver().openInputStream(u)) {
@@ -101,6 +101,13 @@ final class Restore {
             return new JSONObject().put("kind", kind).put("total", in.length()).put("fresh", fresh.length())
                     .put("dup", in.length() - fresh.length()).put("sample", sample);
         }
+        if ("settings".equals(kind)) {
+            JSONObject r = SettingsBackup.preview(c, text);
+            pendingSettings = text; pendingKind = kind; return r;
+        }
+        if ("transcripts".equals(kind)) { JSONObject r = SettingsBackup.previewTranscripts(c, text); pendingKind = kind; return r; }
+        if ("music".equals(kind)) { JSONObject r = SettingsBackup.previewMusic(c, text); pendingKind = kind; return r; }
+        if ("route".equals(kind)) { JSONObject r = Tracks.previewGpx(text); pendingRoute = text; pendingKind = kind; return r; }
         if ("launcher".equals(kind)) {
             JSONObject r = LauncherBackup.preview(text);
             pendingLauncher = text;
@@ -157,6 +164,10 @@ final class Restore {
             pendingNotes = null;
             return n;
         }
+        if ("settings".equals(kind) && pendingSettings != null) { int n = SettingsBackup.apply(c, pendingSettings); pendingSettings = null; return n; }
+        if ("transcripts".equals(kind)) return SettingsBackup.applyTranscripts(c);
+        if ("music".equals(kind)) return SettingsBackup.applyMusic(c);
+        if ("route".equals(kind) && pendingRoute != null) { int n = Tracks.importGpx(c, pendingRoute); pendingRoute = null; return n; }
         if ("launcher".equals(kind) && pendingLauncher != null) {
             int n = LauncherBackup.apply(c, pendingLauncher);
             pendingLauncher = null;

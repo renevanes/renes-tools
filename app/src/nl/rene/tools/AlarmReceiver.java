@@ -20,6 +20,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             RadioWidget.refresh(c);
         }
         else if (Reminders.ACTION.equals(a)) Reminders.fire(c, i.getStringExtra("id"));
+        else if (Reminders.ACTION_SNOOZE.equals(a) || Reminders.ACTION_DONE.equals(a)) Reminders.onAction(c, i);
         else if (RedialPlan.ACTION.equals(a)) RedialPlan.fire(c);
         else if (Intent.ACTION_BOOT_COMPLETED.equals(a) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)
                 || "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED".equals(a)

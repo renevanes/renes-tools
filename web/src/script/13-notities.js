@@ -182,13 +182,13 @@ function clearDone(){
 function deleteNote(){
   const n = noteById(noteCur); if (!n) return;
   askConfirm('Notitie verwijderen?', '"' + (n.title || 'Zonder titel') + '" wordt definitief verwijderd.', 'Verwijderen', () => {
-    Android.noteRemind(noteCur, '', '0');
+    if (typeof Android.noteRemindClear === 'function') Android.noteRemindClear(noteCur); else Android.noteRemind(noteCur, '', '0');
     notes = notesGet().filter(x => x.id !== noteCur); noteCur = null; notesSaveNow(); show('notes'); });
 }
 function leaveNote(){
   const n = noteById(noteCur);
-  if (n && !(n.title||'').trim() && !(n.text||'').trim() && !(n.items||[]).length) { notes = notesGet().filter(x => x.id !== n.id); Android.noteRemind(n.id, '', '0'); }
-  else if (n && noteRems[n.id]) Android.noteRemind(n.id, n.title || 'Notitie', String(noteRems[n.id])); // titel van de herinnering bijwerken
+  if (n && !(n.title||'').trim() && !(n.text||'').trim() && !(n.items||[]).length) { notes = notesGet().filter(x => x.id !== n.id); if (typeof Android.noteRemindClear === 'function') Android.noteRemindClear(n.id); else Android.noteRemind(n.id, '', '0'); }
+  else if (n && noteRems[n.id]) { if (typeof Android.noteRemindRetitle === 'function') Android.noteRemindRetitle(n.id, n.title || 'Notitie'); else Android.noteRemind(n.id, n.title || 'Notitie', String(noteRems[n.id])); } // titel van de herinnering bijwerken
   notesSaveNow(); noteCur = null;
 }
 function notesBackup(){
