@@ -105,8 +105,9 @@ function txOpen(id, ms){
   $('#txd-sub').textContent = new Date(when).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}) +
     ' · ' + fmtMs(t.duration) + (t.kind ? ' · ' + (TXKIND[t.kind] || '') : '') + (t.number && t.number !== t.name ? ' · ' + t.number : '');
   $('#txd-segs').innerHTML = (t.segments || []).map((s, i) =>
-    '<p class=seg id="seg' + i + '" data-ms="' + s.from + '" onclick="txSeek(+this.dataset.ms)"><time>' + fmtMs(s.from) + '</time>' + esc(s.text) + '</p>').join('') ||
+    '<p class=seg id="seg' + i + '" data-ms="' + s.from + '" onclick="txSegTap(this)"><time>' + fmtMs(s.from) + '</time>' + esc(s.text) + '</p>').join('') ||
     '<p class=note>Er is geen spraak herkend in deze opname.</p>';
+  txSelEnd();
   show('txd');
   if (ms != null) { const i = (t.segments || []).findIndex(s => s.from >= ms); const el = $('#seg' + Math.max(0, i)); if (el) { el.classList.add('now'); el.scrollIntoView({block:'center'}); } }
 }

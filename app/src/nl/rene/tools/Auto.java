@@ -64,7 +64,9 @@ final class Auto {
             String trig = o.optString("trig");
             if (o.optString("name").trim().isEmpty()) return "Geef de automatisering een naam";
             boolean bt = trig.startsWith("bt_"), geo = "arrive".equals(trig) || "leave".equals(trig);
-            if (!bt && !geo && !"manual".equals(trig)) return "Kies wanneer het moet gebeuren";
+            boolean time = "time".equals(trig), charge = "charge_on".equals(trig);
+            if (!bt && !geo && !time && !charge && !"manual".equals(trig)) return "Kies wanneer het moet gebeuren";
+            if (time && AutoLogic.minutes(o.optString("at")) < 0) return "Kies het tijdstip";
             if (bt && (o.optJSONArray("bt") == null || o.optJSONArray("bt").length() == 0)) return "Kies het Bluetooth-apparaat van je auto";
             JSONObject p = o.optJSONObject("place");
             boolean needPlace = geo || o.optBoolean("usePlace");
@@ -73,8 +75,12 @@ final class Auto {
             String mode = o.optString("mode", "ask");
             JSONArray steps = o.optJSONArray("steps");
             boolean hasApp = o.optJSONObject("app") != null && !o.optJSONObject("app").optString("p").isEmpty();
-            if (!"notify".equals(mode) && !hasApp) return "Kies welke app geopend moet worden";
-            if ("auto".equals(mode) && (steps == null || steps.length() == 0)) return "Volledig automatisch heeft minstens één knop nodig (neem ze op)";
+            String actErr = AutoActions.check(o);
+            if (actErr != null) return actErr;
+            if (!AutoActions.internal(o)) {
+                if (!"notify".equals(mode) && !hasApp) return "Kies welke app geopend moet worden";
+                if ("auto".equals(mode) && (steps == null || steps.length() == 0)) return "Volledig automatisch heeft minstens één knop nodig (neem ze op)";
+            }
             if (!o.has("cool")) o.put("cool", 15);
             if (o.optString("id").isEmpty()) o.put("id", Long.toString(System.currentTimeMillis(), 36));
             JSONArray a = rules(c), out = new JSONArray();
@@ -87,6 +93,7 @@ final class Auto {
             if (!replaced) out.put(o);
             prefs(c).edit().putString("rules", out.toString()).apply();
             armPlaces(c);
+            AutoActions.armTimes(c);
             return "";
         } catch (Exception e) { return "Opslaan mislukt: " + e.getMessage(); }
     }
@@ -96,6 +103,7 @@ final class Auto {
         for (int i = 0; i < a.length(); i++) { JSONObject x = a.optJSONObject(i); if (x != null && !x.optString("id").equals(id)) out.put(x); }
         prefs(c).edit().putString("rules", out.toString()).remove("last_" + id).remove("in_" + id).apply();
         armPlaces(c);
+        AutoActions.armTimes(c);
     }
 
     static void setOn(Context c, String id, boolean on) {
@@ -283,6 +291,18 @@ final class Auto {
     /** Uitvoeren; test = via "Nu testen" in de app. */
     static void run(Context c, JSONObject r, String why, boolean test) {
         String mode = r.optString("mode", "ask");
+        if (AutoActions.internal(r)) {
+            // Eigen acties (radio, route, notitie, backup, redial): geen app of toegankelijkheid nodig
+            if ("note".equals(AutoActions.act(r)) || "auto".equals(mode)) {
+                if (AutoActions.run(c, r)) { log(c, r, why + ": " + AutoActions.label(r)); return; }
+                log(c, r, why + ": Android stond het nu niet toe, gevraagd met een melding");
+                ask(c, r, why, AutoActions.label(r) + " · tik op Starten");
+                return;
+            }
+            log(c, r, why + ": gevraagd met een melding");
+            ask(c, r, why, (r.optString("msg").trim().isEmpty() ? AutoActions.label(r) + "?" : r.optString("msg").trim()) + " Tik op Starten.");
+            return;
+        }
         if ("auto".equals(mode)) {
             if (AutoA11y.ready()) {
                 if (locked(c)) {

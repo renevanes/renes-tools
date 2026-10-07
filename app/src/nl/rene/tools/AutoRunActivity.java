@@ -19,6 +19,11 @@ public class AutoRunActivity extends Activity {
         JSONObject r = id == null ? null : Auto.rule(this, id);
         if (id != null) Auto.cancel(this, Auto.notifId(id));
         AutoA11y.clearPending(); // niet nog een keer na het ontgrendelen
+        if (r != null && AutoActions.internal(r)) {
+            if (doRun) { boolean ok = AutoActions.run(this, r); Auto.log(this, r, (ok ? "Gestart vanuit de melding: " : "Starten lukte niet: ") + AutoActions.label(r)); }
+            finish();
+            return;
+        }
         if (r != null) {
             boolean hasSteps = r.optJSONArray("steps") != null && r.optJSONArray("steps").length() > 0;
             if (doRun && hasSteps && AutoA11y.ready()) {

@@ -73,6 +73,15 @@
         <button class="big" style="flex:1" id="txd-play" onclick="txToggle()">▶ Afspelen</button>
         <button class="big ghost" style="flex:1" onclick="txExport(txCur)">Exporteren</button>
       </div>
+      <button class="big ghost" style="margin-top:8px" id="txd-tonote" onclick="txSelStart()">📝 Naar notitie…</button>
+      <div id="txd-selbar" style="display:none">
+        <p class="note" id="txd-selinfo">Tik op de zinnen die je wilt bewaren (bijv. afspraken).</p>
+        <div class="row">
+          <button class="big" style="flex:1" onclick="txToNote(false)">Als tekst</button>
+          <button class="big" style="flex:1" onclick="txToNote(true)">Als lijstje</button>
+        </div>
+        <button class="big ghost" style="margin-top:8px" onclick="txSelEnd()">Annuleren</button>
+      </div>
     </div>
     <div class="card segs" id="txd-segs"></div>
     <div class="row" style="margin-top:4px">

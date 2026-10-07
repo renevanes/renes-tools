@@ -347,3 +347,8 @@ h1:focus{outline:none}
 .aulog .t{flex:none;color:var(--muted);min-width:96px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .remrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}.remrow small{color:var(--muted)}
+#txd-segs.selecting .seg{cursor:pointer;border-left:3px solid transparent;padding-left:8px}#txd-segs.selecting .seg.sel{border-left-color:var(--chip-on);background:color-mix(in srgb,var(--chip-on) 12%,transparent)}
+.trip{display:flex;width:100%;justify-content:space-between;align-items:center;text-align:left;padding:10px 2px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;min-height:48px}
+.trip b{display:block;font-size:15px}.trip small{color:var(--muted)}
+.ttype{font-size:12px;padding:3px 8px;border-radius:10px;background:var(--chip);white-space:nowrap}.ttype.zak{background:var(--chip-on);color:#fff}
+.clog{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}

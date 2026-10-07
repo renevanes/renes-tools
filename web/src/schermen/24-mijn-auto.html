@@ -1,0 +1,42 @@
+<section class="screen" id="s-car">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Mijn auto</h1>
+  </div>
+  <main>
+    <div class="card" id="car-park-card">
+      <h2>Waar staat mijn auto?</h2>
+      <p id="car-park-state" class="note" style="margin-top:0"></p>
+      <div id="car-map" style="height:220px;border-radius:12px;display:none;margin-bottom:10px"></div>
+      <button class="big" id="car-nav" style="display:none" onclick="carNavigate()">🚶 Navigeer terug naar de auto</button>
+      <div class="row" style="margin-top:8px">
+        <button class="big ghost" style="flex:1" onclick="carParkNow()">📍 Hier staat hij</button>
+        <button class="big ghost" style="flex:1;display:none" id="car-left" onclick="carLeft()">Weggereden</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Ritten</h2>
+      <p class="note" style="margin-top:0" id="car-trip-state"></p>
+      <div class="row" id="car-months" style="flex-wrap:wrap;gap:6px"></div>
+      <div id="car-trips"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="big ghost" style="flex:1" id="car-trip-btn" onclick="carTripToggle()">Rit nu opnemen</button>
+        <button class="big ghost" style="flex:1" id="car-export" onclick="carExport()">Maand exporteren (CSV)</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Parkeerlogboek</h2>
+      <div id="car-log"></div>
+    </div>
+    <div class="card">
+      <h2>Instellingen</h2>
+      <p class="note" style="margin-top:0">Kies de Bluetooth van je auto. Zet je de auto uit, dan bewaart de app waar hij staat. Met ritten aan wordt elke rit vanzelf opgenomen als route, met kilometers.</p>
+      <div id="car-perm" class="result on other" style="display:none"></div>
+      <label class="f" for="car-dev">Bluetooth van de auto</label>
+      <select id="car-dev" onchange="carSave()"></select>
+      <div class="sw"><span>Ritten vanzelf opnemen<small>Bluetooth van de auto aan = rit begint, uit = rit wordt opgeslagen</small></span><button class="tg" id="car-trips-on" aria-label="Ritten vanzelf opnemen" onclick="this.classList.toggle('on'); carSave()"></button></div>
+      <label class="f" for="car-def">Nieuwe ritten zijn</label>
+      <select id="car-def" onchange="carSave()"><option value="prive">Privé</option><option value="zakelijk">Zakelijk</option></select>
+    </div>
+  </main>
+</section>

@@ -32,6 +32,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             TranscribeJob.ensureScheduled(c);
             RadioWidget.refresh(c);
             Auto.armPlaces(c, true);
+            AutoActions.armTimes(c);
         }
     }
 }

@@ -33,6 +33,7 @@ final class NotifCenter {
         {RadioService.CHANNEL, "Radio", "Bediening van de radio (afspelen, pauzeren, stoppen)", "2"},
         {TracksService.CHANNEL, "Route opnemen", "Toont de voortgang tijdens het opnemen van een route", "2"},
         {TranscribeService.CHANNEL, "Gesprekken uitschrijven", "Voortgang van het uitschrijven", "2"},
+        {Car.CHANNEL, "Mijn auto", "Als een rit niet vanzelf kon starten", "3"},
         {"auto-call-recording", "Automatische gespreksopname", "Als een automatische opname niet kon starten", "3"},
         {"call-recording", "Gespreksopname", "Zichtbaar zolang je opneemt, met een stopknop. Blijft ook zichtbaar als alle meldingen uit staan", "2"},
     };

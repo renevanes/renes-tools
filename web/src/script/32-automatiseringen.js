@@ -3,7 +3,8 @@ let aeSnap = null; // de regel zoals hij was bij openen (voor 'Wijzigingen opsla
 function aeDirty(){ return !!aeRule && (aeSnap === null || JSON.stringify(aeRule) !== aeSnap); }
 let auState = { rules: [], log: [], last: {}, perms: {} }, aeRule = null, aeIsNew = false, aeApps = null, aeBt = null;
 let aeMap = null, aeMarker = null, aeCircle = null;
-const AU_TRIG = { bt_off: 'Auto uitgezet', bt_on: 'Auto aangezet', arrive: 'Aankomen bij', leave: 'Weggaan van', manual: 'Met de hand' };
+const AU_TRIG = { bt_off: 'Auto uitgezet', bt_on: 'Auto aangezet', arrive: 'Aankomen bij', leave: 'Weggaan van', manual: 'Met de hand', time: 'Om', charge_on: 'Aan de lader' };
+const AU_ACT = { note: 'notitie tonen', radio: 'radio', track_start: 'route opnemen', track_stop: 'route stoppen', backup: 'alles back-uppen', redial: 'Auto redial' };
 const AU_MODE = { ask: 'vraagt eerst', auto: 'volledig automatisch', notify: 'alleen melding' };
 const AU_DAYS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
 
@@ -18,10 +19,12 @@ function auSummary(r){
   const p = r.place || {}, parts = [];
   const where = p.name || 'de plek';
   if (r.trig === 'arrive' || r.trig === 'leave') parts.push(AU_TRIG[r.trig] + ' ' + where);
+  else if (r.trig === 'time') parts.push('Om ' + (r.at || '?'));
   else parts.push((AU_TRIG[r.trig] || '?') + (r.usePlace && r.place ? ' bij ' + where : ''));
   const d = auDaysLabel(r.days); if (d) parts.push(d);
   if (r.from && r.to && r.from !== r.to) parts.push(r.from + '–' + r.to);
   let act = AU_MODE[r.mode] || '';
+  if (r.act && r.act !== 'app') return parts.join(' · ') + ' → ' + AU_ACT[r.act] + (r.act === 'note' && r.note ? ': ' + r.note.title : r.act === 'radio' && r.radio ? ': ' + r.radio.name : '') + (r.act === 'note' ? '' : ', ' + (r.mode === 'auto' ? 'meteen' : act));
   if (r.app && r.app.n && r.mode !== 'notify') act = r.app.n + ', ' + act;
   if (r.mode !== 'notify' && r.steps && r.steps.length) act += ' (' + r.steps.length + (r.steps.length === 1 ? ' knop' : ' knoppen') + ')';
   return parts.join(' · ') + ' → ' + act;
@@ -105,6 +108,7 @@ function autoNew(tpl){
   const r = { id: Date.now().toString(36), name: '', on: true, trig: 'bt_off', bt: [], btNames: [], usePlace: false, place: null,
     days: 0, from: '', to: '', mode: 'ask', app: null, steps: [], msg: '', cool: 15 };
   if (cars.length === 1) { r.bt = [cars[0].a]; r.btNames = [cars[0].n]; }
+  if (tpl === 'shop') Object.assign(r, { name: 'Boodschappen bij de winkel', trig: 'arrive', usePlace: true, act: 'note', mode: 'notify', bt: [], btNames: [], cool: 240 });
   if (tpl === 'park-start') Object.assign(r, { name: 'Parkeren starten', trig: 'bt_off', usePlace: true, mode: 'ask',
     app: park ? { p: park.p, n: park.n } : null, msg: 'Je auto staat geparkeerd. Parkeeractie starten?' });
   if (tpl === 'park-stop') Object.assign(r, { name: 'Parkeren stoppen', trig: 'bt_on', mode: 'notify',
@@ -133,7 +137,19 @@ function aeNeedsPlace(){ return aeRule.trig === 'arrive' || aeRule.trig === 'lea
 function aeRadio(box, v){ document.querySelectorAll(box + ' button').forEach(b => { const on = b.dataset.v === v; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }); }
 
 function aeRender(){
-  const r = aeRule, isBt = (r.trig || '').startsWith('bt_');
+  const r = aeRule, isBt = (r.trig || '').startsWith('bt_'), act = r.act || 'app', internal = act !== 'app';
+  $('#ae-timebox').style.display = r.trig === 'time' ? 'block' : 'none';
+  $('#ae-at').value = r.at || '';
+  $('#ae-act').value = act;
+  $('#ae-notebox').style.display = act === 'note' ? 'block' : 'none';
+  $('#ae-radiobox').style.display = act === 'radio' ? 'block' : 'none';
+  $('#ae-redialbox').style.display = act === 'redial' ? 'block' : 'none';
+  if (act === 'note') { const ns = (notesGet() || []).filter(n => !n.deleted); $('#ae-note').innerHTML = '<option value="">Kies een notitie…</option>' + ns.map(n => '<option value="' + esc(n.id) + '"' + (r.note && r.note.id === n.id ? ' selected' : '') + '>' + esc(n.title || 'Zonder titel') + '</option>').join(''); }
+  if (act === 'radio') { const fs = rdJson(Android.radioFavorites(), []); $('#ae-radio').innerHTML = '<option value="">Kies een zender (uit je favorieten)…</option>' + fs.map((f, i) => '<option value="' + i + '"' + (r.radio && r.radio.url === f.url ? ' selected' : '') + '>' + esc(f.name) + '</option>').join(''); }
+  if (act === 'redial') $('#ae-number').value = r.number || '';
+  document.querySelector('#ae-mode [data-v="auto"] small').textContent = internal ? 'Meteen doen, zonder te vragen' : 'App openen en de knoppen indrukken, zonder te vragen';
+  document.querySelector('#ae-mode [data-v="auto"] b').textContent = internal ? 'Meteen doen' : 'Volledig automatisch';
+  $('#ae-mode').style.display = act === 'note' ? 'none' : '';
   $('#ae-h').textContent = aeIsNew ? 'Nieuwe automatisering' : (r.name || 'Automatisering');
   $('#ae-name').value = r.name || '';
   aeRadio('#ae-trig', r.trig);
@@ -188,7 +204,8 @@ function aeRender(){
   if (cur) $('#ae-app').value = cur;
   document.querySelector('#ae-appbox .flabel label').textContent = r.mode === 'notify' ? 'App openen bij een tik op de melding' : 'App';
 
-  $('#ae-stepsbox').style.display = r.mode === 'notify' ? 'none' : 'block';
+  $('#ae-stepsbox').style.display = r.mode === 'notify' || internal ? 'none' : 'block';
+  $('#ae-appbox').style.display = internal ? 'none' : '';
   const steps = r.steps || [];
   $('#ae-steps').innerHTML = steps.map((s, i) => '<li><span class="lbl" onclick="aeEditStep(' + i + ')">' + esc(aeStepLabel(s)) + '</span>' +
     '<button aria-label="Omhoog" onclick="aeMoveStep(' + i + ',-1)"' + (i ? '' : ' disabled') + '>↑</button>' +
@@ -203,6 +220,8 @@ function aeRender(){
   $('#ae-del').style.display = aeIsNew ? 'none' : 'flex';
 }
 
+function aeSetNote(id){ const n = (notesGet() || []).find(x => x.id === id); aeRule.note = n ? { id: n.id, title: n.title || 'Notitie' } : null; }
+function aeSetRadio(i){ const fs = rdJson(Android.radioFavorites(), []); const f = fs[+i]; aeRule.radio = f && i !== '' ? f : null; }
 function aeStepLabel(s){
   if (s.t === 'wait') return '⏱ Wachten ' + Math.round((s.ms || 1000) / 100) / 10 + ' s';
   if (s.t === 'xy') return '👆 Tik op het scherm (' + Math.round(s.x * 100) + '%, ' + Math.round(s.y * 100) + '%)';
@@ -296,6 +315,12 @@ function aeCheck(){
   if (!(r.name || '').trim()) return 'Geef de automatisering een naam';
   if ((r.trig || '').startsWith('bt_') && !(r.bt || []).length) return 'Kies de Bluetooth van je auto';
   if (aeNeedsPlace() && (!r.place || r.place.lat == null)) return 'Kies de plek op de kaart';
+  if (r.trig === 'time' && !r.at) return 'Kies het tijdstip';
+  const act = r.act || 'app';
+  if (act === 'note' && !(r.note && r.note.id)) return 'Kies welke notitie getoond moet worden';
+  if (act === 'radio' && !(r.radio && r.radio.url)) return 'Kies een radiozender (zet er eerst een in je favorieten)';
+  if (act === 'redial' && String(r.number || '').replace(/[^0-9+]/g, '').length < 3) return 'Vul het telefoonnummer in';
+  if (act !== 'app') return '';
   if (r.mode !== 'notify' && !(r.app && r.app.p)) return 'Kies welke app geopend moet worden';
   if (r.mode === 'auto' && !(r.steps || []).length) return 'Volledig automatisch heeft minstens één knop nodig: neem ze op';
   return '';

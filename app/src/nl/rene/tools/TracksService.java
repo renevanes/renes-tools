@@ -71,7 +71,12 @@ public class TracksService extends Service implements LocationListener {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String a = intent != null ? intent.getAction() : null;
-        if (ACTION_STOP.equals(a)) { stopRecording(); return START_NOT_STICKY; }
+        if (ACTION_STOP.equals(a)) {
+            // Niets aan het opnemen (bijv. nieuwe dienst na het opruimen van de app): niets stoppen of wissen
+            if (!running) { stopSelf(); return START_NOT_STICKY; }
+            autoSaveReq = intent.getBooleanExtra("autoSave", false);
+            stopRecording(); return START_NOT_STICKY;
+        }
         if (ACTION_PAUSE.equals(a)) { paused = true; save(); updateNotif(); return START_STICKY; }
         if (ACTION_RESUME.equals(a)) { paused = false; last = null; save(); updateNotif(); return START_STICKY; }
         if (!ACTION_START.equals(a)) {
@@ -80,10 +85,15 @@ public class TracksService extends Service implements LocationListener {
             return START_NOT_STICKY;
         }
 
-        if (running) return START_STICKY;
+        if (running) {
+            // Loopt al (bijv. tegelijk gestart door een automatisering): een rit-start maakt er een rit van
+            if (intent.getBooleanExtra("trip", false)) Tracks.prefs(this).edit().putBoolean("trip", true).apply();
+            return START_STICKY;
+        }
 
         // Toestand opnieuw instellen vóór de melding, zodat die meteen klopt.
         running = true;
+        Tracks.prefs(this).edit().putBoolean("trip", intent.getBooleanExtra("trip", false)).apply();
         paused = false;
         startT = System.currentTimeMillis();
         pts.clear(); last = null; distance = 0; maxSpeed = 0; movingMs = 0; routePts = 0; fixAcc = -1f;
@@ -101,13 +111,15 @@ public class TracksService extends Service implements LocationListener {
                 startForeground(NOTIF_ID, n);
         } catch (Exception e) {
             running = false;
-            Tracks.prefs(this).edit().putString("error", "Starten van de opname lukt niet").apply();
+            Tracks.prefs(this).edit().putString("error", "Starten van de opname lukt niet").remove("trip").apply();
+            Car.prefs(this).edit().remove("tripStart").apply();
             stopSelf();
             return START_NOT_STICKY;
         }
         if (!hasPerm) {
             running = false;
-            Tracks.prefs(this).edit().putString("error", "Geen locatietoestemming").apply();
+            Tracks.prefs(this).edit().putString("error", "Geen locatietoestemming").remove("trip").apply();
+            Car.prefs(this).edit().remove("tripStart").apply();
             stopForeground(true); stopSelf(); return START_NOT_STICKY;
         }
 
@@ -185,6 +197,8 @@ public class TracksService extends Service implements LocationListener {
     }
     @Override public void onStatusChanged(String provider, int status, Bundle extras) { }
 
+    private boolean autoSaveReq;
+
     private void stopRecording() {
         running = false;
         h.removeCallbacksAndMessages(null);
@@ -194,6 +208,21 @@ public class TracksService extends Service implements LocationListener {
         // samenvatting voor de app, zodat het opslaan-scherm meteen de stats heeft
         try {
             Tracks.Stats s = Tracks.stats(pts);
+            if (Tracks.prefs(this).getBoolean("trip", false)) {
+                // Rit van Mijn auto: vanzelf opslaan, geen vraag
+                Tracks.prefs(this).edit().remove("trip").apply();
+                Car.tripDone(this, startT, s);
+                stopForeground(true); stopSelf();
+                return;
+            }
+            if (autoSaveReq) {
+                // Gestopt door een automatisering: vanzelf opslaan
+                autoSaveReq = false;
+                if (s.points >= 2) Tracks.finalize(this, startT, "Route " + new java.text.SimpleDateFormat("d MMM HH:mm", new java.util.Locale("nl", "NL")).format(new java.util.Date(startT)));
+                else Tracks.liveFile(this).delete();
+                stopForeground(true); stopSelf();
+                return;
+            }
             Tracks.prefs(this).edit()
                     .putBoolean("justStopped", true).remove("interrupted")
                     .putInt("lastPoints", s.points)

@@ -26,6 +26,7 @@ schermen/21-info.html
 schermen/22-automatiseringen.html
 schermen/22-meldingsgeschiedenis.html
 schermen/23-gesprekken-opnemen.html
+schermen/24-mijn-auto.html
 vensters.html
 script/00-begin.js
 script/01-nepbrug.js
@@ -58,6 +59,8 @@ script/27-wat-is-er-nieuw-foutmelding-na-vastlopen.js
 script/28-versie-updates.js
 script/32-meldingsgeschiedenis.js
 script/33-gesprekken-opnemen.js
+script/34-uitbreidingen.js
+script/35-mijn-auto.js
 script/29-start.js
 script/30-snelkoppelingen.js
 script/31-startscherm-groepen-volgorde-verbergen.js

@@ -68,6 +68,8 @@ public class MainActivity extends Activity {
     String pendingShare = null;
     volatile Uri pendingArchive = null;
     private static final String BASE_URL = "https://app.renes-tools.local/";
+    /** De app staat op het scherm (dan mag een voorgronddienst met locatie altijd starten). */
+    static volatile boolean visible;
 
     private WebView web;
     /** De pagina heeft zichzelf getekend (met app-slot: het slotscherm staat er al). Tot dan blijft de WebView verborgen. */
@@ -320,12 +322,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        visible = false;
         js("onPauseApp", "");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        visible = true;
         js("onResumeApp", "");
         // Automatisch op updates controleren, hooguit eens per 30 minuten.
         long last = Updater.prefs(this).getLong("lastCheck", 0);
@@ -1959,6 +1963,25 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void autoDelete(String id) { Auto.delete(ctx, id); }
         @JavascriptInterface public void autoSetOn(String id, boolean on) { Auto.setOn(ctx, id, on); }
         @JavascriptInterface public String autoBt() { return Auto.btDevices(ctx); }
+
+        // ----- Mijn auto -----
+        @JavascriptInterface public String carState() { return Car.stateJson(ctx); }
+        @JavascriptInterface public void carSet(String addr, String name, boolean trips, String defType) { Car.setCar(ctx, addr, name, trips, defType); }
+        @JavascriptInterface public void carParkNow() {
+            Auto.locate(ctx, 20_000, loc -> { Car.park(ctx, loc, "hand"); a.js("onCarChanged", loc == null ? "\"noloc\"" : "\"ok\""); });
+        }
+        @JavascriptInterface public void carLeft() { Car.closePark(ctx); }
+        @JavascriptInterface public String carTripSet(String id, String type, String note) { return Car.setTrip(ctx, id, type, note); }
+        @JavascriptInterface public String carTripDelete(String id) { return Car.deleteTrip(ctx, id); }
+        @JavascriptInterface public void carExport(String month) {
+            new Thread(() -> {
+                String r;
+                try { r = "ok:" + Car.exportMonth(ctx, month); } catch (Exception e) { r = e.getMessage() == null ? "Exporteren lukt niet" : e.getMessage(); }
+                a.js("onCarExport", JSONObject.quote(r));
+            }, "car-export").start();
+        }
+        @JavascriptInterface public void carTripStart() { Car.startTrip(ctx); }
+        @JavascriptInterface public void carTripStop() { Car.stopTrip(ctx); }
         @JavascriptInterface public String autoApps() { return Auto.apps(ctx); }
 
         /** Nu uitvoeren (zonder trigger en voorwaarden), om te testen. */
@@ -2178,6 +2201,21 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String musicState() { return Music.stateJson(ctx); }
 
         @JavascriptInterface public String musicHistory() { return Music.history(ctx).toString(); }
+        /** Nummer van de radio bewaren in Herkende muziek, zonder herkenning (kost geen AudD-tegoed). Geeft "" of "dubbel". */
+        @JavascriptInterface public String musicSaveFromRadio(String artist, String title, String station) {
+            try {
+                if (title == null || title.trim().isEmpty()) return "leeg";
+                org.json.JSONArray h = Music.history(ctx);
+                for (int i = 0; i < Math.min(h.length(), 20); i++) {
+                    JSONObject r = h.getJSONObject(i);
+                    if (r.optString("title").equalsIgnoreCase(title.trim()) && r.optString("artist").equalsIgnoreCase(artist == null ? "" : artist.trim())
+                            && System.currentTimeMillis() - r.optLong("t") < 3 * 60 * 60_000L) return "dubbel";
+                }
+                Music.addHistory(ctx, new JSONObject().put("t", System.currentTimeMillis()).put("artist", artist == null ? "" : artist.trim())
+                        .put("title", title.trim()).put("source", "radio").put("station", station == null ? "" : station));
+                return "";
+            } catch (Exception e) { return "Bewaren lukt niet"; }
+        }
 
         @JavascriptInterface public void musicDelete(String t) {
             try { Music.deleteHistory(ctx, Long.parseLong(t)); } catch (Exception ignored) { }

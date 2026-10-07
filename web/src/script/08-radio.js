@@ -97,7 +97,8 @@ function rdShowSong(t, inf){
   box.style.display = 'block';
   const q = encodeURIComponent(t);
   box.innerHTML = (inf.song ? '<b>' + esc(inf.song) + '</b><span>' + esc(inf.artist) + '</span>' : '<b>' + esc(t) + '</b><span>Nu op ' + esc((rdState.station || {}).name || 'de radio') + '</span>') +
-    '<div class=lnk><button class=mini data-u="https://music.youtube.com/search?q=' + q + '" onclick="Android.openUrl(this.dataset.u)">YouTube</button>' +
+    '<div class=lnk><button class=mini onclick="rdSaveSong()" aria-label="Nummer bewaren in Herkende muziek">★ Bewaar</button>' +
+    '<button class=mini data-u="https://music.youtube.com/search?q=' + q + '" onclick="Android.openUrl(this.dataset.u)">YouTube</button>' +
     '<button class=mini data-u="https://open.spotify.com/search/' + q + '" onclick="Android.openUrl(this.dataset.u)">Spotify</button>' +
     (inf.streamUrl && /^https?:\/\//i.test(inf.streamUrl) ? '<button class=mini data-u="' + esc(inf.streamUrl) + '" onclick="Android.openUrl(this.dataset.u)">Meer info</button>' : '') + '</div>';
 }
@@ -119,9 +120,23 @@ function rdShowRecent(l){
   $('#rd-recent').innerHTML = l.map(x => '<li data-t="' + esc(x.title) + '" onclick="rdRecentTap(this.dataset.t)"><time>' +
     new Date(x.t).toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) + '</time><span>' + esc(x.title) + '</span></li>').join('');
 }
+/* Nummer van de radio bewaren in Herkende muziek (zonder AudD). "Artiest - Titel" wordt gesplitst. */
+function rdSplit(t, inf){
+  if (inf && inf.song) return [inf.artist || '', inf.song];
+  const m = String(t || '').split(/\s+[-–]\s+/);
+  return m.length >= 2 ? [m[0], m.slice(1).join(' - ')] : ['', String(t || '')];
+}
+function rdSaveSong(t, inf){
+  if (t === undefined) { t = rdState.title; inf = rdState.info || {}; }
+  const [artist, title] = rdSplit(t, inf);
+  if (typeof Android.musicSaveFromRadio !== 'function') return;
+  const e = Android.musicSaveFromRadio(artist, title, (rdState.station || {}).name || '');
+  toast(e === 'dubbel' ? 'Staat al in Herkende muziek' : e ? e : '★ Bewaard in Herkende muziek');
+}
 function rdRecentTap(t){
   const q = encodeURIComponent(t);
   openSheet(t, 'Eerder gedraaid op ' + ((rdState.station || {}).name || 'de radio'), [
+    ['★ Bewaren in Herkende muziek', () => rdSaveSong(t, null)],
     ['Zoeken op YouTube', () => Android.openUrl('https://music.youtube.com/search?q=' + q)],
     ['Zoeken op Spotify', () => Android.openUrl('https://open.spotify.com/search/' + q)],
   ]);

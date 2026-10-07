@@ -346,6 +346,10 @@ final class Tracks {
     static synchronized boolean recoverInterrupted(Context c) {
         if (TracksService.running) return false;
         SharedPreferences p = prefs(c);
+        if (p.getBoolean("trip", false) || Car.prefs(c).getLong("tripStart", 0) > 0) {
+            p.edit().remove("trip").apply(); // een afgebroken rit wordt een gewone route om op te slaan
+            Car.prefs(c).edit().remove("tripStart").apply();
+        }
         if (p.getBoolean("justStopped", false)) return true;
         File live = liveFile(c);
         if (!live.exists()) return false;

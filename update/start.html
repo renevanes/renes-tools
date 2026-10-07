@@ -241,7 +241,7 @@ if (!window.Android) window.Android = (function(){
     cities(q){ setTimeout(() => onCities([{name: 'Rotterdam', sub: 'Zuid-Holland, Nederland', lat: 51.92, lon: 4.48}, {name: 'Rotterdam', sub: 'New York, Verenigde Staten', lat: 42.8, lon: -73.9}]), 50); },
     setPlace(n, la, lo){ this._place = n; }, placeName(){ return this._place || ''; }, locationPermission(){},
     tools(){ return JSON.stringify({backup: {busy: false, last: {t: Date.now() - 864e5 * 4, sms: {ok: true}}}, radio: this._radio, radioLast: {name: 'NPO Radio 2', url: 'x'},
-      reminders: {a: Date.now() + 2 * 36e5}, redial: {on: true, next: Date.now() + 20 * 36e5, plan: {name: 'Huisarts', number: '010'}}}); },
+      reminders: {a: Date.now() + 2 * 36e5}, birthdays: [{name: 'Oma', days: 0, age: 88}, {name: 'Kees', days: 2, age: 0}], redial: {on: true, next: Date.now() + 20 * 36e5, plan: {name: 'Huisarts', number: '010'}}}); },
     radio(w){ this._rw = w; if (w === 'play' || w === 'resume') this._radio = {status: 'playing', station: {name: 'NPO Radio 2'}, title: 'Doe Maar - De Bom'}; else if (w === 'pause') this._radio.status = 'paused'; else if (w === 'stop') this._radio = {status: 'stopped'}; },
     openTool(n){ this._tool = n; },
     _ws: {pinned: ['com.whatsapp/.Main'], dock: ['com.android.dialer/.Main']}, wsApps(){ return JSON.stringify(this._ws); },
@@ -699,6 +699,12 @@ function renderTools(){
   const end = new Date(); end.setHours(23, 59, 59);
   const rem = Object.values(t.reminders || {}).filter(x => x >= Date.now() && x <= end.getTime()).sort();
   if (rem.length) rows.push(['🔔', rem.length + (rem.length === 1 ? ' herinnering' : ' herinneringen') + ' vandaag, eerst om ' + new Date(rem[0]).toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'}), 'notes', '']);
+  const bd = t.birthdays || [];
+  if (bd.length) {
+    const today = bd.filter(b => b.days === 0), soon = bd.filter(b => b.days > 0);
+    if (today.length) rows.push(['🎂', 'Vandaag jarig: ' + today.map(b => b.name + (b.age ? ' (' + b.age + ')' : '')).join(', '), 'contacts', '']);
+    if (soon.length) rows.push(['🎈', soon.slice(0, 3).map(b => b.name + ' ' + (b.days === 1 ? 'morgen' : 'over ' + b.days + ' dagen')).join(', '), 'contacts', '']);
+  }
   const rp = t.redial || {};
   if (rp.plan && rp.next > Date.now() && rp.next - Date.now() < 2 * 864e5) rows.push(['📞', 'Auto redial: ' + (rp.plan.name || rp.plan.number) + ' · ' + new Date(rp.next).toLocaleString('nl-NL', {weekday: 'short', hour: '2-digit', minute: '2-digit'}), 'redial', '']);
   h += rows.map(x => '<button class=trow data-t="' + x[2] + '" onclick="Android.openTool(this.dataset.t)"><span>' + x[0] + '</span><span class="' + x[3] + '">' + esc(x[1]) + '</span></button>').join('');

@@ -1,15 +1,28 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.52",
-  "versionCode": 53,
-  "nativeLevel": 48,
+  "versionName": "1.53",
+  "versionCode": 54,
+  "nativeLevel": 49,
   "web": "index.html",
-  "webSha256": "73caef4749c6e844443d48cc5cfc88ce153c524fc1b66234f4065862a0207a14",
+  "webSha256": "74e48ef962af52157eed4f30c9cddfee4e9f135fcfbf2f81bdb41730e59f758d",
   "start": "start.html",
-  "startSha256": "fe8b3b77fc2cc904ddb2a077efa52244424b65f65a294d69f0fe51efb1c899c0",
+  "startSha256": "83f8bfc2711e634d3c990f40deb8632b666c7212c6403bf5886bc31c5bd5ac0d",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a102f86b2b396be1e646f4d89695d618ce25519b89e095fc35f3de48c7af04d4",
+  "apkSha256": "cc8f776e5dac8d97bb174885236db1190f0a425fa94f9a72a51f8639b280526b",
   "changelog": [
+    {
+      "version": "1.53",
+      "date": "2026-10-07",
+      "changes": [
+        "Nieuw: Mijn auto. Zet je de auto uit (Bluetooth), dan bewaart de app waar hij staat, met 'Navigeer terug' en een parkeerlogboek",
+        "Mijn auto: ritten vanzelf opnemen (Bluetooth aan/uit), met kilometers, zakelijk of privé, en per maand exporteren als CSV",
+        "Automatiseringen: eigen acties (notitie tonen, radiozender, route starten/stoppen, alles back-uppen, Auto redial) en nieuwe momenten: op een tijdstip en aan de lader",
+        "Automatiseringen: sjabloon 'Boodschappenlijst tonen bij de winkel'",
+        "Radio: ★ Bewaar zet het nummer dat speelt in Herkende muziek, zonder AudD",
+        "Uitgeschreven gesprek: kies zinnen en maak er een notitie of lijstje van",
+        "Telefoon-skin: verjaardagen uit je contacten bij Vandaag"
+      ]
+    },
     {
       "version": "1.52",
       "date": "2026-10-07",
@@ -470,5 +483,5 @@
       ]
     }
   ],
-  "webSig2": "Qln2UnnpVk1aV0EUlpJ4SOVXKWGh66ETIEbRe75hBqYihJzgO6q6o2+xYccGlucrTanTrro4RrMAOPfjYd0MH9+35uFsSqOCPhkvog3sv8ttRaVcxxwu3bunjlI4h74SvW3ONDQMHg4d0FnqQAB9mezuQSQXf6gm0moYMZqAqfzy4DcKrd0tXZyKveHX8mehWnuehOUbhb9djZDHDwWc4/2wL6G19bn1Z/oOApr75w9q3yLJMRR0has5kquj2u7/27X+4zbM81Gk76Co4t4NhinkbTYACyx34XXIyIKfA+ug2cSnUgA1Qwfkge3upzFPw4p3e5Wim/fnKZ9dSAKOLaRppYD339cEFQr1HpkDQoc0qYaw+9b9jTll4pnq9GcrwDWH1TLm+kUjqR5imjLS718w5Vfsrbl0B95qbpXvipqbiZsouZZW30IxF2ehT62Xxrihy2Wfr80biHwo45ut9ti35v4r5bNVHezoVGvbod3NI+c+bhK8L7gfBF5/argn"
+  "webSig2": "oVkPUhiESW4bDIOHEfSko8pWZfFdxtMsQVk/xr8Ka9osb2z7qJfbatNNP1FD3LunrVD6puhjSNkjDs58ZS/sOWPRhzeSNeM2pQrOM8Se5d5MXpfgy/8Dfg2RkLO9ADhnmHQiDPzsN2emt9OQ0X8eLXew8P/vfThlGHAOSiah5+U6H+p2zQ5oTHLdpvrrtO65mAU6+QNMESapBO6SUfSgMe+W0nAToedQbr/1cJcOIh8kiSSv+wfMRO4AO25jHc2jEy6WOW/LriTfpjNP07fk8DnuNYHi42jI+1lO4fOlHUFEfXaKwDgpYXHo5CzokPA/O9gXL89pykLHJAmVRFZuhSab75EeFu1SjzCvlgwBSKB1YvstnEL6fkSspDBTGz+3pKUsoWu9Bo2l4TQ0GDjXKYhxt2UqDQfiTMFuj4CVoKNpFLtuWCeDB/8TvTKRu0nbykZpiB45t4izozN86FbvPYKi9yYJTwv9lzFn6EeH3+zw+SDGoVQh1S+xS+nK7vHE"
 }

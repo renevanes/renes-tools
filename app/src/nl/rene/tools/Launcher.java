@@ -315,6 +315,7 @@ final class Launcher {
             if (!Lock.active(c)) {
                 o.put("reminders", new JSONObject(Reminders.all(c)));
                 o.put("redial", new JSONObject(RedialPlan.stateJson(c)));
+                o.put("birthdays", new JSONArray(Birthdays.upcoming(c, 7)));
             }
             return o.toString();
         } catch (Exception e) { return "{}"; }

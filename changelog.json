@@ -1,5 +1,18 @@
 [
   {
+    "version": "1.53",
+    "date": "2026-10-07",
+    "changes": [
+      "Nieuw: Mijn auto. Zet je de auto uit (Bluetooth), dan bewaart de app waar hij staat, met 'Navigeer terug' en een parkeerlogboek",
+      "Mijn auto: ritten vanzelf opnemen (Bluetooth aan/uit), met kilometers, zakelijk of privé, en per maand exporteren als CSV",
+      "Automatiseringen: eigen acties (notitie tonen, radiozender, route starten/stoppen, alles back-uppen, Auto redial) en nieuwe momenten: op een tijdstip en aan de lader",
+      "Automatiseringen: sjabloon 'Boodschappenlijst tonen bij de winkel'",
+      "Radio: ★ Bewaar zet het nummer dat speelt in Herkende muziek, zonder AudD",
+      "Uitgeschreven gesprek: kies zinnen en maak er een notitie of lijstje van",
+      "Telefoon-skin: verjaardagen uit je contacten bij Vandaag"
+    ]
+  },
+  {
     "version": "1.52",
     "date": "2026-10-07",
     "changes": [
