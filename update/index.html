@@ -409,7 +409,7 @@ h1:focus{outline:none}
       <button class="tile" id="tile-recorder" onclick="show('recorder')">
         <span class="ic" style="background:#A93226">🎙</span>
         <b>Gesprekken opnemen</b>
-        <small>Handmatige microfoonopname</small>
+        <small>Handmatig of automatisch starten</small>
       </button>
       <button class="tile" id="tile-tr" onclick="show('transcripts')">
         <span class="ic" style="background:#7D3C98"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 10h16M4 14h12M4 18h7"/><path d="M17 15v6M20 17v2M14 17v2"/></svg></span>
@@ -1565,11 +1565,14 @@ h1:focus{outline:none}
   </div>
   <main>
     <div class="card">
-      <h2>Handmatige microfoonopname</h2>
+      <h2>Microfoonopname</h2>
       <p class="note">Deze tool neemt geluid via de microfoon op. Voor een telefoongesprek: zet zelf de luidspreker aan en test of beide stemmen hoorbaar zijn. Android kan tijdens bellen de microfoon blokkeren of dempen. Opname van beide kanten is daarom niet gegarandeerd, ook niet via een headset. Gebruik de opnamefunctie van je telefoon-app als deze methode niet werkt.</p>
-      <p class="note">Laat de ander weten dat je opneemt. Er wordt alleen opgenomen nadat je zelf Start kiest. De opname blijft op deze telefoon tot je hem deelt of exporteert.</p>
+      <p class="note">Laat de ander weten dat je opneemt. Je kiest zelf Start of schakelt automatisch starten expliciet in. De opname blijft op deze telefoon tot je hem deelt of exporteert.</p>
       <button class="big ghost" id="recorder-permissions" onclick="Android.recorderRequestPermissions();setTimeout(loadRecorder,500)">Toestemming geven</button>
       <p class="note" id="recorder-phone"></p>
+      <label class="chk"><input type="checkbox" id="recorder-auto" onchange="recorderSetAuto(this.checked)"> Automatisch starten bij mobiele telefoongesprekken</label>
+      <p class="note">Staat standaard uit. Na inschakeling probeert de app bij de volgende beantwoorde of uitgaande mobiele oproep een zichtbare microfoonopname te starten en stopt hij bij het einde. Op moderne Android-versies wordt starten vanuit de achtergrond vaak geblokkeerd; dan krijg je een melding om de app te openen en zelf te starten. WhatsApp en andere internetgesprekken worden niet gevolgd. Android kan ook de microfoon tijdens bellen dempen. Zet de luidspreker zelf aan en controleer beide stemmen. Uitschakelen stopt een automatisch begonnen opname.</p>
+      <p id="recorder-auto-state" class="note" role="status" aria-live="polite"></p>
       <p id="recorder-state" role="status" aria-live="polite"></p>
       <p class="note" id="recorder-warning" style="display:none;color:var(--bad)" role="status">Geen duidelijk microfoongeluid gemeten. Android kan de microfoon tijdens bellen dempen. Stop en luister terug voordat je hierop vertrouwt.</p>
       <button class="big" id="recorder-start" onclick="recorderStart()">Start opname</button>
@@ -1642,11 +1645,12 @@ if (!window.Android) window.Android = (function(){
     redialStart2(n,name,a,i,rmin,rmax){ const r=this.redialStart(n,name,a,rmin?rmin:i); st.randomMin=rmin; st.randomMax=rmax; return r; },
     redialStop(){ clearInterval(timer); st={...st,running:false,phase:'done',result:'stopped',message:'Gestopt'}; },
     redialNow(){}, redialStatus:()=>JSON.stringify({...st, now:Date.now()}),
-    _recorder:{busy:false,recording:false,mic:false,notifications:false,phone:false,rows:[],message:'',elapsed:0},
-    recorderState(){return JSON.stringify({...this._recorder,dest:this._wa.info.dest,total:this._recorder.rows.length});},
+    _recorder:{busy:false,recording:false,autoEnabled:false,automatic:false,mic:false,notifications:false,phone:false,rows:[],message:'',elapsed:0},
+    recorderState(){return JSON.stringify({...this._recorder,autoReady:this._recorder.mic&&this._recorder.phone&&this._recorder.notifications,dest:this._wa.info.dest,total:this._recorder.rows.length});},
     recorderRequestPermissions(){this._recorder.mic=true;this._recorder.notifications=true;this._recorder.phone=true;},
-    recorderStart(){if(!this._recorder.mic||!this._recorder.notifications){window.onRecorderMessage('Geef eerst toestemming');return;}this._recorder.busy=true;this._recorder.recording=true;this._recorder.message='';},
-    recorderStop(){const r=this._recorder;r.busy=false;r.recording=false;r.message='Opname opgeslagen.';r.rows.unshift({id:'opname-1791244800000-0123456789abcdef0123456789abcdef.m4a',date:Date.now(),size:12000,duration:3000});},
+    recorderSetAuto(on){const r=this._recorder;if(on&&(!r.mic||!r.phone||!r.notifications))return 'Geef eerst microfoon- en telefoontoegang en schakel meldingen in';r.autoEnabled=on;if(!on&&r.automatic&&r.busy){this.recorderStop();r.automatic=false;}return '';},
+    recorderStart(){if(!this._recorder.mic||!this._recorder.notifications){window.onRecorderMessage('Geef eerst toestemming');return;}this._recorder.busy=true;this._recorder.recording=true;this._recorder.automatic=false;this._recorder.message='';},
+    recorderStop(){const r=this._recorder;r.busy=false;r.recording=false;r.automatic=false;r.message='Opname opgeslagen.';r.rows.unshift({id:'opname-1791244800000-0123456789abcdef0123456789abcdef.m4a',date:Date.now(),size:12000,duration:3000});},
     recorderPlay(id){this._recorder.playing=id;return '';},recorderStopPlayback(){this._recorder.playing=null;},
     recorderShare(id){this._recorder.shared=id;},
     recorderDelete(id){this._recorder.rows=this._recorder.rows.filter(r=>r.id!==id);return '';},
@@ -4230,10 +4234,12 @@ function loadRecorder(){
   let state; try { state = JSON.parse(Android.recorderState()); } catch(e){ state = {error:'Opnames laden lukt niet'}; }
   if (state.error) { $('#recorder-result').textContent = state.error; return; }
   if (state.busy) recorderStarting = false;
+  $('#recorder-auto').checked = !!state.autoEnabled;
+  $('#recorder-auto-state').textContent = state.autoEnabled ? (!state.autoReady ? 'Automatisch starten staat aan, maar de benodigde toestemmingen of meldingen ontbreken.' : 'Automatisch starten staat aan voor volgende mobiele oproepen; Android kan een handmatige start vereisen.') : 'Automatisch starten staat uit.';
   $('#recorder-permissions').style.display = state.mic && state.notifications && state.phone ? 'none' : 'block';
   $('#recorder-permissions').disabled = !!state.busy;
   $('#recorder-phone').textContent = state.busy && !state.autoStop ? 'Automatisch stoppen is niet beschikbaar; stop deze opname zelf.' : state.phone ? 'Bij het einde van een mobiel telefoongesprek wordt de opname automatisch gestopt. Andere gesprekken stop je zelf.' : 'Zonder telefoontoegang moet je de opname zelf stoppen. Geef telefoontoegang als je automatisch stoppen wilt gebruiken.';
-  $('#recorder-state').textContent = state.recording ? '● Opname actief · ' + fmtMs(state.elapsed) : state.busy || recorderStarting ? 'Opname starten…' : 'Er wordt niet opgenomen.';
+  $('#recorder-state').textContent = state.recording ? (state.automatic ? '● Automatische opname actief · ' : '● Opname actief · ') + fmtMs(state.elapsed) : state.busy || recorderStarting ? 'Opname starten…' : 'Er wordt niet opgenomen.';
   $('#recorder-warning').style.display = state.recording && state.silent ? 'block' : 'none';
   $('#recorder-start').style.display = state.busy ? 'none' : 'block';
   $('#recorder-start').disabled = recorderStarting || !state.mic || !state.notifications;
@@ -4250,6 +4256,7 @@ function loadRecorder(){
     '<button class="mini" data-action="delete" data-i="' + i + '">Verwijderen</button></div></article>').join('') || '<p class="note">Nog geen opnames. Start en stop een opname om te beginnen.</p>';
   if (html !== recorderListHtml) { $('#recorder-list').innerHTML = html; recorderListHtml = html; }
 }
+function recorderSetAuto(on){ const error = Android.recorderSetAuto(on); $('#recorder-result').textContent = error || ''; loadRecorder(); }
 function recorderStart(){
   if (recorderStarting) return;
   recorderStarting = true; $('#recorder-result').textContent = ''; Android.recorderStart(); loadRecorder();

@@ -5,11 +5,14 @@
   </div>
   <main>
     <div class="card">
-      <h2>Handmatige microfoonopname</h2>
+      <h2>Microfoonopname</h2>
       <p class="note">Deze tool neemt geluid via de microfoon op. Voor een telefoongesprek: zet zelf de luidspreker aan en test of beide stemmen hoorbaar zijn. Android kan tijdens bellen de microfoon blokkeren of dempen. Opname van beide kanten is daarom niet gegarandeerd, ook niet via een headset. Gebruik de opnamefunctie van je telefoon-app als deze methode niet werkt.</p>
-      <p class="note">Laat de ander weten dat je opneemt. Er wordt alleen opgenomen nadat je zelf Start kiest. De opname blijft op deze telefoon tot je hem deelt of exporteert.</p>
+      <p class="note">Laat de ander weten dat je opneemt. Je kiest zelf Start of schakelt automatisch starten expliciet in. De opname blijft op deze telefoon tot je hem deelt of exporteert.</p>
       <button class="big ghost" id="recorder-permissions" onclick="Android.recorderRequestPermissions();setTimeout(loadRecorder,500)">Toestemming geven</button>
       <p class="note" id="recorder-phone"></p>
+      <label class="chk"><input type="checkbox" id="recorder-auto" onchange="recorderSetAuto(this.checked)"> Automatisch starten bij mobiele telefoongesprekken</label>
+      <p class="note">Staat standaard uit. Na inschakeling probeert de app bij de volgende beantwoorde of uitgaande mobiele oproep een zichtbare microfoonopname te starten en stopt hij bij het einde. Op moderne Android-versies wordt starten vanuit de achtergrond vaak geblokkeerd; dan krijg je een melding om de app te openen en zelf te starten. WhatsApp en andere internetgesprekken worden niet gevolgd. Android kan ook de microfoon tijdens bellen dempen. Zet de luidspreker zelf aan en controleer beide stemmen. Uitschakelen stopt een automatisch begonnen opname.</p>
+      <p id="recorder-auto-state" class="note" role="status" aria-live="polite"></p>
       <p id="recorder-state" role="status" aria-live="polite"></p>
       <p class="note" id="recorder-warning" style="display:none;color:var(--bad)" role="status">Geen duidelijk microfoongeluid gemeten. Android kan de microfoon tijdens bellen dempen. Stop en luister terug voordat je hierop vertrouwt.</p>
       <button class="big" id="recorder-start" onclick="recorderStart()">Start opname</button>

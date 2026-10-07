@@ -4,11 +4,11 @@
   "versionCode": 50,
   "nativeLevel": 45,
   "web": "index.html",
-  "webSha256": "542c4cd42705fc92935be5d683c1165e1d36080a447314c3da7b2f69ade1cf82",
+  "webSha256": "1d95222f4870d19769b9779fd628d9e8c024e52de5afbc559fb75ba3c389e30f",
   "start": "start.html",
   "startSha256": "452f8c05e0d720195c4d18f823c32709cd25c1cb5ce5962ca0b74618b368a6fc",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "965f95de479b9ce3654cebf2742733d6fa0b59ed3d4d2927d8be68d50e3c46bc",
+  "apkSha256": "f63d2564fff32db2fab8fb1e65d11d469c15e843244c38acf89ee97adfafb0df",
   "changelog": [
     {
       "version": "1.49",
@@ -436,5 +436,5 @@
       ]
     }
   ],
-  "webSig": "CtK9Sl3Zx6q/Ilv5JRqNwdRJ4VVmRPq0wyJz/jALJ2tRfrSy6gMr/dVJH1B7jJBtymdU6RQVYI5TpKeXZCCN+G240vFUK26y+sVLIzOvzKLu7BRIUDmsq72uLy8gCmYzKcB2znQlMKlS/aiJjQGKG6JkofoUXFiGD61xLURfwP/k67XdmGvg11CvgF5h0hVzSjn8+25gg3w1e4ox+GyyXQFfNevNFInK6DHWHk1UChJQE7iVA6rVZr7H1xHU5lUmQYGQ4xb6ZhbwT8NoOmEsSdkAa/qTSF/fCUliwebtNaxMH0axh42FSwFsyFB0692KwpB67W7adaGvwhTkfBkYltIwvH3xeE2nNI41sbTK3ThmE0h3d/x3W9+b8yythDL+Q8KaQTB7AV8JPu+efwMy7tG1dvVOnjv/WVElEzEY3IlHMVINfm2fpeBsDuvGYmRd2ASX6oucOwzwIn7G4UeO98oB5kI90qaJVMPy4qbiNVu6nMbXWiugrXCuCyHjI9S8"
+  "webSig": "iWcQu5RrhR3AS8wioEXFxvuqzUu/D0k5aSbYBXYbqBKoO3XuLpr/GYT7EaHgcTapgzByHaFbH3k2cZZC3A+1w6I+/tWh+eGOlbJ2oOYZkJrJhI8Q6dLQWCOE28wK35hRmNTZuSuo8dp/VqM0nZmaxKSPdDuIHqcGKZx6iThdJwg1q7DUgcz4NCjq2bMFwGFIBu7plqgTZ59iUV1Te4Z24exAZbJR5usuL6NhyZMdjaIh3bSNqYneb9H2cTKBSa8RwF+VmcuO96kuQmAhkHbmKHxo5RqQrjAxn+TXVYTx9rvJF0Z5lNjL88qEt4lhXwAd1Hw4h64Py6J+dDq/Q9RqalI1t0B4no7uzzbrjhiEZHAEkBMXnNztDd0CjsM7V+pV4C5pWnYeul42sGuRae3txpISCt3SmHW9jOzNzJhaR1ICurM4Zpuw463A4uIMHoPZfuW7KapH7CRwii4PQPpegYdOLa6BG02DZNIU8JRl2NuqQRKpopCoyT4VoPUlgzhV"
 }

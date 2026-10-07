@@ -21,11 +21,12 @@ import android.telephony.TelephonyManager;
 import java.io.File;
 import java.util.UUID;
 
-/** Handmatige microfoonopname. Geen toegang tot afgeschermde telefoon-audiokanalen. */
+/** Handmatige of expliciet ingeschakelde automatische microfoonopname. Geen toegang tot afgeschermde telefoon-audiokanalen. */
 public final class CallRecorderService extends Service {
     private static final int NOTIFICATION = 4701;
     static final String CHANNEL = "call-recording";
     static volatile boolean busy, recording, watchingCall;
+    static volatile long autoSession;
     private static volatile long since;
     private static volatile boolean heard;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -38,7 +39,11 @@ public final class CallRecorderService extends Service {
 
     static long elapsed() { return recording ? Math.max(0, SystemClock.elapsedRealtime() - since) : 0; }
     static boolean silent() { return recording && !heard && elapsed() > 5000; }
-    static synchronized boolean reserve() { if (busy) return false; busy = true; return true; }
+    static synchronized boolean reserve() { if (busy) return false; busy = true; autoSession = 0; return true; }
+    static synchronized boolean reserveAutomatic(long session) { if (!reserve()) return false; autoSession = session; return true; }
+    static synchronized void cancelAutomatic(long session) {
+        if (autoSession == session && !recording) { busy = false; autoSession = 0; }
+    }
 
     private final Runnable meter = new Meter(this);
     private static final class Meter implements Runnable {
@@ -65,6 +70,11 @@ public final class CallRecorderService extends Service {
         if (intent == null) { stopSelf(); return START_NOT_STICKY; }
         if ("stop".equals(intent.getAction())) { finish(null); return START_NOT_STICKY; }
         if (recorder != null) return START_NOT_STICKY;
+        long requestedSession = intent.getLongExtra("autoSession", 0);
+        if (requestedSession != 0 && (!AutoCallRecording.sessionActive(this, requestedSession) || !AutoCallRecording.ready(this))) {
+            cancelAutomatic(requestedSession); stopSelf(startId); return START_NOT_STICKY;
+        }
+        autoSession = requestedSession;
         busy = true; finishing = false; wasCall = false; watchingCall = false;
         try {
             if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) throw new Exception("Geef eerst microfoontoegang");
@@ -97,7 +107,10 @@ public final class CallRecorderService extends Service {
             recorder.setMaxDuration(2 * 60 * 60 * 1000);
             recorder.setOnErrorListener((r, what, extra) -> { if (r == recorder) finish("Android heeft de opname gestopt. Controleer de opgeslagen opname."); });
             recorder.setOnInfoListener((r, what, extra) -> { if (r == recorder && what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) finish("De maximale opnameduur van 2 uur is bereikt."); });
-            recorder.prepare(); recorder.start();
+            recorder.prepare();
+            if (requestedSession != 0 && !AutoCallRecording.sessionActive(this, requestedSession)) throw new Exception("Oproep beëindigd");
+            recorder.start();
+            AutoCallRecording.cancelNotice(this);
             since = SystemClock.elapsedRealtime(); heard = false; recording = true;
             CallRecordings.prefs(this).edit().putBoolean("active", true).putString("message", "").apply();
             wakeLock = ((PowerManager)getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "renestools:recording");
@@ -107,9 +120,12 @@ public final class CallRecorderService extends Service {
         } catch (Exception e) {
             if (recorder != null) { try { recorder.release(); } catch (Exception ignored) { } recorder = null; }
             if (partial != null) partial.delete();
-            recording = false; busy = false;
-            CallRecordings.prefs(this).edit().putBoolean("active", false).putString("message", "Opnemen starten lukt niet. Android kan de microfoon tijdens een telefoongesprek blokkeren; gebruik dan opname in de telefoon-app.").apply();
+            recording = false; busy = false; autoSession = 0;
+            String message = requestedSession == 0 ? "Opnemen starten lukt niet. Android kan de microfoon tijdens een telefoongesprek blokkeren; gebruik dan opname in de telefoon-app." :
+                    AutoCallRecording.sessionActive(this, requestedSession) ? "Android blokkeert automatisch opnemen of de microfoon. Open de app om handmatig te starten." : "Automatische opname geannuleerd of het gesprek is al beëindigd.";
+            CallRecordings.prefs(this).edit().putBoolean("active", false).putString("message", message).apply();
             stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+            if (requestedSession != 0) AutoCallRecording.blocked(this, requestedSession, message);
         }
         return START_NOT_STICKY;
     }
@@ -147,7 +163,9 @@ public final class CallRecorderService extends Service {
             if (partial != null && partial.exists()) partial.delete();
             if (phone != null && phoneListener != null) try { phone.listen(phoneListener, PhoneStateListener.LISTEN_NONE); } catch (Exception ignored) { }
             if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
-            busy = false; watchingCall = false;
+            busy = false; watchingCall = false; autoSession = 0;
+            CallRecordings.prefs(this).edit().remove("autoSession").apply();
+            AutoCallRecording.cancelNotice(this);
             CallRecordings.prefs(this).edit().putBoolean("active", false).putString("message", message).apply();
             stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
         }

@@ -61,6 +61,12 @@
         android:extractNativeLibs="true"
         android:usesCleartextTraffic="true">
 
+        <receiver android:name=".CallRecordingReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_STATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
         <service android:name=".CallRecorderService" android:exported="false" android:foregroundServiceType="microphone" />
         <provider android:name=".RecordingProvider" android:authorities="nl.rene.tools.recordings" android:exported="false" android:grantUriPermissions="true" />
 
