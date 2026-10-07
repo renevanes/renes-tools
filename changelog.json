@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.50",
+    "date": "2026-10-07",
+    "changes": [
+      "Gesprekken opnemen: optioneel automatisch starten bij je eigen mobiele gesprekken (standaard uit). De opnamemelding met stopknop blijft altijd zichtbaar"
+    ]
+  },
+  {
     "version": "1.49",
     "date": "2026-10-06",
     "changes": [

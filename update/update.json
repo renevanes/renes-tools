@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.49",
-  "versionCode": 50,
-  "nativeLevel": 45,
+  "versionName": "1.50",
+  "versionCode": 51,
+  "nativeLevel": 46,
   "web": "index.html",
-  "webSha256": "1d95222f4870d19769b9779fd628d9e8c024e52de5afbc559fb75ba3c389e30f",
+  "webSha256": "1010934e1adb828d88359b5a344aa1e505370fc722e2e4eb296342be93b3f580",
   "start": "start.html",
   "startSha256": "452f8c05e0d720195c4d18f823c32709cd25c1cb5ce5962ca0b74618b368a6fc",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "f63d2564fff32db2fab8fb1e65d11d469c15e843244c38acf89ee97adfafb0df",
+  "apkSha256": "99dfd9f6d88666465a4a12acea849294b9dea6d1c31a3158a9ddce1f131b9190",
   "changelog": [
+    {
+      "version": "1.50",
+      "date": "2026-10-07",
+      "changes": [
+        "Gesprekken opnemen: optioneel automatisch starten bij je eigen mobiele gesprekken (standaard uit). De opnamemelding met stopknop blijft altijd zichtbaar"
+      ]
+    },
     {
       "version": "1.49",
       "date": "2026-10-06",
@@ -436,5 +443,5 @@
       ]
     }
   ],
-  "webSig": "iWcQu5RrhR3AS8wioEXFxvuqzUu/D0k5aSbYBXYbqBKoO3XuLpr/GYT7EaHgcTapgzByHaFbH3k2cZZC3A+1w6I+/tWh+eGOlbJ2oOYZkJrJhI8Q6dLQWCOE28wK35hRmNTZuSuo8dp/VqM0nZmaxKSPdDuIHqcGKZx6iThdJwg1q7DUgcz4NCjq2bMFwGFIBu7plqgTZ59iUV1Te4Z24exAZbJR5usuL6NhyZMdjaIh3bSNqYneb9H2cTKBSa8RwF+VmcuO96kuQmAhkHbmKHxo5RqQrjAxn+TXVYTx9rvJF0Z5lNjL88qEt4lhXwAd1Hw4h64Py6J+dDq/Q9RqalI1t0B4no7uzzbrjhiEZHAEkBMXnNztDd0CjsM7V+pV4C5pWnYeul42sGuRae3txpISCt3SmHW9jOzNzJhaR1ICurM4Zpuw463A4uIMHoPZfuW7KapH7CRwii4PQPpegYdOLa6BG02DZNIU8JRl2NuqQRKpopCoyT4VoPUlgzhV"
+  "webSig": "XjMk7F+1RPBr8E8MgErVZ+eW8EBQQ5fRDgTMtfBBTYoIXvVcDBu9cO9W7WFEH59zRz4FZ8pGjKHTgrwfHJARlXdKdTVt7lDr2t0tro/gaH75XnIGRtc2UUks/mXljzx4g4glnCwIQEr4VVWdzUhcV2MDf/kjKSn55jNYVfIy26BaZWCWTLjGS5N4OmPnMflpixHkLzyQXsWCvZRDViKYKiZvBVtyCV08ddqjhh4ePOR9pjNmmROieWWXTEDUd1KQy46fnOdc42+B8oyyMUPNV6utjFmJJ5F98xcvl4CHOUJY/O6kIZqwDSVWf390cgSstmivKNsWF6MUlGsp7XBvfxkIDnFGoTqwKvXu7G8hk1Qmwbs7Wm2mBYWT5RYKUSlY5dfD074wkMOdU6JWqq8rBVB/ut41SZaOhZiEqMnZW3NJd9UsWkUjktKFwFdZKrhfk/C3kZgiXaQ7E7AmEPtHgOnFfnXUgX5moCCa3F6AyHHuUxszzYDr3wj7teNmnxd1"
 }
