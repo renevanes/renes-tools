@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.54",
+    "date": "2026-10-07",
+    "changes": [
+      "Nieuw: spraaknotities. Tik op 🎤 bij Notities en praat; de app schrijft het op de telefoon uit. In een lijstje worden 'melk, brood en kaas' losse items",
+      "Radio: met 💾 bewaar je de laatste 5 tot 60 minuten (als terugspoelen aan staat) in de map Radio, voor eigen gebruik",
+      "Nieuw: Kluis. Bewaar documenten zoals een kopie van je paspoort versleuteld op de telefoon; openen met vingerafdruk of pincode, na 5 minuten weer op slot",
+      "Alles back-uppen neemt de kluis mee als de backup versleuteld is"
+    ]
+  },
+  {
     "version": "1.53",
     "date": "2026-10-07",
     "changes": [

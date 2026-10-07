@@ -8,6 +8,7 @@
         <exclude domain="database" path="notification-history.db-shm" />
         <exclude domain="file" path="wa/" />
         <exclude domain="file" path="call-recordings/" />
+        <exclude domain="file" path="kluis/" />
         <exclude domain="file" path="transcripts/" />
         <exclude domain="file" path="tracks/" />
         <exclude domain="file" path="whisper/" />
@@ -30,6 +31,7 @@
         <exclude domain="database" path="notification-history.db-shm" />
         <exclude domain="file" path="wa/" />
         <exclude domain="file" path="call-recordings/" />
+        <exclude domain="file" path="kluis/" />
         <exclude domain="file" path="transcripts/" />
         <exclude domain="file" path="tracks/" />
         <exclude domain="file" path="whisper/" />

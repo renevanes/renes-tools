@@ -224,6 +224,32 @@ final class Timeshift {
         } catch (Exception ignored) { }
     }
 
+    /**
+     * Kopieert [from, to) uit de buffer naar os (bijv. "de laatste 10 minuten bewaren"). Begint bij het oudste
+     * dat er nog is als 'from' al overschreven is. Geeft het aantal geschreven bytes.
+     */
+    long copy(long from, long to, OutputStream os) throws IOException {
+        long w = written;
+        to = Math.min(to, w);
+        long pos = Math.max(from, oldest());
+        byte[] buf = new byte[64 * 1024];
+        long n = 0;
+        try (RandomAccessFile in = new RandomAccessFile(file, "r")) {
+            while (pos < to && !closed) {
+                int at = (int) (pos % cap);
+                int k = (int) Math.min(Math.min(to - pos, cap - at), buf.length);
+                synchronized (this) { in.seek(at); in.readFully(buf, 0, k); }
+                if (written - cap + margin() / 4 > pos) { pos = oldest(); continue; } // intussen overschreven
+                os.write(buf, 0, k);
+                pos += k; n += k;
+            }
+        }
+        return n;
+    }
+
+    /** Bestandsextensie voor het formaat van de stream. */
+    String ext() { String t = contentType == null ? "" : contentType.toLowerCase(Locale.ROOT); return t.contains("aac") ? "aac" : "mp3"; }
+
     static long number(String s, int from, long def) {
         int j = from;
         while (j < s.length() && Character.isDigit(s.charAt(j))) j++;

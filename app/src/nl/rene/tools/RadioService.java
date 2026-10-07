@@ -118,6 +118,39 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         }
     }
 
+    /** Hoeveel seconden er terug te halen zijn (0 = geen buffer). */
+    static int clipMax() { RadioService s = inst; Timeshift t = s == null ? null : s.ts; return t == null ? 0 : (int) ((t.live() - t.oldest()) / Math.max(1, t.rate())); }
+
+    /** De laatste 'seconds' van de buffer bewaren in Radio/ in de backup-map. Geeft "" of een foutmelding. */
+    static String saveClip(Context c, int seconds) {
+        RadioService s = inst;
+        Timeshift t = s == null ? null : s.ts;
+        if (t == null) return "Dit kan alleen als terugspoelen aan staat (bij deze zender)";
+        android.net.Uri tree = WaBackup.destUri(c);
+        if (tree == null) return "Kies eerst een backup-map (Instellingen)";
+        try {
+            long to = t.live(), from = Math.max(t.oldest(), to - (long) seconds * t.rate());
+            if (to - from < t.rate() * 3L) return "Er is nog te weinig opgenomen";
+            String name = "Radio";
+            try { if (station != null) name = new JSONObject(station).optString("name", "Radio"); } catch (Exception ignored) { }
+            String file = Sms.safeName(name) + "_" + new java.text.SimpleDateFormat("yyyy-MM-dd_HHmm", java.util.Locale.US).format(new java.util.Date()) + "." + t.ext();
+            WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
+            WaBackup.DestDir dir = dest.dir("Radio", true);
+            android.net.Uri u = android.provider.DocumentsContract.createDocument(c.getContentResolver(), dir.uri, "aac".equals(t.ext()) ? "audio/aac" : "audio/mpeg", file);
+            if (u == null) return "Bestand maken lukt niet";
+            long n;
+            try (java.io.OutputStream os = c.getContentResolver().openOutputStream(u, "w")) {
+                if (os == null) return "Bestand openen lukt niet";
+                n = t.copy(from, to, os);
+            }
+            if (t.closed && n < to - from) {
+                try { android.provider.DocumentsContract.deleteDocument(c.getContentResolver(), u); } catch (Exception ignored) { }
+                return "De zender werd intussen gestopt; niets bewaard";
+            }
+            return "";
+        } catch (Exception e) { return "Bewaren lukt niet: " + (e.getMessage() == null ? "" : e.getMessage()); }
+    }
+
     static String stateJson() {
         try {
             JSONObject o = new JSONObject().put("status", "interrupted".equals(status) ? "paused" : status)
@@ -125,7 +158,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             if (station != null) o.put("station", new JSONObject(station));
             if (error != null) o.put("error", error);
             o.put("info", new JSONObject(info));
-            if (shiftOn) o.put("shift", new JSONObject().put("behind", shiftBehind).put("back", shiftBack));
+            if (shiftOn) o.put("shift", new JSONObject().put("behind", shiftBehind).put("back", shiftBack).put("clip", clipMax()));
             org.json.JSONArray r = new org.json.JSONArray();
             synchronized (recent) { for (String[] x : recent) r.put(new JSONObject().put("t", Long.parseLong(x[0])).put("title", x[1])); }
             o.put("recent", r);

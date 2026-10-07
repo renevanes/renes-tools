@@ -352,3 +352,9 @@ h1:focus{outline:none}
 .trip b{display:block;font-size:15px}.trip small{color:var(--muted)}
 .ttype{font-size:12px;padding:3px 8px;border-radius:10px;background:var(--chip);white-space:nowrap}.ttype.zak{background:var(--chip-on);color:#fff}
 .clog{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+
+.fab.fab2{bottom:90px;width:50px;height:50px;right:22px;font-size:22px;background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.voicebtn{width:96px;height:96px;border-radius:50%;font-size:42px;background:var(--chip);border:0;margin:10px auto;display:block}
+.voicebtn.rec{background:#E5484D;color:#fff;animation:vpulse 1.2s infinite}
+@keyframes vpulse{0%{box-shadow:0 0 0 0 #E5484D88}100%{box-shadow:0 0 0 18px #E5484D00}}
+@media (prefers-reduced-motion: reduce){.voicebtn.rec{animation:none}}

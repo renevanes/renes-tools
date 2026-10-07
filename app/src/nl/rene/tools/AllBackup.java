@@ -22,7 +22,7 @@ final class AllBackup {
 
     private AllBackup() { }
 
-    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "launcher", "transcripts", "music", "settings", "routes"};
+    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "launcher", "transcripts", "music", "settings", "routes", "kluis"};
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("allbackup", Context.MODE_PRIVATE); }
 
@@ -145,6 +145,8 @@ final class AllBackup {
                 return SettingsBackup.export(c);
             case "routes":
                 return SettingsBackup.exportRoutes(c);
+            case "kluis":
+                return Kluis.export(c); // alleen in een versleutelde backup
             case "music":
                 return exportMusic(c);
             case "launcher":

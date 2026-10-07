@@ -72,6 +72,7 @@
             </intent-filter>
         </receiver>
         <service android:name=".CallRecorderService" android:exported="false" android:foregroundServiceType="microphone" />
+        <provider android:name=".KluisProvider" android:authorities="nl.rene.tools.kluis" android:exported="false" android:grantUriPermissions="true" />
         <provider android:name=".RecordingProvider" android:authorities="nl.rene.tools.recordings" android:exported="false" android:grantUriPermissions="true" />
 
         <service android:name=".HistoryListener" android:label="Meldingsgeschiedenis"

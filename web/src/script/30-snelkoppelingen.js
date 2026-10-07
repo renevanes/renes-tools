@@ -1,7 +1,7 @@
 /* ---------- Snelkoppelingen ---------- */
 // Tool → naam, kleur en symbool (zelfde kleur als de tegel).
 const TOOLS = {
-  car: ['Mijn auto', '#1F6F5C', '🚗'],
+  car: ['Mijn auto', '#1F6F5C', '🚗'], kluis: ['Kluis', '#4B5563', '🔒'],
   recorder: ['Gesprekken opnemen', '#A93226', '🎙'],
   history: ['Meldingsgeschiedenis', '#B9770E', '🔔'],
   radio: ['Radio', '#D35400', '📻'], music: ['Muziek herkennen', '#2471A3', '🎵'], notes: ['Notities', '#E67E22', '📝'],
@@ -10,7 +10,7 @@ const TOOLS = {
   transcripts: ['Gesprekken uitschrijven', '#7D3C98', '🗒'], backup: ['Alles back-uppen', '#34495E', '🗄'],
   skin: ['Telefoon-skin', '#6D28D9', '📱'], auto: ['Automatiseringen', '#0E7C86', '⚡']
 };
-const TILE_TOOL = { 'tile-car': 'car', 'tile-recorder': 'recorder', 'tile-history': 'history', 'tile-redial': 'redial', 'tile-wa': 'wa', 'tile-tracks': 'tracks', 'tile-sms': 'sms', 'tile-calls': 'calls',
+const TILE_TOOL = { 'tile-car': 'car', 'tile-kluis': 'kluis', 'tile-recorder': 'recorder', 'tile-history': 'history', 'tile-redial': 'redial', 'tile-wa': 'wa', 'tile-tracks': 'tracks', 'tile-sms': 'sms', 'tile-calls': 'calls',
   'tile-notes': 'notes', 'tile-contacts': 'contacts', 'tile-tr': 'transcripts', 'tile-radio': 'radio', 'tile-music': 'music', 'tile-backup': 'backup', 'tile-skin': 'skin', 'tile-auto': 'auto' };
 function pinTool(tool){
   const t = TOOLS[tool]; if (!t) return;

@@ -131,6 +131,11 @@ final class Secure {
         }
 
         Writer writer(String dir, String file) throws IOException {
+            return new java.io.BufferedWriter(new OutputStreamWriter(stream(dir, file), StandardCharsets.UTF_8), 1 << 16);
+        }
+
+        /** Binair bestand in het archief (bijv. kluisdocumenten). */
+        OutputStream stream(String dir, String file) throws IOException {
             String path = (dir == null || dir.isEmpty() ? "" : dir + "/") + file;
             String p = path;
             int dot = path.lastIndexOf('.');
@@ -140,7 +145,7 @@ final class Secure {
             e.setTime(System.currentTimeMillis());
             z.putNextEntry(e);
             files++;
-            return new java.io.BufferedWriter(new OutputStreamWriter(new EntryStream(z), StandardCharsets.UTF_8), 1 << 16);
+            return new EntryStream(z);
         }
     }
 

@@ -55,6 +55,15 @@ public class TimeshiftTest {
         check("te oude plek levert gewoon audio (vanaf het oudste dat er nog is)", g2.length == 100);
         check("buffer niet groter dan het maximum", f.length() <= 64 * 1024);
         check("oldest ligt binnen de buffer", ts.live() - ts.oldest() <= 64 * 1024);
+        java.io.ByteArrayOutputStream clip = new java.io.ByteArrayOutputStream();
+        long cTo = ts.live(), cFrom = cTo - 20_000;
+        long cn = ts.copy(cFrom, cTo, clip);
+        byte[] cb = clip.toByteArray();
+        boolean clipOk = cn == 20_000 && cb.length == 20_000;
+        for (int i = 0; clipOk && i < cb.length; i++) if (cb[i] != at(cFrom + i)) clipOk = false;
+        check("fragment bewaren: laatste 20 kB byte voor byte", clipOk);
+        java.io.ByteArrayOutputStream all = new java.io.ByteArrayOutputStream();
+        check("fragment van vóór de buffer begint bij het oudste", ts.copy(0, ts.live(), all) == ts.live() - ts.oldest());
         ts.close();
         check("na sluiten is het bestand weg", !f.exists());
 

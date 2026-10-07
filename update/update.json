@@ -1,15 +1,25 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.53",
-  "versionCode": 54,
-  "nativeLevel": 49,
+  "versionName": "1.54",
+  "versionCode": 55,
+  "nativeLevel": 50,
   "web": "index.html",
-  "webSha256": "74e48ef962af52157eed4f30c9cddfee4e9f135fcfbf2f81bdb41730e59f758d",
+  "webSha256": "84195b4321e66759c063b3492e9fb2732a33deadb9c342a14cfa4b53eea63374",
   "start": "start.html",
   "startSha256": "83f8bfc2711e634d3c990f40deb8632b666c7212c6403bf5886bc31c5bd5ac0d",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "cc8f776e5dac8d97bb174885236db1190f0a425fa94f9a72a51f8639b280526b",
+  "apkSha256": "5ae53dc9c7f3b03bbcabaecdb959661ed39ad7ec42d287351e64e71c12ec5626",
   "changelog": [
+    {
+      "version": "1.54",
+      "date": "2026-10-07",
+      "changes": [
+        "Nieuw: spraaknotities. Tik op 🎤 bij Notities en praat; de app schrijft het op de telefoon uit. In een lijstje worden 'melk, brood en kaas' losse items",
+        "Radio: met 💾 bewaar je de laatste 5 tot 60 minuten (als terugspoelen aan staat) in de map Radio, voor eigen gebruik",
+        "Nieuw: Kluis. Bewaar documenten zoals een kopie van je paspoort versleuteld op de telefoon; openen met vingerafdruk of pincode, na 5 minuten weer op slot",
+        "Alles back-uppen neemt de kluis mee als de backup versleuteld is"
+      ]
+    },
     {
       "version": "1.53",
       "date": "2026-10-07",
@@ -483,5 +493,5 @@
       ]
     }
   ],
-  "webSig2": "oVkPUhiESW4bDIOHEfSko8pWZfFdxtMsQVk/xr8Ka9osb2z7qJfbatNNP1FD3LunrVD6puhjSNkjDs58ZS/sOWPRhzeSNeM2pQrOM8Se5d5MXpfgy/8Dfg2RkLO9ADhnmHQiDPzsN2emt9OQ0X8eLXew8P/vfThlGHAOSiah5+U6H+p2zQ5oTHLdpvrrtO65mAU6+QNMESapBO6SUfSgMe+W0nAToedQbr/1cJcOIh8kiSSv+wfMRO4AO25jHc2jEy6WOW/LriTfpjNP07fk8DnuNYHi42jI+1lO4fOlHUFEfXaKwDgpYXHo5CzokPA/O9gXL89pykLHJAmVRFZuhSab75EeFu1SjzCvlgwBSKB1YvstnEL6fkSspDBTGz+3pKUsoWu9Bo2l4TQ0GDjXKYhxt2UqDQfiTMFuj4CVoKNpFLtuWCeDB/8TvTKRu0nbykZpiB45t4izozN86FbvPYKi9yYJTwv9lzFn6EeH3+zw+SDGoVQh1S+xS+nK7vHE"
+  "webSig2": "UUMOa912UD5fZnk1LK6iufO+W1P86XDyZVykK0i5PsFJkNxg7xdHyhmO2YnMHI9yAx4dblbHFyDL7AWGJPghZA1Rc2J5gDxLVfeAV5b9g6j2O1ksFDaP3/TClCrNijV7khiujYJyLlPXQnEj7h1xzyXMMva6aMmQHCjoaiVFgKvKIec9hp2DfwiLbR212MDIIa4ui2zPVMhWbUaGN0wvgDTNtti+77ejw7cqrbQ81AMIZEgLOVzsjCJOOu4xL7c0CVz6MvVA05CXKu8QLbw3s2EdWQIg2YSO5Hv/KBAlAzM6aDOg3QMKAXW+nn5vHz4iZ6mK3ULCVup5KIaFWNm5NIZML2gf1vr4WCAbH99fRi6wTaXA4n8pyrsAiVUz/UOBcP254jkkQWxVhovjJfIKpqyswlG8w+Dw1tnEkFhau2GuxsIqcIGE4HMA5alZ1DtUAZcLngKpjI6dlfApQEK4Ib33G7+I8CSBnBu+nxeeCTwd3ma4xwvGxn3SEUDUB29C"
 }

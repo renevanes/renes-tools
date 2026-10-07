@@ -11,6 +11,7 @@
     <p class="note">Je notities staan alleen op deze telefoon. Met de knop hierboven komt er een kopie in de map <b>Notities</b> van je backup-map.</p>
     <div style="height:70px"></div>
   </main>
+  <button class="fab fab2" onclick="voiceOpen(null)" aria-label="Spraaknotitie inspreken">🎤</button>
   <button class="fab" onclick="newNote()" aria-label="Nieuwe notitie">+</button>
 </section>
 
@@ -27,6 +28,7 @@
       <div class="additem">
         <input id="note-add" placeholder="Nieuw item…" enterkeyhint="done" onkeydown="if(event.key==='Enter'){addItem();event.preventDefault();}">
         <button onclick="addItem()" aria-label="Toevoegen">+</button>
+        <button onclick="voiceOpen(noteCur)" aria-label="Inspreken">🎤</button>
       </div>
       <div class="row" style="margin-top:6px;gap:8px"><button onclick="noteSort()" style="padding:8px 12px;border-radius:12px;background:var(--chip);font-weight:600;flex:none">↕︎ Sorteren</button><span class="note" style="margin:0;flex:1">Of sleep een item aan ⋮⋮ naar een andere plek.</span></div>
       <div class="donehdr" id="note-donehdr"><span id="note-donecount"></span><button onclick="clearDone()">Afgevinkte verwijderen</button></div>

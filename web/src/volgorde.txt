@@ -27,6 +27,7 @@ schermen/22-automatiseringen.html
 schermen/22-meldingsgeschiedenis.html
 schermen/23-gesprekken-opnemen.html
 schermen/24-mijn-auto.html
+schermen/25-kluis.html
 vensters.html
 script/00-begin.js
 script/01-nepbrug.js

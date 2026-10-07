@@ -432,6 +432,8 @@ final class Transcribe {
 
     /** Schrijft één opname uit en bewaart het transcript. */
     static void transcribeOne(Context c, File f, Progress p) throws Exception {
+        // Een spraaknotitie gebruikt hetzelfde spraakmodel en dezelfde werkbestanden: eerst die laten afmaken
+        for (int i = 0; i < 600 && "working".equals(VoiceNote.state); i++) Thread.sleep(500);
         Model m = activeModel(c);
         if (m == null) throw new Exception("Download eerst een spraakmodel");
         long dur = durationMs(c, f);

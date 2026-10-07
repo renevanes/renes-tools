@@ -1,4 +1,13 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="voice" role="dialog" aria-modal="true" aria-labelledby="voice-t">
+  <div class="modal-box" style="text-align:center">
+    <h3 id="voice-t">Spraaknotitie</h3>
+    <button class="voicebtn" id="voice-btn" onclick="voiceToggle()" aria-label="Opnemen starten of stoppen">🎤</button>
+    <p id="voice-state" class="note" role="status" aria-live="polite">Tik op de microfoon en praat. Tik nog eens als je klaar bent.</p>
+    <p class="note" style="font-size:12px">Wordt op de telefoon uitgeschreven; er gaat niets naar internet.</p>
+    <button class="big ghost" onclick="voiceClose()">Annuleren</button>
+  </div>
+</div>
 <div class="undo" id="undo" role="status" aria-live="polite"><span id="undo-t"></span><button id="undo-b" type="button">Ongedaan maken</button></div>
 
 <div class="sheet" id="sheet" onclick="if(event.target===this&&Date.now()-sheetAt>500)closeSheet()">

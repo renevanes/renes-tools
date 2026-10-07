@@ -64,6 +64,7 @@ public class MainActivity extends Activity {
     private static final int REQ_IMPORT = 24;
     private static final int REQ_HOME = 25;
     private static final int REQ_AUTO = 26;
+    private static final int REQ_KLUIS = 27;
     volatile String importKind = null;
     String pendingShare = null;
     volatile Uri pendingArchive = null;
@@ -173,6 +174,7 @@ public class MainActivity extends Activity {
         boolean fromHistory = getIntent() != null && (getIntent().getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0;
         if (b == null && !fromHistory && takeShare(getIntent())) pendingOpen = "share";
         Shortcuts.refreshPinned(this);
+        if (!Kluis.isOpen()) Kluis.clearViews(this); // tijdelijk ontsleutelde documenten van een eerdere keer opruimen
         playFromShortcut(getIntent());
         if (b == null && !fromHistory) RedialPlan.startMissed(this, getIntent());
         // Met app-slot: niets van de inhoud laten zien voordat het slotscherm er staat (anders flitst het startscherm).
@@ -323,6 +325,7 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         visible = false;
+        if ("recording".equals(VoiceNote.state)) VoiceNote.cancel(); // inspreken alleen met de app open
         js("onPauseApp", "");
     }
 
@@ -498,6 +501,17 @@ public class MainActivity extends Activity {
                 }
                 js("onRestorePreview", r);
             }, "restore-preview").start();
+            return;
+        }
+        if (req == REQ_KLUIS) {
+            if (res != RESULT_OK || data == null || data.getData() == null) return;
+            final Uri u = data.getData();
+            new Thread(() -> {
+                String r;
+                try { if (!Kluis.isOpen()) throw new Exception("De kluis is weer op slot"); Kluis.add(getApplicationContext(), u); r = "ok"; }
+                catch (Throwable e) { r = e instanceof OutOfMemoryError ? "Bestand is te groot" : e.getMessage() == null ? "Toevoegen lukt niet" : e.getMessage(); }
+                js("onKluisChanged", JSONObject.quote(r));
+            }, "kluis-add").start();
             return;
         }
         if (req == REQ_RECTREE) {
@@ -2164,6 +2178,61 @@ public class MainActivity extends Activity {
 
         // ----- Muziek herkennen -----
 
+        // ----- Kluis -----
+        @JavascriptInterface public void kluisUnlock() {
+            a.h.post(() -> {
+                if (Kluis.isOpen()) { Kluis.open(ctx); a.js("onKluis", "true"); return; }
+                if (Lock.authBusy) { a.js("onKluis", JSONObject.quote("Er staat al een vraag om te ontgrendelen open")); return; }
+                Lock.prompt(a, "Kluis openen", (ok, msg) -> a.runOnUiThread(() -> {
+                    if (ok) { Kluis.clearViews(ctx); Kluis.open(ctx); }
+                    a.js("onKluis", ok ? "true" : JSONObject.quote(msg == null ? "Niet ontgrendeld" : msg));
+                }));
+            });
+        }
+        @JavascriptInterface public String kluisList() {
+            if (!Kluis.isOpen()) return "{\"locked\":true}";
+            try { Kluis.open(ctx); return new JSONObject().put("docs", Kluis.list(ctx)).put("left", Kluis.remaining()).toString(); } catch (Exception e) { return errJson(e); }
+        }
+        @JavascriptInterface public void kluisAdd() {
+            if (!Kluis.isOpen()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
+            a.h.post(() -> {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+                try { a.startActivityForResult(i, REQ_KLUIS); } catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+            });
+        }
+        @JavascriptInterface public void kluisView(String id) {
+            if (!Kluis.isOpen()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
+            new Thread(() -> {
+                try {
+                    File f = Kluis.view(ctx, id);
+                    JSONObject d = Kluis.find(ctx, id);
+                    String mime = d == null || d.optString("mime").isEmpty() ? ctx.getContentResolver().getType(Uri.fromFile(f)) : d.optString("mime");
+                    Uri u = new Uri.Builder().scheme("content").authority(KluisProvider.AUTH).appendPath(f.getName()).build();
+                    Intent v = new Intent(Intent.ACTION_VIEW).setDataAndType(u, mime == null ? "application/octet-stream" : mime)
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    a.runOnUiThread(() -> { try { a.startActivity(Intent.createChooser(v, "Openen met").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)); } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote("Geen app om dit te openen")); } });
+                } catch (Exception e) { a.js("onKluisChanged", JSONObject.quote(e.getMessage() == null ? "Openen lukt niet" : e.getMessage())); }
+            }, "kluis-view").start();
+        }
+        @JavascriptInterface public String kluisDelete(String id) {
+            if (!Kluis.isOpen()) return "De kluis is op slot";
+            try { Kluis.delete(ctx, id); return ""; } catch (Exception e) { return "Verwijderen lukt niet"; }
+        }
+        @JavascriptInterface public String kluisRename(String id, String name) {
+            if (!Kluis.isOpen() || name == null || name.trim().isEmpty()) return "Kan niet";
+            try { Kluis.rename(ctx, id, name.trim()); return ""; } catch (Exception e) { return "Hernoemen lukt niet"; }
+        }
+        @JavascriptInterface public void kluisClose() {
+            Kluis.close(ctx);
+            try { ctx.revokeUriPermission(Uri.parse("content://" + KluisProvider.AUTH + "/"), Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception ignored) { }
+        }
+
+        // ----- Spraaknotitie -----
+        @JavascriptInterface public String voiceStart() { return VoiceNote.start(ctx, r -> a.js("onVoiceNote", r)); }
+        @JavascriptInterface public void voiceStop() { VoiceNote.stop(ctx, r -> a.js("onVoiceNote", r)); }
+        @JavascriptInterface public void voiceCancel() { VoiceNote.cancel(); }
+        @JavascriptInterface public long voiceElapsed() { return VoiceNote.elapsed(); }
+
         @JavascriptInterface public boolean musicHasMic() {
             return ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
         }
@@ -2202,6 +2271,9 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public String musicHistory() { return Music.history(ctx).toString(); }
         /** Nummer van de radio bewaren in Herkende muziek, zonder herkenning (kost geen AudD-tegoed). Geeft "" of "dubbel". */
+        @JavascriptInterface public void radioSaveClip(int seconds) {
+            new Thread(() -> { String r = RadioService.saveClip(ctx, Math.max(30, Math.min(seconds, 3 * 3600))); a.js("onRadioClip", JSONObject.quote(r)); }, "radio-clip").start();
+        }
         @JavascriptInterface public String musicSaveFromRadio(String artist, String title, String station) {
             try {
                 if (title == null || title.trim().isEmpty()) return "leeg";

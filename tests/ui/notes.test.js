@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
   await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
   console.log('tile', await pg.textContent('#tile-notes-sub'));
   await pg.click('#tile-notes'); await pg.waitForTimeout(200);
-  await pg.click('#s-notes .fab'); await pg.waitForTimeout(150);
+  await pg.click('#s-notes .fab:not(.fab2)'); await pg.waitForTimeout(150);
   await pg.keyboard.type('Klusjes');
   for (const t of ['Lamp vervangen','Gras maaien','Fiets plakken','Dakgoot']) { await pg.fill('#note-add', t); await pg.press('#note-add','Enter'); }
   await pg.click('#note-open li:nth-child(2) input[type=checkbox]'); await pg.waitForTimeout(100);
@@ -21,7 +21,7 @@ const { chromium } = require('playwright');
   console.log('search', await pg.$$eval('#notes-list .nrow', x=>x.map(e=>e.innerText.replace(/\n/g,' | '))));
   await pg.screenshot({ path: __dirname + '/shots/n-search-'+scheme+'.png' });
   // empty note gets discarded
-  await pg.fill('#notes-search', ''); await pg.click('#s-notes .fab'); await pg.click('#s-note .back'); await pg.waitForTimeout(100);
+  await pg.fill('#notes-search', ''); await pg.click('#s-notes .fab:not(.fab2)'); await pg.click('#s-note .back'); await pg.waitForTimeout(100);
   const saved = JSON.parse(await pg.evaluate(() => Android._notes));
   console.log('saved notes', saved.length, saved.map(n=>n.title+':'+n.items.length));
   // delete
