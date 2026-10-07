@@ -6,10 +6,12 @@ function loadRecorder(){
   let state; try { state = JSON.parse(Android.recorderState()); } catch(e){ state = {error:'Opnames laden lukt niet'}; }
   if (state.error) { $('#recorder-result').textContent = state.error; return; }
   if (state.busy) recorderStarting = false;
+  $('#recorder-auto').checked = !!state.autoEnabled;
+  $('#recorder-auto-state').textContent = state.autoEnabled ? (!state.autoReady ? 'Automatisch starten staat aan, maar de benodigde toestemmingen of meldingen ontbreken.' : 'Automatisch starten staat aan voor volgende mobiele oproepen; Android kan een handmatige start vereisen.') : 'Automatisch starten staat uit.';
   $('#recorder-permissions').style.display = state.mic && state.notifications && state.phone ? 'none' : 'block';
   $('#recorder-permissions').disabled = !!state.busy;
   $('#recorder-phone').textContent = state.busy && !state.autoStop ? 'Automatisch stoppen is niet beschikbaar; stop deze opname zelf.' : state.phone ? 'Bij het einde van een mobiel telefoongesprek wordt de opname automatisch gestopt. Andere gesprekken stop je zelf.' : 'Zonder telefoontoegang moet je de opname zelf stoppen. Geef telefoontoegang als je automatisch stoppen wilt gebruiken.';
-  $('#recorder-state').textContent = state.recording ? '● Opname actief · ' + fmtMs(state.elapsed) : state.busy || recorderStarting ? 'Opname starten…' : 'Er wordt niet opgenomen.';
+  $('#recorder-state').textContent = state.recording ? (state.automatic ? '● Automatische opname actief · ' : '● Opname actief · ') + fmtMs(state.elapsed) : state.busy || recorderStarting ? 'Opname starten…' : 'Er wordt niet opgenomen.';
   $('#recorder-warning').style.display = state.recording && state.silent ? 'block' : 'none';
   $('#recorder-start').style.display = state.busy ? 'none' : 'block';
   $('#recorder-start').disabled = recorderStarting || !state.mic || !state.notifications;
@@ -26,6 +28,7 @@ function loadRecorder(){
     '<button class="mini" data-action="delete" data-i="' + i + '">Verwijderen</button></div></article>').join('') || '<p class="note">Nog geen opnames. Start en stop een opname om te beginnen.</p>';
   if (html !== recorderListHtml) { $('#recorder-list').innerHTML = html; recorderListHtml = html; }
 }
+function recorderSetAuto(on){ const error = Android.recorderSetAuto(on); $('#recorder-result').textContent = error || ''; loadRecorder(); }
 function recorderStart(){
   if (recorderStarting) return;
   recorderStarting = true; $('#recorder-result').textContent = ''; Android.recorderStart(); loadRecorder();

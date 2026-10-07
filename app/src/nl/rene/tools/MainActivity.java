@@ -1235,6 +1235,7 @@ public class MainActivity extends Activity {
                 a.requestPermissions(permissions.toArray(new String[0]), REQ_MIC);
             });
         }
+        @JavascriptInterface public String recorderSetAuto(boolean on) { return AutoCallRecording.setEnabled(ctx, on); }
         @JavascriptInterface public void recorderStart() {
             a.h.post(() -> {
                 if (!a.hasWindowFocus()) { a.js("onRecorderMessage", JSONObject.quote("Start de opname vanuit het geopende opnamescherm")); return; }

@@ -5,7 +5,8 @@
     "changes": [
       "Nieuw: Meldingsgeschiedenis. Bewaar nieuwe meldingen na inschakeling en meldingentoegang, doorzoek ze en exporteer als JSON en leesbare HTML",
       "Meldingsgeschiedenis kan mee in Alles back-uppen, ook in versleutelde backups; bewaren en dit backup-onderdeel staan standaard uit",
-      "Nieuw: Gesprekken opnemen via een handmatig gestarte microfoonopname, met zichtbare melding, afspelen, delen en exporteren. Android kan de microfoon tijdens bellen blokkeren; opname van beide kanten is niet gegarandeerd"
+      "Nieuw: Gesprekken opnemen via een handmatig gestarte microfoonopname, met zichtbare melding, afspelen, delen en exporteren. Android kan de microfoon tijdens bellen blokkeren; opname van beide kanten is niet gegarandeerd",
+      "Gesprekken opnemen: optioneel automatisch starten bij mobiele oproepen en stoppen bij het einde; duidelijke melding voor handmatige start als Android de achtergrondstart blokkeert"
     ]
   },
   {
