@@ -38,6 +38,11 @@
 
     <!-- Telefoon-skin: alle apps met een pictogram kunnen tonen en openen -->
     <queries>
+        <!-- Om te zien welke app nu je PDF's opent (voor "Standaard PDF-app") -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="content" android:mimeType="application/pdf" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -171,6 +176,53 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_radio_info" />
         </receiver>
+
+        <!-- Delen → "PDF maken": plaatjes, een PDF, tekst of een e-mail uit een andere app -->
+        <activity
+            android:name=".PdfShareActivity"
+            android:label="PDF maken"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:exported="true">
+            <intent-filter android:label="PDF maken">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="message/rfc822" />
+            </intent-filter>
+            <intent-filter android:label="PDF maken">
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity>
+        <!-- Eigen PDF-viewer: PDF's uit Bestanden, Downloads, Gmail, WhatsApp enz. -->
+        <activity
+            android:name=".PdfViewActivity"
+            android:label="PDF bekijken"
+            android:theme="@style/PdfTheme"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|uiMode"
+            android:windowSoftInputMode="adjustNothing"
+            android:exported="true">
+            <intent-filter android:label="Rene's Tools PDF">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+            <intent-filter android:label="Rene's Tools PDF">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/x-pdf" />
+            </intent-filter>
+        </activity>
+        <provider android:name=".PdfProvider" android:authorities="nl.rene.tools.pdf" android:exported="false" android:grantUriPermissions="true" />
 
         <!-- Apps die een snelkoppeling op het startscherm willen zetten (alleen als Rene's Tools het startscherm is) -->
         <activity

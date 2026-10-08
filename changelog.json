@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.56",
+    "date": "2026-10-08",
+    "changes": [
+      "Nieuw: eigen PDF-viewer. PDF's uit Bestanden, Gmail, WhatsApp en Downloads openen in Rene's Tools: zoomen, zoeken, naar pagina, donker lezen, delen, opslaan en afdrukken",
+      "Als standaard PDF-app instellen (op het PDF-scherm of in de viewer via ⋮)",
+      "Nieuw: PDF-scherm. Plaatjes samenvoegen tot één PDF (A4 of eigen formaat)",
+      "PDF splitsen of pagina's eruit halen, zonder kwaliteitsverlies",
+      "Delen → PDF maken: maak een PDF van een e-mail, tekst of plaatjes uit een andere app"
+    ]
+  },
+  {
     "version": "1.55",
     "date": "2026-10-07",
     "changes": [

@@ -65,6 +65,8 @@ public class MainActivity extends Activity {
     private static final int REQ_HOME = 25;
     private static final int REQ_AUTO = 26;
     static final int REQ_KLUIS = 27;
+    static final int REQ_PDF_IMG = 28, REQ_PDF_FILE = 29, REQ_PDF_SAVE = 30, REQ_PDF_DOC = 31, REQ_PDF_VIEW = 32;
+    volatile String pdfSaveName = null;
     volatile String importKind = null;
     String pendingShare = null;
     volatile Uri pendingArchive = null;
@@ -501,6 +503,22 @@ public class MainActivity extends Activity {
                 }
                 js("onRestorePreview", r);
             }, "restore-preview").start();
+            return;
+        }
+        if (req == REQ_PDF_VIEW) {
+            if (res != RESULT_OK || data == null || data.getData() == null) return;
+            try { startActivity(new Intent(this, PdfViewActivity.class).setData(data.getData()).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)); } catch (Exception ignored) { }
+            return;
+        }
+        if (req == REQ_PDF_IMG || req == REQ_PDF_FILE || req == REQ_PDF_SAVE || req == REQ_PDF_DOC) {
+            if (res != RESULT_OK || data == null) return;
+            final java.util.ArrayList<Uri> us = new java.util.ArrayList<>();
+            if (data.getClipData() != null) for (int k = 0; k < data.getClipData().getItemCount(); k++) us.add(data.getClipData().getItemAt(k).getUri());
+            else if (data.getData() != null) us.add(data.getData());
+            if (us.isEmpty()) return;
+            final Context app = getApplicationContext();
+            final String saveName = pdfSaveName != null ? pdfSaveName : getSharedPreferences("pdf", MODE_PRIVATE).getString("saveName", null);
+            new Thread(() -> js("onPdf", FeatureBridge.pdfResult(app, req, us, saveName)), "pdf-pick").start();
             return;
         }
         if (req == REQ_KLUIS) {

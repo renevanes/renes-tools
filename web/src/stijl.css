@@ -348,3 +348,14 @@ h1:focus{outline:none}
 .voicebtn.rec{background:#E5484D;color:#fff;animation:vpulse 1.2s infinite}
 @keyframes vpulse{0%{box-shadow:0 0 0 0 #E5484D88}100%{box-shadow:0 0 0 18px #E5484D00}}
 @media (prefers-reduced-motion: reduce){.voicebtn.rec{animation:none}}
+.pdfimgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-bottom:10px}
+.pdfimg{position:relative;border-radius:10px;overflow:hidden;background:var(--chip);aspect-ratio:3/4;display:flex;align-items:center;justify-content:center}
+.pdfimg img{max-width:100%;max-height:100%}
+.pdfimg .pnum{position:absolute;top:4px;left:4px;background:#000a;color:#fff;font-size:12px;border-radius:8px;padding:1px 6px}
+.pdfimg .pbtns{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-between;background:#0008}
+.pdfimg .pbtns button{color:#fff;background:none;border:0;min-width:32px;min-height:36px;font-size:15px}
+.pdfpages{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;margin:6px 0 10px;max-height:340px;overflow:auto}
+.ppage{position:relative;border:2px solid var(--line);border-radius:8px;background:#fff;padding:0;aspect-ratio:3/4;overflow:hidden}
+.ppage img{width:100%;height:100%;object-fit:contain}
+.ppage span{position:absolute;bottom:2px;right:4px;font-size:11px;background:#000a;color:#fff;border-radius:6px;padding:0 5px}
+.ppage.on{border-color:var(--chip-on);box-shadow:0 0 0 2px var(--chip-on)}

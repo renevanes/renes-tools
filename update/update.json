@@ -1,15 +1,26 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.55",
-  "versionCode": 56,
-  "nativeLevel": 51,
+  "versionName": "1.56",
+  "versionCode": 57,
+  "nativeLevel": 52,
   "web": "index.html",
-  "webSha256": "be1c970afebf4ff762e056249801b406c143514a1066481c3a8c3d47df0fc9d5",
+  "webSha256": "b6dbedf30a3be626d7329b492b710cdc5a9a112823d9ea6e2c75a0f16bb04b98",
   "start": "start.html",
   "startSha256": "83f8bfc2711e634d3c990f40deb8632b666c7212c6403bf5886bc31c5bd5ac0d",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "587f58a289691f1b1337baf11d282a7ab90ba88bc4aa24b790f7233570061971",
+  "apkSha256": "1d4796328976ec71bc15b65a5078bd13d243bb1a219ec82bc1ece6d843da042c",
   "changelog": [
+    {
+      "version": "1.56",
+      "date": "2026-10-08",
+      "changes": [
+        "Nieuw: eigen PDF-viewer. PDF's uit Bestanden, Gmail, WhatsApp en Downloads openen in Rene's Tools: zoomen, zoeken, naar pagina, donker lezen, delen, opslaan en afdrukken",
+        "Als standaard PDF-app instellen (op het PDF-scherm of in de viewer via ⋮)",
+        "Nieuw: PDF-scherm. Plaatjes samenvoegen tot één PDF (A4 of eigen formaat)",
+        "PDF splitsen of pagina's eruit halen, zonder kwaliteitsverlies",
+        "Delen → PDF maken: maak een PDF van een e-mail, tekst of plaatjes uit een andere app"
+      ]
+    },
     {
       "version": "1.55",
       "date": "2026-10-07",
@@ -502,5 +513,5 @@
       ]
     }
   ],
-  "webSig2": "RUmB778qrRk6YyX0i5dCPQSkIzkQd7C6wfQCqqRoFSGIrbuv8BydovljD4R2ojJN11/175YLSiPCrgAZQ7mOMW5X2bbCVRk4sNOurjtbCUdsApXxs+gy2K9o6EA8KpWsJRZgYp580wk+Z7nVGPXaC5NiOCwdRPazFjpkKXHYEDSrUIETVU4sSlTD+sS8WuXT7e9EpHIo6h42UTC9BMbIb9kZ/7eWWjmOPI8RnCqjvRWTm2x7aPUhOygQRDq6Me7mN/+y49TDSUOhyDh3Qoi4bhwSbOxHW3EgBwgVv2h4Gfht8jlR6VdIPtDSnj7juc5kbepn0x/r51q0kRmJjGvra620yH57Ob2W3VdZ5u64k5+auYhsqwHGWY3uepYEfJZiToOKYJ6R/rcFj+uDqwh/rMK1iw7/LyaluHer1oBFLCYdPskQiH65Qn/FurJlLpLgj0IP34OPI1g5jXbntfWvr8nsCqOBK0cWcTFokGtER7uBqzk5twjMHap0Ce+hCsu9"
+  "webSig2": "cgGce4PnfzU4prA1owk1fHzo12J7kMxo7Ft8HaiLAjaUXybaYd4GlbW4D+YJbB4AHcIl26+fqeE0kSwHHzF4YrQajgQlEEgx8ziUWcnki6FIkI6daNWTWgxu/WojR7m7pLkzKxy7vTenqmT5YdAiYGYo5IXsx+jME9sEhPjUZvLZueoz6PFDw58G4rDemfHcYK9wMU384zKTTiiMrDO9gdD/WaoyBOcWOF6AkUGPdxnF2K+6VK83hwP0T4JDi7LQNpmqbn9QQcMiT1Y0T/F/0Q5XEx94otQKY84JbQ/7uJseNWocrV6HGXJ9oOg9eWqAYbvZjKgFJ2BKUZcv7xYmAOPTeSYiJQGQcQUbj+SmU4TY0CnzBSy+xtgovCRsSVkmv0BUwtFpc9MWF1u1JRgxc5gNJAxgl4gh3rIy7dKkWXSS2lwUzOboeAYP9ON0JCd9lGmyaX3aHck5RjcHAT1XUk9HFUsdgvDNyHdOhKzdFiBfnKQT0gZDWrCNtMcNG/re"
 }

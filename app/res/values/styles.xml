@@ -13,6 +13,15 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:colorAccent">@color/brand</item>
     </style>
+    <style name="PdfTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/pdf_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:colorPrimary">@color/brand</item>
+        <item name="android:colorAccent">#3B82E0</item>
+    </style>
+    <color name="pdf_bg">#3C4043</color>
     <color name="brand">#1E5AA8</color>
     <color name="bg">#F3F5F9</color>
     <color name="icon_bg">#1E5AA8</color>
