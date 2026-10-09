@@ -69,7 +69,7 @@ function pcNowMenu(){
   if (st.pod && st.pod.feed) acts.push(['Naar de podcast', () => pdOpen(st.pod)]);
   if (st.ep.desc) acts.push(['Beschrijving', () => pcShowDesc(st.ep)]);
   acts.push(['Delen', () => Android.podShare(st.ep.title + (st.pod && st.pod.title ? ' · ' + st.pod.title : ''), (st.pod && st.pod.link) || st.ep.url)]);
-  acts.push(['Stoppen', () => plStop()]);
+  acts.push(plFloatAct(), ['Stoppen', () => plStop()]);
   openSheet(st.ep.title || 'Aflevering', (st.pod && st.pod.title) || '', acts);
 }
 function pcShowDesc(ep, onPlay){

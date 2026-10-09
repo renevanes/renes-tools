@@ -66,7 +66,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     private android.net.wifi.WifiManager.WifiLock wifi;
     private boolean foreground, resumeOnFocus, prepared;
     private int lastStartId, retries;
-    private long saveAt;
+    private long saveAt, shownAt;
     private Bitmap art;
     private String artFor, metaSig;
 
@@ -456,6 +456,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         pos = curPos();
         long now = SystemClock.elapsedRealtime();
         if (now - saveAt > 10_000) { saveAt = now; saveNow(); }
+        if (now - shownAt > 30_000) { shownAt = now; Player.changed(this); } // voortgang in de widget
         h.postDelayed(tickRun, 1000);
     }
 
@@ -553,6 +554,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
 
     private void update() {
         if (inst != this) return;
+        Player.changed(this); // widget en zwevend venster
         String title = optEp("title"), podTitle = optPod("title");
         String sig = title + "|" + podTitle + "|" + dur + "|" + System.identityHashCode(art);
         if (!sig.equals(metaSig)) { // alleen bij verandering (het hoesje gaat elke keer mee naar andere processen)
@@ -660,6 +662,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         if (!foreground) ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIF_ID);
         if ("playing".equals(status) || "connecting".equals(status)) status = "paused";
         sleepAt = 0; sleepEnd = false;
+        Player.changed(this);
         super.onDestroy();
     }
 }

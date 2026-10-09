@@ -255,6 +255,8 @@ if (!window.Android) window.Android = (function(){
     podQueueMove(k, b){ const q = this._pc.q || []; const a = q.findIndex(r => r.ep.key === k); if (a >= 0) q.splice(Math.max(0, Math.min(q.length - 1, b)), 0, q.splice(a, 1)[0]); },
     podQueueClear(){ this._pc.q = []; },
     podQueuePlay(k){ const r = (this._pc.q || []).find(x => x.ep.key === k); if (!r) return 'Staat niet meer in Hierna'; return this.podPlay(JSON.stringify(r)); },
+    _float: { on: false, allowed: false }, floatState(){ return JSON.stringify(this._float); },
+    floatSet(on){ this._float.on = on; if (on && !this._float.allowed) { this._float.allowed = true; return 'perm'; } return ''; },
     radioShiftTo(b){ const st = this._rd.st; if (st.shift) st.shift.behind = Math.max(6, b); this._shiftTo = b; },
     _mu:{token:'',st:{state:'idle'},hist:[],used:0,mic:false},
     musicHasMic(){ return this._mu.mic; }, musicRequestMic(){ this._mu.mic=true; setTimeout(()=>onMusicChanged(),100); },

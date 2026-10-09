@@ -54,8 +54,23 @@ public class App extends Application {
             if (prev != null) prev.uncaughtException(t, e);
             else { android.os.Process.killProcess(android.os.Process.myPid()); System.exit(10); }
         });
+        registerActivityLifecycleCallbacks(new Visible(c));
         // Na geforceerd stoppen zijn alle wekkers weg: bij de eerstvolgende start terugzetten
         new Thread(() -> AlarmReceiver.ensureArmed(c), "rearm").start();
+    }
+
+    /** Staat er een scherm van de app in beeld? (Dan is de zwevende speler niet nodig.) */
+    static final class Visible implements ActivityLifecycleCallbacks {
+        private final Context c;
+        private int started;
+        Visible(Context c) { this.c = c; }
+        @Override public void onActivityStarted(android.app.Activity a) { if (++started == 1) FloatPlayer.setAppVisible(c, true); }
+        @Override public void onActivityStopped(android.app.Activity a) { if (started > 0 && --started == 0) FloatPlayer.setAppVisible(c, false); }
+        @Override public void onActivityCreated(android.app.Activity a, android.os.Bundle b) { }
+        @Override public void onActivityResumed(android.app.Activity a) { }
+        @Override public void onActivityPaused(android.app.Activity a) { }
+        @Override public void onActivitySaveInstanceState(android.app.Activity a, android.os.Bundle b) { }
+        @Override public void onActivityDestroyed(android.app.Activity a) { }
     }
 
     /** Is de telefoon na het opstarten al een keer ontgrendeld? (Daarvoor zijn de gewone instellingen onleesbaar.) */

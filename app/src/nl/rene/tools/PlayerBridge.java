@@ -26,42 +26,10 @@ public class PlayerBridge extends PodcastBridge {
     }
 
     /** Volgende zender of aflevering (src = wat de speler toont: "radio" of "podcast"). Geeft "" of een melding. */
-    @JavascriptInterface public String playerNext(String src) { return step(src, 1); }
+    @JavascriptInterface public String playerNext(String src) { return Player.step(ctx, src, 1); }
 
     /** Vorige: bij een podcast na 10 s eerst terug naar het begin. Geeft "" of een melding. */
-    @JavascriptInterface public String playerPrev(String src) { return step(src, -1); }
-
-    private static long prevAt;
-    private static int prevDepth;
-
-    private String step(String src, int dir) {
-        try {
-            if (Player.RADIO.equals(src == null || src.isEmpty() ? Player.src(ctx) : src)) {
-                JSONObject s = RadioService.neighbour(ctx, dir);
-                if (s == null) return "Zet zenders bij je favorieten (☆) om te wisselen";
-                Radio.prefs(ctx).edit().putString("last", s.toString()).apply();
-                RadioService.send(ctx, RadioService.PLAY, s.toString());
-                return "";
-            }
-            JSONObject st = new JSONObject(podState());
-            JSONObject ep = st.optJSONObject("ep"), pod = st.optJSONObject("pod");
-            if (dir < 0) {
-                if (ep != null && st.optLong("pos") > 10_000) { podSeek(0); return ""; }
-                // Vlak na elkaar ⏮: steeds een stap verder terug in wat je eerder luisterde
-                long now = System.currentTimeMillis();
-                prevDepth = now - prevAt < 30_000 ? prevDepth + 1 : 1;
-                prevAt = now;
-                JSONObject r = Podcasts.previous(ctx, ep == null ? "" : ep.optString("key"), prevDepth);
-                if (r == null) { if (ep != null) podSeek(0); return ep == null ? "Er speelde nog niets" : ""; }
-                PodcastService.send(ctx, PodcastService.PLAY, new JSONObject().put("ep", r.getJSONObject("ep")).put("pod", r.optJSONObject("pod")).toString());
-                return "";
-            }
-            JSONObject n = Podcasts.next(ctx, ep, pod);
-            if (n == null) return "Geen volgende aflevering. Zet er een in Hierna via ⋯ bij een aflevering.";
-            PodcastService.send(ctx, PodcastService.PLAY, n.toString());
-            return "";
-        } catch (Exception e) { return "Dat lukt nu niet"; }
-    }
+    @JavascriptInterface public String playerPrev(String src) { return Player.step(ctx, src, -1); }
 
     // ---------- Hierna ----------
 
@@ -94,6 +62,24 @@ public class PlayerBridge extends PodcastBridge {
             if (e != null && e.optString("key").equals(key)) return podPlay(r.toString()); // haalt hem ook uit Hierna
         }
         return "Staat niet meer in Hierna";
+    }
+
+    // ---------- zwevende speler ----------
+
+    /** {on, allowed}: aan gezet, en mag hij van Android boven andere apps staan. */
+    @JavascriptInterface public String floatState() {
+        try { return new JSONObject().put("on", FloatPlayer.enabled(ctx)).put("allowed", FloatPlayer.allowed(ctx)).toString(); }
+        catch (Exception e) { return "{}"; }
+    }
+
+    /** Aan/uit. Geeft "perm" als je eerst toestemming moet geven (dan gaat het systeemscherm open). */
+    @JavascriptInterface public String floatSet(boolean on) {
+        FloatPlayer.setEnabled(ctx, on);
+        if (on && !FloatPlayer.allowed(ctx)) {
+            a.h.post(() -> { try { a.startActivity(FloatPlayer.permissionIntent(ctx)); } catch (Exception ignored) { } });
+            return "perm";
+        }
+        return "";
     }
 
     /** Radio: naar een plek in de buffer (seconden achter live). */

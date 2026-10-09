@@ -2,11 +2,15 @@ package nl.rene.tools;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
+
+import org.json.JSONObject;
 
 /**
  * De ene speler voor radio en podcasts. Er speelt er altijd hooguit één: wie begint, neemt het over (en ook een
- * lopende slaaptimer). Onthoudt wat het laatst speelde, zodat de mini-speler, de widget en het zwevende venster
- * weten wat ze moeten tonen.
+ * lopende slaaptimer). Onthoudt wat het laatst speelde, en geeft de widget en het zwevende venster één beeld van
+ * wat er speelt (Now) en één set knoppen (playPause, step, skip, stop).
  */
 final class Player {
     private Player() { }
@@ -45,8 +49,190 @@ final class Player {
         return sleep;
     }
 
-    /** Iets aan de speler veranderd: widget (en straks het zwevende venster) bijwerken. */
+    // ---------- wat er speelt ----------
+
+    /** Eén beeld van de speler (voor de widget en het zwevende venster). */
+    static final class Now {
+        String src = "", status = "stopped", title = "", sub = "", art = "", key = "";
+        boolean playing, active, shift, atLive = true;
+        /** De service draait nog (gepauzeerd kan dan meteen verder); false = opnieuw opgebouwd uit wat bewaard is. */
+        boolean live;
+        long pos, dur, sleepAt;
+        JSONObject ep, pod, station;
+    }
+
+    static Now now(Context c) {
+        String src = src(c);
+        Now p = podcastNow(c), r = radioNow(c);
+        if (p != null && p.playing) return p; // wat speelt, gaat voor
+        if (r != null && r.playing) return r;
+        // Anders wat het laatst speelde (ook als dat gestopt is: de widget toont het, ▶ start het weer)
+        if (RADIO.equals(src)) return r != null ? r : p;
+        return p != null ? p : r;
+    }
+
+    static Now podcastNow(Context c) {
+        try {
+            Now n = new Now();
+            n.src = PODCAST;
+            String e = PodcastService.ep, pd = PodcastService.pod;
+            if (e != null) {
+                n.ep = new JSONObject(e); n.pod = pd == null ? new JSONObject() : new JSONObject(pd);
+                n.status = PodcastService.status; n.pos = PodcastService.pos; n.dur = PodcastService.dur; n.sleepAt = PodcastService.sleepAt;
+                if (PodcastService.inst == null && ("playing".equals(n.status) || "connecting".equals(n.status))) n.status = "paused";
+                n.live = PodcastService.inst != null;
+            } else {
+                String last = Podcasts.prefs(c).getString("last", null);
+                if (last == null) return null;
+                JSONObject o = new JSONObject(last);
+                n.ep = o.getJSONObject("ep"); n.pod = o.optJSONObject("pod") == null ? new JSONObject() : o.getJSONObject("pod");
+                JSONObject pr = Podcasts.progressOf(c, n.ep.optString("key"));
+                if (pr != null && pr.optBoolean("done")) return null;
+                n.status = "paused"; n.pos = pr == null ? 0 : pr.optLong("p"); n.dur = pr == null ? n.ep.optLong("dur") * 1000 : pr.optLong("d");
+            }
+            n.playing = "playing".equals(n.status) || "connecting".equals(n.status);
+            n.active = !"stopped".equals(n.status) && !"ended".equals(n.status);
+            n.title = n.ep.optString("title", "Aflevering");
+            n.sub = "connecting".equals(n.status) ? "Laden…" : "error".equals(n.status) ? (PodcastService.error == null ? "Fout" : PodcastService.error) : n.pod.optString("title");
+            n.art = n.ep.optString("image").isEmpty() ? n.pod.optString("image") : n.ep.optString("image");
+            n.key = n.ep.optString("key");
+            return n;
+        } catch (Exception e) { return null; }
+    }
+
+    static Now radioNow(Context c) {
+        try {
+            Now n = new Now();
+            n.src = RADIO;
+            String st = RadioService.station;
+            boolean live = st != null;
+            if (st == null) st = Radio.prefs(c).getString("last", null);
+            if (st == null) return null;
+            n.station = new JSONObject(st);
+            String status = live ? RadioService.status : "stopped";
+            if ("interrupted".equals(status)) status = "paused";
+            n.status = status;
+            n.playing = "playing".equals(status) || "connecting".equals(status);
+            n.active = live && !"stopped".equals(status);
+            n.live = live && RadioService.inst != null;
+            String name = n.station.optString("name", "Radio"), song = "playing".equals(status) ? RadioService.title : "";
+            n.title = song == null || song.isEmpty() ? name : song;
+            n.sub = "connecting".equals(status) ? "Verbinden…" : "paused".equals(status) ? "Gepauzeerd · " + name : "error".equals(status) ? "Zender niet te bereiken"
+                    : "stopped".equals(status) ? "Tik op ▶ om te luisteren" : song == null || song.isEmpty() ? "Live" : name;
+            n.art = n.station.optString("logo");
+            n.key = n.station.optString("url");
+            n.sleepAt = RadioService.sleepAt;
+            n.shift = RadioService.shiftOn;
+            n.atLive = !RadioService.shiftOn || RadioService.shiftBehind <= 8;
+            return n;
+        } catch (Exception e) { return null; }
+    }
+
+    // ---------- knoppen (app, widget, zwevend venster) ----------
+
+    static void playPause(Context c) {
+        Now n = now(c);
+        if (n == null) return;
+        if (RADIO.equals(n.src)) {
+            if (n.playing) RadioService.send(c, RadioService.PAUSE, null);
+            else if (RadioService.station == null) { RadioService.send(c, RadioService.PLAY, n.station.toString()); }
+            else RadioService.send(c, RadioService.RESUME, null);
+        } else {
+            PodcastService.send(c, n.playing ? PodcastService.PAUSE : PodcastService.RESUME, null);
+        }
+    }
+
+    static void stop(Context c) {
+        Now n = now(c);
+        if (n == null) return;
+        if (RADIO.equals(n.src)) RadioService.send(c, RadioService.STOP, null); else PodcastService.send(c, PodcastService.STOP, null);
+    }
+
+    /** −/+ seconden: podcast 15 terug / 30 vooruit, radio 30 in de buffer. */
+    static void skip(Context c, int dir) {
+        Now n = now(c);
+        if (n == null) return;
+        if (RADIO.equals(n.src)) { if (RadioService.inst != null) RadioService.send(c, dir < 0 ? RadioService.REW : RadioService.FWD, null); return; }
+        if (PodcastService.inst != null) PodcastService.send(c, PodcastService.SKIP, String.valueOf(dir < 0 ? -PodcastService.BACK_S : PodcastService.FWD_S));
+        else podSeek(c, Math.max(0, n.pos + (dir < 0 ? -PodcastService.BACK_S : PodcastService.FWD_S) * 1000L));
+    }
+
+    /** Naar een plek in de podcast; als er niets speelt, wordt de plek bewaard voor straks. */
+    static void podSeek(Context c, long ms) {
+        if (PodcastService.inst != null) { PodcastService.send(c, PodcastService.SEEK, String.valueOf(Math.max(0, ms))); return; }
+        String cur = PodcastService.ep, last = Podcasts.prefs(c).getString("last", null);
+        try {
+            JSONObject e = cur != null ? new JSONObject(cur) : last != null ? new JSONObject(last).getJSONObject("ep") : null;
+            if (e == null) return;
+            JSONObject p = Podcasts.progressOf(c, e.optString("key"));
+            long d = PodcastService.dur > 0 && cur != null ? PodcastService.dur : p != null && p.optLong("d") > 0 ? p.optLong("d") : e.optLong("dur") * 1000;
+            long at = Math.max(0, d > 1000 ? Math.min(ms, d - 1000) : ms);
+            // De service is weg maar weet de aflevering nog: ook daar de plek bijwerken (anders springt de schuif terug)
+            if (cur != null) PodcastService.pos = at;
+            Podcasts.saveProgress(c, e.optString("key"), at, d, false);
+            changed(c);
+        } catch (Exception ignored) { }
+    }
+
+    private static long prevAt;
+    private static int prevDepth;
+
+    /** Volgende (dir 1) of vorige (−1) zender of aflevering. Geeft "" of een melding. */
+    static synchronized String step(Context c, String src, int dir) {
+        try {
+            if (src == null || src.isEmpty()) { Now n = now(c); src = n == null ? src(c) : n.src; }
+            if (RADIO.equals(src)) {
+                JSONObject s = RadioService.neighbour(c, dir);
+                if (s == null) return "Zet zenders bij je favorieten (☆) om te wisselen";
+                Radio.prefs(c).edit().putString("last", s.toString()).apply();
+                RadioService.send(c, RadioService.PLAY, s.toString());
+                return "";
+            }
+            Now n = podcastNow(c);
+            JSONObject ep = n == null ? null : n.ep, pod = n == null ? null : n.pod;
+            if (dir < 0) {
+                if (ep != null && n.pos > 10_000) { podSeek(c, 0); return ""; }
+                // Vlak na elkaar ⏮: steeds een stap verder terug in wat je eerder luisterde
+                long now = System.currentTimeMillis();
+                prevDepth = now - prevAt < 30_000 ? prevDepth + 1 : 1;
+                prevAt = now;
+                JSONObject r = Podcasts.previous(c, ep == null ? "" : ep.optString("key"), prevDepth);
+                if (r == null) { if (ep != null) podSeek(c, 0); return ep == null ? "Er speelde nog niets" : ""; }
+                PodcastService.send(c, PodcastService.PLAY, new JSONObject().put("ep", r.getJSONObject("ep")).put("pod", r.optJSONObject("pod")).toString());
+                return "";
+            }
+            JSONObject nx = Podcasts.next(c, ep, pod);
+            if (nx == null) return "Geen volgende aflevering. Zet er een in Hierna via ⋯ bij een aflevering.";
+            JSONObject ne = nx.optJSONObject("ep");
+            if (ne != null) Podcasts.queueRemove(c, ne.optString("key"));
+            PodcastService.send(c, PodcastService.PLAY, nx.toString());
+            return "";
+        } catch (Exception e) { return "Dat lukt nu niet"; }
+    }
+
+    /** Korte melding buiten de app (bijv. na een knop op de widget). */
+    static void toast(Context c, String msg) {
+        final Context app = c.getApplicationContext();
+        MAIN.post(() -> { try { android.widget.Toast.makeText(app, msg, android.widget.Toast.LENGTH_SHORT).show(); } catch (Exception ignored) { } });
+    }
+
+    // ---------- bijwerken ----------
+
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    private static final Runnable[] PENDING = new Runnable[1];
+
+    /** Iets aan de speler veranderd: widget en zwevend venster bijwerken (kort samengevoegd). */
     static void changed(Context c) {
-        try { RadioWidget.refresh(c); } catch (Throwable ignored) { }
+        final Context app = c.getApplicationContext();
+        if (!App.unlocked(app)) return; // vóór de eerste ontgrendeling zijn de instellingen onleesbaar
+        synchronized (PENDING) {
+            if (PENDING[0] != null) return;
+            PENDING[0] = () -> {
+                synchronized (PENDING) { PENDING[0] = null; }
+                try { RadioWidget.refresh(app); } catch (Throwable ignored) { }
+                try { FloatPlayer.refresh(app); } catch (Throwable ignored) { }
+            };
+            MAIN.postDelayed(PENDING[0], 250);
+        }
     }
 }

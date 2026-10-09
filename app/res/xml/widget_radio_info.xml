@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- De speler-widget (radio en podcasts); groeit mee: klein = knoppen, breed = titel, groot = hoes en alles -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="250dp" android:minHeight="60dp"
+    android:minWidth="130dp" android:minHeight="50dp"
+    android:minResizeWidth="130dp" android:minResizeHeight="50dp"
     android:targetCellWidth="4" android:targetCellHeight="1"
-    android:resizeMode="horizontal" android:widgetCategory="home_screen"
-    android:updatePeriodMillis="0" android:initialLayout="@layout/widget_radio"
+    android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen"
+    android:updatePeriodMillis="0" android:initialLayout="@layout/widget_player_m"
+    android:previewLayout="@layout/widget_player_m"
     android:description="@string/widget_radio_desc" />

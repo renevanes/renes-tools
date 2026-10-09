@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.60",
+    "date": "2026-10-09",
+    "changes": [
+      "Nieuw: de speler-widget (de radio-widget wordt dit vanzelf). Groeit mee: klein alleen knoppen, breed met titel, groot met hoes, voortgang en alle knoppen, in de kleur van de hoes",
+      "Nieuw: zwevende speler boven andere apps (aanzetten via ⋯ in de speler). Klein een rond hoesje om te verslepen, tik = groot; naar beneden slepen = uit",
+      "Vorige (⏮) bij podcasts gaat bij herhaald drukken steeds verder terug in wat je eerder luisterde"
+    ]
+  },
+  {
     "version": "1.59",
     "date": "2026-10-09",
     "changes": [

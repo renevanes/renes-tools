@@ -259,8 +259,17 @@ function plMenu(){
   if (m.src === 'podcast') { pcNowMenu(); return; }
   const acts = [['Naar Radio', () => show('radio')], ['📌 Zender op startscherm', () => rdPinStation()]];
   if (m.shift) acts.push(['💾 Fragment bewaren', () => rdClipMenu()]);
-  acts.push(['Stoppen', () => plStop()]);
+  acts.push(plFloatAct(), ['Stoppen', () => plStop()]);
   openSheet(m.from, 'Radio', acts);
+}
+/* Zwevende speler boven andere apps */
+function plFloatAct(){
+  const f = rdJson(Android.floatState(), {});
+  return [f.on && f.allowed ? '🗗 Zwevende speler uitzetten' : '🗗 Zwevende speler (boven andere apps)', () => {
+    const on = !(f.on && f.allowed), r = Android.floatSet(on);
+    if (r === 'perm') toast('Zet "Weergeven over andere apps" aan voor Rene\'s Tools en kom terug');
+    else toast(on ? 'Zwevende speler aan: je ziet hem zodra je de app verlaat' : 'Zwevende speler uit');
+  }];
 }
 
 /* Schuif: podcast = plek in de aflevering, radio = plek in de buffer */

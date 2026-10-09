@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Rene\'s Tools</string>
-    <string name="widget_radio_desc">Radio: afspelen, pauzeren en wat er nu speelt</string>
+    <string name="widget_radio_desc">Speler voor radio en podcasts: groeit mee met de grootte</string>
     <string name="widget_note_desc">Een lijstje uit Notities, afstrepen met een tik</string>
     <string name="widget_music_desc">Muziek herkennen met één tik</string>
     <string name="a11y_desc">Voor Automatiseringen in Rene\'s Tools: drukt op jouw verzoek knoppen in voor je, bijvoorbeeld \'Start parkeren\' in EasyPark. Alleen in de app die je zelf kiest, en alleen als een automatisering loopt of als je opneemt. Er wordt niets gelezen of bewaard van andere apps.</string>

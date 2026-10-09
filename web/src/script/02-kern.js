@@ -168,6 +168,7 @@ window.openTool = function(n){
   if (n === 'share') { noteFromShare(); return; }
   if (n === 'skin') { Android.homeOpen(); return; } // snelkoppeling "Telefoon-skin": meteen de skin tonen
   if (n === 'auto-rec') { autoRecBack(); return; } // terug na opnemen in een andere app
+  if (n === 'player') { rdPollOnce(true); pcPoll(false); if (plModel()) plOpen(); else show('radio'); return; } // vanaf de widget of het zwevende venster
   if (n === 'auto') { store.set('autoDraft', null); if (current !== 'autoed') show('auto'); return; } // ✕ bij opnemen
   if (n === 'music-now' && $('#lockscr').classList.contains('on')) { show('music'); return; } // op slot: niet zomaar opnemen
   if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (current === 'music' && !$('#lockscr').classList.contains('on') && st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }

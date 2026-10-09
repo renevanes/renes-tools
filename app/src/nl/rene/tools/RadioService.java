@@ -774,7 +774,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         stopForeground(STOP_FOREGROUND_REMOVE);
         foreground = false;
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIF_ID);
-        RadioWidget.refresh(this);
+        Player.changed(this);
         stopSelf(lastStartId); // een PLAY die intussen binnenkwam, houdt de service in leven
     }
 
@@ -817,7 +817,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
                 .setState(st, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1f).build());
         if (!"stopped".equals(status))
             ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, notif());
-        RadioWidget.refresh(this);
+        Player.changed(this);
     }
 
     private PendingIntent action(String a, int code) {
@@ -875,7 +875,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         session.release();
         if ("interrupted".equals(status) || "connecting".equals(status) || "playing".equals(status)) status = "paused";
         if (!"error".equals(status) && !"paused".equals(status)) status = "stopped";
-        RadioWidget.refresh(this);
+        Player.changed(this);
         super.onDestroy();
     }
 }

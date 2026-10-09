@@ -39,7 +39,43 @@ final class Art {
         finally { LOCKS.remove(url, lock); }
     }
 
+    /** Mislukte adressen: tien minuten niet opnieuw proberen (anders wacht de widget steeds op een time-out). */
+    private static final java.util.Map<String, Long> FAILED = java.util.Collections.synchronizedMap(new java.util.HashMap<String, Long>());
+
+    /** Alleen uit het geheugen of van schijf (geen netwerk), of null. */
+    static Bitmap peek(Context c, String url) {
+        if (!usable(url)) return null;
+        url = norm(url);
+        Bitmap b = MEM.get(url);
+        if (b != null) return b;
+        File f = new File(dir(c), Podcasts.hash(url) + ".img");
+        if (!f.isFile()) return null;
+        b = BitmapFactory.decodeFile(f.getPath());
+        if (b != null) MEM.put(url, b);
+        return b;
+    }
+
+    /** Wat peek niet heeft: op de achtergrond ophalen; daarna done (alleen als het lukte). */
+    static void fetch(Context c, String url, Runnable done) {
+        if (!usable(url) || peek(c, url) != null) return;
+        Long t = FAILED.get(norm(url));
+        if (t != null && System.currentTimeMillis() - t < 600_000) return;
+        final Context app = c.getApplicationContext();
+        FETCH.execute(() -> { if (load(app, url) != null && done != null) done.run(); });
+    }
+
+    private static final java.util.concurrent.ExecutorService FETCH =
+            java.util.concurrent.Executors.newFixedThreadPool(2, r -> new Thread(r, "art-fetch"));
+
     private static Bitmap loadLocked(Context c, String url) {
+        Long failedAt = FAILED.get(url);
+        if (failedAt != null && System.currentTimeMillis() - failedAt < 600_000) return null;
+        Bitmap b = loadNow(c, url);
+        if (b == null) FAILED.put(url, System.currentTimeMillis()); else FAILED.remove(url);
+        return b;
+    }
+
+    private static Bitmap loadNow(Context c, String url) {
         Bitmap b = MEM.get(url);
         if (b != null) return b;
         File f = new File(dir(c), Podcasts.hash(url) + ".img");
@@ -75,11 +111,36 @@ final class Art {
         } catch (Throwable e) { return null; }
     }
 
+    private static final android.util.LruCache<String, Bitmap> SMALL = new android.util.LruCache<>(8);
+
+    /** Klein exemplaar zonder netwerk (widget, zwevend venster); steeds hetzelfde object, of null. */
+    static Bitmap smallCached(Context c, String url, int max) {
+        if (!usable(url)) return null;
+        String k = norm(url) + "|" + max;
+        Bitmap s = SMALL.get(k);
+        if (s != null) return s;
+        s = small(peek(c, url), max);
+        if (s != null) SMALL.put(k, s);
+        return s;
+    }
+
     /** Kleiner exemplaar (voor de mediasessie: gaat naar andere processen). */
     static Bitmap small(Bitmap b, int max) {
         if (b == null || Math.max(b.getWidth(), b.getHeight()) <= max) return b;
         float k = max / (float) Math.max(b.getWidth(), b.getHeight());
         return Bitmap.createScaledBitmap(b, Math.max(1, Math.round(b.getWidth() * k)), Math.max(1, Math.round(b.getHeight() * k)), true);
+    }
+
+    /** Kleur zonder netwerk (alleen als het plaatje al bewaard is), of -1. */
+    static int colorCached(Context c, String url) {
+        if (!usable(url)) return -1;
+        Integer k = COLORS.get(norm(url));
+        if (k != null) return k;
+        Bitmap b = peek(c, url);
+        if (b == null) return -1;
+        int col = color(b);
+        COLORS.put(norm(url), col);
+        return col;
     }
 
     /** Kleur voor achter de speler (0xRRGGBB), of -1 als er geen plaatje is. */

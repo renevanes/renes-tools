@@ -84,6 +84,20 @@ const { chromium } = require('playwright');
     await pg.click('#plbar-pp'); await pg.waitForTimeout(300);
     console.log('bar play', await pg.evaluate(() => Android._pc.st.status));
     await pg.screenshot({ path: __dirname + '/shots/pl-bar-pod-' + scheme + '.png' });
+    // Zwevende speler aanzetten via ⋯ (eerst toestemming), dan uit
+    await pg.click('#plbar-open'); await pg.waitForTimeout(400);
+    await pg.click('#player [aria-label="Meer opties"]'); await pg.waitForTimeout(150);
+    await pg.click('#sheet-acts button:has-text("Zwevende speler")'); await pg.waitForTimeout(150);
+    console.log('float perm toast', await pg.textContent('#toast'), 'on', await pg.evaluate(() => Android._float.on));
+    await pg.click('#player [aria-label="Meer opties"]'); await pg.waitForTimeout(150);
+    console.log('float menu now', await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent).filter(t => /Zwevende/.test(t))));
+    await pg.click('#sheet-acts button:has-text("Zwevende speler uitzetten")'); await pg.waitForTimeout(150);
+    console.log('float off', !(await pg.evaluate(() => Android._float.on)));
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(400);
+    // Vanaf de widget: open=player opent de speler
+    await pg.evaluate(() => openTool('player')); await pg.waitForTimeout(400);
+    console.log('widget opens player', await pg.isVisible('#player'));
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(400);
     // Stop via menu: balk weg
     await pg.click('#plbar-open'); await pg.waitForTimeout(400);
     await pg.click('#pl-stop'); await pg.waitForTimeout(1300);

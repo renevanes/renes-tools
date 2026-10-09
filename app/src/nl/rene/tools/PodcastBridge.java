@@ -99,23 +99,7 @@ public class PodcastBridge extends FeatureBridge {
     @JavascriptInterface public void podPause() { PodcastService.send(ctx, PodcastService.PAUSE, null); }
     @JavascriptInterface public void podResume() { PodcastService.send(ctx, PodcastService.RESUME, null); }
     @JavascriptInterface public void podStop() { PodcastService.send(ctx, PodcastService.STOP, null); }
-    @JavascriptInterface public void podSeek(long ms) {
-        if (PodcastService.inst == null) { // niets aan het spelen: de plek bewaren voor straks
-            String cur = PodcastService.ep, last = Podcasts.prefs(ctx).getString("last", null);
-            try {
-                JSONObject e = cur != null ? new JSONObject(cur) : last != null ? new JSONObject(last).getJSONObject("ep") : null;
-                if (e == null) return;
-                JSONObject p = Podcasts.progressOf(ctx, e.optString("key"));
-                long d = PodcastService.dur > 0 && cur != null ? PodcastService.dur : p != null && p.optLong("d") > 0 ? p.optLong("d") : e.optLong("dur") * 1000;
-                long at = Math.max(0, d > 1000 ? Math.min(ms, d - 1000) : ms);
-                // De service is weg maar weet de aflevering nog: ook daar de plek bijwerken (anders springt de schuif terug)
-                if (cur != null) PodcastService.pos = at;
-                Podcasts.saveProgress(ctx, e.optString("key"), at, d, false);
-            } catch (Exception ignored) { }
-            return;
-        }
-        PodcastService.send(ctx, PodcastService.SEEK, String.valueOf(Math.max(0, ms)));
-    }
+    @JavascriptInterface public void podSeek(long ms) { Player.podSeek(ctx, Math.max(0, ms)); } // ook als er niets speelt (dan bewaard)
     @JavascriptInterface public void podSkip(int sec) {
         if (PodcastService.inst == null) { try { JSONObject st = new JSONObject(podState()); podSeek(Math.max(0, st.optLong("pos") + sec * 1000L)); } catch (Exception ignored) { } return; }
         PodcastService.send(ctx, PodcastService.SKIP, String.valueOf(Math.max(-600, Math.min(600, sec))));

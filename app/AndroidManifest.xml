@@ -31,6 +31,8 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!-- Zwevende speler boven andere apps (alleen als je die zelf aanzet) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Automatiseringen: plekken op de achtergrond en de Bluetooth van de auto -->
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
@@ -176,13 +178,16 @@
 
         <receiver
             android:name=".RadioWidget"
-            android:label="Radio"
+            android:label="Speler"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_radio_info" />
         </receiver>
+
+        <!-- Knoppen van de speler-widget en het zwevende venster -->
+        <receiver android:name=".PlayerReceiver" android:exported="false" />
 
         <!-- Delen → "PDF maken": plaatjes, een PDF, tekst of een e-mail uit een andere app -->
         <activity
