@@ -67,6 +67,7 @@ function smsSearchDo(q){
   }, 250);
 }
 function smsExport(){
+  if (!plainOk('De sms-backup', smsExport)) return;
   const err = Android.smsExport();
   if (err) { toast(err); return; }
   $('#sms-result').className = 'result'; smsLastDone = false; setTimeout(smsPollOnce, 150);

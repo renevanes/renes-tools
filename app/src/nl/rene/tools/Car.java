@@ -166,7 +166,7 @@ final class Car {
         b.append("\r\nTotaal zakelijk;;;").append(String.format(Locale.GERMANY, "%.1f", zak)).append("\r\nTotaal privé;;;").append(String.format(Locale.GERMANY, "%.1f", pri)).append("\r\n");
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir dir = dest.dir("Ritten", true);
-        try (Writer w = Sms.open(dest, dir, "ritten-" + month + ".csv", "text/csv")) { w.write(b.toString()); }
+        try (Sms.Out w = Sms.open(dest, dir, "ritten-" + month + ".csv", "text/csv")) { w.write(b.toString()); w.done(); }
         return n;
     }
 

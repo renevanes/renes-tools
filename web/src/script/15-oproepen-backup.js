@@ -13,9 +13,10 @@ function callsFilterJson(){
   const now = Date.now(), today = dayStart(now);
   switch (callsF.period) {
     case 'today': f.from = today; break;
-    case 'yesterday': f.from = today - 864e5; f.to = today; break;
-    case '7': f.from = today - 6 * 864e5; break;
-    case '30': f.from = today - 29 * 864e5; break;
+    // Dagen terugtellen met de kalender (niet met 24 uur): klopt ook rond de wissel van zomer- en wintertijd
+    case 'yesterday': f.from = daysAgo(1); f.to = today; break;
+    case '7': f.from = daysAgo(6); break;
+    case '30': f.from = daysAgo(29); break;
     case 'year': f.from = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
     case 'custom':
       if (callsF.from) f.from = dayStart(callsF.from + 'T00:00');
@@ -69,11 +70,15 @@ function callsSyncUi(){
   if (callsF.dur !== 'all') chips.push(['dur', lab('cf-dur', callsF.dur)]);
   $('#calls-active').innerHTML = chips.map(c => '<button data-k="' + c[0] + '" onclick="callsDropFilter(this.dataset.k)">' + esc(c[1]) + ' <span aria-hidden=true>×</span></button>').join('');
 }
+/** Begin van de dag, n dagen geleden (lokale tijd). */
+function daysAgo(n){ const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return d.getTime(); }
+/** Lokale datum als jjjj-mm-dd (toISOString geeft de UTC-datum: tussen 0 en 2 uur 's nachts een dag te vroeg). */
+function isoDay(t){ const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function fmtDay(iso){ return new Date(iso + 'T12:00').toLocaleDateString('nl-NL', {day:'numeric', month:'short', year:'numeric'}); }
 function callsSetKind(f){ callsF.kind = f; callsSyncUi(); loadCalls(); }
 function callsToggleFilters(){ const p = $('#calls-fpanel'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; }
 function callsPickChip(group, v){
-  if (group === 'cf-period') { callsF.period = v; if (v === 'custom' && !callsF.from) { const d = new Date(Date.now() - 29 * 864e5); callsF.from = d.toISOString().slice(0, 10); } }
+  if (group === 'cf-period') { callsF.period = v; if (v === 'custom' && !callsF.from) callsF.from = isoDay(daysAgo(29)); }
   if (group === 'cf-who') callsF.who = v;
   if (group === 'cf-dur') callsF.dur = v;
   callsSyncUi(); loadCalls();
@@ -128,6 +133,7 @@ function callsPick(i){
 }
 function fmtFullCall(t){ return new Date(t).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
 function callsExport(sel){
+  if (!plainOk('De oproepenlijst', () => callsExport(sel))) return;
   const err = Android.callsExport(sel ? callsFilterJson() : '');
   if (err) { toast(err); return; }
   $('#calls-result').className = 'result'; callsLastDone = false; setTimeout(callsPollOnce, 150);

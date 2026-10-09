@@ -44,7 +44,12 @@ $('#recorder-list').addEventListener('click', event => {
   const id = row.id;
   if (button.dataset.action === 'play') { const error = Android.recorderPlay(id); if (error) toast(error); }
   if (button.dataset.action === 'share') Android.recorderShare(id);
-  if (button.dataset.action === 'export') { const error = Android.recorderExport(id); $('#recorder-result').textContent = error || 'Bezig met exporteren…'; }
+  if (button.dataset.action === 'export') recorderExportDo(id);
   if (button.dataset.action === 'delete') askConfirm('Opname verwijderen?', 'Verwijdert dit audiobestand van deze telefoon. Eerdere exports en transcripten blijven staan.', 'Verwijderen', () => { const error = Android.recorderDelete(id); if (error) toast(error); loadRecorder(); });
 });
 (function(){ const previous = window.onPauseApp; window.onPauseApp = function(){ if (previous) previous(); Android.recorderStopPlayback(); }; })();
+
+function recorderExportDo(id){
+  if (!plainOk('De opname', () => recorderExportDo(id))) return;
+  const error = Android.recorderExport(id); $('#recorder-result').textContent = error || 'Bezig met exporteren…';
+}

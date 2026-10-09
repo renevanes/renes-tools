@@ -54,6 +54,14 @@ public class App extends Application {
             if (prev != null) prev.uncaughtException(t, e);
             else { android.os.Process.killProcess(android.os.Process.myPid()); System.exit(10); }
         });
+        // Na geforceerd stoppen zijn alle wekkers weg: bij de eerstvolgende start terugzetten
+        new Thread(() -> AlarmReceiver.ensureArmed(c), "rearm").start();
+    }
+
+    /** Is de telefoon na het opstarten al een keer ontgrendeld? (Daarvoor zijn de gewone instellingen onleesbaar.) */
+    static boolean unlocked(Context c) {
+        android.os.UserManager um = (android.os.UserManager) c.getSystemService(Context.USER_SERVICE);
+        return um == null || um.isUserUnlocked();
     }
 
     static File file(Context c) { return new File(c.getFilesDir(), "crash.log"); }

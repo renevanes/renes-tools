@@ -27,7 +27,7 @@ final class Shortcuts {
     static Intent intent(Context c, String tool, String play) {
         Intent i = new Intent(c, MainActivity.class).setAction(Intent.ACTION_VIEW)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                .putExtra("open", tool);
+                .putExtra("open", tool).putExtra("tok", App.token(c));
         if (play != null) i.putExtra("play", play).putExtra("tok", App.token(c));
         return i;
     }

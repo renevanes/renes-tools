@@ -143,11 +143,27 @@ final class Tracks {
 
     /** Alleen de routepunten die echte beweging zijn (voor statistiek, tekening, kaart en GPX). */
     static List<Pt> filter(List<Pt> raw) {
+        // Geïmporteerde route zonder tijden (gepland, geen gps-ruis): niet filteren, anders blijft er bijna niets over
+        if (synthetic(raw)) return new ArrayList<>(raw);
         List<Pt> out = new ArrayList<>();
         Smoother sm = new Smoother();
         for (Pt p : raw) { Pt k = sm.add(p); if (k != null) out.add(k); }
         return out;
     }
+
+    /** Tijden door parseGpx verzonnen (precies 1 s ertussen, geen snelheid, vaste nauwkeurigheid)? */
+    static boolean synthetic(List<Pt> raw) {
+        if (raw.size() < 2) return false;
+        for (int i = 0; i < raw.size(); i++) {
+            Pt p = raw.get(i);
+            if (p.speed >= 0 || p.acc != 5f) return false;
+            if (i > 0 && p.t - raw.get(i - 1).t != 1000L) return false;
+        }
+        return true;
+    }
+
+    /** Voor backups: de ruwe punten (filteren gebeurt bij het tonen), zodat terugzetten niets verliest. */
+    static List<Pt> backupPoints(File trk) throws Exception { return readPoints(trk); }
 
     /** Hoogste snelheid over stukken van minstens 10 seconden; losse uitschieters tellen zo niet mee. */
     static double maxSpeed(List<Pt> pts) {
@@ -473,18 +489,9 @@ final class Tracks {
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir dir = dest.dir("Routes", true);
         String name = gpxName(trk);
-        WaBackup.Child ch = dir.kids.get(name);
-        Uri u;
-        if (ch != null && !ch.dir) u = DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId);
-        else {
-            u = DocumentsContract.createDocument(dest.cr, dir.uri, "application/gpx+xml", name);
-            if (u == null) throw new Exception("Bestand maken lukt niet");
-        }
-        OutputStream o;
-        try { o = dest.cr.openOutputStream(u, "wt"); } catch (Exception e) { o = dest.cr.openOutputStream(u, "w"); }
-        if (o == null) throw new Exception("Schrijven lukt niet");
-        try (Writer w = new OutputStreamWriter(o, StandardCharsets.UTF_8)) {
-            writeGpx(w, title(trk).isEmpty() ? "Route" : title(trk), filter(readPoints(trk)));
+        try (Sms.Out w = Sms.open(dest, dir, name, "application/gpx+xml")) {
+            writeGpx(w, title(trk).isEmpty() ? "Route" : title(trk), backupPoints(trk));
+            w.done(); // pas nu vervangt het nieuwe bestand het oude
         }
         return true;
     }

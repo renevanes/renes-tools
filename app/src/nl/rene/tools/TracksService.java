@@ -77,8 +77,17 @@ public class TracksService extends Service implements LocationListener {
             autoSaveReq = intent.getBooleanExtra("autoSave", false);
             stopRecording(); return START_NOT_STICKY;
         }
-        if (ACTION_PAUSE.equals(a)) { paused = true; save(); updateNotif(); return START_STICKY; }
-        if (ACTION_RESUME.equals(a)) { paused = false; last = null; save(); updateNotif(); return START_STICKY; }
+        if (ACTION_PAUSE.equals(a)) {
+            // Gepauzeerd: geen gps en geen wakelock (scheelt batterij); bij hervatten weer aan
+            paused = true;
+            if (running) { try { lm.removeUpdates(this); } catch (Exception ignored) { } if (wake != null && wake.isHeld()) wake.release(); }
+            save(true); updateNotif(); return START_STICKY;
+        }
+        if (ACTION_RESUME.equals(a)) {
+            paused = false; last = null;
+            if (running) { if (wake != null) wake.acquire(12 * 60 * 60 * 1000L); requestUpdates(); }
+            save(true); updateNotif(); return START_STICKY;
+        }
         if (!ACTION_START.equals(a)) {
             // Herstart door Android na het opruimen van de app: de lopende route niet kwijtraken
             if (!running) { Tracks.recoverInterrupted(this); stopSelf(); }
@@ -143,6 +152,13 @@ public class TracksService extends Service implements LocationListener {
         wake.setReferenceCounted(false);
         wake.acquire(12 * 60 * 60 * 1000L);
 
+        requestUpdates();
+        save(true);
+        ticker();
+        return START_STICKY;
+    }
+
+    private void requestUpdates() {
         try {
             if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER))
                 lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 0f, this, Looper.getMainLooper());
@@ -153,14 +169,11 @@ public class TracksService extends Service implements LocationListener {
         } catch (SecurityException e) {
             Tracks.prefs(this).edit().putString("error", "Geen locatietoestemming").apply();
         }
-        save();
-        ticker();
-        return START_STICKY;
     }
 
     private void ticker() {
         if (!running) return;
-        save();
+        save(false);
         h.postDelayed(this::ticker, 1000);
     }
 
@@ -181,13 +194,22 @@ public class TracksService extends Service implements LocationListener {
         // zodat een uitschieter de kaart niet laat springen.
         if (acc <= Tracks.MAX_ACC || last == null) last = p;
         // Live-cijfers met exact hetzelfde filter als bij het terugkijken, zodat ze overeenkomen.
-        Tracks.Stats st = Tracks.stats(pts);
-        distance = st.distance;
-        maxSpeed = st.maxSpeed;
-        movingMs = st.movingMs;
-        routePts = st.points;
-        save();
+        // Dat gaat over alle punten: hooguit elke 5 seconden (een lange rit heeft duizenden punten).
+        long now = System.currentTimeMillis();
+        if (now - statsAt >= 5000) {
+            statsAt = now;
+            Tracks.Stats st = Tracks.stats(pts);
+            distance = st.distance;
+            maxSpeed = st.maxSpeed;
+            movingMs = st.movingMs;
+            routePts = st.points;
+        }
     }
+
+    private long statsAt, pathAt, persistAt;
+    private String pathCache = "", notifText = "";
+    /** De actuele stand, in het geheugen: het scherm leest deze (de voorkeuren schrijven we maar af en toe). */
+    static volatile String liveStatus;
 
     @Override public void onProviderDisabled(String provider) {
         Tracks.prefs(this).edit().putString("error", "Locatie staat uit").apply();
@@ -243,8 +265,15 @@ public class TracksService extends Service implements LocationListener {
         super.onDestroy();
     }
 
-    private void save() {
+    /**
+     * Stand bijwerken. Elke seconde alleen in het geheugen; de tekening (over alle punten) hooguit elke 10 s en
+     * de voorkeuren hooguit elke minuut (of bij pauze/hervatten/stoppen: persist = true). Scheelt veel
+     * schrijfwerk en batterij bij een lange rit.
+     */
+    private void save(boolean persist) {
+        long now = System.currentTimeMillis();
         try {
+            if (persist || now - pathAt >= 10_000) { pathAt = now; pathCache = Tracks.svgPath(pts, 300, 160, 8); }
             JSONObject o = new JSONObject();
             o.put("running", running);
             o.put("paused", paused);
@@ -260,14 +289,20 @@ public class TracksService extends Service implements LocationListener {
                 if (!Double.isNaN(last.ele)) o.put("ele", last.ele);
             }
             o.put("error", Tracks.prefs(this).getString("error", ""));
-            o.put("path", Tracks.svgPath(pts, 300, 160, 8));
-            Tracks.prefs(this).edit().putString("status", o.toString()).apply();
+            o.put("path", pathCache);
+            String js = o.toString();
+            liveStatus = running ? js : null;
+            if (persist || !running || now - persistAt >= 60_000) { persistAt = now; Tracks.prefs(this).edit().putString("status", js).apply(); }
         } catch (Exception ignored) { }
-        if (running) updateNotif();
+        if (running) {
+            // Melding alleen als de tekst verandert (km of minuten)
+            String t = notifText();
+            if (persist || !t.equals(notifText)) { notifText = t; updateNotif(); }
+        }
     }
 
     static String status(Context c) {
-        String s = Tracks.prefs(c).getString("status", null);
+        String s = running && liveStatus != null ? liveStatus : Tracks.prefs(c).getString("status", null);
         if (s == null) return "{\"running\":false}";
         try {
             JSONObject o = new JSONObject(s);
@@ -283,10 +318,14 @@ public class TracksService extends Service implements LocationListener {
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, buildNotif());
     }
 
-    private Notification buildNotif() {
+    private String notifText() {
         String txt = paused ? "Gepauzeerd" : String.format(java.util.Locale.GERMANY, "%.2f km", distance / 1000.0);
         long el = (System.currentTimeMillis() - startT) / 1000;
-        txt += " · " + (el / 60) + " min";
+        return txt + " · " + (el / 60) + " min";
+    }
+
+    private Notification buildNotif() {
+        String txt = notifText();
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         b.setSmallIcon(R.drawable.ic_route)
                 .setContentTitle(paused ? "Route gepauzeerd" : "Route opnemen")

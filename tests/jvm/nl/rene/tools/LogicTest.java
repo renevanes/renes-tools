@@ -122,6 +122,19 @@ public class LogicTest {
         check("opruimen: selecties, versies en losse bestanden blijven", !del.contains("oproepen-2026-08-02-selectie-120000.csv") && !del.contains("contacten-versie-3.vcf") && !del.contains("notities.json"));
         check("opruimen: enige van een soort blijft", !del.contains("oproepen-2026-08-01.csv"));
         check("opruimen: precies 4 weg", del.size() == 4);
+        java.util.Set<String> del2 = new java.util.HashSet<>(Rotate.toDelete(Arrays.asList("meldingen-2026-08-01_031500.json", "meldingen-2026-08-20_031500.json",
+                "meldingen-2026-08-20_031500.html", "backup-2026-10-04_120000.rtb", "backup-2026-10-04_1200.rtb"), now));
+        check("opruimen: meldingen-exports doen mee", del2.contains("meldingen-2026-08-01_031500.json") && !del2.contains("meldingen-2026-08-20_031500.json") && !del2.contains("meldingen-2026-08-20_031500.html"));
+        check("opruimen: naam met seconden herkend", Rotate.NAME.matcher("backup-2026-10-04_120000.rtb").matches() && !del2.contains("backup-2026-10-04_120000.rtb"));
+        // Routes: geïmporteerde route zonder tijden niet wegfilteren; echte gps-route wel filteren
+        List<Tracks.Pt> plan = new java.util.ArrayList<>();
+        for (int i = 0; i < 20; i++) plan.add(new Tracks.Pt(52.0 + i * 0.001, 4.4, Double.NaN, 946_684_800_000L + i * 1000L, 5f, -1f));
+        check("routes: geplande route (zonder tijden) blijft heel", Tracks.synthetic(plan) && Tracks.filter(plan).size() == 20);
+        List<Tracks.Pt> gps = new java.util.ArrayList<>();
+        for (int i = 0; i < 20; i++) gps.add(new Tracks.Pt(52.0 + i * 0.0001, 4.4, Double.NaN, 1_700_000_000_000L + i * 2000L, 8f, 2f));
+        check("routes: gps-route wordt gefilterd", !Tracks.synthetic(gps) && Tracks.filter(gps).size() < 20);
+        check("whatsapp: versienaam", WaBackup.isVersion("Factuur~20261009.pdf") && WaBackup.isVersion("Factuur~20261009-2.pdf") && !WaBackup.isVersion("Factuur.pdf") && !WaBackup.isVersion("IMG-20261009-WA0001.jpg"));
+        check("whatsapp: versienaam maken", WaBackup.versionName("Factuur.pdf", null).matches("Factuur~\\d{8}\\.pdf"));
 
         System.out.println(failed == 0 ? "Alle logica-tests geslaagd" : failed + " test(s) mislukt");
         System.exit(failed == 0 ? 0 : 1);

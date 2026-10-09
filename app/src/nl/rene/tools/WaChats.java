@@ -329,6 +329,7 @@ final class WaChats {
         SimpleDateFormat hm = new SimpleDateFormat("HH:mm", Locale.US);
         SimpleDateFormat full = new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL"));
         Set<String> used = new HashSet<>();
+        used.add("index"); // het overzicht heet index.html: een chat met de naam "index" mag dat niet overschrijven
         StringBuilder idx = new StringBuilder();
         idx.append("<!DOCTYPE html><html lang=nl><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>")
                 .append("<title>WhatsApp-chats</title><style>").append(CSS).append("</style><header><h1>WhatsApp-chats</h1><small>Gemaakt door Rene's Tools op ")
@@ -347,7 +348,7 @@ final class WaChats {
             if (!used.add(file.toLowerCase())) { file = file + " " + id; used.add(file.toLowerCase()); }
             file = file + ".html";
             p.step(k, chats.size(), name);
-            Writer w = open(dest, dir, file);
+            Sms.Out w = open(dest, dir, file);
             try {
                 w.write("<!DOCTYPE html><html lang=nl><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>");
                 w.write(esc(name));
@@ -379,36 +380,32 @@ final class WaChats {
                     }
                 }
                 w.write("<div class=cl></div></main></html>");
-            } finally {
-                w.close();
+                w.done(); // alleen een complete chat vervangt de vorige versie
+            } catch (Exception e) {
+                try { w.close(); } catch (Exception e2) { e.addSuppressed(e2); }
+                throw e;
             }
+            w.close();
             idx.append("<li><a href='").append(esc(urlPath(file))).append("'>").append(esc(name)).append("</a><small>")
                     .append(ch[2]).append(" berichten · laatste ").append(esc(full.format(new Date((Long) ch[3])))).append("</small></li>");
             k++;
         }
         idx.append("</ul></main></html>");
-        try (Writer w = open(dest, dir, "index.html")) { w.write(idx.toString()); }
+        try (Sms.Out w = open(dest, dir, "index.html")) { w.write(idx.toString()); w.done(); }
         return k;
     }
 
-    static Writer open(WaBackup.Dest dest, WaBackup.DestDir dir, String name) throws Exception {
-        WaBackup.Child ch = dir.kids.get(name);
-        Uri u;
-        if (ch != null && !ch.dir) u = DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId);
-        else {
-            u = DocumentsContract.createDocument(dest.cr, dir.uri, "text/html", name);
-            if (u == null) throw new Exception("Bestand maken lukt niet: " + name);
-            dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(u), 0, 0, false));
-        }
-        OutputStream o;
-        try { o = dest.cr.openOutputStream(u, "wt"); }
-        catch (Exception e) { o = dest.cr.openOutputStream(u, "w"); }
-        if (o == null) throw new Exception("Schrijven lukt niet: " + name);
-        return new java.io.BufferedWriter(new OutputStreamWriter(o, StandardCharsets.UTF_8), 1 << 16);
+    static Sms.Out open(WaBackup.Dest dest, WaBackup.DestDir dir, String name) throws Exception {
+        return Sms.open(dest, dir, name, "text/html"); // veilig vervangen (zie Sms.open)
     }
-
     /** Ontsleutelen + HTML maken, met voortgang zoals een backup (mode "readable"). */
-    static WaBackup.Status makeReadable(Context c, WaBackup.Listener l) {
+    static WaBackup.Status makeReadable(Context c, WaBackup.Listener l) { return makeReadable(c, l, true); }
+
+    /**
+     * html = false: alleen in de app leesbaar maken, geen HTML-bestanden in de backup-map. Zo gaat het 's nachts
+     * als versleutelen aan staat: anders zouden de chats als gewone bestanden naast de versleutelde backup staan.
+     */
+    static WaBackup.Status makeReadable(Context c, WaBackup.Listener l, boolean html) {
         WaBackup.Status st = new WaBackup.Status();
         st.mode = "readable"; st.running = true; st.startedAt = System.currentTimeMillis(); st.phase = "decrypt";
         l.progress(st);
@@ -417,7 +414,7 @@ final class WaChats {
             if (k == null) throw new Exception("Vul eerst je sleutel van 64 tekens in");
             decryptLatest(c, k);
             int n = 0;
-            boolean haveDest = WaBackup.destUri(c) != null;
+            boolean haveDest = WaBackup.destUri(c) != null && html;
             if (haveDest) {
                 st.phase = "export";
                 l.progress(st);
@@ -428,6 +425,7 @@ final class WaChats {
             }
             if (WaBackup.cancel) WaBackup.finish(st, "cancelled", null);
             else WaBackup.finish(st, "ok", haveDest ? n + " chats leesbaar gemaakt"
+                    : !html ? "Chats leesbaar in de app (versleutelen staat aan: geen leesbare bestanden in de backup-map)"
                     : "Chats leesbaar in de app (kies een backup-map voor de HTML-bestanden)");
         } catch (Exception e) {
             WaBackup.finish(st, "error", e.getMessage());

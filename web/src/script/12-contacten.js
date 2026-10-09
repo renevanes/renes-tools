@@ -110,6 +110,7 @@ function cvRestore(k, btn){
   });
 }
 function ctExport(v){
+  if (!plainOk('De contactenlijst', () => ctExport(v))) return;
   const r = Android.contactsExport(String(v || 0));
   toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' contacten opgeslagen in de map Contacten backup' : r);
 }

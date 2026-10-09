@@ -3,6 +3,8 @@
 <html lang="nl">
 <head>
 <meta charset="utf-8">
+<!-- Ook als er ooit iets binnensluipt: geen verbindingen naar buiten, geen frames -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' blob: data:; font-src 'self' data:; connect-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Rene's Tools</title>
 <link rel="stylesheet" href="vendor/leaflet.css">

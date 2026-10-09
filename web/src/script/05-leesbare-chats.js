@@ -16,15 +16,20 @@ function rdSaveKey(){
   const k = $('#rd-key').value.replace(/[^0-9a-fA-F]/g, '');
   if (k.length !== 64) { toast('De sleutel moet 64 tekens hebben; je hebt er ' + k.length); return; }
   if (!JSON.parse(Android.waInfo()).filesAccess) { toast('Geef eerst toegang tot bestanden'); return; }
+  if (rdKeyBusy) return; // de controle loopt al
+  rdKeyBusy = true; document.querySelectorAll('#rd-setup button').forEach(b => b.disabled = true);
+  setTimeout(() => { if (rdKeyBusy) { rdKeyBusy = false; document.querySelectorAll('#rd-setup button').forEach(b => b.disabled = false); } }, 120000); // vangnet
   toast('Sleutel controleren…');
   Android.waSetKey(k);
 }
+let rdKeyBusy = false;
 window.onWaKeyResult = function(r){
+  rdKeyBusy = false; document.querySelectorAll('#rd-setup button').forEach(b => b.disabled = false);
   if (r.ok) {
     $('#rd-key').value = '';
     toast(r.chats + ' chats gevonden ✓');
     renderReadable();
-    show('chats');
+    if (current === 'wa') show('chats'); // niet wegspringen als je intussen ergens anders bent
   } else {
     toast(r.error || 'De sleutel klopt niet');
   }
@@ -35,6 +40,7 @@ function rdForget(){
   });
 }
 function rdRefresh(){
+  if (!plainOk('Elke chat', rdRefresh)) return;
   const err = Android.waMakeReadable();
   if (err) { toast(err); return; }
   toast('Chats bijwerken…'); setTimeout(waPollOnce, 200);

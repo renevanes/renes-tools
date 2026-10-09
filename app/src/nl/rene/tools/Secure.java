@@ -117,6 +117,9 @@ final class Secure {
     static final class Zip {
         final ZipOutputStream z;
         final Set<String> names = new HashSet<>();
+        /** Bestanden die niet af kwamen (fout halverwege): die biedt terugzetten niet aan. */
+        final java.util.List<String> bad = new ArrayList<>();
+        String lastPath;
         final WaBackup.Dest dest;
         final Uri doc;
         final String name;
@@ -142,6 +145,7 @@ final class Secure {
             for (int i = 2; !names.add(p.toLowerCase(Locale.ROOT)); i++)
                 p = dot > path.lastIndexOf('/') ? path.substring(0, dot) + " (" + i + ")" + path.substring(dot) : path + " (" + i + ")";
             ZipEntry e = new ZipEntry(p);
+            lastPath = p;
             e.setTime(System.currentTimeMillis());
             z.putNextEntry(e);
             files++;
@@ -165,6 +169,8 @@ final class Secure {
         // Achtergebleven halve archieven van een afgebroken backup opruimen (die tellen nooit als backup).
         for (Map.Entry<String, WaBackup.Child> e : new ArrayList<>(dir.kids.entrySet())) {
             if (e.getValue().dir || !e.getKey().endsWith(".rtb.part")) continue;
+            // Pas na twee dagen: een recente .part kan een compleet archief zijn waarvan alleen het hernoemen mislukte
+            if (e.getValue().mod > 0 && System.currentTimeMillis() - e.getValue().mod < 2L * 86_400_000L) continue;
             try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, e.getValue().docId)); dir.kids.remove(e.getKey()); }
             catch (Exception ignored) { }
         }
@@ -185,8 +191,10 @@ final class Secure {
     }
 
     /** Slot: inhoudsopgave erbij en afsluiten. Bij een fout wordt het halve archief verwijderd. */
-    static void finish(Zip zip, JSONObject res) throws Exception {
+    /** Geeft de uiteindelijke naam van het archief. */
+    static String finish(Zip zip, JSONObject res) throws Exception {
         try {
+            if (!zip.bad.isEmpty()) try (Writer w = zip.writer("", "onvolledig.txt")) { for (String b : zip.bad) w.write(b + "\n"); }
             try (Writer w = zip.writer("", "inhoud.txt")) {
                 w.write("Versleutelde backup van Rene's Tools\r\nGemaakt: " + new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL")).format(new Date())
                         + "\r\nVersie app: " + Version.NAME + "\r\n\r\n");
@@ -200,13 +208,27 @@ final class Secure {
             abort(zip);
             throw e;
         }
-        // Compleet: een eventueel bestaand archief met dezelfde naam (zelfde minuut) vervangen en hernoemen.
-        WaBackup.Child old = zip.dir.kids.get(zip.name);
-        if (old != null && !old.dir) {
-            try { DocumentsContract.deleteDocument(zip.dest.cr, DocumentsContract.buildDocumentUriUsingTree(zip.dest.tree, old.docId)); } catch (Exception ignored) { }
+        // Compleet. Bestaat er al een archief met deze naam (zelfde minuut), dan een eigen naam met seconden:
+        // nooit een bestaand, compleet archief weggooien.
+        String name = zip.name;
+        if (zip.dir.kids.containsKey(name))
+            name = "backup-" + new SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(new Date()) + ".rtb";
+        Uri done = null;
+        try { done = DocumentsContract.renameDocument(zip.dest.cr, zip.doc, name); } catch (Exception ignored) { }
+        if (done == null) {
+            // Hernoemen kan hier niet: kopiëren naar een bestand met de echte naam, daarna het tijdelijke weg
+            Uri u = DocumentsContract.createDocument(zip.dest.cr, zip.dir.uri, "application/octet-stream", name);
+            if (u == null) throw new Exception("Archief hernoemen lukt niet (het staat als " + zip.name + ".part)");
+            try (InputStream in = zip.dest.cr.openInputStream(zip.doc); OutputStream o = zip.dest.cr.openOutputStream(u, "w")) {
+                if (in == null || o == null) throw new Exception("kopiëren lukt niet");
+                byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r);
+            } catch (Exception e) {
+                try { DocumentsContract.deleteDocument(zip.dest.cr, u); } catch (Exception ignored) { }
+                throw new Exception("Archief opslaan lukt niet (het staat als " + zip.name + ".part): " + e.getMessage());
+            }
+            try { DocumentsContract.deleteDocument(zip.dest.cr, zip.doc); } catch (Exception ignored) { }
         }
-        Uri done = DocumentsContract.renameDocument(zip.dest.cr, zip.doc, zip.name);
-        if (done == null) throw new Exception("Archief hernoemen lukt niet");
+        return name;
     }
 
     /** Afbreken: zonder slotblok sluiten (dus nooit een geldig archief) en het tijdelijke bestand weghalen. */
@@ -220,15 +242,16 @@ final class Secure {
         String n = "ontsleutelen.html";
         int have = prefs(c).getInt("decryptor", 0);
         if (dir.kids.containsKey(n) && have == Version.CODE) return;
-        try (InputStream in = c.getAssets().open(n); Writer w = Sms.open(dest, dir, n, "text/html")) {
+        try (InputStream in = c.getAssets().open(n); Sms.Out w = Sms.open(dest, dir, n, "text/html")) {
             w.write(new String(SelfTest.readAll(in), StandardCharsets.UTF_8));
-            prefs(c).edit().putInt("decryptor", Version.CODE).apply();
-        } catch (Exception e) { App.log(c, "SECURE", "ontsleutelen.html: " + e.getMessage()); }
+            w.done(); // pas nu vervangt het nieuwe bestand het oude
+        } catch (Exception e) { App.log(c, "SECURE", "ontsleutelen.html: " + e.getMessage()); return; }
+        prefs(c).edit().putInt("decryptor", Version.CODE).apply(); // pas na gelukt bewaren
     }
 
     // ---------- opruimen ----------
 
-    static final String[] ROTATE_DIRS = {DIR, Sms.DIR, Calls.DIR, Contacts.DIR};
+    static final String[] ROTATE_DIRS = {DIR, Sms.DIR, Calls.DIR, Contacts.DIR, NotificationHistory.DIR};
 
     /** Verwijdert oude backups volgens Rotate; geeft {count, bytes}. dry = alleen tellen. */
     static JSONObject rotate(Context c, boolean dry) throws Exception {
@@ -344,10 +367,14 @@ final class Secure {
         try (ZipInputStream z = new ZipInputStream(stream(c))) {
             ZipEntry e;
             byte[] buf = new byte[1 << 16];
+            Set<String> bad = new HashSet<>();
             while ((e = z.getNextEntry()) != null) {
                 long size = 0;
                 int r;
-                while ((r = z.read(buf)) > 0) size += r;
+                boolean list = "onvolledig.txt".equals(e.getName());
+                ByteArrayOutputStream lb = list ? new ByteArrayOutputStream() : null;
+                while ((r = z.read(buf)) > 0) { size += r; if (lb != null && lb.size() < 65536) lb.write(buf, 0, r); }
+                if (lb != null) for (String l : lb.toString("UTF-8").split("\n")) if (!l.trim().isEmpty()) bad.add(l.trim());
                 total += size;
                 String n = e.getName();
                 files.put(new JSONObject().put("n", n).put("s", size));
@@ -358,6 +385,13 @@ final class Secure {
                 if (n.equals(Transcribe.DIR + "/" + SettingsBackup.TX_FILE)) transcripts = n;
                 if (n.equals("Muziek/herkende-nummers.json")) music = n;
             }
+            // Wat bij het maken halverwege misging, niet aanbieden om terug te zetten
+            if (bad.contains(contacts)) contacts = null;
+            if (bad.contains(notes)) notes = null;
+            if (bad.contains(launcher)) launcher = null;
+            if (bad.contains(settings)) settings = null;
+            if (bad.contains(transcripts)) transcripts = null;
+            if (bad.contains(music)) music = null;
         } catch (Exception e) {
             forget();
             throw e;

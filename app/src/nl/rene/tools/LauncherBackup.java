@@ -32,7 +32,7 @@ final class LauncherBackup {
         o.put("notePins", Notes.pinned(c, "skin"));
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir dir = dest.dir(DIR, true);
-        try (Writer w = Sms.open(dest, dir, FILE, "application/json")) { w.write(o.toString(2)); }
+        try (Sms.Out w = Sms.open(dest, dir, FILE, "application/json")) { w.write(o.toString(2)); w.done(); }
         return count(o);
     }
 

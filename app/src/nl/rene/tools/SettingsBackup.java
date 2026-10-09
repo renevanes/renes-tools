@@ -74,7 +74,7 @@ final class SettingsBackup {
         JSONObject o = snapshot(c);
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir dir = dest.dir(DIR, true);
-        try (Writer w = Sms.open(dest, dir, FILE, "application/json")) { w.write(o.toString(2)); }
+        try (Sms.Out w = Sms.open(dest, dir, FILE, "application/json")) { w.write(o.toString(2)); w.done(); }
         return count(o);
     }
 
@@ -275,7 +275,7 @@ final class SettingsBackup {
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), WaBackup.destUri(c));
         WaBackup.DestDir dir = dest.dir(Transcribe.DIR, true);
         JSONObject o = new JSONObject().put("format", TX_FORMAT).put("version", 1).put("exportedAt", System.currentTimeMillis()).put("transcripts", all);
-        try (Writer w = Sms.open(dest, dir, TX_FILE, "application/json")) { w.write(o.toString()); }
+        try (Sms.Out w = Sms.open(dest, dir, TX_FILE, "application/json")) { w.write(o.toString()); w.done(); }
         return all.length();
     }
 
@@ -292,13 +292,31 @@ final class SettingsBackup {
             if (t == null) continue;
             String id = Restore.safeId(t.optString("id"), "t");
             if (Transcribe.transcriptFile(c, id).isFile()) continue;
-            t.put("id", id);
+            t = cleanTranscript(c, t, id);
             fresh.put(t);
             if (sample.length() < 8) sample.put(t.optString("name", t.optString("file", "Gesprek")));
         }
         pendingTx = fresh;
         return new JSONObject().put("kind", "transcripts").put("total", in.length()).put("fresh", fresh.length())
                 .put("dup", in.length() - fresh.length()).put("sample", sample);
+    }
+
+    /**
+     * Een transcript uit een backupbestand opnieuw opbouwen met alleen bekende velden en de juiste soorten
+     * (getallen als getal): een gewijzigd bestand kan zo geen code of vreemde paden het scherm in krijgen.
+     */
+    static JSONObject cleanTranscript(Context c, JSONObject t, String id) throws Exception {
+        JSONObject o = new JSONObject().put("id", id);
+        for (String k : new String[]{"file", "model", "lang", "text", "number", "name", "kind"}) if (t.has(k)) o.put(k, t.optString(k));
+        for (String k : new String[]{"size", "mtime", "duration", "created", "callDate"}) if (t.has(k)) o.put(k, t.optLong(k));
+        String path = t.optString("path");
+        if (Transcribe.allowedRecording(c, path, false)) o.put("path", path);
+        JSONArray segs = new JSONArray(), in = t.optJSONArray("segments");
+        if (in != null) for (int i = 0; i < in.length(); i++) {
+            JSONObject s = in.optJSONObject(i);
+            if (s != null) segs.put(new JSONObject().put("from", Math.max(0, s.optLong("from"))).put("to", Math.max(0, s.optLong("to"))).put("text", s.optString("text")));
+        }
+        return o.put("segments", segs);
     }
 
     static int applyTranscripts(Context c) throws Exception {
@@ -330,8 +348,12 @@ final class SettingsBackup {
             if (r == null || r.optString("title").isEmpty()) continue;
             if (!have.add(musicKey(r))) continue;
             JSONObject clean = new JSONObject();
-            for (String k : new String[]{"t", "artist", "title", "album", "release", "link", "spotify", "apple", "deezer", "image", "source", "station"})
-                if (r.has(k)) clean.put(k, r.get(k));
+            // Alleen bekende velden, als tekst; het tijdstip als getal (dit gaat later het scherm in)
+            for (String k : new String[]{"artist", "title", "album", "date", "label", "link", "spotify", "apple", "art", "source", "station"})
+                if (r.has(k)) clean.put(k, r.optString(k));
+            if (r.has("release") && !clean.has("date")) clean.put("date", r.optString("release"));
+            if (r.has("image") && !clean.has("art")) clean.put("art", r.optString("image"));
+            clean.put("t", r.optLong("t"));
             fresh.put(clean);
             if (sample.length() < 8) sample.put(r.optString("artist") + " – " + r.optString("title"));
         }
@@ -371,8 +393,9 @@ final class SettingsBackup {
         for (File trk : l) {
             String name = Tracks.gpxName(trk);
             if (dest.zip == null && dir.kids.containsKey(name)) { n++; continue; } // al eerder bewaard (in het versleutelde archief altijd alles)
-            try (Writer w = Sms.open(dest, dir, name, "application/gpx+xml")) {
-                Tracks.writeGpx(w, Tracks.title(trk).isEmpty() ? "Route" : Tracks.title(trk), Tracks.filter(Tracks.readPoints(trk)));
+            try (Sms.Out w = Sms.open(dest, dir, name, "application/gpx+xml")) {
+                Tracks.writeGpx(w, Tracks.title(trk).isEmpty() ? "Route" : Tracks.title(trk), Tracks.backupPoints(trk));
+                w.done(); // pas nu vervangt het nieuwe bestand het oude
             }
             n++;
         }

@@ -1,38 +1,92 @@
 /* ---------- Notities ---------- */
 let notes = null, noteCur = null, notesSaveTmr = null, notesBroken = false, notesVer = 0;
+let notesBase = []; // de versie zoals hij het laatst gelezen of bewaard is (om samen te voegen bij een conflict)
+const notesCopy = a => JSON.parse(JSON.stringify(a || []));
 const notesVerNow = () => { try { return +Android.notesVersion() || 0; } catch(e) { return 0; } };
 function notesGet(){
   if (notes === null) {
     notesVer = notesVerNow(); // vóór het lezen: verandert er tussendoor iets, dan merkt de volgende keer dat op
     let raw = ''; try { raw = Android.notesLoad(); } catch(e){}
-    try { notes = JSON.parse(raw); if (!Array.isArray(notes)) throw 0; }
-    catch(e){ notes = []; notesBroken = true; toast('Notities konden niet worden gelezen; er wordt niets overschreven'); }
+    try { notes = JSON.parse(raw); if (!Array.isArray(notes)) throw 0; notesBase = notesCopy(notes); }
+    catch(e){ notes = []; notesBase = []; notesBroken = true; toast('Notities konden niet worden gelezen; er wordt niets overschreven'); }
   }
   return notes;
 }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function notesSaveSoon(){ clearTimeout(notesSaveTmr); notesSaveTmr = setTimeout(notesSaveNow, 400); }
+/* Drie-weg samenvoegen: base = wat we gelezen hadden, local = hoe het nu in de app is, fresh = wat er nu bewaard
+   staat (bijv. afgestreept in de widget, of leeggemaakt door "elke maandag weer leeg"). Per veld wint wie het
+   veranderde; nieuwe notities en items van beide kanten blijven, en wat de app verwijderde blijft weg. */
+function merge3(base, local, fresh, mergeOne){
+  const B = new Map(base.map(x => [x.id, x])), L = new Map(local.map(x => [x.id, x])), F = new Map(fresh.map(x => [x.id, x]));
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const localOrderChanged = !same(local.map(x => x.id).filter(id => B.has(id)), base.map(x => x.id).filter(id => L.has(id)));
+  const out = [];
+  const take = (id) => {
+    const b = B.get(id), l = L.get(id), f = F.get(id);
+    if (l && f) out.push(b ? mergeOne(b, l, f) : l);
+    else if (l && !f && !b) out.push(l);          // nieuw in de app
+    else if (f && !l && !b) out.push(f);          // nieuw van buiten
+    // in base maar aan één kant verwijderd: weg
+  };
+  const order = localOrderChanged ? local.map(x => x.id).concat(fresh.map(x => x.id)) : fresh.map(x => x.id).concat(local.map(x => x.id));
+  const seen = new Set();
+  for (const id of order) if (!seen.has(id)) { seen.add(id); take(id); }
+  return out;
+}
+function mergeFields(b, l, f){
+  const n = Object.assign({}, f);
+  const same = (x, y) => JSON.stringify(x) === JSON.stringify(y);
+  for (const k of new Set(Object.keys(b).concat(Object.keys(l), Object.keys(f)))) {
+    if (k === 'items') continue;
+    if (!same(l[k], b[k])) { if (l[k] === undefined) delete n[k]; else n[k] = l[k]; }
+  }
+  return n;
+}
+function mergeNote(b, l, f){
+  const n = mergeFields(b, l, f);
+  const all = (b.items || []).concat(l.items || [], f.items || []);
+  if (all.some(i => !i || !i.id)) {
+    // Oude items zonder id: niet per item samen te voegen; de app-versie als die veranderde, anders de nieuwe
+    n.items = JSON.stringify(l.items || []) !== JSON.stringify(b.items || []) ? (l.items || []) : (f.items || []);
+  } else n.items = merge3(b.items || [], l.items || [], f.items || [], mergeFields);
+  n.updated = Math.max(l.updated || 0, f.updated || 0);
+  return n;
+}
+/* Geeft true als het bewaard is. Bij een conflict wordt eerst samengevoegd en opnieuw geprobeerd. */
 function notesSaveNow(){
   clearTimeout(notesSaveTmr); notesSaveTmr = null;
-  if (notesBroken || notes === null) return;
+  if (notesBroken || notes === null) return false;
   if (typeof Android.notesSaveIf === 'function') {
-    let r; try { r = JSON.parse(Android.notesSaveIf(JSON.stringify(notesGet()), notesVer)); } catch(e) { r = {err: 'Opslaan lukt niet'}; }
-    if (r.conflict) {
-      // Intussen veranderd (bijv. afgestreept in de widget): niet overschrijven, opnieuw inlezen
-      notes = null;
-      if (current === 'note' && noteCur) { if (noteById(noteCur)) { openNote(noteCur); } else show('notes'); }
-      else if (current === 'notes') renderNotes();
-      toast('Het lijstje is intussen veranderd (bijv. in de widget). Je laatste wijziging staat er nog niet in; doe hem opnieuw.');
-    } else if (r.err) toast('Opslaan mislukt: ' + r.err);
-    else notesVer = r.ver || notesVerNow();
-    return;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let r; try { r = JSON.parse(Android.notesSaveIf(JSON.stringify(notesGet()), notesVer)); } catch(e) { r = {err: 'Opslaan lukt niet'}; }
+      if (r.conflict) {
+        // Intussen buiten de app veranderd (bijv. de widget): samenvoegen, niets weggooien
+        const local = notes, base = notesBase;
+        notes = null;
+        const fresh = notesGet();
+        if (notesBroken) { notes = local; return false; } // nieuwe versie onleesbaar: eigen wijzigingen niet uit beeld halen
+        notes = merge3(base, local, fresh, mergeNote);
+        const typing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#note-open, #note-done');
+        if (current === 'note' && noteCur) { if (!noteById(noteCur)) show('notes'); else if (!typing) renderItems(); } // niet onder je vingers verversen
+        else if (current === 'notes') renderNotes();
+        continue;
+      }
+      if (r.err) { toast('Opslaan mislukt: ' + r.err); return false; }
+      notesVer = r.ver || notesVerNow(); notesBase = notesCopy(notes);
+      return true;
+    }
+    toast('Opslaan lukt even niet (het lijstje verandert steeds). Probeer het zo opnieuw.');
+    return false;
   }
   const err = Android.notesSave(JSON.stringify(notesGet()));
-  if (err) toast('Opslaan mislukt: ' + err); else notesVer = notesVerNow();
+  if (err) { toast('Opslaan mislukt: ' + err); return false; }
+  notesVer = notesVerNow(); notesBase = notesCopy(notes); return true;
 }
 /* Buiten de app veranderd (bijv. afgestreept in de widget op het startscherm): opnieuw inlezen, zodat de app
    die wijziging niet bij het volgende opslaan overschrijft. */
 window.onNotesMaybeChanged = function(){
+  if (notesBroken && !notesSaveTmr) { notesBroken = false; notes = null; notesGet(); if (current === 'notes') renderNotes(); return; } // opnieuw proberen te lezen
   if (notes === null || notesSaveTmr || notesBroken) return;
   const v = notesVerNow();
   if (!v || v === notesVer) return;
@@ -44,7 +98,9 @@ window.onNotesMaybeChanged = function(){
 document.addEventListener('visibilitychange', () => { if (!document.hidden) window.onNotesMaybeChanged(); });
 function hl(text, q){
   const t = esc(text); if (!q) return t;
-  const i = text.toLowerCase().indexOf(q); if (i < 0) return t;
+  const low = text.toLowerCase();
+  if (low.length !== text.length) return t; // bijv. "İ" wordt bij kleine letters 2 tekens: dan klopt de plek niet
+  const i = low.indexOf(q); if (i < 0) return t;
   return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
 }
 function enterNotes(){ loadRems(); renderNotes(); refreshNotesTile(); }
@@ -182,8 +238,11 @@ function clearDone(){
 function deleteNote(){
   const n = noteById(noteCur); if (!n) return;
   askConfirm('Notitie verwijderen?', '"' + (n.title || 'Zonder titel') + '" wordt definitief verwijderd.', 'Verwijderen', () => {
-    if (typeof Android.noteRemindClear === 'function') Android.noteRemindClear(noteCur); else Android.noteRemind(noteCur, '', '0');
-    notes = notesGet().filter(x => x.id !== noteCur); noteCur = null; notesSaveNow(); show('notes'); });
+    const id = noteCur;
+    notes = notesGet().filter(x => x.id !== id); noteCur = null;
+    // Herinneringen pas weg als het verwijderen echt bewaard is
+    if (notesSaveNow()) { if (typeof Android.noteRemindClear === 'function') Android.noteRemindClear(id); else Android.noteRemind(id, '', '0'); }
+    show('notes'); });
 }
 function leaveNote(){
   const n = noteById(noteCur);
@@ -192,6 +251,7 @@ function leaveNote(){
   notesSaveNow(); noteCur = null;
 }
 function notesBackup(){
+  if (!plainOk('De notities', notesBackup)) return;
   notesSaveNow();
   const r = Android.notesExport();
   toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' notities in de map Notities gezet' : r);

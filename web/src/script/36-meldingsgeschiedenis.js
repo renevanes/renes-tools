@@ -38,6 +38,7 @@ function historySearch(){ clearTimeout(historySearchTimer); historySearchTimer =
 function historyEnable(on){ Android.historySetEnabled(on); loadHistory(); }
 function historyExport(){
   if (historyExportBusy) return;
+  if (!plainOk('De meldingsgeschiedenis (met bijv. inlogcodes)', historyExport)) return;
   const error = Android.historyExport();
   if (error) { $('#history-result').textContent = error; return; }
   historyExportBusy = true; $('#history-result').textContent = 'Bezig met exporteren…'; loadHistory();

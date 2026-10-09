@@ -65,7 +65,7 @@
 
     <div class="card" id="ae-placecard">
       <h2>Plek</h2>
-      <div class="sw" id="ae-useplace-row"><span>Alleen op een bepaalde plek<small>Anders overal waar je de auto uitzet</small></span><button class="tg" id="ae-useplace" role="switch" aria-label="Alleen op een bepaalde plek" onclick="tog(this); aeRule.usePlace=this.classList.contains('on'); aeRender()"></button></div>
+      <div class="sw" id="ae-useplace-row"><span>Alleen op een bepaalde plek<small>Anders overal waar je de auto uitzet</small></span><button class="tg" id="ae-useplace" role="switch" aria-label="Alleen op een bepaalde plek" onclick="togUi(this); aeRule.usePlace=this.classList.contains('on'); aeRender()"></button></div>
       <div id="ae-placebox">
         <input class="aein" id="ae-pname" placeholder="Naam van de plek, bijv. Kantoor" oninput="aePlace().name=this.value" maxlength="40" style="margin-top:6px">
         <div id="ae-map" class="lmap" style="margin-top:10px"></div>

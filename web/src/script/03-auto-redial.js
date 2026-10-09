@@ -21,6 +21,10 @@ function chips(el, opts, key, def){
     b.onclick=()=>{ store.set(key,v); chips(el,opts,key,def); Android.vibrate(10); if (key==='interval') renderRange(); }; el.appendChild(b); });
 }
 function tog(b){ b.classList.toggle('on'); store.set(b.id, b.classList.contains('on')); Android.vibrate(10); }
+/* Schakelaar waarvan de stand in de app zelf (of in een regel) staat: niet ook nog los bewaren */
+function togUi(b){ b.classList.toggle('on'); b.setAttribute('aria-checked', b.classList.contains('on') ? 'true' : 'false'); Android.vibrate(10); }
+// Opruimen: zulke losse sleutels kwamen anders mee in backups (en werden nergens gelezen)
+try { ['wa-auto', 'wa-charging', 'rd-auto', 'st-notif-mute', 'ae-useplace'].forEach(k => localStorage.removeItem('rt.' + k)); } catch(e) {}
 
 function renderRecent(){
   const r = store.get('recent', []), el = $('#recent'); el.innerHTML='';

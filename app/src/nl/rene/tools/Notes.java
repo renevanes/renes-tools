@@ -270,9 +270,9 @@ final class Notes {
         JSONArray arr = new JSONArray(json);
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir dir = dest.dir(DIR, true);
-        try (Writer w = Sms.open(dest, dir, "notities.json", "application/json")) { w.write(json); }
+        try (Sms.Out w = Sms.open(dest, dir, "notities.json", "application/json")) { w.write(json); w.done(); }
         SimpleDateFormat df = new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL"));
-        try (Writer w = Sms.open(dest, dir, "notities.txt", "text/plain")) {
+        try (Sms.Out w = Sms.open(dest, dir, "notities.txt", "text/plain")) {
             w.write("Notities - Rene's Tools - " + df.format(new Date()) + "\r\n\r\n");
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject n = arr.getJSONObject(i);
@@ -287,6 +287,7 @@ final class Notes {
                 }
                 w.write("\r\n");
             }
+            w.done(); // pas nu vervangt het nieuwe bestand het oude
         }
         return arr.length();
     }

@@ -3,6 +3,15 @@ function askPassword(title, text, okLabel, onOk){
   askInput(title, text, '', okLabel, onOk);
   const i = $('#modal-input'); i.type = 'password'; i.autocomplete = 'off'; setTimeout(() => i.focus(), 50);
 }
+/* Versleutelen staat aan, maar een losse export is een gewoon, leesbaar bestand: eerst even vragen.
+   Geeft true als het meteen mag; anders vraagt het en roept daarna retry() aan. */
+let plainAllowed = false;
+function plainOk(what, retry){
+  if (plainAllowed || !bkState(false).encrypted) return true;
+  askConfirm('Onversleuteld opslaan?', what + ' komt als gewoon, leesbaar bestand in je backup-map, ook al staat versleutelen aan. Versleuteld bewaren gaat via Alles back-uppen.', 'Toch opslaan',
+    () => { plainAllowed = true; try { retry(); } finally { plainAllowed = false; } });
+  return false;
+}
 function bkRenderSecure(st){
   const on = !!st.encrypted;
   $('#bk-enc-state').textContent = st.encBroken ? '⚠️ Het wachtwoord moet opnieuw worden ingesteld (bijv. na overzetten naar een andere telefoon). Tot dan mislukken de backups.'
@@ -68,9 +77,10 @@ window.onArchive = function(r){
   if (r.settings) acts.push(['Instellingen, automatiseringen en zenders terugzetten', () => Android.archiveRestore('settings', r.settings)]);
   if (r.transcripts) acts.push(['Uitgeschreven gesprekken terugzetten', () => Android.archiveRestore('transcripts', r.transcripts)]);
   if (r.music) acts.push(['Herkende muziek terugzetten', () => Android.archiveRestore('music', r.music)]);
-  acts.push(['Uitpakken naar de backup-map', () => askConfirm('Uitpakken?', 'De bestanden komen onversleuteld in de map Uitgepakt in je backup-map. Haal ze weg als je ze niet meer nodig hebt.', 'Uitpakken', () => { toast('Bezig met uitpakken…'); Android.archiveUnpack(); })]);
+  acts.push(['Uitpakken naar de backup-map', () => askConfirm('Uitpakken?', 'De bestanden komen onversleuteld in de map Uitgepakt in je backup-map. Haal ze weg als je ze niet meer nodig hebt.', 'Uitpakken', () => { toast('Bezig met uitpakken…'); Android.archiveUnpack(); }, () => Android.archiveClose())]);
   acts.push(['Sluiten', () => Android.archiveClose()]);
-  openSheet('🔒 ' + (r.name || 'Backup'), (r.files || []).length + ' bestanden · ' + fmtB(r.bytes || 0), acts);
+  // Dicht zonder keuze (terug of ernaast tikken): de sleutel meteen vergeten
+  openSheet('🔒 ' + (r.name || 'Backup'), (r.files || []).length + ' bestanden · ' + fmtB(r.bytes || 0), acts, () => Android.archiveClose());
 };
 window.onArchiveUnpacked = function(r){ toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' bestanden uitgepakt naar Uitgepakt/' : r); };
 

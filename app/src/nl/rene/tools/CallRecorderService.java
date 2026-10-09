@@ -66,18 +66,19 @@ public final class CallRecorderService extends Service {
         }
     }
 
-    @Override public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent == null) { stopSelf(); return START_NOT_STICKY; }
-        if ("stop".equals(intent.getAction())) { finish(null); return START_NOT_STICKY; }
-        if (recorder != null) return START_NOT_STICKY;
-        long requestedSession = intent.getLongExtra("autoSession", 0);
-        if (requestedSession != 0 && (!AutoCallRecording.sessionActive(this, requestedSession) || !AutoCallRecording.ready(this))) {
-            cancelAutomatic(requestedSession); stopSelf(startId); return START_NOT_STICKY;
-        }
-        autoSession = requestedSession;
-        busy = true; finishing = false; wasCall = false; watchingCall = false;
+    /** Laatste start; stopSelfResult hiermee stopt nooit een start die nog moet komen. */
+    private int lastStartId;
+
+    /**
+     * Na startForegroundService moet altijd startForeground volgen, ook als we meteen weer stoppen (bijv. het
+     * gesprek is al voorbij). Anders sluit Android de hele app af, ook een lopende radio of route.
+     */
+    private boolean isFg;
+
+    /** true = de service is voorgrond (met melding). Al voorgrond: niets opnieuw (anders springt de teller terug). */
+    private boolean goForeground() {
+        if (isFg) return true;
         try {
-            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) throw new Exception("Geef eerst microfoontoegang");
             if (Build.VERSION.SDK_INT >= 26) {
                 NotificationChannel channel = new NotificationChannel(CHANNEL, "Gespreksopname", NotificationManager.IMPORTANCE_LOW);
                 channel.setDescription("Zichtbare melding zolang de microfoonopname loopt, met een stopknop");
@@ -93,6 +94,36 @@ public final class CallRecorderService extends Service {
                     .setWhen(System.currentTimeMillis()).setUsesChronometer(true).setContentIntent(content).addAction(android.R.drawable.ic_media_pause, "Stoppen en opslaan", stop).build();
             if (Build.VERSION.SDK_INT >= 30) startForeground(NOTIFICATION, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
             else startForeground(NOTIFICATION, n);
+            isFg = true;
+            return true;
+        } catch (Exception e) {
+            // Android staat het nu niet toe (bijv. microfoon vanaf de achtergrond): dan is er ook niets meer verplicht,
+            // maar opnemen mag dan ook niet (zou stil en onzichtbaar gebeuren)
+            return false;
+        }
+    }
+
+    private void quit() {
+        isFg = false;
+        try { stopForeground(STOP_FOREGROUND_REMOVE); } catch (Exception ignored) { }
+        stopSelfResult(lastStartId);
+    }
+
+    @Override public int onStartCommand(Intent intent, int flags, int startId) {
+        lastStartId = startId;
+        boolean fg = goForeground(); // altijd eerst, ook als we zo meteen stoppen
+        if (intent == null) { if (recorder == null) quit(); return START_NOT_STICKY; }
+        if ("stop".equals(intent.getAction())) { if (recorder != null) finish(null); else quit(); return START_NOT_STICKY; }
+        if (recorder != null) return START_NOT_STICKY;
+        long requestedSession = intent.getLongExtra("autoSession", 0);
+        if (requestedSession != 0 && (!AutoCallRecording.sessionActive(this, requestedSession) || !AutoCallRecording.ready(this))) {
+            cancelAutomatic(requestedSession); quit(); return START_NOT_STICKY;
+        }
+        autoSession = requestedSession;
+        busy = true; finishing = false; wasCall = false; watchingCall = false;
+        try {
+            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) throw new Exception("Geef eerst microfoontoegang");
+            if (!fg) throw new Exception("Android staat de opname nu niet toe");
             File folder = CallRecordings.dir(this);
             File[] leftovers = folder.listFiles((d, name) -> name.endsWith(".m4a.part"));
             if (leftovers != null) for (File file : leftovers) file.delete();
@@ -124,7 +155,7 @@ public final class CallRecorderService extends Service {
             String message = requestedSession == 0 ? "Opnemen starten lukt niet. Android kan de microfoon tijdens een telefoongesprek blokkeren; gebruik dan opname in de telefoon-app." :
                     AutoCallRecording.sessionActive(this, requestedSession) ? "Android blokkeert automatisch opnemen of de microfoon. Open de app om handmatig te starten." : "Automatische opname geannuleerd of het gesprek is al beëindigd.";
             CallRecordings.prefs(this).edit().putBoolean("active", false).putString("message", message).apply();
-            stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+            quit();
             if (requestedSession != 0) AutoCallRecording.blocked(this, requestedSession, message);
         }
         return START_NOT_STICKY;
@@ -167,7 +198,7 @@ public final class CallRecorderService extends Service {
             CallRecordings.prefs(this).edit().remove("autoSession").apply();
             AutoCallRecording.cancelNotice(this);
             CallRecordings.prefs(this).edit().putBoolean("active", false).putString("message", message).apply();
-            stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+            quit();
         }
     }
     @Override public void onDestroy() { if (recorder != null) finish("Opnameservice gestopt."); busy = false; super.onDestroy(); }

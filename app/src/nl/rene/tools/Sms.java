@@ -254,7 +254,7 @@ final class Sms {
         SimpleDateFormat rd = new SimpleDateFormat("d MMM yyyy HH:mm:ss", Locale.US);
         SimpleDateFormat stamp = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
         String xmlName = "sms-" + stamp.format(new Date()) + ".xml";
-        try (Writer w = open(dest, dir, xmlName, "text/xml")) {
+        try (Sms.Out w = open(dest, dir, xmlName, "text/xml")) {
             w.write("<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>\n");
             w.write("<smses count=\"" + all.size() + "\" backup_set=\"renes-tools\" backup_date=\"" + System.currentTimeMillis() + "\">\n");
             int i = 0;
@@ -267,6 +267,7 @@ final class Sms {
                 if ((++i % 200) == 0) p.step(i, all.size());
             }
             w.write("</smses>\n");
+            w.done(); // pas nu vervangt het nieuwe bestand het oude
         }
 
         // 2. Leesbare HTML per gesprek + index
@@ -281,6 +282,7 @@ final class Sms {
         SimpleDateFormat hm = new SimpleDateFormat("HH:mm", Locale.US);
         SimpleDateFormat full = new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL"));
         java.util.Set<String> used = new java.util.HashSet<>();
+        used.add("index"); // het overzicht heet index.html: een gesprek met de naam "index" mag dat niet overschrijven
         StringBuilder idx = new StringBuilder();
         idx.append("<!DOCTYPE html><html lang=nl><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>")
                 .append("<title>Sms-berichten</title><style>").append(CSS).append("</style><header><h1>Sms-berichten</h1><small>Gemaakt door Rene's Tools op ")
@@ -290,7 +292,7 @@ final class Sms {
             String file = safeName(cv.name);
             if (!used.add(file.toLowerCase())) file = file + "-" + cv.threadId;
             file = file + ".html";
-            try (Writer w = open(dest, dir, file, "text/html")) {
+            try (Sms.Out w = open(dest, dir, file, "text/html")) {
                 w.write("<!DOCTYPE html><html lang=nl><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>");
                 w.write(esc(cv.name));
                 w.write("</title><style>" + CSS + "</style><header><h1>" + esc(cv.name) + "</h1><small>" + cv.count
@@ -306,6 +308,7 @@ final class Sms {
                     w.write("<span class=t>" + hm.format(new Date(m.date)) + "</span></div>");
                 }
                 w.write("<div class=cl></div></main></html>");
+                w.done(); // pas nu vervangt het nieuwe bestand het oude
             }
             idx.append("<li><a href='").append(esc(file)).append("'>").append(esc(cv.name)).append("</a><small>")
                     .append(cv.count).append(" berichten · ").append(esc(full.format(new Date(cv.last)))).append("</small></li>");
@@ -313,38 +316,130 @@ final class Sms {
             done++;
         }
         idx.append("</ul></main></html>");
-        try (Writer w = open(dest, dir, "index.html", "text/html")) { w.write(idx.toString()); }
+        try (Sms.Out w = open(dest, dir, "index.html", "text/html")) { w.write(idx.toString()); w.done(); }
 
         prefs(c).edit().putLong("lastExport", System.currentTimeMillis()).putInt("lastCount", all.size()).apply();
         return all.size();
     }
 
-    static Writer open(WaBackup.Dest dest, WaBackup.DestDir dir, String name, String mime) throws Exception {
-        if (dest.zip != null) return dest.zip.writer(dir.path, name);
-        WaBackup.Child ch = dir.kids.get(name);
-        Uri u;
-        if (ch != null && !ch.dir) u = DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId);
-        else {
-            u = DocumentsContract.createDocument(dest.cr, dir.uri, mime, name);
-            if (u == null) throw new Exception("Bestand maken lukt niet: " + name);
-            dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(u), 0, 0, false));
+    /**
+     * Bestand in de backup-map schrijven. Alles gaat eerst naar een tijdelijk bestand; pas na {@link Out#done()}
+     * (de aanroeper heeft alles geschreven) vervangt het het echte bestand. Gaat er onderweg iets mis (volle
+     * SD-kaart, losgetrokken USB-stick, een fout bij het verzamelen), dan blijft het vorige bestand gewoon staan.
+     */
+    static Out open(WaBackup.Dest dest, WaBackup.DestDir dir, String name, String mime) throws Exception {
+        if (dest.zip != null) { Writer zw = dest.zip.writer(dir.path, name); return new ZipOut(zw, dest.zip, dest.zip.lastPath); }
+        String tmpName = name + ".rt-tmp";
+        // Vorige keer onderbroken tussen "oud opzij" en "nieuw op zijn plek": het oude terugzetten
+        WaBackup.Child aside = dir.kids.remove(name + ".rt-old");
+        if (aside != null && !aside.dir) {
+            Uri au = DocumentsContract.buildDocumentUriUsingTree(dest.tree, aside.docId);
+            try {
+                if (!dir.kids.containsKey(name)) { Uri back = DocumentsContract.renameDocument(dest.cr, au, name); if (back != null) dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(back), aside.size, aside.mod, false)); }
+                else DocumentsContract.deleteDocument(dest.cr, au);
+            } catch (Exception ignored) { }
         }
+        WaBackup.Child stale = dir.kids.remove(tmpName);
+        if (stale != null && !stale.dir) try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, stale.docId)); } catch (Exception ignored) { }
+        // octet-stream: anders plakt Android de extensie er nog eens achter (notities.json.rt-tmp.json)
+        Uri tmp = DocumentsContract.createDocument(dest.cr, dir.uri, "application/octet-stream", tmpName);
+        if (tmp == null) throw new Exception("Bestand maken lukt niet: " + name);
         OutputStream o;
-        try { o = dest.cr.openOutputStream(u, "wt"); }
-        catch (Exception e) {
-            // "w" kapt bij sommige providers niet af: bestaand bestand dan opnieuw aanmaken.
-            if (ch != null && !ch.dir) {
-                DocumentsContract.deleteDocument(dest.cr, u);
-                u = DocumentsContract.createDocument(dest.cr, dir.uri, mime, name);
-                if (u == null) throw new Exception("Bestand maken lukt niet: " + name);
-                dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(u), 0, 0, false));
-            }
-            o = dest.cr.openOutputStream(u, "w");
-        }
-        if (o == null) throw new Exception("Schrijven lukt niet: " + name);
-        return new java.io.BufferedWriter(new OutputStreamWriter(o, StandardCharsets.UTF_8), 1 << 16);
+        try { o = dest.cr.openOutputStream(tmp, "w"); } catch (Exception e) { o = null; }
+        if (o == null) { try { DocumentsContract.deleteDocument(dest.cr, tmp); } catch (Exception ignored) { } throw new Exception("Schrijven lukt niet: " + name); }
+        return new SafeWriter(o, dest, dir, name, mime, tmp);
     }
 
+    /** Schrijver voor de backup-map: na alles schrijven done() aanroepen, dan pas telt het. */
+    static class Out extends Writer {
+        final Writer w;
+        boolean ok;
+        Out(Writer w) { this.w = w; }
+        /** Alles is geschreven: bij sluiten mag het het echte bestand worden. */
+        void done() { ok = true; }
+        @Override public void write(char[] b, int off, int len) throws java.io.IOException { w.write(b, off, len); }
+        @Override public void write(String s, int off, int len) throws java.io.IOException { w.write(s, off, len); }
+        @Override public void flush() throws java.io.IOException { w.flush(); }
+        @Override public void close() throws java.io.IOException { w.close(); }
+    }
+
+    /** In het versleutelde archief: niet afgerond = als onvolledig gemarkeerd (terugzetten biedt het dan niet aan). */
+    static final class ZipOut extends Out {
+        private final Secure.Zip zip; private final String path;
+        ZipOut(Writer w, Secure.Zip zip, String path) { super(w); this.zip = zip; this.path = path; }
+        @Override public void close() throws java.io.IOException { w.close(); if (!ok && path != null) zip.bad.add(path); }
+    }
+
+    /**
+     * Schrijft naar het tijdelijke bestand. Bij sluiten na done(): het oude opzij zetten, het nieuwe de echte naam
+     * geven, dan pas het oude weg. Zonder done() (er ging iets mis): het tijdelijke bestand weg, het oude blijft.
+     */
+    static final class SafeWriter extends Out {
+        private final WaBackup.Dest dest; private final WaBackup.DestDir dir; private final String name, mime; private final Uri tmp;
+        private boolean failed, closed;
+
+        SafeWriter(OutputStream o, WaBackup.Dest dest, WaBackup.DestDir dir, String name, String mime, Uri tmp) {
+            super(new java.io.BufferedWriter(new OutputStreamWriter(o, StandardCharsets.UTF_8), 1 << 16));
+            this.dest = dest; this.dir = dir; this.name = name; this.mime = mime; this.tmp = tmp;
+        }
+
+        @Override public void write(char[] b, int off, int len) throws java.io.IOException { try { w.write(b, off, len); } catch (java.io.IOException | RuntimeException e) { failed = true; throw e; } }
+        @Override public void write(String s, int off, int len) throws java.io.IOException { try { w.write(s, off, len); } catch (java.io.IOException | RuntimeException e) { failed = true; throw e; } }
+        @Override public void flush() throws java.io.IOException { try { w.flush(); } catch (java.io.IOException | RuntimeException e) { failed = true; throw e; } }
+
+        @Override public void close() throws java.io.IOException {
+            if (closed) return;
+            closed = true;
+            try { w.close(); } catch (java.io.IOException | RuntimeException e) { failed = true; }
+            if (failed || !ok) {
+                try { DocumentsContract.deleteDocument(dest.cr, tmp); } catch (Exception ignored) { }
+                throw new java.io.IOException(failed ? "Schrijven mislukt (vol of losgekoppeld?); het vorige bestand " + name + " is bewaard"
+                        : "Niet afgerond; het vorige bestand " + name + " is bewaard");
+            }
+            try { commit(); } catch (Exception e) { throw new java.io.IOException("Vervangen van " + name + " mislukt: " + e.getMessage()); }
+        }
+
+        private Uri rename(Uri u, String to) {
+            try { return DocumentsContract.renameDocument(dest.cr, u, to); } catch (Exception e) { return null; }
+        }
+
+        private void commit() throws Exception {
+            WaBackup.Child old = dir.kids.get(name);
+            Uri oldU = old == null || old.dir ? null : DocumentsContract.buildDocumentUriUsingTree(dest.tree, old.docId);
+            // 1. oude opzij (blijft bestaan tot het nieuwe op zijn plek staat)
+            Uri aside = null;
+            if (oldU != null) {
+                aside = rename(oldU, name + ".rt-old");
+                if (aside == null) {
+                    // Hernoemen kan hier niet: dan het oude pas weghalen nu het nieuwe compleet klaarstaat
+                    DocumentsContract.deleteDocument(dest.cr, oldU);
+                }
+                dir.kids.remove(name);
+            }
+            // 2. nieuwe krijgt de naam
+            Uri done = rename(tmp, name);
+            if (done == null) {
+                Uri u = DocumentsContract.createDocument(dest.cr, dir.uri, mime, name);
+                boolean copied = false;
+                if (u != null) {
+                    try (java.io.InputStream in = dest.cr.openInputStream(tmp); OutputStream o = dest.cr.openOutputStream(u, "w")) {
+                        if (in != null && o != null) { byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r); copied = true; }
+                    } catch (Exception ignored) { }
+                    if (!copied) try { DocumentsContract.deleteDocument(dest.cr, u); } catch (Exception ignored) { }
+                }
+                if (!copied) {
+                    // Terug naar hoe het was
+                    if (aside != null) { Uri back = rename(aside, name); if (back != null) dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(back), 0, 0, false)); }
+                    throw new Exception("het nieuwe bestand staat als " + name + ".rt-tmp");
+                }
+                try { DocumentsContract.deleteDocument(dest.cr, tmp); } catch (Exception ignored) { }
+                done = u;
+            }
+            dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(done), 0, 0, false));
+            // 3. oude weg
+            if (aside != null) try { DocumentsContract.deleteDocument(dest.cr, aside); } catch (Exception ignored) { }
+        }
+    }
     static final String CSS = "body{font:15px/1.4 system-ui,sans-serif;background:#ECE5DD;margin:0;color:#111}"
             + "header{background:#1E5AA8;color:#fff;padding:14px 18px;position:sticky;top:0}header h1{margin:0;font-size:19px}"
             + "header small{opacity:.85}main{max-width:820px;margin:0 auto;padding:12px}"

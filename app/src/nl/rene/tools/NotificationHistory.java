@@ -159,7 +159,8 @@ final class NotificationHistory {
             if (lastId == 0) return -1;
             WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), WaBackup.destUri(c));
             WaBackup.DestDir dir = dest.dir(DIR, true);
-            String name = "meldingen-" + new SimpleDateFormat("yyyy-MM-dd_HHmmss_SSS", Locale.US).format(new Date());
+            // Naam die "Oude backups opruimen" herkent (anders stapelen deze leesbare exports zich eindeloos op)
+            String name = "meldingen-" + new SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(new Date());
             SimpleDateFormat df = new SimpleDateFormat("d MMM yyyy HH:mm:ss", new Locale("nl", "NL"));
             int count = 0;
             java.io.File snapshot = java.io.File.createTempFile("history-export-", ".jsonl", c.getCacheDir());
@@ -171,15 +172,16 @@ final class NotificationHistory {
                     while (cur.moveToNext()) { temp.write(row(cur).toString()); temp.write("\n"); count++; }
                 }
                 try (java.io.BufferedReader in = reader(snapshot);
-                     Writer json = Sms.open(dest, dir, name + ".json", "application/json")) {
+                     Sms.Out json = Sms.open(dest, dir, name + ".json", "application/json")) {
                     json.write("{\"format\":\"renes-tools-notifications\",\"version\":1,\"exportedAt\":" + System.currentTimeMillis() + ",\"notifications\":[");
                     String line; boolean first = true;
                     while ((line = in.readLine()) != null) { if (!first) json.write(","); json.write(line); first = false; }
                     json.write("]}");
+                    json.done(); // pas nu vervangt het nieuwe bestand het oude
                 }
                 // ZipOutputStream staat één bestand tegelijk toe (versleutelde Alles-backup).
                 try (java.io.BufferedReader in = reader(snapshot);
-                     Writer html = Sms.open(dest, dir, name + ".html", "text/html")) {
+                     Sms.Out html = Sms.open(dest, dir, name + ".html", "text/html")) {
                     html.write("<!doctype html><html lang=nl><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>Meldingsgeschiedenis</title><style>body{font:16px system-ui;max-width:850px;margin:24px auto;padding:0 16px}article{border-bottom:1px solid #ccc;padding:16px 0}p{white-space:pre-wrap;overflow-wrap:anywhere}small{color:#555}</style><h1>Meldingsgeschiedenis</h1>");
                     String line;
                     while ((line = in.readLine()) != null) {
@@ -187,6 +189,7 @@ final class NotificationHistory {
                         html.write("<article><small>" + HistoryText.html(df.format(new Date(r.getLong("time")))) + " · " + HistoryText.html(r.getString("app")) + " · " + HistoryText.html(r.getString("package")) + "</small><h2>" + HistoryText.html(r.getString("title")) + "</h2><p>" + HistoryText.html(r.getString("text")) + "</p></article>");
                     }
                     html.write("</html>");
+                    html.done(); // pas nu vervangt het nieuwe bestand het oude
                 }
                 return count;
             } finally { snapshot.delete(); }

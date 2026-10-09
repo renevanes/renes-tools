@@ -291,7 +291,7 @@ final class Calls {
         int total = all.size() * 3, step = 0;
 
         // 1. XML in het formaat van SMS Backup & Restore
-        try (Writer w = Sms.open(dest, dir, "oproepen-" + day + sel + ".xml", "text/xml")) {
+        try (Sms.Out w = Sms.open(dest, dir, "oproepen-" + day + sel + ".xml", "text/xml")) {
             w.write("<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>\n");
             w.write("<calls count=\"" + all.size() + "\" backup_set=\"renes-tools\" backup_date=\"" + System.currentTimeMillis() + "\">\n");
             for (int i = 0; i < all.size(); i++) {
@@ -304,10 +304,11 @@ final class Calls {
                 if ((++step % 200) == 0) p.step(step, total);
             }
             w.write("</calls>\n");
+            w.done(); // pas nu vervangt het nieuwe bestand het oude
         }
 
         // 2. CSV (puntkomma, met BOM zodat Excel UTF-8 herkent)
-        try (Writer w = Sms.open(dest, dir, "oproepen-" + day + sel + ".csv", "text/csv")) {
+        try (Sms.Out w = Sms.open(dest, dir, "oproepen-" + day + sel + ".csv", "text/csv")) {
             w.write("﻿Datum;Richting;Naam;Nummer;Duur (sec);Duur\r\n");
             for (int i = 0; i < all.size(); i++) {
                 Call k = all.get(i);
@@ -316,10 +317,11 @@ final class Calls {
                             : csv(k.presentation == 1 && k.number != null ? k.number : "")) + ";" + k.duration + ";" + dur(k.duration) + "\r\n");
                 if ((++step % 200) == 0) p.step(step, total);
             }
+            w.done(); // pas nu vervangt het nieuwe bestand het oude
         }
 
         // 3. Leesbare HTML-pagina
-        try (Writer w = Sms.open(dest, dir, "oproepen" + (sel.isEmpty() ? "" : "-" + day + sel) + ".html", "text/html")) {
+        try (Sms.Out w = Sms.open(dest, dir, "oproepen" + (sel.isEmpty() ? "" : "-" + day + sel) + ".html", "text/html")) {
             w.write("<!DOCTYPE html><html lang=nl><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
                     + "<title>Oproepen</title><style>" + CSS + "</style><header><h1>Oproepen</h1><small>Gemaakt door Rene's Tools op "
                     + Sms.esc(full.format(new Date())) + " · " + all.size() + " oproepen</small></header><main><table>"
@@ -333,6 +335,7 @@ final class Calls {
                 if ((++step % 200) == 0) p.step(step, total);
             }
             w.write("</table></main></html>");
+            w.done(); // pas nu vervangt het nieuwe bestand het oude
         }
 
         p.step(total, total);

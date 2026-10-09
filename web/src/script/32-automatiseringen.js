@@ -9,7 +9,17 @@ const AU_MODE = { ask: 'vraagt eerst', auto: 'volledig automatisch', notify: 'al
 const AU_DAYS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
 
 function auLoad(){ auState = rdJson(Android.autoState(), { rules: [], log: [], last: {}, perms: {} }); auState.rules = auState.rules || []; auState.perms = auState.perms || {}; }
-function enterAuto(){ auLoad(); auRender(); }
+function enterAuto(){
+  auLoad(); auRender();
+  // Een bewerking die onderbroken werd (je ging via een melding naar iets anders): verder of weggooien
+  const d = store.get('autoDraft', null);
+  if (d && d.left && d.rule) {
+    store.set('autoDraft', null);
+    if (Date.now() - (d.t || 0) < 24 * 3600e3)
+      askChoice('Verder met bewerken?', 'Je was "' + (d.rule.name || 'een automatisering') + '" aan het aanpassen en dat is nog niet bewaard.', 'Verder', 'Weggooien',
+        () => { aeRule = d.rule; aeIsNew = !!d.isNew; aeSnap = null; show('autoed'); }, () => {});
+  }
+}
 
 function auDaysLabel(m){
   if (!m || m === 127) return ''; if (m === 31) return 'werkdagen'; if (m === 96) return 'weekend';
@@ -298,12 +308,15 @@ function aeMapDraw(){
 function aeHere(){
   if (!auState.perms.loc) { Android.autoPerm('loc'); return; }
   const b = $('#ae-here'); b.disabled = true; b.textContent = 'Locatie bepalen…';
+  aeHereFor = aeRule; // de plek hoort bij déze automatisering, ook als je intussen een andere opent
   Android.autoHere();
 }
+let aeHereFor = null;
 window.onAutoHere = function(r){
   const b = $('#ae-here'); b.disabled = false; b.textContent = '📍 Mijn plek nu gebruiken';
   if (!r || r.error) { if (r && r.error === 'perm') Android.autoPerm('loc'); else toast(r && r.error || 'Geen locatie gevonden'); return; }
-  if (!aeRule) return;
+  if (!aeRule || aeRule !== aeHereFor || current !== 'autoed') return;
+  aeHereFor = null;
   const p = aePlace(); p.lat = Math.round(r.lat * 1e6) / 1e6; p.lng = Math.round(r.lng * 1e6) / 1e6;
   aeRender();
   if (aeMap) { aeMap.setView([p.lat, p.lng], 16); aeMapDraw(); }
@@ -378,6 +391,7 @@ function autoRecBack(){
 function autoDraftBack(){
   // terug uit de toegankelijkheidsinstellingen: verder met de bewerking
   const d = store.get('autoDraft', null);
+  if (d && d.left) return; // onderbroken bewerking: die komt bij het openen van Automatiseringen terug
   if (current === 'autoed' && aeRule) { store.set('autoDraft', null); auLoad(); aeRender(); return; }
   store.set('autoDraft', null);
   if (d && d.rule && Date.now() - (d.t || 0) < 30 * 60e3) { aeRule = d.rule; aeIsNew = !!d.isNew; show('autoed'); }

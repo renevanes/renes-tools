@@ -77,7 +77,7 @@ function carSave(){
   enterCar();
 }
 function carTripToggle(){ if (carSt.tripActive) Android.carTripStop(); else Android.carTripStart(); setTimeout(enterCar, 600); }
-function carExport(){ if (!carSt.dest) { toast('Kies eerst een backup-map (Instellingen)'); return; } Android.carExport(carMonth); }
+function carExport(){ if (!plainOk('Het rittenoverzicht', carExport)) return; if (!carSt.dest) { toast('Kies eerst een backup-map (Instellingen)'); return; } Android.carExport(carMonth); }
 function carTripMenu(id){
   const t = (carSt.tripList || []).find(x => x.id === id); if (!t) return;
   openSheet(new Date(t.start).toLocaleString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }), carFmtKm(t.m) + ' km', [

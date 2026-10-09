@@ -44,8 +44,8 @@
 
       <div class="card">
         <h2>Automatisch</h2>
-        <div class="sw"><span>Elke nacht automatisch<small>Na 03:00, als WhatsApp zijn eigen backup heeft gemaakt</small></span><button class="tg" id="wa-auto" onclick="tog(this); waSave()"></button></div>
-        <div class="sw"><span>Alleen tijdens opladen<small>Aanbevolen: de eerste backup kan lang duren</small></span><button class="tg on" id="wa-charging" onclick="tog(this); waSave()"></button></div>
+        <div class="sw"><span>Elke nacht automatisch<small>Na 03:00, als WhatsApp zijn eigen backup heeft gemaakt</small></span><button class="tg" id="wa-auto" onclick="togUi(this); waSave()"></button></div>
+        <div class="sw"><span>Alleen tijdens opladen<small>Aanbevolen: de eerste backup kan lang duren</small></span><button class="tg on" id="wa-charging" onclick="togUi(this); waSave()"></button></div>
         <div class="sw" style="display:block"><span>Wat<small>Wat er automatisch wordt meegenomen</small></span>
           <div class="chips" id="wa-automode" style="margin:10px 0 0"></div></div>
         <p class="note" id="wa-next"></p>
@@ -67,7 +67,7 @@
         </div>
         <div id="rd-ready" style="display:none">
           <button class="big" onclick="show('chats')">Open mijn chats</button>
-          <div class="sw" style="margin-top:6px"><span>Automatisch bijwerken<small>Na elke backup de chats opnieuw leesbaar maken</small></span><button class="tg on" id="rd-auto" onclick="tog(this); Android.waSetReadableAuto(this.classList.contains('on'))"></button></div>
+          <div class="sw" style="margin-top:6px"><span>Automatisch bijwerken<small>Na elke backup de chats opnieuw leesbaar maken. De webpagina's in de backup-map zijn niet versleuteld; staat versleutelen aan, dan worden ze alleen in de app bijgewerkt.</small></span><button class="tg on" id="rd-auto" onclick="togUi(this); Android.waSetReadableAuto(this.classList.contains('on'))"></button></div>
           <p class="note" id="rd-from"></p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="big ghost" style="flex:1" onclick="rdRefresh()">Nu bijwerken</button>

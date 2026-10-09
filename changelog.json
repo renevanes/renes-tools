@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.57",
+    "date": "2026-10-09",
+    "changes": [
+      "Veiligheid: losse exports vragen eerst als versleutelen aan staat; leesbare WhatsApp-chats 's nachts dan alleen in de app",
+      "Veiligheid: teruggezette backupbestanden en de versienaam van updates kunnen geen code meer in het scherm zetten; updates van de app alleen met geldige handtekening",
+      "Veiligheid: andere apps kunnen niet meer ongevraagd Muziek herkennen starten, de app laten afsluiten of een snelkoppeling op je startscherm zetten (eerst vragen)",
+      "Backups: bestanden worden pas vervangen als het nieuwe compleet is; een tweede bestand met dezelfde naam in WhatsApp overschrijft de oude niet meer",
+      "Wekkers, herinneringen en geplande acties komen terug na geforceerd stoppen; de radiowekker gaat ook af als de telefoon na een herstart nog niet ontgrendeld is",
+      "Notities: een wijziging uit de widget en een nieuwe notitie in de app worden samengevoegd in plaats van dat er één verloren gaat",
+      "Route opnemen gebruikt veel minder batterij; pauze zet de GPS uit",
+      "Verder veel kleine fouten opgelost (gespreksopname, radio na een gesprek, spraaknotities, zoeken, oproepenfilter, wekker-proef)"
+    ]
+  },
+  {
     "version": "1.56",
     "date": "2026-10-08",
     "changes": [

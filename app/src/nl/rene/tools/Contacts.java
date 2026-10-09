@@ -525,12 +525,14 @@ final class Contacts {
             file = "contacten-versie-" + v + ".vcf";
         } else {
             list = read(c);
+            // Even geen contacten te lezen (bijv. vlak na opstarten)? Dan geen lege backup over een goede heen schrijven.
+            if (list.isEmpty()) throw new Exception("Geen contacten gevonden; de backup is niet overschreven");
             file = "contacten-" + new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date()) + ".vcf";
         }
-        try (Writer w = Sms.open(dest, dir, file, "text/x-vcard")) { writeVcf(w, list); }
+        try (Sms.Out w = Sms.open(dest, dir, file, "text/x-vcard")) { writeVcf(w, list); w.done(); }
         JSONArray idx = index(c);
         SimpleDateFormat df = new SimpleDateFormat("EEE d MMM yyyy HH:mm", new Locale("nl", "NL"));
-        try (Writer w = Sms.open(dest, dir, "wijzigingslog.txt", "text/plain")) {
+        try (Sms.Out w = Sms.open(dest, dir, "wijzigingslog.txt", "text/plain")) {
             w.write("Contacten - wijzigingslog - Rene's Tools\r\n\r\n");
             if (idx != null) for (int i = idx.length() - 1; i >= 0; i--) {
                 JSONObject e = idx.getJSONObject(i);
@@ -552,6 +554,7 @@ final class Contacts {
                 }
                 w.write("\r\n");
             }
+            w.done(); // pas nu vervangt het nieuwe bestand het oude
         }
         return list.size();
     }

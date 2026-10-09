@@ -1,15 +1,29 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.56",
-  "versionCode": 57,
-  "nativeLevel": 52,
+  "versionName": "1.57",
+  "versionCode": 58,
+  "nativeLevel": 53,
   "web": "index.html",
-  "webSha256": "b6dbedf30a3be626d7329b492b710cdc5a9a112823d9ea6e2c75a0f16bb04b98",
+  "webSha256": "eadb4ff43c948619be707664c85fa4586c40498fc01bbb9e0bce232444d19ca3",
   "start": "start.html",
-  "startSha256": "83f8bfc2711e634d3c990f40deb8632b666c7212c6403bf5886bc31c5bd5ac0d",
+  "startSha256": "e579a294c436b49185bb76e16fc1d5837a7f34f9ba978d76286cb0fc2cad3b76",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1d4796328976ec71bc15b65a5078bd13d243bb1a219ec82bc1ece6d843da042c",
+  "apkSha256": "d2109795ffcab2b300911dc677400ac8e0a14b0b9172c6be00bba4c2b9b1dafb",
   "changelog": [
+    {
+      "version": "1.57",
+      "date": "2026-10-09",
+      "changes": [
+        "Veiligheid: losse exports vragen eerst als versleutelen aan staat; leesbare WhatsApp-chats 's nachts dan alleen in de app",
+        "Veiligheid: teruggezette backupbestanden en de versienaam van updates kunnen geen code meer in het scherm zetten; updates van de app alleen met geldige handtekening",
+        "Veiligheid: andere apps kunnen niet meer ongevraagd Muziek herkennen starten, de app laten afsluiten of een snelkoppeling op je startscherm zetten (eerst vragen)",
+        "Backups: bestanden worden pas vervangen als het nieuwe compleet is; een tweede bestand met dezelfde naam in WhatsApp overschrijft de oude niet meer",
+        "Wekkers, herinneringen en geplande acties komen terug na geforceerd stoppen; de radiowekker gaat ook af als de telefoon na een herstart nog niet ontgrendeld is",
+        "Notities: een wijziging uit de widget en een nieuwe notitie in de app worden samengevoegd in plaats van dat er één verloren gaat",
+        "Route opnemen gebruikt veel minder batterij; pauze zet de GPS uit",
+        "Verder veel kleine fouten opgelost (gespreksopname, radio na een gesprek, spraaknotities, zoeken, oproepenfilter, wekker-proef)"
+      ]
+    },
     {
       "version": "1.56",
       "date": "2026-10-08",
@@ -513,5 +527,5 @@
       ]
     }
   ],
-  "webSig2": "cgGce4PnfzU4prA1owk1fHzo12J7kMxo7Ft8HaiLAjaUXybaYd4GlbW4D+YJbB4AHcIl26+fqeE0kSwHHzF4YrQajgQlEEgx8ziUWcnki6FIkI6daNWTWgxu/WojR7m7pLkzKxy7vTenqmT5YdAiYGYo5IXsx+jME9sEhPjUZvLZueoz6PFDw58G4rDemfHcYK9wMU384zKTTiiMrDO9gdD/WaoyBOcWOF6AkUGPdxnF2K+6VK83hwP0T4JDi7LQNpmqbn9QQcMiT1Y0T/F/0Q5XEx94otQKY84JbQ/7uJseNWocrV6HGXJ9oOg9eWqAYbvZjKgFJ2BKUZcv7xYmAOPTeSYiJQGQcQUbj+SmU4TY0CnzBSy+xtgovCRsSVkmv0BUwtFpc9MWF1u1JRgxc5gNJAxgl4gh3rIy7dKkWXSS2lwUzOboeAYP9ON0JCd9lGmyaX3aHck5RjcHAT1XUk9HFUsdgvDNyHdOhKzdFiBfnKQT0gZDWrCNtMcNG/re"
+  "webSig2": "fLFqgBIup7p7XC8a4Xmbh5XwjfQBNont+KDUF/xJ9n7v78L9G9FfyvYEi+hXklb4q6wufG57n5RgCwIHFoYPGmgWML15aQoPUutiPXC0lvZwGw3rhQfcz/xcNFyRH8X/kO9WHRfG9nhs3ojXkAXgAnmE6sQh8gjl7iRAFcn0SuHZIIcptStJk9an2TPb60A9lzpR91tmystAWa6VRoIHmhjm2RWEHBG9uTB2us4mBDGNt9DW4VAv53jguw6UkrpA43y5aWh/RO2qqKrix5F5Z5ajnf8o5/7kcnUVuL7yxu4AdX5x7rl8UvJYqmjvH6+VMRY/qZU4v7QFEqegcs965lBh2qakwETX2lP3lfAi9Y+DbGjaa/kjki41h31JPH3ZqnmBrjPysD9XR1k4g14R7ag1ggNRhHP8eqi8/8KTj0X/HdtBzxe84zSs9XxYZkTkIvDpPivIJ79laVoqLzKQBegEx3z7vdzzjWRPWtOR0bcgw/yDPnL5kay6AcYN2xOx"
 }

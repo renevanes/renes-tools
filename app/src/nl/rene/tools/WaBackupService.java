@@ -77,7 +77,7 @@ public class WaBackupService extends Service {
                 } else {
                     st = restore ? WaBackup.restore(ctx, l) : WaBackup.backup(ctx, mode, WaBackup.parseCats(cats), l);
                     if (!restore && ("ok".equals(st.result) || "partial".equals(st.result)) && WaChats.autoReadable(ctx))
-                        WaChats.makeReadable(ctx, l);
+                        WaChats.makeReadable(ctx, l, !Secure.on(ctx));
                 }
             } finally {
                 WaBackup.busy = false;

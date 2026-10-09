@@ -19,6 +19,7 @@ function txSelEnd(){
   const segs = $('#txd-segs'); if (segs) { segs.classList.remove('selecting'); segs.querySelectorAll('.seg.sel').forEach(x => { x.classList.remove('sel'); x.removeAttribute('aria-pressed'); }); }
 }
 function txToNote(asList){
+  if (!once('txnote')) return;
   const t = txT || {}; const segs = t.segments || [];
   let picked = Array.from(document.querySelectorAll('#txd-segs .seg.sel')).map(el => segs[+el.id.slice(3)]).filter(Boolean);
   if (!picked.length) picked = segs;
@@ -67,12 +68,12 @@ window.onVoiceNote = function(r){
   if (n) {
     if ((n.items || []).length || parts.length > 1 && parts.every(p => p.split(' ').length <= 5)) parts.forEach(p => n.items.push({ id: uid(), text: p.charAt(0).toUpperCase() + p.slice(1), done: false }));
     else n.text = (n.text ? n.text + '\n' : '') + text;
-    touch(n); notesSaveNow(); voiceClose(); openNote(n.id); toast('🎤 Toegevoegd');
+    touch(n); const ok = notesSaveNow(); voiceClose(); openNote(n.id); if (ok) toast('🎤 Toegevoegd');
     return;
   }
   const words = text.split(/\s+/);
   const nn = { id: uid(), title: words.slice(0, 6).join(' ').replace(/[.,;:!?]+$/, '') + (words.length > 6 ? '…' : ''), text: text, items: [], updated: Date.now() };
-  notesGet().push(nn); notesSaveNow(); voiceClose(); openNote(nn.id); toast('🎤 Spraaknotitie gemaakt');
+  notesGet().push(nn); const ok = notesSaveNow(); voiceClose(); openNote(nn.id); if (ok) toast('🎤 Spraaknotitie gemaakt');
 };
 
 /* Radiofragment bewaren: de laatste minuten uit de terugspoelbuffer als bestand in Radio/ (voor eigen gebruik). */

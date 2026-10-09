@@ -19,7 +19,7 @@ final class Rotate {
     private Rotate() { }
 
     static final int DAYS = 14;
-    static final Pattern NAME = Pattern.compile("^(sms|oproepen|contacten|backup)-(\\d{4})-(\\d{2})-(\\d{2})(?:_(\\d{2})(\\d{2}))?(\\.[A-Za-z0-9]+)$");
+    static final Pattern NAME = Pattern.compile("^(sms|oproepen|contacten|backup|meldingen)-(\\d{4})-(\\d{2})-(\\d{2})(?:_(\\d{2})(\\d{2})(\\d{2})?)?(\\.[A-Za-z0-9]+)$");
 
     static final class F {
         final String name; final String family; final long when; final String month;
@@ -32,8 +32,8 @@ final class Rotate {
         Calendar c = Calendar.getInstance();
         c.clear();
         c.set(Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3)) - 1, Integer.parseInt(m.group(4)),
-                m.group(5) == null ? 0 : Integer.parseInt(m.group(5)), m.group(6) == null ? 0 : Integer.parseInt(m.group(6)), 0);
-        return new F(name, m.group(1) + m.group(7).toLowerCase(), c.getTimeInMillis(), m.group(2) + "-" + m.group(3));
+                m.group(5) == null ? 0 : Integer.parseInt(m.group(5)), m.group(6) == null ? 0 : Integer.parseInt(m.group(6)), m.group(7) == null ? 0 : Integer.parseInt(m.group(7)));
+        return new F(name, m.group(1) + m.group(8).toLowerCase(), c.getTimeInMillis(), m.group(2) + "-" + m.group(3));
     }
 
     /** Namen die weg mogen, uitgaande van "nu". */

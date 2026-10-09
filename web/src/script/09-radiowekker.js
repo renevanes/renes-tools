@@ -21,9 +21,10 @@ function alSave(){
   const [h, m] = ($('#al-time').value || '07:00').split(':').map(Number);
   const st = alStations[+$('#al-station').value];
   const e = Android.alarmSet($('#al-on').checked, h, m, alDays, st ? JSON.stringify(st) : '');
-  if (e) { toast(e); return; }
+  if (e) { toast(e); return false; }
   enterAlarm();
   toast($('#al-on').checked ? '⏰ Wekker opgeslagen' : 'Wekker uit');
+  return true;
 }
-function alTest(){ alSave(); const e = Android.alarmTest(); toast(e || 'De wekker gaat over 10 seconden af'); }
+function alTest(){ if (!alSave()) return; const e = Android.alarmTest(); toast(e || 'De wekker gaat over 10 seconden af'); }
 

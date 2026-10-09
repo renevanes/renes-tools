@@ -48,8 +48,8 @@ function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); 
 
 /* Eigen dialogen in plaats van de systeem-popups van de WebView. */
 let _modalCb = null;
-function askConfirm(title, text, okLabel, onOk){
-  openModal(title, text, null, okLabel || 'OK', v => { if (v !== null) onOk(); });
+function askConfirm(title, text, okLabel, onOk, onCancel){
+  openModal(title, text, null, okLabel || 'OK', v => { if (v !== null) onOk(); else if (onCancel) onCancel(); });
 }
 function askInput(title, text, value, okLabel, onOk){
   openModal(title, text, value == null ? '' : value, okLabel || 'OK', v => { if (v !== null) onOk(v); });
@@ -86,6 +86,11 @@ function dark(){ return matchMedia('(prefers-color-scheme: dark)').matches; }
 function bars(){ const cs=getComputedStyle(document.documentElement); Android.setBars(cs.getPropertyValue('--brand').trim(), cs.getPropertyValue('--bg').trim(), !dark()); }
 
 function show(name){
+  // Weg uit een automatisering die nog niet bewaard is (bijv. via een melding of snelkoppeling): als concept bewaren
+  if (current === 'autoed' && name !== 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
+    store.set('autoDraft', { rule: aeRule, isNew: aeIsNew, t: Date.now(), left: true });
+    aeRule = null; aeSnap = null;
+  }
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
   const current_prev = current;
   if (current_prev === 'home' && !jumpTo.busy) gsResetTool(name);
@@ -142,21 +147,26 @@ window.goBack = function(){
 const jumpStack = [];
 function jumpTo(name, open){ const from = current; jumpTo.busy = true; try { if (open) open(); else show(name); } finally { jumpTo.busy = false; } if (current !== from) jumpStack.push({ from, to: current }); }
 let sheetAt = 0;
-function openSheet(title, sub, acts){
+/* onDismiss: als het menu dicht gaat zonder dat er iets gekozen is (terug, buiten tikken) */
+let sheetDismiss = null;
+function openSheet(title, sub, acts, onDismiss){
+  const prev = sheetDismiss; sheetDismiss = null; if (prev) prev(); // een ander menu dat nog open stond
+  sheetDismiss = onDismiss || null;
   sheetAt = Date.now(); // het loslaten na lang indrukken mag het menu niet meteen sluiten
   $('#sheet-title').textContent = title; $('#sheet-sub').textContent = sub || '';
   const box = $('#sheet-acts'); box.innerHTML = '';
-  acts.forEach(([label, fn]) => { const b = document.createElement('button'); b.textContent = label; b.onclick = () => { closeSheet(); fn(); }; box.appendChild(b); });
+  acts.forEach(([label, fn]) => { const b = document.createElement('button'); b.textContent = label; b.onclick = () => { sheetDismiss = null; closeSheet(); fn(); }; box.appendChild(b); });
   $('#sheet').classList.add('on');
 }
-function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.classList.remove('on'); }
+function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.classList.remove('on'); const d = sheetDismiss; sheetDismiss = null; if (d) d(); }
 
 window.openTool = function(n){
   if (n === 'share') { noteFromShare(); return; }
   if (n === 'skin') { Android.homeOpen(); return; } // snelkoppeling "Telefoon-skin": meteen de skin tonen
   if (n === 'auto-rec') { autoRecBack(); return; } // terug na opnemen in een andere app
   if (n === 'auto') { store.set('autoDraft', null); if (current !== 'autoed') show('auto'); return; } // ✕ bij opnemen
-  if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
+  if (n === 'music-now' && $('#lockscr').classList.contains('on')) { show('music'); return; } // op slot: niet zomaar opnemen
+  if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (current === 'music' && !$('#lockscr').classList.contains('on') && st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
   if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='history') show('history'); if (n==='recorder') show('recorder'); if (n==='car') show('car'); if (n==='pdf' || n==='pdf-share') show('pdf'); if (n==='kluis') show('kluis'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); if (n==='selftest') show('selftest'); };
 window.onResumeApp = function(){ appPaused = false; if (current==='car') enterCar(); if (current==='kluis') klRender(); if (current==='pdf') enterPdf(); uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 

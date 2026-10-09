@@ -37,7 +37,8 @@ function enterRadio(){
 function stopRdPoll(){ if (rdPoll) { clearInterval(rdPoll); rdPoll = null; } }
 window.onRadioStations = function(d){
   if ((d.q || '') !== $('#rd-search').value.trim()) return; // verouderd antwoord
-  if (d.error) { if (!rdStations.length) $('#rd-list').innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '. <a href="#" onclick="Android.radioLoad($(\'#rd-search\').value.trim());return false">Opnieuw</a></p>'; return; }
+  // Fout: altijd laten zien (anders blijft "Zoeken…" staan), met de vorige resultaten eronder
+  if (d.error) { rdRender(); $('#rd-list').insertAdjacentHTML('afterbegin', '<p class=note style="padding:14px">' + esc(d.error) + '. <a href="#" onclick="Android.radioLoad($(\'#rd-search\').value.trim());return false">Opnieuw</a></p>'); return; }
   rdStations = d.stations || [];
   rdRender();
 };

@@ -172,7 +172,7 @@ public class MainActivity extends Activity {
                     OnBackInvokedDispatcher.PRIORITY_DEFAULT, (OnBackInvokedCallback) this::handleBack);
         }
 
-        pendingOpen = getIntent() != null ? getIntent().getStringExtra("open") : null;
+        pendingOpen = openExtra(this, getIntent());
         boolean fromHistory = getIntent() != null && (getIntent().getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0;
         if (b == null && !fromHistory && takeShare(getIntent())) pendingOpen = "share";
         Shortcuts.refreshPinned(this);
@@ -230,8 +230,18 @@ public class MainActivity extends Activity {
         playFromShortcut(i);
         RedialPlan.startMissed(this, i);
         if (takeShare(i)) { js("openTool", "\"share\""); return; }
-        String open = i.getStringExtra("open");
+        String open = openExtra(this, i);
         if (open != null) js("openTool", JSONObject.quote(open));
+    }
+
+    /**
+     * Welke tool openen. "music-now" begint meteen op te nemen en stuurt geluid naar AudD: alleen vanuit eigen
+     * knoppen (met het geheim van deze installatie). Een andere app krijgt gewoon het muziekscherm.
+     */
+    static String openExtra(Context c, Intent i) {
+        String open = i == null ? null : i.getStringExtra("open");
+        if ("music-now".equals(open) && !App.tokenOk(c, i)) return "music";
+        return open;
     }
 
     /** Alleen het installatiescherm van Android zelf starten, zonder doorgegeven bestandsrechten. */
@@ -303,6 +313,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         if (live == this) live = null;
+        if (isFinishing()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
         super.onDestroy();
     }
 
@@ -1357,12 +1368,43 @@ public class MainActivity extends Activity {
                 try {
                     File file = CallRecordings.resolve(ctx, id);
                     recordingPlayer = new android.media.MediaPlayer();
-                    recordingPlayer.setDataSource(file.getPath()); recordingPlayer.prepare(); recordingPlayer.start(); return "";
+                    recordingPlayer.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build());
+                    recordingPlayer.setDataSource(file.getPath()); recordingPlayer.prepare();
+                    // Even voorrang op ander geluid (de radio pauzeert en gaat daarna verder); klaar = alles weer vrijgeven
+                    android.media.AudioManager am = (android.media.AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
+                    if (am != null && Build.VERSION.SDK_INT >= 26) {
+                        // Gesprek of andere app neemt het geluid over: stoppen
+                        recFocus = new android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                                .setOnAudioFocusChangeListener(ch -> { if (ch == android.media.AudioManager.AUDIOFOCUS_LOSS || ch == android.media.AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) stopRecordingPlayback(ctx); }).build();
+                        am.requestAudioFocus(recFocus);
+                    }
+                    recordingPlayer.setOnCompletionListener(mp -> recorderStopPlayback());
+                    if (recNoisy == null) {
+                        recNoisy = new NoisyStop();
+                        android.content.IntentFilter f = new android.content.IntentFilter(android.media.AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+                        if (Build.VERSION.SDK_INT >= 33) ctx.registerReceiver(recNoisy, f, Context.RECEIVER_NOT_EXPORTED); else ctx.registerReceiver(recNoisy, f);
+                    }
+                    recordingPlayer.start(); return "";
                 } catch (Exception e) { recorderStopPlayback(); return "Afspelen lukt niet"; }
             }
         }
-        @JavascriptInterface public void recorderStopPlayback() {
-            synchronized (Bridge.class) { if (recordingPlayer != null) { recordingPlayer.release(); recordingPlayer = null; } }
+        private static android.media.AudioFocusRequest recFocus;
+        private static NoisyStop recNoisy;
+        /** Koptelefoon eruit: stoppen in plaats van ineens over de luidspreker. */
+        static final class NoisyStop extends android.content.BroadcastReceiver {
+            @Override public void onReceive(Context c, Intent i) { stopRecordingPlayback(c); }
+        }
+        @JavascriptInterface public void recorderStopPlayback() { stopRecordingPlayback(ctx); }
+
+        static void stopRecordingPlayback(Context c) {
+            synchronized (Bridge.class) {
+                if (recordingPlayer != null) { try { recordingPlayer.release(); } catch (Exception ignored) { } recordingPlayer = null; }
+                android.media.AudioManager am = (android.media.AudioManager) c.getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
+                if (recFocus != null && am != null && Build.VERSION.SDK_INT >= 26) am.abandonAudioFocusRequest(recFocus);
+                recFocus = null;
+                if (recNoisy != null) { try { c.getApplicationContext().unregisterReceiver(recNoisy); } catch (Exception ignored) { } recNoisy = null; }
+            }
         }
         @JavascriptInterface public void recorderShare(String id) {
             a.h.post(() -> { try {
@@ -1460,7 +1502,7 @@ public class MainActivity extends Activity {
             try {
                 JSONArray a2 = new JSONArray(paths);
                 java.util.ArrayList<String> l = new java.util.ArrayList<>();
-                for (int i = 0; i < a2.length(); i++) if (new File(a2.getString(i)).isFile()) l.add(a2.getString(i));
+                for (int i = 0; i < a2.length(); i++) if (Transcribe.allowedRecording(ctx, a2.getString(i))) l.add(a2.getString(i));
                 if (l.isEmpty()) return "Geen opnames gekozen";
                 Transcribe.prefs(ctx).edit().putString("status", "{\"running\":true,\"phase\":\"decode\",\"pct\":0}").apply();
                 TranscribeService.run(ctx, l);
@@ -1468,11 +1510,7 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return e.getMessage() != null ? e.getMessage() : "Starten mislukt"; }
         }
 
-        @JavascriptInterface public void txCancel() {
-            Transcribe.cancel = true;
-            Process p = Transcribe.proc;
-            if (p != null) p.destroy();
-        }
+        @JavascriptInterface public void txCancel() { Transcribe.stopCalls(); }
 
         @JavascriptInterface public String txStatus() {
             String s = Transcribe.prefs(ctx).getString("status", "{\"running\":false}");
@@ -1507,7 +1545,7 @@ public class MainActivity extends Activity {
             if (id == null || !id.matches("[0-9a-f]+")) return "Opname niet gevonden";
             JSONObject t = Transcribe.loadTranscript(ctx, id);
             String path = t == null ? null : t.optString("path");
-            if (path == null || !new File(path).isFile()) return "De opname is niet meer op de telefoon";
+            if (path == null || !Transcribe.allowedRecording(ctx, path)) return "De opname is niet meer op de telefoon";
             try {
                 synchronized (Bridge.class) {
                     if (player == null || !path.equals(playerPath)) {
@@ -1756,7 +1794,9 @@ public class MainActivity extends Activity {
             new Thread(() -> {
                 String r;
                 try { r = Restore.previewText(ctx, kind, Secure.readEntry(ctx, entry)).toString(); }
+                catch (OutOfMemoryError e) { r = "{\"error\":\"Dit onderdeel is te groot voor deze telefoon\"}"; }
                 catch (Exception e) { r = errJson(e); }
+                finally { Secure.forget(); a.pendingArchive = null; } // sleutel niet langer in het geheugen dan nodig
                 a.js("onRestorePreview", r);
             }, "archive-restore").start();
         }
@@ -1766,6 +1806,7 @@ public class MainActivity extends Activity {
                 String r;
                 try { r = "ok:" + Secure.unpack(ctx); }
                 catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Uitpakken mislukt"; App.log(ctx, "SECURE", "uitpakken: " + e); }
+                finally { Secure.forget(); a.pendingArchive = null; }
                 a.js("onArchiveUnpacked", JSONObject.quote(r));
             }, "archive-unpack").start();
         }
@@ -2237,8 +2278,15 @@ public class MainActivity extends Activity {
                 File f = new File(root, Uri.decode(u.getPath().substring("/wa-media/".length()))).getCanonicalFile();
                 if (!f.getPath().startsWith(media.getPath() + File.separator) || !f.isFile()) return notFound();
                 String ext = MimeTypeMap.getFileExtensionFromUrl(f.getName());
-                String mime = ext == null ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase());
-                return new WebResourceResponse(mime != null ? mime : "application/octet-stream", null, new java.io.FileInputStream(f));
+                String mime = ext == null ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase(java.util.Locale.ROOT));
+                // Alleen plaatjes (geen svg): een html-bestand uit WhatsApp mag nooit als pagina met de app-brug openen
+                if (mime == null || !mime.startsWith("image/") || mime.contains("svg")) return notFound();
+                WebResourceResponse r = new WebResourceResponse(mime, null, new java.io.FileInputStream(f));
+                java.util.Map<String, String> hd = new java.util.HashMap<>();
+                hd.put("X-Content-Type-Options", "nosniff");
+                hd.put("Content-Security-Policy", "default-src 'none'; sandbox");
+                r.setResponseHeaders(hd);
+                return r;
             } catch (Exception e) {
                 return notFound();
             }

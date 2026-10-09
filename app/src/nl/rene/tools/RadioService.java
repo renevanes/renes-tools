@@ -304,10 +304,15 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         // Na startForegroundService moet altijd startForeground volgen, ook als er niets te doen is.
         String x = intent == null ? null : intent.getStringExtra("x");
         boolean trusted = intent != null && secret(this).equals(intent.getStringExtra("k"));
+        final boolean wasFg = foreground; // vóór startFg hieronder
         if (PLAY.equals(a) || RESUME.equals(a)) startFg(); // verplicht na startForegroundService
         if (!trusted) {
             // Niet van de app zelf (de service is zichtbaar voor Android Auto): niets doen.
-            if (player == null && !"paused".equals(status)) stopAll();
+            // Wel eerst voorgrond worden: een andere app kan ons via startForegroundService starten, en stoppen
+            // zonder startForeground laat Android de hele app afsluiten (ook een lopende opname of route).
+            if (!foreground) startFg();
+            if (player == null && !"paused".equals(status) && !"interrupted".equals(status)) stopAll();
+            else if (!wasFg) detach(); // gepauzeerd/onderbroken: alles laten zoals het was (melding blijft, geen voorgrond)
             return START_NOT_STICKY;
         }
         if (PLAY.equals(a) || RESUME.equals(a)) {
@@ -397,7 +402,9 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     public void onAudioFocusChange(int change) {
         if (change == AudioManager.AUDIOFOCUS_LOSS) {
             pausedByFocus = false;
-            if (player != null) pause();
+            // Ook als we al "onderbroken" waren (bijv. na een gesprek start je Spotify): echt pauzeren, anders
+            // blijven de melding, de wakelock en de wifi-lock eindeloos staan
+            if (player != null || "interrupted".equals(status)) pause();
         } else if (change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
             // Bijvoorbeeld een telefoongesprek: onderbreken maar op de voorgrond blijven, zodat we daarna verder kunnen.
             if ("playing".equals(status) || "connecting".equals(status)) { pausedByFocus = true; interrupt(); }
@@ -569,8 +576,13 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         }
         release();
         status = "interrupted";
+        h.removeCallbacks(interruptExpire);
+        h.postDelayed(interruptExpire, 45 * 60_000L);
         update();
     }
+
+    /** Onderbroken en na 45 minuten nog steeds niet terug (geen geluid meer teruggekregen): gewoon pauzeren. */
+    private final Runnable interruptExpire = () -> { if ("interrupted".equals(status)) { pausedByFocus = false; pause(); } };
 
     /** Pauze door de gebruiker: de melding blijft staan, de service mag weg. */
     private void pause() {
@@ -595,7 +607,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     /** Na een uur pauze (of zodra de buffer vol is) stopt de buffer (scheelt data); daarna begint afspelen gewoon live. */
     private final Runnable shiftExpire = () -> {
         if ("paused".equals(status)) { closeShift(); update(); detach(); }
-        else if ("interrupted".equals(status)) { closeShift(); update(); }
+        else if ("interrupted".equals(status)) { closeShift(); pausedByFocus = false; status = "paused"; update(); detach(); }
     };
 
     /** Zo lang mag pauzeren met buffer duren: een uur, of korter als de buffer eerder vol is. */

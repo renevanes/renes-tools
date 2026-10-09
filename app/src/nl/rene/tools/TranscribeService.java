@@ -52,10 +52,11 @@ public class TranscribeService extends Service {
             if (!running) {
                 try { Transcribe.prefs(this).edit().putString("status", new org.json.JSONObject().put("running", false)
                         .put("error", "Android staat het nu niet toe; open de app en probeer het opnieuw, of wacht tot morgen").toString()).apply(); } catch (Exception ignored) { }
-                stopSelf(); return START_NOT_STICKY;
+                stopSelfResult(startId); return START_NOT_STICKY;
             }
         }
         synchronized (queue) {
+            lastStartId = startId; // binnen het slot: de worker die net klaar is, stopt dan nooit deze nieuwe start
             if (intent != null && intent.getStringExtra("download") != null) modelToGet = intent.getStringExtra("download");
             if (intent != null && intent.getStringArrayListExtra("paths") != null)
                 for (String p : intent.getStringArrayListExtra("paths")) if (!queue.contains(p)) queue.add(p);
@@ -69,12 +70,12 @@ public class TranscribeService extends Service {
         return START_NOT_STICKY;
     }
 
+    private volatile int lastStartId;
+
     /** Android 15+: een dataSync-service mag maximaal 6 uur per dag lopen. Netjes stoppen. */
     @Override
     public void onTimeout(int startId, int fgsType) {
-        Transcribe.cancel = true;
-        Process p = Transcribe.proc;
-        if (p != null) p.destroy();
+        Transcribe.stopCalls();
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
     }
@@ -139,7 +140,8 @@ public class TranscribeService extends Service {
                     } catch (Exception ignored) { }
                     finished(done, failed, lastError, stopped);
                     stopForeground(STOP_FOREGROUND_REMOVE);
-                    stopSelf();
+                    // Alleen stoppen als er intussen geen nieuwe opdracht binnenkwam (die moet eerst zelf voorgrond worden)
+                    stopSelfResult(lastStartId);
                 }
                 // Anders is er intussen een nieuwe worker gestart; die rondt zelf af.
             }

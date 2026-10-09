@@ -82,8 +82,11 @@ final class WaCrypt {
                 int field = (int) (tag >>> 3), wt = (int) (tag & 7);
                 p = q[0];
                 if (wt == 2) {
-                    int len = (int) varint(start, q, pbEnd);
+                    long ll = varint(start, q, pbEnd);
                     int s = q[0];
+                    // Een lengte die terug of voorbij het einde wijst (kapot of gemanipuleerd bestand): stoppen, niet eindeloos lussen
+                    if (ll < 0 || s + ll > pbEnd) break;
+                    int len = (int) ll;
                     if (field == 3) {
                         byte[] iv = findBytesField(start, s, s + len, 1);
                         if (iv != null && iv.length == 16) { h.iv = iv; h.e2e = true; }
@@ -95,7 +98,7 @@ final class WaCrypt {
                     }
                     p = s + len;
                 } else if (wt == 0) {
-                    varint(start, q, pbEnd); p = q[0];
+                    varint(start, q, pbEnd); p = q[0]; // (negatieve getallen zijn geldig; q schuift altijd op)
                 } else if (wt == 5) { p += 4; } else if (wt == 1) { p += 8; } else break;
             }
             if (h.iv == null) throw new Exception("Dit backupformaat wordt niet ondersteund (oud crypt12 of nieuwer)");
@@ -110,8 +113,9 @@ final class WaCrypt {
             long tag = varint(b, q, end);
             int field = (int) (tag >>> 3), wt = (int) (tag & 7);
             if (wt == 2) {
-                int len = (int) varint(b, q, end);
-                if (q[0] + len > end) return null;
+                long ll = varint(b, q, end);
+                if (ll < 0 || q[0] + ll > end) return null; // kapotte of gemanipuleerde lengte
+                int len = (int) ll;
                 if (field == want) {
                     byte[] r = new byte[len];
                     System.arraycopy(b, q[0], r, 0, len);
@@ -154,6 +158,8 @@ final class WaCrypt {
         if (dataEnd <= h.dataOffset) throw new Exception("Backup is te klein of beschadigd");
 
         GcmCtrInputStream dec = new GcmCtrInputStream(crypt, h.dataOffset, dataEnd, key, h.iv);
+        boolean handedOver = false; // vanaf het lezen hieronder sluit de try-with-resources de stream
+        try {
         BufferedInputStream peek = new BufferedInputStream(dec, 1 << 16);
         peek.mark(16);
         byte[] first = new byte[16];
@@ -177,6 +183,7 @@ final class WaCrypt {
             throw new WrongKeyException();
         }
         File tmp = new File(out.getParentFile(), out.getName() + ".tmp");
+        handedOver = true;
         try (InputStream in = db; OutputStream o = new FileOutputStream(tmp)) {
             byte[] buf = new byte[1 << 16];
             int n, total = 0;
@@ -197,6 +204,10 @@ final class WaCrypt {
         if (out.exists() && !out.delete()) throw new IOException("Oud bestand kan niet worden vervangen");
         if (!tmp.renameTo(out)) throw new IOException("Opslaan mislukt");
         return h;
+        } finally {
+            // Verkeerde sleutel of lege backup: het bestand toch sluiten (anders blijft het bij elke poging open)
+            if (!handedOver) try { dec.close(); } catch (Exception ignored) { }
+        }
     }
 
     static final class WrongKeyException extends Exception {

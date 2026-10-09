@@ -348,17 +348,8 @@ final class WaBackup {
             }
             try { DocumentsContract.deleteDocument(dest.cr, staleUri); } catch (Exception ignored) { }
         }
-        if (old == null) {
-            // Nieuw bestand: direct schrijven. Wordt het onderbroken, dan klopt de grootte niet
-            // en wordt het de volgende keer (veilig, via een tijdelijk bestand) opnieuw gekopieerd.
-            Uri target = DocumentsContract.createDocument(dest.cr, d.uri, mime(name), name);
-            if (target == null) throw new Exception("Bestand maken lukt niet");
-            writeTo(dest, target, it, st, l);
-            d.kids.put(name, new Child(DocumentsContract.getDocumentId(target), it.size, System.currentTimeMillis(), false));
-            return;
-        }
-        // Bestaand bestand: eerst volledig naar een tijdelijk bestand, pas daarna het oude vervangen.
-        // Zo blijft de vorige versie heel als de kopie halverwege stopt.
+        // Altijd eerst volledig naar een tijdelijk bestand (.rt-part). Pas als de kopie compleet is krijgt hij de
+        // echte naam: zo staat er nooit een half bestand onder de echte naam (dat terugzetten zou terugzetten).
         Uri tmp = DocumentsContract.createDocument(dest.cr, d.uri, "application/octet-stream", tmpName);
         if (tmp == null) throw new Exception("Tijdelijk bestand maken lukt niet");
         try {
@@ -367,13 +358,28 @@ final class WaBackup {
             try { DocumentsContract.deleteDocument(dest.cr, tmp); } catch (Exception ignored) { }
             throw e;
         }
-        Uri oldUri = DocumentsContract.buildDocumentUriUsingTree(dest.tree, old.docId);
-        try {
-            if (!DocumentsContract.deleteDocument(dest.cr, oldUri)) throw new Exception("verwijderen geweigerd");
-        } catch (Exception e) {
-            // Oude kopie blijft staan; de nieuwe wordt de volgende keer opnieuw geprobeerd.
-            try { DocumentsContract.deleteDocument(dest.cr, tmp); } catch (Exception ignored) { }
-            throw new Exception("Oude kopie kan niet worden vervangen: " + name);
+        if (old != null) {
+            Uri oldUri = DocumentsContract.buildDocumentUriUsingTree(dest.tree, old.docId);
+            boolean kept = false;
+            if (!"chats".equals(it.cat)) {
+                // Media en documenten veranderen niet: andere grootte = een ánder bestand met dezelfde naam
+                // (bijv. een tweede "Factuur.pdf"). De oude versie bewaren onder naam~datum.
+                String vn = versionName(name, d);
+                try {
+                    Uri r = DocumentsContract.renameDocument(dest.cr, oldUri, vn);
+                    if (r != null) { d.kids.put(vn, new Child(DocumentsContract.getDocumentId(r), old.size, old.mod, false)); kept = true; }
+                } catch (Exception ignored) { }
+            }
+            if (!kept) {
+                try {
+                    if (!DocumentsContract.deleteDocument(dest.cr, oldUri)) throw new Exception("verwijderen geweigerd");
+                } catch (Exception e) {
+                    // Oude kopie blijft staan; de nieuwe wordt de volgende keer opnieuw geprobeerd.
+                    try { DocumentsContract.deleteDocument(dest.cr, tmp); } catch (Exception ignored) { }
+                    throw new Exception("Oude kopie kan niet worden vervangen: " + name);
+                }
+            }
+            d.kids.remove(name);
         }
         Uri done;
         try {
@@ -384,11 +390,25 @@ final class WaBackup {
             // bestand. Schrijf hem opnieuw onder de echte naam en ruim het tijdelijke op.
             done = DocumentsContract.createDocument(dest.cr, d.uri, mime(name), name);
             if (done == null) throw new Exception("Vervangen lukt niet (kopie staat in " + tmpName + ")");
-            writeTo(dest, done, it, st, l);
+            try { writeTo(dest, done, it, st, l); }
+            catch (Exception e2) { try { DocumentsContract.deleteDocument(dest.cr, done); } catch (Exception ignored) { } throw e2; }
             try { DocumentsContract.deleteDocument(dest.cr, tmp); } catch (Exception ignored) { }
         }
         d.kids.put(name, new Child(DocumentsContract.getDocumentId(done), it.size, System.currentTimeMillis(), false));
     }
+
+    /** "Factuur.pdf" → "Factuur~20261009.pdf" (met -2, -3 … als die al bestaat). */
+    static String versionName(String name, DestDir d) {
+        int dot = name.lastIndexOf('.');
+        String b = dot > 0 ? name.substring(0, dot) : name, ext = dot > 0 ? name.substring(dot) : "";
+        String day = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(new java.util.Date());
+        String n = b + "~" + day + ext;
+        for (int i = 2; d != null && d.kids.containsKey(n); i++) n = b + "~" + day + "-" + i + ext;
+        return n;
+    }
+
+    /** Een bewaarde oude versie (naam~jjjjmmdd)? Die gaan niet terug naar de telefoon. */
+    static boolean isVersion(String name) { return name.matches(".*~\\d{8}(-\\d+)?(\\.[^.]*)?"); }
 
     private static void writeTo(Dest dest, Uri target, Item it, Status st, Listener l) throws Exception {
         long t = 0, written = 0;
@@ -482,13 +502,14 @@ final class WaBackup {
             Child ch = e.getValue();
             if (ch.dir) {
                 collectRestore(dest, destRel + "/" + e.getKey(), r, targetRoot, todo, st);
-            } else if (!e.getKey().endsWith(".rt-part")) {
+            } else if (!e.getKey().endsWith(".rt-part") && !e.getKey().endsWith(".rt-tmp") && !e.getKey().endsWith(".rt-old") && !isVersion(e.getKey())) {
                 File f = new File(targetRoot, r);
                 boolean need;
                 if (!f.exists()) need = true;
                 else if (f.length() == ch.size) need = false;
-                else if ("chats".equals(category(r))) need = ch.mod > 0 && ch.mod > f.lastModified(); // nooit nieuwere chats overschrijven
-                else need = true; // media verandert niet; afwijkende grootte = kapotte kopie
+                // Andere grootte: alleen terugzetten als het bestand op de telefoon ouder is dan de backup-kopie.
+                // Een later ontvangen bestand met dezelfde naam (of nieuwere chats) wordt nooit overschreven.
+                else need = ch.mod > 0 && ch.mod > f.lastModified();
                 if (need) {
                     todo.add(new Object[]{ch.docId, f, ch.size});
                     st.bytesTotal += Math.max(0, ch.size);

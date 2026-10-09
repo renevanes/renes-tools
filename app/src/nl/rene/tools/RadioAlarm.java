@@ -22,6 +22,9 @@ final class RadioAlarm {
 
     static final String ACTION = "nl.rene.tools.RADIO_ALARM";
     static final String ACTION_SNOOZE = "nl.rene.tools.RADIO_ALARM_SNOOZE";
+    static final String ACTION_LOCKED = "nl.rene.tools.RADIO_ALARM_LOCKED";
+    static final String CH_LOCKED = "wekker-vergrendeld";
+    static final int NOTIF_LOCKED = 4711;
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("alarm", Context.MODE_PRIVATE); }
 
@@ -72,9 +75,78 @@ final class RadioAlarm {
         prefs(c).edit().putLong(snooze ? "snoozeAt" : "nextAt", t).apply();
     }
 
+    // ---------- na een herstart, vóór de eerste ontgrendeling ----------
+    // Na een nachtelijke update-herstart komt BOOT_COMPLETED pas na ontgrendelen: dan zou de wekker van vandaag
+    // ongemerkt overgeslagen worden. Daarom staat de tijd ook in de "apparaatopslag" (leesbaar vóór ontgrendelen)
+    // en klinkt dan de gewone wekkertoon (de radio kan pas na ontgrendelen).
+
+    static SharedPreferences dp(Context c) { return c.createDeviceProtectedStorageContext().getSharedPreferences("alarm_dp", Context.MODE_PRIVATE); }
+
+    private static void mirror(Context c, SharedPreferences p) {
+        try {
+            dp(c).edit().putBoolean("on", p.getBoolean("on", false) && p.getString("station", null) != null)
+                    .putInt("hour", p.getInt("hour", 7)).putInt("minute", p.getInt("minute", 0)).putInt("days", p.getInt("days", 31)).apply();
+        } catch (Exception ignored) { }
+    }
+
+    private static PendingIntent lockedOp(Context c) {
+        return PendingIntent.getBroadcast(c, 43, new Intent(c, AlarmReceiver.class).setAction(ACTION_LOCKED), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    /** LOCKED_BOOT_COMPLETED: de noodwekker zetten volgens de gespiegelde instellingen. */
+    static void armLocked(Context c) {
+        SharedPreferences d = dp(c);
+        if (!d.getBoolean("on", false)) return;
+        long t = next(d.getInt("hour", 7), d.getInt("minute", 0), d.getInt("days", 31), System.currentTimeMillis());
+        AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        if (t <= 0 || am == null) return;
+        try {
+            if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, lockedOp(c));
+            else am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, lockedOp(c));
+        } catch (SecurityException e) { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, lockedOp(c)); }
+    }
+
+    /** Na ontgrendelen neemt de gewone radiowekker het over. */
+    static void cancelLocked(Context c) {
+        AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        if (am != null) am.cancel(lockedOp(c));
+        android.app.NotificationManager nm = (android.app.NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm != null) nm.cancel(NOTIF_LOCKED);
+    }
+
+    /** De noodwekker gaat af: is de telefoon intussen ontgrendeld, dan gewoon de radio; anders de wekkertoon. */
+    static void fireLocked(Context c) {
+        if (App.unlocked(c)) {
+            // De gewone wekker staat dan meestal al (BOOT_COMPLETED); alleen afgaan als die er niet is
+            if (PendingIntent.getBroadcast(c, 40, new Intent(c, AlarmReceiver.class).setAction(ACTION), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_NO_CREATE) == null) fire(c, false);
+            return;
+        }
+        android.app.NotificationManager nm = (android.app.NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        // De standaard-wekkertoon via de instellingen (die zijn ook vóór ontgrendelen leesbaar)
+        android.net.Uri tone = android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI;
+        if (Build.VERSION.SDK_INT >= 26) {
+            android.app.NotificationChannel ch = new android.app.NotificationChannel(CH_LOCKED, "Wekker (telefoon nog vergrendeld)", android.app.NotificationManager.IMPORTANCE_HIGH);
+            ch.setSound(tone, new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+            ch.enableVibration(true);
+            nm.createNotificationChannel(ch);
+        }
+        android.app.Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new android.app.Notification.Builder(c, CH_LOCKED) : new android.app.Notification.Builder(c);
+        b.setSmallIcon(R.drawable.ic_radio).setContentTitle("⏰ Wekker").setContentText("Ontgrendel je telefoon voor de radio. Veeg weg om te stoppen.")
+                .setCategory(android.app.Notification.CATEGORY_ALARM).setAutoCancel(true);
+        if (Build.VERSION.SDK_INT < 26) b.setSound(tone, android.media.AudioManager.STREAM_ALARM).setPriority(android.app.Notification.PRIORITY_MAX);
+        android.app.Notification n = b.build();
+        n.flags |= android.app.Notification.FLAG_INSISTENT; // blijft klinken tot wegvegen
+        try { nm.notify(NOTIF_LOCKED, n); } catch (Exception ignored) { }
+        if (dp(c).getInt("days", 31) != 0) armLocked(c); // nog steeds niet ontgrendeld morgen? Dan ook dan weer (niet bij eenmalig)
+        else dp(c).edit().putBoolean("on", false).apply();
+    }
+
     /** Plant de volgende keer volgens de instellingen (of zet hem uit). */
     static void schedule(Context c) {
         SharedPreferences p = prefs(c);
+        mirror(c, p);
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         if (!p.getBoolean("on", false) || p.getString("station", null) == null) {
             if (am != null) am.cancel(operation(c));

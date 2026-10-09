@@ -94,12 +94,11 @@ final class VoiceNote {
             String r;
             File wav = new File(app.getCacheDir(), "spraaknotitie-" + myRun + ".wav");
             try {
-                Transcribe.cancel = false; // een eerder "Stoppen" bij Gesprekken uitschrijven mag dit niet afbreken
                 if (f == null || f.length() < 2000) throw new Exception("Te kort: houd de knop ingedrukt terwijl je praat");
                 long dur = Transcribe.durationMs(app, f);
                 if (dur < 600) throw new Exception("Te kort: houd de knop ingedrukt terwijl je praat");
-                Transcribe.toWav(f, wav, dur, (ph, pct) -> { });
-                JSONObject out = Transcribe.whisper(app, wav, Transcribe.activeModel(app), (ph, pct) -> { });
+                Transcribe.toWav(f, wav, dur, (ph, pct) -> { }, true);
+                JSONObject out = Transcribe.whisper(app, wav, Transcribe.activeModel(app), (ph, pct) -> { }, true);
                 JSONArray tr = out.optJSONArray("transcription");
                 StringBuilder all = new StringBuilder();
                 if (tr != null) for (int i = 0; i < tr.length(); i++) {

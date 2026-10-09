@@ -80,6 +80,17 @@ final class Transcribe {
 
     static volatile boolean cancel = false;
     static volatile Process proc;
+    /** Hoort het lopende whisper-proces bij een spraaknotitie? (Stoppen bij gesprekken mag die niet afbreken.) */
+    static volatile boolean procVoice;
+    /** Eén whisper tegelijk: twee tegelijk vreten geheugen en zaten elkaars werkbestanden in de weg. */
+    private static final Object WHISPER = new Object();
+
+    /** "Stoppen" bij Gesprekken uitschrijven: alleen dat werk, niet een spraaknotitie die net loopt. */
+    static void stopCalls() {
+        cancel = true;
+        Process p = proc;
+        if (p != null && !procVoice) p.destroy();
+    }
 
     /** Downloadt een model (eerst naar .part, pas bij volledige ontvangst hernoemen). */
     static void download(Context c, Model m, Progress p) throws Exception {
@@ -141,6 +152,28 @@ final class Transcribe {
             "Music/Recordings/Call", "Documents/Recordings/Call Recordings", "Call Recordings", "CallRecordings",
             "Call", "Record/Call", "Record/PhoneRecord", "PhoneRecord", "Sounds/CallRecord", "MIUI/sound_recorder/call_rec",
             "Music/Recordings/Call recordings"};
+
+    /**
+     * Mag dit pad uitgeschreven of afgespeeld worden? Alleen geluidsbestanden: de eigen opnamemap, of buiten de
+     * privémap van de app (gedeelde opslag). Zo kan een vreemd pad (bijv. uit een teruggezette backup) geen
+     * privébestanden van de app laten lezen.
+     */
+    static boolean allowedRecording(Context c, String path) { return allowedRecording(c, path, true); }
+
+    /** mustExist = false: alleen de vorm van het pad (bij terugzetten staat de opname er misschien nog niet). */
+    static boolean allowedRecording(Context c, String path, boolean mustExist) {
+        if (path == null || path.isEmpty() || !isAudio(path)) return false;
+        try {
+            File f = new File(path).getCanonicalFile();
+            if (mustExist && !f.isFile()) return false;
+            File own = CallRecordings.dir(c).getCanonicalFile();
+            if (own.equals(f.getParentFile())) return true;
+            String p = f.getPath();
+            String data = c.getApplicationInfo().dataDir == null ? "" : new File(c.getApplicationInfo().dataDir).getCanonicalPath();
+            if (!data.isEmpty() && (p.equals(data) || p.startsWith(data + "/"))) return false;
+            return !(p.startsWith("/data/") || p.startsWith("/proc/") || p.startsWith("/dev/") || p.startsWith("/sys/"));
+        } catch (Exception e) { return false; }
+    }
 
     static boolean isAudio(String name) {
         String n = name.toLowerCase(Locale.ROOT);
@@ -263,7 +296,10 @@ final class Transcribe {
     }
 
     /** Decodeert een audiobestand met de decoders van Android en schrijft 16 kHz mono 16-bit WAV. */
-    static void toWav(File in, File out, long durMs, Progress p) throws Exception {
+    static void toWav(File in, File out, long durMs, Progress p) throws Exception { toWav(in, out, durMs, p, false); }
+
+    /** voice = voor een spraaknotitie: "Stoppen" bij gesprekken uitschrijven geldt daar niet. */
+    static void toWav(File in, File out, long durMs, Progress p, boolean voice) throws Exception {
         MediaExtractor ex = new MediaExtractor();
         MediaCodec codec = null;
         try (RandomAccessFile w = new RandomAccessFile(out, "rw")) {
@@ -293,7 +329,7 @@ final class Transcribe {
             ByteBuffer ob = ByteBuffer.allocate(1 << 16).order(ByteOrder.LITTLE_ENDIAN);
             double step = rate / 16000.0;
             while (!outDone) {
-                if (cancel) throw new Exception("Gestopt");
+                if (!voice && cancel) throw new Exception("Gestopt");
                 if (!inDone) {
                     int ii = codec.dequeueInputBuffer(10000);
                     if (ii >= 0) {
@@ -367,21 +403,28 @@ final class Transcribe {
     }
 
     /** Draait whisper; geeft de JSON-uitvoer. Valt terug op de algemene versie als de snelle niet draait op deze processor. */
-    static JSONObject whisper(Context c, File wav, Model m, Progress p) throws Exception {
-        boolean generic = prefs(c).getBoolean("generic", false);
-        try {
-            return runWhisper(c, wav, m, generic, p);
-        } catch (IllegalStateException e) {
-            if (generic) throw new Exception(e.getMessage());
-            prefs(c).edit().putBoolean("generic", true).apply();
-            return runWhisper(c, wav, m, true, p);
+    static JSONObject whisper(Context c, File wav, Model m, Progress p) throws Exception { return whisper(c, wav, m, p, false); }
+
+    /** voice = voor een spraaknotitie (los van "Stoppen" bij gesprekken uitschrijven). */
+    static JSONObject whisper(Context c, File wav, Model m, Progress p, boolean voice) throws Exception {
+        synchronized (WHISPER) {
+            boolean generic = prefs(c).getBoolean("generic", false);
+            try {
+                return runWhisper(c, wav, m, generic, p, voice);
+            } catch (IllegalStateException e) {
+                if (generic) throw new Exception(e.getMessage());
+                prefs(c).edit().putBoolean("generic", true).apply();
+                return runWhisper(c, wav, m, true, p, voice);
+            }
         }
     }
 
-    private static JSONObject runWhisper(Context c, File wav, Model m, boolean generic, Progress p) throws Exception {
+    private static JSONObject runWhisper(Context c, File wav, Model m, boolean generic, Progress p, boolean voice) throws Exception {
         File bin = binary(c, generic);
         if (!bin.isFile()) throw new Exception("Het uitschrijfprogramma ontbreekt in deze app-versie");
-        File outBase = new File(c.getCacheDir(), "whisper-out");
+        File outBase = new File(c.getCacheDir(), "whisper-out-" + System.nanoTime()); // eigen werkbestand per keer
+        File[] stale = c.getCacheDir().listFiles((d, n) -> n.startsWith("whisper-out"));
+        if (stale != null) for (File f : stale) if (System.currentTimeMillis() - f.lastModified() > 3_600_000L) f.delete();
         File json = new File(outBase.getPath() + ".json");
         json.delete();
         int threads = Math.max(2, Math.min(6, Runtime.getRuntime().availableProcessors() - 2));
@@ -397,8 +440,9 @@ final class Transcribe {
         ProcessBuilder pb = new ProcessBuilder(cmd).redirectErrorStream(true);
         pb.environment().put("HOME", c.getFilesDir().getPath());
         Process pr = pb.start();
+        procVoice = voice;
         proc = pr;
-        if (cancel) pr.destroy();
+        if (!voice && cancel) pr.destroy();
         StringBuilder tail = new StringBuilder();
         int code;
         try {
@@ -413,14 +457,15 @@ final class Transcribe {
             }
         }
         code = pr.waitFor();
-        } finally { proc = null; pr.destroy(); /* nooit een los proces laten doorlopen */ }
-        if (cancel) throw new Exception("Gestopt");
+        } finally { proc = null; procVoice = false; pr.destroy(); /* nooit een los proces laten doorlopen */ }
+        if (!voice && cancel) { json.delete(); throw new Exception("Gestopt"); }
         // 132 = SIGILL: processor kent een instructie van de snelle versie niet.
         if (code == 132 || code == 128 + 4 || tail.indexOf("Illegal instruction") >= 0)
             throw new IllegalStateException("Processor wordt niet ondersteund");
         if (code != 0 || !json.isFile()) {
             String t = tail.toString().trim();
             if (t.length() > 300) t = t.substring(t.length() - 300);
+            json.delete();
             throw new Exception("Uitschrijven mislukt (code " + code + ")" + (t.isEmpty() ? "" : ": " + t));
         }
         JSONObject o = new JSONObject(Contacts.readText(json, false));
@@ -581,16 +626,34 @@ final class Transcribe {
         java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("EEEE d MMMM yyyy HH:mm", new Locale("nl", "NL"));
         int n = 0;
         File[] ts = transcriptDir(c).listFiles();
+        // Eerst alle namen bepalen: twee gesprekken in dezelfde minuut met dezelfde persoon (of twee zonder naam)
+        // krijgen anders dezelfde bestandsnaam en overschrijven elkaar. Vaste regel (op id), dus ook bij één export.
+        java.util.TreeMap<String, String> names = new java.util.TreeMap<>(); // id → naam
+        Map<String, Integer> seen = new HashMap<>();
+        if (ts != null) {
+            java.util.Arrays.sort(ts, (x, y) -> x.getName().compareTo(y.getName()));
+            for (File tf : ts) {
+                if (!tf.getName().endsWith(".json")) continue;
+                String id = tf.getName().replace(".json", "");
+                JSONObject t = loadTranscript(c, id);
+                if (t == null) continue;
+                long when = t.optLong("callDate", t.optLong("mtime"));
+                String who = t.optString("name", "");
+                String base = fn.format(new java.util.Date(when)) + "_" + Sms.safeName(who.isEmpty() ? "gesprek" : who);
+                int k = seen.merge(base.toLowerCase(Locale.ROOT), 1, Integer::sum);
+                names.put(id, (k == 1 ? base : base + " (" + k + ")") + ".txt");
+            }
+        }
         if (ts != null) for (File tf : ts) {
             if (!tf.getName().endsWith(".json")) continue;
             String id = tf.getName().replace(".json", "");
             if (onlyId != null && !onlyId.isEmpty() && !onlyId.equals(id)) continue;
             JSONObject t = loadTranscript(c, id);
-            if (t == null) continue;
+            if (t == null || !names.containsKey(id)) continue;
             long when = t.optLong("callDate", t.optLong("mtime"));
             String who = t.optString("name", "");
-            String name = fn.format(new java.util.Date(when)) + "_" + Sms.safeName(who.isEmpty() ? "gesprek" : who) + ".txt";
-            try (java.io.Writer w = Sms.open(dest, dir, name, "text/plain")) {
+            String name = names.get(id);
+            try (Sms.Out w = Sms.open(dest, dir, name, "text/plain")) {
                 w.write("Gesprek" + (who.isEmpty() ? "" : " met " + who) + (t.optString("number").isEmpty() || who.equals(t.optString("number")) ? "" : " (" + t.optString("number") + ")") + "\r\n");
                 w.write(df.format(new java.util.Date(when)) + " · duur " + fmtTime(t.optLong("duration")) + "\r\n");
                 w.write("Opname: " + t.optString("file") + " · uitgeschreven door Rene's Tools (Whisper " + t.optString("model") + ", op de telefoon)\r\n\r\n");
@@ -599,6 +662,7 @@ final class Transcribe {
                     JSONObject s = segs.getJSONObject(i);
                     w.write("[" + fmtTime(s.optLong("from")) + "] " + s.optString("text") + "\r\n");
                 }
+                w.done(); // pas nu vervangt het nieuwe bestand het oude
             }
             n++;
         }

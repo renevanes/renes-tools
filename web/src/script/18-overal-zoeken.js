@@ -18,9 +18,11 @@ let gsIndex = null;
 function gsBuildIndex(){
   gsIndex = [];
   const fold = t => norm2(t);
+  // Detailschermen (één notitie, chat, route …) hebben iets nodig om te tonen: die niet los openen
+  const DETAIL = ['note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed'];
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);
-    if (scr === 'home') return;
+    if (scr === 'home' || DETAIL.includes(scr)) return;
     const h1 = sec.querySelector('.hdr h1'), screen = h1 ? h1.textContent.trim() : scr;
     gsIndex.push({scr, el: null, title: screen, sub: 'Openen', key: fold(screen + ' ' + scr)});
     sec.querySelectorAll('.card').forEach(card => {

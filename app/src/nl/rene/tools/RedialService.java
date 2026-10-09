@@ -88,6 +88,7 @@ public class RedialService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        lastStartId = startId;
         String a = intent != null ? intent.getAction() : null;
         if (ACTION_START.equals(a)) {
             number = intent.getStringExtra("number");
@@ -111,7 +112,7 @@ public class RedialService extends Service {
             if (running && "waiting".equals(phase)) { h.removeCallbacksAndMessages(null); dial(); }
         } else if (!running) {
             // Door het systeem herstart zonder opdracht: niets te doen.
-            stopSelf();
+            stopSelfResult(startId);
         }
         return START_NOT_STICKY;
     }
@@ -271,8 +272,10 @@ public class RedialService extends Service {
             NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             if (!NotifCenter.muted(this)) nm.notify(DONE_NOTIF_ID, buildDone(msg));
         }
-        stopSelf();
+        stopSelfResult(lastStartId); // een start die net binnenkwam niet afbreken
     }
+
+    private int lastStartId;
 
     @Override
     public void onDestroy() {

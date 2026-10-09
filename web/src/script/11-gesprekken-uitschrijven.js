@@ -91,7 +91,7 @@ function txSearchDo(){
     const d = txJson(Android.txSearch(q));
     const ql = q.toLowerCase();
     box.innerHTML = '<div class="clist card">' + ((d.results || []).map(x =>
-      '<button data-id="' + esc(x.id) + '" data-ms="' + x.from + '" onclick="txOpen(this.dataset.id, +this.dataset.ms)"><span class=r1><b>' + esc(x.name) + '</b><time>' + esc(fmtD(x.mtime)) + ' · ' + fmtMs(x.from) + '</time></span>' +
+      '<button data-id="' + esc(x.id) + '" data-ms="' + (+x.from || 0) + '" onclick="txOpen(this.dataset.id, +this.dataset.ms)"><span class=r1><b>' + esc(x.name) + '</b><time>' + esc(fmtD(x.mtime)) + ' · ' + fmtMs(x.from) + '</time></span>' +
       '<span class=r2 style="white-space:normal">' + hl(x.text, ql) + '</span></button>').join('') ||
       '<p class=note style="padding:14px">Niets gevonden.</p>') + '</div>';
   }, 300);
@@ -105,7 +105,7 @@ function txOpen(id, ms){
   $('#txd-sub').textContent = new Date(when).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}) +
     ' · ' + fmtMs(t.duration) + (t.kind ? ' · ' + (TXKIND[t.kind] || '') : '') + (t.number && t.number !== t.name ? ' · ' + t.number : '');
   $('#txd-segs').innerHTML = (t.segments || []).map((s, i) =>
-    '<p class=seg id="seg' + i + '" data-ms="' + s.from + '" onclick="txSegTap(this)"><time>' + fmtMs(s.from) + '</time>' + esc(s.text) + '</p>').join('') ||
+    '<p class=seg id="seg' + i + '" data-ms="' + (+s.from || 0) + '" onclick="txSegTap(this)"><time>' + fmtMs(s.from) + '</time>' + esc(s.text) + '</p>').join('') ||
     '<p class=note>Er is geen spraak herkend in deze opname.</p>';
   txSelEnd();
   show('txd');
@@ -133,6 +133,7 @@ function txWatch(){
 }
 function leaveTrd(){ if (txPlayPoll) { clearInterval(txPlayPoll); txPlayPoll = null; } Android.txStop(); $('#txd-play').textContent = '▶ Afspelen'; }
 function txExport(id){
+  if (!plainOk(id ? 'Het transcript' : 'Elk transcript', () => txExport(id))) return;
   const r = Android.txExport(id || '');
   toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + (r.slice(3) === '1' ? ' transcript' : ' transcripten') + ' opgeslagen in de map Gesprekken' : r);
 }

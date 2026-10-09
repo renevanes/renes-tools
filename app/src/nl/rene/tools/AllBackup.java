@@ -67,6 +67,13 @@ final class AllBackup {
             for (String part : PARTS) {
                 if (stop) { try { res.put("stopped", true); } catch (Exception ignored) { } break; }
                 if (!enabledPart(c, part)) continue;
+                // De kluis gaat alleen mee in een versleutelde backup. Zonder versleutelen geen fout (anders zou het
+                // automatisch opruimen nooit meer lopen), wel een duidelijke melding bij het resultaat.
+                if ("kluis".equals(part) && !Secure.on(c)) {
+                    try { if (Kluis.list(c).length() > 0) put(res, part, true, -1, "Niet mee: de kluis gaat alleen in een versleutelde backup (zet Versleutelen aan)"); }
+                    catch (Exception ignored) { }
+                    continue;
+                }
                 current = part;
                 try {
                     int n = runPart(c, part);
@@ -83,7 +90,7 @@ final class AllBackup {
                 for (String p : PARTS) { JSONObject r = res.optJSONObject(p); if (r != null && r.optBoolean("ok") && r.optInt("count") > 0) any = true; }
                 if (!any || stop) Secure.abort(zip);
                 else {
-                    try { Secure.finish(zip, res); res.put("archive", zip.name); }
+                    try { res.put("archive", Secure.finish(zip, res)); }
                     catch (Exception e) { put(res, "all", false, 0, "Archief afsluiten mislukt: " + e.getMessage()); App.log(c, "BACKUP", "archief afsluiten: " + e); }
                 }
                 zip = null;
@@ -162,15 +169,16 @@ final class AllBackup {
         if (h.length() == 0) return -1;
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), WaBackup.destUri(c));
         WaBackup.DestDir dir = dest.dir("Muziek", true);
-        try (Writer w = Sms.open(dest, dir, "herkende-nummers.json", "application/json")) { w.write(h.toString()); }
+        try (Sms.Out w = Sms.open(dest, dir, "herkende-nummers.json", "application/json")) { w.write(h.toString()); w.done(); }
         SimpleDateFormat df = new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL"));
-        try (Writer w = Sms.open(dest, dir, "herkende-nummers.txt", "text/plain")) {
+        try (Sms.Out w = Sms.open(dest, dir, "herkende-nummers.txt", "text/plain")) {
             w.write("Herkende nummers - Rene's Tools\r\n\r\n");
             for (int i = 0; i < h.length(); i++) {
                 JSONObject r = h.getJSONObject(i);
                 w.write(df.format(new Date(r.optLong("t"))) + "  " + r.optString("artist") + " - " + r.optString("title")
                         + (r.optString("album").isEmpty() ? "" : "  (" + r.optString("album") + ")") + "\r\n");
             }
+            w.done(); // pas nu vervangt het nieuwe bestand het oude
         }
         return h.length();
     }
@@ -179,6 +187,7 @@ final class AllBackup {
         try {
             JSONObject o = new JSONObject().put("busy", busy).put("current", current);
             if (!full) {
+                o.put("encrypted", Secure.on(c));
                 String last = prefs(c).getString("last", null);
                 if (last != null) o.put("last", new JSONObject(last));
                 return o.toString();

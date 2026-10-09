@@ -196,7 +196,7 @@ public class HomeActivity extends Activity {
                 html = new String(o.toByteArray(), StandardCharsets.UTF_8);
             } catch (Exception e) { html = "<p>Startscherm niet gevonden</p>"; }
         }
-        html = html.replace("__VERSION_NAME__", Updater.webName(this)).replace("__MODE__", mode);
+        html = html.replace("__VERSION_NAME__", android.text.TextUtils.htmlEncode(Updater.webName(this))).replace("__MODE__", mode);
         if (v == overlay) { overlayLoaded = false; v.setVisibility(View.GONE); ovQueue.clear(); ovSeq++; } else loaded = false;
         v.loadDataWithBaseURL(BASE, html, "text/html", "utf-8", null);
         loadedAt = System.currentTimeMillis();
@@ -459,7 +459,7 @@ public class HomeActivity extends Activity {
 
     void openTool(String name) {
         Intent i = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        if (name != null && !name.isEmpty()) i.putExtra("open", name);
+        if (name != null && !name.isEmpty()) i.putExtra("open", name).putExtra("tok", App.token(this));
         try { startActivity(i); } catch (Exception ignored) { }
     }
 
@@ -711,7 +711,7 @@ public class HomeActivity extends Activity {
         /** Een tool van Rene's Tools openen (de gewone app, in een eigen taak). */
         @JavascriptInterface public void openTool(String name) {
             Intent i = new Intent(ctx, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            if (name != null && !name.isEmpty()) i.putExtra("open", name);
+            if (name != null && !name.isEmpty()) i.putExtra("open", name).putExtra("tok", App.token(ctx));
             try { a.startActivity(i); } catch (Exception ignored) { }
         }
 

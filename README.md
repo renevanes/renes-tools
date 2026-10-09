@@ -186,6 +186,12 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Openen**: in de app via Terugzetten → Versleutelde backup openen (contacten of notities terugzetten, of uitpakken naar `Uitgepakt/`); op de computer met `ontsleutelen.html` in de map Versleuteld (werkt in de browser, zonder internet).
 - **Opruimen** (`Rotate.java`): na elke backup (uit te zetten) of met "Nu opruimen": van sms-, oproepen-, contacten- en versleutelde backups met een datum in de naam blijft alles van de laatste 14 dagen staan, en daarvoor de nieuwste per maand. Selecties, contactversies en de allernieuwste blijven altijd.
 - **Ruimtegebruik**: grootte en aantal bestanden per map in de backup-map.
+- **Losse exports bij versleutelen**: de knoppen Exporteren (sms, oproepen, contacten, notities, meldingen, opnames, transcripten, routes, ritten) maken gewone, leesbare bestanden; staat versleutelen aan, dan vraagt de app eerst. 's Nachts worden leesbare WhatsApp-chats dan alleen in de app bijgewerkt, niet als HTML in de backup-map.
+- **Veilig vervangen** (`Sms.open`): elk bestand in de backup-map wordt eerst volledig naar `naam.rt-tmp` geschreven en vervangt pas daarna het oude; een volle kaart, een losgetrokken stick of een fout halverwege laat het vorige bestand heel. WhatsApp-bestanden gaan via `.rt-part`; een ander bestand met dezelfde naam (bijv. een tweede `Factuur.pdf`) bewaart de oude versie als `Factuur~JJJJMMDD.pdf`, en terugzetten overschrijft nooit een nieuwer bestand op de telefoon. In een versleuteld archief worden onvolledige onderdelen gemarkeerd en niet aangeboden om terug te zetten.
+
+## Wekkers na geforceerd stoppen of herstarten
+- Android wist alle wekkers als een app geforceerd gestopt wordt (bijv. door de batterijbesparing van ColorOS). Een verklikker-wekker (`AlarmReceiver.ensureArmed`) merkt dat bij de volgende start van de app, en dan worden de radiowekker, herinneringen, geplande Auto redial en tijd-automatiseringen meteen opnieuw gezet.
+- Na een herstart vóór de eerste ontgrendeling (bijv. een nachtelijke update) gaat de radiowekker toch af: de tijd staat ook in de apparaatopslag en dan klinkt de gewone wekkertoon tot je hem wegveegt (de radio kan pas na ontgrendelen).
 
 ## Onderhoud
 - **Sinds gisteravond** (bovenaan het startscherm van de app): gemiste oproepen, de nachtelijke backup, automatiseringen die liepen, en problemen (batterijbeperking, mislukte backup-controle). *Gezien* verbergt het tot er iets nieuws is.

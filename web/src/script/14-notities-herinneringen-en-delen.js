@@ -16,9 +16,13 @@ function noteRemShow(){
     (r.rep ? ' <small>· ' + esc(REM_REP[r.rep] || '') + '</small>' : '') + '</span><button class="mini" data-id="' + esc(r.id) + '" onclick="noteDelOneRem(this.dataset.id)" aria-label="Herinnering weghalen">Weghalen</button></div>').join('');
 }
 function noteDelOneRem(rid){ if (typeof Android.noteRemindDel === 'function') Android.noteRemindDel(rid); else Android.noteRemind(rid, '', '0'); noteRemShow(); }
+/* Tegen dubbel tikken: dezelfde actie binnen een seconde telt één keer */
+const onceRecent = {};
+function once(key, ms){ const t = Date.now(); if (onceRecent[key] && t - onceRecent[key] < (ms || 1000)) return false; onceRecent[key] = t; return true; }
 function noteSetRem(){
   const n = noteById(noteCur); if (!n) return;
   const v = $('#note-rem').value; if (!v) { toast('Kies een datum en tijd'); return; }
+  if (!once('rem' + n.id + v + $('#note-rem-rep').value)) return; // dubbel tikken: één herinnering
   const t = new Date(v).getTime();
   if (!(t > Date.now())) { toast('Kies een moment in de toekomst'); return; }
   notesSaveNow();

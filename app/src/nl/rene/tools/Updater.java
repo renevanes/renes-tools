@@ -42,7 +42,8 @@ final class Updater {
     }
 
     static String webName(Context c) {
-        return webCode(c) > Version.CODE ? prefs(c).getString("webName", Version.NAME) : Version.NAME;
+        String n = webCode(c) > Version.CODE ? prefs(c).getString("webName", Version.NAME) : Version.NAME;
+        return validName(n) ? n : Version.NAME;
     }
 
     static File webFile(Context c) { return new File(new File(c.getFilesDir(), "web"), "index.html"); }
@@ -167,8 +168,12 @@ final class Updater {
         return out;
     }
 
+    /** Versienaam valt niet onder de handtekening en komt in het startscherm: alleen cijfers en punten. */
+    static boolean validName(String n) { return n != null && n.matches("\\d{1,4}(\\.\\d{1,4}){0,3}"); }
+
     private static void applyWeb(Context c, JSONObject m) throws Exception {
         if (!signatureOk(c, m)) throw new Exception("Handtekening van de interface-update klopt niet; niet geïnstalleerd");
+        if (!validName(m.optString("versionName"))) throw new Exception("Onverwachte versienaam; niet geïnstalleerd");
         byte[] html = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("web", "index.html") + "?v=" + m.getInt("versionCode"));
         String sha = m.optString("webSha256", "");
         if (sha.isEmpty() || !sha.equalsIgnoreCase(sha256(html))) throw new Exception("Controlegetal interface klopt niet");
@@ -202,7 +207,9 @@ final class Updater {
             }
             byte[] apk = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("apk", "Renes-Tools.apk") + "?v=" + m.getInt("versionCode"));
             String sha = m.optString("apkSha256", "");
-            if (!sha.isEmpty() && !sha.equalsIgnoreCase(sha256(apk))) return "Controlegetal van de download klopt niet";
+            // De handtekening dekt ook het controlegetal van de APK: zonder geldige handtekening niet installeren
+            if (sha.isEmpty() || !signatureOk(c, m)) return "De update is niet ondertekend; niet geïnstalleerd";
+            if (!sha.equalsIgnoreCase(sha256(apk))) return "Controlegetal van de download klopt niet";
 
             PackageInstaller pi = c.getPackageManager().getPackageInstaller();
             PackageInstaller.SessionParams p = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);

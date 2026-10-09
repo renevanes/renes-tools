@@ -185,7 +185,7 @@ function drawEle(pts){
   svg.innerHTML = '<path d="' + d + ' L320 90 L0 90 Z" fill="rgba(47,116,207,.18)" stroke="none"/><path d="' + d + '" fill=none stroke="var(--brand-2)" stroke-width=2/>';
 }
 function tdShare(){ const e = Android.trackShare(tdId); if (e) toast(e); }
-function tdExport(){ const e = Android.trackExportBackup(tdId); toast(e ? e : 'Opgeslagen in backup-map ✓'); }
+function tdExport(){ if (!plainOk('De route', tdExport)) return; const e = Android.trackExportBackup(tdId); toast(e ? e : 'Opgeslagen in backup-map ✓'); }
 function tdRename(){ askInput('Naam wijzigen', '', $('#td-title').textContent, 'Opslaan', n => { const e = Android.trackRename(tdId, n.trim()); if (e) { toast(e); return; } loadTrack(); }); }
 function tdDelete(){ askConfirm('Route verwijderen?', 'Dit kan niet ongedaan worden gemaakt.', 'Verwijderen', () => { const e = Android.trackDelete(tdId); if (e) { toast(e); return; } toast('Verwijderd'); goBack(); loadTrackList(); }); }
 
