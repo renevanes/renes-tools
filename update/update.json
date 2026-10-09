@@ -1,15 +1,25 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.57",
-  "versionCode": 58,
-  "nativeLevel": 53,
+  "versionName": "1.58",
+  "versionCode": 59,
+  "nativeLevel": 54,
   "web": "index.html",
-  "webSha256": "eadb4ff43c948619be707664c85fa4586c40498fc01bbb9e0bce232444d19ca3",
+  "webSha256": "2465ffe6750d4dac1a8bf31c3255878c4053ea6895a4342b7d21846f4479904a",
   "start": "start.html",
   "startSha256": "e579a294c436b49185bb76e16fc1d5837a7f34f9ba978d76286cb0fc2cad3b76",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "d2109795ffcab2b300911dc677400ac8e0a14b0b9172c6be00bba4c2b9b1dafb",
+  "apkSha256": "4bf1f83b20179845310852c2785f0acdd9f46976232817d0bea2588c242a63c5",
   "changelog": [
+    {
+      "version": "1.58",
+      "date": "2026-10-09",
+      "changes": [
+        "Nieuw: Podcasts. Zoeken, populair in Nederland, volgen en luisteren, met 15 s terug / 30 s vooruit, snelheid en verder waar je was",
+        "Slaaptimer per minuut instelbaar (ook tot een tijdstip of tot het einde van de aflevering), met zacht uitfaden; ook voor de radio",
+        "Bediening op het vergrendelscherm, in de melding en met de knoppen van je koptelefoon",
+        "Podcasts (abonnementen en waar je was) gaan mee in Alles back-uppen"
+      ]
+    },
     {
       "version": "1.57",
       "date": "2026-10-09",
@@ -527,5 +537,5 @@
       ]
     }
   ],
-  "webSig2": "fLFqgBIup7p7XC8a4Xmbh5XwjfQBNont+KDUF/xJ9n7v78L9G9FfyvYEi+hXklb4q6wufG57n5RgCwIHFoYPGmgWML15aQoPUutiPXC0lvZwGw3rhQfcz/xcNFyRH8X/kO9WHRfG9nhs3ojXkAXgAnmE6sQh8gjl7iRAFcn0SuHZIIcptStJk9an2TPb60A9lzpR91tmystAWa6VRoIHmhjm2RWEHBG9uTB2us4mBDGNt9DW4VAv53jguw6UkrpA43y5aWh/RO2qqKrix5F5Z5ajnf8o5/7kcnUVuL7yxu4AdX5x7rl8UvJYqmjvH6+VMRY/qZU4v7QFEqegcs965lBh2qakwETX2lP3lfAi9Y+DbGjaa/kjki41h31JPH3ZqnmBrjPysD9XR1k4g14R7ag1ggNRhHP8eqi8/8KTj0X/HdtBzxe84zSs9XxYZkTkIvDpPivIJ79laVoqLzKQBegEx3z7vdzzjWRPWtOR0bcgw/yDPnL5kay6AcYN2xOx"
+  "webSig2": "WrsaLiBnHA5UB2nDfffc/6oR1xY0ll/9Q2MXP/iDZtZ+ep6LgFrGXSQe/ldNuZbxIZyCpc9tfUoLcioVVYDrg6OLS1D9ky+nbZ9hhYApwi65h5wWmf0r9FE9XXGbrXvNct+JmdViligOGe2khPnWJwceiZWbc9FY8BmVNZ+FlDgQ/wiEmo+PqiEp9z+dnN6KK578pvfe9qmvWYnsHmx0Z/ARdN4irFBrd3NDXvy1569x89/k6rVapWbWh5T//TK44c8xbh4hb+fnxNoiQUQTUwkESF0IpRWdyRn3YdvzM63V0Y/SN6qgp4KZC++H31WTAj1C3YcZ5Crgkgc+JU4EDWpmAoDQHhpNehN4skpFEfQsOUWH1DmntkRxN8j48N1pJ+RHgiHpTycijJScZwwzIJjrilhkn1VveTp39fo3ZsK4nfF3m6+2BBRHQRElkpQ94xUi/5eGrIIDMjJNxMlnVM/9Ahs8ZMnOM9bGaOM3GPG8WMIXXSl9z4qugEPTaxuz"
 }

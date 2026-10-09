@@ -3,7 +3,7 @@ const HOME_DEFAULT = { grouped: true, compact: false, hidden: [], groups: [
   { name: 'Telefoon', tools: ['skin'] },
   { name: 'Bellen & contacten', tools: ['redial', 'calls', 'contacts', 'recorder', 'transcripts'] },
   { name: 'Berichten & backup', tools: ['backup', 'wa', 'sms', 'history'] },
-  { name: 'Muziek & radio', tools: ['radio', 'music'] },
+  { name: 'Muziek & radio', tools: ['radio', 'podcasts', 'music'] },
   { name: 'Handig', tools: ['notes', 'pdf', 'tracks', 'car', 'kluis', 'auto'] } ] };
 const TOOL_TILE = {}; Object.keys(TILE_TOOL).forEach(id => TOOL_TILE[TILE_TOOL[id]] = id);
 function homeCfg(){

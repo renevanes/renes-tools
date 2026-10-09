@@ -65,7 +65,8 @@ final class SettingsBackup {
             }
             if (o.length() > 0) prefs.put(k[0], o);
         }
-        return new JSONObject().put("format", FORMAT).put("version", 1).put("exportedAt", System.currentTimeMillis()).put("prefs", prefs);
+        return new JSONObject().put("format", FORMAT).put("version", 1).put("exportedAt", System.currentTimeMillis()).put("prefs", prefs)
+                .put("podcasts", Podcasts.backupJson(c));
     }
 
     static int export(Context c) throws Exception {
@@ -118,6 +119,7 @@ final class SettingsBackup {
         JSONObject scalars = new JSONObject(); // file → {key: {t,v}} alleen ontbrekende
         Set<String> replace = new HashSet<>(); // bestanden die als geheel worden teruggezet
         String webstore = null;
+        JSONObject podcasts = null; // abonnementen en waar je was
     }
 
     /** Wat er toegevoegd zou worden (alleen wat ontbreekt). */
@@ -154,6 +156,21 @@ final class SettingsBackup {
             urls.add(url);
             pl.newFavs.put(s); pl.favs++; pl.fresh++;
             if (pl.sample.length() < 8) pl.sample.put("📻 " + s.optString("name"));
+        }
+        // Podcasts die je hier nog niet volgt (en waar je was in afleveringen)
+        JSONObject pc = o.optJSONObject("podcasts");
+        if (pc != null) {
+            JSONArray subs = pc.optJSONArray("subs");
+            boolean any = pc.optJSONObject("progress") != null && pc.optJSONObject("progress").length() > 0;
+            if (subs != null) for (int i = 0; i < subs.length(); i++) {
+                JSONObject s = subs.optJSONObject(i);
+                if (s == null || !Podcasts.httpUrl(s.optString("feed"))) continue;
+                pl.total++;
+                if (Podcasts.isSub(c, Podcasts.podId(s.optString("feed")))) continue;
+                pl.fresh++; any = true;
+                if (pl.sample.length() < 8) pl.sample.put("🎧 " + s.optString("title"));
+            }
+            if (any) pl.podcasts = pc;
         }
         // Interface-instellingen: altijd aanbieden; de interface neemt alleen over wat daar ontbreekt
         JSONObject ws = prefs.optJSONObject("webstore");
@@ -250,6 +267,7 @@ final class SettingsBackup {
         }
         if (pl.webstore != null && !pl.webstore.isEmpty())
             c.getSharedPreferences("webstore", Context.MODE_PRIVATE).edit().putString("restoreAll", pl.webstore).putBoolean("pending", true).apply();
+        if (pl.podcasts != null) try { Podcasts.restore(c, pl.podcasts); } catch (Exception e) { App.log(c, "PODCAST", "terugzetten: " + e.getMessage()); }
         // Alles opnieuw inplannen
         try { Auto.armPlaces(c, true); } catch (Exception ignored) { }
         try { RadioAlarm.schedule(c); } catch (Exception ignored) { }

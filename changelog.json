@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.58",
+    "date": "2026-10-09",
+    "changes": [
+      "Nieuw: Podcasts. Zoeken, populair in Nederland, volgen en luisteren, met 15 s terug / 30 s vooruit, snelheid en verder waar je was",
+      "Slaaptimer per minuut instelbaar (ook tot een tijdstip of tot het einde van de aflevering), met zacht uitfaden; ook voor de radio",
+      "Bediening op het vergrendelscherm, in de melding en met de knoppen van je koptelefoon",
+      "Podcasts (abonnementen en waar je was) gaan mee in Alles back-uppen"
+    ]
+  },
+  {
     "version": "1.57",
     "date": "2026-10-09",
     "changes": [

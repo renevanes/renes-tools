@@ -28,11 +28,7 @@
       <div class="nowsong" id="rd-song" style="display:none"></div>
       <div class="row" style="margin-top:8px">
         <button class="big ghost" style="flex:1" id="rd-rec" onclick="rdRecognize()">♫ Welk nummer is dit?</button>
-        <select class="sel" id="rd-sleep" onchange="rdSleep(this.value)" aria-label="Slaaptimer">
-          <option value="0">Slaaptimer</option><option value="15">15 min</option><option value="30">30 min</option>
-          <option value="45">45 min</option><option value="60">1 uur</option><option value="90">1,5 uur</option>
-          <option value="120">2 uur</option><option value="custom">Eigen tijd…</option><option value="at">Tot tijdstip…</option>
-        </select>
+        <button class="pill" id="rd-sleep" onclick="sleepOpen('radio')">⏾ Slaaptimer</button>
       </div>
       <div class="sleepinfo" id="rd-sleepinfo"></div>
       <button class="mini" style="margin-top:10px;float:none;display:inline-block" onclick="rdPinStation()">📌 Zender op startscherm</button>

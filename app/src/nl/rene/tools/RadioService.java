@@ -350,7 +350,9 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             try { min = Integer.parseInt(x); } catch (Exception ignored) { }
             h.removeCallbacks(sleepRun);
             sleepAt = min > 0 ? System.currentTimeMillis() + min * 60_000L : 0;
-            if (min > 0) h.postDelayed(sleepRun, min * 60_000L);
+            if (min > 0) h.postDelayed(sleepRun, Math.max(0, min * 60_000L - SLEEP_FADE));
+            // Altijd het volume terug (ook als de tijd tijdens het uitfaden verlengd wordt)
+            if (player != null && !alarm) { float v = ducked ? 0.3f : 1f; try { player.setVolume(v, v); } catch (Exception ignored) { } }
             update();
         } else if (STOP.equals(a)) {
             stopAll();
@@ -367,7 +369,20 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         }
     }
 
-    private final Runnable sleepRun = () -> { sleepAt = 0; stopAll(); };
+    static final long SLEEP_FADE = 30_000;
+
+    /** Slaaptimer: de laatste 30 seconden steeds zachter, dan stoppen. */
+    private final Runnable sleepRun = this::sleepFade;
+
+    private void sleepFade() {
+        long left = sleepAt - System.currentTimeMillis();
+        if (sleepAt == 0) return;
+        if (left <= 0) { sleepAt = 0; stopAll(); return; }
+        MediaPlayer p = player;
+        float v = Math.max(0.05f, Math.min(1f, left / (float) SLEEP_FADE));
+        if (p != null && !alarm) { try { p.setVolume(ducked ? v * 0.3f : v, ducked ? v * 0.3f : v); } catch (Exception ignored) { } }
+        h.postDelayed(sleepRun, Math.min(500, left));
+    }
 
     private void startFg() {
         createChannel(this);

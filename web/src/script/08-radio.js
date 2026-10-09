@@ -147,33 +147,14 @@ function rdPinStation(){
   const e = Android.shortcutPinStation(JSON.stringify(s));
   toast(e || 'Bevestig op je startscherm om ' + s.name + ' toe te voegen');
 }
-/** Slaaptimer: vaste tijden, eigen aantal minuten of tot een tijdstip. */
-function rdSleep(v){
-  if (v === 'custom') {
-    askInput('Slaaptimer', 'Na hoeveel minuten moet de radio stoppen?', '20', 'Instellen', x => {
-      const m = parseInt(x, 10);
-      if (!(m > 0 && m <= 720)) { toast('Kies 1 tot 720 minuten'); return; }
-      Android.radioSleep(m); setTimeout(rdPollOnce, 200);
-    });
-  } else if (v === 'at') {
-    const d = new Date(Date.now() + 60 * 6e4);
-    askInput('Slaaptimer', 'Hoe laat moet de radio stoppen? (bijv. 23:30)', String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'), 'Instellen', x => {
-      const m = /^(\d{1,2})[:.](\d{2})$/.exec(x.trim());
-      if (!m || +m[1] > 23 || +m[2] > 59) { toast('Gebruik uu:mm, bijvoorbeeld 23:30'); return; }
-      const t = new Date(); t.setHours(+m[1], +m[2], 0, 0);
-      if (t.getTime() <= Date.now()) t.setDate(t.getDate() + 1);
-      Android.radioSleep(Math.max(1, Math.ceil((t.getTime() - Date.now()) / 6e4))); setTimeout(rdPollOnce, 200);
-    });
-  } else Android.radioSleep(+v);
-  setTimeout(rdPollOnce, 200);
-}
+/** Slaaptimer: het venster (sleepOpen) is gedeeld met Podcasts. */
 function rdShowSleep(){
-  const el = $('#rd-sleepinfo');
-  $('#rd-sleep').value = '0';
-  if (!rdState.sleepAt) { el.innerHTML = ''; return; }
+  const el = $('#rd-sleepinfo'), b = $('#rd-sleep');
+  if (!rdState.sleepAt) { el.innerHTML = ''; b.textContent = '⏾ Slaaptimer'; b.classList.remove('on'); return; }
   const left = Math.max(0, Math.round((rdState.sleepAt - Date.now()) / 6e4));
+  b.textContent = '⏾ nog ' + fmtMin(left); b.classList.add('on');
   el.innerHTML = '⏾ Stopt om ' + new Date(rdState.sleepAt).toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) +
-    ' (nog ' + (left >= 60 ? Math.floor(left / 60) + ' u ' + (left % 60) + ' min' : left + ' min') + ') · <a href="#" onclick="Android.radioSleep(0);setTimeout(rdPollOnce,200);return false">uitzetten</a>';
+    ' (nog ' + fmtMin(left) + ') · <a href="#" onclick="Android.radioSleep(0);setTimeout(rdPollOnce,200);return false">uitzetten</a>';
 }
 function rdRecognize(){
   const e = Android.musicStartRadio();

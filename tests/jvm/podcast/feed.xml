@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>De Test Podcast</title>
+    <link>https://example.org/</link>
+    <description><![CDATA[<p>Elke week een <b>gesprek</b>.</p><p>Met &amp; zonder gasten &#8211; altijd leuk.</p>]]></description>
+    <itunes:author>Rene &amp; Co</itunes:author>
+    <image><url>https://example.org/klein.jpg</url><title>De Test Podcast</title><link>https://example.org/</link></image>
+    <itunes:image href="https://example.org/groot.jpg"/>
+    <item>
+      <title>Aflevering 2: Over &lt;HTML&gt;</title>
+      <guid isPermaLink="false">ep-2</guid>
+      <pubDate>Tue, 07 Oct 2025 06:00:00 +0200</pubDate>
+      <enclosure url="https://cdn.example.org/ep2.mp3" length="12345678" type="audio/mpeg"/>
+      <itunes:duration>1:02:03</itunes:duration>
+      <itunes:episode>2</itunes:episode>
+      <description>Kort.</description>
+      <content:encoded><![CDATA[<p>Een veel langere beschrijving van de tweede aflevering met <a href="x">link</a>.</p>]]></content:encoded>
+      <itunes:image href="https://example.org/ep2.jpg"/>
+    </item>
+    <item>
+      <title>Aflevering 1</title>
+      <pubDate>Mon, 6 Oct 2025 08:30:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.org/ep1.m4a" type="audio/x-m4a"/>
+      <itunes:duration>3723</itunes:duration>
+    </item>
+    <item>
+      <title>Zonder audio (trailer-tekst)</title>
+      <pubDate>Sun, 05 Oct 2025 08:30:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Via media:content</title>
+      <pubDate>2025-10-04T10:00:00Z</pubDate>
+      <media:content url="https://cdn.example.org/ep0.mp3" type="audio/mpeg"/>
+      <itunes:duration>45:30</itunes:duration>
+    </item>
+  </channel>
+</rss>

@@ -106,6 +106,12 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Tekstgrootte** (Instellingen → Weergave): volgt standaard de lettergrootte van de telefoon, of kies kleiner tot maximaal (175%). Via `WebSettings.setTextZoom`; de indeling loopt mee zonder horizontaal scrollen.
 - **TalkBack**: alle knoppen en velden hebben een naam; schakelaars zijn `role=switch` met aan/uit, keuzeknoppen melden of ze gekozen zijn; meldingen (`role=status`), dialogen (`role=dialog`) en bij elk scherm springt de focus naar de titel.
 
+## Podcasts
+- **Zoeken en populair** (`Podcasts.java`): via de openbare zoekdienst van Apple Podcasts (zonder account) en de lijst populaire podcasts in Nederland (12 uur bewaard). De afleveringen komen rechtstreeks uit de RSS-feed van de maker (`PodcastFeed.java`, puur Java/SAX, getest met `PodcastFeedTest`; begrensd op 500 afleveringen en 25 MB, geen externe entiteiten).
+- **Volgen**: Mijn podcasts met een teller voor nieuwe afleveringen; bijwerken bij openen (hooguit elke 3 uur) of met ↻. Abonnementen en waar je was gaan mee in Alles back-uppen (instellingen) en worden bij terugzetten samengevoegd.
+- **Luisteren** (`PodcastService`, voorgrondservice mediaPlayback): stream van de maker, 15 s terug / 30 s vooruit (ook met de koptelefoon en op het vergrendelscherm), schuiven, snelheid 0,8–2×, onthoudt per aflevering waar je was (elke 10 s), pauzeert bij een gesprek of als de koptelefoon eruit gaat en gaat daarna verder. *Verder luisteren* toont recent gestarte afleveringen die nog niet af zijn.
+- **Slaaptimer** (gedeeld met Radio): 1–240 minuten per minuut instelbaar (schuif, − / + en snelkeuzes), aan het einde van de aflevering, of tot een tijdstip; +5/+15 minuten erbij (ook +10 min in de melding). De laatste 30 seconden wordt het geluid langzaam zachter; een podcast pauzeert dan (morgen verder waar je was), de radio stopt.
+
 ## Muziek herkennen
 - Eigen "SoundHound": 10 seconden opnemen via de microfoon (`MediaRecorder`, AAC) of rechtstreeks een stukje van de radiostream ophalen, en dat laten herkennen door [AudD](https://audd.io) met de eigen API-sleutel van de gebruiker (300 gratis, daarna betaald). Een app kan dit niet zelf: daarvoor is een database van tientallen miljoenen nummers nodig (`Music.java`).
 - Resultaat met hoes, album en jaar en links naar Spotify, Apple Music, YouTube Music en alle diensten (song.link). Geschiedenis (max. 500) lokaal, doorzoekbaar.

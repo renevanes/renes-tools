@@ -29,6 +29,7 @@ schermen/23-gesprekken-opnemen.html
 schermen/24-mijn-auto.html
 schermen/25-kluis.html
 schermen/27-pdf.html
+schermen/28-podcasts.html
 vensters.html
 script/00-begin.js
 script/01-nepbrug.js
@@ -64,6 +65,7 @@ script/33-gesprekken-opnemen.js
 script/34-uitbreidingen.js
 script/35-mijn-auto.js
 script/37-pdf.js
+script/38-podcasts.js
 script/29-start.js
 script/30-snelkoppelingen.js
 script/31-startscherm-groepen-volgorde-verbergen.js

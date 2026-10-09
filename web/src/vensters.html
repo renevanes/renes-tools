@@ -20,6 +20,23 @@
   <p id="lock-msg"></p>
   <button onclick="Android.lockUnlock()">Ontgrendelen</button>
 </div>
+<div class="modal" id="sleepdlg" onclick="if(event.target===this)sleepClose()">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="sl-t">
+    <h3 id="sl-t">Slaaptimer</h3>
+    <p class="note" id="sl-state" style="margin-top:0"></p>
+    <div class="slval"><button class="slpm" onclick="sleepStep(-1)" aria-label="Minuut minder">−</button><span><b id="sl-min">30</b> min</span><button class="slpm" onclick="sleepStep(1)" aria-label="Minuut meer">+</button></div>
+    <input type="range" class="pcseek" id="sl-range" min="1" max="240" step="1" value="30" oninput="sleepShow()" aria-label="Aantal minuten">
+    <div class="chips sm" id="sl-quick" style="justify-content:center"></div>
+    <button class="big ghost" id="sl-end" onclick="sleepEnd()">Aan het einde van deze aflevering</button>
+    <div class="row" style="margin-top:8px"><label for="sl-time" style="flex:none">Tot</label><input type="time" id="sl-time" class="search" style="flex:1;margin:0"><button class="big ghost" style="flex:none;width:auto;padding:0 14px" onclick="sleepAt()">Instellen</button></div>
+    <div class="row" id="sl-add" style="display:none;margin-top:8px"><button class="big ghost" style="flex:1" onclick="sleepAdd(5)">+5 min</button><button class="big ghost" style="flex:1" onclick="sleepAdd(15)">+15 min</button></div>
+    <p class="note" style="font-size:13px">De laatste 30 seconden wordt het geluid langzaam zachter.</p>
+    <div class="modal-btns">
+      <button class="big ghost" id="sl-off" onclick="sleepOff()">Uitzetten</button>
+      <button class="big" id="sl-go" onclick="sleepStart()">Start</button>
+    </div>
+  </div>
+</div>
 <div class="modal" id="modal">
   <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <h3 id="modal-title"></h3>

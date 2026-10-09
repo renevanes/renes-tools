@@ -198,6 +198,42 @@ if (!window.Android) window.Android = (function(){
     radioPause(){ this._rd.st.status='paused'; }, radioResume(){ if(this._rd.st.station) this._rd.st.status='playing'; },
     radioStop(){ this._rd.st={status:'stopped',title:'',last:this._rd.st.station}; }, radioSleep(m){ this._rd.st.sleepAt=m?Date.now()+m*6e4:0; },
     radioState(){ return JSON.stringify(this._rd.st); },
+    // ----- podcasts (nep) -----
+    _pc: { subs: [], prog: {}, recent: [], st: { status: 'stopped' }, speed: 1, refreshed: 0, calls: [],
+      top: [{ id: 'p1', feed: 'https://feeds.example.org/vandaag', title: 'Nieuws van Vandaag', author: 'Omroep X', image: 'https://img.example.org/1.jpg', genre: 'Nieuws' },
+            { id: 'p2', feed: 'https://feeds.example.org/tech', title: 'Tech in 20 minuten', author: 'Rene & Co', image: '', genre: 'Technologie' }] },
+    _pcFeed(feed){ const n = feed.endsWith('tech') ? 'Tech in 20 minuten' : 'Nieuws van Vandaag', id = feed.endsWith('tech') ? 'p2' : 'p1';
+      const items = Array.from({ length: 64 }, (_, i) => ({ key: 'e' + (id + 'x' + i).padEnd(16, '0').slice(0, 16), guid: 'g' + i, title: 'Aflevering ' + (64 - i) + (i === 0 ? ' <b>nieuw</b>' : ''), url: 'https://cdn.example.org/' + id + '/' + i + '.mp3',
+        type: 'audio/mpeg', date: Date.now() - i * 864e5 - 36e5, dur: 1200 + i * 60, image: '', desc: 'Over aflevering ' + (64 - i) + '.\nMet een tweede regel.' }));
+      items.forEach(e => { const p = this._pc.prog[e.key]; if (p) { e.pos = p.p; e.done = p.done; e.pd = p.d; } });
+      return { feedUrl: feed, pod: { id, feed, title: n, author: 'Omroep X', image: '', desc: 'Elke dag het belangrijkste nieuws.', link: 'https://example.org' }, items, subscribed: this._pc.subs.some(x => x.feed === feed) }; },
+    podSearch(q){ this._pc.calls.push(['search', q]); setTimeout(() => onPodSearch(q === 'fout' ? { q, error: 'Geen internetverbinding' } : { q, results: this._pc.top.filter(p => p.title.toLowerCase().includes(q.toLowerCase())) }), 120); },
+    podTop(){ setTimeout(() => onPodTop({ results: this._pc.top }), 80); },
+    podOpen(feed, force){ this._pc.calls.push(['open', feed, force]); setTimeout(() => onPodFeed(this._pcFeed(feed)), 120); },
+    podSubscribe(j){ const p = JSON.parse(j); if (!/^https?:/.test(p.feed || '')) return 'Ongeldig feed-adres'; if (!this._pc.subs.some(x => x.feed === p.feed)) this._pc.subs.push(Object.assign({ fresh: 2 }, p)); return ''; },
+    podUnsubscribe(id){ this._pc.subs = this._pc.subs.filter(x => x.id !== id); },
+    podSubs(){ return JSON.stringify(this._pc.subs); }, podSeen(id){ this._pc.subs.forEach(x => { if (x.id === id) x.fresh = 0; }); },
+    podRefresh(){ this._pc.refreshed = Date.now(); setTimeout(() => onPodRefreshed({ fresh: 0 }), 100); }, podRefreshedAt(){ return this._pc.refreshed; },
+    podContinue(){ return JSON.stringify(this._pc.recent.filter(r => !(this._pc.prog[r.ep.key] || {}).done).map(r => Object.assign({}, r, { ep: Object.assign({}, r.ep, { pos: (this._pc.prog[r.ep.key] || {}).p || 0, pd: (this._pc.prog[r.ep.key] || {}).d || 0 }) }))); },
+    podForget(k){ this._pc.recent = this._pc.recent.filter(r => r.ep.key !== k); },
+    podMarkPlayed(k, d){ this._pc.prog[k] = { p: 0, d: 0, done: d }; },
+    _pcSave(){ const st = this._pc.st; if (st.ep) this._pc.prog[st.ep.key] = { p: this._pcPos(), d: st.dur, done: false }; },
+    _pcPos(){ const st = this._pc.st; return st.status === 'playing' ? Math.min(st.dur, st.pos + (Date.now() - st.at) * this._pc.speed) : st.pos; },
+    podPlay(j){ const o = JSON.parse(j); if (!/^https?:/.test(o.ep.url || '')) return 'Deze aflevering heeft geen geldig adres'; this._pcSave();
+      const saved = this._pc.prog[o.ep.key], from = o.fromStart || !saved || saved.done ? 0 : saved.p;
+      this._pc.st = { status: 'connecting', ep: o.ep, pod: o.pod, pos: from, dur: (o.ep.dur || 0) * 1000, at: Date.now(), sleepAt: this._pc.st.sleepAt || 0, sleepEnd: !!this._pc.st.sleepEnd };
+      this._pc.recent = [{ ep: o.ep, pod: o.pod, t: Date.now() }].concat(this._pc.recent.filter(r => r.ep.key !== o.ep.key));
+      setTimeout(() => { if (this._pc.st.status === 'connecting') { this._pc.st.status = 'playing'; this._pc.st.at = Date.now(); } }, 150); return ''; },
+    podPause(){ const st = this._pc.st; st.pos = this._pcPos(); st.status = 'paused'; this._pcSave(); },
+    podResume(){ const st = this._pc.st; if (st.ep) { st.status = 'playing'; st.at = Date.now(); } },
+    podStop(){ this._pcSave(); this._pc.st = { status: 'stopped' }; },
+    podSeek(ms){ const st = this._pc.st; st.pos = ms; st.at = Date.now(); this._pc.lastSeek = ms; },
+    podSkip(s){ const st = this._pc.st; st.pos = Math.max(0, this._pcPos() + s * 1000); st.at = Date.now(); this._pc.lastSkip = s; },
+    podSpeed(v){ this._pc.st.pos = this._pcPos(); this._pc.st.at = Date.now(); this._pc.speed = +v; },
+    podSleep(m){ const st = this._pc.st; if (!st.ep) return m ? 'Start eerst een aflevering' : ''; st.sleepEnd = m === -1; st.sleepAt = m > 0 ? Date.now() + m * 6e4 : 0; this._pc.lastSleep = m; return ''; },
+    podSleepAdd(m){ const st = this._pc.st; if (!st.ep) return 'Start eerst een aflevering'; st.sleepAt = Math.max(st.sleepAt || 0, Date.now()) + m * 6e4; st.sleepEnd = false; return ''; },
+    podState(){ const st = this._pc.st; return JSON.stringify(Object.assign({}, st, { pos: this._pcPos(), speed: this._pc.speed })); },
+    podShare(t, l){ this._pc.shared = [t, l]; },
     _mu:{token:'',st:{state:'idle'},hist:[],used:0,mic:false},
     musicHasMic(){ return this._mu.mic; }, musicRequestMic(){ this._mu.mic=true; setTimeout(()=>onMusicChanged(),100); },
     musicSetToken(t){ this._mu.token=t; }, musicTokenHint(){ return this._mu.token?'abc…xyz':''; },

@@ -1,7 +1,7 @@
 /* ---------- start ---------- */
 $('#hver').textContent = 'v' + ver().webName;
 bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
-refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce();
+refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); refreshPodTile();
 const po = Android.pendingOpen(); if (po) openTool(po);
 if (stJson(Android.lockState()).locked) showLock();
 // Pas nu mag de app zichtbaar worden (met app-slot staat het slotscherm er dan al; geen flits van het startscherm)

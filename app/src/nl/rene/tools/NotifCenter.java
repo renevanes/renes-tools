@@ -31,6 +31,7 @@ final class NotifCenter {
         {WaBackupService.CHANNEL, "WhatsApp backup", "Voortgang en resultaat van de WhatsApp-backup, en als een nachtelijke backup mislukt", "2"},
         {RedialService.CHANNEL, "Auto redial", "Voortgang van Auto redial", "2"},
         {RadioService.CHANNEL, "Radio", "Bediening van de radio (afspelen, pauzeren, stoppen)", "2"},
+        {PodcastService.CHANNEL, "Podcasts", "Bediening van de podcast die speelt (terug, pauze, vooruit, slaaptimer)", "2"},
         {TracksService.CHANNEL, "Route opnemen", "Toont de voortgang tijdens het opnemen van een route", "2"},
         {TranscribeService.CHANNEL, "Gesprekken uitschrijven", "Voortgang van het uitschrijven", "2"},
         {Car.CHANNEL, "Mijn auto", "Als een rit niet vanzelf kon starten", "3"},
