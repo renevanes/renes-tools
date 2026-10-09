@@ -38,7 +38,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     static final String CHANNEL = "podcast";
     static final int NOTIF_ID = 4501;
     static final String PLAY = "play", PAUSE = "pause", RESUME = "resume", STOP = "stop", SEEK = "seek", SKIP = "skip", SPEED = "speed",
-            SLEEP = "sleep", SLEEP_ADD = "sleepAdd", YIELD = "yield";
+            SLEEP = "sleep", SLEEP_ADD = "sleepAdd", YIELD = "yield", HANDOFF = "handoff";
     static final int BACK_S = 15, FWD_S = 30;
     static final long FADE_MS = 30_000;
     static final long ACTIONS = PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_STOP
@@ -200,6 +200,10 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
                 }
                 break;
             case PAUSE: pause(false); break;
+            case HANDOFF: // de Chromecast neemt het over: plek bewaren, dan helemaal los (de Chromecast bewaart verder)
+                if ("playing".equals(status) || "connecting".equals(status)) pause(false); else saveNow();
+                ep = null; pod = null; status = "stopped";
+                // valt door naar YIELD: melding weg en stoppen
             case YIELD: // de radio neemt het over: pauzeren (plek bewaard) en de melding weg
                 if ("playing".equals(status) || "connecting".equals(status)) pause(false);
                 h.removeCallbacks(idleRun); h.removeCallbacks(sleepTick);

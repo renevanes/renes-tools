@@ -194,7 +194,7 @@ if (!window.Android) window.Android = (function(){
     radioSaveClip(s){ this._clip = s; setTimeout(() => onRadioClip(''), 50); },
     musicSaveFromRadio(a, t, s){ this._saved = [a, t, s]; return ''; },
     radioMoveFav(){}, radioMoveFavTo(a, b){ const f = this._rd.favs || []; if (a >= 0 && a < f.length && b >= 0 && b < f.length) f.splice(b, 0, f.splice(a, 1)[0]); },
-    radioPlay(j){ this._take('radio'); const r=this._rd; r.st={status:'connecting',station:JSON.parse(j),title:'',info:{},recent:[]}; setTimeout(()=>{ r.st.status='playing'; if(this._ts) r.st.shift={behind:6,back:600,clip:1500}; r.st.title='Doe Maar - De Bom'; r.st.info={name:'NPO Radio 2',desc:'Gouden Uur met Gijs Staverman',genre:'Pop',site:'https://www.nporadio2.nl',br:'192',title:'Doe Maar - De Bom',artist:'Doe Maar',song:'De Bom'}; r.st.recent=[{t:Date.now(),title:'Doe Maar - De Bom'},{t:Date.now()-24e4,title:'Golden Earring - Radar Love'}]; },600); },
+    radioPlay(j){ if (this._cast && this._cast.active) { const st = JSON.parse(j); Object.assign(this._cast, { src: 'radio', title: st.name, key: st.url, station: st, ep: undefined, pos: 0, dur: 0, playing: true, status: 'playing' }); return; } this._take('radio'); const r=this._rd; r.st={status:'connecting',station:JSON.parse(j),title:'',info:{},recent:[]}; setTimeout(()=>{ r.st.status='playing'; if(this._ts) r.st.shift={behind:6,back:600,clip:1500}; r.st.title='Doe Maar - De Bom'; r.st.info={name:'NPO Radio 2',desc:'Gouden Uur met Gijs Staverman',genre:'Pop',site:'https://www.nporadio2.nl',br:'192',title:'Doe Maar - De Bom',artist:'Doe Maar',song:'De Bom'}; r.st.recent=[{t:Date.now(),title:'Doe Maar - De Bom'},{t:Date.now()-24e4,title:'Golden Earring - Radar Love'}]; },600); },
     radioPause(){ this._rd.st.status='paused'; }, radioResume(){ if(this._rd.st.station) { this._take('radio'); this._rd.st.status='playing'; } },
     radioStop(){ this._rd.st={status:'stopped',title:'',last:this._rd.st.station}; }, radioSleep(m){ this._rd.st.sleepAt=m?Date.now()+m*6e4:0; },
     radioState(){ return JSON.stringify(this._rd.st); },
@@ -219,7 +219,8 @@ if (!window.Android) window.Android = (function(){
     podMarkPlayed(k, d){ this._pc.prog[k] = { p: 0, d: 0, done: d }; },
     _pcSave(){ const st = this._pc.st; if (st.ep) this._pc.prog[st.ep.key] = { p: this._pcPos(), d: st.dur, done: false }; },
     _pcPos(){ const st = this._pc.st; return st.status === 'playing' ? Math.min(st.dur, st.pos + (Date.now() - st.at) * this._pc.speed) : st.pos; },
-    podPlay(j){ const o = JSON.parse(j); if (!/^https?:/.test(o.ep.url || '')) return 'Deze aflevering heeft geen geldig adres'; this._take('podcast'); this._pcSave(); this._pc.q = (this._pc.q || []).filter(r => r.ep.key !== o.ep.key);
+    podPlay(j){ const o = JSON.parse(j); if (!/^https?:/.test(o.ep.url || '')) return 'Deze aflevering heeft geen geldig adres';
+      if (this._cast && this._cast.active) { Object.assign(this._cast, { src: 'podcast', title: o.ep.title, key: o.ep.key, ep: o.ep, pod: o.pod, pos: 0, dur: (o.ep.dur || 0) * 1000, playing: true, status: 'playing' }); return ''; } this._take('podcast'); this._pcSave(); this._pc.q = (this._pc.q || []).filter(r => r.ep.key !== o.ep.key);
       const saved = this._pc.prog[o.ep.key], from = o.fromStart || !saved || saved.done ? 0 : saved.p;
       this._pc.st = { status: 'connecting', ep: o.ep, pod: o.pod, pos: from, dur: (o.ep.dur || 0) * 1000, at: Date.now(), sleepAt: this._pc.st.sleepAt || 0, sleepEnd: !!this._pc.st.sleepEnd };
       this._pc.recent = [{ ep: o.ep, pod: o.pod, t: Date.now() }].concat(this._pc.recent.filter(r => r.ep.key !== o.ep.key));
@@ -257,6 +258,23 @@ if (!window.Android) window.Android = (function(){
     podQueuePlay(k){ const r = (this._pc.q || []).find(x => x.ep.key === k); if (!r) return 'Staat niet meer in Hierna'; return this.podPlay(JSON.stringify(r)); },
     _float: { on: false, allowed: false }, floatState(){ return JSON.stringify(this._float); },
     floatSet(on){ this._float.on = on; if (on && !this._float.allowed) { this._float.allowed = true; return 'perm'; } return ''; },
+    /* Chromecast (nagebootst) */
+    _cast: { active: false }, _castDevs: [{ id: 'cc1', name: 'Woonkamer', model: 'Chromecast' }],
+    castScan(){ setTimeout(() => onCastDevices({ devices: this._castDevs }), 120); },
+    castStart(id){ const d = this._castDevs.find(x => x.id === id); if (!d) return 'Dit apparaat is niet (meer) gevonden; zoek opnieuw';
+      const pod = this._src !== 'radio' && this._pc.st.ep, st = this._rd.st.station || this._rd.st.last;
+      if (pod) { this._pc.st.pos = this._pcPos(); this._pcSave(); }
+      this._cast = { active: true, id: Date.now(), device: d.name, status: 'playing', playing: true, src: pod ? 'podcast' : 'radio', title: pod ? this._pc.st.ep.title : (st || {}).name,
+        sub: 'Op ' + d.name, art: '', key: pod ? this._pc.st.ep.key : (st || {}).url, pos: pod ? this._pc.st.pos : 0, dur: pod ? this._pc.st.dur : 0, volume: 0.5, rate: 1,
+        ep: pod ? this._pc.st.ep : undefined, pod: pod ? this._pc.st.pod : undefined, station: pod ? undefined : st };
+      if (pod) this._pc.st = { status: 'stopped' }; else this._rd.st = { status: 'stopped', title: '', last: st };
+      return ''; },
+    castState(){ return JSON.stringify(this._cast); },
+    castStop(local){ const c = this._cast; this._cast = { active: false }; this._castStopped = local ? 'local' : 'stop';
+      if (local && c.ep) this.podPlay(JSON.stringify({ ep: c.ep, pod: c.pod })); else if (local && c.station) this.radioPlay(JSON.stringify(c.station)); },
+    castForget(){ if (!this._cast.active) this._cast = { active: false }; }, castVolume(v){ this._cast.volume = +v; },
+    playerPlayPause(){ const c = this._cast; if (c.active) { c.playing = !c.playing; c.status = c.playing ? 'playing' : 'paused'; } },
+    outputSwitcher(){ this._switcher = (this._switcher || 0) + 1; return ''; },
     radioShiftTo(b){ const st = this._rd.st; if (st.shift) st.shift.behind = Math.max(6, b); this._shiftTo = b; },
     _mu:{token:'',st:{state:'idle'},hist:[],used:0,mic:false},
     musicHasMic(){ return this._mu.mic; }, musicRequestMic(){ this._mu.mic=true; setTimeout(()=>onMusicChanged(),100); },

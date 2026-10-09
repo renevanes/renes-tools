@@ -2140,13 +2140,14 @@ public class MainActivity extends Activity {
                 String url = s.optString("url").toLowerCase();
                 if (!url.startsWith("http://") && !url.startsWith("https://")) return;
                 Radio.prefs(ctx).edit().putString("last", station).apply();
-                RadioService.send(ctx, RadioService.PLAY, station);
+                if (Cast.active()) { final JSONObject st = s; PodcastBridge.castBg(() -> Cast.load(Cast.fromStation(st))); } // er wordt gecast: daar afspelen
+                else RadioService.send(ctx, RadioService.PLAY, station);
                 final String id = s.optString("id");
                 new Thread(() -> Radio.click(ctx, id), "radio-click").start();
             } catch (Exception ignored) { }
         }
 
-        @JavascriptInterface public void radioPause() { RadioService.send(ctx, RadioService.PAUSE, null); }
+        @JavascriptInterface public void radioPause() { if (Cast.active()) PodcastBridge.castBg(() -> Cast.setPlaying(false)); else RadioService.send(ctx, RadioService.PAUSE, null); }
         /** Terugspoelen (rew), vooruit (fwd) of terug naar live (live) in de buffer. */
         @JavascriptInterface public void radioShift(String what) {
             if (RadioService.REW.equals(what) || RadioService.FWD.equals(what) || RadioService.LIVE.equals(what)) RadioService.send(ctx, what, null);
@@ -2155,6 +2156,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void radioSetTimeshift(boolean on) { Radio.prefs(ctx).edit().putBoolean("timeshift", on).apply(); }
 
         @JavascriptInterface public void radioResume() {
+            if (Cast.active()) { PodcastBridge.castBg(() -> Cast.setPlaying(true)); return; }
             if (RadioService.station == null) {
                 String last = Radio.prefs(ctx).getString("last", null);
                 if (last != null) radioPlay(last);
@@ -2163,9 +2165,9 @@ public class MainActivity extends Activity {
             RadioService.send(ctx, RadioService.RESUME, null);
         }
 
-        @JavascriptInterface public void radioStop() { RadioService.send(ctx, RadioService.STOP, null); }
+        @JavascriptInterface public void radioStop() { if (Cast.active()) PodcastBridge.castBg(Cast::stop); else RadioService.send(ctx, RadioService.STOP, null); }
 
-        @JavascriptInterface public void radioSleep(int minutes) { RadioService.send(ctx, RadioService.SLEEP, String.valueOf(minutes)); }
+        @JavascriptInterface public void radioSleep(int minutes) { if (Cast.active()) Cast.sleep(minutes); else RadioService.send(ctx, RadioService.SLEEP, String.valueOf(minutes)); }
 
         @JavascriptInterface public String radioState() {
             String s = RadioService.stateJson();

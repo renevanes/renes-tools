@@ -186,6 +186,9 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_radio_info" />
         </receiver>
 
+        <!-- Houdt de verbinding met een Chromecast open terwijl daar iets speelt -->
+        <service android:name=".CastService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
+
         <!-- Knoppen van de speler-widget en het zwevende venster -->
         <receiver android:name=".PlayerReceiver" android:exported="false" />
 

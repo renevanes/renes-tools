@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.61",
+    "date": "2026-10-09",
+    "changes": [
+      "Nieuw: kies waar het speelt (🔈 in de grote speler): de telefoon, Bluetooth/koptelefoon/speaker via Android, of een Chromecast in je wifi",
+      "Chromecast: wat er speelt gaat erheen vanaf dezelfde plek. Alle knoppen (ook widget, zwevende speler, vergrendelscherm en de volumeknoppen) bedienen dan de Chromecast; Hierna, slaaptimer en snelheid werken ook. 'Terug naar deze telefoon' gaat daar verder"
+    ]
+  },
+  {
     "version": "1.60",
     "date": "2026-10-09",
     "changes": [

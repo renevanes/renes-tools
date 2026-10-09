@@ -84,6 +84,24 @@ const { chromium } = require('playwright');
     await pg.click('#plbar-pp'); await pg.waitForTimeout(300);
     console.log('bar play', await pg.evaluate(() => Android._pc.st.status));
     await pg.screenshot({ path: __dirname + '/shots/pl-bar-pod-' + scheme + '.png' });
+    // Waar speelt het: Chromecast zoeken en casten, dan terug naar de telefoon
+    await pg.click('#plbar-open'); await pg.waitForTimeout(400);
+    await pg.click('#pl-out'); await pg.waitForTimeout(80);
+    console.log('out sheet', await pg.textContent('#sheet-title'), '|', await pg.textContent('#sheet-sub'));
+    await pg.waitForTimeout(300);
+    console.log('out options', await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent)), 'sub', await pg.textContent('#sheet-sub'));
+    await pg.click('#sheet-acts button:has-text("Bluetooth")'); await pg.waitForTimeout(100);
+    console.log('switcher', await pg.evaluate(() => Android._switcher));
+    await pg.click('#pl-out'); await pg.waitForTimeout(400);
+    await pg.click('#sheet-acts button:has-text("Woonkamer")'); await pg.waitForTimeout(1200);
+    console.log('casting', await pg.textContent('#pl-castbar'), 'out', await pg.textContent('#pl-out'), 'vol', await pg.isVisible('#pl-volwrap'), 'title', await pg.textContent('#pl-title'));
+    await pg.screenshot({ path: __dirname + '/shots/pl-cast-' + scheme + '.png' });
+    await pg.click('#pl-pp'); await pg.waitForTimeout(300);
+    console.log('cast paused', await pg.evaluate(() => Android._cast.status), 'bar sub', await pg.textContent('#plbar-s'));
+    await pg.click('#pl-out'); await pg.waitForTimeout(400);
+    await pg.click('#sheet-acts button:has-text("Terug naar deze telefoon")'); await pg.waitForTimeout(1300);
+    console.log('back local', await pg.evaluate(() => Android._castStopped), 'castbar hidden', !(await pg.isVisible('#pl-castbar')), 'local', await pg.evaluate(() => Android._pc.st.status));
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(400);
     // Zwevende speler aanzetten via ⋯ (eerst toestemming), dan uit
     await pg.click('#plbar-open'); await pg.waitForTimeout(400);
     await pg.click('#player [aria-label="Meer opties"]'); await pg.waitForTimeout(150);

@@ -18,6 +18,7 @@
       <button class="pl-ic" onclick="plMenu()" aria-label="Meer opties"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
     </div>
 
+    <div class="pl-castbar" id="pl-castbar" style="display:none" role="status"></div>
     <div class="pl-cover" id="pl-cover" role="img" aria-label="Hoes">
       <span class="plart" id="pl-art" aria-hidden="true"></span>
     </div>
@@ -42,11 +43,13 @@
     </div>
 
     <div class="pl-opts">
+      <button class="pl-pill" id="pl-out" onclick="plOutput()" aria-label="Waar speelt het?">🔈 Deze telefoon</button>
       <button class="pl-pill" id="pl-sleep" onclick="plSleep()">⏾ Slaaptimer</button>
       <button class="pl-pill" id="pl-speed" onclick="pcSpeedMenu()" aria-label="Afspeelsnelheid">1×</button>
       <button class="pl-pill" id="pl-golive" onclick="rdShift('live')">Naar live</button>
       <button class="pl-pill" id="pl-stop" onclick="plStop()" aria-label="Stoppen">■ Stop</button>
     </div>
+    <div class="pl-vol" id="pl-volwrap" style="display:none"><span aria-hidden="true">🔈</span><input type="range" class="plseek" id="pl-vol" min="0" max="20" step="1" value="10" aria-label="Volume van de Chromecast" onchange="Android.castVolume(this.value / 20)"><span aria-hidden="true">🔊</span></div>
     <div class="pl-sleepinfo" id="pl-sleepinfo"></div>
 
     <!-- Alleen bij de radio: het nummer, herkennen, en meer over de zender -->

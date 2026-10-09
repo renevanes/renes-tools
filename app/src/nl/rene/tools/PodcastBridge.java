@@ -91,28 +91,44 @@ public class PodcastBridge extends FeatureBridge {
             if (!Podcasts.httpUrl(e.optString("url"))) return "Deze aflevering heeft geen geldig adres";
             if (!Podcasts.validKey(e.optString("key"))) e.put("key", Podcasts.epKey(e.optString("url")));
             Podcasts.queueRemove(ctx, e.optString("key")); // speelt nu: meteen uit Hierna (de lijst klopt dan direct)
+            if (Cast.active()) { // er wordt gecast: daar afspelen
+                final JSONObject ep = e, pod = o.optJSONObject("pod");
+                final boolean fromStart = o.optBoolean("fromStart");
+                new Thread(() -> Cast.load(Cast.fromEpisode(ctx, ep, pod, fromStart)), "cast-load").start();
+                return "";
+            }
             PodcastService.send(ctx, PodcastService.PLAY, o.toString());
             return "";
         } catch (Exception e) { return "Afspelen lukt niet"; }
     }
 
-    @JavascriptInterface public void podPause() { PodcastService.send(ctx, PodcastService.PAUSE, null); }
-    @JavascriptInterface public void podResume() { PodcastService.send(ctx, PodcastService.RESUME, null); }
-    @JavascriptInterface public void podStop() { PodcastService.send(ctx, PodcastService.STOP, null); }
+    @JavascriptInterface public void podPause() { if (Cast.active()) castBg(() -> Cast.setPlaying(false)); else PodcastService.send(ctx, PodcastService.PAUSE, null); }
+    @JavascriptInterface public void podResume() { if (Cast.active()) castBg(() -> Cast.setPlaying(true)); else PodcastService.send(ctx, PodcastService.RESUME, null); }
+    @JavascriptInterface public void podStop() { if (Cast.active()) castBg(Cast::stop); else PodcastService.send(ctx, PodcastService.STOP, null); }
+
+    /** Chromecast-opdrachten gaan over het netwerk: niet op de brugthread laten wachten. */
+    static void castBg(Runnable r) { new Thread(r, "cast-cmd").start(); }
     @JavascriptInterface public void podSeek(long ms) { Player.podSeek(ctx, Math.max(0, ms)); } // ook als er niets speelt (dan bewaard)
     @JavascriptInterface public void podSkip(int sec) {
+        if (Cast.active()) { castBg(() -> Cast.seekBy(Math.max(-600, Math.min(600, sec)))); return; }
         if (PodcastService.inst == null) { try { JSONObject st = new JSONObject(podState()); podSeek(Math.max(0, st.optLong("pos") + sec * 1000L)); } catch (Exception ignored) { } return; }
         PodcastService.send(ctx, PodcastService.SKIP, String.valueOf(Math.max(-600, Math.min(600, sec))));
     }
-    @JavascriptInterface public void podSpeed(String v) { PodcastService.send(ctx, PodcastService.SPEED, v); }
+    @JavascriptInterface public void podSpeed(String v) {
+        PodcastService.send(ctx, PodcastService.SPEED, v);
+        if (Cast.active()) try { final double r = PodcastService.clampSpeed(Float.parseFloat(v)); castBg(() -> Cast.setRate(r)); } catch (Exception ignored) { }
+    }
     /** minuten > 0, -1 = einde van de aflevering, 0 = uit. */
     /** Geeft "" of een melding (de slaaptimer hoort bij wat er nu speelt). */
     @JavascriptInterface public String podSleep(int minutes) {
+        if (Cast.active()) { Cast.sleep(Math.max(-1, Math.min(24 * 60, minutes))); return ""; }
         if (PodcastService.inst == null) return minutes == 0 ? "" : "Start eerst een aflevering";
         PodcastService.send(ctx, PodcastService.SLEEP, String.valueOf(Math.max(-1, Math.min(24 * 60, minutes))));
         return "";
     }
     @JavascriptInterface public String podSleepAdd(int minutes) {
+        if (Cast.active()) { Player.Now n = Cast.now(); long base = n != null && n.sleepAt > System.currentTimeMillis() ? n.sleepAt : System.currentTimeMillis();
+            Cast.sleep((int) Math.max(1, (base - System.currentTimeMillis()) / 60_000 + minutes)); return ""; }
         if (PodcastService.inst == null) return "Start eerst een aflevering";
         PodcastService.send(ctx, PodcastService.SLEEP_ADD, String.valueOf(Math.max(1, Math.min(240, minutes))));
         return "";

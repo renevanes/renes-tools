@@ -27,6 +27,7 @@ final class Player {
      */
     static long takeOver(Context c, String src) {
         if (!src.equals(src(c))) prefs(c).edit().putString("src", src).apply();
+        if (Cast.active()) new Thread(Cast::stop, "cast-stop").start(); // weer op de telefoon: de Chromecast stopt
         long now = System.currentTimeMillis(), sleep = 0;
         if (PODCAST.equals(src)) {
             String st = RadioService.status;
@@ -54,7 +55,11 @@ final class Player {
     /** Eén beeld van de speler (voor de widget en het zwevende venster). */
     static final class Now {
         String src = "", status = "stopped", title = "", sub = "", art = "", key = "";
-        boolean playing, active, shift, atLive = true;
+        boolean playing, active, shift, atLive = true, sleepEnd;
+        /** Speelt op een Chromecast: de naam (anders null). */
+        String cast;
+        String castState;
+        double volume = -1, rate = 1;
         /** De service draait nog (gepauzeerd kan dan meteen verder); false = opnieuw opgebouwd uit wat bewaard is. */
         boolean live;
         long pos, dur, sleepAt;
@@ -62,6 +67,7 @@ final class Player {
     }
 
     static Now now(Context c) {
+        if (Cast.active()) { Now k = Cast.now(); if (k != null) return k; } // speelt op een Chromecast
         String src = src(c);
         Now p = podcastNow(c), r = radioNow(c);
         if (p != null && p.playing) return p; // wat speelt, gaat voor
@@ -131,6 +137,7 @@ final class Player {
     // ---------- knoppen (app, widget, zwevend venster) ----------
 
     static void playPause(Context c) {
+        if (Cast.active()) { Cast.playPause(); return; }
         Now n = now(c);
         if (n == null) return;
         if (RADIO.equals(n.src)) {
@@ -143,6 +150,7 @@ final class Player {
     }
 
     static void stop(Context c) {
+        if (Cast.active()) { Cast.stop(); changed(c); return; }
         Now n = now(c);
         if (n == null) return;
         if (RADIO.equals(n.src)) RadioService.send(c, RadioService.STOP, null); else PodcastService.send(c, PodcastService.STOP, null);
@@ -150,6 +158,7 @@ final class Player {
 
     /** −/+ seconden: podcast 15 terug / 30 vooruit, radio 30 in de buffer. */
     static void skip(Context c, int dir) {
+        if (Cast.active()) { Cast.seekBy(dir < 0 ? -PodcastService.BACK_S : PodcastService.FWD_S); return; }
         Now n = now(c);
         if (n == null) return;
         if (RADIO.equals(n.src)) { if (RadioService.inst != null) RadioService.send(c, dir < 0 ? RadioService.REW : RadioService.FWD, null); return; }
@@ -159,6 +168,7 @@ final class Player {
 
     /** Naar een plek in de podcast; als er niets speelt, wordt de plek bewaard voor straks. */
     static void podSeek(Context c, long ms) {
+        if (Cast.active()) { Cast.seek(ms); return; }
         if (PodcastService.inst != null) { PodcastService.send(c, PodcastService.SEEK, String.valueOf(Math.max(0, ms))); return; }
         String cur = PodcastService.ep, last = Podcasts.prefs(c).getString("last", null);
         try {
@@ -181,14 +191,15 @@ final class Player {
     static synchronized String step(Context c, String src, int dir) {
         try {
             if (src == null || src.isEmpty()) { Now n = now(c); src = n == null ? src(c) : n.src; }
+            boolean cast = Cast.active();
             if (RADIO.equals(src)) {
                 JSONObject s = RadioService.neighbour(c, dir);
                 if (s == null) return "Zet zenders bij je favorieten (☆) om te wisselen";
                 Radio.prefs(c).edit().putString("last", s.toString()).apply();
-                RadioService.send(c, RadioService.PLAY, s.toString());
+                if (cast) Cast.load(Cast.fromStation(s)); else RadioService.send(c, RadioService.PLAY, s.toString());
                 return "";
             }
-            Now n = podcastNow(c);
+            Now n = cast ? Cast.now() : podcastNow(c);
             JSONObject ep = n == null ? null : n.ep, pod = n == null ? null : n.pod;
             if (dir < 0) {
                 if (ep != null && n.pos > 10_000) { podSeek(c, 0); return ""; }
@@ -198,14 +209,16 @@ final class Player {
                 prevAt = now;
                 JSONObject r = Podcasts.previous(c, ep == null ? "" : ep.optString("key"), prevDepth);
                 if (r == null) { if (ep != null) podSeek(c, 0); return ep == null ? "Er speelde nog niets" : ""; }
-                PodcastService.send(c, PodcastService.PLAY, new JSONObject().put("ep", r.getJSONObject("ep")).put("pod", r.optJSONObject("pod")).toString());
+                if (cast) Cast.load(Cast.fromEpisode(c, r.getJSONObject("ep"), r.optJSONObject("pod"), false));
+                else PodcastService.send(c, PodcastService.PLAY, new JSONObject().put("ep", r.getJSONObject("ep")).put("pod", r.optJSONObject("pod")).toString());
                 return "";
             }
             JSONObject nx = Podcasts.next(c, ep, pod);
             if (nx == null) return "Geen volgende aflevering. Zet er een in Hierna via ⋯ bij een aflevering.";
             JSONObject ne = nx.optJSONObject("ep");
             if (ne != null) Podcasts.queueRemove(c, ne.optString("key"));
-            PodcastService.send(c, PodcastService.PLAY, nx.toString());
+            if (cast && ne != null) Cast.load(Cast.fromEpisode(c, ne, nx.optJSONObject("pod"), false));
+            else PodcastService.send(c, PodcastService.PLAY, nx.toString());
             return "";
         } catch (Exception e) { return "Dat lukt nu niet"; }
     }
@@ -231,6 +244,7 @@ final class Player {
                 synchronized (PENDING) { PENDING[0] = null; }
                 try { RadioWidget.refresh(app); } catch (Throwable ignored) { }
                 try { FloatPlayer.refresh(app); } catch (Throwable ignored) { }
+                try { CastService.refresh(); } catch (Throwable ignored) { }
             };
             MAIN.postDelayed(PENDING[0], 250);
         }

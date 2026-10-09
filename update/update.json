@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.60",
-  "versionCode": 61,
-  "nativeLevel": 56,
+  "versionName": "1.61",
+  "versionCode": 62,
+  "nativeLevel": 57,
   "web": "index.html",
-  "webSha256": "2dce6681b4a4547005c2e7d29e9de488bc156fca7518fa967e8ffc4de2a164a4",
+  "webSha256": "3988668a54346992611f8a63fc3c7673b03570fcbb94b7bea2fd083df744d615",
   "start": "start.html",
   "startSha256": "e579a294c436b49185bb76e16fc1d5837a7f34f9ba978d76286cb0fc2cad3b76",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "0228ea133dbd3994112a19722e79f4a7c6dd47933aebf3fcfab57bf1412f3947",
+  "apkSha256": "80f65d1c830f2f787804fb51c79194ac666ed60ac72e4550ade96cdcef3d5c87",
   "changelog": [
+    {
+      "version": "1.61",
+      "date": "2026-10-09",
+      "changes": [
+        "Nieuw: kies waar het speelt (🔈 in de grote speler): de telefoon, Bluetooth/koptelefoon/speaker via Android, of een Chromecast in je wifi",
+        "Chromecast: wat er speelt gaat erheen vanaf dezelfde plek. Alle knoppen (ook widget, zwevende speler, vergrendelscherm en de volumeknoppen) bedienen dan de Chromecast; Hierna, slaaptimer en snelheid werken ook. 'Terug naar deze telefoon' gaat daar verder"
+      ]
+    },
     {
       "version": "1.60",
       "date": "2026-10-09",
@@ -556,5 +564,5 @@
       ]
     }
   ],
-  "webSig2": "q5fMp/fSYUgfrf9nsJea9JqM1+o3ksXjpnzH8lIVUPFBbrI8QaQwtJSmzf6CF3GhaeWE8S4t2QYbYpZKGh7lfAbbKty/Jc0sbkjFac1CTIrYbtUdX3u9I/oEDraDYRhHHHUw775HFZoOg+FrulkrCDFEHIlk2PUDH85Sv4fGsNvrJU4HVU3ZBxHgJCjrZN4Ly6Xzltrh19azK7k9v28gj0r3uVVlK6B23E4sh5yur8iOn1EmLaT2rH0gS3ZG8vSHIoEObxSyxjDnUT8TUwQvFWFtdYWBYuH749saYZqGrn2FSVpnZ6eZX46Gtux5wJh82kn6ZrSnGCCKT7W9w4UHSU2f0O3KpdHMClysCWU1FNm3QK6deGeZfcEcvdHVpaR4EaKe+qhSlH6+TzHWSgCEN4ZeGuad4Ircdt+zeKUEslYqUhfsiHugkV20Pn81vLL0D0RRFbK4V7wlenHr31onme91f4FEqRfbssHAlTaBKya77HKG2P0YazXXesDE4Z3Y"
+  "webSig2": "DAu7JF5UDxDxVpa/ZK3pM6ajDHO3gAw3Yx5z2gJV7jkAEyA3CPJsh2Vby25cucnpKSS0XQzGJz+GCsrZ1ljAASmAkGCJ7VF99ehh+ifv0gkLt6GrTElHyOsaGS1JaMlsBG8AEIbb9vXC77I6gM/gJzXSGGF/PrX6cybjt3F7K+Sirn/wkz0i+RdiX1fdK4OyPgfXqxA/mu1QK2IllhYcB0+6EBMEiwFhyQEmke4wP/MMusBx6YCZ+tLkBdSmRiYf45zFY2SJROB8KBfktoEieF0Veh2fPUECq1keFLPkp/IiJFwgJoNLUByTFVk4QRdPtkFllbtjyKi4o1/OuWaNAHjMEIY0qVDIAwrgghvQG5RVEKcHucJssEIGOSwVwXd7K5pNPZ2+49eN1jD+qS+QTVm0pc0g9+MZBePPj67NlY0K+2ebN/uRysUrK5jhq1m+f5QiT3ucZCy+J1TMrvXKsdY0baUXfEoEkefn6NLh+ZlV3Iu16j8wBRCAzIRki/op"
 }

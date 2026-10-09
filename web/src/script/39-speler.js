@@ -28,7 +28,26 @@ function plSrc(){
 }
 function plHintSrc(src){ plHint = { src, t: Date.now() }; }
 
+/* Speelt het op een Chromecast? Dan komt alles van daar. */
+let plCast = {}, plCastErr = '', plCastHint = null;
+function plCastPoll(){
+  plCast = rdJson(Android.castState(), {});
+  // Na een verbroken verbinding: één keer melden (per sessie) en terug naar de telefoon
+  if (!plCast.active && plCast.id) { const k = plCast.id + '|' + (plCast.error || ''); if (plCast.error && k !== plCastErr) { plCastErr = k; toast(plCast.error); } Android.castForget(); }
+  // Net op ▶/❚❚ getikt: dat even laten zien tot de Chromecast het bevestigt
+  if (plCast.active && plCastHint && Date.now() - plCastHint.t < 1500) plCast.playing = plCastHint.playing;
+  return plCast;
+}
 function plModel(){
+  const cs = plCast;
+  if (cs.active) {
+    const status = cs.status === 'connecting' ? 'connecting' : cs.status;
+    const radio = cs.src === 'radio', st = cs.station || {};
+    return { src: cs.src, status, playing: !!cs.playing, key: cs.key, title: cs.title || '', sub: cs.sub || '', kind: radio ? 'Radio' : 'Podcast',
+      from: radio ? (st.name || 'Radio') : ((cs.pod && cs.pod.title) || 'Podcast'), art: pcImg(cs.art), ini: radio ? String(st.name || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '♪' : '🎧',
+      pos: +cs.pos || 0, dur: +cs.dur || 0, error: cs.error, sleepAt: +cs.sleepAt || 0, sleepEnd: !!cs.sleepEnd, speed: cs.rate || 1,
+      desc: (cs.ep && cs.ep.desc) || '', station: st, cast: cs.device, volume: cs.volume };
+  }
   const src = plSrc();
   if (src === 'podcast') {
     const s = pcSt, e = s.ep || {}, p = s.pod || {}, status = s.status === 'idle' ? 'paused' : s.status;
@@ -73,6 +92,7 @@ function plSetArt(el, m){
 }
 
 function plRender(){
+  plCastPoll();
   const m = plModel(), bar = $('#plbar');
   const showBar = !!m && !plIsOpen;
   bar.style.display = showBar ? 'flex' : 'none';
@@ -83,7 +103,7 @@ function plRender(){
   // Mini-balk
   plSetArt($('#plbar-art'), m);
   plSetText($('#plbar-t'), m.title);
-  plSetText($('#plbar-s'), m.status === 'error' ? (m.error || 'Fout') : m.sub || m.from);
+  plSetText($('#plbar-s'), m.status === 'error' ? (m.error || 'Fout') : m.cast ? '📺 ' + m.cast + (m.sub && !/^Op /.test(m.sub) ? ' · ' + m.sub : '') : m.sub || m.from);
   const pp = m.playing ? 'pause' : 'play', ppLabel = m.playing ? 'Pauze' : 'Afspelen';
   for (const b of [$('#plbar-pp'), $('#pl-pp')]) { plSetHtml(b, PL_IC[pp]); if (b.getAttribute('aria-label') !== ppLabel) b.setAttribute('aria-label', ppLabel); }
   plSetHtml($('#plbar-next'), PL_IC.next);
@@ -149,6 +169,13 @@ function plRender(){
   $('#pl-prev').setAttribute('aria-label', m.src === 'radio' ? 'Vorige zender' : 'Vorige (of terug naar het begin)');
   $('#pl-next').setAttribute('aria-label', m.src === 'radio' ? 'Volgende zender' : 'Volgende aflevering');
 
+  // Waar het speelt
+  $('#pl-castbar').style.display = m.cast ? '' : 'none';
+  if (m.cast) plSetText($('#pl-castbar'), '📺 Speelt op ' + m.cast);
+  plSetText($('#pl-out'), m.cast ? '📺 ' + m.cast : '🔈 Deze telefoon');
+  $('#pl-out').classList.toggle('on', !!m.cast);
+  $('#pl-volwrap').style.display = m.cast && m.volume >= 0 ? '' : 'none';
+  if (m.cast && m.volume >= 0 && document.activeElement !== $('#pl-vol')) $('#pl-vol').value = Math.round(m.volume * 20);
   // Opties
   $('#pl-speed').style.display = m.src === 'podcast' ? '' : 'none';
   plSetText($('#pl-speed'), pcSpeedTxt(m.speed));
@@ -160,7 +187,7 @@ function plRender(){
     : m.sleepEnd ? 'Stopt aan het einde van deze aflevering · <a href="#" onclick="plSleepOff();return false">uitzetten</a>' : '');
 
   // Extra's
-  $('#pl-radio').style.display = m.src === 'radio' ? '' : 'none';
+  $('#pl-radio').style.display = m.src === 'radio' && !m.cast ? '' : 'none';
   if (m.src === 'radio') { $('#rd-rec').disabled = m.status !== 'playing'; }
   $('#pl-about').style.display = m.src === 'podcast' && m.desc ? '' : 'none';
   if (m.src === 'podcast') plSetText($('#pl-desc'), m.desc);
@@ -220,6 +247,7 @@ function plAddToQueue(ep, pod, next){
 /* ---------- bediening ---------- */
 function plPlayPause(){
   const m = plModel(); if (!m) return;
+  if (m.cast) { Android.playerPlayPause(); plCastHint = { playing: !m.playing, t: Date.now() }; plRender(); setTimeout(plTick, 600); return; }
   if (m.src === 'podcast') pcPlayPause(); else rdPlayPause();
   plHintSrc(m.src);
   if (m.src === 'radio') { rdState.status = m.playing ? 'paused' : 'connecting'; }
@@ -270,6 +298,34 @@ function plFloatAct(){
     if (r === 'perm') toast('Zet "Weergeven over andere apps" aan voor Rene\'s Tools en kom terug');
     else toast(on ? 'Zwevende speler aan: je ziet hem zodra je de app verlaat' : 'Zwevende speler uit');
   }];
+}
+
+/* ---------- waar speelt het: telefoon, Bluetooth (Android) of een Chromecast ---------- */
+let plCastDevs = [], plOutScanning = false;
+function plOutput(){
+  plOutScanning = true; Android.castScan();
+  plOutSheet();
+}
+function plOutSheet(){
+  const m = plModel(); if (!m) return;
+  const acts = [];
+  if (m.cast) acts.push(['📱 Terug naar deze telefoon', () => { Android.castStop(true); toast('Speelt weer op de telefoon'); setTimeout(plTick, 800); }],
+                        ['■ Stoppen met casten', () => { Android.castStop(false); setTimeout(plTick, 500); }]);
+  acts.push(['🎧 Bluetooth, koptelefoon of speaker…', () => { const e = Android.outputSwitcher(); if (e) toast(e); }]);
+  plCastDevs.forEach((d, i) => { if (d.name !== m.cast) acts.push(['📺 ' + d.name + (d.model ? ' (' + d.model + ')' : ''), () => plCastTo(i)]); });
+  openSheet('Waar speelt het?', plOutScanning ? 'Zoeken naar Chromecasts in je wifi…' : plCastDevs.length ? 'Chromecasts in je wifi' : 'Geen Chromecast gevonden (zelfde wifi?)', acts);
+}
+window.onCastDevices = function(r){
+  plOutScanning = false;
+  plCastDevs = (r && r.devices) || [];
+  if ($('#sheet').classList.contains('on') && $('#sheet-title').textContent === 'Waar speelt het?') plOutSheet();
+};
+function plCastTo(i){
+  const d = plCastDevs[i]; if (!d) return;
+  const e = Android.castStart(d.id);
+  if (e) { toast(e); return; }
+  toast('📺 Verbinden met ' + d.name + '…');
+  setTimeout(plTick, 500); setTimeout(plTick, 2000);
 }
 
 /* Schuif: podcast = plek in de aflevering, radio = plek in de buffer */
