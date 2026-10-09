@@ -32,12 +32,13 @@ const { chromium } = require('playwright');
     // radio terugspoelen
     await pg.evaluate(() => show('radio')); await pg.waitForTimeout(300);
     await pg.click('#rd-list .st >> nth=0').catch(() => {}); await pg.evaluate(() => rdPlay('s', 0)); await pg.waitForTimeout(900); await pg.evaluate(() => rdPollOnce());
-    console.log('shift visible', await pg.isVisible('#rd-shift'), 'pos', await pg.textContent('#rd-shpos'), 'live disabled', await pg.isDisabled('#rd-live'));
-    await pg.click('#rd-shift button:has-text("30 s") >> nth=0'); await pg.waitForTimeout(400);
-    console.log('after rew', await pg.textContent('#rd-shpos'), 'live enabled', !(await pg.isDisabled('#rd-live')));
+    await pg.click('#plbar-open'); await pg.waitForTimeout(400);
+    console.log('shift visible', await pg.isVisible('#pl-seekwrap'), 'pos', await pg.textContent('#pl-left'), 'fwd disabled', await pg.isDisabled('#pl-fwd'));
+    await pg.click('#pl-back'); await pg.waitForTimeout(400);
+    console.log('after rew', await pg.textContent('#pl-left'), 'fwd enabled', !(await pg.isDisabled('#pl-fwd')));
     await pg.screenshot({ path: __dirname + '/shots/rdshift-' + scheme + '.png' });
-    await pg.click('#rd-live'); await pg.waitForTimeout(400);
-    console.log('after live', await pg.textContent('#rd-shpos'));
+    await pg.click('#pl-golive'); await pg.waitForTimeout(400);
+    console.log('after live', await pg.textContent('#pl-left'));
     await pg.uncheck('#rd-ts'); console.log('ts off', await pg.evaluate(() => Android._ts));
     console.log('errors', errs);
   }

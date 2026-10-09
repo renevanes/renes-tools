@@ -421,6 +421,113 @@ final class Podcasts {
         return out;
     }
 
+    // ---------- Hierna (wachtrij) ----------
+
+    static File queueFile(Context c) { return new File(dir(c), "hierna.json"); }
+
+    static synchronized JSONArray queue(Context c) {
+        try { File f = queueFile(c); return f.isFile() ? new JSONArray(Contacts.readText(f, false)) : new JSONArray(); }
+        catch (Exception e) { return new JSONArray(); }
+    }
+
+    private static synchronized void saveQueue(Context c, JSONArray a) {
+        try { Contacts.writeText(queueFile(c), a.toString(), false); } catch (Exception ignored) { }
+    }
+
+    private static String keyOf(JSONObject r) { JSONObject e = r == null ? null : r.optJSONObject("ep"); return e == null ? "" : e.optString("key"); }
+
+    /** Toevoegen (achteraan, of vooraan = "als volgende"). Staat hij er al, dan verplaatst hij. Hooguit 200. */
+    static synchronized int queueAdd(Context c, JSONObject ep, JSONObject pod, boolean next) throws Exception {
+        String key = ep.optString("key");
+        if (!validKey(key) || !httpUrl(ep.optString("url"))) throw new Exception("Deze aflevering kan niet in Hierna");
+        JSONArray a = queue(c), out = new JSONArray();
+        JSONObject item = new JSONObject().put("ep", ep).put("pod", pod == null ? new JSONObject() : pod);
+        if (next) out.put(item);
+        for (int i = 0; i < a.length(); i++) { JSONObject r = a.optJSONObject(i); if (r != null && !key.equals(keyOf(r))) out.put(r); }
+        if (!next) out.put(item);
+        while (out.length() > 200) out.remove(out.length() - 1);
+        saveQueue(c, out);
+        return out.length();
+    }
+
+    static synchronized void queueRemove(Context c, String key) {
+        if (key == null) return;
+        JSONArray a = queue(c), out = new JSONArray();
+        boolean hit = false;
+        for (int i = 0; i < a.length(); i++) { JSONObject r = a.optJSONObject(i); if (r != null && !key.equals(keyOf(r))) out.put(r); else hit = true; }
+        if (hit) saveQueue(c, out);
+    }
+
+    static synchronized void queueMove(Context c, int from, int to) {
+        JSONArray a = queue(c);
+        if (from < 0 || from >= a.length()) return;
+        to = Math.max(0, Math.min(a.length() - 1, to));
+        java.util.List<Object> l = new ArrayList<>();
+        for (int i = 0; i < a.length(); i++) l.add(a.opt(i));
+        l.add(to, l.remove(from));
+        saveQueue(c, new JSONArray(l));
+    }
+
+    static synchronized void queueMoveKey(Context c, String key, int to) {
+        JSONArray a = queue(c);
+        for (int i = 0; i < a.length(); i++) if (keyOf(a.optJSONObject(i)).equals(key)) { queueMove(c, i, to); return; }
+    }
+
+    static synchronized void queueClear(Context c) { saveQueue(c, new JSONArray()); }
+
+    /** De eerste uit Hierna halen (of null). */
+    static synchronized JSONObject queuePop(Context c) {
+        JSONArray a = queue(c);
+        if (a.length() == 0) return null;
+        JSONObject r = a.optJSONObject(0);
+        a.remove(0);
+        saveQueue(c, a);
+        return r;
+    }
+
+    /**
+     * Volgende aflevering (vegen op de hoes, ⏭): eerst Hierna; anders in dezelfde podcast de nieuwere aflevering,
+     * en als die er niet is (of al beluisterd) de oudere. {ep, pod} of null.
+     */
+    static JSONObject next(Context c, JSONObject ep, JSONObject pod) {
+        JSONObject q = queuePop(c);
+        if (q != null) return q;
+        if (ep == null || pod == null) return null;
+        try {
+            JSONObject feed = readJson(cacheFile(c, pod.optString("id", podId(pod.optString("feed")))));
+            JSONArray items = feed == null ? null : feed.optJSONArray("items");
+            if (items == null) return null;
+            String key = ep.optString("key");
+            int at = -1;
+            for (int i = 0; i < items.length(); i++) if (key.equals(items.getJSONObject(i).optString("key"))) { at = i; break; }
+            if (at < 0) return null;
+            for (int i : new int[]{at - 1, at + 1}) { // de lijst staat nieuwste eerst
+                if (i < 0 || i >= items.length()) continue;
+                JSONObject e = items.getJSONObject(i), p = progressOf(c, e.optString("key"));
+                if (p != null && p.optBoolean("done")) continue;
+                return new JSONObject().put("ep", e).put("pod", pod);
+            }
+        } catch (Exception ignored) { }
+        return null;
+    }
+
+    /**
+     * Wat er eerder speelde (uit de lijst van recent gestart, nieuwste eerst), of null. depth 1 = de vorige; vlak na
+     * elkaar teruggaan geeft depth 2, 3, … (wat je net terug-speelde staat dan zelf vooraan, de rest schuift op).
+     */
+    static JSONObject previous(Context c, String key, int depth) {
+        JSONArray a = recent(c);
+        int n = 0;
+        JSONObject last = null;
+        for (int i = 0; i < a.length(); i++) {
+            JSONObject r = a.optJSONObject(i);
+            if (r == null || r.optJSONObject("ep") == null || keyOf(r).equals(key)) continue;
+            last = r;
+            if (++n >= Math.max(1, depth)) return r;
+        }
+        return last; // niet zo ver terug: de oudste
+    }
+
     // ---------- backup ----------
 
     /** Voor Alles back-uppen (instellingen): abonnementen en voortgang. */

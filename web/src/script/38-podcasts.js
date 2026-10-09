@@ -33,75 +33,34 @@ function enterPodcasts(){
   pcPoll(true);
   pcRenderCont(); pcRenderSubs();
   if (!$('#pc-q').value.trim()) pcShowTop();
-  pcStartPoll();
   // Abonnementen af en toe bijwerken (nieuwe afleveringen)
   const subs = rdJson(Android.podSubs(), []);
   if (subs.length && Date.now() - (+Android.podRefreshedAt() || 0) > 3 * 36e5) Android.podRefresh();
 }
-function pcStartPoll(){ if (!pcPollT) pcPollT = setInterval(() => { if (appPaused) return; if (current === 'podcasts' || current === 'podcast') pcPoll(false); else pcStopPoll(); }, 1000); }
-function pcStopPoll(){ if (pcPollT) { clearInterval(pcPollT); pcPollT = null; } }
+/* Pollen doet de speler (plTick, elke seconde); deze twee blijven voor oude aanroepen. */
+function pcStartPoll(){}
+function pcStopPoll(){}
 function pcPoll(force){
   pcSt = rdJson(Android.podState(), {});
   const sig = JSON.stringify([pcSt.status, pcSt.ep && pcSt.ep.key, pcSt.speed, pcSt.sleepAt, pcSt.sleepEnd, pcSt.error, Math.floor(Date.now() / 3e4)]);
   if (force || sig !== pcLastSig) {
     const keyChanged = !pcLastSig || JSON.parse(pcLastSig)[1] !== (pcSt.ep && pcSt.ep.key);
-    pcLastSig = sig; pcRenderNow();
+    pcLastSig = sig;
     if (keyChanged && current === 'podcasts') pcRenderCont();
     if (current === 'podcast') pdRefreshRows(); // ▶/❚❚ en voortgang in de lijst bijwerken
   }
-  pcRenderTimes();
+  if (typeof plRender === 'function') plRender();
 }
 function pcActive(){ return pcSt.status === 'playing' || pcSt.status === 'connecting'; }
-function pcRenderNow(){
-  const st = pcSt, has = !!(st.ep && st.ep.url);
-  $('#pc-now').style.display = has ? 'block' : 'none';
-  $('#pd-mini').style.display = has ? 'flex' : 'none';
-  if (!has) return;
-  pcSetArt($('#pc-now-art'), st.ep.image || (st.pod && st.pod.image));
-  pcSetArt($('#pd-mini-art'), st.ep.image || (st.pod && st.pod.image));
-  $('#pc-now-title').textContent = st.ep.title || 'Aflevering';
-  $('#pd-mini-t').textContent = st.ep.title || 'Aflevering';
-  $('#pc-now-pod').textContent = (st.pod && st.pod.title) || '';
-  const playing = pcActive();
-  for (const b of [$('#pc-pp'), $('#pd-mini-pp')]) { b.textContent = playing ? '❚❚' : '▶'; b.setAttribute('aria-label', playing ? 'Pauze' : 'Afspelen'); }
-  $('#pc-speed').textContent = pcSpeedTxt(st.speed);
-  const sl = $('#pc-sleep');
-  if (st.sleepAt) { sl.textContent = '⏾ nog ' + fmtMin((st.sleepAt - Date.now()) / 6e4); sl.classList.add('on'); }
-  else if (st.sleepEnd) { sl.textContent = '⏾ na deze aflevering'; sl.classList.add('on'); }
-  else { sl.textContent = '⏾ Slaaptimer'; sl.classList.remove('on'); }
-  $('#pc-sleepinfo').innerHTML = st.sleepAt ? 'Stopt om ' + new Date(st.sleepAt).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + ' · <a href="#" onclick="Android.podSleep(0);setTimeout(()=>pcPoll(true),200);return false">uitzetten</a>'
-    : st.sleepEnd ? 'Stopt aan het einde van deze aflevering · <a href="#" onclick="Android.podSleep(0);setTimeout(()=>pcPoll(true),200);return false">uitzetten</a>' : '';
-  $('#pc-state').textContent = st.status === 'connecting' ? 'Laden…' : st.status === 'error' ? (st.error || 'Fout') : st.status === 'ended' ? 'Afgelopen' : '';
-  $('#pc-state').classList.toggle('bad', st.status === 'error');
-}
-function pcRenderTimes(){
-  const st = pcSt; if (!st.ep) return;
-  const dur = +st.dur || 0, pos = +st.pos || 0;
-  if (!pcSeeking) {
-    $('#pc-seek').value = dur > 0 ? Math.round(pos / dur * 1000) : 0;
-    $('#pc-pos').textContent = fmtClock(pos);
-  }
-  $('#pc-left').textContent = dur > 0 ? '−' + fmtClock(dur - pos) : '';
-  $('#pc-seek').disabled = !(dur > 0);
-}
-// Losgelaten zonder echte verandering (geen change-event): de tijd niet laten bevriezen
-['pointerup', 'touchend', 'blur'].forEach(ev => document.getElementById('pc-seek').addEventListener(ev, () => setTimeout(() => { pcSeeking = false; }, 50)));
-function pcSeekDrag(){ pcSeeking = true; const dur = +pcSt.dur || 0; $('#pc-pos').textContent = fmtClock(dur * $('#pc-seek').value / 1000); }
-function pcSeekDone(){
-  const dur = +pcSt.dur || 0; pcSeeking = false;
-  if (!(dur > 0)) return;
-  const ms = Math.round(dur * $('#pc-seek').value / 1000);
-  Android.podSeek(ms); pcSt.pos = ms; pcRenderTimes();
-}
 function pcPlayPause(){
   if (pcActive()) Android.podPause(); else Android.podResume();
-  pcSt.status = pcActive() ? 'paused' : 'connecting'; pcRenderNow();
+  pcSt.status = pcActive() ? 'paused' : 'connecting'; plHintSrc('podcast'); plRender();
   setTimeout(() => pcPoll(true), 300);
 }
-function pcSkip(s){ Android.podSkip(s); pcSt.pos = Math.max(0, (+pcSt.pos || 0) + s * 1000); pcRenderTimes(); }
+function pcSkip(s){ Android.podSkip(s); pcSt.pos = Math.max(0, (+pcSt.pos || 0) + s * 1000); plRender(); }
 function pcSpeedMenu(){
   const opts = [0.8, 1, 1.1, 1.25, 1.5, 1.75, 2];
-  openSheet('Afspeelsnelheid', 'Nu ' + pcSpeedTxt(pcSt.speed), opts.map(v => [pcSpeedTxt(v) + (v === 1 ? ' (normaal)' : ''), () => { Android.podSpeed(String(v)); pcSt.speed = v; pcRenderNow(); }]));
+  openSheet('Afspeelsnelheid', 'Nu ' + pcSpeedTxt(pcSt.speed), opts.map(v => [pcSpeedTxt(v) + (v === 1 ? ' (normaal)' : ''), () => { Android.podSpeed(String(v)); pcSt.speed = v; plRender(); }]));
 }
 function pcOpenNowPod(){ const p = pcSt.pod; if (p && p.feed) pdOpen(p); }
 function pcNowMenu(){
@@ -110,7 +69,7 @@ function pcNowMenu(){
   if (st.pod && st.pod.feed) acts.push(['Naar de podcast', () => pdOpen(st.pod)]);
   if (st.ep.desc) acts.push(['Beschrijving', () => pcShowDesc(st.ep)]);
   acts.push(['Delen', () => Android.podShare(st.ep.title + (st.pod && st.pod.title ? ' · ' + st.pod.title : ''), (st.pod && st.pod.link) || st.ep.url)]);
-  acts.push(['Stoppen', () => { Android.podStop(); setTimeout(() => pcPoll(true), 300); }]);
+  acts.push(['Stoppen', () => plStop()]);
   openSheet(st.ep.title || 'Aflevering', (st.pod && st.pod.title) || '', acts);
 }
 function pcShowDesc(ep, onPlay){
@@ -122,7 +81,7 @@ function pcPlayEp(ep, pod, fromStart){
   const e = Android.podPlay(JSON.stringify({ ep: pcSlimEp(ep), pod: pcSlimPod(pod), fromStart: !!fromStart }));
   if (e) { toast(e); return; }
   pcSt = { status: 'connecting', ep: pcSlimEp(ep), pod: pcSlimPod(pod), pos: fromStart ? 0 : (+ep.pos || 0), dur: (+ep.dur || 0) * 1000, speed: pcSt.speed || 1 };
-  pcLastSig = ''; pcRenderNow(); pcRenderTimes(); pcStartPoll();
+  pcLastSig = ''; plHintSrc('podcast'); plRender();
   if (current === 'podcast') pdRefreshRows(); else pcRenderCont();
 }
 
@@ -146,6 +105,8 @@ function pcContMenu(i){
   openSheet(r.ep.title, (r.pod && r.pod.title) || '', [
     ['Verder luisteren', () => pcPlayEp(r.ep, r.pod, false)],
     ['Vanaf het begin', () => pcPlayEp(r.ep, r.pod, true)],
+    ['⏭ Als volgende afspelen', () => plAddToQueue(r.ep, r.pod, true)],
+    ['＋ Toevoegen aan Hierna', () => plAddToQueue(r.ep, r.pod, false)],
     ['Markeren als beluisterd', () => { Android.podMarkPlayed(r.ep.key, true); Android.podForget(r.ep.key); pcRenderCont(); }],
     ['Uit deze lijst halen', () => { Android.podForget(r.ep.key); pcRenderCont(); }]]);
 }
@@ -289,6 +250,7 @@ function pdEpMenu(i){
   const e = pdRows[i]; if (!e) return;
   const acts = [[e.pos > 0 && !e.done ? 'Verder luisteren' : 'Afspelen', () => pcPlayEp(e, pdPod, !!e.done)]];
   if (e.pos > 0 && !e.done) acts.push(['Vanaf het begin', () => pcPlayEp(e, pdPod, true)]);
+  if (!(pcSt.ep && pcSt.ep.key === e.key)) acts.push(['⏭ Als volgende afspelen', () => plAddToQueue(e, pdPod, true)], ['＋ Toevoegen aan Hierna', () => plAddToQueue(e, pdPod, false)]);
   acts.push([e.done ? 'Markeren als niet beluisterd' : 'Markeren als beluisterd', () => { Android.podMarkPlayed(e.key, !e.done); e.done = !e.done; e.pos = 0; pdRender(); }]);
   if (e.desc) acts.push(['Beschrijving', () => pcShowDesc(e, () => pcPlayEp(e, pdPod, !!e.done))]);
   acts.push(['Delen', () => Android.podShare(e.title + ' · ' + (pdPod.title || ''), pdPod.link || e.url)]);

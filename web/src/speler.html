@@ -1,0 +1,69 @@
+
+<!-- ============ SPELER: één voor radio en podcasts (mini-balk onderaan en volledig scherm) ============ -->
+<div class="plbar" id="plbar" role="region" aria-label="Speler" style="display:none">
+  <div class="plbar-prog" aria-hidden="true"><i id="plbar-prog"></i></div>
+  <button class="plbar-main" id="plbar-open" onclick="plOpen()" aria-label="Speler openen">
+    <span class="plart" id="plbar-art" aria-hidden="true"></span>
+    <span class="pltxt"><b id="plbar-t"></b><small id="plbar-s"></small></span>
+  </button>
+  <button class="plbar-btn" id="plbar-pp" onclick="plPlayPause()" aria-label="Afspelen"></button>
+  <button class="plbar-btn" id="plbar-next" onclick="plNext()" aria-label="Volgende"></button>
+</div>
+
+<div class="player" id="player" role="dialog" aria-modal="true" aria-labelledby="pl-title" aria-hidden="true">
+  <div class="pl-scroll" id="pl-scroll">
+    <div class="pl-top" id="pl-top">
+      <button class="pl-ic" onclick="plClose()" aria-label="Speler verkleinen"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="pl-src"><small id="pl-kind">Speelt nu</small><button class="pl-from" id="pl-from" onclick="plGoSource()"></button></div>
+      <button class="pl-ic" onclick="plMenu()" aria-label="Meer opties"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+    </div>
+
+    <div class="pl-cover" id="pl-cover" role="img" aria-label="Hoes">
+      <span class="plart" id="pl-art" aria-hidden="true"></span>
+    </div>
+
+    <div class="pl-meta">
+      <div class="pl-titles"><h2 id="pl-title" tabindex="-1"></h2><p id="pl-sub"></p></div>
+      <button class="pl-ic" id="pl-fav" onclick="plFav()" aria-label="Favoriet"></button>
+    </div>
+
+    <div class="pl-seekwrap" id="pl-seekwrap">
+      <input type="range" class="plseek" id="pl-seek" min="0" max="1000" value="0" step="1" aria-label="Plek" oninput="plSeekDrag()" onchange="plSeekDone()">
+      <div class="pl-times"><span id="pl-pos">0:00</span><span id="pl-state" aria-live="polite"></span><span id="pl-left"></span></div>
+    </div>
+    <div class="pl-live" id="pl-livebadge" style="display:none"><i></i> LIVE</div>
+
+    <div class="pl-ctl">
+      <button class="pl-ic pl-skip" id="pl-back" onclick="plSkip(-1)"></button>
+      <button class="pl-ic" id="pl-prev" onclick="plPrev()" aria-label="Vorige"></button>
+      <button class="pl-play" id="pl-pp" onclick="plPlayPause()" aria-label="Afspelen"></button>
+      <button class="pl-ic" id="pl-next" onclick="plNext()" aria-label="Volgende"></button>
+      <button class="pl-ic pl-skip" id="pl-fwd" onclick="plSkip(1)"></button>
+    </div>
+
+    <div class="pl-opts">
+      <button class="pl-pill" id="pl-sleep" onclick="plSleep()">⏾ Slaaptimer</button>
+      <button class="pl-pill" id="pl-speed" onclick="pcSpeedMenu()" aria-label="Afspeelsnelheid">1×</button>
+      <button class="pl-pill" id="pl-golive" onclick="rdShift('live')">Naar live</button>
+      <button class="pl-pill" id="pl-stop" onclick="plStop()" aria-label="Stoppen">■ Stop</button>
+    </div>
+    <div class="pl-sleepinfo" id="pl-sleepinfo"></div>
+
+    <!-- Alleen bij de radio: het nummer, herkennen, en meer over de zender -->
+    <div id="pl-radio" style="display:none">
+      <div class="pl-card nowsong" id="rd-song" style="display:none"></div>
+      <button class="pl-wide" id="rd-rec" onclick="rdRecognize()">♫ Welk nummer is dit?</button>
+      <details class="pl-card" id="rd-recent-wrap"><summary id="rd-recent-sum">Eerder gedraaid</summary><ul class="recent" id="rd-recent"></ul></details>
+      <details class="pl-card" id="rd-info"><summary>Over deze zender</summary><dl class="fields" id="rd-info-dl"></dl></details>
+      <label class="pl-chk"><input type="checkbox" id="rd-ts" onchange="Android.radioSetTimeshift(this.checked); toast(this.checked ? 'Geldt vanaf de volgende zender' : 'Uit; geldt vanaf de volgende zender')"> Pauzeren en terugspoelen (tot ca. 45 min buffer; tijdens pauze loopt de stream door, max. 1 uur)</label>
+    </div>
+
+    <!-- Alleen bij een podcast: over de aflevering -->
+    <details class="pl-card" id="pl-about" style="display:none"><summary>Over deze aflevering</summary><p class="pcdesc" id="pl-desc"></p></details>
+
+    <div class="pl-card pl-queue">
+      <div class="pl-qhead"><h3 id="pl-qtitle">Hierna</h3><button class="pl-link" id="pl-qclear" onclick="plQueueClear()" style="display:none">Wissen</button></div>
+      <div id="pl-queue"></div>
+    </div>
+  </div>
+</div>

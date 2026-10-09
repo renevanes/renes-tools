@@ -5,29 +5,6 @@
     <h1 tabindex="-1">Podcasts</h1>
   </div>
   <main>
-    <div class="card pcnow" id="pc-now" style="display:none">
-      <div class="pcnowtop">
-        <span class="pcart lg" id="pc-now-art" aria-hidden="true"></span>
-        <div class="pcnowtxt">
-          <b id="pc-now-title"></b>
-          <button class="linkish" id="pc-now-pod" onclick="pcOpenNowPod()"></button>
-        </div>
-      </div>
-      <input type="range" class="pcseek" id="pc-seek" min="0" max="1000" value="0" step="1" aria-label="Plek in de aflevering" oninput="pcSeekDrag()" onchange="pcSeekDone()">
-      <div class="pctimes"><span id="pc-pos">0:00</span><span id="pc-state" aria-live="polite"></span><span id="pc-left"></span></div>
-      <div class="pcctl">
-        <button class="pcbtn" onclick="pcSkip(-15)" aria-label="15 seconden terug">↺<small>15</small></button>
-        <button class="pcplay" id="pc-pp" onclick="pcPlayPause()" aria-label="Afspelen">▶</button>
-        <button class="pcbtn" onclick="pcSkip(30)" aria-label="30 seconden vooruit">↻<small>30</small></button>
-      </div>
-      <div class="pcopts">
-        <button class="pill" id="pc-speed" onclick="pcSpeedMenu()" aria-label="Afspeelsnelheid">1×</button>
-        <button class="pill" id="pc-sleep" onclick="sleepOpen('pod')">⏾ Slaaptimer</button>
-        <button class="pill" onclick="pcNowMenu()" aria-label="Meer">⋯</button>
-      </div>
-      <div class="sleepinfo" id="pc-sleepinfo"></div>
-    </div>
-
     <div id="pc-cont-wrap" style="display:none">
       <div class="flabel" style="margin:4px 2px 8px">Verder luisteren</div>
       <div class="card pclist" id="pc-cont"></div>
@@ -59,10 +36,6 @@
       <button class="big" id="pd-sub" style="margin-top:12px" onclick="pdSubToggle()">＋ Volgen</button>
       <details class="rinfo" id="pd-about"><summary>Over deze podcast</summary><p class="pcdesc" id="pd-desc"></p></details>
       <p class="note bad" id="pd-stale" style="display:none"></p>
-    </div>
-    <div class="card pcmini" id="pd-mini" style="display:none">
-      <button class="pcminib" onclick="show('podcasts')"><span class="pcart" id="pd-mini-art" aria-hidden="true"></span><span class="pctxt"><small>Nu</small><b id="pd-mini-t"></b></span></button>
-      <button class="pcplayi" id="pd-mini-pp" onclick="pcPlayPause()" aria-label="Afspelen">▶</button>
     </div>
     <div class="pcbar2">
       <div class="chips sm" id="pd-sort" role="radiogroup" aria-label="Volgorde" style="margin:0">

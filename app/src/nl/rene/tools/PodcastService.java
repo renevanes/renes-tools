@@ -38,7 +38,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     static final String CHANNEL = "podcast";
     static final int NOTIF_ID = 4501;
     static final String PLAY = "play", PAUSE = "pause", RESUME = "resume", STOP = "stop", SEEK = "seek", SKIP = "skip", SPEED = "speed",
-            SLEEP = "sleep", SLEEP_ADD = "sleepAdd";
+            SLEEP = "sleep", SLEEP_ADD = "sleepAdd", YIELD = "yield";
     static final int BACK_S = 15, FWD_S = 30;
     static final long FADE_MS = 30_000;
     static final long ACTIONS = PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_STOP
@@ -176,9 +176,12 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
                     long start = o.optBoolean("fromStart") || saved == null || saved.optBoolean("done") ? 0 : Math.max(0, saved.optLong("p"));
                     retries = 0;
                     Podcasts.touchRecent(this, e, new JSONObject(pod));
+                    final String qk = e.optString("key");
+                    final Context app = getApplicationContext();
+                    Podcasts.IO.execute(() -> Podcasts.queueRemove(app, qk)); // speelt nu: niet meer in Hierna
                     Podcasts.prefs(this).edit().putString("last", x).apply();
                     begin(start);
-                } catch (Exception e) { error = "Deze aflevering kan niet worden afgespeeld"; status = "error"; update(); detach(); }
+                } catch (Exception e) { error = "Deze aflevering kan niet worden afgespeeld"; status = "error"; releaseAutoWake(); releaseWifi(); abandonFocus(); update(); detach(); }
                 break;
             }
             case RESUME:
@@ -197,6 +200,15 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
                 }
                 break;
             case PAUSE: pause(false); break;
+            case YIELD: // de radio neemt het over: pauzeren (plek bewaard) en de melding weg
+                if ("playing".equals(status) || "connecting".equals(status)) pause(false);
+                h.removeCallbacks(idleRun); h.removeCallbacks(sleepTick);
+                sleepAt = 0; sleepEnd = false;
+                abandonFocus();
+                stopForeground(STOP_FOREGROUND_REMOVE); foreground = false;
+                ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIF_ID);
+                stopSelfResult(lastStartId);
+                break;
             case STOP:
                 saveNow();
                 ep = null; pod = null; // uit beeld; in Verder luisteren staat hij nog
@@ -244,6 +256,9 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
 
     private void begin(long startMs) {
         h.removeCallbacks(idleRun);
+        // Vanaf nu is dit wat er speelt: de radio stopt; een slaaptimer daarvan loopt hier door
+        long other = Player.takeOver(this, Player.PODCAST);
+        if (other > 0 && sleepAt == 0 && !sleepEnd) { sleepAt = other; h.removeCallbacks(sleepTick); h.post(sleepTick); }
         release();
         prepared = false;
         error = null;
@@ -252,7 +267,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         pos = startMs;
         dur = e.optLong("dur") * 1000L;
         if (!foreground) startFg(); // eerst voorgrond: Android 15+ geeft anders geen audiofocus vanaf de achtergrond
-        if (!requestFocus()) { error = "Geluid is nu in gebruik (bijvoorbeeld door een gesprek)"; status = "error"; update(); detach(); return; }
+        if (!requestFocus()) { error = "Geluid is nu in gebruik (bijvoorbeeld door een gesprek)"; status = "error"; releaseAutoWake(); releaseWifi(); update(); detach(); return; }
         status = "connecting";
         session.setActive(true);
         update();
@@ -293,6 +308,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         if (!requestFocus()) { error = "Geluid is nu in gebruik"; pause(false); return; }
         h.removeCallbacks(idleRun);
         try { p.start(); applySpeed(); } catch (Exception e) { onError("Afspelen lukt niet"); return; }
+        releaseAutoWake(); // de speler houdt de telefoon nu zelf wakker
         if (sleepAt == 0) setVolume(1f);
         resumeOnFocus = false;
         status = "playing";
@@ -362,9 +378,30 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         pos = 0;
         release(); prepared = false;
         status = "ended";
+        h.removeCallbacks(tickRun);
+        if (!sleepEnd) {
+            // Hierna: meteen de volgende (een slaaptimer op tijd loopt gewoon door). Het bestand lezen gebeurt op
+            // de achtergrond; zolang houdt een korte wakelock de telefoon wakker (het scherm staat vaak uit).
+            holdAutoWake();
+            final Context app = getApplicationContext();
+            Podcasts.IO.execute(() -> {
+                final JSONObject nx = Podcasts.queuePop(app);
+                h.post(() -> {
+                    if (inst != this || !"ended".equals(status)) { releaseAutoWake(); return; } // intussen iets anders gekozen
+                    if (nx != null) handle(PLAY, nx.toString()); // de wakelock gaat los zodra het speelt (of mislukt)
+                    else { releaseAutoWake(); endedDone(); }
+                });
+            });
+            return;
+        }
+        endedDone();
+    }
+
+    /** Afgelopen en er komt niets meer: loslaten (bij een slaaptimer ook de melding weg). */
+    private void endedDone() {
         boolean wasSleep = sleepEnd || sleepAt > 0;
         sleepEnd = false; sleepAt = 0;
-        h.removeCallbacks(tickRun); h.removeCallbacks(sleepTick);
+        h.removeCallbacks(sleepTick);
         releaseWifi();
         abandonFocus();
         update();
@@ -372,6 +409,17 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         if (wasSleep) { stopForeground(STOP_FOREGROUND_REMOVE); foreground = false; ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIF_ID); }
         stopSelfResult(lastStartId);
     }
+
+    private PowerManager.WakeLock autoWl;
+
+    private void holdAutoWake() {
+        try {
+            if (autoWl == null) { autoWl = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "renestools:podcast-next"); autoWl.setReferenceCounted(false); }
+            autoWl.acquire(60_000L);
+        } catch (Exception ignored) { }
+    }
+
+    private void releaseAutoWake() { try { if (autoWl != null && autoWl.isHeld()) autoWl.release(); } catch (Exception ignored) { } }
 
     /** Netwerkhapering: één keer opnieuw op dezelfde plek, daarna melden. */
     private void onError(String msg) {
@@ -391,6 +439,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         }
         pos = at;
         saveNow();
+        releaseAutoWake();
         status = "error";
         error = msg;
         releaseWifi();
@@ -567,24 +616,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         artFor = url;
         final String u = url;
         new Thread(() -> {
-            Bitmap b = null;
-            try {
-                java.net.HttpURLConnection c = Podcasts.open(u, 15000);
-                try (java.io.InputStream in = new PodcastFeed.Limited(c.getInputStream(), 8_000_000)) {
-                    byte[] data = SelfTest.readAll(in);
-                    android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
-                    o.inJustDecodeBounds = true;
-                    android.graphics.BitmapFactory.decodeByteArray(data, 0, data.length, o);
-                    int s = 1; while (Math.max(o.outWidth, o.outHeight) / (s * 2) >= 320) s *= 2; // klein houden: gaat via de mediasessie naar andere processen
-                    o = new android.graphics.BitmapFactory.Options(); o.inSampleSize = s;
-                    b = android.graphics.BitmapFactory.decodeByteArray(data, 0, data.length, o);
-                    if (b != null && Math.max(b.getWidth(), b.getHeight()) > 320) {
-                        float k = 320f / Math.max(b.getWidth(), b.getHeight());
-                        b = Bitmap.createScaledBitmap(b, Math.max(1, Math.round(b.getWidth() * k)), Math.max(1, Math.round(b.getHeight() * k)), true);
-                    }
-                } finally { c.disconnect(); }
-            } catch (Throwable ignored) { }
-            final Bitmap bm = b;
+            final Bitmap bm = Art.small(Art.load(getApplicationContext(), u), 320); // klein: gaat via de mediasessie naar andere processen
             h.post(() -> { if (u.equals(artFor) && inst == this) { art = bm; if (!"stopped".equals(status)) update(); } });
         }, "podcast-art").start();
     }
@@ -598,6 +630,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
 
     private void stopAll() {
         saveNow();
+        releaseAutoWake();
         h.removeCallbacksAndMessages(null);
         release(); prepared = false;
         releaseWifi();
@@ -617,6 +650,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         saveNow();
         if (inst == this) inst = null;
         h.removeCallbacksAndMessages(null);
+        releaseAutoWake();
         release();
         releaseWifi();
         abandonFocus();

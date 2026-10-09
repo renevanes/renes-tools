@@ -40,7 +40,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     static final String CHANNEL = "radio";
     static final int NOTIF_ID = 4401;
     static final String PLAY = "play", PAUSE = "pause", RESUME = "resume", STOP = "stop", SLEEP = "sleep", SNOOZE = "snooze";
-    static final String REW = "rew", FWD = "fwd", LIVE = "live";
+    static final String REW = "rew", FWD = "fwd", LIVE = "live", TO = "to"; // TO: x = seconden achter live
     /** Wekkermodus: geluid via het wekkervolume, zacht beginnen, en bij geen verbinding de wekkertoon. */
     static volatile boolean alarm = false;
     private android.media.Ringtone ring;
@@ -264,6 +264,18 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         }
     }
 
+    /** De zender naast de huidige (of de laatste) in de favorieten (anders populair); null als er geen is. */
+    static JSONObject neighbour(Context c, int dir) {
+        org.json.JSONArray l = browseList(c);
+        if (l.length() == 0) return null;
+        String st = station != null ? station : Radio.prefs(c).getString("last", null);
+        int cur = -1;
+        try { String url = new JSONObject(st).optString("url"); for (int i = 0; i < l.length(); i++) if (url.equals(l.getJSONObject(i).optString("url"))) cur = i; }
+        catch (Exception ignored) { }
+        if (cur < 0 && dir < 0) cur = 0; // niet in de lijst: vorige = de laatste
+        return l.optJSONObject(((cur + dir) % l.length() + l.length()) % l.length());
+    }
+
     /** Volgende/vorige favoriet (stuurknoppen in de auto, koptelefoon). */
     void skip(int dir) {
         org.json.JSONArray l = browseList(this);
@@ -331,11 +343,11 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         if (PLAY.equals(a)) {
             if (x != null) {
                 if (!x.equals(station)) { info = "{}"; synchronized (recent) { recent.clear(); } }
-                station = x; retries = 0; start();
+                station = x; retries = 0; claim(); start();
             } else if (station == null) stopAll();
         } else if (RESUME.equals(a)) {
             if (station == null) station = Radio.prefs(this).getString("last", null); // bijv. vanaf de widget
-            if (station != null) { if (!foreground) startFg(); retries = 0; resumeOrStart(); } else stopAll();
+            if (station != null) { if (!foreground) startFg(); retries = 0; claim(); resumeOrStart(); } else stopAll();
         } else if (SNOOZE.equals(a)) {
             stopAll();
             RadioAlarm.snooze(this, 10);
@@ -356,11 +368,13 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             update();
         } else if (STOP.equals(a)) {
             stopAll();
-        } else if (REW.equals(a) || FWD.equals(a) || LIVE.equals(a)) {
+        } else if (REW.equals(a) || FWD.equals(a) || LIVE.equals(a) || TO.equals(a)) {
             if (ts == null || !shiftOn) return;
             alarm = false;
             long cur = curPos(), r = rateSnap;
-            long target = LIVE.equals(a) ? ts.live() : cur + (REW.equals(a) ? -30 : 30) * r;
+            long behind = 0;
+            if (TO.equals(a)) { try { behind = Math.max(0, Long.parseLong(x)); } catch (Exception e) { return; } }
+            long target = LIVE.equals(a) ? ts.live() : TO.equals(a) ? ts.live() - behind * r : cur + (REW.equals(a) ? -30 : 30) * r;
             if ("interrupted".equals(status)) { pausedPos = clampShift(target); tick(); update(); } // tijdens een gesprek: alleen de plek verzetten
             else if ("paused".equals(status)) { pausedPos = clampShift(target); resumeOrStart(); }
             else seekShift(target);
@@ -419,7 +433,8 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             pausedByFocus = false;
             // Ook als we al "onderbroken" waren (bijv. na een gesprek start je Spotify): echt pauzeren, anders
             // blijven de melding, de wakelock en de wifi-lock eindeloos staan
-            if (player != null || "interrupted".equals(status)) pause();
+            // Ook tijdens opnieuw verbinden: anders pakt een geplande nieuwe poging het geluid terug
+            if (player != null || "interrupted".equals(status) || "connecting".equals(status)) pause();
         } else if (change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
             // Bijvoorbeeld een telefoongesprek: onderbreken maar op de voorgrond blijven, zodat we daarna verder kunnen.
             if ("playing".equals(status) || "connecting".equals(status)) { pausedByFocus = true; interrupt(); }
@@ -435,6 +450,16 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
 
     private void release() {
         if (player != null) { try { player.reset(); player.release(); } catch (Exception ignored) { } player = null; }
+    }
+
+    /** De radio begint: een podcast stopt, en een slaaptimer daarvan loopt hier door. */
+    private void claim() {
+        long other = Player.takeOver(this, Player.RADIO);
+        if (other > 0 && sleepAt == 0 && !alarm) { // de wekker laat zich niet door een oude slaaptimer uitzetten
+            sleepAt = other;
+            h.removeCallbacks(sleepRun);
+            h.postDelayed(sleepRun, Math.max(0, other - System.currentTimeMillis() - SLEEP_FADE));
+        }
     }
 
     private void start() {

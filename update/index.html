@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- RENES-TOOLS-UI versie 1.58 (59) -->
+<!-- RENES-TOOLS-UI versie 1.59 (60) -->
 <html lang="nl">
 <head>
 <meta charset="utf-8">
@@ -418,6 +418,82 @@ h1:focus{outline:none}
 .pcminib .pcart{width:40px;height:40px}.pcminib .pctxt{flex:1;min-width:0}.pcminib small{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
 .pcminib b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pcmini .pcplayi{width:42px;height:42px;background:var(--chip-on);color:#fff;border:0}
+/* ---------- Speler (radio en podcasts): mini-balk en volledig scherm, altijd donker met de kleur van de hoes ---------- */
+.plbar{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:50;display:flex;align-items:center;gap:2px;padding:6px 4px 8px 6px;border-radius:12px;background:var(--pl,#2A3A4F);color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.3);touch-action:none;max-width:560px;margin:0 auto;overflow:hidden;transition:background-color .6s}
+.plbar-prog{position:absolute;left:10px;right:10px;bottom:3px;height:2px;background:rgba(255,255,255,.25);border-radius:2px;overflow:hidden}
+.plbar-prog i{display:block;height:100%;width:0;background:#fff;transition:width .9s linear}
+.plbar-main{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left;color:#fff;padding:0;min-height:44px}
+.plart{width:44px;height:44px;border-radius:6px;overflow:hidden;flex:none;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px}
+.plart img{width:100%;height:100%;object-fit:cover;display:block}
+.pltxt{flex:1;min-width:0}.pltxt b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pltxt small{display:block;font-size:12.5px;opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plbar-btn{width:44px;height:44px;display:grid;place-items:center;color:#fff;flex:none;border-radius:50%;padding:9px}
+.plbar-btn svg{width:26px;height:26px}
+.plbar-btn:active,.pl-ic:active{background:rgba(255,255,255,.16)}
+body.has-plbar main{padding-bottom:92px}
+body.has-plbar .fab{bottom:92px}
+body.has-plbar .toast,body.has-plbar .undo{bottom:92px}
+body.pl-open{overflow:hidden}
+.toast{z-index:2600}.undo{z-index:2600}
+.player{position:fixed;inset:0;z-index:1500;background:#121212;color:#fff;transform:translateY(100%);visibility:hidden;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility .3s}
+.player.on{transform:none;visibility:visible}
+.pl-scroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:0 20px calc(32px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,var(--pl,#2A3A4F) 0%,#121212 92%);
+  background:linear-gradient(180deg,var(--pl,#2A3A4F) 0%,color-mix(in srgb,var(--pl,#2A3A4F) 55%,#121212) 45%,#121212 90%)}
+.pl-top{display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 0 4px;touch-action:none;max-width:560px;margin:0 auto}
+.pl-src{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;align-items:center}
+.pl-src small{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
+.pl-from{color:#fff;font-weight:700;font-size:14px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:2px 6px}
+.pl-ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none}
+.pl-ic:disabled{opacity:.35}
+.pl-cover{max-width:560px;margin:14px auto 22px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.pl-cover .plart{width:min(100%,46vh);height:auto;aspect-ratio:1;margin:0 auto;border-radius:10px;box-shadow:0 14px 44px rgba(0,0,0,.5);font-size:min(20vw,92px);background:rgba(255,255,255,.12);will-change:transform}
+.pl-cover .plart img{pointer-events:none;-webkit-user-drag:none}
+.pl-meta{display:flex;align-items:center;gap:10px;max-width:560px;margin:0 auto}
+.pl-titles{flex:1;min-width:0}
+.pl-titles h2{margin:0;font-size:22px;line-height:1.25;font-weight:800;outline:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pl-titles p{margin:4px 0 0;opacity:.8;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-titles p.bad{color:#FFB4A8;opacity:1}
+#pl-fav.on{color:#FFD54F}
+.pl-seekwrap{max-width:560px;margin:12px auto 0}
+.plseek{width:100%;accent-color:#fff;height:28px;margin:0}
+.plseek:disabled{opacity:.4}
+.pl-times{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;opacity:.82;font-variant-numeric:tabular-nums}
+.pl-times #pl-state{flex:1;text-align:center}.pl-times #pl-state.bad{color:#FFB4A8}
+.pl-times .live{font-weight:800;letter-spacing:.06em}
+.pl-live{max-width:560px;margin:16px auto 0;font-size:12px;font-weight:800;letter-spacing:.14em;display:flex;align-items:center;gap:7px;opacity:.9}
+.pl-live i{width:8px;height:8px;border-radius:50%;background:#aaa}
+.pl-live.on i{background:#FF5A4F;animation:plpulse 1.6s infinite}
+@keyframes plpulse{50%{opacity:.3}}
+@media (prefers-reduced-motion: reduce){.pl-live.on i{animation:none}.player{transition:none}.plbar-prog i{transition:none}}
+.pl-ctl{display:flex;align-items:center;justify-content:space-between;max-width:400px;margin:10px auto 0}
+.pl-ctl .pl-ic{width:52px;height:52px}
+.pl-play{width:72px;height:72px;border-radius:50%;background:#fff;color:#121212;display:grid;place-items:center;padding:20px;box-shadow:0 6px 18px rgba(0,0,0,.3);flex:none}
+.pl-play:active{transform:scale(.96)}
+.pl-opts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:18px auto 4px;max-width:560px}
+.pl-pill{padding:9px 15px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;font-weight:600;font-size:14px;min-height:40px}
+.pl-pill.on{background:#fff;color:#121212}
+.pl-sleepinfo{text-align:center;font-size:13px;opacity:.85;min-height:18px;max-width:560px;margin:0 auto}
+.pl-sleepinfo a,.player a{color:#fff}
+.pl-card{background:rgba(255,255,255,.08);border-radius:14px;padding:14px;margin:14px auto 0;max-width:560px;display:block}
+.pl-card summary{cursor:pointer;font-weight:700;padding:2px 0}
+.player dl.fields{margin-top:10px}.player dl.fields dt{color:rgba(255,255,255,.7)}
+.player .recent li{border-top-color:rgba(255,255,255,.12)}.player .recent time{color:rgba(255,255,255,.7)}
+.player .nowsong{background:rgba(255,255,255,.08);margin-top:14px}.player .nowsong span{color:rgba(255,255,255,.75)}
+.player .nowsong .mini{background:rgba(255,255,255,.16);color:#fff}
+.player .logo,.player .pcart{background:rgba(255,255,255,.14);color:#fff}
+.pl-wide{display:block;width:100%;max-width:560px;margin:14px auto 0;padding:12px;border-radius:12px;background:rgba(255,255,255,.14);color:#fff;font-weight:700}
+.pl-wide:disabled{opacity:.45}
+.pl-chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;opacity:.85;max-width:560px;margin:14px auto 0}
+.pl-qhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pl-qhead h3{margin:0 0 6px;font-size:17px}
+.pl-link{color:#fff;opacity:.8;font-size:14px;text-decoration:underline;padding:6px}
+.pl-qrow{display:flex;align-items:center;gap:4px;border-top:1px solid rgba(255,255,255,.1)}
+.pl-qrow:first-child{border-top:0}
+.pl-qb{flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:left;padding:8px 0;color:#fff}
+.pl-qb .pcart,.pl-qb .logo{width:44px;height:44px;border-radius:6px}
+.pl-qrow.cur b{color:#FFD54F}
+.pl-empty{margin:4px 0;opacity:.8;font-size:14px}
 </style>
 </head>
 <body>
@@ -1074,38 +1150,6 @@ h1:focus{outline:none}
     <h1 tabindex="-1">Radio</h1>
   </div>
   <main>
-    <div class="card now" id="rd-now" style="display:none">
-      <div class="nowrow">
-        <span class="logo" id="rd-now-logo"></span>
-        <div style="flex:1;min-width:0">
-          <b id="rd-now-name"></b>
-          <div class="nowt" id="rd-now-title"></div>
-        </div>
-        <button class="star" id="rd-now-fav" onclick="rdFavNow()" aria-label="Favoriet">☆</button>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button class="big" style="flex:1" id="rd-pp" onclick="rdPlayPause()">❚❚ Pauze</button>
-        <button class="big ghost" style="width:64px;flex:none" onclick="Android.radioStop()" aria-label="Stoppen">■</button>
-      </div>
-      <div class="shift" id="rd-shift" style="display:none">
-        <button class="big ghost" onclick="rdShift('rew')" aria-label="30 seconden terug">⏪ 30 s</button>
-        <span class="shpos" id="rd-shpos" aria-live="off">Live</span>
-        <button class="big ghost" id="rd-fwd" onclick="rdShift('fwd')" aria-label="30 seconden vooruit">30 s ⏩</button>
-        <button class="big ghost" id="rd-live" onclick="rdShift('live')">Live</button>
-        <button class="big ghost" id="rd-clip" onclick="rdClipMenu()" aria-label="Fragment bewaren">💾</button>
-      </div>
-      <div class="nowsong" id="rd-song" style="display:none"></div>
-      <div class="row" style="margin-top:8px">
-        <button class="big ghost" style="flex:1" id="rd-rec" onclick="rdRecognize()">♫ Welk nummer is dit?</button>
-        <button class="pill" id="rd-sleep" onclick="sleepOpen('radio')">⏾ Slaaptimer</button>
-      </div>
-      <div class="sleepinfo" id="rd-sleepinfo"></div>
-      <button class="mini" style="margin-top:10px;float:none;display:inline-block" onclick="rdPinStation()">📌 Zender op startscherm</button>
-      <details class="rinfo" id="rd-info"><summary>Over deze zender</summary><dl class="fields" id="rd-info-dl"></dl></details>
-      <label class="chk" style="margin-top:10px"><input type="checkbox" id="rd-ts" onchange="Android.radioSetTimeshift(this.checked); toast(this.checked ? 'Geldt vanaf de volgende zender' : 'Uit; geldt vanaf de volgende zender')"> Pauzeren en terugspoelen (tot ca. 45 min buffer; tijdens pauze loopt de stream door, max. 1 uur)</label>
-      <details class="rinfo" id="rd-recent-wrap"><summary id="rd-recent-sum">Eerder gedraaid</summary><ul class="recent" id="rd-recent"></ul></details>
-    </div>
-
     <div id="rd-favs-wrap">
       <div class="flabel" style="margin:4px 2px 8px">Favorieten</div>
       <div class="card stations" id="rd-favs"></div>
@@ -1856,29 +1900,6 @@ h1:focus{outline:none}
     <h1 tabindex="-1">Podcasts</h1>
   </div>
   <main>
-    <div class="card pcnow" id="pc-now" style="display:none">
-      <div class="pcnowtop">
-        <span class="pcart lg" id="pc-now-art" aria-hidden="true"></span>
-        <div class="pcnowtxt">
-          <b id="pc-now-title"></b>
-          <button class="linkish" id="pc-now-pod" onclick="pcOpenNowPod()"></button>
-        </div>
-      </div>
-      <input type="range" class="pcseek" id="pc-seek" min="0" max="1000" value="0" step="1" aria-label="Plek in de aflevering" oninput="pcSeekDrag()" onchange="pcSeekDone()">
-      <div class="pctimes"><span id="pc-pos">0:00</span><span id="pc-state" aria-live="polite"></span><span id="pc-left"></span></div>
-      <div class="pcctl">
-        <button class="pcbtn" onclick="pcSkip(-15)" aria-label="15 seconden terug">↺<small>15</small></button>
-        <button class="pcplay" id="pc-pp" onclick="pcPlayPause()" aria-label="Afspelen">▶</button>
-        <button class="pcbtn" onclick="pcSkip(30)" aria-label="30 seconden vooruit">↻<small>30</small></button>
-      </div>
-      <div class="pcopts">
-        <button class="pill" id="pc-speed" onclick="pcSpeedMenu()" aria-label="Afspeelsnelheid">1×</button>
-        <button class="pill" id="pc-sleep" onclick="sleepOpen('pod')">⏾ Slaaptimer</button>
-        <button class="pill" onclick="pcNowMenu()" aria-label="Meer">⋯</button>
-      </div>
-      <div class="sleepinfo" id="pc-sleepinfo"></div>
-    </div>
-
     <div id="pc-cont-wrap" style="display:none">
       <div class="flabel" style="margin:4px 2px 8px">Verder luisteren</div>
       <div class="card pclist" id="pc-cont"></div>
@@ -1911,10 +1932,6 @@ h1:focus{outline:none}
       <details class="rinfo" id="pd-about"><summary>Over deze podcast</summary><p class="pcdesc" id="pd-desc"></p></details>
       <p class="note bad" id="pd-stale" style="display:none"></p>
     </div>
-    <div class="card pcmini" id="pd-mini" style="display:none">
-      <button class="pcminib" onclick="show('podcasts')"><span class="pcart" id="pd-mini-art" aria-hidden="true"></span><span class="pctxt"><small>Nu</small><b id="pd-mini-t"></b></span></button>
-      <button class="pcplayi" id="pd-mini-pp" onclick="pcPlayPause()" aria-label="Afspelen">▶</button>
-    </div>
     <div class="pcbar2">
       <div class="chips sm" id="pd-sort" role="radiogroup" aria-label="Volgorde" style="margin:0">
         <button data-v="new" role="radio" aria-checked="true" class="on">Nieuwste eerst</button>
@@ -1926,6 +1943,75 @@ h1:focus{outline:none}
     <button class="big ghost" id="pd-more" style="display:none" onclick="pdMore()">Meer afleveringen</button>
   </main>
 </section>
+
+<!-- ============ SPELER: één voor radio en podcasts (mini-balk onderaan en volledig scherm) ============ -->
+<div class="plbar" id="plbar" role="region" aria-label="Speler" style="display:none">
+  <div class="plbar-prog" aria-hidden="true"><i id="plbar-prog"></i></div>
+  <button class="plbar-main" id="plbar-open" onclick="plOpen()" aria-label="Speler openen">
+    <span class="plart" id="plbar-art" aria-hidden="true"></span>
+    <span class="pltxt"><b id="plbar-t"></b><small id="plbar-s"></small></span>
+  </button>
+  <button class="plbar-btn" id="plbar-pp" onclick="plPlayPause()" aria-label="Afspelen"></button>
+  <button class="plbar-btn" id="plbar-next" onclick="plNext()" aria-label="Volgende"></button>
+</div>
+
+<div class="player" id="player" role="dialog" aria-modal="true" aria-labelledby="pl-title" aria-hidden="true">
+  <div class="pl-scroll" id="pl-scroll">
+    <div class="pl-top" id="pl-top">
+      <button class="pl-ic" onclick="plClose()" aria-label="Speler verkleinen"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="pl-src"><small id="pl-kind">Speelt nu</small><button class="pl-from" id="pl-from" onclick="plGoSource()"></button></div>
+      <button class="pl-ic" onclick="plMenu()" aria-label="Meer opties"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+    </div>
+
+    <div class="pl-cover" id="pl-cover" role="img" aria-label="Hoes">
+      <span class="plart" id="pl-art" aria-hidden="true"></span>
+    </div>
+
+    <div class="pl-meta">
+      <div class="pl-titles"><h2 id="pl-title" tabindex="-1"></h2><p id="pl-sub"></p></div>
+      <button class="pl-ic" id="pl-fav" onclick="plFav()" aria-label="Favoriet"></button>
+    </div>
+
+    <div class="pl-seekwrap" id="pl-seekwrap">
+      <input type="range" class="plseek" id="pl-seek" min="0" max="1000" value="0" step="1" aria-label="Plek" oninput="plSeekDrag()" onchange="plSeekDone()">
+      <div class="pl-times"><span id="pl-pos">0:00</span><span id="pl-state" aria-live="polite"></span><span id="pl-left"></span></div>
+    </div>
+    <div class="pl-live" id="pl-livebadge" style="display:none"><i></i> LIVE</div>
+
+    <div class="pl-ctl">
+      <button class="pl-ic pl-skip" id="pl-back" onclick="plSkip(-1)"></button>
+      <button class="pl-ic" id="pl-prev" onclick="plPrev()" aria-label="Vorige"></button>
+      <button class="pl-play" id="pl-pp" onclick="plPlayPause()" aria-label="Afspelen"></button>
+      <button class="pl-ic" id="pl-next" onclick="plNext()" aria-label="Volgende"></button>
+      <button class="pl-ic pl-skip" id="pl-fwd" onclick="plSkip(1)"></button>
+    </div>
+
+    <div class="pl-opts">
+      <button class="pl-pill" id="pl-sleep" onclick="plSleep()">⏾ Slaaptimer</button>
+      <button class="pl-pill" id="pl-speed" onclick="pcSpeedMenu()" aria-label="Afspeelsnelheid">1×</button>
+      <button class="pl-pill" id="pl-golive" onclick="rdShift('live')">Naar live</button>
+      <button class="pl-pill" id="pl-stop" onclick="plStop()" aria-label="Stoppen">■ Stop</button>
+    </div>
+    <div class="pl-sleepinfo" id="pl-sleepinfo"></div>
+
+    <!-- Alleen bij de radio: het nummer, herkennen, en meer over de zender -->
+    <div id="pl-radio" style="display:none">
+      <div class="pl-card nowsong" id="rd-song" style="display:none"></div>
+      <button class="pl-wide" id="rd-rec" onclick="rdRecognize()">♫ Welk nummer is dit?</button>
+      <details class="pl-card" id="rd-recent-wrap"><summary id="rd-recent-sum">Eerder gedraaid</summary><ul class="recent" id="rd-recent"></ul></details>
+      <details class="pl-card" id="rd-info"><summary>Over deze zender</summary><dl class="fields" id="rd-info-dl"></dl></details>
+      <label class="pl-chk"><input type="checkbox" id="rd-ts" onchange="Android.radioSetTimeshift(this.checked); toast(this.checked ? 'Geldt vanaf de volgende zender' : 'Uit; geldt vanaf de volgende zender')"> Pauzeren en terugspoelen (tot ca. 45 min buffer; tijdens pauze loopt de stream door, max. 1 uur)</label>
+    </div>
+
+    <!-- Alleen bij een podcast: over de aflevering -->
+    <details class="pl-card" id="pl-about" style="display:none"><summary>Over deze aflevering</summary><p class="pcdesc" id="pl-desc"></p></details>
+
+    <div class="pl-card pl-queue">
+      <div class="pl-qhead"><h3 id="pl-qtitle">Hierna</h3><button class="pl-link" id="pl-qclear" onclick="plQueueClear()" style="display:none">Wissen</button></div>
+      <div id="pl-queue"></div>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="modal" id="voice" role="dialog" aria-modal="true" aria-labelledby="voice-t">
   <div class="modal-box" style="text-align:center">
@@ -1978,9 +2064,9 @@ h1:focus{outline:none}
 </div>
 
 <script>
-const VERSION_NAME = "1.58";
-const VERSION_CODE = 59;
-const CHANGELOG = [{"version": "1.58", "date": "2026-10-09", "changes": ["Nieuw: Podcasts. Zoeken, populair in Nederland, volgen en luisteren, met 15 s terug / 30 s vooruit, snelheid en verder waar je was", "Slaaptimer per minuut instelbaar (ook tot een tijdstip of tot het einde van de aflevering), met zacht uitfaden; ook voor de radio", "Bediening op het vergrendelscherm, in de melding en met de knoppen van je koptelefoon", "Podcasts (abonnementen en waar je was) gaan mee in Alles back-uppen"]}, {"version": "1.57", "date": "2026-10-09", "changes": ["Veiligheid: losse exports vragen eerst als versleutelen aan staat; leesbare WhatsApp-chats 's nachts dan alleen in de app", "Veiligheid: teruggezette backupbestanden en de versienaam van updates kunnen geen code meer in het scherm zetten; updates van de app alleen met geldige handtekening", "Veiligheid: andere apps kunnen niet meer ongevraagd Muziek herkennen starten, de app laten afsluiten of een snelkoppeling op je startscherm zetten (eerst vragen)", "Backups: bestanden worden pas vervangen als het nieuwe compleet is; een tweede bestand met dezelfde naam in WhatsApp overschrijft de oude niet meer", "Wekkers, herinneringen en geplande acties komen terug na geforceerd stoppen; de radiowekker gaat ook af als de telefoon na een herstart nog niet ontgrendeld is", "Notities: een wijziging uit de widget en een nieuwe notitie in de app worden samengevoegd in plaats van dat er één verloren gaat", "Route opnemen gebruikt veel minder batterij; pauze zet de GPS uit", "Verder veel kleine fouten opgelost (gespreksopname, radio na een gesprek, spraaknotities, zoeken, oproepenfilter, wekker-proef)"]}, {"version": "1.56", "date": "2026-10-08", "changes": ["Nieuw: eigen PDF-viewer. PDF's uit Bestanden, Gmail, WhatsApp en Downloads openen in Rene's Tools: zoomen, zoeken, naar pagina, donker lezen, delen, opslaan en afdrukken", "Als standaard PDF-app instellen (op het PDF-scherm of in de viewer via ⋮)", "Nieuw: PDF-scherm. Plaatjes samenvoegen tot één PDF (A4 of eigen formaat)", "PDF splitsen of pagina's eruit halen, zonder kwaliteitsverlies", "Delen → PDF maken: maak een PDF van een e-mail, tekst of plaatjes uit een andere app"]}, {"version": "1.55", "date": "2026-10-07", "changes": ["Onder de motorkap: publiceren gebeurt pas als alle tests slagen; strengere controles bij bouwen en testen", "De app is iets kleiner: de testversie van de Android-koppeling zit er niet meer in", "Opgeruimd: ongebruikte onderdelen weggehaald"]}, {"version": "1.54", "date": "2026-10-07", "changes": ["Nieuw: spraaknotities. Tik op 🎤 bij Notities en praat; de app schrijft het op de telefoon uit. In een lijstje worden 'melk, brood en kaas' losse items", "Radio: met 💾 bewaar je de laatste 5 tot 60 minuten (als terugspoelen aan staat) in de map Radio, voor eigen gebruik", "Nieuw: Kluis. Bewaar documenten zoals een kopie van je paspoort versleuteld op de telefoon; openen met vingerafdruk of pincode, na 5 minuten weer op slot", "Alles back-uppen neemt de kluis mee als de backup versleuteld is"]}, {"version": "1.53", "date": "2026-10-07", "changes": ["Nieuw: Mijn auto. Zet je de auto uit (Bluetooth), dan bewaart de app waar hij staat, met 'Navigeer terug' en een parkeerlogboek", "Mijn auto: ritten vanzelf opnemen (Bluetooth aan/uit), met kilometers, zakelijk of privé, en per maand exporteren als CSV", "Automatiseringen: eigen acties (notitie tonen, radiozender, route starten/stoppen, alles back-uppen, Auto redial) en nieuwe momenten: op een tijdstip en aan de lader", "Automatiseringen: sjabloon 'Boodschappenlijst tonen bij de winkel'", "Radio: ★ Bewaar zet het nummer dat speelt in Herkende muziek, zonder AudD", "Uitgeschreven gesprek: kies zinnen en maak er een notitie of lijstje van", "Telefoon-skin: verjaardagen uit je contacten bij Vandaag"]}, {"version": "1.52", "date": "2026-10-07", "changes": ["Alles back-uppen bewaart nu ook instellingen, automatiseringen (met tikstappen), radiozenders en -wekker, geplande Auto redial, herinneringen en routes (GPX)", "Terugzetten kan nu ook voor instellingen, uitgeschreven gesprekken, herkende muziek en routes; ook uit een versleutelde backup. Alleen wat ontbreekt wordt toegevoegd", "Mijn routes: route importeren uit een GPX-bestand", "Radio: volgorde van je favorieten aanpassen (⇅), ook de volgorde in de auto", "Notities: meerdere herinneringen per notitie, herhalen (elke dag, werkdagen, week, maand) en in de melding uitstellen of Klaar", "Telefoon-skin: vastgezette notitie lang indrukken om hem van het startscherm te halen"]}, {"version": "1.51", "date": "2026-10-07", "changes": ["Beveiliging: andere apps en websites kunnen de app niet meer misbruiken (installatie-status, links op de kaart, radio- en redial-knoppen)", "Beveiliging: namen van chats, sms'en en teruggezette notities kunnen geen code meer uitvoeren", "Gevoelige gegevens (WhatsApp-database en -sleutel, opnames, transcripties, routes, contactbackups) gaan niet meer mee in de Google-backup van Android", "Spraakmodel wordt gecontroleerd met een vast controlegetal; nieuwe backup-wachtwoorden zijn sterker beveiligd; interface-updates zijn strenger ondertekend", "Route-opname gaat niet meer verloren als Android de app stopt: je kunt hem daarna opslaan", "Terug sluit eerst een open venster; bij een gewijzigde automatisering vraagt de app of je wilt opslaan", "Lijstitem of afgestreepte items verwijderd? Tik op 'Ongedaan maken'. De ×-knop is groter", "Minder accuverbruik: schermen vragen niets meer op de achtergrond; de radiolijst knippert niet meer", "Minder crashes als Android achtergrondwerk weigert"]}, {"version": "1.50", "date": "2026-10-07", "changes": ["Gesprekken opnemen: optioneel automatisch starten bij je eigen mobiele gesprekken (standaard uit). De opnamemelding met stopknop blijft altijd zichtbaar"]}, {"version": "1.49", "date": "2026-10-06", "changes": ["Nieuw: Gesprekken opnemen. Een microfoonopname die je zelf start, met een zichtbare melding en stopknop. Daarna afspelen, delen, exporteren en uitschrijven. Android kan de microfoon tijdens bellen blokkeren; zet de luidspreker aan en test eerst"]}, {"version": "1.48", "date": "2026-10-06", "changes": ["Instellingen › Meldingen: nieuwe schakelaar 'Alle meldingen uit' zet in één keer alle meldingen van de app uit (geen geluid, trillen of pop-ups)", "Draait de radio, een route-opname of een backup, dan toont Android alleen een stille regel zonder icoon in de statusbalk"]}, {"version": "1.47", "date": "2026-10-06", "changes": ["Zoek overal vindt nu ook instellingen en functies (bijv. 'vingerafdruk', 'back-up', 'donker') en springt naar de juiste kaart", "Zoek overal toont ook treffers uit de meldingsgeschiedenis"]}, {"version": "1.46", "date": "2026-10-06", "changes": ["Skin: kies welke apps zichtbaar en te starten zijn; verborgen apps kunnen geblokkeerd worden (wijzigen met vingerafdruk)"]}, {"version": "1.45", "date": "2026-10-06", "changes": ["Instellingen-knop rechtsboven op het startscherm van de app", "Meldingen van de app in één overzicht (Instellingen): zie wat aan en uit staat en tik door naar die soort in Android"]}, {"version": "1.44", "date": "2026-10-05", "changes": ["Meldingsgeschiedenis: filter per app (bijv. WhatsApp of Drive) en oudere meldingen tonen", "Meldingsgeschiedenis: meldingen die nog in het meldingenpaneel staan worden ook bewaard"]}, {"version": "1.43", "date": "2026-10-05", "changes": ["Nieuw: 'Sinds gisteravond' bovenaan de app (gemiste oproepen, backup, automatiseringen)", "Elke maand een backup-controle met proef-terugzetten, en 'Nu controleren' bij Alles back-uppen", "Elke week een controle of Android de app op de achtergrond beperkt"]}, {"version": "1.42", "date": "2026-10-05", "changes": ["Notities: items slepen of sorteren, en delen met alleen wat nog moet", "Notities: terugkerende lijstjes (bijv. elke zaterdag gaan alle vinkjes weer weg)"]}, {"version": "1.41", "date": "2026-10-05", "changes": ["Nieuwe widgets: Agenda, Weer, Rene's Tools overzicht en Parkeren", "Widget Lijstje: met + snel iets toevoegen, en kies donker, licht of doorzichtig"]}, {"version": "1.40", "date": "2026-10-05", "changes": ["Launcher: zoekbalk op Vandaag voor apps, contacten, notities, instellingen en Rene's Tools", "Launcher: snelkoppelingen van apps bij lang drukken, en apps kunnen snelkoppelingen op het startscherm zetten", "Launcher: meldingsbolletjes op apps (Look aanpassen) en de indeling gaat mee in Alles back-uppen"]}, {"version": "1.39", "date": "2026-10-05", "changes": ["Interface-updates zijn nu ondertekend: de app gebruikt alleen een update met de juiste handtekening", "Meldingsgeschiedenis: zoeken zonder op accenten te letten, lijst ververst alleen als er iets nieuws is, export botst niet meer met de nachtelijke backup"]}, {"version": "1.38", "date": "2026-10-05", "changes": ["Nieuw: Meldingsgeschiedenis. Bewaar nieuwe meldingen na inschakeling en meldingentoegang, doorzoek ze en exporteer als JSON en leesbare HTML", "Meldingsgeschiedenis kan mee in Alles back-uppen, ook in versleutelde backups; bewaren en dit backup-onderdeel staan standaard uit", "Meldingsgeschiedenis gaat niet mee in de Google-backup van Android; uitleg bij 'Beperkte instelling'"]}, {"version": "1.37", "date": "2026-10-05", "changes": ["Nieuw: Automatiseringen. Als je auto uitgaat (Bluetooth) of je bij een plek aankomt, vraagt je telefoon of hij de parkeeractie moet starten, of doet het meteen zelf: hij opent EasyPark en drukt de knoppen in die je één keer hebt opgenomen", "Ook: herinnering om de parkeeractie te stoppen als je weer wegrijdt, en zelf automatiseringen samenstellen (dagen, tijden, plek, app)"]}, {"version": "1.36", "date": "2026-10-05", "changes": ["Widget Lijstje: een notitie op het startscherm, afstrepen met een tik", "Launcher: Apps toevoegen en Apps in het dock kiezen (lang drukken op een leeg stuk)", "App-slot: standaard meteen opnieuw vergrendelen, ook als de app al open stond; geen flits van de inhoud"]}, {"version": "1.35", "date": "2026-10-05", "changes": ["Met app-slot flitst het startscherm van de app niet meer vóór de vingerafdruk"]}, {"version": "1.34", "date": "2026-10-05", "changes": ["Vandaag-pagina staat nu direct op het scherm (werd half getekend)", "Foutrapport kopiëren naar het klembord"]}, {"version": "1.33", "date": "2026-10-05", "changes": ["Skin afsluiten en terug naar de app (met vingerafdruk)", "Launcher start op de pagina Vandaag", "Vandaag-pagina wordt ook buiten beeld helemaal getekend"]}, {"version": "1.32", "date": "2026-10-05", "changes": ["Vandaag-pagina werd maar half getekend na het opzij vegen"]}, {"version": "1.31", "date": "2026-10-05", "changes": ["Echte launcher: meerdere pagina's om opzij te vegen, apps en mappen slepen, dock", "Widgets van alle apps plaatsen, instellen en van formaat veranderen", "Links de pagina Vandaag (klok, weer, agenda, Rene's Tools); klassieke skin blijft te kiezen in Look aanpassen"]}, {"version": "1.30", "date": "2026-10-05", "changes": ["Notitie (bijv. boodschappenlijst) met één tik openen: zet hem op het startscherm van Rene's Tools, van je telefoon, of op de telefoon-skin"]}, {"version": "1.29", "date": "2026-10-05", "changes": ["Nieuwe tegel 'Telefoon-skin' bovenaan het startscherm van Rene's Tools: één tik en je ziet de skin; ook als snelkoppeling op je telefoon te zetten"]}, {"version": "1.28", "date": "2026-10-05", "changes": ["Telefoon-skin aanzetten staat nu bovenaan Instellingen, en bovenaan het startscherm van Rene's Tools zolang hij nog niet aan staat"]}, {"version": "1.27", "date": "2026-10-05", "changes": ["Telefoon-skin aanpasbaar: zelf kiezen welke apps op het startscherm, in het dock en bij alle apps staan (met volgorde), volgorde van klok/weer/agenda/Rene's Tools, klokgrootte, doorzichtigheid en hoeken van de kaarten, sorteren op meest gebruikt"]}, {"version": "1.26", "date": "2026-10-05", "changes": ["Telefoon-skin: terugknop werkt altijd, ook als het startscherm nog laadt"]}, {"version": "1.25", "date": "2026-10-04", "changes": ["Telefoon-skin: 'Eerst bekijken' gaf 'Webpagina niet beschikbaar'; opgelost"]}, {"version": "1.24", "date": "2026-10-04", "changes": ["Nieuw: telefoon-skin. Gebruik Rene's Tools als startscherm met klok, weer, agenda, radio en overzicht, al je apps met zoeken en mappen, en een eigen look (Instellingen → Telefoon-skin)"]}, {"version": "1.23", "date": "2026-10-04", "changes": ["Radio pauzeren en terugspoelen: pauze houdt je plek vast, 30 seconden terug of vooruit, en terug naar live", "Tekstgrootte instelbaar (Instellingen → Weergave), standaard zoals je telefoon", "Beter te gebruiken met TalkBack: alle knoppen hebben een naam, schakelaars melden aan/uit"]}, {"version": "1.22", "date": "2026-10-04", "changes": ["Auto redial op een tijdstip: eenmalig of op vaste dagen automatisch beginnen met bellen (bijv. om 08:00 de huisarts)", "Gesprekken 's nachts automatisch uitschrijven tijdens het opladen"]}, {"version": "1.21", "date": "2026-10-04", "changes": ["Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"]}, {"version": "1.20", "date": "2026-10-04", "changes": ["Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html", "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan", "Ruimtegebruik van de backup-map per map"]}, {"version": "1.19", "date": "2026-10-04", "changes": ["Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen", "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"]}, {"version": "1.18", "date": "2026-10-04", "changes": ["Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen", "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt", "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon", "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools", "Android Auto: je favoriete zenders in de auto"]}, {"version": "1.17", "date": "2026-10-04", "changes": ["Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig", "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"]}, {"version": "1.16", "date": "2026-10-04", "changes": ["Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst", "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)", "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"]}, {"version": "1.15", "date": "2026-10-04", "changes": ["Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen", "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon", "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen", "Na een update zie je eenmalig wat er nieuw is", "Contacten werkt nu ook op Android 7"]}, {"version": "1.14", "date": "2026-10-04", "changes": ["Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten", "Radio: een zender als icoon op je startscherm die meteen begint te spelen", "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers", "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"]}, {"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+const VERSION_NAME = "1.59";
+const VERSION_CODE = 60;
+const CHANGELOG = [{"version": "1.59", "date": "2026-10-09", "changes": ["Nieuw: één speler voor radio én podcasts. Onderaan op elk scherm een mini-speler; omhoog vegen of tikken opent hem groot", "Grote speler in Spotify-stijl: grote hoes, achtergrond in de kleur van de hoes, vegen op de hoes voor volgende/vorige zender of aflevering", "Hierna: zet afleveringen in de wachtrij (⋯ → Als volgende afspelen); na een aflevering begint de volgende vanzelf. Bij de radio wissel je tussen je favoriete zenders", "Er speelt altijd maar één ding: start je een podcast, dan stopt de radio (en andersom), en een slaaptimer loopt gewoon door"]}, {"version": "1.58", "date": "2026-10-09", "changes": ["Nieuw: Podcasts. Zoeken, populair in Nederland, volgen en luisteren, met 15 s terug / 30 s vooruit, snelheid en verder waar je was", "Slaaptimer per minuut instelbaar (ook tot een tijdstip of tot het einde van de aflevering), met zacht uitfaden; ook voor de radio", "Bediening op het vergrendelscherm, in de melding en met de knoppen van je koptelefoon", "Podcasts (abonnementen en waar je was) gaan mee in Alles back-uppen"]}, {"version": "1.57", "date": "2026-10-09", "changes": ["Veiligheid: losse exports vragen eerst als versleutelen aan staat; leesbare WhatsApp-chats 's nachts dan alleen in de app", "Veiligheid: teruggezette backupbestanden en de versienaam van updates kunnen geen code meer in het scherm zetten; updates van de app alleen met geldige handtekening", "Veiligheid: andere apps kunnen niet meer ongevraagd Muziek herkennen starten, de app laten afsluiten of een snelkoppeling op je startscherm zetten (eerst vragen)", "Backups: bestanden worden pas vervangen als het nieuwe compleet is; een tweede bestand met dezelfde naam in WhatsApp overschrijft de oude niet meer", "Wekkers, herinneringen en geplande acties komen terug na geforceerd stoppen; de radiowekker gaat ook af als de telefoon na een herstart nog niet ontgrendeld is", "Notities: een wijziging uit de widget en een nieuwe notitie in de app worden samengevoegd in plaats van dat er één verloren gaat", "Route opnemen gebruikt veel minder batterij; pauze zet de GPS uit", "Verder veel kleine fouten opgelost (gespreksopname, radio na een gesprek, spraaknotities, zoeken, oproepenfilter, wekker-proef)"]}, {"version": "1.56", "date": "2026-10-08", "changes": ["Nieuw: eigen PDF-viewer. PDF's uit Bestanden, Gmail, WhatsApp en Downloads openen in Rene's Tools: zoomen, zoeken, naar pagina, donker lezen, delen, opslaan en afdrukken", "Als standaard PDF-app instellen (op het PDF-scherm of in de viewer via ⋮)", "Nieuw: PDF-scherm. Plaatjes samenvoegen tot één PDF (A4 of eigen formaat)", "PDF splitsen of pagina's eruit halen, zonder kwaliteitsverlies", "Delen → PDF maken: maak een PDF van een e-mail, tekst of plaatjes uit een andere app"]}, {"version": "1.55", "date": "2026-10-07", "changes": ["Onder de motorkap: publiceren gebeurt pas als alle tests slagen; strengere controles bij bouwen en testen", "De app is iets kleiner: de testversie van de Android-koppeling zit er niet meer in", "Opgeruimd: ongebruikte onderdelen weggehaald"]}, {"version": "1.54", "date": "2026-10-07", "changes": ["Nieuw: spraaknotities. Tik op 🎤 bij Notities en praat; de app schrijft het op de telefoon uit. In een lijstje worden 'melk, brood en kaas' losse items", "Radio: met 💾 bewaar je de laatste 5 tot 60 minuten (als terugspoelen aan staat) in de map Radio, voor eigen gebruik", "Nieuw: Kluis. Bewaar documenten zoals een kopie van je paspoort versleuteld op de telefoon; openen met vingerafdruk of pincode, na 5 minuten weer op slot", "Alles back-uppen neemt de kluis mee als de backup versleuteld is"]}, {"version": "1.53", "date": "2026-10-07", "changes": ["Nieuw: Mijn auto. Zet je de auto uit (Bluetooth), dan bewaart de app waar hij staat, met 'Navigeer terug' en een parkeerlogboek", "Mijn auto: ritten vanzelf opnemen (Bluetooth aan/uit), met kilometers, zakelijk of privé, en per maand exporteren als CSV", "Automatiseringen: eigen acties (notitie tonen, radiozender, route starten/stoppen, alles back-uppen, Auto redial) en nieuwe momenten: op een tijdstip en aan de lader", "Automatiseringen: sjabloon 'Boodschappenlijst tonen bij de winkel'", "Radio: ★ Bewaar zet het nummer dat speelt in Herkende muziek, zonder AudD", "Uitgeschreven gesprek: kies zinnen en maak er een notitie of lijstje van", "Telefoon-skin: verjaardagen uit je contacten bij Vandaag"]}, {"version": "1.52", "date": "2026-10-07", "changes": ["Alles back-uppen bewaart nu ook instellingen, automatiseringen (met tikstappen), radiozenders en -wekker, geplande Auto redial, herinneringen en routes (GPX)", "Terugzetten kan nu ook voor instellingen, uitgeschreven gesprekken, herkende muziek en routes; ook uit een versleutelde backup. Alleen wat ontbreekt wordt toegevoegd", "Mijn routes: route importeren uit een GPX-bestand", "Radio: volgorde van je favorieten aanpassen (⇅), ook de volgorde in de auto", "Notities: meerdere herinneringen per notitie, herhalen (elke dag, werkdagen, week, maand) en in de melding uitstellen of Klaar", "Telefoon-skin: vastgezette notitie lang indrukken om hem van het startscherm te halen"]}, {"version": "1.51", "date": "2026-10-07", "changes": ["Beveiliging: andere apps en websites kunnen de app niet meer misbruiken (installatie-status, links op de kaart, radio- en redial-knoppen)", "Beveiliging: namen van chats, sms'en en teruggezette notities kunnen geen code meer uitvoeren", "Gevoelige gegevens (WhatsApp-database en -sleutel, opnames, transcripties, routes, contactbackups) gaan niet meer mee in de Google-backup van Android", "Spraakmodel wordt gecontroleerd met een vast controlegetal; nieuwe backup-wachtwoorden zijn sterker beveiligd; interface-updates zijn strenger ondertekend", "Route-opname gaat niet meer verloren als Android de app stopt: je kunt hem daarna opslaan", "Terug sluit eerst een open venster; bij een gewijzigde automatisering vraagt de app of je wilt opslaan", "Lijstitem of afgestreepte items verwijderd? Tik op 'Ongedaan maken'. De ×-knop is groter", "Minder accuverbruik: schermen vragen niets meer op de achtergrond; de radiolijst knippert niet meer", "Minder crashes als Android achtergrondwerk weigert"]}, {"version": "1.50", "date": "2026-10-07", "changes": ["Gesprekken opnemen: optioneel automatisch starten bij je eigen mobiele gesprekken (standaard uit). De opnamemelding met stopknop blijft altijd zichtbaar"]}, {"version": "1.49", "date": "2026-10-06", "changes": ["Nieuw: Gesprekken opnemen. Een microfoonopname die je zelf start, met een zichtbare melding en stopknop. Daarna afspelen, delen, exporteren en uitschrijven. Android kan de microfoon tijdens bellen blokkeren; zet de luidspreker aan en test eerst"]}, {"version": "1.48", "date": "2026-10-06", "changes": ["Instellingen › Meldingen: nieuwe schakelaar 'Alle meldingen uit' zet in één keer alle meldingen van de app uit (geen geluid, trillen of pop-ups)", "Draait de radio, een route-opname of een backup, dan toont Android alleen een stille regel zonder icoon in de statusbalk"]}, {"version": "1.47", "date": "2026-10-06", "changes": ["Zoek overal vindt nu ook instellingen en functies (bijv. 'vingerafdruk', 'back-up', 'donker') en springt naar de juiste kaart", "Zoek overal toont ook treffers uit de meldingsgeschiedenis"]}, {"version": "1.46", "date": "2026-10-06", "changes": ["Skin: kies welke apps zichtbaar en te starten zijn; verborgen apps kunnen geblokkeerd worden (wijzigen met vingerafdruk)"]}, {"version": "1.45", "date": "2026-10-06", "changes": ["Instellingen-knop rechtsboven op het startscherm van de app", "Meldingen van de app in één overzicht (Instellingen): zie wat aan en uit staat en tik door naar die soort in Android"]}, {"version": "1.44", "date": "2026-10-05", "changes": ["Meldingsgeschiedenis: filter per app (bijv. WhatsApp of Drive) en oudere meldingen tonen", "Meldingsgeschiedenis: meldingen die nog in het meldingenpaneel staan worden ook bewaard"]}, {"version": "1.43", "date": "2026-10-05", "changes": ["Nieuw: 'Sinds gisteravond' bovenaan de app (gemiste oproepen, backup, automatiseringen)", "Elke maand een backup-controle met proef-terugzetten, en 'Nu controleren' bij Alles back-uppen", "Elke week een controle of Android de app op de achtergrond beperkt"]}, {"version": "1.42", "date": "2026-10-05", "changes": ["Notities: items slepen of sorteren, en delen met alleen wat nog moet", "Notities: terugkerende lijstjes (bijv. elke zaterdag gaan alle vinkjes weer weg)"]}, {"version": "1.41", "date": "2026-10-05", "changes": ["Nieuwe widgets: Agenda, Weer, Rene's Tools overzicht en Parkeren", "Widget Lijstje: met + snel iets toevoegen, en kies donker, licht of doorzichtig"]}, {"version": "1.40", "date": "2026-10-05", "changes": ["Launcher: zoekbalk op Vandaag voor apps, contacten, notities, instellingen en Rene's Tools", "Launcher: snelkoppelingen van apps bij lang drukken, en apps kunnen snelkoppelingen op het startscherm zetten", "Launcher: meldingsbolletjes op apps (Look aanpassen) en de indeling gaat mee in Alles back-uppen"]}, {"version": "1.39", "date": "2026-10-05", "changes": ["Interface-updates zijn nu ondertekend: de app gebruikt alleen een update met de juiste handtekening", "Meldingsgeschiedenis: zoeken zonder op accenten te letten, lijst ververst alleen als er iets nieuws is, export botst niet meer met de nachtelijke backup"]}, {"version": "1.38", "date": "2026-10-05", "changes": ["Nieuw: Meldingsgeschiedenis. Bewaar nieuwe meldingen na inschakeling en meldingentoegang, doorzoek ze en exporteer als JSON en leesbare HTML", "Meldingsgeschiedenis kan mee in Alles back-uppen, ook in versleutelde backups; bewaren en dit backup-onderdeel staan standaard uit", "Meldingsgeschiedenis gaat niet mee in de Google-backup van Android; uitleg bij 'Beperkte instelling'"]}, {"version": "1.37", "date": "2026-10-05", "changes": ["Nieuw: Automatiseringen. Als je auto uitgaat (Bluetooth) of je bij een plek aankomt, vraagt je telefoon of hij de parkeeractie moet starten, of doet het meteen zelf: hij opent EasyPark en drukt de knoppen in die je één keer hebt opgenomen", "Ook: herinnering om de parkeeractie te stoppen als je weer wegrijdt, en zelf automatiseringen samenstellen (dagen, tijden, plek, app)"]}, {"version": "1.36", "date": "2026-10-05", "changes": ["Widget Lijstje: een notitie op het startscherm, afstrepen met een tik", "Launcher: Apps toevoegen en Apps in het dock kiezen (lang drukken op een leeg stuk)", "App-slot: standaard meteen opnieuw vergrendelen, ook als de app al open stond; geen flits van de inhoud"]}, {"version": "1.35", "date": "2026-10-05", "changes": ["Met app-slot flitst het startscherm van de app niet meer vóór de vingerafdruk"]}, {"version": "1.34", "date": "2026-10-05", "changes": ["Vandaag-pagina staat nu direct op het scherm (werd half getekend)", "Foutrapport kopiëren naar het klembord"]}, {"version": "1.33", "date": "2026-10-05", "changes": ["Skin afsluiten en terug naar de app (met vingerafdruk)", "Launcher start op de pagina Vandaag", "Vandaag-pagina wordt ook buiten beeld helemaal getekend"]}, {"version": "1.32", "date": "2026-10-05", "changes": ["Vandaag-pagina werd maar half getekend na het opzij vegen"]}, {"version": "1.31", "date": "2026-10-05", "changes": ["Echte launcher: meerdere pagina's om opzij te vegen, apps en mappen slepen, dock", "Widgets van alle apps plaatsen, instellen en van formaat veranderen", "Links de pagina Vandaag (klok, weer, agenda, Rene's Tools); klassieke skin blijft te kiezen in Look aanpassen"]}, {"version": "1.30", "date": "2026-10-05", "changes": ["Notitie (bijv. boodschappenlijst) met één tik openen: zet hem op het startscherm van Rene's Tools, van je telefoon, of op de telefoon-skin"]}, {"version": "1.29", "date": "2026-10-05", "changes": ["Nieuwe tegel 'Telefoon-skin' bovenaan het startscherm van Rene's Tools: één tik en je ziet de skin; ook als snelkoppeling op je telefoon te zetten"]}, {"version": "1.28", "date": "2026-10-05", "changes": ["Telefoon-skin aanzetten staat nu bovenaan Instellingen, en bovenaan het startscherm van Rene's Tools zolang hij nog niet aan staat"]}, {"version": "1.27", "date": "2026-10-05", "changes": ["Telefoon-skin aanpasbaar: zelf kiezen welke apps op het startscherm, in het dock en bij alle apps staan (met volgorde), volgorde van klok/weer/agenda/Rene's Tools, klokgrootte, doorzichtigheid en hoeken van de kaarten, sorteren op meest gebruikt"]}, {"version": "1.26", "date": "2026-10-05", "changes": ["Telefoon-skin: terugknop werkt altijd, ook als het startscherm nog laadt"]}, {"version": "1.25", "date": "2026-10-04", "changes": ["Telefoon-skin: 'Eerst bekijken' gaf 'Webpagina niet beschikbaar'; opgelost"]}, {"version": "1.24", "date": "2026-10-04", "changes": ["Nieuw: telefoon-skin. Gebruik Rene's Tools als startscherm met klok, weer, agenda, radio en overzicht, al je apps met zoeken en mappen, en een eigen look (Instellingen → Telefoon-skin)"]}, {"version": "1.23", "date": "2026-10-04", "changes": ["Radio pauzeren en terugspoelen: pauze houdt je plek vast, 30 seconden terug of vooruit, en terug naar live", "Tekstgrootte instelbaar (Instellingen → Weergave), standaard zoals je telefoon", "Beter te gebruiken met TalkBack: alle knoppen hebben een naam, schakelaars melden aan/uit"]}, {"version": "1.22", "date": "2026-10-04", "changes": ["Auto redial op een tijdstip: eenmalig of op vaste dagen automatisch beginnen met bellen (bijv. om 08:00 de huisarts)", "Gesprekken 's nachts automatisch uitschrijven tijdens het opladen"]}, {"version": "1.21", "date": "2026-10-04", "changes": ["Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"]}, {"version": "1.20", "date": "2026-10-04", "changes": ["Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html", "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan", "Ruimtegebruik van de backup-map per map"]}, {"version": "1.19", "date": "2026-10-04", "changes": ["Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen", "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"]}, {"version": "1.18", "date": "2026-10-04", "changes": ["Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen", "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt", "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon", "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools", "Android Auto: je favoriete zenders in de auto"]}, {"version": "1.17", "date": "2026-10-04", "changes": ["Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig", "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"]}, {"version": "1.16", "date": "2026-10-04", "changes": ["Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst", "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)", "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"]}, {"version": "1.15", "date": "2026-10-04", "changes": ["Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen", "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon", "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen", "Na een update zie je eenmalig wat er nieuw is", "Contacten werkt nu ook op Android 7"]}, {"version": "1.14", "date": "2026-10-04", "changes": ["Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten", "Radio: een zender als icoon op je startscherm die meteen begint te spelen", "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers", "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"]}, {"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
 
 const $ = s => document.querySelector(s);
 /* HTML-escapen (ook ' voor attributen tussen enkele aanhalingstekens). */
@@ -2075,13 +2161,14 @@ function show(name){
     store.set('autoDraft', { rule: aeRule, isNew: aeIsNew, t: Date.now(), left: true });
     aeRule = null; aeSnap = null;
   }
+  if (typeof plIsOpen !== 'undefined' && plIsOpen) plClose(); // naar een ander scherm: de speler verkleint
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
   const current_prev = current;
   if (current_prev === 'home' && !jumpTo.busy) gsResetTool(name);
   if (name==='home') { jumpStack.length = 0; if (gsQ) setTimeout(gsInput, 0); }
   closeSheet();
   current = name; window.scrollTo(0,0);
-  if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #voice.on, #lockscr.on, #sheet.on, #sleepdlg.on')) h.focus({ preventScroll: true }); }, 0);
+  if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #voice.on, #lockscr.on, #sheet.on, #sleepdlg.on, #player.on')) h.focus({ preventScroll: true }); }, 0);
   if (name==='podcasts') enterPodcasts(); else if (name!=='podcast' && typeof pcStopPoll === 'function') pcStopPoll();
   if (name==='redial') enterRedial(); else stopPoll();
   if (name==='wa') enterWa(); else stopWaPoll();
@@ -2120,6 +2207,7 @@ window.goBack = function(){
   if ($('#voice') && $('#voice').classList.contains('on')) { voiceClose(); return true; }
   if ($('#sleepdlg').classList.contains('on')) { sleepClose(); return true; }
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
+  if (typeof plIsOpen !== 'undefined' && plIsOpen) { plClose(); return true; }
   if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
     askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); show('auto'); });
     return true;
@@ -2154,7 +2242,7 @@ window.openTool = function(n){
   if (n === 'music-now' && $('#lockscr').classList.contains('on')) { show('music'); return; } // op slot: niet zomaar opnemen
   if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (current === 'music' && !$('#lockscr').classList.contains('on') && st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
   if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='history') show('history'); if (n==='recorder') show('recorder'); if (n==='car') show('car'); if (n==='pdf' || n==='pdf-share') show('pdf'); if (n==='podcasts') show('podcasts'); if (n==='kluis') show('kluis'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); if (n==='selftest') show('selftest'); };
-window.onResumeApp = function(){ appPaused = false; if (current==='car') enterCar(); if (current==='kluis') klRender(); if (current==='pdf') enterPdf(); if (current==='podcasts') pcPoll(true); uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
+window.onResumeApp = function(){ appPaused = false; if (typeof plTick === 'function') plTick(); if (current==='car') enterCar(); if (current==='kluis') klRender(); if (current==='pdf') enterPdf(); if (current==='podcasts') pcPoll(true); uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
 /* ---------- Auto redial ---------- */
 const ATT = [[5,'5'],[10,'10'],[25,'25'],[50,'50'],[0,'∞']];
@@ -2848,7 +2936,7 @@ function enterRadio(){
   if (!rdStations.length) rdStations = rdJson(Android.radioCache(), []);
   rdRender();
   if (!$('#rd-search').value.trim()) Android.radioLoad('');
-  rdPollOnce(); stopRdPoll(); rdPoll = setInterval(rdPollOnce, 1000);
+  rdPollOnce(); // verder houdt de speler (39-speler.js) alles elke seconde bij
 }
 function stopRdPoll(){ if (rdPoll) { clearInterval(rdPoll); rdPoll = null; } }
 window.onRadioStations = function(d){
@@ -2871,11 +2959,12 @@ function rdSearchDo(){
   rdTmr = setTimeout(() => { const q = $('#rd-search').value.trim(); $('#rd-list').innerHTML = '<p class=note style="padding:14px">Zoeken…</p>'; Android.radioLoad(q); }, 400);
 }
 function rdGet(list, i){ return list === 'f' ? rdFavs[i] : rdStations[i]; }
-function rdPlay(list, i){ const s = rdGet(list, i); if (!s) return; Android.radioPlay(JSON.stringify(s)); rdState = { status: 'connecting', station: s, title: '' }; rdShowNow(); rdRender(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-function rdFav(list, i){ const s = rdGet(list, i); if (!s) return; const on = Android.radioToggleFav(JSON.stringify(s)); toast(on ? '★ ' + s.name + ' toegevoegd aan favorieten' : s.name + ' uit favorieten gehaald'); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); rdShowNow(); }
-function rdFavNow(){ const s = rdState.station || rdState.last; if (!s) return; Android.radioToggleFav(JSON.stringify(s)); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); rdShowNow(); }
+function rdPlay(list, i){ const s = rdGet(list, i); if (!s) return; Android.radioPlay(JSON.stringify(s)); rdState = { status: 'connecting', station: s, title: '' }; plHintSrc('radio'); rdShowNow(); rdRender(); plRender(); }
+function rdFav(list, i){ const s = rdGet(list, i); if (!s) return; const on = Android.radioToggleFav(JSON.stringify(s)); toast(on ? '★ ' + s.name + ' toegevoegd aan favorieten' : s.name + ' uit favorieten gehaald'); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); plRender(); }
+function rdFavNow(){ const s = rdState.station || rdState.last; if (!s) return; const on = Android.radioToggleFav(JSON.stringify(s)); toast(on ? '★ ' + s.name + ' bij je favorieten' : s.name + ' uit favorieten'); rdFavs = rdJson(Android.radioFavorites(), []); if (current === 'radio') rdRender(); plRender(); }
 function rdPlayPause(){ if (rdState.status === 'playing' || rdState.status === 'connecting') Android.radioPause(); else Android.radioResume(); setTimeout(rdPollOnce, 200); }
-function rdPollOnce(){
+/** noRender: de speler wordt zo toch getekend (plTick) */
+function rdPollOnce(noRender){
   const sig = st => JSON.stringify([st.status, st.title, st.station && st.station.url, st.info, (st.recent || []).length, st.sleepAt, Math.floor(Date.now() / 6e4), st.shift]);
   // Lijsten alleen opnieuw opbouwen als zender of afspeelstatus verandert (anders verspringen logo's en scrollpositie)
   const lsig = st => JSON.stringify([st.status, st.station && st.station.url]);
@@ -2885,26 +2974,16 @@ function rdPollOnce(){
   const t = $('#tile-radio-sub');
   if (t) t.textContent = rdState.station && rdState.status === 'playing' ? '▶ ' + rdState.station.name + (rdState.title ? ' · ' + rdState.title : '') : 'Nederlandse zenders luisteren';
   const tile = $('#tile-radio'); if (tile) tile.classList.toggle('live', rdState.status === 'playing');
+  if (noRender !== true && typeof plRender === 'function') plRender();
 }
+/** De radio-extra's in de speler: het nummer, eerder gedraaid, over de zender. De rest tekent de speler zelf. */
 function rdShowNow(){
   const s = rdState.station || rdState.last;
-  $('#rd-now').style.display = s ? 'block' : 'none';
   if (!s) return;
-  const logoKey = (s.url || '') + '|' + (s.logo || '');
-  if (rdShowNow.logoKey !== logoKey) { rdShowNow.logoKey = logoKey; $('#rd-now-logo').outerHTML = rdLogo(s).replace('<span class=logo>', '<span class=logo id="rd-now-logo">'); }
-  $('#rd-now-name').textContent = s.name;
-  const st = rdState.status || 'stopped';
-  const inf = rdState.info || {};
-  $('#rd-now-title').textContent = st === 'connecting' ? 'Verbinden…' : st === 'error' ? (rdState.error || 'Zender niet te bereiken')
-    : st === 'paused' ? 'Gepauzeerd' : st === 'stopped' ? 'Tik op afspelen' : (inf.desc || inf.genre || 'Live');
+  const st = rdState.status || 'stopped', inf = rdState.info || {};
   rdShowSong(st === 'playing' ? rdState.title : '', inf);
   rdShowInfo(s, inf);
   rdShowRecent(rdState.recent || []);
-  $('#rd-now-title').classList.toggle('err', st === 'error');
-  $('#rd-pp').textContent = st === 'playing' || st === 'connecting' ? '❚❚ Pauze' : '▶ Afspelen';
-  $('#rd-now-fav').textContent = rdIsFav(s) ? '★' : '☆';
-  $('#rd-rec').disabled = st !== 'playing';
-  rdShowSleep(); rdShowShift();
   $('#rd-ts').checked = Android.radioTimeshift();
 }
 /** Het huidige nummer (of programma) zoals de zender het meestuurt. */
@@ -2962,15 +3041,6 @@ function rdPinStation(){
   const s = rdState.station || rdState.last; if (!s) return;
   const e = Android.shortcutPinStation(JSON.stringify(s));
   toast(e || 'Bevestig op je startscherm om ' + s.name + ' toe te voegen');
-}
-/** Slaaptimer: het venster (sleepOpen) is gedeeld met Podcasts. */
-function rdShowSleep(){
-  const el = $('#rd-sleepinfo'), b = $('#rd-sleep');
-  if (!rdState.sleepAt) { el.innerHTML = ''; b.textContent = '⏾ Slaaptimer'; b.classList.remove('on'); return; }
-  const left = Math.max(0, Math.round((rdState.sleepAt - Date.now()) / 6e4));
-  b.textContent = '⏾ nog ' + fmtMin(left); b.classList.add('on');
-  el.innerHTML = '⏾ Stopt om ' + new Date(rdState.sleepAt).toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) +
-    ' (nog ' + fmtMin(left) + ') · <a href="#" onclick="Android.radioSleep(0);setTimeout(rdPollOnce,200);return false">uitzetten</a>';
 }
 function rdRecognize(){
   const e = Android.musicStartRadio();
@@ -4246,19 +4316,6 @@ function txAutoSet(on){ Android.txAutoSet(on); txAutoRender(); if (on) toast("Va
 /* ---------- Radio pauzeren en terugspoelen ---------- */
 function rdShift(w){ Android.radioShift(w); setTimeout(rdPollOnce, 250); }
 function fmtBehind(s){ s = Math.round(s); return (s >= 3600 ? Math.floor(s / 3600) + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') : Math.floor(s / 60)) + ':' + String(s % 60).padStart(2, '0'); }
-function rdShowShift(){
-  const sh = rdState.shift, st = rdState.status;
-  const on = !!sh && (st === 'playing' || st === 'paused' || st === 'connecting');
-  $('#rd-shift').style.display = on ? 'flex' : 'none';
-  if (!on) return;
-  const behind = sh.behind > 8; // de speler loopt bewust een paar seconden achter (voorraadje)
-  const pos = $('#rd-shpos');
-  pos.textContent = behind ? '−' + fmtBehind(sh.behind) : 'Live';
-  pos.classList.toggle('behind', behind);
-  pos.setAttribute('aria-label', behind ? fmtBehind(sh.behind) + ' achter live' : 'Live');
-  $('#rd-fwd').disabled = !behind; $('#rd-live').disabled = !behind;
-}
-
 /* ---------- Toegankelijkheid ---------- */
 function stZoom(v){ Android.textZoomSet(+v); toast('Tekstgrootte: ' + $('#st-zoom').selectedOptions[0].textContent); }
 /* Schakelaars en keuzeknoppen: TalkBack hoort aan/uit (de klasse "on" bepaalt de stand). */
@@ -4956,75 +5013,34 @@ function enterPodcasts(){
   pcPoll(true);
   pcRenderCont(); pcRenderSubs();
   if (!$('#pc-q').value.trim()) pcShowTop();
-  pcStartPoll();
   // Abonnementen af en toe bijwerken (nieuwe afleveringen)
   const subs = rdJson(Android.podSubs(), []);
   if (subs.length && Date.now() - (+Android.podRefreshedAt() || 0) > 3 * 36e5) Android.podRefresh();
 }
-function pcStartPoll(){ if (!pcPollT) pcPollT = setInterval(() => { if (appPaused) return; if (current === 'podcasts' || current === 'podcast') pcPoll(false); else pcStopPoll(); }, 1000); }
-function pcStopPoll(){ if (pcPollT) { clearInterval(pcPollT); pcPollT = null; } }
+/* Pollen doet de speler (plTick, elke seconde); deze twee blijven voor oude aanroepen. */
+function pcStartPoll(){}
+function pcStopPoll(){}
 function pcPoll(force){
   pcSt = rdJson(Android.podState(), {});
   const sig = JSON.stringify([pcSt.status, pcSt.ep && pcSt.ep.key, pcSt.speed, pcSt.sleepAt, pcSt.sleepEnd, pcSt.error, Math.floor(Date.now() / 3e4)]);
   if (force || sig !== pcLastSig) {
     const keyChanged = !pcLastSig || JSON.parse(pcLastSig)[1] !== (pcSt.ep && pcSt.ep.key);
-    pcLastSig = sig; pcRenderNow();
+    pcLastSig = sig;
     if (keyChanged && current === 'podcasts') pcRenderCont();
     if (current === 'podcast') pdRefreshRows(); // ▶/❚❚ en voortgang in de lijst bijwerken
   }
-  pcRenderTimes();
+  if (typeof plRender === 'function') plRender();
 }
 function pcActive(){ return pcSt.status === 'playing' || pcSt.status === 'connecting'; }
-function pcRenderNow(){
-  const st = pcSt, has = !!(st.ep && st.ep.url);
-  $('#pc-now').style.display = has ? 'block' : 'none';
-  $('#pd-mini').style.display = has ? 'flex' : 'none';
-  if (!has) return;
-  pcSetArt($('#pc-now-art'), st.ep.image || (st.pod && st.pod.image));
-  pcSetArt($('#pd-mini-art'), st.ep.image || (st.pod && st.pod.image));
-  $('#pc-now-title').textContent = st.ep.title || 'Aflevering';
-  $('#pd-mini-t').textContent = st.ep.title || 'Aflevering';
-  $('#pc-now-pod').textContent = (st.pod && st.pod.title) || '';
-  const playing = pcActive();
-  for (const b of [$('#pc-pp'), $('#pd-mini-pp')]) { b.textContent = playing ? '❚❚' : '▶'; b.setAttribute('aria-label', playing ? 'Pauze' : 'Afspelen'); }
-  $('#pc-speed').textContent = pcSpeedTxt(st.speed);
-  const sl = $('#pc-sleep');
-  if (st.sleepAt) { sl.textContent = '⏾ nog ' + fmtMin((st.sleepAt - Date.now()) / 6e4); sl.classList.add('on'); }
-  else if (st.sleepEnd) { sl.textContent = '⏾ na deze aflevering'; sl.classList.add('on'); }
-  else { sl.textContent = '⏾ Slaaptimer'; sl.classList.remove('on'); }
-  $('#pc-sleepinfo').innerHTML = st.sleepAt ? 'Stopt om ' + new Date(st.sleepAt).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + ' · <a href="#" onclick="Android.podSleep(0);setTimeout(()=>pcPoll(true),200);return false">uitzetten</a>'
-    : st.sleepEnd ? 'Stopt aan het einde van deze aflevering · <a href="#" onclick="Android.podSleep(0);setTimeout(()=>pcPoll(true),200);return false">uitzetten</a>' : '';
-  $('#pc-state').textContent = st.status === 'connecting' ? 'Laden…' : st.status === 'error' ? (st.error || 'Fout') : st.status === 'ended' ? 'Afgelopen' : '';
-  $('#pc-state').classList.toggle('bad', st.status === 'error');
-}
-function pcRenderTimes(){
-  const st = pcSt; if (!st.ep) return;
-  const dur = +st.dur || 0, pos = +st.pos || 0;
-  if (!pcSeeking) {
-    $('#pc-seek').value = dur > 0 ? Math.round(pos / dur * 1000) : 0;
-    $('#pc-pos').textContent = fmtClock(pos);
-  }
-  $('#pc-left').textContent = dur > 0 ? '−' + fmtClock(dur - pos) : '';
-  $('#pc-seek').disabled = !(dur > 0);
-}
-// Losgelaten zonder echte verandering (geen change-event): de tijd niet laten bevriezen
-['pointerup', 'touchend', 'blur'].forEach(ev => document.getElementById('pc-seek').addEventListener(ev, () => setTimeout(() => { pcSeeking = false; }, 50)));
-function pcSeekDrag(){ pcSeeking = true; const dur = +pcSt.dur || 0; $('#pc-pos').textContent = fmtClock(dur * $('#pc-seek').value / 1000); }
-function pcSeekDone(){
-  const dur = +pcSt.dur || 0; pcSeeking = false;
-  if (!(dur > 0)) return;
-  const ms = Math.round(dur * $('#pc-seek').value / 1000);
-  Android.podSeek(ms); pcSt.pos = ms; pcRenderTimes();
-}
 function pcPlayPause(){
   if (pcActive()) Android.podPause(); else Android.podResume();
-  pcSt.status = pcActive() ? 'paused' : 'connecting'; pcRenderNow();
+  pcSt.status = pcActive() ? 'paused' : 'connecting'; plHintSrc('podcast'); plRender();
   setTimeout(() => pcPoll(true), 300);
 }
-function pcSkip(s){ Android.podSkip(s); pcSt.pos = Math.max(0, (+pcSt.pos || 0) + s * 1000); pcRenderTimes(); }
+function pcSkip(s){ Android.podSkip(s); pcSt.pos = Math.max(0, (+pcSt.pos || 0) + s * 1000); plRender(); }
 function pcSpeedMenu(){
   const opts = [0.8, 1, 1.1, 1.25, 1.5, 1.75, 2];
-  openSheet('Afspeelsnelheid', 'Nu ' + pcSpeedTxt(pcSt.speed), opts.map(v => [pcSpeedTxt(v) + (v === 1 ? ' (normaal)' : ''), () => { Android.podSpeed(String(v)); pcSt.speed = v; pcRenderNow(); }]));
+  openSheet('Afspeelsnelheid', 'Nu ' + pcSpeedTxt(pcSt.speed), opts.map(v => [pcSpeedTxt(v) + (v === 1 ? ' (normaal)' : ''), () => { Android.podSpeed(String(v)); pcSt.speed = v; plRender(); }]));
 }
 function pcOpenNowPod(){ const p = pcSt.pod; if (p && p.feed) pdOpen(p); }
 function pcNowMenu(){
@@ -5033,7 +5049,7 @@ function pcNowMenu(){
   if (st.pod && st.pod.feed) acts.push(['Naar de podcast', () => pdOpen(st.pod)]);
   if (st.ep.desc) acts.push(['Beschrijving', () => pcShowDesc(st.ep)]);
   acts.push(['Delen', () => Android.podShare(st.ep.title + (st.pod && st.pod.title ? ' · ' + st.pod.title : ''), (st.pod && st.pod.link) || st.ep.url)]);
-  acts.push(['Stoppen', () => { Android.podStop(); setTimeout(() => pcPoll(true), 300); }]);
+  acts.push(['Stoppen', () => plStop()]);
   openSheet(st.ep.title || 'Aflevering', (st.pod && st.pod.title) || '', acts);
 }
 function pcShowDesc(ep, onPlay){
@@ -5045,7 +5061,7 @@ function pcPlayEp(ep, pod, fromStart){
   const e = Android.podPlay(JSON.stringify({ ep: pcSlimEp(ep), pod: pcSlimPod(pod), fromStart: !!fromStart }));
   if (e) { toast(e); return; }
   pcSt = { status: 'connecting', ep: pcSlimEp(ep), pod: pcSlimPod(pod), pos: fromStart ? 0 : (+ep.pos || 0), dur: (+ep.dur || 0) * 1000, speed: pcSt.speed || 1 };
-  pcLastSig = ''; pcRenderNow(); pcRenderTimes(); pcStartPoll();
+  pcLastSig = ''; plHintSrc('podcast'); plRender();
   if (current === 'podcast') pdRefreshRows(); else pcRenderCont();
 }
 
@@ -5069,6 +5085,8 @@ function pcContMenu(i){
   openSheet(r.ep.title, (r.pod && r.pod.title) || '', [
     ['Verder luisteren', () => pcPlayEp(r.ep, r.pod, false)],
     ['Vanaf het begin', () => pcPlayEp(r.ep, r.pod, true)],
+    ['⏭ Als volgende afspelen', () => plAddToQueue(r.ep, r.pod, true)],
+    ['＋ Toevoegen aan Hierna', () => plAddToQueue(r.ep, r.pod, false)],
     ['Markeren als beluisterd', () => { Android.podMarkPlayed(r.ep.key, true); Android.podForget(r.ep.key); pcRenderCont(); }],
     ['Uit deze lijst halen', () => { Android.podForget(r.ep.key); pcRenderCont(); }]]);
 }
@@ -5212,6 +5230,7 @@ function pdEpMenu(i){
   const e = pdRows[i]; if (!e) return;
   const acts = [[e.pos > 0 && !e.done ? 'Verder luisteren' : 'Afspelen', () => pcPlayEp(e, pdPod, !!e.done)]];
   if (e.pos > 0 && !e.done) acts.push(['Vanaf het begin', () => pcPlayEp(e, pdPod, true)]);
+  if (!(pcSt.ep && pcSt.ep.key === e.key)) acts.push(['⏭ Als volgende afspelen', () => plAddToQueue(e, pdPod, true)], ['＋ Toevoegen aan Hierna', () => plAddToQueue(e, pdPod, false)]);
   acts.push([e.done ? 'Markeren als niet beluisterd' : 'Markeren als beluisterd', () => { Android.podMarkPlayed(e.key, !e.done); e.done = !e.done; e.pos = 0; pdRender(); }]);
   if (e.desc) acts.push(['Beschrijving', () => pcShowDesc(e, () => pcPlayEp(e, pdPod, !!e.done))]);
   acts.push(['Delen', () => Android.podShare(e.title + ' · ' + (pdPod.title || ''), pdPod.link || e.url)]);
@@ -5292,6 +5311,371 @@ function sleepOff(){
   if (st.sleepAt || st.sleepEnd) { sleepApply(0); toast('Slaaptimer uit'); }
   sleepClose();
 }
+/* ---------- De speler: één voor radio en podcasts ----------
+   Mini-balk onderaan op elk scherm; tikken of omhoog vegen opent hem op volledig scherm. De achtergrond krijgt de
+   kleur van de hoes. Vegen op de hoes = volgende/vorige; Hierna = de wachtrij (podcasts) of je favorieten (radio). */
+let plIsOpen = false, plSeeking = false, plHint = null, plQueueSig = '', plQueue = [], plBarSwiped = 0;
+const plColors = {}, plColorAsked = {};
+
+const PL_IC = {
+  play: '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor" aria-hidden="true"><path d="M8 5.6v12.8a1 1 0 0 0 1.52.85l10.2-6.4a1 1 0 0 0 0-1.7L9.52 4.75A1 1 0 0 0 8 5.6z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.3"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.3"/></svg>',
+  next: '<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M5.5 6.3v11.4a1 1 0 0 0 1.55.83l8.2-5.7a1 1 0 0 0 0-1.66l-8.2-5.7A1 1 0 0 0 5.5 6.3z"/><rect x="16.6" y="5.5" width="2.6" height="13" rx="1.1"/></svg>',
+  prev: '<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M18.5 6.3v11.4a1 1 0 0 1-1.55.83l-8.2-5.7a1 1 0 0 1 0-1.66l8.2-5.7a1 1 0 0 1 1.55.83z"/><rect x="4.8" y="5.5" width="2.6" height="13" rx="1.1"/></svg>',
+  back: n => '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M6.7 2.8v3.9h3.9"/><text x="12" y="15.3" font-size="7.4" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">' + n + '</text></svg>',
+  fwd: n => '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M17.3 2.8v3.9h-3.9"/><text x="12" y="15.3" font-size="7.4" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">' + n + '</text></svg>',
+  star: on => '<svg viewBox="0 0 24 24" width="26" height="26" fill="' + (on ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>'
+};
+
+function plSetText(el, t){ t = t == null ? '' : String(t); if (el.textContent !== t) el.textContent = t; }
+function plSetHtml(el, h){ if (el._h !== h) { el._h = h; el.innerHTML = h; } }
+
+/* Wat er nu in de speler hoort: wat net gestart is (even), anders wat de app zegt, anders wat er is. */
+function plSrc(){
+  const radioHas = !!(rdState && (rdState.station) && rdState.status && rdState.status !== 'stopped');
+  const podHas = !!(pcSt && pcSt.ep && pcSt.ep.url && pcSt.status !== 'stopped');
+  let want = plHint && Date.now() - plHint.t < 4000 ? plHint.src : (Android.playerSrc() || '');
+  if (want === 'radio' && radioHas) return 'radio';
+  if (want === 'podcast' && podHas) return 'podcast';
+  return podHas ? 'podcast' : radioHas ? 'radio' : '';
+}
+function plHintSrc(src){ plHint = { src, t: Date.now() }; }
+
+function plModel(){
+  const src = plSrc();
+  if (src === 'podcast') {
+    const s = pcSt, e = s.ep || {}, p = s.pod || {}, status = s.status === 'idle' ? 'paused' : s.status;
+    return { src, status, playing: status === 'playing' || status === 'connecting', key: e.key, title: e.title || 'Aflevering', sub: p.title || '',
+      kind: 'Podcast', from: p.title || 'Podcast', art: pcImg(e.image) || pcImg(p.image), ini: '🎧', pos: +s.pos || 0, dur: +s.dur || 0,
+      error: s.error, sleepAt: +s.sleepAt || 0, sleepEnd: !!s.sleepEnd, speed: s.speed || 1, desc: e.desc || '' };
+  }
+  if (src === 'radio') {
+    const s = rdState, st = s.station || {}, inf = s.info || {}, status = s.status || 'stopped';
+    const song = status === 'playing' ? (inf.song || s.title || '') : '';
+    const sub = status === 'connecting' ? 'Verbinden…' : status === 'paused' ? 'Gepauzeerd · ' + (st.name || '') : status === 'error' ? (s.error || 'Zender niet te bereiken')
+      : song ? [inf.song ? inf.artist : '', st.name].filter(Boolean).join(' · ') : (inf.desc || inf.genre || 'Live');
+    const ini = String(st.name || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '♪';
+    return { src, status, playing: status === 'playing' || status === 'connecting', key: st.url, title: song || st.name || 'Radio', sub,
+      kind: 'Radio', from: st.name || 'Radio', art: pcImg(st.logo), ini, shift: s.shift, error: s.error, sleepAt: +s.sleepAt || 0, sleepEnd: false, station: st };
+  }
+  return null;
+}
+
+/* Kleur uit de hoes (de app rekent die uit); zonder plaatje een vaste kleur bij de naam. */
+function plHashColor(s){ let h = 0; s = String(s || ''); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return 'hsl(' + (Math.abs(h) % 360) + ',42%,30%)'; }
+function plColorFor(m){
+  if (m.art) {
+    if (plColors[m.art]) return plColors[m.art];
+    if (!plColorAsked[m.art]) { plColorAsked[m.art] = 1; Android.playerArt(m.art); }
+  }
+  return plHashColor(m.from + '|' + (m.src === 'podcast' ? '' : m.title));
+}
+window.onPlayerArt = function(r){
+  if (!r || !r.url) return;
+  const ok = /^#[0-9a-f]{6}$/i.test(r.color || '');
+  plColors[r.url] = ok ? r.color : plHashColor(r.url);
+  if (!ok) setTimeout(() => { delete plColors[r.url]; delete plColorAsked[r.url]; }, 120000); // geen netwerk? straks nog eens
+  plRender();
+};
+function plSetArt(el, m){
+  const k = (m.art || '') + '|' + m.ini;
+  if (el.dataset.k === k) return;
+  el.dataset.k = k;
+  el.innerHTML = m.art ? '<img src="' + esc(m.art) + '" alt="" onerror="this.parentNode.textContent=' + jsq(m.ini) + '">' : esc(m.ini);
+  el.classList.toggle('ini', !m.art);
+}
+
+function plRender(){
+  const m = plModel(), bar = $('#plbar');
+  const showBar = !!m && !plIsOpen;
+  bar.style.display = showBar ? 'flex' : 'none';
+  document.body.classList.toggle('has-plbar', showBar);
+  if (!m) { if (plIsOpen) plClose(); return; }
+  const col = plColorFor(m);
+  bar.style.setProperty('--pl', col); $('#player').style.setProperty('--pl', col);
+  // Mini-balk
+  plSetArt($('#plbar-art'), m);
+  plSetText($('#plbar-t'), m.title);
+  plSetText($('#plbar-s'), m.status === 'error' ? (m.error || 'Fout') : m.sub || m.from);
+  const pp = m.playing ? 'pause' : 'play', ppLabel = m.playing ? 'Pauze' : 'Afspelen';
+  for (const b of [$('#plbar-pp'), $('#pl-pp')]) { plSetHtml(b, PL_IC[pp]); if (b.getAttribute('aria-label') !== ppLabel) b.setAttribute('aria-label', ppLabel); }
+  plSetHtml($('#plbar-next'), PL_IC.next);
+  $('#plbar-next').setAttribute('aria-label', m.src === 'radio' ? 'Volgende zender' : 'Volgende aflevering');
+  $('#plbar-open').setAttribute('aria-label', 'Speler openen: ' + m.title + (m.sub ? ', ' + m.sub : ''));
+  const pct = m.src === 'podcast' && m.dur > 0 ? Math.min(100, m.pos / m.dur * 100) : 0;
+  $('#plbar-prog').style.width = pct.toFixed(2) + '%';
+  $('#plbar-prog').parentNode.style.visibility = m.src === 'podcast' ? 'visible' : 'hidden'; // radio: live, geen voortgang
+  if (!plIsOpen) return;
+
+  // Volledig scherm
+  plSetText($('#pl-kind'), m.src === 'podcast' ? 'Podcast' : 'Radio');
+  plSetText($('#pl-from'), m.from);
+  plSetArt($('#pl-art'), m);
+  $('#pl-cover').setAttribute('aria-label', 'Hoes van ' + m.title + '. Veeg naar links voor ' + (m.src === 'radio' ? 'de volgende zender' : 'de volgende aflevering') + ', naar rechts voor de vorige.');
+  plSetText($('#pl-title'), m.title);
+  plSetText($('#pl-sub'), m.sub);
+  $('#pl-sub').classList.toggle('bad', m.status === 'error');
+  const fav = $('#pl-fav');
+  fav.style.visibility = m.src === 'radio' ? 'visible' : 'hidden';
+  if (m.src === 'radio') { const on = rdIsFav(m.station); plSetHtml(fav, PL_IC.star(on)); fav.setAttribute('aria-label', on ? 'Uit favorieten' : 'Bij favorieten'); fav.classList.toggle('on', on); }
+
+  // Plek: podcast = aflevering; radio = de buffer (terugspoelen), anders "live"
+  const sh = m.src === 'radio' && m.shift && m.status !== 'stopped' ? m.shift : null;
+  const behind = sh ? +sh.behind || 0 : 0, atLive = !sh || behind <= 8;
+  const seekable = m.src === 'podcast' ? m.dur > 0 : !!sh;
+  $('#pl-seekwrap').style.display = m.src === 'podcast' || sh ? '' : 'none';
+  $('#pl-livebadge').style.display = m.src === 'radio' && !sh ? '' : 'none';
+  $('#pl-livebadge').classList.toggle('on', m.playing);
+  const seek = $('#pl-seek');
+  seek.disabled = !seekable;
+  if (!plSeeking) {
+    if (m.src === 'podcast') {
+      seek.value = m.dur > 0 ? Math.round(m.pos / m.dur * 1000) : 0;
+      plSetText($('#pl-pos'), fmtClock(m.pos));
+      plSetText($('#pl-left'), m.dur > 0 ? '−' + fmtClock(m.dur - m.pos) : '');
+      seek.setAttribute('aria-label', 'Plek in de aflevering');
+    } else if (sh) {
+      const total = Math.max(1, (+sh.back || 0) + behind);
+      seek.value = Math.round((+sh.back || 0) / total * 1000);
+      plSetText($('#pl-pos'), '−' + fmtBehind(total));
+      plSetText($('#pl-left'), atLive ? 'Live' : '−' + fmtBehind(behind));
+      seek.setAttribute('aria-label', 'Plek in de buffer (terugspoelen)');
+    }
+  }
+  $('#pl-left').classList.toggle('live', m.src === 'radio' && atLive);
+  plSetText($('#pl-state'), m.status === 'connecting' ? 'Laden…' : m.status === 'error' && m.src === 'podcast' ? (m.error || 'Fout') : m.status === 'ended' ? 'Afgelopen' : '');
+  $('#pl-state').classList.toggle('bad', m.status === 'error');
+
+  // Knoppen
+  const back = $('#pl-back'), fwd = $('#pl-fwd');
+  if (m.src === 'podcast') {
+    plSetHtml(back, PL_IC.back(15)); back.setAttribute('aria-label', '15 seconden terug');
+    plSetHtml(fwd, PL_IC.fwd(30)); fwd.setAttribute('aria-label', '30 seconden vooruit');
+    back.style.visibility = fwd.style.visibility = 'visible'; back.disabled = fwd.disabled = false;
+  } else {
+    plSetHtml(back, PL_IC.back(30)); back.setAttribute('aria-label', '30 seconden terug');
+    plSetHtml(fwd, PL_IC.fwd(30)); fwd.setAttribute('aria-label', '30 seconden vooruit');
+    back.style.visibility = fwd.style.visibility = sh ? 'visible' : 'hidden';
+    back.disabled = !sh; fwd.disabled = !sh || atLive;
+  }
+  plSetHtml($('#pl-prev'), PL_IC.prev); plSetHtml($('#pl-next'), PL_IC.next);
+  $('#pl-prev').setAttribute('aria-label', m.src === 'radio' ? 'Vorige zender' : 'Vorige (of terug naar het begin)');
+  $('#pl-next').setAttribute('aria-label', m.src === 'radio' ? 'Volgende zender' : 'Volgende aflevering');
+
+  // Opties
+  $('#pl-speed').style.display = m.src === 'podcast' ? '' : 'none';
+  plSetText($('#pl-speed'), pcSpeedTxt(m.speed));
+  $('#pl-golive').style.display = sh && !atLive ? '' : 'none';
+  const sl = $('#pl-sleep');
+  const slTxt = m.sleepAt ? '⏾ nog ' + fmtMin((m.sleepAt - Date.now()) / 6e4) : m.sleepEnd ? '⏾ na deze aflevering' : '⏾ Slaaptimer';
+  plSetText(sl, slTxt); sl.classList.toggle('on', !!(m.sleepAt || m.sleepEnd));
+  plSetHtml($('#pl-sleepinfo'), m.sleepAt ? 'Stopt om ' + new Date(m.sleepAt).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + ' · <a href="#" onclick="plSleepOff();return false">uitzetten</a>'
+    : m.sleepEnd ? 'Stopt aan het einde van deze aflevering · <a href="#" onclick="plSleepOff();return false">uitzetten</a>' : '');
+
+  // Extra's
+  $('#pl-radio').style.display = m.src === 'radio' ? '' : 'none';
+  if (m.src === 'radio') { $('#rd-rec').disabled = m.status !== 'playing'; }
+  $('#pl-about').style.display = m.src === 'podcast' && m.desc ? '' : 'none';
+  if (m.src === 'podcast') plSetText($('#pl-desc'), m.desc);
+  plRenderQueue(m);
+}
+
+/* Hierna: podcasts = wachtrij; radio = favorieten (tik = die zender) */
+function plRenderQueue(m, force){
+  const sig = m.src + '|' + m.key + '|' + (m.src === 'radio' ? JSON.stringify(rdFavs.map(f => f.url)) : '');
+  if (!force && sig === plQueueSig) return;
+  plQueueSig = sig;
+  const box = $('#pl-queue');
+  if (m.src === 'podcast') {
+    plQueue = rdJson(Android.podQueue(), []);
+    plSetText($('#pl-qtitle'), 'Hierna');
+    $('#pl-qclear').style.display = plQueue.length > 1 ? '' : 'none';
+    box.innerHTML = plQueue.map((r, i) => {
+      const e = r.ep || {}, p = r.pod || {};
+      return '<div class="pl-qrow"><button class="pl-qb" onclick="plQueuePlay(' + i + ')">' + pcArt(e.image || p.image) +
+        '<span class="pltxt"><b>' + esc(e.title || 'Aflevering') + '</b><small>' + esc(p.title || '') + (e.dur ? ' · ' + esc(fmtMin(e.dur / 60)) : '') + '</small></span></button>' +
+        '<button class="pl-ic" onclick="plQueueMenu(' + i + ')" aria-label="Meer over ' + esc(e.title || 'aflevering') + '"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button></div>';
+    }).join('') || '<p class="pl-empty">Nog niets. Kies bij een aflevering ⋯ → <b>Als volgende afspelen</b> of <b>Toevoegen aan Hierna</b>. Zonder Hierna gaat ⏭ naar de volgende aflevering van deze podcast.</p>';
+  } else {
+    plSetText($('#pl-qtitle'), 'Je zenders');
+    $('#pl-qclear').style.display = 'none';
+    const cur = m.station && m.station.url;
+    box.innerHTML = rdFavs.map((s, i) => '<div class="pl-qrow' + (s.url === cur ? ' cur' : '') + '"><button class="pl-qb" onclick="plFavPlay(' + i + ')"' + (s.url === cur ? ' aria-current="true"' : '') + '>' + rdLogo(s) +
+      '<span class="pltxt"><b>' + esc(s.name) + '</b><small>' + (s.url === cur ? 'Speelt nu' : esc((s.tags || '').split(',').filter(Boolean).slice(0, 2).join(', '))) + '</small></span></button></div>').join('') ||
+      '<p class="pl-empty">Tik op ☆ om zenders bij je favorieten te zetten; dan wissel je hier en met vegen op het logo snel tussen je zenders.</p>';
+  }
+}
+function plQueuePlay(i){
+  const r = plQueue[i]; if (!r || !r.ep) return;
+  const e = Android.podQueuePlay(r.ep.key); // op sleutel: de lijst kan intussen veranderd zijn
+  if (e) { toast(e); plQueueSig = ''; plRender(); return; }
+  pcSt = { status: 'connecting', ep: r.ep, pod: r.pod, pos: 0, dur: (+r.ep.dur || 0) * 1000, speed: pcSt.speed || 1 }; plHintSrc('podcast');
+  plQueueSig = ''; plRender(); setTimeout(plTick, 400);
+}
+function plQueueMenu(i){
+  const r = plQueue[i]; if (!r) return;
+  const acts = [['Nu afspelen', () => plQueuePlay(i)]];
+  if (i > 0) acts.push(['⤒ Bovenaan (als volgende)', () => { Android.podQueueMove(r.ep.key, 0); plQueueSig = ''; plRender(); }]);
+  if (i < plQueue.length - 1) acts.push(['↓ Eén omlaag', () => { Android.podQueueMove(r.ep.key, i + 1); plQueueSig = ''; plRender(); }]);
+  acts.push(['Uit Hierna halen', () => { Android.podQueueRemove(r.ep.key); plQueueSig = ''; plRender(); }]);
+  openSheet(r.ep.title || 'Aflevering', (r.pod && r.pod.title) || '', acts);
+}
+function plQueueClear(){ askConfirm('Hierna wissen?', 'Alle ' + plQueue.length + ' afleveringen gaan uit Hierna (niet uit de podcast).', 'Wissen', () => { Android.podQueueClear(); plQueueSig = ''; plRender(); }); }
+function plFavPlay(i){ const s = rdFavs[i]; if (!s) return; Android.radioPlay(JSON.stringify(s)); rdState = { status: 'connecting', station: s, title: '' }; plHintSrc('radio'); plRender(); }
+/* Vanuit een afleveringsmenu */
+function plAddToQueue(ep, pod, next){
+  const e = Android.podQueueAdd(JSON.stringify({ ep: pcSlimEp(ep), pod: pcSlimPod(pod) }), !!next);
+  if (e) { toast(e); return; }
+  toast(next ? '⏭ Speelt hierna' : '＋ In Hierna gezet');
+  plQueueSig = ''; if (plIsOpen) plRender();
+}
+
+/* ---------- bediening ---------- */
+function plPlayPause(){
+  const m = plModel(); if (!m) return;
+  if (m.src === 'podcast') pcPlayPause(); else rdPlayPause();
+  plHintSrc(m.src);
+  if (m.src === 'radio') { rdState.status = m.playing ? 'paused' : 'connecting'; }
+  plRender();
+}
+function plNext(){ plStep(1); }
+function plPrev(){ plStep(-1); }
+function plStep(dir){
+  const m = plModel(); if (!m) return;
+  const e = dir > 0 ? Android.playerNext(m.src) : Android.playerPrev(m.src);
+  if (e) { toast(e); plCoverBack(); return; }
+  plHintSrc(m.src);
+  plCoverIn(dir);
+  setTimeout(plTick, 350); setTimeout(plTick, 900);
+}
+function plSkip(dir){
+  const m = plModel(); if (!m) return;
+  if (m.src === 'podcast') pcSkip(dir < 0 ? -15 : 30); else rdShift(dir < 0 ? 'rew' : 'fwd');
+  plRender();
+}
+function plSleep(){ const m = plModel(); if (m) sleepOpen(m.src === 'radio' ? 'radio' : 'pod'); }
+function plSleepOff(){ const m = plModel(); if (!m) return; if (m.src === 'radio') Android.radioSleep(0); else Android.podSleep(0); toast('Slaaptimer uit'); setTimeout(plTick, 200); }
+function plStop(){
+  const m = plModel(); if (!m) return;
+  if (m.src === 'podcast') Android.podStop(); else Android.radioStop();
+  plClose(); setTimeout(plTick, 300);
+  setTimeout(() => { const h = document.querySelector('.screen.on h1'); if (h) h.focus({ preventScroll: true }); }, 350); // de balk is dan weg
+}
+function plFav(){ rdFavNow(); plQueueSig = ''; plRender(); }
+function plGoSource(){
+  const m = plModel(); if (!m) return;
+  if (m.src === 'podcast') { if (pcSt.pod && pcSt.pod.feed) pdOpen(pcSt.pod); else show('podcasts'); }
+  else show('radio');
+}
+function plMenu(){
+  const m = plModel(); if (!m) return;
+  if (m.src === 'podcast') { pcNowMenu(); return; }
+  const acts = [['Naar Radio', () => show('radio')], ['📌 Zender op startscherm', () => rdPinStation()]];
+  if (m.shift) acts.push(['💾 Fragment bewaren', () => rdClipMenu()]);
+  acts.push(['Stoppen', () => plStop()]);
+  openSheet(m.from, 'Radio', acts);
+}
+
+/* Schuif: podcast = plek in de aflevering, radio = plek in de buffer */
+function plSeekDrag(){
+  plSeeking = true;
+  const m = plModel(); if (!m) return;
+  const v = +$('#pl-seek').value / 1000;
+  if (m.src === 'podcast') plSetText($('#pl-pos'), fmtClock(m.dur * v));
+  else if (m.shift) { const total = (+m.shift.back || 0) + (+m.shift.behind || 0), b = Math.round(total * (1 - v)); plSetText($('#pl-left'), b <= 8 ? 'Live' : '−' + fmtBehind(b)); }
+}
+function plSeekDone(){
+  plSeeking = false;
+  const m = plModel(); if (!m) return;
+  const v = +$('#pl-seek').value / 1000;
+  if (m.src === 'podcast') { if (!(m.dur > 0)) return; const ms = Math.round(m.dur * v); Android.podSeek(ms); pcSt.pos = ms; }
+  else if (m.shift) { const total = (+m.shift.back || 0) + (+m.shift.behind || 0); Android.radioShiftTo(Math.round(total * (1 - v))); setTimeout(plTick, 300); }
+  plRender();
+}
+['pointerup', 'touchend', 'blur'].forEach(ev => $('#pl-seek').addEventListener(ev, () => setTimeout(() => { plSeeking = false; }, 50)));
+
+/* ---------- openen en sluiten ---------- */
+function plOpen(){
+  if (!plModel()) return;
+  plIsOpen = true; plQueueSig = '';
+  rdFavs = rdJson(Android.radioFavorites(), []); // ook als het radioscherm nog niet open was (bijv. gestart vanaf de widget)
+  const p = $('#player');
+  p.classList.add('on'); p.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('pl-open');
+  plInert(true);
+  $('#pl-scroll').scrollTop = 0;
+  plRender();
+  setTimeout(() => $('#pl-title').focus({ preventScroll: true }), 30);
+}
+function plClose(){
+  if (!plIsOpen) return;
+  plIsOpen = false;
+  const p = $('#player');
+  p.classList.remove('on'); p.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('pl-open');
+  plInert(false);
+  plRender();
+  const b = $('#plbar-open'); if (b && $('#plbar').style.display !== 'none') b.focus({ preventScroll: true });
+}
+
+/* Wat achter de speler ligt is niet bereikbaar (TalkBack, toetsenbord) zolang hij open is. */
+function plInert(on){ document.querySelectorAll('.screen, #plbar').forEach(el => { if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); }); }
+
+/* ---------- vegen ---------- */
+function plCoverIn(dir){
+  const a = $('#pl-art'); if (!a) return;
+  a.style.transition = 'none'; a.style.transform = 'translateX(' + (dir > 0 ? 60 : -60) + 'px)'; a.style.opacity = '0';
+  requestAnimationFrame(() => { a.style.transition = 'transform .25s ease, opacity .25s ease'; a.style.transform = ''; a.style.opacity = ''; });
+}
+function plCoverBack(){ const a = $('#pl-art'); if (a) { a.style.transition = 'transform .2s ease'; a.style.transform = ''; a.style.opacity = ''; } }
+/* Vegen: begint op de hoes, de bovenrand of de mini-balk; de rest volgt op het hele venster (ook als de vinger
+   buiten het element komt). */
+(function(){
+  let g = null; // { kind: 'cover'|'top'|'bar', x0, y0, dx, dy }
+  const art = () => $('#pl-art');
+  const start = kind => e => { if (e.button > 0) return; g = { kind, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0 }; if (kind === 'cover') art().style.transition = 'none'; };
+  $('#pl-cover').addEventListener('pointerdown', start('cover'));
+  // Omlaag vegen op de hoes (bovenaan): niet laten scrollen, anders breekt de browser het vegen af
+  let ty0 = 0, tx0 = 0;
+  $('#pl-cover').addEventListener('touchstart', e => { ty0 = e.touches[0].clientY; tx0 = e.touches[0].clientX; }, { passive: true });
+  $('#pl-cover').addEventListener('touchmove', e => {
+    const dy = e.touches[0].clientY - ty0, dx = e.touches[0].clientX - tx0;
+    if (dy > 8 && dy > Math.abs(dx) && $('#pl-scroll').scrollTop <= 0 && e.cancelable) e.preventDefault();
+  }, { passive: false });
+  $('#pl-top').addEventListener('pointerdown', start('top'));
+  $('#plbar').addEventListener('pointerdown', start('bar'));
+  // Na vegen over de balk geen klik meer op de knop waar de vinger losliet
+  $('#plbar').addEventListener('click', e => { if (Date.now() - plBarSwiped < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
+  window.addEventListener('pointermove', e => {
+    if (!g) return;
+    g.dx = e.clientX - g.x0; g.dy = e.clientY - g.y0;
+    if (g.kind === 'cover' && Math.abs(g.dx) > Math.abs(g.dy)) {
+      art().style.transform = 'translateX(' + g.dx + 'px) rotate(' + (g.dx / 30).toFixed(1) + 'deg)';
+      art().style.opacity = String(Math.max(.35, 1 - Math.abs(g.dx) / 400));
+    }
+  });
+  window.addEventListener('pointercancel', () => { if (g && g.kind === 'cover') plCoverBack(); g = null; });
+  window.addEventListener('pointerup', () => {
+    if (!g) return;
+    const { kind, dx, dy } = g; g = null;
+    const horiz = Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy), down = dy > 70 && dy > Math.abs(dx), up = dy < -35 && -dy > Math.abs(dx);
+    if (kind === 'cover') {
+      if (horiz) {
+        const a = art(); a.style.transition = 'transform .18s ease, opacity .18s ease'; a.style.transform = 'translateX(' + (dx < 0 ? -320 : 320) + 'px)'; a.style.opacity = '0';
+        setTimeout(() => plStep(dx < 0 ? 1 : -1), 160);
+      } else { plCoverBack(); if (down && $('#pl-scroll').scrollTop <= 0) plClose(); }
+    } else if (kind === 'top') { if (down) plClose(); }
+    else if (kind === 'bar') {
+      if (up) { plOpen(); plBarSwiped = Date.now(); } // de klik die nog volgt niet nog eens
+      else if (horiz) { plBarSwiped = Date.now(); plStep(dx < 0 ? 1 : -1); }
+    }
+  });
+})();
+
+/* ---------- één klok voor alles ---------- */
+function plTick(){ if (appPaused) return; rdPollOnce(true); pcPoll(false); } // op de achtergrond niet (scheelt accu)
+setInterval(plTick, 1000);
+setTimeout(plTick, 0);
 /* ---------- start ---------- */
 $('#hver').textContent = 'v' + ver().webName;
 bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);

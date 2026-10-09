@@ -194,8 +194,8 @@ if (!window.Android) window.Android = (function(){
     radioSaveClip(s){ this._clip = s; setTimeout(() => onRadioClip(''), 50); },
     musicSaveFromRadio(a, t, s){ this._saved = [a, t, s]; return ''; },
     radioMoveFav(){}, radioMoveFavTo(a, b){ const f = this._rd.favs || []; if (a >= 0 && a < f.length && b >= 0 && b < f.length) f.splice(b, 0, f.splice(a, 1)[0]); },
-    radioPlay(j){ const r=this._rd; r.st={status:'connecting',station:JSON.parse(j),title:'',info:{},recent:[]}; setTimeout(()=>{ r.st.status='playing'; if(this._ts) r.st.shift={behind:6,back:600,clip:1500}; r.st.title='Doe Maar - De Bom'; r.st.info={name:'NPO Radio 2',desc:'Gouden Uur met Gijs Staverman',genre:'Pop',site:'https://www.nporadio2.nl',br:'192',title:'Doe Maar - De Bom',artist:'Doe Maar',song:'De Bom'}; r.st.recent=[{t:Date.now(),title:'Doe Maar - De Bom'},{t:Date.now()-24e4,title:'Golden Earring - Radar Love'}]; },600); },
-    radioPause(){ this._rd.st.status='paused'; }, radioResume(){ if(this._rd.st.station) this._rd.st.status='playing'; },
+    radioPlay(j){ this._take('radio'); const r=this._rd; r.st={status:'connecting',station:JSON.parse(j),title:'',info:{},recent:[]}; setTimeout(()=>{ r.st.status='playing'; if(this._ts) r.st.shift={behind:6,back:600,clip:1500}; r.st.title='Doe Maar - De Bom'; r.st.info={name:'NPO Radio 2',desc:'Gouden Uur met Gijs Staverman',genre:'Pop',site:'https://www.nporadio2.nl',br:'192',title:'Doe Maar - De Bom',artist:'Doe Maar',song:'De Bom'}; r.st.recent=[{t:Date.now(),title:'Doe Maar - De Bom'},{t:Date.now()-24e4,title:'Golden Earring - Radar Love'}]; },600); },
+    radioPause(){ this._rd.st.status='paused'; }, radioResume(){ if(this._rd.st.station) { this._take('radio'); this._rd.st.status='playing'; } },
     radioStop(){ this._rd.st={status:'stopped',title:'',last:this._rd.st.station}; }, radioSleep(m){ this._rd.st.sleepAt=m?Date.now()+m*6e4:0; },
     radioState(){ return JSON.stringify(this._rd.st); },
     // ----- podcasts (nep) -----
@@ -219,13 +219,13 @@ if (!window.Android) window.Android = (function(){
     podMarkPlayed(k, d){ this._pc.prog[k] = { p: 0, d: 0, done: d }; },
     _pcSave(){ const st = this._pc.st; if (st.ep) this._pc.prog[st.ep.key] = { p: this._pcPos(), d: st.dur, done: false }; },
     _pcPos(){ const st = this._pc.st; return st.status === 'playing' ? Math.min(st.dur, st.pos + (Date.now() - st.at) * this._pc.speed) : st.pos; },
-    podPlay(j){ const o = JSON.parse(j); if (!/^https?:/.test(o.ep.url || '')) return 'Deze aflevering heeft geen geldig adres'; this._pcSave();
+    podPlay(j){ const o = JSON.parse(j); if (!/^https?:/.test(o.ep.url || '')) return 'Deze aflevering heeft geen geldig adres'; this._take('podcast'); this._pcSave(); this._pc.q = (this._pc.q || []).filter(r => r.ep.key !== o.ep.key);
       const saved = this._pc.prog[o.ep.key], from = o.fromStart || !saved || saved.done ? 0 : saved.p;
       this._pc.st = { status: 'connecting', ep: o.ep, pod: o.pod, pos: from, dur: (o.ep.dur || 0) * 1000, at: Date.now(), sleepAt: this._pc.st.sleepAt || 0, sleepEnd: !!this._pc.st.sleepEnd };
       this._pc.recent = [{ ep: o.ep, pod: o.pod, t: Date.now() }].concat(this._pc.recent.filter(r => r.ep.key !== o.ep.key));
       setTimeout(() => { if (this._pc.st.status === 'connecting') { this._pc.st.status = 'playing'; this._pc.st.at = Date.now(); } }, 150); return ''; },
     podPause(){ const st = this._pc.st; st.pos = this._pcPos(); st.status = 'paused'; this._pcSave(); },
-    podResume(){ const st = this._pc.st; if (st.ep) { st.status = 'playing'; st.at = Date.now(); } },
+    podResume(){ const st = this._pc.st; if (st.ep) { this._take('podcast'); st.status = 'playing'; st.at = Date.now(); } },
     podStop(){ this._pcSave(); this._pc.st = { status: 'stopped' }; },
     podSeek(ms){ const st = this._pc.st; st.pos = ms; st.at = Date.now(); this._pc.lastSeek = ms; },
     podSkip(s){ const st = this._pc.st; st.pos = Math.max(0, this._pcPos() + s * 1000); st.at = Date.now(); this._pc.lastSkip = s; },
@@ -234,6 +234,28 @@ if (!window.Android) window.Android = (function(){
     podSleepAdd(m){ const st = this._pc.st; if (!st.ep) return 'Start eerst een aflevering'; st.sleepAt = Math.max(st.sleepAt || 0, Date.now()) + m * 6e4; st.sleepEnd = false; return ''; },
     podState(){ const st = this._pc.st; return JSON.stringify(Object.assign({}, st, { pos: this._pcPos(), speed: this._pc.speed })); },
     podShare(t, l){ this._pc.shared = [t, l]; },
+    /* De ene speler: wie begint, neemt het over */
+    _src: '', playerSrc(){ return this._src; },
+    _take(src){ this._src = src;
+      if (src === 'podcast' && this._rd.st.status && this._rd.st.status !== 'stopped') this._rd.st = { status: 'stopped', title: '', last: this._rd.st.station };
+      if (src === 'radio' && this._pc.st.ep) { if (this._pc.st.status === 'playing') { this._pc.st.pos = this._pcPos(); this._pc.st.status = 'paused'; this._pcSave(); } this._pc.st.sleepAt = 0; this._pc.st.sleepEnd = false; } },
+    playerArt(u){ this._artAsked = (this._artAsked || []).concat([u]); setTimeout(() => onPlayerArt({ url: u, color: '#7a2a1e' }), 30); },
+    playerNext(src){ return this._step(1, src); }, playerPrev(src){ return this._step(-1, src); },
+    _step(d, src){
+      if ((src || this._src) === 'radio') { const f = this._rd.favs; if (!f.length) return 'Zet zenders bij je favorieten (☆) om te wisselen';
+        const cur = this._rd.st.station || this._rd.st.last || {}; let i = f.findIndex(s => s.url === cur.url); if (i < 0 && d < 0) i = 0; i = ((i + d) % f.length + f.length) % f.length; this.radioPlay(JSON.stringify(f[i])); this._lastStep = d; return ''; }
+      const st = this._pc.st; this._lastStep = d;
+      if (d < 0) { if (st.ep) this.podSeek(0); return st.ep ? '' : 'Er speelde nog niets'; }
+      const q = this._pc.q || []; if (!q.length) return 'Geen volgende aflevering. Zet er een in Hierna via ⋯ bij een aflevering.';
+      const n = q.shift(); this.podPlay(JSON.stringify(n)); return ''; },
+    podQueue(){ return JSON.stringify(this._pc.q || []); },
+    podQueueAdd(j, next){ const o = JSON.parse(j); if (this._pc.st.ep && this._pc.st.ep.key === o.ep.key && this._pc.st.status !== 'ended') return 'Deze aflevering speelt al';
+      const q = (this._pc.q || []).filter(r => r.ep.key !== o.ep.key); if (next) q.unshift(o); else q.push(o); this._pc.q = q; return ''; },
+    podQueueRemove(k){ this._pc.q = (this._pc.q || []).filter(r => r.ep.key !== k); },
+    podQueueMove(k, b){ const q = this._pc.q || []; const a = q.findIndex(r => r.ep.key === k); if (a >= 0) q.splice(Math.max(0, Math.min(q.length - 1, b)), 0, q.splice(a, 1)[0]); },
+    podQueueClear(){ this._pc.q = []; },
+    podQueuePlay(k){ const r = (this._pc.q || []).find(x => x.ep.key === k); if (!r) return 'Staat niet meer in Hierna'; return this.podPlay(JSON.stringify(r)); },
+    radioShiftTo(b){ const st = this._rd.st; if (st.shift) st.shift.behind = Math.max(6, b); this._shiftTo = b; },
     _mu:{token:'',st:{state:'idle'},hist:[],used:0,mic:false},
     musicHasMic(){ return this._mu.mic; }, musicRequestMic(){ this._mu.mic=true; setTimeout(()=>onMusicChanged(),100); },
     musicSetToken(t){ this._mu.token=t; }, musicTokenHint(){ return this._mu.token?'abc…xyz':''; },

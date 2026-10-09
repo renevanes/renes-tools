@@ -16,11 +16,11 @@ def calls(text):
     return set(re.findall(r'\bAndroid\.(\w+)\s*\(', text))
 def optional(text):
     return set(re.findall(r"typeof\s+Android\.(\w+)\s*[!=]==?\s*'function'", text))
-main = bridge('app/src/nl/rene/tools/MainActivity.java') | bridge('app/src/nl/rene/tools/FeatureBridge.java') | bridge('app/src/nl/rene/tools/PodcastBridge.java')
+main = bridge('app/src/nl/rene/tools/MainActivity.java') | bridge('app/src/nl/rene/tools/FeatureBridge.java') | bridge('app/src/nl/rene/tools/PodcastBridge.java') | bridge('app/src/nl/rene/tools/PlayerBridge.java')
 home = bridge('app/src/nl/rene/tools/HomeActivity.java')
 web = ''.join(read(os.path.relpath(p, root)) for p in sorted(glob.glob(os.path.join(root, 'web/src/script/*.js'))) if not p.endswith('01-nepbrug.js'))
 web += ''.join(read(os.path.relpath(p, root)) for p in sorted(glob.glob(os.path.join(root, 'web/src/schermen/*.html'))))
-web += read('web/src/vensters.html')
+web += read('web/src/vensters.html') + read('web/src/speler.html')
 mock_src = read('web/src/script/01-nepbrug.js')
 mock = set(re.findall(r'(?m)(?:^|[\s,{])(\w+)\s*\([^)]*\)\s*\{', mock_src)) | set(re.findall(r'(?m)(?:^|[\s,{])(\w+)\s*:\s*(?:function|\()', mock_src))
 problems = []

@@ -91,13 +91,14 @@ function show(name){
     store.set('autoDraft', { rule: aeRule, isNew: aeIsNew, t: Date.now(), left: true });
     aeRule = null; aeSnap = null;
   }
+  if (typeof plIsOpen !== 'undefined' && plIsOpen) plClose(); // naar een ander scherm: de speler verkleint
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
   const current_prev = current;
   if (current_prev === 'home' && !jumpTo.busy) gsResetTool(name);
   if (name==='home') { jumpStack.length = 0; if (gsQ) setTimeout(gsInput, 0); }
   closeSheet();
   current = name; window.scrollTo(0,0);
-  if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #voice.on, #lockscr.on, #sheet.on, #sleepdlg.on')) h.focus({ preventScroll: true }); }, 0);
+  if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #voice.on, #lockscr.on, #sheet.on, #sleepdlg.on, #player.on')) h.focus({ preventScroll: true }); }, 0);
   if (name==='podcasts') enterPodcasts(); else if (name!=='podcast' && typeof pcStopPoll === 'function') pcStopPoll();
   if (name==='redial') enterRedial(); else stopPoll();
   if (name==='wa') enterWa(); else stopWaPoll();
@@ -136,6 +137,7 @@ window.goBack = function(){
   if ($('#voice') && $('#voice').classList.contains('on')) { voiceClose(); return true; }
   if ($('#sleepdlg').classList.contains('on')) { sleepClose(); return true; }
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }
+  if (typeof plIsOpen !== 'undefined' && plIsOpen) { plClose(); return true; }
   if (current === 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
     askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); show('auto'); });
     return true;
@@ -170,5 +172,5 @@ window.openTool = function(n){
   if (n === 'music-now' && $('#lockscr').classList.contains('on')) { show('music'); return; } // op slot: niet zomaar opnemen
   if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (current === 'music' && !$('#lockscr').classList.contains('on') && st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
   if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='history') show('history'); if (n==='recorder') show('recorder'); if (n==='car') show('car'); if (n==='pdf' || n==='pdf-share') show('pdf'); if (n==='podcasts') show('podcasts'); if (n==='kluis') show('kluis'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); if (n==='selftest') show('selftest'); };
-window.onResumeApp = function(){ appPaused = false; if (current==='car') enterCar(); if (current==='kluis') klRender(); if (current==='pdf') enterPdf(); if (current==='podcasts') pcPoll(true); uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
+window.onResumeApp = function(){ appPaused = false; if (typeof plTick === 'function') plTick(); if (current==='car') enterCar(); if (current==='kluis') klRender(); if (current==='pdf') enterPdf(); if (current==='podcasts') pcPoll(true); uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 

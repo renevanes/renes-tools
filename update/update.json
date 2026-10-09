@@ -1,15 +1,25 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.58",
-  "versionCode": 59,
-  "nativeLevel": 54,
+  "versionName": "1.59",
+  "versionCode": 60,
+  "nativeLevel": 55,
   "web": "index.html",
-  "webSha256": "2465ffe6750d4dac1a8bf31c3255878c4053ea6895a4342b7d21846f4479904a",
+  "webSha256": "04e5034482659373d0bf22f5e26c84d22eb77a55a8fa657a6b9fd36309b0c700",
   "start": "start.html",
   "startSha256": "e579a294c436b49185bb76e16fc1d5837a7f34f9ba978d76286cb0fc2cad3b76",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "4bf1f83b20179845310852c2785f0acdd9f46976232817d0bea2588c242a63c5",
+  "apkSha256": "361e36cf0d47dfc650ec14ecfb491371fa4916b0abd9de1e7eddccb400eb2246",
   "changelog": [
+    {
+      "version": "1.59",
+      "date": "2026-10-09",
+      "changes": [
+        "Nieuw: één speler voor radio én podcasts. Onderaan op elk scherm een mini-speler; omhoog vegen of tikken opent hem groot",
+        "Grote speler in Spotify-stijl: grote hoes, achtergrond in de kleur van de hoes, vegen op de hoes voor volgende/vorige zender of aflevering",
+        "Hierna: zet afleveringen in de wachtrij (⋯ → Als volgende afspelen); na een aflevering begint de volgende vanzelf. Bij de radio wissel je tussen je favoriete zenders",
+        "Er speelt altijd maar één ding: start je een podcast, dan stopt de radio (en andersom), en een slaaptimer loopt gewoon door"
+      ]
+    },
     {
       "version": "1.58",
       "date": "2026-10-09",
@@ -537,5 +547,5 @@
       ]
     }
   ],
-  "webSig2": "WrsaLiBnHA5UB2nDfffc/6oR1xY0ll/9Q2MXP/iDZtZ+ep6LgFrGXSQe/ldNuZbxIZyCpc9tfUoLcioVVYDrg6OLS1D9ky+nbZ9hhYApwi65h5wWmf0r9FE9XXGbrXvNct+JmdViligOGe2khPnWJwceiZWbc9FY8BmVNZ+FlDgQ/wiEmo+PqiEp9z+dnN6KK578pvfe9qmvWYnsHmx0Z/ARdN4irFBrd3NDXvy1569x89/k6rVapWbWh5T//TK44c8xbh4hb+fnxNoiQUQTUwkESF0IpRWdyRn3YdvzM63V0Y/SN6qgp4KZC++H31WTAj1C3YcZ5Crgkgc+JU4EDWpmAoDQHhpNehN4skpFEfQsOUWH1DmntkRxN8j48N1pJ+RHgiHpTycijJScZwwzIJjrilhkn1VveTp39fo3ZsK4nfF3m6+2BBRHQRElkpQ94xUi/5eGrIIDMjJNxMlnVM/9Ahs8ZMnOM9bGaOM3GPG8WMIXXSl9z4qugEPTaxuz"
+  "webSig2": "mTrv17lZh8yXja5Mbg+FNXT5ivS7zTJ1yeNuQTr1MhJtQbn6wL8ehGLZvDjMN05OiQFQSjXLfdXB0VkHfyVEXM4kqXw9Q1Ehm3XX+qVWiSvNJrKZtosLNp4D5sJf5+FozB559tfjGz5UxX3y73MaziekjLJRQMuU3g3nobBhh9zNWaWB2vHGNGnZppCH97DrBqu6oQ/8sLCaiHl3Im6X7QEsIiJlEduaWvGecQjPLIuIG3yPfo7jCiVyKD/2tThI0AB07IfvVZWCU5rKk/XkYJSlj2cI+upSMLWh/5t80gvSaau0AfrJeVo6m5E9zWp53bgO4n+uZUsEYFvMGN5oy5dbMHDihiiHSnUXtOYc85oXLc2sLXcfLefXR64apUQ+06Yppx4NPNOCTko1AfhB4e/yAWxMiLR0UgFzd19pFsN/aOPuie+z8FVvzj8bc4m2Q4XfanAIztOIT9Jai5akwNA6IoHbVjtOv/qkXnkcYps7LuNiI0SfMTy4S8+Dy6Gc"
 }

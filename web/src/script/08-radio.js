@@ -32,7 +32,7 @@ function enterRadio(){
   if (!rdStations.length) rdStations = rdJson(Android.radioCache(), []);
   rdRender();
   if (!$('#rd-search').value.trim()) Android.radioLoad('');
-  rdPollOnce(); stopRdPoll(); rdPoll = setInterval(rdPollOnce, 1000);
+  rdPollOnce(); // verder houdt de speler (39-speler.js) alles elke seconde bij
 }
 function stopRdPoll(){ if (rdPoll) { clearInterval(rdPoll); rdPoll = null; } }
 window.onRadioStations = function(d){
@@ -55,11 +55,12 @@ function rdSearchDo(){
   rdTmr = setTimeout(() => { const q = $('#rd-search').value.trim(); $('#rd-list').innerHTML = '<p class=note style="padding:14px">Zoeken…</p>'; Android.radioLoad(q); }, 400);
 }
 function rdGet(list, i){ return list === 'f' ? rdFavs[i] : rdStations[i]; }
-function rdPlay(list, i){ const s = rdGet(list, i); if (!s) return; Android.radioPlay(JSON.stringify(s)); rdState = { status: 'connecting', station: s, title: '' }; rdShowNow(); rdRender(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-function rdFav(list, i){ const s = rdGet(list, i); if (!s) return; const on = Android.radioToggleFav(JSON.stringify(s)); toast(on ? '★ ' + s.name + ' toegevoegd aan favorieten' : s.name + ' uit favorieten gehaald'); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); rdShowNow(); }
-function rdFavNow(){ const s = rdState.station || rdState.last; if (!s) return; Android.radioToggleFav(JSON.stringify(s)); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); rdShowNow(); }
+function rdPlay(list, i){ const s = rdGet(list, i); if (!s) return; Android.radioPlay(JSON.stringify(s)); rdState = { status: 'connecting', station: s, title: '' }; plHintSrc('radio'); rdShowNow(); rdRender(); plRender(); }
+function rdFav(list, i){ const s = rdGet(list, i); if (!s) return; const on = Android.radioToggleFav(JSON.stringify(s)); toast(on ? '★ ' + s.name + ' toegevoegd aan favorieten' : s.name + ' uit favorieten gehaald'); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); plRender(); }
+function rdFavNow(){ const s = rdState.station || rdState.last; if (!s) return; const on = Android.radioToggleFav(JSON.stringify(s)); toast(on ? '★ ' + s.name + ' bij je favorieten' : s.name + ' uit favorieten'); rdFavs = rdJson(Android.radioFavorites(), []); if (current === 'radio') rdRender(); plRender(); }
 function rdPlayPause(){ if (rdState.status === 'playing' || rdState.status === 'connecting') Android.radioPause(); else Android.radioResume(); setTimeout(rdPollOnce, 200); }
-function rdPollOnce(){
+/** noRender: de speler wordt zo toch getekend (plTick) */
+function rdPollOnce(noRender){
   const sig = st => JSON.stringify([st.status, st.title, st.station && st.station.url, st.info, (st.recent || []).length, st.sleepAt, Math.floor(Date.now() / 6e4), st.shift]);
   // Lijsten alleen opnieuw opbouwen als zender of afspeelstatus verandert (anders verspringen logo's en scrollpositie)
   const lsig = st => JSON.stringify([st.status, st.station && st.station.url]);
@@ -69,26 +70,16 @@ function rdPollOnce(){
   const t = $('#tile-radio-sub');
   if (t) t.textContent = rdState.station && rdState.status === 'playing' ? '▶ ' + rdState.station.name + (rdState.title ? ' · ' + rdState.title : '') : 'Nederlandse zenders luisteren';
   const tile = $('#tile-radio'); if (tile) tile.classList.toggle('live', rdState.status === 'playing');
+  if (noRender !== true && typeof plRender === 'function') plRender();
 }
+/** De radio-extra's in de speler: het nummer, eerder gedraaid, over de zender. De rest tekent de speler zelf. */
 function rdShowNow(){
   const s = rdState.station || rdState.last;
-  $('#rd-now').style.display = s ? 'block' : 'none';
   if (!s) return;
-  const logoKey = (s.url || '') + '|' + (s.logo || '');
-  if (rdShowNow.logoKey !== logoKey) { rdShowNow.logoKey = logoKey; $('#rd-now-logo').outerHTML = rdLogo(s).replace('<span class=logo>', '<span class=logo id="rd-now-logo">'); }
-  $('#rd-now-name').textContent = s.name;
-  const st = rdState.status || 'stopped';
-  const inf = rdState.info || {};
-  $('#rd-now-title').textContent = st === 'connecting' ? 'Verbinden…' : st === 'error' ? (rdState.error || 'Zender niet te bereiken')
-    : st === 'paused' ? 'Gepauzeerd' : st === 'stopped' ? 'Tik op afspelen' : (inf.desc || inf.genre || 'Live');
+  const st = rdState.status || 'stopped', inf = rdState.info || {};
   rdShowSong(st === 'playing' ? rdState.title : '', inf);
   rdShowInfo(s, inf);
   rdShowRecent(rdState.recent || []);
-  $('#rd-now-title').classList.toggle('err', st === 'error');
-  $('#rd-pp').textContent = st === 'playing' || st === 'connecting' ? '❚❚ Pauze' : '▶ Afspelen';
-  $('#rd-now-fav').textContent = rdIsFav(s) ? '★' : '☆';
-  $('#rd-rec').disabled = st !== 'playing';
-  rdShowSleep(); rdShowShift();
   $('#rd-ts').checked = Android.radioTimeshift();
 }
 /** Het huidige nummer (of programma) zoals de zender het meestuurt. */
@@ -146,15 +137,6 @@ function rdPinStation(){
   const s = rdState.station || rdState.last; if (!s) return;
   const e = Android.shortcutPinStation(JSON.stringify(s));
   toast(e || 'Bevestig op je startscherm om ' + s.name + ' toe te voegen');
-}
-/** Slaaptimer: het venster (sleepOpen) is gedeeld met Podcasts. */
-function rdShowSleep(){
-  const el = $('#rd-sleepinfo'), b = $('#rd-sleep');
-  if (!rdState.sleepAt) { el.innerHTML = ''; b.textContent = '⏾ Slaaptimer'; b.classList.remove('on'); return; }
-  const left = Math.max(0, Math.round((rdState.sleepAt - Date.now()) / 6e4));
-  b.textContent = '⏾ nog ' + fmtMin(left); b.classList.add('on');
-  el.innerHTML = '⏾ Stopt om ' + new Date(rdState.sleepAt).toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) +
-    ' (nog ' + fmtMin(left) + ') · <a href="#" onclick="Android.radioSleep(0);setTimeout(rdPollOnce,200);return false">uitzetten</a>';
 }
 function rdRecognize(){
   const e = Android.musicStartRadio();

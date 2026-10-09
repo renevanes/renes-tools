@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.59",
+    "date": "2026-10-09",
+    "changes": [
+      "Nieuw: één speler voor radio én podcasts. Onderaan op elk scherm een mini-speler; omhoog vegen of tikken opent hem groot",
+      "Grote speler in Spotify-stijl: grote hoes, achtergrond in de kleur van de hoes, vegen op de hoes voor volgende/vorige zender of aflevering",
+      "Hierna: zet afleveringen in de wachtrij (⋯ → Als volgende afspelen); na een aflevering begint de volgende vanzelf. Bij de radio wissel je tussen je favoriete zenders",
+      "Er speelt altijd maar één ding: start je een podcast, dan stopt de radio (en andersom), en een slaaptimer loopt gewoon door"
+    ]
+  },
+  {
     "version": "1.58",
     "date": "2026-10-09",
     "changes": [

@@ -12,7 +12,7 @@ const assert = require('node:assert');
     // Tegel en populair
     await pg.click('#tile-podcasts'); await pg.waitForTimeout(300);
     assert.strictEqual(await pg.evaluate(() => current), 'podcasts');
-    assert.strictEqual(await pg.isVisible('#pc-now'), false, 'nog niets aan het luisteren');
+    assert.strictEqual(await pg.isVisible('#plbar'), false, 'nog niets aan het luisteren');
     assert.strictEqual(await pg.$$eval('#pc-list .srow', x => x.length), 2, 'populair geladen');
     assert.match(await pg.textContent('#pc-list-label'), /Populair in Nederland/);
     // geen kapot plaatje: zonder hoesje een 🎧
@@ -51,8 +51,8 @@ const assert = require('node:assert');
 
     // Afspelen vanuit de lijst → mini-speler
     await pg.click('#pd-eps .pcep:nth-child(2) .pcepb'); await pg.waitForTimeout(400);
-    assert.strictEqual(await pg.isVisible('#pd-mini'), true, 'mini-speler zichtbaar');
-    assert.match(await pg.textContent('#pd-mini-t'), /Aflevering 63/);
+    assert.strictEqual(await pg.isVisible('#plbar'), true, 'mini-speler zichtbaar');
+    assert.match(await pg.textContent('#plbar-t'), /Aflevering 63/);
     assert.match(await pg.textContent('#pd-eps .pcep.cur b'), /Aflevering 63/, 'huidige aflevering gemarkeerd');
     // markeren als beluisterd
     await pg.click('#pd-eps .pcep:nth-child(3) .pcmore'); await pg.waitForTimeout(150);
@@ -62,35 +62,36 @@ const assert = require('node:assert');
     assert.strictEqual(await pg.$$eval('#pd-eps .pcep', x => x.length), 50, 'beluisterd verborgen (nog 50 getoond)');
     await pg.uncheck('#pd-hide');
 
-    // Naar het hoofdscherm: speler
-    await pg.click('#pd-mini .pcminib'); await pg.waitForTimeout(400);
+    // Naar het hoofdscherm, dan de speler openen
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(300);
     assert.strictEqual(await pg.evaluate(() => current), 'podcasts');
-    assert.strictEqual(await pg.isVisible('#pc-now'), true);
-    assert.strictEqual(await pg.getAttribute('#pc-pp', 'aria-label'), 'Pauze');
     assert.strictEqual(await pg.$$eval('#pc-subs .pcsub', x => x.length), 1, 'mijn podcasts');
+    await pg.click('#plbar-open'); await pg.waitForTimeout(400);
+    assert.strictEqual(await pg.isVisible('#player'), true);
+    assert.strictEqual(await pg.getAttribute('#pl-pp', 'aria-label'), 'Pauze');
     // vooruit/terug
-    await pg.click('#pc-now [aria-label="30 seconden vooruit"]');
+    await pg.click('#player [aria-label="30 seconden vooruit"]');
     assert.strictEqual((await P()).lastSkip, 30);
-    await pg.click('#pc-now [aria-label="15 seconden terug"]');
+    await pg.click('#player [aria-label="15 seconden terug"]');
     assert.strictEqual((await P()).lastSkip, -15);
     // schuiven
-    await pg.evaluate(() => { const s = $('#pc-seek'); s.value = 500; s.dispatchEvent(new Event('input')); s.dispatchEvent(new Event('change')); });
+    await pg.evaluate(() => { const s = $('#pl-seek'); s.value = 500; s.dispatchEvent(new Event('input')); s.dispatchEvent(new Event('change')); });
     const st = await pg.evaluate(() => JSON.parse(Android.podState()));
     assert.ok(Math.abs((await P()).lastSeek - st.dur / 2) < 2000, 'naar het midden');
     // snelheid
-    await pg.click('#pc-speed'); await pg.waitForTimeout(150);
+    await pg.click('#pl-speed'); await pg.waitForTimeout(150);
     await pg.click('#sheet-acts >> text=1,5×'); await pg.waitForTimeout(1200);
     assert.strictEqual((await P()).speed, 1.5);
-    assert.strictEqual(await pg.textContent('#pc-speed'), '1,5×');
+    assert.strictEqual(await pg.textContent('#pl-speed'), '1,5×');
     // pauze
-    await pg.click('#pc-pp'); await pg.waitForTimeout(400);
+    await pg.click('#pl-pp'); await pg.waitForTimeout(400);
     assert.strictEqual((await P()).st.status, 'paused');
-    assert.strictEqual(await pg.getAttribute('#pc-pp', 'aria-label'), 'Afspelen');
-    await pg.click('#pc-pp'); await pg.waitForTimeout(400);
+    assert.strictEqual(await pg.getAttribute('#pl-pp', 'aria-label'), 'Afspelen');
+    await pg.click('#pl-pp'); await pg.waitForTimeout(400);
     assert.strictEqual((await P()).st.status, 'playing');
 
     // Slaaptimer: minuten
-    await pg.click('#pc-sleep'); await pg.waitForTimeout(150);
+    await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     assert.strictEqual(await pg.isVisible('#sleepdlg'), true);
     assert.strictEqual(await pg.isVisible('#sl-end'), true, 'einde aflevering bij podcasts');
     assert.strictEqual(await pg.textContent('#sl-off'), 'Annuleren');
@@ -100,36 +101,39 @@ const assert = require('node:assert');
     assert.strictEqual(await pg.textContent('#sl-min'), '47', 'per minuut instelbaar');
     await pg.click('#sl-go'); await pg.waitForTimeout(1300);
     assert.strictEqual((await P()).lastSleep, 47);
-    assert.match(await pg.textContent('#pc-sleep'), /nog 4[67] min/);
-    assert.match(await pg.textContent('#pc-sleepinfo'), /Stopt om/);
+    assert.match(await pg.textContent('#pl-sleep'), /nog 4[67] min/);
+    assert.match(await pg.textContent('#pl-sleepinfo'), /Stopt om/);
     assert.strictEqual(await pg.evaluate(() => store.get('sleepMin', 0)), 47, 'onthouden voor de volgende keer');
     // erbij
-    await pg.click('#pc-sleep'); await pg.waitForTimeout(150);
+    await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     assert.strictEqual(await pg.isVisible('#sl-add'), true);
     assert.strictEqual(await pg.textContent('#sl-off'), 'Uitzetten');
     await pg.click('#sl-add >> text=+15 min'); await pg.waitForTimeout(1300);
-    assert.match(await pg.textContent('#pc-sleep'), /nog 1 u 0?[12] min|nog 6[12] min/);
+    assert.match(await pg.textContent('#pl-sleep'), /nog 1 u 0?[12] min|nog 6[12] min/);
     // einde aflevering
-    await pg.click('#pc-sleep'); await pg.waitForTimeout(150);
+    await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     await pg.click('#sl-end'); await pg.waitForTimeout(1300);
     assert.strictEqual((await P()).lastSleep, -1);
-    assert.match(await pg.textContent('#pc-sleep'), /na deze aflevering/);
+    assert.match(await pg.textContent('#pl-sleep'), /na deze aflevering/);
     // tot tijdstip
-    await pg.click('#pc-sleep'); await pg.waitForTimeout(150);
+    await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     await pg.fill('#sl-time', '23:59'); await pg.click('#sleepdlg >> text=Instellen'); await pg.waitForTimeout(1300);
     assert.ok((await P()).lastSleep > 0);
-    assert.match(await pg.textContent('#pc-sleepinfo'), /23:59/);
+    assert.match(await pg.textContent('#pl-sleepinfo'), /23:59/);
     // terug-knop sluit het venster
-    await pg.click('#pc-sleep'); await pg.waitForTimeout(150);
+    await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     await pg.evaluate(() => goBack());
     assert.strictEqual(await pg.isVisible('#sleepdlg'), false);
+    assert.strictEqual(await pg.isVisible('#player'), true, 'eerst alleen het venster dicht');
     assert.strictEqual(await pg.evaluate(() => current), 'podcasts');
     // uitzetten
-    await pg.click('#pc-sleep'); await pg.waitForTimeout(150);
+    await pg.click('#pl-sleep'); await pg.waitForTimeout(150);
     await pg.click('#sl-off'); await pg.waitForTimeout(1300);
     assert.strictEqual((await P()).lastSleep, 0);
-    assert.strictEqual(await pg.textContent('#pc-sleep'), '⏾ Slaaptimer');
+    assert.strictEqual(await pg.textContent('#pl-sleep'), '⏾ Slaaptimer');
     if (scheme === 'light') await pg.screenshot({ path: __dirname + '/shots/podcasts-light.png', fullPage: true });
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(350);
+    assert.strictEqual(await pg.isVisible('#player'), false, 'terug verkleint de speler');
 
     // Andere aflevering → de vorige staat bij Verder luisteren
     await pg.evaluate(() => pdOpen({ feed: 'https://feeds.example.org/tech', title: 'Tech in 20 minuten' })); await pg.waitForTimeout(300);
@@ -139,7 +143,7 @@ const assert = require('node:assert');
     assert.match(await pg.textContent('#pc-cont'), /Aflevering 63/);
     assert.match(await pg.textContent('#pc-cont'), /nog/);
     await pg.click('#pc-cont .pcep:first-child .pcepb'); await pg.waitForTimeout(300);
-    assert.match(await pg.textContent('#pc-now-title'), /Aflevering 63/, 'verder luisteren speelt af');
+    assert.match(await pg.textContent('#plbar-t'), /Aflevering 63/, 'verder luisteren speelt af');
     assert.ok((await P()).st.pos > 0, 'vanaf de bewaarde plek');
     if (scheme === 'dark') await pg.screenshot({ path: __dirname + '/shots/podcasts-dark.png', fullPage: true });
 
@@ -159,7 +163,8 @@ const assert = require('node:assert');
     await pg.evaluate(() => { Android.podStop(); pcPoll(true); sleepOpen('pod'); });
     await pg.click('#sl-go'); await pg.waitForTimeout(150);
     assert.match(await pg.textContent('#toast'), /Start eerst een aflevering/);
-    assert.strictEqual(await pg.isVisible('#pd-mini'), false, 'gestopt: geen speler meer');
+    await pg.evaluate(() => sleepClose());
+    assert.strictEqual(await pg.isVisible('#plbar'), false, 'gestopt: geen speler meer');
     // Terug: podcast → podcasts → home
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     assert.strictEqual(await pg.evaluate(() => current), 'podcasts');

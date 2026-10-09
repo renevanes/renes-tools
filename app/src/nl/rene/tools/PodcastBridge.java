@@ -90,6 +90,7 @@ public class PodcastBridge extends FeatureBridge {
             JSONObject o = new JSONObject(json), e = o.getJSONObject("ep");
             if (!Podcasts.httpUrl(e.optString("url"))) return "Deze aflevering heeft geen geldig adres";
             if (!Podcasts.validKey(e.optString("key"))) e.put("key", Podcasts.epKey(e.optString("url")));
+            Podcasts.queueRemove(ctx, e.optString("key")); // speelt nu: meteen uit Hierna (de lijst klopt dan direct)
             PodcastService.send(ctx, PodcastService.PLAY, o.toString());
             return "";
         } catch (Exception e) { return "Afspelen lukt niet"; }
