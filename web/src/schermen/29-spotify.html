@@ -1,0 +1,59 @@
+<!-- ============ SPOTIFY-BACKUP ============ -->
+<section class="screen" id="s-spotify">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Spotify-backup</h1>
+  </div>
+  <main>
+    <!-- Nog niet gekoppeld: stappenplan -->
+    <div class="card" id="sp-setup" style="display:none">
+      <h2>Eenmalig koppelen</h2>
+      <p class="note" style="margin-top:0">Spotify geeft alleen nog toegang via een eigen "developer app" (gratis, wel Spotify Premium nodig). Zo maak je die:</p>
+      <ol class="spsteps">
+        <li>Open het <a href="#" onclick="Android.openUrl('https://developer.spotify.com/dashboard');return false">Spotify developer dashboard</a> en log in met je Spotify-account.</li>
+        <li>Tik op <b>Create app</b>. Naam en omschrijving mag je zelf kiezen (bijv. "Rene's Tools").</li>
+        <li>Bij <b>Redirect URIs</b>: <code>http://127.0.0.1:43819/callback</code> <button class="mini" style="float:none" onclick="Android.spotifyCopyRedirect();toast('Gekopieerd')">Kopiëren</button> en tik op <b>Add</b>.</li>
+        <li>Vink <b>Web API</b> aan, ga akkoord en tik op <b>Save</b>.</li>
+        <li>Kopieer de <b>Client ID</b> (bij Settings / Basic Information) en plak hem hieronder.</li>
+      </ol>
+      <input class="search" id="sp-client" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Client ID (32 tekens)" aria-label="Client ID">
+      <button class="big" id="sp-link" onclick="spLink()">Koppelen met Spotify</button>
+      <p class="note">Je logt daarna in bij Spotify zelf; Rene's Tools ziet je wachtwoord niet. Krijg je later "403"? Zet dan je eigen Spotify-account (e-mailadres) bij <b>User Management</b> van je app.</p>
+      <p class="note bad" id="sp-link-msg" role="status" aria-live="polite"></p>
+    </div>
+
+    <!-- Gekoppeld -->
+    <div class="card" id="sp-main" style="display:none">
+      <div class="row" style="align-items:center">
+        <div style="flex:1;min-width:0"><b id="sp-user">Spotify</b><small class="note" style="display:block;margin:0" id="sp-last"></small></div>
+        <button class="pill" onclick="spMenu()" aria-label="Meer">⋯</button>
+      </div>
+      <button class="big" id="sp-now" style="margin-top:12px" onclick="spBackup()">Nu backuppen</button>
+      <p class="note" id="sp-progress" role="status" aria-live="polite" style="min-height:18px"></p>
+      <div class="row setrow"><label for="sp-auto" style="flex:1">Vanzelf backuppen</label>
+        <select class="sel" id="sp-auto" onchange="Android.spotifyAuto(this.value);toast(this.value === 'off' ? 'Alleen nog met de hand' : 'Ingepland')">
+          <option value="day">Elke dag</option><option value="week">Elke week</option><option value="off">Uit</option>
+        </select></div>
+      <p class="note" id="sp-folder" style="margin-bottom:0"></p>
+    </div>
+
+    <div id="sp-lists" style="display:none">
+      <div class="flabel" style="margin:4px 2px 8px">Mijn playlists</div>
+      <div class="card stations" id="sp-own"></div>
+      <div id="sp-gone-wrap" style="display:none">
+        <div class="flabel" style="margin:4px 2px 8px">Niet meer in Spotify (wel in de backup)</div>
+        <div class="card stations" id="sp-gone"></div>
+      </div>
+      <div id="sp-fol-wrap" style="display:none">
+        <div class="flabel" style="margin:4px 2px 8px">Gevolgd (alleen naam en link)</div>
+        <div class="card stations" id="sp-fol"></div>
+        <p class="note">Van playlists van anderen geeft Spotify sinds februari 2026 de inhoud niet meer; de link bewaren we wel.</p>
+      </div>
+      <details class="card rinfo" id="sp-log-wrap"><summary>Wat er veranderde</summary><pre class="splog" id="sp-log"></pre></details>
+    </div>
+    <div class="card" id="sp-empty" style="display:none">
+      <p class="note" style="margin:0">Nog geen backup. Tik op <b>Nu backuppen</b>.</p>
+      <button class="big ghost" id="sp-import" style="margin-top:10px;display:none" onclick="spImport()">Backup uit de backup-map overnemen</button>
+    </div>
+  </main>
+</section>

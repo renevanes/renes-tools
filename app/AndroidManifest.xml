@@ -189,6 +189,13 @@
         <!-- Houdt de verbinding met een Chromecast open terwijl daar iets speelt -->
         <service android:name=".CastService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
 
+        <!-- Neutrale versie (na een verkeerde app-code, als dat zo ingesteld is): zonder toegang tot gegevens -->
+        <activity
+            android:name=".NeutralActivity"
+            android:exported="false"
+            android:label="Rene's Tools"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" />
+
         <!-- Knoppen van de speler-widget en het zwevende venster -->
         <receiver android:name=".PlayerReceiver" android:exported="false" />
 
@@ -359,6 +366,10 @@
 
         <service
             android:name=".ContactsJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service
+            android:name=".SpotifyJob"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 

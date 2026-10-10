@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<title>Rene's Tools</title>
+<style>
+:root{--brand:#1E5AA8;--brand-2:#2F74CF;--bg:#F3F5F9;--card:#fff;--ink:#16202E;--muted:#5C6B80;--line:#E1E6EE;--chip:#EAF0F9;--chip-on:#1E5AA8;
+  --shadow:0 1px 2px rgba(16,32,64,.06),0 4px 14px rgba(16,32,64,.06)}
+@media (prefers-color-scheme: dark){:root{--brand:#173F75;--brand-2:#3B82E0;--bg:#0F141B;--card:#18202B;--ink:#E7ECF3;--muted:#9AA8BA;--line:#2A3544;--chip:#223044;--chip-on:#3B82E0;--shadow:none}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,select,input{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer}
+.hdr{background:var(--brand);color:#fff;padding:14px 16px 18px;display:flex;align-items:center;gap:10px;min-height:60px}
+.hdr h1{font-size:21px;margin:0;font-weight:700;flex:1}
+.hdr .back{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;margin-left:-8px;color:#fff}
+.hdr .ver{font-size:13px;opacity:.85}
+main{padding:16px;max-width:560px;margin:0 auto}
+.screen{display:none}.screen.on{display:block}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 14px;text-align:left;box-shadow:var(--shadow);min-height:132px;display:flex;flex-direction:column;gap:10px}
+.tile:active{transform:scale(.98)}
+.tile .ic{width:48px;height:48px;border-radius:14px;background:var(--brand-2);display:grid;place-items:center;color:#fff}
+.tile b{font-size:17px}.tile small{color:var(--muted);font-size:13px}
+.card{background:var(--card);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px;border:1px solid var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.chips button{padding:8px 14px;border-radius:999px;background:var(--chip);font-weight:600;font-size:14px}
+.chips button.on{background:var(--chip-on);color:#fff}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px;font-weight:600}
+.row{display:flex;gap:8px;align-items:center}
+input,select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:17px}
+input{font-variant-numeric:tabular-nums}
+.swap{width:48px;height:48px;border-radius:50%;background:var(--chip);font-size:20px;flex:none;margin:10px auto 0;display:grid;place-items:center}
+.res{font-size:28px;font-weight:700;margin:16px 0 4px;word-break:break-all;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<section class="screen on" id="s-home">
+  <div class="hdr"><h1 tabindex="-1">Rene's Tools</h1><span class="ver">versie __VERSION_NAME__</span></div>
+  <main>
+    <div class="tiles">
+      <button class="tile" onclick="show('conv')">
+        <span class="ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg></span>
+        <b>Omrekenen</b><small>Lengte, gewicht, temperatuur en meer</small>
+      </button>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-conv">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Omrekenen</h1>
+  </div>
+  <main>
+    <div class="chips" id="cats" role="radiogroup" aria-label="Soort"></div>
+    <div class="card">
+      <label for="val">Waarde</label>
+      <input id="val" type="text" inputmode="decimal" value="1" autocomplete="off" oninput="calc()">
+      <label for="from">Van</label>
+      <select id="from" onchange="calc()"></select>
+      <button class="swap" onclick="swap()" aria-label="Omwisselen">⇅</button>
+      <label for="to">Naar</label>
+      <select id="to" onchange="calc()"></select>
+      <div class="res" id="res" aria-live="polite"></div>
+      <div class="note" id="formula"></div>
+    </div>
+  </main>
+</section>
+
+<script>
+'use strict';
+// Eenheden: factor naar de basiseenheid (temperatuur apart)
+const CATS = {
+  'Lengte': { base: 'm', u: { 'millimeter (mm)': 0.001, 'centimeter (cm)': 0.01, 'meter (m)': 1, 'kilometer (km)': 1000, 'inch (in)': 0.0254, 'voet (ft)': 0.3048, 'yard (yd)': 0.9144, 'mijl (mi)': 1609.344, 'zeemijl (nmi)': 1852 } },
+  'Gewicht': { base: 'kg', u: { 'milligram (mg)': 1e-6, 'gram (g)': 0.001, 'ons (100 g)': 0.1, 'pond (500 g)': 0.5, 'kilogram (kg)': 1, 'ton (1000 kg)': 1000, 'ounce (oz)': 0.028349523125, 'pound (lb)': 0.45359237, 'stone (st)': 6.35029318 } },
+  'Temperatuur': { temp: true, u: { 'graden Celsius (°C)': 'C', 'graden Fahrenheit (°F)': 'F', 'kelvin (K)': 'K' } },
+  'Inhoud': { base: 'l', u: { 'milliliter (ml)': 0.001, 'centiliter (cl)': 0.01, 'deciliter (dl)': 0.1, 'liter (l)': 1, 'kubieke meter (m³)': 1000, 'theelepel (5 ml)': 0.005, 'eetlepel (15 ml)': 0.015, 'kopje (250 ml)': 0.25, 'gallon (VS)': 3.785411784, 'gallon (VK)': 4.54609, 'fluid ounce (VS)': 0.0295735295625 } },
+  'Oppervlakte': { base: 'm²', u: { 'vierkante cm (cm²)': 1e-4, 'vierkante meter (m²)': 1, 'are (a)': 100, 'hectare (ha)': 10000, 'vierkante km (km²)': 1e6, 'vierkante voet (ft²)': 0.09290304, 'acre': 4046.8564224 } },
+  'Snelheid': { base: 'm/s', u: { 'meter per seconde (m/s)': 1, 'kilometer per uur (km/h)': 1 / 3.6, 'mijl per uur (mph)': 0.44704, 'knoop (kn)': 1852 / 3600 } },
+  'Tijd': { base: 's', u: { 'seconde': 1, 'minuut': 60, 'uur': 3600, 'dag': 86400, 'week': 604800, 'jaar (365 d)': 31536000 } },
+  'Data': { base: 'B', u: { 'byte (B)': 1, 'kilobyte (kB)': 1e3, 'megabyte (MB)': 1e6, 'gigabyte (GB)': 1e9, 'terabyte (TB)': 1e12, 'kibibyte (KiB)': 1024, 'mebibyte (MiB)': 1048576, 'gibibyte (GiB)': 1073741824 } }
+};
+const DEF = { 'Lengte': ['meter (m)', 'voet (ft)'], 'Gewicht': ['kilogram (kg)', 'pound (lb)'], 'Temperatuur': ['graden Celsius (°C)', 'graden Fahrenheit (°F)'],
+  'Inhoud': ['liter (l)', 'gallon (VS)'], 'Oppervlakte': ['vierkante meter (m²)', 'vierkante voet (ft²)'], 'Snelheid': ['kilometer per uur (km/h)', 'mijl per uur (mph)'],
+  'Tijd': ['uur', 'minuut'], 'Data': ['gigabyte (GB)', 'gibibyte (GiB)'] };
+let cat = 'Lengte';
+const $ = s => document.querySelector(s);
+function show(n){ document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === 's-' + n)); window.scrollTo(0, 0); const h = document.querySelector('#s-' + n + ' h1'); if (h) h.focus({ preventScroll: true }); }
+function goBack(){ if ($('#s-conv').classList.contains('on')) { show('home'); return true; } return false; }
+function opts(sel, keys, pick){ sel.innerHTML = ''; keys.forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; sel.appendChild(o); }); sel.value = pick; }
+function pickCat(c){
+  cat = c;
+  document.querySelectorAll('#cats button').forEach(b => { const on = b.dataset.c === c; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+  const keys = Object.keys(CATS[c].u);
+  opts($('#from'), keys, DEF[c][0]);
+  opts($('#to'), keys, DEF[c][1]);
+  calc();
+}
+function num(s){ s = String(s || '').trim().replace(/\s/g, ''); if (/,\d*$/.test(s) && s.indexOf('.') >= 0) s = s.replace(/\./g, ''); s = s.replace(',', '.'); return s === '' || isNaN(+s) ? NaN : +s; }
+function toC(v, u){ return u === 'C' ? v : u === 'F' ? (v - 32) * 5 / 9 : v - 273.15; }
+function fromC(v, u){ return u === 'C' ? v : u === 'F' ? v * 9 / 5 + 32 : v + 273.15; }
+function fmt(x){
+  if (!isFinite(x)) return '–';
+  const a = Math.abs(x);
+  if (a !== 0 && (a >= 1e12 || a < 1e-6)) return x.toExponential(6).replace('.', ',');
+  return x.toLocaleString('nl-NL', { maximumFractionDigits: a >= 100 ? 3 : 6 });
+}
+function calc(){
+  const C = CATS[cat], v = num($('#val').value), f = $('#from').value, t = $('#to').value;
+  if (isNaN(v)) { $('#res').textContent = '–'; $('#formula').textContent = 'Vul een getal in'; return; }
+  let r;
+  if (C.temp) r = fromC(toC(v, C.u[f]), C.u[t]);
+  else r = v * C.u[f] / C.u[t];
+  $('#res').textContent = fmt(r) + ' ' + t.replace(/^.*\((.*)\)$/, '$1');
+  $('#formula').textContent = fmt(v) + ' ' + f + ' = ' + fmt(r) + ' ' + t;
+}
+function swap(){ const f = $('#from').value; $('#from').value = $('#to').value; $('#to').value = f; calc(); }
+$('#cats').innerHTML = Object.keys(CATS).map(c => '<button role="radio" data-c="' + c + '" onclick="pickCat(this.dataset.c)">' + c + '</button>').join('');
+pickCat('Lengte');
+</script>
+</body>
+</html>

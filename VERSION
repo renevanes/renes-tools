@@ -3,6 +3,6 @@
 # NATIVE_LEVEL gaat alleen omhoog als de Java-code of het manifest verandert;
 # dan moet de telefoon een nieuwe APK installeren. Anders is het een stille
 # update van alleen de interface (web/index.html).
-VERSION_NAME=1.61
-VERSION_CODE=62
-NATIVE_LEVEL=57
+VERSION_NAME=1.62
+VERSION_CODE=63
+NATIVE_LEVEL=58

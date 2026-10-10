@@ -617,7 +617,7 @@ public class MainActivity extends Activity {
     // ---------- brug naar JavaScript ----------
 
     /** Alle functies voor de interface. Nieuwere onderdelen staan in FeatureBridge (eigen bestand). */
-    static final class Bridge extends PlayerBridge {
+    static final class Bridge extends SpotifyBridge {
         private final MainActivity a;
         private final Context ctx;
         static volatile boolean smsBusy = false;
@@ -1689,15 +1689,113 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String lockState() {
             try {
                 return new JSONObject().put("on", Lock.enabled(ctx)).put("locked", Lock.locked(ctx))
-                        .put("timeout", Lock.timeout(ctx)).put("secure", Lock.deviceSecure(ctx)).toString();
+                        .put("timeout", Lock.timeout(ctx)).put("secure", Lock.deviceSecure(ctx))
+                        .put("code", Lock.hasCode(ctx)).put("decoy", Lock.decoy(ctx)).put("bio", Lock.bioWithCode(ctx) && Lock.deviceSecure(ctx))
+                        .put("codeBio", Lock.bioWithCode(ctx)).put("wait", Lock.waitSeconds(ctx)).toString();
             } catch (Exception e) { return "{}"; }
         }
 
         @JavascriptInterface public void lockUnlock() {
+            if (Lock.hasCode(ctx)) { lockBio(); return; } // met app-code: alleen vingerafdruk/gezicht, nooit de pincode van de telefoon
             a.h.post(() -> Lock.prompt(a, "Rene's Tools ontgrendelen", (ok, msg) -> {
                 if (ok) { Lock.unlocked = true; a.js("onUnlocked", ""); }
                 else a.js("onLockFail", JSONObject.quote(msg == null ? "" : msg));
             }));
+        }
+
+        /** Vingerafdruk/gezicht naast de app-code (als dat aan staat). */
+        @JavascriptInterface public void lockBio() {
+            if (!Lock.hasCode(ctx) || !Lock.bioWithCode(ctx) || !Lock.deviceSecure(ctx)) return;
+            a.h.post(() -> Lock.promptBio(a, (ok, msg) -> {
+                if (ok) { Lock.unlocked = true; a.js("onUnlocked", ""); }
+                else if (msg != null) a.js("onLockFail", JSONObject.quote(msg));
+            }));
+        }
+
+        /**
+         * App-code proberen. Geeft "" (open), "neutral" (de neutrale versie gaat open) of een melding. Met de neutrale
+         * versie aan gaat elke verkeerde code (en tijdens een wachttijd ook de juiste) zonder melding naar de neutrale versie.
+         */
+        @JavascriptInterface public void lockTryCode(String code) {
+            final String cd = code == null ? "" : code;
+            new Thread(() -> { // het rekenwerk (PBKDF2) duurt even: niet de pagina laten wachten
+                String r;
+                if (!Lock.hasCode(ctx)) r = "Er is geen app-code ingesteld";
+                else {
+                    int t = Lock.tryCode(ctx, cd);
+                    if (t == Lock.OK) { Lock.unlocked = true; r = ""; a.js("onUnlocked", ""); }
+                    else if (Lock.decoy(ctx)) {
+                        r = "neutral";
+                        a.h.post(() -> {
+                            Lock.unlocked = false;
+                            try { a.startActivity(new Intent(a, NeutralActivity.class)); } catch (Exception ignored) { }
+                            a.finish();
+                            a.overridePendingTransition(0, 0);
+                        });
+                    } else {
+                        long w = Lock.waitSeconds(ctx);
+                        r = w > 0 ? "Te vaak een verkeerde code. Probeer het over " + (w >= 120 ? (w + 59) / 60 + " minuten" : w + " seconden") + " opnieuw." : "Verkeerde code";
+                    }
+                }
+                a.js("onLockResult", JSONObject.quote(r));
+            }, "lock-code").start();
+        }
+
+        /**
+         * App-code instellen of wijzigen. Eerst bevestigen met de schermvergrendeling van de telefoon (als die er is),
+         * anders met de huidige app-code (old). Antwoord via onSettingsChanged.
+         */
+        @JavascriptInterface public void lockCodeSet(String code, String old) {
+            if (!Lock.validCode(code)) { a.js("onSettingsChanged", JSONObject.quote("Gebruik 4 tot 12 cijfers")); return; }
+            confirmThen(old, "App-code instellen", () -> {
+                try { Lock.setCode(ctx, code); return ""; } catch (Exception e) { return e.getMessage() == null ? "Instellen lukt niet" : e.getMessage(); }
+            });
+        }
+
+        @JavascriptInterface public void lockCodeClear(String old) {
+            confirmThen(old, "App-code verwijderen", () -> { Lock.clearCode(ctx); return ""; });
+        }
+
+        @JavascriptInterface public void lockDecoySet(boolean on) {
+            if (!Lock.hasCode(ctx)) return;
+            Lock.prefs(ctx).edit().putBoolean("decoy", on).apply();
+        }
+
+        @JavascriptInterface public void lockCodeBio(boolean on) {
+            String r = Lock.enableBio(ctx, on);
+            a.js("onSettingsChanged", JSONObject.quote(r.isEmpty() ? (on ? "Vingerafdruk aan (een nieuw toegevoegde vingerafdruk zet hem weer uit)" : "Vingerafdruk uit") : r));
+        }
+
+        interface Change { String run(); }
+
+        /** Na bevestiging (schermvergrendeling, of de huidige app-code als de telefoon geen vergrendeling heeft) iets wijzigen. */
+        private void confirmThen(String old, String title, Change ch) {
+            if (Lock.deviceSecure(ctx)) {
+                a.h.post(() -> Lock.prompt(a, title, (ok, msg) -> {
+                    if (!ok) { a.js("onSettingsChanged", JSONObject.quote(msg == null ? "Niet bevestigd" : msg)); return; }
+                    Lock.unlocked = true;
+                    new Thread(() -> a.js("onSettingsChanged", JSONObject.quote(ch.run())), "lock-set").start(); // rekenwerk niet op de hoofdthread
+                }));
+                return;
+            }
+            new Thread(() -> {
+                String r;
+                if (Lock.hasCode(ctx) && Lock.tryCode(ctx, old == null ? "" : old) != Lock.OK) r = "De huidige app-code klopt niet (of even wachten na te vaak fout)";
+                else r = ch.run();
+                a.js("onSettingsChanged", JSONObject.quote(r));
+            }, "lock-set").start();
+        }
+
+        /** App-slot aan/uit op een telefoon zonder schermvergrendeling: bevestigen met de app-code. */
+        @JavascriptInterface public void lockSetCode(boolean on, String code) {
+            if (Lock.deviceSecure(ctx)) { lockSet(on); return; }
+            new Thread(() -> { // rekenwerk niet op de brug
+                if (!Lock.hasCode(ctx) || Lock.tryCode(ctx, code == null ? "" : code) != Lock.OK) { a.js("onSettingsChanged", JSONObject.quote("De app-code klopt niet (of even wachten na te vaak fout)")); return; }
+                Lock.prefs(ctx).edit().putBoolean("on", on).apply();
+                Lock.unlocked = true;
+                a.h.post(a::applySecure);
+                a.js("onSettingsChanged", JSONObject.quote(""));
+            }, "lock-set").start();
         }
 
         /** App-slot aan- of uitzetten; vraagt eerst de schermvergrendeling ter bevestiging. */

@@ -33,6 +33,15 @@
           <option value="0">Meteen</option><option value="30000">30 seconden</option><option value="60000">1 minuut</option>
           <option value="300000">5 minuten</option><option value="900000">15 minuten</option><option value="3600000">1 uur</option>
         </select></div>
+      <div class="row setrow"><span style="flex:1" id="st-code-state">Eigen app-code: uit</span>
+        <button class="big ghost" style="width:auto;padding:10px 18px" id="st-code-btn" onclick="stCodeSet()">Instellen</button></div>
+      <div id="st-code-more" style="display:none">
+        <label class="chk"><input type="checkbox" id="st-decoy" onchange="Android.lockDecoySet(this.checked); toast(this.checked ? 'Verkeerde code: de neutrale versie' : 'Verkeerde code: een melding')"> Bij een verkeerde code de neutrale versie tonen</label>
+        <p class="note" style="margin:2px 0 8px 30px">Zonder melding gaat de app dan open met alleen neutrale hulpmiddelen (Omrekenen) en zonder jouw gegevens. Sluit je die, dan staat de echte app weer op slot. Let op: meldingen, widgets en de zwevende speler van de app blijven gewoon zichtbaar, en na 5 keer fout opent een tijdje ook de juiste code de neutrale versie.</p>
+        <label class="chk"><input type="checkbox" id="st-codebio" onchange="Android.lockCodeBio(this.checked)"> Ook ontgrendelen met je vingerafdruk (werkt niet meer zodra er op de telefoon een vingerafdruk bijkomt)</label>
+        <button class="big ghost" style="margin-top:8px" onclick="stCodeClear()">App-code verwijderen</button>
+      </div>
+      <p class="note" id="st-code-note">Met een eigen app-code (4 tot 12 cijfers) ontgrendel je met die code in plaats van de pincode van de telefoon. Na 5 keer fout telt een tijdje geen enkele code.</p>
     </div>
 
     <div class="card">

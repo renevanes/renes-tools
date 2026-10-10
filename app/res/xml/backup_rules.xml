@@ -24,4 +24,6 @@
     <exclude domain="sharedpref" path="call_recordings.xml" />
     <exclude domain="sharedpref" path="crash.xml" />
         <exclude domain="sharedpref" path="intent_token.xml" />
+        <exclude domain="sharedpref" path="lock.xml" />
+        <exclude domain="sharedpref" path="spotify.xml" />
 </full-backup-content>

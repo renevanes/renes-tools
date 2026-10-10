@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.62",
+    "date": "2026-10-10",
+    "changes": [
+      "Nieuw: Spotify-backup. Bewaar al je eigen playlists (elke dag of week vanzelf), zie wat er veranderde en zet een playlist terug, ook een oudere versie of een verwijderde playlist",
+      "Spotify-backup komt ook in je backup-map: per playlist een CSV-bestand, spotify-backup.json en wijzigingen.txt",
+      "App-slot: nieuw een eigen app-code, met (instelbaar) bij een verkeerde code meteen een neutrale versie van de app met alleen Omrekenen",
+      "Vingerafdruk naast de app-code (optioneel); werkt niet meer zodra er een nieuwe vingerafdruk op de telefoon bijkomt"
+    ]
+  },
+  {
     "version": "1.61",
     "date": "2026-10-09",
     "changes": [

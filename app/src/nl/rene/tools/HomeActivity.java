@@ -434,17 +434,21 @@ public class HomeActivity extends Activity {
      * volgt de Android-instelling om een ander startscherm te kiezen (dat kan een app niet zelf).
      */
     void exitSkin() {
-        if (!Lock.deviceSecure(this)) { doExitSkin(); return; } // geen schermvergrendeling: niets om mee te bevestigen
+        // Met een eigen app-code: de app vraagt zelf de code (nooit de pincode van de telefoon), hier niet ontgrendelen
+        final boolean code = Lock.hasCode(this); // met app-code: de app vraagt daarna zelf de code (hier nooit ontgrendelen)
+        if (!Lock.deviceSecure(this)) { doExitSkin(!code); return; } // geen schermvergrendeling: niets om mee te bevestigen
         Lock.prompt(this, "Skin afsluiten", (ok, msg) -> h.post(() -> {
-            if (ok) doExitSkin();
+            if (ok) doExitSkin(!code);
             else if (msg != null && !msg.isEmpty()) toast(msg);
         }));
     }
 
-    private void doExitSkin() {
+    private void doExitSkin(boolean confirmed) {
         boolean def = Launcher.isDefaultHome(this);
-        Lock.unlocked = true; // net bevestigd: de app niet nog een keer laten vragen
-        Lock.hiddenAt = 0;
+        if (confirmed) {
+            Lock.unlocked = true; // net bevestigd: de app niet nog een keer laten vragen
+            Lock.hiddenAt = 0;
+        }
         openTool("");
         if (def) {
             try { startActivity(new Intent(android.provider.Settings.ACTION_HOME_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { }

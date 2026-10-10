@@ -1,15 +1,25 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.61",
-  "versionCode": 62,
-  "nativeLevel": 57,
+  "versionName": "1.62",
+  "versionCode": 63,
+  "nativeLevel": 58,
   "web": "index.html",
-  "webSha256": "3988668a54346992611f8a63fc3c7673b03570fcbb94b7bea2fd083df744d615",
+  "webSha256": "7d25f8bdcf198753381b80e68f5301ff42b2f2698b77c6eee663ace041a844b5",
   "start": "start.html",
   "startSha256": "e579a294c436b49185bb76e16fc1d5837a7f34f9ba978d76286cb0fc2cad3b76",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "80f65d1c830f2f787804fb51c79194ac666ed60ac72e4550ade96cdcef3d5c87",
+  "apkSha256": "c8ceabbf0d7a23bfc629848454ffc6db2e8c7fd5551773510f782ec07f082a56",
   "changelog": [
+    {
+      "version": "1.62",
+      "date": "2026-10-10",
+      "changes": [
+        "Nieuw: Spotify-backup. Bewaar al je eigen playlists (elke dag of week vanzelf), zie wat er veranderde en zet een playlist terug, ook een oudere versie of een verwijderde playlist",
+        "Spotify-backup komt ook in je backup-map: per playlist een CSV-bestand, spotify-backup.json en wijzigingen.txt",
+        "App-slot: nieuw een eigen app-code, met (instelbaar) bij een verkeerde code meteen een neutrale versie van de app met alleen Omrekenen",
+        "Vingerafdruk naast de app-code (optioneel); werkt niet meer zodra er een nieuwe vingerafdruk op de telefoon bijkomt"
+      ]
+    },
     {
       "version": "1.61",
       "date": "2026-10-09",
@@ -564,5 +574,5 @@
       ]
     }
   ],
-  "webSig2": "DAu7JF5UDxDxVpa/ZK3pM6ajDHO3gAw3Yx5z2gJV7jkAEyA3CPJsh2Vby25cucnpKSS0XQzGJz+GCsrZ1ljAASmAkGCJ7VF99ehh+ifv0gkLt6GrTElHyOsaGS1JaMlsBG8AEIbb9vXC77I6gM/gJzXSGGF/PrX6cybjt3F7K+Sirn/wkz0i+RdiX1fdK4OyPgfXqxA/mu1QK2IllhYcB0+6EBMEiwFhyQEmke4wP/MMusBx6YCZ+tLkBdSmRiYf45zFY2SJROB8KBfktoEieF0Veh2fPUECq1keFLPkp/IiJFwgJoNLUByTFVk4QRdPtkFllbtjyKi4o1/OuWaNAHjMEIY0qVDIAwrgghvQG5RVEKcHucJssEIGOSwVwXd7K5pNPZ2+49eN1jD+qS+QTVm0pc0g9+MZBePPj67NlY0K+2ebN/uRysUrK5jhq1m+f5QiT3ucZCy+J1TMrvXKsdY0baUXfEoEkefn6NLh+ZlV3Iu16j8wBRCAzIRki/op"
+  "webSig2": "D2N8lL91v+VGPracZLDkTn114JIoF8bzHWkSWTZlejx9BO6VVjTJez29aranmwUAwWJWj2iRxNFOmRiGmfJxrZA9ufjdc9oDgNDm2pIytPA4LH8cQz3d7p+WW6bseVBItBC1W+UnfZjn4sszl21tCECqGwlQrN2TqsqZZoieDx+3ur0v4fAPWHOqx7FMYQH0qNzfaa05AXaJEsIQN5xW0EJXx+Sqs/6XcHbzbXm+k6Ubck+i/8o0gowHLB+83APAbulEFvJBfXCyazpH7HVva53pPMf+e2gjnRZl8eRjRrLp9/qVF7pFRAnMZBaG3PEbsuweTKQ3ote6ZP073JZ49GnfkrELuwgTO33hBqFLDOKCrV5lANwiZ/acLU3uy2NF+c9r5hKPNE3m5w2x4bn7hio14Xs9k169qi5HmbTXiv796qRN8L89RHK40vg6Lmprijm3j4hB+xfWwZo2zeqc+fWx+boIJCdajuYHi+d0od6B6VV2mKatEKEpA+n/56E6"
 }

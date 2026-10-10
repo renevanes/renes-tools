@@ -30,6 +30,12 @@ public class NoteWidgetConfig extends Activity {
         // Afbreken (terug) = widget niet plaatsen
         setResult(RESULT_CANCELED, new Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId));
         if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) { finish(); return; }
+        if (Lock.wouldLock(this) && Lock.hasCode(this)) {
+            // Met een app-code geen lijstjes tonen na de pincode van de telefoon: eerst de app ontgrendelen
+            android.widget.Toast.makeText(this, "Ontgrendel eerst Rene's Tools met je app-code en plaats het widget daarna", android.widget.Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
         if (Lock.wouldLock(this)) {
             // Alleen voor dit scherm bevestigen; de app zelf blijft op slot zoals hij was
             if (Lock.authBusy) { finish(); return; }

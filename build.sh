@@ -31,6 +31,7 @@ mkdir -p $B/assets/vendor
 cp web/vendor/leaflet.js web/vendor/leaflet.css $B/assets/vendor/
 cp web/ontsleutelen.html $B/assets/
 cp web/start.html $B/assets/
+cp web/neutraal.html $B/assets/
 
 # 2. Versie-informatie voor de Java-code
 cat > $B/gen/Version.java <<JAVA
