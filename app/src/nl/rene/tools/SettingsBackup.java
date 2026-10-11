@@ -35,6 +35,7 @@ final class SettingsBackup {
     static final String[][] KEEP = {
             {"auto", "rules"},
             {"radio", "favs"},
+            {"mockloc", "places"},
             {"alarm", null},
             {"redialplan", "plan"},
             {"reminders", null},

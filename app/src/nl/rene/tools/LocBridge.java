@@ -45,7 +45,8 @@ public class LocBridge extends VpnBridge {
 
     /** Adres zoeken; antwoord via onLocSearch({q, results:[{name, lat, lng}]} of {q, error}). */
     @JavascriptInterface public void locSearch(final String q) {
-        if (q == null || q.trim().isEmpty() || q.length() > 200) return;
+        if (q == null || q.trim().isEmpty()) return;
+        if (q.length() > 200) { try { a.js("onLocSearch", new JSONObject().put("q", q).put("error", "Zoekopdracht is te lang").toString()); } catch (Exception ignored) { } return; }
         new Thread(() -> {
             JSONObject r = new JSONObject();
             try {
@@ -57,7 +58,7 @@ public class LocBridge extends VpnBridge {
                 if (l != null) for (Address ad : l) {
                     if (!ad.hasLatitude() || !ad.hasLongitude()) continue;
                     StringBuilder n = new StringBuilder();
-                    for (int i = 0; i <= ad.getMaxAddressLineIndex() && i < 2; i++) { if (n.length() > 0) n.append(", "); n.append(ad.getAddressLine(i)); }
+                    for (int i = 0; i <= ad.getMaxAddressLineIndex() && i < 2; i++) { String al = ad.getAddressLine(i); if (al == null) continue; if (n.length() > 0) n.append(", "); n.append(al); }
                     if (n.length() == 0 && ad.getFeatureName() != null) n.append(ad.getFeatureName());
                     out.put(new JSONObject().put("name", n.toString()).put("lat", ad.getLatitude()).put("lng", ad.getLongitude()));
                 }

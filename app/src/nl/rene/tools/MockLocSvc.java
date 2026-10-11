@@ -31,7 +31,7 @@ public class MockLocSvc extends Service {
     static volatile boolean running;
     static volatile String error;
 
-    private final Handler h = new Handler(Looper.getMainLooper());
+    final Handler h = new Handler(Looper.getMainLooper());
     private final List<String> providers = new ArrayList<>();
     private LocationManager lm;
     private double baseLat, baseLng, dLat, dLng;
@@ -44,9 +44,10 @@ public class MockLocSvc extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        startFg();
+        boolean fg = startFg();
         String a = intent == null ? START : intent.getAction();
         if (STOP.equals(a)) { stopMock(); return START_NOT_STICKY; }
+        if (!fg) { error = "Android liet de neplocatie niet doorlopen (vanaf de achtergrond)"; stopMock(); return START_NOT_STICKY; }
         baseLat = MockLoc.lat(this); baseLng = MockLoc.lng(this);
         if (!MockLoc.validLatLng(baseLat, baseLng)) { stopMock(); return START_NOT_STICKY; }
         dLat = 0; dLng = 0;
@@ -58,13 +59,13 @@ public class MockLocSvc extends Service {
         return START_STICKY;
     }
 
-    private void startFg() {
+    private boolean startFg() {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel ch = new NotificationChannel(CHANNEL, "Locatie kiezen", NotificationManager.IMPORTANCE_LOW);
             ch.setShowBadge(false);
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
         }
-        Fg.start(this, NOTIF_ID, notif(), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION, 29);
+        return Fg.start(this, NOTIF_ID, notif(), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION, 29);
     }
 
     private Notification notif() {
@@ -120,8 +121,11 @@ public class MockLocSvc extends Service {
     }
 
     /** Plek doorgeven (elke seconde; met "een beetje bewegen" een paar meter heen en weer). */
+    private int pushes;
+
     private void push() {
         if (!running) return;
+        if (++pushes % 10 == 0 && !MockLoc.allowed(this)) { error = "Rene's Tools is geen app voor neplocatie meer"; stopMock(); return; }
         double lat = baseLat, lng = baseLng;
         if (MockLoc.prefs(this).getBoolean("jitter", true)) {
             dLat = clamp(dLat + (rnd.nextDouble() - .5) * 0.000012, 0.00003);
@@ -149,6 +153,7 @@ public class MockLocSvc extends Service {
         running = false;
         h.removeCallbacks(push);
         removeProviders();
+        MockLoc.prefs(this).edit().putBoolean("active", false).apply();
         try { if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE); else stopForeground(true); } catch (Exception ignored) { }
         notifyChanged();
         stopSelf();

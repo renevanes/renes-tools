@@ -44,7 +44,7 @@ final class MockLoc {
         if (!allowed(c)) return "mock";
         String n = name == null ? "" : name.trim();
         if (n.length() > 60) n = n.substring(0, 60);
-        prefs(c).edit().putString("lat", Double.toString(lat)).putString("lng", Double.toString(lng)).putString("name", n).apply();
+        prefs(c).edit().putString("lat", Double.toString(lat)).putString("lng", Double.toString(lng)).putString("name", n).putBoolean("active", true).apply();
         addRecent(c, lat, lng, n);
         Intent i = new Intent(c, MockLocSvc.class).setAction(MockLocSvc.START);
         try {
@@ -57,7 +57,31 @@ final class MockLoc {
 
     static void stop(Context c) {
         MockLocSvc s = MockLocSvc.inst;
-        if (s != null) s.stopMock();
+        if (s != null) s.h.post(s::stopMock); // op de hoofdthread, net als het doorgeven
+        else cleanup(c);
+    }
+
+    /**
+     * Testlocaties van Android weghalen zonder de dienst. Nodig als de app stopte zonder op te ruimen (update,
+     * geforceerd stoppen, vastlopen): Android ruimt ze zelf pas op bij een herstart, en tot dan blijft de telefoon
+     * op de laatste neplocatie staan.
+     */
+    static void cleanup(Context c) {
+        android.location.LocationManager lm = (android.location.LocationManager) c.getSystemService(Context.LOCATION_SERVICE);
+        java.util.List<String> ps = new java.util.ArrayList<>();
+        ps.add(android.location.LocationManager.GPS_PROVIDER);
+        ps.add(android.location.LocationManager.NETWORK_PROVIDER);
+        if (Build.VERSION.SDK_INT >= 31) ps.add(android.location.LocationManager.FUSED_PROVIDER);
+        for (String p : ps) {
+            try { lm.setTestProviderEnabled(p, false); } catch (Exception ignored) { }
+            try { lm.removeTestProvider(p); } catch (Exception ignored) { }
+        }
+        prefs(c).edit().putBoolean("active", false).apply();
+    }
+
+    /** Na een update of herstart: stond hij nog aan zonder dienst? Dan opruimen. */
+    static void cleanupIfStale(Context c) {
+        if (prefs(c).getBoolean("active", false) && !MockLocSvc.running) cleanup(c);
     }
 
     static double lat(Context c) { try { return Double.parseDouble(prefs(c).getString("lat", "")); } catch (Exception e) { return Double.NaN; } }
@@ -108,6 +132,7 @@ final class MockLoc {
     static JSONObject state(Context c) {
         JSONObject o = new JSONObject();
         try {
+            cleanupIfStale(c);
             double la = lat(c), ln = lng(c);
             o.put("on", MockLocSvc.running).put("allowed", allowed(c)).put("dev", devOptionsOn(c)).put("perm", Auto.fineOk(c))
                     .put("name", prefs(c).getString("name", "")).put("jitter", prefs(c).getBoolean("jitter", true))

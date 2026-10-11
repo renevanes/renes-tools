@@ -28,7 +28,7 @@ function lcRender(){
   $('#lc-recent').innerHTML = rc.map((p, i) => row(p, 'r', i)).join('');
   if (!lcPt && st.lat != null) lcSet(st.lat, st.lng, st.name || '', false);
 }
-window.onLocChanged = function(){ if (current === 'loc') lcRender(); };
+window.onLocChanged = function(){ if (current === 'loc') lcRender(); if (current === 'home') refreshLocTile(); };
 
 function lcMapInit(){
   if (typeof L === 'undefined' || current !== 'loc') return;
@@ -60,8 +60,8 @@ function lcGo(){
   if (r === 'perm') { toast('Sta eerst locatie toe'); Android.autoPerm('loc'); return; }
   if (r === 'mock') { toast('Kies Rene\'s Tools eerst als app voor neplocatie (zie Eenmalig instellen)'); lcRender(); $('#lc-setup').scrollIntoView({ behavior: 'smooth' }); return; }
   if (r) { toast(r); return; }
-  toast('📍 Je telefoon staat nu op ' + (lcName || lcFmt(lcPt.lat, lcPt.lng)));
-  setTimeout(lcRender, 400);
+  const where = lcName || lcFmt(lcPt.lat, lcPt.lng);
+  setTimeout(() => { lcRender(); if (lcSt.on) toast('📍 Je telefoon staat nu op ' + where); else if (lcSt.error) toast(lcSt.error); }, 600);
 }
 function lcStop(){ Android.locStop(); toast('Weer je echte locatie'); setTimeout(lcRender, 300); }
 
@@ -78,8 +78,10 @@ function lcSavePlace(){
 
 /* zoeken: coördinaten (ook uit een kaartlink) direct, anders adres via Android */
 function lcCoords(q){
+  try { q = decodeURIComponent(q); } catch (e) { /* zoals het is */ }
+  q = q.replace(/^\s*geo:/i, '').replace(/\+(?=\d)/g, '');
   const m = /@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/.exec(q) || /[?&](?:q|ll|query)=(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/.exec(q)
-    || /^\s*(-?\d{1,2}\.\d+)\s*[,;\s]\s*(-?\d{1,3}\.\d+)\s*$/.exec(q) || /^\s*(-?\d{1,2},\d+)\s*[;\s]\s*(-?\d{1,3},\d+)\s*$/.exec(q);
+    || /^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)(?:[;?].*)?\s*$/.exec(q) || /^\s*(-?\d{1,2},\d+)\s*[;\s]\s*(-?\d{1,3},\d+)\s*$/.exec(q);
   if (!m) return null;
   const lat = parseFloat(m[1].replace(',', '.')), lng = parseFloat(m[2].replace(',', '.'));
   return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 ? { lat, lng } : null;
@@ -114,8 +116,7 @@ setTimeout(function(){ // na het laden van alle scripts (Automatiseren definieer
   window.onAutoHere = function(r){
     if (lcHereWait) {
       lcHereWait = false; $('#lc-here').textContent = '◎ Waar ben ik?';
-      if (current === 'loc') { if (!r || r.error) toast(r && r.error && r.error !== 'perm' ? r.error : 'Geen locatie gevonden'); else lcSet(r.lat, r.lng, '', true); }
-      return;
+      if (current === 'loc') { if (!r || r.error) toast(r && r.error && r.error !== 'perm' ? r.error : 'Geen locatie gevonden'); else lcSet(r.lat, r.lng, '', true); return; }
     }
     if (prev) prev(r);
   };

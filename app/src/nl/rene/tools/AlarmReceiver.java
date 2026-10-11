@@ -55,6 +55,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         AutoActions.armTimes(c);
         AutoActions.armCharge(c);
         Vpn.armAuto(c);
+        MockLoc.cleanupIfStale(c); // na een update of herstart geen neplocatie laten hangen
         setSentinel(c);
     }
 
