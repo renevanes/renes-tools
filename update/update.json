@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.64",
-  "versionCode": 65,
-  "nativeLevel": 60,
+  "versionName": "1.65",
+  "versionCode": 66,
+  "nativeLevel": 61,
   "web": "index.html",
-  "webSha256": "d0c8ffd5368b2742bb94c986bdbb6310176621b4383562c010e285522c817ee8",
+  "webSha256": "6fce0f169db5bc4e372d5d03828c6458a09c7c1c67cc2eb8a5dc691a6629774c",
   "start": "start.html",
   "startSha256": "e579a294c436b49185bb76e16fc1d5837a7f34f9ba978d76286cb0fc2cad3b76",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3d43892e07d6d255ec8173f57a812a7554815d91005e0ed3a74d4ed0031d3b63",
+  "apkSha256": "6f39ee3ccd87ad137054482679c14f28bd4d94b60324ed34c61b4f601ad502ec",
   "changelog": [
+    {
+      "version": "1.65",
+      "date": "2026-10-11",
+      "changes": [
+        "Nieuw: Locatie kiezen — zet je telefoon op een plek die je zelf kiest (kaart, adres of coördinaten), met bewaarde plekken; eenmalig instellen via de ontwikkelaarsopties"
+      ]
+    },
     {
       "version": "1.64",
       "date": "2026-10-11",
@@ -595,5 +602,5 @@
       ]
     }
   ],
-  "webSig2": "rBJ2IOur8zWZSgPc4WjnkLNI392xje0zi/cY2MJj9MemH00h5gckkM/pIZByvBqh99OUXIywZ2WTcMlUk71XvEwVb1/f5N4MXMysYBpqoCbwqp1SdyGTEi668yue6LycsB2kBktGQUOi+WX9WKVKuBQTn6xogObyzAMuBE7mk1SX0yCZXtM0XrCoa8RuPsOMZw+f2gP9EnYTYoVP4l1y2ameXB2whUWxzNoGFFPewtyRLPBLY9g0MMyhTyeBeL3qwKsjLjlgbl3/d1j7Ze0iN6IZ9zLQtJzXgutduhxva8vvfpPLJeuX43fw1I/4SBOWG28y9+xpJqmUAj4YEnWfle842E2NwRR9zVLyck8xXzg5gWE+xVg6r8ffkAQ8KoSE+zPkIrI8CrSMWhXordWmf6bwyPQjWMY6pX5OojWzYT9WvkQ/uE1NkQ7yelzh7MZh01jQemZ/fahRVn7P8J23lbhQmUnXv0f+apKbMGPURCwsmhAB9fttPPE4urFzC5y3"
+  "webSig2": "ARc2mUPYa7uvPTZ3qSIuOlC86iEAkIC7aM/FOD2TXHsRrwp5DQlwsC79KwYPN0zmSEHZtsFOg3myNW5I1pvoafNKqe4qa+g71vueSEqqfOtV6+1Vwrm/FY4Xssu1EYNxnqfm4kK+AwgIXXtMGlw+rmFbhhpK+rBQs2cjzwsBxlOqH88KMQFDpSGPkZp3gwsJUsWh3/V3dSjfTyCn811UhyHZxxo5x7UmB8C4bBNXZkJG81LBB/o3ivj09YrMLv+6h2YUOBVyJR5m/BDyHAeNcmT+LMSGoohiJCokmrvZAGfz6GKZ3dHGJLVn+F7UYsQVRxjIDVAWGbz3opts8CqQeUxqyZZPTn+vpPrV5tcXww3pIZHqd4CMNWYg1jF81OY2f/yB8U9QpflUEgNDpVtW7dYDmQuHJf0aHmo8JpODxWbdknPDeSEnlxatTyiejUhQNVhKrHPW3/5v3ATbmaN+XC4wW8pFJ6vHek1lWlGaq8gLUgqOcXGWosH21Gqn0d00"
 }

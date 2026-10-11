@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.65",
+    "date": "2026-10-11",
+    "changes": [
+      "Nieuw: Locatie kiezen — zet je telefoon op een plek die je zelf kiest (kaart, adres of coördinaten), met bewaarde plekken; eenmalig instellen via de ontwikkelaarsopties"
+    ]
+  },
+  {
     "version": "1.64",
     "date": "2026-10-11",
     "changes": [
