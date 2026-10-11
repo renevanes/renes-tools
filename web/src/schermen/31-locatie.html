@@ -1,0 +1,55 @@
+<!-- ============ LOCATIE KIEZEN (neplocatie) ============ -->
+<section class="screen" id="s-loc">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Locatie kiezen</h1>
+  </div>
+  <main>
+    <!-- Eenmalig instellen -->
+    <div class="card" id="lc-setup" style="display:none">
+      <h2>Eenmalig instellen</h2>
+      <p class="note" style="margin-top:0">Android laat alleen een app die je zelf aanwijst de locatie doorgeven. Dat gaat via de ontwikkelaarsopties:</p>
+      <ol class="spsteps">
+        <li id="lc-step-dev">Zet de <b>ontwikkelaarsopties</b> aan: Instellingen → <b>Over het apparaat</b> → <b>Versie</b> → tik <b>7 keer</b> op <b>Buildnummer</b>. <button class="mini" style="float:none" onclick="Android.locAboutPhone()">Openen</button></li>
+        <li>Open de <b>ontwikkelaarsopties</b> (Instellingen → Aanvullende instellingen → Ontwikkelaarsopties). <button class="mini" style="float:none" onclick="Android.locDevSettings()">Openen</button></li>
+        <li>Tik op <b>App voor neplocatie selecteren</b> en kies <b>Rene's Tools</b>.</li>
+        <li>Kom terug naar deze app.</li>
+      </ol>
+      <p class="note" id="lc-setup-state" role="status" aria-live="polite"></p>
+    </div>
+
+    <div class="card" id="lc-status">
+      <div class="row" style="align-items:center;gap:14px">
+        <span class="vpdot" id="lc-dot" aria-hidden="true"></span>
+        <div style="flex:1;min-width:0"><b id="lc-title">Echte locatie</b><small class="note" style="display:block;margin:0" id="lc-sub" role="status" aria-live="polite"></small></div>
+      </div>
+      <button class="big ghost" id="lc-stop" style="margin-top:12px;display:none" onclick="lcStop()">Terug naar echte locatie</button>
+    </div>
+
+    <div class="card">
+      <div class="row" style="gap:8px">
+        <input class="search" id="lc-q" type="search" placeholder="Adres, plaats of coördinaten" aria-label="Zoek een plek" style="flex:1;margin:0" onkeydown="if(event.key==='Enter')lcSearch()">
+        <button class="mini" style="float:none;align-self:center" onclick="lcSearch()">Zoeken</button>
+      </div>
+      <div id="lc-results"></div>
+      <div id="lc-map" class="lmap" style="margin-top:10px" role="application" aria-label="Kaart: tik om de plek te kiezen"></div>
+      <p class="note" id="lc-pick" style="margin-bottom:0">Tik op de kaart om een plek te kiezen.</p>
+      <button class="big" id="lc-go" style="margin-top:10px" onclick="lcGo()" disabled>📍 Hier zetten</button>
+      <div class="row" style="gap:8px;margin-top:8px">
+        <button class="big ghost" style="flex:1;font-size:15px;padding:12px" onclick="lcSavePlace()">★ Plek bewaren</button>
+        <button class="big ghost" style="flex:1;font-size:15px;padding:12px" id="lc-here" onclick="lcHere()">◎ Waar ben ik?</button>
+      </div>
+      <label class="chk" style="margin-top:6px"><input type="checkbox" id="lc-jitter" onchange="Android.locJitter(this.checked)"> Een paar meter bewegen (natuurlijker)</label>
+    </div>
+
+    <div id="lc-placeswrap" style="display:none">
+      <div class="flabel" style="margin:4px 2px 8px">Bewaarde plekken</div>
+      <div class="card stations" id="lc-places"></div>
+    </div>
+    <div id="lc-recentwrap" style="display:none">
+      <div class="flabel" style="margin:4px 2px 8px">Laatst gebruikt</div>
+      <div class="card stations" id="lc-recent"></div>
+    </div>
+    <p class="note" style="margin:4px 4px 16px">Alle apps zien dan deze plek, ook Rene's Tools zelf (routes, automatiseringen, wifi-herkenning van de VPN). Sommige apps (bank, spellen) merken dat het een neplocatie is. Je echte locatie komt terug zodra je stopt.</p>
+  </main>
+</section>

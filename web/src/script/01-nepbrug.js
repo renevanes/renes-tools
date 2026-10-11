@@ -289,6 +289,14 @@ if (!window.Android) window.Android = (function(){
     spotifyVersions(id){ return JSON.stringify(id === 'p1' ? [{ t: Date.now(), snap: 's2', n: 3, name: 'Roadtrip', plus: 1, min: 0, ok: true }, { t: Date.now() - 864e5, snap: 's1', n: 2, name: 'Roadtrip', ok: true }] : [{ t: Date.now(), snap: 'x', n: 2, name: 'x', ok: true }]); },
     spotifyTracks(id, snap){ return JSON.stringify({ total: 2, items: [{ u: 'spotify:track:a', n: 'Radar Love', a: 'Golden Earring' }, { u: 'spotify:local:x', n: 'Eigen opname', a: '', l: true }] }); },
     spotifyRestore(id, snap, mode){ this._spRestored = [id, snap, mode]; setTimeout(() => onSpotifyRestored({ id: 'new1', added: 1, skipped: 1, name: 'Roadtrip', url: 'https://open.spotify.com/playlist/new1' }), 100); },
+    // Locatie kiezen
+    _lc: { on: false, allowed: false, dev: false, perm: true, jitter: true, places: [], recent: [], name: '', lat: null, lng: null },
+    locState(){ const l = this._lc; const o = Object.assign({}, l); if (l.lat == null) { delete o.lat; delete o.lng; } return JSON.stringify(o); },
+    locStart(lat, lng, name){ const l = this._lc; if (!l.perm) return 'perm'; if (!l.allowed) return 'mock'; Object.assign(l, { on: true, lat, lng, name: name || '' }); l.recent = [{ lat, lng, name: name || '' }].concat(l.recent.filter(p => p.lat !== lat || p.lng !== lng)).slice(0, 8); setTimeout(() => onLocChanged(), 50); return ''; },
+    locStop(){ this._lc.on = false; setTimeout(() => onLocChanged(), 50); }, locJitter(on){ this._lc.jitter = on; },
+    locSave(n, lat, lng){ if (!String(n || '').trim()) return 'Geef de plek een naam'; this._lc.places.push({ name: n.trim(), lat, lng }); return ''; }, locDelete(i){ this._lc.places.splice(i, 1); },
+    locDevSettings(){ this._lc.dev = true; this._lc.allowed = true; }, locAboutPhone(){ this._lc.dev = true; },
+    locSearch(q){ setTimeout(() => onLocSearch(/nergens/.test(q) ? { q, results: [] } : { q, results: [{ name: 'Coolsingel 40, 3011 AD Rotterdam', lat: 51.9225, lng: 4.4792 }, { name: 'Coolsingel, Rotterdam', lat: 51.9205, lng: 4.4782 }] }), 80); },
     // VPN
     _vp: { tun: [], on: false, status: 'off', id: '', active: '', auto: { wifi: false, home: true, mobile: false, trusted: [] }, ssid: 'Thuisnetwerk', consent: false, rx: 0, tx: 0, err: '' },
     vpnState(){ const v = this._vp; return JSON.stringify({ on: v.on, status: v.status, id: v.on ? v.id : '', name: v.on ? (v.tun.find(t => t.id === v.id) || {}).name : '', error: v.err, since: Date.now(), reason: v.on ? 'app' : '', active: v.active || (v.tun[0] || {}).id || '', consent: v.consent, rx: v.rx, tx: v.tx, handshake: v.on && v.status === 'connected' ? Date.now() - 4000 : 0, endpoint: v.on ? '203.0.113.5:51820' : '', alwaysOn: v.on ? false : undefined, lockdown: false, auto: v.auto, ssid: v.ssid, wifi: true, locOk: true, bgLocOk: !!this._vpBg }); },

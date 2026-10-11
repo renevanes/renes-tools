@@ -140,6 +140,12 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Altijd aan en kill switch: via de VPN-instellingen van Android (Altijd-aan VPN + Verbindingen zonder VPN blokkeren); Android start de tunnel dan zelf.
 - Bij wifi ↔ mobiel: nieuwe socket en meteen een nieuwe handshake. Ondersteunt meerdere peers, PresharedKey, PersistentKeepalive, IPv6, DNS en zoekdomeinen, MTU en Excluded/IncludedApplications.
 
+## Locatie kiezen (neplocatie)
+- Kies een plek op de kaart (tikken), zoek een adres (Geocoder van Android) of plak coördinaten of een kaartlink (`@52.37,4.89`); tik op **Hier zetten**. Alle apps zien dan die plek, tot je op **Terug naar echte locatie** tikt of in de melding op Stoppen.
+- `MockLocSvc` geeft elke seconde de plek door als testlocatie voor gps, netwerk en (Android 12+) fused; optioneel een paar meter bewegen zodat het natuurlijker oogt. Voorgronddienst van het type locatie, met melding.
+- Eenmalig instellen: ontwikkelaarsopties aan (7× op Buildnummer) en Rene's Tools kiezen bij **App voor neplocatie selecteren**; het scherm ziet zelf of dat gelukt is (`AppOpsManager`) en heeft knoppen naar die instellingen.
+- Plekken bewaren met een naam, en de laatst gebruikte plekken staan onderaan.
+
 ## Muziek herkennen
 - Eigen "SoundHound": 10 seconden opnemen via de microfoon (`MediaRecorder`, AAC) of rechtstreeks een stukje van de radiostream ophalen, en dat laten herkennen door [AudD](https://audd.io) met de eigen API-sleutel van de gebruiker (300 gratis, daarna betaald). Een app kan dit niet zelf: daarvoor is een database van tientallen miljoenen nummers nodig (`Music.java`).
 - Resultaat met hoes, album en jaar en links naar Spotify, Apple Music, YouTube Music en alle diensten (song.link). Geschiedenis (max. 500) lokaal, doorzoekbaar.

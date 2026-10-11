@@ -33,6 +33,8 @@
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
     <!-- VPN: QR-code van de WireGuard-configuratie scannen (alleen als je daar zelf op tikt) -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Locatie kiezen: nodig om in Ontwikkelaarsopties als "app voor neplocatie" te kunnen kiezen -->
+    <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" />
     <!-- Zwevende speler boven andere apps (alleen als je die zelf aanzet) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Automatiseringen: plekken op de achtergrond en de Bluetooth van de auto -->
@@ -215,6 +217,8 @@
             <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
         </service>
         <receiver android:name=".VpnNet" android:exported="false" />
+        <!-- Locatie kiezen: geeft de gekozen plek door zolang hij aan staat -->
+        <service android:name=".MockLocSvc" android:exported="false" android:foregroundServiceType="location" />
 
         <!-- Houdt de verbinding met een Chromecast open terwijl daar iets speelt -->
         <service android:name=".CastService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
