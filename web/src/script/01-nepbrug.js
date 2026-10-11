@@ -302,6 +302,7 @@ if (!window.Android) window.Android = (function(){
     musicState(){ const m=this._mu; return JSON.stringify(Object.assign({used:m.used,hasToken:!!m.token},m.st)); },
     musicHistory(){ return JSON.stringify(this._mu.hist); }, musicDelete(t){ this._mu.hist=this._mu.hist.filter(r=>String(r.t)!==t); },
     shortcutPin(t,l){ return ''; }, shortcutPinStation(j){ return ''; }, shortcutsDynamic(j){ this._dyn=j; },
+    shortcutPinPodcast(j){ this._pinned='pod|'+JSON.parse(j).feed; return ''; }, shortcutPinPlayer(){ this._pinned='player'; return ''; },
     _st:{lock:false,timeout:60000,crashes:0},
     settingsInfo(){ const t=this._st; return JSON.stringify({dest:this._wa.info.dest,destName:'USB-stick',audd:this._mu.token?'abc…xyz':'',crashes:t.crashes,lock:JSON.parse(this.lockState()),
       perms:[{id:'phone',name:'Bellen',used:'Auto redial',ok:true},{id:'mic',name:'Microfoon',used:'Muziek herkennen',ok:this._mu.mic},{id:'files',name:'Alle bestanden',used:'WhatsApp backup, Gesprekken',ok:false}]}); },

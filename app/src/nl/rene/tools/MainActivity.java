@@ -177,7 +177,7 @@ public class MainActivity extends Activity {
         if (b == null && !fromHistory && takeShare(getIntent())) pendingOpen = "share";
         Shortcuts.refreshPinned(this);
         if (!Kluis.isOpen()) Kluis.clearViews(this); // tijdelijk ontsleutelde documenten van een eerdere keer opruimen
-        playFromShortcut(getIntent());
+        if (b == null && !fromHistory) playFromShortcut(getIntent()); // niet opnieuw afspelen bij terugkomen via Recents
         if (b == null && !fromHistory) RedialPlan.startMissed(this, getIntent());
         // Met app-slot: niets van de inhoud laten zien voordat het slotscherm er staat (anders flitst het startscherm).
         if (Lock.active(this)) {
@@ -280,6 +280,19 @@ public class MainActivity extends Activity {
         if (play == null) return;
         try {
             JSONObject s = new JSONObject(play);
+            // Speler-snelkoppelingen (alleen onze eigen, met het geheim van deze installatie)
+            if (s.has("pod") || s.optBoolean("resume")) {
+                if (App.tokenOk(this, i)) {
+                    final Context app = getApplicationContext();
+                    if (s.optBoolean("resume")) new Thread(() -> { Player.Now n = Player.now(app); if (n != null && !n.playing) Player.playPause(app); }, "resume").start();
+                    else {
+                        final JSONObject pod = s.getJSONObject("pod");
+                        new Thread(() -> { String err = Podcasts.playFromShortcut(app, pod); if (err != null) js("toast", JSONObject.quote(err)); }, "pod-shortcut").start();
+                    }
+                }
+                i.removeExtra("play");
+                return;
+            }
             String url = s.optString("url").toLowerCase();
             if (!url.startsWith("http://") && !url.startsWith("https://")) return;
             // Alleen onze eigen snelkoppelingen, of (oude snelkoppelingen) een zender uit je favorieten
@@ -2179,6 +2192,24 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public String notePins(String where) { return Notes.pinned(ctx, where).toString(); }
         @JavascriptInterface public void notePinSet(String where, String id, boolean on) { Notes.setPinned(ctx, where, id, on); }
+
+        /** Een podcast op het startscherm: tikken = verder waar je was, of de nieuwste aflevering. */
+        @JavascriptInterface public String shortcutPinPodcast(String podJson) {
+            try {
+                JSONObject p = new JSONObject(podJson);
+                String feed = p.optString("feed");
+                if (!Podcasts.httpUrl(feed)) return "Geen geldige podcast";
+                JSONObject slim = new JSONObject().put("feed", feed).put("title", PodcastFeed.cut(p.optString("title", "Podcast"), 120))
+                        .put("id", Podcasts.podId(feed)).put("image", Podcasts.httpUrl(p.optString("image")) ? p.optString("image") : "")
+                        .put("author", PodcastFeed.cut(p.optString("author"), 120));
+                return Shortcuts.pin(ctx, "pod-" + Podcasts.podId(feed), slim.optString("title"), "podcasts", new JSONObject().put("pod", slim).toString(), "#6C3483", "🎧");
+            } catch (Exception e) { return "Snelkoppeling maken lukt niet"; }
+        }
+
+        /** "Verder luisteren" op het startscherm: wat het laatst speelde (radio of podcast) gaat verder. */
+        @JavascriptInterface public String shortcutPinPlayer() {
+            return Shortcuts.pin(ctx, "player", "Verder luisteren", "player", "{\"resume\":true}", "#6C3483", "▶");
+        }
 
         @JavascriptInterface public String shortcutPinStation(String station) {
             try {

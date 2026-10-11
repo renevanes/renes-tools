@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.63",
+    "date": "2026-10-11",
+    "changes": [
+      "Favorieten: houd een tegel ingedrukt → ★ Favoriet, dan staat hij bovenaan het startscherm (volgorde bij Startscherm aanpassen); ook de eerste keuzes bij lang indrukken van het app-icoon",
+      "Podcast op je startscherm (📌 op de pagina van de podcast): tikken = meteen verder luisteren, of de nieuwste aflevering",
+      "Snelkoppeling Verder luisteren (speler ⋯): gaat verder met wat het laatst speelde, radio of podcast",
+      "Lang indrukken van een tegel: het menu sluit niet meer meteen bij loslaten"
+    ]
+  },
+  {
     "version": "1.62",
     "date": "2026-10-10",
     "changes": [

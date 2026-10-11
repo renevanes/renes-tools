@@ -111,7 +111,7 @@ final class Shortcuts {
             int max = Math.min(4, sm.getMaxShortcutCountPerActivity());
             for (String[] it : items) {
                 if (l.size() >= max) break;
-                l.add(info(c, "dyn-" + it[0], it[1], it[0], null, it[2], it[3]));
+                l.add(info(c, "dyn-" + it[0], it[1], it[0], "player".equals(it[0]) ? "{\"resume\":true}" : null, it[2], it[3])); // Verder luisteren: meteen afspelen
             }
             sm.setDynamicShortcuts(l);
         } catch (Exception ignored) { }

@@ -1,15 +1,25 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.62",
-  "versionCode": 63,
-  "nativeLevel": 58,
+  "versionName": "1.63",
+  "versionCode": 64,
+  "nativeLevel": 59,
   "web": "index.html",
-  "webSha256": "7d25f8bdcf198753381b80e68f5301ff42b2f2698b77c6eee663ace041a844b5",
+  "webSha256": "f7b540060a86c872ed271aeb217abdcc6d4480815792daf6469c6dd561463fe7",
   "start": "start.html",
   "startSha256": "e579a294c436b49185bb76e16fc1d5837a7f34f9ba978d76286cb0fc2cad3b76",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "c8ceabbf0d7a23bfc629848454ffc6db2e8c7fd5551773510f782ec07f082a56",
+  "apkSha256": "b27e799f2ce1a1b5802068f71be32bbd06f22830b87caed07d3dd76f63aa373b",
   "changelog": [
+    {
+      "version": "1.63",
+      "date": "2026-10-11",
+      "changes": [
+        "Favorieten: houd een tegel ingedrukt → ★ Favoriet, dan staat hij bovenaan het startscherm (volgorde bij Startscherm aanpassen); ook de eerste keuzes bij lang indrukken van het app-icoon",
+        "Podcast op je startscherm (📌 op de pagina van de podcast): tikken = meteen verder luisteren, of de nieuwste aflevering",
+        "Snelkoppeling Verder luisteren (speler ⋯): gaat verder met wat het laatst speelde, radio of podcast",
+        "Lang indrukken van een tegel: het menu sluit niet meer meteen bij loslaten"
+      ]
+    },
     {
       "version": "1.62",
       "date": "2026-10-10",
@@ -574,5 +584,5 @@
       ]
     }
   ],
-  "webSig2": "D2N8lL91v+VGPracZLDkTn114JIoF8bzHWkSWTZlejx9BO6VVjTJez29aranmwUAwWJWj2iRxNFOmRiGmfJxrZA9ufjdc9oDgNDm2pIytPA4LH8cQz3d7p+WW6bseVBItBC1W+UnfZjn4sszl21tCECqGwlQrN2TqsqZZoieDx+3ur0v4fAPWHOqx7FMYQH0qNzfaa05AXaJEsIQN5xW0EJXx+Sqs/6XcHbzbXm+k6Ubck+i/8o0gowHLB+83APAbulEFvJBfXCyazpH7HVva53pPMf+e2gjnRZl8eRjRrLp9/qVF7pFRAnMZBaG3PEbsuweTKQ3ote6ZP073JZ49GnfkrELuwgTO33hBqFLDOKCrV5lANwiZ/acLU3uy2NF+c9r5hKPNE3m5w2x4bn7hio14Xs9k169qi5HmbTXiv796qRN8L89RHK40vg6Lmprijm3j4hB+xfWwZo2zeqc+fWx+boIJCdajuYHi+d0od6B6VV2mKatEKEpA+n/56E6"
+  "webSig2": "rgCSP5EklijXqTVfOkexZZsZU5XHvZWXpRgzOZm77AnFIglsrTOxgbOnn8leOBCcGZyvrEV2FTMWgF1/t+zcEBKP28e01n+MsdBwDI1RUEcHeaKBgCGQbmBrqi0FCS90o/bMmY2VvJzniL1+y/AQZRSOmZt5nFQhj8S7Ad7w1v9DoYjE9NXq0aRWECL2Lr9UYOCTJUMm1fBr3jDKUj4KRI3KsAZihXep+JNm7aGZctG4dsSaY2Wo3DVO59UZJ4buikAMLZVdwXJ7/gyJxGGC35rRL7xaFO1Jn1iiJix3Cc5ReIjISCFqXKjijYJdoGWpXaEAIDYvl6cADiRaEALH9C81EK5YWaIJsnImAbSSwNfhbHokJYNQheFE2mlUtCFCH+qxWm89pioaSw8Bg1o3rid+2ZyV9aTk888pN5eVLO3s6D+NyYhNSXsKPvkNjKz6cqay/CAEHbfRovZT80SxXnpnhjbezqkvdiF0dO8/47mYbABlSFiUhOeQxEzWJK3h"
 }

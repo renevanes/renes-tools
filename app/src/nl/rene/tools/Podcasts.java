@@ -528,6 +528,60 @@ final class Podcasts {
         return last; // niet zo ver terug: de oudste
     }
 
+    // ---------- snelkoppeling naar een podcast ----------
+
+    /**
+     * Tik op een podcast-snelkoppeling: de aflevering waar je in bezig was (uit Verder luisteren), anders de
+     * nieuwste die je nog niet hebt beluisterd (uit de bewaarde lijst, of even ophalen), anders de nieuwste.
+     */
+    static String playFromShortcut(Context c, JSONObject pod) {
+        try {
+            String feed = pod.optString("feed");
+            if (!httpUrl(feed)) return "Deze snelkoppeling werkt niet meer";
+            JSONArray r = continueList(c);
+            for (int i = 0; i < r.length(); i++) {
+                JSONObject e = r.getJSONObject(i), p = e.optJSONObject("pod");
+                if (p != null && feed.equals(p.optString("feed")) && e.optJSONObject("ep") != null) return startFromShortcut(c, e.getJSONObject("ep"), p);
+            }
+            JSONObject f = feed(c, feed, false);
+            JSONArray items = f.optJSONArray("items");
+            if (items == null || items.length() == 0) return "Geen afleveringen gevonden";
+            JSONObject pick = items.getJSONObject(0);
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject e = items.getJSONObject(i), p = progressOf(c, e.optString("key"));
+                if (p == null || !p.optBoolean("done")) { pick = e; break; }
+            }
+            return startFromShortcut(c, pick, f.optJSONObject("pod") == null ? pod : f.getJSONObject("pod"));
+        } catch (java.io.IOException e) {
+            return "Podcast laden lukt niet (geen internet?)";
+        } catch (Exception e) {
+            return e.getMessage() == null ? "Afspelen lukt niet" : "Afspelen lukt niet: " + e.getMessage();
+        }
+    }
+
+    /** Zoals podPlay in de brug: geldige sleutel, uit Hierna, op de Chromecast als er gecast wordt; speelt hij al, dan niets. */
+    private static String startFromShortcut(Context c, JSONObject ep, JSONObject podIn) throws Exception {
+        if (!httpUrl(ep.optString("url"))) return "Deze aflevering heeft geen geldig adres";
+        if (!validKey(ep.optString("key"))) ep.put("key", epKey(ep.optString("url")));
+        JSONObject pod = new JSONObject(); // klein houden (geen beschrijving in "laatst" en de recente lijst)
+        for (String k : new String[]{"id", "feed", "title", "author", "image", "link"}) if (podIn.has(k)) pod.put(k, podIn.opt(k));
+        String key = ep.optString("key");
+        if (Cast.active()) {
+            Player.Now now = Cast.now();
+            if (now != null && now.playing && key.equals(now.key)) return null;
+            queueRemove(c, key);
+            Cast.load(Cast.fromEpisode(c, ep, pod, false));
+            return null;
+        }
+        String cur = PodcastService.ep, st = PodcastService.status;
+        if (cur != null && ("playing".equals(st) || "connecting".equals(st))) {
+            try { if (key.equals(new JSONObject(cur).optString("key"))) return null; } catch (Exception ignored) { }
+        }
+        queueRemove(c, key);
+        PodcastService.send(c, PodcastService.PLAY, new JSONObject().put("ep", ep).put("pod", pod).toString());
+        return null;
+    }
+
     // ---------- backup ----------
 
     /** Voor Alles back-uppen (instellingen): abonnementen en voortgang. */

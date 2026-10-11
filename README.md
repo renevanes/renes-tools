@@ -159,7 +159,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Gemaakte PDF's staan een week in de app (openen, delen, opslaan als, of alles naar de map `PDF/` in de backup-map). Bestanden van andere apps worden alleen gelezen als die app ze met leesrecht doorgeeft.
 
 ## Startscherm
-- Tegels in groepen (Bellen & contacten, Berichten & backup, Muziek & radio, Handig). Via "Startscherm aanpassen": volgorde (ook naar een andere groep), tools verbergen, groepen hernoemen/toevoegen, zonder groepen tonen en een compacte weergave met drie tegels naast elkaar. Opgeslagen in de WebView-opslag; nieuwe tools uit een update komen vanzelf in hun groep.
+- Tegels in groepen (Bellen & contacten, Berichten & backup, Muziek & radio, Handig). Via "Startscherm aanpassen": volgorde (ook naar een andere groep), favorieten (★, bovenaan), tools verbergen, groepen hernoemen/toevoegen, zonder groepen tonen en een compacte weergave met drie tegels naast elkaar. Opgeslagen in de WebView-opslag; nieuwe tools uit een update komen vanzelf in hun groep.
 - **Overal zoeken** (zoekveld bovenaan het startscherm, `Search.java`): zoekt tegelijk in notities, contacten, sms'jes, WhatsApp-chats (als die leesbaar gemaakt zijn), oproepen, uitgeschreven gesprekken en herkende muziek. Per soort de eerste vijf treffers; tik om het te openen, of op "Alle …" om verder te zoeken in die tool. Alleen bronnen waarvoor toestemming is gegeven doen mee.
 - **Overzicht** bovenaan (uit te zetten bij Startscherm aanpassen): laatste backup (oranje als die al dagen oud is, rood bij een mislukt onderdeel), de volgende radiowekker, herinneringen van vandaag, wat de radio speelt en problemen uit de laatste zelftest. Tik op een regel om naar die tool te gaan.
 
@@ -198,7 +198,13 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 ## Snelkoppelingen
 - Houd een tegel ingedrukt → "Snelkoppeling op startscherm" (`ShortcutManager.requestPinShortcut`, Android 8+). Het icoon wordt getekend met de kleur en het symbool van de tool (`Shortcuts.java`).
 - Bij de radio: "Zender op startscherm" maakt een icoon dat de app opent en die zender meteen afspeelt.
-- Lang indrukken van het app-icoon geeft snelle keuzes: Radio, Muziek herkennen, Notities en Auto redial.
+- Podcast: op de pagina van een podcast "📌 Op startscherm" (of in de speler ⋯ → "Deze podcast op startscherm"). Tikken = Podcasts openen en meteen verder met de aflevering waar je was, anders de nieuwste die je nog niet hebt gehoord; op de Chromecast als je aan het casten bent (`Podcasts.playFromShortcut`).
+- "Verder luisteren" (speler ⋯ → "Verder luisteren op startscherm", en bij lang indrukken van het app-icoon): gaat verder met wat het laatst speelde, radio of podcast, en opent de speler.
+- Speler-snelkoppelingen werken alleen met het geheim van deze installatie (`App.tokenOk`); een andere app kan er niets mee afspelen.
+- Lang indrukken van het app-icoon geeft snelle keuzes: eerst je favorieten, aangevuld met Verder luisteren, Radio, Podcasts, Notities en Auto redial (samen hooguit vier).
+
+## Favorieten
+- Houd een tegel ingedrukt → "★ Favoriet (bovenaan)", of tik op ☆ bij Startscherm aanpassen. Favorieten staan bovenaan het startscherm in de groep *★ Favorieten* (zonder groepen: vooraan), in de volgorde die je kiest bij Startscherm aanpassen, en zijn ook de eerste keuzes bij lang indrukken van het app-icoon. Een verborgen tool favoriet maken zet hem weer aan; een favoriet verbergen haalt hem uit de favorieten. *Standaard herstellen* laat de favorieten staan.
 
 ## Alles back-uppen
 - Eén knop voor sms, oproepen, contacten (+ wijzigingslog), notities, uitgeschreven gesprekken en herkende muziek naar de backup-map, met per onderdeel de uitkomst (`AllBackup.java`). Onderdelen zijn aan/uit te zetten; optioneel tegelijk de WhatsApp-backup.

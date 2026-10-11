@@ -285,7 +285,7 @@ function plGoSource(){
 function plMenu(){
   const m = plModel(); if (!m) return;
   if (m.src === 'podcast') { pcNowMenu(); return; }
-  const acts = [['Naar Radio', () => show('radio')], ['📌 Zender op startscherm', () => rdPinStation()]];
+  const acts = [['Naar Radio', () => show('radio')], ['📌 Zender op startscherm', () => rdPinStation()], ['📌 Verder luisteren op startscherm', () => pinTool('player')]];
   if (m.shift) acts.push(['💾 Fragment bewaren', () => rdClipMenu()]);
   acts.push(plFloatAct(), ['Stoppen', () => plStop()]);
   openSheet(m.from, 'Radio', acts);

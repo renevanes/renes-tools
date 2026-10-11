@@ -69,6 +69,8 @@ function pcNowMenu(){
   if (st.pod && st.pod.feed) acts.push(['Naar de podcast', () => pdOpen(st.pod)]);
   if (st.ep.desc) acts.push(['Beschrijving', () => pcShowDesc(st.ep)]);
   acts.push(['Delen', () => Android.podShare(st.ep.title + (st.pod && st.pod.title ? ' · ' + st.pod.title : ''), (st.pod && st.pod.link) || st.ep.url)]);
+  if (st.pod && st.pod.feed) acts.push(['📌 Deze podcast op startscherm', () => pcPinPod(st.pod)]);
+  acts.push(['📌 Verder luisteren op startscherm', () => pinTool('player')]);
   acts.push(plFloatAct(), ['Stoppen', () => plStop()]);
   openSheet(st.ep.title || 'Aflevering', (st.pod && st.pod.title) || '', acts);
 }
@@ -179,6 +181,13 @@ function pdOpen(p){
   Android.podOpen(p.feed, false);
   pcStartPoll();
 }
+/* Snelkoppeling: tikken = meteen verder luisteren met deze podcast */
+function pcPinPod(p){
+  if (!p || !p.feed) return;
+  const e = Android.shortcutPinPodcast(JSON.stringify(pcSlimPod(p)));
+  toast(e || 'Bevestig op je startscherm om ' + (p.title || 'de podcast') + ' toe te voegen');
+}
+function pdPin(){ pcPinPod(pdPod); }
 function pdSubBtn(on){ const b = $('#pd-sub'); b.textContent = on ? '✓ Je volgt deze podcast' : '＋ Volgen'; b.classList.toggle('ghost', on); b.dataset.on = on ? '1' : ''; }
 window.onPodFeed = function(r){
   if (!pdPod || r.feedUrl !== pdPod.feed) return;

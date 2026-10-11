@@ -501,3 +501,4 @@ body.pl-open{overflow:hidden}
 .spsteps{margin:4px 0 12px;padding-left:22px}.spsteps li{margin:6px 0}
 .spsteps code{background:var(--chip);padding:2px 6px;border-radius:6px;font-size:14px;word-break:break-all}
 .splog{white-space:pre-wrap;font:13px/1.45 ui-monospace,Menlo,monospace;margin:8px 0 0;max-height:50vh;overflow:auto}
+.herow .mv.star{color:var(--muted);font-size:18px}.herow .mv.star.on{color:#E0A800}
