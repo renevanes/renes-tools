@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.66",
+    "date": "2026-10-11",
+    "changes": [
+      "VPN: nu ook OpenVPN (.ovpn-bestand), met gebruikersnaam en wachtwoord of certificaat, via UDP of TCP (ook poort 443)",
+      "VPN: reserve bij blokkade — lukt WireGuard niet (bijv. in een hotel of op kantoor), dan vanzelf je OpenVPN-tunnel; op een nieuw netwerk eerst weer WireGuard",
+      "Locatie kiezen en VPN: kleine verbeteringen"
+    ]
+  },
+  {
     "version": "1.65",
     "date": "2026-10-11",
     "changes": [

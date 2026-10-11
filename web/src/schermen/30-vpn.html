@@ -7,12 +7,12 @@
   <main>
     <!-- Nog niets ingesteld -->
     <div class="card" id="vp-intro" style="display:none">
-      <h2>WireGuard-tunnel toevoegen</h2>
-      <p class="note" style="margin-top:0">Werkt met elke WireGuard-server: je eigen server (thuis of een VPS) of een aanbieder als Mullvad of Proton. Je krijgt daar een configuratie, meestal als QR-code of als <code>.conf</code>-bestand.</p>
+      <h2>Tunnel toevoegen</h2>
+      <p class="note" style="margin-top:0">Werkt met <b>WireGuard</b> en <b>OpenVPN</b>: je eigen server (thuis of een VPS) of een aanbieder als Mullvad, Proton of NordVPN. Je krijgt daar een configuratie: bij WireGuard meestal een QR-code of <code>.conf</code>-bestand, bij OpenVPN een <code>.ovpn</code>-bestand.</p>
       <div class="vpadd">
         <button class="big" onclick="vpScan()">📷 QR-code scannen</button>
         <button class="big ghost" onclick="Android.vpnPickImage()">🖼️ QR-code uit een afbeelding</button>
-        <button class="big ghost" onclick="Android.vpnPickFile()">📄 Bestand (.conf)</button>
+        <button class="big ghost" onclick="Android.vpnPickFile()">📄 Bestand (.conf of .ovpn)</button>
         <button class="big ghost" onclick="vpPaste()">📋 Tekst plakken</button>
         <button class="big ghost" onclick="vpNew()">🔑 Zelf maken (met eigen sleutels)</button>
       </div>
@@ -84,7 +84,13 @@
         <div class="flabel" style="margin-top:12px">Jouw publieke sleutel <small>(zet deze op de server)</small></div>
         <div class="row" style="align-items:center;gap:8px"><code id="ve-pub" style="flex:1;min-width:0;word-break:break-all"></code><button class="mini" style="float:none" onclick="vePubCopy()">Kopiëren</button></div>
       </div>
-      <div class="flabel" style="margin-top:12px"><label for="ve-text">Configuratie (WireGuard)</label></div>
+      <div id="ve-authbox" style="display:none">
+        <div class="flabel" style="margin-top:12px"><label for="ve-user">Gebruikersnaam (van de VPN)</label></div>
+        <input class="aein" id="ve-user" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="ve-pass">Wachtwoord</label></div>
+        <input class="aein" id="ve-pass" type="password" autocomplete="off" placeholder="">
+      </div>
+      <div class="flabel" style="margin-top:12px"><label for="ve-text">Configuratie (WireGuard of OpenVPN)</label></div>
       <textarea class="key vpconf" id="ve-text" rows="14" spellcheck="false" autocapitalize="off" autocomplete="off" oninput="veCheckSoon()"></textarea>
       <p class="note" id="ve-check" role="status" aria-live="polite"></p>
       <button class="big" id="ve-save" onclick="veSave()">Opslaan</button>

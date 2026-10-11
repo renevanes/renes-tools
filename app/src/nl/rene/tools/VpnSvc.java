@@ -33,7 +33,6 @@ public class VpnSvc extends VpnService {
     static final int NOTIF_ID = 4701;
 
     static volatile VpnSvc inst;
-    static volatile WgDevice device;
     static volatile String status = "off", tunnelId, tunnelName, error, reason;
     static volatile long since;
     static volatile boolean autoStarted;
@@ -88,11 +87,16 @@ public class VpnSvc extends VpnService {
         c.getSystemService(NotificationManager.class).createNotificationChannel(ch);
     }
 
-    // ---------- verbinden ----------
+    // ---------- verbinden: de gekozen tunnel, en bij een blokkade de reserve-tunnels ----------
+
+    static volatile VpnBackend backend;
+    static volatile String activeId, activeName, activeKind;
+    private java.util.List<String> chain = new java.util.ArrayList<>();
+    private int chainIdx, failedInRow;
+    private final java.util.Set<String> refused = new java.util.HashSet<>(); // inloggen geweigerd: niet steeds opnieuw proberen
+    private long attemptStart, attemptWall, healthyAt;
 
     private void connect(String id, String why) {
-        final int gen;
-        synchronized (lock) { gen = ++generation; closeTunnel(); }
         tunnelId = id;
         org.json.JSONObject t = Vpn.tunnel(this, id);
         tunnelName = t == null ? "VPN" : t.optString("name", "VPN");
@@ -100,60 +104,112 @@ public class VpnSvc extends VpnService {
         autoStarted = "wifi".equals(why) || "mobiel".equals(why);
         status = "connecting"; error = null; since = System.currentTimeMillis();
         Vpn.cancelAsk(this);
+        chain = Vpn.chain(this, id);
+        chainIdx = 0; failedInRow = 0; refused.clear();
+        startAttempt();
+    }
+
+    /** Volgende poging met chain[chainIdx] (op de hoofdthread aanroepen). */
+    private void startAttempt() {
+        final int gen;
+        synchronized (lock) { gen = ++generation; }
+        final String tid = chain.get(chainIdx);
+        org.json.JSONObject t = Vpn.tunnel(this, tid);
+        activeId = tid;
+        activeName = t == null ? "VPN" : t.optString("name", "VPN");
+        activeKind = t != null && "ovpn".equals(t.optString("type")) ? "OpenVPN" : "WireGuard";
+        attemptStart = now(); attemptWall = System.currentTimeMillis();
+        status = "connecting";
         changed();
         new Thread(() -> {
-            String err = null;
-            try { setUp(id, gen); }
-            catch (Exception e) { err = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(); }
-            if (err != null) {
-                synchronized (lock) { if (gen != generation) return; closeTunnel(); }
-                error = err; status = "off";
-                App.log(this, "VPN", "starten mislukt: " + err);
-                h.post(this::finish);
+            VpnBackend b;
+            try {
+                b = Vpn.backend(this, tid, gen);
+                VpnBackend old;
+                synchronized (lock) {
+                    if (gen != generation) { return; }
+                    old = backend;
+                    backend = b;
+                }
+                if (old != null) old.stop(); // de oude tunnel bij Android blijft tot de nieuwe er is (geen lek)
+                watchNetwork();
+                b.start();
+            } catch (Exception e) {
+                String err = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+                h.post(() -> attemptFailed(gen, err));
+                return;
             }
+            final VpnBackend fb = b;
+            h.postDelayed(() -> watchdog(gen, fb), b.timeoutMs());
         }, "vpn-start").start();
     }
 
-    private void setUp(String id, int gen) throws Exception {
-        WgConfig cfg = WgConfig.parse(Vpn.configText(this, id));
-        Network base = bestNetwork();
-        underlying = base;
-        WgDevice dev = new WgDevice(cfg, null, this::protectSocket, host -> resolve(host), this::onEvent);
-        // Builder: adressen, DNS, routes
+    private static long now() { return android.os.SystemClock.elapsedRealtime(); }
+
+    /** Poging mislukt meteen (fout in de instellingen, Android weigerde): volgende, of stoppen als niets werkt. */
+    private void attemptFailed(int gen, String err) {
+        synchronized (lock) { if (gen != generation) return; }
+        App.log(this, "VPN", "poging " + activeName + " mislukt: " + err);
+        error = err;
+        failedInRow++;
+        if (chain.size() > 1 && failedInRow < chain.size()) {
+            for (int i = 0; i < chain.size(); i++) { chainIdx = (chainIdx + 1) % chain.size(); if (!refused.contains(chain.get(chainIdx))) { startAttempt(); return; } }
+        }
+        stopTunnel("mislukt");
+        error = err;
+    }
+
+    /** Na de wachttijd: verbonden? Anders de volgende uit de rij (bij een blokkade). */
+    private void watchdog(int gen, VpnBackend b) {
+        synchronized (lock) { if (gen != generation || backend != b) return; }
+        if (b.lastOkWall() >= attemptWall && b.healthy()) { failedInRow = 0; healthyAt = now(); return; }
+        if (b.fatal() && chain.size() == 1) { error = b.error(); stopTunnel("mislukt"); error = b.error(); return; }
+        if (chain.size() > 1) { next("geen verbinding met " + activeName); return; }
+        error = b.error(); changed();
+        h.postDelayed(() -> watchdog(gen, b), 20_000);
+    }
+
+    private void next(String why) {
+        App.log(this, "VPN", why + ": reserve proberen");
+        for (int i = 0; i < chain.size(); i++) {
+            chainIdx = (chainIdx + 1) % chain.size();
+            if (!refused.contains(chain.get(chainIdx))) { startAttempt(); return; }
+        }
+        String e = error;
+        stopTunnel("mislukt"); // alle tunnels weigeren het inloggen
+        error = e;
+    }
+
+    /** Builder met wat voor elke tunnel geldt. */
+    VpnService.Builder builder(String session) {
         Builder b = new Builder();
-        b.setSession(tunnelName == null ? "VPN" : tunnelName);
-        b.setMtu(cfg.mtuOrDefault());
-        for (WgConfig.Cidr c : cfg.addresses) b.addAddress(InetAddress.getByAddress(c.addr), c.prefix);
-        for (String d : cfg.dns) b.addDnsServer(InetAddress.getByAddress(WgConfig.ip(d)));
-        for (String s : cfg.dnsSearch) b.addSearchDomain(s);
-        for (WgConfig.Peer p : cfg.peers) for (WgConfig.Cidr c : p.allowed) b.addRoute(InetAddress.getByAddress(c.network()), c.prefix);
-        for (String app : cfg.excludedApps) try { b.addDisallowedApplication(app); } catch (PackageManager.NameNotFoundException ignored) { }
-        int included = 0;
-        for (String app : cfg.includedApps) try { b.addAllowedApplication(app); included++; } catch (PackageManager.NameNotFoundException ignored) { }
-        if (!cfg.includedApps.isEmpty() && included == 0) throw new Exception("Geen van de apps bij IncludedApplications staat op deze telefoon");
+        b.setSession(session == null ? "VPN" : session);
         if (Build.VERSION.SDK_INT >= 29) b.setMetered(false);
+        Network base = underlying != null ? underlying : bestNetwork();
+        underlying = base;
         if (base != null && Build.VERSION.SDK_INT >= 22) b.setUnderlyingNetworks(new Network[]{base});
         b.setBlocking(true);
         Intent open = new Intent(this, MainActivity.class).putExtra("open", "vpn").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         b.setConfigureIntent(PendingIntent.getActivity(this, 4705, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
-        // eerst de server opzoeken en de socket openen (buiten de tunnel, en zonder slot: DNS kan lang duren)
-        dev.start();
-        ParcelFileDescriptor fd;
-        synchronized (lock) {
-            if (gen != generation) { dev.stop(); return; } // intussen uitgezet of een andere tunnel gekozen
-            try { fd = b.establish(); }
-            catch (Exception e) { dev.stop(); throw new Exception("Android liet de VPN niet toe: " + e.getClass().getSimpleName()); }
-            if (fd == null) { dev.stop(); throw new Exception("Android gaf geen toestemming voor de VPN (open de VPN in de app)"); }
-            tunFd = fd;
-            dev.setTun(new TunFd(fd));
-            device = dev;
-            status = dev.healthy() ? "connected" : "connecting";
-        }
-        watchNetwork(gen);
-        changed();
+        return b;
     }
 
-    /** De tunnel van Android als Tun voor WgDevice. */
+    /** De tunnel bij Android (opnieuw) aanmaken; de vorige gaat pas dicht als de nieuwe er is. */
+    WgDevice.Tun establish(VpnService.Builder b, int gen) throws Exception {
+        ParcelFileDescriptor fd, old;
+        synchronized (lock) {
+            if (gen != generation) throw new Exception("afgebroken");
+            try { fd = b.establish(); }
+            catch (Exception e) { throw new Exception("Android liet de VPN niet toe: " + e.getClass().getSimpleName()); }
+            if (fd == null) throw new Exception("Android gaf geen toestemming voor de VPN (open de VPN in de app)");
+            old = tunFd;
+            tunFd = fd;
+        }
+        if (old != null) try { old.close(); } catch (Exception ignored) { }
+        return new TunFd(fd);
+    }
+
+    /** De tunnel van Android als Tun voor WgDevice/OvpnDevice. */
     static final class TunFd implements WgDevice.Tun {
         private final FileInputStream in;
         private final FileOutputStream out;
@@ -162,14 +218,12 @@ public class VpnSvc extends VpnService {
         @Override public void write(byte[] buf, int off, int len) throws IOException { synchronized (out) { out.write(buf, off, len); } }
     }
 
-    private boolean protectSocket(DatagramSocket s) { return protect(s); }
-
     /** Server opzoeken via het gewone netwerk (niet via de tunnel, die werkt dan nog niet). */
-    private InetAddress[] resolve(String host) throws IOException {
+    InetAddress[] resolve(String host) throws IOException {
         Network n = underlying;
         if (n == null) n = bestNetwork();
         if (n != null) return n.getAllByName(host);
-        if (device == null) return InetAddress.getAllByName(host); // tunnel nog niet aan: gewoon opzoeken
+        if (tunFd == null) return InetAddress.getAllByName(host); // tunnel nog niet aan: gewoon opzoeken
         throw new java.net.UnknownHostException("Geen netwerk"); // anders zou het via onze eigen tunnel gaan
     }
 
@@ -201,16 +255,17 @@ public class VpnSvc extends VpnService {
         @Override public void onCapabilitiesChanged(Network n, NetworkCapabilities nc) { s.netMaybeChanged(); }
     }
 
-    private void watchNetwork(int gen) {
+    private void watchNetwork() {
         h.post(() -> {
-            if (netCb != null || gen != generation || "off".equals(status)) return;
+            if (netCb != null || "off".equals(status)) return;
             try {
                 ConnectivityManager cm = getSystemService(ConnectivityManager.class);
                 netCb = new NetCb(this);
                 NetworkRequest req = new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                         .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN).build();
                 if (Build.VERSION.SDK_INT >= 31) cm.registerBestMatchingNetworkCallback(req, netCb, h);
-                else cm.registerNetworkCallback(req, netCb, h);
+                else if (Build.VERSION.SDK_INT >= 26) cm.registerNetworkCallback(req, netCb, h);
+                else cm.registerNetworkCallback(req, netCb);
             } catch (Exception e) { netCb = null; }
         });
     }
@@ -225,22 +280,32 @@ public class VpnSvc extends VpnService {
         if (n == null || n.equals(old)) return;
         underlying = n;
         try { setUnderlyingNetworks(new Network[]{n}); } catch (Exception ignored) { }
-        WgDevice d = device;
-        if (d != null) new Thread(d::networkChanged, "vpn-net").start();
+        if ("off".equals(status)) return;
+        // nieuw netwerk: eerst weer de voorkeur (misschien werkt WireGuard hier wel), anders de huidige laten herverbinden
+        if (chain.size() > 1 && chainIdx != 0 && !refused.contains(chain.get(0))) { chainIdx = 0; failedInRow = 0; startAttempt(); return; }
+        VpnBackend b = backend;
+        if (b != null) {
+            attemptStart = now(); attemptWall = System.currentTimeMillis();
+            new Thread(b::networkChanged, "vpn-net").start();
+            if (chain.size() > 1) { synchronized (lock) { final int gen = generation; h.postDelayed(() -> watchdog(gen, b), b.timeoutMs()); } }
+        }
     }
 
     // ---------- toestand ----------
 
     private long lastNotif;
 
-    private void onEvent(String what) {
-        WgDevice d = device;
+    void onEvent(String what) {
         if ("off".equals(status)) return;
-        if ("handshake".equals(what)) { status = "connected"; error = null; }
-        else if ("handshake-failed".equals(what)) { status = "connecting"; error = "Geen antwoord van de server"; }
-        else if ("tun-closed".equals(what)) { h.post(() -> stopTunnel("android")); return; }
+        if ("handshake".equals(what) || "connected".equals(what) || "renegotiated".equals(what)) { if (!"connected".equals(status) || error != null) { status = "connected"; error = null; healthyAt = now(); changed(); } return; }
+        if ("handshake-failed".equals(what) || "error".equals(what) || "reconnecting".equals(what) || "auth-failed".equals(what)) {
+            VpnBackend b = backend;
+            status = b != null && b.healthy() ? "connected" : "connecting";
+            error = b == null ? null : b.error();
+            if ("auth-failed".equals(what)) h.post(() -> { VpnBackend x = backend; if (x != null && x.fatal()) { refused.add(x.tunnelId()); if (chain.size() > 1) { error = x.error(); next("inloggen geweigerd"); } else { String e = x.error(); stopTunnel("mislukt"); error = e; } } });
+        } else if ("tun-closed".equals(what)) { h.post(() -> stopTunnel("android")); return; }
         long t = System.currentTimeMillis();
-        if (!what.equals("handshake-sent") || t - lastNotif > 30_000) changed();
+        if (!what.equals("handshake-sent") && !what.equals("connecting") || t - lastNotif > 30_000) changed();
     }
 
     private final Runnable tick = new Ticker(this);
@@ -249,13 +314,18 @@ public class VpnSvc extends VpnService {
         private final VpnSvc s;
         Ticker(VpnSvc s) { this.s = s; }
         @Override public void run() {
-            WgDevice d = device;
-            if (d != null && !"off".equals(status)) {
-                status = d.healthy() ? "connected" : "connecting";
-                error = status.equals("connecting") ? d.lastError : null;
-                s.updateNotif();
-                s.h.postDelayed(this, 20_000);
+            VpnBackend b = backend;
+            if (b == null || "off".equals(status)) return;
+            if (b.healthy()) { s.healthyAt = now(); status = "connected"; error = null; }
+            else {
+                status = "connecting";
+                error = b.error();
+                // werkte hij wel, maar nu al een tijd niet meer? Dan de reserve
+                long since = Math.max(s.healthyAt, s.attemptStart);
+                if (s.chain.size() > 1 && now() - since > Math.max(45_000, b.timeoutMs())) { s.next("verbinding weggevallen"); return; }
             }
+            s.updateNotif();
+            s.h.postDelayed(this, 20_000);
         }
     }
 
@@ -278,10 +348,11 @@ public class VpnSvc extends VpnService {
 
     private Notification notif() {
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, Vpn.CHANNEL)) : new Notification.Builder(this);
-        WgDevice d = device;
+        VpnBackend d = backend;
         String name = tunnelName == null ? "VPN" : tunnelName;
+        if (activeName != null && !activeName.equals(name)) name += " → " + activeName + " (reserve)";
         String text;
-        if ("connected".equals(status) && d != null) text = "Verbonden · ↓ " + size(d.rx()) + " · ↑ " + size(d.tx());
+        if ("connected".equals(status) && d != null) text = "Verbonden via " + d.kind() + " · ↓ " + size(d.rx()) + " · ↑ " + size(d.tx());
         else if (error != null) text = error + " · probeert het opnieuw";
         else text = "Verbinden…";
         Intent open = new Intent(this, MainActivity.class).putExtra("open", "vpn").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -303,8 +374,8 @@ public class VpnSvc extends VpnService {
     // ---------- stoppen ----------
 
     private void closeTunnel() {
-        WgDevice d = device;
-        device = null;
+        VpnBackend d = backend;
+        backend = null;
         if (d != null) d.stop();
         ParcelFileDescriptor fd = tunFd;
         tunFd = null;

@@ -33,31 +33,36 @@ public class VpnBridge extends SpotifyBridge {
         for (int i = 0; i < a.length(); i++) {
             JSONObject o = a.optJSONObject(i);
             if (o == null) continue;
-            try { JSONObject c = new JSONObject(o.toString()); c.remove("conf"); out.put(c); } catch (Exception ignored) { }
+            try { JSONObject c = new JSONObject(o.toString()); c.remove("conf"); c.remove("cred"); out.put(c); } catch (Exception ignored) { }
         }
         return out.toString();
     }
 
-    /** De configuratietekst om te bewerken (met de privésleutel); "" als het niet lukt. */
+    /** De configuratietekst om te bewerken (met de privésleutel); bij OpenVPN ook de gebruikersnaam (wachtwoord niet). */
     @JavascriptInterface public String vpnConfig(String id) {
-        try { return new JSONObject().put("text", Vpn.configText(ctx, id)).toString(); }
+        try {
+            JSONObject cr = Vpn.creds(ctx, id);
+            return new JSONObject().put("text", Vpn.configText(ctx, id)).put("user", cr == null ? "" : cr.optString("user")).put("hasPass", cr != null && !cr.optString("pass").isEmpty()).toString();
+        }
         catch (Exception e) { try { return new JSONObject().put("error", e.getMessage()).toString(); } catch (Exception x) { return "{}"; } }
     }
 
     /** Controleren zonder op te slaan: {ok, summary} of {error}. */
-    @JavascriptInterface public String vpnCheck(String text) {
-        try { return new JSONObject().put("ok", true).put("summary", Vpn.summary(WgConfig.parse(text))).toString(); }
-        catch (Exception e) { try { return new JSONObject().put("error", e.getMessage() == null ? "Klopt niet" : e.getMessage()).toString(); } catch (Exception x) { return "{}"; } }
-    }
+    @JavascriptInterface public String vpnCheck(String text) { return Vpn.check(text).toString(); }
 
-    @JavascriptInterface public String vpnSave(String id, String name, String text) {
-        JSONObject r = Vpn.save(ctx, id, name, text);
+    @JavascriptInterface public String vpnSave(String id, String name, String text, String user, String pass) {
+        JSONObject r = Vpn.save(ctx, id, name, text, user, pass);
         if (r.optBoolean("restart")) Vpn.start(ctx, r.optString("id"), "app", true); // draaiende tunnel met de nieuwe instellingen
         Vpn.armAuto(ctx);
         return r.toString();
     }
 
     @JavascriptInterface public void vpnDelete(String id) { if (id != null) Vpn.delete(ctx, id); }
+
+    /** Reserve-tunnels (in volgorde) voor als deze geblokkeerd wordt. */
+    @JavascriptInterface public void vpnSetFallback(String id, String json) {
+        try { Vpn.setFallback(ctx, id, new JSONArray(json)); } catch (Exception ignored) { }
+    }
 
     @JavascriptInterface public void vpnSetActive(String id) { if (Vpn.tunnel(ctx, id) != null) Vpn.prefs(ctx).edit().putString("active", id).apply(); }
 
@@ -193,7 +198,7 @@ public class VpnBridge extends SpotifyBridge {
                 try (android.database.Cursor c = a.getContentResolver().query(u, new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
                     if (c != null && c.moveToFirst()) name = c.getString(0);
                 } catch (Exception ignored) { }
-                if (name != null && name.toLowerCase(java.util.Locale.ROOT).endsWith(".conf")) name = name.substring(0, name.length() - 5);
+                if (name != null) name = name.replaceAll("(?i)\\.(conf|ovpn)$", "");
                 r.put("text", new String(b, StandardCharsets.UTF_8)).put("name", name == null ? "" : name);
             } catch (Exception e) {
                 try { r.put("error", e.getMessage() == null ? "Bestand niet te lezen" : e.getMessage()); } catch (Exception ignored) { }

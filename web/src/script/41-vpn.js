@@ -22,7 +22,8 @@ function vpRender(light){
   const connected = on && st.status === 'connected';
   $('#vp-dot').className = 'vpdot' + (connected ? ' on' : on ? ' busy' : '');
   $('#vp-title').textContent = on ? (connected ? 'Verbonden' : 'Verbinden…') + ' · ' + (st.name || act.name) : 'VPN uit';
-  let sub = on ? (VP_REASON[st.reason] || '') : (act ? 'Tunnel: ' + act.name : '');
+  const viaReserve = on && st.activeId && st.activeId !== st.id;
+  let sub = on ? [viaReserve ? 'via reserve: ' + st.activeName : '', st.kind || '', VP_REASON[st.reason] || ''].filter(Boolean).join(' · ') : (act ? 'Tunnel: ' + act.name : '');
   if (on && !connected && st.error) sub = st.error + ' · probeert het opnieuw';
   $('#vp-sub').textContent = sub;
   const tb = $('#vp-toggle');
@@ -42,7 +43,7 @@ function vpRender(light){
   $('#vp-list').innerHTML = vpTun.map(t => {
     const cur = t.id === (on ? st.id : st.active);
     return '<div class="srow"><button class="sbtn" data-id="' + esc(t.id) + '" onclick="vpTunMenu(this.dataset.id)"><span class="vpic' + (cur ? ' cur' : '') + '" aria-hidden="true">' + (cur ? '✓' : '🔑') + '</span>' +
-      '<span class="stxt"><b>' + esc(t.name) + (cur ? '<span class="sr-only"> (standaard)</span>' : '') + '</b><small>' + esc((t.endpoint || '') + (t.full ? ' · al je verkeer' : ' · alleen ' + (t.allowed || []).slice(0, 2).join(', '))) + '</small></span>' +
+      '<span class="stxt"><b>' + esc(t.name) + (cur ? '<span class="sr-only"> (standaard)</span>' : '') + '</b><small>' + esc(vpTunSub(t)) + '</small></span>' +
       '<span class="vpmore" aria-hidden="true">⋯</span></button></div>';
   }).join('');
   // vanzelf
@@ -70,6 +71,12 @@ function vpRender(light){
 }
 window.onVpnChanged = function(msg){ vpBusy = false; if (msg) toast(msg); if (current === 'vpn') vpRender(); if (current === 'home') refreshVpnTile(); };
 
+const vpKind = t => t.type === 'ovpn' ? 'OpenVPN' : 'WireGuard';
+function vpTunSub(t){
+  const fb = (t.fallback || []).map(id => (vpTun.find(x => x.id === id) || {}).name).filter(Boolean);
+  const where = t.type === 'ovpn' ? (t.summary || t.endpoint || '') : (t.endpoint || '') + (t.full ? ' · al je verkeer' : ' · alleen ' + (t.allowed || []).slice(0, 2).join(', '));
+  return vpKind(t) + ' · ' + where + (fb.length ? ' · ↪ reserve: ' + fb.join(', ') : '');
+}
 function vpToggle(){
   if (vpBusy) return;
   if (vpSt.on) {
@@ -92,9 +99,35 @@ function vpTunMenu(id){
   if (!on) acts.push(['▶ Deze tunnel aanzetten', () => { Android.vpnSetActive(id); vpSt.active = id; vpToggleTo(id); }]);
   if (!on && vpSt.active !== id) acts.push(['✓ Als standaard (tegel, snelkoppeling, vanzelf)', () => { Android.vpnSetActive(id); vpRender(); }]);
   acts.push(['✎ Bewerken', () => veOpen(id)]);
-  acts.push(['🔑 Mijn publieke sleutel kopiëren', () => { Android.vpnCopy(t.pub); toast('Gekopieerd: ' + t.pub.slice(0, 12) + '…'); }]);
+  if (vpTun.length > 1) acts.push(['↪ Reserve bij blokkade…', () => vpFallbackMenu(id)]);
+  if (t.pub) acts.push(['🔑 Mijn publieke sleutel kopiëren', () => { Android.vpnCopy(t.pub); toast('Gekopieerd: ' + t.pub.slice(0, 12) + '…'); }]);
   acts.push(['🗑 Verwijderen', () => askConfirm('Tunnel verwijderen?', '"' + t.name + '" en zijn sleutels verdwijnen van deze telefoon. Op de server verandert niets.', 'Verwijderen', () => { Android.vpnDelete(id); vpRender(); })]);
   openSheet(t.name, (t.endpoint || '') + ((t.addr || []).length ? ' · ' + t.addr.join(', ') : ''), acts);
+}
+/* Reserve-tunnels: lukt verbinden niet (bijv. UDP geblokkeerd), dan vanzelf de volgende */
+function vpFallbackMenu(id){
+  const t = vpTun.find(x => x.id === id); if (!t) return;
+  const fb = (t.fallback || []).filter(x => vpTun.some(y => y.id === x));
+  const set = l => { Android.vpnSetFallback(id, JSON.stringify(l)); vpTun = rdJson(Android.vpnTunnels(), []); vpRender(); vpFallbackMenu(id); };
+  const acts = [];
+  vpTun.filter(x => x.id !== id).forEach(x => {
+    const i = fb.indexOf(x.id);
+    acts.push(i >= 0 ? ['✓ ' + (i + 1) + '. ' + x.name + ' (' + vpKind(x) + ') — weghalen', () => set(fb.filter(y => y !== x.id))]
+                     : fb.length >= 4 ? ['Hooguit 4 reserves', () => {}] : ['＋ ' + x.name + ' (' + vpKind(x) + ') als reserve', () => set(fb.concat([x.id]))]);
+  });
+  openSheet('Reserve voor ' + t.name, fb.length ? 'Eerst ' + t.name + ', lukt dat niet binnen een paar seconden, dan ' + fb.map(x => (vpTun.find(y => y.id === x) || {}).name).join(', dan ') + '. Op een nieuw netwerk weer eerst ' + t.name + '.' : 'Kies wat er gebruikt wordt als ' + t.name + ' geblokkeerd is (bijv. in een hotel of op kantoor).', acts);
+}
+/* Na het toevoegen: de andere soort als reserve voorstellen */
+function vpSuggestFallback(newId){
+  const n = vpTun.find(x => x.id === newId); if (!n) return;
+  const isOv = n.type === 'ovpn';
+  const other = vpTun.find(x => x.id !== newId && (x.type === 'ovpn') !== isOv && !(x.fallback || []).length && !vpTun.some(y => (y.fallback || []).includes(x.id)));
+  if (!other) return;
+  const first = isOv ? other : n, second = isOv ? n : other;
+  setTimeout(() => askConfirm('Reserve instellen?', 'Werkt "' + first.name + '" (WireGuard) ergens niet, bijvoorbeeld omdat een hotel of kantoor het blokkeert? Dan vanzelf "' + second.name + '" (OpenVPN) gebruiken. "' + first.name + '" wordt dan je standaard-tunnel.', 'Ja, als reserve', () => {
+    Android.vpnSetFallback(first.id, JSON.stringify([second.id])); Android.vpnSetActive(first.id);
+    vpTun = rdJson(Android.vpnTunnels(), []); vpRender(); toast('↪ ' + second.name + ' is de reserve van ' + first.name);
+  }), 400);
 }
 function vpToggleTo(id){
   vpBusy = true; vpRender(true);
@@ -138,10 +171,10 @@ window.onVpnTile = function(r){ r = +r; toast(r === 2 || r === 1 ? (r === 2 ? '�
 function vpPinToggle(){ const e = Android.vpnPinToggle(); toast(e || 'Bevestig op je startscherm om "VPN aan/uit" toe te voegen'); }
 
 /* ---------- importeren ---------- */
-function vpPaste(){ veOpen('', '', ''); setTimeout(() => { $('#ve-text').focus(); toast('Plak de hele configuratie in het tekstvak (begint met [Interface])'); }, 300); }
+function vpPaste(){ veOpen('', '', ''); setTimeout(() => { $('#ve-text').focus(); toast('Plak de hele configuratie in het tekstvak (WireGuard: begint met [Interface]; OpenVPN: de inhoud van het .ovpn-bestand)'); }, 300); }
 function vpImport(text, name){
   text = String(text || '').replace(/\r/g, '');
-  if (!/\[Interface\]/i.test(text)) { toast('Dit is geen WireGuard-configuratie (er staat geen [Interface] in)'); return; }
+  if (!/\[Interface\]/i.test(text) && !(/^\s*(client|tls-client)\b/im.test(text) && /^\s*remote\s/im.test(text))) { toast('Dit is geen WireGuard- of OpenVPN-configuratie'); return; }
   veOpen('', text, name);
 }
 window.onVpnImported = function(r){ if (!r || r.error) { toast((r && r.error) || 'Bestand niet te lezen'); return; } vpImport(r.text, r.name); };
@@ -211,43 +244,53 @@ function vpScanClose(){
 function vpScanOpen(){ return $('#vp-scan').classList.contains('on'); }
 
 /* ---------- bewerken ---------- */
-let veId = '', veTimer = null;
+let veId = '', veTimer = null, veCfgUser = '', veHasPass = false;
 function veOpen(id, text, name, isNew){
   veId = id || '';
   if (id) {
     const r = rdJson(Android.vpnConfig(id), {});
     if (r.error) { toast(r.error); return; }
-    text = r.text;
+    text = r.text; veCfgUser = r.user || ''; veHasPass = !!r.hasPass;
     name = (vpTun.find(t => t.id === id) || {}).name || '';
   }
   show('vpnedit');
   $('#ve-h').textContent = id ? 'Tunnel bewerken' : 'Nieuwe tunnel';
   $('#ve-name').value = name || '';
   $('#ve-text').value = text || '';
+  $('#ve-user').value = id ? (veCfgUser || '') : ''; $('#ve-pass').value = '';
+  $('#ve-pass').placeholder = id && veHasPass ? '(bewaard; leeg laten = zo houden)' : '';
   veCheck();
   if (isNew) setTimeout(() => toast('Vul PublicKey en Endpoint van je server in, en zet jouw publieke sleutel op de server'), 300);
 }
 function veCheckSoon(){ clearTimeout(veTimer); veTimer = setTimeout(veCheck, 350); }
 function veCheck(){
   const text = $('#ve-text').value, m = /PrivateKey\s*=\s*(\S+)/i.exec(text);
-  const pub = m ? Android.vpnPubOf(m[1]) : '';
+  const pub = m && /\[Interface\]/i.test(text) ? Android.vpnPubOf(m[1]) : '';
   $('#ve-pubbox').style.display = pub ? 'block' : 'none';
   $('#ve-pub').textContent = pub;
   const r = rdJson(Android.vpnCheck(text), {}), c = $('#ve-check');
-  if (r.error) { c.className = 'note bad'; c.textContent = '⚠ ' + r.error; return false; }
+  if (r.error) { c.className = 'note bad'; c.textContent = '⚠ ' + r.error; $('#ve-authbox').style.display = /auth-user-pass/.test(text) ? 'block' : 'none'; return false; }
   const s = r.summary || {};
   c.className = 'note';
-  c.textContent = '✓ Klopt · server ' + (s.endpoint || '?') + ' · ' + (s.full ? 'al je verkeer via de VPN' : 'alleen ' + (s.allowed || []).join(', ')) + (s.dns && s.dns.length ? ' · DNS ' + s.dns.join(', ') : ' · let op: geen DNS ingesteld');
+  $('#ve-authbox').style.display = s.type === 'ovpn' && s.auth ? 'block' : 'none';
+  if (s.type === 'ovpn') {
+    c.textContent = '✓ Klopt · OpenVPN · ' + (s.summary || s.endpoint) + (s.auth ? ' · inloggen met gebruikersnaam en wachtwoord' : ' · met certificaat') + ((s.warnings || []).length ? ' · let op: ' + s.warnings.join('; ') : '');
+    return true;
+  }
+  c.textContent = '✓ Klopt · WireGuard · server ' + (s.endpoint || '?') + ' · ' + (s.full ? 'al je verkeer via de VPN' : 'alleen ' + (s.allowed || []).join(', ')) + (s.dns && s.dns.length ? ' · DNS ' + s.dns.join(', ') : ' · let op: geen DNS ingesteld');
   return true;
 }
 function vePubCopy(){ const p = $('#ve-pub').textContent; if (p) { Android.vpnCopy(p); toast('Publieke sleutel gekopieerd'); } }
 function veSave(){
   if (!veCheck()) { toast($('#ve-check').textContent.replace(/^⚠ /, '')); return; }
-  const r = rdJson(Android.vpnSave(veId, $('#ve-name').value, $('#ve-text').value), {});
+  const r = rdJson(Android.vpnSave(veId, $('#ve-name').value, $('#ve-text').value, $('#ve-user').value, $('#ve-pass').value), {});
   if (r.error) { toast(r.error); return; }
+  $('#ve-pass').value = '';
   toast(veId ? (r.restart ? 'Opgeslagen; de tunnel start opnieuw' : 'Opgeslagen') : 'Tunnel toegevoegd');
+  const wasNew = !veId;
   vpTun = rdJson(Android.vpnTunnels(), []);
   show('vpn');
+  if (wasNew) vpSuggestFallback(r.id);
 }
 
 /* tegel op het startscherm van de app */

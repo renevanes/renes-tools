@@ -85,17 +85,57 @@ final class Vpn {
         return o;
     }
 
-    /** Opslaan (nieuw als id leeg). Geeft {id} of {error}. */
-    static synchronized JSONObject save(Context c, String id, String name, String text) {
+    /** WireGuard ([Interface]) of OpenVPN (.ovpn)? */
+    static boolean isWg(String text) { return text != null && text.toLowerCase(java.util.Locale.ROOT).contains("[interface]"); }
+
+    /** Samenvatting van een OpenVPN-configuratie (zonder geheimen). */
+    static JSONObject summary(OvpnConfig o) throws Exception {
+        JSONArray rem = new JSONArray();
+        for (OvpnConfig.Remote r : o.remotes) rem.put(r.toString());
+        JSONArray warn = new JSONArray();
+        for (String w : o.warnings) warn.put(w);
+        OvpnConfig.Remote r0 = o.remotes.get(0);
+        return new JSONObject().put("type", "ovpn").put("endpoint", r0.host + ":" + r0.port).put("remotes", rem).put("tcp", o.hasTcp())
+                .put("auth", o.authUserPass).put("cert", o.cert != null).put("summary", o.summary()).put("warnings", warn)
+                .put("addr", new JSONArray()).put("dns", new JSONArray()).put("allowed", new JSONArray());
+    }
+
+    /** Controleren zonder op te slaan: {ok, summary} of {error}. */
+    static JSONObject check(String text) {
         try {
-            WgConfig w = WgConfig.parse(text);
+            JSONObject sm = isWg(text) ? summary(WgConfig.parse(text)).put("type", "wg") : summary(OvpnConfig.parse(text));
+            return new JSONObject().put("ok", true).put("summary", sm);
+        } catch (Exception e) {
+            try { return new JSONObject().put("error", e.getMessage() == null ? "Klopt niet" : e.getMessage()); } catch (Exception x) { return new JSONObject(); }
+        }
+    }
+
+    /** Opslaan (nieuw als id leeg). user/pass alleen voor OpenVPN met auth-user-pass (leeg = bewaarde houden). Geeft {id} of {error}. */
+    static synchronized JSONObject save(Context c, String id, String name, String text, String user, String pass) {
+        try {
+            boolean wg = isWg(text);
+            WgConfig w = wg ? WgConfig.parse(text) : null;
+            OvpnConfig ov = wg ? null : OvpnConfig.parse(text);
             String n = name == null ? "" : name.trim();
-            if (n.isEmpty()) n = w.peers.get(0).endpointHost == null ? "Mijn VPN" : w.peers.get(0).endpointHost;
+            if (n.isEmpty()) n = wg ? (w.peers.get(0).endpointHost == null ? "Mijn VPN" : w.peers.get(0).endpointHost) : ov.remotes.get(0).host;
             if (n.length() > 40) n = n.substring(0, 40);
             JSONArray a = tunnels(c), out = new JSONArray();
             boolean found = false;
             String newId = id == null || id.isEmpty() ? Long.toString(System.currentTimeMillis(), 36) + Integer.toString(WgCrypto.RNG.nextInt(1296), 36) : id;
-            JSONObject t = summary(w).put("id", newId).put("name", n).put("conf", seal(w.toText()));
+            JSONObject t = (wg ? summary(w).put("type", "wg") : summary(ov)).put("id", newId).put("name", n).put("conf", seal(wg ? w.toText() : text));
+            JSONObject prev = tunnel(c, newId);
+            if (prev != null && prev.has("fallback")) t.put("fallback", prev.getJSONArray("fallback"));
+            if (ov != null && ov.authUserPass) {
+                String u = user == null ? "" : user.trim(), pw = pass == null ? "" : pass;
+                if (u.isEmpty() || pw.isEmpty()) {
+                    JSONObject old = prev != null && prev.has("cred") ? creds(c, newId) : null;
+                    if (u.isEmpty() && old != null) u = old.optString("user");
+                    // bewaard wachtwoord alleen houden bij dezelfde gebruikersnaam
+                    if (pw.isEmpty() && old != null && u.equals(old.optString("user"))) pw = old.optString("pass");
+                }
+                if (u.isEmpty() || pw.isEmpty()) return new JSONObject().put("error", "Vul je gebruikersnaam en wachtwoord van de VPN in");
+                t.put("cred", seal(new JSONObject().put("user", u).put("pass", pw).toString())).put("user", u);
+            }
             for (int i = 0; i < a.length(); i++) {
                 JSONObject o = a.optJSONObject(i);
                 if (o == null) continue;
@@ -116,10 +156,60 @@ final class Vpn {
         }
     }
 
+    /** Gebruikersnaam en wachtwoord van een OpenVPN-tunnel (of null). */
+    static JSONObject creds(Context c, String id) {
+        JSONObject t = tunnel(c, id);
+        if (t == null || !t.has("cred")) return null;
+        try { return new JSONObject(open(t.getString("cred"))); } catch (Exception e) { return null; }
+    }
+
+    /** De rij om te proberen: de gekozen tunnel en dan zijn reserve-tunnels (bij een blokkade). */
+    static java.util.List<String> chain(Context c, String id) {
+        java.util.List<String> l = new java.util.ArrayList<>();
+        l.add(id);
+        JSONObject t = tunnel(c, id);
+        JSONArray f = t == null ? null : t.optJSONArray("fallback");
+        if (f != null) for (int i = 0; i < f.length(); i++) { String x = f.optString(i); if (!l.contains(x) && tunnel(c, x) != null) l.add(x); }
+        return l;
+    }
+
+    static synchronized void setFallback(Context c, String id, JSONArray ids) {
+        JSONArray a = tunnels(c);
+        try {
+            for (int i = 0; i < a.length(); i++) {
+                JSONObject o = a.optJSONObject(i);
+                if (o == null || !o.optString("id").equals(id)) continue;
+                JSONArray clean = new JSONArray();
+                java.util.Set<String> seen = new java.util.HashSet<>();
+                for (int j = 0; j < ids.length() && clean.length() < 4; j++) { String x = ids.optString(j); if (!x.equals(id) && tunnel(c, x) != null && seen.add(x)) clean.put(x); }
+                o.put("fallback", clean);
+            }
+            prefs(c).edit().putString("tunnels", a.toString()).apply();
+        } catch (Exception ignored) { }
+    }
+
+    /** De verbinding voor één tunnel uit de rij (VpnSvc). */
+    static VpnBackend backend(VpnSvc s, String id, int gen) throws Exception {
+        JSONObject t = tunnel(s, id);
+        if (t == null) throw new Exception("Deze tunnel bestaat niet meer");
+        String text = configText(s, id), name = t.optString("name", "VPN");
+        if ("ovpn".equals(t.optString("type")) || !isWg(text)) {
+            JSONObject cr = creds(s, id);
+            return new VpnBackend.Ovpn(s, id, name, text, cr == null ? "" : cr.optString("user"), cr == null ? "" : cr.optString("pass"), gen);
+        }
+        return new VpnBackend.Wg(s, id, name, text, gen);
+    }
+
     static synchronized void delete(Context c, String id) {
         if (id.equals(VpnSvc.tunnelId) && VpnSvc.on()) stop(c, "deleted");
         JSONArray a = tunnels(c), out = new JSONArray();
-        for (int i = 0; i < a.length(); i++) { JSONObject o = a.optJSONObject(i); if (o != null && !o.optString("id").equals(id)) out.put(o); }
+        for (int i = 0; i < a.length(); i++) {
+            JSONObject o = a.optJSONObject(i);
+            if (o == null || o.optString("id").equals(id)) continue;
+            JSONArray f = o.optJSONArray("fallback");
+            if (f != null) { JSONArray nf = new JSONArray(); for (int j = 0; j < f.length(); j++) if (!id.equals(f.optString(j))) nf.put(f.optString(j)); try { o.put("fallback", nf); } catch (Exception ignored) { } }
+            out.put(o);
+        }
         SharedPreferences.Editor e = prefs(c).edit().putString("tunnels", out.toString());
         if (prefs(c).getString("active", "").equals(id)) e.putString("active", out.length() > 0 ? out.optJSONObject(0).optString("id") : "");
         e.apply();
@@ -224,8 +314,9 @@ final class Vpn {
                     .put("name", VpnSvc.tunnelName == null ? "" : VpnSvc.tunnelName).put("error", VpnSvc.error == null ? "" : VpnSvc.error)
                     .put("since", VpnSvc.since).put("reason", VpnSvc.reason == null ? "" : VpnSvc.reason).put("active", activeId(c));
             // geen VpnService.prepare() hier: dat zet stilletjes de VPN van een andere app uit
-            WgDevice d = VpnSvc.device;
-            if (d != null) o.put("rx", d.rx()).put("tx", d.tx()).put("handshake", d.lastHandshakeWall()).put("endpoint", d.endpointText());
+            VpnBackend d = VpnSvc.backend;
+            if (d != null) o.put("rx", d.rx()).put("tx", d.tx()).put("handshake", d.lastOkWall()).put("endpoint", d.endpoint()).put("kind", d.kind());
+            if (VpnSvc.activeId != null) o.put("activeId", VpnSvc.activeId).put("activeName", VpnSvc.activeName == null ? "" : VpnSvc.activeName);
             VpnSvc s = VpnSvc.inst;
             if (s != null && Build.VERSION.SDK_INT >= 29) o.put("alwaysOn", s.isAlwaysOn()).put("lockdown", s.isLockdownEnabled());
             o.put("auto", autoCfg(c)).put("ssid", currentSsid(c) == null ? "" : currentSsid(c)).put("wifi", onWifi(c))

@@ -1,15 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.65",
-  "versionCode": 66,
-  "nativeLevel": 61,
+  "versionName": "1.66",
+  "versionCode": 67,
+  "nativeLevel": 62,
   "web": "index.html",
-  "webSha256": "6fce0f169db5bc4e372d5d03828c6458a09c7c1c67cc2eb8a5dc691a6629774c",
+  "webSha256": "661dfae4042d7b260d019b02c3f4d9f908eef95f0fd6aedf712c0eb201ed4874",
   "start": "start.html",
   "startSha256": "e579a294c436b49185bb76e16fc1d5837a7f34f9ba978d76286cb0fc2cad3b76",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "6f39ee3ccd87ad137054482679c14f28bd4d94b60324ed34c61b4f601ad502ec",
+  "apkSha256": "ec3606805876655113781ab03d0ffe8579ffd1fe6aa78b8d6c0fa970d82b34ac",
   "changelog": [
+    {
+      "version": "1.66",
+      "date": "2026-10-11",
+      "changes": [
+        "VPN: nu ook OpenVPN (.ovpn-bestand), met gebruikersnaam en wachtwoord of certificaat, via UDP of TCP (ook poort 443)",
+        "VPN: reserve bij blokkade — lukt WireGuard niet (bijv. in een hotel of op kantoor), dan vanzelf je OpenVPN-tunnel; op een nieuw netwerk eerst weer WireGuard",
+        "Locatie kiezen en VPN: kleine verbeteringen"
+      ]
+    },
     {
       "version": "1.65",
       "date": "2026-10-11",
@@ -602,5 +611,5 @@
       ]
     }
   ],
-  "webSig2": "ARc2mUPYa7uvPTZ3qSIuOlC86iEAkIC7aM/FOD2TXHsRrwp5DQlwsC79KwYPN0zmSEHZtsFOg3myNW5I1pvoafNKqe4qa+g71vueSEqqfOtV6+1Vwrm/FY4Xssu1EYNxnqfm4kK+AwgIXXtMGlw+rmFbhhpK+rBQs2cjzwsBxlOqH88KMQFDpSGPkZp3gwsJUsWh3/V3dSjfTyCn811UhyHZxxo5x7UmB8C4bBNXZkJG81LBB/o3ivj09YrMLv+6h2YUOBVyJR5m/BDyHAeNcmT+LMSGoohiJCokmrvZAGfz6GKZ3dHGJLVn+F7UYsQVRxjIDVAWGbz3opts8CqQeUxqyZZPTn+vpPrV5tcXww3pIZHqd4CMNWYg1jF81OY2f/yB8U9QpflUEgNDpVtW7dYDmQuHJf0aHmo8JpODxWbdknPDeSEnlxatTyiejUhQNVhKrHPW3/5v3ATbmaN+XC4wW8pFJ6vHek1lWlGaq8gLUgqOcXGWosH21Gqn0d00"
+  "webSig2": "IYLnvrgGAlTWefqlu2z2ssr2OpWcvaOVvwJJdFVax7saMJdSpbEv8RMNsp/jucnj0nQ+A47QgkoyCMbT2JyFgtX9wW1ZRajv/MWF6W7l+0teABZqf/0qx8CjczP5ZXTNb3nywiBRm0lplRUP7kwI9aAj+7IHOz0ZhX+6O0SSOyywsccWi1+DbpmCcJILMlqaMfTarungVo0YJFdFrVURTR6w4eD0YPP7lsIfJFmiHUjzNFAanYlnseJ7xrwArm/n4GgOiQJplKFciEhVC3X2kdViiF290gezdDHGDErW8/peri07XmmTn4LGGkgPqn5IT+jV5q9JG8FSCzWWzcFXzBD61cfBdHQCU+mDRLWnyNHf0fv1dWlC9loORoze+nXpGasNTfLbwufrhgrD4sI2pyRju3AR25Lm3/+t9gU9Wa6XzRWqE8xtI8YDntvlYWaZDqtwk3BJtZwlqOUzMvgxu8wjoO50CUqJz9u5rAqnNXxlIr8bYflJfpVmNMdwIsSk"
 }

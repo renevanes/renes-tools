@@ -299,10 +299,17 @@ if (!window.Android) window.Android = (function(){
     locSearch(q){ setTimeout(() => onLocSearch(/nergens/.test(q) ? { q, results: [] } : { q, results: [{ name: 'Coolsingel 40, 3011 AD Rotterdam', lat: 51.9225, lng: 4.4792 }, { name: 'Coolsingel, Rotterdam', lat: 51.9205, lng: 4.4782 }] }), 80); },
     // VPN
     _vp: { tun: [], on: false, status: 'off', id: '', active: '', auto: { wifi: false, home: true, mobile: false, trusted: [] }, ssid: 'Thuisnetwerk', consent: false, rx: 0, tx: 0, err: '' },
-    vpnState(){ const v = this._vp; return JSON.stringify({ on: v.on, status: v.status, id: v.on ? v.id : '', name: v.on ? (v.tun.find(t => t.id === v.id) || {}).name : '', error: v.err, since: Date.now(), reason: v.on ? 'app' : '', active: v.active || (v.tun[0] || {}).id || '', consent: v.consent, rx: v.rx, tx: v.tx, handshake: v.on && v.status === 'connected' ? Date.now() - 4000 : 0, endpoint: v.on ? '203.0.113.5:51820' : '', alwaysOn: v.on ? false : undefined, lockdown: false, auto: v.auto, ssid: v.ssid, wifi: true, locOk: true, bgLocOk: !!this._vpBg }); },
-    vpnTunnels(){ return JSON.stringify(this._vp.tun.map(t => { const c = Object.assign({}, t); delete c.conf; return c; })); },
-    vpnConfig(id){ const t = this._vp.tun.find(x => x.id === id); return JSON.stringify(t ? { text: t.conf } : { error: 'Deze tunnel bestaat niet meer' }); },
+    vpnState(){ const v = this._vp; return JSON.stringify({ on: v.on, status: v.status, id: v.on ? v.id : '', name: v.on ? (v.tun.find(t => t.id === v.id) || {}).name : '', error: v.err, since: Date.now(), reason: v.on ? 'app' : '', active: v.active || (v.tun[0] || {}).id || '', consent: v.consent, rx: v.rx, tx: v.tx, handshake: v.on && v.status === 'connected' ? Date.now() - 4000 : 0, endpoint: v.on ? '203.0.113.5:51820' : '', activeId: v.on ? (v.via || v.id) : undefined, activeName: v.on ? (v.tun.find(t => t.id === (v.via || v.id)) || {}).name : undefined, kind: v.on ? ((v.tun.find(t => t.id === (v.via || v.id)) || {}).type === 'ovpn' ? 'OpenVPN' : 'WireGuard') : undefined, alwaysOn: v.on ? false : undefined, lockdown: false, auto: v.auto, ssid: v.ssid, wifi: true, locOk: true, bgLocOk: !!this._vpBg }); },
+    vpnTunnels(){ return JSON.stringify(this._vp.tun.map(t => { const c = Object.assign({}, t); delete c.conf; delete c.pass; return c; })); },
+    vpnConfig(id){ const t = this._vp.tun.find(x => x.id === id); return JSON.stringify(t ? { text: t.conf, user: t.user || '', hasPass: !!t.pass } : { error: 'Deze tunnel bestaat niet meer' }); },
+    vpnSetFallback(id, j){ const t = this._vp.tun.find(x => x.id === id); if (t) t.fallback = JSON.parse(j).filter(x => x !== id); },
     vpnCheck(text){
+      if (/^\s*client\b/m.test(text)) {
+        const rm = /^\s*remote\s+(\S+)\s*(\d*)\s*(\S*)/m.exec(text); if (!rm) return JSON.stringify({ error: "Er staat geen 'remote' (server) in" });
+        if (!/<ca>/.test(text)) return JSON.stringify({ error: 'Het CA-certificaat (<ca>) ontbreekt; zonder kan de server niet gecontroleerd worden' });
+        const tcp = /tcp/.test(rm[3] || '') || /^proto tcp/m.test(text), port = rm[2] || '1194';
+        return JSON.stringify({ ok: true, summary: { type: 'ovpn', endpoint: rm[1] + ':' + port, summary: rm[1] + ':' + port + (tcp ? ' TCP' : ' UDP'), auth: /auth-user-pass/.test(text), tcp, warnings: [], addr: [], dns: [], allowed: [] } });
+      }
       if (!/\[Interface\]/i.test(text)) return JSON.stringify({ error: 'PrivateKey ontbreekt bij [Interface]' });
       if (!/PrivateKey\s*=\s*\S{43}=/.test(text)) return JSON.stringify({ error: 'PrivateKey is geen geldige sleutel' });
       const ep = /Endpoint\s*=\s*(\S+:\d+)/.exec(text); if (!ep) return JSON.stringify({ error: 'Endpoint (adres van de server) ontbreekt' });
@@ -310,9 +317,13 @@ if (!window.Android) window.Android = (function(){
       const al = (/AllowedIPs\s*=\s*(.+)/.exec(text) || [, ''])[1].split(',').map(x => x.trim()).filter(Boolean), dns = (/DNS\s*=\s*(.+)/.exec(text) || [, ''])[1].split(',').map(x => x.trim()).filter(Boolean);
       return JSON.stringify({ ok: true, summary: { endpoint: ep[1], full: al.some(x => /\/0$/.test(x)), allowed: al, dns: dns, addr: ['10.0.0.2/32'], pub: 'cHViLWtleS1tb2NrLWFhYWFhYWFhYWFhYWFhYWFhYWE=' } });
     },
-    vpnSave(id, name, text){
+    vpnSave(id, name, text, user, pass){
       const c = JSON.parse(this.vpnCheck(text)); if (c.error) return JSON.stringify(c);
-      const v = this._vp, nid = id || 't' + (v.tun.length + 1), t = Object.assign({ id: nid, name: name || c.summary.endpoint.split(':')[0], conf: text }, c.summary);
+      const v = this._vp, nid = id || 't' + (v.tun.length + 1), prev = v.tun.find(x => x.id === nid) || {};
+      if (c.summary.auth && !(user || prev.user) ) return JSON.stringify({ error: 'Vul je gebruikersnaam en wachtwoord van de VPN in' });
+      if (c.summary.auth && !(pass || prev.pass)) return JSON.stringify({ error: 'Vul je gebruikersnaam en wachtwoord van de VPN in' });
+      const t = Object.assign({ id: nid, name: name || c.summary.endpoint.split(':')[0], conf: text, type: c.summary.type || 'wg', fallback: prev.fallback || [] }, c.summary);
+      if (c.summary.auth) { t.user = user || prev.user; t.pass = pass || prev.pass; }
       const i = v.tun.findIndex(x => x.id === nid); if (i >= 0) v.tun[i] = t; else { if (id) return JSON.stringify({ error: 'Deze tunnel bestaat niet meer' }); v.tun.push(t); }
       if (!v.active) v.active = nid; this._vpSaved = text; return JSON.stringify({ id: nid, restart: false });
     },
@@ -320,7 +331,7 @@ if (!window.Android) window.Android = (function(){
     vpnSetActive(id){ this._vp.active = id; },
     vpnNewKey(){ return JSON.stringify({ priv: 'cHJpdi1rZXktbW9jay1hYWFhYWFhYWFhYWFhYWFhYWE=', pub: 'cHViLWtleS1tb2NrLWFhYWFhYWFhYWFhYWFhYWFhYWE=' }); },
     vpnPubOf(p){ return /^\S{43}=$/.test(p) ? 'cHViLWtleS1tb2NrLWFhYWFhYWFhYWFhYWFhYWFhYWE=' : ''; },
-    vpnStart(id){ const v = this._vp; if (!v.tun.length) return 'Stel eerst een tunnel in';
+    vpnStart(id){ const v = this._vp; if (!v.tun.length) return 'Stel eerst een tunnel in'; v.via = this._vpBlocked && (v.tun.find(x => x.id === (id || v.active)) || {}).fallback ? (v.tun.find(x => x.id === (id || v.active)).fallback[0] || '') : '';
       if (!v.consent) { v.consent = true; setTimeout(() => { this.vpnStart(id); onVpnChanged(''); }, 300); return 'consent'; }
       v.on = true; v.id = id || v.active; v.status = 'connecting'; setTimeout(() => { v.status = 'connected'; v.rx = 123456; v.tx = 45678; }, 300); return ''; },
     vpnStop(){ const v = this._vp; v.on = false; v.status = 'off'; },
