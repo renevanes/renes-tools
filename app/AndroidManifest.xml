@@ -31,6 +31,8 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!-- VPN: QR-code van de WireGuard-configuratie scannen (alleen als je daar zelf op tikt) -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <!-- Zwevende speler boven andere apps (alleen als je die zelf aanzet) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Automatiseringen: plekken op de achtergrond en de Bluetooth van de auto -->
@@ -57,6 +59,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
 
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:name=".App"
@@ -185,6 +188,33 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_radio_info" />
         </receiver>
+
+        <!-- VPN (WireGuard): Android bindt hem zelf (ook voor "Altijd-aan VPN"); alleen het systeem heeft BIND_VPN_SERVICE -->
+        <service
+            android:name=".VpnSvc"
+            android:exported="true"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:foregroundServiceType="specialUse">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+            <meta-data android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON" android:value="true" />
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="WireGuard VPN tunnel that the user set up and switched on" />
+        </service>
+        <service
+            android:name=".VpnTile"
+            android:exported="true"
+            android:label="VPN"
+            android:icon="@drawable/ic_vpn"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
+        </service>
+        <receiver android:name=".VpnNet" android:exported="false" />
 
         <!-- Houdt de verbinding met een Chromecast open terwijl daar iets speelt -->
         <service android:name=".CastService" android:exported="false" android:foregroundServiceType="mediaPlayback" />

@@ -103,9 +103,12 @@
         <option value="track_stop">🗺️ Route-opname stoppen en opslaan</option>
         <option value="backup">💾 Alles back-uppen</option>
         <option value="redial">📞 Auto redial starten</option>
+        <option value="vpn_on">🔑 VPN aanzetten</option>
+        <option value="vpn_off">🔑 VPN uitzetten</option>
       </select>
       <div id="ae-notebox" style="display:none"><select class="sel" id="ae-note" style="width:100%;margin-bottom:12px" aria-label="Welke notitie" onchange="aeSetNote(this.value)"></select></div>
       <div id="ae-radiobox" style="display:none"><select class="sel" id="ae-radio" style="width:100%;margin-bottom:12px" aria-label="Welke zender" onchange="aeSetRadio(this.value)"></select></div>
+      <div id="ae-vpnbox" style="display:none"><select class="sel" id="ae-vpn" style="width:100%;margin-bottom:12px" aria-label="Welke tunnel" onchange="aeSetVpn(this.value)"></select></div>
       <div id="ae-redialbox" style="display:none"><input class="aein" id="ae-number" type="tel" placeholder="Telefoonnummer" oninput="aeRule.number=this.value" style="margin-bottom:12px"></div>
       <div class="aeopts" id="ae-mode" role="radiogroup" aria-label="Wat moet er gebeuren">
         <button data-v="ask" role="radio">🔔 <b>Eerst vragen</b><small>Melding met de knop Starten; één tik en de rest gaat vanzelf</small></button>

@@ -26,4 +26,5 @@
         <exclude domain="sharedpref" path="intent_token.xml" />
         <exclude domain="sharedpref" path="lock.xml" />
         <exclude domain="sharedpref" path="spotify.xml" />
+        <exclude domain="sharedpref" path="vpn.xml" />
 </full-backup-content>

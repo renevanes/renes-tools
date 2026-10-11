@@ -20,7 +20,7 @@ final class Lock {
 
     private Lock() { }
 
-    static final int REQ_CONFIRM = 30;
+    static final int REQ_CONFIRM = 90; // niet 30: dat is REQ_PDF_SAVE (dan kwam "PDF opslaan" hier terecht)
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("lock", Context.MODE_PRIVATE); }
 

@@ -21,7 +21,7 @@ import java.util.Calendar;
 
 /**
  * Eigen acties en extra triggers voor Automatiseringen.
- * Acties (veld "act"): app (oud: app openen en knoppen indrukken), radio, track_start, track_stop, note, backup, redial.
+ * Acties (veld "act"): app (oud: app openen en knoppen indrukken), radio, track_start, track_stop, note, backup, redial, vpn_on, vpn_off.
  * Triggers (veld "trig"): naast Bluetooth en plekken ook "time" (om HH:MM, op gekozen dagen) en "charge_on" (aan de lader).
  */
 public class AutoActions extends JobService {
@@ -39,7 +39,8 @@ public class AutoActions extends JobService {
             case "radio": return o.optJSONObject("radio") == null || o.optJSONObject("radio").optString("url").isEmpty() ? "Kies een radiozender" : null;
             case "note": return o.optJSONObject("note") == null || o.optJSONObject("note").optString("id").isEmpty() ? "Kies welke notitie getoond moet worden" : null;
             case "redial": return o.optString("number").replaceAll("[^0-9+]", "").length() < 3 ? "Vul het telefoonnummer in" : null;
-            case "track_start": case "track_stop": case "backup": return null;
+            case "vpn_on": return o.optJSONObject("vpn") == null || o.optJSONObject("vpn").optString("id").isEmpty() ? "Kies welke VPN-tunnel aan moet" : null;
+            case "track_start": case "track_stop": case "backup": case "vpn_off": return null;
             default: return "Onbekende actie";
         }
     }
@@ -52,6 +53,8 @@ public class AutoActions extends JobService {
             case "track_start": return "Route-opname starten";
             case "track_stop": return "Route-opname stoppen en opslaan";
             case "backup": return "Alles back-uppen";
+            case "vpn_on": return "VPN aan: " + (r.optJSONObject("vpn") == null ? "" : r.optJSONObject("vpn").optString("name"));
+            case "vpn_off": return "VPN uit";
             default: return "";
         }
     }
@@ -86,6 +89,14 @@ public class AutoActions extends JobService {
                     js.schedule(new JobInfo.Builder(JOB_BACKUP, new ComponentName(c, AutoActions.class)).setOverrideDeadline(1000).build());
                     return true;
                 }
+                case "vpn_on": {
+                    JSONObject v = r.optJSONObject("vpn");
+                    String res = Vpn.start(c, v == null ? null : v.optString("id"), "auto");
+                    if (res.equals(Vpn.NO_TUNNEL)) { Auto.log(c, r, "Deze VPN-tunnel bestaat niet meer"); return true; }
+                    if (res.equals(Vpn.NEED_CONSENT)) { Vpn.ask(c, r.optString("name", "Automatisering"), true); return true; }
+                    return res.isEmpty(); // achtergrond geweigerd: dan vraagt Automatiseren met een melding
+                }
+                case "vpn_off": Vpn.stop(c, "auto"); return true;
                 case "redial": {
                     if (RedialService.alive) return true;
                     Intent i = new Intent(c, RedialService.class).setAction(RedialService.ACTION_START)

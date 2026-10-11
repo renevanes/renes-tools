@@ -289,6 +289,39 @@ if (!window.Android) window.Android = (function(){
     spotifyVersions(id){ return JSON.stringify(id === 'p1' ? [{ t: Date.now(), snap: 's2', n: 3, name: 'Roadtrip', plus: 1, min: 0, ok: true }, { t: Date.now() - 864e5, snap: 's1', n: 2, name: 'Roadtrip', ok: true }] : [{ t: Date.now(), snap: 'x', n: 2, name: 'x', ok: true }]); },
     spotifyTracks(id, snap){ return JSON.stringify({ total: 2, items: [{ u: 'spotify:track:a', n: 'Radar Love', a: 'Golden Earring' }, { u: 'spotify:local:x', n: 'Eigen opname', a: '', l: true }] }); },
     spotifyRestore(id, snap, mode){ this._spRestored = [id, snap, mode]; setTimeout(() => onSpotifyRestored({ id: 'new1', added: 1, skipped: 1, name: 'Roadtrip', url: 'https://open.spotify.com/playlist/new1' }), 100); },
+    // VPN
+    _vp: { tun: [], on: false, status: 'off', id: '', active: '', auto: { wifi: false, home: true, mobile: false, trusted: [] }, ssid: 'Thuisnetwerk', consent: false, rx: 0, tx: 0, err: '' },
+    vpnState(){ const v = this._vp; return JSON.stringify({ on: v.on, status: v.status, id: v.on ? v.id : '', name: v.on ? (v.tun.find(t => t.id === v.id) || {}).name : '', error: v.err, since: Date.now(), reason: v.on ? 'app' : '', active: v.active || (v.tun[0] || {}).id || '', consent: v.consent, rx: v.rx, tx: v.tx, handshake: v.on && v.status === 'connected' ? Date.now() - 4000 : 0, endpoint: v.on ? '203.0.113.5:51820' : '', alwaysOn: v.on ? false : undefined, lockdown: false, auto: v.auto, ssid: v.ssid, wifi: true, locOk: true, bgLocOk: !!this._vpBg }); },
+    vpnTunnels(){ return JSON.stringify(this._vp.tun.map(t => { const c = Object.assign({}, t); delete c.conf; return c; })); },
+    vpnConfig(id){ const t = this._vp.tun.find(x => x.id === id); return JSON.stringify(t ? { text: t.conf } : { error: 'Deze tunnel bestaat niet meer' }); },
+    vpnCheck(text){
+      if (!/\[Interface\]/i.test(text)) return JSON.stringify({ error: 'PrivateKey ontbreekt bij [Interface]' });
+      if (!/PrivateKey\s*=\s*\S{43}=/.test(text)) return JSON.stringify({ error: 'PrivateKey is geen geldige sleutel' });
+      const ep = /Endpoint\s*=\s*(\S+:\d+)/.exec(text); if (!ep) return JSON.stringify({ error: 'Endpoint (adres van de server) ontbreekt' });
+      if (!/PublicKey\s*=\s*\S{43}=/.test(text)) return JSON.stringify({ error: 'PublicKey ontbreekt' });
+      const al = (/AllowedIPs\s*=\s*(.+)/.exec(text) || [, ''])[1].split(',').map(x => x.trim()).filter(Boolean), dns = (/DNS\s*=\s*(.+)/.exec(text) || [, ''])[1].split(',').map(x => x.trim()).filter(Boolean);
+      return JSON.stringify({ ok: true, summary: { endpoint: ep[1], full: al.some(x => /\/0$/.test(x)), allowed: al, dns: dns, addr: ['10.0.0.2/32'], pub: 'cHViLWtleS1tb2NrLWFhYWFhYWFhYWFhYWFhYWFhYWE=' } });
+    },
+    vpnSave(id, name, text){
+      const c = JSON.parse(this.vpnCheck(text)); if (c.error) return JSON.stringify(c);
+      const v = this._vp, nid = id || 't' + (v.tun.length + 1), t = Object.assign({ id: nid, name: name || c.summary.endpoint.split(':')[0], conf: text }, c.summary);
+      const i = v.tun.findIndex(x => x.id === nid); if (i >= 0) v.tun[i] = t; else { if (id) return JSON.stringify({ error: 'Deze tunnel bestaat niet meer' }); v.tun.push(t); }
+      if (!v.active) v.active = nid; this._vpSaved = text; return JSON.stringify({ id: nid, restart: false });
+    },
+    vpnDelete(id){ const v = this._vp; v.tun = v.tun.filter(t => t.id !== id); if (v.id === id) { v.on = false; v.status = 'off'; } if (v.active === id) v.active = (v.tun[0] || {}).id || ''; },
+    vpnSetActive(id){ this._vp.active = id; },
+    vpnNewKey(){ return JSON.stringify({ priv: 'cHJpdi1rZXktbW9jay1hYWFhYWFhYWFhYWFhYWFhYWE=', pub: 'cHViLWtleS1tb2NrLWFhYWFhYWFhYWFhYWFhYWFhYWE=' }); },
+    vpnPubOf(p){ return /^\S{43}=$/.test(p) ? 'cHViLWtleS1tb2NrLWFhYWFhYWFhYWFhYWFhYWFhYWE=' : ''; },
+    vpnStart(id){ const v = this._vp; if (!v.tun.length) return 'Stel eerst een tunnel in';
+      if (!v.consent) { v.consent = true; setTimeout(() => { this.vpnStart(id); onVpnChanged(''); }, 300); return 'consent'; }
+      v.on = true; v.id = id || v.active; v.status = 'connecting'; setTimeout(() => { v.status = 'connected'; v.rx = 123456; v.tx = 45678; }, 300); return ''; },
+    vpnStop(){ const v = this._vp; v.on = false; v.status = 'off'; },
+    vpnAuto(j){ this._vp.auto = JSON.parse(j); },
+    vpnTrustCurrent(){ const a = this._vp.auto; if (!a.trusted.includes(this._vp.ssid)) a.trusted.push(this._vp.ssid); return this._vp.ssid; },
+    vpnSystemSettings(){ this._vpSys = true; }, vpnAddTile(){ setTimeout(() => onVpnTile('2'), 50); return ''; }, vpnPinToggle(){ this._pinned = 'vpn-toggle'; return ''; },
+    vpnPickFile(){ setTimeout(() => onVpnImported({ name: 'mullvad-nl', text: '[Interface]\nPrivateKey = cHJpdi1rZXktbW9jay1hYWFhYWFhYWFhYWFhYWFhYWE=\nAddress = 10.64.1.2/32\nDNS = 10.64.0.1\n\n[Peer]\nPublicKey = c2VydmVyLWtleS1tb2NrLWFhYWFhYWFhYWFhYWFhYWE=\nAllowedIPs = 0.0.0.0/0, ::/0\nEndpoint = nl-ams-wg-001.relays.mullvad.net:51820\n' }), 50); },
+    vpnPickImage(){ setTimeout(() => onVpnImage({ error: 'Afbeelding niet te lezen' }), 50); },
+    vpnCamera(){ setTimeout(() => onVpnCamera(false), 50); }, vpnCameraDone(){}, vpnCopy(t){ this._copied = t; },
     spotifyLog(){ return this._sp.log; }, spotifyImport(){ setTimeout(() => onSpotifyImported({ count: 3 }), 100); }, spotifyCopyRedirect(){ this._spCopied = true; },
     radioShiftTo(b){ const st = this._rd.st; if (st.shift) st.shift.behind = Math.max(6, b); this._shiftTo = b; },
     _mu:{token:'',st:{state:'idle'},hist:[],used:0,mic:false},

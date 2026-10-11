@@ -54,6 +54,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         Auto.armPlaces(c, true);
         AutoActions.armTimes(c);
         AutoActions.armCharge(c);
+        Vpn.armAuto(c);
         setSentinel(c);
     }
 

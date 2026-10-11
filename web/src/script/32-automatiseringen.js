@@ -4,7 +4,7 @@ function aeDirty(){ return !!aeRule && (aeSnap === null || JSON.stringify(aeRule
 let auState = { rules: [], log: [], last: {}, perms: {} }, aeRule = null, aeIsNew = false, aeApps = null, aeBt = null;
 let aeMap = null, aeMarker = null, aeCircle = null;
 const AU_TRIG = { bt_off: 'Auto uitgezet', bt_on: 'Auto aangezet', arrive: 'Aankomen bij', leave: 'Weggaan van', manual: 'Met de hand', time: 'Om', charge_on: 'Aan de lader' };
-const AU_ACT = { note: 'notitie tonen', radio: 'radio', track_start: 'route opnemen', track_stop: 'route stoppen', backup: 'alles back-uppen', redial: 'Auto redial' };
+const AU_ACT = { note: 'notitie tonen', radio: 'radio', track_start: 'route opnemen', track_stop: 'route stoppen', backup: 'alles back-uppen', redial: 'Auto redial', vpn_on: 'VPN aan', vpn_off: 'VPN uit' };
 const AU_MODE = { ask: 'vraagt eerst', auto: 'volledig automatisch', notify: 'alleen melding' };
 const AU_DAYS = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
 
@@ -154,6 +154,8 @@ function aeRender(){
   $('#ae-notebox').style.display = act === 'note' ? 'block' : 'none';
   $('#ae-radiobox').style.display = act === 'radio' ? 'block' : 'none';
   $('#ae-redialbox').style.display = act === 'redial' ? 'block' : 'none';
+  $('#ae-vpnbox').style.display = act === 'vpn_on' ? 'block' : 'none';
+  if (act === 'vpn_on') { const ts = rdJson(Android.vpnTunnels(), []); $('#ae-vpn').innerHTML = '<option value="">' + (ts.length ? 'Kies een tunnel…' : 'Stel eerst een tunnel in bij VPN') + '</option>' + ts.map(t => '<option value="' + esc(t.id) + '"' + (r.vpn && r.vpn.id === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>').join(''); }
   if (act === 'note') { const ns = (notesGet() || []).filter(n => !n.deleted); $('#ae-note').innerHTML = '<option value="">Kies een notitie…</option>' + ns.map(n => '<option value="' + esc(n.id) + '"' + (r.note && r.note.id === n.id ? ' selected' : '') + '>' + esc(n.title || 'Zonder titel') + '</option>').join(''); }
   if (act === 'radio') { const fs = rdJson(Android.radioFavorites(), []); $('#ae-radio').innerHTML = '<option value="">Kies een zender (uit je favorieten)…</option>' + fs.map((f, i) => '<option value="' + i + '"' + (r.radio && r.radio.url === f.url ? ' selected' : '') + '>' + esc(f.name) + '</option>').join(''); }
   if (act === 'redial') $('#ae-number').value = r.number || '';
@@ -231,6 +233,7 @@ function aeRender(){
 }
 
 function aeSetNote(id){ const n = (notesGet() || []).find(x => x.id === id); aeRule.note = n ? { id: n.id, title: n.title || 'Notitie' } : null; }
+function aeSetVpn(id){ const t = rdJson(Android.vpnTunnels(), []).find(x => x.id === id); aeRule.vpn = t ? { id: t.id, name: t.name } : null; }
 function aeSetRadio(i){ const fs = rdJson(Android.radioFavorites(), []); const f = fs[+i]; aeRule.radio = f && i !== '' ? f : null; }
 function aeStepLabel(s){
   if (s.t === 'wait') return '⏱ Wachten ' + Math.round((s.ms || 1000) / 100) / 10 + ' s';
@@ -333,6 +336,7 @@ function aeCheck(){
   if (act === 'note' && !(r.note && r.note.id)) return 'Kies welke notitie getoond moet worden';
   if (act === 'radio' && !(r.radio && r.radio.url)) return 'Kies een radiozender (zet er eerst een in je favorieten)';
   if (act === 'redial' && String(r.number || '').replace(/[^0-9+]/g, '').length < 3) return 'Vul het telefoonnummer in';
+  if (act === 'vpn_on' && !(r.vpn && r.vpn.id)) return 'Kies welke VPN-tunnel aan moet';
   if (act !== 'app') return '';
   if (r.mode !== 'notify' && !(r.app && r.app.p)) return 'Kies welke app geopend moet worden';
   if (r.mode === 'auto' && !(r.steps || []).length) return 'Volledig automatisch heeft minstens één knop nodig: neem ze op';

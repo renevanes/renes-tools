@@ -31,6 +31,7 @@ schermen/25-kluis.html
 schermen/27-pdf.html
 schermen/28-podcasts.html
 schermen/29-spotify.html
+schermen/30-vpn.html
 speler.html
 vensters.html
 script/00-begin.js
@@ -70,6 +71,7 @@ script/37-pdf.js
 script/38-podcasts.js
 script/39-speler.js
 script/40-spotify.js
+script/41-vpn.js
 script/29-start.js
 script/30-snelkoppelingen.js
 script/31-startscherm-groepen-volgorde-verbergen.js

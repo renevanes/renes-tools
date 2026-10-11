@@ -1,0 +1,101 @@
+<!-- ============ VPN (WireGuard) ============ -->
+<section class="screen" id="s-vpn">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">VPN</h1>
+  </div>
+  <main>
+    <!-- Nog niets ingesteld -->
+    <div class="card" id="vp-intro" style="display:none">
+      <h2>WireGuard-tunnel toevoegen</h2>
+      <p class="note" style="margin-top:0">Werkt met elke WireGuard-server: je eigen server (thuis of een VPS) of een aanbieder als Mullvad of Proton. Je krijgt daar een configuratie, meestal als QR-code of als <code>.conf</code>-bestand.</p>
+      <div class="vpadd">
+        <button class="big" onclick="vpScan()">📷 QR-code scannen</button>
+        <button class="big ghost" onclick="Android.vpnPickImage()">🖼️ QR-code uit een afbeelding</button>
+        <button class="big ghost" onclick="Android.vpnPickFile()">📄 Bestand (.conf)</button>
+        <button class="big ghost" onclick="vpPaste()">📋 Tekst plakken</button>
+        <button class="big ghost" onclick="vpNew()">🔑 Zelf maken (met eigen sleutels)</button>
+      </div>
+    </div>
+
+    <!-- Aan/uit -->
+    <div class="card vpstate" id="vp-main" style="display:none">
+      <div class="row" style="align-items:center;gap:14px">
+        <span class="vpdot" id="vp-dot" aria-hidden="true"></span>
+        <div style="flex:1;min-width:0">
+          <b id="vp-title">VPN uit</b>
+          <small class="note" style="display:block;margin:0" id="vp-sub" role="status" aria-live="polite"></small>
+        </div>
+      </div>
+      <button class="big" id="vp-toggle" style="margin-top:14px" onclick="vpToggle()">Aanzetten</button>
+      <div class="vpstats" id="vp-stats" style="display:none"></div>
+      <p class="note bad" id="vp-err" style="display:none"></p>
+    </div>
+
+    <div id="vp-listwrap" style="display:none">
+      <div class="flabel" style="margin:4px 2px 8px">Tunnels</div>
+      <div class="card stations" id="vp-list"></div>
+      <button class="big ghost" onclick="vpAddMenu()">＋ Tunnel toevoegen</button>
+    </div>
+
+    <div class="card" id="vp-autocard" style="display:none">
+      <h2>Vanzelf aan en uit</h2>
+      <label class="chk"><input type="checkbox" id="vp-a-wifi" onchange="vpAutoSet()"> Aan op wifi die je niet vertrouwt (hotel, trein, café)</label>
+      <label class="chk"><input type="checkbox" id="vp-a-home" onchange="vpAutoSet()"> Weer uit op vertrouwde wifi (als hij vanzelf aanging)</label>
+      <label class="chk"><input type="checkbox" id="vp-a-mobile" onchange="vpAutoSet()"> Ook aan op mobiel internet</label>
+      <div class="flabel" style="margin-top:10px">Vertrouwde wifi</div>
+      <div id="vp-trusted"></div>
+      <button class="big ghost" id="vp-trust" style="margin-top:8px" onclick="vpTrustCurrent()">＋ Deze wifi vertrouwen</button>
+      <p class="note" id="vp-locnote" style="display:none"></p>
+      <p class="note" style="margin-bottom:0">Ook mogelijk: <a href="#" onclick="show('auto');return false">Automatiseren</a> heeft de acties <b>VPN aanzetten</b> en <b>VPN uitzetten</b> (bijv. op een plek of tijdstip).</p>
+    </div>
+
+    <div class="card" id="vp-quick" style="display:none">
+      <h2>Snel aan en uit</h2>
+      <button class="big ghost" onclick="vpAddTile()">⚡ Tegel in de snelle instellingen</button>
+      <button class="big ghost" style="margin-top:8px" onclick="vpPinToggle()">📌 Snelkoppeling op het startscherm</button>
+    </div>
+
+    <div class="card" id="vp-kill" style="display:none">
+      <h2>Altijd aan en kill switch</h2>
+      <p class="note" style="margin-top:0">Laat Android de VPN altijd aan houden, en zonder VPN geen internet (zo lekt er niets als de verbinding even wegvalt):</p>
+      <ol class="spsteps">
+        <li>Open de VPN-instellingen van Android.</li>
+        <li>Tik op ⚙ naast <b>Rene's Tools</b>.</li>
+        <li>Zet <b>Altijd-aan VPN</b> aan, en voor de kill switch ook <b>Verbindingen zonder VPN blokkeren</b>.</li>
+      </ol>
+      <p class="note" id="vp-killstate"></p>
+      <button class="big ghost" onclick="Android.vpnSystemSettings()">VPN-instellingen van Android openen</button>
+    </div>
+  </main>
+</section>
+
+<!-- ============ VPN: tunnel bewerken ============ -->
+<section class="screen" id="s-vpnedit">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="ve-h">Tunnel</h1>
+  </div>
+  <main>
+    <div class="card">
+      <div class="flabel"><label for="ve-name">Naam</label></div>
+      <input class="aein" id="ve-name" maxlength="40" placeholder="Bijv. Thuis of Mullvad NL" autocomplete="off">
+      <div class="vppub" id="ve-pubbox" style="display:none">
+        <div class="flabel" style="margin-top:12px">Jouw publieke sleutel <small>(zet deze op de server)</small></div>
+        <div class="row" style="align-items:center;gap:8px"><code id="ve-pub" style="flex:1;min-width:0;word-break:break-all"></code><button class="mini" style="float:none" onclick="vePubCopy()">Kopiëren</button></div>
+      </div>
+      <div class="flabel" style="margin-top:12px"><label for="ve-text">Configuratie (WireGuard)</label></div>
+      <textarea class="key vpconf" id="ve-text" rows="14" spellcheck="false" autocapitalize="off" autocomplete="off" oninput="veCheckSoon()"></textarea>
+      <p class="note" id="ve-check" role="status" aria-live="polite"></p>
+      <button class="big" id="ve-save" onclick="veSave()">Opslaan</button>
+    </div>
+  </main>
+</section>
+
+<!-- QR-code scannen (camera; de beelden blijven in de app) -->
+<div class="vpscan" id="vp-scan" role="dialog" aria-modal="true" aria-label="QR-code scannen">
+  <video id="vp-video" playsinline muted aria-hidden="true" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
+  <div class="vpframe" aria-hidden="true"></div>
+  <p id="vp-scanmsg" role="status" aria-live="polite">Richt de camera op de QR-code</p>
+  <button class="big ghost" onclick="vpScanClose()">Annuleren</button>
+</div>

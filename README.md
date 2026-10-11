@@ -130,6 +130,16 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **In de backup-map** (map `Spotify`): per playlist een CSV (puntkomma, opent in Excel), `spotify-backup.json` (alles, terug te lezen op een nieuwe telefoon: *Backup uit de backup-map overnemen*) en `wijzigingen.txt`.
 - **Terugzetten**: elke versie als nieuwe (privé) playlist, of de bestaande eigen playlist precies terug naar die versie. Lokale bestanden kunnen niet terug.
 
+## VPN (WireGuard)
+- Eigen WireGuard-client in gewoon Java, zonder bibliotheken: `WgCrypto` (BLAKE2s, X25519, ChaCha20-Poly1305, XChaCha20), `WgDevice` (Noise IKpsk2-handshake als begin- én antwoordkant, versleuteld verkeer, herhalingsvenster, timers en nieuwe sleutels elke 2 minuten volgens het whitepaper), `WgConfig` (het gewone `.conf`-formaat), `VpnSvc` (Android `VpnService`).
+- Getest tegen RFC-testvectoren en de ingebouwde Java-versies (`WgCryptoTest`), met twee tunnels die met elkaar praten (`WgConfigTest`), en tegen de officiële wireguard-go (`tests/wg/run-interop.sh`: handshake, pakketten van 0–1392 bytes, IPv6, netwerkwissel, server die zelf begint, verkeerde sleutel, 5 minuten met nieuwe sleutels zonder verlies).
+- Toevoegen: QR-code scannen (camera, met jsQR in de pagina; de camera mag alleen als je zelf op scannen tikt), QR-code uit een afbeelding, `.conf`-bestand, plakken, of zelf maken met een nieuw sleutelpaar (de publieke sleutel staat erbij om op de server te zetten). Meerdere tunnels; één is de standaard.
+- Configuraties worden versleuteld bewaard met een sleutel uit de sleutelopslag van de telefoon en gaan niet mee in Android-backups.
+- Aan/uit: knop in de app, tegel in de snelle instellingen (`VpnTile`), snelkoppeling "VPN aan/uit" (alleen met het geheim van deze installatie), en acties *VPN aanzetten* / *VPN uitzetten* in Automatiseren.
+- Vanzelf: aan op wifi die je niet vertrouwt, weer uit op vertrouwde wifi (als hij vanzelf aanging), en optioneel aan op mobiel internet (`VpnNet` krijgt nieuwe netwerken van Android door, ook als de app dicht is). Wifi-namen herkennen vraagt locatietoestemming (Altijd). Liet Android het starten op de achtergrond niet toe, dan komt er een melding: één tik zet hem aan.
+- Altijd aan en kill switch: via de VPN-instellingen van Android (Altijd-aan VPN + Verbindingen zonder VPN blokkeren); Android start de tunnel dan zelf.
+- Bij wifi ↔ mobiel: nieuwe socket en meteen een nieuwe handshake. Ondersteunt meerdere peers, PresharedKey, PersistentKeepalive, IPv6, DNS en zoekdomeinen, MTU en Excluded/IncludedApplications.
+
 ## Muziek herkennen
 - Eigen "SoundHound": 10 seconden opnemen via de microfoon (`MediaRecorder`, AAC) of rechtstreeks een stukje van de radiostream ophalen, en dat laten herkennen door [AudD](https://audd.io) met de eigen API-sleutel van de gebruiker (300 gratis, daarna betaald). Een app kan dit niet zelf: daarvoor is een database van tientallen miljoenen nummers nodig (`Music.java`).
 - Resultaat met hoes, album en jaar en links naar Spotify, Apple Music, YouTube Music en alle diensten (song.link). Geschiedenis (max. 500) lokaal, doorzoekbaar.

@@ -235,6 +235,18 @@ details.rinfo dl{margin:8px 0 0}
 #rd-sleep{flex:none}.shift .shpos{min-width:64px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
 .shift .shpos.behind{color:var(--warn)}
 h1:focus{outline:none}
+.vpadd{display:grid;gap:8px}.vpdot{width:18px;height:18px;border-radius:50%;background:var(--muted);flex:none;box-shadow:0 0 0 5px color-mix(in srgb,var(--muted) 18%,transparent)}
+.vpdot.on{background:#1E8449;box-shadow:0 0 0 5px rgba(30,132,73,.22)}.vpdot.busy{background:#E0A800;box-shadow:0 0 0 5px rgba(224,168,0,.22);animation:vppulse 1.2s ease-in-out infinite}
+@keyframes vppulse{50%{opacity:.45}}@media (prefers-reduced-motion:reduce){.vpdot.busy{animation:none}}
+.vpstats{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-top:14px}.vpstats small{display:block;color:var(--muted);font-size:13px}.vpstats b{font-size:15px;overflow-wrap:anywhere}
+.vpic{width:36px;height:36px;border-radius:10px;background:var(--chip);display:flex;align-items:center;justify-content:center;flex:none;font-size:16px}.vpic.cur{background:#1E8449;color:#fff}
+.vpmore{color:var(--muted);font-size:20px;padding:0 6px}#vp-listwrap>.big{margin-bottom:12px}.vpstats div:last-child{grid-column:1/-1}
+.vptr{align-items:center;padding:6px 0;border-top:1px solid var(--line)}.vptr:first-child{border-top:0}
+textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical;min-height:220px}
+.vpscan{position:fixed;inset:0;z-index:60;background:#000;display:none;flex-direction:column;align-items:center;justify-content:flex-end;padding:20px 16px calc(24px + env(safe-area-inset-bottom))}
+.vpscan.on{display:flex}.vpscan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vpframe{position:absolute;left:50%;top:42%;width:min(70vw,300px);aspect-ratio:1;transform:translate(-50%,-50%);border:3px solid #fff;border-radius:18px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
+.vpscan p{position:relative;color:#fff;font-size:16px;text-align:center;margin:0 0 14px;text-shadow:0 1px 3px #000}.vpscan .big{position:relative;max-width:420px;background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.5)}
 .setrow{padding:10px 0;border-top:1px solid var(--line);align-items:center}.setrow:first-of-type{border-top:0}
 .permok{color:var(--ok);font-weight:700;font-size:14px}
 .wn{display:block;margin:4px 0 12px;color:var(--ink);font-size:14px;line-height:1.5}

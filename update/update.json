@@ -1,15 +1,26 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.63",
-  "versionCode": 64,
-  "nativeLevel": 59,
+  "versionName": "1.64",
+  "versionCode": 65,
+  "nativeLevel": 60,
   "web": "index.html",
-  "webSha256": "f7b540060a86c872ed271aeb217abdcc6d4480815792daf6469c6dd561463fe7",
+  "webSha256": "d0c8ffd5368b2742bb94c986bdbb6310176621b4383562c010e285522c817ee8",
   "start": "start.html",
   "startSha256": "e579a294c436b49185bb76e16fc1d5837a7f34f9ba978d76286cb0fc2cad3b76",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "b27e799f2ce1a1b5802068f71be32bbd06f22830b87caed07d3dd76f63aa373b",
+  "apkSha256": "3d43892e07d6d255ec8173f57a812a7554815d91005e0ed3a74d4ed0031d3b63",
   "changelog": [
+    {
+      "version": "1.64",
+      "date": "2026-10-11",
+      "changes": [
+        "Nieuw: VPN (WireGuard) — eigen tunnels via QR-code, afbeelding, .conf-bestand of zelf maken; werkt met je eigen server of een aanbieder als Mullvad of Proton",
+        "VPN aan/uit met de knop, een tegel in de snelle instellingen, een snelkoppeling op je startscherm, of via Automatiseren (VPN aanzetten/uitzetten)",
+        "VPN vanzelf aan op wifi die je niet vertrouwt (en weer uit op je eigen wifi), en desgewenst op mobiel internet",
+        "Werkt met Altijd-aan VPN van Android, ook als kill switch (zonder VPN geen internet)",
+        "Opgelost: PDF opslaan kwam niet altijd aan sinds het app-slot"
+      ]
+    },
     {
       "version": "1.63",
       "date": "2026-10-11",
@@ -584,5 +595,5 @@
       ]
     }
   ],
-  "webSig2": "rgCSP5EklijXqTVfOkexZZsZU5XHvZWXpRgzOZm77AnFIglsrTOxgbOnn8leOBCcGZyvrEV2FTMWgF1/t+zcEBKP28e01n+MsdBwDI1RUEcHeaKBgCGQbmBrqi0FCS90o/bMmY2VvJzniL1+y/AQZRSOmZt5nFQhj8S7Ad7w1v9DoYjE9NXq0aRWECL2Lr9UYOCTJUMm1fBr3jDKUj4KRI3KsAZihXep+JNm7aGZctG4dsSaY2Wo3DVO59UZJ4buikAMLZVdwXJ7/gyJxGGC35rRL7xaFO1Jn1iiJix3Cc5ReIjISCFqXKjijYJdoGWpXaEAIDYvl6cADiRaEALH9C81EK5YWaIJsnImAbSSwNfhbHokJYNQheFE2mlUtCFCH+qxWm89pioaSw8Bg1o3rid+2ZyV9aTk888pN5eVLO3s6D+NyYhNSXsKPvkNjKz6cqay/CAEHbfRovZT80SxXnpnhjbezqkvdiF0dO8/47mYbABlSFiUhOeQxEzWJK3h"
+  "webSig2": "rBJ2IOur8zWZSgPc4WjnkLNI392xje0zi/cY2MJj9MemH00h5gckkM/pIZByvBqh99OUXIywZ2WTcMlUk71XvEwVb1/f5N4MXMysYBpqoCbwqp1SdyGTEi668yue6LycsB2kBktGQUOi+WX9WKVKuBQTn6xogObyzAMuBE7mk1SX0yCZXtM0XrCoa8RuPsOMZw+f2gP9EnYTYoVP4l1y2ameXB2whUWxzNoGFFPewtyRLPBLY9g0MMyhTyeBeL3qwKsjLjlgbl3/d1j7Ze0iN6IZ9zLQtJzXgutduhxva8vvfpPLJeuX43fw1I/4SBOWG28y9+xpJqmUAj4YEnWfle842E2NwRR9zVLyck8xXzg5gWE+xVg6r8ffkAQ8KoSE+zPkIrI8CrSMWhXordWmf6bwyPQjWMY6pX5OojWzYT9WvkQ/uE1NkQ7yelzh7MZh01jQemZ/fahRVn7P8J23lbhQmUnXv0f+apKbMGPURCwsmhAB9fttPPE4urFzC5y3"
 }

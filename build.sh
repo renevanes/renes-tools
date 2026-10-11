@@ -28,7 +28,7 @@ PY
 
 # 1b. Kaartbibliotheek (Leaflet) meekopieren naar de assets
 mkdir -p $B/assets/vendor
-cp web/vendor/leaflet.js web/vendor/leaflet.css $B/assets/vendor/
+cp web/vendor/leaflet.js web/vendor/leaflet.css web/vendor/jsQR.js $B/assets/vendor/
 cp web/ontsleutelen.html $B/assets/
 cp web/start.html $B/assets/
 cp web/neutraal.html $B/assets/

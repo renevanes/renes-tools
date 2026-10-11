@@ -81,6 +81,9 @@ public class MainActivity extends Activity {
     private long coverSeq = 0;
     /** De app zoals hij nu draait (voor meldingen van buitenaf, bijv. de widget). */
     static volatile MainActivity live;
+    /** VPN: welke tunnel aan moet na de toestemming van Android; mag de pagina nu de camera (QR-code scannen)? */
+    String vpnPending;
+    volatile boolean camAllowed;
 
     /** Inhoud afdekken (app gaat uit beeld of start nog). */
     void coverOn() { if (cover != null) { coverSeq++; cover.setVisibility(View.VISIBLE); } }
@@ -163,7 +166,7 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(false);
         s.setTextZoom(textZoom(this));
         web.setWebViewClient(new MediaClient(this));
-        web.setWebChromeClient(new WebChromeClient());
+        web.setWebChromeClient(new Chrome(this));
         web.addJavascriptInterface(new Bridge(this), "Android");
         web.setBackgroundColor(Color.parseColor("#F3F5F9"));
 
@@ -280,6 +283,19 @@ public class MainActivity extends Activity {
         if (play == null) return;
         try {
             JSONObject s = new JSONObject(play);
+            // VPN aan/uit (alleen onze eigen snelkoppeling)
+            if (s.has("vpn")) {
+                if (App.tokenOk(this, i) && "toggle".equals(s.optString("vpn"))) {
+                    boolean wasOn = VpnSvc.on();
+                    String r = Vpn.toggle(getApplicationContext(), "snelkoppeling");
+                    if (r.equals(Vpn.NEED_CONSENT)) {
+                        vpnPending = "";
+                        try { startActivityForResult(android.net.VpnService.prepare(this), VpnBridge.REQ_VPN); } catch (Exception ignored) { }
+                    } else if (r.isEmpty()) Toast.makeText(this, wasOn ? "VPN uit" : "VPN gaat aan…", Toast.LENGTH_SHORT).show();
+                }
+                i.removeExtra("play");
+                return;
+            }
             // Speler-snelkoppelingen (alleen onze eigen, met het geheim van deze installatie)
             if (s.has("pod") || s.optBoolean("resume")) {
                 if (App.tokenOk(this, i)) {
@@ -478,7 +494,24 @@ public class MainActivity extends Activity {
         if (req == REQ_MIC) js("onMusicChanged", "");
         if (req == REQ_SETTINGS) js("onSettingsChanged", "\"\"");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
-        if (req == REQ_AUTO) { Auto.armPlaces(this); js("onAutoChanged", ""); }
+        if (req == REQ_AUTO) { Auto.armPlaces(this); Vpn.armAuto(this); js("onAutoChanged", ""); js("onVpnChanged", ""); }
+        if (req == VpnBridge.REQ_CAM) {
+            camAllowed = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
+            js("onVpnCamera", camAllowed ? "true" : "false");
+        }
+    }
+
+    /** WebView: alleen camera (voor de QR-code van de VPN) en alleen als de app daar net zelf om vroeg. */
+    static final class Chrome extends WebChromeClient {
+        private final MainActivity a;
+        Chrome(MainActivity a) { this.a = a; }
+        @Override public void onPermissionRequest(android.webkit.PermissionRequest r) {
+            boolean ours = r.getOrigin() != null && "app.renes-tools.local".equals(r.getOrigin().getHost());
+            boolean onlyVideo = true;
+            for (String res : r.getResources()) onlyVideo &= android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(res);
+            if (ours && onlyVideo && a.camAllowed) r.grant(new String[]{android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            else r.deny();
+        }
     }
 
     void pickContact() {
@@ -512,6 +545,18 @@ public class MainActivity extends Activity {
             return;
         }
         if (req == Lock.REQ_CONFIRM) { Lock.onConfirmResult(res == RESULT_OK); return; }
+        if (req == VpnBridge.REQ_VPN) {
+            if (res == RESULT_OK) {
+                String r = Vpn.start(getApplicationContext(), vpnPending, "app");
+                js("onVpnChanged", r.isEmpty() ? "" : JSONObject.quote(r.equals(Vpn.NO_TUNNEL) ? "Stel eerst een tunnel in" : "Starten lukt niet"));
+            } else js("onVpnChanged", JSONObject.quote("Zonder toestemming van Android kan de VPN niet aan"));
+            return;
+        }
+        if (req == VpnBridge.REQ_VPN_FILE || req == VpnBridge.REQ_VPN_IMG) {
+            if (res != RESULT_OK || data == null || data.getData() == null) return;
+            if (req == VpnBridge.REQ_VPN_FILE) VpnBridge.onFile(this, data.getData()); else VpnBridge.onImage(this, data.getData());
+            return;
+        }
         if (req == REQ_HOME) { js("onHomeRole", ""); return; }
         if (req == REQ_IMPORT) {
             final String kind = importKind;
@@ -630,7 +675,7 @@ public class MainActivity extends Activity {
     // ---------- brug naar JavaScript ----------
 
     /** Alle functies voor de interface. Nieuwere onderdelen staan in FeatureBridge (eigen bestand). */
-    static final class Bridge extends SpotifyBridge {
+    static final class Bridge extends VpnBridge {
         private final MainActivity a;
         private final Context ctx;
         static volatile boolean smsBusy = false;

@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.64",
+    "date": "2026-10-11",
+    "changes": [
+      "Nieuw: VPN (WireGuard) — eigen tunnels via QR-code, afbeelding, .conf-bestand of zelf maken; werkt met je eigen server of een aanbieder als Mullvad of Proton",
+      "VPN aan/uit met de knop, een tegel in de snelle instellingen, een snelkoppeling op je startscherm, of via Automatiseren (VPN aanzetten/uitzetten)",
+      "VPN vanzelf aan op wifi die je niet vertrouwt (en weer uit op je eigen wifi), en desgewenst op mobiel internet",
+      "Werkt met Altijd-aan VPN van Android, ook als kill switch (zonder VPN geen internet)",
+      "Opgelost: PDF opslaan kwam niet altijd aan sinds het app-slot"
+    ]
+  },
+  {
     "version": "1.63",
     "date": "2026-10-11",
     "changes": [
