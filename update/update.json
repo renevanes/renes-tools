@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.66",
-  "versionCode": 67,
-  "nativeLevel": 62,
+  "versionName": "1.67",
+  "versionCode": 68,
+  "nativeLevel": 63,
   "web": "index.html",
-  "webSha256": "661dfae4042d7b260d019b02c3f4d9f908eef95f0fd6aedf712c0eb201ed4874",
+  "webSha256": "620c768b286f3db3f16c33b5b0b8c81aaca143e5418a6342ba8c896454cec2fd",
   "start": "start.html",
   "startSha256": "e579a294c436b49185bb76e16fc1d5837a7f34f9ba978d76286cb0fc2cad3b76",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "ec3606805876655113781ab03d0ffe8579ffd1fe6aa78b8d6c0fa970d82b34ac",
+  "apkSha256": "db65a4cac91edf56f94f54df8fbef756287fb1515cf4c785fdb188efe712ec26",
   "changelog": [
+    {
+      "version": "1.67",
+      "date": "2026-10-12",
+      "changes": [
+        "Locatie kiezen: overal deze naam in plaats van 'neplocatie' (scherm en melding)"
+      ]
+    },
     {
       "version": "1.66",
       "date": "2026-10-11",
@@ -611,5 +618,5 @@
       ]
     }
   ],
-  "webSig2": "IYLnvrgGAlTWefqlu2z2ssr2OpWcvaOVvwJJdFVax7saMJdSpbEv8RMNsp/jucnj0nQ+A47QgkoyCMbT2JyFgtX9wW1ZRajv/MWF6W7l+0teABZqf/0qx8CjczP5ZXTNb3nywiBRm0lplRUP7kwI9aAj+7IHOz0ZhX+6O0SSOyywsccWi1+DbpmCcJILMlqaMfTarungVo0YJFdFrVURTR6w4eD0YPP7lsIfJFmiHUjzNFAanYlnseJ7xrwArm/n4GgOiQJplKFciEhVC3X2kdViiF290gezdDHGDErW8/peri07XmmTn4LGGkgPqn5IT+jV5q9JG8FSCzWWzcFXzBD61cfBdHQCU+mDRLWnyNHf0fv1dWlC9loORoze+nXpGasNTfLbwufrhgrD4sI2pyRju3AR25Lm3/+t9gU9Wa6XzRWqE8xtI8YDntvlYWaZDqtwk3BJtZwlqOUzMvgxu8wjoO50CUqJz9u5rAqnNXxlIr8bYflJfpVmNMdwIsSk"
+  "webSig2": "NiZWS50hzWVkWwyEuShNFlyoWuo6Td6Wtwbrk2GrXvO80thfBn5DQxlSbM8y/Y4EbwMAmh2t/qvey4d8M70cC2WXqTBFkcUp5Q4Doxmhcz/hxvPKCJam6Bugr1c8ZN30nr3SwWqIKTvbXvcPwBUtXw777YhiYFWULUlB+MWV9E0BJ3lvRCigA3Rwk77oa5U7OYAOeVZMl29NF6ytyPQZI45q4OGcCXEtyw8MnztOCIUHAGAtQuJupxqImfMt6V04ZnHxA0AvP9iaokCtM3NhXiUcs91B1rhOONrzekml//bR9w6oeDPftYvzihss4kYMxXL8oFFUP1F5jL4f0R3Lm7AF9yaplcb9VtBjcH/+o+kbV1lebmjo7Qm7rR+Sn2t2l4xK8b6P6UBdaOjNTG37bRv86BQMTKlFsOhVvEnmxNHHAfjEyFFD0v72y/BtVVhcAHa75gfmIqOzjRdk19EonzkyrXJLsDoj/uRQErrkcmXJCTiVa/vXsYOLYZ+vTg2j"
 }

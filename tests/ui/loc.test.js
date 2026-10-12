@@ -18,7 +18,7 @@ const assert = (ok, what) => { if (!ok) throw new Error('mislukt: ' + what); con
     assert((await pg.textContent('#lc-pick')).includes('52.37306'), 'kaartlink met coördinaten');
     // nog niet als neplocatie-app gekozen
     await pg.click('#lc-go'); await pg.waitForTimeout(150);
-    assert((await pg.textContent('#toast')).includes('app voor neplocatie'), 'eerst instellen: melding');
+    assert((await pg.textContent('#toast')).includes('App voor neplocatie selecteren'), 'eerst instellen: melding');
     await pg.click('#lc-setup button:has-text("Openen") >> nth=1'); await pg.waitForTimeout(50);
     await pg.evaluate(() => onResumeApp()); await pg.waitForTimeout(150);
     assert(!(await vis('#lc-setup')), 'na instellen: stappen weg');
@@ -28,7 +28,7 @@ const assert = (ok, what) => { if (!ok) throw new Error('mislukt: ' + what); con
     await pg.click('#lc-results .srow >> nth=0'); await pg.waitForTimeout(100);
     assert((await pg.textContent('#lc-pick')).includes('Coolsingel 40'), 'resultaat gekozen');
     await pg.click('#lc-go'); await pg.waitForTimeout(300);
-    assert((await pg.textContent('#lc-title')) === 'Neplocatie aan' && await vis('#lc-stop') && await pg.isDisabled('#lc-here'), 'neplocatie aan');
+    assert((await pg.textContent('#lc-title')) === 'Locatie kiezen staat aan' && await vis('#lc-stop') && await pg.isDisabled('#lc-here'), 'Locatie kiezen staat aan');
     assert((await pg.$$('#lc-recent .srow')).length === 1, 'in laatst gebruikt');
     await pg.screenshot({ path: __dirname + '/shots/loc-on-' + scheme + '.png', fullPage: true });
     // bewaren
@@ -46,7 +46,7 @@ const assert = (ok, what) => { if (!ok) throw new Error('mislukt: ' + what); con
     await pg.click('#sheet-acts button:has-text("Hier zetten")'); await pg.waitForTimeout(300);
     assert((await pg.textContent('#lc-sub')).includes('Kantoor'), 'bewaarde plek aangezet');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
-    assert((await pg.textContent('#tile-loc-sub')).includes('Kantoor'), 'tegel toont de neplocatie');
+    assert((await pg.textContent('#tile-loc-sub')).includes('Kantoor'), 'tegel toont de gekozen plek');
     console.log('errors', errs);
     await pg.close();
   }

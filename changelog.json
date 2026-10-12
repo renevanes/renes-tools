@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.67",
+    "date": "2026-10-12",
+    "changes": [
+      "Locatie kiezen: overal deze naam in plaats van 'neplocatie' (scherm en melding)"
+    ]
+  },
+  {
     "version": "1.66",
     "date": "2026-10-11",
     "changes": [

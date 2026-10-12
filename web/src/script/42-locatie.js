@@ -1,4 +1,4 @@
-/* ---------- Locatie kiezen (neplocatie) ---------- */
+/* ---------- Locatie kiezen ---------- */
 let lcSt = {}, lcMap = null, lcMark = null, lcPt = null, lcName = '';
 
 function enterLoc(){ lcRender(); setTimeout(lcMapInit, 50); }
@@ -10,9 +10,9 @@ function lcRender(){
   const st = lcSt;
   $('#lc-setup').style.display = st.allowed ? 'none' : 'block';
   $('#lc-step-dev').style.display = st.dev ? 'none' : '';
-  $('#lc-setup-state').textContent = st.allowed ? '' : st.dev ? 'Ontwikkelaarsopties staan aan. Nog: Rene\'s Tools kiezen als app voor neplocatie.' : 'Ontwikkelaarsopties staan nog uit.';
+  $('#lc-setup-state').textContent = st.allowed ? '' : st.dev ? 'Ontwikkelaarsopties staan aan. Nog: bij "App voor neplocatie selecteren" Rene\'s Tools kiezen.' : 'Ontwikkelaarsopties staan nog uit.';
   $('#lc-dot').className = 'vpdot' + (st.on ? ' on' : '');
-  $('#lc-title').textContent = st.on ? 'Neplocatie aan' : 'Echte locatie';
+  $('#lc-title').textContent = st.on ? 'Locatie kiezen staat aan' : 'Echte locatie';
   $('#lc-sub').textContent = st.on ? (st.name || lcFmt(st.lat, st.lng)) : st.error || (st.allowed ? 'Kies een plek en tik op Hier zetten' : 'Eerst eenmalig instellen (hierboven)');
   $('#lc-stop').style.display = st.on ? 'block' : 'none';
   $('#lc-here').disabled = !!st.on;
@@ -58,7 +58,7 @@ function lcGo(){
   if (!lcPt) return;
   const r = Android.locStart(lcPt.lat, lcPt.lng, lcName);
   if (r === 'perm') { toast('Sta eerst locatie toe'); Android.autoPerm('loc'); return; }
-  if (r === 'mock') { toast('Kies Rene\'s Tools eerst als app voor neplocatie (zie Eenmalig instellen)'); lcRender(); $('#lc-setup').scrollIntoView({ behavior: 'smooth' }); return; }
+  if (r === 'mock') { toast('Kies eerst Rene\'s Tools bij "App voor neplocatie selecteren" (zie Eenmalig instellen)'); lcRender(); $('#lc-setup').scrollIntoView({ behavior: 'smooth' }); return; }
   if (r) { toast(r); return; }
   const where = lcName || lcFmt(lcPt.lat, lcPt.lng);
   setTimeout(() => { lcRender(); if (lcSt.on) toast('📍 Je telefoon staat nu op ' + where); else if (lcSt.error) toast(lcSt.error); }, 600);
@@ -103,7 +103,7 @@ window.onLocSearch = function(r){
 };
 function lcPickRes(i){ const p = lcRes[i]; if (!p) return; $('#lc-results').innerHTML = ''; lcSet(p.lat, p.lng, p.name.split(',')[0], true); }
 
-/* waar ben ik echt? (alleen als de neplocatie uit staat) */
+/* waar ben ik echt? (alleen als Locatie kiezen uit staat) */
 let lcHereWait = false;
 function lcHere(){
   if (lcSt.on) return;

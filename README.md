@@ -142,7 +142,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Reserve bij blokkade**: per tunnel reserve-tunnels in volgorde (bijv. WireGuard → OpenVPN UDP/TCP 443). Komt er binnen een paar seconden geen verbinding (WireGuard 8 s, OpenVPN 20 s of meer), of valt hij later weg, dan neemt `VpnSvc` vanzelf de volgende; op een nieuw netwerk eerst weer de voorkeur. De tunnel bij Android blijft tussendoor bestaan, dus er lekt niets. Na het toevoegen van een tweede soort stelt de app dit zelf voor.
 - Bij wifi ↔ mobiel: nieuwe socket en meteen een nieuwe handshake. Ondersteunt meerdere peers, PresharedKey, PersistentKeepalive, IPv6, DNS en zoekdomeinen, MTU en Excluded/IncludedApplications.
 
-## Locatie kiezen (neplocatie)
+## Locatie kiezen
 - Kies een plek op de kaart (tikken), zoek een adres (Geocoder van Android) of plak coördinaten of een kaartlink (`@52.37,4.89`); tik op **Hier zetten**. Alle apps zien dan die plek, tot je op **Terug naar echte locatie** tikt of in de melding op Stoppen.
 - `MockLocSvc` geeft elke seconde de plek door als testlocatie voor gps, netwerk en (Android 12+) fused; optioneel een paar meter bewegen zodat het natuurlijker oogt. Voorgronddienst van het type locatie, met melding.
 - Eenmalig instellen: ontwikkelaarsopties aan (7× op Buildnummer) en Rene's Tools kiezen bij **App voor neplocatie selecteren**; het scherm ziet zelf of dat gelukt is (`AppOpsManager`) en heeft knoppen naar die instellingen.

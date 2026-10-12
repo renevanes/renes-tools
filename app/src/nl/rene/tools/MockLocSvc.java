@@ -47,7 +47,7 @@ public class MockLocSvc extends Service {
         boolean fg = startFg();
         String a = intent == null ? START : intent.getAction();
         if (STOP.equals(a)) { stopMock(); return START_NOT_STICKY; }
-        if (!fg) { error = "Android liet de neplocatie niet doorlopen (vanaf de achtergrond)"; stopMock(); return START_NOT_STICKY; }
+        if (!fg) { error = "Android liet Locatie kiezen niet doorlopen (vanaf de achtergrond)"; stopMock(); return START_NOT_STICKY; }
         baseLat = MockLoc.lat(this); baseLng = MockLoc.lng(this);
         if (!MockLoc.validLatLng(baseLat, baseLng)) { stopMock(); return START_NOT_STICKY; }
         dLat = 0; dLng = 0;
@@ -74,7 +74,7 @@ public class MockLocSvc extends Service {
         String where = name.isEmpty() ? String.format(java.util.Locale.ROOT, "%.5f, %.5f", MockLoc.lat(this), MockLoc.lng(this)) : name;
         Intent open = new Intent(this, MainActivity.class).putExtra("open", "loc").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent stop = PendingIntent.getService(this, 4802, new Intent(this, MockLocSvc.class).setAction(STOP), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        b.setSmallIcon(R.drawable.ic_route).setContentTitle("Neplocatie aan").setContentText(where)
+        b.setSmallIcon(R.drawable.ic_route).setContentTitle("Locatie kiezen staat aan").setContentText(where)
                 .setContentIntent(PendingIntent.getActivity(this, 4803, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT))
                 .setOngoing(true).setOnlyAlertOnce(true).setShowWhen(false)
                 .addAction(new Notification.Action.Builder(null, "Stoppen", stop).build());
@@ -101,14 +101,14 @@ public class MockLocSvc extends Service {
                 lm.setTestProviderEnabled(p, true);
                 providers.add(p);
             } catch (SecurityException e) {
-                error = "Kies Rene's Tools eerst als app voor neplocatie (Ontwikkelaarsopties)";
+                error = "Kies eerst Rene's Tools bij \"App voor neplocatie selecteren\" (Ontwikkelaarsopties)";
                 removeProviders();
                 return false;
             } catch (Exception e) {
                 App.log(this, "LOC", "provider " + p + ": " + e.getClass().getSimpleName());
             }
         }
-        if (providers.isEmpty()) { error = "Android liet geen neplocatie toe"; return false; }
+        if (providers.isEmpty()) { error = "Android liet het kiezen van een locatie niet toe"; return false; }
         return true;
     }
 
@@ -125,7 +125,7 @@ public class MockLocSvc extends Service {
 
     private void push() {
         if (!running) return;
-        if (++pushes % 10 == 0 && !MockLoc.allowed(this)) { error = "Rene's Tools is geen app voor neplocatie meer"; stopMock(); return; }
+        if (++pushes % 10 == 0 && !MockLoc.allowed(this)) { error = "Rene's Tools staat niet meer bij \"App voor neplocatie selecteren\""; stopMock(); return; }
         double lat = baseLat, lng = baseLng;
         if (MockLoc.prefs(this).getBoolean("jitter", true)) {
             dLat = clamp(dLat + (rnd.nextDouble() - .5) * 0.000012, 0.00003);
@@ -141,7 +141,7 @@ public class MockLocSvc extends Service {
             l.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
             if (Build.VERSION.SDK_INT >= 26) { l.setVerticalAccuracyMeters(3f); l.setSpeedAccuracyMetersPerSecond(0.5f); l.setBearingAccuracyDegrees(30f); }
             try { lm.setTestProviderLocation(p, l); }
-            catch (SecurityException e) { error = "Rene's Tools is geen app voor neplocatie meer"; stopMock(); return; }
+            catch (SecurityException e) { error = "Rene's Tools staat niet meer bij \"App voor neplocatie selecteren\""; stopMock(); return; }
             catch (Exception ignored) { }
         }
         h.postDelayed(push, 1000);
