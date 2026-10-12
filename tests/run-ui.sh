@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 mkdir -p tests/ui/ui/vendor tests/ui/shots
 cp web/vendor/* tests/ui/ui/vendor/
 python3 tools/check-bridge.py || exit 1
-# Met de nep-brug (de app zelf wordt zonder gebouwd)
+# Met de test-brug (de app zelf wordt zonder gebouwd)
 python3 tools/web-samenvoegen.py tests/ui/ui/samengevoegd.html >/dev/null || exit 1
 python3 - <<'PY'
 import json

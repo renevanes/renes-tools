@@ -1,20 +1,27 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.67",
-  "versionCode": 68,
-  "nativeLevel": 63,
+  "versionName": "1.68",
+  "versionCode": 69,
+  "nativeLevel": 64,
   "web": "index.html",
-  "webSha256": "620c768b286f3db3f16c33b5b0b8c81aaca143e5418a6342ba8c896454cec2fd",
+  "webSha256": "29fb5d8c1e770f4b58c50c49b7299f315e51c154098b4be2d1cb7146445843dd",
   "start": "start.html",
-  "startSha256": "e579a294c436b49185bb76e16fc1d5837a7f34f9ba978d76286cb0fc2cad3b76",
+  "startSha256": "5e128acb738bd04666077055a4ca3b8acb635c020118f718e3dcd047552082c3",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "db65a4cac91edf56f94f54df8fbef756287fb1515cf4c785fdb188efe712ec26",
+  "apkSha256": "b3474c15e508e87dd06422c15f63aaaa0e5c564d7dab9e73a347c9457ff8561b",
   "changelog": [
+    {
+      "version": "1.68",
+      "date": "2026-10-12",
+      "changes": [
+        "Locatie kiezen: het woord 'nep' komt nergens meer voor"
+      ]
+    },
     {
       "version": "1.67",
       "date": "2026-10-12",
       "changes": [
-        "Locatie kiezen: overal deze naam in plaats van 'neplocatie' (scherm en melding)"
+        "Locatie kiezen: overal deze naam (scherm en melding)"
       ]
     },
     {
@@ -618,5 +625,5 @@
       ]
     }
   ],
-  "webSig2": "NiZWS50hzWVkWwyEuShNFlyoWuo6Td6Wtwbrk2GrXvO80thfBn5DQxlSbM8y/Y4EbwMAmh2t/qvey4d8M70cC2WXqTBFkcUp5Q4Doxmhcz/hxvPKCJam6Bugr1c8ZN30nr3SwWqIKTvbXvcPwBUtXw777YhiYFWULUlB+MWV9E0BJ3lvRCigA3Rwk77oa5U7OYAOeVZMl29NF6ytyPQZI45q4OGcCXEtyw8MnztOCIUHAGAtQuJupxqImfMt6V04ZnHxA0AvP9iaokCtM3NhXiUcs91B1rhOONrzekml//bR9w6oeDPftYvzihss4kYMxXL8oFFUP1F5jL4f0R3Lm7AF9yaplcb9VtBjcH/+o+kbV1lebmjo7Qm7rR+Sn2t2l4xK8b6P6UBdaOjNTG37bRv86BQMTKlFsOhVvEnmxNHHAfjEyFFD0v72y/BtVVhcAHa75gfmIqOzjRdk19EonzkyrXJLsDoj/uRQErrkcmXJCTiVa/vXsYOLYZ+vTg2j"
+  "webSig2": "RaLAabqeZGCIBCLsZ+DCMJ0mUHDbxFoxoOO0E7y21ozbpIn11eY2noDh5FTJGxC79BmbltxR/sjM5tLA2gj504loOgRiBagBN3cOrxBV83nGuS5Ub2QYNQYJsW5wZ7koxY47VlHIohtoHzc2JUlj32hKp99K1rKVbpMz5MyLedLlbCV3B1R/ojiIKi/VEZlMDGZR/GlDSjBVQ6g4Pb9W/yPAClaw81VFWq0pIFenR+3gbyIIIWacopzMBhP544TYULhbCevnX2nTVzd/8pavgBg4lOTzu2aUqLcWID6rmTkUxiQvp7IBpQZ79m8jW3zLI7OFDrO7w/1Xw0OT6SqgnH/ww6pEkPeIhyMQGLm5U5rEHgKeAfZt+rE8KG8MUFAIjMoMJhq434Fwy2mR220v9k5qMP/5PgHCM0VRiZ9pEvy5OyfUjTPm0B7itGp9OPoZpaT47BnY6mnwbTTta8+tYUG3WoYerk6p0SbzTYaA8QP2HDah4QGnSmGeRmBY7y3u"
 }

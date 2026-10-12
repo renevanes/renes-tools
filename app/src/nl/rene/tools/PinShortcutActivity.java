@@ -10,7 +10,7 @@ import android.widget.Toast;
 /**
  * Een app wil een snelkoppeling op het startscherm zetten (bijv. "contact toevoegen aan startscherm" of een
  * website vanuit Chrome). Android stuurt dat alleen naar het standaard-startscherm. Eerst vragen (met de naam
- * van de app die het vraagt), zodat een app niet ongemerkt een nep-snelkoppeling kan neerzetten (bijv. met het
+ * van de app die het vraagt), zodat een app niet ongemerkt een valse snelkoppeling kan neerzetten (bijv. met het
  * logo van je bank). Snelkoppelingen van Rene's Tools zelf worden meteen geplaatst.
  */
 public class PinShortcutActivity extends Activity {

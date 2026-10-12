@@ -62,7 +62,7 @@ public class WgConfigTest {
         tb.in.add(pkt(new byte[]{10, 0, 0, 1}, new byte[]{10, 0, 0, 2}, "pong"));
         byte[] atA = ta.out.poll(5, TimeUnit.SECONDS);
         check(atA != null && new String(atA, 20, atA.length - 20, "UTF-8").equals("pong"), "B → A terug (B antwoordde op de handshake)");
-        tb.in.add(pkt(new byte[]{10, 0, 1, 9}, new byte[]{10, 0, 0, 2}, "nep"));
+        tb.in.add(pkt(new byte[]{10, 0, 1, 9}, new byte[]{10, 0, 0, 2}, "vals"));
         check(ta.out.poll(1500, TimeUnit.MILLISECONDS) == null, "afzender buiten AllowedIPs: niet doorgelaten");
         da.stop(); db.stop(); ta.in.add(new byte[0]); tb.in.add(new byte[0]);
         // server nog niet te vinden (geen DNS): starten lukt toch, en hij blijft het proberen

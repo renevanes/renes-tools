@@ -13,7 +13,7 @@ import org.json.JSONObject;
 
 /**
  * Locatie kiezen: de telefoon denkt dat hij op een plek staat die jij op de kaart kiest (testlocatie van Android).
- * Werkt pas als Rene's Tools bij Ontwikkelaarsopties is gekozen als "app voor neplocatie". Het doorgeven zelf doet
+ * Werkt pas als Rene's Tools bij Ontwikkelaarsopties is gekozen als app voor de locatie ("Select mock location app"). Het doorgeven zelf doet
  * {@link MockLocSvc}.
  */
 final class MockLoc {
@@ -21,7 +21,7 @@ final class MockLoc {
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("mockloc", Context.MODE_PRIVATE); }
 
-    /** Is Rene's Tools gekozen als app voor neplocatie? */
+    /** Is Rene's Tools in de ontwikkelaarsopties gekozen als app voor de locatie? */
     static boolean allowed(Context c) {
         try {
             AppOpsManager ops = (AppOpsManager) c.getSystemService(Context.APP_OPS_SERVICE);
@@ -37,7 +37,7 @@ final class MockLoc {
         return !Double.isNaN(lat) && !Double.isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
     }
 
-    /** Aanzetten op deze plek. Geeft "" of "perm" (locatietoestemming nodig), "mock" (nog niet gekozen als neplocatie-app) of een melding. */
+    /** Aanzetten op deze plek. Geeft "" of "perm" (locatietoestemming nodig), "mock" (nog niet gekozen in de ontwikkelaarsopties) of een melding. */
     static String start(Context c, double lat, double lng, String name) {
         if (!validLatLng(lat, lng)) return "Ongeldige plek";
         if (!Auto.fineOk(c)) return "perm";
@@ -64,7 +64,7 @@ final class MockLoc {
     /**
      * Testlocaties van Android weghalen zonder de dienst. Nodig als de app stopte zonder op te ruimen (update,
      * geforceerd stoppen, vastlopen): Android ruimt ze zelf pas op bij een herstart, en tot dan blijft de telefoon
-     * op de laatste neplocatie staan.
+     * op de laatst gekozen plek staan.
      */
     static void cleanup(Context c) {
         android.location.LocationManager lm = (android.location.LocationManager) c.getSystemService(Context.LOCATION_SERVICE);

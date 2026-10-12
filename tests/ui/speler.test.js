@@ -44,7 +44,7 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(400);
     console.log('closed', !(await pg.isVisible('#player')), 'bar back', await pg.isVisible('#plbar'), 'screen', await pg.evaluate(() => current));
 
-    // Podcast starten: neemt het over van de radio, slaaptimer loopt door (in de app zelf; nep-brug houdt hem per speler)
+    // Podcast starten: neemt het over van de radio, slaaptimer loopt door (in de app zelf; test-brug houdt hem per speler)
     await pg.evaluate(() => show('podcasts')); await pg.waitForTimeout(300);
     await pg.click('#pc-list .srow:nth-child(1) .sbtn'); await pg.waitForTimeout(500);
     await pg.click('#pd-eps .pcep:nth-child(2) .pcepb'); await pg.waitForTimeout(600);

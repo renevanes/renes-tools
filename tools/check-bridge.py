@@ -2,7 +2,7 @@
 """Controleert dat de interface alleen Android-functies aanroept die echt bestaan.
 
 - web/src (de app): elke Android.xxx moet een @JavascriptInterface in MainActivity.java of FeatureBridge.java zijn
-  en ook in de nep-brug (script/01-nepbrug.js) staan, anders werken de tests met iets wat de app niet heeft.
+  en ook in de test-brug (script/01-testbrug.js) staan, anders werken de tests met iets wat de app niet heeft.
 - web/start.html (telefoon-skin): elke Android.xxx moet in HomeActivity.java staan.
 Uitzonderingen: aanroepen die achter `typeof Android.xxx === 'function'` staan (bewust optioneel).
 Stopt met foutcode 1 bij een probleem.
@@ -18,16 +18,16 @@ def optional(text):
     return set(re.findall(r"typeof\s+Android\.(\w+)\s*[!=]==?\s*'function'", text))
 main = bridge('app/src/nl/rene/tools/MainActivity.java') | bridge('app/src/nl/rene/tools/FeatureBridge.java') | bridge('app/src/nl/rene/tools/PodcastBridge.java') | bridge('app/src/nl/rene/tools/PlayerBridge.java') | bridge('app/src/nl/rene/tools/SpotifyBridge.java') | bridge('app/src/nl/rene/tools/VpnBridge.java') | bridge('app/src/nl/rene/tools/LocBridge.java')
 home = bridge('app/src/nl/rene/tools/HomeActivity.java')
-web = ''.join(read(os.path.relpath(p, root)) for p in sorted(glob.glob(os.path.join(root, 'web/src/script/*.js'))) if not p.endswith('01-nepbrug.js'))
+web = ''.join(read(os.path.relpath(p, root)) for p in sorted(glob.glob(os.path.join(root, 'web/src/script/*.js'))) if not p.endswith('01-testbrug.js'))
 web += ''.join(read(os.path.relpath(p, root)) for p in sorted(glob.glob(os.path.join(root, 'web/src/schermen/*.html'))))
 web += read('web/src/vensters.html') + read('web/src/speler.html')
-mock_src = read('web/src/script/01-nepbrug.js')
+mock_src = read('web/src/script/01-testbrug.js')
 mock = set(re.findall(r'(?m)(?:^|[\s,{])(\w+)\s*\([^)]*\)\s*\{', mock_src)) | set(re.findall(r'(?m)(?:^|[\s,{])(\w+)\s*:\s*(?:function|\()', mock_src))
 problems = []
 for f in sorted(calls(web) - main - optional(web)):
     problems.append('Interface roept Android.%s aan, maar MainActivity heeft die niet' % f)
 for f in sorted((calls(web) & main) - mock):
-    problems.append('Android.%s ontbreekt in de nep-brug (01-nepbrug.js)' % f)
+    problems.append('Android.%s ontbreekt in de test-brug (01-testbrug.js)' % f)
 start = read('web/start.html')
 for f in sorted(calls(start) - home - optional(start)):
     problems.append('Telefoon-skin roept Android.%s aan, maar HomeActivity heeft die niet' % f)

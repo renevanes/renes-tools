@@ -1,4 +1,4 @@
-/* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een nep-brug. */
+/* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een test-brug. */
 if (!window.Android) window.Android = (function(){
   let st = {running:false, phase:'idle'}, t0 = 0, timer = null;
   const tick = () => {
@@ -198,7 +198,7 @@ if (!window.Android) window.Android = (function(){
     radioPause(){ this._rd.st.status='paused'; }, radioResume(){ if(this._rd.st.station) { this._take('radio'); this._rd.st.status='playing'; } },
     radioStop(){ this._rd.st={status:'stopped',title:'',last:this._rd.st.station}; }, radioSleep(m){ this._rd.st.sleepAt=m?Date.now()+m*6e4:0; },
     radioState(){ return JSON.stringify(this._rd.st); },
-    // ----- podcasts (nep) -----
+    // ----- podcasts (test) -----
     _pc: { subs: [], prog: {}, recent: [], st: { status: 'stopped' }, speed: 1, refreshed: 0, calls: [],
       top: [{ id: 'p1', feed: 'https://feeds.example.org/vandaag', title: 'Nieuws van Vandaag', author: 'Omroep X', image: 'https://img.example.org/1.jpg', genre: 'Nieuws' },
             { id: 'p2', feed: 'https://feeds.example.org/tech', title: 'Tech in 20 minuten', author: 'Rene & Co', image: '', genre: 'Technologie' }] },

@@ -16,9 +16,9 @@ const assert = (ok, what) => { if (!ok) throw new Error('mislukt: ' + what); con
     assert((await pg.textContent('#lc-pick')).includes('52.37310, 4.89220') && !(await pg.isDisabled('#lc-go')), 'coördinaten gekozen');
     await pg.fill('#lc-q', 'https://www.google.com/maps/place/Dam/@52.373056,4.892222,17z'); await pg.click('#s-loc button:has-text("Zoeken")'); await pg.waitForTimeout(100);
     assert((await pg.textContent('#lc-pick')).includes('52.37306'), 'kaartlink met coördinaten');
-    // nog niet als neplocatie-app gekozen
+    // nog niet gekozen als app voor de locatie
     await pg.click('#lc-go'); await pg.waitForTimeout(150);
-    assert((await pg.textContent('#toast')).includes('App voor neplocatie selecteren'), 'eerst instellen: melding');
+    assert((await pg.textContent('#toast')).includes('app voor de locatie'), 'eerst instellen: melding');
     await pg.click('#lc-setup button:has-text("Openen") >> nth=1'); await pg.waitForTimeout(50);
     await pg.evaluate(() => onResumeApp()); await pg.waitForTimeout(150);
     assert(!(await vis('#lc-setup')), 'na instellen: stappen weg');

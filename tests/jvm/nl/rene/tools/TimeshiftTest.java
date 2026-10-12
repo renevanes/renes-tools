@@ -7,7 +7,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URL;
 
-/** Timeshift: opnemen van een (nep)stream in de ringbuffer en afspelen vanaf een gekozen plek, ook na het rondgaan. */
+/** Timeshift: opnemen van een (test)stream in de ringbuffer en afspelen vanaf een gekozen plek, ook na het rondgaan. */
 public class TimeshiftTest {
     static int failed = 0;
     static void check(String what, boolean ok) { System.out.println((ok ? "✓ " : "✗ ") + what); if (!ok) failed++; }

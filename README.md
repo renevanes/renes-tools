@@ -145,7 +145,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 ## Locatie kiezen
 - Kies een plek op de kaart (tikken), zoek een adres (Geocoder van Android) of plak coördinaten of een kaartlink (`@52.37,4.89`); tik op **Hier zetten**. Alle apps zien dan die plek, tot je op **Terug naar echte locatie** tikt of in de melding op Stoppen.
 - `MockLocSvc` geeft elke seconde de plek door als testlocatie voor gps, netwerk en (Android 12+) fused; optioneel een paar meter bewegen zodat het natuurlijker oogt. Voorgronddienst van het type locatie, met melding.
-- Eenmalig instellen: ontwikkelaarsopties aan (7× op Buildnummer) en Rene's Tools kiezen bij **App voor neplocatie selecteren**; het scherm ziet zelf of dat gelukt is (`AppOpsManager`) en heeft knoppen naar die instellingen.
+- Eenmalig instellen: ontwikkelaarsopties aan (7× op Buildnummer) en Rene's Tools kiezen als **app voor de locatie** (Engels: *Select mock location app*); het scherm ziet zelf of dat gelukt is (`AppOpsManager`) en heeft knoppen naar die instellingen.
 - Plekken bewaren met een naam, en de laatst gebruikte plekken staan onderaan.
 
 ## Muziek herkennen
@@ -280,7 +280,7 @@ De interface-functies van nieuwere onderdelen staan in `FeatureBridge.java` (Mai
 
 ### Interface in onderdelen
 De interface is één pagina (`web/index.html`) voor de WebView, maar wordt bewerkt in losse onderdelen in `web/src/`:
-`stijl.css`, `schermen/NN-*.html` (één per scherm), `vensters.html` (meldingen, dialogen) en `script/NN-*.js` (per tool; `01-nepbrug.js` is de nagebootste Android-brug voor tests in de browser).
+`stijl.css`, `schermen/NN-*.html` (één per scherm), `vensters.html` (meldingen, dialogen) en `script/NN-*.js` (per tool; `01-testbrug.js` is de nagebootste Android-brug voor tests in de browser).
 `tools/web-samenvoegen.py` voegt ze in de volgorde van `web/src/volgorde.txt` samen; `build.sh` en `tests/run-ui.sh` doen dat zelf. `web/index.html` wordt dus gemaakt en staat niet in git.
 
 ### Testen
@@ -289,7 +289,7 @@ De interface is één pagina (`web/index.html`) voor de WebView, maar wordt bewe
 ./tests/run-ui.sh            # controle van de brug (tools/check-bridge.py) en de interfacetests: Playwright, 390x844,
                              # licht en donker, met nagebootste Android-brug. Een test mislukt bij een fout in de pagina of een mislukte assert.
 ```
-De app zelf wordt zonder nagebootste brug gebouwd (`web-samenvoegen.py --zonder-nepbrug`).
+De app zelf wordt zonder nagebootste brug gebouwd (`web-samenvoegen.py --zonder-testbrug`).
 Bij elke push bouwt GitHub Actions (`.github/workflows/bouwen-en-testen.yml`) de app en draait alle tests. Die APK is ondertekend met een tijdelijke testsleutel en dient alleen als controle; echte updates gaan via `./publish.sh` met de echte sleutel.
 
 De ondertekeningssleutel staat alleen versleuteld in de repository (`keys/signing-key.enc`, AES-256). Rene heeft de wachtwoordzin. Elke update moet met dezelfde sleutel ondertekend zijn, anders kan de telefoon hem niet installeren.

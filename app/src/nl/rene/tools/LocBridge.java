@@ -30,7 +30,7 @@ public class LocBridge extends VpnBridge {
 
     @JavascriptInterface public void locDelete(int i) { MockLoc.deletePlace(ctx, i); }
 
-    /** Ontwikkelaarsopties openen (daar kies je de app voor neplocatie). */
+    /** Ontwikkelaarsopties openen (daar kies je de app voor de locatie). */
     @JavascriptInterface public void locDevSettings() {
         a.h.post(() -> {
             try { a.startActivity(new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)); }

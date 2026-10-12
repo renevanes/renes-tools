@@ -1,4 +1,4 @@
-// Testserver voor de VPN van Rene's Tools: de officiële wireguard-go met een nep-tunnel die elk pakket
+// Testserver voor de VPN van Rene's Tools: de officiële wireguard-go met een test-tunnel die elk pakket
 // terugstuurt (afzender en bestemming omgewisseld). Alleen voor tests/wg/run-interop.sh.
 //
 //	server <luisterpoort> <eigen-private-key-b64> <peer-public-key-b64> [initiate:<poort-van-de-peer>]

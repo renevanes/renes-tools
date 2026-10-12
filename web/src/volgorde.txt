@@ -36,7 +36,7 @@ schermen/31-locatie.html
 speler.html
 vensters.html
 script/00-begin.js
-script/01-nepbrug.js
+script/01-testbrug.js
 script/02-kern.js
 script/03-auto-redial.js
 script/04-whatsapp-backup.js

@@ -6,15 +6,15 @@ De interface is één pagina voor de WebView, maar wordt bewerkt in losse onderd
   web/src/schermen/NN-*.html   één bestand per scherm
   web/src/vensters.html        meldingen, keuzemenu, dialogen, vergrendelscherm
   web/src/script/NN-*.js       de code, per tool (00-begin en 29-start horen bij elkaar)
-Gebruik: tools/web-samenvoegen.py [--zonder-nepbrug] [uitvoerbestand]   (standaard web/index.html)
-  --zonder-nepbrug   zonder script/01-nepbrug.js (de nagebootste Android-brug is alleen voor tests in de browser)
+Gebruik: tools/web-samenvoegen.py [--zonder-testbrug] [uitvoerbestand]   (standaard web/index.html)
+  --zonder-testbrug   zonder script/01-testbrug.js (de nagebootste Android-brug is alleen voor tests in de browser)
 """
 import os, sys
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 src = os.path.join(root, 'web', 'src')
 args = sys.argv[1:]
-no_mock = '--zonder-nepbrug' in args
-args = [a for a in args if a != '--zonder-nepbrug']
+no_mock = '--zonder-testbrug' in args
+args = [a for a in args if a != '--zonder-testbrug']
 bad = [a for a in args if a.startswith('-')]
 if bad: sys.exit('Onbekende optie: ' + ' '.join(bad) + ' (zie de uitleg bovenaan dit script)')
 if len(args) > 1: sys.exit('Hooguit één uitvoerbestand')
@@ -29,9 +29,9 @@ missing = [p for p in parts if p not in on_disk]
 extra = sorted(on_disk - set(parts))
 if missing: sys.exit('Ontbreekt in web/src: ' + ', '.join(missing))
 if extra: sys.exit('Staat niet in web/src/volgorde.txt: ' + ', '.join(extra))
-use = [p for p in parts if not (no_mock and p == 'script/01-nepbrug.js')]
+use = [p for p in parts if not (no_mock and p == 'script/01-testbrug.js')]
 html = ''.join(open(os.path.join(src, p), encoding='utf-8', newline='').read() for p in use)
 tmp = out + '.tmp'
 open(tmp, 'w', encoding='utf-8', newline='').write(html)
 os.replace(tmp, out)
-print('%s: %d onderdelen, %d regels%s' % (os.path.relpath(out, root), len(use), html.count('\n'), ' (zonder nepbrug)' if no_mock else ''))
+print('%s: %d onderdelen, %d regels%s' % (os.path.relpath(out, root), len(use), html.count('\n'), ' (zonder testbrug)' if no_mock else ''))
