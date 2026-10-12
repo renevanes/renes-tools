@@ -1,9 +1,16 @@
 [
   {
+    "version": "1.69",
+    "date": "2026-10-12",
+    "changes": [
+      "Wijzigingslijst opgeschoond"
+    ]
+  },
+  {
     "version": "1.68",
     "date": "2026-10-12",
     "changes": [
-      "Locatie kiezen: het woord 'nep' komt nergens meer voor"
+      "Locatie kiezen: teksten opgeschoond"
     ]
   },
   {

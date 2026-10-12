@@ -1,20 +1,27 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.68",
-  "versionCode": 69,
+  "versionName": "1.69",
+  "versionCode": 70,
   "nativeLevel": 64,
   "web": "index.html",
-  "webSha256": "29fb5d8c1e770f4b58c50c49b7299f315e51c154098b4be2d1cb7146445843dd",
+  "webSha256": "8de63f4702e52d5013d8e24cb0b92f54e72ff00bc46e83556fe95b7894868642",
   "start": "start.html",
   "startSha256": "5e128acb738bd04666077055a4ca3b8acb635c020118f718e3dcd047552082c3",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "b3474c15e508e87dd06422c15f63aaaa0e5c564d7dab9e73a347c9457ff8561b",
+  "apkSha256": "525b661fa2a452868e874b369df96f0618c0bbe174cdbb02ae4d07418fbd6cef",
   "changelog": [
+    {
+      "version": "1.69",
+      "date": "2026-10-12",
+      "changes": [
+        "Wijzigingslijst opgeschoond"
+      ]
+    },
     {
       "version": "1.68",
       "date": "2026-10-12",
       "changes": [
-        "Locatie kiezen: het woord 'nep' komt nergens meer voor"
+        "Locatie kiezen: teksten opgeschoond"
       ]
     },
     {
@@ -625,5 +632,5 @@
       ]
     }
   ],
-  "webSig2": "RaLAabqeZGCIBCLsZ+DCMJ0mUHDbxFoxoOO0E7y21ozbpIn11eY2noDh5FTJGxC79BmbltxR/sjM5tLA2gj504loOgRiBagBN3cOrxBV83nGuS5Ub2QYNQYJsW5wZ7koxY47VlHIohtoHzc2JUlj32hKp99K1rKVbpMz5MyLedLlbCV3B1R/ojiIKi/VEZlMDGZR/GlDSjBVQ6g4Pb9W/yPAClaw81VFWq0pIFenR+3gbyIIIWacopzMBhP544TYULhbCevnX2nTVzd/8pavgBg4lOTzu2aUqLcWID6rmTkUxiQvp7IBpQZ79m8jW3zLI7OFDrO7w/1Xw0OT6SqgnH/ww6pEkPeIhyMQGLm5U5rEHgKeAfZt+rE8KG8MUFAIjMoMJhq434Fwy2mR220v9k5qMP/5PgHCM0VRiZ9pEvy5OyfUjTPm0B7itGp9OPoZpaT47BnY6mnwbTTta8+tYUG3WoYerk6p0SbzTYaA8QP2HDah4QGnSmGeRmBY7y3u"
+  "webSig2": "KTjZdASQLL9964zfAF9CD27G/wZkll4ZLgy5MBoW184xBLRYII8SqhWpZbRPgSUHO4VQeB0mlfgTQta2Ez9GV+5H/zDc24aDtYrhR3+Xo/atX/zGzE6l1bhqpM+CiFwhrbbVouAoGLkW6cvZ99FliUCe4toGNtBUzIDzaJBjF73MGgWBSRTxH7xZmB6eZ+xLmNaQlaWznbyUKt3fci90FGa7eehwzBo9ndYPx56vh+jAFKVt8KhYXSkcHGkqwQfeDWOCroCRxAjBMT6+h2aMsNtAY+B5QqaKy79MlVASfTAQQEXogH4cbV2UKJQeJMg2koFUZwTdP5xuwqluGgUSa+NisQS7B7gZYJsTY5Iww+YEf2kvoxrbfwgh9JLVJW4QF15yqtckdzp1S6hn4/f9fgRIOnPPee+wQH1grtAuAmglvUGte0Z+6dHgYKasCmvCGufFAJtZjPNhnWyCde9PB5rpyPrSQB0UQ+upO4L/0Rt4aXGGQyqgYMxi0CbOiyvi"
 }
