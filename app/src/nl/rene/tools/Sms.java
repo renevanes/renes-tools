@@ -335,18 +335,19 @@ final class Sms {
         if (aside != null && !aside.dir) {
             Uri au = DocumentsContract.buildDocumentUriUsingTree(dest.tree, aside.docId);
             try {
-                if (!dir.kids.containsKey(name)) { Uri back = DocumentsContract.renameDocument(dest.cr, au, name); if (back != null) dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(back), aside.size, aside.mod, false)); }
+                if (!dir.kids.containsKey(name)) { Uri back = WaBackup.rename(dest, au, name); if (back != null) dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(back), aside.size, aside.mod, false)); }
                 else DocumentsContract.deleteDocument(dest.cr, au);
             } catch (Exception ignored) { }
         }
         WaBackup.Child stale = dir.kids.remove(tmpName);
         if (stale != null && !stale.dir) try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, stale.docId)); } catch (Exception ignored) { }
         // octet-stream: anders plakt Android de extensie er nog eens achter (notities.json.rt-tmp.json)
-        Uri tmp = DocumentsContract.createDocument(dest.cr, dir.uri, "application/octet-stream", tmpName);
+        Uri tmp = WaBackup.create(dest, dir.uri, "application/octet-stream", tmpName);
         if (tmp == null) throw new Exception("Bestand maken lukt niet: " + name);
         OutputStream o;
-        try { o = dest.cr.openOutputStream(tmp, "w"); } catch (Exception e) { o = null; }
-        if (o == null) { try { DocumentsContract.deleteDocument(dest.cr, tmp); } catch (Exception ignored) { } throw new Exception("Schrijven lukt niet: " + name); }
+        SecurityException denied = null;
+        try { o = dest.cr.openOutputStream(tmp, "w"); } catch (SecurityException e) { o = null; denied = e; } catch (Exception e) { o = null; }
+        if (o == null) { try { DocumentsContract.deleteDocument(dest.cr, tmp); } catch (Exception ignored) { } if (denied != null) throw denied; throw new Exception("Schrijven lukt niet: " + name); }
         return new SafeWriter(o, dest, dir, name, mime, tmp);
     }
 
@@ -400,7 +401,7 @@ final class Sms {
         }
 
         private Uri rename(Uri u, String to) {
-            try { return DocumentsContract.renameDocument(dest.cr, u, to); } catch (Exception e) { return null; }
+            try { return WaBackup.rename(dest, u, to); } catch (Exception e) { return null; }
         }
 
         private void commit() throws Exception {
@@ -419,7 +420,7 @@ final class Sms {
             // 2. nieuwe krijgt de naam
             Uri done = rename(tmp, name);
             if (done == null) {
-                Uri u = DocumentsContract.createDocument(dest.cr, dir.uri, mime, name);
+                Uri u = WaBackup.create(dest, dir.uri, mime, name);
                 boolean copied = false;
                 if (u != null) {
                     try (java.io.InputStream in = dest.cr.openInputStream(tmp); OutputStream o = dest.cr.openOutputStream(u, "w")) {

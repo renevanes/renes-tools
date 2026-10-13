@@ -8,7 +8,7 @@ if (stJson(Android.lockState()).locked) showLock();
 setTimeout(() => { try { if (typeof Android.uiReady === 'function') Android.uiReady(); } catch(e){} }, 0); // (geen requestAnimationFrame: die loopt niet in een verborgen WebView)
 (function(){
   const owc = window.onWaChanged;
-  window.onWaChanged = function(){ if (owc) owc(); if (current === 'settings') enterSettings(); if (current === 'backup') enterBackup(); };
+  window.onWaChanged = function(){ if (owc) owc(); if (current === 'settings') enterSettings(); if (current === 'backup') enterBackup(); if (current === 'spotify') spRender(); };
   // Bestaande gebruikers (van voor deze functie) krijgen ook "Wat is er nieuw" te zien.
   if (store.get('seenVersion', null) == null && !Android.freshInstall()) store.set('seenVersion', VERSION_CODE - 1);
   setTimeout(() => {

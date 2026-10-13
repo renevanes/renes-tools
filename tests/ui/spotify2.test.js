@@ -31,6 +31,22 @@ const assert = (ok, what) => { if (!ok) throw new Error('mislukt: ' + what); con
     await pg.evaluate(() => { Android._sp.lastFailAt = Date.now() + 1000; Android._sp.lastMsg = 'x'.repeat(5000); spRender(); });
     const h = await pg.evaluate(() => document.querySelector('#sp-last').getBoundingClientRect().height);
     assert(h < 160, 'lange foutmelding afgekapt (' + Math.round(h) + ' px)');
+    // backup-map zonder toegang: uitleg + map opnieuw kiezen
+    await pg.evaluate(() => { Android._picked = false; Android.waPickFolder = () => { Android._picked = true; }; onSpotifyDone({ own: 1, followed: 0, tracks: 1, changed: false, lines: [], folder: 'Geen toegang meer tot je backup-map. Kies de map opnieuw bij Instellingen → Backup-map.', folderAccess: true }); });
+    await pg.waitForTimeout(150);
+    assert((await pg.textContent('#modal-text')).includes('Geen toegang meer'), 'uitleg bij backup-map zonder toegang');
+    await pg.click('#modal-ok'); await pg.waitForTimeout(100);
+    assert(await pg.evaluate(() => Android._picked), 'map opnieuw kiezen');
+    // ook na een automatische backup: waarschuwing met knop op het scherm
+    await pg.evaluate(() => { Android._sp.folderErr = 'Geen toegang meer tot je backup-map. Kies de map opnieuw bij Instellingen → Backup-map.'; spRender(); });
+    assert(await vis('#sp-repick') && (await pg.textContent('#sp-folder')).includes('Niet in je backup-map'), 'waarschuwing backup-map op het scherm');
+    await pg.screenshot({ path: __dirname + '/shots/spotify-map-' + scheme + '.png' });
+    await pg.evaluate(() => { Android._sp.folderErr = ''; spRender(); });
+    assert(!(await vis('#sp-repick')), 'waarschuwing weg als het weer lukt');
+    // andere mapfout (vol): alleen een melding, geen kies-opnieuw-venster
+    await pg.evaluate(() => { onSpotifyDone({ own: 1, followed: 0, tracks: 1, changed: false, lines: [], folder: 'Backup-map: vol', folderAccess: false }); });
+    await pg.waitForTimeout(150);
+    assert(!(await vis('#modal')) || !(await pg.textContent('#modal-text')).includes('vol'), 'geen venster bij volle map');
     console.log('errors', errs);
     await pg.close();
   }

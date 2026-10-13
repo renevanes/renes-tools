@@ -160,7 +160,8 @@ final class WaBackup {
                 d = new DestDir();
                 if (zip != null) { cache.put("", d); return d; }
                 d.uri = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree));
-                list(d);
+                try { list(d); }
+                catch (SecurityException e) { throw hasGrant(cr, tree) ? e : new SecurityException(NO_ACCESS); }
                 cache.put("", d);
             }
             return d;
@@ -194,7 +195,7 @@ final class WaBackup {
                 d.uri = DocumentsContract.buildDocumentUriUsingTree(tree, ch.docId);
                 list(d);
             } else if (create) {
-                Uri u = DocumentsContract.createDocument(cr, parent.uri, Document.MIME_TYPE_DIR, name);
+                Uri u = create(this, parent.uri, Document.MIME_TYPE_DIR, name);
                 if (u == null) throw new Exception("Map maken lukt niet: " + name);
                 d.uri = u;
                 parent.kids.put(name, new Child(DocumentsContract.getDocumentId(u), 0, 0, true));
@@ -220,6 +221,54 @@ final class WaBackup {
         return m != null ? m : "application/octet-stream";
     }
 
+    static final String NO_ACCESS = "Geen toegang meer tot je backup-map. Kies de map opnieuw bij Instellingen → Backup-map.";
+
+    /** Heeft de app (nog) blijvende schrijftoegang tot deze map? Android of de mappen-app kan die intrekken. */
+    static boolean hasGrant(ContentResolver cr, Uri tree) {
+        try {
+            for (android.content.UriPermission p : cr.getPersistedUriPermissions())
+                if (p.isWritePermission() && p.getUri().equals(tree)) return true;
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    /**
+     * Sommige mappen-apps (zoals Google Drive) geven na maken of hernoemen een adres terug dat niet via de gekozen
+     * map loopt. Daar heeft de app geen toegang toe ("Permission Denial … ACTION_OPEN_DOCUMENT"). Altijd via de map.
+     */
+    static Uri inTree(Uri tree, Uri u) {
+        if (u == null || tree == null) return u;
+        try {
+            if (!String.valueOf(u.getAuthority()).equals(tree.getAuthority())) return u;
+            return DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getDocumentId(u));
+        } catch (Exception e) { return u; }
+    }
+
+    static Uri create(Dest dest, Uri parent, String mime, String name) throws Exception {
+        return inTree(dest.tree, DocumentsContract.createDocument(dest.cr, parent, mime, name));
+    }
+
+    static Uri rename(Dest dest, Uri u, String to) throws Exception {
+        return inTree(dest.tree, DocumentsContract.renameDocument(dest.cr, u, to));
+    }
+
+    /** Gaat de fout over toegang tot de map (dan helpt opnieuw kiezen)? */
+    static boolean accessErr(Exception e) {
+        return e instanceof SecurityException || String.valueOf(e.getMessage()).contains("Permission Denial") || NO_ACCESS.equals(e.getMessage());
+    }
+
+    /** Leesbare melding voor een fout bij de backup-map. */
+    static String folderMsg(Context c, Exception e) {
+        if (accessErr(e)) {
+            Uri t = destUri(c);
+            if (t == null || !hasGrant(c.getContentResolver(), t)) return NO_ACCESS;
+            return String.valueOf(t.getAuthority()).startsWith("com.google.android.apps.docs")
+                    ? "Google Drive geeft de app geen toegang tot je backup-map. Kies de map opnieuw, of kies een map op je telefoon."
+                    : "De backup-map geeft de app geen toegang. Kies de map opnieuw bij Instellingen → Backup-map.";
+        }
+        return e.getMessage() == null ? "Backup-map: schrijven lukt niet" : "Backup-map: " + PodcastFeed.cut(e.getMessage(), 160);
+    }
+
     static Uri destUri(Context c) {
         String s = prefs(c).getString("dest", null);
         return s == null ? null : Uri.parse(s);
@@ -228,6 +277,7 @@ final class WaBackup {
     static String destName(Context c) {
         Uri t = destUri(c);
         if (t == null) return null;
+        if (!hasGrant(c.getContentResolver(), t)) return "(map niet meer bereikbaar)";
         try (Cursor cur = c.getContentResolver().query(
                 DocumentsContract.buildDocumentUriUsingTree(t, DocumentsContract.getTreeDocumentId(t)),
                 new String[]{Document.COLUMN_DISPLAY_NAME}, null, null, null)) {
@@ -338,7 +388,7 @@ final class WaBackup {
             if (old == null && stale.size == it.size) {
                 // Vorige keer onderbroken vlak na het verwijderen van het oude bestand: de kopie is compleet.
                 try {
-                    Uri r = DocumentsContract.renameDocument(dest.cr, staleUri, name);
+                    Uri r = rename(dest, staleUri, name);
                     if (r != null) {
                         d.kids.put(name, new Child(DocumentsContract.getDocumentId(r), it.size, System.currentTimeMillis(), false));
                         st.bytesDone += it.size;
@@ -350,7 +400,7 @@ final class WaBackup {
         }
         // Altijd eerst volledig naar een tijdelijk bestand (.rt-part). Pas als de kopie compleet is krijgt hij de
         // echte naam: zo staat er nooit een half bestand onder de echte naam (dat terugzetten zou terugzetten).
-        Uri tmp = DocumentsContract.createDocument(dest.cr, d.uri, "application/octet-stream", tmpName);
+        Uri tmp = create(dest, d.uri, "application/octet-stream", tmpName);
         if (tmp == null) throw new Exception("Tijdelijk bestand maken lukt niet");
         try {
             writeTo(dest, tmp, it, st, l);
@@ -366,7 +416,7 @@ final class WaBackup {
                 // (bijv. een tweede "Factuur.pdf"). De oude versie bewaren onder naam~datum.
                 String vn = versionName(name, d);
                 try {
-                    Uri r = DocumentsContract.renameDocument(dest.cr, oldUri, vn);
+                    Uri r = rename(dest, oldUri, vn);
                     if (r != null) { d.kids.put(vn, new Child(DocumentsContract.getDocumentId(r), old.size, old.mod, false)); kept = true; }
                 } catch (Exception ignored) { }
             }
@@ -383,12 +433,12 @@ final class WaBackup {
         }
         Uri done;
         try {
-            done = DocumentsContract.renameDocument(dest.cr, tmp, name);
+            done = rename(dest, tmp, name);
             if (done == null) throw new Exception("hernoemen mislukt");
         } catch (Exception e) {
             // Hernoemen niet ondersteund: de volledige kopie staat veilig in het tijdelijke
             // bestand. Schrijf hem opnieuw onder de echte naam en ruim het tijdelijke op.
-            done = DocumentsContract.createDocument(dest.cr, d.uri, mime(name), name);
+            done = create(dest, d.uri, mime(name), name);
             if (done == null) throw new Exception("Vervangen lukt niet (kopie staat in " + tmpName + ")");
             try { writeTo(dest, done, it, st, l); }
             catch (Exception e2) { try { DocumentsContract.deleteDocument(dest.cr, done); } catch (Exception ignored) { } throw e2; }

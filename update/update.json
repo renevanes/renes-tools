@@ -1,15 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.70",
-  "versionCode": 71,
-  "nativeLevel": 65,
+  "versionName": "1.71",
+  "versionCode": 72,
+  "nativeLevel": 66,
   "web": "index.html",
-  "webSha256": "0cfddbad43bd154341a556e36f9a238313dd64b5ed720d970e8b0f01eeef9c3e",
+  "webSha256": "0b0beb14df586c64d521a8f51a0d92169810cfcd6667087475b24db287a8c352",
   "start": "start.html",
   "startSha256": "5e128acb738bd04666077055a4ca3b8acb635c020118f718e3dcd047552082c3",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a4cd2fb2f76d033aad5b36d956b0339cfd1083d4b907eb61404aa16081eed442",
+  "apkSha256": "653121a0a445feb3ea78080a1210e999b353efcd8cfd4501bf23b88bac230dfe",
   "changelog": [
+    {
+      "version": "1.71",
+      "date": "2026-10-13",
+      "changes": [
+        "Backup-map: duidelijke melding als de app geen toegang meer heeft (bijv. Google Drive), met knop om de map opnieuw te kiezen",
+        "Spotify-backup: ook na een automatische backup zie je als de backup-map niet lukte",
+        "Backup-map: betrouwbaarder schrijven naar mappen-apps zoals Google Drive"
+      ]
+    },
     {
       "version": "1.70",
       "date": "2026-10-13",
@@ -642,5 +651,5 @@
       ]
     }
   ],
-  "webSig2": "M+d6xJwlho41kc1P4yM57/41yoEua3KJ7OafSLRjCXfZ7N9nNrnXJRm7Y4vCJJ4tA8PhKe0+lmm4jppjxwpIuG2mOm4nj5Bf60ChF4qzmXVgX1YP/NjOkjqH5ZD+VpM8WxBDl6XFhaZL8x5ai9YPbXDmOt3GsZlwehnr2zc1ECMf8VAiEwo2PTevKMAzmHWPxhaWk+1NlFinOt89bVEoFJDAABhCj/LF24M9dxee4d2MN+WvIY0uN7mieO1kwOxwLFelhjZDvX0OT1FRiCPG9lrjKqLAh8FUybt7YamGJtB5omzYu0RGvdnaZiPypux5blBqU2AHMv5QPZkfQUivt7cvQElRcbUA2oC9eVqalnh+n3h2gJiJ/TjOP82sfIbyQcp0J1rouUOffmvFI3+TK3dmXzeDovZR2cPp/tCyamd9mpcGO17OiD04GMvPCop3CTJBg8D/m5ShPXRbXctKaZj9iYHfHVDQiFJijHIdTwxL0h2RBVkcx3RH5L0TjOx1"
+  "webSig2": "LMRJ4G1l9PGdfjnmIkeGpMURPJb2RLv1IZTKrrfRJVoxbcNb5JV4gzhY5NF4+YUurpMw74bQHrJO6LdHJ+6fIGJnDJdfiyNRnw6VdVX5yPeaTJbi41eASU4DGdVSzHj1dzH9fhXaFajStJiueqviYIz2geawZLvph7LX7iL4ulo/7BYXFd+SOmYN1xZd/WzgPBGK+MNtBfPbw5+kBC5H8A70I+wpQFEyqrVdHzGCl0m9UBgywtF+4ZbGc8b9W6qds8vBQQTJ4rT1VovEhRiCBoG9dH0Vo6IpNdecCgNcGaCg5qc5iHMzM9U4qLwghquYt6ZEWIttC3DIjCq2csl4HmSc3tZm8TtTr8Hvf1pgMk0bDkBv24Tux8eO7leeCBTwmYdwEkpsHTBSLs3cL9NK3Baqx7Mn/mizwWLvy7YXz//YmJ6QAJX4hloFFu4JRNQ4d/3U/Eg6FIAZPtDNrs6r/j6ZR3jbDq0YS/vqkFvlE7waQWtVfodQ+vhxF6jFyK7J"
 }

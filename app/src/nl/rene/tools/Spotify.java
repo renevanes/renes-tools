@@ -535,15 +535,18 @@ final class Spotify {
             if (!libLines.isEmpty()) { appendLog(c, System.currentTimeMillis(), libLines); lines.addAll(libLines); }
             // Naar de backup-map (als die gekozen is)
             String folder = "";
+            boolean access = false;
             try {
                 if (WaBackup.destUri(c) != null) {
                     if (Secure.on(c) && !plainOk) folder = "encrypted"; // versleutelen staat aan: geen leesbare bestanden zonder te vragen
                     else { progress = "In de backup-map zetten…"; writeFolder(c, now, fresh); folder = "ok"; }
                 }
             }
-            catch (Exception ex) { folder = ex.getMessage() == null ? "Backup-map: schrijven lukt niet" : "Backup-map: " + ex.getMessage(); }
+            catch (Exception ex) { App.log(c, "SPOTIFY", "backup-map: " + android.util.Log.getStackTraceString(ex)); folder = WaBackup.folderMsg(c, ex); access = WaBackup.accessErr(ex); }
+            // Onthouden: ook een automatische backup (zonder scherm) laat zo zien dat de backup-map niet lukte
+            prefs(c).edit().putString("folderErr", "ok".equals(folder) || "encrypted".equals(folder) || folder.isEmpty() ? "" : folder).putBoolean("folderAccess", access).apply();
             return new JSONObject().put("own", own).put("followed", followed).put("tracks", tracks).put("changed", changed || !libLines.isEmpty())
-                    .put("lines", new JSONArray(lines)).put("folder", folder).put("t", t).put("lib", lib);
+                    .put("lines", new JSONArray(lines)).put("folder", folder).put("folderAccess", access).put("t", t).put("lib", lib);
         } catch (Exception e) {
             if (!cancel) prefs(c).edit().putLong("lastFailAt", System.currentTimeMillis()).putString("lastMsg", e.getMessage() == null ? "Backup mislukt" : PodcastFeed.cut(e.getMessage(), 200)).apply();
             throw e;

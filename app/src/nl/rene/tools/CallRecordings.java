@@ -52,7 +52,7 @@ final class CallRecordings {
         if (tree == null) throw new Exception("Kies eerst een backup-map");
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir folder = dest.dir("Gespreksopnames", true);
-        Uri temp = DocumentsContract.createDocument(dest.cr, folder.uri, "audio/mp4", name + ".part");
+        Uri temp = WaBackup.create(dest, folder.uri, "audio/mp4", name + ".part");
         if (temp == null) throw new Exception("Backupbestand maken lukt niet");
         boolean done = false;
         try {
@@ -61,7 +61,7 @@ final class CallRecordings {
                 byte[] buffer = new byte[32768]; int n;
                 while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
             }
-            if (DocumentsContract.renameDocument(dest.cr, temp, name) == null) throw new Exception("Backupbestand afronden lukt niet");
+            if (WaBackup.rename(dest, temp, name) == null) throw new Exception("Backupbestand afronden lukt niet");
             done = true;
             return 1;
         } finally { if (!done) try { DocumentsContract.deleteDocument(dest.cr, temp); } catch (Exception ignored) { } }

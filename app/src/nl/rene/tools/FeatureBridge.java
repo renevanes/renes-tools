@@ -172,7 +172,7 @@ public class FeatureBridge {
                     File f = PdfTools.output(ctx, l.getString(i));
                     String name = f.getName();
                     for (int k = 2; dir.kids.containsKey(name); k++) name = f.getName().replaceAll("\\.pdf$", "") + " (" + k + ").pdf";
-                    Uri u = android.provider.DocumentsContract.createDocument(ctx.getContentResolver(), dir.uri, "application/pdf", name);
+                    Uri u = WaBackup.create(dest, dir.uri, "application/pdf", name);
                     if (u == null) throw new Exception("Bestand maken lukt niet");
                     try (java.io.InputStream in = new java.io.FileInputStream(f); java.io.OutputStream o = ctx.getContentResolver().openOutputStream(u, "w")) {
                         if (o == null) throw new Exception("Opslaan lukt niet");

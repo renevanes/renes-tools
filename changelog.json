@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.71",
+    "date": "2026-10-13",
+    "changes": [
+      "Backup-map: duidelijke melding als de app geen toegang meer heeft (bijv. Google Drive), met knop om de map opnieuw te kiezen",
+      "Spotify-backup: ook na een automatische backup zie je als de backup-map niet lukte",
+      "Backup-map: betrouwbaarder schrijven naar mappen-apps zoals Google Drive"
+    ]
+  },
+  {
     "version": "1.70",
     "date": "2026-10-13",
     "changes": [

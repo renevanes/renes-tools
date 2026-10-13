@@ -176,7 +176,7 @@ final class Secure {
         }
         String name = "backup-" + new SimpleDateFormat("yyyy-MM-dd_HHmm", Locale.US).format(new Date()) + ".rtb";
         // Eerst onder een tijdelijke naam schrijven; pas als het archief compleet is krijgt het de echte naam.
-        Uri u = DocumentsContract.createDocument(dest.cr, dir.uri, "application/octet-stream", name + ".part");
+        Uri u = WaBackup.create(dest, dir.uri, "application/octet-stream", name + ".part");
         if (u == null) throw new Exception("Archief maken lukt niet");
         OutputStream o = null;
         try {
@@ -214,10 +214,10 @@ final class Secure {
         if (zip.dir.kids.containsKey(name))
             name = "backup-" + new SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(new Date()) + ".rtb";
         Uri done = null;
-        try { done = DocumentsContract.renameDocument(zip.dest.cr, zip.doc, name); } catch (Exception ignored) { }
+        try { done = WaBackup.rename(zip.dest, zip.doc, name); } catch (Exception ignored) { }
         if (done == null) {
             // Hernoemen kan hier niet: kopiëren naar een bestand met de echte naam, daarna het tijdelijke weg
-            Uri u = DocumentsContract.createDocument(zip.dest.cr, zip.dir.uri, "application/octet-stream", name);
+            Uri u = WaBackup.create(zip.dest, zip.dir.uri, "application/octet-stream", name);
             if (u == null) throw new Exception("Archief hernoemen lukt niet (het staat als " + zip.name + ".part)");
             try (InputStream in = zip.dest.cr.openInputStream(zip.doc); OutputStream o = zip.dest.cr.openOutputStream(u, "w")) {
                 if (in == null || o == null) throw new Exception("kopiëren lukt niet");
@@ -488,7 +488,7 @@ final class Secure {
                 String file = WaBackup.safeName(name.substring(slash + 1));
                 WaBackup.Child old = dir.kids.get(file);
                 if (old != null && !old.dir) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, old.docId));
-                Uri u = DocumentsContract.createDocument(dest.cr, dir.uri, WaBackup.mime(file), file);
+                Uri u = WaBackup.create(dest, dir.uri, WaBackup.mime(file), file);
                 if (u == null) throw new Exception("Bestand maken lukt niet: " + file);
                 try (OutputStream o = dest.cr.openOutputStream(u, "w")) {
                     if (o == null) throw new Exception("Schrijven lukt niet: " + file);

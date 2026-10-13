@@ -278,7 +278,7 @@ if (!window.Android) window.Android = (function(){
     /* Spotify-backup (nagebootst) */
     _sp: { linked: false, clientId: '', user: '', auto: 'day', lastAt: 0, versions: [], log: '' },
     spotifyState(){ const s = this._sp; const own = (this._spNow || []).filter(p => p.own); return JSON.stringify({ libRelink: !!this._spRelink, linked: s.linked, clientId: s.clientId, user: s.user, auto: s.auto, busy: !!s.busy, progress: s.busy ? 'Playlist 1 van 3: Roadtrip' : '',
-      lastAt: s.lastAt, lastFailAt: s.lastFailAt || 0, lastMsg: s.lastMsg || '', own: own.length, followed: (this._spNow || []).length - own.length, tracks: own.reduce((a, p) => a + p.n, 0), versions: s.versions.length, hasBackup: !!this._spNow, folder: true }); },
+      lastAt: s.lastAt, lastFailAt: s.lastFailAt || 0, lastMsg: s.lastMsg || '', own: own.length, followed: (this._spNow || []).length - own.length, tracks: own.reduce((a, p) => a + p.n, 0), versions: s.versions.length, hasBackup: !!this._spNow, folder: true, folderErr: s.folderErr || '' }); },
     spotifyLink(id){ this._sp.clientId = id; setTimeout(() => { this._sp.linked = true; this._sp.user = 'Rene'; onSpotifyLinked({ name: 'Rene' }); }, 200); return ''; },
     spotifyUnlink(){ this._sp.linked = false; }, spotifyAuto(m){ this._sp.auto = m; },
     spotifyBackup(plain){ this._spPlain = plain; this._sp.busy = true; setTimeout(() => { this._sp.busy = false; const first = !this._spNow;

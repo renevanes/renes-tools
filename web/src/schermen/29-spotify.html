@@ -34,7 +34,8 @@
         <select class="sel" id="sp-auto" onchange="Android.spotifyAuto(this.value);toast(this.value === 'off' ? 'Alleen nog met de hand' : 'Ingepland')">
           <option value="day">Elke dag</option><option value="week">Elke week</option><option value="off">Uit</option>
         </select></div>
-      <p class="note" id="sp-folder" style="margin-bottom:0"></p>
+      <p class="note" id="sp-folder" style="margin-bottom:0;overflow-wrap:anywhere"></p>
+      <button class="big ghost" id="sp-repick" style="display:none;margin-top:10px" onclick="Android.waPickFolder()">Map opnieuw kiezen</button>
     </div>
 
     <div class="card" id="sp-relink" style="display:none">

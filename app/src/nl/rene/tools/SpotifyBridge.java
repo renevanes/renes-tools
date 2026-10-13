@@ -26,7 +26,8 @@ public class SpotifyBridge extends PlayerBridge {
                     .put("lastAt", p.getLong("lastAt", 0)).put("lastFailAt", p.getLong("lastFailAt", 0)).put("lastMsg", p.getString("lastMsg", ""))
                     .put("own", p.getInt("lastOwn", 0)).put("followed", p.getInt("lastFollowed", 0)).put("tracks", p.getInt("lastTracks", 0))
                     .put("versions", p.getInt("versions", 0)).put("hasBackup", has).put("encrypted", Secure.on(ctx))
-                    .put("folder", WaBackup.destUri(ctx) != null).put("libRelink", !Spotify.hasLibScopes(ctx) || Spotify.prefs(ctx).getBoolean("libRelink", false)).toString();
+                    .put("folder", WaBackup.destUri(ctx) != null)
+                    .put("folderErr", WaBackup.destUri(ctx) == null ? "" : !WaBackup.hasGrant(ctx.getContentResolver(), WaBackup.destUri(ctx)) ? WaBackup.NO_ACCESS : Spotify.prefs(ctx).getString("folderErr", "")).put("libRelink", !Spotify.hasLibScopes(ctx) || Spotify.prefs(ctx).getBoolean("libRelink", false)).toString();
         } catch (Exception e) { return "{}"; }
     }
 

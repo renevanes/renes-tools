@@ -124,7 +124,7 @@ public class Care extends JobService {
             else {
                 String dn = WaBackup.destName(c);
                 boolean reach = dn != null && !dn.startsWith("(map niet");
-                add(items, "Backup-map", reach, reach ? dn : "Niet meer bereikbaar (USB-stick of SD-kaart weg? Kies de map opnieuw)");
+                add(items, "Backup-map", reach, reach ? dn : "Niet meer bereikbaar (map weg, USB-stick of SD-kaart los, of toegang ingetrokken). Kies de map opnieuw");
                 ok &= reach;
                 // Laatste volledige backup
                 String last = AllBackup.prefs(c).getString("last", null);

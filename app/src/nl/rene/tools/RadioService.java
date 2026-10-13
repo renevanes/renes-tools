@@ -136,7 +136,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             String file = Sms.safeName(name) + "_" + new java.text.SimpleDateFormat("yyyy-MM-dd_HHmm", java.util.Locale.US).format(new java.util.Date()) + "." + t.ext();
             WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
             WaBackup.DestDir dir = dest.dir("Radio", true);
-            android.net.Uri u = android.provider.DocumentsContract.createDocument(c.getContentResolver(), dir.uri, "aac".equals(t.ext()) ? "audio/aac" : "audio/mpeg", file);
+            android.net.Uri u = WaBackup.create(dest, dir.uri, "aac".equals(t.ext()) ? "audio/aac" : "audio/mpeg", file);
             if (u == null) return "Bestand maken lukt niet";
             long n;
             try (java.io.OutputStream os = c.getContentResolver().openOutputStream(u, "w")) {

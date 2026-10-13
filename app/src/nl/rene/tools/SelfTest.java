@@ -124,7 +124,7 @@ final class SelfTest {
         try {
             dest = new WaBackup.Dest(c.getContentResolver(), tree);
             WaBackup.DestDir dir = dest.root();
-            f = DocumentsContract.createDocument(dest.cr, dir.uri, "text/plain", "rene-tools-zelftest.txt");
+            f = WaBackup.create(dest, dir.uri, "text/plain", "rene-tools-zelftest.txt");
             if (f == null) throw new Exception("bestand maken lukt niet");
             try (OutputStream o = dest.cr.openOutputStream(f, "w")) {
                 if (o == null) throw new Exception("bestand openen lukt niet");

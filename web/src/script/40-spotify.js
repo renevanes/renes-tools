@@ -21,6 +21,10 @@ function spRender(){
   $('#sp-last').classList.toggle('bad', spSt.lastFailAt > (spSt.lastAt || 0));
   $('#sp-auto').value = spSt.auto || 'day';
   $('#sp-folder').textContent = spSt.folder && spSt.encrypted ? 'Versleutelen staat aan: de backup blijft in de app. Een leesbare kopie in je backup-map kan via ⋯.' : spSt.folder ? 'Ook in je backup-map, map Spotify: per playlist een CSV-bestand, je bibliotheek in de map Bibliotheek, spotify-backup.json en wijzigingen.txt.' : 'Tip: kies een backup-map (Instellingen), dan komt er ook een kopie buiten de app.';
+  const fe = spSt.folder && !spSt.encrypted ? String(spSt.folderErr || '') : '';
+  if (fe) $('#sp-folder').textContent = '⚠ Niet in je backup-map gezet: ' + (fe.length > 160 ? fe.slice(0, 160) + '…' : fe);
+  $('#sp-folder').classList.toggle('bad', !!fe);
+  $('#sp-repick').style.display = fe ? 'block' : 'none';
   spPl = rdJson(Android.spotifyPlaylists(), []);
   spGone = rdJson(Android.spotifyGone(), []);
   const own = spPl.filter(p => p.own), fol = spPl.filter(p => !p.own);
@@ -96,7 +100,7 @@ window.onSpotifyDone = function(r){
   else toast(r.changed ? '✓ Backup gemaakt' + ((r.lines || []).length ? ': ' + r.lines.length + (r.lines.length === 1 ? ' wijziging' : ' wijzigingen') : '') : '✓ Backup bijgewerkt; niets veranderd');
   if (!r.error && r.lib && (r.lib.errors || []).length) setTimeout(() => toast('Niet alles lukte: ' + r.lib.errors[0]), 2800);
   if (r.folder === 'encrypted') setTimeout(() => toast('Niet in de backup-map gezet: versleutelen staat aan (zie ⋯)'), 2800);
-  else if (r.folder && r.folder !== 'ok') toast(r.folder);
+  else if (r.folder && r.folder !== 'ok') { if (r.folderAccess) askConfirm('Backup-map', 'Je backup is gemaakt in de app, maar niet in je backup-map.\n\n' + r.folder, 'Map opnieuw kiezen', () => Android.waPickFolder()); else toast(r.folder.length > 160 ? r.folder.slice(0, 160) + '…' : r.folder); }
   if (current === 'spotify') spRender();
 };
 function spImport(){ Android.spotifyImport(); $('#sp-import').disabled = true; }
