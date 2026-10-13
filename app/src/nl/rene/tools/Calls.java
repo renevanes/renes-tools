@@ -258,6 +258,15 @@ final class Calls {
 
     // ---------- export ----------
 
+    /** Eindtijd: begintijd plus gespreksduur. */
+    static long end(Call k) { return k.date + k.duration * 1000L; }
+
+    static boolean sameDay(long a, long b) {
+        java.util.Calendar x = java.util.Calendar.getInstance(), y = java.util.Calendar.getInstance();
+        x.setTimeInMillis(a); y.setTimeInMillis(b);
+        return x.get(java.util.Calendar.YEAR) == y.get(java.util.Calendar.YEAR) && x.get(java.util.Calendar.DAY_OF_YEAR) == y.get(java.util.Calendar.DAY_OF_YEAR);
+    }
+
     static String csv(String s) {
         if (s == null) return "";
         String t = s.replace("\r", " ").replace("\n", " ");
@@ -285,6 +294,8 @@ final class Calls {
         SimpleDateFormat stamp = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
         SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
         SimpleDateFormat full = new SimpleDateFormat("EEE d MMM yyyy HH:mm", new Locale("nl", "NL"));
+        SimpleDateFormat hm = new SimpleDateFormat("HH:mm", Locale.US);
+        SimpleDateFormat dayHm = new SimpleDateFormat("EEE d MMM HH:mm", new Locale("nl", "NL"));
         String day = stamp.format(new Date());
         // Een selectie krijgt eigen bestandsnamen, zodat de volledige backup niet overschreven wordt.
         String sel = flt.active ? "-selectie-" + new SimpleDateFormat("HHmmss", Locale.US).format(new Date()) : "";
@@ -309,10 +320,10 @@ final class Calls {
 
         // 2. CSV (puntkomma, met BOM zodat Excel UTF-8 herkent)
         try (Sms.Out w = Sms.open(dest, dir, "oproepen-" + day + sel + ".csv", "text/csv")) {
-            w.write("﻿Datum;Richting;Naam;Nummer;Duur (sec);Duur\r\n");
+            w.write("﻿Begin;Einde;Richting;Naam;Nummer;Duur (sec);Duur\r\n");
             for (int i = 0; i < all.size(); i++) {
                 Call k = all.get(i);
-                w.write(iso.format(new Date(k.date)) + ";" + label(k.type) + ";" + csv(names.get(i)) + ";"
+                w.write(iso.format(new Date(k.date)) + ";" + (k.duration > 0 ? iso.format(new Date(end(k))) : "") + ";" + label(k.type) + ";" + csv(names.get(i)) + ";"
                         + (k.presentation == 1 && k.number != null && k.number.matches("\\+?[0-9 #*]+") ? "=\"" + k.number + "\""
                             : csv(k.presentation == 1 && k.number != null ? k.number : "")) + ";" + k.duration + ";" + dur(k.duration) + "\r\n");
                 if ((++step % 200) == 0) p.step(step, total);
@@ -325,12 +336,12 @@ final class Calls {
             w.write("<!DOCTYPE html><html lang=nl><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
                     + "<title>Oproepen</title><style>" + CSS + "</style><header><h1>Oproepen</h1><small>Gemaakt door Rene's Tools op "
                     + Sms.esc(full.format(new Date())) + " · " + all.size() + " oproepen</small></header><main><table>"
-                    + "<tr><th>Datum</th><th></th><th>Naam / nummer</th><th>Duur</th></tr>");
+                    + "<tr><th>Begin – einde</th><th></th><th>Naam / nummer</th><th>Duur</th></tr>");
             for (int i = 0; i < all.size(); i++) {
                 Call k = all.get(i);
                 String kd = kind(k.type);
                 String num = k.presentation == 1 && k.number != null && !names.get(i).equals(k.number) ? "<small>" + Sms.esc(k.number) + "</small>" : "";
-                w.write("<tr class=" + kd + "><td>" + Sms.esc(full.format(new Date(k.date))) + "</td><td>" + Sms.esc(label(k.type))
+                w.write("<tr class=" + kd + "><td>" + Sms.esc(full.format(new Date(k.date))) + (k.duration > 0 ? " – " + Sms.esc((sameDay(k.date, end(k)) ? hm : dayHm).format(new Date(end(k)))) : "") + "</td><td>" + Sms.esc(label(k.type))
                         + "</td><td>" + Sms.esc(names.get(i)) + num + "</td><td>" + dur(k.duration) + "</td></tr>");
                 if ((++step % 200) == 0) p.step(step, total);
             }

@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.71",
-  "versionCode": 72,
-  "nativeLevel": 66,
+  "versionName": "1.72",
+  "versionCode": 73,
+  "nativeLevel": 67,
   "web": "index.html",
-  "webSha256": "0b0beb14df586c64d521a8f51a0d92169810cfcd6667087475b24db287a8c352",
+  "webSha256": "2cbcdb5a8d5c08e8f4ce220e3eda62738371fa93fa29fa8fdf739ebce687dc15",
   "start": "start.html",
   "startSha256": "5e128acb738bd04666077055a4ca3b8acb635c020118f718e3dcd047552082c3",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "653121a0a445feb3ea78080a1210e999b353efcd8cfd4501bf23b88bac230dfe",
+  "apkSha256": "a5bb5600815ed02a9ab3c972b895aa55b6c8b130d95396a6905a5733c268ad1d",
   "changelog": [
+    {
+      "version": "1.72",
+      "date": "2026-10-14",
+      "changes": [
+        "Oproepen: naast de begintijd nu ook de eindtijd (begintijd plus gespreksduur), ook in de export"
+      ]
+    },
     {
       "version": "1.71",
       "date": "2026-10-13",
@@ -651,5 +658,5 @@
       ]
     }
   ],
-  "webSig2": "LMRJ4G1l9PGdfjnmIkeGpMURPJb2RLv1IZTKrrfRJVoxbcNb5JV4gzhY5NF4+YUurpMw74bQHrJO6LdHJ+6fIGJnDJdfiyNRnw6VdVX5yPeaTJbi41eASU4DGdVSzHj1dzH9fhXaFajStJiueqviYIz2geawZLvph7LX7iL4ulo/7BYXFd+SOmYN1xZd/WzgPBGK+MNtBfPbw5+kBC5H8A70I+wpQFEyqrVdHzGCl0m9UBgywtF+4ZbGc8b9W6qds8vBQQTJ4rT1VovEhRiCBoG9dH0Vo6IpNdecCgNcGaCg5qc5iHMzM9U4qLwghquYt6ZEWIttC3DIjCq2csl4HmSc3tZm8TtTr8Hvf1pgMk0bDkBv24Tux8eO7leeCBTwmYdwEkpsHTBSLs3cL9NK3Baqx7Mn/mizwWLvy7YXz//YmJ6QAJX4hloFFu4JRNQ4d/3U/Eg6FIAZPtDNrs6r/j6ZR3jbDq0YS/vqkFvlE7waQWtVfodQ+vhxF6jFyK7J"
+  "webSig2": "SbDF49mB9erE6Ror4ayWiSlNxSyevB9sAqINawn+7yHYoezX0B/TFmjL2oqD4pjT6LA6aS8ozA0P28JH/Rsfh2ltgvrsAMc++vVkiZifJs9H5+LsyUJA90c/s8ej5xeHqW63GMJQan2JLi17HqOFdmiFRbKSdnUbWzgOQLsKn8gdG/mweE2MF5LcjGiq7NINR7GqIsuNfqtp+gi9ALT/52TvOOlWjnFqYfspAiJV2YPVKjCbI6W3l9xBBpTMgLQ3i6ktS6SDhMJizyIMRgjFUnQKXdZ1nfil3W6BVdLt0O77XqfUjmSL//MIvdlxa55DmcaETCK2UhIpOLAyIzvy+mlS2gIP/cKICUAI1AoKE8KgpSWE5Oq/5RUvSRObKRWTWL0mPw+jRWQ/G6INouo0m+TlAx78tC7KVOncwdIKnEDEElEayBvonXfcEo984wUH88W7xfiOd4ReyD4KvsbJ9UAP+25Wssco2+xAJKUaOtAcau0eL+6Vxvq9IixTF2Ol"
 }

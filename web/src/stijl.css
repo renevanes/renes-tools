@@ -134,6 +134,7 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 .clist .r1{display:flex;gap:8px;align-items:baseline}
 .clist .r1 b{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .clist .r1 time,.clist .r2{color:var(--muted);font-size:13px}
+.clist .r1 time{white-space:nowrap}
 .clist .crow{padding:10px 2px;border-top:1px solid var(--line)}.clist .crow:first-child{border-top:0}
 .clist .r2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
 .calls .k{display:inline-block;min-width:78px;margin-right:6px;font-weight:600}

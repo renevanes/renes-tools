@@ -5,6 +5,11 @@ const callsF = { kind: 'all', period: 'all', from: '', to: '', who: 'all', dur: 
 function callsInfo(){ try { return JSON.parse(Android.callsInfo()); } catch(e){ return {}; } }
 function fmtCallDur(s){ if (!s) return ''; const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
   return h ? h + ':' + String(m).padStart(2,'0') + ':' + String(x).padStart(2,'0') : m + ':' + String(x).padStart(2,'0'); }
+/** Eindtijd = begintijd + duur. Op een andere dag (na middernacht) met de dag erbij. */
+function fmtCallEnd(c){ if (!c.duration) return ''; const s = new Date(c.date), e = new Date(c.date + c.duration * 1000);
+  const hm = e.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'});
+  return s.toDateString() === e.toDateString() ? hm : e.toLocaleDateString('nl-NL', {weekday:'short'}) + ' ' + hm; }
+function fmtCallSpan(c){ return fmtD(c.date) + (c.duration ? '–' + fmtCallEnd(c) : ''); }
 function fmtHours(s){ const h = Math.floor(s/3600), m = Math.round(s%3600/60); return h ? h + ' u ' + m + ' m' : m + ' min'; }
 function dayStart(d){ const x = new Date(d); x.setHours(0,0,0,0); return x.getTime(); }
 /** Filter als JSON voor de app (periode omgerekend naar tijden). */
@@ -116,7 +121,7 @@ function loadCalls(){
   callsShown = d.calls || [];
   el.innerHTML = callsShown.map((c, i) =>
     '<button class="' + esc(c.kind) + '" onclick="callsPick(' + i + ')">' +
-    '<span class=r1><b>' + (c.fav ? '★ ' : '') + esc(c.name) + '</b><time>' + esc(fmtD(c.date)) + '</time></span>' +
+    '<span class=r1><b>' + (c.fav ? '★ ' : '') + esc(c.name) + '</b><time>' + esc(fmtCallSpan(c)) + '</time></span>' +
     '<span class=r2><span class=k>' + esc(c.label) + '</span>' + (c.ck || !c.number ? '' : '<span class=unk>onbekend</span> ') + (c.number && c.number !== c.name ? esc(c.number) + ' · ' : '') + esc(fmtCallDur(c.duration)) + '</span></button>').join('');
   if (!callsShown.length) el.innerHTML = '<p class=note style="padding:14px">' + (d.filtered ? 'Geen oproepen met deze filters. <a href="#" onclick="callsClearFilters();return false">Filters wissen</a>' : 'Geen oproepen gevonden.') + '</p>';
 }
@@ -129,7 +134,7 @@ function callsPick(i){
   else acts.push(['Toevoegen aan contacten', () => Android.contactsAddNumber(c.number)]);
   if (!callsF.person) acts.push(['Alle oproepen met ' + (c.ck ? c.name : c.number), () => { callsF.person = { name: c.ck ? c.name : c.number, numbers: [c.number] }; callsSyncUi(); loadCalls(); window.scrollTo(0, 0); }]);
   acts.push(['Opnieuw bellen met Auto redial', () => { jumpTo('redial'); $('#num').value = c.number; nameFor = c.ck ? c.name : ''; $('#pname').textContent = nameFor; }]);
-  openSheet(c.name, (c.number !== c.name ? c.number + ' · ' : '') + c.label + ' · ' + fmtFullCall(c.date) + (c.duration ? ' · ' + fmtCallDur(c.duration) : ''), acts);
+  openSheet(c.name, (c.number !== c.name ? c.number + ' · ' : '') + c.label + ' · ' + fmtFullCall(c.date) + (c.duration ? ' tot ' + fmtCallEnd(c) + ' · ' + fmtCallDur(c.duration) : ''), acts);
 }
 function fmtFullCall(t){ return new Date(t).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
 function callsExport(sel){

@@ -62,7 +62,7 @@ function ctRenderCalls(d){
   $('#ctd-calls-body').innerHTML =
     '<p class=note style="margin-top:0">' + r.count + ' oproepen · ' + (r.in||0) + ' inkomend, ' + (r.out||0) + ' uitgaand, ' + (r.missed||0) + ' gemist · samen ' + fmtHours((r.secIn||0) + (r.secOut||0)) + '</p>' +
     '<div class="clist calls">' + (r.calls || []).slice(0, 5).map(c =>
-      '<div class="crow ' + esc(c.kind) + '"><span class=r1><b><span class=k>' + esc(c.label) + '</span></b><time>' + esc(fmtD(c.date)) + '</time></span>' +
+      '<div class="crow ' + esc(c.kind) + '"><span class=r1><b><span class=k>' + esc(c.label) + '</span></b><time>' + esc(fmtCallSpan(c)) + '</time></span>' +
       '<span class=r2>' + (c.number ? esc(c.number) : '') + (c.duration ? ' · ' + fmtCallDur(c.duration) : '') + '</span></div>').join('') + '</div>' +
     '<button class="big ghost" style="margin-top:10px" onclick="callsForPerson(ctDetail.n || \'Contact\', ctCallNums)">Alle ' + r.count + ' oproepen bekijken</button>';
 }

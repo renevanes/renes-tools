@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.72",
+    "date": "2026-10-14",
+    "changes": [
+      "Oproepen: naast de begintijd nu ook de eindtijd (begintijd plus gespreksduur), ook in de export"
+    ]
+  },
+  {
     "version": "1.71",
     "date": "2026-10-13",
     "changes": [
