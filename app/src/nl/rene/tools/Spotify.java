@@ -40,7 +40,19 @@ final class Spotify {
     private Spotify() { }
 
     static final String API = "https://api.spotify.com/v1", ACCOUNTS = "https://accounts.spotify.com";
-    static final String SCOPES = "playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public";
+    static final String SCOPES = "playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public"
+            + " user-library-read user-library-modify user-follow-read user-follow-modify user-top-read user-read-recently-played user-read-playback-position";
+    /** Rechten die nodig zijn voor de bibliotheek (wie eerder koppelde, heeft ze nog niet: opnieuw koppelen). */
+    static final String[] LIB_SCOPES = {"user-library-read", "user-follow-read", "user-top-read", "user-read-recently-played", "user-read-playback-position"};
+
+    static boolean hasLibScopes(Context c) {
+        String s = " " + prefs(c).getString("scopes", "") + " ";
+        for (String x : LIB_SCOPES) if (!s.contains(" " + x + " ")) return false;
+        return true;
+    }
+
+    /** Spotify weigert omdat de koppeling dit recht (nog) niet heeft. */
+    static final class Scope extends Exception { Scope(String m) { super(m); } }
     static final String DIR = "Spotify";
     /** Vaste poort: zo klopt het adres altijd precies met wat je bij de developer app invult. */
     static final int PORT = 43819;
@@ -76,6 +88,7 @@ final class Spotify {
         accessUntil = System.currentTimeMillis() + Math.max(60, t.optLong("expires_in", 3600) - 60) * 1000L;
         String r = t.optString("refresh_token");
         if (!r.isEmpty()) prefs(c).edit().putString("refresh", seal(r)).apply(); // geen nieuwe? dan de oude blijft
+        if (t.has("scope")) prefs(c).edit().putString("scopes", t.optString("scope")).apply(); // welke rechten deze koppeling heeft
     }
 
     private static final Object TOKEN = new Object();
@@ -145,6 +158,11 @@ final class Spotify {
                 }
                 InputStream in = code >= 400 ? h.getErrorStream() : h.getInputStream();
                 String s = in == null ? "" : new String(SelfTest.readAll(new PodcastFeed.Limited(in, 20_000_000)), StandardCharsets.UTF_8);
+                if (code == 403) {
+                    String m = "";
+                    try { m = new JSONObject(s).optJSONObject("error").optString("message"); } catch (Exception ignored) { }
+                    if (m.toLowerCase(Locale.ROOT).contains("scope")) throw new Scope("Koppel Spotify opnieuw om dit ook te mogen bewaren");
+                }
                 if (code == 403 && (path.startsWith("/me") || path.startsWith(API + "/me"))) throw new Exception("Spotify weigert de toegang (403). Staat je account bij 'User Management' van je developer app, en heb je Premium?");
                 if (code == 403 || code == 404) throw new Gone(code, "Spotify: " + (code == 404 ? "niet gevonden" : "geen toegang"));
                 if (code >= 400) {
@@ -152,7 +170,9 @@ final class Spotify {
                     try { msg = new JSONObject(s).optJSONObject("error").optString("message"); } catch (Exception ignored) { }
                     throw new Exception("Spotify: " + (msg.isEmpty() ? "fout " + code : msg));
                 }
-                return s.trim().isEmpty() ? new JSONObject() : new JSONObject(s);
+                if (s.trim().isEmpty()) return new JSONObject();
+                try { return new JSONObject(s); }
+                catch (org.json.JSONException je) { throw new Exception("Spotify gaf een onvolledig antwoord; probeer het opnieuw"); } // nooit de hele tekst als melding
             } finally { h.disconnect(); }
         }
         throw new Exception("Spotify reageert nu niet; probeer het later opnieuw");
@@ -505,6 +525,14 @@ final class Spotify {
                 appendLog(c, t, lines);
             }
             prefs(c).edit().putLong("lastAt", t).putString("lastMsg", "").putInt("versions", versions(c).length()).putInt("lastOwn", own).putInt("lastFollowed", followed).putInt("lastTracks", tracks).apply();
+            // Daarna de bibliotheek (eigen logboekregels; telt niet als nieuwe playlistversie, anders roteert die geschiedenis te snel)
+            JSONObject lib = null;
+            List<String> libLines = new ArrayList<>();
+            try { lib = SpotifyLib.backup(c, libLines); }
+            catch (Exception ex) { // de playlists zijn al bewaard: de backup is niet mislukt
+                lib = new JSONObject().put("errors", new JSONArray().put(cancel ? "Bibliotheek: gestopt door Android; de volgende keer verder" : "Bibliotheek: " + PodcastFeed.cut(String.valueOf(ex.getMessage()), 120)));
+            }
+            if (!libLines.isEmpty()) { appendLog(c, System.currentTimeMillis(), libLines); lines.addAll(libLines); }
             // Naar de backup-map (als die gekozen is)
             String folder = "";
             try {
@@ -514,10 +542,10 @@ final class Spotify {
                 }
             }
             catch (Exception ex) { folder = ex.getMessage() == null ? "Backup-map: schrijven lukt niet" : "Backup-map: " + ex.getMessage(); }
-            return new JSONObject().put("own", own).put("followed", followed).put("tracks", tracks).put("changed", changed)
-                    .put("lines", new JSONArray(lines)).put("folder", folder).put("t", t);
+            return new JSONObject().put("own", own).put("followed", followed).put("tracks", tracks).put("changed", changed || !libLines.isEmpty())
+                    .put("lines", new JSONArray(lines)).put("folder", folder).put("t", t).put("lib", lib);
         } catch (Exception e) {
-            if (!cancel) prefs(c).edit().putLong("lastFailAt", System.currentTimeMillis()).putString("lastMsg", e.getMessage() == null ? "Backup mislukt" : e.getMessage()).apply();
+            if (!cancel) prefs(c).edit().putLong("lastFailAt", System.currentTimeMillis()).putString("lastMsg", e.getMessage() == null ? "Backup mislukt" : PodcastFeed.cut(e.getMessage(), 200)).apply();
             throw e;
         } finally { progress = ""; BUSY.set(false); }
     }
@@ -604,8 +632,10 @@ final class Spotify {
             for (SpotifyDiff.T t : l) arr.put(trackJson(t));
             all.put(new JSONObject(p.toString()).put("gone", true).put("items", arr));
         }
-        JSONObject root = new JSONObject().put("app", "Rene's Tools").put("soort", "spotify-backup").put("versie", 1)
-                .put("gemaakt", System.currentTimeMillis()).put("gebruiker", prefs(c).getString("user", "")).put("playlists", all);
+        JSONObject root = new JSONObject().put("app", "Rene's Tools").put("soort", "spotify-backup").put("versie", 2)
+                .put("gemaakt", System.currentTimeMillis()).put("gebruiker", prefs(c).getString("user", "")).put("playlists", all)
+                ;
+        try { root.put("bibliotheek", SpotifyLib.writeFolder(c, dest, d)); } catch (Exception e) { App.log(c, "SPOTIFY", "bibliotheek naar backup-map: " + e); } // playlists gaan altijd door
         try (Sms.Out w = Sms.open(dest, d, "spotify-backup.json", "application/json")) { w.write(root.toString()); w.done(); }
         File log = logFile(c);
         if (log.isFile()) try (Sms.Out w = Sms.open(dest, d, "wijzigingen.txt", "text/plain")) { w.write(Contacts.readText(log, false).replace("\n", "\r\n")); w.done(); }
@@ -665,6 +695,7 @@ final class Spotify {
             Contacts.writeText(versionsFile(c), v.toString(), false);
             appendLog(c, System.currentTimeMillis(), lines);
         }
+        try { SpotifyLib.importFrom(c, root.optJSONObject("bibliotheek")); } catch (Exception e) { App.log(c, "SPOTIFY", "bibliotheek overnemen: " + e.getMessage()); }
         return now.length();
     }
 

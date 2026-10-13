@@ -16,11 +16,11 @@ function spRender(){
   $('#sp-main').style.display = linked ? 'block' : 'none';
   if (!linked && spSt.clientId && !$('#sp-client').value) $('#sp-client').value = spSt.clientId;
   $('#sp-user').textContent = spSt.user ? 'Gekoppeld: ' + spSt.user : 'Gekoppeld met Spotify';
-  $('#sp-last').textContent = spSt.lastFailAt > (spSt.lastAt || 0) ? '⚠ Laatste poging (' + spDate(spSt.lastFailAt) + '): ' + spSt.lastMsg
+  $('#sp-last').textContent = spSt.lastFailAt > (spSt.lastAt || 0) ? '⚠ Laatste poging (' + spDate(spSt.lastFailAt) + '): ' + (String(spSt.lastMsg || '').length > 200 ? String(spSt.lastMsg).slice(0, 200) + '…' : spSt.lastMsg)
     : spSt.lastAt ? 'Laatste backup ' + spDate(spSt.lastAt) + ' · ' + spSt.own + ' playlists, ' + spSt.tracks + ' nummers' : 'Nog geen backup';
   $('#sp-last').classList.toggle('bad', spSt.lastFailAt > (spSt.lastAt || 0));
   $('#sp-auto').value = spSt.auto || 'day';
-  $('#sp-folder').textContent = spSt.folder && spSt.encrypted ? 'Versleutelen staat aan: de backup blijft in de app. Een leesbare kopie in je backup-map kan via ⋯.' : spSt.folder ? 'Ook in je backup-map, map Spotify: per playlist een CSV-bestand, spotify-backup.json en wijzigingen.txt.' : 'Tip: kies een backup-map (Instellingen), dan komt er ook een kopie buiten de app.';
+  $('#sp-folder').textContent = spSt.folder && spSt.encrypted ? 'Versleutelen staat aan: de backup blijft in de app. Een leesbare kopie in je backup-map kan via ⋯.' : spSt.folder ? 'Ook in je backup-map, map Spotify: per playlist een CSV-bestand, je bibliotheek in de map Bibliotheek, spotify-backup.json en wijzigingen.txt.' : 'Tip: kies een backup-map (Instellingen), dan komt er ook een kopie buiten de app.';
   spPl = rdJson(Android.spotifyPlaylists(), []);
   spGone = rdJson(Android.spotifyGone(), []);
   const own = spPl.filter(p => p.own), fol = spPl.filter(p => !p.own);
@@ -35,7 +35,45 @@ function spRender(){
   $('#sp-fol-wrap').style.display = fol.length ? 'block' : 'none';
   $('#sp-fol').innerHTML = fol.map((p, i) => row(p, 'f', i)).join('');
   $('#sp-log').textContent = Android.spotifyLog() || 'Nog niets veranderd.';
+  spRenderLib();
 }
+/* Bibliotheek: leuk gevonden nummers, albums, artiesten, podcasts, top, laatst geluisterd */
+let spLibD = {};
+const SP_LIB_IC = { tracks: '♥', albums: '💿', artists: '🎤', shows: '🎙', episodes: '🎧', audiobooks: '📚', recent: '🕘' };
+function spRenderLib(){
+  spLibD = rdJson(Android.spotifyLib(), {});
+  const linked = !!spSt.linked;
+  $('#sp-relink').style.display = linked && spSt.libRelink ? 'block' : 'none';
+  const ks = (spLibD.kinds || []).filter(k => k.n >= 0);
+  $('#sp-libwrap').style.display = ks.length ? 'block' : 'none';
+  const noun = k => k.kind === 'artists' ? (k.n === 1 ? ' artiest' : ' artiesten') : k.kind === 'albums' ? ' albums' : k.kind === 'shows' ? ' podcasts' : k.kind === 'episodes' ? ' afleveringen' : k.kind === 'audiobooks' ? ' boeken' : k.kind.startsWith('top-artists') ? ' artiesten' : (k.n === 1 ? ' nummer' : ' nummers');
+  $('#sp-lib').innerHTML = ks.map(k => '<div class="srow"><button class="sbtn" data-k="' + esc(k.kind) + '" onclick="spLibOpen(this.dataset.k)"><span class="vpic" aria-hidden="true">' + (SP_LIB_IC[k.kind] || (k.kind.startsWith('top') ? '🏆' : '•')) + '</span><span class="stxt"><b>' + esc(k.name) + '</b><small>' +
+    esc(k.n + noun(k) + (k.gone ? ' · ' + k.gone + ' uit Spotify verdwenen (bewaard)' : '')) + '</small></span></button></div>').join('');
+}
+function spRelink(){ const e = Android.spotifyLink(spSt.clientId || ''); if (e) toast(e); else toast('Log in bij Spotify en geef toestemming; kom daarna terug'); }
+function spLibOpen(kind){
+  const k = (spLibD.kinds || []).find(x => x.kind === kind); if (!k) return;
+  const acts = [['Bekijken', () => spLibShow(k, false)]];
+  if (k.gone) acts.push(['Verdwenen bekijken (' + k.gone + ')', () => spLibShow(k, true)],
+    ['↩ Verdwenen terugzetten in Spotify (' + k.gone + ')', () => spLibRestore(k, 'gone')]);
+  if (k.restore && k.n > 0) acts.push(['Alles terugzetten in Spotify…', () => askConfirm('Alles terugzetten?', 'Alle ' + (k.n + (k.gone || 0)) + ' uit de backup' + (k.gone ? ' (ook de ' + k.gone + ' verdwenen)' : '') + ' komen (weer) in "' + k.name + '" in Spotify. Wat er al in staat, blijft gewoon staan. Handig voor een nieuw account.', 'Terugzetten', () => spLibRestore(k, 'all'))]);
+  openSheet(k.name, k.n + ' in de backup' + (k.gone ? ' · ' + k.gone + ' verdwenen' : ''), acts);
+}
+function spLibShow(k, gone){
+  const r = rdJson(Android.spotifyLibList(k.kind, !!gone), { total: 0, items: [] });
+  const when = t => t ? ' · ' + String(t).slice(0, 10) : '';
+  askConfirm(k.name + (gone ? ' · verdwenen' : ''), r.items.map((t, n) => (n + 1) + '. ' + t.n + (t.a ? ' – ' + t.a : '') + (k.kind === 'recent' ? when(t.p || t.t) : '')).join('\n') + (r.total > r.items.length ? '\n…' : '') || 'Leeg', 'Sluiten', () => {});
+}
+function spLibRestore(k, mode){
+  if (spSt.busy) { toast('Even wachten: er loopt nog iets'); return; }
+  Android.spotifyLibRestore(k.kind, mode); spSt.busy = true; $('#sp-progress').textContent = 'Terugzetten…';
+}
+window.onSpotifyLibRestored = function(r){
+  spSt.busy = false;
+  if (r.error) { toast(r.error); return; }
+  toast('✓ ' + r.done + ' teruggezet in "' + r.name + '"' + (r.skipped ? ' (' + r.skipped + ' kunnen niet terug)' : ''));
+  if (current === 'spotify') spRender();
+};
 function spLink(){
   const id = $('#sp-client').value.trim();
   $('#sp-link-msg').textContent = '';
@@ -56,6 +94,7 @@ window.onSpotifyDone = function(r){
   spSt.busy = false;
   if (r.error) toast(r.error);
   else toast(r.changed ? '✓ Backup gemaakt' + ((r.lines || []).length ? ': ' + r.lines.length + (r.lines.length === 1 ? ' wijziging' : ' wijzigingen') : '') : '✓ Backup bijgewerkt; niets veranderd');
+  if (!r.error && r.lib && (r.lib.errors || []).length) setTimeout(() => toast('Niet alles lukte: ' + r.lib.errors[0]), 2800);
   if (r.folder === 'encrypted') setTimeout(() => toast('Niet in de backup-map gezet: versleutelen staat aan (zie ⋯)'), 2800);
   else if (r.folder && r.folder !== 'ok') toast(r.folder);
   if (current === 'spotify') spRender();

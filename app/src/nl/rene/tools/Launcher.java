@@ -239,7 +239,7 @@ final class Launcher {
         h.setConnectTimeout(10_000);
         h.setReadTimeout(15_000);
         h.setRequestProperty("User-Agent", Radio.UA);
-        try (java.io.InputStream in = h.getInputStream()) { return new String(SelfTest.readAll(in), "UTF-8"); }
+        try (java.io.InputStream in = new PodcastFeed.Limited(h.getInputStream(), 5_000_000)) { return new String(SelfTest.readAll(in), "UTF-8"); }
         finally { h.disconnect(); }
     }
 

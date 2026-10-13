@@ -235,6 +235,7 @@ details.rinfo dl{margin:8px 0 0}
 #rd-sleep{flex:none}.shift .shpos{min-width:64px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
 .shift .shpos.behind{color:var(--warn)}
 h1:focus{outline:none}
+#sp-last{overflow-wrap:anywhere}
 .vpadd{display:grid;gap:8px}.vpdot{width:18px;height:18px;border-radius:50%;background:var(--muted);flex:none;box-shadow:0 0 0 5px color-mix(in srgb,var(--muted) 18%,transparent)}
 .vpdot.on{background:#1E8449;box-shadow:0 0 0 5px rgba(30,132,73,.22)}.vpdot.busy{background:#E0A800;box-shadow:0 0 0 5px rgba(224,168,0,.22);animation:vppulse 1.2s ease-in-out infinite}
 @keyframes vppulse{50%{opacity:.45}}@media (prefers-reduced-motion:reduce){.vpdot.busy{animation:none}}

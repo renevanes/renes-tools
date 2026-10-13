@@ -193,7 +193,7 @@ final class SelfTest {
             try (OutputStream o = h.getOutputStream()) { o.write(("api_token=" + Uri.encode(token)).getBytes("UTF-8")); }
             String body;
             try (InputStream in = h.getResponseCode() >= 400 ? h.getErrorStream() : h.getInputStream()) {
-                body = in == null ? "" : new String(readAll(in), "UTF-8");
+                body = in == null ? "" : new String(readSome(in, 100_000), "UTF-8");
             } finally { h.disconnect(); }
             JSONObject o = new JSONObject(body);
             JSONObject err = o.optJSONObject("error");
@@ -207,11 +207,21 @@ final class SelfTest {
         }
     }
 
+    /** Alles lezen (wie een grens wil, geeft een PodcastFeed.Limited mee; anders hooguit 64 MB). */
     static byte[] readAll(InputStream in) throws Exception {
+        java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream();
+        byte[] buf = new byte[16384];
+        int n;
+        while ((n = in.read(buf)) > 0) { b.write(buf, 0, n); if (b.size() > 64_000_000) throw new java.io.IOException("Te groot"); }
+        return b.toByteArray();
+    }
+
+    /** Het begin lezen (hooguit max bytes): voor de zelftest, waar alleen het begin telt. */
+    static byte[] readSome(InputStream in, int max) throws Exception {
         java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream();
         byte[] buf = new byte[4096];
         int n;
-        while ((n = in.read(buf)) > 0 && b.size() < 100_000) b.write(buf, 0, n);
+        while (b.size() < max && (n = in.read(buf, 0, Math.min(buf.length, max - b.size()))) > 0) b.write(buf, 0, n);
         return b.toByteArray();
     }
 

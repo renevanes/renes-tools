@@ -1,15 +1,25 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.69",
-  "versionCode": 70,
-  "nativeLevel": 64,
+  "versionName": "1.70",
+  "versionCode": 71,
+  "nativeLevel": 65,
   "web": "index.html",
-  "webSha256": "8de63f4702e52d5013d8e24cb0b92f54e72ff00bc46e83556fe95b7894868642",
+  "webSha256": "0cfddbad43bd154341a556e36f9a238313dd64b5ed720d970e8b0f01eeef9c3e",
   "start": "start.html",
   "startSha256": "5e128acb738bd04666077055a4ca3b8acb635c020118f718e3dcd047552082c3",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "525b661fa2a452868e874b369df96f0618c0bbe174cdbb02ae4d07418fbd6cef",
+  "apkSha256": "a4cd2fb2f76d033aad5b36d956b0339cfd1083d4b907eb61404aa16081eed442",
   "changelog": [
+    {
+      "version": "1.70",
+      "date": "2026-10-13",
+      "changes": [
+        "Spotify-backup: fout bij grote playlists opgelost",
+        "Spotify-backup: nu ook je bibliotheek — nummers die je leuk vindt, albums, artiesten die je volgt, podcasts, afleveringen, luisterboeken, je top en wat je laatst luisterde",
+        "Spotify: verdwenen items uit je bibliotheek terugzetten",
+        "Hoezen van radio en podcasts: grote afbeeldingen werden afgekapt"
+      ]
+    },
     {
       "version": "1.69",
       "date": "2026-10-12",
@@ -632,5 +642,5 @@
       ]
     }
   ],
-  "webSig2": "KTjZdASQLL9964zfAF9CD27G/wZkll4ZLgy5MBoW184xBLRYII8SqhWpZbRPgSUHO4VQeB0mlfgTQta2Ez9GV+5H/zDc24aDtYrhR3+Xo/atX/zGzE6l1bhqpM+CiFwhrbbVouAoGLkW6cvZ99FliUCe4toGNtBUzIDzaJBjF73MGgWBSRTxH7xZmB6eZ+xLmNaQlaWznbyUKt3fci90FGa7eehwzBo9ndYPx56vh+jAFKVt8KhYXSkcHGkqwQfeDWOCroCRxAjBMT6+h2aMsNtAY+B5QqaKy79MlVASfTAQQEXogH4cbV2UKJQeJMg2koFUZwTdP5xuwqluGgUSa+NisQS7B7gZYJsTY5Iww+YEf2kvoxrbfwgh9JLVJW4QF15yqtckdzp1S6hn4/f9fgRIOnPPee+wQH1grtAuAmglvUGte0Z+6dHgYKasCmvCGufFAJtZjPNhnWyCde9PB5rpyPrSQB0UQ+upO4L/0Rt4aXGGQyqgYMxi0CbOiyvi"
+  "webSig2": "M+d6xJwlho41kc1P4yM57/41yoEua3KJ7OafSLRjCXfZ7N9nNrnXJRm7Y4vCJJ4tA8PhKe0+lmm4jppjxwpIuG2mOm4nj5Bf60ChF4qzmXVgX1YP/NjOkjqH5ZD+VpM8WxBDl6XFhaZL8x5ai9YPbXDmOt3GsZlwehnr2zc1ECMf8VAiEwo2PTevKMAzmHWPxhaWk+1NlFinOt89bVEoFJDAABhCj/LF24M9dxee4d2MN+WvIY0uN7mieO1kwOxwLFelhjZDvX0OT1FRiCPG9lrjKqLAh8FUybt7YamGJtB5omzYu0RGvdnaZiPypux5blBqU2AHMv5QPZkfQUivt7cvQElRcbUA2oC9eVqalnh+n3h2gJiJ/TjOP82sfIbyQcp0J1rouUOffmvFI3+TK3dmXzeDovZR2cPp/tCyamd9mpcGO17OiD04GMvPCop3CTJBg8D/m5ShPXRbXctKaZj9iYHfHVDQiFJijHIdTwxL0h2RBVkcx3RH5L0TjOx1"
 }

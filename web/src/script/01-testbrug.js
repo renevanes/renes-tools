@@ -277,8 +277,8 @@ if (!window.Android) window.Android = (function(){
     outputSwitcher(){ this._switcher = (this._switcher || 0) + 1; return ''; },
     /* Spotify-backup (nagebootst) */
     _sp: { linked: false, clientId: '', user: '', auto: 'day', lastAt: 0, versions: [], log: '' },
-    spotifyState(){ const s = this._sp; const own = (this._spNow || []).filter(p => p.own); return JSON.stringify({ linked: s.linked, clientId: s.clientId, user: s.user, auto: s.auto, busy: !!s.busy, progress: s.busy ? 'Playlist 1 van 3: Roadtrip' : '',
-      lastAt: s.lastAt, lastFailAt: 0, lastMsg: '', own: own.length, followed: (this._spNow || []).length - own.length, tracks: own.reduce((a, p) => a + p.n, 0), versions: s.versions.length, hasBackup: !!this._spNow, folder: true }); },
+    spotifyState(){ const s = this._sp; const own = (this._spNow || []).filter(p => p.own); return JSON.stringify({ libRelink: !!this._spRelink, linked: s.linked, clientId: s.clientId, user: s.user, auto: s.auto, busy: !!s.busy, progress: s.busy ? 'Playlist 1 van 3: Roadtrip' : '',
+      lastAt: s.lastAt, lastFailAt: s.lastFailAt || 0, lastMsg: s.lastMsg || '', own: own.length, followed: (this._spNow || []).length - own.length, tracks: own.reduce((a, p) => a + p.n, 0), versions: s.versions.length, hasBackup: !!this._spNow, folder: true }); },
     spotifyLink(id){ this._sp.clientId = id; setTimeout(() => { this._sp.linked = true; this._sp.user = 'Rene'; onSpotifyLinked({ name: 'Rene' }); }, 200); return ''; },
     spotifyUnlink(){ this._sp.linked = false; }, spotifyAuto(m){ this._sp.auto = m; },
     spotifyBackup(plain){ this._spPlain = plain; this._sp.busy = true; setTimeout(() => { this._sp.busy = false; const first = !this._spNow;
@@ -341,6 +341,12 @@ if (!window.Android) window.Android = (function(){
     vpnPickFile(){ setTimeout(() => onVpnImported({ name: 'mullvad-nl', text: '[Interface]\nPrivateKey = cHJpdi1rZXktbW9jay1hYWFhYWFhYWFhYWFhYWFhYWE=\nAddress = 10.64.1.2/32\nDNS = 10.64.0.1\n\n[Peer]\nPublicKey = c2VydmVyLWtleS1tb2NrLWFhYWFhYWFhYWFhYWFhYWE=\nAllowedIPs = 0.0.0.0/0, ::/0\nEndpoint = nl-ams-wg-001.relays.mullvad.net:51820\n' }), 50); },
     vpnPickImage(){ setTimeout(() => onVpnImage({ error: 'Afbeelding niet te lezen' }), 50); },
     vpnCamera(){ setTimeout(() => onVpnCamera(false), 50); }, vpnCameraDone(){}, vpnCopy(t){ this._copied = t; },
+    spotifyLib(){ if (!this._spNow) return JSON.stringify({ kinds: [], relink: !!this._spRelink });
+      return JSON.stringify({ relink: !!this._spRelink, kinds: [{ kind: 'tracks', name: 'Nummers die je leuk vindt', n: 812, gone: 2, restore: true }, { kind: 'artists', name: 'Artiesten die je volgt', n: 64, gone: 0, restore: true },
+        { kind: 'albums', name: 'Bewaarde albums', n: 31, gone: 0, restore: true }, { kind: 'shows', name: 'Podcasts die je volgt', n: 9, gone: 0, restore: true }, { kind: 'episodes', name: 'Bewaarde afleveringen', n: 0, gone: 0, restore: true },
+        { kind: 'audiobooks', name: 'Luisterboeken', n: -1, gone: 0, restore: true }, { kind: 'top-artists-short', name: 'Top-artiesten (4 weken)', n: 50, gone: 0, restore: false }, { kind: 'recent', name: 'Laatst geluisterd', n: 150, gone: 0, restore: false }] }); },
+    spotifyLibList(kind, gone){ return JSON.stringify(gone ? { total: 2, items: [{ u: 'spotify:track:x1', n: 'Radar Love', a: 'Golden Earring' }, { u: 'spotify:track:x2', n: 'Ik wil je', a: 'De Kast' }] } : { total: 2, items: [{ u: 'spotify:track:y', n: 'Zoutelande', a: 'BLØF', p: '2026-10-13T08:00:00Z' }, { u: 'spotify:artist:z', n: 'Racoon', a: '' }] }); },
+    spotifyLibRestore(kind, mode){ this._spLibRestored = [kind, mode]; setTimeout(() => onSpotifyLibRestored({ kind, name: 'Nummers die je leuk vindt', done: mode === 'gone' ? 2 : 812, skipped: 0 }), 100); },
     spotifyLog(){ return this._sp.log; }, spotifyImport(){ setTimeout(() => onSpotifyImported({ count: 3 }), 100); }, spotifyCopyRedirect(){ this._spCopied = true; },
     radioShiftTo(b){ const st = this._rd.st; if (st.shift) st.shift.behind = Math.max(6, b); this._shiftTo = b; },
     _mu:{token:'',st:{state:'idle'},hist:[],used:0,mic:false},

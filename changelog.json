@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.70",
+    "date": "2026-10-13",
+    "changes": [
+      "Spotify-backup: fout bij grote playlists opgelost",
+      "Spotify-backup: nu ook je bibliotheek — nummers die je leuk vindt, albums, artiesten die je volgt, podcasts, afleveringen, luisterboeken, je top en wat je laatst luisterde",
+      "Spotify: verdwenen items uit je bibliotheek terugzetten",
+      "Hoezen van radio en podcasts: grote afbeeldingen werden afgekapt"
+    ]
+  },
+  {
     "version": "1.69",
     "date": "2026-10-12",
     "changes": [

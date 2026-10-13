@@ -12,7 +12,7 @@ public class SpotifyBridge extends PlayerBridge {
 
     SpotifyBridge(MainActivity act) { super(act); }
 
-    private static String msg(Exception e, String fb) {
+    private static String msg(Throwable e, String fb) {
         return e instanceof java.net.UnknownHostException || e instanceof java.net.SocketTimeoutException ? "Geen internetverbinding"
                 : e.getMessage() == null ? fb : e.getMessage();
     }
@@ -26,7 +26,7 @@ public class SpotifyBridge extends PlayerBridge {
                     .put("lastAt", p.getLong("lastAt", 0)).put("lastFailAt", p.getLong("lastFailAt", 0)).put("lastMsg", p.getString("lastMsg", ""))
                     .put("own", p.getInt("lastOwn", 0)).put("followed", p.getInt("lastFollowed", 0)).put("tracks", p.getInt("lastTracks", 0))
                     .put("versions", p.getInt("versions", 0)).put("hasBackup", has).put("encrypted", Secure.on(ctx))
-                    .put("folder", WaBackup.destUri(ctx) != null).toString();
+                    .put("folder", WaBackup.destUri(ctx) != null).put("libRelink", !Spotify.hasLibScopes(ctx) || Spotify.prefs(ctx).getBoolean("libRelink", false)).toString();
         } catch (Exception e) { return "{}"; }
     }
 
@@ -57,7 +57,7 @@ public class SpotifyBridge extends PlayerBridge {
     @JavascriptInterface public void spotifyBackup(boolean plainOk) {
         new Thread(() -> {
             JSONObject r;
-            try { r = Spotify.backup(ctx, plainOk); } catch (Exception e) { r = new JSONObject(); try { r.put("error", msg(e, "Backup mislukt")); } catch (Exception ignored) { } }
+            try { r = Spotify.backup(ctx, plainOk); } catch (Throwable e) { r = new JSONObject(); try { r.put("error", msg(e, "Backup mislukt")); } catch (Exception ignored) { } }
             a.js("onSpotifyDone", r.toString());
         }, "spotify-backup").start();
     }
@@ -126,9 +126,27 @@ public class SpotifyBridge extends PlayerBridge {
         new Thread(() -> {
             JSONObject r;
             try { r = Spotify.restore(ctx, id, snap, "replace".equals(mode) ? "replace" : "new"); }
-            catch (Exception e) { r = new JSONObject(); try { r.put("error", msg(e, "Terugzetten lukt niet")); } catch (Exception ignored) { } }
+            catch (Throwable e) { r = new JSONObject(); try { r.put("error", msg(e, "Terugzetten lukt niet")); } catch (Exception ignored) { } }
             a.js("onSpotifyRestored", r.toString());
         }, "spotify-restore").start();
+    }
+
+    /** Bibliotheek: per soort het aantal en hoeveel er uit Spotify verdween. */
+    @JavascriptInterface public String spotifyLib() { return SpotifyLib.summary(ctx).toString(); }
+
+    /** Items van één soort (gone: de weggehaalde). */
+    @JavascriptInterface public String spotifyLibList(String kind, boolean gone) {
+        try { return SpotifyLib.list(ctx, kind == null ? "" : kind.replaceAll("[^a-z-]", ""), gone).toString(); } catch (Exception e) { return "{\"total\":0,\"items\":[]}"; }
+    }
+
+    /** Terug naar je Spotify-bibliotheek; mode "gone" of "all". Antwoord via onSpotifyLibRestored. */
+    @JavascriptInterface public void spotifyLibRestore(String kind, String mode) {
+        new Thread(() -> {
+            JSONObject r;
+            try { r = SpotifyLib.restore(ctx, kind, "all".equals(mode) ? "all" : "gone"); }
+            catch (Throwable e) { r = new JSONObject(); try { r.put("error", msg(e, "Terugzetten lukt niet")); } catch (Exception ignored) { } }
+            a.js("onSpotifyLibRestored", r.toString());
+        }, "spotify-lib-restore").start();
     }
 
     /** Het logboek van wijzigingen (nieuwste boven). */
