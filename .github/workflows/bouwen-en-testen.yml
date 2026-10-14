@@ -5,6 +5,7 @@ name: Bouwen en testen
 
 on:
   push:
+    branches-ignore: [publiceren-slot, publiceren-bezig]  # publicatieslot van ./publish.sh: geen code
   pull_request:
   workflow_dispatch:
 
@@ -16,6 +17,15 @@ jobs:
       TOOLS: ${{ github.workspace }}/../toolchain
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pull request mag geen versie of update/ bevatten (dat doet alleen ./publish.sh)
+        if: github.event_name == 'pull_request'
+        run: |
+          bad=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -E '^(VERSION|changelog\.json|update/)' || true)
+          if [ -n "$bad" ]; then echo "Deze bestanden maakt alleen ./publish.sh:"; echo "$bad"; exit 1; fi
+          if cat wijzigingen/*.txt 2>/dev/null | grep -qiE '(^|[^[:alpha:]])n[e]p'; then echo 'Het woord n-e-p (fake) mag niet in wijzigingen/'; exit 1; fi
 
       - uses: actions/setup-java@v4
         with:

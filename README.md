@@ -4,6 +4,8 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 
 **Downloaden:** [update/Renes-Tools.apk](https://github.com/renevanes/renes-tools/raw/main/update/Renes-Tools.apk). Werkt op Android 7 en nieuwer.
 
+**Meewerken (ook voor AI-agents zoals Claude en Codex):** zie [AGENTS.md](AGENTS.md): bouwen, testen, en hoe meerdere agents tegelijk wijzigingen maken en publiceren.
+
 ## Auto redial
 - Typ een nummer of kies een contact. Je laatste 5 nummers worden onthouden.
 - Kies het aantal pogingen (5, 10, 25, 50 of onbeperkt) en de wachttijd ertussen (5 seconden tot 1 minuut).
