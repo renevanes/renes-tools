@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.73",
+    "date": "2026-10-14",
+    "changes": [
+      "Oproepen: begin- en eindtijd op de seconde nauwkeurig, ook in de export"
+    ]
+  },
+  {
     "version": "1.72",
     "date": "2026-10-14",
     "changes": [

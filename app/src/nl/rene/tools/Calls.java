@@ -293,9 +293,9 @@ final class Calls {
         SimpleDateFormat rd = new SimpleDateFormat("d MMM yyyy HH:mm:ss", Locale.US);
         SimpleDateFormat stamp = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
         SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
-        SimpleDateFormat full = new SimpleDateFormat("EEE d MMM yyyy HH:mm", new Locale("nl", "NL"));
-        SimpleDateFormat hm = new SimpleDateFormat("HH:mm", Locale.US);
-        SimpleDateFormat dayHm = new SimpleDateFormat("EEE d MMM HH:mm", new Locale("nl", "NL"));
+        SimpleDateFormat full = new SimpleDateFormat("EEE d MMM yyyy HH:mm:ss", new Locale("nl", "NL"));
+        SimpleDateFormat hm = new SimpleDateFormat("HH:mm:ss", Locale.US);
+        SimpleDateFormat dayHm = new SimpleDateFormat("EEE d MMM HH:mm:ss", new Locale("nl", "NL"));
         String day = stamp.format(new Date());
         // Een selectie krijgt eigen bestandsnamen, zodat de volledige backup niet overschreven wordt.
         String sel = flt.active ? "-selectie-" + new SimpleDateFormat("HHmmss", Locale.US).format(new Date()) : "";

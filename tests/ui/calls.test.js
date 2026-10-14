@@ -21,7 +21,7 @@ const { chromium } = require('playwright');
   // eindtijd = begin + duur (ook over middernacht)
   const span = await pg.evaluate(() => [fmtCallSpan({ date: new Date(2026, 9, 12, 20, 14).getTime(), duration: 17 * 60 + 2 }), fmtCallSpan({ date: new Date(2026, 9, 12, 23, 50).getTime(), duration: 1500 }), fmtCallSpan({ date: new Date(2026, 9, 12, 9, 0).getTime(), duration: 0 })]);
   console.log('span', JSON.stringify(span));
-  if (!span[0].endsWith('20:14–20:31') || !/–di 00:15$/.test(span[1]) || span[2].includes('–')) errs.push('eindtijd fout: ' + span);
+  if (!span[0].endsWith('20:14:00–20:31:02') || !/–di 00:15:00$/.test(span[1]) || span[2].includes('–')) errs.push('eindtijd fout: ' + span);
   const withDur = await pg.$$eval('#calls-list button time', x => x.map(e => e.textContent));
   console.log('rij', withDur[0]);
   if (!withDur.some(t => t.includes('–'))) errs.push('geen eindtijd in de lijst');
@@ -29,7 +29,7 @@ const { chromium } = require('playwright');
   await pg.click('#calls-list button >> nth=' + idx); await pg.waitForTimeout(200);
   const sub = await pg.evaluate(() => document.querySelector('#sheet-sub, #sheet .sub, #sheet small') ? document.querySelector('#sheet-sub, #sheet .sub, #sheet small').textContent : document.querySelector('#sheet').textContent);
   console.log('sheet', sub);
-  if (!/ tot \d\d:\d\d/.test(sub)) errs.push('geen eindtijd in het menu');
+  if (!/\d\d:\d\d:\d\d tot \d\d:\d\d:\d\d/.test(sub)) errs.push('geen eindtijd in het menu');
   await pg.screenshot({ path: __dirname + '/shots/calls-end.png' });
   await pg.keyboard.press('Escape'); await pg.evaluate(() => { if (typeof closeSheet === 'function') closeSheet(); }); await pg.waitForTimeout(200);
   await pg.click('#calls-list button >> nth=0'); await pg.waitForTimeout(300);

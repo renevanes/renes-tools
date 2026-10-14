@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.72",
-  "versionCode": 73,
-  "nativeLevel": 67,
+  "versionName": "1.73",
+  "versionCode": 74,
+  "nativeLevel": 68,
   "web": "index.html",
-  "webSha256": "2cbcdb5a8d5c08e8f4ce220e3eda62738371fa93fa29fa8fdf739ebce687dc15",
+  "webSha256": "072233a8cab9aa239441460d5eb4dea535315b11ad26fe1384d09428ef4a6230",
   "start": "start.html",
   "startSha256": "5e128acb738bd04666077055a4ca3b8acb635c020118f718e3dcd047552082c3",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a5bb5600815ed02a9ab3c972b895aa55b6c8b130d95396a6905a5733c268ad1d",
+  "apkSha256": "6e4ad29ca7d3c0fc1036b9aced62f1059dcffefa674c1facd3e8193590902298",
   "changelog": [
+    {
+      "version": "1.73",
+      "date": "2026-10-14",
+      "changes": [
+        "Oproepen: begin- en eindtijd op de seconde nauwkeurig, ook in de export"
+      ]
+    },
     {
       "version": "1.72",
       "date": "2026-10-14",
@@ -658,5 +665,5 @@
       ]
     }
   ],
-  "webSig2": "SbDF49mB9erE6Ror4ayWiSlNxSyevB9sAqINawn+7yHYoezX0B/TFmjL2oqD4pjT6LA6aS8ozA0P28JH/Rsfh2ltgvrsAMc++vVkiZifJs9H5+LsyUJA90c/s8ej5xeHqW63GMJQan2JLi17HqOFdmiFRbKSdnUbWzgOQLsKn8gdG/mweE2MF5LcjGiq7NINR7GqIsuNfqtp+gi9ALT/52TvOOlWjnFqYfspAiJV2YPVKjCbI6W3l9xBBpTMgLQ3i6ktS6SDhMJizyIMRgjFUnQKXdZ1nfil3W6BVdLt0O77XqfUjmSL//MIvdlxa55DmcaETCK2UhIpOLAyIzvy+mlS2gIP/cKICUAI1AoKE8KgpSWE5Oq/5RUvSRObKRWTWL0mPw+jRWQ/G6INouo0m+TlAx78tC7KVOncwdIKnEDEElEayBvonXfcEo984wUH88W7xfiOd4ReyD4KvsbJ9UAP+25Wssco2+xAJKUaOtAcau0eL+6Vxvq9IixTF2Ol"
+  "webSig2": "owf7GN3vmF2h836iz067Kd80EsCqaVZoxK8QEtWv5n5eVnX67p1n+P4WKDvv6iUTBFmh3UFLZ9tnF/jxez6d4wX6ZpZ95uVl//CXNfc/ItP8U7/JjtbOU49q04+HSL79ZQ91nsxjqZTyJoM161cIZ93hsKx68sPzgy/fwtsrKiu8sXIkGY7zFBPsms0CeLlbxsbfK0h1+MYIAEstOhRWrnkjQGyPD2/1XiBmUZmwsG4NXsuNHty+ZFP9HocH05E80Guces8e8KYhNeWVcfMfFXihFf2Hl9sQEct9dr+352RyeSc42Stya2wSFZm7kKQWpFWUuijuYz7JjLszXrGf5D1cFuw75Bc8FlJaaQR464pnBS2L0TZMWwPlfv3yP+dQBhwin2QfeUsLy4gm6wrBgi8Mtq+Qu7yqsWWHkd1xFjZqvpAN8yhTnl8m01o91OKJhwuzZNgnkrLXnBkasihnJ+6Z2miYXY9XXV94hruRu9p8sHBt3/LdK7e2XmJI0c9R"
 }
