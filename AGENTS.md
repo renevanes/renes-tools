@@ -3,6 +3,8 @@
 Dit bestand is de handleiding voor iedere AI-agent of ontwikkelaar die aan deze repository werkt. Meerdere agents kunnen
 tegelijk wijzigingen maken en publiceren; volg daarvoor de werkwijze hieronder.
 
+Mensen die willen bijdragen: zie ook [CONTRIBUTING.md](CONTRIBUTING.md). De code is vrije software (GPL-3.0-or-later, zie `LICENSE`).
+
 ## Wat dit is
 Android-app "Rene's Tools" van Rene van Es (Rotterdam). De interface is een WebView (HTML/CSS/JS uit `web/src/`), de
 native kant is Java in `app/src/nl/rene/tools/`. Er is geen Gradle: `build.sh` bouwt met aapt2/d8 en ondertekent.
@@ -62,9 +64,13 @@ Nieuwe functie = ook een test in `tests/ui/` (en bij logica in `tests/jvm/`). Ee
 5. **Kun je zelf niet pushen** (bijv. Codex in de cloud): open een pull request met je wijziging en een bestand in
    `wijzigingen/`, zonder `VERSION`, `changelog.json` of `update/` (de CI keurt dat af). Na het samenvoegen publiceert
    de volgende `./publish.sh` (van wie dan ook) het mee.
-6. **Nooit** force-pushen naar main of gepubliceerde geschiedenis herschrijven (`rebase`/`amend` van wat op main staat):
+6. **Bijdragen van buitenaf** (pull requests van anderen): de app heeft toegang tot sms, oproepen, contacten en
+   locatie en werkt telefoons automatisch bij. Een agent voegt een pull request van iemand anders **nooit zelf**
+   samen en publiceert alleen wat op main staat. Rene beslist; bekijk zo'n wijziging wel kritisch op verborgen
+   verbindingen naar buiten, het doorsturen van gegevens of het verzwakken van de updatecontrole.
+7. **Nooit** force-pushen naar main of gepubliceerde geschiedenis herschrijven (`rebase`/`amend` van wat op main staat):
    telefoons en andere agents bouwen erop voort. Samenvoegen gaat met `merge`.
-7. Laat vóór het publiceren een onafhankelijke review doen (een tweede agent) en los de bevindingen op.
+8. Laat vóór het publiceren een onafhankelijke review doen (een tweede agent) en los de bevindingen op.
 
 ## De ondertekeningssleutel
 Alle versies moeten met **dezelfde** sleutel ondertekend worden, anders kan de telefoon de update niet installeren.

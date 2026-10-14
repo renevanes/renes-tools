@@ -32,6 +32,13 @@ cp web/vendor/leaflet.js web/vendor/leaflet.css web/vendor/jsQR.js $B/assets/ven
 cp web/ontsleutelen.html $B/assets/
 cp web/start.html $B/assets/
 cp web/neutraal.html $B/assets/
+# Licenties: van de app zelf (GPL-3.0) en van de meegeleverde onderdelen van anderen
+mkdir -p $B/assets/licenties
+cp LICENSE $B/assets/licenties/GPL-3.0.txt
+cp web/vendor/LEAFLET-LICENSE $B/assets/licenties/leaflet.txt
+cp web/vendor/JSQR-LICENSE $B/assets/licenties/jsqr.txt
+cp app/lib/arm64-v8a/LICENSE-whisper.cpp.txt $B/assets/licenties/whisper.cpp.txt
+cp app/lib/arm64-v8a/LICENSE-musl.txt $B/assets/licenties/musl.txt
 
 # 2. Versie-informatie voor de Java-code
 cat > $B/gen/Version.java <<JAVA

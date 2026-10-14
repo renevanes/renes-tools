@@ -54,7 +54,7 @@ public class LogicTest {
         // vCard: eigen export terug inlezen
         ContactsDiff.Rec r = rec("k", "Jan; de, Vries", "Telefoon", "06 12345678 (mobiel)", "Telefoon", "010 1234567 (werk)", "E-mail", "a,b@x.nl");
         r.put("Notitie", "Regel1\nRegel2 " + new String(new char[90]).replace('\0', 'x'));
-        r.put("Bedrijf", "ESAPE");
+        r.put("Bedrijf", "Voorbeeld BV");
         r.add("Adres", "Coolsingel 1, Rotterdam");
         StringWriter w = new StringWriter();
         Contacts.writeVcf(w, Arrays.asList(r));

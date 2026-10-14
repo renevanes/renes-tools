@@ -41,7 +41,7 @@ if ! git diff --quiet HEAD -- VERSION changelog.json; then
   echo "en schrijf je wijzigingsregels in wijzigingen/<onderwerp>.txt."; exit 1
 fi
 # Alleen bekende plekken; onbekende nieuwe bestanden eerst zelf bekijken
-UNKNOWN=$(git status --porcelain --untracked-files=all | sed -n 's/^?? //p' | grep -vE '^(app/|web/|tests/|tools/|\.github/|wijzigingen/|README\.md$|AGENTS\.md$|CLAUDE\.md$|[a-z-]+\.sh$|keys/unlock\.sh$)' || true)
+UNKNOWN=$(git status --porcelain --untracked-files=all | sed -n 's/^?? //p' | grep -vE '^(app/|web/|tests/|tools/|\.github/|wijzigingen/|README\.md$|AGENTS\.md$|CLAUDE\.md$|CONTRIBUTING\.md$|SECURITY\.md$|LICENSE$|[a-z-]+\.sh$|keys/unlock\.sh$)' || true)
 [ -z "$UNKNOWN" ] || { echo "Onbekende nieuwe bestanden (niet gepubliceerd):"; echo "$UNKNOWN"; exit 1; }
 
 # Regels uit de argumenten

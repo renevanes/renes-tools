@@ -4,7 +4,9 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 
 **Downloaden:** [update/Renes-Tools.apk](https://github.com/renevanes/renes-tools/raw/main/update/Renes-Tools.apk). Werkt op Android 7 en nieuwer.
 
-**Meewerken (ook voor AI-agents zoals Claude en Codex):** zie [AGENTS.md](AGENTS.md): bouwen, testen, en hoe meerdere agents tegelijk wijzigingen maken en publiceren.
+**Meedoen:** iedereen kan bijdragen, zie [CONTRIBUTING.md](CONTRIBUTING.md). Voor AI-agents (Claude, Codex …) en de technische details: [AGENTS.md](AGENTS.md). Beveiligingsproblemen: [SECURITY.md](SECURITY.md).
+
+**Licentie:** vrije software onder de [GNU General Public License versie 3 of later](LICENSE) (GPL-3.0-or-later). Copyright © 2026 Rene van Es en bijdragers. Gebruikte onderdelen van anderen: Leaflet (BSD-2), jsQR (Apache-2.0) en whisper.cpp (MIT); hun licenties staan bij de bestanden in `web/vendor/` en `app/lib/`.
 
 ## Auto redial
 - Typ een nummer of kies een contact. Je laatste 5 nummers worden onthouden.

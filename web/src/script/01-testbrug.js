@@ -48,7 +48,7 @@ if (!window.Android) window.Android = (function(){
     waCancel(){ const w=this._wa; clearInterval(w.t); w.st={running:false,phase:'done',mode:w.st.mode,result:'cancelled',message:'Gestopt',finishedAt:Date.now()}; },
     waStatus(){ return JSON.stringify(this._wa.st); },
     _rd:{hasKey:false,auto:true,contacts:false,chats:[],msgs:{}},
-    _mkDemo(){ const r=this._rd; const names=['Huisarts','Familie Van Es','Jos','Pietje Puk','Sportclub']; r.chats=[]; r.msgs={};
+    _mkDemo(){ const r=this._rd; const names=['Huisarts','Familie De Boer','Jos','Pietje Puk','Sportclub']; r.chats=[]; r.msgs={};
       for(let i=0;i<5;i++){ const id=i+1,n=40+i*20,grp=i===1||i===4; const ms=[]; let t=Date.now()-n*36e5;
         for(let k=0;k<n;k++){ const me=k%2===0; t+=Math.random()*72e5;
           let o={id:k+1,me,t:Math.round(t),type:0,text:'Voorbeeldbericht '+(k+1)+' in '+names[i],label:'',sender:me?'Ik':(grp?['Jos','Anne','Kees'][k%3]:names[i]),media:'',mime:'',fileName:''};
@@ -120,7 +120,7 @@ if (!window.Android) window.Android = (function(){
     _notes:'[{"id":"a1","title":"Boodschappen","text":"","updated":1759480000000,"items":[{"id":"i1","text":"Melk","done":false},{"id":"i2","text":"Brood","done":true},{"id":"i3","text":"Kaas","done":false}]}]',
     _ct:{perm:false,write:false,v:0,list:[
       {k:'k1',n:'Moeder',id:1,u:Date.now()-864e5,f:{Naam:'Moeder',Telefoon:'06 11122233 (mobiel)',Favoriet:'ja'}},
-      {k:'k2',n:'Jos de Vries',id:2,u:Date.now()-5*864e5,f:{Naam:'Jos de Vries',Telefoon:'010 999 8888 (werk)','E-mail':'jos@esape.nl',Bedrijf:'ESAPE',Functie:'Ontwikkelaar'}},
+      {k:'k2',n:'Jos de Vries',id:2,u:Date.now()-5*864e5,f:{Naam:'Jos de Vries',Telefoon:'010 999 8888 (werk)','E-mail':'jos@example.nl',Bedrijf:'Voorbeeld BV',Functie:'Ontwikkelaar'}},
       {k:'k3',n:'Huisarts',id:3,u:Date.now()-40*864e5,f:{Naam:'Huisarts',Telefoon:'010 123 4567',Adres:'Coolsingel 1, Rotterdam'}}],
       versions:[{v:2,t:Date.now()-864e5,count:3,added:0,removed:1,changed:1,first:false,full:true,changes:[
         {kind:'~',k:'k1',n:'Moeder',d:[['Telefoon','06 11122200 (mobiel)','06 11122233 (mobiel)']]},
