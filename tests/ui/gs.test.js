@@ -7,10 +7,13 @@ const { chromium } = require('playwright');
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(400);
     // een notitie om te vinden
     await pg.evaluate(() => { const n = notesGet(); n.push({ id: 'n1', title: 'Boodschappen', text: '', items: [{ id: 'i1', text: 'Taart voor Piet', done: false }], updated: Date.now() }); });
+    // zoeken via de knop bovenaan het startscherm
+    await pg.click('#s-home .hsearch'); await pg.waitForTimeout(150);
+    console.log('search tab', await pg.evaluate(() => current), 'focus', await pg.evaluate(() => document.activeElement.id));
     await pg.fill('#gs-q', 'p'); await pg.waitForTimeout(100);
-    console.log('1 char: results hidden', !(await pg.isVisible('#gs-res')), 'tiles visible', await pg.isVisible('#home-groups'));
+    console.log('1 char: results hidden', !(await pg.isVisible('#gs-res')), 'hint visible', await pg.isVisible('#gs-hint'));
     await pg.fill('#gs-q', 'piet'); await pg.waitForTimeout(80);
-    console.log('immediate', await pg.$$eval('#gs-res h3', x => x.map(e => e.innerText.replace(/\n/g, ' '))), 'tiles hidden', !(await pg.isVisible('#home-groups')), 'dash hidden', !(await pg.isVisible('#home-dash')));
+    console.log('immediate', await pg.$$eval('#gs-res h3', x => x.map(e => e.innerText.replace(/\n/g, ' '))), 'hint hidden', !(await pg.isVisible('#gs-hint')));
     await pg.waitForTimeout(700);
     console.log('groups', await pg.$$eval('#gs-res h3', x => x.map(e => e.innerText.replace(/\n/g, ' '))));
     console.log('marks', await pg.$$eval('#gs-res mark', x => x.length));
@@ -39,12 +42,12 @@ const { chromium } = require('playwright');
     await pg.fill('#gs-q', 'ölkjh'); await pg.evaluate(() => Android.searchAll = function(q){ setTimeout(() => onSearchAll({ id: 99, q, done: true }), 50); return 99; }); await pg.fill('#gs-q', 'qwqw'); await pg.waitForTimeout(600);
     console.log('nothing', await pg.textContent('#gs-res'));
     await pg.fill('#gs-q', ''); await pg.waitForTimeout(100);
-    console.log('cleared: tiles back', await pg.isVisible('#home-groups'), 'results hidden', !(await pg.isVisible('#gs-res')));
-    await pg.evaluate(() => show('calls')); await pg.waitForTimeout(150);
+    console.log('cleared: hint back', await pg.isVisible('#gs-hint'), 'results hidden', !(await pg.isVisible('#gs-res')));
+    await pg.evaluate(() => show('home')); await pg.evaluate(() => show('calls')); await pg.waitForTimeout(150);
     console.log('tile open resets tool search', JSON.stringify(await pg.inputValue('#calls-search')));
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);
-    await pg.fill('#gs-q', 'piet'); await pg.waitForTimeout(100);
-    console.log('back on home clears search', await pg.evaluate(() => goBack()), JSON.stringify(await pg.inputValue('#gs-q')), await pg.isVisible('#home-groups'));
+    await pg.click('#tabs button[data-t=search]'); await pg.fill('#gs-q', 'piet'); await pg.waitForTimeout(100);
+    console.log('back from search goes home', await pg.evaluate(() => goBack()), await pg.evaluate(() => current), 'tabs', await pg.isVisible('#tabs'));
     console.log('errors', errs);
   }
   await b.close();

@@ -173,7 +173,7 @@ const assert = require('node:assert');
 
     // zoeken vindt het
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
-    await pg.fill('#gs-q', 'pdf splitsen'); await pg.waitForTimeout(600);
+    await pg.evaluate(() => show('search')); await pg.fill('#gs-q', 'pdf splitsen'); await pg.waitForTimeout(600);
     assert.ok((await pg.$$eval('#gs-res .gi', x => x.map(e => e.innerText))).some(t => /PDF/.test(t)), 'zoeken vindt PDF');
 
     assert.deepStrictEqual(errs, []);

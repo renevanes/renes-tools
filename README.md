@@ -102,6 +102,11 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Pauze houdt je plek vast (de stream loopt door, max. 1 uur); verder gaat precies waar je was. Ook na een telefoongesprek ga je verder waar je was. Knoppen −30 s / +30 s / Live in de app, −30 s in de melding, en terug/vooruit via de mediaknoppen en Android Auto.
 - Uit te zetten in het radioscherm ("Pauzeren en terugspoelen").
 
+## Uiterlijk
+- **Android 16-stijl (Material 3)**: grote titel die bij scrollen omhoog schuift (de bovenste rij met terug en knoppen blijft staan), zachte vlakken, ronde knoppen, schakelaars en chips zoals in Android zelf; licht en donker volgen de telefoon.
+- **Kleuren uit je achtergrond** (Instellingen → Weergave, vanaf Android 12): de app neemt de Material You-kleuren van Android over (`system_accent*`/`system_neutral*`); uit = vaste blauwe kleuren.
+- **Tabbalk onderin**: Start · Zoeken · Backup · Instellingen. Zoeken is een eigen scherm (overal zoeken in notities, contacten, berichten, oproepen, meldingen en de instellingen); op het startscherm staat bovenaan een zoekbalk die daarheen gaat.
+
 ## Toegankelijkheid
 - **Tekstgrootte** (Instellingen → Weergave): volgt standaard de lettergrootte van de telefoon, of kies kleiner tot maximaal (175%). Via `WebSettings.setTextZoom`; de indeling loopt mee zonder horizontaal scrollen.
 - **TalkBack**: alle knoppen en velden hebben een naam; schakelaars zijn `role=switch` met aan/uit, keuzeknoppen melden of ze gekozen zijn; meldingen (`role=status`), dialogen (`role=dialog`) en bij elk scherm springt de focus naar de titel.

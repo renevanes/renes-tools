@@ -137,14 +137,14 @@ public class MainActivity extends Activity {
         android.widget.FrameLayout holder = new android.widget.FrameLayout(this);
         holder.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
         cover = new View(this);
-        cover.setBackgroundColor(HomeActivity.night(this) ? 0xFF0F172A : 0xFFF3F5F9);
+        cover.setBackgroundColor(HomeActivity.night(this) ? 0xFF0F1115 : 0xFFEEF0F7);
         cover.setClickable(true); // aanrakingen niet doorlaten naar de inhoud eronder
         cover.setVisibility(View.GONE);
         holder.addView(cover, new android.widget.FrameLayout.LayoutParams(-1, -1));
         root.addView(holder, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         root.addView(bottomBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
         setContentView(root);
-        setBars("#1E5AA8", "#F3F5F9", true);
+        setBars(HomeActivity.night(this) ? "#0F1115" : "#EEF0F7", HomeActivity.night(this) ? "#0F1115" : "#EEF0F7", !HomeActivity.night(this));
 
         if (Build.VERSION.SDK_INT >= 35) {
             // Android 15+: app tekent achter de systeembalken; wij houden ruimte vrij.
@@ -168,7 +168,7 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new MediaClient(this));
         web.setWebChromeClient(new Chrome(this));
         web.addJavascriptInterface(new Bridge(this), "Android");
-        web.setBackgroundColor(Color.parseColor("#F3F5F9"));
+        web.setBackgroundColor(Color.parseColor(HomeActivity.night(this) ? "#0F1115" : "#EEF0F7"));
 
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
@@ -718,6 +718,27 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void requestPermissions() { a.h.post(a::requestRedialPermissions); }
         @JavascriptInterface public void openAppSettings() { a.h.post(a::openAppSettings); }
         @JavascriptInterface public void pickContact() { a.h.post(a::pickContact); }
+
+        /** Material You: de kleuren die Android uit je achtergrond haalt (Android 12+), anders leeg. */
+        @JavascriptInterface public String themeColors() {
+            if (Build.VERSION.SDK_INT < 31) return "";
+            try {
+                org.json.JSONObject o = new org.json.JSONObject();
+                String[] pals = {"accent1", "accent2", "accent3", "neutral1", "neutral2"};
+                int[] tones = {0, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
+                android.content.res.Resources r = ctx.getResources();
+                for (String p : pals) {
+                    org.json.JSONObject t = new org.json.JSONObject();
+                    for (int tone : tones) {
+                        int id = r.getIdentifier("system_" + p + "_" + tone, "color", "android");
+                        if (id == 0) return "";
+                        t.put(String.valueOf(tone), String.format(java.util.Locale.US, "#%06X", 0xFFFFFF & ctx.getColor(id)));
+                    }
+                    o.put(p, t);
+                }
+                return o.toString();
+            } catch (Exception e) { return ""; }
+        }
 
         @JavascriptInterface public void setBars(String top, String bottom, boolean lightBottom) {
             a.h.post(() -> { try { a.setBars(top, bottom, lightBottom); } catch (Exception ignored) { } });

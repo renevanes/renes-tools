@@ -1,15 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.73",
-  "versionCode": 74,
-  "nativeLevel": 68,
+  "versionName": "1.74",
+  "versionCode": 75,
+  "nativeLevel": 69,
   "web": "index.html",
-  "webSha256": "072233a8cab9aa239441460d5eb4dea535315b11ad26fe1384d09428ef4a6230",
+  "webSha256": "32943179bdb1240020e9090b648b15a9407a3c9f0a4e97a4d125943740773526",
   "start": "start.html",
   "startSha256": "5e128acb738bd04666077055a4ca3b8acb635c020118f718e3dcd047552082c3",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "6e4ad29ca7d3c0fc1036b9aced62f1059dcffefa674c1facd3e8193590902298",
+  "apkSha256": "3c0ba9fcf264d598e41cfa7d6c2d236628292f61b85cf72824f1e15d73cb67a0",
   "changelog": [
+    {
+      "version": "1.74",
+      "date": "2026-10-14",
+      "changes": [
+        "Nieuw uiterlijk in Android 16-stijl: grote titels die meeschuiven, zachte vlakken, ronde knoppen, nieuwe schakelaars en menu's",
+        "Kleuren uit je achtergrond (Material You), aan of uit bij Instellingen → Weergave",
+        "Tabbalk onderin: Start, Zoeken, Backup en Instellingen; zoeken heeft een eigen scherm, met een zoekbalk bovenaan het startscherm"
+      ]
+    },
     {
       "version": "1.73",
       "date": "2026-10-14",
@@ -665,5 +674,5 @@
       ]
     }
   ],
-  "webSig2": "owf7GN3vmF2h836iz067Kd80EsCqaVZoxK8QEtWv5n5eVnX67p1n+P4WKDvv6iUTBFmh3UFLZ9tnF/jxez6d4wX6ZpZ95uVl//CXNfc/ItP8U7/JjtbOU49q04+HSL79ZQ91nsxjqZTyJoM161cIZ93hsKx68sPzgy/fwtsrKiu8sXIkGY7zFBPsms0CeLlbxsbfK0h1+MYIAEstOhRWrnkjQGyPD2/1XiBmUZmwsG4NXsuNHty+ZFP9HocH05E80Guces8e8KYhNeWVcfMfFXihFf2Hl9sQEct9dr+352RyeSc42Stya2wSFZm7kKQWpFWUuijuYz7JjLszXrGf5D1cFuw75Bc8FlJaaQR464pnBS2L0TZMWwPlfv3yP+dQBhwin2QfeUsLy4gm6wrBgi8Mtq+Qu7yqsWWHkd1xFjZqvpAN8yhTnl8m01o91OKJhwuzZNgnkrLXnBkasihnJ+6Z2miYXY9XXV94hruRu9p8sHBt3/LdK7e2XmJI0c9R"
+  "webSig2": "cvfC1A7w5dyUv21lK7rP6Mk0KhWwdyIj5cent8UWk2Fmr301Pzhfv5Vp3rZEQrQINt0eX2plCbpcFdfX9Ns0IZ4ar3kUT+1SH9lIVSLLhs11RXi7HziBXomXVrjmraYhiTTkMYi5xL+A0DpcVHUGZMhPYI5XlyEmIL0sPUU5ElUcoBSd15EOV4AmaAusBlAj6Obe9a4PoGRcc2rofaIFWKJBr9ESt30EcTQMR6fIwxwo/M9UrU/NUk9qJw7BAcWGgRzw+BgxF5TqJLg7JM6zFbJUvTiLb6tYhOi+7QSQRGG6ntldNh3zSR5dSrhMtXmnsvhs+RxWjhFYmAS08esVfX0fLBTNORl0uFpNGcB/dP+y4ep1y3plHrAXHLhsp9iorO5JqWC5UyRMxFvaNtbzExCrBc6ZmNrUvLGbcUpGU0FRSqh+ytYBtfuGEYrmH2UMUgCOLRUvlQ8OsVF9s46GxP678WYIrhg6gi0Beoxwx7i6iA/KtEshLERWkUkAaORq"
 }

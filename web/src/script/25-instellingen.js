@@ -23,6 +23,9 @@ function stNotifMute(on){
 function enterSettings(){
   stNotifRender();
   $('#st-zoom').value = String(Android.textZoomGet());
+  { const can = typeof Android.themeColors === 'function' && !!Android.themeColors(), on = can && store.get('dynColor', true);
+    $('#st-dyn').classList.toggle('on', on); $('#st-dyn').setAttribute('aria-checked', on ? 'true' : 'false'); $('#st-dyn').disabled = !can;
+    $('#st-dyn-sub').textContent = can ? 'Net als Android: de app neemt de kleuren van je achtergrond over' : 'Kan vanaf Android 12; nu vaste kleuren'; }
   stHomeRender();
   const i = stJson(Android.settingsInfo());
   const lk = i.lock || {};

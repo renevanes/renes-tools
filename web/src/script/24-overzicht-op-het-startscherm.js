@@ -4,18 +4,18 @@ function renderNotePins(){
   const wrap = $('#home-notes'); if (!wrap) return;
   let ids = []; try { ids = JSON.parse(Android.notePins('app')) || []; } catch(e){}
   const list = ids.map(id => noteById(id)).filter(Boolean);
-  wrap.style.display = list.length && !gsQ ? 'block' : 'none';
+  wrap.style.display = list.length ? 'block' : 'none';
   $('#home-notes-tiles').innerHTML = list.map(n => {
     const open = (n.items || []).filter(i => !i.done);
     const sub = (n.items || []).length ? (open.length ? open.length + ' open · ' + open.slice(0, 3).map(i => i.text).join(', ') : 'Alles afgestreept ✓') : (n.text || '').slice(0, 60);
-    return '<button class="tile" data-id="' + esc(n.id) + '" onclick="jumpTo(\'note\', () => openNote(this.dataset.id))"><span class="ic" style="background:#E67E22;font-size:24px">📝</span><b>' +
+    return '<button class="tile" data-id="' + esc(n.id) + '" onclick="jumpTo(\'note\', () => openNote(this.dataset.id))"><span class="ic" style="--c:#E67E22;font-size:24px">📝</span><b>' +
       esc(n.title || 'Notitie') + '</b><small>' + esc(sub) + '</small></button>';
   }).join('');
 }
 /* "Sinds gisteravond": wat er gebeurde terwijl je sliep (gemiste oproepen, backup, automatiseringen, batterij). */
 function renderNight(){
   const box = $('#home-night'); if (!box) return;
-  if (gsQ || typeof Android.overnight !== 'function') { box.style.display = 'none'; return; }
+  if (typeof Android.overnight !== 'function') { box.style.display = 'none'; return; }
   let o = {}; try { o = JSON.parse(Android.overnight()); } catch(e){}
   const rows = [];
   const hm = t => new Date(t).toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
@@ -33,7 +33,6 @@ function renderDash(){
   renderNotePins();
   renderNight();
   const box = $('#home-dash'); if (!box) return;
-  if (gsQ) { box.style.display = 'none'; return; }
   if (homeCfg().dash === false) { box.style.display = 'none'; return; }
   const rows = [];
   try { const t = $('#tile-skin-sub'); if (t) t.textContent = Android.homeIsDefault() ? 'Actief als startscherm' : 'Je telefoon in een nieuw jasje'; } catch(e){}

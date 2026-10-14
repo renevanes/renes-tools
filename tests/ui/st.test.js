@@ -11,7 +11,7 @@ const { chromium } = require('playwright');
     console.log('whatsnew', await pg.evaluate(() => document.querySelector('#modal').classList.contains('on')), await pg.textContent('#modal-title'), (await pg.textContent('#modal-text')).slice(0, 80));
     await pg.screenshot({ path: __dirname + '/shots/st-new-' + scheme + '.png' });
     await pg.click('#modal-ok');
-    await pg.click('.foot button:has-text("Instellingen")'); await pg.waitForTimeout(200);
+    await pg.click('#tabs button[data-t=settings]'); await pg.waitForTimeout(200);
     await pg.screenshot({ path: __dirname + '/shots/st-settings-' + scheme + '.png', fullPage: true });
     console.log('perms', await pg.$$eval('#st-perms .setrow', x => x.map(e => e.innerText.replace(/\n/g, ' '))));
     await pg.click('#st-perms button[data-p="mic"]'); await pg.waitForTimeout(250);

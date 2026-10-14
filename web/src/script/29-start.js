@@ -1,5 +1,5 @@
 /* ---------- start ---------- */
-$('#hver').textContent = 'v' + ver().webName;
+$('#hver').textContent = '(v' + ver().webName + ')';
 bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
 refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); refreshPodTile();
 const po = Android.pendingOpen(); if (po) openTool(po);

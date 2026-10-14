@@ -100,6 +100,7 @@ function plRender(){
   if (!m) { if (plIsOpen) plClose(); return; }
   const col = plColorFor(m);
   bar.style.setProperty('--pl', col); $('#player').style.setProperty('--pl', col);
+  if (plIsOpen) bars();
   // Mini-balk
   plSetArt($('#plbar-art'), m);
   plSetText($('#plbar-t'), m.title);
@@ -358,6 +359,7 @@ function plOpen(){
   $('#pl-scroll').scrollTop = 0;
   plRender();
   setTimeout(() => $('#pl-title').focus({ preventScroll: true }), 30);
+  bars();
 }
 function plClose(){
   if (!plIsOpen) return;
@@ -366,7 +368,7 @@ function plClose(){
   p.classList.remove('on'); p.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('pl-open');
   plInert(false);
-  plRender();
+  plRender(); bars();
   const b = $('#plbar-open'); if (b && $('#plbar').style.display !== 'none') b.focus({ preventScroll: true });
 }
 

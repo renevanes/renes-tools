@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
   await pg.click('#st-notif-mute'); await pg.waitForTimeout(150);
   console.log('unmuted', await pg.evaluate(() => Android._notifMuted), await pg.textContent('#st-notif-state'));
   await pg.evaluate(() => goBack());
-  await pg.fill('#gs-q', 'meldingen uit'); await pg.waitForTimeout(600);
+  await pg.evaluate(() => show('search')); await pg.fill('#gs-q', 'meldingen uit'); await pg.waitForTimeout(600);
   console.log('search', await pg.$$eval('#gs-res .gi[data-k="app"]', x => x.map(e => e.innerText.split('\n')[0])));
   console.log('errors', errs);
   await b.close();

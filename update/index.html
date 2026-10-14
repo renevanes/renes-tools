@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- RENES-TOOLS-UI versie 1.73 (74) -->
+<!-- RENES-TOOLS-UI versie 1.74 (75) -->
 <html lang="nl">
 <head>
 <meta charset="utf-8">
@@ -11,80 +11,101 @@
 <script src="vendor/leaflet.js"></script>
 <style>
 :root{
-  --brand:#1E5AA8; --brand-2:#2F74CF; --brand-ink:#fff;
-  --bg:#F3F5F9; --card:#FFFFFF; --ink:#16202E; --muted:#5C6B80; --line:#E1E6EE;
-  --ok:#1D8A4E; --warn:#B26A00; --bad:#C0392B; --chip:#EAF0F9; --chip-on:#1E5AA8;
-  --shadow:0 1px 2px rgba(16,32,64,.06),0 4px 14px rgba(16,32,64,.06);
+  /* Material 3-rollen; vaste kleuren (blauw). Met "Kleuren uit je achtergrond" overschrijft 43-uiterlijk.js ze. */
+  --bg:#EEF0F7; --card:#FCFCFF; --hi:#E4E7EF; --ink:#1A1C21; --muted:#44474F; --line:#DCDFE8; --outline:#74777F;
+  --primary:#2F5DA6; --on-primary:#FFFFFF; --tonal:#D8E2FF; --on-tonal:#001A41; --chip:#DCE2F9; --on-chip:#141B2C;
+  --inv:#2E3036; --inv-ink:#F0F0F7;
+  --ok:#1B7F45; --warn:#9A5B00; --bad:#BA1A1A; --on-bad:#FFFFFF;
+  --brand:var(--primary); --brand-2:var(--primary); --brand-ink:var(--on-primary); --chip-on:var(--primary); --acc:var(--primary);
+  --shadow:none; --r-card:24px; --r-ctl:16px;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --brand:#173F75; --brand-2:#3B82E0; --bg:#0F141B; --card:#18202B; --ink:#E7ECF3; --muted:#9AA8BA;
-    --line:#2A3544; --chip:#223044; --chip-on:#3B82E0; --shadow:none; --ok:#3DBF78; --warn:#E0A040; --bad:#EF6B5E;
+    --bg:#0F1115; --card:#1B1D22; --hi:#272A30; --ink:#E3E2E9; --muted:#C4C6D0; --line:#33363D; --outline:#8E9099;
+    --primary:#AAC7FF; --on-primary:#0A305F; --tonal:#284777; --on-tonal:#D8E2FF; --chip:#3E4759; --on-chip:#DAE2F9;
+    --inv:#E3E2E9; --inv-ink:#2E3036;
+    --ok:#6DD58C; --warn:#F2BC62; --bad:#FFB4AB; --on-bad:#690005;
   }
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{transition:background-color .3s}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
-.hdr{background:var(--brand);color:var(--brand-ink);padding:14px 16px 18px;display:flex;align-items:center;gap:10px;min-height:60px}
-.hdr h1{font-size:21px;margin:0;font-weight:700;letter-spacing:.2px;flex:1}
-.hdr .back{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;margin-left:-8px}
-.hdr .back:active{background:rgba(255,255,255,.15)}
-.hdr .ver{font-size:13px;opacity:.85}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+/* Kop: bovenste rij blijft staan, de grote titel schuift weg (top wordt in 43-uiterlijk.js gezet) */
+/* Kop: de bovenste rij (terug, kleine titel, knoppen) blijft staan; de grote titel eronder schuift mee weg */
+html{scroll-padding-top:80px}
+.hdr{display:contents;color:var(--ink)}
+.hrow{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:2px;min-height:64px;padding:0 4px;background:var(--bg);color:var(--ink);transition:background-color .2s}
+.hdr.compact .hrow{background:var(--hi)}
+.hdr h1{margin:0;padding:6px 20px 22px;font-size:32px;line-height:1.15;font-weight:400;letter-spacing:-.2px;overflow-wrap:anywhere;hyphens:auto}
+.hs{flex:1;min-width:0;padding-left:4px;font-size:21px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .15s}
+.hdr.compact .hs{opacity:1}
+.hdr.sm .hrow h1{flex:1;min-width:0;padding:0 4px;font-size:21px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0}
+.hdr .back,.hdr .icon-btn,.hdr .hbtn,.hrow>button:not(.hsearch){width:48px;height:48px;border-radius:24px;display:grid;place-items:center;flex:none;color:var(--ink)}
+.hdr .back:active,.hdr .icon-btn:active,.hrow>button:not(.hsearch):active{background:color-mix(in srgb,var(--ink) 10%,transparent)}
+.hdr .ver{font-size:13px;color:var(--muted)}
+body.tab-root .hdr .back{display:none}
+.hdr.home .hrow{padding:8px 8px 4px}
+.hsearch{flex:1;display:flex;align-items:center;gap:12px;height:56px;padding:0 18px;border-radius:28px;background:var(--hi);color:var(--muted);font-size:16px;text-align:left}
+.hdr.home.compact .hsearch{background:var(--card)}
+.hdr.home h1{padding-top:18px}
+#s-home .hs{display:none}
 .card.gsflash{box-shadow:0 0 0 3px var(--chip-on);transition:box-shadow .3s}
-.hdr .hbtn{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;margin-right:-8px;color:var(--brand-ink)}
-.hdr .hbtn:active{background:rgba(255,255,255,.15)}
 .nkind{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 0;border-top:1px solid var(--line)}
 .nkind:first-child{border-top:0}.nkind span:first-child{flex:1;min-width:0}.nkind small{display:block;color:var(--muted);font-size:13px}
 .nkind .nst{flex:none;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--chip)}
 .nkind .nst.off{color:var(--bad)}
-.hdr .icon-btn{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;margin-right:-8px}
-main{padding:16px;max-width:560px;margin:0 auto}
+main{padding:4px 16px 24px;max-width:600px;margin:0 auto}
 .screen{display:none}.screen.on{display:block}
-.card{background:var(--card);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px;border:1px solid var(--line)}
-.card h2{font-size:15px;margin:0 0 10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.6px}
+.card{background:var(--card);border-radius:var(--r-card);padding:18px;margin-bottom:12px}
+.card h2{font-size:15px;margin:0 0 10px;color:var(--primary);font-weight:600;letter-spacing:.1px}
 .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .tile b,.tile small{overflow-wrap:anywhere;hyphens:auto}
-.tile{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 14px;text-align:left;box-shadow:var(--shadow);min-height:132px;display:flex;flex-direction:column;gap:10px;position:relative}
-.tile:active{transform:scale(.98)}
-.tile .ic{width:48px;height:48px;border-radius:14px;background:var(--brand-2);display:grid;place-items:center;color:#fff}
-.tile b{font-size:17px}
+.tile{background:var(--card);border-radius:var(--r-card);padding:16px 14px 16px 16px;text-align:left;min-height:128px;display:flex;flex-direction:column;gap:12px;position:relative;transition:transform .12s,background-color .2s}
+.tile:active{transform:scale(.97);background:color-mix(in srgb,var(--card) 88%,var(--ink))}
+.tile .ic{--c:var(--primary);width:48px;height:48px;border-radius:16px;background:color-mix(in srgb,var(--c) 15%,var(--card));display:grid;place-items:center;color:var(--c);font-size:23px}
+@media (prefers-color-scheme: dark){.tile .ic{background:color-mix(in srgb,var(--c) 30%,var(--card));color:color-mix(in srgb,var(--c) 45%,#fff)}}
+.tile b{font-size:16.5px;font-weight:600;line-height:1.25}
 .tile small{color:var(--muted);font-size:13px}
-.hgroup{margin:4px 0 18px}.hgroup h3{margin:0 2px 10px;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.hgroup{margin:4px 0 22px}.hgroup h3{margin:0 4px 10px;font-size:15px;font-weight:600;color:var(--primary)}
 .hgroups.compact .tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.hgroups.compact .tile{min-height:0;padding:12px 8px;align-items:center;text-align:center;gap:6px;border-radius:16px}
+.hgroups.compact .tile{min-height:0;padding:14px 6px 12px;align-items:center;text-align:center;gap:8px;border-radius:20px}
 .hgroups.compact .tile small{display:none}.hgroups.compact .tile b{font-size:13px;line-height:1.2}
-.hgroups.compact .tile .ic{width:42px;height:42px;border-radius:12px}
+.hgroups.compact .tile .ic{width:44px;height:44px;border-radius:15px}
 .hgroups.compact .tile .dot{top:8px;right:8px}
 .herow{display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--line)}.herow:first-child{border-top:0}
 .herow .nm{flex:1;font-size:15px}.herow.off .nm{color:var(--muted);text-decoration:line-through}
-.herow button.mv{width:38px;height:38px;border-radius:10px;background:var(--chip);color:var(--brand-2);font-size:16px;font-weight:700}
+.herow button.mv{width:40px;height:40px;border-radius:20px;background:var(--chip);color:var(--on-chip);font-size:16px;font-weight:700}
 .herow button.mv:disabled{opacity:.35}
 .heghead{display:flex;align-items:center;gap:8px}.heghead h2{flex:1;margin:0}
-.tile.soon{opacity:.55;box-shadow:none;border-style:dashed}
+.tile.soon{opacity:.55}
 .tile .dot{position:absolute;top:14px;right:14px;width:10px;height:10px;border-radius:5px;background:var(--ok);box-shadow:0 0 0 4px rgba(29,138,78,.18);display:none}
 .tile.live .dot{display:block}
 label.f{display:block;font-size:14px;color:var(--muted);margin-bottom:6px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{min-width:0}select.sel{max-width:100%}
 .clist button,.clist .r1,.clist .r2{min-width:0;max-width:100%}.clist button{overflow:hidden}.clist .r2{overflow:hidden;text-overflow:ellipsis}
-input[type=tel]{flex:1;min-width:0;font-size:22px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);letter-spacing:.5px}
-input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
-.sq{width:52px;height:52px;border-radius:12px;background:var(--chip);display:grid;place-items:center;flex:none;color:var(--brand-2)}
+input[type=tel]{flex:1;min-width:0;font-size:22px;padding:12px 16px;border-radius:var(--r-ctl);border:1px solid var(--outline);background:transparent;color:var(--ink);letter-spacing:.5px}
+input[type=tel]:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary)}
+.sq{width:56px;height:56px;border-radius:var(--r-ctl);background:var(--chip);display:grid;place-items:center;flex:none;color:var(--on-chip)}
 .name{font-size:14px;color:var(--muted);margin-top:6px;min-height:19px}
 .recent{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.recent button{background:var(--chip);border-radius:999px;padding:6px 12px;font-size:14px}
+.recent button{background:transparent;border:1px solid var(--outline);border-radius:10px;padding:6px 12px;font-size:14px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
-.chips button{min-width:52px;padding:9px 12px;border-radius:999px;background:var(--chip);font-weight:600;font-size:15px}
-.chips button.on{background:var(--chip-on);color:#fff}
-.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.chips button{min-width:48px;min-height:36px;padding:6px 14px;border-radius:10px;border:1px solid var(--outline);background:transparent;font-weight:500;font-size:14.5px;transition:background-color .15s}
+.chips button.on{background:var(--chip);color:var(--on-chip);border-color:transparent;font-weight:600}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--line)}
 .sw:first-of-type{border-top:0}
 .sw span small{display:block;color:var(--muted);font-size:13px}
-.tg{width:52px;height:32px;border-radius:16px;background:var(--line);position:relative;flex:none;transition:background .15s}
-.tg::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:13px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .15s}
-.tg.on{background:var(--brand-2)}.tg.on::after{left:23px}
-.big{width:100%;padding:16px;border-radius:14px;background:var(--brand-2);color:#fff;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;gap:10px}
-.big:active{filter:brightness(.92)}
-.big.stop{background:var(--bad)}
-.big.ghost{background:var(--chip);color:var(--brand-2)}
+.tg{width:52px;height:32px;border-radius:16px;background:var(--hi);border:2px solid var(--outline);position:relative;flex:none;transition:background-color .15s,border-color .15s}
+.tg::after{content:"";position:absolute;top:6px;left:6px;width:16px;height:16px;border-radius:50%;background:var(--outline);transition:all .15s cubic-bezier(.2,.8,.2,1)}
+.tg.on{background:var(--primary);border-color:var(--primary)}.tg.on::after{top:2px;left:22px;width:24px;height:24px;background:var(--on-primary)}
+.tg:disabled{opacity:.38}
+.big{width:100%;min-height:56px;padding:14px 24px;border-radius:28px;background:var(--primary);color:var(--on-primary);font-weight:600;font-size:16.5px;letter-spacing:.1px;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .1s,filter .15s}
+.big:active{filter:brightness(.94);transform:scale(.985)}
+.big:disabled{opacity:.38;transform:none}
+.big.stop{background:var(--bad);color:var(--on-bad)}
+.big.ghost{background:var(--chip);color:var(--on-chip)}
 .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .status{text-align:center;padding:22px 16px}
 .ring{width:150px;height:150px;margin:0 auto 12px;position:relative}
@@ -96,10 +117,11 @@ input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
 .who{color:var(--muted);margin-top:4px}
 .result{font-size:15px;padding:12px;border-radius:12px;margin-bottom:14px;display:none}
 .result.on{display:block}
-.result.answered{background:rgba(29,138,78,.12);color:var(--ok)}
+.result{border-radius:var(--r-ctl)}
+.result.answered{background:color-mix(in srgb,var(--ok) 14%,var(--card));color:var(--ok)}
 .result.other{background:var(--chip);color:var(--ink)}
-.result.error{background:rgba(192,57,43,.12);color:var(--bad)}
-.perm{border-color:var(--warn)}
+.result.error{background:color-mix(in srgb,var(--bad) 14%,var(--card));color:var(--bad)}
+.perm{background:color-mix(in srgb,var(--warn) 13%,var(--card))}
 .perm p{margin:0 0 12px;font-size:15px}
 .note{font-size:13px;color:var(--muted);margin:4px 2px 0}
 .kv{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
@@ -108,39 +130,42 @@ input[type=tel]:focus{outline:none;border-color:var(--brand-2)}
 .log h3{font-size:16px;margin:12px 0 4px}
 .log h3 small{color:var(--muted);font-weight:400;font-size:13px}
 .log ul{margin:0;padding-left:20px;font-size:15px}
-.banner{background:var(--brand-2);color:#fff;border-radius:14px;padding:14px;margin-bottom:14px;display:none;align-items:center;gap:12px}
+.banner{background:var(--tonal);color:var(--on-tonal);border-radius:var(--r-card);padding:14px 14px 14px 18px;margin-bottom:14px;display:none;align-items:center;gap:12px}
 .banner.on{display:flex}
 .banner div{flex:1;font-size:15px}
-.banner button{background:#fff;color:var(--brand-2);border-radius:10px;padding:9px 14px;font-weight:700}
-.foot{text-align:center;color:var(--muted);font-size:13px;margin:18px 0 8px}
-.foot button{color:var(--brand-2);text-decoration:underline;font-size:13px}
+.banner button{background:var(--primary);color:var(--on-primary);border-radius:20px;padding:10px 18px;font-weight:600}
+.foot{text-align:center;color:var(--muted);font-size:13px;margin:22px 0 8px}
+.foot button{color:var(--primary);font-size:14px;font-weight:600;padding:10px 14px;border-radius:20px}
+.foot button:active{background:color-mix(in srgb,var(--primary) 12%,transparent)}
+.foot #hver{font-weight:400;color:var(--muted)}
 .range{display:none;align-items:center;gap:8px;margin:10px 0 4px;font-size:15px;flex-wrap:wrap}
 .range.on{display:flex}
-.range select{font:inherit;font-weight:600;padding:9px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
-.bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin:12px 0 8px}
-.bar i{display:block;height:100%;width:0;background:var(--brand-2);border-radius:5px;transition:width .3s}
+.range select{font:inherit;font-weight:600;padding:9px 10px;border-radius:12px;border:1px solid var(--outline);background:var(--card);color:var(--ink)}
+.bar{height:8px;border-radius:4px;background:var(--chip);overflow:hidden;margin:12px 0 8px}
+.bar i{display:block;height:100%;width:0;background:var(--primary);border-radius:4px;transition:width .3s}
 .cur{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cats{margin:6px 0 12px}
 .cat{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);width:100%;text-align:left}
 .cat:first-child{border-top:0}
-.cat .cb{width:24px;height:24px;border-radius:7px;border:2px solid var(--line);flex:none;display:grid;place-items:center}
-.cat.on .cb{background:var(--brand-2);border-color:var(--brand-2)}
-.cat.on .cb::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.cat .cb{width:22px;height:22px;border-radius:5px;border:2px solid var(--outline);flex:none;display:grid;place-items:center}
+.cat.on .cb{background:var(--primary);border-color:var(--primary)}
+.cat.on .cb::after{content:"";width:6px;height:11px;border:solid var(--on-primary);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
 .cat span{flex:1}
 .cat small{color:var(--muted);font-size:13px;white-space:nowrap}
 .dest{display:flex;align-items:center;gap:12px}
 .dest b{flex:1;font-size:17px;word-break:break-word}
-.dest button{background:var(--chip);color:var(--brand-2);border-radius:10px;padding:9px 14px;font-weight:600;flex:none}
+.dest button{background:var(--chip);color:var(--on-chip);border-radius:20px;padding:10px 16px;font-weight:600;flex:none}
 .hist{font-size:14px;padding:8px 0;border-top:1px solid var(--line)}
 .hist:first-child{border-top:0}
 .hist small{display:block;color:var(--muted)}
 .steps{margin:0 0 12px;padding-left:20px;font-size:15px}
 .steps li{margin-bottom:4px}
 .sub{font-size:14px;color:var(--muted);margin:6px 2px 12px;text-align:center}
-textarea.key{width:100%;box-sizing:border-box;font:16px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);resize:none;letter-spacing:1px}
-textarea.key:focus{outline:none;border-color:var(--brand-2)}
-.search{width:100%;box-sizing:border-box;font-size:16px;padding:11px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);margin-bottom:10px}
-.search:focus{outline:none;border-color:var(--brand-2)}
+textarea.key{width:100%;box-sizing:border-box;font:16px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:12px 14px;border-radius:var(--r-ctl);border:1px solid var(--outline);background:transparent;color:var(--ink);resize:none;letter-spacing:1px}
+textarea.key:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary)}
+.search{width:100%;box-sizing:border-box;font-size:16px;height:52px;padding:0 20px;border-radius:26px;border:0;background:var(--hi);color:var(--ink);margin-bottom:12px;-webkit-appearance:none;appearance:none}
+.search::placeholder{color:var(--muted)}
+.search:focus{outline:2px solid var(--primary);outline-offset:0}
 .clist button{display:block;width:100%;text-align:left;padding:12px 2px;border-top:1px solid var(--line)}
 .clist button:first-child{border-top:0}
 .clist .r1{display:flex;gap:8px;align-items:baseline}
@@ -151,28 +176,28 @@ textarea.key:focus{outline:none;border-color:var(--brand-2)}
 .clist .r2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
 .calls .k{display:inline-block;min-width:78px;margin-right:6px;font-weight:600}
 #calls-filter{flex-wrap:nowrap;gap:6px}#calls-filter button{padding:9px 10px;font-size:14px;min-width:0}
-.calls .in .k{color:#1a7f37}.calls .out .k{color:#1E5AA8}.calls .missed .k,.calls .rejected .k{color:#c62828}
+.calls .in .k{color:var(--ok)}.calls .out .k{color:var(--primary)}.calls .missed .k,.calls .rejected .k{color:var(--bad)}
 .nlist button.nrow{display:block;width:100%;text-align:left;padding:12px 2px;border-top:1px solid var(--line)}
 .nlist button.nrow:first-child{border-top:0}
 .nlist .r1{display:flex;gap:8px;align-items:baseline}.nlist .r1 b{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nlist .r1 small,.nlist .r2{color:var(--muted);font-size:13px}.nlist .r2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
-.nlist mark,.items mark{background:#ffe680;color:inherit;border-radius:3px}
+.nlist mark,.items mark{background:color-mix(in srgb,#FFD54F 70%,var(--card));color:inherit;border-radius:3px}
 .ntitle{width:100%;font-size:20px;font-weight:700;border:0;background:transparent;color:var(--ink);padding:4px 0 8px;outline:none}
 .items{list-style:none;margin:0;padding:0}
 .items li{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
 .items li:first-child{border-top:0}
-.items input[type=checkbox]{width:24px;height:24px;flex:none;accent-color:var(--chip-on)}
+.items input[type=checkbox]{width:22px;height:22px;flex:none;accent-color:var(--primary)}
 .items .it{flex:1;font-size:16px;border:0;background:transparent;color:var(--ink);outline:none;padding:4px 0;min-width:0}
 .items li.done .it{text-decoration:line-through;color:var(--muted)}
 .items .drag{flex:none;width:26px;text-align:center;color:var(--muted);font-size:16px;letter-spacing:-2px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .items li.dragging{background:var(--chip);border-radius:10px;opacity:.85}
 .items .del{flex:none;width:44px;height:44px;border-radius:50%;color:var(--muted);font-size:20px;line-height:1}
-.additem{display:flex;gap:8px;margin-top:10px}.additem input{flex:1;min-width:0;font-size:16px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
-.additem button{padding:0 16px;border-radius:12px;background:var(--chip-on);color:#fff;font-weight:700;font-size:20px}
-.ntext{width:100%;min-height:90px;font:inherit;font-size:15px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card);color:var(--ink);box-sizing:border-box;resize:vertical}
+.additem{display:flex;gap:8px;margin-top:10px}.additem input{flex:1;min-width:0;font-size:16px;padding:12px 16px;border-radius:24px;border:0;background:var(--hi);color:var(--ink)}
+.additem button{padding:0 18px;border-radius:24px;background:var(--primary);color:var(--on-primary);font-weight:600;font-size:20px}
+.ntext{width:100%;min-height:90px;font:inherit;font-size:15px;border:1px solid var(--outline);border-radius:var(--r-ctl);padding:12px 14px;background:transparent;color:var(--ink);box-sizing:border-box;resize:vertical}
 .donehdr{display:flex;justify-content:space-between;align-items:center;margin:14px 0 4px;color:var(--muted);font-size:13px;font-weight:600}
 .donehdr button{color:var(--muted);font-size:13px;text-decoration:underline}
-.fab{position:fixed;right:18px;bottom:22px;width:58px;height:58px;border-radius:50%;background:var(--chip-on);color:#fff;font-size:30px;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:5}
+.fab{position:fixed;right:16px;bottom:20px;width:60px;height:60px;border-radius:18px;background:var(--tonal);color:var(--on-tonal);font-size:30px;box-shadow:0 3px 8px rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.12);z-index:5}
 dl.fields{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px}
 dl.fields dt{color:var(--muted);font-size:13px;padding-top:2px}dl.fields dd{margin:0;word-break:break-word}
 .hist{padding:10px 0;border-top:1px solid var(--line)}.hist:first-child{border-top:0}.hist small{color:var(--muted)}
@@ -181,36 +206,40 @@ ul.chg li{display:grid;grid-template-columns:80px 1fr;column-gap:8px}
 ul.chg span{grid-row:span 2;color:var(--muted);font-size:13px;padding-top:1px}
 ul.chg del{color:var(--bad);grid-column:2}ul.chg ins{color:var(--ok);text-decoration:none;grid-column:2}
 ul.chg ins::before{content:'→ ';color:var(--muted)}
-button.mini{float:right;padding:6px 12px;border-radius:999px;background:var(--chip);color:var(--brand-2);font-weight:600;font-size:13px}
+button.mini{float:right;padding:7px 14px;border-radius:999px;background:var(--chip);color:var(--on-chip);font-weight:600;font-size:13px}
 button.mini:disabled{opacity:.6}
 .segs p.seg{margin:0;padding:8px 6px;border-radius:8px;line-height:1.45;cursor:pointer}
 .segs p.seg time{display:inline-block;min-width:46px;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 .segs p.seg.now{background:var(--chip)}
 .mrow{padding:6px 0}.mrow label{display:flex;gap:8px;align-items:center}
-select.sel{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+select.sel{font:inherit;padding:9px 12px;border-radius:12px;border:1px solid var(--outline);background:var(--card);color:var(--ink)}
 b.ok{color:var(--ok);font-weight:600}
-.fbtn{position:relative;width:48px;height:48px;border-radius:12px;background:var(--chip);color:var(--brand-2);display:flex;align-items:center;justify-content:center;flex:none}
-.fbtn.on{background:var(--chip-on);color:#fff}
+.fbtn{position:relative;width:52px;height:52px;border-radius:26px;background:var(--hi);color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none}
+.fbtn.on{background:var(--chip);color:var(--on-chip)}
 .fbtn span{position:absolute;top:4px;right:6px;font-size:11px;font-weight:700}
-.flabel{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:2px 0 8px}
+.flabel{font-size:14px;font-weight:600;color:var(--primary);margin:2px 0 8px}
 .chips.sm button{padding:7px 11px;font-size:14px;min-width:0}
 .dlab{flex:1;display:flex;flex-direction:column;font-size:13px;color:var(--muted);gap:4px}
-.dlab input{font:inherit;font-size:15px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.dlab input{font:inherit;font-size:15px;padding:9px 10px;border-radius:12px;border:1px solid var(--outline);background:var(--card);color:var(--ink)}
 .fchips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.fchips:empty{display:none}
-.fchips button{padding:6px 10px;border-radius:999px;background:var(--chip-on);color:#fff;font-size:13px;font-weight:600}
+.fchips button{padding:6px 12px;border-radius:10px;background:var(--chip);color:var(--on-chip);font-size:13px;font-weight:600}
 .calls .unk{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 5px;vertical-align:2px}
-.sheet{position:fixed;inset:0;background:rgba(10,16,24,.5);display:none;align-items:flex-end;z-index:1900}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.36);display:none;align-items:flex-end;z-index:1900}
 .sheet.on{display:flex}
-.sheet-box{background:var(--card);width:100%;border-radius:18px 18px 0 0;padding:16px 16px 22px;box-shadow:0 -6px 30px rgba(0,0,0,.25)}
-.sheet-box h3{margin:0;font-size:18px}.sheet-box p{margin:4px 0 12px;color:var(--muted);font-size:14px}
-.sheet-box button{display:block;width:100%;text-align:left;padding:14px 4px;border-top:1px solid var(--line);font-size:16px;color:var(--brand-2);font-weight:600}
-.sheet-box button.cancel{color:var(--muted);font-weight:500}
+.sheet-box{background:var(--card);width:100%;max-width:640px;margin:0 auto;border-radius:28px 28px 0 0;padding:10px 12px 18px;max-height:88vh;overflow:auto;animation:shup .22s cubic-bezier(.2,.8,.2,1)}
+.sheet-box::before{content:"";display:block;width:32px;height:4px;border-radius:2px;background:var(--outline);opacity:.6;margin:2px auto 16px}
+@keyframes shup{from{transform:translateY(40px);opacity:.4}}
+@media (prefers-reduced-motion: reduce){.sheet-box{animation:none}}
+.sheet-box h3{margin:0 12px;font-size:20px;font-weight:500}.sheet-box p{margin:4px 12px 10px;color:var(--muted);font-size:14px}
+.sheet-box button{display:block;width:100%;text-align:left;padding:15px 12px;border-radius:16px;font-size:16px;color:var(--ink);font-weight:500}
+.sheet-box button:active{background:var(--hi)}
+.sheet-box button.cancel{color:var(--muted);margin-top:4px;border-top:1px solid var(--line);border-radius:0 0 16px 16px}
 .stations .srow{display:flex;align-items:center;border-top:1px solid var(--line)}.stations .srow:first-child{border-top:0}
 .stations{padding-top:4px;padding-bottom:4px}.stations .sbtn{flex:1;display:flex;align-items:center;gap:12px;padding:10px 2px;text-align:left;min-width:0}
 .stations .stxt{flex:1;min-width:0}.stations .stxt b{display:block;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stations .stxt small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stations .srow.playing .stxt b{color:var(--brand-2)}
-.logo{width:44px;height:44px;border-radius:10px;background:var(--chip);color:var(--brand-2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none;overflow:hidden}
+.logo{width:44px;height:44px;border-radius:12px;background:var(--chip);color:var(--on-chip);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none;overflow:hidden}
 .logo img{width:100%;height:100%;object-fit:contain;background:#fff}
 button.star{width:44px;height:44px;font-size:22px;color:#E0A800;flex:none}
 .eq{display:flex;gap:2px;align-items:flex-end;height:16px}.eq i{width:3px;background:var(--brand-2);animation:eq 1s infinite ease-in-out}
@@ -219,7 +248,7 @@ button.star{width:44px;height:44px;font-size:22px;color:#E0A800;flex:none}
 .card.now{margin-bottom:16px}
 .nowrow{display:flex;align-items:center;gap:12px}.nowrow b{display:block;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nowt{color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nowt.err{color:var(--bad)}
-.nowsong{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--chip)}
+.nowsong{margin-top:12px;padding:12px 14px;border-radius:var(--r-ctl);background:var(--hi)}
 .nowsong b{display:block;font-size:17px}.nowsong span{display:block;color:var(--muted);font-size:14px}
 .nowsong .lnk{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}.nowsong .mini{background:var(--card);float:none}
 .sleepinfo{font-size:13px;color:var(--muted);margin-top:6px}.sleepinfo a{color:var(--brand-2)}
@@ -239,11 +268,12 @@ details.rinfo dl{margin:8px 0 0}
 .dash{padding:6px 14px;margin-bottom:16px}.dash button{display:flex;gap:10px;width:100%;text-align:left;padding:10px 0;border-top:1px solid var(--line);align-items:center;font-size:15px}
 .dash button:first-child{border-top:0}.dash .di{width:24px;text-align:center;flex:none}.dash .dt{flex:1}.dash .warnc{color:var(--warn)}.dash .badc{color:var(--bad)}
 .spc{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}.spc:first-child{border-top:0}.spc small{color:var(--muted)}.spc.tot{font-weight:700}.spc>span:last-child{white-space:nowrap}
-.gsg{padding:4px 14px 8px;margin-bottom:12px}.gsg h3{display:flex;align-items:center;gap:8px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:10px 0 2px}
-.gsg h3 .n{background:var(--line);color:var(--ink);border-radius:10px;padding:0 7px;font-size:12px;letter-spacing:0}.gsg h3 .more{margin-left:auto;background:none;border:0;box-shadow:none;text-transform:none;letter-spacing:0;font-size:14px;color:var(--acc);font-weight:600;padding:6px 0}
+.gsg{padding:6px 18px 10px;margin-bottom:12px}.gsg h3{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--primary);margin:10px 0 2px}
+.gsg h3 .n{background:var(--chip);color:var(--on-chip);border-radius:10px;padding:0 7px;font-size:12px;letter-spacing:0}.gsg h3 .more{margin-left:auto;background:none;border:0;box-shadow:none;text-transform:none;letter-spacing:0;font-size:14px;color:var(--acc);font-weight:600;padding:6px 0}
 .gsg .gi{display:block;width:100%;text-align:left;padding:9px 0;border-top:1px solid var(--line)}.gsg .gi:first-of-type{border-top:0}.gsg .gi b{display:block;font-size:15px}.gsg .gi small{display:block;color:var(--muted);font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .gsg.stale{opacity:.5}
 .gs-empty{text-align:center;color:var(--muted);padding:24px 0}
+.gs-hint{color:var(--muted);font-size:14.5px;margin:6px 8px;line-height:1.5}
 .shift{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}.shift .big{flex:1;min-width:0;padding:10px 4px;font-size:15px;margin:0}
 #rd-sleep{flex:none}.shift .shpos{min-width:64px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
 .shift .shpos.behind{color:var(--warn)}
@@ -253,7 +283,7 @@ h1:focus{outline:none}
 .vpdot.on{background:#1E8449;box-shadow:0 0 0 5px rgba(30,132,73,.22)}.vpdot.busy{background:#E0A800;box-shadow:0 0 0 5px rgba(224,168,0,.22);animation:vppulse 1.2s ease-in-out infinite}
 @keyframes vppulse{50%{opacity:.45}}@media (prefers-reduced-motion:reduce){.vpdot.busy{animation:none}}
 .vpstats{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-top:14px}.vpstats small{display:block;color:var(--muted);font-size:13px}.vpstats b{font-size:15px;overflow-wrap:anywhere}
-.vpic{width:36px;height:36px;border-radius:10px;background:var(--chip);display:flex;align-items:center;justify-content:center;flex:none;font-size:16px}.vpic.cur{background:#1E8449;color:#fff}
+.vpic{width:40px;height:40px;border-radius:14px;background:var(--chip);display:flex;align-items:center;justify-content:center;flex:none;font-size:16px}.vpic.cur{background:#1E8449;color:#fff}
 .vpmore{color:var(--muted);font-size:20px;padding:0 6px}#vp-listwrap>.big{margin-bottom:12px}.vpstats div:last-child{grid-column:1/-1}
 .vptr{align-items:center;padding:6px 0;border-top:1px solid var(--line)}.vptr:first-child{border-top:0}
 textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical;min-height:220px}
@@ -266,18 +296,18 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .wn{display:block;margin:4px 0 12px;color:var(--ink);font-size:14px;line-height:1.5}
 #modal-text b{color:var(--ink)}
 #modal-text{max-height:58vh;overflow:auto}
-.lockscr{position:fixed;inset:0;z-index:3000;background:linear-gradient(160deg,#1E5AA8,#173F75);color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
-.lockscr.on{display:flex}.lockscr h2{margin:6px 0 0;font-size:22px;color:#fff;text-transform:none;letter-spacing:0}
-.lockscr button{margin-top:10px;padding:14px 28px;border-radius:14px;background:#fff;color:#1E5AA8;font-weight:700;font-size:17px}
+.lockscr{position:fixed;inset:0;z-index:3000;background:var(--bg);color:var(--ink);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+.lockscr.on{display:flex}.lockscr>svg{color:var(--primary)}.lockscr h2{margin:6px 0 0;font-size:24px;font-weight:400;color:var(--ink)}
+.lockscr button{margin-top:10px;padding:14px 28px;border-radius:28px;background:var(--primary);color:var(--on-primary);font-weight:600;font-size:17px}
 .lockscr p{margin:0;opacity:.85;min-height:20px}
 .foot{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .mubox{display:flex;flex-direction:column;align-items:center;padding:18px 0 22px;gap:8px}
-.mubtn{width:150px;height:150px;border-radius:50%;background:linear-gradient(145deg,#1E5AA8,#7D3C98);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(30,90,168,.35)}
+.mubtn{width:150px;height:150px;border-radius:50%;background:linear-gradient(145deg,var(--primary),color-mix(in srgb,var(--primary) 45%,#8E44AD));color:var(--on-primary);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(30,90,168,.35)}
 .mubtn.busy{animation:mupulse 1.2s infinite}
 @keyframes mupulse{0%{box-shadow:0 0 0 0 rgba(125,60,152,.55)}70%{box-shadow:0 0 0 28px rgba(125,60,152,0)}100%{box-shadow:0 0 0 0 rgba(125,60,152,0)}}
 .mustate{font-size:20px;font-weight:700;margin-top:6px}
 .mucard{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center}
-.mucard img,.mucard .noart{width:96px;height:96px;border-radius:12px;object-fit:cover;background:var(--chip);display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--brand-2)}
+.mucard img,.mucard .noart{width:96px;height:96px;border-radius:16px;object-fit:cover;background:var(--chip);display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--on-chip)}
 .mumeta b{display:block;font-size:19px}.mumeta span{display:block;font-size:16px}.mumeta small{color:var(--muted)}
 .mulinks{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px}
 .csum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:0 0 6px}
@@ -290,19 +320,19 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .bub.me .tm{color:#5b6b56}
 .bub img{max-width:100%;max-height:300px;border-radius:8px;display:block;margin:2px 0 3px}
 .bub .lb{font-style:italic;color:var(--muted)}.bub.me .lb{color:#4d5e48}
-.dsep{align-self:center;font-size:12px;color:var(--muted);background:var(--chip);border-radius:8px;padding:3px 10px;margin:10px 0 2px}
-.more{align-self:center;background:var(--chip);color:var(--brand-2);border-radius:999px;padding:7px 16px;font-size:14px;font-weight:600;margin:6px 0}
+.dsep{align-self:center;font-size:12px;color:var(--muted);background:var(--hi);border-radius:10px;padding:3px 10px;margin:10px 0 2px}
+.more{align-self:center;background:var(--chip);color:var(--on-chip);border-radius:999px;padding:7px 16px;font-size:14px;font-weight:600;margin:6px 0}
 .bigstat{text-align:center;margin:8px 0}
 .bigstat .v{font-size:52px;font-weight:800;line-height:1;letter-spacing:-1px}
 .bigstat .u{font-size:15px;color:var(--muted);margin-top:4px}
 .statrow{display:flex;gap:10px;margin:4px 0}
-.statrow .b{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.statrow .b{flex:1;background:var(--card);border-radius:20px;padding:12px;text-align:center}
 .statrow .b .v{font-size:22px;font-weight:700}
 .statrow .b .u{font-size:12px;color:var(--muted);margin-top:2px}
-.map{width:100%;aspect-ratio:3/2;background:var(--card);border:1px solid var(--line);border-radius:14px;margin:4px 0;display:block}
+.map{width:100%;aspect-ratio:3/2;background:var(--card);border-radius:20px;margin:4px 0;display:block}
 .map path{fill:none;stroke:var(--brand-2);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
 .map .start{fill:#1D8A4E}.map .end{fill:#C0392B}
-.tlist button{display:block;width:100%;text-align:left;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--card);margin-bottom:10px;display:flex;gap:12px;align-items:center}
+.tlist button{display:block;width:100%;text-align:left;padding:12px;border-radius:20px;background:var(--card);margin-bottom:8px;display:flex;gap:12px;align-items:center}
 .tlist .mini{width:72px;height:48px;flex:none;background:var(--bg);border-radius:8px}
 .tlist .mini path{fill:none;stroke:var(--brand-2);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .tlist .info{flex:1;min-width:0}
@@ -310,46 +340,48 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .tlist .info small{color:var(--muted);font-size:13px}
 .rec-dot{display:inline-block;width:10px;height:10px;border-radius:5px;background:#C0392B;margin-right:6px;animation:blink 1.2s infinite}
 @keyframes blink{50%{opacity:.3}}
-.lmap{width:100%;aspect-ratio:3/2;border:1px solid var(--line);border-radius:14px;margin:4px 0;background:var(--card);overflow:hidden;z-index:0}
-.modal{position:fixed;inset:0;background:rgba(10,16,24,.5);display:none;align-items:center;justify-content:center;z-index:2000;padding:24px}
+.lmap{width:100%;aspect-ratio:3/2;border:0;border-radius:20px;margin:4px 0;background:var(--card);overflow:hidden;z-index:0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.36);display:none;align-items:center;justify-content:center;z-index:2000;padding:24px}
 .modal.on{display:flex}
-.modal-box{background:var(--card);border-radius:16px;padding:20px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)}
-.modal-box h3{margin:0 0 8px;font-size:18px}
+.modal-box{background:var(--hi);border-radius:28px;padding:24px;max-width:400px;width:100%;animation:mdin .18s cubic-bezier(.2,.8,.2,1)}
+@keyframes mdin{from{transform:scale(.94);opacity:0}}
+@media (prefers-reduced-motion: reduce){.modal-box{animation:none}}
+.modal-box h3{margin:0 0 12px;font-size:23px;font-weight:400;line-height:1.25}
 .modal-box p{margin:0 0 14px;color:var(--muted);font-size:15px;white-space:pre-line}
-.modal-btns{display:flex;gap:10px;margin-top:14px}
-.modal-btns .big{flex:1;padding:12px}
+.modal-btns{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+.modal-btns .big{flex:0 1 auto;width:auto;min-height:44px;padding:10px 22px;font-size:15px}
 .leaflet-container{background:#dfe3ea}
 .leaflet-control-attribution{font-size:10px}
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--inv);color:var(--inv-ink);padding:14px 18px;border-radius:12px;font-size:14.5px;box-shadow:0 4px 12px rgba(0,0,0,.2);opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
 .toast.on{opacity:1}
-.undo{position:fixed;left:50%;bottom:24px;transform:translate(-50%,calc(100% + 48px));visibility:hidden;transition:transform .2s,visibility .2s;background:#1f2733;color:#fff;padding:6px 6px 6px 16px;border-radius:12px;font-size:14px;display:flex;align-items:center;gap:10px;max-width:92%;z-index:60;box-shadow:0 4px 16px #0004}
+.undo{position:fixed;left:50%;bottom:24px;transform:translate(-50%,calc(100% + 48px));visibility:hidden;transition:transform .2s,visibility .2s;background:var(--inv);color:var(--inv-ink);padding:6px 6px 6px 18px;border-radius:12px;font-size:14px;display:flex;align-items:center;gap:10px;max-width:92%;z-index:60;box-shadow:0 4px 16px #0004}
 .undo.on{transform:translate(-50%,0);visibility:visible}
-.undo button{background:none;border:0;color:#8ab4ff;font-weight:700;font-size:14px;min-height:44px;padding:0 12px}
+.undo button{background:none;border:0;color:color-mix(in srgb,var(--primary) 40%,var(--inv-ink));font-weight:700;font-size:14px;min-height:44px;padding:0 12px}
 
 /* ---------- Automatiseringen ---------- */
-.aein{width:100%;font-size:17px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
-.aein:focus{outline:none;border-color:var(--brand-2)}
+.aein{width:100%;font-size:17px;padding:13px 16px;border-radius:var(--r-ctl);border:1px solid var(--outline);background:transparent;color:var(--ink)}
+.aein:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary)}
 .aeopts{display:grid;gap:8px}
-.aeopts button{text-align:left;padding:12px 14px;border-radius:14px;background:var(--chip);border:2px solid transparent;font-size:16px}
+.aeopts button{text-align:left;padding:12px 16px;border-radius:var(--r-ctl);background:var(--hi);border:2px solid transparent;font-size:16px}
 .aeopts button b{font-weight:700}
 .aeopts button small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
-.aeopts button.on{border-color:var(--chip-on);background:color-mix(in srgb,var(--chip-on) 12%,var(--card))}
+.aeopts button.on{border-color:var(--primary);background:var(--chip);color:var(--on-chip)}
 .aesteps{margin:0;padding:0;list-style:none;counter-reset:st}
 .aesteps li{display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--line);counter-increment:st}
 .aesteps li:first-child{border-top:0}
-.aesteps li::before{content:counter(st);flex:none;width:24px;height:24px;border-radius:12px;background:var(--chip);color:var(--brand-2);font-size:13px;font-weight:700;display:grid;place-items:center}
+.aesteps li::before{content:counter(st);flex:none;width:24px;height:24px;border-radius:12px;background:var(--chip);color:var(--on-chip);font-size:13px;font-weight:700;display:grid;place-items:center}
 .aesteps .lbl{flex:1;min-width:0;word-break:break-word;cursor:pointer}
 .aesteps button{flex:none;width:34px;height:34px;border-radius:17px;color:var(--muted);font-size:17px}
 .aesteps button:disabled{opacity:.3}
 .aetime{display:flex;align-items:center;gap:6px;font-size:15px;color:var(--muted)}
-.aetime input{font-size:16px;padding:8px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.aetime input{font-size:16px;padding:9px 12px;border-radius:12px;border:1px solid var(--outline);background:transparent;color:var(--ink)}
 .aelink{color:var(--brand-2);font-size:15px;padding:8px 4px;text-decoration:underline}
 .auperm{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
 .auperm:first-of-type{border-top:0}
 .auperm>span:first-child{flex:1;min-width:0}
 .auperm small{display:block;color:var(--muted);font-size:13px}
 .aucheck{color:var(--ok);font-weight:800;font-size:20px;flex:none}
-.aubtn{flex:none;padding:8px 14px;border-radius:999px;background:var(--brand-2);color:#fff;font-weight:700;font-size:14px}
+.aubtn{flex:none;padding:9px 16px;border-radius:999px;background:var(--primary);color:var(--on-primary);font-weight:600;font-size:14px}
 .auok{color:var(--ok);font-weight:700}
 .aurule{display:flex;align-items:center;gap:12px;padding:12px 14px}
 .aurule.off{opacity:.6}
@@ -366,11 +398,11 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 #txd-segs.selecting .seg{cursor:pointer;border-left:3px solid transparent;padding-left:8px}#txd-segs.selecting .seg.sel{border-left-color:var(--chip-on);background:color-mix(in srgb,var(--chip-on) 12%,transparent)}
 .trip{display:flex;width:100%;justify-content:space-between;align-items:center;text-align:left;padding:10px 2px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;min-height:48px}
 .trip b{display:block;font-size:15px}.trip small{color:var(--muted)}
-.ttype{font-size:12px;padding:3px 8px;border-radius:10px;background:var(--chip);white-space:nowrap}.ttype.zak{background:var(--chip-on);color:#fff}
+.ttype{font-size:12px;padding:3px 8px;border-radius:8px;background:var(--chip);color:var(--on-chip);white-space:nowrap}.ttype.zak{background:var(--primary);color:var(--on-primary)}
 .clog{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
 
-.fab.fab2{bottom:90px;width:50px;height:50px;right:22px;font-size:22px;background:var(--card);color:var(--ink);border:1px solid var(--line)}
-.voicebtn{width:96px;height:96px;border-radius:50%;font-size:42px;background:var(--chip);border:0;margin:10px auto;display:block}
+.fab.fab2{bottom:92px;width:48px;height:48px;right:22px;border-radius:14px;font-size:22px;background:var(--hi);color:var(--ink)}
+.voicebtn{width:96px;height:96px;border-radius:50%;font-size:42px;background:var(--card);border:0;margin:10px auto;display:block}
 .voicebtn.rec{background:#E5484D;color:#fff;animation:vpulse 1.2s infinite}
 @keyframes vpulse{0%{box-shadow:0 0 0 0 #E5484D88}100%{box-shadow:0 0 0 18px #E5484D00}}
 @media (prefers-reduced-motion: reduce){.voicebtn.rec{animation:none}}
@@ -386,23 +418,23 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .ppage span{position:absolute;bottom:2px;right:4px;font-size:11px;background:#000a;color:#fff;border-radius:6px;padding:0 5px}
 .ppage.on{border-color:var(--chip-on);box-shadow:0 0 0 2px var(--chip-on)}
 /* ---------- Podcasts ---------- */
-.pcart{width:52px;height:52px;border-radius:10px;background:var(--chip);color:var(--brand-2);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;overflow:hidden}
+.pcart{width:52px;height:52px;border-radius:12px;background:var(--chip);color:var(--on-chip);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;overflow:hidden}
 .pcart.lg{width:84px;height:84px;border-radius:14px;font-size:34px}
 .pcart img{width:100%;height:100%;object-fit:cover;display:block}
 .pcnowtop{display:flex;gap:14px;align-items:center}
 .pcnowtxt{flex:1;min-width:0}.pcnowtxt b{display:block;font-size:17px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .pcnowtxt small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
-.linkish{background:none;border:0;padding:4px 0;color:var(--brand-2);font:inherit;font-size:14px;font-weight:600;text-align:left;box-shadow:none;cursor:pointer}
+.linkish{background:none;border:0;padding:4px 0;color:var(--primary);font:inherit;font-size:14px;font-weight:600;text-align:left;box-shadow:none;cursor:pointer}
 .pcseek{width:100%;margin:14px 0 2px;accent-color:var(--chip-on);height:28px}
 .pctimes{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .pctimes #pc-state{text-align:center;flex:1}
 .pcctl{display:flex;justify-content:center;align-items:center;gap:22px;margin:8px 0 4px}
 .pcbtn{width:58px;height:58px;border-radius:50%;background:var(--chip);color:var(--ink);font-size:24px;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:0}
 .pcbtn small{font-size:11px;font-weight:700;margin-top:-2px}
-.pcplay{width:76px;height:76px;border-radius:50%;background:var(--chip-on);color:#fff;font-size:30px;border:0;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}
+.pcplay{width:76px;height:76px;border-radius:24px;background:var(--primary);color:var(--on-primary);font-size:30px;border:0;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}
 .pcopts{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:10px}
 .pill{padding:8px 14px;border-radius:999px;background:var(--chip);color:var(--ink);font-weight:600;font-size:14px;border:0}
-.pill.on{background:var(--chip-on);color:#fff}
+.pill.on{background:var(--primary);color:var(--on-primary)}
 .pcnow .sleepinfo{text-align:center}
 .pclist{padding-top:2px;padding-bottom:2px}
 .pcep{display:flex;align-items:center;border-top:1px solid var(--line)}.pcep:first-child{border-top:0}
@@ -413,25 +445,25 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .pcep.done b{color:var(--muted);font-weight:500}
 .pcep.cur b{color:var(--brand-2)}
 .pcprog{display:block;height:3px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}.pcprog i{display:block;height:100%;background:var(--chip-on)}
-.pcplayi{width:36px;height:36px;border-radius:50%;background:var(--chip);color:var(--brand-2);display:flex;align-items:center;justify-content:center;flex:none;font-size:14px}
+.pcplayi{width:36px;height:36px;border-radius:50%;background:var(--chip);color:var(--on-chip);display:flex;align-items:center;justify-content:center;flex:none;font-size:14px}
 .pcmore{background:none;border:0;color:var(--muted);font-size:20px;padding:8px 6px;flex:none}
 .pcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;margin-bottom:16px}
 .pcsub{position:relative;background:none;border:0;padding:0;text-align:left;color:inherit;font:inherit}
 .pcsub .pcart{width:100%;height:auto;aspect-ratio:1;border-radius:14px;font-size:34px}
 .pcsub span.t{display:block;font-size:12px;font-weight:600;margin-top:5px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.pcsub .badge{position:absolute;top:6px;right:6px;background:var(--bad);color:#fff;border-radius:999px;font-size:11px;font-weight:800;padding:2px 7px}
+.pcsub .badge{position:absolute;top:6px;right:6px;background:var(--bad);color:var(--on-bad);border-radius:999px;font-size:11px;font-weight:800;padding:2px 7px}
 .pcfl{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 8px}
 .pcbar2{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 2px 10px}
 .pcdesc{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;margin:8px 0 0}
 .slval{display:flex;align-items:center;justify-content:center;gap:18px;margin:6px 0 0;font-size:18px}
 .slval b{font-size:40px;font-variant-numeric:tabular-nums}
-.slpm{width:44px;height:44px;border-radius:50%;background:var(--chip);color:var(--ink);font-size:24px;border:0}
+.slpm{width:44px;height:44px;border-radius:50%;background:var(--card);color:var(--ink);font-size:24px;border:0}
 #sleepdlg .modal-box{max-height:92vh;overflow:auto}
 .pcmini{display:flex;align-items:center;gap:8px;padding:8px 12px}
 .pcminib{flex:1;display:flex;align-items:center;gap:10px;min-width:0;background:none;border:0;text-align:left;color:inherit;font:inherit;padding:0}
 .pcminib .pcart{width:40px;height:40px}.pcminib .pctxt{flex:1;min-width:0}.pcminib small{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
 .pcminib b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pcmini .pcplayi{width:42px;height:42px;background:var(--chip-on);color:#fff;border:0}
+.pcmini .pcplayi{width:42px;height:42px;background:var(--primary);color:var(--on-primary);border:0}
 /* ---------- Speler (radio en podcasts): mini-balk en volledig scherm, altijd donker met de kleur van de hoes ---------- */
 .plbar{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:50;display:flex;align-items:center;gap:2px;padding:6px 4px 8px 6px;border-radius:12px;background:var(--pl,#2A3A4F);color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.3);touch-action:none;max-width:560px;margin:0 auto;overflow:hidden;transition:background-color .6s}
 .plbar-prog{position:absolute;left:10px;right:10px;bottom:3px;height:2px;background:rgba(255,255,255,.25);border-radius:2px;overflow:hidden}
@@ -519,23 +551,44 @@ body.pl-open{overflow:hidden}
 @keyframes lkshake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 @media (prefers-reduced-motion: reduce){.lockdots.shake{animation:none}}
 .lockkeys{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%}
-.lockscr .lockkeys button{margin:0;padding:0;height:64px;border-radius:32px;background:rgba(255,255,255,.16);color:#fff;font-size:24px;font-weight:600}
-.lockscr .lockkeys button:active{background:rgba(255,255,255,.3)}
-.lockscr .lockkeys button[data-k="✓"]{background:#fff;color:#1E5AA8}
-.lockscr .lockbio{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);padding:10px 18px;font-size:15px}
+.lockscr .lockkeys button{margin:0;padding:0;height:68px;border-radius:34px;background:var(--hi);color:var(--ink);font-size:26px;font-weight:500}
+.lockscr .lockkeys button:active{background:var(--chip)}
+.lockscr .lockkeys button[data-k="✓"]{background:var(--primary);color:var(--on-primary)}
+.lockscr .lockbio{background:transparent;color:var(--primary);border:1px solid var(--outline);padding:10px 18px;font-size:15px}
 /* Spotify-backup */
 .spsteps{margin:4px 0 12px;padding-left:22px}.spsteps li{margin:6px 0}
-.spsteps code{background:var(--chip);padding:2px 6px;border-radius:6px;font-size:14px;word-break:break-all}
+.spsteps code{background:var(--hi);padding:2px 6px;border-radius:6px;font-size:14px;word-break:break-all}
 .splog{white-space:pre-wrap;font:13px/1.45 ui-monospace,Menlo,monospace;margin:8px 0 0;max-height:50vh;overflow:auto}
 .herow .mv.star{color:var(--muted);font-size:18px}.herow .mv.star.on{color:#E0A800}
+/* ---------- Tabbalk (Material 3 navigatiebalk) ---------- */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;height:80px;background:var(--hi);display:none;justify-content:space-around;align-items:flex-start;padding:12px 4px 0}
+body.tabs-on .tabs{display:flex}
+/* Toetsenbord open: de tabbalk niet boven het toetsenbord laten zweven */
+body.tabs-on:has(input:focus,textarea:focus,select:focus) .tabs{display:none}
+.tabs button{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12.5px;font-weight:500;color:var(--muted);letter-spacing:.2px}
+.tabs .ti{width:64px;height:32px;border-radius:16px;display:grid;place-items:center;transition:background-color .2s,width .2s}
+.tabs button.on{color:var(--ink);font-weight:700}.tabs button.on .ti{background:var(--chip);color:var(--on-chip)}
+.tabs button:active .ti{background:color-mix(in srgb,var(--ink) 10%,transparent)}
+body.tabs-on main{padding-bottom:100px}
+body.tabs-on .plbar{bottom:88px}
+body.tabs-on.has-plbar main{padding-bottom:172px}
+body.tabs-on .toast,body.tabs-on .undo{bottom:96px}
+body.tabs-on.has-plbar .toast,body.tabs-on.has-plbar .undo{bottom:168px}
+body.tabs-on .fab{bottom:100px}
+/* Schermwissel: kort infaden (Material "fade through") */
+.screen.on{animation:scrin .18s ease-out}
+@keyframes scrin{from{opacity:0}}
+@media (prefers-reduced-motion: reduce){.screen.on{animation:none}.tg::after,.tabs .ti,.tile{transition:none}}
+a{color:var(--primary)}
+body.tab-root .hs{padding-left:16px}
 </style>
 </head>
 <body>
 
 <!-- ============ HOME ============ -->
 <section class="screen on" id="s-home">
-  <div class="hdr"><h1 tabindex="-1">Rene's Tools</h1><span class="ver" id="hver"></span>
-    <button class="hbtn" onclick="show('settings')" aria-label="Instellingen" title="Instellingen"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
+  <div class="hdr home"><button class="hsearch" onclick="tabGo('search')" aria-label="Overal zoeken"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Zoek overal</span></button>
+    <h1 tabindex="-1">Rene's Tools</h1></div>
   <main>
     <div class="banner" id="upd-banner"><div id="upd-text">Nieuwe versie beschikbaar</div><button onclick="installUpdate()">Installeren</button></div>
     <div class="tiles" id="tile-pool">
@@ -547,127 +600,125 @@ body.pl-open{overflow:hidden}
       </button>
       <button class="tile" id="tile-wa" onclick="show('wa')">
         <span class="dot"></span>
-        <span class="ic" style="background:#25A35A"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/><path d="M12 8v6M9.5 11.5 12 14l2.5-2.5"/></svg></span>
+        <span class="ic" style="--c:#25A35A"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/><path d="M12 8v6M9.5 11.5 12 14l2.5-2.5"/></svg></span>
         <b>WhatsApp backup</b>
         <small id="tile-wa-sub">Chats en media veilig bewaren</small>
       </button>
       <button class="tile" id="tile-tracks" onclick="show('tracks')">
         <span class="dot"></span>
-        <span class="ic" style="background:#C0392B"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+        <span class="ic" style="--c:#C0392B"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
         <b>Mijn routes</b>
         <small id="tile-tracks-sub">Leg je route vast met gps</small>
       </button>
       <button class="tile" id="tile-sms" onclick="show('sms')">
-        <span class="ic" style="background:#8E44AD"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/></svg></span>
+        <span class="ic" style="--c:#8E44AD"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/></svg></span>
         <b>SMS-backup</b>
         <small id="tile-sms-sub">Bewaar je sms-berichten</small>
       </button>
       <button class="tile" id="tile-history" onclick="show('history')">
-        <span class="ic" style="background:#B9770E">🔔</span>
+        <span class="ic" style="--c:#B9770E">🔔</span>
         <b>Meldingsgeschiedenis</b>
         <small>Bewaar en backup je meldingen</small>
       </button>
       <button class="tile" id="tile-calls" onclick="show('calls')">
-        <span class="ic" style="background:#16A085"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span>
+        <span class="ic" style="--c:#16A085"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span>
         <b>Oproepen-backup</b>
         <small id="tile-calls-sub">Bewaar je belgeschiedenis</small>
       </button>
       <button class="tile" id="tile-notes" onclick="show('notes')">
-        <span class="ic" style="background:#E67E22"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1 1 2-2M3.5 12l1 1 2-2"/><circle cx="5" cy="18" r="1"/></svg></span>
+        <span class="ic" style="--c:#E67E22"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1 1 2-2M3.5 12l1 1 2-2"/><circle cx="5" cy="18" r="1"/></svg></span>
         <b>Notities</b>
         <small id="tile-notes-sub">Lijstjes maken en afstrepen</small>
       </button>
       <button class="tile" id="tile-contacts" onclick="show('contacts')">
-        <span class="ic" style="background:#2C3E50"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+        <span class="ic" style="--c:#2C3E50"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
         <b>Contacten</b>
         <small id="tile-contacts-sub">Backup, versies en wijzigingen</small>
       </button>
       <button class="tile" id="tile-pdf" onclick="show('pdf')">
-        <span class="ic" style="background:#B03A2E">📄</span>
+        <span class="ic" style="--c:#B03A2E">📄</span>
         <b>PDF</b>
         <small>Bekijken, plaatjes, splitsen, e-mail naar PDF</small>
       </button>
       <button class="tile" id="tile-kluis" onclick="show('kluis')">
-        <span class="ic" style="background:#4B5563">🔒</span>
+        <span class="ic" style="--c:#4B5563">🔒</span>
         <b>Kluis</b>
         <small>Documenten, open met vingerafdruk</small>
       </button>
       <button class="tile" id="tile-car" onclick="show('car')">
-        <span class="ic" style="background:#1F6F5C">🚗</span>
+        <span class="ic" style="--c:#1F6F5C">🚗</span>
         <b>Mijn auto</b>
         <small id="tile-car-sub">Parkeerplek en ritten</small>
       </button>
       <button class="tile" id="tile-recorder" onclick="show('recorder')">
-        <span class="ic" style="background:#A93226">🎙</span>
+        <span class="ic" style="--c:#A93226">🎙</span>
         <b>Gesprekken opnemen</b>
         <small>Handmatig of automatisch starten</small>
       </button>
       <button class="tile" id="tile-tr" onclick="show('transcripts')">
-        <span class="ic" style="background:#7D3C98"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 10h16M4 14h12M4 18h7"/><path d="M17 15v6M20 17v2M14 17v2"/></svg></span>
+        <span class="ic" style="--c:#7D3C98"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 10h16M4 14h12M4 18h7"/><path d="M17 15v6M20 17v2M14 17v2"/></svg></span>
         <b>Gesprekken uitschrijven</b>
         <small id="tile-tx-sub">Opnames omzetten naar tekst</small>
       </button>
       <button class="tile" id="tile-radio" onclick="show('radio')">
-        <span class="ic" style="background:#D35400"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M7 8l10-5"/><circle cx="8.5" cy="14.5" r="2.5"/><path d="M14 13h4M14 16h4"/></svg></span>
+        <span class="ic" style="--c:#D35400"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M7 8l10-5"/><circle cx="8.5" cy="14.5" r="2.5"/><path d="M14 13h4M14 16h4"/></svg></span>
         <b>Radio</b>
         <small id="tile-radio-sub">Nederlandse zenders luisteren</small>
       </button>
       <button class="tile" id="tile-podcasts" onclick="show('podcasts')">
-        <span class="ic" style="background:#6C3483"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/></svg></span>
+        <span class="ic" style="--c:#6C3483"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/></svg></span>
         <b>Podcasts</b>
         <small id="tile-podcasts-sub">Zoeken, volgen en luisteren</small>
       </button>
       <button class="tile" id="tile-spotify" onclick="show('spotify')">
-        <span class="ic" style="background:#1DB954"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7.5 9.5c3-1 6.5-.7 9 .8M8 12.6c2.5-.7 5.3-.4 7.3.8M8.6 15.5c2-.5 4-.3 5.6.6"/></svg></span>
+        <span class="ic" style="--c:#1DB954"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7.5 9.5c3-1 6.5-.7 9 .8M8 12.6c2.5-.7 5.3-.4 7.3.8M8.6 15.5c2-.5 4-.3 5.6.6"/></svg></span>
         <b>Spotify-backup</b>
         <small id="tile-spotify-sub">Playlists bewaren en terugzetten</small>
       </button>
       <button class="tile" id="tile-vpn" onclick="show('vpn')">
-        <span class="ic" style="background:#1E8449"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><rect x="9" y="10.5" width="6" height="5" rx="1"/><path d="M10.5 10.5V9a1.5 1.5 0 0 1 3 0v1.5"/></svg></span>
+        <span class="ic" style="--c:#1E8449"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><rect x="9" y="10.5" width="6" height="5" rx="1"/><path d="M10.5 10.5V9a1.5 1.5 0 0 1 3 0v1.5"/></svg></span>
         <b>VPN</b>
         <small id="tile-vpn-sub">WireGuard</small>
       </button>
       <button class="tile" id="tile-loc" onclick="show('loc')">
-        <span class="ic" style="background:#B03A2E"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
+        <span class="ic" style="--c:#B03A2E"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
         <b>Locatie kiezen</b>
         <small id="tile-loc-sub">Zelf je locatie bepalen</small>
       </button>
       <button class="tile" id="tile-music" onclick="show('music')">
-        <span class="ic" style="background:#2471A3"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+        <span class="ic" style="--c:#2471A3"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
         <b>Muziek herkennen</b>
         <small id="tile-music-sub">Welk nummer is dit?</small>
       </button>
       <button class="tile" id="tile-skin" onclick="Android.homeOpen()">
-        <span class="ic" style="background:linear-gradient(135deg,#6D28D9,#DB2777)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2"/><path d="M11 18h2"/></svg></span>
+        <span class="ic" style="--c:#6D28D9"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2"/><path d="M11 18h2"/></svg></span>
         <b>Telefoon-skin</b>
         <small id="tile-skin-sub">Je telefoon in een nieuw jasje</small>
       </button>
       <button class="tile" id="tile-auto" onclick="show('auto')">
-        <span class="ic" style="background:#0E7C86"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg></span>
+        <span class="ic" style="--c:#0E7C86"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg></span>
         <b>Automatiseringen</b>
         <small id="tile-auto-sub">Bijv. parkeren starten bij aankomst</small>
       </button>
       <button class="tile" id="tile-backup" onclick="show('backup')">
-        <span class="ic" style="background:#34495E"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
+        <span class="ic" style="--c:#34495E"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
         <b>Alles back-uppen</b>
         <small id="tile-backup-sub">Alles in één keer bewaren</small>
       </button>
     </div>
-    <input class="search" id="gs-q" type="search" placeholder="Zoek overal: instellingen, notities, contacten, berichten…" aria-label="Overal zoeken" oninput="gsInput()" autocomplete="off">
-    <div id="gs-res" style="display:none"></div>
     <div class="card dash" id="home-night" style="display:none"></div>
     <div class="card dash" id="home-dash" style="display:none"></div>
     <div class="hgroup" id="home-notes" style="display:none"><h3>Notities</h3><div class="tiles" id="home-notes-tiles"></div></div>
     <div class="hgroups" id="home-groups"></div>
     <p class="note" id="home-tip" style="text-align:center;margin:14px 8px 0">Tip: houd een tegel ingedrukt om er een snelkoppeling op je startscherm van te maken.</p>
-    <div class="foot"><button onclick="show('homeedit')">Startscherm aanpassen</button><button onclick="show('settings')">Instellingen</button><button onclick="show('info')">Versie en updates</button></div>
+    <div class="foot"><button onclick="show('homeedit')">Startscherm aanpassen</button><button onclick="show('info')">Versie en updates <span id="hver"></span></button></div>
   </main>
 </section>
 
 <!-- ============ AUTO REDIAL ============ -->
 <section class="screen" id="s-redial">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Auto redial</h1>
   </div>
   <main>
@@ -746,7 +797,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ WHATSAPP BACKUP ============ -->
 <section class="screen" id="s-wa">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">WhatsApp backup</h1>
   </div>
   <main>
@@ -840,7 +891,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ CHATLIJST ============ -->
 <section class="screen" id="s-chats">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Chats</h1>
   </div>
   <main>
@@ -856,9 +907,9 @@ body.pl-open{overflow:hidden}
 
 <!-- ============ CHATWEERGAVE ============ -->
 <section class="screen" id="s-chat">
-  <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1" id="chat-title" style="font-size:18px">Chat</h1>
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="chat-title">Chat</h1>
   </div>
   <main><div class="msgs" id="chat-msgs"></div></main>
 </section>
@@ -866,7 +917,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ MIJN ROUTES ============ -->
 <section class="screen" id="s-tracks">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Mijn routes</h1>
   </div>
   <main>
@@ -929,9 +980,9 @@ body.pl-open{overflow:hidden}
 
 <!-- ============ ROUTEDETAIL ============ -->
 <section class="screen" id="s-track">
-  <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1" id="td-title" style="font-size:18px">Route</h1>
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="td-title">Route</h1>
   </div>
   <main>
     <div id="td-map" class="lmap"></div>
@@ -956,7 +1007,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ SMS-BACKUP ============ -->
 <section class="screen" id="s-sms">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">SMS-backup</h1>
   </div>
   <main>
@@ -997,9 +1048,9 @@ body.pl-open{overflow:hidden}
 
 <!-- ============ SMS-GESPREK ============ -->
 <section class="screen" id="s-smschat">
-  <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1" id="sms-title" style="font-size:18px">Gesprek</h1>
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="sms-title">Gesprek</h1>
   </div>
   <main><div class="msgs" id="sms-msgs"></div></main>
 </section>
@@ -1007,7 +1058,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ STARTSCHERM AANPASSEN ============ -->
 <section class="screen" id="s-homeedit">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Startscherm aanpassen</h1>
   </div>
   <main>
@@ -1028,7 +1079,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ ALLES BACK-UPPEN ============ -->
 <section class="screen" id="s-backup">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Alles back-uppen</h1>
   </div>
   <main>
@@ -1097,7 +1148,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ ZELFTEST ============ -->
 <section class="screen" id="s-selftest">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Zelftest</h1>
   </div>
   <main>
@@ -1114,7 +1165,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ INSTELLINGEN ============ -->
 <section class="screen" id="s-settings">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Instellingen</h1>
   </div>
   <main>
@@ -1159,6 +1210,7 @@ body.pl-open{overflow:hidden}
 
     <div class="card">
       <h2>Weergave</h2>
+      <div class="sw" id="st-dyn-row"><span>Kleuren uit je achtergrond<small id="st-dyn-sub">Net als Android: de app neemt de kleuren van je achtergrond over</small></span><button class="tg" id="st-dyn" aria-label="Kleuren uit je achtergrond" onclick="togUi(this); stDynColor(this.classList.contains('on'))"></button></div>
       <div class="row setrow"><label for="st-zoom" style="flex:1">Tekstgrootte</label>
         <select class="sel" id="st-zoom" onchange="stZoom(this.value)">
           <option value="0">Zoals de telefoon</option><option value="90">Kleiner</option><option value="100">Normaal</option>
@@ -1205,7 +1257,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ RADIO ============ -->
 <section class="screen" id="s-radio">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Radio</h1>
   </div>
   <main>
@@ -1224,7 +1276,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ RADIOWEKKER ============ -->
 <section class="screen" id="s-ralarm">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Radiowekker</h1>
   </div>
   <main>
@@ -1251,7 +1303,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ MUZIEK HERKENNEN ============ -->
 <section class="screen" id="s-music">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Muziek herkennen</h1>
   </div>
   <main>
@@ -1282,7 +1334,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ GESPREKKEN UITSCHRIJVEN ============ -->
 <section class="screen" id="s-transcripts">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Gesprekken uitschrijven</h1>
   </div>
   <main>
@@ -1343,9 +1395,9 @@ body.pl-open{overflow:hidden}
 </section>
 
 <section class="screen" id="s-txd">
-  <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1" id="txd-title" style="font-size:18px;flex:1">Gesprek</h1>
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="txd-title">Gesprek</h1>
   </div>
   <main>
     <div class="card">
@@ -1375,7 +1427,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ CONTACTEN ============ -->
 <section class="screen" id="s-contacts">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Contacten</h1>
   </div>
   <main>
@@ -1401,9 +1453,9 @@ body.pl-open{overflow:hidden}
 </section>
 
 <section class="screen" id="s-contact">
-  <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1" id="ctd-title" style="font-size:18px;flex:1">Contact</h1>
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="ctd-title">Contact</h1>
   </div>
   <main>
     <div class="card"><dl class="fields" id="ctd-fields"></dl>
@@ -1416,7 +1468,7 @@ body.pl-open{overflow:hidden}
 
 <section class="screen" id="s-cversions">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Versies</h1>
   </div>
   <main><div class="clist card" id="cv-list"></div></main>
@@ -1424,7 +1476,7 @@ body.pl-open{overflow:hidden}
 
 <section class="screen" id="s-cversion">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1" id="cvd-title">Versie</h1>
   </div>
   <main>
@@ -1438,7 +1490,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ NOTITIES ============ -->
 <section class="screen" id="s-notes">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Notities</h1>
   </div>
   <main>
@@ -1454,9 +1506,9 @@ body.pl-open{overflow:hidden}
 
 <section class="screen" id="s-note">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1" style="flex:1">Notitie</h1>
-    <button onclick="deleteNote()" aria-label="Verwijderen" style="color:#fff;padding:8px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Notitie</h1>
+    <button class="icon-btn" onclick="deleteNote()" aria-label="Verwijderen"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
   </div>
   <main>
     <div class="card">
@@ -1512,7 +1564,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ OPROEPEN-BACKUP ============ -->
 <section class="screen" id="s-calls">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Oproepen-backup</h1>
   </div>
   <main>
@@ -1588,7 +1640,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ INFO ============ -->
 <section class="screen" id="s-info">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Versie en updates</h1>
   </div>
   <main>
@@ -1610,7 +1662,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ AUTOMATISERINGEN ============ -->
 <section class="screen" id="s-auto">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Automatiseringen</h1>
   </div>
   <main>
@@ -1643,7 +1695,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ AUTOMATISERING BEWERKEN ============ -->
 <section class="screen" id="s-autoed">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1" id="ae-h">Automatisering</h1>
   </div>
   <main>
@@ -1757,7 +1809,7 @@ body.pl-open{overflow:hidden}
 
 <section class="screen" id="s-history">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Meldingsgeschiedenis</h1>
   </div>
   <main>
@@ -1789,7 +1841,7 @@ body.pl-open{overflow:hidden}
 </section>
 <section class="screen" id="s-recorder">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Gesprekken opnemen</h1>
   </div>
   <main>
@@ -1823,7 +1875,7 @@ body.pl-open{overflow:hidden}
 </section>
 <section class="screen" id="s-car">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Mijn auto</h1>
   </div>
   <main>
@@ -1865,7 +1917,7 @@ body.pl-open{overflow:hidden}
 </section>
 <section class="screen" id="s-kluis">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Kluis</h1>
   </div>
   <main>
@@ -1888,7 +1940,7 @@ body.pl-open{overflow:hidden}
 </section>
 <section class="screen" id="s-pdf">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">PDF</h1>
   </div>
   <main>
@@ -1958,7 +2010,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ PODCASTS ============ -->
 <section class="screen" id="s-podcasts">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Podcasts</h1>
   </div>
   <main>
@@ -1980,8 +2032,8 @@ body.pl-open{overflow:hidden}
 </section>
 
 <section class="screen" id="s-podcast">
-  <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1" id="pd-h1">Podcast</h1>
   </div>
   <main>
@@ -2009,7 +2061,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ SPOTIFY-BACKUP ============ -->
 <section class="screen" id="s-spotify">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Spotify-backup</h1>
   </div>
   <main>
@@ -2078,7 +2130,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ VPN (WireGuard) ============ -->
 <section class="screen" id="s-vpn">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">VPN</h1>
   </div>
   <main>
@@ -2150,7 +2202,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ VPN: tunnel bewerken ============ -->
 <section class="screen" id="s-vpnedit">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1" id="ve-h">Tunnel</h1>
   </div>
   <main>
@@ -2185,7 +2237,7 @@ body.pl-open{overflow:hidden}
 <!-- ============ LOCATIE KIEZEN ============ -->
 <section class="screen" id="s-loc">
   <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Locatie kiezen</h1>
   </div>
   <main>
@@ -2235,6 +2287,18 @@ body.pl-open{overflow:hidden}
       <div class="card stations" id="lc-recent"></div>
     </div>
     <p class="note" style="margin:4px 4px 16px">Alle apps zien dan deze plek, ook Rene's Tools zelf (routes, automatiseringen, wifi-herkenning van de VPN). Sommige apps (bank, spellen) merken dat de locatie zelf gekozen is. Je echte locatie komt terug zodra je stopt.</p>
+  </main>
+</section>
+<!-- ============ ZOEKEN ============ -->
+<section class="screen" id="s-search">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Zoeken</h1>
+  </div>
+  <main>
+    <input class="search" id="gs-q" type="search" placeholder="Wat zoek je?" aria-label="Overal zoeken" oninput="gsInput()" autocomplete="off" enterkeyhint="search">
+    <div id="gs-res" style="display:none"></div>
+    <p class="gs-hint" id="gs-hint">Zoekt tegelijk in je notities, contacten, sms'jes, WhatsApp-chats, oproepen, uitgeschreven gesprekken, herkende muziek, meldingen en de instellingen van de app.</p>
   </main>
 </section>
 
@@ -2326,7 +2390,7 @@ body.pl-open{overflow:hidden}
     <button class="cancel" onclick="closeSheet()">Annuleren</button></div>
 </div>
 <div class="lockscr" id="lockscr">
-  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
   <h2>Rene's Tools is vergrendeld</h2>
   <p id="lock-msg" role="status" aria-live="polite"></p>
   <button id="lock-btn" onclick="Android.lockUnlock()">Ontgrendelen</button>
@@ -2365,10 +2429,16 @@ body.pl-open{overflow:hidden}
   </div>
 </div>
 
+<nav class="tabs" id="tabs" aria-label="Hoofdmenu">
+  <button data-t="home" onclick="tabGo('home')"><span class="ti"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg></span><span>Start</span></button>
+  <button data-t="search" onclick="tabGo('search')"><span class="ti"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span><span>Zoeken</span></button>
+  <button data-t="backup" onclick="tabGo('backup')"><span class="ti"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a5 5 0 0 1-.6-10A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9"/><path d="M12 12v8M9 15l3-3 3 3"/></svg></span><span>Backup</span></button>
+  <button data-t="settings" onclick="tabGo('settings')"><span class="ti"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg></span><span>Instellingen</span></button>
+</nav>
 <script>
-const VERSION_NAME = "1.73";
-const VERSION_CODE = 74;
-const CHANGELOG = [{"version": "1.73", "date": "2026-10-14", "changes": ["Oproepen: begin- en eindtijd op de seconde nauwkeurig, ook in de export"]}, {"version": "1.72", "date": "2026-10-14", "changes": ["Oproepen: naast de begintijd nu ook de eindtijd (begintijd plus gespreksduur), ook in de export"]}, {"version": "1.71", "date": "2026-10-13", "changes": ["Backup-map: duidelijke melding als de app geen toegang meer heeft (bijv. Google Drive), met knop om de map opnieuw te kiezen", "Spotify-backup: ook na een automatische backup zie je als de backup-map niet lukte", "Backup-map: betrouwbaarder schrijven naar mappen-apps zoals Google Drive"]}, {"version": "1.70", "date": "2026-10-13", "changes": ["Spotify-backup: fout bij grote playlists opgelost", "Spotify-backup: nu ook je bibliotheek — nummers die je leuk vindt, albums, artiesten die je volgt, podcasts, afleveringen, luisterboeken, je top en wat je laatst luisterde", "Spotify: verdwenen items uit je bibliotheek terugzetten", "Hoezen van radio en podcasts: grote afbeeldingen werden afgekapt"]}, {"version": "1.69", "date": "2026-10-12", "changes": ["Wijzigingslijst opgeschoond"]}, {"version": "1.68", "date": "2026-10-12", "changes": ["Locatie kiezen: teksten opgeschoond"]}, {"version": "1.67", "date": "2026-10-12", "changes": ["Locatie kiezen: overal deze naam (scherm en melding)"]}, {"version": "1.66", "date": "2026-10-11", "changes": ["VPN: nu ook OpenVPN (.ovpn-bestand), met gebruikersnaam en wachtwoord of certificaat, via UDP of TCP (ook poort 443)", "VPN: reserve bij blokkade — lukt WireGuard niet (bijv. in een hotel of op kantoor), dan vanzelf je OpenVPN-tunnel; op een nieuw netwerk eerst weer WireGuard", "Locatie kiezen en VPN: kleine verbeteringen"]}, {"version": "1.65", "date": "2026-10-11", "changes": ["Nieuw: Locatie kiezen — zet je telefoon op een plek die je zelf kiest (kaart, adres of coördinaten), met bewaarde plekken; eenmalig instellen via de ontwikkelaarsopties"]}, {"version": "1.64", "date": "2026-10-11", "changes": ["Nieuw: VPN (WireGuard) — eigen tunnels via QR-code, afbeelding, .conf-bestand of zelf maken; werkt met je eigen server of een aanbieder als Mullvad of Proton", "VPN aan/uit met de knop, een tegel in de snelle instellingen, een snelkoppeling op je startscherm, of via Automatiseren (VPN aanzetten/uitzetten)", "VPN vanzelf aan op wifi die je niet vertrouwt (en weer uit op je eigen wifi), en desgewenst op mobiel internet", "Werkt met Altijd-aan VPN van Android, ook als kill switch (zonder VPN geen internet)", "Opgelost: PDF opslaan kwam niet altijd aan sinds het app-slot"]}, {"version": "1.63", "date": "2026-10-11", "changes": ["Favorieten: houd een tegel ingedrukt → ★ Favoriet, dan staat hij bovenaan het startscherm (volgorde bij Startscherm aanpassen); ook de eerste keuzes bij lang indrukken van het app-icoon", "Podcast op je startscherm (📌 op de pagina van de podcast): tikken = meteen verder luisteren, of de nieuwste aflevering", "Snelkoppeling Verder luisteren (speler ⋯): gaat verder met wat het laatst speelde, radio of podcast", "Lang indrukken van een tegel: het menu sluit niet meer meteen bij loslaten"]}, {"version": "1.62", "date": "2026-10-10", "changes": ["Nieuw: Spotify-backup. Bewaar al je eigen playlists (elke dag of week vanzelf), zie wat er veranderde en zet een playlist terug, ook een oudere versie of een verwijderde playlist", "Spotify-backup komt ook in je backup-map: per playlist een CSV-bestand, spotify-backup.json en wijzigingen.txt", "App-slot: nieuw een eigen app-code, met (instelbaar) bij een verkeerde code meteen een neutrale versie van de app met alleen Omrekenen", "Vingerafdruk naast de app-code (optioneel); werkt niet meer zodra er een nieuwe vingerafdruk op de telefoon bijkomt"]}, {"version": "1.61", "date": "2026-10-09", "changes": ["Nieuw: kies waar het speelt (🔈 in de grote speler): de telefoon, Bluetooth/koptelefoon/speaker via Android, of een Chromecast in je wifi", "Chromecast: wat er speelt gaat erheen vanaf dezelfde plek. Alle knoppen (ook widget, zwevende speler, vergrendelscherm en de volumeknoppen) bedienen dan de Chromecast; Hierna, slaaptimer en snelheid werken ook. 'Terug naar deze telefoon' gaat daar verder"]}, {"version": "1.60", "date": "2026-10-09", "changes": ["Nieuw: de speler-widget (de radio-widget wordt dit vanzelf). Groeit mee: klein alleen knoppen, breed met titel, groot met hoes, voortgang en alle knoppen, in de kleur van de hoes", "Nieuw: zwevende speler boven andere apps (aanzetten via ⋯ in de speler). Klein een rond hoesje om te verslepen, tik = groot; naar beneden slepen = uit", "Vorige (⏮) bij podcasts gaat bij herhaald drukken steeds verder terug in wat je eerder luisterde"]}, {"version": "1.59", "date": "2026-10-09", "changes": ["Nieuw: één speler voor radio én podcasts. Onderaan op elk scherm een mini-speler; omhoog vegen of tikken opent hem groot", "Grote speler in Spotify-stijl: grote hoes, achtergrond in de kleur van de hoes, vegen op de hoes voor volgende/vorige zender of aflevering", "Hierna: zet afleveringen in de wachtrij (⋯ → Als volgende afspelen); na een aflevering begint de volgende vanzelf. Bij de radio wissel je tussen je favoriete zenders", "Er speelt altijd maar één ding: start je een podcast, dan stopt de radio (en andersom), en een slaaptimer loopt gewoon door"]}, {"version": "1.58", "date": "2026-10-09", "changes": ["Nieuw: Podcasts. Zoeken, populair in Nederland, volgen en luisteren, met 15 s terug / 30 s vooruit, snelheid en verder waar je was", "Slaaptimer per minuut instelbaar (ook tot een tijdstip of tot het einde van de aflevering), met zacht uitfaden; ook voor de radio", "Bediening op het vergrendelscherm, in de melding en met de knoppen van je koptelefoon", "Podcasts (abonnementen en waar je was) gaan mee in Alles back-uppen"]}, {"version": "1.57", "date": "2026-10-09", "changes": ["Veiligheid: losse exports vragen eerst als versleutelen aan staat; leesbare WhatsApp-chats 's nachts dan alleen in de app", "Veiligheid: teruggezette backupbestanden en de versienaam van updates kunnen geen code meer in het scherm zetten; updates van de app alleen met geldige handtekening", "Veiligheid: andere apps kunnen niet meer ongevraagd Muziek herkennen starten, de app laten afsluiten of een snelkoppeling op je startscherm zetten (eerst vragen)", "Backups: bestanden worden pas vervangen als het nieuwe compleet is; een tweede bestand met dezelfde naam in WhatsApp overschrijft de oude niet meer", "Wekkers, herinneringen en geplande acties komen terug na geforceerd stoppen; de radiowekker gaat ook af als de telefoon na een herstart nog niet ontgrendeld is", "Notities: een wijziging uit de widget en een nieuwe notitie in de app worden samengevoegd in plaats van dat er één verloren gaat", "Route opnemen gebruikt veel minder batterij; pauze zet de GPS uit", "Verder veel kleine fouten opgelost (gespreksopname, radio na een gesprek, spraaknotities, zoeken, oproepenfilter, wekker-proef)"]}, {"version": "1.56", "date": "2026-10-08", "changes": ["Nieuw: eigen PDF-viewer. PDF's uit Bestanden, Gmail, WhatsApp en Downloads openen in Rene's Tools: zoomen, zoeken, naar pagina, donker lezen, delen, opslaan en afdrukken", "Als standaard PDF-app instellen (op het PDF-scherm of in de viewer via ⋮)", "Nieuw: PDF-scherm. Plaatjes samenvoegen tot één PDF (A4 of eigen formaat)", "PDF splitsen of pagina's eruit halen, zonder kwaliteitsverlies", "Delen → PDF maken: maak een PDF van een e-mail, tekst of plaatjes uit een andere app"]}, {"version": "1.55", "date": "2026-10-07", "changes": ["Onder de motorkap: publiceren gebeurt pas als alle tests slagen; strengere controles bij bouwen en testen", "De app is iets kleiner: de testversie van de Android-koppeling zit er niet meer in", "Opgeruimd: ongebruikte onderdelen weggehaald"]}, {"version": "1.54", "date": "2026-10-07", "changes": ["Nieuw: spraaknotities. Tik op 🎤 bij Notities en praat; de app schrijft het op de telefoon uit. In een lijstje worden 'melk, brood en kaas' losse items", "Radio: met 💾 bewaar je de laatste 5 tot 60 minuten (als terugspoelen aan staat) in de map Radio, voor eigen gebruik", "Nieuw: Kluis. Bewaar documenten zoals een kopie van je paspoort versleuteld op de telefoon; openen met vingerafdruk of pincode, na 5 minuten weer op slot", "Alles back-uppen neemt de kluis mee als de backup versleuteld is"]}, {"version": "1.53", "date": "2026-10-07", "changes": ["Nieuw: Mijn auto. Zet je de auto uit (Bluetooth), dan bewaart de app waar hij staat, met 'Navigeer terug' en een parkeerlogboek", "Mijn auto: ritten vanzelf opnemen (Bluetooth aan/uit), met kilometers, zakelijk of privé, en per maand exporteren als CSV", "Automatiseringen: eigen acties (notitie tonen, radiozender, route starten/stoppen, alles back-uppen, Auto redial) en nieuwe momenten: op een tijdstip en aan de lader", "Automatiseringen: sjabloon 'Boodschappenlijst tonen bij de winkel'", "Radio: ★ Bewaar zet het nummer dat speelt in Herkende muziek, zonder AudD", "Uitgeschreven gesprek: kies zinnen en maak er een notitie of lijstje van", "Telefoon-skin: verjaardagen uit je contacten bij Vandaag"]}, {"version": "1.52", "date": "2026-10-07", "changes": ["Alles back-uppen bewaart nu ook instellingen, automatiseringen (met tikstappen), radiozenders en -wekker, geplande Auto redial, herinneringen en routes (GPX)", "Terugzetten kan nu ook voor instellingen, uitgeschreven gesprekken, herkende muziek en routes; ook uit een versleutelde backup. Alleen wat ontbreekt wordt toegevoegd", "Mijn routes: route importeren uit een GPX-bestand", "Radio: volgorde van je favorieten aanpassen (⇅), ook de volgorde in de auto", "Notities: meerdere herinneringen per notitie, herhalen (elke dag, werkdagen, week, maand) en in de melding uitstellen of Klaar", "Telefoon-skin: vastgezette notitie lang indrukken om hem van het startscherm te halen"]}, {"version": "1.51", "date": "2026-10-07", "changes": ["Beveiliging: andere apps en websites kunnen de app niet meer misbruiken (installatie-status, links op de kaart, radio- en redial-knoppen)", "Beveiliging: namen van chats, sms'en en teruggezette notities kunnen geen code meer uitvoeren", "Gevoelige gegevens (WhatsApp-database en -sleutel, opnames, transcripties, routes, contactbackups) gaan niet meer mee in de Google-backup van Android", "Spraakmodel wordt gecontroleerd met een vast controlegetal; nieuwe backup-wachtwoorden zijn sterker beveiligd; interface-updates zijn strenger ondertekend", "Route-opname gaat niet meer verloren als Android de app stopt: je kunt hem daarna opslaan", "Terug sluit eerst een open venster; bij een gewijzigde automatisering vraagt de app of je wilt opslaan", "Lijstitem of afgestreepte items verwijderd? Tik op 'Ongedaan maken'. De ×-knop is groter", "Minder accuverbruik: schermen vragen niets meer op de achtergrond; de radiolijst knippert niet meer", "Minder crashes als Android achtergrondwerk weigert"]}, {"version": "1.50", "date": "2026-10-07", "changes": ["Gesprekken opnemen: optioneel automatisch starten bij je eigen mobiele gesprekken (standaard uit). De opnamemelding met stopknop blijft altijd zichtbaar"]}, {"version": "1.49", "date": "2026-10-06", "changes": ["Nieuw: Gesprekken opnemen. Een microfoonopname die je zelf start, met een zichtbare melding en stopknop. Daarna afspelen, delen, exporteren en uitschrijven. Android kan de microfoon tijdens bellen blokkeren; zet de luidspreker aan en test eerst"]}, {"version": "1.48", "date": "2026-10-06", "changes": ["Instellingen › Meldingen: nieuwe schakelaar 'Alle meldingen uit' zet in één keer alle meldingen van de app uit (geen geluid, trillen of pop-ups)", "Draait de radio, een route-opname of een backup, dan toont Android alleen een stille regel zonder icoon in de statusbalk"]}, {"version": "1.47", "date": "2026-10-06", "changes": ["Zoek overal vindt nu ook instellingen en functies (bijv. 'vingerafdruk', 'back-up', 'donker') en springt naar de juiste kaart", "Zoek overal toont ook treffers uit de meldingsgeschiedenis"]}, {"version": "1.46", "date": "2026-10-06", "changes": ["Skin: kies welke apps zichtbaar en te starten zijn; verborgen apps kunnen geblokkeerd worden (wijzigen met vingerafdruk)"]}, {"version": "1.45", "date": "2026-10-06", "changes": ["Instellingen-knop rechtsboven op het startscherm van de app", "Meldingen van de app in één overzicht (Instellingen): zie wat aan en uit staat en tik door naar die soort in Android"]}, {"version": "1.44", "date": "2026-10-05", "changes": ["Meldingsgeschiedenis: filter per app (bijv. WhatsApp of Drive) en oudere meldingen tonen", "Meldingsgeschiedenis: meldingen die nog in het meldingenpaneel staan worden ook bewaard"]}, {"version": "1.43", "date": "2026-10-05", "changes": ["Nieuw: 'Sinds gisteravond' bovenaan de app (gemiste oproepen, backup, automatiseringen)", "Elke maand een backup-controle met proef-terugzetten, en 'Nu controleren' bij Alles back-uppen", "Elke week een controle of Android de app op de achtergrond beperkt"]}, {"version": "1.42", "date": "2026-10-05", "changes": ["Notities: items slepen of sorteren, en delen met alleen wat nog moet", "Notities: terugkerende lijstjes (bijv. elke zaterdag gaan alle vinkjes weer weg)"]}, {"version": "1.41", "date": "2026-10-05", "changes": ["Nieuwe widgets: Agenda, Weer, Rene's Tools overzicht en Parkeren", "Widget Lijstje: met + snel iets toevoegen, en kies donker, licht of doorzichtig"]}, {"version": "1.40", "date": "2026-10-05", "changes": ["Launcher: zoekbalk op Vandaag voor apps, contacten, notities, instellingen en Rene's Tools", "Launcher: snelkoppelingen van apps bij lang drukken, en apps kunnen snelkoppelingen op het startscherm zetten", "Launcher: meldingsbolletjes op apps (Look aanpassen) en de indeling gaat mee in Alles back-uppen"]}, {"version": "1.39", "date": "2026-10-05", "changes": ["Interface-updates zijn nu ondertekend: de app gebruikt alleen een update met de juiste handtekening", "Meldingsgeschiedenis: zoeken zonder op accenten te letten, lijst ververst alleen als er iets nieuws is, export botst niet meer met de nachtelijke backup"]}, {"version": "1.38", "date": "2026-10-05", "changes": ["Nieuw: Meldingsgeschiedenis. Bewaar nieuwe meldingen na inschakeling en meldingentoegang, doorzoek ze en exporteer als JSON en leesbare HTML", "Meldingsgeschiedenis kan mee in Alles back-uppen, ook in versleutelde backups; bewaren en dit backup-onderdeel staan standaard uit", "Meldingsgeschiedenis gaat niet mee in de Google-backup van Android; uitleg bij 'Beperkte instelling'"]}, {"version": "1.37", "date": "2026-10-05", "changes": ["Nieuw: Automatiseringen. Als je auto uitgaat (Bluetooth) of je bij een plek aankomt, vraagt je telefoon of hij de parkeeractie moet starten, of doet het meteen zelf: hij opent EasyPark en drukt de knoppen in die je één keer hebt opgenomen", "Ook: herinnering om de parkeeractie te stoppen als je weer wegrijdt, en zelf automatiseringen samenstellen (dagen, tijden, plek, app)"]}, {"version": "1.36", "date": "2026-10-05", "changes": ["Widget Lijstje: een notitie op het startscherm, afstrepen met een tik", "Launcher: Apps toevoegen en Apps in het dock kiezen (lang drukken op een leeg stuk)", "App-slot: standaard meteen opnieuw vergrendelen, ook als de app al open stond; geen flits van de inhoud"]}, {"version": "1.35", "date": "2026-10-05", "changes": ["Met app-slot flitst het startscherm van de app niet meer vóór de vingerafdruk"]}, {"version": "1.34", "date": "2026-10-05", "changes": ["Vandaag-pagina staat nu direct op het scherm (werd half getekend)", "Foutrapport kopiëren naar het klembord"]}, {"version": "1.33", "date": "2026-10-05", "changes": ["Skin afsluiten en terug naar de app (met vingerafdruk)", "Launcher start op de pagina Vandaag", "Vandaag-pagina wordt ook buiten beeld helemaal getekend"]}, {"version": "1.32", "date": "2026-10-05", "changes": ["Vandaag-pagina werd maar half getekend na het opzij vegen"]}, {"version": "1.31", "date": "2026-10-05", "changes": ["Echte launcher: meerdere pagina's om opzij te vegen, apps en mappen slepen, dock", "Widgets van alle apps plaatsen, instellen en van formaat veranderen", "Links de pagina Vandaag (klok, weer, agenda, Rene's Tools); klassieke skin blijft te kiezen in Look aanpassen"]}, {"version": "1.30", "date": "2026-10-05", "changes": ["Notitie (bijv. boodschappenlijst) met één tik openen: zet hem op het startscherm van Rene's Tools, van je telefoon, of op de telefoon-skin"]}, {"version": "1.29", "date": "2026-10-05", "changes": ["Nieuwe tegel 'Telefoon-skin' bovenaan het startscherm van Rene's Tools: één tik en je ziet de skin; ook als snelkoppeling op je telefoon te zetten"]}, {"version": "1.28", "date": "2026-10-05", "changes": ["Telefoon-skin aanzetten staat nu bovenaan Instellingen, en bovenaan het startscherm van Rene's Tools zolang hij nog niet aan staat"]}, {"version": "1.27", "date": "2026-10-05", "changes": ["Telefoon-skin aanpasbaar: zelf kiezen welke apps op het startscherm, in het dock en bij alle apps staan (met volgorde), volgorde van klok/weer/agenda/Rene's Tools, klokgrootte, doorzichtigheid en hoeken van de kaarten, sorteren op meest gebruikt"]}, {"version": "1.26", "date": "2026-10-05", "changes": ["Telefoon-skin: terugknop werkt altijd, ook als het startscherm nog laadt"]}, {"version": "1.25", "date": "2026-10-04", "changes": ["Telefoon-skin: 'Eerst bekijken' gaf 'Webpagina niet beschikbaar'; opgelost"]}, {"version": "1.24", "date": "2026-10-04", "changes": ["Nieuw: telefoon-skin. Gebruik Rene's Tools als startscherm met klok, weer, agenda, radio en overzicht, al je apps met zoeken en mappen, en een eigen look (Instellingen → Telefoon-skin)"]}, {"version": "1.23", "date": "2026-10-04", "changes": ["Radio pauzeren en terugspoelen: pauze houdt je plek vast, 30 seconden terug of vooruit, en terug naar live", "Tekstgrootte instelbaar (Instellingen → Weergave), standaard zoals je telefoon", "Beter te gebruiken met TalkBack: alle knoppen hebben een naam, schakelaars melden aan/uit"]}, {"version": "1.22", "date": "2026-10-04", "changes": ["Auto redial op een tijdstip: eenmalig of op vaste dagen automatisch beginnen met bellen (bijv. om 08:00 de huisarts)", "Gesprekken 's nachts automatisch uitschrijven tijdens het opladen"]}, {"version": "1.21", "date": "2026-10-04", "changes": ["Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"]}, {"version": "1.20", "date": "2026-10-04", "changes": ["Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html", "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan", "Ruimtegebruik van de backup-map per map"]}, {"version": "1.19", "date": "2026-10-04", "changes": ["Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen", "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"]}, {"version": "1.18", "date": "2026-10-04", "changes": ["Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen", "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt", "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon", "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools", "Android Auto: je favoriete zenders in de auto"]}, {"version": "1.17", "date": "2026-10-04", "changes": ["Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig", "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"]}, {"version": "1.16", "date": "2026-10-04", "changes": ["Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst", "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)", "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"]}, {"version": "1.15", "date": "2026-10-04", "changes": ["Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen", "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon", "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen", "Na een update zie je eenmalig wat er nieuw is", "Contacten werkt nu ook op Android 7"]}, {"version": "1.14", "date": "2026-10-04", "changes": ["Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten", "Radio: een zender als icoon op je startscherm die meteen begint te spelen", "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers", "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"]}, {"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
+const VERSION_NAME = "1.74";
+const VERSION_CODE = 75;
+const CHANGELOG = [{"version": "1.74", "date": "2026-10-14", "changes": ["Nieuw uiterlijk in Android 16-stijl: grote titels die meeschuiven, zachte vlakken, ronde knoppen, nieuwe schakelaars en menu's", "Kleuren uit je achtergrond (Material You), aan of uit bij Instellingen → Weergave", "Tabbalk onderin: Start, Zoeken, Backup en Instellingen; zoeken heeft een eigen scherm, met een zoekbalk bovenaan het startscherm"]}, {"version": "1.73", "date": "2026-10-14", "changes": ["Oproepen: begin- en eindtijd op de seconde nauwkeurig, ook in de export"]}, {"version": "1.72", "date": "2026-10-14", "changes": ["Oproepen: naast de begintijd nu ook de eindtijd (begintijd plus gespreksduur), ook in de export"]}, {"version": "1.71", "date": "2026-10-13", "changes": ["Backup-map: duidelijke melding als de app geen toegang meer heeft (bijv. Google Drive), met knop om de map opnieuw te kiezen", "Spotify-backup: ook na een automatische backup zie je als de backup-map niet lukte", "Backup-map: betrouwbaarder schrijven naar mappen-apps zoals Google Drive"]}, {"version": "1.70", "date": "2026-10-13", "changes": ["Spotify-backup: fout bij grote playlists opgelost", "Spotify-backup: nu ook je bibliotheek — nummers die je leuk vindt, albums, artiesten die je volgt, podcasts, afleveringen, luisterboeken, je top en wat je laatst luisterde", "Spotify: verdwenen items uit je bibliotheek terugzetten", "Hoezen van radio en podcasts: grote afbeeldingen werden afgekapt"]}, {"version": "1.69", "date": "2026-10-12", "changes": ["Wijzigingslijst opgeschoond"]}, {"version": "1.68", "date": "2026-10-12", "changes": ["Locatie kiezen: teksten opgeschoond"]}, {"version": "1.67", "date": "2026-10-12", "changes": ["Locatie kiezen: overal deze naam (scherm en melding)"]}, {"version": "1.66", "date": "2026-10-11", "changes": ["VPN: nu ook OpenVPN (.ovpn-bestand), met gebruikersnaam en wachtwoord of certificaat, via UDP of TCP (ook poort 443)", "VPN: reserve bij blokkade — lukt WireGuard niet (bijv. in een hotel of op kantoor), dan vanzelf je OpenVPN-tunnel; op een nieuw netwerk eerst weer WireGuard", "Locatie kiezen en VPN: kleine verbeteringen"]}, {"version": "1.65", "date": "2026-10-11", "changes": ["Nieuw: Locatie kiezen — zet je telefoon op een plek die je zelf kiest (kaart, adres of coördinaten), met bewaarde plekken; eenmalig instellen via de ontwikkelaarsopties"]}, {"version": "1.64", "date": "2026-10-11", "changes": ["Nieuw: VPN (WireGuard) — eigen tunnels via QR-code, afbeelding, .conf-bestand of zelf maken; werkt met je eigen server of een aanbieder als Mullvad of Proton", "VPN aan/uit met de knop, een tegel in de snelle instellingen, een snelkoppeling op je startscherm, of via Automatiseren (VPN aanzetten/uitzetten)", "VPN vanzelf aan op wifi die je niet vertrouwt (en weer uit op je eigen wifi), en desgewenst op mobiel internet", "Werkt met Altijd-aan VPN van Android, ook als kill switch (zonder VPN geen internet)", "Opgelost: PDF opslaan kwam niet altijd aan sinds het app-slot"]}, {"version": "1.63", "date": "2026-10-11", "changes": ["Favorieten: houd een tegel ingedrukt → ★ Favoriet, dan staat hij bovenaan het startscherm (volgorde bij Startscherm aanpassen); ook de eerste keuzes bij lang indrukken van het app-icoon", "Podcast op je startscherm (📌 op de pagina van de podcast): tikken = meteen verder luisteren, of de nieuwste aflevering", "Snelkoppeling Verder luisteren (speler ⋯): gaat verder met wat het laatst speelde, radio of podcast", "Lang indrukken van een tegel: het menu sluit niet meer meteen bij loslaten"]}, {"version": "1.62", "date": "2026-10-10", "changes": ["Nieuw: Spotify-backup. Bewaar al je eigen playlists (elke dag of week vanzelf), zie wat er veranderde en zet een playlist terug, ook een oudere versie of een verwijderde playlist", "Spotify-backup komt ook in je backup-map: per playlist een CSV-bestand, spotify-backup.json en wijzigingen.txt", "App-slot: nieuw een eigen app-code, met (instelbaar) bij een verkeerde code meteen een neutrale versie van de app met alleen Omrekenen", "Vingerafdruk naast de app-code (optioneel); werkt niet meer zodra er een nieuwe vingerafdruk op de telefoon bijkomt"]}, {"version": "1.61", "date": "2026-10-09", "changes": ["Nieuw: kies waar het speelt (🔈 in de grote speler): de telefoon, Bluetooth/koptelefoon/speaker via Android, of een Chromecast in je wifi", "Chromecast: wat er speelt gaat erheen vanaf dezelfde plek. Alle knoppen (ook widget, zwevende speler, vergrendelscherm en de volumeknoppen) bedienen dan de Chromecast; Hierna, slaaptimer en snelheid werken ook. 'Terug naar deze telefoon' gaat daar verder"]}, {"version": "1.60", "date": "2026-10-09", "changes": ["Nieuw: de speler-widget (de radio-widget wordt dit vanzelf). Groeit mee: klein alleen knoppen, breed met titel, groot met hoes, voortgang en alle knoppen, in de kleur van de hoes", "Nieuw: zwevende speler boven andere apps (aanzetten via ⋯ in de speler). Klein een rond hoesje om te verslepen, tik = groot; naar beneden slepen = uit", "Vorige (⏮) bij podcasts gaat bij herhaald drukken steeds verder terug in wat je eerder luisterde"]}, {"version": "1.59", "date": "2026-10-09", "changes": ["Nieuw: één speler voor radio én podcasts. Onderaan op elk scherm een mini-speler; omhoog vegen of tikken opent hem groot", "Grote speler in Spotify-stijl: grote hoes, achtergrond in de kleur van de hoes, vegen op de hoes voor volgende/vorige zender of aflevering", "Hierna: zet afleveringen in de wachtrij (⋯ → Als volgende afspelen); na een aflevering begint de volgende vanzelf. Bij de radio wissel je tussen je favoriete zenders", "Er speelt altijd maar één ding: start je een podcast, dan stopt de radio (en andersom), en een slaaptimer loopt gewoon door"]}, {"version": "1.58", "date": "2026-10-09", "changes": ["Nieuw: Podcasts. Zoeken, populair in Nederland, volgen en luisteren, met 15 s terug / 30 s vooruit, snelheid en verder waar je was", "Slaaptimer per minuut instelbaar (ook tot een tijdstip of tot het einde van de aflevering), met zacht uitfaden; ook voor de radio", "Bediening op het vergrendelscherm, in de melding en met de knoppen van je koptelefoon", "Podcasts (abonnementen en waar je was) gaan mee in Alles back-uppen"]}, {"version": "1.57", "date": "2026-10-09", "changes": ["Veiligheid: losse exports vragen eerst als versleutelen aan staat; leesbare WhatsApp-chats 's nachts dan alleen in de app", "Veiligheid: teruggezette backupbestanden en de versienaam van updates kunnen geen code meer in het scherm zetten; updates van de app alleen met geldige handtekening", "Veiligheid: andere apps kunnen niet meer ongevraagd Muziek herkennen starten, de app laten afsluiten of een snelkoppeling op je startscherm zetten (eerst vragen)", "Backups: bestanden worden pas vervangen als het nieuwe compleet is; een tweede bestand met dezelfde naam in WhatsApp overschrijft de oude niet meer", "Wekkers, herinneringen en geplande acties komen terug na geforceerd stoppen; de radiowekker gaat ook af als de telefoon na een herstart nog niet ontgrendeld is", "Notities: een wijziging uit de widget en een nieuwe notitie in de app worden samengevoegd in plaats van dat er één verloren gaat", "Route opnemen gebruikt veel minder batterij; pauze zet de GPS uit", "Verder veel kleine fouten opgelost (gespreksopname, radio na een gesprek, spraaknotities, zoeken, oproepenfilter, wekker-proef)"]}, {"version": "1.56", "date": "2026-10-08", "changes": ["Nieuw: eigen PDF-viewer. PDF's uit Bestanden, Gmail, WhatsApp en Downloads openen in Rene's Tools: zoomen, zoeken, naar pagina, donker lezen, delen, opslaan en afdrukken", "Als standaard PDF-app instellen (op het PDF-scherm of in de viewer via ⋮)", "Nieuw: PDF-scherm. Plaatjes samenvoegen tot één PDF (A4 of eigen formaat)", "PDF splitsen of pagina's eruit halen, zonder kwaliteitsverlies", "Delen → PDF maken: maak een PDF van een e-mail, tekst of plaatjes uit een andere app"]}, {"version": "1.55", "date": "2026-10-07", "changes": ["Onder de motorkap: publiceren gebeurt pas als alle tests slagen; strengere controles bij bouwen en testen", "De app is iets kleiner: de testversie van de Android-koppeling zit er niet meer in", "Opgeruimd: ongebruikte onderdelen weggehaald"]}, {"version": "1.54", "date": "2026-10-07", "changes": ["Nieuw: spraaknotities. Tik op 🎤 bij Notities en praat; de app schrijft het op de telefoon uit. In een lijstje worden 'melk, brood en kaas' losse items", "Radio: met 💾 bewaar je de laatste 5 tot 60 minuten (als terugspoelen aan staat) in de map Radio, voor eigen gebruik", "Nieuw: Kluis. Bewaar documenten zoals een kopie van je paspoort versleuteld op de telefoon; openen met vingerafdruk of pincode, na 5 minuten weer op slot", "Alles back-uppen neemt de kluis mee als de backup versleuteld is"]}, {"version": "1.53", "date": "2026-10-07", "changes": ["Nieuw: Mijn auto. Zet je de auto uit (Bluetooth), dan bewaart de app waar hij staat, met 'Navigeer terug' en een parkeerlogboek", "Mijn auto: ritten vanzelf opnemen (Bluetooth aan/uit), met kilometers, zakelijk of privé, en per maand exporteren als CSV", "Automatiseringen: eigen acties (notitie tonen, radiozender, route starten/stoppen, alles back-uppen, Auto redial) en nieuwe momenten: op een tijdstip en aan de lader", "Automatiseringen: sjabloon 'Boodschappenlijst tonen bij de winkel'", "Radio: ★ Bewaar zet het nummer dat speelt in Herkende muziek, zonder AudD", "Uitgeschreven gesprek: kies zinnen en maak er een notitie of lijstje van", "Telefoon-skin: verjaardagen uit je contacten bij Vandaag"]}, {"version": "1.52", "date": "2026-10-07", "changes": ["Alles back-uppen bewaart nu ook instellingen, automatiseringen (met tikstappen), radiozenders en -wekker, geplande Auto redial, herinneringen en routes (GPX)", "Terugzetten kan nu ook voor instellingen, uitgeschreven gesprekken, herkende muziek en routes; ook uit een versleutelde backup. Alleen wat ontbreekt wordt toegevoegd", "Mijn routes: route importeren uit een GPX-bestand", "Radio: volgorde van je favorieten aanpassen (⇅), ook de volgorde in de auto", "Notities: meerdere herinneringen per notitie, herhalen (elke dag, werkdagen, week, maand) en in de melding uitstellen of Klaar", "Telefoon-skin: vastgezette notitie lang indrukken om hem van het startscherm te halen"]}, {"version": "1.51", "date": "2026-10-07", "changes": ["Beveiliging: andere apps en websites kunnen de app niet meer misbruiken (installatie-status, links op de kaart, radio- en redial-knoppen)", "Beveiliging: namen van chats, sms'en en teruggezette notities kunnen geen code meer uitvoeren", "Gevoelige gegevens (WhatsApp-database en -sleutel, opnames, transcripties, routes, contactbackups) gaan niet meer mee in de Google-backup van Android", "Spraakmodel wordt gecontroleerd met een vast controlegetal; nieuwe backup-wachtwoorden zijn sterker beveiligd; interface-updates zijn strenger ondertekend", "Route-opname gaat niet meer verloren als Android de app stopt: je kunt hem daarna opslaan", "Terug sluit eerst een open venster; bij een gewijzigde automatisering vraagt de app of je wilt opslaan", "Lijstitem of afgestreepte items verwijderd? Tik op 'Ongedaan maken'. De ×-knop is groter", "Minder accuverbruik: schermen vragen niets meer op de achtergrond; de radiolijst knippert niet meer", "Minder crashes als Android achtergrondwerk weigert"]}, {"version": "1.50", "date": "2026-10-07", "changes": ["Gesprekken opnemen: optioneel automatisch starten bij je eigen mobiele gesprekken (standaard uit). De opnamemelding met stopknop blijft altijd zichtbaar"]}, {"version": "1.49", "date": "2026-10-06", "changes": ["Nieuw: Gesprekken opnemen. Een microfoonopname die je zelf start, met een zichtbare melding en stopknop. Daarna afspelen, delen, exporteren en uitschrijven. Android kan de microfoon tijdens bellen blokkeren; zet de luidspreker aan en test eerst"]}, {"version": "1.48", "date": "2026-10-06", "changes": ["Instellingen › Meldingen: nieuwe schakelaar 'Alle meldingen uit' zet in één keer alle meldingen van de app uit (geen geluid, trillen of pop-ups)", "Draait de radio, een route-opname of een backup, dan toont Android alleen een stille regel zonder icoon in de statusbalk"]}, {"version": "1.47", "date": "2026-10-06", "changes": ["Zoek overal vindt nu ook instellingen en functies (bijv. 'vingerafdruk', 'back-up', 'donker') en springt naar de juiste kaart", "Zoek overal toont ook treffers uit de meldingsgeschiedenis"]}, {"version": "1.46", "date": "2026-10-06", "changes": ["Skin: kies welke apps zichtbaar en te starten zijn; verborgen apps kunnen geblokkeerd worden (wijzigen met vingerafdruk)"]}, {"version": "1.45", "date": "2026-10-06", "changes": ["Instellingen-knop rechtsboven op het startscherm van de app", "Meldingen van de app in één overzicht (Instellingen): zie wat aan en uit staat en tik door naar die soort in Android"]}, {"version": "1.44", "date": "2026-10-05", "changes": ["Meldingsgeschiedenis: filter per app (bijv. WhatsApp of Drive) en oudere meldingen tonen", "Meldingsgeschiedenis: meldingen die nog in het meldingenpaneel staan worden ook bewaard"]}, {"version": "1.43", "date": "2026-10-05", "changes": ["Nieuw: 'Sinds gisteravond' bovenaan de app (gemiste oproepen, backup, automatiseringen)", "Elke maand een backup-controle met proef-terugzetten, en 'Nu controleren' bij Alles back-uppen", "Elke week een controle of Android de app op de achtergrond beperkt"]}, {"version": "1.42", "date": "2026-10-05", "changes": ["Notities: items slepen of sorteren, en delen met alleen wat nog moet", "Notities: terugkerende lijstjes (bijv. elke zaterdag gaan alle vinkjes weer weg)"]}, {"version": "1.41", "date": "2026-10-05", "changes": ["Nieuwe widgets: Agenda, Weer, Rene's Tools overzicht en Parkeren", "Widget Lijstje: met + snel iets toevoegen, en kies donker, licht of doorzichtig"]}, {"version": "1.40", "date": "2026-10-05", "changes": ["Launcher: zoekbalk op Vandaag voor apps, contacten, notities, instellingen en Rene's Tools", "Launcher: snelkoppelingen van apps bij lang drukken, en apps kunnen snelkoppelingen op het startscherm zetten", "Launcher: meldingsbolletjes op apps (Look aanpassen) en de indeling gaat mee in Alles back-uppen"]}, {"version": "1.39", "date": "2026-10-05", "changes": ["Interface-updates zijn nu ondertekend: de app gebruikt alleen een update met de juiste handtekening", "Meldingsgeschiedenis: zoeken zonder op accenten te letten, lijst ververst alleen als er iets nieuws is, export botst niet meer met de nachtelijke backup"]}, {"version": "1.38", "date": "2026-10-05", "changes": ["Nieuw: Meldingsgeschiedenis. Bewaar nieuwe meldingen na inschakeling en meldingentoegang, doorzoek ze en exporteer als JSON en leesbare HTML", "Meldingsgeschiedenis kan mee in Alles back-uppen, ook in versleutelde backups; bewaren en dit backup-onderdeel staan standaard uit", "Meldingsgeschiedenis gaat niet mee in de Google-backup van Android; uitleg bij 'Beperkte instelling'"]}, {"version": "1.37", "date": "2026-10-05", "changes": ["Nieuw: Automatiseringen. Als je auto uitgaat (Bluetooth) of je bij een plek aankomt, vraagt je telefoon of hij de parkeeractie moet starten, of doet het meteen zelf: hij opent EasyPark en drukt de knoppen in die je één keer hebt opgenomen", "Ook: herinnering om de parkeeractie te stoppen als je weer wegrijdt, en zelf automatiseringen samenstellen (dagen, tijden, plek, app)"]}, {"version": "1.36", "date": "2026-10-05", "changes": ["Widget Lijstje: een notitie op het startscherm, afstrepen met een tik", "Launcher: Apps toevoegen en Apps in het dock kiezen (lang drukken op een leeg stuk)", "App-slot: standaard meteen opnieuw vergrendelen, ook als de app al open stond; geen flits van de inhoud"]}, {"version": "1.35", "date": "2026-10-05", "changes": ["Met app-slot flitst het startscherm van de app niet meer vóór de vingerafdruk"]}, {"version": "1.34", "date": "2026-10-05", "changes": ["Vandaag-pagina staat nu direct op het scherm (werd half getekend)", "Foutrapport kopiëren naar het klembord"]}, {"version": "1.33", "date": "2026-10-05", "changes": ["Skin afsluiten en terug naar de app (met vingerafdruk)", "Launcher start op de pagina Vandaag", "Vandaag-pagina wordt ook buiten beeld helemaal getekend"]}, {"version": "1.32", "date": "2026-10-05", "changes": ["Vandaag-pagina werd maar half getekend na het opzij vegen"]}, {"version": "1.31", "date": "2026-10-05", "changes": ["Echte launcher: meerdere pagina's om opzij te vegen, apps en mappen slepen, dock", "Widgets van alle apps plaatsen, instellen en van formaat veranderen", "Links de pagina Vandaag (klok, weer, agenda, Rene's Tools); klassieke skin blijft te kiezen in Look aanpassen"]}, {"version": "1.30", "date": "2026-10-05", "changes": ["Notitie (bijv. boodschappenlijst) met één tik openen: zet hem op het startscherm van Rene's Tools, van je telefoon, of op de telefoon-skin"]}, {"version": "1.29", "date": "2026-10-05", "changes": ["Nieuwe tegel 'Telefoon-skin' bovenaan het startscherm van Rene's Tools: één tik en je ziet de skin; ook als snelkoppeling op je telefoon te zetten"]}, {"version": "1.28", "date": "2026-10-05", "changes": ["Telefoon-skin aanzetten staat nu bovenaan Instellingen, en bovenaan het startscherm van Rene's Tools zolang hij nog niet aan staat"]}, {"version": "1.27", "date": "2026-10-05", "changes": ["Telefoon-skin aanpasbaar: zelf kiezen welke apps op het startscherm, in het dock en bij alle apps staan (met volgorde), volgorde van klok/weer/agenda/Rene's Tools, klokgrootte, doorzichtigheid en hoeken van de kaarten, sorteren op meest gebruikt"]}, {"version": "1.26", "date": "2026-10-05", "changes": ["Telefoon-skin: terugknop werkt altijd, ook als het startscherm nog laadt"]}, {"version": "1.25", "date": "2026-10-04", "changes": ["Telefoon-skin: 'Eerst bekijken' gaf 'Webpagina niet beschikbaar'; opgelost"]}, {"version": "1.24", "date": "2026-10-04", "changes": ["Nieuw: telefoon-skin. Gebruik Rene's Tools als startscherm met klok, weer, agenda, radio en overzicht, al je apps met zoeken en mappen, en een eigen look (Instellingen → Telefoon-skin)"]}, {"version": "1.23", "date": "2026-10-04", "changes": ["Radio pauzeren en terugspoelen: pauze houdt je plek vast, 30 seconden terug of vooruit, en terug naar live", "Tekstgrootte instelbaar (Instellingen → Weergave), standaard zoals je telefoon", "Beter te gebruiken met TalkBack: alle knoppen hebben een naam, schakelaars melden aan/uit"]}, {"version": "1.22", "date": "2026-10-04", "changes": ["Auto redial op een tijdstip: eenmalig of op vaste dagen automatisch beginnen met bellen (bijv. om 08:00 de huisarts)", "Gesprekken 's nachts automatisch uitschrijven tijdens het opladen"]}, {"version": "1.21", "date": "2026-10-04", "changes": ["Overal zoeken: één zoekveld op het startscherm doorzoekt notities, contacten, sms'jes, WhatsApp-chats, oproepen, gesprekken en muziek tegelijk"]}, {"version": "1.20", "date": "2026-10-04", "changes": ["Versleutelde backups: met een wachtwoord gaat alles in één versleuteld bestand (AES-256); openen in de app of op de computer met ontsleutelen.html", "Oude backups opruimen: alles van de laatste 14 dagen en daarvoor één per maand blijft staan", "Ruimtegebruik van de backup-map per map"]}, {"version": "1.19", "date": "2026-10-04", "changes": ["Zelftest (Instellingen → Zelftest): controleert of uitschrijven, backup-map, internet, radio, AudD, wekkers, meldingen, batterij, opslag en toestemmingen werken, met een knop om problemen op te lossen", "Overzicht op het startscherm: laatste backup, volgende wekker, herinneringen van vandaag, radio en zelftestproblemen"]}, {"version": "1.18", "date": "2026-10-04", "changes": ["Radio-widget op je startscherm: zender, wat er speelt, afspelen en stoppen", "Widget 'Herkennen': één tik en de app luistert meteen welk nummer er speelt", "Radiowekker: word wakker met je favoriete zender, zacht beginnend; zonder internet klinkt de gewone wekkertoon", "Notities: herinneringen, delen via WhatsApp of mail, en tekst uit andere apps delen naar Rene's Tools", "Android Auto: je favoriete zenders in de auto"]}, {"version": "1.17", "date": "2026-10-04", "changes": ["Startscherm in groepen: Bellen & contacten, Berichten & backup, Muziek & radio en Handig", "Startscherm aanpassen: zelf de volgorde kiezen, tools verbergen, groepen hernoemen en een compacte weergave"]}, {"version": "1.16", "date": "2026-10-04", "changes": ["Nieuwe tool Alles back-uppen: sms, oproepen, contacten, notities, gesprekken en herkende muziek met één knop, met per onderdeel de uitkomst", "Automatisch elke nacht alles back-uppen (desgewenst alleen tijdens opladen)", "Terugzetten: contacten uit een vCard-bestand (ook van andere telefoons) en notities uit de backup; alleen wat er nog niet is wordt toegevoegd"]}, {"version": "1.15", "date": "2026-10-04", "changes": ["Nieuw scherm Instellingen: app-slot, backup-map, AudD-sleutel en een overzicht van alle toestemmingen", "App-slot: vergrendel de app met je vingerafdruk, gezicht of pincode van je telefoon", "Foutrapport: fouten worden vastgelegd en je kunt ze delen; na een crash vraagt de app of je het rapport wilt sturen", "Na een update zie je eenmalig wat er nieuw is", "Contacten werkt nu ook op Android 7"]}, {"version": "1.14", "date": "2026-10-04", "changes": ["Snelkoppelingen: houd een tegel ingedrukt om een tool als icoon op je startscherm te zetten", "Radio: een zender als icoon op je startscherm die meteen begint te spelen", "Radio: meer informatie van de zender (programma, artiest en titel, genre, website) en een lijst met eerder gedraaide nummers", "Radio: slaaptimer met eigen tijd of tot een tijdstip; de speler staat niet meer over de zenderlijst heen"]}, {"version": "1.13", "date": "2026-10-04", "changes": ["Nieuwe tool Radio: Nederlandse zenders luisteren, met favorieten, zoeken, 'nu op de radio' en een slaaptimer", "Speelt door met het scherm uit; bediening in de melding en op het vergrendelscherm", "Nieuwe tool Muziek herkennen: welk nummer is dit? Via de microfoon of rechtstreeks van de radio"]}, {"version": "1.12", "date": "2026-10-04", "changes": ["Oproepen gekoppeld aan contacten: vanuit een oproep naar het contact, en bij een contact al zijn oproepen", "Filters om oproepen te vinden: periode, contacten/favorieten/onbekende nummers, duur en per persoon", "Onbekend nummer met één tik toevoegen aan je contacten; een selectie apart exporteren", "Tegel 'Meer tools volgen binnenkort' verwijderd"]}, {"version": "1.11", "date": "2026-10-03", "changes": ["Nieuwe tool Gesprekken uitschrijven: zet de gespreksopnames van je telefoon-app om naar tekst", "Uitschrijven gebeurt helemaal op de telefoon (Whisper); niets gaat naar internet behalve het eenmalig downloaden van het spraakmodel", "Gekoppeld aan je oproepgeschiedenis, doorzoekbaar, afspelen vanaf elke zin, exporteren als tekst"]}, {"version": "1.10", "date": "2026-10-03", "changes": ["Nieuwe tool Contacten: backup als vCard, zoeken en beheren", "Versiegeschiedenis: elke wijziging aan je contacten wordt vastgelegd met datum en wat er veranderd is", "Verwijderde contacten terugzetten en een oudere versie als vCard opslaan"]}, {"version": "1.9", "date": "2026-10-03", "changes": ["Nieuwe tool Oproepen-backup: bewaar je belgeschiedenis (inkomend, uitgaand en gemist)", "Export als herstelbaar XML (SMS Backup & Restore), CSV voor Excel en een webpagina", "Oproepen bekijken, filteren en zoeken; tik om het nummer in Auto redial te zetten", "Nieuwe tool Notities: lijstjes maken, afstrepen en doorzoeken"]}, {"version": "1.8", "date": "2026-10-02", "changes": ["Nieuwe tool SMS-backup: bewaar je sms-berichten in je gekozen backup-map", "Herstelbaar XML-bestand (leesbaar door SMS Backup & Restore) en per gesprek een webpagina", "Je berichten lezen en doorzoeken in de app; namen uit je contacten"]}, {"version": "1.7", "date": "2026-10-02", "changes": ["Mijn routes: veel beter ruisfilter tegen gps-sprongen", "Stilstaan telt niet meer als afstand; onnauwkeurige metingen worden overgeslagen en metingen worden gemiddeld", "Maximale snelheid wordt over 10 seconden berekend in plaats van per losse meting"]}, {"version": "1.6", "date": "2026-10-01", "changes": ["Mijn routes toont nu ook tijdens het opnemen een echte kaart", "Nettere eigen vensters in plaats van de systeempopups bij stoppen, verwijderen en naam wijzigen"]}, {"version": "1.5", "date": "2026-10-01", "changes": ["Mijn routes toont je route nu op een echte kaart (OpenStreetMap)", "Knop 'Openen in Google Maps' om de route daar te bekijken"]}, {"version": "1.4", "date": "2026-10-01", "changes": ["Nieuwe tool Mijn routes: neem je route op met gps, zoals het vroegere My Tracks", "Live afstand, tijd, snelheid en hoogte; je route wordt getekend terwijl je gaat", "Opnemen gaat door met het scherm uit; pauzeren en hervatten kan", "Routes bewaren, terugkijken met hoogteprofiel, en delen of opslaan als GPX-bestand"]}, {"version": "1.3", "date": "2026-10-01", "changes": ["Nieuwe functie: leesbare chat-backup. Vul je WhatsApp-sleutel van 64 cijfers in en lees en doorzoek al je chats in de app", "Per chat een HTML-bestand in de backup-map, met foto's, dat je op elke computer kunt openen", "Automatisch bijwerken na elke backup"]}, {"version": "1.2", "date": "2026-10-01", "changes": ["Nieuwe tool WhatsApp backup: zet je chats en media veilig in een map naar keuze (USB-stick, SD-kaart, OneDrive …)", "Alles in één keer back-uppen, of zelf kiezen: chats, foto's, video's, spraakberichten, documenten en meer", "Elke nacht automatisch na 03:00, eventueel alleen tijdens het opladen", "Alleen nieuwe en gewijzigde bestanden worden gekopieerd; een onderbroken backup gaat later verder", "Backup terugzetten op een nieuwe telefoon", "Updates zijn nu direct na het publiceren zichtbaar"]}, {"version": "1.1", "date": "2026-09-30", "changes": ["Auto redial: wachttijd tussen pogingen kan nu ook willekeurig zijn", "Kies zelf de ondergrens en bovengrens, bijvoorbeeld tussen 10 seconden en 1 minuut"]}, {"version": "1.0", "date": "2026-09-30", "changes": ["Eerste versie van Rene's Tools", "Nieuwe tool Auto redial: belt een nummer opnieuw tot er wordt opgenomen", "Kies een contact of typ een nummer; je laatste nummers worden onthouden", "Kies het aantal pogingen (of onbeperkt) en de wachttijd ertussen", "Voortgang en een stopknop in de meldingenbalk", "Automatische updates via GitHub"]}];
 
 const $ = s => document.querySelector(s);
 /* HTML-escapen (ook ' voor attributen tussen enkele aanhalingstekens). */
@@ -2455,7 +2525,21 @@ $('#modal-cancel').onclick = () => closeModal(null);
 $('#modal-ok').onclick = () => { const inp = $('#modal-input'); closeModal(inp.style.display === 'none' ? true : inp.value); };
 $('#modal').onclick = e => { if (e.target === $('#modal')) closeModal(null); };
 function dark(){ return matchMedia('(prefers-color-scheme: dark)').matches; }
-function bars(){ const cs=getComputedStyle(document.documentElement); Android.setBars(cs.getPropertyValue('--brand').trim(), cs.getPropertyValue('--bg').trim(), !dark()); }
+/* Systeembalken in de kleur van de kop (boven) en de tabbalk of achtergrond (onder) */
+function bars(){
+  const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue(n).trim();
+  const h = document.querySelector('.screen.on .hdr');
+  let top = h && h.classList.contains('compact') ? v('--hi') : v('--bg');
+  let bottom = document.body.classList.contains('tabs-on') ? v('--hi') : v('--bg');
+  if (typeof plIsOpen !== 'undefined' && plIsOpen) { // speler (altijd donker) over het hele scherm
+    const pl = ($('#player').style.getPropertyValue('--pl') || '').trim();
+    top = /^#[0-9a-f]{6}$/i.test(pl) ? pl : '#121212'; bottom = '#121212';
+    const key = top + bottom + 'pl'; if (key === bars.last) return; bars.last = key;
+    Android.setBars(top, bottom, false); return;
+  }
+  const key = top + bottom + dark(); if (key === bars.last) return; bars.last = key;
+  Android.setBars(top, bottom, !dark());
+}
 
 function show(name){
   // Weg uit een automatisering die nog niet bewaard is (bijv. via een melding of snelkoppeling): als concept bewaren
@@ -2466,8 +2550,9 @@ function show(name){
   if (typeof plIsOpen !== 'undefined' && plIsOpen) plClose(); // naar een ander scherm: de speler verkleint
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
   const current_prev = current;
-  if (current_prev === 'home' && !jumpTo.busy) gsResetTool(name);
-  if (name==='home') { jumpStack.length = 0; if (gsQ) setTimeout(gsInput, 0); }
+  if ((current_prev === 'home' || current_prev === 'search') && !jumpTo.busy) gsResetTool(name);
+  if (name==='home') jumpStack.length = 0;
+  if (name==='search' && gsQ) setTimeout(gsInput, 0); // terug van een treffer: opnieuw zoeken (er kan iets veranderd zijn)
   closeSheet();
   current = name; window.scrollTo(0,0);
   if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #voice.on, #lockscr.on, #sheet.on, #sleepdlg.on, #player.on')) h.focus({ preventScroll: true }); }, 0);
@@ -2504,9 +2589,10 @@ function show(name){
   if (name==='info') renderInfo();
   if (name==='auto') enterAuto();
   if (name==='autoed') enterAutoEd();
+  if (typeof uiShown === 'function') uiShown(name);
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); renderDash(); refreshAutoTile(); refreshPodTile(); refreshVpnTile(); refreshLocTile(); }
 }
-const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', car:'home', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
+const BACK = {search:'home', redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', car:'home', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
 window.goBack = function(){
   // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
   if ($('#lockscr').classList.contains('on')) return false;
@@ -2520,7 +2606,6 @@ window.goBack = function(){
     askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); show('auto'); });
     return true;
   }
-  if (current==='home' && gsQ) { $('#gs-q').value = ''; gsInput(); return true; }
   // Na een sprong: terug naar waar je vandaan kwam, maar alleen vanaf het scherm waar je naartoe sprong
   // (ben je binnen de tool verder gegaan, dan eerst gewoon terug binnen de tool).
   if (jumpStack.length && jumpStack[jumpStack.length - 1].to === current) { show(jumpStack.pop().from); return true; }
@@ -2551,7 +2636,7 @@ window.openTool = function(n){
   if (n === 'music-now' && $('#lockscr').classList.contains('on')) { show('music'); return; } // op slot: niet zomaar opnemen
   if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (current === 'music' && !$('#lockscr').classList.contains('on') && st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
   if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='history') show('history'); if (n==='recorder') show('recorder'); if (n==='car') show('car'); if (n==='pdf' || n==='pdf-share') show('pdf'); if (n==='podcasts') show('podcasts'); if (n==='spotify') show('spotify'); if (n==='vpn') show('vpn'); if (n==='loc') show('loc'); if (n==='kluis') show('kluis'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); if (n==='selftest') show('selftest'); };
-window.onResumeApp = function(){ appPaused = false; if (typeof plTick === 'function') plTick(); if (current==='car') enterCar(); if (current==='kluis') klRender(); if (current==='pdf') enterPdf(); if (current==='podcasts') pcPoll(true); if (current==='spotify') spRender(); if (current==='vpn') vpRender(); if (current==='loc') lcRender(); uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
+window.onResumeApp = function(){ appPaused = false; if (typeof applyTheme === 'function') applyTheme(); if (typeof plTick === 'function') plTick(); if (current==='car') enterCar(); if (current==='kluis') klRender(); if (current==='pdf') enterPdf(); if (current==='podcasts') pcPoll(true); if (current==='spotify') spRender(); if (current==='vpn') vpRender(); if (current==='loc') lcRender(); uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
 /* ---------- Auto redial ---------- */
 const ATT = [[5,'5'],[10,'10'],[25,'25'],[50,'50'],[0,'∞']];
@@ -4459,7 +4544,7 @@ function gsBuildIndex(){
   const DETAIL = ['note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast'];
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);
-    if (scr === 'home' || DETAIL.includes(scr)) return;
+    if (scr === 'home' || scr === 'search' || DETAIL.includes(scr)) return;
     const h1 = sec.querySelector('.hdr h1'), screen = h1 ? h1.textContent.trim() : scr;
     gsIndex.push({scr, el: null, title: screen, sub: 'Openen', key: fold(screen + ' ' + scr)});
     sec.querySelectorAll('.card').forEach(card => {
@@ -4490,11 +4575,8 @@ function gsInput(){
   clearTimeout(gsTmr);
   const on = q.length >= 2;
   $('#gs-res').style.display = on ? 'block' : 'none';
-  $('#home-groups').style.display = on ? 'none' : '';
-  if (on) $('#home-notes').style.display = 'none';
-  $('#home-tip').style.display = on ? 'none' : '';
-  if (!on) { if (gsQ) Android.searchAll(''); gsQ = ''; gsData = {}; renderDash(); return; }
-  $('#home-dash').style.display = 'none';
+  $('#gs-hint').style.display = on ? 'none' : '';
+  if (!on) { if (gsQ) Android.searchAll(''); gsQ = ''; gsData = {}; return; }
   // Vorige treffers blijven (gedimd) staan tot de nieuwe binnen zijn: geen verspringende pagina.
   const prev = gsData; gsQ = q; gsData = { app: gsApp(q), notes: gsNotes(q), history: gsHistory(q), pending: true, stale: {} };
   for (const k of Object.keys(GS)) if (!['notes', 'app', 'history'].includes(k) && prev[k]) gsData.stale[k] = prev[k];
@@ -4684,18 +4766,18 @@ function renderNotePins(){
   const wrap = $('#home-notes'); if (!wrap) return;
   let ids = []; try { ids = JSON.parse(Android.notePins('app')) || []; } catch(e){}
   const list = ids.map(id => noteById(id)).filter(Boolean);
-  wrap.style.display = list.length && !gsQ ? 'block' : 'none';
+  wrap.style.display = list.length ? 'block' : 'none';
   $('#home-notes-tiles').innerHTML = list.map(n => {
     const open = (n.items || []).filter(i => !i.done);
     const sub = (n.items || []).length ? (open.length ? open.length + ' open · ' + open.slice(0, 3).map(i => i.text).join(', ') : 'Alles afgestreept ✓') : (n.text || '').slice(0, 60);
-    return '<button class="tile" data-id="' + esc(n.id) + '" onclick="jumpTo(\'note\', () => openNote(this.dataset.id))"><span class="ic" style="background:#E67E22;font-size:24px">📝</span><b>' +
+    return '<button class="tile" data-id="' + esc(n.id) + '" onclick="jumpTo(\'note\', () => openNote(this.dataset.id))"><span class="ic" style="--c:#E67E22;font-size:24px">📝</span><b>' +
       esc(n.title || 'Notitie') + '</b><small>' + esc(sub) + '</small></button>';
   }).join('');
 }
 /* "Sinds gisteravond": wat er gebeurde terwijl je sliep (gemiste oproepen, backup, automatiseringen, batterij). */
 function renderNight(){
   const box = $('#home-night'); if (!box) return;
-  if (gsQ || typeof Android.overnight !== 'function') { box.style.display = 'none'; return; }
+  if (typeof Android.overnight !== 'function') { box.style.display = 'none'; return; }
   let o = {}; try { o = JSON.parse(Android.overnight()); } catch(e){}
   const rows = [];
   const hm = t => new Date(t).toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
@@ -4713,7 +4795,6 @@ function renderDash(){
   renderNotePins();
   renderNight();
   const box = $('#home-dash'); if (!box) return;
-  if (gsQ) { box.style.display = 'none'; return; }
   if (homeCfg().dash === false) { box.style.display = 'none'; return; }
   const rows = [];
   try { const t = $('#tile-skin-sub'); if (t) t.textContent = Android.homeIsDefault() ? 'Actief als startscherm' : 'Je telefoon in een nieuw jasje'; } catch(e){}
@@ -4775,6 +4856,9 @@ function stNotifMute(on){
 function enterSettings(){
   stNotifRender();
   $('#st-zoom').value = String(Android.textZoomGet());
+  { const can = typeof Android.themeColors === 'function' && !!Android.themeColors(), on = can && store.get('dynColor', true);
+    $('#st-dyn').classList.toggle('on', on); $('#st-dyn').setAttribute('aria-checked', on ? 'true' : 'false'); $('#st-dyn').disabled = !can;
+    $('#st-dyn-sub').textContent = can ? 'Net als Android: de app neemt de kleuren van je achtergrond over' : 'Kan vanaf Android 12; nu vaste kleuren'; }
   stHomeRender();
   const i = stJson(Android.settingsInfo());
   const lk = i.lock || {};
@@ -5826,6 +5910,7 @@ function plRender(){
   if (!m) { if (plIsOpen) plClose(); return; }
   const col = plColorFor(m);
   bar.style.setProperty('--pl', col); $('#player').style.setProperty('--pl', col);
+  if (plIsOpen) bars();
   // Mini-balk
   plSetArt($('#plbar-art'), m);
   plSetText($('#plbar-t'), m.title);
@@ -6084,6 +6169,7 @@ function plOpen(){
   $('#pl-scroll').scrollTop = 0;
   plRender();
   setTimeout(() => $('#pl-title').focus({ preventScroll: true }), 30);
+  bars();
 }
 function plClose(){
   if (!plIsOpen) return;
@@ -6092,7 +6178,7 @@ function plClose(){
   p.classList.remove('on'); p.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('pl-open');
   plInert(false);
-  plRender();
+  plRender(); bars();
   const b = $('#plbar-open'); if (b && $('#plbar').style.display !== 'none') b.focus({ preventScroll: true });
 }
 
@@ -6729,8 +6815,89 @@ function refreshLocTile(){
   const st = rdJson(Android.locState(), {});
   el.textContent = st.on ? '📍 ' + (st.name || lcFmt(st.lat, st.lng)) : 'Zelf je locatie bepalen';
 }
+/* ---------- Uiterlijk: kleuren uit je achtergrond (Material You), meeschuivende kop, tabbalk ---------- */
+function hexMix(a, b, t){ // t = aandeel van b
+  const x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16);
+  return '#' + [16, 8, 0].map(s => { const p = (x >> s) & 255, q = (y >> s) & 255; return Math.round(p + (q - p) * t).toString(16).padStart(2, '0'); }).join('');
+}
+/* Android geeft per kleur tinten van 0 (wit) tot 1000 (zwart); hier de rollen van Material 3 */
+function dynTokens(p){
+  const a1 = p.accent1, a2 = p.accent2, n1 = p.neutral1, n2 = p.neutral2, m = hexMix;
+  return {
+    light: { bg: m(n1[50], n1[100], .25), card: n1[10], hi: m(n1[50], n1[100], .65), ink: n1[900], muted: n2[700], line: m(n2[100], n2[200], .5), outline: n2[500],
+      primary: a1[600], 'on-primary': a1[0], tonal: a1[100], 'on-tonal': a1[900], chip: a2[100], 'on-chip': a2[900], inv: n1[800], 'inv-ink': n1[50] },
+    dark: { bg: m(n1[900], n1[1000], .4), card: m(n1[900], n1[800], .45), hi: n1[800], ink: n1[100], muted: n2[200], line: m(n2[800], n2[700], .4), outline: n2[400],
+      primary: a1[200], 'on-primary': a1[800], tonal: a1[700], 'on-tonal': a1[100], chip: a2[700], 'on-chip': a2[100], inv: n1[100], 'inv-ink': n1[800] }
+  };
+}
+function dynPalette(){
+  if (!store.get('dynColor', true) || typeof Android.themeColors !== 'function') return null;
+  let p; try { const j = Android.themeColors(); if (!j) return null; p = JSON.parse(j); } catch(e){ return null; }
+  const ok = h => typeof h === 'string' && /^#[0-9a-f]{6}$/i.test(h);
+  for (const k of ['accent1', 'accent2', 'neutral1', 'neutral2'])
+    for (const t of [0, 10, 50, 100, 200, 400, 500, 600, 700, 800, 900, 1000]) if (!p[k] || !ok(p[k][t])) return null;
+  return p;
+}
+function applyTheme(){
+  const p = dynPalette();
+  const decl = o => Object.entries(o).map(([k, v]) => '--' + k + ':' + v).join(';');
+  let css = '';
+  if (p) { const t = dynTokens(p); css = ':root{' + decl(t.light) + '}@media (prefers-color-scheme: dark){:root{' + decl(t.dark) + '}}'; }
+  let st = document.getElementById('dyn-theme');
+  if (!st) { st = document.createElement('style'); st.id = 'dyn-theme'; document.head.appendChild(st); }
+  if (st.textContent !== css) { st.textContent = css; bars.last = null; }
+  bars();
+}
+function stDynColor(on){ store.set('dynColor', !!on); applyTheme(); toast(on ? 'Kleuren uit je achtergrond' : 'Vaste kleuren (blauw)'); }
+
+/* Koppen: grote titel die bij scrollen omhoog schuift; de bovenste rij (terug, titel klein, knoppen) blijft staan */
+function uiInitHeaders(){
+  document.querySelectorAll('.hdr').forEach(h => {
+    if (h.querySelector('.hrow')) return;
+    const h1 = h.querySelector('h1'), row = document.createElement('div'); row.className = 'hrow';
+    [...h.children].forEach(c => { if (c !== h1) row.appendChild(c); });
+    const back = row.querySelector('.back'), at = back ? back.nextSibling : row.firstChild;
+    if (h.classList.contains('sm')) row.insertBefore(h1, at);
+    else { const hs = document.createElement('span'); hs.className = 'hs'; hs.setAttribute('aria-hidden', 'true'); row.insertBefore(hs, at); }
+    h.insertBefore(row, h.firstChild);
+  });
+}
+function uiHdr(){ return document.querySelector('.screen.on > .hdr'); }
+function uiFit(){ uiScroll(); }
+function uiScroll(){
+  const h = uiHdr(); if (!h) return;
+  const h1 = h.classList.contains('sm') ? null : h.querySelector(':scope > h1');
+  const c = h1 ? scrollY > h1.offsetHeight - 16 : scrollY > 4;
+  if (c && h1) { const hs = h.querySelector('.hs'); if (hs && hs.textContent !== h1.textContent) hs.textContent = h1.textContent; }
+  if (h.classList.contains('compact') !== c) { h.classList.toggle('compact', c); bars(); }
+}
+addEventListener('scroll', uiScroll, { passive: true });
+addEventListener('resize', () => uiFit());
+if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => uiFit()); document.querySelectorAll('.hdr > h1').forEach(h => ro.observe(h)); }
+
+/* Tabbalk onderin op de hoofdschermen */
+const TABS = ['home', 'search', 'backup', 'settings'];
+function uiShown(name){
+  const on = TABS.includes(name);
+  // Via een sprong (bijv. zelftest → toestemmingen) blijft de terugknop zichtbaar
+  const viaJump = jumpTo.busy || (jumpStack.length && jumpStack[jumpStack.length - 1].to === name);
+  document.body.classList.toggle('tabs-on', on);
+  document.body.classList.toggle('tab-root', on && !viaJump);
+  document.querySelectorAll('#tabs button').forEach(b => { const me = b.dataset.t === name; b.classList.toggle('on', me); if (me) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  uiFit(); bars();
+}
+function tabGo(t){
+  if (t === current) { scrollTo({ top: 0, behavior: 'smooth' }); if (t === 'search') $('#gs-q').focus(); return; }
+  jumpStack.length = 0;
+  show(t);
+  if (t === 'search' && !$('#gs-q').value) setTimeout(() => $('#gs-q').focus(), 60);
+}
+
+uiInitHeaders();
+applyTheme();
+uiShown(current);
 /* ---------- start ---------- */
-$('#hver').textContent = 'v' + ver().webName;
+$('#hver').textContent = '(v' + ver().webName + ')';
 bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
 refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); refreshPodTile();
 const po = Android.pendingOpen(); if (po) openTool(po);

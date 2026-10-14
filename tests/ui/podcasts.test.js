@@ -171,7 +171,7 @@ const assert = require('node:assert');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     assert.strictEqual(await pg.evaluate(() => current), 'home');
     // zoeken vindt Podcasts, maar niet het losse podcast-scherm
-    await pg.fill('#gs-q', 'podcasts'); await pg.waitForTimeout(600);
+    await pg.evaluate(() => show('search')); await pg.fill('#gs-q', 'podcasts'); await pg.waitForTimeout(600);
     assert.ok((await pg.$$eval('#gs-res .gi', x => x.map(e => e.innerText))).some(t => /Podcasts/.test(t)));
     assert.ok(await pg.evaluate(() => !gsIndex.some(x => x.scr === 'podcast')));
 

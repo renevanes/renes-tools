@@ -22,7 +22,7 @@ function gsBuildIndex(){
   const DETAIL = ['note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast'];
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);
-    if (scr === 'home' || DETAIL.includes(scr)) return;
+    if (scr === 'home' || scr === 'search' || DETAIL.includes(scr)) return;
     const h1 = sec.querySelector('.hdr h1'), screen = h1 ? h1.textContent.trim() : scr;
     gsIndex.push({scr, el: null, title: screen, sub: 'Openen', key: fold(screen + ' ' + scr)});
     sec.querySelectorAll('.card').forEach(card => {
@@ -53,11 +53,8 @@ function gsInput(){
   clearTimeout(gsTmr);
   const on = q.length >= 2;
   $('#gs-res').style.display = on ? 'block' : 'none';
-  $('#home-groups').style.display = on ? 'none' : '';
-  if (on) $('#home-notes').style.display = 'none';
-  $('#home-tip').style.display = on ? 'none' : '';
-  if (!on) { if (gsQ) Android.searchAll(''); gsQ = ''; gsData = {}; renderDash(); return; }
-  $('#home-dash').style.display = 'none';
+  $('#gs-hint').style.display = on ? 'none' : '';
+  if (!on) { if (gsQ) Android.searchAll(''); gsQ = ''; gsData = {}; return; }
   // Vorige treffers blijven (gedimd) staan tot de nieuwe binnen zijn: geen verspringende pagina.
   const prev = gsData; gsQ = q; gsData = { app: gsApp(q), notes: gsNotes(q), history: gsHistory(q), pending: true, stale: {} };
   for (const k of Object.keys(GS)) if (!['notes', 'app', 'history'].includes(k) && prev[k]) gsData.stale[k] = prev[k];

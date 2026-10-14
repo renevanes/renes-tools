@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(400);
   const groups = () => pg.$$eval('#gs-res h3', x => x.map(e => e.innerText.split('\n')[0].trim()));
-  await pg.fill('#gs-q', 'vingerafdruk'); await pg.waitForTimeout(700);
+  await pg.evaluate(() => show('search')); await pg.fill('#gs-q', 'vingerafdruk'); await pg.waitForTimeout(700);
   console.log('vinger groups', await groups());
   console.log('app items', await pg.$$eval('#gs-res .gi[data-k="app"]', x => x.map(e => e.innerText.replace(/\n/g, ' | '))));
   await pg.click('#gs-res .gi[data-k="app"]'); await pg.waitForTimeout(400);

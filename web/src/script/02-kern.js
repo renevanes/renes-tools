@@ -83,7 +83,21 @@ $('#modal-cancel').onclick = () => closeModal(null);
 $('#modal-ok').onclick = () => { const inp = $('#modal-input'); closeModal(inp.style.display === 'none' ? true : inp.value); };
 $('#modal').onclick = e => { if (e.target === $('#modal')) closeModal(null); };
 function dark(){ return matchMedia('(prefers-color-scheme: dark)').matches; }
-function bars(){ const cs=getComputedStyle(document.documentElement); Android.setBars(cs.getPropertyValue('--brand').trim(), cs.getPropertyValue('--bg').trim(), !dark()); }
+/* Systeembalken in de kleur van de kop (boven) en de tabbalk of achtergrond (onder) */
+function bars(){
+  const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue(n).trim();
+  const h = document.querySelector('.screen.on .hdr');
+  let top = h && h.classList.contains('compact') ? v('--hi') : v('--bg');
+  let bottom = document.body.classList.contains('tabs-on') ? v('--hi') : v('--bg');
+  if (typeof plIsOpen !== 'undefined' && plIsOpen) { // speler (altijd donker) over het hele scherm
+    const pl = ($('#player').style.getPropertyValue('--pl') || '').trim();
+    top = /^#[0-9a-f]{6}$/i.test(pl) ? pl : '#121212'; bottom = '#121212';
+    const key = top + bottom + 'pl'; if (key === bars.last) return; bars.last = key;
+    Android.setBars(top, bottom, false); return;
+  }
+  const key = top + bottom + dark(); if (key === bars.last) return; bars.last = key;
+  Android.setBars(top, bottom, !dark());
+}
 
 function show(name){
   // Weg uit een automatisering die nog niet bewaard is (bijv. via een melding of snelkoppeling): als concept bewaren
@@ -94,8 +108,9 @@ function show(name){
   if (typeof plIsOpen !== 'undefined' && plIsOpen) plClose(); // naar een ander scherm: de speler verkleint
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
   const current_prev = current;
-  if (current_prev === 'home' && !jumpTo.busy) gsResetTool(name);
-  if (name==='home') { jumpStack.length = 0; if (gsQ) setTimeout(gsInput, 0); }
+  if ((current_prev === 'home' || current_prev === 'search') && !jumpTo.busy) gsResetTool(name);
+  if (name==='home') jumpStack.length = 0;
+  if (name==='search' && gsQ) setTimeout(gsInput, 0); // terug van een treffer: opnieuw zoeken (er kan iets veranderd zijn)
   closeSheet();
   current = name; window.scrollTo(0,0);
   if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #voice.on, #lockscr.on, #sheet.on, #sleepdlg.on, #player.on')) h.focus({ preventScroll: true }); }, 0);
@@ -132,9 +147,10 @@ function show(name){
   if (name==='info') renderInfo();
   if (name==='auto') enterAuto();
   if (name==='autoed') enterAutoEd();
+  if (typeof uiShown === 'function') uiShown(name);
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); renderDash(); refreshAutoTile(); refreshPodTile(); refreshVpnTile(); refreshLocTile(); }
 }
-const BACK = {redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', car:'home', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
+const BACK = {search:'home', redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', car:'home', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
 window.goBack = function(){
   // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
   if ($('#lockscr').classList.contains('on')) return false;
@@ -148,7 +164,6 @@ window.goBack = function(){
     askChoice('Wijzigingen opslaan?', 'Je hebt deze automatisering aangepast.', 'Opslaan', 'Weggooien', () => aeSave(), () => { aeRule = null; aeSnap = null; store.set('autoDraft', null); show('auto'); });
     return true;
   }
-  if (current==='home' && gsQ) { $('#gs-q').value = ''; gsInput(); return true; }
   // Na een sprong: terug naar waar je vandaan kwam, maar alleen vanaf het scherm waar je naartoe sprong
   // (ben je binnen de tool verder gegaan, dan eerst gewoon terug binnen de tool).
   if (jumpStack.length && jumpStack[jumpStack.length - 1].to === current) { show(jumpStack.pop().from); return true; }
@@ -179,5 +194,5 @@ window.openTool = function(n){
   if (n === 'music-now' && $('#lockscr').classList.contains('on')) { show('music'); return; } // op slot: niet zomaar opnemen
   if (n === 'music-now') { show('music'); setTimeout(() => { const st = rdJson(Android.musicState(), {}); if (current === 'music' && !$('#lockscr').classList.contains('on') && st.state !== 'recording' && st.state !== 'sending') muToggle(); }, 400); return; }
   if (typeof n === 'string' && n.startsWith('note:')) { show('notes'); openNote(n.slice(5)); return; } if (n==='redial') show('redial'); if (n==='wa') show('wa'); if (n==='tracks') show('tracks'); if (n==='sms') show('sms'); if (n==='calls') show('calls'); if (n==='history') show('history'); if (n==='recorder') show('recorder'); if (n==='car') show('car'); if (n==='pdf' || n==='pdf-share') show('pdf'); if (n==='podcasts') show('podcasts'); if (n==='spotify') show('spotify'); if (n==='vpn') show('vpn'); if (n==='loc') show('loc'); if (n==='kluis') show('kluis'); if (n==='notes') show('notes'); if (n==='contacts') show('contacts'); if (n==='transcripts') show('transcripts'); if (n==='radio') show('radio'); if (n==='music') show('music'); if (n==='settings') show('settings'); if (n==='backup') show('backup'); if (n==='selftest') show('selftest'); };
-window.onResumeApp = function(){ appPaused = false; if (typeof plTick === 'function') plTick(); if (current==='car') enterCar(); if (current==='kluis') klRender(); if (current==='pdf') enterPdf(); if (current==='podcasts') pcPoll(true); if (current==='spotify') spRender(); if (current==='vpn') vpRender(); if (current==='loc') lcRender(); uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
+window.onResumeApp = function(){ appPaused = false; if (typeof applyTheme === 'function') applyTheme(); if (typeof plTick === 'function') plTick(); if (current==='car') enterCar(); if (current==='kluis') klRender(); if (current==='pdf') enterPdf(); if (current==='podcasts') pcPoll(true); if (current==='spotify') spRender(); if (current==='vpn') vpRender(); if (current==='loc') lcRender(); uncache('smsInfo'); uncache('waInfo'); if (current==='sms') enterSms(); if (current==='recorder') loadRecorder(); if (current==='history') loadHistory(); if (current==='redial'){ renderPerms(); pollOnce(); } if (current==='wa') renderWa(true); if (current==='tracks') enterTracks(); if (current==='contacts') enterContacts(); if (current==='transcripts') enterTranscripts(); if (current==='settings') enterSettings(); if (current==='home') renderDash(); if (current==='auto') enterAuto(); if (current==='autoed' || store.get('autoDraft', null)) autoDraftBack(); if (current==='selftest' && sfRecheck) { sfRecheck = false; if (!$('#sf-run').disabled) sfRun(); } if (current==='contact') { Android.contactsSnapshot(); ctRenderDetail(); } refreshTile(); refreshWaTile(); refreshTrackTile(); };
 
