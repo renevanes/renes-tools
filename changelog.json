@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.75",
+    "date": "2026-10-14",
+    "changes": [
+      "Versie en updates: Rene's Tools is nu vrije software (GPL-3.0-or-later); met knoppen naar de broncode en de licenties"
+    ]
+  },
+  {
     "version": "1.74",
     "date": "2026-10-14",
     "changes": [

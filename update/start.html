@@ -235,7 +235,7 @@ if (!window.Android) window.Android = (function(){
     cfg(){ return this._cfg; }, cfgSet(j){ this._cfg = j; },
     calendar(){ const n = Date.now(); return JSON.stringify({perm: true, events: [
       {title: 'Tandarts', begin: n + 2 * 36e5, end: n + 3 * 36e5, allDay: false, loc: 'Coolsingel 1', id: 1, color: '#e11d48'},
-      {title: 'Overleg ESAPE', begin: n + 26 * 36e5, end: n + 27 * 36e5, allDay: false, loc: '', id: 2, color: '#2563eb'},
+      {title: 'Overleg met team', begin: n + 26 * 36e5, end: n + 27 * 36e5, allDay: false, loc: '', id: 2, color: '#2563eb'},
       {title: 'Verjaardag Jos', begin: n + 50 * 36e5, end: n + 74 * 36e5, allDay: true, loc: '', id: 3, color: '#16a34a'}]}); },
     calendarPermission(){}, openEvent(id){ this._ev = id; }, nextAlarm(){ return Date.now() + 15 * 36e5; }, openClock(){ this._clock = true; },
     weather(){ setTimeout(() => onWeather({t: Date.now(), temp: 14.6, code: 3, day: true, wind: 18, rainSoon: 60, place: 'Rotterdam',

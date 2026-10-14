@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.74",
-  "versionCode": 75,
-  "nativeLevel": 69,
+  "versionName": "1.75",
+  "versionCode": 76,
+  "nativeLevel": 70,
   "web": "index.html",
-  "webSha256": "32943179bdb1240020e9090b648b15a9407a3c9f0a4e97a4d125943740773526",
+  "webSha256": "4ef4f14b74de4ecd6d7d3a1c8f4bb69b32c248479e494ee5afb83922dd6e8879",
   "start": "start.html",
-  "startSha256": "5e128acb738bd04666077055a4ca3b8acb635c020118f718e3dcd047552082c3",
+  "startSha256": "56c443c262bde51c34d39118436679e990560c8af0cfb8b4c764cf16aa39c5b5",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3c0ba9fcf264d598e41cfa7d6c2d236628292f61b85cf72824f1e15d73cb67a0",
+  "apkSha256": "822b8704714a5e3b8a4ad1f6ea81ba71ef91588fc631b2079af7d4534de9d872",
   "changelog": [
+    {
+      "version": "1.75",
+      "date": "2026-10-14",
+      "changes": [
+        "Versie en updates: Rene's Tools is nu vrije software (GPL-3.0-or-later); met knoppen naar de broncode en de licenties"
+      ]
+    },
     {
       "version": "1.74",
       "date": "2026-10-14",
@@ -674,5 +681,5 @@
       ]
     }
   ],
-  "webSig2": "cvfC1A7w5dyUv21lK7rP6Mk0KhWwdyIj5cent8UWk2Fmr301Pzhfv5Vp3rZEQrQINt0eX2plCbpcFdfX9Ns0IZ4ar3kUT+1SH9lIVSLLhs11RXi7HziBXomXVrjmraYhiTTkMYi5xL+A0DpcVHUGZMhPYI5XlyEmIL0sPUU5ElUcoBSd15EOV4AmaAusBlAj6Obe9a4PoGRcc2rofaIFWKJBr9ESt30EcTQMR6fIwxwo/M9UrU/NUk9qJw7BAcWGgRzw+BgxF5TqJLg7JM6zFbJUvTiLb6tYhOi+7QSQRGG6ntldNh3zSR5dSrhMtXmnsvhs+RxWjhFYmAS08esVfX0fLBTNORl0uFpNGcB/dP+y4ep1y3plHrAXHLhsp9iorO5JqWC5UyRMxFvaNtbzExCrBc6ZmNrUvLGbcUpGU0FRSqh+ytYBtfuGEYrmH2UMUgCOLRUvlQ8OsVF9s46GxP678WYIrhg6gi0Beoxwx7i6iA/KtEshLERWkUkAaORq"
+  "webSig2": "B8EZDEvMb5HgzoxNu2pD1ZmPIjpNg4KxzPCPW4R/ig3Sp/0yoj++eXQpxC7I8lv/bO1edg6ASXTpAkS356wjIkNC0eDYzAbaLksCkMgWtLoI3wjspmlmyIoLeLmMGYFAh5DMTBTCsTs1v49mptOkqOxW1zudyAcFT9nDR2AE3EXdztOOU59XFH/7+fx3vM5rkAmzqrzbKeS876noSBrNFeUZRqywG052w21fY1ykktga86RO+fdPCdwaYCchBH5JmXVhK0wnPdsFbyaA966jx0eGuOMMDPR7deiCInuFQZjkqEZrSEnfJhy9kW6hKuDR7PhMl0DoOwEnSv80Fadcof1JZkxcEpXbeYaDETsuz9KUv2nVKY6rKLHf00WVhbYS8NZkDZZpGlVSWf1FcL2pNqGZvDqohzB+GUfXDrm7kR1eRh5xiPyTiMJW+fECnpC1rkr6n1JgNsWrCeAz/LzHGSSIDUSz5o0P7DEaHd8xlC+gIdx/btCf+wQXDBB4EyvY"
 }
