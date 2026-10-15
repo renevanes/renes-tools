@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.76",
+    "date": "2026-10-15",
+    "changes": [
+      "PDF bewerken: voeg tekst, een datum en een getekende handtekening toe, verplaats of vergroot je toevoegingen en maak een nieuwe kopie om op te slaan of te delen. Het oorspronkelijke document blijft behouden."
+    ]
+  },
+  {
     "version": "1.75",
     "date": "2026-10-14",
     "changes": [

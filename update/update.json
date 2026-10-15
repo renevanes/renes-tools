@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.75",
-  "versionCode": 76,
-  "nativeLevel": 70,
+  "versionName": "1.76",
+  "versionCode": 77,
+  "nativeLevel": 71,
   "web": "index.html",
-  "webSha256": "4ef4f14b74de4ecd6d7d3a1c8f4bb69b32c248479e494ee5afb83922dd6e8879",
+  "webSha256": "58e9d55d5e9de750c38e62a3934a103095eb4dd03c5efcbdb6d773889d74cd1b",
   "start": "start.html",
   "startSha256": "56c443c262bde51c34d39118436679e990560c8af0cfb8b4c764cf16aa39c5b5",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "822b8704714a5e3b8a4ad1f6ea81ba71ef91588fc631b2079af7d4534de9d872",
+  "apkSha256": "f9f60c2003fa293e9ea2ca87368eae2d3ac17123bdb64326cc82de52ae964260",
   "changelog": [
+    {
+      "version": "1.76",
+      "date": "2026-10-15",
+      "changes": [
+        "PDF bewerken: voeg tekst, een datum en een getekende handtekening toe, verplaats of vergroot je toevoegingen en maak een nieuwe kopie om op te slaan of te delen. Het oorspronkelijke document blijft behouden."
+      ]
+    },
     {
       "version": "1.75",
       "date": "2026-10-14",
@@ -681,5 +688,5 @@
       ]
     }
   ],
-  "webSig2": "B8EZDEvMb5HgzoxNu2pD1ZmPIjpNg4KxzPCPW4R/ig3Sp/0yoj++eXQpxC7I8lv/bO1edg6ASXTpAkS356wjIkNC0eDYzAbaLksCkMgWtLoI3wjspmlmyIoLeLmMGYFAh5DMTBTCsTs1v49mptOkqOxW1zudyAcFT9nDR2AE3EXdztOOU59XFH/7+fx3vM5rkAmzqrzbKeS876noSBrNFeUZRqywG052w21fY1ykktga86RO+fdPCdwaYCchBH5JmXVhK0wnPdsFbyaA966jx0eGuOMMDPR7deiCInuFQZjkqEZrSEnfJhy9kW6hKuDR7PhMl0DoOwEnSv80Fadcof1JZkxcEpXbeYaDETsuz9KUv2nVKY6rKLHf00WVhbYS8NZkDZZpGlVSWf1FcL2pNqGZvDqohzB+GUfXDrm7kR1eRh5xiPyTiMJW+fECnpC1rkr6n1JgNsWrCeAz/LzHGSSIDUSz5o0P7DEaHd8xlC+gIdx/btCf+wQXDBB4EyvY"
+  "webSig2": "lErwGAe1jEspcWwD7F2bV0st+COWoO/DAktrSqo69j7Fmrq6ESc6qfcmYPVRDL9EryUZydFzwQY7ez4b3Rs68FZNXBs/EJ48EHJ5tuI6goSyr6XByTk6wO5mwBUn8uSqi915iJlINaeJDZHQjiqqu/sMeWuE388/0ByYJP0QSy1rrw0wofchXr37wup6yjK5rnntHK0ywz0bOtbMsSZQ8R7C0IWEhhAz2dRndWFLkeIs/pb7PWjeN87gI033DYKXrsFA5khggqKm+PTRs4qKlOn+oIMurQcBFu/4if6U0Cfid6xkvUsZnk1/IxZxcvBI9SP0lyOe+iXvdSG0+CpWaN5oh3ym7k4MBDoZ51sLuk3GVfm5RuWPxTq4qLaVQf7LA1bDbOBJwxl0EUXyuzmoH26v4wooeFbSLuMCHqtydxAcbuttwtrV3Zs8t20JgrqjQwfbaPXkaw6WqCUTKliXkFXlEs/3WUM9e80oyH0g7roYl0ZrDON8oUsUr5L9yFiR"
 }
