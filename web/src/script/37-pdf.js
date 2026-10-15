@@ -7,6 +7,7 @@ function enterPdf(){
   pdfIn = rdJson(Android.pdfInfo(), {});
   pdfRender();
   pdfRenderDef();
+  pdfEditSource();
 }
 /* Standaard PDF-app: Android laat dit de gebruiker zelf kiezen ("Altijd"), wij helpen erbij */
 function pdfRenderDef(){
@@ -24,7 +25,8 @@ window.onPdf = function(r){
   if (r.error || (r.kind !== 'images' && r.kind !== 'pdf')) pdfSetBusy('');
   if (r.error) { toast(r.error); if (current === 'pdf') pdfRender(); return; }
   if (r.kind === 'images') { pdfImgs = rdJson(Android.pdfImages(), []); toast(r.count + (r.count === 1 ? ' plaatje' : ' plaatjes') + ' toegevoegd' + (r.warn ? ' · ' + r.warn : '')); }
-  if (r.kind === 'pdf') { pdfIn = r; pdfInGen++; pdfSel = new Set(); $('#pdf-range').value = ''; }
+  if (r.kind === 'pdf') { pdfIn = r; pdfInGen++; pdfSel = new Set(); $('#pdf-range').value = ''; pdfEditSource(); }
+  if (r.kind === 'edited') { pdfEditSaved(r); toast('✓ Bewerkte PDF-kopie gemaakt. Kies onder Gemaakt waar je hem opslaat of deelt.'); }
   if (r.kind === 'done') {
     pdfImgs = rdJson(Android.pdfImages(), []);
     const n = (r.made || []).length;
@@ -64,6 +66,7 @@ function pdfRender(){
     box.querySelectorAll('.ppage').forEach(b => { const on = pdfSel.has(+b.dataset.i); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   }
   if (pdfBusy) document.querySelectorAll('#s-pdf main button').forEach(b => b.disabled = true);
+  pdfEditControls();
 }
 /* Voorbeelden in stukjes laden, zodat het scherm niet vastloopt bij grote PDF's */
 function pdfLoadThumbs(from){

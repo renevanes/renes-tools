@@ -45,14 +45,16 @@ final class PdfSplit {
     final Map<Integer, Object> cache = new HashMap<>();
     final Map<Integer, Object[]> objStmCache = new HashMap<>();
     Dict trailer;
+    boolean repaired;
+    boolean hybridXref;
     final List<Dict> pages = new ArrayList<>();
     final List<Ref> pageRefs = new ArrayList<>();
 
     PdfSplit(byte[] data) throws IOException {
         d = data;
         if (indexOf("%PDF-".getBytes(StandardCharsets.US_ASCII), 0, Math.min(d.length, 1024)) < 0) throw new PdfException("Dit is geen PDF");
-        try { readXrefChain(); } catch (Exception e) { offsets.clear(); inStream.clear(); trailer = null; }
-        if (trailer == null || trailer.get("Root") == null || offsets.isEmpty() && inStream.isEmpty()) rebuild();
+        try { readXrefChain(); } catch (Exception e) { repaired = true; offsets.clear(); inStream.clear(); trailer = null; }
+        if (trailer == null || trailer.get("Root") == null || offsets.isEmpty() && inStream.isEmpty()) { repaired = true; rebuild(); }
         if (trailer.get("Encrypt") != null) throw new Encrypted();
         Object root = resolve(trailer.get("Root"));
         if (!(root instanceof Dict)) throw new PdfException("PDF is beschadigd (geen catalogus)");
@@ -375,7 +377,7 @@ final class PdfSplit {
             if (trailer == null) trailer = t;
             List<Integer> tableFrees = new ArrayList<>(frees);
             Object xs = t.get("XRefStm"); // hybride bestand: extra tabel als stream
-            if (xs instanceof Num) readXrefAt((long) ((Num) xs).v());
+            if (xs instanceof Num) { hybridXref = true; readXrefAt((long) ((Num) xs).v()); }
             // Pas na de XRefStm: in een hybride bestand staan objecten in object-streams als "f" in de gewone tabel
             for (int num : tableFrees) if (!offsets.containsKey(num) && !inStream.containsKey(num)) offsets.put(num, -1L);
             frees.clear();

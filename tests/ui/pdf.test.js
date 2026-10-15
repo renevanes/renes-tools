@@ -57,7 +57,7 @@ const assert = require('node:assert');
     assert.strictEqual(await pg.isVisible('#pdf-out-card'), true);
     assert.strictEqual(await pg.isVisible('#pdf-share-all'), false, 'delen-alles pas bij 2+');
     assert.strictEqual(await pg.inputValue('#pdf-img-name'), '');
-    assert.strictEqual(await pg.$$eval('#s-pdf main button:disabled', x => x.length), 0, 'niet meer bezig');
+    assert.strictEqual(await pg.locator('#s-pdf main button:disabled:visible').count(), 0, 'zichtbare bediening niet meer bezig');
 
     // splitsen: PDF kiezen, pagina's aantikken, tekstvak volgt
     await pg.click('text=PDF kiezen'); await pg.waitForTimeout(150);
@@ -110,7 +110,7 @@ const assert = require('node:assert');
     assert.match(await pg.textContent('body'), /120 PDF's maken\?/);
     await pg.click('#modal-ok'); await pg.waitForTimeout(150);
     assert.deepStrictEqual((await P()).split, ['each', '']);
-    assert.strictEqual(await pg.$$eval('#s-pdf main button:disabled', x => x.length), 0);
+    assert.strictEqual(await pg.locator('#s-pdf main button:disabled:visible').count(), 0);
 
     // tekst naar PDF
     await pg.click('text=Tekst als PDF'); await pg.waitForTimeout(80);

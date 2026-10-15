@@ -69,10 +69,29 @@ public class FeatureBridge {
         }, "pdf-images").start();
     }
     @JavascriptInterface public String pdfInfo() {
-        try { return PdfTools.inFile(ctx).isFile() ? new JSONObject().put("name", PdfTools.inName).put("pages", PdfTools.inPages).put("lossless", PdfTools.inLossless).toString() : "{}"; }
+        try { return PdfTools.inFile(ctx).isFile() ? new JSONObject().put("name", PdfTools.inName).put("pages", PdfTools.inPages).put("lossless", PdfTools.inLossless).put("revision", PdfTools.inRevision).toString() : "{}"; }
         catch (Exception e) { return "{}"; }
     }
     @JavascriptInterface public String pdfThumb(int i) { return PdfTools.pageThumb(ctx, i, 160); }
+    @JavascriptInterface public void pdfEditPreview(String revision, int page) {
+        new Thread(() -> {
+            String result;
+            try { result = PdfEditor.preview(ctx, revision, page).toString(); }
+            catch (Throwable e) {
+                try { result = new JSONObject(PdfTools.err(e)).put("revision", revision).put("page", page).toString(); }
+                catch (Exception ignored) { result = "{}"; }
+            }
+            a.js("onPdfEditPreview", result);
+        }, "pdf-edit-preview").start();
+    }
+    @JavascriptInterface public void pdfEditSave(String revision, String layers, String name) {
+        new Thread(() -> {
+            String result;
+            try { File f = PdfEditor.save(ctx, revision, layers, name); result = new JSONObject().put("kind", "edited").put("revision", revision).put("made", new org.json.JSONArray().put(f.getName())).toString(); }
+            catch (Throwable e) { result = PdfTools.err(e); }
+            a.js("onPdf", result);
+        }, "pdf-edit-save").start();
+    }
     /** mode: each (elke pagina apart), pick (gekozen pagina's samen), parts (elke groep in "1-3, 4-6" apart). */
     @JavascriptInterface public void pdfSplit(String mode, String ranges) {
         new Thread(() -> {

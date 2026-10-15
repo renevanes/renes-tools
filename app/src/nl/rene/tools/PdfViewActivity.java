@@ -576,6 +576,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         m.add(0, 6, 0, "Pagina's eruit halen of splitsen").setEnabled(has);
         m.add(0, 7, 0, "Openen met andere app").setEnabled(has);
         m.add(0, 8, 0, "Standaard PDF-app");
+        m.add(0, 9, 0, "Tekst of handtekening toevoegen").setEnabled(has);
         pm.setOnMenuItemClickListener(it -> {
             switch (it.getItemId()) {
                 case 1: askPage(); break;
@@ -586,6 +587,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                 case 6: toTools(); break;
                 case 7: openWith(); break;
                 case 8: defaultDialog(this); break;
+                case 9: toTools(); break;
                 default: return false;
             }
             return true;

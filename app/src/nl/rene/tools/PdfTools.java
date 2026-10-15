@@ -303,6 +303,7 @@ final class PdfTools {
     static volatile String inName = "document";
     static volatile int inPages = 0;
     static volatile boolean inLossless = true;
+    static volatile String inRevision = "";
     /** Slot voor de te splitsen PDF (los van de plaatjes). */
     static final java.util.concurrent.locks.ReentrantLock IN = new java.util.concurrent.locks.ReentrantLock();
     /** Groter dan dit: niet zelf ontleden (geheugen), maar Android de pagina's laten tekenen. */
@@ -315,6 +316,7 @@ final class PdfTools {
     }
 
     private static String openPdfLocked(Context c, Uri u) {
+        inRevision = "";
         try {
             File f = inFile(c);
             copy(c, u, f, MAX_IN);
@@ -329,6 +331,7 @@ final class PdfTools {
     }
 
     private static String openPdfFileLocked(Context c, File src, String name) {
+        inRevision = "";
         try {
             File f = inFile(c);
             if (!src.renameTo(f)) { try (InputStream in = new FileInputStream(src); OutputStream o = new FileOutputStream(f)) { byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r); } src.delete(); }
@@ -352,7 +355,8 @@ final class PdfTools {
             try (ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f, ParcelFileDescriptor.MODE_READ_ONLY); PdfRenderer r = new PdfRenderer(pfd)) { inPages = r.getPageCount(); }
             catch (Exception e2) { f.delete(); throw new Exception("Deze PDF is niet te lezen"); }
         }
-        return new JSONObject().put("name", inName).put("pages", inPages).put("lossless", inLossless).toString();
+        inRevision = java.util.UUID.randomUUID().toString();
+        return new JSONObject().put("name", inName).put("pages", inPages).put("lossless", inLossless).put("revision", inRevision).toString();
     }
 
     /** Voorbeeld van een pagina (0-gebaseerd) als data-URL. */
