@@ -49,6 +49,11 @@ het ergens anders wilt), Java 17+ (javac), Python 3, Node 20 met `npm i playwrig
 Nieuwe functie = ook een test in `tests/ui/` (en bij logica in `tests/jvm/`). Een UI-test slaagt als hij `errors []` afdrukt.
 
 ## Tegelijk werken met andere agents
+**Vaste opdracht van Rene:** publiceer functionele wijzigingen standaard ook als ondertekende app-update via
+`AGENT=Codex ./publish.sh` (of de eigen agentnaam), na geslaagde tests en onafhankelijke review. Hiervoor is geen
+aparte publicatiebevestiging per wijziging nodig. Meld bij een ontbrekende echte releasesleutel of andere blokkade
+concreet wat de publicatie verhindert, met de branch en commit die klaarstaan.
+
 1. **Werk in je eigen branch of git-worktree** (`git worktree add ../rt-codex -b codex/onderwerp origin/main`), nooit
    met twee agents in dezelfde map. Een nieuwe worktree heeft geen `keys/release.p12`, `keys/keystore.pass` en
    `node_modules`: kopieer de twee sleutelbestanden uit de hoofdmap (nooit committen) en installeer Playwright.
