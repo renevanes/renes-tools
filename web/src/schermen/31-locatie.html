@@ -34,9 +34,9 @@
       <div id="lc-results"></div>
       <div id="lc-map" class="lmap" style="margin-top:10px" role="application" aria-label="Kaart: tik om de plek te kiezen"></div>
       <p class="note" id="lc-pick" style="margin-bottom:0">Tik op de kaart om een plek te kiezen.</p>
-      <button class="big" id="lc-go" style="margin-top:10px" onclick="lcGo()" disabled>📍 Hier zetten</button>
+      <button class="big" id="lc-go" style="margin-top:10px" onclick="lcGo()" disabled data-icon="pin">Hier zetten</button>
       <div class="row" style="gap:8px;margin-top:8px">
-        <button class="big ghost" style="flex:1;font-size:15px;padding:12px" onclick="lcSavePlace()">★ Plek bewaren</button>
+        <button class="big ghost" style="flex:1;font-size:15px;padding:12px" onclick="lcSavePlace()" data-icon="star">Plek bewaren</button>
         <button class="big ghost" style="flex:1;font-size:15px;padding:12px" id="lc-here" onclick="lcHere()">◎ Waar ben ik?</button>
       </div>
       <label class="chk" style="margin-top:6px"><input type="checkbox" id="lc-jitter" onchange="Android.locJitter(this.checked)"> Een paar meter bewegen (natuurlijker)</label>

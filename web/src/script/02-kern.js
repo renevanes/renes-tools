@@ -90,8 +90,7 @@ function bars(){
   let top = h && h.classList.contains('compact') ? v('--hi') : v('--bg');
   let bottom = document.body.classList.contains('tabs-on') ? v('--hi') : v('--bg');
   if (typeof plIsOpen !== 'undefined' && plIsOpen) { // speler (altijd donker) over het hele scherm
-    const pl = ($('#player').style.getPropertyValue('--pl') || '').trim();
-    top = /^#[0-9a-f]{6}$/i.test(pl) ? pl : '#121212'; bottom = '#121212';
+    top = '#12181B'; bottom = '#12181B';
     const key = top + bottom + 'pl'; if (key === bars.last) return; bars.last = key;
     Android.setBars(top, bottom, false); return;
   }
@@ -180,7 +179,7 @@ function openSheet(title, sub, acts, onDismiss){
   sheetAt = Date.now(); // het loslaten na lang indrukken mag het menu niet meteen sluiten
   $('#sheet-title').textContent = title; $('#sheet-sub').textContent = sub || '';
   const box = $('#sheet-acts'); box.innerHTML = '';
-  acts.forEach(([label, fn]) => { const b = document.createElement('button'); b.textContent = label; b.onclick = () => { sheetDismiss = null; closeSheet(); fn(); }; box.appendChild(b); });
+  acts.forEach(([label, fn, icon]) => { const b = document.createElement('button'); b.textContent = label; if(UI_ICONS.has(icon))b.dataset.icon=icon; b.onclick = () => { sheetDismiss = null; closeSheet(); fn(); }; box.appendChild(b); });
   $('#sheet').classList.add('on');
 }
 function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.classList.remove('on'); const d = sheetDismiss; sheetDismiss = null; if (d) d(); }

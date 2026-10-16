@@ -15,8 +15,9 @@ const assert = require('node:assert');
     assert.strictEqual(await pg.isVisible('#plbar'), false, 'nog niets aan het luisteren');
     assert.strictEqual(await pg.$$eval('#pc-list .srow', x => x.length), 2, 'populair geladen');
     assert.match(await pg.textContent('#pc-list-label'), /Populair in Nederland/);
-    // geen kapot plaatje: zonder hoesje een 🎧
-    assert.match(await pg.textContent('#pc-list .srow:nth-child(2) .pcart'), /🎧/);
+    // Zonder hoesje blijft het lokale podcasticoon zichtbaar.
+    assert.strictEqual(await pg.locator('#pc-list .srow:nth-child(2) .pcart [data-icon="headphones"]').count(),1);
+    assert.notStrictEqual(await pg.locator('#pc-list .srow:nth-child(2) .pcart .ui-icon').evaluate(e=>getComputedStyle(e,'::before').maskImage),'none');
 
     // Zoeken (met fout en opnieuw)
     await pg.fill('#pc-q', 'fout'); await pg.waitForTimeout(800);

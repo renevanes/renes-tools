@@ -103,7 +103,7 @@ function gsRender(){
   const st = gsData.stale || {};
   const html = Object.keys(GS).filter(k => (gsData[k] || st[k]) && (gsData[k] || st[k]).total).map(k => {
     const g = gsData[k] || st[k], d = GS[k], tot = g.total + (g.capped ? '+' : '');
-    return '<div class="card gsg' + (gsData[k] ? '' : ' stale') + '"><h3><span aria-hidden=true>' + d[0] + '</span>' + d[1] + ' <span class=n>' + tot + '</span>' +
+    return '<div class="card gsg' + (gsData[k] ? '' : ' stale') + '"><h3>'+uiToolIcon(k) + d[1] + ' <span class=n>' + tot + '</span>' +
       (g.total > g.items.length ? '<button class=more data-k="' + k + '" onclick="gsMore(this.dataset.k)">Alle ' + tot + ' ›</button>' : '') + '</h3>' +
       g.items.map(x => gsItem(k, x, ql)).join('') + '</div>';
   }).join('');

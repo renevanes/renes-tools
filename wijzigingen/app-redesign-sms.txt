@@ -1,0 +1,3 @@
+Een nieuw ontwerp voor de hele app: rustige kleuren, heldere typografie, compactere knoppen en consistente lijniconen. Ook lijsten, dialogen, de speler en de bediening van de telefoon-skin zijn bijgewerkt.
+SMS-backup herstelt een leeg antwoord van de mappen-app na het maken of hernoemen van bestanden. Een eerdere backup blijft behouden als veilig vervangen niet lukt.
+SMS-backup toont de gekozen map, een duidelijke foutmelding en knoppen om opnieuw te proberen of een andere backup-map te kiezen.

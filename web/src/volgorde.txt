@@ -1,6 +1,8 @@
 # Volgorde waarin tools/web-samenvoegen.py de onderdelen tot web/index.html samenvoegt.
 kop.html
 stijl.css
+iconen.css
+ontwerp.css
 body-begin.html
 schermen/01-home.html
 schermen/02-auto-redial.html
@@ -37,6 +39,7 @@ schermen/32-zoeken.html
 speler.html
 vensters.html
 script/00-begin.js
+script/00-iconen.js
 script/01-testbrug.js
 script/02-kern.js
 script/03-auto-redial.js

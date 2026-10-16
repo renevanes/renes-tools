@@ -136,10 +136,10 @@ function renderNotes(){
     }
     const rem = noteRems[n.id];
     const count=childCounts.get(n.id)||0,expanded=notesExpanded.has(n.id),depth=q||notesScope==='children'?0:Math.min(r.depth,3);
-    rows.push('<div class="notes-tree-row" style="padding-left:'+depth*14+'px"><button class="nrow" data-note-id="'+esc(n.id)+'" onclick="openNote(' + jsq(n.id) + ')"><span class="note-overview-avatar" aria-hidden="true">'+(items.length?'☷':'≡')+'</span><span class="note-row-content"><span class=r1><b>' + (rem ? '<span class=nrem>🔔</span> ' : '') + hl(title, q) + '</b><small>' +
+    rows.push('<div class="notes-tree-row" style="padding-left:'+depth*14+'px"><button class="nrow" data-note-id="'+esc(n.id)+'" onclick="openNote(' + jsq(n.id) + ')"><span class="note-overview-avatar" aria-hidden="true">'+uiIcon(items.length?'notes':'document')+'</span><span class="note-row-content"><span class=r1><b>' + (rem ? '<span class=nrem>'+uiIcon('bell')+'</span> ' : '') + hl(title, q) + '</b><small>' +
       (items.length ? (items.length - open) + '/' + items.length + ' ✓' : esc(fmtD(n.updated||0))) + '</small></span>' +
       (parent?'<span class=note-parent-label>↳ Onder '+esc(parent.title||'Zonder titel')+'</span>':'')+'<span class=r2>' + (sub || 'Open deze notitie') + '</span></span></button>'+
-      (count&&notesScope==='all'&&!q?'<button class="note-tree-toggle '+(expanded?'expanded':'')+'" data-expand-id="'+esc(n.id)+'" aria-label="Sublijsten van '+esc(title)+'" aria-expanded="'+expanded+'" onclick="notesExpand('+jsq(n.id)+')"><span aria-hidden="true">›</span><small>'+count+'</small></button>':'')+'</div>');
+      (count&&notesScope==='all'&&!q?'<button class="note-tree-toggle '+(expanded?'expanded':'')+'" data-expand-id="'+esc(n.id)+'" aria-label="Sublijsten van '+esc(title)+'" aria-expanded="'+expanded+'" onclick="notesExpand('+jsq(n.id)+')">'+uiIcon('chevron-right')+'<small>'+count+'</small></button>':'')+'</div>');
   }
   $('#notes-list').innerHTML = rows.join('') || '<p class=note style="padding:14px">' +
     (q ? 'Niets gevonden.' : notesScope==='children'?'Nog geen sublijsten. Open een lijst om er een toe te voegen.':'Nog geen notities. Tik op + om een lijstje te maken.') + '</p>';
@@ -222,7 +222,7 @@ function noteRepeatShow(){
 function noteSetRepeat(v){
   const n = noteById(noteCur); if (!n) return;
   if (!v) delete n.repeat; else { const [every, k] = v.split(':'); n.repeat = {every, n: +k, last: Date.now()}; }
-  touch(n); noteRepeatShow(); toast(v ? '🔁 Dit lijstje herhaalt' : 'Herhalen staat uit');
+  touch(n); noteRepeatShow(); toast(v ? 'Dit lijstje herhaalt' : 'Herhalen staat uit');
 }
 function addItem(){
   const inp = $('#note-add'), t = inp.value.trim(); if (!t) { inp.focus(); return; }

@@ -12,7 +12,7 @@ function noteRemShow(){
   const l = noteRemList(noteCur);
   $('#note-rem').value = localIso(Date.now() + 36e5);
   $('#note-rem-del').style.display = l.length > 1 ? 'block' : 'none';
-  $('#note-rem-list').innerHTML = l.map(r => '<div class="remrow"><span>🔔 ' + esc(new Date(r.t).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) +
+  $('#note-rem-list').innerHTML = l.map(r => '<div class="remrow"><span>'+uiIcon('bell')+' ' + esc(new Date(r.t).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) +
     (r.rep ? ' <small>· ' + esc(REM_REP[r.rep] || '') + '</small>' : '') + '</span><button class="mini" data-id="' + esc(r.id) + '" onclick="noteDelOneRem(this.dataset.id)" aria-label="Herinnering weghalen">Weghalen</button></div>').join('');
   noteUiSummaries();
 }
@@ -31,7 +31,7 @@ function noteSetRem(){
   if (typeof Android.noteRemindAdd === 'function') Android.noteRemindAdd(n.id, n.title || 'Notitie', String(t), rep);
   else Android.noteRemind(n.id, n.title || 'Notitie', String(t));
   $('#note-rem-rep').value = '';
-  noteRemShow(); toast('🔔 Herinnering gezet' + (rep ? ' (' + REM_REP[rep] + ')' : ''));
+  noteRemShow(); toast('Herinnering gezet' + (rep ? ' (' + REM_REP[rep] + ')' : ''));
 }
 /* ---------- Snelkoppelingen naar één notitie ---------- */
 function notePins(where){ try { return JSON.parse(Android.notePins(where)) || []; } catch(e){ return []; } }
@@ -43,7 +43,7 @@ function notePinShow(){
   $('#note-pin-info').textContent = skin && onSkin ? '✓ Staat op je telefoon-skin.' : 'Zo open je dit lijstje (bijvoorbeeld je boodschappen) met één tik.';
   noteUiSummaries();
 }
-function notePinApp(on){ notesSaveNow(); Android.notePinSet('app', noteCur, on); noteUiSummaries();toast(on ? '📌 Staat op het startscherm van Rene\'s Tools' : 'Van het startscherm gehaald'); }
+function notePinApp(on){ notesSaveNow(); Android.notePinSet('app', noteCur, on); noteUiSummaries();toast(on ? 'Staat op het startscherm van Rene\'s Tools' : 'Van het startscherm gehaald'); }
 function notePinPhone(){
   const n = noteById(noteCur); if (!n) return;
   notesSaveNow();
@@ -51,7 +51,7 @@ function notePinPhone(){
     // De telefoon-skin is het startscherm: die toont vastgezette notities zelf.
     const on = !notePins('skin').includes(n.id);
     Android.notePinSet('skin', n.id, on); notePinShow();
-    toast(on ? '📌 Staat op je telefoon-skin' : 'Van de telefoon-skin gehaald'); return;
+    toast(on ? 'Staat op je telefoon-skin' : 'Van de telefoon-skin gehaald'); return;
   }
   const e = Android.shortcutPinNote(n.id, n.title || 'Notitie');
   toast(e || 'Bevestig op je startscherm om ' + (n.title || 'deze notitie') + ' toe te voegen');

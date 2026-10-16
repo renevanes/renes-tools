@@ -3,7 +3,7 @@ function txAutoRender(){
   const a = rdJson(Android.txAutoState(), {});
   $('#tx-auto').checked = !!a.on;
   let note = "Nieuwe opnames (van de laatste 14 dagen) worden vanaf 01:00 uitgeschreven terwijl de telefoon oplaadt. Je krijgt een melding als het klaar is.";
-  if (a.on && !a.model) note = '⚠️ Download eerst een spraakmodel; zonder model wordt er niets uitgeschreven.';
+  if (a.on && !a.model) note = 'Download eerst een spraakmodel; zonder model wordt er niets uitgeschreven.';
   else if (a.on) note = (a.next ? 'Volgende keer: vanaf ' + new Date(a.next).toLocaleString('nl-NL', {weekday:'long', hour:'2-digit', minute:'2-digit'}) + ', tijdens opladen.' : '') +
     (a.last ? ' Laatst gekeken ' + fmtD(a.last) + ': ' + a.found + ' nieuw.' : '');
   $('#tx-auto-note').innerHTML = esc(note) +

@@ -33,7 +33,7 @@ function bkRenderLast(st){
   $('#bk-parts-res').innerHTML = Object.keys(BK_PARTS).filter(k => l[k]).map(k => { const r = l[k];
     return '<div class=bkres><b>' + BK_PARTS[k] + '</b>' + (r.ok ? '<span class=good>✓ ' + (r.msg ? esc(r.msg) : r.count.toLocaleString('nl-NL')) + '</span>' : '<span class=bad>✗ ' + esc(r.msg || 'mislukt') + '</span>') + '</div>'; }).join('') +
     (l.all ? '<div class=bkres><span class=bad>' + esc(l.all.msg || '') + '</span></div>' : '') +
-    (l.archive ? '<div class=bkres><b>🔒 Versleuteld</b><span class=good>' + esc(l.archive) + '</span></div>' : '') +
+    (l.archive ? '<div class=bkres><b>'+uiIcon('lock')+' Versleuteld</b><span class=good>' + esc(l.archive) + '</span></div>' : '') +
     (l.rotated ? '<div class=bkres><b>Opgeruimd</b><span>' + l.rotated.count + ' oude bestanden (' + fmtB(l.rotated.bytes) + ')</span></div>' : '');
 }
 function bkPollOnce(){ const st = bkState(); if (st.busy !== bkBusy || st.busy) bkRenderLast(st); const t = $('#tile-backup-sub'); if (t) t.textContent = st.busy ? 'Bezig met back-uppen…' : (st.last && st.last.t ? 'Laatst: ' + fmtD(st.last.t) : 'Alles in één keer bewaren'); }

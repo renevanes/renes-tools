@@ -21,7 +21,7 @@ function pcDate(t){
 }
 /* Hoesje: alleen https (de app laadt niets onveiligs); anders een 🎧 */
 function pcImg(u){ u = String(u || ''); if (u.startsWith('http://')) u = 'https://' + u.slice(7); return /^https:\/\//.test(u) ? u : ''; }
-function pcArtInner(u){ const s = pcImg(u); return s ? '<img src="' + esc(s) + '" alt="" loading="lazy" onerror="this.parentNode.textContent=\'🎧\'">' : '🎧'; }
+function pcArtInner(u){ const s = pcImg(u); return s ? '<img src="' + esc(s) + '" alt="" loading="lazy" onerror="this.parentNode.innerHTML=uiIcon(\'headphones\')">' : uiIcon('headphones'); }
 function pcArt(u, cls){ return '<span class="pcart' + (cls ? ' ' + cls : '') + '" aria-hidden="true">' + pcArtInner(u) + '</span>'; }
 function pcSetArt(el, u){ const s = pcImg(u); if (el.dataset.src === s && el.innerHTML) return; el.dataset.src = s; el.innerHTML = pcArtInner(u); }
 function pcSpeedTxt(v){ return String(+(+v || 1).toFixed(2)).replace('.', ',') + '×'; }
@@ -69,8 +69,8 @@ function pcNowMenu(){
   if (st.pod && st.pod.feed) acts.push(['Naar de podcast', () => pdOpen(st.pod)]);
   if (st.ep.desc) acts.push(['Beschrijving', () => pcShowDesc(st.ep)]);
   acts.push(['Delen', () => Android.podShare(st.ep.title + (st.pod && st.pod.title ? ' · ' + st.pod.title : ''), (st.pod && st.pod.link) || st.ep.url)]);
-  if (st.pod && st.pod.feed) acts.push(['📌 Deze podcast op startscherm', () => pcPinPod(st.pod)]);
-  acts.push(['📌 Verder luisteren op startscherm', () => pinTool('player')]);
+  if (st.pod && st.pod.feed) acts.push(['Deze podcast op startscherm', () => pcPinPod(st.pod)]);
+  acts.push(['Verder luisteren op startscherm', () => pinTool('player')]);
   acts.push(plFloatAct(), ['Stoppen', () => plStop()]);
   openSheet(st.ep.title || 'Aflevering', (st.pod && st.pod.title) || '', acts);
 }
@@ -107,7 +107,7 @@ function pcContMenu(i){
   openSheet(r.ep.title, (r.pod && r.pod.title) || '', [
     ['Verder luisteren', () => pcPlayEp(r.ep, r.pod, false)],
     ['Vanaf het begin', () => pcPlayEp(r.ep, r.pod, true)],
-    ['⏭ Als volgende afspelen', () => plAddToQueue(r.ep, r.pod, true)],
+    ['Als volgende afspelen', () => plAddToQueue(r.ep, r.pod, true)],
     ['＋ Toevoegen aan Hierna', () => plAddToQueue(r.ep, r.pod, false)],
     ['Markeren als beluisterd', () => { Android.podMarkPlayed(r.ep.key, true); Android.podForget(r.ep.key); pcRenderCont(); }],
     ['Uit deze lijst halen', () => { Android.podForget(r.ep.key); pcRenderCont(); }]]);
@@ -223,7 +223,7 @@ function pdRowHtml(e, i, cur){
   return '<div class="pcep' + (e.done ? ' done' : '') + (isCur ? ' cur' : '') + '" data-i="' + i + '"><button class="pcepb" onclick="pdPlay(' + i + ')">' +
     '<span class="pctxt"><b>' + esc(e.title) + '</b><small>' + esc(info) + '</small>' +
     (p > 0 && d > 0 && !e.done ? '<span class="pcprog"><i style="width:' + Math.min(100, p / d * 100).toFixed(1) + '%"></i></span>' : '') + '</span>' +
-    '<span class="pcplayi" aria-hidden="true">' + (isCur && pcActive() ? '❚❚' : '▶') + '</span></button>' +
+    '<span class="pcplayi" aria-hidden="true">' + uiIcon(isCur && pcActive() ? 'pause' : 'play') + '</span></button>' +
     '<button class="pcmore" onclick="pdEpMenu(' + i + ')" aria-label="Meer over ' + esc(e.title) + '">⋯</button></div>';
 }
 function pdRender(){
@@ -259,7 +259,7 @@ function pdEpMenu(i){
   const e = pdRows[i]; if (!e) return;
   const acts = [[e.pos > 0 && !e.done ? 'Verder luisteren' : 'Afspelen', () => pcPlayEp(e, pdPod, !!e.done)]];
   if (e.pos > 0 && !e.done) acts.push(['Vanaf het begin', () => pcPlayEp(e, pdPod, true)]);
-  if (!(pcSt.ep && pcSt.ep.key === e.key)) acts.push(['⏭ Als volgende afspelen', () => plAddToQueue(e, pdPod, true)], ['＋ Toevoegen aan Hierna', () => plAddToQueue(e, pdPod, false)]);
+  if (!(pcSt.ep && pcSt.ep.key === e.key)) acts.push(['Als volgende afspelen', () => plAddToQueue(e, pdPod, true)], ['＋ Toevoegen aan Hierna', () => plAddToQueue(e, pdPod, false)]);
   acts.push([e.done ? 'Markeren als niet beluisterd' : 'Markeren als beluisterd', () => { Android.podMarkPlayed(e.key, !e.done); e.done = !e.done; e.pos = 0; pdRender(); }]);
   if (e.desc) acts.push(['Beschrijving', () => pcShowDesc(e, () => pcPlayEp(e, pdPod, !!e.done))]);
   acts.push(['Delen', () => Android.podShare(e.title + ' · ' + (pdPod.title || ''), pdPod.link || e.url)]);

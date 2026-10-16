@@ -1,16 +1,16 @@
 :root{
-  /* Material 3-rollen; vaste kleuren (blauw). Met "Kleuren uit je achtergrond" overschrijft 43-uiterlijk.js ze. */
-  --bg:#EEF0F7; --card:#FCFCFF; --hi:#E4E7EF; --ink:#1A1C21; --muted:#44474F; --line:#DCDFE8; --outline:#74777F;
-  --primary:#2F5DA6; --on-primary:#FFFFFF; --tonal:#D8E2FF; --on-tonal:#001A41; --chip:#DCE2F9; --on-chip:#141B2C;
+  /* Neutrale basis met één accent. Een zelf gekozen Android-palet blijft optioneel beschikbaar. */
+  --bg:#F4F5F6; --card:#FFFFFF; --hi:#EAEEF0; --ink:#1C2428; --muted:#576169; --line:#DDE2E5; --outline:#7B858C;
+  --primary:#185D52; --on-primary:#FFFFFF; --tonal:#E8F1EE; --on-tonal:#184D43; --chip:#EFF1F2; --on-chip:#26383F;
   --inv:#2E3036; --inv-ink:#F0F0F7;
   --ok:#1B7F45; --warn:#9A5B00; --bad:#BA1A1A; --on-bad:#FFFFFF;
   --brand:var(--primary); --brand-2:var(--primary); --brand-ink:var(--on-primary); --chip-on:var(--primary); --acc:var(--primary);
-  --shadow:none; --r-card:24px; --r-ctl:16px;
+  --shadow:none; --r-card:12px; --r-ctl:8px;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#0F1115; --card:#1B1D22; --hi:#272A30; --ink:#E3E2E9; --muted:#C4C6D0; --line:#33363D; --outline:#8E9099;
-    --primary:#AAC7FF; --on-primary:#0A305F; --tonal:#284777; --on-tonal:#D8E2FF; --chip:#3E4759; --on-chip:#DAE2F9;
+    --bg:#111619; --card:#192024; --hi:#242D32; --ink:#E7ECEF; --muted:#B1BCC3; --line:#303B42; --outline:#74828C;
+    --primary:#8CD6C3; --on-primary:#073C31; --tonal:#213D37; --on-tonal:#BCEDDF; --chip:#2B353B; --on-chip:#D9E3E8;
     --inv:#E3E2E9; --inv-ink:#2E3036;
     --ok:#6DD58C; --warn:#F2BC62; --bad:#FFB4AB; --on-bad:#690005;
   }

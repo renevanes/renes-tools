@@ -27,7 +27,7 @@ function rpSave(){
     attempts: store.get('attempts', 10), interval: rnd ? rmin : iv, randomMin: rnd ? rmin : 0, randomMax: rnd ? rmax : 0,
     stopWhenAnswered: store.get('t-stop', true), speaker: store.get('t-spk', false) }));
   if (err) { toast(err); return; }
-  remember(n, nameFor); rpRender(); renderDash(); toast('📅 Ingepland');
+  remember(n, nameFor); rpRender(); renderDash(); toast('Ingepland');
 }
 function rpClear(){ Android.redialPlanClear(); rpDays = 0; rpRender(); renderDash(); toast('Planning weggehaald'); }
 

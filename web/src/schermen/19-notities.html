@@ -13,7 +13,7 @@
       <button data-scope="all" aria-pressed="true" onclick="notesFilter('all')">Alles</button><button data-scope="main" aria-pressed="false" onclick="notesFilter('main')">Hoofdlijsten</button><button data-scope="children" aria-pressed="false" onclick="notesFilter('children')">Sublijsten</button>
     </div>
     <div class="card nlist" id="notes-list"></div>
-    <div class="notes-quick-actions"><button onclick="voiceOpen(null)" aria-label="Spraaknotitie inspreken">🎤 Inspreken</button><button onclick="notesBackup()">Backup maken</button></div>
+    <div class="notes-quick-actions"><button onclick="voiceOpen(null)" aria-label="Spraaknotitie inspreken" data-icon="mic">Inspreken</button><button onclick="notesBackup()">Backup maken</button></div>
     <details class="notes-help"><summary>Over opslag en backups</summary><p class="note">Je notities staan op deze telefoon. Met Backup maken komt er een kopie in de map <b>Notities</b> van je backup-map. Tik op het pijltje naast een lijst om de sublijsten te tonen.</p></details>
     <div style="height:70px"></div>
   </main>
@@ -46,7 +46,7 @@
       <div class="additem">
         <input id="note-add" placeholder="Nieuw item…" aria-label="Nieuw item of subitem" enterkeyhint="done" onkeydown="if(event.key==='Enter'){addItem();event.preventDefault();}">
         <button onclick="addItem()" aria-label="Toevoegen">+</button>
-        <button onclick="voiceOpen(noteCur)" aria-label="Inspreken">🎤</button>
+        <button onclick="voiceOpen(noteCur)" aria-label="Inspreken" data-icon="mic"></button>
       </div>
       <div class="note-list-tools"><button id="note-item-move" onclick="noteMoveOpen('item')">Items indelen</button></div>
       <p class="note note-item-help">Tik op ⋯ voor subitems. Sleep aan ⋮⋮ om de volgorde te veranderen.</p>

@@ -10,11 +10,11 @@
       <h2>Tunnel toevoegen</h2>
       <p class="note" style="margin-top:0">Werkt met <b>WireGuard</b> en <b>OpenVPN</b>: je eigen server (thuis of een VPS) of een aanbieder als Mullvad, Proton of NordVPN. Je krijgt daar een configuratie: bij WireGuard meestal een QR-code of <code>.conf</code>-bestand, bij OpenVPN een <code>.ovpn</code>-bestand.</p>
       <div class="vpadd">
-        <button class="big" onclick="vpScan()">📷 QR-code scannen</button>
-        <button class="big ghost" onclick="Android.vpnPickImage()">🖼️ QR-code uit een afbeelding</button>
-        <button class="big ghost" onclick="Android.vpnPickFile()">📄 Bestand (.conf of .ovpn)</button>
-        <button class="big ghost" onclick="vpPaste()">📋 Tekst plakken</button>
-        <button class="big ghost" onclick="vpNew()">🔑 Zelf maken (met eigen sleutels)</button>
+        <button class="big" onclick="vpScan()" data-icon="camera">QR-code scannen</button>
+        <button class="big ghost" onclick="Android.vpnPickImage()" data-icon="image">QR-code uit een afbeelding</button>
+        <button class="big ghost" onclick="Android.vpnPickFile()" data-icon="document">Bestand (.conf of .ovpn)</button>
+        <button class="big ghost" onclick="vpPaste()" data-icon="clipboard">Tekst plakken</button>
+        <button class="big ghost" onclick="vpNew()" data-icon="shield">Zelf maken (met eigen sleutels)</button>
       </div>
     </div>
 
@@ -52,8 +52,8 @@
 
     <div class="card" id="vp-quick" style="display:none">
       <h2>Snel aan en uit</h2>
-      <button class="big ghost" onclick="vpAddTile()">⚡ Tegel in de snelle instellingen</button>
-      <button class="big ghost" style="margin-top:8px" onclick="vpPinToggle()">📌 Snelkoppeling op het startscherm</button>
+      <button class="big ghost" onclick="vpAddTile()" data-icon="automation">Tegel in de snelle instellingen</button>
+      <button class="big ghost" style="margin-top:8px" onclick="vpPinToggle()" data-icon="pin">Snelkoppeling op het startscherm</button>
     </div>
 
     <div class="card" id="vp-kill" style="display:none">

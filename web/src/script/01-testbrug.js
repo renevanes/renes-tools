@@ -93,7 +93,7 @@ if (!window.Android) window.Android = (function(){
     smsHasPermission(){ return this._sms.perm; },
     smsRequestPermission(){ this._sms.perm=true; this._smsDemo(); setTimeout(()=>onSmsChanged(),150); },
     smsRequestContacts(){ this._sms.contacts=true; setTimeout(()=>onSmsChanged(),100); },
-    smsInfo(){ const s=this._sms; return JSON.stringify({perm:s.perm,dest:this._wa.info.dest,contacts:s.contacts,lastExport:s.done?Date.now()-3600e3:0,lastCount:s.done?31:0,total:s.perm?31:0}); },
+    smsInfo(){ const s=this._sms; return JSON.stringify({perm:s.perm,dest:this._wa.info.dest,destName:this._wa.info.destName,contacts:s.contacts,lastExport:s.done?Date.now()-3600e3:0,lastCount:s.done?31:0,total:s.perm?31:0}); },
     smsConversations(){ const s=this._sms; return JSON.stringify({conversations:s.convs||[],total:31}); },
     smsMessages(th){ return JSON.stringify((this._sms.msgs[th]||[])); },
     smsSearch(q){ const out=[]; const ql=q.toLowerCase(); const s=this._sms; for(const c of s.convs){ for(const m of s.msgs[c.thread]){ if(m.text.toLowerCase().includes(ql)) out.push({...m,name:c.name,thread:c.thread}); } } return JSON.stringify(out.slice(0,200)); },

@@ -11,6 +11,7 @@ function enterSms(){
   $('#sms-contacts').style.display = (i.perm && !i.contacts) ? 'block' : 'none';
   $('#sms-count-note').textContent = i.total ? i.total.toLocaleString('nl-NL') + ' berichten op deze telefoon' +
     (i.lastExport ? ' · laatste export ' + fmtD(i.lastExport) : '') : '';
+  $('#sms-dest-name').textContent=i.dest?(i.destName||'Gekozen backup-map'):'Nog niet gekozen';
   $('#sms-search').value = ''; $('#sms-results').innerHTML = '';
   if (i.perm) loadSmsList();
   smsPollOnce();
@@ -70,7 +71,11 @@ function smsExport(){
   if (!plainOk('De sms-backup', smsExport)) return;
   const err = Android.smsExport();
   if (err) { toast(err); return; }
-  $('#sms-result').className = 'result'; smsLastDone = false; setTimeout(smsPollOnce, 150);
+  $('#sms-result').className = 'result'; $('#sms-recovery').style.display='none'; smsLastDone = false; setTimeout(smsPollOnce, 150);
+}
+function smsErrorText(error){
+  const text=String(error||'Controleer de vrije ruimte en probeer opnieuw.');
+  return /Bundle.*getParcelable/.test(text)?'De app voor je backup-map gaf geen geldig antwoord. Probeer opnieuw, of kies een map op je telefoon met Andere backup-map.':text;
 }
 let smsLastDone = false;
 function smsPollOnce(){
@@ -78,14 +83,16 @@ function smsPollOnce(){
   $('#sms-run').style.display = s.running ? 'block' : 'none';
   $('#sms-home').style.display = (s.running || !smsInfoC().perm) ? 'none' : 'block';
   if (s.running) {
+    $('#sms-recovery').style.display='none';
     const pct = s.total ? 100 * s.done / s.total : 0;
     $('#sms-bar').style.width = pct.toFixed(0) + '%';
     $('#sms-run-count').textContent = (s.done||0) + ' van ' + (s.total||0) + ' berichten';
   } else if (s.ok !== undefined && !smsLastDone) {
     smsLastDone = true;
     const r = $('#sms-result');
-    r.textContent = s.ok ? '✓ ' + s.count + ' berichten geëxporteerd naar de map SMS backup' : 'Mislukt: ' + (s.error || '');
+    r.innerHTML = s.ok ? uiIcon('check')+' '+esc(s.count)+' berichten geëxporteerd naar de map SMS backup' : '<strong>Exporteren niet gelukt</strong><p style="margin:6px 0 0">'+esc(smsErrorText(s.error))+'</p>';
     r.className = 'result on ' + (s.ok ? 'answered' : 'error');
+    $('#sms-recovery').style.display=s.ok?'none':'flex';
     enterSms();
   }
   refreshSmsTile(s);

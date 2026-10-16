@@ -1,5 +1,5 @@
 /* ---------- Snelkoppelingen ---------- */
-// Tool → naam, kleur en symbool (zelfde kleur als de tegel).
+// Naam, kleur en symbool voor Android-snelkoppelingen. Binnen de app komt het icoon uit UI_TOOL_ICONS.
 const TOOLS = {
   car: ['Mijn auto', '#1F6F5C', '🚗'], kluis: ['Kluis', '#4B5563', '🔒'], pdf: ['PDF', '#B03A2E', '📄'],
   recorder: ['Gesprekken opnemen', '#A93226', '🎙'],

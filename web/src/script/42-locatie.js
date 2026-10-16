@@ -18,8 +18,8 @@ function lcRender(){
   $('#lc-here').disabled = !!st.on;
   $('#lc-jitter').checked = st.jitter !== false;
   $('#lc-go').disabled = !lcPt;
-  $('#lc-go').textContent = st.on ? '📍 Naar deze plek' : '📍 Hier zetten';
-  const row = (p, kind, i) => '<div class="srow"><button class="sbtn" onclick="lcPickSaved(\'' + kind + '\',' + i + ')"><span class="vpic" aria-hidden="true">' + (kind === 'p' ? '★' : '🕘') + '</span><span class="stxt"><b>' + esc(p.name || lcFmt(p.lat, p.lng)) + '</b><small>' + esc(lcFmt(p.lat, p.lng)) + '</small></span></button>' +
+  $('#lc-go').textContent = st.on ? 'Naar deze plek' : 'Hier zetten';
+  const row = (p, kind, i) => '<div class="srow"><button class="sbtn" onclick="lcPickSaved(\'' + kind + '\',' + i + ')"><span class="vpic" aria-hidden="true">' + uiIcon(kind === 'p' ? 'star' : 'clock') + '</span><span class="stxt"><b>' + esc(p.name || lcFmt(p.lat, p.lng)) + '</b><small>' + esc(lcFmt(p.lat, p.lng)) + '</small></span></button>' +
     (kind === 'p' ? '<button class="mini" style="float:none;margin-right:6px" onclick="lcDelPlace(' + i + ')" aria-label="' + esc(p.name) + ' verwijderen">✕</button>' : '') + '</div>';
   const pl = st.places || [], rc = st.recent || [];
   $('#lc-placeswrap').style.display = pl.length ? 'block' : 'none';
@@ -49,7 +49,7 @@ function lcDraw(){
 function lcSet(lat, lng, name, fly){
   lat = Math.round(lat * 1e6) / 1e6; lng = Math.round(lng * 1e6) / 1e6;
   lcPt = { lat, lng }; lcName = name || '';
-  $('#lc-pick').textContent = '📍 ' + (lcName ? lcName + ' · ' : '') + lcFmt(lat, lng);
+  $('#lc-pick').textContent = '' + (lcName ? lcName + ' · ' : '') + lcFmt(lat, lng);
   $('#lc-go').disabled = false;
   if (lcMap) { if (fly) lcMap.setView([lat, lng], Math.max(lcMap.getZoom(), 15)); lcDraw(); }
 }
@@ -61,19 +61,19 @@ function lcGo(){
   if (r === 'mock') { toast('Kies eerst Rene\'s Tools als app voor de locatie (zie Eenmalig instellen)'); lcRender(); $('#lc-setup').scrollIntoView({ behavior: 'smooth' }); return; }
   if (r) { toast(r); return; }
   const where = lcName || lcFmt(lcPt.lat, lcPt.lng);
-  setTimeout(() => { lcRender(); if (lcSt.on) toast('📍 Je telefoon staat nu op ' + where); else if (lcSt.error) toast(lcSt.error); }, 600);
+  setTimeout(() => { lcRender(); if (lcSt.on) toast('Je telefoon staat nu op ' + where); else if (lcSt.error) toast(lcSt.error); }, 600);
 }
 function lcStop(){ Android.locStop(); toast('Weer je echte locatie'); setTimeout(lcRender, 300); }
 
 function lcPickSaved(kind, i){
   const p = (kind === 'p' ? lcSt.places : lcSt.recent)[i]; if (!p) return;
   lcSet(p.lat, p.lng, p.name, true);
-  openSheet(p.name || lcFmt(p.lat, p.lng), lcFmt(p.lat, p.lng), [['📍 Hier zetten', lcGo], ['Alleen op de kaart tonen', () => {}]]);
+  openSheet(p.name || lcFmt(p.lat, p.lng), lcFmt(p.lat, p.lng), [['Hier zetten', lcGo], ['Alleen op de kaart tonen', () => {}]]);
 }
 function lcDelPlace(i){ const p = (lcSt.places || [])[i]; if (!p) return; askConfirm('Plek verwijderen?', '"' + p.name + '" verdwijnt uit je bewaarde plekken.', 'Verwijderen', () => { Android.locDelete(i); lcRender(); }); }
 function lcSavePlace(){
   if (!lcPt) { toast('Kies eerst een plek op de kaart'); return; }
-  askInput('Plek bewaren', 'Naam (bijv. Kantoor)', lcName, 'Bewaren', v => { const e = Android.locSave(v, lcPt.lat, lcPt.lng); if (e) toast(e); else { lcName = v.trim(); toast('★ Bewaard'); lcRender(); } });
+  askInput('Plek bewaren', 'Naam (bijv. Kantoor)', lcName, 'Bewaren', v => { const e = Android.locSave(v, lcPt.lat, lcPt.lng); if (e) toast(e); else { lcName = v.trim(); toast('Bewaard'); lcRender(); } });
 }
 
 /* zoeken: coördinaten (ook uit een kaartlink) direct, anders adres via Android */
@@ -127,5 +127,5 @@ setTimeout(function(){ // na het laden van alle scripts (Automatiseren definieer
 function refreshLocTile(){
   const el = $('#tile-loc-sub'); if (!el) return;
   const st = rdJson(Android.locState(), {});
-  el.textContent = st.on ? '📍 ' + (st.name || lcFmt(st.lat, st.lng)) : 'Zelf je locatie bepalen';
+  el.textContent = st.on ? '' + (st.name || lcFmt(st.lat, st.lng)) : 'Zelf je locatie bepalen';
 }

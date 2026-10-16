@@ -14,8 +14,8 @@ function plainOk(what, retry){
 }
 function bkRenderSecure(st){
   const on = !!st.encrypted;
-  $('#bk-enc-state').textContent = st.encBroken ? '⚠️ Het wachtwoord moet opnieuw worden ingesteld (bijv. na overzetten naar een andere telefoon). Tot dan mislukken de backups.'
-    : on ? '🔒 Aan sinds ' + (st.encSince ? fmtDayT(st.encSince) : 'onbekend') + '. Nieuwe backups worden versleuteld.' : 'Uit: backups zijn gewone, leesbare bestanden.';
+  $('#bk-enc-state').textContent = st.encBroken ? 'Het wachtwoord moet opnieuw worden ingesteld (bijv. na overzetten naar een andere telefoon). Tot dan mislukken de backups.'
+    : on ? 'Aan sinds ' + (st.encSince ? fmtDayT(st.encSince) : 'onbekend') + '. Nieuwe backups worden versleuteld.' : 'Uit: backups zijn gewone, leesbare bestanden.';
   $('#bk-enc-state').className = 'note' + (st.encBroken ? ' bad' : '');
   $('#bk-enc-btn').textContent = on ? 'Wachtwoord wijzigen' : 'Wachtwoord instellen';
   $('#bk-enc-off').style.display = on ? 'block' : 'none';
@@ -37,7 +37,7 @@ function bkEncSet(){
 }
 window.onSecure = function(err){
   bkEncBusy = false; $('#bk-enc-btn').disabled = false;
-  toast(err ? err : '🔒 Versleutelen staat aan');
+  toast(err ? err : 'Versleutelen staat aan');
   if (current === 'backup') bkRenderSecure(bkState(true));
 };
 function bkEncOff(){

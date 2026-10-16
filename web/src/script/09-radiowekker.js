@@ -23,7 +23,7 @@ function alSave(){
   const e = Android.alarmSet($('#al-on').checked, h, m, alDays, st ? JSON.stringify(st) : '');
   if (e) { toast(e); return false; }
   enterAlarm();
-  toast($('#al-on').checked ? '⏰ Wekker opgeslagen' : 'Wekker uit');
+  toast($('#al-on').checked ? 'Wekker opgeslagen' : 'Wekker uit');
   return true;
 }
 function alTest(){ if (!alSave()) return; const e = Android.alarmTest(); toast(e || 'De wekker gaat over 10 seconden af'); }

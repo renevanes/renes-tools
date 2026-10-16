@@ -236,9 +236,9 @@ function aeSetNote(id){ const n = (notesGet() || []).find(x => x.id === id); aeR
 function aeSetVpn(id){ const t = rdJson(Android.vpnTunnels(), []).find(x => x.id === id); aeRule.vpn = t ? { id: t.id, name: t.name } : null; }
 function aeSetRadio(i){ const fs = rdJson(Android.radioFavorites(), []); const f = fs[+i]; aeRule.radio = f && i !== '' ? f : null; }
 function aeStepLabel(s){
-  if (s.t === 'wait') return '⏱ Wachten ' + Math.round((s.ms || 1000) / 100) / 10 + ' s';
-  if (s.t === 'xy') return '👆 Tik op het scherm (' + Math.round(s.x * 100) + '%, ' + Math.round(s.y * 100) + '%)';
-  return '👆 Tik op "' + (s.text || s.desc || (s.id || '').replace(/.*\//, '')) + '"';
+  if (s.t === 'wait') return 'Wachten ' + Math.round((s.ms || 1000) / 100) / 10 + ' s';
+  if (s.t === 'xy') return 'Tik op het scherm (' + Math.round(s.x * 100) + '%, ' + Math.round(s.y * 100) + '%)';
+  return 'Tik op "' + (s.text || s.desc || (s.id || '').replace(/.*\//, '')) + '"';
 }
 
 function aeToggleBt(a, n){
@@ -316,7 +316,7 @@ function aeHere(){
 }
 let aeHereFor = null;
 window.onAutoHere = function(r){
-  const b = $('#ae-here'); b.disabled = false; b.textContent = '📍 Mijn plek nu gebruiken';
+  const b = $('#ae-here'); b.disabled = false; b.textContent = 'Mijn plek nu gebruiken';
   if (!r || r.error) { if (r && r.error === 'perm') Android.autoPerm('loc'); else toast(r && r.error || 'Geen locatie gevonden'); return; }
   if (!aeRule || aeRule !== aeHereFor || current !== 'autoed') return;
   aeHereFor = null;

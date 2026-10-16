@@ -7,7 +7,7 @@ function stNotifRender(){
   const s = stJson(Android.notifState());
   const muted = !!s.muted, off = !s.allowed;
   const mb = $('#st-notif-mute'); if (mb) { mb.classList.toggle('on', muted); mb.setAttribute('aria-pressed', muted ? 'true' : 'false'); }
-  $('#st-notif-state').textContent = muted ? '🔕 Alle meldingen staan uit. Je krijgt geen herinneringen, backup- of automatiseringsmeldingen. Draait de radio of een route-opname, dan toont Android alleen een stille regel onderaan je meldingen.'
+  $('#st-notif-state').textContent = muted ? 'Alle meldingen staan uit. Je krijgt geen herinneringen, backup- of automatiseringsmeldingen. Draait de radio of een route-opname, dan toont Android alleen een stille regel onderaan je meldingen.'
     : off ? 'Meldingen staan uit voor deze app: je mist herinneringen, de radiowekker en backup-meldingen.' : '✓ Meldingen staan aan.';
   $('#st-notif-ask').style.display = off && !muted ? 'block' : 'none';
   $('#st-notif-list').style.opacity = muted ? '.45' : '';
@@ -23,7 +23,7 @@ function stNotifMute(on){
 function enterSettings(){
   stNotifRender();
   $('#st-zoom').value = String(Android.textZoomGet());
-  { const can = typeof Android.themeColors === 'function' && !!Android.themeColors(), on = can && store.get('dynColor', true);
+  { const can = typeof Android.themeColors === 'function' && !!Android.themeColors(), on = can && store.get('dynColor', false);
     $('#st-dyn').classList.toggle('on', on); $('#st-dyn').setAttribute('aria-checked', on ? 'true' : 'false'); $('#st-dyn').disabled = !can;
     $('#st-dyn-sub').textContent = can ? 'Net als Android: de app neemt de kleuren van je achtergrond over' : 'Kan vanaf Android 12; nu vaste kleuren'; }
   stHomeRender();

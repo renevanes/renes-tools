@@ -335,14 +335,14 @@ final class Sms {
         if (aside != null && !aside.dir) {
             Uri au = DocumentsContract.buildDocumentUriUsingTree(dest.tree, aside.docId);
             try {
-                if (!dir.kids.containsKey(name)) { Uri back = WaBackup.rename(dest, au, name); if (back != null) dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(back), aside.size, aside.mod, false)); }
+                if (!dir.kids.containsKey(name)) { Uri back = WaBackup.renameVerified(dest, dir.uri, au, name); if (back != null) dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(back), aside.size, aside.mod, false)); }
                 else DocumentsContract.deleteDocument(dest.cr, au);
-            } catch (Exception ignored) { }
+            } catch (DocumentWrite.UncertainReply | SecurityException e) { throw e; } catch (Exception ignored) { }
         }
         WaBackup.Child stale = dir.kids.remove(tmpName);
         if (stale != null && !stale.dir) try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, stale.docId)); } catch (Exception ignored) { }
         // octet-stream: anders plakt Android de extensie er nog eens achter (notities.json.rt-tmp.json)
-        Uri tmp = WaBackup.create(dest, dir.uri, "application/octet-stream", tmpName);
+        Uri tmp = WaBackup.createVerified(dest, dir.uri, "application/octet-stream", tmpName);
         if (tmp == null) throw new Exception("Bestand maken lukt niet: " + name);
         OutputStream o;
         SecurityException denied = null;
@@ -400,8 +400,8 @@ final class Sms {
             try { commit(); } catch (Exception e) { throw new java.io.IOException("Vervangen van " + name + " mislukt: " + e.getMessage()); }
         }
 
-        private Uri rename(Uri u, String to) {
-            try { return WaBackup.rename(dest, u, to); } catch (Exception e) { return null; }
+        private Uri rename(Uri u, String to) throws Exception {
+            try { return WaBackup.renameVerified(dest, dir.uri, u, to); } catch (DocumentWrite.UncertainReply | SecurityException e) { throw e; } catch (Exception e) { return null; }
         }
 
         private void commit() throws Exception {
@@ -412,15 +412,15 @@ final class Sms {
             if (oldU != null) {
                 aside = rename(oldU, name + ".rt-old");
                 if (aside == null) {
-                    // Hernoemen kan hier niet: dan het oude pas weghalen nu het nieuwe compleet klaarstaat
-                    DocumentsContract.deleteDocument(dest.cr, oldU);
+                    // Het oude bestand blijft intact als de mappen-app hernoemen niet ondersteunt.
+                    throw new java.io.IOException("De backup-map kan bestanden niet veilig vervangen. De vorige backup en het nieuwe tijdelijke bestand zijn bewaard. Kies een map op je telefoon bij Instellingen → Backup-map.");
                 }
                 dir.kids.remove(name);
             }
             // 2. nieuwe krijgt de naam
             Uri done = rename(tmp, name);
             if (done == null) {
-                Uri u = WaBackup.create(dest, dir.uri, mime, name);
+                Uri u = WaBackup.createVerified(dest, dir.uri, mime, name);
                 boolean copied = false;
                 if (u != null) {
                     try (java.io.InputStream in = dest.cr.openInputStream(tmp); OutputStream o = dest.cr.openOutputStream(u, "w")) {

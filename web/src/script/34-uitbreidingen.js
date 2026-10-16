@@ -30,7 +30,7 @@ function txToNote(asList){
   else n.text = picked.map(s => s.text.trim()).join('\n');
   notesGet().push(n); notesSaveNow();
   txSelEnd();
-  undoToast('📝 Notitie "' + n.title + '" gemaakt', () => { notes = notesGet().filter(x => x.id !== n.id); notesSaveNow(); });
+  undoToast('Notitie "' + n.title + '" gemaakt', () => { notes = notesGet().filter(x => x.id !== n.id); notesSaveNow(); });
 }
 
 /* Spraaknotitie: inspreken → op de telefoon uitschrijven → notitie (of items/tekst erbij in de open notitie). */
@@ -68,12 +68,12 @@ window.onVoiceNote = function(r){
   if (n) {
     if ((n.items || []).length || parts.length > 1 && parts.every(p => p.split(' ').length <= 5)) parts.forEach(p => n.items.push({ id: uid(), text: p.charAt(0).toUpperCase() + p.slice(1), done: false }));
     else n.text = (n.text ? n.text + '\n' : '') + text;
-    touch(n); const ok = notesSaveNow(); voiceClose(); openNote(n.id); if (ok) toast('🎤 Toegevoegd');
+    touch(n); const ok = notesSaveNow(); voiceClose(); openNote(n.id); if (ok) toast('Toegevoegd');
     return;
   }
   const words = text.split(/\s+/);
   const nn = { id: uid(), title: words.slice(0, 6).join(' ').replace(/[.,;:!?]+$/, '') + (words.length > 6 ? '…' : ''), text: text, items: [], updated: Date.now() };
-  notesGet().push(nn); const ok = notesSaveNow(); voiceClose(); openNote(nn.id); if (ok) toast('🎤 Spraaknotitie gemaakt');
+  notesGet().push(nn); const ok = notesSaveNow(); voiceClose(); openNote(nn.id); if (ok) toast('Spraaknotitie gemaakt');
 };
 
 /* Radiofragment bewaren: de laatste minuten uit de terugspoelbuffer als bestand in Radio/ (voor eigen gebruik). */
@@ -85,7 +85,7 @@ function rdClipMenu(){
   openSheet('Fragment bewaren', 'Komt in de map Radio in je backup-map. Alleen voor eigen gebruik.', opts);
 }
 function rdClip(sec){ toast('Bezig met bewaren…'); Android.radioSaveClip(Math.round(sec)); }
-window.onRadioClip = function(r){ toast(r ? r : '💾 Fragment bewaard in Radio/'); };
+window.onRadioClip = function(r){ toast(r ? r : 'Fragment bewaard in Radio/'); };
 
 /* Kluis: documenten versleuteld op de telefoon, open met vingerafdruk. */
 function enterKluis(){ klRender(); }
@@ -111,13 +111,13 @@ function klRender(){
   $('#kl-empty').style.display=shown.length?'none':'block';
   $('#kl-empty').textContent=docs.length?'Geen documenten bij deze zoekopdracht of filters.':'Nog leeg. Voeg een document, foto of PDF toe.';
   $('#kl-count').textContent=shown.length+' van '+docs.length+(docs.length===1?' document':' documenten');
-  const ic=m=>/pdf/.test(m)?'📄':/^image/.test(m)?'🖼️':'📎';
+  const ic=m=>uiIcon(/pdf/.test(m)?'document':/^image/.test(m)?'image':'folder');
   $('#kl-list').innerHTML=shown.map(x=>'<button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span><b>'+ic(x.mime||'')+' '+esc(x.name)+'</b><small>'+(x.favorite?'★ Favoriet · ':'')+esc(x.category||'Zonder categorie')+' · '+esc(fmtB(x.size||0))+' · '+esc(new Date(x.t).toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+'</span><span aria-hidden="true">›</span></button>').join('');
   klRender.docs=docs;
 }
 function klUnlock(){ $('#kl-msg').textContent = ''; Android.kluisUnlock(); }
 window.onKluis = function(r){ if (r !== true) $('#kl-msg').textContent = r; if(pdfKeepPending)pdfKeepUnlocked(r); if (current === 'kluis') klRender(); };
-window.onKluisChanged = function(r){ toast(r === 'ok' ? '🔒 Toegevoegd aan de kluis' : r); if (current === 'kluis') klRender(); };
+window.onKluisChanged = function(r){ toast(r === 'ok' ? 'Toegevoegd aan de kluis' : r); if (current === 'kluis') klRender(); };
 function klLock(){ Android.kluisClose(); klRender(); }
 function klMenu(id){
   const x = (klRender.docs || []).find(d => d.id === id); if (!x) return;

@@ -8,9 +8,9 @@
       <h2>Waar staat mijn auto?</h2>
       <p id="car-park-state" class="note" style="margin-top:0"></p>
       <div id="car-map" style="height:220px;border-radius:12px;display:none;margin-bottom:10px"></div>
-      <button class="big" id="car-nav" style="display:none" onclick="carNavigate()">🚶 Navigeer terug naar de auto</button>
+      <button class="big" id="car-nav" style="display:none" onclick="carNavigate()" data-icon="route">Navigeer terug naar de auto</button>
       <div class="row" style="margin-top:8px">
-        <button class="big ghost" style="flex:1" onclick="carParkNow()">📍 Hier staat hij</button>
+        <button class="big ghost" style="flex:1" onclick="carParkNow()" data-icon="pin">Hier staat hij</button>
         <button class="big ghost" style="flex:1;display:none" id="car-left" onclick="carLeft()">Weggereden</button>
       </div>
     </div>

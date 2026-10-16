@@ -10,7 +10,8 @@
       <button class="big" id="sms-perm-btn" onclick="smsAskPerm()">Toegang geven</button>
     </div>
 
-    <div class="result" id="sms-result"></div>
+    <div class="result" id="sms-result" role="status" aria-live="polite"></div>
+    <div class="row" id="sms-recovery" style="display:none"><button class="big ghost" style="flex:1" data-icon="refresh" onclick="smsExport()">Opnieuw proberen</button><button class="big ghost" style="flex:1" data-icon="folder" onclick="Android.waPickFolder()">Andere backup-map</button></div>
 
     <div class="card" id="sms-run" style="display:none">
       <h2>Bezig met exporteren</h2>
@@ -19,11 +20,12 @@
     </div>
 
     <div id="sms-home">
-      <div class="card">
-        <h2>Exporteren</h2>
+      <div class="card" id="sms-export-card">
+        <h2>Berichten bewaren</h2>
         <p class="note" style="margin-top:0" id="sms-count-note"></p>
-        <button class="big" onclick="smsExport()">Sms-berichten exporteren</button>
-        <p class="note">Naar de map <b>SMS backup</b> in je gekozen backup-map. Er komt een herstelbaar bestand (leesbaar door de app "SMS Backup &amp; Restore") en per gesprek een webpagina die je op elke computer kunt openen.</p>
+        <button class="big" data-icon="download" onclick="smsExport()">Sms-berichten exporteren</button>
+        <div class="sms-destination"><span>Backup-map<br><b id="sms-dest-name">Nog niet gekozen</b></span><button onclick="Android.waPickFolder()">Wijzigen</button></div>
+        <details class="sms-format-help"><summary>Wat wordt er bewaard?</summary><p>Alle berichten komen in de map <b>SMS backup</b>: een herstelbaar XML-bestand voor SMS Backup &amp; Restore en per gesprek een leesbare webpagina.</p></details>
       </div>
 
       <div class="card" id="sms-contacts" style="display:none">
@@ -31,7 +33,8 @@
         <button class="big ghost" onclick="Android.smsRequestContacts()">Contacten tonen</button>
       </div>
 
-      <input class="search" id="sms-search" type="search" placeholder="Zoek in je berichten…" oninput="smsSearchDo(this.value)">
+      <h2 class="sms-section-label">Gesprekken op deze telefoon</h2>
+      <input class="search" id="sms-search" type="search" aria-label="Zoeken in sms-berichten" placeholder="Zoek in je berichten…" oninput="smsSearchDo(this.value)">
       <div class="clist card" id="sms-list"></div>
       <div id="sms-results"></div>
 

@@ -1111,6 +1111,7 @@ public class MainActivity extends Activity {
                 JSONObject o = new JSONObject();
                 o.put("perm", smsHasPermission());
                 o.put("dest", WaBackup.destUri(ctx) != null);
+                o.put("destName", WaBackup.destName(ctx));
                 o.put("contacts", ctx.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED);
                 o.put("lastExport", Sms.prefs(ctx).getLong("lastExport", 0));
                 o.put("lastCount", Sms.prefs(ctx).getInt("lastCount", 0));
@@ -1149,7 +1150,7 @@ public class MainActivity extends Activity {
                                 new JSONObject().put("running", true).put("done", done).put("total", total).toString()).apply(); } catch (Exception ignored) { }
                     });
                 } catch (Throwable e) {
-                    err = e.getMessage() != null ? e.getMessage() : "onvoldoende geheugen of fout";
+                    err = e instanceof SecurityException ? WaBackup.NO_ACCESS : e.getMessage() != null ? e.getMessage() : "Exporteren lukt niet. Controleer de vrije ruimte en kies je backup-map opnieuw.";
                 } finally {
                     try {
                         JSONObject o = new JSONObject().put("running", false);

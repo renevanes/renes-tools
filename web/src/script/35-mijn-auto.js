@@ -4,7 +4,7 @@ const carMonthOf = t => { const d = new Date(t); return d.getFullYear() + '-' + 
 const carFmtKm = m => (m / 1000).toLocaleString('nl-NL', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 function carLoad(){ try { carSt = JSON.parse(Android.carState()) || {}; } catch(e){ carSt = {}; } }
 function enterCar(){ carLoad(); carRender(); }
-window.onCarChanged = function(r){ if (r === 'noloc') toast('Je locatie was niet te bepalen; plek bewaard zonder kaart'); else toast('📍 Plek bewaard'); if (current === 'car') enterCar(); };
+window.onCarChanged = function(r){ if (r === 'noloc') toast('Je locatie was niet te bepalen; plek bewaard zonder kaart'); else toast('Plek bewaard'); if (current === 'car') enterCar(); };
 window.onCarExport = function(r){ toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' ritten geëxporteerd naar Ritten/' : r); };
 function carRender(){
   const p = carSt.park;

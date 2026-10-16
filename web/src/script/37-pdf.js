@@ -43,7 +43,7 @@ function pdfRender(){
   const outs = rdJson(Android.pdfOutputs(), []);
   $('#pdf-out-card').style.display = outs.length ? 'block' : 'none';
   $('#pdf-share-all').style.display = outs.length > 1 ? '' : 'none';
-  $('#pdf-out').innerHTML = outs.map(o => '<button class="trip" data-n="' + esc(o.name) + '" onclick="pdfOutMenu(this.dataset.n)"><span><b>📄 ' + esc(o.name) + '</b><small>' + esc(fmtB(o.size)) +
+  $('#pdf-out').innerHTML = outs.map(o => '<button class="trip" data-n="' + esc(o.name) + '" onclick="pdfOutMenu(this.dataset.n)"><span><b>'+uiIcon('document')+' ' + esc(o.name) + '</b><small>' + esc(fmtB(o.size)) +
     '</small></span><span aria-hidden="true">›</span></button>').join('');
   // plaatjes
   $('#pdf-img-opts').style.display = pdfImgs.length ? 'block' : 'none';

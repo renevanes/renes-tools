@@ -31,7 +31,7 @@ function renderHome(){
     const vis = tools.filter(t => !c.hidden.includes(t)); if (!vis.length) return;
     const g = document.createElement('div'); g.className = 'hgroup';
     if (name) { const h = document.createElement('h3'); h.textContent = name; g.appendChild(h); }
-    const grid = document.createElement('div'); grid.className = 'tiles';
+    const grid = document.createElement('div'); grid.className = 'tiles'+(vis.length===1?' single':'');
     vis.forEach(t => { const el = document.getElementById(TOOL_TILE[t]); if (el) grid.appendChild(el); });
     g.appendChild(grid); box.appendChild(g);
   };

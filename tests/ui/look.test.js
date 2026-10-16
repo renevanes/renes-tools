@@ -1,6 +1,7 @@
 // Vormgeving: alle hoofdschermen licht en donker, met vaste kleuren en met kleuren uit de achtergrond.
 // Maakt screenshots in tests/ui/shots/look-*.png en controleert kop, tabbalk en contrast.
 const { chromium } = require('playwright');
+const assert=require('node:assert/strict');
 const SCREENS = ['home', 'search', 'backup', 'settings', 'redial', 'wa', 'calls', 'notes', 'contacts', 'radio', 'podcasts', 'spotify', 'vpn', 'loc', 'sms', 'tracks', 'car', 'kluis', 'pdf', 'recorder', 'transcripts', 'music', 'history', 'auto', 'info', 'homeedit', 'selftest'];
 // Een paars Material You-palet zoals Android het geeft
 const DYN = (() => { const t = [0, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
@@ -17,7 +18,7 @@ function ratio(a, b){ const x = lum(a), y = lum(b); return (Math.max(x, y) + .05
     const pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
     pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error' && !m.text().includes('ERR_TUNNEL') && !m.text().includes('ERR_NAME')) errs.push(m.text()); });
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
-    if (dyn) await pg.evaluate(d => { Android._theme = d; applyTheme(); }, DYN);
+    if (dyn) await pg.evaluate(d => { Android._theme = d; store.set('dynColor',true); applyTheme(); }, DYN);
     const tag = scheme + (dyn ? '-dyn' : '');
     for (const s of SCREENS) {
       await pg.evaluate(n => show(n), s); await pg.waitForTimeout(120);
@@ -52,4 +53,5 @@ function ratio(a, b){ const x = lum(a), y = lum(b); return (Math.max(x, y) + .05
   await b.close();
   console.log(fails.length ? fails.join('\n') : '✓ vormgeving');
   console.log('errors', errs);
+  assert.deepEqual(fails,[]);assert.deepEqual(errs,[]);
 })().catch(e => { console.log(e.message); process.exit(1); });

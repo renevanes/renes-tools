@@ -42,7 +42,7 @@ function vpRender(light){
   // tunnels
   $('#vp-list').innerHTML = vpTun.map(t => {
     const cur = t.id === (on ? st.id : st.active);
-    return '<div class="srow"><button class="sbtn" data-id="' + esc(t.id) + '" onclick="vpTunMenu(this.dataset.id)"><span class="vpic' + (cur ? ' cur' : '') + '" aria-hidden="true">' + (cur ? '✓' : '🔑') + '</span>' +
+    return '<div class="srow"><button class="sbtn" data-id="' + esc(t.id) + '" onclick="vpTunMenu(this.dataset.id)"><span class="vpic' + (cur ? ' cur' : '') + '" aria-hidden="true">' + uiIcon(cur ? 'check' : 'shield') + '</span>' +
       '<span class="stxt"><b>' + esc(t.name) + (cur ? '<span class="sr-only"> (standaard)</span>' : '') + '</b><small>' + esc(vpTunSub(t)) + '</small></span>' +
       '<span class="vpmore" aria-hidden="true">⋯</span></button></div>';
   }).join('');
@@ -100,8 +100,8 @@ function vpTunMenu(id){
   if (!on && vpSt.active !== id) acts.push(['✓ Als standaard (tegel, snelkoppeling, vanzelf)', () => { Android.vpnSetActive(id); vpRender(); }]);
   acts.push(['✎ Bewerken', () => veOpen(id)]);
   if (vpTun.length > 1) acts.push(['↪ Reserve bij blokkade…', () => vpFallbackMenu(id)]);
-  if (t.pub) acts.push(['🔑 Mijn publieke sleutel kopiëren', () => { Android.vpnCopy(t.pub); toast('Gekopieerd: ' + t.pub.slice(0, 12) + '…'); }]);
-  acts.push(['🗑 Verwijderen', () => askConfirm('Tunnel verwijderen?', '"' + t.name + '" en zijn sleutels verdwijnen van deze telefoon. Op de server verandert niets.', 'Verwijderen', () => { Android.vpnDelete(id); vpRender(); })]);
+  if (t.pub) acts.push(['Mijn publieke sleutel kopiëren', () => { Android.vpnCopy(t.pub); toast('Gekopieerd: ' + t.pub.slice(0, 12) + '…'); }]);
+  acts.push(['Verwijderen', () => askConfirm('Tunnel verwijderen?', '"' + t.name + '" en zijn sleutels verdwijnen van deze telefoon. Op de server verandert niets.', 'Verwijderen', () => { Android.vpnDelete(id); vpRender(); })]);
   openSheet(t.name, (t.endpoint || '') + ((t.addr || []).length ? ' · ' + t.addr.join(', ') : ''), acts);
 }
 /* Reserve-tunnels: lukt verbinden niet (bijv. UDP geblokkeerd), dan vanzelf de volgende */
@@ -140,8 +140,8 @@ function vpToggleTo(id){
 
 function vpAddMenu(){
   openSheet('Tunnel toevoegen', 'Van je eigen server of een VPN-aanbieder', [
-    ['📷 QR-code scannen', vpScan], ['🖼️ QR-code uit een afbeelding', () => Android.vpnPickImage()], ['📄 Bestand (.conf)', () => Android.vpnPickFile()],
-    ['📋 Tekst plakken', vpPaste], ['🔑 Zelf maken (met eigen sleutels)', vpNew]]);
+    ['QR-code scannen', vpScan], ['QR-code uit een afbeelding', () => Android.vpnPickImage()], ['Bestand (.conf)', () => Android.vpnPickFile()],
+    ['Tekst plakken', vpPaste], ['Zelf maken (met eigen sleutels)', vpNew]]);
 }
 
 /* vanzelf */
@@ -297,7 +297,7 @@ function veSave(){
 function refreshVpnTile(){
   const el = $('#tile-vpn-sub'); if (!el) return;
   const st = rdJson(Android.vpnState(), {});
-  el.textContent = st.on ? (st.status === 'connected' ? '🔒 Aan · ' + (st.name || '') : 'Verbinden…') : 'WireGuard, uit';
+  el.textContent = st.on ? (st.status === 'connected' ? 'Aan · ' + (st.name || '') : 'Verbinden…') : 'WireGuard, uit';
 }
 // App naar de achtergrond: camera los (anders staat het beeld stil bij terugkomen)
 (function(){ const previous = window.onPauseApp; window.onPauseApp = function(){ if (previous) previous(); if (vpScanOpen()) vpScanClose(); }; })();

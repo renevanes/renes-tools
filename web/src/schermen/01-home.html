@@ -1,120 +1,121 @@
 <!-- ============ HOME ============ -->
 <section class="screen on" id="s-home">
-  <div class="hdr home"><button class="hsearch" onclick="tabGo('search')" aria-label="Overal zoeken"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Zoek overal</span></button>
+  <div class="hdr home sm"><button class="hsearch" onclick="tabGo('search')" aria-label="Overal zoeken"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Zoek overal</span></button>
     <h1 tabindex="-1">Rene's Tools</h1></div>
   <main>
+    <div class="home-intro"><h2>Overzicht</h2><p>Je tools, bestanden en recente activiteit.</p></div>
     <div class="banner" id="upd-banner"><div id="upd-text">Nieuwe versie beschikbaar</div><button onclick="installUpdate()">Installeren</button></div>
     <div class="tiles" id="tile-pool">
       <button class="tile" id="tile-redial" onclick="show('redial')">
         <span class="dot"></span>
-        <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/><path d="M15 2.5a6.5 6.5 0 0 1 6.5 6.5"/><path d="M21.5 3v4h-4"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="phone" aria-hidden="true"></span></span>
         <b>Auto redial</b>
         <small id="tile-redial-sub">Blijft bellen tot er wordt opgenomen</small>
       </button>
       <button class="tile" id="tile-wa" onclick="show('wa')">
         <span class="dot"></span>
-        <span class="ic" style="--c:#25A35A"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/><path d="M12 8v6M9.5 11.5 12 14l2.5-2.5"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="message" aria-hidden="true"></span></span>
         <b>WhatsApp backup</b>
         <small id="tile-wa-sub">Chats en media veilig bewaren</small>
       </button>
       <button class="tile" id="tile-tracks" onclick="show('tracks')">
         <span class="dot"></span>
-        <span class="ic" style="--c:#C0392B"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="route" aria-hidden="true"></span></span>
         <b>Mijn routes</b>
         <small id="tile-tracks-sub">Leg je route vast met gps</small>
       </button>
       <button class="tile" id="tile-sms" onclick="show('sms')">
-        <span class="ic" style="--c:#8E44AD"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="message" aria-hidden="true"></span></span>
         <b>SMS-backup</b>
         <small id="tile-sms-sub">Bewaar je sms-berichten</small>
       </button>
       <button class="tile" id="tile-history" onclick="show('history')">
-        <span class="ic" style="--c:#B9770E">🔔</span>
-        <b>Meldingsgeschiedenis</b>
+        <span class="ic"><span class="ui-icon" data-icon="bell" aria-hidden="true"></span></span>
+        <b>Meldingen</b>
         <small>Bewaar en backup je meldingen</small>
       </button>
       <button class="tile" id="tile-calls" onclick="show('calls')">
-        <span class="ic" style="--c:#16A085"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="calls" aria-hidden="true"></span></span>
         <b>Oproepen-backup</b>
         <small id="tile-calls-sub">Bewaar je belgeschiedenis</small>
       </button>
       <button class="tile" id="tile-notes" onclick="show('notes')">
-        <span class="ic" style="--c:#E67E22"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1 1 2-2M3.5 12l1 1 2-2"/><circle cx="5" cy="18" r="1"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="notes" aria-hidden="true"></span></span>
         <b>Notities</b>
         <small id="tile-notes-sub">Lijstjes maken en afstrepen</small>
       </button>
       <button class="tile" id="tile-contacts" onclick="show('contacts')">
-        <span class="ic" style="--c:#2C3E50"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="user" aria-hidden="true"></span></span>
         <b>Contacten</b>
         <small id="tile-contacts-sub">Backup, versies en wijzigingen</small>
       </button>
       <button class="tile" id="tile-pdf" onclick="show('pdf')">
-        <span class="ic" style="--c:#B03A2E">📄</span>
+        <span class="ic"><span class="ui-icon" data-icon="document" aria-hidden="true"></span></span>
         <b>PDF</b>
         <small>Bekijken, plaatjes, splitsen, e-mail naar PDF</small>
       </button>
       <button class="tile" id="tile-kluis" onclick="show('kluis')">
-        <span class="ic" style="--c:#4B5563">🔒</span>
+        <span class="ic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span>
         <b>Documentenkluis</b>
         <small>Belangrijke documenten ordenen en bewaren</small>
       </button>
       <button class="tile" id="tile-car" onclick="show('car')">
-        <span class="ic" style="--c:#1F6F5C">🚗</span>
+        <span class="ic"><span class="ui-icon" data-icon="car" aria-hidden="true"></span></span>
         <b>Mijn auto</b>
         <small id="tile-car-sub">Parkeerplek en ritten</small>
       </button>
       <button class="tile" id="tile-recorder" onclick="show('recorder')">
-        <span class="ic" style="--c:#A93226">🎙</span>
+        <span class="ic"><span class="ui-icon" data-icon="mic" aria-hidden="true"></span></span>
         <b>Gesprekken opnemen</b>
         <small>Handmatig of automatisch starten</small>
       </button>
       <button class="tile" id="tile-tr" onclick="show('transcripts')">
-        <span class="ic" style="--c:#7D3C98"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 10h16M4 14h12M4 18h7"/><path d="M17 15v6M20 17v2M14 17v2"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="transcript" aria-hidden="true"></span></span>
         <b>Gesprekken uitschrijven</b>
         <small id="tile-tx-sub">Opnames omzetten naar tekst</small>
       </button>
       <button class="tile" id="tile-radio" onclick="show('radio')">
-        <span class="ic" style="--c:#D35400"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M7 8l10-5"/><circle cx="8.5" cy="14.5" r="2.5"/><path d="M14 13h4M14 16h4"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="radio" aria-hidden="true"></span></span>
         <b>Radio</b>
         <small id="tile-radio-sub">Nederlandse zenders luisteren</small>
       </button>
       <button class="tile" id="tile-podcasts" onclick="show('podcasts')">
-        <span class="ic" style="--c:#6C3483"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="headphones" aria-hidden="true"></span></span>
         <b>Podcasts</b>
         <small id="tile-podcasts-sub">Zoeken, volgen en luisteren</small>
       </button>
       <button class="tile" id="tile-spotify" onclick="show('spotify')">
-        <span class="ic" style="--c:#1DB954"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7.5 9.5c3-1 6.5-.7 9 .8M8 12.6c2.5-.7 5.3-.4 7.3.8M8.6 15.5c2-.5 4-.3 5.6.6"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="spotify" aria-hidden="true"></span></span>
         <b>Spotify-backup</b>
         <small id="tile-spotify-sub">Playlists bewaren en terugzetten</small>
       </button>
       <button class="tile" id="tile-vpn" onclick="show('vpn')">
-        <span class="ic" style="--c:#1E8449"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><rect x="9" y="10.5" width="6" height="5" rx="1"/><path d="M10.5 10.5V9a1.5 1.5 0 0 1 3 0v1.5"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="shield" aria-hidden="true"></span></span>
         <b>VPN</b>
         <small id="tile-vpn-sub">WireGuard</small>
       </button>
       <button class="tile" id="tile-loc" onclick="show('loc')">
-        <span class="ic" style="--c:#B03A2E"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="pin" aria-hidden="true"></span></span>
         <b>Locatie kiezen</b>
         <small id="tile-loc-sub">Zelf je locatie bepalen</small>
       </button>
       <button class="tile" id="tile-music" onclick="show('music')">
-        <span class="ic" style="--c:#2471A3"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="music" aria-hidden="true"></span></span>
         <b>Muziek herkennen</b>
         <small id="tile-music-sub">Welk nummer is dit?</small>
       </button>
       <button class="tile" id="tile-skin" onclick="Android.homeOpen()">
-        <span class="ic" style="--c:#6D28D9"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2"/><path d="M11 18h2"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="smartphone" aria-hidden="true"></span></span>
         <b>Telefoon-skin</b>
         <small id="tile-skin-sub">Je telefoon in een nieuw jasje</small>
       </button>
       <button class="tile" id="tile-auto" onclick="show('auto')">
-        <span class="ic" style="--c:#0E7C86"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="automation" aria-hidden="true"></span></span>
         <b>Automatiseringen</b>
         <small id="tile-auto-sub">Bijv. parkeren starten bij aankomst</small>
       </button>
       <button class="tile" id="tile-backup" onclick="show('backup')">
-        <span class="ic" style="--c:#34495E"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></span>
+        <span class="ic"><span class="ui-icon" data-icon="backup" aria-hidden="true"></span></span>
         <b>Alles back-uppen</b>
         <small id="tile-backup-sub">Alles in één keer bewaren</small>
       </button>

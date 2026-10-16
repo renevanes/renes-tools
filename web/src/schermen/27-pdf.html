@@ -11,14 +11,14 @@
       <p class="note" id="pdf-keep-status" role="status" aria-live="polite"></p>
     </div>
     <div class="card" id="pdf-view-card">
-      <h2>📖 PDF bekijken</h2>
+      <h2><span class="ui-icon" data-icon="document" aria-hidden="true"></span>PDF bekijken</h2>
       <p class="note" style="margin-top:0">Lezen in de eigen viewer: zoomen, zoeken, naar een pagina springen, donker lezen en afdrukken.</p>
       <button class="big" onclick="Android.pdfViewPick()">PDF openen</button>
       <div id="pdf-def" aria-live="polite"></div>
     </div>
 
     <div class="card" id="pdf-edit-card">
-      <h2>✍️ PDF bewerken en ondertekenen</h2>
+      <h2><span class="ui-icon" data-icon="sign" aria-hidden="true"></span>PDF bewerken en ondertekenen</h2>
       <p class="note">Plaats tekst, een datum of een getekende handtekening op je PDF. Je maakt een nieuwe kopie; het oorspronkelijke bestand blijft behouden.</p>
       <button class="big ghost" id="pdf-edit-pick" onclick="pdfEditChoose()">PDF voor bewerking kiezen</button>
       <button class="big ghost" id="pdf-edit-open" style="display:none;margin-top:8px" onclick="pdfEditOpen()">Gekozen PDF bewerken</button>
@@ -31,10 +31,10 @@
       <div id="pdf-edit-work" style="display:none">
         <p id="pdf-edit-document" class="note"></p>
         <div class="row">
-          <button class="mini" id="pdf-edit-prev" onclick="pdfEditPage(-1)" aria-label="Vorige pagina">◀</button>
+          <button class="mini" id="pdf-edit-prev" onclick="pdfEditPage(-1)" aria-label="Vorige pagina" data-icon="chevron-left"></button>
           <label for="pdf-edit-page">Pagina</label><input class="search" type="number" id="pdf-edit-page" min="1" value="1" onchange="pdfEditGo(this.value)" style="width:80px">
           <span id="pdf-edit-count"></span>
-          <button class="mini" id="pdf-edit-next" onclick="pdfEditPage(1)" aria-label="Volgende pagina">▶</button>
+          <button class="mini" id="pdf-edit-next" onclick="pdfEditPage(1)" aria-label="Volgende pagina" data-icon="play"></button>
         </div>
         <p class="note">Sleep een toevoeging naar de juiste plek. Met de pijltjestoetsen kun je de geselecteerde toevoeging verschuiven.</p>
         <div id="pdf-edit-paper" class="pdfeditpaper" tabindex="0" role="group" aria-label="PDF-pagina met toevoegingen">
@@ -81,14 +81,14 @@
     </div>
 
     <div class="card">
-      <h2>🖼️ Plaatjes naar PDF</h2>
+      <h2><span class="ui-icon" data-icon="image" aria-hidden="true"></span>Plaatjes naar PDF</h2>
       <p class="note" style="margin-top:0">Foto's of scans samen in één PDF, in de volgorde die je kiest.</p>
       <div id="pdf-imgs" class="pdfimgs"></div>
       <button class="big ghost" onclick="Android.pdfPickImages()">＋ Plaatjes kiezen</button>
       <div id="pdf-img-opts" style="display:none">
         <div class="aeopts" id="pdf-size" role="radiogroup" aria-label="Paginaformaat" style="margin-top:10px">
-          <button data-v="a4" role="radio" class="on" aria-checked="true">📄 <b>A4</b><small>Elk plaatje op een A4-pagina, met een witte rand</small></button>
-          <button data-v="img" role="radio" aria-checked="false">🖼️ <b>Formaat van het plaatje</b><small>Zonder rand, de pagina is zo groot als het plaatje</small></button>
+          <button data-v="a4" role="radio" class="on" aria-checked="true"><span class="ui-icon" data-icon="document" aria-hidden="true"></span><b>A4</b><small>Elk plaatje op een A4-pagina, met een witte rand</small></button>
+          <button data-v="img" role="radio" aria-checked="false"><span class="ui-icon" data-icon="image" aria-hidden="true"></span><b>Formaat van het plaatje</b><small>Zonder rand, de pagina is zo groot als het plaatje</small></button>
         </div>
         <label class="f" for="pdf-img-name">Naam (mag leeg)</label>
         <input class="search" id="pdf-img-name" placeholder="Bijv. Bonnetjes oktober">
@@ -100,7 +100,7 @@
     </div>
 
     <div class="card">
-      <h2>✂️ PDF splitsen</h2>
+      <h2><span class="ui-icon" data-icon="scissors" aria-hidden="true"></span>PDF splitsen</h2>
       <p class="note" style="margin-top:0">Losse pagina's of delen uit een PDF halen. Tekst en opmaak blijven zoals ze zijn.</p>
       <button class="big ghost" onclick="pdfChooseSource()">PDF kiezen</button>
       <div id="pdf-split" style="display:none">
@@ -115,7 +115,7 @@
     </div>
 
     <div class="card">
-      <h2>✉️ Tekst of e-mail naar PDF</h2>
+      <h2><span class="ui-icon" data-icon="mail" aria-hidden="true"></span>Tekst of e-mail naar PDF</h2>
       <p class="note" style="margin-top:0">In je mailapp of een andere app: kies <b>Delen</b> → <b>PDF maken</b>. Of kies hier een e-mailbestand (.eml) of tekstbestand, of plak tekst.</p>
       <button class="big ghost" onclick="Android.pdfPickDoc()">E-mail of tekstbestand kiezen</button>
       <label class="f" for="pdf-text-title">Titel</label>

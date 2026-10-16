@@ -121,7 +121,7 @@ function txWatch(){
   if (txPlayPoll) clearInterval(txPlayPoll);
   const tick = () => {
     const st = txJson(Android.txPlayState());
-    $('#txd-play').textContent = st.playing ? '❚❚ Pauze' : '▶ Afspelen';
+    $('#txd-play').textContent = st.playing ? 'Pauze' : 'Afspelen'; $('#txd-play').dataset.icon=st.playing?'pause':'play';
     const segs = (txT && txT.segments) || [];
     let cur = -1; for (let i = 0; i < segs.length; i++) if (segs[i].from <= st.pos) cur = i;
     document.querySelectorAll('#txd-segs .seg.now').forEach(e => { if (e.id !== 'seg' + cur) e.classList.remove('now'); });
@@ -131,7 +131,7 @@ function txWatch(){
   };
   tick(); txPlayPoll = setInterval(tick, 400);
 }
-function leaveTrd(){ if (txPlayPoll) { clearInterval(txPlayPoll); txPlayPoll = null; } Android.txStop(); $('#txd-play').textContent = '▶ Afspelen'; }
+function leaveTrd(){ if (txPlayPoll) { clearInterval(txPlayPoll); txPlayPoll = null; } Android.txStop(); $('#txd-play').textContent = 'Afspelen'; $('#txd-play').dataset.icon='play'; }
 function txExport(id){
   if (!plainOk(id ? 'Het transcript' : 'Elk transcript', () => txExport(id))) return;
   const r = Android.txExport(id || '');

@@ -14,7 +14,7 @@ function dynTokens(p){
   };
 }
 function dynPalette(){
-  if (!store.get('dynColor', true) || typeof Android.themeColors !== 'function') return null;
+  if (!store.get('dynColor', false) || typeof Android.themeColors !== 'function') return null;
   let p; try { const j = Android.themeColors(); if (!j) return null; p = JSON.parse(j); } catch(e){ return null; }
   const ok = h => typeof h === 'string' && /^#[0-9a-f]{6}$/i.test(h);
   for (const k of ['accent1', 'accent2', 'neutral1', 'neutral2'])
@@ -31,7 +31,7 @@ function applyTheme(){
   if (st.textContent !== css) { st.textContent = css; bars.last = null; }
   bars();
 }
-function stDynColor(on){ store.set('dynColor', !!on); applyTheme(); toast(on ? 'Kleuren uit je achtergrond' : 'Vaste kleuren (blauw)'); }
+function stDynColor(on){ store.set('dynColor', !!on); applyTheme(); toast(on ? 'Kleuren uit je achtergrond' : 'Standaardkleuren'); }
 
 /* Koppen: grote titel die bij scrollen omhoog schuift; de bovenste rij (terug, titel klein, knoppen) blijft staan */
 function uiInitHeaders(){

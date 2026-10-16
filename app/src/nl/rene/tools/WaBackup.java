@@ -150,6 +150,7 @@ final class WaBackup {
     static final class Dest {
         final ContentResolver cr; final Uri tree;
         final Map<String, DestDir> cache = new HashMap<>();
+        final Map<String, DocumentWrite.Session> documentWrites = new HashMap<>();
         /** Als er een versleuteld archief wordt gemaakt, gaan alle bestanden daarin in plaats van in de map. */
         final Secure.Zip zip = Secure.CAPTURE.get();
         Dest(ContentResolver r, Uri t) { cr = r; tree = t; }
@@ -245,7 +246,48 @@ final class WaBackup {
     }
 
     static Uri create(Dest dest, Uri parent, String mime, String name) throws Exception {
-        return inTree(dest.tree, DocumentsContract.createDocument(dest.cr, parent, mime, name));
+        if(Document.MIME_TYPE_DIR.equals(mime))return createVerified(dest,parent,mime,name);
+        try { return inTree(dest.tree, DocumentsContract.createDocument(dest.cr, parent, mime, name)); }
+        catch(NullPointerException emptyReply) { throw new java.io.IOException(DocumentWrite.NO_REPLY,emptyReply); }
+    }
+
+    static Uri createVerified(Dest dest, Uri parent, String mime, String name) throws Exception {
+        String id=documentWrite(dest,parent).create(name,mime);
+        return DocumentsContract.buildDocumentUriUsingTree(dest.tree,id);
+    }
+
+    static Uri renameVerified(Dest dest, Uri parent, Uri doc, String name) throws Exception {
+        String id=documentWrite(dest,parent).rename(DocumentsContract.getDocumentId(doc),name);
+        return id==null?null:DocumentsContract.buildDocumentUriUsingTree(dest.tree,id);
+    }
+
+    private static DocumentWrite.Session documentWrite(Dest dest,Uri parent) {
+        String id=DocumentsContract.getDocumentId(parent);
+        DocumentWrite.Session session=dest.documentWrites.get(id);
+        if(session==null) { session=new DocumentWrite.Session(new DocumentStore(dest,parent));dest.documentWrites.put(id,session); }
+        return session;
+    }
+
+    static final class DocumentStore implements DocumentWrite.Store {
+        final Dest dest; final Uri parent;
+        DocumentStore(Dest dest,Uri parent) { this.dest=dest;this.parent=parent; }
+        public List<DocumentWrite.Entry> list() throws Exception {
+            List<DocumentWrite.Entry> entries=new ArrayList<>();
+            Uri children=DocumentsContract.buildChildDocumentsUriUsingTree(dest.tree,DocumentsContract.getDocumentId(parent));
+            try(Cursor c=dest.cr.query(children,new String[]{Document.COLUMN_DOCUMENT_ID,Document.COLUMN_DISPLAY_NAME,Document.COLUMN_MIME_TYPE},null,null,null)) {
+                if(c==null)throw new java.io.IOException("De backup-map kan niet worden gelezen. Kies de map opnieuw bij Instellingen → Backup-map.");
+                while(c.moveToNext())entries.add(new DocumentWrite.Entry(c.getString(0),c.getString(1),c.getString(2)));
+            }
+            return entries;
+        }
+        public String create(String name,String mime) throws Exception {
+            Uri u=DocumentsContract.createDocument(dest.cr,parent,mime,name);
+            return u==null?null:DocumentsContract.getDocumentId(u);
+        }
+        public String rename(String id,String name) throws Exception {
+            Uri u=DocumentsContract.renameDocument(dest.cr,DocumentsContract.buildDocumentUriUsingTree(dest.tree,id),name);
+            return u==null?null:DocumentsContract.getDocumentId(u);
+        }
     }
 
     static Uri rename(Dest dest, Uri u, String to) throws Exception {
