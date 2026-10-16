@@ -5,14 +5,16 @@
     <h1 tabindex="-1">Notities</h1>
   </div>
   <main>
-    <input class="search" id="notes-search" type="search" placeholder="Zoek in notities en lijstjes…" oninput="renderNotes()">
+    <p class="note">Houd je lijsten bij elkaar: open een lijst en kies <b>Verplaatsen</b> of <b>Bestaande lijst toevoegen</b>.</p>
+    <input class="search" id="notes-search" aria-label="Zoek in notities en lijsten" type="search" placeholder="Zoek in notities en lijstjes…" oninput="renderNotes()">
     <div class="card nlist" id="notes-list"></div>
-    <button class="big ghost" style="margin-top:14px" onclick="notesBackup()">Kopie in backup-map zetten</button>
+    <button class="big ghost" style="margin-top:14px" onclick="voiceOpen(null)" aria-label="Spraaknotitie inspreken">🎤 Spraaknotitie inspreken</button>
+    <button class="big ghost" style="margin-top:10px" onclick="notesBackup()">Kopie in backup-map zetten</button>
     <p class="note">Je notities staan alleen op deze telefoon. Met de knop hierboven komt er een kopie in de map <b>Notities</b> van je backup-map.</p>
     <div style="height:70px"></div>
   </main>
-  <button class="fab fab2" onclick="voiceOpen(null)" aria-label="Spraaknotitie inspreken">🎤</button>
-  <button class="fab" onclick="newNote()" aria-label="Nieuwe notitie">+</button>
+
+  <button class="fab note-new" onclick="newNote()" aria-label="Nieuwe notitie">+ Nieuwe lijst</button>
 </section>
 
 <section class="screen" id="s-note">
@@ -23,15 +25,20 @@
   </div>
   <main>
     <div class="card">
-      <input class="ntitle" id="note-title" placeholder="Titel" oninput="noteEdit('title', this.value)">
+      <div class="note-list-location" id="note-list-location"></div>
+      <input class="ntitle" id="note-title" aria-label="Titel van de lijst" placeholder="Geef je lijst een naam…" oninput="noteEdit('title', this.value)">
+      <div class="note-list-tools"><button id="note-list-move" onclick="noteMoveOpen('move')">↗ Verplaatsen</button><button id="note-list-swap" onclick="noteListSwap()" hidden>⇅ Omwisselen</button></div>
+      <div class="note-progress"><span id="note-progress" role="status"></span><progress id="note-progress-bar" aria-label="Afgeronde items" max="1" value="0"></progress></div>
+      <p class="note" id="note-empty">Voeg hieronder je eerste item toe. Via <b>Items indelen</b> zet je bestaande items onder elkaar.</p>
       <ul class="items" id="note-open"></ul>
       <div id="note-add-target" class="note-add-target" hidden><span id="note-add-target-text"></span><button onclick="noteAddReset()">Hoofdlijst</button></div>
       <div class="additem">
-        <input id="note-add" placeholder="Nieuw item…" enterkeyhint="done" onkeydown="if(event.key==='Enter'){addItem();event.preventDefault();}">
+        <input id="note-add" placeholder="Nieuw item…" aria-label="Nieuw item of subitem" enterkeyhint="done" onkeydown="if(event.key==='Enter'){addItem();event.preventDefault();}">
         <button onclick="addItem()" aria-label="Toevoegen">+</button>
         <button onclick="voiceOpen(noteCur)" aria-label="Inspreken">🎤</button>
       </div>
-      <div class="row" style="margin-top:6px;gap:8px"><button onclick="noteSort()" style="padding:8px 12px;border-radius:12px;background:var(--chip);font-weight:600;flex:none">↕︎ Sorteren</button><span class="note" style="margin:0;flex:1">Via ⋯ maak je sublijstjes. Sleep aan ⋮⋮ binnen dezelfde lijst.</span></div>
+      <div class="note-list-tools"><button id="note-item-move" onclick="noteMoveOpen('item')">↳ Items indelen</button><button onclick="noteSort()">↕ Sorteren</button></div>
+      <p class="note note-item-help">Tik op ⋯ bij een item voor subitems. Sleep aan ⋮⋮ om de volgorde te veranderen.</p>
       <button class="big ghost" id="note-split-open" style="margin-top:10px" onclick="noteSplitOpen()" aria-expanded="false" aria-controls="note-split-panel">Lijst splitsen in losse items</button>
       <div id="note-split-panel" hidden>
         <h2>Lijst splitsen</h2>
@@ -51,6 +58,12 @@
       </div>
       <div class="donehdr" id="note-donehdr"><span id="note-donecount"></span><button onclick="clearDone()">Afgevinkte verwijderen</button></div>
       <ul class="items" id="note-done"></ul>
+    </div>
+    <div class="card note-child-card">
+      <h2>Sublijsten</h2>
+      <div id="note-child-list"></div>
+      <p class="note" id="note-child-empty">Nog geen sublijsten. Maak er een of hang een bestaande lijst hieronder.</p>
+      <div class="note-list-tools"><button onclick="noteNewChild()">+ Nieuwe sublijst</button><button id="note-list-attach" onclick="noteMoveOpen('attach')">Bestaande lijst toevoegen</button></div>
     </div>
     <div class="card">
       <h2>Notitie</h2>

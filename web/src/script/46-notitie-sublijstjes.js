@@ -39,7 +39,7 @@ function noteItemMenu(id){
   const n=noteById(noteCur);if(!n)return;
   const rows=noteTree(n.items||[]),row=rows.find(r=>r.it.id===id);if(!row)return;
   const siblings=rows.filter(r=>r.parent===row.parent),at=siblings.indexOf(row);
-  const acts=[['Subitem toevoegen',()=>noteSubAdd(id)]];
+  const acts=[['Subitem toevoegen',()=>noteSubAdd(id)],['Verplaatsen naar…',()=>noteMoveOpen('item',id)]];
   if(at>0)acts.push(['Inspringen onder '+siblings[at-1].it.text,()=>noteReparent(n.id,id,siblings[at-1].it.id)]);
   if(row.parent!==null){const parent=rows.find(r=>r.it.id===row.parent);acts.push(['Een niveau terug',()=>noteReparent(n.id,id,parent.parent)]);}
   acts.push(['Item verwijderen',()=>{if(noteCur===n.id)delItem(id);}]);
@@ -61,7 +61,7 @@ function noteReparent(noteId,id,parentId){
     const rows=noteTree(n.items||[]),row=rows.find(r=>r.it.id===id),parent=rows.find(r=>r.it.id===parentId);
     if(!row||parentId!==null&&!parent)return 'Het item is intussen verwijderd. Kies opnieuw.';
     if(!noteParentValid(rows,id,parentId))return 'Een item kan niet onder zichzelf staan.';
-    before=row.it.parentId;
+    before=row.parent===null?undefined:row.parent;
     const group=noteSubtree(rows,row),start=rows.indexOf(row);
     nextIds=rows.slice(start+group.length).map(r=>r.it.id);
     previousIds=rows.slice(0,start).reverse().map(r=>r.it.id);
@@ -70,7 +70,7 @@ function noteReparent(noteId,id,parentId){
     const ids=new Set(group.map(r=>r.it.id));
     n.items=n.items.filter(i=>!ids.has(i.id)).concat(n.items.filter(i=>ids.has(i.id)));
   });
-  if(!saved)return;
+  if(!saved)return false;
   if(noteCur===noteId)renderItems();
   undoToast('Niveau aangepast',()=>{
     if(noteSplitCommit(noteId,n=>{
@@ -86,4 +86,5 @@ function noteReparent(noteId,id,parentId){
       if(before===undefined)delete it.parentId;else it.parentId=before;
     })&&noteCur===noteId)renderItems();
   });
+  return true;
 }

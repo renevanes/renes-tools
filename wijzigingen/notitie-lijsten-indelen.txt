@@ -1,0 +1,2 @@
+Hang een bestaande notitielijst onder een andere lijst, maak haar weer los of wissel ouder en sublijst om. Inhoud, vinkjes en herinneringen blijven bij hun eigen lijst; verplaatsen kan ongedaan worden gemaakt.
+Notities zijn eenvoudiger te bedienen: duidelijke knoppen voor verplaatsen, sublijsten en items indelen, een doorzoekbare bestemmingskeuze, zichtbare bovenliggende lijsten en voortgang per lijst.

@@ -169,6 +169,24 @@ textarea.key:focus{outline:2px solid var(--primary);outline-offset:-1px;border-c
 .nlist button.nrow:first-child{border-top:0}
 .nlist .r1{display:flex;gap:8px;align-items:baseline}.nlist .r1 b{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nlist .r1 small,.nlist .r2{color:var(--muted);font-size:13px}.nlist .r2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.note-parent-label{display:block;font-size:12px;color:var(--primary);margin:3px 0}
+.fab.note-new{width:auto;min-width:150px;padding:0 20px;font-size:17px;font-weight:700}
+.note-list-location{font-size:13px;color:var(--muted);margin-bottom:6px;overflow-wrap:anywhere}
+.note-list-location button{text-align:left;color:var(--primary);min-height:44px;padding:4px 0;font-weight:600;max-width:100%;overflow-wrap:anywhere}
+.note-list-tools{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.note-list-tools button{background:var(--chip);color:var(--on-chip);padding:11px 14px;border-radius:14px;min-height:44px;font-size:14px;font-weight:600;max-width:100%;overflow-wrap:anywhere}
+.note-list-tools button:disabled{opacity:.45}.note-list-tools button[hidden]{display:none}
+.note-progress{display:flex;align-items:center;gap:12px;margin:14px 0;color:var(--muted);font-size:13px}
+.note-progress span{flex:1}.note-progress progress{width:90px;height:7px;accent-color:var(--primary)}
+.note-item-help{font-size:12px;margin:4px 0}
+.note-child{display:block;text-align:left;width:100%;padding:13px 0;border-top:1px solid var(--line)}
+.note-child strong,.note-child small{display:block;overflow-wrap:anywhere}.note-child small{color:var(--muted);margin-top:4px}
+.note-move-choices{max-height:32vh;overflow:auto;margin:8px 0;border:1px solid var(--line);border-radius:16px}
+#sheet-acts .note-move-choice{border-radius:0;border-bottom:1px solid var(--line)}
+.note-move-choice strong,.note-move-choice small{display:block;overflow-wrap:anywhere}.note-move-choice small{color:var(--muted);font-size:13px;font-weight:400;margin-top:4px}
+.note-move-choice[aria-pressed=true]{background:var(--tonal);color:var(--on-tonal)}
+.note-move-choice:disabled{opacity:.5}#sheet-acts #note-move-apply{background:var(--primary);color:var(--on-primary);text-align:center}#sheet-acts #note-move-apply:disabled{opacity:.45}
+#note-move-item{width:100%}
 .nlist mark,.items mark{background:color-mix(in srgb,#FFD54F 70%,var(--card));color:inherit;border-radius:3px}
 .ntitle{width:100%;font-size:20px;font-weight:700;border:0;background:transparent;color:var(--ink);padding:4px 0 8px;outline:none}
 .items{list-style:none;margin:0;padding:0}

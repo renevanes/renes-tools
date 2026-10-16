@@ -52,6 +52,7 @@ script/12-contacten.js
 script/13-notities.js
 script/45-notitie-lijst-splitsen.js
 script/46-notitie-sublijstjes.js
+script/47-notitie-lijsten-indelen.js
 script/14-notities-herinneringen-en-delen.js
 script/15-oproepen-backup.js
 script/16-alles-back-uppen.js

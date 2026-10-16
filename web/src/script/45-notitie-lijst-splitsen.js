@@ -75,7 +75,7 @@ function noteSplitCommit(id,change,invalid){
   for(let attempt=0;attempt<3;attempt++){
     const before=notesGet(),next=notesCopy(before),n=next.find(x=>x.id===id);
     if(!n){toast('Deze notitie is intussen verwijderd.');noteSplitClose();if(current==='note'&&noteCur===id)show('notes');return false;}
-    const reason=change(n);
+    const reason=change(n,next);
     if(reason){if(invalid)invalid(reason);toast(reason);return false;}
     n.updated=Date.now();
     let r;

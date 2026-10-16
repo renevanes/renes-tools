@@ -106,9 +106,10 @@ function hl(text, q){
 function enterNotes(){ loadRems(); renderNotes(); refreshNotesTile(); }
 function renderNotes(){
   const q = $('#notes-search').value.trim().toLowerCase();
-  const list = notesGet().slice().sort((a, b) => (b.updated||0) - (a.updated||0));
+  const list = noteListTree(notesGet());
   const rows = [];
-  for (const n of list) {
+  for (const r of list) {
+    const n=r.n, parent=r.parent!==null?noteById(r.parent):null;
     const items = n.items || [], open = items.filter(i => !i.done).length;
     const title = n.title || 'Zonder titel', flat = (n.text||'').replace(/\s+/g, ' ');
     let sub;
@@ -122,9 +123,9 @@ function renderNotes(){
       sub = items.length ? esc(items.filter(i => !i.done).slice(0, 5).map(i => i.text).join(' · ') || 'Alles afgestreept') : esc(flat.slice(0, 80));
     }
     const rem = noteRems[n.id];
-    rows.push('<button class="nrow" onclick="openNote(' + jsq(n.id) + ')"><span class=r1><b>' + (rem ? '<span class=nrem>🔔</span> ' : '') + hl(title, q) + '</b><small>' +
+    rows.push('<button class="nrow" data-note-id="'+esc(n.id)+'" style="padding-left:'+Math.min(r.depth,3)*14+'px" onclick="openNote(' + jsq(n.id) + ')"><span class=r1><b>' + (rem ? '<span class=nrem>🔔</span> ' : '') + hl(title, q) + '</b><small>' +
       (items.length ? (items.length - open) + '/' + items.length + ' ✓ · ' : '') + esc(fmtD(n.updated||0)) + '</small></span>' +
-      '<span class=r2>' + (sub || '&nbsp;') + '</span></button>');
+      (parent?'<span class=note-parent-label>↳ Onder '+esc(parent.title||'Zonder titel')+'</span>':'')+'<span class=r2>' + (sub || '&nbsp;') + '</span></button>');
   }
   $('#notes-list').innerHTML = rows.join('') || '<p class=note style="padding:14px">' +
     (q ? 'Niets gevonden.' : 'Nog geen notities. Tik op + om een lijstje te maken.') + '</p>';
@@ -155,7 +156,11 @@ function renderItems(){
   $('#note-done').innerHTML = rows.filter(r => r.groupDone).map(row).join('');
   $('#note-donehdr').style.display = done.length ? 'flex' : 'none';
   $('#note-donecount').textContent = done.length + ' afgestreept';
-  noteAddTargetShow();
+  noteAddTargetShow();noteListLocation();
+  const count=(n.items||[]).length,completed=done.length;
+  $('#note-progress').textContent=count?completed+' van '+count+' items klaar':'Nog geen items';
+  $('#note-progress-bar').max=count||1;$('#note-progress-bar').value=completed;
+  $('#note-empty').hidden=count>0;$('#note-item-move').disabled=count===0;
 }
 /* ---------- volgorde: slepen aan ⋮⋮, of sorteren ---------- */
 let dragLi = null;
@@ -251,18 +256,24 @@ function clearDone(){
 }
 function deleteNote(){
   const n = noteById(noteCur); if (!n) return;
-  askConfirm('Notitie verwijderen?', '"' + (n.title || 'Zonder titel') + '" wordt definitief verwijderd.', 'Verwijderen', () => {
-    const id = noteCur;
-    notes = notesGet().filter(x => x.id !== id); noteCur = null;
-    // Herinneringen pas weg als het verwijderen echt bewaard is
-    if (notesSaveNow()) { if (typeof Android.noteRemindClear === 'function') Android.noteRemindClear(id); else Android.noteRemind(id, '', '0'); }
+  const childCount=notesGet().filter(x=>x.parentNoteId===n.id).length;
+  askConfirm('Notitie verwijderen?', '"' + (n.title || 'Zonder titel') + '" wordt definitief verwijderd.'+(childCount?' De sublijsten blijven bewaard.':''), 'Verwijderen', () => {
+    const id=n.id;
+    if(!noteSplitCommit(id,(m,all)=>{
+      for(const child of all.filter(x=>x.parentNoteId===id)){
+        if(m.parentNoteId&&noteListCanMove(all,child.id,m.parentNoteId))child.parentNoteId=m.parentNoteId;else delete child.parentNoteId;
+      }
+      all.splice(all.findIndex(x=>x.id===id),1);
+    }))return;
+    noteCur=null;
+    if (typeof Android.noteRemindClear === 'function') Android.noteRemindClear(id); else Android.noteRemind(id, '', '0');
     show('notes'); });
 }
 function leaveNote(){
   noteSplitClose();
   noteAddParent=null;
   const n = noteById(noteCur);
-  if (n && !(n.title||'').trim() && !(n.text||'').trim() && !(n.items||[]).length) { notes = notesGet().filter(x => x.id !== n.id); if (typeof Android.noteRemindClear === 'function') Android.noteRemindClear(n.id); else Android.noteRemind(n.id, '', '0'); }
+  if (n && !(n.title||'').trim() && !(n.text||'').trim() && !(n.items||[]).length && !notesGet().some(x=>x.parentNoteId===n.id)) { notes = notesGet().filter(x => x.id !== n.id); if (typeof Android.noteRemindClear === 'function') Android.noteRemindClear(n.id); else Android.noteRemind(n.id, '', '0'); }
   else if (n && noteRems[n.id]) { if (typeof Android.noteRemindRetitle === 'function') Android.noteRemindRetitle(n.id, n.title || 'Notitie'); else Android.noteRemind(n.id, n.title || 'Notitie', String(noteRems[n.id])); } // titel van de herinnering bijwerken
   notesSaveNow(); noteCur = null;
 }
