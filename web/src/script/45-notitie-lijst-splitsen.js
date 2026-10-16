@@ -36,7 +36,7 @@ function noteSplitClose(){
 function noteSplitOpen(){
   if (!noteById(noteCur) || !notesSaveNow()) return;
   const n = noteById(noteCur); if (!n) return;
-  noteSplit = {noteId:n.id, draft:$('#note-add').value, paste:$('#note-add').value};
+  noteSplit = {noteId:n.id, draft:$('#note-add').value, paste:$('#note-add').value, addParent:noteAddParent};
   const select = $('#note-split-source'); select.replaceChildren();
   const option = (value,label) => { const o = document.createElement('option'); o.value=value;o.textContent=label;select.appendChild(o); };
   option('paste','Tekst plakken of typen'); option('body','Vrije tekst van deze notitie');
@@ -108,7 +108,11 @@ function noteSplitApply(){
     original=at>=0 ? notesCopy([n.items[at]])[0] : null;
     if(s.original&&(!original||original.text!==s.original.text||!!original.done!==!!s.original.done)||s.source==='body'&&(n.text||'')!==s.body)
       return 'De bron is intussen veranderd. Kies de bron opnieuw om verder te gaan.';
+    if(!original&&s.addParent!==null&&!(n.items||[]).some(i=>i.id===s.addParent))return 'Het bovenliggende item is verwijderd. Kies de bron opnieuw.';
     added=r.items.map(i=>Object.assign({},original||{},{id:uid(),text:i.text,done:i.done}));
+    // Een hoofditem houdt zijn id op het eerste deel, zodat bestaande subitems eraan vast blijven.
+    if(original&&(n.items||[]).some(i=>i.parentId===original.id))added[0].id=original.id;
+    if(!original&&s.addParent!==null)added.forEach(i=>i.parentId=s.addParent);
     if(original)n.items.splice(at,1,...added);else n.items=(n.items||[]).concat(added);
     if(cleared)n.text='';
   },reason=>{$('#note-split-status').textContent=reason;$('#note-split-apply').disabled=true;});
@@ -123,7 +127,8 @@ function noteSplitApply(){
       if(s.source==='paste'&&noteSplit)return 'Er staat een nieuwe lijst klaar om te splitsen. Die blijft behouden.';
       if(addedSnapshot.some(i=>JSON.stringify((m.items||[]).find(x=>x.id===i.id))!==JSON.stringify(i))||cleared&&(m.text||'')!=='')
         return 'De gesplitste items of notitietekst zijn intussen gewijzigd. Ze blijven behouden.';
-      if(original&&(m.items||[]).some(i=>i.id===original.id))return 'Het oorspronkelijke item is intussen teruggezet. Je wijzigingen blijven behouden.';
+      if(original&&!ids.has(original.id)&&(m.items||[]).some(i=>i.id===original.id))return 'Het oorspronkelijke item is intussen teruggezet. Je wijzigingen blijven behouden.';
+      if((m.items||[]).some(i=>!ids.has(i.id)&&ids.has(i.parentId)&&(!original||i.parentId!==original.id)))return 'Een gesplitst item heeft nieuwe subitems. Die blijven behouden.';
       m.items=m.items.filter(i=>!ids.has(i.id));
       if(original)m.items.splice(Math.min(at,m.items.length),0,original);
       if(cleared)m.text=s.body;

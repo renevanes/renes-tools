@@ -65,8 +65,7 @@ function noteShareNow(){
 function noteShareDo(openOnly){
   const n = noteById(noteCur); if (!n) return;
   const lines = [];
-  (n.items || []).filter(i => !i.done).forEach(i => lines.push('☐ ' + i.text));
-  if (!openOnly) (n.items || []).filter(i => i.done).forEach(i => lines.push('☑ ' + i.text));
+  noteTree(n.items || []).filter(r => !openOnly || !r.it.done).forEach(r => lines.push('  '.repeat(Math.min(r.depth,20)) + (r.it.done ? '☑ ' : '☐ ') + r.it.text));
   const text = (n.title ? n.title + '\n\n' : '') + lines.join('\n') + (n.text ? (lines.length ? '\n\n' : '') + n.text : '');
   if (!text.trim()) { toast('De notitie is nog leeg'); return; }
   Android.noteShare(n.title || '', text);
@@ -75,10 +74,20 @@ function noteShareDo(openOnly){
 function noteFromShare(){
   let d; try { d = JSON.parse(Android.pendingShare() || '{}'); } catch(e){ d = {}; }
   if (!d.text) { show('notes'); return; }
-  const lines = d.text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  const rawLines = d.text.split(/\r?\n/).filter(x=>x.trim());
+  const lines = rawLines.map(x => x.trim());
   const listy = lines.length >= 2 && lines.every(x => x.length < 120);
   const n = { id: uid(), title: (d.title || (listy ? '' : lines[0] || '')).slice(0, 80), text: listy ? '' : d.text, items: [], updated: Date.now() };
-  if (listy) lines.forEach(x => n.items.push({ id: uid(), text: x.replace(/^([-*•☐☑✓]|\[[ x]\])\s*/i, ''), done: /^(☑|✓|\[x\])/i.test(x) }));
+  if (listy) {
+    const stack=[];
+    rawLines.forEach(line=>{
+      const indent=/^\s*/.exec(line)[0].replace(/\t/g,'  ').length;
+      while(stack.length&&stack[stack.length-1].indent>=indent)stack.pop();
+      const parsed=noteSplitPrefix(line,false),item={id:uid(),text:parsed.text,done:parsed.done};
+      if(stack.length)item.parentId=stack[stack.length-1].id;
+      n.items.push(item);stack.push({id:item.id,indent});
+    });
+  }
   notesGet().push(n); notesSaveNow();
   show('notes'); openNote(n.id); toast('Nieuwe notitie gemaakt van gedeelde tekst');
 }

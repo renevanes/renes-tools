@@ -25,12 +25,13 @@
     <div class="card">
       <input class="ntitle" id="note-title" placeholder="Titel" oninput="noteEdit('title', this.value)">
       <ul class="items" id="note-open"></ul>
+      <div id="note-add-target" class="note-add-target" hidden><span id="note-add-target-text"></span><button onclick="noteAddReset()">Hoofdlijst</button></div>
       <div class="additem">
         <input id="note-add" placeholder="Nieuw item…" enterkeyhint="done" onkeydown="if(event.key==='Enter'){addItem();event.preventDefault();}">
         <button onclick="addItem()" aria-label="Toevoegen">+</button>
         <button onclick="voiceOpen(noteCur)" aria-label="Inspreken">🎤</button>
       </div>
-      <div class="row" style="margin-top:6px;gap:8px"><button onclick="noteSort()" style="padding:8px 12px;border-radius:12px;background:var(--chip);font-weight:600;flex:none">↕︎ Sorteren</button><span class="note" style="margin:0;flex:1">Of sleep een item aan ⋮⋮ naar een andere plek.</span></div>
+      <div class="row" style="margin-top:6px;gap:8px"><button onclick="noteSort()" style="padding:8px 12px;border-radius:12px;background:var(--chip);font-weight:600;flex:none">↕︎ Sorteren</button><span class="note" style="margin:0;flex:1">Via ⋯ maak je sublijstjes. Sleep aan ⋮⋮ binnen dezelfde lijst.</span></div>
       <button class="big ghost" id="note-split-open" style="margin-top:10px" onclick="noteSplitOpen()" aria-expanded="false" aria-controls="note-split-panel">Lijst splitsen in losse items</button>
       <div id="note-split-panel" hidden>
         <h2>Lijst splitsen</h2>

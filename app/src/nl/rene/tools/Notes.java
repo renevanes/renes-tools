@@ -60,11 +60,11 @@ final class Notes {
                     if (n == null || !id.equals(n.optString("id"))) continue;
                     JSONArray items = n.optJSONArray("items"), open = new JSONArray();
                     int total = items == null ? 0 : items.length(), nOpen = 0;
-                    if (items != null) for (int j = 0; j < items.length(); j++) {
-                        JSONObject it = items.optJSONObject(j);
+                    if (items != null) for (NoteTree.Row row : NoteTree.rows(items)) {
+                        JSONObject it = items.optJSONObject(row.index);
                         if (it == null || it.optBoolean("done")) continue;
                         nOpen++;
-                        if (open.length() < 5) open.put(it.optString("text"));
+                        if (open.length() < 5) open.put(row.indent() + it.optString("text"));
                     }
                     String title = n.optString("title").trim();
                     out.put(new JSONObject().put("id", id).put("title", title.isEmpty() ? "Notitie" : title)
@@ -281,9 +281,9 @@ final class Notes {
                 String text = n.optString("text", "");
                 if (!text.isEmpty()) w.write(text.replace("\n", "\r\n") + "\r\n");
                 JSONArray items = n.optJSONArray("items");
-                if (items != null) for (int j = 0; j < items.length(); j++) {
-                    JSONObject it = items.getJSONObject(j);
-                    w.write((it.optBoolean("done") ? "[x] " : "[ ] ") + it.optString("text") + "\r\n");
+                if (items != null) for (NoteTree.Row row : NoteTree.rows(items)) {
+                    JSONObject it = items.getJSONObject(row.index);
+                    w.write(row.indent() + (it.optBoolean("done") ? "[x] " : "[ ] ") + it.optString("text") + "\r\n");
                 }
                 w.write("\r\n");
             }

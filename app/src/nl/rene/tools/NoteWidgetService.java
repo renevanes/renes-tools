@@ -15,7 +15,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Levert de items van het lijstje aan de widget: eerst de open items, daarna (lichter, doorgestreept) de afgestreepte. */
+/** Levert de items van het lijstje aan de widget: hoofditems met hun subitems, geheel afgestreepte groepen onderaan. */
 public class NoteWidgetService extends RemoteViewsService {
 
     static final int MAX = 80;
@@ -44,14 +44,11 @@ public class NoteWidgetService extends RemoteViewsService {
             JSONObject n = noteId == null ? null : Notes.note(c, noteId);
             JSONArray items = n == null ? null : n.optJSONArray("items");
             if (items == null) return;
-            List<String[]> done = new ArrayList<>();
-            for (int j = 0; j < items.length(); j++) {
-                JSONObject it = items.optJSONObject(j);
+            for (NoteTree.Row row : NoteTree.rows(items)) {
+                JSONObject it = items.optJSONObject(row.index);
                 if (it == null || it.optString("id").isEmpty()) continue;
-                String[] r = {it.optString("id"), it.optString("text"), it.optBoolean("done") ? "1" : ""};
-                if (r[2].isEmpty()) rows.add(r); else done.add(r);
+                rows.add(new String[]{it.optString("id"), row.indent() + it.optString("text"), it.optBoolean("done") ? "1" : ""});
             }
-            rows.addAll(done);
             while (rows.size() > MAX) rows.remove(rows.size() - 1);
         }
 
