@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.77",
+    "date": "2026-10-16",
+    "changes": [
+      "Notities: splits een geplakte lijst, vrije notitietekst of een bestaand item in losse afvinkbare items. Kies regels, komma’s of puntkomma’s, controleer het voorbeeld en maak de splitsing zo nodig ongedaan."
+    ]
+  },
+  {
     "version": "1.76",
     "date": "2026-10-15",
     "changes": [

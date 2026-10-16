@@ -1,15 +1,22 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.76",
-  "versionCode": 77,
+  "versionName": "1.77",
+  "versionCode": 78,
   "nativeLevel": 71,
   "web": "index.html",
-  "webSha256": "58e9d55d5e9de750c38e62a3934a103095eb4dd03c5efcbdb6d773889d74cd1b",
+  "webSha256": "89ffd07893dfde988e707fcb4f4bc41bc91be22b1f380d56a2b457517e32c6c0",
   "start": "start.html",
   "startSha256": "56c443c262bde51c34d39118436679e990560c8af0cfb8b4c764cf16aa39c5b5",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "f9f60c2003fa293e9ea2ca87368eae2d3ac17123bdb64326cc82de52ae964260",
+  "apkSha256": "3b3ad8b106f4f20ca63ae6c2e07a06c118c0e07625dce2dbba535926a320437b",
   "changelog": [
+    {
+      "version": "1.77",
+      "date": "2026-10-16",
+      "changes": [
+        "Notities: splits een geplakte lijst, vrije notitietekst of een bestaand item in losse afvinkbare items. Kies regels, komma’s of puntkomma’s, controleer het voorbeeld en maak de splitsing zo nodig ongedaan."
+      ]
+    },
     {
       "version": "1.76",
       "date": "2026-10-15",
@@ -688,5 +695,5 @@
       ]
     }
   ],
-  "webSig2": "lErwGAe1jEspcWwD7F2bV0st+COWoO/DAktrSqo69j7Fmrq6ESc6qfcmYPVRDL9EryUZydFzwQY7ez4b3Rs68FZNXBs/EJ48EHJ5tuI6goSyr6XByTk6wO5mwBUn8uSqi915iJlINaeJDZHQjiqqu/sMeWuE388/0ByYJP0QSy1rrw0wofchXr37wup6yjK5rnntHK0ywz0bOtbMsSZQ8R7C0IWEhhAz2dRndWFLkeIs/pb7PWjeN87gI033DYKXrsFA5khggqKm+PTRs4qKlOn+oIMurQcBFu/4if6U0Cfid6xkvUsZnk1/IxZxcvBI9SP0lyOe+iXvdSG0+CpWaN5oh3ym7k4MBDoZ51sLuk3GVfm5RuWPxTq4qLaVQf7LA1bDbOBJwxl0EUXyuzmoH26v4wooeFbSLuMCHqtydxAcbuttwtrV3Zs8t20JgrqjQwfbaPXkaw6WqCUTKliXkFXlEs/3WUM9e80oyH0g7roYl0ZrDON8oUsUr5L9yFiR"
+  "webSig2": "IBVcjBJqBcgSoOiGiPscRMdZLV4FoN7sQK1YzYPcfnbCa213kWFxUuuKSTUFymqj6jqvkHLgWLW27hpOfKuUN3oEUAuUm7Kgvw8FKfTTW0DpzPQ0C6FNmbzcD561ehKUEItGbG8nO2LQXdoI5f3z6WEUy3lXiwPibaYVZWhEBOZpYik4xqdeZ2MVApb1OXqS1xYrk9cnRsP+P6SVLZRYm4xp/36EFnRnu4kyY3rjdlrK6p2nECs/zfs8YNOo8h4saOAMoYjKyvlfNx3/HVQSRI9H0LlgvnuW5RwoekpBnOkwrKShyO2SQ0FaqArbUq/v9Y2yfgm6ZKuCRsmT1hlQP58pb5Stjl7vsjrTXvuWWHsIIHM1s7xJwBB2q81Vdv3Mqb+r4+VEsbA/FsvdwFRv+e/uZlfaJSBU0CRklUMb5bfrRAImja8OeYYn82Q8P4dOrAqXWm+a1QA1j7T4YijzMTPESZ/4hLRKWVp54MNedqiyMhxJSIOPArE2Vqc/Ydd0"
 }
