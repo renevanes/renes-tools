@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.78",
-  "versionCode": 79,
+  "versionName": "1.79",
+  "versionCode": 80,
   "nativeLevel": 72,
   "web": "index.html",
-  "webSha256": "cfab55e9046393b9b6432282aa3e626e527df641e2cf3237ff38869c96fdcefa",
+  "webSha256": "2e5b5410cc4c6cc79d50f1374e868e23fb5fb6998337f7f8b6a0ecb5f2c27c70",
   "start": "start.html",
   "startSha256": "56c443c262bde51c34d39118436679e990560c8af0cfb8b4c764cf16aa39c5b5",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "cc8e26294acb8371f26312b3baaff5b0d5c79218194475ad7ad4ab6828a898c2",
+  "apkSha256": "2f6c1f63cea6a600dbf61ea94640ea7973990dc53149f9f15d8240d308ff450e",
   "changelog": [
+    {
+      "version": "1.79",
+      "date": "2026-10-16",
+      "changes": [
+        "Hang een bestaande notitielijst onder een andere lijst, maak haar weer los of wissel ouder en sublijst om. Inhoud, vinkjes en herinneringen blijven bij hun eigen lijst; verplaatsen kan ongedaan worden gemaakt.",
+        "Notities zijn eenvoudiger te bedienen: duidelijke knoppen voor verplaatsen, sublijsten en items indelen, een doorzoekbare bestemmingskeuze, zichtbare bovenliggende lijsten en voortgang per lijst."
+      ]
+    },
     {
       "version": "1.78",
       "date": "2026-10-16",
@@ -703,5 +711,5 @@
       ]
     }
   ],
-  "webSig2": "sNLcbf1bDpc9mq25+C9iTDSs2L3AVWBjqjUJFxsQH+tWxCT83rGYvXuOg+NC4oFDffqzFHcLerEym4FZ4B3dzHDBjAa6BvAAKHgBpSUJRF94HbWtDTN3VQ0Bs8MMkfINuB34s1yx0MGvsIppsP6F4t38Z+G6MleLMkDTR71CqnZQBM/DQOlIOaTIgbpT6G5bpUTEBMTpS2UdR7vZ5NdTU6wqadwp+Ept2+7naZPKwYMSemoT7I8GcEL/W49cwv5IjhesJdh7VjlFgMsTwMZ8Aa2F4CQ8DEl/h+tSnFz7S/e6B0WSlEPBy31wxdS1H8qiY6VFgYlHsmxMSazvqxkPLX+PQ1vo9hYANXfLLa6RIQqQ0qTdz3rfXF9lEAGcBmQ5aCDqk/zWrut2hebdgmAlIKzdy5zFrZZsk4IYgNXL7nn/cp6TneomdkLFY0SiNQ9DhovY1y5qs8Suu7BlRbY+AwTcYYcqFaYK3RpQGHZwQj+xef/+n1BiJjncLLPnn/WM"
+  "webSig2": "eTgNM9EaXpETxIsCPsNz2eSnrkQ19vQe+W7dR3GfFQt/bOnk+EJ8hqJN7C1+6WABpXfs8piIXcWHbn49pS7thICkK/6vCJZz3/7r0A27mHLTImTYjcv9kTVV46Cb6VNGLz7leAvf067C73paU7StrhKw7TU9B79nIPKHGsxZNWegSkWFnvS5k9Lo6aooSMCYAFL7T2HA7RQsEhy9nrSPWtRfUztVYWEWo5IuXrbybHFNt68xST98Q0/Njz3ls8bv6wH9DtWYfVQZXMBqyG9CS6WZcI5u2jD/qeFyofwqJLHsTQ4YU7EFwbl7URXBxSDiv2VLG7bkvGP9ixGFamHsOP5KC7uz0e4GZ2ys8qOv/K8NqGJy/mTmbFnt3pstYiIy8nXiC15WCnN4RQxyEN2cBpmnvSNvxeAq/VonZFttr5F+kBMaiEW6PMsri3t3EclF/QMtB+3z0sVw4OQV489x6EqmxY8H6o+EIzXsotHxFzL9QqR2b3Rol7QKXP9AGx9E"
 }
