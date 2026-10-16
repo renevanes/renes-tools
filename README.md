@@ -71,6 +71,7 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 
 ## Notities
 - Notities met lijstjes: items toevoegen (meerdere regels plakken = meerdere items), afstrepen, bewerken, afgevinkte items opruimen, plus een vrij tekstveld. Zoeken door titels, items en tekst met markering (`Notes.java` + interface).
+- **Lijst splitsen in losse items**: plak een lijst, gebruik de vrije notitietekst of kies een bestaand item. Splits op nieuwe regels, komma’s of puntkomma’s en controleer eerst het voorbeeld. Nummering en opsommingstekens verdwijnen; vinkjes en de positie van een bestaand item blijven behouden. De vrije notitietekst blijft standaard staan. Ongedaan maken herstelt de bron zonder intussen gewijzigde items te overschrijven. Maximaal 500 items tegelijk.
 - Opslag in de app-map (`notes.json`, via tijdelijk bestand + hernoemen). Lege notities worden niet bewaard.
 - Knop *Kopie in backup-map zetten*: `Notities/notities.json` en een leesbaar `notities.txt` met `[x]`/`[ ]`.
 

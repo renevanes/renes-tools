@@ -135,6 +135,7 @@ function newNote(){
   notesGet().push(n); openNote(n.id, true);
 }
 function openNote(id, fresh){
+  noteSplitClose();
   noteCur = id; const n = noteById(id); if (!n) return;
   $('#note-title').value = n.title || ''; $('#note-text').value = n.text || ''; $('#note-add').value = '';
   show('note'); renderItems(); noteRemShow(); notePinShow(); noteRepeatShow();
@@ -245,6 +246,7 @@ function deleteNote(){
     show('notes'); });
 }
 function leaveNote(){
+  noteSplitClose();
   const n = noteById(noteCur);
   if (n && !(n.title||'').trim() && !(n.text||'').trim() && !(n.items||[]).length) { notes = notesGet().filter(x => x.id !== n.id); if (typeof Android.noteRemindClear === 'function') Android.noteRemindClear(n.id); else Android.noteRemind(n.id, '', '0'); }
   else if (n && noteRems[n.id]) { if (typeof Android.noteRemindRetitle === 'function') Android.noteRemindRetitle(n.id, n.title || 'Notitie'); else Android.noteRemind(n.id, n.title || 'Notitie', String(noteRems[n.id])); } // titel van de herinnering bijwerken

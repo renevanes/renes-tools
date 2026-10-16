@@ -31,6 +31,23 @@
         <button onclick="voiceOpen(noteCur)" aria-label="Inspreken">🎤</button>
       </div>
       <div class="row" style="margin-top:6px;gap:8px"><button onclick="noteSort()" style="padding:8px 12px;border-radius:12px;background:var(--chip);font-weight:600;flex:none">↕︎ Sorteren</button><span class="note" style="margin:0;flex:1">Of sleep een item aan ⋮⋮ naar een andere plek.</span></div>
+      <button class="big ghost" id="note-split-open" style="margin-top:10px" onclick="noteSplitOpen()" aria-expanded="false" aria-controls="note-split-panel">Lijst splitsen in losse items</button>
+      <div id="note-split-panel" hidden>
+        <h2>Lijst splitsen</h2>
+        <label class="f" for="note-split-source">Bron</label>
+        <select class="sel" id="note-split-source" onchange="noteSplitSource()" style="width:100%"></select>
+        <label class="f" for="note-split-text">Lijst om te splitsen</label>
+        <textarea class="search" id="note-split-text" rows="5" maxlength="100000" placeholder="Melk, brood, kaas" oninput="noteSplitPreview()"></textarea>
+        <label class="f" for="note-split-separator">Splitsen op</label>
+        <select class="sel" id="note-split-separator" onchange="noteSplitPreview()" style="width:100%">
+          <option value="lines">Nieuwe regels</option><option value="comma">Komma’s en nieuwe regels</option><option value="semicolon">Puntkomma’s en nieuwe regels</option><option value="both">Komma’s, puntkomma’s en nieuwe regels</option>
+        </select>
+        <label class="chk" id="note-split-keep-row" style="display:none" hidden><input type="checkbox" id="note-split-keep" checked> Oorspronkelijke notitietekst behouden</label>
+        <p class="note">Nummering en opsommingstekens worden weggehaald. Vinkjes worden overgenomen. Een bestaand item wordt op dezelfde plek vervangen; andere items blijven staan.</p>
+        <p class="note" id="note-split-status" role="status" aria-live="polite"></p>
+        <ol id="note-split-preview" style="max-height:240px;overflow:auto;padding-left:26px;overflow-wrap:anywhere"></ol>
+        <div class="row"><button class="big" id="note-split-apply" style="flex:1" onclick="noteSplitApply()">Items maken</button><button class="big ghost" style="flex:1" onclick="noteSplitClose()">Annuleren</button></div>
+      </div>
       <div class="donehdr" id="note-donehdr"><span id="note-donecount"></span><button onclick="clearDone()">Afgevinkte verwijderen</button></div>
       <ul class="items" id="note-done"></ul>
     </div>

@@ -1,0 +1,1 @@
+Notities: splits een geplakte lijst, vrije notitietekst of een bestaand item in losse afvinkbare items. Kies regels, komma’s of puntkomma’s, controleer het voorbeeld en maak de splitsing zo nodig ongedaan.
