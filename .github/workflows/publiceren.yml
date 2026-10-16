@@ -97,6 +97,21 @@ jobs:
         if: always()
         run: rm -f keys/release.p12 keys/keystore.pass
 
+      - name: Mislukte tests benoemen
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import pathlib, re
+          for name in ('publish-jvm.log', 'publish-ui.log'):
+              path = pathlib.Path('build') / name
+              if not path.is_file():
+                  continue
+              for line in path.read_text(errors='replace').splitlines():
+                  match = re.fullmatch(r'✗ ([A-Za-z0-9_.-]{1,128})', line)
+                  if match:
+                      print('::error title=Mislukte test::' + match[1])
+          PY
+
       - name: Schermafdrukken en logboeken bij een fout
         if: failure()
         uses: actions/upload-artifact@v4
