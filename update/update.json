@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.80",
-  "versionCode": 81,
+  "versionName": "1.81",
+  "versionCode": 82,
   "nativeLevel": 73,
   "web": "index.html",
-  "webSha256": "5ce1aaa865f22aad2058b7fba9a722ad38f83724b2c2d3441341f91f32bd508e",
+  "webSha256": "d0c4e93b89bdf6a092e8d77f18a3ab06abbb4f6fb86e06c45db65b58d621c106",
   "start": "start.html",
   "startSha256": "56c443c262bde51c34d39118436679e990560c8af0cfb8b4c764cf16aa39c5b5",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "629f9fe7271323df69dea8c621b57b45816bb46e0517402b4e4d7bbb087b6df6",
+  "apkSha256": "6609aa6436f1b5c792c331e3859b75e0e74711f01ac97f4cedeaf4bd93c01ab8",
   "changelog": [
+    {
+      "version": "1.81",
+      "date": "2026-10-16",
+      "changes": [
+        "Notities en lijstjes heeft een vernieuwd overzicht met inklapbare sublijsten, zoekfunctie en filters.",
+        "Een notitie heeft nu drie overzichtelijke tabbladen: Lijst, Sublijsten en Extra. Splitsen, herhalen, herinneringen en snelkoppelingen staan in aparte inklapbare groepen."
+      ]
+    },
     {
       "version": "1.80",
       "date": "2026-10-16",
@@ -719,5 +727,5 @@
       ]
     }
   ],
-  "webSig2": "WemkH1CFueW3FuDlyiXeqz2t/lXcmLpXaUXASqlFmSOS5+IpJdE0ML7nRbRmd7R/wI6/OYXp5T/5eiF4GroRBDnpGQpY3OecEN3ZDhpKaw4Aylie4EoR0JNINs/Y1F7/HZBc7VO2uzSJxQv0ACVYywmNXNSil4R8c/iNYK4g38EH2Il924GowLJtbzqbggOcpJwLMyZoKCKGRKnqIMjpcpH1/5e47MBBFmk7PAwCdIoUILb6j+F7Ur5QWg2xmhxXG8NDeQdyZYYEFbLXxbajyrYgva+mOhn7gzKOuCIzKd86f6bQ+DjMENQPhXUK/wYNTRlIBirM3yN5mTm/kYlRH12fTxEK6QTtjpVFkiYZC2OKNLAxcScgHDvq0hbhaxdotESoO/KnEtC1MdaVI+POewhMupU0mn4Ax8nDjzaQJHrd1EBl8lCemLShMxVsAPwlQJqhFQp5Q3zp3O5Gpy1P7cAyKALomxLfnx3DVZteU2OR2fOX9p7hX5LKVVYTnHZo"
+  "webSig2": "UJt+NyKEGkogjtweUdzuVhhaSmM4P6RBlsvobNqeR68hlilPzHc0KyLu6cpCXaxqkwPHEyAUzEqNeiyophYCQyrByr5nJZqNitbMqXJWecFQb/OrjY3r79mdH6NSiwkXJGDTOyqRVVwIjVnGXr0euafrZ41xI/IYoFI4lOOxC3cqytHG6I306UU5uyxrLZlreMU6YsXE4kGBKLIlqecxqUI/gpEfMu9bcuHbYgna2I+2csKdiec+2Y26QIdVv0JEONTSAvoyqCrdasx9dLMDIm4PmXJjhuajs9PYRIhLWfyH5AH3ZvbeSoVlKZy5neEMP2aIe43JaWonY5IeMs3zDqDWx4LNPOQM5J7ms7ozN0k4aYQVej/NdgefEMvUGfPQuxUULyvJKfmMXAlVO/UCJNNIeFaXs1jKLxfRjZ8sjJsJwlpkUplZEBnmj4Rw6uVe1u5d4ANEcNEEnxVp6vaKHlbSFaDBEvm08wzKKlssrnC2qzW2PFOKdTTlLqn1Sztn"
 }

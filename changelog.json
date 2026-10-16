@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.81",
+    "date": "2026-10-16",
+    "changes": [
+      "Notities en lijstjes heeft een vernieuwd overzicht met inklapbare sublijsten, zoekfunctie en filters.",
+      "Een notitie heeft nu drie overzichtelijke tabbladen: Lijst, Sublijsten en Extra. Splitsen, herhalen, herinneringen en snelkoppelingen staan in aparte inklapbare groepen."
+    ]
+  },
+  {
     "version": "1.80",
     "date": "2026-10-16",
     "changes": [
