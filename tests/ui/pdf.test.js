@@ -18,14 +18,14 @@ const assert = require('node:assert');
     // viewer: openen en standaard-app
     await pg.click('#pdf-view-card >> text=PDF openen');
     assert.strictEqual((await P()).viewPick, 1);
-    assert.match(await pg.textContent('#pdf-def'), /kies Rene's Tools en dan Altijd/);
+    assert.match(await pg.textContent('#pdf-def'), /kies Tools en dan Altijd/);
     await pg.click('#pdf-def-btn');
     assert.strictEqual((await P()).madeDefault, 1);
     await pg.evaluate(() => { Android._pdf.def = { state: 'other', app: '<b>Drive</b>' }; pdfRenderDef(); });
     assert.match(await pg.textContent('#pdf-def'), /PDF's openen nu in <b>Drive<\/b>/, 'appnaam als tekst');
     assert.strictEqual(await pg.$$eval('#pdf-def b b', x => x.length), 0);
-    await pg.evaluate(() => { Android._pdf.def = { state: 'ours', app: "Rene's Tools" }; enterPdf(); });
-    assert.match(await pg.textContent('#pdf-def'), /✓ PDF's openen standaard in Rene's Tools/);
+    await pg.evaluate(() => { Android._pdf.def = { state: 'ours', app: "Tools" }; enterPdf(); });
+    assert.match(await pg.textContent('#pdf-def'), /✓ PDF's openen standaard in Tools/);
     assert.strictEqual(await pg.$('#pdf-def-btn'), null);
     await pg.evaluate(() => { Android._pdf.def = null; pdfRenderDef(); });
 

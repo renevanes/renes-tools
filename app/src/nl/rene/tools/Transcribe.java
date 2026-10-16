@@ -103,7 +103,7 @@ final class Transcribe {
             h.setInstanceFollowRedirects(false);
             h.setConnectTimeout(20000);
             h.setReadTimeout(60000);
-            h.setRequestProperty("User-Agent", "RenesTools");
+            h.setRequestProperty("User-Agent", "Tools");
             int code = h.getResponseCode();
             if (code >= 300 && code < 400 && h.getHeaderField("Location") != null) {
                 url = new URL(new URL(url), h.getHeaderField("Location")).toString();
@@ -656,7 +656,7 @@ final class Transcribe {
             try (Sms.Out w = Sms.open(dest, dir, name, "text/plain")) {
                 w.write("Gesprek" + (who.isEmpty() ? "" : " met " + who) + (t.optString("number").isEmpty() || who.equals(t.optString("number")) ? "" : " (" + t.optString("number") + ")") + "\r\n");
                 w.write(df.format(new java.util.Date(when)) + " · duur " + fmtTime(t.optLong("duration")) + "\r\n");
-                w.write("Opname: " + t.optString("file") + " · uitgeschreven door Rene's Tools (Whisper " + t.optString("model") + ", op de telefoon)\r\n\r\n");
+                w.write("Opname: " + t.optString("file") + " · uitgeschreven door Tools (Whisper " + t.optString("model") + ", op de telefoon)\r\n\r\n");
                 JSONArray segs = t.optJSONArray("segments");
                 if (segs != null) for (int i = 0; i < segs.length(); i++) {
                     JSONObject s = segs.getJSONObject(i);

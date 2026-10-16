@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Widgets van Rene's Tools voor elk startscherm (Oppo of de skin): Agenda, Weer, Overzicht en Parkeren.
+ * Widgets van Tools voor elk startscherm (Oppo of de skin): Agenda, Weer, Overzicht en Parkeren.
  * Ze verversen zichzelf elk half uur (Android-minimum) en direct als er in de app iets verandert.
  * Het werk gebeurt op een achtergrondthread (goAsync): het weer komt van internet.
  */
@@ -120,7 +120,7 @@ public final class HomeWidgets {
                     lines.add("🔒 App-slot staat aan: tik om je agenda te openen");
                     taps.add(PendingIntent.getActivity(c, 7102, cal, IMM));
                 } else if (!o.optBoolean("perm")) {
-                    lines.add("Tik om Rene's Tools toegang tot je agenda te geven");
+                    lines.add("Tik om Tools toegang tot je agenda te geven");
                     Intent s = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", c.getPackageName(), null)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     taps.add(PendingIntent.getActivity(c, 7101, s, IMM));
                 } else {
@@ -192,7 +192,7 @@ public final class HomeWidgets {
                 JSONObject w = new JSONObject(Launcher.weatherJson(c, f));
                 if (w.optBoolean("noPlace")) {
                     v.setTextViewText(R.id.w_wt, ""); v.setTextViewText(R.id.w_wd, "Weer");
-                    v.setTextViewText(R.id.w_ws, "Kies een plaats in Rene's Tools (skin: tik op het weer)");
+                    v.setTextViewText(R.id.w_ws, "Kies een plaats in Tools (skin: tik op het weer)");
                     v.setTextViewText(R.id.w_wdays, "");
                     return v;
                 }
@@ -234,7 +234,7 @@ public final class HomeWidgets {
         @Override
         RemoteViews build(Context c, boolean force) {
             RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_rows);
-            v.setTextViewText(R.id.w_title, "🧰 Rene's Tools");
+            v.setTextViewText(R.id.w_title, "🧰 Tools");
             v.setTextViewText(R.id.w_sub, "");
             Intent app = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             v.setOnClickPendingIntent(R.id.w_head, PendingIntent.getActivity(c, 7300, app, IMM));

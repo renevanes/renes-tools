@@ -334,7 +334,7 @@ final class Calls {
         // 3. Leesbare HTML-pagina
         try (Sms.Out w = Sms.open(dest, dir, "oproepen" + (sel.isEmpty() ? "" : "-" + day + sel) + ".html", "text/html")) {
             w.write("<!DOCTYPE html><html lang=nl><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
-                    + "<title>Oproepen</title><style>" + CSS + "</style><header><h1>Oproepen</h1><small>Gemaakt door Rene's Tools op "
+                    + "<title>Oproepen</title><style>" + CSS + "</style><header><h1>Oproepen</h1><small>Gemaakt door Tools op "
                     + Sms.esc(full.format(new Date())) + " · " + all.size() + " oproepen</small></header><main><table>"
                     + "<tr><th>Begin – einde</th><th></th><th>Naam / nummer</th><th>Duur</th></tr>");
             for (int i = 0; i < all.size(); i++) {

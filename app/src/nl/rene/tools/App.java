@@ -104,7 +104,7 @@ public class App extends Application {
         String log;
         try { log = file(c).isFile() ? Contacts.readText(file(c), false) : ""; } catch (Exception e) { log = ""; }
         if (log.length() > 60_000) log = "…(oudere meldingen weggelaten)\n" + log.substring(log.length() - 60_000);
-        return "Foutrapport Rene's Tools\n"
+        return "Foutrapport Tools\n"
                 + "Versie: " + Version.NAME + " (" + Version.CODE + "), onderdeel " + Version.NATIVE_LEVEL + "\n"
                 + "Toestel: " + Build.MANUFACTURER + " " + Build.MODEL + " · Android " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")\n"
                 + "Processor: " + java.util.Arrays.toString(Build.SUPPORTED_ABIS) + "\n\n"

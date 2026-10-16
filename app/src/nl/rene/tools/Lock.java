@@ -200,7 +200,7 @@ final class Lock {
         } catch (Exception e) { r.done(false, "Vingerafdruk lukt niet; gebruik je app-code"); return; }
         authBusy = true;
         try {
-            BiometricPrompt.Builder b = new BiometricPrompt.Builder(a).setTitle("Rene's Tools ontgrendelen").setSubtitle("Vingerafdruk")
+            BiometricPrompt.Builder b = new BiometricPrompt.Builder(a).setTitle("Tools ontgrendelen").setSubtitle("Vingerafdruk")
                     .setNegativeButton("App-code", a.getMainExecutor(), (d, w) -> { authBusy = false; r.done(false, null); });
             if (Build.VERSION.SDK_INT >= 30) b.setAllowedAuthenticators(android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG);
             b.build().authenticate(new BiometricPrompt.CryptoObject(ci), new CancellationSignal(), a.getMainExecutor(), new BioCallback(r));
@@ -266,7 +266,7 @@ final class Lock {
         if (!deviceSecure(a)) { r.done(false, "Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)"); return; }
         authBusy = true;
         if (Build.VERSION.SDK_INT >= 29) {
-            BiometricPrompt.Builder b = new BiometricPrompt.Builder(a).setTitle(title).setSubtitle("Rene's Tools");
+            BiometricPrompt.Builder b = new BiometricPrompt.Builder(a).setTitle(title).setSubtitle("Tools");
             if (Build.VERSION.SDK_INT >= 30)
                 b.setAllowedAuthenticators(android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK
                         | android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL);
@@ -280,7 +280,7 @@ final class Lock {
         } else {
             // Android 7–9: het bevestigingsscherm van de telefoon
             KeyguardManager km = (KeyguardManager) a.getSystemService(Context.KEYGUARD_SERVICE);
-            Intent i = km.createConfirmDeviceCredentialIntent(title, "Rene's Tools");
+            Intent i = km.createConfirmDeviceCredentialIntent(title, "Tools");
             if (i == null) { authBusy = false; r.done(false, "Geen schermvergrendeling ingesteld"); return; }
             pending = r;
             a.startActivityForResult(i, REQ_CONFIRM);

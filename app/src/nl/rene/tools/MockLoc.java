@@ -13,7 +13,7 @@ import org.json.JSONObject;
 
 /**
  * Locatie kiezen: de telefoon denkt dat hij op een plek staat die jij op de kaart kiest (testlocatie van Android).
- * Werkt pas als Rene's Tools bij Ontwikkelaarsopties is gekozen als app voor de locatie ("Select mock location app"). Het doorgeven zelf doet
+ * Werkt pas als Tools bij Ontwikkelaarsopties is gekozen als app voor de locatie ("Select mock location app"). Het doorgeven zelf doet
  * {@link MockLocSvc}.
  */
 final class MockLoc {
@@ -21,7 +21,7 @@ final class MockLoc {
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("mockloc", Context.MODE_PRIVATE); }
 
-    /** Is Rene's Tools in de ontwikkelaarsopties gekozen als app voor de locatie? */
+    /** Is Tools in de ontwikkelaarsopties gekozen als app voor de locatie? */
     static boolean allowed(Context c) {
         try {
             AppOpsManager ops = (AppOpsManager) c.getSystemService(Context.APP_OPS_SERVICE);

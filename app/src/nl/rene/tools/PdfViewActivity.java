@@ -362,7 +362,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         if (!PdfDoc.canPassword()) {
             if (ownCopy && file != null) deleteCopy(file);
             file = null;
-            fail("Deze PDF is beveiligd met een wachtwoord. Op deze Android-versie kan Rene's Tools hem niet openen.");
+            fail("Deze PDF is beveiligd met een wachtwoord. Op deze Android-versie kan Tools hem niet openen.");
             return;
         }
         msg.setVisibility(View.VISIBLE);
@@ -759,8 +759,8 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
             d.mkdirs();
             File f = new File(d, "PDF-app instellen.pdf");
             if (!f.isFile()) {
-                File t = PdfTools.textToPdf(c, "Rene's Tools opent je PDF's", "",
-                        "Gelukt! Als je bij het kiezen 'Altijd' hebt getikt, openen PDF's vanaf nu in Rene's Tools: uit Bestanden, Downloads, Gmail en WhatsApp.\n\n"
+                File t = PdfTools.textToPdf(c, "Tools opent je PDF's", "",
+                        "Gelukt! Als je bij het kiezen 'Altijd' hebt getikt, openen PDF's vanaf nu in Tools: uit Bestanden, Downloads, Gmail en WhatsApp.\n\n"
                         + "Tips in de viewer:\n• Knijp om in te zoomen, dubbeltik om snel in of uit te zoomen.\n• Tik op het paginanummer om naar een pagina te gaan.\n"
                         + "• Tik één keer op de pagina om de balk te verbergen.\n• Via ⋮ kun je opslaan, afdrukken, donker lezen of pagina's eruit halen.");
                 if (!t.renameTo(f)) { f = t; }
@@ -782,13 +782,13 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         JSONObject s = defaultState(a);
         String st = s.optString("state"), app = s.optString("app"), pkg = s.optString("pkg");
         AlertDialog.Builder b = new AlertDialog.Builder(a).setTitle("Standaard PDF-app");
-        if (st.equals("ours")) b.setMessage("✓ PDF's openen al in Rene's Tools.").setPositiveButton("OK", null);
+        if (st.equals("ours")) b.setMessage("✓ PDF's openen al in Tools.").setPositiveButton("OK", null);
         else if (st.equals("other"))
-            b.setMessage("PDF's openen nu in " + app + ".\n\nZo kies je Rene's Tools:\n1. Tik op 'Instellingen van " + app + "'.\n2. Kies 'Standaard openen' en tik op 'Standaardinstellingen wissen'.\n3. Kom terug en tik op 'Nu instellen'; kies Rene's Tools en 'Altijd'.")
+            b.setMessage("PDF's openen nu in " + app + ".\n\nZo kies je Tools:\n1. Tik op 'Instellingen van " + app + "'.\n2. Kies 'Standaard openen' en tik op 'Standaardinstellingen wissen'.\n3. Kom terug en tik op 'Nu instellen'; kies Tools en 'Altijd'.")
                     .setPositiveButton("Instellingen van " + app, (d, w) -> openAppSettings(a, pkg))
                     .setNeutralButton("Nu instellen", (d, w) -> askAndroid(a))
                     .setNegativeButton("Annuleren", null);
-        else b.setMessage("Nog geen app gekozen. Tik op 'Nu instellen', kies Rene's Tools en tik op 'Altijd'.")
+        else b.setMessage("Nog geen app gekozen. Tik op 'Nu instellen', kies Tools en tik op 'Altijd'.")
                     .setPositiveButton("Nu instellen", (d, w) -> askAndroid(a))
                     .setNegativeButton("Annuleren", null);
         b.show();
@@ -806,7 +806,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
             ui.post(() -> {
                 if (isDestroyed()) return;
                 sp.edit().putInt("hint", n + 1).apply();
-                pill.setText("Altijd met Rene's Tools openen? Tik hier");
+                pill.setText("Altijd met Tools openen? Tik hier");
                 pill.setOnClickListener(v -> defaultDialog(this));
                 pill.animate().cancel(); pill.setAlpha(1f);
                 ui.removeCallbacks(hidePill);

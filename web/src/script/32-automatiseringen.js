@@ -64,7 +64,7 @@ function auRender(){
     h = '<h2>Klaarzetten</h2>' + rows.map(r => '<div class="auperm"><span><b>' + esc(r[1]) + '</b><small>' + esc(r[2]) + '</small></span>' +
       (r[3] ? '<span class="aucheck" aria-label="In orde">✓</span>' : '<button class="aubtn" onclick="auFix(' + jsq(r[0]) + ')">Toestaan</button>') + '</div>').join('');
     if (rows.some(r => r[0] === 'a11y' && !r[3]))
-      h += '<p class="note" style="margin-top:8px">Bij Toegankelijkheid: kies <i>Rene\'s Tools: knoppen indrukken</i> en zet hem aan. Is hij grijs of staat er <i>Beperkte instelling</i>? Open dan <a href="#" onclick="Android.openAppSettings();return false">App-info</a> → ⋮ (rechtsboven) → <i>Beperkte instellingen toestaan</i>, en probeer opnieuw.</p>';
+      h += '<p class="note" style="margin-top:8px">Bij Toegankelijkheid: kies <i>Tools: knoppen indrukken</i> en zet hem aan. Is hij grijs of staat er <i>Beperkte instelling</i>? Open dan <a href="#" onclick="Android.openAppSettings();return false">App-info</a> → ⋮ (rechtsboven) → <i>Beperkte instellingen toestaan</i>, en probeer opnieuw.</p>';
     if (P.a11y && !P.a11yRunning && rows.some(r => r[0] === 'a11y'))
       h += '<p class="note bad">Toegankelijkheid staat aan, maar Android heeft de dienst gestopt. Zet hem uit en weer aan.</p>';
   }
@@ -94,10 +94,10 @@ function auWhen(t){
 }
 
 function auFix(k){
-  if (k === 'a11y') { askConfirm('Toegankelijkheid aanzetten', 'In het volgende scherm: kies "Rene\'s Tools: knoppen indrukken" en zet hem aan. Rene\'s Tools drukt dan alleen knoppen in in de app die jij kiest, en alleen als een automatisering loopt of als je opneemt.', 'Naar instellingen', () => Android.autoA11ySettings()); return; }
+  if (k === 'a11y') { askConfirm('Toegankelijkheid aanzetten', 'In het volgende scherm: kies "Tools: knoppen indrukken" en zet hem aan. Tools drukt dan alleen knoppen in in de app die jij kiest, en alleen als een automatisering loopt of als je opneemt.', 'Naar instellingen', () => Android.autoA11ySettings()); return; }
   if (k === 'battery') { Android.batterySettings(); return; }
   if (k === 'bgloc' && (!auState.perms.loc || auState.perms.fine === false)) { Android.autoPerm('loc'); return; }
-  if (k === 'bgloc') { askConfirm('Locatie altijd toestaan', 'Android vraagt nu of Rene\'s Tools je locatie ook mag gebruiken als de app dicht is. Kies "Altijd toestaan"; de locatie wordt alleen bepaald op het moment dat je auto uit- of aangaat, of bij aankomen/weggaan.', 'Verder', () => Android.autoPerm('bgloc')); return; }
+  if (k === 'bgloc') { askConfirm('Locatie altijd toestaan', 'Android vraagt nu of Tools je locatie ook mag gebruiken als de app dicht is. Kies "Altijd toestaan"; de locatie wordt alleen bepaald op het moment dat je auto uit- of aangaat, of bij aankomen/weggaan.', 'Verder', () => Android.autoPerm('bgloc')); return; }
   Android.autoPerm(k);
 }
 
@@ -172,7 +172,7 @@ function aeRender(){
     const bt = aeLoadBt();
     if (bt.error === 'perm') {
       $('#ae-bt').innerHTML = '';
-      $('#ae-btnote').innerHTML = 'Rene\'s Tools mag je Bluetooth-apparaten nog niet zien. <a href="#" onclick="Android.autoPerm(\'bt\');return false">Toestaan</a>';
+      $('#ae-btnote').innerHTML = 'Tools mag je Bluetooth-apparaten nog niet zien. <a href="#" onclick="Android.autoPerm(\'bt\');return false">Toestaan</a>';
     } else if (bt.error) {
       $('#ae-bt').innerHTML = ''; $('#ae-btnote').textContent = bt.error;
     } else {
@@ -368,11 +368,11 @@ function aeDelete(){
   askConfirm('Verwijderen?', '"' + (aeRule.name || 'Deze automatisering') + '" wordt verwijderd.', 'Verwijderen', () => { Android.autoDelete(aeRule.id); aeRule = null; show('auto'); toast('Verwijderd'); });
 }
 
-/* Opnemen: Rene's Tools gaat naar de app; na "Klaar" komt hij terug met de stappen (openTool('auto-rec')). */
+/* Opnemen: Tools gaat naar de app; na "Klaar" komt hij terug met de stappen (openTool('auto-rec')). */
 function aeRecord(){
   if (!(aeRule.app && aeRule.app.p)) { toast('Kies eerst de app'); return; }
   if (!auState.perms.a11yRunning) {
-    askConfirm('Eerst toegankelijkheid aanzetten', 'Om je tikken op te nemen en later na te doen, moet "Rene\'s Tools: knoppen indrukken" aan staan bij Toegankelijkheid. Kom daarna terug en tik opnieuw op Opnemen.', 'Naar instellingen', () => { store.set('autoDraft', { rule: aeRule, isNew: aeIsNew, t: Date.now() }); Android.autoA11ySettings(); });
+    askConfirm('Eerst toegankelijkheid aanzetten', 'Om je tikken op te nemen en later na te doen, moet "Tools: knoppen indrukken" aan staan bij Toegankelijkheid. Kom daarna terug en tik opnieuw op Opnemen.', 'Naar instellingen', () => { store.set('autoDraft', { rule: aeRule, isNew: aeIsNew, t: Date.now() }); Android.autoA11ySettings(); });
     return;
   }
   askConfirm('Opnemen', aeRule.app.n + ' gaat open. Doe precies wat je anders ook doet (bijv. Start parkeren → Bevestigen) en tik daarna bovenin op Klaar. Werkt een knop niet? Gebruik "Kies knop" in de balk.', 'Starten', () => {

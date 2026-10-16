@@ -154,13 +154,13 @@ public class FeatureBridge {
         o.remove("pkg");
         return o.toString();
     }
-    /** Rene's Tools als standaard PDF-app instellen (Android laat de gebruiker dat zelf kiezen). */
+    /** Tools als standaard PDF-app instellen (Android laat de gebruiker dat zelf kiezen). */
     @JavascriptInterface public void pdfMakeDefault() {
         a.h.post(() -> {
             JSONObject s = PdfViewActivity.defaultState(a);
             if ("other".equals(s.optString("state"))) PdfViewActivity.defaultDialog(a);
             else if ("none".equals(s.optString("state"))) PdfViewActivity.askAndroid(a);
-            else Toast.makeText(a, "PDF's openen al in Rene's Tools", Toast.LENGTH_SHORT).show();
+            else Toast.makeText(a, "PDF's openen al in Tools", Toast.LENGTH_SHORT).show();
         });
     }
     @JavascriptInterface public void pdfShare(String names) {
@@ -236,7 +236,7 @@ public class FeatureBridge {
             p.edit().remove("pending").remove("restoreAll").apply();
             return r;
         }
-        /** De app-eigen schakelaar: alle meldingen van Rene's Tools uit (true) of weer aan. */
+        /** De app-eigen schakelaar: alle meldingen van Tools uit (true) of weer aan. */
         @JavascriptInterface public void notifMute(boolean on) { NotifCenter.setMuted(ctx, on); }
         @JavascriptInterface public String noteRemindAdd(String note, String title, String time, String rep) {
             try { return Reminders.add(ctx, note, title, Long.parseLong(time), rep); } catch (Exception e) { return ""; }

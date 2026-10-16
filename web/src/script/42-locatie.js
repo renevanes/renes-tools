@@ -10,7 +10,7 @@ function lcRender(){
   const st = lcSt;
   $('#lc-setup').style.display = st.allowed ? 'none' : 'block';
   $('#lc-step-dev').style.display = st.dev ? 'none' : '';
-  $('#lc-setup-state').textContent = st.allowed ? '' : st.dev ? 'Ontwikkelaarsopties staan aan. Nog: Rene\'s Tools kiezen als app voor de locatie.' : 'Ontwikkelaarsopties staan nog uit.';
+  $('#lc-setup-state').textContent = st.allowed ? '' : st.dev ? 'Ontwikkelaarsopties staan aan. Nog: Tools kiezen als app voor de locatie.' : 'Ontwikkelaarsopties staan nog uit.';
   $('#lc-dot').className = 'vpdot' + (st.on ? ' on' : '');
   $('#lc-title').textContent = st.on ? 'Locatie kiezen staat aan' : 'Echte locatie';
   $('#lc-sub').textContent = st.on ? (st.name || lcFmt(st.lat, st.lng)) : st.error || (st.allowed ? 'Kies een plek en tik op Hier zetten' : 'Eerst eenmalig instellen (hierboven)');
@@ -58,7 +58,7 @@ function lcGo(){
   if (!lcPt) return;
   const r = Android.locStart(lcPt.lat, lcPt.lng, lcName);
   if (r === 'perm') { toast('Sta eerst locatie toe'); Android.autoPerm('loc'); return; }
-  if (r === 'mock') { toast('Kies eerst Rene\'s Tools als app voor de locatie (zie Eenmalig instellen)'); lcRender(); $('#lc-setup').scrollIntoView({ behavior: 'smooth' }); return; }
+  if (r === 'mock') { toast('Kies eerst Tools als app voor de locatie (zie Eenmalig instellen)'); lcRender(); $('#lc-setup').scrollIntoView({ behavior: 'smooth' }); return; }
   if (r) { toast(r); return; }
   const where = lcName || lcFmt(lcPt.lat, lcPt.lng);
   setTimeout(() => { lcRender(); if (lcSt.on) toast('Je telefoon staat nu op ' + where); else if (lcSt.error) toast(lcSt.error); }, 600);

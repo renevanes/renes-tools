@@ -59,7 +59,7 @@ final class PdfTools {
 
     /**
      * Mag deze app dit bestand namens een andere app lezen? Alleen content://-adressen; niet van de eigen
-     * (privé) providers van Rene's Tools (behalve gemaakte PDF's), en niet van providers die een toestemming
+     * (privé) providers van Tools (behalve gemaakte PDF's), en niet van providers die een toestemming
      * vragen die deze app heeft (bijv. contacten of sms): anders kan een andere app via "Delen" of "Openen"
      * gegevens laten ophalen die hij zelf niet mag lezen.
      */

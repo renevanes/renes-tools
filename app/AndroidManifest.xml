@@ -92,7 +92,7 @@
             <intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter>
         </service>
 
-        <!-- Telefoon-skin: Rene's Tools als startscherm (eigen taak, los van de gewone app) -->
+        <!-- Telefoon-skin: Tools als startscherm (eigen taak, los van de gewone app) -->
         <activity
             android:name=".HomeActivity"
             android:exported="true"
@@ -103,7 +103,7 @@
             android:clearTaskOnLaunch="true"
             android:resumeWhilePausing="true"
             android:theme="@style/HomeTheme"
-            android:label="Rene's Start"
+            android:label="Tools Start"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|keyboard|navigation"
             android:windowSoftInputMode="adjustNothing">
             <intent-filter>
@@ -123,7 +123,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter android:label="Notitie in Rene's Tools">
+            <intent-filter android:label="Notitie in Tools">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
@@ -227,7 +227,7 @@
         <activity
             android:name=".NeutralActivity"
             android:exported="false"
-            android:label="Rene's Tools"
+            android:label="Tools"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" />
 
         <!-- Knoppen van de speler-widget en het zwevende venster -->
@@ -264,14 +264,14 @@
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|uiMode"
             android:windowSoftInputMode="adjustNothing"
             android:exported="true">
-            <intent-filter android:label="Rene's Tools PDF">
+            <intent-filter android:label="Tools PDF">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="content" />
                 <data android:mimeType="application/pdf" />
             </intent-filter>
-            <intent-filter android:label="Rene's Tools PDF">
+            <intent-filter android:label="Tools PDF">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:scheme="content" />
@@ -280,7 +280,7 @@
         </activity>
         <provider android:name=".PdfProvider" android:authorities="nl.rene.tools.pdf" android:exported="false" android:grantUriPermissions="true" />
 
-        <!-- Apps die een snelkoppeling op het startscherm willen zetten (alleen als Rene's Tools het startscherm is) -->
+        <!-- Apps die een snelkoppeling op het startscherm willen zetten (alleen als Tools het startscherm is) -->
         <activity
             android:name=".PinShortcutActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
@@ -339,7 +339,7 @@
 
         <receiver
             android:name=".HomeWidgets$Overview"
-            android:label="Rene's Tools overzicht"
+            android:label="Tools overzicht"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -441,7 +441,7 @@
 
         <service
             android:name=".AutoA11y"
-            android:label="Rene's Tools: knoppen indrukken"
+            android:label="Tools: knoppen indrukken"
             android:exported="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>

@@ -332,7 +332,7 @@ final class WaChats {
         used.add("index"); // het overzicht heet index.html: een chat met de naam "index" mag dat niet overschrijven
         StringBuilder idx = new StringBuilder();
         idx.append("<!DOCTYPE html><html lang=nl><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>")
-                .append("<title>WhatsApp-chats</title><style>").append(CSS).append("</style><header><h1>WhatsApp-chats</h1><small>Gemaakt door Rene's Tools op ")
+                .append("<title>WhatsApp-chats</title><style>").append(CSS).append("</style><header><h1>WhatsApp-chats</h1><small>Gemaakt door Tools op ")
                 .append(esc(full.format(new Date()))).append(" uit de backup van ")
                 .append(esc(full.format(new Date(WaBackup.prefs(c).getLong("waDbFrom", System.currentTimeMillis()))))).append("</small></header><main><ul>");
         int k = 0;

@@ -101,7 +101,7 @@ public class MockLocSvc extends Service {
                 lm.setTestProviderEnabled(p, true);
                 providers.add(p);
             } catch (SecurityException e) {
-                error = "Kies eerst Rene's Tools als app voor de locatie (Ontwikkelaarsopties)";
+                error = "Kies eerst Tools als app voor de locatie (Ontwikkelaarsopties)";
                 removeProviders();
                 return false;
             } catch (Exception e) {
@@ -125,7 +125,7 @@ public class MockLocSvc extends Service {
 
     private void push() {
         if (!running) return;
-        if (++pushes % 10 == 0 && !MockLoc.allowed(this)) { error = "Rene's Tools is in de ontwikkelaarsopties niet meer gekozen als app voor de locatie"; stopMock(); return; }
+        if (++pushes % 10 == 0 && !MockLoc.allowed(this)) { error = "Tools is in de ontwikkelaarsopties niet meer gekozen als app voor de locatie"; stopMock(); return; }
         double lat = baseLat, lng = baseLng;
         if (MockLoc.prefs(this).getBoolean("jitter", true)) {
             dLat = clamp(dLat + (rnd.nextDouble() - .5) * 0.000012, 0.00003);
@@ -141,7 +141,7 @@ public class MockLocSvc extends Service {
             l.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
             if (Build.VERSION.SDK_INT >= 26) { l.setVerticalAccuracyMeters(3f); l.setSpeedAccuracyMetersPerSecond(0.5f); l.setBearingAccuracyDegrees(30f); }
             try { lm.setTestProviderLocation(p, l); }
-            catch (SecurityException e) { error = "Rene's Tools is in de ontwikkelaarsopties niet meer gekozen als app voor de locatie"; stopMock(); return; }
+            catch (SecurityException e) { error = "Tools is in de ontwikkelaarsopties niet meer gekozen als app voor de locatie"; stopMock(); return; }
             catch (Exception ignored) { }
         }
         h.postDelayed(push, 1000);

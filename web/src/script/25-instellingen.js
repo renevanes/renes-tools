@@ -46,7 +46,7 @@ function enterSettings(){
 }
 function stHomeRender(){
   const on = Android.homeIsDefault();
-  $('#st-home-state').textContent = on ? '✓ Rene\'s Tools is nu je startscherm.' : '';
+  $('#st-home-state').textContent = on ? '✓ Tools is nu je startscherm.' : '';
   $('#st-home-btn').style.display = on ? 'none' : 'block';
   $('#st-home-back').style.display = on ? 'block' : 'none';
 }

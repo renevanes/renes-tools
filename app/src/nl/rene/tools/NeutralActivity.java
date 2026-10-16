@@ -43,7 +43,7 @@ public class NeutralActivity extends Activity {
         setContentView(web);
         String html;
         try (java.io.InputStream in = getAssets().open("neutraal.html")) { html = new String(SelfTest.readAll(in), java.nio.charset.StandardCharsets.UTF_8); }
-        catch (Exception e) { html = "<html><body style='font-family:sans-serif;padding:24px'>Rene's Tools</body></html>"; }
+        catch (Exception e) { html = "<html><body style='font-family:sans-serif;padding:24px'>Tools</body></html>"; }
         html = html.replace("__VERSION_NAME__", versionName());
         web.loadDataWithBaseURL("about:blank", html, "text/html", "utf-8", null);
         // Niet in "recente apps" met inhoud

@@ -31,7 +31,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Onderhoud op de achtergrond (één keer per dag): elke maand een backup-controle met een proef-terugzetten
- * (is de backup echt leesbaar?), en elke week kijken of Android Rene's Tools op de achtergrond beperkt
+ * (is de backup echt leesbaar?), en elke week kijken of Android Tools op de achtergrond beperkt
  * (ColorOS doet dat graag na een update). Ook: het overzicht "sinds gisteravond" op het startscherm van de app.
  */
 public class Care extends JobService {
@@ -75,7 +75,7 @@ public class Care extends JobService {
             boolean plain = b != null && b.startsWith("Batterijoptimalisatie");
             if (plain && p.getBoolean("optNotified", false)) b = null;
             if (plain) p.edit().putBoolean("optNotified", true).apply();
-            if (b != null) notify(c, 4311, "Rene's Tools wordt beperkt door Android", b + " Tik om dit op te lossen; anders kunnen backups, herinneringen en de radiowekker uitblijven.", "selftest");
+            if (b != null) notify(c, 4311, "Tools wordt beperkt door Android", b + " Tik om dit op te lossen; anders kunnen backups, herinneringen en de radiowekker uitblijven.", "selftest");
         }
         // Elke maand: backup-controle
         if (now - p.getLong("checkAt", 0) > 30 * DAY && WaBackup.destUri(c) != null && !AllBackup.running.get()) {
@@ -97,7 +97,7 @@ public class Care extends JobService {
                 if (us != null && us.getAppStandbyBucket() >= 45) return "Android zet de app in de zwaarst beperkte groep.";
             }
             PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
-            if (pm != null && !pm.isIgnoringBatteryOptimizations(c.getPackageName())) return "Batterijoptimalisatie staat aan voor Rene's Tools.";
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(c.getPackageName())) return "Batterijoptimalisatie staat aan voor Tools.";
         } catch (Exception ignored) { }
         return null;
     }

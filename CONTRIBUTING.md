@@ -1,4 +1,4 @@
-# Bijdragen aan Rene's Tools
+# Bijdragen aan Tools
 
 Iedereen is welkom om bij te dragen: met een idee, een foutmelding of code. Mensen en AI-agents (Claude, Codex, …)
 volgen dezelfde werkwijze. De technische details staan in [AGENTS.md](AGENTS.md).
@@ -45,5 +45,5 @@ Rene bekijkt elke pull request. Na het samenvoegen publiceert GitHub je wijzigin
 - Een nieuwe functie krijgt een test in `tests/ui/` (en bij logica in `tests/jvm/`).
 
 ## Licentie
-Rene's Tools valt onder de [GNU General Public License versie 3 of later](LICENSE) (GPL-3.0-or-later). Door bij te dragen ga je ermee akkoord dat
+Tools valt onder de [GNU General Public License versie 3 of later](LICENSE) (GPL-3.0-or-later). Door bij te dragen ga je ermee akkoord dat
 jouw bijdrage onder dezelfde licentie valt.

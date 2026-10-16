@@ -301,7 +301,7 @@ final class Launcher {
         } catch (Exception e) { return "{\"error\":\"Zoeken lukt nu niet\"}"; }
     }
 
-    // ---------- Rene's Tools op het startscherm ----------
+    // ---------- Tools op het startscherm ----------
 
     /** Overzicht: backup, radio, herinneringen van vandaag, geplande Auto redial. */
     static String toolsJson(Context c) {

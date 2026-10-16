@@ -88,7 +88,7 @@ import sys, json, hashlib
 name, code, native = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 sha = lambda p: hashlib.sha256(open(p, 'rb').read()).hexdigest()
 m = {
-  "app": "Rene's Tools", "versionName": name, "versionCode": code, "nativeLevel": native,
+  "app": "Tools", "versionName": name, "versionCode": code, "nativeLevel": native,
   "web": "index.html", "webSha256": sha('update/index.html'),
   "start": "start.html", "startSha256": sha('update/start.html'),
   "apk": "Renes-Tools.apk", "apkSha256": sha('update/Renes-Tools.apk'),

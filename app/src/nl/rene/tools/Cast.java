@@ -248,7 +248,7 @@ final class Cast {
                     hold();
                 }
                 lastMsg = System.currentTimeMillis();
-                send(RECEIVER, NS_CONN, new JSONObject().put("type", "CONNECT").put("userAgent", "RenesTools").put("origin", new JSONObject()));
+                send(RECEIVER, NS_CONN, new JSONObject().put("type", "CONNECT").put("userAgent", "Tools").put("origin", new JSONObject()));
                 send(RECEIVER, NS_RECV, new JSONObject().put("type", "LAUNCH").put("appId", APP_DEFAULT).put("requestId", nextReq()));
                 try {
                     beat.scheduleWithFixedDelay(this::heartbeat, 5, 5, java.util.concurrent.TimeUnit.SECONDS);
@@ -359,7 +359,7 @@ final class Cast {
                     boolean first = transport == null;
                     transport = t;
                     sessionId = our.optString("sessionId");
-                    send(transport, NS_CONN, new JSONObject().put("type", "CONNECT").put("userAgent", "RenesTools").put("origin", new JSONObject()));
+                    send(transport, NS_CONN, new JSONObject().put("type", "CONNECT").put("userAgent", "Tools").put("origin", new JSONObject()));
                     if (first) load(item);
                     else {
                         if (mediaSession >= 0) stale.add(mediaSession);

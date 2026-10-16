@@ -465,7 +465,7 @@ if (!window.Android) window.Android = (function(){
     autoApps(){ return JSON.stringify([{p:'net.easypark.android',n:'EasyPark',park:true},{p:'com.google.android.apps.maps',n:'Maps'},{p:'com.whatsapp',n:'WhatsApp'}]); },
     autoTest(id){ this._au.tested=id; const r=this._au.rules.find(x=>x.id===id); this._au.log.unshift({t:Date.now(),id,name:r?r.name:'',what:'Test: gevraagd met een melding'}); this._au.last[id]=Date.now(); return ''; },
     autoHere(){ setTimeout(()=>onAutoHere(this._au.perms.loc?{lat:51.92250,lng:4.47917,acc:12}:{error:'perm'}),150); },
-    autoRecord(p){ if(!this._au.perms.a11yRunning) return 'Zet eerst de toegankelijkheid voor Rene\'s Tools aan'; this._au.rec={pkg:p,steps:[{t:'tap',text:'Start parkeren',id:'net.easypark.android:id/start'},{t:'tap',text:'Bevestigen'}]}; setTimeout(()=>openTool('auto-rec'),200); return ''; },
+    autoRecord(p){ if(!this._au.perms.a11yRunning) return 'Zet eerst de toegankelijkheid voor Tools aan'; this._au.rec={pkg:p,steps:[{t:'tap',text:'Start parkeren',id:'net.easypark.android:id/start'},{t:'tap',text:'Bevestigen'}]}; setTimeout(()=>openTool('auto-rec'),200); return ''; },
     autoRecTake(){ const r=this._au.rec; this._au.rec=null; return JSON.stringify(r); },
     autoA11ySettings(){ Object.assign(this._au.perms,{a11y:true,a11yRunning:true}); },
     autoPerm(k){ const P=this._au.perms; if(k==='loc'){P.loc=true;P.fine=true;} if(k==='bgloc'){ if(!P.loc){P.loc=true;P.fine=true;} else P.bgloc=true; } if(k==='bt')P.bt=true; if(k==='notif')P.notif=true; setTimeout(()=>onAutoChanged(),50); }

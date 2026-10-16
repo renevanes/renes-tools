@@ -43,7 +43,7 @@ function notePinShow(){
   $('#note-pin-info').textContent = skin && onSkin ? '✓ Staat op je telefoon-skin.' : 'Zo open je dit lijstje (bijvoorbeeld je boodschappen) met één tik.';
   noteUiSummaries();
 }
-function notePinApp(on){ notesSaveNow(); Android.notePinSet('app', noteCur, on); noteUiSummaries();toast(on ? 'Staat op het startscherm van Rene\'s Tools' : 'Van het startscherm gehaald'); }
+function notePinApp(on){ notesSaveNow(); Android.notePinSet('app', noteCur, on); noteUiSummaries();toast(on ? 'Staat op het startscherm van Tools' : 'Van het startscherm gehaald'); }
 function notePinPhone(){
   const n = noteById(noteCur); if (!n) return;
   notesSaveNow();

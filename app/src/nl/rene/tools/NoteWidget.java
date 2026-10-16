@@ -16,7 +16,7 @@ import org.json.JSONObject;
 
 /**
  * Widget "Lijstje": één notitie (bijv. de boodschappenlijst) op het startscherm, met de open items bovenaan.
- * Tik op een item = afstrepen (of terugzetten); tik op de titel = de notitie openen in Rene's Tools.
+ * Tik op een item = afstrepen (of terugzetten); tik op de titel = de notitie openen in Tools.
  * Welke notitie: per widget gekozen in NoteWidgetConfig.
  */
 public class NoteWidget extends AppWidgetProvider {

@@ -463,7 +463,7 @@ final class Tracks {
         SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
         iso.setTimeZone(TimeZone.getTimeZone("UTC"));
         w.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        w.write("<gpx version=\"1.1\" creator=\"Rene's Tools\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n");
+        w.write("<gpx version=\"1.1\" creator=\"Tools\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n");
         w.write("<trk><name>" + esc(name) + "</name><trkseg>\n");
         for (Pt p : pts) {
             w.write("<trkpt lat=\"" + p.lat + "\" lon=\"" + p.lon + "\">");

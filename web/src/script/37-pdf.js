@@ -13,9 +13,9 @@ function enterPdf(){
 function pdfRenderDef(){
   const d = rdJson(typeof Android.pdfDefaultState === 'function' ? Android.pdfDefaultState() : '', {});
   const box = $('#pdf-def');
-  if (d.state === 'ours') { box.innerHTML = '<p class="note">✓ PDF\'s openen standaard in Rene\'s Tools, ook uit Gmail, WhatsApp en Bestanden.</p>'; return; }
+  if (d.state === 'ours') { box.innerHTML = '<p class="note">✓ PDF\'s openen standaard in Tools, ook uit Gmail, WhatsApp en Bestanden.</p>'; return; }
   box.innerHTML = '<p class="note">' + (d.state === 'other' && d.app ? 'PDF\'s openen nu in <b>' + esc(d.app) + '</b>. ' : '') +
-    'Wil je dat PDF\'s altijd hier openen? Tik op de knop, kies <b>Rene\'s Tools</b> en dan <b>Altijd</b>.</p>' +
+    'Wil je dat PDF\'s altijd hier openen? Tik op de knop, kies <b>Tools</b> en dan <b>Altijd</b>.</p>' +
     '<button class="big ghost" id="pdf-def-btn" onclick="Android.pdfMakeDefault()">Als standaard PDF-app instellen</button>';
 }
 function pdfSetBusy(t){ pdfBusy = !!t; $('#pdf-busy').textContent = t || ''; document.querySelectorAll('#s-pdf main button').forEach(b => b.disabled = pdfBusy); pdfEditControls(); }

@@ -172,7 +172,7 @@ final class AllBackup {
         try (Sms.Out w = Sms.open(dest, dir, "herkende-nummers.json", "application/json")) { w.write(h.toString()); w.done(); }
         SimpleDateFormat df = new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL"));
         try (Sms.Out w = Sms.open(dest, dir, "herkende-nummers.txt", "text/plain")) {
-            w.write("Herkende nummers - Rene's Tools\r\n\r\n");
+            w.write("Herkende nummers - Tools\r\n\r\n");
             for (int i = 0; i < h.length(); i++) {
                 JSONObject r = h.getJSONObject(i);
                 w.write(df.format(new Date(r.optLong("t"))) + "  " + r.optString("artist") + " - " + r.optString("title")

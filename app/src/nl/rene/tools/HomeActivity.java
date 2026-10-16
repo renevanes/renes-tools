@@ -35,10 +35,10 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Telefoon-skin: Rene's Tools als startscherm.
+ * Telefoon-skin: Tools als startscherm.
  *
  * Normaal is dit een echte launcher (Desk): pagina's om opzij te vegen met apps, mappen en widgets, en het dock.
- * Links staat de pagina "Vandaag" (webpagina start.html, modus today: klok, weer, agenda, Rene's Tools, notities).
+ * Links staat de pagina "Vandaag" (webpagina start.html, modus today: klok, weer, agenda, Tools, notities).
  * Alle apps, menu's, de widgetkiezer en Look aanpassen komen in een tweede webpagina die erover schuift (modus overlay).
  *
  * Vangnet: start het nieuwe startscherm twee keer niet goed op, dan valt het terug op de klassieke skin
@@ -429,7 +429,7 @@ public class HomeActivity extends Activity {
     }
 
     /**
-     * Skin afsluiten en terug naar Rene's Tools. Alleen met vingerafdruk (of pincode) van de telefoon, zodat niet
+     * Skin afsluiten en terug naar Tools. Alleen met vingerafdruk (of pincode) van de telefoon, zodat niet
      * iedereen die de telefoon pakt het startscherm kan wegzetten. Is de skin het standaard-startscherm, dan
      * volgt de Android-instelling om een ander startscherm te kiezen (dat kan een app niet zelf).
      */
@@ -712,7 +712,7 @@ public class HomeActivity extends Activity {
             else if ("stop".equals(what)) RadioService.send(ctx, RadioService.STOP, null);
             else if ("rew".equals(what) || "live".equals(what)) RadioService.send(ctx, what, null);
         }
-        /** Een tool van Rene's Tools openen (de gewone app, in een eigen taak). */
+        /** Een tool van Tools openen (de gewone app, in een eigen taak). */
         @JavascriptInterface public void openTool(String name) {
             Intent i = new Intent(ctx, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             if (name != null && !name.isEmpty()) i.putExtra("open", name).putExtra("tok", App.token(ctx));

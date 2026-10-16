@@ -64,7 +64,7 @@ final class PdfWriter {
         for (int i = 0; i < n; i++) kids.append(first + i * 3).append(" 0 R ");
         o.ascii("2 0 obj\n<< /Type /Pages /Count " + n + " /Kids [" + kids.toString().trim() + "] >>\nendobj\n");
         offs.add(o.pos);
-        o.ascii("3 0 obj\n<< /Producer (Rene's Tools) /Title " + pdfString(title == null ? "" : title) + " >>\nendobj\n");
+        o.ascii("3 0 obj\n<< /Producer (Tools) /Title " + pdfString(title == null ? "" : title) + " >>\nendobj\n");
         for (int i = 0; i < n; i++) {
             Page p = pages.get(i);
             int po = first + i * 3, co = po + 1, io = po + 2;

@@ -533,7 +533,7 @@ final class Contacts {
         JSONArray idx = index(c);
         SimpleDateFormat df = new SimpleDateFormat("EEE d MMM yyyy HH:mm", new Locale("nl", "NL"));
         try (Sms.Out w = Sms.open(dest, dir, "wijzigingslog.txt", "text/plain")) {
-            w.write("Contacten - wijzigingslog - Rene's Tools\r\n\r\n");
+            w.write("Contacten - wijzigingslog - Tools\r\n\r\n");
             if (idx != null) for (int i = idx.length() - 1; i >= 0; i--) {
                 JSONObject e = idx.getJSONObject(i);
                 w.write("Versie " + e.getInt("v") + " - " + df.format(new Date(e.getLong("t"))) + " - " + e.optInt("count") + " contacten");

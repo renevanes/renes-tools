@@ -32,7 +32,7 @@ public class NoteWidgetConfig extends Activity {
         if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) { finish(); return; }
         if (Lock.wouldLock(this) && Lock.hasCode(this)) {
             // Met een app-code geen lijstjes tonen na de pincode van de telefoon: eerst de app ontgrendelen
-            android.widget.Toast.makeText(this, "Ontgrendel eerst Rene's Tools met je app-code en plaats het widget daarna", android.widget.Toast.LENGTH_LONG).show();
+            android.widget.Toast.makeText(this, "Ontgrendel eerst Tools met je app-code en plaats het widget daarna", android.widget.Toast.LENGTH_LONG).show();
             finish();
             return;
         }
@@ -86,7 +86,7 @@ public class NoteWidgetConfig extends Activity {
         List<String[]> notes = Notes.list(this);
         if (notes.isEmpty()) {
             TextView e = new TextView(this);
-            e.setText("Je hebt nog geen notities. Maak in Rene's Tools een notitie met een lijstje (bijv. boodschappen) en plaats de widget daarna opnieuw.");
+            e.setText("Je hebt nog geen notities. Maak in Tools een notitie met een lijstje (bijv. boodschappen) en plaats de widget daarna opnieuw.");
             e.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             box.addView(e);
             Button open = new Button(this);

@@ -24,8 +24,8 @@ window.onUpdateStatus = function(r){
 /* Licenties: van de app en van de onderdelen van anderen (de teksten zitten ook in de app, in assets/licenties/) */
 function infoLicenses(){
   const G = 'https://github.com/renevanes/renes-tools/blob/main/';
-  openSheet('Licenties', 'Rene\'s Tools: GPL-3.0-or-later. Onderdelen van anderen staan hieronder.', [
-    ['Rene\'s Tools — GNU GPL versie 3', () => Android.openUrl(G + 'LICENSE')],
+  openSheet('Licenties', 'Tools: GPL-3.0-or-later. Onderdelen van anderen staan hieronder.', [
+    ['Tools — GNU GPL versie 3', () => Android.openUrl(G + 'LICENSE')],
     ['Leaflet (kaarten) — BSD-2', () => Android.openUrl(G + 'web/vendor/LEAFLET-LICENSE')],
     ['jsQR (QR-codes lezen) — Apache-2.0', () => Android.openUrl(G + 'web/vendor/JSQR-LICENSE')],
     ['whisper.cpp (spraak naar tekst) — MIT', () => Android.openUrl(G + 'app/lib/arm64-v8a/LICENSE-whisper.cpp.txt')],

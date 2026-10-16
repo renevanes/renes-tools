@@ -13,7 +13,7 @@ function loadHistory(){
   try { data = JSON.parse(typeof Android.historyListBy === 'function' ? Android.historyListBy($('#history-search').value, historyPkg, historyLimit) : Android.historyList($('#history-search').value)); } catch(e){ data = {error:'Geschiedenis laden lukt niet'}; }
   renderHistoryApps();
   $('#history-enabled').checked = !!data.enabled;
-  $('#history-state').textContent = data.error || (!data.enabled ? 'Bewaren staat uit.' : !data.allowed ? 'Geef Rene’s Tools meldingentoegang in Android.' : !data.connected ? 'Wachten op de verbinding met Android. Controleer meldingentoegang als dit blijft staan.' : 'Nieuwe meldingen worden bewaard.');
+  $('#history-state').textContent = data.error || (!data.enabled ? 'Bewaren staat uit.' : !data.allowed ? 'Geef Tools meldingentoegang in Android.' : !data.connected ? 'Wachten op de verbinding met Android. Controleer meldingentoegang als dit blijft staan.' : 'Nieuwe meldingen worden bewaard.');
   $('#history-permission').textContent = data.allowed ? 'Meldingentoegang beheren' : 'Meldingentoegang instellen';
   $('#history-folder').style.display = data.dest ? 'none' : 'block';
   $('#history-export').disabled = historyExportBusy || !data.dest || !data.total;

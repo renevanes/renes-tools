@@ -705,7 +705,7 @@ final class OvpnDevice {
         else for (String s : cfg.dataCiphers) for (String o : ours) if (o.equals(s)) ciphers.add(s);
         if (!cfg.cipher.isEmpty() && !ciphers.contains(cfg.cipher)) for (String o : ours) if (o.equals(cfg.cipher)) ciphers.add(cfg.cipher);
         return "IV_VER=2.6.12\nIV_PLAT=android\nIV_PROTO=" + System.getProperty("ovpn.ivproto", "6") + "\nIV_NCP=2\nIV_CIPHERS=" + String.join(":", ciphers)
-                + "\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\nIV_TCPNL=1\nIV_GUI_VER=RenesTools\n";
+                + "\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nIV_COMP_STUBv2=1\nIV_TCPNL=1\nIV_GUI_VER=Tools\n";
     }
 
     private byte[] keyMethod(Conn c, Ks k) {

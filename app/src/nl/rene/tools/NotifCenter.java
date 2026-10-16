@@ -14,7 +14,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Overzicht van alle soorten meldingen van Rene's Tools, met dezelfde namen als in Android.
+ * Overzicht van alle soorten meldingen van Tools, met dezelfde namen als in Android.
  * Zo zie je in de app in één lijst wat aan en uit staat, en tik je door naar precies die soort in Android
  * (een app mag zelf geen soort aan- of uitzetten; dat beslis jij in Android).
  */

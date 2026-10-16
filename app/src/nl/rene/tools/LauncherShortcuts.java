@@ -71,7 +71,7 @@ final class LauncherShortcuts {
     /** Snelkoppeling starten. Geeft "" of een melding. */
     static String start(Context c, String pkg, String id) {
         if (Build.VERSION.SDK_INT < 25) return "Kan op deze Android-versie niet";
-        if (!canHost(c)) return "Kies Rene's Tools eerst als standaard-startscherm";
+        if (!canHost(c)) return "Kies Tools eerst als standaard-startscherm";
         try { la(c).startShortcut(pkg, id, null, null, Process.myUserHandle()); return ""; }
         catch (Exception e) { return "Deze snelkoppeling werkt niet meer"; }
     }

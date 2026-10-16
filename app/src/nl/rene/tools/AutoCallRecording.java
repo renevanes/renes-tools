@@ -58,7 +58,7 @@ final class AutoCallRecording {
         Notification.Builder builder = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CHANNEL) : new Notification.Builder(c);
         try {
             manager.notify(NOTICE, builder.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Automatische opname niet gestart")
-                    .setContentText("Open Rene’s Tools om de opname handmatig te starten").setContentIntent(pending).setAutoCancel(true).build());
+                    .setContentText("Open Tools om de opname handmatig te starten").setContentIntent(pending).setAutoCancel(true).build());
         } catch (SecurityException ignored) { }
     }
 }

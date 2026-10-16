@@ -196,7 +196,7 @@ final class Secure {
         try {
             if (!zip.bad.isEmpty()) try (Writer w = zip.writer("", "onvolledig.txt")) { for (String b : zip.bad) w.write(b + "\n"); }
             try (Writer w = zip.writer("", "inhoud.txt")) {
-                w.write("Versleutelde backup van Rene's Tools\r\nGemaakt: " + new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL")).format(new Date())
+                w.write("Versleutelde backup van Tools\r\nGemaakt: " + new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL")).format(new Date())
                         + "\r\nVersie app: " + Version.NAME + "\r\n\r\n");
                 for (String p : AllBackup.PARTS) {
                     JSONObject r = res.optJSONObject(p);

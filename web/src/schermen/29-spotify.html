@@ -11,14 +11,14 @@
       <p class="note" style="margin-top:0">Spotify geeft alleen nog toegang via een eigen "developer app" (gratis, wel Spotify Premium nodig). Zo maak je die:</p>
       <ol class="spsteps">
         <li>Open het <a href="#" onclick="Android.openUrl('https://developer.spotify.com/dashboard');return false">Spotify developer dashboard</a> en log in met je Spotify-account.</li>
-        <li>Tik op <b>Create app</b>. Naam en omschrijving mag je zelf kiezen (bijv. "Rene's Tools").</li>
+        <li>Tik op <b>Create app</b>. Naam en omschrijving mag je zelf kiezen (bijv. "Tools").</li>
         <li>Bij <b>Redirect URIs</b>: <code>http://127.0.0.1:43819/callback</code> <button class="mini" style="float:none" onclick="Android.spotifyCopyRedirect();toast('Gekopieerd')">Kopiëren</button> en tik op <b>Add</b>.</li>
         <li>Vink <b>Web API</b> aan, ga akkoord en tik op <b>Save</b>.</li>
         <li>Kopieer de <b>Client ID</b> (bij Settings / Basic Information) en plak hem hieronder.</li>
       </ol>
       <input class="search" id="sp-client" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Client ID (32 tekens)" aria-label="Client ID">
       <button class="big" id="sp-link" onclick="spLink()">Koppelen met Spotify</button>
-      <p class="note">Je logt daarna in bij Spotify zelf; Rene's Tools ziet je wachtwoord niet. Krijg je later "403"? Zet dan je eigen Spotify-account (e-mailadres) bij <b>User Management</b> van je app.</p>
+      <p class="note">Je logt daarna in bij Spotify zelf; Tools ziet je wachtwoord niet. Krijg je later "403"? Zet dan je eigen Spotify-account (e-mailadres) bij <b>User Management</b> van je app.</p>
       <p class="note bad" id="sp-link-msg" role="status" aria-live="polite"></p>
     </div>
 

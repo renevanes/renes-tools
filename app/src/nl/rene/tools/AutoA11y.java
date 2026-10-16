@@ -330,7 +330,7 @@ public class AutoA11y extends AccessibilityService {
     /** Opnemen starten: app openen met een zwevende balk. Geeft "" of een foutmelding. */
     static String record(Context c, String pkg) {
         AutoA11y s = inst;
-        if (s == null) return "Zet eerst de toegankelijkheid voor Rene's Tools aan";
+        if (s == null) return "Zet eerst de toegankelijkheid voor Tools aan";
         Intent li = c.getPackageManager().getLaunchIntentForPackage(pkg);
         if (li == null) return "Deze app kan niet geopend worden";
         s.h.post(() -> s.startRecord(pkg, li));
@@ -457,7 +457,7 @@ public class AutoA11y extends AccessibilityService {
             String last = n > 0 ? "\nLaatste: " + label(recSteps.optJSONObject(n - 1)) : "\nTik zoals je dat altijd doet. Werkt een knop niet? Gebruik 'Kies knop'. (Balk in de weg? Tik op deze tekst.)";
             barText.setText("● Opnemen: " + n + (n == 1 ? " knop" : " knoppen") + last);
         } else if (runner != null) {
-            barText.setText("Rene's Tools tikt voor je: " + runner.status);
+            barText.setText("Tools tikt voor je: " + runner.status);
         }
     }
 

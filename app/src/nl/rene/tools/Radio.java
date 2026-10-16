@@ -26,7 +26,7 @@ final class Radio {
 
     private Radio() { }
 
-    static final String UA = "RenesTools/1.0 (Android; github.com/renevanes/renes-tools)";
+    static final String UA = "Tools/1.0 (Android; github.com/renevanes/renes-tools)";
     static final String[] SERVERS = {"de1.api.radio-browser.info", "de2.api.radio-browser.info",
             "fi1.api.radio-browser.info", "all.api.radio-browser.info"};
 

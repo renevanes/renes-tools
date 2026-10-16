@@ -285,7 +285,7 @@ final class Sms {
         used.add("index"); // het overzicht heet index.html: een gesprek met de naam "index" mag dat niet overschrijven
         StringBuilder idx = new StringBuilder();
         idx.append("<!DOCTYPE html><html lang=nl><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>")
-                .append("<title>Sms-berichten</title><style>").append(CSS).append("</style><header><h1>Sms-berichten</h1><small>Gemaakt door Rene's Tools op ")
+                .append("<title>Sms-berichten</title><style>").append(CSS).append("</style><header><h1>Sms-berichten</h1><small>Gemaakt door Tools op ")
                 .append(esc(full.format(new Date()))).append(" · ").append(all.size()).append(" berichten</small></header><main><ul>");
         int done = 0;
         for (Conv cv : convs) {

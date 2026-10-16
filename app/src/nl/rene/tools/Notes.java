@@ -30,7 +30,7 @@ final class Notes {
 
     static File file(Context c) { return new File(c.getFilesDir(), "notes.json"); }
 
-    // ----- Vastgezette notities: op het startscherm van Rene's Tools ("app") en van de telefoon-skin ("skin") -----
+    // ----- Vastgezette notities: op het startscherm van Tools ("app") en van de telefoon-skin ("skin") -----
 
     static android.content.SharedPreferences pinPrefs(Context c) { return c.getSharedPreferences("notepins", Context.MODE_PRIVATE); }
 
@@ -273,7 +273,7 @@ final class Notes {
         try (Sms.Out w = Sms.open(dest, dir, "notities.json", "application/json")) { w.write(json); w.done(); }
         SimpleDateFormat df = new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL"));
         try (Sms.Out w = Sms.open(dest, dir, "notities.txt", "text/plain")) {
-            w.write("Notities - Rene's Tools - " + df.format(new Date()) + "\r\n\r\n");
+            w.write("Notities - Tools - " + df.format(new Date()) + "\r\n\r\n");
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject n = arr.getJSONObject(i);
                 String title = n.optString("title", "").trim();

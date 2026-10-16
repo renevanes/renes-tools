@@ -12,7 +12,7 @@ import java.util.ArrayList;
 /**
  * "Delen → PDF maken": plaatjes, een PDF, tekst, een webpagina-tekst of een e-mail (.eml) uit een andere app.
  * Neemt de gedeelde inhoud meteen over (de toegang van de andere app geldt alleen voor deze activiteit)
- * en opent daarna het PDF-scherm in Rene's Tools. Er wordt niets automatisch opgeslagen of verstuurd.
+ * en opent daarna het PDF-scherm in Tools. Er wordt niets automatisch opgeslagen of verstuurd.
  */
 public class PdfShareActivity extends Activity {
     @Override
@@ -35,7 +35,7 @@ public class PdfShareActivity extends Activity {
             }
         } catch (Exception ignored) { }
         // Alleen bestanden die de andere app zelf mocht doorgeven (Android geeft dan leesrecht mee). Zonder dat
-        // leesrecht zou Rene's Tools met zijn eigen rechten iets lezen wat de andere app niet mag zien.
+        // leesrecht zou Tools met zijn eigen rechten iets lezen wat de andere app niet mag zien.
         if (!uris.isEmpty() && !PdfTools.grantedBySender(i, uris)) {
             Toast.makeText(this, "Dit bestand kan niet gebruikt worden", Toast.LENGTH_LONG).show();
             finish();

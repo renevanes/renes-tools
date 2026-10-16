@@ -5,8 +5,8 @@
 <!-- Ook als er ooit iets binnensluipt: geen verbindingen naar buiten, geen frames -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' blob: data:; font-src 'self' data:; connect-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
-<!-- RENES-TOOLS-START: telefoon-skin (startscherm) van Rene's Tools -->
-<title>Rene's Start</title>
+<!-- RENES-TOOLS-START: telefoon-skin (startscherm) van Tools -->
+<title>Tools Start</title>
 <style>
 :root{--st:24px;--sb:16px;--kb:0px;--acc:#3b82f6;--glass:rgba(255,255,255,.72);--glass2:rgba(255,255,255,.55);--ink:#0f172a;--muted:#475569;--line:rgba(15,23,42,.08);--ico:56px;--shadow:0 6px 24px rgba(0,0,0,.18)}
 :root.dark{--glass:rgba(20,24,33,.72);--glass2:rgba(20,24,33,.55);--ink:#f1f5f9;--muted:#a3adbd;--line:rgba(255,255,255,.08)}
@@ -314,9 +314,9 @@ button[data-icon]::before{vertical-align:middle;margin-right:8px}
   <div class="lsec"><h4>Startscherm van de telefoon</h4>
     <p style="margin:0 0 6px;font-size:14px;color:var(--muted)" id="l-default"></p>
     <button class="big2 ghost" onclick="Android.homeSettings()">Standaard-startscherm kiezen…</button>
-    <button class="big2 ghost" onclick="Android.openTool('settings')">Rene's Tools openen</button>
+    <button class="big2 ghost" onclick="Android.openTool('settings')">Tools openen</button>
   </div>
-  <p style="text-align:center;font-size:12px;color:var(--muted)">Rene's Start · versie __VERSION_NAME__</p>
+  <p style="text-align:center;font-size:12px;color:var(--muted)">Tools Start · versie __VERSION_NAME__</p>
 </div>
 <div id="pick" aria-label="Apps kiezen">
   <h2><button class="ib" onclick="closePick(false)" aria-label="Annuleren">‹</button><span id="pk-title"></span><button class="done" onclick="closePick(true)">Klaar</button></h2>
@@ -336,7 +336,7 @@ function skinGlyph(g){const n=SKIN_GLYPHS[g];return n?'<span class="ui-icon" dat
 
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een test-brug. */
 if (!window.Android) window.Android = (function(){
-  const names = ['Telefoon','Berichten','WhatsApp','Chrome','Camera','Foto\'s','Gmail','Agenda','Klok','Instellingen','Rene\'s Tools','Spotify','Buienradar','NS','ING','NU.nl','Maps','YouTube','Rekenmachine','Notities','Bestanden','Weer','Teams','Outlook'];
+  const names = ['Telefoon','Berichten','WhatsApp','Chrome','Camera','Foto\'s','Gmail','Agenda','Klok','Instellingen','Tools','Spotify','Buienradar','NS','ING','NU.nl','Maps','YouTube','Rekenmachine','Notities','Bestanden','Weer','Teams','Outlook'];
   const pk = ['com.android.dialer','com.google.android.apps.messaging','com.whatsapp','com.android.chrome','com.oplus.camera','com.google.android.apps.photos','com.google.android.gm','com.google.android.calendar','com.android.deskclock','com.android.settings','nl.rene.tools','com.spotify.music','nl.buienradar','nl.ns','com.ing.mobile','nl.sanomamedia.android.nu','com.google.android.apps.maps','com.google.android.youtube','com.android.calculator2','com.oplus.note','com.android.documentsui','com.oplus.weather','com.microsoft.teams','com.microsoft.office.outlook'];
   const apps = names.map((n, i) => ({k: pk[i] + '/.Main', n, p: pk[i], t: Date.now() - i * 864e5, sys: i < 10}));
   return {
@@ -361,7 +361,7 @@ if (!window.Android) window.Android = (function(){
     wsApply(j){ const o = JSON.parse(j); if (o.pinned) this._ws.pinned = o.pinned; if (o.dock) this._ws.dock = o.dock; this._applied = j; },
     overlayDone(seq){ this._ovDone = (this._ovDone || 0) + 1; this._ovSeq = seq; }, openDrawer(){ this._openDrawer = true; }, homeMenu(){ this._homeMenu = true; },
     sheetAction(u, id){ this._sheet = u + ':' + id; }, folderRename(u, n){ this._ren = u + ':' + n; }, widgetAdd(p){ this._wadd = p; },
-    widgetPicker(){ widgetPicker(null); setTimeout(() => widgetPicker([{p: 'com.x/.Clock', label: 'Klok', app: 'Klok', w: 2, h: 2, own: false}, {p: 'nl.rene.tools/.NoteWidget', label: 'Notitielijst', app: "Rene's Tools", w: 2, h: 3, own: true}]), 10); },
+    widgetPicker(){ widgetPicker(null); setTimeout(() => widgetPicker([{p: 'com.x/.Clock', label: 'Klok', app: 'Klok', w: 2, h: 2, own: false}, {p: 'nl.rene.tools/.NoteWidget', label: 'Notitielijst', app: "Tools", w: 2, h: 3, own: true}]), 10); },
     setClassic(on){ this._classic = on; }, exitSkin(){ this._exit = true; }, skinAuth(){ setTimeout(() => onSkinAuth(this._authNo ? false : true), 20); }, openDrawerSearch(){ this._dsearch = true; },
     searchMore(q){ return JSON.stringify({notes: q.toLowerCase().includes('melk') ? [{id: 'n1', title: 'Boodschappen', snip: 'Melk, brood'}] : [], contacts: q.toLowerCase().startsWith('ki') ? [{name: 'Kim', uri: 'content://com.android.contacts/contacts/lookup/x/1'}] : []}); },
     openContact(u){ this._contact = u; }, openSetting(k){ this._setting = k; }, appShortcuts(k){ return k.startsWith('com.whatsapp') ? JSON.stringify([{id: 'new', label: 'Nieuw bericht'}]) : '[]'; }, startShortcut(k, id){ this._sc = k + '|' + id; },
@@ -418,7 +418,7 @@ const BGS = {wallpaper: ['Foto', ''], g1: ['Avond', 'linear-gradient(160deg,#1e3
 const LIGHTBG = {g5: 1, s2: 1};
 window.applyLook = applyLook;
 /* Onderdelen van het startscherm in de gekozen volgorde (de melding "als startscherm gebruiken" blijft bovenaan). */
-const PARTS = {clock: ['🕒', 'Klok', ['#clock', '#alarm']], weather: ['🌤️', 'Weer', ['#weather']], cal: ['📅', 'Agenda', ['#cal']], tools: ['🧰', "Rene's Tools (radio, overzicht)", ['#tools']], notes: ['📝', 'Vastgezette notities', ['#snotes']], apps: ['🏠', 'Apps op het startscherm', ['#pinned']]};
+const PARTS = {clock: ['🕒', 'Klok', ['#clock', '#alarm']], weather: ['🌤️', 'Weer', ['#weather']], cal: ['📅', 'Agenda', ['#cal']], tools: ['🧰', "Tools (radio, overzicht)", ['#tools']], notes: ['📝', 'Vastgezette notities', ['#snotes']], apps: ['🏠', 'Apps op het startscherm', ['#pinned']]};
 function applyOrder(){
   const home = $('#home');
   home.appendChild($('#banner'));
@@ -557,10 +557,10 @@ function searchMoreNow(raw, nq){
   let h = '';
   const r = (raw.length >= 2 && typeof Android.searchMore === 'function') ? J(Android.searchMore(raw), {}) : {};
   if (r.notes && r.notes.length) h += '<div class=srh>Notities</div>' + r.notes.map(n => srow('📝', n.title, n.snip, 'note', n.id)).join('');
-  else if (r.notesLocked) h += '<div class=srh>Notities</div>' + srow('🔒', 'Zoeken in Notities', 'Notities zijn vergrendeld: openen in Rene\'s Tools', 'tool', 'notes');
+  else if (r.notesLocked) h += '<div class=srh>Notities</div>' + srow('🔒', 'Zoeken in Notities', 'Notities zijn vergrendeld: openen in Tools', 'tool', 'notes');
   if (r.contacts && r.contacts.length) h += '<div class=srh>Contacten</div>' + r.contacts.map(c => srow('👤', c.name, '', 'contact', c.uri)).join('');
   const tl = Object.keys(TOOLS).filter(k => norm(TOOLS[k][1]).includes(nq)).slice(0, 4);
-  if (tl.length) h += '<div class=srh>Rene\'s Tools</div>' + tl.map(k => srow(TOOLS[k][0], TOOLS[k][1], '', 'tool', k)).join('');
+  if (tl.length) h += '<div class=srh>Tools</div>' + tl.map(k => srow(TOOLS[k][0], TOOLS[k][1], '', 'tool', k)).join('');
   const st = typeof Android.openSetting === 'function' ? SETTINGS.filter(s => norm(s[1]).includes(nq)).slice(0, 4) : [];
   if (st.length) h += '<div class=srh>Instellingen</div>' + st.map(s => srow(s[2], s[1], '', 'set', s[0])).join('');
   searchMore.last = [raw, h];
@@ -662,7 +662,7 @@ function homeSheet(){
   openSheet('<span class=ib><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></span>', 'Startscherm', [
     ['Apps op het startscherm kiezen', () => pickApps('pinned')], ['Apps in het dock kiezen', () => pickApps('dock')],
     ['Look aanpassen', openLook], ['Achtergrondfoto kiezen', () => Android.wallpaper()],
-    ['Rene\'s Tools openen', () => Android.openTool('')], ['Standaard-startscherm kiezen', () => Android.homeSettings()]]
+    ['Tools openen', () => Android.openTool('')], ['Standaard-startscherm kiezen', () => Android.homeSettings()]]
     .concat(typeof Android.exitSkin === 'function' ? [['Skin afsluiten (vingerafdruk)', () => Android.exitSkin()]] : []));
 }
 function openSheet(ic, title, acts){
@@ -788,7 +788,7 @@ function renderCal(){
 }
 window.onCalendarPerm = renderCal;
 
-/* ---------- Rene's Tools ---------- */
+/* ---------- Tools ---------- */
 const TOOLS = {radio: ['📻', 'Radio'], notes: ['📝', 'Notities'], music: ['🎵', 'Muziek'], redial: ['📞', 'Redial'], backup: ['💾', 'Backup'], contacts: ['👤', 'Contacten'],
   calls: ['📒', 'Oproepen'], transcripts: ['🎙️', 'Gesprekken'], wa: ['🟢', 'WhatsApp'], sms: ['💬', "Sms'jes"], tracks: ['🗺️', 'Routes'], settings: ['⚙️', 'Instellingen']};
 function fmtD(t){ const d = new Date(t), n = new Date(); const hm = d.toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
@@ -803,7 +803,7 @@ function renderTools(){
   const t = J(raw, {});
   const r = t.radio || {}, st = r.status || 'stopped', s = r.station || t.radioLast;
   const playing = st === 'playing' || st === 'connecting';
-  let h = '<h3>Rene\'s Tools <button class=more onclick="Android.openTool(\'\')">Openen ›</button></h3>';
+  let h = '<h3>Tools <button class=more onclick="Android.openTool(\'\')">Openen ›</button></h3>';
   if (s) h += '<div class=radio><button class=rn style="text-align:left" onclick="Android.openTool(\'radio\')"><b>' + esc(s.name) + '</b><small>' +
       esc(st === 'connecting' ? 'Verbinden…' : st === 'paused' ? 'Gepauzeerd' : st === 'playing' ? (r.shift && r.shift.behind > 8 ? 'achter live' : (r.title || 'Live')) : 'Tik ▶ om te luisteren') + '</small></button>' +
     (r.shift && st !== 'stopped' ? '<button class=rb onclick="radioDo(\'rew\')" aria-label="30 seconden terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>' : '') +
@@ -974,7 +974,7 @@ function renderLook(){
   $('#l-tools').innerHTML = Object.keys(TOOLS).map(k => '<button data-t="' + k + '"' + (cfg.tools.includes(k) ? ' class=on' : '') + '>' + skinGlyph(TOOLS[k][0]) + ' ' + TOOLS[k][1] + '</button>').join('');
   $('#l-tools').querySelectorAll('button').forEach(b => b.onclick = () => { const k = b.dataset.t; cfg.tools = cfg.tools.includes(k) ? cfg.tools.filter(x => x !== k) : cfg.tools.concat(k); save(); renderLook(); renderTools.force = true; renderTools(); });
   $('#l-hidden').innerHTML = cfg.hidden.filter(k => byKey[k]).map(k => '<div class=hid>' + icon(k, 72) + '<span>' + esc(byKey[k].n) + '</span><button data-k="' + esc(k) + '" onclick="unhide(this.dataset.k)">Tonen</button></div>').join('') || '<p style="margin:0;color:var(--muted);font-size:14px">Geen. Houd een app ingedrukt om hem te verbergen.</p>';
-  $('#l-default').textContent = Android.isDefault() ? '✓ Rene\'s Start is je startscherm.' : 'Nu nog niet je standaard-startscherm.';
+  $('#l-default').textContent = Android.isDefault() ? '✓ Tools Start is je startscherm.' : 'Nu nog niet je standaard-startscherm.';
 }
 function ordMove(b){
   // Verschuiven binnen de zichtbare onderdelen (in de launcher-modus doet 'apps' niet mee)
@@ -1003,7 +1003,7 @@ function skinAuth(fn){ if (typeof Android.skinAuth !== 'function') { fn(); retur
 window.onSkinAuth = function(ok){ const f = skinAuthFn; skinAuthFn = null; if (ok && f) f(); else if (f) toast('Niet gewijzigd'); };
 function blockedK(k){ return !!cfg.lockHidden && cfg.hidden.includes(k); }
 function toggleDots(){
-  if (!cfg.dots) { cfg.dots = true; save(); applyLook(); renderLook(); if (!Android.notifAccess()) { toast('Zet Rene\'s Tools aan bij meldingentoegang'); Android.notifAccessSettings(); } }
+  if (!cfg.dots) { cfg.dots = true; save(); applyLook(); renderLook(); if (!Android.notifAccess()) { toast('Zet Tools aan bij meldingentoegang'); Android.notifAccessSettings(); } }
   else { cfg.dots = false; save(); applyLook(); renderLook(); }
 }
 function toggleCfg(k){ cfg[k] = !cfg[k]; save(); applyLook(); renderLook(); }

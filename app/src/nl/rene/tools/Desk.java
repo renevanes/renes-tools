@@ -746,7 +746,7 @@ final class Desk {
             if (pg >= 0 && model.pages.get(pg).items.isEmpty() && model.pages.size() > 1)
                 acts.put(new JSONArray().put("Deze pagina verwijderen").put("delpage"));
             if (pg != home) acts.put(new JSONArray().put("Dit als hoofdscherm").put("sethome"));
-            acts.put(new JSONArray().put("Rene's Tools openen").put("tools"));
+            acts.put(new JSONArray().put("Tools openen").put("tools"));
             acts.put(new JSONArray().put("Skin afsluiten (vingerafdruk)").put("exit"));
             act.sheet(new JSONObject().put("title", "Startscherm").put("uid", -1).put("glyph", "⚙︎").put("acts", acts));
         } catch (Exception ignored) { }

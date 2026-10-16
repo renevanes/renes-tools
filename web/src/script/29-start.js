@@ -12,7 +12,7 @@ setTimeout(() => { try { if (typeof Android.uiReady === 'function') Android.uiRe
   // Bestaande gebruikers (van voor deze functie) krijgen ook "Wat is er nieuw" te zien.
   if (store.get('seenVersion', null) == null && !Android.freshInstall()) store.set('seenVersion', VERSION_CODE - 1);
   setTimeout(() => {
-    if (Android.crashNew()) askConfirm('De app is vastgelopen', 'Rene\'s Tools is de vorige keer onverwacht gestopt. Wil je het foutrapport delen, zodat het opgelost kan worden?', 'Delen', () => Android.crashShare());
+    if (Android.crashNew()) askConfirm('De app is vastgelopen', 'Tools is de vorige keer onverwacht gestopt. Wil je het foutrapport delen, zodat het opgelost kan worden?', 'Delen', () => Android.crashShare());
     else whatsNew();
   }, 600);
 })();

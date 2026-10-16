@@ -1721,7 +1721,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void crashShare() {
             a.h.post(() -> {
                 Intent i = new Intent(Intent.ACTION_SEND).setType("text/plain")
-                        .putExtra(Intent.EXTRA_SUBJECT, "Foutrapport Rene's Tools " + Version.NAME)
+                        .putExtra(Intent.EXTRA_SUBJECT, "Foutrapport Tools " + Version.NAME)
                         .putExtra(Intent.EXTRA_TEXT, App.report(ctx));
                 try { a.startActivity(Intent.createChooser(i, "Foutrapport delen")); }
                 catch (Exception e) { Toast.makeText(a, "Delen lukt niet", Toast.LENGTH_SHORT).show(); }
@@ -1733,7 +1733,7 @@ public class MainActivity extends Activity {
             a.h.post(() -> {
                 try {
                     android.content.ClipboardManager cm = (android.content.ClipboardManager) a.getSystemService(Context.CLIPBOARD_SERVICE);
-                    cm.setPrimaryClip(android.content.ClipData.newPlainText("Foutrapport Rene's Tools", App.report(ctx)));
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("Foutrapport Tools", App.report(ctx)));
                     if (Build.VERSION.SDK_INT < 33) Toast.makeText(a, "Foutrapport gekopieerd", Toast.LENGTH_SHORT).show(); // nieuwere Android meldt het zelf
                 } catch (Exception e) { Toast.makeText(a, "Kopiëren lukt niet", Toast.LENGTH_SHORT).show(); }
             });
@@ -1777,7 +1777,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void lockUnlock() {
             if (Lock.hasCode(ctx)) { lockBio(); return; } // met app-code: alleen vingerafdruk/gezicht, nooit de pincode van de telefoon
-            a.h.post(() -> Lock.prompt(a, "Rene's Tools ontgrendelen", (ok, msg) -> {
+            a.h.post(() -> Lock.prompt(a, "Tools ontgrendelen", (ok, msg) -> {
                 if (ok) { Lock.unlocked = true; a.js("onUnlocked", ""); }
                 else a.js("onLockFail", JSONObject.quote(msg == null ? "" : msg));
             }));
@@ -2095,7 +2095,7 @@ public class MainActivity extends Activity {
             });
         }
 
-        /** Tekst die vanuit een andere app met Delen naar Rene's Tools is gestuurd (één keer ophalen). */
+        /** Tekst die vanuit een andere app met Delen naar Tools is gestuurd (één keer ophalen). */
         @JavascriptInterface public String pendingShare() {
             String s = a.pendingShare;
             a.pendingShare = null;
@@ -2116,7 +2116,7 @@ public class MainActivity extends Activity {
 
         // ----- Telefoon-skin -----
         @JavascriptInterface public boolean homeIsDefault() { return Launcher.isDefaultHome(ctx); }
-        /** Vraagt Android om Rene's Tools als startscherm te gebruiken (of opent de instelling ervoor). */
+        /** Vraagt Android om Tools als startscherm te gebruiken (of opent de instelling ervoor). */
         @JavascriptInterface public void homeMakeDefault() {
             a.h.post(() -> {
                 if (Build.VERSION.SDK_INT >= 29) {

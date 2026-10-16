@@ -232,7 +232,7 @@ final class Spotify {
                 JSONObject me = api(app, "GET", "/me", null);
                 name = me.optString("display_name", me.optString("id"));
                 prefs(app).edit().putString("userId", me.optString("id")).putString("user", name).apply();
-                reply(browser, 200, "✓ Spotify is gekoppeld met Rene's Tools" + (name.isEmpty() ? "" : " (" + esc(name) + ")") + ". Je kunt dit tabblad sluiten en terug naar de app.");
+                reply(browser, 200, "✓ Spotify is gekoppeld met Tools" + (name.isEmpty() ? "" : " (" + esc(name) + ")") + ". Je kunt dit tabblad sluiten en terug naar de app.");
             } catch (Gone e) { err = "Spotify weigert de toegang (403). Staat je account bij 'User Management' van je developer app, en heb je Premium?";
                 if (browser != null) reply(browser, 200, "Niet gekoppeld: " + esc(err));
             } catch (LoginEnd e) { err = e.getMessage(); // null = opnieuw gestart: stil
@@ -267,10 +267,10 @@ final class Spotify {
                 String target = readRequest(s.getInputStream());
                 if (target == null || !target.startsWith("/callback")) { reply(s, 404, "Niet gevonden"); continue; }
                 Uri u = Uri.parse("http://127.0.0.1" + target);
-                if (!state.equals(u.getQueryParameter("state"))) { reply(s, 400, "Deze aanvraag hoort niet bij Rene's Tools. Probeer opnieuw vanuit de app."); continue; }
+                if (!state.equals(u.getQueryParameter("state"))) { reply(s, 400, "Deze aanvraag hoort niet bij Tools. Probeer opnieuw vanuit de app."); continue; }
                 String err = u.getQueryParameter("error");
                 if (err != null) {
-                    reply(s, 200, "Niet gekoppeld (" + esc(err) + "). Je kunt dit tabblad sluiten en terug naar Rene's Tools.");
+                    reply(s, 200, "Niet gekoppeld (" + esc(err) + "). Je kunt dit tabblad sluiten en terug naar Tools.");
                     throw new Exception("access_denied".equals(err) ? "Je hebt het koppelen geweigerd" : "Spotify: " + err);
                 }
                 String code = u.getQueryParameter("code");
@@ -304,8 +304,8 @@ final class Spotify {
 
     private static void reply(Socket s, int code, String text) {
         try {
-            String html = "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'><title>Rene's Tools</title>"
-                    + "<body style='font-family:sans-serif;padding:28px;font-size:18px;line-height:1.5'><h2>Rene's Tools</h2><p>" + text + "</p></body>";
+            String html = "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'><title>Tools</title>"
+                    + "<body style='font-family:sans-serif;padding:28px;font-size:18px;line-height:1.5'><h2>Tools</h2><p>" + text + "</p></body>";
             byte[] b = html.getBytes(StandardCharsets.UTF_8);
             OutputStream o = s.getOutputStream();
             o.write(("HTTP/1.1 " + code + " OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: " + b.length
@@ -635,7 +635,7 @@ final class Spotify {
             for (SpotifyDiff.T t : l) arr.put(trackJson(t));
             all.put(new JSONObject(p.toString()).put("gone", true).put("items", arr));
         }
-        JSONObject root = new JSONObject().put("app", "Rene's Tools").put("soort", "spotify-backup").put("versie", 2)
+        JSONObject root = new JSONObject().put("app", "Tools").put("soort", "spotify-backup").put("versie", 2)
                 .put("gemaakt", System.currentTimeMillis()).put("gebruiker", prefs(c).getString("user", "")).put("playlists", all)
                 ;
         try { root.put("bibliotheek", SpotifyLib.writeFolder(c, dest, d)); } catch (Exception e) { App.log(c, "SPOTIFY", "bibliotheek naar backup-map: " + e); } // playlists gaan altijd door
@@ -668,7 +668,7 @@ final class Spotify {
             s = new String(SelfTest.readAll(new PodcastFeed.Limited(in, 50_000_000)), StandardCharsets.UTF_8);
         }
         JSONObject root = new JSONObject(s);
-        if (!"spotify-backup".equals(root.optString("soort"))) throw new Exception("Dit is geen Spotify-backup van Rene's Tools");
+        if (!"spotify-backup".equals(root.optString("soort"))) throw new Exception("Dit is geen Spotify-backup van Tools");
         JSONArray pls = root.optJSONArray("playlists");
         if (pls == null) throw new Exception("Lege backup");
         JSONArray now = new JSONArray();
@@ -740,7 +740,7 @@ final class Spotify {
                 progress = "Playlist maken…";
                 String when = new SimpleDateFormat("d-M-yyyy", new Locale("nl", "NL")).format(new Date());
                 JSONObject made = api(c, "POST", "/me/playlists", new JSONObject().put("name", PodcastFeed.cut(name + " (hersteld " + when + ")", 100))
-                        .put("public", false).put("description", PodcastFeed.cut("Teruggezet door Rene's Tools uit een backup. " + meta.optString("desc"), 300)));
+                        .put("public", false).put("description", PodcastFeed.cut("Teruggezet door Tools uit een backup. " + meta.optString("desc"), 300)));
                 target = made.optString("id");
                 if (target.isEmpty()) throw new Exception("Spotify maakte geen playlist");
                 for (int i = 0; i < uris.size(); i += 100) {

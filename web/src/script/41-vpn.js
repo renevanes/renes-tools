@@ -86,7 +86,7 @@ function vpToggle(){
   const id = vpSt.active || (vpTun[0] && vpTun[0].id);
   vpBusy = true; vpRender(true);
   const r = Android.vpnStart(id);
-  if (r === 'consent') { toast('Android vraagt of Rene\'s Tools een VPN mag maken: tik op OK'); return; }
+  if (r === 'consent') { toast('Android vraagt of Tools een VPN mag maken: tik op OK'); return; }
   vpBusy = false;
   if (r) { toast(r); vpRender(); return; }
   setTimeout(() => vpRender(), 500);

@@ -39,7 +39,7 @@ const path = require('path');
     console.log('overlay: rename', await pg.evaluate(() => Android._ren));
     // widgetkiezer
     await pg.evaluate(() => widgetPicker(null)); console.log('overlay: picker loading', await pg.textContent('#wp-list'));
-    await pg.evaluate(() => widgetPicker([{ p: 'com.x/.Clock', label: 'Klok', app: 'Klok', w: 2, h: 2, own: false }, { p: 'nl.rene.tools/.N', label: 'Notitielijst', app: "Rene's Tools", w: 2, h: 3, own: true }]));
+    await pg.evaluate(() => widgetPicker([{ p: 'com.x/.Clock', label: 'Klok', app: 'Klok', w: 2, h: 2, own: false }, { p: 'nl.rene.tools/.N', label: 'Notitielijst', app: "Tools", w: 2, h: 3, own: true }]));
     console.log('overlay: picker groups', await pg.$$eval('#wp-list .wapp', x => x.map(e => e.textContent).join(',')));
     await pg.screenshot({ path: __dirname + '/shots/start-wpick-' + scheme + '.png' });
     await pg.click('#wp-list .wcard:has-text("Klok")'); console.log('overlay: widget chosen', await pg.evaluate(() => Android._wadd));

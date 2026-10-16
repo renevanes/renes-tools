@@ -90,7 +90,7 @@ public final class CallRecorderService extends Service {
             Notification.Builder builder = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
             if (Build.VERSION.SDK_INT >= 31) builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
             Notification n = builder.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Microfoonopname actief")
-                    .setContentText("Rene’s Tools neemt geluid via de microfoon op").setOngoing(true).setOnlyAlertOnce(true)
+                    .setContentText("Tools neemt geluid via de microfoon op").setOngoing(true).setOnlyAlertOnce(true)
                     .setWhen(System.currentTimeMillis()).setUsesChronometer(true).setContentIntent(content).addAction(android.R.drawable.ic_media_pause, "Stoppen en opslaan", stop).build();
             if (Build.VERSION.SDK_INT >= 30) startForeground(NOTIFICATION, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
             else startForeground(NOTIFICATION, n);

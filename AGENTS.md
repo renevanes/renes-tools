@@ -1,4 +1,4 @@
-# Werken aan Rene's Tools (voor alle agents: Claude, Codex, …)
+# Werken aan Tools (voor alle agents: Claude, Codex, …)
 
 Dit bestand is de handleiding voor iedere AI-agent of ontwikkelaar die aan deze repository werkt. Meerdere agents kunnen
 tegelijk wijzigingen maken en publiceren; volg daarvoor de werkwijze hieronder.
@@ -6,7 +6,7 @@ tegelijk wijzigingen maken en publiceren; volg daarvoor de werkwijze hieronder.
 Mensen die willen bijdragen: zie ook [CONTRIBUTING.md](CONTRIBUTING.md). De code is vrije software (GPL-3.0-or-later, zie `LICENSE`).
 
 ## Wat dit is
-Android-app "Rene's Tools" van Rene van Es (Rotterdam). De interface is een WebView (HTML/CSS/JS uit `web/src/`), de
+Android-app "Tools" van Rene van Es (Rotterdam). De interface is een WebView (HTML/CSS/JS uit `web/src/`), de
 native kant is Java in `app/src/nl/rene/tools/`. Er is geen Gradle: `build.sh` bouwt met aapt2/d8 en ondertekent.
 Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json`, interface en APK).
 

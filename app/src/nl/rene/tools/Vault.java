@@ -129,11 +129,11 @@ final class Vault {
         }
     }
 
-    /** Leest de kop; gooit een begrijpelijke fout als het geen archief van Rene's Tools is. */
+    /** Leest de kop; gooit een begrijpelijke fout als het geen archief van Tools is. */
     static byte[] readHeader(InputStream in) throws IOException {
         byte[] h = new byte[HEADER];
-        try { readFully(in, h); } catch (EOFException e) { throw new IOException("Dit is geen versleutelde backup van Rene's Tools"); }
-        for (int i = 0; i < 4; i++) if (h[i] != MAGIC[i]) throw new IOException("Dit is geen versleutelde backup van Rene's Tools");
+        try { readFully(in, h); } catch (EOFException e) { throw new IOException("Dit is geen versleutelde backup van Tools"); }
+        for (int i = 0; i < 4; i++) if (h[i] != MAGIC[i]) throw new IOException("Dit is geen versleutelde backup van Tools");
         if (h[4] != 1 && h[4] != 2) throw new IOException("Onbekende versie van het archief");
         return h;
     }
