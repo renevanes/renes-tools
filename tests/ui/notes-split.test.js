@@ -1,3 +1,4 @@
+const {noteExtra}=require('./note-navigation');
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 (async()=>{
@@ -10,7 +11,7 @@ const assert = require('node:assert/strict');
       notesSaveNow();openNote('split');
     });
     const items=()=>p.evaluate(()=>noteById('split').items);
-    const open=()=>p.click('#note-split-open');
+    const open=async()=>{await noteExtra(p,'edit');await p.click('#note-split-open');};
     // Notitietekst blijft standaard staan, nummering/opsommingen en vinkjes worden herkend.
     await open();assert.equal(await p.inputValue('#note-split-source'),'body');
     assert.equal(await p.isChecked('#note-split-keep'),true);

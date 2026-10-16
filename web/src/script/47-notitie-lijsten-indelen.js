@@ -30,6 +30,7 @@ function noteListLocation(){
     b.append(title,sub);b.onclick=()=>{if(notesSaveNow())openNote(r.n.id);};$('#note-child-list').appendChild(b);
   }
   $('#note-child-empty').hidden=children.length>0;
+  $('#note-child-count').textContent=children.length;
 }
 function noteNewChild(){
   const parent=noteCur;if(!noteById(parent)||!notesSaveNow())return;

@@ -107,8 +107,20 @@ function enterNotes(){ loadRems(); renderNotes(); refreshNotesTile(); }
 function renderNotes(){
   const q = $('#notes-search').value.trim().toLowerCase();
   const list = noteListTree(notesGet());
+  const byId=new Map(list.map(r=>[r.n.id,r])),childCounts=new Map();
+  for(const r of list)if(r.parent!==null)childCounts.set(r.parent,(childCounts.get(r.parent)||0)+1);
+  $('#notes-total').textContent=list.length;
+  $('#notes-open-total').textContent=notesGet().reduce((sum,n)=>sum+(n.items||[]).filter(i=>!i.done).length,0);
+  $('#notes-child-total').textContent=list.filter(r=>r.parent!==null).length;
+  document.querySelectorAll('.notes-scopes button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.scope===notesScope)));
   const rows = [];
   for (const r of list) {
+    if(notesScope==='main'&&r.parent!==null||notesScope==='children'&&r.parent===null)continue;
+    if(!q&&notesScope==='all'){
+      let ancestor=r.parent,hidden=false;
+      while(ancestor!==null){if(!notesExpanded.has(ancestor)){hidden=true;break;}const a=byId.get(ancestor);ancestor=a?a.parent:null;}
+      if(hidden)continue;
+    }
     const n=r.n, parent=r.parent!==null?noteById(r.parent):null;
     const items = n.items || [], open = items.filter(i => !i.done).length;
     const title = n.title || 'Zonder titel', flat = (n.text||'').replace(/\s+/g, ' ');
@@ -123,12 +135,14 @@ function renderNotes(){
       sub = items.length ? esc(items.filter(i => !i.done).slice(0, 5).map(i => i.text).join(' · ') || 'Alles afgestreept') : esc(flat.slice(0, 80));
     }
     const rem = noteRems[n.id];
-    rows.push('<button class="nrow" data-note-id="'+esc(n.id)+'" style="padding-left:'+Math.min(r.depth,3)*14+'px" onclick="openNote(' + jsq(n.id) + ')"><span class=r1><b>' + (rem ? '<span class=nrem>🔔</span> ' : '') + hl(title, q) + '</b><small>' +
-      (items.length ? (items.length - open) + '/' + items.length + ' ✓ · ' : '') + esc(fmtD(n.updated||0)) + '</small></span>' +
-      (parent?'<span class=note-parent-label>↳ Onder '+esc(parent.title||'Zonder titel')+'</span>':'')+'<span class=r2>' + (sub || '&nbsp;') + '</span></button>');
+    const count=childCounts.get(n.id)||0,expanded=notesExpanded.has(n.id),depth=q||notesScope==='children'?0:Math.min(r.depth,3);
+    rows.push('<div class="notes-tree-row" style="padding-left:'+depth*14+'px"><button class="nrow" data-note-id="'+esc(n.id)+'" onclick="openNote(' + jsq(n.id) + ')"><span class="note-overview-avatar" aria-hidden="true">'+(items.length?'☷':'≡')+'</span><span class="note-row-content"><span class=r1><b>' + (rem ? '<span class=nrem>🔔</span> ' : '') + hl(title, q) + '</b><small>' +
+      (items.length ? (items.length - open) + '/' + items.length + ' ✓' : esc(fmtD(n.updated||0))) + '</small></span>' +
+      (parent?'<span class=note-parent-label>↳ Onder '+esc(parent.title||'Zonder titel')+'</span>':'')+'<span class=r2>' + (sub || 'Open deze notitie') + '</span></span></button>'+
+      (count&&notesScope==='all'&&!q?'<button class="note-tree-toggle '+(expanded?'expanded':'')+'" data-expand-id="'+esc(n.id)+'" aria-label="Sublijsten van '+esc(title)+'" aria-expanded="'+expanded+'" onclick="notesExpand('+jsq(n.id)+')"><span aria-hidden="true">›</span><small>'+count+'</small></button>':'')+'</div>');
   }
   $('#notes-list').innerHTML = rows.join('') || '<p class=note style="padding:14px">' +
-    (q ? 'Niets gevonden.' : 'Nog geen notities. Tik op + om een lijstje te maken.') + '</p>';
+    (q ? 'Niets gevonden.' : notesScope==='children'?'Nog geen sublijsten. Open een lijst om er een toe te voegen.':'Nog geen notities. Tik op + om een lijstje te maken.') + '</p>';
 }
 function noteById(id){ return notesGet().find(n => n.id === id); }
 function newNote(){
@@ -140,8 +154,8 @@ function openNote(id, fresh){
   noteCur = id; const n = noteById(id); if (!n) return;
   noteAddReset();
   $('#note-title').value = n.title || ''; $('#note-text').value = n.text || ''; $('#note-add').value = '';
-  show('note'); renderItems(); noteRemShow(); notePinShow(); noteRepeatShow();
-  if (fresh) setTimeout(() => $('#note-title').focus(), 50);
+  noteUiReset();show('note'); renderItems(); noteRemShow(); notePinShow(); noteRepeatShow();noteUiSummaries();
+  if (fresh) setTimeout(() => $('#note-title').focus(), 50);else setTimeout(()=>$('#s-note .hdr h1').focus({preventScroll:true}),0);
 }
 function touch(n){ n.updated = Date.now(); notesSaveSoon(); }
 function noteEdit(field, v){ const n = noteById(noteCur); if (!n) return; n[field] = v; touch(n); }
@@ -201,6 +215,7 @@ function noteRepeatShow(){
   const n = noteById(noteCur); if (!n) return;
   const r = n.repeat, v = r && r.every ? r.every + ':' + (r.n || 1) : '';
   const sel = $('#note-repeat'); sel.value = v; if (sel.value !== v) sel.value = '';
+  noteUiSummaries();
   $('#note-repeat-info').textContent = !v ? 'Voor een vast lijstje, zoals de weekboodschappen: op het gekozen moment gaan alle vinkjes weer weg.'
     : 'Alle vinkjes gaan weg ' + (r.every === 'day' ? 'elke nacht' : r.every === 'week' ? 'elke ' + DAYS_NL[r.n] + ' om middernacht' : 'op de ' + r.n + 'e van elke maand') + '. De items zelf blijven staan.';
 }

@@ -35,6 +35,7 @@ function noteSplitClose(){
 }
 function noteSplitOpen(){
   if (!noteById(noteCur) || !notesSaveNow()) return;
+  noteUiExtra('edit');
   const n = noteById(noteCur); if (!n) return;
   noteSplit = {noteId:n.id, draft:$('#note-add').value, paste:$('#note-add').value, addParent:noteAddParent};
   const select = $('#note-split-source'); select.replaceChildren();
@@ -120,7 +121,7 @@ function noteSplitApply(){
   const addedSnapshot=notesCopy(added);
   if(s.source==='paste'&&sourceText===s.draft&&$('#note-add').value===s.draft)$('#note-add').value='';
   noteSplitClose();
-  if(noteCur===s.noteId){$('#note-text').value=noteById(s.noteId)?.text||'';renderItems();}
+  if(noteCur===s.noteId){$('#note-text').value=noteById(s.noteId)?.text||'';renderItems();noteUiShow('list');}
   const ids=new Set(added.map(i=>i.id));
   const undo=()=>{
     const undone=noteSplitCommit(s.noteId,m=>{

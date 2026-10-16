@@ -1,3 +1,4 @@
+const {noteExtra}=require('./note-navigation');
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 (async()=>{
@@ -66,11 +67,11 @@ const assert=require('node:assert/strict');
     await p.click('#undo-b');assert.equal(await p.getAttribute('[data-id="d"]','data-depth'),'2');
     // Splitsen behoudt bestaande subitems onder het eerste deel en kan veilig teruggedraaid worden.
     await reset();await p.evaluate(()=>{noteById('sub').items.find(i=>i.id==='a').text='Reis; Verblijf';touch(noteById('sub'));});
-    await p.click('#note-split-open');await p.selectOption('#note-split-source','item:a');await p.click('#note-split-apply');
+    await noteExtra(p,'edit');await p.click('#note-split-open');await p.selectOption('#note-split-source','item:a');await p.click('#note-split-apply');
     assert.equal((await items()).find(i=>i.id==='a').text,'Reis');assert.equal(await p.getAttribute('[data-id="c"]','data-depth'),'1');
     await p.click('#undo-b');assert.equal((await items()).find(i=>i.id==='a').text,'Reis; Verblijf');
     // Geplakte lijst als subitems en geen stille verwezing door ongedaan maken.
-    await p.evaluate(()=>noteSubAdd('b'));await p.fill('#note-add','Appels, Brood');await p.click('#note-split-open');await p.click('#note-split-apply');
+    await p.evaluate(()=>noteSubAdd('b'));await p.fill('#note-add','Appels, Brood');await noteExtra(p,'edit');await p.click('#note-split-open');await p.click('#note-split-apply');
     let added=(await items()).filter(i=>i.parentId==='b');assert.equal(added.length,2);
     await p.evaluate(id=>{noteSubAdd(id);$('#note-add').value='Nieuw kind';addItem();},added[0].id);
     await p.click('#undo-b');assert.ok((await items()).some(i=>i.text==='Nieuw kind'));

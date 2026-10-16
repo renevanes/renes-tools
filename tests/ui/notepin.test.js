@@ -1,3 +1,4 @@
+const {noteExtra}=require('./note-navigation');
 // Notitie (bijv. boodschappenlijst) vastzetten op het startscherm van de app, de telefoon en de skin.
 const { chromium } = require('playwright');
 (async () => {
@@ -10,7 +11,7 @@ const { chromium } = require('playwright');
     console.log('notes group hidden at start', !(await pg.isVisible('#home-notes')));
     await pg.evaluate(() => openNote('bood')); await pg.waitForTimeout(150);
     console.log('phone btn', await pg.textContent('#note-pin-phone'));
-    await pg.check('#note-pin-app'); await pg.click('#note-pin-phone'); await pg.waitForTimeout(100);
+    await noteExtra(pg,'pins');await pg.check('#note-pin-app'); await noteExtra(pg,'pins');await pg.click('#note-pin-phone'); await pg.waitForTimeout(100);
     console.log('pins', await pg.evaluate(() => Android.notePins('app')), 'phone shortcut', await pg.evaluate(() => Android._pinned), 'toast', await pg.textContent('#toast'));
     await pg.evaluate(() => goBack()); await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
     console.log('home tile', await pg.isVisible('#home-notes'), (await pg.textContent('#home-notes-tiles')).replace(/\s+/g, ' '));
@@ -20,7 +21,7 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150); console.log('back to', await pg.evaluate(() => current));
     // skin is het startscherm: zelfde knop zet hem op de skin
     await pg.evaluate(() => { Android._home = true; openNote('bood'); }); await pg.waitForTimeout(100);
-    console.log('skin btn', await pg.textContent('#note-pin-phone')); await pg.click('#note-pin-phone');
+    console.log('skin btn', await pg.textContent('#note-pin-phone')); await noteExtra(pg,'pins');await pg.click('#note-pin-phone');
     console.log('skin pins', await pg.evaluate(() => Android.notePins('skin')), await pg.textContent('#note-pin-phone'));
     await pg.uncheck('#note-pin-app'); await pg.evaluate(() => { goBack(); goBack(); }); await pg.waitForTimeout(150);
     console.log('unpinned app', !(await pg.isVisible('#home-notes')));

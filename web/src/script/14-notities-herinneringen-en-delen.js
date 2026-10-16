@@ -14,6 +14,7 @@ function noteRemShow(){
   $('#note-rem-del').style.display = l.length > 1 ? 'block' : 'none';
   $('#note-rem-list').innerHTML = l.map(r => '<div class="remrow"><span>🔔 ' + esc(new Date(r.t).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) +
     (r.rep ? ' <small>· ' + esc(REM_REP[r.rep] || '') + '</small>' : '') + '</span><button class="mini" data-id="' + esc(r.id) + '" onclick="noteDelOneRem(this.dataset.id)" aria-label="Herinnering weghalen">Weghalen</button></div>').join('');
+  noteUiSummaries();
 }
 function noteDelOneRem(rid){ if (typeof Android.noteRemindDel === 'function') Android.noteRemindDel(rid); else Android.noteRemind(rid, '', '0'); noteRemShow(); }
 /* Tegen dubbel tikken: dezelfde actie binnen een seconde telt één keer */
@@ -40,8 +41,9 @@ function notePinShow(){
   const onSkin = notePins('skin').includes(id);
   $('#note-pin-phone').textContent = skin ? (onSkin ? 'Van de telefoon-skin halen' : 'Op de telefoon-skin zetten') : 'Op het startscherm van je telefoon';
   $('#note-pin-info').textContent = skin && onSkin ? '✓ Staat op je telefoon-skin.' : 'Zo open je dit lijstje (bijvoorbeeld je boodschappen) met één tik.';
+  noteUiSummaries();
 }
-function notePinApp(on){ notesSaveNow(); Android.notePinSet('app', noteCur, on); toast(on ? '📌 Staat op het startscherm van Rene\'s Tools' : 'Van het startscherm gehaald'); }
+function notePinApp(on){ notesSaveNow(); Android.notePinSet('app', noteCur, on); noteUiSummaries();toast(on ? '📌 Staat op het startscherm van Rene\'s Tools' : 'Van het startscherm gehaald'); }
 function notePinPhone(){
   const n = noteById(noteCur); if (!n) return;
   notesSaveNow();

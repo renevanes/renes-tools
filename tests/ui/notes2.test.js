@@ -1,3 +1,4 @@
+const {noteExtra}=require('./note-navigation');
 // Notities: volgorde (slepen, sorteren), terugkerend lijstje en delen (hele lijst of alleen wat nog moet).
 const { chromium } = require('playwright');
 (async () => {
@@ -16,7 +17,7 @@ const { chromium } = require('playwright');
     console.log('drag order', await pg.evaluate(() => noteById('wk').items.map(i => i.text).join(',')));
     await pg.evaluate(() => noteSort()); await pg.click('#sheet-acts button:has-text("A tot Z")');
     console.log('sorted', await pg.evaluate(() => noteById('wk').items.map(i => i.text).join(',')));
-    await pg.selectOption('#note-repeat', 'week:6'); await pg.waitForTimeout(50);
+    await noteExtra(pg,'repeat');await pg.selectOption('#note-repeat', 'week:6'); await pg.waitForTimeout(50);
     console.log('repeat', await pg.evaluate(() => JSON.stringify({every: noteById('wk').repeat.every, n: noteById('wk').repeat.n})), '|', await pg.textContent('#note-repeat-info'));
     await pg.evaluate(() => { window._shared = null; Android.noteShare = (t, x) => { window._shared = x; }; noteShareNow(); });
     console.log('share choice', await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent).join(' | ')));

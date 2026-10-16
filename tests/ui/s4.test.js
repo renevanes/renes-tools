@@ -1,3 +1,4 @@
+const {noteExtra}=require('./note-navigation');
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch();
@@ -20,6 +21,7 @@ const { chromium } = require('playwright');
     // notes reminder + share
     await pg.click('#tile-notes'); await pg.waitForTimeout(200);
     await pg.click('#notes-list .nrow >> nth=0'); await pg.waitForTimeout(200);
+    await noteExtra(pg,'reminders');
     await pg.click('button:has-text("Herinnering toevoegen")'); await pg.waitForTimeout(100);
     console.log('rem', await pg.textContent('#note-rem-list'));
     await pg.click('button:has-text("Delen (WhatsApp")'); console.log('shared', JSON.stringify(await pg.evaluate(() => Android._shared)));

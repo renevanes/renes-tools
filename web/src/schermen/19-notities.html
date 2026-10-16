@@ -1,34 +1,45 @@
 <!-- ============ NOTITIES ============ -->
-<section class="screen" id="s-notes">
+<section class="screen notes-modern" id="s-notes">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1">Notities</h1>
+    <h1 tabindex="-1">Notities en lijstjes</h1>
   </div>
   <main>
-    <p class="note">Houd je lijsten bij elkaar: open een lijst en kies <b>Verplaatsen</b> of <b>Bestaande lijst toevoegen</b>.</p>
-    <input class="search" id="notes-search" aria-label="Zoek in notities en lijsten" type="search" placeholder="Zoek in notities en lijstjes…" oninput="renderNotes()">
+    <div class="notes-dashboard" aria-label="Overzicht van je notities">
+      <div><strong id="notes-total">0</strong><span>Notities</span></div><div><strong id="notes-open-total">0</strong><span>Open items</span></div><div><strong id="notes-child-total">0</strong><span>Sublijsten</span></div>
+    </div>
+    <input class="search notes-search" id="notes-search" aria-label="Zoek in notities en lijsten" type="search" placeholder="Zoek een notitie of item…" oninput="renderNotes()">
+    <div class="notes-scopes" role="group" aria-label="Welke lijsten tonen">
+      <button data-scope="all" aria-pressed="true" onclick="notesFilter('all')">Alles</button><button data-scope="main" aria-pressed="false" onclick="notesFilter('main')">Hoofdlijsten</button><button data-scope="children" aria-pressed="false" onclick="notesFilter('children')">Sublijsten</button>
+    </div>
     <div class="card nlist" id="notes-list"></div>
-    <button class="big ghost" style="margin-top:14px" onclick="voiceOpen(null)" aria-label="Spraaknotitie inspreken">🎤 Spraaknotitie inspreken</button>
-    <button class="big ghost" style="margin-top:10px" onclick="notesBackup()">Kopie in backup-map zetten</button>
-    <p class="note">Je notities staan alleen op deze telefoon. Met de knop hierboven komt er een kopie in de map <b>Notities</b> van je backup-map.</p>
+    <div class="notes-quick-actions"><button onclick="voiceOpen(null)" aria-label="Spraaknotitie inspreken">🎤 Inspreken</button><button onclick="notesBackup()">Backup maken</button></div>
+    <details class="notes-help"><summary>Over opslag en backups</summary><p class="note">Je notities staan op deze telefoon. Met Backup maken komt er een kopie in de map <b>Notities</b> van je backup-map. Tik op het pijltje naast een lijst om de sublijsten te tonen.</p></details>
     <div style="height:70px"></div>
   </main>
-
   <button class="fab note-new" onclick="newNote()" aria-label="Nieuwe notitie">+ Nieuwe lijst</button>
 </section>
 
-<section class="screen" id="s-note">
-  <div class="hdr">
+<section class="screen notes-modern" id="s-note">
+  <div class="hdr sm">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Notitie</h1>
     <button class="icon-btn" onclick="deleteNote()" aria-label="Verwijderen"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
   </div>
-  <main>
-    <div class="card">
+  <main class="note-workspace">
+    <div class="card note-identity">
       <div class="note-list-location" id="note-list-location"></div>
       <input class="ntitle" id="note-title" aria-label="Titel van de lijst" placeholder="Geef je lijst een naam…" oninput="noteEdit('title', this.value)">
-      <div class="note-list-tools"><button id="note-list-move" onclick="noteMoveOpen('move')">↗ Verplaatsen</button><button id="note-list-swap" onclick="noteListSwap()" hidden>⇅ Omwisselen</button></div>
       <div class="note-progress"><span id="note-progress" role="status"></span><progress id="note-progress-bar" aria-label="Afgeronde items" max="1" value="0"></progress></div>
+    </div>
+    <div class="note-section-tabs" role="tablist" aria-label="Onderdelen van de notitie">
+      <button id="note-tab-list" data-panel="list" role="tab" aria-selected="true" aria-controls="note-panel-list" onclick="noteUiShow('list')">Lijst</button>
+      <button id="note-tab-children" data-panel="children" role="tab" aria-selected="false" aria-controls="note-panel-children" tabindex="-1" onclick="noteUiShow('children')">Sublijsten <span id="note-child-count" aria-hidden="true">0</span></button>
+      <button id="note-tab-extra" data-panel="extra" role="tab" aria-selected="false" aria-controls="note-panel-extra" tabindex="-1" onclick="noteUiShow('extra')">Extra</button>
+    </div>
+    <div id="note-panel-list" role="tabpanel" aria-labelledby="note-tab-list">
+      <div class="card note-content-card">
+        <div class="note-section-heading"><h2>Items</h2><button onclick="noteUiExtra('edit')">Lijstopties</button></div>
       <p class="note" id="note-empty">Voeg hieronder je eerste item toe. Via <b>Items indelen</b> zet je bestaande items onder elkaar.</p>
       <ul class="items" id="note-open"></ul>
       <div id="note-add-target" class="note-add-target" hidden><span id="note-add-target-text"></span><button onclick="noteAddReset()">Hoofdlijst</button></div>
@@ -37,8 +48,32 @@
         <button onclick="addItem()" aria-label="Toevoegen">+</button>
         <button onclick="voiceOpen(noteCur)" aria-label="Inspreken">🎤</button>
       </div>
-      <div class="note-list-tools"><button id="note-item-move" onclick="noteMoveOpen('item')">↳ Items indelen</button><button onclick="noteSort()">↕ Sorteren</button></div>
-      <p class="note note-item-help">Tik op ⋯ bij een item voor subitems. Sleep aan ⋮⋮ om de volgorde te veranderen.</p>
+      <div class="note-list-tools"><button id="note-item-move" onclick="noteMoveOpen('item')">Items indelen</button></div>
+      <p class="note note-item-help">Tik op ⋯ voor subitems. Sleep aan ⋮⋮ om de volgorde te veranderen.</p>
+      <div class="donehdr" id="note-donehdr"><span id="note-donecount"></span><button onclick="clearDone()">Afgevinkte verwijderen</button></div>
+      <ul class="items" id="note-done"></ul>
+      </div>
+    <div class="card">
+      <h2>Vrije notitie</h2>
+      <textarea class="ntext" id="note-text" placeholder="Vrije tekst (optioneel)" oninput="noteEdit('text', this.value)"></textarea>
+    </div>
+    </div>
+    <div id="note-panel-children" role="tabpanel" aria-labelledby="note-tab-children" hidden>
+    <div class="card note-child-card">
+      <h2>Sublijsten</h2>
+      <div id="note-child-list"></div>
+      <p class="note" id="note-child-empty">Nog geen sublijsten. Maak er een of hang een bestaande lijst hieronder.</p>
+      <div class="note-list-tools"><button onclick="noteNewChild()">+ Nieuwe sublijst</button><button id="note-list-attach" onclick="noteMoveOpen('attach')">Bestaande lijst toevoegen</button></div>
+    </div>
+      <div class="card note-placement-card">
+        <h2>Plaats van deze lijst</h2><p class="note">Hang deze lijst onder een andere, maak haar weer los of wissel ouder en sublijst om.</p>
+        <div class="note-list-tools"><button id="note-list-move" onclick="noteMoveOpen('move')">Verplaatsen</button><button id="note-list-swap" onclick="noteListSwap()" hidden>Omwisselen</button></div>
+      </div>
+    </div>
+    <div id="note-panel-extra" role="tabpanel" aria-labelledby="note-tab-extra" hidden>
+      <p class="note note-options-intro">Open alleen de opties die je nodig hebt.</p>
+      <details class="note-option-group" id="note-extra-edit"><summary><span><strong>Sorteren en splitsen</strong><small>De volgorde aanpassen of een lijst in items verdelen</small></span></summary><div class="note-option-body">
+        <button class="big ghost" id="note-sort" onclick="noteSort()">Sorteren</button>
       <button class="big ghost" id="note-split-open" style="margin-top:10px" onclick="noteSplitOpen()" aria-expanded="false" aria-controls="note-split-panel">Lijst splitsen in losse items</button>
       <div id="note-split-panel" hidden>
         <h2>Lijst splitsen</h2>
@@ -56,21 +91,8 @@
         <ol id="note-split-preview" style="max-height:240px;overflow:auto;padding-left:26px;overflow-wrap:anywhere"></ol>
         <div class="row"><button class="big" id="note-split-apply" style="flex:1" onclick="noteSplitApply()">Items maken</button><button class="big ghost" style="flex:1" onclick="noteSplitClose()">Annuleren</button></div>
       </div>
-      <div class="donehdr" id="note-donehdr"><span id="note-donecount"></span><button onclick="clearDone()">Afgevinkte verwijderen</button></div>
-      <ul class="items" id="note-done"></ul>
-    </div>
-    <div class="card note-child-card">
-      <h2>Sublijsten</h2>
-      <div id="note-child-list"></div>
-      <p class="note" id="note-child-empty">Nog geen sublijsten. Maak er een of hang een bestaande lijst hieronder.</p>
-      <div class="note-list-tools"><button onclick="noteNewChild()">+ Nieuwe sublijst</button><button id="note-list-attach" onclick="noteMoveOpen('attach')">Bestaande lijst toevoegen</button></div>
-    </div>
-    <div class="card">
-      <h2>Notitie</h2>
-      <textarea class="ntext" id="note-text" placeholder="Vrije tekst (optioneel)" oninput="noteEdit('text', this.value)"></textarea>
-    </div>
-    <div class="card">
-      <h2>Herhalen</h2>
+      </div></details>
+      <details class="note-option-group" id="note-extra-repeat"><summary><span><strong>Herhalen</strong><small id="note-repeat-summary">Niet herhalen</small></span></summary><div class="note-option-body">
       <select class="sel" id="note-repeat" aria-label="Lijstje herhalen" onchange="noteSetRepeat(this.value)" style="width:100%">
         <option value="">Niet herhalen</option><option value="day:1">Elke dag weer leeg</option>
         <option value="week:1">Elke maandag weer leeg</option><option value="week:2">Elke dinsdag weer leeg</option><option value="week:3">Elke woensdag weer leeg</option>
@@ -78,9 +100,8 @@
         <option value="week:7">Elke zondag weer leeg</option><option value="month:1">Elke maand op de 1e weer leeg</option><option value="month:15">Elke maand op de 15e weer leeg</option>
       </select>
       <p class="note" id="note-repeat-info">Voor een vast lijstje, zoals de weekboodschappen: op het gekozen moment gaan alle vinkjes weer weg.</p>
-    </div>
-    <div class="card">
-      <h2>Herinneringen</h2>
+      </div></details>
+      <details class="note-option-group" id="note-extra-reminders"><summary><span><strong>Herinneringen</strong><small id="note-rem-summary">Nog geen herinneringen</small></span></summary><div class="note-option-body">
       <div id="note-rem-list"></div>
       <input type="datetime-local" id="note-rem" aria-label="Datum en tijd van de herinnering" class="altime" style="font-size:18px;text-align:left">
       <select id="note-rem-rep" aria-label="Herhalen" style="margin-top:8px">
@@ -92,14 +113,13 @@
         <button class="big ghost" style="flex:1;display:none" id="note-rem-del" onclick="noteDelRem()">Alle weghalen</button>
       </div>
       <p class="note" id="note-rem-info">In de melding kun je uitstellen (10 min of 1 uur) of op Klaar tikken.</p>
-    </div>
-    <div class="card">
-      <h2>Snelkoppeling</h2>
+      </div></details>
+      <details class="note-option-group" id="note-extra-pins"><summary><span><strong>Snelkoppelingen</strong><small id="note-pin-summary">Snel openen vanaf je startscherm</small></span></summary><div class="note-option-body">
       <label class="chk"><input type="checkbox" id="note-pin-app" onchange="notePinApp(this.checked)"> Op het startscherm van Rene's Tools</label>
       <button class="big ghost" style="margin-top:8px" id="note-pin-phone" onclick="notePinPhone()">Op het startscherm van je telefoon</button>
       <p class="note" id="note-pin-info">Zo open je dit lijstje (bijvoorbeeld je boodschappen) met één tik.</p>
+      </div></details>
+      <button class="big ghost note-share-action" onclick="noteShareNow()">Delen (WhatsApp, mail …)</button>
     </div>
-    <button class="big ghost" onclick="noteShareNow()">Delen (WhatsApp, mail …)</button>
   </main>
 </section>
-

@@ -1,6 +1,7 @@
 // Stap 3: meer in Alles back-uppen, terugzetten van instellingen/routes, zenders ordenen, herinneringen 2.0, notitie van de skin halen.
 const assert = require('node:assert/strict');
 const path = require('path');
+const {noteExtra}=require('./note-navigation');
 const { chromium } = require('playwright');
 (async () => {
   const browser = await chromium.launch();
@@ -39,6 +40,7 @@ const { chromium } = require('playwright');
 
       // Herinneringen: meerdere, met herhaling, los weghalen
       await page.evaluate(() => { const n = notesGet(); n.push({ id: 'r1', title: 'Pillen', text: 'x', items: [], updated: Date.now() }); openNote('r1'); });
+      await noteExtra(page,'reminders');
       await page.selectOption('#note-rem-rep', 'week');
       await page.click('button:has-text("Herinnering toevoegen")');
       await page.click('button:has-text("Herinnering toevoegen")');

@@ -1,3 +1,4 @@
+const {noteChildren}=require('./note-navigation');
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 (async()=>{
@@ -21,7 +22,7 @@ const assert=require('node:assert/strict');
     await reset();
     assert.equal(await p.textContent('#note-progress'),'1 van 3 items klaar');
     // Een complete bestaande lijst hieronder hangen, zonder inhoud, ids of instellingen te veranderen.
-    const original=await note('b');await p.click('#note-list-attach');await choose('plaats-b');
+    const original=await note('b');await noteChildren(p);await p.click('#note-list-attach');await choose('plaats-b');
     assert.equal(await p.evaluate(()=>document.activeElement.dataset.target),'plaats-b','focus blijft op gekozen bestemming');
     assert.match(await p.textContent('#note-move-status'),/Boodschappen komt onder Weekend/);await apply();
     assert.equal((await note('b')).parentNoteId,'plaats-a');
@@ -29,20 +30,20 @@ const assert=require('node:assert/strict');
     assert.equal(await p.locator('#note-child-list [data-note-id="plaats-b"]').count(),1);
     await p.click('#undo-b');assert.equal((await note('b')).parentNoteId,undefined);
     // Andere richting: deze lijst onder een bestaande lijst, weer losmaken en undo.
-    await p.click('#note-list-move');await p.fill('#note-move-search','Werk');await choose('plaats-c');await apply();
+    await noteChildren(p);await p.click('#note-list-move');await p.fill('#note-move-search','Werk');await choose('plaats-c');await apply();
     assert.equal((await note('a')).parentNoteId,'plaats-c');assert.match(await p.textContent('#note-list-location'),/Werk/);
     assert.deepEqual((await note('a')).repeat,{every:'week',n:6,last:10});
-    await p.click('#note-list-move');await choose('');await apply();assert.equal((await note('a')).parentNoteId,undefined);
+    await noteChildren(p);await p.click('#note-list-move');await choose('');await apply();assert.equal((await note('a')).parentNoteId,undefined);
     await p.click('#undo-b');assert.equal((await note('a')).parentNoteId,'plaats-c');
     // Ouder en kind omwisselen met behoud van andere sublijsten en de grootouder.
     await reset();await p.evaluate(()=>{noteById('plaats-a').parentNoteId='plaats-d';noteById('plaats-b').parentNoteId='plaats-a';noteById('plaats-c').parentNoteId='plaats-a';notesSaveNow();openNote('plaats-b');});
-    await p.click('#note-list-swap');await p.click('#modal-ok');
+    await noteChildren(p);await p.click('#note-list-swap');await p.click('#modal-ok');
     assert.equal((await note('a')).parentNoteId,'plaats-b');assert.equal((await note('b')).parentNoteId,'plaats-d');assert.equal((await note('c')).parentNoteId,'plaats-a');
     await p.click('#undo-b');assert.equal((await note('a')).parentNoteId,'plaats-d');assert.equal((await note('b')).parentNoteId,'plaats-a');
     // Een lijst kan niet onder zichzelf, een kind of een kleinkind terechtkomen.
-    await p.evaluate(()=>openNote('plaats-a'));await p.click('#note-list-move');
+    await p.evaluate(()=>openNote('plaats-a'));await noteChildren(p);await p.click('#note-list-move');
     assert.equal(await p.locator('#note-move-choices [data-target="plaats-a"],#note-move-choices [data-target="plaats-b"]').count(),0);await cancel();
-    await p.click('#note-list-attach');assert.equal(await p.locator('#note-move-choices [data-target="plaats-d"]').count(),0);await cancel();
+    await noteChildren(p);await p.click('#note-list-attach');assert.equal(await p.locator('#note-move-choices [data-target="plaats-d"]').count(),0);await cancel();
     // Overzicht en zoekresultaat tonen de relatie en openen de oorspronkelijke notitie.
     await p.evaluate(()=>show('notes'));await p.fill('#notes-search','Boodschappen');
     assert.match(await p.textContent('#notes-list [data-note-id="plaats-b"]'),/Onder Weekend/);
@@ -55,7 +56,7 @@ const assert=require('node:assert/strict');
     // Een lege naamloze lijst met sublijsten blijft bestaan.
     await reset();await p.evaluate(()=>{noteById('plaats-c').title='';noteById('plaats-b').parentNoteId='plaats-c';notesSaveNow();openNote('plaats-c');show('notes');});assert.ok(await note('c'));
     // Nieuwe sublijst krijgt meteen de juiste plaats; een leeg concept verdwijnt bij teruggaan.
-    await p.evaluate(()=>openNote('plaats-a'));await p.getByRole('button',{name:'+ Nieuwe sublijst',exact:true}).click();
+    await p.evaluate(()=>openNote('plaats-a'));await noteChildren(p);await p.getByRole('button',{name:'+ Nieuwe sublijst',exact:true}).click();
     assert.equal(await p.evaluate(()=>noteById(noteCur).parentNoteId),'plaats-a');await p.fill('#note-title','Inpakken');await p.click('#s-note .back');
     assert.ok(await p.evaluate(()=>notesGet().some(n=>n.title==='Inpakken'&&n.parentNoteId==='plaats-a')));
     // Items onder een willekeurig item hangen, inclusief hun eigen subitems.
@@ -66,27 +67,27 @@ const assert=require('node:assert/strict');
     await p.click('[data-id="i2"] .item-menu');await p.getByRole('button',{name:'Verplaatsen naar…',exact:true}).click();
     await choose('');await apply();assert.equal((await note('a')).items.find(i=>i.id==='i2').parentId,undefined);
     // Annuleren, Android-terug en Escape veranderen niets en herstellen focus; Tab blijft in de dialoog.
-    await p.click('#note-list-move');await choose('plaats-c');await p.keyboard.press('Escape');assert.equal((await note('a')).parentNoteId,undefined);
+    await noteChildren(p);await p.click('#note-list-move');await choose('plaats-c');await p.keyboard.press('Escape');assert.equal((await note('a')).parentNoteId,undefined);
     assert.equal(await p.evaluate(()=>document.activeElement.id),'note-list-move');
-    await p.click('#note-list-move');await p.locator('#sheet button.cancel').focus();await p.keyboard.press('Tab');assert.equal(await p.evaluate(()=>document.activeElement.id),'note-move-search');
+    await noteChildren(p);await p.click('#note-list-move');await p.locator('#sheet button.cancel').focus();await p.keyboard.press('Tab');assert.equal(await p.evaluate(()=>document.activeElement.id),'note-move-search');
     await p.evaluate(()=>goBack());assert.equal(await p.isVisible('#sheet'),false);
     // Wijziging tijdens de compare-and-save: vinkje blijft behouden, selectie verhuist maar één keer.
-    await reset();await p.click('#note-list-move');await choose('plaats-c');
+    await reset();await noteChildren(p);await p.click('#note-list-move');await choose('plaats-c');
     await p.evaluate(()=>{window.realSave=Android.notesSaveIf;let calls=0;Android.notesSaveIf=function(j,v){if(++calls===2){const all=JSON.parse(this._notes);all.find(n=>n.id==='plaats-a').items[0].done=true;this._notes=JSON.stringify(all);this._nv++;}return realSave.call(this,j,v);};});
     await apply();await p.evaluate(()=>Android.notesSaveIf=realSave);
     assert.equal((await note('a')).items[0].done,true);assert.equal((await note('a')).parentNoteId,'plaats-c');
     // Een gelijktijdige verplaatsing die een cyclus zou maken wordt geweigerd.
-    await reset();await p.click('#note-list-attach');await choose('plaats-b');
+    await reset();await noteChildren(p);await p.click('#note-list-attach');await choose('plaats-b');
     await p.evaluate(()=>{window.realSave=Android.notesSaveIf;let calls=0;Android.notesSaveIf=function(j,v){if(++calls===2){const all=JSON.parse(this._notes);all.find(n=>n.id==='plaats-a').parentNoteId='plaats-b';this._notes=JSON.stringify(all);this._nv++;}return realSave.call(this,j,v);};});
     await apply();await p.evaluate(()=>Android.notesSaveIf=realSave);assert.equal((await note('b')).parentNoteId,undefined);assert.equal((await note('a')).parentNoteId,'plaats-b');assert.equal(await p.isDisabled('#note-move-apply'),true);assert.match(await p.textContent('#note-move-status'),/kan niet meer/);await cancel();
     // Na een intussen gewijzigde plaatsing kun je de bestemming opnieuw kiezen en verdergaan.
-    await reset();await p.click('#note-list-move');await choose('plaats-c');
+    await reset();await noteChildren(p);await p.click('#note-list-move');await choose('plaats-c');
     await p.evaluate(()=>{window.realSave=Android.notesSaveIf;let calls=0;Android.notesSaveIf=function(j,v){if(++calls===2){const all=JSON.parse(this._notes);all.find(n=>n.id==='plaats-a').parentNoteId='plaats-d';this._notes=JSON.stringify(all);this._nv++;}return realSave.call(this,j,v);};});
     await apply();await p.evaluate(()=>Android.notesSaveIf=realSave);assert.equal((await note('a')).parentNoteId,'plaats-d');assert.equal(await p.isDisabled('#note-move-apply'),true);
     await choose('plaats-c');await apply();assert.equal((await note('a')).parentNoteId,'plaats-c');
     await p.click('#undo-b');assert.equal((await note('a')).parentNoteId,'plaats-d');
     // Opslagfout laat model en opslag gelijk, de keuze blijft staan om opnieuw te proberen.
-    await reset();await p.click('#note-list-move');await choose('plaats-c');
+    await reset();await noteChildren(p);await p.click('#note-list-move');await choose('plaats-c');
     await p.evaluate(()=>{window.realSave=Android.notesSaveIf;let calls=0;Android.notesSaveIf=function(j,v){return ++calls===2?JSON.stringify({err:'Geen ruimte'}):realSave.call(this,j,v);};});
     await apply();assert.equal((await note('a')).parentNoteId,undefined);assert.equal(await p.evaluate(()=>JSON.parse(Android._notes).find(n=>n.id==='plaats-a').parentNoteId),undefined);
     assert.equal(await p.isVisible('#sheet'),true);await p.evaluate(()=>Android.notesSaveIf=realSave);await apply();assert.equal((await note('a')).parentNoteId,'plaats-c');
@@ -99,7 +100,7 @@ const assert=require('node:assert/strict');
     await reset();await p.evaluate(()=>{noteById('plaats-b').parentNoteId='plaats-a';notesSaveNow();renderItems();});
     await p.evaluate(()=>{$('#undo').classList.remove('on');$('#toast').classList.remove('on');});await p.waitForTimeout(250);await p.screenshot({path:__dirname+'/shots/notes-place-'+scheme+'.png',fullPage:true});
     await p.setViewportSize({width:320,height:740});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
-    await p.click('#note-list-move');await choose('plaats-c');assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    await noteChildren(p);await p.click('#note-list-move');await choose('plaats-c');assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
     await p.screenshot({path:__dirname+'/shots/notes-place-picker-'+scheme+'.png'});await cancel();
     assert.deepEqual(errors,[]);console.log(scheme,'lijsten verplaatsen, omwisselen, items indelen, opslagconflicten, undo en toetsenbord: errors []');await p.close();
   }
