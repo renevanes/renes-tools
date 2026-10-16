@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.79",
-  "versionCode": 80,
-  "nativeLevel": 72,
+  "versionName": "1.80",
+  "versionCode": 81,
+  "nativeLevel": 73,
   "web": "index.html",
-  "webSha256": "2e5b5410cc4c6cc79d50f1374e868e23fb5fb6998337f7f8b6a0ecb5f2c27c70",
+  "webSha256": "5ce1aaa865f22aad2058b7fba9a722ad38f83724b2c2d3441341f91f32bd508e",
   "start": "start.html",
   "startSha256": "56c443c262bde51c34d39118436679e990560c8af0cfb8b4c764cf16aa39c5b5",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "2f6c1f63cea6a600dbf61ea94640ea7973990dc53149f9f15d8240d308ff450e",
+  "apkSha256": "629f9fe7271323df69dea8c621b57b45816bb46e0517402b4e4d7bbb087b6df6",
   "changelog": [
+    {
+      "version": "1.80",
+      "date": "2026-10-16",
+      "changes": [
+        "Bewaar je getekende handtekening versleuteld op deze telefoon en plaats haar opnieuw op volgende PDF’s. Je kunt de bewaarde handtekening bekijken, vervangen en verwijderen.",
+        "Bewaar gemaakte of ondertekende PDF’s direct in de documentenkluis. Orden belangrijke documenten met categorieën, toelichtingen en favorieten en vind ze terug met zoeken, filters en sorteren. Categorieën en documentgegevens gaan mee in de versleutelde backup."
+      ]
+    },
     {
       "version": "1.79",
       "date": "2026-10-16",
@@ -711,5 +719,5 @@
       ]
     }
   ],
-  "webSig2": "eTgNM9EaXpETxIsCPsNz2eSnrkQ19vQe+W7dR3GfFQt/bOnk+EJ8hqJN7C1+6WABpXfs8piIXcWHbn49pS7thICkK/6vCJZz3/7r0A27mHLTImTYjcv9kTVV46Cb6VNGLz7leAvf067C73paU7StrhKw7TU9B79nIPKHGsxZNWegSkWFnvS5k9Lo6aooSMCYAFL7T2HA7RQsEhy9nrSPWtRfUztVYWEWo5IuXrbybHFNt68xST98Q0/Njz3ls8bv6wH9DtWYfVQZXMBqyG9CS6WZcI5u2jD/qeFyofwqJLHsTQ4YU7EFwbl7URXBxSDiv2VLG7bkvGP9ixGFamHsOP5KC7uz0e4GZ2ys8qOv/K8NqGJy/mTmbFnt3pstYiIy8nXiC15WCnN4RQxyEN2cBpmnvSNvxeAq/VonZFttr5F+kBMaiEW6PMsri3t3EclF/QMtB+3z0sVw4OQV489x6EqmxY8H6o+EIzXsotHxFzL9QqR2b3Rol7QKXP9AGx9E"
+  "webSig2": "WemkH1CFueW3FuDlyiXeqz2t/lXcmLpXaUXASqlFmSOS5+IpJdE0ML7nRbRmd7R/wI6/OYXp5T/5eiF4GroRBDnpGQpY3OecEN3ZDhpKaw4Aylie4EoR0JNINs/Y1F7/HZBc7VO2uzSJxQv0ACVYywmNXNSil4R8c/iNYK4g38EH2Il924GowLJtbzqbggOcpJwLMyZoKCKGRKnqIMjpcpH1/5e47MBBFmk7PAwCdIoUILb6j+F7Ur5QWg2xmhxXG8NDeQdyZYYEFbLXxbajyrYgva+mOhn7gzKOuCIzKd86f6bQ+DjMENQPhXUK/wYNTRlIBirM3yN5mTm/kYlRH12fTxEK6QTtjpVFkiYZC2OKNLAxcScgHDvq0hbhaxdotESoO/KnEtC1MdaVI+POewhMupU0mn4Ax8nDjzaQJHrd1EBl8lCemLShMxVsAPwlQJqhFQp5Q3zp3O5Gpy1P7cAyKALomxLfnx3DVZteU2OR2fOX9p7hX5LKVVYTnHZo"
 }
