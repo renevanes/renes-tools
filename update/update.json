@@ -1,15 +1,22 @@
 {
-  "app": "Rene's Tools",
-  "versionName": "1.83",
-  "versionCode": 84,
-  "nativeLevel": 75,
+  "app": "Tools",
+  "versionName": "1.84",
+  "versionCode": 85,
+  "nativeLevel": 76,
   "web": "index.html",
-  "webSha256": "55367a3606b70563ac31e0c3fca9f427f5c0ecaf1cccc5ba477ffc73ba403a28",
+  "webSha256": "80a1601d780dfee1f139ef76f87f88568ac4e75d9fc4f848e4b28369d10d0d2d",
   "start": "start.html",
-  "startSha256": "9920e479bec6adbb57970484771120de313631195ffd65b8c77d4b3defde94b7",
+  "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "c09f65d435d8e145633bd1194febbb4e25a4623f7e08cb7eca7993a8b7e8443d",
+  "apkSha256": "d0e9b7f7d29effb0a79c7f0b85b51c8e63f1602ef0d91d6586bf6e4a9e26ebdc",
   "changelog": [
+    {
+      "version": "1.84",
+      "date": "2026-10-16",
+      "changes": [
+        "De app heet nu Tools. De naam is aangepast op het startscherm, in Android, meldingen, widgets, de telefoon-skin en nieuwe exports."
+      ]
+    },
     {
       "version": "1.83",
       "date": "2026-10-16",
@@ -744,5 +751,5 @@
       ]
     }
   ],
-  "webSig2": "kLWZc/AfkG+npyX5Lq0rZK5RToPHNbuXmOQ3JZ/89v+lVfJa21ChemTWvAuyjbnZvNRaThBIzNGhbV5FbD7qv+cn3dwVCJHBdbWk/FPH7dEn1V5TBI1LXohuyRVXJWtBrZGWjx3R0tUsVbyfUUpRIA/hR7UBRygRqckFjhGZttdtZ621T+YT+0rWAeOF80wDpvMKcN3EILCLdHORqMA5rilbBUEbh7OnZ8va113SZvcxlLtyfxtppo/6niomfaNsde5JqeKEF2//0RB3/prC9wJ/V6iQpEK0E1wUd05kHvi7WuF22DcOYV4VZ6uLqwc/bbJUcdzpUvClUsbYVQGePPNVKjsy9BnRCkr7oUi92ZHU9nTsOqYKsM/vsHBmAFtHkU0L6c8emHtiDrQsuxrockcwG4r59FnbBQ0Q2yt60C8TFxOLN/xdX1BhnZ9WAhHC/6MUcxASMlewm2X8Nl9qfS2SRaMXvYQCoe78/SuTO0wNqz7kANqlyzN35Ak6cw31"
+  "webSig2": "D3LM1ned4aEd9IY0LDH+YNYTekuIqPsHctGLX5yRj3xs7AdNJL/s+h/v7LJs/AcibmO84bXXk1abJBxaHJ2l9EpO8bO5j9HKKEKBAnxqvo6yRlI1Wo8HnXkDxKgPE7l5Rtx0Idd9BPmKv2F74neiyVUX26RdefdvOPDJYTjhenT/VIyUoOByBQqScvPaatk6vYShM61jzJ62sRDu/9mqnBd3nyR6yAdhu6lYrl8aL4uIBhBnYDYb9KjjIRAmRpQI48AFya54yk9IhgyL7VI9Ah0ahY4dNZKLgRoS4KKcpnm4wCahHmYCJYTEUnKLkxMziebIv8PVV7PJzVNjR0q7PN9+7H1IyPcKPbtylkyugVQf2KrBKgfFksl9FV67c+7SkNguxh1n35Gj7fvo9/3DXyareslQLFuGF5XZvZG/yMbtRl3+LlMJJfu0vCgiWF0SGEVORywJpEkbtr2saTseUL/zEh/mjOzLvvNFcDxoho6A7hHEelhJY/oPc4SLdQ0Z"
 }

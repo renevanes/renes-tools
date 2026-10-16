@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.84",
+    "date": "2026-10-16",
+    "changes": [
+      "De app heet nu Tools. De naam is aangepast op het startscherm, in Android, meldingen, widgets, de telefoon-skin en nieuwe exports."
+    ]
+  },
+  {
     "version": "1.83",
     "date": "2026-10-16",
     "changes": [
