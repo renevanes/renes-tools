@@ -96,23 +96,35 @@ function klRender(){
   $('#kl-open').style.display = locked ? 'none' : 'block';
   if (d.error) $('#kl-msg').textContent = d.error;
   clearTimeout(klRender.t);
-  if (locked) return;
+  if (locked) { $('#kl-list').replaceChildren();klRender.docs=[];klOrganizeClose();$('#kl-search').value='';$('#kl-category').replaceChildren();return; }
   if (d.left) klRender.t = setTimeout(() => { if (current === 'kluis') klRender(); }, d.left + 500); // na 5 minuten vanzelf op slot, ook op het scherm
-  const docs = (d.docs || []).slice().sort((a, b) => b.t - a.t);
-  $('#kl-empty').style.display = docs.length ? 'none' : 'block';
-  const ic = m => /pdf/.test(m) ? '📄' : /^image/.test(m) ? '🖼️' : '📎';
-  $('#kl-list').innerHTML = docs.map(x => '<button class="trip" data-id="' + esc(x.id) + '" onclick="klMenu(this.dataset.id)"><span><b>' + ic(x.mime || '') + ' ' + esc(x.name) + '</b><small>' +
-    esc(fmtB(x.size || 0)) + ' · ' + esc(new Date(x.t).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })) + '</small></span><span aria-hidden="true">›</span></button>').join('');
-  klRender.docs = docs;
+  const docs=(d.docs||[]).slice(),category=$('#kl-category'),selected=category.value;
+  category.replaceChildren();
+  const option=(value,text)=>{const o=document.createElement('option');o.value=value;o.textContent=text;category.appendChild(o);};
+  option('all','Alle categorieën');option('none','Zonder categorie');
+  [...new Set(docs.map(d=>d.category||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl')).forEach(c=>option('category:'+c,c));
+  category.value=selected;if(!category.value)category.value='all';
+  const q=$('#kl-search').value.trim().toLowerCase(),favorite=$('#kl-favorites').checked,sort=$('#kl-sort').value;
+  const shown=docs.filter(d=>(!q||[d.name,d.category,d.note].some(v=>(v||'').toLowerCase().includes(q)))&&(!favorite||d.favorite)&&(category.value==='all'||category.value==='none'&&!d.category||category.value==='category:'+(d.category||'')));
+  const name=(a,b)=>(a.name||'').localeCompare(b.name||'','nl',{sensitivity:'base'});
+  shown.sort(sort==='name'?name:sort==='category'?(a,b)=>(a.category||'').localeCompare(b.category||'','nl')||name(a,b):(a,b)=>(b.t||0)-(a.t||0));
+  $('#kl-empty').style.display=shown.length?'none':'block';
+  $('#kl-empty').textContent=docs.length?'Geen documenten bij deze zoekopdracht of filters.':'Nog leeg. Voeg een document, foto of PDF toe.';
+  $('#kl-count').textContent=shown.length+' van '+docs.length+(docs.length===1?' document':' documenten');
+  const ic=m=>/pdf/.test(m)?'📄':/^image/.test(m)?'🖼️':'📎';
+  $('#kl-list').innerHTML=shown.map(x=>'<button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span><b>'+ic(x.mime||'')+' '+esc(x.name)+'</b><small>'+(x.favorite?'★ Favoriet · ':'')+esc(x.category||'Zonder categorie')+' · '+esc(fmtB(x.size||0))+' · '+esc(new Date(x.t).toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+'</span><span aria-hidden="true">›</span></button>').join('');
+  klRender.docs=docs;
 }
 function klUnlock(){ $('#kl-msg').textContent = ''; Android.kluisUnlock(); }
-window.onKluis = function(r){ if (r !== true) $('#kl-msg').textContent = r; if (current === 'kluis') klRender(); };
+window.onKluis = function(r){ if (r !== true) $('#kl-msg').textContent = r; if(pdfKeepPending)pdfKeepUnlocked(r); if (current === 'kluis') klRender(); };
 window.onKluisChanged = function(r){ toast(r === 'ok' ? '🔒 Toegevoegd aan de kluis' : r); if (current === 'kluis') klRender(); };
 function klLock(){ Android.kluisClose(); klRender(); }
 function klMenu(id){
   const x = (klRender.docs || []).find(d => d.id === id); if (!x) return;
   openSheet(x.name, fmtB(x.size || 0), [
     ['Bekijken', () => Android.kluisView(id)],
+    ['Categorie en toelichting', () => klOrganizeOpen(id)],
+    [x.favorite?'Uit favorieten halen':'Als favoriet markeren', () => klFavorite(id)],
     ['Naam wijzigen', () => askInput('Naam', '', x.name, 'Opslaan', v => { const e = Android.kluisRename(id, v); if (e) toast(e); klRender(); })],
     ['Verwijderen', () => askConfirm('Uit de kluis verwijderen?', '"' + x.name + '" wordt definitief gewist.', 'Verwijderen', () => { const e = Android.kluisDelete(id); toast(e || 'Verwijderd'); klRender(); })]]);
 }

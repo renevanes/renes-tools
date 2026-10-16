@@ -15,7 +15,7 @@ import java.io.FileOutputStream;
 import java.util.Map;
 import java.util.TreeMap;
 
-/** Preview en export van lokaal getekende PDF-toevoegingen; geen handtekeningen bewaren buiten het document. */
+/** Preview en export van lokaal getekende PDF-toevoegingen. Herbruikbare handtekeningen beheert PdfSignature. */
 final class PdfEditor {
     private PdfEditor() { }
     static void check(String revision) throws Exception {

@@ -126,6 +126,18 @@ public class FeatureBridge {
     }
     @JavascriptInterface public String pdfOutputs() { return PdfTools.outputs(ctx); }
     @JavascriptInterface public String pdfPending() { String p = PdfShare.pending; PdfShare.pending = null; return p == null ? "" : p; }
+    @JavascriptInterface public String pdfSignatureLoad() {
+        try { return new JSONObject().put("signature",PdfSignature.load(ctx)).toString(); }
+        catch (Exception e) { return errJson(e); }
+    }
+    @JavascriptInterface public String pdfSignatureSave(String json) {
+        try { PdfSignature.save(ctx,json);return ""; }
+        catch (Exception e) { return e.getMessage()==null?"Handtekening bewaren lukt niet":e.getMessage(); }
+    }
+    @JavascriptInterface public String pdfSignatureDelete() {
+        try { PdfSignature.delete(ctx);return ""; }
+        catch (Exception e) { return "Handtekening verwijderen lukt niet"; }
+    }
     /** Openen in de eigen viewer. */
     @JavascriptInterface public void pdfOpen(String name) {
         try {
@@ -298,6 +310,18 @@ public class FeatureBridge {
         @JavascriptInterface public String kluisRename(String id, String name) {
             if (!Kluis.isOpen() || name == null || name.trim().isEmpty()) return "Kan niet";
             try { Kluis.rename(ctx, id, name.trim()); return ""; } catch (Exception e) { return "Hernoemen lukt niet"; }
+        }
+        @JavascriptInterface public String kluisOrganize(String id,String json) {
+            try { Kluis.organize(ctx,id,json);return ""; }
+            catch (Exception e) { return e.getMessage()==null?"Ordenen lukt niet":e.getMessage(); }
+        }
+        @JavascriptInterface public void kluisSavePdf(String name,String category) {
+            new Thread(()->{
+                String result;
+                try { JSONObject d=Kluis.addPdf(ctx,name,category);result=new JSONObject().put("ok",true).put("id",d.getString("id")).put("name",d.getString("name")).toString(); }
+                catch(Throwable e) { result=PdfTools.err(e); }
+                a.js("onPdfStored",result);
+            },"pdf-bewaren").start();
         }
         @JavascriptInterface public void kluisClose() {
             Kluis.close(ctx);

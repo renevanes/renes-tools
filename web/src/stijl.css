@@ -186,6 +186,14 @@ textarea.key:focus{outline:2px solid var(--primary);outline-offset:-1px;border-c
 .note-move-choice strong,.note-move-choice small{display:block;overflow-wrap:anywhere}.note-move-choice small{color:var(--muted);font-size:13px;font-weight:400;margin-top:4px}
 .note-move-choice[aria-pressed=true]{background:var(--tonal);color:var(--on-tonal)}
 .note-move-choice:disabled{opacity:.5}#sheet-acts #note-move-apply{background:var(--primary);color:var(--on-primary);text-align:center}#sheet-acts #note-move-apply:disabled{opacity:.45}
+.pdf-signature-library{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:16px}
+.pdf-signature-library h3{margin:0 0 8px}
+#pdf-signature-preview{display:block;width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:12px}
+#pdf-signature-preview[hidden]{display:none}
+.pdf-signature-library .mini{float:none;white-space:normal;max-width:100%}
+.kl-filters{flex-wrap:wrap;gap:10px;margin-top:12px}.kl-filters .chk{flex:1;min-width:150px;margin:0}
+#kl-category{width:100%}#kl-edit[hidden]{display:none}.kl-doc-note{white-space:pre-line;overflow-wrap:anywhere}
+#kl-list .trip>span:first-child{min-width:0}#kl-list .trip b,#kl-list .trip small{overflow-wrap:anywhere}
 #note-move-item{width:100%}
 .nlist mark,.items mark{background:color-mix(in srgb,#FFD54F 70%,var(--card));color:inherit;border-radius:3px}
 .ntitle{width:100%;font-size:20px;font-weight:700;border:0;background:transparent;color:var(--ink);padding:4px 0 8px;outline:none}

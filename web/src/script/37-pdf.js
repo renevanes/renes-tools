@@ -7,7 +7,7 @@ function enterPdf(){
   pdfIn = rdJson(Android.pdfInfo(), {});
   pdfRender();
   pdfRenderDef();
-  pdfEditSource();
+  pdfEditSource();pdfSignatureLoad();
 }
 /* Standaard PDF-app: Android laat dit de gebruiker zelf kiezen ("Altijd"), wij helpen erbij */
 function pdfRenderDef(){
@@ -18,7 +18,7 @@ function pdfRenderDef(){
     'Wil je dat PDF\'s altijd hier openen? Tik op de knop, kies <b>Rene\'s Tools</b> en dan <b>Altijd</b>.</p>' +
     '<button class="big ghost" id="pdf-def-btn" onclick="Android.pdfMakeDefault()">Als standaard PDF-app instellen</button>';
 }
-function pdfSetBusy(t){ pdfBusy = !!t; $('#pdf-busy').textContent = t || ''; document.querySelectorAll('#s-pdf main button').forEach(b => b.disabled = pdfBusy); }
+function pdfSetBusy(t){ pdfBusy = !!t; $('#pdf-busy').textContent = t || ''; document.querySelectorAll('#s-pdf main button').forEach(b => b.disabled = pdfBusy); pdfEditControls(); }
 window.onPdf = function(r){
   if (!r) return;
   // Een gekozen bestand (plaatjes of PDF) beëindigt geen lopende klus; al het andere wel
@@ -136,6 +136,7 @@ function pdfOutMenu(name){
     ['Bekijken', () => Android.pdfOpen(name)],
     ['Delen (bijv. mailen of WhatsApp)', () => Android.pdfShare(JSON.stringify([name]))],
     ['Opslaan als…', () => Android.pdfSave(name)],
+    ['Bewaren in documentenkluis', () => pdfKeep(name)],
     ['Weghalen', () => { Android.pdfDelete(name); pdfRender(); }]]);
 }
 function pdfNames(){ return rdJson(Android.pdfOutputs(), []).map(o => o.name); }

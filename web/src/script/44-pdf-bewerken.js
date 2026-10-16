@@ -1,4 +1,4 @@
-/* PDF-toevoegingen blijven in het geheugen; alleen een expliciete export maakt een bestand. */
+/* PDF-toevoegingen blijven in het geheugen; alleen expliciet bewaren maakt een document of herbruikbare handtekening. */
 const pdfEd = {revision:'', page:0, meta:{}, items:[], undo:[], selected:-1, loading:false, want:false, saved:'[]', strokes:[], stroke:null, drag:null};
 function pdfEditDirty(){ return JSON.stringify(pdfEd.items) !== pdfEd.saved; }
 function pdfChooseSource(){
@@ -60,6 +60,7 @@ function pdfEditControls(){
   $('#pdf-edit-width').disabled = !live || pdfEd.selected < 0;
   $('#pdf-edit-undo').disabled = !live || !pdfEd.undo.length;
   $('#pdf-edit-add-text').disabled = !live;
+  pdfSignatureControls();
 }
 function pdfEditRemember(){ pdfEd.undo.push(JSON.stringify(pdfEd.items)); if (pdfEd.undo.length > 40) pdfEd.undo.shift(); }
 function pdfEditLines(ctx, text, width){
@@ -170,16 +171,12 @@ function pdfEditSignHide(){pdfEditSignClear();$('#pdf-edit-sign-box').style.disp
 function pdfEditSignClear(){pdfEd.strokes=[];pdfEd.stroke=null;$('#pdf-edit-sign').getContext('2d').clearRect(0,0,900,300);}
 $('#pdf-edit-sign').addEventListener('pointerdown',e=>{pdfEd.stroke=[pdfEditPoint(e,e.currentTarget)];pdfEd.strokes.push(pdfEd.stroke);e.currentTarget.setPointerCapture(e.pointerId);e.preventDefault();});
 $('#pdf-edit-sign').addEventListener('pointermove',e=>{
-  if(!pdfEd.stroke)return;const p=pdfEditPoint(e,e.currentTarget),q=pdfEd.stroke[pdfEd.stroke.length-1];if(pdfEd.strokes.reduce((s,a)=>s+a.length,0)>10000)return;
+  if(!pdfEd.stroke)return;const p=pdfEditPoint(e,e.currentTarget),q=pdfEd.stroke[pdfEd.stroke.length-1];if(pdfEd.strokes.reduce((s,a)=>s+a.length,0)>=10000)return;
   pdfEd.stroke.push(p);const c=e.currentTarget.getContext('2d');c.strokeStyle=$('#pdf-edit-color').value;c.lineWidth=3;c.lineCap='round';c.beginPath();c.moveTo(q[0]*900,q[1]*300);c.lineTo(p[0]*900,p[1]*300);c.stroke();
 });
 for(const event of ['pointerup','pointercancel'])$('#pdf-edit-sign').addEventListener(event,()=>{pdfEd.stroke=null;});
 function pdfEditSignAdd(){
-  const paths=pdfEd.strokes.filter(p=>p.length>1);if(!paths.length){toast('Teken eerst je handtekening');return;}
-  const points=paths.flat(),xs=points.map(p=>p[0]),ys=points.map(p=>p[1]);
-  const x=Math.max(0,Math.min(...xs)-.02),y=Math.max(0,Math.min(...ys)-.06),w=Math.min(1,Math.max(...xs)+.02)-x,h=Math.min(1,Math.max(...ys)+.06)-y;
-  const m=pdfEd.meta[pdfEd.page];pdfEd.selected=-1;
-  pdfEditPut({type:'ink',page:pdfEd.page,x:.1,y:.65,w:.4,h:.4*(h*300)/(w*900)*m.width/m.height,color:$('#pdf-edit-color').value,paths:paths.map(p=>p.map(q=>[(q[0]-x)/w,(q[1]-y)/h]))});pdfEditSignHide();
+  const s=pdfSignatureFromPad();if(s&&pdfSignaturePut(s))pdfEditSignHide();
 }
 function pdfEditSave(){
   if(pdfBusy||pdfEd.loading||!pdfEd.items.length||!pdfEditDirty())return;

@@ -74,6 +74,8 @@ script/34-uitbreidingen.js
 script/35-mijn-auto.js
 script/37-pdf.js
 script/44-pdf-bewerken.js
+script/48-pdf-handtekening-bewaren.js
+script/49-documenten-ordenen.js
 script/38-podcasts.js
 script/39-speler.js
 script/40-spotify.js

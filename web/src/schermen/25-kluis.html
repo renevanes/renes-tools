@@ -1,21 +1,35 @@
 <section class="screen" id="s-kluis">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1">Kluis</h1>
+    <h1 tabindex="-1">Documentenkluis</h1>
   </div>
   <main>
     <div class="card" id="kl-locked">
-      <h2>🔒 Op slot</h2>
+      <h2>Belangrijke documenten</h2>
       <p class="note" style="margin-top:0">Hier bewaar je documenten zoals een kopie van je paspoort of polissen, versleuteld op deze telefoon. De app opent de kluis alleen na je vingerafdruk of pincode.</p>
       <button class="big" onclick="klUnlock()">Ontgrendelen</button>
       <p class="note" id="kl-msg" role="status" aria-live="polite"></p>
     </div>
     <div id="kl-open" style="display:none">
       <div class="card">
+        <h2>Mijn documenten</h2>
+        <input class="search" id="kl-search" type="search" aria-label="Zoek documenten" placeholder="Zoek op naam, categorie of toelichting…" oninput="klRender()">
+        <label class="f" for="kl-category">Categorie</label><select class="sel" id="kl-category" onchange="klRender()"><option value="all">Alle categorieën</option></select>
+        <div class="row kl-filters"><label class="chk"><input type="checkbox" id="kl-favorites" onchange="klRender()"> Alleen favorieten</label><label for="kl-sort">Sorteren</label><select class="sel" id="kl-sort" onchange="klRender()"><option value="recent">Nieuwste eerst</option><option value="name">Naam A–Z</option><option value="category">Categorie</option></select></div>
+        <p class="note" id="kl-count" role="status"></p>
         <div id="kl-list"></div>
         <p class="note" id="kl-empty" style="display:none;margin:0">Nog leeg. Voeg een foto of pdf toe.</p>
         <button class="big" style="margin-top:10px" onclick="Android.kluisAdd()">＋ Document toevoegen</button>
         <button class="big ghost" style="margin-top:8px" onclick="klLock()">🔒 Op slot doen</button>
+      </div>
+      <div class="card" id="kl-edit" hidden>
+        <h2 id="kl-edit-title">Document ordenen</h2>
+        <label class="f" for="kl-edit-category">Categorie</label><input class="search" id="kl-edit-category" maxlength="60" placeholder="Bijv. Identiteit, Verzekeringen of Wonen" list="kl-category-suggestions">
+        <datalist id="kl-category-suggestions"><option value="Identiteit"><option value="Verzekeringen"><option value="Wonen"><option value="Gezondheid"><option value="Financiën"><option value="Werk"><option value="PDF"></datalist>
+        <label class="f" for="kl-edit-note">Toelichting</label><textarea class="search" id="kl-edit-note" rows="3" maxlength="1000" placeholder="Bijv. polisnummer of waarvoor je dit document bewaart"></textarea>
+        <label class="chk"><input type="checkbox" id="kl-edit-favorite"> Bewaar als favoriet</label>
+        <p class="note" id="kl-edit-status" role="status" aria-live="polite"></p>
+        <div class="row"><button class="big" id="kl-edit-save" onclick="klOrganizeSave()">Opslaan</button><button class="big ghost" onclick="klOrganizeClose()">Annuleren</button></div>
       </div>
       <p class="note">De sleutel zit in de beveiligde hardware van deze telefoon en verlaat hem nooit. Daarom gaat de kluis alleen mee in een <b>versleutelde</b> Alles back-uppen. Het origineel dat je toevoegt, blijft waar het stond; haal dat zelf weg als je wilt. De kluis gaat na 5 minuten vanzelf op slot.</p>
     </div>

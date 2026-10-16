@@ -4,6 +4,12 @@
     <h1 tabindex="-1">PDF</h1>
   </div>
   <main>
+    <div class="card">
+      <h2>Belangrijke documenten</h2>
+      <p class="note">Bewaar PDF’s en andere documenten blijvend in je versleutelde kluis. Orden ze op categorie en vind je favorieten snel terug.</p>
+      <button class="big ghost" onclick="show('kluis')">Documentenkluis openen</button>
+      <p class="note" id="pdf-keep-status" role="status" aria-live="polite"></p>
+    </div>
     <div class="card" id="pdf-view-card">
       <h2>📖 PDF bekijken</h2>
       <p class="note" style="margin-top:0">Lezen in de eigen viewer: zoomen, zoeken, naar een pagina springen, donker lezen en afdrukken.</p>
@@ -16,6 +22,12 @@
       <p class="note">Plaats tekst, een datum of een getekende handtekening op je PDF. Je maakt een nieuwe kopie; het oorspronkelijke bestand blijft behouden.</p>
       <button class="big ghost" id="pdf-edit-pick" onclick="pdfEditChoose()">PDF voor bewerking kiezen</button>
       <button class="big ghost" id="pdf-edit-open" style="display:none;margin-top:8px" onclick="pdfEditOpen()">Gekozen PDF bewerken</button>
+      <div class="pdf-signature-library">
+        <h3>Mijn handtekening</h3>
+        <canvas id="pdf-signature-preview" width="600" height="180" hidden aria-label="Voorbeeld van je bewaarde handtekening"></canvas>
+        <p class="note" id="pdf-signature-status" role="status" aria-live="polite"></p>
+        <div class="row" style="flex-wrap:wrap"><button class="mini" id="pdf-signature-use" onclick="pdfSignatureUse()">Bewaarde handtekening plaatsen</button><button class="mini" id="pdf-signature-delete" onclick="pdfSignatureDelete()">Bewaarde handtekening verwijderen</button></div>
+      </div>
       <div id="pdf-edit-work" style="display:none">
         <p id="pdf-edit-document" class="note"></p>
         <div class="row">
@@ -43,9 +55,9 @@
           <button class="mini" onclick="pdfEditSignShow()">Handtekening tekenen</button>
         </div>
         <div id="pdf-edit-sign-box" style="display:none;margin-top:12px">
-          <p class="note">Teken hieronder met je vinger of muis. De handtekening wordt alleen in deze PDF-kopie gebruikt.</p>
+          <p class="note">Teken hieronder met je vinger of muis. Kies Handtekening bewaren om haar ook bij volgende PDF’s te kunnen gebruiken.</p>
           <canvas id="pdf-edit-sign" width="900" height="300" tabindex="0" aria-label="Teken hier je handtekening"></canvas>
-          <div class="row"><button class="mini" onclick="pdfEditSignClear()">Tekening wissen</button><button class="mini" onclick="pdfEditSignAdd()">Handtekening plaatsen</button><button class="mini" onclick="pdfEditSignHide()">Annuleren</button></div>
+          <div class="row" style="flex-wrap:wrap"><button class="mini" id="pdf-signature-save" onclick="pdfSignatureSaveDraw()">Handtekening bewaren</button><button class="mini" onclick="pdfEditSignClear()">Tekening wissen</button><button class="mini" onclick="pdfEditSignAdd()">Handtekening plaatsen</button><button class="mini" onclick="pdfEditSignHide()">Annuleren</button></div>
         </div>
         <label class="f" for="pdf-edit-width">Breedte van de geselecteerde toevoeging</label>
         <input type="range" id="pdf-edit-width" min="10" max="90" value="45" aria-label="Breedte van de toevoeging" onchange="pdfEditWidth(this.value)">
@@ -54,7 +66,7 @@
         <p class="note">Dit is een zichtbare handtekening, geen digitale certificaatondertekening. Bestaande certificaatondertekeningen kunnen door een wijziging ongeldig worden. Je toevoegingen worden vast in de nieuwe kopie geplaatst. Pagina’s met annotaties of formuliervelden moet je eerst via Afdrukken → Opslaan als PDF als vlakke kopie bewaren.</p>
         <label class="f" for="pdf-edit-name">Naam van de nieuwe kopie</label><input class="search" id="pdf-edit-name" maxlength="60">
         <button class="big" id="pdf-edit-save" onclick="pdfEditSave()" style="margin-top:8px">Bewerkte kopie maken</button>
-        <p class="note">De nieuwe kopie staat onder Gemaakt. Kies daar Opslaan als… of Delen. Werkbestanden worden na een week opgeruimd.</p>
+        <p class="note">De nieuwe kopie staat onder Gemaakt. Kies daar Bewaren in documentenkluis, Opslaan als… of Delen. Werkbestanden worden na een week opgeruimd.</p>
       </div>
     </div>
 

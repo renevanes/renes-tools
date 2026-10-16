@@ -42,6 +42,7 @@ final class Kluis {
     static final int CHUNK = 1 << 20;
     static final long MAX = 60L * 1024 * 1024;
     static final byte[] MAGIC = {'R', 'T', 'K', '1'};
+    private static final Object KEY_LOCK=new Object();
 
     /** Ontgrendeld tot dit moment (na vingerafdruk), in het geheugen. */
     static volatile long openUntil = 0;
@@ -80,6 +81,7 @@ final class Kluis {
     }
 
     static SecretKey key() throws Exception {
+        synchronized(KEY_LOCK){
         KeyStore ks = KeyStore.getInstance("AndroidKeyStore");
         ks.load(null);
         if (ks.containsAlias(ALIAS)) return ((KeyStore.SecretKeyEntry) ks.getEntry(ALIAS, null)).getSecretKey();
@@ -88,6 +90,7 @@ final class Kluis {
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .setKeySize(256).build());
         return g.generateKey();
+        }
     }
 
     static byte[] aad(int n, boolean last) { return new byte[]{(byte) (n >>> 24), (byte) (n >>> 16), (byte) (n >>> 8), (byte) n, (byte) (last ? 1 : 0)}; }
@@ -158,17 +161,28 @@ final class Kluis {
     // ---------- index (namen versleuteld) ----------
 
     static synchronized JSONArray list(Context c) throws Exception {
-        File f = index(c);
-        if (!f.isFile()) return new JSONArray();
         ByteArrayOutputStream b = new ByteArrayOutputStream();
-        try (InputStream in = new java.io.BufferedInputStream(new FileInputStream(f))) { decrypt(in, b); }
+        try (InputStream in = new java.io.BufferedInputStream(new android.util.AtomicFile(index(c)).openRead())) { decrypt(in, b); }
+        catch (java.io.FileNotFoundException e) { if(index(c).exists()||new File(index(c).getPath()+".bak").exists())throw e;return new JSONArray(); }
         return new JSONArray(new String(b.toByteArray(), StandardCharsets.UTF_8));
     }
 
     static synchronized void saveIndex(Context c, JSONArray a) throws Exception {
-        File tmp = new File(dir(c), "index.tmp");
-        try (OutputStream o = new FileOutputStream(tmp)) { encrypt(new java.io.ByteArrayInputStream(a.toString().getBytes(StandardCharsets.UTF_8)), o); }
-        if (!tmp.renameTo(index(c))) throw new Exception("Opslaan lukt niet");
+        writeEncrypted(index(c),a.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Eerst volledig schrijven, synchroniseren en teruglezen; alleen een geslaagde rename vervangt het oude bestand. */
+    static void writeEncrypted(File file,byte[] bytes) throws Exception {
+        File tmp=new File(file.getPath()+".writing");
+        try{
+            try(FileOutputStream out=new FileOutputStream(tmp)){
+                encrypt(new java.io.ByteArrayInputStream(bytes),out);out.flush();out.getFD().sync();
+            }
+            ByteArrayOutputStream check=new ByteArrayOutputStream();
+            try(InputStream in=new java.io.BufferedInputStream(new FileInputStream(tmp))){decrypt(in,check);}
+            if(!java.util.Arrays.equals(bytes,check.toByteArray()))throw new Exception("Opslaan kon niet worden gecontroleerd");
+            if(!tmp.renameTo(file))throw new Exception("Opslaan lukt niet; het eerdere bestand blijft behouden");
+        }finally{tmp.delete();}
     }
 
     static String safeId(String id) {
@@ -184,28 +198,51 @@ final class Kluis {
             if (cur != null && cur.moveToFirst()) { if (!cur.isNull(0)) name = cur.getString(0); if (!cur.isNull(1)) size = cur.getLong(1); }
         }
         if (size > MAX) throw new Exception("Bestand is te groot (max 60 MB)");
-        String id = Long.toString(System.currentTimeMillis(), 36) + Long.toString((long) (Math.random() * 1e9), 36);
-        File out = new File(dir(c), id + ".bin");
-        long written;
-        try (InputStream in = c.getContentResolver().openInputStream(u); OutputStream o = new java.io.BufferedOutputStream(new FileOutputStream(out))) {
-            if (in == null) throw new Exception("Bestand niet te openen");
-            CountingIn ci = new CountingIn(in);
-            encrypt(ci, o);
-            written = ci.n;
-        } catch (Exception e) { out.delete(); throw e; }
-        JSONObject d = new JSONObject().put("id", id).put("name", name.length() > 120 ? name.substring(0, 120) : name)
-                .put("mime", mime == null ? "application/octet-stream" : mime).put("size", written).put("t", System.currentTimeMillis());
-        JSONArray l = list(c);
-        l.put(d);
-        saveIndex(c, l);
-        return d;
+        try(InputStream in=c.getContentResolver().openInputStream(u)){return store(c,in,name,mime,"");}
+    }
+
+    static synchronized JSONObject addPdf(Context c,String name,String category) throws Exception {
+        File source=PdfTools.output(c,name);
+        try(InputStream in=new FileInputStream(source)){return store(c,in,source.getName(),"application/pdf",DocumentMeta.category(category));}
+    }
+
+    private static JSONObject store(Context c,InputStream in,String name,String mime,String category) throws Exception {
+        if(!isOpen())throw new Exception("De kluis is op slot");
+        if(in==null)throw new Exception("Bestand niet te openen");
+        if(name==null||name.trim().isEmpty())name="document";
+        JSONArray l=list(c); // eerst de bestaande index lezen; een leesfout nooit overschrijven
+        String id=java.util.UUID.randomUUID().toString().replace("-","").substring(0,24);
+        File out=new File(dir(c),id+".bin");boolean saved=false;
+        try{
+            CountingIn ci=new CountingIn(in);
+            try(OutputStream o=new java.io.BufferedOutputStream(new FileOutputStream(out))){encrypt(ci,o);}
+            JSONObject d=new JSONObject().put("id",id).put("name",name.length()>120?name.substring(0,120):name)
+                .put("mime",mime==null?"application/octet-stream":mime).put("size",ci.n).put("t",System.currentTimeMillis()).put("category",category);
+            if(!isOpen())throw new Exception("De kluis is weer op slot. Ontgrendel opnieuw om het document te bewaren.");
+            l.put(d);saveIndex(c,l);saved=true;return d;
+        }finally{if(!saved)out.delete();}
+    }
+
+    static synchronized void organize(Context c,String id,String json) throws Exception {
+        if(!isOpen())throw new Exception("De kluis is op slot");safeId(id);
+        if(json==null||json.length()>8000)throw new Exception("Documentgegevens zijn te groot");
+        JSONObject patch=new JSONObject(json);
+        String category=patch.has("category")?DocumentMeta.category(patch.getString("category")):null;
+        String note=patch.has("note")?DocumentMeta.note(patch.getString("note")):null;
+        if(patch.has("favorite")&&!(patch.get("favorite") instanceof Boolean))throw new Exception("Ongeldige favorietkeuze");
+        JSONArray all=list(c);JSONObject found=null;
+        for(int i=0;i<all.length();i++)if(id.equals(all.getJSONObject(i).optString("id")))found=all.getJSONObject(i);
+        if(found==null)throw new Exception("Document niet gevonden");
+        if(category!=null)found.put("category",category);if(note!=null)found.put("note",note);
+        if(patch.has("favorite"))found.put("favorite",patch.getBoolean("favorite"));
+        saveIndex(c,all);
     }
 
     static final class CountingIn extends java.io.FilterInputStream {
         long n;
         CountingIn(InputStream in) { super(in); }
         @Override public int read() throws java.io.IOException { int r = super.read(); if (r >= 0) n++; return r; }
-        @Override public int read(byte[] b, int o, int l) throws java.io.IOException { int r = super.read(b, o, l); if (r > 0) n += r; return r; }
+        @Override public int read(byte[] b, int o, int l) throws java.io.IOException { int r = in.read(b, o, l); if (r > 0) n += r; return r; }
     }
 
     static JSONObject find(Context c, String id) throws Exception {
@@ -251,6 +288,7 @@ final class Kluis {
         if (dest.zip == null) return -1;
         WaBackup.DestDir dir = dest.dir("Kluis", true);
         int n = 0, bad = 0;
+        JSONArray metadata=new JSONArray();
         File tmp = new File(c.getCacheDir(), "kluis-backup.tmp");
         for (int i = 0; i < l.length(); i++) {
             JSONObject d = l.getJSONObject(i);
@@ -258,13 +296,17 @@ final class Kluis {
             // Eerst helemaal ontsleutelen en controleren, pas dan in het archief (nooit een half document)
             try {
                 try (InputStream in = new java.io.BufferedInputStream(new FileInputStream(f), 1 << 16); OutputStream o = new FileOutputStream(tmp)) { decrypt(in, o); }
-                try (OutputStream o = dest.zip.stream(dir.path, fileName(d)); InputStream in = new FileInputStream(tmp)) {
+                String category=d.optString("category","");
+                String path=dir.path+(category.isEmpty()?"":"/"+Sms.safeName(category));
+                try (OutputStream o = dest.zip.stream(path, fileName(d)); InputStream in = new FileInputStream(tmp)) {
                     byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r);
                 }
+                metadata.put(new JSONObject(d.toString()).put("file",dest.zip.lastPath));
                 n++;
             } catch (Exception e) { bad++; App.log(c, "KLUIS", "backup " + d.optString("id") + ": " + e.getMessage()); }
             finally { tmp.delete(); }
         }
+        try(OutputStream o=dest.zip.stream(dir.path,"documenten.json")){o.write(new JSONObject().put("version",1).put("documents",metadata).toString().getBytes(StandardCharsets.UTF_8));}
         if (bad > 0) throw new Exception(n + " bewaard, " + bad + " niet te lezen");
         return n;
     }
