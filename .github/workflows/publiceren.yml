@@ -3,6 +3,7 @@
 # naar main te pushen of een pull request samen te voegen; de sleutel hebben ze niet nodig.
 # Vereist de omgeving "publiceren" (Settings → Environments; alleen branch main toegestaan) met het geheim
 # SIGNING_PASSPHRASE. Die zet alleen Rene. Andere branches en pull requests kunnen er zo niet bij.
+# Met de hand starten: Actions → Publiceren → Run workflow.
 name: Publiceren
 
 on:
