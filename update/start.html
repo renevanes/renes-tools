@@ -132,14 +132,121 @@ body.m-today,body.m-overlay{background:transparent!important}
 #ask input{width:100%;font:inherit;font-size:16px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--glass2);color:var(--ink);margin:4px 0 12px}
 #ask .row{display:flex;gap:8px}#ask .row button{flex:1}
 .cities button{display:block;width:100%;text-align:left;padding:10px 4px;border-top:1px solid var(--line)}.cities small{color:var(--muted)}
+
+/* Eén lokale set lijniconen; geen lettertype, netwerk of emoji nodig. */
+[data-icon="sun"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%2F%3E%3Cpath%20d%3D%22M12%201v3M12%2020v3M1%2012h3M20%2012h3M4%204l2%202M18%2018l2%202M4%2020l2-2M18%206l2-2%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="cloud"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%2018a5%205%200%201%201%201-10%206%206%200%200%201%2011%202%204%204%200%201%201%200%208z%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="rain"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2015a4%204%200%201%201%201-8%205%205%200%200%201%2010%201%204%204%200%201%201%202%207M7%2018l-1%203M12%2018l-1%203M17%2018l-1%203%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="snow"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2014a4%204%200%201%201%201-8%205%205%200%200%201%2010%201%204%204%200%201%201%202%207M7%2018h.01M12%2021h.01M17%2018h.01%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="storm"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2015a4%204%200%201%201%201-8%205%205%200%200%201%2010%201%204%204%200%201%201%202%207M12%2013l-3%205h5l-3%205%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="fog"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012a4%204%200%201%201%201-8%205%205%200%200%201%2010%201%204%204%200%201%201%202%207M3%2017h18M6%2021h12%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="temperature"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M9%2014V5a3%203%200%200%201%206%200v9a5%205%200%201%201-6%200M12%209v9%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2218%22%20r%3D%221%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="wifi"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M2%208a16%2016%200%200%201%2020%200M5%2012a11%2011%200%200%201%2014%200M8%2016a6%206%200%200%201%208%200M12%2020h.01%22%2F%3E%3C%2Fsvg%3E")}
+.ui-icon,[data-icon]::before{width:20px;height:20px;flex:none;display:inline-block;vertical-align:middle}
+[data-icon]::before{content:"";background:currentColor;-webkit-mask:var(--ui-icon) center/contain no-repeat;mask:var(--ui-icon) center/contain no-repeat}
+.ui-icon{line-height:0}.ui-icon::before{display:block;width:100%;height:100%}
+button[data-icon]{align-items:center;gap:9px}
+[data-icon="phone"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M21%2016v3a2%202%200%200%201-2%202A18%2018%200%200%201%203%205a2%202%200%200%201%202-2h3l2%205-2%202a14%2014%200%200%200%206%206l2-2z%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="calls"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%203H4v4M4%203l6%206M20%2021h-4v-4m4%204-6-6%22%2F%3E%3Cpath%20d%3D%22M14%203h6v6M4%2015v6h6%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="message"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%2015a3%203%200%200%201-3%203H8l-5%203V6a3%203%200%200%201%203-3h11a3%203%200%200%201%203%203z%22%2F%3E%3Cpath%20d%3D%22M7%208h9M7%2012h6%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="backup"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%208h16v12H4zM3%204h18v4H3zM9%2012h6M12%2012v5m-3-3%203%203%203-3%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="folder"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%207V4h7l2%203h9v13H3z%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="download"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%203v12m-4-4%204%204%204-4M4%2016v5h16v-5%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="upload"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%2016V4m-4%204%204-4%204%204M4%2016v5h16v-5%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="notes"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%224%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%2218%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M8%208h8M8%2012h8M8%2016h5%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="document"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M14%203H5v18h14V8zM14%203v5h5M8%2012h8M8%2016h6%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="sign"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m4%2016%201-4L16%201l4%204L9%2016zM13%204l4%204M3%2021h18%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="lock"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%225%22%20y%3D%2210%22%20width%3D%2214%22%20height%3D%2211%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M8%2010V7a4%204%200%200%201%208%200v3M12%2014v3%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="car"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m4%209%202-5h12l2%205M3%2010h18v8H3zM5%2018v3M19%2018v3M6%2013h2M16%2013h2%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="mic"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%229%22%20y%3D%222%22%20width%3D%226%22%20height%3D%2213%22%20rx%3D%223%22%2F%3E%3Cpath%20d%3D%22M5%2010v2a7%207%200%200%200%2014%200v-2M12%2019v3M8%2022h8%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="transcript"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%205h18M3%2010h12M3%2015h8M3%2020h8M17%2013v8M14%2016v2M20%2015v4%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="radio"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%2218%22%20height%3D%2213%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22m7%208%2011-5M14%2012h4M14%2016h4%22%2F%3E%3Ccircle%20cx%3D%228%22%20cy%3D%2215%22%20r%3D%222%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="headphones"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%2017v-5a9%209%200%200%201%2018%200v5%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%2213%22%20width%3D%224%22%20height%3D%228%22%20rx%3D%222%22%2F%3E%3Crect%20x%3D%2217%22%20y%3D%2213%22%20width%3D%224%22%20height%3D%228%22%20rx%3D%222%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="spotify"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22%2F%3E%3Cpath%20d%3D%22M7%209c3-1%207-1%2010%201M8%2012c3-1%205-1%208%201M9%2015c2-.5%203-.5%205%201%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="shield"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m12%203%208%203v6c0%205-4%208-8%2010-4-2-8-5-8-10V6zM9%2012l2%202%204-4%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="pin"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M19%2010c0%205-7%2012-7%2012S5%2015%205%2010a7%207%200%200%201%2014%200z%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2210%22%20r%3D%222%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="music"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M9%2018V5l12-2v13M9%208l12-2%22%2F%3E%3Cellipse%20cx%3D%226%22%20cy%3D%2218%22%20rx%3D%223%22%20ry%3D%223%22%2F%3E%3Cellipse%20cx%3D%2218%22%20cy%3D%2216%22%20rx%3D%223%22%20ry%3D%223%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="smartphone"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%226%22%20y%3D%222%22%20width%3D%2212%22%20height%3D%2220%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M10%205h4M11%2019h2%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="automation"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m13%202-9%2012h7l-1%208%2010-13h-7z%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="play"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m8%204%2012%208-12%208z%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="pause"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%204v16M16%204v16%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="stop"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%225%22%20y%3D%225%22%20width%3D%2214%22%20height%3D%2214%22%20rx%3D%221%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="search"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2210.5%22%20cy%3D%2210.5%22%20r%3D%226.5%22%2F%3E%3Cpath%20d%3D%22m16%2016%205%205%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="settings"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%207h10M17%207h4M3%2017h4M11%2017h10%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%227%22%20r%3D%222%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2217%22%20r%3D%222%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="grid"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%227%22%20height%3D%227%22%20rx%3D%221%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%223%22%20width%3D%227%22%20height%3D%227%22%20rx%3D%221%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%2214%22%20width%3D%227%22%20height%3D%227%22%20rx%3D%221%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2214%22%20width%3D%227%22%20height%3D%227%22%20rx%3D%221%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="more"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%225%22%20cy%3D%2212%22%20r%3D%221%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%221%22%2F%3E%3Ccircle%20cx%3D%2219%22%20cy%3D%2212%22%20r%3D%221%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="check"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m4%2012%205%205L20%206%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="close"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%206%2012%2012M6%2018%2018%206%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="plus"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%205v14M5%2012h14%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="minus"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012h14%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="trash"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%206h18M9%206V3h6v3M5%206l1%2015h12l1-15M10%2010v7M14%2010v7%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="edit"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m4%2016%201-4L17%200l4%204L9%2016zM14%203l4%204M4%2020h16%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="share"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2218%22%20cy%3D%225%22%20r%3D%223%22%2F%3E%3Ccircle%20cx%3D%226%22%20cy%3D%2212%22%20r%3D%223%22%2F%3E%3Ccircle%20cx%3D%2218%22%20cy%3D%2219%22%20r%3D%223%22%2F%3E%3Cpath%20d%3D%22m9%2010%206-4M9%2014l6%204%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="left"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m12%205-7%207%207%207M5%2012h15%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="right"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m12%205%207%207-7%207M4%2012h15%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="up"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m5%2012%207-7%207%207M12%205v15%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="down"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m5%2012%207%207%207-7M12%204v15%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="clock"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22%2F%3E%3Cpath%20d%3D%22M12%207v5l3%202%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="bell"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M18%208a6%206%200%200%200-12%200c0%207-3%207-3%209h18c0-2-3-2-3-9M9%2021h6%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="calendar"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2216%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M7%202v6M17%202v6M3%2010h18M7%2014h3M14%2014h3M7%2017h3%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="repeat"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m17%202%204%204-4%204M3%2011V8a2%202%200%200%201%202-2h16M7%2022l-4-4%204-4m14-1v3a2%202%200%200%201-2%202H3%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="copy"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%2213%22%20height%3D%2213%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M16%208V3H3v13h5%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="clipboard"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%205H4v16h16V5h-4M8%203h8v4H8zM8%2012h8M8%2016h5%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="camera"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%207h5l2-3h4l2%203h5v14H3z%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2213%22%20r%3D%224%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="image"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%2218%22%20rx%3D%222%22%2F%3E%3Ccircle%20cx%3D%228%22%20cy%3D%228%22%20r%3D%221.5%22%2F%3E%3Cpath%20d%3D%22m3%2017%206-5%204%203%204-6%204%204%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="scissors"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%226%22%20cy%3D%226%22%20r%3D%223%22%2F%3E%3Ccircle%20cx%3D%226%22%20cy%3D%2218%22%20r%3D%223%22%2F%3E%3Cpath%20d%3D%22m8%208%2013%2013M8%2016%2021%203%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="mail"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2214%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22m3%206%209%207%209-7%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="shop"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M2%203h3l3%2013h11l3-10H6%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2221%22%20r%3D%221%22%2F%3E%3Ccircle%20cx%3D%2218%22%20cy%3D%2221%22%20r%3D%221%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="plug"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%202v5M16%202v5M5%207h14v4a7%207%200%200%201-14%200zM12%2018v4%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="parking"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%2218%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M9%2017V7h4a3%203%200%200%201%200%206H9%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="user"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%228%22%20r%3D%224%22%2F%3E%3Cpath%20d%3D%22M4%2021v-1a8%208%200%200%201%2016%200v1%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="star"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m12%203%203%206%207%201-5%205%201%207-6-3-6%203%201-7-5-5%207-1z%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="moon"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%2014A9%209%200%200%201%2010%203a9%209%200%201%200%2010%2011z%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="volume"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%209h4l5-5v16l-5-5H4zM17%208a6%206%200%200%201%200%208%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="volume-high"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M2%209h4l5-5v16l-5-5H2zM15%208a6%206%200%200%201%200%208M18%205a10%2010%200%200%201%200%2014%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="chevron-left"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m15%205-7%207%207%207%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="chevron-right"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m9%205%207%207-7%207%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="chevron-down"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m5%209%207%207%207-7%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="info"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22%2F%3E%3Cpath%20d%3D%22M12%2011v6M12%207h.01%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="alert"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m12%203%2010%2018H2zM12%209v5M12%2017h.01%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="refresh"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%209a8%208%200%200%200-14-5L3%207M3%202v5h5M4%2015a8%208%200%200%200%2014%205l3-3m0%205v-5h-5%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="cast"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%209V4h18v16h-8M3%2013a7%207%200%200%201%207%207M3%2017a3%203%200%200%201%203%203M3%2020h.01%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="route"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%225%22%20cy%3D%225%22%20r%3D%222%22%2F%3E%3Ccircle%20cx%3D%2219%22%20cy%3D%2219%22%20r%3D%222%22%2F%3E%3Cpath%20d%3D%22M7%205h8a4%204%200%200%201%200%208H9a3%203%200%200%200%200%206h8%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="save"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%203h15l3%203v15H3zM7%203v6h9V3M7%2021v-8h10v8%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="battery"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%222%22%20y%3D%226%22%20width%3D%2218%22%20height%3D%2212%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M22%2010v4M6%2010v4M10%2010v4%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="globe"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22%2F%3E%3Cellipse%20cx%3D%2212%22%20cy%3D%2212%22%20rx%3D%224%22%20ry%3D%229%22%2F%3E%3Cpath%20d%3D%22M3%2012h18%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="eye"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M2%2012s4-7%2010-7%2010%207%2010%207-4%207-10%207S2%2012%202%2012z%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%223%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="external"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M13%203h8v8M21%203%2010%2014M10%205H3v16h16v-7%22%2F%3E%3C%2Fsvg%3E")}
+[data-icon="sort"]{--ui-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%205h16M4%2010h12M4%2015h8M4%2020h4M17%2014v7m-3-3%203%203%203-3%22%2F%3E%3C%2Fsvg%3E")}
+
+
+/* Bediening sluit aan bij de app; persoonlijke achtergrond en instellingen blijven behouden. */
+.glass{border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.09);border:1px solid var(--line)}
+.card{padding:16px}.card h3{font-size:11px;letter-spacing:.06em;font-weight:650}
+.ib,.mini2,.big2,.seg button,#q,.srow,.websearch,.pickrow,.lsec,.wcard{border-radius:8px}
+.ib,.mini2{min-height:44px;min-width:44px}.ib[data-icon]::before{margin:0}
+.big2{min-height:48px;font-size:15px}.big2.ghost{border:1px solid var(--line)}
+#look h2,#pick h2,#wpick h2{font-size:21px;font-weight:650;letter-spacing:-.3px}
+#look h2>.ib,#pick h2>.ib,#wpick h2>.ib{border-radius:8px}
+.seg button{min-height:44px;padding:10px 13px;font-size:13px}
+.rb.main,.seg button.on,#banner button,.big2:not(.ghost),#pick .done,.chk2.on{color:var(--on-acc,#fff)}
+.tg.on::after{background:var(--on-acc,#fff)}
+.srow{padding:12px}.srow .si{display:grid;place-items:center}.srow b{font-size:15px}.srow small{font-size:12px}
+#sbar{border-radius:10px;min-height:48px}.tchip{border-radius:7px;min-height:44px}
+.tchip>span,.trow>span:first-child{display:inline-grid;place-items:center}
+.trow{font-size:14px}.radio .rb{border-radius:8px;min-width:44px;min-height:44px}
+#sheet .sbox{border-radius:12px 12px 0 0}#sheet .acts button{min-height:48px;font-size:15px}
+.ovbox{border-radius:12px}.nc{border-radius:10px}.wi .ui-icon{width:40px;height:40px}.wdays .ui-icon{width:20px;height:20px}
+button[data-icon]::before{vertical-align:middle;margin-right:8px}
+
 </style>
 </head>
 <body>
 <div id="home" aria-label="Startscherm">
   <button id="clock" class="onwall" onclick="Android.openClock()" aria-label="Klok en wekkers"><span id="time">--:--</span><span id="date"></span></button>
   <div id="alarm" class="onwall"></div>
-  <button id="sbar" class="glass" onclick="openSearch()" aria-label="Zoeken in apps, contacten, notities en instellingen"><span>🔎</span><span>Zoek apps, contacten, notities…</span></button>
-  <div id="banner" class="glass"><span style="flex:1">Wil je dit als startscherm van je telefoon gebruiken?</span><button onclick="Android.homeSettings()">Instellen</button><button style="background:none;color:var(--muted);padding:8px" aria-label="Niet meer vragen" onclick="cfg.bannerOff=true;save();$('#banner').classList.remove('on')">✕</button></div>
+  <button id="sbar" class="glass" onclick="openSearch()" aria-label="Zoeken in apps, contacten, notities en instellingen"><span class="ui-icon" data-icon="search" aria-hidden="true"></span><span>Zoek apps, contacten, notities…</span></button>
+  <div id="banner" class="glass"><span style="flex:1">Wil je dit als startscherm van je telefoon gebruiken?</span><button onclick="Android.homeSettings()">Instellen</button><button style="background:none;color:var(--muted);padding:8px" aria-label="Niet meer vragen" onclick="cfg.bannerOff=true;save();$('#banner').classList.remove('on')" data-icon="close"></button></div>
   <button id="weather" class="glass" onclick="weatherTap()" style="display:none"></button>
   <div id="cal" class="glass card" style="display:none"></div>
   <div id="tools" class="glass card" style="display:none"></div>
@@ -152,7 +259,7 @@ body.m-today,body.m-overlay{background:transparent!important}
 <div id="drawer" aria-label="Alle apps">
   <div class="dhead">
     <input id="q" type="search" placeholder="Zoek apps…" aria-label="Zoek apps" autocomplete="off" oninput="renderDrawer()" onkeydown="if(event.key==='Enter'){qEnter();event.preventDefault();}">
-    <button class="ib" onclick="openLook()" aria-label="Look aanpassen">⚙︎</button>
+    <button class="ib" onclick="openLook()" aria-label="Look aanpassen" data-icon="settings"></button>
   </div>
   <div id="dlist"></div>
 </div>
@@ -224,6 +331,9 @@ body.m-today,body.m-overlay{background:transparent!important}
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
+const SKIN_GLYPHS={"❚❚":"pause","🎤": "mic", "🎙️": "mic", "🎙": "mic", "📝": "notes", "🔒": "lock", "📷": "camera", "🖼️": "image", "📄": "document", "📋": "clipboard", "🔑": "shield", "⚡": "automation", "📌": "pin", "📖": "document", "✍️": "sign", "✂️": "scissors", "✉️": "mail", "🅿️": "parking", "🔔": "bell", "🛒": "shop", "🚗": "car", "📍": "pin", "⏰": "clock", "🔌": "plug", "📱": "smartphone", "📻": "radio", "🗺️": "route", "💾": "backup", "📞": "phone", "💬": "message", "🚶": "route", "▶": "play", "◀": "chevron-left", "■": "stop", "⏾": "moon", "★": "star", "🔈": "volume", "🔊": "volume-high", "⚙︎": "settings", "⚙️": "settings", "🔎": "search", "✕": "close", "🏠": "grid", "⬇️": "down", "📁": "folder", "👤": "user", "🟢": "message", "📒": "calls", "🎂": "calendar", "🎈": "calendar", "🕒": "clock", "♿": "user", "📡": "wifi", "📶": "wifi", "☀️": "sun", "🌙": "moon", "🌤️": "sun", "⛅": "cloud", "☁️": "cloud", "🌫️": "fog", "🌦️": "rain", "🌧️": "rain", "🌨️": "snow", "❄️": "snow", "⛈️": "storm", "🌡️": "temperature", "☔": "rain"};
+function skinGlyph(g){const n=SKIN_GLYPHS[g];return n?'<span class="ui-icon" data-icon="'+n+'" aria-hidden="true"></span>':esc(g);}
+
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een test-brug. */
 if (!window.Android) window.Android = (function(){
   const names = ['Telefoon','Berichten','WhatsApp','Chrome','Camera','Foto\'s','Gmail','Agenda','Klok','Instellingen','Rene\'s Tools','Spotify','Buienradar','NS','ING','NU.nl','Maps','YouTube','Rekenmachine','Notities','Bestanden','Weer','Teams','Outlook'];
@@ -318,12 +428,18 @@ function applyOrder(){
   if (cfg.order[0] === 'clock') { $('#alarm').after($('#sbar')); $('#sbar').after($('#banner')); }
   else home.prepend($('#sbar'));
 }
+function skinAccentInk(hex){
+  const channels=hex.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4));
+  const luminance=.2126*channels[0]+.7152*channels[1]+.0722*channels[2];
+  return luminance>.179?'#000000':'#FFFFFF';
+}
 function applyLook(){
   const r = document.documentElement;
   let sysDark = matchMedia('(prefers-color-scheme: dark)').matches; try { if (typeof Android.isNight === 'function') sysDark = !!Android.isNight(); } catch(e){}
   const dark = cfg.theme === 'dark' || (cfg.theme === 'auto' && sysDark);
   r.classList.toggle('dark', dark);
-  r.style.setProperty('--acc', cfg.accent);
+  const accent=/^#[0-9a-f]{6}$/i.test(cfg.accent||'')?cfg.accent:'#185D52';
+  r.style.setProperty('--acc',accent);r.style.setProperty('--on-acc',skinAccentInk(accent));
   r.classList.toggle('ics', cfg.icon === 's'); r.classList.toggle('icl', cfg.icon === 'l');
   r.classList.toggle('nolabels', !cfg.labels);
   r.style.setProperty('--cols', cfg.cols);
@@ -415,7 +531,7 @@ function renderDrawer(){
       .sort((a, b) => (norm(b.n).startsWith(q) ? 1 : 0) - (norm(a.n).startsWith(q) ? 1 : 0));
     html = '<div class=grid>' + hits.map(a => appHtml(a.k, 'drawer')).join('') + '</div>';
     html += searchMore($('#q').value.trim(), q);
-    html += '<button class=websearch onclick="Android.webSearch($(\'#q\').value.trim())"><span>🔎</span><span>Zoek op internet naar “' + esc($('#q').value.trim()) + '”</span></button>';
+    html += '<button class=websearch onclick="Android.webSearch($(\'#q\').value.trim())"><span class="ui-icon" data-icon="search" aria-hidden="true"></span><span>Zoek op internet naar “' + esc($('#q').value.trim()) + '”</span></button>';
     if (!hits.length) html = '<p class=empty>Geen app gevonden</p>' + html;
   } else {
     const folders = NATIVE ? [] : Object.keys(cfg.folders).filter(f => exists('f:' + f)).sort((a, b) => a.localeCompare(b, 'nl'));
@@ -540,10 +656,10 @@ function appSheet(k, where){
     acts.push(['Map hernoemen…', () => ask('Map hernoemen', k.slice(2), v => { v = v.trim(); if (badName(v)) { toast('Kies een andere naam'); return; } if (hasF(v)) { toast('Er is al een map ' + v); return; } cfg.folders[v] = cfg.folders[k.slice(2)]; delete cfg.folders[k.slice(2)]; cfg.pinned = cfg.pinned.map(x => x === k ? 'f:' + v : x); saveAll(); })]);
     acts.push(['Map opheffen (apps blijven)', () => { delete cfg.folders[k.slice(2)]; cfg.pinned = cfg.pinned.filter(x => x !== k); saveAll(); }]);
   }
-  openSheet(isF ? '<span class=ib>📁</span>' : icon(k, 96), name, acts);
+  openSheet(isF ? '<span class=ib><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span>' : icon(k, 96), name, acts);
 }
 function homeSheet(){
-  openSheet('<span class=ib>⚙︎</span>', 'Startscherm', [
+  openSheet('<span class=ib><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></span>', 'Startscherm', [
     ['Apps op het startscherm kiezen', () => pickApps('pinned')], ['Apps in het dock kiezen', () => pickApps('dock')],
     ['Look aanpassen', openLook], ['Achtergrondfoto kiezen', () => Android.wallpaper()],
     ['Rene\'s Tools openen', () => Android.openTool('')], ['Standaard-startscherm kiezen', () => Android.homeSettings()]]
@@ -620,7 +736,7 @@ function tickClock(){
   const ds = d.toLocaleDateString('nl-NL', {weekday: 'long', day: 'numeric', month: 'long'});
   $('#date').textContent = ds.charAt(0).toUpperCase() + ds.slice(1);
   const a = Android.nextAlarm();
-  $('#alarm').textContent = a && a - Date.now() < 7 * 864e5 ? '⏰ ' + new Date(a).toLocaleString('nl-NL', {weekday: 'short', hour: '2-digit', minute: '2-digit'}) : '';
+  $('#alarm').innerHTML = a && a - Date.now() < 7 * 864e5 ? skinGlyph('⏰')+' '+esc(new Date(a).toLocaleString('nl-NL', {weekday: 'short', hour: '2-digit', minute: '2-digit'})) : '';
 }
 
 /* ---------- weer ---------- */
@@ -635,13 +751,13 @@ window.onWeather = function(w){
   const el = $('#weather');
   if (!cfg.show.weather) { el.style.display = 'none'; return; }
   el.style.display = 'flex';
-  if (w.noPlace) { el.innerHTML = '<span class=wi>🌤️</span><span class=wd><b>Weer</b>Tik om je plaats te kiezen' + (w.locPerm ? '' : ' of locatie toe te staan') + '</span>'; return; }
-  if (w.error && w.temp == null) { el.innerHTML = '<span class=wi>🌡️</span><span class=wd><b>Weer</b>' + esc(w.error) + '</span>'; return; }
+  if (w.noPlace) { el.innerHTML = '<span class=wi><span class="ui-icon" data-icon="sun" aria-hidden="true"></span></span><span class=wd><b>Weer</b>Tik om je plaats te kiezen' + (w.locPerm ? '' : ' of locatie toe te staan') + '</span>'; return; }
+  if (w.error && w.temp == null) { el.innerHTML = '<span class=wi><span class="ui-icon" data-icon="temperature" aria-hidden="true"></span></span><span class=wd><b>Weer</b>' + esc(w.error) + '</span>'; return; }
   const [ic, txt] = wmo(w.code, w.day);
-  const days = (w.days || []).slice(1, 4).map(d => '<span>' + new Date(d.date + 'T12:00').toLocaleDateString('nl-NL', {weekday: 'short'}) + '<b>' + wmo(d.code)[0] + '</b>' + Math.round(d.max) + '°/' + Math.round(d.min) + '°</span>').join('');
+  const days = (w.days || []).slice(1, 4).map(d => '<span>' + new Date(d.date + 'T12:00').toLocaleDateString('nl-NL', {weekday: 'short'}) + '<b>' + skinGlyph(wmo(d.code)[0]) + '</b>' + Math.round(d.max) + '°/' + Math.round(d.min) + '°</span>').join('');
   const today = (w.days || [])[0];
-  el.innerHTML = '<span class=wi>' + ic + '</span><span class=wt>' + Math.round(w.temp) + '°</span><span class=wd><b>' + esc(txt) + (w.place ? ' · ' + esc(w.place) : '') + '</b>' +
-    (today ? Math.round(today.max) + '° / ' + Math.round(today.min) + '°' : '') + (w.rainSoon >= 50 ? ' · ☔ ' + w.rainSoon + '% kans op regen' : '') +
+  el.innerHTML = '<span class=wi>' + skinGlyph(ic) + '</span><span class=wt>' + Math.round(w.temp) + '°</span><span class=wd><b>' + esc(txt) + (w.place ? ' · ' + esc(w.place) : '') + '</b>' +
+    (today ? Math.round(today.max) + '° / ' + Math.round(today.min) + '°' : '') + (w.rainSoon >= 50 ? ' · ' + skinGlyph('☔')+' '+w.rainSoon + '% kans op regen' : '') +
     '<span class=wdays>' + days + '</span></span>';
 };
 function weatherTap(){ if (wx && wx.noPlace) askPlace(); else Android.weather(true); }
@@ -651,7 +767,7 @@ function askPlace(){
 }
 window.onCities = function(l){
   if (l.error || !l.length) { toast(l.error || 'Geen plaats gevonden'); return; }
-  openSheet('<span class=ib>📍</span>', 'Welke plaats?', l.map(c => [c.name + ' — ' + c.sub, () => { Android.setPlace(c.name, c.lat, c.lon); Android.weather(true); renderLook(); toast('Weer voor ' + c.name); }]));
+  openSheet('<span class=ib><span class="ui-icon" data-icon="pin" aria-hidden="true"></span></span>', 'Welke plaats?', l.map(c => [c.name + ' — ' + c.sub, () => { Android.setPlace(c.name, c.lat, c.lon); Android.weather(true); renderLook(); toast('Weer voor ' + c.name); }]));
 };
 window.onLocationPerm = function(){ Android.weather(true); };
 
@@ -661,11 +777,11 @@ function renderCal(){
   if (!cfg.show.cal) { el.style.display = 'none'; return; }
   const c = J(Android.calendar(), {perm: false});
   el.style.display = 'block';
-  if (!c.perm) { el.innerHTML = '<h3>📅 Agenda</h3><button class="big2 ghost" onclick="Android.calendarPermission()">Afspraken tonen (toestemming geven)</button>'; return; }
+  if (!c.perm) { el.innerHTML = '<h3>Agenda</h3><button class="big2 ghost" onclick="Android.calendarPermission()">Afspraken tonen (toestemming geven)</button>'; return; }
   const ev = (c.events || []).slice(0, 4);
   const day = t => { const d = new Date(t), n = new Date(), m = new Date(Date.now() + 864e5);
     return d.toDateString() === n.toDateString() ? '' : d.toDateString() === m.toDateString() ? 'morgen ' : d.toLocaleDateString('nl-NL', {weekday: 'short'}) + ' '; };
-  el.innerHTML = '<h3>📅 Agenda <button class=more onclick="Android.openEvent(\'0\')">Openen ›</button></h3>' + (ev.map(e =>
+  el.innerHTML = '<h3>Agenda <button class=more onclick="Android.openEvent(\'0\')">Openen ›</button></h3>' + (ev.map(e =>
     '<button class=ev data-id="' + e.id + '" onclick="Android.openEvent(this.dataset.id)"><i style="background:' + esc(e.color || '') + '"></i><span class=et>' +
     (e.allDay ? (day(e.begin) || 'vandaag') + '<br>hele dag' : day(e.begin) + new Date(e.begin).toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'})) +
     '</span><div><b>' + esc(e.title) + '</b>' + (e.loc ? '<small>' + esc(e.loc) + '</small>' : '') + '</div></button>').join('') || '<p style="margin:0;color:var(--muted);font-size:14px">Geen afspraken de komende week</p>');
@@ -687,12 +803,12 @@ function renderTools(){
   const t = J(raw, {});
   const r = t.radio || {}, st = r.status || 'stopped', s = r.station || t.radioLast;
   const playing = st === 'playing' || st === 'connecting';
-  let h = '<h3>🧰 Rene\'s Tools <button class=more onclick="Android.openTool(\'\')">Openen ›</button></h3>';
-  if (s) h += '<div class=radio><button class=rn style="text-align:left" onclick="Android.openTool(\'radio\')"><b>📻 ' + esc(s.name) + '</b><small>' +
+  let h = '<h3>Rene\'s Tools <button class=more onclick="Android.openTool(\'\')">Openen ›</button></h3>';
+  if (s) h += '<div class=radio><button class=rn style="text-align:left" onclick="Android.openTool(\'radio\')"><b>' + esc(s.name) + '</b><small>' +
       esc(st === 'connecting' ? 'Verbinden…' : st === 'paused' ? 'Gepauzeerd' : st === 'playing' ? (r.shift && r.shift.behind > 8 ? 'achter live' : (r.title || 'Live')) : 'Tik ▶ om te luisteren') + '</small></button>' +
-    (r.shift && st !== 'stopped' ? '<button class=rb onclick="radioDo(\'rew\')" aria-label="30 seconden terug">⏪</button>' : '') +
-    '<button class="rb main" onclick="radioDo(\'' + (playing ? 'pause' : st === 'paused' ? 'resume' : 'play') + '\')" aria-label="' + (playing ? 'Pauze' : 'Afspelen') + '">' + (playing ? '❚❚' : '▶') + '</button>' +
-    (st !== 'stopped' ? '<button class=rb onclick="radioDo(\'stop\')" aria-label="Stoppen">■</button>' : '') + '</div>';
+    (r.shift && st !== 'stopped' ? '<button class=rb onclick="radioDo(\'rew\')" aria-label="30 seconden terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>' : '') +
+    '<button class="rb main" onclick="radioDo(\'' + (playing ? 'pause' : st === 'paused' ? 'resume' : 'play') + '\')" aria-label="' + (playing ? 'Pauze' : 'Afspelen') + '">' + skinGlyph(playing ? '❚❚' : '▶') + '</button>' +
+    (st !== 'stopped' ? '<button class=rb onclick="radioDo(\'stop\')" aria-label="Stoppen" data-icon="stop"></button>' : '') + '</div>';
   const rows = [];
   const bk = t.backup || {}, l = bk.last;
   if (bk.busy) rows.push(['💾', 'Backup is bezig…', 'backup', '']);
@@ -709,8 +825,8 @@ function renderTools(){
   }
   const rp = t.redial || {};
   if (rp.plan && rp.next > Date.now() && rp.next - Date.now() < 2 * 864e5) rows.push(['📞', 'Auto redial: ' + (rp.plan.name || rp.plan.number) + ' · ' + new Date(rp.next).toLocaleString('nl-NL', {weekday: 'short', hour: '2-digit', minute: '2-digit'}), 'redial', '']);
-  h += rows.map(x => '<button class=trow data-t="' + x[2] + '" onclick="Android.openTool(this.dataset.t)"><span>' + x[0] + '</span><span class="' + x[3] + '">' + esc(x[1]) + '</span></button>').join('');
-  h += '<div class=tchips>' + cfg.tools.filter(k => TOOLS[k]).map(k => '<button class=tchip data-t="' + k + '" onclick="Android.openTool(this.dataset.t)"><span>' + TOOLS[k][0] + '</span>' + TOOLS[k][1] + '</button>').join('') + '</div>';
+  h += rows.map(x => '<button class=trow data-t="' + x[2] + '" onclick="Android.openTool(this.dataset.t)"><span>' + skinGlyph(x[0]) + '</span><span class="' + x[3] + '">' + esc(x[1]) + '</span></button>').join('');
+  h += '<div class=tchips>' + cfg.tools.filter(k => TOOLS[k]).map(k => '<button class=tchip data-t="' + k + '" onclick="Android.openTool(this.dataset.t)"><span>' + skinGlyph(TOOLS[k][0]) + '</span>' + TOOLS[k][1] + '</button>').join('') + '</div>';
   el.style.display = 'block';
   el.innerHTML = h;
 }
@@ -722,7 +838,7 @@ function renderNotes(){
   if (raw === renderNotes.last && !renderNotes.force) return;
   renderNotes.last = raw; renderNotes.force = false;
   el.style.display = l.length ? 'block' : 'none';
-  el.innerHTML = l.map(n => '<button class="glass nc" data-id="' + esc(n.id) + '" onclick="noteClick(this)"><b>📝 ' + esc(n.title) +
+  el.innerHTML = l.map(n => '<button class="glass nc" data-id="' + esc(n.id) + '" onclick="noteClick(this)"><b><span class=nc-title>' + esc(n.title) + '</span>' +
     '<small>' + (n.total ? (n.open ? n.open + ' open' : 'alles afgestreept ✓') : '') + '</small></b>' +
     (n.items.length ? '<ul>' + n.items.map(t => '<li>' + esc(t) + '</li>').join('') + (n.open > n.items.length ? '<li style="color:var(--muted)">en nog ' + (n.open - n.items.length) + '…</li>' : '') + '</ul>'
       : n.text ? '<p>' + esc(n.text) + '</p>' : '') + '</button>').join('');
@@ -731,13 +847,13 @@ function renderNotes(){
 let ncPress = null;
 document.addEventListener('pointerdown', e => {
   const el = e.target.closest('.nc'); if (!el) return;
-  ncPress = {el, x: e.clientX, y: e.clientY, long: false, t: setTimeout(() => { ncPress.long = true; Android.vibrate(15); noteSheet(el.dataset.id, el.querySelector('b').firstChild.textContent.replace(/^📝 /, '')); }, 480)};
+  ncPress = {el, x: e.clientX, y: e.clientY, long: false, t: setTimeout(() => { ncPress.long = true; Android.vibrate(15); noteSheet(el.dataset.id, el.querySelector('.nc-title').textContent); }, 480)};
 });
 document.addEventListener('pointermove', e => { if (ncPress && (Math.abs(e.clientX - ncPress.x) > 10 || Math.abs(e.clientY - ncPress.y) > 10)) { clearTimeout(ncPress.t); ncPress = null; } });
 document.addEventListener('pointerup', () => { if (ncPress) { clearTimeout(ncPress.t); if (ncPress.long) { const el = ncPress.el; el.dataset.skip = '1'; setTimeout(() => delete el.dataset.skip, 400); } ncPress = null; } });
 function noteClick(el){ if (el.dataset.skip) return; Android.openTool('note:' + el.dataset.id); }
 function noteSheet(id, title){
-  openSheet('<span class=ib>📝</span>', title || 'Notitie', [
+  openSheet('<span class=ib><span class="ui-icon" data-icon="notes" aria-hidden="true"></span></span>', title || 'Notitie', [
     ['Openen', () => Android.openTool('note:' + id)],
     ['Van het startscherm halen', () => { if (typeof Android.noteUnpin === 'function') Android.noteUnpin(id); renderNotes.force = true; renderNotes(); }]]);
 }
@@ -757,7 +873,7 @@ function pickApps(mode){
   $('#pick').classList.add('on');
 }
 function pkName(k){ return k.startsWith('f:') ? '📁 ' + k.slice(2) : (byKey[k] ? byKey[k].n : k); }
-function pkIcon(k){ return k.startsWith('f:') ? '<span class=ib>📁</span>' : icon(k, 80); }
+function pkIcon(k){ return k.startsWith('f:') ? '<span class=ib><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span>' : icon(k, 80); }
 function renderPick(){
   if (!pk) return;
   const q = norm($('#pk-q').value.trim());
@@ -767,7 +883,7 @@ function renderPick(){
     h += pk.sel.map((k, i) => '<div class=pk>' + pkIcon(k) + '<span class=nm>' + esc(pkName(k)) + '</span>' +
       '<button class=mini2 data-i="' + i + '" data-d="-1" onclick="pkMove(this)"' + (i ? '' : ' disabled') + ' aria-label="Naar voren">↑</button>' +
       '<button class=mini2 data-i="' + i + '" data-d="1" onclick="pkMove(this)"' + (i < pk.sel.length - 1 ? '' : ' disabled') + ' aria-label="Naar achteren">↓</button>' +
-      '<button class=mini2 data-k="' + esc(k) + '" onclick="pkToggle(this.dataset.k)" aria-label="Weghalen">✕</button></div>').join('') ||
+      '<button class=mini2 data-k="' + esc(k) + '" onclick="pkToggle(this.dataset.k)" aria-label="Weghalen" data-icon="close"></button></div>').join('') ||
       '<p style="color:var(--muted);font-size:14px;margin:6px 2px">Nog niets gekozen. Tik hieronder op apps om ze toe te voegen.</p>';
     h += '<div class=pkhd>Alle apps</div>';
   } else {
@@ -855,7 +971,7 @@ function renderLook(){
     '<button class=mini2 data-k="' + k + '" data-d="-1" onclick="ordMove(this)"' + (i ? '' : ' disabled') + ' aria-label="Hoger">↑</button>' +
     '<button class=mini2 data-k="' + k + '" data-d="1" onclick="ordMove(this)"' + (i < arr.length - 1 ? '' : ' disabled') + ' aria-label="Lager">↓</button></div>').join('');
   $('#l-place').textContent = Android.placeName() || 'Automatisch';
-  $('#l-tools').innerHTML = Object.keys(TOOLS).map(k => '<button data-t="' + k + '"' + (cfg.tools.includes(k) ? ' class=on' : '') + '>' + TOOLS[k][0] + ' ' + TOOLS[k][1] + '</button>').join('');
+  $('#l-tools').innerHTML = Object.keys(TOOLS).map(k => '<button data-t="' + k + '"' + (cfg.tools.includes(k) ? ' class=on' : '') + '>' + skinGlyph(TOOLS[k][0]) + ' ' + TOOLS[k][1] + '</button>').join('');
   $('#l-tools').querySelectorAll('button').forEach(b => b.onclick = () => { const k = b.dataset.t; cfg.tools = cfg.tools.includes(k) ? cfg.tools.filter(x => x !== k) : cfg.tools.concat(k); save(); renderLook(); renderTools.force = true; renderTools(); });
   $('#l-hidden').innerHTML = cfg.hidden.filter(k => byKey[k]).map(k => '<div class=hid>' + icon(k, 72) + '<span>' + esc(byKey[k].n) + '</span><button data-k="' + esc(k) + '" onclick="unhide(this.dataset.k)">Tonen</button></div>').join('') || '<p style="margin:0;color:var(--muted);font-size:14px">Geen. Houd een app ingedrukt om hem te verbergen.</p>';
   $('#l-default').textContent = Android.isDefault() ? '✓ Rene\'s Start is je startscherm.' : 'Nu nog niet je standaard-startscherm.';

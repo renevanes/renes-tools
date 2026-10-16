@@ -1,15 +1,24 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.81",
-  "versionCode": 82,
-  "nativeLevel": 73,
+  "versionName": "1.82",
+  "versionCode": 83,
+  "nativeLevel": 74,
   "web": "index.html",
-  "webSha256": "d0c4e93b89bdf6a092e8d77f18a3ab06abbb4f6fb86e06c45db65b58d621c106",
+  "webSha256": "114f0bf6125cd94e71fb863194e3233da920c6a41ad889d2bf5346733ed6c718",
   "start": "start.html",
-  "startSha256": "56c443c262bde51c34d39118436679e990560c8af0cfb8b4c764cf16aa39c5b5",
+  "startSha256": "9920e479bec6adbb57970484771120de313631195ffd65b8c77d4b3defde94b7",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "6609aa6436f1b5c792c331e3859b75e0e74711f01ac97f4cedeaf4bd93c01ab8",
+  "apkSha256": "d01725c4a5b2d76c9416b247c2e7a215d932c599f3f205c056fe9dc7c099d2bf",
   "changelog": [
+    {
+      "version": "1.82",
+      "date": "2026-10-16",
+      "changes": [
+        "Een nieuw ontwerp voor de hele app: rustige kleuren, heldere typografie, compactere knoppen en consistente lijniconen. Ook lijsten, dialogen, de speler en de bediening van de telefoon-skin zijn bijgewerkt.",
+        "SMS-backup herstelt een leeg antwoord van de mappen-app na het maken of hernoemen van bestanden. Een eerdere backup blijft behouden als veilig vervangen niet lukt.",
+        "SMS-backup toont de gekozen map, een duidelijke foutmelding en knoppen om opnieuw te proberen of een andere backup-map te kiezen."
+      ]
+    },
     {
       "version": "1.81",
       "date": "2026-10-16",
@@ -727,5 +736,5 @@
       ]
     }
   ],
-  "webSig2": "UJt+NyKEGkogjtweUdzuVhhaSmM4P6RBlsvobNqeR68hlilPzHc0KyLu6cpCXaxqkwPHEyAUzEqNeiyophYCQyrByr5nJZqNitbMqXJWecFQb/OrjY3r79mdH6NSiwkXJGDTOyqRVVwIjVnGXr0euafrZ41xI/IYoFI4lOOxC3cqytHG6I306UU5uyxrLZlreMU6YsXE4kGBKLIlqecxqUI/gpEfMu9bcuHbYgna2I+2csKdiec+2Y26QIdVv0JEONTSAvoyqCrdasx9dLMDIm4PmXJjhuajs9PYRIhLWfyH5AH3ZvbeSoVlKZy5neEMP2aIe43JaWonY5IeMs3zDqDWx4LNPOQM5J7ms7ozN0k4aYQVej/NdgefEMvUGfPQuxUULyvJKfmMXAlVO/UCJNNIeFaXs1jKLxfRjZ8sjJsJwlpkUplZEBnmj4Rw6uVe1u5d4ANEcNEEnxVp6vaKHlbSFaDBEvm08wzKKlssrnC2qzW2PFOKdTTlLqn1Sztn"
+  "webSig2": "I5Cag1mhihtfUaUf/KZ+nKMrGnYWKySbr/6wJb2NWsGwrGRzmBazhIhI8gF5hUO2mL/uOU2R0vlO+ZeUfrEhqplqdxBM9YYXu8qhBxsMqXRVgDzqtpc/cWkY4vuF6YSxnMnzy7UolowwGjNPJpmavOOLOL2Rs0Zex2lLZsQUd2D0JyN+xz8aOmoTv43RvgdcIc5vNU7RrxCxvrwZAhbPy1vCeGd1wGgIPCa3SkjsIJwvcnVDT7QV/ASmcu75FjtjQGl1NQyrg9lObEKMTqirsngs34uHo7nIafMkvB8WwBEpMAJevHZY+mJuZh8XyNGNTI5MQ9PQVVMyr+4Homjv3iSaXlEZU9D7P9kl+RLRe8aMZyP++K5gucal+edSFGsfjXzH/39oERCySVu4F1CbvzF/hM7/IzNb9EDc+gO+3dnuEVYucbibgJItgnlqOOpq13FffmwjbL4AlbxMJTiU+Fk6+9Xr2DQSX/weu89jqLusgL65ZFIoz6NqfjjTpE8I"
 }
