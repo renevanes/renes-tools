@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.77",
-  "versionCode": 78,
-  "nativeLevel": 71,
+  "versionName": "1.78",
+  "versionCode": 79,
+  "nativeLevel": 72,
   "web": "index.html",
-  "webSha256": "89ffd07893dfde988e707fcb4f4bc41bc91be22b1f380d56a2b457517e32c6c0",
+  "webSha256": "cfab55e9046393b9b6432282aa3e626e527df641e2cf3237ff38869c96fdcefa",
   "start": "start.html",
   "startSha256": "56c443c262bde51c34d39118436679e990560c8af0cfb8b4c764cf16aa39c5b5",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3b3ad8b106f4f20ca63ae6c2e07a06c118c0e07625dce2dbba535926a320437b",
+  "apkSha256": "cc8e26294acb8371f26312b3baaff5b0d5c79218194475ad7ad4ab6828a898c2",
   "changelog": [
+    {
+      "version": "1.78",
+      "date": "2026-10-16",
+      "changes": [
+        "Maak sublijstjes in een notitie via het menu ⋯ bij een item: voeg subitems toe of wijzig hun niveau. Elk item heeft een eigen vinkje; sorteren en slepen houden sublijstjes bij elkaar.",
+        "Sublijstjes blijven herkenbaar bij delen, in de notitiewidget en in de tekstbackup. Verwijder je een hoofditem, dan blijven de subitems bewaard."
+      ]
+    },
     {
       "version": "1.77",
       "date": "2026-10-16",
@@ -695,5 +703,5 @@
       ]
     }
   ],
-  "webSig2": "IBVcjBJqBcgSoOiGiPscRMdZLV4FoN7sQK1YzYPcfnbCa213kWFxUuuKSTUFymqj6jqvkHLgWLW27hpOfKuUN3oEUAuUm7Kgvw8FKfTTW0DpzPQ0C6FNmbzcD561ehKUEItGbG8nO2LQXdoI5f3z6WEUy3lXiwPibaYVZWhEBOZpYik4xqdeZ2MVApb1OXqS1xYrk9cnRsP+P6SVLZRYm4xp/36EFnRnu4kyY3rjdlrK6p2nECs/zfs8YNOo8h4saOAMoYjKyvlfNx3/HVQSRI9H0LlgvnuW5RwoekpBnOkwrKShyO2SQ0FaqArbUq/v9Y2yfgm6ZKuCRsmT1hlQP58pb5Stjl7vsjrTXvuWWHsIIHM1s7xJwBB2q81Vdv3Mqb+r4+VEsbA/FsvdwFRv+e/uZlfaJSBU0CRklUMb5bfrRAImja8OeYYn82Q8P4dOrAqXWm+a1QA1j7T4YijzMTPESZ/4hLRKWVp54MNedqiyMhxJSIOPArE2Vqc/Ydd0"
+  "webSig2": "sNLcbf1bDpc9mq25+C9iTDSs2L3AVWBjqjUJFxsQH+tWxCT83rGYvXuOg+NC4oFDffqzFHcLerEym4FZ4B3dzHDBjAa6BvAAKHgBpSUJRF94HbWtDTN3VQ0Bs8MMkfINuB34s1yx0MGvsIppsP6F4t38Z+G6MleLMkDTR71CqnZQBM/DQOlIOaTIgbpT6G5bpUTEBMTpS2UdR7vZ5NdTU6wqadwp+Ept2+7naZPKwYMSemoT7I8GcEL/W49cwv5IjhesJdh7VjlFgMsTwMZ8Aa2F4CQ8DEl/h+tSnFz7S/e6B0WSlEPBy31wxdS1H8qiY6VFgYlHsmxMSazvqxkPLX+PQ1vo9hYANXfLLa6RIQqQ0qTdz3rfXF9lEAGcBmQ5aCDqk/zWrut2hebdgmAlIKzdy5zFrZZsk4IYgNXL7nn/cp6TneomdkLFY0SiNQ9DhovY1y5qs8Suu7BlRbY+AwTcYYcqFaYK3RpQGHZwQj+xef/+n1BiJjncLLPnn/WM"
 }

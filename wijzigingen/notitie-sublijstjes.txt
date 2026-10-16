@@ -1,2 +1,0 @@
-Maak sublijstjes in een notitie via het menu ⋯ bij een item: voeg subitems toe of wijzig hun niveau. Elk item heeft een eigen vinkje; sorteren en slepen houden sublijstjes bij elkaar.
-Sublijstjes blijven herkenbaar bij delen, in de notitiewidget en in de tekstbackup. Verwijder je een hoofditem, dan blijven de subitems bewaard.
