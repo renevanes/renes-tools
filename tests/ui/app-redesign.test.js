@@ -19,6 +19,13 @@ const screens=['home','search','backup','settings','redial','wa','calls','notes'
      assert.deepEqual(small,[],screen+' heeft voldoende grote actieknoppen');
     }
    }
+   // Lange toolnamen moeten ook met een breder lettertype ruimte laten voor de bediening.
+   await p.setViewportSize({width:320,height:844});
+   const wideNames=await p.addStyleTag({content:'#s-homeedit .nm{font-family:monospace}'});
+   await p.evaluate(()=>show('homeedit'));
+   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'startscherm-editor blijft binnen een smal scherm met brede letters');
+   assert.equal(await p.locator('#he-groups .mv').evaluateAll(els=>els.every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44&&r.right<=innerWidth;})),true,'verplaatsen en favorieten blijven goed bereikbaar');
+   await wideNames.evaluate(e=>e.remove());await p.setViewportSize({width:390,height:844});
    await p.evaluate(()=>{show('selftest');sfRender(['ok','warn','fail','skip'].map(status=>({name:'Controle '+status,detail:'Getest',status})),Date.now());});
    assert.deepEqual(await p.locator('#sf-res .sr-only').allTextContents(),['Geslaagd: ','Aandachtspunt: ','Mislukt: ','Overgeslagen: ']);
    // De afgebeelde Android-fout kan nog in de opgeslagen exportstatus staan na de update.

@@ -58,6 +58,8 @@ input[type=tel],textarea.key,.ntext{border-radius:8px;border-color:var(--outline
 .hgroups:not(.compact) .tiles.single .tile{min-height:78px;display:grid;grid-template-columns:32px minmax(0,1fr);gap:3px 12px;align-items:center}
 .hgroups:not(.compact) .tiles.single .ic{grid-column:1;grid-row:1 / span 2}.hgroups:not(.compact) .tiles.single b,.hgroups:not(.compact) .tiles.single small{grid-column:2}
 .dash{padding:4px 14px}.dash button{padding:12px 0;font-size:14px}.dash .di{color:var(--primary)}
+.herow .nm,.heghead h2{min-width:0;overflow-wrap:anywhere}
+.herow button.mv{flex:none;width:44px;height:44px;border-radius:7px;display:grid;place-items:center}
 .clist.card,.stations.card{padding:4px 16px}
 .clist button{padding:16px 0;min-height:68px}.clist .r1{gap:12px}.clist .r1 b{font-size:15px;font-weight:650}.clist .r1 time{font-size:12px}.clist .r2{margin-top:4px;font-size:13px}
 .stations .sbtn{padding:14px 0}.logo,.pcart{border-radius:7px}
