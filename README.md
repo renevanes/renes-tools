@@ -302,7 +302,7 @@ De interface is één pagina (`web/index.html`) voor de WebView, maar wordt bewe
                              # licht en donker, met nagebootste Android-brug. Een test mislukt bij een fout in de pagina of een mislukte assert.
 ```
 De app zelf wordt zonder nagebootste brug gebouwd (`web-samenvoegen.py --zonder-testbrug`).
-Bij elke push bouwt GitHub Actions (`.github/workflows/bouwen-en-testen.yml`) de app en draait alle tests. Die APK is ondertekend met een tijdelijke testsleutel en dient alleen als controle; echte updates gaan via `./publish.sh` met de echte sleutel.
+Bij elke push bouwt GitHub Actions (`.github/workflows/bouwen-en-testen.yml`) de app en draait alle tests. Die APK is ondertekend met een tijdelijke testsleutel en dient alleen als controle; echte updates publiceert de workflow `Publiceren` (`.github/workflows/publiceren.yml`) vanzelf bij elke wijziging aan de app op main, met de echte sleutel uit het geheim `SIGNING_PASSPHRASE` in de GitHub-omgeving `publiceren`. Lokaal kan ook `./publish.sh`.
 
 De ondertekeningssleutel staat alleen versleuteld in de repository (`keys/signing-key.enc`, AES-256). Rene heeft de wachtwoordzin. Elke update moet met dezelfde sleutel ondertekend zijn, anders kan de telefoon hem niet installeren.
 

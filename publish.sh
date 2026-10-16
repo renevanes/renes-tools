@@ -25,11 +25,15 @@ APK_PATHS=(app web/vendor web/neutraal.html web/ontsleutelen.html build.sh)
 EMPTY_TREE=$(git hash-object -t tree /dev/null)
 WHO=${AGENT:-$([ -n "${CLAUDE_SESSION_URL:-}" ] && echo Claude || echo "$(git config user.name 2>/dev/null || echo onbekend)")}
 TOKEN="$WHO $$@$(hostname 2>/dev/null || echo host)-$RANDOM"
-GIT_ID=(-c user.name=renevanes -c user.email=rene.van.es@esape.nl)
+if [ "${GITHUB_ACTIONS:-}" = "true" ]; then # publicatie door GitHub zelf (.github/workflows/publiceren.yml)
+  GIT_ID=(-c user.name=renes-tools-release -c "user.email=41898282+github-actions[bot]@users.noreply.github.com")
+else
+  GIT_ID=(-c user.name=renevanes -c user.email=rene.van.es@esape.nl)
+fi
 mkdir -p build wijzigingen
 
 # De echte sleutel, en geen testsleutel
-[ -f keys/release.p12 ] && [ -f keys/keystore.pass ] || { echo "De ondertekeningssleutel ontbreekt. Pak hem uit met: PASSPHRASE=… ./keys/unlock.sh (de wachtwoordzin krijg je van Rene; zet hem nooit in de repository of in GitHub)"; exit 1; }
+[ -f keys/release.p12 ] && [ -f keys/keystore.pass ] || { echo "De ondertekeningssleutel ontbreekt. Pak hem uit met: PASSPHRASE=… ./keys/unlock.sh (de wachtwoordzin krijg je van Rene; nooit in de repository, op GitHub alleen als geheim SIGNING_PASSPHRASE). Zonder sleutel: push naar main, dan publiceert GitHub het"; exit 1; }
 FP=$(openssl pkcs12 -in keys/release.p12 -passin file:keys/keystore.pass -nokeys -clcerts 2>/dev/null | openssl x509 -noout -fingerprint -sha256 2>/dev/null | sed 's/.*=//' || true)
 [ "$FP" = "$CERT_SHA256" ] || { echo "keys/release.p12 is niet de echte sleutel van Rene's Tools (vingerafdruk ${FP:-onleesbaar}). Met een andere sleutel kunnen telefoons de update niet installeren."; exit 1; }
 
@@ -113,6 +117,12 @@ for try in 1 2 3 4 5; do
       continue
     fi
     echo "Niets nieuws om te publiceren"; exit 0
+  fi
+  # Op GitHub zonder wijzigingsregels: de onderwerpen van de nieuwe commits gebruiken
+  if [ -z "$(notes)" ] && [ -n "${AUTO_NOTES:-}" ]; then
+    git log --no-merges --format=%s "$LASTREL..HEAD" -- app web tools build.sh | grep -vE '^(Werk:|Versie [0-9]|Samenvoegen)' | grep -viE '(^|[^[:alpha:]])n[e]p' | sed 's/ *\[skip ci\]//' | head -8 > wijzigingen/automatisch.txt || true
+    [ -s wijzigingen/automatisch.txt ] || echo "Kleine verbeteringen" > wijzigingen/automatisch.txt
+    check_nep
   fi
   [ -n "$(notes)" ] || { echo "Schrijf eerst in wijzigingen/<onderwerp>.txt wat er voor Rene verandert (één regel per wijziging, in het Nederlands)."; exit 1; }
 

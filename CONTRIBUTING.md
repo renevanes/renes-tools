@@ -35,7 +35,7 @@ Een beveiligingsprobleem meld je niet in een openbaar issue maar via [SECURITY.m
 6. Open een pull request. Pas **niet** aan: `VERSION`, `changelog.json` en `update/` (dat doet het publiceren; de
    automatische controle keurt het anders af).
 
-Rene bekijkt elke pull request. Na het samenvoegen gaat je wijziging mee in de volgende versie die wordt gepubliceerd.
+Rene bekijkt elke pull request. Na het samenvoegen publiceert GitHub je wijziging vanzelf als nieuwe versie.
 
 ## Waar we op letten
 - Teksten in de app zijn Nederlands, kort en duidelijk.

@@ -1,6 +1,6 @@
 # Bouwt de app en draait alle tests bij elke wijziging (en met de hand via "Run workflow").
 # Dit is een controle: de APK wordt ondertekend met een tijdelijke testsleutel, niet met de echte
-# sleutel. Echte updates (met de echte sleutel) worden nog steeds gepubliceerd met ./publish.sh.
+# sleutel. Echte updates publiceert de workflow Publiceren (publiceren.yml).
 name: Bouwen en testen
 
 on:

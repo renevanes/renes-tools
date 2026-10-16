@@ -8,4 +8,4 @@ cd "$(dirname "$0")"
 mkdir -p wijzigingen
 f="wijzigingen/$(date +%Y%m%d-%H%M%S)-$$.txt"
 printf '%s\n' "$@" > "$f"
-echo "Wijzigingsregels in $f; publiceren met ./publish.sh"
+echo "Wijzigingsregels in $f; publiceren: push naar main (of ./publish.sh)"

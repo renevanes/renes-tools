@@ -8,7 +8,8 @@ werkt zichzelf automatisch bij. Beveiligingsproblemen nemen we daarom serieus.
 Beschrijf wat je vond en hoe het na te doen is. Je krijgt zo snel mogelijk antwoord.
 
 Hoe de updates beveiligd zijn: elke update (`update/update.json`, de interface en de APK) is ondertekend met een
-sleutel die alleen Rene heeft. De app installeert niets met een andere handtekening. De versleutelde sleutel staat in
-`keys/signing-key.enc`; de wachtwoordzin staat nergens in deze repository.
+sleutel die alleen Rene en de publicatie-workflow op main kunnen gebruiken. De app installeert niets met een andere handtekening. De versleutelde sleutel staat in
+`keys/signing-key.enc`; de wachtwoordzin staat nergens in deze repository, alleen als geheim in de GitHub-omgeving
+`publiceren`, waar alleen de publicatie-workflow op main bij kan. Pull requests en andere branches krijgen het niet.
 
 *English: please report security issues privately via GitHub's "Report a vulnerability" (Security tab), not in a public issue.*

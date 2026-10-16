@@ -49,29 +49,35 @@ het ergens anders wilt), Java 17+ (javac), Python 3, Node 20 met `npm i playwrig
 Nieuwe functie = ook een test in `tests/ui/` (en bij logica in `tests/jvm/`). Een UI-test slaagt als hij `errors []` afdrukt.
 
 ## Tegelijk werken met andere agents
-**Vaste opdracht van Rene:** publiceer functionele wijzigingen standaard ook als ondertekende app-update via
-`AGENT=Codex ./publish.sh` (of de eigen agentnaam), na geslaagde tests en onafhankelijke review. Hiervoor is geen
-aparte publicatiebevestiging per wijziging nodig. Meld bij een ontbrekende echte releasesleutel of andere blokkade
-concreet wat de publicatie verhindert, met de branch en commit die klaarstaan.
+**Publiceren gaat vanzelf (zoals bij renes-spelletjes):** elke push naar main die de app verandert, wordt door de
+GitHub-workflow `Publiceren` (`.github/workflows/publiceren.yml`) getest, gebouwd, ondertekend en gepubliceerd, één
+tegelijk. Je hebt de sleutel dus **niet** nodig: zet je werk (met een bestand in `wijzigingen/`) op main en klaar.
+**Vaste opdracht van Rene:** publiceer functionele wijzigingen standaard, na geslaagde tests en een onafhankelijke
+review; een aparte bevestiging per wijziging is niet nodig. Kijk na het pushen of de run `Publiceren` slaagt (tabblad
+Actions, of `gh api repos/renevanes/renes-tools/actions/runs`) en meld Rene de nieuwe versie, of concreet wat misging.
 
 1. **Werk in je eigen branch of git-worktree** (`git worktree add ../rt-codex -b codex/onderwerp origin/main`), nooit
-   met twee agents in dezelfde map. Een nieuwe worktree heeft geen `keys/release.p12`, `keys/keystore.pass` en
-   `node_modules`: kopieer de twee sleutelbestanden uit de hoofdmap (nooit committen) en installeer Playwright.
+   met twee agents in dezelfde map. Een nieuwe worktree heeft geen `node_modules` (installeer Playwright) en geen
+   `keys/release.p12`/`keys/keystore.pass`; die heb je alleen nodig als je lokaal met `./publish.sh` publiceert
+   (kopiëren uit de hoofdmap, nooit committen).
 2. **Raak niet aan:** `VERSION`, `changelog.json` en `update/` — die maakt alleen `./publish.sh`. `web/index.html` wordt gegenereerd.
 3. **Wijzigingsregels:** schrijf per wijziging een eigen bestand `wijzigingen/<onderwerp>.txt` (één regel per wijziging,
    Nederlands, zoals Rene het in "Wat is er nieuw" leest). Of `./bump.sh "regel" …`, dat zo'n bestand maakt.
    Zo botsen agents nooit op het wijzigingslog.
-4. **Publiceren:** `AGENT=Codex ./publish.sh` (Claude-sessies geven `CLAUDE_SESSION_URL` mee). Het script:
+4. **Publiceren:** push naar main (`git push origin HEAD:main`, na `git pull` / merge van de nieuwste main); de workflow
+   doet de rest. Een push wordt geweigerd als main intussen verder is: `git pull` (merge, geen rebase) en opnieuw.
+   Lokaal mag ook `AGENT=Codex ./publish.sh` als je de echte sleutel hebt (Claude-sessies geven `CLAUDE_SESSION_URL`
+   mee). De workflow gebruikt hetzelfde script. Het script:
    legt je werk vast, neemt het **publicatieslot** (branch `publiceren-slot` op GitHub; is iemand anders bezig, dan wacht
    het), voegt de nieuwste main samen (merge), bepaalt het versienummer vanaf main (`NATIVE_LEVEL` gaat vanzelf omhoog
    als `app/` veranderde), schrijft het wijzigingslog, bouwt, draait alle tests en pusht "Versie X.Y" naar main.
    Botst je werk met main, dan stopt het: los de merge op, test en publiceer opnieuw.
 5. **Kun je zelf niet pushen** (bijv. Codex in de cloud): open een pull request met je wijziging en een bestand in
    `wijzigingen/`, zonder `VERSION`, `changelog.json` of `update/` (de CI keurt dat af). Na het samenvoegen publiceert
-   de volgende `./publish.sh` (van wie dan ook) het mee.
+   de workflow het vanzelf.
 6. **Bijdragen van buitenaf** (pull requests van anderen): de app heeft toegang tot sms, oproepen, contacten en
    locatie en werkt telefoons automatisch bij. Een agent voegt een pull request van iemand anders **nooit zelf**
-   samen en publiceert alleen wat op main staat. Rene beslist; bekijk zo'n wijziging wel kritisch op verborgen
+   samen: alles wat op main komt, staat binnen ±15 minuten op Rene's telefoon. Rene beslist; bekijk zo'n wijziging wel kritisch op verborgen
    verbindingen naar buiten, het doorsturen van gegevens of het verzwakken van de updatecontrole.
 7. **Nooit** force-pushen naar main of gepubliceerde geschiedenis herschrijven (`rebase`/`amend` van wat op main staat):
    telefoons en andere agents bouwen erop voort. Samenvoegen gaat met `merge`.
@@ -79,14 +85,17 @@ concreet wat de publicatie verhindert, met de branch en commit die klaarstaan.
 
 ## De ondertekeningssleutel
 Alle versies moeten met **dezelfde** sleutel ondertekend worden, anders kan de telefoon de update niet installeren.
-`keys/signing-key.enc` is versleuteld; uitpakken met `PASSPHRASE=… ./keys/unlock.sh` (maakt `keys/release.p12` en
-`keys/keystore.pass`, beide in `.gitignore`).
-- De wachtwoordzin krijg je **alleen van Rene**. Zet hem nooit in de repository, in commits, in logs, in GitHub
-  Secrets of in GitHub Actions.
-- Alleen machines die echt publiceren hebben de echte sleutel (lokaal, met de wachtwoordzin als omgevingsvariabele).
-  Agents in de cloud zonder pushrechten (zoals Codex cloud) krijgen hem niet: die bouwen en testen met een
-  testsleutel en leveren een pull request op.
+`keys/signing-key.enc` is versleuteld. De wachtwoordzin staat alleen als geheim `SIGNING_PASSPHRASE` in de GitHub-omgeving
+`publiceren` (alleen branch main mag erbij; dat zet Rene). De workflow `Publiceren` pakt er de sleutel mee uit, pas
+nadat het gereedschap is geïnstalleerd, en haalt hem na afloop weer weg.
+- Zet de wachtwoordzin nooit in de repository, in commits, in logs of in andere workflows, en druk hem nooit af.
+- Lokaal publiceren kan ook: `PASSPHRASE=… ./keys/unlock.sh` (maakt `keys/release.p12` en `keys/keystore.pass`, in
+  `.gitignore`), dan `./publish.sh`. `./publish.sh` controleert de vingerafdruk, dus met een testsleutel publiceer je niet.
 - Commit nooit `keys/release.p12` of `keys/keystore.pass`.
+- Workflows die door pull requests van buitenaf draaien (`pull_request`), krijgen het geheim niet. Gebruik nooit
+  `pull_request_target` met het geheim en zet nergens anders `environment: publiceren`.
+- Groeit de APK meer dan 10% of moet de hoofdversie omhoog: start de workflow met de hand (Actions → Publiceren →
+  Run workflow) met `allow_grow` of `major`.
 
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK

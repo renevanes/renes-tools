@@ -1,0 +1,107 @@
+# Publiceert vanzelf: elke wijziging aan de app op main wordt getest, gebouwd, ondertekend en gepubliceerd,
+# één publicatie tegelijk. Telefoons halen de nieuwe versie daarna op. Agents (Claude, Codex, …) hoeven dus alleen
+# naar main te pushen of een pull request samen te voegen; de sleutel hebben ze niet nodig.
+# Vereist de omgeving "publiceren" (Settings → Environments; alleen branch main toegestaan) met het geheim
+# SIGNING_PASSPHRASE. Die zet alleen Rene. Andere branches en pull requests kunnen er zo niet bij.
+name: Publiceren
+
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', 'web/**', 'tools/**', 'build.sh', '.github/workflows/publiceren.yml']
+  workflow_dispatch:
+    inputs:
+      allow_grow:
+        description: 'De APK mag meer dan 10% groter worden'
+        type: boolean
+        default: false
+      major:
+        description: 'Hoofdversie omhoog (1.9 wordt 2.0)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: publiceren
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publiceren:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: publiceren
+    env:
+      TOOLS: ${{ github.workspace }}/../toolchain
+    steps:
+      - name: Is het geheim er?
+        id: gate
+        env:
+          PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
+        run: |
+          if [ -z "$PASSPHRASE" ]; then
+            echo "::warning::Het geheim SIGNING_PASSPHRASE ontbreekt in de omgeving publiceren: niet gepubliceerd."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.ok == 'true'
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Nieuwste main gebruiken (een wachtende run publiceert alles wat er intussen bij kwam)
+        if: steps.gate.outputs.ok == 'true'
+        run: git pull -q --ff-only origin main
+
+      - uses: actions/setup-java@v4
+        if: steps.gate.outputs.ok == 'true'
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.ok == 'true'
+        with:
+          node-version: '20'
+
+      - name: Bouwgereedschap en Playwright (vóór de sleutel er is)
+        if: steps.gate.outputs.ok == 'true'
+        run: |
+          ./setup-tools.sh
+          npm install --no-save --no-package-lock playwright@1.56.0
+          npx playwright install --with-deps chromium
+          rm -f package-lock.json
+
+      - name: Sleutel uitpakken
+        if: steps.gate.outputs.ok == 'true'
+        env:
+          PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
+        run: |
+          ./keys/unlock.sh > /dev/null || { echo "::error::Sleutel uitpakken mislukt; klopt het geheim SIGNING_PASSPHRASE?"; exit 1; }
+
+      - name: Testen, bouwen, ondertekenen en publiceren
+        if: steps.gate.outputs.ok == 'true'
+        env:
+          AGENT: GitHub
+          AUTO_NOTES: '1'
+          ALLOW_GROW: ${{ inputs.allow_grow && '1' || '' }}
+          MAJOR: ${{ inputs.major && '1' || '' }}
+        run: ./publish.sh
+
+      - name: Sleutel weghalen
+        if: always()
+        run: rm -f keys/release.p12 keys/keystore.pass
+
+      - name: Schermafdrukken en logboeken bij een fout
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: publiceren-logboek
+          path: |
+            build/publish-*.log
+            tests/ui/shots/*.png
+          retention-days: 7
