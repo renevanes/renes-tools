@@ -58,6 +58,7 @@ function spRelink(){ const e = Android.spotifyLink(spSt.clientId || ''); if (e) 
 function spLibOpen(kind){
   const k = (spLibD.kinds || []).find(x => x.kind === kind); if (!k) return;
   const acts = [['Bekijken', () => spLibShow(k, false)]];
+  if (kind === 'shows' && k.n > 0) acts.push(['Overnemen in Podcasts', () => pspOpen('backup')]);
   if (k.gone) acts.push(['Verdwenen bekijken (' + k.gone + ')', () => spLibShow(k, true)],
     ['↩ Verdwenen terugzetten in Spotify (' + k.gone + ')', () => spLibRestore(k, 'gone')]);
   if (k.restore && k.n > 0) acts.push(['Alles terugzetten in Spotify…', () => askConfirm('Alles terugzetten?', 'Alle ' + (k.n + (k.gone || 0)) + ' uit de backup' + (k.gone ? ' (ook de ' + k.gone + ' verdwenen)' : '') + ' komen (weer) in "' + k.name + '" in Spotify. Wat er al in staat, blijft gewoon staan. Handig voor een nieuw account.', 'Terugzetten', () => spLibRestore(k, 'all'))]);

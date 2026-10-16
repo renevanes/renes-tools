@@ -135,6 +135,31 @@ public class SpotifyBridge extends PlayerBridge {
     /** Bibliotheek: per soort het aantal en hoeveel er uit Spotify verdween. */
     @JavascriptInterface public String spotifyLib() { return SpotifyLib.summary(ctx).toString(); }
 
+    /** Gevolgde podcasts, rechtstreeks of uit de lokale backup. Geen wijziging in Spotify. */
+    @JavascriptInterface public void spotifyPodcastShows(boolean backup, int request) {
+        new Thread(() -> {
+            JSONObject r = new JSONObject();
+            try { r = SpotifyPodcasts.list(ctx, backup); }
+            catch (Throwable e) { try { r.put("error", msg(e, "Podcastlijst ophalen lukt niet")).put("relink", e instanceof Spotify.Scope); } catch (Exception ignored) { } }
+            try { r.put("request", request); } catch (Exception ignored) { }
+            a.js("onSpotifyPodcasts", r.toString());
+        }, "spotify-podcasts").start();
+    }
+
+    /** Openbare RSS-versies zoeken, met een eigen antwoord zodat de gewone zoekfunctie blijft werken. */
+    @JavascriptInterface public void spotifyPodcastSearch(String id, String query, int request) {
+        new Thread(() -> {
+            JSONObject r = new JSONObject();
+            try {
+                r.put("id", id).put("request", request);
+                if (id == null || !id.matches("[A-Za-z0-9]{22}") || query == null || query.trim().isEmpty() || query.length() > 300)
+                    throw new Exception("Vul een zoekterm voor deze podcast in");
+                r.put("results", Podcasts.search(query.trim()));
+            } catch (Throwable e) { try { r.put("error", msg(e, "Openbare versie zoeken lukt niet")); } catch (Exception ignored) { } }
+            a.js("onSpotifyPodcastSearch", r.toString());
+        }, "spotify-podcast-search").start();
+    }
+
     /** Items van één soort (gone: de weggehaalde). */
     @JavascriptInterface public String spotifyLibList(String kind, boolean gone) {
         try { return SpotifyLib.list(ctx, kind == null ? "" : kind.replaceAll("[^a-z-]", ""), gone).toString(); } catch (Exception e) { return "{\"total\":0,\"items\":[]}"; }

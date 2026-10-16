@@ -5,6 +5,7 @@
     <h1 tabindex="-1">Podcasts</h1>
   </div>
   <main>
+    <button class="big ghost" id="pc-from-spotify" data-icon="spotify" onclick="pspOpen()" style="margin-bottom:18px">Uit Spotify overnemen</button>
     <div id="pc-cont-wrap" style="display:none">
       <div class="flabel" style="margin:4px 2px 8px">Verder luisteren</div>
       <div class="card pclist" id="pc-cont"></div>
@@ -19,6 +20,39 @@
     <div class="flabel" style="margin:4px 2px 8px" id="pc-list-label">Populair in Nederland</div>
     <div class="card stations" id="pc-list"><p class="note" style="padding:14px">Laden…</p></div>
     <p class="note" style="margin-top:14px">Zoeken gaat via de openbare zoekdienst van Apple Podcasts (zonder account); de afleveringen komen rechtstreeks van de makers. Wat je volgt en waar je was, blijft op je telefoon (en gaat mee in Alles back-uppen).</p>
+  </main>
+</section>
+
+<section class="screen" id="s-podspotify">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Uit Spotify overnemen</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="spotify" aria-hidden="true"></span>Je gevolgde podcasts</h2>
+      <p class="note">Haal je Spotify-lijst op en zoek de openbare podcastversies. Controleer de koppelingen en kies wat je wilt toevoegen aan Mijn podcasts.</p>
+      <div class="btns psp-sources">
+        <button class="big" id="psp-live" onclick="pspLoad('live')">Huidige lijst ophalen</button>
+        <button class="big ghost" id="psp-backup" onclick="pspLoad('backup')">Uit laatste backup</button>
+      </div>
+      <button class="linkish" id="psp-link" onclick="show('spotify')">Spotify koppelen of opnieuw koppelen</button>
+      <p class="note" id="psp-source">Je kunt ook een eerder bewaarde Spotify-backup gebruiken.</p>
+    </div>
+    <div id="psp-message" class="result" role="status" style="display:none"></div>
+    <div id="psp-work" hidden>
+      <div class="psp-toolbar">
+        <button class="big ghost" id="psp-find" data-icon="search" onclick="pspFind()">Openbare versies zoeken</button>
+        <button class="mini" id="psp-pause" onclick="pspPause()" hidden>Zoeken pauzeren</button>
+      </div>
+      <p class="note" id="psp-progress" role="status"></p>
+      <input class="search" id="psp-filter" type="search" placeholder="Filter je Spotify-lijst…" aria-label="Filter je Spotify-lijst" oninput="pspFilter()">
+      <div class="psp-selection"><button class="linkish" onclick="pspSelect(true)">Gevonden selecteren</button><button class="linkish" onclick="pspSelect(false)">Selectie wissen</button><span id="psp-count"></span></div>
+      <div class="card psp-list" id="psp-list"></div>
+      <p class="note">Spotify geeft geen RSS-adressen mee. De app zoekt openbare versies via Apple Podcasts. Een podcast die alleen op Spotify beschikbaar is, kun je hier niet afspelen.</p>
+      <p class="note">Overnemen voegt podcasts toe. Bestaande podcasts en luisterposities blijven behouden. Je kunt later opnieuw ophalen om nieuwe podcasts over te nemen.</p>
+      <div class="psp-footer"><button class="big" id="psp-add" data-icon="plus" onclick="pspImport()" disabled>Overnemen</button><button class="big ghost" onclick="show('podcasts')">Naar Mijn podcasts</button></div>
+    </div>
   </main>
 </section>
 

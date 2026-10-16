@@ -1,6 +1,6 @@
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
-const screens=['home','search','backup','settings','redial','wa','calls','notes','contacts','radio','podcasts','spotify','vpn','loc','sms','tracks','car','kluis','pdf','recorder','transcripts','music','history','auto','info','homeedit','selftest'];
+const screens=['home','search','backup','settings','redial','wa','calls','notes','contacts','radio','podcasts','podspotify','spotify','vpn','loc','sms','tracks','car','kluis','pdf','recorder','transcripts','music','history','auto','info','homeedit','selftest'];
 (async()=>{
  const browser=await chromium.launch();
  try{
@@ -58,7 +58,7 @@ const screens=['home','search','backup','settings','redial','wa','calls','notes'
      const a=lum(s.color),b=lum(s.backgroundColor);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
     },accent);assert.ok(ratio>=4.5,accent+' houdt de skin-knoptekst leesbaar');
    }
-   assert.deepEqual(errors,[]);await skin.close();console.log(scheme,'appbreed ontwerp, 27 schermen, lokale iconen, SMS-herstel en skincontrast: errors []');
+   assert.deepEqual(errors,[]);await skin.close();console.log(scheme,'appbreed ontwerp, 28 schermen, lokale iconen, SMS-herstel en skincontrast: errors []');
   }
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});
