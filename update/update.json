@@ -1,15 +1,23 @@
 {
   "app": "Rene's Tools",
-  "versionName": "1.82",
-  "versionCode": 83,
-  "nativeLevel": 74,
+  "versionName": "1.83",
+  "versionCode": 84,
+  "nativeLevel": 75,
   "web": "index.html",
-  "webSha256": "114f0bf6125cd94e71fb863194e3233da920c6a41ad889d2bf5346733ed6c718",
+  "webSha256": "55367a3606b70563ac31e0c3fca9f427f5c0ecaf1cccc5ba477ffc73ba403a28",
   "start": "start.html",
   "startSha256": "9920e479bec6adbb57970484771120de313631195ffd65b8c77d4b3defde94b7",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "d01725c4a5b2d76c9416b247c2e7a215d932c599f3f205c056fe9dc7c099d2bf",
+  "apkSha256": "c09f65d435d8e145633bd1194febbb4e25a4623f7e08cb7eca7993a8b7e8443d",
   "changelog": [
+    {
+      "version": "1.83",
+      "date": "2026-10-16",
+      "changes": [
+        "Neem de podcasts die je op Spotify volgt over naar Mijn podcasts. Haal de huidige Spotify-lijst op of gebruik je laatste backup, zoek openbare podcastversies en controleer de selectie voordat je ze toevoegt.",
+        "Je kunt de Spotify-lijst later opnieuw ophalen. Bestaande podcasts en luisterposities blijven behouden; dubbele abonnementen worden overgeslagen. Podcasts zonder openbare versie kun je vanuit de lijst op Spotify openen."
+      ]
+    },
     {
       "version": "1.82",
       "date": "2026-10-16",
@@ -736,5 +744,5 @@
       ]
     }
   ],
-  "webSig2": "I5Cag1mhihtfUaUf/KZ+nKMrGnYWKySbr/6wJb2NWsGwrGRzmBazhIhI8gF5hUO2mL/uOU2R0vlO+ZeUfrEhqplqdxBM9YYXu8qhBxsMqXRVgDzqtpc/cWkY4vuF6YSxnMnzy7UolowwGjNPJpmavOOLOL2Rs0Zex2lLZsQUd2D0JyN+xz8aOmoTv43RvgdcIc5vNU7RrxCxvrwZAhbPy1vCeGd1wGgIPCa3SkjsIJwvcnVDT7QV/ASmcu75FjtjQGl1NQyrg9lObEKMTqirsngs34uHo7nIafMkvB8WwBEpMAJevHZY+mJuZh8XyNGNTI5MQ9PQVVMyr+4Homjv3iSaXlEZU9D7P9kl+RLRe8aMZyP++K5gucal+edSFGsfjXzH/39oERCySVu4F1CbvzF/hM7/IzNb9EDc+gO+3dnuEVYucbibgJItgnlqOOpq13FffmwjbL4AlbxMJTiU+Fk6+9Xr2DQSX/weu89jqLusgL65ZFIoz6NqfjjTpE8I"
+  "webSig2": "kLWZc/AfkG+npyX5Lq0rZK5RToPHNbuXmOQ3JZ/89v+lVfJa21ChemTWvAuyjbnZvNRaThBIzNGhbV5FbD7qv+cn3dwVCJHBdbWk/FPH7dEn1V5TBI1LXohuyRVXJWtBrZGWjx3R0tUsVbyfUUpRIA/hR7UBRygRqckFjhGZttdtZ621T+YT+0rWAeOF80wDpvMKcN3EILCLdHORqMA5rilbBUEbh7OnZ8va113SZvcxlLtyfxtppo/6niomfaNsde5JqeKEF2//0RB3/prC9wJ/V6iQpEK0E1wUd05kHvi7WuF22DcOYV4VZ6uLqwc/bbJUcdzpUvClUsbYVQGePPNVKjsy9BnRCkr7oUi92ZHU9nTsOqYKsM/vsHBmAFtHkU0L6c8emHtiDrQsuxrockcwG4r59FnbBQ0Q2yt60C8TFxOLN/xdX1BhnZ9WAhHC/6MUcxASMlewm2X8Nl9qfS2SRaMXvYQCoe78/SuTO0wNqz7kANqlyzN35Ak6cw31"
 }
