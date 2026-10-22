@@ -1,1 +1,0 @@
-Losse apps: zet een tool als eigen app op je startscherm, zonder vingerafdruk en zonder knoppen naar de andere tools. Per tool aan of uit bij Instellingen → Losse apps, of door een tegel lang in te drukken
