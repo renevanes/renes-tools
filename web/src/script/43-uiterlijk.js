@@ -61,7 +61,7 @@ if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => 
 /* Tabbalk onderin op de hoofdschermen */
 const TABS = ['home', 'search', 'backup', 'settings'];
 function uiShown(name){
-  const on = TABS.includes(name);
+  const on = !SOLO && TABS.includes(name);
   // Via een sprong (bijv. zelftest → toestemmingen) blijft de terugknop zichtbaar
   const viaJump = jumpTo.busy || (jumpStack.length && jumpStack[jumpStack.length - 1].to === name);
   document.body.classList.toggle('tabs-on', on);

@@ -636,3 +636,9 @@ body.tab-root .hs{padding-left:16px}
 #pdf-edit-sign{display:block;width:100%;height:auto;background:white;border:1px solid var(--outline);border-radius:8px;touch-action:none}
 .pdfedititems{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .pdfedititems [aria-pressed=true]{background:var(--tonal);outline:2px solid var(--primary)}
+/* Losse app: geen tabbalk, geen terugknop op het eerste scherm, geen speler van andere tools */
+body.solo .tabs{display:none!important}
+body.solo-root .hdr .back{display:none}
+body.solo-root .hs{padding-left:16px}
+body.solo:not(.solo-player) .plbar{display:none!important}
+body.solo:not(.solo-player).has-plbar main{padding-bottom:24px}

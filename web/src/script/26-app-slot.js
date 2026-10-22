@@ -11,7 +11,7 @@ function showLock(){
   if (lk.code) { lockRenderPad(); lockDots(); setTimeout(() => { const k = document.querySelector('#lock-keys button'); if (k) k.focus(); }, 50); }
   else setTimeout(() => Android.lockUnlock(), 250);
 }
-window.onLock = function(){ if (!$('#lockscr').classList.contains('on')) showLock(); };
+window.onLock = function(){ if (SOLO) return; if (!$('#lockscr').classList.contains('on')) showLock(); };
 window.onUnlocked = function(){ lockCode = ''; $('#lockscr').classList.remove('on'); setInert(false); };
 
 /* ---------- App-code ---------- */

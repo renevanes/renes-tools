@@ -59,7 +59,7 @@ public class NoteWidget extends AppWidgetProvider {
                 new Thread(() -> {
                     try {
                         // Notes.save werkt de widgets zelf bij; een geopende app leest het opnieuw in
-                        if (Notes.toggleItem(app, note, item)) { MainActivity a = MainActivity.live; if (a != null) a.js("onNotesMaybeChanged", ""); }
+                        if (Notes.toggleItem(app, note, item)) MainActivity.jsAll("onNotesMaybeChanged", "");
                     } finally { pr.finish(); }
                 }, "note-widget").start();
             }

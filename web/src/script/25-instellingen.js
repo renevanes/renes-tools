@@ -22,6 +22,7 @@ function stNotifMute(on){
 }
 function enterSettings(){
   stNotifRender();
+  stSoloRender();
   $('#st-zoom').value = String(Android.textZoomGet());
   { const can = typeof Android.themeColors === 'function' && !!Android.themeColors(), on = can && store.get('dynColor', false);
     $('#st-dyn').classList.toggle('on', on); $('#st-dyn').setAttribute('aria-checked', on ? 'true' : 'false'); $('#st-dyn').disabled = !can;

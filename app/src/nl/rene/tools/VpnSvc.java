@@ -336,8 +336,7 @@ public class VpnSvc extends VpnService {
             Vpn.refreshTile(this);
             h.removeCallbacks(tick); h.postDelayed(tick, 20_000);
         });
-        MainActivity m = MainActivity.live;
-        if (m != null) m.js("onVpnChanged", "");
+        MainActivity.jsAll("onVpnChanged", "");
     }
 
     private void updateNotif() {
@@ -397,8 +396,7 @@ public class VpnSvc extends VpnService {
         h.removeCallbacks(tick);
         try { if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE); else stopForeground(true); } catch (Exception ignored) { }
         Vpn.refreshTile(this);
-        MainActivity m = MainActivity.live;
-        if (m != null) m.js("onVpnChanged", "");
+        MainActivity.jsAll("onVpnChanged", "");
         stopSelf(lastStartId); // niet als er intussen een nieuwe opdracht kwam
     }
 

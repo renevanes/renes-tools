@@ -81,6 +81,19 @@ public class MainActivity extends Activity {
     private long coverSeq = 0;
     /** De app zoals hij nu draait (voor meldingen van buitenaf, bijv. de widget). */
     static volatile MainActivity live;
+    /** Alle open vensters van de app: de gewone app en losse apps (SoloActivity). */
+    private static final java.util.Set<MainActivity> ALL = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<MainActivity, Boolean>());
+    /** Losse app: welke tool (anders null). Dan geen app-slot en alleen de schermen van die tool. */
+    String solo;
+
+    boolean isSolo() { return this instanceof SoloActivity; }
+
+    /** JavaScript in elk open venster uitvoeren (gewone app en losse apps). */
+    static void jsAll(String fn, String arg) {
+        MainActivity[] list;
+        synchronized (ALL) { list = ALL.toArray(new MainActivity[0]); }
+        for (MainActivity m : list) if (m != null) m.js(fn, arg);
+    }
     /** VPN: welke tunnel aan moet na de toestemming van Android; mag de pagina nu de camera (QR-code scannen)? */
     String vpnPending;
     volatile boolean camAllowed;
@@ -116,7 +129,25 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        live = this;
+        if (isSolo()) {
+            String t = getIntent() == null ? null : getIntent().getStringExtra("solo");
+            if (!Solo.allowed(this, t)) {
+                // Uitgezet (of onbekend): gewoon de app openen, met app-slot, bij die tool
+                Intent i = new Intent(this, MainActivity.class).setAction(Intent.ACTION_VIEW)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                if (Solo.known(t)) i.putExtra("open", t);
+                try { startActivity(i); } catch (Exception ignored) { }
+                finish();
+                return;
+            }
+            solo = t;
+            String label = getIntent().getStringExtra("label"), color = getIntent().getStringExtra("color"), glyph = getIntent().getStringExtra("glyph");
+            if (label == null || label.isEmpty() || label.length() > 40) label = "Tools";
+            if (glyph != null && glyph.length() > 4) glyph = null;
+            try { setTaskDescription(new android.app.ActivityManager.TaskDescription(label, Solo.taskIcon(color, glyph), Solo.color(color))); }
+            catch (Exception ignored) { }
+        } else live = this;
+        synchronized (ALL) { ALL.add(this); }
         RedialService.createChannel(this);
         WaBackupService.createChannel(this);
         WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
@@ -183,7 +214,7 @@ public class MainActivity extends Activity {
         if (b == null && !fromHistory) playFromShortcut(getIntent()); // niet opnieuw afspelen bij terugkomen via Recents
         if (b == null && !fromHistory) RedialPlan.startMissed(this, getIntent());
         // Met app-slot: niets van de inhoud laten zien voordat het slotscherm er staat (anders flitst het startscherm).
-        if (Lock.active(this)) {
+        if (!isSolo() && Lock.active(this)) {
             coverOn();
             h.postDelayed(() -> { if (!uiReady) showUi(); }, 4000); // vangnet als de pagina het niet meldt
         }
@@ -194,7 +225,7 @@ public class MainActivity extends Activity {
     void showUi() {
         uiReady = true;
         if (web == null) return;
-        coverOff(Lock.locked(this));
+        coverOff(!isSolo() && Lock.locked(this));
     }
 
     private void loadUi() {
@@ -214,7 +245,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
-        if (i == null) return;
+        if (i == null || isSolo()) return; // losse app: gewoon verder waar je was
         if (ACTION_INSTALL_STATUS.equals(i.getAction())) {
             if (!App.tokenOk(this, i)) return; // niet van onze eigen installatiesessie
             int st = i.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
@@ -324,24 +355,27 @@ public class MainActivity extends Activity {
         super.onStart();
         applySecure();
         if (web == null) return;
-        boolean lock = Lock.onShown(this);
+        boolean lock = !isSolo() && Lock.onShown(this); // losse app: geen app-slot (en het slot van de app blijft zoals het was)
         Notes.applyRepeats(this); // terugkerende lijstjes die weer leeg moeten
         if (uiReady) js("onNotesMaybeChanged", ""); // misschien afgestreept in de widget
-        if (!uiReady && Lock.active(this)) return; // eerste keer: showUi() toont hem zodra de pagina (met slotscherm) klaar is
+        if (!uiReady && !isSolo() && Lock.active(this)) return; // eerste keer: showUi() toont hem zodra de pagina (met slotscherm) klaar is
         coverOff(lock); // eerst het slotscherm tekenen, dan pas de afdekking weg (geen flits van de inhoud)
     }
 
     @Override
     protected void onStop() {
-        Lock.onHidden();
-        // Met app-slot de inhoud alvast verbergen; bij terugkomen beslist onStart of hij op slot moet.
-        if (web != null && Lock.active(this) && !Lock.internalNav && !Lock.authBusy) coverOn();
+        if (!isSolo()) {
+            Lock.onHidden();
+            // Met app-slot de inhoud alvast verbergen; bij terugkomen beslist onStart of hij op slot moet.
+            if (web != null && Lock.active(this) && !Lock.internalNav && !Lock.authBusy) coverOn();
+        }
         super.onStop();
     }
 
     @Override
     protected void onDestroy() {
         if (live == this) live = null;
+        synchronized (ALL) { ALL.remove(this); }
         if (isFinishing()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
         super.onDestroy();
     }
@@ -351,13 +385,13 @@ public class MainActivity extends Activity {
     public void startActivityForResult(Intent intent, int requestCode, android.os.Bundle options) {
         boolean external = intent != null && Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null
                 && ("http".equals(intent.getData().getScheme()) || "https".equals(intent.getData().getScheme()));
-        if (!external && requestCode >= 0) Lock.internalNav = true; // startActivity (andere app, delen) heeft -1: dat is weggaan
+        if (!external && requestCode >= 0 && !isSolo()) Lock.internalNav = true; // startActivity (andere app, delen) heeft -1: dat is weggaan
         super.startActivityForResult(intent, requestCode, options);
     }
 
     /** Met app-slot: inhoud niet tonen in "recente apps". */
     void applySecure() {
-        boolean on = Lock.enabled(this);
+        boolean on = !isSolo() && Lock.enabled(this); // losse app: zonder slot, dus ook zichtbaar in "recente apps"
         if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on);
         else if (on) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
         else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
@@ -1766,7 +1800,18 @@ public class MainActivity extends Activity {
 
         /** De pagina is opgebouwd (en toont het slotscherm als dat moet). */
         @JavascriptInterface public void uiReady() { a.h.postDelayed(a::showUi, 50); }
+        /** Losse app: welke tool ("" in de gewone app). */
+        @JavascriptInterface public String soloTool() { return a.solo == null ? "" : a.solo; }
+        /** Welke tools als losse app mogen. */
+        @JavascriptInterface public String soloList() { return new org.json.JSONArray(Solo.list(ctx)).toString(); }
+        @JavascriptInterface public void soloSet(String tool, boolean on) { if (!a.isSolo()) Solo.set(ctx, tool, on); }
+        @JavascriptInterface public String soloPin(String tool, String label, String color, String glyph) {
+            if (a.isSolo()) return "Kan alleen vanuit de gewone app";
+            return Solo.pin(ctx, tool, label, color, glyph);
+        }
+
         @JavascriptInterface public String lockState() {
+            if (a.isSolo()) return "{\"on\":false,\"locked\":false}"; // losse app: zonder app-slot
             try {
                 return new JSONObject().put("on", Lock.enabled(ctx)).put("locked", Lock.locked(ctx))
                         .put("timeout", Lock.timeout(ctx)).put("secure", Lock.deviceSecure(ctx))
@@ -1776,6 +1821,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void lockUnlock() {
+            if (a.isSolo()) return; // losse app: het slot van de app niet aanraken
             if (Lock.hasCode(ctx)) { lockBio(); return; } // met app-code: alleen vingerafdruk/gezicht, nooit de pincode van de telefoon
             a.h.post(() -> Lock.prompt(a, "Tools ontgrendelen", (ok, msg) -> {
                 if (ok) { Lock.unlocked = true; a.js("onUnlocked", ""); }
@@ -1785,6 +1831,7 @@ public class MainActivity extends Activity {
 
         /** Vingerafdruk/gezicht naast de app-code (als dat aan staat). */
         @JavascriptInterface public void lockBio() {
+            if (a.isSolo()) return; // losse app: het slot van de app niet aanraken
             if (!Lock.hasCode(ctx) || !Lock.bioWithCode(ctx) || !Lock.deviceSecure(ctx)) return;
             a.h.post(() -> Lock.promptBio(a, (ok, msg) -> {
                 if (ok) { Lock.unlocked = true; a.js("onUnlocked", ""); }
@@ -1797,6 +1844,7 @@ public class MainActivity extends Activity {
          * versie aan gaat elke verkeerde code (en tijdens een wachttijd ook de juiste) zonder melding naar de neutrale versie.
          */
         @JavascriptInterface public void lockTryCode(String code) {
+            if (a.isSolo()) return;
             final String cd = code == null ? "" : code;
             new Thread(() -> { // het rekenwerk (PBKDF2) duurt even: niet de pagina laten wachten
                 String r;

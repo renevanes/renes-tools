@@ -65,8 +65,7 @@ public class NoteAddActivity extends Activity {
         for (String s : in.getText().toString().split("\n")) { s = s.trim(); if (!s.isEmpty()) items.add(s.length() > 500 ? s.substring(0, 500) : s); }
         if (items.isEmpty()) { finish(); return; }
         if (Notes.addItems(this, noteId, items)) {
-            MainActivity a = MainActivity.live;
-            if (a != null) a.js("onNotesMaybeChanged", "");
+            MainActivity.jsAll("onNotesMaybeChanged", "");
             Toast.makeText(this, items.size() == 1 ? "Toegevoegd" : items.size() + " items toegevoegd", Toast.LENGTH_SHORT).show();
         } else Toast.makeText(this, "Toevoegen lukt niet", Toast.LENGTH_SHORT).show();
         if (close) finish();

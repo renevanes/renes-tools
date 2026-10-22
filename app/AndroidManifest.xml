@@ -113,6 +113,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Losse app: één tool met een eigen plek in "recente apps", zonder app-slot (Instellingen → Losse apps) -->
+        <activity
+            android:name=".SoloActivity"
+            android:exported="false"
+            android:taskAffinity=""
+            android:documentLaunchMode="intoExisting"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
+            android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

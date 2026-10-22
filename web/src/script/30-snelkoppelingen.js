@@ -25,7 +25,7 @@ function toolMenu(tool){
     ['Openen', () => tool === 'skin' ? Android.homeOpen() : show(tool)],
     [fav ? '☆ Uit favorieten' : '★ Favoriet (bovenaan)', () => toggleFav(tool)],
     ['Snelkoppeling op startscherm', () => pinTool(tool)],
-  ]);
+  ].concat(SOLO_TOOLS.includes(tool) ? [['Als losse app op startscherm…', () => soloMake(tool)]] : []));
 }
 // Lang indrukken van een tegel opent het menu (de gewone tik opent de tool).
 (function(){

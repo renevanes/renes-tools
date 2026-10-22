@@ -234,6 +234,11 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Speler-snelkoppelingen werken alleen met het geheim van deze installatie (`App.tokenOk`); een andere app kan er niets mee afspelen.
 - Lang indrukken van het app-icoon geeft snelle keuzes: eerst je favorieten, aangevuld met Verder luisteren, Radio, Podcasts, Notities en Auto redial (samen hooguit vier).
 
+## Losse apps
+- Een tool als **eigen app** op het startscherm (lang drukken op een tegel → *Als losse app op startscherm…*, of Instellingen → *Losse apps*). Per tool aan of uit; standaard staat alles uit.
+- Een losse app (`SoloActivity`, eigen taak met `documentLaunchMode`, eigen naam en pictogram in *recente apps*) opent **zonder app-slot**, toont alleen de schermen van die tool en geen tabbalk, zoeken of knoppen naar andere tools (`45-losse-apps.js`); terug op het eerste scherm sluit hem. Het app-slot van de gewone app blijft gewoon werken.
+- In het overzicht van Tools blijft de tool gewoon staan. Zet je een losse app uit, dan maakt Android de snelkoppeling grijs en opent hij niet meer zonder slot.
+
 ## Favorieten
 - Houd een tegel ingedrukt → "★ Favoriet (bovenaan)", of tik op ☆ bij Startscherm aanpassen. Favorieten staan bovenaan het startscherm in de groep *★ Favorieten* (zonder groepen: vooraan), in de volgorde die je kiest bij Startscherm aanpassen, en zijn ook de eerste keuzes bij lang indrukken van het app-icoon. Een verborgen tool favoriet maken zet hem weer aan; een favoriet verbergen haalt hem uit de favorieten. *Standaard herstellen* laat de favorieten staan.
 

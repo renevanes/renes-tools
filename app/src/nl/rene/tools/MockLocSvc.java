@@ -160,8 +160,7 @@ public class MockLocSvc extends Service {
     }
 
     private void notifyChanged() {
-        MainActivity m = MainActivity.live;
-        if (m != null) m.js("onLocChanged", "");
+        MainActivity.jsAll("onLocChanged", "");
     }
 
     @Override
