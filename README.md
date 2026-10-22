@@ -235,8 +235,8 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - Lang indrukken van het app-icoon geeft snelle keuzes: eerst je favorieten, aangevuld met Verder luisteren, Radio, Podcasts, Notities en Auto redial (samen hooguit vier).
 
 ## Losse apps
-- Een tool als **eigen app** op het startscherm (lang drukken op een tegel → *Als losse app op startscherm…*, of Instellingen → *Losse apps*). Per tool aan of uit; standaard staat alles uit.
-- Een losse app (`SoloActivity`, eigen taak met `documentLaunchMode`, eigen naam en pictogram in *recente apps*) opent **zonder app-slot**, toont alleen de schermen van die tool en geen tabbalk, zoeken of knoppen naar andere tools (`45-losse-apps.js`); terug op het eerste scherm sluit hem. Het app-slot van de gewone app blijft gewoon werken.
+- Een tool als **eigen app** op het startscherm (lang drukken op een tegel → *Als losse app op startscherm…*, of Instellingen → *Losse apps*). Per tool aan of uit; standaard staat alles uit. Niet als losse app: *Alles back-uppen* en *Automatiseringen* (die raken alle tools), de telefoon-skin en de speler. Een losse app kan de backup-map niet veranderen; de kluis vraagt er altijd opnieuw om je vingerafdruk.
+- Een losse app (`SoloActivity`, eigen taak met `documentLaunchMode`, eigen naam en pictogram in *recente apps*) opent **zonder app-slot**, toont alleen de schermen van die tool en geen tabbalk, zoeken of knoppen naar andere tools (`45-losse-apps.js`); terug op het eerste scherm zet hem op de achtergrond. Zet je een losse app uit terwijl hij nog open staat, dan sluit hij en opent voortaan de gewone app (met slot). Het app-slot van de gewone app blijft gewoon werken.
 - In het overzicht van Tools blijft de tool gewoon staan. Zet je een losse app uit, dan maakt Android de snelkoppeling grijs en opent hij niet meer zonder slot.
 
 ## Favorieten

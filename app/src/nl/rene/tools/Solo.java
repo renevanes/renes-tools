@@ -28,7 +28,8 @@ final class Solo {
     /** Tools die als losse app kunnen (geen telefoon-skin of speler: die horen bij de hele app). */
     static final Set<String> TOOLS = Collections.unmodifiableSet(new LinkedHashSet<>(java.util.Arrays.asList(
             "redial", "wa", "tracks", "sms", "history", "calls", "notes", "contacts", "pdf", "kluis", "car", "recorder",
-            "transcripts", "radio", "podcasts", "spotify", "vpn", "loc", "music", "backup", "auto")));
+            "transcripts", "radio", "podcasts", "spotify", "vpn", "loc", "music")));
+    // Niet: alles back-uppen en automatiseringen (die raken alle tools), skin en speler (horen bij de hele app).
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("solo", Context.MODE_PRIVATE); }
 
@@ -51,6 +52,7 @@ final class Solo {
         Set<String> s = new LinkedHashSet<>(list(c));
         if (on) s.add(tool); else s.remove(tool);
         prefs(c).edit().putStringSet("tools", s).apply();
+        if (!on) MainActivity.closeSolo(tool);
         if (Build.VERSION.SDK_INT >= 25) {
             try {
                 ShortcutManager sm = c.getSystemService(ShortcutManager.class);

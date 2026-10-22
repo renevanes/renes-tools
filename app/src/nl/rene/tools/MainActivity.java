@@ -88,6 +88,24 @@ public class MainActivity extends Activity {
 
     boolean isSolo() { return this instanceof SoloActivity; }
 
+    /** Losse app die intussen is uitgezet: naar de gewone app (met app-slot) en dit venster sluiten. */
+    boolean soloRevoked() {
+        if (!isSolo() || Solo.allowed(this, solo)) return false;
+        Intent i = new Intent(this, MainActivity.class).setAction(Intent.ACTION_VIEW)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        if (Solo.known(solo)) i.putExtra("open", solo);
+        try { startActivity(i); } catch (Exception ignored) { }
+        finishAndRemoveTask();
+        return true;
+    }
+
+    /** Losse apps van deze tool sluiten (uitgezet in Instellingen). */
+    static void closeSolo(String tool) {
+        MainActivity[] list;
+        synchronized (ALL) { list = ALL.toArray(new MainActivity[0]); }
+        for (MainActivity m : list) if (m != null && m.isSolo() && tool.equals(m.solo)) m.h.post(m::finishAndRemoveTask);
+    }
+
     /** JavaScript in elk open venster uitvoeren (gewone app en losse apps). */
     static void jsAll(String fn, String arg) {
         MainActivity[] list;
@@ -141,6 +159,7 @@ public class MainActivity extends Activity {
                 return;
             }
             solo = t;
+            if ("kluis".equals(t)) Kluis.close(this); // de kluis opnieuw laten openen met vingerafdruk, ook als hij in de app nog open stond
             String label = getIntent().getStringExtra("label"), color = getIntent().getStringExtra("color"), glyph = getIntent().getStringExtra("glyph");
             if (label == null || label.isEmpty() || label.length() > 40) label = "Tools";
             if (glyph != null && glyph.length() > 4) glyph = null;
@@ -214,7 +233,7 @@ public class MainActivity extends Activity {
         if (b == null && !fromHistory) playFromShortcut(getIntent()); // niet opnieuw afspelen bij terugkomen via Recents
         if (b == null && !fromHistory) RedialPlan.startMissed(this, getIntent());
         // Met app-slot: niets van de inhoud laten zien voordat het slotscherm er staat (anders flitst het startscherm).
-        if (!isSolo() && Lock.active(this)) {
+        if (isSolo() || Lock.active(this)) { // losse app: afdekken tot zijn eigen tool getekend is
             coverOn();
             h.postDelayed(() -> { if (!uiReady) showUi(); }, 4000); // vangnet als de pagina het niet meldt
         }
@@ -245,7 +264,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
-        if (i == null || isSolo()) return; // losse app: gewoon verder waar je was
+        if (isSolo()) { soloRevoked(); return; } // losse app: gewoon verder waar je was (tenzij intussen uitgezet)
+        if (i == null) return;
         if (ACTION_INSTALL_STATUS.equals(i.getAction())) {
             if (!App.tokenOk(this, i)) return; // niet van onze eigen installatiesessie
             int st = i.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
@@ -353,6 +373,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
+        if (soloRevoked()) return;
         applySecure();
         if (web == null) return;
         boolean lock = !isSolo() && Lock.onShown(this); // losse app: geen app-slot (en het slot van de app blijft zoals het was)
@@ -376,7 +397,7 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         if (live == this) live = null;
         synchronized (ALL) { ALL.remove(this); }
-        if (isFinishing()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
+        if (isFinishing() && !isSolo()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
         super.onDestroy();
     }
 
@@ -410,6 +431,7 @@ public class MainActivity extends Activity {
         super.onResume();
         visible = true;
         js("onResumeApp", "");
+        if (isSolo()) return; // updates regelt de gewone app
         // Automatisch op updates controleren, hooguit eens per 30 minuten.
         long last = Updater.prefs(this).getLong("lastCheck", 0);
         if (System.currentTimeMillis() - last > 30 * 60 * 1000L) checkUpdates(false);
@@ -452,7 +474,8 @@ public class MainActivity extends Activity {
     private void handleBack() {
         if (web == null) { finish(); return; }
         web.evaluateJavascript("window.goBack?window.goBack():false", v -> {
-            if (!"true".equals(v)) finish();
+            if ("true".equals(v)) return;
+            if (isSolo()) moveTaskToBack(true); else finish(); // losse app: blijft in "recente apps" staan
         });
     }
 
@@ -872,7 +895,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void waRequestFilesAccess() { a.h.post(a::requestFilesAccess); }
-        @JavascriptInterface public void waPickFolder() { a.h.post(a::pickBackupFolder); }
+        @JavascriptInterface public void waPickFolder() { if (!a.isSolo()) a.h.post(a::pickBackupFolder); } // niet vanuit een losse app
 
         @JavascriptInterface public void waScanSizes() {
             new Thread(() -> {
@@ -2252,7 +2275,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public String autoRecord(String pkg) {
-            Lock.internalNav = true;
+            if (!a.isSolo()) Lock.internalNav = true;
             return AutoA11y.record(ctx, pkg);
         }
 

@@ -11,7 +11,7 @@ const { chromium } = require('playwright');
     await pg.goto(url); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => !SOLO && document.body.classList.contains('tabs-on')), 'gewone app: tabbalk, geen losse app');
     await pg.evaluate(() => show('settings')); await pg.waitForTimeout(150);
-    ok((await pg.$$('#st-solo-list .sw')).length === 21, 'instellingen: alle tools in de lijst');
+    ok((await pg.$$('#st-solo-list .sw')).length === 19, 'instellingen: alle tools in de lijst');
     await pg.click('#st-solo-list .tg[aria-label="Notities als losse app"]'); await pg.waitForTimeout(100);
     ok((await pg.textContent('#modal-text')).includes('zonder vingerafdruk'), 'waarschuwing bij aanzetten');
     await pg.click('#modal-ok'); await pg.waitForTimeout(100);

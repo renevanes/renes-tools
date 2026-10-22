@@ -55,7 +55,7 @@ let ctCallNums = [];
 function ctRenderCalls(d){
   const box = $('#ctd-calls');
   ctCallNums = ((d.f || {}).Telefoon || '').split('\n').map(x => x.replace(/ \([^)]*\)$/, '').trim()).filter(Boolean);
-  if (!ctCallNums.length || !Android.callsHasPermission()) { box.style.display = 'none'; return; }
+  if (SOLO || !ctCallNums.length || !Android.callsHasPermission()) { box.style.display = 'none'; return; } // losse app: geen oproepen van een andere tool
   let r; try { r = JSON.parse(Android.callsList(JSON.stringify({ numbers: ctCallNums }))); } catch(e){ box.style.display = 'none'; return; }
   box.style.display = 'block';
   if (!r.count) { $('#ctd-calls-body').innerHTML = '<p class=note style="margin:0">Geen oproepen met dit contact in de oproepgeschiedenis.</p>'; return; }

@@ -4,7 +4,7 @@
  * Welke tools een losse app mogen zijn, kies je in Instellingen (of via lang indrukken van een tegel). */
 const SOLO = (typeof Android.soloTool === 'function' && Android.soloTool()) || '';
 const SOLO_TOOLS = ['redial', 'wa', 'tracks', 'sms', 'history', 'calls', 'notes', 'contacts', 'pdf', 'kluis', 'car', 'recorder',
-  'transcripts', 'radio', 'podcasts', 'spotify', 'vpn', 'loc', 'music', 'backup', 'auto'];
+  'transcripts', 'radio', 'podcasts', 'spotify', 'vpn', 'loc', 'music']; // zelfde lijst als Solo.TOOLS (Java)
 
 /** Hoort dit scherm bij de tool van deze losse app? (via de terug-volgorde naar het eerste scherm) */
 function soloOk(name){
@@ -14,7 +14,7 @@ function soloOk(name){
 }
 // Functies die een scherm van een andere tool openen
 const SOLO_FN = { ctOpen: 'contact', openNote: 'note', openSms: 'smschat', openChat: 'chat', txOpen: 'txd', callsForPerson: 'calls',
-  gsMoreCalls: 'calls', gsMore: 'search', gsOpen: 'search', pinTool: 'home', toolMenu: 'home', homeOpen: 'home', tabGo: 'home', muOpen: 'music' };
+  gsMoreCalls: 'calls', gsMore: 'search', gsOpen: 'search', pinTool: 'home', toolMenu: 'home', homeOpen: 'home', tabGo: 'home', muOpen: 'music', waPickFolder: 'settings' };
 /** Leidt deze code (een onclick of een menu-keuze) alleen naar schermen van deze tool? */
 function soloSrcOk(src){
   if (!SOLO) return true;
