@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.88",
-  "versionCode": 89,
+  "versionName": "1.89",
+  "versionCode": 90,
   "nativeLevel": 79,
   "web": "index.html",
-  "webSha256": "66aa5490214f3556f8121b113ab4724d3b36f9895bfbbfc3fc537ac28c061ec4",
+  "webSha256": "5b42029d0413386a842180428b7b6b4e99e6f6b46d70aac3c2f51e65837d8d57",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "619f91528c3123c8086830b39f3770ff7e2d6cd4916e6860b2e6196bc663854b",
+  "apkSha256": "307f0270d70d8f3f23dcca2d656f462fa95012b2bd63a6915bd23e0767eca29a",
   "changelog": [
+    {
+      "version": "1.89",
+      "date": "2026-10-23",
+      "changes": [
+        "Radio overzichtelijker: twee tabbladen. Favorieten staan als grote tegels (tik om af te spelen, ⋯ om te verplaatsen of weg te halen) met de radiowekker eronder; bij Zenders kies je een genre en zie je 20 zenders tegelijk"
+      ]
+    },
     {
       "version": "1.88",
       "date": "2026-10-23",
@@ -779,5 +786,5 @@
       ]
     }
   ],
-  "webSig2": "pO4WULJTr9N/cMpOFLnyExcnzmWxWWCGshOspR56FwWrOh0yrpr1HS212Aqy4KBnfr7wazVwFX7/coC4UrGWlbm3PkNu4Xyw5P0viyw30WonrzXT2vTgv2FFiZxkMts8HTVQVX8+6u7K4uFTXzVbm0XsdRXH0b34bGOx6o7Kd9vHbaAji4Ih5AgQKyb+42S81lemcylz3Er8MgBvDMkmsqBIMcKq95Z7j2vHfzol5NyACzaTR1350G47r9pb+JMDe5X7boX1VKarmnBoOW7olE8nlbonPf1L917GuM0X7egIlGgdtFwe/Urff0MbEVKrv7ugyYdHpI6wjY43JD2uQmBa2lsV55JcNmj1pY7o3yu30uMrZhb/J/5AOHnEpswtQQuF67BJLMdGUTf9g654UTSA6oM1IectQUJ90kj6STo6dT/bqP1fIosEr5AB4baN2v6vWtqv1GGrry9jsdKcsP4enxwd6nWbtTwMmoc+gHzNZNeOa6sYz0LRpK7a19rA"
+  "webSig2": "LAQz6JOjnaggChua518t27HripLJO0lCUOPufgqGO3fn0GMfYrsvfXWs9K5f6p9IYjlaByoyPb8mQ2W/wHSA+EmqVr26n+Zw41W85IJkfXOCFQIKh8kPz5vuUiRv8qJneQrARgfhgkJs1kYn+opYSlbTIOYgyczkPAhDm9RwJ5omvs56vaw2G1f2k7P1EiH+Y1LNjugSfAAKzpNOpWjUKyfiVn6U+81raCYFc+z/TzTVLLVuRXkGyCLiH14ir0NOdNXCcDLgTbZYiL2j5/8D5BYApPz7qsSndxJBFuiXJZvhVQKOYC4hqGuaUknE08ziFLXrFCyjIBFKwyJ9XMDaohDb0xcjYVEPyRd+ve0mYDlu/nxcM9eVUtdP5+kJOq/7UXOFpeV/DtGAldZA3IQZ03qwwzPq7kYRsp5JOtNkVzxUU41Xl9npSlVtwrfQzCVrwZvMDvyDNg3aK7AuFM+Xlftnliv6OCQ1Za2kUnwZjzKH4hsZQAfZ8I64KtE5XSNA"
 }
