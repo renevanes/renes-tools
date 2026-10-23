@@ -7,6 +7,10 @@ on:
   schedule:
     - cron: '5 5 * * 1'   # maandag 05:05 UTC, na Dependabot en de scan, vóór het onderhoud door de agent (07:22 Amsterdam)
   workflow_dispatch:
+  workflow_run:             # na elke beveiligingsscan op main, zodat het issue de actuele meldingen toont
+    workflows: ["Beveiligingsscan"]
+    types: [completed]
+    branches: [main]
   push:                     # ook meteen na een wijziging aan de controle zelf
     branches: [main]
     paths: ['.github/scripts/onderhoud-controle.py', '.github/workflows/onderhoud.yml']
