@@ -16,7 +16,8 @@ function stSummaries(i){
   const ps = i.perms || [], miss = ps.filter(p => !p.ok).length;
   stSum('perm', !ps.length ? '' : miss ? miss + ' van ' + ps.length + ' nog niet toegestaan' : '✓ Alles toegestaan');
   stSum('backup', i.dest ? (i.destName || 'Gekozen') : 'Nog niet gekozen');
-  if (current === 'settings' && typeof Android.aiState === 'function') { // alleen in het overzicht (vraagt wat meer werk) const a = stJson(Android.aiState()), m = (a.models || []).filter(x => x.state === 'ready');
+  // AI alleen in het overzicht (vraagt wat meer werk)
+  if (current === 'settings' && typeof Android.aiState === 'function') { const a = stJson(Android.aiState()), m = (a.models || []).filter(x => x.state === 'ready');
     stSum('ai', m.length ? m.map(x => x.label).join(' · ') : 'Nog geen model gedownload'); }
   stSum('music', i.audd ? 'AudD-sleutel ingesteld' : 'Nog geen AudD-sleutel');
   stSum('crash', i.crashes ? i.crashes + (i.crashes === 1 ? ' fout vastgelegd' : ' fouten vastgelegd') : '✓ Geen fouten');
