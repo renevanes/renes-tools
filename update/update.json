@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.96",
-  "versionCode": 97,
-  "nativeLevel": 85,
+  "versionName": "1.97",
+  "versionCode": 98,
+  "nativeLevel": 86,
   "web": "index.html",
-  "webSha256": "4e5c7c3269edd27586ec3f3e6dfdd3c7bb24434250f9aa38835b638a24e6ebbe",
+  "webSha256": "006cb2b972925e72df690c1d3f3423d442c8716f793ecf00c6c5a9a2de04e293",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "7232c8c7952e5f3674e0cf4c6d45d92dc45eed95a3327fdc9730744d6ec83b7e",
+  "apkSha256": "bf4c90f5c916a175d05802ad1b01d5e756cdbe9522c5969196a1ff4301a5ad9a",
   "changelog": [
+    {
+      "version": "1.97",
+      "date": "2026-10-23",
+      "changes": [
+        "Nieuw: Slaappraat. Luistert 's nachts zuinig mee en bewaart alleen de momenten waarop je iets zegt; 's ochtends lees en hoor je wat je in je slaap zei. Alles blijft op je telefoon"
+      ]
+    },
     {
       "version": "1.96",
       "date": "2026-10-23",
@@ -847,5 +854,5 @@
       ]
     }
   ],
-  "webSig2": "XIDMeZZflpujT8IOKoiYBC0WMj/OCVfjwrOzRsiCNvLw0C2PBJXiN3kJ3oGMXQoxEyHXsgHV7LYjIQhW0wFRjK4sqUu09OGnyyzw06uOXjuwyfondveaKZMHFtwMT9fA6DUfz5jcdQ5KHrcq9i77DO5BnNvf4hedQqXfoEOCWMbCcZSxL4fPLy/vFjOeruXxPy2xhePEQy0sNzmP+qfNYTiChsBtJCNe//s0XmUwZI9SqveXIYT+GOyFPb+DxgH575NiYtBsmkDxqwbuRUpCqO+exQdPXve3WbEvAoY7+GNYmiN2IgcQTiStsMeUabzDVQQHT1AqUhxDz41vgtL0Xk2FboWfiazo8eM/MVfpby9eLRPqBhYHO0+9ev/Am7+/i4wvbrqO3n4fKEQeFL+JGJhQ1Ws4sdvcj1IQrIt+dB1g8gNAYLL7Aj3FuSfEESlS2xS9QaOeSpQ3YQP9O+n017Pm5WTlFn9CHO4Sbbvbt9dJDWbjb+hbCQuasK/4z13c"
+  "webSig2": "iFY7vuLcZpjaWFrzpVHyo0SIVV/W/GScrFMXr7fD5FZ9ahvw7deTaOmtotMqE+Al+rd21/VMK0qINNiYUz2STh/YFbJIlWru8jbtHfhq5r0keu6uUBV/nWjlZtsFFLLevI/6l9ns01UWi1+pT473gyEzfIoMSHbKSVkS1uMF1aNL0lvv255d7UNRLsx77QKVBmxZnGVR/tyDNmpnVlqeLgW8e8uHp9lkDz2mFkLGDzvakkAr5Hp5jF6HtxvQWnOzoLLx1dOcxldxfOncxo3D+itT2aQnHJsYcUiDoVoZf7NYDtHi4CA3BtpYZW3c6PCniio9Fl0NwtQlc4/Nxo+S2C2VcTkvD7eFYZVCdsBWZ1EDdv5RTRUwRXTlb3voPIVCkxEveunq0bnSHwmuDzcnwaAs6Od1qH4k/QcliS/Q/dhdmEKP+1tITQbQFkhTIm0ACSiS1sbEMP5ueuhq1GrYjxUS0sOcsrBmTko9C6PUsh/kI9816YD+wgpNqaaYprg0"
 }
