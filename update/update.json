@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.87",
-  "versionCode": 88,
+  "versionName": "1.88",
+  "versionCode": 89,
   "nativeLevel": 79,
   "web": "index.html",
-  "webSha256": "291c2949b82955456cf098899d1d100930c0316c800d5c1eebcd8b5b937ad2d8",
+  "webSha256": "66aa5490214f3556f8121b113ab4724d3b36f9895bfbbfc3fc537ac28c061ec4",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "aa4cad2a81db4cbe298f8c57955c81ae5c94f5dc69974a7e5e924e52c5ca26fe",
+  "apkSha256": "619f91528c3123c8086830b39f3770ff7e2d6cd4916e6860b2e6196bc663854b",
   "changelog": [
+    {
+      "version": "1.88",
+      "date": "2026-10-23",
+      "changes": [
+        "Podcasts overzichtelijker: drie tabbladen (Luisteren, Ontdekken, Downloads) in plaats van één lange lijst. Lange lijsten tonen eerst een paar en de rest met één tik; Uit Spotify overnemen staat nu onder ⋯ rechtsboven"
+      ]
+    },
     {
       "version": "1.87",
       "date": "2026-10-23",
@@ -772,5 +779,5 @@
       ]
     }
   ],
-  "webSig2": "BpEzhTr6rNzY0Im2PCazhPY41BiP/hkPSm8eSHDfEChhnmewkACGCKx4DPzznPer3fM6b197Yr1sX+Z6E3JrjIkTvSz7NqFv7BXY3roFx3R4/k8U/TBqyXILakc8TufM4De3rQpVDJ8I06YjSMnb1hUrR4YGj9PFBZruV6AVd9vyMPFK/KKYb0go48EkUYJJJqdWHcBedxeO6kUk0uikJcI9MwRCpqhTOq8k+w47V27r1w24DAW8YDTqeLOMOTST6KV+1ubuqBC8/+06+Sygm6goE71ZNp+/m+sKECYGSwtLiX9nPNOoSUNNoA2/0wYQypgMxnIe3JHoNi6Nn/sil6ti5teRKQkMIUL8LtItA7w/AvHe2q7wtIK/KDTiTIIsJ0VBXjExXhQv2exWa2E6R08rOvX2/88y2YbGGPB89j387eoFI/bzsmv/d+tRas+lDCEJAn1TQugJxHIYgAmPkrIrPFuF+UtuEwkSo1C0tiJ8v2cFEZCrUbHjQtISHwoz"
+  "webSig2": "pO4WULJTr9N/cMpOFLnyExcnzmWxWWCGshOspR56FwWrOh0yrpr1HS212Aqy4KBnfr7wazVwFX7/coC4UrGWlbm3PkNu4Xyw5P0viyw30WonrzXT2vTgv2FFiZxkMts8HTVQVX8+6u7K4uFTXzVbm0XsdRXH0b34bGOx6o7Kd9vHbaAji4Ih5AgQKyb+42S81lemcylz3Er8MgBvDMkmsqBIMcKq95Z7j2vHfzol5NyACzaTR1350G47r9pb+JMDe5X7boX1VKarmnBoOW7olE8nlbonPf1L917GuM0X7egIlGgdtFwe/Urff0MbEVKrv7ugyYdHpI6wjY43JD2uQmBa2lsV55JcNmj1pY7o3yu30uMrZhb/J/5AOHnEpswtQQuF67BJLMdGUTf9g654UTSA6oM1IectQUJ90kj6STo6dT/bqP1fIosEr5AB4baN2v6vWtqv1GGrry9jsdKcsP4enxwd6nWbtTwMmoc+gHzNZNeOa6sYz0LRpK7a19rA"
 }

@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.88",
+    "date": "2026-10-23",
+    "changes": [
+      "Podcasts overzichtelijker: drie tabbladen (Luisteren, Ontdekken, Downloads) in plaats van één lange lijst. Lange lijsten tonen eerst een paar en de rest met één tik; Uit Spotify overnemen staat nu onder ⋯ rechtsboven"
+    ]
+  },
+  {
     "version": "1.87",
     "date": "2026-10-23",
     "changes": [
