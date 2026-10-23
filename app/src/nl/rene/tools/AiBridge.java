@@ -41,7 +41,7 @@ public class AiBridge extends FeatureBridge {
     }
 
     @JavascriptInterface public void aiPref(String name, boolean on) {
-        if (!"wifiOnly".equals(name) && !"notes".equals(name)) return;
+        if (!"wifiOnly".equals(name) && !"notes".equals(name) && !"voiceSend".equals(name)) return;
         LocalAi.prefs(ctx).edit().putBoolean(name, on).apply();
     }
 
@@ -55,6 +55,23 @@ public class AiBridge extends FeatureBridge {
     }
 
     @JavascriptInterface public void aiCancel() { LocalAi.cancel(); }
+
+    // ----- Spraak: een vraag inspreken. Op de telefoon uitgeschreven met het spraakmodel (whisper.cpp) van
+    // Gesprekken uitschrijven; de opname gaat na het uitschrijven weg. Antwoord via onAiVoice({text} of {error}).
+
+    /** Geeft "" (luistert), "mic" (toestemming nodig), "model" (spraakmodel nodig) of een melding. */
+    @JavascriptInterface public String aiVoiceStart() { return VoiceNote.start(ctx, r -> a.js("onAiVoice", r)); }
+    @JavascriptInterface public void aiVoiceStop() { VoiceNote.stop(ctx, r -> a.js("onAiVoice", r)); }
+    @JavascriptInterface public void aiVoiceCancel() { VoiceNote.cancel(); }
+
+    /** Spraakmodel aanwezig, en welk; voor de instellingen van de assistent. */
+    @JavascriptInterface public String aiVoiceInfo() {
+        try {
+            Transcribe.Model m = Transcribe.activeModel(ctx);
+            return new JSONObject().put("supported", Transcribe.supported()).put("model", m == null ? "" : m.id).put("label", m == null ? "" : m.label)
+                    .put("busy", TranscribeService.busy).put("send", LocalAi.prefs(ctx).getBoolean("voiceSend", true)).toString();
+        } catch (Exception e) { return "{}"; }
+    }
 
     /** Een antwoord naar het klembord. */
     @JavascriptInterface public void aiCopy(final String text) {

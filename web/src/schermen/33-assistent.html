@@ -29,7 +29,9 @@
       <p class="note" id="ai-status" role="status" style="display:none"></p>
       <div class="aicomp" id="ai-comp">
         <button class="aichip" id="ai-notes" role="switch" aria-checked="false" onclick="aiToggleNotes()" style="display:none"><span class="ui-icon" data-icon="notes" aria-hidden="true"></span>Met mijn notities</button>
+        <p class="aivstate" id="ai-vstate" role="status" aria-live="polite" style="display:none"></p>
         <div class="airow">
+          <button class="aimic" id="ai-mic" onclick="aiMic()" aria-label="Inspreken"><span class="ui-icon" data-icon="mic" aria-hidden="true"></span></button>
           <textarea id="ai-in" rows="1" placeholder="Vraag iets…" aria-label="Je vraag" oninput="aiGrow()" onkeydown="aiKey(event)"></textarea>
           <button class="aisend" id="ai-send" onclick="aiSendOrStop()" aria-label="Versturen"><span class="ui-icon" data-icon="up" aria-hidden="true"></span></button>
         </div>
@@ -64,6 +66,12 @@
       <p class="note">Zoekt in je notities en uitgeschreven gesprekken op betekenis, niet alleen op precieze woorden. Bijvoorbeeld "wanneer moet de auto naar de garage" vindt ook een notitie over de APK. Je ziet het bij Zoeken, en de assistent kan het gebruiken met <b>Met mijn notities</b>.</p>
       <div id="ais-embed"></div>
       <div id="ais-index"></div>
+    </div>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="mic" aria-hidden="true"></span>Spraak</h2>
+      <p class="note">Tik in het gesprek op de microfoon en stel je vraag hardop. Je stem wordt op de telefoon uitgeschreven met het spraakmodel van Gesprekken uitschrijven (Whisper); de opname gaat daarna weg en er gaat niets naar internet. De taal is dezelfde als bij Gesprekken uitschrijven.</p>
+      <div id="ais-voice"></div>
+      <div class="sw"><span>Ingesproken vraag meteen versturen<small>Uit: de tekst komt eerst in het invoerveld, zodat je hem kunt nakijken</small></span><button class="tg" id="ais-vsend" role="switch" aria-checked="true" aria-label="Ingesproken vraag meteen versturen" onclick="aisVoiceSend()"></button></div>
     </div>
     <div class="card">
       <h2><span class="ui-icon" data-icon="download" aria-hidden="true"></span>Downloaden</h2>

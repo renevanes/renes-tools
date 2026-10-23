@@ -715,3 +715,11 @@ body.has-plbar .aicomp{bottom:calc(84px + env(safe-area-inset-bottom))}
 /* In het eigen scherm staat de titel al bovenaan: de kop van de kaart is dan dubbel */
 #s-setnotif main>.card>h2:first-child,#s-setlook main>.card>h2:first-child,#s-setskin main>.card>h2:first-child,#s-setlock main>.card>h2:first-child,#s-setsolo main>.card>h2:first-child,
 #s-setperm main>.card>h2:first-child,#s-setbackup main>.card>h2:first-child,#s-setmusic main>.card>h2:first-child,#s-setcrash main>.card>h2:first-child{display:none}
+/* Assistent: inspreken */
+.aimic{width:48px;height:48px;flex:none;border-radius:24px;display:grid;place-items:center;background:var(--card);color:var(--ink)}
+.aimic .ui-icon{width:22px;height:22px}.aimic:disabled{opacity:.45}
+.aimic.rec{background:var(--primary);color:var(--on-primary);animation:aimicp 1.4s infinite ease-in-out}
+@keyframes aimicp{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--primary) 45%,transparent)}50%{box-shadow:0 0 0 8px transparent}}
+@media (prefers-reduced-motion:reduce){.aimic.rec{animation:none}}
+.aivstate{margin:0 6px 8px;font-size:14px;font-weight:600;color:var(--primary)}
+#ai-in:disabled{opacity:.6}

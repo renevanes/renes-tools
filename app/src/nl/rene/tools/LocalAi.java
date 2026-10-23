@@ -537,7 +537,7 @@ final class LocalAi {
         o.put("supported", supported()).put("engine", LlmProcess.binary(c).isFile()).put("ram", ramBytes(c));
         JSONArray ms = new JSONArray();
         for (Model m : MODELS) ms.put(state(c, m));
-        o.put("models", ms).put("chat", chatModel(c).id).put("wifiOnly", wifiOnly(c)).put("notes", prefs(c).getBoolean("notes", true))
+        o.put("models", ms).put("chat", chatModel(c).id).put("wifiOnly", wifiOnly(c)).put("notes", prefs(c).getBoolean("notes", true)).put("voiceSend", prefs(c).getBoolean("voiceSend", true))
                 .put("loaded", loaded()).put("busy", busy);
         if (ready(c, EMBED)) o.put("index", SmartSearch.info(c));
         return o;

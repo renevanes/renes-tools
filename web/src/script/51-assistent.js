@@ -97,6 +97,7 @@ function aiGrow(){ const t = $('#ai-in'); t.style.height = 'auto'; t.style.heigh
 function aiKey(e){ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); aiSendOrStop(); } }
 function aiSendBtn(){
   const b = $('#ai-send'); if (!b) return;
+  if (typeof aiMicUi === 'function') { const m = $('#ai-mic'); if (m) m.style.display = aiBusy && !aiRec ? 'none' : ''; }
   b.classList.toggle('stop', aiBusy);
   b.innerHTML = uiIcon(aiBusy ? 'stop' : 'up');
   b.setAttribute('aria-label', aiBusy ? 'Stoppen' : 'Versturen');
@@ -269,6 +270,7 @@ function aiRenderSet(){
   $('#ais-chat').innerHTML = ms.filter(m => !m.embed).map(m => aiModelCard(m, { chat: true, del: true })).join('');
   $('#ais-embed').innerHTML = ms.filter(m => m.embed).map(m => aiModelCard(m, { del: true })).join('');
   const w = $('#ais-wifi'); w.classList.toggle('on', !!aiSt.wifiOnly); w.setAttribute('aria-checked', aiSt.wifiOnly ? 'true' : 'false');
+  aisRenderVoice();
   const ix = aiSt.index, box = $('#ais-index');
   if (!ix || !aiReady('zoek')) { box.innerHTML = ''; return; }
   const busy = ix.busy || aiIdx.busy;
@@ -310,3 +312,72 @@ function aiSearchHtml(ql){
   return '<div class="card gsg aigs"><h3>' + uiIcon('sparkle') + 'Op betekenis <span class="n">' + it.length + '</span></h3>' + it.map(h =>
     '<button class=gi data-k="' + (h.kind === 'tx' ? 'tx' : 'notes') + '" data-x="' + esc(JSON.stringify(h.kind === 'tx' ? { id: h.id, from: +h.from || 0 } : { id: h.id })) + '" onclick="gsOpen(this)"><b>' + uiIcon(h.kind === 'tx' ? 'mic' : 'notes') + ' ' + esc(h.title) + '</b><small>' + esc(String(h.snip || '').slice(0, 160)) + (String(h.snip || '').length > 160 ? '…' : '') + '</small></button>').join('') + '</div>';
 }
+
+/* ---------- Spraak: een vraag inspreken (Whisper op de telefoon, zoals bij spraaknotities) ---------- */
+let aiRec = false, aiRecT = null, aiVoiceBusy = false, aiVoiceDlT = null;
+function aiVState(t){ const e = $('#ai-vstate'); if (!e) return; e.textContent = t || ''; e.style.display = t ? '' : 'none'; }
+function aiMicUi(){
+  const b = $('#ai-mic'); if (!b) return;
+  b.classList.toggle('rec', aiRec); b.disabled = aiVoiceBusy;
+  b.innerHTML = uiIcon(aiRec ? 'stop' : 'mic');
+  b.setAttribute('aria-label', aiRec ? 'Stoppen met inspreken' : 'Inspreken');
+  $('#ai-in').disabled = aiRec || aiVoiceBusy;
+}
+function aiMic(){
+  if (aiVoiceBusy) return;
+  if (aiRec) { aiRecStop(); return; }
+  if (aiBusy) { toast('Wacht even tot het antwoord klaar is'); return; }
+  const e = Android.aiVoiceStart();
+  if (e === 'mic') { Android.musicRequestMic(); toast('Geef toegang tot de microfoon en tik dan opnieuw'); return; }
+  if (e === 'model') { aiNeedVoiceModel(); return; }
+  if (e) { toast(e); return; }
+  aiRec = true; Android.vibrate(15); aiMicUi();
+  const tick = () => { const ms = Android.voiceElapsed(); aiVState('● Luisteren… ' + Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0') + ' · tik ■ om te stoppen'); };
+  tick(); clearInterval(aiRecT); aiRecT = setInterval(tick, 500);
+}
+function aiRecStop(){
+  clearInterval(aiRecT); aiRec = false; aiVoiceBusy = true;
+  aiVState('Uitschrijven…'); aiMicUi();
+  Android.aiVoiceStop();
+}
+window.onAiVoice = function(r){
+  clearInterval(aiRecT); aiRec = false; aiVoiceBusy = false; aiVState(''); aiMicUi();
+  r = r || {};
+  if (r.error) { toast(r.error); return; }
+  const text = String(r.text || '').trim(); if (!text) return;
+  const t = $('#ai-in'); t.value = (t.value.trim() ? t.value.trim() + ' ' : '') + text; aiGrow();
+  if (aiSt.voiceSend !== false && current === 'ai' && !aiBusy) aiSendOrStop(); else t.focus();
+};
+/* Weg van het scherm tijdens het inspreken: de opname stopt (en wordt weggegooid) */
+function aiVoiceAbort(){
+  if (!aiRec) return;
+  Android.aiVoiceCancel(); clearInterval(aiRecT); aiRec = false; aiVState(''); aiMicUi();
+}
+function aiNeedVoiceModel(){
+  askConfirm('Spraakmodel nodig', 'Om in te spreken is een klein spraakmodel nodig (57 MB, eenmalig downloaden). Het draait op je telefoon; er gaat niets naar internet.', 'Downloaden', aiVoiceDownload);
+}
+function aiVoiceDownload(){
+  const e = Android.txDownload('base');
+  if (e) { toast(e); return; }
+  toast('↓ Spraakmodel downloaden…');
+  clearTimeout(aiVoiceDlT);
+  const poll = () => {
+    const s = rdJson(Android.txStatus(), {});
+    if (current === 'aiset') aisRenderVoice(s);
+    if (s.running) { if (current === 'ai') aiVState('↓ Spraakmodel downloaden… ' + (s.pct || 0) + '%'); aiVoiceDlT = setTimeout(poll, 800); return; }
+    aiVState('');
+    const v = rdJson(Android.aiVoiceInfo(), {});
+    toast(v.model ? '✓ Spraakmodel klaar: tik op de microfoon en praat' : 'Het spraakmodel downloaden lukte niet');
+    if (current === 'aiset') aisRenderVoice();
+  };
+  aiVoiceDlT = setTimeout(poll, 600);
+}
+function aisRenderVoice(st){
+  const box = $('#ais-voice'); if (!box) return;
+  const v = rdJson(Android.aiVoiceInfo(), {});
+  const running = st ? st.running : v.busy;
+  box.innerHTML = '<div class="aimodel"><div class="aimt"><b>Spraakmodel</b><small>' + (v.model ? '✓ Klaar · ' + esc(v.label) : running ? '↓ Downloaden… ' + ((st && st.pct) || 0) + '%' : 'Nog niet gedownload (57 MB)') + '</small></div>' +
+    '<div class="aimb">' + (v.model ? '<button class="mini" onclick="jumpTo(\'transcripts\')">Kiezen</button>' : running ? '' : '<button class="mini on" onclick="aiVoiceDownload()">Downloaden</button>') + '</div></div>';
+  const s = $('#ais-vsend'); s.classList.toggle('on', v.send !== false); s.setAttribute('aria-checked', v.send !== false ? 'true' : 'false');
+}
+function aisVoiceSend(){ aiSt.voiceSend = !(aiSt.voiceSend !== false); Android.aiPref('voiceSend', aiSt.voiceSend); aisRenderVoice(); toast(aiSt.voiceSend ? 'Ingesproken vraag wordt meteen verstuurd' : 'Ingesproken tekst komt eerst in het invoerveld'); }
