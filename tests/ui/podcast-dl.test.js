@@ -21,6 +21,13 @@ const { chromium } = require('playwright');
     await pg.click('#pd-eps .pcep[data-i="1"] .pcmore'); await pg.waitForTimeout(100);
     ok((await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent))).includes('Download verwijderen'), 'menu: download verwijderen');
     await pg.evaluate(() => closeSheet());
+    // Beluisterd markeren: de download gaat vanzelf weg
+    await pg.click('#pd-eps .pcep[data-i="2"] .pcmore'); await pg.waitForTimeout(100);
+    await pg.click('#sheet-acts button:has-text("Downloaden voor offline")'); await pg.waitForTimeout(2600);
+    ok((await pg.textContent('#pd-eps .pcep[data-i="2"] small')).includes('✓ Offline'), 'tweede download klaar');
+    await pg.click('#pd-eps .pcep[data-i="2"] .pcmore'); await pg.waitForTimeout(100);
+    await pg.click('#sheet-acts button:has-text("Markeren als beluisterd")'); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => Android._dl.list.length === 1) && !(await pg.$$eval('#pd-eps .pcep small', x => x.map(e => e.textContent))).some(t => t.includes('✓ beluisterd') && t.includes('Offline')), 'beluisterd: download weg');
     // Volgen en vanzelf downloaden
     await pg.click('#pd-sub'); await pg.waitForTimeout(150);
     ok(await pg.isVisible('#pd-dl-row'), 'gevolgd: "nieuwe afleveringen downloaden" zichtbaar');
@@ -33,6 +40,11 @@ const { chromium } = require('playwright');
     await pg.click('#pc-dl .pcepb'); await pg.waitForTimeout(200);
     ok(await pg.evaluate(() => Android._pc.st.ep && Android._pc.st.ep.key === Android._dl.list[0].key), 'afspelen vanuit Gedownload');
     await pg.screenshot({ path: __dirname + '/shots/podcast-dl-list-' + scheme + '.png' });
+    // "Verder luisteren": ook daar het downloadmenu
+    await pg.evaluate(() => { const e = Object.assign({}, Android._pc.top[0].eps ? Android._pc.top[0].eps[0] : {}, { key: 'verder-1', title: 'Verder-aflevering', url: 'https://example.org/a.mp3' }); Android._pc.recent.push({ ep: e, pod: Android._pc.top[0], t: Date.now() }); pcRenderCont(); });
+    await pg.click('#pc-cont .pcep:last-child .pcmore'); await pg.waitForTimeout(100);
+    ok((await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent))).includes('↓ Downloaden voor offline'), 'verder luisteren: downloaden in het menu');
+    await pg.evaluate(() => closeSheet());
     // Instellingen
     await pg.click('#pc-dl-wrap button:has-text("Instellingen")'); await pg.waitForTimeout(100);
     await pg.click('#sheet-acts button:has-text("Alleen via wifi")');

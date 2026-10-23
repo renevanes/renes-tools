@@ -229,7 +229,7 @@ if (!window.Android) window.Android = (function(){
     podRefresh(){ this._pc.refreshed = Date.now(); setTimeout(() => onPodRefreshed({ fresh: 0 }), 100); }, podRefreshedAt(){ return this._pc.refreshed; },
     podContinue(){ return JSON.stringify(this._pc.recent.filter(r => !(this._pc.prog[r.ep.key] || {}).done).map(r => Object.assign({}, r, { ep: Object.assign({}, r.ep, { pos: (this._pc.prog[r.ep.key] || {}).p || 0, pd: (this._pc.prog[r.ep.key] || {}).d || 0 }) }))); },
     podForget(k){ this._pc.recent = this._pc.recent.filter(r => r.ep.key !== k); },
-    podMarkPlayed(k, d){ this._pc.prog[k] = { p: 0, d: 0, done: d }; },
+    podMarkPlayed(k, d){ this._pc.prog[k] = { p: 0, d: 0, done: d }; if (d && this._dl.prefs.autoDelete) this._dl.list = this._dl.list.filter(x => x.key !== k); },
     _pcSave(){ const st = this._pc.st; if (st.ep) this._pc.prog[st.ep.key] = { p: this._pcPos(), d: st.dur, done: false }; },
     _pcPos(){ const st = this._pc.st; return st.status === 'playing' ? Math.min(st.dur, st.pos + (Date.now() - st.at) * this._pc.speed) : st.pos; },
     podPlay(j){ const o = JSON.parse(j); if (!/^https?:/.test(o.ep.url || '')) return 'Deze aflevering heeft geen geldig adres';

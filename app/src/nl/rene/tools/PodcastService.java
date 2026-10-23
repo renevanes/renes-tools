@@ -386,10 +386,10 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     }
 
     private void onEnded() {
-        try { JSONObject e = new JSONObject(ep); Podcasts.saveProgress(this, e.optString("key"), 0, dur, true); } catch (Exception ignored) { }
         pos = 0;
         release(); prepared = false;
-        status = "ended";
+        status = "ended"; // eerst: dan telt hij niet meer als "speelt nog" en kan een download weg
+        try { JSONObject e = new JSONObject(ep); Podcasts.saveProgress(this, e.optString("key"), 0, dur, true); } catch (Exception ignored) { }
         h.removeCallbacks(tickRun);
         if (!sleepEnd) {
             // Hierna: meteen de volgende (een slaaptimer op tijd loopt gewoon door). Het bestand lezen gebeurt op

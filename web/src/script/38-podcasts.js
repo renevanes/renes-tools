@@ -214,12 +214,17 @@ function pdList(){
   return l;
 }
 let pdRows = [], pdCurKey = null;
+/* De regel onder de titel: datum · duur · nog te gaan · download */
+function pdRowInfo(e){
+  const d = +e.pd || (+e.dur || 0) * 1000, p = +e.pos || 0;
+  return [pcDate(e.date), e.dur ? fmtMin(e.dur / 60) : '', e.done ? '✓ beluisterd' : p > 0 && d > 0 ? 'nog ' + fmtMin((d - p) / 6e4) : '', pcDlTxt(pcDlMap[e.key])].filter(Boolean).join(' · ');
+}
 function pdRowHtml(e, i, cur){
   const isCur = e.key === cur;
   if (isCur && pcSt.status === 'ended') { e.done = true; e.pos = 0; }
   else if (isCur) { e.pos = +pcSt.pos || 0; if (+pcSt.dur) e.pd = +pcSt.dur; if (e.pos > 0) e.done = false; } // blijft kloppen als er later iets anders speelt
   const d = +e.pd || (+e.dur || 0) * 1000, p = +e.pos || 0;
-  const info = [pcDate(e.date), e.dur ? fmtMin(e.dur / 60) : '', e.done ? '✓ beluisterd' : p > 0 && d > 0 ? 'nog ' + fmtMin((d - p) / 6e4) : '', pcDlTxt(pcDlMap[e.key])].filter(Boolean).join(' · ');
+  const info = pdRowInfo(e);
   return '<div class="pcep' + (e.done ? ' done' : '') + (isCur ? ' cur' : '') + '" data-i="' + i + '"><button class="pcepb" onclick="pdPlay(' + i + ')">' +
     '<span class="pctxt"><b>' + esc(e.title) + '</b><small>' + esc(info) + '</small>' +
     (p > 0 && d > 0 && !e.done ? '<span class="pcprog"><i style="width:' + Math.min(100, p / d * 100).toFixed(1) + '%"></i></span>' : '') + '</span>' +

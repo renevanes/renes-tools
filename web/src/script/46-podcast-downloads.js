@@ -38,13 +38,12 @@ function pcDlRefresh(){
   pcDlLoad();
   if (current === 'podcasts') pcRenderDl();
   if (current === 'podcast' && pdFeed) {
-    // Alleen de rijen waarvan de download veranderde (de rest blijft staan: tik en focus gaan niet verloren)
-    const cur = pcSt.ep && pcSt.ep.key;
+    // Alleen de tekst van rijen waarvan de download veranderde (de rij zelf blijft staan: tik en focus gaan niet verloren)
     pdRows.forEach((e, i) => {
       const s = pcDlTxt(pcDlMap[e.key]);
       if ((pcDlSig[e.key] || '') === s) return;
       pcDlSig[e.key] = s;
-      const old = document.querySelector('#pd-eps .pcep[data-i="' + i + '"]'); if (old) old.outerHTML = pdRowHtml(e, i, cur);
+      const sm = document.querySelector('#pd-eps .pcep[data-i="' + i + '"] small'); if (sm) sm.textContent = pdRowInfo(e);
     });
   }
   clearTimeout(pcDlT);
@@ -53,16 +52,30 @@ function pcDlRefresh(){
 window.onPodDl = function(){ pcDlRefresh(); };
 
 /* Hoofdscherm: lijst "Gedownload" en de instellingen */
+let pcDlListSig = '';
+function pcDlLine(d){ return [(d.pod || {}).title, pcDlTxt(d), d.state === 'done' && d.bytes ? fmtB(d.bytes) : ''].filter(Boolean).join(' · '); }
+function pcDlBar(d){ return pcDlBusy(d) && d.total > 0; }
 function pcRenderDl(){
   const wrap = $('#pc-dl-wrap'); if (!wrap) return;
   wrap.style.display = pcDl.length ? 'block' : 'none';
   const done = pcDl.filter(d => d.state === 'done'), bytes = done.reduce((a, d) => a + (+d.bytes || 0), 0);
   $('#pc-dl-sum').textContent = done.length ? done.length + (done.length === 1 ? ' aflevering' : ' afleveringen') + ' · ' + fmtB(bytes) : '';
+  // Zelfde rijen als net (alleen voortgang anders): tekst en balk bijwerken, de lijst niet opnieuw opbouwen
+  const sig = pcDl.map(d => d.key + ':' + pcDlBar(d)).join('|');
+  const rows = $('#pc-dl').children;
+  if (sig === pcDlListSig && rows.length === pcDl.length) {
+    pcDl.forEach((d, i) => {
+      const sm = rows[i].querySelector('small'); if (sm) sm.textContent = pcDlLine(d);
+      const bar = rows[i].querySelector('.pcprog i'); if (bar) bar.style.width = Math.min(100, d.bytes / d.total * 100).toFixed(1) + '%';
+    });
+    return;
+  }
+  pcDlListSig = sig;
   $('#pc-dl').innerHTML = pcDl.map((d, i) => {
     const e = d.ep || {}, p = d.pod || {};
     return '<div class="pcep"><button class="pcepb" onclick="pcDlPlay(' + i + ')">' + pcArt(e.image || p.image) +
-      '<span class="pctxt"><b>' + esc(e.title || 'Aflevering') + '</b><small>' + esc([p.title, pcDlTxt(d), d.state === 'done' && d.bytes ? fmtB(d.bytes) : ''].filter(Boolean).join(' · ')) + '</small>' +
-      (pcDlBusy(d) && d.total > 0 ? '<span class="pcprog"><i style="width:' + Math.min(100, d.bytes / d.total * 100).toFixed(1) + '%"></i></span>' : '') + '</span></button>' +
+      '<span class="pctxt"><b>' + esc(e.title || 'Aflevering') + '</b><small>' + esc(pcDlLine(d)) + '</small>' +
+      (pcDlBar(d) ? '<span class="pcprog"><i style="width:' + Math.min(100, d.bytes / d.total * 100).toFixed(1) + '%"></i></span>' : '') + '</span></button>' +
       '<button class="pcmore" onclick="pcDlMenu(' + i + ')" aria-label="Meer over ' + esc(e.title || 'aflevering') + '">⋯</button></div>';
   }).join('');
 }

@@ -76,6 +76,7 @@ public class PodcastBridge extends FeatureBridge {
         if (!"wifiOnly".equals(name) && !"autoDelete".equals(name)) return;
         PodcastDownloads.prefs(ctx).edit().putBoolean(name, on).apply();
         PodcastDownloadJob.schedule(ctx);
+        if ("wifiOnly".equals(name) && !on) new Thread(() -> { try { if (PodcastDownloads.requeueWaiting(ctx) > 0) a.js("onPodDl", ""); } catch (Throwable ignored) { } }, "podcast-dl-requeue").start();
     }
     /** Nieuwe afleveringen van deze (gevolgde) podcast vanzelf downloaden. */
     @JavascriptInterface public String podAutoDl(String podId, boolean on) {

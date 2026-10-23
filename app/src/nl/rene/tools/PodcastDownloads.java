@@ -27,6 +27,9 @@ final class PodcastDownloads {
     static final int AUTO_PER_POD = 3;       // vanzelf downloaden: zoveel nieuwste, nog niet beluisterde afleveringen per podcast
     static final int MAX_GONE = 500;
 
+    /** Klaar gedownload: sleutel → pad (zodat afspelen zonder schijf- of DownloadManager-werk het bestand vindt). */
+    private static final java.util.concurrent.ConcurrentHashMap<String, String> READY = new java.util.concurrent.ConcurrentHashMap<>();
+
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("podcast_dl", Context.MODE_PRIVATE); }
     static boolean wifiOnly(Context c) { return prefs(c).getBoolean("wifiOnly", true); }
     static boolean autoDelete(Context c) { return prefs(c).getBoolean("autoDelete", true); }
@@ -82,7 +85,7 @@ final class PodcastDownloads {
             long id = m.enqueue(r);
             JSONObject slimEp = new JSONObject().put("key", key).put("title", ep.optString("title")).put("url", url).put("type", ep.optString("type"))
                     .put("date", ep.optLong("date")).put("dur", ep.optLong("dur")).put("image", ep.optString("image")).put("guid", ep.optString("guid"))
-                    .put("desc", Podcasts.FeedText.clip(ep.optString("desc"), 1500));
+                    .put("desc", Podcasts.FeedText.clip(ep.optString("desc"), 600));
             JSONObject slimPod = pod == null ? new JSONObject() : new JSONObject().put("id", pod.optString("id")).put("feed", pod.optString("feed"))
                     .put("title", pod.optString("title")).put("author", pod.optString("author")).put("image", pod.optString("image")).put("link", pod.optString("link"));
             idx.put(key, new JSONObject().put("id", id).put("file", name).put("t", System.currentTimeMillis()).put("auto", auto).put("ep", slimEp).put("pod", slimPod));
@@ -110,7 +113,14 @@ final class PodcastDownloads {
             int reason = cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
             s.put("bytes", done).put("total", total);
             switch (st) {
-                case DownloadManager.STATUS_SUCCESSFUL: return s.put("state", f.isFile() && f.length() > 0 ? "done" : "failed");
+                case DownloadManager.STATUS_SUCCESSFUL: {
+                    // Android kan een andere naam kiezen (bijv. "…-1.mp3" als de naam al bestond): die gebruiken
+                    String lu = cur.getString(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI));
+                    String lp = lu == null ? null : Uri.parse(lu).getPath();
+                    File d = dir(c);
+                    if (lp != null && d != null) { File g = new File(lp); if (g.isFile() && d.equals(g.getParentFile())) { f = g; it.put("file", g.getName()); } }
+                    return s.put("state", f.isFile() && f.length() > 0 ? "done" : "failed").put("bytes", f.length());
+                }
                 case DownloadManager.STATUS_RUNNING: return s.put("state", "running");
                 case DownloadManager.STATUS_PENDING: return s.put("state", "queued");
                 case DownloadManager.STATUS_PAUSED: return s.put("state", "paused").put("reason", pauseReason(reason));
@@ -142,6 +152,7 @@ final class PodcastDownloads {
             try {
                 JSONObject s = m == null ? new JSONObject().put("state", "failed") : status(c, m, it);
                 if ("done".equals(s.optString("state")) && !it.optBoolean("done")) { it.put("done", true); changed = true; }
+                if ("done".equals(s.optString("state"))) READY.put(key, new File(dir(c), it.optString("file")).getAbsolutePath()); else READY.remove(key);
                 s.put("key", key).put("ep", it.optJSONObject("ep")).put("pod", it.optJSONObject("pod")).put("t", it.optLong("t")).put("auto", it.optBoolean("auto"));
                 rows.add(s);
             } catch (Exception ignored) { }
@@ -153,8 +164,14 @@ final class PodcastDownloads {
     }
 
     /** Pad van het gedownloade bestand, of null (nog niet klaar of niet gedownload). */
-    static synchronized String localPath(Context c, String key) {
+    static String localPath(Context c, String key) {
         if (!Podcasts.validKey(key)) return null;
+        String p = READY.get(key);
+        if (p != null) { if (new File(p).isFile()) return p; READY.remove(key); }
+        return localPathSlow(c, key);
+    }
+
+    private static synchronized String localPathSlow(Context c, String key) {
         JSONObject idx = index(c), it = idx.optJSONObject(key);
         if (it == null) return null;
         File d = dir(c);
@@ -166,14 +183,17 @@ final class PodcastDownloads {
             try {
                 if (m == null || !"done".equals(status(c, m, it).optString("state"))) return null;
                 it.put("done", true); save(c, idx);
+                f = new File(d, it.optString("file")); // misschien een andere naam gekregen
             } catch (Exception e) { return null; }
         }
+        READY.put(key, f.getAbsolutePath());
         return f.getAbsolutePath();
     }
 
     static synchronized void remove(Context c, String key) {
         JSONObject idx = index(c), it = idx.optJSONObject(key);
         if (it == null) return;
+        READY.remove(key);
         DownloadManager m = dm(c);
         try { if (m != null) m.remove(it.optLong("id")); } catch (Exception ignored) { }
         File d = dir(c);
@@ -181,6 +201,26 @@ final class PodcastDownloads {
         idx.remove(key);
         save(c, idx);
         if (it.optBoolean("auto")) gone(c, key); // vanzelf gedownload en weggehaald: niet nog eens vanzelf
+    }
+
+    /** "Alleen via wifi" uitgezet: wat op wifi wacht, opnieuw starten (Android legt die keuze vast bij het starten). */
+    static synchronized int requeueWaiting(Context c) {
+        DownloadManager m = dm(c);
+        if (m == null) return 0;
+        JSONObject idx = index(c);
+        List<JSONObject> again = new ArrayList<>();
+        for (Iterator<String> k = idx.keys(); k.hasNext(); ) {
+            JSONObject it = idx.optJSONObject(k.next());
+            if (it == null || it.optBoolean("done")) continue;
+            try { String st = status(c, m, it).optString("state"); if ("paused".equals(st) || "queued".equals(st)) again.add(it); } catch (Exception ignored) { }
+        }
+        for (JSONObject it : again) {
+            String key = it.optJSONObject("ep") == null ? "" : it.optJSONObject("ep").optString("key");
+            try { m.remove(it.optLong("id")); } catch (Exception ignored) { }
+            JSONObject cur = index(c); cur.remove(key); save(c, cur);
+            start(c, it.optJSONObject("ep"), it.optJSONObject("pod"), it.optBoolean("auto"));
+        }
+        return again.size();
     }
 
     static synchronized void removeAll(Context c) {
@@ -234,6 +274,23 @@ final class PodcastDownloads {
         return false;
     }
 
+    /**
+     * Welke afleveringen vanzelf downloaden (zuiver, getest): van nieuw naar oud, alleen vanaf {@code from}, beluisterde
+     * overslaan; wat al gedownload is of door jou is weggehaald telt mee voor de {@code max} plekken.
+     */
+    static List<String> pickAuto(String[] keys, long[] dates, boolean[] played, java.util.Set<String> haveOrGone, long from, int max) {
+        List<String> out = new ArrayList<>();
+        int slots = 0;
+        for (int k = 0; k < keys.length && slots < max; k++) {
+            if (keys[k] == null || keys[k].isEmpty()) continue;
+            if (dates[k] > 0 && dates[k] < from) break;
+            if (played[k]) continue;
+            slots++;
+            if (!haveOrGone.contains(keys[k])) out.add(keys[k]);
+        }
+        return out;
+    }
+
     /** Voor podcasts met "vanzelf downloaden": de nieuwste, nog niet beluisterde afleveringen. Geeft het aantal nieuwe. */
     static int autoQueue(Context c) {
         int n = 0;
@@ -245,18 +302,20 @@ final class PodcastDownloads {
             JSONObject feed = Podcasts.readJson(Podcasts.cacheFile(c, s.optString("id")));
             JSONArray items = feed == null ? null : feed.optJSONArray("items");
             if (items == null) continue;
-            long from = s.optLong("dlFrom");
-            int taken = 0;
-            for (int k = 0; k < items.length() && taken < AUTO_PER_POD; k++) {
+            int len = Math.min(items.length(), 60);
+            String[] keys = new String[len]; long[] dates = new long[len]; boolean[] played = new boolean[len];
+            java.util.Set<String> have = new java.util.HashSet<>();
+            JSONObject idx = index(c);
+            for (int k = 0; k < len; k++) {
                 JSONObject e = items.optJSONObject(k);
-                if (e == null) continue;
-                if (e.optLong("date") > 0 && e.optLong("date") < from) break; // alleen wat er sinds het aanzetten bij kwam (en de nieuwste bij aanzetten)
-                String key = e.optString("key");
-                JSONObject p = prog.optJSONObject(key);
-                if (p != null && p.optBoolean("done")) { taken++; continue; }
-                taken++;
-                if (isGone(c, key) || index(c).has(key)) continue;
-                if ("".equals(start(c, e, s, true))) n++;
+                if (e == null) { keys[k] = ""; continue; }
+                keys[k] = e.optString("key"); dates[k] = e.optLong("date");
+                JSONObject p = prog.optJSONObject(keys[k]);
+                played[k] = p != null && p.optBoolean("done");
+                if (idx.has(keys[k]) || isGone(c, keys[k])) have.add(keys[k]);
+            }
+            for (String key : pickAuto(keys, dates, played, have, s.optLong("dlFrom"), AUTO_PER_POD)) {
+                for (int k = 0; k < len; k++) if (key.equals(keys[k])) { if ("".equals(start(c, items.optJSONObject(k), s, true))) n++; break; }
             }
         }
         return n;
@@ -271,11 +330,11 @@ final class PodcastDownloads {
                 if (!s.optString("id").equals(podId)) continue;
                 s.put("dl", on);
                 if (on) {
-                    // Vanaf de nieuwste aflevering die er nu is (die wordt meteen gedownload)
                     JSONObject feed = Podcasts.readJson(Podcasts.cacheFile(c, podId));
                     JSONArray items = feed == null ? null : feed.optJSONArray("items");
-                    long newest = items != null && items.length() > 0 ? items.getJSONObject(0).optLong("date") : System.currentTimeMillis();
-                    s.put("dlFrom", newest);
+                    // Vanaf de 3e nieuwste aflevering die er nu is: die (en nieuwere) worden meteen gedownload
+                    long from = items != null && items.length() > 0 ? items.getJSONObject(Math.min(AUTO_PER_POD, items.length()) - 1).optLong("date") : System.currentTimeMillis();
+                    s.put("dlFrom", from);
                 } else s.remove("dlFrom");
             }
             Podcasts.saveSubs(c, a);
