@@ -146,6 +146,9 @@ public class AiBridge extends FeatureBridge {
     /** Zoekindex bijwerken (force = helemaal opnieuw); voortgang via onAiIndex. */
     @JavascriptInterface public void aiIndex(boolean force) { LocalAi.index(ctx, force, false); }
 
+    /** Vanzelf bijwerken als er iets veranderde (bijv. na een nieuwe toestemming); niet als je net op Stoppen tikte. */
+    @JavascriptInterface public void aiIndexAuto() { LocalAi.indexLater(ctx); }
+
     /** Het bijwerken van de zoekindex stoppen (wat klaar is, blijft). */
     @JavascriptInterface public void aiIndexStop() { LocalAi.indexStop(); }
 

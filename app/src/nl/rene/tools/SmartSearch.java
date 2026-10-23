@@ -257,7 +257,8 @@ final class SmartSearch {
                 if (text.isEmpty()) text = m.optString("label");
                 if (text.isEmpty()) continue;
                 String who = m.optString("sender");
-                if (who.isEmpty()) who = ch.optString("name", "Onbekend"); // in een gesprek met één persoon staat de afzender er niet bij
+                // In een gesprek met één persoon staat de afzender er niet bij (dat is die persoon); in een groep: onbekend
+                if (who.isEmpty()) who = ch.optBoolean("group") ? "Iemand" : ch.optString("name", "Onbekend");
                 lines.add("[" + when(m.optLong("t")) + "] " + (m.optBoolean("me") ? "Ik" : who) + ": " + text.replace('\n', ' '));
                 times.add(m.optLong("t"));
             }
@@ -345,8 +346,10 @@ final class SmartSearch {
     }
     private static List<Entry> current(Context c) {
         LOCK.lock();
-        try { load(c); return entries; } finally { LOCK.unlock(); }
+        try { load(c); List<Entry> es = entries; return es != null ? es : Collections.<Entry>emptyList(); } finally { LOCK.unlock(); }
     }
+    /** Het vingerafdrukje zoals het in het bestand staat. */
+    private static volatile String savedSig = "";
     static volatile int busyDone = -1, busyTotal = 0;
 
     static File file(Context c) { File d = new File(c.getFilesDir(), "ai"); d.mkdirs(); return new File(d, "index.json"); }
@@ -388,6 +391,7 @@ final class SmartSearch {
         try {
             if (entries == null && LOCK.tryLock()) { try { load(c); } finally { LOCK.unlock(); } }
             o.put("items", snapItems).put("chunks", snapChunks).put("at", builtAt).put("stale", !builtSig.equals(sourcesSig(c)));
+            if (LocalAi.userStopped) o.put("stopped", true);
             if (busyDone >= 0) o.put("busy", true).put("done", busyDone).put("total", busyTotal);
         } catch (Throwable ignored) { } // ook geen geheugenfout naar de interface
         return o;
@@ -431,9 +435,12 @@ final class SmartSearch {
             // ander model: opnieuw
             if (dims != DIMS || !LocalAi.EMBED.sha.equals(model)) { es = new ArrayList<>(); h = new HashMap<>(); }
             else { builtAt = at; builtSig = sig; }
+        } catch (Error e) {
+            return; // bijv. te weinig geheugen: niet als lege index behandelen (dan zou alles opnieuw moeten), later opnieuw proberen
         } catch (Throwable e) { es = new ArrayList<>(); h = new HashMap<>(); }
         entries = Collections.unmodifiableList(es);
         loadedHashes = h;
+        savedSig = builtSig;
         snapshot();
     }
 
@@ -459,6 +466,7 @@ final class SmartSearch {
             fo.getFD().sync();
         }
         if (!tmp.renameTo(f)) { f.delete(); if (!tmp.renameTo(f)) throw new Exception("Opslaan van de zoekindex lukte niet"); }
+        savedSig = builtSig;
     }
 
     interface Progress { void step(int done, int total); }
@@ -481,7 +489,10 @@ final class SmartSearch {
 
     private static void updateLocked(Context c, boolean force, Progress p) throws Exception {
         List<Entry> entries = new ArrayList<>(current(c));
-        if (force) { entries = new ArrayList<>(); hashes = new HashMap<>(); } else if (hashes.isEmpty() && !entries.isEmpty()) hashes = new HashMap<>(loadedHashes);
+        if (SmartSearch.entries == null) throw new Exception("De zoekindex laden lukte niet (te weinig geheugen?)"); // niet alles overschrijven
+        if (force) { entries = new ArrayList<>(); hashes = new HashMap<>(); loadedHashes = new HashMap<>(); }
+        else if (hashes.isEmpty() && !entries.isEmpty()) hashes = new HashMap<>(loadedHashes);
+        loadedHashes = new HashMap<>(); // maar één keer overnemen (daarna weet hashes het beter, ook na een gestopte ronde)
         // Bij een nieuw bericht verandert het hele gesprek, maar de meeste stukken niet: die houden hun vector
         Map<String, byte[]> reuse = new HashMap<>();
         for (Entry e : entries) reuse.put(pieceKey(e.kind, e.id, e.text), e.v);
@@ -570,7 +581,7 @@ final class SmartSearch {
             publish(entries);
             // Ook halverwege: wat klaar is, hoeft de volgende keer niet opnieuw. Niets veranderd: niet opnieuw schrijven
             // (dan klopt het vingerafdrukje in het bestand niet meer; de volgende keer is dat snel opnieuw nagelopen).
-            if (changed || !file(c).isFile()) save(c);
+            if (changed || !file(c).isFile() || !builtSig.equals(savedSig)) save(c);
         }
     }
 
@@ -593,7 +604,8 @@ final class SmartSearch {
                 long until = System.currentTimeMillis() + WAIT_MS;
                 Thread.sleep(50); // de index-thread even laten beginnen
                 while ((updating() || LocalAi.indexQueued()) && System.currentTimeMillis() < until) {
-                    if ((busyDone >= 0 && busyTotal > 48) || LocalAi.cancelled()) break;
+                    // Veel te doen, gestopt, of de index wacht zelf op het gesprek: niet langer wachten
+                    if ((busyDone >= 0 && busyTotal > 48) || LocalAi.cancelled() || LocalAi.chatWaits(c)) break;
                     Thread.sleep(200);
                 }
             }

@@ -316,7 +316,7 @@ function aiRenderSet(){
 function aiIndexHtml(subId){
   const ix = aiSt.index || {}, busy = ix.busy || aiIdx.busy;
   return '<div class="sw" style="margin-top:6px"><span>Zoekindex<small id="' + subId + '">' + esc(busy ? 'Bijwerken… ' + (aiIdx.done || ix.done || 0) + ' van ' + (aiIdx.total || ix.total || 0) + ' nieuwe stukken (gaat door op de achtergrond)'
-      : (ix.items ? ix.chunks + ' stukken uit ' + ix.items + ' bronnen' + (ix.at ? ' · ' + fmtD(ix.at) : '') : 'Nog niet opgebouwd') + (ix.stale && ix.items ? ' · wordt bij de volgende zoekvraag bijgewerkt' : '')) + '</small></span>' +
+      : (ix.items ? ix.chunks + ' stukken uit ' + ix.items + ' bronnen' + (ix.at ? ' · ' + fmtD(ix.at) : '') : 'Nog niet opgebouwd') + (ix.stale && ix.items ? (ix.stopped ? ' · gestopt: tik op Bijwerken om verder te gaan' : ' · wordt bij de volgende zoekvraag bijgewerkt') : '')) + '</small></span>' +
     (busy ? '<button class="mini" onclick="aisIndexStop()">Stoppen</button>' : '<button class="mini" onclick="aisIndex(false)">' + (ix.items ? 'Bijwerken' : 'Opbouwen') + '</button>') + '</div>' +
     (ix.items && !busy ? '<button class="linkish" onclick="aisIndex(true)">Helemaal opnieuw opbouwen</button>' : '');
 }
@@ -367,7 +367,7 @@ function aiSrcToggle(k){
   const prev = window.onSettingsChanged;
   window.onSettingsChanged = function(msg){
     if (typeof prev === 'function') prev(msg);
-    if (current === 'aisetdata') { aiLoad(); aiRenderData(); if (aiReady('zoek') && aiSt.index && aiSt.index.stale) Android.aiIndex(false); }
+    if (current === 'aisetdata') { aiLoad(); aiRenderData(); if (aiReady('zoek') && aiSt.index && aiSt.index.stale && !aiSt.index.stopped) Android.aiIndexAuto(); }
   };
 })();
 function aisWifi(){ aiSt.wifiOnly = !aiSt.wifiOnly; Android.aiPref('wifiOnly', aiSt.wifiOnly); aiRenderSet(); toast(aiSt.wifiOnly ? 'Downloaden alleen via wifi (voor een nieuwe download)' : 'Downloaden ook via mobiel internet (voor een nieuwe download)'); }
