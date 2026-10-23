@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.94",
-  "versionCode": 95,
-  "nativeLevel": 83,
+  "versionName": "1.95",
+  "versionCode": 96,
+  "nativeLevel": 84,
   "web": "index.html",
-  "webSha256": "cb46c26ee8616937454619adb2ec1bf91799a58deaaa2b7b9e0ba0f5fc2c2bb4",
+  "webSha256": "6eeee0688f8617643f3edc319d65b913eb3886b15190e65413da7b8b4e5984c4",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "868a1ad0c09738a8ebb1a3eca6cd736c17710e74b9f7cdf66d71ec7a4338f341",
+  "apkSha256": "989c2fe9fe160621a60f38f078be3903a35eb2235247ec5206982b8ac52373d6",
   "changelog": [
+    {
+      "version": "1.95",
+      "date": "2026-10-23",
+      "changes": [
+        "Lokale AI: kies bij Instellingen → Gegevens waar de assistent en slim zoeken in mogen kijken: notities, uitgeschreven gesprekken, sms'jes, WhatsApp, oproepen en contacten (alles blijft op je telefoon)",
+        "Assistent: de knop heet nu \"Met mijn gegevens\"; bronnen onder een antwoord openen het sms-gesprek, de chat, het contact of de oproepen",
+        "Slim zoeken: de zoekindex werkt op de achtergrond bij (met voortgang en een stopknop), zonder dat de assistent of het zoeken erop wacht",
+        "Assistent: stel zelf in hoe hij antwoordt (kort of uitgebreid, precies of creatief, in welke taal, hoeveel van het gesprek hij onthoudt), vertel bij Persoonlijk iets over jezelf, en kies bij Prestaties tussen zuinig en snel. De instellingen staan nu overzichtelijk per onderwerp"
+      ]
+    },
     {
       "version": "1.94",
       "date": "2026-10-23",
@@ -828,5 +838,5 @@
       ]
     }
   ],
-  "webSig2": "c8mUlLUOkf3gZwgi92GTMWyFtF7T+HnNfmp2vjwafNw3eV8f8XYjNRKrn0jfIO8Ud6X0uyemi81N/3qxlSl/0ZP3irCnQ6vG7be4fu8LNyYn0mxEFvWPxkfqlN3pKAMQQemqmmY7/lyAGqU8Za59OUXSPliYjBCtaVN0WOi7GciqXK444M8+WWz4Z7QpOZt5HfqfRlDG7jlxNSMK07e5Tk31gwasyhYxN9mmtRBwpPSppuA3xgTwGHPRwNOviiZqyEpuTyAb9GAKM/ns4FT320UxDSgl3II23UBIQQ62/f1hJkxD0vzluuEpez020YNKvR0mR06vaKPny8Rx5j+OIgp10S5ScwzM+/joy0mcADUZQT0t085Ob4s97/IU7c+wS87/dAMviKbuoS/9Hnoipt9WWXbWDYwRLRkpwNeuDptn2By0usazBE/uwFkk0fRt7Yvy2DXsOqSLhkMCKjXMA/DZXn++lN3YWWHT9o7k7ku31PbaB8BcM0S9nSBkW+JX"
+  "webSig2": "kVYQIU9BQTKDCr+KPDUs584ogyBTYE4wZdsofNGTGy+6m+zMQA0tYws93Fhzbu+0ky2xyCtsbHPcD9FO26yd4dED9/TjrjAvQQ6Lmg9mYKxONsTq8evBGWrJQR0VQQUeAGR61uM+odogQ7DBeTMU9Lapbpaew39IVPfDbAGW2iXYmvKlHZK9QDvUYEP73nulNM8+Ewd9td6BAGnbz55YT8wRn2Dj3A6k/DCbn+BbXmsGK3pVnd9mii+2qGJ3Ro2X1MQXjRDrj/tUVlS0z8BaK6ALjhq6cubdG5uA9DEeuIBzxuWi0J+X5iVVTioJjPSb99jBrhMXKBkBLOB5JjTalX2LiBBNrKM3jXuxRvJiaWKt7MSw4951pJIwbvRJFS35WjLhcQeMXiUW0+/1lI6dZhZMOcm0STQMVgCK1ki66BDcQA/91r5kUCjK7812/1+XMfTPrp5Av2ksRSUnmEFkJ/CKtPQp6QVHSlismEJxkTHXyuNpN619ZktpoAOyEUTh"
 }

@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.95",
+    "date": "2026-10-23",
+    "changes": [
+      "Lokale AI: kies bij Instellingen → Gegevens waar de assistent en slim zoeken in mogen kijken: notities, uitgeschreven gesprekken, sms'jes, WhatsApp, oproepen en contacten (alles blijft op je telefoon)",
+      "Assistent: de knop heet nu \"Met mijn gegevens\"; bronnen onder een antwoord openen het sms-gesprek, de chat, het contact of de oproepen",
+      "Slim zoeken: de zoekindex werkt op de achtergrond bij (met voortgang en een stopknop), zonder dat de assistent of het zoeken erop wacht",
+      "Assistent: stel zelf in hoe hij antwoordt (kort of uitgebreid, precies of creatief, in welke taal, hoeveel van het gesprek hij onthoudt), vertel bij Persoonlijk iets over jezelf, en kies bij Prestaties tussen zuinig en snel. De instellingen staan nu overzichtelijk per onderwerp"
+    ]
+  },
+  {
     "version": "1.94",
     "date": "2026-10-23",
     "changes": [

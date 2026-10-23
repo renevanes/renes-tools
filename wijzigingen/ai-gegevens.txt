@@ -1,3 +1,0 @@
-Lokale AI: kies bij Instellingen → Gegevens waar de assistent en slim zoeken in mogen kijken: notities, uitgeschreven gesprekken, sms'jes, WhatsApp, oproepen en contacten (alles blijft op je telefoon)
-Assistent: de knop heet nu "Met mijn gegevens"; bronnen onder een antwoord openen het sms-gesprek, de chat, het contact of de oproepen
-Slim zoeken: de zoekindex werkt op de achtergrond bij (met voortgang en een stopknop), zonder dat de assistent of het zoeken erop wacht
