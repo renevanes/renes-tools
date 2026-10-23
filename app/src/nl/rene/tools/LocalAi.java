@@ -151,14 +151,16 @@ final class LocalAi {
         }
         DownloadManager mgr = dm(c);
         if (id >= 0 && mgr != null) try { mgr.remove(id); } catch (Throwable ignored) { }
+        if (VERIFYING.containsKey(m.id)) STOP_VERIFY.add(m.id); // het kopiëren stopt en ruimt zelf op
         LlmProcess p = chat;
-        if (m.embed) { cancel(); closeEmbed(); }
+        if (m.embed) closeEmbed(); // een lopend antwoord (zonder notities) loopt gewoon door
         else if (p != null && p.model.equals(file(c, m))) { cancel(); closeChat(); }
         file(c, m).delete(); partFile(c, m).delete(); tmpFile(c, m).delete();
         if (m.embed) AI.execute(() -> { try { SmartSearch.clear(c); } catch (Throwable ignored) { } });
     }
 
     private static final java.util.Map<String, Integer> VERIFYING = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Set<String> STOP_VERIFY = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<String, Boolean>());
 
     /** Status van één model: ready, running (bytes/total), paused (reason), verifying (pct), failed (reason), none. */
     static synchronized JSONObject state(Context c, Model m) {
@@ -218,6 +220,7 @@ final class LocalAi {
                 try (InputStream in = new FileInputStream(part); java.io.OutputStream out = new java.io.FileOutputStream(tmp)) {
                     int n;
                     while ((n = in.read(buf)) > 0) {
+                        if (STOP_VERIFY.contains(m.id)) throw new Exception("Gestopt");
                         md.update(buf, 0, n); out.write(buf, 0, n); got += n;
                         VERIFYING.put(m.id, (int) (got * 100 / m.size));
                     }
@@ -225,6 +228,7 @@ final class LocalAi {
                 StringBuilder hex = new StringBuilder();
                 for (byte b : md.digest()) hex.append(String.format(Locale.ROOT, "%02x", b));
                 if (got != m.size || !hex.toString().equals(m.sha)) throw new Exception("Download beschadigd; probeer opnieuw");
+                if (STOP_VERIFY.contains(m.id)) throw new Exception("Gestopt");
                 fin.delete();
                 if (!tmp.renameTo(fin)) throw new Exception("Opslaan lukt niet");
                 prefs(c).edit().putString("ok_" + m.id, m.sha).remove("dl_" + m.id).remove("err_" + m.id).apply();
@@ -232,9 +236,11 @@ final class LocalAi {
                 String err = t.getMessage() == null ? "Controleren mislukt" : t.getMessage();
                 if (t instanceof java.io.IOException && err.toLowerCase(Locale.ROOT).contains("space")) err = "Te weinig opslag om het model te bewaren";
                 tmp.delete();
-                prefs(c).edit().remove("dl_" + m.id).putString("err_" + m.id, err).apply();
+                if (STOP_VERIFY.contains(m.id)) prefs(c).edit().remove("dl_" + m.id).remove("err_" + m.id).remove("ok_" + m.id).apply(); // weggehaald: geen foutmelding
+                else prefs(c).edit().remove("dl_" + m.id).putString("err_" + m.id, err).apply();
             } finally {
                 part.delete(); // de download zelf (in de gedeelde map) is niet meer nodig
+                STOP_VERIFY.remove(m.id);
                 VERIFYING.remove(m.id);
                 MainActivity.jsAll("onAiModels", "");
             }
@@ -271,7 +277,7 @@ final class LocalAi {
         if (p != null && p.alive()) return p;
         if (!ready(c, EMBED)) throw new Exception("Download eerst het model voor slim zoeken");
         LlmProcess q = chat;
-        if (q != null && q.model.getName().equals(LARGE.file) && !bigRam(c)) closeChat();
+        if (q != null && !bigRam(c)) closeChat(); // niet twee modellen tegelijk in een kleiner geheugen
         p = LlmProcess.start(c, file(c, EMBED), EMBED.ctx, threads(), true, false);
         embed = p;
         return p;
@@ -380,32 +386,34 @@ final class LocalAi {
                             sink.sources(hits);
                         }
                     } catch (Exception e) { sink.status("Zoeken lukte niet: " + e.getMessage()); }
-                    if (cancel) { sink.done(new JSONObject().put("cancelled", true)); return; }
+                    if (cancel) { busy = false; sink.done(new JSONObject().put("cancelled", true)); return; }
                     if (!bigRam(c)) closeEmbed(); // niet twee modellen tegelijk in een kleiner geheugen
                 }
                 boolean starting = chat == null || !chat.alive() || !chat.model.equals(file(c, m));
                 if (starting) sink.status("Model laden…");
                 LlmProcess p = chatEngine(c, m);
-                if (cancel) { sink.done(new JSONObject().put("cancelled", true)); return; }
+                if (cancel) { busy = false; sink.done(new JSONObject().put("cancelled", true)); return; }
                 sink.status("");
                 final CountDownLatch done = new CountDownLatch(1);
                 final long rid = REQ.incrementAndGet();
                 p.listen(o -> {
-                    if (o.optBoolean("gone")) { if (done.getCount() > 0) { sink.error(o.optString("error")); done.countDown(); } return; }
+                    // busy eerst uit: wie meteen opnieuw vraagt, krijgt geen "nog bezig"
+                    if (o.optBoolean("gone")) { if (done.getCount() > 0) { busy = false; done.countDown(); sink.error(o.optString("error")); } return; }
                     if (o.optLong("id") != rid || done.getCount() == 0) return; // niet van deze vraag
                     if (o.has("t")) sink.token(o.optString("t"));
-                    else if (o.optBoolean("done")) { sink.done(o); done.countDown(); }
-                    else if (o.has("error")) { sink.error(o.optString("error")); done.countDown(); }
+                    else if (o.optBoolean("done")) { busy = false; done.countDown(); sink.done(o); }
+                    else if (o.has("error")) { busy = false; done.countDown(); sink.error(o.optString("error")); }
                 });
                 try {
                     p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", 1200)
                             .put("temp", 0.7).put("top_p", 0.8).put("top_k", 20));
                     while (!done.await(500, TimeUnit.MILLISECONDS)) {
-                        if (!p.alive()) { if (done.getCount() > 0) { done.countDown(); sink.error("De AI-motor is gestopt"); } break; }
+                        if (!p.alive()) { if (done.getCount() > 0) { busy = false; done.countDown(); sink.error("De AI-motor is gestopt"); } break; }
                     }
                 } finally { p.listen(null); }
                 p.lastUse = System.currentTimeMillis();
             } catch (Throwable t) {
+                busy = false;
                 sink.error(t.getMessage() == null ? "Er ging iets mis" : t.getMessage());
             } finally {
                 busy = false;

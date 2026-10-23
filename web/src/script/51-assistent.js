@@ -151,7 +151,7 @@ window.onAiError = function(msg){
 };
 function aiSaveChat(chat){
   if (!chat || !chat.msgs.some(m => !m.err)) return;
-  const id = Android.aiChatSave(JSON.stringify({ id: chat.id, title: chat.title, msgs: chat.msgs.map(m => ({ r: m.r, c: m.c, t: m.t, src: m.src || undefined, err: m.err || undefined, stopped: m.stopped || undefined })) }));
+  const id = Android.aiChatSave(JSON.stringify({ id: chat.id, title: chat.title, msgs: chat.msgs.map(m => ({ r: m.r, c: m.c, t: m.t, src: m.src || undefined, err: m.err || undefined, stopped: m.stopped || undefined, cut: m.cut || undefined, trim: m.trim || undefined })) }));
   if (id) chat.id = id;
 }
 /* Eenvoudige opmaak van een antwoord: alinea's, opsommingen, vet, cursief, code, kopjes (alles eerst ge-escaped) */
@@ -249,8 +249,9 @@ function enterAiChats(){
 function aicOpen(i){
   const c = aicList[i]; if (!c) return;
   const full = rdJson(Android.aiChatGet(c.id), null); if (!full) return;
-  if (aiBusy) Android.aiCancel();
-  aiChat = aiGen && aiGen.id === full.id ? aiGen : { id: full.id, title: full.title, msgs: full.msgs || [] };
+  // Hetzelfde gesprek als waarin nu geantwoord wordt: gewoon verder laten lopen
+  if (aiGen && aiGen.id === full.id) aiChat = aiGen;
+  else { if (aiBusy) Android.aiCancel(); aiChat = { id: full.id, title: full.title, msgs: full.msgs || [] }; }
   show('ai');
 }
 function aicMenu(i){
