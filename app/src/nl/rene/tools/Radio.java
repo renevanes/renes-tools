@@ -169,6 +169,14 @@ final class Radio {
         return (b >= a ? m.substring(a, b) : m.substring(a)).trim();
     }
 
+    /** Spaties en streepjes aan begin en eind weg (zonder regex: lineair, ook bij rare metadata). */
+    static String trimDash(String s) {
+        int a = 0, b = s.length();
+        while (a < b && (Character.isWhitespace(s.charAt(a)) || s.charAt(a) == '-')) a++;
+        while (b > a && (Character.isWhitespace(s.charAt(b - 1)) || s.charAt(b - 1) == '-')) b--;
+        return s.substring(a, b);
+    }
+
     /**
      * Wat de zender meestuurt: uit de ICY-headers de zendernaam, omschrijving, genre, website en
      * bitrate, en uit de metadata in de stream de huidige titel (vaak "Artiest - Titel" of de
@@ -199,7 +207,7 @@ final class Radio {
             while (got < len) { int n = in.read(meta, got, len - got); if (n < 0) break; got += n; }
             String m = new String(meta, 0, got, StandardCharsets.UTF_8);
             if (m.indexOf('\uFFFD') >= 0) m = new String(meta, 0, got, StandardCharsets.ISO_8859_1); // oudere servers sturen Latin-1
-            String t = metaField(m, "StreamTitle").replaceAll("^[\\s-]+|[\\s-]+$", "");
+            String t = trimDash(metaField(m, "StreamTitle"));
             o.put("title", t).put("streamUrl", metaField(m, "StreamUrl"));
             // "Artiest - Titel" splitsen als het daarop lijkt
             int d = t.indexOf(" - ");

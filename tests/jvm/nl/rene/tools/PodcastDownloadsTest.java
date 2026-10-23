@@ -31,6 +31,10 @@ public class PodcastDownloadsTest {
         check(".ogg".equals(PodcastDownloads.ext("https://x.nl/a.ogg", "")), "ogg");
         check(".opus".equals(PodcastDownloads.ext("https://x.nl/a.opus", "")), "opus");
         check(".mp3".equals(PodcastDownloads.ext("https://x.nl/stream", "")), "onbekend: mp3");
+        check(".m4a".equals(PodcastDownloads.ext("https://x.nl/a.m4a#t=1", "")) && ".ogg".equals(PodcastDownloads.ext("https://x.nl/a.ogg?b=c#d", "")), "url zonder ? en # erachter");
+        check(".mp3".equals(PodcastDownloads.ext(null, null)), "niets: mp3");
+        check(Radio.trimDash(" - Artiest - Titel -- ").equals("Artiest - Titel") && Radio.trimDash("--").isEmpty() && Radio.trimDash("").isEmpty(), "radiotitel: spaties en streepjes aan de randen weg");
+        check(Cast.okSecs(0) && Cast.okSecs(3600.5) && !Cast.okSecs(Double.NaN) && !Cast.okSecs(-1) && !Cast.okSecs(Double.POSITIVE_INFINITY) && !Cast.okSecs(1e300), "Chromecast-tijden: alleen redelijke waarden");
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");
     }

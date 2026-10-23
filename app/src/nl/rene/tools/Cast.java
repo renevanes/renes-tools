@@ -38,6 +38,9 @@ final class Cast {
     static final String APP_DEFAULT = "CC1AD845"; // de standaard mediaspeler van Google
     static final String SENDER = "sender-rt", RECEIVER = "receiver-0";
 
+    /** Een tijd (in seconden) van de Chromecast die we kunnen gebruiken: eindig en tussen 0 en 30 dagen. */
+    static boolean okSecs(double v) { return !Double.isNaN(v) && v >= 0 && v <= 30 * 86400.0; }
+
     // ---------- zoeken ----------
 
     static final class Device {
@@ -378,10 +381,10 @@ final class Cast {
                     int id = s.optInt("mediaSessionId", -1);
                     if (id >= 0 && stale.contains(id)) return; // nog over wat hiervoor speelde
                     if (id >= 0) mediaSession = id;
-                    if (s.has("currentTime")) { time = s.optDouble("currentTime"); timeAt = System.currentTimeMillis(); }
+                    if (s.has("currentTime") && okSecs(s.optDouble("currentTime"))) { time = s.optDouble("currentTime"); timeAt = System.currentTimeMillis(); }
                     JSONObject media = s.optJSONObject("media");
-                    if (media != null && media.optDouble("duration", 0) > 0) dur = media.optDouble("duration");
-                    rate = s.optDouble("playbackRate", rate);
+                    if (media != null && media.optDouble("duration", 0) > 0 && okSecs(media.optDouble("duration"))) dur = media.optDouble("duration");
+                    double pr = s.optDouble("playbackRate", rate); if (pr > 0 && pr <= 16) rate = pr;
                     String ps = s.optString("playerState");
                     if ("PLAYING".equals(ps)) { state = "playing"; error = null; }
                     else if ("PAUSED".equals(ps)) state = "paused";
