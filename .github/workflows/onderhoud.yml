@@ -5,7 +5,7 @@ name: Onderhoud
 
 on:
   schedule:
-    - cron: '41 4 * * 1'   # maandag 04:41 UTC, na de beveiligingsscan
+    - cron: '5 5 * * 1'   # maandag 05:05 UTC, na Dependabot en de scan, vóór het onderhoud door de agent (07:22 Amsterdam)
   workflow_dispatch:
 
 permissions:
@@ -35,8 +35,10 @@ jobs:
           set -e
           if [ "$code" = 1 ]; then echo "::error::De controle zelf mislukte"; exit 1; fi
 
-          alerts=$(gh api "repos/$REPO/code-scanning/alerts?state=open&per_page=100" \
-                     --jq '.[] | "- [\(.rule.security_severity_level // .rule.severity)] \(.rule.description) — `\(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)` (\(.html_url))"' 2>/dev/null || true)
+          if ! alerts=$(gh api "repos/$REPO/code-scanning/alerts?state=open&per_page=100" \
+                     --jq '.[] | "- [\(.rule.security_severity_level // .rule.severity)] \(.rule.description) — `\(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)` (\(.html_url))"'); then
+            alerts="- Kon de CodeQL-meldingen niet ophalen (staat code scanning aan? zie Security → Code scanning)."
+          fi
           grote=$(gh pr list -R "$REPO" --author app/dependabot --state open \
                     --json number,title,url --jq '.[] | "- #\(.number) \(.title) (\(.url))"' || true)
 
@@ -49,7 +51,7 @@ jobs:
             echo "## Open CodeQL-meldingen"
             echo "${alerts:-Geen.}"
             echo
-            echo "## Open Dependabot-pull requests (niet vanzelf samengevoegd)"
+            echo "## Open Dependabot-pull requests (samenvoegen na review)"
             echo "${grote:-Geen.}"
           } > issue.md
 

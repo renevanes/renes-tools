@@ -1,6 +1,6 @@
 # Dependabot houdt de GitHub Actions in de workflows bij (wekelijks, in één pull request).
-# Kleine updates (patch/minor) voegt de workflow "Dependabot samenvoegen" vanzelf samen zodra "Bouwen en testen"
-# slaagt; grote updates (major) blijven open voor het wekelijkse onderhoud door een agent.
+# De pull requests voegt het wekelijkse onderhoud door een agent samen, na review (zie AGENTS.md, "Onderhoud"):
+# de Actions draaien ook in publiceren.yml, waar de ondertekeningssleutel actief is.
 # De meegeleverde bibliotheken (web/vendor, app/lib) kent Dependabot niet: die controleert de workflow "Onderhoud".
 version: 2
 updates:
@@ -13,7 +13,6 @@ updates:
       timezone: Europe/Amsterdam
     commit-message:
       prefix: "Onderhoud"
-    labels: [onderhoud]
     groups:
       actions:
         patterns: ["*"]

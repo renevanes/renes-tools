@@ -64,9 +64,9 @@ def versie_tuple(v):
 def main():
     items = []
 
-    def item(naam, waar, huidig, nieuwst, kwetsbaar=(), opmerking=""):
-        verouderd = nieuwst is not None and huidig != nieuwst and (
-            not re.match(r"^\d", str(huidig)) or versie_tuple(nieuwst) > versie_tuple(huidig))
+    def item(naam, waar, huidig, nieuwst, kwetsbaar=(), opmerking="", verouderd=None):
+        if verouderd is None:
+            verouderd = nieuwst is not None and versie_tuple(nieuwst) > versie_tuple(huidig)
         items.append({"naam": naam, "waar": waar, "huidig": huidig, "nieuwst": nieuwst,
                       "verouderd": bool(verouderd), "kwetsbaar": list(kwetsbaar), "opmerking": opmerking})
 
@@ -79,7 +79,7 @@ def main():
         item(naam, pad, huidig, npm_nieuwste(npm),
              osv({"package": {"name": npm, "ecosystem": "npm"}, "version": huidig}))
 
-    # Playwright (alleen tests; vastgezet in de publicatie-workflow)
+    # Playwright (alleen tests; vastgezet in de publicatie-workflow, bouwen-en-testen.yml gebruikt playwright@1)
     huidig = lees(".github/workflows/publiceren.yml", r"playwright@(\d+\.\d+\.\d+)")
     item("Playwright (tests)", ".github/workflows/publiceren.yml", huidig, npm_nieuwste("playwright"))
 
@@ -90,18 +90,18 @@ def main():
     try:
         cmp = http_json(f"https://api.github.com/repos/ggml-org/whisper.cpp/compare/{commit}...{tag}", github=True)
         achter = cmp.get("ahead_by", 0)
-    except Exception:
-        achter = None
-    item("whisper.cpp", "app/lib/*/libwhisper*.so", commit[:12], tag if achter else None,
-         osv({"commit": commit}),
-         f"{achter} commits achter op {tag}; opnieuw bouwen met tools/whisper-build.sh" if achter else "")
-    if achter:
-        items[-1]["verouderd"] = True
+        opm = f"{achter} commits achter op {tag}; opnieuw bouwen met tools/whisper-build.sh" if achter else ""
+    except Exception as e:  # niet stil "bij" melden
+        achter, opm = None, f"vergelijking met {tag} mislukt ({e}); controleer met de hand"
+    item("whisper.cpp", "app/lib/*/libwhisper*.so", commit[:12], tag, osv({"commit": commit}), opm,
+         verouderd=achter != 0)
 
     # Android build-tools (bouwgereedschap, komt niet in de app)
     huidig = lees("setup-tools.sh", r"build-tools/(\d+\.\d+\.\d+)/")
     rel = http_json("https://api.github.com/repos/AndroidIDEOfficial/androidide-tools/releases/latest", github=True)
-    item("Android build-tools", "setup-tools.sh", huidig, rel["tag_name"].lstrip("v"))
+    item("Android build-tools", "setup-tools.sh", huidig, rel["tag_name"].lstrip("v"),
+         opmerking="build-tools komen uit androidide-tools (weinig onderhouden); vergelijk ook met Google's build-tools "
+                   "bij een hogere targetSdk")
 
     te_doen = [i for i in items if i["verouderd"] or i["kwetsbaar"]]
     if "--json" in sys.argv:

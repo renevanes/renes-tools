@@ -101,16 +101,18 @@ nadat het gereedschap is geïnstalleerd, en haalt hem na afloop weer weg.
 Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel dat niet vanzelf kan.
 
 **Vanzelf (GitHub):**
-- **Dependabot** (`.github/dependabot.yml`) houdt de GitHub Actions bij. Kleine updates voegt
-  `dependabot-samenvoegen.yml` samen zodra "Bouwen en testen" slaagt; grote updates blijven open (label `grote-update`).
-- **Beveiligingsscan** (`beveiligingsscan.yml`): CodeQL op Java en JavaScript bij elke push naar main en wekelijks.
-  Meldingen staan onder Security → Code scanning.
+- **Dependabot** (`.github/dependabot.yml`) opent elke maandag één pull request met updates van de GitHub Actions.
+  Die worden niet vanzelf samengevoegd: dezelfde Actions draaien in `publiceren.yml` naast de ondertekeningssleutel.
+- **Beveiligingsscan** (`beveiligingsscan.yml`): CodeQL op Java en JavaScript bij pushes naar main en pull requests die
+  `app/` of `web/` veranderen, en wekelijks. Meldingen staan onder Security → Code scanning. (GitHub's
+  "default setup" van CodeQL moet uit staan, anders botst die met deze workflow.)
 - **Onderhoud** (`onderhoud.yml`, maandag): `.github/scripts/onderhoud-controle.py` vergelijkt de meegeleverde
   bibliotheken (Leaflet, jsQR, whisper.cpp) en vastgezette versies (Playwright, build-tools) met de nieuwste versies
   en met de OSV-kwetsbaarhedendatabase, en zet alles wat te doen is in het issue "Onderhoud: updates en beveiliging".
 
 **Wekelijks door een agent** (het issue hierboven is de takenlijst):
-1. Werk in een eigen branch/worktree `onderhoud/JJJJ-MM-DD`. Draai lokaal ook `python3 .github/scripts/onderhoud-controle.py`.
+1. Werk in een eigen branch/worktree `onderhoud/JJJJ-MM-DD`. Draai lokaal ook `python3 .github/scripts/onderhoud-controle.py`
+   (lukt dat niet door netwerkbeperkingen, gebruik dan het rapport in het issue).
 2. **Kwetsbaarheden eerst.** Elke CodeQL-melding: oplossen, of (alleen bij een echte vals-positief) afwijzen met een
    reden via `gh api -X PATCH repos/renevanes/renes-tools/code-scanning/alerts/N -f state=dismissed -f dismissed_reason="false positive" -f dismissed_comment="…"`.
    Loop daarnaast zelf de code na die sinds het vorige onderhoud veranderde (`git log --since="8 days ago"`) op de
@@ -118,14 +120,18 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
    en de updatecontrole.
 3. **Bibliotheken bijwerken:** Leaflet/jsQR uit het npm-pakket (`dist/`, met de bestaande kopregel en licentie);
    Playwright-versie in `publiceren.yml`; whisper.cpp met `tools/whisper-build.sh` (beide varianten, README.txt bijwerken)
-   alleen bij een kwetsbaarheid of een duidelijke verbetering, want dat vraagt een nieuwe APK. Grote updates van
-   Dependabot: kijk de release notes na, pas de workflows aan, voeg samen.
+   alleen bij een kwetsbaarheid of een duidelijke verbetering, want dat vraagt een nieuwe APK.
+   **Dependabot-pull requests** (uitzondering op regel 6, want die zijn van GitHub zelf, niet van iemand anders):
+   alleen samenvoegen als ze uitsluitend `.github/workflows/` raken, "Bouwen en testen" groen is en je de release
+   notes hebt nagelezen, en extra kritisch zijn bij alles wat in `publiceren.yml` draait (de sleutel is daar actief).
+   Bij grote versies: pas de workflows aan waar nodig.
 4. Bouwen, alle tests (`run-jvm.sh`, `run-ui.sh`), onafhankelijke review door een tweede agent, bevindingen oplossen.
 5. Wijzigingsregel(s) in `wijzigingen/onderhoud-JJJJ-MM-DD.txt` (alleen als de app verandert), push naar main zoals
-   hierboven; controleer dat Publiceren slaagt. Is er niets veilig te doen, laat het dan staan en zet in het issue waarom.
+   hierboven; controleer dat Publiceren slaagt. (Publiceren start alleen als `app/`, `web/`, `tools/`, `build.sh` of
+   `publiceren.yml` veranderde; bij alleen andere workflows of scripts komt er geen run en geen nieuwe versie.) Is er niets veilig te doen, laat het dan staan en zet in het issue waarom.
 6. Meld Rene kort: wat bijgewerkt is, wat opgelost is, en wat bewust is blijven liggen.
 Nooit in het kader van onderhoud: de updatecontrole, de sleutel of `publiceren.yml`-beveiliging verzwakken, of
-pull requests van anderen samenvoegen.
+pull requests van anderen (mensen of andere bots dan Dependabot) samenvoegen.
 
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK
