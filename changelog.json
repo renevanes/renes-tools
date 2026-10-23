@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.94",
+    "date": "2026-10-23",
+    "changes": [
+      "Updates: alleen een goed ondertekende updatelijst kan nog een nieuwe versie of 'Wat is er nieuw' tonen"
+    ]
+  },
+  {
     "version": "1.93",
     "date": "2026-10-23",
     "changes": [

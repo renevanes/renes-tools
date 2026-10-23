@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.93",
-  "versionCode": 94,
-  "nativeLevel": 82,
+  "versionName": "1.94",
+  "versionCode": 95,
+  "nativeLevel": 83,
   "web": "index.html",
-  "webSha256": "a277b6c11ca28b2ba98e23567e6981788525f70c1cdb021c4005674eaf7858b2",
+  "webSha256": "cb46c26ee8616937454619adb2ec1bf91799a58deaaa2b7b9e0ba0f5fc2c2bb4",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "e27e3f01f182e35025dc65e8042f39aa2b4a86cd0ebf451bd9cfd8fdff07ac37",
+  "apkSha256": "868a1ad0c09738a8ebb1a3eca6cd736c17710e74b9f7cdf66d71ec7a4338f341",
   "changelog": [
+    {
+      "version": "1.94",
+      "date": "2026-10-23",
+      "changes": [
+        "Updates: alleen een goed ondertekende updatelijst kan nog een nieuwe versie of 'Wat is er nieuw' tonen"
+      ]
+    },
     {
       "version": "1.93",
       "date": "2026-10-23",
@@ -821,5 +828,5 @@
       ]
     }
   ],
-  "webSig2": "cWB8ODACnvAIAvC3ETRgLwWXo2RoMid8NgIvSB+xFRq78/AYQ4x4DMkdOnoBVXJNy7J+JxOJw5eqH0HvRuV5cWzhyejHyEiEjrVX85HXbMPJRAhUyL+KDnZ8X2GRgw2CqiCWNp2x1xNAuwTI3wV1ARIwtIPHvrknx3VrgPeWHxyOcr+XGZx+idt6+xVtWD7evmO41fTXVezuwlnR5SoHh0DXBYirUNJgmYWTWgGa/bpNxXFGdY+ZD7VDzZW5PeaBa9F5N2H3MQezGbiKaOR66v02VnYzhnNGKIhhwhkfXDHqbOfDCCTU7MRkPFODeBYb7pLDVnWQOAK95ptn44pY0ZgGJeKRRmveHtWzhDAKqSGSoTwuApxFTNViF4RWugfJ8pu7/7dZzQ5sGk++xuiHbgrA4o7PNS2uL/K5OTY0bxl3yttWPR0uILcUfMQ/lk2ELMnliS/OpDxFuTDcQButJA64xGB5Xs3QnYd82y++80xW7d+gZWbSmfZxLKodNF56"
+  "webSig2": "c8mUlLUOkf3gZwgi92GTMWyFtF7T+HnNfmp2vjwafNw3eV8f8XYjNRKrn0jfIO8Ud6X0uyemi81N/3qxlSl/0ZP3irCnQ6vG7be4fu8LNyYn0mxEFvWPxkfqlN3pKAMQQemqmmY7/lyAGqU8Za59OUXSPliYjBCtaVN0WOi7GciqXK444M8+WWz4Z7QpOZt5HfqfRlDG7jlxNSMK07e5Tk31gwasyhYxN9mmtRBwpPSppuA3xgTwGHPRwNOviiZqyEpuTyAb9GAKM/ns4FT320UxDSgl3II23UBIQQ62/f1hJkxD0vzluuEpez020YNKvR0mR06vaKPny8Rx5j+OIgp10S5ScwzM+/joy0mcADUZQT0t085Ob4s97/IU7c+wS87/dAMviKbuoS/9Hnoipt9WWXbWDYwRLRkpwNeuDptn2By0usazBE/uwFkk0fRt7Yvy2DXsOqSLhkMCKjXMA/DZXn++lN3YWWHT9o7k7ku31PbaB8BcM0S9nSBkW+JX"
 }
