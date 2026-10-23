@@ -100,27 +100,39 @@ function aiSendBtn(){
   b.classList.toggle('stop', aiBusy);
   b.innerHTML = uiIcon(aiBusy ? 'stop' : 'up');
   b.setAttribute('aria-label', aiBusy ? 'Stoppen' : 'Versturen');
-  b.disabled = !aiBusy && !$('#ai-in').value.trim();
+  // Vlak na versturen even uit: een dubbele tik stopt (of verstuurt) dan niet meteen nog eens
+  b.disabled = aiSentAt > 0 || (!aiBusy && !$('#ai-in').value.trim());
 }
+let aiSentAt = 0, aiSentT = null;
+const AI_TAP_MS = 350; // zo snel als een dubbele tik (Android: 300 ms)
 function aiSendOrStop(){
+  if (aiSentAt && Date.now() - aiSentAt < AI_TAP_MS) return;
   if (aiBusy) { Android.aiCancel(); return; }
   const q = $('#ai-in').value.trim(); if (!q) return;
   aiChat.msgs.push({ r: 'user', c: q, t: Date.now() });
   if (!aiChat.title) aiChat.title = q.replace(/\s+/g, ' ').slice(0, 60);
   $('#ai-in').value = ''; aiGrow();
-  aiAsk();
+  if (aiAsk() === 'bezig') { aiChat.msgs.pop(); $('#ai-in').value = q; aiGrow(); aiRenderMsgs(); }
 }
 /* De vraag (met het gesprek tot nu toe) naar de assistent */
 function aiAsk(){
+  if (aiBusy) return 'bezig';
   const msgs = aiChat.msgs.filter(m => !m.err).map(m => ({ role: m.r === 'user' ? 'user' : 'assistant', content: m.c }));
   // Eerst het (lege) antwoord klaarzetten: stukjes kunnen meteen binnenkomen
   aiCur = { r: 'ai', c: '', t: Date.now(), src: null };
   aiChat.msgs.push(aiCur); aiGen = aiChat;
   aiBusy = true; aiStatus('Denken…');
+  aiSentAt = Date.now(); clearTimeout(aiSentT); aiSentT = setTimeout(() => { aiSentAt = 0; aiSendBtn(); }, AI_TAP_MS);
   aiRenderMsgs(); aiSendBtn();
   const e = Android.aiChat(JSON.stringify({ messages: msgs, notes: !!aiSt.notes && aiReady('zoek') }));
+  if (e === AI_BUSY) {
+    // Er loopt nog een antwoord (bijv. van een dubbele tik): deze vraag niet nog eens beantwoorden
+    aiChat.msgs.splice(aiChat.msgs.indexOf(aiCur), 1); aiCur = null; aiGen = null; aiBusy = false; aiStatus('');
+    aiRenderMsgs(); aiSendBtn(); toast('De assistent is nog bezig met een antwoord'); return 'bezig';
+  }
   if (e) { aiCur.c = e; aiCur.err = true; aiCur = null; aiGen = null; aiBusy = false; aiStatus(''); aiRenderMsgs(); aiSendBtn(); }
 }
+const AI_BUSY = 'De assistent is nog bezig'; // zelfde melding als AiBridge.BUSY
 function aiStatus(t){ const s = $('#ai-status'); if (!s) return; s.textContent = t || ''; s.style.display = t && aiGen === aiChat ? '' : 'none'; }
 const aiShown = () => aiGen && aiGen === aiChat && current === 'ai';
 window.onAiStatus = function(t){ aiStatus(t); };

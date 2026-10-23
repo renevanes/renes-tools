@@ -45,12 +45,16 @@ public class AiBridge extends FeatureBridge {
         LocalAi.prefs(ctx).edit().putBoolean(name, on).apply();
     }
 
-    /** Een vraag stellen: json = {messages:[{role, content}], notes:bool}. Geeft "" of een melding; de rest komt via onAi…. */
+    /** Melding als er al een antwoord loopt; de interface herkent hem en laat het lopende antwoord dan gewoon doorgaan. */
+    static final String BUSY = "De assistent is nog bezig";
+
+    /** Een vraag stellen: json = {messages:[{role, content}], notes:bool}. Geeft "" of een melding (BUSY: er loopt al een
+     *  antwoord); de rest komt via onAi…. */
     @JavascriptInterface public String aiChat(String json) {
         final JSONObject req;
         try { req = new JSONObject(json); } catch (Exception e) { return "Ongeldige vraag"; }
-        if (LocalAi.busy()) return "De assistent is nog bezig";
-        LocalAi.chat(ctx, req, new JsSink(a));
+        // Twee keer snel op versturen: de tweede vraag wordt geweigerd (er loopt al een antwoord), niet nog eens beantwoord
+        try { if (!LocalAi.chat(ctx, req, new JsSink(a))) return BUSY; } catch (Throwable t) { return "De assistent kon niet starten"; }
         return "";
     }
 

@@ -252,11 +252,22 @@ final class LocalAi {
     static final ExecutorService AI = Executors.newSingleThreadExecutor(r -> new Thread(r, "ai"));
     private static volatile LlmProcess chat, embed;
     private static volatile boolean cancel;
-    private static volatile boolean busy;
     private static final java.util.concurrent.atomic.AtomicLong REQ = new java.util.concurrent.atomic.AtomicLong();
 
+    /** Hooguit één antwoord tegelijk: wie vraagt, neemt de beurt (al bij het aanvragen, niet pas op de AI-thread). Zuiver (getest). */
+    static final class Gate {
+        private final java.util.concurrent.atomic.AtomicLong owner = new java.util.concurrent.atomic.AtomicLong();
+        private final java.util.concurrent.atomic.AtomicLong seq = new java.util.concurrent.atomic.AtomicLong();
+        /** Een nummer voor deze beurt, of 0 als er al een loopt. */
+        long enter() { long id = seq.incrementAndGet(); return owner.compareAndSet(0, id) ? id : 0; }
+        /** Alleen de eigen beurt vrijgeven (een oude beurt mag een nieuwere niet vrijgeven). */
+        void leave(long id) { if (id != 0) owner.compareAndSet(id, 0); }
+        boolean busy() { return owner.get() != 0; }
+    }
+    private static final Gate GATE = new Gate();
+
     static boolean cancelled() { return cancel; }
-    static boolean busy() { return busy; }
+    static boolean busy() { return GATE.busy(); }
     static String loaded() { LlmProcess p = chat; return p != null && p.alive() ? (p.model.getName().equals(LARGE.file) ? LARGE.id : SMALL.id) : ""; }
 
     static synchronized void closeChat() { if (chat != null) { chat.destroy(); chat = null; } }
@@ -348,78 +359,85 @@ final class LocalAi {
         return sb.toString().trim();
     }
 
-    /** Een antwoord maken. req = {messages:[{role, content}], notes:bool}. Draait op de AI-thread. */
-    static void chat(final Context c, final JSONObject req, final Sink sink) {
+    /** Een antwoord maken. req = {messages:[{role, content}], notes:bool}. Draait op de AI-thread.
+     *  Geeft false (en doet niets) als er al een antwoord loopt, bijv. na twee keer snel op versturen tikken. */
+    static boolean chat(final Context c, final JSONObject req, final Sink sink) {
+        final long job = GATE.enter();
+        if (job == 0) return false;
         cancel = false;
-        AI.execute(() -> {
-            busy = true;
-            try {
-                if (!supported()) throw new Exception("De lokale AI werkt alleen op telefoons met een 64-bits ARM-processor");
-                Model m = chatModel(c);
-                if (!ready(c, m)) throw new Exception("Download eerst een taalmodel");
-                JSONArray in = req.optJSONArray("messages");
-                if (in == null || in.length() == 0) throw new Exception("Geen vraag");
-                JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", systemPrompt()));
-                int from = Math.max(0, in.length() - 24);
-                for (int i = from; i < in.length(); i++) {
-                    JSONObject x = in.optJSONObject(i);
-                    if (x == null) continue;
-                    String role = "assistant".equals(x.optString("role")) ? "assistant" : "user";
-                    String content = x.optString("content");
-                    if (content.length() > 12000) content = content.substring(0, 12000);
-                    msgs.put(new JSONObject().put("role", role).put("content", content));
-                }
-                JSONObject last = msgs.getJSONObject(msgs.length() - 1);
-                if (!"user".equals(last.optString("role"))) throw new Exception("Geen vraag");
-                // Met mijn notities: eerst slim zoeken, dan de stukken meegeven
-                if (req.optBoolean("notes") && ready(c, EMBED)) {
-                    sink.status("Zoeken in je notities en gesprekken…");
-                    try {
-                        JSONArray hits = SmartSearch.search(c, last.optString("content"), 4);
-                        if (hits.length() > 0) {
-                            List<String[]> src = new ArrayList<>();
-                            for (int i = 0; i < hits.length(); i++) {
-                                JSONObject h = hits.getJSONObject(i);
-                                src.add(new String[]{("tx".equals(h.optString("kind")) ? "Gesprek met " : "Notitie ") + "\"" + h.optString("title") + "\"", h.optString("snip")});
-                            }
-                            last.put("content", withSources(last.optString("content"), src));
-                            sink.sources(hits);
-                        }
-                    } catch (Exception e) { sink.status("Zoeken lukte niet: " + e.getMessage()); }
-                    if (cancel) { busy = false; sink.done(new JSONObject().put("cancelled", true)); return; }
-                    if (!bigRam(c)) closeEmbed(); // niet twee modellen tegelijk in een kleiner geheugen
-                }
-                boolean starting = chat == null || !chat.alive() || !chat.model.equals(file(c, m));
-                if (starting) sink.status("Model laden…");
-                LlmProcess p = chatEngine(c, m);
-                if (cancel) { busy = false; sink.done(new JSONObject().put("cancelled", true)); return; }
-                sink.status("");
-                final CountDownLatch done = new CountDownLatch(1);
-                final long rid = REQ.incrementAndGet();
-                p.listen(o -> {
-                    // busy eerst uit: wie meteen opnieuw vraagt, krijgt geen "nog bezig"
-                    if (o.optBoolean("gone")) { if (done.getCount() > 0) { busy = false; done.countDown(); sink.error(o.optString("error")); } return; }
-                    if (o.optLong("id") != rid || done.getCount() == 0) return; // niet van deze vraag
-                    if (o.has("t")) sink.token(o.optString("t"));
-                    else if (o.optBoolean("done")) { busy = false; done.countDown(); sink.done(o); }
-                    else if (o.has("error")) { busy = false; done.countDown(); sink.error(o.optString("error")); }
-                });
-                try {
-                    p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", 1200)
-                            .put("temp", 0.7).put("top_p", 0.8).put("top_k", 20));
-                    while (!done.await(500, TimeUnit.MILLISECONDS)) {
-                        if (!p.alive()) { if (done.getCount() > 0) { busy = false; done.countDown(); sink.error("De AI-motor is gestopt"); } break; }
-                    }
-                } finally { p.listen(null); }
-                p.lastUse = System.currentTimeMillis();
-            } catch (Throwable t) {
-                busy = false;
-                sink.error(t.getMessage() == null ? "Er ging iets mis" : t.getMessage());
-            } finally {
-                busy = false;
-                scheduleIdle();
+        try {
+            AI.execute(() -> chatRun(c, req, sink, job));
+        } catch (Throwable t) { GATE.leave(job); throw t; }
+        return true;
+    }
+
+    private static void chatRun(final Context c, final JSONObject req, final Sink sink, final long job) {
+        try {
+            if (!supported()) throw new Exception("De lokale AI werkt alleen op telefoons met een 64-bits ARM-processor");
+            Model m = chatModel(c);
+            if (!ready(c, m)) throw new Exception("Download eerst een taalmodel");
+            JSONArray in = req.optJSONArray("messages");
+            if (in == null || in.length() == 0) throw new Exception("Geen vraag");
+            JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", systemPrompt()));
+            int from = Math.max(0, in.length() - 24);
+            for (int i = from; i < in.length(); i++) {
+                JSONObject x = in.optJSONObject(i);
+                if (x == null) continue;
+                String role = "assistant".equals(x.optString("role")) ? "assistant" : "user";
+                String content = x.optString("content");
+                if (content.length() > 12000) content = content.substring(0, 12000);
+                msgs.put(new JSONObject().put("role", role).put("content", content));
             }
-        });
+            JSONObject last = msgs.getJSONObject(msgs.length() - 1);
+            if (!"user".equals(last.optString("role"))) throw new Exception("Geen vraag");
+            // Met mijn notities: eerst slim zoeken, dan de stukken meegeven
+            if (req.optBoolean("notes") && ready(c, EMBED)) {
+                sink.status("Zoeken in je notities en gesprekken…");
+                try {
+                    JSONArray hits = SmartSearch.search(c, last.optString("content"), 4);
+                    if (hits.length() > 0) {
+                        List<String[]> src = new ArrayList<>();
+                        for (int i = 0; i < hits.length(); i++) {
+                            JSONObject h = hits.getJSONObject(i);
+                            src.add(new String[]{("tx".equals(h.optString("kind")) ? "Gesprek met " : "Notitie ") + "\"" + h.optString("title") + "\"", h.optString("snip")});
+                        }
+                        last.put("content", withSources(last.optString("content"), src));
+                        sink.sources(hits);
+                    }
+                } catch (Exception e) { sink.status("Zoeken lukte niet: " + e.getMessage()); }
+                if (cancel) { GATE.leave(job); sink.done(new JSONObject().put("cancelled", true)); return; }
+                if (!bigRam(c)) closeEmbed(); // niet twee modellen tegelijk in een kleiner geheugen
+            }
+            boolean starting = chat == null || !chat.alive() || !chat.model.equals(file(c, m));
+            if (starting) sink.status("Model laden…");
+            LlmProcess p = chatEngine(c, m);
+            if (cancel) { GATE.leave(job); sink.done(new JSONObject().put("cancelled", true)); return; }
+            sink.status("");
+            final CountDownLatch done = new CountDownLatch(1);
+            final long rid = REQ.incrementAndGet();
+            p.listen(o -> {
+                // de beurt eerst vrijgeven: wie meteen opnieuw vraagt, krijgt geen "nog bezig"
+                if (o.optBoolean("gone")) { if (done.getCount() > 0) { GATE.leave(job); done.countDown(); sink.error(o.optString("error")); } return; }
+                if (o.optLong("id") != rid || done.getCount() == 0) return; // niet van deze vraag
+                if (o.has("t")) sink.token(o.optString("t"));
+                else if (o.optBoolean("done")) { GATE.leave(job); done.countDown(); sink.done(o); }
+                else if (o.has("error")) { GATE.leave(job); done.countDown(); sink.error(o.optString("error")); }
+            });
+            try {
+                p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", 1200)
+                        .put("temp", 0.7).put("top_p", 0.8).put("top_k", 20));
+                while (!done.await(500, TimeUnit.MILLISECONDS)) {
+                    if (!p.alive()) { if (done.getCount() > 0) { GATE.leave(job); done.countDown(); sink.error("De AI-motor is gestopt"); } break; }
+                }
+            } finally { p.listen(null); }
+            p.lastUse = System.currentTimeMillis();
+        } catch (Throwable t) {
+            GATE.leave(job);
+            sink.error(t.getMessage() == null ? "Er ging iets mis" : t.getMessage());
+        } finally {
+            GATE.leave(job);
+            scheduleIdle();
+        }
     }
 
     static void cancel() {
@@ -474,8 +492,8 @@ final class LocalAi {
                     Thread.sleep(30_000);
                     long now = System.currentTimeMillis();
                     LlmProcess p = chat, q = embed;
-                    if (!busy && p != null && now - p.lastUse > IDLE_MS) closeChat();
-                    if (!busy && q != null && now - q.lastUse > IDLE_MS) closeEmbed();
+                    if (!busy() && p != null && now - p.lastUse > IDLE_MS) closeChat();
+                    if (!busy() && q != null && now - q.lastUse > IDLE_MS) closeEmbed();
                     if (chat == null && embed == null) return;
                 }
             } catch (Throwable ignored) { }
@@ -538,7 +556,7 @@ final class LocalAi {
         JSONArray ms = new JSONArray();
         for (Model m : MODELS) ms.put(state(c, m));
         o.put("models", ms).put("chat", chatModel(c).id).put("wifiOnly", wifiOnly(c)).put("notes", prefs(c).getBoolean("notes", true))
-                .put("loaded", loaded()).put("busy", busy);
+                .put("loaded", loaded()).put("busy", busy());
         if (ready(c, EMBED)) o.put("index", SmartSearch.info(c));
         return o;
     }
