@@ -33,6 +33,10 @@ public class SpotifyDiffTest {
         check(lines[1].equals("1;\"Hallo; \"\"wereld\"\"\";Artiest q;'=SOM(1);3:45;2026-10-10;https://open.spotify.com/track/q;NLA123"), "regel: " + lines[1]);
         check(SpotifyDiff.link("spotify:local:a:b:c:1").isEmpty() && SpotifyDiff.link("spotify:episode:e1").equals("https://open.spotify.com/episode/e1"), "links");
         check(SpotifyDiff.clock(3_723_000).equals("1:02:03"), "duur boven het uur");
+        // CSV-cel: aanhalingstekens alleen waar nodig, ook snel bij een heel lange tekst
+        check(SpotifyDiff.cell("a;b").equals("\"a;b\"") && SpotifyDiff.cell("x\"y").equals("\"x\"\"y\"") && SpotifyDiff.cell("r\nn").equals("\"r n\"") && SpotifyDiff.cell("gewoon").equals("gewoon"), "CSV-cel: ; \" en regeleinde tussen aanhalingstekens");
+        StringBuilder lang = new StringBuilder(); for (int i = 0; i < 200_000; i++) lang.append('a');
+        long t0 = System.nanoTime(); SpotifyDiff.cell(lang.toString()); check(System.nanoTime() - t0 < 2_000_000_000L, "lange cel is snel");
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
         System.out.println("Alle Spotify-tests geslaagd");
     }

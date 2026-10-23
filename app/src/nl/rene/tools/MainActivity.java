@@ -1357,6 +1357,8 @@ public class MainActivity extends Activity {
         /** Opslaan alleen als niemand anders (de widget) intussen iets veranderde: {ok, ver} of {conflict} of {err}. */
         @JavascriptInterface public String notesSaveIf(String json, double expected) {
             try {
+                // Alleen een gewoon geheel versienummer: NaN (zou de controle overslaan) of iets buiten bereik weigeren
+                if (!(expected >= 0 && expected <= 9_007_199_254_740_992.0) || expected != Math.floor(expected)) return "{\"err\":\"Opslaan lukt niet\"}";
                 String r = Notes.saveIf(ctx, json, (long) expected);
                 if (r == null) return new JSONObject().put("conflict", true).toString();
                 if (!r.isEmpty()) return new JSONObject().put("err", r).toString();
