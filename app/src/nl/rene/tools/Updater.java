@@ -103,8 +103,11 @@ final class Updater {
         JSONObject r = new JSONObject();
         try {
             JSONObject m = fetchManifest();
-            prefs(c).edit().putLong("lastCheck", System.currentTimeMillis())
-                    .putString("manifest", m.toString()).apply();
+            // Tijdstip altijd bewaren (anders bij elke start opnieuw); de lijst zelf alleen als hij ondertekend is,
+            // want daaruit komt ook "Wat is er nieuw".
+            prefs(c).edit().putLong("lastCheck", System.currentTimeMillis()).apply();
+            if (!signatureOk(c, m)) throw new Exception("De updatelijst is niet goed ondertekend");
+            prefs(c).edit().putString("manifest", m.toString()).apply();
             int code = m.getInt("versionCode");
             String name = m.getString("versionName");
             int nativeLevel = m.optInt("nativeLevel", Version.NATIVE_LEVEL);
