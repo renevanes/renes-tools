@@ -225,19 +225,20 @@ if (!window.Android) window.Android = (function(){
       models: [['klein', 'Klein en snel', 'Qwen3 1.7B · werkt op de meeste telefoons', 1282439584], ['groot', 'Groter en slimmer', 'Qwen3 4B · beter Nederlands, trager', 2497280256], ['zoek', 'Slim zoeken', 'Qwen3-Embedding 0.6B · zoeken op betekenis', 639150592]],
       reply: 'Hallo! Ik ben je **assistent**.\n- Eén\n- Twee' },
     _aiReady(id){ return this._ai.st[id].state === 'ready'; },
-    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: A.chat, wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, loaded: '', busy: !!A.timer,
+    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: A.chat, wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, loaded: '', busy: !!A.busy,
       models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek' }, A.st[m[0]])),
       index: this._aiReady('zoek') ? { items: 3, chunks: 7, at: Date.now() - 6e4, stale: false } : undefined }); },
     aiDownload(id){ const A = this._ai, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dl', id]);
       Object.assign(m, { state: 'running', bytes: 0, total: 1e9 }); setTimeout(() => { m.bytes = 5e8; }, 200);
       setTimeout(() => { Object.assign(m, { state: 'verifying', pct: 40 }); }, 450); setTimeout(() => { A.st[id] = { state: 'ready' }; onAiModels(''); }, 700); return ''; },
     aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ this._ai[n] = on; },
-    aiChat(j){ const A = this._ai, r = JSON.parse(j); if (A.timer) return 'De assistent is nog bezig'; A.last = r;
+    // Zoals AiBridge: bezig tot het antwoord (of het stoppen) helemaal klaar is; een tweede vraag intussen wordt geweigerd
+    aiChat(j){ const A = this._ai, r = JSON.parse(j); A.asked = (A.asked || 0) + 1; if (A.busy) { A.refused = (A.refused || 0) + 1; return 'De assistent is nog bezig'; } A.last = r; A.busy = true;
       const words = A.reply.split(/(?<= )/); let i = 0;
-      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; onAiDone({ done: true, n: words.length }); } };
+      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone({ done: true, n: words.length }); } };
       if (r.notes && this._aiReady('zoek')) { onAiStatus('Zoeken in je notities en gesprekken…'); onAiSources([{ kind: 'notes', id: (notesGet()[0] || {}).id || 'x', title: 'Garage', snip: 'APK in maart', score: 0.61 }]); }
       A.timer = setTimeout(() => { onAiStatus(''); tick(); }, 120); return ''; },
-    aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => onAiDone({ done: true, cancelled: true }), 20); } },
+    aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
     aiVoiceStart(){ if (this._voiceErr) return this._voiceErr; if (this._tx && !this._tx.models.base && !this._tx.models.small) return 'model'; this._vt = Date.now(); this._aiRec = true; return ''; },
     aiVoiceStop(){ this._aiRec = false; setTimeout(() => onAiVoice(this._voiceResult || { text: 'Wat is de hoofdstad van Frankrijk?' }), 80); },

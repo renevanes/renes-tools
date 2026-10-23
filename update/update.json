@@ -1,15 +1,26 @@
 {
   "app": "Tools",
-  "versionName": "1.91",
-  "versionCode": 92,
-  "nativeLevel": 80,
+  "versionName": "1.92",
+  "versionCode": 93,
+  "nativeLevel": 81,
   "web": "index.html",
-  "webSha256": "5a57c7786c96a2270923e4b3f0de93f15902ef287bab5e05ab0feba812b338f4",
+  "webSha256": "e0ebe33565b9adec1c76f20b90e154d65546220408a4cfeafd3313dabebcf163",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "6fe0ed0c76502df7d554553d095343834d42ab115386ce75ef56426882ee8dd4",
+  "apkSha256": "d960e4a7c0e29aece0eb1654e537a1274b2787b611e1248e52ec563f909d56b9",
   "changelog": [
+    {
+      "version": "1.92",
+      "date": "2026-10-23",
+      "changes": [
+        "Assistent: twee keer snel op versturen tikken geeft nu één antwoord in plaats van twee",
+        "Assistent: tekens als <|im_end|> in je vraag of notities worden gewoon als tekst gelezen en verstoren het gesprek niet meer",
+        "App-slot veiliger: ontgrendelen telt pas als een beveiligde sleutel op de telefoon het bevestigt; is de beveiliging van je telefoon gewijzigd, dan ontgrendel je één keer met je pincode, en komt er een nieuwe vingerafdruk bij, dan één keer met je app-code (daarna werkt de vingerafdruk weer)",
+        "Ontgrendelen met (eenvoudige) gezichtsherkenning gaat niet meer bij het app-slot: gebruik je vingerafdruk of pincode",
+        "Transcriberen: spraakherkenning bijgewerkt naar whisper.cpp v1.9.5"
+      ]
+    },
     {
       "version": "1.91",
       "date": "2026-10-23",
@@ -803,5 +814,5 @@
       ]
     }
   ],
-  "webSig2": "Gzji1cIx0Y/t4Th+ljSgGTd6OFHvWwsT5MWzyLcPo8JcB0DooO6WPu+thCTs+MYB7iHbsZtN+VF2CFyA3Dl0KRFpEPo1N5AcG7tI1NgA0DAC95ua38PugVrfWUg2fkU1vQdznZQy018bJPCijjy667NWJpamnR1sZmfOW2IVLd7TibMvfSwZ7ETagRfW2372m7jlKmEQsTD9b+FQQR0TXCUNk6zZiWDwgVX3vnskW20PErbwrPCbDWHDqxDtV5M3bRofrMY7lceRsUke95hurXUllULsnd10QctmCDzAzWeVANW0sg/B5ZeBoVoGShqYElXHV/N03FbAc0vpzXjLCK0Z4Y9Wqmd93/ZZt7C5f+NXXfXGjwvOAuetGLnaTcgi2PE5kn2BgcC8xXFofchlyvoUpel2hwRsRfdoYFjDuNZOznTddAmPT5pZ7CB2RvHal3v3FmC5kp9CUsF7HLKXZGzBuGZ8qpY7XW7nxu7NdEr2Adj93a/A1HMxxenC4lCx"
+  "webSig2": "UaoI2RrNx2PvibVqLI6hVeP0UDMsFCewqShd00sSwrEEsgJOOLRobEoNclFiESfeiUo0hgbH/bB5yt/LHv/wPrtLiyvjbNfHXTpDfsZ25vJNrNyBIbyvQS3RMJr9lCMfWD39fyxRMX11cpuFs8j/oVXbw+3sUrLvTmCmDIJR+CbcMdCMlpmdmvffo6Yk5ZuxjXlccHwcfY+vHVXk2gldRB6pWBvHnN4kQkdy893IMMGbXbI1yEuSziTk+IdWeuLk1BjrJy5xFSFu2Np6KhJpwRMg3/i3cnSN6k5D4E5m1kpRMDm6VbUxy+7m6UWlbYu5fzIDcc85LHWwqU3GAkEojx2HzvJU849A0NdILSZJ6wf55qAONnplY3z4zGHuCRC7f1j+w8QK6rpR3MYE9Nh0HPbWXkAJ/b9vDCqWlU3G5gsT5xGZBSWhYDAuo9XMNsLtTQnyE3PgTtq88xtEBUn3uWd//DBZXofSkVHdOPclbRk49aOvYdYiDo1WZwfug8Vw"
 }

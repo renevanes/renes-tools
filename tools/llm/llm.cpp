@@ -19,6 +19,7 @@
 #include "llama.h"
 #include "nlohmann/json.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <clocale>
@@ -133,20 +134,51 @@ static bool decode(Engine & E, const llama_token * toks, int n, int pos0, bool l
     return true;
 }
 
-static std::string format_chat(Engine & E, const std::vector<std::pair<std::string, std::string>> & msgs) {
+// Het gesprek in tokens. De tekst van de berichten (van de gebruiker, uit notities of eerdere antwoorden) wordt
+// tokenized zonder speciale tokens: "<|im_start|>", "<|im_end|>" en dergelijke in een notitie blijven gewone tekst
+// en kunnen het gespreksformaat niet openbreken. Alleen de tekst van het sjabloon zelf mag speciale tokens bevatten.
+// Werkwijze: eerst het sjabloon invullen met merktekens (\x1F<nummer>\x1F) in plaats van de berichten, dan stuk
+// voor stuk tokenizen. Geeft een lege lijst als het model geen bekend gespreksformaat heeft.
+static const char MARK = '\x1F';
+static std::vector<llama_token> chat_tokens(Engine & E, const std::vector<std::pair<std::string, std::string>> & msgs) {
+    std::vector<std::string> marks;
     std::vector<llama_chat_message> cm;
-    for (auto & m : msgs) cm.push_back({m.first.c_str(), m.second.c_str()});
+    for (size_t i = 0; i < msgs.size(); i++) marks.push_back(std::string(1, MARK) + std::to_string(i) + std::string(1, MARK));
+    for (size_t i = 0; i < msgs.size(); i++) cm.push_back({msgs[i].first.c_str(), marks[i].c_str()});
     const char * tmpl = llama_model_chat_template(E.model, nullptr);
-    size_t guess = 64;
-    for (auto & m : msgs) guess += m.second.size() * 2 + 32;
-    std::vector<char> buf(guess);
+    std::vector<char> buf(256 + msgs.size() * 64);
     int n = llama_chat_apply_template(tmpl, cm.data(), cm.size(), true, buf.data(), (int32_t) buf.size());
     if (n > (int) buf.size()) { buf.resize(n); n = llama_chat_apply_template(tmpl, cm.data(), cm.size(), true, buf.data(), (int32_t) buf.size()); }
-    if (n < 0) return std::string();
+    if (n < 0) return {};
     std::string s(buf.data(), n);
     // Qwen3 en dergelijke: niet eerst "hardop nadenken", meteen antwoorden (zoals enable_thinking=false)
     if (E.nothink) s += "<think>\n\n</think>\n\n";
-    return s;
+
+    std::vector<llama_token> out;
+    std::vector<bool> used(msgs.size(), false);
+    bool first = true;
+    auto add = [&](const std::string & text, bool special) {
+        if (text.empty()) return;
+        std::vector<llama_token> t = tokenize(E.vocab, text, first, special);
+        first = false;
+        out.insert(out.end(), t.begin(), t.end());
+    };
+    size_t pos = 0;
+    while (pos < s.size()) {
+        size_t a = s.find(MARK, pos);
+        if (a == std::string::npos) { add(s.substr(pos), true); break; }
+        size_t b = s.find(MARK, a + 1);
+        if (b == std::string::npos) return {};
+        size_t idx = 0;
+        try { idx = std::stoul(s.substr(a + 1, b - a - 1)); } catch (...) { return {}; }
+        if (idx >= msgs.size() || used[idx]) return {};
+        used[idx] = true;
+        add(s.substr(pos, a - pos), true);   // sjabloon: speciale tokens wel
+        add(msgs[idx].second, false);         // bericht: speciale tokens niet
+        pos = b + 1;
+    }
+    for (bool u : used) if (!u) return {}; // het sjabloon liet een bericht weg: liever een fout dan een half gesprek
+    return out;
 }
 
 static void do_chat(Engine & E, const json & j) {
@@ -156,6 +188,7 @@ static void do_chat(Engine & E, const json & j) {
     for (auto & m : j["messages"]) {
         std::string role = m.value("role", "user"), content = m.value("content", "");
         if (role != "system" && role != "user" && role != "assistant") role = "user";
+        content.erase(std::remove(content.begin(), content.end(), MARK), content.end()); // merkteken voor chat_tokens
         msgs.emplace_back(role, content);
     }
     if (msgs.empty()) { emit_error("Geen berichten"); return; }
@@ -167,9 +200,8 @@ static void do_chat(Engine & E, const json & j) {
     std::vector<llama_token> toks;
     int cut = 0, trim = 0;
     while (true) {
-        std::string prompt = format_chat(E, msgs);
-        if (prompt.empty()) { emit_error("Dit model heeft geen bekend gespreksformaat"); return; }
-        toks = tokenize(E.vocab, prompt, true, true);
+        toks = chat_tokens(E, msgs);
+        if (toks.empty()) { emit_error("Dit model heeft geen bekend gespreksformaat"); return; }
         if ((int) toks.size() + max_new <= E.n_ctx) break;
         size_t first = (!msgs.empty() && msgs[0].first == "system") ? 1 : 0;
         if (msgs.size() - first <= 1) {

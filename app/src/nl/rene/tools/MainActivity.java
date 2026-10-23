@@ -401,7 +401,7 @@ public class MainActivity extends Activity {
         if (!isSolo()) {
             Lock.onHidden();
             // Met app-slot de inhoud alvast verbergen; bij terugkomen beslist onStart of hij op slot moet.
-            if (web != null && Lock.active(this) && !Lock.internalNav && !Lock.authBusy) coverOn();
+            if (web != null && Lock.active(this) && !Lock.internalNav && !Lock.busy()) coverOn();
         }
         super.onStop();
     }
@@ -1930,7 +1930,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void lockCodeBio(boolean on) {
             String r = Lock.enableBio(ctx, on);
-            a.js("onSettingsChanged", JSONObject.quote(r.isEmpty() ? (on ? "Vingerafdruk aan (een nieuw toegevoegde vingerafdruk zet hem weer uit)" : "Vingerafdruk uit") : r));
+            a.js("onSettingsChanged", JSONObject.quote(r.isEmpty() ? (on ? "Vingerafdruk aan (komt er een vingerafdruk bij, dan eerst één keer je app-code)" : "Vingerafdruk uit") : r));
         }
 
         interface Change { String run(); }
