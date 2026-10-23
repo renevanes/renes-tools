@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.92",
-  "versionCode": 93,
-  "nativeLevel": 81,
+  "versionName": "1.93",
+  "versionCode": 94,
+  "nativeLevel": 82,
   "web": "index.html",
-  "webSha256": "e0ebe33565b9adec1c76f20b90e154d65546220408a4cfeafd3313dabebcf163",
+  "webSha256": "a277b6c11ca28b2ba98e23567e6981788525f70c1cdb021c4005674eaf7858b2",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "d960e4a7c0e29aece0eb1654e537a1274b2787b611e1248e52ec563f909d56b9",
+  "apkSha256": "e27e3f01f182e35025dc65e8042f39aa2b4a86cd0ebf451bd9cfd8fdff07ac37",
   "changelog": [
+    {
+      "version": "1.93",
+      "date": "2026-10-23",
+      "changes": [
+        "Assistent: stel je vraag hardop met de microfoonknop. Je stem wordt op de telefoon uitgeschreven (er gaat niets naar internet) en de vraag gaat meteen naar de assistent; bij Instellingen kun je kiezen om de tekst eerst na te kijken"
+      ]
+    },
     {
       "version": "1.92",
       "date": "2026-10-23",
@@ -814,5 +821,5 @@
       ]
     }
   ],
-  "webSig2": "UaoI2RrNx2PvibVqLI6hVeP0UDMsFCewqShd00sSwrEEsgJOOLRobEoNclFiESfeiUo0hgbH/bB5yt/LHv/wPrtLiyvjbNfHXTpDfsZ25vJNrNyBIbyvQS3RMJr9lCMfWD39fyxRMX11cpuFs8j/oVXbw+3sUrLvTmCmDIJR+CbcMdCMlpmdmvffo6Yk5ZuxjXlccHwcfY+vHVXk2gldRB6pWBvHnN4kQkdy893IMMGbXbI1yEuSziTk+IdWeuLk1BjrJy5xFSFu2Np6KhJpwRMg3/i3cnSN6k5D4E5m1kpRMDm6VbUxy+7m6UWlbYu5fzIDcc85LHWwqU3GAkEojx2HzvJU849A0NdILSZJ6wf55qAONnplY3z4zGHuCRC7f1j+w8QK6rpR3MYE9Nh0HPbWXkAJ/b9vDCqWlU3G5gsT5xGZBSWhYDAuo9XMNsLtTQnyE3PgTtq88xtEBUn3uWd//DBZXofSkVHdOPclbRk49aOvYdYiDo1WZwfug8Vw"
+  "webSig2": "cWB8ODACnvAIAvC3ETRgLwWXo2RoMid8NgIvSB+xFRq78/AYQ4x4DMkdOnoBVXJNy7J+JxOJw5eqH0HvRuV5cWzhyejHyEiEjrVX85HXbMPJRAhUyL+KDnZ8X2GRgw2CqiCWNp2x1xNAuwTI3wV1ARIwtIPHvrknx3VrgPeWHxyOcr+XGZx+idt6+xVtWD7evmO41fTXVezuwlnR5SoHh0DXBYirUNJgmYWTWgGa/bpNxXFGdY+ZD7VDzZW5PeaBa9F5N2H3MQezGbiKaOR66v02VnYzhnNGKIhhwhkfXDHqbOfDCCTU7MRkPFODeBYb7pLDVnWQOAK95ptn44pY0ZgGJeKRRmveHtWzhDAKqSGSoTwuApxFTNViF4RWugfJ8pu7/7dZzQ5sGk++xuiHbgrA4o7PNS2uL/K5OTY0bxl3yttWPR0uILcUfMQ/lk2ELMnliS/OpDxFuTDcQButJA64xGB5Xs3QnYd82y++80xW7d+gZWbSmfZxLKodNF56"
 }
