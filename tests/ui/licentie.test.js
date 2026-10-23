@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
     if (u !== 'https://github.com/renevanes/renes-tools') errs.push('verkeerde link: ' + u);
     await pg.click('#s-info button:has-text("Licenties")'); await pg.waitForTimeout(150);
     const acts = await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent));
-    if (acts.length !== 5 || !acts.some(a => a.includes('Leaflet'))) errs.push('licentielijst: ' + acts.join(' | '));
+    if (acts.length !== 6 || !acts.some(a => a.includes('Leaflet')) || !acts.some(a => a.includes('llama.cpp'))) errs.push('licentielijst: ' + acts.join(' | '));
     await pg.click('#sheet-acts button:has-text("jsQR")');
     if (!(await pg.evaluate(() => Android._url)).endsWith('web/vendor/JSQR-LICENSE')) errs.push('jsQR-link');
     await pg.screenshot({ path: __dirname + '/shots/licentie-' + scheme + '.png', fullPage: true });

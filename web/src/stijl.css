@@ -666,3 +666,40 @@ body.solo-root .hdr .back{display:none}
 body.solo-root .hs{padding-left:16px}
 body.solo:not(.solo-player) .plbar{display:none!important}
 body.solo:not(.solo-player).has-plbar main{padding-bottom:24px}
+/* ---------- Assistent ---------- */
+.aihero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:22px 18px}
+.aihero>.ui-icon{width:40px;height:40px;color:var(--primary)}.aihero h2{margin:4px 0 0;font-size:19px}.aihero .note{margin:0}
+.aimodel{display:flex;align-items:center;gap:10px;padding:14px 16px;margin-bottom:10px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
+#ais-chat .aimodel,#ais-embed .aimodel{background:var(--hi);border-color:transparent}
+.aimodel.on{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.aimt{flex:1;min-width:0}.aimt b{display:block;font-size:16px}.aimt small{display:block;color:var(--muted);font-size:13px;line-height:1.35}.aimt .aims{color:var(--ink);font-weight:600;margin-top:4px}
+.aimb{display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex:none}.aimb .mini{float:none}.aimb .mini.on{background:var(--primary);color:var(--on-primary)}
+.aisel{font-size:13px;font-weight:700;color:var(--primary)}
+.aisugg{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px}
+.aisugg .chip{padding:9px 14px;border-radius:12px;border:1px solid var(--outline);background:transparent;font-size:14.5px;font-weight:500;color:var(--ink)}
+#ai-msgs{display:flex;flex-direction:column;gap:12px;padding-bottom:8px}
+.aimsg{display:flex;flex-direction:column;align-items:flex-start;max-width:100%}
+.aimsg.me{align-items:flex-end}
+.aib{max-width:88%;padding:10px 14px;border-radius:20px 20px 20px 6px;background:var(--card);border:1px solid var(--line);line-height:1.5;font-size:15.5px;overflow-wrap:anywhere}
+.aimsg.me .aib{border-radius:20px 20px 6px 20px;background:var(--primary);color:var(--on-primary);border-color:transparent}
+.aimsg.err .aib{background:var(--hi);color:var(--muted)}
+.aib p{margin:0 0 8px}.aib p:last-child{margin-bottom:0}.aib ul,.aib ol{margin:0 0 8px;padding-left:22px}.aib li{margin:2px 0}
+.aib code{font-family:ui-monospace,monospace;font-size:.9em;padding:1px 5px;border-radius:6px;background:var(--hi)}
+.aiacts{margin:2px 6px 0}.aiacts .linkish{font-size:13px;color:var(--muted);padding:6px 4px}
+.aisrc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 2px 0;max-width:88%}
+.aichip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:6px 12px;border-radius:10px;border:1px solid var(--outline);background:transparent;font-size:14px;font-weight:500;color:var(--ink)}
+.aichip .ui-icon{width:18px;height:18px}.aichip.on{background:var(--chip);color:var(--on-chip);border-color:transparent;font-weight:600}
+.aichip.sm{min-height:32px;padding:4px 10px;font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aicomp{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom));z-index:20;margin-top:10px;padding:8px;border-radius:24px;background:var(--hi);box-shadow:0 -2px 12px color-mix(in srgb,var(--ink) 8%,transparent)}
+body.has-plbar .aicomp{bottom:calc(84px + env(safe-area-inset-bottom))}
+.aicomp .aichip{margin:0 0 8px 4px}
+.airow{display:flex;align-items:flex-end;gap:8px}
+#ai-in{flex:1;min-width:0;resize:none;border:0;background:var(--card);color:var(--ink);border-radius:18px;padding:11px 14px;font:inherit;font-size:16px;line-height:1.4;max-height:160px}
+.aisend{width:48px;height:48px;flex:none;border-radius:24px;display:grid;place-items:center;background:var(--primary);color:var(--on-primary)}
+.aisend:disabled{opacity:.4}.aisend.stop{background:var(--ink);color:var(--bg)}
+.aidots{display:inline-flex;gap:4px;padding:4px 0}.aidots i{width:7px;height:7px;border-radius:4px;background:var(--muted);animation:aidot 1.2s infinite ease-in-out}
+.aidots i:nth-child(2){animation-delay:.15s}.aidots i:nth-child(3){animation-delay:.3s}
+@keyframes aidot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.aidots i{animation:none;opacity:.6}}
+#s-ai #ai-status{margin:4px 2px}
+.aigs h3 .ui-icon{color:var(--primary)}

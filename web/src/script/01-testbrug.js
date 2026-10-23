@@ -220,6 +220,31 @@ if (!window.Android) window.Android = (function(){
     podSubscribe(j){ const p = JSON.parse(j); if (!/^https?:/.test(p.feed || '')) return 'Ongeldig feed-adres'; if (!this._pc.subs.some(x => x.feed === p.feed)) this._pc.subs.push(Object.assign({ fresh: 2 }, p)); return ''; },
     podUnsubscribe(id){ this._pc.subs = this._pc.subs.filter(x => x.id !== id); },
     podSubs(){ return JSON.stringify(this._pc.subs); },
+    // Lokale AI (assistent en slim zoeken): nagebootst, zonder model
+    _ai: { st: { klein: { state: 'none' }, groot: { state: 'none' }, zoek: { state: 'none' } }, chat: 'klein', wifiOnly: true, notes: true, chats: [], ram: 8e9, calls: [], seq: 0,
+      models: [['klein', 'Klein en snel', 'Qwen3 1.7B · werkt op de meeste telefoons', 1282439584], ['groot', 'Groter en slimmer', 'Qwen3 4B · beter Nederlands, trager', 2497280256], ['zoek', 'Slim zoeken', 'Qwen3-Embedding 0.6B · zoeken op betekenis', 639150592]],
+      reply: 'Hallo! Ik ben je **assistent**.\n- Eén\n- Twee' },
+    _aiReady(id){ return this._ai.st[id].state === 'ready'; },
+    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: A.chat, wifiOnly: A.wifiOnly, notes: A.notes, loaded: '', busy: !!A.timer,
+      models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek' }, A.st[m[0]])),
+      index: this._aiReady('zoek') ? { items: 3, chunks: 7, at: Date.now() - 6e4, stale: false } : undefined }); },
+    aiDownload(id){ const A = this._ai, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dl', id]);
+      Object.assign(m, { state: 'running', bytes: 0, total: 1e9 }); setTimeout(() => { m.bytes = 5e8; }, 200);
+      setTimeout(() => { Object.assign(m, { state: 'verifying', pct: 40 }); }, 450); setTimeout(() => { A.st[id] = { state: 'ready' }; onAiModels(''); }, 700); return ''; },
+    aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ this._ai[n] = on; },
+    aiChat(j){ const A = this._ai, r = JSON.parse(j); if (A.timer) return 'De assistent is nog bezig'; A.last = r;
+      const words = A.reply.split(/(?<= )/); let i = 0;
+      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; onAiDone({ done: true, n: words.length }); } };
+      if (r.notes && this._aiReady('zoek')) { onAiStatus('Zoeken in je notities en gesprekken…'); onAiSources([{ kind: 'notes', id: (notesGet()[0] || {}).id || 'x', title: 'Garage', snip: 'APK in maart', score: 0.61 }]); }
+      A.timer = setTimeout(() => { onAiStatus(''); tick(); }, 120); return ''; },
+    aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => onAiDone({ done: true, cancelled: true }), 20); } },
+    aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
+    aiChats(){ return JSON.stringify(this._ai.chats.map(c => ({ id: c.id, title: c.title, t: c.t, n: c.msgs.length }))); },
+    aiChatGet(id){ const c = this._ai.chats.find(x => x.id === id); return c ? JSON.stringify(c) : ''; },
+    aiChatSave(j){ const c = JSON.parse(j); c.id = c.id || 'c' + (++this._ai.seq); c.t = Date.now(); this._ai.chats = [c].concat(this._ai.chats.filter(x => x.id !== c.id)); return c.id; },
+    aiChatDelete(id){ this._ai.chats = id === '*' ? [] : this._ai.chats.filter(x => x.id !== id); },
+    aiSearch(q){ const id = ++this._ai.seq; this._ai.calls.push(['search', q]); setTimeout(() => onAiSearch({ id, q, items: [{ kind: 'notes', id: (notesGet()[0] || {}).id || 'x', title: 'Auto naar de garage', snip: 'APK-keuring in maart, banden wisselen', t: Date.now(), score: 0.58 }, { kind: 'tx', id: 't1', title: 'Jos', snip: 'we spraken over de garage', from: 12000, score: 0.44 }] }), 80); return id; },
+    aiIndex(force){ this._ai.calls.push(['index', force]); setTimeout(() => onAiIndex({ busy: true, done: 2, total: 4 }), 50); setTimeout(() => onAiIndex({ items: 3, chunks: 7, at: Date.now() }), 200); },
     _dl: { list: [], prefs: { wifiOnly: true, autoDelete: true } },
     podDlStart(j){ const o = JSON.parse(j); if (this._dl.list.some(d => d.key === o.ep.key)) return ''; this._dl.list.unshift({ key: o.ep.key, ep: o.ep, pod: o.pod, t: Date.now(), state: 'running', bytes: 0, total: 40e6 });
       const d = this._dl.list[0]; setTimeout(() => { d.bytes = 2e7; }, 300); setTimeout(() => { d.state = 'done'; d.bytes = d.total; }, 900); return ''; },
