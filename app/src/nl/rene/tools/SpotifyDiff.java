@@ -92,7 +92,9 @@ final class SpotifyDiff {
         if (s == null) return "";
         // Formules niet laten uitvoeren in een rekenblad (=, +, -, @ vooraan)
         if (!s.isEmpty() && "=+-@\t\r".indexOf(s.charAt(0)) >= 0) s = "'" + s;
-        return s.matches(".*[;\"\\r\\n].*") ? "\"" + s.replace("\"", "\"\"").replace("\r", " ").replace("\n", " ") + "\"" : s;
+        boolean quote = false;
+        for (int i = 0; i < s.length() && !quote; i++) quote = ";\"\r\n".indexOf(s.charAt(i)) >= 0;
+        return quote ? "\"" + s.replace("\"", "\"\"").replace("\r", " ").replace("\n", " ") + "\"" : s;
     }
 
     /** Kan dit terug in een Spotify-playlist? (Lokale bestanden niet.) */

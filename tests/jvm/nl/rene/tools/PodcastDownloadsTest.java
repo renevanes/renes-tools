@@ -31,6 +31,10 @@ public class PodcastDownloadsTest {
         check(".ogg".equals(PodcastDownloads.ext("https://x.nl/a.ogg", "")), "ogg");
         check(".opus".equals(PodcastDownloads.ext("https://x.nl/a.opus", "")), "opus");
         check(".mp3".equals(PodcastDownloads.ext("https://x.nl/stream", "")), "onbekend: mp3");
+        check(".m4a".equals(PodcastDownloads.ext("https://x.nl/a.M4A#t=1?x.mp3", "")), "m4a: alles na # of ? telt niet");
+        StringBuilder q = new StringBuilder("https://x.nl/a.ogg"); for (int i = 0; i < 50000; i++) q.append('?');
+        long t0 = System.currentTimeMillis();
+        check(".ogg".equals(PodcastDownloads.ext(q.toString(), "")) && System.currentTimeMillis() - t0 < 1000, "heel veel vraagtekens: snel");
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");
     }

@@ -85,6 +85,14 @@ public class MainActivity extends Activity {
     private static final java.util.Set<MainActivity> ALL = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<MainActivity, Boolean>());
     /** Losse app: welke tool (anders null). Dan geen app-slot en alleen de schermen van die tool. */
     String solo;
+    /** Losse kluis: met welke ontgrendeling (Kluis.gen) dit venster de kluis zelf opende; -1 = nog niet. */
+    volatile int kluisGen = -1;
+
+    boolean isSoloKluis() { return isSolo() && "kluis".equals(solo); }
+    /** Losse app (zonder app-slot): de kluis telt alleen als open als dit venster hem zelf met vingerafdruk opende. */
+    boolean kluisMine() { return !isSolo() || kluisGen == Kluis.gen; }
+    /** De kluis is open én mag door dit venster gebruikt worden. */
+    boolean kluisOk() { return Kluis.isOpen() && kluisMine(); }
 
     boolean isSolo() { return this instanceof SoloActivity; }
 
@@ -376,6 +384,8 @@ public class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
         if (soloRevoked()) return;
+        // Losse kluis zonder app-slot: niet meeliften op een kluis die in de app (of eerder) is geopend.
+        if (isSoloKluis() && Kluis.isOpen() && !kluisMine()) Kluis.close(this);
         applySecure();
         if (web == null) return;
         boolean lock = !isSolo() && Lock.onShown(this); // losse app: geen app-slot (en het slot van de app blijft zoals het was)
@@ -414,7 +424,8 @@ public class MainActivity extends Activity {
 
     /** Met app-slot: inhoud niet tonen in "recente apps". */
     void applySecure() {
-        boolean on = !isSolo() && Lock.enabled(this); // losse app: zonder slot, dus ook zichtbaar in "recente apps"
+        // losse app: zonder slot, dus ook zichtbaar in "recente apps"; behalve de losse kluis (documentnamen)
+        boolean on = isSolo() ? isSoloKluis() : Lock.enabled(this);
         if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on);
         else if (on) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
         else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
@@ -654,7 +665,7 @@ public class MainActivity extends Activity {
             final Uri u = data.getData();
             new Thread(() -> {
                 String r;
-                try { if (!Kluis.isOpen()) throw new Exception("De kluis is weer op slot"); Kluis.add(getApplicationContext(), u); r = "ok"; }
+                try { if (!kluisOk()) throw new Exception("De kluis is weer op slot"); Kluis.add(getApplicationContext(), u); r = "ok"; }
                 catch (Throwable e) { r = e instanceof OutOfMemoryError ? "Bestand is te groot" : e.getMessage() == null ? "Toevoegen lukt niet" : e.getMessage(); }
                 js("onKluisChanged", JSONObject.quote(r));
             }, "kluis-add").start();

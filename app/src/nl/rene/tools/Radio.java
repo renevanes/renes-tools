@@ -199,7 +199,7 @@ final class Radio {
             while (got < len) { int n = in.read(meta, got, len - got); if (n < 0) break; got += n; }
             String m = new String(meta, 0, got, StandardCharsets.UTF_8);
             if (m.indexOf('\uFFFD') >= 0) m = new String(meta, 0, got, StandardCharsets.ISO_8859_1); // oudere servers sturen Latin-1
-            String t = metaField(m, "StreamTitle").replaceAll("^[\\s-]+|[\\s-]+$", "");
+            String t = trimDash(metaField(m, "StreamTitle"));
             o.put("title", t).put("streamUrl", metaField(m, "StreamUrl"));
             // "Artiest - Titel" splitsen als het daarop lijkt
             int d = t.indexOf(" - ");
@@ -207,6 +207,15 @@ final class Radio {
         } catch (Exception ignored) {
         } finally { if (h != null) h.disconnect(); }
         return o;
+    }
+
+    /** Spaties en streepjes aan begin en eind weg (zonder regex: lineair, ook bij rare metadata). */
+    static String trimDash(String s) {
+        final String strip = " \t\n\u000B\f\r-";
+        int a = 0, b = s.length();
+        while (a < b && strip.indexOf(s.charAt(a)) >= 0) a++;
+        while (b > a && strip.indexOf(s.charAt(b - 1)) >= 0) b--;
+        return s.substring(a, b);
     }
 
     /** Haalt ongeveer 'seconds' seconden van de stream op (zonder metadata) om te laten herkennen. */

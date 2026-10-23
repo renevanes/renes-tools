@@ -73,7 +73,7 @@ jobs:
         if: steps.gate.outputs.ok == 'true'
         run: |
           ./setup-tools.sh
-          npm install --no-save --no-package-lock playwright@1.56.0
+          npm install --no-save --no-package-lock playwright@1.64.1
           npx playwright install --with-deps chromium
           rm -f package-lock.json
 

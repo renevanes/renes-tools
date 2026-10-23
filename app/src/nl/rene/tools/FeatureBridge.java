@@ -267,27 +267,27 @@ public class FeatureBridge {
         @JavascriptInterface public void carTripStop() { Car.stopTrip(ctx); }
         @JavascriptInterface public void kluisUnlock() {
             a.h.post(() -> {
-                if (Kluis.isOpen()) { Kluis.open(ctx); a.js("onKluis", "true"); return; }
+                if (a.kluisOk()) { Kluis.open(ctx); a.js("onKluis", "true"); return; }
                 if (Lock.authBusy) { a.js("onKluis", JSONObject.quote("Er staat al een vraag om te ontgrendelen open")); return; }
                 Lock.prompt(a, "Kluis openen", (ok, msg) -> a.runOnUiThread(() -> {
-                    if (ok) { Kluis.clearViews(ctx); Kluis.open(ctx); }
+                    if (ok) { Kluis.clearViews(ctx); a.kluisGen = ++Kluis.gen; Kluis.open(ctx); }
                     a.js("onKluis", ok ? "true" : JSONObject.quote(msg == null ? "Niet ontgrendeld" : msg));
                 }));
             });
         }
         @JavascriptInterface public String kluisList() {
-            if (!Kluis.isOpen()) return "{\"locked\":true}";
+            if (!a.kluisOk()) return "{\"locked\":true}";
             try { Kluis.open(ctx); return new JSONObject().put("docs", Kluis.list(ctx)).put("left", Kluis.remaining()).toString(); } catch (Exception e) { return errJson(e); }
         }
         @JavascriptInterface public void kluisAdd() {
-            if (!Kluis.isOpen()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
+            if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
             a.h.post(() -> {
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
                 try { a.startActivityForResult(i, MainActivity.REQ_KLUIS); } catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
             });
         }
         @JavascriptInterface public void kluisView(String id) {
-            if (!Kluis.isOpen()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
+            if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
             new Thread(() -> {
                 try {
                     File f = Kluis.view(ctx, id);
@@ -304,21 +304,23 @@ public class FeatureBridge {
             }, "kluis-view").start();
         }
         @JavascriptInterface public String kluisDelete(String id) {
-            if (!Kluis.isOpen()) return "De kluis is op slot";
+            if (!a.kluisOk()) return "De kluis is op slot";
             try { Kluis.delete(ctx, id); return ""; } catch (Exception e) { return "Verwijderen lukt niet"; }
         }
         @JavascriptInterface public String kluisRename(String id, String name) {
-            if (!Kluis.isOpen() || name == null || name.trim().isEmpty()) return "Kan niet";
+            if (!a.kluisOk() || name == null || name.trim().isEmpty()) return "Kan niet";
             try { Kluis.rename(ctx, id, name.trim()); return ""; } catch (Exception e) { return "Hernoemen lukt niet"; }
         }
         @JavascriptInterface public String kluisOrganize(String id,String json) {
+            if (!a.kluisOk()) return "De kluis is op slot";
             try { Kluis.organize(ctx,id,json);return ""; }
             catch (Exception e) { return e.getMessage()==null?"Ordenen lukt niet":e.getMessage(); }
         }
         @JavascriptInterface public void kluisSavePdf(String name,String category) {
             new Thread(()->{
                 String result;
-                try { JSONObject d=Kluis.addPdf(ctx,name,category);result=new JSONObject().put("ok",true).put("id",d.getString("id")).put("name",d.getString("name")).toString(); }
+                try { if (!a.kluisOk()) throw new Exception("De kluis is weer op slot. Ontgrendel opnieuw om het document te bewaren.");
+                      JSONObject d=Kluis.addPdf(ctx,name,category);result=new JSONObject().put("ok",true).put("id",d.getString("id")).put("name",d.getString("name")).toString(); }
                 catch(Throwable e) { result=PdfTools.err(e); }
                 a.js("onPdfStored",result);
             },"pdf-bewaren").start();
