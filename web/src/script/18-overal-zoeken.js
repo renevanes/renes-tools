@@ -24,12 +24,15 @@ function gsBuildIndex(){
     const scr = sec.id.slice(2);
     if (scr === 'home' || scr === 'search' || DETAIL.includes(scr)) return;
     const h1 = sec.querySelector('.hdr h1'), screen = h1 ? h1.textContent.trim() : scr;
-    gsIndex.push({scr, el: null, title: screen, sub: 'Openen', key: fold(screen + ' ' + scr)});
+    const own = {scr, el: null, title: screen, sub: BACK[scr] === 'settings' ? 'Instellingen' : 'Openen', key: fold(screen + ' ' + scr)};
+    gsIndex.push(own);
     sec.querySelectorAll('.card').forEach(card => {
       const h = card.querySelector('h2, h3'); if (!h) return;
       const head = h.textContent.trim(); if (!head) return;
       const labels = [...card.querySelectorAll('label, .setrow > span, button.big, button.ghost, .chk')].map(e => e.textContent.trim()).filter(Boolean).slice(0, 12);
       const syn = Object.keys(GS_SYN).filter(k => fold(head).includes(k)).map(k => GS_SYN[k]).join(' ');
+      // Kaart met dezelfde naam als het scherm (bijv. een instellingenscherm): één treffer, het scherm zelf
+      if (head === screen) { own.key += ' ' + fold(labels.join(' ') + ' ' + syn); return; }
       gsIndex.push({scr, el: card, title: head, sub: screen, key: fold(head + ' ' + screen + ' ' + labels.join(' ') + ' ' + syn)});
     });
   });

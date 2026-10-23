@@ -1,5 +1,29 @@
-/* ---------- Instellingen ---------- */
+/* ---------- Instellingen ----------
+ * Een overzicht in groepen (met per onderwerp een korte stand van zaken) en per onderwerp een eigen scherm. */
+const ST_SUBS = ['setnotif', 'setlook', 'setskin', 'setlock', 'setsolo', 'setperm', 'setbackup', 'setmusic', 'setcrash'];
+const stOn = () => current === 'settings' || ST_SUBS.includes(current);
 function stJson(s){ try { return JSON.parse(s); } catch(e){ return {}; } }
+function stSum(id, t){ const e = $('#st-sum-' + id); if (e) e.textContent = t; }
+/* De regel onder elk onderwerp in het overzicht */
+function stSummaries(i){
+  const lk = i.lock || {};
+  if (typeof Android.notifState === 'function') { const n = stJson(Android.notifState()); stSum('notif', n.muted ? 'Alle meldingen uit' : !n.allowed ? 'Uit voor deze app' : 'Aan'); }
+  const z = $('#st-zoom'); stSum('look', (z && z.selectedIndex >= 0 ? 'Tekst: ' + z.options[z.selectedIndex].text.toLowerCase() : '') + ($('#st-dyn').classList.contains('on') ? ' · kleuren uit je achtergrond' : ''));
+  stSum('skin', Android.homeIsDefault() ? '✓ Tools is je startscherm' : 'Tools als startscherm gebruiken');
+  stSum('lock', lk.on && !(lk.secure || lk.code) ? 'Aan, maar werkt nog niet: stel een vergrendeling of app-code in' : lk.on ? 'Aan' + (lk.code ? ' · eigen app-code' : '') : 'Uit');
+  const so = typeof soloAllowedList === 'function' ? soloAllowedList().length : 0;
+  stSum('solo', so ? so + (so === 1 ? ' tool als losse app' : ' tools als losse app') : 'Geen');
+  const ps = i.perms || [], miss = ps.filter(p => !p.ok).length;
+  stSum('perm', !ps.length ? '' : miss ? miss + ' van ' + ps.length + ' nog niet toegestaan' : '✓ Alles toegestaan');
+  stSum('backup', i.dest ? (i.destName || 'Gekozen') : 'Nog niet gekozen');
+  // AI alleen in het overzicht (vraagt wat meer werk)
+  if (current === 'settings' && typeof Android.aiState === 'function') { const a = stJson(Android.aiState()), m = (a.models || []).filter(x => x.state === 'ready');
+    stSum('ai', m.length ? m.map(x => x.label).join(' · ') : 'Nog geen model gedownload'); }
+  stSum('music', i.audd ? 'AudD-sleutel ingesteld' : 'Nog geen AudD-sleutel');
+  stSum('crash', i.crashes ? i.crashes + (i.crashes === 1 ? ' fout vastgelegd' : ' fouten vastgelegd') : '✓ Geen fouten');
+  stSum('self', 'Controleer of alles werkt');
+  stSum('info', 'Wat is er nieuw en updates');
+}
 /* Meldingen van deze app: één lijst met wat aan en uit staat; tikken = die soort in Android. */
 const NLEVEL = ['Uit', 'Stil', 'Zacht', 'Normaal', 'Met geluid'];
 function stNotifRender(){
@@ -44,6 +68,7 @@ function enterSettings(){
     '<div class="row setrow"><span style="flex:1"><b>' + esc(p.name) + '</b><small class=note style="display:block;margin:0">' + esc(p.used) + '</small></span>' +
     (p.ok ? '<span class=permok>✓ Aan</span>' : '<button class="mini" style="float:none" data-p="' + esc(p.id) + '" onclick="Android.permRequest(this.dataset.p)">Toestaan</button>') + '</div>').join('');
   $('#st-crash').textContent = i.crashes ? i.crashes + (i.crashes === 1 ? ' fout' : ' fouten') + ' vastgelegd.' : 'Er zijn geen fouten vastgelegd. ✓';
+  stSummaries(i);
 }
 function stHomeRender(){
   const on = Android.homeIsDefault();
@@ -51,8 +76,8 @@ function stHomeRender(){
   $('#st-home-btn').style.display = on ? 'none' : 'block';
   $('#st-home-back').style.display = on ? 'block' : 'none';
 }
-window.onHomeRole = function(){ if (current === 'settings') stHomeRender(); if (Android.homeIsDefault()) toast('✓ Startscherm ingesteld; druk op de home-knop'); };
-window.onSettingsChanged = function(msg){ if (msg) toast(msg); if (current === 'settings') enterSettings(); };
+window.onHomeRole = function(){ if (stOn()) { stHomeRender(); stSum('skin', Android.homeIsDefault() ? '✓ Tools is je startscherm' : 'Tools als startscherm gebruiken'); } if (Android.homeIsDefault()) toast('✓ Startscherm ingesteld; druk op de home-knop'); };
+window.onSettingsChanged = function(msg){ if (msg) toast(msg); if (stOn()) enterSettings(); };
 function stLockToggle(){
   const lk = stJson(Android.lockState());
   if (!lk.secure && lk.code) { stAskCode('App-slot ' + (lk.on ? 'uitzetten' : 'aanzetten'), 'Bevestig met je app-code', c => Android.lockSetCode(!lk.on, c)); return; }

@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
     const errs = []; pg.on('pageerror', e => errs.push(e.message));
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
     // Instellen via Instellingen
-    await pg.evaluate(() => { Android._st.lock = true; show('settings'); }); await pg.waitForTimeout(300);
+    await pg.evaluate(() => { Android._st.lock = true; show('setlock'); }); await pg.waitForTimeout(300);
     console.log('code state', await pg.textContent('#st-code-state'), 'more hidden', !(await pg.isVisible('#st-code-more')));
     await pg.click('#st-code-btn'); await pg.waitForTimeout(150);
     console.log('input type', await pg.getAttribute('#modal-input', 'type'), 'inputmode', await pg.evaluate(() => $('#modal-input').inputMode));
