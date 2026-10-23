@@ -107,7 +107,11 @@ final class SleepTalk {
         } catch (Exception e) { return null; }
     }
 
-    private static void write(Context c, JSONObject n) throws Exception { Contacts.writeText(nightFile(c, n.optString("id")), n.toString(), false); }
+    /** Gaat omhoog bij elke wijziging: het overzicht van de nachten hoeft dan alleen opnieuw als er iets veranderde. */
+    private static volatile int version;
+    private static JSONArray nightsCache; private static int nightsVersion = -1;
+
+    private static void write(Context c, JSONObject n) throws Exception { Contacts.writeText(nightFile(c, n.optString("id")), n.toString(), false); version++; }
 
     /** Een nieuwe nacht; geeft het id. */
     static synchronized String begin(Context c, long start, int sens) throws Exception {
@@ -128,6 +132,8 @@ final class SleepTalk {
         long t = nightStart + k.startMs();
         String id = "c" + t;
         boolean keep = audio + k.seconds() <= MAX_AUDIO_S;
+        // Bijna geen ruimte meer op de telefoon: alleen het tijdstip
+        try { if (new android.os.StatFs(c.getFilesDir().getPath()).getAvailableBytes() < 300L * 1024 * 1024) keep = false; } catch (Throwable ignored) { }
         if (keep) {
             File tmp = new File(dir(c, night), id + ".wav.tmp");
             try (RandomAccessFile w = new RandomAccessFile(tmp, "rw")) { w.setLength(0); w.write(wav(k.pcm)); }
@@ -147,6 +153,13 @@ final class SleepTalk {
 
     /** Alle nachten, nieuwste eerst (zonder de stukjes zelf). */
     static synchronized JSONArray nights(Context c) {
+        if (nightsCache != null && nightsVersion == version) return nightsCache;
+        JSONArray out = nightsList(c);
+        nightsCache = out; nightsVersion = version;
+        return out;
+    }
+
+    private static JSONArray nightsList(Context c) {
         JSONArray out = new JSONArray();
         File[] ds = root(c).listFiles();
         if (ds == null) return out;
@@ -179,6 +192,7 @@ final class SleepTalk {
         File[] fs = d.listFiles();
         if (fs != null) for (File f : fs) f.delete();
         d.delete();
+        version++;
     }
 
     static synchronized void deleteClip(Context c, String night, String clip) {
@@ -194,21 +208,47 @@ final class SleepTalk {
         } catch (Exception ignored) { }
     }
 
-    /** Oude nachten weg (de nacht die nu loopt nooit). */
+    /** Oude nachten weg (de nacht die nu loopt nooit); een nacht die nooit netjes eindigde (de app werd gestopt)
+     *  heet "Onderbroken"; halve bestanden weg. */
     static void cleanup(Context c, String running) {
         long limit = System.currentTimeMillis() - keepDays(c) * 86_400_000L;
         File[] ds = root(c).listFiles();
         if (ds != null) for (File d : ds) {
             String id = d.getName();
             if (!safeId(id) || id.equals(running)) continue;
-            try { if (Long.parseLong(id) < limit) deleteNight(c, id); } catch (Exception ignored) { }
+            try {
+                if (Long.parseLong(id) < limit) { deleteNight(c, id); continue; }
+                File[] fs = d.listFiles();
+                if (fs != null) for (File f : fs) if (f.getName().endsWith(".tmp")) f.delete();
+                synchronized (SleepTalk.class) {
+                    JSONObject n = night(c, id);
+                    if (n != null && n.optLong("end") == 0) {
+                        long last = n.optLong("start");
+                        JSONArray a = n.optJSONArray("clips");
+                        if (a != null) for (int i = 0; i < a.length(); i++) last = Math.max(last, a.getJSONObject(i).optLong("t") + (long) (a.getJSONObject(i).optDouble("dur") * 1000));
+                        n.put("end", last).put("reason", "Onderbroken (de app werd gestopt)");
+                        write(c, n);
+                    }
+                }
+            } catch (Exception ignored) { }
         }
+    }
+
+    private static long lastCleanup;
+    /** Hooguit eens per uur (bijv. bij het openen van het scherm), zodat oude nachten ook zonder luisteren weggaan. */
+    static void cleanupSometimes(Context c, String running) {
+        long now = System.currentTimeMillis();
+        if (now - lastCleanup < 3_600_000L) return;
+        lastCleanup = now;
+        cleanup(c, running);
     }
 
     // ---------- uitschrijven ----------
 
     static volatile boolean stopTx;
     interface Step { void step(int done, int total); }
+    /** Gestopt midden in een stukje (via de voortgang van whisper: het proces stopt dan meteen). */
+    static final class Stopped extends RuntimeException { Stopped() { super("Gestopt"); } }
 
     /** Nog uit te schrijven stukjes van een nacht. */
     static synchronized int open(Context c, String night) {
@@ -236,7 +276,9 @@ final class SleepTalk {
             File f = clipFile(c, night, clip);
             String text = "";
             if (f != null && f.isFile()) {
-                JSONObject out = Transcribe.whisper(c, f, m, (ph, pct) -> { }, true);
+                JSONObject out;
+                try { out = Transcribe.whisper(c, f, m, (ph, pct) -> { if (stopTx) throw new Stopped(); }, true); }
+                catch (Stopped s) { return; }
                 JSONArray tr = out.optJSONArray("transcription");
                 List<String> parts = new ArrayList<>();
                 if (tr != null) for (int i = 0; i < tr.length(); i++) parts.add(tr.getJSONObject(i).optString("text"));

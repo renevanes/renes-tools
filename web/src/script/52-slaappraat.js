@@ -2,6 +2,8 @@
 let slSt = {}, slPollT = null, slNightCur = null, slNightId = '', slFilterV = 'praten', slPlaying = '';
 const SL_SENS_NOTE = { '1': 'Pakt ook zacht gemompel op (en dus vaker een geluidje).', '2': 'Gewoon praten in je slaap.', '3': 'Alleen duidelijk en hardop praten.' };
 
+/* Alleen vervangen als er echt iets anders staat: dan blijft een tik of de focus van TalkBack gewoon werken */
+function slHtml(el, html){ if (el && el._h !== html) { el.innerHTML = html; el._h = html; } }
 function slLoad(){ slSt = rdJson(Android.sleepState(), {}); return slSt; }
 function enterSleep(){ slLoad(); slRender(); slPoll(); }
 function stopSleepPoll(){ clearTimeout(slPollT); slPollT = null; }
@@ -10,12 +12,10 @@ function slPoll(){
   stopSleepPoll();
   if (current !== 'sleep' && current !== 'sleepnight') return;
   if (!slSt.phase) return;
-  slPollT = setTimeout(() => { const was = slSt.phase; slLoad(); if (current === 'sleep') slRender(); else if (current === 'sleepnight' && slNightId === slSt.night) slnLoad(slNightId); if (was && !slSt.phase && current === 'sleep') slRender(); slPoll(); }, 1000);
+  slPollT = setTimeout(() => { slLoad(); if (current === 'sleep') slRender(); else if (current === 'sleepnight' && slNightId) slnLoad(slNightId); slPoll(); }, 1000);
 }
 window.onSleep = function(o){
   o = o || {};
-  if (o.tx != null && current === 'sleepnight') { const e = $('#sln-tx'); if (e) e.innerHTML = '<p class="note">Uitschrijven… ' + o.tx + ' van ' + o.of + '</p>'; return; }
-  if (o.txDone) { if (o.error) toast(o.error === 'model' ? 'Download eerst een spraakmodel' : o.error); else toast('Uitgeschreven'); }
   if (o.played) { slPlaying = ''; if (current === 'sleepnight') slnRender(); return; }
   slLoad();
   if (current === 'sleep') slRender();
@@ -37,8 +37,8 @@ function slRender(){
   const s = slSt, set = s.set || {}, st = $('#sl-status'), btn = $('#sl-btn'), meter = $('#sl-meter');
   if (!st) return;
   if (s.phase === 'luistert') {
-    st.innerHTML = '<div class="sl-live"><span class="sl-dot" aria-hidden="true"></span><b>Luistert</b> sinds ' + esc(slTime(s.since)) + '</div><p class="note">' +
-      esc((s.heard ? s.heard + ' keer iets gehoord' : 'Nog niets gehoord') + (s.stopAt ? ' · stopt om ' + slTime(s.stopAt) : '')) + '</p>';
+    slHtml(st, '<div class="sl-live"><span class="sl-dot" aria-hidden="true"></span><b>Luistert</b> sinds ' + esc(slTime(s.since)) + '</div><p class="note">' +
+      esc((s.heard ? s.heard + ' keer iets gehoord' : 'Nog niets gehoord') + (s.stopAt ? ' · stopt om ' + slTime(s.stopAt) : '')) + '</p>');
     btn.textContent = 'Stoppen'; btn.classList.add('ghost');
     meter.style.display = '';
     // Meter: -70 dB (stil) … -20 dB (hard)
@@ -46,10 +46,10 @@ function slRender(){
     $('#sl-meter-bar').style.width = pct(s.level) + '%';
     $('#sl-meter-floor').style.left = pct(s.floor) + '%';
   } else if (s.phase === 'uitschrijven') {
-    st.innerHTML = '<div class="sl-live"><b>Uitschrijven</b>… ' + (s.txDone || 0) + ' van ' + (s.txTotal || 0) + '</div><p class="note">Op je telefoon, met het spraakmodel van Gesprekken uitschrijven.</p>';
+    slHtml(st, '<div class="sl-live"><b>Uitschrijven</b>… ' + (s.txDone || 0) + ' van ' + (s.txTotal || 0) + '</div><p class="note">Op je telefoon, met het spraakmodel van Gesprekken uitschrijven. Tik je op luisteren, dan stopt dit; de rest kun je later bij de nacht uitschrijven.</p>');
     btn.textContent = 'Opnieuw beginnen met luisteren'; btn.classList.remove('ghost'); meter.style.display = 'none';
   } else {
-    st.innerHTML = s.message ? '<p class="note sl-msg">' + esc(s.message) + '</p>' : '';
+    slHtml(st, s.message ? '<p class="note sl-msg">' + esc(s.message) + '</p>' : '');
     btn.textContent = 'Begin met luisteren'; btn.classList.remove('ghost'); meter.style.display = 'none';
   }
   // Instellingen
@@ -65,12 +65,12 @@ function slRender(){
   const no = $('#sl-noise'); no.classList.toggle('on', !!set.keepNoise); no.setAttribute('aria-checked', set.keepNoise ? 'true' : 'false');
   // Nachten
   const ns = s.nights || [];
-  $('#sl-nights').innerHTML = ns.map((n, i) => {
+  slHtml($('#sl-nights'), ns.map((n, i) => {
     const live = n.id === s.night && s.phase;
     const sum = live ? (s.phase === 'luistert' ? 'Bezig…' : 'Uitschrijven…') : (n.talk ? n.talk + ' keer gepraat' : n.open ? n.open + ' keer iets gehoord' : 'Niets gezegd') + (n.noise ? ' · ' + n.noise + (n.noise === 1 ? ' geluid' : ' geluiden') : '') + (n.end ? ' · ' + slDur(n.end - n.start) : '');
     return '<button class="strow" onclick="slOpen(' + i + ')"><span class="stic">' + uiIcon('moon') + '</span><span class="sttxt"><b>' + esc(slNightName(n.start)) + '</b><small>' + esc(sum) + '</small>' +
       (n.first ? '<small class="sl-first">"' + esc(n.first) + '"</small>' : '') + '</span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>';
-  }).join('') || '<p class="note" style="padding:14px 16px">Nog geen nachten. Tik vanavond op Begin met luisteren.</p>';
+  }).join('') || '<p class="note" style="padding:14px 16px">Nog geen nachten. Tik vanavond op Begin met luisteren.</p>');
 }
 
 function slToggle(){
@@ -96,24 +96,24 @@ function slnRender(){
   const n = slNightCur;
   if (!n) { $('#sln-list').innerHTML = '<p class="note">Deze nacht is er niet meer.</p>'; $('#sln-sum').textContent = ''; $('#sln-tx').innerHTML = ''; return; }
   $('#sln-title').textContent = slNightName(n.start).replace('Nacht van ', '');
-  const clips = n.clips || [], live = slSt.phase && slSt.night === n.id;
+  const clips = n.clips || [], live = slSt.phase && (slSt.night === n.id || slSt.phase === 'uitschrijven');
   const talk = clips.filter(k => k.done && k.kind === 'praten'), open = clips.filter(k => !k.done);
   $('#sln-sum').textContent = slTime(n.start) + ' – ' + (n.end ? slTime(n.end) : 'nu') + (n.reason && n.end ? ' · ' + n.reason : '') + ' · ' +
     (talk.length ? talk.length + ' keer gepraat' : 'niets gezegd') + (clips.length - talk.length - open.length ? ' · ' + (clips.length - talk.length - open.length) + ' keer geluid' : '');
   // Nog uit te schrijven
   const canTx = open.some(k => k.audio) && !live;
-  $('#sln-tx').innerHTML = live ? '<p class="note">' + (slSt.phase === 'luistert' ? 'Luistert nog. ' : 'Wordt nu uitgeschreven: ' + (slSt.txDone || 0) + ' van ' + (slSt.txTotal || 0) + '. ') + '</p>'
+  slHtml($('#sln-tx'), live ? '<p class="note">' + (slSt.phase === 'luistert' ? 'Luistert nog. ' : 'Wordt nu uitgeschreven: ' + (slSt.txDone || 0) + ' van ' + (slSt.txTotal || 0) + '. ') + '</p>'
     : canTx ? '<div class="card sl-txcard"><p class="note">' + open.length + (open.length === 1 ? ' stukje is' : ' stukjes zijn') + ' nog niet uitgeschreven.</p>' +
-      (slSt.model ? '<button class="mini on" onclick="slnTranscribe()">Nu uitschrijven</button>' : '<button class="mini" onclick="jumpTo(\'transcripts\')">Spraakmodel downloaden</button>') + '</div>' : '';
+      (slSt.model ? '<button class="mini on" onclick="slnTranscribe()">Nu uitschrijven</button>' : '<button class="mini" onclick="jumpTo(\'transcripts\')">Spraakmodel downloaden</button>') + '</div>' : '');
   document.querySelectorAll('#sln-filter button').forEach(b => { const x = b.dataset.v === slFilterV; b.classList.toggle('on', x); b.setAttribute('aria-checked', x ? 'true' : 'false'); });
   const list = slFilterV === 'alles' ? clips : clips.filter(k => !k.done || k.kind === 'praten');
-  $('#sln-list').innerHTML = list.map(k => {
+  slHtml($('#sln-list'), list.map(k => {
     const kind = !k.done ? (k.audio ? 'Nog niet uitgeschreven' : 'Niet bewaard (maximum van de nacht bereikt)') : k.kind === 'praten' ? '' : 'Geluid (geen woorden)';
     const play = k.audio ? '<button class="iconbtn" onclick="slnPlay(\'' + esc(k.id) + '\')" aria-label="' + (slPlaying === k.id ? 'Stoppen' : 'Afspelen') + ' ' + esc(slTime(k.t)) + '">' + uiIcon(slPlaying === k.id ? 'stop' : 'play') + '</button>' : '';
     return '<div class="sl-clip' + (k.kind === 'praten' ? ' talk' : '') + '" role="listitem"><div class="sl-ct"><b>' + esc(slTime(k.t)) + '</b><small>' + esc(Math.max(1, Math.round(k.dur)) + ' s') + '</small></div>' +
       '<div class="sl-cx">' + (k.text ? '<p>' + esc(k.text) + '</p>' : '') + (kind ? '<small>' + esc(kind) + '</small>' : '') + '</div>' + play +
       '<button class="iconbtn" onclick="slnDel(\'' + esc(k.id) + '\')" aria-label="Wissen ' + esc(slTime(k.t)) + '">' + uiIcon('trash') + '</button></div>';
-  }).join('') || '<p class="note">' + (clips.length ? 'Geen gepraat, alleen geluiden. Kies Alles om ze te zien.' : live ? 'Nog niets gehoord.' : 'Niets gehoord deze nacht.') + '</p>';
+  }).join('') || '<p class="note">' + (clips.length ? 'Geen gepraat, alleen geluiden. Kies Alles om ze te zien.' : live ? 'Nog niets gehoord.' : 'Niets gehoord deze nacht.') + '</p>');
 }
 function slnPlay(clip){
   if (slPlaying === clip) { Android.sleepStopPlay(); slPlaying = ''; slnRender(); return; }
@@ -131,8 +131,9 @@ function slnDel(clip){
 function slnTranscribe(){
   const e = Android.sleepTranscribe(slNightId);
   if (e === 'model') { toast('Download eerst een spraakmodel bij Gesprekken uitschrijven'); return; }
+  if (e === 'mic') { Android.permRequest('mic'); return; }
   if (e) { toast(e); return; }
-  $('#sln-tx').innerHTML = '<p class="note">Uitschrijven…</p>';
+  slLoad(); slnRender(); slPoll();
 }
 function slnMenu(){
   const n = slNightCur; if (!n) return;

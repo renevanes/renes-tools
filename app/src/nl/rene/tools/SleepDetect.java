@@ -51,7 +51,7 @@ final class SleepDetect {
     private int minPos = 0, minCount = 0, inBlock = 0;
     private double blockMin = 1e9;
     private long frameNo = 0;
-    private final short[][] ring = new short[PRE_FRAMES][];
+    private final short[][] ring = new short[PRE_FRAMES][FRAME]; // vooraf gemaakt: geen nieuw geheugen per blokje
     private int ringPos = 0, ringLen = 0;
     private final boolean[] recent = new boolean[10];
     private int recentPos = 0;
@@ -109,23 +109,21 @@ final class SleepDetect {
         boolean loud = warm <= 0 && bandDb > floorDb + margin && bandDb > ABS_MIN_DB;
 
         recent[recentPos] = loud; recentPos = (recentPos + 1) % recent.length;
-        short[] copy = frame.clone();
-
         if (!inClip) {
             int n = 0;
             for (boolean b : recent) if (b) n++;
-            if (n >= 4) start(copy, bandDb, totDb, band, tot);
-            else remember(copy);
+            if (n >= 4) start(frame, bandDb, totDb, band, tot);
+            else remember(frame);
             return;
         }
-        append(copy);
+        append(frame);
         bandSum += band; totSum += tot; peak = Math.max(peak, totDb);
         if (loud) { active++; quiet = 0; } else quiet++;
         if (quiet >= HANG_FRAMES + POST_FRAMES || bufLen >= MAX_FRAMES * FRAME) finish();
     }
 
     private void remember(short[] f) {
-        ring[ringPos] = f; ringPos = (ringPos + 1) % PRE_FRAMES; if (ringLen < PRE_FRAMES) ringLen++;
+        System.arraycopy(f, 0, ring[ringPos], 0, Math.min(f.length, FRAME)); ringPos = (ringPos + 1) % PRE_FRAMES; if (ringLen < PRE_FRAMES) ringLen++;
     }
 
     private void start(short[] f, double bandDb, double totDb, double band, double tot) {

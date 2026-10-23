@@ -32,6 +32,7 @@ public class SleepBridge extends FeatureBridge {
             o.put("model", m == null ? "" : m.label);
             o.put("set", new JSONObject().put("sens", SleepTalk.sens(ctx)).put("stopAt", SleepTalk.stopAt(ctx)).put("transcribe", SleepTalk.transcribe(ctx))
                     .put("keepNoise", SleepTalk.keepNoise(ctx)).put("keep", SleepTalk.keepDays(ctx)));
+            SleepTalk.cleanupSometimes(ctx, SleepService.running() ? SleepService.night : "");
             o.put("nights", SleepTalk.nights(ctx));
             return o.toString();
         } catch (Exception e) { return "{}"; }
@@ -50,7 +51,7 @@ public class SleepBridge extends FeatureBridge {
             try {
                 Intent i = new Intent(a, SleepService.class).setAction("start");
                 if (Build.VERSION.SDK_INT >= 26) a.startForegroundService(i); else a.startService(i);
-            } catch (Exception e) { SleepService.message = "Android kon Slaappraat niet starten. Open de app en probeer het opnieuw."; a.js("onSleep", "{}"); }
+            } catch (Exception e) { SleepService.message = "Android kon Slaappraat niet starten. Probeer het opnieuw."; a.js("onSleep", "{}"); }
         });
         return "";
     }
@@ -85,23 +86,21 @@ public class SleepBridge extends FeatureBridge {
         return "";
     }
 
-    /** Een nacht (alsnog) uitschrijven, op de achtergrond; klaar via onSleep. */
+    /** Een nacht (alsnog) uitschrijven: in de dienst van Slaappraat (dan gaat het door met het scherm uit). */
     @JavascriptInterface public String sleepTranscribe(final String id) {
         if (!SleepTalk.safeId(id)) return "Onbekende nacht";
-        if (SleepService.running()) return "Dat kan als Slaappraat niet luistert of uitschrijft";
+        if (SleepService.running()) return "Dat kan pas als Slaappraat klaar is met luisteren en uitschrijven";
         if (Transcribe.activeModel(ctx) == null) return "model";
-        if (txBusy) return "Er wordt al uitgeschreven";
-        txBusy = true; SleepTalk.stopTx = false;
-        new Thread(() -> {
-            String err = "";
-            try { SleepTalk.transcribeNight(ctx, id, (d, t) -> a.js("onSleep", "{\"tx\":" + d + ",\"of\":" + t + "}")); }
-            catch (Throwable t) { err = t.getMessage() == null ? "Uitschrijven lukte niet" : t.getMessage(); }
-            finally { txBusy = false; }
-            try { a.js("onSleep", new JSONObject().put("txDone", true).put("night", id).put("error", err).toString()); } catch (Exception ignored) { }
-        }, "slaappraat-uitschrijven").start();
+        if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return "mic";
+        SleepService.phase = "uitschrijven"; SleepService.txDone = 0; SleepService.txTotal = SleepTalk.open(ctx, id); // meteen te zien
+        a.h.post(() -> {
+            try {
+                Intent i = new Intent(a, SleepService.class).setAction("transcribe").putExtra("night", id);
+                if (Build.VERSION.SDK_INT >= 26) a.startForegroundService(i); else a.startService(i);
+            } catch (Exception e) { SleepService.phase = ""; SleepService.message = "Uitschrijven kon niet starten. Probeer het opnieuw."; a.js("onSleep", "{}"); }
+        });
         return "";
     }
-    private static volatile boolean txBusy;
 
     private static android.media.MediaPlayer player;
     private static String playing = "";

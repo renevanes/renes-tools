@@ -50,11 +50,21 @@ const { chromium } = require('playwright');
     await pg.click('#sl-btn'); await pg.waitForTimeout(700);
     await pg.click('#sl-nights .strow:first-child'); await pg.waitForTimeout(200);
     ok((await pg.textContent('#sln-tx')).includes('nog niet uitgeschreven'), 'nog niet uitgeschreven: knop om het nu te doen');
-    await pg.click('#sln-tx button:has-text("Nu uitschrijven")'); await pg.waitForTimeout(400);
-    ok((await pg.textContent('#sln-list')).includes('Waar is de kat'), 'nu uitgeschreven');
+    await pg.click('#sln-tx button:has-text("Nu uitschrijven")'); await pg.waitForTimeout(100);
+    ok((await pg.textContent('#sln-tx')).includes('Wordt nu uitgeschreven'), 'uitschrijven: voortgang te zien');
+    ok((await pg.$('#sln-menu')) && await pg.evaluate(() => Android.sleepTranscribe(slNightId) !== ''), 'tijdens het uitschrijven: niet nog eens');
+    await pg.waitForTimeout(1500);
+    ok((await pg.textContent('#sln-list')).includes('Waar is de kat') && !(await pg.textContent('#sln-tx')).includes('Wordt nu'), 'nu uitgeschreven');
+    // Tijdens het uitschrijven opnieuw beginnen met luisteren
+    await pg.evaluate(() => { goBack(); Android._sl.phase = 'uitschrijven'; Android._sl.txDone = 1; Android._sl.txTotal = 4; slLoad(); slRender(); }); await pg.waitForTimeout(100);
+    ok((await pg.textContent('#sl-status')).includes('Uitschrijven… 1 van 4') && (await pg.textContent('#sl-btn')).includes('Opnieuw beginnen'), 'uitschrijven: voortgang en opnieuw beginnen');
+    await pg.click('#sl-btn'); await pg.waitForTimeout(700);
+    ok(await pg.evaluate(() => Android._sl.phase === 'luistert'), 'opnieuw beginnen: luistert');
+    await pg.click('#sl-btn'); await pg.waitForTimeout(700);
+    await pg.click('#sl-nights .strow:nth-child(2)'); await pg.waitForTimeout(200);
     // Nacht wissen
     await pg.click('#sln-menu'); await pg.click('#sheet-acts button:has-text("Deze nacht wissen")'); await pg.click('#modal-ok'); await pg.waitForTimeout(200);
-    ok(await pg.evaluate(() => current === 'sleep' && Android._sl.nights.length === 1), 'nacht gewist');
+    ok(await pg.evaluate(() => current === 'sleep' && Android._sl.nights.length === 2 && !Android._sl.nights.some(n => n.clips.some(k => k.text === 'Waar is de kat'))), 'nacht gewist');
     // Instellingen
     await pg.click('#sl-sens button[data-v="3"]'); await pg.click('#sl-keep button[data-v="30"]'); await pg.click('#sl-noise');
     ok(await pg.evaluate(() => Android._sl.set.sens === 3 && Android._sl.set.keep === 30 && Android._sl.set.keepNoise === true) && (await pg.textContent('#sl-sens-n')).includes('duidelijk'), 'gevoeligheid, bewaren en geluiden');

@@ -76,6 +76,18 @@ public class SleepDetectTest {
         feed(l, 100, quiet, voice, 0.05, true);
         l.flush();
         check(clips.size() == 2 && clips.get(0).seconds() <= 61, "lang praten: in delen (" + clips.size() + ")");
+        if (clips.size() == 2) {
+            long end0 = clips.get(0).startMs() + Math.round(clips.get(0).seconds() * 1000);
+            check(clips.get(1).startMs() >= end0 - 100 && clips.get(1).startMs() < end0 + 3000, "tweede deel sluit aan op het eerste (tijd klopt)");
+        }
+        // Stoppen midden in het praten: het stukje komt er toch
+        clips.clear();
+        SleepDetect fl = new SleepDetect(2, clips::add);
+        feed(fl, 3, quiet, null, 0, false);
+        feed(fl, 2, quiet, voice, 0.05, true);
+        check(clips.isEmpty() && fl.inClip(), "nog bezig");
+        fl.flush();
+        check(clips.size() == 1 && !fl.inClip(), "bij stoppen afgemaakt");
 
         // Een aanhoudende toon zonder pauzes (douche, stofzuiger) wordt na een paar seconden "ruis": het stukje stopt
         clips.clear();
