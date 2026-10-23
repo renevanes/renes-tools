@@ -116,7 +116,7 @@ function aiSendOrStop(){
 }
 /* De vraag (met het gesprek tot nu toe) naar de assistent */
 function aiAsk(){
-  if (aiBusy) return 'bezig';
+  if (aiBusy) { toast('De assistent is nog bezig met een antwoord'); return 'bezig'; }
   const msgs = aiChat.msgs.filter(m => !m.err).map(m => ({ role: m.r === 'user' ? 'user' : 'assistant', content: m.c }));
   // Eerst het (lege) antwoord klaarzetten: stukjes kunnen meteen binnenkomen
   aiCur = { r: 'ai', c: '', t: Date.now(), src: null };
@@ -230,7 +230,7 @@ function aiMsgMenu(i){
   if (i === aiChat.msgs.length - 1 && !aiBusy) acts.push(['Opnieuw antwoorden', () => {
     // Het oude antwoord eerst weg; weigert de assistent (nog bezig), dan komt het terug
     const old = aiChat.msgs.pop();
-    if (aiAsk() === 'bezig') { aiChat.msgs.push(old); aiRenderMsgs(); toast('De assistent is nog bezig met een antwoord'); }
+    if (aiAsk() === 'bezig') { aiChat.msgs.push(old); aiRenderMsgs(); } // de melding geeft aiAsk zelf
   }]);
   openSheet('Antwoord', '', acts);
 }

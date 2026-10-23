@@ -1930,7 +1930,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void lockCodeBio(boolean on) {
             String r = Lock.enableBio(ctx, on);
-            a.js("onSettingsChanged", JSONObject.quote(r.isEmpty() ? (on ? "Vingerafdruk aan (een nieuw toegevoegde vingerafdruk zet hem weer uit)" : "Vingerafdruk uit") : r));
+            a.js("onSettingsChanged", JSONObject.quote(r.isEmpty() ? (on ? "Vingerafdruk aan (komt er een vingerafdruk bij, dan eerst één keer je app-code)" : "Vingerafdruk uit") : r));
         }
 
         interface Change { String run(); }

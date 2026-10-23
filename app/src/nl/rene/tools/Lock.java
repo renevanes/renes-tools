@@ -351,7 +351,8 @@ final class Lock {
 
     /** Staat er nu echt een vraag open? Een te oude wordt vergeten. */
     static boolean busy() {
-        if (busyStale(authBusy, authBusyAt, SystemClock.elapsedRealtime())) { authBusy = false; pending = null; pendingKey = false; }
+        // Alleen de 'bezig'-vlag vergeten: pending blijft staan, zodat een (trage) pincode-invoer daarna nog telt.
+        if (busyStale(authBusy, authBusyAt, SystemClock.elapsedRealtime())) authBusy = false;
         return authBusy;
     }
 

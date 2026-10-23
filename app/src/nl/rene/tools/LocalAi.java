@@ -254,7 +254,7 @@ final class LocalAi {
     private static volatile boolean cancel;
     private static volatile long cancelAt; // wanneer er om stoppen gevraagd werd (0 = niet)
     /** Zo lang mag de motor na "stoppen" nog doorgaan; daarna wordt hij beëindigd (hij hangt dan). */
-    static final long STUCK_MS = 10_000L;
+    static final long STUCK_MS = 25_000L; // ruim: één lange batch van een groot model op een trage telefoon is geen hang
     /** Hangt de motor: om stoppen gevraagd en na STUCK_MS nog geen einde? Zuiver (getest). */
     static boolean stuck(long cancelAt, long now) { return cancelAt > 0 && now - cancelAt >= STUCK_MS; }
     private static final java.util.concurrent.atomic.AtomicLong REQ = new java.util.concurrent.atomic.AtomicLong();
