@@ -703,3 +703,15 @@ body.has-plbar .aicomp{bottom:calc(84px + env(safe-area-inset-bottom))}
 @media (prefers-reduced-motion:reduce){.aidots i{animation:none;opacity:.6}}
 #s-ai #ai-status{margin:4px 2px}
 .aigs h3 .ui-icon{color:var(--primary)}
+/* ---------- Instellingen: overzicht in groepen ---------- */
+.stgl{margin:18px 4px 8px}.stgl:first-child{margin-top:4px}
+.card.stlist{padding:4px 0}
+.strow{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:10px 16px;text-align:left;border-top:1px solid var(--line)}
+.strow:first-child{border-top:0}.strow:active{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.stic{width:40px;height:40px;flex:none;border-radius:20px;display:grid;place-items:center;background:var(--tonal);color:var(--on-tonal)}
+.stic .ui-icon{width:22px;height:22px}
+.sttxt{flex:1;min-width:0}.sttxt b{display:block;font-size:16px;font-weight:600}.sttxt small{display:block;color:var(--muted);font-size:13.5px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stchev{width:20px;height:20px;color:var(--muted);flex:none}
+/* In het eigen scherm staat de titel al bovenaan: de kop van de kaart is dan dubbel */
+#s-setnotif main>.card>h2:first-child,#s-setlook main>.card>h2:first-child,#s-setskin main>.card>h2:first-child,#s-setlock main>.card>h2:first-child,#s-setsolo main>.card>h2:first-child,
+#s-setperm main>.card>h2:first-child,#s-setbackup main>.card>h2:first-child,#s-setmusic main>.card>h2:first-child,#s-setcrash main>.card>h2:first-child{display:none}

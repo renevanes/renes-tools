@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(400);
     console.log('dash visible', await pg.isVisible('#home-dash'), await pg.$$eval('#home-dash button', x => x.map(e => e.innerText.replace(/\n/g, ' '))));
     await pg.evaluate(() => show('settings')); await pg.waitForTimeout(150);
-    await pg.click('#s-settings button:text-is("Zelftest")'); await pg.waitForTimeout(150);
+    await pg.click('#s-settings .strow:has-text("Zelftest")'); await pg.waitForTimeout(150);
     await pg.click('#sf-run'); console.log('busy', await pg.textContent('#sf-run'));
     await pg.waitForTimeout(600);
     console.log('rows', await pg.$$eval('#sf-res .sfrow', x => x.map(e => e.innerText.replace(/\n/g, ' '))));

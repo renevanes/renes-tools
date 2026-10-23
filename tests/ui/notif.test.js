@@ -10,6 +10,7 @@ const { chromium } = require('playwright');
     console.log('settings tab bottom right', box[0] > 340 && box[1] > 760);
     await pg.click('#tabs button[data-t=settings]'); await pg.waitForTimeout(150);
     console.log('settings open', await pg.evaluate(() => current));
+    await pg.click('#s-settings .strow:has-text("Meldingen")'); await pg.waitForTimeout(150);
     console.log('kinds', await pg.$$eval('#st-notif-list .nkind', x => x.map(e => e.textContent.replace(/\s+/g, ' ').trim()).join(' | ')));
     await pg.screenshot({ path: __dirname + '/shots/notif-' + scheme + '.png' });
     await pg.click('#st-notif-list .nkind[data-id=radio]'); console.log('opened kind', await pg.evaluate(() => Android._notifOpen));
