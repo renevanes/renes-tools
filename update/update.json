@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.85",
-  "versionCode": 86,
-  "nativeLevel": 77,
+  "versionName": "1.86",
+  "versionCode": 87,
+  "nativeLevel": 78,
   "web": "index.html",
-  "webSha256": "ff3f619816cbbeab5d2d3c66d05f57c08ded8359d5c4464c2ac2bca1f16610a9",
+  "webSha256": "aa06c2aa499895b52268cb9aeed9598c6fa68e93a9791f2886adf7ae5d3c804c",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "d77059b99a824d626bc86b781c48d7e9204fc6452b88844aa3709acce52ee2e6",
+  "apkSha256": "718a6fb0e9444337625f1a30c0997b8b5a373efa4d4612ea59aa29d03e02e2af",
   "changelog": [
+    {
+      "version": "1.86",
+      "date": "2026-10-23",
+      "changes": [
+        "Podcasts downloaden voor offline luisteren: per aflevering, of de nieuwste afleveringen van een gevolgde podcast vanzelf (standaard alleen via wifi). Gedownloade afleveringen spelen zonder internet en gaan na het beluisteren vanzelf weg"
+      ]
+    },
     {
       "version": "1.85",
       "date": "2026-10-22",
@@ -758,5 +765,5 @@
       ]
     }
   ],
-  "webSig2": "NTAhTGtmKVSq8VnYri4nOjVNJbt420hOS0aqWFFxhz17NQ1ripILkq4kOj6w51BAl3q1/YgJP8Vsa/UU/5f/tAm6uDxCEVPicQZLjs+P4KPHsOBPfCz9oP8Y0NsJ0DsVGV3Hxq4bT94eUmV2SJKz1ZeU89DgzKlzdoGNuc9jabVwDPSr5bX6SoL3cYGXnoiExIC+IV4I5bupifh+ZiVrUYgrVygTSLEET/FFILRPBVuJCoCUOha22gKaSbVITO6OSSptqM2RcIYJeEQ/uizKcT3zz5EIBb2v9or9QTCvn9gDnITOSpOZyusZ78oAK7dtVnGfsbOig+SBF/yxLsNAPE2uBpqZUcxIagesA9mTgQIJ/+CZE8+lMprm6CicxgkCGNnrJ3ERyilVb7yVWfaHFzcuZ6VUP0W5n7HEzL/X+anahfnhm/0+sSOaZNbCApDdhZdOxtD6h/FNd9xZnKffY4bRTiJwKNqvS976s6F6Dep230QiVwQT+FyOlDHS7oSK"
+  "webSig2": "ItaZeqokc2aDypsRAYUH0huBI+g4VoLM3228VktAZZWPh6nCd8Pt7VTEgM3u01OiyaWlASN1XtawOzMMEnAbzt4Hwhv3gO1mrOlTmRo6r9SijChMwppijAQhlQeOeUMdFZ9OKsixnCaRcSoViXLv1iFPUdGFbnANyupgubiaRhbHZuqdklk7N27gMaQGUTCrXXgL6nE7+sL+R+s35Yk9F/1EPtgKuiIkdz16nNRvfxgv0ercTUfxhybG96tL0q8MmLPZSWgMbp4V5XQ60U/byjpCT7F50n9ocvzXeZZVOAwk5DIwuFWEIzV9vHBwA8R/jaRHwW/682QGRAMMPv/6PoGa9mFjeRZJZBcnceuEJXraAYd2adoo02YD8A9fGhQffjTv9A3fPQaS+c5dpPED43pGPegWi0s5v+JupDRGvIW9n96hSDXvIumjkQFyif4FArInyXNN90uCTXq9XUgglJKqTIMfrt8PCncSwju8Dn9uVam+NWWcPXd+Fe0Zjyw6"
 }

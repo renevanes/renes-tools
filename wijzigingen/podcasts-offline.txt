@@ -1,1 +1,0 @@
-Podcasts downloaden voor offline luisteren: per aflevering, of de nieuwste afleveringen van een gevolgde podcast vanzelf (standaard alleen via wifi). Gedownloade afleveringen spelen zonder internet en gaan na het beluisteren vanzelf weg

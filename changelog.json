@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.86",
+    "date": "2026-10-23",
+    "changes": [
+      "Podcasts downloaden voor offline luisteren: per aflevering, of de nieuwste afleveringen van een gevolgde podcast vanzelf (standaard alleen via wifi). Gedownloade afleveringen spelen zonder internet en gaan na het beluisteren vanzelf weg"
+    ]
+  },
+  {
     "version": "1.85",
     "date": "2026-10-22",
     "changes": [
