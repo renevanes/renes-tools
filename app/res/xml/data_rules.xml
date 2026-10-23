@@ -11,6 +11,7 @@
         <exclude domain="file" path="podcasts/downloads.json" />
         <exclude domain="external" path="ai/" />
         <exclude domain="file" path="ai/" />
+        <exclude domain="file" path="sleep/" />
         <exclude domain="file" path="ai-models/" />
         <exclude domain="sharedpref" path="localai.xml" />
         <exclude domain="file" path="call-recordings/" />
@@ -43,6 +44,7 @@
         <exclude domain="file" path="podcasts/downloads.json" />
         <exclude domain="external" path="ai/" />
         <exclude domain="file" path="ai/" />
+        <exclude domain="file" path="sleep/" />
         <exclude domain="file" path="ai-models/" />
         <exclude domain="sharedpref" path="localai.xml" />
         <exclude domain="file" path="call-recordings/" />

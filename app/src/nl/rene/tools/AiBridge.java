@@ -6,11 +6,11 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Brugfuncties voor de lokale AI (assistent en slim zoeken). Zit tussen FeatureBridge en PodcastBridge, zodat de
+ * Brugfuncties voor de lokale AI (assistent en slim zoeken). Zit tussen SleepBridge en PodcastBridge, zodat de
  * interface ze als Android.aiXxx ziet. Het echte werk gebeurt op de AI-thread (LocalAi); antwoorden komen
  * terug via js-functies (onAiToken, onAiDone, onAiError, onAiStatus, onAiSources, onAiSearch, onAiIndex, onAiModels).
  */
-public class AiBridge extends FeatureBridge {
+public class AiBridge extends SleepBridge {
 
     AiBridge(MainActivity act) {
         super(act);

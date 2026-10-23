@@ -86,6 +86,16 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Beheer**: zoeken (naam, nummer, e-mail, bedrijf), contactdetails met wijzigingsgeschiedenis, bewerken en nieuw contact via de contacten-app van Android, verwijderde contacten terugzetten (WRITE_CONTACTS, als nieuw contact in de telefoon-opslag).
 - **Backup** naar `Contacten backup/`: `contacten-JJJJ-MM-DD.vcf` (vCard 3.0, met `REV` = wijzigingsdatum), desgewenst `contacten-versie-N.vcf` van een oudere versie, en `wijzigingslog.txt` met alle versies en wijzigingen.
 
+## Slaappraat
+
+Luistert 's nachts zuinig mee en bewaart alleen de momenten waarop je iets zegt; 's ochtends lees en hoor je wat het was.
+
+- **Luisteren** (`SleepService`, voorgronddienst *microfoon* met melding en stopknop): `AudioRecord` 16 kHz mono, blokken van 100 ms, wakelock. Stopt vanzelf op de stoptijd (standaard 07:30, uit te zetten), na 13 uur, of bij 15% accu zonder lader. Alleen te starten vanuit het geopende scherm (Android-regel voor de microfoon); niet tegelijk met gespreksopname, muziekherkenning of inspreken.
+- **Herkennen** (`SleepDetect`, zuiver, getest in `SleepDetectTest`): per 20 ms de energie in de spraakband (twee biquad-filters, 300–3400 Hz). Ruisniveau = het zachtste moment van de laatste ±8 s, dus een ventilator of verwarming wordt vanzelf stilte. Een stukje begint als 4 van de laatste 10 blokjes 8/12/16 dB (gevoeligheid) boven de ruis zitten, met 2 s voorloop; het eindigt na 1,5 s stilte (+0,5 s naloop). Korter dan 0,3 s echt geluid telt niet; hooguit 60 s per stukje.
+- **Bewaren** (`SleepTalk`): per nacht `files/sleep/<start>/night.json` en per stukje een WAV (niet in Android-backups). Hooguit 45 minuten geluid per nacht; nachten gaan na 1 week, 2 weken of 30 dagen vanzelf weg.
+- **Uitschrijven**: na het stoppen (voorgronddienst *gegevens*) met het spraakmodel van Gesprekken uitschrijven, op de telefoon. Tekst die whisper bij stilte verzint ("Ondertiteld door…") gaat eruit. Geen woorden = *geluid* (snurken, kuchen): daarvan blijft alleen het tijdstip, tenzij *Ook snurken en andere geluiden bewaren* aan staat. Zonder spraakmodel kan het later (*Nu uitschrijven*).
+- **Scherm**: starten/stoppen met een geluidsmeter, de nachten ("Nacht van vr 23 op za 24 okt": hoe vaak gepraat, het eerste wat je zei), per nacht de stukjes (tijd, tekst, afspelen, wissen, *Gepraat* of *Alles*), als notitie bewaren, en de instellingen. Getest in `SleepTalkTest` en `slaappraat.test.js`.
+
 ## Gesprekken uitschrijven
 - Android (10+) laat gewone apps het geluid van een telefoongesprek niet opnemen. Deze tool schrijft daarom de opnames uit die de **telefoon-app van het toestel** maakt (Oppo/ColorOS: ODialer → Instellingen → Gespreksopname). Opnames van de Google Telefoon-app zijn voor andere apps afgeschermd.
 - Opnames vinden: bekende mappen (`Music/Recordings/Call Recordings`, `Recordings/Call`, MIUI, Samsung ...), MediaStore (pad met "Call") en een zelf gekozen map. Nodig: toegang tot alle bestanden (had de app al voor WhatsApp backup).
