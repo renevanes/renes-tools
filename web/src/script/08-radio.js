@@ -32,7 +32,7 @@ function rdFavMenu(i){
 function rdFavTile(s, i){
   const cur = rdIsCur(s);
   return '<div class="rdfav' + (cur ? ' playing' : '') + '"><button class="rdfavb" onclick="rdPlay(\'f\',' + i + ')" aria-label="' + esc(s.name) + (cur ? ', speelt nu' : ' afspelen') + '">' +
-    (cur ? '<span class=eq aria-hidden="true"><i></i><i></i><i></i></span>' : '') + rdLogo(s) + '<b>' + esc(s.name) + '</b></button>' +
+    rdLogo(s) + '<b>' + (cur ? '<span class=eq aria-hidden="true"><i></i><i></i><i></i></span>' : '') + esc(s.name) + '</b></button>' +
     '<button class="rdfavm" onclick="rdFavMenu(' + i + ')" aria-label="Meer over ' + esc(s.name) + '">⋯</button></div>';
 }
 function rdIsCur(s){ return !!(rdState.station && (rdState.station.id ? rdState.station.id === s.id : rdState.station.url === s.url) && rdState.status !== 'stopped'); }
@@ -59,7 +59,7 @@ document.querySelector('#s-radio .pctabs').addEventListener('keydown', e => {
 function rdMenu(){
   openSheet('Radio', '', [
     ['Radiowekker', () => show('ralarm')],
-    ['Herkende muziek', () => show('music')]
+    ['Herkende muziek', () => jumpTo('music')]
   ]);
 }
 /* Radiowekker in één regel */
@@ -71,9 +71,9 @@ function rdAlarmSub(){
 
 /* Genres: vaste groepen die op de tags van radio-browser passen (alleen als er minstens 2 zenders in zitten) */
 const RD_GENRES = [
-  ['Pop', /pop|hits|top ?40|charts/], ['Nieuws en praat', /news|talk|nieuws|sport/], ['Nederlandstalig', /dutch|nederlands|levenslied|hollands/],
+  ['Pop', /pop|hits|top ?40|charts/], ['Nieuws en praat', /news|talk|nieuws/], ['Nederlandstalig', /nederlandstalig|levenslied|hollands/],
   ['Dance', /dance|edm|house|techno|trance|hardstyle/], ['Rock', /rock|metal|alternative|indie/], ['Jaren 60–90', /60s|70s|80s|90s|oldies|classic hits|gold/],
-  ['Klassiek', /classical|klassiek|opera/], ['Jazz en soul', /jazz|soul|blues|funk|r&b|rnb/], ['Regionaal', /regional|regio|local|lokaal|omroep/]];
+  ['Klassiek', /classical|klassiek|opera/], ['Jazz en soul', /jazz|soul|blues|funk|r&b|rnb/], ['Regionaal', /regional|regio|local|lokaal/]];
 let rdGenre = '', rdShown = [], rdListN = 20;
 function rdGenreOf(name){ const g = RD_GENRES.find(x => x[0] === name); return g ? g[1] : null; }
 function rdRenderGenres(){
@@ -81,8 +81,21 @@ function rdRenderGenres(){
   const have = RD_GENRES.filter(g => rdStations.filter(s => g[1].test(String(s.tags || '').toLowerCase())).length >= 2).map(g => g[0]);
   if (rdGenre && !have.includes(rdGenre)) rdGenre = '';
   box.style.display = have.length ? '' : 'none';
-  box.innerHTML = ['', ...have].map(g => '<button role="radio" aria-checked="' + (g === rdGenre) + '"' + (g === rdGenre ? ' class="on"' : '') + ' data-g="' + esc(g) + '" onclick="rdPickGenre(this.dataset.g)">' + esc(g || 'Alles') + '</button>').join('');
+  // Zelfde genres als net: alleen de keuze bijwerken (dan blijft de focus op de knop staan)
+  const sig = have.join('|');
+  if (box.dataset.sig !== sig) {
+    box.dataset.sig = sig;
+    box.innerHTML = ['', ...have].map(g => '<button role="radio" data-g="' + esc(g) + '" onclick="rdPickGenre(this.dataset.g)">' + esc(g || 'Alles') + '</button>').join('');
+  }
+  box.querySelectorAll('button').forEach(b => { const on = b.dataset.g === rdGenre; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
 }
+document.querySelector('#rd-genres').addEventListener('keydown', e => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  const bs = [...e.currentTarget.querySelectorAll('button')], at = bs.indexOf(document.activeElement); if (at < 0) return;
+  e.preventDefault();
+  const i = e.key === 'Home' ? 0 : e.key === 'End' ? bs.length - 1 : Math.max(0, Math.min(bs.length - 1, at + (e.key === 'ArrowRight' ? 1 : -1)));
+  rdPickGenre(bs[i].dataset.g); const nb = $('#rd-genres').querySelectorAll('button')[i]; if (nb) nb.focus();
+});
 function rdPickGenre(g){ rdGenre = g; rdListN = 20; rdTabUser = true; rdRender(); }
 function rdListMore(){ rdListN += 20; rdRender(); }
 function enterRadio(){
@@ -109,6 +122,7 @@ function rdRender(){
   $('#rd-favs-empty').style.display = rdFavs.length ? 'none' : '';
   $('#rd-favs').innerHTML = rdFavs.map((s, i) => rdFavTile(s, i)).join('');
   $('#rd-tab-favs-n').textContent = rdFavs.length ? String(rdFavs.length) : '';
+  $('#rd-tab-favs').setAttribute('aria-label', 'Favorieten' + (rdFavs.length ? ', ' + rdFavs.length : ''));
   const q = $('#rd-search').value.trim();
   rdRenderGenres();
   const re = rdGenreOf(rdGenre);
@@ -121,6 +135,7 @@ function rdRender(){
 }
 function rdSearchDo(){
   rdTabUser = true; // je zoekt: bij terugkomen blijf je bij Zenders
+  if (rdGenre) { rdGenre = ''; rdRenderGenres(); } // een nieuwe zoekopdracht zoekt in alle genres
   clearTimeout(rdTmr);
   rdTmr = setTimeout(() => { const q = $('#rd-search').value.trim(); $('#rd-list').innerHTML = '<p class=note style="padding:14px">Zoeken…</p>'; Android.radioLoad(q); }, 400);
 }
