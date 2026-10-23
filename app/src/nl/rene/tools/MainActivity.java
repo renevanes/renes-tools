@@ -216,6 +216,7 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false); // geen content://-adressen: de pagina laadt alleen eigen inhoud
         s.setTextZoom(textZoom(this));
         web.setWebViewClient(new MediaClient(this));
         web.setWebChromeClient(new Chrome(this));

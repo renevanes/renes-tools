@@ -40,7 +40,7 @@ public class SpotifyBridge extends PlayerBridge {
                     a.js("onSpotifyLinked", (err != null ? new JSONObject().put("error", err) : new JSONObject().put("name", name)).toString());
                 } catch (Exception ignored) { }
             });
-            a.h.post(() -> { try { a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); } catch (Exception e) { a.js("onSpotifyLinked", "{\"error\":\"Geen browser gevonden\"}"); } });
+            a.h.post(() -> { try { a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE)); } catch (Exception e) { a.js("onSpotifyLinked", "{\"error\":\"Geen browser gevonden\"}"); } });
             return "";
         } catch (Exception e) { return msg(e, "Koppelen lukt niet"); }
     }

@@ -169,6 +169,7 @@ public class HomeActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false); // geen content://-adressen: de pagina laadt alleen eigen inhoud
         s.setTextZoom(MainActivity.textZoom(this));
         v.setWebViewClient(new Client(this));
         v.addJavascriptInterface(new Bridge(this, mode), "Android");
