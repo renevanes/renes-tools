@@ -52,6 +52,13 @@ const { chromium } = require('playwright');
     await pg.click('#ai-menu'); await pg.click('#sheet-acts button:has-text("Eerdere gesprekken")'); await pg.waitForTimeout(150);
     await pg.click('#aic-list .pcep .pcepb'); await pg.waitForTimeout(200);
     ok((await pg.$$('#ai-msgs .aimsg')).length === 4, 'eerder gesprek weer open');
+    // Nieuw gesprek tijdens een antwoord: het oude gesprek wordt (tot dan) bewaard, de nieuwe blijft leeg
+    await pg.fill('#ai-in', 'Lange vraag'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(320);
+    await pg.click('#ai-new'); await pg.waitForTimeout(300);
+    ok((await pg.$$('#ai-msgs .aimsg')).length === 0 && (await pg.getAttribute('#ai-send', 'aria-label')) === 'Versturen', 'nieuw gesprek tijdens een antwoord: leeg en weer klaar');
+    ok(await pg.evaluate(() => { const c = Android._ai.chats[0]; const l = c.msgs[c.msgs.length - 1]; return c.msgs.length === 6 && l.r === 'ai' && l.stopped; }), 'het onderbroken antwoord is bewaard in het oude gesprek');
+    await pg.click('#ai-menu'); await pg.click('#sheet-acts button:has-text("Eerdere gesprekken")'); await pg.waitForTimeout(150);
+    await pg.click('#aic-list .pcep .pcepb'); await pg.waitForTimeout(200);
     // Instellingen: zoekmodel downloaden, index, ander model
     await pg.click('#ai-menu'); await pg.click('#sheet-acts button:has-text("Instellingen")'); await pg.waitForTimeout(200);
     ok((await pg.textContent('#ais-chat .aimodel.on')).includes('In gebruik'), 'instellingen: het model dat in gebruik is');

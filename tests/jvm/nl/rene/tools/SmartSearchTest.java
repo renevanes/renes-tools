@@ -54,13 +54,13 @@ public class SmartSearchTest {
         src.add(new String[]{"Notitie \"Boodschappen\"", "melk, eieren"});
         src.add(new String[]{"Gesprek met Jos", new String(new char[2000]).replace('\0', 'a')});
         String w = LocalAi.withSources("Wat moet ik kopen?", src);
-        check(w.contains("[1] Notitie \"Boodschappen\":\nmelk, eieren") && w.contains("[2] Gesprek met Jos") && w.endsWith("Mijn vraag: Wat moet ik kopen?"), "bronnen genummerd vóór de vraag");
+        check(w.startsWith("Mijn vraag: Wat moet ik kopen?") && w.contains("[1] Notitie \"Boodschappen\":\nmelk, eieren") && w.contains("[2] Gesprek met Jos"), "eerst de vraag, dan de bronnen genummerd (inkorten raakt de vraag niet)");
         check(w.length() < 1400, "lange bron ingekort");
 
         // Modellen: vaste grootte en controlegetal
         boolean shaOk = true;
-        for (LocalAi.Model m : LocalAi.MODELS) if (!m.sha.matches("[0-9a-f]{64}") || m.size < 100_000_000L || !m.url().startsWith("https://huggingface.co/")) shaOk = false;
-        check(shaOk, "elk model heeft een SHA-256, een grootte en een https-adres");
+        for (LocalAi.Model m : LocalAi.MODELS) if (!m.sha.matches("[0-9a-f]{64}") || m.size < 100_000_000L || !m.url().matches("https://huggingface\\.co/[^/]+/[^/]+/resolve/[0-9a-f]{40}/[^/]+\\.gguf")) shaOk = false;
+        check(shaOk, "elk model heeft een SHA-256, een grootte en een vast https-adres (commit)");
         check(LocalAi.model("klein") == LocalAi.SMALL && LocalAi.model("x") == null && LocalAi.EMBED.embed && !LocalAi.LARGE.embed, "modellen opzoeken");
 
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }

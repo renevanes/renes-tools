@@ -20,6 +20,10 @@ out=$(printf '%s\n' '{"op":"chat","messages":[{"role":"user","content":"A"}],"ma
 ok "vervolgvraag in hetzelfde gesprek" '[ "$(grep -c "\"done\":true" <<<"$out")" = 2 ]'
 out=$(printf '%s\n' '{"op":"embed","texts":["Hallo wereld","Iets anders",""],"dims":8}' | "$L" -m "$T/embed.gguf" --embed -t 2 2>/dev/null)
 ok "zoekgetallen: 3 reeksen van 8" 'python3 -c "import json,sys; e=json.loads(sys.argv[1].splitlines()[1])[\"e\"]; assert len(e)==3 and all(len(x)==8 for x in e); assert abs(sum(v*v for v in e[0])-1)<1e-3" "$out"'
+out=$(printf '%s\n' '{"op":"embed","id":42,"texts":["a"],"dims":4}' | "$L" -m "$T/embed.gguf" --embed -t 2 2>/dev/null)
+ok "antwoord draagt het id van de vraag" 'grep -q "\"id\":42" <<<"$out"'
+out=$(printf '{"op":"chat","id":7,"messages":[{"role":"user","content":"VRAAG %s"}],"max":10}\n' "$big" | "$L" -m "$T/chat.gguf" -c 512 -t 2 2>/dev/null)
+ok "te lang bericht: ingekort (begin blijft), met id" 'grep -q "\"trim\":[1-9]" <<<"$out" && grep -q "\"done\":true.*\"id\":7\|\"id\":7.*\"done\":true" <<<"$out"'
 out=$(printf '%s\n' '{"op":"embed","texts":["x"]}' | "$L" -m "$T/chat.gguf" -t 2 2>/dev/null)
 ok "zoekopdracht aan het gespreksmodel: fout" 'grep -q "Onbekende opdracht" <<<"$out"'
 out=$("$L" -m /bestaat/niet.gguf 2>/dev/null || true)

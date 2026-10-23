@@ -145,7 +145,10 @@ final class LlmProcess {
     /** Stoppen: stdin dicht (de motor stopt netjes), anders na even wachten hard. */
     void destroy() {
         alive = false;
+        // Wie nog op een antwoord wacht, hoort het meteen (in plaats van te wachten tot de tijd om is)
+        Listener l = listener;
         listener = null;
+        if (l != null) try { l.line(new JSONObject().put("error", "De AI-motor is gestopt").put("gone", true)); } catch (Throwable ignored) { }
         try { in.close(); } catch (Throwable ignored) { }
         try { if (waitExit(proc, 2000) < 0) proc.destroy(); } catch (Throwable t) { proc.destroy(); }
     }

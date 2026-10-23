@@ -37,22 +37,23 @@ final class LocalAi {
     // ---------- modellen ----------
 
     static final class Model {
-        final String id, label, desc, repo, file, sha; final long size; final int ctx; final boolean embed;
-        Model(String id, String label, String desc, String repo, String file, long size, String sha, int ctx, boolean embed) {
-            this.id = id; this.label = label; this.desc = desc; this.repo = repo; this.file = file; this.size = size; this.sha = sha; this.ctx = ctx; this.embed = embed;
+        final String id, label, desc, repo, commit, file, sha; final long size; final int ctx; final boolean embed;
+        Model(String id, String label, String desc, String repo, String commit, String file, long size, String sha, int ctx, boolean embed) {
+            this.id = id; this.label = label; this.desc = desc; this.repo = repo; this.commit = commit; this.file = file; this.size = size; this.sha = sha; this.ctx = ctx; this.embed = embed;
         }
-        String url() { return "https://huggingface.co/" + repo + "/resolve/main/" + file; }
+        /** Vaste versie (commit) op Hugging Face: een latere wijziging daar verandert niets aan wat we downloaden. */
+        String url() { return "https://huggingface.co/" + repo + "/resolve/" + commit + "/" + file; }
     }
 
     // Controlegetallen van Hugging Face (LFS-oid = SHA-256 en de precieze grootte)
     static final Model SMALL = new Model("klein", "Klein en snel", "Qwen3 1.7B · werkt op de meeste telefoons",
-            "bartowski/Qwen_Qwen3-1.7B-GGUF", "Qwen_Qwen3-1.7B-Q4_K_M.gguf", 1_282_439_584L,
+            "bartowski/Qwen_Qwen3-1.7B-GGUF", "822702a8257cf1b05a27d73f775d8606cf2e33a4", "Qwen_Qwen3-1.7B-Q4_K_M.gguf", 1_282_439_584L,
             "72c5c3cb38fa32d5256e2fe30d03e7a64c6c79e668ad84057e3bd66e250b24fb", 4096, false);
     static final Model LARGE = new Model("groot", "Groter en slimmer", "Qwen3 4B · beter Nederlands, trager, 8 GB geheugen aangeraden",
-            "Qwen/Qwen3-4B-GGUF", "Qwen3-4B-Q4_K_M.gguf", 2_497_280_256L,
+            "Qwen/Qwen3-4B-GGUF", "a9a60d009fa7ff9606305047c2bf77ac25dbec49", "Qwen3-4B-Q4_K_M.gguf", 2_497_280_256L,
             "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5", 3072, false);
     static final Model EMBED = new Model("zoek", "Slim zoeken", "Qwen3-Embedding 0.6B · zoeken op betekenis",
-            "Qwen/Qwen3-Embedding-0.6B-GGUF", "Qwen3-Embedding-0.6B-Q8_0.gguf", 639_150_592L,
+            "Qwen/Qwen3-Embedding-0.6B-GGUF", "d20cf9c16f82914a21dbd9c645f56895fb1d7750", "Qwen3-Embedding-0.6B-Q8_0.gguf", 639_150_592L,
             "06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439", 1024, true);
     static final Model[] MODELS = {SMALL, LARGE, EMBED};
 
@@ -60,16 +61,23 @@ final class LocalAi {
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("localai", Context.MODE_PRIVATE); }
 
-    static File dir(Context c) {
+    /** Waar de DownloadManager naartoe schrijft (die kan niet in de privémap van de app). */
+    static File dlDir(Context c) {
         File d = c.getExternalFilesDir("ai");
-        if (d == null) d = new File(c.getFilesDir(), "ai-models");
+        if (d == null) d = modelDir(c);
         d.mkdirs();
         return d;
     }
-    static File file(Context c, Model m) { return new File(dir(c), m.file); }
-    private static File partFile(Context c, Model m) { return new File(dir(c), m.file + ".download"); }
+    /** De modellen zelf: in de privémap van de app, waar geen andere app bij kan (ook niet op oudere Android). */
+    static File modelDir(Context c) { File d = new File(c.getFilesDir(), "ai-models"); d.mkdirs(); return d; }
+    static File file(Context c, Model m) { return new File(modelDir(c), m.file); }
+    private static File partFile(Context c, Model m) { return new File(dlDir(c), m.file + ".download"); }
+    private static File tmpFile(Context c, Model m) { return new File(modelDir(c), m.file + ".tmp"); }
 
-    /** Klaar en gecontroleerd? (De controle gebeurt één keer, na het downloaden.) */
+    /** Genoeg geheugen om het taal- en het zoekmodel tegelijk te laden? (8 GB-telefoons melden ±7,4 GB) */
+    static boolean bigRam(Context c) { return ramBytes(c) >= 7_000_000_000L; }
+
+    /** Klaar en gecontroleerd? (De controle gebeurt bij het kopiëren naar de privémap, na het downloaden.) */
     static boolean ready(Context c, Model m) {
         File f = file(c, m);
         return f.isFile() && f.length() == m.size && m.sha.equals(prefs(c).getString("ok_" + m.id, ""));
@@ -107,10 +115,10 @@ final class LocalAi {
     static synchronized String download(Context c, Model m) {
         if (ready(c, m)) return "";
         if (prefs(c).getLong("dl_" + m.id, -1) >= 0 && "running".equals(state(c, m).optString("state"))) return "";
-        File d = dir(c);
         long free;
-        try { free = new StatFs(d.getPath()).getAvailableBytes(); } catch (Throwable t) { free = Long.MAX_VALUE; }
-        long need = m.size + 200L * 1024 * 1024;
+        try { free = new StatFs(c.getFilesDir().getPath()).getAvailableBytes(); } catch (Throwable t) { free = Long.MAX_VALUE; }
+        // Downloaden en daarna kopiëren naar de privémap: even twee keer de grootte nodig
+        long need = 2 * m.size + 200L * 1024 * 1024;
         if (free < need) return "Te weinig opslag: nodig " + gb(need) + ", vrij " + gb(free);
         DownloadManager mgr = dm(c);
         if (mgr == null) return "Downloaden kan niet op deze telefoon";
@@ -134,15 +142,20 @@ final class LocalAi {
 
     static String gb(long b) { return String.format(Locale.ROOT, "%.1f GB", b / 1e9).replace('.', ','); }
 
-    /** Weg: lopende download stoppen, bestanden weg. */
-    static synchronized void delete(Context c, Model m) {
-        long id = prefs(c).getLong("dl_" + m.id, -1);
+    /** Weg: lopende download stoppen, motor stoppen, bestanden weg (de zoekindex ruimt de AI-thread op). */
+    static void delete(final Context c, final Model m) {
+        long id;
+        synchronized (LocalAi.class) {
+            id = prefs(c).getLong("dl_" + m.id, -1);
+            prefs(c).edit().remove("dl_" + m.id).remove("ok_" + m.id).remove("err_" + m.id).apply();
+        }
         DownloadManager mgr = dm(c);
         if (id >= 0 && mgr != null) try { mgr.remove(id); } catch (Throwable ignored) { }
-        if (m.embed) closeEmbed(); else if (chat != null && m.file.equals(chat.model.getName())) closeChat();
-        file(c, m).delete(); partFile(c, m).delete();
-        prefs(c).edit().remove("dl_" + m.id).remove("ok_" + m.id).remove("err_" + m.id).apply();
-        if (m.embed) SmartSearch.clear(c);
+        LlmProcess p = chat;
+        if (m.embed) { cancel(); closeEmbed(); }
+        else if (p != null && p.model.equals(file(c, m))) { cancel(); closeChat(); }
+        file(c, m).delete(); partFile(c, m).delete(); tmpFile(c, m).delete();
+        if (m.embed) AI.execute(() -> { try { SmartSearch.clear(c); } catch (Throwable ignored) { } });
     }
 
     private static final java.util.Map<String, Integer> VERIFYING = new java.util.concurrent.ConcurrentHashMap<>();
@@ -187,37 +200,41 @@ final class LocalAi {
         }
     }
 
-    /** Na het downloaden één keer de SHA-256 controleren (een paar seconden per GB), dan pas gebruiken. */
+    /**
+     * Na het downloaden: kopiëren naar de privémap en tegelijk de SHA-256 berekenen. Zo is precies het bestand dat
+     * gecontroleerd is ook het bestand dat gebruikt wordt (een andere app kan het daarna niet meer vervangen).
+     */
     private static void startVerify(final Context c, final Model m) {
         if (VERIFYING.containsKey(m.id)) return;
         VERIFYING.put(m.id, 0);
         new Thread(() -> {
-            File part = partFile(c, m), fin = file(c, m);
-            String err = "";
+            File part = partFile(c, m), tmp = tmpFile(c, m), fin = file(c, m);
             try {
-                if (!part.isFile() && fin.isFile() && fin.length() == m.size) part = fin; // al hernoemd
                 if (!part.isFile()) throw new Exception("Download is weg; probeer opnieuw");
                 if (part.length() != m.size) throw new Exception("Download onvolledig; probeer opnieuw");
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
                 byte[] buf = new byte[1 << 20];
                 long got = 0;
-                try (InputStream in = new FileInputStream(part)) {
+                try (InputStream in = new FileInputStream(part); java.io.OutputStream out = new java.io.FileOutputStream(tmp)) {
                     int n;
                     while ((n = in.read(buf)) > 0) {
-                        md.update(buf, 0, n); got += n;
+                        md.update(buf, 0, n); out.write(buf, 0, n); got += n;
                         VERIFYING.put(m.id, (int) (got * 100 / m.size));
                     }
                 }
                 StringBuilder hex = new StringBuilder();
                 for (byte b : md.digest()) hex.append(String.format(Locale.ROOT, "%02x", b));
-                if (!hex.toString().equals(m.sha)) throw new Exception("Download beschadigd; probeer opnieuw");
-                if (part != fin) { fin.delete(); if (!part.renameTo(fin)) throw new Exception("Opslaan lukt niet"); }
+                if (got != m.size || !hex.toString().equals(m.sha)) throw new Exception("Download beschadigd; probeer opnieuw");
+                fin.delete();
+                if (!tmp.renameTo(fin)) throw new Exception("Opslaan lukt niet");
                 prefs(c).edit().putString("ok_" + m.id, m.sha).remove("dl_" + m.id).remove("err_" + m.id).apply();
             } catch (Throwable t) {
-                err = t.getMessage() == null ? "Controleren mislukt" : t.getMessage();
-                part.delete();
+                String err = t.getMessage() == null ? "Controleren mislukt" : t.getMessage();
+                if (t instanceof java.io.IOException && err.toLowerCase(Locale.ROOT).contains("space")) err = "Te weinig opslag om het model te bewaren";
+                tmp.delete();
                 prefs(c).edit().remove("dl_" + m.id).putString("err_" + m.id, err).apply();
             } finally {
+                part.delete(); // de download zelf (in de gedeelde map) is niet meer nodig
                 VERIFYING.remove(m.id);
                 MainActivity.jsAll("onAiModels", "");
             }
@@ -230,6 +247,7 @@ final class LocalAi {
     private static volatile LlmProcess chat, embed;
     private static volatile boolean cancel;
     private static volatile boolean busy;
+    private static final java.util.concurrent.atomic.AtomicLong REQ = new java.util.concurrent.atomic.AtomicLong();
 
     static boolean cancelled() { return cancel; }
     static boolean busy() { return busy; }
@@ -242,7 +260,7 @@ final class LocalAi {
         LlmProcess p = chat;
         if (p != null && p.alive() && p.model.equals(file(c, m))) return p;
         closeChat();
-        if (m == LARGE) closeEmbed(); // geheugen vrijmaken voor het grote model
+        if (m == LARGE && !bigRam(c)) closeEmbed(); // geheugen vrijmaken voor het grote model
         p = LlmProcess.start(c, file(c, m), m.ctx, threads(), false, true);
         chat = p;
         return p;
@@ -253,7 +271,7 @@ final class LocalAi {
         if (p != null && p.alive()) return p;
         if (!ready(c, EMBED)) throw new Exception("Download eerst het model voor slim zoeken");
         LlmProcess q = chat;
-        if (q != null && q.model.getName().equals(LARGE.file)) closeChat();
+        if (q != null && q.model.getName().equals(LARGE.file) && !bigRam(c)) closeChat();
         p = LlmProcess.start(c, file(c, EMBED), EMBED.ctx, threads(), true, false);
         embed = p;
         return p;
@@ -262,21 +280,31 @@ final class LocalAi {
     /** Teksten door het zoekmodel (op de AI-thread aanroepen). */
     static List<float[]> embed(Context c, List<String> texts, int dims) throws Exception {
         LlmProcess p = embedEngine(c);
+        final long rid = REQ.incrementAndGet();
         final AtomicReference<JSONObject> res = new AtomicReference<>();
         final CountDownLatch done = new CountDownLatch(1);
-        p.listen(o -> { if (o.has("e") || o.has("error")) { res.set(o); done.countDown(); } });
-        JSONArray a = new JSONArray();
-        for (String t : texts) a.put(t.length() > 4000 ? t.substring(0, 4000) : t);
-        p.send(new JSONObject().put("op", "embed").put("texts", a).put("dims", dims));
-        if (!done.await(120, TimeUnit.SECONDS)) throw new Exception("Het zoekmodel reageert niet");
+        // Alleen het antwoord op déze vraag (een laat antwoord op een eerdere telt niet)
+        p.listen(o -> { if ((o.optLong("id") == rid && (o.has("e") || o.has("error"))) || o.optBoolean("gone")) { res.set(o); done.countDown(); } });
+        try {
+            JSONArray a = new JSONArray();
+            for (String t : texts) a.put(t.length() > 4000 ? t.substring(0, 4000) : t);
+            p.send(new JSONObject().put("op", "embed").put("id", rid).put("texts", a).put("dims", dims));
+            int waited = 0;
+            while (!done.await(500, TimeUnit.MILLISECONDS)) {
+                if (!p.alive()) throw new Exception("Het zoekmodel is gestopt");
+                if (++waited > 240) throw new Exception("Het zoekmodel reageert niet");
+            }
+        } finally { p.listen(null); }
         JSONObject o = res.get();
         if (o.has("error")) throw new Exception(o.optString("error"));
         JSONArray e = o.optJSONArray("e");
+        if (e == null || e.length() != texts.size()) throw new Exception("Onverwacht antwoord van het zoekmodel");
         List<float[]> out = new ArrayList<>();
         for (int i = 0; i < texts.size(); i++) {
-            JSONArray r = e == null ? null : e.optJSONArray(i);
+            JSONArray r = e.optJSONArray(i);
+            if (r == null || r.length() != dims) throw new Exception("Onverwacht antwoord van het zoekmodel");
             float[] v = new float[dims];
-            if (r != null) for (int j = 0; j < Math.min(dims, r.length()); j++) v[j] = (float) r.optDouble(j);
+            for (int j = 0; j < dims; j++) v[j] = (float) r.optDouble(j);
             out.add(v);
         }
         p.lastUse = System.currentTimeMillis();
@@ -303,13 +331,15 @@ final class LocalAi {
     /** Context uit slim zoeken, vóór de vraag gezet. Zuiver (getest). */
     static String withSources(String question, List<String[]> sources) {
         if (sources == null || sources.isEmpty()) return question;
-        StringBuilder sb = new StringBuilder("Stukken uit mijn eigen notities en gesprekken (gebruik ze alleen als ze helpen, en noem dan het nummer, bijvoorbeeld [1]):\n");
+        // De vraag eerst: wordt het te lang voor het model, dan valt het einde (de laatste bron) weg, niet de vraag
+        StringBuilder sb = new StringBuilder("Mijn vraag: ").append(question)
+                .append("\n\nStukken uit mijn eigen notities en gesprekken (gebruik ze alleen als ze helpen, en noem dan het nummer, bijvoorbeeld [1]):\n");
         int i = 1;
         for (String[] s : sources) {
             String body = s[1].length() > 900 ? s[1].substring(0, 900) + "…" : s[1];
             sb.append('[').append(i++).append("] ").append(s[0]).append(":\n").append(body.trim()).append("\n\n");
         }
-        return sb.append("Mijn vraag: ").append(question).toString();
+        return sb.toString().trim();
     }
 
     /** Een antwoord maken. req = {messages:[{role, content}], notes:bool}. Draait op de AI-thread. */
@@ -351,7 +381,7 @@ final class LocalAi {
                         }
                     } catch (Exception e) { sink.status("Zoeken lukte niet: " + e.getMessage()); }
                     if (cancel) { sink.done(new JSONObject().put("cancelled", true)); return; }
-                    if (m == LARGE) closeEmbed();
+                    if (!bigRam(c)) closeEmbed(); // niet twee modellen tegelijk in een kleiner geheugen
                 }
                 boolean starting = chat == null || !chat.alive() || !chat.model.equals(file(c, m));
                 if (starting) sink.status("Model laden…");
@@ -359,16 +389,21 @@ final class LocalAi {
                 if (cancel) { sink.done(new JSONObject().put("cancelled", true)); return; }
                 sink.status("");
                 final CountDownLatch done = new CountDownLatch(1);
+                final long rid = REQ.incrementAndGet();
                 p.listen(o -> {
+                    if (o.optBoolean("gone")) { if (done.getCount() > 0) { sink.error(o.optString("error")); done.countDown(); } return; }
+                    if (o.optLong("id") != rid || done.getCount() == 0) return; // niet van deze vraag
                     if (o.has("t")) sink.token(o.optString("t"));
                     else if (o.optBoolean("done")) { sink.done(o); done.countDown(); }
                     else if (o.has("error")) { sink.error(o.optString("error")); done.countDown(); }
                 });
-                p.send(new JSONObject().put("op", "chat").put("messages", msgs).put("max", 1200)
-                        .put("temp", 0.7).put("top_p", 0.8).put("top_k", 20));
-                while (!done.await(500, TimeUnit.MILLISECONDS)) {
-                    if (!p.alive()) { sink.error("De AI-motor is gestopt"); break; }
-                }
+                try {
+                    p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", 1200)
+                            .put("temp", 0.7).put("top_p", 0.8).put("top_k", 20));
+                    while (!done.await(500, TimeUnit.MILLISECONDS)) {
+                        if (!p.alive()) { if (done.getCount() > 0) { done.countDown(); sink.error("De AI-motor is gestopt"); } break; }
+                    }
+                } finally { p.listen(null); }
                 p.lastUse = System.currentTimeMillis();
             } catch (Throwable t) {
                 sink.error(t.getMessage() == null ? "Er ging iets mis" : t.getMessage());

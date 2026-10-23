@@ -109,18 +109,18 @@ public class AiBridge extends FeatureBridge {
         LocalAi.index(ctx, force, o -> a.js("onAiIndex", o.toString()));
     }
 
-    /** Stuurt alles van de AI-thread naar de interface. */
+    /** Stuurt alles van de AI-thread naar het venster dat de vraag stelde. */
     static final class JsSink implements LocalAi.Sink {
         final MainActivity a;
         private final StringBuilder pend = new StringBuilder();
         private long last;
         JsSink(MainActivity a) { this.a = a; }
         // Woordjes samen versturen (hooguit ±12 keer per seconde): rustiger voor de interface
-        private void flush() { if (pend.length() > 0) { MainActivity.jsAll("onAiToken", q(pend.toString())); pend.setLength(0); } last = System.currentTimeMillis(); }
-        @Override public void status(String text) { MainActivity.jsAll("onAiStatus", q(text)); }
-        @Override public void sources(JSONArray items) { MainActivity.jsAll("onAiSources", items.toString()); }
+        private void flush() { if (pend.length() > 0) { a.js("onAiToken", q(pend.toString())); pend.setLength(0); } last = System.currentTimeMillis(); }
+        @Override public void status(String text) { a.js("onAiStatus", q(text)); }
+        @Override public void sources(JSONArray items) { a.js("onAiSources", items.toString()); }
         @Override public synchronized void token(String t) { pend.append(t); if (System.currentTimeMillis() - last > 80) flush(); }
-        @Override public synchronized void done(JSONObject info) { flush(); MainActivity.jsAll("onAiDone", info.toString()); }
-        @Override public synchronized void error(String msg) { flush(); MainActivity.jsAll("onAiError", q(msg)); }
+        @Override public synchronized void done(JSONObject info) { flush(); a.js("onAiDone", info.toString()); }
+        @Override public synchronized void error(String msg) { flush(); a.js("onAiError", q(msg)); }
     }
 }

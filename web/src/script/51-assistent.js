@@ -1,5 +1,5 @@
 /* ---------- Assistent: lokale AI (llama.cpp op de telefoon) en slim zoeken ---------- */
-let aiSt = {}, aiChat = null, aiBusy = false, aiPollT = null, aiCur = null;
+let aiSt = {}, aiChat = null, aiBusy = false, aiPollT = null, aiCur = null, aiGen = null; // aiGen: het gesprek waarin nu geantwoord wordt
 const AI_SUGG = [
   ['Vat samen', 'Vat deze tekst kort samen in een paar punten:\n\n'],
   ['Schrijf een e-mail', 'Schrijf een korte, vriendelijke e-mail over: '],
@@ -115,38 +115,44 @@ function aiAsk(){
   const msgs = aiChat.msgs.filter(m => !m.err).map(m => ({ role: m.r === 'user' ? 'user' : 'assistant', content: m.c }));
   // Eerst het (lege) antwoord klaarzetten: stukjes kunnen meteen binnenkomen
   aiCur = { r: 'ai', c: '', t: Date.now(), src: null };
-  aiChat.msgs.push(aiCur);
+  aiChat.msgs.push(aiCur); aiGen = aiChat;
   aiBusy = true; aiStatus('Denken…');
   aiRenderMsgs(); aiSendBtn();
   const e = Android.aiChat(JSON.stringify({ messages: msgs, notes: !!aiSt.notes && aiReady('zoek') }));
-  if (e) { aiCur.c = e; aiCur.err = true; aiCur = null; aiBusy = false; aiStatus(''); aiRenderMsgs(); aiSendBtn(); }
+  if (e) { aiCur.c = e; aiCur.err = true; aiCur = null; aiGen = null; aiBusy = false; aiStatus(''); aiRenderMsgs(); aiSendBtn(); }
 }
-function aiStatus(t){ const s = $('#ai-status'); if (!s) return; s.textContent = t || ''; s.style.display = t ? '' : 'none'; }
+function aiStatus(t){ const s = $('#ai-status'); if (!s) return; s.textContent = t || ''; s.style.display = t && aiGen === aiChat ? '' : 'none'; }
+const aiShown = () => aiGen && aiGen === aiChat && current === 'ai';
 window.onAiStatus = function(t){ aiStatus(t); };
-window.onAiSources = function(items){ if (aiCur) { aiCur.src = items; aiRenderLast(); } };
+window.onAiSources = function(items){ if (aiCur) { aiCur.src = items; if (aiShown()) aiRenderLast(); } };
 window.onAiToken = function(t){
   if (!aiCur) return;
   if (!aiCur.c) aiStatus('');
-  aiCur.c += t; aiRenderLast();
+  aiCur.c += t; if (aiShown()) aiRenderLast();
 };
+/* Klaar (of gestopt, of fout): het gesprek waarin geantwoord werd bewaren, ook als je intussen een ander opende */
+function aiFinish(fix){
+  const chat = aiGen, m = aiCur;
+  aiBusy = false; aiCur = null; aiGen = null; aiStatus('');
+  if (chat && m) fix(chat, m);
+  if (chat && !chat.discard) aiSaveChat(chat);
+  if (aiChat) aiRenderMsgs();
+  aiSendBtn();
+}
 window.onAiDone = function(info){
-  aiBusy = false; aiStatus('');
-  if (aiCur) {
-    if (info && info.cancelled && !aiCur.c) aiChat.msgs.pop();
-    else { aiCur.c = aiCur.c.trim(); if (info && info.cancelled) aiCur.stopped = true; if (info && info.cut) aiCur.cut = true; }
-  }
-  aiCur = null; aiSave(); aiRenderMsgs(); aiSendBtn();
+  info = info || {};
+  aiFinish((chat, m) => {
+    if (info.cancelled && !m.c) chat.msgs.splice(chat.msgs.indexOf(m), 1);
+    else { m.c = m.c.trim(); if (info.cancelled) m.stopped = true; if (info.cut) m.cut = true; if (info.trim) m.trim = true; }
+  });
 };
 window.onAiError = function(msg){
-  aiBusy = false; aiStatus('');
-  if (aiCur && !aiCur.c) { aiCur.c = msg; aiCur.err = true; } else if (aiCur) aiCur.c += '\n\n⚠ ' + msg;
-  aiCur = null; aiSave(); aiRenderMsgs(); aiSendBtn();
+  aiFinish((chat, m) => { if (!m.c) { m.c = msg; m.err = true; } else m.c += '\n\n⚠ ' + msg; });
 };
-function aiSave(){
-  const real = aiChat.msgs.filter(m => !m.err);
-  if (!real.length) return;
-  const id = Android.aiChatSave(JSON.stringify({ id: aiChat.id, title: aiChat.title, msgs: aiChat.msgs.map(m => ({ r: m.r, c: m.c, t: m.t, src: m.src || undefined, err: m.err || undefined, stopped: m.stopped || undefined })) }));
-  if (id) aiChat.id = id;
+function aiSaveChat(chat){
+  if (!chat || !chat.msgs.some(m => !m.err)) return;
+  const id = Android.aiChatSave(JSON.stringify({ id: chat.id, title: chat.title, msgs: chat.msgs.map(m => ({ r: m.r, c: m.c, t: m.t, src: m.src || undefined, err: m.err || undefined, stopped: m.stopped || undefined })) }));
+  if (id) chat.id = id;
 }
 /* Eenvoudige opmaak van een antwoord: alinea's, opsommingen, vet, cursief, code, kopjes (alles eerst ge-escaped) */
 function aiMd(s){
@@ -177,10 +183,11 @@ function aiOpenSrc(i, el){
   else if (k === 'tx') jumpTo('txd', () => txOpen(id, +el.dataset.from || 0));
 }
 function aiMsgHtml(m, i){
+  if (!m) return '';
   if (m.r === 'user') return '<div class="aimsg me" data-i="' + i + '"><div class="aib">' + esc(m.c).replace(/\n/g, '<br>') + '</div></div>';
   const live = m === aiCur;
   return '<div class="aimsg' + (m.err ? ' err' : '') + '" data-i="' + i + '"><div class="aib">' + (m.c ? aiMd(m.c) : (live ? '<span class="aidots" aria-label="Bezig"><i></i><i></i><i></i></span>' : '')) +
-    (m.stopped ? '<p class="note">Gestopt.</p>' : '') + (m.cut ? '<p class="note">Het gesprek werd te lang: het begin is overgeslagen.</p>' : '') + '</div>' + aiSrcHtml(m.src) +
+    (m.stopped ? '<p class="note">Gestopt.</p>' : '') + (m.cut ? '<p class="note">Het gesprek werd te lang: het begin is overgeslagen.</p>' : '') + (m.trim ? '<p class="note">Te lang voor het model: een deel van je bericht is weggelaten.</p>' : '') + '</div>' + aiSrcHtml(m.src) +
     (!live && !m.err && m.c ? '<div class="aiacts"><button class="linkish" onclick="aiMsgMenu(' + i + ')" aria-label="Meer over dit antwoord">⋯ Meer</button></div>' : '') + '</div>';
 }
 function aiRenderMsgs(){
@@ -191,7 +198,7 @@ function aiRenderMsgs(){
 }
 /* Alleen het laatste bericht opnieuw (tijdens het schrijven): de rest blijft staan */
 function aiRenderLast(){
-  const box = $('#ai-msgs'); if (!box || !aiCur || current !== 'ai') return;
+  const box = $('#ai-msgs'); if (!box || !aiCur || !aiShown()) return;
   const i = aiChat.msgs.indexOf(aiCur), el = box.querySelector('.aimsg[data-i="' + i + '"]');
   if (el) el.outerHTML = aiMsgHtml(aiCur, i); else box.insertAdjacentHTML('beforeend', aiMsgHtml(aiCur, i));
   aiScroll();
@@ -218,8 +225,8 @@ function aiToNote(text){
   toast('Bewaard bij Notities');
 }
 function aiNew(){
-  if (aiBusy) Android.aiCancel();
-  aiChat = { id: '', title: '', msgs: [] }; aiCur = null; aiBusy = false;
+  if (aiBusy) Android.aiCancel(); // het lopende antwoord stopt en wordt (tot dan) bewaard in het oude gesprek
+  aiChat = { id: '', title: '', msgs: [] };
   aiRenderMain(); aiRenderMsgs(); aiStatus('');
   setTimeout(() => $('#ai-in') && $('#ai-in').focus(), 50);
 }
@@ -243,15 +250,14 @@ function aicOpen(i){
   const c = aicList[i]; if (!c) return;
   const full = rdJson(Android.aiChatGet(c.id), null); if (!full) return;
   if (aiBusy) Android.aiCancel();
-  aiBusy = false; aiCur = null;
-  aiChat = { id: full.id, title: full.title, msgs: full.msgs || [] };
+  aiChat = aiGen && aiGen.id === full.id ? aiGen : { id: full.id, title: full.title, msgs: full.msgs || [] };
   show('ai');
 }
 function aicMenu(i){
   const c = aicList[i]; if (!c) return;
   openSheet(c.title || 'Gesprek', fmtD(c.t), [
     ['Openen', () => aicOpen(i)],
-    ['Verwijderen', () => { Android.aiChatDelete(c.id); if (aiChat && aiChat.id === c.id) aiChat = null; enterAiChats(); toast('Gesprek verwijderd'); }]
+    ['Verwijderen', () => { if (aiGen && aiGen.id === c.id) { aiGen.discard = true; Android.aiCancel(); } Android.aiChatDelete(c.id); if (aiChat && aiChat.id === c.id) aiChat = null; enterAiChats(); toast('Gesprek verwijderd'); }]
   ]);
 }
 
@@ -278,7 +284,7 @@ window.onAiIndex = function(o){
   if (current === 'aiset') aiRenderSet();
 };
 function aisWifi(){ aiSt.wifiOnly = !aiSt.wifiOnly; Android.aiPref('wifiOnly', aiSt.wifiOnly); aiRenderSet(); toast(aiSt.wifiOnly ? 'Downloaden alleen via wifi (voor een nieuwe download)' : 'Downloaden ook via mobiel internet (voor een nieuwe download)'); }
-function aisClearChats(){ askConfirm('Alle gesprekken verwijderen?', 'Alle gesprekken met de assistent gaan weg. De modellen en je notities blijven.', 'Verwijderen', () => { Android.aiChatDelete('*'); aiChat = null; toast('Gesprekken verwijderd'); }); }
+function aisClearChats(){ askConfirm('Alle gesprekken verwijderen?', 'Alle gesprekken met de assistent gaan weg. De modellen en je notities blijven.', 'Verwijderen', () => { if (aiGen) { aiGen.discard = true; Android.aiCancel(); } Android.aiChatDelete('*'); aiChat = null; toast('Gesprekken verwijderd'); }); }
 
 /* ---------- slim zoeken in Zoeken (overal) ---------- */
 let aiSearchId = 0, aiSearchT = null, aiSearchRes = null;

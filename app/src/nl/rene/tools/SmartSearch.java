@@ -164,9 +164,18 @@ final class SmartSearch {
         Entry(String kind, String id, String title, String text, long from, long t, byte[] v) { this.kind = kind; this.id = id; this.title = title; this.text = text; this.from = from; this.t = t; this.v = v; }
     }
 
+    // Eén slot voor de index. Bijwerken kan minuten duren: info() wacht daar nooit op (de interface blijft vlot).
+    private static final java.util.concurrent.locks.ReentrantLock LOCK = new java.util.concurrent.locks.ReentrantLock();
     private static List<Entry> entries;   // in het geheugen
-    private static long builtAt;
-    private static String builtSig = "";
+    private static volatile long builtAt;
+    private static volatile String builtSig = "";
+    private static volatile int snapItems, snapChunks;
+
+    private static void snapshot() {
+        java.util.Set<String> docs = new java.util.HashSet<>();
+        for (Entry e : entries) docs.add(e.kind + ":" + e.id);
+        snapItems = docs.size(); snapChunks = entries.size();
+    }
     static volatile int busyDone = -1, busyTotal = 0;
 
     static File file(Context c) { File d = new File(c.getFilesDir(), "ai"); d.mkdirs(); return new File(d, "index.json"); }
@@ -179,13 +188,12 @@ final class SmartSearch {
         return Notes.version(c) + ":" + Notes.file(c).lastModified() + ":" + n + ":" + Long.toHexString(tx);
     }
 
-    static synchronized JSONObject info(Context c) {
+    /** Hoe staat de index ervoor (wacht niet op een lopende update). */
+    static JSONObject info(Context c) {
         JSONObject o = new JSONObject();
         try {
-            load(c);
-            java.util.Set<String> docs = new java.util.HashSet<>();
-            for (Entry e : entries) docs.add(e.kind + ":" + e.id);
-            o.put("items", docs.size()).put("chunks", entries.size()).put("at", builtAt).put("stale", !builtSig.equals(sourcesSig(c)));
+            if (entries == null && LOCK.tryLock()) { try { load(c); } finally { LOCK.unlock(); } }
+            o.put("items", snapItems).put("chunks", snapChunks).put("at", builtAt).put("stale", !builtSig.equals(sourcesSig(c)));
             if (busyDone >= 0) o.put("busy", true).put("done", busyDone).put("total", busyTotal);
         } catch (Exception ignored) { }
         return o;
@@ -195,10 +203,10 @@ final class SmartSearch {
         if (entries != null) return;
         entries = new ArrayList<>();
         File f = file(c);
-        if (!f.isFile()) return;
+        if (!f.isFile()) { snapshot(); return; }
         try {
             JSONObject o = new JSONObject(Contacts.readText(f, false));
-            if (o.optInt("dims") != DIMS || !LocalAi.EMBED.sha.equals(o.optString("model"))) return; // ander model: opnieuw
+            if (o.optInt("dims") != DIMS || !LocalAi.EMBED.sha.equals(o.optString("model"))) { snapshot(); return; } // ander model: opnieuw
             builtAt = o.optLong("at"); builtSig = o.optString("sig");
             JSONArray a = o.optJSONArray("e");
             if (a != null) for (int i = 0; i < a.length(); i++) {
@@ -206,6 +214,7 @@ final class SmartSearch {
                 entries.add(new Entry(e.optString("k"), e.optString("id"), e.optString("ti"), e.optString("x"), e.optLong("f"), e.optLong("t"), unb64(e.optString("v"))));
             }
         } catch (Exception e) { entries = new ArrayList<>(); }
+        snapshot();
     }
 
     private static Map<String, String> hashes = new HashMap<>();
@@ -234,7 +243,12 @@ final class SmartSearch {
      * Index bijwerken: alleen wat nieuw of veranderd is opnieuw door het zoekmodel. Draait op de AI-thread
      * (LocalAi), die het zoekmodel start. force = alles opnieuw.
      */
-    static synchronized void update(Context c, boolean force, Progress p) throws Exception {
+    static void update(Context c, boolean force, Progress p) throws Exception {
+        LOCK.lock();
+        try { updateLocked(c, force, p); } finally { LOCK.unlock(); }
+    }
+
+    private static void updateLocked(Context c, boolean force, Progress p) throws Exception {
         load(c);
         if (force) { entries = new ArrayList<>(); hashes = new HashMap<>(); } else if (hashes.isEmpty()) loadHashes(c);
         String sig = sourcesSig(c);
@@ -285,6 +299,7 @@ final class SmartSearch {
                     if (last) hashes.put(d.key(), d.hash());
                 }
                 busyDone = end;
+                snapshot();
                 if (p != null) p.step(end, pieces.size());
                 if (LocalAi.cancelled()) throw new Exception("Gestopt");
             }
@@ -294,20 +309,23 @@ final class SmartSearch {
             builtSig = sig;
         } finally {
             busyDone = -1;
+            snapshot();
             save(c); // ook halverwege: wat klaar is, hoeft de volgende keer niet opnieuw
         }
     }
 
     /** Zoeken op betekenis: [{kind, id, title, snip, from, t, score}]. Werkt de index eerst bij als er iets veranderde. */
     static JSONArray search(Context c, String q, int k) throws Exception {
-        synchronized (SmartSearch.class) {
+        LOCK.lock();
+        try {
             load(c);
-            if (!builtSig.equals(sourcesSig(c))) update(c, false, null);
-        }
+            if (!builtSig.equals(sourcesSig(c))) updateLocked(c, false, null);
+        } finally { LOCK.unlock(); }
         List<float[]> qv = LocalAi.embed(c, java.util.Collections.singletonList(QUERY_PREFIX + q), DIMS);
         float[] v = qv.get(0);
         List<Entry> es;
-        synchronized (SmartSearch.class) { es = new ArrayList<>(entries); }
+        LOCK.lock();
+        try { es = new ArrayList<>(entries); } finally { LOCK.unlock(); }
         String[] keys = new String[es.size()];
         float[] sc = new float[es.size()];
         for (int i = 0; i < es.size(); i++) { keys[i] = es.get(i).kind + ":" + es.get(i).id; sc[i] = dot(v, es.get(i).v); }
@@ -320,5 +338,9 @@ final class SmartSearch {
         return out;
     }
 
-    static synchronized void clear(Context c) { entries = new ArrayList<>(); hashes = new HashMap<>(); builtAt = 0; builtSig = ""; file(c).delete(); }
+    static void clear(Context c) {
+        LOCK.lock();
+        try { entries = new ArrayList<>(); hashes = new HashMap<>(); builtAt = 0; builtSig = ""; snapshot(); file(c).delete(); }
+        finally { LOCK.unlock(); }
+    }
 }

@@ -36,7 +36,10 @@
 using json = nlohmann::json;
 
 static std::mutex g_out_mx;
-static void emit(const json & j) {
+static std::atomic<long> g_id{0}; // "id" van de opdracht die nu loopt: gaat mee in elk antwoord, zodat de app ze kan koppelen
+static void emit(json j, bool tag = true) {
+    long id = g_id.load();
+    if (tag && id != 0) j["id"] = id;
     std::string s = j.dump(-1, ' ', false, json::error_handler_t::replace);
     std::lock_guard<std::mutex> lk(g_out_mx);
     fwrite(s.data(), 1, s.size(), stdout);
@@ -59,7 +62,7 @@ static void reader() {
     while (std::getline(std::cin, line)) {
         if (line.empty()) continue;
         json j;
-        try { j = json::parse(line); } catch (...) { emit_error("Ongeldige opdracht"); continue; }
+        try { j = json::parse(line); } catch (...) { emit(json{{"error", "Ongeldige opdracht"}}, false); continue; }
         if (j.is_object() && j.value("op", "") == "cancel") { g_cancel_upto = g_seq.load(); continue; }
         std::lock_guard<std::mutex> lk(g_in_mx);
         j["_seq"] = ++g_seq;
@@ -162,7 +165,7 @@ static void do_chat(Engine & E, const json & j) {
 
     // Past het niet: oudste berichten (na de systeemtekst) weglaten, het laatste blijft altijd
     std::vector<llama_token> toks;
-    int cut = 0;
+    int cut = 0, trim = 0;
     while (true) {
         std::string prompt = format_chat(E, msgs);
         if (prompt.empty()) { emit_error("Dit model heeft geen bekend gespreksformaat"); return; }
@@ -173,11 +176,15 @@ static void do_chat(Engine & E, const json & j) {
             // alleen nog de laatste vraag: die inkorten
             auto & last = msgs.back().second;
             if (last.size() < 200) { emit_error("Je bericht is te lang voor dit model"); return; }
-            last = last.substr(0, last.size() * 3 / 4);
+            // het begin bewaren (daar staat de vraag); op een UTF-8-tekengrens knippen
+            size_t n = last.size() * 3 / 4;
+            while (n > 0 && (((unsigned char) last[n]) & 0xC0) == 0x80) n--;
+            last = last.substr(0, n);
+            trim++;
         } else {
             msgs.erase(msgs.begin() + first);
+            cut++;
         }
-        cut++;
     }
 
     // Hergebruik wat al in het geheugen staat (zelfde begin van het gesprek)
@@ -248,7 +255,7 @@ static void do_chat(Engine & E, const json & j) {
     if (!in_think && !pending.empty()) emit(json{{"t", pending}});
     llama_sampler_free(smpl);
     long ms = (long) std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
-    emit(json{{"done", true}, {"n", n}, {"prompt", (int) toks.size()}, {"ms", ms}, {"cut", cut}, {"cancelled", cancelled()}, {"full", full}});
+    emit(json{{"done", true}, {"n", n}, {"prompt", (int) toks.size()}, {"ms", ms}, {"cut", cut}, {"trim", trim}, {"cancelled", cancelled()}, {"full", full}});
 }
 
 static void do_embed(Engine & E, const json & j) {
@@ -353,6 +360,7 @@ int main(int argc, char ** argv) {
         }
         std::string op = j.is_object() ? j.value("op", "") : "";
         g_cur = j.value("_seq", 0L);
+        g_id = j.contains("id") && j["id"].is_number_integer() ? j["id"].get<long>() : 0L;
         try {
             if (op == "chat" && !E.embed) do_chat(E, j);
             else if (op == "embed" && E.embed) do_embed(E, j);
