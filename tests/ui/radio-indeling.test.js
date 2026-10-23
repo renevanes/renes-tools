@@ -51,8 +51,16 @@ const { chromium } = require('playwright');
     await pg.click('#sheet-acts button:has-text("Radiowekker")'); await pg.waitForTimeout(200);
     ok(await pg.evaluate(() => current === 'ralarm'), 'naar de radiowekker');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
-    // Zoeken: na terugkomen nog bij je zoekresultaten
-    await pg.click('#rd-tab-all'); await pg.fill('#rd-search', 'Zender 5'); await pg.waitForTimeout(700);
+    await pg.click('#rd-menu'); await pg.click('#sheet-acts button:has-text("Herkende muziek")'); await pg.waitForTimeout(200);
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => current === 'radio'), 'Herkende muziek en terug: weer bij Radio');
+    // Zoeken: een gekozen genre gaat uit, en na terugkomen ben je nog bij je zoekresultaten
+    await pg.click('#rd-tab-all'); await pg.click('#rd-genres button:has-text("Rock")');
+    await pg.focus('#rd-genres button.on'); await pg.keyboard.press('ArrowRight');
+    ok(await pg.evaluate(() => rdGenre === 'Klassiek' && document.activeElement.dataset.g === 'Klassiek'), 'pijltje in de genres: volgend genre, focus blijft');
+    await pg.fill('#rd-search', 'Zender 5'); await pg.waitForTimeout(700);
+    ok(await pg.evaluate(() => rdGenre === '') && (await pg.$$eval('#rd-list .srow', x => x.length)) > 1, 'zoeken: in alle genres');
+    ok((await pg.getAttribute('#rd-tab-favs', 'aria-label')).startsWith('Favorieten'), 'tabblad met naam voor TalkBack');
     await pg.evaluate(() => { show('home'); show('radio'); }); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => rdTab === 'all') && (await pg.inputValue('#rd-search')) === 'Zender 5', 'zoeken blijft staan');
     // Pijltjestoetsen en lege favorieten
