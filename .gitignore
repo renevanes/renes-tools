@@ -8,3 +8,7 @@ tests/ui/shots/
 node_modules/
 # wordt gemaakt door tools/web-samenvoegen.py uit web/src/
 web/index.html
+tools/lcpp/
+tools/zigwrap/
+tools/llm-out/
+tools/build-llm-*/
