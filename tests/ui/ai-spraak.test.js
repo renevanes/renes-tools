@@ -26,11 +26,11 @@ const { chromium } = require('playwright');
     ok((await pg.textContent('#ai-msgs .aimsg.me')).includes('hoofdstad van Frankrijk'), 'de vraag staat in het gesprek');
     await pg.waitForTimeout(1200);
     // Instelling: eerst in het invoerveld
-    await pg.evaluate(() => show('aiset')); await pg.waitForTimeout(200);
+    await pg.evaluate(() => show('aisetvoice')); await pg.waitForTimeout(200);
     ok((await pg.textContent('#ais-voice')).includes('Klaar'), 'instellingen: spraakmodel klaar');
     await pg.click('#ais-vsend');
     ok(await pg.evaluate(() => Android._ai.voiceSend === false) && (await pg.getAttribute('#ais-vsend', 'aria-checked')) === 'false', 'meteen versturen uit te zetten');
-    await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
+    await pg.evaluate(() => show('ai')); await pg.waitForTimeout(200);
     const n = await pg.$$eval('#ai-msgs .aimsg', x => x.length);
     await pg.evaluate(() => { Android._voiceResult = { text: 'Schrijf een gedicht' }; });
     await pg.click('#ai-mic'); await pg.waitForTimeout(200); await pg.click('#ai-mic'); await pg.waitForTimeout(300);

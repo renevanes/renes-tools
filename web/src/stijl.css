@@ -724,3 +724,8 @@ body.has-plbar .aicomp{bottom:calc(84px + env(safe-area-inset-bottom))}
 .aivstate{margin:0 6px 8px;font-size:14px;font-weight:600;color:var(--primary)}
 #ai-in:disabled{opacity:.6}
 .aimic.busy{opacity:.45}.aimic.dim{opacity:.45}
+/* Assistent: instellingen */
+[id^="s-aiset"]:not(#s-aiset) main>.card:first-child>h2:first-child{display:none}
+.aicfg{padding:10px 0 12px;border-top:1px solid var(--line)}.aicfg:first-of-type{border-top:0;padding-top:2px}
+.aicfg>b{display:block;font-size:15px;margin:0 0 8px}.aicfg .chips{margin-bottom:6px}.aicfg .note{display:block;margin:0}
+.aitext{width:100%;box-sizing:border-box;resize:vertical;min-height:72px;padding:12px 14px;border-radius:14px;border:1px solid var(--outline);background:var(--hi);color:var(--ink);font:inherit;font-size:15px;line-height:1.4}

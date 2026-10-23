@@ -58,26 +58,125 @@
     <h1 tabindex="-1">Lokale AI</h1>
   </div>
   <main>
+    <div class="flabel stgl" role="heading" aria-level="2">De assistent</div>
+    <div class="card stlist">
+      <button class="strow" onclick="show('aisetmodel')"><span class="stic"><span class="ui-icon" data-icon="sparkle" aria-hidden="true"></span></span><span class="sttxt"><b>Taalmodel</b><small id="ai-sum-model"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('aisetanswer')"><span class="stic"><span class="ui-icon" data-icon="notes" aria-hidden="true"></span></span><span class="sttxt"><b>Antwoorden</b><small id="ai-sum-answer"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('aisetpers')"><span class="stic"><span class="ui-icon" data-icon="user" aria-hidden="true"></span></span><span class="sttxt"><b>Persoonlijk</b><small id="ai-sum-pers"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('aisetvoice')"><span class="stic"><span class="ui-icon" data-icon="mic" aria-hidden="true"></span></span><span class="sttxt"><b>Spraak</b><small id="ai-sum-voice"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+    <div class="flabel stgl" role="heading" aria-level="2">Zoeken, snelheid en privacy</div>
+    <div class="card stlist">
+      <button class="strow" onclick="show('aisetsearch')"><span class="stic"><span class="ui-icon" data-icon="search" aria-hidden="true"></span></span><span class="sttxt"><b>Slim zoeken</b><small id="ai-sum-search"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('aisetperf')"><span class="stic"><span class="ui-icon" data-icon="battery" aria-hidden="true"></span></span><span class="sttxt"><b>Prestaties en downloaden</b><small id="ai-sum-perf"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('aisetpriv')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Privacy</b><small id="ai-sum-priv"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+    <button class="big ghost" style="margin-top:16px" onclick="aicReset()">Standaardinstellingen herstellen</button>
+  </main>
+</section>
+
+<section class="screen" id="s-aisetmodel">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Taalmodel</h1>
+  </div>
+  <main>
     <div class="card">
-      <h2><span class="ui-icon" data-icon="sparkle" aria-hidden="true"></span>Taalmodel voor de assistent</h2>
+      <h2><span class="ui-icon" data-icon="sparkle" aria-hidden="true"></span>Taalmodel</h2>
       <div id="ais-chat"></div>
     </div>
+  </main>
+</section>
+
+<section class="screen" id="s-aisetanswer">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Antwoorden</h1>
+  </div>
+  <main>
     <div class="card">
-      <h2><span class="ui-icon" data-icon="search" aria-hidden="true"></span>Slim zoeken</h2>
-      <p class="note">Zoekt in je notities en uitgeschreven gesprekken op betekenis, niet alleen op precieze woorden. Bijvoorbeeld "wanneer moet de auto naar de garage" vindt ook een notitie over de APK. Je ziet het bij Zoeken, en de assistent kan het gebruiken met <b>Met mijn notities</b>.</p>
-      <div id="ais-embed"></div>
-      <div id="ais-index"></div>
+      <h2><span class="ui-icon" data-icon="notes" aria-hidden="true"></span>Antwoorden</h2>
+      <div class="aicfg"><b id="aic-style-l">Lengte</b><div class="chips sm" id="aic-style" role="radiogroup" aria-labelledby="aic-style-l"><button role="radio" aria-checked="false" data-v="kort" onclick="aicSet('style', 'kort')">Kort</button><button role="radio" aria-checked="false" data-v="normaal" onclick="aicSet('style', 'normaal')">Normaal</button><button role="radio" aria-checked="false" data-v="uitgebreid" onclick="aicSet('style', 'uitgebreid')">Uitgebreid</button></div><small class="note" id="aic-style-n"></small></div>
+      <div class="aicfg"><b id="aic-creative-l">Creativiteit</b><div class="chips sm" id="aic-creative" role="radiogroup" aria-labelledby="aic-creative-l"><button role="radio" aria-checked="false" data-v="precies" onclick="aicSet('creative', 'precies')">Precies</button><button role="radio" aria-checked="false" data-v="normaal" onclick="aicSet('creative', 'normaal')">Gebalanceerd</button><button role="radio" aria-checked="false" data-v="creatief" onclick="aicSet('creative', 'creatief')">Creatief</button></div><small class="note" id="aic-creative-n"></small></div>
+      <div class="aicfg"><b id="aic-lang-l">Taal van de antwoorden</b><div class="chips sm" id="aic-lang" role="radiogroup" aria-labelledby="aic-lang-l"><button role="radio" aria-checked="false" data-v="nl" onclick="aicSet('lang', 'nl')">Nederlands</button><button role="radio" aria-checked="false" data-v="en" onclick="aicSet('lang', 'en')">Engels</button><button role="radio" aria-checked="false" data-v="auto" onclick="aicSet('lang', 'auto')">Zelfde taal</button></div><small class="note" id="aic-lang-n"></small></div>
+      <div class="aicfg"><b id="aic-history-l">Gesprek onthouden</b><div class="chips sm" id="aic-history" role="radiogroup" aria-labelledby="aic-history-l"><button role="radio" aria-checked="false" data-v="8" onclick="aicSet('history', '8')">Kort</button><button role="radio" aria-checked="false" data-v="24" onclick="aicSet('history', '24')">Normaal</button><button role="radio" aria-checked="false" data-v="48" onclick="aicSet('history', '48')">Lang</button></div><small class="note" id="aic-history-n"></small></div>
     </div>
+  </main>
+</section>
+
+<section class="screen" id="s-aisetpers">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Persoonlijk</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="user" aria-hidden="true"></span>Persoonlijk</h2>
+      <p class="note">Wat je hier invult, krijgt de assistent bij elke vraag mee. Het blijft op je telefoon. Houd het kort: hoe langer, hoe minder ruimte voor het gesprek.</p>
+      <label class="flabel" for="aic-about" style="margin:10px 2px 6px;display:block">Over mij</label>
+      <textarea class="aitext" id="aic-about" rows="3" maxlength="1000" placeholder="Bijvoorbeeld: Ik woon in Rotterdam en heb een eigen bedrijf." oninput="aicDirty()"></textarea>
+      <label class="flabel" for="aic-instr" style="margin:12px 2px 6px;display:block">Hoe moet de assistent antwoorden?</label>
+      <textarea class="aitext" id="aic-instr" rows="3" maxlength="1000" placeholder="Bijvoorbeeld: Spreek me aan met je, gebruik geen moeilijke woorden." oninput="aicDirty()"></textarea>
+      <small class="note" id="aic-count"></small>
+      <button class="big" id="aic-save" style="margin-top:10px" onclick="aicSaveText()" disabled>Opslaan</button>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-aisetvoice">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Spraak</h1>
+  </div>
+  <main>
     <div class="card">
       <h2><span class="ui-icon" data-icon="mic" aria-hidden="true"></span>Spraak</h2>
       <p class="note">Tik in het gesprek op de microfoon en stel je vraag hardop. Je stem wordt op de telefoon uitgeschreven met het spraakmodel van Gesprekken uitschrijven (Whisper); de opname gaat daarna weg en er gaat niets naar internet. De taal is dezelfde als bij Gesprekken uitschrijven.</p>
       <div id="ais-voice"></div>
       <div class="sw"><span>Ingesproken vraag meteen versturen<small>Uit: de tekst komt eerst in het invoerveld, zodat je hem kunt nakijken</small></span><button class="tg" id="ais-vsend" role="switch" aria-checked="true" aria-label="Ingesproken vraag meteen versturen" onclick="aisVoiceSend()"></button></div>
     </div>
+  </main>
+</section>
+
+<section class="screen" id="s-aisetsearch">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Slim zoeken</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="search" aria-hidden="true"></span>Slim zoeken</h2>
+      <p class="note">Zoekt in je notities en uitgeschreven gesprekken op betekenis, niet alleen op precieze woorden. Bijvoorbeeld "wanneer moet de auto naar de garage" vindt ook een notitie over de APK. Je ziet het bij Zoeken, en de assistent kan het gebruiken met <b>Met mijn notities</b>.</p>
+      <div id="ais-embed"></div>
+      <div id="ais-index"></div>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-aisetperf">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Prestaties en downloaden</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="battery" aria-hidden="true"></span>Prestaties</h2>
+      <div class="aicfg"><b id="aic-power-l">Rekenkracht</b><div class="chips sm" id="aic-power" role="radiogroup" aria-labelledby="aic-power-l"><button role="radio" aria-checked="false" data-v="zuinig" onclick="aicSet('power', 'zuinig')">Zuinig</button><button role="radio" aria-checked="false" data-v="normaal" onclick="aicSet('power', 'normaal')">Normaal</button><button role="radio" aria-checked="false" data-v="max" onclick="aicSet('power', 'max')">Maximaal</button></div><small class="note" id="aic-power-n"></small></div>
+      <div class="aicfg"><b id="aic-idle-l">Geheugen vrijgeven na</b><div class="chips sm" id="aic-idle" role="radiogroup" aria-labelledby="aic-idle-l"><button role="radio" aria-checked="false" data-v="1" onclick="aicSet('idle', '1')">1 minuut</button><button role="radio" aria-checked="false" data-v="4" onclick="aicSet('idle', '4')">4 minuten</button><button role="radio" aria-checked="false" data-v="15" onclick="aicSet('idle', '15')">15 minuten</button></div><small class="note" id="aic-idle-n"></small></div>
+    </div>
     <div class="card">
       <h2><span class="ui-icon" data-icon="download" aria-hidden="true"></span>Downloaden</h2>
       <div class="sw"><span>Alleen via wifi<small>De modellen zijn groot (0,6 tot 2,5 GB)</small></span><button class="tg" id="ais-wifi" role="switch" aria-checked="true" aria-label="Alleen via wifi" onclick="aisWifi()"></button></div>
     </div>
+  </main>
+</section>
+
+<section class="screen" id="s-aisetpriv">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Privacy</h1>
+  </div>
+  <main>
     <div class="card">
       <h2><span class="ui-icon" data-icon="lock" aria-hidden="true"></span>Privacy</h2>
       <p class="note">De AI draait helemaal op je telefoon (llama.cpp). Je vragen, de antwoorden, je gesprekken met de assistent en de zoekindex blijven op je telefoon en gaan niet mee in Android-backups. Alleen de modellen zelf komen eenmalig van Hugging Face; die worden gecontroleerd met hun vaste controlegetal (SHA-256).</p>

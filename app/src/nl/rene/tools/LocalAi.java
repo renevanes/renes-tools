@@ -104,7 +104,87 @@ final class LocalAi {
         } catch (Throwable t) { return 0; }
     }
 
-    static int threads() { return Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors() - 2)); }
+    static int threads() { return threadsFor(cfg(LocalAi.appCtx, "power"), Runtime.getRuntime().availableProcessors()); }
+
+    // ---------- instellingen van de assistent (zuiver rekenwerk getest in LocalAiConfigTest) ----------
+
+    /** Toegestane waarden per instelling; de eerste is de standaard. Tekstvelden (about, instr) staan er niet in. */
+    static final String[][] CFG = {
+            {"style", "normaal", "kort", "uitgebreid"},
+            {"creative", "normaal", "precies", "creatief"},
+            {"lang", "nl", "en", "auto"},
+            {"history", "24", "8", "48"},
+            {"power", "normaal", "zuinig", "max"},
+            {"idle", "4", "1", "15"},
+    };
+    static final int TEXT_MAX = 1000;
+    static volatile Context appCtx;
+
+    /** Geldige waarde voor een instelling, anders null. */
+    static String cfgValid(String name, String value) {
+        if ("about".equals(name) || "instr".equals(name)) return cleanText(value, TEXT_MAX);
+        for (String[] r : CFG) if (r[0].equals(name)) { for (int i = 1; i < r.length; i++) if (r[i].equals(value)) return value; return null; }
+        return null;
+    }
+    static String cfgDefault(String name) { for (String[] r : CFG) if (r[0].equals(name)) return r[1]; return ""; }
+    /** Instelling opslaan; geeft "" of een melding. */
+    static String cfgSet(Context c, String name, String value) {
+        String ok = cfgValid(name, value);
+        if (ok == null) return "Ongeldige instelling";
+        prefs(c).edit().putString("cfg_" + name, ok).apply();
+        // Rekenkracht geldt vanaf het starten van de motor: nu (als er niets loopt) opnieuw laten starten
+        if ("power".equals(name) && !busy()) { closeChat(); closeEmbed(); }
+        return "";
+    }
+    static void cfgReset(Context c) {
+        SharedPreferences.Editor e = prefs(c).edit();
+        for (String[] r : CFG) e.remove("cfg_" + r[0]);
+        e.remove("cfg_about").remove("cfg_instr").apply();
+        if (!busy()) { closeChat(); closeEmbed(); }
+    }
+    static String cfg(Context c, String name) {
+        if (c == null) return cfgDefault(name);
+        String v = prefs(c).getString("cfg_" + name, null);
+        String ok = v == null ? null : cfgValid(name, v);
+        return ok == null ? cfgDefault(name) : ok;
+    }
+
+    /** Tekst die de gebruiker zelf invult: zonder stuurtekens, ingekort, zonder witruimte rondom. */
+    static String cleanText(String s, int max) {
+        if (s == null) return "";
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < s.length() && b.length() < max; i++) {
+            char ch = s.charAt(i);
+            if (ch == '\n' || ch == '\t' || !Character.isISOControl(ch)) b.append(ch);
+        }
+        return b.toString().trim();
+    }
+
+    static int maxTokens(String style) { return "kort".equals(style) ? 400 : "uitgebreid".equals(style) ? 2400 : 1200; }
+    static double temperature(String creative) { return "precies".equals(creative) ? 0.3 : "creatief".equals(creative) ? 1.0 : 0.7; }
+    static int historyFor(String h) { try { int n = Integer.parseInt(h); return n == 8 || n == 48 ? n : 24; } catch (Exception e) { return 24; } }
+    static long idleMs(String m) { try { int n = Integer.parseInt(m); return (n == 1 || n == 15 ? n : 4) * 60_000L; } catch (Exception e) { return 4 * 60_000L; } }
+    /** Rekenkracht: zuinig = 2 kernen (koeler, minder accu), normaal = tot 4, maximaal = alle snelle kernen (tot 8). */
+    static int threadsFor(String power, int cores) {
+        if ("zuinig".equals(power)) return 2;
+        if ("max".equals(power)) return Math.max(2, Math.min(8, cores - 1));
+        return Math.max(2, Math.min(4, cores - 2));
+    }
+
+    /** De vaste instructie voor het model, met de keuzes van de gebruiker. */
+    static String buildSystem(String today, String style, String lang, String about, String instr) {
+        StringBuilder s = new StringBuilder("Je bent de offline assistent in de app Tools. Je draait helemaal op de telefoon van de gebruiker, zonder internet. ");
+        if ("en".equals(lang)) s.append("Antwoord altijd in het Engels (English), ook als de vraag in een andere taal is. ");
+        else if ("auto".equals(lang)) s.append("Antwoord in dezelfde taal als de vraag. ");
+        else s.append("Antwoord in het Nederlands, tenzij de gebruiker om een andere taal vraagt. ");
+        if ("kort".equals(style)) s.append("Houd je antwoorden kort en bondig: een paar zinnen, alleen het belangrijkste. ");
+        else if ("uitgebreid".equals(style)) s.append("Geef uitgebreide, grondige antwoorden met uitleg, voorbeelden en een duidelijke opbouw. ");
+        else s.append("Wees duidelijk, behulpzaam en beknopt; gebruik opsommingen als dat helpt. ");
+        s.append("Je hebt geen internet en geen actuele informatie: zeg dat eerlijk als dat nodig is, en verzin geen feiten. Vandaag is het ").append(today).append('.');
+        if (about != null && !about.isEmpty()) s.append("\n\nOver de gebruiker (door de gebruiker zelf ingevuld):\n").append(about);
+        if (instr != null && !instr.isEmpty()) s.append("\n\nZo wil de gebruiker dat je antwoordt:\n").append(instr);
+        return s.toString();
+    }
 
     static boolean wifiOnly(Context c) { return prefs(c).getBoolean("wifiOnly", true); }
 
@@ -342,12 +422,9 @@ final class LocalAi {
         void error(String msg);
     }
 
-    static String systemPrompt() {
+    static String systemPrompt(Context c) {
         String today = new java.text.SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL")).format(new java.util.Date());
-        return "Je bent de offline assistent in de app Tools. Je draait helemaal op de telefoon van de gebruiker, zonder internet. "
-                + "Antwoord in het Nederlands, tenzij de gebruiker om een andere taal vraagt. Wees duidelijk, behulpzaam en beknopt; "
-                + "gebruik opsommingen als dat helpt. Je hebt geen internet en geen actuele informatie: zeg dat eerlijk als dat nodig is, "
-                + "en verzin geen feiten. Vandaag is het " + today + ".";
+        return buildSystem(today, cfg(c, "style"), cfg(c, "lang"), cfg(c, "about"), cfg(c, "instr"));
     }
 
     /** Context uit slim zoeken, vóór de vraag gezet. Zuiver (getest). */
@@ -383,8 +460,8 @@ final class LocalAi {
             if (!ready(c, m)) throw new Exception("Download eerst een taalmodel");
             JSONArray in = req.optJSONArray("messages");
             if (in == null || in.length() == 0) throw new Exception("Geen vraag");
-            JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", systemPrompt()));
-            int from = Math.max(0, in.length() - 24);
+            JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", systemPrompt(c)));
+            int from = Math.max(0, in.length() - historyFor(cfg(c, "history")));
             for (int i = from; i < in.length(); i++) {
                 JSONObject x = in.optJSONObject(i);
                 if (x == null) continue;
@@ -429,8 +506,9 @@ final class LocalAi {
                 else if (o.has("error")) { GATE.leave(job); done.countDown(); sink.error(o.optString("error")); }
             });
             try {
-                p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", 1200)
-                        .put("temp", 0.7).put("top_p", 0.8).put("top_k", 20));
+                double temp = temperature(cfg(c, "creative"));
+                p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", maxTokens(cfg(c, "style")))
+                        .put("temp", temp).put("top_p", temp > 0.9 ? 0.95 : 0.8).put("top_k", 20));
                 while (!done.await(500, TimeUnit.MILLISECONDS)) {
                     if (!p.alive()) { if (done.getCount() > 0) { GATE.leave(job); done.countDown(); sink.error("De AI-motor is gestopt"); } break; }
                     if (cancel && stuck(cancelAt, System.currentTimeMillis())) {
@@ -494,7 +572,6 @@ final class LocalAi {
 
     // ---------- na een paar minuten niets doen: motoren stoppen (geheugen vrij) ----------
 
-    private static final long IDLE_MS = 4 * 60_000L;
     private static Thread idle;
 
     private static synchronized void scheduleIdle() {
@@ -503,7 +580,7 @@ final class LocalAi {
             try {
                 while (true) {
                     Thread.sleep(30_000);
-                    long now = System.currentTimeMillis();
+                    long now = System.currentTimeMillis(), IDLE_MS = idleMs(cfg(appCtx, "idle"));
                     LlmProcess p = chat, q = embed;
                     if (!busy() && p != null && now - p.lastUse > IDLE_MS) closeChat();
                     if (!busy() && q != null && now - q.lastUse > IDLE_MS) closeEmbed();
@@ -571,6 +648,10 @@ final class LocalAi {
         o.put("models", ms).put("chat", chatModel(c).id).put("wifiOnly", wifiOnly(c)).put("notes", prefs(c).getBoolean("notes", true)).put("voiceSend", prefs(c).getBoolean("voiceSend", true))
                 .put("loaded", loaded()).put("busy", busy());
         if (ready(c, EMBED)) o.put("index", SmartSearch.info(c));
+        JSONObject cf = new JSONObject();
+        for (String[] r : CFG) cf.put(r[0], cfg(c, r[0]));
+        cf.put("about", cfg(c, "about")).put("instr", cfg(c, "instr"));
+        o.put("cfg", cf);
         return o;
     }
 }

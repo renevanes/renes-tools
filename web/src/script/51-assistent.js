@@ -57,9 +57,9 @@ function aiUse(id){ Android.aiUse(id); aiRefresh(); toast('De assistent gebruikt
 function aiRefresh(){
   aiLoad();
   if (current === 'ai') aiRenderMain();
-  if (current === 'aiset') aiRenderSet();
+  if (aiSetOn()) aiRenderSet();
   clearTimeout(aiPollT);
-  if (aiBusyDl() && (current === 'ai' || current === 'aiset')) aiPollT = setTimeout(aiRefresh, 1500);
+  if (aiBusyDl() && (current === 'ai' || aiSetOn())) aiPollT = setTimeout(aiRefresh, 1500);
 }
 window.onAiModels = function(){ aiRefresh(); };
 
@@ -253,6 +253,8 @@ function aiMenu(){
   if (aiChatReady()) acts.push(['＋ Nieuw gesprek', () => aiNew()]);
   acts.push(['Eerdere gesprekken', () => show('aichats')]);
   if (aiChat && aiChat.msgs.length) acts.push(['Dit gesprek delen', () => Android.aiShare(aiChat.msgs.map(m => (m.r === 'user' ? 'Ik: ' : 'Assistent: ') + m.c).join('\n\n'))]);
+  const cf = aiSt.cfg || {};
+  acts.push(['Antwoorden: ' + [(AIC_LABEL.style[cf.style] || 'Normaal').toLowerCase(), (AIC_LABEL.creative[cf.creative] || 'Gebalanceerd').toLowerCase()].join(', ') + '…', () => show('aisetanswer')]);
   acts.push(['Instellingen', () => show('aiset')]);
   openSheet('Assistent', aiSt.chat ? 'Model: ' + aiModel(aiSt.chat).label : '', acts);
 }
@@ -287,7 +289,7 @@ function aiRenderSet(){
   $('#ais-chat').innerHTML = ms.filter(m => !m.embed).map(m => aiModelCard(m, { chat: true, del: true })).join('');
   $('#ais-embed').innerHTML = ms.filter(m => m.embed).map(m => aiModelCard(m, { del: true })).join('');
   const w = $('#ais-wifi'); w.classList.toggle('on', !!aiSt.wifiOnly); w.setAttribute('aria-checked', aiSt.wifiOnly ? 'true' : 'false');
-  aisRenderVoice();
+  aisRenderVoice(); aicRender();
   const ix = aiSt.index, box = $('#ais-index');
   if (!ix || !aiReady('zoek')) { box.innerHTML = ''; return; }
   const busy = ix.busy || aiIdx.busy;
@@ -301,7 +303,7 @@ function aisIndex(force){ aiIdx = { busy: true, done: 0, total: 0 }; Android.aiI
 window.onAiIndex = function(o){
   if (o.busy) aiIdx = { busy: true, done: o.done, total: o.total };
   else { aiIdx = {}; if (o.error) toast(o.error); else toast('Zoekindex bijgewerkt'); aiLoad(); }
-  if (current === 'aiset') aiRenderSet();
+  if (aiSetOn()) aiRenderSet();
 };
 function aisWifi(){ aiSt.wifiOnly = !aiSt.wifiOnly; Android.aiPref('wifiOnly', aiSt.wifiOnly); aiRenderSet(); toast(aiSt.wifiOnly ? 'Downloaden alleen via wifi (voor een nieuwe download)' : 'Downloaden ook via mobiel internet (voor een nieuwe download)'); }
 function aisClearChats(){ askConfirm('Alle gesprekken verwijderen?', 'Alle gesprekken met de assistent gaan weg. De modellen en je notities blijven.', 'Verwijderen', () => { if (aiGen) { aiGen.discard = true; Android.aiCancel(); } Android.aiChatDelete('*'); aiChat = null; toast('Gesprekken verwijderd'); }); }
@@ -395,12 +397,12 @@ function aiVoiceDownload(){
   clearTimeout(aiVoiceDlT);
   const poll = () => {
     const s = rdJson(Android.txStatus(), {});
-    if (current === 'aiset') aisRenderVoice(s);
+    if (aiSetOn()) aisRenderVoice(s);
     if (s.running) { if (current === 'ai') aiVState('↓ Spraakmodel downloaden… ' + (s.pct || 0) + '%'); aiVoiceDlT = setTimeout(poll, 800); return; }
     aiVState('');
     const v = rdJson(Android.aiVoiceInfo(), {});
     toast(v.model ? '✓ Spraakmodel klaar: tik op de microfoon en praat' : 'Het spraakmodel downloaden lukte niet');
-    if (current === 'aiset') aisRenderVoice();
+    if (aiSetOn()) aisRenderVoice();
   };
   aiVoiceDlT = setTimeout(poll, 600);
 }
@@ -414,3 +416,65 @@ function aisRenderVoice(st){
   const s = $('#ais-vsend'); s.classList.toggle('on', v.send !== false); s.setAttribute('aria-checked', v.send !== false ? 'true' : 'false');
 }
 function aisVoiceSend(){ aiSt.voiceSend = !(aiSt.voiceSend !== false); Android.aiPref('voiceSend', aiSt.voiceSend); aisRenderVoice(); toast(aiSt.voiceSend ? 'Ingesproken vraag wordt meteen verstuurd' : 'Ingesproken tekst komt eerst in het invoerveld'); }
+
+/* ---------- Instellingen van de assistent: overzicht en eigen schermen ---------- */
+const AI_SUBS = ['aisetmodel', 'aisetanswer', 'aisetpers', 'aisetvoice', 'aisetsearch', 'aisetperf', 'aisetpriv'];
+function aiSetOn(){ return current === 'aiset' || AI_SUBS.includes(current); }
+const AIC_NOTE = {
+  style: { kort: 'Een paar zinnen, alleen het belangrijkste. Ook het snelst.', normaal: 'Duidelijk en beknopt, met opsommingen waar dat helpt.', uitgebreid: 'Grondig, met uitleg en voorbeelden. Duurt langer.' },
+  creative: { precies: 'Feitelijk en voorspelbaar: goed voor samenvatten en vertalen.', normaal: 'Een goede balans voor de meeste vragen.', creatief: 'Meer variatie: goed voor ideeën, verhalen en teksten.' },
+  lang: { nl: 'Altijd Nederlands, tenzij je om een andere taal vraagt.', en: 'Altijd Engels.', auto: 'In de taal waarin je de vraag stelt.' },
+  history: { '8': 'De laatste 8 berichten: sneller, maar vergeet eerder.', '24': 'De laatste 24 berichten.', '48': 'De laatste 48 berichten (past niet altijd: dan valt het begin weg).' },
+  power: { zuinig: '2 processorkernen: trager, maar koeler en zuiniger met de accu.', normaal: 'Tot 4 kernen: een goede balans.', max: 'Alle snelle kernen: het snelst, maar warmer en meer accugebruik.' },
+  idle: { '1': 'Het model gaat na 1 minuut uit het geheugen: zuinig, maar de volgende vraag laadt opnieuw.', '4': 'Na 4 minuten niets doen.', '15': 'Na 15 minuten: vervolgvragen gaan sneller, maar het geheugen blijft langer bezet.' }
+};
+const AIC_LABEL = { style: { kort: 'Kort', normaal: 'Normaal', uitgebreid: 'Uitgebreid' }, creative: { precies: 'Precies', normaal: 'Gebalanceerd', creatief: 'Creatief' },
+  lang: { nl: 'Nederlands', en: 'Engels', auto: 'zelfde taal als de vraag' }, power: { zuinig: 'Zuinig', normaal: 'Normaal', max: 'Maximaal' } };
+function aicCfg(){ return aiSt.cfg || {}; }
+function aicRender(){
+  const c = aicCfg();
+  ['style', 'creative', 'lang', 'history', 'power', 'idle'].forEach(k => {
+    const box = $('#aic-' + k); if (!box) return;
+    box.querySelectorAll('button').forEach(b => { const on = b.dataset.v === String(c[k]); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+    const n = $('#aic-' + k + '-n'); if (n) n.textContent = (AIC_NOTE[k] || {})[c[k]] || '';
+  });
+  // Tekstvelden niet overschrijven terwijl je typt
+  const a = $('#aic-about'), i = $('#aic-instr');
+  if (a && !aicDirtyOn) { a.value = c.about || ''; i.value = c.instr || ''; }
+  aicCount();
+  // Regels in het overzicht
+  const sum = (id, t) => { const e = $('#ai-sum-' + id); if (e) e.textContent = t; };
+  const ready = (aiSt.models || []).filter(m => !m.embed && m.state === 'ready');
+  const chat = (aiSt.models || []).find(m => m.id === aiSt.chat);
+  sum('model', ready.length ? (chat && chat.state === 'ready' ? chat.label : ready[0].label) : 'Nog geen model gedownload');
+  sum('answer', [AIC_LABEL.style[c.style], AIC_LABEL.creative[c.creative], AIC_LABEL.lang[c.lang]].filter(Boolean).join(' · '));
+  sum('pers', c.about || c.instr ? [c.about ? 'Over mij' : '', c.instr ? 'eigen instructies' : ''].filter(Boolean).join(' en ') + ' ingevuld' : 'Nog niets ingevuld');
+  const v = typeof Android.aiVoiceInfo === 'function' ? rdJson(Android.aiVoiceInfo(), {}) : {};
+  sum('voice', (v.model ? 'Spraakmodel klaar' : 'Nog geen spraakmodel') + (v.send !== false ? ' · meteen versturen' : ''));
+  const zoek = (aiSt.models || []).find(m => m.id === 'zoek') || {};
+  sum('search', zoek.state === 'ready' ? (aiSt.index && aiSt.index.items ? aiSt.index.items + ' notities en gesprekken' : 'Klaar') : 'Nog niet gedownload');
+  sum('perf', (AIC_LABEL.power[c.power] || 'Normaal') + ' · vrijgeven na ' + (c.idle || 4) + ' min' + (aiSt.wifiOnly ? ' · alleen via wifi' : ''));
+  sum('priv', 'Alles blijft op je telefoon');
+}
+function aicSet(name, v){
+  const e = Android.aiConfigSet(name, v);
+  if (e) { toast(e); return; }
+  aiSt.cfg = Object.assign({}, aicCfg(), { [name]: v });
+  aicRender();
+  if (name === 'power' && aiBusy) toast('Geldt vanaf de volgende keer dat het model laadt');
+}
+let aicDirtyOn = false;
+function aicCount(){ const a = $('#aic-about'), i = $('#aic-instr'), n = $('#aic-count'); if (n && a) n.textContent = (a.value.length + i.value.length) + ' tekens'; }
+function aicDirty(){ aicDirtyOn = true; $('#aic-save').disabled = false; aicCount(); }
+function aicSaveText(){
+  const a = $('#aic-about').value, i = $('#aic-instr').value;
+  const e = Android.aiConfigSet('about', a) || Android.aiConfigSet('instr', i);
+  if (e) { toast(e); return; }
+  aicDirtyOn = false; $('#aic-save').disabled = true;
+  aiLoad(); aicRender(); toast('Opgeslagen: geldt vanaf je volgende vraag');
+}
+function aicReset(){
+  askConfirm('Standaardinstellingen herstellen?', 'Lengte, creativiteit, taal, gespreksgeheugen, rekenkracht en wat je bij Persoonlijk invulde gaan terug naar de standaard. Je modellen en gesprekken blijven.', 'Herstellen', () => {
+    Android.aiConfigReset(); aicDirtyOn = false; aiLoad(); aicRender(); if ($('#aic-save')) $('#aic-save').disabled = true; toast('Standaardinstellingen hersteld');
+  });
+}

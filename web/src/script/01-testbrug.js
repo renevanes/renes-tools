@@ -225,7 +225,7 @@ if (!window.Android) window.Android = (function(){
       models: [['klein', 'Klein en snel', 'Qwen3 1.7B · werkt op de meeste telefoons', 1282439584], ['groot', 'Groter en slimmer', 'Qwen3 4B · beter Nederlands, trager', 2497280256], ['zoek', 'Slim zoeken', 'Qwen3-Embedding 0.6B · zoeken op betekenis', 639150592]],
       reply: 'Hallo! Ik ben je **assistent**.\n- Eén\n- Twee' },
     _aiReady(id){ return this._ai.st[id].state === 'ready'; },
-    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: A.chat, wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, loaded: '', busy: !!A.busy,
+    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: A.chat, wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, cfg: Object.assign({}, this._aiCfgDef, A.cfg), loaded: '', busy: !!A.busy,
       models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek' }, A.st[m[0]])),
       index: this._aiReady('zoek') ? { items: 3, chunks: 7, at: Date.now() - 6e4, stale: false } : undefined }); },
     aiDownload(id){ const A = this._ai, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dl', id]);
@@ -240,6 +240,11 @@ if (!window.Android) window.Android = (function(){
       A.timer = setTimeout(() => { onAiStatus(''); tick(); }, 120); return ''; },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
+    _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'nl', history: '24', power: 'normaal', idle: '4', about: '', instr: '' },
+    aiConfigSet(n, v){ const A = this._ai, ok = { style: ['normaal', 'kort', 'uitgebreid'], creative: ['normaal', 'precies', 'creatief'], lang: ['nl', 'en', 'auto'], history: ['24', '8', '48'], power: ['normaal', 'zuinig', 'max'], idle: ['4', '1', '15'] };
+      if (n === 'about' || n === 'instr') { A.cfg = Object.assign({}, this._aiCfgDef, A.cfg, { [n]: String(v).slice(0, 1000).trim() }); return ''; }
+      if (!ok[n] || !ok[n].includes(v)) return 'Ongeldige instelling'; A.cfg = Object.assign({}, this._aiCfgDef, A.cfg, { [n]: v }); return ''; },
+    aiConfigReset(){ this._ai.cfg = null; },
     aiVoiceStart(){ if (this._voiceErr) return this._voiceErr; if (this._tx && !this._tx.models.base && !this._tx.models.small) return 'model'; this._vt = Date.now(); this._aiRec = true; return ''; },
     aiVoiceStop(){ this._aiRec = false; setTimeout(() => onAiVoice(this._voiceResult || { text: 'Wat is de hoofdstad van Frankrijk?' }), 80); },
     aiVoiceCancel(){ this._aiRec = false; this._aiVoiceCancelled = true; },

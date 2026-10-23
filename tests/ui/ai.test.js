@@ -61,18 +61,23 @@ const { chromium } = require('playwright');
     await pg.click('#aic-list .pcep .pcepb'); await pg.waitForTimeout(200);
     // Instellingen: zoekmodel downloaden, index, ander model
     await pg.click('#ai-menu'); await pg.click('#sheet-acts button:has-text("Instellingen")'); await pg.waitForTimeout(200);
+    await pg.click('#s-aiset .strow:has-text("Taalmodel")'); await pg.waitForTimeout(150);
     ok((await pg.textContent('#ais-chat .aimodel.on')).includes('In gebruik'), 'instellingen: het model dat in gebruik is');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);
+    await pg.click('#s-aiset .strow:has-text("Slim zoeken")'); await pg.waitForTimeout(150);
     await pg.click('#ais-embed .aimodel .mini'); await pg.waitForTimeout(1200);
     ok((await pg.textContent('#ais-embed')).includes('Klaar') && (await pg.textContent('#ais-index')).includes('3 notities'), 'zoekmodel klaar, met de zoekindex');
     await pg.click('#ais-index button.mini'); await pg.waitForTimeout(80);
     ok((await pg.textContent('#ais-index')).includes('Bijwerken…'), 'index bijwerken: voortgang');
     await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => Android._ai.calls.some(c => c[0] === 'index')), 'index bijgewerkt');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);
+    await pg.click('#s-aiset .strow:has-text("Prestaties")'); await pg.waitForTimeout(150);
     await pg.click('#ais-wifi');
     ok(await pg.evaluate(() => Android._ai.wifiOnly === false) && (await pg.getAttribute('#ais-wifi', 'aria-checked')) === 'false', 'alleen via wifi uit te zetten');
     await pg.screenshot({ path: __dirname + '/shots/ai-set-' + scheme + '.png', fullPage: true });
     // Met mijn notities
-    await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
+    await pg.evaluate(() => { goBack(); goBack(); }); await pg.waitForTimeout(200);
     ok(await pg.isVisible('#ai-notes') && (await pg.getAttribute('#ai-notes', 'aria-checked')) === 'true', 'met zoekmodel: "met mijn notities" (aan)');
     await pg.fill('#ai-in', 'Wanneer moet de auto naar de garage?'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(1300);
     ok(await pg.evaluate(() => Android._ai.last.notes === true) && (await pg.textContent('#ai-msgs .aimsg:last-child .aisrc')).includes('[1]'), 'met mijn notities: bron bij het antwoord');

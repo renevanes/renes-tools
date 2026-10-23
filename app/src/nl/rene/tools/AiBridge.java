@@ -12,7 +12,7 @@ import org.json.JSONObject;
  */
 public class AiBridge extends FeatureBridge {
 
-    AiBridge(MainActivity act) { super(act); }
+    AiBridge(MainActivity act) { super(act); LocalAi.appCtx = ctx; }
 
     private static String q(String s) { return JSONObject.quote(s == null ? "" : s); }
 
@@ -59,6 +59,13 @@ public class AiBridge extends FeatureBridge {
     }
 
     @JavascriptInterface public void aiCancel() { LocalAi.cancel(); }
+
+    /** Instelling van de assistent (stijl, creativiteit, taal, gespreksgeheugen, rekenkracht, vrijgeven, over mij, instructies). */
+    @JavascriptInterface public String aiConfigSet(String name, String value) {
+        if (name == null || value == null) return "Ongeldige instelling";
+        return LocalAi.cfgSet(ctx, name, value);
+    }
+    @JavascriptInterface public void aiConfigReset() { LocalAi.cfgReset(ctx); }
 
     // ----- Spraak: een vraag inspreken. Op de telefoon uitgeschreven met het spraakmodel (whisper.cpp) van
     // Gesprekken uitschrijven; de opname gaat na het uitschrijven weg. Antwoord via onAiVoice({text} of {error}).
