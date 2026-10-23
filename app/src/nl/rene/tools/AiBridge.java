@@ -38,6 +38,9 @@ public class AiBridge extends FeatureBridge {
         if (m != null) LocalAi.delete(ctx, m);
     }
 
+    /** Oude modelbestanden (van modellen die deze versie niet meer gebruikt) weg; geeft de vrijgekomen bytes. */
+    @JavascriptInterface public String aiCleanOld() { try { return String.valueOf(LocalAi.cleanOrphans(ctx)); } catch (Throwable t) { return "0"; } }
+
     /** Welk taalmodel de assistent gebruikt. */
     @JavascriptInterface public void aiUse(String id) {
         LocalAi.Model m = LocalAi.model(id);

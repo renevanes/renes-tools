@@ -228,7 +228,7 @@ if (!window.Android) window.Android = (function(){
       reply: 'Hallo! Ik ben je **assistent**.\n- Eén\n- Twee' },
     _aiReady(id){ return this._ai.st[id].state === 'ready'; },
     aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: A.chat, wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, cfg: Object.assign({}, this._aiCfgDef, A.cfg), memCount: A.mem.length, loaded: '', busy: !!A.busy, src: Object.assign({}, A.src), perm: Object.assign({}, A.perm),
-      models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek' }, A.st[m[0]])),
+      models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek' }, m[4] ? { replaces: m[4], news: m[5] || '' } : {}, A.st[m[0]] || { state: 'none' })), orphans: A.orphans || 0,
       index: this._aiReady('zoek') ? { items: 3, chunks: 7, at: Date.now() - 6e4, stale: false } : undefined }); },
     aiDownload(id){ const A = this._ai, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dl', id]);
       Object.assign(m, { state: 'running', bytes: 0, total: 1e9 }); setTimeout(() => { m.bytes = 5e8; }, 200);
@@ -253,6 +253,7 @@ if (!window.Android) window.Android = (function(){
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
     _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'nl', history: '24', power: 'normaal', idle: '4', mem: 'aan', learn: 'vragen', about: '', instr: '' },
+    aiCleanOld(){ const n = this._ai.orphans || 0; this._ai.orphans = 0; return String(n); },
     aiMemList(){ return JSON.stringify(this._ai.mem.slice().sort((a, b) => b.u - a.u)); },
     aiMemAdd(text, src, chat, title){ const A = this._ai, t = String(text || '').trim(); if (!t) return JSON.stringify({ error: 'Er staat niets om te onthouden' });
       const x = t.charAt(0).toUpperCase() + t.slice(1), d = A.mem.find(m => m.text.toLowerCase().replace(/[.!]$/, '') === x.toLowerCase().replace(/[.!]$/, ''));

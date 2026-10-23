@@ -24,6 +24,10 @@ public class LocalAiConfigTest {
         check(LocalAi.buildSystem("d", "uitgebreid", "auto", "", "").contains("dezelfde taal als de vraag") && LocalAi.buildSystem("d", "uitgebreid", "auto", "", "").contains("uitgebreide"), "uitgebreid en zelfde taal");
         String p = LocalAi.buildSystem("d", "normaal", "nl", "Ik woon in Rotterdam.", "Spreek me aan met je.");
         check(p.contains("Over de gebruiker") && p.contains("Ik woon in Rotterdam.") && p.contains("Spreek me aan met je.") && p.indexOf("verzin geen feiten") < p.indexOf("Over de gebruiker"), "persoonlijk achteraan, vaste regels blijven");
+        // Oude modelbestanden (na een update met een nieuwer model)
+        check(!LocalAi.orphan(LocalAi.SMALL.file, LocalAi.MODELS) && !LocalAi.orphan(LocalAi.LARGE.file + ".tmp", LocalAi.MODELS) && !LocalAi.orphan(LocalAi.EMBED.file + ".download", LocalAi.MODELS), "huidige modellen: geen oud bestand");
+        check(LocalAi.orphan("Qwen2-1.5B-Q4_K_M.gguf", LocalAi.MODELS) && LocalAi.orphan("oud.gguf.download", LocalAi.MODELS) && !LocalAi.orphan("chats.json", LocalAi.MODELS), "oude modellen herkend, andere bestanden niet");
+        check(LocalAi.SMALL.replaces.isEmpty() && new LocalAi.Model("x", "X", "", "r", "c", "f.gguf", 1, "s", 4096, false).replaces("klein", "Beter").replaces.equals("klein"), "nieuw model kan een ouder vervangen");
         // Past in het geheugen van het model
         String k1000 = new String(new char[1000]).replace('\0', 'a'), k500 = new String(new char[500]).replace('\0', 'b');
         String[] f = LocalAi.persFit(k1000, k1000, 4096);

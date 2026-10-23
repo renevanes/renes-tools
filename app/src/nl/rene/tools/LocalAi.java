@@ -43,6 +43,11 @@ final class LocalAi {
         }
         /** Vaste versie (commit) op Hugging Face: een latere wijziging daar verandert niets aan wat we downloaden. */
         String url() { return "https://huggingface.co/" + repo + "/resolve/" + commit + "/" + file; }
+        /** Een nieuwer model dat een ouder vervangt (met een app-update meegekomen): de app meldt het, maar
+         *  downloadt nooit vanzelf. Een nieuw model krijgt altijd een eigen id; het bestand van een bestaand id
+         *  verandert nooit. news = één regel waarom het beter is, bijv. "Beter Nederlands, even snel". */
+        String replaces = "", news = "";
+        Model replaces(String oldId, String why) { replaces = oldId; news = why; return this; }
     }
 
     // Controlegetallen van Hugging Face (LFS-oid = SHA-256 en de precieze grootte)
@@ -74,6 +79,23 @@ final class LocalAi {
     private static File partFile(Context c, Model m) { return new File(dlDir(c), m.file + ".download"); }
     private static File tmpFile(Context c, Model m) { return new File(modelDir(c), m.file + ".tmp"); }
 
+    /** Bestanden van modellen die deze app-versie niet meer kent (na een update met een nieuwer model). Zuiver (getest). */
+    static boolean orphan(String name, Model[] models) {
+        for (Model m : models) if (name.equals(m.file) || name.equals(m.file + ".tmp") || name.equals(m.file + ".download")) return false;
+        return name.endsWith(".gguf") || name.endsWith(".gguf.tmp") || name.endsWith(".gguf.download");
+    }
+    private static List<File> orphans(Context c) {
+        List<File> out = new ArrayList<>();
+        for (File d : new File[]{modelDir(c), c.getExternalFilesDir("ai")}) {
+            File[] fs = d == null ? null : d.listFiles();
+            if (fs != null) for (File f : fs) if (f.isFile() && orphan(f.getName(), MODELS)) out.add(f);
+        }
+        return out;
+    }
+    static long orphanBytes(Context c) { long n = 0; for (File f : orphans(c)) n += f.length(); return n; }
+    /** Oude modelbestanden weg; geeft hoeveel ruimte dat opleverde. */
+    static long cleanOrphans(Context c) { long n = 0; for (File f : orphans(c)) { long l = f.length(); if (f.delete()) n += l; } return n; }
+
     /** Genoeg geheugen om het taal- en het zoekmodel tegelijk te laden? (8 GB-telefoons melden ±7,4 GB) */
     static boolean bigRam(Context c) { return ramBytes(c) >= 7_000_000_000L; }
 
@@ -86,7 +108,7 @@ final class LocalAi {
     static Model chatModel(Context c) {
         Model m = model(prefs(c).getString("chat", SMALL.id));
         if (m == null || m.embed) m = SMALL;
-        if (!ready(c, m)) for (Model x : new Model[]{SMALL, LARGE}) if (ready(c, x)) return x;
+        if (!ready(c, m)) for (Model x : MODELS) if (!x.embed && ready(c, x)) return x; // ook een nieuwer model
         return m;
     }
 
@@ -266,6 +288,7 @@ final class LocalAi {
         JSONObject o = new JSONObject();
         try {
             o.put("id", m.id).put("label", m.label).put("desc", m.desc).put("size", m.size).put("embed", m.embed);
+            if (!m.replaces.isEmpty()) o.put("replaces", m.replaces).put("news", m.news);
             if (ready(c, m)) return o.put("state", "ready");
             Integer v = VERIFYING.get(m.id);
             if (v != null) return o.put("state", "verifying").put("pct", v);
@@ -386,7 +409,12 @@ final class LocalAi {
 
     static boolean cancelled() { return cancel; }
     static boolean busy() { return GATE.busy(); }
-    static String loaded() { LlmProcess p = chat; return p != null && p.alive() ? (p.model.getName().equals(LARGE.file) ? LARGE.id : SMALL.id) : ""; }
+    static String loaded() {
+        LlmProcess p = chat;
+        if (p == null || !p.alive()) return "";
+        for (Model m : MODELS) if (!m.embed && p.model.getName().equals(m.file)) return m.id;
+        return "";
+    }
 
     static synchronized void closeChat() { if (chat != null) { chat.destroy(); chat = null; } }
     static synchronized void closeEmbed() { if (embed != null) { embed.destroy(); embed = null; } }
@@ -892,6 +920,7 @@ final class LocalAi {
         cf.put("about", cfg(c, "about")).put("instr", cfg(c, "instr"));
         o.put("cfg", cf);
         o.put("memCount", AiMemory.count(c));
+        try { o.put("orphans", orphanBytes(c)); } catch (Throwable ignored) { }
         JSONObject src = new JSONObject(), perm = new JSONObject();
         for (String k : SOURCES) src.put(k, srcOn(c, k));
         perm.put("sms", Search.has(c, android.Manifest.permission.READ_SMS)).put("calls", Search.has(c, android.Manifest.permission.READ_CALL_LOG))

@@ -107,7 +107,8 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
   `app/` of `web/` veranderen, en wekelijks. Meldingen staan onder Security → Code scanning. (GitHub's
   "default setup" van CodeQL moet uit staan, anders botst die met deze workflow.)
 - **Onderhoud** (`onderhoud.yml`, maandag): `.github/scripts/onderhoud-controle.py` vergelijkt de meegeleverde
-  bibliotheken (Leaflet, jsQR, whisper.cpp, llama.cpp) en vastgezette versies (Playwright, build-tools) met de nieuwste versies
+  bibliotheken (Leaflet, jsQR, whisper.cpp, llama.cpp), de AI-modellen (Hugging Face: nieuwere modellen van dezelfde maker in
+  ongeveer dezelfde grootte) en vastgezette versies (Playwright, build-tools) met de nieuwste versies
   en met de OSV-kwetsbaarhedendatabase, en zet alles wat te doen is in het issue "Onderhoud: updates en beveiliging".
 
 **Wekelijks door een agent** (het issue hierboven is de takenlijst):
@@ -123,6 +124,11 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
    Playwright-versie in `publiceren.yml`; whisper.cpp met `tools/whisper-build.sh` (beide varianten, README.txt bijwerken)
    en llama.cpp met `tools/llm-build.sh` (TAG en COMMIT erin, daarna `./tools/llm/test.sh`)
    alleen bij een kwetsbaarheid of een duidelijke verbetering, want dat vraagt een nieuwe APK.
+   **AI-modellen:** een beter model overnemen = een nieuw `Model` met een eigen id in `LocalAi.java`, met vaste commit,
+   grootte en SHA-256 (uit de LFS-gegevens van Hugging Face) en `.replaces("oud-id", "waarom beter")`. Nooit het bestand
+   van een bestaand id wijzigen. De app meldt het nieuwe model dan bij de assistent en bij Taalmodel; Rene kiest zelf
+   of hij het downloadt, en het oude kan daarna weg (oude bestanden ruimt Taalmodel → Opruimen op). Alleen bij een
+   duidelijke verbetering (beter Nederlands, sneller, kleiner), en vraag Rene eerst: een model is 1–3 GB.
    **Dependabot-pull requests** (uitzondering op regel 6, want die zijn van GitHub zelf, niet van iemand anders):
    alleen samenvoegen als ze uitsluitend `.github/workflows/` raken, "Bouwen en testen" groen is en je de release
    notes hebt nagelezen, en extra kritisch zijn bij alles wat in `publiceren.yml` draait (de sleutel is daar actief).

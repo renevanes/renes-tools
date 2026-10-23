@@ -12,7 +12,7 @@ const AI_SUGG = [
 function aiLoad(){ aiSt = rdJson(Android.aiState(), {}); return aiSt; }
 function aiModel(id){ return (aiSt.models || []).find(m => m.id === id) || {}; }
 function aiReady(id){ return aiModel(id).state === 'ready'; }
-function aiChatReady(){ return aiReady('klein') || aiReady('groot'); }
+function aiChatReady(){ return (aiSt.models || []).some(m => !m.embed && m.state === 'ready'); }
 function aiBusyDl(){ return (aiSt.models || []).some(m => ['running', 'queued', 'paused', 'verifying'].includes(m.state)); }
 
 /* Status van een model in één regel */
@@ -36,8 +36,12 @@ function aiModelCard(m, opts){
   else if (busy) btn = m.state === 'verifying' ? '' : '<button class="mini" onclick="aiDel(\'' + m.id + '\', true)">Stoppen</button>';
   else btn = '<button class="mini on" onclick="aiDl(\'' + m.id + '\')">Downloaden</button>';
   const big = m.id === 'groot' && aiSt.ram > 0 && aiSt.ram < 7.5e9;
+  // Nieuw (vervangt een ouder model), of vervangen door een nieuwer dat al klaar is
+  const newer = m.replaces ? '<small class="ainew">' + uiIcon('star') + 'Nieuw' + (aiModel(m.replaces).label ? ', vervangt ' + esc(aiModel(m.replaces).label) : '') + (m.news ? ': ' + esc(m.news) : '') + '</small>' : '';
+  const by = (aiSt.models || []).find(x => x.replaces === m.id && x.state === 'ready');
+  const old = by && m.state === 'ready' ? '<small class="ainew">Vervangen door ' + esc(by.label) + (aiSt.chat === by.id ? '; dit model kun je verwijderen' : '') + '</small>' : '';
   return '<div class="aimodel' + (chosen ? ' on' : '') + '" data-id="' + m.id + '"><div class="aimt"><b>' + esc(m.label) + '</b><small>' + esc(m.desc) + '</small>' +
-    '<small class="aims">' + esc(aiStateTxt(m)) + (big && m.state !== 'ready' ? ' · let op: je telefoon heeft ' + (aiSt.ram / 1e9).toFixed(0) + ' GB geheugen' : '') + '</small>' +
+    '<small class="aims">' + esc(aiStateTxt(m)) + (big && m.state !== 'ready' ? ' · let op: je telefoon heeft ' + (aiSt.ram / 1e9).toFixed(0) + ' GB geheugen' : '') + '</small>' + newer + old +
     (busy ? '<span class="pcprog"><i style="width:' + Math.min(100, pct).toFixed(1) + '%"></i></span>' : '') + '</div>' +
     '<div class="aimb">' + btn + (m.state === 'ready' && opts.del ? '<button class="mini" onclick="aiDel(\'' + m.id + '\')">Verwijderen</button>' : '') + '</div></div>';
 }
@@ -53,7 +57,32 @@ function aiDel(id, stop){
   if (stop) { go(); return; }
   askConfirm(m.label + ' verwijderen?', 'Het model (' + aiStateTxt(m).replace('✓ Klaar · ', '') + ') gaat van je telefoon. Je kunt het later opnieuw downloaden.', 'Verwijderen', go);
 }
-function aiUse(id){ Android.aiUse(id); aiRefresh(); toast('De assistent gebruikt nu: ' + aiModel(id).label); }
+function aiUse(id){
+  Android.aiUse(id); aiRefresh(); toast('De assistent gebruikt nu: ' + aiModel(id).label);
+  // Een nieuwer model in gebruik genomen: het oude mag weg (vragen, niet vanzelf)
+  const m = aiModel(id), old = m.replaces && aiModel(m.replaces);
+  if (old && old.state === 'ready') setTimeout(() => askConfirm(old.label + ' verwijderen?', 'Je gebruikt nu ' + m.label + '. Het oude model (' + aiStateTxt(old).replace('✓ Klaar · ', '') + ') kan weg om ruimte te maken.', 'Verwijderen', () => { Android.aiDelete(old.id); aiRefresh(); toast(old.label + ' verwijderd'); }), 400);
+}
+/* Nieuwere modellen die een model vervangen dat je hebt (meegekomen met een app-update) en die je nog niet hebt */
+function aiNewer(){
+  let seen = []; try { seen = store.get('aiNewSeen') || []; } catch (e) { }
+  return (aiSt.models || []).filter(m => m.replaces && aiReady(m.replaces) && m.state !== 'ready' && !seen.includes(m.id));
+}
+function aiNewHtml(){
+  const n = aiNewer();
+  if (!n.length) return '';
+  const m = n[0];
+  const busy = ['running', 'queued', 'paused', 'verifying'].includes(m.state);
+  return '<div class="card ainewcard" role="status"><b>' + uiIcon('star') + 'Nieuw model: ' + esc(m.label) + '</b><p class="note">' + esc((m.news ? m.news + '. ' : '') + 'Vervangt ' + aiModel(m.replaces).label + '. ' + m.desc) + '</p>' +
+    '<div class="ainewb"><button class="mini on" onclick="jumpTo(\'aisetmodel\')">' + (busy ? 'Bekijken' : 'Bekijken en downloaden') + '</button><button class="mini" onclick="aiNewLater(\'' + esc(m.id) + '\')">Niet nu</button></div></div>';
+}
+function aiNewLater(id){ let seen = []; try { seen = store.get('aiNewSeen') || []; } catch (e) { } if (!seen.includes(id)) seen.push(id); store.set('aiNewSeen', seen); aiRenderMain(); toast('Je vindt het nieuwe model bij Instellingen → Taalmodel'); }
+function aiOldHtml(){
+  const b = aiSt.orphans || 0;
+  if (b < 1e6) return '';
+  return '<div class="sw"><span>Oude modelbestanden<small>' + esc((b / 1e9).toFixed(1).replace('.', ',') + ' GB van modellen die de app niet meer gebruikt') + '</small></span><button class="mini" onclick="aiCleanOld()">Opruimen</button></div>';
+}
+function aiCleanOld(){ const n = +Android.aiCleanOld() || 0; aiRefresh(); toast(n ? (n / 1e9).toFixed(1).replace('.', ',') + ' GB vrijgemaakt' : 'Niets op te ruimen'); }
 /* Alles bijwerken wat modellen toont; blijven kijken zolang er gedownload of gecontroleerd wordt */
 function aiRefresh(){
   aiLoad();
@@ -82,6 +111,7 @@ function aiRenderMain(){
       : 'Downloaden gaat door op de achtergrond' + (aiSt.wifiOnly ? ', alleen via wifi' : '') + '. Je kunt het kleine model later altijd nog wisselen voor het grote, of andersom (bij Meer → Instellingen).';
     return;
   }
+  $('#ai-newmodel').innerHTML = aiNewHtml();
   const n = $('#ai-notes');
   n.style.display = aiReady('zoek') ? '' : 'none';
   n.classList.toggle('on', !!aiSt.notes); n.setAttribute('aria-checked', aiSt.notes ? 'true' : 'false');
@@ -362,6 +392,7 @@ function enterAiSet(){ aiLoad(); aiRenderSet(); if (current === 'aisetmem') aimR
 function aiRenderSet(){
   const ms = aiSt.models || [];
   $('#ais-chat').innerHTML = ms.filter(m => !m.embed).map(m => aiModelCard(m, { chat: true, del: true })).join('');
+  $('#ais-old').innerHTML = aiOldHtml();
   $('#ais-embed').innerHTML = ms.filter(m => m.embed).map(m => aiModelCard(m, { del: true })).join('');
   const w = $('#ais-wifi'); w.classList.toggle('on', !!aiSt.wifiOnly); w.setAttribute('aria-checked', aiSt.wifiOnly ? 'true' : 'false');
   aisRenderVoice(); aicRender(); aiRenderData();
@@ -571,7 +602,8 @@ function aicRender(){
   const sum = (id, t) => { const e = $('#ai-sum-' + id); if (e) e.textContent = t; };
   const ready = (aiSt.models || []).filter(m => !m.embed && m.state === 'ready');
   const chat = (aiSt.models || []).find(m => m.id === aiSt.chat);
-  sum('model', ready.length ? (chat && chat.state === 'ready' ? chat.label : ready[0].label) : 'Nog geen model gedownload');
+  const nieuw = (aiSt.models || []).some(m => m.replaces && aiReady(m.replaces) && m.state !== 'ready');
+  sum('model', (ready.length ? (chat && chat.state === 'ready' ? chat.label : ready[0].label) : 'Nog geen model gedownload') + (nieuw ? ' · nieuw model beschikbaar' : ''));
   sum('answer', [AIC_LABEL.style[c.style], AIC_LABEL.creative[c.creative], AIC_LABEL.lang[c.lang]].filter(Boolean).join(' · '));
   sum('pers', c.about || c.instr ? [c.about ? 'Over mij' : '', c.instr ? 'eigen instructies' : ''].filter(Boolean).join(' en ') + ' ingevuld' : 'Nog niets ingevuld');
   const v = typeof Android.aiVoiceInfo === 'function' ? rdJson(Android.aiVoiceInfo(), {}) : {};
