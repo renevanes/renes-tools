@@ -56,7 +56,9 @@ jobs:
         run: ./build.sh
 
       - name: Logica-tests (Java)
-        run: ./tests/run-jvm.sh
+        run: |
+          set -o pipefail
+          mkdir -p build && ./tests/run-jvm.sh 2>&1 | tee build/ci-jvm.log
 
       - name: Playwright installeren
         run: |
@@ -64,7 +66,34 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Interfacetests (Playwright, licht en donker)
-        run: ./tests/run-ui.sh
+        run: |
+          set -o pipefail
+          ./tests/run-ui.sh 2>&1 | tee build/ci-ui.log
+
+      # De logboeken van een run zijn niet altijd te lezen (ook niet voor agents): zet de mislukte tests en hun
+      # foutregels daarom als melding bij de run en in de samenvatting.
+      - name: Mislukte tests benoemen
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import pathlib, re
+          uit = []
+          for name in ('ci-jvm.log', 'ci-ui.log'):
+              path = pathlib.Path('build') / name
+              if not path.is_file():
+                  continue
+              regels = path.read_text(errors='replace').splitlines()
+              for i, line in enumerate(regels):
+                  m = re.fullmatch(r'✗ ([A-Za-z0-9_.-]{1,128})', line)
+                  if m:
+                      fout = [r for r in regels[i + 1:i + 26] if re.search(r'Error|error|fout|Fout|expect|Timeout|✗', r)][:4]
+                      tekst = ' | '.join(x.strip()[:200] for x in fout).replace('%', '%25').replace('\r', '').replace('\n', ' ')
+                      print(f'::error title=Mislukte test::{m[1]}: {tekst}')
+                      uit.append(f'### {m[1]}\n```\n' + '\n'.join(regels[i + 1:i + 26]) + '\n```')
+          if uit:
+              with open(__import__('os').environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+                  f.write('## Mislukte tests\n\n' + '\n\n'.join(uit) + '\n')
+          PY
 
       - name: Test-APK en schermafdrukken bewaren
         if: always()
@@ -74,4 +103,5 @@ jobs:
           path: |
             Renes-Tools-v*.apk
             tests/ui/shots/*.png
+            build/ci-*.log
           retention-days: 14
