@@ -289,6 +289,7 @@ final class SpotifyLib {
     /** De items van één soort voor het scherm (hooguit 2000); gone: de weggehaalde. */
     static JSONObject list(Context c, String kind, boolean wantGone) throws Exception {
         List<SpotifyDiff.T> l;
+        if (!known(kind)) return new JSONObject().put("total", 0).put("items", new JSONArray()); // alleen vaste soorten: geen ander bestand lezen
         if (wantGone) l = gone(c, kind);
         else if (kind.equals("recent")) { // met het tijdstip van luisteren
             JSONObject r = read(recentFile(c));
