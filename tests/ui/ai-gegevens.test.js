@@ -35,9 +35,11 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._ai.src.wa === false) && (await pg.textContent('#toast')).includes('doet niet meer mee'), 'whatsapp weer uit');
     await pg.screenshot({ path: __dirname + '/shots/ai-gegevens-' + scheme + '.png', fullPage: true });
     // Stoppen tijdens het bijwerken
-    await pg.click('#aid-index button.mini'); await pg.waitForTimeout(60);
+    await pg.evaluate(() => { Android._ai.holdIndex = true; }); // blijft bezig tot Stoppen, ook op een trage machine
+    await pg.click('#aid-index button.mini');
+    await pg.waitForFunction(() => document.querySelector('#aid-index').textContent.includes('Bijwerken…'), null, { timeout: 5000 }).catch(() => {});
     ok((await pg.textContent('#aid-index')).includes('Bijwerken…'), 'zoekindex bijwerken vanuit Gegevens');
-    await pg.click('#aid-index button:has-text("Stoppen")');
+    await pg.click('#aid-index button:has-text("Stoppen")', { timeout: 5000 });
     ok(await pg.evaluate(() => Android._ai.calls.some(c => c[0] === 'indexStop')), 'bijwerken te stoppen');
     await pg.waitForTimeout(300);
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);

@@ -234,7 +234,7 @@ if (!window.Android) window.Android = (function(){
       Object.assign(m, { state: 'running', bytes: 0, total: 1e9 }); setTimeout(() => { m.bytes = 5e8; }, 200);
       setTimeout(() => { Object.assign(m, { state: 'verifying', pct: 40 }); }, 450); setTimeout(() => { A.st[id] = { state: 'ready' }; onAiModels(''); }, 700); return ''; },
     aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ const A = this._ai; if (/^src_/.test(n)) { const k = n.slice(4); if (!(k in A.src)) return; A.src[k] = on; A.calls.push(['src', k, on]); if (this._aiReady('zoek')) { setTimeout(() => onAiIndex({ busy: true, done: 1, total: 3 }), 40); setTimeout(() => onAiIndex({ items: 4, chunks: 9, at: Date.now(), quiet: true }), 150); } return; } if (['wifiOnly', 'notes', 'voiceSend'].includes(n)) A[n] = on; },
-    aiIndexStop(){ this._ai.calls.push(['indexStop']); },
+    aiIndexStop(){ this._ai.calls.push(['indexStop']); if (this._ai.holdIndex) { this._ai.holdIndex = false; setTimeout(() => onAiIndex({ items: 3, chunks: 7, at: Date.now() }), 20); } },
     aiIndexAuto(){ this._ai.calls.push(['indexAuto']); },
     // Zoals AiBridge: bezig tot het antwoord (of het stoppen) helemaal klaar is; een tweede vraag intussen wordt geweigerd
     aiChat(j){ const A = this._ai, r = JSON.parse(j); A.asked = (A.asked || 0) + 1; if (A.busy) { A.refused = (A.refused || 0) + 1; return 'De assistent is nog bezig'; } A.last = r; A.busy = true;
@@ -280,7 +280,7 @@ if (!window.Android) window.Android = (function(){
     aiChatSave(j){ const c = JSON.parse(j); c.id = c.id || 'c' + (++this._ai.seq); c.t = Date.now(); this._ai.chats = [c].concat(this._ai.chats.filter(x => x.id !== c.id)); return c.id; },
     aiChatDelete(id){ this._ai.chats = id === '*' ? [] : this._ai.chats.filter(x => x.id !== id); },
     aiSearch(q){ const id = ++this._ai.seq; this._ai.calls.push(['search', q]); setTimeout(() => onAiSearch({ id, q, items: [{ kind: 'notes', id: (notesGet()[0] || {}).id || 'x', title: 'Auto naar de garage', snip: 'APK-keuring in maart, banden wisselen', t: Date.now(), score: 0.58 }, { kind: 'tx', id: 't1', title: 'Jos', snip: 'we spraken over de garage', from: 12000, score: 0.44 }].concat(this._ai.src.sms ? [{ kind: 'sms', id: '7', title: 'Jos', snip: '[1 okt] Jos: de garage belt morgen', score: 0.4 }] : [], this._ai.src.contacts ? [{ kind: 'contacts', id: 'k1|5', title: 'Garage Jansen', snip: 'Contact: Garage Jansen', score: 0.35 }] : []), updating: !!this._ai.updating }), 80); return id; },
-    aiIndex(force){ this._ai.calls.push(['index', force]); setTimeout(() => onAiIndex({ busy: true, done: 2, total: 4 }), 50); setTimeout(() => onAiIndex({ items: 3, chunks: 7, at: Date.now() }), 200); },
+    aiIndex(force){ this._ai.calls.push(['index', force]); setTimeout(() => onAiIndex({ busy: true, done: 2, total: 4 }), 50); if (!this._ai.holdIndex) setTimeout(() => onAiIndex({ items: 3, chunks: 7, at: Date.now() }), 200); }, // holdIndex: bezig tot Stoppen (geen race op trage machines)
     _dl: { list: [], prefs: { wifiOnly: true, autoDelete: true } },
     podDlStart(j){ const o = JSON.parse(j); if (this._dl.list.some(d => d.key === o.ep.key)) return ''; this._dl.list.unshift({ key: o.ep.key, ep: o.ep, pod: o.pod, t: Date.now(), state: 'running', bytes: 0, total: 40e6 });
       const d = this._dl.list[0]; setTimeout(() => { d.bytes = 2e7; }, 300); setTimeout(() => { d.state = 'done'; d.bytes = d.total; }, 900); return ''; },
