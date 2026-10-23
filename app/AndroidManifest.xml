@@ -84,6 +84,8 @@
             </intent-filter>
         </receiver>
         <service android:name=".CallRecorderService" android:exported="false" android:foregroundServiceType="microphone" />
+        <!-- Slaappraat: luistert 's nachts (microfoon) en schrijft daarna in dezelfde dienst uit op de telefoon -->
+        <service android:name=".SleepService" android:exported="false" android:foregroundServiceType="microphone" />
         <provider android:name=".KluisProvider" android:authorities="nl.rene.tools.kluis" android:exported="false" android:grantUriPermissions="true" />
         <provider android:name=".RecordingProvider" android:authorities="nl.rene.tools.recordings" android:exported="false" android:grantUriPermissions="true" />
 

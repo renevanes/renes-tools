@@ -221,6 +221,29 @@ if (!window.Android) window.Android = (function(){
     podUnsubscribe(id){ this._pc.subs = this._pc.subs.filter(x => x.id !== id); },
     podSubs(){ return JSON.stringify(this._pc.subs); },
     // Lokale AI (assistent en slim zoeken): nagebootst, zonder model
+    // Slaappraat zoals SleepBridge: nachten met stukjes, luisteren en uitschrijven worden nagebootst
+    _sl: { phase: '', night: '', since: 0, stopAt: 0, heard: 0, level: -60, floor: -64, txDone: 0, txTotal: 0, message: '', mic: true, notif: true, model: 'Snel (57 MB)',
+      set: { sens: 2, stopAt: '07:30', transcribe: true, keepNoise: false, keep: 14 }, nights: [], played: '' },
+    _slSum(n){ const c = n.clips; return { id: n.id, start: n.start, end: n.end, reason: n.reason || '', talk: c.filter(k => k.done && k.kind === 'praten').length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done).length, first: (c.find(k => k.done && k.kind === 'praten') || {}).text || '' }; },
+    sleepState(){ const S = this._sl; return JSON.stringify({ phase: S.phase, night: S.night, since: S.since, stopAt: S.stopAt, heard: S.heard, level: S.level, floor: S.floor, txDone: S.txDone, txTotal: S.txTotal, message: S.message,
+      mic: S.mic, notif: S.notif, model: S.model, set: S.set, nights: S.nights.slice().sort((a, b) => b.start - a.start).map(n => this._slSum(n)) }); },
+    sleepStart(){ const S = this._sl; if (!S.mic) return 'mic'; if (!S.notif) return 'notif'; if (S.phase === 'luistert') return '';
+      S.phase = 'luistert'; S.since = Date.now(); S.heard = 0; S.night = String(S.since); S.stopAt = S.set.stopAt ? S.since + 8 * 3600e3 : 0;
+      S.nights.push({ id: S.night, start: S.since, end: 0, clips: [] }); return ''; },
+    sleepStop(){ const S = this._sl; if (S.phase !== 'luistert') return; const n = S.nights.find(x => x.id === S.night); if (n) { n.end = Date.now(); n.reason = 'Gestopt'; } S.phase = '';
+      if (S.set.transcribe && S.model && n) n.clips.forEach(k => { if (!k.done && k.audio) { k.done = true; k.text = k._text || ''; k.kind = k.text ? 'praten' : 'geluid'; if (k.kind === 'geluid' && !S.set.keepNoise) k.audio = false; } }); },
+    _slHear(text, dur){ const S = this._sl, n = S.nights.find(x => x.id === S.night); if (!n) return; const t = Date.now() + n.clips.length * 60e3; n.clips.push({ id: 'c' + t, t, dur: dur || 4, audio: true, done: false, _text: text || '' }); S.heard++; },
+    sleepNight(id){ const n = this._sl.nights.find(x => x.id === id); return n ? JSON.stringify(n) : ''; },
+    sleepDeleteNight(id){ const S = this._sl; if (id === S.night && S.phase) return; S.nights = S.nights.filter(n => n.id !== id); },
+    sleepDeleteClip(id, clip){ const n = this._sl.nights.find(x => x.id === id); if (n) n.clips = n.clips.filter(k => k.id !== clip); },
+    sleepSet(name, v){ const S = this._sl.set; if (name === 'sens') { if (!/^[123]$/.test(v)) return 'Ongeldig'; S.sens = +v; } else if (name === 'stopAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.stopAt = v; }
+      else if (name === 'transcribe' || name === 'keepNoise') S[name] = v === 'true'; else if (name === 'keep') { if (!/^(7|14|30)$/.test(v)) return 'Ongeldig'; S.keep = +v; } else return 'Ongeldig'; return ''; },
+    sleepTranscribe(id){ const S = this._sl, n = S.nights.find(x => x.id === id); if (!n) return 'Onbekende nacht'; if (S.phase) return 'Dat kan pas als Slaappraat klaar is met luisteren en uitschrijven'; if (!S.model) return 'model';
+      S.phase = 'uitschrijven'; S.night = id; S.txDone = 0; S.txTotal = n.clips.filter(k => !k.done && k.audio).length;
+      setTimeout(() => { n.clips.forEach(k => { if (!k.done && k.audio) { k.done = true; k.text = k._text || ''; k.kind = k.text ? 'praten' : 'geluid'; if (k.kind === 'geluid' && !S.set.keepNoise) k.audio = false; } }); S.phase = ''; }, S.txMs || 300); return ''; },
+    sleepPlay(id, clip){ const n = this._sl.nights.find(x => x.id === id), k = n && n.clips.find(x => x.id === clip); if (!k || !k.audio) return 'Het geluid van dit stukje is er niet meer'; this._sl.played = clip; return ''; },
+    sleepStopPlay(){ this._sl.played = ''; },
+    sleepPlaying(){ return this._sl.played; },
     _ai: { st: { klein: { state: 'none' }, groot: { state: 'none' }, zoek: { state: 'none' } }, chat: 'klein', wifiOnly: true, notes: true, chats: [], ram: 8e9, calls: [], seq: 0,
       mem: [], learnFacts: ['Woont in Rotterdam.'],
       src: { notes: true, tx: true, sms: false, wa: false, calls: false, contacts: false }, perm: { notes: true, tx: true, sms: true, wa: false, calls: true, contacts: false },
@@ -233,8 +256,8 @@ if (!window.Android) window.Android = (function(){
     aiDownload(id){ const A = this._ai, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dl', id]);
       Object.assign(m, { state: 'running', bytes: 0, total: 1e9 }); setTimeout(() => { m.bytes = 5e8; }, 200);
       setTimeout(() => { Object.assign(m, { state: 'verifying', pct: 40 }); }, 450); setTimeout(() => { A.st[id] = { state: 'ready' }; onAiModels(''); }, 700); return ''; },
-    aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ const A = this._ai; if (/^src_/.test(n)) { const k = n.slice(4); if (!(k in A.src)) return; A.src[k] = on; A.calls.push(['src', k, on]); if (this._aiReady('zoek')) { setTimeout(() => onAiIndex({ busy: true, done: 1, total: 3 }), 40); setTimeout(() => onAiIndex({ items: 4, chunks: 9, at: Date.now(), quiet: true }), 150); } return; } if (['wifiOnly', 'notes', 'voiceSend'].includes(n)) A[n] = on; },
-    aiIndexStop(){ this._ai.calls.push(['indexStop']); if (this._ai.holdIndex) { this._ai.holdIndex = false; setTimeout(() => onAiIndex({ items: 3, chunks: 7, at: Date.now() }), 20); } },
+    aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ const A = this._ai; if (/^src_/.test(n)) { const k = n.slice(4); if (!(k in A.src)) return; A.src[k] = on; A.calls.push(['src', k, on]); if (this._aiReady('zoek')) { setTimeout(() => onAiIndex({ busy: true, done: 1, total: 3 }), 40); setTimeout(() => onAiIndex({ items: 4, chunks: 9, at: Date.now(), quiet: true }), A.idxMs || 150); } return; } if (['wifiOnly', 'notes', 'voiceSend'].includes(n)) A[n] = on; },
+    aiIndexStop(){ this._ai.calls.push(['indexStop']); },
     aiIndexAuto(){ this._ai.calls.push(['indexAuto']); },
     // Zoals AiBridge: bezig tot het antwoord (of het stoppen) helemaal klaar is; een tweede vraag intussen wordt geweigerd
     aiChat(j){ const A = this._ai, r = JSON.parse(j); A.asked = (A.asked || 0) + 1; if (A.busy) { A.refused = (A.refused || 0) + 1; return 'De assistent is nog bezig'; } A.last = r; A.busy = true;
@@ -280,7 +303,7 @@ if (!window.Android) window.Android = (function(){
     aiChatSave(j){ const c = JSON.parse(j); c.id = c.id || 'c' + (++this._ai.seq); c.t = Date.now(); this._ai.chats = [c].concat(this._ai.chats.filter(x => x.id !== c.id)); return c.id; },
     aiChatDelete(id){ this._ai.chats = id === '*' ? [] : this._ai.chats.filter(x => x.id !== id); },
     aiSearch(q){ const id = ++this._ai.seq; this._ai.calls.push(['search', q]); setTimeout(() => onAiSearch({ id, q, items: [{ kind: 'notes', id: (notesGet()[0] || {}).id || 'x', title: 'Auto naar de garage', snip: 'APK-keuring in maart, banden wisselen', t: Date.now(), score: 0.58 }, { kind: 'tx', id: 't1', title: 'Jos', snip: 'we spraken over de garage', from: 12000, score: 0.44 }].concat(this._ai.src.sms ? [{ kind: 'sms', id: '7', title: 'Jos', snip: '[1 okt] Jos: de garage belt morgen', score: 0.4 }] : [], this._ai.src.contacts ? [{ kind: 'contacts', id: 'k1|5', title: 'Garage Jansen', snip: 'Contact: Garage Jansen', score: 0.35 }] : []), updating: !!this._ai.updating }), 80); return id; },
-    aiIndex(force){ this._ai.calls.push(['index', force]); setTimeout(() => onAiIndex({ busy: true, done: 2, total: 4 }), 50); if (!this._ai.holdIndex) setTimeout(() => onAiIndex({ items: 3, chunks: 7, at: Date.now() }), 200); }, // holdIndex: bezig tot Stoppen (geen race op trage machines)
+    aiIndex(force){ this._ai.calls.push(['index', force]); setTimeout(() => onAiIndex({ busy: true, done: 2, total: 4 }), 50); setTimeout(() => onAiIndex({ items: 3, chunks: 7, at: Date.now() }), this._ai.idxMs || 200); },
     _dl: { list: [], prefs: { wifiOnly: true, autoDelete: true } },
     podDlStart(j){ const o = JSON.parse(j); if (this._dl.list.some(d => d.key === o.ep.key)) return ''; this._dl.list.unshift({ key: o.ep.key, ep: o.ep, pod: o.pod, t: Date.now(), state: 'running', bytes: 0, total: 40e6 });
       const d = this._dl.list[0]; setTimeout(() => { d.bytes = 2e7; }, 300); setTimeout(() => { d.state = 'done'; d.bytes = d.total; }, 900); return ''; },
@@ -444,7 +467,7 @@ if (!window.Android) window.Android = (function(){
     _st:{lock:false,timeout:60000,crashes:0},
     settingsInfo(){ const t=this._st; return JSON.stringify({dest:this._wa.info.dest,destName:'USB-stick',audd:this._mu.token?'abc…xyz':'',crashes:t.crashes,lock:JSON.parse(this.lockState()),
       perms:[{id:'phone',name:'Bellen',used:'Auto redial',ok:true},{id:'mic',name:'Microfoon',used:'Muziek herkennen',ok:this._mu.mic},{id:'files',name:'Alle bestanden',used:'WhatsApp backup, Gesprekken',ok:false}]}); },
-    permRequest(id){ if(id==='mic') this._mu.mic=true; const ap = { contacts: 'contacts', contactsread: 'contacts', calllog: 'calls', sms: 'sms' }; if (ap[id] && this._ai) this._ai.perm[ap[id]] = true; (this._permAsked = this._permAsked || []).push(id); setTimeout(()=>onSettingsChanged(''),100); },
+    permRequest(id){ if(id==='mic') { this._mu.mic=true; if (this._sl) this._sl.mic = true; } if (id==='notif' && this._sl) this._sl.notif = true; const ap = { contacts: 'contacts', contactsread: 'contacts', calllog: 'calls', sms: 'sms' }; if (ap[id] && this._ai) this._ai.perm[ap[id]] = true; (this._permAsked = this._permAsked || []).push(id); setTimeout(()=>onSettingsChanged(''),100); },
     crashShare(){ toast('(delen foutrapport)'); }, notesVersion(){ return this._nv || 1; }, historyStamp(){ return [this._historyRows.length, this._historyEnabled, this._historyAllowed].join(':'); }, overnight(){ return this._seen ? '{}' : JSON.stringify({since: Date.now() - 8 * 36e5, backup: {t: Date.now() - 4 * 36e5, failed: 0}, missed: [{who: 'Tandarts', t: Date.now() - 2 * 36e5}], auto: [{t: Date.now() - 36e5, name: 'Parkeren', what: 'Gestart vanuit de melding'}]}); }, overnightSeen(){ this._seen = true; },
     backupCheckLast(){ return this._chk || '{}'; }, backupCheckRun(){ this._chk = JSON.stringify({t: Date.now(), ok: true, items: [{what: 'Backup-map', ok: true, msg: 'Backup'}, {what: 'Proef-terugzetten', ok: true, msg: '✓ Notities leesbaar (12).'}], summary: 'ok'}); setTimeout(() => onBackupCheck(JSON.parse(this._chk)), 50); },
     webStoreSave(j){ this._webStore = j; }, webStorePending(){ return ''; },

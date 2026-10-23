@@ -1,0 +1,52 @@
+<section class="screen" id="s-sleep">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Slaappraat</h1>
+  </div>
+  <main>
+    <div class="card sl-main">
+      <div id="sl-status" role="status" aria-live="polite"></div>
+      <div class="sl-meter" id="sl-meter" aria-hidden="true" style="display:none"><i id="sl-meter-bar"></i><b id="sl-meter-floor"></b></div>
+      <button class="big" id="sl-btn" onclick="slToggle()">Begin met luisteren</button>
+      <p class="note" id="sl-note">Luistert de hele nacht zuinig mee en bewaart alleen de momenten waarop je iets zegt (of er iets te horen is). 's Ochtends lees en hoor je wat het was.</p>
+    </div>
+
+    <div class="flabel stgl" role="heading" aria-level="2">Nachten</div>
+    <div class="card stlist" id="sl-nights"></div>
+
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="settings" aria-hidden="true"></span>Instellingen</h2>
+      <div class="sw"><span>Vanzelf stoppen<small id="sl-stop-n">'s Ochtends om deze tijd</small></span><button class="tg" id="sl-stop-on" role="switch" aria-checked="true" aria-label="Vanzelf stoppen" aria-describedby="sl-stop-n" onclick="slStopToggle()"></button></div>
+      <div class="sl-stoprow" id="sl-stoprow"><label for="sl-stop">Stoppen om</label><input type="time" id="sl-stop" class="sl-time" onchange="slSetStop()"></div>
+      <div class="aicfg"><b id="sl-sens-l">Gevoeligheid</b><div class="chips sm" id="sl-sens" role="radiogroup" aria-labelledby="sl-sens-l"><button role="radio" aria-checked="false" data-v="1" onclick="slSet('sens', '1')">Ook gefluister</button><button role="radio" aria-checked="false" data-v="2" onclick="slSet('sens', '2')">Normaal</button><button role="radio" aria-checked="false" data-v="3" onclick="slSet('sens', '3')">Alleen duidelijk</button></div><small class="note" id="sl-sens-n"></small></div>
+      <div class="sw"><span>Daarna uitschrijven<small id="sl-tx-n"></small></span><button class="tg" id="sl-tx" role="switch" aria-checked="true" aria-label="Daarna uitschrijven" aria-describedby="sl-tx-n" onclick="slSwitch('transcribe')"></button></div>
+      <div class="sw"><span>Ook snurken en andere geluiden bewaren<small id="sl-noise-n">Uit: van wat geen praten blijkt, blijft alleen het tijdstip bewaard</small></span><button class="tg" id="sl-noise" role="switch" aria-checked="false" aria-label="Ook snurken en andere geluiden bewaren" aria-describedby="sl-noise-n" onclick="slSwitch('keepNoise')"></button></div>
+      <div class="aicfg"><b id="sl-keep-l">Nachten bewaren</b><div class="chips sm" id="sl-keep" role="radiogroup" aria-labelledby="sl-keep-l"><button role="radio" aria-checked="false" data-v="7" onclick="slSet('keep', '7')">1 week</button><button role="radio" aria-checked="false" data-v="14" onclick="slSet('keep', '14')">2 weken</button><button role="radio" aria-checked="false" data-v="30" onclick="slSet('keep', '30')">30 dagen</button></div></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="info" aria-hidden="true"></span>Goed om te weten</h2>
+      <ul class="sl-tips">
+        <li>Leg de telefoon aan de lader, met de onderkant (de microfoon) naar je hoofd, op ongeveer een meter.</li>
+        <li>Zuinig: de app kijkt 50 keer per seconde even hoe hard het is (zonder zware berekeningen) en bewaart alleen wat opvalt. Aan de lader merk je er niets van; zonder lader stopt hij bij 15% accu.</li>
+        <li>Tijdens een telefoongesprek luistert hij niet.</li>
+        <li>Een ventilator of verwarming went vanzelf: na een paar seconden telt dat als stilte.</li>
+        <li>Alles blijft op je telefoon (niet in backups) en wordt na de gekozen tijd vanzelf gewist. Slaapt er iemand naast je, vertel het dan even: de microfoon hoort diegene ook.</li>
+      </ul>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-sleepnight">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1" id="sln-title">Nacht</h1>
+    <button class="icon-btn" id="sln-menu" onclick="slnMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <p class="note" id="sln-sum"></p>
+    <div id="sln-tx"></div>
+    <div class="chips sm" id="sln-filter" role="radiogroup" aria-label="Wat tonen"><button role="radio" aria-checked="true" data-v="praten" onclick="slnFilter('praten')">Gepraat</button><button role="radio" aria-checked="false" data-v="alles" onclick="slnFilter('alles')">Alles</button></div>
+    <div id="sln-list" role="list"></div>
+  </main>
+</section>

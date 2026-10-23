@@ -19,30 +19,34 @@ const { chromium } = require('playwright');
     const sw = k => '#aid-list .tg[aria-label="' + k + '"]';
     ok((await pg.getAttribute(sw('Notities'), 'aria-checked')) === 'true' && (await pg.getAttribute(sw("Sms'jes"), 'aria-checked')) === 'false', 'schakelaars tonen de stand');
     // Sms aan (toestemming is er): meteen op de achtergrond in de index
-    await pg.click(sw("Sms'jes")); await pg.waitForTimeout(60);
+    await pg.evaluate(() => { Android._ai.idxMs = 1500; }); // ruim, ook op een trage testmachine
+    const until = (f, arg) => pg.waitForFunction(f, arg, { timeout: 5000 }).catch(() => {});
+    await pg.click(sw("Sms'jes")); await until(() => Android._ai.src.sms === true);
     ok(await pg.evaluate(() => Android._ai.src.sms === true && Android._ai.calls.some(c => c[0] === 'src' && c[1] === 'sms' && c[2])), 'sms aangezet');
     ok((await pg.textContent('#toast')).includes('zoekindex') && (await pg.textContent('#aid-index')).includes('Bijwerken…'), 'sms: wordt aan de zoekindex toegevoegd, met voortgang');
-    await pg.waitForTimeout(250);
+    await until(() => !$('#aid-index').textContent.includes('Bijwerken…'));
     ok(!(await pg.textContent('#aid-index')).includes('Bijwerken…') && !(await pg.textContent('#toast')).includes('Zoekindex bijgewerkt'), 'klaar op de achtergrond: zonder extra melding');
+    await pg.evaluate(() => { Android._ai.idxMs = 100; });
     // Contacten aan zonder toestemming: Android vraagt erom
-    await pg.click(sw('Contacten')); await pg.waitForTimeout(250);
+    await pg.click(sw('Contacten')); await until(() => Android._ai.perm.contacts === true && !$('#aid-list').textContent.includes('mag er nog niet bij'));
     ok(await pg.evaluate(() => Android._ai.src.contacts === true && (Android._permAsked || []).includes('contactsread')), 'contacten: om toestemming gevraagd');
     ok(await pg.evaluate(() => Android._ai.perm.contacts === true) && !(await pg.textContent('#aid-list')).includes('mag er nog niet bij'), 'na toestemming: geen waarschuwing meer');
     // WhatsApp aan zonder leesbare chats: uitleg met knop
     await pg.click(sw('WhatsApp')); await pg.waitForTimeout(100);
     ok((await pg.textContent('#aid-list')).includes('Maak eerst je chats leesbaar'), 'whatsapp nog niet leesbaar: uitleg');
-    await pg.click(sw('WhatsApp')); await pg.waitForTimeout(60);
+    await pg.click(sw('WhatsApp')); await until(() => Android._ai.src.wa === false);
     ok(await pg.evaluate(() => Android._ai.src.wa === false) && (await pg.textContent('#toast')).includes('doet niet meer mee'), 'whatsapp weer uit');
     await pg.screenshot({ path: __dirname + '/shots/ai-gegevens-' + scheme + '.png', fullPage: true });
     // Stoppen tijdens het bijwerken
-    await pg.evaluate(() => { Android._ai.holdIndex = true; }); // blijft bezig tot Stoppen, ook op een trage machine
-    await pg.click('#aid-index button.mini');
-    await pg.waitForFunction(() => document.querySelector('#aid-index').textContent.includes('Bijwerken…'), null, { timeout: 5000 }).catch(() => {});
+    await pg.waitForTimeout(400); // eerdere (nagebootste) bijwerkrondes zijn klaar
+    await until(() => !$('#aid-index').textContent.includes('Bijwerken…'));
+    await pg.evaluate(() => { Android._ai.idxMs = 1500; });
+    await pg.click('#aid-index button.mini'); await pg.waitForTimeout(60);
     ok((await pg.textContent('#aid-index')).includes('Bijwerken…'), 'zoekindex bijwerken vanuit Gegevens');
-    await pg.click('#aid-index button:has-text("Stoppen")', { timeout: 5000 });
+    await pg.click('#aid-index button:has-text("Stoppen")');
     ok(await pg.evaluate(() => Android._ai.calls.some(c => c[0] === 'indexStop')), 'bijwerken te stoppen');
-    await pg.waitForTimeout(300);
-    await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);
+    await until(() => !$('#aid-index').textContent.includes('Bijwerken…'));
+    await pg.evaluate(() => { Android._ai.idxMs = 0; goBack(); }); await pg.waitForTimeout(100);
     ok((await pg.textContent('#ai-sum-data')).includes("Sms'jes") && (await pg.textContent('#ai-sum-data')).includes('Contacten'), 'overzicht: gekozen gegevens');
     // De assistent gebruikt ze: bron uit een sms, en die opent het sms-gesprek
     await pg.evaluate(() => show('ai')); await pg.waitForTimeout(150);

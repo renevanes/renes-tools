@@ -38,6 +38,7 @@ schermen/30-vpn.html
 schermen/31-locatie.html
 schermen/32-zoeken.html
 schermen/33-assistent.html
+schermen/34-slaappraat.html
 speler.html
 vensters.html
 script/00-begin.js
@@ -85,6 +86,7 @@ script/49-documenten-ordenen.js
 script/38-podcasts.js
 script/46-podcast-downloads.js
 script/51-assistent.js
+script/52-slaappraat.js
 script/38b-spotify-podcasts.js
 script/39-speler.js
 script/40-spotify.js

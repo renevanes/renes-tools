@@ -1496,6 +1496,7 @@ public class MainActivity extends Activity {
                     a.js("onRecorderMessage", JSONObject.quote("Geef eerst toestemming voor de microfoon en opnamemelding")); return;
                 }
                 if ("recording".equals(Music.state)) { a.js("onRecorderMessage", JSONObject.quote("Stop eerst muziekherkenning via de microfoon")); return; }
+                if ("luistert".equals(SleepService.phase)) { a.js("onRecorderMessage", JSONObject.quote("Stop eerst Slaappraat")); return; }
                 if (!CallRecorderService.reserve()) { a.js("onRecorderMessage", JSONObject.quote("Er loopt al een opname")); return; }
                 recorderStopPlayback();
                 try {
