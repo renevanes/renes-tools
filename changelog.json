@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.87",
+    "date": "2026-10-23",
+    "changes": [
+      "Podcasts: de kleine speler in het meldingenpaneel en op het vergrendelscherm heeft nu knoppen om 15 seconden terug en 30 seconden vooruit te spoelen (ook bij casten). De vorige/volgende-knop van een koptelefoon of auto spoelt ook"
+    ]
+  },
+  {
     "version": "1.86",
     "date": "2026-10-23",
     "changes": [
