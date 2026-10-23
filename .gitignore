@@ -12,4 +12,8 @@ tools/lcpp/
 tools/zigwrap/
 tools/llm-out/
 tools/build-llm-*/
+tools/wcpp/
+tools/whisper-out/
+tools/build-arm64-*/
+tools/build-x86_64/
 __pycache__/

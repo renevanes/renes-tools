@@ -1,4 +1,5 @@
-whisper.cpp commit 60c0be6ac8fa71b1a2ae2dd938a31a34a508e774 (github.com/ggml-org/whisper.cpp, MIT-licentie)
+whisper.cpp v1.9.5, commit d1be6fde11ac6e0407606b4e42fe72d34add8037 van 2026-10-06 (github.com/ggml-org/whisper.cpp, MIT-licentie)
+Gebouwd op 2026-10-23.
 Gebouwd met tools/whisper-build.sh (zig cc, statisch aarch64-linux-musl, geen NDK):
   libwhisper.so          = ./whisper-build.sh            (armv8.2-a + dotprod + fp16, snel)
   libwhisper_generic.so  = ./whisper-build.sh generic    (elke arm64-processor)
