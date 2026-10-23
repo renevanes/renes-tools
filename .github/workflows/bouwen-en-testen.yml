@@ -86,7 +86,9 @@ jobs:
               for i, line in enumerate(regels):
                   m = re.fullmatch(r'✗ ([A-Za-z0-9_.-]{1,128})', line)
                   if m:
-                      fout = [r for r in regels[i + 1:i + 26] if re.search(r'Error|error|fout|Fout|expect|Timeout|✗', r)][:4]
+                      blok = [r.strip() for r in regels[i + 1:i + 40] if r.strip() and not r.strip().startswith('at ')]
+                      plek = [r for r in regels[i + 1:i + 40] if '.test.js:' in r][:1]  # regel in de test
+                      fout = blok[:6] + [p.strip() for p in plek]
                       tekst = ' | '.join(x.strip()[:200] for x in fout).replace('%', '%25').replace('\r', '').replace('\n', ' ')
                       print(f'::error title=Mislukte test::{m[1]}: {tekst}')
                       uit.append(f'### {m[1]}\n```\n' + '\n'.join(regels[i + 1:i + 26]) + '\n```')
