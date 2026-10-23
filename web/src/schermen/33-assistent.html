@@ -1,0 +1,78 @@
+<!-- ============ ASSISTENT (lokale AI) ============ -->
+<section class="screen" id="s-ai">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Assistent</h1>
+    <button class="icon-btn" id="ai-new" onclick="aiNew()" aria-label="Nieuw gesprek"><span class="ui-icon" data-icon="plus" aria-hidden="true"></span></button>
+    <button class="icon-btn" id="ai-menu" onclick="aiMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <!-- Nog geen taalmodel: kiezen en downloaden -->
+    <div id="ai-setup" style="display:none">
+      <div class="card aihero">
+        <span class="ui-icon" data-icon="sparkle" aria-hidden="true"></span>
+        <h2>Een assistent die op je telefoon blijft</h2>
+        <p class="note">Stel vragen, laat teksten schrijven, samenvatten of vertalen, en zoek in je eigen notities en gesprekken. Alles draait op je telefoon: zonder internet, en er gaat niets de telefoon uit.</p>
+      </div>
+      <div class="flabel" style="margin:4px 2px 8px">Kies een taalmodel (eenmalig downloaden)</div>
+      <div id="ai-setup-models"></div>
+      <p class="note" id="ai-setup-note"></p>
+    </div>
+
+    <!-- Het gesprek -->
+    <div id="ai-chat" style="display:none">
+      <div id="ai-empty">
+        <p class="note" style="text-align:center;margin:8px 0 14px">Waarmee kan ik helpen?</p>
+        <div class="aisugg" id="ai-sugg"></div>
+      </div>
+      <div id="ai-msgs" role="log" aria-live="polite" aria-label="Gesprek"></div>
+      <p class="note" id="ai-status" role="status" style="display:none"></p>
+      <div class="aicomp" id="ai-comp">
+        <button class="aichip" id="ai-notes" role="switch" aria-checked="false" onclick="aiToggleNotes()" style="display:none"><span class="ui-icon" data-icon="notes" aria-hidden="true"></span>Met mijn notities</button>
+        <div class="airow">
+          <textarea id="ai-in" rows="1" placeholder="Vraag iets…" aria-label="Je vraag" oninput="aiGrow()" onkeydown="aiKey(event)"></textarea>
+          <button class="aisend" id="ai-send" onclick="aiSendOrStop()" aria-label="Versturen"><span class="ui-icon" data-icon="up" aria-hidden="true"></span></button>
+        </div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-aichats">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Eerdere gesprekken</h1>
+  </div>
+  <main>
+    <div class="card pclist" id="aic-list"></div>
+    <p class="note">Gesprekken blijven alleen op je telefoon (de laatste 100).</p>
+  </main>
+</section>
+
+<section class="screen" id="s-aiset">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Lokale AI</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="sparkle" aria-hidden="true"></span>Taalmodel voor de assistent</h2>
+      <div id="ais-chat"></div>
+    </div>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="search" aria-hidden="true"></span>Slim zoeken</h2>
+      <p class="note">Zoekt in je notities en uitgeschreven gesprekken op betekenis, niet alleen op precieze woorden. Bijvoorbeeld "wanneer moet de auto naar de garage" vindt ook een notitie over de APK. Je ziet het bij Zoeken, en de assistent kan het gebruiken met <b>Met mijn notities</b>.</p>
+      <div id="ais-embed"></div>
+      <div id="ais-index"></div>
+    </div>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="download" aria-hidden="true"></span>Downloaden</h2>
+      <div class="sw"><span>Alleen via wifi<small>De modellen zijn groot (0,6 tot 2,5 GB)</small></span><button class="tg" id="ais-wifi" role="switch" aria-checked="true" aria-label="Alleen via wifi" onclick="aisWifi()"></button></div>
+    </div>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="lock" aria-hidden="true"></span>Privacy</h2>
+      <p class="note">De AI draait helemaal op je telefoon (llama.cpp). Je vragen, de antwoorden, je gesprekken met de assistent en de zoekindex blijven op je telefoon en gaan niet mee in Android-backups. Alleen de modellen zelf komen eenmalig van Hugging Face; die worden gecontroleerd met hun vaste controlegetal (SHA-256).</p>
+      <button class="big ghost" onclick="aisClearChats()" data-icon="trash">Alle gesprekken met de assistent verwijderen</button>
+    </div>
+  </main>
+</section>

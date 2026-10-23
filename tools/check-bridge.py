@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Controleert dat de interface alleen Android-functies aanroept die echt bestaan.
 
-- web/src (de app): elke Android.xxx moet een @JavascriptInterface in MainActivity.java of FeatureBridge.java zijn
+- web/src (de app): elke Android.xxx moet een @JavascriptInterface in MainActivity.java of een van de *Bridge.java zijn
   en ook in de test-brug (script/01-testbrug.js) staan, anders werken de tests met iets wat de app niet heeft.
 - web/start.html (telefoon-skin): elke Android.xxx moet in HomeActivity.java staan.
 Uitzonderingen: aanroepen die achter `typeof Android.xxx === 'function'` staan (bewust optioneel).
@@ -16,7 +16,7 @@ def calls(text):
     return set(re.findall(r'\bAndroid\.(\w+)\s*\(', text))
 def optional(text):
     return set(re.findall(r"typeof\s+Android\.(\w+)\s*[!=]==?\s*'function'", text))
-main = bridge('app/src/nl/rene/tools/MainActivity.java') | bridge('app/src/nl/rene/tools/FeatureBridge.java') | bridge('app/src/nl/rene/tools/PodcastBridge.java') | bridge('app/src/nl/rene/tools/PlayerBridge.java') | bridge('app/src/nl/rene/tools/SpotifyBridge.java') | bridge('app/src/nl/rene/tools/VpnBridge.java') | bridge('app/src/nl/rene/tools/LocBridge.java')
+main = bridge('app/src/nl/rene/tools/MainActivity.java') | bridge('app/src/nl/rene/tools/FeatureBridge.java') | bridge('app/src/nl/rene/tools/PodcastBridge.java') | bridge('app/src/nl/rene/tools/PlayerBridge.java') | bridge('app/src/nl/rene/tools/SpotifyBridge.java') | bridge('app/src/nl/rene/tools/VpnBridge.java') | bridge('app/src/nl/rene/tools/LocBridge.java') | bridge('app/src/nl/rene/tools/AiBridge.java')
 home = bridge('app/src/nl/rene/tools/HomeActivity.java')
 web = ''.join(read(os.path.relpath(p, root)) for p in sorted(glob.glob(os.path.join(root, 'web/src/script/*.js'))) if not p.endswith('01-testbrug.js'))
 web += ''.join(read(os.path.relpath(p, root)) for p in sorted(glob.glob(os.path.join(root, 'web/src/schermen/*.html'))))

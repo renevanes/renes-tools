@@ -56,6 +56,27 @@ public class AiBridge extends FeatureBridge {
 
     @JavascriptInterface public void aiCancel() { LocalAi.cancel(); }
 
+    /** Een antwoord naar het klembord. */
+    @JavascriptInterface public void aiCopy(final String text) {
+        if (text == null) return;
+        a.h.post(() -> {
+            try {
+                android.content.ClipboardManager cm = (android.content.ClipboardManager) ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("Assistent", text.length() > 100_000 ? text.substring(0, 100_000) : text));
+            } catch (Exception ignored) { }
+        });
+    }
+
+    /** Een antwoord of gesprek delen met een andere app (die jij kiest). */
+    @JavascriptInterface public void aiShare(final String text) {
+        if (text == null) return;
+        a.h.post(() -> {
+            android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
+                    .putExtra(android.content.Intent.EXTRA_TEXT, text.length() > 100_000 ? text.substring(0, 100_000) : text);
+            try { a.startActivity(android.content.Intent.createChooser(i, "Delen")); } catch (Exception ignored) { }
+        });
+    }
+
     @JavascriptInterface public String aiChats() { try { return LocalAi.chatList(ctx); } catch (Exception e) { return "[]"; } }
 
     @JavascriptInterface public String aiChatGet(String id) { return id == null ? "" : LocalAi.chatGet(ctx, id); }

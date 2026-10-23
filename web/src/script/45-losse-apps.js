@@ -4,7 +4,7 @@
  * Welke tools een losse app mogen zijn, kies je in Instellingen (of via lang indrukken van een tegel). */
 const SOLO = (typeof Android.soloTool === 'function' && Android.soloTool()) || '';
 const SOLO_TOOLS = ['redial', 'wa', 'tracks', 'sms', 'history', 'calls', 'notes', 'contacts', 'pdf', 'kluis', 'car', 'recorder',
-  'transcripts', 'radio', 'podcasts', 'spotify', 'vpn', 'loc', 'music']; // zelfde lijst als Solo.TOOLS (Java)
+  'transcripts', 'radio', 'podcasts', 'spotify', 'vpn', 'loc', 'music', 'ai']; // zelfde lijst als Solo.TOOLS (Java)
 
 /** Hoort dit scherm bij de tool van deze losse app? (via de terug-volgorde naar het eerste scherm) */
 function soloOk(name){
