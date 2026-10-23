@@ -97,6 +97,36 @@ nadat het gereedschap is geïnstalleerd, en haalt hem na afloop weer weg.
 - Groeit de APK meer dan 10% of moet de hoofdversie omhoog: start de workflow met de hand (Actions → Publiceren →
   Run workflow) met `allow_grow` of `major`.
 
+## Onderhoud: updates en beveiliging
+Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel dat niet vanzelf kan.
+
+**Vanzelf (GitHub):**
+- **Dependabot** (`.github/dependabot.yml`) houdt de GitHub Actions bij. Kleine updates voegt
+  `dependabot-samenvoegen.yml` samen zodra "Bouwen en testen" slaagt; grote updates blijven open (label `grote-update`).
+- **Beveiligingsscan** (`beveiligingsscan.yml`): CodeQL op Java en JavaScript bij elke push naar main en wekelijks.
+  Meldingen staan onder Security → Code scanning.
+- **Onderhoud** (`onderhoud.yml`, maandag): `.github/scripts/onderhoud-controle.py` vergelijkt de meegeleverde
+  bibliotheken (Leaflet, jsQR, whisper.cpp) en vastgezette versies (Playwright, build-tools) met de nieuwste versies
+  en met de OSV-kwetsbaarhedendatabase, en zet alles wat te doen is in het issue "Onderhoud: updates en beveiliging".
+
+**Wekelijks door een agent** (het issue hierboven is de takenlijst):
+1. Werk in een eigen branch/worktree `onderhoud/JJJJ-MM-DD`. Draai lokaal ook `python3 .github/scripts/onderhoud-controle.py`.
+2. **Kwetsbaarheden eerst.** Elke CodeQL-melding: oplossen, of (alleen bij een echte vals-positief) afwijzen met een
+   reden via `gh api -X PATCH repos/renevanes/renes-tools/code-scanning/alerts/N -f state=dismissed -f dismissed_reason="false positive" -f dismissed_comment="…"`.
+   Loop daarnaast zelf de code na die sinds het vorige onderhoud veranderde (`git log --since="8 days ago"`) op de
+   privacyregels hierboven, brugfuncties die te veel toestaan, onveilige WebView-instellingen, verbindingen naar buiten
+   en de updatecontrole.
+3. **Bibliotheken bijwerken:** Leaflet/jsQR uit het npm-pakket (`dist/`, met de bestaande kopregel en licentie);
+   Playwright-versie in `publiceren.yml`; whisper.cpp met `tools/whisper-build.sh` (beide varianten, README.txt bijwerken)
+   alleen bij een kwetsbaarheid of een duidelijke verbetering, want dat vraagt een nieuwe APK. Grote updates van
+   Dependabot: kijk de release notes na, pas de workflows aan, voeg samen.
+4. Bouwen, alle tests (`run-jvm.sh`, `run-ui.sh`), onafhankelijke review door een tweede agent, bevindingen oplossen.
+5. Wijzigingsregel(s) in `wijzigingen/onderhoud-JJJJ-MM-DD.txt` (alleen als de app verandert), push naar main zoals
+   hierboven; controleer dat Publiceren slaagt. Is er niets veilig te doen, laat het dan staan en zet in het issue waarom.
+6. Meld Rene kort: wat bijgewerkt is, wat opgelost is, en wat bewust is blijven liggen.
+Nooit in het kader van onderhoud: de updatecontrole, de sleutel of `publiceren.yml`-beveiliging verzwakken, of
+pull requests van anderen samenvoegen.
+
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK
 installeren als `NATIVE_LEVEL` omhoog ging, of opnieuw koppelen).
