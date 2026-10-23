@@ -1,2 +1,0 @@
-Assistent: heeft nu een geheugen. Zeg "onthoud dat …" of "vergeet dat …", of laat hem leren uit je gesprekken: hij stelt eerst voor wat hij wil onthouden (of doet het vanzelf, als je dat kiest)
-Lokale AI → Geheugen: zie precies wat de assistent over je weet en waar het vandaan komt, pas het aan, vergeet iets of alles, of zet het geheugen uit. Alles blijft op je telefoon
