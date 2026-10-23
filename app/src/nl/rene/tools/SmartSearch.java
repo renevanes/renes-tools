@@ -530,10 +530,18 @@ final class SmartSearch {
     static JSONArray search(Context c, String q, int k) throws Exception {
         current(c);
         if (!builtSig.equals(sourcesSig(c))) {
+            // Liep er al een (lange) update, dan niet wachten: zoeken in wat er is. Anders kort wachten, maar niet als
+            // er veel te doen blijkt (bijv. net sms aangezet): dan meteen zoeken en de rest op de achtergrond.
+            boolean was = updating();
             LocalAi.indexLater(c);
-            long until = System.currentTimeMillis() + WAIT_MS;
-            Thread.sleep(50); // de index-thread even laten beginnen
-            while ((updating() || LocalAi.indexQueued()) && System.currentTimeMillis() < until) Thread.sleep(200);
+            if (!was) {
+                long until = System.currentTimeMillis() + WAIT_MS;
+                Thread.sleep(50); // de index-thread even laten beginnen
+                while ((updating() || LocalAi.indexQueued()) && System.currentTimeMillis() < until) {
+                    if (busyDone >= 0 && busyTotal > 48) break;
+                    Thread.sleep(200);
+                }
+            }
         }
         List<float[]> qv = LocalAi.embed(c, java.util.Collections.singletonList(QUERY_PREFIX + q), DIMS);
         float[] v = qv.get(0);
