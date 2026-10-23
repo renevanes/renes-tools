@@ -342,7 +342,7 @@ final class Podcasts {
             try { put(p, key, pos, dur, done, System.currentTimeMillis()); trim(p); } catch (Exception ignored) { }
         }
         scheduleWrite(c);
-        if (done) { final Context app = c.getApplicationContext(); IO.execute(() -> { try { PodcastDownloads.played(app, key); } catch (Throwable ignored) { } }); } // beluisterd: download weg (als dat zo is ingesteld)
+        if (done) { final Context app = c.getApplicationContext(); IO.execute(() -> { try { if (PodcastDownloads.played(app, key)) MainActivity.jsAll("onPodDl", ""); } catch (Throwable ignored) { } }); } // beluisterd: download weg (als dat zo is ingesteld)
     }
 
     private static void put(JSONObject p, String key, long pos, long dur, boolean done, long t) throws Exception {

@@ -36,12 +36,40 @@ final class PodcastDownloads {
 
     static File indexFile(Context c) { return new File(Podcasts.dir(c), "downloads.json"); }
 
+    /** Welke afleveringen in de lijst staan (null = nog niet gelezen): afspelen weet zo meteen dat er niets is. */
+    private static volatile java.util.Set<String> KEYS;
+
     private static JSONObject index(Context c) {
         JSONObject o = Podcasts.readJson(indexFile(c));
-        return o == null ? new JSONObject() : o;
+        if (o == null) o = new JSONObject();
+        KEYS = keysOf(o);
+        return o;
     }
     private static void save(Context c, JSONObject o) {
+        KEYS = keysOf(o);
         try { Contacts.writeText(indexFile(c), o.toString(), false); } catch (Exception e) { App.log(c, "PODCAST", "downloads bewaren: " + e.getMessage()); }
+    }
+    private static java.util.Set<String> keysOf(JSONObject o) {
+        java.util.Set<String> s = new java.util.HashSet<>();
+        for (Iterator<String> k = o.keys(); k.hasNext(); ) s.add(k.next());
+        return java.util.Collections.unmodifiableSet(s);
+    }
+
+    /** Bij het starten (op de achtergrond): de lijst inlezen, zodat afspelen nooit op schijf of Android hoeft te wachten. */
+    static void warm(Context c) {
+        final Context app = c.getApplicationContext();
+        Podcasts.IO.execute(() -> {
+            try {
+                JSONObject idx = index(app);
+                File d = dir(app);
+                if (d == null) return;
+                for (Iterator<String> k = idx.keys(); k.hasNext(); ) {
+                    String key = k.next(); JSONObject it = idx.optJSONObject(key);
+                    File f = it == null ? null : new File(d, it.optString("file"));
+                    if (f != null && it.optBoolean("done") && f.isFile() && f.length() > 0) READY.put(key, f.getAbsolutePath());
+                }
+            } catch (Throwable ignored) { }
+        });
     }
 
     static File dir(Context c) {
@@ -123,7 +151,7 @@ final class PodcastDownloads {
                 }
                 case DownloadManager.STATUS_RUNNING: return s.put("state", "running");
                 case DownloadManager.STATUS_PENDING: return s.put("state", "queued");
-                case DownloadManager.STATUS_PAUSED: return s.put("state", "paused").put("reason", pauseReason(reason));
+                case DownloadManager.STATUS_PAUSED: return s.put("state", "paused").put("reason", pauseReason(reason)).put("wifi", reason == DownloadManager.PAUSED_QUEUED_FOR_WIFI);
                 default: return s.put("state", "failed").put("reason", reason == DownloadManager.ERROR_INSUFFICIENT_SPACE ? "Te weinig opslag" : "Downloaden mislukt");
             }
         }
@@ -168,24 +196,25 @@ final class PodcastDownloads {
         if (!Podcasts.validKey(key)) return null;
         String p = READY.get(key);
         if (p != null) { if (new File(p).isFile()) return p; READY.remove(key); }
+        java.util.Set<String> k = KEYS;
+        if (k != null && !k.contains(key)) return null; // niet gedownload: niets op schijf te zoeken
         return localPathSlow(c, key);
     }
 
-    private static synchronized String localPathSlow(Context c, String key) {
+    /** Zonder slot (wordt vanaf de afspeelthread aangeroepen): alleen lezen; de lijst wordt later door list() bijgewerkt. */
+    private static String localPathSlow(Context c, String key) {
         JSONObject idx = index(c), it = idx.optJSONObject(key);
         if (it == null) return null;
         File d = dir(c);
         if (d == null) return null;
+        try {
+            if (!it.optBoolean("done")) {
+                DownloadManager m = dm(c);
+                if (m == null || !"done".equals(status(c, m, it).optString("state"))) return null; // status() zet ook de echte bestandsnaam
+            }
+        } catch (Exception e) { return null; }
         File f = new File(d, it.optString("file"));
         if (!f.isFile() || f.length() == 0) return null;
-        if (!it.optBoolean("done")) {
-            DownloadManager m = dm(c);
-            try {
-                if (m == null || !"done".equals(status(c, m, it).optString("state"))) return null;
-                it.put("done", true); save(c, idx);
-                f = new File(d, it.optString("file")); // misschien een andere naam gekregen
-            } catch (Exception e) { return null; }
-        }
         READY.put(key, f.getAbsolutePath());
         return f.getAbsolutePath();
     }
@@ -212,7 +241,9 @@ final class PodcastDownloads {
         for (Iterator<String> k = idx.keys(); k.hasNext(); ) {
             JSONObject it = idx.optJSONObject(k.next());
             if (it == null || it.optBoolean("done")) continue;
-            try { String st = status(c, m, it).optString("state"); if ("paused".equals(st) || "queued".equals(st)) again.add(it); } catch (Exception ignored) { }
+            // Alleen wat op wifi wacht, of nog niet begonnen is: opnieuw starten gooit wat al binnen was weg
+            try { JSONObject s = status(c, m, it); String st = s.optString("state");
+                if (("paused".equals(st) && s.optBoolean("wifi")) || ("queued".equals(st) && s.optLong("bytes") <= 0)) again.add(it); } catch (Exception ignored) { }
         }
         for (JSONObject it : again) {
             String key = it.optJSONObject("ep") == null ? "" : it.optJSONObject("ep").optString("key");
@@ -237,11 +268,15 @@ final class PodcastDownloads {
         if (left != null) for (File f : left) f.delete();
     }
 
-    /** Aflevering beluisterd: download weg als dat zo is ingesteld. */
-    static void played(Context c, String key) {
-        if (!autoDelete(c)) return;
-        if (key.equals(PodcastService.playingKey())) return; // speelt nog (bijv. de laatste seconden)
-        remove(c, key);
+    /** Aflevering beluisterd: download weg als dat zo is ingesteld. Geeft true als er iets weg is. */
+    static boolean played(Context c, String key) {
+        if (!autoDelete(c)) return false;
+        if (key.equals(PodcastService.playingKey())) return false; // speelt nog (bijv. de laatste seconden)
+        java.util.Set<String> k = KEYS;
+        if (k != null && !k.contains(key)) return false;
+        boolean had = index(c).has(key);
+        if (had) remove(c, key);
+        return had;
     }
 
     // ---------- vanzelf downloaden van nieuwe afleveringen ----------

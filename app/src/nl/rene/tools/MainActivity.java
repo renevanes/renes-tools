@@ -173,6 +173,7 @@ public class MainActivity extends Activity {
         Care.ensureScheduled(this);
         NotifCenter.ensureAll(this);        // alle soorten meldingen met nette namen in Android         // dagelijks onderhoud: backup-controle (maandelijks) en batterij (wekelijks)
         AllBackupJob.ensureScheduled(this);
+        PodcastDownloads.warm(this);
         PodcastDownloadJob.schedule(this); // vanzelf downloaden van podcasts (alleen als je dat ergens aanzette)
         TranscribeJob.ensureScheduled(this);
         // Automatiseringen: plekken opnieuw instellen als Android ze kwijt kan zijn (bijv. na geforceerd stoppen op Oppo)
