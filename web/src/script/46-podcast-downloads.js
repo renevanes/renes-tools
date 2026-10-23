@@ -62,7 +62,7 @@ function pcRenderDl(){
   $('#pc-tab-dl-n').textContent = pcDl.length ? String(pcDl.length) : '';
   $('#pc-tab-dl').setAttribute('aria-label', 'Downloads' + (pcDl.length ? ', ' + pcDl.length : ''));
   const done = pcDl.filter(d => d.state === 'done'), bytes = done.reduce((a, d) => a + (+d.bytes || 0), 0);
-  $('#pc-dl-sum').textContent = done.length ? done.length + (done.length === 1 ? ' aflevering' : ' afleveringen') + ' · ' + fmtB(bytes) : 'Bezig met downloaden';
+  $('#pc-dl-sum').textContent = done.length ? done.length + (done.length === 1 ? ' aflevering' : ' afleveringen') + ' · ' + fmtB(bytes) : pcDl.some(pcDlBusy) ? 'Bezig met downloaden' : 'Downloaden mislukt';
   // Zelfde rijen als net (alleen voortgang anders): tekst en balk bijwerken, de lijst niet opnieuw opbouwen
   const sig = pcDl.map(d => d.key + ':' + pcDlBar(d)).join('|');
   const rows = $('#pc-dl').children;

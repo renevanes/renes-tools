@@ -140,6 +140,7 @@ const assert = require('node:assert');
     await pg.evaluate(() => pdOpen({ feed: 'https://feeds.example.org/tech', title: 'Tech in 20 minuten' })); await pg.waitForTimeout(300);
     await pg.click('#pd-eps .pcep:nth-child(1) .pcepb'); await pg.waitForTimeout(300);
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(300);
+    await pg.click('#pc-tab-listen'); await pg.waitForTimeout(100); // je zocht eerder: dan blijft Ontdekken open
     assert.strictEqual(await pg.isVisible('#pc-cont-wrap'), true);
     assert.match(await pg.textContent('#pc-cont'), /Aflevering 63/);
     assert.match(await pg.textContent('#pc-cont'), /nog/);

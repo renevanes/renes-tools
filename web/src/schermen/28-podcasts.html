@@ -6,11 +6,11 @@
     <button class="icon-btn" id="pc-menu" onclick="pcMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
   </div>
   <main>
-    <div class="pctabs" role="tablist" aria-label="Podcasts">
-      <button role="tab" id="pc-tab-listen" data-tab="listen" aria-controls="pc-p-listen" aria-selected="true" onclick="pcSetTab('listen', true)">Luisteren</button>
-      <button role="tab" id="pc-tab-discover" data-tab="discover" aria-controls="pc-p-discover" aria-selected="false" onclick="pcSetTab('discover', true)">Ontdekken</button>
-      <button role="tab" id="pc-tab-dl" data-tab="dl" aria-controls="pc-p-dl" aria-selected="false" onclick="pcSetTab('dl', true)">Downloads<span class="pctabn" id="pc-tab-dl-n"></span></button>
-    </div>
+    <div class="pctabs-wrap"><div class="pctabs" role="tablist" aria-label="Podcasts">
+      <button role="tab" id="pc-tab-listen" data-tab="listen" aria-controls="pc-p-listen" aria-selected="true" tabindex="0" onclick="pcSetTab('listen', true)">Luisteren</button>
+      <button role="tab" id="pc-tab-discover" data-tab="discover" aria-controls="pc-p-discover" aria-selected="false" tabindex="-1" onclick="pcSetTab('discover', true)">Ontdekken</button>
+      <button role="tab" id="pc-tab-dl" data-tab="dl" aria-controls="pc-p-dl" aria-selected="false" tabindex="-1" onclick="pcSetTab('dl', true)">Downloads<span class="pctabn" id="pc-tab-dl-n"></span></button>
+    </div></div>
 
     <!-- Luisteren: verder luisteren en de podcasts die je volgt -->
     <div role="tabpanel" id="pc-p-listen" aria-labelledby="pc-tab-listen">

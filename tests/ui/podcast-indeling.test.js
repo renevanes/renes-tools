@@ -21,6 +21,21 @@ const { chromium } = require('playwright');
     await pg.click('#pc-list .srow:nth-child(15) .sbtn'); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => current === 'podcast' && pdPod.feed === 'https://feeds.example.org/f14'), 'de juiste podcast geopend (ook na Meer tonen)');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
+    // Zoeken: weinig resultaten = geen Meer tonen; na volgen en terug blijf je bij je zoekresultaten
+    await pg.fill('#pc-q', 'Podcast 3'); await pg.waitForTimeout(800);
+    ok((await pg.$$eval('#pc-list .srow', x => x.length)) >= 1 && !(await pg.isVisible('#pc-list-more')), 'weinig zoekresultaten: geen Meer tonen');
+    await pg.click('#pc-list .srow:nth-child(1) .sbtn'); await pg.waitForTimeout(300);
+    await pg.click('#pd-sub'); await pg.waitForTimeout(100);
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => pcTab === 'discover') && (await pg.inputValue('#pc-q')) === 'Podcast 3', 'na volgen terug: nog bij je zoekresultaten');
+    await pg.click('#pc-tab-listen'); await pg.waitForTimeout(100);
+    ok(!(await pg.isVisible('#pc-subs-more')) && !(await pg.isVisible('#pc-cont-more')), 'weinig podcasts: geen Alle-knoppen');
+    await pg.evaluate(() => { Android._pc.subs = []; pcRenderSubs(); $('#pc-q').value = ''; pcSearchSoon(); });
+    // Pijltjestoetsen tussen de tabbladen
+    await pg.focus('#pc-tab-listen'); await pg.keyboard.press('ArrowRight');
+    ok(await pg.evaluate(() => pcTab === 'discover' && document.activeElement.id === 'pc-tab-discover' && document.activeElement.tabIndex === 0), 'pijltje rechts: volgend tabblad');
+    await pg.keyboard.press('End'); ok(await pg.evaluate(() => pcTab === 'dl'), 'End: laatste tabblad');
+    await pg.keyboard.press('ArrowRight'); ok(await pg.evaluate(() => pcTab === 'listen'), 'rond: weer het eerste');
     // Leeg tabblad Luisteren: uitleg, zoeken en (klein) Spotify
     await pg.click('#pc-tab-listen'); await pg.waitForTimeout(100);
     ok(await pg.isVisible('#pc-listen-empty') && await pg.isVisible('#pc-from-spotify'), 'Luisteren leeg: uitleg en kleine Spotify-link');

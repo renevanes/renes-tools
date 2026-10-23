@@ -29,16 +29,27 @@ function pcSlimEp(e){ return { key: e.key, guid: e.guid, title: e.title, url: e.
 function pcSlimPod(p){ p = p || {}; return { id: p.id, feed: p.feed, title: p.title, author: p.author, image: p.image, link: p.link }; }
 
 /* ---------- hoofdscherm: drie tabbladen (Luisteren, Ontdekken, Downloads) ---------- */
-let pcTab = 'listen', pcTabUser = false;
+let pcTab = 'listen', pcTabUser = false, pcTopLoading = false;
 function pcSetTab(t, byUser){
   if (!['listen', 'discover', 'dl'].includes(t)) t = 'listen';
   if (byUser) pcTabUser = true;
   const changed = pcTab !== t; pcTab = t;
-  document.querySelectorAll('#s-podcasts .pctabs [role=tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'));
+  document.querySelectorAll('#s-podcasts .pctabs [role=tab]').forEach(b => { const on = b.dataset.tab === t; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
   $('#pc-p-listen').hidden = t !== 'listen'; $('#pc-p-discover').hidden = t !== 'discover'; $('#pc-p-dl').hidden = t !== 'dl';
-  if (t === 'discover' && !$('#pc-q').value.trim() && (!pcTop || !$('#pc-list .srow'))) pcShowTop();
+  if (t === 'discover' && !$('#pc-q').value.trim() && !pcTopLoading && (!pcTop || !$('#pc-list .srow'))) pcShowTop();
+  // Stond de focus in een tabblad dat nu verborgen is: naar het gekozen tabblad
+  const a = document.activeElement;
+  if (a && a.closest && a.closest('#s-podcasts [role=tabpanel][hidden]')) $('#pc-tab-' + t).focus({ preventScroll: true });
   if (changed && byUser && scrollY > 0) scrollTo(0, 0);
 }
+/* Pijltjestoetsen tussen de tabbladen (zoals bij Notities) */
+document.querySelector('#s-podcasts .pctabs').addEventListener('keydown', e => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  const tabs = [...e.currentTarget.querySelectorAll('[role=tab]')], at = tabs.indexOf(document.activeElement); if (at < 0) return;
+  e.preventDefault();
+  const i = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (at + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  pcSetTab(tabs[i].dataset.tab, true); tabs[i].focus({ preventScroll: true });
+});
 /* Meer: wat je niet elke dag nodig hebt */
 function pcMenu(){
   const acts = [];
@@ -180,20 +191,24 @@ function pcRowList(list, kind){
   return list.map((p, i) => '<div class="srow"><button class="sbtn" onclick="pdOpenFrom(\'' + kind + '\',' + i + ')">' + pcArt(p.image) +
     '<span class="stxt"><b>' + esc(p.title) + '</b><small>' + esc([p.author, p.genre].filter(Boolean).join(' · ')) + '</small></span></button></div>').join('');
 }
-function pdOpenFrom(kind, i){ const p = (kind === 't' ? pcTop : pcRes) || []; if (p[i]) pdOpen(p[i]); }
+function pdOpenFrom(kind, i){ pcTabUser = true; const p = (kind === 't' ? pcTop : pcRes) || []; if (p[i]) pdOpen(p[i]); }
 function pcShowTop(){
   $('#pc-list-label').textContent = 'Populair in Nederland';
   if (pcTop) { if (pcListAll !== pcTop) pcListN = PC_LIST_N; pcListAll = pcTop; pcListShow(); return; }
   $('#pc-list-more').hidden = true;
   $('#pc-list').innerHTML = '<p class="note" style="padding:14px">Laden…</p>';
+  if (pcTopLoading) return;
+  pcTopLoading = true;
   Android.podTop();
 }
 window.onPodTop = function(r){
+  pcTopLoading = false;
   if (r.error) { if (!$('#pc-q').value.trim()) $('#pc-list').innerHTML = '<p class="note" style="padding:14px">' + esc(r.error) + '. <a href="#" onclick="pcTop=null;pcShowTop();return false">Opnieuw</a></p>'; return; }
   pcTop = r.results || [];
   if (!$('#pc-q').value.trim()) pcShowTop();
 };
 function pcSearchSoon(){
+  pcTabUser = true; // je bent aan het zoeken: bij terugkomen blijf je bij Ontdekken
   clearTimeout(pcSearchT);
   const q = $('#pc-q').value.trim();
   if (!q) { pcShowTop(); return; }
