@@ -176,7 +176,7 @@ final class Radio {
      */
     static JSONObject streamInfo(String url) {
         JSONObject o = new JSONObject();
-        if (url == null || url.contains(".m3u8")) return o;
+        if (!webUrl(url) || url.contains(".m3u8")) return o; // alleen http(s), geen file:, jar: e.d.
         HttpURLConnection h = null;
         try {
             h = (HttpURLConnection) new URL(url).openConnection();
@@ -209,6 +209,13 @@ final class Radio {
         return o;
     }
 
+    /** Alleen een gewone webadres (http of https) mag als stream worden opgevraagd. */
+    static boolean webUrl(String url) {
+        if (url == null) return false;
+        String u = url.trim().toLowerCase(Locale.ROOT);
+        return u.startsWith("http://") || u.startsWith("https://");
+    }
+
     /** Spaties en streepjes aan begin en eind weg (zonder regex: lineair, ook bij rare metadata). */
     static String trimDash(String s) {
         final String strip = " \t\n\u000B\f\r-";
@@ -221,6 +228,7 @@ final class Radio {
     /** Haalt ongeveer 'seconds' seconden van de stream op (zonder metadata) om te laten herkennen. */
     static File snippet(Context c, String url, int bitrateKbps, int seconds, int id) throws Exception {
         if (url == null || url.contains(".m3u8")) throw new Exception("Deze zender gebruikt HLS; gebruik herkennen via de microfoon");
+        if (!webUrl(url)) throw new Exception("Geen webadres voor deze zender");
         int kbps = bitrateKbps > 0 ? bitrateKbps : 128;
         long want = Math.min(600_000L, (long) kbps * 125 * seconds);
         HttpURLConnection h = (HttpURLConnection) new URL(url).openConnection();
