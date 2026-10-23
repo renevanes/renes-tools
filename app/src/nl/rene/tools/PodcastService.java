@@ -54,6 +54,12 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     static volatile long sleepAt = 0;             // 0 = geen slaaptimer
     static volatile boolean sleepEnd = false;     // stoppen aan het einde van de aflevering
     static volatile PodcastService inst;
+
+    /** Sleutel van de aflevering die nu speelt (of laadt), anders "". */
+    static String playingKey() {
+        if (inst == null || !("playing".equals(status) || "connecting".equals(status))) return "";
+        try { return ep == null ? "" : new JSONObject(ep).optString("key"); } catch (Exception e) { return ""; }
+    }
     /** Stoppen gevraagd terwijl de service nog moest starten: dan niet alsnog gaan spelen. */
     static volatile boolean stopPending;
 
@@ -283,7 +289,9 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
             p.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
             java.util.Map<String, String> hdr = new java.util.HashMap<>();
             hdr.put("User-Agent", Radio.UA);
-            p.setDataSource(this, android.net.Uri.parse(e.optString("url")), hdr);
+            String local = PodcastDownloads.localPath(this, e.optString("key")); // gedownload: offline afspelen
+            if (local != null) p.setDataSource(local);
+            else p.setDataSource(this, android.net.Uri.parse(e.optString("url")), hdr);
             p.setOnPreparedListener(mp -> {
                 if (mp != player) return;
                 prepared = true;

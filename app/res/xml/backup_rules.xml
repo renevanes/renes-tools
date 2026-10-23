@@ -8,6 +8,8 @@
     <exclude domain="database" path="notification-history.db-wal" />
     <exclude domain="database" path="notification-history.db-shm" />
     <exclude domain="file" path="wa/" />
+    <exclude domain="external" path="Podcasts/" />
+    <exclude domain="file" path="podcasts/downloads.json" />
     <exclude domain="file" path="call-recordings/" />
         <exclude domain="file" path="kluis/" />
     <exclude domain="file" path="transcripts/" />

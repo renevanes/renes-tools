@@ -284,7 +284,9 @@ final class Podcasts {
         if (!REFRESHING.compareAndSet(false, true)) return -1; // loopt al
         try {
             prefs(c).edit().putLong("refreshedAt", System.currentTimeMillis()).apply(); // meteen: niet opnieuw starten bij elke keer openen
-            return refreshAllLocked(c);
+            int n = refreshAllLocked(c);
+            try { PodcastDownloads.autoQueue(c); } catch (Exception e) { App.log(c, "PODCAST", "vanzelf downloaden: " + e.getMessage()); }
+            return n;
         } finally { REFRESHING.set(false); }
     }
 
@@ -340,6 +342,7 @@ final class Podcasts {
             try { put(p, key, pos, dur, done, System.currentTimeMillis()); trim(p); } catch (Exception ignored) { }
         }
         scheduleWrite(c);
+        if (done) try { PodcastDownloads.played(c, key); } catch (Exception ignored) { } // beluisterd: download weg (als dat zo is ingesteld)
     }
 
     private static void put(JSONObject p, String key, long pos, long dur, boolean done, long t) throws Exception {

@@ -57,7 +57,33 @@ public class PodcastBridge extends FeatureBridge {
         try { Podcasts.subscribe(ctx, new JSONObject(podJson)); return ""; } catch (Exception e) { return err(e, "Abonneren lukt niet"); }
     }
 
-    @JavascriptInterface public void podUnsubscribe(String id) { try { Podcasts.unsubscribe(ctx, id); } catch (Exception ignored) { } }
+    @JavascriptInterface public void podUnsubscribe(String id) { try { Podcasts.unsubscribe(ctx, id); } catch (Exception ignored) { } PodcastDownloadJob.schedule(ctx); }
+
+    // ---------- downloaden voor offline ----------
+    /** Downloaden starten: {ep, pod}. Geeft "" of een melding. */
+    @JavascriptInterface public String podDlStart(String json) {
+        try { JSONObject o = new JSONObject(json); return PodcastDownloads.start(ctx, o.getJSONObject("ep"), o.optJSONObject("pod"), false); }
+        catch (Exception e) { return "Downloaden lukt niet"; }
+    }
+    @JavascriptInterface public void podDlRemove(String key) { if (Podcasts.validKey(key)) PodcastDownloads.remove(ctx, key); }
+    @JavascriptInterface public void podDlClear() { PodcastDownloads.removeAll(ctx); }
+    @JavascriptInterface public String podDlList() { return PodcastDownloads.list(ctx).toString(); }
+    @JavascriptInterface public String podDlPrefs() {
+        try { return new JSONObject().put("wifiOnly", PodcastDownloads.wifiOnly(ctx)).put("autoDelete", PodcastDownloads.autoDelete(ctx)).toString(); }
+        catch (Exception e) { return "{}"; }
+    }
+    @JavascriptInterface public void podDlPref(String name, boolean on) {
+        if (!"wifiOnly".equals(name) && !"autoDelete".equals(name)) return;
+        PodcastDownloads.prefs(ctx).edit().putBoolean(name, on).apply();
+        PodcastDownloadJob.schedule(ctx);
+    }
+    /** Nieuwe afleveringen van deze (gevolgde) podcast vanzelf downloaden. */
+    @JavascriptInterface public String podAutoDl(String podId, boolean on) {
+        if (podId == null || !Podcasts.isSub(ctx, podId)) return "Volg de podcast eerst";
+        try { PodcastDownloads.setAuto(ctx, podId, on); } catch (Exception e) { return "Instellen lukt niet"; }
+        if (on) new Thread(() -> { try { PodcastDownloads.autoQueue(ctx); } catch (Throwable ignored) { } a.js("onPodDl", ""); }, "podcast-auto-dl").start();
+        return "";
+    }
 
     @JavascriptInterface public String podSubs() { return Podcasts.subs(ctx).toString(); }
 

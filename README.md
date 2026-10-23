@@ -122,6 +122,12 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **Luisteren** (`PodcastService`, voorgrondservice mediaPlayback): stream van de maker, 15 s terug / 30 s vooruit (ook met de koptelefoon en op het vergrendelscherm), schuiven, snelheid 0,8–2×, onthoudt per aflevering waar je was (elke 10 s), pauzeert bij een gesprek of als de koptelefoon eruit gaat en gaat daarna verder. *Verder luisteren* toont recent gestarte afleveringen die nog niet af zijn.
 - **Slaaptimer** (gedeeld met Radio): 1–240 minuten per minuut instelbaar (schuif, − / + en snelkeuzes), aan het einde van de aflevering, of tot een tijdstip; +5/+15 minuten erbij (ook +10 min in de melding). De laatste 30 seconden wordt het geluid langzaam zachter; een podcast pauzeert dan (morgen verder waar je was), de radio stopt.
 
+### Downloaden voor offline
+- Per aflevering *Downloaden voor offline* (menu ⋯); de lijst **Gedownload** bovenaan Podcasts toont voortgang, grootte en totaal. Afspelen kiest vanzelf het gedownloade bestand (ook voor *Hierna* en Android Auto), dus zonder internet.
+- Android downloadt (`DownloadManager`: gaat door op de achtergrond, hervat na onderbreking, voortgang in een melding) naar de eigen map van de app (`Android/data/…/files/Podcasts`); niet in Android-backups.
+- Instellingen (Gedownload → Instellingen): *Alleen via wifi* (standaard aan), *Beluisterde afleveringen vanzelf verwijderen* (standaard aan), *Alle downloads verwijderen*.
+- Per gevolgde podcast *Nieuwe afleveringen downloaden*: de nieuwste 3 nog niet beluisterde, bij elke keer bijwerken en een paar keer per dag op de achtergrond (`PodcastDownloadJob`, met *alleen via wifi* alleen op wifi). Haal je zo'n download zelf weg, dan komt hij niet vanzelf terug.
+
 ## Speler (radio en podcasts samen)
 - **Eén speler** (`Player.java`, `PlayerBridge.java`, `web/src/speler.html`, `script/39-speler.js`): er speelt altijd hooguit één ding. Start je een podcast, dan stopt de radio (en andersom: de podcast pauzeert, de plek blijft bewaard); een lopende slaaptimer gaat mee naar wat je start.
 - **Mini-balk** onderaan op elk scherm (hoes, titel, ▶/❚❚, ⏭, voortgangslijntje). Tikken of omhoog vegen opent de speler op volledig scherm; links/rechts vegen = volgende/vorige.
