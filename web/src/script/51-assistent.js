@@ -324,13 +324,20 @@ let aiIdx = {};
 function aisIndex(force){ aiIdx = { busy: true, done: 0, total: 0 }; Android.aiIndex(!!force); aiRenderSet(); }
 function aisIndexStop(){ Android.aiIndexStop(); toast('Stoppen… wat al klaar is, blijft bewaard'); }
 window.onAiIndex = function(o){
+  // Voortgang: alleen de regel bijwerken (de rest blijft staan, ook de focus van TalkBack)
+  if (o.busy && aiIdx.busy && aiSetOn() && ($('#ais-ix-sub') || $('#aid-ix-sub'))) {
+    aiIdx = { busy: true, done: o.done, total: o.total };
+    const t = 'Bijwerken… ' + o.done + ' van ' + o.total + ' nieuwe stukken (gaat door op de achtergrond)';
+    ['#ais-ix-sub', '#aid-ix-sub'].forEach(id => { const e = $(id); if (e) e.textContent = t; });
+    return;
+  }
   if (o.busy) aiIdx = { busy: true, done: o.done, total: o.total };
   else { aiIdx = {}; if (o.error) toast(o.error); else if (!o.quiet) toast('Zoekindex bijgewerkt'); aiLoad(); }
   if (aiSetOn()) aiRenderSet();
 };
 
 /* ---------- Gegevens: waar de AI in mag kijken ---------- */
-const AI_PERM = { sms: 'sms', calls: 'calllog', contacts: 'contacts' };
+const AI_PERM = { sms: 'sms', calls: 'calllog', contacts: 'contactsread' };
 function aiRenderData(){
   const list = $('#aid-list'); if (!list) return;
   const perm = aiSt.perm || {}, zoek = aiReady('zoek');
@@ -339,8 +346,8 @@ function aiRenderData(){
     const k = s[0], on = aiSrcOn(k), ok = perm[k] !== false;
     const need = !ok ? (k === 'wa' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'wa\')">Maak eerst je chats leesbaar</button>'
       : '<button class="linkish" style="display:inline;padding:0" onclick="Android.permRequest(\'' + AI_PERM[k] + '\')">Toestemming geven</button>') : '';
-    return '<div class="sw"><span>' + uiIcon(s[2]) + ' ' + esc(s[1]) + '<small>' + esc(s[3]) + (on && !ok ? ' Staat aan, maar de app mag er nog niet bij: ' : '') + '</small>' + (on && !ok ? '<small>' + need + '</small>' : '') + '</span>' +
-      '<button class="tg' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + esc(s[1]) + '" onclick="aiSrcToggle(\'' + k + '\')"></button></div>';
+    return '<div class="sw"><span>' + uiIcon(s[2]) + ' ' + esc(s[1]) + '<small id="aid-d-' + k + '">' + esc(s[3]) + (on && !ok ? ' Staat aan, maar de app mag er nog niet bij.' : '') + '</small>' + (on && !ok ? '<small>' + need + '</small>' : '') + '</span>' +
+      '<button class="tg' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + esc(s[1]) + '" aria-describedby="aid-d-' + k + '" onclick="aiSrcToggle(\'' + k + '\')"></button></div>';
   }).join('');
   $('#aid-index').innerHTML = zoek && aiSt.index ? aiIndexHtml('aid-ix-sub') : '';
 }
@@ -488,7 +495,7 @@ const AIC_NOTE = {
   idle: { '1': 'Het model gaat na 1 minuut uit het geheugen: zuinig, maar de volgende vraag laadt opnieuw.', '4': 'Na 4 minuten niets doen.', '15': 'Na 15 minuten: vervolgvragen gaan sneller, maar het geheugen blijft langer bezet.' }
 };
 const AIC_LABEL = { style: { kort: 'Kort', normaal: 'Normaal', uitgebreid: 'Uitgebreid' }, creative: { precies: 'Precies', normaal: 'Gebalanceerd', creatief: 'Creatief' },
-  lang: { nl: 'Nederlands', en: 'Engels', auto: 'zelfde taal als de vraag' }, power: { zuinig: 'Zuinig', normaal: 'Normaal', max: 'Maximaal' } };
+  lang: { nl: 'Nederlands', en: 'Engels', auto: 'Zelfde taal als de vraag' }, power: { zuinig: 'Zuinig', normaal: 'Normaal', max: 'Maximaal' } };
 function aicCfg(){ return aiSt.cfg || {}; }
 function aicRender(){
   const c = aicCfg();
@@ -513,7 +520,7 @@ function aicRender(){
   const zoek = (aiSt.models || []).find(m => m.id === 'zoek') || {};
   sum('search', zoek.state === 'ready' ? (aiSt.index && aiSt.index.items ? aiSt.index.items + ' bronnen in de zoekindex' : 'Klaar') : 'Nog niet gedownload');
   const n = AI_SRC.filter(s => aiSrcOn(s[0])).length;
-  sum('data', n ? AI_SRC.filter(s => aiSrcOn(s[0])).map(s => s[1]).join(', ') : 'Nergens in');
+  sum('data', n ? AI_SRC.filter(s => aiSrcOn(s[0])).map(s => s[1]).join(', ') : 'Niets aangezet');
   sum('perf', (AIC_LABEL.power[c.power] || 'Normaal') + ' · vrijgeven na ' + (c.idle || 4) + ' min' + (aiSt.wifiOnly ? ' · alleen via wifi' : ''));
   sum('priv', 'Alles blijft op je telefoon');
 }

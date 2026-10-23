@@ -345,8 +345,16 @@ final class LocalAi {
     static final ExecutorService IDX = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "ai-index"); t.setPriority(Thread.MIN_PRIORITY); return t; });
     /** Eén vraag tegelijk aan het zoekmodel (de index en een zoekvraag delen hem). Volgorde: eerst EMB, dan LocalAi.class. */
     private static final java.util.concurrent.locks.ReentrantLock EMB = new java.util.concurrent.locks.ReentrantLock();
-    /** Het gesprek heeft het taalmodel nodig: op een telefoon met minder geheugen wacht de index dan even. */
+    /** Het gesprek heeft het taalmodel nodig: de index wacht dan even (anders delen ze de processor, of op een
+     *  kleinere telefoon zelfs het geheugen). */
     private static volatile boolean chatPhase;
+    /** Moet het bijwerken van de index nu wachten? Tijdens een antwoord altijd; op een kleinere telefoon ook nog even
+     *  daarna (anders moet het taalmodel voor een vervolgvraag opnieuw laden). */
+    static boolean chatWaits(Context c) {
+        if (chatPhase) return true;
+        LlmProcess p = chat;
+        return p != null && p.alive() && !bigRam(c) && System.currentTimeMillis() - p.lastUse < 60_000L;
+    }
     private static volatile LlmProcess chat, embed;
     private static volatile boolean cancel;
     private static volatile long cancelAt; // wanneer er om stoppen gevraagd werd (0 = niet)
@@ -406,7 +414,7 @@ final class LocalAi {
     static List<float[]> embed(Context c, List<String> texts, int dims, boolean background) throws Exception {
         while (true) {
             EMB.lock();
-            if (!background || !chatPhase || bigRam(c)) break;
+            if (!background || !chatWaits(c)) break;
             EMB.unlock();
             if (SmartSearch.stopUpdate) throw new Exception("Gestopt");
             Thread.sleep(500);
@@ -492,7 +500,7 @@ final class LocalAi {
         if (sources == null || sources.isEmpty()) return question;
         // De vraag eerst: wordt het te lang voor het model, dan valt het einde (de laatste bron) weg, niet de vraag
         StringBuilder sb = new StringBuilder("Mijn vraag: ").append(question)
-                .append("\n\nStukken uit mijn eigen notities en gesprekken (gebruik ze alleen als ze helpen, en noem dan het nummer, bijvoorbeeld [1]):\n");
+                .append("\n\nStukken uit mijn eigen gegevens (notities, gesprekken, berichten, oproepen of contacten; gebruik ze alleen als ze helpen, en noem dan het nummer, bijvoorbeeld [1]):\n");
         int i = 1;
         for (String[] s : sources) {
             String body = s[1].length() > 900 ? s[1].substring(0, 900) + "…" : s[1];
@@ -552,7 +560,7 @@ final class LocalAi {
             }
             chatPhase = true; // vanaf hier het taalmodel: de index wacht op een kleinere telefoon
             if (!bigRam(c)) closeEmbedSafe(); // niet twee modellen tegelijk in een kleiner geheugen
-            boolean starting = chat == null || !chat.alive() || !chat.model.equals(file(c, m));
+            boolean starting = chat == null || !chat.alive() || !chat.model.equals(file(c, m)) || chat.threads != threads();
             if (starting) sink.status("Model laden…");
             LlmProcess p = chatEngine(c, m);
             if (cancel) { GATE.leave(job); sink.done(new JSONObject().put("cancelled", true)); return; }
@@ -602,13 +610,14 @@ final class LocalAi {
     }
 
     /** Slim zoeken vanuit de interface (op de AI-thread, na een eventueel lopend antwoord). */
-    static void search(final Context c, final String q, final java.util.function.Consumer<JSONObject> cb) {
+    static void search(final Context c, final String q, final java.util.function.BooleanSupplier current, final java.util.function.Consumer<JSONObject> cb) {
         AI.execute(() -> {
             JSONObject o = new JSONObject();
             try {
                 o.put("q", q);
                 if (!ready(c, EMBED)) o.put("need", true);
-                else { o.put("items", SmartSearch.search(c, q, 6)); if (SmartSearch.updating()) o.put("updating", true); }
+                else if (!current.getAsBoolean()) o.put("skipped", true); // er is intussen verder getypt
+                else { o.put("items", SmartSearch.search(c, q, 6, false)); if (SmartSearch.updating() || indexQueued()) o.put("updating", true); }
             } catch (Throwable t) {
                 try { o.put("error", t.getMessage() == null ? "Zoeken lukte niet" : t.getMessage()); } catch (Exception ignored) { }
             } finally { scheduleIdle(); }
@@ -624,11 +633,13 @@ final class LocalAi {
 
     /** Index (opnieuw) opbouwen op de index-thread; voortgang via idxSink. quiet = vanzelf (geen melding als hij klaar is). */
     static void index(final Context c, final boolean force, final boolean quiet) {
+        if (!quiet) userStopped = false; // zelf op Bijwerken getikt
         IDX.execute(() -> {
             IDX_QUEUED.set(false);
-            SmartSearch.stopUpdate = false;
-            if (!ready(c, EMBED)) return;
             try {
+                // Gestopt met de knop: niet vanzelf weer beginnen (pas na Bijwerken of als je een bron aan- of uitzet)
+                if (!ready(c, EMBED) || (quiet && userStopped)) { idxSend(SmartSearch.info(c).put("quiet", true)); return; }
+                SmartSearch.stopUpdate = false;
                 SmartSearch.update(c, force, (d, t) -> {
                     try { idxSend(new JSONObject().put("busy", true).put("done", d).put("total", t)); } catch (Exception ignored) { }
                 });
@@ -647,16 +658,20 @@ final class LocalAi {
     }
 
     static boolean indexQueued() { return IDX_QUEUED.get(); }
+    /** Met de knop gestopt: niet vanzelf opnieuw beginnen. */
+    static volatile boolean userStopped;
+    static void indexStop() { userStopped = true; SmartSearch.stopUpdate = true; }
 
     /** Index op de achtergrond bijwerken (als er iets veranderde), hooguit één keer in de wachtrij. */
     static void indexLater(Context c) {
-        if (!ready(c, EMBED) || SmartSearch.updating() || !IDX_QUEUED.compareAndSet(false, true)) return;
+        if (userStopped || !ready(c, EMBED) || SmartSearch.updating() || !IDX_QUEUED.compareAndSet(false, true)) return;
         try { index(c, false, true); } catch (Throwable t) { IDX_QUEUED.set(false); }
     }
 
     /** Een bron gaat uit of aan: een lopende update stopt (die kent de oude keuze) en begint opnieuw. */
     static void sourceChanged(Context c) {
         if (!ready(c, EMBED)) return;
+        userStopped = false;
         SmartSearch.stopUpdate = true;
         indexLaterForce(c);
     }

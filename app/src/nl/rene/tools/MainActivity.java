@@ -1772,6 +1772,7 @@ public class MainActivity extends Activity {
                     case "phone": p = new String[]{Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE}; break;
                     case "calllog": p = new String[]{Manifest.permission.READ_CALL_LOG}; break;
                     case "contacts": p = new String[]{Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS}; break;
+                    case "contactsread": p = new String[]{Manifest.permission.READ_CONTACTS}; break; // alleen lezen (lokale AI)
                     case "history": historyRequestPermission(); return;
                     case "sms": p = new String[]{Manifest.permission.READ_SMS}; break;
                     case "location": p = new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}; break;

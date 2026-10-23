@@ -136,7 +136,7 @@ public class AiBridge extends FeatureBridge {
         synchronized (AiBridge.class) { id = ++searchSeq; }
         final String qq = query == null ? "" : query.trim();
         if (qq.length() < 2) return id;
-        LocalAi.search(ctx, qq, o -> {
+        LocalAi.search(ctx, qq, () -> { synchronized (AiBridge.class) { return id == searchSeq; } }, o -> {
             try { o.put("id", id); } catch (Exception ignored) { }
             a.js("onAiSearch", o.toString());
         });
@@ -147,7 +147,7 @@ public class AiBridge extends FeatureBridge {
     @JavascriptInterface public void aiIndex(boolean force) { LocalAi.index(ctx, force, false); }
 
     /** Het bijwerken van de zoekindex stoppen (wat klaar is, blijft). */
-    @JavascriptInterface public void aiIndexStop() { SmartSearch.stopUpdate = true; }
+    @JavascriptInterface public void aiIndexStop() { LocalAi.indexStop(); }
 
     /** Stuurt alles van de AI-thread naar het venster dat de vraag stelde. */
     static final class JsSink implements LocalAi.Sink {

@@ -26,7 +26,7 @@ const { chromium } = require('playwright');
     ok(!(await pg.textContent('#aid-index')).includes('Bijwerken…') && !(await pg.textContent('#toast')).includes('Zoekindex bijgewerkt'), 'klaar op de achtergrond: zonder extra melding');
     // Contacten aan zonder toestemming: Android vraagt erom
     await pg.click(sw('Contacten')); await pg.waitForTimeout(250);
-    ok(await pg.evaluate(() => Android._ai.src.contacts === true && (Android._permAsked || []).includes('contacts')), 'contacten: om toestemming gevraagd');
+    ok(await pg.evaluate(() => Android._ai.src.contacts === true && (Android._permAsked || []).includes('contactsread')), 'contacten: om toestemming gevraagd');
     ok(await pg.evaluate(() => Android._ai.perm.contacts === true) && !(await pg.textContent('#aid-list')).includes('mag er nog niet bij'), 'na toestemming: geen waarschuwing meer');
     // WhatsApp aan zonder leesbare chats: uitleg met knop
     await pg.click(sw('WhatsApp')); await pg.waitForTimeout(100);
@@ -56,6 +56,12 @@ const { chromium } = require('playwright');
     ok(await pg.isVisible('#gs-res .aigs .gi[data-k=sms]') && await pg.isVisible('#gs-res .aigs .gi[data-k=contacts]'), 'op betekenis: ook sms en contacten');
     const cx = await pg.getAttribute('#gs-res .aigs .gi[data-k=contacts]', 'data-x');
     ok(JSON.parse(cx).k === 'k1' && JSON.parse(cx).id === '5', 'contact: sleutel en nummer goed uit elkaar');
+    const m = await pg.evaluate(() => [aiHitGs({ kind: 'wa', id: '12', title: 'Groep' }), aiHitGs({ kind: 'calls', id: '+31612345678', title: 'Jos' }), aiHitGs({ kind: 'tx', id: 't1', from: '1500' }), aiHitGs({ kind: 'notes', id: 'n1' })]);
+    ok(m[0][0] === 'wa' && m[0][1].chat === 12 && m[0][1].name === 'Groep' && m[1][0] === 'calls' && m[1][1].number === '+31612345678'
+      && m[2][0] === 'tx' && m[2][1].from === 1500 && m[3][0] === 'notes' && m[3][1].id === 'n1', 'treffers openen het juiste scherm (whatsapp, oproepen, gesprek, notitie)');
+    // Weg uit Persoonlijk via een sprong (niet terug): concept ook bewaard
+    await pg.evaluate(() => { show('aisetpers'); $('#aic-about').value = 'Via een sprong'; aicDirty(); jumpTo('aisetdata'); }); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => Android._ai.cfg && Android._ai.cfg.about === 'Via een sprong'), 'weg uit Persoonlijk via een sprong: bewaard');
     await pg.close();
   }
   await b.close();

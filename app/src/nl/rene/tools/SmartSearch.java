@@ -26,8 +26,10 @@ final class SmartSearch {
 
     static final int DIMS = 512;          // eerste 512 waarden van het zoekmodel (Matryoshka): klein en goed genoeg
     static final int CHUNK = 700, OVERLAP = 120;
+    /** Berichten: per gesprek hooguit zoveel stukken (de nieuwste), en per soort hooguit zoveel stukken in totaal (geheugen). */
+    static final int MSG_PIECES = 40, KIND_PIECES = 4000;
     static final float MIN_SCORE = 0.30f;
-    static final String QUERY_PREFIX = "Instruct: Given a search query, retrieve relevant passages from personal notes and call transcripts that answer the query\nQuery:";
+    static final String QUERY_PREFIX = "Instruct: Given a search query, retrieve relevant passages from personal notes, call transcripts, messages, call logs and contacts that answer the query\nQuery:";
 
     // ---------- zuiver rekenwerk (getest) ----------
 
@@ -218,7 +220,9 @@ final class SmartSearch {
         for (int i = 0; i < convs.size() && i < 150; i++) pick.put(convs.get(i).threadId, convs.get(i));
         java.util.Map<Long, List<Sms.Msg>> by = new java.util.HashMap<>();
         for (Sms.Msg m : all) if (pick.containsKey(m.threadId)) { List<Sms.Msg> l = by.get(m.threadId); if (l == null) { l = new ArrayList<>(); by.put(m.threadId, l); } l.add(m); }
-        for (Sms.Conv cv : pick.values()) {
+        int budget = KIND_PIECES;
+        for (int ci = 0; ci < convs.size() && ci < 150 && budget > 0; ci++) {
+            Sms.Conv cv = convs.get(ci);
             List<Sms.Msg> l = by.get(cv.threadId);
             if (l == null) continue;
             List<String> lines = new ArrayList<>(); List<Long> times = new ArrayList<>();
@@ -231,7 +235,7 @@ final class SmartSearch {
                 times.add(m.date);
             }
             Doc d = linesDoc("sms", String.valueOf(cv.threadId), who, lines, times, cv.last);
-            if (d != null) out.add(d);
+            if (d != null) { out.add(d); budget -= Math.min(MSG_PIECES, d.marks.size()); }
         }
     }
 
@@ -242,7 +246,8 @@ final class SmartSearch {
         List<JSONObject> l = new ArrayList<>();
         for (int i = 0; i < chats.length(); i++) l.add(chats.getJSONObject(i));
         java.util.Collections.sort(l, (x, y) -> Long.compare(y.optLong("last"), x.optLong("last")));
-        for (int i = 0; i < l.size() && i < 100; i++) {
+        int budget = KIND_PIECES;
+        for (int i = 0; i < l.size() && i < 100 && budget > 0; i++) {
             JSONObject ch = l.get(i);
             JSONArray ms = new JSONArray(WaChats.messagesJson(c, ch.optLong("id"), 0, 300));
             List<String> lines = new ArrayList<>(); List<Long> times = new ArrayList<>();
@@ -251,11 +256,13 @@ final class SmartSearch {
                 String text = m.optString("text");
                 if (text.isEmpty()) text = m.optString("label");
                 if (text.isEmpty()) continue;
-                lines.add("[" + when(m.optLong("t")) + "] " + (m.optBoolean("me") ? "Ik" : m.optString("sender", ch.optString("name"))) + ": " + text.replace('\n', ' '));
+                String who = m.optString("sender");
+                if (who.isEmpty()) who = ch.optString("name", "Onbekend"); // in een gesprek met één persoon staat de afzender er niet bij
+                lines.add("[" + when(m.optLong("t")) + "] " + (m.optBoolean("me") ? "Ik" : who) + ": " + text.replace('\n', ' '));
                 times.add(m.optLong("t"));
             }
             Doc d = linesDoc("wa", String.valueOf(ch.optLong("id")), ch.optString("name", "WhatsApp"), lines, times, ch.optLong("last"));
-            if (d != null) out.add(d);
+            if (d != null) { out.add(d); budget -= Math.min(MSG_PIECES, d.marks.size()); }
         }
     }
 
@@ -382,49 +389,76 @@ final class SmartSearch {
             if (entries == null && LOCK.tryLock()) { try { load(c); } finally { LOCK.unlock(); } }
             o.put("items", snapItems).put("chunks", snapChunks).put("at", builtAt).put("stale", !builtSig.equals(sourcesSig(c)));
             if (busyDone >= 0) o.put("busy", true).put("done", busyDone).put("total", busyTotal);
-        } catch (Exception ignored) { }
+        } catch (Throwable ignored) { } // ook geen geheugenfout naar de interface
         return o;
     }
 
-    /** Onder LOCK. */
+    /** Onder LOCK. Gestreamd gelezen (de index kan met berichten een paar MB zijn): nooit het hele bestand als één tekst. */
     private static void load(Context c) {
         if (entries != null) return;
         List<Entry> es = new ArrayList<>();
+        Map<String, String> h = new HashMap<>();
         File f = file(c);
-        try {
-            JSONObject o = f.isFile() ? new JSONObject(Contacts.readText(f, false)) : null;
-            // ander model: opnieuw
-            if (o != null && o.optInt("dims") == DIMS && LocalAi.EMBED.sha.equals(o.optString("model"))) {
-                builtAt = o.optLong("at"); builtSig = o.optString("sig");
-                JSONArray a = o.optJSONArray("e");
-                if (a != null) for (int i = 0; i < a.length(); i++) {
-                    JSONObject e = a.getJSONObject(i);
-                    es.add(new Entry(e.optString("k"), e.optString("id"), e.optString("ti"), e.optString("x"), e.optLong("f"), e.optLong("t"), unb64(e.optString("v"))));
-                }
+        if (f.isFile()) try (android.util.JsonReader r = new android.util.JsonReader(new java.io.InputStreamReader(
+                new java.io.BufferedInputStream(new java.io.FileInputStream(f), 65536), java.nio.charset.StandardCharsets.UTF_8))) {
+            int dims = 0; String model = "", sig = ""; long at = 0;
+            r.beginObject();
+            while (r.hasNext()) {
+                String n = r.nextName();
+                if ("dims".equals(n)) dims = r.nextInt();
+                else if ("model".equals(n)) model = r.nextString();
+                else if ("at".equals(n)) at = r.nextLong();
+                else if ("sig".equals(n)) sig = r.nextString();
+                else if ("h".equals(n)) { r.beginObject(); while (r.hasNext()) { String k = r.nextName(); h.put(k, r.nextString()); } r.endObject(); }
+                else if ("e".equals(n)) {
+                    r.beginArray();
+                    while (r.hasNext()) {
+                        String k = "", id = "", ti = "", x = "", v = ""; long fr = 0, t = 0;
+                        r.beginObject();
+                        while (r.hasNext()) {
+                            String m = r.nextName();
+                            if ("k".equals(m)) k = r.nextString(); else if ("id".equals(m)) id = r.nextString(); else if ("ti".equals(m)) ti = r.nextString();
+                            else if ("x".equals(m)) x = r.nextString(); else if ("v".equals(m)) v = r.nextString();
+                            else if ("f".equals(m)) fr = r.nextLong(); else if ("t".equals(m)) t = r.nextLong(); else r.skipValue();
+                        }
+                        r.endObject();
+                        es.add(new Entry(k, id, ti, x, fr, t, unb64(v)));
+                    }
+                    r.endArray();
+                } else r.skipValue();
             }
-        } catch (Exception e) { es = new ArrayList<>(); }
-        entries = java.util.Collections.unmodifiableList(es);
+            r.endObject();
+            // ander model: opnieuw
+            if (dims != DIMS || !LocalAi.EMBED.sha.equals(model)) { es = new ArrayList<>(); h = new HashMap<>(); }
+            else { builtAt = at; builtSig = sig; }
+        } catch (Throwable e) { es = new ArrayList<>(); h = new HashMap<>(); }
+        entries = Collections.unmodifiableList(es);
+        loadedHashes = h;
         snapshot();
     }
 
     private static Map<String, String> hashes = new HashMap<>();
+    /** De controlegetallen uit het bestand (bij het laden meegelezen, zodat het niet nog eens hoeft). */
+    private static volatile Map<String, String> loadedHashes = new HashMap<>();
 
+    /** Gestreamd schrijven (tijdelijk bestand, dan hernoemen): geen enorme tekst in het geheugen. */
     private static void save(Context c) throws Exception {
-        JSONArray a = new JSONArray();
-        for (Entry e : entries) a.put(new JSONObject().put("k", e.kind).put("id", e.id).put("ti", e.title).put("x", e.text).put("f", e.from).put("t", e.t).put("v", b64(e.v)));
-        JSONObject h = new JSONObject();
-        for (Map.Entry<String, String> x : hashes.entrySet()) h.put(x.getKey(), x.getValue());
-        Contacts.writeText(file(c), new JSONObject().put("v", 1).put("dims", DIMS).put("model", LocalAi.EMBED.sha).put("at", builtAt).put("sig", builtSig).put("h", h).put("e", a).toString(), false);
-    }
-
-    private static void loadHashes(Context c, List<Entry> es) {
-        hashes = new HashMap<>();
-        try {
-            File f = file(c);
-            if (!f.isFile() || es == null || es.isEmpty()) return;
-            JSONObject h = new JSONObject(Contacts.readText(f, false)).optJSONObject("h");
-            if (h != null) for (java.util.Iterator<String> k = h.keys(); k.hasNext(); ) { String key = k.next(); hashes.put(key, h.optString(key)); }
-        } catch (Exception ignored) { }
+        List<Entry> es = entries;
+        File f = file(c), tmp = new File(f.getPath() + ".tmp");
+        java.io.FileOutputStream fo = new java.io.FileOutputStream(tmp);
+        try (android.util.JsonWriter w = new android.util.JsonWriter(new java.io.BufferedWriter(new java.io.OutputStreamWriter(fo, java.nio.charset.StandardCharsets.UTF_8), 65536))) {
+            w.beginObject().name("v").value(2).name("dims").value(DIMS).name("model").value(LocalAi.EMBED.sha).name("at").value(builtAt).name("sig").value(builtSig);
+            w.name("h").beginObject();
+            for (Map.Entry<String, String> x : hashes.entrySet()) w.name(x.getKey()).value(x.getValue());
+            w.endObject();
+            w.name("e").beginArray();
+            if (es != null) for (Entry e : es) w.beginObject().name("k").value(e.kind).name("id").value(e.id).name("ti").value(e.title).name("x").value(e.text)
+                    .name("f").value(e.from).name("t").value(e.t).name("v").value(b64(e.v)).endObject();
+            w.endArray().endObject();
+            w.flush();
+            fo.getFD().sync();
+        }
+        if (!tmp.renameTo(f)) { f.delete(); if (!tmp.renameTo(f)) throw new Exception("Opslaan van de zoekindex lukte niet"); }
     }
 
     interface Progress { void step(int done, int total); }
@@ -438,12 +472,16 @@ final class SmartSearch {
         try { updateLocked(c, force, p); } finally { UPD.unlock(); }
     }
 
-    /** Sleutel om een stuk met precies dezelfde tekst niet opnieuw door het model te halen. */
-    private static String pieceKey(String kind, String id, String text) { return kind + ":" + id + "\u0000" + text; }
+    /** Sleutel om een stuk met dezelfde tekst niet opnieuw door het model te halen (kort: niet alle tekst nog eens in het geheugen). */
+    static String pieceKey(String kind, String id, String text) {
+        long h = 1125899906842597L;
+        for (int i = 0; i < text.length(); i++) h = 31 * h + text.charAt(i);
+        return kind + ":" + id + ":" + text.length() + ":" + Long.toHexString(h) + ":" + Integer.toHexString(text.hashCode() ^ 0x5bd1e995);
+    }
 
     private static void updateLocked(Context c, boolean force, Progress p) throws Exception {
         List<Entry> entries = new ArrayList<>(current(c));
-        if (force) { entries = new ArrayList<>(); hashes = new HashMap<>(); } else if (hashes.isEmpty()) loadHashes(c, entries);
+        if (force) { entries = new ArrayList<>(); hashes = new HashMap<>(); } else if (hashes.isEmpty() && !entries.isEmpty()) hashes = new HashMap<>(loadedHashes);
         // Bij een nieuw bericht verandert het hele gesprek, maar de meeste stukken niet: die houden hun vector
         Map<String, byte[]> reuse = new HashMap<>();
         for (Entry e : entries) reuse.put(pieceKey(e.kind, e.id, e.text), e.v);
@@ -458,6 +496,7 @@ final class SmartSearch {
             Doc d = byKey.get(k);
             if (d != null && d.hash().equals(hashes.get(k))) keep.add(e);
         }
+        boolean changed = force || keep.size() != entries.size();
         entries = keep;
         java.util.Set<String> have = new java.util.HashSet<>();
         for (Entry e : entries) have.add(e.kind + ":" + e.id);
@@ -470,7 +509,7 @@ final class SmartSearch {
             if (d.marks != null) {
                 // Berichten: de nieuwste stukken (achteraan); gesprekken: het begin
                 boolean msgs = !"tx".equals(d.kind);
-                int from = msgs ? Math.max(0, d.marks.size() - 80) : 0, to = msgs ? d.marks.size() : Math.min(80, d.marks.size());
+                int from = msgs ? Math.max(0, d.marks.size() - MSG_PIECES) : 0, to = msgs ? d.marks.size() : Math.min(80, d.marks.size());
                 for (int i = from; i < to; i++) { long[] m = d.marks.get(i); String x = d.text.substring((int) m[0], (int) Math.min(d.text.length(), m[1])); pieces.add(new Object[]{d, x, m[2], reuse.get(pieceKey(d.kind, d.id, x))}); }
             } else {
                 int n = 0;
@@ -478,6 +517,7 @@ final class SmartSearch {
             }
         }
         reuse = null;
+        if (!pieces.isEmpty()) changed = true;
         int need = 0;
         for (Object[] pc : pieces) if (pc[3] == null) need++;
         busyTotal = need; busyDone = 0;
@@ -517,8 +557,20 @@ final class SmartSearch {
             builtSig = sig;
         } finally {
             busyDone = -1;
+            // Intussen uitgezet: niet bewaren (ook niet als deze ronde halverwege stopte)
+            java.util.Set<String> off = new java.util.HashSet<>();
+            for (String k : LocalAi.SOURCES) if (!LocalAi.srcOn(c, k)) off.add(k);
+            if (!off.isEmpty()) {
+                List<Entry> on = new ArrayList<>();
+                for (Entry e : entries) if (!off.contains(e.kind)) on.add(e);
+                if (on.size() != entries.size()) changed = true;
+                entries = on;
+                for (java.util.Iterator<String> it = hashes.keySet().iterator(); it.hasNext(); ) { String k = it.next(); if (off.contains(k.substring(0, Math.max(0, k.indexOf(':'))))) it.remove(); }
+            }
             publish(entries);
-            save(c); // ook halverwege: wat klaar is, hoeft de volgende keer niet opnieuw
+            // Ook halverwege: wat klaar is, hoeft de volgende keer niet opnieuw. Niets veranderd: niet opnieuw schrijven
+            // (dan klopt het vingerafdrukje in het bestand niet meer; de volgende keer is dat snel opnieuw nagelopen).
+            if (changed || !file(c).isFile()) save(c);
         }
     }
 
@@ -527,18 +579,21 @@ final class SmartSearch {
 
     /** Zoeken op betekenis: [{kind, id, title, snip, from, t, score}]. Veranderde er iets, dan wordt de index op de
      *  achtergrond bijgewerkt; er wordt even op gewacht, daarna wordt gezocht in wat er al is. */
-    static JSONArray search(Context c, String q, int k) throws Exception {
+    static JSONArray search(Context c, String q, int k) throws Exception { return search(c, q, k, true); }
+
+    /** wait = even wachten op het bijwerken (voor de assistent; zoeken tijdens het typen wacht niet). */
+    static JSONArray search(Context c, String q, int k, boolean wait) throws Exception {
         current(c);
         if (!builtSig.equals(sourcesSig(c))) {
             // Liep er al een (lange) update, dan niet wachten: zoeken in wat er is. Anders kort wachten, maar niet als
             // er veel te doen blijkt (bijv. net sms aangezet): dan meteen zoeken en de rest op de achtergrond.
             boolean was = updating();
             LocalAi.indexLater(c);
-            if (!was) {
+            if (!was && wait) {
                 long until = System.currentTimeMillis() + WAIT_MS;
                 Thread.sleep(50); // de index-thread even laten beginnen
                 while ((updating() || LocalAi.indexQueued()) && System.currentTimeMillis() < until) {
-                    if (busyDone >= 0 && busyTotal > 48) break;
+                    if ((busyDone >= 0 && busyTotal > 48) || LocalAi.cancelled()) break;
                     Thread.sleep(200);
                 }
             }
@@ -564,7 +619,7 @@ final class SmartSearch {
         UPD.lock();
         try {
             LOCK.lock();
-            try { entries = java.util.Collections.unmodifiableList(new ArrayList<Entry>()); hashes = new HashMap<>(); builtAt = 0; builtSig = ""; snapshot(); file(c).delete(); }
+            try { entries = java.util.Collections.unmodifiableList(new ArrayList<Entry>()); hashes = new HashMap<>(); loadedHashes = new HashMap<>(); builtAt = 0; builtSig = ""; snapshot(); file(c).delete(); }
             finally { LOCK.unlock(); }
         } finally { UPD.unlock(); }
     }
