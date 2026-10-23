@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.86",
-  "versionCode": 87,
-  "nativeLevel": 78,
+  "versionName": "1.87",
+  "versionCode": 88,
+  "nativeLevel": 79,
   "web": "index.html",
-  "webSha256": "aa06c2aa499895b52268cb9aeed9598c6fa68e93a9791f2886adf7ae5d3c804c",
+  "webSha256": "291c2949b82955456cf098899d1d100930c0316c800d5c1eebcd8b5b937ad2d8",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "718a6fb0e9444337625f1a30c0997b8b5a373efa4d4612ea59aa29d03e02e2af",
+  "apkSha256": "aa4cad2a81db4cbe298f8c57955c81ae5c94f5dc69974a7e5e924e52c5ca26fe",
   "changelog": [
+    {
+      "version": "1.87",
+      "date": "2026-10-23",
+      "changes": [
+        "Podcasts: de kleine speler in het meldingenpaneel en op het vergrendelscherm heeft nu knoppen om 15 seconden terug en 30 seconden vooruit te spoelen (ook bij casten). De vorige/volgende-knop van een koptelefoon of auto spoelt ook"
+      ]
+    },
     {
       "version": "1.86",
       "date": "2026-10-23",
@@ -765,5 +772,5 @@
       ]
     }
   ],
-  "webSig2": "ItaZeqokc2aDypsRAYUH0huBI+g4VoLM3228VktAZZWPh6nCd8Pt7VTEgM3u01OiyaWlASN1XtawOzMMEnAbzt4Hwhv3gO1mrOlTmRo6r9SijChMwppijAQhlQeOeUMdFZ9OKsixnCaRcSoViXLv1iFPUdGFbnANyupgubiaRhbHZuqdklk7N27gMaQGUTCrXXgL6nE7+sL+R+s35Yk9F/1EPtgKuiIkdz16nNRvfxgv0ercTUfxhybG96tL0q8MmLPZSWgMbp4V5XQ60U/byjpCT7F50n9ocvzXeZZVOAwk5DIwuFWEIzV9vHBwA8R/jaRHwW/682QGRAMMPv/6PoGa9mFjeRZJZBcnceuEJXraAYd2adoo02YD8A9fGhQffjTv9A3fPQaS+c5dpPED43pGPegWi0s5v+JupDRGvIW9n96hSDXvIumjkQFyif4FArInyXNN90uCTXq9XUgglJKqTIMfrt8PCncSwju8Dn9uVam+NWWcPXd+Fe0Zjyw6"
+  "webSig2": "BpEzhTr6rNzY0Im2PCazhPY41BiP/hkPSm8eSHDfEChhnmewkACGCKx4DPzznPer3fM6b197Yr1sX+Z6E3JrjIkTvSz7NqFv7BXY3roFx3R4/k8U/TBqyXILakc8TufM4De3rQpVDJ8I06YjSMnb1hUrR4YGj9PFBZruV6AVd9vyMPFK/KKYb0go48EkUYJJJqdWHcBedxeO6kUk0uikJcI9MwRCpqhTOq8k+w47V27r1w24DAW8YDTqeLOMOTST6KV+1ubuqBC8/+06+Sygm6goE71ZNp+/m+sKECYGSwtLiX9nPNOoSUNNoA2/0wYQypgMxnIe3JHoNi6Nn/sil6ti5teRKQkMIUL8LtItA7w/AvHe2q7wtIK/KDTiTIIsJ0VBXjExXhQv2exWa2E6R08rOvX2/88y2YbGGPB89j387eoFI/bzsmv/d+tRas+lDCEJAn1TQugJxHIYgAmPkrIrPFuF+UtuEwkSo1C0tiJ8v2cFEZCrUbHjQtISHwoz"
 }
