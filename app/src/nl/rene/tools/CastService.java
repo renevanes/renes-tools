@@ -62,6 +62,20 @@ public class CastService extends Service {
         @Override public void onRewind() { run(() -> Cast.seekBy(-15)); }
         @Override public void onSkipToNext() { CastService s = inst; if (s != null) run(() -> Player.step(s, null, 1)); }
         @Override public void onSkipToPrevious() { CastService s = inst; if (s != null) run(() -> Player.step(s, null, -1)); }
+        @Override public void onCustomAction(String a, android.os.Bundle x) { if (BACK.equals(a)) onRewind(); else if (FWD.equals(a)) onFastForward(); }
+        @Override public boolean onMediaButtonEvent(android.content.Intent i) {
+            // Podcast: vorige/volgende staan uit (zie update), dus de knoppen van koptelefoon of auto hier zelf
+            android.view.KeyEvent k = i == null ? null : (android.view.KeyEvent) i.getParcelableExtra(android.content.Intent.EXTRA_KEY_EVENT);
+            Player.Now n = Cast.now();
+            boolean pod = n != null && n.dur > 0 && !Player.RADIO.equals(n.src);
+            if (pod && k != null && (k.getKeyCode() == android.view.KeyEvent.KEYCODE_MEDIA_NEXT || k.getKeyCode() == android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS)) {
+                if (k.getAction() == android.view.KeyEvent.ACTION_DOWN && k.getRepeatCount() == 0) {
+                    if (k.getKeyCode() == android.view.KeyEvent.KEYCODE_MEDIA_NEXT) onFastForward(); else onRewind();
+                }
+                return true;
+            }
+            return super.onMediaButtonEvent(i);
+        }
         private static void run(Runnable r) { new Thread(r, "cast-cmd").start(); } // netwerk niet op de hoofdthread
     }
 
@@ -123,6 +137,8 @@ public class CastService extends Service {
         return PendingIntent.getService(this, code, new Intent(this, CastService.class).setAction(a), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
+    private android.graphics.drawable.Icon icon(int res) { return android.graphics.drawable.Icon.createWithResource(this, res); }
+
     private Notification notif(Player.Now n) {
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         boolean playing = n != null && n.playing;
@@ -132,10 +148,10 @@ public class CastService extends Service {
                 .setOngoing(true).setOnlyAlertOnce(true).setShowWhen(false).setVisibility(Notification.VISIBILITY_PUBLIC);
         if (art != null) b.setLargeIcon(art);
         boolean live = n == null || Player.RADIO.equals(n.src);
-        if (!live) b.addAction(new Notification.Action.Builder(null, "−15 s", action(BACK, 71)).build());
-        b.addAction(new Notification.Action.Builder(null, playing ? "Pauze" : "Afspelen", action(PP, 72)).build());
-        if (!live) b.addAction(new Notification.Action.Builder(null, "+30 s", action(FWD, 73)).build());
-        b.addAction(new Notification.Action.Builder(null, "Stoppen", action(STOP, 74)).build());
+        if (!live) b.addAction(new Notification.Action.Builder(icon(R.drawable.ic_back), "15 s terug", action(BACK, 71)).build());
+        b.addAction(new Notification.Action.Builder(icon(playing ? R.drawable.ic_pause : R.drawable.ic_play), playing ? "Pauze" : "Afspelen", action(PP, 72)).build());
+        if (!live) b.addAction(new Notification.Action.Builder(icon(R.drawable.ic_fwd), "30 s vooruit", action(FWD, 73)).build());
+        b.addAction(new Notification.Action.Builder(icon(R.drawable.ic_stop), "Stoppen", action(STOP, 74)).build());
         b.setStyle(new Notification.MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(live ? 0 : 1));
         return b.build();
     }
@@ -153,11 +169,18 @@ public class CastService extends Service {
             session.setMetadata(mb.build());
         }
         int st = n.playing ? ("connecting".equals(n.status) ? PlaybackState.STATE_BUFFERING : PlaybackState.STATE_PLAYING) : "error".equals(n.status) ? PlaybackState.STATE_ERROR : PlaybackState.STATE_PAUSED;
-        long acts = PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_STOP
-                | PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS;
+        long acts = PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_STOP;
+        // Podcast: terug- en doorspoelen op de plekken van vorige/volgende in de mediaspeler van Android 13+; radio: vorige/volgende zender
+        boolean pod = n.dur > 0 && !Player.RADIO.equals(n.src);
         if (n.dur > 0) acts |= PlaybackState.ACTION_SEEK_TO | PlaybackState.ACTION_REWIND | PlaybackState.ACTION_FAST_FORWARD;
-        session.setPlaybackState(new PlaybackState.Builder().setActions(acts)
-                .setState(st, n.pos, n.playing ? (float) Math.max(0.5, n.rate) : 0f, android.os.SystemClock.elapsedRealtime()).build());
+        if (!pod) acts |= PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS;
+        PlaybackState.Builder pb = new PlaybackState.Builder().setActions(acts)
+                .setState(st, n.pos, n.playing ? (float) Math.max(0.5, n.rate) : 0f, android.os.SystemClock.elapsedRealtime());
+        if (pod) {
+            pb.addCustomAction(new PlaybackState.CustomAction.Builder(BACK, "15 s terug", R.drawable.ic_back).build());
+            pb.addCustomAction(new PlaybackState.CustomAction.Builder(FWD, "30 s vooruit", R.drawable.ic_fwd).build());
+        }
+        session.setPlaybackState(pb.build());
         if (n.volume >= 0) volume.setCurrentVolume((int) Math.round(n.volume * 20));
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, notif(n));
         final String url = n.art;

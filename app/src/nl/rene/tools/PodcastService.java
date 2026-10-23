@@ -42,8 +42,11 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
     static final int BACK_S = 15, FWD_S = 30;
     static final long FADE_MS = 30_000;
     static final long ACTIONS = PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_STOP
-            | PlaybackState.ACTION_SEEK_TO | PlaybackState.ACTION_REWIND | PlaybackState.ACTION_FAST_FORWARD
-            | PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS;
+            | PlaybackState.ACTION_SEEK_TO | PlaybackState.ACTION_REWIND | PlaybackState.ACTION_FAST_FORWARD;
+    // Bewust zonder "vorige/volgende": dan zet Android 13+ in de mediaspeler (meldingen, snelle instellingen,
+    // vergrendelscherm) onze eigen knoppen 15 s terug en 30 s vooruit op die plekken. De vorige/volgende-knop van
+    // een koptelefoon of auto werkt nog steeds (zie onMediaButtonEvent en onSkipToNext/onSkipToPrevious).
+    static final String BACK = "back", FWD = "fwd";
 
     // Toestand voor de interface
     static volatile String status = "stopped"; // connecting, playing, paused, ended, error, stopped
@@ -129,10 +132,23 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         @Override public void onSkipToNext() { onFastForward(); }
         @Override public void onRewind() { PodcastService s = inst; if (s != null) s.handle(SKIP, String.valueOf(-BACK_S)); }
         @Override public void onSkipToPrevious() { onRewind(); }
+        @Override public boolean onMediaButtonEvent(Intent i) {
+            // Android stuurt vorige/volgende alleen door als die acties aan staan: hier zelf afhandelen
+            android.view.KeyEvent k = i == null ? null : (android.view.KeyEvent) i.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+            if (k != null && (k.getKeyCode() == android.view.KeyEvent.KEYCODE_MEDIA_NEXT || k.getKeyCode() == android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS)) {
+                if (k.getAction() == android.view.KeyEvent.ACTION_DOWN && k.getRepeatCount() == 0) {
+                    if (k.getKeyCode() == android.view.KeyEvent.KEYCODE_MEDIA_NEXT) onFastForward(); else onRewind();
+                }
+                return true;
+            }
+            return super.onMediaButtonEvent(i);
+        }
         @Override public void onCustomAction(String action, android.os.Bundle extras) {
             PodcastService s = inst;
             if (s == null) return;
-            if (SLEEP_ADD.equals(action)) s.handle(SLEEP_ADD, "10");
+            if (BACK.equals(action)) onRewind();
+            else if (FWD.equals(action)) onFastForward();
+            else if (SLEEP_ADD.equals(action)) s.handle(SLEEP_ADD, "10");
             else if (STOP.equals(action)) s.handle(STOP, null);
         }
     }
@@ -580,9 +596,12 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         }
         int st = "playing".equals(status) ? PlaybackState.STATE_PLAYING : "connecting".equals(status) ? PlaybackState.STATE_BUFFERING
                 : "paused".equals(status) ? PlaybackState.STATE_PAUSED : "error".equals(status) ? PlaybackState.STATE_ERROR : PlaybackState.STATE_STOPPED;
-        // Android 13+ bouwt de knoppen in de melding uit de mediasessie: extra knoppen als eigen acties
+        // Android 13+ bouwt de knoppen in de melding uit de mediasessie: de eerste twee eigen acties komen op de
+        // plekken van vorige/volgende (links en rechts van afspelen), de rest ernaast
         PlaybackState.Builder pb = new PlaybackState.Builder().setActions(ACTIONS)
                 .setState(st, curPos(), "playing".equals(status) ? speed : 0f, SystemClock.elapsedRealtime());
+        pb.addCustomAction(new PlaybackState.CustomAction.Builder(BACK, BACK_S + " s terug", R.drawable.ic_back).build());
+        pb.addCustomAction(new PlaybackState.CustomAction.Builder(FWD, FWD_S + " s vooruit", R.drawable.ic_fwd).build());
         if (sleepAt > 0) pb.addCustomAction(new PlaybackState.CustomAction.Builder(SLEEP_ADD, "+10 min slaaptimer", R.drawable.ic_bedtime).build());
         pb.addCustomAction(new PlaybackState.CustomAction.Builder(STOP, "Stoppen", R.drawable.ic_stop).build());
         session.setPlaybackState(pb.build());
@@ -601,6 +620,8 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         return s >= 3600 ? (s / 3600) + ":" + String.format(java.util.Locale.US, "%02d:%02d", s / 60 % 60, s % 60) : (s / 60) + ":" + String.format(java.util.Locale.US, "%02d", s % 60);
     }
 
+    private android.graphics.drawable.Icon icon(int res) { return android.graphics.drawable.Icon.createWithResource(this, res); }
+
     private Notification notif() {
         String title = optEp("title"), podTitle = optPod("title");
         String text = "connecting".equals(status) ? "Laden…" : "error".equals(status) ? (error == null ? "Fout" : error)
@@ -615,11 +636,12 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
                 .setDeleteIntent(action(STOP, null, 46))
                 .setOngoing(playing).setOnlyAlertOnce(true).setShowWhen(false).setVisibility(Notification.VISIBILITY_PUBLIC);
         if (art != null) b.setLargeIcon(art);
-        b.addAction(new Notification.Action.Builder(null, "−" + BACK_S + " s", action(SKIP, String.valueOf(-BACK_S), 47)).build())
-                .addAction(new Notification.Action.Builder(null, playing ? "Pauze" : "Afspelen", action(playing ? PAUSE : RESUME, null, 48)).build())
-                .addAction(new Notification.Action.Builder(null, "+" + FWD_S + " s", action(SKIP, String.valueOf(FWD_S), 49)).build());
-        if (sleepAt > 0) b.addAction(new Notification.Action.Builder(null, "+10 min", action(SLEEP_ADD, "10", 50)).build());
-        b.addAction(new Notification.Action.Builder(null, "Stoppen", action(STOP, null, 51)).build());
+        // Met pictogrammen: oudere Android-versies tonen in de kleine mediaspeler alleen het pictogram
+        b.addAction(new Notification.Action.Builder(icon(R.drawable.ic_back), BACK_S + " s terug", action(SKIP, String.valueOf(-BACK_S), 47)).build())
+                .addAction(new Notification.Action.Builder(icon(playing ? R.drawable.ic_pause : R.drawable.ic_play), playing ? "Pauze" : "Afspelen", action(playing ? PAUSE : RESUME, null, 48)).build())
+                .addAction(new Notification.Action.Builder(icon(R.drawable.ic_fwd), FWD_S + " s vooruit", action(SKIP, String.valueOf(FWD_S), 49)).build());
+        if (sleepAt > 0) b.addAction(new Notification.Action.Builder(icon(R.drawable.ic_bedtime), "+10 min", action(SLEEP_ADD, "10", 50)).build());
+        b.addAction(new Notification.Action.Builder(icon(R.drawable.ic_stop), "Stoppen", action(STOP, null, 51)).build());
         b.setStyle(new Notification.MediaStyle().setMediaSession(session.getSessionToken()).setShowActionsInCompactView(0, 1, 2));
         return b.build();
     }
