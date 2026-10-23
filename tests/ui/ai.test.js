@@ -92,6 +92,16 @@ const { chromium } = require('playwright');
     await pg.fill('#ai-in', 'Nog bezig?'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(b => Android._ai.refused === 1 && aiChat.msgs.length === b && !aiBusy, before2) && (await pg.inputValue('#ai-in')) === 'Nog bezig?' && (await pg.textContent('#toast')).includes('nog bezig'), 'app nog bezig: vraag geweigerd, blijft staan, met melding');
     await pg.evaluate(() => { Android._ai.busy = false; $('#ai-in').value = ''; aiGrow(); });
+    // Opnieuw antwoorden terwijl de app nog bezig is: het vorige antwoord blijft staan
+    const lastAns = await pg.evaluate(() => { Android._ai.busy = true; Android._ai.refused = 0; return { n: aiChat.msgs.length, c: aiChat.msgs[aiChat.msgs.length - 1].c }; });
+    await pg.click('#ai-msgs .aimsg:last-child .aiacts .linkish'); await pg.waitForTimeout(100);
+    await pg.click('#sheet-acts button:has-text("Opnieuw antwoorden")'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(l => Android._ai.refused === 1 && aiChat.msgs.length === l.n && aiChat.msgs[aiChat.msgs.length - 1].c === l.c && !aiBusy, lastAns) &&
+      (await pg.textContent('#ai-msgs .aimsg:last-child .aib')).includes('assistent'), 'opnieuw antwoorden terwijl bezig: vorig antwoord blijft staan');
+    await pg.evaluate(() => { Android._ai.busy = false; });
+    await pg.click('#ai-msgs .aimsg:last-child .aiacts .linkish'); await pg.waitForTimeout(100);
+    await pg.click('#sheet-acts button:has-text("Opnieuw antwoorden")'); await pg.waitForTimeout(1300);
+    ok(await pg.evaluate(l => aiChat.msgs.length === l.n && aiChat.msgs[aiChat.msgs.length - 1].r === 'ai' && !aiBusy, lastAns), 'opnieuw antwoorden: nieuw antwoord in plaats van het oude');
     // Slim zoeken in Zoeken
     await pg.evaluate(() => { show('search'); $('#gs-q').value = 'garage'; gsInput(); }); await pg.waitForTimeout(1200);
     ok(await pg.isVisible('#gs-res .aigs') && (await pg.textContent('#gs-res .aigs')).includes('Auto naar de garage'), 'Zoeken: groep "Op betekenis"');

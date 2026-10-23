@@ -252,6 +252,11 @@ final class LocalAi {
     static final ExecutorService AI = Executors.newSingleThreadExecutor(r -> new Thread(r, "ai"));
     private static volatile LlmProcess chat, embed;
     private static volatile boolean cancel;
+    private static volatile long cancelAt; // wanneer er om stoppen gevraagd werd (0 = niet)
+    /** Zo lang mag de motor na "stoppen" nog doorgaan; daarna wordt hij beëindigd (hij hangt dan). */
+    static final long STUCK_MS = 10_000L;
+    /** Hangt de motor: om stoppen gevraagd en na STUCK_MS nog geen einde? Zuiver (getest). */
+    static boolean stuck(long cancelAt, long now) { return cancelAt > 0 && now - cancelAt >= STUCK_MS; }
     private static final java.util.concurrent.atomic.AtomicLong REQ = new java.util.concurrent.atomic.AtomicLong();
 
     /** Hooguit één antwoord tegelijk: wie vraagt, neemt de beurt (al bij het aanvragen, niet pas op de AI-thread). Zuiver (getest). */
@@ -364,7 +369,7 @@ final class LocalAi {
     static boolean chat(final Context c, final JSONObject req, final Sink sink) {
         final long job = GATE.enter();
         if (job == 0) return false;
-        cancel = false;
+        cancel = false; cancelAt = 0;
         try {
             AI.execute(() -> chatRun(c, req, sink, job));
         } catch (Throwable t) { GATE.leave(job); throw t; }
@@ -428,6 +433,13 @@ final class LocalAi {
                         .put("temp", 0.7).put("top_p", 0.8).put("top_k", 20));
                 while (!done.await(500, TimeUnit.MILLISECONDS)) {
                     if (!p.alive()) { if (done.getCount() > 0) { GATE.leave(job); done.countDown(); sink.error("De AI-motor is gestopt"); } break; }
+                    if (cancel && stuck(cancelAt, System.currentTimeMillis())) {
+                        // Gestopt, maar de motor reageert niet: beëindigen, zodat de assistent niet voor altijd "bezig" blijft
+                        p.listen(null);
+                        if (done.getCount() > 0) { GATE.leave(job); done.countDown(); sink.done(new JSONObject().put("cancelled", true)); }
+                        synchronized (LocalAi.class) { if (chat == p) closeChat(); else p.destroy(); }
+                        break;
+                    }
                 }
             } finally { p.listen(null); }
             p.lastUse = System.currentTimeMillis();
@@ -441,6 +453,7 @@ final class LocalAi {
     }
 
     static void cancel() {
+        if (!cancel || cancelAt == 0) cancelAt = System.currentTimeMillis();
         cancel = true;
         LlmProcess p = chat;
         if (p != null && p.alive()) try { p.send(new JSONObject().put("op", "cancel")); } catch (Throwable ignored) { }

@@ -227,7 +227,11 @@ function aiMsgMenu(i){
     ['Delen', () => Android.aiShare(m.c)],
     ['Als notitie bewaren', () => aiToNote(m.c)]
   ];
-  if (i === aiChat.msgs.length - 1 && !aiBusy) acts.push(['Opnieuw antwoorden', () => { aiChat.msgs.pop(); aiAsk(); }]);
+  if (i === aiChat.msgs.length - 1 && !aiBusy) acts.push(['Opnieuw antwoorden', () => {
+    // Het oude antwoord eerst weg; weigert de assistent (nog bezig), dan komt het terug
+    const old = aiChat.msgs.pop();
+    if (aiAsk() === 'bezig') { aiChat.msgs.push(old); aiRenderMsgs(); toast('De assistent is nog bezig met een antwoord'); }
+  }]);
   openSheet('Antwoord', '', acts);
 }
 function aiToNote(text){
