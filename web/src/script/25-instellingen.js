@@ -10,13 +10,13 @@ function stSummaries(i){
   if (typeof Android.notifState === 'function') { const n = stJson(Android.notifState()); stSum('notif', n.muted ? 'Alle meldingen uit' : !n.allowed ? 'Uit voor deze app' : 'Aan'); }
   const z = $('#st-zoom'); stSum('look', (z && z.selectedIndex >= 0 ? 'Tekst: ' + z.options[z.selectedIndex].text.toLowerCase() : '') + ($('#st-dyn').classList.contains('on') ? ' · kleuren uit je achtergrond' : ''));
   stSum('skin', Android.homeIsDefault() ? '✓ Tools is je startscherm' : 'Tools als startscherm gebruiken');
-  stSum('lock', lk.on ? 'Aan' + (lk.code ? ' · eigen app-code' : '') : 'Uit');
+  stSum('lock', lk.on && !(lk.secure || lk.code) ? 'Aan, maar werkt nog niet: stel een vergrendeling of app-code in' : lk.on ? 'Aan' + (lk.code ? ' · eigen app-code' : '') : 'Uit');
   const so = typeof soloAllowedList === 'function' ? soloAllowedList().length : 0;
   stSum('solo', so ? so + (so === 1 ? ' tool als losse app' : ' tools als losse app') : 'Geen');
   const ps = i.perms || [], miss = ps.filter(p => !p.ok).length;
   stSum('perm', !ps.length ? '' : miss ? miss + ' van ' + ps.length + ' nog niet toegestaan' : '✓ Alles toegestaan');
   stSum('backup', i.dest ? (i.destName || 'Gekozen') : 'Nog niet gekozen');
-  if (typeof Android.aiState === 'function') { const a = stJson(Android.aiState()), m = (a.models || []).filter(x => x.state === 'ready');
+  if (current === 'settings' && typeof Android.aiState === 'function') { // alleen in het overzicht (vraagt wat meer werk) const a = stJson(Android.aiState()), m = (a.models || []).filter(x => x.state === 'ready');
     stSum('ai', m.length ? m.map(x => x.label).join(' · ') : 'Nog geen model gedownload'); }
   stSum('music', i.audd ? 'AudD-sleutel ingesteld' : 'Nog geen AudD-sleutel');
   stSum('crash', i.crashes ? i.crashes + (i.crashes === 1 ? ' fout vastgelegd' : ' fouten vastgelegd') : '✓ Geen fouten');

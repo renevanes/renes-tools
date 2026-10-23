@@ -19,10 +19,10 @@ const { chromium } = require('playwright');
     await pg.screenshot({ path: __dirname + '/shots/instellingen-' + scheme + '.png', fullPage: true });
     // Elk onderwerp opent zijn eigen scherm, terug = het overzicht
     const subs = [['Meldingen', 'setnotif', '#st-notif-mute'], ['Weergave', 'setlook', '#st-zoom'], ['Telefoon-skin', 'setskin', '#st-home-btn'], ['App-slot', 'setlock', '#st-lock-btn'],
-      ['Losse apps', 'setsolo', '#st-solo-list'], ['Toestemmingen', 'setperm', '#st-perms'], ['Backup-map', 'setbackup', '#st-dest'], ['Muziek herkennen', 'setmusic', '#st-audd'], ['Foutrapport', 'setcrash', '#st-crash']];
-    for (const [t, scr, el] of subs) {
+      ['Losse apps', 'setsolo', '#st-solo-list'], ['Toestemmingen', 'setperm', '#st-perms'], ['Backup-map', 'setbackup', '#st-dest'], ['Muziek herkennen', 'setmusic', '#st-audd', 'AudD-sleutel'], ['Foutrapport', 'setcrash', '#st-crash']];
+    for (const [t, scr, el, h1] of subs) {
       await pg.click('#s-settings .strow:has-text("' + t + '")'); await pg.waitForTimeout(120);
-      const good = await pg.evaluate(s => current === s, scr) && await pg.isVisible(el) && (await pg.textContent('#s-' + scr + ' h1')) === t;
+      const good = await pg.evaluate(s => current === s, scr) && await pg.isVisible(el) && (await pg.textContent('#s-' + scr + ' h1')) === (h1 || t);
       await pg.evaluate(() => goBack()); await pg.waitForTimeout(120);
       ok(good && await pg.evaluate(() => current === 'settings'), t + ': eigen scherm, terug naar het overzicht');
     }
@@ -39,6 +39,14 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => current === 'info'), 'versie en updates');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => current === 'settings'), 'terug: weer de instellingen');
+    // Zelftest: "Naar toestemmingen" opent de toestemmingen
+    await pg.evaluate(() => jumpTo('selftest')); await pg.waitForTimeout(100);
+    await pg.evaluate(() => SF_FIX.settings[1]()); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => current === 'setperm'), 'zelftest: naar de toestemmingen');
+    // Terug uit Android (bijv. na een melding aanpassen): het scherm wordt bijgewerkt
+    await pg.evaluate(() => { show('setnotif'); window.__n = 0; const o = enterSettings; window.enterSettings = function(){ window.__n++; return o.apply(this, arguments); }; onResumeApp(); });
+    ok(await pg.evaluate(() => window.__n > 0), 'terug uit Android: instellingen bijgewerkt');
+    ok(await pg.evaluate(() => getComputedStyle(document.querySelector('#s-settings .stlist')).paddingLeft === '0px'), 'rijen tot de rand van de kaart');
     // Zoeken vindt een instelling en opent het juiste scherm
     await pg.evaluate(() => { show('search'); $('#gs-q').value = 'tekstgrootte'; gsInput(); }); await pg.waitForTimeout(500);
     const hits = await pg.$$eval('#gs-res .gi', x => x.map(e => e.innerText.replace(/\n/g, ' / ')));

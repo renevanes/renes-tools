@@ -6,25 +6,25 @@
     <h1 tabindex="-1">Instellingen</h1>
   </div>
   <main>
-    <div class="flabel stgl">Algemeen</div>
+    <div class="flabel stgl" role="heading" aria-level="2">Algemeen</div>
     <div class="card stlist">
       <button class="strow" onclick="show('setnotif')"><span class="stic"><span class="ui-icon" data-icon="bell" aria-hidden="true"></span></span><span class="sttxt"><b>Meldingen</b><small id="st-sum-notif"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setlook')"><span class="stic"><span class="ui-icon" data-icon="eye" aria-hidden="true"></span></span><span class="sttxt"><b>Weergave</b><small id="st-sum-look"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setskin')"><span class="stic"><span class="ui-icon" data-icon="smartphone" aria-hidden="true"></span></span><span class="sttxt"><b>Telefoon-skin</b><small id="st-sum-skin"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
-    <div class="flabel stgl">Beveiliging en privacy</div>
+    <div class="flabel stgl" role="heading" aria-level="2">Beveiliging en privacy</div>
     <div class="card stlist">
       <button class="strow" onclick="show('setlock')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>App-slot</b><small id="st-sum-lock"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setsolo')"><span class="stic"><span class="ui-icon" data-icon="grid" aria-hidden="true"></span></span><span class="sttxt"><b>Losse apps</b><small id="st-sum-solo"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setperm')"><span class="stic"><span class="ui-icon" data-icon="shield" aria-hidden="true"></span></span><span class="sttxt"><b>Toestemmingen</b><small id="st-sum-perm"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
-    <div class="flabel stgl">Gegevens en diensten</div>
+    <div class="flabel stgl" role="heading" aria-level="2">Gegevens en diensten</div>
     <div class="card stlist">
       <button class="strow" onclick="show('setbackup')"><span class="stic"><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span><span class="sttxt"><b>Backup-map</b><small id="st-sum-backup"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="jumpTo('aiset')"><span class="stic"><span class="ui-icon" data-icon="sparkle" aria-hidden="true"></span></span><span class="sttxt"><b>Lokale AI</b><small id="st-sum-ai"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setmusic')"><span class="stic"><span class="ui-icon" data-icon="music" aria-hidden="true"></span></span><span class="sttxt"><b>Muziek herkennen</b><small id="st-sum-music"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
-    <div class="flabel stgl">Over de app</div>
+    <div class="flabel stgl" role="heading" aria-level="2">Over de app</div>
     <div class="card stlist">
       <button class="strow" onclick="show('setcrash')"><span class="stic"><span class="ui-icon" data-icon="alert" aria-hidden="true"></span></span><span class="sttxt"><b>Foutrapport</b><small id="st-sum-crash"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('selftest')"><span class="stic"><span class="ui-icon" data-icon="check" aria-hidden="true"></span></span><span class="sttxt"><b>Zelftest</b><small id="st-sum-self"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
@@ -40,7 +40,7 @@
   </div>
   <main>
     <div class="card">
-      <h2>Meldingen van Tools</h2>
+      <h2>Meldingen</h2>
       <div class="sw"><span>Alle meldingen uit<small>Geen geluid, trillen of pop-ups meer van deze app</small></span><button class="tg" id="st-notif-mute" aria-label="Alle meldingen uit" onclick="togUi(this); stNotifMute(this.classList.contains('on'))"></button></div>
       <p class="note" style="margin-top:0" id="st-notif-state"></p>
       <button class="big" id="st-notif-ask" style="display:none;margin-bottom:8px" onclick="Android.notifAsk()">Meldingen aanzetten</button>
@@ -162,11 +162,11 @@
 <section class="screen" id="s-setmusic">
   <div class="hdr sm">
     <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
-    <h1 tabindex="-1">Muziek herkennen</h1>
+    <h1 tabindex="-1">AudD-sleutel</h1>
   </div>
   <main>
     <div class="card">
-      <h2>Muziek herkennen</h2>
+      <h2>AudD-sleutel</h2>
       <p class="note" style="margin-top:0" id="st-audd"></p>
       <button class="big ghost" onclick="muChangeToken()">AudD-sleutel wijzigen</button>
     </div>
