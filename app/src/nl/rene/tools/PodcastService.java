@@ -132,9 +132,26 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         @Override public void onSkipToNext() { onFastForward(); }
         @Override public void onRewind() { PodcastService s = inst; if (s != null) s.handle(SKIP, String.valueOf(-BACK_S)); }
         @Override public void onSkipToPrevious() { onRewind(); }
+        private static Runnable pendingTap; // alleen op de hoofdthread
         @Override public boolean onMediaButtonEvent(Intent i) {
             // Android stuurt vorige/volgende alleen door als die acties aan staan: hier zelf afhandelen
             android.view.KeyEvent k = i == null ? null : (android.view.KeyEvent) i.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+            PodcastService s = inst;
+            // Koptelefoon met één knop: twee keer drukken = 30 s vooruit (zoals Android dat alleen met "volgende" doet)
+            if (s != null && k != null && (k.getKeyCode() == android.view.KeyEvent.KEYCODE_HEADSETHOOK || k.getKeyCode() == android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)) {
+                if (k.getAction() == android.view.KeyEvent.ACTION_DOWN && k.getRepeatCount() == 0) {
+                    if (pendingTap != null) { s.h.removeCallbacks(pendingTap); pendingTap = null; onFastForward(); }
+                    else {
+                        pendingTap = () -> {
+                            pendingTap = null;
+                            PodcastService t = inst;
+                            if (t != null) t.handle("playing".equals(status) || "connecting".equals(status) ? PAUSE : RESUME, null);
+                        };
+                        s.h.postDelayed(pendingTap, android.view.ViewConfiguration.getDoubleTapTimeout());
+                    }
+                }
+                return true;
+            }
             if (k != null && (k.getKeyCode() == android.view.KeyEvent.KEYCODE_MEDIA_NEXT || k.getKeyCode() == android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS)) {
                 if (k.getAction() == android.view.KeyEvent.ACTION_DOWN && k.getRepeatCount() == 0) {
                     if (k.getKeyCode() == android.view.KeyEvent.KEYCODE_MEDIA_NEXT) onFastForward(); else onRewind();
