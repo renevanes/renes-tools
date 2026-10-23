@@ -612,7 +612,7 @@ final class LocalAi {
             }
             // Per gesprek steeds dezelfde herinneringen (vast vanaf de eerste vraag): dan blijft de vaste instructie
             // gelijk en hoeft de motor het gesprek niet opnieuw in te lezen. Wat intussen weg is, gaat er wel uit.
-            List<String> mem = memOn ? memFor(chatId, AiMemory.texts(c), AiMemory.limit(m.ctx)) : null;
+            List<String> mem = memOn ? memFor(chatId, AiMemory.pairs(c), AiMemory.limit(m.ctx)) : null;
             String sys = systemPrompt(c, m.ctx, mem, "");
             final int memUsed = mem == null ? 0 : mem.size();
             boolean learnWanted = memOn && remember == null && forgetWhat == null && !"uit".equals(cfg(c, "learn")) && AiMemory.worthy(question);
@@ -707,11 +707,15 @@ final class LocalAi {
 
     private static volatile boolean learning, learnStop;
 
+    /** Er loopt nu echt een extra vraag (leren of netjes maken); alleen dan mag "cancel" naar de motor: anders zou
+     *  het het antwoord stoppen dat nog geschreven wordt. */
+    private static volatile boolean inSide;
+
     static void stopLearning() {
         if (!learning) return;
         learnStop = true;
         LlmProcess p = chat;
-        if (p != null && p.alive()) try { p.send(new JSONObject().put("op", "cancel")); } catch (Throwable ignored) { }
+        if (inSide && p != null && p.alive()) try { p.send(new JSONObject().put("op", "cancel")); } catch (Throwable ignored) { }
     }
 
     /** Een korte extra vraag aan het model, achter het gesprek (dat staat al in het geheugen van de motor, dus snel).
@@ -735,6 +739,7 @@ final class LocalAi {
             else if (o.has("error")) done.countDown();
         });
         try {
+            inSide = true;
             if (learnStop) return null;
             p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", lm).put("max", max).put("temp", 0.2).put("top_p", 0.8).put("top_k", 20));
             long until = System.currentTimeMillis() + 90_000L;
@@ -745,7 +750,7 @@ final class LocalAi {
                     return null;
                 }
             }
-        } finally { p.listen(null); p.lastUse = System.currentTimeMillis(); }
+        } finally { inSide = false; p.listen(null); p.lastUse = System.currentTimeMillis(); }
         return good[0] && !learnStop ? out.toString() : null;
     }
 
@@ -764,27 +769,34 @@ final class LocalAi {
     /** Groter dan het geheugen van het model (met ruimte voor het antwoord)? Zuiver (getest). */
     static boolean sideTooBig(int chars, int max, int ctx) { return chars / 3 + max + 64 > ctx; }
 
-    /** Vaste herinneringen per gesprek (hooguit 8 gesprekken onthouden). */
+    /** Vaste herinneringen per gesprek (hooguit 8 gesprekken onthouden): de ids, en het budget waarmee gekozen werd. */
     private static final java.util.Map<String, List<String>> MEM_CHAT = new java.util.HashMap<>();
+    private static final java.util.Map<String, Integer> MEM_BUDGET = new java.util.HashMap<>();
     private static final java.util.LinkedList<String> MEM_ORDER = new java.util.LinkedList<>();
 
-    /** De herinneringen voor dit gesprek: bij de eerste vraag gekozen en daarna gelijk gehouden (behalve wat weg is
-     *  of veranderde). Zuiver op de tabel na (getest). */
-    static synchronized List<String> memFor(String chatId, List<String> all, int budget) {
-        List<String> fixed = chatId == null || chatId.isEmpty() ? null : MEM_CHAT.get(chatId);
-        if (fixed == null) {
-            fixed = AiMemory.pick(all, budget);
-            if (chatId != null && !chatId.isEmpty()) {
-                MEM_CHAT.put(chatId, fixed); MEM_ORDER.remove(chatId); MEM_ORDER.addLast(chatId);
-                while (MEM_ORDER.size() > 8) MEM_CHAT.remove(MEM_ORDER.removeFirst());
+    /** De herinneringen voor dit gesprek: bij de eerste vraag gekozen en daarna dezelfde (met hun huidige tekst; wat
+     *  weg is, gaat eruit). all = {id, tekst}, nieuwste eerst. Een ander model (ander budget): opnieuw kiezen. Getest. */
+    static synchronized List<String> memFor(String chatId, List<String[]> all, int budget) {
+        java.util.Map<String, String> text = new java.util.HashMap<>();
+        for (String[] x : all) text.put(x[0], x[1]);
+        boolean keyed = chatId != null && !chatId.isEmpty();
+        List<String> ids = keyed ? MEM_CHAT.get(chatId) : null;
+        if (ids == null || !Integer.valueOf(budget).equals(MEM_BUDGET.get(chatId))) {
+            ids = new ArrayList<>();
+            int used = 0; // zoals AiMemory.pick: de nieuwste die samen in het budget passen
+            for (String[] x : all) {
+                if (x[1] == null || x[1].isEmpty()) continue;
+                if (used + x[1].length() + 3 > budget) break;
+                ids.add(x[0]); used += x[1].length() + 3;
             }
-            return fixed;
+            if (keyed) {
+                MEM_CHAT.put(chatId, ids); MEM_BUDGET.put(chatId, budget); MEM_ORDER.remove(chatId); MEM_ORDER.addLast(chatId);
+                while (MEM_ORDER.size() > 8) { String old = MEM_ORDER.removeFirst(); MEM_CHAT.remove(old); MEM_BUDGET.remove(old); }
+            }
         }
-        java.util.Set<String> have = new java.util.HashSet<>(all);
-        List<String> keep = new ArrayList<>();
-        for (String x : fixed) if (have.contains(x)) keep.add(x);
-        if (keep.size() != fixed.size()) MEM_CHAT.put(chatId, keep);
-        return keep;
+        List<String> out = new ArrayList<>();
+        for (String id : ids) { String t = text.get(id); if (t != null) out.add(t); }
+        return out;
     }
 
     /** Begin van een geheugenmelding: bij welke vraag (turn) hoort hij, en komt hij vóór het antwoord (pre). */

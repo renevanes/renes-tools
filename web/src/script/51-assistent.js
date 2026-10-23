@@ -149,7 +149,7 @@ function aiSendOrStop(){
 /* De vraag (met het gesprek tot nu toe) naar de assistent */
 function aiAsk(){
   if (aiBusy) { toast('De assistent is nog bezig met een antwoord'); return 'bezig'; }
-  const msgs = aiChat.msgs.filter(m => !m.err).map(m => ({ role: m.r === 'user' ? 'user' : 'assistant', content: m.c }));
+  const msgs = aiChat.msgs.filter(m => !m.err && (m.r === 'user' || m.c)).map(m => ({ role: m.r === 'user' ? 'user' : 'assistant', content: m.c }));
   // Het gesprek eerst bewaren: dan heeft het een id (wat de assistent onthoudt, weet uit welk gesprek het komt)
   aiSaveChat(aiChat);
   // Eerst het (lege) antwoord klaarzetten: stukjes kunnen meteen binnenkomen
@@ -191,7 +191,9 @@ function aiFinish(fix){
 window.onAiDone = function(info){
   info = info || {};
   aiFinish((chat, m) => {
-    if (info.cancelled && !m.c) chat.msgs.splice(chat.msgs.indexOf(m), 1);
+    // Gestopt vóór het eerste woord: het (lege) antwoord weg, behalve als er iets met het geheugen gebeurde (dat blijft zichtbaar)
+    if (info.cancelled && !m.c && !m.mem) chat.msgs.splice(chat.msgs.indexOf(m), 1);
+    else if (info.cancelled && !m.c) { m.stopped = true; if (info.turn) { m.turn = info.turn; aiTurns[info.turn] = { chat, m }; } }
     else {
       m.c = m.c.trim(); if (info.cancelled) m.stopped = true; if (info.cut) m.cut = true; if (info.trim) m.trim = true;
       if (info.mem) m.memUsed = +info.mem || 0;
@@ -388,6 +390,11 @@ function aiMenu(){
   openSheet('Assistent', aiSt.chat ? 'Model: ' + aiModel(aiSt.chat).label : '', acts);
 }
 
+/* Een bewaard gesprek openen: is het nog in het geheugen (er kan nog een geheugenmelding voor komen), dan dat object */
+function aiChatObj(full){
+  const t = Object.values(aiTurns).find(x => x.chat && x.chat.id === full.id && !x.chat.discard);
+  return t ? t.chat : { id: full.id, title: full.title, msgs: full.msgs || [] };
+}
 /* Verwijderd gesprek: late geheugenmeldingen mogen het niet opnieuw bewaren */
 function aiDiscardTurns(id){ Object.keys(aiTurns).forEach(k => { const t = aiTurns[k]; if (id === '*' || (t.chat && t.chat.id === id)) { if (t.chat) t.chat.discard = true; delete aiTurns[k]; } }); if (aiChat && (id === '*' || aiChat.id === id)) aiChat.discard = true; }
 /* ---------- eerdere gesprekken ---------- */
@@ -402,7 +409,7 @@ function aicOpen(i){
   const full = rdJson(Android.aiChatGet(c.id), null); if (!full) return;
   // Hetzelfde gesprek als waarin nu geantwoord wordt: gewoon verder laten lopen
   if (aiGen && aiGen.id === full.id) aiChat = aiGen;
-  else { if (aiBusy) Android.aiCancel(); aiChat = { id: full.id, title: full.title, msgs: full.msgs || [] }; }
+  else { if (aiBusy) Android.aiCancel(); aiChat = aiChatObj(full); }
   show('ai');
 }
 function aicMenu(i){
@@ -726,6 +733,6 @@ function aimOpenChat(i){
   const full = rdJson(Android.aiChatGet(m.chat), null);
   if (!full) { toast('Dat gesprek is er niet meer'); return; }
   if (aiGen && aiGen.id === full.id) aiChat = aiGen;
-  else { if (aiBusy) Android.aiCancel(); aiChat = { id: full.id, title: full.title, msgs: full.msgs || [] }; }
+  else { if (aiBusy) Android.aiCancel(); aiChat = aiChatObj(full); }
   jumpTo('ai');
 }

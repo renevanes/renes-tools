@@ -91,14 +91,15 @@ final class AiMemory {
 
     // Alleen duidelijke opdrachten: "onthoud dat …", "onthoud: …", of "onthoud mijn …" (niet "onthoud je wat ik zei?")
     private static final String POLITE = "(?:(?:wil|kun|kan) je\\s+|graag\\s+|alsjeblieft\\s+|please\\s+|can you\\s+)?";
-    private static final String SOFT = "(?:(?:even|alsjeblieft|aub|please)\\b[\\s,]*)?";
-    private static final String NOT_ABOUT = "(?!\\s*(?:je|jij|u|wat|hoe|of|waarom|wie|wanneer|waar|dit|dat|het|alles|dingen|iets|me|mij|you|what|how|if|why|who|when|where|this|it|everything|anything|something|me)\\b)";
-    private static final Pattern REMEMBER_DAT = Pattern.compile("^\\s*" + POLITE + "(?:onthoud|onthou|onthouden|remember)\\b[\\s,]*" + SOFT + "(?::|\\bdat\\b|\\bthat\\b)\\s*(.+?)[\\s.!?]*$",
+    // Bezittelijk (?+): een beleefdheidswoord wordt nooit "teruggegeven" om langs de uitzonderingen te komen
+    private static final String SOFT = "(?:(?:even|alsjeblieft|aub|please|goed)\\b[\\s,]*)?+";
+    private static final String NOT_ABOUT = "(?!\\s*(?:je|jij|u|wat|hoe|of|waarom|wie|wanneer|waar|dit|dat|het|alles|dingen|iets|me|mij|you|what|how|if|why|who|when|where|this|it|everything|anything|something|me|goed|the|a|an|even|alsjeblieft|aub|please)\\b)";
+    private static final Pattern REMEMBER_DAT = Pattern.compile("^\\s*" + POLITE + "(?:onthoud|onthou|onthouden|remember)\\b[\\s,]*+" + SOFT + "(?:(?:dit|het volgende|this|the following)\\s*)?(?::|\\bdat\\b|\\bthat\\b)\\s*(.+?)[\\s.!?]*$",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.UNICODE_CASE);
-    private static final Pattern REMEMBER_BARE = Pattern.compile("^\\s*(?:onthoud|remember)\\b[\\s,]*" + SOFT + NOT_ABOUT + "([^?]+?)[\\s.!]*$",
+    private static final Pattern REMEMBER_BARE = Pattern.compile("^\\s*(?:onthoud|remember)\\b[\\s,]*+" + SOFT + NOT_ABOUT + "([^?]+?)[\\s.!]*$",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.UNICODE_CASE);
-    private static final String NOT_FORGET = "(?!\\s*(?:niet|nooit|het|maar|alles|dat maar|je|jij|u|not|it|about it|everything|you)\\b)";
-    private static final Pattern FORGET = Pattern.compile("^\\s*" + POLITE + "(?:vergeet|forget)\\b[\\s,]*" + SOFT + "(?::\\s*|(?:dat|that|about)\\s+" + NOT_FORGET + "|" + NOT_FORGET + ")\\s*([^?]+?)[\\s.!]*$",
+    private static final String NOT_FORGET = "(?!\\s*(?:niet|nooit|het|maar|alles|dat maar|je|jij|u|not|it|about it|everything|you|even|alsjeblieft|aub|please)\\b)";
+    private static final Pattern FORGET = Pattern.compile("^\\s*" + POLITE + "(?:vergeet|vergeten|forget)\\b[\\s,]*+" + SOFT + "(?::\\s*|(?:dat|that|about)\\s+" + NOT_FORGET + "|" + NOT_FORGET + ")\\s*([^?]+?)[\\s.!?]*$",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.UNICODE_CASE);
 
     /** "Onthoud dat ik op dinsdag sport" → "Ik op dinsdag sport" (het model maakt er daarna een nette zin van), of null. */
@@ -107,7 +108,11 @@ final class AiMemory {
         return x != null ? x : cmd(REMEMBER_BARE, msg);
     }
     /** "Vergeet dat ik in Delft woon" → "Ik in Delft woon", of null ("vergeet niet …" is geen opdracht om te vergeten). */
-    static String forgetCmd(String msg) { return cmd(FORGET, msg); }
+    static String forgetCmd(String msg) {
+        String x = cmd(FORGET, msg);
+        // "Vergeet de melk niet" = juist niet vergeten
+        return x == null || x.toLowerCase(Locale.ROOT).matches(".*\\b(niet|not)$") ? null : x;
+    }
     private static String cmd(Pattern p, String msg) {
         if (msg == null || msg.length() > 600) return null;
         Matcher m = p.matcher(msg);
@@ -130,15 +135,24 @@ final class AiMemory {
     }
 
     // Duidelijk geheim (ook als je zelf vraagt het te onthouden): daar is de Kluis voor
-    private static final Pattern SECRET_WORD = Pattern.compile("(?iu)\\b(wachtwoord(en)?|password|wachtzin|passphrase|pincode|pin|pin-?code|iban|creditcard|cvc|cvv|inlogcode|toegangscode|verificatiecode|deurcode|alarmcode|slotcode|code|token|bsn|burgerservicenummer|sofinummer)\\b"
+    private static final Pattern SECRET_WORD = Pattern.compile("(?iu)\\b(wachtwoord(en)?|password|wachtzin|passphrase|pincode|pin-code|iban|creditcard|cvc|cvv|inlogcode|toegangscode|verificatiecode|deurcode|alarmcode|slotcode|bsn|burgerservicenummer|sofinummer)\\b"
+            // "code", "pin" en "token" alleen met een waarde erbij (niet "werkt met Claude Code", "betaalt met pin")
+            + "|\\b(code|pin|token|slot)\\b[^\\d\\n]{0,30}\\d{3,}"
             + "|\\b[A-Z]{2}\\d{2}\\s?[A-Z]{4}\\s?\\d{4}\\s?\\d{4}\\s?\\d{2,}");
     // Ook geen lange nummers vanzelf (rekening-, klant- of telefoonnummers); een datum of jaartal mag wel
-    private static final Pattern LONG_NUMBER = Pattern.compile("(?<![\\d-])\\d{6,}(?![\\d-])");
+    private static final Pattern LONG_NUMBER = Pattern.compile("\\d{6,}");
+    private static final Pattern DATE = Pattern.compile("\\b\\d{1,4}[-/.]\\d{1,2}[-/.]\\d{1,4}\\b");
 
     /** Wachtwoorden, codes en rekeningnummers: nooit onthouden, ook niet op verzoek (wijs dan naar de Kluis). */
     static boolean secretWord(String s) { return s != null && SECRET_WORD.matcher(s).find(); }
     /** Wat de assistent nooit vanzelf onthoudt: geheimen en lange nummers. */
-    static boolean secret(String s) { return s != null && (secretWord(s) || LONG_NUMBER.matcher(s).find() || LONG_NUMBER.matcher(s.replaceAll("(?<=\\d) (?=\\d)", "")).find()); }
+    static boolean secret(String s) {
+        if (s == null) return false;
+        if (secretWord(s)) return true;
+        // Datums eruit; dan nummers met spaties of streepjes ertussen (06-12345678, 123 456 789) aan elkaar
+        String x = DATE.matcher(s).replaceAll(" ").replaceAll("(?<=\\d)[ -](?=\\d)", "");
+        return LONG_NUMBER.matcher(x).find();
+    }
 
     /** De regels die het model voorstelt, opgeschoond: hooguit 3, geen dubbelen, geen vragen of geheimen. */
     static List<String> parseFacts(String out, List<String> existing) {
@@ -249,6 +263,9 @@ final class AiMemory {
         return l;
     }
 
+    /** {id, tekst}, nieuwste eerst. */
+    static List<String[]> pairs(Context c) { List<String[]> out = new ArrayList<>(); for (Item m : list(c)) out.add(new String[]{m.id, m.text}); return out; }
+
     static List<String> texts(Context c) { List<String> out = new ArrayList<>(); for (Item m : list(c)) out.add(m.text); return out; }
 
     static JSONArray json(Context c) throws Exception {
@@ -290,7 +307,12 @@ final class AiMemory {
     /** id "*" = alles vergeten. */
     static synchronized void delete(Context c, String id) throws Exception {
         List<Item> l = load(c);
-        if ("*".equals(id)) l.clear();
+        if ("*".equals(id)) {
+            l.clear();
+            // Ook een eerder apart gezet (kapot) bestand: alles vergeten is alles
+            File[] old = file(c).getParentFile().listFiles();
+            if (old != null) for (File f : old) if (f.getName().startsWith("memory.json.kapot-")) f.delete();
+        }
         else for (int i = l.size() - 1; i >= 0; i--) if (l.get(i).id.equals(id)) l.remove(i);
         save(c);
     }

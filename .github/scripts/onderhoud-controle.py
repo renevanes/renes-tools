@@ -194,7 +194,8 @@ def main():
     # AI-modellen: nieuwere versies in dezelfde grootte (de app downloadt nooit vanzelf iets nieuws; een agent of
     # Rene beslist of een nieuw model meekomt, met een melding in de app)
     for mid, repo, commit, beter, opm in nieuwere_modellen():
-        item(f"AI-model {mid}", repo, commit[:12], beter or commit[:12], (), opm, verouderd=beter is not None)
+        # Niet bereikbaar: ook als iets om te doen melden (met de hand nakijken), niet stil "bij"
+        item(f"AI-model {mid}", repo, commit[:12], beter or commit[:12], (), opm, verouderd=beter is not None or "niet bereikbaar" in opm)
 
     te_doen = [i for i in items if i["verouderd"] or i["kwetsbaar"]]
     if "--json" in sys.argv:
