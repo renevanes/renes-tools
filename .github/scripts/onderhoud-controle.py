@@ -58,6 +58,18 @@ def osv(query):
     return uit
 
 
+# Waar elke versie staat. Ook gebruikt door "--bestanden" (zonder netwerk, in Bouwen en testen), zodat een andere
+# schrijfwijze in een README meteen opvalt en niet pas bij de maandagcontrole.
+LEAFLET = ("web/vendor/leaflet.js", r"Leaflet (\d+\.\d+\.\d+)")
+JSQR = ("web/vendor/jsQR.js", r"jsQR (\d+\.\d+\.\d+)")
+PLAYWRIGHT = (".github/workflows/publiceren.yml", r"playwright@(\d+\.\d+\.\d+)")
+WHISPER = ("app/lib/arm64-v8a/README.txt", r"whisper\.cpp (?:v[\d.]+, )?commit ([0-9a-f]{40})")
+LLAMA = ("app/lib/arm64-v8a/README.txt", r"llama\.cpp (?:b\d+, )?commit ([0-9a-f]{40})")
+BUILDTOOLS = ("setup-tools.sh", r"build-tools/(\d+\.\d+\.\d+)/")
+ALLE = {"Leaflet": LEAFLET, "jsQR": JSQR, "Playwright": PLAYWRIGHT, "whisper.cpp": WHISPER,
+        "llama.cpp": LLAMA, "build-tools": BUILDTOOLS}
+
+
 def versie_tuple(v):
     return tuple(int(x) for x in re.findall(r"\d+", v)[:3])
 
@@ -73,19 +85,19 @@ def main():
 
     # Leaflet en jsQR (meegeleverd in web/vendor)
     for naam, npm, pad, patroon in [
-        ("Leaflet", "leaflet", "web/vendor/leaflet.js", r"Leaflet (\d+\.\d+\.\d+)"),
-        ("jsQR", "jsqr", "web/vendor/jsQR.js", r"jsQR (\d+\.\d+\.\d+)"),
+        ("Leaflet", "leaflet", *LEAFLET),
+        ("jsQR", "jsqr", *JSQR),
     ]:
         huidig = lees(pad, patroon)
         item(naam, pad, huidig, npm_nieuwste(npm),
              osv({"package": {"name": npm, "ecosystem": "npm"}, "version": huidig}))
 
     # Playwright (alleen tests; vastgezet in de publicatie-workflow, bouwen-en-testen.yml gebruikt playwright@1)
-    huidig = lees(".github/workflows/publiceren.yml", r"playwright@(\d+\.\d+\.\d+)")
+    huidig = lees(*PLAYWRIGHT)
     item("Playwright (tests)", ".github/workflows/publiceren.yml", huidig, npm_nieuwste("playwright"))
 
     # whisper.cpp (zelf gebouwde libwhisper*.so)
-    commit = lees("app/lib/arm64-v8a/README.txt", r"whisper\.cpp commit ([0-9a-f]{40})")
+    commit = lees(*WHISPER)
     rel = http_json("https://api.github.com/repos/ggml-org/whisper.cpp/releases/latest", github=True)
     tag = rel["tag_name"]
     try:
@@ -99,7 +111,7 @@ def main():
 
     # llama.cpp (zelf gebouwde libllm.so, de lokale AI). Er komt bijna elke dag een release uit: alleen melden als
     # het echt ver achterloopt of als er een kwetsbaarheid bekend is.
-    commit = lees("app/lib/arm64-v8a/README.txt", r"llama\.cpp b\d+, commit ([0-9a-f]{40})")
+    commit = lees(*LLAMA)
     rel = http_json("https://api.github.com/repos/ggml-org/llama.cpp/releases/latest", github=True)
     tag = rel["tag_name"]
     try:
@@ -112,7 +124,7 @@ def main():
          verouderd=achter is None or achter > 1500)
 
     # Android build-tools (bouwgereedschap, komt niet in de app)
-    huidig = lees("setup-tools.sh", r"build-tools/(\d+\.\d+\.\d+)/")
+    huidig = lees(*BUILDTOOLS)
     rel = http_json("https://api.github.com/repos/AndroidIDEOfficial/androidide-tools/releases/latest", github=True)
     item("Android build-tools", "setup-tools.sh", huidig, rel["tag_name"].lstrip("v"),
          opmerking="build-tools komen uit androidide-tools (weinig onderhouden); vergelijk ook met Google's build-tools "
@@ -135,6 +147,14 @@ def main():
 
 
 if __name__ == "__main__":
+    if "--bestanden" in sys.argv:  # alleen de versies uit de bestanden lezen, zonder netwerk
+        try:
+            for naam, (pad, patroon) in ALLE.items():
+                print(f"{naam}: {lees(pad, patroon)}")
+        except Exception as e:
+            print(f"Versie niet te lezen: {e}. Pas de schrijfwijze of het patroon in dit script aan.", file=sys.stderr)
+            sys.exit(1)
+        sys.exit(0)
     try:
         sys.exit(main())
     except Exception as e:

@@ -30,6 +30,9 @@ jobs:
           if [ -n "$bad" ]; then echo "Deze bestanden maakt alleen ./publish.sh:"; echo "$bad"; exit 1; fi
           if cat wijzigingen/*.txt 2>/dev/null | grep -qiE '(^|[^[:alpha:]])n[e]p'; then echo 'Het woord n-e-p (fake) mag niet in wijzigingen/'; exit 1; fi
 
+      - name: Versies van meegeleverde onderdelen leesbaar (voor de onderhoudscontrole)
+        run: python3 .github/scripts/onderhoud-controle.py --bestanden
+
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
