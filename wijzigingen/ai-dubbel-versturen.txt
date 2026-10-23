@@ -1,2 +1,0 @@
-Assistent: twee keer snel op versturen tikken geeft nu één antwoord in plaats van twee
-Assistent: tekens als <|im_end|> in je vraag of notities worden gewoon als tekst gelezen en verstoren het gesprek niet meer
