@@ -26,6 +26,8 @@ public class SpotifyDiffTest {
         check(SpotifyDiff.diff(Arrays.asList(loc), Arrays.asList(loc2)).empty(), "lokaal bestand: zelfde naam = zelfde");
         check(!SpotifyDiff.restorable(loc) && SpotifyDiff.restorable(t("a", "x")) && SpotifyDiff.restorable(new SpotifyDiff.T("spotify:episode:z", "Ep", "")), "terug te zetten: nummers en afleveringen, geen lokale bestanden");
         // CSV
+        check(SpotifyDiff.cell("a\nb\nc").equals("\"a b c\""), "meerdere regels: tussen aanhalingstekens, op één regel");
+        check(SpotifyDiff.cell("gewoon").equals("gewoon"), "gewone tekst: zonder aanhalingstekens");
         SpotifyDiff.T x = t("q", "Hallo; \"wereld\""); x.album = "=SOM(1)"; x.dur = 225_000; x.added = "2026-10-10T08:00:00Z"; x.isrc = "NLA123";
         String csv = SpotifyDiff.csv(Arrays.asList(x));
         String[] lines = csv.split("\r\n");

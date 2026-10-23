@@ -92,13 +92,9 @@ final class SpotifyDiff {
         if (s == null) return "";
         // Formules niet laten uitvoeren in een rekenblad (=, +, -, @ vooraan)
         if (!s.isEmpty() && "=+-@\t\r".indexOf(s.charAt(0)) >= 0) s = "'" + s;
-        return needsQuotes(s) ? "\"" + s.replace("\"", "\"\"").replace("\r", " ").replace("\n", " ") + "\"" : s;
-    }
-
-    /** Bevat de cel ; " of een regeleinde? (Zonder regex: lineair, ook bij lange teksten.) */
-    static boolean needsQuotes(String s) {
-        for (int i = 0; i < s.length(); i++) { char ch = s.charAt(i); if (ch == ';' || ch == '"' || ch == '\r' || ch == '\n') return true; }
-        return false;
+        boolean quote = false;
+        for (int i = 0; i < s.length() && !quote; i++) quote = ";\"\r\n".indexOf(s.charAt(i)) >= 0;
+        return quote ? "\"" + s.replace("\"", "\"\"").replace("\r", " ").replace("\n", " ") + "\"" : s;
     }
 
     /** Kan dit terug in een Spotify-playlist? (Lokale bestanden niet.) */

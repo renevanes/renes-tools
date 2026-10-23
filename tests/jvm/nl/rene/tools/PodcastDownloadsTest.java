@@ -35,6 +35,10 @@ public class PodcastDownloadsTest {
         check(".mp3".equals(PodcastDownloads.ext(null, null)), "niets: mp3");
         check(Radio.trimDash(" - Artiest - Titel -- ").equals("Artiest - Titel") && Radio.trimDash("--").isEmpty() && Radio.trimDash("").isEmpty(), "radiotitel: spaties en streepjes aan de randen weg");
         check(Cast.okSecs(0) && Cast.okSecs(3600.5) && !Cast.okSecs(Double.NaN) && !Cast.okSecs(-1) && !Cast.okSecs(Double.POSITIVE_INFINITY) && !Cast.okSecs(1e300), "Chromecast-tijden: alleen redelijke waarden");
+        check(".m4a".equals(PodcastDownloads.ext("https://x.nl/a.M4A#t=1?x.mp3", "")), "m4a: alles na # of ? telt niet");
+        StringBuilder q = new StringBuilder("https://x.nl/a.ogg"); for (int i = 0; i < 50000; i++) q.append('?');
+        long t0 = System.currentTimeMillis();
+        check(".ogg".equals(PodcastDownloads.ext(q.toString(), "")) && System.currentTimeMillis() - t0 < 1000, "heel veel vraagtekens: snel");
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");
     }

@@ -88,7 +88,7 @@ final class PodcastDownloads {
     static String ext(String url, String type) {
         String t = type == null ? "" : type.toLowerCase(java.util.Locale.ROOT);
         String u = url == null ? "" : url.toLowerCase(java.util.Locale.ROOT);
-        for (int i = 0; i < u.length(); i++) if (u.charAt(i) == '?' || u.charAt(i) == '#') { u = u.substring(0, i); break; } // zonder regex: lineair
+        for (int i = 0; i < u.length(); i++) { char ch = u.charAt(i); if (ch == '?' || ch == '#') { u = u.substring(0, i); break; } }
         if (t.contains("mp4") || t.contains("m4a") || t.contains("aac") || u.endsWith(".m4a") || u.endsWith(".mp4") || u.endsWith(".aac")) return ".m4a";
         if (t.contains("ogg") || u.endsWith(".ogg")) return ".ogg";
         if (t.contains("opus") || u.endsWith(".opus")) return ".opus";

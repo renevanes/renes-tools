@@ -169,14 +169,6 @@ final class Radio {
         return (b >= a ? m.substring(a, b) : m.substring(a)).trim();
     }
 
-    /** Spaties en streepjes aan begin en eind weg (zonder regex: lineair, ook bij rare metadata). */
-    static String trimDash(String s) {
-        int a = 0, b = s.length();
-        while (a < b && (Character.isWhitespace(s.charAt(a)) || s.charAt(a) == '-')) a++;
-        while (b > a && (Character.isWhitespace(s.charAt(b - 1)) || s.charAt(b - 1) == '-')) b--;
-        return s.substring(a, b);
-    }
-
     /**
      * Wat de zender meestuurt: uit de ICY-headers de zendernaam, omschrijving, genre, website en
      * bitrate, en uit de metadata in de stream de huidige titel (vaak "Artiest - Titel" of de
@@ -215,6 +207,15 @@ final class Radio {
         } catch (Exception ignored) {
         } finally { if (h != null) h.disconnect(); }
         return o;
+    }
+
+    /** Spaties en streepjes aan begin en eind weg (zonder regex: lineair, ook bij rare metadata). */
+    static String trimDash(String s) {
+        final String strip = " \t\n\u000B\f\r-";
+        int a = 0, b = s.length();
+        while (a < b && strip.indexOf(s.charAt(a)) >= 0) a++;
+        while (b > a && strip.indexOf(s.charAt(b - 1)) >= 0) b--;
+        return s.substring(a, b);
     }
 
     /** Haalt ongeveer 'seconds' seconden van de stream op (zonder metadata) om te laten herkennen. */

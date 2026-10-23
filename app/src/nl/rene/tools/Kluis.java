@@ -46,6 +46,8 @@ final class Kluis {
 
     /** Ontgrendeld tot dit moment (na vingerafdruk), in het geheugen. */
     static volatile long openUntil = 0;
+    /** Telt elke ontgrendeling met vingerafdruk (zo weet een losse kluis of hij hem zelf opende). */
+    static volatile int gen = 0;
 
     static boolean isOpen() { return System.currentTimeMillis() < openUntil; }
     private static final android.os.Handler H = new android.os.Handler(android.os.Looper.getMainLooper());
