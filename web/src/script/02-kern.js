@@ -138,7 +138,7 @@ function show(name){
   if (name==='contacts') enterContacts();
   if (name==='transcripts') enterTranscripts(); else stopTrPoll();
   if (name==='radio') enterRadio(); else stopRdPoll();
-  if (name==='settings') enterSettings();
+  if (name==='settings' || ST_SUBS.includes(name)) enterSettings();
   if (name==='backup') enterBackup(); else stopBkPoll();
   if (name==='homeedit') enterHomeEdit();
   if (name==='ralarm') enterAlarm();
@@ -152,7 +152,7 @@ function show(name){
   if (typeof uiShown === 'function') uiShown(name);
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); renderDash(); refreshAutoTile(); refreshPodTile(); refreshVpnTile(); refreshLocTile(); }
 }
-const BACK = {ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', car:'home', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
+const BACK = {setnotif:'settings', setlook:'settings', setskin:'settings', setlock:'settings', setsolo:'settings', setperm:'settings', setbackup:'settings', setmusic:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', car:'home', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
 window.goBack = function(){
   // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
   if ($('#lockscr').classList.contains('on')) return false;

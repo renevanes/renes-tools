@@ -1,8 +1,42 @@
 <!-- ============ INSTELLINGEN ============ -->
+<!-- Een overzicht in groepen; elk onderwerp heeft een eigen scherm (geen lange pagina). -->
 <section class="screen" id="s-settings">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Instellingen</h1>
+  </div>
+  <main>
+    <div class="flabel stgl">Algemeen</div>
+    <div class="card stlist">
+      <button class="strow" onclick="show('setnotif')"><span class="stic"><span class="ui-icon" data-icon="bell" aria-hidden="true"></span></span><span class="sttxt"><b>Meldingen</b><small id="st-sum-notif"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('setlook')"><span class="stic"><span class="ui-icon" data-icon="eye" aria-hidden="true"></span></span><span class="sttxt"><b>Weergave</b><small id="st-sum-look"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('setskin')"><span class="stic"><span class="ui-icon" data-icon="smartphone" aria-hidden="true"></span></span><span class="sttxt"><b>Telefoon-skin</b><small id="st-sum-skin"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+    <div class="flabel stgl">Beveiliging en privacy</div>
+    <div class="card stlist">
+      <button class="strow" onclick="show('setlock')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>App-slot</b><small id="st-sum-lock"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('setsolo')"><span class="stic"><span class="ui-icon" data-icon="grid" aria-hidden="true"></span></span><span class="sttxt"><b>Losse apps</b><small id="st-sum-solo"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('setperm')"><span class="stic"><span class="ui-icon" data-icon="shield" aria-hidden="true"></span></span><span class="sttxt"><b>Toestemmingen</b><small id="st-sum-perm"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+    <div class="flabel stgl">Gegevens en diensten</div>
+    <div class="card stlist">
+      <button class="strow" onclick="show('setbackup')"><span class="stic"><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span><span class="sttxt"><b>Backup-map</b><small id="st-sum-backup"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="jumpTo('aiset')"><span class="stic"><span class="ui-icon" data-icon="sparkle" aria-hidden="true"></span></span><span class="sttxt"><b>Lokale AI</b><small id="st-sum-ai"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('setmusic')"><span class="stic"><span class="ui-icon" data-icon="music" aria-hidden="true"></span></span><span class="sttxt"><b>Muziek herkennen</b><small id="st-sum-music"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+    <div class="flabel stgl">Over de app</div>
+    <div class="card stlist">
+      <button class="strow" onclick="show('setcrash')"><span class="stic"><span class="ui-icon" data-icon="alert" aria-hidden="true"></span></span><span class="sttxt"><b>Foutrapport</b><small id="st-sum-crash"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('selftest')"><span class="stic"><span class="ui-icon" data-icon="check" aria-hidden="true"></span></span><span class="sttxt"><b>Zelftest</b><small id="st-sum-self"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="jumpTo('info')"><span class="stic"><span class="ui-icon" data-icon="info" aria-hidden="true"></span></span><span class="sttxt"><b>Versie en updates</b><small id="st-sum-info"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-setnotif">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Meldingen</h1>
   </div>
   <main>
     <div class="card">
@@ -14,6 +48,34 @@
       <button class="big ghost" style="margin-top:8px" onclick="Android.notifOpen('')">Alle meldingen in Android</button>
       <p class="note">Tik op een soort om hem in Android aan of uit te zetten, of geluid en trillen te kiezen.</p>
     </div>
+  </main>
+</section>
+
+<section class="screen" id="s-setlook">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Weergave</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2>Weergave</h2>
+      <div class="sw" id="st-dyn-row"><span>Kleuren uit je achtergrond<small id="st-dyn-sub">Net als Android: de app neemt de kleuren van je achtergrond over</small></span><button class="tg" id="st-dyn" aria-label="Kleuren uit je achtergrond" onclick="togUi(this); stDynColor(this.classList.contains('on'))"></button></div>
+      <div class="row setrow"><label for="st-zoom" style="flex:1">Tekstgrootte</label>
+        <select class="sel" id="st-zoom" onchange="stZoom(this.value)">
+          <option value="0">Zoals de telefoon</option><option value="90">Kleiner</option><option value="100">Normaal</option>
+          <option value="115">Groot</option><option value="130">Groter</option><option value="150">Extra groot</option><option value="175">Maximaal</option>
+        </select></div>
+      <p class="note" id="st-zoom-prev" style="margin-bottom:0">Zo ziet tekst er nu uit.</p>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-setskin">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Telefoon-skin</h1>
+  </div>
+  <main>
     <div class="card">
       <h2>Telefoon-skin</h2>
       <p class="note" style="margin-top:0">Gebruik Tools als startscherm van je telefoon: klok, weer, agenda, radio en het overzicht bovenaan, al je apps met zoeken, mappen en een eigen look. Veeg omhoog voor alle apps.</p>
@@ -22,7 +84,15 @@
       <button class="big ghost" style="margin-top:8px" onclick="Android.homeOpen()">Eerst bekijken</button>
       <button class="big ghost" style="margin-top:8px;display:none" id="st-home-back" onclick="Android.homeSettings()">Terug naar het startscherm van de telefoon…</button>
     </div>
+  </main>
+</section>
 
+<section class="screen" id="s-setlock">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">App-slot</h1>
+  </div>
+  <main>
     <div class="card">
       <h2>App-slot</h2>
       <p class="note" style="margin-top:0">Vergrendel Tools met de schermvergrendeling van je telefoon: vingerafdruk, gezicht of pincode. De inhoud is dan ook niet te zien in "recente apps".</p>
@@ -43,43 +113,72 @@
       </div>
       <p class="note" id="st-code-note">Met een eigen app-code (4 tot 12 cijfers) ontgrendel je met die code in plaats van de pincode van de telefoon. Na 5 keer fout telt een tijdje geen enkele code.</p>
     </div>
+  </main>
+</section>
 
+<section class="screen" id="s-setsolo">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Losse apps</h1>
+  </div>
+  <main>
     <div class="card" id="st-solo-card">
       <h2>Losse apps</h2>
       <p class="note" style="margin-top:0">Zet een tool als eigen app op je startscherm. Zo'n losse app opent zonder vingerafdruk of app-code, toont alleen die tool en heeft geen knoppen naar de andere tools. In het overzicht van Tools blijft hij gewoon staan. Zet je hem hier uit, dan werkt de losse app niet meer.</p>
       <div id="st-solo-list"></div>
     </div>
+  </main>
+</section>
 
+<section class="screen" id="s-setperm">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Toestemmingen</h1>
+  </div>
+  <main>
     <div class="card">
-      <h2>Weergave</h2>
-      <div class="sw" id="st-dyn-row"><span>Kleuren uit je achtergrond<small id="st-dyn-sub">Net als Android: de app neemt de kleuren van je achtergrond over</small></span><button class="tg" id="st-dyn" aria-label="Kleuren uit je achtergrond" onclick="togUi(this); stDynColor(this.classList.contains('on'))"></button></div>
-      <div class="row setrow"><label for="st-zoom" style="flex:1">Tekstgrootte</label>
-        <select class="sel" id="st-zoom" onchange="stZoom(this.value)">
-          <option value="0">Zoals de telefoon</option><option value="90">Kleiner</option><option value="100">Normaal</option>
-          <option value="115">Groot</option><option value="130">Groter</option><option value="150">Extra groot</option><option value="175">Maximaal</option>
-        </select></div>
-      <p class="note" id="st-zoom-prev" style="margin-bottom:0">Zo ziet tekst er nu uit.</p>
+      <h2>Toestemmingen</h2>
+      <div id="st-perms"></div>
+      <button class="big ghost" style="margin-top:10px" onclick="Android.openAppSettings()">App-instellingen van Android openen</button>
     </div>
+  </main>
+</section>
 
+<section class="screen" id="s-setbackup">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Backup-map</h1>
+  </div>
+  <main>
     <div class="card">
       <h2>Backup-map</h2>
       <p class="note" style="margin-top:0" id="st-dest">Nog niet gekozen</p>
       <button class="big ghost" onclick="Android.waPickFolder()">Map kiezen</button>
       <p class="note">Hier zetten alle tools hun backups en exports neer, elk in een eigen submap.</p>
     </div>
+  </main>
+</section>
 
+<section class="screen" id="s-setmusic">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Muziek herkennen</h1>
+  </div>
+  <main>
     <div class="card">
       <h2>Muziek herkennen</h2>
       <p class="note" style="margin-top:0" id="st-audd"></p>
       <button class="big ghost" onclick="muChangeToken()">AudD-sleutel wijzigen</button>
     </div>
+  </main>
+</section>
 
-    <div class="card">
-      <h2>Toestemmingen</h2>
-      <div id="st-perms"></div>
-      <button class="big ghost" style="margin-top:10px" onclick="Android.openAppSettings()">App-instellingen van Android openen</button>
-    </div>
-
+<section class="screen" id="s-setcrash">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Foutrapport</h1>
+  </div>
+  <main>
     <div class="card">
       <h2>Foutrapport</h2>
       <p class="note" style="margin-top:0" id="st-crash"></p>
@@ -90,9 +189,5 @@
       </div>
       <p class="note">Het rapport bevat het toestel, de versie en de technische foutmeldingen, geen berichten, contacten of andere gegevens. Delen gaat via WhatsApp, mail of een andere app naar keuze.</p>
     </div>
-
-    <button class="big ghost" onclick="show('selftest')">Zelftest</button>
-    <button class="big ghost" style="margin-top:8px" onclick="show('info')">Versie en updates</button>
   </main>
 </section>
-

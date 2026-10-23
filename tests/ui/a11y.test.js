@@ -21,7 +21,7 @@ const { chromium } = require('playwright');
     console.log('chip pressed', await pg.$$eval('#c-att button', x => x.map(e => e.getAttribute('aria-pressed')).join(',')));
     console.log('toast role', await pg.getAttribute('#toast', 'role'));
     // tekstgrootte
-    await pg.evaluate(() => show('settings')); await pg.waitForTimeout(150);
+    await pg.evaluate(() => show('setlook')); await pg.waitForTimeout(150);
     await pg.selectOption('#st-zoom', '150'); await pg.waitForTimeout(100);
     console.log('zoom set', await pg.evaluate(() => Android._zoom), await pg.textContent('#toast'));
     await pg.evaluate(() => show('home')); await pg.waitForTimeout(200);
