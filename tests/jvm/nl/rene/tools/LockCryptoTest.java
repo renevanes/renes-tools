@@ -27,7 +27,31 @@ public class LockCryptoTest {
         check(Lock.via(24, false) == Lock.VIA_CONFIRM, "Android 7: bevestigingsscherm");
         check(Lock.via(34, true) == Lock.VIA_CONFIRM, "systeemvraag werkte niet: terugval op het bevestigingsscherm");
 
-        check(Lock.MSG_NEW_FINGER_PIN.contains("nieuwe vingerafdruk") && Lock.MSG_NEW_FINGER_PIN.contains("pincode"), "melding bij nieuwe vingerafdruk");
+        check(Lock.MSG_SECURITY_CHANGED.contains("beveiliging") && Lock.MSG_SECURITY_CHANGED.contains("pincode"), "melding bij gewijzigde beveiliging");
+        check(Lock.MSG_NEW_FINGER_CODE.contains("nieuwe vingerafdruk") && Lock.MSG_NEW_FINGER_CODE.contains("app-code"), "melding bij nieuwe vingerafdruk (app-code)");
+
+        // Noodklep: Android zegt "gelukt", de sleutel zegt nee
+        check(!Lock.confirmAccepted(false, true, false, 5), "Android zegt nee: nooit open, ook niet met noodklep");
+        check(Lock.confirmAccepted(true, true, true, 0), "Android en sleutel zeggen ja: open");
+        check(Lock.confirmAccepted(true, false, false, 0), "sleutelopslag werkt niet: het antwoord van Android geldt");
+        check(!Lock.confirmAccepted(true, true, false, 0), "eerste keer oneens: niet open");
+        check(!Lock.confirmAccepted(true, true, false, 1), "tweede keer oneens: niet open");
+        check(Lock.confirmAccepted(true, true, false, Lock.VALVE), "na twee keer oneens op rij: bevestigingsscherm telt (niet buitensluiten)");
+        int n = 0;
+        n = Lock.nextMismatches(true, true, false, n);   // systeemvraag: oneens
+        check(n == 1, "teller +1 na oneens");
+        n = Lock.nextMismatches(false, true, false, n);  // afgebroken: telt niet mee
+        check(n == 1, "afbreken verandert de teller niet");
+        n = Lock.nextMismatches(true, true, false, n);   // bevestigingsscherm: oneens
+        check(n == 2 && Lock.confirmAccepted(true, true, false, n), "crypto + bevestigingsscherm samen: derde poging gaat open");
+        n = Lock.nextMismatches(true, true, true, n);
+        check(n == 0, "door de sleutel bevestigd: teller weer 0");
+        check(Lock.nextMismatches(true, false, false, 3) == 3, "zonder sleutelcontrole verandert de teller niet");
+
+        // Een open vraag waarvan het antwoord verloren ging
+        check(!Lock.busyStale(false, 0, 1_000_000), "geen vraag open: niets oud");
+        check(!Lock.busyStale(true, 1_000_000, 1_000_000 + 30_000), "vraag van 30 s: nog open");
+        check(Lock.busyStale(true, 1_000_000, 1_000_000 + Lock.BUSY_STALE_MS), "vraag van 90 s: vergeten");
         System.out.println(fails == 0 ? "Alle slot-tests geslaagd" : fails + " slot-tests mislukt");
         System.exit(fails == 0 ? 0 : 1);
     }

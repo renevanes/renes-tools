@@ -156,7 +156,8 @@ final class Lock {
     static final String BIO_ALIAS = "rt-lockbio";
 
     static final String MSG_NEW_FINGER_CODE = "Er is een nieuwe vingerafdruk toegevoegd; ontgrendel één keer met je app-code";
-    static final String MSG_NEW_FINGER_PIN = "Er is een nieuwe vingerafdruk toegevoegd; ontgrendel één keer met je pincode";
+    /** Sleutel met pincode erbij is (vanaf Android 12) aan de schermvergrendeling gekoppeld: ongeldig = beveiliging gewijzigd. */
+    static final String MSG_SECURITY_CHANGED = "De beveiliging van je telefoon is gewijzigd; ontgrendel één keer met je pincode";
 
     /**
      * Aan- of uitzetten vanuit de instellingen. Geeft "" of een melding. Zolang de app op slot is kan dat niet:
@@ -199,7 +200,7 @@ final class Lock {
 
     /** Alleen een sterke vingerafdruk/gezicht met de gekoppelde sleutel (geen pincode van de telefoon). */
     static void promptBio(Activity a, Result r) {
-        if (authBusy) return;
+        if (busy()) { r.done(false, MSG_BUSY); return; }
         if (Build.VERSION.SDK_INT < 29) { r.done(false, "Gebruik je app-code"); return; }
         if (prefs(a).getBoolean("bioRenew", false)) { r.done(false, MSG_NEW_FINGER_CODE); return; }
         final javax.crypto.Cipher ci;
@@ -215,7 +216,7 @@ final class Lock {
             r.done(false, MSG_NEW_FINGER_CODE);
             return;
         } catch (Throwable e) { r.done(false, "Vingerafdruk lukt niet; gebruik je app-code"); return; }
-        authBusy = true;
+        setBusy();
         try {
             BiometricPrompt.Builder b = new BiometricPrompt.Builder(a).setTitle("Tools ontgrendelen").setSubtitle("Vingerafdruk")
                     .setNegativeButton("App-code", a.getMainExecutor(), (d, w) -> { authBusy = false; r.done(false, null); });
@@ -310,8 +311,49 @@ final class Lock {
 
     static int via(int sdk, boolean cryptoFailed) { return sdk >= 30 && !cryptoFailed ? VIA_PROMPT : VIA_CONFIRM; }
 
-    /** De systeemvraag met sleutel werkte op deze telefoon niet: de rest van deze keer het bevestigingsscherm (nooit buitensluiten). */
+    /** De systeemvraag met sleutel werkte op deze telefoon niet: zolang de app draait het bevestigingsscherm (nooit buitensluiten). */
     static volatile boolean cryptoFailed = false;
+
+    // ---------- noodklep: Android zegt "gelukt", de sleutel zegt nee ----------
+    // Kan bij een kapotte sleutelopslag (fabrikantfout, na een systeemupdate, zwakke gezichtsherkenning in het
+    // bevestigingsscherm). Na VALVE keer op rij geldt het "gelukt" van het bevestigingsscherm van Android zelf weer
+    // (zoals vroeger; dat antwoord kan geen andere app geven): zo zit je nooit voorgoed buiten.
+
+    static final int VALVE = 2;
+
+    /** Telt het "gelukt" van het bevestigingsscherm? mismatches = eerdere keren op rij dat de sleutel het oneens was. */
+    static boolean confirmAccepted(boolean systemOk, boolean keyChecked, boolean keyOk, int mismatches) {
+        if (!systemOk) return false;
+        if (!keyChecked || keyOk) return true;
+        return mismatches >= VALVE;
+    }
+
+    /** Nieuwe teller na een poging: 0 na een door de sleutel bevestigde ontgrendeling, +1 als Android ja en de sleutel nee zei. */
+    static int nextMismatches(boolean systemOk, boolean keyChecked, boolean keyOk, int mismatches) {
+        if (!systemOk || !keyChecked) return mismatches;
+        return keyOk ? 0 : Math.min(mismatches + 1, 100);
+    }
+
+    private static int mismatches(Context c) { return prefs(c).getInt("keyMismatch", 0); }
+
+    private static void saveMismatches(Context c, int n) { prefs(c).edit().putInt("keyMismatch", n).apply(); }
+
+    // ---------- "er staat al een vraag open" ----------
+
+    static final String MSG_BUSY = "Er staat al een vraag om te ontgrendelen open";
+    /** Na zo lang telt een open vraag niet meer (antwoord verloren, bijv. scherm door Android gesloten). */
+    static final long BUSY_STALE_MS = 90_000L;
+    static volatile long authBusyAt = 0;
+
+    private static void setBusy() { authBusyAt = SystemClock.elapsedRealtime(); authBusy = true; }
+
+    static boolean busyStale(boolean busy, long since, long now) { return busy && now - since >= BUSY_STALE_MS; }
+
+    /** Staat er nu echt een vraag open? Een te oude wordt vergeten. */
+    static boolean busy() {
+        if (busyStale(authBusy, authBusyAt, SystemClock.elapsedRealtime())) { authBusy = false; pending = null; pendingKey = false; }
+        return authBusy;
+    }
 
     static boolean locked(Context c) { return active(c) && !unlocked; }
 
@@ -326,13 +368,13 @@ final class Lock {
     static volatile boolean internalNav = false;
 
     /** App gaat uit beeld. */
-    static void onHidden() { if (!authBusy && !internalNav && unlocked) hiddenAt = SystemClock.elapsedRealtime(); }
+    static void onHidden() { if (!busy() && !internalNav && unlocked) hiddenAt = SystemClock.elapsedRealtime(); }
 
     /** App komt weer in beeld: vergrendelen als hij te lang weg was. Geeft true als hij nu op slot is. */
     static boolean onShown(Context c) {
         internalNav = false;
         if (!active(c)) return false;
-        if (authBusy) return !unlocked;
+        if (busy()) return !unlocked;
         if (unlocked && hiddenAt > 0 && SystemClock.elapsedRealtime() - hiddenAt >= timeout(c)) unlocked = false;
         hiddenAt = 0;
         return !unlocked;
@@ -344,12 +386,15 @@ final class Lock {
     /** Systeemvraag met gekoppelde sleutel (Android 11+): pas gelukt als de sleutel daarna echt de uitdaging versleutelt. */
     static final class Callback extends BiometricPrompt.AuthenticationCallback {
         private final Result r;
-        Callback(Result r) { this.r = r; }
+        private final Context c;
+        Callback(Context c, Result r) { this.c = c.getApplicationContext(); this.r = r; }
         @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult res) {
             authBusy = false;
             BiometricPrompt.CryptoObject co = res == null ? null : res.getCryptoObject();
-            if (proves(co == null ? null : co.getCipher())) { r.done(true, null); return; }
-            // Systeem zegt "gelukt" maar de sleutel niet: niet open; volgende keer het bevestigingsscherm van de telefoon
+            boolean ok = proves(co == null ? null : co.getCipher());
+            saveMismatches(c, nextMismatches(true, true, ok, mismatches(c)));
+            if (ok) { r.done(true, null); return; }
+            // Systeem zegt "gelukt" maar de sleutel niet: niet open; zolang de app draait het bevestigingsscherm
             try { deleteKey(DEV_ALIAS); } catch (Throwable ignored) { }
             cryptoFailed = true;
             r.done(false, "Ontgrendelen niet bevestigd; probeer het nog eens");
@@ -365,10 +410,9 @@ final class Lock {
 
     /** Vraagt de schermvergrendeling van de telefoon (vingerafdruk/gezicht of pincode/patroon). */
     static void prompt(Activity a, String title, Result r) {
-        if (authBusy) return; // er staat al een vraag open
+        if (busy()) { r.done(false, MSG_BUSY); return; } // er staat al een vraag open
         if (!deviceSecure(a)) { r.done(false, "Stel eerst een schermvergrendeling in op je telefoon (pincode, patroon of vingerafdruk)"); return; }
         if (via(Build.VERSION.SDK_INT, cryptoFailed) == VIA_PROMPT && promptCrypto(a, title, r)) return;
-        cryptoFailed = false; // één keer het bevestigingsscherm, daarna weer de systeemvraag proberen
         promptConfirm(a, title, r);
     }
 
@@ -382,18 +426,18 @@ final class Lock {
         try {
             try { ci = devCipher(); }
             catch (android.security.keystore.KeyPermanentlyInvalidatedException e) {
-                // Er kwam een vingerafdruk bij: nieuwe sleutel, en deze ene keer alleen de pincode van de telefoon
+                // Beveiliging gewijzigd (schermvergrendeling of vingerafdruk): nieuwe sleutel, en deze keer alleen de pincode
                 deleteKey(DEV_ALIAS);
                 ci = devCipher();
-                note = MSG_NEW_FINGER_PIN;
+                note = MSG_SECURITY_CHANGED;
                 how = android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
             }
         } catch (Throwable e) { return false; }
-        authBusy = true;
+        setBusy();
         try {
             BiometricPrompt.Builder b = new BiometricPrompt.Builder(a).setTitle(title).setSubtitle("Tools").setAllowedAuthenticators(how);
             if (note != null) b.setDescription(note);
-            b.build().authenticate(new BiometricPrompt.CryptoObject(ci), new CancellationSignal(), a.getMainExecutor(), new Callback(r));
+            b.build().authenticate(new BiometricPrompt.CryptoObject(ci), new CancellationSignal(), a.getMainExecutor(), new Callback(a, r));
             return true;
         } catch (Throwable e) {
             authBusy = false;
@@ -418,7 +462,8 @@ final class Lock {
         try { makeKey(CONFIRM_ALIAS); withKey = true; } // elke keer een verse sleutel
         catch (Throwable e) { withKey = false; }        // sleutelopslag werkt hier niet: dan geldt het antwoord van de telefoon
         pendingKey = withKey;
-        authBusy = true;
+        appCtx = a.getApplicationContext();
+        setBusy();
         pending = r;
         try { a.startActivityForResult(i, REQ_CONFIRM); }
         catch (Throwable e) { authBusy = false; pending = null; r.done(false, "Ontgrendelen lukt niet"); }
@@ -426,16 +471,25 @@ final class Lock {
 
     static Result pending;
     private static volatile boolean pendingKey = false;
+    private static volatile Context appCtx;
 
-    /** Resultaat van het bevestigingsscherm: alleen gelukt als de korte sleutel nu ook echt werkt. */
-    static void onConfirmResult(boolean ok) {
+    /**
+     * Resultaat van het bevestigingsscherm: gelukt als ook de korte sleutel nu werkt; of (noodklep) als Android al
+     * VALVE keer op rij "gelukt" zei terwijl de sleutel weigerde.
+     */
+    static void onConfirmResult(boolean sysOk) {
         authBusy = false;
         Result r = pending;
+        boolean checked = pendingKey;
         pending = null;
-        if (r == null) return; // geen vraag van ons open: niets ontgrendelen
-        if (ok && pendingKey) ok = confirmVerified();
         pendingKey = false;
-        r.done(ok, ok ? null : "Niet ontgrendeld");
+        if (r == null) return; // geen vraag van ons open: niets ontgrendelen
+        boolean keyOk = sysOk && checked && confirmVerified();
+        Context c = appCtx;
+        int n = c == null ? 0 : mismatches(c);
+        boolean ok = confirmAccepted(sysOk, checked, keyOk, n);
+        if (c != null) saveMismatches(c, nextMismatches(sysOk, checked, keyOk, n));
+        r.done(ok, ok ? null : sysOk ? "Ontgrendelen niet bevestigd; probeer het nog eens" : "Niet ontgrendeld");
     }
 
     /**

@@ -38,7 +38,7 @@ public class NoteWidgetConfig extends Activity {
         }
         if (Lock.wouldLock(this)) {
             // Alleen voor dit scherm bevestigen; de app zelf blijft op slot zoals hij was
-            if (Lock.authBusy) { finish(); return; }
+            if (Lock.busy()) { finish(); return; }
             Lock.prompt(this, "Lijstje kiezen", (ok, msg) -> runOnUiThread(() -> { if (ok) show(); else finish(); }));
         } else show();
     }
