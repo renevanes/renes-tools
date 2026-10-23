@@ -35,6 +35,12 @@ public class AiGateTest {
         for (Thread t : ts) t.join();
         check(got.get() == 1, "16 vragen tegelijk: precies één antwoord");
 
+        // Motor hangt na "stoppen": na 10 s beëindigen (en dan is de beurt weer vrij)
+        check(!LocalAi.stuck(0, 999_999_999L), "niet gestopt: nooit hangend");
+        check(!LocalAi.stuck(1_000L, 1_000L + LocalAi.STUCK_MS - 1), "net gestopt: nog even wachten");
+        check(LocalAi.stuck(1_000L, 1_000L + LocalAi.STUCK_MS), "na 10 s nog geen einde: hangend");
+        check(LocalAi.STUCK_MS == 10_000L, "wachttijd 10 s");
+
         System.out.println(fails == 0 ? "OK" : fails + " FOUT");
         System.exit(fails == 0 ? 0 : 1);
     }

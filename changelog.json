@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.91",
+    "date": "2026-10-23",
+    "changes": [
+      "Instellingen overzichtelijker: vier groepen met per onderwerp in één regel hoe het ervoor staat, en elk onderwerp op een eigen scherm in plaats van één lange pagina"
+    ]
+  },
+  {
     "version": "1.90",
     "date": "2026-10-23",
     "changes": [

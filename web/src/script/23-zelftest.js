@@ -5,7 +5,7 @@ const SF_FIX = {
   transcripts: ['Naar gesprekken', () => jumpTo('transcripts')], dest: ['Map kiezen', () => { sfRecheck = true; Android.waPickFolder(); }],
   audd: ['Sleutel invullen', () => { jumpTo('music'); muChangeToken(); }], alarms: ['Toestaan', () => { sfRecheck = true; Android.alarmExactSettings(); }],
   notif: ['Meldingen aanzetten', () => { sfRecheck = true; Android.notificationSettings(); }], battery: ['Uitzondering geven', () => { sfRecheck = true; Android.batterySettings(); }],
-  settings: ['Naar toestemmingen', () => jumpTo('settings')]
+  settings: ['Naar toestemmingen', () => jumpTo('setperm')]
 };
 let sfRecheck = false;
 function enterSelfTest(){ const l = rdJson(Android.selfTestLast(), {}); if (l.items) sfRender(l.items, l.t); }

@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.90",
-  "versionCode": 91,
+  "versionName": "1.91",
+  "versionCode": 92,
   "nativeLevel": 80,
   "web": "index.html",
-  "webSha256": "cede3ce27c660f0a2ec9cbc2f8fe110d7adb404f5c8371e66f778e92a8cf1ee6",
+  "webSha256": "5a57c7786c96a2270923e4b3f0de93f15902ef287bab5e05ab0feba812b338f4",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "e2198ded4c4a5f46d5fe2ffdc42cdd19de4c46581f515e804da7387232d621ce",
+  "apkSha256": "6fe0ed0c76502df7d554553d095343834d42ab115386ce75ef56426882ee8dd4",
   "changelog": [
+    {
+      "version": "1.91",
+      "date": "2026-10-23",
+      "changes": [
+        "Instellingen overzichtelijker: vier groepen met per onderwerp in één regel hoe het ervoor staat, en elk onderwerp op een eigen scherm in plaats van één lange pagina"
+      ]
+    },
     {
       "version": "1.90",
       "date": "2026-10-23",
@@ -796,5 +803,5 @@
       ]
     }
   ],
-  "webSig2": "npIDZLkz8IgsHhwQEJg3k4w+hAuop5/qIIJDPGZ6idl4d3j56iLVmhjK+korcYLFj5tUQUx528mJbh2vyZpsB/lGMGZnAU4hFEIuPXas1xrHRCoZs0UjkPA4BwHqv2BUwAeeB6cdlNOQMpwq3YY52vQ/1yQoH2Sk9Kuy+HoqmpG7UcHwhgz8m9OZ8DBPge3IQchAOx7QWc/GnyRZKxD7hRZlkPkS+JWkqSV8fC41zetebIotxoAHmTCQOl7xj9V3PyvRRGnwXYYvcsbdcLFk8MLUxeBzzmn7a2VohdCQ0hdAeQ7VXbnOLLsPD12QQICUL0SdBsFzhjnhtLa3eu9KdqTMO1RTxx4gZ4EUfCFn8SDiVeMI9LSRaYFVRw7Rxf1AuGp6k0iSZt5sjQ968pumb/z7HDoEmJZ1FnhICC7EilJuvTP1ThvziTghLfTjAVVJ4NyQ5AIcQH6jN6Q6TTlP68dkwHWLIRlswtd4UsYeSTnolH3XkzJkdArVNQ5fSfE0"
+  "webSig2": "Gzji1cIx0Y/t4Th+ljSgGTd6OFHvWwsT5MWzyLcPo8JcB0DooO6WPu+thCTs+MYB7iHbsZtN+VF2CFyA3Dl0KRFpEPo1N5AcG7tI1NgA0DAC95ua38PugVrfWUg2fkU1vQdznZQy018bJPCijjy667NWJpamnR1sZmfOW2IVLd7TibMvfSwZ7ETagRfW2372m7jlKmEQsTD9b+FQQR0TXCUNk6zZiWDwgVX3vnskW20PErbwrPCbDWHDqxDtV5M3bRofrMY7lceRsUke95hurXUllULsnd10QctmCDzAzWeVANW0sg/B5ZeBoVoGShqYElXHV/N03FbAc0vpzXjLCK0Z4Y9Wqmd93/ZZt7C5f+NXXfXGjwvOAuetGLnaTcgi2PE5kn2BgcC8xXFofchlyvoUpel2hwRsRfdoYFjDuNZOznTddAmPT5pZ7CB2RvHal3v3FmC5kp9CUsF7HLKXZGzBuGZ8qpY7XW7nxu7NdEr2Adj93a/A1HMxxenC4lCx"
 }

@@ -32,7 +32,7 @@ function ratio(a, b){ const x = lum(a), y = lum(b); return (Math.max(x, y) + .05
       if (c.tabs !== ['home', 'search', 'backup', 'settings'].includes(s)) fails.push(tag + ' ' + s + ': tabbalk ' + c.tabs);
     }
     // knoppen: tekst op de knopkleur
-    await pg.evaluate(() => show('settings'));
+    await pg.evaluate(() => show('setskin'));
     const bt = await pg.evaluate(() => [...document.querySelectorAll('.screen.on .big')].slice(0, 6).map(e => { const cs = getComputedStyle(e); return [cs.backgroundColor, cs.color, e.textContent.trim().slice(0, 20)]; }));
     for (const [bg, fg, t] of bt) if (ratio(bg, fg) < 4.5) fails.push(tag + ' knop "' + t + '": ' + ratio(bg, fg).toFixed(1));
     // kop schuift: grote titel weg, kleine titel zichtbaar

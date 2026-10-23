@@ -93,7 +93,7 @@ const assert = require('node:assert');
     }
 
     // ---- Schakelaars waarvan de stand native is: geen losse sleutels
-    await pg.evaluate(() => { show('settings'); });
+    await pg.evaluate(() => { show('setnotif'); });
     await pg.click('#st-notif-mute'); await pg.waitForTimeout(80);
     assert.strictEqual(await pg.evaluate(() => localStorage.getItem('rt.st-notif-mute')), null);
     await pg.click('#st-notif-mute'); await pg.waitForTimeout(80);
