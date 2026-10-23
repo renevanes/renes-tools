@@ -107,7 +107,7 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
   `app/` of `web/` veranderen, en wekelijks. Meldingen staan onder Security → Code scanning. (GitHub's
   "default setup" van CodeQL moet uit staan, anders botst die met deze workflow.)
 - **Onderhoud** (`onderhoud.yml`, maandag): `.github/scripts/onderhoud-controle.py` vergelijkt de meegeleverde
-  bibliotheken (Leaflet, jsQR, whisper.cpp) en vastgezette versies (Playwright, build-tools) met de nieuwste versies
+  bibliotheken (Leaflet, jsQR, whisper.cpp, llama.cpp) en vastgezette versies (Playwright, build-tools) met de nieuwste versies
   en met de OSV-kwetsbaarhedendatabase, en zet alles wat te doen is in het issue "Onderhoud: updates en beveiliging".
 
 **Wekelijks door een agent** (het issue hierboven is de takenlijst):
@@ -121,6 +121,7 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
    en de updatecontrole.
 3. **Bibliotheken bijwerken:** Leaflet/jsQR uit het npm-pakket (`dist/`, met de bestaande kopregel en licentie);
    Playwright-versie in `publiceren.yml`; whisper.cpp met `tools/whisper-build.sh` (beide varianten, README.txt bijwerken)
+   en llama.cpp met `tools/llm-build.sh` (TAG en COMMIT erin, daarna `./tools/llm/test.sh`)
    alleen bij een kwetsbaarheid of een duidelijke verbetering, want dat vraagt een nieuwe APK.
    **Dependabot-pull requests** (uitzondering op regel 6, want die zijn van GitHub zelf, niet van iemand anders):
    alleen samenvoegen als ze uitsluitend `.github/workflows/` raken, "Bouwen en testen" groen is en je de release

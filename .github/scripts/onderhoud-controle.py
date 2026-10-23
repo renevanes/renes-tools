@@ -4,6 +4,7 @@
 Dependabot kent deze niet (geen package.json of Gradle), dus dit script doet het:
   - web/vendor/leaflet.js en web/vendor/jsQR.js   → npm-register + OSV (kwetsbaarheden)
   - app/lib/*/libwhisper*.so (whisper.cpp-commit)  → nieuwste release + OSV
+  - app/lib/*/libllm.so (llama.cpp-commit)          → nieuwste release + OSV
   - Playwright-versie in publiceren.yml            → npm-register
   - Android build-tools in setup-tools.sh          → nieuwste release van androidide-tools
 
@@ -95,6 +96,20 @@ def main():
         achter, opm = None, f"vergelijking met {tag} mislukt ({e}); controleer met de hand"
     item("whisper.cpp", "app/lib/*/libwhisper*.so", commit[:12], tag, osv({"commit": commit}), opm,
          verouderd=achter != 0)
+
+    # llama.cpp (zelf gebouwde libllm.so, de lokale AI). Er komt bijna elke dag een release uit: alleen melden als
+    # het echt ver achterloopt of als er een kwetsbaarheid bekend is.
+    commit = lees("app/lib/arm64-v8a/README.txt", r"llama\.cpp b\d+, commit ([0-9a-f]{40})")
+    rel = http_json("https://api.github.com/repos/ggml-org/llama.cpp/releases/latest", github=True)
+    tag = rel["tag_name"]
+    try:
+        cmp = http_json(f"https://api.github.com/repos/ggml-org/llama.cpp/compare/{commit}...{tag}", github=True)
+        achter = cmp.get("ahead_by", 0)
+        opm = f"{achter} commits achter op {tag}; opnieuw bouwen met tools/llm-build.sh (vaste TAG/COMMIT daarin aanpassen)" if achter > 1500 else ""
+    except Exception as e:
+        achter, opm = None, f"vergelijking met {tag} mislukt ({e}); controleer met de hand"
+    item("llama.cpp (lokale AI)", "app/lib/*/libllm.so", commit[:12], tag, osv({"commit": commit}), opm,
+         verouderd=achter is None or achter > 1500)
 
     # Android build-tools (bouwgereedschap, komt niet in de app)
     huidig = lees("setup-tools.sh", r"build-tools/(\d+\.\d+\.\d+)/")

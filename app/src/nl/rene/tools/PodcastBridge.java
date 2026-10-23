@@ -5,10 +5,10 @@ import android.webkit.JavascriptInterface;
 import org.json.JSONObject;
 
 /**
- * Brugfuncties voor Podcasts. Zit tussen FeatureBridge en MainActivity.Bridge, zodat de interface ze gewoon als
+ * Brugfuncties voor Podcasts. Zit tussen AiBridge en MainActivity.Bridge, zodat de interface ze gewoon als
  * Android.podXxx ziet. Netwerkwerk gebeurt op een eigen thread; het antwoord komt terug via een js-functie.
  */
-public class PodcastBridge extends FeatureBridge {
+public class PodcastBridge extends AiBridge {
 
     PodcastBridge(MainActivity act) { super(act); }
 

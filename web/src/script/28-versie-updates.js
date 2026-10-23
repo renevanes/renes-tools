@@ -29,6 +29,7 @@ function infoLicenses(){
     ['Leaflet (kaarten) — BSD-2', () => Android.openUrl(G + 'web/vendor/LEAFLET-LICENSE')],
     ['jsQR (QR-codes lezen) — Apache-2.0', () => Android.openUrl(G + 'web/vendor/JSQR-LICENSE')],
     ['whisper.cpp (spraak naar tekst) — MIT', () => Android.openUrl(G + 'app/lib/arm64-v8a/LICENSE-whisper.cpp.txt')],
-    ['musl (in whisper.cpp) — MIT', () => Android.openUrl(G + 'app/lib/arm64-v8a/LICENSE-musl.txt')]
+    ['llama.cpp (lokale AI) — MIT', () => Android.openUrl(G + 'app/lib/arm64-v8a/LICENSE-llama.cpp.txt')],
+    ['musl (in whisper.cpp en llama.cpp) — MIT', () => Android.openUrl(G + 'app/lib/arm64-v8a/LICENSE-musl.txt')]
   ]);
 }

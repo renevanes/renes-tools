@@ -60,6 +60,7 @@ function gsInput(){
   for (const k of Object.keys(GS)) if (!['notes', 'app', 'history'].includes(k) && prev[k]) gsData.stale[k] = prev[k];
   gsRender();
   gsTmr = setTimeout(() => { gsId = Android.searchAll(q); }, 300);
+  if (typeof aiSearchSoon === 'function') aiSearchSoon(q); // op betekenis (als het zoekmodel er is)
 }
 function gsNotes(q){
   const ql = q.toLowerCase(), out = [];
@@ -107,7 +108,8 @@ function gsRender(){
       (g.total > g.items.length ? '<button class=more data-k="' + k + '" onclick="gsMore(this.dataset.k)">Alle ' + tot + ' ›</button>' : '') + '</h3>' +
       g.items.map(x => gsItem(k, x, ql)).join('') + '</div>';
   }).join('');
-  $('#gs-res').innerHTML = html || '<p class=gs-empty>' + (gsData.pending ? 'Zoeken…' : 'Niets gevonden voor "' + esc(gsQ) + '"') + '</p>';
+  const ai = typeof aiSearchHtml === 'function' ? aiSearchHtml(ql) : '';
+  $('#gs-res').innerHTML = (ai + html) || '<p class=gs-empty>' + (gsData.pending ? 'Zoeken…' : 'Niets gevonden voor "' + esc(gsQ) + '"') + '</p>';
   if (html && gsData.pending) $('#gs-res').innerHTML += '<p class=gs-empty style="padding:8px 0">Verder zoeken…</p>';
 }
 function gsMore(k){

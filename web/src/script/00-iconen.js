@@ -1,7 +1,7 @@
 /* Namen komen uitsluitend uit de lokale pictogramset. Gebruikerstekst blijft gewone tekst. */
 const UI_ICONS=new Set(["phone","calls","message","backup","folder","download","upload","notes","document","sign","lock","car","mic","transcript","radio","headphones","spotify","shield","pin","music","smartphone","automation","play","pause","stop","search","settings","grid","more","check","close","plus","minus","trash","edit","share","left","right","up","down","clock","bell","calendar","repeat","copy","clipboard","camera","image","scissors","mail","shop","plug","parking","user","star","moon","volume","volume-high","chevron-left","chevron-right","chevron-down","info","alert","refresh","cast","route","save","battery","globe","eye","external","sort"]);
 function uiIcon(name){return UI_ICONS.has(name)?'<span class="ui-icon" data-icon="'+name+'" aria-hidden="true"></span>':'';}
-["sun","cloud","rain","snow","storm","fog","temperature","wifi"].forEach(name=>UI_ICONS.add(name));
-const UI_TOOL_ICONS={redial:'phone',wa:'message',tracks:'route',sms:'message',history:'bell',calls:'calls',notes:'notes',contacts:'user',pdf:'document',kluis:'lock',car:'car',recorder:'mic',transcripts:'transcript',radio:'radio',podcasts:'headphones',spotify:'spotify',vpn:'shield',loc:'pin',music:'music',skin:'smartphone',auto:'automation',backup:'backup',player:'play',tx:'mic',app:'settings'};
+["sun","cloud","rain","snow","storm","fog","temperature","wifi","sparkle"].forEach(name=>UI_ICONS.add(name));
+const UI_TOOL_ICONS={redial:'phone',wa:'message',tracks:'route',sms:'message',history:'bell',calls:'calls',notes:'notes',contacts:'user',pdf:'document',kluis:'lock',car:'car',recorder:'mic',transcripts:'transcript',radio:'radio',podcasts:'headphones',spotify:'spotify',vpn:'shield',loc:'pin',music:'music',ai:'sparkle',skin:'smartphone',auto:'automation',backup:'backup',player:'play',tx:'mic',app:'settings'};
 function uiToolIcon(tool){return uiIcon(UI_TOOL_ICONS[tool]||'grid');}
 
