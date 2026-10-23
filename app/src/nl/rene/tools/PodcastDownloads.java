@@ -65,12 +65,19 @@ final class PodcastDownloads {
                 if (d == null) return;
                 for (Iterator<String> k = idx.keys(); k.hasNext(); ) {
                     String key = k.next(); JSONObject it = idx.optJSONObject(key);
-                    File f = it == null ? null : new File(d, it.optString("file"));
+                    File f = it == null ? null : fileIn(d, it.optString("file"));
                     if (f != null && it.optBoolean("done") && f.isFile() && f.length() > 0) READY.put(key, f.getAbsolutePath());
                 }
             } catch (Throwable ignored) { }
         });
     }
+
+    /** Het bestand van een download in de downloadmap; null bij een vreemde naam (alleen een kale bestandsnaam mag). */
+    static File fileIn(File d, String name) {
+        if (d == null || !safeName(name)) return null;
+        return new File(d, name);
+    }
+    static boolean safeName(String n) { return n != null && !n.isEmpty() && n.length() <= 200 && n.indexOf('/') < 0 && n.indexOf('\\') < 0 && n.indexOf('\0') < 0 && !n.equals(".") && !n.equals(".."); }
 
     static File dir(Context c) {
         File d = c.getExternalFilesDir(Environment.DIRECTORY_PODCASTS);
@@ -128,7 +135,8 @@ final class PodcastDownloads {
     /** Status van één download: done, running, paused, queued, failed. Met bytes en total. */
     private static JSONObject status(Context c, DownloadManager m, JSONObject it) throws Exception {
         JSONObject s = new JSONObject();
-        File f = new File(dir(c), it.optString("file"));
+        File f = fileIn(dir(c), it.optString("file"));
+        if (f == null) return s.put("state", "failed").put("reason", "Bestand is weg");
         if (it.optBoolean("done")) {
             if (f.isFile() && f.length() > 0) return s.put("state", "done").put("bytes", f.length()).put("total", f.length());
             return s.put("state", "failed").put("reason", "Bestand is weg");
@@ -180,7 +188,8 @@ final class PodcastDownloads {
             try {
                 JSONObject s = m == null ? new JSONObject().put("state", "failed") : status(c, m, it);
                 if ("done".equals(s.optString("state")) && !it.optBoolean("done")) { it.put("done", true); changed = true; }
-                if ("done".equals(s.optString("state"))) READY.put(key, new File(dir(c), it.optString("file")).getAbsolutePath()); else READY.remove(key);
+                File rf = fileIn(dir(c), it.optString("file"));
+                if ("done".equals(s.optString("state")) && rf != null) READY.put(key, rf.getAbsolutePath()); else READY.remove(key);
                 s.put("key", key).put("ep", it.optJSONObject("ep")).put("pod", it.optJSONObject("pod")).put("t", it.optLong("t")).put("auto", it.optBoolean("auto"));
                 rows.add(s);
             } catch (Exception ignored) { }
@@ -213,8 +222,8 @@ final class PodcastDownloads {
                 if (m == null || !"done".equals(status(c, m, it).optString("state"))) return null; // status() zet ook de echte bestandsnaam
             }
         } catch (Exception e) { return null; }
-        File f = new File(d, it.optString("file"));
-        if (!f.isFile() || f.length() == 0) return null;
+        File f = fileIn(d, it.optString("file"));
+        if (f == null || !f.isFile() || f.length() == 0) return null;
         READY.put(key, f.getAbsolutePath());
         return f.getAbsolutePath();
     }
@@ -226,7 +235,8 @@ final class PodcastDownloads {
         DownloadManager m = dm(c);
         try { if (m != null) m.remove(it.optLong("id")); } catch (Exception ignored) { }
         File d = dir(c);
-        if (d != null) new File(d, it.optString("file")).delete();
+        File f = fileIn(d, it.optString("file"));
+        if (f != null) f.delete();
         idx.remove(key);
         save(c, idx);
         if (it.optBoolean("auto")) gone(c, key); // vanzelf gedownload en weggehaald: niet nog eens vanzelf
