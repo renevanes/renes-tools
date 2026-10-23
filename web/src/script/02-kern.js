@@ -107,6 +107,7 @@ function show(name){
   if (typeof plIsOpen !== 'undefined' && plIsOpen) plClose(); // naar een ander scherm: de speler verkleint
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
   const current_prev = current;
+  if (current_prev === 'aisetpers' && name !== 'aisetpers' && typeof aicLeavePers === 'function') aicLeavePers(); // concept niet kwijtraken
   if ((current_prev === 'home' || current_prev === 'search') && !jumpTo.busy) gsResetTool(name);
   if (name==='home') jumpStack.length = 0;
   if (name==='search' && gsQ) setTimeout(gsInput, 0); // terug van een treffer: opnieuw zoeken (er kan iets veranderd zijn)
@@ -153,7 +154,7 @@ function show(name){
   if (typeof uiShown === 'function') uiShown(name);
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); renderDash(); refreshAutoTile(); refreshPodTile(); refreshVpnTile(); refreshLocTile(); }
 }
-const BACK = {aisetmodel:'aiset', aisetanswer:'aiset', aisetpers:'aiset', aisetvoice:'aiset', aisetsearch:'aiset', aisetperf:'aiset', aisetpriv:'aiset', setnotif:'settings', setlook:'settings', setskin:'settings', setlock:'settings', setsolo:'settings', setperm:'settings', setbackup:'settings', setmusic:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', car:'home', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
+const BACK = {aisetmodel:'aiset', aisetdata:'aiset', aisetanswer:'aiset', aisetpers:'aiset', aisetvoice:'aiset', aisetsearch:'aiset', aisetperf:'aiset', aisetpriv:'aiset', setnotif:'settings', setlook:'settings', setskin:'settings', setlock:'settings', setsolo:'settings', setperm:'settings', setbackup:'settings', setmusic:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', car:'home', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
 window.goBack = function(){
   // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
   if ($('#lockscr').classList.contains('on')) return false;

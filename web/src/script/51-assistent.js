@@ -92,7 +92,7 @@ function aiSugg(i){
   if (s[2] && !aiSt.notes) aiToggleNotes();
   const t = $('#ai-in'); t.value = s[1]; aiGrow(); t.focus(); t.setSelectionRange(t.value.length, t.value.length);
 }
-function aiToggleNotes(){ aiSt.notes = !aiSt.notes; Android.aiPref('notes', aiSt.notes); aiRenderMain(); toast(aiSt.notes ? 'De assistent zoekt eerst in je notities en gesprekken' : 'Zonder je notities'); }
+function aiToggleNotes(){ aiSt.notes = !aiSt.notes; Android.aiPref('notes', aiSt.notes); aiRenderMain(); toast(aiSt.notes ? 'De assistent zoekt eerst in je gegevens (' + aiSrcNames() + ')' : 'Zonder je gegevens'); }
 function aiGrow(){ const t = $('#ai-in'); t.style.height = 'auto'; t.style.height = Math.min(160, t.scrollHeight) + 'px'; aiSendBtn(); }
 function aiKey(e){ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); aiSendOrStop(); } }
 function aiSendBtn(){
@@ -186,14 +186,31 @@ function aiMd(s){
   close();
   return out.join('');
 }
+/* Soorten gegevens waar slim zoeken en de assistent in mogen kijken (zie Lokale AI → Gegevens) */
+const AI_SRC = [
+  ['notes', 'Notities', 'notes', 'Al je notities en lijstjes.'],
+  ['tx', 'Uitgeschreven gesprekken', 'mic', 'Wat je bij Gesprekken uitschrijven liet uitschrijven.'],
+  ['sms', "Sms'jes", 'message', "De laatste 300 berichten van je 150 recentste sms-gesprekken."],
+  ['wa', 'WhatsApp', 'message', 'De laatste 300 berichten van je 100 recentste chats (alleen als je de chats leesbaar maakte).'],
+  ['calls', 'Oproepen', 'calls', 'Wie belde of gebeld werd, wanneer en hoe lang (de laatste 50 per persoon).'],
+  ['contacts', 'Contacten', 'user', 'Namen, nummers, e-mailadressen, adressen, verjaardagen en notities.']
+];
+function aiSrcOn(k){ const s = aiSt.src || {}; return s[k] != null ? !!s[k] : (k === 'notes' || k === 'tx'); }
+function aiSrcNames(){ const n = AI_SRC.filter(s => aiSrcOn(s[0])).map(s => s[1].toLowerCase()); return n.length ? n.join(', ') : 'niets aangezet'; }
+function aiKindIcon(k){ const s = AI_SRC.find(x => x[0] === k); return s ? s[2] : 'notes'; }
+/* Een treffer openen zoals bij Zoeken (overal): [soort, gegevens voor gsOpen] */
+function aiHitGs(h){
+  const id = String(h.id || '');
+  if (h.kind === 'tx') return ['tx', { id, from: +h.from || 0 }];
+  if (h.kind === 'sms') return ['sms', { thread: /^\d+$/.test(id) ? +id : id, name: h.title || '' }];
+  if (h.kind === 'wa') return ['wa', { chat: /^\d+$/.test(id) ? +id : id, name: h.title || '' }];
+  if (h.kind === 'calls') return ['calls', { number: id }];
+  if (h.kind === 'contacts') { const i = id.lastIndexOf('|'); return ['contacts', { k: i < 0 ? id : id.slice(0, i), id: i < 0 ? '' : id.slice(i + 1) }]; }
+  return ['notes', { id }];
+}
 function aiSrcHtml(src){
   if (!src || !src.length) return '';
-  return '<div class="aisrc">' + src.map((h, i) => '<button class="aichip sm" onclick="aiOpenSrc(' + i + ', this)" data-k="' + esc(h.kind) + '" data-id="' + esc(h.id) + '" data-from="' + (+h.from || 0) + '">[' + (i + 1) + '] ' + uiIcon(h.kind === 'tx' ? 'mic' : 'notes') + esc(h.title) + '</button>').join('') + '</div>';
-}
-function aiOpenSrc(i, el){
-  const k = el.dataset.k, id = el.dataset.id;
-  if (k === 'notes') jumpTo('note', () => openNote(id));
-  else if (k === 'tx') jumpTo('txd', () => txOpen(id, +el.dataset.from || 0));
+  return '<div class="aisrc">' + src.map((h, i) => { const g = aiHitGs(h); return '<button class="aichip sm" onclick="gsOpen(this)" data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '">[' + (i + 1) + '] ' + uiIcon(aiKindIcon(h.kind)) + esc(h.title) + '</button>'; }).join('') + '</div>';
 }
 function aiMsgHtml(m, i){
   if (!m) return '';
@@ -254,7 +271,7 @@ function aiMenu(){
   acts.push(['Eerdere gesprekken', () => show('aichats')]);
   if (aiChat && aiChat.msgs.length) acts.push(['Dit gesprek delen', () => Android.aiShare(aiChat.msgs.map(m => (m.r === 'user' ? 'Ik: ' : 'Assistent: ') + m.c).join('\n\n'))]);
   const cf = aiSt.cfg || {};
-  acts.push(['Antwoorden: ' + [(AIC_LABEL.style[cf.style] || 'Normaal').toLowerCase(), (AIC_LABEL.creative[cf.creative] || 'Gebalanceerd').toLowerCase()].join(', ') + '…', () => show('aisetanswer')]);
+  acts.push(['Antwoorden: ' + [(AIC_LABEL.style[cf.style] || 'Normaal').toLowerCase(), (AIC_LABEL.creative[cf.creative] || 'Gebalanceerd').toLowerCase()].join(', ') + '…', () => jumpTo('aisetanswer')]);
   acts.push(['Instellingen', () => show('aiset')]);
   openSheet('Assistent', aiSt.chat ? 'Model: ' + aiModel(aiSt.chat).label : '', acts);
 }
@@ -289,22 +306,63 @@ function aiRenderSet(){
   $('#ais-chat').innerHTML = ms.filter(m => !m.embed).map(m => aiModelCard(m, { chat: true, del: true })).join('');
   $('#ais-embed').innerHTML = ms.filter(m => m.embed).map(m => aiModelCard(m, { del: true })).join('');
   const w = $('#ais-wifi'); w.classList.toggle('on', !!aiSt.wifiOnly); w.setAttribute('aria-checked', aiSt.wifiOnly ? 'true' : 'false');
-  aisRenderVoice(); aicRender();
+  aisRenderVoice(); aicRender(); aiRenderData();
   const ix = aiSt.index, box = $('#ais-index');
   if (!ix || !aiReady('zoek')) { box.innerHTML = ''; return; }
   const busy = ix.busy || aiIdx.busy;
-  box.innerHTML = '<div class="sw" style="margin-top:6px"><span>Zoekindex<small id="ais-ix-sub">' + esc(busy ? 'Bijwerken… ' + (aiIdx.done || ix.done || 0) + ' van ' + (aiIdx.total || ix.total || 0) + ' stukken'
-      : (ix.items ? ix.items + ' notities en gesprekken · ' + ix.chunks + ' stukken' + (ix.at ? ' · ' + fmtD(ix.at) : '') : 'Nog niet opgebouwd') + (ix.stale && ix.items ? ' · wordt bij de volgende zoekvraag bijgewerkt' : '')) + '</small></span>' +
-    (busy ? '' : '<button class="mini" onclick="aisIndex(' + (ix.items ? 'false' : 'false') + ')">' + (ix.items ? 'Bijwerken' : 'Opbouwen') + '</button>') + '</div>' +
+  box.innerHTML = aiIndexHtml('ais-ix-sub');
+}
+/* Stand van de zoekindex (bij Slim zoeken en bij Gegevens) */
+function aiIndexHtml(subId){
+  const ix = aiSt.index || {}, busy = ix.busy || aiIdx.busy;
+  return '<div class="sw" style="margin-top:6px"><span>Zoekindex<small id="' + subId + '">' + esc(busy ? 'Bijwerken… ' + (aiIdx.done || ix.done || 0) + ' van ' + (aiIdx.total || ix.total || 0) + ' nieuwe stukken (gaat door op de achtergrond)'
+      : (ix.items ? ix.chunks + ' stukken uit ' + ix.items + ' bronnen' + (ix.at ? ' · ' + fmtD(ix.at) : '') : 'Nog niet opgebouwd') + (ix.stale && ix.items ? ' · wordt bij de volgende zoekvraag bijgewerkt' : '')) + '</small></span>' +
+    (busy ? '<button class="mini" onclick="aisIndexStop()">Stoppen</button>' : '<button class="mini" onclick="aisIndex(false)">' + (ix.items ? 'Bijwerken' : 'Opbouwen') + '</button>') + '</div>' +
     (ix.items && !busy ? '<button class="linkish" onclick="aisIndex(true)">Helemaal opnieuw opbouwen</button>' : '');
 }
 let aiIdx = {};
 function aisIndex(force){ aiIdx = { busy: true, done: 0, total: 0 }; Android.aiIndex(!!force); aiRenderSet(); }
+function aisIndexStop(){ Android.aiIndexStop(); toast('Stoppen… wat al klaar is, blijft bewaard'); }
 window.onAiIndex = function(o){
   if (o.busy) aiIdx = { busy: true, done: o.done, total: o.total };
-  else { aiIdx = {}; if (o.error) toast(o.error); else toast('Zoekindex bijgewerkt'); aiLoad(); }
+  else { aiIdx = {}; if (o.error) toast(o.error); else if (!o.quiet) toast('Zoekindex bijgewerkt'); aiLoad(); }
   if (aiSetOn()) aiRenderSet();
 };
+
+/* ---------- Gegevens: waar de AI in mag kijken ---------- */
+const AI_PERM = { sms: 'sms', calls: 'calllog', contacts: 'contacts' };
+function aiRenderData(){
+  const list = $('#aid-list'); if (!list) return;
+  const perm = aiSt.perm || {}, zoek = aiReady('zoek');
+  $('#aid-need').innerHTML = zoek ? '' : '<p class="note">Hiervoor is het model voor slim zoeken nodig (' + esc(((aiSt.models || []).find(m => m.id === 'zoek') || {}).state === 'running' ? 'wordt gedownload' : 'nog niet gedownload') + '). <button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'aisetsearch\')">Naar Slim zoeken</button></p>';
+  list.innerHTML = AI_SRC.map(s => {
+    const k = s[0], on = aiSrcOn(k), ok = perm[k] !== false;
+    const need = !ok ? (k === 'wa' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'wa\')">Maak eerst je chats leesbaar</button>'
+      : '<button class="linkish" style="display:inline;padding:0" onclick="Android.permRequest(\'' + AI_PERM[k] + '\')">Toestemming geven</button>') : '';
+    return '<div class="sw"><span>' + uiIcon(s[2]) + ' ' + esc(s[1]) + '<small>' + esc(s[3]) + (on && !ok ? ' Staat aan, maar de app mag er nog niet bij: ' : '') + '</small>' + (on && !ok ? '<small>' + need + '</small>' : '') + '</span>' +
+      '<button class="tg' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + esc(s[1]) + '" onclick="aiSrcToggle(\'' + k + '\')"></button></div>';
+  }).join('');
+  $('#aid-index').innerHTML = zoek && aiSt.index ? aiIndexHtml('aid-ix-sub') : '';
+}
+function aiSrcToggle(k){
+  const on = !aiSrcOn(k), s = AI_SRC.find(x => x[0] === k);
+  aiSt.src = Object.assign({}, aiSt.src || {}, { [k]: on });
+  Android.aiPref('src_' + k, on);
+  if (on && (aiSt.perm || {})[k] === false && AI_PERM[k]) Android.permRequest(AI_PERM[k]);
+  if (on && aiReady('zoek')) aiIdx = { busy: true, done: 0, total: 0 };
+  aiRenderData(); aicRender();
+  const one = k === 'wa';
+  toast(on ? s[1] + (one ? ' doet' : ' doen') + ' mee' + (aiReady('zoek') ? ': wordt op de achtergrond aan de zoekindex toegevoegd' : '')
+    : s[1] + (one ? ' doet niet meer mee en gaat' : ' doen niet meer mee en gaan') + ' uit de zoekindex');
+}
+/* Na "Toestemming geven": de lijst bijwerken (en de index haalt het er vanzelf bij) */
+(function(){
+  const prev = window.onSettingsChanged;
+  window.onSettingsChanged = function(msg){
+    if (typeof prev === 'function') prev(msg);
+    if (current === 'aisetdata') { aiLoad(); aiRenderData(); if (aiReady('zoek') && aiSt.index && aiSt.index.stale) Android.aiIndex(false); }
+  };
+})();
 function aisWifi(){ aiSt.wifiOnly = !aiSt.wifiOnly; Android.aiPref('wifiOnly', aiSt.wifiOnly); aiRenderSet(); toast(aiSt.wifiOnly ? 'Downloaden alleen via wifi (voor een nieuwe download)' : 'Downloaden ook via mobiel internet (voor een nieuwe download)'); }
 function aisClearChats(){ askConfirm('Alle gesprekken verwijderen?', 'Alle gesprekken met de assistent gaan weg. De modellen en je notities blijven.', 'Verwijderen', () => { if (aiGen) { aiGen.discard = true; Android.aiCancel(); } Android.aiChatDelete('*'); aiChat = null; toast('Gesprekken verwijderd'); }); }
 
@@ -320,7 +378,7 @@ function aiSearchSoon(q){
 }
 window.onAiSearch = function(r){
   if (!r || r.id !== aiSearchId || typeof gsQ === 'undefined' || r.q !== gsQ) return;
-  aiSearchRes = r.items ? { q: r.q, items: r.items } : null;
+  aiSearchRes = r.items ? { q: r.q, items: r.items, updating: !!r.updating } : null;
   if (typeof gsRender === 'function') gsRender();
 };
 function aiSearchHtml(ql){
@@ -328,8 +386,9 @@ function aiSearchHtml(ql){
   if (aiSearchRes.pending) return '<div class="card gsg aigs"><h3>' + uiIcon('sparkle') + 'Op betekenis <span class="n">…</span></h3><p class="note" style="margin:4px 0">Zoeken op betekenis…</p></div>';
   const it = aiSearchRes.items || [];
   if (!it.length) return '';
-  return '<div class="card gsg aigs"><h3>' + uiIcon('sparkle') + 'Op betekenis <span class="n">' + it.length + '</span></h3>' + it.map(h =>
-    '<button class=gi data-k="' + (h.kind === 'tx' ? 'tx' : 'notes') + '" data-x="' + esc(JSON.stringify(h.kind === 'tx' ? { id: h.id, from: +h.from || 0 } : { id: h.id })) + '" onclick="gsOpen(this)"><b>' + uiIcon(h.kind === 'tx' ? 'mic' : 'notes') + ' ' + esc(h.title) + '</b><small>' + esc(String(h.snip || '').slice(0, 160)) + (String(h.snip || '').length > 160 ? '…' : '') + '</small></button>').join('') + '</div>';
+  return '<div class="card gsg aigs"><h3>' + uiIcon('sparkle') + 'Op betekenis <span class="n">' + it.length + '</span></h3>' + it.map(h => { const g = aiHitGs(h);
+    return '<button class=gi data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '" onclick="gsOpen(this)"><b>' + uiIcon(aiKindIcon(h.kind)) + ' ' + esc(h.title) + '</b><small>' + esc(String(h.snip || '').slice(0, 160)) + (String(h.snip || '').length > 160 ? '…' : '') + '</small></button>'; }).join('') +
+    (aiSearchRes.updating ? '<p class="note" style="margin:4px 0">De zoekindex wordt nog bijgewerkt: misschien ontbreekt er nog iets.</p>' : '') + '</div>';
 }
 
 /* ---------- Spraak: een vraag inspreken (Whisper op de telefoon, zoals bij spraaknotities) ---------- */
@@ -418,14 +477,14 @@ function aisRenderVoice(st){
 function aisVoiceSend(){ aiSt.voiceSend = !(aiSt.voiceSend !== false); Android.aiPref('voiceSend', aiSt.voiceSend); aisRenderVoice(); toast(aiSt.voiceSend ? 'Ingesproken vraag wordt meteen verstuurd' : 'Ingesproken tekst komt eerst in het invoerveld'); }
 
 /* ---------- Instellingen van de assistent: overzicht en eigen schermen ---------- */
-const AI_SUBS = ['aisetmodel', 'aisetanswer', 'aisetpers', 'aisetvoice', 'aisetsearch', 'aisetperf', 'aisetpriv'];
+const AI_SUBS = ['aisetmodel', 'aisetanswer', 'aisetpers', 'aisetvoice', 'aisetdata', 'aisetsearch', 'aisetperf', 'aisetpriv'];
 function aiSetOn(){ return current === 'aiset' || AI_SUBS.includes(current); }
 const AIC_NOTE = {
   style: { kort: 'Een paar zinnen, alleen het belangrijkste. Ook het snelst.', normaal: 'Duidelijk en beknopt, met opsommingen waar dat helpt.', uitgebreid: 'Grondig, met uitleg en voorbeelden. Duurt langer.' },
   creative: { precies: 'Feitelijk en voorspelbaar: goed voor samenvatten en vertalen.', normaal: 'Een goede balans voor de meeste vragen.', creatief: 'Meer variatie: goed voor ideeën, verhalen en teksten.' },
   lang: { nl: 'Altijd Nederlands, tenzij je om een andere taal vraagt.', en: 'Altijd Engels.', auto: 'In de taal waarin je de vraag stelt.' },
   history: { '8': 'De laatste 8 berichten: sneller, maar vergeet eerder.', '24': 'De laatste 24 berichten.', '48': 'De laatste 48 berichten (past niet altijd: dan valt het begin weg).' },
-  power: { zuinig: '2 processorkernen: trager, maar koeler en zuiniger met de accu.', normaal: 'Tot 4 kernen: een goede balans.', max: 'Alle snelle kernen: het snelst, maar warmer en meer accugebruik.' },
+  power: { zuinig: '2 processorkernen: trager, maar koeler en zuiniger met de accu.', normaal: 'Tot 4 kernen: een goede balans.', max: 'Tot 6 kernen: het snelst, maar warmer en meer accugebruik.' },
   idle: { '1': 'Het model gaat na 1 minuut uit het geheugen: zuinig, maar de volgende vraag laadt opnieuw.', '4': 'Na 4 minuten niets doen.', '15': 'Na 15 minuten: vervolgvragen gaan sneller, maar het geheugen blijft langer bezet.' }
 };
 const AIC_LABEL = { style: { kort: 'Kort', normaal: 'Normaal', uitgebreid: 'Uitgebreid' }, creative: { precies: 'Precies', normaal: 'Gebalanceerd', creatief: 'Creatief' },
@@ -452,7 +511,9 @@ function aicRender(){
   const v = typeof Android.aiVoiceInfo === 'function' ? rdJson(Android.aiVoiceInfo(), {}) : {};
   sum('voice', (v.model ? 'Spraakmodel klaar' : 'Nog geen spraakmodel') + (v.send !== false ? ' · meteen versturen' : ''));
   const zoek = (aiSt.models || []).find(m => m.id === 'zoek') || {};
-  sum('search', zoek.state === 'ready' ? (aiSt.index && aiSt.index.items ? aiSt.index.items + ' notities en gesprekken' : 'Klaar') : 'Nog niet gedownload');
+  sum('search', zoek.state === 'ready' ? (aiSt.index && aiSt.index.items ? aiSt.index.items + ' bronnen in de zoekindex' : 'Klaar') : 'Nog niet gedownload');
+  const n = AI_SRC.filter(s => aiSrcOn(s[0])).length;
+  sum('data', n ? AI_SRC.filter(s => aiSrcOn(s[0])).map(s => s[1]).join(', ') : 'Nergens in');
   sum('perf', (AIC_LABEL.power[c.power] || 'Normaal') + ' · vrijgeven na ' + (c.idle || 4) + ' min' + (aiSt.wifiOnly ? ' · alleen via wifi' : ''));
   sum('priv', 'Alles blijft op je telefoon');
 }
@@ -466,13 +527,15 @@ function aicSet(name, v){
 let aicDirtyOn = false;
 function aicCount(){ const a = $('#aic-about'), i = $('#aic-instr'), n = $('#aic-count'); if (n && a) n.textContent = (a.value.length + i.value.length) + ' tekens'; }
 function aicDirty(){ aicDirtyOn = true; $('#aic-save').disabled = false; aicCount(); }
-function aicSaveText(){
+function aicSaveText(msg){
   const a = $('#aic-about').value, i = $('#aic-instr').value;
   const e = Android.aiConfigSet('about', a) || Android.aiConfigSet('instr', i);
   if (e) { toast(e); return; }
   aicDirtyOn = false; $('#aic-save').disabled = true;
-  aiLoad(); aicRender(); toast('Opgeslagen: geldt vanaf je volgende vraag');
+  aiLoad(); aicRender(); toast(msg || 'Opgeslagen: geldt vanaf je volgende vraag');
 }
+/* Weg uit Persoonlijk met iets dat nog niet bewaard is: gewoon bewaren (niets kwijt) */
+function aicLeavePers(){ if (aicDirtyOn) aicSaveText('Persoonlijk bewaard'); }
 function aicReset(){
   askConfirm('Standaardinstellingen herstellen?', 'Lengte, creativiteit, taal, gespreksgeheugen, rekenkracht en wat je bij Persoonlijk invulde gaan terug naar de standaard. Je modellen en gesprekken blijven.', 'Herstellen', () => {
     Android.aiConfigReset(); aicDirtyOn = false; aiLoad(); aicRender(); if ($('#aic-save')) $('#aic-save').disabled = true; toast('Standaardinstellingen hersteld');

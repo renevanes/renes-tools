@@ -12,7 +12,12 @@ import org.json.JSONObject;
  */
 public class AiBridge extends FeatureBridge {
 
-    AiBridge(MainActivity act) { super(act); LocalAi.appCtx = ctx; }
+    AiBridge(MainActivity act) {
+        super(act);
+        LocalAi.appCtx = ctx;
+        // Voortgang van de zoekindex (ook als hij vanzelf bijwerkt, bijv. na het aanzetten van een bron)
+        LocalAi.idxSink = o -> a.js("onAiIndex", o.toString());
+    }
 
     private static String q(String s) { return JSONObject.quote(s == null ? "" : s); }
 
@@ -41,8 +46,12 @@ public class AiBridge extends FeatureBridge {
     }
 
     @JavascriptInterface public void aiPref(String name, boolean on) {
-        if (!"wifiOnly".equals(name) && !"notes".equals(name) && !"voiceSend".equals(name)) return;
+        boolean src = false;
+        for (String k : LocalAi.SOURCES) if (("src_" + k).equals(name)) src = true;
+        if (!src && !"wifiOnly".equals(name) && !"notes".equals(name) && !"voiceSend".equals(name)) return;
         LocalAi.prefs(ctx).edit().putBoolean(name, on).apply();
+        // Bron aan: meteen (op de achtergrond) in de zoekindex; uit: eruit
+        if (src) LocalAi.sourceChanged(ctx);
     }
 
     /** Melding als er al een antwoord loopt; de interface herkent hem en laat het lopende antwoord dan gewoon doorgaan. */
@@ -135,9 +144,10 @@ public class AiBridge extends FeatureBridge {
     }
 
     /** Zoekindex bijwerken (force = helemaal opnieuw); voortgang via onAiIndex. */
-    @JavascriptInterface public void aiIndex(boolean force) {
-        LocalAi.index(ctx, force, o -> a.js("onAiIndex", o.toString()));
-    }
+    @JavascriptInterface public void aiIndex(boolean force) { LocalAi.index(ctx, force, false); }
+
+    /** Het bijwerken van de zoekindex stoppen (wat klaar is, blijft). */
+    @JavascriptInterface public void aiIndexStop() { SmartSearch.stopUpdate = true; }
 
     /** Stuurt alles van de AI-thread naar het venster dat de vraag stelde. */
     static final class JsSink implements LocalAi.Sink {

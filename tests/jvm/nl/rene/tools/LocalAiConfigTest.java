@@ -17,13 +17,24 @@ public class LocalAiConfigTest {
         check(LocalAi.temperature("precies") < LocalAi.temperature("normaal") && LocalAi.temperature("normaal") < LocalAi.temperature("creatief"), "creativiteit: temperatuur oplopend");
         check(LocalAi.historyFor("8") == 8 && LocalAi.historyFor("48") == 48 && LocalAi.historyFor("x") == 24, "gespreksgeheugen");
         check(LocalAi.idleMs("1") == 60_000L && LocalAi.idleMs("15") == 900_000L && LocalAi.idleMs("99") == 240_000L, "vrijgeven na");
-        check(LocalAi.threadsFor("zuinig", 8) == 2 && LocalAi.threadsFor("normaal", 8) == 4 && LocalAi.threadsFor("max", 8) == 7 && LocalAi.threadsFor("max", 4) == 3 && LocalAi.threadsFor("normaal", 2) == 2, "rekenkracht: aantal kernen");
+        check(LocalAi.threadsFor("zuinig", 8) == 2 && LocalAi.threadsFor("normaal", 8) == 4 && LocalAi.threadsFor("max", 8) == 6 && LocalAi.threadsFor("max", 4) == 2 && LocalAi.threadsFor("max", 12) == 6 && LocalAi.threadsFor("normaal", 2) == 2, "rekenkracht: aantal kernen");
         String s = LocalAi.buildSystem("vrijdag 23 oktober 2026", "normaal", "nl", "", "");
         check(s.contains("Nederlands") && s.contains("vrijdag 23 oktober 2026") && !s.contains("Over de gebruiker"), "standaard: Nederlands, datum, niets persoonlijks");
         check(LocalAi.buildSystem("d", "kort", "en", "", "").contains("Engels") && LocalAi.buildSystem("d", "kort", "en", "", "").contains("kort"), "kort en Engels");
         check(LocalAi.buildSystem("d", "uitgebreid", "auto", "", "").contains("dezelfde taal als de vraag") && LocalAi.buildSystem("d", "uitgebreid", "auto", "", "").contains("uitgebreide"), "uitgebreid en zelfde taal");
         String p = LocalAi.buildSystem("d", "normaal", "nl", "Ik woon in Rotterdam.", "Spreek me aan met je.");
         check(p.contains("Over de gebruiker") && p.contains("Ik woon in Rotterdam.") && p.contains("Spreek me aan met je.") && p.indexOf("verzin geen feiten") < p.indexOf("Over de gebruiker"), "persoonlijk achteraan, vaste regels blijven");
+        // Past in het geheugen van het model
+        String k1000 = new String(new char[1000]).replace('\0', 'a'), k500 = new String(new char[500]).replace('\0', 'b');
+        String[] f = LocalAi.persFit(k1000, k1000, 4096);
+        check(f[0].length() == 1000 && f[1].length() == 1000, "groot geheugen: persoonlijke teksten heel");
+        f = LocalAi.persFit(k1000, k500, 3072);
+        check(f[0].length() + f[1].length() <= 1200 && f[0].length() == 800 && f[1].length() == 400, "kleiner geheugen: naar verhouding ingekort");
+        f = LocalAi.persFit("kort", "", 2048);
+        check("kort".equals(f[0]) && "".equals(f[1]), "korte tekst blijft heel");
+        check(LocalAi.cut("ab\uD83D\uDE00", 3).equals("ab"), "inkorten knipt geen emoji doormidden");
+        check(LocalAi.maxFor(4096, "uitgebreid", 900) == 2048 && LocalAi.maxFor(3072, "uitgebreid", 4000) <= 3072 - 4000 / 3 - 700, "antwoordlengte laat ruimte voor de vraag");
+        check(LocalAi.maxFor(4096, "kort", 900) == 400 && LocalAi.maxFor(1024, "normaal", 5000) == 256, "antwoordlengte: keuze, en altijd minstens 256");
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");
         System.exit(0);

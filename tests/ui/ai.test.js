@@ -66,7 +66,7 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);
     await pg.click('#s-aiset .strow:has-text("Slim zoeken")'); await pg.waitForTimeout(150);
     await pg.click('#ais-embed .aimodel .mini'); await pg.waitForTimeout(1200);
-    ok((await pg.textContent('#ais-embed')).includes('Klaar') && (await pg.textContent('#ais-index')).includes('3 notities'), 'zoekmodel klaar, met de zoekindex');
+    ok((await pg.textContent('#ais-embed')).includes('Klaar') && (await pg.textContent('#ais-index')).includes('uit 3 bronnen'), 'zoekmodel klaar, met de zoekindex');
     await pg.click('#ais-index button.mini'); await pg.waitForTimeout(80);
     ok((await pg.textContent('#ais-index')).includes('Bijwerken…'), 'index bijwerken: voortgang');
     await pg.waitForTimeout(300);

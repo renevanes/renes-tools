@@ -118,6 +118,16 @@ final class LocalAi {
             {"idle", "4", "1", "15"},
     };
     static final int TEXT_MAX = 1000;
+
+    /** Gegevens die de assistent (en slim zoeken) mag gebruiken. Notities en gesprekken staan standaard aan, de rest uit. */
+    static final String[] SOURCES = {"notes", "tx", "sms", "wa", "calls", "contacts"};
+    static boolean srcDefault(String kind) { return "notes".equals(kind) || "tx".equals(kind); }
+    static boolean srcOn(Context c, String kind) {
+        if (c == null) return srcDefault(kind);
+        boolean known = false;
+        for (String k : SOURCES) if (k.equals(kind)) known = true;
+        return known && prefs(c).getBoolean("src_" + kind, srcDefault(kind));
+    }
     static volatile Context appCtx;
 
     /** Geldige waarde voor een instelling, anders null. */
@@ -132,15 +142,14 @@ final class LocalAi {
         String ok = cfgValid(name, value);
         if (ok == null) return "Ongeldige instelling";
         prefs(c).edit().putString("cfg_" + name, ok).apply();
-        // Rekenkracht geldt vanaf het starten van de motor: nu (als er niets loopt) opnieuw laten starten
-        if ("power".equals(name) && !busy()) { closeChat(); closeEmbed(); }
+        // Rekenkracht geldt vanaf de volgende start van een motor (chatEngine/embedEngine kijken naar het aantal kernen):
+        // een lopend antwoord of het bijwerken van de zoekindex wordt dus niet afgebroken
         return "";
     }
     static void cfgReset(Context c) {
         SharedPreferences.Editor e = prefs(c).edit();
         for (String[] r : CFG) e.remove("cfg_" + r[0]);
         e.remove("cfg_about").remove("cfg_instr").apply();
-        if (!busy()) { closeChat(); closeEmbed(); }
     }
     static String cfg(Context c, String name) {
         if (c == null) return cfgDefault(name);
@@ -164,10 +173,11 @@ final class LocalAi {
     static double temperature(String creative) { return "precies".equals(creative) ? 0.3 : "creatief".equals(creative) ? 1.0 : 0.7; }
     static int historyFor(String h) { try { int n = Integer.parseInt(h); return n == 8 || n == 48 ? n : 24; } catch (Exception e) { return 24; } }
     static long idleMs(String m) { try { int n = Integer.parseInt(m); return (n == 1 || n == 15 ? n : 4) * 60_000L; } catch (Exception e) { return 4 * 60_000L; } }
-    /** Rekenkracht: zuinig = 2 kernen (koeler, minder accu), normaal = tot 4, maximaal = alle snelle kernen (tot 8). */
+    /** Rekenkracht: zuinig = 2 kernen (koeler, minder accu), normaal = tot 4, maximaal = tot 6. Altijd 2 kernen vrij:
+     *  op een telefoon zijn dat meestal de trage zuinige kernen, en die maken het model alleen maar langzamer. */
     static int threadsFor(String power, int cores) {
         if ("zuinig".equals(power)) return 2;
-        if ("max".equals(power)) return Math.max(2, Math.min(8, cores - 1));
+        if ("max".equals(power)) return Math.max(2, Math.min(6, cores - 2));
         return Math.max(2, Math.min(4, cores - 2));
     }
 
@@ -233,10 +243,11 @@ final class LocalAi {
         if (id >= 0 && mgr != null) try { mgr.remove(id); } catch (Throwable ignored) { }
         if (VERIFYING.containsKey(m.id)) STOP_VERIFY.add(m.id); // het kopiëren stopt en ruimt zelf op
         LlmProcess p = chat;
-        if (m.embed) closeEmbed(); // een lopend antwoord (zonder notities) loopt gewoon door
+        if (m.embed) { SmartSearch.stopUpdate = true; closeEmbed(); } // een lopend antwoord (zonder notities) loopt gewoon door
         else if (p != null && p.model.equals(file(c, m))) { cancel(); closeChat(); }
         file(c, m).delete(); partFile(c, m).delete(); tmpFile(c, m).delete();
-        if (m.embed) AI.execute(() -> { try { SmartSearch.clear(c); } catch (Throwable ignored) { } });
+        // Na een eventueel lopende update (die stopt nu): de index weg
+        if (m.embed) IDX.execute(() -> { try { SmartSearch.clear(c); } catch (Throwable ignored) { } });
     }
 
     private static final java.util.Map<String, Integer> VERIFYING = new java.util.concurrent.ConcurrentHashMap<>();
@@ -330,6 +341,12 @@ final class LocalAi {
     // ---------- de motoren (één voor het gesprek, één voor zoeken) ----------
 
     static final ExecutorService AI = Executors.newSingleThreadExecutor(r -> new Thread(r, "ai"));
+    /** De zoekindex bijwerken (kan bij sms en WhatsApp minuten duren) op een eigen thread: de assistent wacht daar niet op. */
+    static final ExecutorService IDX = Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "ai-index"); t.setPriority(Thread.MIN_PRIORITY); return t; });
+    /** Eén vraag tegelijk aan het zoekmodel (de index en een zoekvraag delen hem). Volgorde: eerst EMB, dan LocalAi.class. */
+    private static final java.util.concurrent.locks.ReentrantLock EMB = new java.util.concurrent.locks.ReentrantLock();
+    /** Het gesprek heeft het taalmodel nodig: op een telefoon met minder geheugen wacht de index dan even. */
+    private static volatile boolean chatPhase;
     private static volatile LlmProcess chat, embed;
     private static volatile boolean cancel;
     private static volatile long cancelAt; // wanneer er om stoppen gevraagd werd (0 = niet)
@@ -357,12 +374,14 @@ final class LocalAi {
 
     static synchronized void closeChat() { if (chat != null) { chat.destroy(); chat = null; } }
     static synchronized void closeEmbed() { if (embed != null) { embed.destroy(); embed = null; } }
+    /** Het zoekmodel stoppen na de vraag die er nu loopt (een stuk van de index wordt dus afgemaakt). */
+    static void closeEmbedSafe() { EMB.lock(); try { closeEmbed(); } finally { EMB.unlock(); } }
 
     private static LlmProcess chatEngine(Context c, Model m) throws Exception {
         LlmProcess p = chat;
-        if (p != null && p.alive() && p.model.equals(file(c, m))) return p;
+        if (p != null && p.alive() && p.model.equals(file(c, m)) && p.threads == threads()) return p;
         closeChat();
-        if (m == LARGE && !bigRam(c)) closeEmbed(); // geheugen vrijmaken voor het grote model
+        if (m == LARGE && !bigRam(c)) closeEmbedSafe(); // geheugen vrijmaken voor het grote model
         p = LlmProcess.start(c, file(c, m), m.ctx, threads(), false, true);
         chat = p;
         return p;
@@ -370,7 +389,8 @@ final class LocalAi {
 
     private static LlmProcess embedEngine(Context c) throws Exception {
         LlmProcess p = embed;
-        if (p != null && p.alive()) return p;
+        if (p != null && p.alive() && p.threads == threads()) return p;
+        closeEmbed();
         if (!ready(c, EMBED)) throw new Exception("Download eerst het model voor slim zoeken");
         LlmProcess q = chat;
         if (q != null && !bigRam(c)) closeChat(); // niet twee modellen tegelijk in een kleiner geheugen
@@ -379,8 +399,22 @@ final class LocalAi {
         return p;
     }
 
-    /** Teksten door het zoekmodel (op de AI-thread aanroepen). */
-    static List<float[]> embed(Context c, List<String> texts, int dims) throws Exception {
+    /** Teksten door het zoekmodel (voor een zoekvraag). */
+    static List<float[]> embed(Context c, List<String> texts, int dims) throws Exception { return embed(c, texts, dims, false); }
+
+    /** background = voor de index: wacht zolang het gesprek het geheugen nodig heeft (kleinere telefoons). */
+    static List<float[]> embed(Context c, List<String> texts, int dims, boolean background) throws Exception {
+        while (true) {
+            EMB.lock();
+            if (!background || !chatPhase || bigRam(c)) break;
+            EMB.unlock();
+            if (SmartSearch.stopUpdate) throw new Exception("Gestopt");
+            Thread.sleep(500);
+        }
+        try { return embedLocked(c, texts, dims); } finally { EMB.unlock(); }
+    }
+
+    private static List<float[]> embedLocked(Context c, List<String> texts, int dims) throws Exception {
         LlmProcess p = embedEngine(c);
         final long rid = REQ.incrementAndGet();
         final AtomicReference<JSONObject> res = new AtomicReference<>();
@@ -422,9 +456,35 @@ final class LocalAi {
         void error(String msg);
     }
 
-    static String systemPrompt(Context c) {
+    static String systemPrompt(Context c, int ctx) {
         String today = new java.text.SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL")).format(new java.util.Date());
-        return buildSystem(today, cfg(c, "style"), cfg(c, "lang"), cfg(c, "about"), cfg(c, "instr"));
+        String[] p = persFit(cfg(c, "about"), cfg(c, "instr"), ctx);
+        return buildSystem(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1]);
+    }
+
+    /** Hoeveel tekens "Over mij" en "Instructies" samen in het geheugen van het model mogen (de rest is voor het gesprek). */
+    static int persLimit(int ctx) { return ctx >= 4096 ? 2000 : ctx >= 3072 ? 1200 : 600; }
+
+    /** Persoonlijke teksten inkorten (naar verhouding) als ze samen te lang zijn voor dit model. Zuiver (getest). */
+    static String[] persFit(String about, String instr, int ctx) {
+        about = about == null ? "" : about; instr = instr == null ? "" : instr;
+        int lim = persLimit(ctx), tot = about.length() + instr.length();
+        if (tot <= lim) return new String[]{about, instr};
+        int a = (int) ((long) lim * about.length() / tot), i = lim - a;
+        return new String[]{cut(about, a), cut(instr, i)};
+    }
+    /** Hooguit n tekens, zonder een emoji (twee chars) doormidden te knippen. */
+    static String cut(String s, int n) {
+        if (s.length() <= n) return s;
+        if (n > 0 && Character.isHighSurrogate(s.charAt(n - 1))) n--;
+        return s.substring(0, Math.max(0, n)).trim();
+    }
+
+    /** Hoeveel woorden het antwoord mag worden: de keuze bij Lengte, maar altijd ruimte voor je vraag (±700) en de
+     *  vaste instructie (±3 tekens per woordje). Zuiver (getest). */
+    static int maxFor(int ctx, String style, int systemChars) {
+        int room = ctx - systemChars / 3 - 700;
+        return Math.max(256, Math.min(maxTokens(style), Math.min(ctx / 2, room)));
     }
 
     /** Context uit slim zoeken, vóór de vraag gezet. Zuiver (getest). */
@@ -460,7 +520,8 @@ final class LocalAi {
             if (!ready(c, m)) throw new Exception("Download eerst een taalmodel");
             JSONArray in = req.optJSONArray("messages");
             if (in == null || in.length() == 0) throw new Exception("Geen vraag");
-            JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", systemPrompt(c)));
+            String sys = systemPrompt(c, m.ctx);
+            JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", sys));
             int from = Math.max(0, in.length() - historyFor(cfg(c, "history")));
             for (int i = from; i < in.length(); i++) {
                 JSONObject x = in.optJSONObject(i);
@@ -474,22 +535,23 @@ final class LocalAi {
             if (!"user".equals(last.optString("role"))) throw new Exception("Geen vraag");
             // Met mijn notities: eerst slim zoeken, dan de stukken meegeven
             if (req.optBoolean("notes") && ready(c, EMBED)) {
-                sink.status("Zoeken in je notities en gesprekken…");
+                sink.status("Zoeken in je gegevens…");
                 try {
                     JSONArray hits = SmartSearch.search(c, last.optString("content"), 4);
                     if (hits.length() > 0) {
                         List<String[]> src = new ArrayList<>();
                         for (int i = 0; i < hits.length(); i++) {
                             JSONObject h = hits.getJSONObject(i);
-                            src.add(new String[]{("tx".equals(h.optString("kind")) ? "Gesprek met " : "Notitie ") + "\"" + h.optString("title") + "\"", h.optString("snip")});
+                            src.add(new String[]{SmartSearch.kindLabel(h.optString("kind")).replace(": ", " ") + "\"" + h.optString("title") + "\"", h.optString("snip")});
                         }
                         last.put("content", withSources(last.optString("content"), src));
                         sink.sources(hits);
                     }
                 } catch (Exception e) { sink.status("Zoeken lukte niet: " + e.getMessage()); }
                 if (cancel) { GATE.leave(job); sink.done(new JSONObject().put("cancelled", true)); return; }
-                if (!bigRam(c)) closeEmbed(); // niet twee modellen tegelijk in een kleiner geheugen
             }
+            chatPhase = true; // vanaf hier het taalmodel: de index wacht op een kleinere telefoon
+            if (!bigRam(c)) closeEmbedSafe(); // niet twee modellen tegelijk in een kleiner geheugen
             boolean starting = chat == null || !chat.alive() || !chat.model.equals(file(c, m));
             if (starting) sink.status("Model laden…");
             LlmProcess p = chatEngine(c, m);
@@ -507,7 +569,7 @@ final class LocalAi {
             });
             try {
                 double temp = temperature(cfg(c, "creative"));
-                p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", maxTokens(cfg(c, "style")))
+                p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", maxFor(m.ctx, cfg(c, "style"), sys.length()))
                         .put("temp", temp).put("top_p", temp > 0.9 ? 0.95 : 0.8).put("top_k", 20));
                 while (!done.await(500, TimeUnit.MILLISECONDS)) {
                     if (!p.alive()) { if (done.getCount() > 0) { GATE.leave(job); done.countDown(); sink.error("De AI-motor is gestopt"); } break; }
@@ -525,6 +587,7 @@ final class LocalAi {
             GATE.leave(job);
             sink.error(t.getMessage() == null ? "Er ging iets mis" : t.getMessage());
         } finally {
+            chatPhase = false;
             GATE.leave(job);
             scheduleIdle();
         }
@@ -535,19 +598,17 @@ final class LocalAi {
         cancel = true;
         LlmProcess p = chat;
         if (p != null && p.alive()) try { p.send(new JSONObject().put("op", "cancel")); } catch (Throwable ignored) { }
-        LlmProcess q = embed;
-        if (q != null && q.alive()) try { q.send(new JSONObject().put("op", "cancel")); } catch (Throwable ignored) { }
+        // Het zoekmodel niet: een zoekvraag is zo klaar, en het bijwerken van de index (eigen thread) gaat gewoon door
     }
 
     /** Slim zoeken vanuit de interface (op de AI-thread, na een eventueel lopend antwoord). */
     static void search(final Context c, final String q, final java.util.function.Consumer<JSONObject> cb) {
         AI.execute(() -> {
-            cancel = false;
             JSONObject o = new JSONObject();
             try {
                 o.put("q", q);
                 if (!ready(c, EMBED)) o.put("need", true);
-                else o.put("items", SmartSearch.search(c, q, 6));
+                else { o.put("items", SmartSearch.search(c, q, 6)); if (SmartSearch.updating()) o.put("updating", true); }
             } catch (Throwable t) {
                 try { o.put("error", t.getMessage() == null ? "Zoeken lukte niet" : t.getMessage()); } catch (Exception ignored) { }
             } finally { scheduleIdle(); }
@@ -555,19 +616,53 @@ final class LocalAi {
         });
     }
 
-    /** Index (opnieuw) opbouwen; voortgang via cb. */
-    static void index(final Context c, final boolean force, final java.util.function.Consumer<JSONObject> cb) {
-        cancel = false;
-        AI.execute(() -> {
+    /** Waar de voortgang van de index heen gaat (de interface; gezet door AiBridge). */
+    static volatile java.util.function.Consumer<JSONObject> idxSink;
+    private static final java.util.concurrent.atomic.AtomicBoolean IDX_QUEUED = new java.util.concurrent.atomic.AtomicBoolean();
+
+    private static void idxSend(JSONObject o) { java.util.function.Consumer<JSONObject> s = idxSink; if (s != null) try { s.accept(o); } catch (Throwable ignored) { } }
+
+    /** Index (opnieuw) opbouwen op de index-thread; voortgang via idxSink. quiet = vanzelf (geen melding als hij klaar is). */
+    static void index(final Context c, final boolean force, final boolean quiet) {
+        IDX.execute(() -> {
+            IDX_QUEUED.set(false);
+            SmartSearch.stopUpdate = false;
+            if (!ready(c, EMBED)) return;
             try {
                 SmartSearch.update(c, force, (d, t) -> {
-                    try { cb.accept(new JSONObject().put("busy", true).put("done", d).put("total", t)); } catch (Exception ignored) { }
+                    try { idxSend(new JSONObject().put("busy", true).put("done", d).put("total", t)); } catch (Exception ignored) { }
                 });
-                cb.accept(SmartSearch.info(c));
+                JSONObject o = SmartSearch.info(c);
+                if (quiet) o.put("quiet", true);
+                idxSend(o);
             } catch (Throwable t) {
-                try { cb.accept(SmartSearch.info(c).put("error", t.getMessage() == null ? "Bijwerken lukte niet" : t.getMessage())); } catch (Exception ignored) { }
+                try {
+                    JSONObject o = SmartSearch.info(c);
+                    if (!SmartSearch.stopUpdate) o.put("error", t.getMessage() == null ? "Bijwerken lukte niet" : t.getMessage());
+                    else o.put("quiet", true);
+                    idxSend(o);
+                } catch (Exception ignored) { }
             } finally { scheduleIdle(); }
         });
+    }
+
+    static boolean indexQueued() { return IDX_QUEUED.get(); }
+
+    /** Index op de achtergrond bijwerken (als er iets veranderde), hooguit één keer in de wachtrij. */
+    static void indexLater(Context c) {
+        if (!ready(c, EMBED) || SmartSearch.updating() || !IDX_QUEUED.compareAndSet(false, true)) return;
+        try { index(c, false, true); } catch (Throwable t) { IDX_QUEUED.set(false); }
+    }
+
+    /** Een bron gaat uit of aan: een lopende update stopt (die kent de oude keuze) en begint opnieuw. */
+    static void sourceChanged(Context c) {
+        if (!ready(c, EMBED)) return;
+        SmartSearch.stopUpdate = true;
+        indexLaterForce(c);
+    }
+    private static void indexLaterForce(Context c) {
+        if (!IDX_QUEUED.compareAndSet(false, true)) return;
+        try { index(c, false, true); } catch (Throwable t) { IDX_QUEUED.set(false); }
     }
 
     // ---------- na een paar minuten niets doen: motoren stoppen (geheugen vrij) ----------
@@ -583,7 +678,7 @@ final class LocalAi {
                     long now = System.currentTimeMillis(), IDLE_MS = idleMs(cfg(appCtx, "idle"));
                     LlmProcess p = chat, q = embed;
                     if (!busy() && p != null && now - p.lastUse > IDLE_MS) closeChat();
-                    if (!busy() && q != null && now - q.lastUse > IDLE_MS) closeEmbed();
+                    if (!busy() && q != null && now - q.lastUse > IDLE_MS && !SmartSearch.updating() && EMB.tryLock()) { try { closeEmbed(); } finally { EMB.unlock(); } }
                     if (chat == null && embed == null) return;
                 }
             } catch (Throwable ignored) { }
@@ -652,6 +747,12 @@ final class LocalAi {
         for (String[] r : CFG) cf.put(r[0], cfg(c, r[0]));
         cf.put("about", cfg(c, "about")).put("instr", cfg(c, "instr"));
         o.put("cfg", cf);
+        JSONObject src = new JSONObject(), perm = new JSONObject();
+        for (String k : SOURCES) src.put(k, srcOn(c, k));
+        perm.put("sms", Search.has(c, android.Manifest.permission.READ_SMS)).put("calls", Search.has(c, android.Manifest.permission.READ_CALL_LOG))
+                .put("contacts", Search.has(c, android.Manifest.permission.READ_CONTACTS)).put("wa", WaChats.dbFile(c).isFile())
+                .put("notes", true).put("tx", true);
+        o.put("src", src).put("perm", perm);
         return o;
     }
 }

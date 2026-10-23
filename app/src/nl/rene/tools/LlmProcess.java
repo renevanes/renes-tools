@@ -26,6 +26,8 @@ final class LlmProcess {
     final File model;
     final boolean embed;
     final int ctx;
+    /** Met hoeveel rekenkernen hij draait (bij een andere Rekenkracht-instelling start hij de volgende keer opnieuw). */
+    int threads;
     private final Process proc;
     private final BufferedWriter in;
     private final StringBuilder errTail = new StringBuilder();
@@ -60,6 +62,7 @@ final class LlmProcess {
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.environment().put("HOME", home.getPath());
         final LlmProcess lp = new LlmProcess(pb.start(), model, embed, ctx);
+        lp.threads = threads;
         final CountDownLatch up = new CountDownLatch(1);
         Thread out = new Thread(() -> lp.readOut(up), embed ? "llm-embed-out" : "llm-chat-out");
         out.setDaemon(true); out.start();

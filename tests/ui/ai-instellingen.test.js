@@ -9,7 +9,7 @@ const { chromium } = require('playwright');
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
     await pg.evaluate(() => { Android._ai.st.klein = { state: 'ready' }; show('ai'); }); await pg.waitForTimeout(200);
     await pg.click('#ai-menu'); await pg.click('#sheet-acts button:has-text("Instellingen")'); await pg.waitForTimeout(200);
-    ok((await pg.$$('#s-aiset .strow')).length === 7, 'overzicht met zeven onderwerpen');
+    ok((await pg.$$('#s-aiset .strow')).length === 8, 'overzicht met acht onderwerpen');
     ok((await pg.textContent('#ai-sum-model')) === 'Klein en snel' && (await pg.textContent('#ai-sum-answer')).includes('Normaal') && (await pg.textContent('#ai-sum-pers')) === 'Nog niets ingevuld', 'stand van zaken per onderwerp');
     // Antwoorden
     await pg.click('#s-aiset .strow:has-text("Antwoorden")'); await pg.waitForTimeout(150);
@@ -29,6 +29,11 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._ai.cfg.about === 'Ik woon in Rotterdam.' && Android._ai.cfg.instr === 'Spreek me aan met je.') && await pg.isDisabled('#aic-save'), 'persoonlijk opgeslagen');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(120);
     ok((await pg.textContent('#ai-sum-pers')).includes('ingevuld'), 'overzicht: persoonlijk ingevuld');
+    // Weg zonder op Opslaan te tikken: niets kwijt
+    await pg.click('#s-aiset .strow:has-text("Persoonlijk")'); await pg.waitForTimeout(150);
+    await pg.fill('#aic-about', 'Ik woon in Delft.'); await pg.evaluate(() => aicDirty());
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(120);
+    ok(await pg.evaluate(() => Android._ai.cfg.about === 'Ik woon in Delft.' && current === 'aiset') && (await pg.textContent('#toast')).includes('bewaard'), 'weg uit Persoonlijk: concept bewaard');
     // Prestaties
     await pg.click('#s-aiset .strow:has-text("Prestaties")'); await pg.waitForTimeout(150);
     await pg.click('#aic-power button[data-v=zuinig]'); await pg.click('#aic-idle button[data-v="15"]');
@@ -46,7 +51,7 @@ const { chromium } = require('playwright');
     await pg.click('#s-aiset button:has-text("Standaardinstellingen herstellen")'); await pg.click('#modal-ok'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => !Android._ai.cfg) && (await pg.textContent('#ai-sum-answer')) === 'Normaal · Gebalanceerd · Nederlands' && (await pg.textContent('#ai-sum-pers')) === 'Nog niets ingevuld', 'standaard hersteld');
     // Elk onderwerp: eigen scherm, terug = overzicht
-    for (const [t, scr] of [['Taalmodel', 'aisetmodel'], ['Spraak', 'aisetvoice'], ['Slim zoeken', 'aisetsearch'], ['Privacy', 'aisetpriv']]) {
+    for (const [t, scr] of [['Taalmodel', 'aisetmodel'], ['Spraak', 'aisetvoice'], ['Gegevens', 'aisetdata'], ['Slim zoeken', 'aisetsearch'], ['Privacy', 'aisetpriv']]) {
       await pg.click('#s-aiset .strow:has-text("' + t + '")'); await pg.waitForTimeout(100);
       const good = await pg.evaluate(s => current === s, scr);
       await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);

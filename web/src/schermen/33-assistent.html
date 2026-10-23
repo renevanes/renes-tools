@@ -28,7 +28,7 @@
       <div id="ai-msgs" role="log" aria-live="polite" aria-label="Gesprek"></div>
       <p class="note" id="ai-status" role="status" style="display:none"></p>
       <div class="aicomp" id="ai-comp">
-        <button class="aichip" id="ai-notes" role="switch" aria-checked="false" onclick="aiToggleNotes()" style="display:none"><span class="ui-icon" data-icon="notes" aria-hidden="true"></span>Met mijn notities</button>
+        <button class="aichip" id="ai-notes" role="switch" aria-checked="false" onclick="aiToggleNotes()" style="display:none"><span class="ui-icon" data-icon="shield" aria-hidden="true"></span>Met mijn gegevens</button>
         <p class="aivstate" id="ai-vstate" aria-hidden="true" style="display:none"></p>
         <span class="sr-only" id="ai-vsay" role="status" aria-live="polite"></span>
         <div class="airow">
@@ -67,6 +67,7 @@
     </div>
     <div class="flabel stgl" role="heading" aria-level="2">Zoeken, snelheid en privacy</div>
     <div class="card stlist">
+      <button class="strow" onclick="show('aisetdata')"><span class="stic"><span class="ui-icon" data-icon="shield" aria-hidden="true"></span></span><span class="sttxt"><b>Gegevens</b><small id="ai-sum-data"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('aisetsearch')"><span class="stic"><span class="ui-icon" data-icon="search" aria-hidden="true"></span></span><span class="sttxt"><b>Slim zoeken</b><small id="ai-sum-search"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('aisetperf')"><span class="stic"><span class="ui-icon" data-icon="battery" aria-hidden="true"></span></span><span class="sttxt"><b>Prestaties en downloaden</b><small id="ai-sum-perf"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('aisetpriv')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Privacy</b><small id="ai-sum-priv"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
@@ -146,9 +147,25 @@
   <main>
     <div class="card">
       <h2><span class="ui-icon" data-icon="search" aria-hidden="true"></span>Slim zoeken</h2>
-      <p class="note">Zoekt in je notities en uitgeschreven gesprekken op betekenis, niet alleen op precieze woorden. Bijvoorbeeld "wanneer moet de auto naar de garage" vindt ook een notitie over de APK. Je ziet het bij Zoeken, en de assistent kan het gebruiken met <b>Met mijn notities</b>.</p>
+      <p class="note">Zoekt in je notities en uitgeschreven gesprekken op betekenis, niet alleen op precieze woorden. Bijvoorbeeld "wanneer moet de auto naar de garage" vindt ook een notitie over de APK. Je ziet het bij Zoeken, en de assistent kan het gebruiken met <b>Met mijn gegevens</b>. Waarin gezocht mag worden (ook sms'jes, WhatsApp, oproepen en contacten) kies je bij <button class="linkish" style="display:inline;padding:0" onclick="jumpTo('aisetdata')">Gegevens</button>.</p>
       <div id="ais-embed"></div>
       <div id="ais-index"></div>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-aisetdata">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Gegevens</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="shield" aria-hidden="true"></span>Waar de AI in mag kijken</h2>
+      <p class="note">Slim zoeken en de assistent (met <b>Met mijn gegevens</b>) gebruiken alleen wat je hier aanzet. Alles wordt op je telefoon doorzocht en gaat nergens heen. Zet je iets uit, dan gaat het ook uit de zoekindex.</p>
+      <div id="aid-need"></div>
+      <div id="aid-list"></div>
+      <div id="aid-index"></div>
     </div>
   </main>
 </section>

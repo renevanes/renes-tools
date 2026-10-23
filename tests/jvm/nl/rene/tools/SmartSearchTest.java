@@ -57,6 +57,34 @@ public class SmartSearchTest {
         check(w.startsWith("Mijn vraag: Wat moet ik kopen?") && w.contains("[1] Notitie \"Boodschappen\":\nmelk, eieren") && w.contains("[2] Gesprek met Jos"), "eerst de vraag, dan de bronnen genummerd (inkorten raakt de vraag niet)");
         check(w.length() < 1400, "lange bron ingekort");
 
+        // Berichten (sms, WhatsApp, oproepen) als bron
+        check(SmartSearch.kindLabel("sms").startsWith("Sms") && SmartSearch.kindLabel("wa").startsWith("WhatsApp") && SmartSearch.kindLabel("calls").startsWith("Oproepen")
+                && SmartSearch.kindLabel("contacts").startsWith("Contact") && SmartSearch.kindLabel("notes").startsWith("Notitie") && SmartSearch.kindLabel(null).startsWith("Notitie"), "soort bron in de tekst voor het zoekmodel");
+        List<String> lines = new ArrayList<>(); List<Long> times = new ArrayList<>();
+        for (int i = 0; i < 300; i++) { lines.add("[" + i + " okt] Jos: bericht nummer " + i + " over de verhuizing en de sleutels van het huis"); times.add(1000L + i); }
+        check(SmartSearch.linesDoc("sms", "1", "Jos", new ArrayList<String>(), null, 0) == null, "geen berichten: geen bron");
+        SmartSearch.Doc d1 = SmartSearch.linesDoc("sms", "1", "Jos", lines, times, 5);
+        boolean small = true, starts = true;
+        for (long[] m : d1.marks) {
+            if (m[1] - m[0] > SmartSearch.CHUNK) small = false;
+            if (!d1.text.startsWith("[", (int) m[0])) starts = false;
+        }
+        check(d1.marks.size() > 10 && small && starts, "berichten in stukken van hooguit CHUNK tekens, op een berichtgrens");
+        check(d1.marks.get(0)[2] == 1000L && d1.text.endsWith("nummer 299 over de verhuizing en de sleutels van het huis\n"), "tijd van het eerste bericht per stuk; het nieuwste staat erin");
+        // Er komt een bericht bij en het oudste valt weg: de meeste stukken blijven precies hetzelfde (geen werk voor het model)
+        List<String> l2 = new ArrayList<>(lines.subList(1, 300)); List<Long> t2 = new ArrayList<>(times.subList(1, 300));
+        l2.add("[300 okt] Ik: nieuw bericht"); t2.add(1300L);
+        SmartSearch.Doc d2 = SmartSearch.linesDoc("sms", "1", "Jos", l2, t2, 6);
+        java.util.Set<String> old = new java.util.HashSet<>();
+        for (long[] m : d1.marks) old.add(d1.text.substring((int) m[0], (int) m[1]));
+        int same = 0;
+        for (long[] m : d2.marks) if (old.contains(d2.text.substring((int) m[0], (int) m[1]))) same++;
+        check(same >= d2.marks.size() - 4, "nieuw bericht: hooguit een paar stukken nieuw (" + (d2.marks.size() - same) + " van " + d2.marks.size() + ")");
+        List<String> many = new ArrayList<>();
+        for (int i = 0; i < 2000; i++) many.add("bericht " + i + " " + new String(new char[60]).replace('\0', 'x'));
+        SmartSearch.Doc d3 = SmartSearch.linesDoc("wa", "2", "Groep", many, null, 0);
+        check(d3.text.length() <= 60000 && d3.text.contains("bericht 1999 ") && !d3.text.contains("bericht 0 "), "te veel: de nieuwste berichten blijven");
+
         // Modellen: vaste grootte en controlegetal
         boolean shaOk = true;
         for (LocalAi.Model m : LocalAi.MODELS) if (!m.sha.matches("[0-9a-f]{64}") || m.size < 100_000_000L || !m.url().matches("https://huggingface\\.co/[^/]+/[^/]+/resolve/[0-9a-f]{40}/[^/]+\\.gguf")) shaOk = false;
