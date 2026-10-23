@@ -1,2 +1,0 @@
-Losse app Kluis: vraagt nu altijd zelf om je vingerafdruk, ook als de kluis net in de app open was, en toont geen inhoud meer in "recente apps"
-Onderhoud: radiotitels, podcastbestanden en de Spotify-export verwerken vreemde tekst sneller en veiliger

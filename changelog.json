@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.90",
+    "date": "2026-10-23",
+    "changes": [
+      "Beveiliging: strengere controles op bestandsnamen, Chromecast-gegevens, notities en de webweergave (uit de nieuwe beveiligingsscan)",
+      "Nieuw: Assistent, een offline AI op je telefoon. Stel vragen, laat teksten schrijven, samenvatten of vertalen, en zoek in je eigen notities en gesprekken (ook bij Zoeken: \"Op betekenis\"). Kies een klein (1,3 GB) of groter (2,5 GB) model; er gaat niets de telefoon uit",
+      "Losse app Kluis: vraagt nu altijd zelf om je vingerafdruk, ook als de kluis net in de app open was, en toont geen inhoud meer in \"recente apps\"",
+      "Onderhoud: radiotitels, podcastbestanden en de Spotify-export verwerken vreemde tekst sneller en veiliger"
+    ]
+  },
+  {
     "version": "1.89",
     "date": "2026-10-23",
     "changes": [

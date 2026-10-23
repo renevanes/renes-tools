@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.89",
-  "versionCode": 90,
-  "nativeLevel": 79,
+  "versionName": "1.90",
+  "versionCode": 91,
+  "nativeLevel": 80,
   "web": "index.html",
-  "webSha256": "5b42029d0413386a842180428b7b6b4e99e6f6b46d70aac3c2f51e65837d8d57",
+  "webSha256": "cede3ce27c660f0a2ec9cbc2f8fe110d7adb404f5c8371e66f778e92a8cf1ee6",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "307f0270d70d8f3f23dcca2d656f462fa95012b2bd63a6915bd23e0767eca29a",
+  "apkSha256": "e2198ded4c4a5f46d5fe2ffdc42cdd19de4c46581f515e804da7387232d621ce",
   "changelog": [
+    {
+      "version": "1.90",
+      "date": "2026-10-23",
+      "changes": [
+        "Beveiliging: strengere controles op bestandsnamen, Chromecast-gegevens, notities en de webweergave (uit de nieuwe beveiligingsscan)",
+        "Nieuw: Assistent, een offline AI op je telefoon. Stel vragen, laat teksten schrijven, samenvatten of vertalen, en zoek in je eigen notities en gesprekken (ook bij Zoeken: \"Op betekenis\"). Kies een klein (1,3 GB) of groter (2,5 GB) model; er gaat niets de telefoon uit",
+        "Losse app Kluis: vraagt nu altijd zelf om je vingerafdruk, ook als de kluis net in de app open was, en toont geen inhoud meer in \"recente apps\"",
+        "Onderhoud: radiotitels, podcastbestanden en de Spotify-export verwerken vreemde tekst sneller en veiliger"
+      ]
+    },
     {
       "version": "1.89",
       "date": "2026-10-23",
@@ -786,5 +796,5 @@
       ]
     }
   ],
-  "webSig2": "LAQz6JOjnaggChua518t27HripLJO0lCUOPufgqGO3fn0GMfYrsvfXWs9K5f6p9IYjlaByoyPb8mQ2W/wHSA+EmqVr26n+Zw41W85IJkfXOCFQIKh8kPz5vuUiRv8qJneQrARgfhgkJs1kYn+opYSlbTIOYgyczkPAhDm9RwJ5omvs56vaw2G1f2k7P1EiH+Y1LNjugSfAAKzpNOpWjUKyfiVn6U+81raCYFc+z/TzTVLLVuRXkGyCLiH14ir0NOdNXCcDLgTbZYiL2j5/8D5BYApPz7qsSndxJBFuiXJZvhVQKOYC4hqGuaUknE08ziFLXrFCyjIBFKwyJ9XMDaohDb0xcjYVEPyRd+ve0mYDlu/nxcM9eVUtdP5+kJOq/7UXOFpeV/DtGAldZA3IQZ03qwwzPq7kYRsp5JOtNkVzxUU41Xl9npSlVtwrfQzCVrwZvMDvyDNg3aK7AuFM+Xlftnliv6OCQ1Za2kUnwZjzKH4hsZQAfZ8I64KtE5XSNA"
+  "webSig2": "npIDZLkz8IgsHhwQEJg3k4w+hAuop5/qIIJDPGZ6idl4d3j56iLVmhjK+korcYLFj5tUQUx528mJbh2vyZpsB/lGMGZnAU4hFEIuPXas1xrHRCoZs0UjkPA4BwHqv2BUwAeeB6cdlNOQMpwq3YY52vQ/1yQoH2Sk9Kuy+HoqmpG7UcHwhgz8m9OZ8DBPge3IQchAOx7QWc/GnyRZKxD7hRZlkPkS+JWkqSV8fC41zetebIotxoAHmTCQOl7xj9V3PyvRRGnwXYYvcsbdcLFk8MLUxeBzzmn7a2VohdCQ0hdAeQ7VXbnOLLsPD12QQICUL0SdBsFzhjnhtLa3eu9KdqTMO1RTxx4gZ4EUfCFn8SDiVeMI9LSRaYFVRw7Rxf1AuGp6k0iSZt5sjQ968pumb/z7HDoEmJZ1FnhICC7EilJuvTP1ThvziTghLfTjAVVJ4NyQ5AIcQH6jN6Q6TTlP68dkwHWLIRlswtd4UsYeSTnolH3XkzJkdArVNQ5fSfE0"
 }

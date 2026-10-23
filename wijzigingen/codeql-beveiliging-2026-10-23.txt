@@ -1,1 +1,0 @@
-Beveiliging: strengere controles op bestandsnamen, Chromecast-gegevens, notities en de webweergave (uit de nieuwe beveiligingsscan)
