@@ -103,6 +103,8 @@ final class Updater {
         JSONObject r = new JSONObject();
         try {
             JSONObject m = fetchManifest();
+            // Alleen een ondertekende lijst bewaren: daaruit komt ook "Wat is er nieuw".
+            if (!signatureOk(c, m)) throw new Exception("De updatelijst is niet goed ondertekend");
             prefs(c).edit().putLong("lastCheck", System.currentTimeMillis())
                     .putString("manifest", m.toString()).apply();
             int code = m.getInt("versionCode");
