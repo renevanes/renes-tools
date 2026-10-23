@@ -1,0 +1,1 @@
+Transcriberen: spraakherkenning bijgewerkt naar whisper.cpp v1.9.5
