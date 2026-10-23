@@ -116,6 +116,27 @@ public class AiBridge extends FeatureBridge {
         });
     }
 
+    // ----- Geheugen: alleen op de telefoon, alles zichtbaar en aan te passen (Lokale AI → Geheugen) -----
+
+    /** Alle herinneringen, nieuwste eerst: [{id, text, src (gevraagd/geleerd/zelf), chat, title, t, u}]. */
+    @JavascriptInterface public String aiMemList() { try { return AiMemory.json(ctx).toString(); } catch (Exception e) { return "[]"; } }
+
+    /** Iets onthouden (een voorstel dat je goedkeurde, of zelf ingetypt). Geeft {id, text, dup} of {error}. */
+    @JavascriptInterface public String aiMemAdd(String text, String src, String chat, String title) {
+        try {
+            String s = "zelf".equals(src) ? "zelf" : "geleerd";
+            return AiMemory.add(ctx, text == null ? "" : text, s, chat, title).toString();
+        } catch (Exception e) { return "{\"error\":\"Onthouden lukte niet\"}"; }
+    }
+
+    /** Geeft "" of een melding. */
+    @JavascriptInterface public String aiMemEdit(String id, String text) {
+        try { return id == null || text == null ? "Niet gevonden" : AiMemory.edit(ctx, id, text); } catch (Exception e) { return "Opslaan lukte niet"; }
+    }
+
+    /** id "*" = alles vergeten. */
+    @JavascriptInterface public void aiMemDelete(String id) { try { if (id != null) AiMemory.delete(ctx, id); } catch (Exception ignored) { } }
+
     @JavascriptInterface public String aiChats() { try { return LocalAi.chatList(ctx); } catch (Exception e) { return "[]"; } }
 
     @JavascriptInterface public String aiChatGet(String id) { return id == null ? "" : LocalAi.chatGet(ctx, id); }
@@ -165,5 +186,6 @@ public class AiBridge extends FeatureBridge {
         @Override public synchronized void token(String t) { pend.append(t); if (System.currentTimeMillis() - last > 80) flush(); }
         @Override public synchronized void done(JSONObject info) { flush(); a.js("onAiDone", info.toString()); }
         @Override public synchronized void error(String msg) { flush(); a.js("onAiError", q(msg)); }
+        @Override public void memory(JSONObject o) { a.js("onAiMemory", o.toString()); }
     }
 }

@@ -6,6 +6,7 @@ const AI_SUGG = [
   ['Vertaal', 'Vertaal naar het Engels:\n\n'],
   ['Maak een takenlijst', 'Maak een overzichtelijke takenlijst van: '],
   ['Leg uit', 'Leg eenvoudig uit: '],
+  ['Wat weet je over mij?', 'Wat weet je allemaal over mij?'],
   ['Wat staat er in mijn notities over…', '', true]
 ];
 function aiLoad(){ aiSt = rdJson(Android.aiState(), {}); return aiSt; }
@@ -119,13 +120,16 @@ function aiSendOrStop(){
 function aiAsk(){
   if (aiBusy) { toast('De assistent is nog bezig met een antwoord'); return 'bezig'; }
   const msgs = aiChat.msgs.filter(m => !m.err).map(m => ({ role: m.r === 'user' ? 'user' : 'assistant', content: m.c }));
+  // Het gesprek eerst bewaren: dan heeft het een id (wat de assistent onthoudt, weet uit welk gesprek het komt)
+  aiSaveChat(aiChat);
   // Eerst het (lege) antwoord klaarzetten: stukjes kunnen meteen binnenkomen
   aiCur = { r: 'ai', c: '', t: Date.now(), src: null };
   aiChat.msgs.push(aiCur); aiGen = aiChat;
   aiBusy = true; aiStatus('Denken…');
   aiSentAt = Date.now(); clearTimeout(aiSentT); aiSentT = setTimeout(() => { aiSentAt = 0; aiSendBtn(); }, AI_TAP_MS);
   aiRenderMsgs(); aiSendBtn();
-  const e = Android.aiChat(JSON.stringify({ messages: msgs, notes: !!aiSt.notes && aiReady('zoek') }));
+  aiLearnFor = null;
+  const e = Android.aiChat(JSON.stringify({ messages: msgs, notes: !!aiSt.notes && aiReady('zoek'), chat: aiChat.id || '', title: aiChat.title || '' }));
   if (e === AI_BUSY) {
     // Er loopt nog een antwoord (bijv. van een dubbele tik): deze vraag niet nog eens beantwoorden
     aiChat.msgs.splice(aiChat.msgs.indexOf(aiCur), 1); aiCur = null; aiGen = null; aiBusy = false; aiStatus('');
@@ -156,15 +160,67 @@ window.onAiDone = function(info){
   info = info || {};
   aiFinish((chat, m) => {
     if (info.cancelled && !m.c) chat.msgs.splice(chat.msgs.indexOf(m), 1);
-    else { m.c = m.c.trim(); if (info.cancelled) m.stopped = true; if (info.cut) m.cut = true; if (info.trim) m.trim = true; }
+    else {
+      m.c = m.c.trim(); if (info.cancelled) m.stopped = true; if (info.cut) m.cut = true; if (info.trim) m.trim = true;
+      if (info.mem) m.memUsed = info.mem;
+      // De assistent kijkt nog of er iets te onthouden is: dat komt bij dit antwoord (onAiMemory)
+      if (info.learning) { m.mem = Object.assign({}, m.mem, { thinking: true }); }
+      aiLearnFor = { chat, m };
+    }
   });
 };
+/* Geheugen: wat de assistent onthield (of wil onthouden), altijd zichtbaar bij het antwoord */
+let aiLearnFor = null;
+window.onAiMemory = function(o){
+  o = o || {};
+  const t = aiCur ? { chat: aiGen, m: aiCur } : aiLearnFor;
+  if (!t || !t.m) return;
+  const mm = t.m.mem = Object.assign({}, t.m.mem);
+  if (o.thinking) mm.thinking = true;
+  else {
+    if (o.saved || o.ask || o.none || o.error || o.stopped) delete mm.thinking;
+    if (o.saved) mm.saved = (mm.saved || []).concat(o.saved.map(x => ({ id: x.id, text: x.text, dup: !!x.dup, explicit: !!o.explicit })));
+    if (o.ask) mm.ask = o.ask.map(x => ({ text: x, st: 'ask' }));
+    if (o.updated) (mm.saved || []).forEach(x => { if (x.id === o.updated.id) x.text = o.updated.text; });
+    if (o.forgot != null) mm.forgot = o.forgot || '';
+    if (o.error) mm.err = o.error;
+    if (o.saved && !o.explicit) toast('Onthouden: ' + o.saved.map(x => x.text).join(' '));
+  }
+  if (!aiCur) aiSaveChat(t.chat);
+  if (aiChat === t.chat && current === 'ai') { const i = aiChat.msgs.indexOf(t.m), el = $('#ai-msgs .aimsg[data-i="' + i + '"]'); if (el) el.outerHTML = aiMsgHtml(t.m, i); }
+  if (current === 'aisetmem') aimRender();
+};
+function aiMemHtml(m, i){
+  const mm = m.mem || {}, out = [];
+  (mm.saved || []).forEach((x, k) => out.push('<div class="aimemrow">' + uiIcon('memory') + '<span>' + (x.undone ? '<s>' + esc(x.text) + '</s> <small>(niet onthouden)</small>' : (x.dup ? 'Wist ik al: ' : 'Onthouden: ') + '<b>' + esc(x.text) + '</b>') + '</span>' +
+    (x.undone || x.dup ? '' : '<button class="linkish" onclick="aiMemUndo(' + i + ',' + k + ')">Ongedaan maken</button>') + '</div>'));
+  if (mm.forgot != null) out.push('<div class="aimemrow">' + uiIcon('memory') + '<span>' + (mm.forgot ? 'Vergeten: <s>' + esc(mm.forgot) + '</s>' : 'Daar stond niets over in het geheugen') + '</span></div>');
+  const ask = (mm.ask || []).filter(x => x.st !== 'no');
+  if (ask.length) out.push('<div class="aimemask"><b>' + uiIcon('memory') + 'Onthouden?</b>' + (mm.ask || []).map((x, k) => x.st === 'no' ? '' :
+    '<div class="aimemrow"><span>' + (x.st === 'ok' ? '✓ ' : '') + esc(x.text) + '</span>' + (x.st === 'ok' ? '<button class="linkish" onclick="aiMemAskUndo(' + i + ',' + k + ')">Ongedaan maken</button>'
+      : '<button class="mini on" onclick="aiMemAccept(' + i + ',' + k + ')" aria-label="Onthouden: ' + esc(x.text) + '">Onthouden</button><button class="mini" onclick="aiMemReject(' + i + ',' + k + ')" aria-label="Niet onthouden: ' + esc(x.text) + '">Nee</button>') + '</div>').join('') + '</div>');
+  if (mm.thinking) out.push('<p class="note aimemthink">Kijken of er iets te onthouden is…</p>');
+  if (mm.err) out.push('<p class="note">' + esc(mm.err) + '</p>');
+  return out.length ? '<div class="aimem" aria-live="polite">' + out.join('') + '</div>' : '';
+}
+function aiMemMsg(i){ return aiChat && aiChat.msgs[i]; }
+function aiMemAfter(i){ aiSaveChat(aiChat); const el = $('#ai-msgs .aimsg[data-i="' + i + '"]'); if (el) el.outerHTML = aiMsgHtml(aiChat.msgs[i], i); }
+function aiMemAccept(i, k){
+  const m = aiMemMsg(i), x = m && m.mem && m.mem.ask && m.mem.ask[k]; if (!x) return;
+  const r = rdJson(Android.aiMemAdd(x.text, 'geleerd', aiChat.id || '', aiChat.title || ''), {});
+  if (r.error) { toast(r.error); return; }
+  x.st = 'ok'; x.id = r.id; aiMemAfter(i); toast(r.dup ? 'Wist ik al (bijgewerkt)' : 'Onthouden');
+}
+function aiMemReject(i, k){ const m = aiMemMsg(i), x = m && m.mem && m.mem.ask && m.mem.ask[k]; if (!x) return; x.st = 'no'; aiMemAfter(i); }
+function aiMemAskUndo(i, k){ const m = aiMemMsg(i), x = m && m.mem && m.mem.ask && m.mem.ask[k]; if (!x) return; if (x.id) Android.aiMemDelete(x.id); x.st = 'no'; delete x.id; aiMemAfter(i); toast('Niet onthouden'); }
+function aiMemUndo(i, k){ const m = aiMemMsg(i), x = m && m.mem && m.mem.saved && m.mem.saved[k]; if (!x) return; Android.aiMemDelete(x.id); x.undone = true; aiMemAfter(i); toast('Niet onthouden'); }
 window.onAiError = function(msg){
   aiFinish((chat, m) => { if (!m.c) { m.c = msg; m.err = true; } else m.c += '\n\n⚠ ' + msg; });
 };
 function aiSaveChat(chat){
   if (!chat || !chat.msgs.some(m => !m.err)) return;
-  const id = Android.aiChatSave(JSON.stringify({ id: chat.id, title: chat.title, msgs: chat.msgs.map(m => ({ r: m.r, c: m.c, t: m.t, src: m.src || undefined, err: m.err || undefined, stopped: m.stopped || undefined, cut: m.cut || undefined, trim: m.trim || undefined })) }));
+  const memOf = m => { if (!m.mem) return undefined; const x = Object.assign({}, m.mem); delete x.thinking; return Object.keys(x).length ? x : undefined; };
+  const id = Android.aiChatSave(JSON.stringify({ id: chat.id, title: chat.title, msgs: chat.msgs.filter(m => m !== aiCur || m.c).map(m => ({ r: m.r, c: m.c, t: m.t, src: m.src || undefined, err: m.err || undefined, stopped: m.stopped || undefined, cut: m.cut || undefined, trim: m.trim || undefined, mem: memOf(m), memUsed: m.memUsed || undefined })) }));
   if (id) chat.id = id;
 }
 /* Eenvoudige opmaak van een antwoord: alinea's, opsommingen, vet, cursief, code, kopjes (alles eerst ge-escaped) */
@@ -217,8 +273,9 @@ function aiMsgHtml(m, i){
   if (m.r === 'user') return '<div class="aimsg me" data-i="' + i + '"><div class="aib">' + esc(m.c).replace(/\n/g, '<br>') + '</div></div>';
   const live = m === aiCur;
   return '<div class="aimsg' + (m.err ? ' err' : '') + '" data-i="' + i + '"><div class="aib">' + (m.c ? aiMd(m.c) : (live ? '<span class="aidots" aria-label="Bezig"><i></i><i></i><i></i></span>' : '')) +
-    (m.stopped ? '<p class="note">Gestopt.</p>' : '') + (m.cut ? '<p class="note">Het gesprek werd te lang: het begin is overgeslagen.</p>' : '') + (m.trim ? '<p class="note">Te lang voor het model: een deel van je bericht is weggelaten.</p>' : '') + '</div>' + aiSrcHtml(m.src) +
-    (!live && !m.err && m.c ? '<div class="aiacts"><button class="linkish" onclick="aiMsgMenu(' + i + ')" aria-label="Meer over dit antwoord">⋯ Meer</button></div>' : '') + '</div>';
+    (m.stopped ? '<p class="note">Gestopt.</p>' : '') + (m.cut ? '<p class="note">Het gesprek werd te lang: het begin is overgeslagen.</p>' : '') + (m.trim ? '<p class="note">Te lang voor het model: een deel van je bericht is weggelaten.</p>' : '') + '</div>' + aiSrcHtml(m.src) + aiMemHtml(m, i) +
+    (!live && !m.err && m.c ? '<div class="aiacts"><button class="linkish" onclick="aiMsgMenu(' + i + ')" aria-label="Meer over dit antwoord">⋯ Meer</button>' +
+      (m.memUsed ? '<button class="linkish" onclick="jumpTo(\'aisetmem\')" aria-label="Met je geheugen: ' + m.memUsed + ' dingen die de assistent over je weet. Bekijken">' + uiIcon('memory') + ' Met je geheugen (' + m.memUsed + ')</button>' : '') + '</div>' : '') + '</div>';
 }
 function aiRenderMsgs(){
   const box = $('#ai-msgs'); if (!box || !aiChat) return;
@@ -272,6 +329,7 @@ function aiMenu(){
   if (aiChat && aiChat.msgs.length) acts.push(['Dit gesprek delen', () => Android.aiShare(aiChat.msgs.map(m => (m.r === 'user' ? 'Ik: ' : 'Assistent: ') + m.c).join('\n\n'))]);
   const cf = aiSt.cfg || {};
   acts.push(['Antwoorden: ' + [(AIC_LABEL.style[cf.style] || 'Normaal').toLowerCase(), (AIC_LABEL.creative[cf.creative] || 'Gebalanceerd').toLowerCase()].join(', ') + '…', () => jumpTo('aisetanswer')]);
+  acts.push(['Geheugen (' + (aiSt.memCount || 0) + ')', () => jumpTo('aisetmem')]);
   acts.push(['Instellingen', () => show('aiset')]);
   openSheet('Assistent', aiSt.chat ? 'Model: ' + aiModel(aiSt.chat).label : '', acts);
 }
@@ -300,7 +358,7 @@ function aicMenu(i){
 }
 
 /* ---------- instellingen ---------- */
-function enterAiSet(){ aiLoad(); aiRenderSet(); clearTimeout(aiPollT); if (aiBusyDl()) aiPollT = setTimeout(aiRefresh, 1500); }
+function enterAiSet(){ aiLoad(); aiRenderSet(); if (current === 'aisetmem') aimRender(); clearTimeout(aiPollT); if (aiBusyDl()) aiPollT = setTimeout(aiRefresh, 1500); }
 function aiRenderSet(){
   const ms = aiSt.models || [];
   $('#ais-chat').innerHTML = ms.filter(m => !m.embed).map(m => aiModelCard(m, { chat: true, del: true })).join('');
@@ -484,7 +542,7 @@ function aisRenderVoice(st){
 function aisVoiceSend(){ aiSt.voiceSend = !(aiSt.voiceSend !== false); Android.aiPref('voiceSend', aiSt.voiceSend); aisRenderVoice(); toast(aiSt.voiceSend ? 'Ingesproken vraag wordt meteen verstuurd' : 'Ingesproken tekst komt eerst in het invoerveld'); }
 
 /* ---------- Instellingen van de assistent: overzicht en eigen schermen ---------- */
-const AI_SUBS = ['aisetmodel', 'aisetanswer', 'aisetpers', 'aisetvoice', 'aisetdata', 'aisetsearch', 'aisetperf', 'aisetpriv'];
+const AI_SUBS = ['aisetmodel', 'aisetanswer', 'aisetpers', 'aisetmem', 'aisetvoice', 'aisetdata', 'aisetsearch', 'aisetperf', 'aisetpriv'];
 function aiSetOn(){ return current === 'aiset' || AI_SUBS.includes(current); }
 const AIC_NOTE = {
   style: { kort: 'Een paar zinnen, alleen het belangrijkste. Ook het snelst.', normaal: 'Duidelijk en beknopt, met opsommingen waar dat helpt.', uitgebreid: 'Grondig, met uitleg en voorbeelden. Duurt langer.' },
@@ -492,6 +550,7 @@ const AIC_NOTE = {
   lang: { nl: 'Altijd Nederlands, tenzij je om een andere taal vraagt.', en: 'Altijd Engels.', auto: 'In de taal waarin je de vraag stelt.' },
   history: { '8': 'De laatste 8 berichten: sneller, maar vergeet eerder.', '24': 'De laatste 24 berichten.', '48': 'De laatste 48 berichten (past niet altijd: dan valt het begin weg).' },
   power: { zuinig: '2 processorkernen: trager, maar koeler en zuiniger met de accu.', normaal: 'Tot 4 kernen: een goede balans.', max: 'Tot 6 kernen: het snelst, maar warmer en meer accugebruik.' },
+  learn: { vragen: 'Na een antwoord stelt de assistent voor wat hij zou willen onthouden; jij kiest Onthouden of Nee.', vanzelf: 'Hij onthoudt het meteen, en laat bij het antwoord zien wat (met Ongedaan maken).', uit: 'Hij leert niets uit je gesprekken. "Onthoud dat …" werkt wel.' },
   idle: { '1': 'Het model gaat na 1 minuut uit het geheugen: zuinig, maar de volgende vraag laadt opnieuw.', '4': 'Na 4 minuten niets doen.', '15': 'Na 15 minuten: vervolgvragen gaan sneller, maar het geheugen blijft langer bezet.' }
 };
 const AIC_LABEL = { style: { kort: 'Kort', normaal: 'Normaal', uitgebreid: 'Uitgebreid' }, creative: { precies: 'Precies', normaal: 'Gebalanceerd', creatief: 'Creatief' },
@@ -499,7 +558,7 @@ const AIC_LABEL = { style: { kort: 'Kort', normaal: 'Normaal', uitgebreid: 'Uitg
 function aicCfg(){ return aiSt.cfg || {}; }
 function aicRender(){
   const c = aicCfg();
-  ['style', 'creative', 'lang', 'history', 'power', 'idle'].forEach(k => {
+  ['style', 'creative', 'lang', 'history', 'power', 'idle', 'learn'].forEach(k => {
     const box = $('#aic-' + k); if (!box) return;
     box.querySelectorAll('button').forEach(b => { const on = b.dataset.v === String(c[k]); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
     const n = $('#aic-' + k + '-n'); if (n) n.textContent = (AIC_NOTE[k] || {})[c[k]] || '';
@@ -523,6 +582,15 @@ function aicRender(){
   sum('data', n ? AI_SRC.filter(s => aiSrcOn(s[0])).map(s => s[1]).join(', ') : 'Niets aangezet');
   sum('perf', (AIC_LABEL.power[c.power] || 'Normaal') + ' · vrijgeven na ' + (c.idle || 4) + ' min' + (aiSt.wifiOnly ? ' · alleen via wifi' : ''));
   sum('priv', 'Alles blijft op je telefoon');
+  const mn = aiSt.memCount || 0;
+  sum('mem', c.mem === 'uit' ? 'Uit' : (mn ? mn + (mn === 1 ? ' ding' : ' dingen') : 'Nog niets') + ' · ' + ({ vragen: 'vraagt eerst', vanzelf: 'leert vanzelf', uit: 'leert niet' }[c.learn] || 'vraagt eerst'));
+  const mu = $('#aim-use');
+  if (mu) {
+    const on = c.mem !== 'uit';
+    mu.classList.toggle('on', on); mu.setAttribute('aria-checked', on ? 'true' : 'false');
+    $('#aim-use-n').textContent = on ? 'De assistent gebruikt wat hier staat in zijn antwoorden.' : 'Uit: de assistent gebruikt en onthoudt niets (wat er staat, blijft bewaard).';
+    document.querySelectorAll('#aic-learn button').forEach(b => b.disabled = !on);
+  }
 }
 function aicSet(name, v){
   const e = Android.aiConfigSet(name, v);
@@ -544,7 +612,62 @@ function aicSaveText(msg){
 /* Weg uit Persoonlijk met iets dat nog niet bewaard is: gewoon bewaren (niets kwijt) */
 function aicLeavePers(){ if (aicDirtyOn) aicSaveText('Persoonlijk bewaard'); }
 function aicReset(){
-  askConfirm('Standaardinstellingen herstellen?', 'Lengte, creativiteit, taal, gespreksgeheugen, rekenkracht en wat je bij Persoonlijk invulde gaan terug naar de standaard. Je modellen en gesprekken blijven.', 'Herstellen', () => {
+  askConfirm('Standaardinstellingen herstellen?', 'Lengte, creativiteit, taal, gespreksgeheugen, rekenkracht, leren en wat je bij Persoonlijk invulde gaan terug naar de standaard. Je modellen, gesprekken en wat de assistent onthield blijven.', 'Herstellen', () => {
     Android.aiConfigReset(); aicDirtyOn = false; aiLoad(); aicRender(); if ($('#aic-save')) $('#aic-save').disabled = true; toast('Standaardinstellingen hersteld');
   });
+}
+
+/* ---------- Geheugen: wat de assistent over je weet (alleen op de telefoon, alles te zien en aan te passen) ---------- */
+let aimList = [];
+const AIM_SRC = { gevraagd: 'jij vroeg het te onthouden', geleerd: 'geleerd uit een gesprek', zelf: 'zelf toegevoegd' };
+function aimRender(){
+  const box = $('#aim-list'); if (!box) return;
+  aimList = rdJson(Android.aiMemList(), []);
+  const qi = $('#aim-q'); qi.style.display = aimList.length > 8 ? '' : 'none';
+  const q = aimList.length > 8 ? norm2(qi.value.trim()) : '';
+  const list = q ? aimList.filter(m => norm2(m.text).includes(q)) : aimList;
+  $('#aim-n').textContent = aimList.length ? aimList.length + (aimList.length === 1 ? ' ding' : ' dingen') + (q ? ' · ' + list.length + ' gevonden' : '') : '';
+  box.innerHTML = list.map(m => {
+    const i = aimList.indexOf(m);
+    const from = AIM_SRC[m.src] || 'onthouden';
+    const chat = m.chat ? '<button class="linkish" style="display:inline;padding:0" onclick="aimOpenChat(' + i + ')">' + esc(m.title ? '"' + m.title + '"' : 'het gesprek') + '</button>' : (m.title ? esc('"' + m.title + '"') : '');
+    return '<div class="aimemitem" role="listitem"><div class="aimt"><span>' + esc(m.text) + '</span><small>' + esc(fmtD(m.u || m.t) + ' · ' + from) + (chat ? ' · ' + chat : '') + '</small></div>' +
+      '<button class="iconbtn" onclick="aimEdit(' + i + ')" aria-label="Aanpassen: ' + esc(m.text) + '">' + uiIcon('edit') + '</button>' +
+      '<button class="iconbtn" onclick="aimDel(' + i + ')" aria-label="Vergeten: ' + esc(m.text) + '">' + uiIcon('trash') + '</button></div>';
+  }).join('') || '<p class="note">' + (q ? 'Niets gevonden.' : 'De assistent weet nog niets over je. Vertel iets over jezelf in een gesprek, zeg "onthoud dat …", of voeg hieronder zelf iets toe.') + '</p>';
+  $('#aim-clear').style.display = aimList.length ? '' : 'none';
+}
+function aimUse(){ aicSet('mem', aicCfg().mem === 'uit' ? 'aan' : 'uit'); toast(aicCfg().mem === 'uit' ? 'Geheugen uit: de assistent gebruikt en onthoudt niets' : 'Geheugen aan'); }
+function aimAdd(){
+  askInput('Zelf iets toevoegen', 'Een korte zin over jezelf, bijvoorbeeld "Woont in Rotterdam." of "Wil antwoorden met een voorbeeld."', '', 'Onthouden', v => {
+    const r = rdJson(Android.aiMemAdd(v, 'zelf', '', ''), {});
+    if (r.error) { toast(r.error); return; }
+    aiLoad(); aimRender(); aicRender(); toast(r.dup ? 'Stond er al (bijgewerkt)' : 'Onthouden');
+  });
+}
+function aimEdit(i){
+  const m = aimList[i]; if (!m) return;
+  askInput('Aanpassen', 'Wat de assistent hierover onthoudt.', m.text, 'Opslaan', v => {
+    const e = Android.aiMemEdit(m.id, v);
+    if (e) { toast(e); return; }
+    aimRender(); toast('Aangepast');
+  });
+}
+function aimDel(i){
+  const m = aimList[i]; if (!m) return;
+  Android.aiMemDelete(m.id); aiLoad(); aimRender(); aicRender();
+  undoToast('Vergeten: ' + m.text, () => { Android.aiMemAdd(m.text, m.src === 'zelf' ? 'zelf' : 'geleerd', m.chat || '', m.title || ''); aiLoad(); aimRender(); aicRender(); });
+}
+function aimClear(){
+  askConfirm('Alles vergeten?', 'De assistent vergeet alles wat hier staat (' + aimList.length + (aimList.length === 1 ? ' ding' : ' dingen') + '). Je gesprekken blijven.', 'Alles vergeten', () => {
+    Android.aiMemDelete('*'); aiLoad(); aimRender(); aicRender(); toast('Alles vergeten');
+  });
+}
+function aimOpenChat(i){
+  const m = aimList[i]; if (!m || !m.chat) return;
+  const full = rdJson(Android.aiChatGet(m.chat), null);
+  if (!full) { toast('Dat gesprek is er niet meer'); return; }
+  if (aiGen && aiGen.id === full.id) aiChat = aiGen;
+  else { if (aiBusy) Android.aiCancel(); aiChat = { id: full.id, title: full.title, msgs: full.msgs || [] }; }
+  jumpTo('ai');
 }
