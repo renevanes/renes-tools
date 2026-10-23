@@ -1,0 +1,73 @@
+# Wekelijkse onderhoudscontrole: meegeleverde bibliotheken, vastgezette versies, open CodeQL-meldingen en grote
+# Dependabot-updates. Houdt één issue "Onderhoud: updates en beveiliging" bij (label onderhoud) en sluit het als er
+# niets meer te doen is. Het wekelijkse onderhoud door een agent werkt dat issue af (zie AGENTS.md, "Onderhoud").
+name: Onderhoud
+
+on:
+  schedule:
+    - cron: '5 5 * * 1'   # maandag 05:05 UTC, na Dependabot en de scan, vóór het onderhoud door de agent (07:22 Amsterdam)
+  workflow_dispatch:
+  push:                     # ook meteen na een wijziging aan de controle zelf
+    branches: [main]
+    paths: ['.github/scripts/onderhoud-controle.py', '.github/workflows/onderhoud.yml']
+
+permissions:
+  contents: read
+  issues: write
+  security-events: read
+  pull-requests: read
+
+jobs:
+  controle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      TITEL: 'Onderhoud: updates en beveiliging'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Controleren
+        id: c
+        run: |
+          set +e
+          python3 .github/scripts/onderhoud-controle.py > rapport.md
+          code=$?
+          set -e
+          if [ "$code" = 1 ]; then echo "::error::De controle zelf mislukte"; exit 1; fi
+
+          if ! alerts=$(gh api "repos/$REPO/code-scanning/alerts?state=open&per_page=100" \
+                     --jq '.[] | "- [\(.rule.security_severity_level // .rule.severity)] \(.rule.description) — `\(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)` (\(.html_url))"'); then
+            alerts="- Kon de CodeQL-meldingen niet ophalen (staat code scanning aan? zie Security → Code scanning)."
+          fi
+          grote=$(gh pr list -R "$REPO" --author app/dependabot --state open \
+                    --json number,title,url --jq '.[] | "- #\(.number) \(.title) (\(.url))"' || true)
+
+          {
+            echo "Automatisch bijgewerkt door de workflow Onderhoud ($(date -u +%F))."
+            echo
+            echo "## Meegeleverde bibliotheken en vastgezette versies"
+            cat rapport.md
+            echo
+            echo "## Open CodeQL-meldingen"
+            echo "${alerts:-Geen.}"
+            echo
+            echo "## Open Dependabot-pull requests (samenvoegen na review)"
+            echo "${grote:-Geen.}"
+          } > issue.md
+
+          if [ "$code" = 0 ] && [ -z "$alerts" ] && [ -z "$grote" ]; then echo "werk=nee" >> "$GITHUB_OUTPUT"; else echo "werk=ja" >> "$GITHUB_OUTPUT"; fi
+          cat issue.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Issue bijwerken
+        run: |
+          gh label create onderhoud -R "$REPO" --color C5DEF5 --description "Updates en beveiliging" 2>/dev/null || true
+          nr=$(gh issue list -R "$REPO" --label onderhoud --state open --search "in:title \"$TITEL\"" --json number --jq '.[0].number // empty')
+          if [ "${{ steps.c.outputs.werk }}" = "ja" ]; then
+            if [ -n "$nr" ]; then gh issue edit "$nr" -R "$REPO" --body-file issue.md
+            else gh issue create -R "$REPO" --title "$TITEL" --label onderhoud --body-file issue.md; fi
+          elif [ -n "$nr" ]; then
+            gh issue close "$nr" -R "$REPO" --comment "Alles is bij; niets meer te doen."
+          fi

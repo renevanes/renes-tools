@@ -12,3 +12,4 @@ tools/lcpp/
 tools/zigwrap/
 tools/llm-out/
 tools/build-llm-*/
+__pycache__/
