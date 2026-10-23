@@ -80,6 +80,15 @@ public class SleepDetectTest {
             long end0 = clips.get(0).startMs() + Math.round(clips.get(0).seconds() * 1000);
             check(clips.get(1).startMs() >= end0 - 100 && clips.get(1).startMs() < end0 + 3000, "tweede deel sluit aan op het eerste (tijd klopt)");
         }
+        // Een gesprek tussendoor (niet geluisterd): de tijd van het volgende stukje klopt
+        clips.clear();
+        SleepDetect gp = new SleepDetect(2, clips::add);
+        feed(gp, 3, quiet, null, 0, false);
+        gp.gap(60 * 50); // een minuut
+        feed(gp, 2, quiet, null, 0, false);
+        feed(gp, 2, quiet, voice, 0.05, true);
+        feed(gp, 4, quiet, null, 0, false);
+        check(clips.size() == 1 && clips.get(0).startMs() >= 63000 && clips.get(0).startMs() <= 65500, "na een gesprek: tijd loopt door (" + (clips.isEmpty() ? -1 : clips.get(0).startMs()) + " ms)");
         // Stoppen midden in het praten: het stukje komt er toch
         clips.clear();
         SleepDetect fl = new SleepDetect(2, clips::add);

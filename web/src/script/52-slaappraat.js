@@ -94,9 +94,9 @@ function slnLoad(id){ slNightCur = rdJson(Android.sleepNight(id), null); slnRend
 function slnFilter(v){ slFilterV = v; slnRender(); }
 function slnRender(){
   const n = slNightCur;
-  if (!n) { $('#sln-list').innerHTML = '<p class="note">Deze nacht is er niet meer.</p>'; $('#sln-sum').textContent = ''; $('#sln-tx').innerHTML = ''; return; }
+  if (!n) { slHtml($('#sln-list'), '<p class="note">Deze nacht is er niet meer.</p>'); $('#sln-sum').textContent = ''; slHtml($('#sln-tx'), ''); return; }
   $('#sln-title').textContent = slNightName(n.start).replace('Nacht van ', '');
-  const clips = n.clips || [], live = slSt.phase && (slSt.night === n.id || slSt.phase === 'uitschrijven');
+  const clips = n.clips || [], live = slSt.phase && slSt.night === n.id;
   const talk = clips.filter(k => k.done && k.kind === 'praten'), open = clips.filter(k => !k.done);
   $('#sln-sum').textContent = slTime(n.start) + ' – ' + (n.end ? slTime(n.end) : 'nu') + (n.reason && n.end ? ' · ' + n.reason : '') + ' · ' +
     (talk.length ? talk.length + ' keer gepraat' : 'niets gezegd') + (clips.length - talk.length - open.length ? ' · ' + (clips.length - talk.length - open.length) + ' keer geluid' : '');

@@ -82,6 +82,9 @@ final class Transcribe {
     static volatile Process proc;
     /** Hoort het lopende whisper-proces bij een spraaknotitie? (Stoppen bij gesprekken mag die niet afbreken.) */
     static volatile boolean procVoice;
+    /** Welke thread het lopende whisper-proces startte (Slaappraat stopt alleen zijn eigen proces). */
+    static volatile Thread procOwner;
+    static void stopOwnedBy(Thread t) { Process p = proc; if (p != null && t != null && procOwner == t) p.destroy(); }
     /** Eén whisper tegelijk: twee tegelijk vreten geheugen en zaten elkaars werkbestanden in de weg. */
     private static final Object WHISPER = new Object();
 
@@ -441,6 +444,7 @@ final class Transcribe {
         pb.environment().put("HOME", c.getFilesDir().getPath());
         Process pr = pb.start();
         procVoice = voice;
+        procOwner = Thread.currentThread();
         proc = pr;
         if (!voice && cancel) pr.destroy();
         StringBuilder tail = new StringBuilder();
@@ -457,7 +461,7 @@ final class Transcribe {
             }
         }
         code = pr.waitFor();
-        } finally { proc = null; procVoice = false; pr.destroy(); /* nooit een los proces laten doorlopen */ }
+        } finally { proc = null; procVoice = false; procOwner = null; pr.destroy(); /* nooit een los proces laten doorlopen */ }
         if (!voice && cancel) { json.delete(); throw new Exception("Gestopt"); }
         // 132 = SIGILL: processor kent een instructie van de snelle versie niet.
         if (code == 132 || code == 128 + 4 || tail.indexOf("Illegal instruction") >= 0)

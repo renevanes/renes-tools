@@ -67,8 +67,9 @@ public final class SleepService extends Service {
         String action = intent == null ? "" : intent.getAction();
         if ("stop".equals(action)) {
             // Via de melding (startService): geen voorgrond nodig
+            again = false; // ook een Start die nog wachtte
             if ("luistert".equals(phase)) { stopReason = "Gestopt"; stop = true; }
-            else if ("uitschrijven".equals(phase)) SleepTalk.stopTx = true;
+            else if ("uitschrijven".equals(phase)) SleepTalk.stopNow();
             if (worker == null) quit();
             return START_NOT_STICKY;
         }
@@ -77,7 +78,7 @@ public final class SleepService extends Service {
         boolean fg = mic && goForeground();
         if (worker != null) {
             // Nog aan het uitschrijven en je wilt luisteren: dat stukje stopt, daarna begint het luisteren
-            if ("start".equals(action) && "uitschrijven".equals(phase) && fg) { again = true; SleepTalk.stopTx = true; }
+            if ("start".equals(action) && "uitschrijven".equals(phase) && fg) { again = true; SleepTalk.stopNow(); }
             return START_NOT_STICKY;
         }
         if (!mic) { message = "Geef eerst microfoontoegang"; quit(); return START_NOT_STICKY; }
@@ -93,10 +94,14 @@ public final class SleepService extends Service {
     /** Op main. */
     private boolean beginListening() {
         stop = false; stopReason = null; message = ""; SleepTalk.stopTx = false;
-        phase = "luistert"; since = System.currentTimeMillis(); heard = 0; levelDb = -90; floorDb = -90; inCall = false;
+        long t0 = System.currentTimeMillis();
+        try { night = SleepTalk.begin(this, t0, SleepTalk.sens(this)); } catch (Exception e) { message = "Opslaan lukt niet"; return false; }
+        since = t0; heard = 0; levelDb = -90; floorDb = -90; inCall = false;
         stopAt = SleepTalk.stopTime(since, SleepTalk.stopAt(this), java.util.TimeZone.getDefault());
-        try { night = SleepTalk.begin(this, since, SleepTalk.sens(this)); } catch (Exception e) { message = "Opslaan lukt niet"; phase = ""; return false; }
+        phase = "luistert";
         SleepTalk.cleanup(this, night);
+        // Vers voor deze nacht (in de "opnieuw"-route liep hij al een tijd)
+        if (wake != null && wake.isHeld()) try { wake.release(); } catch (Throwable ignored) { }
         holdWake();
         notifyNow();
         if (writer == null) writer = Executors.newSingleThreadExecutor(r -> new Thread(r, "slaappraat-opslaan"));
@@ -109,7 +114,7 @@ public final class SleepService extends Service {
     /** Op main: alleen uitschrijven (een nacht van eerder). */
     private void startTranscribe(String n) {
         SleepTalk.stopTx = false; message = "";
-        phase = "uitschrijven"; txDone = 0; txTotal = SleepTalk.open(this, n);
+        night = n; phase = "uitschrijven"; txDone = 0; txTotal = SleepTalk.open(this, n);
         holdWake();
         notifyNow();
         Thread t = new Thread(() -> {
@@ -184,22 +189,33 @@ public final class SleepService extends Service {
                 // Telefoongesprek (ook via internet): niet luisteren en de microfoon vrijgeven
                 int mode = am == null ? AudioManager.MODE_NORMAL : am.getMode();
                 if (mode == AudioManager.MODE_IN_CALL || mode == AudioManager.MODE_IN_COMMUNICATION) {
-                    if (!inCall) { inCall = true; det.flush(); try { rec.stop(); } catch (Throwable ignored) { } }
+                    if (!inCall) { inCall = true; pausedAt = System.currentTimeMillis(); det.flush(); notifyNow(); try { rec.stop(); } catch (Throwable ignored) { } }
                     Thread.sleep(1000);
                     checkLimits(start);
                     continue;
                 }
-                if (inCall) { inCall = false; rec.startRecording(); }
+                if (inCall) {
+                    // Na het gesprek: de microfoon weer pakken (lukt het nog niet, dan zo meteen opnieuw)
+                    try {
+                        rec.startRecording();
+                        if (rec.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) { try { rec.release(); } catch (Throwable ignored) { } rec = openMic(); }
+                    } catch (Throwable e) { Thread.sleep(5000); checkLimits(start); continue; }
+                    inCall = false;
+                    det.gap((System.currentTimeMillis() - pausedAt) / 20);
+                    notifyNow();
+                }
                 int got = 0;
                 while (got < block.length && !stop) {
                     int r = rec.read(block, got, block.length - got);
                     if (r == AudioRecord.ERROR_DEAD_OBJECT && restarts < 5) {
                         // De audiodienst van Android is herstart: opnieuw openen
                         restarts++;
+                        long t0 = System.currentTimeMillis();
                         try { rec.release(); } catch (Throwable ignored) { }
                         rec = null;
                         Thread.sleep(2000);
                         rec = openMic();
+                        det.gap((System.currentTimeMillis() - t0) / 20 + got / SleepDetect.FRAME);
                         got = 0;
                         continue;
                     }
@@ -231,7 +247,7 @@ public final class SleepService extends Service {
         }
     }
 
-    private long nextLimitCheck;
+    private long nextLimitCheck, pausedAt;
     private void checkLimits(long start) {
         long now = System.currentTimeMillis();
         if (now < nextLimitCheck) return;
@@ -311,7 +327,7 @@ public final class SleepService extends Service {
     }
 
     @Override public void onDestroy() {
-        destroyed = true; stop = true; SleepTalk.stopTx = true;
+        destroyed = true; stop = true; SleepTalk.stopNow();
         if (!"".equals(phase) && worker == null) phase = "";
         if (wake != null && wake.isHeld()) try { wake.release(); } catch (Throwable ignored) { }
         super.onDestroy();

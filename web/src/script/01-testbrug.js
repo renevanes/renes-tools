@@ -239,7 +239,7 @@ if (!window.Android) window.Android = (function(){
     sleepSet(name, v){ const S = this._sl.set; if (name === 'sens') { if (!/^[123]$/.test(v)) return 'Ongeldig'; S.sens = +v; } else if (name === 'stopAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.stopAt = v; }
       else if (name === 'transcribe' || name === 'keepNoise') S[name] = v === 'true'; else if (name === 'keep') { if (!/^(7|14|30)$/.test(v)) return 'Ongeldig'; S.keep = +v; } else return 'Ongeldig'; return ''; },
     sleepTranscribe(id){ const S = this._sl, n = S.nights.find(x => x.id === id); if (!n) return 'Onbekende nacht'; if (S.phase) return 'Dat kan pas als Slaappraat klaar is met luisteren en uitschrijven'; if (!S.model) return 'model';
-      S.phase = 'uitschrijven'; S.txDone = 0; S.txTotal = n.clips.filter(k => !k.done && k.audio).length;
+      S.phase = 'uitschrijven'; S.night = id; S.txDone = 0; S.txTotal = n.clips.filter(k => !k.done && k.audio).length;
       setTimeout(() => { n.clips.forEach(k => { if (!k.done && k.audio) { k.done = true; k.text = k._text || ''; k.kind = k.text ? 'praten' : 'geluid'; if (k.kind === 'geluid' && !S.set.keepNoise) k.audio = false; } }); S.phase = ''; }, S.txMs || 300); return ''; },
     sleepPlay(id, clip){ const n = this._sl.nights.find(x => x.id === id), k = n && n.clips.find(x => x.id === clip); if (!k || !k.audio) return 'Het geluid van dit stukje is er niet meer'; this._sl.played = clip; return ''; },
     sleepStopPlay(){ this._sl.played = ''; },

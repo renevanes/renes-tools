@@ -148,6 +148,15 @@ final class SleepDetect {
         buf = null; bufLen = 0;
     }
 
+    /** Een tijd niet geluisterd (telefoongesprek, microfoon opnieuw geopend): de tijd loopt door, en wat daarvoor
+     *  in de voorloop zat hoort niet bij een volgend stukje. */
+    void gap(long frames) {
+        flush();
+        if (frames > 0) frameNo += frames;
+        ringLen = 0;
+        java.util.Arrays.fill(recent, false);
+    }
+
     /** Aan het eind van het luisteren: een lopend stukje afmaken. */
     void flush() { if (inClip) finish(); }
 

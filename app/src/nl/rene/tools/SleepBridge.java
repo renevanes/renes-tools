@@ -92,7 +92,7 @@ public class SleepBridge extends FeatureBridge {
         if (SleepService.running()) return "Dat kan pas als Slaappraat klaar is met luisteren en uitschrijven";
         if (Transcribe.activeModel(ctx) == null) return "model";
         if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return "mic";
-        SleepService.phase = "uitschrijven"; SleepService.txDone = 0; SleepService.txTotal = SleepTalk.open(ctx, id); // meteen te zien
+        SleepService.night = id; SleepService.phase = "uitschrijven"; SleepService.txDone = 0; SleepService.txTotal = SleepTalk.open(ctx, id); // meteen te zien
         a.h.post(() -> {
             try {
                 Intent i = new Intent(a, SleepService.class).setAction("transcribe").putExtra("night", id);

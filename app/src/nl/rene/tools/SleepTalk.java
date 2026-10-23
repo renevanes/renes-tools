@@ -217,10 +217,12 @@ final class SleepTalk {
             String id = d.getName();
             if (!safeId(id) || id.equals(running)) continue;
             try {
-                if (Long.parseLong(id) < limit) { deleteNight(c, id); continue; }
-                File[] fs = d.listFiles();
-                if (fs != null) for (File f : fs) if (f.getName().endsWith(".tmp")) f.delete();
+                long start = Long.parseLong(id);
+                if (start < limit) { deleteNight(c, id); continue; }
+                if (System.currentTimeMillis() - start < 120_000L) continue; // net begonnen (kan nog niet als "lopend" bekend zijn)
                 synchronized (SleepTalk.class) {
+                    File[] fs = d.listFiles();
+                    if (fs != null) for (File f : fs) if (f.getName().endsWith(".tmp")) f.delete();
                     JSONObject n = night(c, id);
                     if (n != null && n.optLong("end") == 0) {
                         long last = n.optLong("start");
@@ -246,6 +248,9 @@ final class SleepTalk {
     // ---------- uitschrijven ----------
 
     static volatile boolean stopTx;
+    private static volatile Thread txThread;
+    /** Uitschrijven stoppen, ook midden in een stukje (alleen het eigen whisper-proces). */
+    static void stopNow() { stopTx = true; Transcribe.stopOwnedBy(txThread); }
     interface Step { void step(int done, int total); }
     /** Gestopt midden in een stukje (via de voortgang van whisper: het proces stopt dan meteen). */
     static final class Stopped extends RuntimeException { Stopped() { super("Gestopt"); } }
@@ -270,6 +275,8 @@ final class SleepTalk {
             if (a != null) for (int i = 0; i < a.length(); i++) { JSONObject k = a.getJSONObject(i); if (!k.optBoolean("done") && k.optBoolean("audio")) todo.add(k.optString("id")); }
         }
         int done = 0;
+        txThread = Thread.currentThread();
+        try {
         for (String clip : todo) {
             if (stopTx) return;
             if (step != null) step.step(done, todo.size());
@@ -279,6 +286,7 @@ final class SleepTalk {
                 JSONObject out;
                 try { out = Transcribe.whisper(c, f, m, (ph, pct) -> { if (stopTx) throw new Stopped(); }, true); }
                 catch (Stopped s) { return; }
+                catch (Exception e) { if (stopTx) return; throw e; } // proces gestopt: geen fout
                 JSONArray tr = out.optJSONArray("transcription");
                 List<String> parts = new ArrayList<>();
                 if (tr != null) for (int i = 0; i < tr.length(); i++) parts.add(tr.getJSONObject(i).optString("text"));
@@ -299,6 +307,7 @@ final class SleepTalk {
             }
             done++;
         }
+        } finally { txThread = null; }
         if (step != null) step.step(done, todo.size());
     }
 }
