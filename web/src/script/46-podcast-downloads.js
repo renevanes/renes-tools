@@ -58,8 +58,11 @@ function pcDlBar(d){ return pcDlBusy(d) && d.total > 0; }
 function pcRenderDl(){
   const wrap = $('#pc-dl-wrap'); if (!wrap) return;
   wrap.style.display = pcDl.length ? 'block' : 'none';
+  $('#pc-dl-empty').style.display = pcDl.length ? 'none' : '';
+  $('#pc-tab-dl-n').textContent = pcDl.length ? String(pcDl.length) : '';
+  $('#pc-tab-dl').setAttribute('aria-label', 'Downloads' + (pcDl.length ? ', ' + pcDl.length : ''));
   const done = pcDl.filter(d => d.state === 'done'), bytes = done.reduce((a, d) => a + (+d.bytes || 0), 0);
-  $('#pc-dl-sum').textContent = done.length ? done.length + (done.length === 1 ? ' aflevering' : ' afleveringen') + ' · ' + fmtB(bytes) : '';
+  $('#pc-dl-sum').textContent = done.length ? done.length + (done.length === 1 ? ' aflevering' : ' afleveringen') + ' · ' + fmtB(bytes) : 'Bezig met downloaden';
   // Zelfde rijen als net (alleen voortgang anders): tekst en balk bijwerken, de lijst niet opnieuw opbouwen
   const sig = pcDl.map(d => d.key + ':' + pcDlBar(d)).join('|');
   const rows = $('#pc-dl').children;

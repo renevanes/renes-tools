@@ -117,15 +117,16 @@ Android-app met handige tools. De eerste tool is **Auto redial**: die belt een n
 - **TalkBack**: alle knoppen en velden hebben een naam; schakelaars zijn `role=switch` met aan/uit, keuzeknoppen melden of ze gekozen zijn; meldingen (`role=status`), dialogen (`role=dialog`) en bij elk scherm springt de focus naar de titel.
 
 ## Podcasts
+- **Indeling**: drie tabbladen. *Luisteren* (Verder luisteren, de laatste 3, en Mijn podcasts, twee rijen met die met nieuwe afleveringen voorop; de rest met *Alle …*), *Ontdekken* (zoeken en populair, 10 tegelijk) en *Downloads* (met het aantal op het tabblad). Wie nog niets volgt, begint bij Ontdekken. Minder vaak nodig staat onder ⋯: alle podcasts bijwerken, instellingen voor downloaden en *Uit Spotify overnemen*.
 - **Zoeken en populair** (`Podcasts.java`): via de openbare zoekdienst van Apple Podcasts (zonder account) en de lijst populaire podcasts in Nederland (12 uur bewaard). De afleveringen komen rechtstreeks uit de RSS-feed van de maker (`PodcastFeed.java`, puur Java/SAX, getest met `PodcastFeedTest`; begrensd op 500 afleveringen en 25 MB, geen externe entiteiten).
 - **Volgen**: Mijn podcasts met een teller voor nieuwe afleveringen; bijwerken bij openen (hooguit elke 3 uur) of met ↻. Abonnementen en waar je was gaan mee in Alles back-uppen (instellingen) en worden bij terugzetten samengevoegd.
-- **Luisteren** (`PodcastService`, voorgrondservice mediaPlayback): stream van de maker, 15 s terug / 30 s vooruit (ook met de koptelefoon en op het vergrendelscherm), schuiven, snelheid 0,8–2×, onthoudt per aflevering waar je was (elke 10 s), pauzeert bij een gesprek of als de koptelefoon eruit gaat en gaat daarna verder. *Verder luisteren* toont recent gestarte afleveringen die nog niet af zijn.
+- **Afspelen** (`PodcastService`, voorgrondservice mediaPlayback): stream van de maker, 15 s terug / 30 s vooruit (ook met de koptelefoon, en als knoppen in de mediaspeler van Android in het meldingenpaneel en op het vergrendelscherm), schuiven, snelheid 0,8–2×, onthoudt per aflevering waar je was (elke 10 s), pauzeert bij een gesprek of als de koptelefoon eruit gaat en gaat daarna verder. *Verder luisteren* toont recent gestarte afleveringen die nog niet af zijn.
 - **Slaaptimer** (gedeeld met Radio): 1–240 minuten per minuut instelbaar (schuif, − / + en snelkeuzes), aan het einde van de aflevering, of tot een tijdstip; +5/+15 minuten erbij (ook +10 min in de melding). De laatste 30 seconden wordt het geluid langzaam zachter; een podcast pauzeert dan (morgen verder waar je was), de radio stopt.
 
 ### Downloaden voor offline
-- Per aflevering *Downloaden voor offline* (menu ⋯); de lijst **Gedownload** bovenaan Podcasts toont voortgang, grootte en totaal. Afspelen kiest vanzelf het gedownloade bestand (ook voor *Hierna* en Android Auto), dus zonder internet.
+- Per aflevering *Downloaden voor offline* (menu ⋯); het tabblad **Downloads** toont voortgang, grootte en totaal. Afspelen kiest vanzelf het gedownloade bestand (ook voor *Hierna* en Android Auto), dus zonder internet.
 - Android downloadt (`DownloadManager`: gaat door op de achtergrond, hervat na onderbreking, voortgang in een melding) naar de eigen map van de app (`Android/data/…/files/Podcasts`); niet in Android-backups.
-- Instellingen (Gedownload → Instellingen): *Alleen via wifi* (standaard aan), *Beluisterde afleveringen vanzelf verwijderen* (standaard aan), *Alle downloads verwijderen*.
+- Instellingen (Downloads → Instellingen, of ⋯): *Alleen via wifi* (standaard aan), *Beluisterde afleveringen vanzelf verwijderen* (standaard aan), *Alle downloads verwijderen*.
 - Per gevolgde podcast *Nieuwe afleveringen downloaden*: de nieuwste 3 nog niet beluisterde, bij elke keer bijwerken en een paar keer per dag op de achtergrond (`PodcastDownloadJob`, met *alleen via wifi* alleen op wifi). Haal je zo'n download zelf weg, dan komt hij niet vanzelf terug.
 
 ## Speler (radio en podcasts samen)

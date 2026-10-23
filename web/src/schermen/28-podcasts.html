@@ -3,28 +3,57 @@
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Podcasts</h1>
+    <button class="icon-btn" id="pc-menu" onclick="pcMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
   </div>
   <main>
-    <button class="big ghost" id="pc-from-spotify" data-icon="spotify" onclick="pspOpen()" style="margin-bottom:18px">Uit Spotify overnemen</button>
-    <div id="pc-cont-wrap" style="display:none">
-      <div class="flabel" style="margin:4px 2px 8px">Verder luisteren</div>
-      <div class="card pclist" id="pc-cont"></div>
+    <div class="pctabs" role="tablist" aria-label="Podcasts">
+      <button role="tab" id="pc-tab-listen" data-tab="listen" aria-controls="pc-p-listen" aria-selected="true" onclick="pcSetTab('listen', true)">Luisteren</button>
+      <button role="tab" id="pc-tab-discover" data-tab="discover" aria-controls="pc-p-discover" aria-selected="false" onclick="pcSetTab('discover', true)">Ontdekken</button>
+      <button role="tab" id="pc-tab-dl" data-tab="dl" aria-controls="pc-p-dl" aria-selected="false" onclick="pcSetTab('dl', true)">Downloads<span class="pctabn" id="pc-tab-dl-n"></span></button>
     </div>
 
-    <div id="pc-dl-wrap" style="display:none">
-      <div class="flabel pcfl"><span>Gedownload <small id="pc-dl-sum" style="font-weight:400;color:var(--muted)"></small></span><button class="linkish" onclick="pcDlSettings()">Instellingen</button></div>
-      <div class="card pclist" id="pc-dl"></div>
+    <!-- Luisteren: verder luisteren en de podcasts die je volgt -->
+    <div role="tabpanel" id="pc-p-listen" aria-labelledby="pc-tab-listen">
+      <div id="pc-cont-wrap" style="display:none">
+        <div class="flabel pcfl"><span>Verder luisteren</span><button class="linkish" id="pc-cont-more" onclick="pcContAll()" hidden></button></div>
+        <div class="card pclist" id="pc-cont"></div>
+      </div>
+      <div id="pc-subs-wrap" style="display:none">
+        <div class="flabel pcfl"><span>Mijn podcasts <small id="pc-subs-n" style="font-weight:400;color:var(--muted)"></small></span><button class="linkish" id="pc-refresh" onclick="pcRefresh()">↻ Bijwerken</button></div>
+        <div class="pcgrid" id="pc-subs"></div>
+        <button class="big ghost" id="pc-subs-more" onclick="pcSubsAll()" hidden></button>
+      </div>
+      <div class="card pcempty" id="pc-listen-empty" style="display:none">
+        <span class="ui-icon" data-icon="headphones" aria-hidden="true"></span>
+        <b>Nog geen podcasts</b>
+        <p class="note">Zoek een podcast en tik op Volgen. Dan staan nieuwe afleveringen hier.</p>
+        <button class="big" data-icon="search" onclick="pcSetTab('discover', true); $('#pc-q').focus()">Podcasts zoeken</button>
+        <button class="linkish" id="pc-from-spotify" onclick="pspOpen()">Of neem ze over uit Spotify</button>
+      </div>
     </div>
 
-    <div id="pc-subs-wrap" style="display:none">
-      <div class="flabel pcfl"><span>Mijn podcasts</span><button class="linkish" id="pc-refresh" onclick="pcRefresh()">↻ Bijwerken</button></div>
-      <div class="pcgrid" id="pc-subs"></div>
+    <!-- Ontdekken: zoeken en populair -->
+    <div role="tabpanel" id="pc-p-discover" aria-labelledby="pc-tab-discover" hidden>
+      <input class="search" id="pc-q" type="search" placeholder="Zoek een podcast…" oninput="pcSearchSoon()" aria-label="Zoek een podcast">
+      <div class="flabel" style="margin:4px 2px 8px" id="pc-list-label">Populair in Nederland</div>
+      <div class="card stations" id="pc-list"><p class="note" style="padding:14px">Laden…</p></div>
+      <button class="big ghost" id="pc-list-more" onclick="pcListMore()" hidden>Meer tonen</button>
+      <p class="note" style="margin-top:14px">Zoeken gaat via de openbare zoekdienst van Apple Podcasts (zonder account); de afleveringen komen rechtstreeks van de makers. Wat je volgt en waar je was, blijft op je telefoon (en gaat mee in Alles back-uppen).</p>
     </div>
 
-    <input class="search" id="pc-q" type="search" placeholder="Zoek een podcast…" oninput="pcSearchSoon()" aria-label="Zoek een podcast">
-    <div class="flabel" style="margin:4px 2px 8px" id="pc-list-label">Populair in Nederland</div>
-    <div class="card stations" id="pc-list"><p class="note" style="padding:14px">Laden…</p></div>
-    <p class="note" style="margin-top:14px">Zoeken gaat via de openbare zoekdienst van Apple Podcasts (zonder account); de afleveringen komen rechtstreeks van de makers. Wat je volgt en waar je was, blijft op je telefoon (en gaat mee in Alles back-uppen).</p>
+    <!-- Downloads: offline luisteren -->
+    <div role="tabpanel" id="pc-p-dl" aria-labelledby="pc-tab-dl" hidden>
+      <div id="pc-dl-wrap" style="display:none">
+        <div class="flabel pcfl"><span id="pc-dl-sum"></span><button class="linkish" onclick="pcDlSettings()">Instellingen</button></div>
+        <div class="card pclist" id="pc-dl"></div>
+      </div>
+      <div class="card pcempty" id="pc-dl-empty">
+        <span class="ui-icon" data-icon="download" aria-hidden="true"></span>
+        <b>Nog niets gedownload</b>
+        <p class="note">Tik bij een aflevering op ⋯ en kies Downloaden voor offline. Of zet bij een podcast die je volgt Nieuwe afleveringen downloaden aan.</p>
+        <button class="linkish" onclick="pcDlSettings()">Instellingen voor downloaden</button>
+      </div>
+    </div>
   </main>
 </section>
 

@@ -1,0 +1,64 @@
+// Indeling van Podcasts: tabbladen Luisteren / Ontdekken / Downloads, korte lijsten met "meer", Spotify in het menu.
+const { chromium } = require('playwright');
+(async () => {
+  const b = await chromium.launch(); const errs = [];
+  const ok = (c, m) => { console.log((c ? '✓ ' : '✗ ') + m); if (!c) errs.push(m); };
+  for (const scheme of ['light', 'dark']) {
+    const pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
+    pg.on('pageerror', e => errs.push(e.message));
+    await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
+    await pg.evaluate(() => {
+      const A = Android._pc;
+      A.top = Array.from({ length: 25 }, (_, i) => ({ id: 'p' + i, feed: 'https://feeds.example.org/f' + i, title: 'Podcast ' + i, author: 'Maker ' + i, image: '', genre: 'Nieuws' }));
+    });
+    // Nog niets gevolgd: meteen Ontdekken, met 10 populaire en "Meer tonen"
+    await pg.evaluate(() => show('podcasts')); await pg.waitForTimeout(300);
+    ok(await pg.evaluate(() => pcTab === 'discover') && await pg.isVisible('#pc-q'), 'leeg: begint bij Ontdekken');
+    ok(!(await pg.isVisible('#pc-from-spotify')), 'Spotify niet meer bovenaan');
+    ok((await pg.$$eval('#pc-list .srow', x => x.length)) === 10 && await pg.isVisible('#pc-list-more'), '10 populaire, met Meer tonen');
+    await pg.click('#pc-list-more'); await pg.waitForTimeout(100);
+    ok((await pg.$$eval('#pc-list .srow', x => x.length)) === 20, 'meer tonen: 20');
+    await pg.click('#pc-list .srow:nth-child(15) .sbtn'); await pg.waitForTimeout(300);
+    ok(await pg.evaluate(() => current === 'podcast' && pdPod.feed === 'https://feeds.example.org/f14'), 'de juiste podcast geopend (ook na Meer tonen)');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
+    // Leeg tabblad Luisteren: uitleg, zoeken en (klein) Spotify
+    await pg.click('#pc-tab-listen'); await pg.waitForTimeout(100);
+    ok(await pg.isVisible('#pc-listen-empty') && await pg.isVisible('#pc-from-spotify'), 'Luisteren leeg: uitleg en kleine Spotify-link');
+    await pg.click('#pc-listen-empty .big'); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => pcTab === 'discover' && document.activeElement.id === 'pc-q'), 'Podcasts zoeken: naar Ontdekken met het zoekveld');
+    // Veel gevolgd en geluisterd: Luisteren, met korte lijsten
+    await pg.evaluate(() => {
+      const A = Android._pc;
+      A.subs = A.top.slice(0, 9).map((p, i) => Object.assign({ fresh: i === 7 ? 3 : 0 }, p));
+      A.recent = [0, 1, 2, 3, 4].map(i => ({ ep: { key: 'k' + i, title: 'Aflevering ' + i, url: 'https://x/a.mp3', dur: 1800 }, pod: A.top[i], t: Date.now() - i }));
+      pcTabUser = false; show('home'); show('podcasts');
+    });
+    await pg.waitForTimeout(300);
+    ok(await pg.evaluate(() => pcTab === 'listen') && !(await pg.isVisible('#pc-q')), 'met podcasts: begint bij Luisteren');
+    ok((await pg.$$eval('#pc-cont .pcep', x => x.length)) === 3 && (await pg.textContent('#pc-cont-more')) === 'Alle 5', 'verder luisteren: 3, met Alle 5');
+    await pg.click('#pc-cont-more'); await pg.waitForTimeout(100);
+    ok((await pg.$$eval('#pc-cont .pcep', x => x.length)) === 5 && (await pg.textContent('#pc-cont-more')) === 'Minder', 'alle 5 en weer minder');
+    await pg.click('#pc-cont-more');
+    ok((await pg.$$eval('#pc-subs .pcsub', x => x.length)) === 6 && (await pg.textContent('#pc-subs-more')).includes('Alle 9'), 'mijn podcasts: 6, met Alle 9');
+    ok((await pg.textContent('#pc-subs .pcsub:first-child .t')) === 'Podcast 7', 'podcast met nieuwe afleveringen vooraan');
+    await pg.click('#pc-subs .pcsub:first-child'); await pg.waitForTimeout(300);
+    ok(await pg.evaluate(() => pdPod.feed === 'https://feeds.example.org/f7'), 'de juiste podcast geopend');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
+    await pg.click('#pc-subs-more'); await pg.waitForTimeout(100);
+    ok((await pg.$$eval('#pc-subs .pcsub', x => x.length)) === 9, 'alle 9 podcasts');
+    ok(!(await pg.isVisible('#pc-listen-empty')), 'geen lege uitleg als er iets is');
+    await pg.screenshot({ path: __dirname + '/shots/podcast-indeling-' + scheme + '.png' });
+    // Menu: bijwerken, downloadinstellingen en Spotify
+    await pg.click('#pc-menu'); await pg.waitForTimeout(100);
+    const acts = await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent));
+    ok(acts.some(t => t.includes('bijwerken')) && acts.includes('Instellingen voor downloaden') && acts.includes('Uit Spotify overnemen'), 'menu met bijwerken, downloads en Spotify');
+    await pg.click('#sheet-acts button:has-text("Uit Spotify overnemen")'); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => current === 'podspotify'), 'Spotify via het menu');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
+    // Tabbladen bereikbaar en aangeduid voor schermlezers
+    ok(await pg.evaluate(() => [...document.querySelectorAll('#s-podcasts [role=tab]')].filter(t => t.getAttribute('aria-selected') === 'true').length === 1), 'precies één tabblad gekozen');
+    await pg.close();
+  }
+  await b.close();
+  console.log('errors', errs);
+})();
