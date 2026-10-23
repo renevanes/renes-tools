@@ -64,10 +64,30 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._ai.cfg.mem = 'aan'; jumpTo('aisetmem'); }); await pg.waitForTimeout(120);
     await pg.click('#aim-clear'); await pg.click('#modal-ok'); await pg.waitForTimeout(100);
     ok(await pg.evaluate(() => Android._ai.mem.length === 0) && (await pg.textContent('#aim-list')).includes('weet nog niets'), 'alles vergeten');
+    // Vergeten in een gesprek, en terugzetten
+    await pg.evaluate(() => { Android.aiMemAdd('Woont in Delft.', 'geleerd', '', ''); show('ai'); aiNew(); }); await pg.waitForTimeout(80);
+    await pg.fill('#ai-in', 'Vergeet dat ik in Delft woon'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(1200);
+    ok((await pg.textContent(last + ' .aimem')).includes('Vergeten: Woont in Delft.') && await pg.evaluate(() => !Android._ai.mem.some(m => m.text === 'Woont in Delft.')), 'vergeet: weg, en te zien bij het antwoord');
+    await pg.click(last + ' .aimem button:has-text("Ongedaan maken")'); await pg.waitForTimeout(80);
+    ok(await pg.evaluate(() => Android._ai.mem.some(m => m.text === 'Woont in Delft.')) && (await pg.textContent(last + ' .aimem')).includes('Teruggezet'), 'vergeten: terug te zetten');
+    // Nieuwe vraag terwijl hij nog aan het leren is: het leren stopt en niets komt bij het nieuwe antwoord terecht
+    await pg.evaluate(() => { Android._ai.cfg.learn = 'vragen'; Android._ai.learnMs = 1500; aiLoad(); });
+    await pg.fill('#ai-in', 'Ik heb twee katten'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(1050);
+    ok((await pg.textContent(last + ' .aimem')).includes('Kijken of er iets te onthouden is'), 'na het antwoord: kijkt of er iets te onthouden is');
+    await pg.fill('#ai-in', 'Wat is 2 plus 2?'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(1800);
+    const st = await pg.evaluate(() => { const ms = aiChat.msgs; return { prev: ms[ms.length - 3].mem || {}, cur: ms[ms.length - 1].mem }; });
+    ok(!st.prev.thinking && !st.prev.ask && !st.cur, 'nieuwe vraag: leren gestopt, niets bij het verkeerde antwoord');
+    // Gesprek verwijderd terwijl hij leert: komt niet terug
+    await pg.fill('#ai-in', 'Ik speel graag tennis'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(1050);
+    const gone = await pg.evaluate(() => aiChat.id);
+    await pg.evaluate(id => { show('aichats'); const i = aicList.findIndex(c => c.id === id); aicMenu(i); }, gone); await pg.waitForTimeout(100);
+    await pg.click('#sheet-acts button:has-text("Verwijderen")'); await pg.waitForTimeout(1700);
+    ok(await pg.evaluate(id => !Android._ai.chats.some(c => c.id === id), gone), 'verwijderd gesprek komt niet terug door een late melding');
+    await pg.evaluate(() => { Android._ai.learnMs = 150; });
     // Menu in het gesprek
     await pg.evaluate(() => show('ai')); await pg.waitForTimeout(100);
     await pg.click('#ai-menu'); await pg.waitForTimeout(100);
-    ok((await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent))).some(t => t.startsWith('Geheugen (0)')), 'menu: geheugen');
+    ok((await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent))).some(t => /^Geheugen \(\d+\)$/.test(t)), 'menu: geheugen');
     await pg.close();
   }
   await b.close();

@@ -18,6 +18,16 @@ out=$( (printf '%s\n' '{"op":"chat","messages":[{"role":"user","content":"Hallo"
 ok "stoppen halverwege" 'grep -q "\"cancelled\":true" <<<"$out"'
 out=$(printf '%s\n' '{"op":"chat","messages":[{"role":"user","content":"A"}],"max":3}' '{"op":"chat","messages":[{"role":"user","content":"A"},{"role":"assistant","content":"B"},{"role":"user","content":"C"}],"max":3}' | "$L" -m "$T/chat.gguf" -c 512 -t 2 2>/dev/null)
 ok "vervolgvraag in hetzelfde gesprek" '[ "$(grep -c "\"done\":true" <<<"$out")" = 2 ]'
+# Gestopt tijdens het inlezen: wat al verwerkt is, blijft bewaard en wordt bij de volgende vraag hergebruikt
+req=$(printf '{"op":"chat","messages":[{"role":"system","content":"S %s"},{"role":"user","content":"X"}],"max":1}' "$(python3 -c "print('woord '*1500)")")
+out=$( (echo "$req"; sleep 0.02; echo '{"op":"cancel"}'; sleep 0.3; echo "$req"; sleep 1.5) | "$L" -m "$T/chat.gguf" -c 4096 -t 1 2>/dev/null)
+ok "na stoppen: verwerkt deel bewaard en hergebruikt" 'python3 -c "
+import json,sys
+d=[json.loads(l) for l in sys.argv[1].splitlines() if \"done\" in l]
+assert len(d)==2, d
+k=d[0].get(\"kept\", d[0].get(\"prompt\", 0))
+assert d[1][\"reused\"] >= max(0, k-1), (k, d[1])
+" "$out"'
 out=$(printf '%s\n' '{"op":"embed","texts":["Hallo wereld","Iets anders",""],"dims":8}' | "$L" -m "$T/embed.gguf" --embed -t 2 2>/dev/null)
 ok "zoekgetallen: 3 reeksen van 8" 'python3 -c "import json,sys; e=json.loads(sys.argv[1].splitlines()[1])[\"e\"]; assert len(e)==3 and all(len(x)==8 for x in e); assert abs(sum(v*v for v in e[0])-1)<1e-3" "$out"'
 out=$(printf '%s\n' '{"op":"embed","id":42,"texts":["a"],"dims":4}' | "$L" -m "$T/embed.gguf" --embed -t 2 2>/dev/null)

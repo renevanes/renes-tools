@@ -18,6 +18,17 @@ public class AiMemoryTest {
         check(AiMemory.rememberCmd("Hoe onthoud ik beter dingen?") == null && AiMemory.rememberCmd("onthoud") == null && AiMemory.rememberCmd(null) == null, "geen opdracht: niets");
         check("Ik in Delft woon".equals(AiMemory.forgetCmd("Vergeet dat ik in Delft woon")), "vergeet dat …");
         check(AiMemory.forgetCmd("Ik vergeet altijd mijn sleutels") == null, "vergeten in een zin: geen opdracht");
+        // Gewone vragen en zinnen zijn geen opdracht
+        for (String q : new String[]{"Onthoud je wat ik gisteren zei?", "Onthoud jij dingen over mij?", "Onthouden is lastig voor me, tips?", "Kun je onthouden wat ik zeg?",
+                "Noteer de afspraak in mijn agenda", "Remember what I said?", "Onthoud je dit?"})
+            check(AiMemory.rememberCmd(q) == null, "geen onthoud-opdracht: " + q);
+        for (String q : new String[]{"Vergeet niet dat ik morgen jarig ben", "Vergeet het maar", "Vergeet het maar, ik zoek het zelf op", "Vergeet je wel eens iets?", "Forget it"})
+            check(AiMemory.forgetCmd(q) == null, "geen vergeet-opdracht: " + q);
+        check("Mijn verjaardag is 12 mei".equals(AiMemory.rememberCmd("Onthoud mijn verjaardag is 12 mei")) && "Ik heb een kat".equals(AiMemory.rememberCmd("onthoud even: ik heb een kat")), "onthoud zonder \"dat\" werkt ook");
+        check("Mijn oude adres".equals(AiMemory.forgetCmd("Vergeet mijn oude adres")), "vergeet zonder \"dat\"");
+        List<String> ms = Arrays.asList("Woont in Delft.", "Heeft een zoon, Daan.", "Werkt bij ESAPE.");
+        check(AiMemory.forgetIndex(ms, "ik in Delft woon") == 0 && AiMemory.forgetIndex(ms, "Daan") == 1, "vergeet: de juiste herinnering");
+        check(AiMemory.forgetIndex(ms, "maar") == -1 && AiMemory.forgetIndex(ms, "mijn werk bij de bakker") == -1, "vergeet: bij twijfel niets");
 
         String rp = AiMemory.rephrasePrompt("Ik op dinsdag sport");
         check(rp.contains("«Ik op dinsdag sport»") && rp.contains("- "), "opdracht om er een nette zin van te maken");
@@ -42,6 +53,9 @@ public class AiMemoryTest {
         // Geheimen
         check(AiMemory.secret("Mijn wachtwoord is hond123") && AiMemory.secret("Pincode 1234") && AiMemory.secret("Rekening NL91ABNA0417164300") && AiMemory.secret("BSN 123 456 789"), "wachtwoorden, codes en nummers herkend");
         check(!AiMemory.secret("Woont in Rotterdam sinds 2019."), "jaartal is geen geheim");
+        check(!AiMemory.secret("Is geboren in Libanon.") && !AiMemory.secret("Verjaardag is 12-05-1980.") && !AiMemory.secret("Heeft een Pinda-allergie"), "geen geheim: Libanon, een datum");
+        check(AiMemory.secret("Code van de voordeur is 4821.") && AiMemory.secret("Alarmcode 1234") && AiMemory.secret("Telefoon 0612345678"), "codes en lange nummers wel");
+        check(AiMemory.secretWord("mijn pincode is 4321") && !AiMemory.secretWord("Telefoon 0612345678") && !AiMemory.secretWord("Woont in Delft"), "op verzoek: alleen echte geheimen geweigerd");
 
         // Voorstellen van het model
         List<String> f = AiMemory.parseFacts("- Woont in Rotterdam\n- Heeft een zoon, Daan.\n- Wat is je naam?\n- Wachtwoord is geheim123\nOverige tekst\n- Woont in Rotterdam.\n- Sport op dinsdag.\n- Houdt van jazz.", Arrays.asList("Sport op dinsdag."));
@@ -63,6 +77,15 @@ public class AiMemoryTest {
         check(LocalAi.memNote("Sport op dinsdag", null, false, false).contains("\"Sport op dinsdag\""), "melding na onthouden");
         check(LocalAi.memNote(null, "Woont in Delft.", true, false).contains("niet meer") && LocalAi.memNote(null, "", true, false).contains("niets over"), "melding na vergeten (wel of niet gevonden)");
         check(LocalAi.memNote("x", null, false, true).contains("staat uit") && LocalAi.memNote(null, null, false, false).isEmpty(), "geheugen uit: dat zeggen; anders niets");
+        check(!LocalAi.sideTooBig(3000, 160, 4096) && LocalAi.sideTooBig(12000, 160, 4096), "leren overslaan als het niet in het geheugen van het model past");
+        List<String> all = new ArrayList<>(Arrays.asList("B.", "A."));
+        List<String> f1 = LocalAi.memFor("c1", all, 1000);
+        all.add(0, "Nieuw."); // er komt iets bij (nieuwste eerst)
+        List<String> f2 = LocalAi.memFor("c1", all, 1000);
+        check(f1.equals(f2) && f2.equals(Arrays.asList("B.", "A.")), "per gesprek dezelfde herinneringen (de motor kan hergebruiken)");
+        all.remove("A.");
+        check(LocalAi.memFor("c1", all, 1000).equals(Arrays.asList("B.")), "wat weg is, gaat er wel uit");
+        check(LocalAi.memFor("c2", all, 1000).get(0).equals("Nieuw."), "een nieuw gesprek: de nieuwste");
 
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");

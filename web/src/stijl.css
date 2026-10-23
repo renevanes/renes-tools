@@ -693,7 +693,7 @@ body.solo:not(.solo-player).has-plbar main{padding-bottom:24px}
 .aimem{margin:6px 2px 0;max-width:88%;display:flex;flex-direction:column;gap:6px}
 .aimemrow{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;font-size:13.5px;color:var(--muted);line-height:1.35}
 .aimemrow>span{flex:1 1 180px;min-width:0}.aimemrow b{color:var(--ink);font-weight:600}.aimemrow .ui-icon{width:16px;height:16px;color:var(--primary);flex:none}
-.aimemrow .linkish{font-size:13px;padding:4px 2px;min-height:32px}
+.aimemrow .linkish{font-size:13px;padding:4px 6px;min-height:44px}
 .aimemask{padding:10px 12px;border-radius:14px;background:var(--tonal);display:flex;flex-direction:column;gap:8px}
 .aimemask>b{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink)}.aimemask .aimemrow{color:var(--ink)}
 .aimemask .mini{float:none;margin:0}

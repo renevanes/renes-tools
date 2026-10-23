@@ -127,7 +127,7 @@ public class AiBridge extends FeatureBridge {
     /** Iets onthouden (een voorstel dat je goedkeurde, of zelf ingetypt). Geeft {id, text, dup} of {error}. */
     @JavascriptInterface public String aiMemAdd(String text, String src, String chat, String title) {
         try {
-            String s = "zelf".equals(src) ? "zelf" : "geleerd";
+            String s = "zelf".equals(src) || "gevraagd".equals(src) ? src : "geleerd"; // terugzetten houdt de herkomst
             return AiMemory.add(ctx, text == null ? "" : text, s, chat, title).toString();
         } catch (Exception e) { return "{\"error\":\"Onthouden lukte niet\"}"; }
     }

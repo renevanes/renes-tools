@@ -241,13 +241,18 @@ if (!window.Android) window.Android = (function(){
       const words = A.reply.split(/(?<= )/); let i = 0;
       // Geheugen zoals LocalAi: "onthoud …" meteen, anders na het antwoord kijken wat er te leren valt
       const cfg = Object.assign({}, this._aiCfgDef, A.cfg), q = r.messages[r.messages.length - 1].content, memOn = cfg.mem !== 'uit';
-      const rem = /^\s*onthoud\b[\s,:]*(dat\s+)?(.+)$/i.exec(q);
-      if (rem && memOn) { const res = JSON.parse(this.aiMemAdd(rem[2], 'gevraagd', r.chat, r.title)); onAiMemory({ saved: [res], explicit: true }); }
-      const used = memOn ? A.mem.length : 0, learn = memOn && !rem && cfg.learn !== 'uit' && /\b(ik|mijn)\b/i.test(q);
-      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone(Object.assign({ done: true, n: words.length }, used ? { mem: used } : {}, learn ? { learning: true } : {}));
-        if (learn) { setTimeout(() => onAiMemory({ thinking: true }), 20); setTimeout(() => {
-          if (A.learnStop) { A.learnStop = false; onAiMemory({ none: true, stopped: true }); return; }
-          if (cfg.learn === 'vanzelf') onAiMemory({ saved: A.learnFacts.map(f => JSON.parse(this.aiMemAdd(f, 'geleerd', r.chat, r.title))) }); else onAiMemory({ ask: A.learnFacts.slice() }); }, 150); } } };
+      const turn = ++A.seq;
+      if (A.learningNow) A.learnStop = true; // een nieuwe vraag stopt het leren (zoals LocalAi.chat)
+      const rem = /^\s*onthoud\b[\s,]*(?::|dat\b)\s*(.+)$/i.exec(q), fg = rem ? null : /^\s*vergeet\b[\s,]*(?::|dat\b)\s*(.+)$/i.exec(q);
+      if (rem && memOn) { const res = JSON.parse(this.aiMemAdd(rem[1], 'gevraagd', r.chat, r.title)); onAiMemory({ saved: [res], explicit: true, pre: true, turn }); }
+      if (fg && memOn) { const w = fg[1].toLowerCase(), m = A.mem.find(x => w.split(/\s+/).filter(v => v.length > 3).some(v => x.text.toLowerCase().includes(v)));
+        if (m) A.mem = A.mem.filter(x => x !== m); onAiMemory(Object.assign({ forgot: m ? m.text : '', pre: true, turn }, m ? { forgotItem: m } : {})); }
+      const used = memOn ? A.mem.length : 0, learn = memOn && !rem && !fg && cfg.learn !== 'uit' && /\b(ik|mijn)\b/i.test(q) && !(r.notes && this._aiReady('zoek'));
+      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone(Object.assign({ done: true, n: words.length, turn }, used ? { mem: used } : {}, learn ? { learning: true } : {}));
+        if (learn) { A.learningNow = true; setTimeout(() => onAiMemory({ thinking: true, turn }), 20); setTimeout(() => {
+          A.learningNow = false;
+          if (A.learnStop) { A.learnStop = false; onAiMemory({ none: true, stopped: true, turn }); return; }
+          if (cfg.learn === 'vanzelf') onAiMemory({ saved: A.learnFacts.map(f => JSON.parse(this.aiMemAdd(f, 'geleerd', r.chat, r.title))), turn }); else onAiMemory({ ask: A.learnFacts.slice(), turn }); }, A.learnMs || 150); } } };
       if (r.notes && this._aiReady('zoek')) { onAiStatus('Zoeken in je gegevens…'); onAiSources([{ kind: 'notes', id: (notesGet()[0] || {}).id || 'x', title: 'Garage', snip: 'APK in maart', score: 0.61 }].concat(this._ai.src.sms ? [{ kind: 'sms', id: '7', title: 'Jos', snip: '[1 okt] Jos: de garage belt morgen', score: 0.5 }] : [])); }
       A.timer = setTimeout(() => { onAiStatus(''); tick(); }, 120); return ''; },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },

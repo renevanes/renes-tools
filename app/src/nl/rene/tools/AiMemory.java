@@ -50,7 +50,8 @@ final class AiMemory {
     }
 
     private static final Set<String> STOP = new HashSet<>(java.util.Arrays.asList(
-            "de", "het", "een", "en", "van", "in", "op", "is", "dat", "die", "te", "met", "voor", "aan", "er", "ik", "mijn", "je", "jij", "zijn", "heeft", "hij", "zij", "ze", "the", "a", "an", "of", "to", "and", "is", "my", "i"));
+            "de", "het", "een", "en", "van", "in", "op", "is", "dat", "die", "te", "met", "voor", "aan", "er", "ik", "mijn", "je", "jij", "zijn", "heeft", "hij", "zij", "ze", "bij", "naar", "om", "uit", "over", "als", "ook", "nog", "wel", "niet", "maar", "dan", "of", "ben", "was",
+            "the", "a", "an", "of", "to", "and", "is", "my", "i", "at", "on", "for", "am"));
 
     /** Woorden zonder hoofdletters, leestekens en kleine woordjes. */
     static Set<String> words(String s) {
@@ -88,14 +89,24 @@ final class AiMemory {
         return out;
     }
 
-    private static final Pattern REMEMBER = Pattern.compile("^\\s*(?:wil je\\s+|kun je\\s+|kan je\\s+|graag\\s+)?(?:onthoud|onthou|onthouden|remember|noteer)\\b[\\s,:]*(?:even\\s+|alsjeblieft\\s+|aub\\s+|please\\s+)?(?:dat|that)?\\s*(.+?)[\\s?.!]*$",
-            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-    private static final Pattern FORGET = Pattern.compile("^\\s*(?:wil je\\s+|kun je\\s+|kan je\\s+)?(?:vergeet|forget)\\b[\\s,:]*(?:even\\s+|alsjeblieft\\s+|aub\\s+|please\\s+)?(?:dat|that)?\\s*(.+?)[\\s?.!]*$",
-            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    // Alleen duidelijke opdrachten: "onthoud dat …", "onthoud: …", of "onthoud mijn …" (niet "onthoud je wat ik zei?")
+    private static final String POLITE = "(?:(?:wil|kun|kan) je\\s+|graag\\s+|alsjeblieft\\s+|please\\s+|can you\\s+)?";
+    private static final String SOFT = "(?:(?:even|alsjeblieft|aub|please)\\b[\\s,]*)?";
+    private static final String NOT_ABOUT = "(?!\\s*(?:je|jij|u|wat|hoe|of|waarom|wie|wanneer|waar|dit|dat|het|alles|dingen|iets|me|mij|you|what|how|if|why|who|when|where|this|it|everything|anything|something|me)\\b)";
+    private static final Pattern REMEMBER_DAT = Pattern.compile("^\\s*" + POLITE + "(?:onthoud|onthou|onthouden|remember)\\b[\\s,]*" + SOFT + "(?::|\\bdat\\b|\\bthat\\b)\\s*(.+?)[\\s.!?]*$",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.UNICODE_CASE);
+    private static final Pattern REMEMBER_BARE = Pattern.compile("^\\s*(?:onthoud|remember)\\b[\\s,]*" + SOFT + NOT_ABOUT + "([^?]+?)[\\s.!]*$",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.UNICODE_CASE);
+    private static final String NOT_FORGET = "(?!\\s*(?:niet|nooit|het|maar|alles|dat maar|je|jij|u|not|it|about it|everything|you)\\b)";
+    private static final Pattern FORGET = Pattern.compile("^\\s*" + POLITE + "(?:vergeet|forget)\\b[\\s,]*" + SOFT + "(?::\\s*|(?:dat|that|about)\\s+" + NOT_FORGET + "|" + NOT_FORGET + ")\\s*([^?]+?)[\\s.!]*$",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.UNICODE_CASE);
 
-    /** "Onthoud dat ik op dinsdag sport" → "Ik sport op dinsdag"-achtig: de tekst om te onthouden, of null. */
-    static String rememberCmd(String msg) { return cmd(REMEMBER, msg); }
-    /** "Vergeet dat ik in Delft woon" → "ik in Delft woon", of null. */
+    /** "Onthoud dat ik op dinsdag sport" → "Ik op dinsdag sport" (het model maakt er daarna een nette zin van), of null. */
+    static String rememberCmd(String msg) {
+        String x = cmd(REMEMBER_DAT, msg);
+        return x != null ? x : cmd(REMEMBER_BARE, msg);
+    }
+    /** "Vergeet dat ik in Delft woon" → "Ik in Delft woon", of null ("vergeet niet …" is geen opdracht om te vergeten). */
     static String forgetCmd(String msg) { return cmd(FORGET, msg); }
     private static String cmd(Pattern p, String msg) {
         if (msg == null || msg.length() > 600) return null;
@@ -106,7 +117,8 @@ final class AiMemory {
     }
 
     private static final Pattern FIRST_PERSON = Pattern.compile("(?iu)(^|[^\\p{L}])(ik|mijn|m'n|me|mij|mijzelf|wij|we|ons|onze|i|my|mine|i'm|i've)([^\\p{L}]|$)");
-    private static final Pattern TASK = Pattern.compile("(?iu)^\\s*(vat|vertaal|schrijf|herschrijf|maak|leg|verbeter|controleer|corrigeer|samenvat|translate|summari[sz]e|write|rewrite|fix|explain)\\b");
+    private static final Pattern TASK = Pattern.compile("(?iu)^\\s*(?:(?:kun|kan|wil) je\\s+|graag\\s+|can you\\s+|please\\s+)?(?:dit\\s+|deze tekst\\s+|this\\s+)?(vat|vertaal|schrijf|herschrijf|maak|leg|verbeter|controleer|corrigeer|samenvat|translate|summari[sz]e|write|rewrite|fix|explain)"
+            + "|\\b(samenvatten|vertalen|herschrijven|verbeteren|corrigeren|summari[sz]e|translate)\\b");
 
     /** Is het de moeite om te kijken of er iets te onthouden valt? Iets over jezelf, geen opdracht met geplakte tekst. */
     static boolean worthy(String msg) {
@@ -117,11 +129,16 @@ final class AiMemory {
         return FIRST_PERSON.matcher(m).find();
     }
 
-    private static final Pattern SECRET = Pattern.compile("(?iu)(wachtwoord|password|wachtzin|passphrase|pincode|\\bpin\\b|iban|creditcard|cvc|inlogcode|toegangscode|verificatiecode|\\btoken\\b|bsn|burgerservicenummer)"
-            + "|\\d{6,}|\\b[A-Z]{2}\\d{2}[A-Z0-9]{10,}\\b");
+    // Duidelijk geheim (ook als je zelf vraagt het te onthouden): daar is de Kluis voor
+    private static final Pattern SECRET_WORD = Pattern.compile("(?iu)\\b(wachtwoord(en)?|password|wachtzin|passphrase|pincode|pin|pin-?code|iban|creditcard|cvc|cvv|inlogcode|toegangscode|verificatiecode|deurcode|alarmcode|slotcode|code|token|bsn|burgerservicenummer|sofinummer)\\b"
+            + "|\\b[A-Z]{2}\\d{2}\\s?[A-Z]{4}\\s?\\d{4}\\s?\\d{4}\\s?\\d{2,}");
+    // Ook geen lange nummers vanzelf (rekening-, klant- of telefoonnummers); een datum of jaartal mag wel
+    private static final Pattern LONG_NUMBER = Pattern.compile("(?<![\\d-])\\d{6,}(?![\\d-])");
 
-    /** Wachtwoorden, codes en nummers onthoudt de assistent nooit vanzelf. */
-    static boolean secret(String s) { return s != null && (SECRET.matcher(s).find() || SECRET.matcher(s.replace(" ", "").replace("-", "")).find()); }
+    /** Wachtwoorden, codes en rekeningnummers: nooit onthouden, ook niet op verzoek (wijs dan naar de Kluis). */
+    static boolean secretWord(String s) { return s != null && SECRET_WORD.matcher(s).find(); }
+    /** Wat de assistent nooit vanzelf onthoudt: geheimen en lange nummers. */
+    static boolean secret(String s) { return s != null && (secretWord(s) || LONG_NUMBER.matcher(s).find() || LONG_NUMBER.matcher(s.replaceAll("(?<=\\d) (?=\\d)", "")).find()); }
 
     /** De regels die het model voorstelt, opgeschoond: hooguit 3, geen dubbelen, geen vragen of geheimen. */
     static List<String> parseFacts(String out, List<String> existing) {
@@ -151,11 +168,12 @@ final class AiMemory {
         StringBuilder s = new StringBuilder("(Dit is een opdracht van de app, geen vraag van de gebruiker. Antwoord niet op de vraag zelf.)\n")
                 .append("Staat er in mijn laatste bericht iets over mijzelf dat je later nog moet weten? Bijvoorbeeld wie ik ben, mijn werk, mensen om mij heen, waar ik woon, voorkeuren, vaste gewoontes of plannen. ")
                 .append("Alleen wat ik zelf over mijzelf zeg en wat over een week nog klopt. Niet: de vraag zelf, dingen die alleen voor nu gelden, tekst van anderen, wachtwoorden, codes of nummers, en niets wat je al weet.\n\n")
-                .append("Mijn laatste bericht: «").append(userMsg.length() > 1500 ? userMsg.substring(0, 1500) : userMsg).append("»\n");
-        if (known != null && !known.isEmpty()) {
+                .append("Mijn laatste bericht: «").append(userMsg.length() > 600 ? userMsg.substring(0, 600) + "…" : userMsg).append("»\n");
+        // Kort houden (anders past het niet in het geheugen van het model): dubbelen haalt de app er zelf uit
+        List<String> k = pick(known == null ? new ArrayList<String>() : known, 400);
+        if (!k.isEmpty()) {
             s.append("\nWat je al weet:\n");
-            int n = 0;
-            for (String k : known) { if (n++ >= 25) break; s.append("- ").append(k).append('\n'); }
+            for (String x : k) s.append("- ").append(x).append('\n');
         }
         s.append("\nAntwoord alleen met hooguit 3 korte regels die beginnen met \"- \", in korte zinnen zonder onderwerp, zoals:\n- Woont in Rotterdam.\n- Heeft een zoon, Daan.\nIs er niets te onthouden, antwoord dan alleen: GEEN");
         return s.toString();
@@ -208,7 +226,12 @@ final class AiMemory {
                     l.add(new Item(o.optString("id"), o.optString("text"), o.optString("src"), o.optString("chat"), o.optString("title"), o.optLong("t"), o.optLong("u", o.optLong("t"))));
                 }
             }
-        } catch (Exception ignored) { }
+        } catch (Exception e) {
+            // Kapot bestand: niet overschrijven (dan zou alles weg zijn), maar apart zetten
+            File f = file(c);
+            f.renameTo(new File(f.getPath() + ".kapot-" + System.currentTimeMillis()));
+            App.log(c, "AI", "geheugen niet te lezen, apart gezet: " + e);
+        }
         cache = l;
         return l;
     }
@@ -272,22 +295,38 @@ final class AiMemory {
         save(c);
     }
 
-    /** "Vergeet dat …": de best passende herinnering weg; geeft de tekst die weg is, of "". */
-    static synchronized String forget(Context c, String what) throws Exception {
+    /** Hetzelfde woord, ook vervoegd ("woon" en "woont"). */
+    static boolean sameWord(String a, String b) {
+        if (a.equals(b)) return true;
+        return Math.min(a.length(), b.length()) >= 4 && (a.startsWith(b) || b.startsWith(a));
+    }
+
+    /** Welke herinnering bedoeld wordt met "vergeet dat …"; -1 als het niet duidelijk is. Zuiver (getest). */
+    static int forgetIndex(List<String> texts, String what) {
         Set<String> w = words(what);
-        if (w.isEmpty()) return "";
-        Item best = null; double score = 0;
-        for (Item m : load(c)) {
-            Set<String> y = words(m.text);
+        if (w.isEmpty()) return -1;
+        int best = -1, bestBoth = 0; double score = 0;
+        for (int i = 0; i < texts.size(); i++) {
+            Set<String> y = words(texts.get(i));
             int both = 0;
-            for (String x : w) if (y.contains(x)) both++;
-            double s = (double) both / Math.max(1, w.size());
-            if (s > score) { score = s; best = m; }
+            for (String x : w) for (String v : y) if (sameWord(x, v)) { both++; break; }
+            double s = (double) both / w.size();
+            if (s > score) { score = s; best = i; bestBoth = both; }
         }
-        if (best == null || score < 0.5) return "";
-        load(c).remove(best);
+        // Minstens twee woorden gelijk (of het ene woord dat je noemde), en het grootste deel
+        return best >= 0 && score >= 0.6 && (bestBoth >= 2 || w.size() == 1) ? best : -1;
+    }
+
+    /** "Vergeet dat …": de passende herinnering weg; geeft die (om terug te zetten), of null. */
+    static synchronized JSONObject forget(Context c, String what) throws Exception {
+        List<Item> l = load(c);
+        List<String> t = new ArrayList<>();
+        for (Item m : l) t.add(m.text);
+        int i = forgetIndex(t, what);
+        if (i < 0) return null;
+        Item m = l.remove(i);
         save(c);
-        return best.text;
+        return new JSONObject().put("id", m.id).put("text", m.text).put("src", m.src).put("chat", m.chat).put("title", m.title);
     }
 
     static synchronized int count(Context c) { return load(c).size(); }
