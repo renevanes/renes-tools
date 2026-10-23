@@ -117,7 +117,9 @@ struct Engine {
 };
 
 // Tokens verwerken vanaf positie pos0; alleen voor het laatste token de uitkomst
-static bool decode(Engine & E, const llama_token * toks, int n, int pos0, bool last_logits) {
+// done (als niet null): hoeveel tokens er verwerkt in het geheugen staan, ook als het halverwege stopte
+static bool decode(Engine & E, const llama_token * toks, int n, int pos0, bool last_logits, int * done = nullptr) {
+    if (done) *done = 0;
     for (int off = 0; off < n; off += E.n_batch) {
         int m = std::min(E.n_batch, n - off);
         llama_batch_ext_clear(E.batch);
@@ -129,6 +131,7 @@ static bool decode(Engine & E, const llama_token * toks, int n, int pos0, bool l
         }
         if (last_logits && off + m == n) llama_batch_ext_set_output_logits(E.batch, m - 1, true);
         if (llama_process(E.ctx, LLAMA_PROCESS_TYPE_DECODE, E.batch) != 0) return false;
+        if (done) *done = off + m;
         if (cancelled()) return false;
     }
     return true;
@@ -229,13 +232,23 @@ static void do_chat(Engine & E, const json & j) {
     }
     E.cache.resize(keep);
 
-    if (!decode(E, toks.data() + keep, (int) (toks.size() - keep), (int) keep, true)) {
+    int got = 0;
+    if (!decode(E, toks.data() + keep, (int) (toks.size() - keep), (int) keep, true, &got)) {
+        if (cancelled()) {
+            // Gestopt tijdens het inlezen: wat al verwerkt is, blijft (de volgende vraag met hetzelfde begin is dan snel)
+            size_t ok = keep + (size_t) got;
+            if (ok >= toks.size()) E.cache.assign(toks.begin(), toks.end());
+            else if (llama_memory_seq_rm(mem, 0, (llama_pos) ok, -1)) E.cache.assign(toks.begin(), toks.begin() + ok);
+            else { llama_memory_clear(mem, true); E.cache.clear(); }
+            emit(json{{"done", true}, {"cancelled", true}, {"n", 0}, {"kept", (int) E.cache.size()}});
+            return;
+        }
         llama_memory_clear(mem, true); E.cache.clear();
-        if (cancelled()) { emit(json{{"done", true}, {"cancelled", true}, {"n", 0}}); return; }
         emit_error("Het model kon de vraag niet verwerken");
         return;
     }
     E.cache.insert(E.cache.end(), toks.begin() + keep, toks.end());
+    const int reused = (int) keep;
 
     llama_sampler * smpl = llama_sampler_chain_init(llama_sampler_chain_default_params());
     llama_sampler_chain_add(smpl, llama_sampler_init_top_k(top_k > 0 ? top_k : 40));
@@ -287,7 +300,7 @@ static void do_chat(Engine & E, const json & j) {
     if (!in_think && !pending.empty()) emit(json{{"t", pending}});
     llama_sampler_free(smpl);
     long ms = (long) std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
-    emit(json{{"done", true}, {"n", n}, {"prompt", (int) toks.size()}, {"ms", ms}, {"cut", cut}, {"trim", trim}, {"cancelled", cancelled()}, {"full", full}});
+    emit(json{{"done", true}, {"n", n}, {"prompt", (int) toks.size()}, {"reused", reused}, {"ms", ms}, {"cut", cut}, {"trim", trim}, {"cancelled", cancelled()}, {"full", full}});
 }
 
 static void do_embed(Engine & E, const json & j) {

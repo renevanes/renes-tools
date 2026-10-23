@@ -7,6 +7,7 @@ Dependabot kent deze niet (geen package.json of Gradle), dus dit script doet het
   - app/lib/*/libllm.so (llama.cpp-commit)          → nieuwste release + OSV
   - Playwright-versie in publiceren.yml            → npm-register
   - Android build-tools, android.jar/targetSdk, aapt2, zig, Node en Java → nieuwste versies (Google, npm, PyPI, Node-schema, Adoptium)
+  - AI-modellen in LocalAi.java (Hugging Face)     → nieuwere modellen van dezelfde maker in dezelfde grootte
 
 Schrijft een Markdown-rapport naar stdout. Afsluitcode 0 = alles bij, 10 = er is iets te doen, 1 = fout.
 Alleen standaardbibliotheek; GITHUB_TOKEN (optioneel) voorkomt limieten op de GitHub-API.
@@ -84,9 +85,69 @@ AAPT2 = ("setup-tools.sh", r"aaptjs3@(\d+\.\d+\.\d+)")
 PLATFORM = ("setup-tools.sh", r"sparse-checkout set android-(\d+)")
 TARGET = ("build.sh", r"--target-sdk-version (\d+)")
 ZIG = ("tools/whisper-build.sh", r'ZIG_VERSION="(\d+\.\d+\.\d+)"')
+# De AI-modellen: new Model("id", "label", "desc", "repo", "commit", "bestand", …)
+MODELLEN = ("app/src/nl/rene/tools/LocalAi.java",
+            r'new Model\("(\w+)",\s*"[^"]*",\s*"[^"]*",\s*"([^"]+)",\s*"([0-9a-f]{40})",\s*"([^"]+\.gguf)"')
 ALLE = {"Leaflet": LEAFLET, "jsQR": JSQR, "Playwright": PLAYWRIGHT, "whisper.cpp": WHISPER,
         "llama.cpp": LLAMA, "build-tools": BUILDTOOLS, "aapt2": AAPT2, "android-platform": PLATFORM,
         "targetSdk": TARGET, "zig": ZIG, "zig (llm)": ("tools/llm-build.sh", ZIG[1])}
+
+
+def modellen():
+    tekst = (ROOT / MODELLEN[0]).read_text(errors="replace")
+    gevonden = re.findall(MODELLEN[1], tekst)
+    if not gevonden:
+        raise RuntimeError(f"geen modellen gevonden in {MODELLEN[0]}")
+    return gevonden  # [(id, repo, commit, bestand)]
+
+
+def model_soort(naam):
+    """Grootte en soort uit een naam: ('4b', False) of ('0.6b', True) voor een zoekmodel (embedding)."""
+    m = re.search(r"(\d+(?:\.\d+)?)[bB](?![a-zA-Z])", naam)
+    return (m.group(1) + "b" if m else ""), ("embed" in naam.lower())
+
+
+def familie(naam):
+    """'Qwen3-4B-GGUF' → (3.0, 'qwen'); 'Qwen3.5-4B' → (3.5, 'qwen'). Hoger = nieuwer."""
+    m = re.match(r"([A-Za-z]+)[-_]?(\d+(?:\.\d+)?)", naam.split("/")[-1].replace("Qwen_", ""))
+    return (float(m.group(2)), m.group(1).lower()) if m else (0.0, "")
+
+
+def nieuwere_modellen():
+    """Per model: nieuwere GGUF-modellen van dezelfde maker in dezelfde grootte (en soort) op Hugging Face."""
+    uit = []
+    for mid, repo, commit, bestand in modellen():
+        grootte, embed = model_soort(bestand)
+        nu_versie, merk = familie(bestand)
+        maker = "Qwen" if merk == "qwen" else repo.split("/")[0]
+        try:
+            lijst = http_json(f"https://huggingface.co/api/models?author={maker}&search=GGUF&sort=createdAt&direction=-1&limit=100")
+            if merk:  # ook de bekende omzetters naar GGUF (de maker zelf doet dat niet altijd)
+                for omzetter in ("bartowski", "unsloth"):
+                    lijst += http_json(f"https://huggingface.co/api/models?author={omzetter}&search={merk}&sort=createdAt&direction=-1&limit=100")
+            info = http_json(f"https://huggingface.co/api/models/{repo}")
+        except Exception as e:
+            uit.append((mid, repo, commit, None, f"Hugging Face niet bereikbaar ({e}); controleer met de hand"))
+            continue
+        beter = []
+        for x in lijst:
+            naam = x.get("id", "")
+            g, e = model_soort(naam)
+            v, f = familie(naam)
+            # Ongeveer even groot (bijv. 1.7B → 2B), dezelfde soort en maker, en een hogere versie
+            past = g and grootte and 0.66 <= float(g[:-1]) / float(grootte[:-1]) <= 1.5
+            if past and e == embed and f == merk and v > nu_versie and "gguf" in naam.lower() and naam not in beter:
+                beter.append(naam)
+        opm = ""
+        if beter:
+            opm = ("nieuwer: " + ", ".join(beter[:4]) + ". Overnemen = een nieuw Model met een eigen id in LocalAi.java "
+                   f"met .replaces(\"{mid}\", \"waarom beter\"), vaste commit en SHA-256 (nooit het bestand van \"{mid}\" zelf wijzigen)"
+                   + ("; een ander zoekmodel vraagt ook code in SmartSearch (LocalAi.EMBED, nieuwe index)" if embed else "")
+                   + ". Eerst zelf proberen (Nederlands, snelheid op een telefoon met 6-8 GB)")
+        elif info.get("sha") and info["sha"] != commit:
+            opm = f"{repo} is bijgewerkt sinds de vaste versie (meestal alleen tekst); de app blijft de vaste versie gebruiken"
+        uit.append((mid, repo, commit, beter[0] if beter else None, opm))
+    return uit
 
 
 def versie_tuple(v):
@@ -205,6 +266,12 @@ def main():
     except Exception as e:
         item("Java (workflows)", ".github/workflows", "?", None, (), f"niet te controleren ({e})", verouderd=True)
 
+    # AI-modellen: nieuwere versies in dezelfde grootte (de app downloadt nooit vanzelf iets nieuws; een agent of
+    # Rene beslist of een nieuw model meekomt, met een melding in de app)
+    for mid, repo, commit, beter, opm in nieuwere_modellen():
+        # Niet bereikbaar: ook als iets om te doen melden (met de hand nakijken), niet stil "bij"
+        item(f"AI-model {mid}", repo, commit[:12], beter or commit[:12], (), opm, verouderd=beter is not None or "niet bereikbaar" in opm)
+
     te_doen = [i for i in items if i["verouderd"] or i["kwetsbaar"]]
     if "--json" in sys.argv:
         print(json.dumps({"items": items, "te_doen": len(te_doen)}, indent=2))
@@ -226,6 +293,8 @@ if __name__ == "__main__":
         try:
             for naam, (pad, patroon) in ALLE.items():
                 print(f"{naam}: {lees(pad, patroon)}")
+            for mid, repo, commit, bestand in modellen():
+                print(f"AI-model {mid}: {repo}@{commit[:12]} {bestand} {model_soort(bestand)} {familie(bestand)}")
         except Exception as e:
             print(f"Versie niet te lezen: {e}. Pas de schrijfwijze of het patroon in dit script aan.", file=sys.stderr)
             sys.exit(1)

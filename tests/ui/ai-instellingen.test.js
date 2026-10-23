@@ -9,7 +9,7 @@ const { chromium } = require('playwright');
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
     await pg.evaluate(() => { Android._ai.st.klein = { state: 'ready' }; show('ai'); }); await pg.waitForTimeout(200);
     await pg.click('#ai-menu'); await pg.click('#sheet-acts button:has-text("Instellingen")'); await pg.waitForTimeout(200);
-    ok((await pg.$$('#s-aiset .strow')).length === 8, 'overzicht met acht onderwerpen');
+    ok((await pg.$$('#s-aiset .strow')).length === 9, 'overzicht met negen onderwerpen');
     ok((await pg.textContent('#ai-sum-model')) === 'Klein en snel' && (await pg.textContent('#ai-sum-answer')).includes('Normaal') && (await pg.textContent('#ai-sum-pers')) === 'Nog niets ingevuld', 'stand van zaken per onderwerp');
     // Antwoorden
     await pg.click('#s-aiset .strow:has-text("Antwoorden")'); await pg.waitForTimeout(150);

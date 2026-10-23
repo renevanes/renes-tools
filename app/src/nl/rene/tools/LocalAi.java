@@ -43,6 +43,11 @@ final class LocalAi {
         }
         /** Vaste versie (commit) op Hugging Face: een latere wijziging daar verandert niets aan wat we downloaden. */
         String url() { return "https://huggingface.co/" + repo + "/resolve/" + commit + "/" + file; }
+        /** Een nieuwer model dat een ouder vervangt (met een app-update meegekomen): de app meldt het, maar
+         *  downloadt nooit vanzelf. Een nieuw model krijgt altijd een eigen id; het bestand van een bestaand id
+         *  verandert nooit. news = één regel waarom het beter is, bijv. "Beter Nederlands, even snel". */
+        String replaces = "", news = "";
+        Model replaces(String oldId, String why) { replaces = oldId; news = why; return this; }
     }
 
     // Controlegetallen van Hugging Face (LFS-oid = SHA-256 en de precieze grootte)
@@ -74,6 +79,23 @@ final class LocalAi {
     private static File partFile(Context c, Model m) { return new File(dlDir(c), m.file + ".download"); }
     private static File tmpFile(Context c, Model m) { return new File(modelDir(c), m.file + ".tmp"); }
 
+    /** Bestanden van modellen die deze app-versie niet meer kent (na een update met een nieuwer model). Zuiver (getest). */
+    static boolean orphan(String name, Model[] models) {
+        for (Model m : models) if (name.equals(m.file) || name.equals(m.file + ".tmp") || name.equals(m.file + ".download")) return false;
+        return name.endsWith(".gguf") || name.endsWith(".gguf.tmp") || name.endsWith(".gguf.download");
+    }
+    private static List<File> orphans(Context c) {
+        List<File> out = new ArrayList<>();
+        for (File d : new File[]{modelDir(c), c.getExternalFilesDir("ai")}) {
+            File[] fs = d == null ? null : d.listFiles();
+            if (fs != null) for (File f : fs) if (f.isFile() && orphan(f.getName(), MODELS)) out.add(f);
+        }
+        return out;
+    }
+    static long orphanBytes(Context c) { long n = 0; for (File f : orphans(c)) n += f.length(); return n; }
+    /** Oude modelbestanden weg; geeft hoeveel ruimte dat opleverde. */
+    static long cleanOrphans(Context c) { long n = 0; for (File f : orphans(c)) { long l = f.length(); if (f.delete()) n += l; } return n; }
+
     /** Genoeg geheugen om het taal- en het zoekmodel tegelijk te laden? (8 GB-telefoons melden ±7,4 GB) */
     static boolean bigRam(Context c) { return ramBytes(c) >= 7_000_000_000L; }
 
@@ -86,7 +108,7 @@ final class LocalAi {
     static Model chatModel(Context c) {
         Model m = model(prefs(c).getString("chat", SMALL.id));
         if (m == null || m.embed) m = SMALL;
-        if (!ready(c, m)) for (Model x : new Model[]{SMALL, LARGE}) if (ready(c, x)) return x;
+        if (!ready(c, m)) for (Model x : MODELS) if (!x.embed && ready(c, x)) return x; // ook een nieuwer model
         return m;
     }
 
@@ -116,6 +138,8 @@ final class LocalAi {
             {"history", "24", "8", "48"},
             {"power", "normaal", "zuinig", "max"},
             {"idle", "4", "1", "15"},
+            {"mem", "aan", "uit"},                  // geheugen gebruiken in antwoorden
+            {"learn", "vragen", "vanzelf", "uit"},  // leren uit gesprekken: eerst vragen, vanzelf, of niet
     };
     static final int TEXT_MAX = 1000;
 
@@ -148,7 +172,8 @@ final class LocalAi {
     }
     static void cfgReset(Context c) {
         SharedPreferences.Editor e = prefs(c).edit();
-        for (String[] r : CFG) e.remove("cfg_" + r[0]);
+        // Het geheugen aan of uit is een privacykeuze: die blijft (net als wat er onthouden is)
+        for (String[] r : CFG) if (!"mem".equals(r[0]) && !"learn".equals(r[0])) e.remove("cfg_" + r[0]);
         e.remove("cfg_about").remove("cfg_instr").apply();
     }
     static String cfg(Context c, String name) {
@@ -182,7 +207,10 @@ final class LocalAi {
     }
 
     /** De vaste instructie voor het model, met de keuzes van de gebruiker. */
-    static String buildSystem(String today, String style, String lang, String about, String instr) {
+    static String buildSystem(String today, String style, String lang, String about, String instr) { return buildSystem(today, style, lang, about, instr, null, ""); }
+
+    /** mem = herinneringen (nieuwste eerst, al ingekort), note = wat er net met het geheugen gebeurde ("onthoud …"). */
+    static String buildSystem(String today, String style, String lang, String about, String instr, List<String> mem, String note) {
         StringBuilder s = new StringBuilder("Je bent de offline assistent in de app Tools. Je draait helemaal op de telefoon van de gebruiker, zonder internet. ");
         if ("en".equals(lang)) s.append("Antwoord altijd in het Engels (English), ook als de vraag in een andere taal is. ");
         else if ("auto".equals(lang)) s.append("Antwoord in dezelfde taal als de vraag. ");
@@ -193,6 +221,9 @@ final class LocalAi {
         s.append("Je hebt geen internet en geen actuele informatie: zeg dat eerlijk als dat nodig is, en verzin geen feiten. Vandaag is het ").append(today).append('.');
         if (about != null && !about.isEmpty()) s.append("\n\nOver de gebruiker (door de gebruiker zelf ingevuld):\n").append(about);
         if (instr != null && !instr.isEmpty()) s.append("\n\nZo wil de gebruiker dat je antwoordt:\n").append(instr);
+        String ms = AiMemory.section(mem);
+        if (!ms.isEmpty()) s.append("\n\n").append(ms);
+        if (note != null && !note.isEmpty()) s.append("\n\n").append(note);
         return s.toString();
     }
 
@@ -258,6 +289,7 @@ final class LocalAi {
         JSONObject o = new JSONObject();
         try {
             o.put("id", m.id).put("label", m.label).put("desc", m.desc).put("size", m.size).put("embed", m.embed);
+            if (!m.replaces.isEmpty()) o.put("replaces", m.replaces).put("news", m.news);
             if (ready(c, m)) return o.put("state", "ready");
             Integer v = VERIFYING.get(m.id);
             if (v != null) return o.put("state", "verifying").put("pct", v);
@@ -378,7 +410,12 @@ final class LocalAi {
 
     static boolean cancelled() { return cancel; }
     static boolean busy() { return GATE.busy(); }
-    static String loaded() { LlmProcess p = chat; return p != null && p.alive() ? (p.model.getName().equals(LARGE.file) ? LARGE.id : SMALL.id) : ""; }
+    static String loaded() {
+        LlmProcess p = chat;
+        if (p == null || !p.alive()) return "";
+        for (Model m : MODELS) if (!m.embed && p.model.getName().equals(m.file)) return m.id;
+        return "";
+    }
 
     static synchronized void closeChat() { if (chat != null) { chat.destroy(); chat = null; } }
     static synchronized void closeEmbed() { if (embed != null) { embed.destroy(); embed = null; } }
@@ -462,12 +499,25 @@ final class LocalAi {
         void token(String t);
         void done(JSONObject info);
         void error(String msg);
+        /** Iets met het geheugen: {saved:[{id,text}]}, {ask:[tekst]}, {forgot}, {thinking}, {none}, {error}. */
+        void memory(JSONObject o);
     }
 
-    static String systemPrompt(Context c, int ctx) {
+    static String systemPrompt(Context c, int ctx, List<String> mem, String note) {
         String today = new java.text.SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL")).format(new java.util.Date());
         String[] p = persFit(cfg(c, "about"), cfg(c, "instr"), ctx);
-        return buildSystem(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1]);
+        return buildSystem(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1], mem, note);
+    }
+
+    /** Wat er met het geheugen gebeurde, voor het model (zodat het dat kort bevestigt). Zuiver (getest). */
+    static String memNote(String remembered, String forgot, boolean forgetTried, boolean memOff) {
+        if (memOff && (remembered != null || forgetTried))
+            return "De gebruiker vroeg iets te onthouden of te vergeten, maar het geheugen staat uit (Lokale AI → Geheugen). Er is niets veranderd; zeg dat kort.";
+        if (remembered != null) return "De gebruiker vroeg je net iets te onthouden. Dat staat nu in je geheugen: \"" + remembered + "\". Bevestig dat kort.";
+        if (forgetTried) return forgot != null && !forgot.isEmpty()
+                ? "De gebruiker vroeg je iets te vergeten. Dit staat niet meer in je geheugen: \"" + forgot + "\". Bevestig dat kort."
+                : "De gebruiker vroeg je iets te vergeten, maar daar stond niets over in je geheugen. Zeg dat kort.";
+        return "";
     }
 
     /** Hoeveel tekens "Over mij" en "Instructies" samen in het geheugen van het model mogen (de rest is voor het gesprek). */
@@ -515,6 +565,8 @@ final class LocalAi {
         final long job = GATE.enter();
         if (job == 0) return false;
         cancel = false; cancelAt = 0;
+        // Was de assistent nog aan het kijken wat er te onthouden valt: dat stopt (de nieuwe vraag gaat voor)
+        stopLearning();
         try {
             AI.execute(() -> chatRun(c, req, sink, job));
         } catch (Throwable t) { GATE.leave(job); throw t; }
@@ -528,7 +580,42 @@ final class LocalAi {
             if (!ready(c, m)) throw new Exception("Download eerst een taalmodel");
             JSONArray in = req.optJSONArray("messages");
             if (in == null || in.length() == 0) throw new Exception("Geen vraag");
-            String sys = systemPrompt(c, m.ctx);
+            // De vraag zelf (voor het geheugen: "onthoud …", "vergeet …", en wat er te leren valt)
+            String question = "";
+            for (int i = in.length() - 1; i >= 0; i--) { JSONObject x = in.optJSONObject(i); if (x != null && !"assistant".equals(x.optString("role"))) { question = x.optString("content"); break; } }
+            boolean memOn = "aan".equals(cfg(c, "mem"));
+            String chatId = req.optString("chat"), chatTitle = req.optString("title");
+            String remember = AiMemory.rememberCmd(question), forgetWhat = remember == null ? AiMemory.forgetCmd(question) : null, rememberedId = null;
+            // Wat er met het geheugen gebeurde, voor het model: achter de vraag (niet in de vaste instructie, dan kan de
+            // motor het begin van het gesprek gewoon hergebruiken)
+            String note = "";
+            if (remember != null) {
+                if (!memOn) note = memNote(remember, null, false, true);
+                else if (AiMemory.secretWord(remember)) {
+                    sink.memory(ev(job, true).put("error", "Wachtwoorden, codes en rekeningnummers onthoud ik niet. Bewaar die versleuteld in de Kluis."));
+                    note = "De gebruiker vroeg je een wachtwoord, code of rekeningnummer te onthouden. Dat doe je niet (het geheugen is niet versleuteld): zeg dat kort en raad de Kluis in de app aan, waar het versleuteld staat.";
+                } else {
+                    JSONObject r = AiMemory.add(c, remember, "gevraagd", chatId, chatTitle);
+                    if (r.has("error")) { sink.memory(ev(job, true).put("error", r.optString("error"))); note = "De gebruiker vroeg je iets te onthouden, maar het geheugen is vol. Zeg dat kort: bij Lokale AI → Geheugen kan iets weg."; }
+                    else { if (!r.optBoolean("dup")) rememberedId = r.optString("id"); sink.memory(ev(job, true).put("saved", new JSONArray().put(r)).put("explicit", true)); note = memNote(r.optString("text"), null, false, false); }
+                }
+            }
+            if (forgetWhat != null) {
+                if (!memOn) note = memNote(null, null, true, true);
+                else {
+                    JSONObject f = AiMemory.forget(c, forgetWhat);
+                    JSONObject e = ev(job, true).put("forgot", f == null ? "" : f.optString("text"));
+                    if (f != null) e.put("forgotItem", f);
+                    sink.memory(e);
+                    note = memNote(null, f == null ? "" : f.optString("text"), true, false);
+                }
+            }
+            // Per gesprek steeds dezelfde herinneringen (vast vanaf de eerste vraag): dan blijft de vaste instructie
+            // gelijk en hoeft de motor het gesprek niet opnieuw in te lezen. Wat intussen weg is, gaat er wel uit.
+            List<String> mem = memOn ? memFor(chatId, AiMemory.pairs(c), AiMemory.limit(m.ctx)) : null;
+            String sys = systemPrompt(c, m.ctx, mem, "");
+            final int memUsed = mem == null ? 0 : mem.size();
+            boolean learnWanted = memOn && remember == null && forgetWhat == null && !"uit".equals(cfg(c, "learn")) && AiMemory.worthy(question);
             JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", sys));
             int from = Math.max(0, in.length() - historyFor(cfg(c, "history")));
             for (int i = from; i < in.length(); i++) {
@@ -542,11 +629,12 @@ final class LocalAi {
             JSONObject last = msgs.getJSONObject(msgs.length() - 1);
             if (!"user".equals(last.optString("role"))) throw new Exception("Geen vraag");
             // Met mijn notities: eerst slim zoeken, dan de stukken meegeven
-            if (req.optBoolean("notes") && ready(c, EMBED)) {
+            if (req.optBoolean("notes") && ready(c, EMBED) && remember == null && forgetWhat == null) {
                 sink.status("Zoeken in je gegevens…");
                 try {
                     JSONArray hits = SmartSearch.search(c, last.optString("content"), 4);
                     if (hits.length() > 0) {
+                        learnWanted = false; // met berichten van anderen erbij: niets leren (dat zou over hen kunnen gaan)
                         List<String[]> src = new ArrayList<>();
                         for (int i = 0; i < hits.length(); i++) {
                             JSONObject h = hits.getJSONObject(i);
@@ -558,6 +646,8 @@ final class LocalAi {
                 } catch (Exception e) { sink.status("Zoeken lukte niet: " + e.getMessage()); }
                 if (cancel) { GATE.leave(job); sink.done(new JSONObject().put("cancelled", true)); return; }
             }
+            if (!note.isEmpty()) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + note + ")");
+            final boolean willLearn = learnWanted;
             chatPhase = true; // vanaf hier het taalmodel: de index wacht op een kleinere telefoon
             if (!bigRam(c)) closeEmbedSafe(); // niet twee modellen tegelijk in een kleiner geheugen
             boolean starting = chat == null || !chat.alive() || !chat.model.equals(file(c, m)) || chat.threads != threads();
@@ -567,12 +657,21 @@ final class LocalAi {
             sink.status("");
             final CountDownLatch done = new CountDownLatch(1);
             final long rid = REQ.incrementAndGet();
+            final StringBuilder answer = new StringBuilder();
+            final String rememberedIdF = rememberedId;
+            final boolean[] ok = {false};
+            // Al vóór het einde: wie meteen een nieuwe vraag stelt, stopt het leren (chat())
+            learning = willLearn || rememberedId != null; learnStop = false;
             p.listen(o -> {
                 // de beurt eerst vrijgeven: wie meteen opnieuw vraagt, krijgt geen "nog bezig"
                 if (o.optBoolean("gone")) { if (done.getCount() > 0) { GATE.leave(job); done.countDown(); sink.error(o.optString("error")); } return; }
                 if (o.optLong("id") != rid || done.getCount() == 0) return; // niet van deze vraag
-                if (o.has("t")) sink.token(o.optString("t"));
-                else if (o.optBoolean("done")) { GATE.leave(job); done.countDown(); sink.done(o); }
+                if (o.has("t")) { String t = o.optString("t"); if (answer.length() < 20000) answer.append(t); sink.token(t); }
+                else if (o.optBoolean("done")) {
+                    ok[0] = !o.optBoolean("cancelled");
+                    try { o.put("turn", job); if (memUsed > 0) o.put("mem", memUsed); if (ok[0] && (willLearn || rememberedIdF != null)) o.put("learning", true); } catch (Exception ignored) { }
+                    GATE.leave(job); done.countDown(); sink.done(o);
+                }
                 else if (o.has("error")) { GATE.leave(job); done.countDown(); sink.error(o.optString("error")); }
             });
             try {
@@ -591,13 +690,147 @@ final class LocalAi {
                 }
             } finally { p.listen(null); }
             p.lastUse = System.currentTimeMillis();
+            // Leren: kijken of er in de vraag iets over de gebruiker stond om te onthouden (onderbreekbaar)
+            if (learning && ok[0] && !learnStop && p.alive() && rememberedId != null) rephraseRun(c, p, m, msgs, answer.toString(), rememberedId, remember, sink, job);
+            else if (learning && ok[0] && !learnStop && p.alive()) learnRun(c, p, m, msgs, answer.toString(), question, chatId, chatTitle, sink, job);
+            else if (ok[0] && (willLearn || rememberedId != null)) sink.memory(ev(job, false).put("none", true));
         } catch (Throwable t) {
             GATE.leave(job);
             sink.error(t.getMessage() == null ? "Er ging iets mis" : t.getMessage());
         } finally {
+            learning = false;
             chatPhase = false;
             GATE.leave(job);
             scheduleIdle();
+        }
+    }
+
+    private static volatile boolean learning, learnStop;
+
+    /** Er loopt nu echt een extra vraag (leren of netjes maken); alleen dan mag "cancel" naar de motor: anders zou
+     *  het het antwoord stoppen dat nog geschreven wordt. */
+    private static volatile boolean inSide;
+
+    static void stopLearning() {
+        if (!learning) return;
+        learnStop = true;
+        LlmProcess p = chat;
+        if (inSide && p != null && p.alive()) try { p.send(new JSONObject().put("op", "cancel")); } catch (Throwable ignored) { }
+    }
+
+    /** Een korte extra vraag aan het model, achter het gesprek (dat staat al in het geheugen van de motor, dus snel).
+     *  Geeft de tekst, of null als het stopte (nieuwe vraag, motor weg, te lang). */
+    private static String sideAsk(LlmProcess p, Model model, JSONArray msgs, String answer, String prompt, int max) throws Exception {
+        // Past het niet zonder dat de motor het begin van het gesprek moet inkorten: overslaan (dat zou het hergebruik
+        // voor de volgende vraag kosten). Ruwe schatting: ±3 tekens per woordje.
+        if (sideTooBig(msgs.toString().length() + answer.length() + prompt.length(), max, model.ctx)) return null;
+        JSONArray lm = new JSONArray(msgs.toString());
+        lm.put(new JSONObject().put("role", "assistant").put("content", answer.trim()));
+        lm.put(new JSONObject().put("role", "user").put("content", prompt));
+        final long rid = REQ.incrementAndGet();
+        final StringBuilder out = new StringBuilder();
+        final CountDownLatch done = new CountDownLatch(1);
+        final boolean[] good = {false};
+        p.listen(o -> {
+            if (o.optBoolean("gone")) { done.countDown(); return; }
+            if (o.optLong("id") != rid) return;
+            if (o.has("t")) { if (out.length() < 4000) out.append(o.optString("t")); }
+            else if (o.optBoolean("done")) { good[0] = !o.optBoolean("cancelled"); done.countDown(); }
+            else if (o.has("error")) done.countDown();
+        });
+        try {
+            inSide = true;
+            if (learnStop) return null;
+            p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", lm).put("max", max).put("temp", 0.2).put("top_p", 0.8).put("top_k", 20));
+            long until = System.currentTimeMillis() + 90_000L;
+            while (!done.await(250, TimeUnit.MILLISECONDS)) {
+                p.lastUse = System.currentTimeMillis(); // niet uit het geheugen halen terwijl hij hier mee bezig is
+                if (learnStop || !p.alive() || System.currentTimeMillis() > until) {
+                    if (p.alive()) try { p.send(new JSONObject().put("op", "cancel")); } catch (Throwable ignored) { }
+                    return null;
+                }
+            }
+        } finally { inSide = false; p.listen(null); p.lastUse = System.currentTimeMillis(); }
+        return good[0] && !learnStop ? out.toString() : null;
+    }
+
+    /** Na "onthoud dat …": er een nette korte zin van laten maken (te zien in het gesprek en bij Geheugen). */
+    private static void rephraseRun(Context c, LlmProcess p, Model model, JSONArray msgs, String answer, String id, String raw, Sink sink, long job) {
+        JSONObject res = ev(job, false);
+        try {
+            String out = sideAsk(p, model, msgs, answer, AiMemory.rephrasePrompt(raw), 60);
+            String x = out == null ? null : AiMemory.rephrased(raw, out);
+            if (x != null && !x.equalsIgnoreCase(raw) && !AiMemory.secret(x) && "".equals(AiMemory.edit(c, id, x)))
+                res.put("updated", new JSONObject().put("id", id).put("text", x));
+        } catch (Throwable t) { App.log(c, "AI", "netjes maken: " + t); }
+        finally { try { res.put("none", true); } catch (Exception ignored) { } sink.memory(res); }
+    }
+
+    /** Groter dan het geheugen van het model (met ruimte voor het antwoord)? Zuiver (getest). */
+    static boolean sideTooBig(int chars, int max, int ctx) { return chars / 3 + max + 64 > ctx; }
+
+    /** Vaste herinneringen per gesprek (hooguit 8 gesprekken onthouden): de ids, en het budget waarmee gekozen werd. */
+    private static final java.util.Map<String, List<String>> MEM_CHAT = new java.util.HashMap<>();
+    private static final java.util.Map<String, Integer> MEM_BUDGET = new java.util.HashMap<>();
+    private static final java.util.LinkedList<String> MEM_ORDER = new java.util.LinkedList<>();
+
+    /** De herinneringen voor dit gesprek: bij de eerste vraag gekozen en daarna dezelfde (met hun huidige tekst; wat
+     *  weg is, gaat eruit). all = {id, tekst}, nieuwste eerst. Een ander model (ander budget): opnieuw kiezen. Getest. */
+    static synchronized List<String> memFor(String chatId, List<String[]> all, int budget) {
+        java.util.Map<String, String> text = new java.util.HashMap<>();
+        for (String[] x : all) text.put(x[0], x[1]);
+        boolean keyed = chatId != null && !chatId.isEmpty();
+        List<String> ids = keyed ? MEM_CHAT.get(chatId) : null;
+        if (ids == null || !Integer.valueOf(budget).equals(MEM_BUDGET.get(chatId))) {
+            ids = new ArrayList<>();
+            int used = 0; // zoals AiMemory.pick: de nieuwste die samen in het budget passen
+            for (String[] x : all) {
+                if (x[1] == null || x[1].isEmpty()) continue;
+                if (used + x[1].length() + 3 > budget) break;
+                ids.add(x[0]); used += x[1].length() + 3;
+            }
+            if (keyed) {
+                MEM_CHAT.put(chatId, ids); MEM_BUDGET.put(chatId, budget); MEM_ORDER.remove(chatId); MEM_ORDER.addLast(chatId);
+                while (MEM_ORDER.size() > 8) { String old = MEM_ORDER.removeFirst(); MEM_CHAT.remove(old); MEM_BUDGET.remove(old); }
+            }
+        }
+        List<String> out = new ArrayList<>();
+        for (String id : ids) { String t = text.get(id); if (t != null) out.add(t); }
+        return out;
+    }
+
+    /** Begin van een geheugenmelding: bij welke vraag (turn) hoort hij, en komt hij vóór het antwoord (pre). */
+    private static JSONObject ev(long job, boolean pre) {
+        JSONObject o = new JSONObject();
+        try { o.put("turn", job); if (pre) o.put("pre", true); } catch (Exception ignored) { }
+        return o;
+    }
+
+    /** Na een antwoord: het model vragen wat er te onthouden valt, en dat voorstellen (Eerst vragen) of meteen
+     *  bewaren (Vanzelf). Altijd te zien in het gesprek. */
+    private static void learnRun(Context c, LlmProcess p, Model model, JSONArray msgs, String answer, String question, String chatId, String title, Sink sink, long job) {
+        JSONObject res = ev(job, false);
+        try {
+            sink.memory(ev(job, false).put("thinking", true));
+            List<String> known = AiMemory.texts(c);
+            String out = sideAsk(p, model, msgs, answer, AiMemory.learnPrompt(question, known), 160);
+            if (out == null) return;
+            List<String> facts = AiMemory.parseFacts(out, known);
+            if (facts.isEmpty()) return;
+            if ("vanzelf".equals(cfg(c, "learn"))) {
+                JSONArray saved = new JSONArray();
+                for (String f : facts) { JSONObject r = AiMemory.add(c, f, "geleerd", chatId, title); if (!r.has("error")) saved.put(r); else { res.put("error", r.optString("error")); break; } }
+                if (saved.length() > 0) res.put("saved", saved);
+            } else {
+                JSONArray ask = new JSONArray();
+                for (String f : facts) ask.put(f);
+                res.put("ask", ask);
+            }
+        } catch (Throwable t) {
+            App.log(c, "AI", "leren: " + t);
+        } finally {
+            try { if (!res.has("saved") && !res.has("ask") && !res.has("error")) res.put("none", true); if (learnStop) res.put("stopped", true); } catch (Exception ignored) { }
+            sink.memory(res);
         }
     }
 
@@ -611,6 +844,7 @@ final class LocalAi {
 
     /** Slim zoeken vanuit de interface (op de AI-thread, na een eventueel lopend antwoord). */
     static void search(final Context c, final String q, final java.util.function.BooleanSupplier current, final java.util.function.Consumer<JSONObject> cb) {
+        stopLearning(); // wie zoekt, wacht niet op het leren
         AI.execute(() -> {
             JSONObject o = new JSONObject();
             try {
@@ -692,7 +926,7 @@ final class LocalAi {
                     Thread.sleep(30_000);
                     long now = System.currentTimeMillis(), IDLE_MS = idleMs(cfg(appCtx, "idle"));
                     LlmProcess p = chat, q = embed;
-                    if (!busy() && p != null && now - p.lastUse > IDLE_MS) closeChat();
+                    if (!busy() && !learning && p != null && now - p.lastUse > IDLE_MS) closeChat();
                     if (!busy() && q != null && now - q.lastUse > IDLE_MS && !SmartSearch.updating() && EMB.tryLock()) { try { closeEmbed(); } finally { EMB.unlock(); } }
                     if (chat == null && embed == null) return;
                 }
@@ -762,6 +996,8 @@ final class LocalAi {
         for (String[] r : CFG) cf.put(r[0], cfg(c, r[0]));
         cf.put("about", cfg(c, "about")).put("instr", cfg(c, "instr"));
         o.put("cfg", cf);
+        o.put("memCount", AiMemory.count(c));
+        try { o.put("orphans", orphanBytes(c)); } catch (Throwable ignored) { }
         JSONObject src = new JSONObject(), perm = new JSONObject();
         for (String k : SOURCES) src.put(k, srcOn(c, k));
         perm.put("sms", Search.has(c, android.Manifest.permission.READ_SMS)).put("calls", Search.has(c, android.Manifest.permission.READ_CALL_LOG))

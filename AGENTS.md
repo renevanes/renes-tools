@@ -107,8 +107,9 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
   `app/` of `web/` veranderen, en wekelijks. Meldingen staan onder Security → Code scanning. (GitHub's
   "default setup" van CodeQL moet uit staan, anders botst die met deze workflow.)
 - **Onderhoud** (`onderhoud.yml`, maandag): `.github/scripts/onderhoud-controle.py` vergelijkt de meegeleverde
-  bibliotheken (Leaflet, jsQR, whisper.cpp, llama.cpp) en het gereedschap (build-tools, android.jar/targetSdk, aapt2,
-  zig, Playwright, Node, Java) met de nieuwste versies
+  bibliotheken (Leaflet, jsQR, whisper.cpp, llama.cpp), de AI-modellen (Hugging Face: nieuwere modellen van dezelfde maker in
+  ongeveer dezelfde grootte) en het gereedschap (build-tools, android.jar/targetSdk, aapt2, zig, Playwright, Node, Java)
+  met de nieuwste versies
   en met de OSV-kwetsbaarhedendatabase, en zet alles wat te doen is in het issue "Onderhoud: updates en beveiliging".
 
 **Alle onderdelen van buitenaf** (houd deze lijst bij als er iets bijkomt; `onderhoud-controle.py --bestanden` moet
@@ -126,7 +127,8 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 | aapt2 | `setup-tools.sh` (aaptjs3) | Onderhoud: npm | agent |
 | Playwright (alleen tests) | `publiceren.yml` | Onderhoud: npm | agent |
 | Node en Java (alleen CI-gereedschap) | `node-version`/`java-version` in de workflows | Onderhoud: Node-schema, Adoptium | agent, naar de nieuwste LTS |
-| Modellen (whisper ggml, Qwen3 GGUF) | `Transcribe.java`, `LocalAi.java` (vaste SHA-256/revisie) | niet automatisch: bewust vast | alleen op verzoek van Rene (een ander model is een productkeuze) |
+| AI-modellen (Qwen3 GGUF) | `LocalAi.java` (vaste commit + SHA-256) | Onderhoud: Hugging Face (zelfde maker, zelfde grootte) | agent voegt een nieuw `Model` toe na overleg met Rene (1–3 GB); Rene kiest zelf of hij downloadt |
+| Spraakmodellen (whisper ggml) | `Transcribe.java` (vaste SHA-256) | niet automatisch: het formaat verandert zelden | alleen op verzoek van Rene |
 
 Nieuwe APK nodig (Rene installeert die zelf): bij alles in `app/` (whisper, llama, Java), dus niet bij Actions,
 Playwright, Node of Java van de CI.
@@ -144,6 +146,11 @@ Playwright, Node of Java van de CI.
    Playwright-versie in `publiceren.yml`; whisper.cpp met `tools/whisper-build.sh` (beide varianten, README.txt bijwerken,
    testen onder qemu-aarch64); llama.cpp met `tools/llm-build.sh` (TAG en COMMIT erin, daarna `./tools/llm/test.sh`);
    de rest en het tempo volgens de tabel hierboven.
+   **AI-modellen:** een beter model overnemen = een nieuw `Model` met een eigen id in `LocalAi.java`, met vaste commit,
+   grootte en SHA-256 (uit de LFS-gegevens van Hugging Face) en `.replaces("oud-id", "waarom beter")`. Nooit het bestand
+   van een bestaand id wijzigen. De app meldt het nieuwe model dan bij de assistent en bij Taalmodel; Rene kiest zelf
+   of hij het downloadt, en het oude kan daarna weg (oude bestanden ruimt Taalmodel → Opruimen op). Alleen bij een
+   duidelijke verbetering (beter Nederlands, sneller, kleiner), en vraag Rene eerst: een model is 1–3 GB.
    **Dependabot-pull requests** (uitzondering op regel 6, want die zijn van GitHub zelf, niet van iemand anders):
    alleen samenvoegen als ze uitsluitend `.github/workflows/` raken, "Bouwen en testen" groen is en je de release
    notes hebt nagelezen, en extra kritisch zijn bij alles wat in `publiceren.yml` draait (de sleutel is daar actief).

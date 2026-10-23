@@ -21,6 +21,7 @@
 
     <!-- Het gesprek -->
     <div id="ai-chat" style="display:none">
+      <div id="ai-newmodel"></div>
       <div id="ai-empty">
         <p class="note" style="text-align:center;margin:8px 0 14px">Waarmee kan ik helpen?</p>
         <div class="aisugg" id="ai-sugg"></div>
@@ -63,6 +64,7 @@
       <button class="strow" onclick="show('aisetmodel')"><span class="stic"><span class="ui-icon" data-icon="sparkle" aria-hidden="true"></span></span><span class="sttxt"><b>Taalmodel</b><small id="ai-sum-model"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('aisetanswer')"><span class="stic"><span class="ui-icon" data-icon="notes" aria-hidden="true"></span></span><span class="sttxt"><b>Antwoorden</b><small id="ai-sum-answer"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('aisetpers')"><span class="stic"><span class="ui-icon" data-icon="user" aria-hidden="true"></span></span><span class="sttxt"><b>Persoonlijk</b><small id="ai-sum-pers"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('aisetmem')"><span class="stic"><span class="ui-icon" data-icon="memory" aria-hidden="true"></span></span><span class="sttxt"><b>Geheugen</b><small id="ai-sum-mem"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('aisetvoice')"><span class="stic"><span class="ui-icon" data-icon="mic" aria-hidden="true"></span></span><span class="sttxt"><b>Spraak</b><small id="ai-sum-voice"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
     <div class="flabel stgl" role="heading" aria-level="2">Zoeken, snelheid en privacy</div>
@@ -85,6 +87,8 @@
     <div class="card">
       <h2><span class="ui-icon" data-icon="sparkle" aria-hidden="true"></span>Taalmodel</h2>
       <div id="ais-chat"></div>
+      <div id="ais-old"></div>
+      <p class="note">Komen er nieuwere of betere modellen, dan komen die met een update van de app mee. Je ziet dan hier en bij de assistent een melding. Er wordt nooit vanzelf iets gedownload: jij kiest.</p>
     </div>
   </main>
 </section>
@@ -154,6 +158,29 @@
   </main>
 </section>
 
+<section class="screen" id="s-aisetmem">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Geheugen</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="memory" aria-hidden="true"></span>Geheugen</h2>
+      <p class="note">De assistent kan dingen over je onthouden, zodat je ze niet steeds hoeft te herhalen. Alles staat alleen op je telefoon (niet in backups), en hier zie je precies wat hij weet. Zeg in een gesprek gewoon "onthoud dat …" of "vergeet dat …".</p>
+      <div class="sw"><span>Geheugen gebruiken<small id="aim-use-n"></small></span><button class="tg" id="aim-use" role="switch" aria-checked="true" aria-label="Geheugen gebruiken" aria-describedby="aim-use-n" onclick="aimUse()"></button></div>
+      <div class="aicfg"><b id="aic-learn-l">Leren uit gesprekken</b><div class="chips sm" id="aic-learn" role="radiogroup" aria-labelledby="aic-learn-l"><button role="radio" aria-checked="false" data-v="vragen" onclick="aicSet('learn', 'vragen')">Eerst vragen</button><button role="radio" aria-checked="false" data-v="vanzelf" onclick="aicSet('learn', 'vanzelf')">Vanzelf</button><button role="radio" aria-checked="false" data-v="uit" onclick="aicSet('learn', 'uit')">Uit</button></div><small class="note" id="aic-learn-n"></small></div>
+    </div>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="user" aria-hidden="true"></span>Wat de assistent over je weet</h2>
+      <div class="sw" style="padding-top:0"><span><small id="aim-n"></small></span></div>
+      <input class="search" id="aim-q" type="search" placeholder="Zoeken in je geheugen" aria-label="Zoeken in je geheugen" oninput="aimRender()" autocomplete="off" style="display:none">
+      <div id="aim-list" role="list"></div>
+      <button class="big ghost" data-icon="plus" onclick="aimAdd()">Zelf iets toevoegen</button>
+      <button class="big ghost" id="aim-clear" data-icon="trash" onclick="aimClear()">Alles vergeten</button>
+    </div>
+  </main>
+</section>
+
 <section class="screen" id="s-aisetdata">
   <div class="hdr sm">
     <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
@@ -196,7 +223,7 @@
   <main>
     <div class="card">
       <h2><span class="ui-icon" data-icon="lock" aria-hidden="true"></span>Privacy</h2>
-      <p class="note">De AI draait helemaal op je telefoon (llama.cpp). Je vragen, de antwoorden, je gesprekken met de assistent en de zoekindex blijven op je telefoon en gaan niet mee in Android-backups. Alleen de modellen zelf komen eenmalig van Hugging Face; die worden gecontroleerd met hun vaste controlegetal (SHA-256).</p>
+      <p class="note">De AI draait helemaal op je telefoon (llama.cpp). Je vragen, de antwoorden, je gesprekken met de assistent, zijn geheugen en de zoekindex blijven op je telefoon en gaan niet mee in Android-backups. Alleen de modellen zelf komen eenmalig van Hugging Face; die worden gecontroleerd met hun vaste controlegetal (SHA-256).</p>
       <button class="big ghost" onclick="aisClearChats()" data-icon="trash">Alle gesprekken met de assistent verwijderen</button>
     </div>
   </main>

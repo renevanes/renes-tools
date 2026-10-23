@@ -222,12 +222,13 @@ if (!window.Android) window.Android = (function(){
     podSubs(){ return JSON.stringify(this._pc.subs); },
     // Lokale AI (assistent en slim zoeken): nagebootst, zonder model
     _ai: { st: { klein: { state: 'none' }, groot: { state: 'none' }, zoek: { state: 'none' } }, chat: 'klein', wifiOnly: true, notes: true, chats: [], ram: 8e9, calls: [], seq: 0,
+      mem: [], learnFacts: ['Woont in Rotterdam.'],
       src: { notes: true, tx: true, sms: false, wa: false, calls: false, contacts: false }, perm: { notes: true, tx: true, sms: true, wa: false, calls: true, contacts: false },
       models: [['klein', 'Klein en snel', 'Qwen3 1.7B · werkt op de meeste telefoons', 1282439584], ['groot', 'Groter en slimmer', 'Qwen3 4B · beter Nederlands, trager', 2497280256], ['zoek', 'Slim zoeken', 'Qwen3-Embedding 0.6B · zoeken op betekenis', 639150592]],
       reply: 'Hallo! Ik ben je **assistent**.\n- Eén\n- Twee' },
     _aiReady(id){ return this._ai.st[id].state === 'ready'; },
-    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: A.chat, wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, cfg: Object.assign({}, this._aiCfgDef, A.cfg), loaded: '', busy: !!A.busy, src: Object.assign({}, A.src), perm: Object.assign({}, A.perm),
-      models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek' }, A.st[m[0]])),
+    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: A.chat, wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, cfg: Object.assign({}, this._aiCfgDef, A.cfg), memCount: A.mem.length, loaded: '', busy: !!A.busy, src: Object.assign({}, A.src), perm: Object.assign({}, A.perm),
+      models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek' }, m[4] ? { replaces: m[4], news: m[5] || '' } : {}, A.st[m[0]] || { state: 'none' })), orphans: A.orphans || 0,
       index: this._aiReady('zoek') ? { items: 3, chunks: 7, at: Date.now() - 6e4, stale: false } : undefined }); },
     aiDownload(id){ const A = this._ai, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dl', id]);
       Object.assign(m, { state: 'running', bytes: 0, total: 1e9 }); setTimeout(() => { m.bytes = 5e8; }, 200);
@@ -238,13 +239,34 @@ if (!window.Android) window.Android = (function(){
     // Zoals AiBridge: bezig tot het antwoord (of het stoppen) helemaal klaar is; een tweede vraag intussen wordt geweigerd
     aiChat(j){ const A = this._ai, r = JSON.parse(j); A.asked = (A.asked || 0) + 1; if (A.busy) { A.refused = (A.refused || 0) + 1; return 'De assistent is nog bezig'; } A.last = r; A.busy = true;
       const words = A.reply.split(/(?<= )/); let i = 0;
-      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone({ done: true, n: words.length }); } };
+      // Geheugen zoals LocalAi: "onthoud …" meteen, anders na het antwoord kijken wat er te leren valt
+      const cfg = Object.assign({}, this._aiCfgDef, A.cfg), q = r.messages[r.messages.length - 1].content, memOn = cfg.mem !== 'uit';
+      const turn = ++A.seq;
+      if (A.learningNow) A.learnStop = true; // een nieuwe vraag stopt het leren (zoals LocalAi.chat)
+      const rem = /^\s*onthoud\b[\s,]*(?::|dat\b)\s*(.+)$/i.exec(q), fg = rem ? null : /^\s*vergeet\b[\s,]*(?::|dat\b)\s*(.+)$/i.exec(q);
+      if (rem && memOn) { const res = JSON.parse(this.aiMemAdd(rem[1], 'gevraagd', r.chat, r.title)); onAiMemory({ saved: [res], explicit: true, pre: true, turn }); }
+      if (fg && memOn) { const w = fg[1].toLowerCase(), m = A.mem.find(x => w.split(/\s+/).filter(v => v.length > 3).some(v => x.text.toLowerCase().includes(v)));
+        if (m) A.mem = A.mem.filter(x => x !== m); onAiMemory(Object.assign({ forgot: m ? m.text : '', pre: true, turn }, m ? { forgotItem: m } : {})); }
+      const used = memOn ? A.mem.length : 0, learn = memOn && !rem && !fg && cfg.learn !== 'uit' && /\b(ik|mijn)\b/i.test(q) && !(r.notes && this._aiReady('zoek'));
+      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone(Object.assign({ done: true, n: words.length, turn }, used ? { mem: used } : {}, learn ? { learning: true } : {}));
+        if (learn) { A.learningNow = true; setTimeout(() => onAiMemory({ thinking: true, turn }), 20); setTimeout(() => {
+          A.learningNow = false;
+          if (A.learnStop) { A.learnStop = false; onAiMemory({ none: true, stopped: true, turn }); return; }
+          if (cfg.learn === 'vanzelf') onAiMemory({ saved: A.learnFacts.map(f => JSON.parse(this.aiMemAdd(f, 'geleerd', r.chat, r.title))), turn }); else onAiMemory({ ask: A.learnFacts.slice(), turn }); }, A.learnMs || 150); } } };
       if (r.notes && this._aiReady('zoek')) { onAiStatus('Zoeken in je gegevens…'); onAiSources([{ kind: 'notes', id: (notesGet()[0] || {}).id || 'x', title: 'Garage', snip: 'APK in maart', score: 0.61 }].concat(this._ai.src.sms ? [{ kind: 'sms', id: '7', title: 'Jos', snip: '[1 okt] Jos: de garage belt morgen', score: 0.5 }] : [])); }
       A.timer = setTimeout(() => { onAiStatus(''); tick(); }, 120); return ''; },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
-    _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'nl', history: '24', power: 'normaal', idle: '4', about: '', instr: '' },
-    aiConfigSet(n, v){ const A = this._ai, ok = { style: ['normaal', 'kort', 'uitgebreid'], creative: ['normaal', 'precies', 'creatief'], lang: ['nl', 'en', 'auto'], history: ['24', '8', '48'], power: ['normaal', 'zuinig', 'max'], idle: ['4', '1', '15'] };
+    _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'nl', history: '24', power: 'normaal', idle: '4', mem: 'aan', learn: 'vragen', about: '', instr: '' },
+    aiCleanOld(){ const n = this._ai.orphans || 0; this._ai.orphans = 0; return String(n); },
+    aiMemList(){ return JSON.stringify(this._ai.mem.slice().sort((a, b) => b.u - a.u)); },
+    aiMemAdd(text, src, chat, title){ const A = this._ai, t = String(text || '').trim(); if (!t) return JSON.stringify({ error: 'Er staat niets om te onthouden' });
+      const x = t.charAt(0).toUpperCase() + t.slice(1), d = A.mem.find(m => m.text.toLowerCase().replace(/[.!]$/, '') === x.toLowerCase().replace(/[.!]$/, ''));
+      if (d) { d.u = Date.now() + (++A.seq); return JSON.stringify({ id: d.id, text: d.text, dup: true }); }
+      const m = { id: 'm' + (++A.seq), text: x, src: src || '', chat: chat || '', title: title || '', t: Date.now(), u: Date.now() + A.seq }; A.mem.push(m); return JSON.stringify({ id: m.id, text: m.text }); },
+    aiMemEdit(id, text){ const m = this._ai.mem.find(x => x.id === id); if (!m) return 'Niet gevonden'; if (!String(text).trim()) return 'Er staat niets'; m.text = String(text).trim(); m.u = Date.now() + (++this._ai.seq); return ''; },
+    aiMemDelete(id){ this._ai.mem = id === '*' ? [] : this._ai.mem.filter(m => m.id !== id); },
+    aiConfigSet(n, v){ const A = this._ai, ok = { style: ['normaal', 'kort', 'uitgebreid'], creative: ['normaal', 'precies', 'creatief'], lang: ['nl', 'en', 'auto'], history: ['24', '8', '48'], power: ['normaal', 'zuinig', 'max'], idle: ['4', '1', '15'], mem: ['aan', 'uit'], learn: ['vragen', 'vanzelf', 'uit'] };
       if (n === 'about' || n === 'instr') { A.cfg = Object.assign({}, this._aiCfgDef, A.cfg, { [n]: String(v).slice(0, 1000).trim() }); return ''; }
       if (!ok[n] || !ok[n].includes(v)) return 'Ongeldige instelling'; A.cfg = Object.assign({}, this._aiCfgDef, A.cfg, { [n]: v }); return ''; },
     aiConfigReset(){ this._ai.cfg = null; },
