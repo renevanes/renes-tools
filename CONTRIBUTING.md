@@ -16,7 +16,7 @@ Een beveiligingsprobleem meld je niet in een openbaar issue maar via [SECURITY.m
 
 ## Code bijdragen
 1. Maak een fork en een branch (`git checkout -b mijn-onderwerp`).
-2. Zet het gereedschap klaar (Linux x86_64 of WSL2; nodig: Java 17+, Python 3, Node 20, `zip`, `openssl`, `curl`, `git`):
+2. Zet het gereedschap klaar (Linux x86_64 of WSL2; nodig: Java 17+, Python 3, Node 22+, `zip`, `openssl`, `curl`, `git`):
    ```sh
    export TOOLS=$HOME/toolchain      # waar het Android-gereedschap komt; zet dit ook voor build.sh en de tests
    ./setup-tools.sh

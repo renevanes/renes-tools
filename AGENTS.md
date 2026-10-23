@@ -37,7 +37,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
 
 ## Bouwen en testen
 Eenmalig: `./setup-tools.sh` (Android-gereedschap in `$TOOLS`, standaard `/home/claude/toolchain`; zet `TOOLS` als je
-het ergens anders wilt), Java 17+ (javac), Python 3, Node 20 met `npm i playwright && npx playwright install chromium`.
+het ergens anders wilt), Java 17+ (javac; CI gebruikt 25), Python 3, Node 22+ (CI gebruikt 24) met `npm i playwright && npx playwright install chromium`.
 
 - `./build.sh` — bouwen (heeft een sleutel in `keys/` nodig, zie onder). Zonder de echte sleutel: maak een tijdelijke
   testsleutel zoals in `.github/workflows/bouwen-en-testen.yml`. `./publish.sh` weigert die (vingerafdruk-controle).
@@ -107,8 +107,29 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
   `app/` of `web/` veranderen, en wekelijks. Meldingen staan onder Security → Code scanning. (GitHub's
   "default setup" van CodeQL moet uit staan, anders botst die met deze workflow.)
 - **Onderhoud** (`onderhoud.yml`, maandag): `.github/scripts/onderhoud-controle.py` vergelijkt de meegeleverde
-  bibliotheken (Leaflet, jsQR, whisper.cpp, llama.cpp) en vastgezette versies (Playwright, build-tools) met de nieuwste versies
+  bibliotheken (Leaflet, jsQR, whisper.cpp, llama.cpp) en het gereedschap (build-tools, android.jar/targetSdk, aapt2,
+  zig, Playwright, Node, Java) met de nieuwste versies
   en met de OSV-kwetsbaarhedendatabase, en zet alles wat te doen is in het issue "Onderhoud: updates en beveiliging".
+
+**Alle onderdelen van buitenaf** (houd deze lijst bij als er iets bijkomt; `onderhoud-controle.py --bestanden` moet
+alles kunnen lezen, dat controleert Bouwen en testen):
+
+| Onderdeel | Waar vastgelegd | Gecontroleerd door | Bijwerken |
+|---|---|---|---|
+| GitHub Actions | `.github/workflows/*.yml` | Dependabot (wekelijks PR) | agent voegt samen na review |
+| Leaflet, jsQR (in de app) | `web/vendor/` (kopregel) | Onderhoud: npm + OSV | agent, bij elke nieuwe versie |
+| whisper.cpp (transcriberen) | `app/lib/arm64-v8a/README.txt` | Onderhoud: GitHub-release + OSV | agent: `tools/whisper-build.sh`, bij elke nieuwe release |
+| llama.cpp (lokale AI) | `tools/llm-build.sh` (TAG/COMMIT) + README | Onderhoud: GitHub-release + OSV | agent: bij kwetsbaarheid of >1500 commits achter (dagelijkse releases) |
+| zig (bouwt whisper/llama) | `ZIG_VERSION` in beide bouwscripts | Onderhoud: PyPI | agent, samen met een nieuwe whisper/llama-bouw |
+| Android build-tools (d8, apksigner, zipalign) | `setup-tools.sh` | Onderhoud: Google + androidide-tools | agent; wisselen van d8 vraagt een test op een telefoon |
+| android.jar en targetSdk | `setup-tools.sh`, `build.sh` | Onderhoud: Google | agent; gedragswijzigingen van de nieuwe Android-versie nalopen en op een telefoon testen |
+| aapt2 | `setup-tools.sh` (aaptjs3) | Onderhoud: npm | agent |
+| Playwright (alleen tests) | `publiceren.yml` | Onderhoud: npm | agent |
+| Node en Java (alleen CI-gereedschap) | `node-version`/`java-version` in de workflows | Onderhoud: Node-schema, Adoptium | agent, naar de nieuwste LTS |
+| Modellen (whisper ggml, Qwen3 GGUF) | `Transcribe.java`, `LocalAi.java` (vaste SHA-256/revisie) | niet automatisch: bewust vast | alleen op verzoek van Rene (een ander model is een productkeuze) |
+
+Nieuwe APK nodig (Rene installeert die zelf): bij alles in `app/` (whisper, llama, Java), dus niet bij Actions,
+Playwright, Node of Java van de CI.
 
 **Wekelijks door een agent** (het issue hierboven is de takenlijst):
 1. Werk in een eigen branch/worktree `onderhoud/JJJJ-MM-DD`. Draai lokaal ook `python3 .github/scripts/onderhoud-controle.py`
@@ -120,9 +141,9 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
    privacyregels hierboven, brugfuncties die te veel toestaan, onveilige WebView-instellingen, verbindingen naar buiten
    en de updatecontrole.
 3. **Bibliotheken bijwerken:** Leaflet/jsQR uit het npm-pakket (`dist/`, met de bestaande kopregel en licentie);
-   Playwright-versie in `publiceren.yml`; whisper.cpp met `tools/whisper-build.sh` (beide varianten, README.txt bijwerken)
-   en llama.cpp met `tools/llm-build.sh` (TAG en COMMIT erin, daarna `./tools/llm/test.sh`)
-   alleen bij een kwetsbaarheid of een duidelijke verbetering, want dat vraagt een nieuwe APK.
+   Playwright-versie in `publiceren.yml`; whisper.cpp met `tools/whisper-build.sh` (beide varianten, README.txt bijwerken,
+   testen onder qemu-aarch64); llama.cpp met `tools/llm-build.sh` (TAG en COMMIT erin, daarna `./tools/llm/test.sh`);
+   de rest en het tempo volgens de tabel hierboven.
    **Dependabot-pull requests** (uitzondering op regel 6, want die zijn van GitHub zelf, niet van iemand anders):
    alleen samenvoegen als ze uitsluitend `.github/workflows/` raken, "Bouwen en testen" groen is en je de release
    notes hebt nagelezen, en extra kritisch zijn bij alles wat in `publiceren.yml` draait (de sleutel is daar actief).

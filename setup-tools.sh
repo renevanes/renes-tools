@@ -8,8 +8,8 @@ if [ ! -x bt/build-tools/34.0.4/zipalign ]; then
   mkdir -p bt && tar xJf bt.tar.xz -C bt && rm bt.tar.xz
 fi
 if [ ! -x aapt2 ]; then
-  npm pack aaptjs3@2.0.1 >/dev/null 2>&1 && mkdir -p a && tar xzf aaptjs3-2.0.1.tgz -C a
-  cp a/package/bin/x64/linux/aapt2 . && chmod +x aapt2 && rm -rf a aaptjs3-2.0.1.tgz
+  npm pack aaptjs3@2.0.2 >/dev/null 2>&1 && mkdir -p a && tar xzf aaptjs3-2.0.2.tgz -C a
+  cp a/package/bin/x64/linux/aapt2 . && chmod +x aapt2 && rm -rf a aaptjs3-2.0.2.tgz
 fi
 if [ ! -f ap/android-36/android.jar ]; then
   git clone -q --depth 1 --filter=blob:none --sparse https://github.com/Sable/android-platforms ap

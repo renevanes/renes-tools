@@ -2,9 +2,13 @@
 # Cross-compile a fully static whisper-cli for arm64 Android using zig (no NDK).
 # Usage: ./whisper-build.sh [CPU]   zig -mcpu syntax; default generic+v8_2a+dotprod+fullfp16
 #        (safe baseline for any arm64: ./whisper-build.sh generic)
-# Requires: pip install ziglang ; cmake ; ninja
+# Requires: pip install ziglang==0.17.0 ; cmake ; ninja
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+ZIG_VERSION="0.17.0"   # vaste zig-versie (pip install ziglang==ZIG_VERSION); een andere geeft een ander bestand
+if [ "$(python3 -m ziglang version 2>/dev/null)" != "$ZIG_VERSION" ]; then
+  echo "zig $ZIG_VERSION nodig: pip install --break-system-packages ziglang==$ZIG_VERSION" >&2; exit 1
+fi
 SRC="$HERE/wcpp"
 ARCH="${1:-generic+v8_2a+dotprod+fullfp16}"
 TAG="${ARCH//+/_}"

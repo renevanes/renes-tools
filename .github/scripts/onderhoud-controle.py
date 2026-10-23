@@ -6,7 +6,7 @@ Dependabot kent deze niet (geen package.json of Gradle), dus dit script doet het
   - app/lib/*/libwhisper*.so (whisper.cpp-commit)  → nieuwste release + OSV
   - app/lib/*/libllm.so (llama.cpp-commit)          → nieuwste release + OSV
   - Playwright-versie in publiceren.yml            → npm-register
-  - Android build-tools in setup-tools.sh          → nieuwste release van androidide-tools
+  - Android build-tools, android.jar/targetSdk, aapt2, zig, Node en Java → nieuwste versies (Google, npm, PyPI, Node-schema, Adoptium)
 
 Schrijft een Markdown-rapport naar stdout. Afsluitcode 0 = alles bij, 10 = er is iets te doen, 1 = fout.
 Alleen standaardbibliotheek; GITHUB_TOKEN (optioneel) voorkomt limieten op de GitHub-API.
@@ -16,6 +16,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -32,6 +33,19 @@ def http_json(url, data=None, github=False):
     req = urllib.request.Request(url, data=body, headers=headers)
     with urllib.request.urlopen(req, timeout=20) as r:
         return json.load(r)
+
+
+def http_text(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "renes-tools-onderhoud"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return r.read().decode("utf-8", "replace")
+
+
+def workflow_versies(patroon):
+    uit = []
+    for f in sorted((ROOT / ".github/workflows").glob("*.yml")):
+        uit += [int(x) for x in re.findall(patroon, f.read_text())]
+    return uit
 
 
 def lees(pad, patroon):
@@ -66,8 +80,13 @@ PLAYWRIGHT = (".github/workflows/publiceren.yml", r"playwright@(\d+\.\d+\.\d+)")
 WHISPER = ("app/lib/arm64-v8a/README.txt", r"whisper\.cpp (?:v[\d.]+, )?commit ([0-9a-f]{40})")
 LLAMA = ("app/lib/arm64-v8a/README.txt", r"llama\.cpp (?:b\d+, )?commit ([0-9a-f]{40})")
 BUILDTOOLS = ("setup-tools.sh", r"build-tools/(\d+\.\d+\.\d+)/")
+AAPT2 = ("setup-tools.sh", r"aaptjs3@(\d+\.\d+\.\d+)")
+PLATFORM = ("setup-tools.sh", r"sparse-checkout set android-(\d+)")
+TARGET = ("build.sh", r"--target-sdk-version (\d+)")
+ZIG = ("tools/whisper-build.sh", r'ZIG_VERSION="(\d+\.\d+\.\d+)"')
 ALLE = {"Leaflet": LEAFLET, "jsQR": JSQR, "Playwright": PLAYWRIGHT, "whisper.cpp": WHISPER,
-        "llama.cpp": LLAMA, "build-tools": BUILDTOOLS}
+        "llama.cpp": LLAMA, "build-tools": BUILDTOOLS, "aapt2": AAPT2, "android-platform": PLATFORM,
+        "targetSdk": TARGET, "zig": ZIG, "zig (llm)": ("tools/llm-build.sh", ZIG[1])}
 
 
 def versie_tuple(v):
@@ -123,12 +142,68 @@ def main():
     item("llama.cpp (lokale AI)", "app/lib/*/libllm.so", commit[:12], tag, osv({"commit": commit}), opm,
          verouderd=achter is None or achter > 1500)
 
-    # Android build-tools (bouwgereedschap, komt niet in de app)
+    # Android-bouwgereedschap (komt niet zelf in de app, maar bepaalt wel waarmee hij gebouwd wordt)
     huidig = lees(*BUILDTOOLS)
-    rel = http_json("https://api.github.com/repos/AndroidIDEOfficial/androidide-tools/releases/latest", github=True)
-    item("Android build-tools", "setup-tools.sh", huidig, rel["tag_name"].lstrip("v"),
-         opmerking="build-tools komen uit androidide-tools (weinig onderhouden); vergelijk ook met Google's build-tools "
-                   "bij een hogere targetSdk")
+    google = None
+    try:
+        xml = http_text("https://dl.google.com/android/repository/repository2-3.xml")
+        bt = [v for v in re.findall(r'path="build-tools;([0-9.]+)"', xml)]
+        google = max(bt, key=versie_tuple) if bt else None
+        platforms = [int(x) for x in re.findall(r'path="platforms;android-(\d+)"', xml)]
+        nieuwste_api = max(platforms) if platforms else None
+    except Exception as e:
+        nieuwste_api = None
+        item("Android-gegevens van Google", "dl.google.com", "-", None, (), f"niet op te halen ({e}); controleer met de hand",
+             verouderd=True)
+    try:
+        ide = http_json("https://api.github.com/repos/AndroidIDEOfficial/androidide-tools/releases/latest",
+                        github=True)["tag_name"].lstrip("v")
+    except Exception:
+        ide = "?"
+    if google:
+        item("Android build-tools (d8, apksigner, zipalign)", "setup-tools.sh", huidig, google, (),
+             f"nieuwste bij Google {google}; de bron androidide-tools heeft {ide}. Bijwerken: setup-tools.sh naar "
+             f"Google's build-tools laten wijzen of een nieuwere androidide-release kiezen")
+    platform = lees(*PLATFORM)
+    target = lees(*TARGET)
+    if nieuwste_api:
+        item("Android-platform (android.jar)", "setup-tools.sh", platform, str(nieuwste_api), (),
+             "android.jar komt uit Sable/android-platforms; kijk of die map daar al is")
+        item("targetSdk", "build.sh", target, str(nieuwste_api), (),
+             "Google Play eist elk jaar een nieuwere targetSdk; testen op gedragswijzigingen van die Android-versie")
+
+    # aapt2 (uit het npm-pakket aaptjs3)
+    huidig = lees(*AAPT2)
+    item("aapt2 (aaptjs3)", "setup-tools.sh", huidig, npm_nieuwste("aaptjs3"))
+
+    # zig (compiler voor whisper.cpp en llama.cpp; vastgezet in de bouwscripts)
+    huidig = lees(*ZIG)
+    item("zig (bouwen whisper/llama)", "tools/whisper-build.sh, tools/llm-build.sh", huidig,
+         http_json("https://pypi.org/pypi/ziglang/json")["info"]["version"], (),
+         "nieuwe zig: whisper en llama opnieuw bouwen en testen (tools/llm/test.sh, qemu)")
+
+    # Node en Java in de workflows
+    try:
+        sched = http_json("https://raw.githubusercontent.com/nodejs/Release/main/schedule.json")
+        vandaag = time.strftime("%Y-%m-%d")
+        lts = [int(k.lstrip("v")) for k, v in sched.items()
+               if "lts" in v and v["lts"] <= vandaag < v["end"] and k.lstrip("v").isdigit()]
+        nieuwste_lts = max(lts) if lts else None
+        for major in sorted(set(workflow_versies(r"node-version:\s*'?(\d+)"))):
+            einde = sched.get(f"v{major}", {}).get("end", "?")
+            item(f"Node {major} (workflows)", ".github/workflows", str(major), str(nieuwste_lts), (),
+                 f"ondersteund tot {einde}" + ("; NIET MEER ONDERSTEUND" if einde != "?" and einde <= vandaag else ""),
+                 verouderd=(einde != "?" and einde <= vandaag) or (nieuwste_lts is not None and major < nieuwste_lts))
+    except Exception as e:
+        item("Node (workflows)", ".github/workflows", "?", None, (), f"niet te controleren ({e})", verouderd=True)
+    try:
+        lts = http_json("https://api.adoptium.net/v3/info/available_releases")["most_recent_lts"]
+        for major in sorted(set(workflow_versies(r"java-version:\s*'?(\d+)"))):
+            item(f"Java {major} (workflows)", ".github/workflows", str(major), str(lts), (),
+                 "bouwen gebeurt met -source/-target 8 (Android); een nieuwere JDK alleen voor het gereedschap",
+                 verouderd=major < lts)
+    except Exception as e:
+        item("Java (workflows)", ".github/workflows", "?", None, (), f"niet te controleren ({e})", verouderd=True)
 
     te_doen = [i for i in items if i["verouderd"] or i["kwetsbaar"]]
     if "--json" in sys.argv:

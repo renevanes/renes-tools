@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Bouwt de lokale AI-motor (tools/llm/llm.cpp op llama.cpp) als volledig statisch programma voor arm64 Android,
 # met zig (geen NDK), net als tools/whisper-build.sh. Ook een x86_64-versie om hier te testen.
-# Gebruik: ./tools/llm-build.sh            Vereist: pip install ziglang ; cmake ; ninja ; git
+# Gebruik: ./tools/llm-build.sh            Vereist: pip install ziglang==0.17.0 ; cmake ; ninja ; git
 # Uitvoer: tools/llm-out/libllm.so  (kopieer naar app/lib/arm64-v8a/libllm.so)
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+ZIG_VERSION="0.17.0"   # vaste zig-versie (pip install ziglang==ZIG_VERSION); een andere geeft een ander bestand
+if [ "$(python3 -m ziglang version 2>/dev/null)" != "$ZIG_VERSION" ]; then
+  echo "zig $ZIG_VERSION nodig: pip install --break-system-packages ziglang==$ZIG_VERSION" >&2; exit 1
+fi
 TAG="${LLAMA_TAG:-b11500}"                       # vaste versie van llama.cpp
 COMMIT="097f5b5332f46559f1ee11d9d64e48a5065b2989" # moet bij die versie horen (controle)
 SRC="$HERE/lcpp"
