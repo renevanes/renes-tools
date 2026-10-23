@@ -113,8 +113,9 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
 **Wekelijks door een agent** (het issue hierboven is de takenlijst):
 1. Werk in een eigen branch/worktree `onderhoud/JJJJ-MM-DD`. Draai lokaal ook `python3 .github/scripts/onderhoud-controle.py`
    (lukt dat niet door netwerkbeperkingen, gebruik dan het rapport in het issue).
-2. **Kwetsbaarheden eerst.** Elke CodeQL-melding: oplossen, of (alleen bij een echte vals-positief) afwijzen met een
-   reden via `gh api -X PATCH repos/renevanes/renes-tools/code-scanning/alerts/N -f state=dismissed -f dismissed_reason="false positive" -f dismissed_comment="…"`.
+2. **Kwetsbaarheden eerst.** Elke CodeQL-melding (in het issue; Claude-sessies kunnen de Security-API's niet zelf
+   lezen, de workflow Onderhoud wel): oplossen. Is het echt een vals-positief, zet dat dan met de reden in het issue;
+   afwijzen in Security → Code scanning doet Rene (of een agent die die API wel mag gebruiken).
    Loop daarnaast zelf de code na die sinds het vorige onderhoud veranderde (`git log --since="8 days ago"`) op de
    privacyregels hierboven, brugfuncties die te veel toestaan, onveilige WebView-instellingen, verbindingen naar buiten
    en de updatecontrole.
