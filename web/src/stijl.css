@@ -723,3 +723,4 @@ body.has-plbar .aicomp{bottom:calc(84px + env(safe-area-inset-bottom))}
 @media (prefers-reduced-motion:reduce){.aimic.rec{animation:none}}
 .aivstate{margin:0 6px 8px;font-size:14px;font-weight:600;color:var(--primary)}
 #ai-in:disabled{opacity:.6}
+.aimic.busy{opacity:.45}.aimic.dim{opacity:.45}

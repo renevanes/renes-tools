@@ -30,10 +30,10 @@ final class VoiceNote {
     static synchronized String start(Context c, Done onAutoStop) {
         if (rec != null) return "";
         if ("working".equals(state)) return "Even wachten: de vorige spraaknotitie wordt nog uitgeschreven";
+        if (!Transcribe.supported()) return "Uitschrijven werkt niet op deze telefoon";
+        if (Transcribe.activeModel(c) == null) return "model"; // eerst: dan kan de app het spraakmodel aanbieden
         if (TranscribeService.busy) return "Er worden nu gesprekken uitgeschreven; probeer het zo opnieuw";
         if (c.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return "mic";
-        if (!Transcribe.supported()) return "Uitschrijven werkt niet op deze telefoon";
-        if (Transcribe.activeModel(c) == null) return "model";
         if (!"idle".equals(Music.state) && !"done".equals(Music.state) && !"error".equals(Music.state)) return "De microfoon wordt gebruikt voor muziek herkennen";
         if (CallRecorderService.busy) return "De microfoon wordt gebruikt voor een gespreksopname";
         try {

@@ -63,6 +63,8 @@ public class AiBridge extends FeatureBridge {
     @JavascriptInterface public String aiVoiceStart() { return VoiceNote.start(ctx, r -> a.js("onAiVoice", r)); }
     @JavascriptInterface public void aiVoiceStop() { VoiceNote.stop(ctx, r -> a.js("onAiVoice", r)); }
     @JavascriptInterface public void aiVoiceCancel() { VoiceNote.cancel(); }
+    /** idle, recording of working (bijv. na 5 minuten stopt Android de opname zelf, of de app ging naar de achtergrond). */
+    @JavascriptInterface public String aiVoiceState() { return VoiceNote.state; }
 
     /** Spraakmodel aanwezig, en welk; voor de instellingen van de assistent. */
     @JavascriptInterface public String aiVoiceInfo() {

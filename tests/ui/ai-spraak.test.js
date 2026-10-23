@@ -39,6 +39,25 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._voiceResult = { error: 'Er is geen spraak herkend' }; $('#ai-in').value = ''; });
     await pg.click('#ai-mic'); await pg.waitForTimeout(150); await pg.click('#ai-mic'); await pg.waitForTimeout(300);
     ok((await pg.textContent('#toast')).includes('geen spraak') && !(await pg.isDisabled('#ai-mic')), 'fout: melding, microfoon weer klaar');
+    // Android stopt de opname zelf na 5 minuten: de app gaat over op uitschrijven, en verstuurt daarna gewoon
+    await pg.evaluate(() => { Android._voiceResult = { text: 'Lange vraag' }; $('#ai-in').value = ''; });
+    await pg.click('#ai-mic'); await pg.waitForTimeout(150);
+    await pg.evaluate(() => { Android._aiVoiceState = 'working'; }); await pg.waitForTimeout(600);
+    ok((await pg.textContent('#ai-vstate')) === 'Uitschrijven…' && (await pg.getAttribute('#ai-mic', 'aria-disabled')) === 'true', 'na 5 minuten: zelf naar uitschrijven');
+    await pg.evaluate(() => { Android._aiVoiceState = ''; Android.aiVoiceStop(); }); await pg.waitForTimeout(250);
+    ok((await pg.inputValue('#ai-in')) === 'Lange vraag', 'na 5 minuten: de tekst komt nog');
+    // App naar de achtergrond tijdens het luisteren: niet blijven hangen in "luisteren"
+    await pg.evaluate(() => { $('#ai-in').value = ''; aiGrow(); });
+    await pg.click('#ai-mic'); await pg.waitForTimeout(150);
+    await pg.evaluate(() => { Android._aiRec = false; onPauseApp(); }); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => !aiRec) && !(await pg.isDisabled('#ai-in')) && (await pg.getAttribute('#ai-mic', 'aria-label')) === 'Inspreken', 'naar de achtergrond: niet meer luisteren');
+    // Uitschrijven loopt nog en je opent een nieuw gesprek: niet daarin versturen
+    await pg.evaluate(() => { Android._voiceResult = { text: 'Vraag voor het oude gesprek' }; Android._ai.last = null; });
+    await pg.click('#ai-mic'); await pg.waitForTimeout(100); await pg.click('#ai-mic');
+    await pg.evaluate(() => aiNew()); await pg.waitForTimeout(250);
+    ok(await pg.evaluate(() => Android._ai.last === null) && (await pg.inputValue('#ai-in')) === 'Vraag voor het oude gesprek', 'ander gesprek: niet meteen versturen, tekst in het invoerveld');
+    ok((await pg.getAttribute('#ai-vstate', 'aria-hidden')) === 'true' && (await pg.getAttribute('#ai-vsay', 'role')) === 'status', 'schermlezer: alleen de overgangen');
+    await pg.evaluate(() => { $('#ai-in').value = ''; aiGrow(); });
     // Weg van het scherm tijdens het luisteren: opname stopt
     await pg.click('#ai-mic'); await pg.waitForTimeout(150);
     await pg.evaluate(() => show('home')); await pg.waitForTimeout(150);

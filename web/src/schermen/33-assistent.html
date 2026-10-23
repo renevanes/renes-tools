@@ -29,7 +29,8 @@
       <p class="note" id="ai-status" role="status" style="display:none"></p>
       <div class="aicomp" id="ai-comp">
         <button class="aichip" id="ai-notes" role="switch" aria-checked="false" onclick="aiToggleNotes()" style="display:none"><span class="ui-icon" data-icon="notes" aria-hidden="true"></span>Met mijn notities</button>
-        <p class="aivstate" id="ai-vstate" role="status" aria-live="polite" style="display:none"></p>
+        <p class="aivstate" id="ai-vstate" aria-hidden="true" style="display:none"></p>
+        <span class="sr-only" id="ai-vsay" role="status" aria-live="polite"></span>
         <div class="airow">
           <button class="aimic" id="ai-mic" onclick="aiMic()" aria-label="Inspreken"><span class="ui-icon" data-icon="mic" aria-hidden="true"></span></button>
           <textarea id="ai-in" rows="1" placeholder="Vraag iets…" aria-label="Je vraag" oninput="aiGrow()" onkeydown="aiKey(event)"></textarea>

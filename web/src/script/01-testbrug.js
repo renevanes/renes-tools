@@ -242,6 +242,7 @@ if (!window.Android) window.Android = (function(){
     aiVoiceStart(){ if (this._voiceErr) return this._voiceErr; if (this._tx && !this._tx.models.base && !this._tx.models.small) return 'model'; this._vt = Date.now(); this._aiRec = true; return ''; },
     aiVoiceStop(){ this._aiRec = false; setTimeout(() => onAiVoice(this._voiceResult || { text: 'Wat is de hoofdstad van Frankrijk?' }), 80); },
     aiVoiceCancel(){ this._aiRec = false; this._aiVoiceCancelled = true; },
+    aiVoiceState(){ return this._aiVoiceState || (this._aiRec ? 'recording' : 'idle'); },
     aiVoiceInfo(){ const t = this._tx; const m = t.models.small ? 'small' : t.models.base ? 'base' : ''; return JSON.stringify({ supported: true, model: m, label: m ? 'Snel (57 MB)' : '', busy: !!t.st.running, send: this._ai.voiceSend !== false }); },
     aiChats(){ return JSON.stringify(this._ai.chats.map(c => ({ id: c.id, title: c.title, t: c.t, n: c.msgs.length }))); },
     aiChatGet(id){ const c = this._ai.chats.find(x => x.id === id); return c ? JSON.stringify(c) : ''; },
