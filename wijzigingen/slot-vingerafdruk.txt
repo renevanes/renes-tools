@@ -1,1 +1,2 @@
-App-slot veiliger: ontgrendelen telt pas als een beveiligde sleutel op de telefoon het bevestigt; komt er een nieuwe vingerafdruk bij, dan ontgrendel je één keer met je pincode (of app-code) en werkt de vingerafdruk daarna weer
+App-slot veiliger: ontgrendelen telt pas als een beveiligde sleutel op de telefoon het bevestigt; is de beveiliging van je telefoon gewijzigd, dan ontgrendel je één keer met je pincode, en komt er een nieuwe vingerafdruk bij, dan één keer met je app-code (daarna werkt de vingerafdruk weer)
+Ontgrendelen met (eenvoudige) gezichtsherkenning gaat niet meer bij het app-slot: gebruik je vingerafdruk of pincode

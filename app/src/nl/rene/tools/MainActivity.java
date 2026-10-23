@@ -401,7 +401,7 @@ public class MainActivity extends Activity {
         if (!isSolo()) {
             Lock.onHidden();
             // Met app-slot de inhoud alvast verbergen; bij terugkomen beslist onStart of hij op slot moet.
-            if (web != null && Lock.active(this) && !Lock.internalNav && !Lock.authBusy) coverOn();
+            if (web != null && Lock.active(this) && !Lock.internalNav && !Lock.busy()) coverOn();
         }
         super.onStop();
     }
