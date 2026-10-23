@@ -3,17 +3,36 @@
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Radio</h1>
+    <button class="icon-btn" id="rd-menu" onclick="rdMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
   </div>
   <main>
-    <div id="rd-favs-wrap">
-      <div class="flabel" style="margin:4px 2px 8px">Favorieten</div>
-      <div class="card stations" id="rd-favs"></div>
+    <div class="pctabs-wrap"><div class="pctabs two" role="tablist" aria-label="Radio">
+      <button role="tab" id="rd-tab-favs" data-tab="favs" aria-controls="rd-p-favs" aria-selected="true" tabindex="0" onclick="rdSetTab('favs', true)">Favorieten<span class="pctabn" id="rd-tab-favs-n"></span></button>
+      <button role="tab" id="rd-tab-all" data-tab="all" aria-controls="rd-p-all" aria-selected="false" tabindex="-1" onclick="rdSetTab('all', true)">Zenders</button>
+    </div></div>
+
+    <!-- Favorieten: als voorkeuzetoetsen -->
+    <div role="tabpanel" id="rd-p-favs" aria-labelledby="rd-tab-favs">
+      <div id="rd-favs-wrap">
+        <div class="rdgrid" id="rd-favs"></div>
+      </div>
+      <div class="card pcempty" id="rd-favs-empty" style="display:none">
+        <span class="ui-icon" data-icon="radio" aria-hidden="true"></span>
+        <b>Nog geen favorieten</b>
+        <p class="note">Tik bij een zender op ☆. Je favorieten staan dan hier, en je wisselt er ook mee in de speler, de widget en de auto.</p>
+        <button class="big" onclick="rdSetTab('all', true)">Zenders bekijken</button>
+      </div>
+      <button class="card rdalarm" id="rd-alarm-btn" onclick="show('ralarm')"><span class="ui-icon" data-icon="clock" aria-hidden="true"></span><span class="stxt"><b>Radiowekker</b><small id="rd-alarm-sub">Uit</small></span><span class="ui-icon" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
-    <button class="big ghost" style="margin-bottom:12px" onclick="show('ralarm')" id="rd-alarm-btn" data-icon="clock">Radiowekker</button>
-    <input class="search" id="rd-search" type="search" placeholder="Zoek een zender…" oninput="rdSearchDo()">
-    <div class="flabel" style="margin:4px 2px 8px" id="rd-list-label">Populair in Nederland</div>
-    <div class="card stations" id="rd-list"><p class="note" style="padding:14px">Zenders laden…</p></div>
-    <p class="note" style="margin-top:14px">Zenders en stream-adressen komen uit de vrije database van radio-browser.info, dus ook gewijzigde adressen van omroepen kloppen. Tik op ☆ om een zender aan je favorieten toe te voegen.</p>
+
+    <!-- Zenders: zoeken, per genre, 20 tegelijk -->
+    <div role="tabpanel" id="rd-p-all" aria-labelledby="rd-tab-all" hidden>
+      <input class="search" id="rd-search" type="search" placeholder="Zoek een zender…" aria-label="Zoek een zender" oninput="rdSearchDo()">
+      <div class="chips sm rdgenres" id="rd-genres" role="radiogroup" aria-label="Genre"></div>
+      <div class="flabel" style="margin:4px 2px 8px" id="rd-list-label">Populair in Nederland</div>
+      <div class="card stations" id="rd-list"><p class="note" style="padding:14px">Zenders laden…</p></div>
+      <button class="big ghost" id="rd-list-more" onclick="rdListMore()" hidden>Meer tonen</button>
+      <p class="note" style="margin-top:14px">Zenders en stream-adressen komen uit de vrije database van radio-browser.info, dus ook gewijzigde adressen van omroepen kloppen.</p>
+    </div>
   </main>
 </section>
-

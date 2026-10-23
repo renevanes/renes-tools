@@ -33,8 +33,8 @@ const { chromium } = require('playwright');
 
       // Zenders ordenen
       await page.evaluate(() => { Android._rd.favs = [{ id: 'a', name: 'Een', url: 'https://a' }, { id: 'b', name: 'Twee', url: 'https://b' }, { id: 'c', name: 'Drie', url: 'https://c' }]; show('radio'); });
-      await page.waitForSelector('#rd-favs button[aria-label^="Volgorde van"]');
-      await page.click('#rd-favs button[aria-label="Volgorde van Drie"]');
+      await page.waitForSelector('#rd-favs button[aria-label^="Meer over"]');
+      await page.click('#rd-favs button[aria-label="Meer over Drie"]');
       await page.click('#sheet-acts button:has-text("Bovenaan")');
       assert.deepEqual(await page.evaluate(() => rdFavs.map(f => f.name)), ['Drie', 'Een', 'Twee']);
 

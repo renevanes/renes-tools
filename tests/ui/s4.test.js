@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
     // radio alarm
     await pg.click('#tile-radio'); await pg.waitForTimeout(400);
     await pg.click('#rd-list .srow:nth-child(2) .sbtn'); await pg.waitForTimeout(300);
-    await pg.click('#rd-alarm-btn'); await pg.waitForTimeout(200);
+    await pg.click('#rd-menu'); await pg.click('#sheet-acts button:has-text("Radiowekker")'); await pg.waitForTimeout(200);
     console.log('alarm stations', await pg.$$eval('#al-station option', x => x.map(e => e.textContent)));
     await pg.fill('#al-time', '06:45'); await pg.click('#al-days button[data-d="5"]'); await pg.click('#al-days button[data-d="6"]');
     await pg.check('#al-on'); await pg.click('#s-ralarm button:has-text("Opslaan")'); await pg.waitForTimeout(150);

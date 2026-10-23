@@ -502,6 +502,20 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .pctabs button[aria-selected=true] .pctabn{background:var(--on-primary);color:var(--primary)}
 @media (max-width:359px){.pctabs button{font-size:12.5px;gap:3px}}
 #s-podcasts [role=tabpanel][hidden],#s-podcasts .big[hidden],#s-podcasts .linkish[hidden]{display:none}
+.pctabs.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+#s-radio [role=tabpanel][hidden],#s-radio .big[hidden]{display:none}
+.rdgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;margin-bottom:14px}
+.rdfav{position:relative;border-radius:18px;background:var(--card);border:1px solid var(--line);min-width:0}
+.rdfav.playing{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.rdfavb{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px 12px;border-radius:18px;text-align:center;min-width:0}
+.rdfavb:active{background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.rdfavb .logo{width:56px;height:56px;border-radius:16px;font-size:18px}
+.rdfavb b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;line-height:1.25;overflow-wrap:anywhere;max-width:100%}
+.rdfavb .eq{position:absolute;top:12px;left:12px}
+.rdfavm{position:absolute;top:2px;right:2px;width:40px;height:40px;border-radius:20px;color:var(--muted);font-size:18px;display:grid;place-items:center}
+.rdalarm{width:100%;display:flex;align-items:center;gap:14px;text-align:left;padding:14px 16px;margin-top:2px}
+.rdalarm>.ui-icon:first-child{color:var(--primary);width:24px;height:24px}.rdalarm .stxt{flex:1;min-width:0}.rdalarm .stxt b{display:block;font-size:16px}.rdalarm .stxt small{display:block;color:var(--muted);font-size:13px}
+.rdgenres{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:0 16px}.rdgenres::-webkit-scrollbar{display:none}.rdgenres button{flex:none}
 .pcempty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:26px 18px}
 .pcempty>.ui-icon{width:40px;height:40px;color:var(--primary);margin-bottom:4px}.pcempty b{font-size:17px}.pcempty .note{margin:0 0 8px}.pcempty .big{width:100%}
 .pcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;margin-bottom:16px}

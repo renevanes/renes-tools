@@ -13,7 +13,7 @@ const { chromium } = require('playwright');
     console.log('now', await pg.textContent('#plbar-t'), '|', await pg.textContent('#plbar-s'), '|', await pg.getAttribute('#plbar-pp', 'aria-label'));
     await pg.click('#rd-list .srow:nth-child(2) .star'); await pg.click('#rd-list .srow:nth-child(3) .star'); await pg.waitForTimeout(200);
     await pg.click('#plbar-open'); await pg.waitForTimeout(400);
-    console.log('favs', await pg.$$eval('#rd-favs .srow', x => x.length), 'now star on', await pg.evaluate(() => $('#pl-fav').classList.contains('on')));
+    console.log('favs', await pg.$$eval('#rd-favs .rdfav', x => x.length), 'now star on', await pg.evaluate(() => $('#pl-fav').classList.contains('on')));
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(350);
     await pg.screenshot({ path: __dirname + '/shots/rd-play-' + scheme + '.png', fullPage: true });
     await pg.fill('#rd-search', 'sky'); await pg.waitForTimeout(800);
