@@ -46,6 +46,10 @@ het ergens anders wilt), Java 17+ (javac; CI gebruikt 25), Python 3, Node 22+ (C
 - `./tests/run-ui.sh` — alle interfacetests (Playwright, licht en donker; ±15 min).
 - `./tests/ui-een.sh calls spotify2` — één of enkele interfacetests (naam zonder `.test.js`).
 - `python3 tools/check-bridge.py` — brug en testbrug kloppen met elkaar.
+- **Telefoontest** (`.github/workflows/telefoontest.yml`, alleen op GitHub: hier is geen emulator): installeert de APK in
+  een Android-emulator (API 35 en 24), start de app, het Home-scherm en de PDF-schermen en controleert dat er niets
+  crasht (script: `tests/telefoon/rooktest.sh`; logcat en schermafdrukken in het artifact). Rood = niet laten liggen,
+  maar oplossen: meestal een startcrash door build-tools, targetSdk of Java-code.
 Nieuwe functie = ook een test in `tests/ui/` (en bij logica in `tests/jvm/`). Een UI-test slaagt als hij `errors []` afdrukt.
 
 ## Tegelijk werken met andere agents
