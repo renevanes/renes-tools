@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.97",
-  "versionCode": 98,
-  "nativeLevel": 86,
+  "versionName": "1.98",
+  "versionCode": 99,
+  "nativeLevel": 87,
   "web": "index.html",
-  "webSha256": "006cb2b972925e72df690c1d3f3423d442c8716f793ecf00c6c5a9a2de04e293",
+  "webSha256": "b5e2e5dc07a42fd35f1e5f7a003fca9d95e64f5105d75b6ebfa1bbea155e6b7b",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "bf4c90f5c916a175d05802ad1b01d5e756cdbe9522c5969196a1ff4301a5ad9a",
+  "apkSha256": "b1579459b957cbd80dcfb2a6d0f04c3b303b789eef581ecf07007c53b6cca78b",
   "changelog": [
+    {
+      "version": "1.98",
+      "date": "2026-10-24",
+      "changes": [
+        "Assistent: Qwen3.5 als nieuwere keuze voor klein en groot (zelf te downloaden bij Taalmodel)",
+        "App gebouwd met nieuwer Android-gereedschap (build-tools 37): open na installeren even een paar onderdelen om te zien of alles werkt"
+      ]
+    },
     {
       "version": "1.97",
       "date": "2026-10-23",
@@ -854,5 +862,5 @@
       ]
     }
   ],
-  "webSig2": "iFY7vuLcZpjaWFrzpVHyo0SIVV/W/GScrFMXr7fD5FZ9ahvw7deTaOmtotMqE+Al+rd21/VMK0qINNiYUz2STh/YFbJIlWru8jbtHfhq5r0keu6uUBV/nWjlZtsFFLLevI/6l9ns01UWi1+pT473gyEzfIoMSHbKSVkS1uMF1aNL0lvv255d7UNRLsx77QKVBmxZnGVR/tyDNmpnVlqeLgW8e8uHp9lkDz2mFkLGDzvakkAr5Hp5jF6HtxvQWnOzoLLx1dOcxldxfOncxo3D+itT2aQnHJsYcUiDoVoZf7NYDtHi4CA3BtpYZW3c6PCniio9Fl0NwtQlc4/Nxo+S2C2VcTkvD7eFYZVCdsBWZ1EDdv5RTRUwRXTlb3voPIVCkxEveunq0bnSHwmuDzcnwaAs6Od1qH4k/QcliS/Q/dhdmEKP+1tITQbQFkhTIm0ACSiS1sbEMP5ueuhq1GrYjxUS0sOcsrBmTko9C6PUsh/kI9816YD+wgpNqaaYprg0"
+  "webSig2": "fqYzxU3GTf7rX5DUtU0mTISJwIIkNDrcKMoS7fZkOC2xPB+rj9vDBNr/mLqJMhYuRIuBN3A/30Md0ol+f7T6fIhVHM73PLzpvaV7S3skSLxU2QosMUVT82vx248J3gJgTWNnc0NvVU4eb7NOS0I4f/IdOM4o0SgOFFYffeOiZ2BhBUUjf+la1ccU2wAmrSMtSkSNUB63nHCnscSuj18VWx401fL2c52hmr1Eune7pSBLe7N5GpfRzjClstzeSQrB+IGxWm7rJD52s2vg8wHPnPTIyUri0jB1i8bG5OrM2YrFKQvNFE0cYuwTjLd2ZuFg/ivqN8HTxJxXDFCN4sotyXF9utCHVV7T59+N/amQczGLzaFHRPywDi4d6z0wXjG2T4jio2WAhrGWil3g/hhqLxG5kALBtsGMIrVuqeMaMSGsdONj9l9Lo2MOBXVOpSpxN3yufhmbmpi/GxK32jHPMYEyxgUMqg6CTGNZPTou15v7TH80KEsqxTGT7lKLerEF"
 }

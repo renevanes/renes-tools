@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.98",
+    "date": "2026-10-24",
+    "changes": [
+      "Assistent: Qwen3.5 als nieuwere keuze voor klein en groot (zelf te downloaden bij Taalmodel)",
+      "App gebouwd met nieuwer Android-gereedschap (build-tools 37): open na installeren even een paar onderdelen om te zien of alles werkt"
+    ]
+  },
+  {
     "version": "1.97",
     "date": "2026-10-23",
     "changes": [
