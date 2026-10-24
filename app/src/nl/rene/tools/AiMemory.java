@@ -353,10 +353,21 @@ final class AiMemory {
 
     static synchronized int count(Context c) { return load(c).size(); }
 
-    /** Staat er een apart gezet (kapot) geheugenbestand? Dan is een leeg geheugen geen echte stand. */
+    /**
+     * Is het geheugen kapot apart gezet en sindsdien niet opnieuw bewaard? (Een kapot bestand dat nieuwer is dan
+     * memory.json, of memory.json ontbreekt.) Dan is een leeg geheugen geen echte stand.
+     */
     static boolean brokenAside(Context c) {
-        File[] fs = file(c).getParentFile().listFiles();
-        if (fs != null) for (File f : fs) if (f.getName().startsWith("memory.json.kapot-")) return true;
+        File mem = file(c);
+        File[] fs = mem.getParentFile().listFiles();
+        if (fs != null) for (File f : fs) {
+            String n = f.getName();
+            if (!n.startsWith("memory.json.kapot-")) continue;
+            if (!mem.isFile()) return true;
+            long when = f.lastModified();
+            try { when = Math.max(when, Long.parseLong(n.substring("memory.json.kapot-".length()))); } catch (Exception ignored) { }
+            if (when > mem.lastModified()) return true;
+        }
         return false;
     }
 

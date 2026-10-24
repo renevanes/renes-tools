@@ -2016,6 +2016,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void backupEncryptOff() {
             Secure.off(ctx);
             AllBackup.prefs(ctx).edit().putBoolean("part_ai", false).putBoolean("part_sleep", false).apply();
+            AllBackup.setPlain(ctx, "ai", false); AllBackup.setPlain(ctx, "sleep", false);
         }
 
         @JavascriptInterface public void backupSetRotate(boolean on) { AllBackup.prefs(ctx).edit().putBoolean("rotate", on).apply(); }
@@ -2087,10 +2088,16 @@ public class MainActivity extends Activity {
             }, "archive-unpack").start();
         }
 
-        @JavascriptInterface public void archiveClose() { Secure.forget(); a.pendingArchive = null; AiSleepBackup.cancelStaged(ctx); }
+        @JavascriptInterface public void archiveClose() {
+            Secure.forget(); a.pendingArchive = null;
+            new Thread(() -> { try { AiSleepBackup.cancelStaged(ctx); } catch (Throwable ignored) { } }, "archive-close").start();
+        }
 
         @JavascriptInterface public void backupSetPart(String part, boolean on) {
             if ("sleepAudio".equals(part)) { AllBackup.prefs(ctx).edit().putBoolean("sleep_audio", on).apply(); return; }
+            // Toestemming voor onversleuteld (alleen na "Onversleuteld meenemen?"); uitvinken trekt hem weer in
+            if ("plain:ai".equals(part) || "plain:sleep".equals(part)) { AllBackup.setPlain(ctx, part.substring(6), on); return; }
+            if (!on && ("ai".equals(part) || "sleep".equals(part))) AllBackup.setPlain(ctx, part, false);
             for (String p : AllBackup.PARTS) if (p.equals(part)) AllBackup.prefs(ctx).edit().putBoolean("part_" + p, on).apply();
         }
 

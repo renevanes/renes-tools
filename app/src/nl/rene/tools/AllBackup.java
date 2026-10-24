@@ -53,6 +53,19 @@ final class AllBackup {
 
     static boolean enabledPart(Context c, String part) { return prefs(c).getBoolean("part_" + part, !optIn(part)); }
 
+    /**
+     * Toestemming om assistent of Slaappraat onversleuteld mee te nemen (alleen na de vraag "Onversleuteld meenemen?").
+     * Staat in secure.xml: niet in de Android-backup en niet in de instellingen-backup.
+     */
+    static boolean plainOk(Context c, String part) { return Secure.prefs(c).getBoolean("plain_" + part, false); }
+    static void setPlain(Context c, String part, boolean on) { Secure.prefs(c).edit().putBoolean("plain_" + part, on).apply(); }
+
+    /** Gaat dit onderdeel echt mee? (Privé zonder versleutelen alleen met toestemming.) */
+    static boolean effectivePart(Context c, String part) {
+        if (!enabledPart(c, part)) return false;
+        return !("ai".equals(part) || "sleep".equals(part)) || Secure.on(c) || plainOk(c, part);
+    }
+
     /** Voert de backup uit (na tryBegin). Geeft per onderdeel {ok, count, msg}; slaat de uitkomst op. */
     static JSONObject run(Context c, boolean auto) {
         JSONObject res = new JSONObject();
@@ -84,6 +97,12 @@ final class AllBackup {
                 }
                 // Android beëindigt de taak: de rest niet meer, maar wel zichtbaar als mislukt; wat klaar is blijft bewaard
                 if (stop) { try { res.put("stopped", true); } catch (Exception ignored) { } put(res, part, false, 0, STOPPED); continue; }
+                // Privé zonder versleutelen alleen met uitdrukkelijke toestemming (die staat niet in een backup; na een
+                // nieuwe installatie of teruggezette instellingen gaat het dus nooit stilletjes leesbaar mee)
+                if (("ai".equals(part) || "sleep".equals(part)) && !Secure.on(c) && !plainOk(c, part)) {
+                    put(res, part, true, -1, "Niet mee: privé, zet Versleutelen aan (of vink het opnieuw aan)");
+                    continue;
+                }
                 current = part;
                 try {
                     int n = runPart(c, part);
@@ -91,10 +110,11 @@ final class AllBackup {
                     boolean plain = n > 0 && zip == null && ("ai".equals(part) || "sleep".equals(part));
                     put(res, part, true, n, n < 0 ? "Niets te bewaren" : plain ? n + " (niet versleuteld)" : null);
                 } catch (Throwable e) {
-                    String m = stop ? STOPPED : e instanceof OutOfMemoryError ? "onvoldoende geheugen" : e.getMessage() != null ? e.getMessage() : "mislukt";
+                    String orig = e instanceof OutOfMemoryError ? "onvoldoende geheugen" : e.getMessage() != null ? e.getMessage() : "mislukt";
+                    String m = stop ? STOPPED : orig;
                     if (stop) try { res.put("stopped", true); } catch (Exception ignored) { }
                     put(res, part, false, 0, m);
-                    App.log(c, "BACKUP", part + ": " + m);
+                    App.log(c, "BACKUP", part + ": " + m + (stop ? " (" + orig + ")" : ""));
                 }
             }
             Secure.CAPTURE.remove();
@@ -108,9 +128,10 @@ final class AllBackup {
                     try { res.put("archive", Secure.finish(zip, res)); done = true; }
                     catch (Exception e) { put(res, "all", false, 0, "Archief afsluiten mislukt: " + e.getMessage()); App.log(c, "BACKUP", "archief afsluiten: " + e); }
                     // Staat het privé-deel nu versleuteld in het archief, dan de oude leesbare kopie uit de backup-map weg
+                    // (ook als er niets te bewaren was: dan hoort er ook geen oude leesbare kopie te blijven staan)
                     if (done) for (String p : new String[]{"ai", "sleep"}) {
                         JSONObject r = res.optJSONObject(p);
-                        if (r != null && r.optBoolean("ok") && r.optInt("count") > 0) AiSleepBackup.removePlain(c, p);
+                        if (r != null && r.optBoolean("ok")) AiSleepBackup.removePlain(c, zip.dest.tree, p);
                     }
                 }
                 zip = null;
@@ -225,7 +246,7 @@ final class AllBackup {
             String space = Secure.prefs(c).getString("space", null);
             if (space != null) o.put("space", new JSONObject(space));
             JSONObject parts = new JSONObject();
-            for (String p : PARTS) parts.put(p, enabledPart(c, p));
+            for (String p : PARTS) parts.put(p, effectivePart(c, p));
             o.put("parts", parts).put("sleepAudio", sleepAudio(c)).put("extra", AiSleepBackup.sizes(c));
             String last = prefs(c).getString("last", null);
             if (last != null) o.put("last", new JSONObject(last));

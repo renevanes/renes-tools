@@ -230,9 +230,11 @@ final class Secure {
         }
         // Compleet. Bestaat er al een archief met deze naam (zelfde minuut), dan een eigen naam met seconden:
         // nooit een bestaand, compleet archief weggooien.
-        String name = zip.name;
+        // Gestopt halverwege: een eigen naam (…_deels.rtb), zodat opruimen hem nooit als volledige backup telt
+        String suffix = res.optBoolean("stopped") ? Rotate.PARTIAL + ".rtb" : ".rtb";
+        String name = zip.name.replaceAll("\\.rtb$", "") + suffix;
         if (zip.dir.kids.containsKey(name))
-            name = "backup-" + new SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(new Date()) + ".rtb";
+            name = "backup-" + new SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(new Date()) + suffix;
         Uri done = null;
         try { done = WaBackup.rename(zip.dest, zip.doc, name); } catch (Exception ignored) { }
         if (done == null) {
@@ -248,7 +250,22 @@ final class Secure {
             }
             try { DocumentsContract.deleteDocument(zip.dest.cr, zip.doc); } catch (Exception ignored) { }
         }
+        dropPartials(zip, name);
         return name;
+    }
+
+    /** Onvolledige archieven (…_deels.rtb) die een nieuwer archief hebben of te oud zijn: weg, ook zonder "opruimen". */
+    static void dropPartials(Zip zip, String justMade) {
+        try {
+            List<String> names = new ArrayList<>(zip.dir.kids.keySet());
+            names.add(justMade);
+            for (String n : Rotate.stalePartials(names, System.currentTimeMillis())) {
+                WaBackup.Child ch = zip.dir.kids.get(n);
+                if (ch == null || ch.dir || n.equals(justMade)) continue;
+                try { DocumentsContract.deleteDocument(zip.dest.cr, DocumentsContract.buildDocumentUriUsingTree(zip.dest.tree, ch.docId)); zip.dir.kids.remove(n); }
+                catch (Exception ignored) { }
+            }
+        } catch (Exception ignored) { }
     }
 
     /** Afbreken: zonder slotblok sluiten (dus nooit een geldig archief) en het tijdelijke bestand weghalen. */

@@ -42,13 +42,19 @@ const { chromium } = require('playwright');
     await pg.click('#bk-enc-off'); await pg.waitForTimeout(150);
     const offText = await pg.textContent('#modal-text');
     console.log('uitzetten', offText.replace(/\n/g, ' / '));
-    if (!/Geheugen en gesprekken van de assistent en Slaappraat gaan dan niet meer mee/.test(offText)) throw new Error('dialoog noemt privé-onderdelen niet');
+    if (!/Het geheugen en de gesprekken van de assistent, en Slaappraat, gaan dan niet meer mee, want die zijn privé/.test(offText)) throw new Error('dialoog noemt privé-onderdelen niet');
     await pg.click('#modal-ok'); await pg.waitForTimeout(150);
     const p4 = await priv();
     console.log('na uitzetten', JSON.stringify(p4), await pg.textContent('#toast'));
     if (p4.ai || p4.sleep || p4.aiBox || p4.warn) throw new Error('privé-onderdelen horen uit te staan');
     for (const k of ['ai', 'sleep']) { await pg.click('#bk-private input[data-p="' + k + '"]'); await pg.waitForTimeout(150); console.log('opnieuw', k, await pg.textContent('#modal-title')); await pg.click('#modal-ok'); await pg.waitForTimeout(150); }
     console.log('weer onversleuteld', JSON.stringify(await priv()));
+    console.log('toestemming', JSON.stringify(await pg.evaluate(() => Android._bk.plain)));
+    if (!(await pg.evaluate(() => Android._bk.plain.ai && Android._bk.plain.sleep))) throw new Error('toestemming voor onversleuteld niet gezet');
+    // Alleen het geheugen: meervoud
+    const een = await pg.evaluate(() => [bkPrivNoLonger(['ai']), bkPrivNoLonger(['sleep'])]);
+    console.log('één onderdeel', een.join(' | '));
+    if (!/^Het geheugen en de gesprekken van de assistent gaan .* die zijn privé. Wil je ze/.test(een[0]) || !/^Slaappraat gaat .* dat is privé. Wil je het/.test(een[1])) throw new Error('enkelvoud/meervoud klopt niet');
     // Overzicht wegtikken: niets blijft klaarstaan (restoreCancel)
     await pg.click('#s-backup button:has-text("Slaappraat")'); await pg.waitForTimeout(300);
     await pg.click('#modal-cancel'); await pg.waitForTimeout(150);

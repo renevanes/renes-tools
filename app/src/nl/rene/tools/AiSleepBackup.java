@@ -358,6 +358,7 @@ final class AiSleepBackup {
 
     /** fromTree: het geluid zoeken in de backup-map (gewoon terugzetten); anders komt het uit het archief (stageFromArchive). */
     static synchronized JSONObject previewSleep(Context c, String text, boolean fromTree) throws Exception {
+        if (applying) throw new Exception("Er wordt nog Slaappraat teruggezet; probeer het zo opnieuw");
         clearStage(c);
         JSONObject o = parse(text, "slaappraat", "Slaappraat-backup (slaappraat.json)");
         JSONArray ns = o.optJSONArray("nights");
@@ -433,29 +434,40 @@ final class AiSleepBackup {
     static synchronized void cancel(Context c) {
         pendingMem = null; pendingChats = null; pendingNights = null;
         pendingAudio = new HashMap<>(); pendingDocs = new HashMap<>(); pendingSrc = "";
-        clearStage(c);
+        if (!applying) clearStage(c); // tijdens terugzetten niet: dat ruimt applySleep zelf op
     }
 
     /** Archief gesloten: wat er uit dat archief klaarstond weg (een overzicht uit de backup-map blijft staan). */
     static synchronized void cancelStaged(Context c) {
         if ("stage".equals(pendingSrc)) { pendingNights = null; pendingAudio = new HashMap<>(); pendingSrc = ""; }
-        clearStage(c);
+        if (!applying) clearStage(c);
     }
+
+    /** Slaappraat wordt teruggezet (applySleep loopt): de cache en de .rt-part-bestanden dan met rust laten. */
+    static volatile boolean applying;
 
     /**
      * Na een gelukte versleutelde backup met deze onderdelen: de oude leesbare kopie (Assistent/assistent.json,
      * Slaappraat/) uit de backup-map halen, want die staat nu versleuteld in het archief.
      */
-    static void removePlain(Context c, String part) {
+    static void removePlain(Context c, Uri tree, String part) {
         try {
-            Uri tree = WaBackup.destUri(c);
             if (tree == null) return;
-            WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree); // niet in het archief (CAPTURE is al weg)
+            WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree); // de map van het archief, niet erin (CAPTURE is al weg)
             if (dest.zip != null) return;
             WaBackup.DestDir root = dest.root();
             if ("sleep".equals(part)) {
-                WaBackup.Child ch = root.kids.get(SLEEP_DIR);
-                if (ch != null && ch.dir) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId));
+                // Alleen eigen bestanden: slaappraat.json (en tijdelijke varianten) en het geluid per nacht
+                WaBackup.DestDir d = dest.dir(SLEEP_DIR, false);
+                if (d == null) return;
+                for (Map.Entry<String, WaBackup.Child> e : new ArrayList<>(d.kids.entrySet())) {
+                    if (e.getValue().dir || !e.getKey().startsWith(SLEEP_FILE)) continue;
+                    DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, e.getValue().docId));
+                    d.kids.remove(e.getKey());
+                }
+                prune(dest, d, new JSONObject()); // geluid en lege nachtmappen
+                WaBackup.Child dir = root.kids.get(SLEEP_DIR);
+                if (d.kids.isEmpty() && dir != null) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, dir.docId));
             } else if ("ai".equals(part)) {
                 WaBackup.DestDir d = dest.dir(AI_DIR, false);
                 if (d == null) return;
@@ -531,6 +543,7 @@ final class AiSleepBackup {
         }
         if (ns == null) throw new Exception("Niets om terug te zetten");
         int added = 0, lost = 0;
+        applying = true;
         try {
             Uri tree = WaBackup.destUri(c);
             String running = SleepService.running() ? SleepService.night : "";
@@ -577,7 +590,7 @@ final class AiSleepBackup {
                 }
                 if (SleepTalk.addRestored(c, cleanNight(n, withAudio))) added++;
             }
-        } finally { clearStage(c); }
+        } finally { clearStage(c); applying = false; }
         if (lost > 0) App.log(c, "RESTORE", "slaappraat: geluid van " + lost + " stukjes niet teruggezet");
         return added;
     }
