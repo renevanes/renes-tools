@@ -40,6 +40,14 @@ const { chromium } = require('playwright');
     await pg.click('#modal-ok'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._ai.st.klein.state === 'none' && Android._ai.chat === 'klein35'), 'oude model verwijderd, nieuwe in gebruik');
     ok(!(await pg.$('#ais-chat .aimodel[data-id=klein]')), 'oude model daarna niet meer in de lijst');
+    // Nieuwe gebruiker: geen "vervangt …" bij een model dat je nooit had
+    await pg.evaluate(() => { Android._ai.st.klein = { state: 'none' }; aiRefresh(); }); await pg.waitForTimeout(100);
+    ok(!(await pg.textContent('#ais-chat .aimodel[data-id=klein35]')).includes('vervangt') && !(await pg.textContent('#ais-chat .aimodel[data-id=groot35]')).includes('vervangt'), 'oude model niet in de lijst: geen "vervangt"');
+    // Een vervangen model met een mislukte download: alleen weghalen, niet opnieuw downloaden
+    await pg.evaluate(() => { Android._ai.st.groot = { state: 'failed', reason: 'Downloaden mislukt' }; aiRefresh(); }); await pg.waitForTimeout(100);
+    ok(!!(await pg.$('#ais-chat .aimodel[data-id=groot] button:has-text("Verwijderen")')) && !(await pg.$('#ais-chat .aimodel[data-id=groot] button:has-text("Downloaden")')), 'mislukt oud model: Verwijderen in plaats van Downloaden');
+    await pg.click('#ais-chat .aimodel[data-id=groot] button:has-text("Verwijderen")'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._ai.st.groot.state === 'none') && !(await pg.$('#ais-chat .aimodel[data-id=groot]')), 'weggehaald en niet meer in de lijst');
     // Oude modelbestanden opruimen
     await pg.evaluate(() => { Android._ai.orphans = 1.3e9; enterAiSet(); }); await pg.waitForTimeout(100);
     ok((await pg.textContent('#ais-old')).includes('1,3 GB'), 'oude bestanden te zien');

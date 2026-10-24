@@ -34,10 +34,13 @@ function aiModelCard(m, opts){
   let btn = '';
   if (m.state === 'ready') btn = opts.chat ? (chosen ? '<span class="aisel">In gebruik</span>' : '<button class="mini" onclick="aiUse(\'' + m.id + '\')">Gebruiken</button>') : '';
   else if (busy) btn = m.state === 'verifying' ? '' : '<button class="mini" onclick="aiDel(\'' + m.id + '\', true)">Stoppen</button>';
+  // Een vervangen model (bijv. mislukt downloaden) niet opnieuw aanbieden, alleen weghalen
+  else if (aiReplaced(m.id)) btn = m.state === 'none' ? '' : '<button class="mini" onclick="aiDel(\'' + m.id + '\', true)">Verwijderen</button>';
   else btn = '<button class="mini on" onclick="aiDl(\'' + m.id + '\')">Downloaden</button>';
   const big = m.ram > 0 && aiSt.ram > 0 && aiSt.ram < m.ram; // minder geheugen dan aangeraden
   // Nieuw (vervangt een ouder model), of vervangen door een nieuwer dat al klaar is
-  const newer = m.replaces ? '<small class="ainew">' + uiIcon('star') + 'Nieuw' + (aiModel(m.replaces).label ? ', vervangt ' + esc(aiModel(m.replaces).label) : '') + (m.news ? ': ' + esc(m.news) : '') + '</small>' : '';
+  const prev = m.replaces ? aiModel(m.replaces) : {};
+  const newer = prev.id && aiListed(prev) ? '<small class="ainew">' + uiIcon('star') + 'Nieuw' + (aiModel(m.replaces).label ? ', vervangt ' + esc(aiModel(m.replaces).label) : '') + (m.news ? ': ' + esc(m.news) : '') + '</small>' : '';
   const by = (aiSt.models || []).find(x => x.replaces === m.id && x.state === 'ready');
   const old = by && m.state === 'ready' ? '<small class="ainew">Vervangen door ' + esc(by.label) + (aiSt.chat === by.id ? '; dit model kun je verwijderen' : '') + '</small>' : '';
   return '<div class="aimodel' + (chosen ? ' on' : '') + '" data-id="' + m.id + '"><div class="aimt"><b>' + esc(m.label) + '</b><small>' + esc(m.desc) + '</small>' +
@@ -64,8 +67,9 @@ function aiUse(id){
   if (old && old.state === 'ready') setTimeout(() => askConfirm(old.label + ' verwijderen?', 'Je gebruikt nu ' + m.label + '. Het oude model (' + aiStateTxt(old).replace('✓ Klaar · ', '') + ') kan weg om ruimte te maken.', 'Verwijderen', () => { Android.aiDelete(old.id); aiRefresh(); toast(old.label + ' verwijderd'); }), 400);
 }
 /* Taalmodellen om te tonen: een model dat door een nieuwer vervangen is alleen als je het al hebt (of downloadt) */
+function aiReplaced(id){ return (aiSt.models || []).some(x => x.replaces === id); }
 function aiListed(m){
-  return !m.embed && (m.state !== 'none' || !(aiSt.models || []).some(x => x.replaces === m.id));
+  return !m.embed && (m.state !== 'none' || !aiReplaced(m.id));
 }
 /* Nieuwere modellen die een model vervangen dat je hebt (meegekomen met een app-update) en die je nog niet hebt */
 function aiNewer(){

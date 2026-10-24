@@ -127,7 +127,7 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 | aapt2 | `setup-tools.sh` (aaptjs3) | Onderhoud: npm | agent |
 | Playwright (alleen tests) | `publiceren.yml` | Onderhoud: npm | agent |
 | Node en Java (alleen CI-gereedschap) | `node-version`/`java-version` in de workflows | Onderhoud: Node-schema, Adoptium | agent, naar de nieuwste LTS |
-| AI-modellen (Qwen3 GGUF) | `LocalAi.java` (vaste commit + SHA-256) | Onderhoud: Hugging Face (zelfde maker, zelfde grootte) | agent voegt een nieuw `Model` toe na overleg met Rene (1–3 GB); Rene kiest zelf of hij downloadt |
+| AI-modellen (Qwen3/Qwen3.5 GGUF) | `LocalAi.java` (vaste commit + SHA-256) | Onderhoud: Hugging Face (zelfde maker, zelfde grootte) | agent voegt een nieuw `Model` toe na overleg met Rene (1–3 GB); Rene kiest zelf of hij downloadt |
 | Spraakmodellen (whisper ggml) | `Transcribe.java` (vaste SHA-256) | niet automatisch: het formaat verandert zelden | alleen op verzoek van Rene |
 
 Nieuwe APK nodig (Rene installeert die zelf): bij alles in `app/` (whisper, llama, Java), dus niet bij Actions,
