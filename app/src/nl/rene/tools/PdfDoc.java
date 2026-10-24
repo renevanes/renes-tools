@@ -129,8 +129,6 @@ final class PdfDoc implements AutoCloseable {
         return b.toString().trim();
     }
 
-    synchronized boolean isClosed() { return closed; }
-
     @Override public synchronized void close() {
         if (closed) return;
         closed = true;
