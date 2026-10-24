@@ -155,13 +155,19 @@ final class SleepTalk {
         }
     }
 
+    /** Hoe vaak AAC (achter elkaar) mislukte; na twee keer gaat het de rest van de tijd meteen als WAV. */
+    private static volatile int aacFails;
+
     /** Eerst AAC, anders WAV; altijd via een tijdelijk bestand. */
     private static boolean saveAudio(File dir, String id, short[] pcm) {
         File tmp = new File(dir, id + ".m4a.tmp");
-        try {
-            AacWriter.write(pcm, SleepDetect.RATE, tmp);
-            if (tmp.length() > 200 && tmp.renameTo(new File(dir, id + ".m4a"))) return true;
-        } catch (Throwable e) { /* geen AAC op deze telefoon: WAV */ }
+        if (aacFails < 2) {
+            try {
+                AacWriter.write(pcm, SleepDetect.RATE, tmp);
+                if (tmp.length() > 200 && tmp.renameTo(new File(dir, id + ".m4a"))) { aacFails = 0; return true; }
+                aacFails++;
+            } catch (Throwable e) { aacFails++; /* geen AAC op deze telefoon: WAV */ }
+        }
         tmp.delete();
         File w = new File(dir, id + ".wav.tmp");
         try (RandomAccessFile f = new RandomAccessFile(w, "rw")) { f.setLength(0); f.write(wav(pcm)); }
@@ -379,22 +385,35 @@ final class SleepTalk {
             if (step != null) step.step(done, todo.size());
             File f = clipFile(c, night, clip);
             String text = "";
+            boolean broken = false;
             if (f != null && f.isFile()) {
-                JSONObject out;
+                JSONObject out = null;
                 // whisper wil WAV: een .m4a eerst (tijdelijk) omzetten
                 File wav = f;
-                if (f.getName().endsWith(".m4a")) {
-                    wav = new File(c.getCacheDir(), "slaappraat-" + clip + ".wav");
-                    Transcribe.toWav(f, wav, Transcribe.durationMs(c, f), (ph, pct) -> { }, true);
+                try {
+                    if (f.getName().endsWith(".m4a")) {
+                        wav = new File(c.getCacheDir(), "slaappraat-" + clip + ".wav");
+                        try { Transcribe.toWav(f, wav, 0, (ph, pct) -> { if (stopTx) throw new Stopped(); }, true); }
+                        catch (Stopped s) { return; }
+                        catch (Exception e) {
+                            if (stopTx) return;
+                            // Onleesbaar stukje: overslaan (en niet elke keer opnieuw proberen), de rest gaat door
+                            App.log(c, "SLAAP", "stukje " + clip + " onleesbaar: " + e);
+                            broken = true;
+                        }
+                    }
+                    if (!broken) {
+                        try { out = Transcribe.whisper(c, wav, m, (ph, pct) -> { if (stopTx) throw new Stopped(); }, true); }
+                        catch (Stopped s) { return; }
+                        catch (Exception e) { if (stopTx) return; throw e; } // proces gestopt: geen fout
+                    }
+                } finally { if (wav != f) wav.delete(); }
+                if (out != null) {
+                    JSONArray tr = out.optJSONArray("transcription");
+                    List<String> parts = new ArrayList<>();
+                    if (tr != null) for (int i = 0; i < tr.length(); i++) parts.add(tr.getJSONObject(i).optString("text"));
+                    text = cleanText(parts);
                 }
-                try { out = Transcribe.whisper(c, wav, m, (ph, pct) -> { if (stopTx) throw new Stopped(); }, true); }
-                catch (Stopped s) { return; }
-                catch (Exception e) { if (stopTx) return; throw e; } // proces gestopt: geen fout
-                finally { if (wav != f) wav.delete(); }
-                JSONArray tr = out.optJSONArray("transcription");
-                List<String> parts = new ArrayList<>();
-                if (tr != null) for (int i = 0; i < tr.length(); i++) parts.add(tr.getJSONObject(i).optString("text"));
-                text = cleanText(parts);
             }
             synchronized (SleepTalk.class) {
                 JSONObject n = night(c, night);
@@ -402,7 +421,7 @@ final class SleepTalk {
                 if (a != null) for (int i = 0; i < a.length(); i++) {
                     JSONObject k = a.getJSONObject(i);
                     if (!clip.equals(k.optString("id"))) continue;
-                    String kind = kind(text);
+                    String kind = broken ? "onleesbaar" : kind(text);
                     k.put("text", text).put("kind", kind).put("done", true);
                     // Geen praten: het geluid hoeft niet te blijven (tenzij je dat wilt)
                     if ("geluid".equals(kind) && !keepNoise(c) && f != null) { f.delete(); new File(f.getParent(), clip + ".wav").delete(); k.put("audio", false); }

@@ -23,7 +23,7 @@ final class SleepReminder {
 
     static final String ACTION = "nl.rene.tools.SLEEP_REMIND";
     static final String CHANNEL = "sleeptalk-remind";
-    private static final int NOTIFICATION = 4803;
+    private static final int NOTIFICATION = 6101;
 
     /** De eerstvolgende keer dat het "HH:mm" is, na nu (0 = uit). Zuiver (getest). */
     static long next(long now, String hhmm, TimeZone tz) {
@@ -55,7 +55,7 @@ final class SleepReminder {
 
     static void fire(Context c) {
         try {
-            if (!SleepService.running() && !SleepTalk.remindAt(c).isEmpty()) {
+            if (!SleepService.running() && !SleepTalk.remindAt(c).isEmpty() && !NotifCenter.muted(c)) {
                 NotificationManager nm = c.getSystemService(NotificationManager.class);
                 if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
                     NotificationChannel ch = new NotificationChannel(CHANNEL, "Slaappraat: bedtijd", NotificationManager.IMPORTANCE_DEFAULT);
@@ -66,9 +66,10 @@ final class SleepReminder {
                 PendingIntent content = PendingIntent.getActivity(c, NOTIFICATION, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
                 String ch = NotifCenter.ch(c, CHANNEL);
                 Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, ch) : new Notification.Builder(c);
-                nm.notify(NOTIFICATION, b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Slaappraat aanzetten?")
-                        .setContentText("Tik hier en dan op Begin met luisteren. Welterusten!").setAutoCancel(true).setContentIntent(content)
-                        .setTimeoutAfter(3 * 3_600_000L).build());
+                b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Slaappraat aanzetten?")
+                        .setContentText("Tik hier en dan op Begin met luisteren. Welterusten!").setAutoCancel(true).setContentIntent(content);
+                if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(3 * 3_600_000L);
+                nm.notify(NOTIFICATION, b.build());
             }
         } catch (Throwable e) { App.log(c, "SLAAP", "herinnering: " + e); }
         arm(c);

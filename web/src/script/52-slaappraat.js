@@ -47,8 +47,9 @@ function slRender(){
     $('#sl-meter-floor').style.left = pct(s.floor) + '%';
   } else if (s.phase === 'proef') {
     const left = Math.ceil((s.probeLeft || 0) / 1000);
-    slHtml(st, '<div class="sl-live"><span class="sl-dot" aria-hidden="true"></span><b>Proef</b>: praat eens zoals je in je slaap zou doen · nog ' + left + ' s</div>' +
-      '<p class="note sl-probe' + (s.hearing ? ' on' : '') + '">' + (s.hearing ? 'Hoort nu iets' : 'Stil') + ' · ' + (s.probeHits || 0) + ' keer opgepikt</p>');
+    // Het aftellen staat buiten de voorleesregio (anders leest TalkBack elke seconde voor); de uitkomst wel
+    slHtml(st, '<span class="sr-only">Proef van 30 seconden loopt</span><div aria-hidden="true"><div class="sl-live"><span class="sl-dot"></span><b>Proef</b>: praat eens zoals je in je slaap zou doen · nog ' + left + ' s</div>' +
+      '<p class="note sl-probe' + (s.hearing ? ' on' : '') + '">' + (s.hearing ? 'Hoort nu iets' : 'Stil') + ' · ' + (s.probeHits || 0) + ' keer opgepikt</p></div>');
     btn.textContent = 'Stoppen'; btn.classList.add('ghost');
     meter.style.display = '';
     const pct = v => Math.max(0, Math.min(100, (v + 70) * 2));
@@ -104,7 +105,12 @@ function slProbe(){
   if (e) { toast(e); return; }
   slLoad(); slRender(); slPoll();
 }
-function slRemToggle(){ const on = !!(slSt.set || {}).remindAt; slSet('remindAt', on ? '' : ($('#sl-rem').value || '22:30')); if (!on) toast('Elke avond een herinnering om ' + ((slSt.set || {}).remindAt || '22:30')); }
+function slRemToggle(){
+  const on = !!(slSt.set || {}).remindAt;
+  if (!on && slSt.notifOk === false) { Android.permRequest('notif'); toast('Sta meldingen toe en tik dan opnieuw'); return; }
+  slSet('remindAt', on ? '' : ($('#sl-rem').value || '22:30'));
+  if (!on) toast('Elke avond een herinnering om ' + ((slSt.set || {}).remindAt || '22:30'));
+}
 function slSetRem(){ const v = $('#sl-rem').value; if (v) slSet('remindAt', v); }
 function slToggle(){
   if (slSt.phase === 'proef') { Android.sleepStop(); setTimeout(() => { slLoad(); slRender(); slPoll(); }, 400); return; }
@@ -130,7 +136,7 @@ function slnRender(){
   const n = slNightCur;
   if (!n) { slHtml($('#sln-list'), '<p class="note">Deze nacht is er niet meer.</p>'); $('#sln-sum').textContent = ''; slHtml($('#sln-tx'), ''); return; }
   $('#sln-title').textContent = slNightName(n.start).replace('Nacht van ', '');
-  const clips = n.clips || [], live = slSt.phase && slSt.night === n.id;
+  const clips = n.clips || [], live = (slSt.phase === 'luistert' || slSt.phase === 'uitschrijven') && slSt.night === n.id;
   const talk = clips.filter(k => k.done && k.kind === 'praten'), open = clips.filter(k => !k.done);
   $('#sln-sum').textContent = slTime(n.start) + ' – ' + (n.end ? slTime(n.end) : 'nu') + (n.reason && n.end ? ' · ' + n.reason : '') + ' · ' +
     (talk.length ? talk.length + ' keer gepraat' : 'niets gezegd') + (clips.length - talk.length - open.length ? ' · ' + (clips.length - talk.length - open.length) + ' keer geluid' : '') +
@@ -143,13 +149,14 @@ function slnRender(){
   document.querySelectorAll('#sln-filter button').forEach(b => { const x = b.dataset.v === slFilterV; b.classList.toggle('on', x); b.setAttribute('aria-checked', x ? 'true' : 'false'); });
   const list = slFilterV === 'alles' ? clips : clips.filter(k => !k.done || k.kind === 'praten');
   slHtml($('#sln-list'), list.map(k => {
-    const kind = !k.done ? (k.audio ? 'Nog niet uitgeschreven' : 'Niet bewaard (maximum van de nacht bereikt)') : k.kind === 'praten' ? '' : 'Geluid (geen woorden)';
+    const kind = !k.done ? (k.audio ? 'Nog niet uitgeschreven' : 'Niet bewaard (maximum van de nacht bereikt)') : k.kind === 'praten' ? '' : k.kind === 'onleesbaar' ? 'Kon dit stukje niet lezen' : 'Geluid (geen woorden)';
     const play = k.audio ? '<button class="iconbtn" onclick="slnPlay(\'' + esc(k.id) + '\')" aria-label="' + (slPlaying === k.id ? 'Stoppen' : 'Afspelen') + ' ' + esc(slTime(k.t)) + '">' + uiIcon(slPlaying === k.id ? 'stop' : 'play') + '</button>' : '';
     return '<div class="sl-clip' + (k.kind === 'praten' ? ' talk' : '') + '" role="listitem" data-clip="' + esc(k.id) + '"><div class="sl-ct"><b>' + esc(slTime(k.t)) + '</b><small>' + esc(Math.max(1, Math.round(k.dur)) + ' s') + '</small></div>' +
       '<div class="sl-cx">' + (k.text ? '<p>' + esc(k.text) + '</p>' : '') + (kind ? '<small>' + esc(kind) + '</small>' : '') + '</div>' + play +
       '<button class="iconbtn" onclick="slnDel(\'' + esc(k.id) + '\')" aria-label="Wissen ' + esc(slTime(k.t)) + '">' + uiIcon('trash') + '</button></div>';
   }).join('') || '<p class="note">' + (clips.length ? 'Geen gepraat, alleen geluiden. Kies Alles om ze te zien.' : live ? 'Nog niets gehoord.' : 'Niets gehoord deze nacht.') + '</p>');
   // Vanuit Zoeken: naar het gevonden stukje
+  if (/^t:/.test(slFocusClip)) { const t = +slFocusClip.slice(2), k = clips.find(x => x.t === t); slFocusClip = k ? k.id : ''; }
   if (slFocusClip) { const el = document.querySelector('#sln-list [data-clip="' + slFocusClip + '"]'); slFocusClip = ''; if (el) setTimeout(() => { el.scrollIntoView({ block: 'center' }); el.classList.add('gsflash'); setTimeout(() => el.classList.remove('gsflash'), 1600); }, 80); }
 }
 function slnPlay(clip){

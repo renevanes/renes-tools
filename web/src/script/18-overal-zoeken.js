@@ -122,7 +122,7 @@ function gsMore(k){
   jumpTo(d[2]);
   if (k === 'calls') Object.assign(callsF, { kind: 'all', period: 'all', from: '', to: '', who: 'all', dur: 'all', person: null });
   const inp = d[3] ? $('#' + d[3]) : null; if (inp) { inp.value = gsQ; if (k === 'calls') callsSyncUi(); d[4](gsQ); }
-  gsUsed[d[3]] = gsQ;
+  if (d[3]) gsUsed[d[3]] = gsQ;
 }
 function gsOpen(el){
   const k = el.dataset.k; let x; try { x = JSON.parse(el.dataset.x); } catch(e){ return; }
@@ -133,7 +133,7 @@ function gsOpen(el){
   else if (k === 'calls') { if (x.ck) jumpTo('contact', () => ctOpen(x.ck, x.cid)); else gsMoreCalls(x.number); }
   else if (k === 'tx') jumpTo('txd', () => txOpen(x.id, x.from));
   else if (k === 'music') { jumpTo('music'); setTimeout(() => muOpen(x.t), 50); }
-  else if (k === 'sleep') { slNightId = String(x.night || ''); slFocusClip = x.clip || ''; slFilterV = 'praten'; jumpTo('sleepnight'); }
+  else if (k === 'sleep') { slNightId = String(x.night || ''); slFocusClip = x.clip || (x.t ? 't:' + x.t : ''); slFilterV = 'praten'; jumpTo('sleepnight'); }
   else if (k === 'history') gsMore('history');
   else if (k === 'app') {
     const it = gsIndex && gsIndex[x.i]; if (!it) return;

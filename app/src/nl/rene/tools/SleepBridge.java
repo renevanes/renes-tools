@@ -26,7 +26,8 @@ public class SleepBridge extends FeatureBridge {
             o.put("phase", SleepService.phase).put("night", SleepService.night).put("since", SleepService.since).put("stopAt", SleepService.stopAt)
                     .put("heard", SleepService.heard).put("level", Math.round(SleepService.levelDb)).put("floor", Math.round(SleepService.floorDb))
                     .put("txDone", SleepService.txDone).put("txTotal", SleepService.txTotal).put("message", SleepService.message)
-                    .put("hearing", SleepService.hearingNow).put("probeHits", SleepService.probeHits).put("probeLeft", Math.max(0, SleepService.probeUntil - System.currentTimeMillis()));
+                    .put("hearing", SleepService.hearingNow).put("probeHits", SleepService.probeHits).put("probeLeft", Math.max(0, SleepService.probeUntil - System.currentTimeMillis()))
+                    .put("notifOk", Build.VERSION.SDK_INT < 33 || ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED);
             o.put("mic", ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
                     .put("notif", Build.VERSION.SDK_INT < 33 || ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED);
             Transcribe.Model m = Transcribe.activeModel(ctx);
@@ -65,7 +66,8 @@ public class SleepBridge extends FeatureBridge {
         if (CallRecorderService.busy) return "Stop eerst de gespreksopname";
         if ("recording".equals(Music.state)) return "Stop eerst muziekherkenning";
         if ("recording".equals(VoiceNote.state)) return "Stop eerst het inspreken";
-        SleepService.phase = "proef"; SleepService.probeHits = 0; SleepService.probeUntil = System.currentTimeMillis() + SleepService.PROBE_MS; SleepService.message = "";
+        sleepStopPlay();
+        SleepService.night = ""; SleepService.phase = "proef"; SleepService.probeHits = 0; SleepService.probeUntil = System.currentTimeMillis() + SleepService.PROBE_MS; SleepService.message = "";
         a.h.post(() -> {
             try {
                 Intent i = new Intent(a, SleepService.class).setAction("probe");

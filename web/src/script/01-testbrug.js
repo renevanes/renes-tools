@@ -223,9 +223,9 @@ if (!window.Android) window.Android = (function(){
     // Lokale AI (assistent en slim zoeken): nagebootst, zonder model
     // Slaappraat zoals SleepBridge: nachten met stukjes, luisteren en uitschrijven worden nagebootst
     _sl: { phase: '', night: '', since: 0, stopAt: 0, heard: 0, level: -60, floor: -64, txDone: 0, txTotal: 0, message: '', mic: true, notif: true, model: 'Snel (57 MB)',
-      set: { sens: 2, stopAt: '07:30', transcribe: true, keepNoise: false, keep: 14, remindAt: '' }, nights: [], played: '', hearing: false, probeHits: 0, probeLeft: 0 },
+      set: { sens: 2, stopAt: '07:30', transcribe: true, keepNoise: false, keep: 14, remindAt: '' }, nights: [], played: '', hearing: false, probeHits: 0, probeLeft: 0, notifOk: true },
     _slSum(n){ const c = n.clips; return { id: n.id, start: n.start, end: n.end, reason: n.reason || '', talk: c.filter(k => k.done && k.kind === 'praten').length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done).length, first: (c.find(k => k.done && k.kind === 'praten') || {}).text || '', batStart: n.batStart == null ? -1 : n.batStart, batEnd: n.batEnd == null ? -1 : n.batEnd, charged: !!n.charged }; },
-    sleepState(){ const S = this._sl; return JSON.stringify({ phase: S.phase, night: S.night, since: S.since, stopAt: S.stopAt, heard: S.heard, level: S.level, floor: S.floor, txDone: S.txDone, txTotal: S.txTotal, message: S.message, hearing: S.hearing, probeHits: S.probeHits, probeLeft: S.probeLeft,
+    sleepState(){ const S = this._sl; return JSON.stringify({ phase: S.phase, night: S.night, since: S.since, stopAt: S.stopAt, heard: S.heard, level: S.level, floor: S.floor, txDone: S.txDone, txTotal: S.txTotal, message: S.message, hearing: S.hearing, probeHits: S.probeHits, probeLeft: S.probeLeft, notifOk: S.notifOk,
       mic: S.mic, notif: S.notif, model: S.model, set: S.set, nights: S.nights.slice().sort((a, b) => b.start - a.start).map(n => this._slSum(n)) }); },
     sleepStart(){ const S = this._sl; if (!S.mic) return 'mic'; if (!S.notif) return 'notif'; if (S.phase === 'luistert') return '';
       S.phase = 'luistert'; S.since = Date.now(); S.heard = 0; S.night = String(S.since); S.stopAt = S.set.stopAt ? S.since + 8 * 3600e3 : 0;

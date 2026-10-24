@@ -35,7 +35,7 @@ final class AacWriter {
             MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
             int track = -1, pos = 0;
             boolean inputDone = false, outputDone = false;
-            long guard = System.currentTimeMillis() + 60_000;
+            long guard = System.currentTimeMillis() + 20_000;
             while (!outputDone) {
                 if (System.currentTimeMillis() > guard) throw new Exception("AAC-encoder reageert niet");
                 if (!inputDone) {
@@ -72,6 +72,9 @@ final class AacWriter {
                 }
             }
             if (!muxStarted) throw new Exception("Geen geluid geschreven");
+            // Hier (niet in finally) stoppen: mislukt het, dan is het bestand onbruikbaar en bewaart de aanroeper een WAV
+            muxStarted = false;
+            mux.stop();
         } finally {
             try { enc.stop(); } catch (Throwable ignored) { }
             try { enc.release(); } catch (Throwable ignored) { }

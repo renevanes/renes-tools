@@ -323,7 +323,7 @@ function aiKindIcon(k){ const s = AI_SRC.find(x => x[0] === k); return s ? s[2] 
 function aiHitGs(h){
   const id = String(h.id || '');
   if (h.kind === 'tx') return ['tx', { id, from: +h.from || 0 }];
-  if (h.kind === 'sleep') return ['sleep', { night: id }];
+  if (h.kind === 'sleep') return ['sleep', { night: id, t: +h.from || 0 }];
   if (h.kind === 'sms') return ['sms', { thread: /^\d+$/.test(id) ? +id : id, name: h.title || '' }];
   if (h.kind === 'wa') return ['wa', { chat: /^\d+$/.test(id) ? +id : id, name: h.title || '' }];
   if (h.kind === 'calls') return ['calls', { number: id }];

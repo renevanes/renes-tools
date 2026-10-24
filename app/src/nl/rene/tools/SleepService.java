@@ -122,7 +122,7 @@ public final class SleepService extends Service {
 
     /** Op main: proefronde van 30 seconden. Niets wordt bewaard; het scherm laat zien wat hij oppikt. */
     private void beginProbe() {
-        stop = false; stopReason = null; message = ""; probe = true;
+        stop = false; stopReason = null; message = ""; probe = true; night = "";
         since = System.currentTimeMillis(); probeUntil = since + PROBE_MS; probeHits = 0; heard = 0; hearingNow = false;
         levelDb = -90; floorDb = -90; inCall = false; stopAt = 0;
         phase = "proef";
@@ -131,7 +131,8 @@ public final class SleepService extends Service {
         Thread t = new Thread(() -> {
             try { listen("", since); } catch (Throwable e) { App.log(this, "SLAAP", "proef: " + e); }
             probe = false; hearingNow = false; levelDb = -90;
-            message = probeHits == 0 ? "Proef klaar: niets opgepikt. Praat wat harder, leg de telefoon dichterbij of kies Ook gefluister."
+            // Een fout (microfoon, accu) laten staan; anders de uitkomst van de proef
+            if (stopReason == null || "Gestopt".equals(stopReason)) message = probeHits == 0 ? "Proef klaar: niets opgepikt. Praat wat harder, leg de telefoon dichterbij of kies Ook gefluister."
                     : "Proef klaar: " + probeHits + " keer iets opgepikt. Zo pakt hij het vannacht ook op.";
             main.post(this::afterWork);
         }, "slaappraat-proef");
@@ -263,7 +264,6 @@ public final class SleepService extends Service {
                 if (got > 0) levelDb = SleepDetect.db(sq / got);
                 floorDb = det.floorDb();
                 hearingNow = det.inClip();
-                if (probe && System.currentTimeMillis() >= probeUntil) stop = true;
                 checkLimits(start);
             }
             det.flush();
@@ -283,6 +283,7 @@ public final class SleepService extends Service {
     private long nextLimitCheck, pausedAt;
     private void checkLimits(long start) {
         long now = System.currentTimeMillis();
+        if (probe && now >= probeUntil) { stop = true; return; } // proef klaar (ook tijdens een gesprek)
         if (now < nextLimitCheck) return;
         nextLimitCheck = now + 60_000;
         if (stopAt > 0 && now >= stopAt) { stopReason = "Stoptijd bereikt"; stop = true; return; }

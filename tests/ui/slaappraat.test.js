@@ -93,6 +93,10 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { goBack(); Android._sl.nightMs = 0; });  await pg.waitForTimeout(100);
     // Herinnering op bedtijd
     ok(!(await pg.isVisible('#sl-rem')), 'herinnering: standaard uit');
+    await pg.evaluate(() => { Android._sl.notifOk = false; Android._permAsked = []; slLoad(); });
+    await pg.click('#sl-rem-on'); await pg.waitForTimeout(60);
+    ok(await pg.evaluate(() => !Android._sl.set.remindAt && Android._permAsked.includes('notif')), 'herinnering zonder meldingen: eerst toestemming vragen');
+    await pg.evaluate(() => { Android._sl.notifOk = true; slLoad(); });
     await pg.click('#sl-rem-on'); await pg.waitForTimeout(60);
     ok(await pg.evaluate(() => Android._sl.set.remindAt === '22:30') && await pg.isVisible('#sl-rem') && (await pg.textContent('#sl-rem-n')).includes('22:30'), 'herinnering aan om 22:30');
     await pg.fill('#sl-rem', '23:15'); await pg.dispatchEvent('#sl-rem', 'change'); await pg.waitForTimeout(60);
@@ -103,6 +107,12 @@ const { chromium } = require('playwright');
     ok(await pg.isVisible('#gs-res .gi[data-k=sleep]') && (await pg.textContent('#gs-res')).includes('onder de mat'), 'Zoeken: Slaappraat-groep');
     await pg.click('#gs-res .gi[data-k=sleep]'); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => current === 'sleepnight' && slNightId === '1700000000000') && await pg.isVisible('#sln-list [data-clip="c1700000100000"]'), 'treffer opent de nacht bij dat stukje');
+    // Vanuit de assistent: naar het stukje op tijd; een onleesbaar stukje krijgt een eigen regel
+    await pg.evaluate(() => { const n = Android._sl.nights.find(x => x.id === '1700000000000'); n.clips.push({ id: 'c1700000200000', t: 1700000200000, dur: 2, audio: true, done: true, kind: 'onleesbaar', text: '' }); goBack(); });
+    await pg.waitForTimeout(100);
+    await pg.evaluate(() => { slFilterV = 'alles'; slNightId = '1700000000000'; slFocusClip = 't:1700000200000'; jumpTo('sleepnight'); slFilterV = 'alles'; slnRender(); });
+    await pg.waitForTimeout(200);
+    ok((await pg.textContent('#sln-list')).includes('Kon dit stukje niet lezen'), 'onleesbaar stukje');
     // Zoeken vindt het scherm
     await pg.evaluate(() => { show('search'); }); await pg.fill('#gs-q', 'slaap'); await pg.evaluate(() => gsInput()); await pg.waitForTimeout(400);
     ok((await pg.textContent('#gs-res')).includes('Slaappraat'), 'te vinden bij Zoeken');
