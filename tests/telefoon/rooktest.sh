@@ -184,10 +184,11 @@ stap() {
 adb shell input keyevent 82 >/dev/null 2>&1 || true   # scherm ontgrendelen
 adb shell wm dismiss-keyguard >/dev/null 2>&1 || true
 echo "== installeren"
-if ! adb install -r -g "$APK" 2>&1 | tee "$UIT/install.txt" | grep -q Success; then
+adb install -r -g "$APK" > "$UIT/install.txt" 2>&1 || true
+if ! grep -q Success "$UIT/install.txt"; then
   # -g (alle rechten) niet nodig voor deze test; zonder proberen als het oude Android het weigert
-  adb install -r "$APK" 2>&1 | tee -a "$UIT/install.txt" | grep -q Success \
-    || { meld installeren "$(cat "$UIT/install.txt")"; exit 1; }
+  adb install -r "$APK" >> "$UIT/install.txt" 2>&1 || true
+  grep -q Success "$UIT/install.txt" || { meld installeren "$(cat "$UIT/install.txt")"; exit 1; }
 fi
 adb logcat -c 2>/dev/null || true
 

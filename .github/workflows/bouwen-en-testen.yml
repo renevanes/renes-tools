@@ -32,7 +32,8 @@ jobs:
 
       - name: Actions vastgezet op een commit (niet op een verplaatsbaar versienummer)
         run: |
-          los=$(grep -n -E '^\s*-?\s*uses:' .github/workflows/*.yml | grep -v -E '@[0-9a-f]{40}( |$)' || true)
+          los=$(grep -n -E '^\s*-?\s*uses:' .github/workflows/*.y*ml $(ls .github/actions/*/action.y*ml 2>/dev/null) \
+                | grep -v -E '@[0-9a-f]{40}( |$)' | grep -v -E 'uses:\s*\./' || true)  # eigen (lokale) actions mogen
           if [ -n "$los" ]; then echo "$los"; echo "::error::Zet elke Action vast op een commit-SHA met de versie als opmerking (zie AGENTS.md)"; exit 1; fi
 
       - name: Scripts controleren (shellcheck; fouten stoppen, waarschuwingen alleen als melding)
