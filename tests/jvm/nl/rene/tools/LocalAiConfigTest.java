@@ -37,6 +37,11 @@ public class LocalAiConfigTest {
         check(uniq, "elk model een eigen id en bestand; vervangt een bestaand taalmodel");
         check(LocalAi.LARGE.big() && LocalAi.LARGE35.big() && !LocalAi.SMALL.big() && !LocalAi.SMALL35.big() && !LocalAi.EMBED.big(), "grote modellen: geheugen aangeraden");
         check(!LocalAi.orphan(LocalAi.SMALL35.file, LocalAi.MODELS) && !LocalAi.orphan(LocalAi.LARGE.file, LocalAi.MODELS), "oude en nieuwe modellen naast elkaar: geen oud bestand");
+        // Resten van een vervangen model dat je niet hebt (en niet downloadt): ook op te ruimen; van een model in gebruik of bezig niet
+        java.util.Set<String> none = new java.util.HashSet<>(), klaar = new java.util.HashSet<>(java.util.Arrays.asList("klein", "groot"));
+        check(LocalAi.leftover(LocalAi.LARGE.file + ".download", LocalAi.MODELS, none) && LocalAi.leftover(LocalAi.SMALL.file + ".tmp", LocalAi.MODELS, none) && LocalAi.leftover(LocalAi.SMALL.file, LocalAi.MODELS, none), "resten van een vervangen model: opruimen");
+        check(!LocalAi.leftover(LocalAi.LARGE.file + ".download", LocalAi.MODELS, klaar) && !LocalAi.leftover(LocalAi.SMALL.file, LocalAi.MODELS, klaar), "vervangen model dat klaar of bezig is: blijft");
+        check(!LocalAi.leftover(LocalAi.SMALL35.file + ".download", LocalAi.MODELS, none) && !LocalAi.leftover(LocalAi.EMBED.file + ".tmp", LocalAi.MODELS, none) && !LocalAi.leftover("chats.json", LocalAi.MODELS, none) && LocalAi.leftover("oud.gguf", LocalAi.MODELS, none), "nieuwste modellen en andere bestanden: blijven");
         // Past in het geheugen van het model
         String k1000 = new String(new char[1000]).replace('\0', 'a'), k500 = new String(new char[500]).replace('\0', 'b');
         String[] f = LocalAi.persFit(k1000, k1000, 4096);

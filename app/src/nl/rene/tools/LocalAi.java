@@ -102,11 +102,26 @@ final class LocalAi {
         for (Model m : models) if (name.equals(m.file) || name.equals(m.file + ".tmp") || name.equals(m.file + ".download")) return false;
         return name.endsWith(".gguf") || name.endsWith(".gguf.tmp") || name.endsWith(".gguf.download");
     }
+    /** Ook op te ruimen: resten (half gedownload, niet gecontroleerd) van een model dat door een nieuwer vervangen is
+     *  en dat je niet hebt en niet aan het downloaden bent; zo'n model staat niet meer bij Taalmodel. busy = ids die
+     *  klaar zijn of bezig (downloaden/controleren): daarvan blijft alles staan. Zuiver (getest). */
+    static boolean leftover(String name, Model[] models, java.util.Set<String> busy) {
+        if (orphan(name, models)) return true;
+        for (Model m : models) {
+            if (!name.equals(m.file) && !name.equals(m.file + ".tmp") && !name.equals(m.file + ".download")) continue;
+            if (busy.contains(m.id)) return false;
+            for (Model x : models) if (m.id.equals(x.replaces)) return true;
+            return false;
+        }
+        return false;
+    }
     private static List<File> orphans(Context c) {
+        java.util.Set<String> busy = new java.util.HashSet<>();
+        for (Model m : MODELS) if (ready(c, m) || VERIFYING.containsKey(m.id) || prefs(c).getLong("dl_" + m.id, -1) >= 0) busy.add(m.id);
         List<File> out = new ArrayList<>();
         for (File d : new File[]{modelDir(c), c.getExternalFilesDir("ai")}) {
             File[] fs = d == null ? null : d.listFiles();
-            if (fs != null) for (File f : fs) if (f.isFile() && orphan(f.getName(), MODELS)) out.add(f);
+            if (fs != null) for (File f : fs) if (f.isFile() && leftover(f.getName(), MODELS, busy)) out.add(f);
         }
         return out;
     }

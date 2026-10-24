@@ -137,8 +137,9 @@ static void ck_save(Engine & E) {
 
 // Het geheugen terugbrengen tot (hooguit) de eerste n tokens; geeft hoeveel er over zijn. Lukt inkorten niet
 // (hybride model), dan terug naar de momentopname als die binnen die n valt, anders helemaal leeg.
-static size_t mem_trim(Engine & E, size_t n) {
-    if (n >= E.cache.size()) return E.cache.size();
+// force: ook als E.cache al n lang is (het model kan meer verwerkt hebben dan E.cache weet, bijv. na een fout).
+static size_t mem_trim(Engine & E, size_t n, bool force = false) {
+    if (n > E.cache.size() || (n == E.cache.size() && !force)) return E.cache.size();
     llama_memory_t mem = llama_get_memory(E.ctx);
     if (llama_memory_seq_rm(mem, 0, (llama_pos) n, -1)) E.cache.resize(n);
     else if (E.ck_n > 0 && E.ck_n <= n
@@ -278,6 +279,7 @@ static void do_chat(Engine & E, const json & j) {
         if (cancelled()) {
             // Gestopt tijdens het inlezen: wat al verwerkt is, blijft (de volgende vraag met hetzelfde begin is dan snel)
             E.cache.insert(E.cache.end(), toks.begin() + at, toks.begin() + at + got);
+            mem_trim(E, E.cache.size(), true); // een half verwerkt stuk (fout tijdens het stoppen) weghalen
             emit(json{{"done", true}, {"cancelled", true}, {"n", 0}, {"kept", (int) E.cache.size()}});
             return;
         }
