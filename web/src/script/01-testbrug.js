@@ -259,13 +259,13 @@ if (!window.Android) window.Android = (function(){
     _aiReady(id){ return this._ai.st[id].state === 'ready'; },
     // Zoals LocalAi.chatModel: het gekozen model, of anders het eerste taalmodel dat klaar is
     _aiChat(){ const A = this._ai; if (this._aiReady(A.chat)) return A.chat; const m = A.models.find(x => x[0] !== 'zoek' && this._aiReady(x[0])); return m ? m[0] : A.chat; },
-    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: this._aiChat(), wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, cfg: Object.assign({}, this._aiCfgDef, A.cfg), memCount: A.mem.length, loaded: '', busy: !!A.busy, src: Object.assign({}, A.src), perm: Object.assign({}, A.perm),
-      models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek' }, m[4] ? { replaces: m[4], news: m[5] || '' } : {}, m[6] ? { ram: m[6] } : {}, A.st[m[0]] || { state: 'none' })), orphans: A.orphans || 0,
+    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: this._aiChat(), wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, speakVoice: !!A.speakVoice, cfg: Object.assign({}, this._aiCfgDef, A.cfg), memCount: A.mem.length, loaded: '', busy: !!A.busy, src: Object.assign({}, A.src), perm: Object.assign({}, A.perm),
+      models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek', ctx: m[0] === 'groot' ? 3072 : m[0] === 'zoek' ? 1024 : 4096 }, m[4] ? { replaces: m[4], news: m[5] || '' } : {}, m[6] ? { ram: m[6] } : {}, A.st[m[0]] || { state: 'none' })), orphans: A.orphans || 0,
       index: this._aiReady('zoek') ? { items: 3, chunks: 7, at: Date.now() - 6e4, stale: false } : undefined }); },
     aiDownload(id){ const A = this._ai, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dl', id]);
       Object.assign(m, { state: 'running', bytes: 0, total: 1e9 }); setTimeout(() => { m.bytes = 5e8; }, 200);
       setTimeout(() => { Object.assign(m, { state: 'verifying', pct: 40 }); }, 450); setTimeout(() => { A.st[id] = { state: 'ready' }; onAiModels(''); }, 700); return ''; },
-    aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ const A = this._ai; if (/^src_/.test(n)) { const k = n.slice(4); if (!(k in A.src)) return; A.src[k] = on; A.calls.push(['src', k, on]); if (this._aiReady('zoek')) { setTimeout(() => onAiIndex({ busy: true, done: 1, total: 3 }), 40); setTimeout(() => onAiIndex({ items: 4, chunks: 9, at: Date.now(), quiet: true }), A.idxMs || 150); } return; } if (['wifiOnly', 'notes', 'voiceSend'].includes(n)) A[n] = on; },
+    aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ const A = this._ai; if (/^src_/.test(n)) { const k = n.slice(4); if (!(k in A.src)) return; A.src[k] = on; A.calls.push(['src', k, on]); if (this._aiReady('zoek')) { setTimeout(() => onAiIndex({ busy: true, done: 1, total: 3 }), 40); setTimeout(() => onAiIndex({ items: 4, chunks: 9, at: Date.now(), quiet: true }), A.idxMs || 150); } return; } if (['wifiOnly', 'notes', 'voiceSend', 'speakVoice'].includes(n)) A[n] = on; },
     aiIndexStop(){ this._ai.calls.push(['indexStop']); },
     aiIndexAuto(){ this._ai.calls.push(['indexAuto']); },
     // Zoals AiBridge: bezig tot het antwoord (of het stoppen) helemaal klaar is; een tweede vraag intussen wordt geweigerd
@@ -280,13 +280,36 @@ if (!window.Android) window.Android = (function(){
       if (fg && memOn) { const w = fg[1].toLowerCase(), m = A.mem.find(x => w.split(/\s+/).filter(v => v.length > 3).some(v => x.text.toLowerCase().includes(v)));
         if (m) A.mem = A.mem.filter(x => x !== m); onAiMemory(Object.assign({ forgot: m ? m.text : '', pre: true, turn }, m ? { forgotItem: m } : {})); }
       const used = memOn ? A.mem.length : 0, learn = memOn && !rem && !fg && cfg.learn !== 'uit' && /\b(ik|mijn)\b/i.test(q) && !(r.notes && this._aiReady('zoek'));
-      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone(Object.assign({ done: true, n: words.length, turn }, used ? { mem: used } : {}, learn ? { learning: true } : {}));
-        if (learn) { A.learningNow = true; setTimeout(() => onAiMemory({ thinking: true, turn }), 20); setTimeout(() => {
+      // Acties zoals LocalAi/AiActions: de regel [[herinnering: JJJJ-MM-DD UU:MM | tekst]] eruit, en als voorstel mee
+      const act = this._aiAct(A.reply, r.noAct || r.messages.some(m => m.att)), wantAct = act.wanted(q), lrn = learn && !wantAct && !r.noLearn;
+      if (wantAct) onAiActWanted();
+      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone(Object.assign({ done: true, n: words.length, turn }, used ? { mem: used } : {}, lrn ? { learning: true } : {}, wantAct && act.clean != null ? { clean: act.clean } : {}, act.action && wantAct ? { action: act.action } : {}));
+        if (lrn) { A.learningNow = true; setTimeout(() => onAiMemory({ thinking: true, turn }), 20); setTimeout(() => {
           A.learningNow = false;
           if (A.learnStop) { A.learnStop = false; onAiMemory({ none: true, stopped: true, turn }); return; }
           if (cfg.learn === 'vanzelf') onAiMemory({ saved: A.learnFacts.map(f => JSON.parse(this.aiMemAdd(f, 'geleerd', r.chat, r.title))), turn }); else onAiMemory({ ask: A.learnFacts.slice(), turn }); }, A.learnMs || 150); } } };
       if (r.notes && this._aiReady('zoek')) { onAiStatus('Zoeken in je gegevens…'); onAiSources([{ kind: 'notes', id: (notesGet()[0] || {}).id || 'x', title: 'Garage', snip: 'APK in maart', score: 0.61 }].concat(this._ai.src.sms ? [{ kind: 'sms', id: '7', title: 'Jos', snip: '[1 okt] Jos: de garage belt morgen', score: 0.5 }] : [])); }
       A.timer = setTimeout(() => { onAiStatus(''); tick(); }, 120); return ''; },
+    _aiAct(reply, noAct){
+      const out = { wanted: q => !noAct && /herinner|notitie|noteer|agenda|remind/i.test(q) && !/^\s*(onthoud|vergeet)\b/i.test(q) };
+      const mt = /`*\[\[\s*(herinnering|notitie|agenda)\s*:\s*([^\]\n]*)\]\]`*/i.exec(reply);
+      if (!mt) return out;
+      out.clean = reply.replace(mt[0], '').replace(/\n{3,}/g, '\n\n').trim();
+      const type = mt[1].toLowerCase(), f = mt[2].split('|').map(x => x.trim());
+      if (type === 'notitie') { out.action = { type, title: f.length > 1 ? f[0] : f[0].slice(0, 60), text: f.length > 1 ? f.slice(1).join(' | ') : '', need: '', src: 'model' }; return out; }
+      const d = /^(\d{4})-(\d\d)-(\d\d)(?:\s+(\d\d):(\d\d))?$/.exec(f[0] || ''), day = d ? new Date(+d[1], d[2] - 1, +d[3]).getTime() : 0;
+      const at = d && d[4] ? new Date(+d[1], d[2] - 1, +d[3], +d[4], +d[5]).getTime() : 0, ok = at > Date.now() + 30000;
+      out.action = { type, title: f[1] || '', text: '', src: 'model', need: ok ? '' : day && !at && type === 'agenda' ? '' : day && !at ? 'tijd' : 'datum' };
+      if (ok) { out.action.at = at; out.action.day = day; } else if (day && !at) { out.action.day = day; if (type === 'agenda') out.action.allDay = true; }
+      return out;
+    },
+    // Voorlezen zoals AiSpeech: start, klaar (na _tts.ms), stoppen; of een fout (_tts.err)
+    _tts: { said: [], stops: 0, ms: 400, cur: '' },
+    aiSpeak(text, id){ const T = this._tts; T.said.push(text); clearTimeout(T.t1); clearTimeout(T.t2); T.cur = id;
+      if (T.err) { T.t1 = setTimeout(() => { T.cur = ''; onAiSpeak({ state: 'error', id, error: T.err }); }, 20); return; }
+      T.t1 = setTimeout(() => onAiSpeak({ state: 'start', id }), 20); T.t2 = setTimeout(() => { T.cur = ''; onAiSpeak({ state: 'done', id }); }, T.ms); },
+    aiSpeakStop(){ const T = this._tts; T.stops++; clearTimeout(T.t1); clearTimeout(T.t2); if (T.cur) { const id = T.cur; T.cur = ''; setTimeout(() => onAiSpeak({ state: 'stop', id }), 10); } },
+    aiCalendarAdd(j){ if (this._calErr) return this._calErr; this._cal = JSON.parse(j); return ''; },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
     _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'nl', history: '24', power: 'normaal', idle: '4', mem: 'aan', learn: 'vragen', about: '', instr: '' },
@@ -520,7 +543,7 @@ if (!window.Android) window.Android = (function(){
     alarmSet(on,h,m,d,st){ const a=this._al; Object.assign(a,{on,hour:h,minute:m,days:d}); if(st) a.station=JSON.parse(st); if(on&&!a.station) return 'Kies een zender'; a.nextAt=on?Date.now()+8*36e5:0; return ''; },
     alarmTest(){ return this._al.station?'':'Kies eerst een zender'; }, alarmExactSettings(){},
     _rem:{}, _rems:[], noteRemind(id,t,time){ if(+time>0) this._rem[id]=+time; else delete this._rem[id]; }, noteReminders(){ const o = {...this._rem}; this._rems.forEach(r => { if (!o[r.note] || o[r.note] > r.t) o[r.note] = r.t; }); return JSON.stringify(o); },
-    noteRemindAdd(note,title,time,rep){ const id = note + '~' + (this._rems.length + 2); this._rems.push({id, note, t: +time, rep}); return id; },
+    noteRemindAdd(note,title,time,rep){ if (this._remFail) return ''; const id = note + '~' + (this._rems.length + 2); this._rems.push({id, note, t: +time, rep}); return id; },
     noteRemindList(note){ return JSON.stringify(this._rems.filter(r => r.note === note).map(r => ({id: r.id, t: r.t, rep: r.rep})).sort((a, b) => a.t - b.t)); },
     noteRemindDel(id){ this._rems = this._rems.filter(r => r.id !== id); }, noteRemindClear(note){ this._rems = this._rems.filter(r => r.note !== note); delete this._rem[note]; }, noteRemindRetitle(){},
     noteShare(t,x){ this._shared=x; }, pendingShare(){ const s=this._ps||''; this._ps=''; return s; },

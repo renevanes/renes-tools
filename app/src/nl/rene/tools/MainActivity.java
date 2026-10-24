@@ -437,6 +437,7 @@ public class MainActivity extends Activity {
         super.onPause();
         visible = false;
         if ("recording".equals(VoiceNote.state)) VoiceNote.cancel(); // inspreken alleen met de app open
+        AiSpeech.release(); // voorlezen alleen met de app open; de spraakmotor weer vrijgeven
         js("onPauseApp", "");
     }
 

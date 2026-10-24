@@ -117,6 +117,7 @@ function show(name){
   if (name==='podspotify') enterPodSpotify();
   if (name==='ai') enterAi(); if (name==='aiset' || (typeof AI_SUBS !== 'undefined' && AI_SUBS.includes(name))) enterAiSet(); if (name==='aichats') enterAiChats();
   if (current_prev==='ai' && name!=='ai' && typeof aiVoiceAbort === 'function') aiVoiceAbort();
+  if (current_prev==='ai' && name!=='ai' && typeof aiSpeakStop === 'function') aiSpeakStop(); // weg uit de assistent: niet doorpraten
   if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #voice.on, #lockscr.on, #sheet.on, #sleepdlg.on, #player.on')) h.focus({ preventScroll: true }); }, 0);
   if (name==='podcasts') enterPodcasts(); else if (name!=='podcast' && typeof pcStopPoll === 'function') pcStopPoll();
   if (name==='redial') enterRedial(); else stopPoll();

@@ -51,7 +51,7 @@ public class AiBridge extends SleepBridge {
     @JavascriptInterface public void aiPref(String name, boolean on) {
         boolean src = false;
         for (String k : LocalAi.SOURCES) if (("src_" + k).equals(name)) src = true;
-        if (!src && !"wifiOnly".equals(name) && !"notes".equals(name) && !"voiceSend".equals(name)) return;
+        if (!src && !"wifiOnly".equals(name) && !"notes".equals(name) && !"voiceSend".equals(name) && !"speakVoice".equals(name)) return;
         LocalAi.prefs(ctx).edit().putBoolean(name, on).apply();
         // Bron aan: meteen (op de achtergrond) in de zoekindex; uit: eruit
         if (src) LocalAi.sourceChanged(ctx);
@@ -96,6 +96,49 @@ public class AiBridge extends SleepBridge {
             return new JSONObject().put("supported", Transcribe.supported()).put("model", m == null ? "" : m.id).put("label", m == null ? "" : m.label)
                     .put("busy", TranscribeService.busy).put("send", LocalAi.prefs(ctx).getBoolean("voiceSend", true)).toString();
         } catch (Exception e) { return "{}"; }
+    }
+
+    // ----- Voorlezen (tekst-naar-spraak van de telefoon, Nederlandse stem). Meldingen via onAiSpeak({state, id, error}).
+
+    /** Een antwoord voorlezen (markdown gaat eraf); wat er al voorgelezen werd, stopt. */
+    @JavascriptInterface public void aiSpeak(String text, String id) {
+        if (text == null) return;
+        // App op de achtergrond (bijv. net weggeschakeld terwijl het antwoord nog kwam): niet gaan praten
+        if (!MainActivity.visible) { try { a.js("onAiSpeak", new JSONObject().put("state", "stop").put("id", id == null ? "" : id).toString()); } catch (Exception ignored) { } return; }
+        AiSpeech.speak(ctx, text.length() > 30_000 ? text.substring(0, 30_000) : text, id, o -> a.js("onAiSpeak", o.toString()));
+    }
+    @JavascriptInterface public void aiSpeakStop() { AiSpeech.stop(); }
+
+    // ----- Acties van de assistent (alleen na een tik op de knop onder het antwoord)
+
+    /** Een afspraak in de agenda-app van de telefoon zetten: die opent met alles ingevuld, en je bewaart het daar zelf.
+     *  json = {title, text, begin, end, allDay}. Geeft "" of een melding. */
+    @JavascriptInterface public String aiCalendarAdd(String json) {
+        final JSONObject o;
+        try { o = new JSONObject(json); } catch (Exception e) { return "Ongeldige afspraak"; }
+        final long begin = o.optLong("begin"), end = o.optLong("end");
+        if (begin <= 0) return "Kies eerst een datum";
+        final String[] res = {"De agenda openen lukte niet"};
+        final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+        a.h.post(() -> {
+            try {
+                android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_INSERT)
+                        .setData(android.provider.CalendarContract.Events.CONTENT_URI)
+                        .putExtra(android.provider.CalendarContract.Events.TITLE, LocalAi.cleanText(o.optString("title"), 200))
+                        .putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, begin)
+                        .putExtra(android.provider.CalendarContract.EXTRA_EVENT_END_TIME, end > begin ? end : begin + 3_600_000L)
+                        .putExtra(android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY, o.optBoolean("allDay"));
+                String text = LocalAi.cleanText(o.optString("text"), 2000);
+                if (!text.isEmpty()) i.putExtra(android.provider.CalendarContract.Events.DESCRIPTION, text);
+                a.startActivity(i);
+                res[0] = "";
+            } catch (android.content.ActivityNotFoundException e) { res[0] = "Er is geen agenda-app op je telefoon";
+            } catch (Throwable t) { res[0] = "De agenda openen lukte niet"; }
+            done.countDown();
+        });
+        // Te lang gewacht (de telefoon is druk): de agenda opent waarschijnlijk nog, dus geen foutmelding
+        try { if (!done.await(3, java.util.concurrent.TimeUnit.SECONDS)) return ""; } catch (InterruptedException e) { return ""; }
+        return res[0];
     }
 
     /** Een antwoord naar het klembord. */
@@ -190,5 +233,6 @@ public class AiBridge extends SleepBridge {
         @Override public synchronized void done(JSONObject info) { flush(); a.js("onAiDone", info.toString()); }
         @Override public synchronized void error(String msg) { flush(); a.js("onAiError", q(msg)); }
         @Override public void memory(JSONObject o) { a.js("onAiMemory", o.toString()); }
+        @Override public void actWanted() { a.js("onAiActWanted", "true"); }
     }
 }

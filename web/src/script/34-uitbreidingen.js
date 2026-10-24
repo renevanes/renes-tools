@@ -9,12 +9,12 @@ function txSegTap(el){
   $('#txd-selinfo').textContent = n ? n + (n === 1 ? ' zin gekozen' : ' zinnen gekozen') : 'Tik op de zinnen die je wilt bewaren (of kies niets voor het hele gesprek).';
 }
 function txSelStart(){
-  txSel = true; $('#txd-tonote').style.display = 'none'; $('#txd-selbar').style.display = 'block';
+  txSel = true; $('#txd-tonote').style.display = 'none'; $('#txd-selbar').style.display = 'block'; if ($('#txd-sum')) $('#txd-sum').style.display = 'none';
   $('#txd-segs').classList.add('selecting');
   $('#txd-selinfo').textContent = 'Tik op de zinnen die je wilt bewaren (of kies niets voor het hele gesprek).';
 }
 function txSelEnd(){
-  txSel = false; const b = $('#txd-tonote'); if (b) b.style.display = '';
+  txSel = false; const b = $('#txd-tonote'); if (b) b.style.display = ''; if ($('#txd-sum')) $('#txd-sum').style.display = '';
   const bar = $('#txd-selbar'); if (bar) bar.style.display = 'none';
   const segs = $('#txd-segs'); if (segs) { segs.classList.remove('selecting'); segs.querySelectorAll('.seg.sel').forEach(x => { x.classList.remove('sel'); x.removeAttribute('aria-pressed'); }); }
 }
