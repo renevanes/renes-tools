@@ -110,6 +110,9 @@ jobs:
                   match = re.fullmatch(r'✗ ([A-Za-z0-9_.-]{1,128})', line)
                   if match:
                       print('::error title=Mislukte test::' + match[1])
+                  match = re.match(r'↻ ([A-Za-z0-9_.-]{1,128}) ', line)
+                  if match:
+                      print('::warning title=Wankele test::' + match[1])
           PY
 
       - name: Schermafdrukken en logboeken bij een fout

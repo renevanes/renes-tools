@@ -43,7 +43,10 @@ het ergens anders wilt), Java 17+ (javac; CI gebruikt 25), Python 3, Node 22+ (C
   testsleutel zoals in `.github/workflows/bouwen-en-testen.yml`. `./publish.sh` weigert die (vingerafdruk-controle).
   `./build.sh` schrijft ook in `update/`: zet dat na het testen terug met `git checkout -- update` en commit het nooit.
 - `./tests/run-jvm.sh` — Java-logicatests (na `./build.sh`).
-- `./tests/run-ui.sh` — alle interfacetests (Playwright, licht en donker; ±15 min).
+- `./tests/run-ui.sh` — alle interfacetests (Playwright, licht en donker), een paar tegelijk (`UI_JOBS`, standaard het aantal
+  processors, max 4; ±10 min op 2 kernen). Een mislukte test krijgt één herkansing met twee keer zo lange wachttijden
+  (`UI_WACHT`, via `tests/ui/_traag.js`); slaagt hij dan wel, dan staat er `↻ naam` in de uitvoer (wankel: graag
+  repareren, de publicatie gaat wel door). `✗ naam` = echt mislukt.
 - `./tests/ui-een.sh calls spotify2` — één of enkele interfacetests (naam zonder `.test.js`).
 - `python3 tools/check-bridge.py` — brug en testbrug kloppen met elkaar.
 Nieuwe functie = ook een test in `tests/ui/` (en bij logica in `tests/jvm/`). Een UI-test slaagt als hij `errors []` afdrukt.
