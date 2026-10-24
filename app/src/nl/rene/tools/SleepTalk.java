@@ -346,7 +346,7 @@ final class SleepTalk {
             if (!safeId(id) || id.equals(running)) continue;
             try {
                 long start = Long.parseLong(id);
-                if (start < limit) { deleteNight(c, id); continue; }
+                if (start < limit) { if (!AiSleepBackup.applying) deleteNight(c, id); continue; } // niet tijdens terugzetten
                 if (System.currentTimeMillis() - start < 120_000L) continue; // net begonnen (kan nog niet als "lopend" bekend zijn)
                 synchronized (SleepTalk.class) {
                     File[] fs = d.listFiles();
@@ -422,7 +422,8 @@ final class SleepTalk {
                 try {
                     if (f.getName().endsWith(".m4a")) {
                         wav = new File(c.getCacheDir(), "slaappraat-" + clip + ".wav");
-                        try { Transcribe.toWav(f, wav, 0, (ph, pct) -> { if (stopTx) throw new Stopped(); }, true); }
+                        // 60 s (de langste duur van een stukje): dan meldt hij voortgang en werkt Stoppen ook tijdens het omzetten
+                        try { Transcribe.toWav(f, wav, 60_000, (ph, pct) -> { if (stopTx) throw new Stopped(); }, true); }
                         catch (Stopped s) { return; }
                         catch (Exception e) {
                             if (stopTx) return;

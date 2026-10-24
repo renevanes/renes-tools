@@ -138,8 +138,9 @@ function slnRender(){
   $('#sln-title').textContent = slNightName(n.start).replace('Nacht van ', '');
   const clips = n.clips || [], live = (slSt.phase === 'luistert' || slSt.phase === 'uitschrijven') && slSt.night === n.id;
   const talk = clips.filter(k => k.done && k.kind === 'praten'), open = clips.filter(k => !k.done);
+  const noise = clips.filter(k => k.done && k.kind === 'geluid').length;
   $('#sln-sum').textContent = slTime(n.start) + ' – ' + (n.end ? slTime(n.end) : 'nu') + (n.reason && n.end ? ' · ' + n.reason : '') + ' · ' +
-    (talk.length ? talk.length + ' keer gepraat' : 'niets gezegd') + (clips.length - talk.length - open.length ? ' · ' + (clips.length - talk.length - open.length) + ' keer geluid' : '') +
+    (talk.length ? talk.length + ' keer gepraat' : 'niets gezegd') + (noise ? ' · ' + noise + ' keer geluid' : '') +
     (n.batStart >= 0 && n.batEnd >= 0 && n.end ? ' · accu ' + n.batStart + '% → ' + n.batEnd + '%' + (n.charged ? ' (aan de lader)' : '') : '');
   // Nog uit te schrijven
   const canTx = open.some(k => k.audio) && !live;

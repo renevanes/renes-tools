@@ -479,6 +479,7 @@ final class AiSleepBackup {
                 WaBackup.Child dir = root.kids.get(AI_DIR);
                 if (other == 0 && dir != null) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, dir.docId));
             }
+            Secure.prefs(c).edit().remove("plain_written_" + part).apply();
         } catch (Exception e) { App.log(c, "BACKUP", "leesbare kopie " + part + " weghalen: " + e.getMessage()); }
     }
 
@@ -540,10 +541,10 @@ final class AiSleepBackup {
         synchronized (AiSleepBackup.class) {
             ns = pendingNights; audio = pendingAudio; docs = pendingDocs; src = pendingSrc;
             pendingNights = null; pendingAudio = new HashMap<>(); pendingDocs = new HashMap<>(); pendingSrc = "";
+            if (ns != null) applying = true; // binnen het slot: een gelijktijdig annuleren ruimt het geluid dan niet weg
         }
         if (ns == null) throw new Exception("Niets om terug te zetten");
         int added = 0, lost = 0;
-        applying = true;
         try {
             Uri tree = WaBackup.destUri(c);
             String running = SleepService.running() ? SleepService.night : "";

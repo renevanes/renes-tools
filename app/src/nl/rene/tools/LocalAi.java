@@ -680,6 +680,11 @@ final class LocalAi {
                 sink.status("Zoeken in je gegevens…");
                 try {
                     JSONArray hits = SmartSearch.search(c, last.optString("content"), 4);
+                    if (actWanted) { // bij een actie: geen berichten van anderen erbij (die mogen het voorstel niet sturen)
+                        JSONArray own = new JSONArray();
+                        for (int i = 0; i < hits.length(); i++) { String k = hits.getJSONObject(i).optString("kind"); if (!"sms".equals(k) && !"wa".equals(k) && !"calls".equals(k) && !"contacts".equals(k)) own.put(hits.get(i)); }
+                        hits = own;
+                    }
                     if (hits.length() > 0) {
                         learnWanted = false; // met berichten van anderen erbij: niets leren (dat zou over hen kunnen gaan)
                         List<String[]> src = new ArrayList<>();

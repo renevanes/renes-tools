@@ -183,12 +183,17 @@ public class Care extends JobService {
         return "✓ " + r.toString().trim();
     }
 
+    private static boolean isPartial(String name) { Rotate.F p = Rotate.parse(name); return p != null && p.partial; }
+
     /** Met versleuteling: het nieuwste archief openen met de bewaarde sleutel en de notities eruit lezen. */
     static String testEncrypted(Context c, Uri tree) throws Exception {
         WaBackup.Dest d = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir vd = d.dir(Secure.DIR, false);
         String newest = null; WaBackup.Child f = null;
         if (vd != null) for (java.util.Map.Entry<String, WaBackup.Child> e : vd.kids.entrySet())
+            if (e.getKey().endsWith(".rtb") && !isPartial(e.getKey()) && (newest == null || e.getKey().compareTo(newest) > 0)) { newest = e.getKey(); f = e.getValue(); }
+        // Alleen onvolledige archieven (de nachtelijke backup werd steeds gestopt): dan daarvan het nieuwste
+        if (f == null && vd != null) for (java.util.Map.Entry<String, WaBackup.Child> e : vd.kids.entrySet())
             if (e.getKey().endsWith(".rtb") && (newest == null || e.getKey().compareTo(newest) > 0)) { newest = e.getKey(); f = e.getValue(); }
         if (f == null) return "✗ Geen versleuteld archief gevonden in " + Secure.DIR;
         if (Secure.broken(c)) return "✗ De sleutel voor versleutelde backups is kwijt; stel versleutelen opnieuw in (Alles back-uppen)";

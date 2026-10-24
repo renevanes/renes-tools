@@ -109,6 +109,8 @@ final class AllBackup {
                     // Geheugen, gesprekken en Slaappraat zonder versleutelen: in de uitkomst laten zien dat het leesbaar is
                     boolean plain = n > 0 && zip == null && ("ai".equals(part) || "sleep".equals(part));
                     put(res, part, true, n, n < 0 ? "Niets te bewaren" : plain ? n + " (niet versleuteld)" : null);
+                    // Onthouden dat deze telefoon zelf een leesbare kopie schreef (alleen die mag later weg)
+                    if (plain) Secure.prefs(c).edit().putBoolean("plain_written_" + part, true).apply();
                 } catch (Throwable e) {
                     String orig = e instanceof OutOfMemoryError ? "onvoldoende geheugen" : e.getMessage() != null ? e.getMessage() : "mislukt";
                     String m = stop ? STOPPED : orig;
@@ -131,7 +133,8 @@ final class AllBackup {
                     // (ook als er niets te bewaren was: dan hoort er ook geen oude leesbare kopie te blijven staan)
                     if (done) for (String p : new String[]{"ai", "sleep"}) {
                         JSONObject r = res.optJSONObject(p);
-                        if (r != null && r.optBoolean("ok")) AiSleepBackup.removePlain(c, zip.dest.tree, p);
+                        // Alleen een leesbare kopie die deze telefoon zelf schreef (niet die van een vorige telefoon in dezelfde map)
+                        if (r != null && r.optBoolean("ok") && Secure.prefs(c).getBoolean("plain_written_" + p, false)) AiSleepBackup.removePlain(c, zip.dest.tree, p);
                     }
                 }
                 zip = null;
