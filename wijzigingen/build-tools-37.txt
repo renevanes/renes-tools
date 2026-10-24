@@ -1,0 +1,1 @@
+App gebouwd met nieuwer Android-gereedschap (build-tools 37): open na installeren even een paar onderdelen om te zien of alles werkt
