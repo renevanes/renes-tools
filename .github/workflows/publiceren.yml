@@ -97,6 +97,19 @@ jobs:
         if: always()
         run: rm -f keys/release.p12 keys/keystore.pass
 
+      - name: Wankele tests melden (slaagden pas bij de tweede poging)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import pathlib, re
+          path = pathlib.Path('build/publish-ui.log')
+          if path.is_file():
+              for line in path.read_text(errors='replace').splitlines():
+                  match = re.match(r'↻ ([A-Za-z0-9_.-]{1,128}) ', line)
+                  if match:
+                      print('::warning title=Wankele test::' + match[1])
+          PY
+
       - name: Mislukte tests benoemen
         if: failure()
         run: |

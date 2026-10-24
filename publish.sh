@@ -151,7 +151,8 @@ json.dump(log, open('changelog.json', 'w'), ensure_ascii=False, indent=2)"
   ./build.sh > build/publish-build.log 2>&1 || { tail -30 build/publish-build.log; echo "Bouwen mislukt: niet gepubliceerd"; exit 1; }
   if [ "${SKIP_TESTS:-}" != "1" ]; then
     ./tests/run-jvm.sh > build/publish-jvm.log 2>&1 || { grep -v "^✓" build/publish-jvm.log | tail -20; echo "Java-tests mislukt: niet gepubliceerd"; exit 1; }
-    ./tests/run-ui.sh > build/publish-ui.log 2>&1 || { grep -v "^✓" build/publish-ui.log | tail -30; echo "Interfacetests mislukt: niet gepubliceerd"; exit 1; }
+    ./tests/run-ui.sh > build/publish-ui.log 2>&1 || { grep -Ev "^(✓|· )" build/publish-ui.log | tail -30; echo "Interfacetests mislukt: niet gepubliceerd"; exit 1; }
+    grep -E '^(↻|Interfacetests:)' build/publish-ui.log || true # wankele tests (pas bij de tweede poging) zichtbaar in het logboek
   fi
   PREV_APK=$(git cat-file -s "$BASE:update/Renes-Tools.apk" 2>/dev/null || echo 0); NEW_APK=$(stat -c %s update/Renes-Tools.apk)
   if [ "$PREV_APK" -gt 0 ] && [ $((NEW_APK * 10)) -gt $((PREV_APK * 11)) ] && [ "${ALLOW_GROW:-}" != "1" ]; then

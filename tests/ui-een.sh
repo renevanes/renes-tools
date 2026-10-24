@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.." || exit 1
 ./tests/ui-pagina.sh || exit 1
 fail=0
 for t in "$@"; do
-  out=$(timeout 300 node "tests/ui/${t%.test.js}.test.js" 2>&1); code=$?
+  out=$(timeout -k 15 300 node -r ./tests/ui/_traag.js "tests/ui/${t%.test.js}.test.js" 2>&1); code=$?
   total=$(grep -o "errors \[" <<<"$out" | wc -l); empty=$(grep -o "errors \[\]" <<<"$out" | wc -l)
   if [ $code -ne 0 ] || [ "$empty" -eq 0 ] || [ "$total" -ne "$empty" ]; then echo "✗ $t"; echo "$out" | tail -25; fail=1; else echo "✓ $t"; fi
 done
