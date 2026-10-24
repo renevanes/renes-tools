@@ -20,6 +20,7 @@ function bkRenderSecure(st){
   $('#bk-enc-btn').textContent = on ? 'Wachtwoord wijzigen' : 'Wachtwoord instellen';
   $('#bk-enc-off').style.display = on ? 'block' : 'none';
   $('#bk-rotate').checked = !!st.rotate;
+  if (st.parts) bkPrivRender(st); // de waarschuwing bij Privé hangt af van versleutelen
   if (st.space) bkRenderSpace(st.space);
 }
 let bkEncBusy = false;
@@ -77,6 +78,8 @@ window.onArchive = function(r){
   if (r.settings) acts.push(['Instellingen, automatiseringen en zenders terugzetten', () => Android.archiveRestore('settings', r.settings)]);
   if (r.transcripts) acts.push(['Uitgeschreven gesprekken terugzetten', () => Android.archiveRestore('transcripts', r.transcripts)]);
   if (r.music) acts.push(['Herkende muziek terugzetten', () => Android.archiveRestore('music', r.music)]);
+  if (r.ai) acts.push(['Geheugen en gesprekken van de assistent terugzetten', () => Android.archiveRestore('ai', r.ai)]);
+  if (r.sleep) acts.push(['Slaappraat terugzetten', () => { toast('Bezig met openen…'); Android.archiveRestore('sleep', r.sleep); }]);
   acts.push(['Uitpakken naar de backup-map', () => askConfirm('Uitpakken?', 'De bestanden komen onversleuteld in de map Uitgepakt in je backup-map. Haal ze weg als je ze niet meer nodig hebt.', 'Uitpakken', () => { toast('Bezig met uitpakken…'); Android.archiveUnpack(); }, () => Android.archiveClose())]);
   acts.push(['Sluiten', () => Android.archiveClose()]);
   // Dicht zonder keuze (terug of ernaast tikken): de sleutel meteen vergeten

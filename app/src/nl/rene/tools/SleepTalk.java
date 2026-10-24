@@ -121,6 +121,31 @@ final class SleepTalk {
         return id;
     }
 
+    /** Map van een nacht (voor terugzetten); null bij een vreemd id. */
+    static File nightDir(Context c, String id) { return safeId(id) ? dir(c, id) : null; }
+
+    /** Staat deze nacht al op de telefoon? */
+    static synchronized boolean exists(Context c, String id) { return safeId(id) && nightFile(c, id).isFile(); }
+
+    /** Alle nachten in hun geheel (met de stukjes), nieuwste eerst: voor Alles back-uppen. */
+    static synchronized JSONArray allNights(Context c) {
+        JSONArray out = new JSONArray();
+        File[] ds = root(c).listFiles();
+        if (ds == null) return out;
+        Arrays.sort(ds, (x, y) -> y.getName().compareTo(x.getName()));
+        for (File d : ds) { JSONObject n = night(c, d.getName()); if (n != null) out.put(n); }
+        return out;
+    }
+
+    /** Een teruggezette nacht; nooit over een nacht heen die er al is. Het overzicht ververst vanzelf (version). */
+    static synchronized boolean addRestored(Context c, JSONObject n) throws Exception {
+        String id = n.optString("id");
+        if (!safeId(id) || nightFile(c, id).isFile()) return false;
+        dir(c, id).mkdirs();
+        write(c, n);
+        return true;
+    }
+
     /** Een stukje bewaren (geluid als WAV, tenzij de nacht al vol zit). */
     static synchronized void addClip(Context c, String night, long nightStart, SleepDetect.Clip k) throws Exception {
         JSONObject n = night(c, night);

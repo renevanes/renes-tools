@@ -1,0 +1,4 @@
+Alles back-uppen: het geheugen en de gesprekken van de assistent kunnen nu mee (privé, staat standaard uit), zodat je ze op een nieuwe telefoon terugzet.
+Alles back-uppen: ook Slaappraat kan mee, alleen de tekst of met het geluid; je ziet hoeveel ruimte het kost.
+Met Versleutelen aan gaan deze privé-onderdelen versleuteld mee; zonder versleutelen vraagt de app eerst en waarschuwt hij.
+Terugzetten voegt herinneringen, gesprekken en nachten toe die er nog niet zijn; er wordt niets overschreven, ook niet de nacht die nu loopt.

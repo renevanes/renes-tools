@@ -108,6 +108,8 @@ final class Restore {
         if ("transcripts".equals(kind)) { JSONObject r = SettingsBackup.previewTranscripts(c, text); pendingKind = kind; return r; }
         if ("music".equals(kind)) { JSONObject r = SettingsBackup.previewMusic(c, text); pendingKind = kind; return r; }
         if ("route".equals(kind)) { JSONObject r = Tracks.previewGpx(text); pendingRoute = text; pendingKind = kind; return r; }
+        if ("ai".equals(kind)) { JSONObject r = AiSleepBackup.previewAi(c, text); pendingKind = kind; return r; }
+        if ("sleep".equals(kind)) { JSONObject r = AiSleepBackup.previewSleep(c, text, true); pendingKind = kind; return r; }
         if ("launcher".equals(kind)) {
             JSONObject r = LauncherBackup.preview(text);
             pendingLauncher = text;
@@ -115,6 +117,19 @@ final class Restore {
             return r;
         }
         throw new Exception("Onbekend soort backup");
+    }
+
+    /** Slaappraat uit een geopend versleuteld archief: overzicht, en het geluid alvast uit het archief halen. */
+    static synchronized JSONObject previewSleepArchive(Context c, String text) throws Exception {
+        if (text.startsWith("\uFEFF")) text = text.substring(1);
+        pendingKind = null;
+        JSONObject r = AiSleepBackup.previewSleep(c, text, false);
+        if (r.optInt("fresh") > 0) {
+            try { AiSleepBackup.stageFromArchive(c, r); }
+            catch (Exception | OutOfMemoryError e) { AiSleepBackup.clearStage(c); throw e; }
+        }
+        pendingKind = "sleep";
+        return r;
     }
 
     /** Id's alleen uit letters, cijfers, - en _ (een vreemd bestand mag geen code in de weergave krijgen). */
@@ -168,6 +183,8 @@ final class Restore {
         if ("transcripts".equals(kind)) return SettingsBackup.applyTranscripts(c);
         if ("music".equals(kind)) return SettingsBackup.applyMusic(c);
         if ("route".equals(kind) && pendingRoute != null) { int n = Tracks.importGpx(c, pendingRoute); pendingRoute = null; return n; }
+        if ("ai".equals(kind)) return AiSleepBackup.applyAi(c);
+        if ("sleep".equals(kind)) return AiSleepBackup.applySleep(c);
         if ("launcher".equals(kind) && pendingLauncher != null) {
             int n = LauncherBackup.apply(c, pendingLauncher);
             pendingLauncher = null;

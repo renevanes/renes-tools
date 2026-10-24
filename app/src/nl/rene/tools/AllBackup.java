@@ -15,6 +15,7 @@ import java.util.Locale;
 
 /**
  * Alles back-uppen: sms, oproepen, contacten, notities, gesprekken, herkende muziek, routes en instellingen in één keer
+ * (en als je dat aanvinkt: meldingen, het geheugen en de gesprekken van de assistent en Slaappraat)
  * naar de backup-map, met per onderdeel de uitkomst. Draait op verzoek of elke nacht (AllBackupJob).
  * WhatsApp heeft een eigen nachtelijke backup en wordt alleen bij handmatig starten meegenomen.
  */
@@ -22,7 +23,13 @@ final class AllBackup {
 
     private AllBackup() { }
 
-    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "launcher", "transcripts", "music", "settings", "routes", "kluis"};
+    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "launcher", "transcripts", "music", "settings", "routes", "ai", "sleep", "kluis"};
+
+    /** Gevoelig: staan standaard uit en gaan alleen mee als je ze aanvinkt (zonder versleutelen als leesbaar bestand). */
+    static boolean optIn(String part) { return "notifications".equals(part) || "ai".equals(part) || "sleep".equals(part); }
+
+    /** Slaappraat met geluid (WAV) of alleen de tekst (standaard). */
+    static boolean sleepAudio(Context c) { return prefs(c).getBoolean("sleep_audio", false); }
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("allbackup", Context.MODE_PRIVATE); }
 
@@ -42,7 +49,7 @@ final class AllBackup {
 
     static boolean has(Context c, String p) { return c.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED; }
 
-    static boolean enabledPart(Context c, String part) { return prefs(c).getBoolean("part_" + part, !part.equals("notifications")); }
+    static boolean enabledPart(Context c, String part) { return prefs(c).getBoolean("part_" + part, !optIn(part)); }
 
     /** Voert de backup uit (na tryBegin). Geeft per onderdeel {ok, count, msg}; slaat de uitkomst op. */
     static JSONObject run(Context c, boolean auto) {
@@ -77,7 +84,9 @@ final class AllBackup {
                 current = part;
                 try {
                     int n = runPart(c, part);
-                    put(res, part, true, n, n < 0 ? "Niets te bewaren" : null);
+                    // Geheugen, gesprekken en Slaappraat zonder versleutelen: in de uitkomst laten zien dat het leesbaar is
+                    boolean plain = n > 0 && zip == null && ("ai".equals(part) || "sleep".equals(part));
+                    put(res, part, true, n, n < 0 ? "Niets te bewaren" : plain ? n + " (niet versleuteld)" : null);
                 } catch (Throwable e) {
                     String m = e instanceof OutOfMemoryError ? "onvoldoende geheugen" : e.getMessage() != null ? e.getMessage() : "mislukt";
                     put(res, part, false, 0, m);
@@ -158,6 +167,10 @@ final class AllBackup {
                 return exportMusic(c);
             case "launcher":
                 return LauncherBackup.export(c);
+            case "ai":
+                return AiSleepBackup.exportAi(c); // geheugen en gesprekken; nooit modellen of de zoekindex
+            case "sleep":
+                return AiSleepBackup.exportSleep(c, sleepAudio(c));
             default:
                 return -1;
         }
@@ -202,7 +215,7 @@ final class AllBackup {
             if (space != null) o.put("space", new JSONObject(space));
             JSONObject parts = new JSONObject();
             for (String p : PARTS) parts.put(p, enabledPart(c, p));
-            o.put("parts", parts);
+            o.put("parts", parts).put("sleepAudio", sleepAudio(c)).put("extra", AiSleepBackup.sizes(c));
             String last = prefs(c).getString("last", null);
             if (last != null) o.put("last", new JSONObject(last));
             return o.toString();

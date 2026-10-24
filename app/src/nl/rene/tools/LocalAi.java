@@ -978,6 +978,39 @@ final class LocalAi {
         try { File f = chatsFile(c); return f.isFile() ? new JSONArray(Contacts.readText(f, false)) : new JSONArray(); } catch (Exception e) { return new JSONArray(); }
     }
 
+    static final int MAX_CHATS = 100;
+
+    /** Zoals chats(), maar een kapot bestand is een fout (dan nooit eroverheen schrijven of een lege backup maken). */
+    static synchronized JSONArray chatsStrict(Context c) throws Exception {
+        File f = chatsFile(c);
+        if (!f.isFile()) return new JSONArray();
+        try { return new JSONArray(Contacts.readText(f, false)); }
+        catch (Exception e) { throw new Exception("De gesprekken van de assistent zijn niet te lezen; er is niets veranderd"); }
+    }
+
+    /**
+     * Terugzetten uit Alles back-uppen: gesprekken met een id dat er nog niet is erbij (nieuwste eerst, zolang er
+     * plaats is); bestaande gesprekken blijven zoals ze zijn. Geeft het aantal toegevoegde.
+     */
+    static synchronized int chatsMerge(Context c, JSONArray in) throws Exception {
+        JSONArray have = chatsStrict(c);
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        List<JSONObject> all = new ArrayList<>();
+        for (int i = 0; i < have.length(); i++) { JSONObject x = have.optJSONObject(i); if (x != null) { ids.add(x.optString("id")); all.add(x); } }
+        List<String> inIds = new ArrayList<>();
+        List<Long> inT = new ArrayList<>();
+        for (int i = 0; i < in.length(); i++) { JSONObject x = in.optJSONObject(i); inIds.add(x == null ? "" : x.optString("id")); inT.add(x == null ? 0L : x.optLong("t")); }
+        int[] plan = AiSleepBackup.chatPlan(ids, all.size(), inIds, inT, MAX_CHATS);
+        int n = 0;
+        for (int i = 0; i < plan.length; i++) if (plan[i] == AiSleepBackup.ADD) { all.add(AiSleepBackup.cleanChat(in.getJSONObject(i))); n++; }
+        if (n == 0) return 0;
+        java.util.Collections.sort(all, (x, y) -> Long.compare(y.optLong("t"), x.optLong("t"))); // nieuwste eerst, zoals chatSave
+        JSONArray out = new JSONArray();
+        for (JSONObject x : all) out.put(x);
+        Contacts.writeText(chatsFile(c), out.toString(), false);
+        return n;
+    }
+
     /** Overzicht: nieuwste eerst, zonder de berichten. */
     static String chatList(Context c) throws Exception {
         JSONArray a = chats(c), out = new JSONArray();
@@ -1006,7 +1039,7 @@ final class LocalAi {
         if (title.length() > 80) title = title.substring(0, 80);
         JSONObject x = new JSONObject().put("id", id).put("title", title.isEmpty() ? "Gesprek" : title).put("t", System.currentTimeMillis()).put("msgs", keep);
         JSONArray a = chats(c), out = new JSONArray().put(x);
-        for (int i = 0; i < a.length() && out.length() < 100; i++) { JSONObject y = a.optJSONObject(i); if (y != null && !id.equals(y.optString("id"))) out.put(y); }
+        for (int i = 0; i < a.length() && out.length() < MAX_CHATS; i++) { JSONObject y = a.optJSONObject(i); if (y != null && !id.equals(y.optString("id"))) out.put(y); }
         Contacts.writeText(chatsFile(c), out.toString(), false);
         return id;
     }

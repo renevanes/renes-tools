@@ -362,7 +362,7 @@ final class Secure {
         openUri = u; openHeader = h; openKey = k;
         openName = displayName(c, u);
         JSONArray files = new JSONArray();
-        String contacts = null, notes = null, launcher = null, settings = null, transcripts = null, music = null;
+        String contacts = null, notes = null, launcher = null, settings = null, transcripts = null, music = null, ai = null, sleep = null;
         long total = 0;
         try (ZipInputStream z = new ZipInputStream(stream(c))) {
             ZipEntry e;
@@ -384,6 +384,8 @@ final class Secure {
                 if (n.equals(SettingsBackup.DIR + "/" + SettingsBackup.FILE)) settings = n;
                 if (n.equals(Transcribe.DIR + "/" + SettingsBackup.TX_FILE)) transcripts = n;
                 if (n.equals("Muziek/herkende-nummers.json")) music = n;
+                if (n.equals(AiSleepBackup.AI_DIR + "/" + AiSleepBackup.AI_FILE)) ai = n;
+                if (n.equals(AiSleepBackup.SLEEP_DIR + "/" + AiSleepBackup.SLEEP_FILE)) sleep = n;
             }
             // Wat bij het maken halverwege misging, niet aanbieden om terug te zetten
             if (bad.contains(contacts)) contacts = null;
@@ -392,6 +394,8 @@ final class Secure {
             if (bad.contains(settings)) settings = null;
             if (bad.contains(transcripts)) transcripts = null;
             if (bad.contains(music)) music = null;
+            if (bad.contains(ai)) ai = null;
+            if (bad.contains(sleep)) sleep = null;
         } catch (Exception e) {
             forget();
             throw e;
@@ -403,6 +407,8 @@ final class Secure {
         if (settings != null) o.put("settings", settings);
         if (transcripts != null) o.put("transcripts", transcripts);
         if (music != null) o.put("music", music);
+        if (ai != null) o.put("ai", ai);
+        if (sleep != null) o.put("sleep", sleep);
         return o;
     }
 

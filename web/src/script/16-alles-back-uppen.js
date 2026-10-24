@@ -1,5 +1,8 @@
 /* ---------- Alles back-uppen ---------- */
 const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', launcher: 'Startscherm (skin)', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek', settings: 'Instellingen, automatiseringen en zenders', routes: 'Routes (GPX)' };
+/* Privé: staan standaard uit; zonder versleutelen een duidelijke waarschuwing */
+const BK_PRIV = { ai: 'Geheugen en gesprekken van de assistent', sleep: 'Slaappraat' };
+const BK_LABEL = Object.assign({}, BK_PARTS, BK_PRIV);
 let bkPoll = null, bkBusy = false;
 function bkState(full){ try { return JSON.parse(Android.backupState(!!full)); } catch(e){ return {}; } }
 /* ---------- backup-controle (proef-terugzetten) ---------- */
@@ -27,11 +30,11 @@ function bkRenderLast(st){
   const l = st.last;
   bkBusy = !!st.busy;
   $('#bk-run').disabled = bkBusy || !st.dest;
-  $('#bk-run').textContent = bkBusy ? 'Bezig: ' + (BK_PARTS[st.current] || '…') : 'Nu alles back-uppen';
+  $('#bk-run').textContent = bkBusy ? 'Bezig: ' + (BK_LABEL[st.current] || '…') : 'Nu alles back-uppen';
   if (!l || !l.t) { $('#bk-last').textContent = 'Nog niet gemaakt'; $('#bk-parts-res').innerHTML = ''; return; }
   $('#bk-last').textContent = (l.auto ? 'Automatisch, ' : '') + new Date(l.t).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
-  $('#bk-parts-res').innerHTML = Object.keys(BK_PARTS).filter(k => l[k]).map(k => { const r = l[k];
-    return '<div class=bkres><b>' + BK_PARTS[k] + '</b>' + (r.ok ? '<span class=good>✓ ' + (r.msg ? esc(r.msg) : r.count.toLocaleString('nl-NL')) + '</span>' : '<span class=bad>✗ ' + esc(r.msg || 'mislukt') + '</span>') + '</div>'; }).join('') +
+  $('#bk-parts-res').innerHTML = Object.keys(BK_LABEL).filter(k => l[k]).map(k => { const r = l[k];
+    return '<div class=bkres><b>' + BK_LABEL[k] + '</b>' + (r.ok ? '<span class=good>✓ ' + (r.msg ? esc(r.msg) : r.count.toLocaleString('nl-NL')) + '</span>' : '<span class=bad>✗ ' + esc(r.msg || 'mislukt') + '</span>') + '</div>'; }).join('') +
     (l.all ? '<div class=bkres><span class=bad>' + esc(l.all.msg || '') + '</span></div>' : '') +
     (l.archive ? '<div class=bkres><b>'+uiIcon('lock')+' Versleuteld</b><span class=good>' + esc(l.archive) + '</span></div>' : '') +
     (l.rotated ? '<div class=bkres><b>Opgeruimd</b><span>' + l.rotated.count + ' oude bestanden (' + fmtB(l.rotated.bytes) + ')</span></div>' : '');
@@ -43,6 +46,34 @@ window.onBackupDone = function(r){
   toast(failed ? 'Backup klaar, ' + failed + ' onderdeel mislukt' : '✓ Alles is back-upt');
   if (current === 'backup') bkRenderLast(bkState()); bkPollOnce();
 };
+function bkCount(v, one, more){ v = v || 0; return v.toLocaleString('nl-NL') + ' ' + (v === 1 ? one : more); }
+function bkPrivRender(st){
+  const box = $('#bk-private'); if (!box || !st) return;
+  const p = st.parts || {}, x = st.extra || {}, on = k => p[k] === true;
+  const aiInfo = (x.aiMem || x.aiChats) ? bkCount(x.aiMem, 'herinnering', 'herinneringen') + ', ' + bkCount(x.aiChats, 'gesprek', 'gesprekken') + ' · ' + fmtB(x.aiBytes || 0) : 'Nog niets bewaard';
+  const slInfo = x.nights ? bkCount(x.nights, 'nacht', 'nachten') + ' · tekst ' + fmtB(x.sleepText || 0) + (x.sleepAudio ? ' · geluid ' + fmtB(x.sleepAudio) : '') : 'Nog geen nachten';
+  box.innerHTML =
+    '<label class=chk><input type=checkbox data-p="ai"' + (on('ai') ? ' checked' : '') + ' onchange="bkPrivSet(this)"> ' + BK_PRIV.ai + '</label>' +
+    '<div class=bk-sub><p class=note>' + esc(aiInfo) + '</p></div>' +
+    '<label class=chk><input type=checkbox data-p="sleep"' + (on('sleep') ? ' checked' : '') + ' onchange="bkPrivSet(this)"> Slaappraat (tekst; geluid optioneel)</label>' +
+    '<div class=bk-sub><p class=note>' + esc(slInfo) + '</p>' + (on('sleep') ?
+      '<label class=chk><input type=radio name=bk-slaud id=bk-slaud-0' + (!st.sleepAudio ? ' checked' : '') + ' onchange="bkSleepAudio(false)"> Alleen de tekst</label>' +
+      '<label class=chk><input type=radio name=bk-slaud id=bk-slaud-1' + (st.sleepAudio ? ' checked' : '') + ' onchange="bkSleepAudio(true)"> Met geluid' + (x.sleepAudio ? ' (+' + fmtB(x.sleepAudio) + ')' : '') + '</label>' +
+      (st.sleepAudio && x.sleepAudio ? '<p class=note>Elke backup wordt zo ' + fmtB(x.sleepAudio) + ' groter.</p>' : '') : '') + '</div>' +
+    (on('ai') || on('sleep') ? (st.encrypted ? '<p class=note id=bk-priv-enc>' + uiIcon('lock') + ' Gaat versleuteld mee, in het archief van Alles back-uppen.</p>'
+      : '<p class="note warn" id=bk-priv-warn>Let op: versleutelen staat uit. Dit komt als leesbaar bestand in je backup-map, te lezen door iedereen die bij die map kan (bijv. via OneDrive). Zet hieronder Versleutelen aan om het te beschermen.</p>') : '');
+}
+function bkPrivSet(el){
+  const k = el.dataset.p;
+  if (el.checked && !bkState(false).encrypted) {
+    el.checked = false; // pas aan na bevestigen
+    askConfirm('Onversleuteld meenemen?', BK_PRIV[k] + ' is privé. Versleutelen staat uit, dus het komt als leesbaar bestand in je backup-map. Beter: zet eerst Versleutelen aan (onderaan dit scherm).', 'Toch meenemen',
+      () => { Android.backupSetPart(k, true); bkPrivRender(bkState(true)); });
+    return;
+  }
+  Android.backupSetPart(k, el.checked); bkPrivRender(bkState(true));
+}
+function bkSleepAudio(on){ Android.backupSetPart('sleepAudio', on); bkPrivRender(bkState(true)); }
 function bkSaveAuto(){ Android.backupSetAuto($('#bk-auto').checked, $('#bk-charging').checked); enterBackup(); }
 window.onRestorePreview = function(d){
   if (d.error) { toast(d.error); return; }
@@ -58,6 +89,30 @@ window.onRestorePreview = function(d){
     askConfirm('Route toevoegen?', '"' + d.title + '": ' + fmtKm(st.distance || 0) + ' km, ' + d.points + ' punten.', 'Toevoegen', () => {
       restoreWhat = 'route'; restoreKind = 'route';
       const e = Android.restoreApply(); if (e) toast(e);
+    });
+    return;
+  }
+  if (d.kind === 'ai') {
+    if (!d.fresh) { toast('Alles uit deze backup staat er al' + (d.memFull || d.chatFull ? ' of past niet meer' : '')); return; }
+    const mem = 'Geheugen: ' + d.memFresh + ' nieuw' + (d.memDup ? ', ' + d.memDup + ' staan er al' : '') + (d.memFull ? ', ' + d.memFull + ' passen niet meer (het geheugen is vol)' : '') + '.';
+    const chats = 'Gesprekken: ' + d.chatFresh + ' nieuw' + (d.chatDup ? ', ' + d.chatDup + ' staan er al' : '') + (d.chatFull ? ', ' + d.chatFull + ' passen niet (hooguit 100)' : '') + '.';
+    askConfirm('Assistent terugzetten?', mem + '\n' + chats + '\n\nEr wordt niets overschreven of verwijderd.' + ((d.sample || []).length ? '\n\n' + d.sample.join('\n') : ''), 'Toevoegen', () => {
+      restoreWhat = 'herinneringen en gesprekken'; restoreKind = 'ai';
+      const e = Android.restoreApply(); if (e) toast(e); else toast('Bezig met toevoegen…');
+    });
+    return;
+  }
+  if (d.kind === 'sleep') {
+    const skip = [d.dup ? d.dup + ' al op deze telefoon' : '', d.running ? 'de nacht die nu loopt blijft zoals hij is' : '',
+      d.old ? d.old + ' ouder dan je bewaartermijn van ' + d.keep + ' dagen (kies bij Slaappraat 30 dagen om die ook terug te zetten)' : ''].filter(Boolean);
+    if (!d.fresh) { toast('Geen nachten toe te voegen' + (skip.length ? ': ' + skip.join('; ') : '')); return; }
+    const snd = d.audio ? 'Met geluid: ' + d.audio + (d.audio === 1 ? ' stukje' : ' stukjes') + ' (' + fmtB(d.audioBytes || 0) + ').'
+      : d.noSpace ? 'Te weinig ruimte op de telefoon voor het geluid: alleen de tekst.'
+      : d.withAudio ? 'Het geluid is niet gevonden (het hoort in de map Slaappraat van je backup-map): alleen de tekst.' : 'Alleen de tekst (deze backup is zonder geluid gemaakt).';
+    askConfirm(d.fresh + (d.fresh === 1 ? ' nacht' : ' nachten') + ' toevoegen?', (d.sample || []).map(t => fmtD(t)).join(', ') + (d.fresh > (d.sample || []).length ? ', …' : '') + '\n\n' + snd +
+      (skip.length ? '\nNiet toegevoegd: ' + skip.join('; ') + '.' : '') + '\n\nBestaande nachten worden nooit overschreven.', 'Toevoegen', () => {
+      restoreWhat = 'nachten'; restoreKind = 'sleep';
+      const e = Android.restoreApply(); if (e) toast(e); else toast('Bezig met toevoegen…');
     });
     return;
   }
@@ -82,7 +137,11 @@ window.onRestorePreview = function(d){
 let restoreWhat = '', restoreKind = '';
 window.onRestoreDone = function(r){
   if (r.startsWith('ok:')) {
-    toast(restoreKind === 'route' && r === 'ok:0' ? 'Deze route staat er al' : '✓ ' + r.slice(3) + ' ' + restoreWhat + ' toegevoegd');
+    const n = +r.slice(3);
+    toast(restoreKind === 'route' && r === 'ok:0' ? 'Deze route staat er al' : '✓ ' + n + ' ' + (restoreKind === 'sleep' && n === 1 ? 'nacht' : restoreWhat) + ' toegevoegd');
+    if (restoreKind === 'ai' && typeof aiLoad === 'function') try { aiLoad(); } catch(e){}
+    if (restoreKind === 'sleep' && current === 'sleep' && typeof enterSleep === 'function') enterSleep();
+    if ((restoreKind === 'ai' || restoreKind === 'sleep') && current === 'backup') bkPrivRender(bkState(true));
     if (restoreKind === 'notes') { notes = null; notesBroken = false; refreshNotesTile(); }
     if (restoreKind === 'route' && current === 'tracks') enterTracks();
     if (restoreKind === 'settings') { webStoreRestore(); if (typeof renderHome === 'function') try { renderHome(); } catch(e){} }
