@@ -103,8 +103,8 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
 **Vanzelf (GitHub):**
 - **Dependabot** (`.github/dependabot.yml`) opent elke maandag één pull request met updates van de GitHub Actions.
   Die worden niet vanzelf samengevoegd: dezelfde Actions draaien in `publiceren.yml` naast de ondertekeningssleutel.
-- **Beveiligingsscan** (`beveiligingsscan.yml`): CodeQL op Java en JavaScript bij pushes naar main en pull requests die
-  `app/` of `web/` veranderen, en wekelijks. Meldingen staan onder Security → Code scanning. (GitHub's
+- **Beveiligingsscan** (`beveiligingsscan.yml`): CodeQL op Java, JavaScript en C++ (`tools/llm/llm.cpp`) bij pushes naar main en
+  pull requests die `app/`, `web/` of `tools/llm/` veranderen, en wekelijks. Bouwen en testen draait ook shellcheck op alle scripts. Meldingen staan onder Security → Code scanning. (GitHub's
   "default setup" van CodeQL moet uit staan, anders botst die met deze workflow.)
 - **Onderhoud** (`onderhoud.yml`, maandag): `.github/scripts/onderhoud-controle.py` vergelijkt de meegeleverde
   bibliotheken (Leaflet, jsQR, whisper.cpp, llama.cpp), de AI-modellen (Hugging Face: nieuwere modellen van dezelfde maker in
@@ -117,7 +117,7 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 
 | Onderdeel | Waar vastgelegd | Gecontroleerd door | Bijwerken |
 |---|---|---|---|
-| GitHub Actions | `.github/workflows/*.yml` | Dependabot (wekelijks PR) | agent voegt samen na review |
+| GitHub Actions | `.github/workflows/*.yml`, vastgezet op commit-SHA met de versie als opmerking (`@<sha> # v1.2.3`; Bouwen en testen controleert dat) | Dependabot (wekelijks PR; werkt SHA en opmerking bij) | agent voegt samen na review |
 | Leaflet, jsQR (in de app) | `web/vendor/` (kopregel) | Onderhoud: npm + OSV | agent, bij elke nieuwe versie |
 | whisper.cpp (transcriberen) | `app/lib/arm64-v8a/README.txt` | Onderhoud: GitHub-release + OSV | agent: `tools/whisper-build.sh`, bij elke nieuwe release |
 | llama.cpp (lokale AI) | `tools/llm-build.sh` (TAG/COMMIT) + README | Onderhoud: GitHub-release + OSV | agent: bij kwetsbaarheid of >1500 commits achter (dagelijkse releases) |

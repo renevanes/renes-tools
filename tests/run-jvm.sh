@@ -2,7 +2,7 @@
 # Draait alle Java-logicatests (tests/jvm/**/*Test.java) tegen de laatst gebouwde classes (eerst ./build.sh).
 # Nieuwe tests worden vanzelf meegenomen. Stopt met foutcode 1 als er één mislukt.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 T=${TOOLS:-/home/claude/toolchain}
 CP="build/test:build/classes:$T/ap/android-36/android.jar"
 [ -d build/classes/nl ] || { echo "Eerst ./build.sh"; exit 1; }
