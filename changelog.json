@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.99",
+    "date": "2026-10-24",
+    "changes": [
+      "PDF zoeken: overbodige isClosed-controle weg (CodeQL #30)"
+    ]
+  },
+  {
     "version": "1.98",
     "date": "2026-10-24",
     "changes": [

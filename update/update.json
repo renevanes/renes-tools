@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.98",
-  "versionCode": 99,
-  "nativeLevel": 87,
+  "versionName": "1.99",
+  "versionCode": 100,
+  "nativeLevel": 88,
   "web": "index.html",
-  "webSha256": "b5e2e5dc07a42fd35f1e5f7a003fca9d95e64f5105d75b6ebfa1bbea155e6b7b",
+  "webSha256": "e6e11398f4b9f5562d0c18e6e977d139194e70fa05299bcddc343e4c47a5759b",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "b1579459b957cbd80dcfb2a6d0f04c3b303b789eef581ecf07007c53b6cca78b",
+  "apkSha256": "74ee266fe514bf1fa34fee9ae80f9cec04a53a9c5b92780839115a1c6de48ab7",
   "changelog": [
+    {
+      "version": "1.99",
+      "date": "2026-10-24",
+      "changes": [
+        "PDF zoeken: overbodige isClosed-controle weg (CodeQL #30)"
+      ]
+    },
     {
       "version": "1.98",
       "date": "2026-10-24",
@@ -862,5 +869,5 @@
       ]
     }
   ],
-  "webSig2": "fqYzxU3GTf7rX5DUtU0mTISJwIIkNDrcKMoS7fZkOC2xPB+rj9vDBNr/mLqJMhYuRIuBN3A/30Md0ol+f7T6fIhVHM73PLzpvaV7S3skSLxU2QosMUVT82vx248J3gJgTWNnc0NvVU4eb7NOS0I4f/IdOM4o0SgOFFYffeOiZ2BhBUUjf+la1ccU2wAmrSMtSkSNUB63nHCnscSuj18VWx401fL2c52hmr1Eune7pSBLe7N5GpfRzjClstzeSQrB+IGxWm7rJD52s2vg8wHPnPTIyUri0jB1i8bG5OrM2YrFKQvNFE0cYuwTjLd2ZuFg/ivqN8HTxJxXDFCN4sotyXF9utCHVV7T59+N/amQczGLzaFHRPywDi4d6z0wXjG2T4jio2WAhrGWil3g/hhqLxG5kALBtsGMIrVuqeMaMSGsdONj9l9Lo2MOBXVOpSpxN3yufhmbmpi/GxK32jHPMYEyxgUMqg6CTGNZPTou15v7TH80KEsqxTGT7lKLerEF"
+  "webSig2": "pPIAoMLT1qY16Hxwu6NgkQo+3ZPGJroOqKDGv0662F1QRWxiJVQdwOUUa0yQGqvYPrWB+8Pno70aSM/f0RZcVwAGIbkJwDwftXBw01lGn8eQMXMUMXGKlp8BRLGeeIFfRmaWxPP5EAkbYezN18DIOlesi/WRHid1WV7vgg4g9JHw5pHphqJuY41BALq7I5NEDtlFgjKhAQfbRCPSMj+YjQ6SRQaLjnb/i+Z1JcCoukIaZS7jwM/+IGOxCg+QiMRnDO81AdsW0r56H5fw5/AJnX/gfXfJI+g3FMLisJdHjTU7FGZRjiarcNHsvVZVSCaHQaRynbRStTymUOa4sdXiLygQ6EK/+Y8i2jqu6Ye2qrw9DKeVqtktnhYSWICpudaFqd0z2XJbxlO1Rmx0PErAfRs4QFtt1IfGalYydzXmLn7NO9S7IEeuIfJtb0clmdA9CL27Uh7KpKWwVw/Ftvp5z/3BRQaKqWwLNeMQKc1+ZaPpHnpw5BKcY900BFZ2ucHv"
 }
