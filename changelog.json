@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.100",
+    "date": "2026-10-24",
+    "changes": [
+      "Assistent: vraag om een herinnering, notitie of afspraak (\"herinner me morgen om 9 uur aan …\") en hij stelt het voor onder het antwoord; het gebeurt pas als je op Zetten tikt",
+      "Assistent: antwoorden voorlezen met de knop Voorlezen, en bij Lokale AI → Spraak kun je het antwoord vanzelf laten voorlezen als je de vraag insprak",
+      "Samenvatten met één tik: knop ✨ bij een sms-gesprek, WhatsApp-chat of uitgeschreven gesprek; de assistent vat het op je telefoon samen",
+      "Alles back-uppen: het geheugen en de gesprekken van de assistent kunnen nu mee (privé, staat standaard uit), zodat je ze op een nieuwe telefoon terugzet.",
+      "Alles back-uppen: ook Slaappraat kan mee, alleen de tekst of met het geluid; je ziet hoeveel ruimte het kost.",
+      "Met Versleutelen aan gaan deze privé-onderdelen versleuteld mee; zonder versleutelen vraagt de app eerst en waarschuwt hij.",
+      "Terugzetten voegt herinneringen, gesprekken en nachten toe die er nog niet zijn; er wordt niets overschreven, ook niet de nacht die nu loopt.",
+      "Stopt Android de nachtelijke backup halverwege, dan blijft bewaard wat al klaar was en zie je bij de uitkomst wat niet meer lukte.",
+      "Slaappraat: probeer eerst 30 seconden en zie live wat hij oppikt (er wordt niets bewaard), zodat je de gevoeligheid en de plek van je telefoon kunt afstellen",
+      "Slaappraat: zie per nacht hoeveel accu het kostte, en gemiddeld per uur als je telefoon niet aan de lader lag",
+      "Slaappraat: zet een herinnering op bedtijd; je krijgt dan elke avond een melding om Slaappraat aan te zetten",
+      "Slaappraat: wat je in je slaap zei is te vinden bij Zoeken, en (als je dat aanzet bij Lokale AI → Gegevens) ook voor de assistent",
+      "Slaappraat: het geluid neemt ongeveer tien keer minder ruimte in, zodat je meer nachten kunt bewaren"
+    ]
+  },
+  {
     "version": "1.99",
     "date": "2026-10-24",
     "changes": [

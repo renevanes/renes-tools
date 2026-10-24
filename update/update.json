@@ -1,15 +1,34 @@
 {
   "app": "Tools",
-  "versionName": "1.99",
-  "versionCode": 100,
-  "nativeLevel": 88,
+  "versionName": "1.100",
+  "versionCode": 101,
+  "nativeLevel": 89,
   "web": "index.html",
-  "webSha256": "e6e11398f4b9f5562d0c18e6e977d139194e70fa05299bcddc343e4c47a5759b",
+  "webSha256": "8eb56311035b770357472abc58929eb01e31e4c1738bf180e26431b38bd2efe2",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "74ee266fe514bf1fa34fee9ae80f9cec04a53a9c5b92780839115a1c6de48ab7",
+  "apkSha256": "cd088d2504da07b57a4a111dc1fdc0eeaee31831785491fb73b28db8cc17e138",
   "changelog": [
+    {
+      "version": "1.100",
+      "date": "2026-10-24",
+      "changes": [
+        "Assistent: vraag om een herinnering, notitie of afspraak (\"herinner me morgen om 9 uur aan …\") en hij stelt het voor onder het antwoord; het gebeurt pas als je op Zetten tikt",
+        "Assistent: antwoorden voorlezen met de knop Voorlezen, en bij Lokale AI → Spraak kun je het antwoord vanzelf laten voorlezen als je de vraag insprak",
+        "Samenvatten met één tik: knop ✨ bij een sms-gesprek, WhatsApp-chat of uitgeschreven gesprek; de assistent vat het op je telefoon samen",
+        "Alles back-uppen: het geheugen en de gesprekken van de assistent kunnen nu mee (privé, staat standaard uit), zodat je ze op een nieuwe telefoon terugzet.",
+        "Alles back-uppen: ook Slaappraat kan mee, alleen de tekst of met het geluid; je ziet hoeveel ruimte het kost.",
+        "Met Versleutelen aan gaan deze privé-onderdelen versleuteld mee; zonder versleutelen vraagt de app eerst en waarschuwt hij.",
+        "Terugzetten voegt herinneringen, gesprekken en nachten toe die er nog niet zijn; er wordt niets overschreven, ook niet de nacht die nu loopt.",
+        "Stopt Android de nachtelijke backup halverwege, dan blijft bewaard wat al klaar was en zie je bij de uitkomst wat niet meer lukte.",
+        "Slaappraat: probeer eerst 30 seconden en zie live wat hij oppikt (er wordt niets bewaard), zodat je de gevoeligheid en de plek van je telefoon kunt afstellen",
+        "Slaappraat: zie per nacht hoeveel accu het kostte, en gemiddeld per uur als je telefoon niet aan de lader lag",
+        "Slaappraat: zet een herinnering op bedtijd; je krijgt dan elke avond een melding om Slaappraat aan te zetten",
+        "Slaappraat: wat je in je slaap zei is te vinden bij Zoeken, en (als je dat aanzet bij Lokale AI → Gegevens) ook voor de assistent",
+        "Slaappraat: het geluid neemt ongeveer tien keer minder ruimte in, zodat je meer nachten kunt bewaren"
+      ]
+    },
     {
       "version": "1.99",
       "date": "2026-10-24",
@@ -869,5 +888,5 @@
       ]
     }
   ],
-  "webSig2": "pPIAoMLT1qY16Hxwu6NgkQo+3ZPGJroOqKDGv0662F1QRWxiJVQdwOUUa0yQGqvYPrWB+8Pno70aSM/f0RZcVwAGIbkJwDwftXBw01lGn8eQMXMUMXGKlp8BRLGeeIFfRmaWxPP5EAkbYezN18DIOlesi/WRHid1WV7vgg4g9JHw5pHphqJuY41BALq7I5NEDtlFgjKhAQfbRCPSMj+YjQ6SRQaLjnb/i+Z1JcCoukIaZS7jwM/+IGOxCg+QiMRnDO81AdsW0r56H5fw5/AJnX/gfXfJI+g3FMLisJdHjTU7FGZRjiarcNHsvVZVSCaHQaRynbRStTymUOa4sdXiLygQ6EK/+Y8i2jqu6Ye2qrw9DKeVqtktnhYSWICpudaFqd0z2XJbxlO1Rmx0PErAfRs4QFtt1IfGalYydzXmLn7NO9S7IEeuIfJtb0clmdA9CL27Uh7KpKWwVw/Ftvp5z/3BRQaKqWwLNeMQKc1+ZaPpHnpw5BKcY900BFZ2ucHv"
+  "webSig2": "dTtCm1GsF5U1I4HAttqjz1Hqm4xe2Q2Cns6ZIswmYVksdoTdsfqT+BzJVzSSmtQNEuHVRK3A+KdIk4Fa3mLkKFKFN0OfjFwtROCPZQV7iaLrR+/04lDyjlj3hK7i+9qBoyeEvBHLy5sQk/9OCTi1sH2RPqk5wOwRO0uXT5aj3YLsWl8YpReyx6dgWnNu56gtTdFeWYJF7t8kNpUi6P2Iweyn5IgSlKSfIUYCJoaDtP2ypfcujrldUdXUbk9L5QGp8YLe8q++SR+FeL645YeNfrPTd3VgUSeXpEn3XpR7gvnGSShpuans5cnaOU1Wjm2uHx5U/V1hl8GJ4UKmqbXZHP5l9BM2oxoOSSXLbqi2REVU30Uv9iARO773p90BpadUBhB0FgL1NaMuSRRWunf7HezFH4IXXW1z6rJu7rY9ykvcBIE+rkF8WdimQD3ABZfWKORrL4oXWEUsLaIVAs7Xa3zZcySZaQ8IAkx793zie0F5hn1wccBsdj3wpVXb8Jms"
 }
