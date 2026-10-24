@@ -12,9 +12,10 @@ const { chromium } = require('playwright');
     await pg.click('#tile-ai'); await pg.waitForTimeout(300);
     // Nog geen model: kiezen en downloaden
     ok(await pg.isVisible('#ai-setup') && !(await pg.isVisible('#ai-chat')), 'zonder model: uitleg en modelkeuze');
-    ok((await pg.$$('#ai-setup-models .aimodel')).length === 2, 'twee taalmodellen om te kiezen');
-    await pg.click('.aimodel[data-id="klein"] .mini'); await pg.waitForTimeout(300);
-    ok(/↓ \d+%|Controleren/.test(await pg.textContent('.aimodel[data-id="klein"] .aims')), 'voortgang van het downloaden');
+    // Alleen de nieuwste modellen (Qwen3.5); de vervangen oude niet meer
+    ok((await pg.$$('#ai-setup-models .aimodel')).length === 2 && !!(await pg.$('.aimodel[data-id="klein35"]')) && !!(await pg.$('.aimodel[data-id="groot35"]')), 'twee taalmodellen om te kiezen (de nieuwste)');
+    await pg.click('.aimodel[data-id="klein35"] .mini'); await pg.waitForTimeout(300);
+    ok(/↓ \d+%|Controleren/.test(await pg.textContent('.aimodel[data-id="klein35"] .aims')), 'voortgang van het downloaden');
     await pg.waitForTimeout(1800);
     ok(await pg.isVisible('#ai-chat') && !(await pg.isVisible('#ai-setup')), 'model klaar: het gesprek');
     ok(!(await pg.isVisible('#ai-notes')), 'zonder zoekmodel: geen "met mijn notities"');
@@ -114,7 +115,7 @@ const { chromium } = require('playwright');
     await pg.click('#gs-res .aigs .gi:first-of-type'); await pg.waitForTimeout(200);
     ok(await pg.evaluate(() => current === 'note'), 'treffer opent de notitie');
     // Model weg: terug naar de keuze
-    await pg.evaluate(() => { Android.aiDelete('klein'); show('ai'); }); await pg.waitForTimeout(200);
+    await pg.evaluate(() => { Android.aiDelete('klein35'); show('ai'); }); await pg.waitForTimeout(200);
     ok(await pg.isVisible('#ai-setup'), 'model verwijderd: weer de keuze');
     await pg.close();
   }

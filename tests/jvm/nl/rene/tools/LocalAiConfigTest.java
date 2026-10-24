@@ -28,6 +28,15 @@ public class LocalAiConfigTest {
         check(!LocalAi.orphan(LocalAi.SMALL.file, LocalAi.MODELS) && !LocalAi.orphan(LocalAi.LARGE.file + ".tmp", LocalAi.MODELS) && !LocalAi.orphan(LocalAi.EMBED.file + ".download", LocalAi.MODELS), "huidige modellen: geen oud bestand");
         check(LocalAi.orphan("Qwen2-1.5B-Q4_K_M.gguf", LocalAi.MODELS) && LocalAi.orphan("oud.gguf.download", LocalAi.MODELS) && !LocalAi.orphan("chats.json", LocalAi.MODELS), "oude modellen herkend, andere bestanden niet");
         check(LocalAi.SMALL.replaces.isEmpty() && new LocalAi.Model("x", "X", "", "r", "c", "f.gguf", 1, "s", 4096, false).replaces("klein", "Beter").replaces.equals("klein"), "nieuw model kan een ouder vervangen");
+        // Qwen3.5 als opvolgers: eigen id en bestand, vervangt het oude, het oude bestand blijft bruikbaar
+        check(LocalAi.model("klein35") == LocalAi.SMALL35 && LocalAi.SMALL35.replaces.equals("klein") && !LocalAi.SMALL35.news.isEmpty()
+                && LocalAi.model("groot35") == LocalAi.LARGE35 && LocalAi.LARGE35.replaces.equals("groot") && !LocalAi.LARGE35.news.isEmpty(), "Qwen3.5 vervangt klein en groot");
+        java.util.Set<String> ids = new java.util.HashSet<>(), files = new java.util.HashSet<>();
+        boolean uniq = true;
+        for (LocalAi.Model m : LocalAi.MODELS) { uniq &= ids.add(m.id) && files.add(m.file); if (!m.replaces.isEmpty()) uniq &= LocalAi.model(m.replaces) != null && !LocalAi.model(m.replaces).embed; }
+        check(uniq, "elk model een eigen id en bestand; vervangt een bestaand taalmodel");
+        check(LocalAi.LARGE.big() && LocalAi.LARGE35.big() && !LocalAi.SMALL.big() && !LocalAi.SMALL35.big() && !LocalAi.EMBED.big(), "grote modellen: geheugen aangeraden");
+        check(!LocalAi.orphan(LocalAi.SMALL35.file, LocalAi.MODELS) && !LocalAi.orphan(LocalAi.LARGE.file, LocalAi.MODELS), "oude en nieuwe modellen naast elkaar: geen oud bestand");
         // Past in het geheugen van het model
         String k1000 = new String(new char[1000]).replace('\0', 'a'), k500 = new String(new char[500]).replace('\0', 'b');
         String[] f = LocalAi.persFit(k1000, k1000, 4096);

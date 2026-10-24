@@ -47,4 +47,30 @@ out=$(printf '%s\n' '{"op":"embed","texts":["x"]}' | "$L" -m "$T/chat.gguf" -t 2
 ok "zoekopdracht aan het gespreksmodel: fout" 'grep -q "Onbekende opdracht" <<<"$out"'
 out=$("$L" -m /bestaat/niet.gguf 2>/dev/null || true)
 ok "geen model: fout" 'grep -q "niet geladen" <<<"$out"'
+# Hybride model (Qwen3.5: lineaire aandacht + gewone aandacht): het geheugen kan niet achteraan ingekort worden;
+# een vervolgvraag gaat verder vanaf de momentopname en geeft precies hetzelfde antwoord als opnieuw beginnen.
+python3 "$HERE/mk-testmodel.py" "$T/hybrid.gguf" qwen35 >/dev/null
+out=$(printf '%s\n' '{"op":"chat","messages":[{"role":"user","content":"Hallo"}],"max":5}' | "$L" -m "$T/hybrid.gguf" -c 512 -t 2 --nothink 2>/dev/null)
+ok "hybride model: laadt en antwoordt" 'grep -q "\"recurrent\":true" <<<"$out" && grep -q "\"n\":5" <<<"$out"'
+hy(){ python3 - "$L" "$T/hybrid.gguf" <<'PY'
+import json, subprocess, sys
+L, M = sys.argv[1], sys.argv[2]
+def run(reqs):
+    out = subprocess.run([L, '-m', M, '-c', '1024', '-t', '2', '--nothink'], input=''.join(json.dumps(r) + '\n' for r in reqs), capture_output=True, text=True, timeout=300).stdout
+    res, cur = [], ''
+    for l in out.splitlines():
+        j = json.loads(l); cur += j.get('t', '')
+        if j.get('done'): res.append((cur, j)); cur = ''
+    return res
+S = {"role": "system", "content": "Je bent een assistent. " * 20}
+q = lambda ms: {"op": "chat", "messages": [S] + ms, "max": 8, "temp": 0}
+t1 = q([{"role": "user", "content": "Hallo"}]); a = run([t1])[0][0]
+t2 = q([{"role": "user", "content": "Hallo"}, {"role": "assistant", "content": a}, {"role": "user", "content": "En nu?"}])
+same, fresh = run([t1, t2, t2]), run([t2])[0]
+assert same[1][1]['reused'] > 100, same[1][1]              # vervolgvraag: het begin hergebruikt
+assert same[2][1]['reused'] > 100, same[2][1]              # opnieuw antwoorden: ook
+assert same[1][0] == fresh[0] == same[2][0], (same, fresh)  # en precies hetzelfde antwoord
+PY
+}
+ok "hybride model: vervolgvraag hergebruikt het begin, zelfde antwoord" 'hy'
 exit $fail

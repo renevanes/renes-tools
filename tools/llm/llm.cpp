@@ -114,7 +114,40 @@ struct Engine {
     std::vector<llama_token> cache; // wat er nu in het geheugen van het model staat (voor hergebruik bij een vervolgvraag)
     bool embed = false, nothink = false;
     int n_ctx = 4096, n_batch = 512;
+    // Hybride/recurrente modellen (Qwen3.5: lineaire aandacht): hun toestand kan niet achteraan ingekort worden
+    // (llama_memory_seq_rm geeft dan false). Daarom een momentopname van die toestand na de eerste ck_n tokens
+    // van het geheugen (het begin van het antwoord), zodat een vervolgvraag niet alles opnieuw hoeft te lezen.
+    bool recurrent = false;
+    std::vector<uint8_t> ck;
+    size_t ck_n = 0;
+    size_t gen_at = 0; // uit chat_tokens: waar het antwoord begint (vóór het lege denkblok)
 };
+
+static void ck_drop(Engine & E) { E.ck.clear(); E.ck.shrink_to_fit(); E.ck_n = 0; }
+static void mem_clear(Engine & E) { llama_memory_clear(llama_get_memory(E.ctx), true); E.cache.clear(); ck_drop(E); }
+
+// Momentopname van de recurrente toestand (alleen dat deel; de gewone aandacht is wel in te korten)
+static void ck_save(Engine & E) {
+    size_t n = llama_state_seq_get_size_ext(E.ctx, 0, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+    if (n == 0) { ck_drop(E); return; }
+    try { E.ck.resize(n); } catch (...) { ck_drop(E); return; }
+    if (llama_state_seq_get_data_ext(E.ctx, E.ck.data(), n, 0, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY) != n) { ck_drop(E); return; }
+    E.ck_n = E.cache.size();
+}
+
+// Het geheugen terugbrengen tot (hooguit) de eerste n tokens; geeft hoeveel er over zijn. Lukt inkorten niet
+// (hybride model), dan terug naar de momentopname als die binnen die n valt, anders helemaal leeg.
+static size_t mem_trim(Engine & E, size_t n) {
+    if (n >= E.cache.size()) return E.cache.size();
+    llama_memory_t mem = llama_get_memory(E.ctx);
+    if (llama_memory_seq_rm(mem, 0, (llama_pos) n, -1)) E.cache.resize(n);
+    else if (E.ck_n > 0 && E.ck_n <= n
+             && llama_state_seq_set_data_ext(E.ctx, E.ck.data(), E.ck.size(), 0, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY) == E.ck.size()
+             && llama_memory_seq_rm(mem, 0, (llama_pos) E.ck_n, -1)) E.cache.resize(E.ck_n);
+    else mem_clear(E);
+    if (E.ck_n > E.cache.size()) ck_drop(E);
+    return E.cache.size();
+}
 
 // Tokens verwerken vanaf positie pos0; alleen voor het laatste token de uitkomst
 // done (als niet null): hoeveel tokens er verwerkt in het geheugen staan, ook als het halverwege stopte
@@ -154,8 +187,6 @@ static std::vector<llama_token> chat_tokens(Engine & E, const std::vector<std::p
     if (n > (int) buf.size()) { buf.resize(n); n = llama_chat_apply_template(tmpl, cm.data(), cm.size(), true, buf.data(), (int32_t) buf.size()); }
     if (n < 0) return {};
     std::string s(buf.data(), n);
-    // Qwen3 en dergelijke: niet eerst "hardop nadenken", meteen antwoorden (zoals enable_thinking=false)
-    if (E.nothink) s += "<think>\n\n</think>\n\n";
 
     std::vector<llama_token> out;
     std::vector<bool> used(msgs.size(), false);
@@ -181,6 +212,11 @@ static std::vector<llama_token> chat_tokens(Engine & E, const std::vector<std::p
         pos = b + 1;
     }
     for (bool u : used) if (!u) return {}; // het sjabloon liet een bericht weg: liever een fout dan een half gesprek
+    // Hier begint het antwoord. Een vervolgvraag heeft tot hier hetzelfde begin (daarna komt het antwoord zonder
+    // denkblok), dus hier maakt een hybride model zijn momentopname.
+    E.gen_at = out.size();
+    // Qwen3, Qwen3.5 en dergelijke: niet eerst "hardop nadenken", meteen antwoorden (zoals enable_thinking=false)
+    if (E.nothink) add("<think>\n\n</think>\n\n", true);
     return out;
 }
 
@@ -223,31 +259,34 @@ static void do_chat(Engine & E, const json & j) {
     }
 
     // Hergebruik wat al in het geheugen staat (zelfde begin van het gesprek)
-    llama_memory_t mem = llama_get_memory(E.ctx);
     size_t keep = 0;
     while (keep < E.cache.size() && keep < toks.size() && E.cache[keep] == toks[keep]) keep++;
     if (keep == toks.size() && keep > 0) keep--; // minstens één token opnieuw, voor de uitkomst
-    if (keep < E.cache.size()) {
-        if (!llama_memory_seq_rm(mem, 0, (llama_pos) keep, -1)) { llama_memory_clear(mem, true); keep = 0; }
-    }
-    E.cache.resize(keep);
+    keep = mem_trim(E, keep);
+    const size_t gen_at = E.gen_at;
 
+    // Inlezen; een hybride model maakt onderweg een momentopname waar het antwoord begint
     int got = 0;
-    if (!decode(E, toks.data() + keep, (int) (toks.size() - keep), (int) keep, true, &got)) {
+    bool ok = true;
+    size_t at = keep;
+    if (E.recurrent && gen_at > keep && gen_at < toks.size()) {
+        ok = decode(E, toks.data() + at, (int) (gen_at - at), (int) at, false, &got);
+        if (ok) { E.cache.insert(E.cache.end(), toks.begin() + at, toks.begin() + gen_at); at = gen_at; got = 0; ck_save(E); }
+    }
+    if (ok) ok = decode(E, toks.data() + at, (int) (toks.size() - at), (int) at, true, &got);
+    if (!ok) {
         if (cancelled()) {
             // Gestopt tijdens het inlezen: wat al verwerkt is, blijft (de volgende vraag met hetzelfde begin is dan snel)
-            size_t ok = keep + (size_t) got;
-            if (ok >= toks.size()) E.cache.assign(toks.begin(), toks.end());
-            else if (llama_memory_seq_rm(mem, 0, (llama_pos) ok, -1)) E.cache.assign(toks.begin(), toks.begin() + ok);
-            else { llama_memory_clear(mem, true); E.cache.clear(); }
+            E.cache.insert(E.cache.end(), toks.begin() + at, toks.begin() + at + got);
             emit(json{{"done", true}, {"cancelled", true}, {"n", 0}, {"kept", (int) E.cache.size()}});
             return;
         }
-        llama_memory_clear(mem, true); E.cache.clear();
+        mem_clear(E);
         emit_error("Het model kon de vraag niet verwerken");
         return;
     }
-    E.cache.insert(E.cache.end(), toks.begin() + keep, toks.end());
+    E.cache.insert(E.cache.end(), toks.begin() + at, toks.end());
+    if (E.recurrent && gen_at == toks.size() && E.ck_n < gen_at) ck_save(E); // zonder denkblok: na de hele vraag
     const int reused = (int) keep;
 
     llama_sampler * smpl = llama_sampler_chain_init(llama_sampler_chain_default_params());
@@ -386,11 +425,12 @@ int main(int argc, char ** argv) {
     if (!E.ctx) { emit_error("Te weinig geheugen voor dit model"); llama_model_free(E.model); return 1; }
     E.n_ctx = (int) llama_n_ctx(E.ctx);
     E.batch = llama_batch_ext_init(E.ctx);
+    E.recurrent = llama_model_is_recurrent(E.model) || llama_model_is_hybrid(E.model);
     if (!E.batch) { emit_error("Te weinig geheugen voor dit model"); return 1; }
 
     char desc[256] = {0};
     llama_model_desc(E.model, desc, sizeof(desc));
-    emit(json{{"ready", true}, {"ctx", E.n_ctx}, {"embd", llama_model_n_embd(E.model)}, {"desc", desc}, {"embed", E.embed}});
+    emit(json{{"ready", true}, {"ctx", E.n_ctx}, {"embd", llama_model_n_embd(E.model)}, {"desc", desc}, {"embed", E.embed}, {"recurrent", E.recurrent}});
 
     std::thread rt(reader);
     rt.detach();

@@ -1,13 +1,16 @@
-# Gebruik: python3 tools/llm/mk-testmodel.py uit.gguf [pooling]   (na ./tools/llm-build.sh, dat tools/lcpp ophaalt)
-# Maakt een piepklein qwen3-model met willekeurige gewichten (om de motor te testen; geen zinnige tekst)
+# Gebruik: python3 tools/llm/mk-testmodel.py uit.gguf [pooling|qwen35]   (na ./tools/llm-build.sh, dat tools/lcpp ophaalt)
+# Maakt een piepklein qwen3-model met willekeurige gewichten (om de motor te testen; geen zinnige tekst).
+# Met "qwen35": een piepklein Qwen3.5-model (hybride: lineaire aandacht/Gated DeltaNet plus gewone aandacht).
 import sys, numpy as np
 import os
 LCPP = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lcpp')
 sys.path.insert(0, os.path.join(LCPP, 'gguf-py'))
 import gguf
 src = gguf.GGUFReader(os.path.join(LCPP, 'models', 'ggml-vocab-qwen2.gguf'))
-out, pooling = sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else -1
-w = gguf.GGUFWriter(out, 'qwen3')
+out = sys.argv[1]
+hybrid = len(sys.argv) > 2 and sys.argv[2] == 'qwen35'
+pooling = int(sys.argv[2]) if len(sys.argv) > 2 and not hybrid else -1
+w = gguf.GGUFWriter(out, 'qwen35' if hybrid else 'qwen3')
 for k, f in src.fields.items():
     if not k.startswith('tokenizer.'): continue
     t = f.types[0]
@@ -23,6 +26,34 @@ for k, f in src.fields.items():
 nv = len(src.fields['tokenizer.ggml.tokens'].data)
 if 'tokenizer.chat_template' not in src.fields:
     w.add_string('tokenizer.chat_template', "{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}")
+if hybrid:
+    # zoals Qwen3.5 (elke 4e laag gewone aandacht), alleen veel kleiner
+    E, H, KV, HD, FF, L = 64, 2, 1, 32, 128, 4
+    DS, NK, NV, KC = 16, 2, 4, 4          # ssm: kop-grootte, k-koppen, v-koppen, conv-breedte
+    w.add_context_length(2048); w.add_embedding_length(E); w.add_block_count(L); w.add_feed_forward_length(FF)
+    w.add_head_count(H); w.add_head_count_kv(KV); w.add_key_length(HD); w.add_value_length(HD)
+    w.add_layer_norm_rms_eps(1e-6); w.add_rope_freq_base(1e7); w.add_rope_dimension_count(HD // 4)
+    w.add_rope_dimension_sections([2, 1, 1, 0]); w.add_full_attention_interval(4)
+    w.add_ssm_conv_kernel(KC); w.add_ssm_inner_size(DS * NV); w.add_ssm_state_size(DS)
+    w.add_ssm_time_step_rank(NV); w.add_ssm_group_count(NK)
+    r = np.random.default_rng(1)
+    def T(n, *shape): w.add_tensor(n, (r.standard_normal(shape) * 0.05).astype(np.float32))
+    def ones(n, k): w.add_tensor(n, np.ones(k, np.float32))
+    T('token_embd.weight', nv, E); ones('output_norm.weight', E)
+    for i in range(L):
+        p = f'blk.{i}.'
+        ones(p + 'attn_norm.weight', E); ones(p + 'post_attention_norm.weight', E)
+        if (i + 1) % 4 == 0:
+            T(p + 'attn_q.weight', H * HD * 2, E); T(p + 'attn_k.weight', KV * HD, E); T(p + 'attn_v.weight', KV * HD, E)
+            T(p + 'attn_output.weight', E, H * HD); ones(p + 'attn_q_norm.weight', HD); ones(p + 'attn_k_norm.weight', HD)
+        else:
+            T(p + 'attn_qkv.weight', DS * NK * 2 + DS * NV, E); T(p + 'attn_gate.weight', DS * NV, E)
+            T(p + 'ssm_conv1d.weight', DS * NK * 2 + DS * NV, KC); w.add_tensor(p + 'ssm_dt.bias', np.zeros(NV, np.float32))
+            w.add_tensor(p + 'ssm_a', -np.ones(NV, np.float32)); T(p + 'ssm_beta.weight', NV, E); T(p + 'ssm_alpha.weight', NV, E)
+            ones(p + 'ssm_norm.weight', DS); T(p + 'ssm_out.weight', E, DS * NV)
+        T(p + 'ffn_gate.weight', FF, E); T(p + 'ffn_up.weight', FF, E); T(p + 'ffn_down.weight', E, FF)
+    w.write_header_to_file(); w.write_kv_data_to_file(); w.write_tensors_to_file(); w.close()
+    print('ok', out, nv, 'qwen35'); sys.exit(0)
 E, H, KV, HD, FF, L = 64, 4, 2, 16, 128, 2
 w.add_context_length(2048); w.add_embedding_length(E); w.add_block_count(L); w.add_feed_forward_length(FF)
 w.add_head_count(H); w.add_head_count_kv(KV); w.add_key_length(HD); w.add_value_length(HD)

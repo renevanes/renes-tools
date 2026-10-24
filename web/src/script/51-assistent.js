@@ -35,7 +35,7 @@ function aiModelCard(m, opts){
   if (m.state === 'ready') btn = opts.chat ? (chosen ? '<span class="aisel">In gebruik</span>' : '<button class="mini" onclick="aiUse(\'' + m.id + '\')">Gebruiken</button>') : '';
   else if (busy) btn = m.state === 'verifying' ? '' : '<button class="mini" onclick="aiDel(\'' + m.id + '\', true)">Stoppen</button>';
   else btn = '<button class="mini on" onclick="aiDl(\'' + m.id + '\')">Downloaden</button>';
-  const big = m.id === 'groot' && aiSt.ram > 0 && aiSt.ram < 7.5e9;
+  const big = m.ram > 0 && aiSt.ram > 0 && aiSt.ram < m.ram; // minder geheugen dan aangeraden
   // Nieuw (vervangt een ouder model), of vervangen door een nieuwer dat al klaar is
   const newer = m.replaces ? '<small class="ainew">' + uiIcon('star') + 'Nieuw' + (aiModel(m.replaces).label ? ', vervangt ' + esc(aiModel(m.replaces).label) : '') + (m.news ? ': ' + esc(m.news) : '') + '</small>' : '';
   const by = (aiSt.models || []).find(x => x.replaces === m.id && x.state === 'ready');
@@ -62,6 +62,10 @@ function aiUse(id){
   // Een nieuwer model in gebruik genomen: het oude mag weg (vragen, niet vanzelf)
   const m = aiModel(id), old = m.replaces && aiModel(m.replaces);
   if (old && old.state === 'ready') setTimeout(() => askConfirm(old.label + ' verwijderen?', 'Je gebruikt nu ' + m.label + '. Het oude model (' + aiStateTxt(old).replace('✓ Klaar · ', '') + ') kan weg om ruimte te maken.', 'Verwijderen', () => { Android.aiDelete(old.id); aiRefresh(); toast(old.label + ' verwijderd'); }), 400);
+}
+/* Taalmodellen om te tonen: een model dat door een nieuwer vervangen is alleen als je het al hebt (of downloadt) */
+function aiListed(m){
+  return !m.embed && (m.state !== 'none' || !(aiSt.models || []).some(x => x.replaces === m.id));
 }
 /* Nieuwere modellen die een model vervangen dat je hebt (meegekomen met een app-update) en die je nog niet hebt */
 function aiNewer(){
@@ -106,7 +110,7 @@ function aiRenderMain(){
   $('#ai-chat').style.display = ok ? '' : 'none';
   $('#ai-new').style.display = ok ? '' : 'none';
   if (!ok) {
-    $('#ai-setup-models').innerHTML = (aiSt.models || []).filter(m => !m.embed).map(m => aiModelCard(m, { chat: true })).join('');
+    $('#ai-setup-models').innerHTML = (aiSt.models || []).filter(aiListed).map(m => aiModelCard(m, { chat: true })).join('');
     $('#ai-setup-note').textContent = !aiSt.supported ? 'Let op: de lokale AI werkt alleen op telefoons met een 64-bits ARM-processor.'
       : 'Downloaden gaat door op de achtergrond' + (aiSt.wifiOnly ? ', alleen via wifi' : '') + '. Je kunt het kleine model later altijd nog wisselen voor het grote, of andersom (bij Meer → Instellingen).';
     return;
@@ -424,7 +428,7 @@ function aicMenu(i){
 function enterAiSet(){ aiLoad(); aiRenderSet(); if (current === 'aisetmem') aimRender(); clearTimeout(aiPollT); if (aiBusyDl()) aiPollT = setTimeout(aiRefresh, 1500); }
 function aiRenderSet(){
   const ms = aiSt.models || [];
-  $('#ais-chat').innerHTML = ms.filter(m => !m.embed).map(m => aiModelCard(m, { chat: true, del: true })).join('');
+  $('#ais-chat').innerHTML = ms.filter(aiListed).map(m => aiModelCard(m, { chat: true, del: true })).join('');
   $('#ais-old').innerHTML = aiOldHtml();
   $('#ais-embed').innerHTML = ms.filter(m => m.embed).map(m => aiModelCard(m, { del: true })).join('');
   const w = $('#ais-wifi'); w.classList.toggle('on', !!aiSt.wifiOnly); w.setAttribute('aria-checked', aiSt.wifiOnly ? 'true' : 'false');
