@@ -53,6 +53,10 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <!-- Voorlezen (assistent): de tekst-naar-spraak van de telefoon moet zichtbaar zijn om hem te kunnen gebruiken -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
         <!-- Het installatiescherm van Android moet zichtbaar zijn om een update te kunnen bevestigen -->
         <intent>
             <action android:name="android.content.pm.action.CONFIRM_INSTALL" />

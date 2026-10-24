@@ -321,7 +321,7 @@ final class LocalAi {
     static synchronized JSONObject state(Context c, Model m) {
         JSONObject o = new JSONObject();
         try {
-            o.put("id", m.id).put("label", m.label).put("desc", m.desc).put("size", m.size).put("embed", m.embed);
+            o.put("id", m.id).put("label", m.label).put("desc", m.desc).put("size", m.size).put("embed", m.embed).put("ctx", m.ctx);
             if (!m.replaces.isEmpty()) o.put("replaces", m.replaces).put("news", m.news);
             if (m.ram > 0) o.put("ram", m.ram);
             if (ready(c, m)) return o.put("state", "ready");
@@ -649,7 +649,11 @@ final class LocalAi {
             List<String> mem = memOn ? memFor(chatId, AiMemory.pairs(c), AiMemory.limit(m.ctx)) : null;
             String sys = systemPrompt(c, m.ctx, mem, "");
             final int memUsed = mem == null ? 0 : mem.size();
-            boolean learnWanted = memOn && remember == null && forgetWhat == null && !"uit".equals(cfg(c, "learn")) && AiMemory.worthy(question);
+            // Acties (notitie, herinnering, agenda): alleen als de vraag erom lijkt te vragen; nooit bij "onthoud …" (dat is
+            // het geheugen) of bij een samenvatting van een gesprek. Ze gebeuren pas als je onder het antwoord op de knop tikt.
+            final boolean actWanted = !req.optBoolean("noAct") && remember == null && forgetWhat == null && AiActions.wanted(question);
+            // Niet leren bij een actie ("herinner me …" is geen feit over jou) of als er berichten van anderen in het gesprek staan
+            boolean learnWanted = memOn && remember == null && forgetWhat == null && !actWanted && !req.optBoolean("noLearn") && !"uit".equals(cfg(c, "learn")) && AiMemory.worthy(question);
             JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", sys));
             int from = Math.max(0, in.length() - historyFor(cfg(c, "history")));
             for (int i = from; i < in.length(); i++) {
@@ -681,6 +685,9 @@ final class LocalAi {
                 if (cancel) { GATE.leave(job); sink.done(new JSONObject().put("cancelled", true)); return; }
             }
             if (!note.isEmpty()) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + note + ")");
+            // Achter de vraag, niet in de vaste instructie: die blijft zo gelijk en de motor hoeft het gesprek niet opnieuw in te lezen
+            final String questionF = question;
+            if (actWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiActions.prompt(System.currentTimeMillis(), java.util.TimeZone.getDefault()) + ")");
             final boolean willLearn = learnWanted;
             chatPhase = true; // vanaf hier het taalmodel: de index wacht op een kleinere telefoon
             if (!bigRam(c)) closeEmbedSafe(); // niet twee modellen tegelijk in een kleiner geheugen
@@ -703,6 +710,16 @@ final class LocalAi {
                 if (o.has("t")) { String t = o.optString("t"); if (answer.length() < 20000) answer.append(t); sink.token(t); }
                 else if (o.optBoolean("done")) {
                     ok[0] = !o.optBoolean("cancelled");
+                    // Een actieregel ([[herinnering: …]]) uit het antwoord halen en als voorstel meesturen (de interface vraagt bevestiging)
+                    try {
+                        String full = answer.toString();
+                        if (full.length() < 20000 && (actWanted || full.contains("[["))) {
+                            String clean = AiActions.strip(full);
+                            if (!clean.equals(full)) o.put("clean", clean);
+                            AiActions.Act act = actWanted && ok[0] ? AiActions.parse(full, questionF, System.currentTimeMillis(), java.util.TimeZone.getDefault()) : null;
+                            if (act != null) o.put("action", actJson(act));
+                        }
+                    } catch (Throwable ignored) { }
                     try { o.put("turn", job); if (memUsed > 0) o.put("mem", memUsed); if (ok[0] && (willLearn || rememberedIdF != null)) o.put("learning", true); } catch (Exception ignored) { }
                     GATE.leave(job); done.countDown(); sink.done(o);
                 }
@@ -710,7 +727,9 @@ final class LocalAi {
             });
             try {
                 double temp = temperature(cfg(c, "creative"));
-                p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", maxFor(m.ctx, cfg(c, "style"), sys.length()))
+                int max = maxFor(m.ctx, cfg(c, "style"), sys.length());
+                if (req.optBoolean("sum")) max = Math.min(max, 700); // een samenvatting: meer ruimte voor het gesprek zelf
+                p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", max)
                         .put("temp", temp).put("top_p", temp > 0.9 ? 0.95 : 0.8).put("top_k", 20));
                 while (!done.await(500, TimeUnit.MILLISECONDS)) {
                     if (!p.alive()) { if (done.getCount() > 0) { GATE.leave(job); done.countDown(); sink.error("De AI-motor is gestopt"); } break; }
@@ -737,6 +756,16 @@ final class LocalAi {
             GATE.leave(job);
             scheduleIdle();
         }
+    }
+
+    /** Een voorgestelde actie voor de interface. */
+    static JSONObject actJson(AiActions.Act a) throws Exception {
+        JSONObject o = new JSONObject().put("type", a.type).put("title", a.title).put("text", a.text).put("need", a.need).put("src", a.src);
+        if (a.at > 0) o.put("at", a.at);
+        if (a.day > 0) o.put("day", a.day);
+        if (a.allDay) o.put("allDay", true);
+        if (a.sug >= 0) o.put("sug", a.sug);
+        return o;
     }
 
     private static volatile boolean learning, learnStop;
@@ -1024,7 +1053,7 @@ final class LocalAi {
         JSONArray ms = new JSONArray();
         for (Model m : MODELS) ms.put(state(c, m));
         o.put("models", ms).put("chat", chatModel(c).id).put("wifiOnly", wifiOnly(c)).put("notes", prefs(c).getBoolean("notes", true)).put("voiceSend", prefs(c).getBoolean("voiceSend", true))
-                .put("loaded", loaded()).put("busy", busy());
+                .put("speakVoice", prefs(c).getBoolean("speakVoice", false)).put("loaded", loaded()).put("busy", busy());
         if (ready(c, EMBED)) o.put("index", SmartSearch.info(c));
         JSONObject cf = new JSONObject();
         for (String[] r : CFG) cf.put(r[0], cfg(c, r[0]));

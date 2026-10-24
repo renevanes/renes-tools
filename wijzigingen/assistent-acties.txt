@@ -1,0 +1,3 @@
+Assistent: vraag om een herinnering, notitie of afspraak ("herinner me morgen om 9 uur aan …") en hij stelt het voor onder het antwoord; het gebeurt pas als je op Zetten tikt
+Assistent: antwoorden voorlezen met de knop Voorlezen, en bij Lokale AI → Spraak kun je het antwoord vanzelf laten voorlezen als je de vraag insprak
+Samenvatten met één tik: knop ✨ bij een sms-gesprek, WhatsApp-chat of uitgeschreven gesprek; de assistent vat het op je telefoon samen
