@@ -116,7 +116,12 @@ def familie(naam):
 def nieuwere_modellen():
     """Per model: nieuwere GGUF-modellen van dezelfde maker in dezelfde grootte (en soort) op Hugging Face."""
     uit = []
+    tekst = (ROOT / MODELLEN[0]).read_text(errors="replace")
+    vervangen = set(re.findall(r'\.replaces\("(\w+)"', tekst))  # al opgevolgd door een nieuwer Model in de app
     for mid, repo, commit, bestand in modellen():
+        if mid in vervangen:
+            uit.append((mid, repo, commit, None, "al opgevolgd door een nieuwer model in de app; blijft voor wie het nog gebruikt"))
+            continue
         grootte, embed = model_soort(bestand)
         nu_versie, merk = familie(bestand)
         maker = "Qwen" if merk == "qwen" else repo.split("/")[0]
