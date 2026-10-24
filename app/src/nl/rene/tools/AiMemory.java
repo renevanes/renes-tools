@@ -352,4 +352,39 @@ final class AiMemory {
     }
 
     static synchronized int count(Context c) { return load(c).size(); }
+
+    /** Staat er een apart gezet (kapot) geheugenbestand? Dan is een leeg geheugen geen echte stand. */
+    static boolean brokenAside(Context c) {
+        File[] fs = file(c).getParentFile().listFiles();
+        if (fs != null) for (File f : fs) if (f.getName().startsWith("memory.json.kapot-")) return true;
+        return false;
+    }
+
+    /**
+     * Terugzetten uit Alles back-uppen: alleen herinneringen die er nog niet zijn (zelfde id of bijna dezelfde tekst),
+     * zolang het geheugen niet vol is. Gaat via de cache, dus de assistent ziet ze meteen. Geeft het aantal toegevoegde.
+     */
+    static synchronized int restore(Context c, JSONArray in) throws Exception {
+        List<Item> l = load(c);
+        List<String> ids = new ArrayList<>(), texts = new ArrayList<>(), inIds = new ArrayList<>(), inTexts = new ArrayList<>();
+        for (Item m : l) { ids.add(m.id); texts.add(m.text); }
+        for (int i = 0; i < in.length(); i++) { JSONObject o = in.optJSONObject(i); inIds.add(o == null ? "" : o.optString("id")); inTexts.add(o == null ? "" : o.optString("text")); }
+        int[] plan = AiSleepBackup.memoryPlan(ids, texts, inIds, inTexts, MAX);
+        Set<String> used = new HashSet<>(ids);
+        long now = System.currentTimeMillis();
+        int n = 0;
+        for (int i = 0; i < plan.length; i++) {
+            if (plan[i] != AiSleepBackup.ADD) continue;
+            JSONObject o = in.getJSONObject(i);
+            String id = o.optString("id");
+            if (!AiSleepBackup.safeId(id) || used.contains(id)) id = Long.toString(now, 36) + "r" + i;
+            used.add(id);
+            long t = o.optLong("t", now);
+            l.add(new Item(id, clean(o.optString("text")), AiSleepBackup.cut(o.optString("src"), 20), AiSleepBackup.cut(o.optString("chat"), 40),
+                    cleanTitle(o.optString("title")), t, o.optLong("u", t)));
+            n++;
+        }
+        if (n > 0) save(c);
+        return n;
+    }
 }

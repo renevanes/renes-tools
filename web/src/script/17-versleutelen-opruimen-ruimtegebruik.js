@@ -20,6 +20,7 @@ function bkRenderSecure(st){
   $('#bk-enc-btn').textContent = on ? 'Wachtwoord wijzigen' : 'Wachtwoord instellen';
   $('#bk-enc-off').style.display = on ? 'block' : 'none';
   $('#bk-rotate').checked = !!st.rotate;
+  if (st.parts) bkPrivRender(st); // de waarschuwing bij Privé hangt af van versleutelen
   if (st.space) bkRenderSpace(st.space);
 }
 let bkEncBusy = false;
@@ -41,8 +42,11 @@ window.onSecure = function(err){
   if (current === 'backup') bkRenderSecure(bkState(true));
 };
 function bkEncOff(){
-  askConfirm('Versleutelen uitzetten?', 'Nieuwe backups worden weer gewone, leesbare bestanden. Bestaande versleutelde backups blijven staan en houden hun wachtwoord.', 'Uitzetten', () => {
-    Android.backupEncryptOff(); bkRenderSecure(bkState(true)); toast('Versleutelen staat uit');
+  const p = bkState(true).parts || {}, priv = ['ai', 'sleep'].filter(k => p[k] === true);
+  askConfirm('Versleutelen uitzetten?', 'Nieuwe backups worden weer gewone, leesbare bestanden. Bestaande versleutelde backups blijven staan en houden hun wachtwoord.' +
+    (priv.length ? '\n\n' + priv.map(k => BK_PRIV[k]).join(' en ') + ' ' + (priv.length === 1 ? 'gaat' : 'gaan') + ' dan niet meer mee, want ' + (priv.length === 1 ? 'dat is' : 'die zijn') + ' privé. Wil je ' + (priv.length === 1 ? 'het' : 'ze') + ' toch onversleuteld meenemen, vink ' + (priv.length === 1 ? 'het' : 'ze') + ' dan opnieuw aan.' : ''), 'Uitzetten', () => {
+    Android.backupEncryptOff(); // zet ook de privé-onderdelen uit
+    bkRenderSecure(bkState(true)); toast('Versleutelen staat uit' + (priv.length ? '; privé-onderdelen gaan niet meer mee' : ''));
   });
 }
 function bkRotate(){ toast('Bezig met tellen…'); Android.backupRotate(true); }
@@ -77,6 +81,8 @@ window.onArchive = function(r){
   if (r.settings) acts.push(['Instellingen, automatiseringen en zenders terugzetten', () => Android.archiveRestore('settings', r.settings)]);
   if (r.transcripts) acts.push(['Uitgeschreven gesprekken terugzetten', () => Android.archiveRestore('transcripts', r.transcripts)]);
   if (r.music) acts.push(['Herkende muziek terugzetten', () => Android.archiveRestore('music', r.music)]);
+  if (r.ai) acts.push(['Geheugen en gesprekken van de assistent terugzetten', () => Android.archiveRestore('ai', r.ai)]);
+  if (r.sleep) acts.push(['Slaappraat terugzetten', () => { toast('Bezig met openen…'); Android.archiveRestore('sleep', r.sleep); }]);
   acts.push(['Uitpakken naar de backup-map', () => askConfirm('Uitpakken?', 'De bestanden komen onversleuteld in de map Uitgepakt in je backup-map. Haal ze weg als je ze niet meer nodig hebt.', 'Uitpakken', () => { toast('Bezig met uitpakken…'); Android.archiveUnpack(); }, () => Android.archiveClose())]);
   acts.push(['Sluiten', () => Android.archiveClose()]);
   // Dicht zonder keuze (terug of ernaast tikken): de sleutel meteen vergeten

@@ -124,6 +124,31 @@ final class SleepTalk {
         return id;
     }
 
+    /** Map van een nacht (voor terugzetten); null bij een vreemd id. */
+    static File nightDir(Context c, String id) { return safeId(id) ? dir(c, id) : null; }
+
+    /** Staat deze nacht al op de telefoon? */
+    static synchronized boolean exists(Context c, String id) { return safeId(id) && nightFile(c, id).isFile(); }
+
+    /** Alle nachten in hun geheel (met de stukjes), nieuwste eerst: voor Alles back-uppen. */
+    static synchronized JSONArray allNights(Context c) {
+        JSONArray out = new JSONArray();
+        File[] ds = root(c).listFiles();
+        if (ds == null) return out;
+        Arrays.sort(ds, (x, y) -> y.getName().compareTo(x.getName()));
+        for (File d : ds) { JSONObject n = night(c, d.getName()); if (n != null) out.put(n); }
+        return out;
+    }
+
+    /** Een teruggezette nacht; nooit over een nacht heen die er al is. Het overzicht ververst vanzelf (version). */
+    static synchronized boolean addRestored(Context c, JSONObject n) throws Exception {
+        String id = n.optString("id");
+        if (!safeId(id) || nightFile(c, id).isFile()) return false;
+        dir(c, id).mkdirs();
+        write(c, n);
+        return true;
+    }
+
     /** Hoeveel seconden geluid er al bewaard is. */
     private static synchronized double audioSeconds(Context c, String night) {
         JSONObject n = night(c, night);
@@ -325,7 +350,7 @@ final class SleepTalk {
                 if (System.currentTimeMillis() - start < 120_000L) continue; // net begonnen (kan nog niet als "lopend" bekend zijn)
                 synchronized (SleepTalk.class) {
                     File[] fs = d.listFiles();
-                    if (fs != null) for (File f : fs) if (f.getName().endsWith(".tmp")) f.delete();
+                    if (fs != null) for (File f : fs) if (f.getName().endsWith(".tmp") || f.getName().endsWith(".rt-part")) f.delete(); // .rt-part: afgebroken terugzetten
                     JSONObject n = night(c, id);
                     if (n != null && n.optLong("end") == 0) {
                         long last = n.optLong("start");

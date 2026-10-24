@@ -494,23 +494,27 @@ if (!window.Android) window.Android = (function(){
     lockSet(on){ this._st.lock=on; setTimeout(()=>onSettingsChanged(''),100); }, lockTimeout(v){ this._st.timeout=+v; },
     _sec:{on:false,since:0,rotate:false,space:null},
     backupSetPassword(pw){ setTimeout(()=>{ this._sec.on=true; this._sec.since=Date.now(); this._sec.pw=pw; onSecure(''); },200); },
-    backupEncryptOff(){ this._sec.on=false; }, backupSetRotate(on){ this._sec.rotate=on; },
+    backupEncryptOff(){ this._sec.on=false; this._bk.parts.ai=false; this._bk.parts.sleep=false; }, backupSetRotate(on){ this._sec.rotate=on; },
     backupRotate(dry){ setTimeout(()=>{ if(!dry) this._sec.rotated=true; onRotate({count:6,bytes:48e6,dry}); },100); },
     backupSpace(){ setTimeout(()=>{ this._sec.space={t:Date.now(),total:5.4e9,dirs:[{name:'WhatsApp backup',bytes:4.9e9,files:8123},{name:'SMS backup',bytes:3.1e8,files:41},{name:'Versleuteld',bytes:1.9e8,files:9}]}; onSpace(this._sec.space); },200); },
     archivePick(){ setTimeout(()=>onArchivePicked(),100); },
-    archiveOpen(pw){ setTimeout(()=>onArchive(!pw ? {needPw:true} : pw!=='goedwachtwoord' ? {error:'Verkeerd wachtwoord'} : {name:'backup-2026-10-04_0330.rtb',bytes:1.2e7,files:[{n:'SMS backup/sms-2026-10-04.xml',s:1e6}],contacts:'Contacten backup/contacten-2026-10-04.vcf',notes:'Notities/notities.json'}),150); },
-    archiveRestore(k,e){ this._arcRestore=k+'|'+e; setTimeout(()=>onRestorePreview({kind:k,total:320,fresh:2,dup:318,sample:['Oom Kees','Tandarts']}),100); },
+    archiveOpen(pw){ setTimeout(()=>onArchive(!pw ? {needPw:true} : pw!=='goedwachtwoord' ? {error:'Verkeerd wachtwoord'} : {name:'backup-2026-10-04_0330.rtb',bytes:1.2e7,files:[{n:'SMS backup/sms-2026-10-04.xml',s:1e6}],contacts:'Contacten backup/contacten-2026-10-04.vcf',notes:'Notities/notities.json',ai:'Assistent/assistent.json',sleep:'Slaappraat/slaappraat.json'}),150); },
+    archiveRestore(k,e){ this._arcRestore=k+'|'+e; this._restoreKind=k; setTimeout(()=>onRestorePreview(k==='sleep'?{kind:k,total:4,fresh:2,dup:0,old:0,running:1,bad:0,keep:14,clips:9,audio:7,audioBytes:12e6,withAudio:true,fromArchive:true,sample:[Date.now()-864e5,Date.now()-2*864e5]}
+      :k==='ai'?{kind:k,memTotal:5,memFresh:0,memDup:2,memFull:3,chatTotal:4,chatFresh:4,chatDup:0,chatFull:0,total:9,fresh:4,sample:[]}:{kind:k,total:320,fresh:2,dup:318,sample:['Oom Kees','Tandarts']}),100); },
     archiveUnpack(){ setTimeout(()=>onArchiveUnpacked('ok:57'),150); }, archiveClose(){ this._arcClosed=true; },
-    _bk:{busy:false,current:'',auto:false,charging:true,parts:{},last:null},
-    backupState(f){ const b=this._bk; return JSON.stringify({busy:b.busy,current:b.current,auto:b.auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:b.auto?Date.now()+5*36e5:0,parts:b.parts,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,space:this._sec.space}); },
-    backupSetPart(p,on){ this._bk.parts[p]=on; }, backupSetAuto(a,c){ this._bk.auto=a; this._bk.charging=c; },
+    _bk:{busy:false,current:'',auto:false,charging:true,parts:{},last:null,sleepAudio:false,extra:{aiMem:12,aiChats:8,aiBytes:46000,nights:5,sleepText:21000,sleepAudio:84e6}},
+    backupState(f){ const b=this._bk; return JSON.stringify({busy:b.busy,current:b.current,auto:b.auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:b.auto?Date.now()+5*36e5:0,parts:Object.assign({ai:false,sleep:false},b.parts),sleepAudio:b.sleepAudio,extra:b.extra,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,space:this._sec.space}); },
+    backupSetPart(p,on){ if(p==='sleepAudio') this._bk.sleepAudio=on; else this._bk.parts[p]=on; }, backupSetAuto(a,c){ this._bk.auto=a; this._bk.charging=c; },
     backupStart(wa){ const b=this._bk; if(!this._wa.info.dest) return 'Kies eerst een backup-map'; b.busy=true; const ks=['sms','calls','contacts','notes','transcripts','music']; let i=0;
       const t=setInterval(()=>{ b.current=ks[i++]; if(i>ks.length){ clearInterval(t); b.busy=false; b.current='';
         b.last={t:Date.now(),auto:false,sms:{ok:true,count:1234},calls:{ok:true,count:842},contacts:{ok:true,count:311},notes:{ok:true,count:4},transcripts:{ok:true,count:0,msg:'Niets te bewaren'},music:{ok:false,count:0,msg:'Geen toestemming'}}; if(this._sec.on) b.last.archive='backup-2026-10-04_1342.rtb'; if(this._sec.rotate) b.last.rotated={count:2,bytes:31e6};
         onBackupDone(b.last); } },150); return ''; },
-    restorePick(k){ this._restoreKind = k; const P = {contacts:{kind:k,total:320,fresh:9,dup:311,sample:['Oom Kees','Tandarts']}, settings:{kind:k,total:12,fresh:5,dup:7,rules:2,favs:3,alarm:true,plan:false,reminders:0,sample:['Parkeren starten']}, route:{kind:k,total:1,fresh:1,dup:0,title:'Rondje Plas',points:420,stats:{distance:5230},sample:['Rondje Plas']}};
+    restorePick(k){ this._restoreKind = k; const P = {contacts:{kind:k,total:320,fresh:9,dup:311,sample:['Oom Kees','Tandarts']}, settings:{kind:k,total:12,fresh:5,dup:7,rules:2,favs:3,alarm:true,plan:false,reminders:0,sample:['Parkeren starten']}, route:{kind:k,total:1,fresh:1,dup:0,title:'Rondje Plas',points:420,stats:{distance:5230},sample:['Rondje Plas']},
+        ai:{kind:'ai',memTotal:14,memFresh:3,memDup:11,memFull:0,chatTotal:9,chatFresh:2,chatDup:7,chatFull:0,total:23,fresh:5,sample:['Woont in <b>Rotterdam</b>.','Sport op dinsdag.']},
+        sleep:{kind:'sleep',total:6,fresh:3,dup:1,old:2,running:0,bad:0,keep:14,clips:17,audio:0,audioBytes:0,withAudio:true,sample:[Date.now()-864e5,Date.now()-2*864e5,Date.now()-3*864e5]}};
       setTimeout(()=>onRestorePreview(P[k] || {kind:k,total:5,fresh:1,dup:4,sample:['Vakantie']}),100); },
-    restoreApply(){ setTimeout(()=>onRestoreDone('ok:9'),100); return ''; },
+    restoreCancel(){ this._restoreCancelled=(this._restoreCancelled||0)+1; this._restoreKind=null; },
+    restoreApply(){ const k=this._restoreKind; setTimeout(()=>onRestoreDone(k==='sleep'?'ok:3':k==='ai'?'ok:5':'ok:9'),100); return ''; },
     _al:{on:false,hour:7,minute:0,days:31,station:null,nextAt:0},
     alarmState(){ return JSON.stringify(Object.assign({exact:true},this._al)); },
     alarmSet(on,h,m,d,st){ const a=this._al; Object.assign(a,{on,hour:h,minute:m,days:d}); if(st) a.station=JSON.parse(st); if(on&&!a.station) return 'Kies een zender'; a.nextAt=on?Date.now()+8*36e5:0; return ''; },

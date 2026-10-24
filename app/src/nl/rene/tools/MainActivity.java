@@ -2012,7 +2012,11 @@ public class MainActivity extends Activity {
             }, "secure").start();
         }
 
-        @JavascriptInterface public void backupEncryptOff() { Secure.off(ctx); }
+        /** Versleutelen uit: de privé-onderdelen (assistent, Slaappraat) gaan dan ook uit; weer aanzetten vraagt eerst. */
+        @JavascriptInterface public void backupEncryptOff() {
+            Secure.off(ctx);
+            AllBackup.prefs(ctx).edit().putBoolean("part_ai", false).putBoolean("part_sleep", false).apply();
+        }
 
         @JavascriptInterface public void backupSetRotate(boolean on) { AllBackup.prefs(ctx).edit().putBoolean("rotate", on).apply(); }
 
@@ -2057,12 +2061,17 @@ public class MainActivity extends Activity {
 
         /** Contacten of notities uit het geopende archief: daarna hetzelfde overzicht als bij gewoon terugzetten. */
         @JavascriptInterface public void archiveRestore(String kind, String entry) {
-            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music").contains(kind)) return;
+            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music", "ai", "sleep").contains(kind)) return;
             new Thread(() -> {
                 String r;
-                try { r = Restore.previewText(ctx, kind, Secure.readEntry(ctx, entry)).toString(); }
+                try {
+                    String text = Secure.readEntry(ctx, entry);
+                    // Slaappraat: het geluid komt ook uit het archief (nu, want daarna is de sleutel weg)
+                    r = ("sleep".equals(kind) ? Restore.previewSleepArchive(ctx, text) : Restore.previewText(ctx, kind, text)).toString();
+                }
                 catch (OutOfMemoryError e) { r = "{\"error\":\"Dit onderdeel is te groot voor deze telefoon\"}"; }
                 catch (Exception e) { r = errJson(e); }
+                catch (Throwable e) { r = "{\"error\":\"Terugzetten mislukt\"}"; }
                 finally { Secure.forget(); a.pendingArchive = null; } // sleutel niet langer in het geheugen dan nodig
                 a.js("onRestorePreview", r);
             }, "archive-restore").start();
@@ -2078,9 +2087,10 @@ public class MainActivity extends Activity {
             }, "archive-unpack").start();
         }
 
-        @JavascriptInterface public void archiveClose() { Secure.forget(); a.pendingArchive = null; }
+        @JavascriptInterface public void archiveClose() { Secure.forget(); a.pendingArchive = null; AiSleepBackup.cancelStaged(ctx); }
 
         @JavascriptInterface public void backupSetPart(String part, boolean on) {
+            if ("sleepAudio".equals(part)) { AllBackup.prefs(ctx).edit().putBoolean("sleep_audio", on).apply(); return; }
             for (String p : AllBackup.PARTS) if (p.equals(part)) AllBackup.prefs(ctx).edit().putBoolean("part_" + p, on).apply();
         }
 
@@ -2106,7 +2116,7 @@ public class MainActivity extends Activity {
 
         /** Kies een backupbestand om terug te zetten (contacts = vCard, notes = notities.json). */
         @JavascriptInterface public void restorePick(String kind) {
-            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music", "route").contains(kind)) return;
+            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music", "route", "ai", "sleep").contains(kind)) return;
             a.importKind = kind;
             a.h.post(() -> {
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
@@ -2116,6 +2126,12 @@ public class MainActivity extends Activity {
                 try { a.startActivityForResult(i, REQ_IMPORT); }
                 catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
             });
+        }
+
+        /** Overzicht van terugzetten weggetikt: niets meer klaar laten staan (en ontsleuteld geluid uit de cache weg). */
+        @JavascriptInterface public void restoreCancel() {
+            Restore.pendingKind = null;
+            new Thread(() -> { try { AiSleepBackup.cancel(ctx); } catch (Throwable ignored) { } }, "restore-cancel").start();
         }
 
         /** Terugzetten op de achtergrond; uitkomst via window.onRestoreDone("ok:N" of foutmelding). */

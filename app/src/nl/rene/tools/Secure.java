@@ -139,17 +139,37 @@ final class Secure {
 
         /** Binair bestand in het archief (bijv. kluisdocumenten). */
         OutputStream stream(String dir, String file) throws IOException {
+            ZipEntry e = new ZipEntry(unique(dir, file));
+            e.setTime(System.currentTimeMillis());
+            z.putNextEntry(e);
+            files++;
+            return new EntryStream(z);
+        }
+
+        /** Al samengeperst bestand (geluid): ongecomprimeerd in het archief, dat scheelt rekenwerk en tijd. */
+        void stored(String dir, String file, byte[] b) throws IOException {
+            ZipEntry e = new ZipEntry(unique(dir, file));
+            java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+            crc.update(b, 0, b.length);
+            e.setMethod(ZipEntry.STORED);
+            e.setSize(b.length);
+            e.setCompressedSize(b.length);
+            e.setCrc(crc.getValue());
+            e.setTime(System.currentTimeMillis());
+            z.putNextEntry(e);
+            files++;
+            z.write(b, 0, b.length);
+            z.closeEntry();
+        }
+
+        private String unique(String dir, String file) {
             String path = (dir == null || dir.isEmpty() ? "" : dir + "/") + file;
             String p = path;
             int dot = path.lastIndexOf('.');
             for (int i = 2; !names.add(p.toLowerCase(Locale.ROOT)); i++)
                 p = dot > path.lastIndexOf('/') ? path.substring(0, dot) + " (" + i + ")" + path.substring(dot) : path + " (" + i + ")";
-            ZipEntry e = new ZipEntry(p);
             lastPath = p;
-            e.setTime(System.currentTimeMillis());
-            z.putNextEntry(e);
-            files++;
-            return new EntryStream(z);
+            return p;
         }
     }
 
@@ -362,7 +382,7 @@ final class Secure {
         openUri = u; openHeader = h; openKey = k;
         openName = displayName(c, u);
         JSONArray files = new JSONArray();
-        String contacts = null, notes = null, launcher = null, settings = null, transcripts = null, music = null;
+        String contacts = null, notes = null, launcher = null, settings = null, transcripts = null, music = null, ai = null, sleep = null;
         long total = 0;
         try (ZipInputStream z = new ZipInputStream(stream(c))) {
             ZipEntry e;
@@ -384,6 +404,8 @@ final class Secure {
                 if (n.equals(SettingsBackup.DIR + "/" + SettingsBackup.FILE)) settings = n;
                 if (n.equals(Transcribe.DIR + "/" + SettingsBackup.TX_FILE)) transcripts = n;
                 if (n.equals("Muziek/herkende-nummers.json")) music = n;
+                if (n.equals(AiSleepBackup.AI_DIR + "/" + AiSleepBackup.AI_FILE)) ai = n;
+                if (n.equals(AiSleepBackup.SLEEP_DIR + "/" + AiSleepBackup.SLEEP_FILE)) sleep = n;
             }
             // Wat bij het maken halverwege misging, niet aanbieden om terug te zetten
             if (bad.contains(contacts)) contacts = null;
@@ -392,6 +414,8 @@ final class Secure {
             if (bad.contains(settings)) settings = null;
             if (bad.contains(transcripts)) transcripts = null;
             if (bad.contains(music)) music = null;
+            if (bad.contains(ai)) ai = null;
+            if (bad.contains(sleep)) sleep = null;
         } catch (Exception e) {
             forget();
             throw e;
@@ -403,6 +427,8 @@ final class Secure {
         if (settings != null) o.put("settings", settings);
         if (transcripts != null) o.put("transcripts", transcripts);
         if (music != null) o.put("music", music);
+        if (ai != null) o.put("ai", ai);
+        if (sleep != null) o.put("sleep", sleep);
         return o;
     }
 
