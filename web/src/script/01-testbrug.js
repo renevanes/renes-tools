@@ -223,21 +223,24 @@ if (!window.Android) window.Android = (function(){
     // Lokale AI (assistent en slim zoeken): nagebootst, zonder model
     // Slaappraat zoals SleepBridge: nachten met stukjes, luisteren en uitschrijven worden nagebootst
     _sl: { phase: '', night: '', since: 0, stopAt: 0, heard: 0, level: -60, floor: -64, txDone: 0, txTotal: 0, message: '', mic: true, notif: true, model: 'Snel (57 MB)',
-      set: { sens: 2, stopAt: '07:30', transcribe: true, keepNoise: false, keep: 14 }, nights: [], played: '' },
-    _slSum(n){ const c = n.clips; return { id: n.id, start: n.start, end: n.end, reason: n.reason || '', talk: c.filter(k => k.done && k.kind === 'praten').length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done).length, first: (c.find(k => k.done && k.kind === 'praten') || {}).text || '' }; },
-    sleepState(){ const S = this._sl; return JSON.stringify({ phase: S.phase, night: S.night, since: S.since, stopAt: S.stopAt, heard: S.heard, level: S.level, floor: S.floor, txDone: S.txDone, txTotal: S.txTotal, message: S.message,
+      set: { sens: 2, stopAt: '07:30', transcribe: true, keepNoise: false, keep: 14, remindAt: '' }, nights: [], played: '', hearing: false, probeHits: 0, probeLeft: 0 },
+    _slSum(n){ const c = n.clips; return { id: n.id, start: n.start, end: n.end, reason: n.reason || '', talk: c.filter(k => k.done && k.kind === 'praten').length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done).length, first: (c.find(k => k.done && k.kind === 'praten') || {}).text || '', batStart: n.batStart == null ? -1 : n.batStart, batEnd: n.batEnd == null ? -1 : n.batEnd, charged: !!n.charged }; },
+    sleepState(){ const S = this._sl; return JSON.stringify({ phase: S.phase, night: S.night, since: S.since, stopAt: S.stopAt, heard: S.heard, level: S.level, floor: S.floor, txDone: S.txDone, txTotal: S.txTotal, message: S.message, hearing: S.hearing, probeHits: S.probeHits, probeLeft: S.probeLeft,
       mic: S.mic, notif: S.notif, model: S.model, set: S.set, nights: S.nights.slice().sort((a, b) => b.start - a.start).map(n => this._slSum(n)) }); },
     sleepStart(){ const S = this._sl; if (!S.mic) return 'mic'; if (!S.notif) return 'notif'; if (S.phase === 'luistert') return '';
       S.phase = 'luistert'; S.since = Date.now(); S.heard = 0; S.night = String(S.since); S.stopAt = S.set.stopAt ? S.since + 8 * 3600e3 : 0;
-      S.nights.push({ id: S.night, start: S.since, end: 0, clips: [] }); return ''; },
-    sleepStop(){ const S = this._sl; if (S.phase !== 'luistert') return; const n = S.nights.find(x => x.id === S.night); if (n) { n.end = Date.now(); n.reason = 'Gestopt'; } S.phase = '';
+      S.nights.push({ id: S.night, start: S.since, end: 0, clips: [], batStart: S.bat == null ? -1 : S.bat, charged: !!S.plugged }); return ''; },
+    sleepProbe(){ const S = this._sl; if (!S.mic) return 'mic'; if (!S.notif) return 'notif'; if (S.phase) return 'Slaappraat is al bezig'; S.phase = 'proef'; S.probeHits = 0; S.probeLeft = 30000; S.message = ''; return ''; },
+    _slProbeEnd(){ const S = this._sl; S.phase = ''; S.message = S.probeHits ? 'Proef klaar: ' + S.probeHits + ' keer iets opgepikt. Zo pakt hij het vannacht ook op.' : 'Proef klaar: niets opgepikt.'; },
+    sleepStop(){ const S = this._sl; if (S.phase === 'proef') { this._slProbeEnd(); return; } if (S.phase !== 'luistert') return; const n = S.nights.find(x => x.id === S.night); if (n) { n.end = Date.now() + (S.nightMs || 0); n.reason = 'Gestopt'; n.batEnd = S.batEnd == null ? -1 : S.batEnd; } S.phase = '';
       if (S.set.transcribe && S.model && n) n.clips.forEach(k => { if (!k.done && k.audio) { k.done = true; k.text = k._text || ''; k.kind = k.text ? 'praten' : 'geluid'; if (k.kind === 'geluid' && !S.set.keepNoise) k.audio = false; } }); },
     _slHear(text, dur){ const S = this._sl, n = S.nights.find(x => x.id === S.night); if (!n) return; const t = Date.now() + n.clips.length * 60e3; n.clips.push({ id: 'c' + t, t, dur: dur || 4, audio: true, done: false, _text: text || '' }); S.heard++; },
     sleepNight(id){ const n = this._sl.nights.find(x => x.id === id); return n ? JSON.stringify(n) : ''; },
     sleepDeleteNight(id){ const S = this._sl; if (id === S.night && S.phase) return; S.nights = S.nights.filter(n => n.id !== id); },
     sleepDeleteClip(id, clip){ const n = this._sl.nights.find(x => x.id === id); if (n) n.clips = n.clips.filter(k => k.id !== clip); },
     sleepSet(name, v){ const S = this._sl.set; if (name === 'sens') { if (!/^[123]$/.test(v)) return 'Ongeldig'; S.sens = +v; } else if (name === 'stopAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.stopAt = v; }
-      else if (name === 'transcribe' || name === 'keepNoise') S[name] = v === 'true'; else if (name === 'keep') { if (!/^(7|14|30)$/.test(v)) return 'Ongeldig'; S.keep = +v; } else return 'Ongeldig'; return ''; },
+      else if (name === 'transcribe' || name === 'keepNoise') S[name] = v === 'true'; else if (name === 'keep') { if (!/^(7|14|30)$/.test(v)) return 'Ongeldig'; S.keep = +v; }
+      else if (name === 'remindAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.remindAt = v; } else return 'Ongeldig'; return ''; },
     sleepTranscribe(id){ const S = this._sl, n = S.nights.find(x => x.id === id); if (!n) return 'Onbekende nacht'; if (S.phase) return 'Dat kan pas als Slaappraat klaar is met luisteren en uitschrijven'; if (!S.model) return 'model';
       S.phase = 'uitschrijven'; S.night = id; S.txDone = 0; S.txTotal = n.clips.filter(k => !k.done && k.audio).length;
       setTimeout(() => { n.clips.forEach(k => { if (!k.done && k.audio) { k.done = true; k.text = k._text || ''; k.kind = k.text ? 'praten' : 'geluid'; if (k.kind === 'geluid' && !S.set.keepNoise) k.audio = false; } }); S.phase = ''; }, S.txMs || 300); return ''; },
@@ -246,7 +249,7 @@ if (!window.Android) window.Android = (function(){
     sleepPlaying(){ return this._sl.played; },
     _ai: { st: { klein: { state: 'none' }, groot: { state: 'none' }, klein35: { state: 'none' }, groot35: { state: 'none' }, zoek: { state: 'none' } }, chat: 'klein', wifiOnly: true, notes: true, chats: [], ram: 8e9, calls: [], seq: 0,
       mem: [], learnFacts: ['Woont in Rotterdam.'],
-      src: { notes: true, tx: true, sms: false, wa: false, calls: false, contacts: false }, perm: { notes: true, tx: true, sms: true, wa: false, calls: true, contacts: false },
+      src: { notes: true, tx: true, sms: false, wa: false, calls: false, contacts: false, sleep: false }, perm: { notes: true, tx: true, sms: true, wa: false, calls: true, contacts: false, sleep: true },
       // [id, naam, beschrijving, grootte, vervangt, waarom, aangeraden geheugen] zoals LocalAi.MODELS
       models: [['klein', 'Klein en snel', 'Qwen3 1.7B · werkt op de meeste telefoons', 1282439584], ['groot', 'Groter en slimmer', 'Qwen3 4B · beter Nederlands, trager', 2497280256, '', '', 7.5e9],
         ['klein35', 'Klein en snel (Qwen3.5)', 'Qwen3.5 2B · werkt op de meeste telefoons', 1396198496, 'klein', 'Nieuwer en beter in Nederlands, iets groter (1,4 GB)'],
@@ -528,6 +531,9 @@ if (!window.Android) window.Android = (function(){
       if(ql.length>=2){ r.sms={total:7,items:[{thread:3,name:'Moeder',t:Date.now()-864e5,text:'Neem jij morgen de taart mee voor '+q+'? Dan regel ik de rest.'}]};
         r.wa={total:1,items:[{chat:5,chatName:'Familie',sender:'Jos',t:Date.now()-2*864e5,text:'Wie neemt '+q+' mee naar het feest?'}]};
         r.tx={total:2,items:[{id:this._txRecs[0].id,name:'Tandarts',mtime:Date.now()-5*864e5,from:42000,text:'Ja, dan zie ik u dinsdag om tien uur, '+q+'.'}]}; }
+      // Slaappraat: wat je zei (zoals SleepTalk.search)
+      const sl=[]; (this._sl ? this._sl.nights : []).slice().sort((a,b)=>b.start-a.start).forEach(n=>n.clips.slice().reverse().forEach(k=>{ if(k.done&&k.kind==='praten'&&(k.text||'').toLowerCase().includes(ql)) sl.push({night:n.id,clip:k.id,t:k.t,text:k.text}); }));
+      if(sl.length) r.sleep={total:sl.length,items:sl.slice(0,5)};
       r.done=true; onSearchAll(r); },150); return id; }, _gsId:0,
     _rp:null, _txa:{on:false},
     redialPlanSet(j){ const p=JSON.parse(j); if(p.number.replace(/\D/g,'').length<3) return 'Vul een geldig telefoonnummer in'; this._rp=p; return ''; },

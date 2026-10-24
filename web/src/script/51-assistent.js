@@ -313,7 +313,8 @@ const AI_SRC = [
   ['sms', "Sms'jes", 'message', "De laatste 300 berichten van je 150 recentste sms-gesprekken."],
   ['wa', 'WhatsApp', 'message', 'De laatste 300 berichten van je 100 recentste chats (alleen als je de chats leesbaar maakte).'],
   ['calls', 'Oproepen', 'calls', 'Wie belde of gebeld werd, wanneer en hoe lang (de laatste 50 per persoon).'],
-  ['contacts', 'Contacten', 'user', 'Namen, nummers, e-mailadressen, adressen, verjaardagen en notities.']
+  ['contacts', 'Contacten', 'user', 'Namen, nummers, e-mailadressen, adressen, verjaardagen en notities.'],
+  ['sleep', 'Slaappraat', 'moon', 'Wat je in je slaap zei (wat als praten is uitgeschreven).']
 ];
 function aiSrcOn(k){ const s = aiSt.src || {}; return s[k] != null ? !!s[k] : (k === 'notes' || k === 'tx'); }
 function aiSrcNames(){ const n = AI_SRC.filter(s => aiSrcOn(s[0])).map(s => s[1].toLowerCase()); return n.length ? n.join(', ') : 'niets aangezet'; }
@@ -322,6 +323,7 @@ function aiKindIcon(k){ const s = AI_SRC.find(x => x[0] === k); return s ? s[2] 
 function aiHitGs(h){
   const id = String(h.id || '');
   if (h.kind === 'tx') return ['tx', { id, from: +h.from || 0 }];
+  if (h.kind === 'sleep') return ['sleep', { night: id }];
   if (h.kind === 'sms') return ['sms', { thread: /^\d+$/.test(id) ? +id : id, name: h.title || '' }];
   if (h.kind === 'wa') return ['wa', { chat: /^\d+$/.test(id) ? +id : id, name: h.title || '' }];
   if (h.kind === 'calls') return ['calls', { number: id }];

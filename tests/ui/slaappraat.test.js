@@ -75,6 +75,34 @@ const { chromium } = require('playwright');
     // Zonder spraakmodel: uitleg
     await pg.evaluate(() => { Android._sl.model = ''; slLoad(); slRender(); });
     ok((await pg.textContent('#sl-tx-n')).includes('Gesprekken uitschrijven'), 'zonder spraakmodel: waar je het downloadt');
+    // Proefronde: live zien wat hij oppikt, niets bewaren
+    await pg.evaluate(() => { Android._sl.model = 'Snel (57 MB)'; Android._sl.mic = true; slLoad(); slRender(); });
+    const nightsBefore = await pg.evaluate(() => Android._sl.nights.length);
+    await pg.click('#sl-probe'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._sl.phase === 'proef') && (await pg.textContent('#sl-status')).includes('Proef') && !(await pg.isVisible('#sl-probe')), 'proef: bezig, knop weg');
+    await pg.evaluate(() => { Android._sl.hearing = true; Android._sl.probeHits = 2; Android._sl.probeLeft = 12000; }); await pg.waitForTimeout(1200);
+    ok((await pg.textContent('#sl-status')).includes('Hoort nu iets') && (await pg.textContent('#sl-status')).includes('2 keer opgepikt') && (await pg.textContent('#sl-status')).includes('nog 12 s'), 'proef: live wat hij hoort');
+    await pg.evaluate(() => { Android._sl.hearing = false; Android._slProbeEnd(); }); await pg.waitForTimeout(1200);
+    ok((await pg.textContent('#sl-status')).includes('Proef klaar: 2 keer') && await pg.evaluate(n => Android._sl.nights.length === n, nightsBefore) && await pg.isVisible('#sl-probe'), 'proef klaar: uitslag, niets bewaard');
+    // Accu: per nacht en gemiddeld zonder lader
+    await pg.evaluate(() => { Android._sl.bat = 90; Android._sl.batEnd = 82; Android._sl.nightMs = 4 * 3600e3; Android._sl.plugged = false; });
+    await pg.click('#sl-btn'); await pg.waitForTimeout(600); await pg.click('#sl-btn'); await pg.waitForTimeout(700);
+    ok((await pg.textContent('#sl-bat')).includes('2,0% accu per uur'), 'accu: gemiddeld per uur zonder lader (' + (await pg.textContent('#sl-bat')) + ')');
+    await pg.click('#sl-nights .strow:first-child'); await pg.waitForTimeout(200);
+    ok((await pg.textContent('#sln-sum')).includes('accu 90% → 82%'), 'accu bij de nacht');
+    await pg.evaluate(() => { goBack(); Android._sl.nightMs = 0; });  await pg.waitForTimeout(100);
+    // Herinnering op bedtijd
+    ok(!(await pg.isVisible('#sl-rem')), 'herinnering: standaard uit');
+    await pg.click('#sl-rem-on'); await pg.waitForTimeout(60);
+    ok(await pg.evaluate(() => Android._sl.set.remindAt === '22:30') && await pg.isVisible('#sl-rem') && (await pg.textContent('#sl-rem-n')).includes('22:30'), 'herinnering aan om 22:30');
+    await pg.fill('#sl-rem', '23:15'); await pg.dispatchEvent('#sl-rem', 'change'); await pg.waitForTimeout(60);
+    ok(await pg.evaluate(() => Android._sl.set.remindAt === '23:15'), 'herinnering om 23:15');
+    // Zoeken vindt wat je zei, en opent die nacht bij dat stukje
+    await pg.evaluate(() => { const S = Android._sl; S.nights.push({ id: '1700000000000', start: 1700000000000, end: 1700020000000, clips: [{ id: 'c1700000100000', t: 1700000100000, dur: 3, audio: true, done: true, kind: 'praten', text: 'De sleutels liggen onder de mat' }] }); });
+    await pg.evaluate(() => { show('search'); }); await pg.fill('#gs-q', 'sleutels'); await pg.evaluate(() => gsInput()); await pg.waitForTimeout(700);
+    ok(await pg.isVisible('#gs-res .gi[data-k=sleep]') && (await pg.textContent('#gs-res')).includes('onder de mat'), 'Zoeken: Slaappraat-groep');
+    await pg.click('#gs-res .gi[data-k=sleep]'); await pg.waitForTimeout(300);
+    ok(await pg.evaluate(() => current === 'sleepnight' && slNightId === '1700000000000') && await pg.isVisible('#sln-list [data-clip="c1700000100000"]'), 'treffer opent de nacht bij dat stukje');
     // Zoeken vindt het scherm
     await pg.evaluate(() => { show('search'); }); await pg.fill('#gs-q', 'slaap'); await pg.evaluate(() => gsInput()); await pg.waitForTimeout(400);
     ok((await pg.textContent('#gs-res')).includes('Slaappraat'), 'te vinden bij Zoeken');

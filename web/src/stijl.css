@@ -768,3 +768,6 @@ body.has-plbar .aicomp{bottom:calc(84px + env(safe-area-inset-bottom))}
 .sl-ct{flex:none;width:52px;display:flex;flex-direction:column;padding-top:10px}.sl-ct b{color:var(--ink);font-size:15px}.sl-ct small{color:var(--muted);font-size:12px}
 .sl-cx{flex:1;min-width:0;padding-top:10px}.sl-cx p{margin:0 0 2px;color:var(--ink);font-size:15px;line-height:1.4;overflow-wrap:anywhere}.sl-cx small{color:var(--muted);font-size:13px}
 .sl-stoprow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 0 10px;color:var(--ink)}
+.sl-probe{margin:0}.sl-probe.on{color:var(--primary);font-weight:600}
+#sl-probe{margin:0}
+.sl-clip.gsflash{box-shadow:0 0 0 3px var(--chip-on);transition:box-shadow .3s}

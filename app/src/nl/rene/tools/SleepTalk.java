@@ -27,8 +27,8 @@ final class SleepTalk {
 
     private SleepTalk() { }
 
-    /** Hooguit zoveel seconden geluid per nacht bewaren (±85 MB); daarna alleen nog tellen. */
-    static final int MAX_AUDIO_S = 45 * 60;
+    /** Hooguit zoveel seconden geluid per nacht bewaren (AAC: ±20 MB; als WAV ±170 MB); daarna alleen nog tellen. */
+    static final int MAX_AUDIO_S = 90 * 60;
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("sleeptalk", Context.MODE_PRIVATE); }
 
@@ -38,6 +38,8 @@ final class SleepTalk {
     static boolean keepNoise(Context c) { return prefs(c).getBoolean("keepNoise", false); }
     static int keepDays(Context c) { int d = prefs(c).getInt("keep", 14); return d == 7 || d == 30 ? d : 14; }
     static int minBattery(Context c) { return 15; }
+    /** Herinnering op bedtijd ("HH:mm", of "" = uit). */
+    static String remindAt(Context c) { String s = prefs(c).getString("remindAt", ""); return validTime(s) ? s : ""; }
 
     // ---------- zuiver (getest) ----------
 
@@ -113,43 +115,85 @@ final class SleepTalk {
 
     private static void write(Context c, JSONObject n) throws Exception { Contacts.writeText(nightFile(c, n.optString("id")), n.toString(), false); version++; }
 
-    /** Een nieuwe nacht; geeft het id. */
-    static synchronized String begin(Context c, long start, int sens) throws Exception {
+    /** Een nieuwe nacht; geeft het id. bat = accu bij het begin (-1 = onbekend), plugged = aan de lader. */
+    static synchronized String begin(Context c, long start, int sens, int bat, boolean plugged) throws Exception {
         String id = String.valueOf(start);
         dir(c, id).mkdirs();
-        write(c, new JSONObject().put("id", id).put("start", start).put("end", 0).put("sens", sens).put("clips", new JSONArray()).put("heard", 0));
+        write(c, new JSONObject().put("id", id).put("start", start).put("end", 0).put("sens", sens).put("clips", new JSONArray()).put("heard", 0)
+                .put("batStart", bat).put("charged", plugged));
         return id;
     }
 
-    /** Een stukje bewaren (geluid als WAV, tenzij de nacht al vol zit). */
-    static synchronized void addClip(Context c, String night, long nightStart, SleepDetect.Clip k) throws Exception {
+    /** Hoeveel seconden geluid er al bewaard is. */
+    private static synchronized double audioSeconds(Context c, String night) {
         JSONObject n = night(c, night);
-        if (n == null) return;
-        JSONArray a = n.optJSONArray("clips");
-        if (a == null) { a = new JSONArray(); n.put("clips", a); }
+        JSONArray a = n == null ? null : n.optJSONArray("clips");
         double audio = 0;
-        for (int i = 0; i < a.length(); i++) if (a.getJSONObject(i).optBoolean("audio")) audio += a.getJSONObject(i).optDouble("dur");
+        if (a != null) for (int i = 0; i < a.length(); i++) { JSONObject k = a.optJSONObject(i); if (k != null && k.optBoolean("audio")) audio += k.optDouble("dur"); }
+        return audio;
+    }
+
+    /** Een stukje bewaren: het geluid als AAC (.m4a; lukt dat niet, als WAV), tenzij de nacht al vol zit. Het
+     *  omzetten gebeurt buiten het slot, zodat het scherm intussen gewoon kan kijken. */
+    static void addClip(Context c, String night, long nightStart, SleepDetect.Clip k) throws Exception {
+        if (night(c, night) == null) return;
         long t = nightStart + k.startMs();
         String id = "c" + t;
-        boolean keep = audio + k.seconds() <= MAX_AUDIO_S;
+        boolean keep = audioSeconds(c, night) + k.seconds() <= MAX_AUDIO_S;
         // Bijna geen ruimte meer op de telefoon: alleen het tijdstip
         try { if (new android.os.StatFs(c.getFilesDir().getPath()).getAvailableBytes() < 300L * 1024 * 1024) keep = false; } catch (Throwable ignored) { }
-        if (keep) {
-            File tmp = new File(dir(c, night), id + ".wav.tmp");
-            try (RandomAccessFile w = new RandomAccessFile(tmp, "rw")) { w.setLength(0); w.write(wav(k.pcm)); }
-            if (!tmp.renameTo(new File(dir(c, night), id + ".wav"))) { tmp.delete(); keep = false; }
-        }
-        a.put(new JSONObject().put("id", id).put("t", t).put("dur", Math.round(k.seconds() * 10) / 10.0).put("ratio", Math.round(k.bandRatio * 100) / 100.0)
+        if (keep) keep = saveAudio(dir(c, night), id, k.pcm);
+        synchronized (SleepTalk.class) {
+            JSONObject n = night(c, night);
+            if (n == null) return;
+            JSONArray a = n.optJSONArray("clips");
+            if (a == null) { a = new JSONArray(); n.put("clips", a); }
+            a.put(new JSONObject().put("id", id).put("t", t).put("dur", Math.round(k.seconds() * 10) / 10.0).put("ratio", Math.round(k.bandRatio * 100) / 100.0)
                 .put("peak", Math.round(k.peakDb)).put("guess", SleepDetect.speechLike(k) ? "praten" : "geluid").put("audio", keep).put("done", false).put("full", !keep));
-        n.put("heard", a.length());
-        write(c, n);
+            n.put("heard", a.length());
+            write(c, n);
+        }
     }
 
-    static synchronized void end(Context c, String night, long end, String reason) {
-        try { JSONObject n = night(c, night); if (n == null) return; n.put("end", end).put("reason", reason == null ? "" : reason); write(c, n); } catch (Exception ignored) { }
+    /** Eerst AAC, anders WAV; altijd via een tijdelijk bestand. */
+    private static boolean saveAudio(File dir, String id, short[] pcm) {
+        File tmp = new File(dir, id + ".m4a.tmp");
+        try {
+            AacWriter.write(pcm, SleepDetect.RATE, tmp);
+            if (tmp.length() > 200 && tmp.renameTo(new File(dir, id + ".m4a"))) return true;
+        } catch (Throwable e) { /* geen AAC op deze telefoon: WAV */ }
+        tmp.delete();
+        File w = new File(dir, id + ".wav.tmp");
+        try (RandomAccessFile f = new RandomAccessFile(w, "rw")) { f.setLength(0); f.write(wav(pcm)); }
+        catch (Throwable e) { w.delete(); return false; }
+        if (w.renameTo(new File(dir, id + ".wav"))) return true;
+        w.delete();
+        return false;
     }
 
-    static File clipFile(Context c, String night, String clip) { return safeId(night) && safeClip(clip) ? new File(dir(c, night), clip + ".wav") : null; }
+    /** bat = accu aan het eind (-1 = onbekend), charged = de telefoon lag (ook) aan de lader. */
+    static synchronized void end(Context c, String night, long end, String reason, int bat, boolean charged) {
+        try {
+            JSONObject n = night(c, night); if (n == null) return;
+            n.put("end", end).put("reason", reason == null ? "" : reason).put("batEnd", bat).put("charged", charged || n.optBoolean("charged"));
+            write(c, n);
+        } catch (Exception ignored) { }
+    }
+    static void end(Context c, String night, long end, String reason) { end(c, night, end, reason, -1, false); }
+
+    /** Het geluid van een stukje (.m4a, of .wav van een oudere versie), of null. */
+    static File clipFile(Context c, String night, String clip) {
+        if (!safeId(night) || !safeClip(clip)) return null;
+        File m = new File(dir(c, night), clip + ".m4a");
+        return m.isFile() ? m : new File(dir(c, night), clip + ".wav");
+    }
+
+    /** Accuverbruik per uur zonder lader, of -1. Zuiver (getest). */
+    static double batPerHour(long start, long end, int batStart, int batEnd, boolean charged) {
+        if (charged || batStart < 0 || batEnd < 0 || end <= start || batEnd > batStart) return -1;
+        double h = (end - start) / 3_600_000.0;
+        return h < 0.5 ? -1 : (batStart - batEnd) / h;
+    }
 
     /** Alle nachten, nieuwste eerst (zonder de stukjes zelf). */
     static synchronized JSONArray nights(Context c) {
@@ -180,7 +224,8 @@ final class SleepTalk {
             }
             try {
                 out.put(new JSONObject().put("id", n.optString("id")).put("start", n.optLong("start")).put("end", n.optLong("end")).put("reason", n.optString("reason"))
-                        .put("talk", talk).put("noise", noise).put("open", open).put("first", first.length() > 120 ? first.substring(0, 120) + "…" : first));
+                        .put("talk", talk).put("noise", noise).put("open", open).put("first", first.length() > 120 ? first.substring(0, 120) + "…" : first)
+                        .put("batStart", n.optInt("batStart", -1)).put("batEnd", n.optInt("batEnd", -1)).put("charged", n.optBoolean("charged")));
             } catch (Exception ignored) { }
         }
         return out;
@@ -203,9 +248,61 @@ final class SleepTalk {
             if (a != null) for (int i = 0; i < a.length(); i++) if (!clip.equals(a.getJSONObject(i).optString("id"))) keep.put(a.getJSONObject(i));
             n.put("clips", keep);
             write(c, n);
-            File f = clipFile(c, night, clip);
-            if (f != null) f.delete();
+            new File(dir(c, night), clip + ".m4a").delete();
+            new File(dir(c, night), clip + ".wav").delete();
         } catch (Exception ignored) { }
+    }
+
+    /** Zoeken in wat je zei (voor Zoeken): [{night, clip, t, text}], nieuwste eerst. */
+    static synchronized JSONArray search(Context c, String ql) {
+        JSONArray out = new JSONArray();
+        File[] ds = root(c).listFiles();
+        if (ds == null || ql == null || ql.isEmpty()) return out;
+        Arrays.sort(ds, (x, y) -> y.getName().compareTo(x.getName()));
+        for (File d : ds) {
+            JSONObject n = night(c, d.getName());
+            JSONArray a = n == null ? null : n.optJSONArray("clips");
+            if (a == null) continue;
+            for (int i = a.length() - 1; i >= 0; i--) {
+                JSONObject k = a.optJSONObject(i);
+                if (k == null || !"praten".equals(k.optString("kind"))) continue;
+                String text = k.optString("text");
+                if (!text.toLowerCase(Locale.ROOT).contains(ql)) continue;
+                try { out.put(new JSONObject().put("night", n.optString("id")).put("clip", k.optString("id")).put("t", k.optLong("t")).put("text", text)); } catch (Exception ignored) { }
+                if (out.length() >= 200) return out;
+            }
+        }
+        return out;
+    }
+
+    /** Wat je zei, per nacht (voor slim zoeken): {id, start, regels, tijden}. */
+    static synchronized List<Object[]> talkByNight(Context c) {
+        List<Object[]> out = new ArrayList<>();
+        File[] ds = root(c).listFiles();
+        if (ds == null) return out;
+        for (File d : ds) {
+            JSONObject n = night(c, d.getName());
+            JSONArray a = n == null ? null : n.optJSONArray("clips");
+            if (a == null) continue;
+            List<String> lines = new ArrayList<>(); List<Long> times = new ArrayList<>();
+            java.text.SimpleDateFormat hm = new java.text.SimpleDateFormat("HH:mm", Locale.ROOT);
+            for (int i = 0; i < a.length(); i++) {
+                JSONObject k = a.optJSONObject(i);
+                if (k == null || !"praten".equals(k.optString("kind")) || k.optString("text").isEmpty()) continue;
+                lines.add("[" + hm.format(new java.util.Date(k.optLong("t"))) + "] " + k.optString("text"));
+                times.add(k.optLong("t"));
+            }
+            if (!lines.isEmpty()) out.add(new Object[]{n.optString("id"), n.optLong("start"), lines, times});
+        }
+        return out;
+    }
+
+    /** Vingerafdruk voor slim zoeken: verandert als er iets in een nacht verandert. */
+    static String stamp(Context c) {
+        long t = 0; int n = 0;
+        File[] ds = root(c).listFiles();
+        if (ds != null) for (File d : ds) { File f = new File(d, "night.json"); if (f.isFile()) { t = Math.max(t, f.lastModified()); n++; } }
+        return n + "/" + t;
     }
 
     /** Oude nachten weg (de nacht die nu loopt nooit); een nacht die nooit netjes eindigde (de app werd gestopt)
@@ -284,9 +381,16 @@ final class SleepTalk {
             String text = "";
             if (f != null && f.isFile()) {
                 JSONObject out;
-                try { out = Transcribe.whisper(c, f, m, (ph, pct) -> { if (stopTx) throw new Stopped(); }, true); }
+                // whisper wil WAV: een .m4a eerst (tijdelijk) omzetten
+                File wav = f;
+                if (f.getName().endsWith(".m4a")) {
+                    wav = new File(c.getCacheDir(), "slaappraat-" + clip + ".wav");
+                    Transcribe.toWav(f, wav, Transcribe.durationMs(c, f), (ph, pct) -> { }, true);
+                }
+                try { out = Transcribe.whisper(c, wav, m, (ph, pct) -> { if (stopTx) throw new Stopped(); }, true); }
                 catch (Stopped s) { return; }
                 catch (Exception e) { if (stopTx) return; throw e; } // proces gestopt: geen fout
+                finally { if (wav != f) wav.delete(); }
                 JSONArray tr = out.optJSONArray("transcription");
                 List<String> parts = new ArrayList<>();
                 if (tr != null) for (int i = 0; i < tr.length(); i++) parts.add(tr.getJSONObject(i).optString("text"));
@@ -301,7 +405,7 @@ final class SleepTalk {
                     String kind = kind(text);
                     k.put("text", text).put("kind", kind).put("done", true);
                     // Geen praten: het geluid hoeft niet te blijven (tenzij je dat wilt)
-                    if ("geluid".equals(kind) && !keepNoise(c) && f != null) { f.delete(); k.put("audio", false); }
+                    if ("geluid".equals(kind) && !keepNoise(c) && f != null) { f.delete(); new File(f.getParent(), clip + ".wav").delete(); k.put("audio", false); }
                 }
                 if (n != null) write(c, n);
             }

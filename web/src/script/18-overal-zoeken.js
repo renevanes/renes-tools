@@ -7,6 +7,7 @@ const GS = {
   wa:       ['🟢', 'WhatsApp', 'chats', 'chat-search', v => chatSearch(v)],
   calls:    ['📞', 'Oproepen', 'calls', 'calls-search', () => callsSearchDo()],
   tx:       ['🎙️', 'Gesprekken', 'transcripts', 'tx-search', () => txSearchDo()],
+  sleep:    ['🌙', 'Slaappraat', 'sleep', '', () => {}],
   music:    ['🎵', 'Muziek', 'music', 'mu-search', () => muRenderHistory()],
   history:  ['🔔', 'Meldingsgeschiedenis', 'history', 'history-search', () => { historyLimit = 200; loadHistory(); }]
 };
@@ -97,6 +98,7 @@ function gsItem(kind, x, ql){
     case 'calls': return t(hl(x.name || x.number || 'Onbekend', ql), esc((x.label || '') + ' · ' + fmtD(x.date) + (x.number && x.number !== x.name ? ' · ' + x.number : '')), {ck: x.ck || '', cid: x.cid || '', number: x.number || ''});
     case 'tx': return t(esc(x.name) + ' <small style="display:inline">· ' + esc(fmtD(x.mtime)) + '</small>', gsSnip(x.text, ql), {id: x.id, from: x.from});
     case 'music': return t(hl(x.title || '', ql), hl(x.artist || '', ql) + ' · ' + esc(fmtD(x.t)), {t: x.t});
+    case 'sleep': return t(esc(typeof slNightName === 'function' ? slNightName(x.t) : fmtD(x.t)) + ' <small style="display:inline">· ' + esc(new Date(x.t).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })) + '</small>', gsSnip(x.text, ql), {night: x.night, clip: x.clip});
     case 'app': return t(hl(x.title, ql), esc(x.sub), {i: x.i});
     case 'history': return t(esc(x.app) + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.title ? esc(x.title) + ': ' : '') + gsSnip(x.text, ql), {});
   }
@@ -119,7 +121,7 @@ function gsMore(k){
   const d = GS[k];
   jumpTo(d[2]);
   if (k === 'calls') Object.assign(callsF, { kind: 'all', period: 'all', from: '', to: '', who: 'all', dur: 'all', person: null });
-  const inp = $('#' + d[3]); if (inp) { inp.value = gsQ; if (k === 'calls') callsSyncUi(); d[4](gsQ); }
+  const inp = d[3] ? $('#' + d[3]) : null; if (inp) { inp.value = gsQ; if (k === 'calls') callsSyncUi(); d[4](gsQ); }
   gsUsed[d[3]] = gsQ;
 }
 function gsOpen(el){
@@ -131,6 +133,7 @@ function gsOpen(el){
   else if (k === 'calls') { if (x.ck) jumpTo('contact', () => ctOpen(x.ck, x.cid)); else gsMoreCalls(x.number); }
   else if (k === 'tx') jumpTo('txd', () => txOpen(x.id, x.from));
   else if (k === 'music') { jumpTo('music'); setTimeout(() => muOpen(x.t), 50); }
+  else if (k === 'sleep') { slNightId = String(x.night || ''); slFocusClip = x.clip || ''; slFilterV = 'praten'; jumpTo('sleepnight'); }
   else if (k === 'history') gsMore('history');
   else if (k === 'app') {
     const it = gsIndex && gsIndex[x.i]; if (!it) return;
@@ -145,7 +148,7 @@ function gsMoreCalls(num){
 /* Zoekterm die overal-zoeken in een tool heeft gezet: weghalen als je die tool later gewoon via de tegel opent. */
 const gsUsed = {};
 function gsResetTool(name){
-  const d = Object.values(GS).find(x => x[2] === name); if (!d) return;
+  const d = Object.values(GS).find(x => x[2] === name); if (!d || !d[3]) return;
   const inp = $('#' + d[3]);
   if (inp && gsUsed[d[3]] != null && inp.value === gsUsed[d[3]]) { inp.value = ''; delete gsUsed[d[3]]; d[4](''); }
 }

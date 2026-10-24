@@ -50,6 +50,11 @@ public final class SleepService extends Service {
     static volatile double levelDb = -90, floorDb = -90;
     static volatile String message = "";
     static volatile boolean inCall;
+    /** Proefronde: hoe vaak iets opgepikt, en of hij nu iets hoort. */
+    static volatile boolean hearingNow;
+    static volatile int probeHits;
+    static volatile long probeUntil;
+    static final long PROBE_MS = 30_000L;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private volatile boolean stop, destroyed;
@@ -68,7 +73,7 @@ public final class SleepService extends Service {
         if ("stop".equals(action)) {
             // Via de melding (startService): geen voorgrond nodig
             again = false; // ook een Start die nog wachtte
-            if ("luistert".equals(phase)) { stopReason = "Gestopt"; stop = true; }
+            if ("luistert".equals(phase) || "proef".equals(phase)) { stopReason = "Gestopt"; stop = true; }
             else if ("uitschrijven".equals(phase)) SleepTalk.stopNow();
             if (worker == null) quit();
             return START_NOT_STICKY;
@@ -83,7 +88,8 @@ public final class SleepService extends Service {
         }
         if (!mic) { message = "Geef eerst microfoontoegang"; quit(); return START_NOT_STICKY; }
         if (!fg) { message = "Android staat het luisteren nu niet toe. Probeer het opnieuw."; quit(); return START_NOT_STICKY; }
-        if ("transcribe".equals(action)) {
+        if ("probe".equals(action)) beginProbe();
+        else if ("transcribe".equals(action)) {
             String n = intent.getStringExtra("night");
             if (!SleepTalk.safeId(n)) { quit(); return START_NOT_STICKY; }
             startTranscribe(n);
@@ -95,10 +101,13 @@ public final class SleepService extends Service {
     private boolean beginListening() {
         stop = false; stopReason = null; message = ""; SleepTalk.stopTx = false;
         long t0 = System.currentTimeMillis();
-        try { night = SleepTalk.begin(this, t0, SleepTalk.sens(this)); } catch (Exception e) { message = "Opslaan lukt niet"; return false; }
+        int[] bat = battery();
+        charged = bat[1] == 1;
+        try { night = SleepTalk.begin(this, t0, SleepTalk.sens(this), bat[0], charged); } catch (Exception e) { message = "Opslaan lukt niet"; return false; }
         since = t0; heard = 0; levelDb = -90; floorDb = -90; inCall = false;
         stopAt = SleepTalk.stopTime(since, SleepTalk.stopAt(this), java.util.TimeZone.getDefault());
         phase = "luistert";
+        SleepReminder.dismiss(this);
         SleepTalk.cleanup(this, night);
         // Vers voor deze nacht (in de "opnieuw"-route liep hij al een tijd)
         if (wake != null && wake.isHeld()) try { wake.release(); } catch (Throwable ignored) { }
@@ -110,6 +119,26 @@ public final class SleepService extends Service {
         t.start();
         return true;
     }
+
+    /** Op main: proefronde van 30 seconden. Niets wordt bewaard; het scherm laat zien wat hij oppikt. */
+    private void beginProbe() {
+        stop = false; stopReason = null; message = ""; probe = true;
+        since = System.currentTimeMillis(); probeUntil = since + PROBE_MS; probeHits = 0; heard = 0; hearingNow = false;
+        levelDb = -90; floorDb = -90; inCall = false; stopAt = 0;
+        phase = "proef";
+        holdWake();
+        notifyNow();
+        Thread t = new Thread(() -> {
+            try { listen("", since); } catch (Throwable e) { App.log(this, "SLAAP", "proef: " + e); }
+            probe = false; hearingNow = false; levelDb = -90;
+            message = probeHits == 0 ? "Proef klaar: niets opgepikt. Praat wat harder, leg de telefoon dichterbij of kies Ook gefluister."
+                    : "Proef klaar: " + probeHits + " keer iets opgepikt. Zo pakt hij het vannacht ook op.";
+            main.post(this::afterWork);
+        }, "slaappraat-proef");
+        worker = t;
+        t.start();
+    }
+    private volatile boolean probe, charged;
 
     /** Op main: alleen uitschrijven (een nacht van eerder). */
     private void startTranscribe(String n) {
@@ -134,7 +163,8 @@ public final class SleepService extends Service {
         final String n = night;
         try {
             listen(n, since);
-            SleepTalk.end(this, n, System.currentTimeMillis(), stopReason == null ? "Gestopt" : stopReason);
+            int[] bat = battery();
+            SleepTalk.end(this, n, System.currentTimeMillis(), stopReason == null ? "Gestopt" : stopReason, bat[0], charged || bat[1] == 1);
             levelDb = -90;
             if (!destroyed && SleepTalk.transcribe(this) && Transcribe.activeModel(this) != null && SleepTalk.open(this, n) > 0) {
                 phase = "uitschrijven"; txDone = 0; txTotal = SleepTalk.open(this, n);
@@ -173,6 +203,7 @@ public final class SleepService extends Service {
     private void listen(final String n, final long start) {
         AudioRecord rec = null;
         final SleepDetect det = new SleepDetect(SleepTalk.sens(this), k -> {
+            if (probe) { probeHits++; return; } // proef: niets bewaren
             heard++;
             final ExecutorService w = writer;
             // Wegschrijven op een eigen thread: de microfoon wordt ondertussen gewoon verder gelezen
@@ -231,6 +262,8 @@ public final class SleepService extends Service {
                 for (int i = 0; i < got; i++) sq += (double) block[i] * block[i];
                 if (got > 0) levelDb = SleepDetect.db(sq / got);
                 floorDb = det.floorDb();
+                hearingNow = det.inClip();
+                if (probe && System.currentTimeMillis() >= probeUntil) stop = true;
                 checkLimits(start);
             }
             det.flush();
@@ -255,6 +288,7 @@ public final class SleepService extends Service {
         if (stopAt > 0 && now >= stopAt) { stopReason = "Stoptijd bereikt"; stop = true; return; }
         if (now - start > 13 * 3_600_000L) { stopReason = "Na 13 uur vanzelf gestopt"; stop = true; return; }
         int[] bat = battery();
+        if (bat[1] == 1) charged = true;
         if (bat[0] >= 0 && bat[0] <= SleepTalk.minBattery(this) && bat[1] == 0) { stopReason = "Gestopt: de accu was bijna leeg (" + bat[0] + "%)"; stop = true; }
     }
 
@@ -291,6 +325,9 @@ public final class SleepService extends Service {
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
         if (Build.VERSION.SDK_INT >= 31) b.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
         boolean tx = "uitschrijven".equals(phase);
+        if ("proef".equals(phase)) return b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Slaappraat: proef van 30 seconden")
+                .setContentText("Praat eens zoals je in je slaap zou doen").setOngoing(true).setOnlyAlertOnce(true).setContentIntent(content)
+                .addAction(android.R.drawable.ic_media_pause, "Stoppen", stopI).build();
         String text = tx ? "Uitschrijven: " + txDone + " van " + txTotal
                 : inCall ? "Luistert niet tijdens het gesprek" : heard == 0 ? "Nog niets gehoord" : heard + " keer iets gehoord";
         if (!tx && stopAt > 0) text += " · stopt om " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT).format(new java.util.Date(stopAt));
