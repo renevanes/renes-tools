@@ -105,6 +105,8 @@ final class AiActions {
     private static final Pattern P_REL = Pattern.compile("(?iu)\\b(?:voor\\s+|op\\s+)?(vandaag|vanavond|vanmiddag|vanochtend|vanmorgen|vannacht|overmorgen|morgen)(ochtend|middag|avond|vroeg)?\\b");
     private static final Pattern P_NEXTWEEK = Pattern.compile("(?iu)\\b(?:op\\s+)?(?:volgende|komende)\\s+week\\s+" + WD + "(ochtend|middag|avond)?\\b");
     private static final Pattern P_WD = Pattern.compile("(?iu)\\b(?:op\\s+|voor\\s+)?(?:volgende\\s+|aanstaande\\s+|komende\\s+|deze\\s+)?(maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)(ochtend|middag|avond)?\\b");
+    // "tussen 9 en 10", "van 9-10 uur", "9-10 uur": het begin telt
+    private static final Pattern P_RANGE = Pattern.compile("(?iu)\\b(?:(?:tussen|van)\\s+(\\d{1,2})(?:[:.](\\d{2}))?\\s*(?:-|–|tot|en)\\s*\\d{1,2}(?:[:.]\\d{2})?(?:\\s*(?:uur|u)\\b)?|(\\d{1,2})(?:[:.](\\d{2}))?\\s*(?:-|–)\\s*\\d{1,2}(?:[:.]\\d{2})?\\s*(?:uur|u)\\b)");
     private static final Pattern P_HM = Pattern.compile("(?iu)\\b(?:om\\s+|vanaf\\s+|tegen\\s+)?(\\d{1,2})[:.](\\d{2})\\s*(?:uur|u)?\\b");
     private static final Pattern P_HALF = Pattern.compile("(?iu)\\b(?:om\\s+|tegen\\s+)?(?:(kwart)\\s+(over|voor)\\s+|(half)\\s+)(\\d{1,2})(?:\\s*uur)?\\b");
     private static final Pattern P_H = Pattern.compile("(?iu)\\b(?:om\\s+|tegen\\s+|vanaf\\s+)?(\\d{1,2})\\s*(?:uur|u)\\b|\\bom\\s+(\\d{1,2})\\b");
@@ -161,8 +163,30 @@ final class AiActions {
         if (h == 24) return 0;
         if ((part == 1 || part == 2) && h < 12) return part == 1 && h > 6 ? h : h + 12;
         if (part == 0 && h == 12) return 0;
+        if (part == 3) return h == 12 ? 0 : h >= 9 && h <= 11 ? h + 12 : h; // 11 uur 's nachts = 23:00, 2 uur 's nachts = 02:00
         if (part < 0 && oneDigit && h >= 1 && h <= 6) return h + 12;
         return h;
+    }
+
+    private static final Pattern P_MONEY_AFTER = Pattern.compile("(?iu)^\\s*(?:euro|eur\\b|€|,-)");
+    /** Een bedrag ("2.50 euro", "€ 9.95") is geen tijd. */
+    private static boolean money(String w, int start, int end) {
+        if (P_MONEY_AFTER.matcher(w.substring(end, Math.min(w.length(), end + 8))).find()) return true;
+        String before = w.substring(Math.max(0, start - 3), start).trim();
+        return before.endsWith("€") || before.toLowerCase(Locale.ROOT).endsWith("eur");
+    }
+
+    /** Dag-maand ("2-11", "2/11/2026"), maar niet als het een tijd of bereik is ("tussen 9-10", "9-10 uur") of "24/7". */
+    private static Matcher dmy(String w, boolean withYear) {
+        Matcher m = P_DMY.matcher(w);
+        while (m.find()) {
+            if ((m.group(3) != null) != withYear) continue;
+            String after = w.substring(m.end(), Math.min(w.length(), m.end() + 6)).toLowerCase(Locale.ROOT);
+            String before = w.substring(Math.max(0, m.start() - 8), m.start()).toLowerCase(Locale.ROOT);
+            if (!withYear && (after.matches("^\\s*(uur|u)\\b.*") || before.matches(".*\\b(tussen|van)\\s*$") || m.group(0).trim().matches("(?:op\\s+)?(24/7|7/24)"))) continue;
+            return m;
+        }
+        return null;
     }
 
     private static String blank(String w, Matcher m) {
@@ -178,35 +202,42 @@ final class AiActions {
         long today = dayStart(now, tz);
         String w = text.length() > 600 ? text.substring(0, 600) : text;
         int dayPart = -1;
+        boolean vannacht = false;
         Matcher m;
         // "over 2 uur", "over een kwartier", "over 3 dagen"
         if ((m = P_OVER.matcher(w)).find()) {
             String g = m.group(0).toLowerCase(Locale.ROOT);
             String unit = m.group(2) == null ? "" : m.group(2).toLowerCase(Locale.ROOT);
             int n = num(m.group(1));
-            if (m.group(1) != null && m.group(1).toLowerCase(Locale.ROOT).startsWith("anderhalf")) { n = 90; unit = "min"; }
-            if (g.contains("half")) { n = 30; unit = "min"; }
-            else if (g.contains("kwartier")) { n = 15; unit = "min"; }
-            if (n > 0) {
-                if (unit.startsWith("min")) r.abs = now + n * MIN;
-                else if (unit.startsWith("uur")) r.abs = now + n * 60 * MIN;
-                else if (unit.startsWith("dag")) r.day = addDays(today, n, tz);
-                else if (unit.startsWith("we")) r.day = addDays(today, 7 * n, tz);
+            boolean oneHalf = m.group(1) != null && m.group(1).toLowerCase(Locale.ROOT).startsWith("anderhal"); // anderhalf, anderhalve = 1,5 ×
+            if (oneHalf) {
+                if (unit.startsWith("min")) r.abs = now + 90_000L;
+                else if (unit.startsWith("uur")) r.abs = now + 90 * MIN;
+                else if (unit.startsWith("dag")) r.abs = now + 36 * 60 * MIN;
+                else if (unit.startsWith("we")) r.day = addDays(today, 11, tz); // 10,5 dag
                 w = blank(w, m);
+            } else {
+                if (g.contains("een half")) { n = 30; unit = "min"; }
+                else if (g.contains("kwartier")) { n = 15; unit = "min"; }
+                if (n > 0) {
+                    if (unit.startsWith("min")) r.abs = now + n * MIN;
+                    else if (unit.startsWith("uur")) r.abs = now + n * 60 * MIN;
+                    else if (unit.startsWith("dag")) r.day = addDays(today, n, tz);
+                    else if (unit.startsWith("we")) r.day = addDays(today, 7 * n, tz);
+                    w = blank(w, m);
+                }
             }
         }
         // datums
         if (r.abs < 0 && r.day < 0 && (m = P_ISO.matcher(w)).find()) { r.day = date(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3)), today, tz); w = blank(w, m); }
         if (r.abs < 0 && r.day < 0 && (m = P_DMON.matcher(w)).find()) { r.day = date(m.group(4) == null ? 0 : Integer.parseInt(m.group(4)), monthOf(m.group(3)), Integer.parseInt(m.group(2)), today, tz); w = blank(w, m); }
-        if (r.abs < 0 && r.day < 0 && (m = P_DMY.matcher(w)).find()) {
-            // 9-10 kan ook "tussen 9 en 10 uur" zijn: alleen als het een geldige dag-maand is
-            long d = date(m.group(3) == null ? 0 : Integer.parseInt(m.group(3)), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(1)), today, tz);
-            if (d >= 0) { r.day = d; w = blank(w, m); }
-        }
+        // 2-11-2026 (met jaar) is altijd een datum; 2-11 zonder jaar pas na morgen/zaterdag, en niet bij een tijd ("9-10 uur")
+        if (r.abs < 0 && r.day < 0 && (m = dmy(w, true)) != null) { r.day = date(Integer.parseInt(m.group(3)), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(1)), today, tz); w = blank(w, m); }
         if (r.abs < 0 && r.day < 0 && (m = P_REL.matcher(w)).find()) {
             String g = m.group(1).toLowerCase(Locale.ROOT);
             int add = g.equals("overmorgen") ? 2 : g.equals("morgen") ? 1 : 0;
             r.day = addDays(today, add, tz);
+            vannacht = g.equals("vannacht");
             dayPart = g.equals("vanavond") ? 2 : g.equals("vanmiddag") ? 1 : g.equals("vanochtend") || g.equals("vanmorgen") ? 0 : g.equals("vannacht") ? 3 : part(m.group(2));
             w = blank(w, m);
         }
@@ -229,24 +260,35 @@ final class AiActions {
             dayPart = part(m.group(2));
             w = blank(w, m);
         }
+        if (r.abs < 0 && r.day < 0 && (m = dmy(w, false)) != null) {
+            long d = date(0, Integer.parseInt(m.group(2)), Integer.parseInt(m.group(1)), today, tz);
+            if (d >= 0) { r.day = d; w = blank(w, m); }
+        }
         // dagdeel los ("'s avonds")
         if ((m = P_PART.matcher(w)).find()) { if (dayPart < 0) dayPart = part(m.group(1)); w = blank(w, m); }
         // tijden
         if (r.abs < 0) {
-            if ((m = P_HM.matcher(w)).find()) {
+            if ((m = P_RANGE.matcher(w)).find()) {
+                String hs = m.group(1) != null ? m.group(1) : m.group(3), ms = m.group(1) != null ? m.group(2) : m.group(4);
+                int hh = hour(Integer.parseInt(hs), dayPart, hs.length() == 1), mi = ms == null ? 0 : Integer.parseInt(ms);
+                if (hh >= 0 && hh < 24 && mi < 60) { r.min = hh * 60 + mi; w = blank(w, m); }
+            }
+            m = P_HM.matcher(w);
+            while (r.min < 0 && m.find()) {
+                if (money(w, m.start(), m.end())) continue; // 2.50 euro is geen tijd
                 int h = Integer.parseInt(m.group(1)), mi = Integer.parseInt(m.group(2));
                 int hh = hour(h, dayPart, m.group(1).length() == 1);
                 if (hh >= 0 && hh < 24 && mi < 60) { r.min = hh * 60 + mi; w = blank(w, m); }
             }
             if (r.min < 0 && (m = P_HALF.matcher(w)).find()) {
                 int h = Integer.parseInt(m.group(4));
-                int base = hour(h, dayPart, m.group(4).length() == 1);
-                if (base >= 0 && base < 24) {
-                    int min = base * 60;
-                    if (m.group(3) != null) min -= 30;                      // half 3 = 2:30
-                    else if ("over".equalsIgnoreCase(m.group(2))) min += 15; // kwart over 3
-                    else min -= 15;                                          // kwart voor 3
-                    r.min = (min + 24 * 60) % (24 * 60); w = blank(w, m);
+                boolean over = m.group(3) == null && "over".equalsIgnoreCase(m.group(2));
+                // half 7 en kwart voor 7 vallen in het uur ervóór (6): daarop de regel "1 tot 6 = middag", net als bij "om 6"
+                int raw = over ? h : (h + 23) % 24, rawH = raw == 0 ? 12 : raw;
+                int base = hour(rawH, dayPart, rawH < 10);
+                if (h <= 24 && base >= 0 && base < 24) {
+                    int min = base * 60 + (over ? 15 : m.group(3) != null ? 30 : 45);
+                    r.min = min % (24 * 60); w = blank(w, m);
                 }
             }
             if (r.min < 0 && (m = P_H.matcher(w)).find()) {
@@ -255,6 +297,8 @@ final class AiActions {
                 if (hh >= 0 && hh < 24) { r.min = hh * 60; w = blank(w, m); }
             }
         }
+        // "vannacht om 2 uur" 's middags gevraagd: de komende nacht
+        if (vannacht && r.min >= 0 && r.min < 12 * 60 && at(r.day, r.min, tz) <= now) r.day = addDays(r.day, 1, tz);
         if (dayPart >= 0) r.sug = PART_SUG[dayPart];
         r.rest = w.replaceAll("\\s+", " ").trim();
         return r;
@@ -288,7 +332,7 @@ final class AiActions {
     /** Een zinnig moment: in de toekomst en hooguit twee jaar vooruit. */
     static boolean sane(long at, long now) { return at > now + 30_000L && at < now + 730 * DAY; }
 
-    private static final Pattern LINE = Pattern.compile("(?iu)`*\\[\\[?\\s*(notitie|note|herinnering|reminder|agenda|afspraak|calendar)\\s*[:：]\\s*([^\\]\\n]{0,800})\\]?\\]`*");
+    private static final Pattern LINE = Pattern.compile("(?iu)`*\\[\\[\\s*(notitie|note|herinnering|reminder|agenda|afspraak|calendar)\\s*[:：]\\s*([^\\]\\n]{0,800})\\]{1,2}`*");
 
     /** Het antwoord zonder de actieregel(s). */
     static String strip(String answer) {

@@ -42,6 +42,7 @@ final class AiSpeech {
     private static AudioManager.OnAudioFocusChangeListener focusL;
 
     static final String NO_ENGINE = "Je telefoon heeft geen voorleesfunctie (tekst-naar-spraak). Installeer bijvoorbeeld Spraakservices van Google uit de Play Store.";
+    static final String BUSY_AUDIO = "Voorlezen kan nu niet: er is iets anders bezig met geluid (bijvoorbeeld een gesprek).";
     static final String NO_DUTCH = "Er is geen Nederlandse stem op je telefoon. Voeg er een toe bij Instellingen → Systeem → Talen → Tekst-naar-spraak (bijvoorbeeld bij Spraakservices van Google).";
 
     // ---------- zuiver (getest in AiActionsTest) ----------
@@ -110,6 +111,7 @@ final class AiSpeech {
             try {
                 app = c.getApplicationContext(); sink = s;
                 if (t.isEmpty()) { send("done", id, null); return; }
+                if (!MainActivity.visible) { send("stop", id, null); return; } // intussen naar de achtergrond: niet beginnen
                 stopNow(false);
                 pendText = t; pendId = id == null ? "" : id;
                 if (tts != null && ready) { flush(); return; }
@@ -149,7 +151,8 @@ final class AiSpeech {
         if (t == null || tts == null) return;
         List<String> parts = chunks(t, Math.max(500, Math.min(3900, TextToSpeech.getMaxSpeechInputLength() - 100)));
         if (parts.isEmpty()) { send("done", id, null); return; }
-        focus(true);
+        if (!MainActivity.visible) { send("stop", id, null); return; }
+        if (!focus(true)) { send("error", id, BUSY_AUDIO); return; }
         curId = id; curParts = parts.size();
         for (int i = 0; i < parts.size(); i++) {
             int r = tts.speak(parts.get(i), i == 0 ? TextToSpeech.QUEUE_FLUSH : TextToSpeech.QUEUE_ADD, new Bundle(), id + "#" + i);
@@ -184,23 +187,24 @@ final class AiSpeech {
     }
 
     /** Geluid van andere apps (muziek, radio) even zachter zolang er voorgelezen wordt. */
-    private static void focus(boolean on) {
+    private static boolean focus(boolean on) {
         try {
             AudioManager am = app == null ? null : (AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
-            if (am == null) return;
+            if (am == null) return true;
             if (focusL == null) focusL = ch -> { if (ch == AudioManager.AUDIOFOCUS_LOSS || ch == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) stop(); };
             if (Build.VERSION.SDK_INT >= 26) {
                 if (on) {
                     focusReq = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
                             .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANT).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
                             .setOnAudioFocusChangeListener(focusL, h()).build();
-                    am.requestAudioFocus(focusReq);
+                    if (am.requestAudioFocus(focusReq) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) { focusReq = null; return false; }
                 } else if (focusReq != null) { am.abandonAudioFocusRequest(focusReq); focusReq = null; }
             } else {
-                if (on) am.requestAudioFocus(focusL, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
+                if (on) return am.requestAudioFocus(focusL, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
                 else am.abandonAudioFocus(focusL);
             }
         } catch (Throwable ignored) { }
+        return true;
     }
 
     /** Meldingen van de spraakmotor (op een eigen thread): naar de hoofdthread. */

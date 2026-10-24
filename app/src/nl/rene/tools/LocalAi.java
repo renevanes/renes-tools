@@ -535,6 +535,8 @@ final class LocalAi {
         void error(String msg);
         /** Iets met het geheugen: {saved:[{id,text}]}, {ask:[tekst]}, {forgot}, {thinking}, {none}, {error}. */
         void memory(JSONObject o);
+        /** Er werd om een actie gevraagd: het antwoord kan eindigen met een actieregel. */
+        default void actWanted() { }
     }
 
     static String systemPrompt(Context c, int ctx, List<String> mem, String note) {
@@ -651,17 +653,24 @@ final class LocalAi {
             final int memUsed = mem == null ? 0 : mem.size();
             // Acties (notitie, herinnering, agenda): alleen als de vraag erom lijkt te vragen; nooit bij "onthoud …" (dat is
             // het geheugen) of bij een samenvatting van een gesprek. Ze gebeuren pas als je onder het antwoord op de knop tikt.
-            final boolean actWanted = !req.optBoolean("noAct") && remember == null && forgetWhat == null && AiActions.wanted(question);
+            // Een gesprek om samen te vatten (berichten van anderen) zit als bijlage in het gesprek: zelf nagaan, niet alleen op de interface vertrouwen
+            boolean hasAtt = false;
+            for (int i = 0; i < in.length(); i++) { JSONObject x = in.optJSONObject(i); if (x != null && x.optBoolean("att")) hasAtt = true; }
+            final boolean actWanted = actAllowed(req.optBoolean("noAct"), hasAtt, remember, forgetWhat, question);
             // Niet leren bij een actie ("herinner me …" is geen feit over jou) of als er berichten van anderen in het gesprek staan
-            boolean learnWanted = memOn && remember == null && forgetWhat == null && !actWanted && !req.optBoolean("noLearn") && !"uit".equals(cfg(c, "learn")) && AiMemory.worthy(question);
+            boolean learnWanted = learnAllowed(memOn, req.optBoolean("noLearn"), hasAtt, actWanted, remember, forgetWhat, cfg(c, "learn"), question);
             JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", sys));
             int from = Math.max(0, in.length() - historyFor(cfg(c, "history")));
-            for (int i = from; i < in.length(); i++) {
+            int attAt = -1;
+            for (int i = 0; i < in.length(); i++) {
                 JSONObject x = in.optJSONObject(i);
                 if (x == null) continue;
+                boolean att = x.optBoolean("att") && !"assistant".equals(x.optString("role"));
+                if (i < from && !att) continue; // de bijlage blijft altijd mee, ook in een lang gesprek
                 String role = "assistant".equals(x.optString("role")) ? "assistant" : "user";
                 String content = x.optString("content");
-                if (content.length() > 12000) content = content.substring(0, 12000);
+                if (att) attAt = msgs.length();
+                else if (content.length() > 12000) content = content.substring(0, 12000);
                 msgs.put(new JSONObject().put("role", role).put("content", content));
             }
             JSONObject last = msgs.getJSONObject(msgs.length() - 1);
@@ -689,6 +698,18 @@ final class LocalAi {
             final String questionF = question;
             if (actWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiActions.prompt(System.currentTimeMillis(), java.util.TimeZone.getDefault()) + ")");
             final boolean willLearn = learnWanted;
+            // Antwoordlengte; met een bijlage hooguit 700 woordjes (ook bij doorvragen) en de bijlage zelf passend gemaakt:
+            // anders laat de motor het oudste bericht weg, en dat is juist het gesprek
+            int maxTok = maxFor(m.ctx, cfg(c, "style"), sys.length());
+            if (hasAtt || req.optBoolean("sum")) maxTok = Math.min(maxTok, 700);
+            if (attAt > 0) {
+                int other = 0;
+                for (int i = 0; i < msgs.length(); i++) if (i != attAt) other += msgs.getJSONObject(i).optString("content").length();
+                JSONObject a = msgs.getJSONObject(attAt);
+                a.put("content", fitAttachment(a.optString("content"), attBudget(m.ctx, maxTok, other, msgs.length())));
+            }
+            final int max = maxTok;
+            if (actWanted) sink.actWanted(); // de interface verbergt de actieregel dan al tijdens het schrijven
             chatPhase = true; // vanaf hier het taalmodel: de index wacht op een kleinere telefoon
             if (!bigRam(c)) closeEmbedSafe(); // niet twee modellen tegelijk in een kleiner geheugen
             boolean starting = chat == null || !chat.alive() || !chat.model.equals(file(c, m)) || chat.threads != threads();
@@ -713,7 +734,7 @@ final class LocalAi {
                     // Een actieregel ([[herinnering: …]]) uit het antwoord halen en als voorstel meesturen (de interface vraagt bevestiging)
                     try {
                         String full = answer.toString();
-                        if (full.length() < 20000 && (actWanted || full.contains("[["))) {
+                        if (full.length() < 20000 && actWanted) { // alleen als er om een actie gevraagd werd
                             String clean = AiActions.strip(full);
                             if (!clean.equals(full)) o.put("clean", clean);
                             AiActions.Act act = actWanted && ok[0] ? AiActions.parse(full, questionF, System.currentTimeMillis(), java.util.TimeZone.getDefault()) : null;
@@ -727,8 +748,6 @@ final class LocalAi {
             });
             try {
                 double temp = temperature(cfg(c, "creative"));
-                int max = maxFor(m.ctx, cfg(c, "style"), sys.length());
-                if (req.optBoolean("sum")) max = Math.min(max, 700); // een samenvatting: meer ruimte voor het gesprek zelf
                 p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", max)
                         .put("temp", temp).put("top_p", temp > 0.9 ? 0.95 : 0.8).put("top_k", 20));
                 while (!done.await(500, TimeUnit.MILLISECONDS)) {
@@ -756,6 +775,38 @@ final class LocalAi {
             GATE.leave(job);
             scheduleIdle();
         }
+    }
+
+    /** Mag het model een actie voorstellen? Alleen als de vraag erom vraagt; nooit bij "onthoud/vergeet" (het geheugen) en
+     *  nooit in een gesprek met berichten van anderen (een samenvatting): hun tekst mag geen voorstel sturen. Zuiver (getest). */
+    static boolean actAllowed(boolean noAct, boolean hasAtt, String remember, String forget, String question) {
+        return !noAct && !hasAtt && remember == null && forget == null && AiActions.wanted(question);
+    }
+    /** Mag de assistent na het antwoord kijken wat er te onthouden valt? Niet bij een actie, niet met berichten van
+     *  anderen erbij, niet als het geheugen of leren uit staat. Zuiver (getest). */
+    static boolean learnAllowed(boolean memOn, boolean noLearn, boolean hasAtt, boolean actWanted, String remember, String forget, String learn, String question) {
+        return memOn && !noLearn && !hasAtt && !actWanted && remember == null && forget == null && !"uit".equals(learn) && AiMemory.worthy(question);
+    }
+    /** Hoeveel tekens de bijlage mag zijn: wat er in het model past naast de instructie, de andere berichten en het
+     *  antwoord (voorzichtig: ±2,6 tekens per woordje). Zuiver (getest). */
+    static int attBudget(int ctx, int maxTok, int otherChars, int msgCount) {
+        int tok = ctx - maxTok - 96 - otherChars * 10 / 26 - 6 * msgCount;
+        return Math.max(600, tok * 26 / 10);
+    }
+    /** De bijlage inkorten: de opdracht (tot en met de kopregel) blijft, van het gesprek de nieuwste regels. Zuiver (getest). */
+    static String fitAttachment(String content, int maxChars) {
+        if (content == null || content.length() <= maxChars) return content;
+        int p = content.indexOf("\n\n"), nl = p < 0 ? -1 : content.indexOf('\n', p + 2);
+        String head = nl < 0 ? "" : content.substring(0, nl), body = nl < 0 ? content : content.substring(nl + 1);
+        String mark = "(het begin van het gesprek is weggelaten)";
+        int keep = Math.max(200, maxChars - head.length() - mark.length() - 2);
+        if (body.length() > keep) {
+            String tail = body.substring(body.length() - keep);
+            int cut = tail.indexOf('\n');
+            if (cut >= 0 && cut < tail.length() - 1) tail = tail.substring(cut + 1); // op een regelgrens beginnen
+            body = mark + "\n" + tail;
+        }
+        return head.isEmpty() ? body : head + "\n" + body;
     }
 
     /** Een voorgestelde actie voor de interface. */

@@ -32,7 +32,7 @@ const { chromium } = require('playwright');
     await pg.screenshot({ path: __dirname + '/shots/ai-samenvatten-' + scheme + '.png' });
     // Doorvragen: de bijlage gaat weer mee, en er wordt niets over jou geleerd
     await pg.fill('#ai-in', 'Wat moet ik meenemen?'); await pg.click('#ai-send'); await pg.waitForTimeout(250);
-    ok(await pg.evaluate(() => { const l = Android._ai.last; return l.messages[0].content.startsWith('Vat dit sms-gesprek') && l.noLearn === true && !l.noAct; }), 'doorvragen: het gesprek gaat mee, niets leren, acties mogen');
+    ok(await pg.evaluate(() => { const l = Android._ai.last; return l.messages[0].content.startsWith('Vat dit sms-gesprek') && l.messages[0].att === true && !l.messages[2].att && l.noLearn === true && l.noAct === true; }), 'doorvragen: het gesprek gaat mee (als bijlage), niets leren, geen acties (tekst van anderen)');
     await pg.waitForTimeout(900);
     ok(await pg.evaluate(() => { const c = Android._ai.chats.find(x => x.title === 'Samenvatting: Moeder'); return c && c.msgs[0].att && c.msgs[0].att.q.includes('Voorbeeld-sms'); }), 'bewaard met de bijlage');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
@@ -52,9 +52,15 @@ const { chromium } = require('playwright');
     ok(await pg.isVisible('#chat-sum'), 'knop Samenvatten bij een WhatsApp-chat');
     await pg.click('#chat-sum'); await pg.waitForTimeout(250);
     const qw = await pg.evaluate(() => Android._ai.last.messages[0].content);
+    ok((await pg.textContent('#ai-msgs .aimsg.me .aiatt')).includes('40 berichten'), 'WhatsApp: aantal berichten');
     ok(qw.startsWith('Vat dit WhatsApp-chat met Huisarts') && qw.includes('Huisarts: Voorbeeldbericht') && qw.includes('📷 Foto') && await pg.evaluate(() => aiChat.title === 'Samenvatting: Huisarts'), 'WhatsApp: met afzenders en media-labels');
     await pg.waitForTimeout(900);
 
+    // WhatsApp: 300 gelezen (het maximum): er kunnen er meer zijn
+    await pg.evaluate(() => { const l = []; for (let k = 0; k < 320; k++) l.push({ id: k, me: false, t: Date.now() - (320 - k) * 6e4, text: 'Bericht ' + k, sender: 'Jos', label: '' }); Android._rd.msgs[3] = l; show('chats'); openChat(3, 'Jos', 0); });
+    await pg.waitForTimeout(150); await pg.click('#chat-sum'); await pg.waitForTimeout(250);
+    ok((await pg.textContent('#ai-msgs .aimsg.me .aiatt')).includes('De laatste 300 berichten') && await pg.evaluate(() => /alleen de laatste 300 berichten/.test(Android._ai.last.messages[0].content)), 'WhatsApp met 300 gelezen (het maximum): "de laatste 300", niet "300 berichten"');
+    await pg.waitForTimeout(900);
     // Bezig met een antwoord: niet nog een samenvatting tegelijk
     await pg.evaluate(() => { show('chats'); openChat(3, 'Jos', 0); }); await pg.waitForTimeout(150);
     await pg.evaluate(() => { aiBusy = true; }); await pg.click('#chat-sum'); await pg.waitForTimeout(100);

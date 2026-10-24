@@ -278,8 +278,9 @@ if (!window.Android) window.Android = (function(){
         if (m) A.mem = A.mem.filter(x => x !== m); onAiMemory(Object.assign({ forgot: m ? m.text : '', pre: true, turn }, m ? { forgotItem: m } : {})); }
       const used = memOn ? A.mem.length : 0, learn = memOn && !rem && !fg && cfg.learn !== 'uit' && /\b(ik|mijn)\b/i.test(q) && !(r.notes && this._aiReady('zoek'));
       // Acties zoals LocalAi/AiActions: de regel [[herinnering: JJJJ-MM-DD UU:MM | tekst]] eruit, en als voorstel mee
-      const act = this._aiAct(A.reply, r.noAct), lrn = learn && !act.wanted(q) && !r.noLearn;
-      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone(Object.assign({ done: true, n: words.length, turn }, used ? { mem: used } : {}, lrn ? { learning: true } : {}, act.clean != null ? { clean: act.clean } : {}, act.action && act.wanted(q) ? { action: act.action } : {}));
+      const act = this._aiAct(A.reply, r.noAct || r.messages.some(m => m.att)), wantAct = act.wanted(q), lrn = learn && !wantAct && !r.noLearn;
+      if (wantAct) onAiActWanted();
+      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone(Object.assign({ done: true, n: words.length, turn }, used ? { mem: used } : {}, lrn ? { learning: true } : {}, wantAct && act.clean != null ? { clean: act.clean } : {}, act.action && wantAct ? { action: act.action } : {}));
         if (lrn) { A.learningNow = true; setTimeout(() => onAiMemory({ thinking: true, turn }), 20); setTimeout(() => {
           A.learningNow = false;
           if (A.learnStop) { A.learnStop = false; onAiMemory({ none: true, stopped: true, turn }); return; }
@@ -535,7 +536,7 @@ if (!window.Android) window.Android = (function(){
     alarmSet(on,h,m,d,st){ const a=this._al; Object.assign(a,{on,hour:h,minute:m,days:d}); if(st) a.station=JSON.parse(st); if(on&&!a.station) return 'Kies een zender'; a.nextAt=on?Date.now()+8*36e5:0; return ''; },
     alarmTest(){ return this._al.station?'':'Kies eerst een zender'; }, alarmExactSettings(){},
     _rem:{}, _rems:[], noteRemind(id,t,time){ if(+time>0) this._rem[id]=+time; else delete this._rem[id]; }, noteReminders(){ const o = {...this._rem}; this._rems.forEach(r => { if (!o[r.note] || o[r.note] > r.t) o[r.note] = r.t; }); return JSON.stringify(o); },
-    noteRemindAdd(note,title,time,rep){ const id = note + '~' + (this._rems.length + 2); this._rems.push({id, note, t: +time, rep}); return id; },
+    noteRemindAdd(note,title,time,rep){ if (this._remFail) return ''; const id = note + '~' + (this._rems.length + 2); this._rems.push({id, note, t: +time, rep}); return id; },
     noteRemindList(note){ return JSON.stringify(this._rems.filter(r => r.note === note).map(r => ({id: r.id, t: r.t, rep: r.rep})).sort((a, b) => a.t - b.t)); },
     noteRemindDel(id){ this._rems = this._rems.filter(r => r.id !== id); }, noteRemindClear(note){ this._rems = this._rems.filter(r => r.note !== note); delete this._rem[note]; }, noteRemindRetitle(){},
     noteShare(t,x){ this._shared=x; }, pendingShare(){ const s=this._ps||''; this._ps=''; return s; },

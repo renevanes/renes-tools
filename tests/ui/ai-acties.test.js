@@ -50,6 +50,20 @@ const { chromium } = require('playwright');
     await pg.click('.aiact .mini.on'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => { const n = notesGet().find(x => x.title === 'Pakket ophalen'); return !!n && Android._rems.some(r => r.note === n.id && r.t > Date.now() + 864e5); }), 'gekozen moment: herinnering gezet');
 
+    // 2b. De herinnering zetten mislukt: eerlijk melden, opnieuw kan (zonder tweede notitie)
+    await pg.evaluate(y => { aiNew(); Android._remFail = true; Android._ai.reply = 'Goed.\n[[herinnering: ' + y + ' 08:00 | Vuilnis buiten]]'; }, ymd);
+    await ask('Herinner me morgen om 8 uur aan de vuilnis'); await pg.waitForTimeout(800);
+    await pg.click('.aiact .mini.on'); await pg.waitForTimeout(150);
+    ok((await pg.textContent('#toast')).includes('herinnering niet gezet') && await pg.isVisible('.aiact .mini.on') && !(await pg.$('.aiact.done')), 'mislukt: "Notitie gemaakt; herinnering niet gezet", voorstel blijft');
+    ok(await pg.evaluate(() => document.activeElement && document.activeElement.closest('.aiact') !== null), 'focus blijft in het voorstel');
+    await pg.evaluate(() => { Android._remFail = false; }); await pg.waitForTimeout(1100);
+    await pg.click('.aiact .mini.on'); await pg.waitForTimeout(150);
+    ok(await pg.isVisible('.aiact.done') && await pg.evaluate(() => notesGet().filter(n => n.title === 'Vuilnis buiten').length === 1 && Android._rems.some(r => r.note === notesGet().find(n => n.title === 'Vuilnis buiten').id)), 'opnieuw: herinnering gezet, één notitie');
+    // 2c. Een oud voorstel (moment voorbij) in een heropend gesprek: opnieuw kiezen
+    await pg.evaluate(() => { const c = { id: 'oud1', title: 'Oud', msgs: [{ r: 'user', c: 'Herinner me', t: 1 }, { r: 'ai', c: 'Goed.', t: 2, act: { type: 'herinnering', title: 'Oud ding', at: Date.now() - 864e5, day: Date.now() - 2 * 864e5, need: '', st: 'voorgesteld' } }, { r: 'user', c: 'Agenda', t: 3 }, { r: 'ai', c: 'Goed.', t: 4, act: { type: 'agenda', title: 'Oude dag', day: new Date(new Date().setHours(0, 0, 0, 0) - 2 * 864e5).getTime(), allDay: true, need: '', st: 'voorgesteld' } }] };
+      Android._ai.chats.unshift(c); show('aichats'); aicOpen(0); }); await pg.waitForTimeout(200);
+    ok(await pg.$$eval('.aiact input[type=datetime-local]', x => x.length) === 2, 'heropend: voorbije voorstellen vragen een nieuw moment (ook een hele dag)');
+
     // 3. Nee: niets, en terug te halen
     await pg.evaluate(() => { aiNew(); Android._ai.reply = 'Prima.\n[[notitie: Boodschappen | melk, brood en kaas]]'; });
     await ask('Maak een notitie van de boodschappen: melk, brood en kaas'); await pg.waitForTimeout(700);
@@ -85,7 +99,7 @@ const { chromium } = require('playwright');
     // 5. Niet gevraagd: geen voorstel (wel de regel weg); "onthoud dat" blijft het geheugen
     await pg.evaluate(y => { aiNew(); Android._ai.reply = 'Vier.\n[[herinnering: ' + y + ' 09:00 | iets]]'; }, ymd);
     await ask('Wat is 2 + 2?'); await pg.waitForTimeout(700);
-    ok(!(await pg.$('.aiact')) && !(await pg.textContent('#ai-msgs')).includes('[['), 'niet gevraagd: geen voorstel');
+    ok(!(await pg.$('.aiact')), 'niet gevraagd: geen voorstel (en de tekst blijft zoals hij is)');
     await pg.evaluate(() => { aiNew(); Android._ai.reply = 'Dat onthoud ik.'; });
     await ask('Onthoud dat ik op dinsdag sport'); await pg.waitForTimeout(700);
     ok(!(await pg.$('.aiact')) && (await pg.textContent('.aimem')).includes('Onthouden'), '"onthoud dat …": geheugen, geen actie');

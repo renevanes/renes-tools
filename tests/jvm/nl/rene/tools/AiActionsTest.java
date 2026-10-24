@@ -52,6 +52,35 @@ public class AiActionsTest {
         w = AiActions.when("morgen om 9 uur aan de vuilnis", now, TZ);
         check(w.rest.equals("aan de vuilnis"), "rest zonder datum en tijd: " + w.rest);
         check(!AiActions.when("wat is de hoofdstad van Frankrijk", now, TZ).any(), "geen datum in een gewone zin");
+        // Bereiken en bedragen zijn geen datum of tijd
+        w = AiActions.when("morgen tussen 9-10 uur", now, TZ);
+        check(w.day == t(2026, 10, 25, 0, 0) && w.min == 9 * 60, "morgen tussen 9-10 uur = morgen 9:00, niet 9 oktober");
+        w = AiActions.when("bel tussen 9-10", now, TZ);
+        check(w.day < 0 && w.min == 9 * 60, "bel tussen 9-10 = 9:00 (geen datum)");
+        w = AiActions.when("van 9-10 uur", now, TZ);
+        check(w.day < 0 && w.min == 9 * 60, "9-10 uur = 9:00");
+        check(AiActions.when("24/7 bereikbaar", now, TZ).day < 0, "24/7 is geen datum");
+        check(AiActions.when("zaterdag 2-11", now, TZ).day == t(2026, 10, 31, 0, 0), "dagnaam gaat voor een dag-maand zonder jaar");
+        check(AiActions.when("op 2-11-2026", now, TZ).day == t(2026, 11, 2, 0, 0), "dag-maand met jaar blijft een datum");
+        w = AiActions.when("het kost 2.50 euro", now, TZ);
+        check(w.min < 0, "2.50 euro is geen tijd");
+        check(AiActions.when("€ 9.95 en om 14.30", now, TZ).min == 14 * 60 + 30, "bedrag overgeslagen, de tijd erna telt");
+        // anderhalf
+        check(AiActions.when("over anderhalf uur", now, TZ).abs == now + 90 * 60_000L, "over anderhalf uur = 90 minuten");
+        check(AiActions.when("over anderhalve dag", now, TZ).abs == now + 36 * 3_600_000L, "over anderhalve dag = 36 uur");
+        check(AiActions.when("over anderhalve week", now, TZ).day == t(2026, 11, 4, 0, 0), "over anderhalve week = over 11 dagen");
+        check(AiActions.when("over een half uur", now, TZ).abs == now + 30 * 60_000L, "over een half uur blijft 30 minuten");
+        // 's nachts
+        check(AiActions.when("om 11 uur 's nachts", now, TZ).min == 23 * 60, "11 uur 's nachts = 23:00");
+        check(AiActions.when("om 12 uur 's nachts", now, TZ).min == 0, "12 uur 's nachts = 00:00");
+        check(AiActions.when("kwart voor 12 's nachts", now, TZ).min == 23 * 60 + 45, "kwart voor 12 's nachts = 23:45");
+        check(AiActions.when("om 2 uur 's nachts", now, TZ).min == 2 * 60, "2 uur 's nachts = 02:00");
+        w = AiActions.when("vannacht om 2 uur", now, TZ);
+        check(w.day == t(2026, 10, 25, 0, 0) && w.min == 2 * 60, "vannacht om 2 uur ('s middags gevraagd) = morgen 02:00");
+        // half en kwart voor: de middagregel op het uur zelf, net als "om 6"
+        check(AiActions.when("om half 7", now, TZ).min == 18 * 60 + 30 && AiActions.when("om 6", now, TZ).min == 18 * 60, "half 7 = 18:30, om 6 = 18:00");
+        check(AiActions.when("half 1", now, TZ).min == 12 * 60 + 30 && AiActions.when("half 10", now, TZ).min == 9 * 60 + 30, "half 1 = 12:30, half 10 = 9:30");
+        check(AiActions.when("kwart voor 7", now, TZ).min == 18 * 60 + 45 && AiActions.when("half 8 's ochtends", now, TZ).min == 7 * 60 + 30, "kwart voor 7 = 18:45; half 8 's ochtends = 7:30");
         // Na de klokwissel (25 oktober): 9 uur blijft 9 uur
         check(fmt(AiActions.at(t(2026, 10, 25, 0, 0), 9 * 60, TZ)).equals("2026-10-25 09:00"), "klokwissel: 9:00 blijft 9:00");
 
@@ -110,6 +139,23 @@ public class AiActionsTest {
         check(a != null && AiActions.strip("[[herinnering: 2026-10-25 09:00 | Jos bellen]]\nTot morgen!").equals("Tot morgen!"), "regel niet aan het eind");
         check(AiActions.parse("Gewoon een antwoord zonder regel.", "Wat is 2+2?", now, TZ) == null, "geen regel, geen opdracht: niets");
         check(AiActions.strip("Zie [1] en [2].").equals("Zie [1] en [2]."), "verwijzingen [1] blijven staan");
+        check(AiActions.strip("Zie [notitie: x].").equals("Zie [notitie: x]."), "één blokhaak is geen actieregel");
+
+        // Wanneer acties en leren mogen (LocalAi)
+        check(LocalAi.actAllowed(false, false, null, null, "Herinner me morgen aan Jos"), "actie: gevraagd");
+        check(!LocalAi.actAllowed(true, false, null, null, "Herinner me morgen aan Jos") && !LocalAi.actAllowed(false, true, null, null, "Herinner me morgen aan Jos"), "geen actie met noAct of in een gesprek met een bijlage (samenvatting)");
+        check(!LocalAi.actAllowed(false, false, "x", null, "Herinner me aan x") && !LocalAi.actAllowed(false, false, null, null, "Wat is 2+2?"), "geen actie bij onthoud of een gewone vraag");
+        String me = "Ik woon sinds kort in Rotterdam, wat is er leuk?";
+        check(LocalAi.learnAllowed(true, false, false, false, null, null, "vragen", me), "leren: iets over jezelf");
+        check(!LocalAi.learnAllowed(true, false, true, false, null, null, "vragen", me) && !LocalAi.learnAllowed(true, true, false, false, null, null, "vragen", me), "niet leren met berichten van anderen (bijlage of noLearn)");
+        check(!LocalAi.learnAllowed(true, false, false, true, null, null, "vragen", me) && !LocalAi.learnAllowed(true, false, false, false, null, null, "uit", me) && !LocalAi.learnAllowed(false, false, false, false, null, null, "vragen", me), "niet leren bij een actie, leren uit of geheugen uit");
+        // De bijlage passend maken: opdracht blijft, de nieuwste regels blijven
+        StringBuilder att = new StringBuilder("Vat dit sms-gesprek samen.\n\nHet gesprek, van oud naar nieuw:\n");
+        for (int i = 0; i < 500; i++) att.append("12:00 Jos: bericht ").append(i).append('\n');
+        String fit = LocalAi.fitAttachment(att.toString().trim(), 3000);
+        check(fit.length() <= 3000 && fit.startsWith("Vat dit sms-gesprek samen.\n\nHet gesprek, van oud naar nieuw:\n(het begin") && fit.endsWith("bericht 499") && !fit.contains("bericht 0\n") && fit.contains("\n12:00 Jos: bericht"), "bijlage ingekort: opdracht en de nieuwste berichten, op een regelgrens");
+        check(LocalAi.fitAttachment("kort", 3000).equals("kort"), "past al: ongewijzigd");
+        check(LocalAi.attBudget(4096, 700, 1500, 3) > 5000 && LocalAi.attBudget(3072, 700, 1500, 3) < LocalAi.attBudget(4096, 700, 1500, 3) && LocalAi.attBudget(1024, 700, 9000, 9) == 600, "ruimte voor de bijlage hangt af van model, antwoord en de rest");
 
         // Voorlezen: opmaak weg
         String sp = AiSpeech.plain("## Kop\n**Vet** en *schuin* met `code` [1].\n- Eén\n- Twee\n1. Drie");

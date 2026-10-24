@@ -103,6 +103,8 @@ public class AiBridge extends SleepBridge {
     /** Een antwoord voorlezen (markdown gaat eraf); wat er al voorgelezen werd, stopt. */
     @JavascriptInterface public void aiSpeak(String text, String id) {
         if (text == null) return;
+        // App op de achtergrond (bijv. net weggeschakeld terwijl het antwoord nog kwam): niet gaan praten
+        if (!MainActivity.visible) { try { a.js("onAiSpeak", new JSONObject().put("state", "stop").put("id", id == null ? "" : id).toString()); } catch (Exception ignored) { } return; }
         AiSpeech.speak(ctx, text.length() > 30_000 ? text.substring(0, 30_000) : text, id, o -> a.js("onAiSpeak", o.toString()));
     }
     @JavascriptInterface public void aiSpeakStop() { AiSpeech.stop(); }
@@ -134,7 +136,8 @@ public class AiBridge extends SleepBridge {
             } catch (Throwable t) { res[0] = "De agenda openen lukte niet"; }
             done.countDown();
         });
-        try { done.await(3, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException ignored) { }
+        // Te lang gewacht (de telefoon is druk): de agenda opent waarschijnlijk nog, dus geen foutmelding
+        try { if (!done.await(3, java.util.concurrent.TimeUnit.SECONDS)) return ""; } catch (InterruptedException e) { return ""; }
         return res[0];
     }
 
@@ -230,5 +233,6 @@ public class AiBridge extends SleepBridge {
         @Override public synchronized void done(JSONObject info) { flush(); a.js("onAiDone", info.toString()); }
         @Override public synchronized void error(String msg) { flush(); a.js("onAiError", q(msg)); }
         @Override public void memory(JSONObject o) { a.js("onAiMemory", o.toString()); }
+        @Override public void actWanted() { a.js("onAiActWanted", "true"); }
     }
 }
