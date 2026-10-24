@@ -25,13 +25,15 @@ public class SleepBridge extends FeatureBridge {
             JSONObject o = new JSONObject();
             o.put("phase", SleepService.phase).put("night", SleepService.night).put("since", SleepService.since).put("stopAt", SleepService.stopAt)
                     .put("heard", SleepService.heard).put("level", Math.round(SleepService.levelDb)).put("floor", Math.round(SleepService.floorDb))
-                    .put("txDone", SleepService.txDone).put("txTotal", SleepService.txTotal).put("message", SleepService.message);
+                    .put("txDone", SleepService.txDone).put("txTotal", SleepService.txTotal).put("message", SleepService.message)
+                    .put("hearing", SleepService.hearingNow).put("probeHits", SleepService.probeHits).put("probeLeft", Math.max(0, SleepService.probeUntil - System.currentTimeMillis()))
+                    .put("notifOk", Build.VERSION.SDK_INT < 33 || ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED);
             o.put("mic", ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
                     .put("notif", Build.VERSION.SDK_INT < 33 || ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED);
             Transcribe.Model m = Transcribe.activeModel(ctx);
             o.put("model", m == null ? "" : m.label);
             o.put("set", new JSONObject().put("sens", SleepTalk.sens(ctx)).put("stopAt", SleepTalk.stopAt(ctx)).put("transcribe", SleepTalk.transcribe(ctx))
-                    .put("keepNoise", SleepTalk.keepNoise(ctx)).put("keep", SleepTalk.keepDays(ctx)));
+                    .put("keepNoise", SleepTalk.keepNoise(ctx)).put("keep", SleepTalk.keepDays(ctx)).put("remindAt", SleepTalk.remindAt(ctx)));
             SleepTalk.cleanupSometimes(ctx, SleepService.running() ? SleepService.night : "");
             o.put("nights", SleepTalk.nights(ctx));
             return o.toString();
@@ -52,6 +54,25 @@ public class SleepBridge extends FeatureBridge {
                 Intent i = new Intent(a, SleepService.class).setAction("start");
                 if (Build.VERSION.SDK_INT >= 26) a.startForegroundService(i); else a.startService(i);
             } catch (Exception e) { SleepService.message = "Android kon Slaappraat niet starten. Probeer het opnieuw."; a.js("onSleep", "{}"); }
+        });
+        return "";
+    }
+
+    /** Proefronde van 30 seconden (niets wordt bewaard). "" of een melding zoals bij sleepStart. */
+    @JavascriptInterface public String sleepProbe() {
+        if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return "mic";
+        if (Build.VERSION.SDK_INT >= 33 && ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return "notif";
+        if (SleepService.running()) return "Slaappraat is al bezig";
+        if (CallRecorderService.busy) return "Stop eerst de gespreksopname";
+        if ("recording".equals(Music.state)) return "Stop eerst muziekherkenning";
+        if ("recording".equals(VoiceNote.state)) return "Stop eerst het inspreken";
+        sleepStopPlay();
+        SleepService.night = ""; SleepService.phase = "proef"; SleepService.probeHits = 0; SleepService.probeUntil = System.currentTimeMillis() + SleepService.PROBE_MS; SleepService.message = "";
+        a.h.post(() -> {
+            try {
+                Intent i = new Intent(a, SleepService.class).setAction("probe");
+                if (Build.VERSION.SDK_INT >= 26) a.startForegroundService(i); else a.startService(i);
+            } catch (Exception e) { SleepService.phase = ""; SleepService.message = "Android kon de proef niet starten. Probeer het opnieuw."; a.js("onSleep", "{}"); }
         });
         return "";
     }
@@ -78,6 +99,7 @@ public class SleepBridge extends FeatureBridge {
         switch (name) {
             case "sens": if (!value.matches("[123]")) return "Ongeldig"; e.putInt("sens", Integer.parseInt(value)); break;
             case "stopAt": if (!SleepTalk.validTime(value)) return "Ongeldige tijd"; e.putString("stopAt", value); break;
+            case "remindAt": if (!SleepTalk.validTime(value)) return "Ongeldige tijd"; e.putString("remindAt", value).apply(); SleepReminder.arm(ctx); return "";
             case "transcribe": case "keepNoise": e.putBoolean(name, "true".equals(value)); break;
             case "keep": if (!value.matches("7|14|30")) return "Ongeldig"; e.putInt("keep", Integer.parseInt(value)); break;
             default: return "Ongeldig";

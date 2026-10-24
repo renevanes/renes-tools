@@ -102,6 +102,7 @@ final class SmartSearch {
             case "wa": return "WhatsApp met ";
             case "calls": return "Oproepen met ";
             case "contacts": return "Contact ";
+            case "sleep": return "Slaappraat ";
             default: return "Notitie: ";
         }
     }
@@ -173,6 +174,7 @@ final class SmartSearch {
         if (LocalAi.srcOn(c, "wa") && WaChats.dbFile(c).isFile()) try { waDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "whatsapp: " + e); }
         if (LocalAi.srcOn(c, "calls") && Search.has(c, android.Manifest.permission.READ_CALL_LOG)) try { callDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "oproepen: " + e); }
         if (LocalAi.srcOn(c, "contacts") && Search.has(c, android.Manifest.permission.READ_CONTACTS)) try { contactDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "contacten: " + e); }
+        if (LocalAi.srcOn(c, "sleep")) try { sleepDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "slaappraat: " + e); }
         return out;
     }
 
@@ -298,6 +300,17 @@ final class SmartSearch {
         }
     }
 
+    /** Slaappraat: per nacht wat je zei (alleen wat als praten is uitgeschreven). */
+    @SuppressWarnings("unchecked")
+    private static void sleepDocs(Context c, List<Doc> out) {
+        java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("EEEE d MMMM", new java.util.Locale("nl", "NL"));
+        for (Object[] n : SleepTalk.talkByNight(c)) {
+            long start = (Long) n[1];
+            Doc d = linesDoc("sleep", (String) n[0], "nacht van " + df.format(new java.util.Date(start)), (List<String>) n[2], (List<Long>) n[3], start);
+            if (d != null) out.add(d);
+        }
+    }
+
     /** Contacten: naam en de velden (nummers, e-mail, adres, verjaardag, notitie …). */
     private static void contactDocs(Context c, List<Doc> out) throws Exception {
         int n = 0;
@@ -367,6 +380,7 @@ final class SmartSearch {
             if (LocalAi.srcOn(c, "wa")) s.append(":w").append(WaChats.dbFile(c).lastModified());
             if (LocalAi.srcOn(c, "calls") && Search.has(c, android.Manifest.permission.READ_CALL_LOG)) { List<Calls.Call> l = Calls.read(c, 1); s.append(":c").append(l.isEmpty() ? 0 : l.get(0).date); }
             if (LocalAi.srcOn(c, "contacts") && Search.has(c, android.Manifest.permission.READ_CONTACTS)) s.append(":k").append(contactsStamp(c));
+            if (LocalAi.srcOn(c, "sleep")) s.append(":z").append(SleepTalk.stamp(c));
         } catch (Throwable ignored) { }
         return s.toString();
     }

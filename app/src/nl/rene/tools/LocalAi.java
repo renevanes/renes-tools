@@ -177,7 +177,7 @@ final class LocalAi {
     static final int TEXT_MAX = 1000;
 
     /** Gegevens die de assistent (en slim zoeken) mag gebruiken. Notities en gesprekken staan standaard aan, de rest uit. */
-    static final String[] SOURCES = {"notes", "tx", "sms", "wa", "calls", "contacts"};
+    static final String[] SOURCES = {"notes", "tx", "sms", "wa", "calls", "contacts", "sleep"};
     static boolean srcDefault(String kind) { return "notes".equals(kind) || "tx".equals(kind); }
     static boolean srcOn(Context c, String kind) {
         if (c == null) return srcDefault(kind);
@@ -1036,7 +1036,7 @@ final class LocalAi {
         for (String k : SOURCES) src.put(k, srcOn(c, k));
         perm.put("sms", Search.has(c, android.Manifest.permission.READ_SMS)).put("calls", Search.has(c, android.Manifest.permission.READ_CALL_LOG))
                 .put("contacts", Search.has(c, android.Manifest.permission.READ_CONTACTS)).put("wa", WaChats.dbFile(c).isFile())
-                .put("notes", true).put("tx", true);
+                .put("notes", true).put("tx", true).put("sleep", true);
         o.put("src", src).put("perm", perm);
         return o;
     }
