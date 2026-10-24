@@ -138,16 +138,35 @@ def nieuwere_modellen():
             past = g and grootte and 0.66 <= float(g[:-1]) / float(grootte[:-1]) <= 1.5
             if past and e == embed and f == merk and v > nu_versie and "gguf" in naam.lower() and naam not in beter:
                 beter.append(naam)
+        beter = [x for x in beter if "-mtp" not in x.lower()] + [x for x in beter if "-mtp" in x.lower()]  # MTP = extra koppen
         opm = ""
         if beter:
+            vast = vastzetten(beter[0], bestand)
             opm = ("nieuwer: " + ", ".join(beter[:4]) + ". Overnemen = een nieuw Model met een eigen id in LocalAi.java "
                    f"met .replaces(\"{mid}\", \"waarom beter\"), vaste commit en SHA-256 (nooit het bestand van \"{mid}\" zelf wijzigen)"
                    + ("; een ander zoekmodel vraagt ook code in SmartSearch (LocalAi.EMBED, nieuwe index)" if embed else "")
-                   + ". Eerst zelf proberen (Nederlands, snelheid op een telefoon met 6-8 GB)")
+                   + ". Eerst zelf proberen (Nederlands, snelheid op een telefoon met 6-8 GB)"
+                   + (". Vastzetten: " + vast if vast else ""))
         elif info.get("sha") and info["sha"] != commit:
             opm = f"{repo} is bijgewerkt sinds de vaste versie (meestal alleen tekst); de app blijft de vaste versie gebruiken"
         uit.append((mid, repo, commit, beter[0] if beter else None, opm))
     return uit
+
+
+def vastzetten(repo, huidig_bestand):
+    """Gegevens om een kandidaat vast te zetten: commit, bestand (zelfde kwantisatie), grootte en SHA-256 (LFS)."""
+    try:
+        m = re.search(r"-([A-Z0-9]+(?:_[A-Z0-9]+)*)\.gguf$", huidig_bestand)
+        quant = m.group(1) if m else ""
+        sha = http_json(f"https://huggingface.co/api/models/{repo}")["sha"]
+        boom = http_json(f"https://huggingface.co/api/models/{repo}/tree/{sha}")
+        for f in boom:
+            pad = f.get("path", "")
+            if "/" not in pad and pad.endswith(f"-{quant}.gguf") and f.get("lfs"):
+                return f'`{repo}` commit `{sha}` bestand `{pad}` grootte {f["lfs"]["size"]} sha256 `{f["lfs"]["oid"]}`'
+        return f"(geen {quant}-bestand in {repo})"
+    except Exception as e:
+        return f"(gegevens niet op te halen: {e})"
 
 
 def versie_tuple(v):
@@ -210,6 +229,16 @@ def main():
         xml = http_text("https://dl.google.com/android/repository/repository2-3.xml")
         bt = [v for v in re.findall(r'path="build-tools;([0-9.]+)"', xml)]
         google = max(bt, key=versie_tuple) if bt else None
+        bt_zip = ""
+        if google:
+            blok = xml.split(f'path="build-tools;{google}"', 1)[1].split("</remotePackage>", 1)[0]
+            for arch in re.findall(r"<archive>(.*?)</archive>", blok, re.S):
+                if "<host-os>linux</host-os>" in arch:
+                    u = re.search(r"<url>([^<]+)</url>", arch); c = re.search(r'<checksum type="sha1">([0-9a-f]{40})', arch)
+                    z = re.search(r"<size>(\d+)</size>", arch)
+                    if u and c:
+                        bt_zip = (f" Vastzetten: https://dl.google.com/android/repository/{u.group(1)} sha1 `{c.group(1)}`"
+                                  + (f" grootte {z.group(1)}" if z else ""))
         platforms = [int(x) for x in re.findall(r'path="platforms;android-(\d+)"', xml)]
         nieuwste_api = max(platforms) if platforms else None
     except Exception as e:
@@ -224,7 +253,7 @@ def main():
     if google:
         item("Android build-tools (d8, apksigner, zipalign)", "setup-tools.sh", huidig, google, (),
              f"nieuwste bij Google {google}; de bron androidide-tools heeft {ide}. Bijwerken: setup-tools.sh naar "
-             f"Google's build-tools laten wijzen of een nieuwere androidide-release kiezen")
+             f"Google's build-tools laten wijzen of een nieuwere androidide-release kiezen." + bt_zip)
     platform = lees(*PLATFORM)
     target = lees(*TARGET)
     if nieuwste_api:
