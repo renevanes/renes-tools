@@ -13,17 +13,20 @@ import java.util.regex.Pattern;
  * Opruimen van oude backups: van elk soort bestand (sms-, oproepen-, contacten-, backup-) met een datum in de naam
  * blijven alle bestanden van de laatste 14 dagen staan, en van daarvoor de nieuwste per maand.
  * De allernieuwste blijft altijd staan. Bestanden zonder datum, selecties en contactversies worden nooit verwijderd.
+ * Een onvolledig archief (backup-…_deels.rtb: de nachtelijke backup werd halverwege gestopt) telt nooit als
+ * "nieuwste" of als die van een maand; het gaat weg zodra er een nieuwer archief is, of na 14 dagen.
  */
 final class Rotate {
 
     private Rotate() { }
 
     static final int DAYS = 14;
-    static final Pattern NAME = Pattern.compile("^(sms|oproepen|contacten|backup|meldingen)-(\\d{4})-(\\d{2})-(\\d{2})(?:_(\\d{2})(\\d{2})(\\d{2})?)?(\\.[A-Za-z0-9]+)$");
+    static final Pattern NAME = Pattern.compile("^(sms|oproepen|contacten|backup|meldingen)-(\\d{4})-(\\d{2})-(\\d{2})(?:_(\\d{2})(\\d{2})(\\d{2})?)?(_deels)?(\\.[A-Za-z0-9]+)$");
+    static final String PARTIAL = "_deels";
 
     static final class F {
-        final String name; final String family; final long when; final String month;
-        F(String n, String f, long w, String m) { name = n; family = f; when = w; month = m; }
+        final String name; final String family; final long when; final String month; final boolean partial;
+        F(String n, String f, long w, String m, boolean p) { name = n; family = f; when = w; month = m; partial = p; }
     }
 
     static F parse(String name) {
@@ -33,7 +36,7 @@ final class Rotate {
         c.clear();
         c.set(Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3)) - 1, Integer.parseInt(m.group(4)),
                 m.group(5) == null ? 0 : Integer.parseInt(m.group(5)), m.group(6) == null ? 0 : Integer.parseInt(m.group(6)), m.group(7) == null ? 0 : Integer.parseInt(m.group(7)));
-        return new F(name, m.group(1) + m.group(8).toLowerCase(), c.getTimeInMillis(), m.group(2) + "-" + m.group(3));
+        return new F(name, m.group(1) + m.group(9).toLowerCase(), c.getTimeInMillis(), m.group(2) + "-" + m.group(3), m.group(8) != null);
     }
 
     /** Namen die weg mogen, uitgaande van "nu". */
@@ -43,12 +46,13 @@ final class Rotate {
         cut.set(Calendar.HOUR_OF_DAY, 0); cut.set(Calendar.MINUTE, 0); cut.set(Calendar.SECOND, 0); cut.set(Calendar.MILLISECOND, 0);
         cut.add(Calendar.DAY_OF_MONTH, -DAYS);
         long limit = cut.getTimeInMillis();
+        List<String> out = stale(names, limit);
         Map<String, F> newest = new HashMap<>();      // per soort
         Map<String, F> perMonth = new HashMap<>();    // soort + maand → nieuwste
         List<F> all = new ArrayList<>();
         for (String n : names) {
             F f = parse(n);
-            if (f == null) continue;
+            if (f == null || f.partial) continue; // onvolledige archieven: zie stale()
             all.add(f);
             F a = newest.get(f.family);
             if (a == null || f.when > a.when || (f.when == a.when && f.name.compareTo(a.name) > 0)) newest.put(f.family, f);
@@ -56,12 +60,32 @@ final class Rotate {
             F b = perMonth.get(k);
             if (b == null || f.when > b.when || (f.when == b.when && f.name.compareTo(b.name) > 0)) perMonth.put(k, f);
         }
-        List<String> out = new ArrayList<>();
         for (F f : all) {
             if (f.when >= limit) continue;
             if (newest.get(f.family) == f) continue;
             if (perMonth.get(f.family + "|" + f.month) == f) continue;
             out.add(f.name);
+        }
+        return out;
+    }
+
+    /** Onvolledige archieven die weg mogen: er is een nieuwer archief (volledig of onvolledig), of ouder dan 14 dagen. */
+    static List<String> stalePartials(Collection<String> names, long now) {
+        Calendar cut = Calendar.getInstance();
+        cut.setTimeInMillis(now);
+        cut.add(Calendar.DAY_OF_MONTH, -DAYS);
+        return stale(names, cut.getTimeInMillis());
+    }
+
+    private static List<String> stale(Collection<String> names, long limit) {
+        List<F> all = new ArrayList<>();
+        for (String n : names) { F f = parse(n); if (f != null) all.add(f); }
+        List<String> out = new ArrayList<>();
+        for (F f : all) {
+            if (!f.partial) continue;
+            boolean newer = f.when < limit;
+            for (F g : all) if (!newer && g != f && g.family.equals(f.family) && (g.when > f.when || (g.when == f.when && !g.partial))) newer = true;
+            if (newer) out.add(f.name);
         }
         return out;
     }

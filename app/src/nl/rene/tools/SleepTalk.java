@@ -350,7 +350,11 @@ final class SleepTalk {
                 if (System.currentTimeMillis() - start < 120_000L) continue; // net begonnen (kan nog niet als "lopend" bekend zijn)
                 synchronized (SleepTalk.class) {
                     File[] fs = d.listFiles();
-                    if (fs != null) for (File f : fs) if (f.getName().endsWith(".tmp") || f.getName().endsWith(".rt-part")) f.delete(); // .rt-part: afgebroken terugzetten
+                    if (fs != null) for (File f : fs) {
+                        if (f.getName().endsWith(".tmp")) f.delete();
+                        // .rt-part: afgebroken terugzetten; niet zolang er teruggezet wordt, en pas na 10 minuten
+                        else if (f.getName().endsWith(".rt-part") && !AiSleepBackup.applying && System.currentTimeMillis() - f.lastModified() > 600_000L) f.delete();
+                    }
                     JSONObject n = night(c, id);
                     if (n != null && n.optLong("end") == 0) {
                         long last = n.optLong("start");

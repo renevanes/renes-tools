@@ -126,6 +126,17 @@ public class LogicTest {
                 "meldingen-2026-08-20_031500.html", "backup-2026-10-04_120000.rtb", "backup-2026-10-04_1200.rtb"), now));
         check("opruimen: meldingen-exports doen mee", del2.contains("meldingen-2026-08-01_031500.json") && !del2.contains("meldingen-2026-08-20_031500.json") && !del2.contains("meldingen-2026-08-20_031500.html"));
         check("opruimen: naam met seconden herkend", Rotate.NAME.matcher("backup-2026-10-04_120000.rtb").matches() && !del2.contains("backup-2026-10-04_120000.rtb"));
+        // Onvolledige archieven (gestopt halverwege): nooit "de nieuwste" of die van een maand
+        java.util.Set<String> del3 = new java.util.HashSet<>(Rotate.toDelete(Arrays.asList("backup-2026-08-03_0330.rtb", "backup-2026-08-30_0330_deels.rtb",
+                "backup-2026-10-01_0330.rtb", "backup-2026-10-03_0330_deels.rtb", "backup-2026-10-02_0330_deels.rtb"), now));
+        check("opruimen: onvolledig archief verdringt de volledige van de maand niet", !del3.contains("backup-2026-08-03_0330.rtb") && del3.contains("backup-2026-08-30_0330_deels.rtb"));
+        check("opruimen: onvolledig archief met een nieuwer archief weg, het nieuwste onvolledige blijft (binnen 14 dagen)",
+                del3.contains("backup-2026-10-02_0330_deels.rtb") && !del3.contains("backup-2026-10-03_0330_deels.rtb") && !del3.contains("backup-2026-10-01_0330.rtb"));
+        java.util.Set<String> del4 = new java.util.HashSet<>(Rotate.toDelete(Arrays.asList("backup-2026-08-03_0330_deels.rtb"), now));
+        check("opruimen: onvolledig archief ouder dan 14 dagen weg, ook als het het enige is", del4.contains("backup-2026-08-03_0330_deels.rtb"));
+        java.util.Set<String> st = new java.util.HashSet<>(Rotate.stalePartials(Arrays.asList("backup-2026-10-03_0330_deels.rtb", "backup-2026-10-04_0330_deels.rtb", "backup-2026-10-04_0330.rtb", "sms-2026-10-01.xml"), now));
+        check("opruimen: na een nieuw archief gaan oudere onvolledige weg (los van opruimen)", st.size() == 2 && st.contains("backup-2026-10-03_0330_deels.rtb") && st.contains("backup-2026-10-04_0330_deels.rtb"));
+        check("opruimen: naam met _deels herkend", Rotate.parse("backup-2026-10-04_033012_deels.rtb") != null && Rotate.parse("backup-2026-10-04_033012_deels.rtb").partial);
         // Routes: geïmporteerde route zonder tijden niet wegfilteren; echte gps-route wel filteren
         List<Tracks.Pt> plan = new java.util.ArrayList<>();
         for (int i = 0; i < 20; i++) plan.add(new Tracks.Pt(52.0 + i * 0.001, 4.4, Double.NaN, 946_684_800_000L + i * 1000L, 5f, -1f));

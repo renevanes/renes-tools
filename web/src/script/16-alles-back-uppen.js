@@ -3,6 +3,15 @@ const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meld
 /* Privé: staan standaard uit; zonder versleutelen een duidelijke waarschuwing */
 const BK_PRIV = { ai: 'Geheugen en gesprekken van de assistent', sleep: 'Slaappraat' };
 const BK_LABEL = Object.assign({}, BK_PARTS, BK_PRIV);
+const BK_PRIV_ZIN = { ai: 'Het geheugen en de gesprekken van de assistent zijn privé', sleep: 'Slaappraat is privé' };
+/* "… gaan/gaat dan niet meer mee": het geheugen en de gesprekken zijn meervoud */
+function bkPrivNoLonger(priv){
+  if (!priv.length) return '';
+  const both = priv.length === 2, ai = priv[0] === 'ai';
+  const wie = both ? 'Het geheugen en de gesprekken van de assistent, en Slaappraat,' : ai ? 'Het geheugen en de gesprekken van de assistent' : 'Slaappraat';
+  const mv = both || ai;
+  return wie + (mv ? ' gaan' : ' gaat') + ' dan niet meer mee, want ' + (mv ? 'die zijn' : 'dat is') + ' privé. Wil je ' + (mv ? 'ze' : 'het') + ' toch onversleuteld meenemen, vink ' + (mv ? 'ze' : 'het') + ' dan opnieuw aan.';
+}
 let bkPoll = null, bkBusy = false;
 function bkState(full){ try { return JSON.parse(Android.backupState(!!full)); } catch(e){ return {}; } }
 /* ---------- backup-controle (proef-terugzetten) ---------- */
@@ -67,8 +76,8 @@ function bkPrivSet(el){
   const k = el.dataset.p;
   if (el.checked && !bkState(false).encrypted) {
     el.checked = false; // pas aan na bevestigen
-    askConfirm('Onversleuteld meenemen?', BK_PRIV[k] + ' is privé. Versleutelen staat uit, dus het komt als leesbaar bestand in je backup-map. Beter: zet eerst Versleutelen aan (onderaan dit scherm).', 'Toch meenemen',
-      () => { Android.backupSetPart(k, true); bkPrivRender(bkState(true)); });
+    askConfirm('Onversleuteld meenemen?', BK_PRIV_ZIN[k] + '. Versleutelen staat uit, dus dit komt als leesbaar bestand in je backup-map. Beter: zet eerst Versleutelen aan (onderaan dit scherm).', 'Toch meenemen',
+      () => { Android.backupSetPart('plain:' + k, true); Android.backupSetPart(k, true); bkPrivRender(bkState(true)); }); // toestemming alleen hier
     return;
   }
   Android.backupSetPart(k, el.checked); bkPrivRender(bkState(true));

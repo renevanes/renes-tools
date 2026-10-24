@@ -45,7 +45,8 @@ final class SettingsBackup {
             {"webstore", "all"},
     };
     /** Nooit meenemen: toestand die bij deze installatie of dit moment hoort. */
-    static final Set<String> SKIP = new HashSet<>(java.util.Arrays.asList("nextAt", "snoozeAt", "last", "next", "missed", "missedAt"));
+    static final Set<String> SKIP = new HashSet<>(java.util.Arrays.asList("nextAt", "snoozeAt", "last", "next", "missed", "missedAt",
+            "plain_ai", "plain_sleep")); // toestemming voor leesbaar privé: nooit uit een backup
 
     static boolean keep(String key, String only) {
         if (only != null) return only.equals(key);
