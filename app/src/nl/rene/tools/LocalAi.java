@@ -48,7 +48,15 @@ final class LocalAi {
          *  verandert nooit. news = één regel waarom het beter is, bijv. "Beter Nederlands, even snel". */
         String replaces = "", news = "";
         Model replaces(String oldId, String why) { replaces = oldId; news = why; return this; }
+        /** Geheugen (RAM) dat aangeraden is; minder: de app waarschuwt bij Taalmodel en maakt eerst ruimte. 0 = geen eis. */
+        long ram;
+        Model ram(long bytes) { ram = bytes; return this; }
+        /** Een groot model: op een kleiner geheugen eerst het zoekmodel stoppen. */
+        boolean big() { return ram > 0; }
     }
+
+    /** Aangeraden geheugen voor de grote modellen: 8 GB-telefoons melden ±7,4–7,7 GB. */
+    static final long BIG_RAM = 7_500_000_000L;
 
     // Controlegetallen van Hugging Face (LFS-oid = SHA-256 en de precieze grootte)
     static final Model SMALL = new Model("klein", "Klein en snel", "Qwen3 1.7B · werkt op de meeste telefoons",
@@ -56,11 +64,21 @@ final class LocalAi {
             "72c5c3cb38fa32d5256e2fe30d03e7a64c6c79e668ad84057e3bd66e250b24fb", 4096, false);
     static final Model LARGE = new Model("groot", "Groter en slimmer", "Qwen3 4B · beter Nederlands, trager, 8 GB geheugen aangeraden",
             "Qwen/Qwen3-4B-GGUF", "a9a60d009fa7ff9606305047c2bf77ac25dbec49", "Qwen3-4B-Q4_K_M.gguf", 2_497_280_256L,
-            "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5", 3072, false);
+            "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5", 3072, false).ram(BIG_RAM);
     static final Model EMBED = new Model("zoek", "Slim zoeken", "Qwen3-Embedding 0.6B · zoeken op betekenis",
             "Qwen/Qwen3-Embedding-0.6B-GGUF", "d20cf9c16f82914a21dbd9c645f56895fb1d7750", "Qwen3-Embedding-0.6B-Q8_0.gguf", 639_150_592L,
             "06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439", 1024, true);
-    static final Model[] MODELS = {SMALL, LARGE, EMBED};
+    // Opvolgers (Qwen3.5: hybride lineaire aandacht, dus een veel kleiner KV-geheugen: 4096 tokens past ruim).
+    // Rene kiest zelf of hij ze downloadt; de oude blijven werken tot hij ze verwijdert.
+    static final Model SMALL35 = new Model("klein35", "Klein en snel (Qwen3.5)", "Qwen3.5 2B · werkt op de meeste telefoons",
+            "bartowski/Qwen_Qwen3.5-2B-GGUF", "7d26695454df6de5fbcce2e58681e62dae06ce43", "Qwen_Qwen3.5-2B-Q4_K_M.gguf", 1_396_198_496L,
+            "57a1085840f497d764a7fc5d346922dbde961efb54cc792ea81d694fd846a1d8", 4096, false)
+            .replaces("klein", "Nieuwer en beter in Nederlands, iets groter (1,4 GB)");
+    static final Model LARGE35 = new Model("groot35", "Groter en slimmer (Qwen3.5)", "Qwen3.5 4B · beter Nederlands, trager, 8 GB geheugen aangeraden",
+            "bartowski/Qwen_Qwen3.5-4B-GGUF", "4168f45a16a1290d65a4ec0fa312ae917a4c15d6", "Qwen_Qwen3.5-4B-Q4_K_M.gguf", 3_013_027_808L,
+            "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983", 4096, false).ram(BIG_RAM)
+            .replaces("groot", "Nieuwer en slimmer, groter (3,0 GB)");
+    static final Model[] MODELS = {SMALL, LARGE, SMALL35, LARGE35, EMBED};
 
     static Model model(String id) { for (Model m : MODELS) if (m.id.equals(id)) return m; return null; }
 
@@ -290,6 +308,7 @@ final class LocalAi {
         try {
             o.put("id", m.id).put("label", m.label).put("desc", m.desc).put("size", m.size).put("embed", m.embed);
             if (!m.replaces.isEmpty()) o.put("replaces", m.replaces).put("news", m.news);
+            if (m.ram > 0) o.put("ram", m.ram);
             if (ready(c, m)) return o.put("state", "ready");
             Integer v = VERIFYING.get(m.id);
             if (v != null) return o.put("state", "verifying").put("pct", v);
@@ -426,7 +445,7 @@ final class LocalAi {
         LlmProcess p = chat;
         if (p != null && p.alive() && p.model.equals(file(c, m)) && p.threads == threads()) return p;
         closeChat();
-        if (m == LARGE && !bigRam(c)) closeEmbedSafe(); // geheugen vrijmaken voor het grote model
+        if (m.big() && !bigRam(c)) closeEmbedSafe(); // geheugen vrijmaken voor het grote model
         p = LlmProcess.start(c, file(c, m), m.ctx, threads(), false, true);
         chat = p;
         return p;

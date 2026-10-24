@@ -244,14 +244,20 @@ if (!window.Android) window.Android = (function(){
     sleepPlay(id, clip){ const n = this._sl.nights.find(x => x.id === id), k = n && n.clips.find(x => x.id === clip); if (!k || !k.audio) return 'Het geluid van dit stukje is er niet meer'; this._sl.played = clip; return ''; },
     sleepStopPlay(){ this._sl.played = ''; },
     sleepPlaying(){ return this._sl.played; },
-    _ai: { st: { klein: { state: 'none' }, groot: { state: 'none' }, zoek: { state: 'none' } }, chat: 'klein', wifiOnly: true, notes: true, chats: [], ram: 8e9, calls: [], seq: 0,
+    _ai: { st: { klein: { state: 'none' }, groot: { state: 'none' }, klein35: { state: 'none' }, groot35: { state: 'none' }, zoek: { state: 'none' } }, chat: 'klein', wifiOnly: true, notes: true, chats: [], ram: 8e9, calls: [], seq: 0,
       mem: [], learnFacts: ['Woont in Rotterdam.'],
       src: { notes: true, tx: true, sms: false, wa: false, calls: false, contacts: false }, perm: { notes: true, tx: true, sms: true, wa: false, calls: true, contacts: false },
-      models: [['klein', 'Klein en snel', 'Qwen3 1.7B · werkt op de meeste telefoons', 1282439584], ['groot', 'Groter en slimmer', 'Qwen3 4B · beter Nederlands, trager', 2497280256], ['zoek', 'Slim zoeken', 'Qwen3-Embedding 0.6B · zoeken op betekenis', 639150592]],
+      // [id, naam, beschrijving, grootte, vervangt, waarom, aangeraden geheugen] zoals LocalAi.MODELS
+      models: [['klein', 'Klein en snel', 'Qwen3 1.7B · werkt op de meeste telefoons', 1282439584], ['groot', 'Groter en slimmer', 'Qwen3 4B · beter Nederlands, trager', 2497280256, '', '', 7.5e9],
+        ['klein35', 'Klein en snel (Qwen3.5)', 'Qwen3.5 2B · werkt op de meeste telefoons', 1396198496, 'klein', 'Nieuwer en beter in Nederlands, iets groter (1,4 GB)'],
+        ['groot35', 'Groter en slimmer (Qwen3.5)', 'Qwen3.5 4B · beter Nederlands, trager, 8 GB geheugen aangeraden', 3013027808, 'groot', 'Nieuwer en slimmer, groter (3,0 GB)', 7.5e9],
+        ['zoek', 'Slim zoeken', 'Qwen3-Embedding 0.6B · zoeken op betekenis', 639150592]],
       reply: 'Hallo! Ik ben je **assistent**.\n- Eén\n- Twee' },
     _aiReady(id){ return this._ai.st[id].state === 'ready'; },
-    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: A.chat, wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, cfg: Object.assign({}, this._aiCfgDef, A.cfg), memCount: A.mem.length, loaded: '', busy: !!A.busy, src: Object.assign({}, A.src), perm: Object.assign({}, A.perm),
-      models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek' }, m[4] ? { replaces: m[4], news: m[5] || '' } : {}, A.st[m[0]] || { state: 'none' })), orphans: A.orphans || 0,
+    // Zoals LocalAi.chatModel: het gekozen model, of anders het eerste taalmodel dat klaar is
+    _aiChat(){ const A = this._ai; if (this._aiReady(A.chat)) return A.chat; const m = A.models.find(x => x[0] !== 'zoek' && this._aiReady(x[0])); return m ? m[0] : A.chat; },
+    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: this._aiChat(), wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, cfg: Object.assign({}, this._aiCfgDef, A.cfg), memCount: A.mem.length, loaded: '', busy: !!A.busy, src: Object.assign({}, A.src), perm: Object.assign({}, A.perm),
+      models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek' }, m[4] ? { replaces: m[4], news: m[5] || '' } : {}, m[6] ? { ram: m[6] } : {}, A.st[m[0]] || { state: 'none' })), orphans: A.orphans || 0,
       index: this._aiReady('zoek') ? { items: 3, chunks: 7, at: Date.now() - 6e4, stale: false } : undefined }); },
     aiDownload(id){ const A = this._ai, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dl', id]);
       Object.assign(m, { state: 'running', bytes: 0, total: 1e9 }); setTimeout(() => { m.bytes = 5e8; }, 200);
