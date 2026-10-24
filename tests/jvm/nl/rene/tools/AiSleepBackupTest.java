@@ -47,13 +47,22 @@ public class AiSleepBackupTest {
         check("dup".equals(AiSleepBackup.nightPlan(recent, true, "", now, 14)), "nacht die er al is: nooit overschrijven");
         check("running".equals(AiSleepBackup.nightPlan(recent, true, recent, now, 14)) && "running".equals(AiSleepBackup.nightPlan(recent, false, recent, now, 14)), "de nacht die nu loopt: nooit aanraken");
         check("old".equals(AiSleepBackup.nightPlan(old, false, "", now, 14)) && AiSleepBackup.nightPlan(old, false, "", now, 30).isEmpty(), "ouder dan de bewaartermijn: niet (zou meteen weer opgeruimd worden)");
+        check("bad".equals(AiSleepBackup.nightPlan(String.valueOf(now + 2 * day), false, "", now, 14)) && AiSleepBackup.nightPlan(String.valueOf(now + 3_600_000L), false, "", now, 14).isEmpty(), "nacht uit de toekomst: overslaan (een uur verschil mag)");
         check("bad".equals(AiSleepBackup.nightPlan("../1761", false, "", now, 14)) && "bad".equals(AiSleepBackup.nightPlan(null, false, "", now, 14)), "vreemd id: overslaan");
 
         // ---------- geluid ----------
         byte[] w = SleepTalk.wav(new short[]{1, 2, 3});
         check(AiSleepBackup.isWav(w, w.length), "WAV herkennen");
         check(!AiSleepBackup.isWav(w, 20) && !AiSleepBackup.isWav("RIFF....AVIxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".getBytes(), 44) && !AiSleepBackup.isWav(null, 0), "geen of half WAV-bestand: niet terugzetten");
-        check("1761256800000/c1761256801000.wav".equals(AiSleepBackup.audioKey("1761256800000", "c1761256801000")), "plek van het geluid in de backup");
+        check("1761256800000/c1761256801000.m4a".equals(AiSleepBackup.audioKey("1761256800000", "c1761256801000", "m4a")), "plek van het geluid in de backup, met de echte extensie");
+        byte[] m4a = new byte[64];
+        byte[] ft = {0, 0, 0, 24, 'f', 't', 'y', 'p', 'M', '4', 'A', ' '};
+        System.arraycopy(ft, 0, m4a, 0, ft.length);
+        check(AiSleepBackup.isM4a(m4a, 64) && !AiSleepBackup.isM4a(w, w.length) && !AiSleepBackup.isM4a(m4a, 8) && !AiSleepBackup.isM4a(null, 0), "M4A (AAC) herkennen aan ftyp");
+        check(AiSleepBackup.audioOk(m4a, 44, "m4a") && AiSleepBackup.audioOk(w, 44, "wav") && !AiSleepBackup.audioOk(m4a, 44, "wav") && !AiSleepBackup.audioOk(w, 44, "m4a") && !AiSleepBackup.audioOk(w, 44, "mp3"),
+                "kop moet bij de extensie passen (AAC gaat niet meer verloren als .wav)");
+        check("m4a".equals(AiSleepBackup.ext("c1.m4a")) && "wav".equals(AiSleepBackup.ext("c1.wav")) && AiSleepBackup.ext("c1.wav.rt-part").isEmpty() && AiSleepBackup.ext("night.json").isEmpty(), "soort geluid uit de bestandsnaam");
+        check("m4a".equals(AiSleepBackup.EXTS[0]), "voorkeur voor .m4a, zoals SleepTalk.clipFile");
         check(AiSleepBackup.safeId("lq3x9a_b-1") && !AiSleepBackup.safeId("a/b") && !AiSleepBackup.safeId("") && !AiSleepBackup.safeId(null), "id's alleen uit veilige tekens");
 
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }

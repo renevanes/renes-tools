@@ -42,8 +42,11 @@ window.onSecure = function(err){
   if (current === 'backup') bkRenderSecure(bkState(true));
 };
 function bkEncOff(){
-  askConfirm('Versleutelen uitzetten?', 'Nieuwe backups worden weer gewone, leesbare bestanden. Bestaande versleutelde backups blijven staan en houden hun wachtwoord.', 'Uitzetten', () => {
-    Android.backupEncryptOff(); bkRenderSecure(bkState(true)); toast('Versleutelen staat uit');
+  const p = bkState(true).parts || {}, priv = ['ai', 'sleep'].filter(k => p[k] === true);
+  askConfirm('Versleutelen uitzetten?', 'Nieuwe backups worden weer gewone, leesbare bestanden. Bestaande versleutelde backups blijven staan en houden hun wachtwoord.' +
+    (priv.length ? '\n\n' + priv.map(k => BK_PRIV[k]).join(' en ') + ' ' + (priv.length === 1 ? 'gaat' : 'gaan') + ' dan niet meer mee, want ' + (priv.length === 1 ? 'dat is' : 'die zijn') + ' privé. Wil je ' + (priv.length === 1 ? 'het' : 'ze') + ' toch onversleuteld meenemen, vink ' + (priv.length === 1 ? 'het' : 'ze') + ' dan opnieuw aan.' : ''), 'Uitzetten', () => {
+    Android.backupEncryptOff(); // zet ook de privé-onderdelen uit
+    bkRenderSecure(bkState(true)); toast('Versleutelen staat uit' + (priv.length ? '; privé-onderdelen gaan niet meer mee' : ''));
   });
 }
 function bkRotate(){ toast('Bezig met tellen…'); Android.backupRotate(true); }

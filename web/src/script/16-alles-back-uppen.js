@@ -93,27 +93,28 @@ window.onRestorePreview = function(d){
     return;
   }
   if (d.kind === 'ai') {
-    if (!d.fresh) { toast('Alles uit deze backup staat er al' + (d.memFull || d.chatFull ? ' of past niet meer' : '')); return; }
+    if (!d.fresh) { Android.restoreCancel(); toast('Alles uit deze backup staat er al' + (d.memFull || d.chatFull ? ' of past niet meer' : '')); return; }
     const mem = 'Geheugen: ' + d.memFresh + ' nieuw' + (d.memDup ? ', ' + d.memDup + ' staan er al' : '') + (d.memFull ? ', ' + d.memFull + ' passen niet meer (het geheugen is vol)' : '') + '.';
     const chats = 'Gesprekken: ' + d.chatFresh + ' nieuw' + (d.chatDup ? ', ' + d.chatDup + ' staan er al' : '') + (d.chatFull ? ', ' + d.chatFull + ' passen niet (hooguit 100)' : '') + '.';
     askConfirm('Assistent terugzetten?', mem + '\n' + chats + '\n\nEr wordt niets overschreven of verwijderd.' + ((d.sample || []).length ? '\n\n' + d.sample.join('\n') : ''), 'Toevoegen', () => {
       restoreWhat = 'herinneringen en gesprekken'; restoreKind = 'ai';
       const e = Android.restoreApply(); if (e) toast(e); else toast('Bezig met toevoegen…');
-    });
+    }, () => Android.restoreCancel());
     return;
   }
   if (d.kind === 'sleep') {
     const skip = [d.dup ? d.dup + ' al op deze telefoon' : '', d.running ? 'de nacht die nu loopt blijft zoals hij is' : '',
       d.old ? d.old + ' ouder dan je bewaartermijn van ' + d.keep + ' dagen (kies bij Slaappraat 30 dagen om die ook terug te zetten)' : ''].filter(Boolean);
-    if (!d.fresh) { toast('Geen nachten toe te voegen' + (skip.length ? ': ' + skip.join('; ') : '')); return; }
+    if (!d.fresh) { Android.restoreCancel(); toast('Geen nachten toe te voegen' + (skip.length ? ': ' + skip.join('; ') : '')); return; }
     const snd = d.audio ? 'Met geluid: ' + d.audio + (d.audio === 1 ? ' stukje' : ' stukjes') + ' (' + fmtB(d.audioBytes || 0) + ').'
       : d.noSpace ? 'Te weinig ruimte op de telefoon voor het geluid: alleen de tekst.'
-      : d.withAudio ? 'Het geluid is niet gevonden (het hoort in de map Slaappraat van je backup-map): alleen de tekst.' : 'Alleen de tekst (deze backup is zonder geluid gemaakt).';
+      : d.withAudio ? (d.fromArchive ? 'Het geluid kon niet uit de versleutelde backup gehaald worden: alleen de tekst.' : 'Het geluid is niet gevonden (het hoort in de map Slaappraat van je backup-map): alleen de tekst.')
+      : 'Alleen de tekst (deze backup is zonder geluid gemaakt).';
     askConfirm(d.fresh + (d.fresh === 1 ? ' nacht' : ' nachten') + ' toevoegen?', (d.sample || []).map(t => fmtD(t)).join(', ') + (d.fresh > (d.sample || []).length ? ', …' : '') + '\n\n' + snd +
       (skip.length ? '\nNiet toegevoegd: ' + skip.join('; ') + '.' : '') + '\n\nBestaande nachten worden nooit overschreven.', 'Toevoegen', () => {
       restoreWhat = 'nachten'; restoreKind = 'sleep';
       const e = Android.restoreApply(); if (e) toast(e); else toast('Bezig met toevoegen…');
-    });
+    }, () => Android.restoreCancel()); // niet doen: ontsleuteld geluid meteen uit de cache
     return;
   }
   const what = { contacts: 'contacten', notes: 'notities', settings: 'instellingen', transcripts: 'uitgeschreven gesprekken', music: 'herkende nummers' }[d.kind] || 'onderdelen';

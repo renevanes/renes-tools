@@ -57,6 +57,8 @@ public class App extends Application {
         registerActivityLifecycleCallbacks(new Visible(c));
         // Na geforceerd stoppen zijn alle wekkers weg: bij de eerstvolgende start terugzetten
         new Thread(() -> AlarmReceiver.ensureArmed(c), "rearm").start();
+        // Ontsleuteld Slaappraat-geluid van een afgebroken terugzetten niet in de cache laten staan
+        new Thread(() -> { try { AiSleepBackup.clearStage(c); } catch (Throwable ignored) { } }, "restore-stage").start();
     }
 
     /** Staat er een scherm van de app in beeld? (Dan is de zwevende speler niet nodig.) */

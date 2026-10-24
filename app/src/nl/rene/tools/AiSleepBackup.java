@@ -107,6 +107,7 @@ final class AiSleepBackup {
     static String nightPlan(String id, boolean have, String running, long now, int keepDays) {
         if (!SleepTalk.safeId(id)) return "bad";
         if (id.equals(running)) return "running";
+        if (Long.parseLong(id) > now + 86_400_000L) return "bad"; // uit de toekomst: geen echte nacht
         if (have) return "dup";
         if (Long.parseLong(id) < now - keepDays * 86_400_000L) return "old";
         return "";
@@ -117,8 +118,22 @@ final class AiSleepBackup {
         return b != null && len >= 44 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F' && b[8] == 'W' && b[9] == 'A' && b[10] == 'V' && b[11] == 'E';
     }
 
-    /** Waar het geluid van een stukje staat, binnen Slaappraat/ in de backup. */
-    static String audioKey(String night, String clip) { return night + "/" + clip + ".wav"; }
+    /** Begint het als een MP4/M4A-bestand (AAC van Slaappraat: "ftyp" op plek 4–7)? */
+    static boolean isM4a(byte[] b, int len) {
+        return b != null && len >= 12 && b[4] == 'f' && b[5] == 't' && b[6] == 'y' && b[7] == 'p';
+    }
+
+    /** Klopt de kop bij de soort (wav of m4a)? */
+    static boolean audioOk(byte[] head, int len, String ext) { return "m4a".equals(ext) ? isM4a(head, len) : "wav".equals(ext) && isWav(head, len); }
+
+    /** De soorten geluid van een stukje, in volgorde van voorkeur (zoals SleepTalk.clipFile). */
+    static final String[] EXTS = {"m4a", "wav"};
+
+    /** Soort geluid uit een bestandsnaam ("c123.m4a" → m4a), of "" als het geen geluid van Slaappraat is. */
+    static String ext(String name) { return name.endsWith(".m4a") ? "m4a" : name.endsWith(".wav") ? "wav" : ""; }
+
+    /** Waar het geluid van een stukje staat, binnen Slaappraat/ in de backup (met de echte extensie). */
+    static String audioKey(String night, String clip, String ext) { return night + "/" + clip + "." + ext; }
 
     // ---------- opschonen (een vreemd bestand mag de app niet breken) ----------
 
@@ -140,7 +155,8 @@ final class AiSleepBackup {
     static JSONObject cleanNight(JSONObject n, Set<String> withAudio) throws Exception {
         String id = n.optString("id");
         JSONObject o = new JSONObject().put("id", id).put("start", n.optLong("start", Long.parseLong(id))).put("end", n.optLong("end"))
-                .put("sens", n.optInt("sens", 2)).put("reason", cut(n.optString("reason"), 120)).put("restored", System.currentTimeMillis());
+                .put("sens", n.optInt("sens", 2)).put("reason", cut(n.optString("reason"), 120)).put("restored", System.currentTimeMillis())
+                .put("batStart", n.optInt("batStart", -1)).put("batEnd", n.optInt("batEnd", -1)).put("charged", n.optBoolean("charged"));
         JSONArray in = n.optJSONArray("clips"), clips = new JSONArray();
         Set<String> seen = new HashSet<>();
         if (in != null) for (int i = 0; i < in.length(); i++) {
@@ -150,7 +166,8 @@ final class AiSleepBackup {
             JSONObject c = new JSONObject().put("id", k.optString("id")).put("t", k.optLong("t")).put("dur", k.optDouble("dur", 0))
                     .put("ratio", k.optDouble("ratio", 0)).put("peak", k.optLong("peak")).put("guess", cut(k.optString("guess"), 20))
                     .put("audio", audio).put("done", done).put("full", k.optBoolean("full"));
-            if (done) c.put("text", cut(k.optString("text"), 4000)).put("kind", "praten".equals(k.optString("kind")) ? "praten" : "geluid");
+            String kind = k.optString("kind");
+            if (done) c.put("text", cut(k.optString("text"), 4000)).put("kind", "praten".equals(kind) || "onleesbaar".equals(kind) ? kind : "geluid");
             // Nog niet uitgeschreven en het geluid zat niet in de backup: dat is niet meer uit te schrijven
             if (!done && !audio && k.optBoolean("audio")) c.put("nobk", true);
             clips.put(c);
@@ -174,7 +191,7 @@ final class AiSleepBackup {
                 nights++;
                 text += nf.length();
                 File[] fs = d.listFiles();
-                if (fs != null) for (File f : fs) if (f.getName().endsWith(".wav")) audio += f.length();
+                if (fs != null) for (File f : fs) if (!ext(f.getName()).isEmpty()) audio += f.length();
             }
             o.put("nights", nights).put("sleepText", text).put("sleepAudio", audio);
         } catch (Exception ignored) { }
@@ -186,6 +203,9 @@ final class AiSleepBackup {
     /** Geheugen en gesprekken naar Assistent/assistent.json. -1 = niets te bewaren. */
     static int exportAi(Context c) throws Exception {
         JSONArray mem = AiMemory.json(c);
+        // Was memory.json kapot (apart gezet als memory.json.kapot-…), dan nooit een goede backup vervangen door een leeg geheugen
+        if (mem.length() == 0 && AiMemory.brokenAside(c))
+            throw new Exception("Het geheugen van de assistent was niet te lezen (apart gezet); de vorige backup blijft staan");
         JSONArray chats = LocalAi.chatsStrict(c);
         if (mem.length() == 0 && chats.length() == 0) return -1;
         JSONObject o = new JSONObject().put("format", FORMAT).put("kind", "assistent").put("t", System.currentTimeMillis())
@@ -216,7 +236,9 @@ final class AiSleepBackup {
                 if (f == null || !f.isFile() || f.length() > MAX_CLIP) continue;
                 byte[] b;
                 try { b = PdfTools.readAll(f, MAX_CLIP); } catch (Exception e) { continue; } // net gewist
-                try { writeBin(dest, SLEEP_DIR + "/" + id, k.optString("id") + ".wav", b); files.put(audioKey(id, k.optString("id")), b.length); }
+                String ext = ext(f.getName());
+                if (ext.isEmpty()) continue;
+                try { writeBin(dest, SLEEP_DIR + "/" + id, f.getName(), b); files.put(audioKey(id, k.optString("id"), ext), b.length); }
                 catch (Exception e) { failed++; App.log(c, "BACKUP", "slaappraat " + id + "/" + k.optString("id") + ": " + e.getMessage()); }
             }
         }
@@ -232,7 +254,7 @@ final class AiSleepBackup {
 
     /** Binair bestand in de backup: in het archief, of veilig (eerst .rt-part) in de backup-map. */
     static void writeBin(WaBackup.Dest dest, String dirPath, String name, byte[] b) throws Exception {
-        if (dest.zip != null) { try (OutputStream o = dest.zip.stream(dirPath, name)) { o.write(b); } return; }
+        if (dest.zip != null) { dest.zip.stored(dirPath, name, b); return; } // geluid is al samengeperst: niet nog eens
         WaBackup.DestDir d = dest.dir(dirPath, true);
         WaBackup.Child old = d.kids.get(name);
         if (old != null && !old.dir && old.size == b.length) return; // staat er al (een stukje verandert nooit)
@@ -268,9 +290,10 @@ final class AiSleepBackup {
                 int keep = 0;
                 for (Map.Entry<String, WaBackup.Child> f : new ArrayList<>(d.kids.entrySet())) {
                     String name = f.getKey();
-                    boolean ours = !f.getValue().dir && (name.endsWith(".wav") || name.endsWith(".wav.rt-part"));
+                    String base = name.endsWith(".rt-part") ? name.substring(0, name.length() - 8) : name;
+                    boolean ours = !f.getValue().dir && !ext(base).isEmpty();
                     if (!ours) { keep++; continue; }
-                    if (name.endsWith(".wav") && files.has(night + "/" + name)) { keep++; continue; }
+                    if (base.equals(name) && files.has(night + "/" + name)) { keep++; continue; }
                     DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, f.getValue().docId));
                     d.kids.remove(name);
                 }
@@ -365,15 +388,18 @@ final class AiSleepBackup {
                 JSONObject k = a.optJSONObject(j);
                 if (k == null || !SleepTalk.safeClip(k.optString("id"))) continue;
                 clips++;
-                String key = audioKey(id, k.optString("id"));
-                long size = files.optLong(key, -1);
-                if (k.optBoolean("audio") && size > 44 && size <= MAX_CLIP) want.put(key, size);
+                if (!k.optBoolean("audio")) continue;
+                for (String x : EXTS) {
+                    String key = audioKey(id, k.optString("id"), x);
+                    long size = files.optLong(key, -1);
+                    if (size > 44 && size <= MAX_CLIP) { want.put(key, size); break; }
+                }
             }
         }
         Map<String, Long> found = new HashMap<>();
         Map<String, String> docs = new HashMap<>();
         if (fromTree && !want.isEmpty()) {
-            // Het geluid staat naast slaappraat.json in de backup-map (Slaappraat/<nacht>/<stukje>.wav)
+            // Het geluid staat naast slaappraat.json in de backup-map (Slaappraat/<nacht>/<stukje>.m4a of .wav)
             Uri tree = WaBackup.destUri(c);
             if (tree != null) try {
                 WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
@@ -392,7 +418,7 @@ final class AiSleepBackup {
         for (long b : found.values()) bytes += b;
         return new JSONObject().put("kind", "sleep").put("total", ns.length()).put("fresh", fresh).put("dup", dup).put("old", old)
                 .put("running", run).put("bad", bad).put("keep", keep).put("clips", clips).put("audio", found.size()).put("audioBytes", bytes)
-                .put("withAudio", o.optBoolean("audio")).put("sample", sample);
+                .put("withAudio", o.optBoolean("audio")).put("fromArchive", !fromTree).put("sample", sample);
     }
 
     static File stageDir(Context c) { return new File(c.getCacheDir(), "sleep-restore"); }
@@ -401,6 +427,47 @@ final class AiSleepBackup {
         File[] ds = stageDir(c).listFiles();
         if (ds != null) for (File d : ds) { File[] fs = d.listFiles(); if (fs != null) for (File f : fs) f.delete(); d.delete(); }
         stageDir(c).delete();
+    }
+
+    /** Terugzetten afgebroken (overzicht weggetikt): ontsleuteld geluid in de cache meteen weg, niets meer klaar. */
+    static synchronized void cancel(Context c) {
+        pendingMem = null; pendingChats = null; pendingNights = null;
+        pendingAudio = new HashMap<>(); pendingDocs = new HashMap<>(); pendingSrc = "";
+        clearStage(c);
+    }
+
+    /** Archief gesloten: wat er uit dat archief klaarstond weg (een overzicht uit de backup-map blijft staan). */
+    static synchronized void cancelStaged(Context c) {
+        if ("stage".equals(pendingSrc)) { pendingNights = null; pendingAudio = new HashMap<>(); pendingSrc = ""; }
+        clearStage(c);
+    }
+
+    /**
+     * Na een gelukte versleutelde backup met deze onderdelen: de oude leesbare kopie (Assistent/assistent.json,
+     * Slaappraat/) uit de backup-map halen, want die staat nu versleuteld in het archief.
+     */
+    static void removePlain(Context c, String part) {
+        try {
+            Uri tree = WaBackup.destUri(c);
+            if (tree == null) return;
+            WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree); // niet in het archief (CAPTURE is al weg)
+            if (dest.zip != null) return;
+            WaBackup.DestDir root = dest.root();
+            if ("sleep".equals(part)) {
+                WaBackup.Child ch = root.kids.get(SLEEP_DIR);
+                if (ch != null && ch.dir) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, ch.docId));
+            } else if ("ai".equals(part)) {
+                WaBackup.DestDir d = dest.dir(AI_DIR, false);
+                if (d == null) return;
+                int other = 0;
+                for (Map.Entry<String, WaBackup.Child> e : new ArrayList<>(d.kids.entrySet())) {
+                    if (e.getKey().startsWith(AI_FILE) && !e.getValue().dir) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, e.getValue().docId));
+                    else other++;
+                }
+                WaBackup.Child dir = root.kids.get(AI_DIR);
+                if (other == 0 && dir != null) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, dir.docId));
+            }
+        } catch (Exception e) { App.log(c, "BACKUP", "leesbare kopie " + part + " weghalen: " + e.getMessage()); }
     }
 
     /**
@@ -442,7 +509,7 @@ final class AiSleepBackup {
                                 o.write(buf, 0, r);
                             }
                         }
-                        if (n == size && isWav(head, 44)) got.put(key, size); else f.delete();
+                        if (n == size && audioOk(head, (int) Math.min(n, 44), ext(p[1]))) got.put(key, size); else f.delete();
                     }
                 }
             }
@@ -478,15 +545,18 @@ final class AiSleepBackup {
                 if (a != null) for (int j = 0; j < a.length(); j++) {
                     JSONObject k = a.optJSONObject(j);
                     String clip = k == null ? "" : k.optString("id");
-                    Long size = SleepTalk.safeClip(clip) ? audio.get(audioKey(id, clip)) : null;
-                    if (size == null) continue;
+                    if (!SleepTalk.safeClip(clip)) continue;
+                    String ext = "", key = "";
+                    for (String x : EXTS) if (audio.containsKey(audioKey(id, clip, x))) { ext = x; key = audioKey(id, clip, x); break; }
+                    if (ext.isEmpty()) continue;
+                    long size = audio.get(key);
                     try {
                         dir.mkdirs();
-                        File out = new File(dir, clip + ".wav");
+                        File out = new File(dir, clip + "." + ext); // met de eigen extensie (SleepTalk.clipFile kiest .m4a eerst)
                         if (!(out.isFile() && out.length() == size)) {
-                            File tmp = new File(dir, clip + ".wav.rt-part"); // niet .tmp: dat ruimt SleepTalk.cleanup tussendoor op
-                            InputStream in = "stage".equals(src) ? new FileInputStream(new File(new File(stageDir(c), id), clip + ".wav"))
-                                    : tree != null && docs.get(audioKey(id, clip)) != null ? c.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, docs.get(audioKey(id, clip)))) : null;
+                            File tmp = new File(dir, clip + "." + ext + ".rt-part"); // niet .tmp: dat ruimt SleepTalk.cleanup tussendoor op
+                            InputStream in = "stage".equals(src) ? new FileInputStream(new File(new File(stageDir(c), id), clip + "." + ext))
+                                    : tree != null && docs.get(key) != null ? c.getContentResolver().openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, docs.get(key))) : null;
                             if (in == null) throw new Exception("niet te openen");
                             byte[] head = new byte[44];
                             long got = 0;
@@ -500,7 +570,7 @@ final class AiSleepBackup {
                                     o.write(buf, 0, r);
                                 }
                             }
-                            if (got != size || !isWav(head, 44) || !tmp.renameTo(out)) { tmp.delete(); throw new Exception("onvolledig"); }
+                            if (got != size || !audioOk(head, (int) Math.min(got, 44), ext) || !tmp.renameTo(out)) { tmp.delete(); throw new Exception("onvolledig"); }
                         }
                         withAudio.add(clip);
                     } catch (Exception e) { lost++; App.log(c, "RESTORE", "slaappraat " + id + "/" + clip + ": " + e.getMessage()); }

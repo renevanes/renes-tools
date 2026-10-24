@@ -139,17 +139,37 @@ final class Secure {
 
         /** Binair bestand in het archief (bijv. kluisdocumenten). */
         OutputStream stream(String dir, String file) throws IOException {
+            ZipEntry e = new ZipEntry(unique(dir, file));
+            e.setTime(System.currentTimeMillis());
+            z.putNextEntry(e);
+            files++;
+            return new EntryStream(z);
+        }
+
+        /** Al samengeperst bestand (geluid): ongecomprimeerd in het archief, dat scheelt rekenwerk en tijd. */
+        void stored(String dir, String file, byte[] b) throws IOException {
+            ZipEntry e = new ZipEntry(unique(dir, file));
+            java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+            crc.update(b, 0, b.length);
+            e.setMethod(ZipEntry.STORED);
+            e.setSize(b.length);
+            e.setCompressedSize(b.length);
+            e.setCrc(crc.getValue());
+            e.setTime(System.currentTimeMillis());
+            z.putNextEntry(e);
+            files++;
+            z.write(b, 0, b.length);
+            z.closeEntry();
+        }
+
+        private String unique(String dir, String file) {
             String path = (dir == null || dir.isEmpty() ? "" : dir + "/") + file;
             String p = path;
             int dot = path.lastIndexOf('.');
             for (int i = 2; !names.add(p.toLowerCase(Locale.ROOT)); i++)
                 p = dot > path.lastIndexOf('/') ? path.substring(0, dot) + " (" + i + ")" + path.substring(dot) : path + " (" + i + ")";
-            ZipEntry e = new ZipEntry(p);
             lastPath = p;
-            e.setTime(System.currentTimeMillis());
-            z.putNextEntry(e);
-            files++;
-            return new EntryStream(z);
+            return p;
         }
     }
 

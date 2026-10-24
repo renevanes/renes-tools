@@ -353,6 +353,13 @@ final class AiMemory {
 
     static synchronized int count(Context c) { return load(c).size(); }
 
+    /** Staat er een apart gezet (kapot) geheugenbestand? Dan is een leeg geheugen geen echte stand. */
+    static boolean brokenAside(Context c) {
+        File[] fs = file(c).getParentFile().listFiles();
+        if (fs != null) for (File f : fs) if (f.getName().startsWith("memory.json.kapot-")) return true;
+        return false;
+    }
+
     /**
      * Terugzetten uit Alles back-uppen: alleen herinneringen die er nog niet zijn (zelfde id of bijna dezelfde tekst),
      * zolang het geheugen niet vol is. Gaat via de cache, dus de assistent ziet ze meteen. Geeft het aantal toegevoegde.

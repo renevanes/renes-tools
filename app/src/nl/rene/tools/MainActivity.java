@@ -2012,7 +2012,11 @@ public class MainActivity extends Activity {
             }, "secure").start();
         }
 
-        @JavascriptInterface public void backupEncryptOff() { Secure.off(ctx); }
+        /** Versleutelen uit: de privé-onderdelen (assistent, Slaappraat) gaan dan ook uit; weer aanzetten vraagt eerst. */
+        @JavascriptInterface public void backupEncryptOff() {
+            Secure.off(ctx);
+            AllBackup.prefs(ctx).edit().putBoolean("part_ai", false).putBoolean("part_sleep", false).apply();
+        }
 
         @JavascriptInterface public void backupSetRotate(boolean on) { AllBackup.prefs(ctx).edit().putBoolean("rotate", on).apply(); }
 
@@ -2083,7 +2087,7 @@ public class MainActivity extends Activity {
             }, "archive-unpack").start();
         }
 
-        @JavascriptInterface public void archiveClose() { Secure.forget(); a.pendingArchive = null; }
+        @JavascriptInterface public void archiveClose() { Secure.forget(); a.pendingArchive = null; AiSleepBackup.cancelStaged(ctx); }
 
         @JavascriptInterface public void backupSetPart(String part, boolean on) {
             if ("sleepAudio".equals(part)) { AllBackup.prefs(ctx).edit().putBoolean("sleep_audio", on).apply(); return; }
@@ -2122,6 +2126,12 @@ public class MainActivity extends Activity {
                 try { a.startActivityForResult(i, REQ_IMPORT); }
                 catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
             });
+        }
+
+        /** Overzicht van terugzetten weggetikt: niets meer klaar laten staan (en ontsleuteld geluid uit de cache weg). */
+        @JavascriptInterface public void restoreCancel() {
+            Restore.pendingKind = null;
+            new Thread(() -> { try { AiSleepBackup.cancel(ctx); } catch (Throwable ignored) { } }, "restore-cancel").start();
         }
 
         /** Terugzetten op de achtergrond; uitkomst via window.onRestoreDone("ok:N" of foutmelding). */

@@ -47,6 +47,8 @@ final class AllBackup {
         return true;
     }
 
+    static final String STOPPED = "Gestopt: Android beëindigde de backup (volgende keer opnieuw)";
+
     static boolean has(Context c, String p) { return c.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED; }
 
     static boolean enabledPart(Context c, String part) { return prefs(c).getBoolean("part_" + part, !optIn(part)); }
@@ -72,7 +74,6 @@ final class AllBackup {
                 Secure.CAPTURE.set(zip);
             }
             for (String part : PARTS) {
-                if (stop) { try { res.put("stopped", true); } catch (Exception ignored) { } break; }
                 if (!enabledPart(c, part)) continue;
                 // De kluis gaat alleen mee in een versleutelde backup. Zonder versleutelen geen fout (anders zou het
                 // automatisch opruimen nooit meer lopen), wel een duidelijke melding bij het resultaat.
@@ -81,6 +82,8 @@ final class AllBackup {
                     catch (Exception ignored) { }
                     continue;
                 }
+                // Android beëindigt de taak: de rest niet meer, maar wel zichtbaar als mislukt; wat klaar is blijft bewaard
+                if (stop) { try { res.put("stopped", true); } catch (Exception ignored) { } put(res, part, false, 0, STOPPED); continue; }
                 current = part;
                 try {
                     int n = runPart(c, part);
@@ -88,7 +91,8 @@ final class AllBackup {
                     boolean plain = n > 0 && zip == null && ("ai".equals(part) || "sleep".equals(part));
                     put(res, part, true, n, n < 0 ? "Niets te bewaren" : plain ? n + " (niet versleuteld)" : null);
                 } catch (Throwable e) {
-                    String m = e instanceof OutOfMemoryError ? "onvoldoende geheugen" : e.getMessage() != null ? e.getMessage() : "mislukt";
+                    String m = stop ? STOPPED : e instanceof OutOfMemoryError ? "onvoldoende geheugen" : e.getMessage() != null ? e.getMessage() : "mislukt";
+                    if (stop) try { res.put("stopped", true); } catch (Exception ignored) { }
                     put(res, part, false, 0, m);
                     App.log(c, "BACKUP", part + ": " + m);
                 }
@@ -97,10 +101,17 @@ final class AllBackup {
             if (zip != null) {
                 boolean any = false;
                 for (String p : PARTS) { JSONObject r = res.optJSONObject(p); if (r != null && r.optBoolean("ok") && r.optInt("count") > 0) any = true; }
-                if (!any || stop) Secure.abort(zip);
+                // Ook na stoppen het archief afmaken met wat klaar is (de onderdelen daarna staan als mislukt)
+                if (!any) Secure.abort(zip);
                 else {
-                    try { res.put("archive", Secure.finish(zip, res)); }
+                    boolean done = false;
+                    try { res.put("archive", Secure.finish(zip, res)); done = true; }
                     catch (Exception e) { put(res, "all", false, 0, "Archief afsluiten mislukt: " + e.getMessage()); App.log(c, "BACKUP", "archief afsluiten: " + e); }
+                    // Staat het privé-deel nu versleuteld in het archief, dan de oude leesbare kopie uit de backup-map weg
+                    if (done) for (String p : new String[]{"ai", "sleep"}) {
+                        JSONObject r = res.optJSONObject(p);
+                        if (r != null && r.optBoolean("ok") && r.optInt("count") > 0) AiSleepBackup.removePlain(c, p);
+                    }
                 }
                 zip = null;
             }
@@ -117,7 +128,7 @@ final class AllBackup {
             current = "";
             try {
                 res.put("t", System.currentTimeMillis()).put("auto", auto);
-                if (!res.optBoolean("stopped")) prefs(c).edit().putString("last", res.toString()).apply();
+                prefs(c).edit().putString("last", res.toString()).apply(); // ook na stoppen: dan is te zien wat niet meer lukte
                 HomeWidgets.refresh(c, HomeWidgets.Overview.class);
             } catch (Exception ignored) { }
             busy = false;

@@ -38,9 +38,22 @@ const { chromium } = require('playwright');
     await pg.click('#bk-private input[data-p="ai"]'); await pg.waitForTimeout(100);
     await pg.click('#bk-private input[data-p="ai"]'); await pg.waitForTimeout(100);
     console.log('zonder vraag aan', await pg.evaluate(() => Android._bk.parts.ai), 'dialoog open', await pg.isVisible('#modal-ok'));
-    // Uitzetten van versleutelen: de waarschuwing komt terug
-    await pg.evaluate(() => { Android._sec.on = false; bkRenderSecure(bkState(true)); }); await pg.waitForTimeout(100);
+    // Versleutelen uitzetten: de dialoog noemt de privé-onderdelen en zet ze uit; weer aanzetten vraagt opnieuw
+    await pg.click('#bk-enc-off'); await pg.waitForTimeout(150);
+    const offText = await pg.textContent('#modal-text');
+    console.log('uitzetten', offText.replace(/\n/g, ' / '));
+    if (!/Geheugen en gesprekken van de assistent en Slaappraat gaan dan niet meer mee/.test(offText)) throw new Error('dialoog noemt privé-onderdelen niet');
+    await pg.click('#modal-ok'); await pg.waitForTimeout(150);
+    const p4 = await priv();
+    console.log('na uitzetten', JSON.stringify(p4), await pg.textContent('#toast'));
+    if (p4.ai || p4.sleep || p4.aiBox || p4.warn) throw new Error('privé-onderdelen horen uit te staan');
+    for (const k of ['ai', 'sleep']) { await pg.click('#bk-private input[data-p="' + k + '"]'); await pg.waitForTimeout(150); console.log('opnieuw', k, await pg.textContent('#modal-title')); await pg.click('#modal-ok'); await pg.waitForTimeout(150); }
     console.log('weer onversleuteld', JSON.stringify(await priv()));
+    // Overzicht wegtikken: niets blijft klaarstaan (restoreCancel)
+    await pg.click('#s-backup button:has-text("Slaappraat")'); await pg.waitForTimeout(300);
+    await pg.click('#modal-cancel'); await pg.waitForTimeout(150);
+    console.log('geannuleerd', await pg.evaluate(() => Android._restoreCancelled));
+    if (await pg.evaluate(() => Android._restoreCancelled) !== 1) throw new Error('restoreCancel niet aangeroepen');
     // Terugzetten: assistent
     await pg.click('button:has-text("Geheugen en gesprekken van de assistent")'); await pg.waitForTimeout(300);
     console.log('assistent terugzetten', await pg.textContent('#modal-title'), '|', (await pg.textContent('#modal-text')).replace(/\n/g, ' / '));
@@ -65,8 +78,14 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => Android.archiveRestore('ai', 'Assistent/assistent.json')); await pg.waitForTimeout(300);
     console.log('assistent uit archief', (await pg.textContent('#modal-text')).replace(/\n/g, ' / '));
     await pg.click('#modal-ok'); await pg.waitForTimeout(300);
+    // Geluid niet uit het archief te halen: een melding die bij het archief past
+    await pg.evaluate(() => onRestorePreview({ kind: 'sleep', total: 2, fresh: 1, dup: 1, old: 0, running: 0, keep: 14, clips: 3, audio: 0, audioBytes: 0, withAudio: true, fromArchive: true, sample: [Date.now() - 864e5] })); await pg.waitForTimeout(150);
+    const arcText = await pg.textContent('#modal-text');
+    console.log('archief zonder geluid', arcText.replace(/\n/g, ' / '));
+    if (!/versleutelde backup/.test(arcText) || /backup-map/.test(arcText)) throw new Error('melding past niet bij het archief');
+    await pg.click('#modal-cancel'); await pg.waitForTimeout(150);
     // Laatste backup met deze onderdelen
-    await pg.evaluate(() => { const l = { t: Date.now(), ai: { ok: true, count: 20, msg: '20 (niet versleuteld)' }, sleep: { ok: true, count: 5 } }; bkRenderLast({ last: l, dest: true }); });
+    await pg.evaluate(() => { const l = { t: Date.now(), stopped: true, ai: { ok: true, count: 20, msg: '20 (niet versleuteld)' }, sleep: { ok: false, count: 0, msg: 'Gestopt: Android beëindigde de backup (volgende keer opnieuw)' } }; bkRenderLast({ last: l, dest: true }); });
     console.log('uitkomst', JSON.stringify(await pg.$$eval('#bk-parts-res .bkres', x => x.map(e => e.innerText.replace(/\n/g, ' ')))));
     console.log('errors', errs);
   }
