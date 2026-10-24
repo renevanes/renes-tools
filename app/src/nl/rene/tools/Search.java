@@ -29,7 +29,7 @@ final class Search {
     static final java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newSingleThreadExecutor();
 
     /** Bronnen van snel naar traag; na elke bron gaat er een tussenstand naar de interface. */
-    static final int[] ORDER = {0, 5, 4, 3, 1, 2};
+    static final int[] ORDER = {0, 5, 4, 6, 3, 1, 2};
 
     static void run(Context c, String q, int id, Sink out) {
         String ql = q.trim().toLowerCase(Locale.ROOT);
@@ -96,6 +96,11 @@ final class Search {
                 java.util.Set<String> seen = new java.util.HashSet<>();
                 for (int k = 0; k < hits.length(); k++) if (seen.add(hits.getJSONObject(k).optString("id"))) all.put(hits.getJSONObject(k));
                 group(res, "tx", first(all), all.length(), hits.length() >= 300 ? all.length() : Integer.MAX_VALUE);
+                return;
+            }
+            case 6: { // Slaappraat: wat je in je slaap zei
+                JSONArray all = SleepTalk.search(c, ql);
+                group(res, "sleep", first(all), all.length(), 200);
                 return;
             }
             default: { // muziek

@@ -1,0 +1,5 @@
+Slaappraat: probeer eerst 30 seconden en zie live wat hij oppikt (er wordt niets bewaard), zodat je de gevoeligheid en de plek van je telefoon kunt afstellen
+Slaappraat: zie per nacht hoeveel accu het kostte, en gemiddeld per uur als je telefoon niet aan de lader lag
+Slaappraat: zet een herinnering op bedtijd; je krijgt dan elke avond een melding om Slaappraat aan te zetten
+Slaappraat: wat je in je slaap zei is te vinden bij Zoeken, en (als je dat aanzet bij Lokale AI → Gegevens) ook voor de assistent
+Slaappraat: het geluid neemt ongeveer tien keer minder ruimte in, zodat je meer nachten kunt bewaren

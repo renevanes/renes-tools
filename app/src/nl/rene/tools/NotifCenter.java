@@ -37,6 +37,7 @@ final class NotifCenter {
         {TranscribeService.CHANNEL, "Gesprekken uitschrijven", "Voortgang van het uitschrijven", "2"},
         {Car.CHANNEL, "Mijn auto", "Als een rit niet vanzelf kon starten", "3"},
         {"auto-call-recording", "Automatische gespreksopname", "Als een automatische opname niet kon starten", "3"},
+        {SleepReminder.CHANNEL, "Slaappraat: bedtijd", "Een herinnering op bedtijd om Slaappraat aan te zetten (als je die aanzet)", "3"},
         {SleepService.CHANNEL, "Slaappraat", "Zichtbaar zolang Slaappraat luistert of uitschrijft, met een stopknop; 's ochtends wat er gehoord is", "2"},
         {"call-recording", "Gespreksopname", "Zichtbaar zolang je opneemt, met een stopknop. Blijft ook zichtbaar als alle meldingen uit staan", "2"},
     };

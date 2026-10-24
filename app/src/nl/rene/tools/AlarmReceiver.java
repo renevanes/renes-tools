@@ -34,6 +34,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         else if (Reminders.ACTION.equals(a)) Reminders.fire(c, i.getStringExtra("id"));
         else if (Reminders.ACTION_SNOOZE.equals(a) || Reminders.ACTION_DONE.equals(a)) Reminders.onAction(c, i);
         else if (RedialPlan.ACTION.equals(a)) RedialPlan.fire(c);
+        else if (SleepReminder.ACTION.equals(a)) SleepReminder.fire(c);
         else if (Intent.ACTION_BOOT_COMPLETED.equals(a) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)
                 || "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED".equals(a)
                 || Intent.ACTION_TIMEZONE_CHANGED.equals(a) || Intent.ACTION_TIME_CHANGED.equals(a)) {
@@ -49,6 +50,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         RadioAlarm.rearmSnooze(c);
         Reminders.rearm(c);
         RedialPlan.arm(c);
+        SleepReminder.arm(c);
         TranscribeJob.ensureScheduled(c);
         RadioWidget.refresh(c);
         Auto.armPlaces(c, true);

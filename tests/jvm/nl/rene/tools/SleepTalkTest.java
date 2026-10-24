@@ -29,6 +29,16 @@ public class SleepTalkTest {
 
         check(SleepTalk.safeId("1761256800000") && !SleepTalk.safeId("../x") && SleepTalk.safeClip("c1761256800000") && !SleepTalk.safeClip("c1/../x"), "alleen eigen bestandsnamen");
 
+        // Herinnering op bedtijd
+        check(SleepReminder.next(at(ams, 2026, 10, 24, 20, 0), "22:30", ams) == at(ams, 2026, 10, 24, 22, 30), "herinnering: vanavond");
+        check(SleepReminder.next(at(ams, 2026, 10, 24, 23, 0), "22:30", ams) == at(ams, 2026, 10, 25, 22, 30), "herinnering: al voorbij, dus morgen");
+        check(SleepReminder.next(1000, "", ams) == 0, "herinnering uit");
+        // Accu per uur
+        long s0 = at(ams, 2026, 10, 24, 23, 0);
+        check(Math.abs(SleepTalk.batPerHour(s0, s0 + 8 * 3_600_000L, 90, 74, false) - 2.0) < 0.01, "accu: 16% in 8 uur = 2% per uur");
+        check(SleepTalk.batPerHour(s0, s0 + 8 * 3_600_000L, 90, 74, true) == -1 && SleepTalk.batPerHour(s0, s0 + 600_000L, 90, 89, false) == -1
+                && SleepTalk.batPerHour(s0, s0 + 8 * 3_600_000L, -1, 74, false) == -1 && SleepTalk.batPerHour(s0, s0 + 8 * 3_600_000L, 70, 74, false) == -1, "accu: niet te zeggen (lader, te kort, onbekend, opgeladen)");
+
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");
         System.exit(0);
