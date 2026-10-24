@@ -80,7 +80,7 @@ JSQR = ("web/vendor/jsQR.js", r"jsQR (\d+\.\d+\.\d+)")
 PLAYWRIGHT = (".github/workflows/publiceren.yml", r"playwright@(\d+\.\d+\.\d+)")
 WHISPER = ("app/lib/arm64-v8a/README.txt", r"whisper\.cpp (?:v[\d.]+, )?commit ([0-9a-f]{40})")
 LLAMA = ("app/lib/arm64-v8a/README.txt", r"llama\.cpp (?:b\d+, )?commit ([0-9a-f]{40})")
-BUILDTOOLS = ("setup-tools.sh", r"build-tools/(\d+\.\d+\.\d+)/")
+BUILDTOOLS = ("setup-tools.sh", r"(?m)^BUILD_TOOLS=(\d+\.\d+\.\d+)$")
 AAPT2 = ("setup-tools.sh", r"aaptjs3@(\d+\.\d+\.\d+)")
 PLATFORM = ("setup-tools.sh", r"sparse-checkout set android-(\d+)")
 TARGET = ("build.sh", r"--target-sdk-version (\d+)")
@@ -245,15 +245,10 @@ def main():
         nieuwste_api = None
         item("Android-gegevens van Google", "dl.google.com", "-", None, (), f"niet op te halen ({e}); controleer met de hand",
              verouderd=True)
-    try:
-        ide = http_json("https://api.github.com/repos/AndroidIDEOfficial/androidide-tools/releases/latest",
-                        github=True)["tag_name"].lstrip("v")
-    except Exception:
-        ide = "?"
     if google:
         item("Android build-tools (d8, apksigner, zipalign)", "setup-tools.sh", huidig, google, (),
-             f"nieuwste bij Google {google}; de bron androidide-tools heeft {ide}. Bijwerken: setup-tools.sh naar "
-             f"Google's build-tools laten wijzen of een nieuwere androidide-release kiezen." + bt_zip)
+             f"nieuwste bij Google {google}. Bijwerken: BUILD_TOOLS, BUILD_TOOLS_URL, BUILD_TOOLS_SHA1 en "
+             f"BUILD_TOOLS_SIZE in setup-tools.sh; een andere d8 vraagt een test op een telefoon." + bt_zip)
     platform = lees(*PLATFORM)
     target = lees(*TARGET)
     if nieuwste_api:

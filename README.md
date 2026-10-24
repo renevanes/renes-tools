@@ -314,7 +314,7 @@ Luistert 's nachts zuinig mee en bewaart alleen de momenten waarop je iets zegt;
 
 ## Bouwen (zonder Android Studio of Gradle)
 ```sh
-./setup-tools.sh              # eenmalig: build-tools 34, aapt2, android.jar (SDK 36)
+./setup-tools.sh              # eenmalig: build-tools 37 (Google), aapt2, android.jar (SDK 36)
 ./keys/unlock.sh              # eenmalig per sessie: ondertekeningssleutel uitpakken (vraagt de wachtwoordzin)
 ./bump.sh "Wat er veranderd is"          # versie +0.1, met regel voor het wijzigingslog
 NATIVE=1 ./bump.sh "Nieuwe app-functie"   # als de Java-code of het manifest is veranderd

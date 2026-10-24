@@ -36,6 +36,10 @@ mkdir -p build wijzigingen
 [ -f keys/release.p12 ] && [ -f keys/keystore.pass ] || { echo "De ondertekeningssleutel ontbreekt. Pak hem uit met: PASSPHRASE=… ./keys/unlock.sh (de wachtwoordzin krijg je van Rene; nooit in de repository, op GitHub alleen als geheim SIGNING_PASSPHRASE). Zonder sleutel: push naar main, dan publiceert GitHub het"; exit 1; }
 FP=$(openssl pkcs12 -in keys/release.p12 -passin file:keys/keystore.pass -nokeys -clcerts 2>/dev/null | openssl x509 -noout -fingerprint -sha256 2>/dev/null | sed 's/.*=//' || true)
 [ "$FP" = "$CERT_SHA256" ] || { echo "keys/release.p12 is niet de echte sleutel van Rene's Tools (vingerafdruk ${FP:-onleesbaar}). Met een andere sleutel kunnen telefoons de update niet installeren."; exit 1; }
+# Alleen met de vastgezette build-tools van Google (niet met de reserve voor lokaal testen); build.sh gebruikt BT_VERSION
+BT_VERSION=$(sed -n 's/^BUILD_TOOLS=\([0-9.]*\)$/\1/p' setup-tools.sh)
+[ -n "$BT_VERSION" ] && [ -f "${TOOLS:-/home/claude/toolchain}/bt/build-tools/$BT_VERSION/lib/d8.jar" ] || { echo "Build-tools ${BT_VERSION:-?} (Google) ontbreken in ${TOOLS:-/home/claude/toolchain}: ./setup-tools.sh met toegang tot dl.google.com. Publiceren met andere build-tools gebeurt niet."; exit 1; }
+export BT_VERSION
 
 # update/ maakt ./build.sh bij elke bouw opnieuw: wat daar lokaal staat telt niet
 git checkout -q HEAD -- update 2>/dev/null || true

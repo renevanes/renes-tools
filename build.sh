@@ -4,7 +4,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 T=${TOOLS:-/home/claude/toolchain}
-BT=$T/bt/build-tools/34.0.4
+# Build-tools: BT_VERSION (zet ./publish.sh op de vastgezette versie), anders wat ./setup-tools.sh in bt/VERSION
+# schreef, anders de nieuwste die er staat
+BTV=${BT_VERSION:-$(cat $T/bt/VERSION 2>/dev/null || true)}
+[ -n "$BTV" ] && [ -d "$T/bt/build-tools/$BTV" ] || BTV=$(ls $T/bt/build-tools 2>/dev/null | sort -V | tail -1)
+[ -n "${BT_VERSION:-}" ] && [ "$BTV" != "$BT_VERSION" ] && { echo "Build-tools $BT_VERSION ontbreken in $T (./setup-tools.sh)"; exit 1; }
+[ -n "$BTV" ] || { echo "Build-tools ontbreken: ./setup-tools.sh"; exit 1; }
+BT=$T/bt/build-tools/$BTV
 AAPT2=$T/aapt2
 ANDROID_JAR=$T/ap/android-36/android.jar
 source VERSION
