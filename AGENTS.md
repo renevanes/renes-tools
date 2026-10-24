@@ -46,6 +46,10 @@ het ergens anders wilt), Java 17+ (javac; CI gebruikt 25), Python 3, Node 22+ (C
 - `./tests/run-ui.sh` — alle interfacetests (Playwright, licht en donker; ±15 min).
 - `./tests/ui-een.sh calls spotify2` — één of enkele interfacetests (naam zonder `.test.js`).
 - `python3 tools/check-bridge.py` — brug en testbrug kloppen met elkaar.
+- **Telefoontest** (`.github/workflows/telefoontest.yml`, alleen op GitHub: hier is geen emulator): installeert de APK in
+  een Android-emulator (API 35 en 24), start de app, het Home-scherm en de PDF-schermen en controleert dat er niets
+  crasht (script: `tests/telefoon/rooktest.sh`; logcat en schermafdrukken in het artifact). Rood = niet laten liggen,
+  maar oplossen: meestal een startcrash door build-tools, targetSdk of Java-code.
 Nieuwe functie = ook een test in `tests/ui/` (en bij logica in `tests/jvm/`). Een UI-test slaagt als hij `errors []` afdrukt.
 
 ## Tegelijk werken met andere agents
@@ -103,8 +107,8 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
 **Vanzelf (GitHub):**
 - **Dependabot** (`.github/dependabot.yml`) opent elke maandag één pull request met updates van de GitHub Actions.
   Die worden niet vanzelf samengevoegd: dezelfde Actions draaien in `publiceren.yml` naast de ondertekeningssleutel.
-- **Beveiligingsscan** (`beveiligingsscan.yml`): CodeQL op Java en JavaScript bij pushes naar main en pull requests die
-  `app/` of `web/` veranderen, en wekelijks. Meldingen staan onder Security → Code scanning. (GitHub's
+- **Beveiligingsscan** (`beveiligingsscan.yml`): CodeQL op Java, JavaScript en C++ (`tools/llm/llm.cpp`) bij pushes naar main en
+  pull requests die `app/`, `web/` of `tools/llm/` veranderen, en wekelijks. Bouwen en testen draait ook shellcheck op alle scripts. Meldingen staan onder Security → Code scanning. (GitHub's
   "default setup" van CodeQL moet uit staan, anders botst die met deze workflow.)
 - **Onderhoud** (`onderhoud.yml`, maandag): `.github/scripts/onderhoud-controle.py` vergelijkt de meegeleverde
   bibliotheken (Leaflet, jsQR, whisper.cpp, llama.cpp), de AI-modellen (Hugging Face: nieuwere modellen van dezelfde maker in
@@ -117,7 +121,7 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 
 | Onderdeel | Waar vastgelegd | Gecontroleerd door | Bijwerken |
 |---|---|---|---|
-| GitHub Actions | `.github/workflows/*.yml` | Dependabot (wekelijks PR) | agent voegt samen na review |
+| GitHub Actions | `.github/workflows/*.yml`, vastgezet op commit-SHA met de versie als opmerking (`@<sha> # v1.2.3`; Bouwen en testen controleert dat) | Dependabot (wekelijks PR; werkt SHA en opmerking bij) | agent voegt samen na review |
 | Leaflet, jsQR (in de app) | `web/vendor/` (kopregel) | Onderhoud: npm + OSV | agent, bij elke nieuwe versie |
 | whisper.cpp (transcriberen) | `app/lib/arm64-v8a/README.txt` | Onderhoud: GitHub-release + OSV | agent: `tools/whisper-build.sh`, bij elke nieuwe release |
 | llama.cpp (lokale AI) | `tools/llm-build.sh` (TAG/COMMIT) + README | Onderhoud: GitHub-release + OSV | agent: bij kwetsbaarheid of >1500 commits achter (dagelijkse releases) |

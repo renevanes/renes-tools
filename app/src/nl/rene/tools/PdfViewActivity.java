@@ -533,7 +533,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         final int start = view.currentPage();
         new Thread(() -> {
             for (int i = 0; i < d.count; i++) {
-                if (g != searchGen || d.isClosed()) return;
+                if (g != searchGen) return; // onDestroy verhoogt searchGen vóór het sluiten; search() geeft dan ook niets
                 final List<PdfDoc.Match> m = d.search(i, s);
                 if (m.isEmpty()) continue;
                 ui.post(() -> {

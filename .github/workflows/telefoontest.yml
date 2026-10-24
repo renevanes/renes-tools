@@ -1,0 +1,98 @@
+# Telefoontest: bouwt de APK zoals Bouwen en testen (met een tijdelijke testsleutel), installeert hem in een
+# echte Android-emulator, start de app en een paar andere schermen en controleert dat er niets crasht.
+# Vangt startcrashes door een andere build-tools-versie, targetSdk of Java-code, die in een cloudsessie
+# niet te testen zijn. Het testscript zelf: tests/telefoon/rooktest.sh.
+# Geen geheimen en geen omgeving "publiceren": dit is alleen een controle.
+name: Telefoontest
+
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', 'web/**', 'build.sh', 'setup-tools.sh', 'tests/telefoon/**', '.github/workflows/telefoontest.yml']
+  pull_request:
+    paths: ['app/**', 'web/**', 'build.sh', 'setup-tools.sh', 'tests/telefoon/**', '.github/workflows/telefoontest.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telefoontest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  telefoon:
+    name: Telefoontest (API ${{ matrix.api }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        # 35: recent Android (targetSdk-gedrag); 24: de laagste versie die de app ondersteunt (minSdk)
+        api: [35, 24]
+    env:
+      TOOLS: ${{ github.workspace }}/../toolchain
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false   # er draait een Action van buiten GitHub; geen token achterlaten
+
+      - name: Zelfcontrole van de crashherkenning
+        run: |
+          bash tests/telefoon/rooktest.sh --zelftest
+          bash tests/telefoon/rooktest.sh --manifest
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      - name: Bouwgereedschap ophalen (build-tools, aapt2, android.jar)
+        run: ./setup-tools.sh
+        env:
+          CI: 'true'
+
+      - name: Tijdelijke testsleutel maken
+        run: |
+          echo "testsleutel-alleen-voor-ci" > keys/keystore.pass
+          keytool -genkeypair -keystore keys/release.p12 -storetype PKCS12 -alias release \
+            -storepass testsleutel-alleen-voor-ci -keypass testsleutel-alleen-voor-ci \
+            -keyalg RSA -keysize 2048 -validity 30 -dname "CN=CI-test"
+
+      - name: App bouwen
+        run: |
+          ./build.sh
+          ls -l Renes-Tools-v*.apk
+
+      # De emulator draait alleen snel genoeg met KVM
+      - name: KVM aanzetten
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # De action voert elke regel van "script" apart uit met sh; daarom één regel die het testscript aanroept.
+      - name: App starten in de emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          ram-size: 3072M
+          disk-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash tests/telefoon/rooktest.sh "$(ls Renes-Tools-v*.apk | head -1)" build/telefoon/api-${{ matrix.api }}
+
+      - name: Logcat en schermafdrukken bewaren
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: telefoontest-api-${{ matrix.api }}
+          path: build/telefoon/
+          if-no-files-found: ignore
+          retention-days: 14

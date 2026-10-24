@@ -2,7 +2,7 @@
 # Eén of een paar interfacetests draaien, bijv.: ./tests/ui-een.sh calls spotify2
 # (naam zonder .test.js). Geslaagd = de test drukt "errors []" af en eindigt zonder fout.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 [ $# -gt 0 ] || { echo "Gebruik: ./tests/ui-een.sh <naam> [naam …]   (zie tests/ui/*.test.js)"; exit 1; }
 ./tests/ui-pagina.sh || exit 1
 fail=0

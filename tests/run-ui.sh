@@ -3,7 +3,7 @@
 # De interface draait met een nagebootste Android-brug (window.Android ontbreekt in de browser).
 # Vereist: node + playwright (npm i playwright) met Chromium.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 python3 tools/check-bridge.py || exit 1
 # Met de test-brug (de app zelf wordt zonder gebouwd)
 ./tests/ui-pagina.sh || exit 1
