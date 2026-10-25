@@ -230,7 +230,7 @@ function heReset(){ askConfirm('Standaard herstellen?', 'Groepen, volgorde en ve
     if (d.fav) c.fav = [...document.querySelectorAll('#he-fav .helist .herow')].map(x => x.dataset.t);
     else c.groups.forEach((g, gi) => { const l = document.querySelector('#he-groups .helist[data-g="' + gi + '"]'); if (l) g.tools = [...l.querySelectorAll('.herow')].map(x => x.dataset.t); });
     const gi = heGroupOf(c, t);
-    heSaveEdit(c, !d.fav && gi >= 0 && String(gi) !== d.from ? heName(t) + ' staat nu in ' + c.groups[gi].name : '', '[data-t="' + t + '"] button.more');
+    heSaveEdit(c, !d.fav && gi >= 0 && String(gi) !== d.from ? heName(t) + ' staat nu in ' + c.groups[gi].name : '', (d.fav ? '#he-fav ' : '#he-groups ') + '[data-t="' + t + '"] button.more');
   }
   /** Weg van het scherm (terug, app naar de achtergrond) tijdens het slepen: niets bewaren, schaduw weg. */
   window.heDragCancel = () => { if (drag) end(null); };
