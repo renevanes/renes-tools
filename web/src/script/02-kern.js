@@ -146,7 +146,7 @@ function show(name){
   if (name==='radio') enterRadio(); else stopRdPoll();
   if (name==='settings' || ST_SUBS.includes(name)) enterSettings();
   if (name==='backup') enterBackup(); else stopBkPoll();
-  if (name==='homeedit') enterHomeEdit();
+  if (name==='homeedit') enterHomeEdit(); else if (typeof heDragCancel === 'function') heDragCancel();
   if (name==='ralarm') enterAlarm();
   if (name==='selftest') enterSelfTest();
   if (name==='music') enterMusic(); else stopMuPoll();

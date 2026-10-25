@@ -25,7 +25,7 @@ function toolMenu(tool){
     ['Openen', () => tool === 'skin' ? Android.homeOpen() : show(tool)],
     [fav ? '☆ Uit favorieten' : '★ Favoriet (bovenaan)', () => toggleFav(tool)],
     ['Naar een andere groep…', () => heMoveSheet(tool)],
-    ['Verbergen van het startscherm', () => { heToggle(tool, false); toast(TOOLS[tool][0] + ' verborgen; terugzetten bij Startscherm aanpassen'); }],
+    ['Verbergen van het startscherm', () => { const wasFav = isFav(tool); heToggle(tool, false); undoToast(TOOLS[tool][0] + ' verborgen', () => { heToggle(tool, true); if (wasFav) toggleFav(tool); }); }],
     ['Snelkoppeling op startscherm', () => pinTool(tool)],
   ].concat(SOLO_TOOLS.includes(tool) ? [['Als losse app op startscherm…', () => soloMake(tool)]] : []));
 }

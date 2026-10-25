@@ -63,18 +63,19 @@ main{padding:4px 16px 24px;max-width:600px;margin:0 auto}
 .hgroups.compact .tile .ic{width:44px;height:44px;border-radius:15px}
 .hgroups.compact .tile .dot{top:8px;right:8px}
 .herow{display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--line)}.herow:first-child{border-top:0}
-.herow .nm{flex:1;font-size:15px}.herow.off .nm{color:var(--muted);text-decoration:line-through}
+.herow .nm{flex:1;font-size:15px}
 .herow button.mv{width:40px;height:40px;border-radius:20px;background:var(--chip);color:var(--on-chip);font-size:16px;font-weight:700}
 .herow button.mv:disabled{opacity:.35}
 .heghead{display:flex;align-items:center;gap:6px;margin-bottom:4px}.heghead h2{margin:0}
-.hegname{flex:1;min-width:0;text-align:left;background:none;border:0;padding:4px 0;color:inherit;font:inherit;box-shadow:none}.hegname small{display:block;color:var(--muted);font-size:12.5px;font-weight:500}
+.hegname-h{flex:1;min-width:0;margin:0}.hegname{width:100%;min-width:0;text-align:left;background:none;border:0;padding:4px 0;color:inherit;font:inherit;font-weight:inherit;box-shadow:none;overflow-wrap:anywhere}.hegname small{display:block;color:var(--muted);font-size:12.5px;font-weight:500}
 .herow .nm small{display:block;color:var(--muted);font-size:12.5px;text-decoration:none}
 .herow.off .nm{text-decoration:none;color:var(--muted)}
-.hedrag{flex:none;width:30px;height:44px;display:grid;place-items:center;color:var(--muted);font-size:20px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.hedrag{flex:none;width:30px;height:44px;display:grid;place-items:center;color:var(--muted);font-size:20px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .hedragging{opacity:.35}
 .heghost{position:fixed;z-index:3000;pointer-events:none;background:var(--card);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding-left:6px;padding-right:6px;border-top:0}
 .hedrop{border:2px dashed var(--line);border-radius:12px;padding:14px;color:var(--muted);font-size:13.5px;text-align:center;margin:6px 0}
-.headd{margin-top:6px}
+.headd{margin-top:6px;min-height:44px}
+#s-homeedit .hdr.sm h1{white-space:normal}
 .herow button.mv.more,.heghead button.mv.more{font-size:20px}
 .heghead button.mv{flex:none;width:44px;height:44px;border-radius:7px;display:grid;place-items:center;background:var(--chip);color:var(--on-chip);font-size:16px;font-weight:700}.heghead button.mv:disabled{opacity:.35}
 .he-how{margin:0 4px 12px}

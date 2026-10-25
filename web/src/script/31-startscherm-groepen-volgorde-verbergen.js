@@ -52,7 +52,7 @@ function heRow(c, t, fav){
     '<span class="hedrag" aria-hidden="true" title="Slepen">⠿</span>' +
     '<span class=nm>' + esc(nm) + (off ? '<small>Verborgen</small>' : '') + '</span>' +
     '<button class="mv star' + (on ? ' on' : '') + '" data-t="' + t + '" onclick="toggleFav(this.dataset.t)" aria-pressed="' + on + '" aria-label="' + esc(nm) + (fav ? ' uit favorieten' : ' als favoriet') + '">' + (on ? '★' : '☆') + '</button>' +
-    '<button class="mv more" data-t="' + t + '" onclick="heToolMenu(this.dataset.t, ' + (fav ? 'true' : 'false') + ')" aria-label="' + esc(nm) + ': verplaatsen, verbergen …">⋯</button></div>';
+    '<button class="mv more" data-t="' + t + '" onclick="heToolMenu(this.dataset.t, ' + (fav ? 'true' : 'false') + ')" aria-label="' + esc(nm) + (fav ? ': omhoog, omlaag, uit favorieten' : ': verplaatsen, verbergen …') + '">⋯</button></div>';
 }
 function enterHomeEdit(){
   const c = homeCfg();
@@ -62,31 +62,36 @@ function enterHomeEdit(){
   const n = c.groups.length;
   $('#he-groups').innerHTML = (c.grouped ? '' : '<p class="note">Zonder groepen staan de tools in deze volgorde onder elkaar (zet In groepen aan voor de kopjes).</p>') +
     c.groups.map((g, gi) => '<div class="card hegroup" data-g="' + gi + '">' +
-      '<div class=heghead><button class="hegname" data-g="' + gi + '" onclick="heRename(+this.dataset.g)" aria-label="' + esc(g.name) + ' hernoemen"><h2>' + esc(g.name) + '</h2><small>' + g.tools.length + (g.tools.length === 1 ? ' tool' : ' tools') + ' · ✎</small></button>' +
+      '<div class=heghead><h2 class="hegname-h"><button class="hegname" data-g="' + gi + '" onclick="heRename(+this.dataset.g)" aria-label="' + esc(g.name + ', ' + g.tools.length + (g.tools.length === 1 ? ' tool' : ' tools') + ', hernoemen') + '">' + esc(g.name) + '<small>' + g.tools.length + (g.tools.length === 1 ? ' tool' : ' tools') + ' · ✎</small></button></h2>' +
       '<button class="mv" data-g="' + gi + '" onclick="heGroupMove(+this.dataset.g,-1)"' + (gi === 0 ? ' disabled' : '') + ' aria-label="Groep ' + esc(g.name) + ' omhoog">↑</button>' +
       '<button class="mv" data-g="' + gi + '" onclick="heGroupMove(+this.dataset.g,1)"' + (gi === n - 1 ? ' disabled' : '') + ' aria-label="Groep ' + esc(g.name) + ' omlaag">↓</button>' +
       '<button class="mv more" data-g="' + gi + '" onclick="heGroupMenu(+this.dataset.g)" aria-label="Groep ' + esc(g.name) + ': meer">⋯</button></div>' +
       '<div class="helist" data-g="' + gi + '" role="list" aria-label="' + esc(g.name) + '">' + g.tools.map(t => heRow(c, t, false)).join('') +
-      (g.tools.length ? '' : '<div class="hedrop">Leeg: sleep hier een tool naartoe, of tik op Tool toevoegen.</div>') + '</div>' +
+      (g.tools.length ? '' : '<div class="hedrop" role="listitem">Leeg: sleep hier een tool naartoe, of tik op Tool toevoegen.</div>') + '</div>' +
       '<button class="linkish headd" data-g="' + gi + '" onclick="heAddTo(+this.dataset.g)">+ Tool toevoegen</button></div>').join('');
 }
-function heSaveEdit(c, msg){ homeSave(c); setDynamicShortcuts(); if (current === 'homeedit') enterHomeEdit(); if (msg) toast(msg); }
+/** Bewaren en opnieuw tonen; focus = waar de focus daarna heen moet (de knop van de tool of groep), voor een schermlezer. */
+function heSaveEdit(c, msg, focus){
+  homeSave(c); setDynamicShortcuts();
+  if (current === 'homeedit') { enterHomeEdit(); if (focus) { const el = document.querySelector('#s-homeedit ' + focus); if (el) el.focus(); } }
+  if (msg) toast(msg);
+}
 /* Favorieten: bovenaan het startscherm (en de eerste keuzes bij lang indrukken van het app-icoon) */
 function isFav(t){ return homeCfg().fav.includes(t); }
 function toggleFav(t){
   const c = homeCfg(), on = !c.fav.includes(t);
   c.fav = on ? c.fav.concat([t]) : c.fav.filter(x => x !== t);
   if (on) c.hidden = c.hidden.filter(x => x !== t); // een favoriet verbergen heeft geen zin
-  heSaveEdit(c, on ? '★ ' + heName(t) + ' staat nu bovenaan' : heName(t) + ' uit favorieten');
+  heSaveEdit(c, on ? '★ ' + heName(t) + ' staat nu bovenaan' : heName(t) + ' uit favorieten', '#he-groups [data-t="' + t + '"] button.star');
 }
 function heFavMove(t, dir){
   const c = homeCfg(), i = c.fav.indexOf(t), j = i + dir;
   if (i < 0 || j < 0 || j >= c.fav.length) return;
   c.fav.splice(i, 1); c.fav.splice(j, 0, t);
-  heSaveEdit(c);
+  heSaveEdit(c, '', '#he-fav [data-t="' + t + '"] button.more');
 }
 function heSet(k, v){ const c = homeCfg(); c[k] = v; homeSave(c); if (current === 'homeedit') enterHomeEdit(); }
-function heToggle(t, on){ const c = homeCfg(); c.hidden = c.hidden.filter(x => x !== t); if (!on) { c.hidden.push(t); c.fav = c.fav.filter(x => x !== t); } heSaveEdit(c); } // verborgen = ook geen favoriet meer
+function heToggle(t, on){ const c = homeCfg(); c.hidden = c.hidden.filter(x => x !== t); if (!on) { c.hidden.push(t); c.fav = c.fav.filter(x => x !== t); } heSaveEdit(c, '', '#he-groups [data-t="' + t + '"] button.more'); } // verborgen = ook geen favoriet meer
 /** Eén plek omhoog/omlaag; aan de rand van een groep schuift de tool naar de groep ernaast. Zuiver op c. */
 function heMoveIn(c, t, dir){
   const gi = heGroupOf(c, t); if (gi < 0) return false;
@@ -97,7 +102,7 @@ function heMoveIn(c, t, dir){
   if (dir < 0) ng.tools.push(t); else ng.tools.unshift(t);
   return true;
 }
-function heMove(t, dir){ const c = homeCfg(); if (heMoveIn(c, t, dir)) heSaveEdit(c); }
+function heMove(t, dir){ const c = homeCfg(); if (heMoveIn(c, t, dir)) heSaveEdit(c, '', '#he-groups [data-t="' + t + '"] button.more'); }
 /** Tool naar groep gi (achteraan, of op plek at). Zuiver op c. */
 function heMoveToIn(c, t, gi, at){
   const from = heGroupOf(c, t), g = c.groups[gi]; if (!g) return false;
@@ -105,7 +110,7 @@ function heMoveToIn(c, t, gi, at){
   g.tools.splice(at == null ? g.tools.length : Math.max(0, Math.min(at, g.tools.length)), 0, t);
   return true;
 }
-function heMoveTo(t, gi){ const c = homeCfg(); if (heMoveToIn(c, t, gi)) heSaveEdit(c, heName(t) + ' staat nu in ' + c.groups[gi].name); }
+function heMoveTo(t, gi){ const c = homeCfg(); if (heMoveToIn(c, t, gi)) heSaveEdit(c, heName(t) + ' staat nu in ' + c.groups[gi].name, '#he-groups [data-t="' + t + '"] button.more'); }
 /** Menu bij een tool (ook vanaf een tegel op het startscherm). */
 function heToolMenu(t, fav){
   const c = homeCfg(), gi = heGroupOf(c, t), off = c.hidden.includes(t);
@@ -135,13 +140,15 @@ function heAddTo(gi){
   const c = homeCfg(), g = c.groups[gi]; if (!g) return;
   const others = [].concat(...c.groups.map((x, i) => i === gi ? [] : x.tools.map(t => [t, x.name])));
   if (!others.length) { toast('Alle tools staan al in deze groep'); return; }
-  openSheet('Toevoegen aan ' + g.name, 'Tik op een tool om hem hierheen te halen', [['Klaar', () => {}, 'check']].concat(others.map(([t, from]) => [heName(t) + ' (uit ' + from + ')', () => { const d = homeCfg(); if (heMoveToIn(d, t, gi)) { heSaveEdit(d, heName(t) + ' toegevoegd aan ' + g.name); setTimeout(() => heAddTo(gi), 250); } }, 'plus'])));
+  openSheet('Toevoegen aan ' + g.name, 'Tik op een tool om hem hierheen te halen', [['Klaar', () => {}, 'check']].concat(others.map(([t, from]) => [heName(t) + ' (uit ' + from + ')', () => { const d = homeCfg(); if (heMoveToIn(d, t, gi)) { heSaveEdit(d, heName(t) + ' toegevoegd aan ' + g.name); setTimeout(() => { if (current === 'homeedit' && !$('#sheet').classList.contains('on')) heAddTo(gi); }, 250); } }, 'plus'])));
 }
 function heGroupMove(gi, dir){
   const c = homeCfg(), j = gi + dir; if (j < 0 || j >= c.groups.length) return;
   const [g] = c.groups.splice(gi, 1); c.groups.splice(j, 0, g);
   heSaveEdit(c);
-  setTimeout(() => { const b = document.querySelector('#he-groups .hegroup[data-g="' + j + '"] .mv[aria-label$="' + (dir < 0 ? 'omhoog' : 'omlaag') + '"]'); if (b && !b.disabled) b.focus(); }, 0);
+  // Focus op dezelfde pijl (of, aan de rand, op de andere pijl of de naam van de groep)
+  setTimeout(() => { const q = s => document.querySelector('#he-groups .hegroup[data-g="' + j + '"] ' + s);
+    const b = [q('.mv[aria-label$="' + (dir < 0 ? 'omhoog' : 'omlaag') + '"]'), q('.mv[aria-label$="' + (dir < 0 ? 'omlaag' : 'omhoog') + '"]'), q('.hegname')].find(x => x && !x.disabled); if (b) b.focus(); }, 0);
 }
 function heGroupMenu(gi){
   const c = homeCfg(), g = c.groups[gi]; if (!g) return;
@@ -152,7 +159,7 @@ function heGroupMenu(gi){
   openSheet(g.name, g.tools.length + (g.tools.length === 1 ? ' tool' : ' tools'), acts);
 }
 function heRename(gi){ const c = homeCfg(); askInput('Groep hernoemen', '', c.groups[gi].name, 'Opslaan', v => { v = v.trim(); if (!v) return; c.groups[gi].name = v.slice(0, 40); heSaveEdit(c); }); }
-function heAddGroup(){ askInput('Nieuwe groep', 'Naam van de groep', '', 'Toevoegen', v => { v = v.trim(); if (!v) return; const c = homeCfg(); c.groups.push({ name: v.slice(0, 40), tools: [] }); heSaveEdit(c); setTimeout(() => heAddTo(c.groups.length - 1), 250); }); }
+function heAddGroup(){ askInput('Nieuwe groep', 'Naam van de groep', '', 'Toevoegen', v => { v = v.trim(); if (!v) return; const c = homeCfg(); c.groups.push({ name: v.slice(0, 40), tools: [] }); heSaveEdit(c); setTimeout(() => { if (current === 'homeedit' && !$('#sheet').classList.contains('on')) heAddTo(c.groups.length - 1); }, 250); }); }
 /** Groep weg; de tools erin gaan naar de groep erboven (of eronder als het de eerste is). */
 function heDelGroup(gi){
   const c = homeCfg(), g = c.groups[gi]; if (!g || c.groups.length < 2) return;
@@ -167,20 +174,22 @@ function heReset(){ askConfirm('Standaard herstellen?', 'Groepen, volgorde en ve
   let drag = null;
   const rowsIn = scope => [...document.querySelectorAll(scope)];
   function start(e){
-    const h = e.target.closest('#s-homeedit .hedrag'); if (!h) return;
+    if (drag || !e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return; // één vinger, linkerknop
+    const h = e.target && e.target.closest && e.target.closest('#s-homeedit .hedrag'); if (!h) return;
     const row = h.closest('.herow'), list = row.closest('.helist'); if (!row || !list) return;
     e.preventDefault();
     const r = row.getBoundingClientRect(), ghost = row.cloneNode(true);
-    ghost.className += ' heghost'; ghost.style.width = r.width + 'px'; ghost.style.left = r.left + 'px'; ghost.style.top = r.top + 'px';
+    ghost.className += ' heghost'; ghost.setAttribute('aria-hidden', 'true'); ghost.removeAttribute('role'); ghost.style.width = r.width + 'px'; ghost.style.left = r.left + 'px'; ghost.style.top = r.top + 'px';
     document.body.appendChild(ghost);
     row.classList.add('hedragging');
-    drag = { row, ghost, fav: !!list.dataset.fav, from: list.dataset.g, dy: e.clientY - r.top, y: e.clientY, id: e.pointerId, raf: 0 };
+    drag = { row, ghost, fav: !!list.dataset.fav, from: list.dataset.g, dy: e.clientY - r.top, y: e.clientY, y0: e.clientY, moved: false, id: e.pointerId, raf: 0 };
     try { h.setPointerCapture(e.pointerId); } catch (x) { }
     if (navigator.vibrate) navigator.vibrate(10);
     scroll();
   }
   function scroll(){
     if (!drag) return;
+    if (!drag.moved) { drag.raf = requestAnimationFrame(scroll); return; } // pas meeschuiven als de vinger beweegt
     const edge = 90, y = drag.y, sp = y < edge ? -Math.ceil((edge - y) / 8) : y > innerHeight - edge ? Math.ceil((y - innerHeight + edge) / 8) : 0;
     if (sp) { const sc = document.querySelector('#s-homeedit main') || document.scrollingElement; const before = sc.scrollTop; sc.scrollTop += sp; if (sc.scrollTop === before) window.scrollBy(0, sp); place(); }
     drag.raf = requestAnimationFrame(scroll);
@@ -204,18 +213,28 @@ function heReset(){ askConfirm('Standaard herstellen?', 'Groepen, volgorde en ve
     else if (drop) best.list.insertBefore(d.row, drop);
     else if (best.list.lastElementChild !== d.row) best.list.appendChild(d.row);
   }
-  function move(e){ if (!drag || e.pointerId !== drag.id) return; e.preventDefault(); drag.y = e.clientY; place(); }
+  function move(e){
+    if (!drag || e.pointerId !== drag.id) return;
+    e.preventDefault(); drag.y = e.clientY;
+    if (!drag.moved && Math.abs(drag.y - drag.y0) > 8) drag.moved = true;
+    if (drag.moved) place();
+  }
   function end(e){
     if (!drag || (e && e.pointerId !== drag.id)) return;
     const d = drag; drag = null;
     cancelAnimationFrame(d.raf); d.ghost.remove(); d.row.classList.remove('hedragging');
-    if (e && e.type === 'pointercancel') { enterHomeEdit(); return; }
+    document.querySelectorAll('.heghost').forEach(g => g.remove());
+    if (!e || e.type === 'pointercancel') { if (current === 'homeedit') enterHomeEdit(); return; }
+    if (!d.moved) return; // alleen aangetikt: niets veranderd
     const c = homeCfg(), t = d.row.dataset.t;
     if (d.fav) c.fav = [...document.querySelectorAll('#he-fav .helist .herow')].map(x => x.dataset.t);
     else c.groups.forEach((g, gi) => { const l = document.querySelector('#he-groups .helist[data-g="' + gi + '"]'); if (l) g.tools = [...l.querySelectorAll('.herow')].map(x => x.dataset.t); });
     const gi = heGroupOf(c, t);
-    heSaveEdit(c, !d.fav && gi >= 0 && String(gi) !== d.from ? heName(t) + ' staat nu in ' + c.groups[gi].name : '');
+    heSaveEdit(c, !d.fav && gi >= 0 && String(gi) !== d.from ? heName(t) + ' staat nu in ' + c.groups[gi].name : '', '[data-t="' + t + '"] button.more');
   }
+  /** Weg van het scherm (terug, app naar de achtergrond) tijdens het slepen: niets bewaren, schaduw weg. */
+  window.heDragCancel = () => { if (drag) end(null); };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) window.heDragCancel(); });
   document.addEventListener('pointerdown', start);
   document.addEventListener('pointermove', move, { passive: false });
   document.addEventListener('pointerup', end);
