@@ -1,0 +1,3 @@
+Modellen beheren opnieuw ingedeeld: per soort (assistent, spraak naar tekst, slim zoeken, voorlezen) zie je waarvoor hij is, of je hem nodig hebt, welke versie je hebt en of er een nieuwere is (met Bijwerken)
+Voorlezen: de app laat zien of je telefoon een Nederlandse stem heeft, met een knop om er een toe te voegen
+Modellen downloaden gaat nu altijd door de app zelf, zonder aparte keuze; een onderbroken download gaat vanzelf verder als je de app weer opent

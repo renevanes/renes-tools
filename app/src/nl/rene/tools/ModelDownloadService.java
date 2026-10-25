@@ -50,7 +50,7 @@ public class ModelDownloadService extends Service {
             if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
         } catch (Exception e) {
             QUEUED.remove(id);
-            LocalAi.ownFailed(c, id, "Android staat het downloaden nu niet toe; open de app en tik op Verder");
+            LocalAi.ownFailed(c, id, "Android staat het downloaden nu niet toe; het gaat verder als je de app weer opent");
         }
     }
 
@@ -64,7 +64,7 @@ public class ModelDownloadService extends Service {
             boolean running; synchronized (queue) { running = worker != null; }
             if (!running) {
                 String id = intent == null ? null : intent.getStringExtra("id");
-                if (id != null) { QUEUED.remove(id); LocalAi.ownFailed(this, id, "Android staat het downloaden nu niet toe; open de app en tik op Verder"); }
+                if (id != null) { QUEUED.remove(id); LocalAi.ownFailed(this, id, "Android staat het downloaden nu niet toe; het gaat verder als je de app weer opent"); }
                 stopSelfResult(startId);
                 return START_NOT_STICKY;
             }
@@ -82,7 +82,7 @@ public class ModelDownloadService extends Service {
     @Override
     public void onTimeout(int startId, int fgsType) {
         synchronized (queue) { for (String id : queue) stop(id); }
-        for (String id : RUN.keySet()) { LocalAi.ownFailed(this, id, "Android stopte het downloaden na 6 uur; tik later op Verder"); stop(id); }
+        for (String id : RUN.keySet()) { LocalAi.ownFailed(this, id, "Android stopte het downloaden na 6 uur; het gaat later vanzelf verder"); stop(id); }
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
     }
@@ -139,10 +139,10 @@ public class ModelDownloadService extends Service {
         return null;
     }
 
-    /** Hooguit 5 minuten wachten tot het netwerk weer mag (wifi terug); geeft de reden als het nog steeds niet mag. */
+    /** Hooguit 20 minuten wachten tot het netwerk weer mag (wifi terug); geeft de reden als het nog steeds niet mag. */
     private String waitForNet(String id) {
         String why = netBlocked(this);
-        long until = System.currentTimeMillis() + 5 * 60_000L;
+        long until = System.currentTimeMillis() + 20 * 60_000L;
         try {
             while (why != null && System.currentTimeMillis() < until && !STOP.contains(id)) {
                 WAIT_NET.put(id, why);
@@ -203,7 +203,7 @@ public class ModelDownloadService extends Service {
         } catch (Throwable e) {
             RUN.remove(id);
             App.log(this, "AI", "model downloaden: " + e + (e.getCause() != null ? " (" + e.getCause() + ")" : ""));
-            LocalAi.ownFailed(this, id, why(e));
+            LocalAi.ownFailed(this, id, why(e), !(e instanceof ModelFetch.Fatal) && !"Te weinig opslag".equals(why(e)));
         }
     }
 

@@ -46,6 +46,14 @@ public class AiBridge extends SleepBridge {
     /** Alles wat geen bruikbaar model is weg (oude modellen, halve downloads); geeft de vrijgekomen bytes. */
     @JavascriptInterface public String modelsClean() { try { return String.valueOf(Models.clean(ctx)); } catch (Throwable t) { return "0"; } }
 
+    /** Onderbroken downloads vanzelf laten verdergaan (bij het openen van Modellen of Lokale AI). */
+    @JavascriptInterface public void aiResume() { new Thread(() -> { try { LocalAi.resumeDownloads(ctx); } catch (Throwable ignored) { } }).start(); }
+
+    /** Voorlezen: kijken of er een voorleesfunctie met een Nederlandse stem is (uitkomst via onAiModels). */
+    @JavascriptInterface public void ttsCheck() { TtsCheck.run(ctx); }
+    @JavascriptInterface public void ttsSettings() { a.h.post(() -> TtsCheck.openSettings(a)); }
+    @JavascriptInterface public void ttsInstall() { a.h.post(() -> TtsCheck.install(a)); }
+
     /** Door de app zelf laten downloaden (of verder na een onderbreking), als Android's DownloadManager blijft wachten. */
     @JavascriptInterface public String aiDownloadApp(String id) {
         LocalAi.Model m = LocalAi.model(id);
