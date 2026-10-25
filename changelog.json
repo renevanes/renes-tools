@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.102",
+    "date": "2026-10-25",
+    "changes": [
+      "Modellen beheren (Instellingen → Modellen): alle taal-, zoek- en spraakmodellen op één plek, met hoeveel ruimte ze innemen, wat in gebruik is en wanneer je ze laatst gebruikte; verwijderen, wisselen, downloaden en opruimen",
+      "Blijft een taalmodel hangen op \"Wacht op internet\", kies dan Via de app downloaden: de app haalt het zelf binnen, gaat verder waar het was en toont de voortgang in de meldingenbalk"
+    ]
+  },
+  {
     "version": "1.101",
     "date": "2026-10-25",
     "changes": [
