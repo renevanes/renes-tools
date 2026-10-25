@@ -282,9 +282,10 @@ public class MainActivity extends Activity {
             int st = i.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
             if (st == PackageInstaller.STATUS_PENDING_USER_ACTION) {
                 Intent confirm = i.getParcelableExtra(Intent.EXTRA_INTENT);
-                if (confirm != null && !systemInstaller(confirm)) { js("onUpdateStatus", jsonErr("Installeren kon niet starten (onbekend installatiescherm)")); return; }
+                if (confirm == null) { js("onUpdateStatus", jsonErr("Installeren kon niet starten")); return; }
+                if (!systemInstaller(confirm)) { js("onUpdateStatus", jsonErr("Installeren kon niet starten (onbekend installatiescherm)")); return; }
                 if (confirm != null) {
-                    js("onUpdateStatus", "{\"state\":\"confirm\"}"); // Android vraagt om te bevestigen
+                    js("onUpdateStatus", "{\"state\":\"confirm\",\"kind\":\"apk\"}"); // Android vraagt om te bevestigen
                     try { startActivity(confirm); } catch (Exception e) { js("onUpdateStatus", "{\"state\":\"error\",\"error\":\"Installeren kon niet starten\"}"); }
                 }
             } else if (st != PackageInstaller.STATUS_SUCCESS) {
@@ -455,7 +456,11 @@ public class MainActivity extends Activity {
 
     private void checkUpdates(final boolean manual) {
         new Thread(() -> {
-            final JSONObject r = Updater.check(getApplicationContext(), progressTo("web"));
+            JSONObject r0;
+            try { r0 = Updater.check(getApplicationContext(), progressTo("web")); }
+            catch (Throwable t) { r0 = new JSONObject(); try { r0.put("state", "error").put("error", "Controleren op updates mislukt"); } catch (Exception ignored) { } }
+            final JSONObject r = r0;
+            try { r.put("kind", "web"); } catch (Exception ignored) { }
             h.post(() -> {
                 try { r.put("manual", manual); } catch (Exception ignored) { }
                 if ("web".equals(r.optString("state"))) {
@@ -483,13 +488,20 @@ public class MainActivity extends Activity {
         h.post(() -> { if (web != null) web.evaluateJavascript(code, null); });
     }
 
-    /** Voortgang van een update naar de pagina (onUpdateStatus met state "progress"), hooguit 5 keer per seconde. */
-    Updater.Progress progressTo(String kind) {
+    /**
+     * Voortgang van een update naar de pagina (onUpdateStatus met state "progress"), hooguit 5 keer per seconde.
+     * Naar de app zoals hij nu draait (live): wordt het venster tussendoor opnieuw gemaakt, dan komt het daar aan.
+     * Elke aanroep heeft zijn eigen Throttle, gebruikt door één thread.
+     */
+    static Updater.Progress progressTo(String kind) {
         return new Updater.Throttle((ph, done, total) -> {
-            try { js("onUpdateStatus", new JSONObject().put("state", "progress").put("kind", kind).put("phase", ph).put("done", done).put("total", total).toString()); }
+            try { updateStatus(new JSONObject().put("state", "progress").put("kind", kind).put("phase", ph).put("done", done).put("total", total).toString()); }
             catch (Exception ignored) { }
         }, 200, System::currentTimeMillis);
     }
+
+    /** Uitkomst van een update naar de app zoals hij nu draait. */
+    static void updateStatus(String json) { MainActivity m = live; if (m != null) m.js("onUpdateStatus", json); }
 
     private static String jsonErr(String m) {
         return "{\"state\":\"error\",\"error\":" + JSONObject.quote(m) + "}";
@@ -786,16 +798,20 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void installUpdate() {
             new Thread(() -> {
                 String err;
-                try { err = Updater.downloadAndInstall(ctx, a.progressTo("apk")); }
-                catch (Throwable e) { err = "Update mislukt: " + e.getMessage(); }
-                if ("busy".equals(err)) {
-                    a.js("onUpdateStatus", "{\"state\":\"busy\"}");
-                } else if ("needs-permission".equals(err)) {
-                    a.h.post(a::openInstallSettings);
-                    a.js("onUpdateStatus", "{\"state\":\"needs-permission\"}");
-                } else if (err != null) {
-                    a.js("onUpdateStatus", jsonErr(err));
-                }
+                try { err = Updater.downloadAndInstall(ctx, progressTo("apk")); }
+                catch (OutOfMemoryError e) { err = "Te weinig geheugen voor de update"; }
+                catch (Throwable e) { err = "Update mislukt: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()); }
+                try {
+                    if ("busy".equals(err)) {
+                        updateStatus("{\"state\":\"busy\",\"kind\":\"apk\"}");
+                    } else if ("needs-permission".equals(err)) {
+                        MainActivity m = live;
+                        if (m != null) m.h.post(m::openInstallSettings);
+                        updateStatus("{\"state\":\"needs-permission\",\"kind\":\"apk\"}");
+                    } else if (err != null) {
+                        updateStatus(new JSONObject(jsonErr(err)).put("kind", "apk").toString());
+                    }
+                } catch (Throwable ignored) { }
             }).start();
         }
 

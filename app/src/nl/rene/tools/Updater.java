@@ -110,7 +110,7 @@ final class Updater {
 
     static JSONObject fetchManifest() throws Exception {
         String base = base();
-        byte[] b = get(base + "update.json?t=" + System.currentTimeMillis());
+        byte[] b = get(base + "update.json?t=" + System.currentTimeMillis(), NONE, "", MAX_MANIFEST);
         JSONObject m = new JSONObject(new String(b, StandardCharsets.UTF_8));
         m.put("_base", base);
         return m;
@@ -120,9 +120,7 @@ final class Updater {
      * Controleert op updates. Resultaat (JSON):
      * state = uptodate | web (interface bijgewerkt, herladen) | apk (nieuwe app beschikbaar) | error
      */
-    static JSONObject check(Context c) { return check(c, NONE); }
-
-    /** Als check(c), met voortgang van het downloaden van een nieuwe interface. */
+    /** Met voortgang (p) van het downloaden van een nieuwe interface. */
     static JSONObject check(Context c, Progress p) {
         JSONObject r = new JSONObject();
         try {
@@ -202,7 +200,7 @@ final class Updater {
         if (!signatureOk(c, m)) throw new Exception("Handtekening van de interface-update klopt niet; niet geïnstalleerd");
         if (!validName(m.optString("versionName"))) throw new Exception("Onverwachte versienaam; niet geïnstalleerd");
         p.step("download", 0, 0);
-        byte[] html = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("web", "index.html") + "?v=" + m.getInt("versionCode"), p, "download");
+        byte[] html = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("web", "index.html") + "?v=" + m.getInt("versionCode"), p, "download", MAX_WEB);
         String sha = m.optString("webSha256", "");
         if (sha.isEmpty() || !sha.equalsIgnoreCase(sha256(html))) throw new Exception("Controlegetal interface klopt niet");
         String s = new String(html, StandardCharsets.UTF_8);
@@ -210,7 +208,7 @@ final class Updater {
         // Eerst alles downloaden en controleren; pas daarna beide bestanden tegelijk vervangen (nooit een half bijgewerkte versie).
         byte[] st = null;
         if (!m.optString("start").isEmpty()) {
-            st = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("start") + "?v=" + m.getInt("versionCode"), p, "download2");
+            st = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("start") + "?v=" + m.getInt("versionCode"), p, "download2", MAX_WEB);
             String ss = m.optString("startSha256", "");
             if (ss.isEmpty() || !ss.equalsIgnoreCase(sha256(st))) throw new Exception("Controlegetal startscherm klopt niet");
             if (!new String(st, StandardCharsets.UTF_8).contains("RENES-TOOLS-START")) throw new Exception("Onverwacht bestand");
@@ -228,8 +226,6 @@ final class Updater {
     }
 
     /** Downloadt de nieuwe APK en start de installatie. Geeft null of een foutmelding terug ("busy": al bezig). */
-    static String downloadAndInstall(Context c) { return downloadAndInstall(c, NONE); }
-
     static String downloadAndInstall(Context c, Progress pr) {
         if (!APK_BUSY.compareAndSet(false, true)) return "busy";
         try {
@@ -238,7 +234,7 @@ final class Updater {
             if (Build.VERSION.SDK_INT >= 26 && !c.getPackageManager().canRequestPackageInstalls()) {
                 return "needs-permission";
             }
-            byte[] apk = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("apk", "Renes-Tools.apk") + "?v=" + m.getInt("versionCode"), pr, "download");
+            byte[] apk = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("apk", "Renes-Tools.apk") + "?v=" + m.getInt("versionCode"), pr, "download", MAX_APK);
             pr.step("check", 0, 0);
             String sha = m.optString("apkSha256", "");
             // De handtekening dekt ook het controlegetal van de APK: zonder geldige handtekening niet installeren
@@ -251,17 +247,19 @@ final class Updater {
             p.setAppPackageName(c.getPackageName());
             if (Build.VERSION.SDK_INT >= 31) p.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
             int id = pi.createSession(p);
-            try (PackageInstaller.Session s = pi.openSession(id)) {
-                try (OutputStream o = s.openWrite("base.apk", 0, apk.length)) {
-                    o.write(apk);
-                    s.fsync(o);
+            try {
+                try (PackageInstaller.Session s = pi.openSession(id)) {
+                    try (OutputStream o = s.openWrite("base.apk", 0, apk.length)) {
+                        o.write(apk);
+                        s.fsync(o);
+                    }
+                    Intent back = new Intent(c, MainActivity.class).setAction(MainActivity.ACTION_INSTALL_STATUS)
+                            .putExtra("tok", App.token(c)).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+                    PendingIntent pend = PendingIntent.getActivity(c, 7, back, fl);
+                    s.commit(pend.getIntentSender());
                 }
-                Intent back = new Intent(c, MainActivity.class).setAction(MainActivity.ACTION_INSTALL_STATUS)
-                        .putExtra("tok", App.token(c)).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
-                PendingIntent pend = PendingIntent.getActivity(c, 7, back, fl);
-                s.commit(pend.getIntentSender());
-            }
+            } catch (Exception e) { try { pi.abandonSession(id); } catch (Exception ignored) { } throw e; }
             pr.step("committed", 0, 0);
             return null;
         } catch (Exception e) {
@@ -271,10 +269,11 @@ final class Updater {
 
     // ---------- hulpfuncties ----------
 
-    static byte[] get(String url) throws Exception { return get(url, NONE, ""); }
+    /** Hoe groot een download hooguit mag zijn (de updatelijst, de interface, de app). */
+    static final long MAX_MANIFEST = 2_000_000L, MAX_WEB = 30_000_000L, MAX_APK = 200_000_000L;
 
-    /** Downloaden met voortgang (fase phase; totaal 0 als de server de grootte niet meegeeft). */
-    static byte[] get(String url, Progress p, String phase) throws Exception {
+    /** Downloaden met voortgang (fase phase; totaal 0 als de server de grootte niet meegeeft), hooguit max bytes. */
+    static byte[] get(String url, Progress p, String phase, long max) throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
         con.setConnectTimeout(15000);
         con.setReadTimeout(60000);
@@ -283,14 +282,21 @@ final class Updater {
         try {
             int code = con.getResponseCode();
             if (code != 200) throw new Exception("HTTP " + code);
-            long total = Math.max(0, con.getContentLength());
+            long total = Math.max(0, con.getContentLengthLong());
+            if (total > max) throw new Exception("Download te groot");
             try (InputStream i = con.getInputStream()) {
-                ByteArrayOutputStream b = new ByteArrayOutputStream(total > 0 && total < 64_000_000 ? (int) total : 16384);
+                ByteArrayOutputStream b = new ByteArrayOutputStream(total > 0 ? (int) total : 16384);
                 byte[] buf = new byte[16384];
                 int n;
                 long done = 0;
                 p.step(phase, 0, total);
-                while ((n = i.read(buf)) > 0) { b.write(buf, 0, n); done += n; p.step(phase, done, total); }
+                while ((n = i.read(buf)) > 0) {
+                    done += n;
+                    if (done > max) throw new Exception("Download te groot");
+                    b.write(buf, 0, n);
+                    p.step(phase, done, total);
+                }
+                if (total > 0 && done < total) throw new Exception("Download onvolledig");
                 p.step(phase, done, Math.max(total, done));
                 return b.toByteArray();
             }

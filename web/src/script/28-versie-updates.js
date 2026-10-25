@@ -12,7 +12,8 @@ function renderInfo(){
 function checkUpdates(){ $('#chk-btn').textContent = 'Bezig met controleren…'; Android.checkUpdates(); }
 
 /* Voortgang van een update: in de balk op Home en bij Versie en updates (downloaden, controleren, installeren) */
-let updAvail = '', updKind = '', updPhase = '';
+let updAvail = '', updKind = '', updPhase = '', updDog = null, updDogMs = 90000;
+const UPD_BUSY = ['start', 'download', 'check', 'install']; // dan geen tweede keer starten
 function updMB(b){ return (Math.max(0, b) / 1048576).toFixed(1).replace('.', ',') + ' MB'; }
 /** Tekst en percentage (-1 = onbekend) bij een stap. Zuiver. */
 function updStep(r){
@@ -29,57 +30,77 @@ function updStep(r){
     default: return ['Bezig…', -1];
   }
 }
+/** Voor een schermlezer: alleen de fase (zonder procenten), ook als dezelfde tekst nog eens komt. */
+function updSay(t){ const l = $('#upd-live'); if (!l) return; l.textContent = ''; setTimeout(() => { l.textContent = t; }, 60); }
 /** Balken bijwerken: text, pct (-1 = bezig zonder percentage, null = geen balk), knop (null = verbergen). */
-function updShow(text, pct, btn, live){
+function updShow(text, pct, btn){
   ['', '2'].forEach(n => {
     const b = $('#upd-banner' + n); if (!b) return;
     b.classList.add('on');
     $('#upd-text' + n).textContent = text;
-    const p = $('#upd-prog' + n);
+    const p = $('#upd-prog' + n), num = pct !== null && pct >= 0;
     p.hidden = pct === null;
     p.classList.toggle('busy', pct === -1);
-    if (pct >= 0) { p.querySelector('i').style.width = pct + '%'; p.setAttribute('aria-valuenow', pct); } else { p.querySelector('i').style.width = ''; p.removeAttribute('aria-valuenow'); }
+    p.querySelector('i').style.width = num ? pct + '%' : '';
+    if (num) { p.setAttribute('aria-valuenow', pct); p.setAttribute('aria-valuetext', text.replace(/^[^…]*…\s*/, '')); }
+    else { p.removeAttribute('aria-valuenow'); p.setAttribute('aria-valuetext', 'Bezig'); }
     const k = $('#upd-btn' + n);
     k.style.display = btn === null ? 'none' : '';
     if (btn) { k.textContent = btn[0]; k.disabled = !!btn[1]; }
-    if (live) $('#upd-live' + n).textContent = live;
   });
 }
 function updAvailShow(){
   if (updAvail) updShow('Nieuwe versie ' + updAvail + ' is beschikbaar', null, ['Installeren', false]);
   else ['', '2'].forEach(n => { const b = $('#upd-banner' + n); if (b) b.classList.remove('on'); });
 }
+/** Klaar of mislukt: terug naar "beschikbaar" (of niets). */
+function updReset(){ clearTimeout(updDog); updKind = ''; updPhase = ''; updAvailShow(); if ($('#chk-btn')) $('#chk-btn').textContent = 'Controleren op updates'; }
+/** Komt er anderhalve minuut niets meer (bijv. geen antwoord van de installer), dan niet blijven hangen. */
+function updWatch(){ clearTimeout(updDog); updDog = setTimeout(() => { if (updKind && updPhase !== 'confirm') updReset(); }, updDogMs); }
 function installUpdate(){
-  if (updKind === 'apk' && updPhase && updPhase !== 'confirm') { toast('De update wordt al gedownload'); return; }
-  updKind = 'apk'; updPhase = 'start';
-  updShow('Nieuwe versie ophalen…', -1, ['Bezig…', true], 'De update wordt gedownload');
+  if (updKind === 'apk' && UPD_BUSY.includes(updPhase)) { toast('De update wordt al gedownload'); return; }
+  updKind = 'apk'; updPhase = 'start'; updWatch();
+  updShow('Nieuwe versie ophalen…', -1, ['Bezig…', true]);
+  updSay('De update wordt gedownload');
   Android.installUpdate();
 }
 window.onUpdateStatus = function(r){
   if (r.state === 'progress') {
+    // Een interface-update tijdens het downloaden van de app: de app gaat voor
+    if (updKind === 'apk' && r.kind === 'web' && UPD_BUSY.includes(updPhase)) return;
     const [text, pct] = updStep(r), first = updKind !== r.kind || updPhase !== r.phase;
-    updKind = r.kind; updPhase = r.phase;
-    updShow(text, pct, r.kind === 'apk' ? ['Bezig…', true] : null, first ? text.replace(/\s(\d+%|\d+,\d MB).*$/, '') : '');
+    updKind = r.kind; updPhase = r.phase; updWatch();
+    updShow(text, pct, r.kind === 'apk' ? ['Bezig…', true] : null);
+    if (first) updSay(text.replace(/\s(\d+%|\d+,\d MB).*$/, ''));
     if (r.kind === 'web' && $('#chk-btn')) $('#chk-btn').textContent = text;
     return;
   }
-  const wasKind = updKind;
-  updKind = ''; updPhase = '';
-  $('#chk-btn').textContent = 'Controleren op updates';
-  if (r.state === 'confirm') {
-    // Android toont nu zijn eigen venster; afgebroken = opnieuw kunnen
-    updKind = 'apk'; updPhase = 'confirm';
-    updShow('Bevestig de installatie in het venster van Android', null, ['Installeren', false], 'Bevestig de installatie in het venster van Android');
+  // Uitkomst van een controle op de achtergrond terwijl de app gedownload wordt: de voortgang laten staan
+  if (r.kind === 'web' && updKind === 'apk') {
+    if (r.state === 'apk') updAvail = r.versionName;
+    if ($('#chk-btn')) $('#chk-btn').textContent = 'Controleren op updates';
+    if (r.state === 'uptodate' && r.manual) toast('Je hebt de nieuwste versie (' + ver().webName + ') ✓');
     return;
   }
-  if (r.state === 'apk') { updAvail = r.versionName; updAvailShow(); }
-  else if (r.state === 'busy') { updKind = 'apk'; updPhase = 'download'; toast('De update wordt al gedownload'); }
-  else {
-    if (wasKind) updAvailShow(); // voortgang weg: terug naar "beschikbaar" (of niets)
-    if (r.state === 'uptodate' && r.manual) toast('Je hebt de nieuwste versie (' + ver().webName + ') ✓');
-    else if (r.state === 'needs-permission') toast('Sta "Installeren van onbekende apps" toe en tik daarna nog eens op Installeren');
-    else if (r.state === 'error' && (r.manual || wasKind === 'apk' || String(r.error).indexOf('nstall') >= 0 || String(r.error).indexOf('pdate') >= 0)) toast(r.error);
+  if (r.state === 'confirm') {
+    // Android toont nu zijn eigen venster; afgebroken = opnieuw kunnen
+    clearTimeout(updDog); updKind = 'apk'; updPhase = 'confirm';
+    updShow('Bevestig de installatie in het venster van Android', null, ['Installeren', false]);
+    updSay('Bevestig de installatie in het venster van Android');
+    return;
   }
+  if (r.state === 'busy') {
+    updKind = 'apk'; updPhase = 'download'; updWatch();
+    updShow('De update wordt al gedownload…', -1, ['Bezig…', true]);
+    toast('De update wordt al gedownload');
+    return;
+  }
+  const wasKind = updKind;
+  if (r.state === 'apk') updAvail = r.versionName;
+  updReset();
+  if (r.state === 'uptodate' && r.manual) toast('Je hebt de nieuwste versie (' + ver().webName + ') ✓');
+  else if (r.state === 'needs-permission') toast('Sta "Installeren van onbekende apps" toe en tik daarna nog eens op Installeren');
+  else if (r.state === 'error' && (r.manual || wasKind || r.kind === 'apk' || String(r.error).indexOf('nstall') >= 0 || String(r.error).indexOf('pdate') >= 0)) toast(r.error);
 };
 
 /* Licenties: van de app en van de onderdelen van anderen (de teksten zitten ook in de app, in assets/licenties/) */

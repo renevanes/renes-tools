@@ -47,7 +47,25 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => onUpdateStatus({ state: 'error', error: 'HTTP 500' }));
     ok(!(await pg.isVisible('#upd-banner2')) && (await pg.textContent('#chk-btn')) === 'Controleren op updates', 'fout bij interface-update: balk weg');
     // Schermlezer: fase-wissel wordt gemeld, de procenten niet
-    ok(await pg.evaluate(() => !/\d+%/.test(document.querySelector('#upd-live2').textContent)), 'voorleesregel zonder procenten');
+    ok(await pg.evaluate(() => !/\d+%/.test(document.querySelector('#upd-live').textContent)), 'voorleesregel zonder procenten');
+
+    // Uitkomst van een controle op de achtergrond tijdens het downloaden van de app: voortgang blijft staan
+    await pg.evaluate(() => { Android._updFail = false; Android._updMs = 150; updAvail = '9.9'; updAvailShow(); });
+    await pg.click('#upd-btn2');
+    ok(await until(() => /Downloaden…/.test(document.querySelector('#upd-text2').textContent)), 'downloaden begonnen');
+    await pg.evaluate(() => onUpdateStatus({ state: 'uptodate', kind: 'web' }));
+    ok((await pg.textContent('#upd-text2')).includes('Downloaden') && await pg.isDisabled('#upd-btn2'), 'controle op de achtergrond verstoort de voortgang niet');
+    ok(await until(() => document.querySelector('#upd-text2').textContent.includes('Bevestig')), 'gaat gewoon door tot bevestigen');
+
+    // "Al bezig" van de app terwijl de pagina niets weet (bijv. na opnieuw laden): balk laat dat zien
+    await pg.evaluate(() => { updReset(); onUpdateStatus({ state: 'busy', kind: 'apk' }); });
+    ok((await pg.textContent('#upd-text2')).includes('al gedownload') && await pg.isDisabled('#upd-btn2'), 'al bezig: balk met bezig-knop');
+    // Geen bericht meer (geen antwoord van de installer): na de wachttijd niet blijven hangen
+    await pg.evaluate(() => { updDogMs = 300; onUpdateStatus({ state: 'progress', kind: 'apk', phase: 'committed', done: 0, total: 0 }); });
+    ok(await until(() => !document.querySelector('#upd-btn2').disabled && document.querySelector('#upd-text2').textContent.includes('beschikbaar')), 'zonder antwoord: na de wachttijd weer te gebruiken');
+    // Toestemming nodig: knop weer bruikbaar
+    await pg.evaluate(() => { updDogMs = 90000; onUpdateStatus({ state: 'progress', kind: 'apk', phase: 'start', done: 0, total: 0 }); onUpdateStatus({ state: 'needs-permission', kind: 'apk' }); });
+    ok(!(await pg.isDisabled('#upd-btn2')) && (await pg.textContent('#toast')).includes('onbekende apps'), 'toestemming nodig: knop weer bruikbaar');
 
     console.log('errors', errs); await pg.close();
   }
