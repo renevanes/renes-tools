@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.101",
+    "date": "2026-10-25",
+    "changes": [
+      "Updates: bij het installeren van een nieuwe versie zie je nu hoe ver het downloaden is (procenten en MB), daarna controleren en klaarzetten; ook een interface-update laat zijn voortgang zien"
+    ]
+  },
+  {
     "version": "1.100",
     "date": "2026-10-24",
     "changes": [

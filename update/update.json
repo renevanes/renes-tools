@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.100",
-  "versionCode": 101,
-  "nativeLevel": 89,
+  "versionName": "1.101",
+  "versionCode": 102,
+  "nativeLevel": 90,
   "web": "index.html",
-  "webSha256": "8eb56311035b770357472abc58929eb01e31e4c1738bf180e26431b38bd2efe2",
+  "webSha256": "2d543f94889821e0fad21378ce3b779e81c0e16cd170c5fa195ca4d96c8e0693",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "cd088d2504da07b57a4a111dc1fdc0eeaee31831785491fb73b28db8cc17e138",
+  "apkSha256": "f00a6e6b0b2f224e7ff7fe02dff53caf744373d441824f4b507dcd510d314845",
   "changelog": [
+    {
+      "version": "1.101",
+      "date": "2026-10-25",
+      "changes": [
+        "Updates: bij het installeren van een nieuwe versie zie je nu hoe ver het downloaden is (procenten en MB), daarna controleren en klaarzetten; ook een interface-update laat zijn voortgang zien"
+      ]
+    },
     {
       "version": "1.100",
       "date": "2026-10-24",
@@ -888,5 +895,5 @@
       ]
     }
   ],
-  "webSig2": "dTtCm1GsF5U1I4HAttqjz1Hqm4xe2Q2Cns6ZIswmYVksdoTdsfqT+BzJVzSSmtQNEuHVRK3A+KdIk4Fa3mLkKFKFN0OfjFwtROCPZQV7iaLrR+/04lDyjlj3hK7i+9qBoyeEvBHLy5sQk/9OCTi1sH2RPqk5wOwRO0uXT5aj3YLsWl8YpReyx6dgWnNu56gtTdFeWYJF7t8kNpUi6P2Iweyn5IgSlKSfIUYCJoaDtP2ypfcujrldUdXUbk9L5QGp8YLe8q++SR+FeL645YeNfrPTd3VgUSeXpEn3XpR7gvnGSShpuans5cnaOU1Wjm2uHx5U/V1hl8GJ4UKmqbXZHP5l9BM2oxoOSSXLbqi2REVU30Uv9iARO773p90BpadUBhB0FgL1NaMuSRRWunf7HezFH4IXXW1z6rJu7rY9ykvcBIE+rkF8WdimQD3ABZfWKORrL4oXWEUsLaIVAs7Xa3zZcySZaQ8IAkx793zie0F5hn1wccBsdj3wpVXb8Jms"
+  "webSig2": "l7lSmkfT58i6LzlT1Gsns2aVcGnbRYVP1fm8jh3kmrFqUQHteiU8TN0LGSLnmmSlQkomRCHaH6DG5LPze1rx2oqNHF2pvZhZjkEDPWn8XkSmNm7Yb9nn8J03DYgCRuk9g5ftkbn2nDH4Izuh5v150O2VGJZBCcKy/OwN+Y98lvvNS+P4KdSjMhWZS2w/zD66y+tL5Sx1Na6ztFhCcxlDcXmvFHIxDDQU16ILRs6Lci9SYqkSYN7ERU/fSwr2EH9X3mj+toE3gv+OYIwo0j77UBmWVT2f9I2OnefKhMQrygvj6milLDJNyr5aQ6X6EnRrOZ4JxPSAuuBRGU2tfr9IgLOGlWMa017S2Yx/+sxEmahbwCeLrdbppUl5j+5lqEShqHE+6GyvdcNcUt/hFeF1w92ueumzq5NNfl+YpkMBVijTJX0i9W0FmOPkItAbMQ2iVjVVHGIjleRnpZ570LIGY1AHgs2UC91V+yxQxB5DbcoIfqQrTEb/PqiUIRJhNA1N"
 }
