@@ -33,8 +33,10 @@ function aiModelCard(m, opts){
   const pct = m.state === 'running' || m.state === 'paused' ? (m.total > 0 ? m.bytes / m.total * 100 : 0) : m.state === 'verifying' ? (m.pct || 0) : 0;
   let btn = '';
   if (m.state === 'ready') btn = opts.chat ? (chosen ? '<span class="aisel">In gebruik</span>' : '<button class="mini" onclick="aiUse(\'' + m.id + '\')">Gebruiken</button>') : '';
-  else if (busy) btn = m.state === 'verifying' ? '' : (m.state === 'paused' && !m.waiting ? '<button class="mini on" onclick="mdDl(\'ai:' + m.id + '\')">Verder</button>' : '') +
+  else if (busy) btn = m.state === 'verifying' ? '' : (m.state === 'paused' && !m.waiting && !aiReplaced(m.id) ? '<button class="mini on" onclick="mdDl(\'ai:' + m.id + '\')">Verder</button>' : '') +
     '<button class="mini" onclick="mdStop(\'ai:' + m.id + '\')">Stoppen</button>';
+  else if (m.state === 'failed') btn = (aiReplaced(m.id) ? '' : '<button class="mini on" onclick="mdDl(\'ai:' + m.id + '\')">Opnieuw</button>') +
+    '<button class="mini" onclick="mdStop(\'ai:' + m.id + '\')">Weghalen</button>';
   // Een vervangen model (bijv. mislukt downloaden) niet opnieuw aanbieden, alleen weghalen
   else if (aiReplaced(m.id)) btn = m.state === 'none' ? '' : '<button class="mini" onclick="aiDel(\'' + m.id + '\', true)">Verwijderen</button>';
   else btn = '<button class="mini on" onclick="aiDl(\'' + m.id + '\')">Downloaden</button>';

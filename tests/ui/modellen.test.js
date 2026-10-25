@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
     });
     // Ook bij Taalmodel: een onderbroken download kan verder
     await pg.evaluate(() => { show('aiset'); show('aisetmodel'); }); await pg.waitForTimeout(200);
-    ok(await pg.isVisible('#ais-chat [data-id="groot"] button:has-text("Verder")'), 'Taalmodel: Verder bij een onderbroken download');
+    ok(!(await pg.isVisible('#ais-chat [data-id="groot"] button:has-text("Verder")')) && await pg.isVisible('#ais-chat [data-id="groot"] button:has-text("Stoppen")'), 'Taalmodel: oudere versie onderbroken: alleen Stoppen');
     ok(!(await pg.isVisible('#ais-chat button:has-text("Via de app")')), 'geen aparte keuze "via de app" meer');
     // Via Instellingen
     await pg.evaluate(() => show('settings')); await pg.waitForTimeout(150);

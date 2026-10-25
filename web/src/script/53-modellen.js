@@ -157,7 +157,7 @@ function mdLineHtml(chain){
   return '<div class="md-linebox" role="listitem" data-line="' + esc(newest.key) + '">' + rows + '</div>';
 }
 function mdBusyHtml(m, name, newer){
-  const hint = mdHint(m, mdSt), stopB = mdBtn('Stoppen', 'mdStop(' + jsq(m.key) + ')', false, mdLineName(m) + ': downloaden stoppen');
+  const hint = newer && m.state !== 'running' && m.state !== 'verifying' ? 'Oudere versie: die gaat niet verder. Stop hem en download de nieuwste.' : mdHint(m, mdSt), stopB = mdBtn('Stoppen', 'mdStop(' + jsq(m.key) + ')', false, mdLineName(m) + ': downloaden stoppen');
   let b = '';
   if (m.kind === 'spraak') b = ''; // het spraakmodel stopt bij Gesprekken uitschrijven
   else if (m.state === 'failed') b = (newer ? '' : mdBtn('Opnieuw', 'mdDl(' + jsq(m.key) + ')', true, mdLineName(m) + ' opnieuw downloaden')) + mdBtn('Weghalen', 'mdStop(' + jsq(m.key) + ')', false, mdLineName(m) + ' weghalen');
@@ -184,7 +184,7 @@ function mdDl(key){
   // Niet op wifi terwijl Alleen via wifi aan staat: eerst vragen (anders wacht hij op wifi)
   if (m.kind !== 'spraak' && mdSt.wifiOnly && mdSt.metered) {
     askChoice('Niet op wifi', mdLineName(m) + ' is ' + mdGB(m.size - (m.bytes || 0)) + '. Nu via mobiel internet downloaden (Alleen via wifi gaat dan uit), of wachten? Dan gaat hij verder zodra je de app op wifi opent.', 'Nu via mobiel internet', 'Wachten op wifi',
-      () => { mdSetWifi(false); toast('Alleen via wifi staat nu uit'); go(); }, go);
+      () => { mdSetWifi(false); go(); setTimeout(() => toast('Alleen via wifi staat nu uit; ' + mdLineName(m) + ' wordt gedownload'), 50); }, go);
     return;
   }
   go();
