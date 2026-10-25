@@ -39,6 +39,8 @@ public class ModelDownloadService extends Service {
     static final Set<String> STOP = java.util.Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     private final List<String> queue = new ArrayList<>();
+    /** Het model waar de worker nu mee bezig is (niet nog eens in de wachtrij). */
+    private volatile String working;
     private Thread worker;
     private volatile int lastStartId;
 
@@ -50,7 +52,7 @@ public class ModelDownloadService extends Service {
             if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
         } catch (Exception e) {
             QUEUED.remove(id);
-            LocalAi.ownFailed(c, id, "Android staat het downloaden nu niet toe; het gaat verder als je de app weer opent");
+            LocalAi.ownFailed(c, id, "Android staat het downloaden nu niet toe; probeer het zo opnieuw");
         }
     }
 
@@ -64,7 +66,7 @@ public class ModelDownloadService extends Service {
             boolean running; synchronized (queue) { running = worker != null; }
             if (!running) {
                 String id = intent == null ? null : intent.getStringExtra("id");
-                if (id != null) { QUEUED.remove(id); LocalAi.ownFailed(this, id, "Android staat het downloaden nu niet toe; het gaat verder als je de app weer opent"); }
+                if (id != null) { QUEUED.remove(id); LocalAi.ownFailed(this, id, "Android staat het downloaden nu niet toe; probeer het zo opnieuw"); }
                 stopSelfResult(startId);
                 return START_NOT_STICKY;
             }
@@ -72,7 +74,7 @@ public class ModelDownloadService extends Service {
         synchronized (queue) {
             lastStartId = startId;
             String id = intent == null ? null : intent.getStringExtra("id");
-            if (id != null && LocalAi.model(id) != null && !queue.contains(id)) queue.add(id);
+            if (id != null && LocalAi.model(id) != null && !queue.contains(id) && !RUN.containsKey(id) && !id.equals(working)) queue.add(id);
             if (worker == null) { worker = new Thread(this::work, "model-download"); worker.start(); }
         }
         return START_NOT_STICKY;
@@ -102,10 +104,14 @@ public class ModelDownloadService extends Service {
                 synchronized (queue) {
                     if (queue.isEmpty()) { worker = null; break; }
                     id = queue.remove(0);
+                    working = id;
                 }
                 QUEUED.remove(id);
-                if (STOP.remove(id)) continue;
-                one(id);
+                try {
+                    if (STOP.remove(id)) continue;
+                    if (!LocalAi.wantsOwn(this, id)) continue; // intussen gestopt, verwijderd of al klaar
+                    one(id);
+                } finally { working = null; }
             }
         } catch (Throwable t) {
             App.log(this, "AI", "model downloaden: " + t);

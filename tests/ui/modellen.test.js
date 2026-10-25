@@ -42,13 +42,23 @@ const { chromium } = require('playwright');
     ok(await until(() => /Nederlandse stem \(Spraakservices van Google\)/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent)), 'voorlezen: Nederlandse stem gevonden');
     await pg.click(cat('tts') + ' button:has-text("Stem en snelheid")');
     ok(await pg.evaluate(() => Android._md.calls.includes('ttsSettings')), 'instellingen van de stem');
-    // Onderbroken download: verder
+    // Een oudere versie onderbroken: niet verder, wel stoppen; de nieuwste wordt aangeboden
     const groot = cat('ai') + ' .md-linebox[data-line="ai:groot35"]';
-    ok((await txt(groot)).includes('Geen verbinding') && (await txt(groot)).includes('24%') && (await txt(groot)).includes('Qwen3 4B'), 'onderbroken download met versie en voortgang (' + (await txt(groot)).slice(0, 160) + ')');
+    ok((await txt(groot)).includes('Geen verbinding') && (await txt(groot)).includes('24%') && (await txt(groot)).includes('Qwen3 4B (oudere versie)'), 'onderbroken oudere versie met voortgang (' + (await txt(groot)).slice(0, 160) + ')');
+    ok(!(await pg.isVisible(groot + ' button:has-text("Verder")')) && await pg.isVisible(groot + ' .md-newer button:has-text("Downloaden")') && (await txt(groot)).includes('Download liever deze'), 'nieuwste aangeboden in plaats van verder met de oude');
     await pg.screenshot({ path: __dirname + '/shots/modellen-' + scheme + '.png', fullPage: true });
-    await pg.click(groot + ' button:has-text("Verder")');
-    ok(await pg.evaluate(() => Android._ai.calls.some(c => c[0] === 'dl' && c[1] === 'groot')), 'Verder: downloaden gaat door');
-    ok(await until(() => /Je hebt: Qwen3 4B/.test(document.querySelector('#md-cats .md-linebox[data-line="ai:groot35"]').textContent)), 'groot klaar');
+    await pg.click(groot + ' button:has-text("Stoppen")'); await pg.waitForTimeout(150);
+    ok((await pg.textContent('#modal')).includes('Downloaden stoppen?'), 'stoppen: eerst vragen (600 MB binnen)');
+    await pg.click('#modal-ok'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._ai.st.groot.state === 'none') && (await txt(groot)).includes('Nog niet op je telefoon · nieuwste versie: Qwen3.5 4B'), 'oude download weg, nieuwste te downloaden');
+    // Niet op wifi: eerst kiezen; wachten houdt Alleen via wifi aan
+    await pg.evaluate(() => { Android._md.metered = true; Android._ai.wifiOnly = true; mdRefresh(); });
+    await pg.click(groot + ' button:has-text("Downloaden")'); await pg.waitForTimeout(150);
+    ok((await pg.textContent('#modal')).includes('Niet op wifi') && (await pg.textContent('#modal')).includes('Alleen via wifi gaat dan uit'), 'niet op wifi: eerst kiezen, met wat er verandert');
+    await pg.click('#modal-cancel'); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => Android._ai.wifiOnly === true && Android._ai.calls.some(c => c[0] === 'dl' && c[1] === 'groot35')), 'wachten op wifi: wifi-only blijft aan');
+    await pg.evaluate(() => { Android._md.metered = false; });
+    ok(await until(() => /Je hebt: Qwen3.5 4B/.test(document.querySelector('#md-cats .md-linebox[data-line="ai:groot35"]').textContent)), 'groot klaar');
     // Bijwerken naar de nieuwere versie, dan gebruiken en de oude weg
     await pg.click(klein + ' button:has-text("Bijwerken")');
     ok(await pg.evaluate(() => Android._ai.calls.some(c => c[0] === 'dl' && c[1] === 'klein35')), 'bijwerken downloadt de nieuwere versie');
@@ -58,14 +68,6 @@ const { chromium } = require('playwright');
     ok((await pg.textContent('#modal')).includes('Qwen3 1.7B verwijderen?'), 'na gebruiken: oude versie weg?');
     await pg.click('#modal-ok'); await pg.waitForTimeout(200);
     ok(await pg.evaluate(() => Android._ai.chat === 'klein35' && Android._ai.st.klein.state === 'none') && !(await txt(klein)).includes('Ook nog'), 'nieuwe in gebruik, oude weg');
-    // Niet op wifi: eerst kiezen
-    await pg.evaluate(() => { Android._md.metered = true; Android._ai.wifiOnly = true; mdRefresh(); });
-    await pg.click(cat('ai') + ' .md-linebox[data-line="ai:groot35"] .md-newer button:has-text("Bijwerken")'); await pg.waitForTimeout(150);
-    ok((await pg.textContent('#modal')).includes('Niet op wifi'), 'niet op wifi: eerst kiezen');
-    await pg.click('#modal-cancel'); await pg.waitForTimeout(100);
-    ok(await pg.evaluate(() => Android._ai.wifiOnly === true && Android._ai.calls.some(c => c[0] === 'dl' && c[1] === 'groot35')), 'wachten op wifi: wifi-only blijft aan');
-    await pg.evaluate(() => { Android._md.metered = false; });
-    await until(() => /Je hebt: Qwen3.5 4B/.test(document.querySelector('#md-cats .md-linebox[data-line="ai:groot35"]').textContent));
     // Spraak naar tekst: twee soorten (geen versies), de ene in gebruik
     ok((await txt(cat('spraak'))).includes('In gebruik: Snel · Whisper base') && (await txt(cat('spraak'))).includes('Nauwkeurig'), 'spraakmodellen');
     // Verwijderen met uitleg
@@ -73,11 +75,18 @@ const { chromium } = require('playwright');
     ok((await pg.textContent('#modal')).includes('Slim zoeken werkt dan niet meer'), 'uitleg bij het zoekmodel');
     await pg.click('#modal-ok'); await pg.waitForTimeout(150);
     ok((await txt(cat('zoek') + ' .md-catst')).includes('Niet gedownload (niet nodig)'), 'zoekmodel weg: niet nodig');
+    // Een fout die niet vanzelf overgaat: mislukt, met Opnieuw (niet "gaat vanzelf verder")
+    await pg.evaluate(() => { Android._ai.st.zoek = { state: 'failed', reason: 'Download mislukt (HTTP 404)', via: 'app', bytes: 0, total: 639150592 }; mdRefresh(); });
+    ok((await txt(cat('zoek') + ' .md-catst')).includes('Downloaden mislukt') && await pg.isVisible(cat('zoek') + ' button:has-text("Opnieuw")') && !(await txt(cat('zoek'))).includes('vanzelf'), 'mislukt: Opnieuw, geen belofte dat het vanzelf gaat');
+    await pg.evaluate(() => { Android._ai.st.zoek = { state: 'none' }; mdRefresh(); });
     // Voorlezen zonder Nederlandse stem
     await pg.evaluate(() => { Android._md.ttsNext = { state: 'nodutch', engine: 'Samsung TTS' }; mdTtsCheck(); });
     ok(await until(() => /Geen Nederlandse stem/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent)), 'geen Nederlandse stem');
     await pg.click(cat('tts') + ' button:has-text("Nederlandse stem toevoegen")');
     ok(await pg.evaluate(() => Android._md.calls.includes('ttsInstall')), 'stem toevoegen');
+    // Terug in de app: de app kijkt vanzelf opnieuw
+    await pg.evaluate(() => { Android._md.ttsNext = { state: 'ok', engine: 'Samsung TTS' }; onResumeApp(); });
+    ok(await until(() => /Nederlandse stem \(Samsung TTS\)/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent)), 'na terugkomen opnieuw gekeken');
     // Opruimen
     await pg.click('#md-sum button:has-text("Opruimen")'); await pg.waitForTimeout(100);
     ok((await pg.textContent('#toast')).includes('300 MB vrijgemaakt'), 'opgeruimd');

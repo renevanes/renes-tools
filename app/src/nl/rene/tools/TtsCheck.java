@@ -19,11 +19,15 @@ final class TtsCheck {
 
     private TtsCheck() { }
 
-    /** "" = nog niet gekeken, checking, ok, nodutch (geen Nederlandse stem), noengine (geen voorleesfunctie). */
+    /** "" = nog niet gekeken, checking, ok, nodutch (geen Nederlandse stem), noengine (geen voorleesfunctie),
+     *  slow (de voorleesfunctie reageerde niet op tijd). */
     static volatile String state = "";
     static volatile String engine = "";
     private static TextToSpeech probe;
+    /** Welke controle (een late melding van een eerdere controle telt niet). */
+    private static int gen;
     private static final Handler H = new Handler(Looper.getMainLooper());
+    private static final Runnable TIMEOUT = () -> { if ("checking".equals(state)) { state = "slow"; gen++; shut(); MainActivity.jsAll("onAiModels", ""); } };
 
     static JSONObject json() throws Exception { return new JSONObject().put("state", state).put("engine", engine); }
 
@@ -33,15 +37,19 @@ final class TtsCheck {
         H.post(() -> {
             if ("checking".equals(state)) return;
             state = "checking";
+            final int g = ++gen;
             try {
-                probe = new TextToSpeech(app, st -> H.post(() -> done(app, st)));
+                shut();
+                probe = new TextToSpeech(app, st -> H.post(() -> { if (g == gen) done(app, st); }));
                 // Antwoordt de motor niet, dan niet blijven wachten
-                H.postDelayed(() -> { if ("checking".equals(state)) { state = "noengine"; shut(); MainActivity.jsAll("onAiModels", ""); } }, 10_000);
+                H.removeCallbacks(TIMEOUT);
+                H.postDelayed(TIMEOUT, 10_000);
             } catch (Throwable t) { state = "noengine"; shut(); MainActivity.jsAll("onAiModels", ""); }
         });
     }
 
     private static void done(Context app, int status) {
+        H.removeCallbacks(TIMEOUT);
         try {
             if (probe == null) return;
             if (status != TextToSpeech.SUCCESS) { state = "noengine"; return; }
