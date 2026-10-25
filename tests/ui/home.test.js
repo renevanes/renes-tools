@@ -10,8 +10,8 @@ const { chromium } = require('playwright');
     await pg.screenshot({ path: __dirname + '/shots/home-' + scheme + '.png', fullPage: true });
     await pg.click('.foot button:has-text("Startscherm aanpassen")'); await pg.waitForTimeout(200);
     // move Radio up (crosses into previous group), hide SMS
-    await pg.click('#he-groups button[data-t="radio"][aria-label="Omhoog"]'); await pg.waitForTimeout(100);
-    await pg.click('#he-groups input[data-t="sms"]'); await pg.waitForTimeout(100);
+    await pg.click('#he-groups button.more[data-t="radio"]'); await pg.click('#sheet-acts button:has-text("Omhoog")'); await pg.waitForTimeout(100);
+    await pg.click('#he-groups button.more[data-t="sms"]'); await pg.click('#sheet-acts button:has-text("Verbergen")'); await pg.waitForTimeout(100);
     await pg.click('#he-compact'); await pg.waitForTimeout(100);
     await pg.screenshot({ path: __dirname + '/shots/homeedit-' + scheme + '.png', fullPage: true });
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);

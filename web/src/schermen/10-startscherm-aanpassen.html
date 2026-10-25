@@ -1,21 +1,21 @@
 <!-- ============ STARTSCHERM AANPASSEN ============ -->
 <section class="screen" id="s-homeedit">
-  <div class="hdr">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
     <h1 tabindex="-1">Startscherm aanpassen</h1>
   </div>
   <main>
     <div class="card">
       <h2>Weergave</h2>
-      <label class="chk"><input type="checkbox" id="he-grouped" onchange="heSet('grouped', this.checked)"> In groepen</label>
-      <label class="chk"><input type="checkbox" id="he-compact" onchange="heSet('compact', this.checked)"> Compact (kleinere tegels, drie naast elkaar)</label>
-      <label class="chk"><input type="checkbox" id="he-dash" onchange="heSet('dash', this.checked)"> Overzicht bovenaan (backup, wekker, herinneringen)</label>
+      <div class="sw"><span>In groepen<small>Tools onder een kopje per groep, in de volgorde hieronder</small></span><button class="tg" id="he-grouped" role="switch" aria-checked="false" aria-label="In groepen" onclick="heSet('grouped', !this.classList.contains('on'))"></button></div>
+      <div class="sw"><span>Compact<small>Kleinere tegels, drie naast elkaar</small></span><button class="tg" id="he-compact" role="switch" aria-checked="false" aria-label="Compact" onclick="heSet('compact', !this.classList.contains('on'))"></button></div>
+      <div class="sw"><span>Overzicht bovenaan<small>Backup, wekker en herinneringen</small></span><button class="tg" id="he-dash" role="switch" aria-checked="false" aria-label="Overzicht bovenaan" onclick="heSet('dash', !this.classList.contains('on'))"></button></div>
     </div>
+    <p class="note he-how">Sleep een tool aan <span aria-hidden="true">⠿</span> naar een andere plek, ook naar een andere groep. Of tik op <b>⋯</b> bij een tool: verplaatsen naar een groep, omhoog of omlaag, verbergen. Met de pijlen bij een groep zet je de groepen in een andere volgorde.</p>
     <div class="card" id="he-fav"></div>
     <div id="he-groups"></div>
     <button class="big ghost" onclick="heAddGroup()">Groep toevoegen</button>
     <button class="big ghost" style="margin-top:8px" onclick="heReset()">Standaard herstellen</button>
-    <p class="note">Met ☆ zet je een tool bij je favorieten: die staan bovenaan (en zijn de eerste keuzes als je het app-icoon ingedrukt houdt). Met de pijlen verplaats je een tool, ook naar de groep erboven of eronder. Tik op de naam van een groep om hem te hernoemen. Verborgen tools blijven bereikbaar via hun snelkoppeling en komen terug als je het vinkje weer aanzet.</p>
+    <p class="note">Met ☆ zet je een tool bij je favorieten: die staan bovenaan (en zijn de eerste keuzes als je het app-icoon ingedrukt houdt). Verborgen tools blijven bereikbaar via hun snelkoppeling en Zoeken; zet ze terug met ⋯ → Tonen. Houd je een tegel op het startscherm ingedrukt, dan kun je hem daar ook naar een andere groep verplaatsen.</p>
   </main>
 </section>
-

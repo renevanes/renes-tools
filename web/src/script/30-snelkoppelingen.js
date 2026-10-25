@@ -24,6 +24,8 @@ function toolMenu(tool){
   openSheet(t[0], fav ? '★ Favoriet' : '', [
     ['Openen', () => tool === 'skin' ? Android.homeOpen() : show(tool)],
     [fav ? '☆ Uit favorieten' : '★ Favoriet (bovenaan)', () => toggleFav(tool)],
+    ['Naar een andere groep…', () => heMoveSheet(tool)],
+    ['Verbergen van het startscherm', () => { heToggle(tool, false); toast(TOOLS[tool][0] + ' verborgen; terugzetten bij Startscherm aanpassen'); }],
     ['Snelkoppeling op startscherm', () => pinTool(tool)],
   ].concat(SOLO_TOOLS.includes(tool) ? [['Als losse app op startscherm…', () => soloMake(tool)]] : []));
 }

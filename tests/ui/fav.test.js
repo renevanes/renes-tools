@@ -21,7 +21,7 @@ const assert = (ok, what) => { if (!ok) throw new Error('mislukt: ' + what); con
     // Startscherm aanpassen: volgorde van favorieten en ster
     await pg.evaluate(() => show('homeedit')); await pg.waitForTimeout(200);
     assert((await pg.$$eval('#he-fav .herow .nm', x => x.map(e => e.textContent))).join() === 'Notities,Podcasts', 'favorietenkaart');
-    await pg.click('#he-fav .herow:nth-of-type(2) button[aria-label="Omhoog"]'); await pg.waitForTimeout(150);
+    await pg.click('#he-fav .herow:nth-of-type(2) button.more'); await pg.click('#sheet-acts button:has-text("Omhoog")'); await pg.waitForTimeout(150);
     g = await groups();
     assert(g[0] === '★ Favorieten:tile-podcasts,tile-notes', 'volgorde omgedraaid: ' + g[0]);
     await pg.screenshot({ path: __dirname + '/shots/fav-edit-' + scheme + '.png' });
