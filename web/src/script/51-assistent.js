@@ -35,7 +35,7 @@ function aiModelCard(m, opts){
   if (m.state === 'ready') btn = opts.chat ? (chosen ? '<span class="aisel">In gebruik</span>' : '<button class="mini" onclick="aiUse(\'' + m.id + '\')">Gebruiken</button>') : '';
   else if (busy) btn = m.state === 'verifying' ? '' : (m.state === 'paused' && !m.waiting && !aiReplaced(m.id) ? '<button class="mini on" onclick="mdDl(\'ai:' + m.id + '\')">Verder</button>' : '') +
     '<button class="mini" onclick="mdStop(\'ai:' + m.id + '\')">Stoppen</button>';
-  else if (m.state === 'failed') btn = (aiReplaced(m.id) ? '' : '<button class="mini on" onclick="mdDl(\'ai:' + m.id + '\')">Opnieuw</button>') +
+  else if (m.state === 'failed' && !aiReplaced(m.id)) btn = '<button class="mini on" onclick="mdDl(\'ai:' + m.id + '\')">Opnieuw</button>' +
     '<button class="mini" onclick="mdStop(\'ai:' + m.id + '\')">Weghalen</button>';
   // Een vervangen model (bijv. mislukt downloaden) niet opnieuw aanbieden, alleen weghalen
   else if (aiReplaced(m.id)) btn = m.state === 'none' ? '' : '<button class="mini" onclick="aiDel(\'' + m.id + '\', true)">Verwijderen</button>';
