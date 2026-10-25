@@ -1,0 +1,1 @@
+Updates: bij het installeren van een nieuwe versie zie je nu hoe ver het downloaden is (procenten en MB), daarna controleren en klaarzetten; ook een interface-update laat zijn voortgang zien

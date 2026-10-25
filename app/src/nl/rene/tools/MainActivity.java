@@ -284,6 +284,7 @@ public class MainActivity extends Activity {
                 Intent confirm = i.getParcelableExtra(Intent.EXTRA_INTENT);
                 if (confirm != null && !systemInstaller(confirm)) { js("onUpdateStatus", jsonErr("Installeren kon niet starten (onbekend installatiescherm)")); return; }
                 if (confirm != null) {
+                    js("onUpdateStatus", "{\"state\":\"confirm\"}"); // Android vraagt om te bevestigen
                     try { startActivity(confirm); } catch (Exception e) { js("onUpdateStatus", "{\"state\":\"error\",\"error\":\"Installeren kon niet starten\"}"); }
                 }
             } else if (st != PackageInstaller.STATUS_SUCCESS) {
@@ -454,7 +455,7 @@ public class MainActivity extends Activity {
 
     private void checkUpdates(final boolean manual) {
         new Thread(() -> {
-            final JSONObject r = Updater.check(getApplicationContext());
+            final JSONObject r = Updater.check(getApplicationContext(), progressTo("web"));
             h.post(() -> {
                 try { r.put("manual", manual); } catch (Exception ignored) { }
                 if ("web".equals(r.optString("state"))) {
@@ -480,6 +481,14 @@ public class MainActivity extends Activity {
         if (web == null) return;
         String code = "window." + fn + "&&window." + fn + "(" + arg + ")";
         h.post(() -> { if (web != null) web.evaluateJavascript(code, null); });
+    }
+
+    /** Voortgang van een update naar de pagina (onUpdateStatus met state "progress"), hooguit 5 keer per seconde. */
+    Updater.Progress progressTo(String kind) {
+        return new Updater.Throttle((ph, done, total) -> {
+            try { js("onUpdateStatus", new JSONObject().put("state", "progress").put("kind", kind).put("phase", ph).put("done", done).put("total", total).toString()); }
+            catch (Exception ignored) { }
+        }, 200, System::currentTimeMillis);
     }
 
     private static String jsonErr(String m) {
@@ -776,8 +785,12 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void installUpdate() {
             new Thread(() -> {
-                String err = Updater.downloadAndInstall(ctx);
-                if ("needs-permission".equals(err)) {
+                String err;
+                try { err = Updater.downloadAndInstall(ctx, a.progressTo("apk")); }
+                catch (Throwable e) { err = "Update mislukt: " + e.getMessage(); }
+                if ("busy".equals(err)) {
+                    a.js("onUpdateStatus", "{\"state\":\"busy\"}");
+                } else if ("needs-permission".equals(err)) {
                     a.h.post(a::openInstallSettings);
                     a.js("onUpdateStatus", "{\"state\":\"needs-permission\"}");
                 } else if (err != null) {

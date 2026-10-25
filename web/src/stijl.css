@@ -122,6 +122,14 @@ input[type=tel]:focus{outline:2px solid var(--primary);outline-offset:-1px;borde
 .banner.on{display:flex}
 .banner div{flex:1;font-size:15px}
 .banner button{background:var(--primary);color:var(--on-primary);border-radius:20px;padding:10px 18px;font-weight:600}
+.banner button:disabled{opacity:.6}
+.banner .upd-body{flex:1;min-width:0}.banner .upd-body div{flex:none}
+.upd-prog{height:6px;border-radius:3px;background:color-mix(in srgb,var(--on-tonal) 18%,transparent);margin-top:10px;overflow:hidden;position:relative}
+.upd-prog[hidden]{display:none}
+.upd-prog i{display:block;height:100%;width:0;background:var(--primary);border-radius:3px;transition:width .2s}
+.upd-prog.busy i{width:30%;position:absolute;left:0;animation:updBusy 1.2s ease-in-out infinite}
+@keyframes updBusy{0%{left:-30%}100%{left:100%}}
+@media (prefers-reduced-motion:reduce){.upd-prog.busy i{animation:none;left:0;width:100%;opacity:.5}}
 .foot{text-align:center;color:var(--muted);font-size:13px;margin:22px 0 8px}
 .foot button{color:var(--primary);font-size:14px;font-weight:600;padding:10px 14px;border-radius:20px}
 .foot button:active{background:color-mix(in srgb,var(--primary) 12%,transparent)}

@@ -320,6 +320,7 @@ Luistert 's nachts zuinig mee en bewaart alleen de momenten waarop je iets zegt;
   - **Ondertekend**: `build.sh` ondertekent versie en controlegetallen met dezelfde sleutel als de APK (`webSig`, SHA256withRSA). De app controleert die handtekening met zijn eigen certificaat en weigert een interface-update zonder geldige handtekening (`Updater.signatureOk`, test: `WebSigTest`).
   - **Alleen de interface is veranderd** (`web/src/`, `NATIVE_LEVEL` blijft gelijk): de nieuwe versie wordt stil gedownload, gecontroleerd met SHA-256 en direct gebruikt.
   - **`NATIVE_LEVEL` is hoger** (de Java-code of het manifest is veranderd): de app toont *Nieuwe versie beschikbaar* met een knop **Installeren**. Die downloadt de APK, controleert hem en biedt hem aan via de pakketinstaller van Android.
+  - **Voortgang**: bij het downloaden van een nieuwe app toont de balk op Home en bij *Versie en updates* procenten en MB (`Updater.get` met `Progress`, hooguit 5 keer per seconde via `Updater.Throttle`, test: `UpdateProgressTest`), daarna *Controleren*, *Klaarzetten* en *Bevestig de installatie in het venster van Android*. Een tweede tik start geen tweede download (`APK_BUSY`). Een interface-update laat ook kort zien hoe ver hij is (zonder knop, en op de knop *Controleren op updates*). Een schermlezer hoort alleen de fasen, niet elk procent (`update-voortgang.test.js`).
 
 ## Bouwen (zonder Android Studio of Gradle)
 ```sh

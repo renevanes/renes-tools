@@ -10,7 +10,17 @@ if (!window.Android) window.Android = (function(){
   return {
     version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0}),
     lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',manual:true,versionName:VERSION_NAME}),400),
-    installUpdate(){}, permissions:()=>JSON.stringify({call:true,phoneState:true,callLog:true,notifications:true}),
+    installUpdate(){
+      // Downloaden met voortgang (5 MB in 10 stappen), controleren, klaarzetten en dan vraagt Android om te bevestigen
+      if (this._upd) { onUpdateStatus({ state: 'busy' }); return; }
+      this._upd = true; const T = 5242880, steps = [];
+      steps.push({ state: 'progress', kind: 'apk', phase: 'start', done: 0, total: 0 });
+      for (let i = 0; i <= 10; i++) steps.push({ state: 'progress', kind: 'apk', phase: 'download', done: Math.round(T * i / 10), total: T });
+      steps.push({ state: 'progress', kind: 'apk', phase: 'check', done: 0, total: 0 }, { state: 'progress', kind: 'apk', phase: 'install', done: 0, total: 0 },
+        { state: 'progress', kind: 'apk', phase: 'committed', done: 0, total: 0 }, this._updFail ? { state: 'error', error: 'Installatie afgebroken' } : { state: 'confirm' });
+      (this._updLog = []);
+      steps.forEach((s, i) => setTimeout(() => { this._updLog.push(s); onUpdateStatus(s); if (i === steps.length - 1) this._upd = false; }, (this._updMs || 60) * (i + 1)));
+    }, permissions:()=>JSON.stringify({call:true,phoneState:true,callLog:true,notifications:true}),
     requestPermissions(){}, openAppSettings(){}, pickContact(){ onContactPicked({number:'010 123 4567', name:'Huisarts'}); },
     setBars(t, b, l){ this._bars = [t, b, l]; }, themeColors(){ return this._theme ? JSON.stringify(this._theme) : ''; }, vibrate(){}, toast(m){ toast(m); }, pendingOpen:()=>'',
     redialStart(n,name,a,i){ st={running:true,number:n,name,attempt:1,maxAttempts:a,interval:i,phase:'dialing',message:'Bellen…'}; t0=Date.now(); timer=setInterval(tick,300); return ''; },

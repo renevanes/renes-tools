@@ -35,6 +35,27 @@ final class Updater {
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE); }
 
+    /** Voortgang voor het scherm: fase (download, controle, klaarzetten), bytes binnen en totaal (0 = onbekend). */
+    interface Progress { void step(String phase, long done, long total); }
+
+    static final Progress NONE = (ph, d, t) -> { };
+
+    /** Er wordt al een nieuwe app gedownload (niet twee keer tegelijk). */
+    static final java.util.concurrent.atomic.AtomicBoolean APK_BUSY = new java.util.concurrent.atomic.AtomicBoolean();
+
+    /** Hooguit eens per 200 ms een stap doorgeven (en altijd bij een nieuwe fase of als het klaar is). Zuiver (getest). */
+    static final class Throttle implements Progress {
+        private final Progress out; private final long gapMs;
+        private String phase = ""; private long last = Long.MIN_VALUE / 2;
+        private final java.util.function.LongSupplier clock;
+        Throttle(Progress out, long gapMs, java.util.function.LongSupplier clock) { this.out = out; this.gapMs = gapMs; this.clock = clock; }
+        @Override public void step(String ph, long done, long total) {
+            long now = clock.getAsLong();
+            boolean end = total > 0 && done >= total;
+            if (!ph.equals(phase) || end || now - last >= gapMs) { phase = ph; last = now; out.step(ph, done, total); }
+        }
+    }
+
     /** Versie van de interface die nu gebruikt wordt (gebundeld of gedownload). */
     static int webCode(Context c) {
         int stored = prefs(c).getInt("webCode", 0);
@@ -99,7 +120,10 @@ final class Updater {
      * Controleert op updates. Resultaat (JSON):
      * state = uptodate | web (interface bijgewerkt, herladen) | apk (nieuwe app beschikbaar) | error
      */
-    static JSONObject check(Context c) {
+    static JSONObject check(Context c) { return check(c, NONE); }
+
+    /** Als check(c), met voortgang van het downloaden van een nieuwe interface. */
+    static JSONObject check(Context c, Progress p) {
         JSONObject r = new JSONObject();
         try {
             JSONObject m = fetchManifest();
@@ -116,7 +140,7 @@ final class Updater {
             if (nativeLevel > Version.NATIVE_LEVEL) {
                 r.put("state", "apk");
             } else if (code > webCode(c)) {
-                applyWeb(c, m);
+                applyWeb(c, m, p);
                 r.put("state", "web");
             } else {
                 r.put("state", "uptodate");
@@ -174,10 +198,11 @@ final class Updater {
     /** Versienaam valt niet onder de handtekening en komt in het startscherm: alleen cijfers en punten. */
     static boolean validName(String n) { return n != null && n.matches("\\d{1,4}(\\.\\d{1,4}){0,3}"); }
 
-    private static void applyWeb(Context c, JSONObject m) throws Exception {
+    private static void applyWeb(Context c, JSONObject m, Progress p) throws Exception {
         if (!signatureOk(c, m)) throw new Exception("Handtekening van de interface-update klopt niet; niet geïnstalleerd");
         if (!validName(m.optString("versionName"))) throw new Exception("Onverwachte versienaam; niet geïnstalleerd");
-        byte[] html = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("web", "index.html") + "?v=" + m.getInt("versionCode"));
+        p.step("download", 0, 0);
+        byte[] html = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("web", "index.html") + "?v=" + m.getInt("versionCode"), p, "download");
         String sha = m.optString("webSha256", "");
         if (sha.isEmpty() || !sha.equalsIgnoreCase(sha256(html))) throw new Exception("Controlegetal interface klopt niet");
         String s = new String(html, StandardCharsets.UTF_8);
@@ -185,11 +210,12 @@ final class Updater {
         // Eerst alles downloaden en controleren; pas daarna beide bestanden tegelijk vervangen (nooit een half bijgewerkte versie).
         byte[] st = null;
         if (!m.optString("start").isEmpty()) {
-            st = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("start") + "?v=" + m.getInt("versionCode"));
+            st = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("start") + "?v=" + m.getInt("versionCode"), p, "download2");
             String ss = m.optString("startSha256", "");
             if (ss.isEmpty() || !ss.equalsIgnoreCase(sha256(st))) throw new Exception("Controlegetal startscherm klopt niet");
             if (!new String(st, StandardCharsets.UTF_8).contains("RENES-TOOLS-START")) throw new Exception("Onverwacht bestand");
         }
+        p.step("save", 0, 0);
         File f = webFile(c), sf = startFile(c);
         f.getParentFile().mkdirs();
         File tmp = new File(f.getParentFile(), "index.tmp"), stmp = new File(f.getParentFile(), "start.tmp");
@@ -201,18 +227,24 @@ final class Updater {
                 .putString("webName", m.getString("versionName")).apply();
     }
 
-    /** Downloadt de nieuwe APK en start de installatie. Geeft null of een foutmelding terug. */
-    static String downloadAndInstall(Context c) {
+    /** Downloadt de nieuwe APK en start de installatie. Geeft null of een foutmelding terug ("busy": al bezig). */
+    static String downloadAndInstall(Context c) { return downloadAndInstall(c, NONE); }
+
+    static String downloadAndInstall(Context c, Progress pr) {
+        if (!APK_BUSY.compareAndSet(false, true)) return "busy";
         try {
+            pr.step("start", 0, 0);
             JSONObject m = fetchManifest();
             if (Build.VERSION.SDK_INT >= 26 && !c.getPackageManager().canRequestPackageInstalls()) {
                 return "needs-permission";
             }
-            byte[] apk = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("apk", "Renes-Tools.apk") + "?v=" + m.getInt("versionCode"));
+            byte[] apk = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("apk", "Renes-Tools.apk") + "?v=" + m.getInt("versionCode"), pr, "download");
+            pr.step("check", 0, 0);
             String sha = m.optString("apkSha256", "");
             // De handtekening dekt ook het controlegetal van de APK: zonder geldige handtekening niet installeren
             if (sha.isEmpty() || !signatureOk(c, m)) return "De update is niet ondertekend; niet geïnstalleerd";
             if (!sha.equalsIgnoreCase(sha256(apk))) return "Controlegetal van de download klopt niet";
+            pr.step("install", 0, 0);
 
             PackageInstaller pi = c.getPackageManager().getPackageInstaller();
             PackageInstaller.SessionParams p = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
@@ -230,15 +262,19 @@ final class Updater {
                 PendingIntent pend = PendingIntent.getActivity(c, 7, back, fl);
                 s.commit(pend.getIntentSender());
             }
+            pr.step("committed", 0, 0);
             return null;
         } catch (Exception e) {
             return "Update mislukt: " + e.getMessage();
-        }
+        } finally { APK_BUSY.set(false); }
     }
 
     // ---------- hulpfuncties ----------
 
-    static byte[] get(String url) throws Exception {
+    static byte[] get(String url) throws Exception { return get(url, NONE, ""); }
+
+    /** Downloaden met voortgang (fase phase; totaal 0 als de server de grootte niet meegeeft). */
+    static byte[] get(String url, Progress p, String phase) throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
         con.setConnectTimeout(15000);
         con.setReadTimeout(60000);
@@ -247,7 +283,17 @@ final class Updater {
         try {
             int code = con.getResponseCode();
             if (code != 200) throw new Exception("HTTP " + code);
-            return readAll(con.getInputStream());
+            long total = Math.max(0, con.getContentLength());
+            try (InputStream i = con.getInputStream()) {
+                ByteArrayOutputStream b = new ByteArrayOutputStream(total > 0 && total < 64_000_000 ? (int) total : 16384);
+                byte[] buf = new byte[16384];
+                int n;
+                long done = 0;
+                p.step(phase, 0, total);
+                while ((n = i.read(buf)) > 0) { b.write(buf, 0, n); done += n; p.step(phase, done, total); }
+                p.step(phase, done, Math.max(total, done));
+                return b.toByteArray();
+            }
         } finally {
             con.disconnect();
         }
