@@ -9,7 +9,7 @@ const { chromium } = require('playwright');
   await pg.click('#tile-radio', { button: 'right' }); await pg.waitForTimeout(200);
   console.log('sheet', await pg.textContent('#sheet-title'), await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent)), 'screen', await scr());
   await pg.screenshot({ path: __dirname + '/shots/sc-sheet.png' });
-  await pg.click('#sheet-acts button >> nth=2'); await pg.waitForTimeout(150);
+  await pg.click('#sheet-acts button:has-text("Snelkoppeling op startscherm")'); await pg.waitForTimeout(150);
   console.log('toast', await pg.textContent('#toast'));
   // simulated long press with touch
   const box = await pg.locator('#tile-notes').boundingBox();
