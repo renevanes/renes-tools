@@ -14,7 +14,7 @@ const GS = {
 /* ---------- zoeken in de app zelf: schermen, kaarten en instellingen ---------- */
 const GS_SYN = {meldingen: 'notificaties melding geluid trillen stil dempen uitzetten', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
   backup: 'reservekopie back-up opslaan bewaren', 'telefoon-skin': 'startscherm launcher thuisscherm skin', weergave: 'tekstgrootte letters groot thema donker dark mode licht nachtmodus',
-  foutrapport: 'fout crash probleem bug', slaappraat: 'slapen slaap praten nacht snurken dromen microfoon', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
+  foutrapport: 'fout crash probleem bug', modellen: 'taalmodel spraakmodel zoekmodel ai opslag ruimte downloaden verwijderen wifi', slaappraat: 'slapen slaap praten nacht snurken dromen microfoon', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
 let gsIndex = null;
 function gsBuildIndex(){
   gsIndex = [];
@@ -25,7 +25,7 @@ function gsBuildIndex(){
     const scr = sec.id.slice(2);
     if (scr === 'home' || scr === 'search' || DETAIL.includes(scr)) return;
     const h1 = sec.querySelector('.hdr h1'), screen = h1 ? h1.textContent.trim() : scr;
-    const own = {scr, el: null, title: screen, sub: BACK[scr] === 'settings' ? 'Instellingen' : 'Openen', key: fold(screen + ' ' + scr)};
+    const own = {scr, el: null, title: screen, sub: BACK[scr] === 'settings' ? 'Instellingen' : 'Openen', key: fold(screen + ' ' + scr + ' ' + Object.keys(GS_SYN).filter(k => fold(screen).includes(k)).map(k => GS_SYN[k]).join(' '))};
     gsIndex.push(own);
     sec.querySelectorAll('.card').forEach(card => {
       const h = card.querySelector('h2, h3'); if (!h) return;

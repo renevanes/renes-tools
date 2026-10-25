@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
     await pg.click('#tabs button[data-t=settings]'); await pg.waitForTimeout(250);
     const groups = await pg.$$eval('#s-settings .stgl', x => x.map(e => e.textContent));
     ok(groups.join('|') === 'Algemeen|Beveiliging en privacy|Gegevens en diensten|Over de app', 'vier groepen');
-    ok((await pg.$$('#s-settings .strow')).length === 12, 'twaalf onderwerpen');
+    ok((await pg.$$('#s-settings .strow')).length === 13, 'dertien onderwerpen (met Modellen)');
     ok(await pg.evaluate(() => document.documentElement.scrollHeight < 1700), 'geen lange pagina meer');
     ok(!(await pg.isVisible('#st-zoom')) && !(await pg.isVisible('#st-perms')), 'de instellingen zelf staan op eigen schermen');
     const sums = await pg.$$eval('#s-settings .strow small', x => x.map(e => e.textContent));

@@ -94,7 +94,7 @@ final class LocalAi {
     /** De modellen zelf: in de privémap van de app, waar geen andere app bij kan (ook niet op oudere Android). */
     static File modelDir(Context c) { File d = new File(c.getFilesDir(), "ai-models"); d.mkdirs(); return d; }
     static File file(Context c, Model m) { return new File(modelDir(c), m.file); }
-    private static File partFile(Context c, Model m) { return new File(dlDir(c), m.file + ".download"); }
+    static File partFile(Context c, Model m) { return new File(dlDir(c), m.file + ".download"); }
     private static File tmpFile(Context c, Model m) { return new File(modelDir(c), m.file + ".tmp"); }
 
     /** Bestanden van modellen die deze app-versie niet meer kent (na een update met een nieuwer model). Zuiver (getest). */
@@ -117,7 +117,7 @@ final class LocalAi {
     }
     private static List<File> orphans(Context c) {
         java.util.Set<String> busy = new java.util.HashSet<>();
-        for (Model m : MODELS) if (ready(c, m) || VERIFYING.containsKey(m.id) || prefs(c).getLong("dl_" + m.id, -1) >= 0) busy.add(m.id);
+        for (Model m : MODELS) if (ready(c, m) || VERIFYING.containsKey(m.id) || prefs(c).getLong("dl_" + m.id, -1) >= 0 || prefs(c).getBoolean("own_" + m.id, false)) busy.add(m.id);
         List<File> out = new ArrayList<>();
         for (File d : new File[]{modelDir(c), c.getExternalFilesDir("ai")}) {
             File[] fs = d == null ? null : d.listFiles();
@@ -286,12 +286,54 @@ final class LocalAi {
                     .setAllowedOverMetered(!wifiOnly(c))
                     .setAllowedOverRoaming(false)
                     .setDestinationUri(Uri.fromFile(partFile(c, m)));
+            ModelDownloadService.stop(m.id);
             long id = mgr.enqueue(r);
-            prefs(c).edit().putLong("dl_" + m.id, id).remove("err_" + m.id).remove("ok_" + m.id).apply();
+            prefs(c).edit().putLong("dl_" + m.id, id).remove("err_" + m.id).remove("ok_" + m.id).remove("own_" + m.id).apply();
             return "";
         } catch (Exception e) {
             return "Downloaden lukt niet";
         }
+    }
+
+    /**
+     * Door de app zelf laten downloaden (als de DownloadManager van Android blijft wachten, bijv. "Wacht op internet").
+     * Een stuk dat de DownloadManager al binnen had, blijft staan: de app gaat daar verder (de SHA-256 controleert
+     * daarna toch het hele bestand). Ook voor "Verder" na een onderbreking.
+     */
+    static synchronized String downloadApp(Context c, Model m) {
+        if (ready(c, m)) return "";
+        if (VERIFYING.containsKey(m.id) || ModelDownloadService.RUN.containsKey(m.id) || ModelDownloadService.QUEUED.contains(m.id)) return "";
+        long free;
+        try { free = new StatFs(c.getFilesDir().getPath()).getAvailableBytes(); } catch (Throwable t) { free = Long.MAX_VALUE; }
+        File part = partFile(c, m);
+        long need = 2 * m.size - Math.min(part.length(), m.size) + 200L * 1024 * 1024;
+        if (free < need) return "Te weinig opslag: nodig " + gb(need) + ", vrij " + gb(free);
+        long id = prefs(c).getLong("dl_" + m.id, -1);
+        DownloadManager mgr = dm(c);
+        if (id >= 0 && mgr != null) {
+            // De DownloadManager gooit zijn bestand weg bij remove(): eerst even opzij zetten
+            File keep = new File(part.getPath() + ".keep");
+            keep.delete();
+            boolean moved = part.isFile() && part.renameTo(keep);
+            try { mgr.remove(id); } catch (Throwable ignored) { }
+            if (moved && !keep.renameTo(part)) keep.delete();
+        }
+        prefs(c).edit().remove("dl_" + m.id).remove("err_" + m.id).remove("ok_" + m.id).putBoolean("own_" + m.id, true).apply();
+        ModelDownloadService.start(c, m.id);
+        return "";
+    }
+
+    /** De app heeft hem helemaal binnen: controleren en in de privémap zetten. */
+    static void ownDone(Context c, Model m) {
+        prefs(c).edit().remove("own_" + m.id).remove("err_" + m.id).apply();
+        startVerify(c, m);
+        MainActivity.jsAll("onAiModels", "");
+    }
+
+    /** Downloaden door de app lukte (nog) niet: het stuk dat binnen is blijft staan voor "Verder". */
+    static void ownFailed(Context c, String id, String why) {
+        prefs(c).edit().putString("err_" + id, why).apply();
+        MainActivity.jsAll("onAiModels", "");
     }
 
     static String gb(long b) { return String.format(Locale.ROOT, "%.1f GB", b / 1e9).replace('.', ','); }
@@ -301,8 +343,10 @@ final class LocalAi {
         long id;
         synchronized (LocalAi.class) {
             id = prefs(c).getLong("dl_" + m.id, -1);
-            prefs(c).edit().remove("dl_" + m.id).remove("ok_" + m.id).remove("err_" + m.id).apply();
+            prefs(c).edit().remove("dl_" + m.id).remove("ok_" + m.id).remove("err_" + m.id).remove("own_" + m.id).apply();
         }
+        ModelDownloadService.stop(m.id); // downloadt de app hem zelf: stoppen
+        ModelUse.forget(c, "ai:" + m.id);
         DownloadManager mgr = dm(c);
         if (id >= 0 && mgr != null) try { mgr.remove(id); } catch (Throwable ignored) { }
         if (VERIFYING.containsKey(m.id)) STOP_VERIFY.add(m.id); // het kopiëren stopt en ruimt zelf op
@@ -328,6 +372,15 @@ final class LocalAi {
             Integer v = VERIFYING.get(m.id);
             if (v != null) return o.put("state", "verifying").put("pct", v);
             String err = prefs(c).getString("err_" + m.id, "");
+            // De app downloadt hem zelf (na "Via de app downloaden")
+            long[] run = ModelDownloadService.RUN.get(m.id);
+            if (run != null) return o.put("state", "running").put("via", "app").put("bytes", run[0]).put("total", run[1] > 0 ? run[1] : m.size);
+            if (prefs(c).getBoolean("own_" + m.id, false)) {
+                long have = partFile(c, m).length();
+                o.put("via", "app").put("bytes", have).put("total", m.size);
+                if (ModelDownloadService.QUEUED.contains(m.id)) return o.put("state", "queued");
+                return o.put("state", "paused").put("reason", err.isEmpty() ? "Onderbroken" : err);
+            }
             long id = prefs(c).getLong("dl_" + m.id, -1);
             DownloadManager mgr = dm(c);
             if (id < 0 || mgr == null) return o.put("state", err.isEmpty() ? "none" : "failed").put("reason", err);
@@ -457,6 +510,7 @@ final class LocalAi {
     static void closeEmbedSafe() { EMB.lock(); try { closeEmbed(); } finally { EMB.unlock(); } }
 
     private static LlmProcess chatEngine(Context c, Model m) throws Exception {
+        ModelUse.touch(c, "ai:" + m.id);
         LlmProcess p = chat;
         if (p != null && p.alive() && p.model.equals(file(c, m)) && p.threads == threads()) return p;
         closeChat();
@@ -467,6 +521,7 @@ final class LocalAi {
     }
 
     private static LlmProcess embedEngine(Context c) throws Exception {
+        ModelUse.touch(c, "ai:" + EMBED.id);
         LlmProcess p = embed;
         if (p != null && p.alive() && p.threads == threads()) return p;
         closeEmbed();

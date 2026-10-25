@@ -684,6 +684,13 @@ body.solo:not(.solo-player).has-plbar main{padding-bottom:24px}
 .aimt{flex:1;min-width:0}.aimt b{display:block;font-size:16px}.aimt small{display:block;color:var(--muted);font-size:13px;line-height:1.35}.aimt .aims{color:var(--ink);font-weight:600;margin-top:4px}
 .aimb{display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex:none}.aimb .mini{float:none}.aimb .mini.on{background:var(--primary);color:var(--on-primary)}
 .aisel{font-size:13px;font-weight:700;color:var(--primary)}
+.md-bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0 8px}.md-bar i{display:block;height:100%;background:var(--primary);border-radius:4px;min-width:2px}
+.md-line{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 4px;font-size:14px}.md-line span{color:var(--muted)}
+.md-sum .sw{margin-top:8px}
+.md-item .pcprog{margin-top:8px}
+.md-busylist .aimodel{flex-wrap:wrap}.md-busylist .aimb{flex-direction:row;flex-wrap:wrap;width:100%;justify-content:flex-start;gap:8px}
+.md-hint{color:var(--muted)!important;margin-top:6px;font-size:12.5px}
+#md-have .aimodel:last-child,#md-get .aimodel:last-child{margin-bottom:6px}
 .aisugg{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px}
 .aisugg .chip{padding:9px 14px;border-radius:12px;border:1px solid var(--outline);background:transparent;font-size:14.5px;font-weight:500;color:var(--ink)}
 #ai-msgs{display:flex;flex-direction:column;gap:12px;padding-bottom:8px}

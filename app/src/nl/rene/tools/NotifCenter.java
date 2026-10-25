@@ -35,6 +35,7 @@ final class NotifCenter {
         {PodcastService.CHANNEL, "Podcasts", "Bediening van de podcast die speelt (terug, pauze, vooruit, slaaptimer)", "2"},
         {TracksService.CHANNEL, "Route opnemen", "Toont de voortgang tijdens het opnemen van een route", "2"},
         {TranscribeService.CHANNEL, "Gesprekken uitschrijven", "Voortgang van het uitschrijven", "2"},
+        {ModelDownloadService.CHANNEL, "Modellen downloaden", "Voortgang als de app zelf een AI-model downloadt", "2"},
         {Car.CHANNEL, "Mijn auto", "Als een rit niet vanzelf kon starten", "3"},
         {"auto-call-recording", "Automatische gespreksopname", "Als een automatische opname niet kon starten", "3"},
         {SleepReminder.CHANNEL, "Slaappraat: bedtijd", "Een herinnering op bedtijd om Slaappraat aan te zetten (als je die aanzet)", "3"},

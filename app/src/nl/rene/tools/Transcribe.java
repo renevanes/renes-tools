@@ -411,6 +411,7 @@ final class Transcribe {
     /** voice = voor een spraaknotitie (los van "Stoppen" bij gesprekken uitschrijven). */
     static JSONObject whisper(Context c, File wav, Model m, Progress p, boolean voice) throws Exception {
         synchronized (WHISPER) {
+            ModelUse.touch(c, "spraak:" + m.id);
             boolean generic = prefs(c).getBoolean("generic", false);
             try {
                 return runWhisper(c, wav, m, generic, p, voice);

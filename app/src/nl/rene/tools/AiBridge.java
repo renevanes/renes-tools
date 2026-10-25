@@ -38,6 +38,22 @@ public class AiBridge extends SleepBridge {
         if (m != null) LocalAi.delete(ctx, m);
     }
 
+    /** Modellen beheren: alle modellen (taal, zoeken, spraak), opslag, downloads en wat op te ruimen is. */
+    @JavascriptInterface public String modelsState() {
+        try { return Models.json(ctx).toString(); } catch (Throwable t) { return "{}"; }
+    }
+
+    /** Alles wat geen bruikbaar model is weg (oude modellen, halve downloads); geeft de vrijgekomen bytes. */
+    @JavascriptInterface public String modelsClean() { try { return String.valueOf(Models.clean(ctx)); } catch (Throwable t) { return "0"; } }
+
+    /** Door de app zelf laten downloaden (of verder na een onderbreking), als Android's DownloadManager blijft wachten. */
+    @JavascriptInterface public String aiDownloadApp(String id) {
+        LocalAi.Model m = LocalAi.model(id);
+        if (m == null) return "Onbekend model";
+        if (!LocalAi.supported()) return "De lokale AI werkt alleen op telefoons met een 64-bits ARM-processor";
+        try { return LocalAi.downloadApp(ctx, m); } catch (Throwable t) { return "Downloaden lukt niet"; }
+    }
+
     /** Oude modelbestanden (van modellen die deze versie niet meer gebruikt) weg; geeft de vrijgekomen bytes. */
     @JavascriptInterface public String aiCleanOld() { try { return String.valueOf(LocalAi.cleanOrphans(ctx)); } catch (Throwable t) { return "0"; } }
 

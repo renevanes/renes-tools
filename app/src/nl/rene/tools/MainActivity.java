@@ -1663,14 +1663,14 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String txDownload(String id) {
             if (Transcribe.model(id) == null) return "Onbekend model";
             if (TranscribeService.busy) return "Er loopt al iets; wacht tot dat klaar is";
-            Transcribe.prefs(ctx).edit().putString("status", "{\"running\":true,\"phase\":\"download\",\"pct\":0}").apply();
+            Transcribe.prefs(ctx).edit().putString("status", "{\"running\":true,\"phase\":\"download\",\"pct\":0}").putString("dlModel", id).apply();
             TranscribeService.download(ctx, id);
             return "";
         }
 
         @JavascriptInterface public void txDeleteModel(String id) {
             Transcribe.Model m = Transcribe.model(id);
-            if (m != null && !TranscribeService.busy) Transcribe.modelFile(ctx, m).delete();
+            if (m != null && !TranscribeService.busy) { Transcribe.modelFile(ctx, m).delete(); ModelUse.forget(ctx, "spraak:" + m.id); }
         }
 
         @JavascriptInterface public String txList() {

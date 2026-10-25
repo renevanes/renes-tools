@@ -153,7 +153,7 @@ if (!window.Android) window.Android = (function(){
     txRequestFiles(){ this._tx.files=true; setTimeout(()=>onTrChanged(),100); },
     txRequestCalls(){ this._tx.calls=true; setTimeout(()=>onTrChanged(),100); },
     txPickFolder(){}, txClearFolder(){}, txSetModel(id){ this._tx.model=id; }, txSetLang(l){ this._tx.lang=l; },
-    txDownload(id){ const t=this._tx; let p=0; t.st={running:true,phase:'download',pct:0}; const h=setInterval(()=>{ p+=25; t.st={running:true,phase:'download',pct:Math.min(p,100)}; if(p>=100){ clearInterval(h); t.models[id]=true; t.model=id; t.st={running:false,done:0,failed:0,stopped:false}; } },200); return ''; },
+    txDownload(id){ const t=this._tx; t.dl=id; let p=0; t.st={running:true,phase:'download',pct:0}; const h=setInterval(()=>{ p+=25; t.st={running:true,phase:'download',pct:Math.min(p,100)}; if(p>=100){ clearInterval(h); t.models[id]=true; t.model=id; t.st={running:false,done:0,failed:0,stopped:false}; } },200); return ''; },
     txDeleteModel(id){ this._tx.models[id]=false; if(this._tx.model===id) this._tx.model=''; },
     _txRecs:[{id:'a1',file:'Moeder_0611122233_20261003101500.m4a',path:'/rec/a.m4a',mtime:Date.now()-3*36e5,duration:312000,name:'Moeder',number:'06 11122233',kind:'in'},
       {id:'b2',file:'Huisarts_0101234567_20261002091000.m4a',path:'/rec/b.m4a',mtime:Date.now()-27*36e5,duration:95000,name:'Huisarts',number:'010 123 4567',kind:'out'}],
@@ -276,6 +276,21 @@ if (!window.Android) window.Android = (function(){
       Object.assign(m, { state: 'running', bytes: 0, total: 1e9 }); setTimeout(() => { m.bytes = 5e8; }, 200);
       setTimeout(() => { Object.assign(m, { state: 'verifying', pct: 40 }); }, 450); setTimeout(() => { A.st[id] = { state: 'ready' }; onAiModels(''); }, 700); return ''; },
     aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ const A = this._ai; if (/^src_/.test(n)) { const k = n.slice(4); if (!(k in A.src)) return; A.src[k] = on; A.calls.push(['src', k, on]); if (this._aiReady('zoek')) { setTimeout(() => onAiIndex({ busy: true, done: 1, total: 3 }), 40); setTimeout(() => onAiIndex({ items: 4, chunks: 9, at: Date.now(), quiet: true }), A.idxMs || 150); } return; } if (['wifiOnly', 'notes', 'voiceSend', 'speakVoice'].includes(n)) A[n] = on; },
+    // Modellen beheren: zoals Models.json (taalmodellen, zoekmodel en de spraakmodellen)
+    _md: { free: 20e9, online: true, metered: false, last: {}, leftovers: 0, txBusy: false, appMs: 500 },
+    modelsState(){ const A = this._ai, D = this._md, T = this._tx, chat = this._aiChat();
+      const ai = JSON.parse(this.aiState()).models.map(m => Object.assign(m, { key: 'ai:' + m.id, kind: m.embed ? 'zoek' : 'ai', last: D.last['ai:' + m.id] || 0, inUse: m.state === 'ready' && (m.embed || m.id === chat) }));
+      const sp = [['base', 'Spraakmodel snel', 59707625], ['small', 'Spraakmodel nauwkeurig', 190085487]].map(([id, label, size]) => {
+        const ready = !!T.models[id], run = !ready && T.st.running && T.st.phase === 'download' && T.dl === id;
+        return { id, key: 'spraak:' + id, kind: 'spraak', label, desc: 'Spraak naar tekst · whisper ' + id, size, last: D.last['spraak:' + id] || 0, state: ready ? 'ready' : run ? 'running' : 'none', inUse: ready && T.model === id, bytes: run ? size * (T.st.pct || 0) / 100 : 0, total: size }; });
+      const all = ai.concat(sp), used = all.filter(m => m.state === 'ready').reduce((a, m) => a + m.size, 0);
+      return JSON.stringify({ free: D.free, online: D.online, metered: D.metered, wifiOnly: A.wifiOnly, supported: true, txBusy: D.txBusy, models: all, used, leftovers: (A.orphans || 0) + (D.leftovers || 0) }); },
+    modelsClean(){ const n = (this._ai.orphans || 0) + (this._md.leftovers || 0); this._ai.orphans = 0; this._md.leftovers = 0; return String(n); },
+    aiDownloadApp(id){ const A = this._ai, D = this._md, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dlApp', id]);
+      Object.assign(m, { state: 'running', via: 'app', bytes: m.bytes || 0, total: m.total || 1e9, reason: undefined });
+      setTimeout(() => { if (A.st[id] === m) m.bytes = Math.max(m.bytes, 8e8); }, 200);
+      setTimeout(() => { if (A.st[id] === m) A.st[id] = { state: 'verifying', pct: 50 }; }, D.appMs);
+      setTimeout(() => { if (A.st[id].state === 'verifying') { A.st[id] = { state: 'ready' }; onAiModels(''); } }, D.appMs + 250); return ''; },
     aiIndexStop(){ this._ai.calls.push(['indexStop']); },
     aiIndexAuto(){ this._ai.calls.push(['indexAuto']); },
     // Zoals AiBridge: bezig tot het antwoord (of het stoppen) helemaal klaar is; een tweede vraag intussen wordt geweigerd
