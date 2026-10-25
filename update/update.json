@@ -1,15 +1,26 @@
 {
   "app": "Tools",
-  "versionName": "1.102",
-  "versionCode": 103,
-  "nativeLevel": 91,
+  "versionName": "1.103",
+  "versionCode": 104,
+  "nativeLevel": 92,
   "web": "index.html",
-  "webSha256": "61fe8f77bedea1d9f2303933fabd9f174751d47286f4428074e58d8be8c9c241",
+  "webSha256": "34c643bfc884fa9a7402c3e6901ebd320e0cd9374c652a32d0562bca142df0f0",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1d973b4a3af51dea6ab687fe85f5aabe2e0e226e1f6ce4b126bfe3718757a8c8",
+  "apkSha256": "1f2b371b21ee07a2d567535d434e22bbb8db5473dd3699aef1697fd636a8b720",
   "changelog": [
+    {
+      "version": "1.103",
+      "date": "2026-10-25",
+      "changes": [
+        "Modellen beheren opnieuw ingedeeld: per soort (assistent, spraak naar tekst, slim zoeken, voorlezen) zie je waarvoor hij is, of je hem nodig hebt, welke versie je hebt en of er een nieuwere is (met Bijwerken)",
+        "Voorlezen: de app laat zien of je telefoon een Nederlandse stem heeft, met een knop om er een toe te voegen",
+        "Modellen downloaden gaat nu altijd door de app zelf, zonder aparte keuze; een onderbroken download gaat vanzelf verder als je de app weer opent",
+        "Startscherm aanpassen: zet de groepen in je eigen volgorde, sleep tools naar een andere plek of groep, en voeg met + Tool toevoegen een tool aan een groep toe",
+        "Ook vanaf het startscherm: houd een tegel ingedrukt → Naar een andere groep of Verbergen"
+      ]
+    },
     {
       "version": "1.102",
       "date": "2026-10-25",
@@ -903,5 +914,5 @@
       ]
     }
   ],
-  "webSig2": "bPdxGIB5oc3FwykcG746G+BnhA1furWqOVhuVXgVPfv+Wmx+HeeQ1aq2U5R8gg2MBdLuuZw8lwD9J7c6OrXl2NNE4aASW+N7zoRGsHvn/MPbDnwSIMsZwrJp0W01rJPPA4Xv8MxmalnMXzJq0yO2MVvPYDuT40Bu2HV3zHzgeoFXSPCkyuWGRmEk0SCl8UJj2hDgqXqEE34fPpp/AY2nOzSojvVmAoYSIaRP8j5rQzkRBqhA7TPkIgjHm0NCYaLuvFtbx9Ey8kj3AxzNJPD/1cRr9r/lAJZMaGpJewq4FJ9afv9vsr8os4kutwZDuMut8/PggQlbMcemCIQFx3P2HhP8BU6FEzPL+1KChw68xCU7eqqEf7PqdXFrm0APIzgIxwgQRQUGavGvHhbgT3ux+uVnjqG7O1y8uVTHiWfDlHRMG48vdquqhPIZhcPizOPfoe0VQT3V6/6QRf67YbB4xHouPQPzZp960eKGionjQWcN7YcXa0wmWNolHumxRjux"
+  "webSig2": "PB+hzEGM0nnqv7H5Ta8EBNTXxO+ihDv0YqkYU7eCKfD/T4VL/hMeUobXxqZJsQfr2BEbR58MQunBL29Xzvc5PTUw9Myc4FBv1NqxaBUlB2s2MsVCOwUIum38rgC1EVJN9V0m1al97pAzKz34YPwB1zfpdjimEaYaj61uFl/h4mgPLctFkE0jYM7n0+LK/MJIsQ2QIM/1dT0btufTuk4qk9TCkVpzmSG4pGCbpUVP+mPaojaCY8/idEe4NjbtzKzNSDiFutliXAhMtXdUpqHBXCn5wqRFEvJJ58f4NpGQrxmlAecFKPeXuxL5PQzy76WvU/4X1nE57WUX2AwarRipDUSALeiJTlQkEyzbhSpya/v4MEZSxjcNxBvZV1mmbosM1zMibxq3SFEiHjvoAe+fJGO+Ip12qUwjOm3TZS/LZQ21QWNvE0yuKpZ4dbS4g4qQtYaUao9QrTeVG/uuE4ClVP6T94ooot1wHV54gawwK5czV0Ecw5X72mK2ATFFUnvT"
 }
