@@ -171,7 +171,8 @@ public class ModelDownloadService extends Service {
             if (STOP.remove(id)) return;
             if (blocked != null) { LocalAi.ownFailed(this, id, blocked); return; }
         }
-        RUN.put(id, new long[]{LocalAi.partFile(this, m).length(), m.size});
+        final long[] startAt = {LocalAi.partFile(this, m).length()};
+        RUN.put(id, new long[]{startAt[0], m.size});
         // Tijdens het downloaden blijven kijken (hooguit eens per 2 s): valt wifi weg, dan niet over mobiel internet verder
         final String[] net = {null};
         final long[] netAt = {0};
@@ -191,7 +192,9 @@ public class ModelDownloadService extends Service {
         };
         try {
             ModelFetch.fetch(m.url(), LocalAi.partFile(this, m), m.size, (done, total) -> {
-                RUN.put(id, new long[]{done, total});
+                long[] was = RUN.put(id, new long[]{done, total});
+                // Er komt echt iets binnen: een volgende onderbreking mag bij het openen van de app meteen weer verder
+                if (was != null && done > was[0] && was[0] == startAt[0]) LocalAi.prefs(this).edit().remove("tried_" + id).apply();
                 long now = System.currentTimeMillis();
                 if (!STOP.contains(id) && (now - lastNotif > 1000 || done >= total)) {
                     lastNotif = now;
