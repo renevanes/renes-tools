@@ -34,7 +34,7 @@ function aiModelCard(m, opts){
   let btn = '';
   if (m.state === 'ready') btn = opts.chat ? (chosen ? '<span class="aisel">In gebruik</span>' : '<button class="mini" onclick="aiUse(\'' + m.id + '\')">Gebruiken</button>') : '';
   else if (busy) btn = m.state === 'verifying' ? '' : (m.state === 'paused' || (m.state === 'queued' && m.via !== 'app') ? '<button class="mini on" onclick="mdViaApp(\'' + m.id + '\')">' + (m.via === 'app' ? 'Verder' : 'Via de app') + '</button>' : '') +
-    '<button class="mini" onclick="aiDel(\'' + m.id + '\', true)">Stoppen</button>';
+    '<button class="mini" onclick="mdStop(\'ai:' + m.id + '\')">Stoppen</button>';
   // Een vervangen model (bijv. mislukt downloaden) niet opnieuw aanbieden, alleen weghalen
   else if (aiReplaced(m.id)) btn = m.state === 'none' ? '' : '<button class="mini" onclick="aiDel(\'' + m.id + '\', true)">Verwijderen</button>';
   else btn = '<button class="mini on" onclick="aiDl(\'' + m.id + '\')">Downloaden</button>';

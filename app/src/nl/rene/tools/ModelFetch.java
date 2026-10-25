@@ -30,28 +30,34 @@ final class ModelFetch {
      * onbekend). stop: true = afbreken. Gooit een fout als het niet lukt; het halve bestand blijft dan staan.
      */
     static void fetch(String url, File part, long size, Step p, java.util.function.BooleanSupplier stop) throws Exception {
-        Exception last = null;
-        for (int attempt = 0; attempt <= WAIT.length; attempt++) {
+        int attempt = 0;
+        long[] wrote = {0};
+        while (true) {
             if (stop.getAsBoolean()) throw new Stopped();
+            wrote[0] = 0;
             try {
-                once(url, part, size, p, stop);
+                once(url, part, size, p, stop, wrote);
                 return;
             } catch (Stopped | Fatal e) {
                 throw e;
             } catch (IOException e) {
-                last = e; // verbinding weg of haperend: zo meteen verder waar hij was
-                if (attempt == WAIT.length) break;
-                long until = System.currentTimeMillis() + WAIT[attempt];
+                // Verbinding weg of haperend: zo meteen verder waar hij was. Kwam er nog iets binnen, dan telt het
+                // opnieuw proberen weer vanaf het begin (een paar korte haperingen in een uur breken hem niet af).
+                if (wrote[0] > 0) attempt = 0;
+                if (attempt >= WAIT.length) throw new Offline(e);
+                long until = System.currentTimeMillis() + WAIT[attempt++];
                 while (System.currentTimeMillis() < until) { if (stop.getAsBoolean()) throw new Stopped(); Thread.sleep(250); }
             }
         }
-        throw new Exception("Geen verbinding" + (last != null && last.getMessage() != null ? " (" + last.getMessage() + ")" : "") + "; tik op Verder om door te gaan");
     }
+
+    /** Na een paar pogingen nog steeds geen verbinding (de reden staat in getCause, voor het logboek). */
+    static final class Offline extends Exception { Offline(Throwable why) { super("Geen verbinding; tik op Verder om door te gaan", why); } }
 
     /** Een fout waarbij opnieuw proberen niet helpt (bijv. HTTP 404 of een te groot bestand). */
     static final class Fatal extends Exception { Fatal(String m) { super(m); } }
 
-    private static void once(String url, File part, long size, Step p, java.util.function.BooleanSupplier stop) throws Exception {
+    private static void once(String url, File part, long size, Step p, java.util.function.BooleanSupplier stop, long[] wrote) throws Exception {
         long have = part.isFile() ? part.length() : 0;
         if (size > 0 && have > size) { part.delete(); have = 0; } // groter dan het hoort: opnieuw
         if (size > 0 && have == size) { p.step(have, size); return; }
@@ -60,7 +66,10 @@ final class ModelFetch {
             int code = h.getResponseCode();
             boolean append;
             if (code == 206) {
-                append = have > 0 && rangeStart(h.getHeaderField("Content-Range")) == have;
+                String cr = h.getHeaderField("Content-Range");
+                long all = rangeTotal(cr);
+                if (size > 0 && all >= 0 && all != size) throw new Fatal("Onverwachte grootte van de download");
+                append = have > 0 && rangeStart(cr) == have;
                 if (!append) { h.disconnect(); part.delete(); h = open(url, 0); code = h.getResponseCode(); if (code != 200) throw new Fatal("Download mislukt (HTTP " + code + ")"); }
             } else if (code == 200) {
                 append = false; // de server hervat niet: van voren af aan
@@ -85,6 +94,7 @@ final class ModelFetch {
                     if (stop.getAsBoolean()) throw new Stopped();
                     o.write(buf, 0, n);
                     done += n;
+                    wrote[0] += n;
                     if (size > 0 && done > size) throw new Fatal("Download groter dan verwacht");
                     p.step(done, total);
                 }
@@ -114,6 +124,13 @@ final class ModelFetch {
             return h;
         }
         throw new Fatal("Download mislukt: te veel doorverwijzingen");
+    }
+
+    /** "bytes 100-199/200" → 200; onbekend ("*") of ongeldig: -1. Zuiver (getest). */
+    static long rangeTotal(String cr) {
+        if (cr == null) return -1;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^bytes \\d+-\\d+/(\\d+)$").matcher(cr.trim());
+        return m.matches() ? Long.parseLong(m.group(1)) : -1;
     }
 
     /** "bytes 100-199/200" → 100; anders -1. Zuiver (getest). */

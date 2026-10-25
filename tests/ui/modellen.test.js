@@ -50,6 +50,13 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._ai.wifiOnly === false && Android._ai.calls.some(c => c[0] === 'dlApp' && c[1] === 'groot35')), 'wifi-only uit en via de app gestart');
     await pg.evaluate(() => { Android._md.metered = false; });
     ok(await until(() => document.querySelector('#md-have [data-key="ai:groot35"]') !== null), 'groot35 klaar');
+    // Onderbroken terwijl de app hem downloadde: Verder gaat door
+    await pg.evaluate(() => { Android._ai.st.klein35 = { state: 'paused', via: 'app', reason: 'Geen verbinding; tik op Verder om door te gaan', bytes: 5e8, total: 1396198496 }; mdRefresh(); });
+    ok((await txt('#md-busy')).includes('Geen verbinding') && await pg.isVisible('#md-busy [data-key="ai:klein35"] button:has-text("Verder")'), 'onderbroken: Verder');
+    ok(await pg.getAttribute('#md-busy [data-key="ai:klein35"] button:has-text("Verder")', 'aria-label') === 'Klein en snel (Qwen3.5): verder downloaden', 'knop met de naam van het model voor een schermlezer');
+    await pg.click('#md-busy [data-key="ai:klein35"] button:has-text("Verder")');
+    ok(await pg.evaluate(() => Android._ai.calls.some(c => c[0] === 'dlApp' && c[1] === 'klein35')), 'Verder: de app gaat verder');
+    ok(await until(() => document.querySelector('#md-have [data-key="ai:klein35"]') !== null), 'klein35 klaar');
     // Gebruiken: ander taalmodel en ander spraakmodel
     await pg.click('#md-have [data-key="ai:groot"] button:has-text("Gebruiken")'); await pg.waitForTimeout(100);
     ok(await pg.evaluate(() => Android._ai.chat === 'groot') && await pg.isVisible('#md-have [data-key="ai:groot"] .aisel'), 'ander taalmodel in gebruik');

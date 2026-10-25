@@ -10,6 +10,9 @@ public class ModelFetchTest {
     static void ok(boolean c, String m) { System.out.println((c ? "✓ " : "✗ ") + m); if (!c) all = false; }
 
     public static void main(String[] a) throws Exception {
+        ok(ModelFetch.rangeTotal("bytes 100-199/200") == 200 && ModelFetch.rangeTotal("bytes 0-9/*") == -1 && ModelFetch.rangeTotal(null) == -1, "totaal uit Content-Range");
+        ok(ModelDownloadService.why(new ModelFetch.Fatal("Download mislukt (HTTP 404)")).contains("404") && ModelDownloadService.why(new java.io.IOException("write failed: ENOSPC (No space left on device)")).equals("Te weinig opslag")
+                && ModelDownloadService.why(new java.net.UnknownHostException("Unable to resolve host")).startsWith("Downloaden mislukt"), "foutmeldingen in gewone taal");
         ok(ModelFetch.rangeStart("bytes 100-199/200") == 100 && ModelFetch.rangeStart("bytes 0-9/*") == 0 && ModelFetch.rangeStart("x") == -1 && ModelFetch.rangeStart(null) == -1, "Content-Range lezen");
 
         byte[] body = new byte[300_000];
@@ -32,6 +35,20 @@ public class ModelFetchTest {
         // Zonder Range-ondersteuning: altijd alles (200)
         srv.createContext("/oud", x -> { x.sendResponseHeaders(200, body.length); x.getResponseBody().write(body); x.close(); });
         srv.createContext("/weg", x -> { x.sendResponseHeaders(404, -1); x.close(); });
+        // Range-antwoord dat ergens anders begint dan gevraagd: opnieuw van voren af aan
+        srv.createContext("/anders", x -> {
+            if (x.getRequestHeaders().getFirst("Range") != null) { x.getResponseHeaders().add("Content-Range", "bytes 0-" + (body.length - 1) + "/" + body.length); x.sendResponseHeaders(206, body.length); }
+            else x.sendResponseHeaders(200, body.length);
+            x.getResponseBody().write(body); x.close(); });
+        // Ander totaal in Content-Range dan verwacht
+        srv.createContext("/groter", x -> { x.getResponseHeaders().add("Content-Range", "bytes 10-19/999999"); x.sendResponseHeaders(206, 10); x.getResponseBody().write(body, 10, 10); x.close(); });
+        // 416: het stuk past niet (bijv. ander bestand op de server): opnieuw
+        AtomicInteger r416 = new AtomicInteger();
+        srv.createContext("/416", x -> {
+            if (x.getRequestHeaders().getFirst("Range") != null) { r416.incrementAndGet(); x.sendResponseHeaders(416, -1); x.close(); return; }
+            x.sendResponseHeaders(200, body.length); x.getResponseBody().write(body); x.close(); });
+        // Doorverwijzing naar http: weigeren
+        srv.createContext("/omweg", x -> { x.getResponseHeaders().add("Location", "http://example.org/model"); x.sendResponseHeaders(302, -1); x.close(); });
         srv.start();
         String base = "http://127.0.0.1:" + srv.getAddress().getPort();
         File dir = Files.createTempDirectory("modelfetch").toFile();
@@ -77,6 +94,46 @@ public class ModelFetchTest {
             String msg = "";
             try { ModelFetch.fetch(base + "/weg", new File(dir, "f.download"), body.length, (d, t) -> { }, () -> false); } catch (Exception e) { msg = String.valueOf(e.getMessage()); }
             ok(msg.contains("404") && System.currentTimeMillis() - t0 < 2000, "404: meteen een fout (" + msg + ")");
+
+            // Range-antwoord vanaf een ander punt: van voren af aan, geen rommel
+            File f6 = new File(dir, "h.download");
+            Files.write(f6.toPath(), java.util.Arrays.copyOf(body, 70_000));
+            ModelFetch.fetch(base + "/anders", f6, body.length, (d, t) -> { }, () -> false);
+            ok(java.util.Arrays.equals(Files.readAllBytes(f6.toPath()), body), "206 vanaf een ander punt: opnieuw van het begin");
+
+            // Ander totaal in Content-Range: fout
+            File f7 = new File(dir, "i.download");
+            Files.write(f7.toPath(), java.util.Arrays.copyOf(body, 10));
+            msg = "";
+            try { ModelFetch.fetch(base + "/groter", f7, body.length, (d, t) -> { }, () -> false); } catch (Exception e) { msg = String.valueOf(e.getMessage()); }
+            ok(msg.contains("grootte"), "ander totaal in Content-Range: fout");
+
+            // 416 met een stuk: dat stuk weg en opnieuw
+            File f8 = new File(dir, "j.download");
+            Files.write(f8.toPath(), java.util.Arrays.copyOf(body, 1000));
+            ModelFetch.fetch(base + "/416", f8, body.length, (d, t) -> { }, () -> false);
+            ok(java.util.Arrays.equals(Files.readAllBytes(f8.toPath()), body) && r416.get() == 1, "416: opnieuw van het begin");
+
+            // Groter stuk dan het hoort: weg en opnieuw
+            File f9 = new File(dir, "k.download");
+            Files.write(f9.toPath(), new byte[body.length + 10]);
+            ModelFetch.fetch(base + "/model", f9, body.length, (d, t) -> { }, () -> false);
+            ok(java.util.Arrays.equals(Files.readAllBytes(f9.toPath()), body), "te groot stuk: opnieuw");
+
+            // Doorverwijzing naar http: geweigerd
+            msg = "";
+            try { ModelFetch.fetch(base + "/omweg", new File(dir, "l.download"), body.length, (d, t) -> { }, () -> false); } catch (Exception e) { msg = String.valueOf(e.getMessage()); }
+            ok(msg.contains("onveilige doorverwijzing"), "doorverwijzing naar http geweigerd");
+
+            // Een vooraf op volle grootte gezet bestand (zoals de DownloadManager): alleen het echte stuk houden
+            File f10 = new File(dir, "m.download");
+            byte[] pre = new byte[body.length];
+            System.arraycopy(body, 0, pre, 0, 120_000);
+            Files.write(f10.toPath(), pre);
+            ok(LocalAi.keepPart(f10, 120_000) && f10.length() == 120_000, "vooraf gereserveerd bestand: ingekort tot wat binnen is");
+            ModelFetch.fetch(base + "/model", f10, body.length, (d, t) -> { }, () -> false);
+            ok(java.util.Arrays.equals(Files.readAllBytes(f10.toPath()), body), "daarna verder tot het hele bestand");
+            ok(!LocalAi.keepPart(f10, -1) && !LocalAi.keepPart(f10, body.length + 1), "onbekend of te veel: niet houden");
 
             // Verkeerde grootte volgens de server: fout
             msg = "";

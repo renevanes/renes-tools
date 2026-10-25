@@ -128,7 +128,7 @@ function show(name){
   if (name==='recorder') enterRecorder(); else stopRecorderPoll();
   if (name==='sleep') enterSleep(); else if (name==='sleepnight') enterSleepNight(); else if (typeof stopSleepPoll === 'function') stopSleepPoll();
   if (current_prev==='sleepnight' && name!=='sleepnight' && typeof Android.sleepStopPlay === 'function') { Android.sleepStopPlay(); slPlaying = ''; }
-  if (name==='models') enterModels(); else if (typeof mdPollT !== 'undefined') clearTimeout(mdPollT);
+  if (name==='models') enterModels(); else if (typeof mdLeave === 'function') mdLeave();
   if (name==='car') enterCar();
   if (name==='pdf') enterPdf();
   if (name==='spotify') enterSpotify();

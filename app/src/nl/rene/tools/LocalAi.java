@@ -100,7 +100,8 @@ final class LocalAi {
     /** Bestanden van modellen die deze app-versie niet meer kent (na een update met een nieuwer model). Zuiver (getest). */
     static boolean orphan(String name, Model[] models) {
         for (Model m : models) if (name.equals(m.file) || name.equals(m.file + ".tmp") || name.equals(m.file + ".download")) return false;
-        return name.endsWith(".gguf") || name.endsWith(".gguf.tmp") || name.endsWith(".gguf.download");
+        // .keep: even opzij gezet bij "Via de app downloaden" (blijft alleen staan als de app net toen stopte)
+        return name.endsWith(".gguf") || name.endsWith(".gguf.tmp") || name.endsWith(".gguf.download") || name.endsWith(".gguf.download.keep");
     }
     /** Ook op te ruimen: resten (half gedownload, niet gecontroleerd) van een model dat door een nieuwer vervangen is
      *  en dat je niet hebt en niet aan het downloaden bent; zo'n model staat niet meer bij Taalmodel. busy = ids die
@@ -311,21 +312,38 @@ final class LocalAi {
         long id = prefs(c).getLong("dl_" + m.id, -1);
         DownloadManager mgr = dm(c);
         if (id >= 0 && mgr != null) {
+            // Wat de DownloadManager echt binnen heeft (zijn bestand kan al op de volle grootte staan, met nullen erachter)
+            long got = -1;
+            try (Cursor cur = mgr.query(new DownloadManager.Query().setFilterById(id))) {
+                if (cur != null && cur.moveToFirst()) {
+                    if (cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)) == DownloadManager.STATUS_RUNNING)
+                        return "Het downloaden loopt weer; even geduld";
+                    got = cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+                }
+            } catch (Throwable ignored) { }
             // De DownloadManager gooit zijn bestand weg bij remove(): eerst even opzij zetten
             File keep = new File(part.getPath() + ".keep");
             keep.delete();
             boolean moved = part.isFile() && part.renameTo(keep);
             try { mgr.remove(id); } catch (Throwable ignored) { }
-            if (moved && !keep.renameTo(part)) keep.delete();
+            if (moved && (!keepPart(keep, got) || !keep.renameTo(part))) keep.delete();
         }
         prefs(c).edit().remove("dl_" + m.id).remove("err_" + m.id).remove("ok_" + m.id).putBoolean("own_" + m.id, true).apply();
         ModelDownloadService.start(c, m.id);
         return "";
     }
 
-    /** De app heeft hem helemaal binnen: controleren en in de privémap zetten. */
-    static void ownDone(Context c, Model m) {
-        prefs(c).edit().remove("own_" + m.id).remove("err_" + m.id).apply();
+    /** Alleen het stuk dat echt binnen is houden (bytes = wat de DownloadManager meldt; onbekend: niets). Zuiver (getest). */
+    static boolean keepPart(File f, long bytes) {
+        if (bytes <= 0 || bytes > f.length()) return false;
+        try (java.io.RandomAccessFile r = new java.io.RandomAccessFile(f, "rw")) { r.setLength(bytes); return true; }
+        catch (Exception e) { return false; }
+    }
+
+    /** De app heeft hem helemaal binnen: controleren en in de privémap zetten ("own_" blijft tot dat klaar is). */
+    static synchronized void ownDone(Context c, Model m) {
+        if (!prefs(c).getBoolean("own_" + m.id, false)) return; // intussen weggehaald
+        prefs(c).edit().remove("err_" + m.id).apply();
         startVerify(c, m);
         MainActivity.jsAll("onAiModels", "");
     }
@@ -417,8 +435,7 @@ final class LocalAi {
      * gecontroleerd is ook het bestand dat gebruikt wordt (een andere app kan het daarna niet meer vervangen).
      */
     private static void startVerify(final Context c, final Model m) {
-        if (VERIFYING.containsKey(m.id)) return;
-        VERIFYING.put(m.id, 0);
+        if (VERIFYING.putIfAbsent(m.id, 0) != null) return;
         new Thread(() -> {
             File part = partFile(c, m), tmp = tmpFile(c, m), fin = file(c, m);
             try {
@@ -449,6 +466,7 @@ final class LocalAi {
                 if (STOP_VERIFY.contains(m.id)) prefs(c).edit().remove("dl_" + m.id).remove("err_" + m.id).remove("ok_" + m.id).apply(); // weggehaald: geen foutmelding
                 else prefs(c).edit().remove("dl_" + m.id).putString("err_" + m.id, err).apply();
             } finally {
+                prefs(c).edit().remove("own_" + m.id).apply(); // klaar met dit bestand (ook als de app het zelf downloadde)
                 part.delete(); // de download zelf (in de gedeelde map) is niet meer nodig
                 STOP_VERIFY.remove(m.id);
                 VERIFYING.remove(m.id);

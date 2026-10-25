@@ -80,7 +80,7 @@ public class ModelDownloadService extends Service {
     @Override
     public void onTimeout(int startId, int fgsType) {
         synchronized (queue) { for (String id : queue) stop(id); }
-        for (String id : RUN.keySet()) stop(id);
+        for (String id : RUN.keySet()) { LocalAi.ownFailed(this, id, "Android stopte het downloaden na 6 uur; tik later op Verder"); stop(id); }
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
     }
@@ -110,6 +110,7 @@ public class ModelDownloadService extends Service {
         } finally {
             try { if (wl != null && wl.isHeld()) wl.release(); } catch (Throwable ignored) { }
             try { if (wifi != null && wifi.isHeld()) wifi.release(); } catch (Throwable ignored) { }
+            try { ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIF_ID); } catch (Throwable ignored) { }
             synchronized (queue) {
                 if (worker == Thread.currentThread()) worker = null;
                 if (worker == null) {
@@ -120,9 +121,17 @@ public class ModelDownloadService extends Service {
         }
     }
 
+    /** Wifi wakker houden tijdens het downloaden (ook met het scherm uit). */
     @SuppressWarnings("deprecation")
     private static WifiManager.WifiLock wifiLock(WifiManager wm) {
-        return wm.createWifiLock(Build.VERSION.SDK_INT >= 29 ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY : WifiManager.WIFI_MODE_FULL_HIGH_PERF, "renestools:model-download");
+        return wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "renestools:model-download");
+    }
+
+    /** Waarom het netwerk nu niet mag (null = mag): roaming nooit, en mobiel internet niet bij Alleen via wifi. */
+    static String netBlocked(Context c) {
+        if (roaming(c)) return "Wacht op een netwerk zonder roaming";
+        if (LocalAi.wifiOnly(c) && metered(c)) return "Wacht op wifi (of zet Alleen via wifi uit)";
+        return null;
     }
 
     private long lastNotif;
@@ -130,38 +139,67 @@ public class ModelDownloadService extends Service {
     private void one(String id) {
         LocalAi.Model m = LocalAi.model(id);
         if (m == null) return;
-        if (LocalAi.wifiOnly(this) && metered(this)) {
-            LocalAi.ownFailed(this, id, "Wacht op wifi (of zet Alleen via wifi uit)");
-            return;
-        }
+        String blocked = netBlocked(this);
+        if (blocked != null) { LocalAi.ownFailed(this, id, blocked); return; }
         RUN.put(id, new long[]{LocalAi.partFile(this, m).length(), m.size});
+        // Tijdens het downloaden blijven kijken (hooguit eens per 2 s): valt wifi weg, dan niet over mobiel internet verder
+        final String[] net = {null};
+        final long[] netAt = {0};
+        java.util.function.BooleanSupplier stopNow = () -> {
+            if (STOP.contains(id)) return true;
+            long now = System.currentTimeMillis();
+            if (now - netAt[0] > 2000) { netAt[0] = now; net[0] = netBlocked(this); }
+            return net[0] != null;
+        };
         try {
             ModelFetch.fetch(m.url(), LocalAi.partFile(this, m), m.size, (done, total) -> {
                 RUN.put(id, new long[]{done, total});
                 long now = System.currentTimeMillis();
-                if (now - lastNotif > 1000 || done >= total) {
+                if (!STOP.contains(id) && (now - lastNotif > 1000 || done >= total)) {
                     lastNotif = now;
                     int pct = total > 0 ? (int) (done * 100 / total) : -1;
                     ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,
                             notif("AI-model: " + m.label, (pct >= 0 ? pct + "% · " : "") + LocalAi.gb(done) + " van " + LocalAi.gb(total), pct));
                 }
-            }, () -> STOP.contains(id));
+            }, stopNow);
             RUN.remove(id);
+            if (STOP.remove(id)) return; // net gestopt of verwijderd: niet meer controleren
             LocalAi.ownDone(this, m);
         } catch (ModelFetch.Stopped e) {
             RUN.remove(id);
-            STOP.remove(id);
+            if (!STOP.remove(id) && net[0] != null) LocalAi.ownFailed(this, id, net[0]); // wifi weg: wachten, Verder kan
         } catch (Throwable e) {
             RUN.remove(id);
-            LocalAi.ownFailed(this, id, e instanceof OutOfMemoryError ? "Onvoldoende geheugen" : e.getMessage() == null ? "Downloaden mislukt" : e.getMessage());
+            App.log(this, "AI", "model downloaden: " + e + (e.getCause() != null ? " (" + e.getCause() + ")" : ""));
+            LocalAi.ownFailed(this, id, why(e));
         }
+    }
+
+    /** Een foutmelding in gewone taal (de echte staat in het logboek). Zuiver (getest). */
+    static String why(Throwable e) {
+        if (e instanceof OutOfMemoryError) return "Onvoldoende geheugen";
+        if (e instanceof ModelFetch.Fatal || e instanceof ModelFetch.Offline) return e.getMessage();
+        String m = String.valueOf(e.getMessage());
+        if (m.contains("ENOSPC") || m.toLowerCase(java.util.Locale.ROOT).contains("no space")) return "Te weinig opslag";
+        return "Downloaden mislukt; tik op Verder om het opnieuw te proberen";
     }
 
     /** Zit de telefoon op een netwerk met een databundel (mobiel internet of een hotspot)? */
     static boolean metered(Context c) {
         try {
             ConnectivityManager cm = (ConnectivityManager) c.getSystemService(CONNECTIVITY_SERVICE);
-            return cm != null && cm.isActiveNetworkMetered();
+            return cm == null || cm.isActiveNetworkMetered();
+        } catch (Throwable t) { return true; } // niet te zien: voorzichtig (geen databundel gebruiken)
+    }
+
+    /** Zit de telefoon in het buitenland op een netwerk met roaming? (Android 9+; daarvoor niet te zien.) */
+    static boolean roaming(Context c) {
+        if (Build.VERSION.SDK_INT < 28) return false;
+        try {
+            ConnectivityManager cm = (ConnectivityManager) c.getSystemService(CONNECTIVITY_SERVICE);
+            android.net.Network n = cm == null ? null : cm.getActiveNetwork();
+            android.net.NetworkCapabilities nc = n == null ? null : cm.getNetworkCapabilities(n);
+            return nc != null && !nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING);
         } catch (Throwable t) { return false; }
     }
 

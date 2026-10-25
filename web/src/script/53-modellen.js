@@ -21,11 +21,11 @@ function mdStateTxt(m){
   const part = m.total > 0 ? Math.floor(m.bytes / m.total * 100) + '% · ' + mdGB(m.bytes) + ' van ' + mdGB(m.total) : '';
   const via = m.via === 'app' ? ' · via de app' : '';
   switch (m.state) {
-    case 'running': return '↓ ' + (part || 'Bezig') + via;
-    case 'queued': return '↓ In de wachtrij' + via;
+    case 'running': return (part || 'Bezig') + via;
+    case 'queued': return 'In de wachtrij' + via;
     case 'paused': return (m.reason || 'Gepauzeerd') + (part ? ' · ' + part : '');
     case 'verifying': return 'Controleren… ' + (m.pct || 0) + '%';
-    case 'failed': return '⚠ ' + (m.reason || 'Mislukt');
+    case 'failed': return 'Mislukt: ' + (m.reason || 'onbekende fout');
   }
   return '';
 }
@@ -40,7 +40,9 @@ function mdHint(m, net){
   if (m.state === 'paused' && m.via === 'app') return 'Tik op Verder om door te gaan waar hij was.';
   return '';
 }
-function mdBtn(label, act, on){ return '<button class="mini' + (on ? ' on' : '') + '" onclick="' + act + '">' + label + '</button>'; }
+/** Knop; aria = de naam voor een schermlezer (met het model erbij, want er staan er meer van op het scherm). */
+function mdBtn(label, act, on, aria){ return '<button class="mini' + (on ? ' on' : '') + '" onclick="' + act + '"' + (aria ? ' aria-label="' + esc(aria) + '"' : '') + '>' + label + '</button>'; }
+function mdLeave(){ clearTimeout(mdPollT); }
 
 function enterModels(){ mdRefresh(); }
 function mdRefresh(){
@@ -79,30 +81,31 @@ function mdHead(m, extra){
 function mdBusyCard(m){
   const id = jsq(m.id), app = m.via === 'app', hint = mdHint(m, mdSt);
   let b = '';
-  if (m.kind === 'spraak') b = '';
-  else if (m.state === 'failed') b = mdBtn('Opnieuw', 'mdDl(' + jsq(m.key) + ')', true) + mdBtn('Weghalen', 'mdStop(' + jsq(m.key) + ')');
+  const stopB = mdBtn('Stoppen', 'mdStop(' + jsq(m.key) + ')', false, m.label + ': downloaden stoppen');
+  if (m.kind === 'spraak') b = ''; // het spraakmodel stopt bij Gesprekken uitschrijven
+  else if (m.state === 'failed') b = mdBtn('Opnieuw', 'mdDl(' + jsq(m.key) + ')', true, m.label + ' opnieuw downloaden') + mdBtn('Weghalen', 'mdStop(' + jsq(m.key) + ')', false, m.label + ' weghalen');
   else if (m.state === 'verifying') b = '';
-  else if (app && m.state === 'paused') b = mdBtn('Verder', 'mdViaApp(' + id + ')', true) + mdBtn('Stoppen', 'mdStop(' + jsq(m.key) + ')');
-  else if (!app && (m.state === 'paused' || m.state === 'queued')) b = mdBtn('Via de app downloaden', 'mdViaApp(' + id + ')', true) + mdBtn('Stoppen', 'mdStop(' + jsq(m.key) + ')');
-  else b = mdBtn('Stoppen', 'mdStop(' + jsq(m.key) + ')');
+  else if (app && m.state === 'paused') b = mdBtn('Verder', 'mdViaApp(' + id + ')', true, m.label + ': verder downloaden') + stopB;
+  else if (!app && (m.state === 'paused' || m.state === 'queued')) b = mdBtn('Via de app downloaden', 'mdViaApp(' + id + ')', true, m.label + ' via de app downloaden') + stopB;
+  else b = stopB;
   return '<div class="aimodel md-item" role="listitem" data-key="' + esc(m.key) + '">' +
-    mdHead(m, '<small class="aims">' + esc(mdStateTxt(m) || (m.kind === 'spraak' ? '↓ Bezig' : '')) + '</small>' +
+    mdHead(m, '<small class="aims"><span aria-hidden="true">' + (m.state === 'failed' ? '⚠ ' : m.state === 'running' || m.state === 'queued' ? '↓ ' : '') + '</span>' + esc(mdStateTxt(m) || 'Bezig') + '</small>' +
       '<span class="pcprog" role="progressbar" aria-label="' + esc('Voortgang ' + m.label) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.floor(mdPct(m)) + '"><i style="width:' + mdPct(m).toFixed(1) + '%"></i></span>' +
       (hint ? '<small class="md-hint">' + esc(hint) + '</small>' : '')) +
     '<div class="aimb">' + b + '</div></div>';
 }
 function mdHaveCard(m){
-  const use = m.inUse ? '<span class="aisel">In gebruik</span>' : m.kind === 'zoek' ? '' : mdBtn('Gebruiken', 'mdUse(' + jsq(m.key) + ')');
+  const use = m.inUse ? '<span class="aisel">In gebruik</span>' : m.kind === 'zoek' ? '' : mdBtn('Gebruiken', 'mdUse(' + jsq(m.key) + ')', false, m.label + ' gebruiken');
   return '<div class="aimodel md-item' + (m.inUse ? ' on' : '') + '" role="listitem" data-key="' + esc(m.key) + '">' +
     mdHead(m, '<small class="aims">' + esc(mdGB(m.size) + ' · ' + mdAgo(m.last)) + '</small>') +
-    '<div class="aimb">' + use + mdBtn('Verwijderen', 'mdDel(' + jsq(m.key) + ')') + '</div></div>';
+    '<div class="aimb">' + use + mdBtn('Verwijderen', 'mdDel(' + jsq(m.key) + ')', false, m.label + ' verwijderen') + '</div></div>';
 }
 function mdGetCard(m){
   const need = m.kind === 'spraak' ? m.size : 2 * m.size + 200 * 1048576, fits = !(mdSt.free > 0) || mdSt.free >= need;
   const can = m.kind === 'spraak' || mdSt.supported !== false;
   return '<div class="aimodel md-item" role="listitem" data-key="' + esc(m.key) + '">' +
     mdHead(m, '<small class="aims">' + esc(mdGB(m.size) + (fits ? '' : ' · past nu niet (' + mdGB(mdSt.free) + ' vrij)')) + '</small>' + (m.news ? '<small class="ainew">' + uiIcon('star') + esc('Nieuw: ' + m.news) + '</small>' : '')) +
-    '<div class="aimb">' + (can ? mdBtn('Downloaden', 'mdDl(' + jsq(m.key) + ')', true) : '') + '</div></div>';
+    '<div class="aimb">' + (can ? mdBtn('Downloaden', 'mdDl(' + jsq(m.key) + ')', true, m.label + ' downloaden') : '') + '</div></div>';
 }
 
 /* ---------- acties ---------- */
@@ -129,8 +132,9 @@ function mdViaApp(id){
   go();
 }
 function mdStop(key){
+  mdLoad();
   const m = mdFind(key);
-  const go = () => { Android.aiDelete(m.id); mdRefresh(); toast('Gestopt'); };
+  const go = () => { Android.aiDelete(m.id); mdRefresh(); if (current !== 'models' && typeof aiRefresh === 'function') aiRefresh(); toast('Gestopt'); };
   if ((m.bytes || 0) > 100e6) askConfirm('Downloaden stoppen?', 'Wat al binnen is (' + mdGB(m.bytes) + ') gaat weg. Je kunt het later opnieuw downloaden.', 'Stoppen', go);
   else go();
 }
