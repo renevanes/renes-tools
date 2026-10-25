@@ -14,7 +14,8 @@ public class UpdateProgressTest {
         com.sun.net.httpserver.HttpServer srv = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
         srv.createContext("/lengte", x -> { x.sendResponseHeaders(200, body.length); x.getResponseBody().write(body); x.close(); });
         srv.createContext("/zonder", x -> { x.sendResponseHeaders(200, 0); x.getResponseBody().write(body); x.close(); }); // chunked
-        srv.createContext("/kort", x -> { x.getResponseHeaders().add("Content-Length", "200000"); x.sendResponseHeaders(200, 0); x.getResponseBody().write(body); x.close(); });
+        // Belooft 200000 bytes, stuurt er 100000 en verbreekt de verbinding
+        srv.createContext("/kort", x -> { x.sendResponseHeaders(200, 200_000); try { x.getResponseBody().write(body); x.getResponseBody().flush(); } finally { x.getHttpContext().getServer(); x.close(); } });
         srv.createContext("/fout", x -> { x.sendResponseHeaders(404, -1); x.close(); });
         srv.start();
         String base = "http://127.0.0.1:" + srv.getAddress().getPort();

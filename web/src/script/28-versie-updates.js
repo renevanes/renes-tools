@@ -80,6 +80,7 @@ window.onUpdateStatus = function(r){
     if (r.state === 'apk') updAvail = r.versionName;
     if ($('#chk-btn')) $('#chk-btn').textContent = 'Controleren op updates';
     if (r.state === 'uptodate' && r.manual) toast('Je hebt de nieuwste versie (' + ver().webName + ') ✓');
+    else if (r.state === 'error' && r.manual) toast(r.error);
     return;
   }
   if (r.state === 'confirm') {

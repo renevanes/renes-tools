@@ -99,7 +99,7 @@ final class Updater {
             con.setRequestProperty("Accept", "application/vnd.github.sha");
             try {
                 if (con.getResponseCode() == 200) {
-                    String sha = new String(readAll(con.getInputStream()), StandardCharsets.UTF_8).trim();
+                    String sha = new String(readAll(new PodcastFeed.Limited(con.getInputStream(), 1000)), StandardCharsets.UTF_8).trim();
                     if (sha.matches("[0-9a-f]{40}"))
                         return "https://raw.githubusercontent.com/renevanes/renes-tools/" + sha + "/update/";
                 }
@@ -259,7 +259,7 @@ final class Updater {
                     PendingIntent pend = PendingIntent.getActivity(c, 7, back, fl);
                     s.commit(pend.getIntentSender());
                 }
-            } catch (Exception e) { try { pi.abandonSession(id); } catch (Exception ignored) { } throw e; }
+            } catch (Exception | Error e) { try { pi.abandonSession(id); } catch (Exception ignored) { } throw e; }
             pr.step("committed", 0, 0);
             return null;
         } catch (Exception e) {

@@ -284,10 +284,8 @@ public class MainActivity extends Activity {
                 Intent confirm = i.getParcelableExtra(Intent.EXTRA_INTENT);
                 if (confirm == null) { js("onUpdateStatus", jsonErr("Installeren kon niet starten")); return; }
                 if (!systemInstaller(confirm)) { js("onUpdateStatus", jsonErr("Installeren kon niet starten (onbekend installatiescherm)")); return; }
-                if (confirm != null) {
-                    js("onUpdateStatus", "{\"state\":\"confirm\",\"kind\":\"apk\"}"); // Android vraagt om te bevestigen
-                    try { startActivity(confirm); } catch (Exception e) { js("onUpdateStatus", "{\"state\":\"error\",\"error\":\"Installeren kon niet starten\"}"); }
-                }
+                js("onUpdateStatus", "{\"state\":\"confirm\",\"kind\":\"apk\"}"); // Android vraagt om te bevestigen
+                try { startActivity(confirm); } catch (Exception e) { js("onUpdateStatus", "{\"state\":\"error\",\"kind\":\"apk\",\"error\":\"Installeren kon niet starten\"}"); }
             } else if (st != PackageInstaller.STATUS_SUCCESS) {
                 String msg = i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
                 js("onUpdateStatus", jsonErr("Installatie afgebroken" + (msg != null ? ": " + msg : "")));
@@ -463,11 +461,12 @@ public class MainActivity extends Activity {
             try { r.put("kind", "web"); } catch (Exception ignored) { }
             h.post(() -> {
                 try { r.put("manual", manual); } catch (Exception ignored) { }
+                MainActivity m = live != null ? live : this; // het venster dat nu draait (kan intussen opnieuw gemaakt zijn)
                 if ("web".equals(r.optString("state"))) {
-                    Toast.makeText(this, "Bijgewerkt naar versie " + r.optString("versionName"), Toast.LENGTH_LONG).show();
-                    loadUi();
+                    Toast.makeText(m, "Bijgewerkt naar versie " + r.optString("versionName"), Toast.LENGTH_LONG).show();
+                    m.loadUi();
                 } else {
-                    js("onUpdateStatus", r.toString());
+                    m.js("onUpdateStatus", r.toString());
                 }
             });
         }).start();
