@@ -37,6 +37,7 @@ function mdHint(m, net){
   if ((m.state === 'paused' || m.state === 'queued') && /wifi/i.test(m.reason || ''))
     return 'Je zit niet op wifi. Wacht tot je op wifi bent, of zet hieronder Alleen via wifi uit om via mobiel internet te downloaden.';
   if (m.state === 'queued' && m.via !== 'app') return 'Android heeft hem in de wachtrij gezet. Duurt dat lang, download hem dan via de app.';
+  if (m.state === 'paused' && m.via === 'app' && m.waiting) return 'De app wacht even en gaat vanzelf verder als het weer mag.';
   if (m.state === 'paused' && m.via === 'app') return 'Tik op Verder om door te gaan waar hij was.';
   return '';
 }
@@ -85,6 +86,7 @@ function mdBusyCard(m){
   if (m.kind === 'spraak') b = ''; // het spraakmodel stopt bij Gesprekken uitschrijven
   else if (m.state === 'failed') b = mdBtn('Opnieuw', 'mdDl(' + jsq(m.key) + ')', true, m.label + ' opnieuw downloaden') + mdBtn('Weghalen', 'mdStop(' + jsq(m.key) + ')', false, m.label + ' weghalen');
   else if (m.state === 'verifying') b = '';
+  else if (app && m.state === 'paused' && m.waiting) b = stopB; // de app wacht zelf even (bijv. tot wifi terug is)
   else if (app && m.state === 'paused') b = mdBtn('Verder', 'mdViaApp(' + id + ')', true, m.label + ': verder downloaden') + stopB;
   else if (!app && (m.state === 'paused' || m.state === 'queued')) b = mdBtn('Via de app downloaden', 'mdViaApp(' + id + ')', true, m.label + ' via de app downloaden') + stopB;
   else b = stopB;

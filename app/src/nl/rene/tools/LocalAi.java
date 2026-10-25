@@ -392,7 +392,11 @@ final class LocalAi {
             String err = prefs(c).getString("err_" + m.id, "");
             // De app downloadt hem zelf (na "Via de app downloaden")
             long[] run = ModelDownloadService.RUN.get(m.id);
-            if (run != null) return o.put("state", "running").put("via", "app").put("bytes", run[0]).put("total", run[1] > 0 ? run[1] : m.size);
+            if (run != null) {
+                o.put("via", "app").put("bytes", run[0]).put("total", run[1] > 0 ? run[1] : m.size);
+                String wait = ModelDownloadService.WAIT_NET.get(m.id);
+                return wait != null ? o.put("state", "paused").put("reason", wait).put("waiting", true) : o.put("state", "running");
+            }
             if (prefs(c).getBoolean("own_" + m.id, false)) {
                 long have = partFile(c, m).length();
                 o.put("via", "app").put("bytes", have).put("total", m.size);

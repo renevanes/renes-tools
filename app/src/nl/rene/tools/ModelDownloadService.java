@@ -33,6 +33,8 @@ public class ModelDownloadService extends Service {
     static final Map<String, long[]> RUN = new ConcurrentHashMap<>();
     /** Wacht nog op zijn beurt. */
     static final Set<String> QUEUED = java.util.Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    /** Wacht even op een netwerk dat mag (bijv. wifi terug): id → waarom. */
+    static final Map<String, String> WAIT_NET = new ConcurrentHashMap<>();
     /** Stoppen (of verwijderd): de download van dit model afbreken. */
     static final Set<String> STOP = java.util.Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
@@ -127,11 +129,28 @@ public class ModelDownloadService extends Service {
         return wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "renestools:model-download");
     }
 
-    /** Waarom het netwerk nu niet mag (null = mag): roaming nooit, en mobiel internet niet bij Alleen via wifi. */
+    /**
+     * Waarom het netwerk nu niet mag (null = mag): roaming nooit, en mobiel internet niet bij Alleen via wifi.
+     * Even helemaal geen netwerk (wifi wisselt, verbinding hapert) telt niet: dat lost het opnieuw proberen op.
+     */
     static String netBlocked(Context c) {
         if (roaming(c)) return "Wacht op een netwerk zonder roaming";
         if (LocalAi.wifiOnly(c) && metered(c)) return "Wacht op wifi (of zet Alleen via wifi uit)";
         return null;
+    }
+
+    /** Hooguit 5 minuten wachten tot het netwerk weer mag (wifi terug); geeft de reden als het nog steeds niet mag. */
+    private String waitForNet(String id) {
+        String why = netBlocked(this);
+        long until = System.currentTimeMillis() + 5 * 60_000L;
+        try {
+            while (why != null && System.currentTimeMillis() < until && !STOP.contains(id)) {
+                WAIT_NET.put(id, why);
+                try { Thread.sleep(3000); } catch (InterruptedException e) { break; }
+                why = netBlocked(this);
+            }
+        } finally { WAIT_NET.remove(id); }
+        return why;
     }
 
     private long lastNotif;
@@ -140,7 +159,12 @@ public class ModelDownloadService extends Service {
         LocalAi.Model m = LocalAi.model(id);
         if (m == null) return;
         String blocked = netBlocked(this);
-        if (blocked != null) { LocalAi.ownFailed(this, id, blocked); return; }
+        if (blocked != null) {
+            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, notif("AI-model: " + m.label, blocked, -1));
+            blocked = waitForNet(id);
+            if (STOP.remove(id)) return;
+            if (blocked != null) { LocalAi.ownFailed(this, id, blocked); return; }
+        }
         RUN.put(id, new long[]{LocalAi.partFile(this, m).length(), m.size});
         // Tijdens het downloaden blijven kijken (hooguit eens per 2 s): valt wifi weg, dan niet over mobiel internet verder
         final String[] net = {null};
@@ -148,8 +172,16 @@ public class ModelDownloadService extends Service {
         java.util.function.BooleanSupplier stopNow = () -> {
             if (STOP.contains(id)) return true;
             long now = System.currentTimeMillis();
-            if (now - netAt[0] > 2000) { netAt[0] = now; net[0] = netBlocked(this); }
-            return net[0] != null;
+            if (now - netAt[0] > 2000) {
+                netAt[0] = now; net[0] = netBlocked(this);
+                // Mag het netwerk niet meer (wifi weg, nu mobiel internet): even wachten of wifi terugkomt
+                if (net[0] != null) {
+                    ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, notif("AI-model: " + m.label, net[0], -1));
+                    net[0] = waitForNet(id);
+                    netAt[0] = System.currentTimeMillis();
+                }
+            }
+            return STOP.contains(id) || net[0] != null;
         };
         try {
             ModelFetch.fetch(m.url(), LocalAi.partFile(this, m), m.size, (done, total) -> {
@@ -188,7 +220,10 @@ public class ModelDownloadService extends Service {
     static boolean metered(Context c) {
         try {
             ConnectivityManager cm = (ConnectivityManager) c.getSystemService(CONNECTIVITY_SERVICE);
-            return cm == null || cm.isActiveNetworkMetered();
+            android.net.Network n = cm == null ? null : cm.getActiveNetwork();
+            if (cm != null && n == null) return false; // geen netwerk: ook geen databundel (opnieuw proberen lost dat op)
+            android.net.NetworkCapabilities nc = n == null ? null : cm.getNetworkCapabilities(n);
+            return nc == null || !nc.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
         } catch (Throwable t) { return true; } // niet te zien: voorzichtig (geen databundel gebruiken)
     }
 
