@@ -267,33 +267,51 @@ final class LocalAi {
 
     private static DownloadManager dm(Context c) { return (DownloadManager) c.getSystemService(Context.DOWNLOAD_SERVICE); }
 
-    static synchronized String download(Context c, Model m) {
-        if (ready(c, m)) return "";
-        if (prefs(c).getLong("dl_" + m.id, -1) >= 0 && "running".equals(state(c, m).optString("state"))) return "";
-        long free;
-        try { free = new StatFs(c.getFilesDir().getPath()).getAvailableBytes(); } catch (Throwable t) { free = Long.MAX_VALUE; }
-        // Downloaden en daarna kopiëren naar de privémap: even twee keer de grootte nodig
-        long need = 2 * m.size + 200L * 1024 * 1024;
-        if (free < need) return "Te weinig opslag: nodig " + gb(need) + ", vrij " + gb(free);
-        DownloadManager mgr = dm(c);
-        if (mgr == null) return "Downloaden kan niet op deze telefoon";
-        partFile(c, m).delete();
+    /** Downloaden: altijd door de app zelf (hervat waar hij was, voortgang in de meldingenbalk). */
+    static String download(Context c, Model m) {
+        // Een nieuwe download (niet "verder"): een oud stuk dat nergens meer bij hoort niet hergebruiken
+        if (!prefs(c).getBoolean("own_" + m.id, false) && prefs(c).getLong("dl_" + m.id, -1) < 0 && !VERIFYING.containsKey(m.id)) partFile(c, m).delete();
+        return downloadApp(c, m);
+    }
+
+    /**
+     * Bij het openen van de app (of van Modellen): een onderbroken download vanzelf laten verdergaan als het netwerk
+     * nu mag, en een oude download van de DownloadManager die stilstaat overnemen. Niet na een fout waarbij opnieuw
+     * proberen niet helpt (zoals een verkeerd bestand op de server).
+     */
+    static synchronized void resumeDownloads(Context c) {
         try {
-            DownloadManager.Request r = new DownloadManager.Request(Uri.parse(m.url()))
-                    .addRequestHeader("User-Agent", "Tools")
-                    .setTitle("AI-model: " + m.label)
-                    .setDescription("Voor de offline assistent in Tools")
-                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
-                    .setAllowedOverMetered(!wifiOnly(c))
-                    .setAllowedOverRoaming(false)
-                    .setDestinationUri(Uri.fromFile(partFile(c, m)));
-            ModelDownloadService.stop(m.id);
-            long id = mgr.enqueue(r);
-            prefs(c).edit().putLong("dl_" + m.id, id).remove("err_" + m.id).remove("ok_" + m.id).remove("own_" + m.id).apply();
-            return "";
-        } catch (Exception e) {
-            return "Downloaden lukt niet";
-        }
+            if (ModelDownloadService.netBlocked(c) != null || !ModelDownloadService.online(c)) return;
+            DownloadManager mgr = dm(c);
+            boolean started = false;
+            for (Model m : MODELS) {
+                if (ready(c, m) || VERIFYING.containsKey(m.id) || ModelDownloadService.RUN.containsKey(m.id) || ModelDownloadService.QUEUED.contains(m.id)) continue;
+                if (replaced(m)) continue; // een vervangen (oudere) versie niet vanzelf verder: die kan weg
+                if (prefs(c).getBoolean("own_" + m.id, false)) {
+                    // Niet steeds opnieuw als het net mislukte (een server die blijft weigeren)
+                    if (prefs(c).getBoolean("retry_" + m.id, true) && System.currentTimeMillis() - prefs(c).getLong("tried_" + m.id, 0) > 10 * 60_000L) {
+                        prefs(c).edit().putLong("tried_" + m.id, System.currentTimeMillis()).apply();
+                        ModelDownloadService.start(c, m.id); started = true;
+                    }
+                    continue;
+                }
+                long id = prefs(c).getLong("dl_" + m.id, -1);
+                if (id < 0 || mgr == null) continue;
+                int st = -1;
+                try (Cursor cur = mgr.query(new DownloadManager.Query().setFilterById(id))) { if (cur != null && cur.moveToFirst()) st = cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)); }
+                if (st == DownloadManager.STATUS_PAUSED || st == DownloadManager.STATUS_PENDING) { downloadApp(c, m); started = true; }
+            }
+            if (started) MainActivity.jsAll("onAiModels", "");
+        } catch (Throwable t) { App.log(c, "AI", "downloads hervatten: " + t); }
+    }
+
+    /** Is er een nieuwer model dat dit vervangt? */
+    static boolean replaced(Model m) { for (Model x : MODELS) if (m.id.equals(x.replaces)) return true; return false; }
+
+    /** Moet de app dit model (nog) zelf downloaden? (Niet als het intussen gestopt, verwijderd of klaar is.) */
+    static synchronized boolean wantsOwn(Context c, String id) {
+        Model m = model(id);
+        return m != null && prefs(c).getBoolean("own_" + id, false) && !ready(c, m) && !VERIFYING.containsKey(id);
     }
 
     /**
@@ -328,7 +346,7 @@ final class LocalAi {
             try { mgr.remove(id); } catch (Throwable ignored) { }
             if (moved && (!keepPart(keep, got) || !keep.renameTo(part))) keep.delete();
         }
-        prefs(c).edit().remove("dl_" + m.id).remove("err_" + m.id).remove("ok_" + m.id).putBoolean("own_" + m.id, true).apply();
+        prefs(c).edit().remove("dl_" + m.id).remove("err_" + m.id).remove("ok_" + m.id).remove("retry_" + m.id).putBoolean("own_" + m.id, true).apply();
         ModelDownloadService.start(c, m.id);
         return "";
     }
@@ -349,8 +367,11 @@ final class LocalAi {
     }
 
     /** Downloaden door de app lukte (nog) niet: het stuk dat binnen is blijft staan voor "Verder". */
-    static void ownFailed(Context c, String id, String why) {
-        prefs(c).edit().putString("err_" + id, why).apply();
+    static void ownFailed(Context c, String id, String why) { ownFailed(c, id, why, true); }
+
+    /** retry = later vanzelf opnieuw proberen (bij het openen van de app); niet bij een fout die dan niet weg is. */
+    static void ownFailed(Context c, String id, String why, boolean retry) {
+        prefs(c).edit().putString("err_" + id, why).putBoolean("retry_" + id, retry).apply();
         MainActivity.jsAll("onAiModels", "");
     }
 
@@ -361,7 +382,7 @@ final class LocalAi {
         long id;
         synchronized (LocalAi.class) {
             id = prefs(c).getLong("dl_" + m.id, -1);
-            prefs(c).edit().remove("dl_" + m.id).remove("ok_" + m.id).remove("err_" + m.id).remove("own_" + m.id).apply();
+            prefs(c).edit().remove("dl_" + m.id).remove("ok_" + m.id).remove("err_" + m.id).remove("own_" + m.id).remove("retry_" + m.id).remove("tried_" + m.id).apply();
         }
         ModelDownloadService.stop(m.id); // downloadt de app hem zelf: stoppen
         ModelUse.forget(c, "ai:" + m.id);
@@ -401,6 +422,8 @@ final class LocalAi {
                 long have = partFile(c, m).length();
                 o.put("via", "app").put("bytes", have).put("total", m.size);
                 if (ModelDownloadService.QUEUED.contains(m.id)) return o.put("state", "queued");
+                // Een fout die niet vanzelf overgaat (verkeerd bestand op de server, te weinig opslag): mislukt
+                if (!prefs(c).getBoolean("retry_" + m.id, true)) return o.put("state", "failed").put("reason", err.isEmpty() ? "Downloaden mislukt" : err);
                 return o.put("state", "paused").put("reason", err.isEmpty() ? "Onderbroken" : err);
             }
             long id = prefs(c).getLong("dl_" + m.id, -1);

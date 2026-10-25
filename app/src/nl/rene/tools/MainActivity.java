@@ -450,6 +450,9 @@ public class MainActivity extends Activity {
         // Automatisch op updates controleren, hooguit eens per 30 minuten.
         long last = Updater.prefs(this).getLong("lastCheck", 0);
         if (System.currentTimeMillis() - last > 30 * 60 * 1000L) checkUpdates(false);
+        // Een onderbroken download van een AI-model vanzelf laten verdergaan (als het netwerk nu mag)
+        final Context appCtx = getApplicationContext();
+        new Thread(() -> { try { LocalAi.resumeDownloads(appCtx); } catch (Throwable ignored) { } }, "ai-resume").start();
     }
 
     private void checkUpdates(final boolean manual) {

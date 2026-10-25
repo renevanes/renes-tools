@@ -30,6 +30,9 @@ final class Models {
             boolean ready = "ready".equals(s.optString("state"));
             s.put("key", "ai:" + m.id).put("kind", m.embed ? "zoek" : "ai").put("last", ModelUse.last(c, "ai:" + m.id));
             s.put("inUse", ready && (m.embed || chat.equals(m.id)));
+            // Welke versie (bijv. "Qwen3.5 2B") en of er een nieuwere is die deze vervangt
+            s.put("version", m.desc.contains(" · ") ? m.desc.substring(0, m.desc.indexOf(" · ")) : m.desc);
+            for (LocalAi.Model x : LocalAi.MODELS) if (m.id.equals(x.replaces)) s.put("newer", x.id);
             if (ready) used += m.size;
             ms.put(s);
         }
@@ -40,7 +43,7 @@ final class Models {
             File f = Transcribe.modelFile(c, m);
             JSONObject s = new JSONObject().put("id", m.id).put("key", "spraak:" + m.id).put("kind", "spraak")
                     .put("label", "Spraakmodel " + m.label.replaceAll("\\s*\\(.*\\)$", "").toLowerCase(java.util.Locale.ROOT))
-                    .put("desc", "Spraak naar tekst · whisper " + m.id).put("size", m.size).put("last", ModelUse.last(c, "spraak:" + m.id));
+                    .put("desc", "Spraak naar tekst · whisper " + m.id).put("version", "Whisper " + m.id).put("size", m.size).put("last", ModelUse.last(c, "spraak:" + m.id));
             if (f.isFile()) { s.put("state", "ready").put("inUse", act != null && act.id.equals(m.id)); used += f.length(); }
             else if (TranscribeService.busy && st.optBoolean("running") && "download".equals(st.optString("phase")) && m.id.equals(dl))
                 s.put("state", "running").put("bytes", m.size * st.optInt("pct") / 100).put("total", m.size);
@@ -49,7 +52,7 @@ final class Models {
         }
         long left = 0;
         try { left = LocalAi.orphanBytes(c) + whisperParts(c, false); } catch (Throwable ignored) { }
-        o.put("models", ms).put("used", used).put("leftovers", left);
+        o.put("models", ms).put("used", used).put("leftovers", left).put("ram", LocalAi.ramBytes(c)).put("tts", TtsCheck.json());
         return o;
     }
 

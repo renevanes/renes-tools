@@ -39,6 +39,8 @@ public class ModelDownloadService extends Service {
     static final Set<String> STOP = java.util.Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     private final List<String> queue = new ArrayList<>();
+    /** Het model waar de worker nu mee bezig is (niet nog eens in de wachtrij). */
+    private volatile String working;
     private Thread worker;
     private volatile int lastStartId;
 
@@ -50,7 +52,7 @@ public class ModelDownloadService extends Service {
             if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
         } catch (Exception e) {
             QUEUED.remove(id);
-            LocalAi.ownFailed(c, id, "Android staat het downloaden nu niet toe; open de app en tik op Verder");
+            LocalAi.ownFailed(c, id, "Android staat het downloaden nu niet toe; probeer het zo opnieuw");
         }
     }
 
@@ -64,7 +66,7 @@ public class ModelDownloadService extends Service {
             boolean running; synchronized (queue) { running = worker != null; }
             if (!running) {
                 String id = intent == null ? null : intent.getStringExtra("id");
-                if (id != null) { QUEUED.remove(id); LocalAi.ownFailed(this, id, "Android staat het downloaden nu niet toe; open de app en tik op Verder"); }
+                if (id != null) { QUEUED.remove(id); LocalAi.ownFailed(this, id, "Android staat het downloaden nu niet toe; probeer het zo opnieuw"); }
                 stopSelfResult(startId);
                 return START_NOT_STICKY;
             }
@@ -72,7 +74,7 @@ public class ModelDownloadService extends Service {
         synchronized (queue) {
             lastStartId = startId;
             String id = intent == null ? null : intent.getStringExtra("id");
-            if (id != null && LocalAi.model(id) != null && !queue.contains(id)) queue.add(id);
+            if (id != null && LocalAi.model(id) != null && !queue.contains(id) && !RUN.containsKey(id) && !id.equals(working)) queue.add(id);
             if (worker == null) { worker = new Thread(this::work, "model-download"); worker.start(); }
         }
         return START_NOT_STICKY;
@@ -82,7 +84,7 @@ public class ModelDownloadService extends Service {
     @Override
     public void onTimeout(int startId, int fgsType) {
         synchronized (queue) { for (String id : queue) stop(id); }
-        for (String id : RUN.keySet()) { LocalAi.ownFailed(this, id, "Android stopte het downloaden na 6 uur; tik later op Verder"); stop(id); }
+        for (String id : RUN.keySet()) { LocalAi.ownFailed(this, id, "Android stopte het downloaden na 6 uur; het gaat later vanzelf verder"); stop(id); }
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
     }
@@ -102,10 +104,14 @@ public class ModelDownloadService extends Service {
                 synchronized (queue) {
                     if (queue.isEmpty()) { worker = null; break; }
                     id = queue.remove(0);
+                    working = id;
                 }
                 QUEUED.remove(id);
-                if (STOP.remove(id)) continue;
-                one(id);
+                try {
+                    if (STOP.remove(id)) continue;
+                    if (!LocalAi.wantsOwn(this, id)) continue; // intussen gestopt, verwijderd of al klaar
+                    one(id);
+                } finally { working = null; }
             }
         } catch (Throwable t) {
             App.log(this, "AI", "model downloaden: " + t);
@@ -139,10 +145,10 @@ public class ModelDownloadService extends Service {
         return null;
     }
 
-    /** Hooguit 5 minuten wachten tot het netwerk weer mag (wifi terug); geeft de reden als het nog steeds niet mag. */
+    /** Hooguit 20 minuten wachten tot het netwerk weer mag (wifi terug); geeft de reden als het nog steeds niet mag. */
     private String waitForNet(String id) {
         String why = netBlocked(this);
-        long until = System.currentTimeMillis() + 5 * 60_000L;
+        long until = System.currentTimeMillis() + 20 * 60_000L;
         try {
             while (why != null && System.currentTimeMillis() < until && !STOP.contains(id)) {
                 WAIT_NET.put(id, why);
@@ -203,7 +209,7 @@ public class ModelDownloadService extends Service {
         } catch (Throwable e) {
             RUN.remove(id);
             App.log(this, "AI", "model downloaden: " + e + (e.getCause() != null ? " (" + e.getCause() + ")" : ""));
-            LocalAi.ownFailed(this, id, why(e));
+            LocalAi.ownFailed(this, id, why(e), !(e instanceof ModelFetch.Fatal) && !"Te weinig opslag".equals(why(e)));
         }
     }
 
