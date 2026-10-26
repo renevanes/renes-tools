@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.103",
-  "versionCode": 104,
-  "nativeLevel": 92,
+  "versionName": "1.104",
+  "versionCode": 105,
+  "nativeLevel": 93,
   "web": "index.html",
-  "webSha256": "34c643bfc884fa9a7402c3e6901ebd320e0cd9374c652a32d0562bca142df0f0",
+  "webSha256": "458291e8dfd82f8f880f380ed0cc378e0642d69eff92f7d37cbb92402040ae8d",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1f2b371b21ee07a2d567535d434e22bbb8db5473dd3699aef1697fd636a8b720",
+  "apkSha256": "ba5e2e0c80d716d5976bd7474d17c98b1dcfd9b660006cbec9f794d37a77b008",
   "changelog": [
+    {
+      "version": "1.104",
+      "date": "2026-10-26",
+      "changes": [
+        "Assistent: leert niets meer over jou uit een antwoord dat op sms'jes, WhatsApp, oproepen, contacten of uitgeschreven gesprekken van anderen steunde, ook niet bij een volgende vraag",
+        "Voorlezen: een heel lange regel in een antwoord maakt de app niet meer seconden lang traag",
+        "Radio: zenderinformatie wordt alleen nog via gewone webadressen (http/https) opgevraagd"
+      ]
+    },
     {
       "version": "1.103",
       "date": "2026-10-25",
@@ -914,5 +923,5 @@
       ]
     }
   ],
-  "webSig2": "PB+hzEGM0nnqv7H5Ta8EBNTXxO+ihDv0YqkYU7eCKfD/T4VL/hMeUobXxqZJsQfr2BEbR58MQunBL29Xzvc5PTUw9Myc4FBv1NqxaBUlB2s2MsVCOwUIum38rgC1EVJN9V0m1al97pAzKz34YPwB1zfpdjimEaYaj61uFl/h4mgPLctFkE0jYM7n0+LK/MJIsQ2QIM/1dT0btufTuk4qk9TCkVpzmSG4pGCbpUVP+mPaojaCY8/idEe4NjbtzKzNSDiFutliXAhMtXdUpqHBXCn5wqRFEvJJ58f4NpGQrxmlAecFKPeXuxL5PQzy76WvU/4X1nE57WUX2AwarRipDUSALeiJTlQkEyzbhSpya/v4MEZSxjcNxBvZV1mmbosM1zMibxq3SFEiHjvoAe+fJGO+Ip12qUwjOm3TZS/LZQ21QWNvE0yuKpZ4dbS4g4qQtYaUao9QrTeVG/uuE4ClVP6T94ooot1wHV54gawwK5czV0Ecw5X72mK2ATFFUnvT"
+  "webSig2": "SqCTUfcZFxqE+/7Qn8rhv8PFmzfUx25QaZG8WTNa5jNSso2MvtbApaKRIg4ZLet+YDoWv7TKG7Ioq/qAoVLTYTtNK1N9z8XJzKqKD6n2de0/oVpPq5tdhZ38coYk4onaIhgime1A8+aD+D5fiRYzMIt/JXQfu5tIaowezXr6UOWOF4aJAMGpIUSB9lcN99FwTn6DgRbPJMn0y3EArnNss6clEzDvnAKOGLLDkB3eanFfpUQkzQfU3In40rx32i9JYnBJenEYYiF9HP6gSt5R4GmVZw9IGLPxOUIAPln5jThPCR0ai0it6sHFeHBLK6t7+du8iuCxa15XQrh3ZtPknFyqYMK4tfZ8zPqhmDRuCeqjhYncWhd7vlJySNL7c3NUCnxjcHZS4dOM1JDcvvdzaveEbvMMo8XZRixOqYe5sL+3cT6bPjyHyuUiGBSF3CX4KyoJ+GqSBZ3z+tlZMkH3ViXwQeq5Bm6TQ0OwTgKyMTZkYGeI0Au3T1OKj5h7gX8d"
 }

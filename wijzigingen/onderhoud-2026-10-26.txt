@@ -1,3 +1,0 @@
-Assistent: leert niets meer over jou uit een antwoord dat op sms'jes, WhatsApp, oproepen, contacten of uitgeschreven gesprekken van anderen steunde, ook niet bij een volgende vraag
-Voorlezen: een heel lange regel in een antwoord maakt de app niet meer seconden lang traag
-Radio: zenderinformatie wordt alleen nog via gewone webadressen (http/https) opgevraagd
