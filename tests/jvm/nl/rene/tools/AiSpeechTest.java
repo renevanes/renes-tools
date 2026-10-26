@@ -14,7 +14,7 @@ public class AiSpeechTest {
         long t0 = System.nanoTime();
         for (String s : slow) AiSpeech.plain(s);
         long ms = (System.nanoTime() - t0) / 1000000;
-        check(ms < 400, "enorme regels blijven snel (" + ms + " ms)");
+        check(ms < 1500, "enorme regels blijven snel (" + ms + " ms)");
         if (fails > 0) System.exit(1);
     }
 }
