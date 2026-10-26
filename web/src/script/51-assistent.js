@@ -158,14 +158,18 @@ function aiSendOrStop(){
   $('#ai-in').value = ''; aiGrow();
   if (aiAsk() === 'bezig') { aiChat.msgs.pop(); $('#ai-in').value = q; aiFromVoice = v; aiGrow(); aiRenderMsgs(); }
 }
+const AI_OTHERS = ['sms', 'wa', 'calls', 'contacts', 'tx'];
 /* De vraag (met het gesprek tot nu toe) naar de assistent */
 function aiAsk(){
   if (aiBusy) { toast('De assistent is nog bezig met een antwoord'); return 'bezig'; }
   aiSpeakStop(); // een nieuwe vraag: het voorlezen stopt
   // Een gesprek om samen te vatten (sms, WhatsApp, uitgeschreven) gaat als bijlage mee met de vraag (att.q)
-  const msgs = aiChat.msgs.filter(m => !m.err && (m.r === 'user' || m.c)).map(m => Object.assign({ role: m.r === 'user' ? 'user' : 'assistant', content: m.r === 'user' && m.att && m.att.q ? m.att.q : m.c }, m.r === 'user' && m.att ? { att: true } : {}));
+  // Een antwoord dat op berichten van anderen steunde (sms, WhatsApp, oproepen, contacten, uitgeschreven gesprekken): oth,
+  // dan leert de assistent niets zolang dat antwoord in het meegestuurde gesprek zit (LocalAi controleert dat)
+  const aiOth = m => m.r !== 'user' && (m.src || []).some(h => AI_OTHERS.includes(h && h.kind));
+  const msgs = aiChat.msgs.filter(m => !m.err && (m.r === 'user' || m.c)).map(m => Object.assign({ role: m.r === 'user' ? 'user' : 'assistant', content: m.r === 'user' && m.att && m.att.q ? m.att.q : m.c }, m.r === 'user' && m.att ? { att: true } : {}, aiOth(m) ? { oth: true } : {}));
   const lastQ = aiChat.msgs.filter(m => m.r === 'user').slice(-1)[0] || {};
-  const others = aiChat.msgs.some(m => m.att); // berichten van anderen in het gesprek: niets over jou leren
+  const others = aiChat.msgs.some(m => m.att); // een gesprek van anderen als bijlage: niets over jou leren en geen acties
   // Het gesprek eerst bewaren: dan heeft het een id (wat de assistent onthoudt, weet uit welk gesprek het komt)
   aiSaveChat(aiChat);
   // Eerst het (lege) antwoord klaarzetten: stukjes kunnen meteen binnenkomen

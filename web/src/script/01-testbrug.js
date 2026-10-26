@@ -308,7 +308,7 @@ if (!window.Android) window.Android = (function(){
       if (rem && memOn) { const res = JSON.parse(this.aiMemAdd(rem[1], 'gevraagd', r.chat, r.title)); onAiMemory({ saved: [res], explicit: true, pre: true, turn }); }
       if (fg && memOn) { const w = fg[1].toLowerCase(), m = A.mem.find(x => w.split(/\s+/).filter(v => v.length > 3).some(v => x.text.toLowerCase().includes(v)));
         if (m) A.mem = A.mem.filter(x => x !== m); onAiMemory(Object.assign({ forgot: m ? m.text : '', pre: true, turn }, m ? { forgotItem: m } : {})); }
-      const used = memOn ? A.mem.length : 0, learn = memOn && !rem && !fg && cfg.learn !== 'uit' && /\b(ik|mijn)\b/i.test(q) && !(r.notes && this._aiReady('zoek'));
+      const used = memOn ? A.mem.length : 0, learn = memOn && !rem && !fg && cfg.learn !== 'uit' && /\b(ik|mijn)\b/i.test(q) && !(r.notes && this._aiReady('zoek')) && !r.messages.some(m => m.oth);
       // Acties zoals LocalAi/AiActions: de regel [[herinnering: JJJJ-MM-DD UU:MM | tekst]] eruit, en als voorstel mee
       const act = this._aiAct(A.reply, r.noAct || r.messages.some(m => m.att)), wantAct = act.wanted(q), lrn = learn && !wantAct && !r.noLearn;
       if (wantAct) onAiActWanted();

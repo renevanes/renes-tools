@@ -767,6 +767,7 @@ final class LocalAi {
                 if (x == null) continue;
                 boolean att = x.optBoolean("att") && !"assistant".equals(x.optString("role"));
                 if (i < from && !att) continue; // de bijlage blijft altijd mee, ook in een lang gesprek
+                if (x.optBoolean("oth")) learnWanted = false; // een eerder antwoord steunde op berichten van anderen: daar niets uit leren
                 String role = "assistant".equals(x.optString("role")) ? "assistant" : "user";
                 String content = x.optString("content");
                 if (att) attAt = msgs.length();

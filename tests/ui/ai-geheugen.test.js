@@ -88,6 +88,11 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => show('ai')); await pg.waitForTimeout(100);
     await pg.click('#ai-menu'); await pg.waitForTimeout(100);
     ok((await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent))).some(t => /^Geheugen \(\d+\)$/.test(t)), 'menu: geheugen');
+    // Een eerder antwoord steunde op sms'jes van anderen: dat gaat als oth mee en er wordt niets geleerd
+    await pg.evaluate(() => { closeSheet(); aiNew(); aiChat.msgs.push({ r: 'user', c: 'Wat schreef Jos over zaterdag?', t: Date.now() }, { r: 'ai', c: 'Jos woont in Delft en komt zaterdag [1].', t: Date.now(), src: [{ kind: 'sms', id: '7', title: 'Jos', snip: 'ik woon in Delft' }] }); aiRenderMsgs(); });
+    await pg.fill('#ai-in', 'Ik woon in Schiedam, wat zijn leuke cafés?'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(1300);
+    ok(await pg.evaluate(() => { const ms = Android._ai.last.messages; return ms[1].oth === true && !ms[0].oth && !ms[2].oth; }), 'antwoord met sms van anderen gaat gemarkeerd (oth) mee');
+    ok(!(await pg.isVisible('#ai-msgs .aimsg:last-child .aimemask')) && await pg.evaluate(() => !Android._ai.mem.some(m => /Schiedam|Rotterdam/.test(m.text)) && Android._ai.mem.length === 1), 'met berichten van anderen in het gesprek: niets geleerd');
     await pg.close();
   }
   await b.close();
