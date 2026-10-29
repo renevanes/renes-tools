@@ -112,8 +112,10 @@ function mdCatCard(cat){
   const head = '<div class="md-cathead"><span class="md-caticon">' + uiIcon(cat.icon) + '</span><div><h2>' + esc(cat.title) + '</h2><small class="md-catst' + (ok ? ' ok' : '') + '">' + (st.startsWith('✓ ') ? '<span aria-hidden="true">✓ </span>' + esc(st.slice(2)) : esc(st)) + '</small></div></div>' +
     '<p class="note md-what">' + esc(cat.what) + ' <span class="md-need">' + esc(cat.need) + '</span></p>';
   if (cat.kind === 'tts') return '<section class="card md-cat" data-kind="tts" aria-label="' + esc(cat.title) + '">' + head + mdTtsBody(mdSt.tts || {}) + '</section>';
-  const lines = mdLines(mdModels(), cat.kind);
-  return '<section class="card md-cat" data-kind="' + cat.kind + '" aria-label="' + esc(cat.title) + '">' + head + '<div role="list">' + lines.map(l => mdLineHtml(l)).join('') + '</div></section>';
+  const lines = mdLines(mdModels(), cat.kind), eng = (mdSt.engines || {})[cat.kind];
+  // Het model (dat je downloadt) en de motor die het draait (zit in de app en gaat mee met app-updates)
+  const engine = eng ? '<p class="note md-engine">' + esc('Motor: ' + eng + ' (zit in de app, wordt bijgewerkt met de app)') + '</p>' : '';
+  return '<section class="card md-cat" data-kind="' + cat.kind + '" aria-label="' + esc(cat.title) + '">' + head + '<div role="list">' + lines.map(l => mdLineHtml(l)).join('') + '</div>' + engine + '</section>';
 }
 function mdTtsBody(t){
   if (t.state === 'ok') return '<div class="md-acts">' + mdBtn('Stem en snelheid', 'Android.ttsSettings()', false, 'Stem en snelheid van het voorlezen instellen') + '</div>';
@@ -133,7 +135,7 @@ function mdLineHtml(chain){
   if (main) {
     const isNew = main === newest;
     rows += '<div class="md-ver">' +
-      '<div class="aimt">' + name + '<small>' + esc('Je hebt: ' + main.version + (chain.length > 1 ? (isNew ? ' · nieuwste versie' : ' · oudere versie') : '') + ' · ' + mdGB(main.size)) + '</small>' +
+      '<div class="aimt">' + name + '<small>' + esc('Je hebt versie: ' + main.version + (chain.length > 1 ? (isNew ? ' · nieuwste versie' : ' · oudere versie') : '') + ' · ' + mdGB(main.size)) + '</small>' +
       '<small>' + esc(mdAgo(main.last)) + '</small></div>' +
       '<div class="aimb">' + (main.inUse ? '<span class="aisel">In gebruik</span>' : main.kind === 'zoek' ? '' : mdBtn('Gebruiken', 'mdUse(' + jsq(main.key) + ')', false, mdLineName(main) + ' gebruiken')) +
       mdBtn('Verwijderen', 'mdDel(' + jsq(main.key) + ')', false, mdLineName(main) + ' ' + main.version + ' verwijderen') + '</div></div>';

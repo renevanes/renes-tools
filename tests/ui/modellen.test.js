@@ -36,7 +36,7 @@ const { chromium } = require('playwright');
     ok((await txt(cat('ai') + ' .md-catst')).includes('In gebruik: Klein en snel · Qwen3 1.7B'), 'welke je gebruikt, met versie (' + (await txt(cat('ai') + ' .md-catst')) + ')');
     // Welke versie je hebt en welke er is
     const klein = cat('ai') + ' .md-linebox[data-line="ai:klein35"]';
-    ok((await txt(klein)).includes('Je hebt: Qwen3 1.7B · oudere versie') && (await txt(klein)).includes('2 dagen geleden gebruikt'), 'je hebt de oudere versie (' + (await txt(klein)).slice(0, 140) + ')');
+    ok((await txt(klein)).includes('Je hebt versie: Qwen3 1.7B · oudere versie') && (await txt(klein)).includes('2 dagen geleden gebruikt'), 'je hebt de oudere versie (' + (await txt(klein)).slice(0, 140) + ')');
     ok((await txt(klein + ' .md-newer')).includes('Nieuwere versie: Qwen3.5 2B') && (await txt(klein + ' .md-newer')).includes('Nederlands'), 'nieuwere versie met waarom');
     // Voorlezen: Android-stem gecontroleerd
     ok(await until(() => /Nederlandse stem \(Spraakservices van Google\)/.test(document.querySelector('#md-cats .md-cat[data-kind="tts"]').textContent)), 'voorlezen: Nederlandse stem gevonden');
@@ -58,11 +58,11 @@ const { chromium } = require('playwright');
     await pg.click('#modal-cancel'); await pg.waitForTimeout(100);
     ok(await pg.evaluate(() => Android._ai.wifiOnly === true && Android._ai.calls.some(c => c[0] === 'dl' && c[1] === 'groot35')), 'wachten op wifi: wifi-only blijft aan');
     await pg.evaluate(() => { Android._md.metered = false; });
-    ok(await until(() => /Je hebt: Qwen3.5 4B/.test(document.querySelector('#md-cats .md-linebox[data-line="ai:groot35"]').textContent)), 'groot klaar');
+    ok(await until(() => /Je hebt versie: Qwen3.5 4B/.test(document.querySelector('#md-cats .md-linebox[data-line="ai:groot35"]').textContent)), 'groot klaar');
     // Bijwerken naar de nieuwere versie, dan gebruiken en de oude weg
     await pg.click(klein + ' button:has-text("Bijwerken")');
     ok(await pg.evaluate(() => Android._ai.calls.some(c => c[0] === 'dl' && c[1] === 'klein35')), 'bijwerken downloadt de nieuwere versie');
-    ok(await until(() => /Je hebt: Qwen3.5 2B · nieuwste versie/.test(document.querySelector('#md-cats .md-linebox[data-line="ai:klein35"]').textContent)), 'nieuwste versie op de telefoon');
+    ok(await until(() => /Je hebt versie: Qwen3.5 2B · nieuwste versie/.test(document.querySelector('#md-cats .md-linebox[data-line="ai:klein35"]').textContent)), 'nieuwste versie op de telefoon');
     ok((await txt(klein)).includes('Ook nog op je telefoon: Qwen3 1.7B'), 'oude versie staat er ook nog');
     await pg.click(klein + ' .md-ver button:has-text("Gebruiken")'); await pg.waitForTimeout(600);
     ok((await pg.textContent('#modal')).includes('Qwen3 1.7B verwijderen?'), 'na gebruiken: oude versie weg?');
@@ -70,6 +70,8 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._ai.chat === 'klein35' && Android._ai.st.klein.state === 'none') && !(await txt(klein)).includes('Ook nog'), 'nieuwe in gebruik, oude weg');
     // Spraak naar tekst: twee soorten (geen versies), de ene in gebruik
     ok((await txt(cat('spraak'))).includes('In gebruik: Snel · Whisper base') && (await txt(cat('spraak'))).includes('Nauwkeurig'), 'spraakmodellen');
+    ok((await txt(cat('spraak'))).includes('Je hebt versie: Whisper base (OpenAI, 2022)') && (await txt(cat('spraak'))).includes('nieuwste versie: Whisper small (OpenAI, 2022)'), 'spraakmodellen: versie');
+    ok((await txt(cat('spraak'))).includes('Motor: whisper.cpp 1.9.5') && (await txt(cat('ai'))).includes('Motor: llama.cpp') && !(await txt(cat('tts'))).includes('Motor:'), 'motorversie per soort');
     // Verwijderen met uitleg
     await pg.click(cat('zoek') + ' button:has-text("Verwijderen")'); await pg.waitForTimeout(150);
     ok((await pg.textContent('#modal')).includes('Slim zoeken werkt dan niet meer'), 'uitleg bij het zoekmodel');

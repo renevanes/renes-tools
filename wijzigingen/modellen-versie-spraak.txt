@@ -1,0 +1,1 @@
+Modellen beheren: bij Spraak naar tekst staat nu de versie (bijv. Whisper base van OpenAI, 2022), en per soort ook welke motor de app gebruikt (whisper.cpp, llama.cpp).

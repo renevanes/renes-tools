@@ -56,6 +56,9 @@ final class Transcribe {
         Model(String id, String file, String label, long size, String sha256) { this.id = id; this.file = file; this.label = label; this.size = size; this.sha256 = sha256; }
     }
 
+    /** De uitschrijfmotor in de app (app/lib/arm64-v8a/README.txt; EngineVersionTest houdt die twee gelijk). */
+    static final String ENGINE = "whisper.cpp 1.9.5";
+
     static final Model[] MODELS = {
             // Controlegetallen van Hugging Face (LFS-oid = SHA-256); een ander bestand wordt nooit gebruikt
             new Model("base", "ggml-base-q5_1.bin", "Snel (57 MB)", 59_707_625L, "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898"),
