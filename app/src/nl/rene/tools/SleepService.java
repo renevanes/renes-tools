@@ -40,6 +40,8 @@ import java.util.concurrent.Executors;
 public final class SleepService extends Service {
 
     static final String CHANNEL = "sleeptalk";
+    /** Onopvallend: laagste belangrijkheid (ingeklapt, geen icoon in de statusbalk, niet op het vergrendelscherm). */
+    static final String CHANNEL_QUIET = "sleeptalk-stil";
     private static final int NOTIFICATION = 4801;
 
     /** Voor de interface. */
@@ -75,6 +77,12 @@ public final class SleepService extends Service {
             again = false; // ook een Start die nog wachtte
             if ("luistert".equals(phase) || "proef".equals(phase)) { stopReason = "Gestopt"; stop = true; }
             else if ("uitschrijven".equals(phase)) SleepTalk.stopNow();
+            if (worker == null) quit();
+            return START_NOT_STICKY;
+        }
+        if ("refresh".equals(action)) {
+            // Instelling Onopvallend veranderd terwijl hij loopt (startService vanuit de app): melding meteen omzetten
+            if (running()) notifyNow();
             if (worker == null) quit();
             return START_NOT_STICKY;
         }
@@ -314,17 +322,29 @@ public final class SleepService extends Service {
     }
 
     private Notification build() {
+        boolean quiet = SleepTalk.quiet(this);
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel ch = new NotificationChannel(CHANNEL, "Slaappraat", NotificationManager.IMPORTANCE_LOW);
-            ch.setDescription("Zichtbaar zolang Slaappraat luistert of uitschrijft, met een stopknop; 's ochtends wat er gehoord is");
-            ch.setShowBadge(false);
-            getSystemService(NotificationManager.class).createNotificationChannel(ch);
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            if (quiet) {
+                NotificationChannel ch = new NotificationChannel(CHANNEL_QUIET, "Slaappraat (onopvallend)", NotificationManager.IMPORTANCE_MIN);
+                ch.setDescription(QUIET_INFO);
+                ch.setSound(null, null); ch.enableVibration(false); ch.enableLights(false); ch.setShowBadge(false);
+                ch.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
+                nm.createNotificationChannel(ch);
+            } else {
+                NotificationChannel ch = new NotificationChannel(CHANNEL, "Slaappraat", NotificationManager.IMPORTANCE_LOW);
+                ch.setDescription("Zichtbaar zolang Slaappraat luistert of uitschrijft, met een stopknop; 's ochtends wat er gehoord is");
+                ch.setShowBadge(false);
+                nm.createNotificationChannel(ch);
+            }
         }
         Intent open = new Intent(this, MainActivity.class).putExtra("open", "sleep").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent content = PendingIntent.getActivity(this, NOTIFICATION, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent stopI = PendingIntent.getService(this, NOTIFICATION, new Intent(this, SleepService.class).setAction("stop"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
-        if (Build.VERSION.SDK_INT >= 31) b.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, quiet ? CHANNEL_QUIET : CHANNEL) : new Notification.Builder(this);
+        // Onopvallend: Android mag de melding eerst even uitstellen, en hij staat niet op het vergrendelscherm
+        if (Build.VERSION.SDK_INT >= 31 && !quiet) b.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
+        if (quiet) quietStyle(b);
         boolean tx = "uitschrijven".equals(phase);
         if ("proef".equals(phase)) return b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Slaappraat: proef van 30 seconden")
                 .setContentText("Praat eens zoals je in je slaap zou doen").setOngoing(true).setOnlyAlertOnce(true).setContentIntent(content)
@@ -333,8 +353,15 @@ public final class SleepService extends Service {
                 : inCall ? "Luistert niet tijdens het gesprek" : heard == 0 ? "Nog niets gehoord" : heard + " keer iets gehoord";
         if (!tx && stopAt > 0) text += " · stopt om " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT).format(new java.util.Date(stopAt));
         return b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle(tx ? "Slaappraat schrijft uit" : "Slaappraat luistert")
-                .setContentText(text).setOngoing(true).setOnlyAlertOnce(true).setShowWhen(!tx).setWhen(since).setUsesChronometer(!tx)
+                .setContentText(text).setOngoing(true).setOnlyAlertOnce(true).setShowWhen(!tx && !quiet).setWhen(since).setUsesChronometer(!tx && !quiet)
                 .setContentIntent(content).addAction(android.R.drawable.ic_media_pause, "Stoppen", stopI).build();
+    }
+
+    static final String QUIET_INFO = "Als Onopvallend luisteren aan staat: zo stil als Android toestaat (ingeklapt, zonder icoon, niet op het vergrendelscherm), en 's ochtends geen melding";
+
+    @SuppressWarnings("deprecation")
+    private static void quietStyle(Notification.Builder b) {
+        b.setPriority(Notification.PRIORITY_MIN).setVisibility(Notification.VISIBILITY_SECRET).setShowWhen(false);
     }
 
     /** Altijd type microfoon (ook tijdens het uitschrijven): geen dagelijkse tijdslimiet zoals bij dataSync. */
@@ -347,7 +374,7 @@ public final class SleepService extends Service {
     /** Na afloop: een rustige melding met wat er gehoord is (alleen als er iets was). */
     private void doneNotice() {
         try {
-            if (heard == 0) return;
+            if (heard == 0 || SleepTalk.quiet(this)) return; // onopvallend: wat er gehoord is staat in de app
             Intent open = new Intent(this, MainActivity.class).putExtra("open", "sleep").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             PendingIntent content = PendingIntent.getActivity(this, NOTIFICATION + 1, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             String ch = NotifCenter.ch(this, CHANNEL);

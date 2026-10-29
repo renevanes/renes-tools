@@ -1,0 +1,1 @@
+Slaappraat: nieuwe instelling Onopvallend luisteren. De verplichte melding staat dan zo klein als Android toestaat (ingeklapt, zonder icoon, niet op het vergrendelscherm) en 's ochtends komt er geen melding.

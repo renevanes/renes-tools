@@ -233,7 +233,7 @@ if (!window.Android) window.Android = (function(){
     // Lokale AI (assistent en slim zoeken): nagebootst, zonder model
     // Slaappraat zoals SleepBridge: nachten met stukjes, luisteren en uitschrijven worden nagebootst
     _sl: { phase: '', night: '', since: 0, stopAt: 0, heard: 0, level: -60, floor: -64, txDone: 0, txTotal: 0, message: '', mic: true, notif: true, model: 'Snel (57 MB)',
-      set: { sens: 2, stopAt: '07:30', transcribe: true, keepNoise: false, keep: 14, remindAt: '' }, nights: [], played: '', hearing: false, probeHits: 0, probeLeft: 0, notifOk: true },
+      set: { sens: 2, stopAt: '07:30', transcribe: true, keepNoise: false, keep: 14, remindAt: '', quiet: false }, nights: [], played: '', hearing: false, probeHits: 0, probeLeft: 0, notifOk: true },
     _slSum(n){ const c = n.clips; return { id: n.id, start: n.start, end: n.end, reason: n.reason || '', talk: c.filter(k => k.done && k.kind === 'praten').length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done).length, first: (c.find(k => k.done && k.kind === 'praten') || {}).text || '', batStart: n.batStart == null ? -1 : n.batStart, batEnd: n.batEnd == null ? -1 : n.batEnd, charged: !!n.charged }; },
     sleepState(){ const S = this._sl; return JSON.stringify({ phase: S.phase, night: S.night, since: S.since, stopAt: S.stopAt, heard: S.heard, level: S.level, floor: S.floor, txDone: S.txDone, txTotal: S.txTotal, message: S.message, hearing: S.hearing, probeHits: S.probeHits, probeLeft: S.probeLeft, notifOk: S.notifOk,
       mic: S.mic, notif: S.notif, model: S.model, set: S.set, nights: S.nights.slice().sort((a, b) => b.start - a.start).map(n => this._slSum(n)) }); },
@@ -249,7 +249,7 @@ if (!window.Android) window.Android = (function(){
     sleepDeleteNight(id){ const S = this._sl; if (id === S.night && S.phase) return; S.nights = S.nights.filter(n => n.id !== id); },
     sleepDeleteClip(id, clip){ const n = this._sl.nights.find(x => x.id === id); if (n) n.clips = n.clips.filter(k => k.id !== clip); },
     sleepSet(name, v){ const S = this._sl.set; if (name === 'sens') { if (!/^[123]$/.test(v)) return 'Ongeldig'; S.sens = +v; } else if (name === 'stopAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.stopAt = v; }
-      else if (name === 'transcribe' || name === 'keepNoise') S[name] = v === 'true'; else if (name === 'keep') { if (!/^(7|14|30)$/.test(v)) return 'Ongeldig'; S.keep = +v; }
+      else if (name === 'transcribe' || name === 'keepNoise' || name === 'quiet') S[name] = v === 'true'; else if (name === 'keep') { if (!/^(7|14|30)$/.test(v)) return 'Ongeldig'; S.keep = +v; }
       else if (name === 'remindAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.remindAt = v; } else return 'Ongeldig'; return ''; },
     sleepTranscribe(id){ const S = this._sl, n = S.nights.find(x => x.id === id); if (!n) return 'Onbekende nacht'; if (S.phase) return 'Dat kan pas als Slaappraat klaar is met luisteren en uitschrijven'; if (!S.model) return 'model';
       S.phase = 'uitschrijven'; S.night = id; S.txDone = 0; S.txTotal = n.clips.filter(k => !k.done && k.audio).length;

@@ -83,6 +83,9 @@ function slRender(){
   const tx = $('#sl-tx'); tx.classList.toggle('on', set.transcribe !== false); tx.setAttribute('aria-checked', set.transcribe !== false ? 'true' : 'false');
   $('#sl-tx-n').textContent = s.model ? 'Op je telefoon, met ' + s.model + ': je leest wat je zei' : 'Er is nog geen spraakmodel: download het bij Gesprekken uitschrijven';
   const no = $('#sl-noise'); no.classList.toggle('on', !!set.keepNoise); no.setAttribute('aria-checked', set.keepNoise ? 'true' : 'false');
+  const qu = $('#sl-quiet'); qu.classList.toggle('on', !!set.quiet); qu.setAttribute('aria-checked', set.quiet ? 'true' : 'false');
+  $('#sl-quiet-n').textContent = set.quiet ? "Aan: de melding staat ingeklapt onderaan, zonder icoon en niet op het vergrendelscherm; 's ochtends geen melding (kijk hier wat er gehoord is)"
+    : "Uit: een gewone, stille melding met stopknop, en 's ochtends een melding als er iets gehoord is";
   // Nachten
   const ns = s.nights || [];
   slHtml($('#sl-nights'), ns.map((n, i) => {
