@@ -349,7 +349,8 @@ const AI_SRC = [
   ['wa', 'WhatsApp', 'message', 'De laatste 300 berichten van je 100 recentste chats (alleen als je de chats leesbaar maakte).'],
   ['calls', 'Oproepen', 'calls', 'Wie belde of gebeld werd, wanneer en hoe lang (de laatste 50 per persoon).'],
   ['contacts', 'Contacten', 'user', 'Namen, nummers, e-mailadressen, adressen, verjaardagen en notities.'],
-  ['sleep', 'Slaappraat', 'moon', 'Wat je in je slaap zei (wat als praten is uitgeschreven).']
+  ['sleep', 'Slaappraat', 'moon', 'Wat je in je slaap zei (wat als praten is uitgeschreven).'],
+  ['checkin', 'Check-in', 'smile', 'Je antwoorden bij Check-in, met notities en labels, per vraag per maand samengevat (bijv. voor "Hoe was mijn oktober?").']
 ];
 function aiSrcOn(k){ const s = aiSt.src || {}; return s[k] != null ? !!s[k] : (k === 'notes' || k === 'tx'); }
 function aiSrcNames(){ const n = AI_SRC.filter(s => aiSrcOn(s[0])).map(s => s[1].toLowerCase()); return n.length ? n.join(', ') : 'niets aangezet'; }
@@ -359,6 +360,7 @@ function aiHitGs(h){
   const id = String(h.id || '');
   if (h.kind === 'tx') return ['tx', { id, from: +h.from || 0 }];
   if (h.kind === 'sleep') return ['sleep', { night: id, t: +h.from || 0 }];
+  if (h.kind === 'checkin') { const p = id.split('|'); return ['checkin', { q: p[0], month: /^\d{4}-\d{2}$/.test(p[1] || '') ? p[1] : '' }]; }
   if (h.kind === 'sms') return ['sms', { thread: /^\d+$/.test(id) ? +id : id, name: h.title || '' }];
   if (h.kind === 'wa') return ['wa', { chat: /^\d+$/.test(id) ? +id : id, name: h.title || '' }];
   if (h.kind === 'calls') return ['calls', { number: id }];
@@ -529,7 +531,7 @@ function aiSrcToggle(k){
   if (on && (aiSt.perm || {})[k] === false && AI_PERM[k]) Android.permRequest(AI_PERM[k]);
   if (on && aiReady('zoek')) aiIdx = { busy: true, done: 0, total: 0 };
   aiRenderData(); aicRender();
-  const one = k === 'wa';
+  const one = k === 'wa' || k === 'sleep' || k === 'checkin';
   toast(on ? s[1] + (one ? ' doet' : ' doen') + ' mee' + (aiReady('zoek') ? ': wordt op de achtergrond aan de zoekindex toegevoegd' : '')
     : s[1] + (one ? ' doet niet meer mee en gaat' : ' doen niet meer mee en gaan') + ' uit de zoekindex');
 }

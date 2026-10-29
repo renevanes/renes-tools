@@ -12,10 +12,10 @@ import org.json.JSONObject;
 import java.io.File;
 
 /**
- * Brugfuncties voor Slaappraat (Android.sleepXxx). Tussen FeatureBridge en AiBridge. Het luisteren zelf doet
+ * Brugfuncties voor Slaappraat (Android.sleepXxx). Tussen CheckinBridge en AiBridge. Het luisteren zelf doet
  * SleepService; de nachten en stukjes staan in SleepTalk (alleen op de telefoon).
  */
-public class SleepBridge extends FeatureBridge {
+public class SleepBridge extends CheckinBridge {
 
     SleepBridge(MainActivity act) { super(act); }
 

@@ -1,6 +1,6 @@
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
-const screens=['home','search','backup','settings','redial','wa','calls','notes','contacts','radio','podcasts','podspotify','spotify','vpn','loc','sms','tracks','car','kluis','pdf','recorder','sleep','transcripts','music','history','auto','info','homeedit','selftest'];
+const screens=['home','search','backup','settings','redial','wa','calls','notes','contacts','radio','podcasts','podspotify','spotify','vpn','loc','sms','tracks','car','kluis','pdf','recorder','sleep','checkin','checkinq','checkincmp','transcripts','music','history','auto','info','homeedit','selftest'];
 (async()=>{
  const browser=await chromium.launch();
  try{

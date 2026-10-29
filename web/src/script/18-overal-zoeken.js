@@ -8,19 +8,20 @@ const GS = {
   calls:    ['📞', 'Oproepen', 'calls', 'calls-search', () => callsSearchDo()],
   tx:       ['🎙️', 'Gesprekken', 'transcripts', 'tx-search', () => txSearchDo()],
   sleep:    ['🌙', 'Slaappraat', 'sleep', '', () => {}],
+  checkin:  ['🙂', 'Check-in', 'checkin', '', () => {}],
   music:    ['🎵', 'Muziek', 'music', 'mu-search', () => muRenderHistory()],
   history:  ['🔔', 'Meldingsgeschiedenis', 'history', 'history-search', () => { historyLimit = 200; loadHistory(); }]
 };
 /* ---------- zoeken in de app zelf: schermen, kaarten en instellingen ---------- */
 const GS_SYN = {meldingen: 'notificaties melding geluid trillen stil dempen uitzetten', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
   backup: 'reservekopie back-up opslaan bewaren', 'telefoon-skin': 'startscherm launcher thuisscherm skin', weergave: 'tekstgrootte letters groot thema donker dark mode licht nachtmodus',
-  foutrapport: 'fout crash probleem bug', modellen: 'taalmodel spraakmodel zoekmodel ai opslag ruimte downloaden verwijderen wifi', slaappraat: 'slapen slaap praten nacht snurken dromen microfoon', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
+  foutrapport: 'fout crash probleem bug', modellen: 'taalmodel spraakmodel zoekmodel ai opslag ruimte downloaden verwijderen wifi', slaappraat: 'slapen slaap praten nacht snurken dromen microfoon', 'check-in': 'checkin stemming humeur gevoel score cijfer dagboek bijhouden vraag werk hoe voel', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
 let gsIndex = null;
 function gsBuildIndex(){
   gsIndex = [];
   const fold = t => norm2(t);
   // Detailschermen (één notitie, chat, route …) hebben iets nodig om te tonen: die niet los openen
-  const DETAIL = ['note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'sleepnight'];
+  const DETAIL = ['note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'sleepnight', 'checkined', 'checkinq'];
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);
     if (scr === 'home' || scr === 'search' || DETAIL.includes(scr)) return;
@@ -99,6 +100,7 @@ function gsItem(kind, x, ql){
     case 'tx': return t(esc(x.name) + ' <small style="display:inline">· ' + esc(fmtD(x.mtime)) + '</small>', gsSnip(x.text, ql), {id: x.id, from: x.from});
     case 'music': return t(hl(x.title || '', ql), hl(x.artist || '', ql) + ' · ' + esc(fmtD(x.t)), {t: x.t});
     case 'sleep': return t(esc(typeof slNightName === 'function' ? slNightName(x.t) : fmtD(x.t)) + ' <small style="display:inline">· ' + esc(new Date(x.t).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })) + '</small>', gsSnip(x.text, ql), {night: x.night, clip: x.clip});
+    case 'checkin': return t(esc(x.title) + ' <small style="display:inline">· ' + esc(typeof ciKeyLabel === 'function' ? ciKeyLabel(x.p) : fmtD(x.t)) + '</small>', gsSnip(x.text, ql), {q: x.q, p: x.p});
     case 'app': return t(hl(x.title, ql), esc(x.sub), {i: x.i});
     case 'history': return t(esc(x.app) + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.title ? esc(x.title) + ': ' : '') + gsSnip(x.text, ql), {});
   }
@@ -134,6 +136,7 @@ function gsOpen(el){
   else if (k === 'tx') jumpTo('txd', () => txOpen(x.id, x.from));
   else if (k === 'music') { jumpTo('music'); setTimeout(() => muOpen(x.t), 50); }
   else if (k === 'sleep') { slNightId = String(x.night || ''); slFocusClip = x.clip || (x.t ? 't:' + x.t : ''); slFilterV = 'praten'; jumpTo('sleepnight'); }
+  else if (k === 'checkin') ciFromHit(x);
   else if (k === 'history') gsMore('history');
   else if (k === 'app') {
     const it = gsIndex && gsIndex[x.i]; if (!it) return;

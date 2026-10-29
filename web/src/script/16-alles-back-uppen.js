@@ -1,15 +1,16 @@
 /* ---------- Alles back-uppen ---------- */
 const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', launcher: 'Startscherm (skin)', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek', settings: 'Instellingen, automatiseringen en zenders', routes: 'Routes (GPX)' };
 /* Privé: staan standaard uit; zonder versleutelen een duidelijke waarschuwing */
-const BK_PRIV = { ai: 'Geheugen en gesprekken van de assistent', sleep: 'Slaappraat' };
+const BK_PRIV = { ai: 'Geheugen en gesprekken van de assistent', sleep: 'Slaappraat', checkin: 'Check-in' };
 const BK_LABEL = Object.assign({}, BK_PARTS, BK_PRIV);
-const BK_PRIV_ZIN = { ai: 'Het geheugen en de gesprekken van de assistent zijn privé', sleep: 'Slaappraat is privé' };
+const BK_PRIV_ZIN = { ai: 'Het geheugen en de gesprekken van de assistent zijn privé', sleep: 'Slaappraat is privé', checkin: 'Check-in is privé (je antwoorden, notities en labels)' };
 /* "… gaan/gaat dan niet meer mee": het geheugen en de gesprekken zijn meervoud */
 function bkPrivNoLonger(priv){
   if (!priv.length) return '';
-  const both = priv.length === 2, ai = priv[0] === 'ai';
-  const wie = both ? 'Het geheugen en de gesprekken van de assistent, en Slaappraat,' : ai ? 'Het geheugen en de gesprekken van de assistent' : 'Slaappraat';
-  const mv = both || ai;
+  const N = { ai: 'het geheugen en de gesprekken van de assistent', sleep: 'Slaappraat', checkin: 'Check-in' }, ns = priv.map(k => N[k]), ai = priv.includes('ai');
+  // Met de assistent erbij staat er al "en" in de naam: dan met komma's ("…, en Slaappraat,")
+  const wie = (ns.length === 1 ? ns[0] : ai ? ns.slice(0, -1).join(', ') + ', en ' + ns[ns.length - 1] + ',' : ns.slice(0, -1).join(', ') + ' en ' + ns[ns.length - 1]).replace(/^./, c => c.toUpperCase());
+  const mv = priv.length > 1 || ai;
   return wie + (mv ? ' gaan' : ' gaat') + ' dan niet meer mee, want ' + (mv ? 'die zijn' : 'dat is') + ' privé. Wil je ' + (mv ? 'ze' : 'het') + ' toch onversleuteld meenemen, vink ' + (mv ? 'ze' : 'het') + ' dan opnieuw aan.';
 }
 let bkPoll = null, bkBusy = false;
@@ -61,6 +62,7 @@ function bkPrivRender(st){
   const p = st.parts || {}, x = st.extra || {}, on = k => p[k] === true;
   const aiInfo = (x.aiMem || x.aiChats) ? bkCount(x.aiMem, 'herinnering', 'herinneringen') + ', ' + bkCount(x.aiChats, 'gesprek', 'gesprekken') + ' · ' + fmtB(x.aiBytes || 0) : 'Nog niets bewaard';
   const slInfo = x.nights ? bkCount(x.nights, 'nacht', 'nachten') + ' · tekst ' + fmtB(x.sleepText || 0) + (x.sleepAudio ? ' · geluid ' + fmtB(x.sleepAudio) : '') : 'Nog geen nachten';
+  const ciInfo = x.ciQ || x.ciA ? bkCount(x.ciQ, 'vraag', 'vragen') + ', ' + bkCount(x.ciA, 'antwoord', 'antwoorden') + ' · ' + fmtB(x.ciBytes || 0) : 'Nog niets ingevuld';
   box.innerHTML =
     '<label class=chk><input type=checkbox data-p="ai"' + (on('ai') ? ' checked' : '') + ' onchange="bkPrivSet(this)"> ' + BK_PRIV.ai + '</label>' +
     '<div class=bk-sub><p class=note>' + esc(aiInfo) + '</p></div>' +
@@ -69,7 +71,9 @@ function bkPrivRender(st){
       '<label class=chk><input type=radio name=bk-slaud id=bk-slaud-0' + (!st.sleepAudio ? ' checked' : '') + ' onchange="bkSleepAudio(false)"> Alleen de tekst</label>' +
       '<label class=chk><input type=radio name=bk-slaud id=bk-slaud-1' + (st.sleepAudio ? ' checked' : '') + ' onchange="bkSleepAudio(true)"> Met geluid' + (x.sleepAudio ? ' (+' + fmtB(x.sleepAudio) + ')' : '') + '</label>' +
       (st.sleepAudio && x.sleepAudio ? '<p class=note>Elke backup wordt zo ' + fmtB(x.sleepAudio) + ' groter.</p>' : '') : '') + '</div>' +
-    (on('ai') || on('sleep') ? (st.encrypted ? '<p class=note id=bk-priv-enc>' + uiIcon('lock') + ' Gaat versleuteld mee, in het archief van Alles back-uppen.</p>'
+    '<label class=chk><input type=checkbox data-p="checkin"' + (on('checkin') ? ' checked' : '') + ' onchange="bkPrivSet(this)"> Check-in (vragen, antwoorden, notities en labels)</label>' +
+    '<div class=bk-sub><p class=note>' + esc(ciInfo) + '</p></div>' +
+    (on('ai') || on('sleep') || on('checkin') ? (st.encrypted ? '<p class=note id=bk-priv-enc>' + uiIcon('lock') + ' Gaat versleuteld mee, in het archief van Alles back-uppen.</p>'
       : '<p class="note warn" id=bk-priv-warn>Let op: versleutelen staat uit. Dit komt als leesbaar bestand in je backup-map, te lezen door iedereen die bij die map kan (bijv. via OneDrive). Zet hieronder Versleutelen aan om het te beschermen.</p>') : '');
 }
 function bkPrivSet(el){
@@ -107,6 +111,16 @@ window.onRestorePreview = function(d){
     const chats = 'Gesprekken: ' + d.chatFresh + ' nieuw' + (d.chatDup ? ', ' + d.chatDup + ' staan er al' : '') + (d.chatFull ? ', ' + d.chatFull + ' passen niet (hooguit 100)' : '') + '.';
     askConfirm('Assistent terugzetten?', mem + '\n' + chats + '\n\nEr wordt niets overschreven of verwijderd.' + ((d.sample || []).length ? '\n\n' + d.sample.join('\n') : ''), 'Toevoegen', () => {
       restoreWhat = 'herinneringen en gesprekken'; restoreKind = 'ai';
+      const e = Android.restoreApply(); if (e) toast(e); else toast('Bezig met toevoegen…');
+    }, () => Android.restoreCancel());
+    return;
+  }
+  if (d.kind === 'checkin') {
+    if (!d.fresh) { Android.restoreCancel(); toast('Alles uit deze backup staat er al'); return; }
+    askConfirm('Check-in terugzetten?', 'Vragen: ' + d.qFresh + ' nieuw' + (d.qDup ? ', ' + d.qDup + ' staan er al' : '') + '.\nAntwoorden: ' + d.aFresh + ' nieuw' + (d.aDup ? ', ' + d.aDup + ' staan er al' : '') + '.' +
+      (d.bad ? '\n' + d.bad + ' niet leesbaar (overgeslagen).' : '') + '\n\nEr wordt niets overschreven of verwijderd. Teruggezette vragen staan eerst uit: zet ze aan als je weer meldingen wilt.' +
+      ((d.sample || []).length ? '\n\n' + d.sample.join('\n') : ''), 'Toevoegen', () => {
+      restoreWhat = 'vragen en antwoorden'; restoreKind = 'checkin';
       const e = Android.restoreApply(); if (e) toast(e); else toast('Bezig met toevoegen…');
     }, () => Android.restoreCancel());
     return;
@@ -151,7 +165,8 @@ window.onRestoreDone = function(r){
     toast(restoreKind === 'route' && r === 'ok:0' ? 'Deze route staat er al' : '✓ ' + n + ' ' + (restoreKind === 'sleep' && n === 1 ? 'nacht' : restoreWhat) + ' toegevoegd');
     if (restoreKind === 'ai' && typeof aiLoad === 'function') try { aiLoad(); } catch(e){}
     if (restoreKind === 'sleep' && current === 'sleep' && typeof enterSleep === 'function') enterSleep();
-    if ((restoreKind === 'ai' || restoreKind === 'sleep') && current === 'backup') bkPrivRender(bkState(true));
+    if ((restoreKind === 'ai' || restoreKind === 'sleep' || restoreKind === 'checkin') && current === 'backup') bkPrivRender(bkState(true));
+    if (restoreKind === 'checkin' && typeof ciAfter === 'function') ciAfter();
     if (restoreKind === 'notes') { notes = null; notesBroken = false; refreshNotesTile(); }
     if (restoreKind === 'route' && current === 'tracks') enterTracks();
     if (restoreKind === 'settings') { webStoreRestore(); if (typeof renderHome === 'function') try { renderHome(); } catch(e){} }

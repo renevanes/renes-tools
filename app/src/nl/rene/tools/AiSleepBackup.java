@@ -448,7 +448,7 @@ final class AiSleepBackup {
 
     /**
      * Na een gelukte versleutelde backup met deze onderdelen: de oude leesbare kopie (Assistent/assistent.json,
-     * Slaappraat/) uit de backup-map halen, want die staat nu versleuteld in het archief.
+     * Slaappraat/, Check-in/checkin.json) uit de backup-map halen, want die staat nu versleuteld in het archief.
      */
     static void removePlain(Context c, Uri tree, String part) {
         try {
@@ -468,15 +468,16 @@ final class AiSleepBackup {
                 prune(dest, d, new JSONObject()); // geluid en lege nachtmappen
                 WaBackup.Child dir = root.kids.get(SLEEP_DIR);
                 if (d.kids.isEmpty() && dir != null) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, dir.docId));
-            } else if ("ai".equals(part)) {
-                WaBackup.DestDir d = dest.dir(AI_DIR, false);
+            } else if ("ai".equals(part) || "checkin".equals(part)) {
+                String dirName = "ai".equals(part) ? AI_DIR : CheckinStore.DIR, fileName = "ai".equals(part) ? AI_FILE : CheckinStore.FILE;
+                WaBackup.DestDir d = dest.dir(dirName, false);
                 if (d == null) return;
                 int other = 0;
                 for (Map.Entry<String, WaBackup.Child> e : new ArrayList<>(d.kids.entrySet())) {
-                    if (e.getKey().startsWith(AI_FILE) && !e.getValue().dir) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, e.getValue().docId));
+                    if (e.getKey().startsWith(fileName) && !e.getValue().dir) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, e.getValue().docId));
                     else other++;
                 }
-                WaBackup.Child dir = root.kids.get(AI_DIR);
+                WaBackup.Child dir = root.kids.get(dirName);
                 if (other == 0 && dir != null) DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, dir.docId));
             }
             Secure.prefs(c).edit().remove("plain_written_" + part).apply();

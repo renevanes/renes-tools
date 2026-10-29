@@ -1,5 +1,15 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <span class="sr-only" id="upd-live" aria-live="polite"></span>
+<div class="modal" id="ci-ans" onclick="if(event.target===this)ciAnsClose()">
+  <div class="modal-box ci-ansbox" role="dialog" aria-modal="true" aria-labelledby="ci-ans-t" aria-describedby="ci-ans-p">
+    <h3 id="ci-ans-t"></h3>
+    <p id="ci-ans-p"></p>
+    <div class="ci-big" id="ci-ans-opts" role="group" aria-labelledby="ci-ans-t"></div>
+    <p class="note ci-ans-st" id="ci-ans-st" role="status" aria-live="polite"></p>
+    <div id="ci-ans-x"></div>
+    <div class="modal-btns"><button class="big ghost" id="ci-ans-cancel" onclick="ciAnsClose()">Annuleren</button><button class="big" id="ci-ans-done" onclick="ciAnsDone()">Klaar</button></div>
+  </div>
+</div>
 <div class="modal" id="voice" role="dialog" aria-modal="true" aria-labelledby="voice-t">
   <div class="modal-box" style="text-align:center">
     <h3 id="voice-t">Spraaknotitie</h3>

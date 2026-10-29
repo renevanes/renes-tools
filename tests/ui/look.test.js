@@ -2,7 +2,7 @@
 // Maakt screenshots in tests/ui/shots/look-*.png en controleert kop, tabbalk en contrast.
 const { chromium } = require('playwright');
 const assert=require('node:assert/strict');
-const SCREENS = ['home', 'search', 'backup', 'settings', 'redial', 'wa', 'calls', 'notes', 'contacts', 'radio', 'podcasts', 'podspotify', 'spotify', 'vpn', 'loc', 'sms', 'tracks', 'car', 'kluis', 'pdf', 'recorder', 'sleep', 'transcripts', 'music', 'history', 'auto', 'info', 'homeedit', 'selftest'];
+const SCREENS = ['home', 'search', 'backup', 'settings', 'redial', 'wa', 'calls', 'notes', 'contacts', 'radio', 'podcasts', 'podspotify', 'spotify', 'vpn', 'loc', 'sms', 'tracks', 'car', 'kluis', 'pdf', 'recorder', 'sleep', 'checkin', 'checkincmp', 'transcripts', 'music', 'history', 'auto', 'info', 'homeedit', 'selftest'];
 // Een paars Material You-palet zoals Android het geeft
 const DYN = (() => { const t = [0, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
   const pal = (h, s) => Object.fromEntries(t.map(x => { const l = 100 - x / 10; return [x, hsl(h, s, x === 0 ? 100 : x === 1000 ? 0 : l)]; }));

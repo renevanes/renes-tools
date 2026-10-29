@@ -103,6 +103,7 @@ final class SmartSearch {
             case "calls": return "Oproepen met ";
             case "contacts": return "Contact ";
             case "sleep": return "Slaappraat ";
+            case "checkin": return "Check-in ";
             default: return "Notitie: ";
         }
     }
@@ -175,6 +176,7 @@ final class SmartSearch {
         if (LocalAi.srcOn(c, "calls") && Search.has(c, android.Manifest.permission.READ_CALL_LOG)) try { callDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "oproepen: " + e); }
         if (LocalAi.srcOn(c, "contacts") && Search.has(c, android.Manifest.permission.READ_CONTACTS)) try { contactDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "contacten: " + e); }
         if (LocalAi.srcOn(c, "sleep")) try { sleepDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "slaappraat: " + e); }
+        if (LocalAi.srcOn(c, "checkin")) try { checkinDocs(c, out); } catch (Throwable e) { App.log(c, "AI", "check-in: " + e); }
         return out;
     }
 
@@ -311,6 +313,15 @@ final class SmartSearch {
         }
     }
 
+    /** Check-in: per vraag per maand een samenvatting en elk antwoord (met notities en labels). */
+    @SuppressWarnings("unchecked")
+    private static void checkinDocs(Context c, List<Doc> out) throws Exception {
+        for (Object[] m : CheckinStore.monthDocs(c)) {
+            Doc d = linesDoc("checkin", (String) m[0], (String) m[1], (List<String>) m[2], (List<Long>) m[3], (Long) m[4]);
+            if (d != null) out.add(d);
+        }
+    }
+
     /** Contacten: naam en de velden (nummers, e-mail, adres, verjaardag, notitie …). */
     private static void contactDocs(Context c, List<Doc> out) throws Exception {
         int n = 0;
@@ -381,6 +392,7 @@ final class SmartSearch {
             if (LocalAi.srcOn(c, "calls") && Search.has(c, android.Manifest.permission.READ_CALL_LOG)) { List<Calls.Call> l = Calls.read(c, 1); s.append(":c").append(l.isEmpty() ? 0 : l.get(0).date); }
             if (LocalAi.srcOn(c, "contacts") && Search.has(c, android.Manifest.permission.READ_CONTACTS)) s.append(":k").append(contactsStamp(c));
             if (LocalAi.srcOn(c, "sleep")) s.append(":z").append(SleepTalk.stamp(c));
+            if (LocalAi.srcOn(c, "checkin")) s.append(":q").append(CheckinStore.stamp(c));
         } catch (Throwable ignored) { }
         return s.toString();
     }

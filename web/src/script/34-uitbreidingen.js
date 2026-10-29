@@ -34,15 +34,16 @@ function txToNote(asList){
 }
 
 /* Spraaknotitie: inspreken → op de telefoon uitschrijven → notitie (of items/tekst erbij in de open notitie). */
-let voiceFor = null, voiceTmr = null;
-function voiceOpen(noteId){
-  voiceFor = noteId;
-  $('#voice-t').textContent = noteId ? 'Inspreken in deze notitie' : 'Spraaknotitie';
+let voiceFor = null, voiceTmr = null, voiceOpt = null;
+/* opt (bijv. Check-in): {title, done(tekst), models: zonder spraakmodel naar Modellen verwijzen} */
+function voiceOpen(noteId, opt){
+  voiceFor = noteId; voiceOpt = opt || null;
+  $('#voice-t').textContent = voiceOpt && voiceOpt.title ? voiceOpt.title : noteId ? 'Inspreken in deze notitie' : 'Spraaknotitie';
   $('#voice-state').textContent = 'Tik op de microfoon en praat. Tik nog eens als je klaar bent.';
   $('#voice-btn').classList.remove('rec'); $('#voice-btn').disabled = false;
   $('#voice').classList.add('on');
 }
-function voiceClose(){ clearInterval(voiceTmr); if (typeof Android.voiceCancel === 'function') Android.voiceCancel(); $('#voice').classList.remove('on'); }
+function voiceClose(){ clearInterval(voiceTmr); if (typeof Android.voiceCancel === 'function') Android.voiceCancel(); $('#voice').classList.remove('on'); voiceOpt = null; }
 function voiceToggle(){
   const b = $('#voice-btn');
   if (b.classList.contains('rec')) {
@@ -52,6 +53,7 @@ function voiceToggle(){
   }
   const e = Android.voiceStart();
   if (e === 'mic') { Android.musicRequestMic(); $('#voice-state').textContent = 'Geef toegang tot de microfoon en tik opnieuw.'; return; }
+  if (e === 'model' && voiceOpt && voiceOpt.models) { $('#voice-state').innerHTML = 'Er is nog geen spraakmodel. Download er een bij <a href="#" onclick="voiceClose();if(typeof ciAnsClose===\'function\')ciAnsClose();jumpTo(\'models\');return false">Modellen</a> (Spraak naar tekst).'; return; }
   if (e === 'model') { $('#voice-state').innerHTML = 'Download eerst een spraakmodel bij <a href="#" onclick="voiceClose();jumpTo(\'transcripts\');return false">Gesprekken uitschrijven</a>.'; return; }
   if (e) { $('#voice-state').textContent = e; return; }
   b.classList.add('rec'); Android.vibrate(15);
@@ -62,6 +64,7 @@ window.onVoiceNote = function(r){
   if (!$('#voice').classList.contains('on')) return;
   if (r.error) { $('#voice-state').textContent = r.error; $('#voice-btn').disabled = false; return; }
   const text = String(r.text || '').trim();
+  if (voiceOpt && voiceOpt.done) { const d = voiceOpt.done; voiceClose(); d(text); return; }
   // "Melk, brood en kaas" in een lijstje → losse items
   const parts = text.replace(/[.!?]+$/, '').split(/\s*(?:,|;|\ben\b)\s*/i).map(x => x.trim()).filter(Boolean);
   const n = voiceFor ? noteById(voiceFor) : null;

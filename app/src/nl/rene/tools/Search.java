@@ -10,8 +10,8 @@ import org.json.JSONObject;
 import java.util.Locale;
 
 /**
- * Overal zoeken vanaf het startscherm: contacten, sms, WhatsApp-chats, oproepen, uitgeschreven gesprekken
- * en herkende muziek (notities zoekt de interface zelf). Per soort de eerste paar treffers en het totaal.
+ * Overal zoeken vanaf het startscherm: contacten, sms, WhatsApp-chats, oproepen, uitgeschreven gesprekken,
+ * Slaappraat, Check-in (notities en labels) en herkende muziek (notities zoekt de interface zelf). Per soort de eerste paar treffers en het totaal.
  * Een nieuwere zoekopdracht maakt een lopende overbodig: die stopt dan tussen twee bronnen.
  */
 final class Search {
@@ -29,7 +29,7 @@ final class Search {
     static final java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newSingleThreadExecutor();
 
     /** Bronnen van snel naar traag; na elke bron gaat er een tussenstand naar de interface. */
-    static final int[] ORDER = {0, 5, 4, 6, 3, 1, 2};
+    static final int[] ORDER = {0, 5, 4, 6, 7, 3, 1, 2};
 
     static void run(Context c, String q, int id, Sink out) {
         String ql = q.trim().toLowerCase(Locale.ROOT);
@@ -96,6 +96,11 @@ final class Search {
                 java.util.Set<String> seen = new java.util.HashSet<>();
                 for (int k = 0; k < hits.length(); k++) if (seen.add(hits.getJSONObject(k).optString("id"))) all.put(hits.getJSONObject(k));
                 group(res, "tx", first(all), all.length(), hits.length() >= 300 ? all.length() : Integer.MAX_VALUE);
+                return;
+            }
+            case 7: { // Check-in: je notities en labels bij de antwoorden
+                JSONArray all = CheckinStore.search(c, ql);
+                group(res, "checkin", first(all), all.length(), 200);
                 return;
             }
             case 6: { // Slaappraat: wat je in je slaap zei

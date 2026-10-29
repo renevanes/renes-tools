@@ -1,0 +1,143 @@
+<!-- ============ CHECK-IN ============ -->
+<section class="screen" id="s-checkin">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Check-in</h1>
+  </div>
+  <main>
+    <p class="note ci-intro">Even kort je score per dag, week of maand: hoe je je voelt, hoe je werk ging. Eén of twee tikken. Alles blijft op je telefoon.</p>
+    <div class="card perm" id="ci-perm" style="display:none"></div>
+    <div id="ci-list"></div>
+    <button class="big" id="ci-new" onclick="ciNew()"><span class="ui-icon" data-icon="plus" aria-hidden="true"></span>Nieuwe vraag</button>
+    <div id="ci-arch"></div>
+    <div class="card ci-more">
+      <h2><span class="ui-icon" data-icon="sort" aria-hidden="true"></span>Vergelijken</h2>
+      <p class="note">Twee vragen naast elkaar, of een vraag naast je slaap (Slaappraat) of je agenda.</p>
+      <button class="big ghost" onclick="ciCompare('')">Vergelijken</button>
+    </div>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="info" aria-hidden="true"></span>Goed om te weten</h2>
+      <ul class="sl-tips">
+        <li>Elk moment geeft één melding. Er komt nooit een herinnering achteraan; wat je mist, vul je later in (als dat aan staat bij de vraag).</li>
+        <li>Met 2 of 3 antwoorden tik je je antwoord meteen in de melding. Met meer opent de melding een klein scherm met grote knoppen.</li>
+        <li>Alleen voor jezelf: er is geen knop om te delen. Je antwoorden zitten niet in de gewone Android-backup; bij Alles back-uppen kun je ze als privé onderdeel meenemen (bij voorkeur versleuteld).</li>
+        <li>De assistent kijkt er alleen in als je Check-in aanzet bij Lokale AI → Gegevens.</li>
+      </ul>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-checkined">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1" id="ced-h">Nieuwe vraag</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2>De vraag</h2>
+      <label class="ci-lbl" for="ced-text">Vraag</label>
+      <input class="ci-in" id="ced-text" maxlength="120" placeholder="Bijv. Hoe voel je je?" autocomplete="off">
+      <label class="ci-lbl" for="ced-emoji">Emoji</label>
+      <div class="ci-emrow"><input class="ci-in ci-emoji" id="ced-emoji" maxlength="16" autocomplete="off"><div class="chips sm ci-emsug" id="ced-emsug" role="group" aria-label="Emoji kiezen"></div></div>
+      <b class="ci-lbl" id="ced-color-l">Kleur</b>
+      <div class="ci-colors" id="ced-color" role="radiogroup" aria-labelledby="ced-color-l"></div>
+    </div>
+    <div class="card">
+      <h2>Antwoorden</h2>
+      <div class="chips sm" id="ced-scale" role="radiogroup" aria-label="Soort antwoord"></div>
+      <p class="note" id="ced-scale-n"></p>
+      <div id="ced-opts" role="list" aria-label="Antwoorden"></div>
+      <button class="linkish ci-add" id="ced-opt-add" onclick="cedOptAdd()">+ Antwoord toevoegen</button>
+      <p class="note">De waarde bepaalt de volgorde in de grafieken: hoger is beter.</p>
+    </div>
+    <div class="card">
+      <h2>Wanneer</h2>
+      <div class="chips sm" id="ced-rhythm" role="radiogroup" aria-label="Hoe vaak"></div>
+      <div id="ced-days-w"><b class="ci-lbl" id="ced-days-l">Op deze dagen</b><div class="chips sm ci-days" id="ced-days" role="group" aria-labelledby="ced-days-l"></div></div>
+      <div id="ced-wday-w"><label class="ci-lbl" for="ced-wday">Op</label><select class="ci-in" id="ced-wday"></select></div>
+      <div id="ced-dom-w"><label class="ci-lbl" for="ced-dom">Op dag</label><select class="ci-in" id="ced-dom"></select><p class="note">29, 30 of 31: in kortere maanden de laatste dag.</p></div>
+      <div id="ced-times"></div>
+      <button class="linkish ci-add" id="ced-time-add" onclick="cedTimeAdd()">+ Tijd toevoegen</button>
+      <div class="ci-row"><label for="ced-until">Antwoorden kan tot</label><input type="time" class="sl-time" id="ced-until"></div>
+      <p class="note">Daarna gaat de melding weg en telt de periode als gemist.</p>
+    </div>
+    <div class="card">
+      <h2>Stille dagen</h2>
+      <div class="sw"><span>Stil in het weekend<small id="ced-wk-n">Geen melding op zaterdag en zondag (telt niet als gemist)</small></span><button class="tg" id="ced-wk" role="switch" aria-checked="false" aria-label="Stil in het weekend" aria-describedby="ced-wk-n" onclick="cedTg('quietWeekend')"></button></div>
+      <div class="ci-row"><label for="ced-pause">Pauze tot en met</label><input type="date" class="sl-time" id="ced-pause"><button class="mini" id="ced-pause-x" onclick="cedPauseClear()" aria-label="Pauze weghalen">Geen pauze</button></div>
+      <p class="note">Bijvoorbeeld tijdens je vakantie: geen meldingen, en het telt niet als gemist.</p>
+    </div>
+    <div class="card">
+      <h2>Per periode</h2>
+      <div class="chips sm" id="ced-per" role="radiogroup" aria-label="Hoeveel antwoorden per periode"><button role="radio" aria-checked="true" data-v="one" onclick="cedSet('perPeriod','one')">Eén antwoord</button><button role="radio" aria-checked="false" data-v="many" onclick="cedSet('perPeriod','many')">Meerdere</button></div>
+      <p class="note" id="ced-per-n"></p>
+      <div class="sw"><span>Later nog wijzigen<small id="ced-ed-n">Een gegeven antwoord aanpassen of wissen</small></span><button class="tg" id="ced-ed" role="switch" aria-checked="true" aria-label="Later nog wijzigen" aria-describedby="ced-ed-n" onclick="cedTg('editable')"></button></div>
+      <div class="sw"><span>Achteraf invullen<small id="ced-bf-n">Een gemiste periode later nog invullen</small></span><button class="tg" id="ced-bf" role="switch" aria-checked="true" aria-label="Achteraf invullen" aria-describedby="ced-bf-n" onclick="cedTg('backfill')"></button></div>
+    </div>
+    <div class="card">
+      <h2>Extra bij een antwoord</h2>
+      <div class="sw"><span>Notitie<small id="ced-note-n">Een paar woorden erbij typen</small></span><button class="tg" id="ced-note" role="switch" aria-checked="false" aria-label="Notitie" aria-describedby="ced-note-n" onclick="cedTg('note')"></button></div>
+      <div class="sw"><span>Inspreken<small id="ced-voice-n">Een notitie inspreken; die wordt op je telefoon uitgeschreven</small></span><button class="tg" id="ced-voice" role="switch" aria-checked="false" aria-label="Inspreken" aria-describedby="ced-voice-n" onclick="cedTg('voice')"></button></div>
+      <div class="sw"><span>Labels<small id="ced-lab-n">Vaste woorden om aan te tikken, zoals "druk"</small></span><button class="tg" id="ced-lab" role="switch" aria-checked="false" aria-label="Labels" aria-describedby="ced-lab-n" onclick="cedTg('labels')"></button></div>
+      <div id="ced-labels-w">
+        <div class="chips sm" id="ced-labels" role="list" aria-label="Labels"></div>
+        <div class="ci-row"><input class="ci-in" id="ced-label-in" maxlength="30" placeholder="Nieuw label" aria-label="Nieuw label" autocomplete="off"><button class="mini" onclick="cedLabelAdd()">Toevoegen</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sw"><span>Vraag staat aan<small id="ced-on-n">Uit: geen meldingen; in de app kun je wel antwoorden</small></span><button class="tg" id="ced-on" role="switch" aria-checked="true" aria-label="Vraag staat aan" aria-describedby="ced-on-n" onclick="cedTg('on')"></button></div>
+    </div>
+    <button class="big" id="ced-save" onclick="cedSave()">Bewaren</button>
+    <button class="big ghost ci-gap" onclick="cedCancel()">Annuleren</button>
+  </main>
+</section>
+
+<section class="screen" id="s-checkinq">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1" id="ciq-title">Terugkijken</h1>
+    <button class="icon-btn" id="ciq-menu" onclick="ciqMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <div id="ciq-now"></div>
+    <div class="card">
+      <div class="ci-nav">
+        <button class="iconbtn" id="ciq-prev" onclick="ciqStep(-1)" aria-label="Vorige"><span class="ui-icon" data-icon="chevron-left" aria-hidden="true"></span></button>
+        <h2 id="ciq-month" aria-live="polite"></h2>
+        <button class="iconbtn" id="ciq-next" onclick="ciqStep(1)" aria-label="Volgende"><span class="ui-icon" data-icon="chevron-right" aria-hidden="true"></span></button>
+      </div>
+      <div id="ciq-cal"></div>
+      <div class="ci-legend" id="ciq-legend" aria-hidden="true"></div>
+      <p class="note" id="ciq-calsum"></p>
+    </div>
+    <div class="card" id="ciq-day" style="display:none" tabindex="-1"></div>
+    <div class="card">
+      <h2>Grafiek</h2>
+      <div class="chips sm" id="ciq-view" role="radiogroup" aria-label="Periode van de grafiek"><button role="radio" aria-checked="false" data-v="week" onclick="ciqView('week')">Week</button><button role="radio" aria-checked="true" data-v="month" onclick="ciqView('month')">Maand</button><button role="radio" aria-checked="false" data-v="year" onclick="ciqView('year')">Jaar</button></div>
+      <div id="ciq-chart"></div>
+    </div>
+    <div class="card">
+      <h2>Samenvatting</h2>
+      <div id="ciq-sum"></div>
+    </div>
+    <button class="big ghost" onclick="ciCompare(ciqId)">Vergelijken met…</button>
+  </main>
+</section>
+
+<section class="screen" id="s-checkincmp">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Vergelijken</h1>
+  </div>
+  <main>
+    <div class="card">
+      <label class="ci-lbl" for="cic-a">Vraag</label>
+      <select class="ci-in" id="cic-a" onchange="cicRender()"></select>
+      <label class="ci-lbl" for="cic-b">Naast</label>
+      <select class="ci-in" id="cic-b" onchange="cicRender()"></select>
+      <div class="chips sm" id="cic-range" role="radiogroup" aria-label="Periode"><button role="radio" aria-checked="true" data-v="30" onclick="cicRange(30)">30 dagen</button><button role="radio" aria-checked="false" data-v="90" onclick="cicRange(90)">90 dagen</button><button role="radio" aria-checked="false" data-v="365" onclick="cicRange(365)">1 jaar</button></div>
+    </div>
+    <div id="cic-out"></div>
+    <p class="note">Dit laat alleen zien wat samen voorkwam. Het zegt niets over oorzaak en gevolg, en het is geen medisch advies.</p>
+  </main>
+</section>

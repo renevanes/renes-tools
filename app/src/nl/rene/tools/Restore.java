@@ -110,6 +110,7 @@ final class Restore {
         if ("route".equals(kind)) { JSONObject r = Tracks.previewGpx(text); pendingRoute = text; pendingKind = kind; return r; }
         if ("ai".equals(kind)) { JSONObject r = AiSleepBackup.previewAi(c, text); pendingKind = kind; return r; }
         if ("sleep".equals(kind)) { JSONObject r = AiSleepBackup.previewSleep(c, text, true); pendingKind = kind; return r; }
+        if ("checkin".equals(kind)) { JSONObject r = CheckinStore.preview(c, text); pendingKind = kind; return r; }
         if ("launcher".equals(kind)) {
             JSONObject r = LauncherBackup.preview(text);
             pendingLauncher = text;
@@ -185,6 +186,7 @@ final class Restore {
         if ("route".equals(kind) && pendingRoute != null) { int n = Tracks.importGpx(c, pendingRoute); pendingRoute = null; return n; }
         if ("ai".equals(kind)) return AiSleepBackup.applyAi(c);
         if ("sleep".equals(kind)) return AiSleepBackup.applySleep(c);
+        if ("checkin".equals(kind)) { int n = CheckinStore.apply(c); CheckinNotify.arm(c); return n; }
         if ("launcher".equals(kind) && pendingLauncher != null) {
             int n = LauncherBackup.apply(c, pendingLauncher);
             pendingLauncher = null;

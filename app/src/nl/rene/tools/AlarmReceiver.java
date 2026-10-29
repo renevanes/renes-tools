@@ -35,6 +35,8 @@ public class AlarmReceiver extends BroadcastReceiver {
         else if (Reminders.ACTION_SNOOZE.equals(a) || Reminders.ACTION_DONE.equals(a)) Reminders.onAction(c, i);
         else if (RedialPlan.ACTION.equals(a)) RedialPlan.fire(c);
         else if (SleepReminder.ACTION.equals(a)) SleepReminder.fire(c);
+        else if (CheckinNotify.ACTION.equals(a)) CheckinNotify.fire(c);
+        else if (CheckinNotify.ACTION_ANSWER.equals(a)) { try { CheckinNotify.onAnswer(c, i); } catch (Throwable e) { App.log(c, "CHECKIN", "antwoord: " + e); } }
         else if (Intent.ACTION_BOOT_COMPLETED.equals(a) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)
                 || "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED".equals(a)
                 || Intent.ACTION_TIMEZONE_CHANGED.equals(a) || Intent.ACTION_TIME_CHANGED.equals(a)) {
@@ -51,6 +53,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         Reminders.rearm(c);
         RedialPlan.arm(c);
         SleepReminder.arm(c);
+        CheckinNotify.arm(c);
         TranscribeJob.ensureScheduled(c);
         RadioWidget.refresh(c);
         Auto.armPlaces(c, true);

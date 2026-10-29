@@ -1811,6 +1811,7 @@ public class MainActivity extends Activity {
                     case "location": p = new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}; break;
                     case "mic": p = new String[]{Manifest.permission.RECORD_AUDIO}; break;
                     case "notif": if (Build.VERSION.SDK_INT >= 33) p = new String[]{Manifest.permission.POST_NOTIFICATIONS}; break;
+                    case "calendar": p = new String[]{Manifest.permission.READ_CALENDAR}; break; // alleen lezen (Check-in)
                     case "files": a.requestFilesAccess(); return;
                     case "install": a.openInstallSettings(); return;
                     default: a.openAppSettings(); return;
@@ -2044,11 +2045,12 @@ public class MainActivity extends Activity {
             }, "secure").start();
         }
 
-        /** Versleutelen uit: de privé-onderdelen (assistent, Slaappraat) gaan dan ook uit; weer aanzetten vraagt eerst. */
+        /** Versleutelen uit: de privé-onderdelen (assistent, Slaappraat, Check-in) gaan dan ook uit; weer aanzetten vraagt eerst. */
         @JavascriptInterface public void backupEncryptOff() {
             Secure.off(ctx);
-            AllBackup.prefs(ctx).edit().putBoolean("part_ai", false).putBoolean("part_sleep", false).apply();
-            AllBackup.setPlain(ctx, "ai", false); AllBackup.setPlain(ctx, "sleep", false);
+            android.content.SharedPreferences.Editor e = AllBackup.prefs(ctx).edit();
+            for (String p : AllBackup.PRIVATE) { e.putBoolean("part_" + p, false); AllBackup.setPlain(ctx, p, false); }
+            e.apply();
         }
 
         @JavascriptInterface public void backupSetRotate(boolean on) { AllBackup.prefs(ctx).edit().putBoolean("rotate", on).apply(); }
@@ -2094,7 +2096,7 @@ public class MainActivity extends Activity {
 
         /** Contacten of notities uit het geopende archief: daarna hetzelfde overzicht als bij gewoon terugzetten. */
         @JavascriptInterface public void archiveRestore(String kind, String entry) {
-            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music", "ai", "sleep").contains(kind)) return;
+            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music", "ai", "sleep", "checkin").contains(kind)) return;
             new Thread(() -> {
                 String r;
                 try {
@@ -2128,8 +2130,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void backupSetPart(String part, boolean on) {
             if ("sleepAudio".equals(part)) { AllBackup.prefs(ctx).edit().putBoolean("sleep_audio", on).apply(); return; }
             // Toestemming voor onversleuteld (alleen na "Onversleuteld meenemen?"); uitvinken trekt hem weer in
-            if ("plain:ai".equals(part) || "plain:sleep".equals(part)) { AllBackup.setPlain(ctx, part.substring(6), on); return; }
-            if (!on && ("ai".equals(part) || "sleep".equals(part))) AllBackup.setPlain(ctx, part, false);
+            if (part != null && part.startsWith("plain:") && AllBackup.priv(part.substring(6))) { AllBackup.setPlain(ctx, part.substring(6), on); return; }
+            if (!on && AllBackup.priv(part)) AllBackup.setPlain(ctx, part, false);
             for (String p : AllBackup.PARTS) if (p.equals(part)) AllBackup.prefs(ctx).edit().putBoolean("part_" + p, on).apply();
         }
 
@@ -2155,7 +2157,7 @@ public class MainActivity extends Activity {
 
         /** Kies een backupbestand om terug te zetten (contacts = vCard, notes = notities.json). */
         @JavascriptInterface public void restorePick(String kind) {
-            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music", "route", "ai", "sleep").contains(kind)) return;
+            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music", "route", "ai", "sleep", "checkin").contains(kind)) return;
             a.importKind = kind;
             a.h.post(() -> {
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
@@ -2170,6 +2172,7 @@ public class MainActivity extends Activity {
         /** Overzicht van terugzetten weggetikt: niets meer klaar laten staan (en ontsleuteld geluid uit de cache weg). */
         @JavascriptInterface public void restoreCancel() {
             Restore.pendingKind = null;
+            CheckinStore.cancel();
             new Thread(() -> { try { AiSleepBackup.cancel(ctx); } catch (Throwable ignored) { } }, "restore-cancel").start();
         }
 
