@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.106",
+    "date": "2026-10-29",
+    "changes": [
+      "Na opnieuw installeren zet Tools alles terug: bij de eerste start kies je je backup-map en je wachtwoord, en notities, instellingen, opnames, kluis, VPN en koppelingen staan er weer (modellen worden opnieuw gedownload).",
+      "Alles back-uppen neemt nu ook \"Alle appgegevens\" mee (alleen versleuteld, zonder dubbele kopieën van kluis en Slaappraat) en laat zien of je backup compleet is voor een herinstallatie, met hoeveel er elke nacht bijkomt.",
+      "Elke nacht alles back-uppen staat nu vanzelf aan als je versleutelt en een backup-map hebt (zelf uitgezet blijft uit).",
+      "ontsleutelen.html laat wachtwoorden en sleutels standaard weg bij het uitpakken op de computer."
+    ]
+  },
+  {
     "version": "1.105",
     "date": "2026-10-29",
     "changes": [

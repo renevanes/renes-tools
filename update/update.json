@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.105",
-  "versionCode": 106,
-  "nativeLevel": 94,
+  "versionName": "1.106",
+  "versionCode": 107,
+  "nativeLevel": 95,
   "web": "index.html",
-  "webSha256": "ebebad1761eb8e3a87ab8aaea47ddf7f2456ec188f0245f822376382215e769c",
+  "webSha256": "5e4295e5924761bab505a1c12c630e747b66ef49209b6f1cd68a399a5c6951ff",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "b0624cf23a3847875a3798d6fe2d52a7e46fa832b5ff0e5edb374ecf994a756d",
+  "apkSha256": "3e2b9e8b15e04dcd551bdb91a957b316fb229b69e400d21af1e313c193ee6a58",
   "changelog": [
+    {
+      "version": "1.106",
+      "date": "2026-10-29",
+      "changes": [
+        "Na opnieuw installeren zet Tools alles terug: bij de eerste start kies je je backup-map en je wachtwoord, en notities, instellingen, opnames, kluis, VPN en koppelingen staan er weer (modellen worden opnieuw gedownload).",
+        "Alles back-uppen neemt nu ook \"Alle appgegevens\" mee (alleen versleuteld, zonder dubbele kopieën van kluis en Slaappraat) en laat zien of je backup compleet is voor een herinstallatie, met hoeveel er elke nacht bijkomt.",
+        "Elke nacht alles back-uppen staat nu vanzelf aan als je versleutelt en een backup-map hebt (zelf uitgezet blijft uit).",
+        "ontsleutelen.html laat wachtwoorden en sleutels standaard weg bij het uitpakken op de computer."
+      ]
+    },
     {
       "version": "1.105",
       "date": "2026-10-29",
@@ -934,5 +944,5 @@
       ]
     }
   ],
-  "webSig2": "q8JdtTK0tyS0Zi3veCVpg7667H2nJZDfVtfp2Rm7WCv5/s2BECJLi4EsWEm3KztKYA7/ErykrmYRgB1XkP0AxGefLoRA6Rn9LM+SU5dLz8ITkJRz5oydG7kP7PAUb2cMfb4nLHqemK/hevmeQsSzUkUB/qH1pR/1rdS8nw89aQG0SfV+iVzrxG0seOn5ZoeSWE+eNCQlvxOx4gFjxXpV0ywidddIMT6BMkhVq5K47IbUhTz9NEATVO2SEmf9PBjXa+SjzrbaSBPSVPmiYcaCVLHwSw/uDQhTHWD6TWZpALPUsFe7a8/TAZmiR7GQPt0PJhXE/sSFLXRnFduAP71Rf+34E/6ViCE68W5v4caaQSiOk3YIzh3xFwJxQ97G9+WOSTXkBaFhyKQk8c74Gm9drg76z4FLbg3JE+jvK0b+pC+mgWpHXOWMN1bdkRmtWhs0bFn7P+2fQZccGyvnhutgrTWK6BLRbIASYBWWvvO4QENyBWW2y3aofFJfkQXI2+wU"
+  "webSig2": "Nt36lwd7hR7kYNQhSQrCp9t9FFOOByogbx2pWKEzJP1HXo+ZBpkva75AJGL6w6wpjyx15syU3LCMeDAPxBcVAXLTUbBX+AZ29PnWsVVwnqURMEPMIoJdXoukQODj9NVB19HKwmPMeEONXgdyhKAXTW5wtAGQltAgaC8Z8mB5k9MmRirzsUAP8HDIKv4zPa5tB/c6JmAlwrn4YcvefFEvEmIQP7pUxSCxY3tCfAtJrn/hp4FGfCo/Bty9juJRVej47XQGQrTAKEqPzVB94vrPVLp9ptYztY9lvypc/6C89W/FS99ckp8zTJEXAQ5VBEAmZyTof1kZG3JPNBNSUWMWmEsTh5k2AzeAA3gdaLRUxIrOt6QcBm1OR9z6uApk8WYuS2IPgLxR30gHtMREmkGOgTOXdsiwnAGWSFHE0tBiBjEYmLUSL2be51Da5Mp0J5PERIQBpsuRw02cByJHyWMCbtuQ6ck+M4hC/0Hvz7ilc5SUM7cfFX2Pv/NHmndL/ndB"
 }
