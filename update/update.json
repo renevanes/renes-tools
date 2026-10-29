@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.106",
-  "versionCode": 107,
-  "nativeLevel": 95,
+  "versionName": "1.107",
+  "versionCode": 108,
+  "nativeLevel": 96,
   "web": "index.html",
-  "webSha256": "5e4295e5924761bab505a1c12c630e747b66ef49209b6f1cd68a399a5c6951ff",
+  "webSha256": "f9baa461ffa8cea654c52697341fa8af0a43cb24b5f036fdba185de683383bf0",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3e2b9e8b15e04dcd551bdb91a957b316fb229b69e400d21af1e313c193ee6a58",
+  "apkSha256": "53d5231f12d95b5b198650c2faa19646c8ce41ef58445f4803b0181ead6c2315",
   "changelog": [
+    {
+      "version": "1.107",
+      "date": "2026-10-29",
+      "changes": [
+        "Modellen beheren: bij Spraak naar tekst staat nu de versie (bijv. Whisper base van OpenAI, 2022), en per soort ook welke motor de app gebruikt (whisper.cpp, llama.cpp).",
+        "Slaappraat luistert nu standaard onopvallend: de verplichte melding is stil, staat niet op het vergrendelscherm en 's ochtends komt er geen melding. Met Melding verder wegstoppen maak je hem in Android nog kleiner. Uitzetten kan bij Slaappraat → Instellingen."
+      ]
+    },
     {
       "version": "1.106",
       "date": "2026-10-29",
@@ -944,5 +952,5 @@
       ]
     }
   ],
-  "webSig2": "Nt36lwd7hR7kYNQhSQrCp9t9FFOOByogbx2pWKEzJP1HXo+ZBpkva75AJGL6w6wpjyx15syU3LCMeDAPxBcVAXLTUbBX+AZ29PnWsVVwnqURMEPMIoJdXoukQODj9NVB19HKwmPMeEONXgdyhKAXTW5wtAGQltAgaC8Z8mB5k9MmRirzsUAP8HDIKv4zPa5tB/c6JmAlwrn4YcvefFEvEmIQP7pUxSCxY3tCfAtJrn/hp4FGfCo/Bty9juJRVej47XQGQrTAKEqPzVB94vrPVLp9ptYztY9lvypc/6C89W/FS99ckp8zTJEXAQ5VBEAmZyTof1kZG3JPNBNSUWMWmEsTh5k2AzeAA3gdaLRUxIrOt6QcBm1OR9z6uApk8WYuS2IPgLxR30gHtMREmkGOgTOXdsiwnAGWSFHE0tBiBjEYmLUSL2be51Da5Mp0J5PERIQBpsuRw02cByJHyWMCbtuQ6ck+M4hC/0Hvz7ilc5SUM7cfFX2Pv/NHmndL/ndB"
+  "webSig2": "ZH+QbNfPMTToXw2wu1k7DvoRAtmgROgUgeThWSB/8RfuDYkh65QWU+aZp/mlEJugdB4kf2L0F9NDc0X8GRBmG7aojF5IcyoyctgBH4E15Ai+lRhAUji1fp+m9lco84P9aQHOE0qJNf9e6DHL3LRwz+lSB9ORBm5g7Vn4z1Jm9i4ZYMQxLD6l0pJ7h7/55UkDTqDIPRJKndyUROdS0FZrgKws102fNXXk9zHwQklEx7+oLykgfKW1BlM6kf81jB4xFZ1EzZjI/KKK8R8CE6al6h3rdmoA20gMx0mmwHG/jD8jPdr+13vbP23sIKNz+IijqGHxm0JgLeAtScOZt9o7Bp3O+5ZG0Cmh6lIhzFtpkUaPPdJ3eAWNUxvvABVn56Wv5LZWvMErzb/V1yALMijLFT/7yfxVqhhR4Q1DbqUK9a/GWAi9d8dBG4KTBMHmKaaMahIE38lOpHh2WxuFdu+BXAEmb+d09oFUOUCLlKweSHIt2DaEmtATAk3fQxH4X85+"
 }
