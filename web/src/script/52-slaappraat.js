@@ -83,8 +83,9 @@ function slRender(){
   const tx = $('#sl-tx'); tx.classList.toggle('on', set.transcribe !== false); tx.setAttribute('aria-checked', set.transcribe !== false ? 'true' : 'false');
   $('#sl-tx-n').textContent = s.model ? 'Op je telefoon, met ' + s.model + ': je leest wat je zei' : 'Er is nog geen spraakmodel: download het bij Gesprekken uitschrijven';
   const no = $('#sl-noise'); no.classList.toggle('on', !!set.keepNoise); no.setAttribute('aria-checked', set.keepNoise ? 'true' : 'false');
-  const qu = $('#sl-quiet'); qu.classList.toggle('on', !!set.quiet); qu.setAttribute('aria-checked', set.quiet ? 'true' : 'false');
-  $('#sl-quiet-n').textContent = set.quiet ? "Aan: de melding staat ingeklapt onderaan, zonder icoon en niet op het vergrendelscherm; 's ochtends geen melding (kijk hier wat er gehoord is)"
+  const quiet = set.quiet !== false;
+  const qu = $('#sl-quiet'); qu.classList.toggle('on', quiet); qu.setAttribute('aria-checked', quiet ? 'true' : 'false');
+  $('#sl-quiet-n').textContent = quiet ? "Aan: de melding staat ingeklapt onderaan, zonder icoon en niet op het vergrendelscherm; 's ochtends geen melding (kijk hier wat er gehoord is)"
     : "Uit: een gewone, stille melding met stopknop, en 's ochtends een melding als er iets gehoord is";
   // Nachten
   const ns = s.nights || [];
@@ -126,7 +127,7 @@ function slToggle(){
   setTimeout(() => { slLoad(); slRender(); slPoll(); }, 500);
 }
 function slSet(name, v){ const e = Android.sleepSet(name, String(v)); if (e) { toast(e); return; } slLoad(); slRender(); }
-function slSwitch(name){ const set = slSt.set || {}; const now = name === 'transcribe' ? set.transcribe !== false : !!set[name]; slSet(name, !now ? 'true' : 'false'); }
+function slSwitch(name){ const set = slSt.set || {}; const now = name === 'transcribe' || name === 'quiet' ? set[name] !== false : !!set[name]; slSet(name, !now ? 'true' : 'false'); }
 function slSetStop(){ const v = $('#sl-stop').value; if (v) slSet('stopAt', v); }
 function slStopToggle(){ const on = !!(slSt.set || {}).stopAt; slSet('stopAt', on ? '' : ($('#sl-stop').value || '07:30')); }
 
