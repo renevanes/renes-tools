@@ -138,14 +138,21 @@ final class Checkin {
 
     /**
      * Tot wanneer je kunt antwoorden: op dezelfde dag tot "until" (ligt dat vóór of op het moment, dan de volgende dag).
-     * Meerdere keren per dag: hooguit tot het volgende tijdstip.
+     * Meerdere keren per dag: hooguit tot het volgende tijdstip, ook als dat op de volgende dag valt (zo overlappen
+     * twee periodes nooit, bijv. 09:00 en 21:00 met "tot 10:00").
      */
     static long end(Rule r, Calendar day, int min, int[] ts, int idx) {
         int u = r.until < 0 || r.until >= 24 * 60 ? 23 * 60 + 59 : r.until;
         long e;
         if (u > min) e = at(day, u);
         else { Calendar n = (Calendar) day.clone(); n.add(Calendar.DAY_OF_MONTH, 1); e = at(n, u); }
-        if ("multi".equals(r.rhythm) && idx + 1 < ts.length) e = Math.min(e, at(day, ts[idx + 1]));
+        if ("multi".equals(r.rhythm)) {
+            if (idx + 1 < ts.length) e = Math.min(e, at(day, ts[idx + 1]));
+            else for (int i = 1; i <= 7; i++) { // het eerste tijdstip van de eerstvolgende dag waarop de vraag komt
+                Calendar n = (Calendar) day.clone(); n.add(Calendar.DAY_OF_MONTH, i);
+                if (applies(r, n)) { e = Math.min(e, at(n, ts[0])); break; }
+            }
+        }
         return e;
     }
 
@@ -211,6 +218,40 @@ final class Checkin {
         for (Slot s : slots(r, from, to, tz)) if (s.key.equals(key)) return s;
         return null;
     }
+
+    // ---------- meldingen: wanneer, en welke (zuiver, getest) ----------
+
+    /**
+     * Vanaf wanneer de wekker kijkt: wat er bewaard is (nooit later dan nu, zodat een teruggezette klok geen
+     * periodes overslaat; nooit ouder dan twee dagen, zodat er na lange tijd geen stapel oude vragen komt).
+     * 0 = nog nooit gekeken: vanaf nu.
+     */
+    static long lookFrom(long stored, long now) {
+        if (stored <= 0) return now;
+        return Math.max(Math.min(stored, now), now - 2 * 86_400_000L);
+    }
+
+    /**
+     * De periode waarvoor nu een melding moet komen: de nieuwste die sinds "from" begon en nog open staat, niet stil
+     * is, en nog geen melding kreeg (doneKey = de laatste periode met een melding). null = geen melding.
+     */
+    static Slot toNotify(Rule r, long from, long now, String doneKey, TimeZone tz) {
+        Slot pick = null;
+        for (Slot s : slots(r, from - 60_000L, now + 1, tz)) if (!s.quiet && s.at <= now && now < s.end) pick = s;
+        return pick == null || pick.key.equals(doneKey) ? null : pick;
+    }
+
+    /**
+     * Na het bewaren van een vraag: de periode die nu al loopt telt als gemeld (aanzetten of wijzigen geeft niet meteen
+     * een melding). Geeft die sleutel, of null als er nu niets loopt. De andere vragen merken hier niets van.
+     */
+    static String doneOnChange(Rule r, long now, TimeZone tz) {
+        Slot s = current(r, now, tz);
+        return s != null && s.at <= now ? s.key : null;
+    }
+
+    /** Een melding die er staat na het wijzigen van de vraag: opnieuw tonen (met de nieuwe knoppen) of weghalen. */
+    static boolean repostOnChange(boolean active, Slot posted, long now) { return active && posted != null && now < posted.end; }
 
     // ---------- toestand, reeks, tellen ----------
 
@@ -287,14 +328,24 @@ final class Checkin {
      */
     static int[] answerPlan(java.util.Set<String> haveIds, java.util.Set<String> haveSigs, java.util.Set<String> questions,
                             List<String> ids, List<String> sigs, List<String> qs, List<String> keys) {
+        return answerPlan(haveIds, haveSigs, questions, new java.util.HashSet<String>(), new java.util.HashSet<String>(), ids, sigs, qs, keys);
+    }
+
+    /**
+     * Zelfde, en bij vragen met één antwoord per periode (oneQ) ook DUP als die periode al een antwoord heeft
+     * (haveQP = "vraag|periode"), zodat een vervangen antwoord niet terugkomt.
+     */
+    static int[] answerPlan(java.util.Set<String> haveIds, java.util.Set<String> haveSigs, java.util.Set<String> questions,
+                            java.util.Set<String> oneQ, java.util.Set<String> haveQP,
+                            List<String> ids, List<String> sigs, List<String> qs, List<String> keys) {
         int[] r = new int[ids.size()];
-        java.util.Set<String> seenIds = new java.util.HashSet<>(haveIds), seenSigs = new java.util.HashSet<>(haveSigs);
+        java.util.Set<String> seenIds = new java.util.HashSet<>(haveIds), seenSigs = new java.util.HashSet<>(haveSigs), seenQP = new java.util.HashSet<>(haveQP);
         for (int i = 0; i < r.length; i++) {
-            String id = ids.get(i), sig = sigs.get(i);
+            String id = ids.get(i), sig = sigs.get(i), qp = qs.get(i) + "|" + keys.get(i);
             if (id == null || !id.matches("[A-Za-z0-9_-]{1,40}") || !questions.contains(qs.get(i)) || !validKey(keys.get(i))) { r[i] = BAD; continue; }
-            if (seenIds.contains(id) || seenSigs.contains(sig)) { r[i] = DUP; continue; }
+            if (seenIds.contains(id) || seenSigs.contains(sig) || (oneQ.contains(qs.get(i)) && seenQP.contains(qp))) { r[i] = DUP; continue; }
             r[i] = ADD;
-            seenIds.add(id); seenSigs.add(sig);
+            seenIds.add(id); seenSigs.add(sig); seenQP.add(qp);
         }
         return r;
     }

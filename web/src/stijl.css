@@ -864,6 +864,8 @@ textarea.ci-in{resize:vertical;min-height:72px;line-height:1.4}
 .ci-colors button[aria-checked="true"]{border-color:var(--ink)}
 .ci-optrow{display:flex;gap:6px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}.ci-optrow:first-child{border-top:0}
 .ci-optrow .ci-in{min-height:44px;padding:8px}.ci-optrow .oe{width:56px;flex:none;text-align:center}.ci-optrow .ol{flex:1;min-width:0}.ci-optrow .ov{width:64px;flex:none}
+/* Smal scherm: naam van het antwoord over de hele breedte, waarde eronder */
+@media (max-width:400px){.ci-optrow{flex-wrap:wrap}.ci-optrow .oe{width:52px}.ci-optrow .ol{flex:1 1 calc(100% - 64px)}.ci-optrow .ov{width:80px;margin-left:58px}}
 .ci-add{min-height:44px;margin-top:4px}
 .ci-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;color:var(--ink)}.ci-row label{flex:1;min-width:120px}.ci-row .mini{float:none;margin:0}
 .ci-row .ci-in{flex:1;min-width:0;width:auto}

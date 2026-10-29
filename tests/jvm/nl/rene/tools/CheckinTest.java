@@ -120,6 +120,41 @@ public class CheckinTest {
                 Arrays.asList("2026-10-27", "2026-10-28", "2026-10-29", "../x", "2026-10-29", "2026-10-30", "2026-10-31"));
         check(Arrays.equals(plan, new int[]{Checkin.DUP, Checkin.DUP, Checkin.BAD, Checkin.BAD, Checkin.ADD, Checkin.ADD, Checkin.DUP}), "terugzetten: zelfde id of zelfde antwoord = al aanwezig; onbekende vraag of foute periode = overslaan");
 
+        // Bij één antwoord per periode: een vervangen antwoord komt niet terug
+        int[] one = Checkin.answerPlan(new HashSet<String>(), new HashSet<String>(), new HashSet<>(Arrays.asList("q1", "q2")),
+                new HashSet<>(Arrays.asList("q1")), new HashSet<>(Arrays.asList("q1|2026-10-28")),
+                Arrays.asList("b1", "b2", "b3", "b4", "b5"), Arrays.asList("s1", "s2", "s3", "s4", "s5"),
+                Arrays.asList("q1", "q1", "q1", "q2", "q2"), Arrays.asList("2026-10-28", "2026-10-29", "2026-10-29", "2026-10-28", "2026-10-28"));
+        check(Arrays.equals(one, new int[]{Checkin.DUP, Checkin.ADD, Checkin.DUP, Checkin.ADD, Checkin.ADD}), "terugzetten: één per periode = periode met antwoord overslaan; meerdere = gewoon toevoegen");
+
+        // ---------- meerdere keren per dag: periodes overlappen nooit ----------
+        Checkin.Rule m2 = rule("multi", "09:00", "21:00"); m2.until = Checkin.minutes("10:00");
+        m2.days = new boolean[]{false, true, true, true, true, true, true, true};
+        List<Checkin.Slot> mm = Checkin.slots(m2, at(2026, 10, 29, 0, 0), at(2026, 10, 31, 0, 0), AMS);
+        check(mm.size() == 4 && mm.get(1).end == at(2026, 10, 30, 9, 0) && mm.get(0).end == at(2026, 10, 29, 10, 0), "09:00 en 21:00 tot 10:00: de avond loopt tot 09:00 de volgende ochtend");
+        Checkin.Rule m3 = rule("multi", "09:00", "21:00"); m3.until = Checkin.minutes("10:00");
+        m3.days = new boolean[8]; m3.days[4] = true; m3.days[5] = true; // do en vr
+        List<Checkin.Slot> m3s = Checkin.slots(m3, at(2026, 10, 30, 0, 0), at(2026, 10, 31, 0, 0), AMS);
+        check(m3s.size() == 2 && m3s.get(1).end == at(2026, 10, 31, 10, 0), "vrijdagavond tot zaterdag 10:00 (zaterdag komt de vraag niet)");
+
+        // ---------- meldingen: welke, en precies één per moment ----------
+        check(Checkin.lookFrom(0, 1000) == 1000 && Checkin.lookFrom(5000, 1000) == 1000 && Checkin.lookFrom(500, 1000) == 500
+                && Checkin.lookFrom(1, 10 * 86_400_000L) == 8 * 86_400_000L, "kijken vanaf: nooit later dan nu (klok terug), nooit ouder dan twee dagen");
+        Checkin.Rule q1 = rule("daily", "21:00"), q2 = rule("daily", "21:00");
+        long lastFire = at(2026, 10, 29, 17, 30), save = at(2026, 10, 29, 21, 5), fire = at(2026, 10, 29, 21, 8);
+        // Om 21:05 wordt q2 bewaard (de wekker van 21:00 is door Doze nog niet gekomen); "last" blijft 17:30
+        String done2 = Checkin.doneOnChange(q2, save, AMS);
+        check("2026-10-29".equals(done2), "bewaren om 21:05: de periode van q2 telt als gemeld");
+        Checkin.Slot t1 = Checkin.toNotify(q1, Checkin.lookFrom(lastFire, fire), fire, "", AMS), t2 = Checkin.toNotify(q2, Checkin.lookFrom(lastFire, fire), fire, done2, AMS);
+        check(t1 != null && t1.key.equals("2026-10-29") && t2 == null, "late wekker na een bewaarde vraag: q1 krijgt toch zijn melding, q2 niet nog eens");
+        check(Checkin.toNotify(q1, fire, at(2026, 10, 29, 22, 0), "2026-10-29", AMS) == null, "precies één melding per moment: daarna niet nog eens");
+        check(Checkin.toNotify(q1, lastFire, at(2026, 10, 30, 0, 5), "", AMS) == null, "wekker pas na de tijd om antwoorden: geen melding meer");
+        check(Checkin.toNotify(wkend, at(2026, 10, 31, 20, 0), at(2026, 10, 31, 21, 5), "", AMS) == null, "stil in het weekend: geen melding");
+        Checkin.Slot posted = Checkin.find(q1, "2026-10-29", fire, AMS);
+        check(Checkin.repostOnChange(true, posted, at(2026, 10, 29, 22, 0)) && !Checkin.repostOnChange(false, posted, at(2026, 10, 29, 22, 0))
+                && !Checkin.repostOnChange(true, posted, at(2026, 10, 30, 0, 5)) && !Checkin.repostOnChange(true, null, fire), "gewijzigd terwijl de melding er staat: opnieuw tonen (aan, nog op tijd), anders weg");
+        check(Checkin.doneOnChange(q1, at(2026, 10, 29, 20, 0), AMS) == null, "bewaren vóór het moment: de melding van vanavond komt gewoon");
+
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");
         System.exit(0);

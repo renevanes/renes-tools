@@ -49,45 +49,87 @@ final class CheckinStore {
 
     // ---------- lezen en schrijven ----------
 
+    /** Een bestand lezen; null als het er niet is. Lukt lezen niet (geen geldige JSON is iets anders), dan een fout. */
+    private static String read(File f) {
+        if (!f.isFile()) return null;
+        try { return Contacts.readText(f, false); }
+        catch (Exception e) { throw new IllegalStateException("Check-in is nu niet te lezen; probeer het zo opnieuw"); }
+    }
+
+    /**
+     * Inlezen. Lukt het lezen zelf niet (bijv. even geen toegang), dan niets veranderen en het later opnieuw proberen.
+     * Is een bestand kapot (geen geldige JSON), dan gaat het apart (naam.kapot-tijd, niet stilletjes overschreven) en
+     * begint Check-in leeg, zonder voorstellen; Alles back-uppen laat de vorige backup dan staan (brokenAside).
+     */
     private static synchronized void load(Context c) {
         if (db != null && answers != null) return;
-        try {
-            File f = qFile(c);
-            db = f.isFile() ? new JSONObject(Contacts.readText(f, false)) : new JSONObject();
-        } catch (Exception e) {
-            // Kapot bestand: apart zetten (niet stilletjes overschrijven), dan opnieuw beginnen
-            App.log(c, "CHECKIN", "vragen niet te lezen: " + e);
+        String qt = read(qFile(c)), at = read(aFile(c));
+        JSONObject d;
+        JSONArray a;
+        try { d = qt == null ? new JSONObject() : new JSONObject(qt); }
+        catch (org.json.JSONException e) {
+            App.log(c, "CHECKIN", "vragen kapot, apart gezet: " + e);
             qFile(c).renameTo(new File(dir(c), "questions.json.kapot-" + System.currentTimeMillis()));
-            db = new JSONObject();
+            d = new JSONObject();
+            try { d.put("seeded", true); } catch (Exception ignored) { } // geen voorstellen over een kapot bestand heen
         }
-        if (db.optJSONArray("questions") == null) try { db.put("questions", new JSONArray()); } catch (Exception ignored) { }
-        try {
-            File f = aFile(c);
-            answers = f.isFile() ? new JSONArray(Contacts.readText(f, false)) : new JSONArray();
-        } catch (Exception e) {
-            App.log(c, "CHECKIN", "antwoorden niet te lezen: " + e);
+        try { a = at == null ? new JSONArray() : new JSONArray(at); }
+        catch (org.json.JSONException e) {
+            App.log(c, "CHECKIN", "antwoorden kapot, apart gezet: " + e);
             aFile(c).renameTo(new File(dir(c), "answers.json.kapot-" + System.currentTimeMillis()));
-            answers = new JSONArray();
+            a = new JSONArray();
         }
+        if (d.optJSONArray("questions") == null) try { d.put("questions", new JSONArray()); } catch (Exception ignored) { }
+        db = d; answers = a;
+    }
+
+    /**
+     * Is een bestand kapot apart gezet en sindsdien niet opnieuw bewaard? Dan maakt Alles back-uppen geen nieuwe
+     * backup van Check-in (die zou de goede vervangen door een lege). Zoals AiMemory.brokenAside.
+     */
+    static boolean brokenAside(Context c) {
+        File[] fs = dir(c).listFiles();
+        if (fs != null) for (File f : fs) {
+            String n = f.getName();
+            File cur = n.startsWith("questions.json.kapot-") ? qFile(c) : n.startsWith("answers.json.kapot-") ? aFile(c) : null;
+            if (cur == null) continue;
+            if (!cur.isFile()) return true;
+            long when = f.lastModified();
+            try { when = Math.max(when, Long.parseLong(n.substring(n.lastIndexOf('-') + 1))); } catch (Exception ignored) { }
+            if (when > cur.lastModified()) return true;
+        }
+        return false;
     }
 
     private static void saveQ(Context c) throws Exception { Contacts.writeText(qFile(c), db.toString(), false); version++; }
     private static void saveA(Context c) throws Exception { Contacts.writeText(aFile(c), answers.toString(), false); version++; }
 
-    static synchronized JSONArray questions(Context c) { load(c); return db.optJSONArray("questions"); }
+    /** De echte lijst (alleen binnen deze klasse, onder het slot). */
+    private static JSONArray qs(Context c) { load(c); return db.optJSONArray("questions"); }
 
-    static synchronized JSONObject question(Context c, String id) {
-        JSONArray qs = questions(c);
+    private static JSONObject qLive(Context c, String id) {
+        JSONArray qs = qs(c);
         for (int i = 0; i < qs.length(); i++) { JSONObject q = qs.optJSONObject(i); if (q != null && q.optString("id").equals(id)) return q; }
         return null;
     }
 
-    static synchronized JSONArray answers(Context c) { load(c); return answers; }
+    private static JSONArray copy(JSONArray a) { try { return new JSONArray(a.toString()); } catch (Exception e) { return new JSONArray(); } }
+
+    /** Een kopie: wie hem buiten het slot doorloopt, merkt niets van een gelijktijdige wijziging. */
+    static synchronized JSONArray questions(Context c) { return copy(qs(c)); }
+
+    static synchronized JSONObject question(Context c, String id) {
+        JSONObject q = qLive(c, id);
+        try { return q == null ? null : new JSONObject(q.toString()); } catch (Exception e) { return null; }
+    }
+
+    static synchronized JSONArray answers(Context c) { load(c); return copy(answers); }
 
     /** Alle antwoorden van één vraag per periode. */
     static synchronized Map<String, List<JSONObject>> byKey(Context c, String qid) {
         Map<String, List<JSONObject>> m = new HashMap<>();
-        JSONArray a = answers(c);
+        load(c);
+        JSONArray a = answers;
         for (int i = 0; i < a.length(); i++) {
             JSONObject x = a.optJSONObject(i);
             if (x == null || !qid.equals(x.optString("q"))) continue;
@@ -256,7 +298,7 @@ final class CheckinStore {
         load(c);
         JSONArray qs = db.optJSONArray("questions");
         String id = in.optString("id");
-        JSONObject old = id.isEmpty() ? null : question(c, id);
+        JSONObject old = id.isEmpty() ? null : qLive(c, id);
         if (!id.isEmpty() && old == null) throw new Exception("Deze vraag bestaat niet meer");
         JSONObject q = clean(in, old);
         long now = System.currentTimeMillis();
@@ -276,7 +318,7 @@ final class CheckinStore {
     }
 
     static synchronized void move(Context c, String id, int dir) throws Exception {
-        JSONArray qs = questions(c);
+        JSONArray qs = qs(c);
         int i = -1;
         for (int k = 0; k < qs.length(); k++) if (id.equals(qs.optJSONObject(k).optString("id"))) i = k;
         int j = i + (dir < 0 ? -1 : 1);
@@ -329,7 +371,7 @@ final class CheckinStore {
      */
     static synchronized JSONObject answer(Context c, JSONObject req, long now) throws Exception {
         load(c);
-        JSONObject q = question(c, req.optString("q"));
+        JSONObject q = qLive(c, req.optString("q"));
         if (q == null) return err("Deze vraag bestaat niet meer");
         if (q.optBoolean("archived")) return err("Deze vraag is gearchiveerd");
         TimeZone tz = TimeZone.getDefault();
@@ -365,6 +407,7 @@ final class CheckinStore {
         if (late && !q.optBoolean("backfill", true)) return err("Achteraf invullen staat uit bij deze vraag");
         List<JSONObject> have = byKey(c, q.optString("id")).get(s.key);
         boolean one = !"many".equals(q.optString("perPeriod"));
+        if (answers.length() >= MAX_ANSWERS) return err("Er zijn te veel antwoorden bewaard"); // vóór het weghalen van het oude
         if (one && have != null && !have.isEmpty()) {
             if (!q.optBoolean("editable", true)) return err("Al ingevuld (wijzigen staat uit bij deze vraag)");
             if (!req.optBoolean("replace")) {
@@ -375,7 +418,6 @@ final class CheckinStore {
             for (int i = 0; i < answers.length(); i++) { JSONObject x = answers.optJSONObject(i); if (!(x.optString("q").equals(q.optString("id")) && x.optString("p").equals(s.key))) keep.put(x); }
             answers = keep;
         }
-        if (answers.length() >= MAX_ANSWERS) return err("Er zijn te veel antwoorden bewaard");
         String id = "a" + Long.toString(now, 36) + Integer.toString((int) (Math.random() * 46656), 36);
         String src = "notif".equals(req.optString("src")) ? "notif" : "app";
         JSONObject a = new JSONObject().put("id", id).put("q", q.optString("id")).put("p", s.key).put("t", now).put("o", req.optInt("o"))
@@ -401,7 +443,7 @@ final class CheckinStore {
         for (int i = 0; i < answers.length(); i++) {
             JSONObject a = answers.optJSONObject(i);
             if (a != null && id.equals(a.optString("id"))) {
-                JSONObject q = question(c, a.optString("q"));
+                JSONObject q = qLive(c, a.optString("q"));
                 if (q != null && !q.optBoolean("editable", true) && System.currentTimeMillis() - a.optLong("t") > 15 * 60_000L) return "Wijzigen staat uit bij deze vraag";
                 found = true;
                 continue;
@@ -614,7 +656,8 @@ final class CheckinStore {
 
     /** Zoeken in je notities en labels bij de antwoorden (voor Zoeken): [{q, p, t, title, text}], nieuwste eerst. */
     static synchronized JSONArray search(Context c, String ql) throws Exception {
-        JSONArray out = new JSONArray(), a = answers(c);
+        load(c);
+        JSONArray out = new JSONArray(), a = answers;
         if (ql == null || ql.isEmpty()) return out;
         List<JSONObject> hits = new ArrayList<>();
         for (int i = 0; i < a.length(); i++) {
@@ -701,8 +744,9 @@ final class CheckinStore {
                 for (Map.Entry<String, Integer> x : n.entrySet()) if (x.getValue() > 0) cnt.append(cnt.length() > 0 ? ", " : " ").append(x.getValue()).append("× ").append(x.getKey());
                 head.append(cnt);
                 double avg = Checkin.average(vs);
+                // "Hoger is beter" alleen bij de vaste soorten (bij zelf gekozen antwoorden weet de app dat niet zeker)
                 if (!Double.isNaN(avg) && hi > lo) head.append(". Gemiddeld ").append(String.format(Locale.ROOT, "%.1f", avg).replace('.', ',')).append(" (op een schaal van ")
-                        .append(fmt(lo)).append(" tot ").append(fmt(hi)).append(", hoger is beter)");
+                        .append(fmt(lo)).append(" tot ").append(fmt(hi)).append("custom".equals(q.optString("scale")) ? ")" : ", hoger is beter)");
                 lines.add(head.append('.').toString());
                 times.add(last);
                 for (JSONObject a : l) {
@@ -726,14 +770,17 @@ final class CheckinStore {
     // ---------- Alles back-uppen (privé onderdeel) ----------
 
     /** Voor de keuze bij Alles back-uppen: aantallen en grootte. */
-    static void sizes(Context c, JSONObject o) {
-        try { o.put("ciQ", questions(c).length()).put("ciA", answers(c).length()).put("ciBytes", qFile(c).length() + aFile(c).length()); } catch (Exception ignored) { }
+    static synchronized void sizes(Context c, JSONObject o) {
+        try { load(c); o.put("ciQ", qs(c).length()).put("ciA", answers.length()).put("ciBytes", qFile(c).length() + aFile(c).length()); } catch (Exception ignored) { }
     }
 
     /** Vragen en antwoorden naar Check-in/checkin.json. Geeft het aantal antwoorden (of vragen); -1 = niets te bewaren. */
     static int export(Context c) throws Exception {
         JSONArray qs, as;
-        synchronized (CheckinStore.class) { qs = new JSONArray(questions(c).toString()); as = new JSONArray(answers(c).toString()); }
+        synchronized (CheckinStore.class) {
+            if (brokenAside(c)) throw new Exception("Check-in was niet te lezen (apart gezet); de vorige backup blijft staan");
+            qs = questions(c); as = answers(c);
+        }
         if (qs.length() == 0 && as.length() == 0) return -1;
         JSONObject o = new JSONObject().put("format", FORMAT).put("kind", "checkin").put("t", System.currentTimeMillis()).put("questions", qs).put("answers", as);
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), WaBackup.destUri(c));
@@ -746,40 +793,61 @@ final class CheckinStore {
 
     static String sig(JSONObject a) { return a.optString("q") + "|" + a.optString("p") + "|" + a.optLong("t") + "|" + a.optDouble("v"); }
 
-    /** Overzicht van wat er terug zou komen (er wordt niets overschreven). */
+    /**
+     * Een voorstel dat nog onaangeroerd is (tpl, geen antwoorden): mag plaatsmaken voor de vraag met hetzelfde id uit
+     * een backup (op een nieuwe telefoon staan "voel" en "werk" er al als voorstel).
+     */
+    private static boolean untouchedTemplate(JSONObject q) {
+        if (q == null || !q.optBoolean("tpl")) return false;
+        for (int i = 0; i < answers.length(); i++) { JSONObject a = answers.optJSONObject(i); if (a != null && q.optString("id").equals(a.optString("q"))) return false; }
+        return true;
+    }
+
+    /** Overzicht van wat er terug zou komen (er wordt niets overschreven; alleen een onaangeroerd voorstel maakt plaats). */
     static synchronized JSONObject preview(Context c, String text) throws Exception {
         JSONObject o = AiSleepBackup.parse(text, "checkin", "Check-in-backup (checkin.json)");
         JSONArray inQ = o.optJSONArray("questions"), inA = o.optJSONArray("answers");
         if (inQ == null) inQ = new JSONArray();
         if (inA == null) inA = new JSONArray();
-        Set<String> haveQ = new HashSet<>();
-        JSONArray qs = questions(c);
-        for (int i = 0; i < qs.length(); i++) haveQ.add(qs.getJSONObject(i).optString("id"));
+        load(c);
+        JSONArray qs = qs(c);
+        Set<String> known = new HashSet<>(), oneQ = new HashSet<>();
+        for (int i = 0; i < qs.length(); i++) {
+            JSONObject q = qs.getJSONObject(i);
+            known.add(q.optString("id"));
+            if (!"many".equals(q.optString("perPeriod"))) oneQ.add(q.optString("id"));
+        }
         JSONArray freshQ = new JSONArray(), sample = new JSONArray();
-        Set<String> known = new HashSet<>(haveQ);
+        Set<String> seenIn = new HashSet<>();
         int qDup = 0, qBad = 0;
         for (int i = 0; i < inQ.length(); i++) {
             JSONObject x = inQ.optJSONObject(i);
             String id = x == null ? "" : x.optString("id");
             if (!id.matches("[A-Za-z0-9_-]{1,40}")) { qBad++; continue; }
-            if (known.contains(id)) { qDup++; continue; }
+            if (!seenIn.add(id)) { qDup++; continue; }
+            boolean replace = known.contains(id) && untouchedTemplate(qLive(c, id));
+            if (known.contains(id) && !replace) { qDup++; continue; }
             JSONObject cq;
             try { cq = clean(x, null); } catch (Exception e) { qBad++; continue; }
             // Teruggezette vragen staan eerst uit: pas meldingen als Rene ze zelf aanzet
             cq.put("id", id).put("on", false).put("tpl", false).put("created", x.optLong("created", System.currentTimeMillis()));
+            if (replace) cq.put("replaces", true);
             freshQ.put(cq);
             known.add(id);
+            if ("many".equals(cq.optString("perPeriod"))) oneQ.remove(id); else oneQ.add(id);
             if (sample.length() < 6) sample.put(qTitle(cq));
         }
-        Set<String> haveIds = new HashSet<>(), haveSigs = new HashSet<>();
-        JSONArray as = answers(c);
-        for (int i = 0; i < as.length(); i++) { JSONObject a = as.getJSONObject(i); haveIds.add(a.optString("id")); haveSigs.add(sig(a)); }
+        Set<String> haveIds = new HashSet<>(), haveSigs = new HashSet<>(), haveQP = new HashSet<>();
+        for (int i = 0; i < answers.length(); i++) {
+            JSONObject a = answers.getJSONObject(i);
+            haveIds.add(a.optString("id")); haveSigs.add(sig(a)); haveQP.add(a.optString("q") + "|" + a.optString("p"));
+        }
         List<String> ids = new ArrayList<>(), sigs = new ArrayList<>(), qq = new ArrayList<>(), keys = new ArrayList<>();
         for (int i = 0; i < inA.length(); i++) {
             JSONObject a = inA.optJSONObject(i);
             ids.add(a == null ? "" : a.optString("id")); sigs.add(a == null ? "" : sig(a)); qq.add(a == null ? "" : a.optString("q")); keys.add(a == null ? "" : a.optString("p"));
         }
-        int[] plan = Checkin.answerPlan(haveIds, haveSigs, known, ids, sigs, qq, keys);
+        int[] plan = Checkin.answerPlan(haveIds, haveSigs, known, oneQ, haveQP, ids, sigs, qq, keys);
         JSONArray freshA = new JSONArray();
         int aDup = 0, aBad = 0;
         for (int i = 0; i < plan.length; i++) {
@@ -807,23 +875,37 @@ final class CheckinStore {
         if (inQ == null || inA == null) throw new Exception("Niets om terug te zetten");
         load(c);
         JSONArray qs = db.optJSONArray("questions");
-        Set<String> have = new HashSet<>();
-        for (int i = 0; i < qs.length(); i++) have.add(qs.getJSONObject(i).optString("id"));
         int n = 0, next = db.optInt("next", 1);
-        for (int i = 0; i < inQ.length() && qs.length() < MAX_QUESTIONS; i++) {
-            JSONObject q = inQ.getJSONObject(i);
-            if (!have.add(q.optString("id"))) continue;
-            qs.put(q.put("n", next++).put("updated", System.currentTimeMillis()));
+        for (int i = 0; i < inQ.length(); i++) {
+            JSONObject q = new JSONObject(inQ.getJSONObject(i).toString());
+            boolean replace = q.optBoolean("replaces");
+            q.remove("replaces");
+            int at = -1;
+            for (int k = 0; k < qs.length(); k++) if (q.optString("id").equals(qs.getJSONObject(k).optString("id"))) at = k;
+            if (at >= 0) {
+                // Alleen over een voorstel dat nog steeds onaangeroerd is (zelfde nummer voor de meldingen; staat uit)
+                if (!replace || !untouchedTemplate(qs.getJSONObject(at))) continue;
+                qs.put(at, q.put("n", qs.getJSONObject(at).optInt("n")).put("on", false).put("updated", System.currentTimeMillis()));
+            } else {
+                if (qs.length() >= MAX_QUESTIONS) continue;
+                qs.put(q.put("n", next++).put("updated", System.currentTimeMillis()));
+            }
             n++;
         }
         db.put("next", next).put("seeded", true);
         saveQ(c);
-        Set<String> ids = new HashSet<>(), sigs = new HashSet<>();
-        for (int i = 0; i < answers.length(); i++) { JSONObject a = answers.getJSONObject(i); ids.add(a.optString("id")); sigs.add(sig(a)); }
+        Set<String> have = new HashSet<>(), oneQ = new HashSet<>(), ids = new HashSet<>(), sigs = new HashSet<>(), qp = new HashSet<>();
+        for (int i = 0; i < qs.length(); i++) {
+            JSONObject q = qs.getJSONObject(i);
+            have.add(q.optString("id"));
+            if (!"many".equals(q.optString("perPeriod"))) oneQ.add(q.optString("id"));
+        }
+        for (int i = 0; i < answers.length(); i++) { JSONObject a = answers.getJSONObject(i); ids.add(a.optString("id")); sigs.add(sig(a)); qp.add(a.optString("q") + "|" + a.optString("p")); }
         for (int i = 0; i < inA.length() && answers.length() < MAX_ANSWERS; i++) {
             JSONObject a = inA.getJSONObject(i);
-            if (!have.contains(a.optString("q")) || ids.contains(a.optString("id")) || sigs.contains(sig(a))) continue;
-            answers.put(a); ids.add(a.optString("id")); sigs.add(sig(a));
+            String k = a.optString("q") + "|" + a.optString("p");
+            if (!have.contains(a.optString("q")) || ids.contains(a.optString("id")) || sigs.contains(sig(a)) || (oneQ.contains(a.optString("q")) && qp.contains(k))) continue;
+            answers.put(a); ids.add(a.optString("id")); sigs.add(sig(a)); qp.add(k);
             n++;
         }
         saveA(c);

@@ -258,7 +258,7 @@ if (!window.Android) window.Android = (function(){
     sleepStopPlay(){ this._sl.played = ''; },
     sleepPlaying(){ return this._sl.played; },
     // Check-in zoals CheckinBridge/CheckinStore/Checkin (periodes in de tijd van de browser); _ciNotify/_ciNotifAnswer bootsen de melding na
-    _ci: { qs: [], ans: [], seeded: false, next: 1, notifOk: true, muted: false, calOk: false, posted: {}, previews: [], days: {}, model: 'Snel (57 MB)' },
+    _ci: { qs: [], ans: [], seeded: false, next: 1, notifOk: true, muted: false, calOk: false, posted: {}, done: {}, previews: [], days: {}, model: 'Snel (57 MB)' },
     _ciKey(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); },
     _ciDow(d){ return (d.getDay() + 6) % 7 + 1; },
     _ciMin(t){ const m = /^(\d\d):(\d\d)$/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : -1; },
@@ -310,6 +310,9 @@ if (!window.Android) window.Android = (function(){
       const q = Object.assign({}, x, { text: x.text.trim(), times: x.rhythm === 'multi' ? x.times.slice().sort() : x.times.slice(0, 1), labelList: (x.labelList || []).slice(0, 16), tpl: !!(old && old.tpl && !x.on), updated: now });
       ['cur', 'next', 'streak', 'total', 'missed7'].forEach(k => delete q[k]);
       if (old) { q.n = old.n; q.created = old.created; C.qs[C.qs.indexOf(old)] = q; } else { q.id = 'q' + now.toString(36) + C.next; q.n = C.next++; q.created = now; C.qs.push(q); }
+      // Zoals CheckinNotify.changed: de periode die nu loopt telt als gemeld; een melding die er staat opnieuw tonen of weg
+      const cur = this._ciCurrent(q, now); if (cur && cur.at <= now) C.done[q.id] = cur.key;
+      if (C.posted[q.id] && !(q.on && !q.archived)) delete C.posted[q.id]; else if (C.posted[q.id]) C.posted[q.id].reposted = (C.posted[q.id].reposted || 0) + 1;
       C.saved = (C.saved || 0) + 1; return JSON.stringify({ id: q.id }); },
     checkinDelete(id){ const C = this._ci; C.qs = C.qs.filter(q => q.id !== id); C.ans = C.ans.filter(a => a.q !== id); delete C.posted[id]; return ''; },
     checkinMove(id, dir){ const qs = this._ci.qs, i = qs.findIndex(q => q.id === id), j = i + (dir < 0 ? -1 : 1); if (i < 0 || j < 0 || j >= qs.length) return; [qs[i], qs[j]] = [qs[j], qs[i]]; },
@@ -346,6 +349,7 @@ if (!window.Android) window.Android = (function(){
     checkinPreview(id){ const C = this._ci, q = C.qs.find(x => x.id === id); if (!q) return 'Deze vraag bestaat niet meer'; if (!C.notifOk) return 'notif'; const s = this._ciCurrent(q, Date.now()); if (!s) return 'Er is nu geen periode om te beantwoorden'; C.previews.push(id); C.posted[id] = { key: s.key }; return ''; },
     /* De wekker: een melding voor de periode die nu open staat (één per moment). Geeft de knoppen (alleen bij 2 of 3 antwoorden). */
     _ciNotify(id){ const C = this._ci, q = C.qs.find(x => x.id === id); if (!q || !q.on || q.archived) return null; const s = this._ciCurrent(q, Date.now()); if (!s || s.at > Date.now()) return null;
+      if (C.done[id] === s.key) return null; C.done[id] = s.key; // één melding per moment
       if (C.ans.some(a => a.q === id && a.p === s.key)) return null; C.posted[id] = { key: s.key }; return q.options.length <= 3 ? q.options.map(o => ((o.emoji || '') + ' ' + o.label).trim()) : []; },
     /* Een knop in de melding (AlarmReceiver): bewaren zonder de app te openen */
     _ciNotifAnswer(id, i){ const C = this._ci, p = C.posted[id]; if (!p) return 'geen melding'; const r = JSON.parse(this.checkinAnswer(JSON.stringify({ q: id, p: p.key, o: i, src: 'notif' }))); delete C.posted[id]; C.confirm = r.ok ? '✓ Bewaard' : (r.error || 'Was al ingevuld'); setTimeout(() => onCheckin({}), 20); return C.confirm; },

@@ -35,8 +35,16 @@ public class AlarmReceiver extends BroadcastReceiver {
         else if (Reminders.ACTION_SNOOZE.equals(a) || Reminders.ACTION_DONE.equals(a)) Reminders.onAction(c, i);
         else if (RedialPlan.ACTION.equals(a)) RedialPlan.fire(c);
         else if (SleepReminder.ACTION.equals(a)) SleepReminder.fire(c);
-        else if (CheckinNotify.ACTION.equals(a)) CheckinNotify.fire(c);
-        else if (CheckinNotify.ACTION_ANSWER.equals(a)) { try { CheckinNotify.onAnswer(c, i); } catch (Throwable e) { App.log(c, "CHECKIN", "antwoord: " + e); } }
+        else if (CheckinNotify.ACTION.equals(a) || CheckinNotify.ACTION_ANSWER.equals(a)) {
+            // Check-in leest en schrijft bestanden: niet op de hoofdthread
+            final PendingResult pr = goAsync();
+            final Context app = c.getApplicationContext();
+            new Thread(() -> {
+                try { if (CheckinNotify.ACTION.equals(a)) CheckinNotify.fire(app); else CheckinNotify.onAnswer(app, i); }
+                catch (Throwable e) { App.log(app, "CHECKIN", "ontvanger: " + e); }
+                finally { pr.finish(); }
+            }, "checkin").start();
+        }
         else if (Intent.ACTION_BOOT_COMPLETED.equals(a) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)
                 || "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED".equals(a)
                 || Intent.ACTION_TIMEZONE_CHANGED.equals(a) || Intent.ACTION_TIME_CHANGED.equals(a)) {

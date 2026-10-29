@@ -88,7 +88,20 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);
     ok((await pg.textContent('#modal-title')) === 'Wijzigingen bewaren?', 'terug met wijzigingen: vragen');
     await pg.click('#modal-ok'); await pg.waitForTimeout(150);
-    ok(await pg.evaluate(id => { const q = Android._ci.qs.find(x => x.id === id); return q.rhythm === 'multi' && q.times.length === 3; }, nq.id) && await pg.evaluate(() => current === 'checkin'), 'bewaard: drie keer per dag');
+    ok(await pg.evaluate(id => { const q = Android._ci.qs.find(x => x.id === id); return q.rhythm === 'multi' && q.times.length === 3 && new Set(q.times).size === 3; }, nq.id) && await pg.evaluate(() => current === 'checkin'), 'bewaard: drie verschillende tijden per dag');
+    ok(await pg.evaluate(() => { const t = cedNextTime(['21:00', '00:00', '03:00']); return t && !['21:00', '00:00', '03:00'].includes(t) && cedNextTime(['22:00', '23:00']) !== '23:00'; }), 'tijd erbij: nooit een tijd die er al staat');
+    // Elke week op zaterdag en stil in het weekend: waarschuwing
+    await pg.evaluate(id => ciEdit(id), nq.id); await pg.waitForTimeout(150);
+    await pg.click('#ced-rhythm button[data-v=weekly]'); await pg.selectOption('#ced-wday', '6'); await pg.waitForTimeout(80);
+    ok(await pg.isVisible('#ced-wk-warn'), 'zaterdag + stil in het weekend: waarschuwing');
+    await pg.selectOption('#ced-wday', '3'); await pg.waitForTimeout(80);
+    ok(!(await pg.isVisible('#ced-wk-warn')), 'woensdag: geen waarschuwing');
+    await pg.click('#s-checkined button:has-text("Annuleren")'); await pg.waitForTimeout(100);
+    // Focus terug naar de knop waarmee je het antwoordscherm opende
+    await pg.focus('#ci-list .ci-card[data-q=voel] .linkish'); await pg.keyboard.press('Enter'); await pg.waitForTimeout(150);
+    ok(await pg.isVisible('#ci-ans'), 'antwoordscherm open met het toetsenbord');
+    await pg.click('#ci-ans-cancel'); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => { const a = document.activeElement; return !!a && a.closest('.ci-card[data-q=voel]') !== null; }), 'sluiten: focus terug bij de vraag');
     // Ordenen, dupliceren, archiveren, verwijderen
     await pg.click('#ci-list .ci-card[data-q="' + nq.id + '"] button[aria-label="Heb je bewogen?: meer"]'); await pg.waitForTimeout(80);
     await pg.click('#sheet-acts button:has-text("Omhoog")'); await pg.waitForTimeout(80);
@@ -110,7 +123,11 @@ const { chromium } = require('playwright');
       for (const s of ['checkin', 'checkined', 'checkinq', 'checkincmp']) {
         await pg.evaluate(([s, id]) => { if (s === 'checkined') cedOpen(ciQ(id)); else if (s === 'checkinq') ciOpen(id); else if (s === 'checkincmp') ciCompare(id); else show(s); }, [s, nq.id]); await pg.waitForTimeout(80);
         ok(!(await pg.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), w + ' px: ' + s + ' past');
-        if (s === 'checkined') await pg.evaluate(() => { cedQ = null; });
+        if (s === 'checkined') {
+          const w0 = await pg.$$eval('#ced-opts .ci-optrow .ol', x => Math.min(...x.map(e => e.getBoundingClientRect().width)));
+          ok(w0 >= 110, w + ' px: naam van een antwoord past (' + Math.round(w0) + ' px)');
+          await pg.evaluate(() => { cedQ = null; });
+        }
       }
     }
     await pg.evaluate(() => show('checkin')); await pg.waitForTimeout(80);

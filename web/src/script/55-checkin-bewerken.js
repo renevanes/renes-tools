@@ -68,6 +68,7 @@ function cedRender(){
   $('#ced-days').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(d => { const on = q.days.includes(d); return '<button class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '" data-d="' + d + '" onclick="cedDay(+this.dataset.d)" aria-label="' + CI_DOW_L[d] + '">' + CI_DOW[d] + '</button>'; }).join('');
   $('#ced-wday-w').style.display = q.rhythm === 'weekly' ? '' : 'none';
   $('#ced-wday').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(d => '<option value="' + d + '"' + (d === q.wday ? ' selected' : '') + '>' + CI_DOW_L[d] + '</option>').join('');
+  $('#ced-wday').onchange = () => { cedSync(); cedRender(); };
   $('#ced-dom-w').style.display = q.rhythm === 'monthly' ? '' : 'none';
   $('#ced-dom').innerHTML = Array.from({ length: 31 }, (_, i) => '<option value="' + (i + 1) + '"' + (i + 1 === q.dom ? ' selected' : '') + '>' + (i + 1) + 'e</option>').join('');
   const multi = q.rhythm === 'multi', ts = multi ? q.times : q.times.slice(0, 1);
@@ -76,6 +77,7 @@ function cedRender(){
   $('#ced-time-add').style.display = multi && ts.length < 8 ? '' : 'none';
   $('#ced-until').value = q.until || '23:59';
   cedSwitch('#ced-wk', q.quietWeekend);
+  $('#ced-wk-warn').style.display = q.rhythm === 'weekly' && q.quietWeekend && q.wday >= 6 ? '' : 'none';
   $('#ced-pause').value = q.pauseUntil || '';
   $('#ced-pause-x').style.display = q.pauseUntil ? '' : 'none';
   document.querySelectorAll('#ced-per button').forEach(b => { const on = b.dataset.v === q.perPeriod; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
@@ -104,7 +106,13 @@ function cedRhythm(v){
   cedRender();
 }
 function cedDay(d){ cedSync(); cedQ.days = cedQ.days.includes(d) ? cedQ.days.filter(x => x !== d) : cedQ.days.concat([d]).sort(); cedRender(); }
-function cedTimeAdd(){ cedSync(); if (cedQ.times.length >= 8) return; const last = cedQ.times[cedQ.times.length - 1] || '12:00', h = Math.min(23, +last.slice(0, 2) + 3); cedQ.times.push(String(h).padStart(2, '0') + last.slice(2)); cedRender(); }
+/** Een tijd erbij: een paar uur na de laatste, en altijd een die er nog niet staat. Zuiver op de lijst. */
+function cedNextTime(times){
+  const last = times[times.length - 1] || '12:00', h0 = +last.slice(0, 2), used = new Set(times);
+  for (let d = 3; d < 27; d++) { const t = String((h0 + d) % 24).padStart(2, '0') + last.slice(2); if (!used.has(t)) return t; }
+  return null;
+}
+function cedTimeAdd(){ cedSync(); if (cedQ.times.length >= 8) return; const t = cedNextTime(cedQ.times); if (!t) return; cedQ.times.push(t); cedQ.times.sort(); cedRender(); }
 function cedTimeDel(i){ cedSync(); if (cedQ.times.length <= 1) return; cedQ.times.splice(i, 1); cedRender(); }
 function cedPauseClear(){ cedSync(); cedQ.pauseUntil = ''; cedRender(); }
 function cedLabelAdd(){

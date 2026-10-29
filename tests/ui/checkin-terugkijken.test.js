@@ -105,7 +105,7 @@ const { chromium } = require('playwright');
     ok((await pg.textContent('#cic-out')).includes('Drukke dagen') && (await pg.textContent('#cic-out')).includes('Rustigere dagen'), 'met de agenda: drukke en rustigere dagen');
     await pg.selectOption('#cic-b', 'werk'); await pg.waitForTimeout(150);
     ok((await pg.textContent('#cic-out')).includes('allebei ingevuld') && await pg.isVisible('#cic-out svg[role=img]'), 'met een andere vraag: naast elkaar, als grafiek');
-    ok((await pg.textContent('#s-checkincmp')).includes('niets over oorzaak en gevolg') && !(await pg.textContent('#s-checkincmp')).includes('diagnose'), 'eerlijk: geen oorzaak, geen medisch advies');
+    ok((await pg.textContent('#s-checkincmp')).includes('niet wat de oorzaak is') && (await pg.textContent('#s-checkincmp')).includes('geen medisch advies') && (await pg.textContent('#cic-out')).includes('Op dagen dat "Hoe voel je je?" in de bovenste helft zat'), 'eerlijk: geen oorzaak, geen medisch advies; nette zin');
     await pg.evaluate(() => { Android._ci.calOk = false; }); await pg.selectOption('#cic-b', '__cal'); await pg.waitForTimeout(150);
     ok((await pg.textContent('#cic-out')).includes('Toegang tot de agenda geven'), 'zonder toestemming: toegang aanbieden');
     await pg.screenshot({ path: __dirname + '/shots/checkin-vergelijken-' + scheme + '.png', fullPage: true });

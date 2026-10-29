@@ -311,10 +311,10 @@ function cicRender(){
         '<details><summary>Als tabel</summary><table class="ci-tbl"><thead><tr><th scope="col">Dag</th><th scope="col">' + esc(an) + '</th><th scope="col">' + esc(qb.text) + '</th></tr></thead><tbody>' +
         both.map(d => '<tr><td>' + esc(ciShort(ciDate(d))) + '</td><td>' + esc(ciOptText(ciNearest(qa, A[d][0]))) + '</td><td>' + esc(ciOptText(ciNearest(qb, B[d][0]))) + '</td></tr>').join('') + '</tbody></table></details>';
       const hi = both.filter(d => A[d][1] >= .5).map(d => B[d][0]), lo = both.filter(d => A[d][1] < .5).map(d => B[d][0]);
-      h += '<p class="note" style="margin-top:10px">' + esc(qb.text) + ', gemiddeld:</p>' + cicGroups(qb, hi, lo, 'Op dagen met ' + an.toLowerCase().replace(/\?$/, '') + ' in de bovenste helft', 'Op de andere dagen');
+      h += '<p class="note" style="margin-top:10px">' + esc(qb.text) + ', gemiddeld:</p>' + cicGroups(qb, hi, lo, 'Op dagen dat "' + an + '" in de bovenste helft zat', 'Op de andere dagen');
     }
   }
-  out.innerHTML = h + '</div>';
+  out.innerHTML = h + '<p class="note">Dit laat alleen zien wat samen voorkomt, niet wat de oorzaak is.</p></div>';
 }
 
 /* Vanuit Zoeken ({q, p}) of de assistent ({q, month}): die vraag, in die maand, bij die dag */

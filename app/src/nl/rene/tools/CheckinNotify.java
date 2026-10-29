@@ -26,8 +26,9 @@ import java.util.TimeZone;
  * met het geheim van deze installatie zodat geen andere app antwoorden kan invullen); met meer opent de melding een
  * klein scherm met grote knoppen.
  *
- * Stand (prefs "checkin", niet in Android-backups): last = tot waar gekeken, done = {vraag: laatste periode met een
- * melding}, posted = {vraag: {key, end, n}}.
+ * Stand (prefs "checkin", niet in Android-backups): last = tot waar gekeken (alleen de wekker zet die verder),
+ * done = {vraag: laatste periode met een melding}, posted = {vraag: {key, end, id}}. Wat wanneer gemeld wordt, staat
+ * zuiver in Checkin (lookFrom, toNotify, doneOnChange, repostOnChange) en is daar getest.
  */
 final class CheckinNotify {
 
@@ -41,7 +42,10 @@ final class CheckinNotify {
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("checkin", Context.MODE_PRIVATE); }
 
-    static int notifId(JSONObject q) { return NOTIF_BASE + Math.max(1, Math.min(9999, q.optInt("n", 1))); }
+    /** Het vaste nummer van een vraag (1..9999), voor melding- en verzoekcodes in de eigen reeksen. */
+    static int nr(JSONObject q) { return Math.max(1, Math.min(9999, q.optInt("n", 1))); }
+
+    static int notifId(JSONObject q) { return NOTIF_BASE + nr(q); }
 
     private static PendingIntent alarm(Context c) {
         return PendingIntent.getBroadcast(c, REQ_ALARM, new Intent(c, AlarmReceiver.class).setAction(ACTION), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
@@ -49,8 +53,11 @@ final class CheckinNotify {
 
     private static JSONObject obj(String s) { try { return new JSONObject(s); } catch (Exception e) { return new JSONObject(); } }
 
-    /** Tot waar al gekeken is (nooit ouder dan twee dagen: zo komt na een lange tijd uit geen stapel oude vragen). */
-    static long last(Context c, long now) { return Math.max(prefs(c).getLong("last", now), now - 2 * 86_400_000L); }
+    /** Vanaf waar de wekker kijkt (zie Checkin.lookFrom). */
+    static long last(Context c, long now) { return Checkin.lookFrom(prefs(c).getLong("last", 0), now); }
+
+    /** Het meldingnummer van een melding die er staat (zoals bewaard, anders uit de vraag). */
+    private static int idOf(JSONObject posted) { return posted.optInt("id", NOTIF_BASE + Math.max(1, Math.min(9999, posted.optInt("n", 1)))); }
 
     /** Opnieuw plannen (na een wijziging, het afgaan, herstart of een andere tijd). */
     static synchronized void arm(Context c) {
@@ -94,23 +101,21 @@ final class CheckinNotify {
         for (Iterator<String> it = posted.keys(); it.hasNext(); ) {
             String id = it.next();
             JSONObject x = posted.optJSONObject(id);
-            if (x == null || x.optLong("end") <= now) { if (x != null && nm != null) nm.cancel(NOTIF_BASE + x.optInt("n")); it.remove(); }
+            if (x == null || x.optLong("end") <= now) { if (x != null && nm != null) nm.cancel(idOf(x)); it.remove(); }
         }
         JSONArray qs = CheckinStore.questions(c);
         for (int i = 0; i < qs.length(); i++) {
             JSONObject q = qs.optJSONObject(i);
             if (!CheckinStore.active(q)) continue;
-            Checkin.Rule r = CheckinStore.rule(q);
-            Checkin.Slot pick = null;
-            for (Checkin.Slot s : Checkin.slots(r, from - 60_000L, now + 1, tz)) if (!s.quiet && s.at <= now && now < s.end) pick = s;
             String id = q.optString("id");
-            if (pick == null || pick.key.equals(done.optString(id))) continue;
+            Checkin.Slot pick = Checkin.toNotify(CheckinStore.rule(q), from, now, done.optString(id), tz);
+            if (pick == null) continue;
             done.put(id, pick.key); // één melding per moment, ook als hij niet getoond hoeft te worden
             List<JSONObject> have = CheckinStore.byKey(c, id).get(pick.key);
             if (have != null && !have.isEmpty()) continue; // al ingevuld in de app
             if (NotifCenter.muted(c)) continue;
             post(c, q, pick, now);
-            posted.put(id, new JSONObject().put("key", pick.key).put("end", pick.end).put("n", q.optInt("n")));
+            posted.put(id, new JSONObject().put("key", pick.key).put("end", pick.end).put("id", notifId(q)));
         }
         p.edit().putLong("last", now).putString("done", done.toString()).putString("posted", posted.toString()).apply();
     }
@@ -122,16 +127,33 @@ final class CheckinNotify {
     static synchronized void changed(Context c, String qid) {
         try {
             long now = System.currentTimeMillis();
+            TimeZone tz = TimeZone.getDefault();
             JSONObject q = qid == null ? null : CheckinStore.question(c, qid);
             SharedPreferences p = prefs(c);
-            JSONObject done = obj(p.getString("done", "{}"));
+            JSONObject done = obj(p.getString("done", "{}")), posted = obj(p.getString("posted", "{}"));
+            SharedPreferences.Editor e = p.edit();
             if (q != null) {
-                Checkin.Slot s = Checkin.current(CheckinStore.rule(q), now, TimeZone.getDefault());
-                if (s != null && s.at <= now) done.put(qid, s.key);
-                if (!CheckinStore.active(q)) dismiss(c, qid, null);
+                String k = Checkin.doneOnChange(CheckinStore.rule(q), now, tz);
+                if (k != null) done.put(qid, k);
+                // Staat er een melding van deze vraag: opnieuw tonen met de nieuwe tekst en knoppen, of weghalen
+                JSONObject x = posted.optJSONObject(qid);
+                if (x != null) {
+                    Checkin.Slot s = Checkin.find(CheckinStore.rule(q), x.optString("key"), now, tz);
+                    if (Checkin.repostOnChange(CheckinStore.active(q), s, now) && !NotifCenter.muted(c)) {
+                        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+                        if (nm != null && idOf(x) != notifId(q)) nm.cancel(idOf(x));
+                        post(c, q, s, now);
+                        posted.put(qid, new JSONObject().put("key", s.key).put("end", s.end).put("id", notifId(q)));
+                        e.putString("posted", posted.toString());
+                    } else dismiss(c, qid, null);
+                }
             } else if (qid != null) { done.remove(qid); dismiss(c, qid, null); }
-            p.edit().putString("done", done.toString()).putLong("last", Math.max(p.getLong("last", 0), now)).apply();
-        } catch (Throwable e) { App.log(c, "CHECKIN", "gewijzigd: " + e); }
+            e.putString("done", done.toString());
+            // "last" blijft zoals hij is: alleen de wekker zet die verder (anders vallen gemiste momenten van andere
+            // vragen weg als je bewaart terwijl de wekker nog moet komen). Nog nooit gekeken: vanaf nu.
+            if (p.getLong("last", 0) <= 0) e.putLong("last", now);
+            e.apply();
+        } catch (Throwable ex) { App.log(c, "CHECKIN", "gewijzigd: " + ex); }
         arm(c);
     }
 
@@ -142,7 +164,7 @@ final class CheckinNotify {
             JSONObject posted = obj(p.getString("posted", "{}")), x = posted.optJSONObject(qid);
             if (x == null || (key != null && !key.equals(x.optString("key")))) return;
             NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
-            if (nm != null) nm.cancel(NOTIF_BASE + x.optInt("n"));
+            if (nm != null) nm.cancel(idOf(x));
             posted.remove(qid);
             p.edit().putString("posted", posted.toString()).apply();
         } catch (Throwable ignored) { }
@@ -167,7 +189,7 @@ final class CheckinNotify {
         Intent i = new Intent(c, MainActivity.class).putExtra("open", "checkin:" + q.optString("id") + ":" + key)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .setData(Uri.fromParts("checkin", q.optString("id") + "/" + key, null)); // uniek per vraag
-        return PendingIntent.getActivity(c, REQ_OPEN + q.optInt("n"), i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        return PendingIntent.getActivity(c, REQ_OPEN + nr(q), i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     /** De melding van een vraag. Met 2 of 3 antwoorden: een knop per antwoord. */
@@ -185,11 +207,14 @@ final class CheckinNotify {
             if (n <= 3) for (int i = 0; i < n; i++) {
                 JSONObject o = opts.getJSONObject(i);
                 String label = (o.optString("emoji") + " " + o.optString("label")).trim();
+                // Met de waarde erbij: is de vraag intussen gewijzigd, dan telt een oude knop niet (zie onAnswer)
                 Intent a = new Intent(c, AlarmReceiver.class).setAction(ACTION_ANSWER).putExtra("q", q.optString("id")).putExtra("p", s.key)
-                        .putExtra("o", i).putExtra("tok", App.token(c))
+                        .putExtra("o", i).putExtra("v", o.optDouble("value")).putExtra("tok", App.token(c))
                         .setData(Uri.fromParts("checkin", q.optString("id") + "/" + s.key + "/" + i, null));
-                PendingIntent pi = PendingIntent.getBroadcast(c, REQ_ACT + q.optInt("n") * 4 + i, a, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-                b.addAction(new Notification.Action.Builder(null, label, pi).build());
+                PendingIntent pi = PendingIntent.getBroadcast(c, REQ_ACT + nr(q) * 4 + i, a, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                Notification.Action.Builder ab = new Notification.Action.Builder(null, label, pi);
+                if (Build.VERSION.SDK_INT >= 31) ab.setAuthenticationRequired(true); // niet te tikken op een vergrendelde telefoon
+                b.addAction(ab.build());
             }
             if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(Math.max(60_000L, s.end - now));
             NotifCenter.post(c, notifId(q), b.build());
@@ -209,7 +234,7 @@ final class CheckinNotify {
         try {
             SharedPreferences p = prefs(c);
             JSONObject posted = obj(p.getString("posted", "{}"));
-            posted.put(qid, new JSONObject().put("key", s.key).put("end", Math.max(s.end, now + 60_000L)).put("n", q.optInt("n")));
+            posted.put(qid, new JSONObject().put("key", s.key).put("end", Math.max(s.end, now + 60_000L)).put("id", notifId(q)));
             p.edit().putString("posted", posted.toString()).apply();
         } catch (Exception ignored) { }
         arm(c);
@@ -221,11 +246,14 @@ final class CheckinNotify {
         if (!App.tokenOk(c, i)) return; // alleen vanuit onze eigen melding
         String qid = i.getStringExtra("q"), key = i.getStringExtra("p");
         int o = i.getIntExtra("o", -1);
+        double v = i.getDoubleExtra("v", Double.NaN);
         if (qid == null || key == null || !Checkin.validKey(key)) return;
         JSONObject q = CheckinStore.question(c, qid);
         String title = "Check-in", text;
         boolean ok = false;
+        JSONObject op0 = q == null ? null : CheckinStore.option(q, o);
         try {
+            if (q != null && (op0 == null || Double.isNaN(v) || Math.abs(op0.optDouble("value") - v) > 1e-9)) text = "De vraag is gewijzigd; open de app"; else {
             JSONObject r = CheckinStore.answer(c, new JSONObject().put("q", qid).put("p", key).put("o", o).put("src", "notif"), System.currentTimeMillis());
             if (r.has("need")) text = "Was al ingevuld: " + r.optString("old");
             else if (r.has("error")) text = r.optString("error");
@@ -234,7 +262,7 @@ final class CheckinNotify {
                 JSONObject op = q == null ? null : CheckinStore.option(q, o);
                 title = "✓ Bewaard";
                 text = (op == null ? "" : (op.optString("emoji") + " " + op.optString("label")).trim() + " · ") + (q == null ? "" : q.optString("text"));
-            }
+            } }
         } catch (Exception e) { text = "Bewaren lukt niet"; App.log(c, "CHECKIN", "antwoord uit melding: " + e); }
         // Even een bevestiging in plaats van de vraag (zelfde melding, zonder geluid; verdwijnt vanzelf). Op oudere
         // Android gaat de melding gewoon weg.

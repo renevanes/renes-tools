@@ -146,7 +146,7 @@ function ciAsk(qid, key, opt){
   const q = ciQ(qid); if (!q) { toast('Deze vraag bestaat niet meer'); return; }
   if (q.archived) { toast('Deze vraag is gearchiveerd'); return; }
   const c = q.cur && (!key || q.cur.key === key) ? q.cur : null;
-  ciA = { q: qid, key: key || (c ? c.key : ''), aid: opt.aid || '', sel: -1, note: '', labels: [], voice: false, late: !!opt.late };
+  ciA = { q: qid, key: key || (c ? c.key : ''), aid: opt.aid || '', sel: -1, note: '', labels: [], voice: false, late: !!opt.late, from: document.activeElement };
   if (!ciA.key) { toast('Er staat nu geen vraag open'); ciA = null; return; }
   if (opt.aid) { // aanvullen of wijzigen
     const a = opt.ans || (c && c.answers.find(x => x.id === opt.aid));
@@ -214,7 +214,16 @@ function ciAnsDone(){
 }
 function ciAnsClose(){
   if (ciA && ciA.aid) { const note = ciAnsNoteNow(); if (note !== ciA.note) { Android.checkinAnswer(JSON.stringify({ q: ciA.q, id: ciA.aid, note })); ciAfter(); } } // niets kwijtraken
-  $('#ci-ans').classList.remove('on'); ciA = null;
+  $('#ci-ans').classList.remove('on');
+  // Focus terug naar waar je vandaan kwam (de knop is na het verversen soms nieuw: dan dezelfde knop, of de kop)
+  const from = ciA && ciA.from; ciA = null;
+  setTimeout(() => {
+    if ($('#ci-ans').classList.contains('on') || document.querySelector('#modal.on, #voice.on')) return;
+    let el = from && from.isConnected && from.offsetParent ? from : null;
+    if (!el && from && from.getAttribute && from.getAttribute('aria-label')) el = [...document.querySelectorAll('.screen.on button')].find(b => b.getAttribute('aria-label') === from.getAttribute('aria-label') && b.offsetParent);
+    if (!el) el = document.querySelector('.screen.on .hdr h1');
+    if (el) el.focus({ preventScroll: true });
+  }, 0);
 }
 /* Inspreken: zelfde venster als een spraaknotitie; de tekst komt in de notitie */
 function ciAnsVoice(){

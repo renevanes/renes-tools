@@ -22,6 +22,7 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => { const a = Android._ci.ans.find(x => x.q === 'werk'); return a && a.v === 3 && a.src === 'notif' && !Android._ci.posted.werk; }), 'antwoord uit de melding: waarde 3, melding weg');
     ok((await pg.textContent('#ci-list .ci-card[data-q=werk] .ci-st')).includes('🙂 Goed'), 'de app ververst vanzelf');
     ok((await pg.evaluate(() => Android._ciNotify('werk'))) === null, 'al ingevuld: geen tweede melding');
+    ok((await pg.evaluate(() => { Android._ci.ans = Android._ci.ans.filter(a => a.q !== 'werk'); const r = Android._ciNotify('werk'); Android.checkinAnswer(JSON.stringify({ q: 'werk', p: '', o: 2 })); return r; })) === null, 'antwoord gewist: toch geen tweede melding voor hetzelfde moment');
     // 5 antwoorden: de melding opent het antwoordscherm
     const none = await pg.evaluate(() => Android._ciNotify('voel'));
     ok(Array.isArray(none) && none.length === 0, 'melding met 5 antwoorden: geen knoppen (Android laat er hooguit 3 toe)');
@@ -57,7 +58,7 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._voiceErr = ''; goBack(); show('checkin'); }); await pg.waitForTimeout(100);
     // Zonder extra's: één tik in het scherm en klaar (melding + één tik = twee tikken)
     await pg.evaluate(() => { const q = Android._ci.qs.find(x => x.id === 'werk'); Object.assign(q, { note: false, voice: false, labels: false });
-      Android._ci.ans = Android._ci.ans.filter(a => a.q !== 'werk'); Android._ciNotify('werk'); openTool('checkin:werk:' + Android._ci.posted.werk.key); }); await pg.waitForTimeout(250);
+      Android._ci.ans = Android._ci.ans.filter(a => a.q !== 'werk'); Android._ci.done = {}; Android._ciNotify('werk'); openTool('checkin:werk:' + Android._ci.posted.werk.key); }); await pg.waitForTimeout(250);
     await pg.click('#ci-ans-opts .ci-opt >> nth=0'); await pg.waitForTimeout(150);
     ok(!(await pg.isVisible('#ci-ans')) && (await pg.textContent('#toast')).includes('😕 Slecht') && await pg.evaluate(() => !Android._ci.posted.werk), 'zonder extra\'s: na één tik dicht, melding weg');
     // Al ingevuld en nog eens kiezen: eerst bevestigen
