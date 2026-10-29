@@ -142,7 +142,7 @@ final class CheckinNotify {
                     if (Checkin.repostOnChange(CheckinStore.active(q), s, now) && !NotifCenter.muted(c)) {
                         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
                         if (nm != null && idOf(x) != notifId(q)) nm.cancel(idOf(x));
-                        post(c, q, s, now);
+                        post(c, q, s, now, true); // stil bijwerken: niet opnieuw trillen of piepen
                         posted.put(qid, new JSONObject().put("key", s.key).put("end", s.end).put("id", notifId(q)));
                         e.putString("posted", posted.toString());
                     } else dismiss(c, qid, null);
@@ -193,12 +193,16 @@ final class CheckinNotify {
     }
 
     /** De melding van een vraag. Met 2 of 3 antwoorden: een knop per antwoord. */
-    static void post(Context c, JSONObject q, Checkin.Slot s, long now) {
+    static void post(Context c, JSONObject q, Checkin.Slot s, long now) { post(c, q, s, now, false); }
+
+    /** quiet = een melding die er al staat bijwerken (na het bewerken van de vraag): niet opnieuw laten afgaan. */
+    static void post(Context c, JSONObject q, Checkin.Slot s, long now, boolean quiet) {
         try {
             JSONArray opts = q.optJSONArray("options");
             int n = opts == null ? 0 : opts.length();
             String title = CheckinStore.qTitle(q);
             Notification.Builder b = builder(c);
+            if (quiet) b.setOnlyAlertOnce(true);
             b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title)
                     .setContentText(n <= 3 ? "Tik op je antwoord" : "Tik om te antwoorden")
                     .setAutoCancel(true).setContentIntent(open(c, q, s.key)).setCategory(Notification.CATEGORY_REMINDER)

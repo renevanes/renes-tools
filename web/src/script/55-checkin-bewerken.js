@@ -77,7 +77,9 @@ function cedRender(){
   $('#ced-time-add').style.display = multi && ts.length < 8 ? '' : 'none';
   $('#ced-until').value = q.until || '23:59';
   cedSwitch('#ced-wk', q.quietWeekend);
-  $('#ced-wk-warn').style.display = q.rhythm === 'weekly' && q.quietWeekend && q.wday >= 6 ? '' : 'none';
+  // Stil in het weekend en alleen zaterdag/zondag gekozen: dan komt er nooit een melding
+  const onlyWeekend = q.rhythm === 'weekly' ? q.wday >= 6 : (q.rhythm === 'weekdays' || q.rhythm === 'multi') && q.days.length > 0 && q.days.every(d => d >= 6);
+  $('#ced-wk-warn').style.display = q.quietWeekend && onlyWeekend ? '' : 'none';
   $('#ced-pause').value = q.pauseUntil || '';
   $('#ced-pause-x').style.display = q.pauseUntil ? '' : 'none';
   document.querySelectorAll('#ced-per button').forEach(b => { const on = b.dataset.v === q.perPeriod; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
@@ -129,6 +131,8 @@ function cedSave(){
   const q = cedQ;
   if (!q.text.trim()) { toast('Vul de vraag in'); $('#ced-text').focus(); return; }
   if (q.on && ciSt.notifOk === false) Android.permRequest('notif'); // Android 13+: toestemming voor de meldingen
+  // Opgeslagen in de bewerker = niet meer het onaangeroerde voorstel (een backup vervangt hem dan niet)
+  if (cedSnap && JSON.stringify(q) !== cedSnap) q.tpl = false;
   const r = rdJson(Android.checkinSave(JSON.stringify(q)), {});
   if (r.error) { toast(r.error); return; }
   cedQ = null; cedSnap = '';
