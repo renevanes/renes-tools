@@ -68,9 +68,9 @@ const { chromium } = require('playwright');
     ok((await pg.textContent('#modal')).includes('Qwen3 1.7B verwijderen?'), 'na gebruiken: oude versie weg?');
     await pg.click('#modal-ok'); await pg.waitForTimeout(200);
     ok(await pg.evaluate(() => Android._ai.chat === 'klein35' && Android._ai.st.klein.state === 'none') && !(await txt(klein)).includes('Ook nog'), 'nieuwe in gebruik, oude weg');
-    // Spraak naar tekst: twee soorten (geen versies), de ene in gebruik
+    // Spraak naar tekst: twee soorten (elk één versie), de ene in gebruik
     ok((await txt(cat('spraak'))).includes('In gebruik: Snel · Whisper base') && (await txt(cat('spraak'))).includes('Nauwkeurig'), 'spraakmodellen');
-    ok((await txt(cat('spraak'))).includes('Je hebt versie: Whisper base (OpenAI, 2022)') && (await txt(cat('spraak'))).includes('nieuwste versie: Whisper small (OpenAI, 2022)'), 'spraakmodellen: versie');
+    ok((await txt(cat('spraak'))).includes('Je hebt versie: Whisper base, OpenAI 2022') && (await txt(cat('spraak'))).includes('Nog niet op je telefoon · versie: Whisper small, OpenAI 2022'), 'spraakmodellen: versie');
     ok((await txt(cat('spraak'))).includes('Motor: whisper.cpp 1.9.5') && (await txt(cat('ai'))).includes('Motor: llama.cpp') && !(await txt(cat('tts'))).includes('Motor:'), 'motorversie per soort');
     // Verwijderen met uitleg
     await pg.click(cat('zoek') + ' button:has-text("Verwijderen")'); await pg.waitForTimeout(150);

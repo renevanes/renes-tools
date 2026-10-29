@@ -31,7 +31,8 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => current === 'checkin') && await pg.isVisible('#ci-ans') && (await pg.textContent('#ci-ans-t')) === '🙂 Hoe voel je je?', 'tik op de melding: het antwoordscherm');
     const big = await pg.$$eval('#ci-ans-opts .ci-opt', x => x.map(e => [e.getAttribute('aria-label'), Math.round(e.getBoundingClientRect().height)]));
     ok(big.length === 5 && big.every(([, h]) => h >= 56) && big[2][0] === 'Hoe voel je je?: 😐 Gaat wel', 'grote knoppen, met de vraag in de naam');
-    ok((await pg.textContent('#ci-ans-p')).startsWith('Vandaag'), 'periode: vandaag');
+    // Na middernacht hoort een melding van gisteravond bij gisteren
+    ok(/^(Vandaag|Gisteren)/.test(await pg.textContent('#ci-ans-p')), 'periode: vandaag (of gisteren, na middernacht)');
     await pg.screenshot({ path: __dirname + '/shots/checkin-antwoord-' + scheme + '.png' });
     await pg.click('#ci-ans-opts .ci-opt >> nth=2'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => { const a = Android._ci.ans.find(x => x.q === 'voel'); return a && a.v === 3; }) && (await pg.textContent('#ci-ans-st')).includes('Bewaard'), 'tweede tik: bewaard; scherm blijft voor aanvullen');

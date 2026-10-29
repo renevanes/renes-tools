@@ -43,7 +43,7 @@ final class Models {
             File f = Transcribe.modelFile(c, m);
             JSONObject s = new JSONObject().put("id", m.id).put("key", "spraak:" + m.id).put("kind", "spraak")
                     .put("label", "Spraakmodel " + m.label.replaceAll("\\s*\\(.*\\)$", "").toLowerCase(java.util.Locale.ROOT))
-                    .put("desc", "Spraak naar tekst · whisper " + m.id).put("version", "Whisper " + m.id + " (OpenAI, 2022)").put("size", m.size).put("last", ModelUse.last(c, "spraak:" + m.id));
+                    .put("desc", "Spraak naar tekst · whisper " + m.id).put("version", "Whisper " + m.id + ", OpenAI 2022").put("size", m.size).put("last", ModelUse.last(c, "spraak:" + m.id));
             if (f.isFile()) { s.put("state", "ready").put("inUse", act != null && act.id.equals(m.id)); used += f.length(); }
             else if (TranscribeService.busy && st.optBoolean("running") && "download".equals(st.optString("phase")) && m.id.equals(dl))
                 s.put("state", "running").put("bytes", m.size * st.optInt("pct") / 100).put("total", m.size);

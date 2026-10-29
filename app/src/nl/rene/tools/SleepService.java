@@ -325,17 +325,8 @@ public final class SleepService extends Service {
         boolean quiet = SleepTalk.quiet(this);
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationManager nm = getSystemService(NotificationManager.class);
-            if (quiet) {
-                // Eén keer aanmaken: Android zet een voorgrondmelding op minimaal zelf op Laag, en wat je zelf in
-                // Android instelt (bijv. Minimaliseren) moet blijven staan
-                if (nm.getNotificationChannel(CHANNEL_QUIET) == null) {
-                    NotificationChannel ch = new NotificationChannel(CHANNEL_QUIET, "Slaappraat (onopvallend)", NotificationManager.IMPORTANCE_MIN);
-                    ch.setDescription(QUIET_INFO);
-                    ch.setSound(null, null); ch.enableVibration(false); ch.enableLights(false); ch.setShowBadge(false);
-                    ch.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
-                    nm.createNotificationChannel(ch);
-                }
-            } else {
+            if (quiet) quietChannel(this);
+            else {
                 NotificationChannel ch = new NotificationChannel(CHANNEL, "Slaappraat", NotificationManager.IMPORTANCE_LOW);
                 ch.setDescription("Zichtbaar zolang Slaappraat luistert of uitschrijft, met een stopknop; 's ochtends wat er gehoord is");
                 ch.setShowBadge(false);
@@ -346,9 +337,8 @@ public final class SleepService extends Service {
         PendingIntent content = PendingIntent.getActivity(this, NOTIFICATION, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent stopI = PendingIntent.getService(this, NOTIFICATION, new Intent(this, SleepService.class).setAction("stop"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, quiet ? CHANNEL_QUIET : CHANNEL) : new Notification.Builder(this);
-        // Onopvallend: niet op het vergrendelscherm, zonder tijdteller (de belangrijkheid bepaalt Android, zie hierboven)
         if (Build.VERSION.SDK_INT >= 31 && !quiet) b.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
-        if (quiet) quietStyle(b);
+        if (quiet) quietStyle(b); // niet op het vergrendelscherm, zonder tijdteller (hoe groot bepaalt Android)
         boolean tx = "uitschrijven".equals(phase);
         if ("proef".equals(phase)) return b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Slaappraat: proef van 30 seconden")
                 .setContentText("Praat eens zoals je in je slaap zou doen").setOngoing(true).setOnlyAlertOnce(true).setContentIntent(content)
@@ -359,6 +349,23 @@ public final class SleepService extends Service {
         return b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle(tx ? "Slaappraat schrijft uit" : "Slaappraat luistert")
                 .setContentText(text).setOngoing(true).setOnlyAlertOnce(true).setShowWhen(!tx && !quiet).setWhen(since).setUsesChronometer(!tx && !quiet)
                 .setContentIntent(content).addAction(android.R.drawable.ic_media_pause, "Stoppen", stopI).build();
+    }
+
+    /**
+     * Het stille kanaal, één keer aangemaakt (ook door NotifCenter.ensureAll, met dezelfde instellingen). Android zet een
+     * voorgrondmelding op minimaal zelf op Laag; wat je daarna zelf in Android instelt (bijv. Minimaliseren) blijft staan.
+     */
+    static void quietChannel(android.content.Context c) {
+        if (Build.VERSION.SDK_INT < 26) return;
+        try {
+            NotificationManager nm = c.getSystemService(NotificationManager.class);
+            if (nm.getNotificationChannel(CHANNEL_QUIET) != null) return;
+            NotificationChannel ch = new NotificationChannel(CHANNEL_QUIET, "Slaappraat (onopvallend)", NotificationManager.IMPORTANCE_MIN);
+            ch.setDescription(QUIET_INFO);
+            ch.setSound(null, null); ch.enableVibration(false); ch.enableLights(false); ch.setShowBadge(false);
+            ch.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
+            nm.createNotificationChannel(ch);
+        } catch (Throwable ignored) { }
     }
 
     static final String QUIET_INFO = "Als Onopvallend luisteren aan staat: stil, niet op het vergrendelscherm, zonder tijdteller en 's ochtends geen melding. Zet hier Minimaliseren aan om hem nog kleiner te maken";

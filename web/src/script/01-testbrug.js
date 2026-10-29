@@ -382,7 +382,7 @@ if (!window.Android) window.Android = (function(){
         (ai0.find(x => x.replaces === m.id) || {}).id ? { newer: ai0.find(x => x.replaces === m.id).id } : {}));
       const sp = [['base', 'Spraakmodel snel', 59707625], ['small', 'Spraakmodel nauwkeurig', 190085487]].map(([id, label, size]) => {
         const ready = !!T.models[id], run = !ready && T.st.running && T.st.phase === 'download' && T.dl === id;
-        return { id, key: 'spraak:' + id, kind: 'spraak', label, desc: 'Spraak naar tekst · whisper ' + id, version: 'Whisper ' + id + ' (OpenAI, 2022)', size, last: D.last['spraak:' + id] || 0, state: ready ? 'ready' : run ? 'running' : 'none', inUse: ready && T.model === id, bytes: run ? size * (T.st.pct || 0) / 100 : 0, total: size }; });
+        return { id, key: 'spraak:' + id, kind: 'spraak', label, desc: 'Spraak naar tekst · whisper ' + id, version: 'Whisper ' + id + ', OpenAI 2022', size, last: D.last['spraak:' + id] || 0, state: ready ? 'ready' : run ? 'running' : 'none', inUse: ready && T.model === id, bytes: run ? size * (T.st.pct || 0) / 100 : 0, total: size }; });
       const all = ai.concat(sp), used = all.filter(m => m.state === 'ready').reduce((a, m) => a + m.size, 0);
       return JSON.stringify({ free: D.free, online: D.online, metered: D.metered, wifiOnly: A.wifiOnly, supported: true, txBusy: D.txBusy, models: all, used, leftovers: (A.orphans || 0) + (D.leftovers || 0), ram: A.ram, tts: D.tts, engines: { ai: 'llama.cpp b11500', zoek: 'llama.cpp b11500', spraak: 'whisper.cpp 1.9.5' } }); },
     modelsClean(){ const n = (this._ai.orphans || 0) + (this._md.leftovers || 0); this._ai.orphans = 0; this._md.leftovers = 0; return String(n); },

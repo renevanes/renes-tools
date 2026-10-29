@@ -97,6 +97,7 @@ final class NotifCenter {
         if (Build.VERSION.SDK_INT < 26) return;
         try {
             NotificationManager nm = c.getSystemService(NotificationManager.class);
+            SleepService.quietChannel(c); // met eigen instellingen (geen geluid, geen stip, niet op het vergrendelscherm)
             for (String[] k : KINDS) {
                 // Alleen aanmaken wat er nog niet is: de diensten zelf houden naam en uitleg bij, en de
                 // belangrijkheid blijft zoals jij hem in Android hebt gezet

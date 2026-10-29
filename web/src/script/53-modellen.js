@@ -153,7 +153,7 @@ function mdLineHtml(chain){
   if (!main && !busy) {
     const need = newest.kind === 'spraak' ? newest.size : 2 * newest.size + 200 * 1048576, fits = !(mdSt.free > 0) || mdSt.free >= need;
     const can = newest.kind === 'spraak' || mdSt.supported !== false;
-    rows += '<div class="md-ver"><div class="aimt">' + name + '<small>' + esc('Nog niet op je telefoon · nieuwste versie: ' + newest.version + ' · ' + mdGB(newest.size) + ram + (fits ? '' : ' · past nu niet (' + mdGB(mdSt.free) + ' vrij)')) + '</small></div>' +
+    rows += '<div class="md-ver"><div class="aimt">' + name + '<small>' + esc('Nog niet op je telefoon · ' + (chain.length > 1 ? 'nieuwste versie: ' : 'versie: ') + newest.version + ' · ' + mdGB(newest.size) + ram + (fits ? '' : ' · past nu niet (' + mdGB(mdSt.free) + ' vrij)')) + '</small></div>' +
       '<div class="aimb">' + (can ? mdBtn('Downloaden', 'mdDl(' + jsq(newest.key) + ')', true, mdLineName(newest) + ' downloaden') : '') + '</div></div>';
   }
   return '<div class="md-linebox" role="listitem" data-line="' + esc(newest.key) + '">' + rows + '</div>';
