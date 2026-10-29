@@ -130,8 +130,8 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 |---|---|---|---|
 | GitHub Actions | `.github/workflows/*.yml`, vastgezet op commit-SHA met de versie als opmerking (`@<sha> # v1.2.3`; Bouwen en testen controleert dat) | Dependabot (wekelijks PR; werkt SHA en opmerking bij) | agent voegt samen na review |
 | Leaflet, jsQR (in de app) | `web/vendor/` (kopregel) | Onderhoud: npm + OSV | agent, bij elke nieuwe versie |
-| whisper.cpp (transcriberen) | `app/lib/arm64-v8a/README.txt` | Onderhoud: GitHub-release + OSV | agent: `tools/whisper-build.sh`, bij elke nieuwe release |
-| llama.cpp (lokale AI) | `tools/llm-build.sh` (TAG/COMMIT) + README | Onderhoud: GitHub-release + OSV | agent: bij kwetsbaarheid of >1500 commits achter (dagelijkse releases) |
+| whisper.cpp (transcriberen) | `app/lib/arm64-v8a/README.txt` + `Transcribe.ENGINE` (EngineVersionTest) | Onderhoud: GitHub-release + OSV | agent: `tools/whisper-build.sh`, bij elke nieuwe release |
+| llama.cpp (lokale AI) | `tools/llm-build.sh` (TAG/COMMIT) + README + `LocalAi.ENGINE` (EngineVersionTest) | Onderhoud: GitHub-release + OSV | agent: bij kwetsbaarheid of >1500 commits achter (dagelijkse releases) |
 | zig (bouwt whisper/llama) | `ZIG_VERSION` in beide bouwscripts | Onderhoud: PyPI | agent, samen met een nieuwe whisper/llama-bouw |
 | Android build-tools (d8, apksigner, zipalign) | `setup-tools.sh` (`BUILD_TOOLS`, URL, SHA-1 en grootte van Google, dl.google.com) | Onderhoud: Google (repository2-3.xml) | agent; wisselen van d8 vraagt een test op een telefoon. Is Google niet bereikbaar (afgeschermde cloudsessie), dan valt `setup-tools.sh` lokaal terug op androidide-tools 34.0.4, alleen om te testen; in CI (`CI` gezet) moet de download lukken en `./publish.sh` bouwt alleen met de vastgezette versie |
 | android.jar en targetSdk | `setup-tools.sh`, `build.sh` | Onderhoud: Google | agent; gedragswijzigingen van de nieuwe Android-versie nalopen en op een telefoon testen |
