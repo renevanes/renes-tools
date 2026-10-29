@@ -1,15 +1,26 @@
 {
   "app": "Tools",
-  "versionName": "1.104",
-  "versionCode": 105,
-  "nativeLevel": 93,
+  "versionName": "1.105",
+  "versionCode": 106,
+  "nativeLevel": 94,
   "web": "index.html",
-  "webSha256": "458291e8dfd82f8f880f380ed0cc378e0642d69eff92f7d37cbb92402040ae8d",
+  "webSha256": "ebebad1761eb8e3a87ab8aaea47ddf7f2456ec188f0245f822376382215e769c",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "ba5e2e0c80d716d5976bd7474d17c98b1dcfd9b660006cbec9f794d37a77b008",
+  "apkSha256": "b0624cf23a3847875a3798d6fe2d52a7e46fa832b5ff0e5edb374ecf994a756d",
   "changelog": [
+    {
+      "version": "1.105",
+      "date": "2026-10-29",
+      "changes": [
+        "Nieuw: Check-in. Even kort je score per dag, week of maand (\"Hoe voel je je?\", \"Hoe was je werk?\"), met één of twee tikken; twee voorstellen staan klaar en staan uit tot je ze aanzet",
+        "Check-in: met 2 of 3 antwoorden tik je je antwoord meteen in de melding; met meer opent de melding een klein scherm met grote knoppen. Elk moment geeft één melding, nooit een herinnering erachteraan",
+        "Check-in: alles per vraag in te stellen: antwoorden (knoppen, smileys, score 1–10, ja/nee of zelf), wanneer, tot hoe laat, stil in het weekend, pauze tot een datum, achteraf invullen, en extra's: notitie, inspreken en labels",
+        "Check-in: terugkijken in een kalender per maand, een grafiek per week, maand of jaar met gemiddelde en trend, en een samenvatting met je reeks; ook naast je slaap (Slaappraat) en je agenda",
+        "Check-in blijft op je telefoon: niet in de Android-backup, wel als privé onderdeel bij Alles back-uppen als je dat aanvinkt; de assistent kijkt er alleen in als je Check-in aanzet bij Lokale AI → Gegevens"
+      ]
+    },
     {
       "version": "1.104",
       "date": "2026-10-26",
@@ -923,5 +934,5 @@
       ]
     }
   ],
-  "webSig2": "SqCTUfcZFxqE+/7Qn8rhv8PFmzfUx25QaZG8WTNa5jNSso2MvtbApaKRIg4ZLet+YDoWv7TKG7Ioq/qAoVLTYTtNK1N9z8XJzKqKD6n2de0/oVpPq5tdhZ38coYk4onaIhgime1A8+aD+D5fiRYzMIt/JXQfu5tIaowezXr6UOWOF4aJAMGpIUSB9lcN99FwTn6DgRbPJMn0y3EArnNss6clEzDvnAKOGLLDkB3eanFfpUQkzQfU3In40rx32i9JYnBJenEYYiF9HP6gSt5R4GmVZw9IGLPxOUIAPln5jThPCR0ai0it6sHFeHBLK6t7+du8iuCxa15XQrh3ZtPknFyqYMK4tfZ8zPqhmDRuCeqjhYncWhd7vlJySNL7c3NUCnxjcHZS4dOM1JDcvvdzaveEbvMMo8XZRixOqYe5sL+3cT6bPjyHyuUiGBSF3CX4KyoJ+GqSBZ3z+tlZMkH3ViXwQeq5Bm6TQ0OwTgKyMTZkYGeI0Au3T1OKj5h7gX8d"
+  "webSig2": "q8JdtTK0tyS0Zi3veCVpg7667H2nJZDfVtfp2Rm7WCv5/s2BECJLi4EsWEm3KztKYA7/ErykrmYRgB1XkP0AxGefLoRA6Rn9LM+SU5dLz8ITkJRz5oydG7kP7PAUb2cMfb4nLHqemK/hevmeQsSzUkUB/qH1pR/1rdS8nw89aQG0SfV+iVzrxG0seOn5ZoeSWE+eNCQlvxOx4gFjxXpV0ywidddIMT6BMkhVq5K47IbUhTz9NEATVO2SEmf9PBjXa+SjzrbaSBPSVPmiYcaCVLHwSw/uDQhTHWD6TWZpALPUsFe7a8/TAZmiR7GQPt0PJhXE/sSFLXRnFduAP71Rf+34E/6ViCE68W5v4caaQSiOk3YIzh3xFwJxQ97G9+WOSTXkBaFhyKQk8c74Gm9drg76z4FLbg3JE+jvK0b+pC+mgWpHXOWMN1bdkRmtWhs0bFn7P+2fQZccGyvnhutgrTWK6BLRbIASYBWWvvO4QENyBWW2y3aofFJfkQXI2+wU"
 }
