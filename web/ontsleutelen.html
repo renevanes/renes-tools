@@ -12,6 +12,8 @@ main{max-width:560px;margin:0 auto;padding:24px 16px}
 .card{background:var(--card);border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 h1{font-size:22px;margin:0 0 6px}p{color:var(--muted);margin:0 0 16px}
 label{display:block;font-weight:600;margin:14px 0 6px}
+.chk{display:flex;gap:10px;align-items:flex-start;font-weight:400;margin-top:16px}.chk input{width:auto;margin-top:4px}
+small{color:var(--muted)}
 input{width:100%;box-sizing:border-box;font:inherit;padding:12px;border-radius:10px;border:1px solid #8884;background:transparent;color:inherit}
 button{margin-top:18px;width:100%;padding:14px;border:0;border-radius:12px;background:var(--acc);color:#fff;font:600 17px system-ui,sans-serif;cursor:pointer}
 button:disabled{opacity:.5}
@@ -27,6 +29,7 @@ button:disabled{opacity:.5}
   <input type="file" id="f" accept=".rtb">
   <label for="pw">Wachtwoord</label>
   <input type="password" id="pw" autocomplete="off">
+  <label class="chk" for="geheim"><input type="checkbox" id="geheim"><span>Ook wachtwoorden en sleutels uitpakken<br><small>Standaard blijven <b>Appgegevens/geheim</b> en <b>Appgegevens/instellingen.json</b> eruit: daarin staan je VPN-sleutels, wachtwoorden en koppelingen leesbaar. Die heb je alleen nodig om Tools op een telefoon terug te zetten, en dat doet de app zelf met het .rtb-bestand.</small></span></label>
   <button id="go">Ontsleutelen</button>
   <div id="msg" role="status" aria-live="polite"></div>
 </div>
@@ -67,13 +70,95 @@ async function run(){
       if (last && off !== file.size) throw new Error('Het archief is beschadigd (extra gegevens na het einde)');
       if (n % 16 === 0) msg('Bezig… ' + Math.round(100 * off / file.size) + '%');
     }
+    let blob = new Blob(parts, {type: 'application/zip'}), removed = 0;
+    if (!$('#geheim').checked) {
+      try { const r = await withoutSecrets(blob); blob = r.blob; removed = r.removed; }
+      catch (e) {
+        // Geen gewone zip te lezen: alleen doorgeven als er zeker geen geheimen in staan
+        if (await mentions(parts, 'Appgegevens/')) throw new Error('Wachtwoorden en sleutels weglaten lukt bij dit bestand niet. Vink "Ook wachtwoorden en sleutels uitpakken" aan als je ze toch wilt.');
+      }
+    }
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(parts, {type: 'application/zip'}));
+    a.href = URL.createObjectURL(blob);
     a.download = file.name.replace(/\.rtb$/i, '') + '.zip';
     document.body.appendChild(a); a.click(); a.remove();
-    msg('Klaar: ' + a.download + ' staat in je downloads.', 'ok');
+    msg('Klaar: ' + a.download + ' staat in je downloads.' + (removed ? ' ' + removed + (removed === 1 ? ' bestand' : ' bestanden') + ' met wachtwoorden en sleutels weggelaten.' : ''), 'ok');
   } catch (e) { msg(e.message || 'Ontsleutelen mislukt', 'bad'); }
   finally { $('#go').disabled = false; }
+}
+/* Wat nooit zomaar leesbaar uit het archief komt (zoals Secure.unpack in de app) */
+const SECRET = n => n.startsWith('Appgegevens/geheim/') || n === 'Appgegevens/instellingen.json';
+/* Komt deze tekst ergens in de gegevens voor? (bestandsnamen staan leesbaar in een zip) */
+async function mentions(parts, text){
+  const t = new TextEncoder().encode(text);
+  let prev = new Uint8Array(0);
+  for (const p of parts) {
+    const cur = new Uint8Array(p), buf = new Uint8Array(prev.length + cur.length);
+    buf.set(prev); buf.set(cur, prev.length);
+    outer: for (let i = 0; i + t.length <= buf.length; i++) { for (let j = 0; j < t.length; j++) if (buf[i + j] !== t[j]) continue outer; return true; }
+    prev = buf.slice(Math.max(0, buf.length - t.length + 1));
+  }
+  return false;
+}
+/* Nieuwe zip zonder de geheimen: de bestanden zelf ongewijzigd overnemen, alleen de inhoudsopgave van de zip opnieuw (ook zip64). */
+async function withoutSecrets(blob){
+  const size = blob.size, tailLen = Math.min(size, 65557);
+  const tail = new Uint8Array(await blob.slice(size - tailLen).arrayBuffer()), T = new DataView(tail.buffer);
+  let eo = -1;
+  for (let i = tail.length - 22; i >= 0; i--) if (T.getUint32(i, true) === 0x06054b50) { eo = i; break; }
+  if (eo < 0) throw new Error('geen zip');
+  let count = T.getUint16(eo + 10, true), cdSize = T.getUint32(eo + 12, true), cdOff = T.getUint32(eo + 16, true), z64 = false;
+  const eocdAbs = size - tailLen + eo;
+  if (count === 0xFFFF || cdSize === 0xFFFFFFFF || cdOff === 0xFFFFFFFF) {
+    const L = new DataView(await blob.slice(eocdAbs - 20, eocdAbs).arrayBuffer());
+    if (L.getUint32(0, true) !== 0x07064b50) throw new Error('zip64');
+    const ro = Number(L.getBigUint64(8, true)), R = new DataView(await blob.slice(ro, ro + 56).arrayBuffer());
+    if (R.getUint32(0, true) !== 0x06064b50) throw new Error('zip64');
+    count = Number(R.getBigUint64(32, true)); cdSize = Number(R.getBigUint64(40, true)); cdOff = Number(R.getBigUint64(48, true)); z64 = true;
+  }
+  const cd = new Uint8Array(await blob.slice(cdOff, cdOff + cdSize).arrayBuffer()), C = new DataView(cd.buffer), dec = new TextDecoder();
+  const ents = [];
+  for (let i = 0, p = 0; i < count; i++) {
+    if (p + 46 > cd.length || C.getUint32(p, true) !== 0x02014b50) throw new Error('zip');
+    const nl = C.getUint16(p + 28, true), xl = C.getUint16(p + 30, true), cl = C.getUint16(p + 32, true);
+    const e = {name: dec.decode(cd.subarray(p + 46, p + 46 + nl)), start: p, len: 46 + nl + xl + cl, off: C.getUint32(p + 42, true), offPos: p + 42, wide: false};
+    if (e.off === 0xFFFFFFFF) {
+      for (let q = p + 46 + nl, end = q + xl; q + 4 <= end; ) {
+        const id = C.getUint16(q, true), sz = C.getUint16(q + 2, true);
+        if (id === 1) { let r = q + 4; if (C.getUint32(p + 24, true) === 0xFFFFFFFF) r += 8; if (C.getUint32(p + 20, true) === 0xFFFFFFFF) r += 8; e.off = Number(C.getBigUint64(r, true)); e.offPos = r; e.wide = true; break; }
+        q += 4 + sz;
+      }
+      if (!e.wide) throw new Error('zip64');
+    }
+    ents.push(e); p += e.len;
+  }
+  const byOff = ents.slice().sort((a, b) => a.off - b.off);
+  byOff.forEach((e, i) => { e.end = i + 1 < byOff.length ? byOff[i + 1].off : cdOff; });
+  const keep = byOff.filter(e => !SECRET(e.name)), removed = byOff.length - keep.length;
+  if (!removed) return {blob, removed: 0};
+  const out = [], cds = [];
+  let pos = 0;
+  for (const e of keep) {
+    out.push(blob.slice(e.off, e.end));
+    const rec = cd.slice(e.start, e.start + e.len), V = new DataView(rec.buffer), at = e.offPos - e.start;
+    if (e.wide) V.setBigUint64(at, BigInt(pos), true); else V.setUint32(at, pos, true);
+    cds.push(rec); pos += e.end - e.off;
+  }
+  const newCdSize = cds.reduce((n, r) => n + r.length, 0), n = keep.length, tailParts = [];
+  if (z64) {
+    const r = new DataView(new ArrayBuffer(56));
+    r.setUint32(0, 0x06064b50, true); r.setBigUint64(4, 44n, true); r.setUint16(12, 45, true); r.setUint16(14, 45, true);
+    r.setBigUint64(24, BigInt(n), true); r.setBigUint64(32, BigInt(n), true); r.setBigUint64(40, BigInt(newCdSize), true); r.setBigUint64(48, BigInt(pos), true);
+    const l = new DataView(new ArrayBuffer(20));
+    l.setUint32(0, 0x07064b50, true); l.setBigUint64(8, BigInt(pos + newCdSize), true); l.setUint32(16, 1, true);
+    tailParts.push(r.buffer, l.buffer);
+  }
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true);
+  e.setUint16(8, z64 ? 0xFFFF : n, true); e.setUint16(10, z64 ? 0xFFFF : n, true);
+  e.setUint32(12, z64 ? 0xFFFFFFFF : newCdSize, true); e.setUint32(16, z64 ? 0xFFFFFFFF : pos, true);
+  tailParts.push(e.buffer);
+  return {blob: new Blob([...out, ...cds, ...tailParts], {type: 'application/zip'}), removed};
 }
 $('#go').onclick = run;
 $('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });

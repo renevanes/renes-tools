@@ -73,7 +73,7 @@ public class AllBackupJob extends JobService {
      * en niet op een nieuwe installatie waarop je gegevens nog terug moeten.
      */
     static boolean wanted(Context c) {
-        try { return AllBackup.auto(c) && WaBackup.destUri(c) != null && !Herstel.pending(c); } catch (Exception e) { return false; }
+        try { return AllBackup.auto(c) && WaBackup.destUri(c) != null && Herstel.blocked(c) == null; } catch (Exception e) { return false; }
     }
 
     static void schedule(Context c, long minDelay) {

@@ -176,6 +176,8 @@ public class MainActivity extends Activity {
             catch (Exception ignored) { }
         } else live = this;
         synchronized (ALL) { ALL.add(this); }
+        // Een terugzetten dat halverwege stopte (ook als de app vóór het ontgrendelen startte): eerst afmaken of terugdraaien
+        if (!isSolo()) AppBackup.recoverIfNeeded(getApplicationContext());
         RedialService.createChannel(this);
         WaBackupService.createChannel(this);
         WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
@@ -2047,7 +2049,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void backupSetPassword(String pw) {
             new Thread(() -> {
                 String r = "";
-                try { Secure.setPassword(ctx, pw); }
+                try { Secure.setPassword(ctx, pw); AllBackupJob.ensureScheduled(ctx); } // (elke nacht: standaard aan met versleutelen)
                 catch (Exception e) { r = e.getMessage() != null ? e.getMessage() : "Instellen mislukt"; App.log(ctx, "SECURE", "wachtwoord: " + e); }
                 a.js("onSecure", JSONObject.quote(r));
             }, "secure").start();
@@ -2056,6 +2058,7 @@ public class MainActivity extends Activity {
         /** Versleutelen uit: de privé-onderdelen (assistent, Slaappraat, Check-in) gaan dan ook uit; weer aanzetten vraagt eerst. */
         @JavascriptInterface public void backupEncryptOff() {
             Secure.off(ctx);
+            try { AllBackupJob.ensureScheduled(ctx); } catch (Exception ignored) { }
             android.content.SharedPreferences.Editor e = AllBackup.prefs(ctx).edit();
             for (String p : AllBackup.PRIVATE) { e.putBoolean("part_" + p, false); AllBackup.setPlain(ctx, p, false); }
             e.apply();
@@ -2141,8 +2144,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String herstelState() {
             try {
                 String st = Herstel.state(ctx);
+                String bl = Herstel.blocked(ctx);
                 return new JSONObject().put("state", st).put("pending", Herstel.NEW.equals(st)).put("after", Herstel.showList(ctx))
-                        .put("dest", WaBackup.destUri(ctx) != null).put("hasData", AppBackup.hasLocalData(ctx)).toString();
+                        .put("dest", WaBackup.destUri(ctx) != null).put("hasData", AppBackup.hasLocalData(ctx)).put("blocked", bl == null ? "" : bl).toString();
             } catch (Exception e) { return "{}"; }
         }
 
@@ -2185,7 +2189,7 @@ public class MainActivity extends Activity {
                     }).toString();
                 }
                 catch (OutOfMemoryError e) { r = "{\"error\":\"Te weinig geheugen om deze backup te openen\"}"; }
-                catch (Throwable e) { r = errJson(e instanceof Exception ? (Exception) e : new Exception("Openen mislukt")); }
+                catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(AppData.safeMsg(e, "Openen mislukt: de backup is niet te lezen")) + "}"; }
                 a.js("onHerstelOpened", r);
             }, "herstel-open").start();
         }
@@ -2195,7 +2199,7 @@ public class MainActivity extends Activity {
             new Thread(() -> {
                 String r;
                 try { Uri u = Herstel.archiveUri(ctx, name); a.pendingArchive = u; r = Secure.open(ctx, u, pw).toString(); }
-                catch (Throwable e) { r = errJson(e instanceof Exception ? (Exception) e : new Exception("Openen mislukt")); }
+                catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(AppData.safeMsg(e, "Openen mislukt: de backup is niet te lezen")) + "}"; }
                 a.js("onArchive", r);
             }, "herstel-old").start();
         }
@@ -2203,12 +2207,14 @@ public class MainActivity extends Activity {
         /** Alles terugzetten (vervangt wat er staat) en de app opnieuw starten; bij een fout onHerstelDone(melding). */
         @JavascriptInterface public void herstelApply() {
             new Thread(() -> {
-                String r = "";
+                String r = Herstel.busyReason();
                 boolean restart = false;
+                if (r != null) { a.js("onHerstelDone", JSONObject.quote(r)); return; }
+                r = "";
                 if (!AllBackup.tryBegin()) r = "Er loopt een backup; probeer het zo opnieuw";
                 else try { String w = AppBackup.apply(ctx); restart = true; if (!w.isEmpty()) a.js("toast", JSONObject.quote(w)); }
-                catch (Throwable e) { r = e.getMessage() == null ? "Terugzetten mislukt" : e.getMessage(); App.log(ctx, "HERSTEL", "terugzetten: " + r); }
-                finally { AllBackup.running.set(false); AllBackup.busy = false; }
+                catch (Throwable e) { r = AppData.safeMsg(e, "Terugzetten mislukt; er is niets veranderd"); App.log(ctx, "HERSTEL", "terugzetten: " + r); }
+                finally { AllBackup.running.set(false); AllBackup.busy = false; } // (hoort bij de try: alleen na een gelukte tryBegin)
                 a.js("onHerstelDone", JSONObject.quote(r));
                 if (restart) a.h.postDelayed(() -> Herstel.restart(a), 1200);
             }, "herstel-apply").start();

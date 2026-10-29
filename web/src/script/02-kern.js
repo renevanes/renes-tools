@@ -152,7 +152,7 @@ function show(name){
   if (name==='radio') enterRadio(); else stopRdPoll();
   if (name==='settings' || ST_SUBS.includes(name)) enterSettings();
   if (name==='backup') enterBackup(); else stopBkPoll();
-  if (name==='herstel') enterHerstel();
+  if (name==='herstel') enterHerstel(); else if (current_prev==='herstel' && typeof hsLeave === 'function') hsLeave();
   if (name==='homeedit') enterHomeEdit(); else if (typeof heDragCancel === 'function') heDragCancel();
   if (name==='ralarm') enterAlarm();
   if (name==='selftest') enterSelfTest();
@@ -187,6 +187,7 @@ window.goBack = function(){
   // Na een sprong: terug naar waar je vandaan kwam, maar alleen vanaf het scherm waar je naartoe sprong
   // (ben je binnen de tool verder gegaan, dan eerst gewoon terug binnen de tool).
   if (jumpStack.length && jumpStack[jumpStack.length - 1].to === current) { show(jumpStack.pop().from); return true; }
+  if (current === 'herstel' && typeof hsBack === 'function' && hsBack()) return true;
   if (current!=='home'){ show(BACK[current]||'home'); return true; } return false; };
 /* Sprongen tussen tools (oproep → contact → oproepen): terug gaat naar waar je vandaan kwam. */
 const jumpStack = [];

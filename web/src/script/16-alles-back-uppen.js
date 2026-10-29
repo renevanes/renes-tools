@@ -44,9 +44,17 @@ function bkRenderHerstel(st){
     : '<span class="bad">Nog niet compleet</span>' + (h.last ? ' · laatste complete backup ' + esc(fmtD(h.last)) : '');
   $('#bk-herstel-st').className = 'note';
   const rows = [['Backup-map', h.dest], ['Versleutelen', h.enc], ['Alle appgegevens', h.part], ['Elke nacht vanzelf', h.auto], ['Complete backup gemaakt', !!h.last]];
-  $('#bk-herstel-list').innerHTML = rows.map(r => '<div class=bkres><b>' + r[0] + '</b>' + (r[1] ? '<span class=good>✓</span>' : '<span class=bad>✗ ontbreekt</span>') + '</div>').join('') +
-    ((h.missing || []).length ? '<p class=note id=bk-herstel-miss>Nog te doen: ' + esc(h.missing.join('; ')) + '.</p>' : '');
+  $('#bk-herstel-list').innerHTML =
+    (h.blocked ? '<p class="note warn" id=bk-blocked>Backups staan stil. ' + esc(h.blocked) + '.</p>' +
+      '<button class="big" id=bk-blocked-btn onclick="' + (/zet eerst je gegevens terug/.test(h.blocked) ? 'herstelStart()' : 'bkEncSet()') + '">' + (/zet eerst je gegevens terug/.test(h.blocked) ? 'Gegevens terugzetten' : 'Wachtwoord instellen') + '</button>' : '') +
+    rows.map(r => '<div class=bkres><b>' + r[0] + '</b>' + (r[1] ? '<span class=good>✓</span>' : '<span class=bad>✗ ontbreekt</span>') + '</div>').join('') +
+    ((h.missing || []).length ? '<p class=note id=bk-herstel-miss>Nog te doen: ' + esc(h.missing.join('; ')) + '.</p>' : '') +
+    (h.stopped ? '<p class="note warn" id=bk-herstel-stopped>De laatste nachtelijke backup werd door Android gestopt voordat alle appgegevens erin zaten (Android geeft een nachtelijke taak beperkte tijd). Maak hem één keer met <b>Nu alles back-uppen</b> en laat de app open tot hij klaar is.</p>' : '') +
+    // Grootte: elke nacht een volledig archief erbij. Opruimen kiest Rene zelf.
+    (h.part && h.enc && !h.rotate ? '<p class=note id=bk-herstel-size>Elke nacht komt er een volledige backup bij' + (h.appBytes ? ' (de appgegevens waren de laatste keer ongeveer ' + fmtB(h.appBytes) + ')' : '') +
+      '. Oude backups worden niet vanzelf weggehaald, dus je backup-map groeit elke nacht.</p><button class="big ghost" id=bk-herstel-rotate onclick="bkRotateOn()">Oude backups vanzelf opruimen</button>' : '');
 }
+function bkRotateOn(){ Android.backupSetRotate(true); toast('Na elke gelukte backup worden oude backups opgeruimd (de laatste 14 dagen en de nieuwste per maand blijven)'); enterBackup(); }
 function stopBkPoll(){ if (bkPoll) { clearInterval(bkPoll); bkPoll = null; } }
 function bkRenderLast(st){
   const l = st.last;

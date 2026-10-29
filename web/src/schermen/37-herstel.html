@@ -23,12 +23,12 @@
     </div>
     <div class="card hs-step" id="hs-bezig" style="display:none">
       <h2 id="hs-bezig-t">Bezig met controleren…</h2>
-      <div class="note-progress"><span id="hs-bezig-s">De hele backup wordt gelezen en gecontroleerd. Er verandert nog niets.</span><progress id="hs-prog" max="100"></progress></div>
+      <div class="note-progress"><span id="hs-bezig-s" aria-live="polite">De hele backup wordt gelezen en gecontroleerd. Er verandert nog niets.</span><progress id="hs-prog" max="100" aria-label="Voortgang"></progress></div>
     </div>
     <div class="card hs-step" id="hs-klaar" style="display:none">
       <h2>Klaar om terug te zetten</h2>
       <div id="hs-sum"></div>
-      <p class="note warn" id="hs-warn" style="display:none">Let op: wat er nu op deze telefoon in Tools staat, wordt vervangen door wat in deze backup staat.</p>
+      <p class="note warn" id="hs-warn" style="display:none">Let op: wat er nu op deze telefoon in Tools staat, wordt vervangen door wat in deze backup staat. Ook het wachtwoord van je backups wordt dat van deze backup, en je backup-map wordt de map die je net koos.</p>
       <button class="big" id="hs-apply" onclick="hsApply()">Alles terugzetten</button>
       <button class="big ghost" style="margin-top:8px" onclick="hsBackToList()">Andere backup kiezen</button>
       <p class="note">Daarna start de app opnieuw. Toestemmingen van Android (zoals sms, contacten en meldingentoegang) kunnen niet mee terug: die vraagt de app je daarna opnieuw.</p>

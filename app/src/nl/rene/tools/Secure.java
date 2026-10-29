@@ -142,6 +142,28 @@ final class Secure {
         final OutputStream raw;
         final WaBackup.DestDir dir;
         int files = 0;
+        /** Wat er al compleet in dit archief staat (naam → grootte en SHA-256), om dezelfde inhoud niet twee keer op te nemen. */
+        final Map<String, AppData.Entry> done = new java.util.HashMap<>();
+        final Map<Long, List<AppData.Entry>> bySize = new java.util.HashMap<>();
+
+        void record(String path, long size, String sha) {
+            AppData.Entry e = new AppData.Entry(path, size, sha);
+            done.put(path, e);
+            List<AppData.Entry> l = bySize.get(size);
+            if (l == null) { l = new ArrayList<>(); bySize.put(size, l); }
+            l.add(e);
+        }
+
+        /** Staat er al een ander onderdeel (niet de appgegevens zelf) met deze grootte in het archief? */
+        boolean hasSize(long size) { return bySize.containsKey(size); }
+
+        /** Een eerder, compleet bestand van een ander onderdeel met precies deze inhoud; anders null. */
+        AppData.Entry same(long size, String sha) {
+            List<AppData.Entry> l = bySize.get(size);
+            if (l != null) for (AppData.Entry e : l)
+                if (e.sha.equals(sha) && !bad.contains(e.path) && !e.path.startsWith(AppData.DIR + "/")) return e;
+            return null;
+        }
 
         Zip(WaBackup.Dest d, WaBackup.DestDir dr, Uri u, String n, OutputStream r, Vault.Key k) throws IOException {
             dest = d; dir = dr; doc = u; name = n; raw = r;
@@ -150,7 +172,8 @@ final class Secure {
         }
 
         Writer writer(String dir, String file) throws IOException {
-            return new java.io.BufferedWriter(new OutputStreamWriter(stream(dir, file), StandardCharsets.UTF_8), 1 << 16);
+            // Tekst: altijd weer gewoon inpakken (level 6), ook na een licht ingepakt geluidsbestand
+            return new java.io.BufferedWriter(new OutputStreamWriter(stream(dir, file, 6), StandardCharsets.UTF_8), 1 << 16);
         }
 
         /** Binair bestand in het archief (bijv. kluisdocumenten). */
@@ -160,10 +183,10 @@ final class Secure {
         OutputStream stream(String dir, String file, int level) throws IOException {
             ZipEntry e = new ZipEntry(unique(dir, file));
             e.setTime(System.currentTimeMillis());
-            z.setLevel(level); // geldt vanaf dit bestand; het volgende stream() zet het weer
+            z.setLevel(level); // geldt vanaf dit bestand; het volgende stream() of writer() zet het weer (writer: 6)
             z.putNextEntry(e);
             files++;
-            return new EntryStream(z);
+            return new EntryStream(this, lastPath);
         }
 
         /** Al samengeperst bestand (geluid): ongecomprimeerd in het archief, dat scheelt rekenwerk en tijd. */
@@ -180,6 +203,9 @@ final class Secure {
             files++;
             z.write(b, 0, b.length);
             z.closeEntry();
+            java.security.MessageDigest md = AppData.sha256();
+            md.update(b, 0, b.length);
+            record(lastPath, b.length, AppData.hex(md.digest()));
         }
 
         private String unique(String dir, String file) {
@@ -193,13 +219,24 @@ final class Secure {
         }
     }
 
-    /** Sluiten = alleen het bestand in het archief afsluiten, niet het archief zelf. */
+    /** Sluiten = alleen het bestand in het archief afsluiten, niet het archief zelf. Telt grootte en SHA-256 mee. */
     static final class EntryStream extends FilterOutputStream {
         private final ZipOutputStream z;
+        private final Zip zip;
+        private final String path;
+        private final java.security.MessageDigest md = AppData.sha256();
+        private long n = 0;
         private boolean closed = false;
-        EntryStream(ZipOutputStream o) { super(o); z = o; }
-        @Override public void write(byte[] b, int off, int len) throws IOException { z.write(b, off, len); }
-        @Override public void close() throws IOException { if (!closed) { closed = true; flush(); z.closeEntry(); } }
+        EntryStream(Zip zip, String path) { super(zip.z); this.z = zip.z; this.zip = zip; this.path = path; }
+        @Override public void write(int b) throws IOException { z.write(b); md.update((byte) b); n++; }
+        @Override public void write(byte[] b, int off, int len) throws IOException { z.write(b, off, len); md.update(b, off, len); n += len; }
+        @Override public void close() throws IOException {
+            if (closed) return;
+            closed = true;
+            flush();
+            z.closeEntry();
+            zip.record(path, n, AppData.hex(md.digest()));
+        }
     }
 
     static Zip begin(Context c, Vault.Key k) throws Exception {

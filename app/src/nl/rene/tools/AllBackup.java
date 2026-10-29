@@ -38,8 +38,15 @@ final class AllBackup {
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("allbackup", Context.MODE_PRIVATE); }
 
-    /** Elke nacht vanzelf: staat standaard aan (zet je hem zelf uit, dan blijft hij uit). */
-    static boolean auto(Context c) { return prefs(c).getBoolean("auto", true); }
+    /**
+     * Elke nacht vanzelf. Zelf aan- of uitgezet: zo blijft het. Nog nooit gekozen: alleen aan als versleutelen aan staat
+     * en er een backup-map is (dan gaat er nooit ongevraagd elke nacht leesbaar sms, oproepen en notities in de map).
+     */
+    static boolean auto(Context c) {
+        SharedPreferences p = prefs(c);
+        if (p.contains("auto")) return p.getBoolean("auto", false);
+        return Secure.on(c) && WaBackup.destUri(c) != null;
+    }
 
     /** Alle appgegevens (voor terugzetten na herinstallatie) gaan alleen mee in een versleutelde backup. */
     static final String APP_PLAIN = "Niet mee: alleen in een versleutelde backup (zet Versleutelen aan)";
@@ -87,11 +94,14 @@ final class AllBackup {
                 put(res, "all", false, 0, "Kies eerst een backup-map (Instellingen)");
                 return res;
             }
-            // Nieuwe installatie waarop je gegevens nog terug moeten: geen (lege) backup die de goede kan verdringen
-            if (Herstel.pending(c)) {
-                put(res, "all", false, 0, Herstel.NOT_YET);
+            // Nieuwe installatie waarop je gegevens nog terug moeten: geen (lege) backup die de goede kan verdringen.
+            // Teruggezet zonder backup-sleutel: geen backups (ook niet leesbaar) tot het wachtwoord er weer is.
+            String blocked = Herstel.blocked(c);
+            if (blocked != null) {
+                put(res, "all", false, 0, blocked);
                 return res;
             }
+            AppBackup.clearTemp(c); // ontsleutelde kluisbestanden van een afgebroken backup
             if (Secure.on(c)) {
                 try {
                     zip = Secure.begin(c, Secure.key(c));
@@ -149,8 +159,10 @@ final class AllBackup {
                         res.put("archive", name); done = true;
                         // Laatste complete backup voor herinstallatie (alle appgegevens erin, archief niet afgebroken)
                         JSONObject ap = res.optJSONObject("app");
-                        if (ap != null && ap.optBoolean("ok") && ap.optInt("count") > 0 && !res.optBoolean("stopped"))
-                            prefs(c).edit().putLong("appLast", System.currentTimeMillis()).putString("appLastName", name).apply();
+                        if (ap != null && ap.optBoolean("ok") && ap.optInt("count") > 0 && !res.optBoolean("stopped")) {
+                            prefs(c).edit().putLong("appLast", System.currentTimeMillis()).putString("appLastName", name).putLong("appBytes", AppBackup.lastBytes).apply();
+                            Herstel.markArchive(c, zip, name);
+                        }
                     }
                     catch (Exception e) { put(res, "all", false, 0, "Archief afsluiten mislukt: " + e.getMessage()); App.log(c, "BACKUP", "archief afsluiten: " + e); }
                     // Staat het privé-deel nu versleuteld in het archief, dan de oude leesbare kopie uit de backup-map weg

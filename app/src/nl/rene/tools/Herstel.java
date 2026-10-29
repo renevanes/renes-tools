@@ -42,8 +42,9 @@ final class Herstel {
             File f = stateFile(c);
             if (f.isFile()) return Contacts.readText(f, false).trim();
             android.content.pm.PackageInfo pi = c.getPackageManager().getPackageInfo(c.getPackageName(), 0);
-            // (Niet op gegevens letten: de Google-backup kan al gewone instellingen en notities hebben teruggezet)
-            boolean fresh = pi.firstInstallTime == pi.lastUpdateTime;
+            // Nieuw geïnstalleerd (de Google-backup kan dan al gewone instellingen en notities hebben teruggezet, daarom niet
+            // op gegevens letten), of "Gegevens wissen" in Android (geen toestandsbestand en niets van jezelf meer)
+            boolean fresh = pi.firstInstallTime == pi.lastUpdateTime || !AppBackup.hasLocalData(c);
             String s = fresh ? NEW : EXISTING;
             Contacts.writeText(f, s, false);
             return s;
@@ -58,6 +59,50 @@ final class Herstel {
     static boolean pending(Context c) { return App.unlocked(c) && NEW.equals(state(c)); }
 
     static final String NOT_YET = "Nog niet: zet eerst je gegevens terug (of kies Overslaan)";
+
+    // ---------- na terugzetten zonder de backup-sleutel ----------
+
+    static File passwordFile(Context c) { return new File(c.getNoBackupFilesDir(), "herstel-wachtwoord"); }
+
+    static final String NEED_PASSWORD = "Stel eerst het wachtwoord van je backup opnieuw in (Versleutelen): na het terugzetten gaan backups alleen versleuteld verder";
+
+    /** Teruggezet, maar de backup-sleutel kon niet mee: geen backups (ook niet leesbaar) tot er weer een wachtwoord is. */
+    static boolean passwordNeeded(Context c) {
+        try {
+            File f = passwordFile(c);
+            if (!f.isFile()) return false;
+            if (Secure.on(c) && !Secure.broken(c)) { f.delete(); return false; }
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    /** Waarom de backups nu stilstaan (of null). */
+    static String blocked(Context c) {
+        if (pending(c)) return NOT_YET;
+        if (passwordNeeded(c)) return NEED_PASSWORD;
+        return null;
+    }
+
+    /** Loopt er iets dat tijdens terugzetten niet tegelijk mag (het schrijft in de mappen die vervangen worden)? */
+    static String busyReason() {
+        List<String> l = new ArrayList<>();
+        if (CallRecorderService.busy || CallRecorderService.recording) l.add("een gespreksopname");
+        if (TracksService.running) l.add("het opnemen van een route");
+        if (SleepService.running()) l.add("Slaappraat");
+        if (TranscribeService.busy) l.add("gesprekken uitschrijven of een spraakmodel downloaden");
+        if (WaBackup.busy) l.add("de WhatsApp-backup");
+        if (!ModelDownloadService.RUN.isEmpty() || !ModelDownloadService.QUEUED.isEmpty()) l.add("het downloaden van een model");
+        if (AllBackup.busy) l.add("een backup");
+        if (l.isEmpty()) return null;
+        return "Wacht even of stop eerst " + join(l) + "; daarna kun je alles terugzetten";
+    }
+
+    static String join(List<String> l) {
+        if (l.size() == 1) return l.get(0);
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < l.size(); i++) b.append(i == 0 ? "" : i == l.size() - 1 ? " en " : ", ").append(l.get(i));
+        return b.toString();
+    }
 
     // ---------- backups zoeken ----------
 
@@ -78,7 +123,16 @@ final class Herstel {
                 l.put(new JSONObject().put("name", n).put("size", ch.size).put("t", ch.mod).put("deels", n.endsWith(Rotate.PARTIAL + ".rtb")));
                 if (l.length() >= 60) break;
             }
-            String rec = AppData.recommended(sorted);
+            // Welke archieven alle appgegevens compleet bevatten (bijgehouden in Versleuteld/appgegevens.txt)
+            List<String> withApp = new ArrayList<>();
+            WaBackup.Child list = dir.kids.get(APP_LIST);
+            if (list != null && !list.dir && list.size < 200_000) {
+                try (InputStream in = c.getContentResolver().openInputStream(android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, list.docId))) {
+                    if (in != null) withApp = AppData.appNames(new String(SelfTest.readAll(in), java.nio.charset.StandardCharsets.UTF_8));
+                } catch (Exception ignored) { }
+            }
+            for (int i = 0; i < l.length(); i++) l.getJSONObject(i).put("app", withApp.contains(l.getJSONObject(i).getString("name")));
+            String rec = AppData.recommended(sorted, withApp);
             if (rec != null) o.put("recommended", rec);
         }
         // Gewone (leesbare) onderdelen, als er geen versleutelde backup is
@@ -90,6 +144,22 @@ final class Herstel {
         WaBackup.DestDir k = dest.dir(Contacts.DIR, false);
         if (k != null && !k.kids.isEmpty()) plain.put("contacts", true);
         return o.put("archives", l).put("plain", plain);
+    }
+
+    static final String APP_LIST = "appgegevens.txt";
+
+    /** Na een gelukte backup met alle appgegevens: de naam van het archief bijhouden (alleen namen, geen inhoud). */
+    static void markArchive(Context c, Secure.Zip zip, String name) {
+        try {
+            String old = "";
+            WaBackup.Child ch = zip.dir.kids.get(APP_LIST);
+            if (ch != null && !ch.dir) {
+                try (InputStream in = zip.dest.cr.openInputStream(android.provider.DocumentsContract.buildDocumentUriUsingTree(zip.dest.tree, ch.docId))) {
+                    if (in != null) old = new String(SelfTest.readAll(in), java.nio.charset.StandardCharsets.UTF_8);
+                }
+            }
+            try (Sms.Out w = Sms.open(zip.dest, zip.dir, APP_LIST, "text/plain")) { w.write(AppData.appNamesAdd(old, name, 400)); w.done(); }
+        } catch (Exception e) { App.log(c, "BACKUP", "appgegevens.txt: " + AppData.safeMsg(e, "fout")); }
     }
 
     static Uri archiveUri(Context c, String name) throws Exception {
@@ -138,7 +208,7 @@ final class Herstel {
             return new JSONObject().put("old", true).put("name", name);
         } catch (Exception e) {
             java.util.Arrays.fill(k.key, (byte) 0);
-            String m = e.getMessage() == null ? "Openen mislukt" : e.getMessage();
+            String m = AppData.safeMsg(e, "Openen mislukt: de backup is niet te lezen");
             return new JSONObject().put("error", m).put("wrongPw", m.startsWith("Verkeerd wachtwoord"));
         } finally { AllBackup.running.set(false); AllBackup.busy = false; }
     }
@@ -155,7 +225,8 @@ final class Herstel {
             o.put("before", before == null ? new JSONObject() : new JSONObject(before));
             Contacts.writeText(afterFile(c), o.toString(), false);
             Contacts.writeText(rearmFile(c), "1", false);
-        } catch (Exception e) { App.log(c, "HERSTEL", "na terugzetten: " + e.getMessage()); }
+            if (keySet) passwordFile(c).delete(); else Contacts.writeText(passwordFile(c), "1", false);
+        } catch (Exception e) { App.log(c, "HERSTEL", "na terugzetten: " + AppData.safeMsg(e, "fout")); }
         setState(c, DONE);
     }
 
@@ -192,7 +263,7 @@ final class Herstel {
         try {
             JSONArray ai = m.optJSONArray("ai"), keep = new JSONArray();
             if (ai != null) for (int i = 0; i < ai.length(); i++) {
-                LocalAi.Model x = newest(LocalAi.model(ai.optString(i)));
+                LocalAi.Model x = LocalAi.model(ai.optString(i)); // het model dat er was (een nieuwer meldt de app zelf)
                 if (x == null || LocalAi.ready(c, x)) continue;
                 if (LocalAi.prefs(c).getBoolean("own_" + x.id, false)) continue; // de app downloadt hem al (en gaat vanzelf verder)
                 if (netOk && LocalAi.supported()) {
@@ -218,18 +289,6 @@ final class Herstel {
         } catch (Throwable t) { App.log(c, "HERSTEL", "modellen: " + t); }
     }
 
-    /** Een model dat intussen door een nieuwer is vervangen: het nieuwere. */
-    static LocalAi.Model newest(LocalAi.Model m) {
-        if (m == null) return null;
-        for (int i = 0; i < 4; i++) {
-            LocalAi.Model n = null;
-            for (LocalAi.Model x : LocalAi.MODELS) if (m.id.equals(x.replaces)) n = x;
-            if (n == null) return m;
-            m = n;
-        }
-        return m;
-    }
-
     // ---------- wat er was (in de backup) en wat er nu is ----------
 
     static JSONObject modelsJson(Context c) throws Exception {
@@ -250,6 +309,7 @@ final class Herstel {
         o.put("sms", has(c, Manifest.permission.READ_SMS));
         o.put("history", NotificationHistory.allowed(c));
         o.put("location", has(c, Manifest.permission.ACCESS_FINE_LOCATION));
+        if (Build.VERSION.SDK_INT >= 29) o.put("bglocation", has(c, Manifest.permission.ACCESS_BACKGROUND_LOCATION));
         o.put("mic", has(c, Manifest.permission.RECORD_AUDIO));
         o.put("calendar", has(c, Manifest.permission.READ_CALENDAR));
         if (Build.VERSION.SDK_INT >= 33) o.put("notif", has(c, Manifest.permission.POST_NOTIFICATIONS));
@@ -277,6 +337,7 @@ final class Herstel {
             {"sms", "Sms", "SMS backup"},
             {"history", "Meldingentoegang", "Meldingsgeschiedenis"},
             {"location", "Locatie", "Mijn routes, Mijn auto, automatiseringen op een plek"},
+            {"bglocation", "Locatie altijd", "Automatiseringen op een plek en Mijn auto, ook als de app dicht is"},
             {"mic", "Microfoon", "Muziek herkennen, Slaappraat, spraak"},
             {"calendar", "Agenda", "Check-in"},
             {"notif", "Meldingen", "Herinneringen, voortgang en bediening"},
@@ -305,7 +366,9 @@ final class Herstel {
             items.put(new JSONObject().put("id", it[0]).put("name", it[1]).put("used", it[2]).put("ok", now.optBoolean(it[0])));
         }
         if (a.optBoolean("bio")) items.put(new JSONObject().put("id", "bio").put("name", "Vingerafdruk bij de app-code").put("used", "Zet hem weer aan bij Instellingen → App-slot").put("ok", Lock.bioWithCode(c)));
-        if (a.optBoolean("keyLost") || !Secure.on(c)) items.put(new JSONObject().put("id", "password").put("name", "Wachtwoord van de backup").put("used", "Stel het opnieuw in, dan gaan de nachtelijke backups weer versleuteld").put("ok", Secure.on(c) && !Secure.broken(c)));
+        if (a.optBoolean("keyLost") || passwordNeeded(c) || !Secure.on(c)) items.put(new JSONObject().put("id", "password").put("name", "Wachtwoord van de backup")
+                .put("used", passwordNeeded(c) ? "Opnieuw instellen (hetzelfde als vroeger mag): tot dan maakt de app geen backups" : "Stel het opnieuw in, dan gaan de nachtelijke backups weer versleuteld")
+                .put("ok", Secure.on(c) && !Secure.broken(c)));
         if (WaChats.key(c) != null) items.put(new JSONObject().put("id", "wa").put("name", "Leesbare WhatsApp-chats").put("used", "Worden opnieuw gemaakt uit de WhatsApp-backup (WhatsApp backup → Leesbare chats)").put("ok", WaChats.dbFile(c).isFile()).put("info", true));
         items.put(new JSONObject().put("id", "widgets").put("name", "Widgets").put("used", "Widgets op het startscherm van de telefoon moet je opnieuw plaatsen").put("ok", true).put("info", true));
         // Modellen
@@ -354,12 +417,20 @@ final class Herstel {
         boolean enc = Secure.on(c) && !Secure.broken(c), dest = WaBackup.destUri(c) != null, auto = AllBackup.auto(c), part = AllBackup.enabledPart(c, "app");
         long last = AllBackup.prefs(c).getLong("appLast", 0);
         JSONArray miss = new JSONArray();
+        String blocked = blocked(c);
+        if (blocked != null) miss.put(blocked);
         if (!dest) miss.put("Kies een backup-map");
         if (!enc) miss.put("Zet Versleutelen aan (wachtwoord)");
         if (!part) miss.put("Vink Alle appgegevens aan");
         if (!auto) miss.put("Zet Elke nacht alles back-uppen aan");
         if (last == 0) miss.put("Nog geen complete backup gemaakt");
-        return new JSONObject().put("ok", miss.length() == 0).put("missing", miss).put("last", last)
+        // Hint bij de grootte: elke nacht komt er een volledig archief bij; opruimen kiest Rene zelf
+        String lastRes = AllBackup.prefs(c).getString("last", null);
+        boolean stopped = false;
+        try { JSONObject lr = lastRes == null ? null : new JSONObject(lastRes); JSONObject ap = lr == null ? null : lr.optJSONObject("app"); stopped = ap != null && AllBackup.STOPPED.equals(ap.optString("msg")); }
+        catch (Exception ignored) { }
+        return new JSONObject().put("ok", miss.length() == 0).put("missing", miss).put("last", last).put("blocked", blocked == null ? "" : blocked)
+                .put("rotate", AllBackup.prefs(c).getBoolean("rotate", false)).put("appBytes", AllBackup.prefs(c).getLong("appBytes", 0)).put("stopped", stopped)
                 .put("lastName", AllBackup.prefs(c).getString("appLastName", "")).put("enc", enc).put("dest", dest).put("auto", auto).put("part", part);
     }
 

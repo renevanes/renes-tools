@@ -122,7 +122,7 @@ public class AppDataTest {
         try { AppData.parse(text.substring(0, text.indexOf("end\t"))); } catch (Exception e) { threw = true; }
         check(threw, "afgekapte inhoudsopgave (zonder slotregel): geweigerd");
         threw = false;
-        try { AppData.parse(text.replace("end\t3", "end\t2")); } catch (Exception e) { threw = true; }
+        try { AppData.parse(text.replace("end\t3\t0", "end\t2\t0")); } catch (Exception e) { threw = true; }
         check(threw, "verkeerd aantal: geweigerd");
         threw = false;
         try { AppData.parse(text.replace("renes-tools-app\t1", "renes-tools-app\t9")); } catch (Exception e) { threw = e.getMessage().contains("nieuwere versie"); }
@@ -131,15 +131,51 @@ public class AppDataTest {
         try { AppData.parse(text.replace("Appgegevens/bestanden/notes.json", "Appgegevens/bestanden/../notes.json")); } catch (Exception e) { threw = true; }
         check(threw, "vreemde naam in de inhoudsopgave: geweigerd");
         threw = false;
-        try { AppData.parse("F\t1\t" + sha("a") + "\t0\tAppgegevens/instellingen.json\nend\t1\n"); } catch (Exception e) { threw = true; }
+        try { AppData.parse("F\t1\t" + sha("a") + "\t0\tAppgegevens/instellingen.json\nend\t1\t0\n"); } catch (Exception e) { threw = true; }
         check(threw, "geen kopregel: geweigerd");
         threw = false;
-        String dup = text.replace("end\t3", "F\t5\t" + sha("hallo") + "\t0\t" + AppData.PREFS + "\nend\t4");
+        String dup = text.replace("end\t3\t0", "F\t5\t" + sha("hallo") + "\t0\t" + AppData.PREFS + "\nend\t4\t0");
         try { AppData.parse(dup); } catch (Exception e) { threw = true; }
         check(threw, "dubbele naam: geweigerd");
 
-        AppData.Manifest nw = AppData.parse(text.replace("end\t3", "F\t4\t" + sha("iets") + "\t0\tAppgegevens/nieuw-onderdeel/x.json\nend\t4"));
+        AppData.Manifest nw = AppData.parse(text.replace("end\t3\t0", "F\t4\t" + sha("iets") + "\t0\tAppgegevens/nieuw-onderdeel/x.json\nend\t4\t0"));
         check(AppData.verify(nw, seen) == null, "onbekend (veilig) onderdeel van een nieuwere versie: overgeslagen, rest in orde");
+
+        // ---------- verwijzingen (zelfde inhoud staat al bij een ander onderdeel) ----------
+        AppData.Manifest mr = new AppData.Manifest();
+        mr.entries.add(new AppData.Entry(AppData.PREFS, 5, sha("hallo")));
+        mr.refs.add(new AppData.Ref("Kluis/Paspoort.pdf", AppData.KLUIS_DIR + "/abc123def", 8, sha("paspoort"), 0));
+        mr.refs.add(new AppData.Ref("Slaappraat/n1/k1.m4a", "Appgegevens/bestanden/sleep/n1/k1.m4a", 6, sha("geluid"), 1_700_000_000_000L));
+        AppData.Manifest br = AppData.parse(AppData.build(mr));
+        check(br.refs.size() == 2 && br.refs.get(1).mtime == 1_700_000_000_000L && br.bytes() == 5 && br.refBytes() == 14, "verwijzingen terug te lezen");
+        Map<String, AppData.Entry> own = new HashMap<>(), other = new HashMap<>();
+        own.put(AppData.PREFS, new AppData.Entry(AppData.PREFS, 5, sha("hallo")));
+        other.put("Kluis/Paspoort.pdf", new AppData.Entry("Kluis/Paspoort.pdf", 8, sha("paspoort")));
+        other.put("Slaappraat/n1/k1.m4a", new AppData.Entry("Slaappraat/n1/k1.m4a", 6, sha("geluid")));
+        check(AppData.verify(br, own, other) == null, "verwijzingen kloppen met de andere onderdelen");
+        other.put("Slaappraat/n1/k1.m4a", new AppData.Entry("Slaappraat/n1/k1.m4a", 6, sha("gelui!")));
+        check(String.valueOf(AppData.verify(br, own, other)).startsWith("Beschadigd"), "andere inhoud bij het onderdeel: beschadigd");
+        other.remove("Kluis/Paspoort.pdf");
+        check(String.valueOf(AppData.verify(br, own, other)).startsWith("Ontbreekt"), "onderdeel weg: ontbreekt");
+        for (String badRef : new String[]{"R\t8\t" + sha("p") + "\t0\tAppgegevens/x\t" + AppData.KLUIS_DIR + "/abc123def",
+                "R\t8\t" + sha("p") + "\t0\t../Kluis/x\t" + AppData.KLUIS_DIR + "/abc123def",
+                "R\t8\t" + sha("p") + "\t0\tKluis/x\tNotities/notities.json"}) {
+            threw = false;
+            try { AppData.parse("renes-tools-app\t1\n" + badRef + "\nend\t0\t1\n"); } catch (Exception e) { threw = true; }
+            check(threw, "vreemde verwijzing geweigerd");
+        }
+
+        // ---------- welke archieven alle appgegevens hebben ----------
+        String list = AppData.appNamesAdd(AppData.appNamesAdd("", "backup-2026-10-26_0330.rtb", 3), "backup-2026-10-27_0330.rtb", 3);
+        list = AppData.appNamesAdd(list + "../stiekem.rtb\nonzin\n", "backup-2026-10-26_0330.rtb", 3);
+        check(AppData.appNames(list).equals(Arrays.asList("backup-2026-10-27_0330.rtb", "backup-2026-10-26_0330.rtb")), "lijst van archieven met appgegevens " + AppData.appNames(list));
+        String l2 = ""; for (int i = 10; i < 20; i++) l2 = AppData.appNamesAdd(l2, "backup-2026-10-" + i + "_0330.rtb", 3);
+        check(AppData.appNames(l2).size() == 3 && AppData.appNames(l2).get(2).equals("backup-2026-10-19_0330.rtb"), "lijst blijft kort (nieuwste blijven)");
+
+        // ---------- meldingen zonder inhoud ----------
+        check("x".equals(AppData.safeMsg(new Exception("Value {\"waKey\":\"geheim\"} of type org.json.JSONObject"), "x")), "JSON-fout met invoer: algemene melding");
+        check("x".equals(AppData.safeMsg(new Exception((String) null), "x")) && "Verkeerd wachtwoord".equals(AppData.safeMsg(new java.io.IOException("Verkeerd wachtwoord"), "x")), "gewone melding blijft");
+        check(AppData.audio("sleep/n1/k1.m4a") && AppData.audio("sleep/n1/k1.WAV") && !AppData.audio("sleep/n1/night.json"), "geluid van Slaappraat herkend");
 
         // ---------- controlegetal tijdens het schrijven ----------
         ByteArrayOutputStream bo = new ByteArrayOutputStream();
@@ -184,6 +220,9 @@ public class AppDataTest {
         check("backup-2026-10-27_033012.rtb".equals(AppData.recommended(names)), "voorstel: nieuwste volledige (niet de afgebroken)");
         check("backup-2026-10-28_0331_deels.rtb".equals(AppData.recommended(Arrays.asList("backup-2026-10-28_0331_deels.rtb"))), "alleen een afgebroken: die dan");
         check(AppData.recommended(new ArrayList<String>()) == null, "geen archieven: geen voorstel");
+        check("backup-2026-10-26_0330.rtb".equals(AppData.recommended(names, Arrays.asList("backup-2026-10-26_0330.rtb", "backup-2026-09-01_0330.rtb"))),
+                "voorstel: nieuwste waarin alle appgegevens gelukt zijn");
+        check("backup-2026-10-27_033012.rtb".equals(AppData.recommended(names, Arrays.asList("backup-2025-01-01_0330.rtb"))), "die bestaat niet meer: nieuwste volledige");
 
         check(AppData.compressed("Moeder.m4a") && !AppData.compressed("night.json"), "al samengeperst geluid herkend");
 
@@ -195,6 +234,20 @@ public class AppDataTest {
         Vault.Key wrong = Vault.derive("verkeerd".toCharArray(), new byte[16], 1000, 1);
         check(String.valueOf(readAndVerify(arc, wrong)).contains("Verkeerd wachtwoord"), "verkeerd wachtwoord: duidelijk");
         check(String.valueOf(readAndVerify(Arrays.copyOf(arc, arc.length - 40), k)).contains("onvolledig"), "afgekapt archief: onvolledig");
+
+        // Archieven voor de test van ontsleutelen.html (herstel.test.js): met geheimen, en een met zip64 (> 65535 bestanden)
+        Vault.Key pk = Vault.derive("geheim-wachtwoord".toCharArray(), new byte[16], 1000, 1);
+        for (int n : new int[]{0, 70_000}) {
+            ByteArrayOutputStream raw = new ByteArrayOutputStream();
+            try (java.util.zip.ZipOutputStream z = new java.util.zip.ZipOutputStream(new Vault.Out(raw, pk))) {
+                String[][] files = {{"Notities/notities.json", "[]"}, {AppData.PREFS, "{\"waKey\":\"abc\"}"}, {AppData.SECRETS, "{\"vpn\":\"PrivateKey\"}"},
+                        {AppData.KLUIS_DIR + "/abc123def", "paspoort"}, {"Appgegevens/bestanden/notes.json", "[{\"id\":\"n1\"}]"}};
+                for (String[] f : files) { z.putNextEntry(new java.util.zip.ZipEntry(f[0])); z.write(f[1].getBytes(StandardCharsets.UTF_8)); z.closeEntry(); }
+                for (int i = 0; i < n; i++) { z.putNextEntry(new java.util.zip.ZipEntry("Vul/x" + i + ".txt")); z.write('x'); z.closeEntry(); }
+            }
+            Files.write(new File(System.getProperty("java.io.tmpdir"), n == 0 ? "rt-app-test.rtb" : "rt-app-test64.rtb").toPath(), raw.toByteArray());
+        }
+        check(new File(System.getProperty("java.io.tmpdir"), "rt-app-test64.rtb").length() > 0, "testarchieven voor ontsleutelen.html geschreven");
 
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
         System.out.println("alles goed");

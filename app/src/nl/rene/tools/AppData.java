@@ -171,6 +171,13 @@ final class AppData {
     /** Is dit een losse rootnaam die een bestand is (geen map)? */
     static boolean rootIsFile(String top) { return top.contains("."); }
 
+    /** Geluid (Slaappraat): gaat alleen mee als "Slaappraat met geluid" aan staat. */
+    static boolean audio(String name) {
+        String n = name.toLowerCase(Locale.ROOT);
+        for (String e : new String[]{".m4a", ".wav", ".ogg", ".opus", ".aac", ".amr", ".3gp", ".mp3", ".flac"}) if (n.endsWith(e)) return true;
+        return false;
+    }
+
     /** Geluid is al samengeperst: dan licht inpakken (sneller, het wordt toch niet kleiner). */
     static boolean compressed(String name) {
         String n = name.toLowerCase(Locale.ROOT);
@@ -231,16 +238,28 @@ final class AppData {
         Entry(String p, long s, String h, long t) { path = p; size = s; sha = h; mtime = t; }
     }
 
+    /**
+     * Verwijzing: de inhoud staat al (precies gelijk, zelfde SHA-256) eerder in hetzelfde archief bij een ander onderdeel
+     * (bijv. Kluis/… of Slaappraat/…), dus niet nog eens. Bij terugzetten wordt dat bestand gebruikt als target.
+     */
+    static final class Ref {
+        final String source, target, sha; final long size, mtime;
+        Ref(String src, String tgt, long s, String h, long t) { source = src; target = tgt; size = s; sha = h; mtime = t; }
+    }
+
     /** Inhoudsopgave: wat erin hoort, plus waar het vandaan komt (versie, tijd). */
     static final class Manifest {
         String app = "", appCode = "";
         long time;
         final List<Entry> entries = new ArrayList<>();
+        final List<Ref> refs = new ArrayList<>();
         /** Bestanden die bij het maken niet af kwamen (staan wel in het archief, maar horen niet terug). */
         final Set<String> broken = new HashSet<>();
         /** Ter info: wat bewust niet meeging. */
         final List<String[]> skipped = new ArrayList<>();
+        /** Wat de appgegevens zelf innemen (zonder verwijzingen). */
         long bytes() { long n = 0; for (Entry e : entries) n += e.size; return n; }
+        long refBytes() { long n = 0; for (Ref r : refs) n += r.size; return n; }
         Entry find(String path) { for (Entry e : entries) if (e.path.equals(path)) return e; return null; }
     }
 
@@ -252,9 +271,11 @@ final class AppData {
         b.append("app\t").append(clean(m.app)).append('\t').append(clean(m.appCode)).append('\n');
         b.append("t\t").append(m.time).append('\n');
         for (Entry e : m.entries) b.append("F\t").append(e.size).append('\t').append(e.sha).append('\t').append(Math.max(0, e.mtime)).append('\t').append(clean(e.path)).append('\n');
+        for (Ref r : m.refs) b.append("R\t").append(r.size).append('\t').append(r.sha).append('\t').append(Math.max(0, r.mtime)).append('\t')
+                .append(clean(r.source)).append('\t').append(clean(r.target)).append('\n');
         for (String p : m.broken) b.append("B\t").append(clean(p)).append('\n');
         for (String[] s : m.skipped) b.append("X\t").append(clean(s[0])).append('\t').append(clean(s[1])).append('\n');
-        b.append("end\t").append(m.entries.size()).append('\n');
+        b.append("end\t").append(m.entries.size()).append('\t').append(m.refs.size()).append('\n');
         return b.toString();
     }
 
@@ -291,10 +312,20 @@ final class AppData {
                         m.entries.add(new Entry(path, size, sha, mtime));
                         break;
                     }
+                    case "R": {
+                        if (f.length != 6) throw new IOException("Inhoudsopgave is beschadigd");
+                        long size = Long.parseLong(f[1]), mtime = Long.parseLong(f[3]);
+                        String sha = f[2], src = f[4], tgt = f[5];
+                        if (size < 0 || mtime < 0 || !sha.matches("[0-9a-f]{64}") || safeRel(src) == null || src.startsWith(DIR + "/")
+                                || safeRel(tgt) == null || !tgt.startsWith(DIR + "/")) throw new IOException("Vreemde naam in de inhoudsopgave: " + cut(tgt));
+                        if (!seen.add(tgt)) throw new IOException("Dubbele naam in de inhoudsopgave: " + cut(tgt));
+                        m.refs.add(new Ref(src, tgt, size, sha, mtime));
+                        break;
+                    }
                     case "B": if (f.length > 1) m.broken.add(f[1]); break;
                     case "X": if (f.length > 2) m.skipped.add(new String[]{f[1], f[2]}); break;
                     case "end":
-                        if (Integer.parseInt(f[1]) != m.entries.size()) throw new IOException("Inhoudsopgave is onvolledig");
+                        if (f.length != 3 || Integer.parseInt(f[1]) != m.entries.size() || Integer.parseInt(f[2]) != m.refs.size()) throw new IOException("Inhoudsopgave is onvolledig");
                         end = true;
                         break;
                     default: break; // onbekende regel van een nieuwere versie: overslaan
@@ -311,7 +342,16 @@ final class AppData {
      * Klopt wat er in het archief stond met de inhoudsopgave? seen = naam → {grootte, sha} van alles onder Appgegevens/
      * (behalve de inhoudsopgave zelf). null = in orde, anders wat er mis is.
      */
-    static String verify(Manifest m, Map<String, Entry> seen) {
+    static String verify(Manifest m, Map<String, Entry> seen) { return verify(m, seen, null); }
+
+    /** Zelfde, en de verwijzingen tegen wat er bij de andere onderdelen stond (others: naam → {grootte, sha}). */
+    static String verify(Manifest m, Map<String, Entry> seen, Map<String, Entry> others) {
+        for (Ref r : m.refs) {
+            if (target(r.target) == null) continue;
+            Entry s = others == null ? null : others.get(r.source);
+            if (s == null) return "Ontbreekt in de backup: " + cut(r.source);
+            if (s.size != r.size || !s.sha.equals(r.sha)) return "Beschadigd in de backup: " + cut(r.source);
+        }
         for (Entry e : m.entries) {
             if (target(e.path) == null) continue; // kent deze versie niet: wordt overgeslagen
             Entry s = seen.get(e.path);
@@ -409,8 +449,47 @@ final class AppData {
     }
 
     /** Welke backup voorstellen: de nieuwste volledige; anders de nieuwste. */
-    static String recommended(List<String> sortedNewestFirst) {
+    static String recommended(List<String> sortedNewestFirst) { return recommended(sortedNewestFirst, null); }
+
+    /**
+     * Zelfde, maar eerst de nieuwste waarvan de app weet dat alle appgegevens erin gelukt zijn (withApp, uit
+     * Versleuteld/appgegevens.txt); staat er daarvan niets meer, dan de nieuwste volledige.
+     */
+    static String recommended(List<String> sortedNewestFirst, java.util.Collection<String> withApp) {
+        if (withApp != null) for (String n : sortedNewestFirst) if (withApp.contains(n)) return n;
         for (String n : sortedNewestFirst) if (!n.endsWith(Rotate.PARTIAL + ".rtb")) return n;
         return sortedNewestFirst.isEmpty() ? null : sortedNewestFirst.get(0);
+    }
+
+    /** Namen uit Versleuteld/appgegevens.txt (één per regel), alleen geldige archiefnamen. */
+    static List<String> appNames(String text) {
+        List<String> l = new ArrayList<>();
+        if (text == null) return l;
+        for (String s : text.split("\n")) { s = s.trim(); if (s.startsWith("backup-") && s.endsWith(".rtb") && safeRel(s) != null && !s.contains("/")) l.add(s); }
+        return l;
+    }
+
+    /** Lijst bijwerken: deze naam erbij (nieuwste onderaan), hooguit max namen. */
+    static String appNamesAdd(String text, String name, int max) {
+        List<String> l = appNames(text);
+        l.remove(name);
+        l.add(name);
+        while (l.size() > max) l.remove(0);
+        StringBuilder b = new StringBuilder();
+        for (String s : l) b.append(s).append('\n');
+        return b.toString();
+    }
+
+    // ---------- meldingen zonder inhoud ----------
+
+    /**
+     * Foutmelding die op het scherm of in het foutlogboek mag: nooit de tekst van een JSON-fout (die citeert de
+     * invoer, en daar kunnen geheimen in staan), en kort.
+     */
+    static String safeMsg(Throwable e, String generic) {
+        if (e == null || e.getMessage() == null) return generic;
+        String m = e.getMessage();
+        if (e.getClass().getName().startsWith("org.json") || m.indexOf('{') >= 0 || m.indexOf('[') >= 0 || m.indexOf('"') >= 0) return generic;
+        return m.length() > 200 ? m.substring(0, 200) : m;
     }
 }

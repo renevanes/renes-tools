@@ -64,10 +64,33 @@ const { chromium } = require('playwright');
     ok(await cur(pg) === 'home' && await pg.evaluate(() => Android._hs.done), 'Klaar: naar het startscherm');
     await pg.close();
 
-    // ---------- overslaan ----------
+    // ---------- overslaan; terug op het welkomscherm vraagt het ----------
     pg = await open('nieuw');
     await pg.click('#hs-skip'); await pg.waitForTimeout(150);
     ok(await cur(pg) === 'home' && await pg.evaluate(() => Android._hs.state) === 'overgeslagen', 'overslaan onthouden');
+    await pg.close();
+    pg = await open('nieuw');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
+    ok((await pg.textContent('#modal-title')) === 'Terugzetten overslaan?' && await cur(pg) === 'herstel', 'terug op het welkomscherm: eerst vragen');
+    await pg.click('#modal-cancel'); await pg.waitForTimeout(100);
+    ok(await cur(pg) === 'herstel' && await pg.evaluate(() => Android._hs.state) === 'nieuw', 'niet overslaan: blijft staan');
+    // Backups staan stil zolang er nog terug te zetten valt: Alles back-uppen legt het uit
+    await pg.evaluate(() => { Android._wa.info.dest = true; show('backup'); }); await pg.waitForTimeout(150);
+    ok(await vis(pg, '#bk-blocked') && /zet eerst je gegevens terug/.test(await pg.textContent('#bk-blocked')), 'Alles back-uppen: uitleg waarom backups stilstaan');
+    await pg.click('#bk-blocked-btn'); await pg.waitForTimeout(150);
+    ok(await cur(pg) === 'herstel', 'knop: naar Gegevens terugzetten');
+    // Weg met een klaargezette backup: die wordt weggegooid
+    await pg.click('#hs-same'); await pg.waitForTimeout(250);
+    await pg.click('#hs-next'); await pg.waitForTimeout(250);
+    await pg.fill('#modal-input', 'goedwachtwoord'); await pg.click('#modal-ok'); await pg.waitForTimeout(500);
+    const before = await pg.evaluate(() => Android._hs.cancelled || 0);
+    await pg.evaluate(() => show('home')); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => Android._hs.cancelled || 0) === before + 1, 'weg van het scherm: klaargezette backup weggegooid');
+    await pg.close();
+    // Teruggezet zonder backup-sleutel: backups staan stil tot het wachtwoord er is
+    pg = await open('klaar', () => { Android._wa.info.dest = true; Android._hs.needPw = true; });
+    await pg.click('#tile-backup'); await pg.waitForTimeout(200);
+    ok(/wachtwoord van je backup opnieuw/.test(await pg.textContent('#bk-blocked')) && /Wachtwoord instellen/.test(await pg.textContent('#bk-blocked-btn')), 'zonder backup-sleutel: uitleg en knop');
     await pg.close();
 
     // ---------- bestaande installatie: niets vanzelf; vanuit Alles back-uppen met waarschuwing ----------
@@ -78,9 +101,17 @@ const { chromium } = require('playwright');
     ok(/Versleutelen✗/.test((await pg.textContent('#bk-herstel-list')).replace(/\s+/g, '')), 'versleutelen ontbreekt');
     ok(await pg.isChecked('#bk-parts input[data-p="app"]'), 'Alle appgegevens staat standaard aan');
     ok(/alleen mee in een versleutelde/.test(await pg.textContent('#bk-app-note')), 'zonder versleutelen: uitleg');
-    ok(await pg.isChecked('#bk-auto'), 'elke nacht staat standaard aan');
-    await pg.evaluate(() => { Android._sec.on = true; Android._bk.appLast = Date.now() - 6 * 36e5; enterBackup(); }); await pg.waitForTimeout(100);
+    ok(!(await pg.isChecked('#bk-auto')), 'zonder versleutelen niet vanzelf elke nacht (geen ongevraagde leesbare backups)');
+    await pg.evaluate(() => { Android._sec.on = true; Android._bk.appLast = Date.now() - 6 * 36e5; Android._bk.appBytes = 3.2e9; enterBackup(); }); await pg.waitForTimeout(100);
+    ok(await pg.isChecked('#bk-auto'), 'met versleutelen en een map: elke nacht standaard aan');
     ok(/Compleet voor herinstallatie/.test(await pg.textContent('#bk-herstel-st')), 'compleet voor herinstallatie');
+    ok(/3,0 GB/.test(await pg.textContent('#bk-herstel-size')) && await vis(pg, '#bk-herstel-rotate'), 'uitleg over de groei per nacht, met knop om op te ruimen');
+    ok(!(await pg.evaluate(() => Android._sec.rotate)), 'opruimen gaat niet vanzelf aan');
+    await pg.click('#bk-herstel-rotate'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._sec.rotate) && !(await vis(pg, '#bk-herstel-rotate')), 'één tik: opruimen aan, knop weg');
+    await pg.evaluate(() => { Android._bk.auto = false; enterBackup(); }); await pg.waitForTimeout(80);
+    ok(!(await pg.isChecked('#bk-auto')), 'zelf uitgezet blijft uit');
+    await pg.evaluate(() => { Android._bk.auto = null; enterBackup(); }); await pg.waitForTimeout(80);
     ok(/wachtwoorden, VPN/.test(await pg.textContent('#bk-app-note')), 'versleuteld: wat er mee gaat');
     await pg.screenshot({ path: __dirname + '/shots/herstel-backup-' + scheme + '.png', fullPage: true });
     await pg.click('#bk-herstel-btn'); await pg.waitForTimeout(150);
@@ -89,7 +120,7 @@ const { chromium } = require('playwright');
     await pg.click('#hs-same'); await pg.waitForTimeout(250);
     await pg.click('#hs-next'); await pg.waitForTimeout(250);
     await pg.fill('#modal-input', 'goedwachtwoord'); await pg.click('#modal-ok'); await pg.waitForTimeout(500);
-    ok(await vis(pg, '#hs-warn'), 'samenvatting met waarschuwing');
+    ok(await vis(pg, '#hs-warn') && /wachtwoord van je backups/.test(await pg.textContent('#hs-warn')), 'samenvatting met waarschuwing (ook wachtwoord en map)');
     await pg.click('#hs-apply'); await pg.waitForTimeout(200);
     ok((await pg.textContent('#modal-title')) === 'Alles vervangen?', 'eerst uitdrukkelijk bevestigen');
     ok(!(await pg.evaluate(() => Android._hs.applied)), 'vóór bevestigen niets teruggezet');
@@ -115,6 +146,17 @@ const { chromium } = require('playwright');
     ok(await vis(pg, '#sheet.on') && /Notities terugzetten/.test(await pg.textContent('#sheet-acts')), 'losse onderdelen uit die backup');
     await pg.close();
 
+    // ---------- niet alles in de backup; iets loopt nog ----------
+    pg = await open('nieuw', () => { Android._hs.missing = ['de meldingsgeschiedenis (meldingsgeschiedenis staat uit bij wat gaat er mee): de huidige blijft'];
+      Android._hs.busy = 'Wacht even of stop eerst Slaappraat; daarna kun je alles terugzetten'; });
+    await pg.click('#hs-pick'); await pg.waitForTimeout(300);
+    await pg.click('#hs-next'); await pg.waitForTimeout(250);
+    await pg.fill('#modal-input', 'goedwachtwoord'); await pg.click('#modal-ok'); await pg.waitForTimeout(500);
+    ok(await vis(pg, '#hs-missing') && /meldingsgeschiedenis/.test(await pg.textContent('#hs-missing')), 'samenvatting: wat er niet in zit');
+    await pg.click('#hs-apply'); await pg.waitForTimeout(250);
+    ok(await vis(pg, '#hs-klaar') && /Slaappraat/.test(await pg.textContent('#toast')) && !(await pg.evaluate(() => Android._hs.applied)), 'Slaappraat loopt: eerst stoppen');
+    await pg.close();
+
     // ---------- terugzetten mislukt: niets veranderd ----------
     pg = await open('nieuw', () => { Android._hs.applyError = 'Terugzetten mislukt; er is niets veranderd (geen ruimte)'; });
     await pg.click('#hs-pick'); await pg.waitForTimeout(300);
@@ -126,6 +168,32 @@ const { chromium } = require('playwright');
     await pg.close();
 
     console.log(scheme, 'errors', errs);
+  }
+  // ---------- ontsleutelen.html: wachtwoorden en sleutels standaard eruit (ook bij zip64) ----------
+  const fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process');
+  for (const f of ['rt-app-test.rtb', 'rt-app-test64.rtb']) {
+    const rtb = path.join(os.tmpdir(), f), errs = [];
+    if (!fs.existsSync(rtb)) { console.log(f, 'overgeslagen (eerst AppDataTest)', 'errors', []); continue; }
+    const ok = (c, m) => { if (!c) errs.push('✗ ' + m); };
+    const pg = await b.newPage({ acceptDownloads: true }); pg.on('pageerror', e => errs.push(e.message));
+    await pg.goto('file://' + path.join(__dirname, '..', '..', 'web', 'ontsleutelen.html'));
+    const list = async geheim => {
+      await pg.setInputFiles('#f', rtb); await pg.fill('#pw', 'geheim-wachtwoord');
+      if (geheim) await pg.check('#geheim'); else await pg.uncheck('#geheim');
+      const [dl] = await Promise.all([pg.waitForEvent('download', { timeout: 120000 }), pg.click('#go')]);
+      const out = await dl.path();
+      const r = cp.execFileSync('python3', ['-I', '-c', 'import zipfile,sys\nz=zipfile.ZipFile(sys.argv[1])\nprint(z.testzip())\nn=z.namelist()\nprint(len(n))\nprint("|".join(x for x in n if not x.startswith("Vul/")))\nprint(z.read("Notities/notities.json").decode())', out]).toString().split('\n');
+      return { bad: r[0], count: +r[1], names: r[2].split('|'), notes: r[3], msg: await pg.textContent('#msg') };
+    };
+    const z = await list(false);
+    ok(z.bad === 'None', f + ': geldige zip');
+    ok(!z.names.some(n => n.startsWith('Appgegevens/geheim/')) && !z.names.includes('Appgegevens/instellingen.json'), f + ': geen geheimen ' + z.names);
+    ok(z.names.includes('Notities/notities.json') && z.names.includes('Appgegevens/bestanden/notes.json') && z.notes === '[]', f + ': de rest is er nog');
+    ok(/3 bestanden met wachtwoorden en sleutels weggelaten/.test(z.msg), f + ': melding ' + z.msg);
+    const all = await list(true);
+    ok(all.bad === 'None' && all.names.includes('Appgegevens/geheim/waarden.json') && all.count === z.count + 3, f + ': aangevinkt: alles (' + all.count + '/' + z.count + ')');
+    await pg.close();
+    console.log(f, 'errors', errs);
   }
   await b.close();
 })();

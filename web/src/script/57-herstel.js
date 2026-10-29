@@ -1,5 +1,5 @@
 /* ---------- Gegevens terugzetten na herinstallatie ---------- */
-let hsScanRes = null, hsName = '', hsManual = false, hsWarn = false;
+let hsScanRes = null, hsName = '', hsManual = false, hsWarn = false, hsStaged = false;
 function hsState(){ try { return JSON.parse(Android.herstelState()); } catch(e){ return {}; } }
 function hsStep(id){ document.querySelectorAll('#s-herstel .hs-step').forEach(e => { e.style.display = e.id === id ? '' : 'none'; }); }
 /* Naam van een archief (backup-JJJJ-MM-DD_UUMM[ss][_deels].rtb) als leesbare datum */
@@ -44,7 +44,8 @@ window.onHerstelScan = function(r){
   }
   const rec = r.recommended || l[0].name;
   $('#hs-list').innerHTML = l.map((a, i) => '<label class=chk><input type=radio name=hs-arc value="' + esc(a.name) + '"' + (a.name === rec ? ' checked' : '') + '> ' +
-    esc(hsWhen(a.name)) + ' <small class=note style="display:inline;margin:0">· ' + fmtB(a.size || 0) + (a.deels ? ' · onvolledig (gestopt halverwege)' : '') + (a.name === rec ? ' · nieuwste volledige' : '') + '</small></label>').join('');
+    esc(hsWhen(a.name)) + ' <small class=note style="display:inline;margin:0">· ' + fmtB(a.size || 0) + (a.deels ? ' · onvolledig (gestopt halverwege)' : '') +
+    (a.app ? ' · met alle appgegevens' : '') + (a.name === rec ? ' · voorgesteld' : '') + '</small></label>').join('');
 };
 function hsPlain(){ hsManual = false; show('backup'); setTimeout(() => { const b = document.querySelector('#s-backup button[onclick*="restorePick(\'notes\')"]'); if (b) b.scrollIntoView({block: 'center'}); }, 50); }
 function hsSelected(){ const r = document.querySelector('input[name=hs-arc]:checked'); return r ? r.value : ''; }
@@ -66,25 +67,30 @@ window.onHerstelOpened = function(r){
   if (r.needPw) { hsAskPw(false); return; }
   if (r.error) { if (r.wrongPw) { hsAskPw(true); return; } hsPwOld = ''; hsStep('hs-kies'); toast(r.error); return; }
   if (r.old) { hsStep('hs-oud'); return; }
-  hsPwOld = '';
+  hsPwOld = ''; hsStaged = true;
   const parts = [r.files ? r.files.toLocaleString('nl-NL') + ' bestanden' : '', r.kluis ? r.kluis + (r.kluis === 1 ? ' kluisdocument' : ' kluisdocumenten') : '', r.history ? 'meldingsgeschiedenis' : ''].filter(Boolean);
   $('#hs-sum').innerHTML = '<div class=bkres><b>Backup</b><span>' + esc(hsWhen(r.name || hsName)) + '</span></div>' +
     (r.app ? '<div class=bkres><b>Gemaakt met</b><span>Tools ' + esc(r.app) + '</span></div>' : '') +
     '<div class=bkres><b>Inhoud</b><span>' + esc(parts.join(', ') || 'instellingen') + ' · ' + fmtB(r.bytes || 0) + '</span></div>' +
-    '<div class=bkres><b>Gecontroleerd</b><span class=good>✓ compleet en onbeschadigd</span></div>';
+    '<div class=bkres><b>Gecontroleerd</b><span class=good>✓ compleet en onbeschadigd</span></div>' +
+    ((r.missing || []).length ? '<p class="note warn" id="hs-missing">Niet in deze backup: ' + esc(r.missing.join('; ')) + '.</p>' : '');
   hsWarn = hsManual || !!r.warn;
+  hsMissing = r.missing || [];
   $('#hs-warn').style.display = hsWarn ? '' : 'none';
   hsStep('hs-klaar');
 };
-function hsBackToList(){ Android.herstelCancel(); hsPwOld = ''; if (hsScanRes) onHerstelScan(hsScanRes); else enterHerstel(); }
+let hsMissing = [];
+function hsBackToList(){ Android.herstelCancel(); hsStaged = false; hsPwOld = ''; if (hsScanRes) onHerstelScan(hsScanRes); else enterHerstel(); }
 function hsOld(){ const pw = hsPwOld; hsPwOld = ''; toast('Bezig met openen…'); Android.herstelOldArchive(hsName, pw); }
 function hsApply(){
-  const go = () => { hsStep('hs-bezig'); $('#hs-bezig-t').textContent = 'Bezig met terugzetten…'; $('#hs-bezig-s').textContent = 'Even geduld; daarna start de app opnieuw.'; $('#hs-prog').removeAttribute('value'); Android.herstelApply(); };
-  if (hsWarn) askConfirm('Alles vervangen?', 'Alles wat er nu in Tools op deze telefoon staat (notities, instellingen, opnames, kluis …) wordt vervangen door wat in de backup van ' + hsWhen(hsName) + ' staat. Dit kan niet ongedaan worden gemaakt.', 'Vervangen', go);
+  const go = () => { hsStaged = false; hsStep('hs-bezig'); $('#hs-bezig-t').textContent = 'Bezig met terugzetten…'; $('#hs-bezig-s').textContent = 'Even geduld; daarna start de app opnieuw.'; $('#hs-prog').removeAttribute('value'); Android.herstelApply(); };
+  if (hsWarn) askConfirm('Alles vervangen?', 'Alles wat er nu in Tools op deze telefoon staat (notities, instellingen, opnames, kluis …) wordt vervangen door wat in de backup van ' + hsWhen(hsName) + ' staat. Dit kan niet ongedaan worden gemaakt.' +
+    '\n\nOok het wachtwoord van je backups wordt dat van deze backup, en je backup-map wordt de map die je net koos.' +
+    (hsMissing.length ? '\n\nNiet in deze backup (blijft zoals het nu is of komt niet terug): ' + hsMissing.join('; ') + '.' : ''), 'Vervangen', go);
   else go();
 }
 window.onHerstelDone = function(err){
-  if (err) { hsStep('hs-klaar'); toast(err); return; }
+  if (err) { hsStep('hs-klaar'); hsStaged = !/niets veranderd/.test(err) && hsStaged; toast(err); return; }
   $('#hs-bezig-t').textContent = '✓ Teruggezet'; $('#hs-bezig-s').textContent = 'De app start opnieuw…';
 };
 /* Na de herstart: wat Android niet terugzet */
@@ -109,6 +115,14 @@ function hsFix(id){
   Android.herstelFix(id);
 }
 function hsDone(){ Android.herstelChecklistDone(); hsManual = false; show('home'); toast('Welkom terug'); }
+/* Terug op het welkomscherm van een nieuwe installatie: vragen of je wilt overslaan (dan stoppen de backups niet meer) */
+function hsBack(){
+  if ($('#hs-welkom').style.display === 'none' || !hsState().pending) return false;
+  askConfirm('Terugzetten overslaan?', 'Je kunt je gegevens later nog terugzetten bij Alles back-uppen → Alles terugzetten na herinstallatie. Tot je kiest, maakt de app geen backups.', 'Overslaan', hsSkip);
+  return true;
+}
+/* Weg van dit scherm met een klaargezette backup: die meteen weggooien (en de sleutel vergeten) */
+function hsLeave(){ if (hsStaged) { hsStaged = false; Android.herstelCancel(); } hsPwOld = ''; }
 (function(){
   const prev = window.onResumeApp;
   window.onResumeApp = function(){ if (typeof prev === 'function') prev(); if (current === 'herstel' && document.querySelector('#hs-lijst').style.display !== 'none') hsList(); };
