@@ -85,8 +85,9 @@ function slRender(){
   const no = $('#sl-noise'); no.classList.toggle('on', !!set.keepNoise); no.setAttribute('aria-checked', set.keepNoise ? 'true' : 'false');
   const quiet = set.quiet !== false;
   const qu = $('#sl-quiet'); qu.classList.toggle('on', quiet); qu.setAttribute('aria-checked', quiet ? 'true' : 'false');
-  $('#sl-quiet-n').textContent = quiet ? "Aan: de melding staat ingeklapt onderaan, zonder icoon en niet op het vergrendelscherm; 's ochtends geen melding (kijk hier wat er gehoord is)"
-    : "Uit: een gewone, stille melding met stopknop, en 's ochtends een melding als er iets gehoord is";
+  $('#sl-quietrow').style.display = quiet ? '' : 'none';
+  $('#sl-quiet-n').textContent = quiet ? "Aan: de melding is stil, niet op het vergrendelscherm en zonder tijdteller; 's ochtends geen melding (kijk hier wat er gehoord is)"
+    : "Uit: een gewone, stille melding met tijdteller en stopknop, en 's ochtends een melding als er iets gehoord is";
   // Nachten
   const ns = s.nights || [];
   slHtml($('#sl-nights'), ns.map((n, i) => {

@@ -82,8 +82,8 @@ public final class SleepService extends Service {
         }
         if ("refresh".equals(action)) {
             // Instelling Onopvallend veranderd terwijl hij loopt (startService vanuit de app): melding meteen omzetten
-            if (running()) notifyNow();
-            if (worker == null) quit();
+            // Alleen een instantie die zelf luistert of uitschrijft heeft een melding om om te zetten
+            if (worker != null) notifyNow(); else quit();
             return START_NOT_STICKY;
         }
         // Na startForegroundService altijd eerst voorgrond, ook als er al iets loopt
@@ -326,11 +326,15 @@ public final class SleepService extends Service {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (quiet) {
-                NotificationChannel ch = new NotificationChannel(CHANNEL_QUIET, "Slaappraat (onopvallend)", NotificationManager.IMPORTANCE_MIN);
-                ch.setDescription(QUIET_INFO);
-                ch.setSound(null, null); ch.enableVibration(false); ch.enableLights(false); ch.setShowBadge(false);
-                ch.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
-                nm.createNotificationChannel(ch);
+                // Eén keer aanmaken: Android zet een voorgrondmelding op minimaal zelf op Laag, en wat je zelf in
+                // Android instelt (bijv. Minimaliseren) moet blijven staan
+                if (nm.getNotificationChannel(CHANNEL_QUIET) == null) {
+                    NotificationChannel ch = new NotificationChannel(CHANNEL_QUIET, "Slaappraat (onopvallend)", NotificationManager.IMPORTANCE_MIN);
+                    ch.setDescription(QUIET_INFO);
+                    ch.setSound(null, null); ch.enableVibration(false); ch.enableLights(false); ch.setShowBadge(false);
+                    ch.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
+                    nm.createNotificationChannel(ch);
+                }
             } else {
                 NotificationChannel ch = new NotificationChannel(CHANNEL, "Slaappraat", NotificationManager.IMPORTANCE_LOW);
                 ch.setDescription("Zichtbaar zolang Slaappraat luistert of uitschrijft, met een stopknop; 's ochtends wat er gehoord is");
@@ -342,7 +346,7 @@ public final class SleepService extends Service {
         PendingIntent content = PendingIntent.getActivity(this, NOTIFICATION, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent stopI = PendingIntent.getService(this, NOTIFICATION, new Intent(this, SleepService.class).setAction("stop"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, quiet ? CHANNEL_QUIET : CHANNEL) : new Notification.Builder(this);
-        // Onopvallend: Android mag de melding eerst even uitstellen, en hij staat niet op het vergrendelscherm
+        // Onopvallend: niet op het vergrendelscherm, zonder tijdteller (de belangrijkheid bepaalt Android, zie hierboven)
         if (Build.VERSION.SDK_INT >= 31 && !quiet) b.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
         if (quiet) quietStyle(b);
         boolean tx = "uitschrijven".equals(phase);
@@ -357,7 +361,7 @@ public final class SleepService extends Service {
                 .setContentIntent(content).addAction(android.R.drawable.ic_media_pause, "Stoppen", stopI).build();
     }
 
-    static final String QUIET_INFO = "Als Onopvallend luisteren aan staat: zo stil als Android toestaat (ingeklapt, zonder icoon, niet op het vergrendelscherm), en 's ochtends geen melding";
+    static final String QUIET_INFO = "Als Onopvallend luisteren aan staat: stil, niet op het vergrendelscherm, zonder tijdteller en 's ochtends geen melding. Zet hier Minimaliseren aan om hem nog kleiner te maken";
 
     @SuppressWarnings("deprecation")
     private static void quietStyle(Notification.Builder b) {
