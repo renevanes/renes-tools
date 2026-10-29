@@ -1,0 +1,3 @@
+Na opnieuw installeren zet Tools alles terug: bij de eerste start kies je je backup-map en je wachtwoord, en notities, instellingen, opnames, kluis, VPN en koppelingen staan er weer (modellen worden opnieuw gedownload).
+Alles back-uppen neemt nu ook "Alle appgegevens" mee (alleen versleuteld) en laat zien of je backup compleet is voor een herinstallatie.
+Elke nacht alles back-uppen staat nu standaard aan (als je een backup-map hebt gekozen).

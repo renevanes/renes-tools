@@ -32,6 +32,10 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
 - **Privacy**: backups en exports bevatten alleen Rene's eigen gegevens en gaan naar plekken die hij zelf kiest.
   Geen meelezen van andermans berichten of meldingen voor toezicht, geen OSINT op contacten.
   VPN-sleutels en wachtwoorden blijven versleuteld (`Secure.deviceKey`, AES-GCM) en buiten Android-backups.
+  Alleen "Alle appgegevens" (`AppBackup`/`AppData`, terugzetten na herinstallatie) neemt ze mee, en alleen binnen het
+  versleutelde archief (.rtb, wachtwoord van de backup); bij terugzetten worden ze opnieuw versleuteld met de sleutel van
+  de nieuwe installatie. Nieuw instellingenbestand of nieuwe map in `getFilesDir()`? Deel die in bij `AppData`
+  (mee of bewust niet); `AppDataTest` controleert dat.
 - **Interface**: gebruik de kleurrollen uit `stijl.css` (nooit vaste kleuren als `#fff` op `--primary`: in donker is
   `--primary` licht). Elk scherm heeft `<div class="hdr">` met terugknop en `<h1>`; detailschermen `class="hdr sm"`.
 

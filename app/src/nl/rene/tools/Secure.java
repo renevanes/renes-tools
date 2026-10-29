@@ -84,6 +84,22 @@ final class Secure {
                 .putLong("since", System.currentTimeMillis()).apply();
     }
 
+    /**
+     * Na terugzetten op een nieuwe installatie: de sleutel van het teruggezette archief (afgeleid van het wachtwoord)
+     * weer bewaren, ingepakt met de sleutelopslag van deze installatie. Zo lopen de nachtelijke versleutelde backups
+     * meteen door met hetzelfde wachtwoord, en opent de app de oude archieven zonder het wachtwoord te vragen.
+     */
+    static void setKey(Context c, Vault.Key k) throws Exception {
+        if (k == null || k.key == null || k.key.length != 32) throw new Exception("Geen bruikbare sleutel");
+        Cipher ci = Cipher.getInstance("AES/GCM/NoPadding");
+        ci.init(Cipher.ENCRYPT_MODE, deviceKey());
+        byte[] wrapped = ci.doFinal(k.key);
+        if (!prefs(c).edit()
+                .putString("wrapped", b64(ci.getIV()) + ":" + b64(wrapped))
+                .putString("salt", b64(k.salt)).putInt("iter", k.iter).putInt("kdf", k.kdf)
+                .putLong("since", System.currentTimeMillis()).commit()) throw new Exception("Bewaren van de sleutel lukt niet");
+    }
+
     static void off(Context c) { prefs(c).edit().remove("wrapped").remove("salt").remove("iter").remove("kdf").remove("since").apply(); }
 
     /** Is de bewaarde sleutel nog bruikbaar? (Niet na terugzetten van app-gegevens op een andere telefoon.) */
@@ -138,9 +154,13 @@ final class Secure {
         }
 
         /** Binair bestand in het archief (bijv. kluisdocumenten). */
-        OutputStream stream(String dir, String file) throws IOException {
+        OutputStream stream(String dir, String file) throws IOException { return stream(dir, file, 6); }
+
+        /** Zelfde, met een eigen mate van inpakken (1 = licht, voor al samengeperst geluid; 6 = gewoon). */
+        OutputStream stream(String dir, String file, int level) throws IOException {
             ZipEntry e = new ZipEntry(unique(dir, file));
             e.setTime(System.currentTimeMillis());
+            z.setLevel(level); // geldt vanaf dit bestand; het volgende stream() zet het weer
             z.putNextEntry(e);
             files++;
             return new EntryStream(z);
@@ -527,6 +547,8 @@ final class Secure {
                 if (e.isDirectory()) continue;
                 String name = e.getName();
                 if (name.contains("..") || name.startsWith("/")) continue;
+                // Geheimen (VPN-sleutels, wachtwoorden, koppelingen) nooit leesbaar in de backup-map: alleen in het archief
+                if (name.startsWith(AppData.SECRET_DIR + "/") || name.equals(AppData.PREFS)) continue;
                 int slash = name.lastIndexOf('/');
                 StringBuilder rel = new StringBuilder(base);
                 if (slash > 0) for (String part : name.substring(0, slash).split("/")) rel.append('/').append(WaBackup.safeName(part));

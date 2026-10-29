@@ -41,6 +41,7 @@ schermen/33-assistent.html
 schermen/34-slaappraat.html
 schermen/35-modellen.html
 schermen/36-checkin.html
+schermen/37-herstel.html
 speler.html
 vensters.html
 script/00-begin.js
@@ -93,6 +94,7 @@ script/53-modellen.js
 script/54-checkin.js
 script/55-checkin-bewerken.js
 script/56-checkin-terugkijken.js
+script/57-herstel.js
 script/38b-spotify-podcasts.js
 script/39-speler.js
 script/40-spotify.js

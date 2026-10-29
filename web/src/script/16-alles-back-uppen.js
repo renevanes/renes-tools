@@ -1,5 +1,5 @@
 /* ---------- Alles back-uppen ---------- */
-const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', launcher: 'Startscherm (skin)', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek', settings: 'Instellingen, automatiseringen en zenders', routes: 'Routes (GPX)' };
+const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', launcher: 'Startscherm (skin)', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek', settings: 'Instellingen, automatiseringen en zenders', routes: 'Routes (GPX)', app: 'Alle appgegevens (voor herinstallatie)' };
 /* Privé: staan standaard uit; zonder versleutelen een duidelijke waarschuwing */
 const BK_PRIV = { ai: 'Geheugen en gesprekken van de assistent', sleep: 'Slaappraat', checkin: 'Check-in' };
 const BK_LABEL = Object.assign({}, BK_PARTS, BK_PRIV);
@@ -29,11 +29,23 @@ function enterBackup(){
   $('#bk-nodest').style.display = st.dest ? 'none' : 'block';
   $('#bk-dest').textContent = st.dest ? 'Naar: ' + (st.destName || 'je backup-map') : '';
   $('#bk-parts').innerHTML = Object.keys(BK_PARTS).map(k => '<label class=chk><input type=checkbox data-p="' + k + '"' + (((st.parts || {})[k] === true || (k !== 'notifications' && (st.parts || {})[k] !== false)) ? ' checked' : '') +
-    ' onchange="Android.backupSetPart(this.dataset.p, this.checked)"> ' + BK_PARTS[k] + '</label>').join('');
+    ' onchange="Android.backupSetPart(this.dataset.p, this.checked)"> ' + BK_PARTS[k] + '</label>' +
+    (k === 'app' ? '<div class=bk-sub><p class="note' + (st.encrypted ? '' : ' warn') + '" id=bk-app-note>' + bkAppNote(st.encrypted) + '</p></div>' : '')).join('');
   $('#bk-auto').checked = !!st.auto; $('#bk-charging').checked = st.charging !== false;
   $('#bk-next').textContent = st.auto && st.next ? 'Volgende backup: ' + new Date(st.next).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
-  bkRenderLast(st); bkRenderSecure(st);
+  bkRenderLast(st); bkRenderSecure(st); bkRenderHerstel(st);
   stopBkPoll(); bkPoll = setInterval(bkPollOnce, 1000);
+}
+function bkAppNote(on){ return on ? uiIcon('lock') + ' Alles van de app, ook wachtwoorden, VPN, kluis, opnames en privé-onderdelen, zodat je na opnieuw installeren alles terug hebt. Modellen gaan niet mee (die worden opnieuw gedownload).' : 'Gaat alleen mee in een versleutelde backup: zet hieronder Versleutelen aan.'; }
+/* Kun je na opnieuw installeren alles terugzetten? (versleuteld, backup-map, elke nacht, Alle appgegevens, gelukt) */
+function bkRenderHerstel(st){
+  const h = st.herstel; if (!h || !$('#bk-herstel')) return;
+  $('#bk-herstel-st').innerHTML = h.ok ? '<span class=permok>✓ Compleet voor herinstallatie</span>' + (h.last ? ' · laatste complete backup ' + esc(fmtD(h.last)) : '')
+    : '<span class="bad">Nog niet compleet</span>' + (h.last ? ' · laatste complete backup ' + esc(fmtD(h.last)) : '');
+  $('#bk-herstel-st').className = 'note';
+  const rows = [['Backup-map', h.dest], ['Versleutelen', h.enc], ['Alle appgegevens', h.part], ['Elke nacht vanzelf', h.auto], ['Complete backup gemaakt', !!h.last]];
+  $('#bk-herstel-list').innerHTML = rows.map(r => '<div class=bkres><b>' + r[0] + '</b>' + (r[1] ? '<span class=good>✓</span>' : '<span class=bad>✗ ontbreekt</span>') + '</div>').join('') +
+    ((h.missing || []).length ? '<p class=note id=bk-herstel-miss>Nog te doen: ' + esc(h.missing.join('; ')) + '.</p>' : '');
 }
 function stopBkPoll(){ if (bkPoll) { clearInterval(bkPoll); bkPoll = null; } }
 function bkRenderLast(st){

@@ -233,7 +233,10 @@ public class FeatureBridge {
             android.content.SharedPreferences p = ctx.getSharedPreferences("webstore", Context.MODE_PRIVATE);
             if (!p.getBoolean("pending", false)) return "";
             String r = p.getString("restoreAll", "");
-            p.edit().remove("pending").remove("restoreAll").apply();
+            boolean replace = p.getBoolean("replace", false);
+            p.edit().remove("pending").remove("restoreAll").remove("replace").apply();
+            // Na terugzetten van alle appgegevens: de interface-instellingen vervangen (niet alleen aanvullen)
+            if (replace) try { return new JSONObject(r).put("__replace", "1").toString(); } catch (Exception e) { return ""; }
             return r;
         }
         /** De app-eigen schakelaar: alle meldingen van Tools uit (true) of weer aan. */

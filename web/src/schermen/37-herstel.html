@@ -1,0 +1,56 @@
+<!-- ============ GEGEVENS TERUGZETTEN (na herinstallatie) ============ -->
+<section class="screen" id="s-herstel">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Gegevens terugzetten</h1>
+  </div>
+  <main>
+    <div class="card hs-step" id="hs-welkom">
+      <h2>Welkom terug</h2>
+      <p class="note" style="margin-top:0" id="hs-intro">Heb je Tools opnieuw geïnstalleerd? Dan zet de app alles terug uit je laatste versleutelde backup: notities, instellingen, automatiseringen, opnames, routes, de kluis, je VPN en koppelingen. Kies de map waar je backups staan (bijvoorbeeld je USB-stick of OneDrive).</p>
+      <p class="note warn" id="hs-warn-top" style="display:none">Let op: wat er nu op deze telefoon in Tools staat, wordt vervangen door wat in de backup staat.</p>
+      <button class="big" id="hs-pick" onclick="hsPick()">Backup-map kiezen</button>
+      <button class="big ghost" id="hs-same" style="margin-top:8px;display:none" onclick="hsScanNow()">Zoeken in de huidige backup-map</button>
+      <button class="big ghost" id="hs-skip" style="margin-top:8px" onclick="hsSkip()">Overslaan</button>
+      <p class="note">Overslaan kan altijd: je kunt dit later nog doen bij Alles back-uppen → Alles terugzetten na herinstallatie. Taalmodellen en spraakmodellen zitten niet in de backup; die downloadt de app daarna opnieuw (alleen via wifi als je dat zo hebt ingesteld).</p>
+    </div>
+    <div class="card hs-step" id="hs-kies" style="display:none">
+      <h2>Welke backup?</h2>
+      <p class="note" style="margin-top:0" id="hs-map"></p>
+      <div id="hs-list"></div>
+      <button class="big" id="hs-next" onclick="hsOpen()">Verder</button>
+      <button class="big ghost" style="margin-top:8px" onclick="hsPick()">Andere map kiezen</button>
+    </div>
+    <div class="card hs-step" id="hs-bezig" style="display:none">
+      <h2 id="hs-bezig-t">Bezig met controleren…</h2>
+      <div class="note-progress"><span id="hs-bezig-s">De hele backup wordt gelezen en gecontroleerd. Er verandert nog niets.</span><progress id="hs-prog" max="100"></progress></div>
+    </div>
+    <div class="card hs-step" id="hs-klaar" style="display:none">
+      <h2>Klaar om terug te zetten</h2>
+      <div id="hs-sum"></div>
+      <p class="note warn" id="hs-warn" style="display:none">Let op: wat er nu op deze telefoon in Tools staat, wordt vervangen door wat in deze backup staat.</p>
+      <button class="big" id="hs-apply" onclick="hsApply()">Alles terugzetten</button>
+      <button class="big ghost" style="margin-top:8px" onclick="hsBackToList()">Andere backup kiezen</button>
+      <p class="note">Daarna start de app opnieuw. Toestemmingen van Android (zoals sms, contacten en meldingentoegang) kunnen niet mee terug: die vraagt de app je daarna opnieuw.</p>
+    </div>
+    <div class="card hs-step" id="hs-oud" style="display:none">
+      <h2>Oudere backup</h2>
+      <p class="note" style="margin-top:0">Deze backup is gemaakt vóór "Alle appgegevens". Je kunt er wel losse onderdelen uit terugzetten (notities, contacten, instellingen …); die worden toegevoegd aan wat er staat.</p>
+      <button class="big" onclick="hsOld()">Losse onderdelen terugzetten</button>
+      <button class="big ghost" style="margin-top:8px" onclick="hsBackToList()">Andere backup kiezen</button>
+    </div>
+    <div class="hs-step" id="hs-lijst" style="display:none">
+      <div class="card">
+        <h2>✓ Je gegevens staan terug</h2>
+        <p class="note" style="margin-top:0" id="hs-lijst-t">Android zet een paar dingen niet terug. Sta ze hieronder opnieuw toe; wat al in orde is, staat er met een vinkje bij.</p>
+        <div id="hs-items"></div>
+      </div>
+      <div class="card" id="hs-models" style="display:none">
+        <h2>Modellen</h2>
+        <p class="note" style="margin-top:0" id="hs-models-t"></p>
+        <button class="big ghost" onclick="show('models')">Modellen beheren</button>
+      </div>
+      <div class="card"><button class="big" onclick="hsDone()">Klaar</button></div>
+    </div>
+  </main>
+</section>

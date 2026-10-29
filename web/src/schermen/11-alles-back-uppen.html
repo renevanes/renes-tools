@@ -9,6 +9,11 @@
       <p>Kies eerst een backup-map, bijvoorbeeld een USB-stick, SD-kaart of OneDrive.</p>
       <button class="big" onclick="Android.waPickFolder()">Backup-map kiezen</button>
     </div>
+    <div class="card" id="bk-herstel">
+      <h2>Klaar voor herinstallatie</h2>
+      <p class="note" style="margin-top:0" id="bk-herstel-st"></p>
+      <div id="bk-herstel-list"></div>
+    </div>
     <div class="card">
       <h2>Laatste backup</h2>
       <p class="note" style="margin-top:0" id="bk-last">Nog niet gemaakt</p>
@@ -65,6 +70,8 @@
       <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('ai')">Geheugen en gesprekken van de assistent</button>
       <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('sleep')">Slaappraat</button>
       <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('checkin')">Check-in</button>
+      <button class="big ghost" style="margin-top:8px" id="bk-herstel-btn" onclick="herstelStart()">Alles terugzetten na herinstallatie</button>
+      <p class="note">Alles terugzetten na herinstallatie vervangt alles in Tools door wat in een versleutelde backup met Alle appgegevens staat (met je wachtwoorden, VPN en kluis). Daarna start de app opnieuw.</p>
       <p class="note">Het startscherm terugzetten vervangt de indeling van de skin (de huidige wordt eerst bewaard). Widgets en vastgezette snelkoppelingen kunnen niet mee terug.</p>
       <button class="big ghost" style="margin-top:8px" onclick="Android.archivePick()">Versleutelde backup openen</button>
       <p class="note">Je kiest het bestand in de backup-map (bijv. Contacten backup/…vcf, Notities/notities.json, Instellingen/instellingen.json, Gesprekken/transcripties.json, Muziek/herkende-nummers.json, Assistent/assistent.json, Slaappraat/slaappraat.json, Check-in/checkin.json of een route in Routes/; het geluid van Slaappraat komt dan uit de map Slaappraat in je backup-map). Er wordt alleen toegevoegd wat er nog niet is; er wordt niets overschreven of verwijderd. Sms'jes en oproepen zet je terug met de app "SMS Backup &amp; Restore"; WhatsApp via WhatsApp backup.</p>

@@ -650,8 +650,30 @@ if (!window.Android) window.Android = (function(){
     archiveRestore(k,e){ this._arcRestore=k+'|'+e; this._restoreKind=k; setTimeout(()=>onRestorePreview(k==='sleep'?{kind:k,total:4,fresh:2,dup:0,old:0,running:1,bad:0,keep:14,clips:9,audio:7,audioBytes:12e6,withAudio:true,fromArchive:true,sample:[Date.now()-864e5,Date.now()-2*864e5]}
       :k==='ai'?{kind:k,memTotal:5,memFresh:0,memDup:2,memFull:3,chatTotal:4,chatFresh:4,chatDup:0,chatFull:0,total:9,fresh:4,sample:[]}:k==='checkin'?{kind:k,qTotal:2,qFresh:1,qDup:1,aTotal:40,aFresh:12,aDup:28,bad:0,total:42,fresh:13,sample:['🏃 Heb je bewogen?']}:{kind:k,total:320,fresh:2,dup:318,sample:['Oom Kees','Tandarts']}),100); },
     archiveUnpack(){ setTimeout(()=>onArchiveUnpacked('ok:57'),150); }, archiveClose(){ this._arcClosed=true; },
-    _bk:{busy:false,current:'',auto:false,charging:true,parts:{},last:null,sleepAudio:false,extra:{aiMem:12,aiChats:8,aiBytes:46000,nights:5,sleepText:21000,sleepAudio:84e6,ciQ:2,ciA:57,ciBytes:9000}},
-    backupState(f){ const b=this._bk; return JSON.stringify({busy:b.busy,current:b.current,auto:b.auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:b.auto?Date.now()+5*36e5:0,parts:Object.assign({ai:false,sleep:false,checkin:false},b.parts),sleepAudio:b.sleepAudio,extra:b.extra,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,space:this._sec.space}); },
+    _bk:{busy:false,current:'',auto:true,charging:true,parts:{},last:null,sleepAudio:false,extra:{aiMem:12,aiChats:8,aiBytes:46000,nights:5,sleepText:21000,sleepAudio:84e6,ciQ:2,ciA:57,ciBytes:9000}},
+    backupState(f){ const b=this._bk; return JSON.stringify({busy:b.busy,current:b.current,auto:b.auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:b.auto?Date.now()+5*36e5:0,parts:Object.assign({ai:false,sleep:false,checkin:false},b.parts),sleepAudio:b.sleepAudio,extra:b.extra,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,space:this._sec.space,herstel:this._herstelReady()}); },
+    /* Klaar voor herinstallatie (zoals Herstel.ready) */
+    _herstelReady(){ const b=this._bk, dest=!!this._wa.info.dest, enc=!!this._sec.on, auto=!!b.auto, part=b.parts.app!==false, last=b.appLast||0, miss=[];
+      if(!dest) miss.push('Kies een backup-map'); if(!enc) miss.push('Zet Versleutelen aan (wachtwoord)'); if(!part) miss.push('Vink Alle appgegevens aan'); if(!auto) miss.push('Zet Elke nacht alles back-uppen aan'); if(!last) miss.push('Nog geen complete backup gemaakt');
+      return {ok:!miss.length,missing:miss,last,lastName:last?'backup-2026-10-28_0331.rtb':'',enc,dest,auto,part}; },
+    /* Gegevens terugzetten na herinstallatie (nagebootst) */
+    _hs:{state:window.__testHerstel||'bestaand',after:false,hasData:false,pwd:'goedwachtwoord',old:false,plain:{},
+      archives:[{name:'backup-2026-10-28_0331_deels.rtb',size:9e8,t:Date.now()-36e5,deels:true},{name:'backup-2026-10-27_0330.rtb',size:2.4e9,t:Date.now()-864e5,deels:false},{name:'backup-2026-10-26_0330.rtb',size:2.3e9,t:Date.now()-2*864e5,deels:false}],
+      items:[{id:'sms',name:'Sms',used:'SMS backup',ok:false},{id:'contacts',name:'Contacten',used:'Namen bij nummers, de Contacten-tool',ok:true},{id:'history',name:'Meldingentoegang',used:'Meldingsgeschiedenis',ok:false},{id:'a11y',name:'Toegankelijkheid',used:'Automatiseringen die tikken in andere apps',ok:false},{id:'bio',name:'Vingerafdruk bij de app-code',used:'Zet hem weer aan bij Instellingen → App-slot',ok:false},{id:'widgets',name:'Widgets',used:'Widgets op het startscherm van de telefoon moet je opnieuw plaatsen',ok:true,info:true}],
+      models:{names:['Klein en snel','Zoekmodel','Spraakmodel Snel (57 MB)'],bytes:1.7e9,wait:'Wacht op wifi (of zet Alleen via wifi uit)',err:''}},
+    herstelState(){ const h=this._hs; return JSON.stringify({state:h.state,pending:h.state==='nieuw',after:!!h.after,dest:!!this._wa.info.dest,hasData:!!h.hasData}); },
+    herstelSkip(){ if(this._hs.state==='nieuw') this._hs.state='overgeslagen'; this._hs.skipped=true; },
+    herstelPickFolder(){ Object.assign(this._wa.info,{dest:true,destName:'USB-stick Rene'}); setTimeout(()=>onHerstelFolder(''),80); },
+    herstelScan(){ const h=this._hs; setTimeout(()=>onHerstelScan(h.scanError?{error:h.scanError}:{dest:true,destName:'USB-stick Rene',archives:h.archives,recommended:(h.archives.find(a=>!a.deels)||h.archives[0]||{}).name,plain:h.plain}),80); },
+    herstelOpen(n,pw){ const h=this._hs; h.opened=n; h.tries=(h.tries||[]).concat([pw]); setTimeout(()=>{
+      if(!pw) return onHerstelOpened({needPw:true}); if(pw!==h.pwd) return onHerstelOpened({error:'Verkeerd wachtwoord',wrongPw:true}); if(h.old) return onHerstelOpened({old:true,name:n});
+      onHerstelProgress('1200000000,2400000000'); setTimeout(()=>onHerstelOpened({ok:true,name:n,app:'1.105',t:Date.now()-864e5,files:1532,kluis:4,bytes:2.3e9,history:true,warn:h.state!=='nieuw'}),80); },120); },
+    herstelOldArchive(n,pw){ this._hs.oldOpened=n; this.archiveOpen(pw); },
+    herstelApply(){ const h=this._hs; h.applied=h.opened; setTimeout(()=>{ onHerstelDone(h.applyError||''); if(!h.applyError){ h.state='klaar'; h.after=true; } },120); },
+    herstelCancel(){ this._hs.cancelled=(this._hs.cancelled||0)+1; },
+    herstelChecklist(){ const h=this._hs; return JSON.stringify(h.after?{items:h.items,models:h.models,t:Date.now()}:{items:[]}); },
+    herstelChecklistDone(){ this._hs.after=false; this._hs.done=true; },
+    herstelFix(id){ const h=this._hs; (h.fixed=h.fixed||[]).push(id); const it=h.items.find(i=>i.id===id); if(it) it.ok=true; setTimeout(()=>onSettingsChanged(''),50); },
     backupSetPart(p,on){ const b=this._bk; b.plain=b.plain||{}; if(p==='sleepAudio') b.sleepAudio=on; else if(p.startsWith('plain:')) b.plain[p.slice(6)]=on; else { b.parts[p]=on; if(!on) b.plain[p]=false; } }, backupSetAuto(a,c){ this._bk.auto=a; this._bk.charging=c; },
     backupStart(wa){ const b=this._bk; if(!this._wa.info.dest) return 'Kies eerst een backup-map'; b.busy=true; const ks=['sms','calls','contacts','notes','transcripts','music']; let i=0;
       const t=setInterval(()=>{ b.current=ks[i++]; if(i>ks.length){ clearInterval(t); b.busy=false; b.current='';

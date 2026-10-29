@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Android-cloudbackup (Android 7–11). Gevoelige gegevens blijven alleen op de telefoon: meldingsgeschiedenis, Check-in,
      WhatsApp-database en -sleutel, opnames, transcripties, routes, contactbackups, de AudD-sleutel en sleutelmateriaal.
-     Die gaan alleen mee in Alles back-uppen (versleuteld als je dat kiest). -->
+     Die gaan alleen mee in Alles back-uppen (versleuteld als je dat kiest). "Alle appgegevens" (alles terugzetten na
+     herinstallatie, ook VPN-sleutels en wachtwoorden) gaat alleen in het versleutelde archief in je eigen backup-map,
+     nooit hier: deze lijst blijft even streng. Wat het terugzetten zelf bijhoudt staat in no_backup/ (nooit in een backup). -->
 <full-backup-content>
     <exclude domain="database" path="notification-history.db" />
     <exclude domain="database" path="notification-history.db-journal" />

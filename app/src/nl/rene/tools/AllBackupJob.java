@@ -24,7 +24,7 @@ public class AllBackupJob extends JobService {
     @Override
     public boolean onStartJob(final JobParameters params) {
         final Context ctx = getApplicationContext();
-        if (!AllBackup.prefs(ctx).getBoolean("auto", false)) return false;
+        if (!wanted(ctx)) return false;
         if (!AllBackup.tryBegin()) {
             // Er loopt al een backup: over een uur opnieuw (pas plannen nadat deze taak is afgemeld).
             new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> schedule(ctx, 60 * 60 * 1000L));
@@ -68,10 +68,18 @@ public class AllBackupJob extends JobService {
                                 android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT)).build());
     }
 
+    /**
+     * Elke nacht (standaard aan), maar alleen met een backup-map (anders elke nacht een melding dat het mislukte)
+     * en niet op een nieuwe installatie waarop je gegevens nog terug moeten.
+     */
+    static boolean wanted(Context c) {
+        try { return AllBackup.auto(c) && WaBackup.destUri(c) != null && !Herstel.pending(c); } catch (Exception e) { return false; }
+    }
+
     static void schedule(Context c, long minDelay) {
         JobScheduler js = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
         SharedPreferences p = AllBackup.prefs(c);
-        if (!p.getBoolean("auto", false)) { js.cancel(JOB_ID); p.edit().remove("next").apply(); return; }
+        if (!wanted(c)) { js.cancel(JOB_ID); p.edit().remove("next").apply(); return; }
         long next = Math.max(nextRun(p.getLong("lastAutoDay", 0)), System.currentTimeMillis() + minDelay);
         JobInfo.Builder b = new JobInfo.Builder(JOB_ID, new ComponentName(c, AllBackupJob.class))
                 .setMinimumLatency(Math.max(0, next - System.currentTimeMillis()))
@@ -85,7 +93,7 @@ public class AllBackupJob extends JobService {
 
     static void ensureScheduled(Context c) {
         JobScheduler js = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
-        boolean auto = AllBackup.prefs(c).getBoolean("auto", false);
+        boolean auto = wanted(c);
         if (auto == (js.getPendingJob(JOB_ID) != null)) return;
         schedule(c, 0);
     }

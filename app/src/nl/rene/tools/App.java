@@ -42,6 +42,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        if (restartProcess()) return; // het korte herstart-proces na terugzetten: verder niets
         final Thread.UncaughtExceptionHandler prev = Thread.getDefaultUncaughtExceptionHandler();
         final Context c = getApplicationContext();
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
@@ -55,10 +56,22 @@ public class App extends Application {
             else { android.os.Process.killProcess(android.os.Process.myPid()); System.exit(10); }
         });
         registerActivityLifecycleCallbacks(new Visible(c));
+        // Een terugzetten dat halverwege stopte (app omgevallen): eerst afmaken of terugdraaien, vóór iets anders de gegevens leest
+        if (unlocked(c)) { try { AppBackup.recover(c); } catch (Throwable ignored) { } }
         // Na geforceerd stoppen zijn alle wekkers weg: bij de eerstvolgende start terugzetten
         new Thread(() -> AlarmReceiver.ensureArmed(c), "rearm").start();
         // Ontsleuteld Slaappraat-geluid van een afgebroken terugzetten niet in de cache laten staan
         new Thread(() -> { try { AiSleepBackup.clearStage(c); } catch (Throwable ignored) { } }, "restore-stage").start();
+    }
+
+    /** Draait dit in het proces van HerstartActivity (":herstart")? */
+    private boolean restartProcess() {
+        String n = null;
+        try {
+            if (Build.VERSION.SDK_INT >= 28) n = Application.getProcessName();
+            else try (java.io.FileInputStream in = new java.io.FileInputStream("/proc/self/cmdline")) { n = new String(SelfTest.readAll(in), StandardCharsets.UTF_8).trim(); }
+        } catch (Throwable ignored) { }
+        return n != null && n.replace("\0", "").endsWith(":herstart");
     }
 
     /** Staat er een scherm van de app in beeld? (Dan is de zwevende speler niet nodig.) */

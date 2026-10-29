@@ -195,4 +195,52 @@ final class NotificationHistory {
             } finally { snapshot.delete(); }
         } finally { exporting.set(false); }
     }
+
+    // ---------- alle appgegevens (versleutelde backup) ----------
+
+    /** Alle rijen als JSON-regels (met vingerafdruk), oudste eerst. Geeft het aantal. */
+    static synchronized int dumpRows(Context c, Writer w) throws Exception {
+        SQLiteDatabase d = database(c);
+        prune(d);
+        int n = 0;
+        try (Cursor cur = d.query("history", new String[]{"fingerprint", "time", "package", "app", "title", "text"}, null, null, null, null, "time ASC, id ASC")) {
+            while (cur.moveToNext()) {
+                w.write(new JSONObject().put("fp", cur.getString(0)).put("time", cur.getLong(1)).put("package", cur.getString(2))
+                        .put("app", cur.getString(3)).put("title", cur.getString(4)).put("text", cur.getString(5)).toString());
+                w.write("\n");
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /**
+     * Terugzetten na herinstallatie: eerst alles weg, dan de rijen uit de backup (alleen bekende velden, als tekst,
+     * ingekort; hooguit 10.000). Alles in één transactie: mislukt er iets, dan blijft de oude geschiedenis.
+     */
+    static synchronized int replaceRows(Context c, java.io.BufferedReader in) throws Exception {
+        SQLiteDatabase d = database(c);
+        int n = 0;
+        d.beginTransaction();
+        try {
+            d.delete("history", null, null);
+            String line;
+            while ((line = in.readLine()) != null && n < 10_000) {
+                if (line.trim().isEmpty() || line.length() > 200_000) continue;
+                JSONObject r;
+                try { r = new JSONObject(line); } catch (Exception e) { continue; }
+                long time = r.optLong("time", 0);
+                if (time <= 0) continue;
+                String pkg = HistoryText.clean(r.optString("package"), 200), app = HistoryText.clean(r.optString("app"), 200);
+                String title = HistoryText.clean(r.optString("title"), 2000), text = HistoryText.clean(r.optString("text"), 20000);
+                String fp = r.optString("fp");
+                if (fp.isEmpty() || fp.length() > 200) fp = HistoryText.fingerprint(pkg + ":" + n, time, title, text);
+                d.execSQL("INSERT OR IGNORE INTO history (fingerprint,time,package,app,title,text,fold) VALUES (?,?,?,?,?,?,?)",
+                        new Object[]{fp, time, pkg, app, title, text, foldOf(app, pkg, title, text)});
+                n++;
+            }
+            d.setTransactionSuccessful();
+        } finally { d.endTransaction(); }
+        return n;
+    }
 }

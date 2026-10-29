@@ -58,6 +58,7 @@ public class MainActivity extends Activity {
     private static final int REQ_CONTACTS_RW = 19;
     private static final int REQ_TR = 20;
     private static final int REQ_NOTIF = 41;
+    private static final int REQ_HERSTEL_TREE = 44;
     private static final int REQ_RECTREE = 21;
     private static final int REQ_MIC = 22;
     private static final int REQ_SETTINGS = 23;
@@ -186,6 +187,11 @@ public class MainActivity extends Activity {
         TranscribeJob.ensureScheduled(this);
         // Automatiseringen: plekken opnieuw instellen als Android ze kwijt kan zijn (bijv. na geforceerd stoppen op Oppo)
         if (System.currentTimeMillis() - Auto.prefs(this).getLong("armedAt", 0) > 6 * 3600_000L) Auto.armPlaces(this, true);
+        // Net teruggezet na een herinstallatie: alles opnieuw inplannen en de modellen weer downloaden
+        if (!isSolo()) {
+            final Context app = getApplicationContext();
+            new Thread(() -> { try { Herstel.afterRestart(app); Herstel.resumeModels(app); } catch (Throwable t) { App.log(app, "HERSTEL", "na start: " + t); } }, "herstel-start").start();
+        }
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -618,25 +624,27 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
-        if (req == REQ_TREE) {
+        if (req == REQ_TREE || req == REQ_HERSTEL_TREE) {
+            final boolean herstel = req == REQ_HERSTEL_TREE;
             if (res == RESULT_OK && data != null && data.getData() != null) {
                 Uri t = data.getData();
                 String tid = "";
                 try { tid = DocumentsContract.getTreeDocumentId(t); } catch (Exception ignored) { }
                 if (tid.startsWith("primary:Android/media/com.whatsapp")) {
                     Toast.makeText(this, "Kies een map buiten de WhatsApp-map", Toast.LENGTH_LONG).show();
-                    js("onWaChanged", "");
+                    js(herstel ? "onHerstelFolder" : "onWaChanged", "");
                     return;
                 }
                 try {
                     getContentResolver().takePersistableUriPermission(t,
                             Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                     WaBackup.prefs(this).edit().putString("dest", t.toString()).apply();
+                    AllBackupJob.ensureScheduled(this); // elke nacht (standaard aan) kan nu echt lopen
                 } catch (Exception e) {
                     Toast.makeText(this, "Deze map kan niet worden gebruikt", Toast.LENGTH_LONG).show();
                 }
             }
-            js("onWaChanged", "");
+            js(herstel ? "onHerstelFolder" : "onWaChanged", "");
             return;
         }
         if (req == Lock.REQ_CONFIRM) { Lock.onConfirmResult(res == RESULT_OK); return; }
@@ -2125,6 +2133,111 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void archiveClose() {
             Secure.forget(); a.pendingArchive = null;
             new Thread(() -> { try { AiSleepBackup.cancelStaged(ctx); } catch (Throwable ignored) { } }, "archive-close").start();
+        }
+
+        // ----- Gegevens terugzetten na herinstallatie -----
+
+        /** {state, pending, after, hasData}: nieuwe installatie (welkom), of net teruggezet (lijstje). */
+        @JavascriptInterface public String herstelState() {
+            try {
+                String st = Herstel.state(ctx);
+                return new JSONObject().put("state", st).put("pending", Herstel.NEW.equals(st)).put("after", Herstel.showList(ctx))
+                        .put("dest", WaBackup.destUri(ctx) != null).put("hasData", AppBackup.hasLocalData(ctx)).toString();
+            } catch (Exception e) { return "{}"; }
+        }
+
+        @JavascriptInterface public void herstelSkip() {
+            if (Herstel.NEW.equals(Herstel.state(ctx))) Herstel.setState(ctx, Herstel.SKIPPED);
+            AllBackupJob.ensureScheduled(ctx);
+        }
+
+        /** De oude backup-map kiezen (wordt ook weer de backup-map); daarna onHerstelFolder. */
+        @JavascriptInterface public void herstelPickFolder() {
+            a.h.post(() -> {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                        | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+                try { a.startActivityForResult(i, REQ_HERSTEL_TREE); }
+                catch (ActivityNotFoundException e) { Toast.makeText(a, "Mappenkiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+            });
+        }
+
+        /** Versleutelde backups in de backup-map; uitkomst via onHerstelScan. */
+        @JavascriptInterface public void herstelScan() {
+            new Thread(() -> {
+                String r;
+                try { r = Herstel.scan(ctx).toString(); } catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(WaBackup.folderMsg(ctx, e instanceof Exception ? (Exception) e : new Exception("Map niet te lezen"))) + "}"; }
+                a.js("onHerstelScan", r);
+            }, "herstel-scan").start();
+        }
+
+        /** Backup openen, helemaal controleren en klaarzetten (er verandert nog niets); voortgang via onHerstelProgress, uitkomst via onHerstelOpened. */
+        @JavascriptInterface public void herstelOpen(String name, String pw) {
+            new Thread(() -> {
+                String r;
+                try {
+                    final long[] last = {0};
+                    r = Herstel.open(ctx, name, pw, (done, total) -> {
+                        long now = System.currentTimeMillis();
+                        if (now - last[0] < 400) return;
+                        last[0] = now;
+                        a.js("onHerstelProgress", done + "," + total);
+                    }).toString();
+                }
+                catch (OutOfMemoryError e) { r = "{\"error\":\"Te weinig geheugen om deze backup te openen\"}"; }
+                catch (Throwable e) { r = errJson(e instanceof Exception ? (Exception) e : new Exception("Openen mislukt")); }
+                a.js("onHerstelOpened", r);
+            }, "herstel-open").start();
+        }
+
+        /** Losse onderdelen uit een backup zonder appgegevens (de bestaande manier, alleen toevoegen). */
+        @JavascriptInterface public void herstelOldArchive(String name, String pw) {
+            new Thread(() -> {
+                String r;
+                try { Uri u = Herstel.archiveUri(ctx, name); a.pendingArchive = u; r = Secure.open(ctx, u, pw).toString(); }
+                catch (Throwable e) { r = errJson(e instanceof Exception ? (Exception) e : new Exception("Openen mislukt")); }
+                a.js("onArchive", r);
+            }, "herstel-old").start();
+        }
+
+        /** Alles terugzetten (vervangt wat er staat) en de app opnieuw starten; bij een fout onHerstelDone(melding). */
+        @JavascriptInterface public void herstelApply() {
+            new Thread(() -> {
+                String r = "";
+                boolean restart = false;
+                if (!AllBackup.tryBegin()) r = "Er loopt een backup; probeer het zo opnieuw";
+                else try { String w = AppBackup.apply(ctx); restart = true; if (!w.isEmpty()) a.js("toast", JSONObject.quote(w)); }
+                catch (Throwable e) { r = e.getMessage() == null ? "Terugzetten mislukt" : e.getMessage(); App.log(ctx, "HERSTEL", "terugzetten: " + r); }
+                finally { AllBackup.running.set(false); AllBackup.busy = false; }
+                a.js("onHerstelDone", JSONObject.quote(r));
+                if (restart) a.h.postDelayed(() -> Herstel.restart(a), 1200);
+            }, "herstel-apply").start();
+        }
+
+        @JavascriptInterface public void herstelCancel() {
+            new Thread(() -> { try { AppBackup.cancel(ctx); } catch (Throwable ignored) { } }, "herstel-cancel").start();
+        }
+
+        /** Wat je na terugzetten opnieuw moet toestaan (en de modellen die weer binnenkomen). */
+        @JavascriptInterface public String herstelChecklist() {
+            try { return Herstel.checklist(ctx).toString(); } catch (Throwable e) { return "{\"items\":[]}"; }
+        }
+
+        @JavascriptInterface public void herstelChecklistDone() { Herstel.checklistDone(ctx); }
+
+        /** Een knop in het lijstje: de juiste instelling van Android openen. */
+        @JavascriptInterface public void herstelFix(String id) {
+            if (id == null) return;
+            switch (id) {
+                case "battery": batterySettings(); return;
+                case "exact": alarmExactSettings(); return;
+                case "a11y": autoA11ySettings(); return;
+                case "home": homeMakeDefault(); return;
+                case "overlay":
+                    a.h.post(() -> { try { a.startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + ctx.getPackageName()))); } catch (Exception e) { a.openAppSettings(); } });
+                    return;
+                default: permRequest(id);
+            }
         }
 
         @JavascriptInterface public void backupSetPart(String part, boolean on) {

@@ -23,7 +23,7 @@ final class AllBackup {
 
     private AllBackup() { }
 
-    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "launcher", "transcripts", "music", "settings", "routes", "ai", "sleep", "checkin", "kluis"};
+    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "launcher", "transcripts", "music", "settings", "routes", "ai", "sleep", "checkin", "kluis", "app"};
 
     /** Privé: alleen versleuteld mee, of onversleuteld na uitdrukkelijke toestemming (plain_…). */
     static final String[] PRIVATE = {"ai", "sleep", "checkin"};
@@ -37,6 +37,12 @@ final class AllBackup {
     static boolean sleepAudio(Context c) { return prefs(c).getBoolean("sleep_audio", false); }
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("allbackup", Context.MODE_PRIVATE); }
+
+    /** Elke nacht vanzelf: staat standaard aan (zet je hem zelf uit, dan blijft hij uit). */
+    static boolean auto(Context c) { return prefs(c).getBoolean("auto", true); }
+
+    /** Alle appgegevens (voor terugzetten na herinstallatie) gaan alleen mee in een versleutelde backup. */
+    static final String APP_PLAIN = "Niet mee: alleen in een versleutelde backup (zet Versleutelen aan)";
 
     /** Er kan maar één backup tegelijk lopen. */
     static final java.util.concurrent.atomic.AtomicBoolean running = new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -81,6 +87,11 @@ final class AllBackup {
                 put(res, "all", false, 0, "Kies eerst een backup-map (Instellingen)");
                 return res;
             }
+            // Nieuwe installatie waarop je gegevens nog terug moeten: geen (lege) backup die de goede kan verdringen
+            if (Herstel.pending(c)) {
+                put(res, "all", false, 0, Herstel.NOT_YET);
+                return res;
+            }
             if (Secure.on(c)) {
                 try {
                     zip = Secure.begin(c, Secure.key(c));
@@ -100,6 +111,7 @@ final class AllBackup {
                     catch (Exception ignored) { }
                     continue;
                 }
+                if ("app".equals(part) && !Secure.on(c)) { put(res, part, true, -1, APP_PLAIN); continue; }
                 // Android beëindigt de taak: de rest niet meer, maar wel zichtbaar als mislukt; wat klaar is blijft bewaard
                 if (stop) { try { res.put("stopped", true); } catch (Exception ignored) { } put(res, part, false, 0, STOPPED); continue; }
                 // Privé zonder versleutelen alleen met uitdrukkelijke toestemming (die staat niet in een backup; na een
@@ -132,7 +144,14 @@ final class AllBackup {
                 if (!any) Secure.abort(zip);
                 else {
                     boolean done = false;
-                    try { res.put("archive", Secure.finish(zip, res)); done = true; }
+                    try {
+                        String name = Secure.finish(zip, res);
+                        res.put("archive", name); done = true;
+                        // Laatste complete backup voor herinstallatie (alle appgegevens erin, archief niet afgebroken)
+                        JSONObject ap = res.optJSONObject("app");
+                        if (ap != null && ap.optBoolean("ok") && ap.optInt("count") > 0 && !res.optBoolean("stopped"))
+                            prefs(c).edit().putLong("appLast", System.currentTimeMillis()).putString("appLastName", name).apply();
+                    }
                     catch (Exception e) { put(res, "all", false, 0, "Archief afsluiten mislukt: " + e.getMessage()); App.log(c, "BACKUP", "archief afsluiten: " + e); }
                     // Staat het privé-deel nu versleuteld in het archief, dan de oude leesbare kopie uit de backup-map weg
                     // (ook als er niets te bewaren was: dan hoort er ook geen oude leesbare kopie te blijven staan)
@@ -213,6 +232,8 @@ final class AllBackup {
                 return AiSleepBackup.exportSleep(c, sleepAudio(c));
             case "checkin":
                 return CheckinStore.export(c); // vragen en antwoorden
+            case "app":
+                return AppBackup.export(c); // alles van de app, alleen in een versleutelde backup (zonder modellen)
             default:
                 return -1;
         }
@@ -248,7 +269,7 @@ final class AllBackup {
                 return o.toString();
             }
             o
-                    .put("auto", prefs(c).getBoolean("auto", false)).put("charging", prefs(c).getBoolean("charging", true))
+                    .put("auto", auto(c)).put("charging", prefs(c).getBoolean("charging", true))
                     .put("dest", WaBackup.destUri(c) != null).put("destName", WaBackup.destName(c))
                     .put("next", prefs(c).getLong("next", 0))
                     .put("rotate", prefs(c).getBoolean("rotate", false)).put("encrypted", Secure.on(c)).put("encBroken", Secure.broken(c))
@@ -260,6 +281,7 @@ final class AllBackup {
             JSONObject extra = AiSleepBackup.sizes(c);
             CheckinStore.sizes(c, extra);
             o.put("parts", parts).put("sleepAudio", sleepAudio(c)).put("extra", extra);
+            try { o.put("herstel", Herstel.ready(c)); } catch (Exception ignored) { }
             String last = prefs(c).getString("last", null);
             if (last != null) o.put("last", new JSONObject(last));
             return o.toString();

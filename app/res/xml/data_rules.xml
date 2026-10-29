@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12+: cloudbackup en overzetten naar een nieuwe telefoon, zonder gevoelige gegevens (zie backup_rules.xml). -->
+<!-- Android 12+: cloudbackup en overzetten naar een nieuwe telefoon, zonder gevoelige gegevens (zie backup_rules.xml).
+     Alles terugzetten na herinstallatie (met geheimen) gaat alleen via het versleutelde archief van Alles back-uppen. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="database" path="notification-history.db" />

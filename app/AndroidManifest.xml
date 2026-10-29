@@ -120,6 +120,16 @@
             </intent-filter>
         </activity>
 
+        <!-- Na "Alles terugzetten": de app vers opnieuw starten (eigen kort proces, niet van buitenaf te starten) -->
+        <activity
+            android:name=".HerstartActivity"
+            android:exported="false"
+            android:process=":herstart"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- Losse app: één tool met een eigen plek in "recente apps", zonder app-slot (Instellingen → Losse apps) -->
         <activity
             android:name=".SoloActivity"
