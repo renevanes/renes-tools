@@ -671,10 +671,11 @@ if (!window.Android) window.Android = (function(){
     herstelScan(){ const h=this._hs; setTimeout(()=>onHerstelScan(h.scanError?{error:h.scanError}:{dest:true,destName:'USB-stick Rene',archives:h.archives,recommended:(h.archives.find(a=>!a.deels)||h.archives[0]||{}).name,plain:h.plain}),80); },
     herstelOpen(n,pw){ const h=this._hs; h.opened=n; h.tries=(h.tries||[]).concat([pw]); setTimeout(()=>{
       if(!pw) return onHerstelOpened({needPw:true}); if(pw!==h.pwd) return onHerstelOpened({error:'Verkeerd wachtwoord',wrongPw:true}); if(h.old) return onHerstelOpened({old:true,name:n});
-      onHerstelProgress('1200000000,2400000000'); setTimeout(()=>onHerstelOpened({ok:true,name:n,app:'1.105',t:Date.now()-864e5,files:1532,kluis:4,bytes:2.3e9,history:true,warn:h.state!=='nieuw',missing:h.missing||[]}),80); },120); },
+      onHerstelProgress('1200000000,2400000000,1'); onHerstelProgress('600000000,2400000000,2'); setTimeout(()=>onHerstelOpened({ok:true,name:n,app:'1.105',t:Date.now()-864e5,files:1532,kluis:4,bytes:2.3e9,history:true,warn:h.state!=='nieuw'||!!h.hasData,missing:h.missing||[]}),80); },120); },
     herstelOldArchive(n,pw){ this._hs.oldOpened=n; this.archiveOpen(pw); },
     herstelApply(){ const h=this._hs; if(h.busy){ setTimeout(()=>onHerstelDone(h.busy),50); return; } h.applied=h.opened; setTimeout(()=>{ onHerstelDone(h.applyError||''); if(!h.applyError){ h.state='klaar'; h.after=true; } },120); },
     herstelCancel(){ this._hs.cancelled=(this._hs.cancelled||0)+1; },
+    herstelPlainOk(){ this._hs.needPw=false; this._hs.plainOk=true; this._bk.parts.ai=false; this._bk.parts.sleep=false; this._bk.parts.checkin=false; },
     herstelChecklist(){ const h=this._hs; return JSON.stringify(h.after?{items:h.items,models:h.models,t:Date.now()}:{items:[]}); },
     herstelChecklistDone(){ this._hs.after=false; this._hs.done=true; },
     herstelFix(id){ const h=this._hs; (h.fixed=h.fixed||[]).push(id); const it=h.items.find(i=>i.id===id); if(it) it.ok=true; setTimeout(()=>onSettingsChanged(''),50); },

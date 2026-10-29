@@ -2181,11 +2181,11 @@ public class MainActivity extends Activity {
                 String r;
                 try {
                     final long[] last = {0};
-                    r = Herstel.open(ctx, name, pw, (done, total) -> {
+                    r = Herstel.open(ctx, name, pw, (done, total, step) -> {
                         long now = System.currentTimeMillis();
                         if (now - last[0] < 400) return;
                         last[0] = now;
-                        a.js("onHerstelProgress", done + "," + total);
+                        a.js("onHerstelProgress", JSONObject.quote(done + "," + total + "," + step));
                     }).toString();
                 }
                 catch (OutOfMemoryError e) { r = "{\"error\":\"Te weinig geheugen om deze backup te openen\"}"; }
@@ -2230,6 +2230,9 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void herstelChecklistDone() { Herstel.checklistDone(ctx); }
+
+        /** Na terugzetten zonder backup-sleutel: bewust zonder versleutelen verder (na de vraag in de interface). */
+        @JavascriptInterface public void herstelPlainOk() { Herstel.plainOk(ctx); }
 
         /** Een knop in het lijstje: de juiste instelling van Android openen. */
         @JavascriptInterface public void herstelFix(String id) {

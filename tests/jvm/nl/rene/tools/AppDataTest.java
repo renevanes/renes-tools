@@ -159,7 +159,8 @@ public class AppDataTest {
         check(String.valueOf(AppData.verify(br, own, other)).startsWith("Ontbreekt"), "onderdeel weg: ontbreekt");
         for (String badRef : new String[]{"R\t8\t" + sha("p") + "\t0\tAppgegevens/x\t" + AppData.KLUIS_DIR + "/abc123def",
                 "R\t8\t" + sha("p") + "\t0\t../Kluis/x\t" + AppData.KLUIS_DIR + "/abc123def",
-                "R\t8\t" + sha("p") + "\t0\tKluis/x\tNotities/notities.json"}) {
+                "R\t8\t" + sha("p") + "\t0\tKluis/x\tNotities/notities.json",
+                "R\t8\t" + sha("p") + "\t0\tKluis/x\t" + AppData.PREFS, "R\t8\t" + sha("p") + "\t0\tKluis/x\t" + AppData.SECRETS}) {
             threw = false;
             try { AppData.parse("renes-tools-app\t1\n" + badRef + "\nend\t0\t1\n"); } catch (Exception e) { threw = true; }
             check(threw, "vreemde verwijzing geweigerd");

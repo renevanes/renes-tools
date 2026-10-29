@@ -364,7 +364,8 @@ final class AppBackup {
         @Override public int read(byte[] b, int o, int l) throws IOException { int r = in.read(b, o, l); if (r > 0) n += r; return r; }
     }
 
-    interface Progress { void at(long done, long total); }
+    /** Voortgang; stap 1 = de hele backup lezen, stap 2 = verwijzingen ophalen (kluis, Slaappraat) uit het begin. */
+    interface Progress { void at(long done, long total, int step); }
 
     /** Archief zonder appgegevens (gemaakt vóór deze functie, of zonder versleutelen). */
     static final class NoAppData extends Exception { NoAppData() { super("Deze backup bevat nog geen appgegevens"); } }
@@ -511,7 +512,7 @@ final class AppBackup {
                 byte[] buf = new byte[1 << 16];
                 while ((e = z.getNextEntry()) != null) {
                     String name = e.getName();
-                    if (pr != null) pr.at(counter[0].n, total);
+                    if (pr != null) pr.at(counter[0].n, total, 1);
                     if (e.isDirectory()) { drain(z, buf); continue; }
                     if (!name.startsWith(AppData.DIR + "/")) { others.put(name, hashDrain(z, name, buf)); continue; }
                     if (name.equals(AppData.MANIFEST)) { manifest = new String(small(z, buf, 16_000_000), StandardCharsets.UTF_8); continue; }
@@ -545,7 +546,8 @@ final class AppBackup {
             // ---- 2. verwijzingen: die inhoud staat bij een ander onderdeel (vóór de appgegevens in het archief) ----
             Map<String, List<AppData.Ref>> want = new HashMap<>();
             for (AppData.Ref r : m.refs) {
-                if (AppData.target(r.target) == null) continue;
+                String rt = AppData.target(r.target);
+                if (rt == null || !(rt.startsWith("f:") || rt.startsWith("kluis:"))) continue; // alleen bestanden en kluisdocumenten
                 List<AppData.Ref> l = want.get(r.source);
                 if (l == null) { l = new ArrayList<>(); want.put(r.source, l); }
                 l.add(r);
@@ -555,7 +557,7 @@ final class AppBackup {
                     ZipEntry e;
                     byte[] buf = new byte[1 << 16];
                     while (!want.isEmpty() && (e = z.getNextEntry()) != null) {
-                        if (pr != null) pr.at(counter[0].n, total);
+                        if (pr != null) pr.at(counter[0].n, total, 2);
                         List<AppData.Ref> l = want.remove(e.getName());
                         if (l == null) { drain(z, buf); continue; }
                         AppData.Ref first = l.get(0);
@@ -605,7 +607,7 @@ final class AppBackup {
             missing(s, m);
             s.manifest = m;
             s.key = k;
-            if (pr != null) pr.at(total, total);
+            if (pr != null) pr.at(total, total, 0);
             ok = true;
             staged = s;
             return s;
@@ -1011,16 +1013,47 @@ final class AppBackup {
 
     // ---------- wat er al op de telefoon staat ----------
 
-    /** Staat er al iets van jezelf op deze telefoon (dan waarschuwen dat het overschreven wordt)? */
+    /** Instellingen die alleen iets bevatten als je de app echt gebruikt hebt: {bestand, sleutel (null = elke)}. */
+    static final String[][] MEANINGFUL = {
+            {"vpn", "tunnels"}, {"spotify", "refresh"}, {"lock", "codeHash"}, {"lock", "on"}, {"radio", "favs"}, {"webstore", "all"},
+            {"launcher", "cfg"}, {"auto", "rules"}, {"reminders", null}, {"mockloc", "places"}, {"car", "park"}, {"car", "log"},
+            {"wabackup", "waKey"}, {"music", "token"}, {"alarm", "station"}, {"workspace", "ws"}, {"solo", "tools"},
+            {"pinned_shortcuts", null}, {"notepins", null}, {"transcribe", "folder"}, {"localai", "chat"},
+    };
+
+    /**
+     * Staat er al iets van jezelf in Tools op deze telefoon (dan eerst "Alles vervangen?")? Ruim gemeten: elke map met
+     * gegevens, de kluis, de handtekening en instellingen die alleen bij echt gebruik iets bevatten. De backup-map telt
+     * niet mee (die kies je juist om terug te zetten). Kan het niet worden nagekeken: dan "ja".
+     */
     static boolean hasLocalData(Context c) {
-        if (WaBackup.destUri(c) != null) return true; // staat nooit in de Google-backup: dus echt gebruikt
-        try { String n = Notes.load(c); if (n != null && n.trim().length() > 2 && new JSONArray(n).length() > 0) return true; } catch (Exception ignored) { }
-        try { if (Auto.rules(c).length() > 0) return true; } catch (Exception ignored) { }
-        try { if (Kluis.list(c).length() > 0) return true; } catch (Exception ignored) { }
-        for (String r : new String[]{"call-recordings", "tracks", "transcripts", "sleep", "checkin"}) {
-            File[] k = new File(c.getFilesDir(), r).listFiles();
-            if (k != null && k.length > 0) return true;
-        }
+        try {
+            for (String r : AppData.FILE_ROOTS) if (hasFiles(new File(c.getFilesDir(), r), r, 0)) return true;
+            File[] kl = new File(c.getFilesDir(), "kluis").listFiles();
+            if (kl != null && kl.length > 0) return true;
+            if (PdfSignature.file(c).getBaseFile().exists()) return true;
+            for (String[] k : MEANINGFUL) {
+                Map<String, ?> all = c.getSharedPreferences(k[0], Context.MODE_PRIVATE).getAll();
+                if (k[1] == null ? !all.isEmpty() : meaningful(all.get(k[1]))) return true;
+            }
+            return false;
+        } catch (Throwable t) { return true; }
+    }
+
+    static boolean meaningful(Object v) {
+        if (v == null) return false;
+        if (v instanceof Boolean) return (Boolean) v;
+        if (v instanceof String) { String t = ((String) v).trim(); return !t.isEmpty() && !"[]".equals(t) && !"{}".equals(t) && !"null".equals(t); }
+        if (v instanceof Set) return !((Set<?>) v).isEmpty();
+        return true;
+    }
+
+    /** Een echt bestand (geen leeg lijstje, geen tijdelijk of bewust overgeslagen bestand) in deze map? */
+    static boolean hasFiles(File f, String rel, int depth) {
+        if (depth > 8 || !f.exists()) return false;
+        if (f.isFile()) return f.length() > 2 && AppData.fileRule(rel) == null;
+        File[] k = f.listFiles();
+        if (k != null) for (File x : k) if (hasFiles(x, rel + "/" + x.getName(), depth + 1)) return true;
         return false;
     }
 

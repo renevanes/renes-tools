@@ -91,6 +91,26 @@ const { chromium } = require('playwright');
     pg = await open('klaar', () => { Android._wa.info.dest = true; Android._hs.needPw = true; });
     await pg.click('#tile-backup'); await pg.waitForTimeout(200);
     ok(/wachtwoord van je backup opnieuw/.test(await pg.textContent('#bk-blocked')) && /Wachtwoord instellen/.test(await pg.textContent('#bk-blocked-btn')), 'zonder backup-sleutel: uitleg en knop');
+    await pg.click('#bk-plain-btn'); await pg.waitForTimeout(150);
+    ok((await pg.textContent('#modal-title')) === 'Zonder versleutelen verder?' && !(await pg.evaluate(() => Android._hs.plainOk)), 'zonder versleutelen: eerst uitdrukkelijk vragen');
+    await pg.click('#modal-ok'); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => Android._hs.plainOk) && !(await vis(pg, '#bk-blocked')), 'daarna lopen de backups weer (onversleuteld)');
+    await pg.close();
+    // Nieuwe installatie, maar er staan al gegevens (bijv. VPN of een app-code): toch eerst "Alles vervangen?"
+    pg = await open('nieuw', () => { Android._hs.hasData = true; enterHerstel(); });
+    ok(await vis(pg, '#hs-warn-top'), 'al gegevens: waarschuwing op het welkomscherm');
+    await pg.click('#hs-pick'); await pg.waitForTimeout(300);
+    await pg.click('#hs-next'); await pg.waitForTimeout(250);
+    await pg.fill('#modal-input', 'goedwachtwoord'); await pg.click('#modal-ok'); await pg.waitForTimeout(500);
+    ok(/Stap 2 van 2/.test(await pg.evaluate(() => document.querySelector('#hs-bezig-t').textContent)) || await vis(pg, '#hs-klaar'), 'voortgang met stappen');
+    await pg.click('#hs-apply'); await pg.waitForTimeout(200);
+    ok((await pg.textContent('#modal-title')) === 'Alles vervangen?' && !(await pg.evaluate(() => Android._hs.applied)), 'al gegevens: eerst "Alles vervangen?"');
+    await pg.click('#modal-cancel'); await pg.waitForTimeout(100);
+    // Weg terwijl de backup nog wordt gecontroleerd: daarna niets laten klaarstaan
+    await pg.evaluate(() => { hsName = 'backup-2026-10-27_0330.rtb'; hsBusyStep(); Android.herstelOpen(hsName, 'goedwachtwoord'); show('home'); });
+    const c0 = await pg.evaluate(() => Android._hs.cancelled || 0);
+    await pg.waitForTimeout(500);
+    ok(await pg.evaluate(() => Android._hs.cancelled || 0) === c0 + 1 && await cur(pg) === 'home', 'uitkomst na weggaan: meteen weggegooid');
     await pg.close();
 
     // ---------- bestaande installatie: niets vanzelf; vanuit Alles back-uppen met waarschuwing ----------

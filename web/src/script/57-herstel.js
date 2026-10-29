@@ -13,7 +13,7 @@ function enterHerstel(){
   const s = hsState();
   if (s.after) { hsList(); return; }
   hsStep('hs-welkom');
-  hsWarn = hsManual || !s.pending;
+  hsWarn = hsManual || !s.pending || !!s.hasData; // staat er al iets: altijd eerst "Alles vervangen?"
   $('#hs-warn-top').style.display = hsWarn ? '' : 'none';
   $('#hs-same').style.display = s.dest ? '' : 'none';
   $('#hs-skip').textContent = s.pending ? 'Overslaan' : 'Annuleren';
@@ -60,10 +60,15 @@ function hsAskPw(again){
   });
 }
 window.onHerstelProgress = function(s){
-  const [done, total] = String(s).split(',').map(Number);
-  if (total > 0) { $('#hs-prog').value = Math.min(100, Math.round(done * 100 / total)); $('#hs-bezig-s').textContent = 'Gecontroleerd: ' + fmtB(done) + ' van ' + fmtB(total) + '. Er verandert nog niets.'; }
+  const [done, total, step] = String(s).split(',').map(Number);
+  if (!(total > 0)) return;
+  $('#hs-prog').value = Math.min(100, Math.round(done * 100 / total));
+  $('#hs-bezig-t').textContent = step === 2 ? 'Stap 2 van 2: kluis en Slaappraat ophalen…' : 'Stap 1: controleren…';
+  $('#hs-bezig-s').textContent = (step === 2 ? 'Wat al bij Kluis en Slaappraat in de backup stond: ' : 'Gecontroleerd: ') + fmtB(done) + ' van ' + fmtB(total) + '. Er verandert nog niets.';
 };
 window.onHerstelOpened = function(r){
+  // Intussen weggegaan: niets klaar laten staan (en de sleutel vergeten)
+  if (current !== 'herstel') { if (r.ok) Android.herstelCancel(); hsStaged = false; hsPwOld = ''; return; }
   if (r.needPw) { hsAskPw(false); return; }
   if (r.error) { if (r.wrongPw) { hsAskPw(true); return; } hsPwOld = ''; hsStep('hs-kies'); toast(r.error); return; }
   if (r.old) { hsStep('hs-oud'); return; }
@@ -90,7 +95,11 @@ function hsApply(){
   else go();
 }
 window.onHerstelDone = function(err){
-  if (err) { hsStep('hs-klaar'); hsStaged = !/niets veranderd/.test(err) && hsStaged; toast(err); return; }
+  if (err) {
+    hsStaged = !/niets veranderd/.test(err); // bij "bezig" of "er loopt een backup" staat de backup nog klaar
+    if (current !== 'herstel') { if (hsStaged) Android.herstelCancel(); hsStaged = false; return; }
+    hsStep('hs-klaar'); toast(err); return;
+  }
   $('#hs-bezig-t').textContent = '✓ Teruggezet'; $('#hs-bezig-s').textContent = 'De app start opnieuw…';
 };
 /* Na de herstart: wat Android niet terugzet */

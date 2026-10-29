@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.AlarmManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -44,7 +45,8 @@ final class Herstel {
             android.content.pm.PackageInfo pi = c.getPackageManager().getPackageInfo(c.getPackageName(), 0);
             // Nieuw geïnstalleerd (de Google-backup kan dan al gewone instellingen en notities hebben teruggezet, daarom niet
             // op gegevens letten), of "Gegevens wissen" in Android (geen toestandsbestand en niets van jezelf meer)
-            boolean fresh = pi.firstInstallTime == pi.lastUpdateTime || !AppBackup.hasLocalData(c);
+            boolean fresh = pi.firstInstallTime == pi.lastUpdateTime
+                    || (!AppBackup.hasLocalData(c) && WaBackup.destUri(c) == null && !AllBackup.prefs(c).contains("last"));
             String s = fresh ? NEW : EXISTING;
             Contacts.writeText(f, s, false);
             return s;
@@ -126,11 +128,7 @@ final class Herstel {
             // Welke archieven alle appgegevens compleet bevatten (bijgehouden in Versleuteld/appgegevens.txt)
             List<String> withApp = new ArrayList<>();
             WaBackup.Child list = dir.kids.get(APP_LIST);
-            if (list != null && !list.dir && list.size < 200_000) {
-                try (InputStream in = c.getContentResolver().openInputStream(android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, list.docId))) {
-                    if (in != null) withApp = AppData.appNames(new String(SelfTest.readAll(in), java.nio.charset.StandardCharsets.UTF_8));
-                } catch (Exception ignored) { }
-            }
+            if (list != null && !list.dir) withApp = AppData.appNames(readCapped(c, android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, list.docId)));
             for (int i = 0; i < l.length(); i++) l.getJSONObject(i).put("app", withApp.contains(l.getJSONObject(i).getString("name")));
             String rec = AppData.recommended(sorted, withApp);
             if (rec != null) o.put("recommended", rec);
@@ -154,12 +152,34 @@ final class Herstel {
             String old = "";
             WaBackup.Child ch = zip.dir.kids.get(APP_LIST);
             if (ch != null && !ch.dir) {
-                try (InputStream in = zip.dest.cr.openInputStream(android.provider.DocumentsContract.buildDocumentUriUsingTree(zip.dest.tree, ch.docId))) {
-                    if (in != null) old = new String(SelfTest.readAll(in), java.nio.charset.StandardCharsets.UTF_8);
-                }
+                old = readCapped(c, android.provider.DocumentsContract.buildDocumentUriUsingTree(zip.dest.tree, ch.docId));
             }
             try (Sms.Out w = Sms.open(zip.dest, zip.dir, APP_LIST, "text/plain")) { w.write(AppData.appNamesAdd(old, name, 400)); w.done(); }
         } catch (Exception e) { App.log(c, "BACKUP", "appgegevens.txt: " + AppData.safeMsg(e, "fout")); }
+    }
+
+    /** Hooguit 200 kB lezen, wat de opslag ook als grootte opgeeft (sommige geven 0). */
+    static String readCapped(Context c, Uri u) {
+        try (InputStream in = c.getContentResolver().openInputStream(u)) {
+            if (in == null) return "";
+            java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int r;
+            while ((r = in.read(buf)) > 0 && b.size() < 200_000) b.write(buf, 0, Math.min(r, 200_000 - b.size()));
+            return new String(b.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) { return ""; }
+    }
+
+    /**
+     * Na terugzetten zonder backup-sleutel: bewust zonder versleutelen verder. Dan gelden de gewone regels voor
+     * onversleuteld: leesbare bestanden, privé-onderdelen niet (die vragen apart toestemming), geen Alle appgegevens.
+     */
+    static void plainOk(Context c) {
+        passwordFile(c).delete();
+        SharedPreferences.Editor e = AllBackup.prefs(c).edit();
+        for (String p : AllBackup.PRIVATE) { e.putBoolean("part_" + p, false); AllBackup.setPlain(c, p, false); }
+        e.apply();
+        AllBackupJob.ensureScheduled(c);
     }
 
     static Uri archiveUri(Context c, String name) throws Exception {
@@ -201,7 +221,8 @@ final class Herstel {
         try {
             AppBackup.Staged s = AppBackup.stage(c, u, k, size, pr);
             s.name = name;
-            boolean warn = !pending(c); // op een nieuwe installatie staat alleen wat Android zelf al terugzette
+            // Staat er al iets (ook wat Android zelf terugzette), of is dit geen nieuwe installatie: eerst "Alles vervangen?"
+            boolean warn = !pending(c) || AppBackup.hasLocalData(c);
             return AppBackup.summary(s).put("ok", true).put("warn", warn);
         } catch (AppBackup.NoAppData e) {
             java.util.Arrays.fill(k.key, (byte) 0);

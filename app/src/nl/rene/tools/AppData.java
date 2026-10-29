@@ -318,6 +318,8 @@ final class AppData {
                         String sha = f[2], src = f[4], tgt = f[5];
                         if (size < 0 || mtime < 0 || !sha.matches("[0-9a-f]{64}") || safeRel(src) == null || src.startsWith(DIR + "/")
                                 || safeRel(tgt) == null || !tgt.startsWith(DIR + "/")) throw new IOException("Vreemde naam in de inhoudsopgave: " + cut(tgt));
+                        String tt = target(tgt); // alleen naar een bestand of kluisdocument (onbekend van een nieuwere versie: overgeslagen)
+                        if (tt != null && !tt.startsWith("f:") && !tt.startsWith("kluis:")) throw new IOException("Vreemde verwijzing in de inhoudsopgave: " + cut(tgt));
                         if (!seen.add(tgt)) throw new IOException("Dubbele naam in de inhoudsopgave: " + cut(tgt));
                         m.refs.add(new Ref(src, tgt, size, sha, mtime));
                         break;
