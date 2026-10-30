@@ -1,5 +1,18 @@
 [
   {
+    "version": "1.113",
+    "date": "2026-10-30",
+    "changes": [
+      "Bij een onderbroken backup blijven de vorige kopie en de nieuwe tijdelijke kopie veilig bewaard.",
+      "Notitiewijzigingen blijven bij opslagfouten staan; je kunt opnieuw opslaan en widgetwijzigingen worden samengevoegd.",
+      "Een mislukte apparaatregistratie geeft een foutmelding en bewaart je ingevoerde bijnaam voor een volgende poging.",
+      "Vensters zijn met het toetsenbord te bedienen en geven de focus na sluiten terug; de achtergrond blijft tijdens een venster geblokkeerd.",
+      "Inzoomen is toegestaan en de schermlezerinformatie bij Radio en de speler is verbeterd.",
+      "Interface-updates wachten tot je bewerkingen bewaard zijn; onopgeslagen PDF-tekst en toevoegingen blijven staan.",
+      "Updates worden als complete versies klaargezet met een vorige versie voor herstel; grote app-updates gebruiken minder geheugen."
+    ]
+  },
+  {
     "version": "1.112",
     "date": "2026-10-30",
     "changes": [

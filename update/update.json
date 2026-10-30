@@ -1,15 +1,28 @@
 {
   "app": "Tools",
-  "versionName": "1.112",
-  "versionCode": 113,
-  "nativeLevel": 101,
+  "versionName": "1.113",
+  "versionCode": 114,
+  "nativeLevel": 102,
   "web": "index.html",
-  "webSha256": "ed49256bcb3d95e57334243f252387c77ee04712fa0e08b0bca58fbb630b7c71",
+  "webSha256": "695f30aecfb1a13ecd8f9dd48aedc39dfa141bd10f66af609d5bbd9acc1e6f0c",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "611a03ed04386c6c9b99b4fde83abd48e6cfd1b1b4f182d2d60160f1166441cc",
+  "apkSha256": "38def6afa251bb5722402c33ea7b4d5f662caf472ba650cd9000afa84fd3cf2a",
   "changelog": [
+    {
+      "version": "1.113",
+      "date": "2026-10-30",
+      "changes": [
+        "Bij een onderbroken backup blijven de vorige kopie en de nieuwe tijdelijke kopie veilig bewaard.",
+        "Notitiewijzigingen blijven bij opslagfouten staan; je kunt opnieuw opslaan en widgetwijzigingen worden samengevoegd.",
+        "Een mislukte apparaatregistratie geeft een foutmelding en bewaart je ingevoerde bijnaam voor een volgende poging.",
+        "Vensters zijn met het toetsenbord te bedienen en geven de focus na sluiten terug; de achtergrond blijft tijdens een venster geblokkeerd.",
+        "Inzoomen is toegestaan en de schermlezerinformatie bij Radio en de speler is verbeterd.",
+        "Interface-updates wachten tot je bewerkingen bewaard zijn; onopgeslagen PDF-tekst en toevoegingen blijven staan.",
+        "Updates worden als complete versies klaargezet met een vorige versie voor herstel; grote app-updates gebruiken minder geheugen."
+      ]
+    },
     {
       "version": "1.112",
       "date": "2026-10-30",
@@ -996,5 +1009,5 @@
       ]
     }
   ],
-  "webSig2": "X5vn20btU5rnJLIM2+6pr2PRZKo+igNFO3YAwQ/O0rLVPVbnwzpGEM+kp1ROLLaAxjB1mxHclx75hK46/VGf22Nr6T3GA8N9kM6mnYuwwaoJEQ4lPoBapPWkqdOf1JPNw+pmG0I32xvHSKCPo03Li2evO/IV1OlzB7dlJOb5mnsM+n4j45uJVYVbxJZcyiJd3rSHCcAZP5ALJIYUtDj+FwHAukUG7IPRuDfCju4iAJJts2lGJyBOwfr+VZv/RQ7I7RUjqmcGqKM3wZ3rOf2ozXTY8IMGLoOfTfx9OHJ1uZqY+yP+Oc2Je9j1j9BNghPAGE1GIUiN5OC7TQe/A8FDbCkAMUsUVp1T7p8bHH+fKH3kmv3SHfp38wz5TxYr520j6+qkQmkvUjnCrgmaGmpBg45VzIzgsk3K5gavn3COK0oy2TczfUpyaiLknXzSel1CAwa2KEriO/1XDvWDXZmO+CPWx9ccJRZJjH0FdivcdwbSJQDV1T8Sf1hTJrG3m4C8"
+  "webSig2": "nLV18uIujL7G7MKUKBrpZAFDJSPIztcuGo/KK8G0XhGOImHutV7m73l+nX1gN+W2D4w/Kg8zLM2CHTD2p2fzyPHU/3iexeG2dzwdGpx0eiPWCyiVtqZKaTTnjpa7SLjHwO12bQz8H6WTZKTTGjMJFuVGYQN4WM3cLi20RCoaNFSW4Ah5YjXpJ3u5SYWzjGK9StpSaf6VwaFeUEIHXp81t36SmFH7ondNyIJ4x3RBRLAUjDTp832XxwUuWh3p4BQsbtw5OCB9WaA0Om/yhYbmuxYRxYB1AaQKhWlsuaACDPdYvR9GGOzMkKa2j4w/2WS78OyXzRB8gUde8LAqKK9DFEtXVKMlCseReddMT56OLprqJ6qjJDUSEtfggby5bghizVKdMGh0SgVcAnB+5N1QxlnspJ6y1flj8dddWwoYfGJtHn11jlYt4ClqcI9t/JoylpLBWuWu3GqcDjH+/lX0xLWrj3RNwa0EN+1WkBf6YI/jlfJGzhkmQ41RUG9/P3YY"
 }
