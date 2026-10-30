@@ -210,7 +210,7 @@ function gbTestShot(){
 }
 function gbOpenPhotos(){ gbTabV = 'fotos'; show('gebruik'); }
 // Na het verlaten van Gebruik niet meer bij Foto's beginnen (dan zou elke keer alles ontsleuteld worden)
-function gbLeave(){ if (gbTabV === 'fotos') gbTabV = 'overzicht'; gbPhotoGen++; }
+function gbLeave(){ try { if (gbTabV === 'fotos') gbTabV = 'overzicht'; gbPhotoGen++; } catch (e) { /* show() kan al lopen voordat dit script geladen is */ } }
 
 /* Tabblad Foto's: echte miniaturen (ontsleuteld in de app), nieuwste eerst. */
 function gbPhotoLabel(r){ return r === 'mislukt' ? 'Mislukte poging' : r === 'proef' ? 'Proefopname' : 'Ontgrendeld'; }
