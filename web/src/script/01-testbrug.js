@@ -233,24 +233,48 @@ if (!window.Android) window.Android = (function(){
     // Lokale AI (assistent en slim zoeken): nagebootst, zonder model
     // Slaappraat zoals SleepBridge: nachten met stukjes, luisteren en uitschrijven worden nagebootst
     _sl: { phase: '', night: '', since: 0, stopAt: 0, heard: 0, level: -60, floor: -64, txDone: 0, txTotal: 0, message: '', mic: true, notif: true, model: 'Snel (57 MB)',
-      set: { sens: 2, stopAt: '07:30', transcribe: true, keepNoise: false, keep: 14, remindAt: '', quiet: true }, nights: [], played: '', hearing: false, probeHits: 0, probeLeft: 0, notifOk: true },
-    _slSum(n){ const c = n.clips; return { id: n.id, start: n.start, end: n.end, reason: n.reason || '', talk: c.filter(k => k.done && k.kind === 'praten').length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done).length, first: (c.find(k => k.done && k.kind === 'praten') || {}).text || '', batStart: n.batStart == null ? -1 : n.batStart, batEnd: n.batEnd == null ? -1 : n.batEnd, charged: !!n.charged }; },
-    sleepState(){ const S = this._sl; return JSON.stringify({ phase: S.phase, night: S.night, since: S.since, stopAt: S.stopAt, heard: S.heard, level: S.level, floor: S.floor, txDone: S.txDone, txTotal: S.txTotal, message: S.message, hearing: S.hearing, probeHits: S.probeHits, probeLeft: S.probeLeft, notifOk: S.notifOk,
-      mic: S.mic, notif: S.notif, model: S.model, set: S.set, nights: S.nights.slice().sort((a, b) => b.start - a.start).map(n => this._slSum(n)) }); },
+      set: { sens: 2, stopAt: '07:30', transcribe: true, direct: true, keepNoise: false, keep: 14, remindAt: '', quiet: true,
+        directWhen: 'accu', directBat: 40, stopBat: 15, maxAudio: 8, minFree: 500, whenFull: 'geluid', clipMax: 60, hang: 1500, pre: 2, format: 'aac', txModel: '' },
+      // Zoals SleepTalk: de vaste keuzes van Meer instellingen (en de standaard, voor reset)
+      _slOk: { directWhen: ['altijd', 'lader', 'accu'], whenFull: ['stop', 'geluid', 'oudste'], format: ['aac', 'wav'], txModel: ['', 'base', 'small'], directBat: [20, 30, 40, 50, 60, 80], stopBat: [5, 10, 15, 20, 30],
+        maxAudio: [1, 2, 4, 8, 0], minFree: [250, 500, 1000, 2000], clipMax: [30, 60, 120, 300], hang: [1000, 1500, 2000, 3000], pre: [1, 2, 3, 5] },
+      _slDef: { directWhen: 'accu', directBat: 40, stopBat: 15, maxAudio: 8, minFree: 500, whenFull: 'geluid', clipMax: 60, hang: 1500, pre: 2, format: 'aac', txModel: '' },
+      models: [{ id: 'base', label: 'Snel (57 MB)', ok: true }, { id: 'small', label: 'Nauwkeurig (181 MB)', ok: false }], nights: [], directWait: '', played: '', hearing: false, probeHits: 0, probeLeft: 0, notifOk: true },
+    // Grootte zoals de map van een nacht: ±4 kB per seconde bewaard geluid (AAC), plus night.json
+    _slBytes(n){ return 2000 + n.clips.filter(k => k.audio).reduce((a, k) => a + k.dur * 4000, 0); },
+    _slSum(n){ const c = n.clips; return { bytes: this._slBytes(n), id: n.id, start: n.start, end: n.end, reason: n.reason || '', talk: c.filter(k => k.done && k.kind === 'praten').length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done).length, first: (c.find(k => k.done && k.kind === 'praten') || {}).text || '', batStart: n.batStart == null ? -1 : n.batStart, batEnd: n.batEnd == null ? -1 : n.batEnd, charged: !!n.charged }; },
+    // Zoals SleepService.refreshLive: tellers van de nacht die nu loopt (meteen uitschrijven)
+    _slLive(){ const S = this._sl, n = S.phase === 'luistert' && S.nights.find(x => x.id === S.night), c = n ? n.clips : [], talk = c.filter(k => k.done && k.kind === 'praten'), last = talk.slice().sort((a, b) => b.t - a.t)[0] || {};
+      return { talk: talk.length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done && k.audio).length, text: last.text || '', at: last.t || 0, wait: n ? S.directWait || '' : '', busy: false }; },
+    // Eén stukje uitschrijven zoals SleepTalk.transcribeClip (praten / geluid; geluid zonder woorden verliest zijn geluid)
+    _slTx(k){ const S = this._sl; k.done = true; k.text = k._text || ''; k.kind = k.text ? 'praten' : 'geluid'; if (k.kind === 'geluid' && !S.set.keepNoise) k.audio = false; },
+    sleepState(){ const S = this._sl; return JSON.stringify({ phase: S.phase, night: S.night, since: S.since, stopAt: S.stopAt, heard: S.heard, level: S.level, floor: S.floor, txDone: S.txDone, txTotal: S.txTotal, message: S.message, hearing: S.hearing, probeHits: S.probeHits, probeLeft: S.probeLeft, notifOk: S.notifOk, live: this._slLive(),
+      mic: S.mic, notif: S.notif, model: S.model, models: S.models, set: S.set, bytes: S.nights.reduce((a, n) => a + this._slBytes(n), 0), nights: S.nights.slice().sort((a, b) => b.start - a.start).map(n => this._slSum(n)) }); },
     sleepStart(){ const S = this._sl; if (!S.mic) return 'mic'; if (!S.notif) return 'notif'; if (S.phase === 'luistert') return '';
       S.phase = 'luistert'; S.since = Date.now(); S.heard = 0; S.night = String(S.since); S.stopAt = S.set.stopAt ? S.since + 8 * 3600e3 : 0;
       S.nights.push({ id: S.night, start: S.since, end: 0, clips: [], batStart: S.bat == null ? -1 : S.bat, charged: !!S.plugged }); return ''; },
     sleepProbe(){ const S = this._sl; if (!S.mic) return 'mic'; if (!S.notif) return 'notif'; if (S.phase) return 'Slaappraat is al bezig'; S.phase = 'proef'; S.probeHits = 0; S.probeLeft = 30000; S.message = ''; return ''; },
     _slProbeEnd(){ const S = this._sl; S.phase = ''; S.message = S.probeHits ? 'Proef klaar: ' + S.probeHits + ' keer iets opgepikt. Zo pakt hij het vannacht ook op.' : 'Proef klaar: niets opgepikt.'; },
+    // Na het luisteren alleen uitschrijven wat er nog over is (S.txLast = hoeveel); met S.txMs duurt dat even
     sleepStop(){ const S = this._sl; if (S.phase === 'proef') { this._slProbeEnd(); return; } if (S.phase !== 'luistert') return; const n = S.nights.find(x => x.id === S.night); if (n) { n.end = Date.now() + (S.nightMs || 0); n.reason = 'Gestopt'; n.batEnd = S.batEnd == null ? -1 : S.batEnd; } S.phase = '';
-      if (S.set.transcribe && S.model && n) n.clips.forEach(k => { if (!k.done && k.audio) { k.done = true; k.text = k._text || ''; k.kind = k.text ? 'praten' : 'geluid'; if (k.kind === 'geluid' && !S.set.keepNoise) k.audio = false; } }); },
-    _slHear(text, dur){ const S = this._sl, n = S.nights.find(x => x.id === S.night); if (!n) return; const t = Date.now() + n.clips.length * 60e3; n.clips.push({ id: 'c' + t, t, dur: dur || 4, audio: true, done: false, _text: text || '' }); S.heard++; },
+      const rest = n ? n.clips.filter(k => !k.done && k.audio) : [];
+      S.txLast = 0;
+      if (!S.set.transcribe || !S.model || !rest.length) return;
+      if (!S.txMs) { rest.forEach(k => this._slTx(k)); S.txLast = rest.length; return; }
+      S.phase = 'uitschrijven'; S.txDone = 0; S.txTotal = rest.length;
+      setTimeout(() => { rest.forEach(k => { if (!k.done) this._slTx(k); }); S.txLast = rest.length; if (S.phase === 'uitschrijven' && S.night === n.id) S.phase = ''; }, S.txMs); },
+    // Iets gehoord; met meteen uitschrijven (en geen reden om te wachten) is het meteen uitgeschreven. o: extra velden (bijv. { audio: false, full: true, why: 'max' })
+    _slHear(text, dur, o){ const S = this._sl, n = S.nights.find(x => x.id === S.night); if (!n) return; const t = Date.now() + n.clips.length * 60e3; const k = Object.assign({ id: 'c' + t, t, dur: dur || 4, audio: true, done: false, _text: text || '' }, o || {}); n.clips.push(k); S.heard++;
+      if (S.phase === 'luistert' && S.set.transcribe && S.set.direct && S.model && !S.directWait && k.audio) this._slTx(k); },
     sleepNight(id){ const n = this._sl.nights.find(x => x.id === id); return n ? JSON.stringify(n) : ''; },
     sleepDeleteNight(id){ const S = this._sl; if (id === S.night && S.phase) return; S.nights = S.nights.filter(n => n.id !== id); },
     sleepDeleteClip(id, clip){ const n = this._sl.nights.find(x => x.id === id); if (n) n.clips = n.clips.filter(k => k.id !== clip); },
     sleepSet(name, v){ const S = this._sl.set; if (name === 'sens') { if (!/^[123]$/.test(v)) return 'Ongeldig'; S.sens = +v; } else if (name === 'stopAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.stopAt = v; }
-      else if (name === 'transcribe' || name === 'keepNoise' || name === 'quiet') S[name] = v === 'true'; else if (name === 'keep') { if (!/^(7|14|30)$/.test(v)) return 'Ongeldig'; S.keep = +v; }
-      else if (name === 'remindAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.remindAt = v; } else return 'Ongeldig'; return ''; },
+      else if (name === 'transcribe' || name === 'keepNoise' || name === 'quiet' || name === 'direct') S[name] = v === 'true'; else if (name === 'keep') { if (!/^(7|14|30)$/.test(v)) return 'Ongeldig'; S.keep = +v; }
+      else if (name === 'remindAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.remindAt = v; }
+      else if (name === 'reset') Object.assign(S, this._sl._slDef);
+      else if (this._sl._slOk[name]) { const ok = this._sl._slOk[name], x = typeof ok[0] === 'number' ? (/^\d+$/.test(v) ? +v : NaN) : v; if (!ok.includes(x)) return 'Ongeldig'; S[name] = x; }
+      else return 'Ongeldig'; return ''; },
     sleepTranscribe(id){ const S = this._sl, n = S.nights.find(x => x.id === id); if (!n) return 'Onbekende nacht'; if (S.phase) return 'Dat kan pas als Slaappraat klaar is met luisteren en uitschrijven'; if (!S.model) return 'model';
       S.phase = 'uitschrijven'; S.night = id; S.txDone = 0; S.txTotal = n.clips.filter(k => !k.done && k.audio).length;
       setTimeout(() => { n.clips.forEach(k => { if (!k.done && k.audio) { k.done = true; k.text = k._text || ''; k.kind = k.text ? 'praten' : 'geluid'; if (k.kind === 'geluid' && !S.set.keepNoise) k.audio = false; } }); S.phase = ''; }, S.txMs || 300); return ''; },

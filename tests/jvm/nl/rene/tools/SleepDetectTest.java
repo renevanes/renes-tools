@@ -113,6 +113,27 @@ public class SleepDetectTest {
         R.setSeed(3); feed(ds, 3, quiet, voice, 0.008, true); feed(ds, 5, quiet, null, 0, false);
         check(g.size() == 1 && s.isEmpty(), "zacht gemompel: wel bij gevoelig, niet bij alleen duidelijk (" + g.size() + "/" + s.size() + ")");
 
+        // Instelbaar per nacht: voorloop, stilte voor het einde, langste duur (standaard zoals altijd)
+        check(SleepDetect.Params.DEFAULT.preFrames == 100 && SleepDetect.Params.DEFAULT.hangFrames == 75 && SleepDetect.Params.DEFAULT.maxFrames == 3000
+                && SleepDetect.Params.of(2, 1500, 60).hangFrames == 75, "standaard: 2 s voorloop, 1,5 s stilte, 60 s");
+        List<SleepDetect.Clip> p1 = new ArrayList<>(), p2 = new ArrayList<>();
+        SleepDetect d1 = new SleepDetect(2, p1::add), d2 = new SleepDetect(2, SleepDetect.Params.of(5, 3000, 30), p2::add);
+        for (SleepDetect x : new SleepDetect[]{d1, d2}) {
+            R.setSeed(11);
+            feed(x, 8, quiet, null, 0, false);
+            feed(x, 3, quiet, voice, 0.05, true); feed(x, 2.2, quiet, null, 0, false); feed(x, 3, quiet, voice, 0.05, true);
+            feed(x, 8, quiet, null, 0, false);
+        }
+        check(p1.size() == 2 && p2.size() == 1, "stilte voor het einde: 2,2 s pauze is bij 1,5 s twee stukjes, bij 3 s één (" + p1.size() + "/" + p2.size() + ")");
+        check(!p2.isEmpty() && p2.get(0).seconds() - p1.get(0).seconds() > 2.5, "langere voorloop: het stukje begint eerder");
+        p2.clear();
+        SleepDetect d3 = new SleepDetect(2, SleepDetect.Params.of(2, 1500, 30), p2::add);
+        feed(d3, 3, quiet, null, 0, false);
+        for (int i = 0; i < 20; i++) { feed(d3, 3, quiet, voice, 0.05, true); feed(d3, 0.4, quiet, null, 0, false); }
+        d3.flush();
+        boolean cut = p2.size() >= 2; for (SleepDetect.Clip k : p2) cut &= k.seconds() <= 30.5;
+        check(cut, "langste duur 30 s: lang praten wordt in stukken van hooguit 30 s geknipt (" + p2.size() + ")");
+
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");
         System.exit(0);

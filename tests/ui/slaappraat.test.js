@@ -122,6 +122,84 @@ const { chromium } = require('playwright');
     // Zoeken vindt het scherm
     await pg.evaluate(() => { show('search'); }); await pg.fill('#gs-q', 'slaap'); await pg.evaluate(() => gsInput()); await pg.waitForTimeout(400);
     ok((await pg.textContent('#gs-res')).includes('Slaappraat'), 'te vinden bij Zoeken');
+    // Meteen uitschrijven: standaard aan, met eerlijke uitleg (accu, warmte)
+    await pg.evaluate(() => { show('sleep'); Android._sl.set.keepNoise = false; Android._sl.set.transcribe = true; Android._sl.directWait = ''; slLoad(); slRender(); }); await pg.waitForTimeout(150);
+    ok((await pg.getAttribute('#sl-direct', 'aria-checked')) === 'true' && await pg.isVisible('#sl-direct') && (await pg.textContent('#sl-direct-n')).includes('40%') && (await pg.textContent('#sl-direct-n')).includes('warm'), 'meteen uitschrijven: standaard aan, met uitleg over accu en warmte');
+    // Terwijl hij luistert: wat je zei staat er meteen, geluid zonder woorden is meteen weg
+    await pg.click('#sl-btn'); await pg.waitForTimeout(600);
+    await pg.evaluate(() => { Android._slHear('Waar zijn de sleutels', 3); Android._slHear('', 40); Android._slHear('', 50); }); await pg.waitForTimeout(1200);
+    const st1 = await pg.textContent('#sl-status');
+    ok(st1.includes('1 keer gepraat · 2 geluiden') && st1.includes('Waar zijn de sleutels'), 'luistert: live wat er al uitgeschreven is en het laatste wat je zei');
+    const row1 = await pg.textContent('#sl-nights .strow:first-child');
+    ok(row1.includes('Bezig… · 1 keer gepraat · 2 geluiden') && row1.includes('Waar zijn de sleutels'), 'de nacht onder Bezig…: tellers en het laatste wat je zei');
+    ok(await pg.evaluate(() => { const n = Android._sl.nights.find(x => x.id === Android._sl.night); return n.clips.filter(k => k.kind === 'geluid').every(k => !k.audio && k.done); }), 'geluid zonder woorden: het geluid is meteen weg (telt niet meer mee)');
+    await pg.screenshot({ path: __dirname + '/shots/slaappraat-meteen-' + scheme + '.png', fullPage: true });
+    await pg.click('#sl-nights .strow:first-child'); await pg.waitForTimeout(200);
+    ok((await pg.textContent('#sln-tx')).includes('verschijnt hier') && (await pg.textContent('#sln-list')).includes('Waar zijn de sleutels'), 'de nacht terwijl hij luistert: de tekst staat er al');
+    await pg.click('#sln-filter button[data-v=alles]'); await pg.waitForTimeout(80);
+    ok((await pg.$$('#sln-list .sl-clip:has-text("Geluid (geen woorden)")')).length === 2 && (await pg.$$('#sln-list .sl-clip:has-text("Geluid") button[aria-label^="Afspelen"]')).length === 0, 'geluiden: zonder geluid, niet af te spelen');
+    await pg.evaluate(() => show('sleep')); await pg.waitForTimeout(100);
+    // Zonder lader en weinig accu: wacht, en zegt waarom
+    await pg.evaluate(() => { Android._sl.directWait = 'accu onder 40% en niet aan de lader'; Android._slHear('Niet vergeten', 3); Android._slHear('', 20);
+      Android._slHear('', 30, { audio: false, full: true, why: 'max' }); Android._slHear('', 30, { audio: false, full: true, why: 'plaats' }); }); await pg.waitForTimeout(1200);
+    const st2 = await pg.textContent('#sl-status');
+    ok(st2.includes('wacht: accu onder 40%') && st2.includes('2 nog uit te schrijven') && st2.includes('na het luisteren'), 'wacht (accu): zegt waarom, en dat de rest na het luisteren komt');
+    // Stoppen: alleen wat er nog over is wordt uitgeschreven
+    await pg.evaluate(() => { Android._sl.txMs = 1500; });
+    await pg.click('#sl-btn'); await pg.waitForTimeout(800);
+    ok(await pg.evaluate(() => Android._sl.phase === 'uitschrijven') && (await pg.textContent('#sl-status')).includes('Uitschrijven… 0 van 2'), 'na het stoppen: alleen de rest (2) uitschrijven');
+    await pg.waitForTimeout(1500);
+    ok(await pg.evaluate(() => Android._sl.phase === '' && Android._sl.txLast === 2) && (await pg.textContent('#sl-nights .strow:first-child')).includes('2 keer gepraat'), 'klaar: de rest is uitgeschreven');
+    await pg.evaluate(() => { Android._sl.txMs = 0; Android._sl.directWait = ''; });
+    await pg.click('#sl-nights .strow:first-child'); await pg.waitForTimeout(200);
+    await pg.click('#sln-filter button[data-v=alles]'); await pg.waitForTimeout(80);
+    const lst = await pg.textContent('#sln-list');
+    ok(lst.includes('maximum aan geluid voor deze nacht') && lst.includes('plaats te maken'), 'maximum bereikt: uitleg met de nieuwe regels');
+    await pg.evaluate(() => show('sleep')); await pg.waitForTimeout(100);
+    // Uitzetten, en verborgen als er niet uitgeschreven wordt
+    await pg.click('#sl-direct'); await pg.waitForTimeout(60);
+    ok(await pg.evaluate(() => Android._sl.set.direct === false) && (await pg.getAttribute('#sl-direct', 'aria-checked')) === 'false' && (await pg.textContent('#sl-direct-n')).startsWith('Uit'), 'meteen uitschrijven uit');
+    await pg.click('#sl-btn'); await pg.waitForTimeout(600);
+    await pg.evaluate(() => { Android._slHear('Pas morgen', 3); }); await pg.waitForTimeout(1200);
+    ok(await pg.evaluate(() => { const n = Android._sl.nights.find(x => x.id === Android._sl.night); return n.clips.every(k => !k.done); }) && !(await pg.textContent('#sl-status')).includes('gepraat'), 'uit: tijdens het luisteren niets uitgeschreven');
+    await pg.click('#sl-btn'); await pg.waitForTimeout(800);
+    await pg.click('#sl-direct'); await pg.waitForTimeout(60);
+    await pg.evaluate(() => { Android._sl.set.transcribe = false; slLoad(); slRender(); });
+    ok(!(await pg.isVisible('#sl-directrow')), 'daarna uitschrijven uit: meteen uitschrijven niet te zien');
+    await pg.evaluate(() => { Android._sl.set.transcribe = true; slLoad(); slRender(); });
+    ok(await pg.evaluate(() => Android._sl.set.direct === true) && await pg.isVisible('#sl-directrow'), 'weer aan');
+    // Geluiden bewaren aan: ook na meteen uitschrijven blijft het geluid (af te spelen), en de ruimte is te zien
+    await pg.evaluate(() => { Android._sl.set.keepNoise = true; slLoad(); slRender(); });
+    await pg.click('#sl-btn'); await pg.waitForTimeout(600);
+    await pg.evaluate(() => { Android._slHear('', 50); Android._slHear('Hallo', 3); }); await pg.waitForTimeout(1200);
+    ok(await pg.evaluate(() => { const n = Android._sl.nights.find(x => x.id === Android._sl.night); const g = n.clips.find(k => k.kind === 'geluid'); return g && g.done && g.audio; }), 'geluiden bewaren: uitgeschreven geluid houdt zijn geluid');
+    ok(/\d+ kB|\d+ MB/.test(await pg.textContent('#sl-nights .strow:first-child')), 'grootte bij de nacht');
+    await pg.click('#sl-btn'); await pg.waitForTimeout(800);
+    ok((await pg.textContent('#sl-size')).includes('Slaappraat gebruikt') && (await pg.textContent('#sl-size')).includes('nachten'), 'totale grootte op het scherm');
+    await pg.evaluate(() => { Android._sl.set.keepNoise = false; });
+    // Meer instellingen
+    await pg.click('#sl-more'); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => current === 'sleepset') && (await pg.textContent('#s-sleepset h1')) === 'Slaappraat-instellingen', 'meer instellingen: eigen scherm');
+    const chk = id => pg.evaluate(i => (document.querySelector('#' + i + ' button[aria-checked=true]') || {}).dataset ? document.querySelector('#' + i + ' button[aria-checked=true]').dataset.v : null, id);
+    ok((await chk('sls-when')) === 'accu' && (await chk('sls-dbat')) === '40' && (await chk('sls-max')) === '8' && (await chk('sls-full')) === 'geluid' && (await chk('sls-free')) === '500' && (await chk('sls-fmt')) === 'aac'
+      && (await chk('sls-clip')) === '60' && (await chk('sls-hang')) === '1500' && (await chk('sls-pre')) === '2' && (await chk('sls-stop')) === '15' && (await chk('sls-model')) === '', 'standaard: zoals voorheen (60 s, 1,5 s, 2 s, 15%) en 8 uur geluid');
+    ok((await pg.textContent('#sls-size')).includes('Nu:') && (await pg.textContent('#sls-max-n')).includes('115 MB') && (await pg.textContent('#sls-full-n')).includes('Gepraat gaat nooit weg'), 'opslag: grootte en eerlijke uitleg');
+    await pg.click('#sls-when button[data-v=lader]'); await pg.waitForTimeout(60);
+    ok(await pg.evaluate(() => Android._sl.set.directWhen === 'lader') && !(await pg.isVisible('#sls-dbatrow')) && (await pg.textContent('#sls-when-n')).includes('aan de lader'), 'alleen aan de lader: accudrempel niet nodig');
+    await pg.click('#sls-when button[data-v=accu]'); await pg.click('#sls-dbat button[data-v="60"]'); await pg.waitForTimeout(60);
+    await pg.click('#sls-max button[data-v="0"]'); await pg.click('#sls-full button[data-v=oudste]'); await pg.click('#sls-free button[data-v="1000"]'); await pg.click('#sls-fmt button[data-v=wav]');
+    await pg.click('#sls-clip button[data-v="120"]'); await pg.click('#sls-hang button[data-v="3000"]'); await pg.click('#sls-pre button[data-v="5"]'); await pg.click('#sls-stop button[data-v="20"]'); await pg.click('#sls-model button[data-v=small]'); await pg.waitForTimeout(80);
+    ok(await pg.evaluate(() => { const S = Android._sl.set; return S.directWhen === 'accu' && S.directBat === 60 && S.maxAudio === 0 && S.whenFull === 'oudste' && S.minFree === 1000 && S.format === 'wav' && S.clipMax === 120 && S.hang === 3000 && S.pre === 5 && S.stopBat === 20 && S.txModel === 'small'; }), 'alles instelbaar');
+    ok((await pg.textContent('#sls-max-n')).includes('Onbeperkt') && (await pg.textContent('#sls-full-n')).includes('ook van gepraat') && (await pg.textContent('#sls-fmt-n')).includes('115 MB') && (await pg.textContent('#sls-model-n')).includes('nog niet gedownload'), 'uitleg past zich aan');
+    ok(await pg.evaluate(() => Android.sleepSet('maxAudio', '3') !== '' && Android.sleepSet('whenFull', 'alles') !== '' && Android.sleepSet('hang', 'x') !== '' && Android.sleepSet('txModel', 'groot') !== '' && Android._sl.set.maxAudio === 0), 'alleen vaste keuzes');
+    await pg.evaluate(() => show('sleep')); await pg.waitForTimeout(100);
+    ok((await pg.textContent('#sl-direct-n')).includes('vanaf 60% accu'), 'hoofdscherm: meteen uitschrijven noemt de gekozen drempel');
+    await pg.click('#sl-more'); await pg.waitForTimeout(150);
+    await pg.click('#sls-reset'); await pg.click('#modal-ok'); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => { const S = Android._sl.set; return S.directBat === 40 && S.maxAudio === 8 && S.whenFull === 'geluid' && S.format === 'aac' && S.clipMax === 60 && S.txModel === '' && S.keep === 30; }) && (await chk('sls-max')) === '8', 'terug naar standaard (nachten bewaren blijft)');
+    await pg.screenshot({ path: __dirname + '/shots/slaappraat-instellingen-' + scheme + '.png', fullPage: true });
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => current === 'sleep'), 'terug naar Slaappraat');
     await pg.close();
   }
   await b.close();
