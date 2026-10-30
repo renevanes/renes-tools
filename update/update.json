@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.109",
-  "versionCode": 110,
-  "nativeLevel": 98,
+  "versionName": "1.110",
+  "versionCode": 111,
+  "nativeLevel": 99,
   "web": "index.html",
-  "webSha256": "49154758abc64fafc680a863c751c9d4feb8b8d4c4eca066c79682466b202d10",
+  "webSha256": "3d1df745a4bf7c364a03105da75e78cdff9aae295fde260525f3d5a40f870bc5",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "38e5d71159993803c193c6f468e94d7c8b13392963550a897152b2091d659d3b",
+  "apkSha256": "8d949082176650be3e17c16c699a5159390dc20df8c2ee759205fe01f3ca2481",
   "changelog": [
+    {
+      "version": "1.110",
+      "date": "2026-10-30",
+      "changes": [
+        "Nieuw: Gebruik — schermtijd per app (vandaag, week, maand en jaar, met grafiek), een tijdlijn per ontgrendeling met de apps die erna kwamen, wanneer camera, microfoon, locatie, Bluetooth, wifi en data gebruikt werden (zolang de app meekijkt), en meldingen per app, opladen en herstarts. Je zet het zelf aan; alles blijft op je telefoon.",
+        "Of je met pincode ontgrendelde ziet Gebruik via de toegankelijkheidsdienst (die herkent alleen dát het pincodescherm verscheen, nooit wat je typt); staat die uit, dan heet het \"onbekend\". Apparaatbeheer (zelf aan te zetten) toont mislukte pogingen en ontgrendeld-na-mislukt. Ontgrendelingen worden bijgehouden vanaf Android 9.",
+        "Optioneel een stille voorcamera-foto bij een mislukte poging of bij ontgrendelen (bij elke of alleen met pincode); Android laat daarbij kort het camera-stipje zien. De foto's staan versleuteld in de app, nooit in je galerij, en gaan alleen mee in de versleutelde \"Alle appgegevens\"-backup."
+      ]
+    },
     {
       "version": "1.109",
       "date": "2026-10-30",
@@ -972,5 +981,5 @@
       ]
     }
   ],
-  "webSig2": "Pq68SSqBGT3v+r7ffJcQVSnanPReg1pZKE3Zh4cD6S/Hh8Ly9siUUNa6db+3/egFYPim3FAE0UBS1vGe8jcqgv7GnnNI2hNfFLaIp+UFoYJLQOu4qA2x/qETcZCvAo9ArRlhhWgokgYQDH4pwQUWuavt4F3Tv1hKA6keuMeTNNstZfh2N1ivKUK4UFUBhs9g4glj8ebx2gT9zJGkpYEH/GYqaB08KpPKqqi3SGGqDmyw1dRKRXKN99sYTklPvUWovRxqOQvKyZJlmHfWEKuOoqL+FpE77c13LseF6/cpwgOGDbTcUzOQwEbawI9Kd+jhfmAk5c1IdDkou63CC0LqqeYKmx/SQ+xyL4c1uufZvR+GhrAJcssUgXakJ4Htscv6ATSXpXicuI9RHC1toqafaDwHDo3TzVFOVPCFkwxSACnaEkZ5i2hiH1tbYLI6TAz8+EH370ZByrYFgvOaMNLpvHBWb+Gxxy99HEhKZkm2OSbBqiztY9t+lo+5Yg9hOqIQ"
+  "webSig2": "TY1n/S6gpplmHzbjS2goZAgRpDaQBKOPhBSbo1r0xvRpAm/DFOiGcnJfZcIzbkMEujH2YkH48fQEVKLsVgujd8Qwd0W2H66Au39rM5JbIDed/AdfyDx/x1lApK61Uiz0SQq1hUNBD2ZfK7+rZDlzAUkFV9ocqsqYVQheh9YiteSBm8FMj1l/RaE0jIPZQUsHLQhvX7geMWrUX3e99dSzSq5u0XRv0AmsJWuFrpCbmArGymh42icSbq9aat3P1BXgRuup1PFluCPU+jEUmVyPAeA5rxvZW9UKyKAN85turmN+un+1XQ5JR25czJR/3eM7pahiRg0nS4kTj3fkXcUhz/fL+3Ai6YUJremR0g/h/XG8j85oEnyUJnZGrYouT6hHEHCQvNEqX8hv+T6HbE+U3hUVHR/Jj+nd1mIFuIZRD3x9UTfXPOeWZsSaeH/JXtFZhtBq2Ku3oWLNMZ3ft2zNlzxqkY6H/jVPyi1V9rfoRnpkMsR2Zv+m6R7y5mdUlg4q"
 }
