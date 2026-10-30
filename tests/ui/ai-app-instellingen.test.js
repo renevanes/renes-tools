@@ -30,6 +30,13 @@ const { chromium } = require('playwright');
     await ask('Zet de tekstgrootte op groot');
     await pg.click(last + ' .setcard .mini.on'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._zoom === 115 && $('#st-zoom').value === '115'), 'tekstgrootte via stZoom: groot');
+    // Slaappraat: onopvallend luisteren (via slSwitch, zoals de schakelaar)
+    await ask('Zet onopvallend luisteren uit');
+    ok((await pg.textContent(last + ' .setcard')).includes('Slaappraat: onopvallend luisteren'), 'onopvallend luisteren: kaart');
+    await pg.click(last + ' .setcard .mini.on'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._sl.set.quiet === false), 'onopvallend luisteren uit via slSwitch');
+    await pg.click(last + ' .aiact.done button:has-text("Ongedaan maken")'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._sl.set.quiet === true), 'Ongedaan maken: weer aan');
     // Annuleren
     await ask('Zet meldingen uit');
     ok((await pg.textContent(last + ' .setft')).includes('naar uit') && !!(await pg.$(last + ' .aiact.setcard .linkish:has-text("Openen")')), 'meldingen uit: kaart met Openen');
@@ -57,8 +64,8 @@ const { chromium } = require('playwright');
     ok((await pg.textContent(last + ' .aib')).length > 0, 'vage opdracht: een antwoord');
     // Wat heb je veranderd
     await ask('Wat heb je allemaal veranderd?');
-    ok((await pg.$$(last + ' .setlogrow')).length === 2 && (await pg.textContent(last + ' .setlog')).includes('Tekstgrootte'), 'wat heb je veranderd: het logboek');
-    await pg.click(last + ' .setlogrow:first-child button'); await pg.waitForTimeout(150);
+    ok((await pg.$$(last + ' .setlogrow')).length === 3 && (await pg.textContent(last + ' .setlog')).includes('Tekstgrootte'), 'wat heb je veranderd: het logboek');
+    await pg.click(last + ' .setlogrow button'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._zoom === 0), 'logboek: Ongedaan maken zet de tekstgrootte terug');
     // Opdrachten die geen instelling van de app zijn: geen kaart voor iets anders
     for (const q of ['zet de radio uit', 'zet de radio aan', 'zet de muziek uit', 'zet het licht uit', 'zet de backup op 3 uur']) {

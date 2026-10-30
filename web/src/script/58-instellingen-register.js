@@ -156,6 +156,8 @@ const SET_REG = [
     get: () => setB(!!setSl().stopAt), set: v => { slLoad(); if (!!(slSt.set || {}).stopAt !== setOnV(v)) slStopToggle(); return ''; } },
   { id: 'slaap.stoptijd', scr: 'sleep', ctl: '#sl-stop', type: 'tijd', label: 'Slaappraat: stoppen om', desc: 'Hoe laat Slaappraat \'s ochtends stopt.', syn: 'slaappraat stoppen tijd ochtend',
     get: () => setSl().stopAt || '', set: v => { slSet('stopAt', v); return ''; } },
+  { id: 'slaap.onopvallend', scr: 'sleep', ctl: '#sl-quiet', label: 'Slaappraat: onopvallend luisteren', desc: 'Aan: de melding is stil, niet op het vergrendelscherm en zonder tijdteller, en \'s ochtends geen melding.', syn: 'slaappraat onopvallend stil discreet melding vergrendelscherm verbergen luisteren', need: /slaap|slapen|onopvallend|luister/,
+    get: () => setB(setSl().quiet !== false), set: v => { slLoad(); if (((slSt.set || {}).quiet !== false) !== setOnV(v)) slSwitch('quiet'); return ''; } },
   { id: 'slaap.gevoeligheid', scr: 'sleep', ctl: '#sl-sens', type: 'keuze', vals: [['1', 'Ook gefluister'], ['2', 'Normaal'], ['3', 'Alleen duidelijk']], label: 'Slaappraat: gevoeligheid', desc: 'Hoe zacht iets mag zijn om bewaard te worden.', syn: 'slaappraat gevoelig gevoeligheid fluisteren zacht',
     get: () => String(setSl().sens || 2), set: v => { slSet('sens', v); return ''; } },
   { id: 'slaap.uitschrijven', scr: 'sleep', ctl: '#sl-tx', label: 'Slaappraat: daarna uitschrijven', desc: 'Wat je zei wordt op je telefoon uitgeschreven.', syn: 'slaappraat uitschrijven tekst',
