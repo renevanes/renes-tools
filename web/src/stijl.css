@@ -550,17 +550,35 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 /* Luisteren: nieuwe afleveringen van alles wat je volgt, en Mijn podcasts als smalle rij om opzij te vegen */
 .pcfla{display:flex;align-items:center;gap:16px}
 .pcfl .linkish{min-height:44px;margin:-8px 0}
-.pcnew small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pcnew small.pcnp{margin:0 0 1px;font-weight:600;color:var(--primary)}
+.pcnew small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pcnew .pcnp{font-weight:600;color:var(--primary)}
+/* Naam van de podcast gaat voor: datum en duur korten in als het krap is */
+.pcnew small.pcnm{display:flex;min-width:0}.pcnm .pcnp{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}.pcnm .pcni{flex:0 1000 auto;min-width:4.5em;overflow:hidden;text-overflow:ellipsis}
+/* Smal scherm: de hele regel speelt al af, het losse ▶-rondje mag weg zodat de naam past */
+@media (max-width:379px){.pcnew .pcplayi{display:none}}
 .pcnew .pcartw{position:relative;flex:none;display:flex}
 .pcnew .pcart{width:44px;height:44px;border-radius:8px}
 .pcnewdot{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:var(--primary);border:2px solid var(--card)}
 .pcgrid.pcrow{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 16px;padding:0 16px 2px;scroll-snap-type:x proximity;scroll-padding:0 16px}
 .pcgrid.pcrow::-webkit-scrollbar{display:none}
-.pcrow .pcsubw{flex:none;width:84px;scroll-snap-align:start}
+.pcrow .pcsubw{flex:none;width:76px;scroll-snap-align:start}
 .pcgrid:not(.pcrow){grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px}
 .pcsubw .pcsub{width:100%}
 .pcsubw .pcart{font-size:26px;border-radius:10px}
 .pcsub .badge{top:4px;right:4px}
+/* Verder luisteren: kaartjes naast elkaar om opzij te vegen (de pagina wordt er niet langer van) */
+.pcfln{font-size:12px;color:var(--muted);font-weight:500}
+.pccont{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 16px;padding:0 16px 2px;scroll-snap-type:x mandatory;scroll-padding:0 16px}
+.pccont::-webkit-scrollbar{display:none}
+.pccont .pcep,.pccont .pcep:first-child{flex:none;width:min(82%,330px);border:1px solid var(--line);border-radius:16px;background:var(--card);scroll-snap-align:start;padding-left:10px}
+.pccont .pcep:only-child{width:100%}
+.pccont .pcart{width:48px;height:48px;border-radius:10px;font-size:20px}
+.pccont .pcepb b{font-size:14px}
+.pcrefr{font-size:20px;min-width:44px;text-align:center}
+.pcrefr.busy{animation:pcspin 1s linear infinite;opacity:.6}
+@keyframes pcspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.pcrefr.busy{animation:none}}
+#s-podlijst [hidden]{display:none}
+#pcx-subs{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px}
 /* Eén podcast: compacte kop, daaronder meteen de afleveringen. De titel in de balk verschijnt pas bij scrollen. */
 #s-podcast .hrow h1{transition:opacity .15s}
 #s-podcast:not(.pd-titled) .hrow h1:not(:focus){opacity:0}

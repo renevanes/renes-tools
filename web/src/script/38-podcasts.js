@@ -77,7 +77,7 @@ function pcPoll(force){
   if (force || sig !== pcLastSig) {
     const keyChanged = !pcLastSig || JSON.parse(pcLastSig)[1] !== (pcSt.ep && pcSt.ep.key);
     pcLastSig = sig;
-    if (keyChanged && current === 'podcasts') { pcRenderCont(); pcRenderNew(); }
+    if (keyChanged && (current === 'podcasts' || current === 'podlijst')) { pcRenderCont(); pcRenderNew(); }
     if (current === 'podcast') { pdRefreshRows(); pdResumeShow(); } // ▶/❚❚ en voortgang in de lijst bijwerken
   }
   if (typeof plRender === 'function') plRender();
@@ -121,20 +121,17 @@ function pcPlayEp(ep, pod, fromStart){
   if (current === 'podcast') { pdRefreshRows(); pdResumeShow(); } else { pcRenderCont(); pcRenderNew(); }
 }
 
-/* Verder luisteren: de laatste 3, de rest (tot 8) op verzoek */
-let pcCont = [], pcContOpen = false;
-const PC_CONT_N = 3, PC_SUBS_N = 4, PC_LIST_N = 10;
-function pcContAll(){ pcContOpen = !pcContOpen; pcRenderCont(); }
+/* Verder luisteren: één rij kaartjes om opzij te vegen (tot 8), zodat de pagina kort blijft */
+let pcCont = [];
+const PC_CONT_MAX = 8, PC_SUBS_N = 4, PC_LIST_N = 10;
 function pcRenderCont(){
   const cur = pcSt.ep && pcSt.ep.key;
-  pcCont = rdJson(Android.podContinue(), []).filter(r => r.ep && r.ep.key !== cur).slice(0, 8);
+  pcCont = rdJson(Android.podContinue(), []).filter(r => r.ep && r.ep.key !== cur).slice(0, PC_CONT_MAX);
   $('#pc-cont-wrap').style.display = pcCont.length ? 'block' : 'none';
-  const more = $('#pc-cont-more');
-  more.hidden = pcCont.length <= PC_CONT_N;
-  more.textContent = pcContOpen ? 'Minder' : 'Alle ' + pcCont.length;
+  $('#pc-cont-n').textContent = pcCont.length > 1 ? pcCont.length + ' · veeg opzij' : '';
   pcListenEmpty();
   pcListRole($('#pc-cont'), pcCont.length);
-  $('#pc-cont').innerHTML = pcCont.slice(0, pcContOpen ? 8 : PC_CONT_N).map((r, i) => {
+  $('#pc-cont').innerHTML = pcCont.map((r, i) => {
     const e = r.ep, d = (+e.pd || (+e.dur || 0) * 1000), p = +e.pos || 0, pct = d > 0 ? Math.min(100, p / d * 100) : 0;
     return '<div class="pcep" role="listitem"><button class="pcepb" onclick="pcContPlay(' + i + ')">' + pcArt(e.image || (r.pod && r.pod.image)) +
       '<span class="pctxt"><b>' + esc(e.title) + '</b><small>' + esc((r.pod && r.pod.title) || '') + (d > 0 ? ' · nog ' + esc(fmtMin((d - p) / 6e4)) : '') + '</small>' +
@@ -160,9 +157,9 @@ function pcRenderListen(){ pcRenderCont(); pcRenderSubs(); pcRenderNew(); }
 
 /* Nieuwe afleveringen: de nieuwste die je nog niet beluisterde, van alles wat je volgt. Uit de bewaarde feeds
    (Android.podLatest leest geen internet); bijwerken gebeurt op de achtergrond met ↻ of vanzelf om de paar uur. */
-let pcNew = [], pcNewOpen = false;
-const PC_NEW_N = 5, PC_NEW_MAX = 20;
-function pcNewAll(){ pcNewOpen = !pcNewOpen; pcRenderNew(); }
+let pcNew = [];
+const PC_NEW_N = 3, PC_NEW_MAX = 20;
+function pcNewAll(){ pcxOpen('new'); }
 function pcNewInfo(r){
   const e = r.ep, d = +e.pd || (+e.dur || 0) * 1000, p = +e.pos || 0, dl = pcDlMap[e.key];
   return [pcDate(e.date), e.dur ? fmtMin(e.dur / 60) : '', p > 0 && d > 0 ? 'nog ' + fmtMin((d - p) / 6e4) : '', dl && dl.state === 'done' ? '✓ Offline' : ''].filter(Boolean).join(' · ');
@@ -175,18 +172,39 @@ function pcRenderNew(){
   wrap.style.display = pcNew.length ? 'block' : 'none';
   const more = $('#pc-new-more');
   more.hidden = pcNew.length <= PC_NEW_N;
-  more.textContent = pcNewOpen ? 'Minder' : 'Alle ' + pcNew.length;
+  more.textContent = 'Alle ' + pcNew.length;
   pcListRole($('#pc-new'), pcNew.length);
-  $('#pc-new').innerHTML = pcNew.slice(0, pcNewOpen ? PC_NEW_MAX : PC_NEW_N).map((r, i) => {
-    const e = r.ep, d = +e.pd || (+e.dur || 0) * 1000, p = +e.pos || 0;
-    return '<div class="pcep pcnew' + (e.isNew ? ' isnew' : '') + '" role="listitem"><button class="pcepb" onclick="pcNewPlay(' + i + ')">' +
-      '<span class="pcartw">' + pcArt(e.image || r.pod.image) + (e.isNew ? '<span class="pcnewdot"></span>' : '') + '</span>' +
-      '<span class="pctxt"><small class="pcnp">' + esc(r.pod.title || '') + '</small><b>' + (e.isNew ? '<span class="sr-only">Nieuw: </span>' : '') + esc(e.title) + '</b>' +
-      '<small>' + esc(pcNewInfo(r)) + '</small>' +
-      (p > 0 && d > 0 ? '<span class="pcprog"><i style="width:' + Math.min(100, p / d * 100).toFixed(1) + '%"></i></span>' : '') + '</span>' +
-      '<span class="pcplayi" aria-hidden="true">' + uiIcon('play') + '</span></button>' +
-      '<button class="pcmore" onclick="pcNewMenu(' + i + ')" aria-label="Meer over ' + esc(e.title) + '">⋯</button></div>';
-  }).join('');
+  $('#pc-new').innerHTML = pcNew.slice(0, PC_NEW_N).map(pcNewRow).join('');
+  if (current === 'podlijst' && pcxKind === 'new') pcxRender();
+}
+/* Eén regel: podcast · datum · duur onder de titel (geen aparte regel voor de podcastnaam: dat maakt de lijst lang) */
+function pcNewRow(r, i){
+  const e = r.ep, d = +e.pd || (+e.dur || 0) * 1000, p = +e.pos || 0;
+  return '<div class="pcep pcnew' + (e.isNew ? ' isnew' : '') + '" role="listitem"><button class="pcepb" onclick="pcNewPlay(' + i + ')">' +
+    '<span class="pcartw">' + pcArt(e.image || r.pod.image) + (e.isNew ? '<span class="pcnewdot"></span>' : '') + '</span>' +
+    '<span class="pctxt"><b>' + (e.isNew ? '<span class="sr-only">Nieuw: </span>' : '') + esc(e.title) + '</b>' +
+    '<small class="pcnm"><span class="pcnp">' + esc(r.pod.title || '') + '</span>' + (pcNewInfo(r) ? '<span class="pcni">&nbsp;· ' + esc(pcNewInfo(r)) + '</span>' : '') + '</small>' +
+    (p > 0 && d > 0 ? '<span class="pcprog"><i style="width:' + Math.min(100, p / d * 100).toFixed(1) + '%"></i></span>' : '') + '</span>' +
+    '<span class="pcplayi" aria-hidden="true">' + uiIcon('play') + '</span></button>' +
+    '<button class="pcmore" onclick="pcNewMenu(' + i + ')" aria-label="Meer over ' + esc(e.title) + '">⋯</button></div>';
+}
+
+/* "Alle": een eigen scherm met de hele lijst (nieuwe afleveringen of al je podcasts); Luisteren zelf blijft kort */
+let pcxKind = 'new';
+function pcxOpen(kind){ pcxKind = kind === 'subs' ? 'subs' : 'new'; jumpTo('podlijst'); pcxRender(); }
+/* Bij binnenkomen (ook via terug of na het ontgrendelen) de lijsten opnieuw lezen: die tekenen dit scherm mee */
+function enterPodLijst(){ pcRenderSubs(); pcRenderNew(); pcxRender(); }
+function pcxRender(){
+  const subs = pcxKind === 'subs', nw = $('#pcx-new'), gr = $('#pcx-subs');
+  $('#pcx-h1').textContent = subs ? 'Mijn podcasts' : 'Nieuwe afleveringen';
+  nw.hidden = subs; gr.hidden = !subs;
+  if (subs) {
+    gr.innerHTML = pcSubs.map(pcSubTile).join('') || '<p class="note" style="padding:14px">Je volgt nog geen podcasts.</p>';
+    pcListRole(gr, pcSubs.length);
+  } else {
+    nw.innerHTML = pcNew.map(pcNewRow).join('') || '<p class="note" style="padding:14px">Geen nieuwe afleveringen.</p>';
+    pcListRole(nw, pcNew.length);
+  }
 }
 /* De beschrijving zit niet in de lijst (die blijft klein); pas ophalen bij afspelen of als je erom vraagt */
 function pcNewDesc(r){ if (r.ep.desc == null) r.ep.desc = String(Android.podEpDesc(r.pod.id || '', r.ep.key) || ''); return r.ep.desc; }
@@ -198,36 +216,40 @@ function pcNewMenu(i){
     ['Als volgende afspelen', () => plAddToQueue(e, r.pod, true)], ['＋ Toevoegen aan Hierna', () => plAddToQueue(e, r.pod, false)],
     ['Markeren als beluisterd', () => { Android.podMarkPlayed(e.key, true); pcRenderNew(); pcDlRefresh(); }],
     ['Uit deze lijst halen', () => { Android.podLatestHide(e.key); pcRenderNew(); }]].concat(pcDlActs(e, r.pod));
-  if (r.pod.feed) acts.push(['Naar de podcast', () => pdOpen(r.pod)]);
+  if (r.pod.feed) acts.push(['Naar de podcast', () => { if (current === 'podlijst') jumpTo('podcast', () => pdOpen(r.pod)); else pdOpen(r.pod); }]);
   acts.push(['Beschrijving', () => pcShowDesc(Object.assign({}, e, { desc: pcNewDesc(r) }), play)]);
   acts.push(['Delen', () => Android.podShare(e.title + ' · ' + (r.pod.title || ''), r.pod.link || e.url)]);
   openSheet(e.title, [r.pod.title, pcDate(e.date), e.dur ? fmtMin(e.dur / 60) : ''].filter(Boolean).join(' · '), acts);
 }
 
 /* Mijn podcasts: die met nieuwe afleveringen eerst; een smalle rij om opzij te vegen, of met Alle als raster */
-let pcSubs = [], pcSubsOpen = false;
-function pcSubsAll(){ pcSubsOpen = !pcSubsOpen; pcRenderSubs(); }
+let pcSubs = [];
+function pcSubsAll(){ pcxOpen('subs'); }
 function pcListenEmpty(){ const e = $('#pc-listen-empty'); if (e) e.style.display = pcCont.length || pcSubs.length ? 'none' : ''; }
 function pcRenderSubs(){
   pcSubs = rdJson(Android.podSubs(), []).map((s, i) => [s, i]).sort((a, b) => ((+b[0].fresh > 0) - (+a[0].fresh > 0)) || a[1] - b[1]).map(x => x[0]);
   $('#pc-subs-wrap').style.display = pcSubs.length ? 'block' : 'none';
   const more = $('#pc-subs-more'), many = pcSubs.length > PC_SUBS_N;
   more.hidden = !many;
-  more.textContent = pcSubsOpen ? 'Minder' : 'Alle ' + pcSubs.length;
-  more.setAttribute('aria-label', pcSubsOpen ? 'Minder: als rij tonen' : 'Alle ' + pcSubs.length + ' podcasts tonen');
-  $('#pc-subs').classList.toggle('pcrow', !(pcSubsOpen && many));
+  more.textContent = 'Alle ' + pcSubs.length;
+  more.setAttribute('aria-label', 'Alle ' + pcSubs.length + ' podcasts tonen');
   pcListenEmpty();
   pcListRole($('#pc-subs'), pcSubs.length);
-  $('#pc-subs').innerHTML = pcSubs.map((s, i) => '<div class="pcsubw" role="listitem"><button class="pcsub" onclick="pdOpenSub(' + i + ')" aria-label="' + esc(s.title) + (s.fresh ? ', ' + s.fresh + ' nieuw' : '') + '">' +
-    pcArt(s.image) + (s.fresh ? '<span class="badge">' + (+s.fresh > 99 ? '99+' : +s.fresh) + '</span>' : '') + '<span class="t">' + esc(s.title) + '</span></button></div>').join('');
+  $('#pc-subs').innerHTML = pcSubs.map(pcSubTile).join('');
+  if (current === 'podlijst' && pcxKind === 'subs') pcxRender();
   const n = pcSubs.reduce((a, s) => a + (+s.fresh || 0), 0), el = $('#tile-podcasts-sub');
   if (el) el.textContent = n ? n + (n === 1 ? ' nieuwe aflevering' : ' nieuwe afleveringen') : 'Zoeken, volgen en luisteren';
 }
-function pdOpenSub(i){ const s = pcSubs[i]; if (s) pdOpen(s); }
-function pcRefresh(){ $('#pc-refresh').textContent = 'Bijwerken…'; $('#pc-refresh').disabled = true; Android.podRefresh(); }
+function pcSubTile(s, i){
+  return '<div class="pcsubw" role="listitem"><button class="pcsub" onclick="pdOpenSub(' + i + ')" aria-label="' + esc(s.title) + (s.fresh ? ', ' + s.fresh + ' nieuw' : '') + '">' +
+    pcArt(s.image) + (s.fresh ? '<span class="badge">' + (+s.fresh > 99 ? '99+' : +s.fresh) + '</span>' : '') + '<span class="t">' + esc(s.title) + '</span></button></div>';
+}
+/* Vanuit de lijst "Alle": terug komt weer bij die lijst uit */
+function pdOpenSub(i){ const s = pcSubs[i]; if (!s) return; if (current === 'podlijst') jumpTo('podcast', () => pdOpen(s)); else pdOpen(s); }
+function pcRefresh(){ const b = $('#pc-refresh'); b.classList.add('busy'); b.disabled = true; b.setAttribute('aria-label', 'Bezig met bijwerken'); Android.podRefresh(); }
 window.onPodRefreshed = function(r){
-  $('#pc-refresh').textContent = '↻ Bijwerken'; $('#pc-refresh').disabled = false;
-  if (current === 'podcasts') { pcRenderSubs(); pcRenderNew(); } else if (typeof refreshPodTile === 'function') refreshPodTile();
+  const b = $('#pc-refresh'); b.classList.remove('busy'); b.disabled = false; b.setAttribute('aria-label', 'Alle podcasts bijwerken');
+  if (current === 'podcasts' || current === 'podlijst') { pcRenderSubs(); pcRenderNew(); } else if (typeof refreshPodTile === 'function') refreshPodTile();
 };
 function refreshPodTile(){
   const el = $('#tile-podcasts-sub'); if (!el) return;
