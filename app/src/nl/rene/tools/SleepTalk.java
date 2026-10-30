@@ -117,7 +117,7 @@ final class SleepTalk {
     static String cleanText(List<String> parts) {
         StringBuilder all = new StringBuilder();
         for (String t : parts) {
-            String x = t == null ? "" : t.trim();
+            String x = SpeechText.segment(t);
             if (x.isEmpty() || x.startsWith("[") || x.startsWith("(") || x.startsWith("*")) continue;
             String low = x.toLowerCase(Locale.ROOT);
             boolean junk = false;

@@ -15,7 +15,10 @@ function loadRecorder(){
   $('#recorder-state').textContent = state.recording ? rBase + ' · ' + fmtMs(state.elapsed) : rBase;
   // Alleen veranderingen voorlezen (niet elke seconde de tijd)
   if ($('#recorder-live').textContent !== rBase) $('#recorder-live').textContent = rBase;
-  $('#recorder-warning').style.display = state.recording && state.silent ? 'block' : 'none';
+  $('#recorder-warning').style.display = state.recording && (state.silent || state.silenced) ? 'block' : 'none';
+  const warning = state.silenced ? 'Android dempt de microfoon voor deze opname. Er kan daardoor geluid ontbreken, ook terwijl de opname loopt. Gebruik de opnamefunctie van je telefoon-app als de stemmen niet hoorbaar zijn.' :
+    'Geen duidelijk microfoongeluid gemeten. Android kan de microfoon tijdens bellen dempen. Stop en luister terug voordat je hierop vertrouwt.';
+  if ($('#recorder-warning').textContent !== warning) $('#recorder-warning').textContent = warning;
   $('#recorder-start').style.display = state.busy ? 'none' : 'block';
   $('#recorder-start').disabled = recorderStarting || !state.mic || !state.notifications;
   $('#recorder-stop').style.display = state.busy ? 'block' : 'none';

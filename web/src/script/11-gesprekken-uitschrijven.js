@@ -106,7 +106,9 @@ function txOpen(id, ms){
     ' · ' + fmtMs(t.duration) + (t.kind ? ' · ' + (TXKIND[t.kind] || '') : '') + (t.number && t.number !== t.name ? ' · ' + t.number : '');
   $('#txd-segs').innerHTML = (t.segments || []).map((s, i) =>
     '<p class=seg id="seg' + i + '" data-ms="' + (+s.from || 0) + '" onclick="txSegTap(this)"><time>' + fmtMs(s.from) + '</time>' + esc(s.text) + '</p>').join('') ||
-    '<p class=note>Er is geen spraak herkend in deze opname.</p>';
+    '<p class=note>Er is geen spraak herkend in deze opname.</p>' +
+    '<p class=note>Speel de opname af om te controleren of de stemmen hoorbaar zijn. Is de opname stil? Android kan de microfoon tijdens bellen dempen. Gebruik dan de opnamefunctie van je telefoon-app; uitschrijven kan ontbrekende stemmen niet terughalen.</p>' +
+    '<p class=note>Hoor je wel spraak? Kies bij Gesprekken uitschrijven het model Nauwkeurig en de juiste taal en probeer het opnieuw. Bij stilte of ruis kan het spraakmodel tekst verzinnen.</p>';
   txSelEnd();
   show('txd');
   if (ms != null) { const i = (t.segments || []).findIndex(s => s.from >= ms); const el = $('#seg' + Math.max(0, i)); if (el) { el.classList.add('now'); el.scrollIntoView({block:'center'}); } }

@@ -40,7 +40,7 @@ final class CallRecordings {
             String message = prefs(c).getString("message", "");
             if (!busy && prefs(c).getBoolean("active", false)) message = "De vorige opname is onderbroken. Een niet-afgeronde opname is niet opgeslagen.";
             return new JSONObject().put("busy", busy).put("recording", CallRecorderService.recording).put("elapsed", CallRecorderService.elapsed())
-                    .put("silent", CallRecorderService.silent()).put("message", message).put("rows", rows).put("total", files.length)
+                    .put("silent", CallRecorderService.silent()).put("silenced", CallRecorderService.silenced()).put("message", message).put("rows", rows).put("total", files.length)
                     .put("dest", WaBackup.destUri(c) != null).put("mic", c.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED)
                     .put("notifications", android.os.Build.VERSION.SDK_INT < 33 || c.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED)
                     .put("autoEnabled", AutoCallRecording.enabled(c)).put("autoReady", AutoCallRecording.ready(c)).put("automatic", CallRecorderService.autoSession != 0).put("autoStop", CallRecorderService.watchingCall).put("phone", c.checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE) == android.content.pm.PackageManager.PERMISSION_GRANTED).toString();

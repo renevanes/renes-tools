@@ -9,6 +9,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
+import android.media.AudioRecordingConfiguration;
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Handler;
@@ -28,17 +29,18 @@ public final class CallRecorderService extends Service {
     static volatile boolean busy, recording, watchingCall;
     static volatile long autoSession;
     private static volatile long since;
-    private static volatile boolean heard;
+    private static volatile boolean heard, systemSilenced;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private MediaRecorder recorder;
     private File partial, output;
     private PowerManager.WakeLock wakeLock;
     private TelephonyManager phone;
     private PhoneStateListener phoneListener;
-    private boolean wasCall, finishing;
+    private boolean wasCall, finishing, silencedDuring;
 
     static long elapsed() { return recording ? Math.max(0, SystemClock.elapsedRealtime() - since) : 0; }
-    static boolean silent() { return recording && !heard && elapsed() > 5000; }
+    static boolean silent() { return recording && (systemSilenced || (!heard && elapsed() > 5000)); }
+    static boolean silenced() { return recording && systemSilenced; }
     static synchronized boolean reserve() { if (busy) return false; busy = true; autoSession = 0; return true; }
     static synchronized boolean reserveAutomatic(long session) { if (!reserve()) return false; autoSession = session; return true; }
     static synchronized void cancelAutomatic(long session) {
@@ -53,6 +55,13 @@ public final class CallRecorderService extends Service {
             if (!recording || owner.recorder == null) return;
             try {
                 if (owner.recorder.getMaxAmplitude() > 100) heard = true;
+                // Sinds Android 10 kan een opname blijven lopen terwijl Android nul-samples levert.
+                // Dat ook melden als vóór het telefoongesprek al wél geluid binnenkwam.
+                if (Build.VERSION.SDK_INT >= 29) try {
+                    AudioRecordingConfiguration config = owner.recorder.getActiveRecordingConfiguration();
+                    systemSilenced = config != null && config.isClientSilenced();
+                    if (systemSilenced) owner.silencedDuring = true;
+                } catch (Throwable ignored) { /* Alleen diagnostiek: een werkende opname niet afbreken. */ }
                 owner.handler.postDelayed(this, 1000);
             } catch (Exception e) { owner.finish("De microfoon is niet meer beschikbaar. Controleer de opgeslagen opname."); }
         }
@@ -142,7 +151,7 @@ public final class CallRecorderService extends Service {
             if (requestedSession != 0 && !AutoCallRecording.sessionActive(this, requestedSession)) throw new Exception("Oproep beëindigd");
             recorder.start();
             AutoCallRecording.cancelNotice(this);
-            since = SystemClock.elapsedRealtime(); heard = false; recording = true;
+            since = SystemClock.elapsedRealtime(); heard = false; systemSilenced = false; silencedDuring = false; recording = true;
             CallRecordings.prefs(this).edit().putBoolean("active", true).putString("message", "").apply();
             wakeLock = ((PowerManager)getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "renestools:recording");
             wakeLock.acquire(2 * 60 * 60 * 1000L + 10000);
@@ -186,7 +195,8 @@ public final class CallRecorderService extends Service {
                 try { recorder.stop(); } catch (Exception ignored) { }
                 recorder.release(); recorder = null;
                 if (partial == null || partial.length() < 1000 || Transcribe.durationMs(this, partial) <= 0 || !partial.renameTo(output)) throw new Exception("Geen geldige opname");
-                message = "Opname opgeslagen." + (!heard ? " Geen duidelijk microfoongeluid gemeten: luister de opname terug." : "") + (reason == null ? "" : " " + reason);
+                message = "Opname opgeslagen." + (silencedDuring ? " Android heeft de microfoon tijdens een deel van de opname gedempt. Er kunnen stemmen ontbreken. Gebruik de opnamefunctie van je telefoon-app als de stemmen niet hoorbaar zijn." :
+                        !heard ? " Geen duidelijk microfoongeluid gemeten: luister de opname terug. Android kan tijdens bellen de microfoon dempen; gebruik dan de opnamefunctie van je telefoon-app." : "") + (reason == null ? "" : " " + reason);
             }
         } catch (Exception e) { message = "Opname niet opgeslagen: te kort of de microfoon werd geblokkeerd."; }
         finally {

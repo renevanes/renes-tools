@@ -399,6 +399,34 @@ final class Transcribe {
 
     // ---------- whisper.cpp uitvoeren ----------
 
+    /** Alleen digitale stilte overslaan; ook heel zachte samples blijven naar het spraakmodel gaan.
+     * Dit is het vaste WAV-formaat van toWav, SleepTalk en VoiceNote, geen willekeurig bronbestand. */
+    static boolean silentWav(File wav) throws java.io.IOException { return silentWav(wav, false); }
+
+    static boolean silentWav(File wav, boolean cancellable) throws java.io.IOException {
+        try (RandomAccessFile r = new RandomAccessFile(wav, "r")) {
+            byte[] header = new byte[44];
+            r.readFully(header);
+            ByteBuffer h = ByteBuffer.wrap(header).order(ByteOrder.LITTLE_ENDIAN);
+            int bytes = h.getInt(40);
+            if (!"RIFF".equals(new String(header, 0, 4, "US-ASCII"))
+                    || !"WAVEfmt ".equals(new String(header, 8, 8, "US-ASCII"))
+                    || !"data".equals(new String(header, 36, 4, "US-ASCII"))
+                    || h.getInt(16) != 16 || h.getShort(20) != 1 || h.getShort(22) != 1
+                    || h.getInt(24) != 16000 || h.getInt(28) != 32000 || h.getShort(32) != 2 || h.getShort(34) != 16
+                    || bytes < 0 || (bytes & 1) != 0 || r.length() != 44L + bytes || h.getInt(4) != 36L + bytes)
+                throw new java.io.IOException("De voorbereide opname is onvolledig of heeft een ongeldig audioformaat");
+            byte[] block = new byte[65536];
+            int n;
+            while ((n = r.read(block)) != -1) {
+                if (cancellable && cancel) throw new java.io.IOException("Gestopt");
+                for (int i = 0; i < n; i++) if (block[i] != 0) return false;
+            }
+            if (cancellable && cancel) throw new java.io.IOException("Gestopt");
+            return true;
+        }
+    }
+
     static File binary(Context c, boolean generic) {
         return new File(c.getApplicationInfo().nativeLibraryDir, generic ? "libwhisper_generic.so" : "libwhisper.so");
     }
@@ -430,6 +458,12 @@ final class Transcribe {
     }
 
     private static JSONObject runWhisper(Context c, File wav, Model m, boolean generic, Progress p, boolean voice, int maxThreads) throws Exception {
+        if (!voice && cancel) throw new Exception("Gestopt");
+        if (silentWav(wav, !voice)) {
+            p.step("transcribe", 100);
+            if (!voice && cancel) throw new Exception("Gestopt");
+            return new JSONObject().put("transcription", new JSONArray());
+        }
         File bin = binary(c, generic);
         if (!bin.isFile()) throw new Exception("Het uitschrijfprogramma ontbreekt in deze app-versie");
         File outBase = new File(c.getCacheDir(), "whisper-out-" + System.nanoTime()); // eigen werkbestand per keer
@@ -506,7 +540,7 @@ final class Transcribe {
             StringBuilder all = new StringBuilder();
             if (tr != null) for (int i = 0; i < tr.length(); i++) {
                 JSONObject s = tr.getJSONObject(i);
-                String text = s.optString("text").trim();
+                String text = SpeechText.segment(s.optString("text"));
                 if (text.isEmpty()) continue;
                 JSONObject off = s.optJSONObject("offsets");
                 segs.put(new JSONObject().put("from", off == null ? 0 : off.optLong("from"))
