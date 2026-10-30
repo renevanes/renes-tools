@@ -3,6 +3,7 @@
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Assistent</h1>
+    <button class="icon-btn" id="ai-talk-btn" onclick="aiTalkStart()" aria-label="Gesprek starten: praten zonder handen"><span class="ui-icon" data-icon="mic" aria-hidden="true"></span></button>
     <button class="icon-btn" id="ai-new" onclick="aiNew()" aria-label="Nieuw gesprek"><span class="ui-icon" data-icon="plus" aria-hidden="true"></span></button>
     <button class="icon-btn" id="ai-menu" onclick="aiMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
   </div>
@@ -46,6 +47,15 @@
       </div>
     </div>
   </main>
+  <!-- Gesprek (handsfree): luistert, denkt, spreekt, en weer luisteren (62-assistent-gesprek.js) -->
+  <div class="aitalk" id="ai-talk" role="dialog" aria-modal="true" aria-labelledby="ai-talk-t" hidden>
+    <div class="aitalk-top"><h2 id="ai-talk-t" tabindex="-1">Gesprek</h2><button class="icon-btn" onclick="aiTalkStop()" aria-label="Gesprek stoppen"><span class="ui-icon" data-icon="close" aria-hidden="true"></span></button></div>
+    <div class="aitalk-orb" id="ai-talk-orb" aria-hidden="true"><i></i><span class="ui-icon" data-icon="mic"></span></div>
+    <p class="aitalk-st" id="ai-talk-st" role="status" aria-live="assertive"></p>
+    <p class="note aitalk-hint" id="ai-talk-hint" aria-live="polite"></p>
+    <div class="aitalk-tx"><p class="aitalk-me" id="ai-talk-me"></p><p class="aitalk-ai" id="ai-talk-ai"></p></div>
+    <div class="aitalk-b"><button class="big" id="ai-talk-go" onclick="aiTalkMain()"></button><button class="big ghost" id="ai-talk-stop" onclick="aiTalkStop()">Stop</button></div>
+  </div>
 </section>
 
 <section class="screen" id="s-aichats">
@@ -148,6 +158,14 @@
       <div id="ais-voice"></div>
       <div class="sw"><span>Meteen versturen na inspreken<small>Uit: de tekst komt eerst in het invoerveld, zodat je hem kunt nakijken</small></span><button class="tg" id="ais-vsend" role="switch" aria-checked="false" aria-label="Meteen versturen na inspreken" onclick="aisVoiceSend()"></button></div>
       <div class="sw"><span>Antwoord voorlezen als je de vraag insprak<small id="ais-vspeak-n">Zo praat je met de assistent: vraag het hardop en hij leest het antwoord voor, met de Nederlandse stem van je telefoon. Met de knop Voorlezen onder een antwoord kan het altijd.</small></span><button class="tg" id="ais-vspeak" role="switch" aria-checked="false" aria-label="Antwoord voorlezen als je de vraag insprak" aria-describedby="ais-vspeak-n" onclick="aisVoiceSpeak()"></button></div>
+    </div>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="headphones" aria-hidden="true"></span>Gesprek (handsfree)</h2>
+      <p class="note">Tik in de assistent op de microfoon bovenin (of op "Start een gesprek"): hij luistert, merkt zelf dat je uitgesproken bent, leest het antwoord zin voor zin voor en luistert dan weer. Zeg "stop" of "klaar" om te stoppen. Het scherm blijft aan zolang het gesprek loopt; bij een telefoongesprek of als je weggaat uit de assistent stopt het. Een voorstel (timer, bericht, instelling) gebeurt ook hier pas na een tik.</p>
+      <div class="aicfg"><b id="aic-talkSilence-l">Stilte voordat hij antwoordt</b><div class="chips sm" id="aic-talkSilence" role="radiogroup" aria-labelledby="aic-talkSilence-l"><button role="radio" aria-checked="false" data-v="1000" onclick="aicSet('talkSilence', '1000')">1 s</button><button role="radio" aria-checked="false" data-v="1300" onclick="aicSet('talkSilence', '1300')">1,3 s</button><button role="radio" aria-checked="false" data-v="1600" onclick="aicSet('talkSilence', '1600')">1,6 s</button><button role="radio" aria-checked="false" data-v="2200" onclick="aicSet('talkSilence', '2200')">2,2 s</button></div><small class="note" id="aic-talkSilence-n"></small></div>
+      <div class="sw"><span>Antwoorden voorlezen<small>Uit: je leest het antwoord op het scherm.</small></span><button class="tg" id="ais-tspeak" role="switch" aria-checked="true" aria-label="Antwoorden voorlezen in een gesprek" onclick="aisTalk('talkSpeak')"></button></div>
+      <div class="sw"><span>Daarna vanzelf weer luisteren<small>Uit: na elk antwoord tik je op Praten.</small></span><button class="tg" id="ais-tauto" role="switch" aria-checked="true" aria-label="Na een antwoord vanzelf weer luisteren" onclick="aisTalk('talkAuto')"></button></div>
+      <div class="sw"><span>Onderbreken door te praten<small id="ais-tbarge-n">Begin je te praten terwijl hij voorleest, dan stopt hij en luistert hij. Werkt het best met oortjes; via de luidspreker hoort de telefoon ook zijn eigen stem, daarom reageert hij alleen op duidelijk harder praten. De knop Onderbreken werkt altijd.</small></span><button class="tg" id="ais-tbarge" role="switch" aria-checked="true" aria-label="Onderbreken door te praten" aria-describedby="ais-tbarge-n" onclick="aisTalk('talkBarge')"></button></div>
     </div>
   </main>
 </section>

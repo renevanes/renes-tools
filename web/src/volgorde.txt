@@ -114,5 +114,7 @@ script/32-automatiseringen.js
 script/60-gebruik.js
 script/58-instellingen-register.js
 script/59-assistent-instellingen.js
+script/61-assistent-acties.js
+script/62-assistent-gesprek.js
 script/60-apparaten.js
 einde.html

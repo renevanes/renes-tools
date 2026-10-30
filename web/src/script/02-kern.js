@@ -123,6 +123,7 @@ function show(name){
   if (current_prev==='podspotify' && name!=='podspotify') pspPause();
   if (name==='podspotify') enterPodSpotify();
   if (name==='ai') enterAi(); if (name==='aiset' || (typeof AI_SUBS !== 'undefined' && AI_SUBS.includes(name))) enterAiSet(); if (name==='aichats') enterAiChats();
+  if (current_prev==='ai' && name!=='ai' && typeof aiTalkStop === 'function') aiTalkStop(); // weg uit de assistent: het gesprek stopt
   if (current_prev==='ai' && name!=='ai' && typeof aiVoiceAbort === 'function') aiVoiceAbort();
   if (current_prev==='ai' && name!=='ai' && typeof aiSpeakStop === 'function') aiSpeakStop(); // weg uit de assistent: niet doorpraten
   // Focus op de titel van het scherm; een scherm kan een zichtbare titel aanwijzen (.titelfocus) als de kleine titel in de balk nog verborgen is
@@ -179,6 +180,7 @@ window.goBack = function(){
   if ($('#lockscr').classList.contains('on')) return false;
   if ($('#modal').classList.contains('on')) { closeModal(null); return true; }
   if (typeof gbBack === 'function' && gbBack()) return true;
+  if (typeof aiTalkBack === 'function' && aiTalkBack()) return true; // eerst het gesprek met de assistent stoppen
   if ($('#voice') && $('#voice').classList.contains('on')) { voiceClose(); return true; }
   if ($('#ci-ans') && $('#ci-ans').classList.contains('on')) { ciAnsClose(); return true; }
   if ($('#sleepdlg').classList.contains('on')) { sleepClose(); return true; }

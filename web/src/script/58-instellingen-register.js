@@ -231,6 +231,14 @@ const SET_REG = [
     get: () => setB(setAi().voiceSend === true), set: v => { if ((setAi().voiceSend === true) !== setOnV(v)) aisVoiceSend(); return ''; } },
   { id: 'ai.speakvoice', scr: 'aisetvoice', ctl: '#ais-vspeak', label: 'Antwoord voorlezen als je de vraag insprak', desc: 'De assistent leest het antwoord voor met de Nederlandse stem van je telefoon.', syn: 'voorlezen spraak stem antwoord inspreken praten',
     get: () => setB(!!setAi().speakVoice), set: v => { if (!!setAi().speakVoice !== setOnV(v)) aisVoiceSpeak(); return ''; } },
+  { id: 'ai.talk.stilte', scr: 'aisetvoice', ctl: '#aic-talkSilence', type: 'keuze', vals: [['1000', '1 seconde'], ['1300', '1,3 seconde'], ['1600', '1,6 seconde'], ['2200', '2,2 seconden']], label: 'Gesprek: stilte voordat hij antwoordt', desc: 'Hoe lang je stil moet zijn voordat de assistent in een gesprek (handsfree) vindt dat je uitgesproken bent.', syn: 'gesprek handsfree stilte pauze wachten uitgesproken praten seconde',
+    get: () => setAiCfg('talkSilence') || '1300', set: v => { aicSet('talkSilence', v); return ''; } },
+  { id: 'ai.talk.voorlezen', scr: 'aisetvoice', ctl: '#ais-tspeak', label: 'Gesprek: antwoorden voorlezen', desc: 'In een gesprek (handsfree) leest de assistent het antwoord zin voor zin voor.', syn: 'gesprek handsfree voorlezen stem spreken antwoord',
+    get: () => setB(setAi().talkSpeak !== false), set: v => { if ((setAi().talkSpeak !== false) !== setOnV(v)) aisTalk('talkSpeak'); return ''; } },
+  { id: 'ai.talk.luisteren', scr: 'aisetvoice', ctl: '#ais-tauto', label: 'Gesprek: daarna vanzelf weer luisteren', desc: 'Na een antwoord luistert de assistent vanzelf weer; uit: je tikt op Praten.', syn: 'gesprek handsfree luisteren vanzelf automatisch weer',
+    get: () => setB(setAi().talkAuto !== false), set: v => { if ((setAi().talkAuto !== false) !== setOnV(v)) aisTalk('talkAuto'); return ''; } },
+  { id: 'ai.talk.onderbreken', scr: 'aisetvoice', ctl: '#ais-tbarge', label: 'Gesprek: onderbreken door te praten', desc: 'Begin je te praten terwijl de assistent voorleest, dan stopt hij en luistert hij. De knop Onderbreken werkt altijd.', syn: 'gesprek handsfree onderbreken interrumperen door praten stoppen',
+    get: () => setB(setAi().talkBarge !== false), set: v => { if ((setAi().talkBarge !== false) !== setOnV(v)) aisTalk('talkBarge'); return ''; } },
   { id: 'ai.notes', scr: 'ai', ctl: '#ai-notes', label: 'Met mijn gegevens (de assistent zoekt eerst in je gegevens)', desc: 'De assistent zoekt bij een vraag eerst in wat je bij Gegevens aanzette.', syn: 'gegevens notities zoeken assistent met mijn',
     avail: () => aiReady('zoek') ? '' : 'Download eerst het model voor slim zoeken', get: () => setB(!!setAi().notes), set: v => { if (!!setAi().notes !== setOnV(v)) aiToggleNotes(); return ''; } },
   { id: 'ai.power', scr: 'aisetperf', ctl: '#aic-power', type: 'keuze', vals: [['zuinig', 'Zuinig'], ['normaal', 'Normaal'], ['max', 'Maximaal']], label: 'Rekenkracht van de assistent', desc: 'Zuinig is koeler en zuiniger met de accu, maximaal is het snelst.', syn: 'rekenkracht snelheid accu batterij zuinig processor',
@@ -258,7 +266,7 @@ const SET_REG = [
     get: () => String(gbSet().photoKeep || 30), set: v => { gbSaveOne('photoKeep', +v); setIf('gebruikset', enterGebruikSet); return ''; } }
 ];
 
-const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin'];
+const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin', 'gebruik', 'apparaten'];
 /* Lijsten die per item een instelling hebben (automatiseringen, bronnen van de AI, onderdelen van de backup) */
 const SET_GEN = [
   { cover: '#au-list .tg', gen: () => { auLoad(); return (auState.rules || []).map(r => ({ id: 'auto.regel.' + setHash(r.id), scr: 'auto', label: 'Automatisering "' + (r.name || 'Zonder naam') + '"',

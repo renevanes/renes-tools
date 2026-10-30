@@ -695,7 +695,7 @@ body.pl-open{overflow:hidden}
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;height:80px;background:var(--hi);display:none;justify-content:space-around;align-items:flex-start;padding:12px 4px 0}
 body.tabs-on .tabs{display:flex}
 /* Toetsenbord open: de tabbalk niet boven het toetsenbord laten zweven */
-body.tabs-on:has(input:focus,textarea:focus,select:focus) .tabs{display:none}
+body.tabs-on:has(input:focus,textarea:focus:not(#ai-in),select:focus) .tabs{display:none}
 .tabs button{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12.5px;font-weight:500;color:var(--muted);letter-spacing:.2px}
 .tabs .ti{width:64px;height:32px;border-radius:16px;display:grid;place-items:center;transition:background-color .2s,width .2s}
 .tabs button.on{color:var(--ink);font-weight:700}.tabs button.on .ti{background:var(--chip);color:var(--on-chip)}
@@ -1033,3 +1033,50 @@ textarea.ci-in{resize:vertical;min-height:72px;line-height:1.4}
 .gb-light{position:fixed;inset:0;background:rgba(0,0,0,.85);display:grid;place-items:center;z-index:9999;padding:20px}
 .gb-light img{max-width:100%;max-height:100%;border-radius:12px}
 .big.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 55%,var(--outline))}
+/* ---------- Tabbalk met vijf tabs (Assistent erbij): ook op 320 px zonder overlopen ---------- */
+.tabs button{min-width:0;padding-left:1px;padding-right:1px}
+.tabs button>span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 1px}
+@media (max-width:360px){#tabs{padding-left:2px;padding-right:2px}#tabs button{font-size:10px;letter-spacing:-.2px}#tabs .ti{width:46px}}
+body.tabs-on .aicomp{bottom:calc(88px + env(safe-area-inset-bottom))}
+body.tabs-on.has-plbar .aicomp{bottom:calc(164px + env(safe-area-inset-bottom))}
+/* Typen in de assistent: de tabbalk weg zolang je typt (ai-typing, 51-assistent.js). Na het typen pas even later terug:
+   anders springt het invoervak weg net onder je vinger als je op Versturen of de microfoon tikt */
+body.tabs-on.ai-typing .tabs{display:none}
+body.tabs-on.ai-typing .aicomp{bottom:calc(8px + env(safe-area-inset-bottom))}
+body.tabs-on.ai-typing.has-plbar .aicomp{bottom:calc(84px + env(safe-area-inset-bottom))}
+.aisugh{text-align:center;margin:0 6px 12px;font-size:13.5px}
+.aisugg .chip.new{border-color:color-mix(in srgb,var(--primary) 55%,var(--outline))}
+.aisugg .chip .ui-icon{width:16px;height:16px;margin:-2px 6px 0 0;vertical-align:middle;color:var(--primary)}
+/* Opdrachten van de assistent (kaart met bevestigen) */
+.aiact textarea{font:inherit;padding:8px 12px;border-radius:12px;border:1px solid var(--outline);background:var(--card);color:var(--ink);min-height:52px;resize:vertical;width:100%;box-sizing:border-box}
+.aiact .aiactb[role=radiogroup] .mini{text-align:left}
+/* ---------- Gesprek met de assistent (handsfree) ---------- */
+body.talk-on .tabs{display:none!important}
+body.talk-on #ai-comp{display:none}
+body.talk-on #s-ai main{padding-bottom:200px}
+.aitalk{position:fixed;inset:0;z-index:60;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));overflow-y:auto;box-sizing:border-box}
+.aitalk[hidden]{display:none}
+.aitalk-top{width:100%;max-width:560px;display:flex;align-items:center;justify-content:space-between;flex:none}
+.aitalk-top h2{margin:0;font-size:20px}
+.aitalk-orb{--lv:0;position:relative;width:148px;height:148px;margin:24px 0 14px;border-radius:50%;display:grid;place-items:center;background:var(--tonal);color:var(--on-tonal);flex:none}
+.aitalk-orb>i{position:absolute;inset:-10px;border-radius:50%;border:3px solid var(--primary);opacity:calc(.3 + var(--lv) * .7);transform:scale(calc(1 + var(--lv) * .22));transition:transform .1s,opacity .1s}
+.aitalk-orb .ui-icon{width:56px;height:56px}
+.aitalk[data-st=spreekt] .aitalk-orb{background:var(--primary);color:var(--on-primary)}
+.aitalk[data-st=denkt] .aitalk-orb>i{border-style:dashed;animation:aitalkspin 2.4s linear infinite;opacity:.65}
+.aitalk[data-st=pauze] .aitalk-orb{background:var(--chip);color:var(--on-chip)}
+.aitalk[data-st=pauze] .aitalk-orb>i{opacity:.15}
+@keyframes aitalkspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.aitalk-orb>i{animation:none!important;transition:none}}
+.aitalk-st{font-size:26px;font-weight:700;margin:4px 0;text-align:center}
+.aitalk-hint{text-align:center;min-height:1.3em;margin:0 0 10px;max-width:520px}
+.aitalk-tx{width:100%;max-width:560px;flex:1;overflow-y:auto;min-height:60px}
+.aitalk-me{color:var(--muted);font-size:16px;margin:8px 0;text-align:right;white-space:pre-line}
+.aitalk-ai{font-size:18px;line-height:1.45;margin:8px 0;white-space:pre-line}
+.aitalk-b{width:100%;max-width:560px;display:flex;gap:10px;flex:none}
+.aitalk-b .big{flex:1;margin:0;min-height:64px;font-size:18px}
+/* Bevestigen: klein onderin, zodat je de kaart onder het antwoord ziet en kunt aantikken */
+.aitalk.mini{inset:auto 8px calc(8px + env(safe-area-inset-bottom)) 8px;border-radius:20px;background:var(--hi);box-shadow:0 -2px 16px color-mix(in srgb,var(--ink) 14%,transparent);padding:10px 12px;overflow:visible}
+.aitalk.mini .aitalk-top,.aitalk.mini .aitalk-orb,.aitalk.mini .aitalk-tx{display:none}
+.aitalk.mini .aitalk-st{font-size:16px;margin:0 0 2px;align-self:stretch;text-align:left}
+.aitalk.mini .aitalk-hint{text-align:left;margin:0 0 8px;align-self:stretch}
+.aitalk.mini .aitalk-b .big{min-height:48px;font-size:15px}

@@ -444,7 +444,7 @@ if (!window.Android) window.Android = (function(){
     apOpenSettings(w){ this._ap.opened.push(w); if (w === 'bt') this._ap.perms.btOn = true; if (w === 'loc') this._ap.perms.locOn = true; setTimeout(() => onApChanged(), 50); },
     _ai: { st: { klein: { state: 'none' }, groot: { state: 'none' }, klein35: { state: 'none' }, groot35: { state: 'none' }, zoek: { state: 'none' } }, chat: 'klein', wifiOnly: true, notes: true, chats: [], ram: 8e9, calls: [], seq: 0,
       mem: [], learnFacts: ['Woont in Rotterdam.'],
-      src: { notes: true, tx: true, sms: false, wa: false, calls: false, contacts: false, sleep: false, checkin: false }, perm: { notes: true, tx: true, sms: true, wa: false, calls: true, contacts: false, sleep: true, checkin: true },
+      src: { notes: true, tx: true, sms: false, wa: false, calls: false, contacts: false, sleep: false, checkin: false, gebruik: false, apparaten: false }, perm: { notes: true, tx: true, sms: true, wa: false, calls: true, contacts: false, sleep: true, checkin: true, gebruik: true, apparaten: true },
       // [id, naam, beschrijving, grootte, vervangt, waarom, aangeraden geheugen] zoals LocalAi.MODELS
       models: [['klein', 'Klein en snel', 'Qwen3 1.7B · werkt op de meeste telefoons', 1282439584], ['groot', 'Groter en slimmer', 'Qwen3 4B · beter Nederlands, trager', 2497280256, '', '', 7.5e9],
         ['klein35', 'Klein en snel (Qwen3.5)', 'Qwen3.5 2B · werkt op de meeste telefoons', 1396198496, 'klein', 'Nieuwer en beter in Nederlands, iets groter (1,4 GB)'],
@@ -454,13 +454,13 @@ if (!window.Android) window.Android = (function(){
     _aiReady(id){ return this._ai.st[id].state === 'ready'; },
     // Zoals LocalAi.chatModel: het gekozen model, of anders het eerste taalmodel dat klaar is
     _aiChat(){ const A = this._ai; if (this._aiReady(A.chat)) return A.chat; const m = A.models.find(x => x[0] !== 'zoek' && this._aiReady(x[0])); return m ? m[0] : A.chat; },
-    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: this._aiChat(), wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend === true, speakVoice: !!A.speakVoice, cfg: Object.assign({}, this._aiCfgDef, A.cfg), memCount: A.mem.length, loaded: '', busy: !!A.busy, src: Object.assign({}, A.src), perm: Object.assign({}, A.perm),
+    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: this._aiChat(), wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend === true, speakVoice: !!A.speakVoice, talkSpeak: A.talkSpeak !== false, talkAuto: A.talkAuto !== false, talkBarge: A.talkBarge !== false, cfg: Object.assign({}, this._aiCfgDef, A.cfg), memCount: A.mem.length, loaded: '', busy: !!A.busy, src: Object.assign({}, A.src), perm: Object.assign({}, A.perm),
       models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek', ctx: m[0] === 'groot' ? 3072 : m[0] === 'zoek' ? 1024 : 4096 }, m[4] ? { replaces: m[4], news: m[5] || '' } : {}, m[6] ? { ram: m[6] } : {}, A.st[m[0]] || { state: 'none' })), orphans: A.orphans || 0,
       index: this._aiReady('zoek') ? { items: 3, chunks: 7, at: Date.now() - 6e4, stale: false } : undefined }); },
     aiDownload(id){ const A = this._ai, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dl', id]);
       Object.assign(m, { state: 'running', bytes: 0, total: 1e9 }); setTimeout(() => { m.bytes = 5e8; }, 200);
       setTimeout(() => { Object.assign(m, { state: 'verifying', pct: 40 }); }, 450); setTimeout(() => { A.st[id] = { state: 'ready' }; onAiModels(''); }, 700); return ''; },
-    aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ const A = this._ai; if (/^src_/.test(n)) { const k = n.slice(4); if (!(k in A.src)) return; A.src[k] = on; A.calls.push(['src', k, on]); if (this._aiReady('zoek')) { setTimeout(() => onAiIndex({ busy: true, done: 1, total: 3 }), 40); setTimeout(() => onAiIndex({ items: 4, chunks: 9, at: Date.now(), quiet: true }), A.idxMs || 150); } return; } if (['wifiOnly', 'notes', 'voiceSend', 'speakVoice'].includes(n)) A[n] = on; },
+    aiDelete(id){ this._ai.st[id] = { state: 'none' }; }, aiUse(id){ this._ai.chat = id; }, aiPref(n, on){ const A = this._ai; if (/^src_/.test(n)) { const k = n.slice(4); if (!(k in A.src)) return; A.src[k] = on; A.calls.push(['src', k, on]); if (this._aiReady('zoek')) { setTimeout(() => onAiIndex({ busy: true, done: 1, total: 3 }), 40); setTimeout(() => onAiIndex({ items: 4, chunks: 9, at: Date.now(), quiet: true }), A.idxMs || 150); } return; } if (['wifiOnly', 'notes', 'voiceSend', 'speakVoice', 'talkSpeak', 'talkAuto', 'talkBarge'].includes(n)) A[n] = on; },
     // Modellen beheren: zoals Models.json (taalmodellen, zoekmodel en de spraakmodellen)
     _md: { free: 20e9, online: true, metered: false, last: {}, leftovers: 0, txBusy: false, appMs: 500, tts: { state: '', engine: '' }, ttsNext: { state: 'ok', engine: 'Spraakservices van Google' }, calls: [] },
     ttsCheck(){ const D = this._md; D.calls.push('ttsCheck'); D.tts = { state: 'checking', engine: '' }; setTimeout(() => { D.tts = Object.assign({}, D.ttsNext); onAiModels(''); }, 120); },
@@ -537,7 +537,7 @@ if (!window.Android) window.Android = (function(){
     aiCalendarAdd(j){ if (this._calErr) return this._calErr; this._cal = JSON.parse(j); return ''; },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
-    _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'nl', history: '24', power: 'normaal', idle: '4', mem: 'aan', learn: 'vragen', about: '', instr: '' },
+    _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'nl', history: '24', power: 'normaal', idle: '4', mem: 'aan', learn: 'vragen', talkSilence: '1300', about: '', instr: '' },
     aiCleanOld(){ const n = this._ai.orphans || 0; this._ai.orphans = 0; return String(n); },
     aiMemList(){ return JSON.stringify(this._ai.mem.slice().sort((a, b) => b.u - a.u)); },
     aiMemAdd(text, src, chat, title){ const A = this._ai, t = String(text || '').trim(); if (!t) return JSON.stringify({ error: 'Er staat niets om te onthouden' });
@@ -546,16 +546,58 @@ if (!window.Android) window.Android = (function(){
       const m = { id: 'm' + (++A.seq), text: x, src: src || '', chat: chat || '', title: title || '', t: Date.now(), u: Date.now() + A.seq }; A.mem.push(m); return JSON.stringify({ id: m.id, text: m.text }); },
     aiMemEdit(id, text){ const m = this._ai.mem.find(x => x.id === id); if (!m) return 'Niet gevonden'; if (!String(text).trim()) return 'Er staat niets'; m.text = String(text).trim(); m.u = Date.now() + (++this._ai.seq); return ''; },
     aiMemDelete(id){ this._ai.mem = id === '*' ? [] : this._ai.mem.filter(m => m.id !== id); },
-    aiConfigSet(n, v){ const A = this._ai, ok = { style: ['normaal', 'kort', 'uitgebreid'], creative: ['normaal', 'precies', 'creatief'], lang: ['nl', 'en', 'auto'], history: ['24', '8', '48'], power: ['normaal', 'zuinig', 'max'], idle: ['4', '1', '15'], mem: ['aan', 'uit'], learn: ['vragen', 'vanzelf', 'uit'] };
+    aiConfigSet(n, v){ const A = this._ai, ok = { style: ['normaal', 'kort', 'uitgebreid'], creative: ['normaal', 'precies', 'creatief'], lang: ['nl', 'en', 'auto'], history: ['24', '8', '48'], power: ['normaal', 'zuinig', 'max'], idle: ['4', '1', '15'], mem: ['aan', 'uit'], learn: ['vragen', 'vanzelf', 'uit'], talkSilence: ['1300', '1000', '1600', '2200'] };
       if (n === 'about' || n === 'instr') { A.cfg = Object.assign({}, this._aiCfgDef, A.cfg, { [n]: String(v).slice(0, 1000).trim() }); return ''; }
       if (!ok[n] || !ok[n].includes(v)) return 'Ongeldige instelling'; A.cfg = Object.assign({}, this._aiCfgDef, A.cfg, { [n]: v }); return ''; },
     aiConfigReset(){ this._ai.cfg = null; },
-    aiVoiceStart(){ if (this._voiceErr) return this._voiceErr; if (this._tx && !this._tx.models.base && !this._tx.models.small) return 'model'; this._vt = Date.now(); this._aiRec = true; return ''; },
+    aiVoiceStart(){ if (this._voiceErr) return this._voiceErr; if (this._tx && !this._tx.models.base && !this._tx.models.small) return 'model'; this._vt = Date.now(); this._aiRec = true; this._tk = null; return ''; },
     aiVoiceStop(){ this._aiRec = false; setTimeout(() => onAiVoice(this._voiceResult || { text: 'Wat is de hoofdstad van Frankrijk?' }), 80); },
     aiVoiceCancel(){ this._aiRec = false; this._aiVoiceCancelled = true; },
     aiVoiceState(){ return this._aiVoiceState || (this._aiRec ? 'recording' : 'idle'); },
     // Live zoals VoiceNote.liveJson: niveau en (na even praten) de tussentekst _voicePartial
-    aiVoiceLive(){ const r = !!this._aiRec, ms = r ? Date.now() - (this._vt || Date.now()) : 0; return JSON.stringify({ state: this.aiVoiceState(), ms, live: r, lv: r ? [Math.round((0.2 + 0.6 * Math.abs(Math.sin(ms / 300))) * 100) / 100] : [], partial: r && this._voicePartial && ms > 250 ? this._voicePartial : '' }); },
+    aiVoiceLive(){ const r = !!this._aiRec, ms = r ? Date.now() - (this._vt || Date.now()) : 0; const o = { state: this.aiVoiceState(), ms, live: r, lv: r ? [Math.round((0.2 + 0.6 * Math.abs(Math.sin(ms / 300))) * 100) / 100] : [], partial: r && this._voicePartial && ms > 250 ? this._voicePartial : '' };
+      // Gesprek (aiTalkListen) zoals AiTalk.End: na _tkEndMs (of als de test _tkEnd zet) uitgesproken (1) of niets gehoord (2)
+      if (r && this._tk) { o.end = this._tkEnd || (this._tkEndMs && ms > this._tkEndMs ? 1 : 0); o.speech = o.end === 1; }
+      return JSON.stringify(o); },
+    // ----- Gesprek (handsfree) zoals AiBridge/AiTalk -----
+    aiTalkListen(ms){ const c = this._tkConflict; if (c) return c; if (this._voiceErr) return this._voiceErr; if (this._tx && !this._tx.models.base && !this._tx.models.small) return 'model'; this._tkCalls = (this._tkCalls || []).concat([['listen', ms]]); this._vt = Date.now(); this._aiRec = true; this._tk = { ms }; this._tkEnd = 0; if (this._barge) this._barge.on = false; return ''; },
+    aiTalkPoll(){ return JSON.stringify({ call: !!this._tkCall, conflict: this._tkCall ? 'Je bent aan het bellen' : (this._tkConflict || '') }); },
+    aiTalkScreen(on){ this._tkScreen = !!on; },
+    aiBargeStart(){ if (this._bargeErr) return this._bargeErr; this._barge = { on: true, hit: false, lv: 0.3 }; this._bargeStarts = (this._bargeStarts || 0) + 1; return ''; },
+    aiBargeStop(){ if (this._barge) this._barge.on = false; },
+    aiBarge(){ return JSON.stringify(this._barge || { on: false, hit: false }); },
+    // ----- Je eigen gegevens zoals AiData (vereenvoudigd): bron, uit/losse app, en een paar vaste antwoorden -----
+    _aiData: { gebruik: 'Vandaag was je schermtijd **2 uur en 14 min**, en je ontgrendelde je telefoon 37 keer. Het meest: WhatsApp (48 min), Chrome (31 min) en YouTube (22 min).',
+      sleep: 'Nacht van do 29 okt (23:10–07:30): je zei 2 keer iets:\n- 02:14 "Waar is de fiets?"\n- 04:40 "Nee, morgen."',
+      checkin: 'Zo gaat het volgens je Check-in (afgelopen 7 dagen):\n- 🙂 Hoe voel je je?: gemiddeld 4,1 (van 1 tot 5) over 7 antwoorden; de week ervoor 2: beter',
+      apparaten: 'Je **Mijn Jabra** is het laatst gezien gisteren om 18:05, buiten huis (rond 51,92 N, 4,48 O, ±1 km).' },
+    aiData(q){ const s = String(q || '').toLowerCase(), A = this._ai, L = { gebruik: 'Gebruik', sleep: 'Slaappraat', checkin: 'Check-in', apparaten: 'Apparaten' };
+      const topic = /slaappraat|vannacht|in mijn slaap|gesnurkt/.test(s) ? 'sleep' : /check-?in|stemming/.test(s) ? 'checkin' : /schermtijd|ontgrendel|op mijn telefoon/.test(s) ? 'gebruik' : /oortje|apparaten|in de buurt|bluetooth/.test(s) ? 'apparaten' : '';
+      if (!topic) return ''; const o = { topic, label: L[topic] };
+      // Een duidelijke feitenvraag (zoals AiData.answer); anders het taalmodel met de feiten
+      const fact = !/waarom|hoe kan ik|minder|advies|uitleg|instellen|instelling/.test(s) && ({ gebruik: /hoeveel|hoe vaak|hoe lang|welke app|mislukt/, sleep: /wat zei|gezegd|gepraat|nachten|gesnurkt/, checkin: /ingevuld|laatst|gaat het|trend|gemiddeld/, apparaten: /waar (?:was|is)|in de buurt/ })[topic].test(s);
+      if (window.__testSolo) return fact ? JSON.stringify(Object.assign(o, { solo: true })) : '';
+      if (!A.src[topic]) return fact ? JSON.stringify(Object.assign(o, { off: true })) : '';
+      A.calls.push(['data', topic]);
+      return JSON.stringify(fact ? Object.assign(o, { text: this._aiData[topic], title: L[topic] + (topic === 'gebruik' ? ' vandaag' : '') }) : o); },
+    // ----- Opdrachten zoals AiCommands (alleen de zinnen van de tests) -----
+    aiCmd(q){ const s = String(q || '').trim().replace(/[?.!]+$/, ''), l = s.toLowerCase(); let m; const J = o => JSON.stringify(o);
+      if (/^(?:wat|hoe|waarom|hoeveel)\b/.test(l)) return '';
+      if (/\btimer\b/.test(l)) { m = /(\d+)\s*minuten?/.exec(l); return J(m ? { type: 'timer', secs: +m[1] * 60 } : { type: 'timer', need: 'duur' }); }
+      if ((m = /^(?:zet een wekker|wek me)(?: morgen)? om (\d{1,2})(?::(\d\d))?(?: uur)?( met de radio)?$/.exec(l))) return J(Object.assign({ type: 'wekker', min: +m[1] * 60 + (+m[2] || 0) }, m[3] ? { radio: true } : {}, /morgen/.test(l) ? { day: 'morgen' } : {}));
+      if (/^zet de radio uit$/.test(l)) return J({ type: 'radio', stop: true });
+      if ((m = /^(?:speel|zet) (?:de )?radio ?(.*?)(?: aan)?$/.exec(l))) return J({ type: 'radio', q: m[1] });
+      if ((m = /^speel de podcast (.+)$/i.exec(s))) return J({ type: 'podcast', q: m[1] });
+      if (/^(?:start|zet) slaappraat(?: aan)?$/.test(l)) return J({ type: 'slaap' });
+      if (/^(?:stop|zet) slaappraat(?: uit)?$/.test(l)) return J({ type: 'slaap', stop: true });
+      const T = { apparaten: 'apparaten', gebruik: 'gebruik', slaappraat: 'sleep', notities: 'notes', radio: 'radio' };
+      if ((m = /^open (.+)$/.exec(l)) && T[m[1]]) return J({ type: 'open', tool: T[m[1]] });
+      if ((m = /^stuur een sms naar ([^:]+?)(?::| dat) (.+)$/i.exec(s))) { const nr = /^[0-9 +-]{6,}$/.test(m[1]) ? m[1].replace(/[ -]/g, '') : ''; return J(Object.assign({ type: 'sms', text: / dat /.test(s) ? m[2].charAt(0).toUpperCase() + m[2].slice(1) : m[2] }, nr ? { number: nr } : { to: m[1] })); }
+      if ((m = /^app (\S+) dat (.+)$/i.exec(s))) return J({ type: 'wa', to: m[1].charAt(0).toUpperCase() + m[1].slice(1), text: m[2].charAt(0).toUpperCase() + m[2].slice(1) });
+      return ''; },
+    _aiContacts: [{ name: 'Jos de Vries', number: '0612345678', label: 'mobiel' }, { name: 'Jos de Vries', number: '0101234567', label: 'thuis' }, { name: 'Marieke', number: '0687654321', label: 'mobiel' }],
+    aiContact(name){ if (window.__testSolo) return '[]'; if (this._aiContactPerm === false) return '{"perm":false}'; const q = String(name || '').toLowerCase(); return JSON.stringify(this._aiContacts.filter(c => c.name.toLowerCase().split(' ').some(w => w === q) || c.name.toLowerCase() === q)); },
+    aiDo(j){ const o = JSON.parse(j); if (window.__testSolo && !['timer', 'wekker', 'klok'].includes(o.type)) return 'Dat kan niet in een losse app'; this._aiDone = (this._aiDone || []).concat([o]); return this._aiDoErr || ''; },
     aiVoiceInfo(){ const t = this._tx; const m = t.models.small ? 'small' : t.models.base ? 'base' : ''; return JSON.stringify({ supported: true, model: m, label: m ? 'Snel (57 MB)' : '', busy: !!t.st.running, send: this._ai.voiceSend === true }); },
     aiChats(){ return JSON.stringify(this._ai.chats.map(c => ({ id: c.id, title: c.title, t: c.t, n: c.msgs.length }))); },
     aiChatGet(id){ const c = this._ai.chats.find(x => x.id === id); return c ? JSON.stringify(c) : ''; },

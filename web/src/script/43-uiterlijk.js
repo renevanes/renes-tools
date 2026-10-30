@@ -59,7 +59,7 @@ addEventListener('resize', () => uiFit());
 if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => uiFit()); document.querySelectorAll('.hdr > h1').forEach(h => ro.observe(h)); }
 
 /* Tabbalk onderin op de hoofdschermen */
-const TABS = ['home', 'search', 'backup', 'settings'];
+const TABS = ['home', 'search', 'ai', 'backup', 'settings'];
 function uiShown(name){
   const on = !SOLO && TABS.includes(name);
   // Via een sprong (bijv. zelftest → toestemmingen) blijft de terugknop zichtbaar
@@ -70,6 +70,7 @@ function uiShown(name){
   uiFit(); bars();
 }
 function tabGo(t){
+  if (t === current && t === 'ai') { scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }); return; } // het gesprek: naar het nieuwste
   if (t === current) { scrollTo({ top: 0, behavior: 'smooth' }); if (t === 'search') $('#gs-q').focus(); return; }
   jumpStack.length = 0;
   show(t);
