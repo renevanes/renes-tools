@@ -354,9 +354,9 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         if (!foreground) startFg(); // eerst voorgrond (zie begin)
         if (!requestFocus()) { error = "Geluid is nu in gebruik"; pause(false); return; }
         h.removeCallbacks(idleRun);
+        setVolume(targetVolume()); // vóór het starten: tijdens het uitfaden geen klap op vol volume
         try { p.start(); applySpeed(); } catch (Exception e) { onError("Afspelen lukt niet"); return; }
         releaseAutoWake(); // de speler houdt de telefoon nu zelf wakker
-        setVolume(sleepAt > 0 ? SleepFade.gain(sleepAt - System.currentTimeMillis(), sleepFadeMs) : 1f);
         resumeOnFocus = false;
         status = "playing";
         retries = 0;
@@ -506,11 +506,25 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         if (now - shownAt > 30_000) { shownAt = now; Player.changed(this); } // voortgang in de widget
         // Slaaptimer "aan het einde van deze aflevering": de laatste minuut langzaam zachter
         if (sleepEnd && sleepAt == 0 && dur > 0) {
-            long left = (long) ((dur - pos) / Math.max(0.5f, speed));
-            setVolume(SleepFade.gain(left, END_FADE_MS));
-            if (left < END_FADE_MS + 1000) { h.postDelayed(tickRun, SleepFade.STEP_MS); return; }
+            setVolume(targetVolume());
+            if (endLeft() < endFade() + 1000) { h.postDelayed(tickRun, SleepFade.STEP_MS); return; }
         }
         h.postDelayed(tickRun, 1000);
+    }
+
+    /** Hoeveel speeltijd de aflevering nog heeft (rekening houdend met de snelheid). */
+    private long endLeft() { return (long) ((dur - pos) / Math.max(0.5f, speed)); }
+    /** Uitfaden aan het eind van de aflevering: een minuut, bij een heel korte aflevering hooguit een derde. */
+    private long endFade() { return Math.min(END_FADE_MS, dur / 3); }
+
+    /** Het volume dat nu hoort: slaaptimer op tijd, of aan het einde van de aflevering, of vol. */
+    private float targetVolume() {
+        if (sleepAt > 0) return SleepFade.gain(sleepAt - System.currentTimeMillis(), sleepFadeMs);
+        if (sleepEnd && dur > 0) {
+            // Niet helemaal stil: de lengte van een aflevering is soms een schatting, het laatste stukje moet nog hoorbaar zijn
+            return Math.max(SleepFade.gain(SleepFade.STEP_MS, SleepFade.MAX_MS), SleepFade.gain(endLeft(), endFade()));
+        }
+        return 1f;
     }
 
     /** Uitfaden aan het einde van de aflevering (bij de slaaptimer "aan het einde van deze aflevering"). */

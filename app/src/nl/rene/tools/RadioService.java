@@ -398,11 +398,15 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         h.postDelayed(sleepRun, SleepFade.nextDelay(left, sleepFadeMs));
     }
 
-    /** Volume = slaaptimer × even zachter voor een melding. De wekker regelt zijn eigen volume (ramp). */
+    /** Wekker: hoe ver hij al is aangezwollen (ramp). */
+    private float alarmVol = 1f;
+
+    /** Volume = (wekker of slaaptimer) × even zachter voor een melding. */
     private void applyVolume() {
         MediaPlayer p = player;
-        if (p == null || alarm) return;
-        float v = (sleepAt > 0 ? SleepFade.gain(sleepAt - System.currentTimeMillis(), sleepFadeMs) : 1f) * (ducked ? 0.3f : 1f);
+        if (p == null) return;
+        float base = alarm ? alarmVol : sleepAt > 0 ? SleepFade.gain(sleepAt - System.currentTimeMillis(), sleepFadeMs) : 1f;
+        float v = base * (ducked ? 0.3f : 1f);
         try { p.setVolume(v, v); } catch (Exception ignored) { }
     }
 
@@ -425,10 +429,13 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
                     .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
                             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
                     .setOnAudioFocusChangeListener(this, h).build();
-            return am.requestAudioFocus(focusReq) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+            return granted(am.requestAudioFocus(focusReq) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
         }
-        return am.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+        return granted(am.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
     }
+
+    /** Geluid (weer) helemaal van ons: dan is een oude "even zachter" voorbij (anders blijft de radio op 30%). */
+    private boolean granted(boolean ok) { if (ok) ducked = false; return ok; }
 
     private void abandonFocus() {
         if (Build.VERSION.SDK_INT >= 26) { if (focusReq != null) am.abandonAudioFocusRequest(focusReq); }
@@ -439,6 +446,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     public void onAudioFocusChange(int change) {
         if (change == AudioManager.AUDIOFOCUS_LOSS) {
             pausedByFocus = false;
+            ducked = false; // er komt geen GAIN meer: niet op 30% blijven hangen
             // Ook als we al "onderbroken" waren (bijv. na een gesprek start je Spotify): echt pauzeren, anders
             // blijven de melding, de wakelock en de wifi-lock eindeloos staan
             // Ook tijdens opnieuw verbinden: anders pakt een geplande nieuwe poging het geluid terug
@@ -523,8 +531,8 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             p.setAudioAttributes(new AudioAttributes.Builder().setUsage(alarm ? AudioAttributes.USAGE_ALARM : AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
             p.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
-            if (alarm) p.setVolume(0.15f, 0.15f);
-            else applyVolume(); // tijdens het uitfaden van de slaaptimer niet ineens weer vol
+            if (alarm) alarmVol = 0.15f;
+            applyVolume(); // wekker zacht beginnen; tijdens het uitfaden van de slaaptimer niet ineens weer vol
             java.util.Map<String, String> hdr = new java.util.HashMap<>();
             hdr.put("User-Agent", Radio.UA);
             p.setDataSource(this, android.net.Uri.parse(url), hdr);
@@ -585,7 +593,8 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         MediaPlayer p = player;
         if (p == null || !alarm) return;
         float nv = Math.min(1f, v + 0.05f);
-        if (!ducked) { try { p.setVolume(nv, nv); } catch (Exception ignored) { } }
+        alarmVol = nv;
+        applyVolume();
         if (nv < 1f) h.postDelayed(() -> ramp(nv), 1700);
     }
 

@@ -77,7 +77,7 @@ function pcPoll(force){
   if (force || sig !== pcLastSig) {
     const keyChanged = !pcLastSig || JSON.parse(pcLastSig)[1] !== (pcSt.ep && pcSt.ep.key);
     pcLastSig = sig;
-    if (keyChanged && current === 'podcasts') { pcRenderCont(); pcRenderNew(); }
+    if (keyChanged && (current === 'podcasts' || current === 'podlijst')) { pcRenderCont(); pcRenderNew(); }
     if (current === 'podcast') { pdRefreshRows(); pdResumeShow(); } // ▶/❚❚ en voortgang in de lijst bijwerken
   }
   if (typeof plRender === 'function') plRender();
@@ -192,7 +192,8 @@ function pcNewRow(r, i){
 /* "Alle": een eigen scherm met de hele lijst (nieuwe afleveringen of al je podcasts); Luisteren zelf blijft kort */
 let pcxKind = 'new';
 function pcxOpen(kind){ pcxKind = kind === 'subs' ? 'subs' : 'new'; jumpTo('podlijst'); pcxRender(); }
-function enterPodLijst(){ pcxRender(); }
+/* Bij binnenkomen (ook via terug of na het ontgrendelen) de lijsten opnieuw lezen: die tekenen dit scherm mee */
+function enterPodLijst(){ pcRenderSubs(); pcRenderNew(); pcxRender(); }
 function pcxRender(){
   const subs = pcxKind === 'subs', nw = $('#pcx-new'), gr = $('#pcx-subs');
   $('#pcx-h1').textContent = subs ? 'Mijn podcasts' : 'Nieuwe afleveringen';
@@ -215,7 +216,7 @@ function pcNewMenu(i){
     ['Als volgende afspelen', () => plAddToQueue(e, r.pod, true)], ['＋ Toevoegen aan Hierna', () => plAddToQueue(e, r.pod, false)],
     ['Markeren als beluisterd', () => { Android.podMarkPlayed(e.key, true); pcRenderNew(); pcDlRefresh(); }],
     ['Uit deze lijst halen', () => { Android.podLatestHide(e.key); pcRenderNew(); }]].concat(pcDlActs(e, r.pod));
-  if (r.pod.feed) acts.push(['Naar de podcast', () => pdOpen(r.pod)]);
+  if (r.pod.feed) acts.push(['Naar de podcast', () => { if (current === 'podlijst') jumpTo('podcast', () => pdOpen(r.pod)); else pdOpen(r.pod); }]);
   acts.push(['Beschrijving', () => pcShowDesc(Object.assign({}, e, { desc: pcNewDesc(r) }), play)]);
   acts.push(['Delen', () => Android.podShare(e.title + ' · ' + (r.pod.title || ''), r.pod.link || e.url)]);
   openSheet(e.title, [r.pod.title, pcDate(e.date), e.dur ? fmtMin(e.dur / 60) : ''].filter(Boolean).join(' · '), acts);
