@@ -97,8 +97,10 @@ public class GebruikShot extends Activity {
             byte[] data = new byte[buf.remaining()];
             buf.get(data);
             File dir = GebruikStore.photoDir(getApplicationContext());
-            File out = new File(dir, "shot-" + System.currentTimeMillis() + "-" + (reason.equals("mislukt") ? "mislukt" : "ontgrendeld") + ".jpg");
-            try (FileOutputStream fos = new FileOutputStream(out)) { fos.write(data); }
+            String rn = reason.equals("mislukt") ? "mislukt" : reason.equals("proef") ? "proef" : "ontgrendeld";
+            File out = new File(dir, "shot-" + System.currentTimeMillis() + "-" + rn + ".jpg");
+            // Versleuteld op de telefoon met de kluissleutel (zoals de kluis en de PDF-handtekening); alleen in de app te zien.
+            Kluis.writeEncrypted(out, data);
             saved = true;
             GebruikStore.prefs(getApplicationContext()).edit().putString("lastShot", "ok|" + System.currentTimeMillis()).apply();
             GebruikStore.prune(getApplicationContext());

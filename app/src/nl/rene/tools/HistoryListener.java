@@ -11,7 +11,7 @@ public final class HistoryListener extends NotificationListenerService {
             1, 1, 0L, java.util.concurrent.TimeUnit.MILLISECONDS, new java.util.concurrent.ArrayBlockingQueue<Runnable>(128));
     static volatile HistoryListener inst;
     private final java.util.concurrent.atomic.AtomicBoolean dotsPending = new java.util.concurrent.atomic.AtomicBoolean(false);
-    @Override public void onListenerConnected() { NotificationHistory.connected = true; inst = this; dots(); importActive(); }
+    @Override public void onListenerConnected() { NotificationHistory.connected = true; inst = this; dots(); importActive(); try { GebruikLive.start(this); } catch (Throwable ignored) { } }
 
     /**
      * Meldingen die nu nog in het meldingenpaneel staan (ook van vóór het aanzetten) ook bewaren.

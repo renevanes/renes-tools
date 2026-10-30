@@ -51,6 +51,8 @@ final class AppData {
     static final String MODELS = DIR + "/modellen.json";
     static final String STATE = DIR + "/toestand.json";
     static final String FILES = DIR + "/bestanden";
+    /** Foto's van Gebruik: op de telefoon versleuteld met de kluissleutel; in het archief ontsleuteld, bij terugzetten weer versleuteld. */
+    static final String GEBRUIK_FOTO_DIR = DIR + "/gebruik-foto";
     static final String FORMAT = "renes-tools-app";
     static final int VERSION = 1;
 
@@ -160,6 +162,9 @@ final class AppData {
         int slash = r.indexOf('/');
         String top = slash < 0 ? r : r.substring(0, slash);
         if (FILE_SKIP.containsKey(top)) return FILE_SKIP.get(top);
+        // Foto's van Gebruik gaan niet via de gewone bestanden mee (ze zijn met de kluissleutel versleuteld): apart,
+        // ontsleuteld in het archief en bij terugzetten opnieuw versleuteld (zoals de kluis).
+        if (r.equals("gebruik/foto") || r.startsWith("gebruik/foto/")) return "gaat apart mee (versleuteld met de kluissleutel)";
         if (!FILE_ROOTS.contains(top)) return "onbekend";
         if (slash < 0 && !top.contains(".")) return null; // lege map zelf
         if (PATH_SKIP.containsKey(r)) return PATH_SKIP.get(r);
@@ -221,6 +226,10 @@ final class AppData {
         if (p.startsWith(KLUIS_DIR + "/")) {
             String id = p.substring(KLUIS_DIR.length() + 1);
             return id.matches("[a-z0-9]{6,24}") ? "kluis:" + id : null;
+        }
+        if (p.startsWith(GEBRUIK_FOTO_DIR + "/")) {
+            String name = p.substring(GEBRUIK_FOTO_DIR.length() + 1);
+            return name.matches("shot-\\d{1,20}-(mislukt|ontgrendeld|proef)\\.jpg") ? "gfoto:" + name : null;
         }
         if (p.startsWith(FILES + "/")) {
             String rel = p.substring(FILES.length() + 1);

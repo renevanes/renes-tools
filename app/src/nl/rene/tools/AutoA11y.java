@@ -76,6 +76,7 @@ public class AutoA11y extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         inst = this;
+        try { GebruikLive.start(this); } catch (Throwable ignored) { }
         watch(null);
         unlock = new Unlock();
         try {

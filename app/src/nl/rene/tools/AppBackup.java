@@ -89,6 +89,9 @@ final class AppBackup {
             if (sig != null) putBytes(zip, m, AppData.SIGNATURE, sig.toString().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) { m.skipped.add(new String[]{"handtekening", "niet te lezen"}); }
 
+        // Foto's van Gebruik: op de telefoon met de kluissleutel versleuteld; hier ontsleuteld in het archief.
+        exportGebruikPhotos(c, zip, m);
+
         // Bestanden
         File root = c.getFilesDir();
         File[] tops = root.listFiles();
@@ -117,6 +120,25 @@ final class AppBackup {
         try (OutputStream o = zip.stream(AppData.DIR, "inhoud.txt")) { o.write(AppData.build(m).getBytes(StandardCharsets.UTF_8)); }
         lastBytes = m.bytes();
         return m.entries.size() + m.refs.size();
+    }
+
+    /** De foto's bij ontgrendelen (gebruik/foto/*.jpg): ontsleuteld in het archief, zodat ze bij terugzetten met de
+     *  nieuwe kluissleutel opnieuw versleuteld kunnen worden. Nooit ontsleuteld op de telefoon. */
+    static void exportGebruikPhotos(Context c, Secure.Zip zip, AppData.Manifest m) throws Exception {
+        File fd = new File(new File(c.getFilesDir(), GebruikStore.DIR), GebruikStore.PHOTO_DIR);
+        File[] fs = fd.listFiles();
+        if (fs == null) return;
+        java.util.Arrays.sort(fs);
+        for (File f : fs) {
+            stopCheck();
+            String name = f.getName();
+            if (!f.isFile() || AppData.target(AppData.GEBRUIK_FOTO_DIR + "/" + name) == null) continue;
+            try {
+                ByteArrayOutputStream plain = new ByteArrayOutputStream();
+                try (InputStream in = new java.io.BufferedInputStream(new FileInputStream(f))) { Kluis.decrypt(in, plain); }
+                putBytes(zip, m, AppData.GEBRUIK_FOTO_DIR + "/" + name, plain.toByteArray());
+            } catch (Exception e) { m.skipped.add(new String[]{"gebruik-foto/" + name, "foto niet te lezen"}); }
+        }
     }
 
     /** Android stopt de nachtelijke taak: tussen twee bestanden netjes stoppen (het archief wordt dan …_deels.rtb). */
@@ -447,6 +469,21 @@ final class AppBackup {
             x.stagedFiles.put(name, out);
             x.kinds.put(name, "kluis");
             x.s.kluis++;
+        } else if (t.startsWith("gfoto:")) {
+            // Foto van Gebruik: komt ontsleuteld binnen; meteen weer versleutelen met de kluissleutel van deze installatie,
+            // klaargezet in gebruik/foto zodat de gewone verplaatsing van de map Gebruik hem op zijn plek zet.
+            checkFree(x.c);
+            File out = new File(x.stFiles, "gebruik/foto/" + t.substring(6));
+            if (!out.getCanonicalPath().startsWith(x.stFilesPath)) throw new Exception("Onveilige naam in de backup: " + AppData.cut(name));
+            File dir = out.getParentFile();
+            if (dir != null && !dir.isDirectory() && !dir.mkdirs()) throw new Exception("Klaarzetten lukt niet");
+            byte[] plain = small(z, buf, 64 * 1024 * 1024);
+            Kluis.writeEncrypted(out, plain);
+            en = plain.length; esha = AppData.hex(AppData.sha256().digest(plain));
+            x.count(en);
+            x.stagedFiles.put(name, out);
+            x.kinds.put(name, "gfoto");
+            x.s.files++;
         } else if ("history".equals(t)) {
             checkFree(x.c);
             try (AppData.DigestOut d = new AppData.DigestOut(new java.io.BufferedOutputStream(new FileOutputStream(new File(x.st, "meldingen.jsonl")), 1 << 16))) {
@@ -537,7 +574,7 @@ final class AppBackup {
                 if (f == null) continue;
                 f.delete();
                 String kind = x.kinds.get(b);
-                if ("f".equals(kind)) s.files--;
+                if ("f".equals(kind) || "gfoto".equals(kind)) s.files--;
                 else if ("kluis".equals(kind)) s.kluis--;
                 else if ("history".equals(kind)) s.history = false;
                 s.broken++;

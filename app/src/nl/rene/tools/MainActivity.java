@@ -455,6 +455,7 @@ public class MainActivity extends Activity {
         super.onResume();
         visible = true;
         js("onResumeApp", "");
+        try { GebruikLive.start(getApplicationContext()); } catch (Throwable ignored) { }
         if (isSolo()) return; // updates regelt de gewone app
         // Automatisch op updates controleren, hooguit eens per 30 minuten.
         long last = Updater.prefs(this).getLong("lastCheck", 0);

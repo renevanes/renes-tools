@@ -92,8 +92,9 @@ function gbRenderUnlocks(){
 function gbRenderFuncs(){
   const o = rdJson(Android.gebruikFunctions('', ''), {}) || {};
   const evs = o.events || [];
-  if (!evs.length) { slHtml($('#gb-funcs'), '<div class="card"><p class="note">Nog niets vastgelegd. Camera, microfoon en verbindingen worden alleen gezien zolang de app actief is.</p></div>'); return; }
-  slHtml($('#gb-funcs'), '<div class="card">' + evs.map(e => {
+  const hint = !gbState().notifOn ? '<div class="card perm"><p class="note">Zet Meldingsgeschiedenis (meldingentoegang) aan, dan houdt Tools camera, microfoon en verbindingen bij zolang die dienst leeft. Zonder dat wordt het alleen gezien terwijl de app zelf openstaat.</p><button class="big ghost" onclick="show(\'history\')">Naar Meldingsgeschiedenis</button></div>' : '';
+  if (!evs.length) { slHtml($('#gb-funcs'), hint + '<div class="card"><p class="note">Nog niets vastgelegd. Camera, microfoon en verbindingen worden alleen gezien zolang een onderdeel van de app leeft (Android staat niet meer toe).</p></div>'); return; }
+  slHtml($('#gb-funcs'), hint + '<div class="card">' + evs.map(e => {
     const f = GB_FUNC[e.kind] || [e.kind, '•'];
     return '<div class="gb-func"><span class="gb-func-i" aria-hidden="true">' + f[1] + '</span><div class="gb-func-t"><b>' + esc(f[0]) + '</b>' + (e.name ? '<small>waarschijnlijk via ' + esc(e.name) + '</small>' : '') + '</div><span class="gb-func-w">' + gbDay(e.t) + ' ' + gbTime(e.t) + '</span></div>';
   }).join('') + '</div>');

@@ -25,6 +25,7 @@ public class GebruikBridge extends LocBridge {
     @JavascriptInterface public String gebruikState() {
         try {
             GebruikJob.ensureScheduled(ctx);
+            try { GebruikLive.start(ctx); } catch (Throwable ignored) { }
             new Thread(() -> { try { GebruikStore.collect(ctx); } catch (Throwable ignored) { } }, "gebruik-collect").start();
             return GebruikStore.state(ctx).toString();
         } catch (Throwable e) { App.log(ctx, "GEBRUIK", "stand: " + e); return "{}"; }
@@ -51,7 +52,7 @@ public class GebruikBridge extends LocBridge {
 
     /** Instelling(en) bewaren; geeft de nieuwe instellingen terug. */
     @JavascriptInterface public String gebruikSave(String json) {
-        try { GebruikStore.saveSettings(ctx, new JSONObject(json)); GebruikJob.ensureScheduled(ctx); return GebruikStore.settings(ctx).toString(); }
+        try { GebruikStore.saveSettings(ctx, new JSONObject(json)); GebruikJob.ensureScheduled(ctx); if (GebruikStore.collecting(ctx)) GebruikLive.start(ctx); else GebruikLive.stop(); return GebruikStore.settings(ctx).toString(); }
         catch (Throwable e) { return GebruikStore.err("Opslaan lukt niet").toString(); }
     }
 

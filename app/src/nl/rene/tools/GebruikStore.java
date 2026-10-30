@@ -469,9 +469,10 @@ final class GebruikStore {
             if (id == null || id.contains("/") || !id.endsWith(".jpg")) return "";
             File f = new File(photoDir(c), id);
             if (!f.isFile()) return "";
-            byte[] b = new byte[(int) f.length()];
-            try (java.io.FileInputStream in = new java.io.FileInputStream(f)) { int r = 0, o; while (r < b.length && (o = in.read(b, r, b.length - r)) > 0) r += o; }
-            return "data:image/jpeg;base64," + AppData.b64(b);
+            // Versleuteld op de telefoon met de kluissleutel: hier ontsleutelen om alleen in de app te tonen.
+            java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream();
+            try (java.io.InputStream in = new java.io.BufferedInputStream(new java.io.FileInputStream(f))) { Kluis.decrypt(in, b); }
+            return "data:image/jpeg;base64," + AppData.b64(b.toByteArray());
         } catch (Throwable e) { return ""; }
     }
 
@@ -525,6 +526,27 @@ final class GebruikStore {
     }
 
     // ---------- telefoonfuncties en opladen: momentopname en live ----------
+
+    /** Eén telefoonfunctie-gebeurtenis bewaren (camera, microfoon, locatie, bt, wifi, data, opladen, herstart). */
+    static void funcEvent(Context c, String kind, String pkg) {
+        try { if (!collecting(c)) return; append(new File(dir(c), FUNCS), System.currentTimeMillis() + "|" + kind + "|" + (pkg == null ? "" : pkg) + "\n"); }
+        catch (Throwable ignored) { }
+    }
+
+    /** De app die nu op de voorgrond staat (voor "waarschijnlijk via …"), of "" als het niet bekend is. */
+    static String foregroundApp(Context c) {
+        try {
+            if (!usageAccess(c)) return "";
+            long now = System.currentTimeMillis();
+            android.app.usage.UsageStatsManager usm = (android.app.usage.UsageStatsManager) c.getSystemService(Context.USAGE_STATS_SERVICE);
+            if (usm == null) return "";
+            android.app.usage.UsageEvents ue = usm.queryEvents(now - 10_000, now);
+            android.app.usage.UsageEvents.Event ev = new android.app.usage.UsageEvents.Event();
+            String pkg = "";
+            while (ue != null && ue.getNextEvent(ev)) if (mapType(ev.getEventType()) == Gebruik.APP_START && ev.getPackageName() != null) pkg = ev.getPackageName();
+            return pkg;
+        } catch (Throwable e) { return ""; }
+    }
 
     /** Momentopname van opladen en verbindingen bij elke overname; wissels worden als gebeurtenis bewaard. */
     static void snapshotFuncs(Context c) {

@@ -1,3 +1,4 @@
 Nieuw: Gebruik — zie je schermtijd per app (per dag en week, met grafiek), een tijdlijn per ontgrendeling (met pincode, anders of mislukt) met de apps die erna kwamen, wanneer camera, microfoon, locatie, Bluetooth, wifi en data gebruikt werden, en meldingen per app, opladen en herstarts.
 Gebruik kan met apparaatbeheer (zet je zelf aan) ook pincode-ontgrendelingen en mislukte pogingen tonen, en eventueel een stille foto met de voorcamera maken bij een mislukte poging of bij ontgrendelen; die foto's blijven alleen in de app, nooit in je galerij.
 Bewaartermijn instelbaar (standaard 1 jaar voor de dagsamenvatting, 60 dagen voor de tijdlijn, 30 dagen voor foto's), met "Alles wissen".
+Gebruik houdt camera, microfoon, wifi/mobiele data, Bluetooth, locatie en opladen nu echt bij (zolang Meldingsgeschiedenis of de app aanstaat), met "waarschijnlijk via" de app die op dat moment op de voorgrond stond; de foto's bij ontgrendelen staan versleuteld op de telefoon.
