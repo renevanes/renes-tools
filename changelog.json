@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.114",
+    "date": "2026-10-30",
+    "changes": [
+      "Slaaptimer (podcast en radio): het geluid wordt de laatste minuten langzaam en gelijkmatig zachter in plaats van in een halve minuut; bij \"aan het einde van deze aflevering\" de laatste minuut.",
+      "Podcasts: de eerste pagina past weer op één scherm: Mijn podcasts bovenaan, Verder luisteren als rij om opzij te vegen en de drie nieuwste afleveringen; \"Alle\" opent een eigen lijst."
+    ]
+  },
+  {
     "version": "1.113",
     "date": "2026-10-30",
     "changes": [

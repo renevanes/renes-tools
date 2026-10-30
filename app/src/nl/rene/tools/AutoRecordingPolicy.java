@@ -4,6 +4,7 @@ package nl.rene.tools;
 final class AutoRecordingPolicy {
     static final int NONE = 0, START = 1, STOP = 2;
     private AutoRecordingPolicy() { }
+    static boolean canShareMicrophone(int sdk, boolean access) { return sdk < 29 || access; }
     static boolean valid(String state) { return "IDLE".equals(state) || "RINGING".equals(state) || "OFFHOOK".equals(state); }
     static int action(String before, String after, boolean enabled, boolean ready, boolean busy, boolean automatic, boolean attempted) {
         if (!valid(after)) return NONE;

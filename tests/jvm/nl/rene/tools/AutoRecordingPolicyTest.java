@@ -6,6 +6,12 @@ public final class AutoRecordingPolicyTest {
         checks++; if (actual != expected) throw new AssertionError(message);
     }
     public static void main(String[] args) {
+        check(AutoRecordingPolicy.canShareMicrophone(24, false) ? 1 : 0, 1, "Android 7 vereist de nieuwe deelroute niet");
+        check(AutoRecordingPolicy.canShareMicrophone(28, false) ? 1 : 0, 1, "Android 9 vereist de nieuwe deelroute niet");
+        check(AutoRecordingPolicy.canShareMicrophone(29, false) ? 1 : 0, 0, "Android 10: geen automatische stille opname zonder hulpdienst");
+        check(AutoRecordingPolicy.canShareMicrophone(36, false) ? 1 : 0, 0, "Android 16: geen automatische stille opname zonder hulpdienst");
+        check(AutoRecordingPolicy.canShareMicrophone(29, true) ? 1 : 0, 1, "Android 10 met actieve hulpdienst");
+        check(AutoRecordingPolicy.canShareMicrophone(36, true) ? 1 : 0, 1, "Android 16 met actieve hulpdienst");
         check(AutoRecordingPolicy.action("IDLE", "OFFHOOK", false, true, false, false, false), 0, "standaard uit");
         check(AutoRecordingPolicy.action("IDLE", "RINGING", true, true, false, false, false), 0, "niet starten bij rinkelen");
         check(AutoRecordingPolicy.action("RINGING", "IDLE", true, true, false, false, false), 0, "gemiste oproep niet opnemen");

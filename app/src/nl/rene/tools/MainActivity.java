@@ -1503,6 +1503,12 @@ public class MainActivity extends Activity {
 
         // ----- Handmatige microfoonopname -----
         @JavascriptInterface public String recorderState() { return CallRecordings.state(ctx); }
+        @JavascriptInterface public void recorderCallAccessSettings() {
+            a.h.post(() -> {
+                try { a.startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); }
+                catch (Exception e) { a.openAppSettings(); }
+            });
+        }
         @JavascriptInterface public void recorderRequestPermissions() {
             a.h.post(() -> {
                 java.util.ArrayList<String> permissions = new java.util.ArrayList<>();

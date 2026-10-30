@@ -125,8 +125,8 @@ final class VoiceNote {
         }, "spraaknotitie").start();
     }
 
-    /** Alleen echte spraak: geen "[BLANK_AUDIO]", "(muziek)" en dergelijke. Zuiver (getest). */
-    static boolean keepSeg(String t) { return t != null && !t.trim().isEmpty() && !t.trim().startsWith("[") && !t.trim().startsWith("("); }
+    /** Geen losse geluidslabels of aftiteling die het spraakmodel bij stilte kan verzinnen. */
+    static boolean keepSeg(String t) { return !SpeechText.segment(t).isEmpty(); }
 
     /** De tekst uit de uitvoer van whisper (de stukjes achter elkaar). */
     static String textOf(JSONObject out) throws Exception {

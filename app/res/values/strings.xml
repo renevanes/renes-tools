@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Tools</string>
+    <string name="call_recording_access_desc">Helpt de microfoon te gebruiken tijdens jouw telefoongesprekken, zodat Tools de hoorbare spraak kan opnemen en uitschrijven. Zet de luidspreker aan om beide stemmen te horen. De opname begint alleen als je zelf start of automatisch opnemen hebt ingeschakeld en heeft altijd een zichtbare melding. Deze dienst leest geen scherminhoud en bedient geen knoppen.</string>
     <string name="widget_radio_desc">Speler voor radio en podcasts: groeit mee met de grootte</string>
     <string name="widget_note_desc">Een lijstje uit Notities, afstrepen met een tik</string>
     <string name="widget_music_desc">Muziek herkennen met één tik</string>
