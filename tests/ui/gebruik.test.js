@@ -90,9 +90,14 @@ const { chromium } = require('playwright');
       await pg.evaluate(() => { Android._gb.camera = false; Android._permAsked = []; enterGebruikSet(); });
       const before = await pg.evaluate(() => Android._gb.photos.length);
       await pg.click('#gb-test');
-      ok(await pg.evaluate(() => (Android._permAsked || []).includes('camera') && Android._gb.photos.length >= 0) && /camera|bezig/.test(await pg.textContent('#gb-test-res')), tag + ': proefopname zonder toestemming vraagt eerst om de camera');
+      ok(await pg.evaluate(() => (Android._permAsked || []).includes('camera')) && /camera|bezig/.test(await pg.textContent('#gb-test-res')), tag + ': proefopname zonder toestemming vraagt eerst om de camera');
       await pg.waitForTimeout(1600);
       ok(await pg.evaluate(n => Android._gb.photos.length > n, before) && (await pg.textContent('#gb-test-res')).includes("Gebruik → Foto's"), tag + ': daarna vanzelf de proefopname, met waar de foto staat');
+      // Geweigerd: geen proefopname die later onverwacht start, en een duidelijke uitleg
+      await pg.evaluate(() => { const g = Android._gb, pr = Android.permRequest; Android.permRequest = function(id){ if (id === 'camera') { (Android._permAsked = Android._permAsked || []).push(id); setTimeout(() => onSettingsChanged(''), 50); return; } return pr.call(this, id); }; g.camera = false; Android._denyCam = pr; });
+      await pg.click('#gb-test'); await pg.waitForTimeout(300);
+      ok(await pg.evaluate(() => gbShotWait === false) && (await pg.textContent('#gb-test-res')).includes('Geen cameratoestemming'), tag + ': geweigerd: duidelijke uitleg, niets blijft wachten');
+      await pg.evaluate(() => { Android.permRequest = Android._denyCam; Android._gb.camera = true; enterGebruikSet(); });
       ok((await pg.$$('#gb-photos .gb-thumb')).length >= 1 && (await pg.textContent('#gb-photos-open')).includes("Foto's bekijken ("), tag + ': laatste foto als snelle link, en een knop naar alle foto\'s');
       // Tabblad Foto's
       await pg.click('#gb-photos-open'); await pg.waitForTimeout(300);

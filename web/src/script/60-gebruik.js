@@ -1,5 +1,5 @@
 /* ---------- Gebruik: schermtijd, ontgrendelingen, telefoonfuncties, meldingen en opladen ---------- */
-let gbTabV = 'overzicht', gbPeriodV = 'today', gbShotPoll = null, gbShotWait = false;
+let gbTabV = 'overzicht', gbPeriodV = 'today', gbShotPoll = null, gbShotWait = false, gbPhotoGen = 0;
 
 function gbState(){ return rdJson(Android.gebruikState(), {}) || {}; }
 function gbSet(){ return gbState().set || {}; }
@@ -202,13 +202,15 @@ function gbTestShot(){
   const poll = () => {
     const ls = gbState().lastShot || '';
     if (ls.indexOf('ok|') === 0) { $('#gb-test-res').textContent = 'Gelukt: de foto staat bij Gebruik → Foto\'s.'; toast('Proefopname gelukt'); if (current === 'gebruikset') enterGebruikSet(); return; }
-    if (ls.indexOf('mislukt') === 0) { $('#gb-test-res').textContent = 'Mislukt: ' + ls.slice(9); if (current === 'gebruikset') enterGebruikSet(); return; }
+    if (ls.indexOf('mislukt') === 0) { $('#gb-test-res').textContent = 'Mislukt: ' + (/time-?out/i.test(ls) ? 'de camera reageerde niet op tijd' : ls.slice(9)); if (current === 'gebruikset') enterGebruikSet(); return; }
     if (Date.now() - t0 > 12000) { $('#gb-test-res').textContent = 'Geen uitkomst: de camera reageerde niet. Probeer het opnieuw.'; return; }
     gbShotPoll = setTimeout(poll, 600);
   };
   gbShotPoll = setTimeout(poll, 600);
 }
 function gbOpenPhotos(){ gbTabV = 'fotos'; show('gebruik'); }
+// Na het verlaten van Gebruik niet meer bij Foto's beginnen (dan zou elke keer alles ontsleuteld worden)
+function gbLeave(){ if (gbTabV === 'fotos') gbTabV = 'overzicht'; gbPhotoGen++; }
 
 /* Tabblad Foto's: echte miniaturen (ontsleuteld in de app), nieuwste eerst. */
 function gbPhotoLabel(r){ return r === 'mislukt' ? 'Mislukte poging' : r === 'proef' ? 'Proefopname' : 'Ontgrendeld'; }
@@ -219,8 +221,8 @@ function gbRenderPhotoTab(){
   slHtml(box, '<div class="gb-grid" role="list">' + ph.map(p => '<div role="listitem"><button class="gb-tile" data-id="' + esc(p.id) + '" onclick="gbShowPhoto(this.dataset.id)" aria-label="' + esc(gbPhotoLabel(p.reason) + ', ' + gbDay(p.t) + ' ' + gbTime(p.t)) + '"><span class="gb-tile-img"></span><small><b>' + esc(gbPhotoLabel(p.reason)) + '</b>' + esc(gbDay(p.t) + ' ' + gbTime(p.t)) + '</small></button></div>').join('') + '</div>' +
     ((o.photos || []).length > ph.length ? '<p class="note">De nieuwste ' + ph.length + ' van ' + o.photos.length + ' foto\'s.</p>' : ''));
   // Miniaturen één voor één ontsleutelen (het scherm blijft vlot)
-  const tiles = Array.from(box.querySelectorAll('.gb-tile'));
-  const next = () => { const t = tiles.shift(); if (!t || current !== 'gebruik' || gbTabV !== 'fotos') return; const url = Android.gebruikPhoto(t.dataset.id); const sp = t.querySelector('.gb-tile-img'); if (url && sp) { const im = document.createElement('img'); im.alt = ''; im.src = url; sp.appendChild(im); } setTimeout(next, 0); };
+  const tiles = Array.from(box.querySelectorAll('.gb-tile')), gen = ++gbPhotoGen;
+  const next = () => { const t = tiles.shift(); if (!t || gen !== gbPhotoGen || !t.isConnected || current !== 'gebruik' || gbTabV !== 'fotos') return; const url = Android.gebruikPhoto(t.dataset.id); const sp = t.querySelector('.gb-tile-img'); if (url && sp) { const im = document.createElement('img'); im.alt = ''; im.decoding = 'async'; im.src = url; sp.appendChild(im); } setTimeout(next, 0); };
   setTimeout(next, 0);
 }
 
@@ -237,6 +239,14 @@ function gbClearAll(){ askConfirm('Alles wissen?', 'Alle gebeurtenissen, samenva
 
 // Na het geven van cameratoestemming: de proefopname waar je om vroeg alsnog maken
 (function(){ const prev = window.onSettingsChanged; window.onSettingsChanged = function(msg){ if (typeof prev === 'function') prev(msg);
-  if (current === 'gebruikset') { enterGebruikSet(); if (gbShotWait && (gbState().photoCaps || {}).camera) gbTestShot(); } }; })();
+  if (current === 'gebruikset') { enterGebruikSet(); gbShotResume(); } }; })();
+// Terug uit de app-instellingen (Android vroeg niets meer): ook dan verder of duidelijk zeggen wat er mis is
+(function(){ const prev = window.onResumeApp; window.onResumeApp = function(){ if (typeof prev === 'function') prev(); if (current === 'gebruikset') gbShotResume(); }; })();
+function gbShotResume(){
+  if (!gbShotWait) return;
+  if ((gbState().photoCaps || {}).camera) { gbTestShot(); return; }
+  gbShotWait = false;
+  $('#gb-test-res').textContent = 'Geen cameratoestemming gekregen. Tik nog eens op Proefopname; vraagt Android niets meer, dan opent de app-instellingen: zet daar Toestemmingen → Camera aan.';
+}
 
 window.onGebruik = function(){ if (current === 'gebruik') enterGebruik(); else if (current === 'gebruikset') enterGebruikSet(); };
