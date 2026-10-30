@@ -20,6 +20,9 @@ const { chromium } = require('playwright');
     ok(!(await pg.isVisible('#pd-dl')) && (await pg.getAttribute('#pd-sub', 'aria-pressed')) === 'false' && (await pg.textContent('#pd-sub')).trim() === 'Volgen', 'niet gevolgd: alleen Volgen');
     ok(/64 afleveringen · nieuwste vandaag/.test(await pg.textContent('#pd-meta')), 'aantal en nieuwste in de kop');
     ok(await pg.evaluate(() => getComputedStyle($('#pd-h1')).opacity === '0'), 'titel in de balk pas bij scrollen (staat al in de kop)');
+    ok(await pg.evaluate(() => document.activeElement === $('#pd-title')), 'focus bij openen op de zichtbare titel, niet op de verborgen');
+    await pg.evaluate(() => scrollTo(0, 40)); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => getComputedStyle($('#pd-h1')).opacity === '0'), 'een klein stukje gescrold (kop nog in beeld): nog geen titel in de balk');
     await pg.evaluate(() => scrollTo(0, 400)); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => getComputedStyle($('#pd-h1')).opacity === '1'), 'gescrold: titel in de balk');
     await pg.evaluate(() => scrollTo(0, 0)); await pg.waitForTimeout(200);
@@ -33,13 +36,15 @@ const { chromium } = require('playwright');
     ok(['Over deze podcast', 'Afleveringen bijwerken', 'Instellingen voor downloaden', 'Op startscherm', 'Volgen'].every(t => acts.includes(t)), 'menu: over, bijwerken, downloads, startscherm, volgen: ' + acts.join(' | '));
     await pg.click('#sheet-acts button:has-text("Over deze podcast")'); await pg.waitForTimeout(150);
     ok(/Elke dag het belangrijkste nieuws/.test(await pg.textContent('#modal')), 'over deze podcast: de beschrijving');
+    ok((await pg.textContent('#modal-ok')) === 'Sluiten' && !(await pg.isVisible('#modal-cancel')), 'alleen lezen: één knop Sluiten');
     await pg.click('#modal-ok'); await pg.waitForTimeout(100);
     await pg.click('#pd-menu'); await pg.waitForTimeout(100);
     await pg.click('#sheet-acts button:has-text("Afleveringen bijwerken")'); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => Android._pc.calls.some(c => c[0] === 'open' && c[2] === true)), 'bijwerken haalt de feed opnieuw op');
+    ok(await pg.evaluate(() => document.activeElement === $('#pd-menu')), 'daarna staat de focus weer op ⋯');
     await pg.click('#pd-menu'); await pg.waitForTimeout(100);
     await pg.click('#sheet-acts button:has-text("Volgen")'); await pg.waitForTimeout(150);
-    ok((await pg.getAttribute('#pd-sub', 'aria-pressed')) === 'true' && await pg.isVisible('#pd-dl'), 'volgen via het menu: Volgend en Vanzelf downloaden');
+    ok((await pg.getAttribute('#pd-sub', 'aria-pressed')) === 'true' && (await pg.textContent('#pd-sub')).trim() === 'Volgen' && await pg.isVisible('#pd-dl'), 'volgen via het menu: Volgen ingedrukt en Vanzelf downloaden');
     await pg.click('#pd-menu'); await pg.waitForTimeout(100);
     acts = await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent));
     ok(acts.includes('Niet meer volgen…') && acts.includes('Nieuwe afleveringen vanzelf downloaden'), 'gevolgd: ontvolgen en vanzelf downloaden in het menu');
@@ -99,9 +104,28 @@ const { chromium } = require('playwright');
     const gone = await pg.evaluate(() => pcNew[0].ep.key);
     await pg.click('#pc-new .pcep:first-child .pcmore'); await pg.waitForTimeout(100);
     acts = await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent));
-    ok(['Afspelen', 'Markeren als beluisterd', '↓ Downloaden voor offline', 'Naar de podcast'].every(t => acts.includes(t)), 'menu van een nieuwe aflevering');
+    ok(['Afspelen', 'Markeren als beluisterd', 'Uit deze lijst halen', '↓ Downloaden voor offline', 'Naar de podcast', 'Beschrijving'].every(t => acts.includes(t)), 'menu van een nieuwe aflevering');
     await pg.click('#sheet-acts button:has-text("Markeren als beluisterd")'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(k => !pcNew.some(r => r.ep.key === k) && Android._pc.prog[k].done, gone), 'beluisterd: uit Nieuwe afleveringen');
+    // Beschrijving: niet in de lijst, pas opgehaald als je erom vraagt
+    ok(await pg.evaluate(() => pcNew.every(r => r.ep.desc === undefined || r.ep.desc === null)), 'lijst zonder beschrijvingen');
+    await pg.click('#pc-new .pcep:first-child .pcmore'); await pg.waitForTimeout(100);
+    await pg.click('#sheet-acts button:has-text("Beschrijving")'); await pg.waitForTimeout(150);
+    ok(/Over aflevering/.test(await pg.textContent('#modal-text')) && (await pg.textContent('#modal-ok')) === 'Afspelen' && (await pg.textContent('#modal-cancel')) === 'Sluiten', 'beschrijving opgehaald, met Afspelen en Sluiten');
+    await pg.click('#modal-cancel'); await pg.waitForTimeout(100);
+    // Uit deze lijst halen: weg, en komt niet terug
+    const hide = await pg.evaluate(() => pcNew[0].ep.key);
+    await pg.click('#pc-new .pcep:first-child .pcmore'); await pg.waitForTimeout(100);
+    await pg.click('#sheet-acts button:has-text("Uit deze lijst halen")'); await pg.waitForTimeout(150);
+    await pg.evaluate(() => pcRenderListen());
+    ok(await pg.evaluate(k => !pcNew.some(r => r.ep.key === k) && !Android._pc.prog[k], hide), 'uit de lijst gehaald (niet beluisterd): komt niet terug');
+    // Uit Verder luisteren gehaald: ook niet terug bij Nieuwe afleveringen
+    const forgot = await pg.evaluate(() => { const r = pcNew[2]; Android._pc.prog[r.ep.key] = { p: 60000, d: 1800000, done: false };
+      Android._pc.recent.unshift({ ep: r.ep, pod: r.pod, t: Date.now() }); pcRenderListen(); return pcCont[0] && pcCont[0].ep.key === r.ep.key ? r.ep.key : ''; });
+    await pg.click('#pc-cont .pcep:first-child .pcmore'); await pg.waitForTimeout(100);
+    await pg.click('#sheet-acts button:has-text("Uit deze lijst halen")'); await pg.waitForTimeout(150);
+    ok(!!forgot && await pg.evaluate(k => !pcCont.some(r => r.ep.key === k) && !pcNew.some(r => r.ep.key === k), forgot), 'uit Verder luisteren gehaald: niet ineens bij Nieuwe afleveringen');
+    ok(await pg.evaluate(() => pcNew.every(r => r.ep.date >= Date.now() - 60 * 864e5)), 'niets ouder dan 60 dagen');
     // De teller "nieuw": een podcast bekijken zet hem op nul (podSeen), ook in Nieuwe afleveringen
     await pg.click('#pc-subs .pcsubw:first-child .pcsub'); await pg.waitForTimeout(400);
     ok(await pg.evaluate(() => current === 'podcast' && Android._pc.subs[0].fresh === 0), 'podcast bekeken: gezien');
@@ -114,6 +138,26 @@ const { chromium } = require('playwright');
     // Niets meer nieuw: het blok verdwijnt
     await pg.evaluate(() => { Android._pc.subs = []; pcRenderListen(); });
     ok(!(await pg.isVisible('#pc-new-wrap')) && await pg.isVisible('#pc-listen-empty'), 'niets gevolgd: geen Nieuwe afleveringen');
+    await pg.close();
+  }
+  // Smalle telefoons: beide knoppenrijen op één regel, afleveringen nog steeds bovenaan
+  for (const [w, h] of [[360, 640], [320, 640]]) {
+    const pg = await b.newPage({ viewport: { width: w, height: h } });
+    pg.on('pageerror', e => errs.push(e.message));
+    await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
+    await pg.evaluate(() => { Android._pc.subs = [Object.assign({ fresh: 1 }, Android._pc.top[0])]; pdOpen(Android._pc.top[0]); }); await pg.waitForTimeout(400);
+    const m = await pg.evaluate(() => {
+      const rows = [...document.querySelectorAll('#pd-eps .pcep')].map(x => x.getBoundingClientRect());
+      return { acts: $('.pdacts').getBoundingClientRect().height, bar: $('.pdbar').getBoundingClientRect().height, first: rows[0].top, vis: rows.filter(r => r.top >= 0 && r.bottom <= innerHeight).length, wide: document.documentElement.scrollWidth };
+    });
+    ok(m.acts <= 46 && m.bar <= 46, w + ' px: knoppen op één regel (' + m.acts + ', ' + m.bar + ')');
+    ok(m.first <= 300 && m.vis >= 5, w + '×' + h + ': eerste aflevering op y=' + Math.round(m.first) + ', ' + m.vis + ' in beeld');
+    ok(m.wide <= w, w + ' px: niet breder dan het scherm');
+    ok(await pg.isVisible('#pd-dl .kort') && (await pg.getAttribute('#pd-dl', 'aria-label')).includes('vanzelf downloaden'), w + ' px: kort woord, volledige naam voor TalkBack');
+    await pg.evaluate(() => show('podcasts')); await pg.waitForTimeout(300);
+    // Eigen regel voor de naam van de podcast: past op 360 helemaal, op 320 nog ruim leesbaar (geen paar letters)
+    ok(await pg.evaluate(w => { const r = document.querySelector('#pc-new .pcnp'); return !!r && (w >= 360 ? r.scrollWidth <= r.clientWidth + 1 : r.clientWidth >= 100); }, w), w + ' px: naam van de podcast leesbaar bij Nieuwe afleveringen');
+    await pg.screenshot({ path: __dirname + '/shots/podcast-smal-' + w + '.png' });
     await pg.close();
   }
   await b.close();

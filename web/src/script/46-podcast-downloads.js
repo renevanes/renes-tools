@@ -105,7 +105,7 @@ function pdDlRow(subscribed){
   b.hidden = !subscribed;
   const on = !!subscribed && pdDlOn();
   b.setAttribute('aria-checked', on ? 'true' : 'false');
-  b.innerHTML = uiIcon(on ? 'check' : 'download') + '<span>Vanzelf downloaden</span>';
+  b.innerHTML = uiIcon(on ? 'check' : 'download') + '<span class="lang">Vanzelf downloaden</span><span class="kort">Downloaden</span>';
 }
 function pdDlToggle(){
   if (!pdPod) return;

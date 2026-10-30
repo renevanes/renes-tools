@@ -345,7 +345,7 @@ details.rinfo dl{margin:8px 0 0}
 .shift{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}.shift .big{flex:1;min-width:0;padding:10px 4px;font-size:15px;margin:0}
 #rd-sleep{flex:none}.shift .shpos{min-width:64px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
 .shift .shpos.behind{color:var(--warn)}
-h1:focus{outline:none}
+h1:focus,.titelfocus:focus{outline:none}
 #sp-last{overflow-wrap:anywhere}
 .vpadd{display:grid;gap:8px}.vpdot{width:18px;height:18px;border-radius:50%;background:var(--muted);flex:none;box-shadow:0 0 0 5px color-mix(in srgb,var(--muted) 18%,transparent)}
 .vpdot.on{background:#1E8449;box-shadow:0 0 0 5px rgba(30,132,73,.22)}.vpdot.busy{background:#E0A800;box-shadow:0 0 0 5px rgba(224,168,0,.22);animation:vppulse 1.2s ease-in-out infinite}
@@ -550,7 +550,7 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 /* Luisteren: nieuwe afleveringen van alles wat je volgt, en Mijn podcasts als smalle rij om opzij te vegen */
 .pcfla{display:flex;align-items:center;gap:16px}
 .pcfl .linkish{min-height:44px;margin:-8px 0}
-.pcnew small{display:flex;white-space:nowrap;min-width:0}.pcnew small .pcnp{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;min-width:0}.pcnew small .pcni{flex:none}
+.pcnew small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pcnew small.pcnp{margin:0 0 1px;font-weight:600;color:var(--primary)}
 .pcnew .pcartw{position:relative;flex:none;display:flex}
 .pcnew .pcart{width:44px;height:44px;border-radius:8px}
 .pcnewdot{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:var(--primary);border:2px solid var(--card)}
@@ -563,7 +563,7 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .pcsub .badge{top:4px;right:4px}
 /* Eén podcast: compacte kop, daaronder meteen de afleveringen. De titel in de balk verschijnt pas bij scrollen. */
 #s-podcast .hrow h1{transition:opacity .15s}
-#s-podcast .hdr:not(.compact) .hrow h1{opacity:0}
+#s-podcast:not(.pd-titled) .hrow h1:not(:focus){opacity:0}
 .pdhead{display:flex;gap:12px;align-items:center;margin:0 2px 10px;min-height:56px}
 .pdhead .pcart{width:56px;height:56px;border-radius:10px;font-size:22px}
 .pdhtxt{flex:1;min-width:0}
@@ -571,9 +571,12 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .pdhtxt small{display:block;color:var(--muted);font-size:13px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pdhtxt small:empty{display:none}
 .pdacts,.pdbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
-.pdchip{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:8px;border:1px solid var(--outline);background:var(--card);color:var(--ink);font-size:14px;font-weight:600;white-space:nowrap}
+.pdchip{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:8px;border:1px solid var(--outline);background:var(--card);color:var(--ink);font-size:14px;font-weight:600;white-space:nowrap}
 .pdchip .ui-icon{width:18px;height:18px}
-.pdchip.sm{padding:0 12px;font-size:13.5px;border-color:var(--line)}
+.pdchip.sm{padding:0 10px;font-size:13.5px;border-color:var(--line)}
+.pdchip .kort{display:none}
+/* Smalle telefoons (360 dp en minder): kortere woorden, zodat beide rijen op één regel blijven */
+@media (max-width:379px){.pdacts,.pdbar{gap:6px}.pdchip{padding:0 10px;gap:5px;font-size:13.5px}.pdchip.sm{padding:0 9px}.pdchip .lang{display:none}.pdchip .kort{display:inline}}
 .pdchip.cta{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
 .pdchip[aria-pressed=true],.pdchip[aria-checked=true]{background:var(--tonal);color:var(--on-tonal);border-color:var(--primary)}
 .pdchip[hidden],.pdresume[hidden]{display:none}

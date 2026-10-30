@@ -182,17 +182,36 @@ final class Podcasts {
             items.put(epJsonKey(key, e));
             if (items.length() >= MAX_EPISODES) break;
         }
-        JSONObject o = new JSONObject().put("pod", pod).put("items", items).put("t", System.currentTimeMillis());
-        Contacts.writeText(cacheFile(c, id), o.toString(), false);
+        long now = System.currentTimeMillis();
+        JSONObject o = new JSONObject().put("pod", pod).put("items", items).put("t", now);
+        File cf = cacheFile(c, id);
+        String sum = hash(pod.toString() + "\n" + items.toString());
+        Object[] w = WRITTEN.get(id);
+        if (w != null && sum.equals(w[0]) && cf.isFile() && (Long) w[1] == cf.lastModified() && (Long) w[2] == cf.length()) {
+            FETCHED.put(id, now); // niets veranderd: het bestand (en wat daaruit gelezen is) blijft staan
+        } else {
+            Contacts.writeText(cf, o.toString(), false);
+            WRITTEN.put(id, new Object[] { sum, cf.lastModified(), cf.length() });
+            FETCHED.remove(id);
+            LATEST.put(id, cf, latestFeed(pod, items)); // al in het geheugen: niet opnieuw lezen
+        }
         updateSub(c, pod, items);
         return o;
     }
+
+    /** Wat fetch het laatst schreef: {hash van pod+items, lastModified, lengte}; zo wordt een ongewijzigde feed niet herschreven. */
+    private static final java.util.concurrent.ConcurrentHashMap<String, Object[]> WRITTEN = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Opgehaald maar ongewijzigd (dus niet herschreven): wanneer, voor "vers genoeg". */
+    private static final java.util.concurrent.ConcurrentHashMap<String, Long> FETCHED = new java.util.concurrent.ConcurrentHashMap<>();
 
     /** Uit de cache als die vers genoeg is (of het ophalen mislukt); anders opnieuw ophalen. */
     static JSONObject feed(Context c, String feedUrl, boolean force) throws Exception {
         String id = podId(feedUrl);
         JSONObject cached = readJson(cacheFile(c, id));
-        if (!force && cached != null && System.currentTimeMillis() - cached.optLong("t") < 30 * 60_000L) return cached;
+        Long fetched = FETCHED.get(id);
+        long t = Math.max(cached == null ? 0 : cached.optLong("t"), fetched == null ? 0 : fetched);
+        if (cached != null && fetched != null) cached.put("t", t);
+        if (!force && cached != null && System.currentTimeMillis() - t < 30 * 60_000L) return cached;
         try { return fetch(c, feedUrl); }
         catch (Exception e) {
             if (cached == null) throw e;
@@ -281,108 +300,108 @@ final class Podcasts {
 
     // ---------- nieuwe afleveringen van alles wat je volgt ----------
 
-    /** Per podcast de nieuwste afleveringen uit de bewaarde feed, kort gehouden; opnieuw gelezen als het bestand verandert. */
-    private static final java.util.concurrent.ConcurrentHashMap<String, Object[]> LATEST = new java.util.concurrent.ConcurrentHashMap<>();
-    static final int LATEST_PER_POD = 40; // ruim genoeg voor de nieuwste 20-30 over alle podcasts; houdt het geheugen klein
+    /** De omgezette feeds (zonder beschrijvingen) per podcast; bijgehouden door fetch, anders gelezen als het bestand veranderde. */
+    static final PodcastLatest.Cache LATEST = new PodcastLatest.Cache();
 
-    /** {podInfo, items} uit de cache van één podcast, of null (nog nooit opgehaald). Leest geen netwerk. */
-    private static Object[] latestOf(Context c, String id) {
-        File f = cacheFile(c, id);
-        if (!f.isFile()) { LATEST.remove(id); return null; }
-        long mod = f.lastModified(), len = f.length();
-        Object[] m = LATEST.get(id);
-        if (m != null && (Long) m[0] == mod && (Long) m[1] == len) return m;
-        JSONObject feed = readJson(f);
-        if (feed == null) return null;
-        JSONArray items = feed.optJSONArray("items"), slim = new JSONArray();
-        if (items != null) for (int i = 0; i < items.length() && slim.length() < LATEST_PER_POD; i++) {
+    /** Een bewaarde feed omzetten naar wat "Nieuwe afleveringen" nodig heeft: de nieuwste PER_POD, zonder beschrijving. */
+    static PodcastLatest.Feed latestFeed(JSONObject pod, JSONArray items) {
+        List<PodcastLatest.Ep> eps = new ArrayList<>();
+        if (items != null) for (int i = 0; i < items.length() && eps.size() < PodcastLatest.PER_POD; i++) {
             JSONObject e = items.optJSONObject(i);
             if (e == null || !validKey(e.optString("key")) || !httpUrl(e.optString("url"))) continue;
-            try {
-                slim.put(new JSONObject().put("key", e.optString("key")).put("guid", e.optString("guid")).put("title", FeedText.clip(e.optString("title"), 400))
-                        .put("url", e.optString("url")).put("type", e.optString("type")).put("date", e.optLong("date")).put("dur", e.optLong("dur"))
-                        .put("image", e.optString("image")).put("desc", FeedText.clip(e.optString("desc"), 1000)));
-            } catch (Exception ignored) { }
+            eps.add(new PodcastLatest.Ep(e.optString("key"), e.optString("guid"), FeedText.clip(e.optString("title"), 400), e.optString("url"), e.optString("type"),
+                    e.optString("image"), e.optLong("date"), e.optLong("dur")));
         }
-        JSONObject pod = feed.optJSONObject("pod");
-        m = new Object[] { mod, len, pod == null ? new JSONObject() : pod, slim };
-        LATEST.put(id, m);
-        return m;
+        JSONObject p = pod == null ? new JSONObject() : pod;
+        return new PodcastLatest.Feed(p.optString("title"), p.optString("author"), p.optString("image"), p.optString("link"), eps);
     }
 
-    /**
-     * Welke kandidaten in "Nieuwe afleveringen" komen: de nieuwste eerst (bij gelijke datum de volgorde van binnenkomst),
-     * zonder lege of dubbele sleutels, hooguit limit. Geeft de indexen.
-     */
-    static List<Integer> pickLatest(String[] keys, long[] dates, int limit) {
-        List<Integer> idx = new ArrayList<>();
-        for (int i = 0; i < keys.length && i < dates.length; i++) idx.add(i);
-        final long[] d = dates;
-        Collections.sort(idx, (x, y) -> d[y] != d[x] ? Long.compare(d[y], d[x]) : Integer.compare(x, y)); // stabiel
-        List<Integer> out = new ArrayList<>();
-        java.util.Set<String> used = new java.util.HashSet<>();
-        for (int i : idx) {
-            if (out.size() >= limit) break;
-            String k = keys[i];
-            if (k == null || k.isEmpty() || !used.add(k)) continue;
-            out.add(i);
+    static PodcastLatest.Feed loadLatest(File f) {
+        JSONObject o = readJson(f);
+        return o == null ? null : latestFeed(o.optJSONObject("pod"), o.optJSONArray("items"));
+    }
+
+    private static PodcastLatest.Feed latestOf(Context c, String id) { return LATEST.get(id, cacheFile(c, id), Podcasts::loadLatest); }
+
+    private static List<PodcastLatest.Sub> latestSubs(Context c) {
+        JSONArray a = subs(c);
+        List<PodcastLatest.Sub> out = new ArrayList<>();
+        for (int i = 0; i < a.length(); i++) {
+            JSONObject s = a.optJSONObject(i);
+            if (s != null) out.add(new PodcastLatest.Sub(s.optString("id"), s.optString("feed"), s.optString("title"), s.optString("author"), s.optString("image"), s.optLong("seen")));
         }
         return out;
+    }
+
+    /** Afleveringen die je uit "Nieuwe afleveringen" (of Verder luisteren) haalde: die komen daar niet terug. */
+    static synchronized java.util.Set<String> latestHidden(Context c) {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (String k : prefs(c).getString("latestHidden", "").split(",")) if (validKey(k)) out.add(k);
+        return out;
+    }
+
+    static synchronized void hideLatest(Context c, String key) {
+        if (!validKey(key)) return;
+        List<String> l = new ArrayList<>();
+        for (String k : prefs(c).getString("latestHidden", "").split(",")) if (validKey(k) && !k.equals(key)) l.add(k);
+        l.add(key);
+        while (l.size() > 400) l.remove(0); // de oudste gaan eruit (die zijn dan toch al te oud voor "nieuw")
+        prefs(c).edit().putString("latestHidden", android.text.TextUtils.join(",", l)).apply();
     }
 
     /**
      * De nieuwste afleveringen die je nog niet beluisterde, van alle podcasts die je volgt: [{ep, pod}], nieuwste eerst.
-     * Alleen uit de bewaarde feeds (geen netwerk); bijwerken doet refreshAll op de achtergrond.
-     * ep.isNew = verschenen na de laatste keer dat je de podcast bekeek (zoals de teller "nieuw").
+     * Alleen uit de bewaarde feeds (geen netwerk); bijwerken doet refreshAll op de achtergrond. Zie PodcastLatest.pick.
      */
     static JSONArray latest(Context c, int limit) {
-        limit = Math.max(1, Math.min(100, limit));
-        JSONArray subs = subs(c), out = new JSONArray();
-        JSONObject prog = progress(c);
-        List<JSONObject> eps = new ArrayList<>(), pods = new ArrayList<>();
-        List<Long> seens = new ArrayList<>();
+        List<PodcastLatest.Sub> subs = latestSubs(c);
+        final Context app = c;
+        List<PodcastLatest.Pick> picks = PodcastLatest.pick(subs, id -> latestOf(app, id), key -> {
+            JSONObject p = progressOf(app, key);
+            return p == null ? null : new PodcastLatest.Prog(p.optLong("p"), p.optLong("d"), p.optBoolean("done"));
+        }, latestHidden(c), System.currentTimeMillis(), Math.max(1, Math.min(100, limit)));
         java.util.Set<String> ids = new java.util.HashSet<>();
-        for (int i = 0; i < subs.length(); i++) {
-            JSONObject s = subs.optJSONObject(i);
-            if (s == null) continue;
-            String id = s.optString("id");
-            if (id.isEmpty() || !ids.add(id)) continue;
-            Object[] m = latestOf(c, id);
-            if (m == null) continue;
-            JSONObject fp = (JSONObject) m[2];
-            JSONArray items = (JSONArray) m[3];
-            JSONObject pod;
+        for (PodcastLatest.Sub s : subs) ids.add(s.id);
+        LATEST.retain(ids); // niet meer gevolgd: uit het geheugen
+        JSONArray out = new JSONArray();
+        for (PodcastLatest.Pick p : picks) {
             try {
-                pod = new JSONObject().put("id", id).put("feed", s.optString("feed")).put("title", s.optString("title", fp.optString("title")))
-                        .put("author", s.optString("author", fp.optString("author"))).put("image", s.optString("image").isEmpty() ? fp.optString("image") : s.optString("image"))
-                        .put("link", fp.optString("link"));
-            } catch (Exception e) { continue; }
-            long seen = s.optLong("seen");
-            int taken = 0;
-            for (int k = 0; k < items.length() && taken < limit; k++) {
-                JSONObject e = items.optJSONObject(k);
-                if (e == null) continue;
-                JSONObject p = prog.optJSONObject(e.optString("key"));
-                if (p != null && p.optBoolean("done")) continue;
-                eps.add(e); pods.add(pod); seens.add(seen);
-                taken++;
-            }
-        }
-        for (Iterator<String> it = LATEST.keySet().iterator(); it.hasNext(); ) if (!ids.contains(it.next())) it.remove(); // niet meer gevolgd
-        String[] keys = new String[eps.size()];
-        long[] dates = new long[eps.size()];
-        for (int i = 0; i < keys.length; i++) { keys[i] = eps.get(i).optString("key"); dates[i] = eps.get(i).optLong("date"); }
-        for (int i : pickLatest(keys, dates, limit)) {
-            JSONObject e = eps.get(i), pod = pods.get(i), p = prog.optJSONObject(keys[i]);
-            try {
-                JSONObject ep = new JSONObject(e.toString());
-                if (p != null) ep.put("pos", p.optLong("p")).put("pd", p.optLong("d"));
-                long seen = seens.get(i);
-                ep.put("isNew", seen > 0 && ep.optLong("date") > seen);
+                PodcastLatest.Ep e = p.ep;
+                JSONObject ep = new JSONObject().put("key", e.key).put("guid", e.guid).put("title", e.title).put("url", e.url).put("type", e.type)
+                        .put("image", e.image).put("date", e.date).put("dur", e.dur).put("isNew", p.isNew);
+                if (p.prog != null) ep.put("pos", p.prog.pos).put("pd", p.prog.dur);
+                JSONObject pod = new JSONObject().put("id", p.sub.id).put("feed", p.sub.feed).put("title", p.title()).put("author", p.author())
+                        .put("image", PodcastLatest.first(p.sub.image, p.feed.image, "")).put("link", p.feed.link);
                 out.put(new JSONObject().put("ep", ep).put("pod", pod));
             } catch (Exception ignored) { }
         }
         return out;
+    }
+
+    /** Beschrijving van één aflevering uit de bewaarde feed (pas als je erom vraagt; staat niet in de lijst). */
+    static String epDesc(Context c, String podId, String key) {
+        if (podId == null || podId.isEmpty() || !validKey(key)) return "";
+        JSONObject o = readJson(cacheFile(c, podId));
+        JSONArray items = o == null ? null : o.optJSONArray("items");
+        if (items != null) for (int i = 0; i < items.length(); i++) {
+            JSONObject e = items.optJSONObject(i);
+            if (e != null && key.equals(e.optString("key"))) return FeedText.clip(e.optString("desc"), 4000);
+        }
+        return "";
+    }
+
+    private static volatile long warmedAt;
+
+    /** Alvast inlezen (op de achtergrond), zodat Podcasts openen niet op het lezen van grote feeds hoeft te wachten. */
+    static void warmLatestSoon(Context c) {
+        long now = System.currentTimeMillis();
+        if (now - warmedAt < 60_000L) return;
+        warmedAt = now;
+        final Context app = c.getApplicationContext();
+        IO.execute(() -> {
+            try { for (PodcastLatest.Sub s : latestSubs(app)) latestOf(app, s.id); }
+            catch (Throwable t) { App.log(app, "PODCAST", "alvast inlezen: " + t.getMessage()); }
+        });
     }
 
     /** Alle abonnementen bijwerken (oudste controle eerst). Geeft het aantal nieuwe afleveringen. */

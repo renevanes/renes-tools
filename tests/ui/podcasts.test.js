@@ -49,7 +49,7 @@ const assert = require('node:assert');
 
     // Volgen
     await pg.click('#pd-sub'); await pg.waitForTimeout(100);
-    assert.match(await pg.textContent('#pd-sub'), /Volgend/);
+    assert.strictEqual((await pg.textContent('#pd-sub')).trim(), 'Volgen', 'vaste naam');
     assert.strictEqual(await pg.getAttribute('#pd-sub', 'aria-pressed'), 'true');
     assert.strictEqual((await P()).subs.length, 1);
 
@@ -159,6 +159,7 @@ const assert = require('node:assert');
     await pg.click('#pd-sub'); await pg.click('#modal-ok'); await pg.waitForTimeout(100);
     assert.strictEqual((await P()).subs.length, 0);
     assert.match(await pg.textContent('#pd-sub'), /Volgen/);
+    assert.strictEqual(await pg.getAttribute('#pd-sub', 'aria-pressed'), 'false');
 
     // Opnieuw dezelfde aflevering uit de lijst: verder waar je was (niet vanaf 0)
     await pg.evaluate(() => { Android._pc.prog[Android._pc.st.ep.key] = { p: 600000, d: 3600000, done: false }; });

@@ -24,7 +24,7 @@
         <div class="card pclist" id="pc-new" role="list" aria-labelledby="pc-new-h"></div>
       </div>
       <div id="pc-subs-wrap" style="display:none">
-        <div class="flabel pcfl"><span id="pc-subs-h">Mijn podcasts <small id="pc-subs-n" style="font-weight:400;color:var(--muted)"></small></span><span class="pcfla"><button class="linkish" id="pc-refresh" onclick="pcRefresh()" aria-label="Alle podcasts bijwerken">↻ Bijwerken</button><button class="linkish" id="pc-subs-more" onclick="pcSubsAll()" hidden></button></span></div>
+        <div class="flabel pcfl"><span id="pc-subs-h">Mijn podcasts</span><span class="pcfla"><button class="linkish" id="pc-refresh" onclick="pcRefresh()" aria-label="Alle podcasts bijwerken">↻ Bijwerken</button><button class="linkish" id="pc-subs-more" onclick="pcSubsAll()" hidden></button></span></div>
         <div class="pcgrid pcrow" id="pc-subs" role="list" aria-labelledby="pc-subs-h"></div>
       </div>
       <div class="card pcempty" id="pc-listen-empty" style="display:none">
@@ -104,16 +104,16 @@
     <!-- Compacte kop: de afleveringen staan zo hoog mogelijk in beeld; de rest zit onder ⋯ -->
     <div class="pdhead">
       <span class="pcart" id="pd-art" aria-hidden="true"></span>
-      <div class="pdhtxt"><b id="pd-title"></b><small id="pd-author"></small><small id="pd-meta"></small></div>
+      <div class="pdhtxt"><b id="pd-title" class="titelfocus" tabindex="-1" role="heading" aria-level="2"></b><small id="pd-author"></small><small id="pd-meta"></small></div>
     </div>
     <div class="pdacts">
       <button class="pdchip" id="pd-sub" aria-pressed="false" onclick="pdSubToggle()"><span class="ui-icon" data-icon="plus" aria-hidden="true"></span><span>Volgen</span></button>
-      <button class="pdchip" id="pd-dl" role="switch" aria-checked="false" aria-label="Nieuwe afleveringen vanzelf downloaden" onclick="pdDlToggle()" hidden><span class="ui-icon" data-icon="download" aria-hidden="true"></span><span>Vanzelf downloaden</span></button>
+      <button class="pdchip" id="pd-dl" role="switch" aria-checked="false" aria-label="Nieuwe afleveringen vanzelf downloaden" onclick="pdDlToggle()" hidden><span class="ui-icon" data-icon="download" aria-hidden="true"></span><span class="lang">Vanzelf downloaden</span><span class="kort">Downloaden</span></button>
     </div>
     <p class="note bad" id="pd-stale" style="display:none"></p>
     <div class="card pclist pdresume" id="pd-resume" hidden></div>
     <div class="pdbar">
-      <button class="pdchip sm" id="pd-sort" data-v="new" onclick="pdSortToggle()" aria-label="Volgorde: nieuwste eerst"><span>Nieuwste eerst</span><span class="ui-icon" data-icon="sort" aria-hidden="true"></span></button>
+      <button class="pdchip sm" id="pd-sort" data-v="new" onclick="pdSortToggle()" aria-label="Volgorde: nieuwste eerst"><span class="lang">Nieuwste eerst</span><span class="kort">Nieuwste</span><span class="ui-icon" data-icon="sort" aria-hidden="true"></span></button>
       <button class="pdchip sm" id="pd-hide" aria-pressed="false" onclick="pdHideToggle()"><span class="ui-icon" data-icon="check" aria-hidden="true"></span><span>Verberg beluisterd</span></button>
     </div>
     <div class="card pclist" id="pd-eps" role="list" aria-label="Afleveringen"><p class="note" style="padding:14px">Laden…</p></div>

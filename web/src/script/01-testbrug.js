@@ -219,9 +219,12 @@ if (!window.Android) window.Android = (function(){
     _pc: { subs: [], prog: {}, recent: [], st: { status: 'stopped' }, speed: 1, refreshed: 0, calls: [],
       top: [{ id: 'p1', feed: 'https://feeds.example.org/vandaag', title: 'Nieuws van Vandaag', author: 'Omroep X', image: 'https://img.example.org/1.jpg', genre: 'Nieuws' },
             { id: 'p2', feed: 'https://feeds.example.org/tech', title: 'Tech in 20 minuten', author: 'Rene & Co', image: '', genre: 'Technologie' }] },
+    // Sleutel zoals in de app (e + 16 hex), zonder botsingen: twee keer FNV-1a over podcast-id en nummer
+    _pcKey(s){ let a = 0x811c9dc5, b = 0x9747b28c; for (const ch of s) { const c = ch.charCodeAt(0); a = Math.imul(a ^ c, 16777619) >>> 0; b = Math.imul(b ^ c, 2246822519) >>> 0; }
+      return 'e' + a.toString(16).padStart(8, '0') + b.toString(16).padStart(8, '0'); },
     _pcFeed(feed){ const known = this._pc.top.concat(this._pc.subs).find(p => p.feed === feed && p.id && p.title); // anders: de vaste testpodcast
       const n = known ? known.title : feed.endsWith('tech') ? 'Tech in 20 minuten' : 'Nieuws van Vandaag', id = known ? known.id : feed.endsWith('tech') ? 'p2' : 'p1';
-      const items = Array.from({ length: 64 }, (_, i) => ({ key: 'e' + (id + 'x' + i + 'y').padEnd(16, '0').slice(0, 16), guid: 'g' + i, title: 'Aflevering ' + (64 - i) + (i === 0 ? ' <b>nieuw</b>' : ''), url: 'https://cdn.example.org/' + id + '/' + i + '.mp3',
+      const items = Array.from({ length: 64 }, (_, i) => ({ key: this._pcKey(id + ':' + i), guid: 'g' + i, title: 'Aflevering ' + (64 - i) + (i === 0 ? ' <b>nieuw</b>' : ''), url: 'https://cdn.example.org/' + id + '/' + i + '.mp3',
         type: 'audio/mpeg', date: (this._pc.t0 = this._pc.t0 || Date.now()) - i * 864e5 - 36e5, dur: 1200 + i * 60, image: '', desc: 'Over aflevering ' + (64 - i) + '.\nMet een tweede regel.' }));
       items.forEach(e => { const p = this._pc.prog[e.key]; if (p) { e.pos = p.p; e.done = p.done; e.pd = p.d; } });
       return { feedUrl: feed, pod: { id, feed, title: n, author: 'Omroep X', image: '', desc: 'Elke dag het belangrijkste nieuws.', link: 'https://example.org' }, items, subscribed: this._pc.subs.some(x => x.feed === feed) }; },
@@ -232,8 +235,10 @@ if (!window.Android) window.Android = (function(){
     podUnsubscribe(id){ this._pc.subs = this._pc.subs.filter(x => x.id !== id); },
     podSubs(){ return JSON.stringify(this._pc.subs); },
     // Zoals Podcasts.latest: nog niet beluisterd, uit alles wat je volgt, nieuwste eerst; isNew = de eerste "fresh" van een podcast
-    podLatest(n){ this._pc.calls.push(['latest', n]); const out = [];
-      this._pc.subs.forEach(s => { const f = this._pcFeed(s.feed); f.items.filter(e => !e.done).slice(0, n).forEach((e, i) => out.push({ ep: Object.assign({}, e, { isNew: i < (+s.fresh || 0) }), pod: { id: f.pod.id, feed: s.feed, title: s.title || f.pod.title, author: f.pod.author, image: s.image || '', link: f.pod.link } })); });
+    // (zonder beschrijving: die haalt podEpDesc; niets ouder dan 60 dagen; weggehaald of uit Verder luisteren gehaald blijft weg)
+    podLatest(n){ this._pc.calls.push(['latest', n]); const out = [], hid = this._pc.hidden || [], old = Date.now() - 60 * 864e5;
+      this._pc.subs.forEach(s => { const f = this._pcFeed(s.feed); f.items.slice(0, 30).filter(e => !e.done && e.date >= old && !hid.includes(e.key)).forEach((e, i) => { const x = Object.assign({}, e, { isNew: i < (+s.fresh || 0) }); delete x.desc;
+        out.push({ ep: x, pod: { id: f.pod.id, feed: s.feed, title: s.title || f.pod.title, author: f.pod.author, image: s.image || '', link: f.pod.link } }); }); });
       return JSON.stringify(out.map((r, i) => [r, i]).sort((a, b) => (b[0].ep.date - a[0].ep.date) || a[1] - b[1]).map(x => x[0]).slice(0, n)); },
     // Lokale AI (assistent en slim zoeken): nagebootst, zonder model
     // Slaappraat zoals SleepBridge: nachten met stukjes, luisteren en uitschrijven worden nagebootst
@@ -565,7 +570,10 @@ if (!window.Android) window.Android = (function(){
     podAutoDl(id, on){ const s = this._pc.subs.find(x => x.id === id); if (!s) return 'Volg de podcast eerst'; s.dl = on; return ''; }, podSeen(id){ this._pc.subs.forEach(x => { if (x.id === id) x.fresh = 0; }); },
     podRefresh(){ this._pc.refreshed = Date.now(); setTimeout(() => onPodRefreshed({ fresh: 0 }), 100); }, podRefreshedAt(){ return this._pc.refreshed; },
     podContinue(){ return JSON.stringify(this._pc.recent.filter(r => !(this._pc.prog[r.ep.key] || {}).done).map(r => Object.assign({}, r, { ep: Object.assign({}, r.ep, { pos: (this._pc.prog[r.ep.key] || {}).p || 0, pd: (this._pc.prog[r.ep.key] || {}).d || 0 }) }))); },
-    podForget(k){ this._pc.recent = this._pc.recent.filter(r => r.ep.key !== k); },
+    podForget(k){ this._pc.recent = this._pc.recent.filter(r => r.ep.key !== k); this.podLatestHide(k); },
+    podLatestHide(k){ this._pc.hidden = (this._pc.hidden || []).filter(x => x !== k).concat([k]); },
+    podEpDesc(id, k){ this._pc.calls.push(['desc', id, k]); const p = this._pc.top.concat(this._pc.subs).find(x => x.id === id); if (!p) return '';
+      const e = this._pcFeed(p.feed).items.find(x => x.key === k); return e ? e.desc : ''; },
     podMarkPlayed(k, d){ this._pc.prog[k] = { p: 0, d: 0, done: d }; if (d && this._dl.prefs.autoDelete) this._dl.list = this._dl.list.filter(x => x.key !== k); },
     _pcSave(){ const st = this._pc.st; if (st.ep) this._pc.prog[st.ep.key] = { p: this._pcPos(), d: st.dur, done: false }; },
     _pcPos(){ const st = this._pc.st; return st.status === 'playing' ? Math.min(st.dur, st.pos + (Date.now() - st.at) * this._pc.speed) : st.pos; },

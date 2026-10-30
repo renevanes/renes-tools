@@ -2,6 +2,7 @@ package nl.rene.tools;
 
 import android.webkit.JavascriptInterface;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
@@ -86,11 +87,24 @@ public class PodcastBridge extends AiBridge {
         return "";
     }
 
-    @JavascriptInterface public String podSubs() { return Podcasts.subs(ctx).toString(); }
+    /** Ook: "Nieuwe afleveringen" alvast op de achtergrond inlezen (de tegel op Home vraagt dit al op). */
+    @JavascriptInterface public String podSubs() {
+        JSONArray a = Podcasts.subs(ctx);
+        if (a.length() > 0) try { Podcasts.warmLatestSoon(ctx); } catch (Throwable ignored) { }
+        return a.toString();
+    }
 
     /** Nieuwste nog niet beluisterde afleveringen van alles wat je volgt: [{ep, pod}]. Alleen uit de bewaarde feeds, zonder netwerk. */
     @JavascriptInterface public String podLatest(int limit) {
         try { return Podcasts.latest(ctx, limit).toString(); } catch (Throwable e) { return "[]"; }
+    }
+
+    /** Uit "Nieuwe afleveringen" halen (komt daar niet terug). */
+    @JavascriptInterface public void podLatestHide(String key) { try { Podcasts.hideLatest(ctx, key); } catch (Throwable ignored) { } }
+
+    /** Beschrijving van een aflevering uit de bewaarde feed (de lijst Nieuwe afleveringen heeft die niet bij zich). */
+    @JavascriptInterface public String podEpDesc(String podId, String key) {
+        try { return Podcasts.epDesc(ctx, podId, key); } catch (Throwable e) { return ""; }
     }
 
     @JavascriptInterface public void podSeen(String id) { try { Podcasts.seen(ctx, id); } catch (Exception ignored) { } }
@@ -109,7 +123,8 @@ public class PodcastBridge extends AiBridge {
         try { return Podcasts.continueList(ctx).toString(); } catch (Exception e) { return "[]"; }
     }
 
-    @JavascriptInterface public void podForget(String key) { Podcasts.removeRecent(ctx, key); }
+    /** Uit Verder luisteren halen; dan ook niet in Nieuwe afleveringen laten opduiken. */
+    @JavascriptInterface public void podForget(String key) { Podcasts.removeRecent(ctx, key); try { Podcasts.hideLatest(ctx, key); } catch (Throwable ignored) { } }
 
     @JavascriptInterface public void podMarkPlayed(String key, boolean played) {
         if (key == null || !key.matches("e[0-9a-f]{16}")) return;
