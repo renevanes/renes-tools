@@ -1,0 +1,2 @@
+Vensters zijn met het toetsenbord te bedienen en geven de focus na sluiten terug; de achtergrond blijft tijdens een venster geblokkeerd.
+Inzoomen is toegestaan en de schermlezerinformatie bij Radio en de speler is verbeterd.

@@ -83,8 +83,7 @@ public class ApparatenBridge extends FeatureBridge {
     /** Mijn apparaat (met bijnaam), of nick leeg = niet meer bekend. */
     @JavascriptInterface public String apKnown(String key, String nick, String type, String name) {
         if (key == null || !Apparaten.stableKey(key)) return "Dit apparaat is niet terug te herkennen (het wisselt van adres en heeft geen naam)";
-        ApparatenStore.setKnown(ctx, key, nick == null || nick.trim().isEmpty() ? null : nick, type, name);
-        return "";
+        return ApparatenStore.setKnown(ctx, key, nick == null || nick.trim().isEmpty() ? null : nick, type, name);
     }
 
     @JavascriptInterface public String apHistory() { return json(ApparatenStore.histOverview(ctx)); }
@@ -101,7 +100,7 @@ public class ApparatenBridge extends FeatureBridge {
     }
 
     /** Alles wissen (geschiedenis, trackers, netwerk); all = ook je bijnamen en thuis. */
-    @JavascriptInterface public void apWipe(boolean all) { ApparatenStore.wipe(ctx, all); ApparatenScan.forget(); }
+    @JavascriptInterface public String apWipe(boolean all) { String error = ApparatenStore.wipe(ctx, all); ApparatenScan.forget(); return error; }
 
     // ----- toestemmingen en instellingen van Android -----
 

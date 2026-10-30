@@ -10,6 +10,7 @@ if (!window.Android) window.Android = (function(){
   return {
     version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0}),
     lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400),
+    reloadUi(){ if (window.prepareUiReload && window.prepareUiReload()) { this._uiReloads = (this._uiReloads || 0) + 1; document.body.inert = false; } },
     installUpdate(){
       // Downloaden met voortgang (5 MB in 10 stappen), controleren, klaarzetten en dan vraagt Android om te bevestigen
       if (this._upd) { onUpdateStatus({ state: 'busy', kind: 'apk' }); return; }
@@ -438,7 +439,7 @@ if (!window.Android) window.Android = (function(){
       const away = A.hist ? [{ key: 'n:fietscomputer|135', name: 'Fietscomputer', type: 'sport', maker: 'Garmin', first: t - 9 * 86400000, last: t - 86400000, place: '51.90,4.46', homeDays: 0, awayDays: 6, days: 6 }] : [];
       return JSON.stringify({ mine, home, away, count: A.hist ? 14 : 0, keep: A.set.keep }); },
     apHome(clear){ if (clear) { this._ap.set.home = false; this._ap.set.homeSsid = ''; return ''; } if (!this._ap.perms.loc) return 'perm'; this._ap.set.home = true; this._ap.set.homeSsid = 'Thuis'; return ''; },
-    apWipe(all){ this._ap.wiped = all; this._ap.trackers = {}; this._ap.hist = false; this._ap.lanDone = false; if (all) { this._ap.known = {}; this._ap.set.home = false; this._ap.set.homeSsid = ''; } },
+    apWipe(all){ this._ap.wiped = all; this._ap.trackers = {}; this._ap.hist = false; this._ap.lanDone = false; if (all) { this._ap.known = {}; this._ap.set.home = false; this._ap.set.homeSsid = ''; } return ''; },
     apPerm(k){ const A = this._ap, P = A.perms; A.asked.push(k); if (k === 'nearby') { P.bt = true; P.wifi = true; P.loc = true; P.fine = true; } if (k === 'bgloc') P.bg = true; if (k === 'notif') P.notif = true; setTimeout(() => onApChanged(), 50); },
     apOpenSettings(w){ this._ap.opened.push(w); if (w === 'bt') this._ap.perms.btOn = true; if (w === 'loc') this._ap.perms.locOn = true; setTimeout(() => onApChanged(), 50); },
     _ai: { st: { klein: { state: 'none' }, groot: { state: 'none' }, klein35: { state: 'none' }, groot35: { state: 'none' }, zoek: { state: 'none' } }, chat: 'klein', wifiOnly: true, notes: true, chats: [], ram: 8e9, calls: [], seq: 0,

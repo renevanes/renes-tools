@@ -77,7 +77,7 @@ def osv(query):
 # schrijfwijze in een README meteen opvalt en niet pas bij de maandagcontrole.
 LEAFLET = ("web/vendor/leaflet.js", r"Leaflet (\d+\.\d+\.\d+)")
 JSQR = ("web/vendor/jsQR.js", r"jsQR (\d+\.\d+\.\d+)")
-PLAYWRIGHT = (".github/workflows/publiceren.yml", r"playwright@(\d+\.\d+\.\d+)")
+PLAYWRIGHT = ("package.json", r'"playwright"\s*:\s*"(\d+\.\d+\.\d+)"')
 WHISPER = ("app/lib/arm64-v8a/README.txt", r"whisper\.cpp (?:v[\d.]+, )?commit ([0-9a-f]{40})")
 LLAMA = ("app/lib/arm64-v8a/README.txt", r"llama\.cpp (?:b\d+, )?commit ([0-9a-f]{40})")
 BUILDTOOLS = ("setup-tools.sh", r"(?m)^BUILD_TOOLS=(\d+\.\d+\.\d+)$")
@@ -196,9 +196,9 @@ def main():
         item(naam, pad, huidig, npm_nieuwste(npm),
              osv({"package": {"name": npm, "ecosystem": "npm"}, "version": huidig}))
 
-    # Playwright (alleen tests; vastgezet in de publicatie-workflow, bouwen-en-testen.yml gebruikt playwright@1)
+    # Playwright (alleen tests; alle workflows gebruiken dezelfde package-lock.json)
     huidig = lees(*PLAYWRIGHT)
-    item("Playwright (tests)", ".github/workflows/publiceren.yml", huidig, npm_nieuwste("playwright"))
+    item("Playwright (tests)", "package.json", huidig, npm_nieuwste("playwright"))
 
     # whisper.cpp (zelf gebouwde libwhisper*.so)
     commit = lees(*WHISPER)

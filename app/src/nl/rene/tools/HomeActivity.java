@@ -58,7 +58,7 @@ public class HomeActivity extends Activity {
     private BroadcastReceiver pkgReceiver;
     volatile boolean loaded = false, overlayLoaded = false;
     volatile int insTop = 24, insBottom = 16, insKb = 0;
-    private long loadedAt = 0;
+    private int loadedWebCode = 0;
     boolean nativeMode = false, fellBack = false;
     volatile String wsCache = "{}";
     /** Overlay: volgnummer per keer openen, en wat er moet gebeuren zodra de pagina geladen is. */
@@ -187,6 +187,7 @@ public class HomeActivity extends Activity {
 
     /** Pagina: bijgewerkte versie uit een stille update, anders die uit de app. */
     void load(WebView v, String mode) {
+        loadedWebCode = Updater.webCode(this);
         String html = Updater.downloadedStart(this);
         if (html == null) {
             try (java.io.InputStream in = getAssets().open("start.html")) {
@@ -200,7 +201,6 @@ public class HomeActivity extends Activity {
         html = html.replace("__VERSION_NAME__", android.text.TextUtils.htmlEncode(Updater.webName(this))).replace("__MODE__", mode);
         if (v == overlay) { overlayLoaded = false; v.setVisibility(View.GONE); ovQueue.clear(); ovSeq++; } else loaded = false;
         v.loadDataWithBaseURL(BASE, html, "text/html", "utf-8", null);
-        loadedAt = System.currentTimeMillis();
     }
 
     /** Pagina klaar: vanaf nu kunnen meldingen naar de pagina, en de randen (balken, toetsenbord) opnieuw doorgeven. */
@@ -253,8 +253,7 @@ public class HomeActivity extends Activity {
         super.onResume();
         inst = this;
         // Stil bijgewerkt startscherm: opnieuw laden.
-        java.io.File sf = Updater.startFile(this);
-        if (Updater.downloadedStart(this) != null && sf.lastModified() > loadedAt && web != null) {
+        if (Updater.webCode(this) != loadedWebCode && web != null) {
             load(web, nativeMode ? "today" : "legacy");
             if (overlay != null) load(overlay, "overlay");
             return;

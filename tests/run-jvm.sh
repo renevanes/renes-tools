@@ -7,7 +7,11 @@ T=${TOOLS:-/home/claude/toolchain}
 CP="build/test:build/classes:$T/ap/android-36/android.jar"
 [ -d build/classes/nl ] || { echo "Eerst ./build.sh"; exit 1; }
 rm -rf build/test && mkdir -p build/test
-javac -nowarn -encoding UTF-8 -source 8 -target 8 -cp "$CP" -d build/test $(find tests/jvm -name '*.java') 2>&1 | grep -v "^Picked up\|^Note:\|warning: \[options\]\|^1 warning\|^3 warnings" || true
+compile_log=$(mktemp) || exit 1
+trap 'rm -f "$compile_log"' EXIT
+if ! javac -nowarn -encoding UTF-8 -source 8 -target 8 -cp "$CP" -d build/test $(find tests/jvm -name '*.java') > "$compile_log" 2>&1; then
+  cat "$compile_log"; echo "✗ tests compileren mislukt"; exit 1
+fi
 [ -n "$(find build/test -name '*Test.class' | head -1)" ] || { echo "✗ tests compileren mislukt"; exit 1; }
 fail=0
 for f in $(cd tests/jvm && find . -name '*Test.java' | sort); do

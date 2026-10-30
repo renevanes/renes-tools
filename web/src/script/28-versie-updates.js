@@ -13,7 +13,8 @@ function checkUpdates(){ $('#chk-btn').textContent = 'Bezig met controleren…';
 
 /* Voortgang van een update: in de balk op Home en bij Versie en updates (downloaden, controleren, installeren) */
 let updAvail = '', updKind = '', updPhase = '', updDog = null, updDogMs = 90000;
-const UPD_BUSY = ['start', 'download', 'check', 'install']; // dan geen tweede keer starten
+let updReady = '', updReloadingVersion = '';
+const UPD_BUSY = ['start', 'download', 'check', 'install', 'committed']; // dan geen tweede keer starten
 function updMB(b){ return (Math.max(0, b) / 1048576).toFixed(1).replace('.', ',') + ' MB'; }
 /** Tekst en percentage (-1 = onbekend) bij een stap. Zuiver. */
 function updStep(r){
@@ -51,6 +52,7 @@ function updShow(text, pct, btn){
 }
 function updAvailShow(){
   if (updAvail) updShow('Nieuwe versie ' + updAvail + ' is beschikbaar', null, ['Installeren', false]);
+  else if (updReady) updShow('Interface ' + updReady + ' staat klaar; bewaar eerst je werk', null, ['Toepassen', false]);
   else ['', '2'].forEach(n => { const b = $('#upd-banner' + n); if (b) b.classList.remove('on'); });
 }
 /** Klaar of mislukt: terug naar "beschikbaar" (of niets). */
@@ -58,6 +60,7 @@ function updReset(){ clearTimeout(updDog); updKind = ''; updPhase = ''; updAvail
 /** Komt er anderhalve minuut niets meer (bijv. geen antwoord van de installer), dan niet blijven hangen. */
 function updWatch(){ clearTimeout(updDog); updDog = setTimeout(() => { if (updKind && updPhase !== 'confirm') updReset(); }, updDogMs); }
 function installUpdate(){
+  if (updReady && !updAvail && updKind !== 'apk') { updTryReload(true); return; }
   if (updKind === 'apk' && UPD_BUSY.includes(updPhase)) { toast('De update wordt al gedownload'); return; }
   updKind = 'apk'; updPhase = 'start'; updWatch();
   updShow('Nieuwe versie ophalen…', -1, ['Bezig…', true]);
@@ -65,6 +68,18 @@ function installUpdate(){
   Android.installUpdate();
 }
 window.onUpdateStatus = function(r){
+  if (r.state === 'web') {
+    if (updReady !== r.versionName) updReloadingVersion = '';
+    updReady = r.versionName;
+    if (updKind === 'apk') return; // voortgang en installatie van de APK gaan voor
+    updReset();
+    updSay('De nieuwe interface staat klaar. Je onopgeslagen werk blijft staan.');
+    updTryReload(false); return;
+  }
+  if (r.state === 'busy' && r.kind === 'web') {
+    if (r.manual) toast('Er wordt al op updates gecontroleerd');
+    return;
+  }
   if (r.state === 'progress') {
     // Een interface-update tijdens het downloaden van de app: de app gaat voor
     if (updKind === 'apk' && r.kind === 'web' && UPD_BUSY.includes(updPhase)) return;

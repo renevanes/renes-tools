@@ -15,16 +15,16 @@
     <!-- Luisteren: verder luisteren en de podcasts die je volgt -->
     <div role="tabpanel" id="pc-p-listen" aria-labelledby="pc-tab-listen">
       <div id="pc-cont-wrap" style="display:none">
-        <div class="flabel pcfl"><span>Verder luisteren</span><button class="linkish" id="pc-cont-more" onclick="pcContAll()" hidden></button></div>
+        <div class="flabel pcfl"><span>Verder luisteren</span><button class="linkish" id="pc-cont-more" onclick="pcContAll()" aria-label="Alle onafgeronde afleveringen" hidden></button></div>
         <div class="card pclist" id="pc-cont"></div>
       </div>
       <!-- Nieuwe afleveringen van alles wat je volgt: meteen in beeld, zonder eerst een podcast te openen -->
       <div id="pc-new-wrap" style="display:none">
-        <div class="flabel pcfl"><span id="pc-new-h">Nieuwe afleveringen</span><button class="linkish" id="pc-new-more" onclick="pcNewAll()" hidden></button></div>
+        <div class="flabel pcfl"><span id="pc-new-h">Nieuwe afleveringen</span><button class="linkish" id="pc-new-more" onclick="pcNewAll()" aria-label="Alle nieuwe afleveringen" hidden></button></div>
         <div class="card pclist" id="pc-new" role="list" aria-labelledby="pc-new-h"></div>
       </div>
       <div id="pc-subs-wrap" style="display:none">
-        <div class="flabel pcfl"><span id="pc-subs-h">Mijn podcasts</span><span class="pcfla"><button class="linkish" id="pc-refresh" onclick="pcRefresh()" aria-label="Alle podcasts bijwerken">↻ Bijwerken</button><button class="linkish" id="pc-subs-more" onclick="pcSubsAll()" hidden></button></span></div>
+        <div class="flabel pcfl"><span id="pc-subs-h">Mijn podcasts</span><span class="pcfla"><button class="linkish" id="pc-refresh" onclick="pcRefresh()" aria-label="Alle podcasts bijwerken">↻ Bijwerken</button><button class="linkish" id="pc-subs-more" onclick="pcSubsAll()" aria-label="Alle abonnementen" hidden></button></span></div>
         <div class="pcgrid pcrow" id="pc-subs" role="list" aria-labelledby="pc-subs-h"></div>
       </div>
       <div class="card pcempty" id="pc-listen-empty" style="display:none">

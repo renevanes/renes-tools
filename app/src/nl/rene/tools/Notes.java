@@ -236,9 +236,20 @@ final class Notes {
 
     /** Slaat de notities op. Geeft "" bij succes, anders een foutmelding. */
     /** Opslaan, maar alleen als de notities sinds versie {@code expected} niet elders veranderd zijn; null = conflict. */
-    static synchronized String saveIf(Context c, String json, long expected) {
-        if (expected > 0 && version(c) != expected) return null;
-        return save(c, json);
+    static final class SaveResult {
+        final String error;
+        final long version;
+        final boolean conflict;
+        SaveResult(String error, long version, boolean conflict) {
+            this.error = error; this.version = version; this.conflict = conflict;
+        }
+    }
+
+    static synchronized SaveResult saveIf(Context c, String json, long expected) {
+        if (expected > 0 && version(c) != expected) return new SaveResult("", version(c), true);
+        String error = save(c, json);
+        // De versie hoort bij deze opslag, nooit bij een widgetwijziging na het vrijgeven van dit slot.
+        return new SaveResult(error, version(c), false);
     }
 
     static synchronized String save(Context c, String json) {

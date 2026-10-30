@@ -49,7 +49,7 @@ if ! git diff --quiet HEAD -- VERSION changelog.json; then
   echo "en schrijf je wijzigingsregels in wijzigingen/<onderwerp>.txt."; exit 1
 fi
 # Alleen bekende plekken; onbekende nieuwe bestanden eerst zelf bekijken
-UNKNOWN=$(git status --porcelain --untracked-files=all | sed -n 's/^?? //p' | grep -vE '^(app/|web/|tests/|tools/|\.github/|wijzigingen/|README\.md$|AGENTS\.md$|CLAUDE\.md$|CONTRIBUTING\.md$|SECURITY\.md$|LICENSE$|[a-z-]+\.sh$|keys/unlock\.sh$)' || true)
+UNKNOWN=$(git status --porcelain --untracked-files=all | sed -n 's/^?? //p' | grep -vE '^(app/|web/|tests/|tools/|docs/|\.github/|wijzigingen/|package(-lock)?\.json$|README\.md$|AGENTS\.md$|CLAUDE\.md$|CONTRIBUTING\.md$|SECURITY\.md$|LICENSE$|[a-z-]+\.sh$|keys/unlock\.sh$)' || true)
 [ -z "$UNKNOWN" ] || { echo "Onbekende nieuwe bestanden (niet gepubliceerd):"; echo "$UNKNOWN"; exit 1; }
 
 # Regels uit de argumenten
@@ -110,6 +110,10 @@ for try in 1 2 3 4 5; do
     git "${GIT_ID[@]}" merge -q --no-edit -m "Samenvoegen met main" "$BASE" || {
       git merge --abort 2>/dev/null || true
       echo "Je werk botst met wat er intussen op main staat. Los het op (git merge origin/main), test, en publiceer opnieuw."; exit 1; }
+  fi
+  # De emulator heeft deze bron getest. Een nieuwere bron vraagt een nieuwe preflight, ook bij een pushretry.
+  if [ -n "${TESTED_SOURCE_SHA:-}" ] || [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+    ./tools/check-publish-source.sh
   fi
   check_nep # ook regels die via main (pull requests) binnenkwamen
   # Vorige versie = laatste commit die update/update.json veranderde (dat doet alleen dit script)

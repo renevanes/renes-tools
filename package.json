@@ -1,0 +1,17 @@
+{
+  "name": "renes-tools-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vastgezette hulpmiddelen voor de interfacetests van Tools",
+  "scripts": {
+    "test": "./tests/run-ui.sh",
+    "test:ui": "./tests/run-ui.sh",
+    "test:jvm": "./tests/run-jvm.sh",
+    "check:bridge": "python3 tools/check-bridge.py"
+  },
+  "engines": { "node": ">=22" },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "playwright": "1.64.1"
+  }
+}

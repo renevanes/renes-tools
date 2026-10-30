@@ -235,6 +235,9 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false); // geen content://-adressen: de pagina laadt alleen eigen inhoud
         s.setTextZoom(textZoom(this));
+        s.setSupportZoom(true);
+        s.setBuiltInZoomControls(true);
+        s.setDisplayZoomControls(false);
         web.setWebViewClient(new MediaClient(this));
         web.setWebChromeClient(new Chrome(this));
         web.addJavascriptInterface(new Bridge(this), "Android");
@@ -465,25 +468,7 @@ public class MainActivity extends Activity {
         new Thread(() -> { try { LocalAi.resumeDownloads(appCtx); } catch (Throwable ignored) { } }, "ai-resume").start();
     }
 
-    private void checkUpdates(final boolean manual) {
-        new Thread(() -> {
-            JSONObject r0;
-            try { r0 = Updater.check(getApplicationContext(), progressTo("web")); }
-            catch (Throwable t) { r0 = new JSONObject(); try { r0.put("state", "error").put("error", "Controleren op updates mislukt"); } catch (Exception ignored) { } }
-            final JSONObject r = r0;
-            try { r.put("kind", "web"); } catch (Exception ignored) { }
-            h.post(() -> {
-                try { r.put("manual", manual); } catch (Exception ignored) { }
-                MainActivity m = live != null ? live : this; // het venster dat nu draait (kan intussen opnieuw gemaakt zijn)
-                if ("web".equals(r.optString("state"))) {
-                    Toast.makeText(m, "Bijgewerkt naar versie " + r.optString("versionName"), Toast.LENGTH_LONG).show();
-                    m.loadUi();
-                } else {
-                    m.js("onUpdateStatus", r.toString());
-                }
-            });
-        }).start();
-    }
+    private void checkUpdates(final boolean manual) { UpdateController.check(this, manual); }
 
     /** Tekstgrootte: zelf gekozen percentage, of (0) die van de telefoon volgen. */
     static int textZoom(Context c) {
@@ -810,25 +795,18 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void checkUpdates() { a.h.post(() -> a.checkUpdates(true)); }
 
-        @JavascriptInterface public void installUpdate() {
-            new Thread(() -> {
-                String err;
-                try { err = Updater.downloadAndInstall(ctx, progressTo("apk")); }
-                catch (OutOfMemoryError e) { err = "Te weinig geheugen voor de update"; }
-                catch (Throwable e) { err = "Update mislukt: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()); }
-                try {
-                    if ("busy".equals(err)) {
-                        updateStatus("{\"state\":\"busy\",\"kind\":\"apk\"}");
-                    } else if ("needs-permission".equals(err)) {
-                        MainActivity m = live;
-                        if (m != null) m.h.post(m::openInstallSettings);
-                        updateStatus("{\"state\":\"needs-permission\",\"kind\":\"apk\"}");
-                    } else if (err != null) {
-                        updateStatus(new JSONObject(jsonErr(err)).put("kind", "apk").toString());
-                    }
-                } catch (Throwable ignored) { }
-            }).start();
+        /** De pagina beslist zelf of alle bewerkingen bewaard zijn, en blokkeert invoer tot de nieuwe pagina er is. */
+        @JavascriptInterface public void reloadUi() {
+            a.h.post(() -> {
+                if (a.web == null) return;
+                a.web.evaluateJavascript("!!(window.prepareUiReload&&window.prepareUiReload())", ready -> {
+                    if (!"true".equals(ready) || a.web == null) return;
+                    a.coverOn(); a.uiReady = false; a.loadUi();
+                });
+            });
         }
+
+        @JavascriptInterface public void installUpdate() { UpdateController.install(ctx); }
 
         @JavascriptInterface public String permissions() { return a.permissionState(); }
         @JavascriptInterface public void requestPermissions() { a.h.post(a::requestRedialPermissions); }
@@ -1416,10 +1394,10 @@ public class MainActivity extends Activity {
             try {
                 // Alleen een gewoon geheel versienummer: NaN (zou de controle overslaan) of iets buiten bereik weigeren
                 if (!(expected >= 0 && expected <= 9_007_199_254_740_992.0) || expected != Math.floor(expected)) return "{\"err\":\"Opslaan lukt niet\"}";
-                String r = Notes.saveIf(ctx, json, (long) expected);
-                if (r == null) return new JSONObject().put("conflict", true).toString();
-                if (!r.isEmpty()) return new JSONObject().put("err", r).toString();
-                return new JSONObject().put("ok", true).put("ver", Notes.version(ctx)).toString();
+                Notes.SaveResult r = Notes.saveIf(ctx, json, (long) expected);
+                if (r.conflict) return new JSONObject().put("conflict", true).toString();
+                if (!r.error.isEmpty()) return new JSONObject().put("err", r.error).toString();
+                return new JSONObject().put("ok", true).put("ver", r.version).toString();
             } catch (Exception e) { return "{\"err\":\"Opslaan lukt niet\"}"; }
         }
         @JavascriptInterface public long notesVersion() { return Notes.version(ctx); }

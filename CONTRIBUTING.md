@@ -20,7 +20,7 @@ Een beveiligingsprobleem meld je niet in een openbaar issue maar via [SECURITY.m
    ```sh
    export TOOLS=$HOME/toolchain      # waar het Android-gereedschap komt; zet dit ook voor build.sh en de tests
    ./setup-tools.sh
-   npm i playwright && npx playwright install chromium
+   npm ci && npx playwright install chromium
    ```
 3. Maak een **testsleutel** om te kunnen bouwen (de echte sleutel heeft alleen Rene):
    ```sh
@@ -35,7 +35,7 @@ Een beveiligingsprobleem meld je niet in een openbaar issue maar via [SECURITY.m
 6. Open een pull request. Pas **niet** aan: `VERSION`, `changelog.json` en `update/` (dat doet het publiceren; de
    automatische controle keurt het anders af).
 
-Rene bekijkt elke pull request. Na het samenvoegen publiceert GitHub je wijziging vanzelf als nieuwe versie.
+Rene bekijkt elke pull request. Na het samenvoegen test GitHub dezelfde bron op Android API 24, 35 en 36 en publiceert pas na geslaagde controles. Verandert de bron tijdens het wachten, dan moet die eerst opnieuw getest worden.
 
 ## Waar we op letten
 - Teksten in de app zijn Nederlands, kort en duidelijk.

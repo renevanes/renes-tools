@@ -14,7 +14,7 @@
   <div class="pl-scroll" id="pl-scroll">
     <div class="pl-top" id="pl-top">
       <button class="pl-ic" onclick="plClose()" aria-label="Speler verkleinen"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="pl-src"><small id="pl-kind">Speelt nu</small><button class="pl-from" id="pl-from" onclick="plGoSource()"></button></div>
+      <div class="pl-src"><small id="pl-kind">Speelt nu</small><button class="pl-from" id="pl-from" onclick="plGoSource()" aria-label="Bron van de speler openen"></button></div>
       <button class="pl-ic" onclick="plMenu()" aria-label="Meer opties"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
     </div>
 
@@ -35,11 +35,11 @@
     <div class="pl-live" id="pl-livebadge" style="display:none"><i></i> LIVE</div>
 
     <div class="pl-ctl">
-      <button class="pl-ic pl-skip" id="pl-back" onclick="plSkip(-1)"></button>
+      <button class="pl-ic pl-skip" id="pl-back" onclick="plSkip(-1)" aria-label="Terugspoelen"></button>
       <button class="pl-ic" id="pl-prev" onclick="plPrev()" aria-label="Vorige"></button>
       <button class="pl-play" id="pl-pp" onclick="plPlayPause()" aria-label="Afspelen"></button>
       <button class="pl-ic" id="pl-next" onclick="plNext()" aria-label="Volgende"></button>
-      <button class="pl-ic pl-skip" id="pl-fwd" onclick="plSkip(1)"></button>
+      <button class="pl-ic pl-skip" id="pl-fwd" onclick="plSkip(1)" aria-label="Vooruitspoelen"></button>
     </div>
 
     <div class="pl-opts">

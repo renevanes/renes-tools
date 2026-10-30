@@ -42,6 +42,19 @@ final class Updater {
 
     /** Er wordt al een nieuwe app gedownload (niet twee keer tegelijk). */
     static final java.util.concurrent.atomic.AtomicBoolean APK_BUSY = new java.util.concurrent.atomic.AtomicBoolean();
+    static final java.util.concurrent.atomic.AtomicBoolean CHECK_BUSY = new java.util.concurrent.atomic.AtomicBoolean();
+    private static WebUpdateStore webStore;
+
+    private static synchronized WebUpdateStore store(Context c) {
+        File root = new File(c.getFilesDir(), "web");
+        if (webStore == null || !webStore.root.equals(root)) webStore = new WebUpdateStore(root);
+        return webStore;
+    }
+
+    private static WebUpdateStore.Snapshot snapshot(Context c) {
+        WebUpdateStore.Snapshot s = store(c).current();
+        return s != null && s.code > Version.CODE && s.nativeLevel <= Version.NATIVE_LEVEL ? s : null;
+    }
 
     /** Hooguit eens per 200 ms een stap doorgeven (en altijd bij een nieuwe fase of als het klaar is). Zuiver (getest). */
     static final class Throttle implements Progress {
@@ -58,20 +71,30 @@ final class Updater {
 
     /** Versie van de interface die nu gebruikt wordt (gebundeld of gedownload). */
     static int webCode(Context c) {
+        WebUpdateStore.Snapshot s = snapshot(c);
+        if (s != null) return s.code;
         int stored = prefs(c).getInt("webCode", 0);
         return (stored > Version.CODE && webFile(c).exists()) ? stored : Version.CODE;
     }
 
     static String webName(Context c) {
+        WebUpdateStore.Snapshot s = snapshot(c);
+        if (s != null) return s.name;
         String n = webCode(c) > Version.CODE ? prefs(c).getString("webName", Version.NAME) : Version.NAME;
         return validName(n) ? n : Version.NAME;
     }
 
+    // Oude opslag blijft leesbaar tijdens de overstap; nieuwe updates gebruiken uitsluitend versiemappen.
     static File webFile(Context c) { return new File(new File(c.getFilesDir(), "web"), "index.html"); }
     static File startFile(Context c) { return new File(new File(c.getFilesDir(), "web"), "start.html"); }
 
     /** Bijgewerkt startscherm uit een stille update, of null (dan die uit de app). */
     static String downloadedStart(Context c) {
+        WebUpdateStore.Snapshot s = snapshot(c);
+        for (int attempt = 0; s != null && attempt < 2; attempt++) {
+            try { return s.readStart(); }
+            catch (Exception e) { store(c).refresh(); s = snapshot(c); }
+        }
         if (webCode(c) <= Version.CODE || !startFile(c).isFile()) return null;
         try { return new String(readAll(new java.io.FileInputStream(startFile(c))), StandardCharsets.UTF_8); }
         catch (Exception e) { return null; }
@@ -79,6 +102,11 @@ final class Updater {
 
     /** Gedownloade interface, of null als de gebundelde nieuwer of gelijk is. */
     static String downloadedHtml(Context c) {
+        WebUpdateStore.Snapshot s = snapshot(c);
+        for (int attempt = 0; s != null && attempt < 2; attempt++) {
+            try { return s.readHtml(); }
+            catch (Exception e) { store(c).refresh(); s = snapshot(c); }
+        }
         if (webCode(c) <= Version.CODE) return null;
         try { return new String(readAll(new java.io.FileInputStream(webFile(c))), StandardCharsets.UTF_8); }
         catch (Exception e) { return null; }
@@ -123,6 +151,10 @@ final class Updater {
     /** Met voortgang (p) van het downloaden van een nieuwe interface. */
     static JSONObject check(Context c, Progress p) {
         JSONObject r = new JSONObject();
+        if (!CHECK_BUSY.compareAndSet(false, true)) {
+            try { r.put("state", "busy"); } catch (Exception ignored) { }
+            return r;
+        }
         try {
             JSONObject m = fetchManifest();
             // Tijdstip altijd bewaren (anders bij elke start opnieuw); de lijst zelf alleen als hij ondertekend is,
@@ -145,7 +177,7 @@ final class Updater {
             }
         } catch (Exception e) {
             try { r.put("state", "error"); r.put("error", String.valueOf(e.getMessage())); } catch (Exception ignored) { }
-        }
+        } finally { CHECK_BUSY.set(false); }
         return r;
     }
 
@@ -214,32 +246,29 @@ final class Updater {
             if (!new String(st, StandardCharsets.UTF_8).contains("RENES-TOOLS-START")) throw new Exception("Onverwacht bestand");
         }
         p.step("save", 0, 0);
-        File f = webFile(c), sf = startFile(c);
-        f.getParentFile().mkdirs();
-        File tmp = new File(f.getParentFile(), "index.tmp"), stmp = new File(f.getParentFile(), "start.tmp");
-        try (OutputStream o = new FileOutputStream(tmp)) { o.write(html); }
-        if (st != null) try (OutputStream o = new FileOutputStream(stmp)) { o.write(st); }
-        if (!tmp.renameTo(f)) throw new Exception("Opslaan mislukt");
-        if (st != null) { if (!stmp.renameTo(sf)) { f.delete(); throw new Exception("Opslaan mislukt"); } } else sf.delete();
-        prefs(c).edit().putInt("webCode", m.getInt("versionCode"))
-                .putString("webName", m.getString("versionName")).apply();
+        WebUpdateStore versions = store(c);
+        WebUpdateStore.Snapshot next = versions.stage(m.getInt("versionCode"), m.getString("versionName"),
+                m.getInt("nativeLevel"), html, st);
+        versions.activate(next);
     }
 
     /** Downloadt de nieuwe APK en start de installatie. Geeft null of een foutmelding terug ("busy": al bezig). */
     static String downloadAndInstall(Context c, Progress pr) {
         if (!APK_BUSY.compareAndSet(false, true)) return "busy";
+        File apk = null;
         try {
             pr.step("start", 0, 0);
             JSONObject m = fetchManifest();
             if (Build.VERSION.SDK_INT >= 26 && !c.getPackageManager().canRequestPackageInstalls()) {
                 return "needs-permission";
             }
-            byte[] apk = get(m.optString("_base", Version.UPDATE_BASE) + m.optString("apk", "Renes-Tools.apk") + "?v=" + m.getInt("versionCode"), pr, "download", MAX_APK);
-            pr.step("check", 0, 0);
             String sha = m.optString("apkSha256", "");
-            // De handtekening dekt ook het controlegetal van de APK: zonder geldige handtekening niet installeren
-            if (sha.isEmpty() || !signatureOk(c, m)) return "De update is niet ondertekend; niet geïnstalleerd";
-            if (!sha.equalsIgnoreCase(sha256(apk))) return "Controlegetal van de download klopt niet";
+            if (!sha.matches("(?i)[0-9a-f]{64}") || !signatureOk(c, m)) return "De update is niet ondertekend; niet geïnstalleerd";
+            apk = File.createTempFile("tools-update-", ".apk", c.getCacheDir());
+            String actual = download(m.optString("_base", Version.UPDATE_BASE) + m.optString("apk", "Renes-Tools.apk")
+                    + "?v=" + m.getInt("versionCode"), apk, pr, MAX_APK);
+            pr.step("check", 0, 0);
+            if (!sha.equalsIgnoreCase(actual)) return "Controlegetal van de download klopt niet";
             pr.step("install", 0, 0);
 
             PackageInstaller pi = c.getPackageManager().getPackageInstaller();
@@ -249,8 +278,9 @@ final class Updater {
             int id = pi.createSession(p);
             try {
                 try (PackageInstaller.Session s = pi.openSession(id)) {
-                    try (OutputStream o = s.openWrite("base.apk", 0, apk.length)) {
-                        o.write(apk);
+                    try (InputStream in = new java.io.FileInputStream(apk); OutputStream o = s.openWrite("base.apk", 0, apk.length())) {
+                        byte[] buffer = new byte[1 << 16]; int count;
+                        while ((count = in.read(buffer)) != -1) if (count > 0) o.write(buffer, 0, count);
                         s.fsync(o);
                     }
                     Intent back = new Intent(c, MainActivity.class).setAction(MainActivity.ACTION_INSTALL_STATUS)
@@ -264,13 +294,25 @@ final class Updater {
             return null;
         } catch (Exception e) {
             return "Update mislukt: " + e.getMessage();
-        } finally { APK_BUSY.set(false); }
+        } finally { if (apk != null) apk.delete(); APK_BUSY.set(false); }
     }
 
     // ---------- hulpfuncties ----------
 
     /** Hoe groot een download hooguit mag zijn (de updatelijst, de interface, de app). */
     static final long MAX_MANIFEST = 2_000_000L, MAX_WEB = 30_000_000L, MAX_APK = 200_000_000L;
+
+    /** APK in vaste blokken naar schijf; de hash pas vrijgeven na succesvol flushen en sluiten. */
+    static String download(String url, File target, Progress progress, long max) throws Exception {
+        HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
+        con.setConnectTimeout(15000); con.setReadTimeout(60000); con.setUseCaches(false);
+        try {
+            if (con.getResponseCode() != 200) throw new Exception("HTTP " + con.getResponseCode());
+            long total = Math.max(0, con.getContentLengthLong());
+            if (total > max) throw new Exception("Download te groot");
+            return UpdateDownload.copy(con.getInputStream(), target, total, max, (done, size) -> progress.step("download", done, size));
+        } finally { con.disconnect(); }
+    }
 
     /** Downloaden met voortgang (fase phase; totaal 0 als de server de grootte niet meegeeft), hooguit max bytes. */
     static byte[] get(String url, Progress p, String phase, long max) throws Exception {

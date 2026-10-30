@@ -334,10 +334,19 @@ final class Sms {
         WaBackup.Child aside = dir.kids.remove(name + ".rt-old");
         if (aside != null && !aside.dir) {
             Uri au = DocumentsContract.buildDocumentUriUsingTree(dest.tree, aside.docId);
-            try {
-                if (!dir.kids.containsKey(name)) { Uri back = WaBackup.renameVerified(dest, dir.uri, au, name); if (back != null) dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(back), aside.size, aside.mod, false)); }
-                else DocumentsContract.deleteDocument(dest.cr, au);
-            } catch (DocumentWrite.UncertainReply | SecurityException e) { throw e; } catch (Exception ignored) { }
+            // Na een onderbroken kopie kan de definitieve naam een half bestand zijn. Bewaar de vorige backup.
+            WaBackup.Child partial = dir.kids.get(name);
+            if (partial != null && dir.kids.containsKey(tmpName)) {
+                if (partial.dir || !DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, partial.docId)))
+                    throw new java.io.IOException("De vorige backup is bewaard; het onvolledige bestand kan niet worden verwijderd");
+                dir.kids.remove(name);
+            }
+            if (!dir.kids.containsKey(name)) {
+                Uri back = WaBackup.renameVerified(dest, dir.uri, au, name);
+                if (back == null) throw new java.io.IOException("De vorige backup staat nog als " + name + ".rt-old; herstellen lukt niet");
+                dir.kids.put(name, new WaBackup.Child(DocumentsContract.getDocumentId(back), aside.size, aside.mod, false));
+            } else if (!DocumentsContract.deleteDocument(dest.cr, au))
+                throw new java.io.IOException("De vorige backup kan niet worden opgeruimd");
         }
         WaBackup.Child stale = dir.kids.remove(tmpName);
         if (stale != null && !stale.dir) try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, stale.docId)); } catch (Exception ignored) { }
@@ -423,8 +432,9 @@ final class Sms {
                 Uri u = WaBackup.createVerified(dest, dir.uri, mime, name);
                 boolean copied = false;
                 if (u != null) {
-                    try (java.io.InputStream in = dest.cr.openInputStream(tmp); OutputStream o = dest.cr.openOutputStream(u, "w")) {
-                        if (in != null && o != null) { byte[] b = new byte[1 << 16]; int r; while ((r = in.read(b)) > 0) o.write(b, 0, r); copied = true; }
+                    try {
+                        DocumentWrite.copy(() -> dest.cr.openInputStream(tmp), () -> dest.cr.openOutputStream(u, "w"));
+                        copied = true;
                     } catch (Exception ignored) { }
                     if (!copied) try { DocumentsContract.deleteDocument(dest.cr, u); } catch (Exception ignored) { }
                 }

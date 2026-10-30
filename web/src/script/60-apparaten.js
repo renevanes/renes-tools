@@ -379,14 +379,15 @@ function apdRender(){
 }
 function apdKnown(on){
   const d = apdData() || {};
-  if (!on) { Android.apKnown(apDev.key, '', '', ''); toast('Niet meer als jouw apparaat bewaard'); apdRefresh(); return; }
+  if (!on) { const error = Android.apKnown(apDev.key, '', '', ''); if (error) { toast(error); return; } toast('Niet meer als jouw apparaat bewaard'); apdRefresh(); return; }
   const def = d.nick || d.name || d.label || (apDev.src === 'lan' ? apLanTitle(d) : apType(d.type)[0]);
-  askInput('Bijnaam', 'Hoe noem je dit apparaat?', def, 'Bewaren', v => {
+  const edit = (value, message) => askInput('Bijnaam', message || 'Hoe noem je dit apparaat?', value, 'Bewaren', v => {
     v = String(v || '').trim(); if (!v) return;
     const e = Android.apKnown(apDev.key, v.slice(0, 40), (apDev.src === 'lan' ? d.kind : d.type) || '', d.name || d.label || '');
-    if (e) { toast(e); return; }
+    if (e) { toast(e); edit(v, e); return; }
     toast('Bewaard als ' + v); apdRefresh();
   });
+  edit(def, '');
 }
 function apdTr(st){
   const d = apdData() || {}, kind = d.kind || (d.tracker && d.tracker.kind) || '';
@@ -510,6 +511,6 @@ function apsHome(clear){
 }
 function apsWipe(all){
   askConfirm(all ? 'Alles wissen?' : 'Geschiedenis wissen?', all ? 'De geschiedenis, trackers, apparaten op je wifi, je bijnamen en thuis worden gewist.' : 'De geschiedenis (vaak in de buurt), de trackers en de apparaten op je wifi worden gewist. Je bijnamen blijven.', 'Wissen', () => {
-    Android.apWipe(!!all); apBtData = null; apLanData = null; apHistData = null; toast('Gewist'); apsRender();
+    const error = Android.apWipe(!!all); apBtData = null; apLanData = null; apHistData = null; toast(error || 'Gewist'); apsRender();
   });
 }

@@ -51,6 +51,7 @@ script/00-begin.js
 script/00-iconen.js
 script/01-testbrug.js
 script/02-kern.js
+script/02-dialogen.js
 script/03-auto-redial.js
 script/04-whatsapp-backup.js
 script/05-leesbare-chats.js
@@ -81,6 +82,7 @@ script/25-instellingen.js
 script/26-app-slot.js
 script/27-wat-is-er-nieuw-foutmelding-na-vastlopen.js
 script/28-versie-updates.js
+script/28-veilig-herladen.js
 script/36-meldingsgeschiedenis.js
 script/33-gesprekken-opnemen.js
 script/34-uitbreidingen.js

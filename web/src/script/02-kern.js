@@ -76,12 +76,14 @@ function openModal(title, text, inputVal, okLabel, cb){
   else { inp.style.display = 'block'; inp.value = inputVal; }
   $('#modal-ok').textContent = okLabel;
   $('#modal').classList.add('on');
+  dialogFocus.sync(inputVal === null ? $('#modal-cancel') : inp);
   if (inputVal !== null) setTimeout(() => { inp.focus(); inp.select(); }, 50);
 }
 function closeModal(result){
   $('#modal').classList.remove('on');
   const cb = _modalCb; _modalCb = null;
   $('#modal-input').value = ''; // geen wachtwoord in de pagina laten staan
+  dialogFocus.sync();
   if (cb) cb(result);
 }
 $('#modal-cancel').onclick = () => closeModal(null);
@@ -169,6 +171,7 @@ function show(name){
   if (name==='autoed') enterAutoEd();
   if (typeof uiShown === 'function') uiShown(name);
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); renderDash(); refreshAutoTile(); refreshPodTile(); refreshVpnTile(); refreshLocTile(); refreshCheckinTile(); }
+  if (name==='home' && typeof updTryReload === 'function') setTimeout(() => updTryReload(false), 0);
 }
 const BACK = {models:'settings', aisetmodel:'aiset', aisetmem:'aiset', aisetdata:'aiset', aisetanswer:'aiset', aisetpers:'aiset', aisetvoice:'aiset', aisetsearch:'aiset', aisetperf:'aiset', aisetpriv:'aiset', setnotif:'settings', setlook:'settings', setskin:'settings', setlock:'settings', setsolo:'settings', setperm:'settings', setbackup:'settings', setmusic:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', sleep:'home', sleepnight:'sleep', sleepset:'sleep', checkin:'home', checkined:'checkin', checkinq:'checkin', checkincmp:'checkin', gebruik:'home', gebruikset:'gebruik', car:'home', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', herstel:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
 window.goBack = function(){
@@ -209,8 +212,9 @@ function openSheet(title, sub, acts, onDismiss){
   const box = $('#sheet-acts'); box.innerHTML = '';
   acts.forEach(([label, fn, icon]) => { const b = document.createElement('button'); b.textContent = label; if(UI_ICONS.has(icon))b.dataset.icon=icon; b.onclick = () => { sheetDismiss = null; closeSheet(); fn(); }; box.appendChild(b); });
   $('#sheet').classList.add('on');
+  dialogFocus.sync();
 }
-function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.classList.remove('on'); const d = sheetDismiss; sheetDismiss = null; if (d) d(); }
+function closeSheet(){ const s = document.getElementById('sheet'); if (s) s.classList.remove('on'); if (typeof dialogFocus !== 'undefined') dialogFocus.sync(); const d = sheetDismiss; sheetDismiss = null; if (d) d(); }
 
 window.openTool = function(n){
   if (n === 'share') { noteFromShare(); return; }

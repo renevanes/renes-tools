@@ -4,6 +4,8 @@
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Notities en lijstjes</h1>
   </div>
+<div class="card notes-save-state" role="status" hidden><p></p><button class="big" onclick="notesSaveNow()">Opnieuw opslaan</button></div>
+
   <main>
     <div class="notes-dashboard" aria-label="Overzicht van je notities">
       <div><strong id="notes-total">0</strong><span>Notities</span></div><div><strong id="notes-open-total">0</strong><span>Open items</span></div><div><strong id="notes-child-total">0</strong><span>Sublijsten</span></div>
@@ -26,6 +28,8 @@
     <h1 tabindex="-1">Notitie</h1>
     <button class="icon-btn" onclick="deleteNote()" aria-label="Verwijderen"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
   </div>
+<div class="card notes-save-state" role="status" hidden><p></p><button class="big" onclick="notesSaveNow()">Opnieuw opslaan</button></div>
+
   <main class="note-workspace">
     <div class="card note-identity">
       <div class="note-list-location" id="note-list-location"></div>

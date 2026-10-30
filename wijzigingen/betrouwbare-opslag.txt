@@ -1,0 +1,3 @@
+Bij een onderbroken backup blijven de vorige kopie en de nieuwe tijdelijke kopie veilig bewaard.
+Notitiewijzigingen blijven bij opslagfouten staan; je kunt opnieuw opslaan en widgetwijzigingen worden samengevoegd.
+Een mislukte apparaatregistratie geeft een foutmelding en bewaart je ingevoerde bijnaam voor een volgende poging.

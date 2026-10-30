@@ -41,7 +41,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
 
 ## Bouwen en testen
 Eenmalig: `./setup-tools.sh` (Android-gereedschap in `$TOOLS`, standaard `/home/claude/toolchain`; zet `TOOLS` als je
-het ergens anders wilt), Java 17+ (javac; CI gebruikt 25), Python 3, Node 22+ (CI gebruikt 24) met `npm i playwright && npx playwright install chromium`.
+het ergens anders wilt), Java 17+ (javac; CI gebruikt 25), Python 3, Node 22+ (CI gebruikt 24) met `npm ci && npx playwright install chromium`.
 
 - `./build.sh` — bouwen (heeft een sleutel in `keys/` nodig, zie onder). Zonder de echte sleutel: maak een tijdelijke
   testsleutel zoals in `.github/workflows/bouwen-en-testen.yml`. `./publish.sh` weigert die (vingerafdruk-controle).
@@ -54,7 +54,7 @@ het ergens anders wilt), Java 17+ (javac; CI gebruikt 25), Python 3, Node 22+ (C
 - `./tests/ui-een.sh calls spotify2` — één of enkele interfacetests (naam zonder `.test.js`).
 - `python3 tools/check-bridge.py` — brug en testbrug kloppen met elkaar.
 - **Telefoontest** (`.github/workflows/telefoontest.yml`, alleen op GitHub: hier is geen emulator): installeert de APK in
-  een Android-emulator (API 35 en 24), start de app, het Home-scherm en de PDF-schermen en controleert dat er niets
+  een Android-emulator (API 24, 35 en 36), start de app, het Home-scherm en de PDF-schermen en controleert dat er niets
   crasht (script: `tests/telefoon/rooktest.sh`; logcat en schermafdrukken in het artifact). Rood = niet laten liggen,
   maar oplossen: meestal een startcrash door build-tools, targetSdk of Java-code.
 Nieuwe functie = ook een test in `tests/ui/` (en bij logica in `tests/jvm/`). Een UI-test slaagt als hij `errors []` afdrukt.
@@ -136,7 +136,7 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 | Android build-tools (d8, apksigner, zipalign) | `setup-tools.sh` (`BUILD_TOOLS`, URL, SHA-1 en grootte van Google, dl.google.com) | Onderhoud: Google (repository2-3.xml) | agent; wisselen van d8 vraagt een test op een telefoon. Is Google niet bereikbaar (afgeschermde cloudsessie), dan valt `setup-tools.sh` lokaal terug op androidide-tools 34.0.4, alleen om te testen; in CI (`CI` gezet) moet de download lukken en `./publish.sh` bouwt alleen met de vastgezette versie |
 | android.jar en targetSdk | `setup-tools.sh`, `build.sh` | Onderhoud: Google | agent; gedragswijzigingen van de nieuwe Android-versie nalopen en op een telefoon testen |
 | aapt2 | `setup-tools.sh` (aaptjs3) | Onderhoud: npm | agent |
-| Playwright (alleen tests) | `publiceren.yml` | Onderhoud: npm | agent |
+| Playwright (alleen tests) | `package.json` en `package-lock.json` | Onderhoud: npm | agent |
 | Node en Java (alleen CI-gereedschap) | `node-version`/`java-version` in de workflows | Onderhoud: Node-schema, Adoptium | agent, naar de nieuwste LTS |
 | AI-modellen (Qwen3/Qwen3.5 GGUF) | `LocalAi.java` (vaste commit + SHA-256) | Onderhoud: Hugging Face (zelfde maker, zelfde grootte) | agent voegt een nieuw `Model` toe na overleg met Rene (1–3 GB); Rene kiest zelf of hij downloadt |
 | Spraakmodellen (whisper ggml) | `Transcribe.java` (vaste SHA-256) | niet automatisch: het formaat verandert zelden | alleen op verzoek van Rene |
@@ -154,7 +154,7 @@ Playwright, Node of Java van de CI.
    privacyregels hierboven, brugfuncties die te veel toestaan, onveilige WebView-instellingen, verbindingen naar buiten
    en de updatecontrole.
 3. **Bibliotheken bijwerken:** Leaflet/jsQR uit het npm-pakket (`dist/`, met de bestaande kopregel en licentie);
-   Playwright-versie in `publiceren.yml`; whisper.cpp met `tools/whisper-build.sh` (beide varianten, README.txt bijwerken,
+   Playwright-versie in `package.json` en `package-lock.json`; whisper.cpp met `tools/whisper-build.sh` (beide varianten, README.txt bijwerken,
    testen onder qemu-aarch64); llama.cpp met `tools/llm-build.sh` (TAG en COMMIT erin, daarna `./tools/llm/test.sh`);
    de rest en het tempo volgens de tabel hierboven.
    **AI-modellen:** een beter model overnemen = een nieuw `Model` met een eigen id in `LocalAi.java`, met vaste commit,

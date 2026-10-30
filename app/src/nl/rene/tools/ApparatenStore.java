@@ -30,6 +30,7 @@ final class ApparatenStore {
     private ApparatenStore() { }
 
     static final String DIR = "apparaten";
+    private static final JsonFileStore.Validator JSON = text -> { new JSONObject(text); };
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("apparaten", Context.MODE_PRIVATE); }
 
@@ -41,12 +42,12 @@ final class ApparatenStore {
 
     private static JSONObject read(Context c, String name) {
         File f = new File(dir(c), name);
-        try { return f.isFile() ? new JSONObject(Contacts.readText(f, false)) : new JSONObject(); }
+        try { return new JSONObject(JsonFileStore.read(f, JSON)); }
         catch (Throwable e) { App.log(c, "APPARATEN", "lezen " + name + ": " + e); return new JSONObject(); }
     }
 
     private static void write(Context c, String name, JSONObject o) {
-        try { Contacts.writeText(new File(dir(c), name), o.toString(), false); }
+        try { JsonFileStore.writeCurrent(new File(dir(c), name), o.toString(), JSON); }
         catch (Throwable e) { App.log(c, "APPARATEN", "opslaan " + name + ": " + e); }
     }
 
@@ -111,14 +112,19 @@ final class ApparatenStore {
 
     static synchronized JSONObject known(Context c) { return read(c, "bekend.json"); }
 
-    static synchronized void setKnown(Context c, String key, String nick, String type, String name) {
-        if (key == null || key.length() > 120 || !Apparaten.stableKey(key)) return;
-        JSONObject k = known(c);
+    static synchronized String setKnown(Context c, String key, String nick, String type, String name) {
+        if (key == null || key.length() > 120 || !Apparaten.stableKey(key)) return "Dit apparaat is niet terug te herkennen";
         try {
+            File file = new File(dir(c), "bekend.json");
+            JSONObject k = new JSONObject(JsonFileStore.read(file, JSON));
             if (nick == null) k.remove(key);
             else k.put(key, new JSONObject().put("nick", Apparaten.clean(nick)).put("type", type == null ? "" : type).put("name", name == null ? "" : Apparaten.clean(name)).put("t", System.currentTimeMillis()));
-        } catch (Exception ignored) { }
-        write(c, "bekend.json", k);
+            JsonFileStore.write(file, k.toString(), JSON);
+            return "";
+        } catch (Throwable e) {
+            App.log(c, "APPARATEN", "bekend apparaat opslaan: " + e);
+            return "Bewaren lukt niet: " + (e.getMessage() == null ? "controleer de opslagruimte en probeer opnieuw" : e.getMessage());
+        }
     }
 
     // ---------- geschiedenis ----------
@@ -175,9 +181,8 @@ final class ApparatenStore {
     static synchronized void histPrune(Context c) {
         trackersPruneNow(c);
         Map<String, Apparaten.Hist> m = histLoad(c);
-        int n = m.size();
         Apparaten.prune(m, System.currentTimeMillis(), keep(c), TimeZone.getDefault());
-        if (m.size() != n || n > 0) histSave(c, m);
+        if (!m.isEmpty() || JsonFileStore.exists(new File(dir(c), "geschiedenis.json"))) histSave(c, m);
     }
 
     static JSONObject histJson(Apparaten.Hist h) throws Exception {
@@ -210,16 +215,15 @@ final class ApparatenStore {
     // ---------- trackers ----------
 
     static synchronized JSONObject trackers(Context c) { return read(c, "trackers.json"); }
-    static synchronized void trackersSave(Context c, JSONObject o) { write(c, "trackers.json", o); }
+    static synchronized void trackersSave(Context c, JSONObject o) { trackersPrune(o, System.currentTimeMillis()); write(c, "trackers.json", o); }
 
     /** Trackers opruimen en bewaren (ook als er nu geen tracker in de buurt is). */
     static synchronized void trackersPruneNow(Context c) {
         File f = new File(dir(c), "trackers.json");
-        if (!f.isFile()) return;
+        if (!JsonFileStore.exists(f)) return;
         JSONObject all = trackers(c);
-        String before = all.toString();
         trackersPrune(all, System.currentTimeMillis());
-        if (!before.equals(all.toString())) trackersSave(c, all);
+        trackersSave(c, all); // ook een oude herstelkopie moet de huidige bewaartermijn volgen
     }
 
     static List<Apparaten.Sighting> sightings(JSONObject t) {
@@ -254,8 +258,17 @@ final class ApparatenStore {
     static synchronized void networkSave(Context c, JSONObject o) { write(c, "netwerk.json", o); }
 
     /** Alles wissen: geschiedenis, trackers, apparaten op je netwerk (bijnamen en instellingen blijven, tenzij all). */
-    static synchronized void wipe(Context c, boolean all) {
-        for (String n : new String[]{"geschiedenis.json", "trackers.json", "netwerk.json"}) { File f = new File(dir(c), n); if (f.exists() && !f.delete()) App.log(c, "APPARATEN", "wissen lukt niet: " + n); }
-        if (all) { File f = new File(dir(c), "bekend.json"); if (f.exists() && !f.delete()) App.log(c, "APPARATEN", "wissen lukt niet: bekend"); clearHome(c); }
+    static synchronized String wipe(Context c, boolean all) {
+        String error = "";
+        for (String n : new String[]{"geschiedenis.json", "trackers.json", "netwerk.json"}) {
+            try { JsonFileStore.delete(new File(dir(c), n)); }
+            catch (Exception e) { App.log(c, "APPARATEN", "wissen: " + e); error = "Wissen is niet helemaal gelukt. Controleer de opslagruimte en probeer opnieuw."; }
+        }
+        if (all) {
+            try { JsonFileStore.delete(new File(dir(c), "bekend.json")); }
+            catch (Exception e) { App.log(c, "APPARATEN", "wissen bekend: " + e); error = "Wissen is niet helemaal gelukt. Controleer de opslagruimte en probeer opnieuw."; }
+            clearHome(c);
+        }
+        return error;
     }
 }

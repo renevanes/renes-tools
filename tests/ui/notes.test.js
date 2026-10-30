@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const assert = require('node:assert/strict');
 (async () => {
   const b = await chromium.launch();
   for (const scheme of ['light','dark']) {
@@ -15,18 +16,27 @@ const { chromium } = require('playwright');
   await pg.waitForTimeout(500);
   await pg.screenshot({ path: __dirname + '/shots/n-edit-'+scheme+'.png' });
   console.log('open', await pg.$$eval('#note-open li', x=>x.length), 'done', await pg.$$eval('#note-done li', x=>x.length));
+  assert.equal(await pg.locator('#note-open li').count(), 3);
+  assert.equal(await pg.locator('#note-done li').count(), 1);
   await pg.click('#s-note .back'); await pg.waitForTimeout(200);
   await pg.screenshot({ path: __dirname + '/shots/n-list-'+scheme+'.png' });
   await pg.fill('#notes-search', 'fiets'); await pg.waitForTimeout(100);
   console.log('search', await pg.$$eval('#notes-list .nrow', x=>x.map(e=>e.innerText.replace(/\n/g,' | '))));
+  assert.equal(await pg.locator('#notes-list .nrow').count(), 1);
+  assert.match(await pg.textContent('#notes-list'), /Fiets/i);
   await pg.screenshot({ path: __dirname + '/shots/n-search-'+scheme+'.png' });
   // empty note gets discarded
   await pg.fill('#notes-search', ''); await pg.click('#s-notes .fab:not(.fab2)'); await pg.click('#s-note .back'); await pg.waitForTimeout(100);
   const saved = JSON.parse(await pg.evaluate(() => Android._notes));
   console.log('saved notes', saved.length, saved.map(n=>n.title+':'+n.items.length));
+  assert.equal(saved.length, 2, 'Een lege nieuwe notitie wordt niet bewaard');
+  assert.equal(saved.find(n=>n.title==='Klusjes').items.length, 4);
   // delete
   await pg.click('#notes-list .nrow >> nth=0'); await pg.click('#s-note button[aria-label=Verwijderen]'); await pg.click('#modal-ok'); await pg.waitForTimeout(100);
   console.log('after delete', JSON.parse(await pg.evaluate(() => Android._notes)).length, 'screen', await pg.evaluate(()=>document.querySelector('.screen.on').id));
+  assert.equal(JSON.parse(await pg.evaluate(() => Android._notes)).length, 1);
+  assert.equal(await pg.evaluate(() => current), 'notes');
+  assert.deepEqual(errs, []);
   console.log('errors', errs);
   }
   await b.close();

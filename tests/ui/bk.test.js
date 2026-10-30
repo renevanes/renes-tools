@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const assert = require('node:assert/strict');
 (async () => {
   const b = await chromium.launch();
   for (const scheme of ['light', 'dark']) {
@@ -7,8 +8,11 @@ const { chromium } = require('playwright');
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(400);
     await pg.click('#tile-backup'); await pg.waitForTimeout(200);
     console.log('nodest card', await pg.isVisible('#bk-nodest'), 'run disabled', await pg.isDisabled('#bk-run'));
+    assert.equal(await pg.isVisible('#bk-nodest'), true);
+    assert.equal(await pg.isDisabled('#bk-run'), true);
     await pg.evaluate(() => { Android._wa.info.dest = true; enterBackup(); });
     await pg.click('#bk-parts input[data-p="music"]'); console.log('music part off', await pg.evaluate(() => Android._bk.parts.music));
+    assert.equal(await pg.evaluate(() => Android._bk.parts.music), false);
     await pg.click('#bk-run'); await pg.waitForTimeout(300);
     console.log('running', await pg.textContent('#bk-run'));
     await pg.waitForTimeout(1500);
@@ -18,10 +22,12 @@ const { chromium } = require('playwright');
     await pg.screenshot({ path: __dirname + '/shots/bk-' + scheme + '.png', fullPage: true });
     await pg.click('button:has-text("Contacten terugzetten")'); await pg.waitForTimeout(300);
     console.log('restore dialog', await pg.textContent('#modal-title'), '|', (await pg.textContent('#modal-text')).replace(/\n/g, ' '));
+    assert.equal(await pg.isVisible('#modal'), true, 'Terugzetten vraagt eerst bevestiging');
     await pg.click('#modal-ok'); await pg.waitForTimeout(100);
     console.log('toast', await pg.textContent('#toast'));
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     console.log('tile', await pg.textContent('#tile-backup-sub'), 'errors', errs);
+    assert.deepEqual(errs, []);
   }
   await b.close();
 })();

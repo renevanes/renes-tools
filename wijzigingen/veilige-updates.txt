@@ -1,0 +1,2 @@
+Interface-updates wachten tot je bewerkingen bewaard zijn; onopgeslagen PDF-tekst en toevoegingen blijven staan.
+Updates worden als complete versies klaargezet met een vorige versie voor herstel; grote app-updates gebruiken minder geheugen.

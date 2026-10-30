@@ -6,19 +6,23 @@
 name: Telefoontest
 
 on:
-  push:
-    branches: [main]
-    paths: ['app/**', 'web/**', 'build.sh', 'setup-tools.sh', 'tests/telefoon/**', '.github/workflows/telefoontest.yml']
+  # Op main roept Publiceren deze workflow aan; zo draait dezelfde matrix niet tweemaal.
   pull_request:
     paths: ['app/**', 'web/**', 'build.sh', 'setup-tools.sh', 'tests/telefoon/**', '.github/workflows/telefoontest.yml']
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      source_sha:
+        description: 'De broncommit die vóór publicatie moet worden getest'
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: telefoontest-${{ github.ref }}
-  cancel-in-progress: true
+  group: telefoontest-${{ github.workflow }}-${{ github.ref }}-${{ inputs.source_sha || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   telefoon:
@@ -28,13 +32,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 35: recent Android (targetSdk-gedrag); 24: de laagste versie die de app ondersteunt (minSdk)
-        api: [35, 24]
+        # minSdk, Android 15 en het huidige targetSdk: nieuwe systeemregels vóór publicatie controleren.
+        api: [24, 35, 36]
     env:
       TOOLS: ${{ github.workspace }}/../toolchain
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.source_sha || github.sha }}
           persist-credentials: false   # er draait een Action van buiten GitHub; geen token achterlaten
 
       - name: Zelfcontrole van de crashherkenning

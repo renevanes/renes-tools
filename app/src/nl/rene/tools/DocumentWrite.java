@@ -1,6 +1,8 @@
 package nl.rene.tools;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -26,6 +28,19 @@ final class DocumentWrite {
     }
     static String rename(Store store, String id, String name) throws Exception {
         return new Session(store).rename(id,name);
+    }
+    interface Input { InputStream open() throws Exception; }
+    interface Output { OutputStream open() throws Exception; }
+
+    /** Pas terugkeren als ook flushen én sluiten gelukt zijn; providers kunnen dan pas hun upload afronden. */
+    static void copy(Input source, Output target) throws Exception {
+        try (InputStream in = source.open(); OutputStream out = target.open()) {
+            if (in == null || out == null) throw new IOException("Kopiëren lukt niet");
+            byte[] buffer = new byte[1 << 16];
+            int count;
+            while ((count = in.read(buffer)) != -1) if (count > 0) out.write(buffer, 0, count);
+            out.flush();
+        }
     }
     /** Een geldige URI is de normale providerroute. Alleen onbetrouwbare antwoorden vragen mapcontroles. */
     static final class Session {

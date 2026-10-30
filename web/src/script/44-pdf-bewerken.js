@@ -1,6 +1,10 @@
 /* PDF-toevoegingen blijven in het geheugen; alleen expliciet bewaren maakt een document of herbruikbare handtekening. */
 const pdfEd = {revision:'', page:0, meta:{}, items:[], undo:[], selected:-1, loading:false, want:false, saved:'[]', strokes:[], stroke:null, drag:null};
 function pdfEditDirty(){ return JSON.stringify(pdfEd.items) !== pdfEd.saved; }
+function pdfEditPendingInput(){
+  const value = $('#pdf-edit-text').value.trim(), selected = pdfEd.items[pdfEd.selected];
+  return !!value && (!selected || selected.type !== 'text' || value !== selected.text);
+}
 function pdfChooseSource(){
   const choose = () => Android.pdfPickPdf();
   if (pdfEditDirty()) askConfirm('Andere PDF kiezen?', 'Je niet-opgeslagen toevoegingen worden vervangen als je een andere PDF opent.', 'PDF kiezen', choose); else choose();
@@ -187,4 +191,4 @@ function pdfEditSave(){
     pdfSetBusy('Bewerkte PDF-kopie maken…');pdfEditControls();Android.pdfEditSave(pdfEd.revision,json,$('#pdf-edit-name').value.trim());
   }catch(e){pdfSetBusy('');toast('De bewerkingen kunnen niet worden opgeslagen. Probeer minder toevoegingen.');pdfEditControls();}
 }
-function pdfEditSaved(r){if(r.revision===pdfEd.revision){pdfEd.saved=JSON.stringify(pdfEd.items);pdfEditSignHide();$('#pdf-edit-status').textContent='Kopie gemaakt. Kies onder Gemaakt: Opslaan als… of Delen.';}pdfEditControls();}
+function pdfEditSaved(r){if(r.revision===pdfEd.revision){pdfEd.saved=JSON.stringify(pdfEd.items);pdfEditSignHide();$('#pdf-edit-status').textContent='Kopie gemaakt. Kies onder Gemaakt: Opslaan als… of Delen.';document.querySelectorAll('#pdf-edit-work [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);}pdfEditControls();}

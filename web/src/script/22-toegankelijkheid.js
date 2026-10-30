@@ -7,7 +7,9 @@ function a11yMark(el){
     el.setAttribute('aria-checked', el.classList.contains('on') ? 'true' : 'false');
     if (!el.getAttribute('aria-label')) { const sp = el.parentElement && el.parentElement.querySelector('span'); if (sp && sp.firstChild) el.setAttribute('aria-label', sp.firstChild.textContent.trim()); }
   } else if (el.parentElement && el.parentElement.classList.contains('chips') && el.tagName === 'BUTTON') {
-    el.setAttribute('aria-pressed', el.classList.contains('on') ? 'true' : 'false');
+    const role = el.getAttribute('role');
+    if (!role || role === 'button') el.setAttribute('aria-pressed', el.classList.contains('on') ? 'true' : 'false');
+    else el.removeAttribute('aria-pressed');
   }
 }
 function a11yScan(root){ (root || document).querySelectorAll('.tg, .chips > button').forEach(a11yMark); }

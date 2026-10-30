@@ -9,7 +9,8 @@ name: Publiceren
 on:
   push:
     branches: [main]
-    paths: ['app/**', 'web/**', 'tools/**', 'build.sh', '.github/workflows/publiceren.yml']
+    # Iedere bronwijziging die de controle na het slot kan afkeuren krijgt ook een opvolgende preflight.
+    paths-ignore: ['VERSION', 'changelog.json', 'update/**', 'wijzigingen/**']
   workflow_dispatch:
     inputs:
       allow_grow:
@@ -29,12 +30,21 @@ permissions:
   contents: write
 
 jobs:
+  telefoontest:
+    uses: ./.github/workflows/telefoontest.yml
+    permissions:
+      contents: read
+    with:
+      source_sha: ${{ github.sha }}
+
   publiceren:
+    needs: telefoontest
     runs-on: ubuntu-24.04  # vast: een nieuwe Ubuntu mag de publicatie niet ineens stukmaken
     timeout-minutes: 60
     environment: publiceren
     env:
       TOOLS: ${{ github.workspace }}/../toolchain
+      TESTED_SOURCE_SHA: ${{ github.sha }}
     steps:
       - name: Is het geheim er?
         id: gate
@@ -52,11 +62,7 @@ jobs:
         if: steps.gate.outputs.ok == 'true'
         with:
           fetch-depth: 0
-          ref: main
-
-      - name: Nieuwste main gebruiken (een wachtende run publiceert alles wat er intussen bij kwam)
-        if: steps.gate.outputs.ok == 'true'
-        run: git pull -q --ff-only origin main
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         if: steps.gate.outputs.ok == 'true'
@@ -73,9 +79,8 @@ jobs:
         if: steps.gate.outputs.ok == 'true'
         run: |
           ./setup-tools.sh
-          npm install --no-save --no-package-lock playwright@1.64.1
+          npm ci
           npx playwright install --with-deps chromium
-          rm -f package-lock.json
 
       - name: Sleutel uitpakken
         if: steps.gate.outputs.ok == 'true'

@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const assert = require('node:assert/strict');
 (async () => {
   const b = await chromium.launch();
   for (const scheme of ['light', 'dark']) {
@@ -10,17 +11,22 @@ const { chromium } = require('playwright');
     // wachtwoord: te kort, ongelijk, goed
     await pg.click('#bk-enc-btn'); await pg.waitForTimeout(100);
     console.log('input type', await pg.getAttribute('#modal-input', 'type'));
+    assert.equal(await pg.getAttribute('#modal-input', 'type'), 'password');
     await pg.fill('#modal-input', 'kort'); await pg.click('#modal-ok'); await pg.waitForTimeout(150);
     console.log('toast', await pg.textContent('#toast'));
+    assert.equal(await pg.evaluate(() => Android._sec.on), false, 'Te kort wachtwoord activeert versleuteling niet');
     await pg.click('#bk-enc-btn'); await pg.waitForTimeout(100);
     await pg.fill('#modal-input', 'goedwachtwoord'); await pg.click('#modal-ok'); await pg.waitForTimeout(200);
     console.log('second', await pg.textContent('#modal-title'), await pg.getAttribute('#modal-input', 'type'));
     await pg.fill('#modal-input', 'anders123'); await pg.click('#modal-ok'); await pg.waitForTimeout(150);
     console.log('toast', await pg.textContent('#toast'));
+    assert.equal(await pg.evaluate(() => Android._sec.on), false, 'Verschillende wachtwoorden worden geweigerd');
     await pg.click('#bk-enc-btn'); await pg.waitForTimeout(100);
     await pg.fill('#modal-input', 'goedwachtwoord'); await pg.click('#modal-ok'); await pg.waitForTimeout(200);
     await pg.fill('#modal-input', 'goedwachtwoord'); await pg.click('#modal-ok'); await pg.waitForTimeout(400);
     console.log('toast', await pg.textContent('#toast'), '| state', await pg.textContent('#bk-enc-state'), '| btn', await pg.textContent('#bk-enc-btn'), '| off visible', await pg.isVisible('#bk-enc-off'));
+    assert.equal(await pg.evaluate(() => Android._sec.on), true);
+    assert.equal(await pg.isVisible('#bk-enc-off'), true);
     await pg.click('#bk-rotate'); console.log('rotate on', await pg.evaluate(() => Android._sec.rotate));
     // backup met archief en opruimen
     await pg.click('#bk-run'); await pg.waitForTimeout(1600);
@@ -39,8 +45,12 @@ const { chromium } = require('playwright');
     await pg.fill('#modal-input', 'fout'); await pg.click('#modal-ok'); await pg.waitForTimeout(300);
     console.log('toast', await pg.textContent('#toast')); await pg.waitForTimeout(500);
     console.log('asks again', await pg.textContent('#modal-title'));
+    assert.equal(await pg.isVisible('#modal'), true, 'Verkeerd archiefwachtwoord opent geen inhoud');
+    assert.equal(await pg.isVisible('#sheet'), false);
     await pg.fill('#modal-input', 'goedwachtwoord'); await pg.click('#modal-ok'); await pg.waitForTimeout(400);
     console.log('sheet', await pg.textContent('#sheet-title'), '|', await pg.textContent('#sheet-sub'), await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent)));
+    assert.equal(await pg.isVisible('#sheet'), true);
+    assert.ok(await pg.locator('#sheet-acts button').count() > 0);
     await pg.screenshot({ path: __dirname + '/shots/sec-sheet-' + scheme + '.png' });
     await pg.click('#sheet-acts button:has-text("Contacten terugzetten")'); await pg.waitForTimeout(300);
     console.log('restore', await pg.evaluate(() => Android._arcRestore), '|', await pg.textContent('#modal-title'));
@@ -49,9 +59,12 @@ const { chromium } = require('playwright');
     // uitzetten
     await pg.click('#bk-enc-off'); await pg.waitForTimeout(100); await pg.click('#modal-ok'); await pg.waitForTimeout(150);
     console.log('off', await pg.textContent('#bk-enc-state'));
+    assert.equal(await pg.evaluate(() => Android._sec.on), false);
     // gewone invoer daarna weer tekst
     await pg.evaluate(() => askInput('x', '', 'a', 'OK', () => {})); console.log('plain input type', await pg.getAttribute('#modal-input', 'type'));
     await pg.click('#modal-cancel');
+    assert.equal(await pg.inputValue('#modal-input'), '', 'Wachtwoorden blijven niet in de verborgen invoer staan');
+    assert.deepEqual(errs, []);
     console.log('errors', errs);
   }
   // ontsleutelen.html met een echt archief uit de JVM-test (indien aanwezig)
@@ -66,6 +79,7 @@ const { chromium } = require('playwright');
     const [dl] = await Promise.all([pg.waitForEvent('download'), pg.click('#go')]);
     const out = await dl.path(); console.log('decrypt ok', dl.suggestedFilename(), JSON.stringify(fs.readFileSync(out, 'utf8')), await pg.textContent('#msg'));
     console.log('errors', errs);
+    assert.deepEqual(errs, []);
   } else console.log('decrypt skipped (run LogicTest first)', 'errors', []);
   await b.close();
 })();
