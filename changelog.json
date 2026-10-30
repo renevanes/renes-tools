@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.111",
+    "date": "2026-10-30",
+    "changes": [
+      "Gebruik: Proefopname vraagt nu eerst om cameratoestemming (dat ging niet) en gaat daarna vanzelf verder; de foto's staan in een eigen tabblad Foto's bij Gebruik, met miniaturen. Camera staat nu ook bij Instellingen → Toestemmingen."
+    ]
+  },
+  {
     "version": "1.110",
     "date": "2026-10-30",
     "changes": [

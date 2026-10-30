@@ -140,6 +140,7 @@ function show(name){
   if (name==='models') enterModels(); else if (typeof mdLeave === 'function') mdLeave();
   if (name==='car') enterCar();
   if (name==='apparaten' || name==='apdev' || name==='apset') enterAp(name); else if (typeof apLeave === 'function') apLeave();
+  if (name!=='gebruik' && name!=='gebruikset' && typeof gbLeave === 'function') gbLeave();
   if (name==='pdf') enterPdf();
   if (name==='spotify') enterSpotify();
   if (name==='vpn') enterVpn();

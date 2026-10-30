@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.110",
-  "versionCode": 111,
-  "nativeLevel": 99,
+  "versionName": "1.111",
+  "versionCode": 112,
+  "nativeLevel": 100,
   "web": "index.html",
-  "webSha256": "3d1df745a4bf7c364a03105da75e78cdff9aae295fde260525f3d5a40f870bc5",
+  "webSha256": "db229d1d15816ecaedba406d47eeac85b9a8d40d1ee743ca9616f9d5df6ff9f3",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "8d949082176650be3e17c16c699a5159390dc20df8c2ee759205fe01f3ca2481",
+  "apkSha256": "ae970d45f1de3d7309dc73c101d7b096be851c79a8a0461095a7a78de4f75722",
   "changelog": [
+    {
+      "version": "1.111",
+      "date": "2026-10-30",
+      "changes": [
+        "Gebruik: Proefopname vraagt nu eerst om cameratoestemming (dat ging niet) en gaat daarna vanzelf verder; de foto's staan in een eigen tabblad Foto's bij Gebruik, met miniaturen. Camera staat nu ook bij Instellingen → Toestemmingen."
+      ]
+    },
     {
       "version": "1.110",
       "date": "2026-10-30",
@@ -981,5 +988,5 @@
       ]
     }
   ],
-  "webSig2": "TY1n/S6gpplmHzbjS2goZAgRpDaQBKOPhBSbo1r0xvRpAm/DFOiGcnJfZcIzbkMEujH2YkH48fQEVKLsVgujd8Qwd0W2H66Au39rM5JbIDed/AdfyDx/x1lApK61Uiz0SQq1hUNBD2ZfK7+rZDlzAUkFV9ocqsqYVQheh9YiteSBm8FMj1l/RaE0jIPZQUsHLQhvX7geMWrUX3e99dSzSq5u0XRv0AmsJWuFrpCbmArGymh42icSbq9aat3P1BXgRuup1PFluCPU+jEUmVyPAeA5rxvZW9UKyKAN85turmN+un+1XQ5JR25czJR/3eM7pahiRg0nS4kTj3fkXcUhz/fL+3Ai6YUJremR0g/h/XG8j85oEnyUJnZGrYouT6hHEHCQvNEqX8hv+T6HbE+U3hUVHR/Jj+nd1mIFuIZRD3x9UTfXPOeWZsSaeH/JXtFZhtBq2Ku3oWLNMZ3ft2zNlzxqkY6H/jVPyi1V9rfoRnpkMsR2Zv+m6R7y5mdUlg4q"
+  "webSig2": "aQjZdvtV4FRhb29022vnBfLnoQLwcHHMG6JxqyI3SamYWgd57EbWtqj0u16ODOBFDFGBgslIl1/WmFGrZKGvCk7cbI/TeIZXh+Z3sqyqJ+Ld8rCqxuKvbU0TQtqVCQzvysQReC9w71Wi0qqj8jpxbOy0B8OR8blS4O2rQshXuqKsVBHUwrFFUG2mZ0Hq56VYP2XPnqBvTgRphpydPb7niM8dgF2sAoNdtbdbhERbaRaEtQu4B6wKDfSOHBSQy2jtWz8U794WQNiELC4YHTg5xpgXcUi7mA8JP5+SfTvYE2IJb+lYMsWhZDmj25S/LPs8uinJiqxsjb2nzQc6c/K7LlbRr1ieAqeIeZMbzQTlB2L+6ihtMvJB+elSvVZlEcLkrv48hpKZ9NagXYkbv0SLrOmnKCtHMfAdGoQiHLDZbXPY1ezugzsgV9QEMghm5rEEjA6zzlt43FGnhbDCQrkGRj6Ny8h3MhKl/P9deE1IyUkE3ZmTcBYIzWJePPjXQgqB"
 }
