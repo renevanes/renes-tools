@@ -91,6 +91,12 @@ public class AppDataTest {
         check("kluis:abc123def".equals(AppData.target("Appgegevens/geheim/kluis/abc123def")) && AppData.target("Appgegevens/geheim/kluis/../x") == null
                 && AppData.target("Appgegevens/geheim/kluis/A-B") == null, "kluisdocument alleen met een geldig id");
         check("prefs".equals(AppData.target(AppData.PREFS)) && "secrets".equals(AppData.target(AppData.SECRETS)) && AppData.target("Notities/notities.json") == null, "vaste onderdelen herkend, de rest niet");
+        // Gebruik-foto's: eigen map, alleen geldige namen; de versleutelde blobs mogen niet als gewoon bestand mee.
+        check("gfoto:shot-1730000000000-mislukt.jpg".equals(AppData.target(AppData.GEBRUIK_FOTO_DIR + "/shot-1730000000000-mislukt.jpg")), "gebruik-foto met geldige naam → gfoto");
+        check("gfoto:shot-5-ontgrendeld.jpg".equals(AppData.target(AppData.GEBRUIK_FOTO_DIR + "/shot-5-ontgrendeld.jpg")) && "gfoto:shot-5-proef.jpg".equals(AppData.target(AppData.GEBRUIK_FOTO_DIR + "/shot-5-proef.jpg")), "ontgrendeld en proef ook geldig");
+        check(AppData.target(AppData.GEBRUIK_FOTO_DIR + "/../bestanden/web/index.html") == null && AppData.target(AppData.GEBRUIK_FOTO_DIR + "/shot-1-x.jpg") == null
+                && AppData.target(AppData.GEBRUIK_FOTO_DIR + "/evil.sh") == null && AppData.target(AppData.GEBRUIK_FOTO_DIR + "/shot-1-mislukt.png") == null, "gebruik-foto: ontsnappen en vreemde namen geweigerd");
+        check(AppData.fileRule("gebruik/foto/shot-1-mislukt.jpg") != null && AppData.fileRule("gebruik/events.jsonl") == null, "gebruik/foto gaat niet als gewoon bestand mee, de rest van gebruik wel");
 
         // ---------- inhoudsopgave ----------
         AppData.Manifest m = new AppData.Manifest();

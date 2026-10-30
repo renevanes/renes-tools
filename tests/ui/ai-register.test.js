@@ -65,6 +65,8 @@ const { chromium } = require('playwright');
   ok(await pg.evaluate(() => setSafe(setEntry('backup.prive.ai'), 'aan') && !setSafe(setEntry('backup.prive.ai'), 'uit') && setSafe(setEntry('vpn.onbekend'), 'uit') && !setSafe(setEntry('vpn.onbekend'), 'aan') && setSafe(setEntry('ai.bron.sms'), 'aan')),
     'alleen de verzwakkende kant op gevoelig (privé mee in de backup, VPN minder vaak, berichten van anderen)');
   ok(await pg.evaluate(() => setGet(setEntry('slot.code')) === '' && setGet(setEntry('wa.sleutel')) === ''), 'geheimen: geen waarde');
+  ok(await pg.evaluate(() => { const ids = ['gebruik.foto.mislukt', 'gebruik.foto.ontgrendeld', 'gebruik.apparaatbeheer']; return ids.every(id => { const e = setEntry(id); if (!e) return false; return setVals(e).concat([['aan'], ['uit']]).every(v => setSafe(e, v[0])); }); }),
+    'Gebruik: foto en apparaatbeheer kan de assistent nooit aanpassen');
 
   // 3. Wat de assistent mag aanpassen: heen en terug, via dezelfde functies als het scherm
   const rt = await pg.evaluate(() => {

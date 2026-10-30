@@ -26,7 +26,7 @@ public class GebruikBridge extends LocBridge {
         try {
             GebruikJob.ensureScheduled(ctx);
             try { GebruikLive.start(ctx); } catch (Throwable ignored) { }
-            new Thread(() -> { try { GebruikStore.collect(ctx); } catch (Throwable ignored) { } }, "gebruik-collect").start();
+            new Thread(() -> { try { GebruikStore.collect(ctx, true); } catch (Throwable ignored) { } }, "gebruik-collect").start();
             return GebruikStore.state(ctx).toString();
         } catch (Throwable e) { App.log(ctx, "GEBRUIK", "stand: " + e); return "{}"; }
     }
@@ -52,13 +52,18 @@ public class GebruikBridge extends LocBridge {
 
     /** Instelling(en) bewaren; geeft de nieuwe instellingen terug. */
     @JavascriptInterface public String gebruikSave(String json) {
-        try { GebruikStore.saveSettings(ctx, new JSONObject(json)); GebruikJob.ensureScheduled(ctx); if (GebruikStore.collecting(ctx)) GebruikLive.start(ctx); else GebruikLive.stop(); return GebruikStore.settings(ctx).toString(); }
-        catch (Throwable e) { return GebruikStore.err("Opslaan lukt niet").toString(); }
+        try {
+            GebruikStore.saveSettings(ctx, new JSONObject(json));
+            GebruikJob.ensureScheduled(ctx);
+            if (GebruikStore.collecting(ctx)) GebruikLive.start(ctx); else GebruikLive.stop();
+            try { AutoA11y.refreshScope(); } catch (Throwable ignored) { } // systemui erbij/eraf voor het pincode-signaal
+            return GebruikStore.settings(ctx).toString();
+        } catch (Throwable e) { return GebruikStore.err("Opslaan lukt niet").toString(); }
     }
 
     /** Nu meteen de nieuwste gebeurtenissen overnemen. */
     @JavascriptInterface public void gebruikRefresh() {
-        new Thread(() -> { try { GebruikStore.collect(ctx); a.js("onGebruik", "\"ok\""); } catch (Throwable ignored) { } }, "gebruik-refresh").start();
+        new Thread(() -> { try { GebruikStore.collect(ctx, true); a.js("onGebruik", "\"ok\""); } catch (Throwable ignored) { } }, "gebruik-refresh").start();
     }
 
     /** Het Android-scherm "Toegang tot gebruik" openen (die toegang geeft Rene zelf). */
@@ -85,7 +90,7 @@ public class GebruikBridge extends LocBridge {
                     Intent i = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
                             .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, GebruikStore.admin(ctx))
                             .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                                    "Zo kan Gebruik zien wanneer je met pincode, patroon of wachtwoord ontgrendelt en wanneer dat misging. Je kunt het altijd zelf weer uitzetten; daarna kan de app ook weer verwijderd worden. De app verandert niets aan je telefoon.");
+                                    "Zo ziet Gebruik mislukte ontgrendelpogingen en wanneer er na een mislukte poging alsnog ontgrendeld werd. (Een gewone ontgrendeling met pincode meldt Android hier niet; of het pincodescherm verscheen ziet Gebruik via de toegankelijkheidsdienst.) Je kunt apparaatbeheer altijd zelf weer uitzetten; daarna kan de app ook weer verwijderd worden. De app verandert niets aan je telefoon.");
                     a.startActivity(i);
                 } else {
                     DevicePolicyManager dpm = (DevicePolicyManager) ctx.getSystemService(Context.DEVICE_POLICY_SERVICE);

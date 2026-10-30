@@ -11,8 +11,15 @@ import java.util.TimeZone;
 /**
  * Puur rekenwerk voor "Gebruik" (geen Android, zodat het op een gewone JVM getest kan worden — tests/jvm/…/GebruikTest.java):
  * van losse gebeurtenissen (uit UsageStatsManager, aan- en uitgaan van het scherm, ont- en vergrendelen) naar
- * app-sessies, naar blokken per ontgrendeling (met pincode / anders / mislukt), schermtijd per uur en per app, en de
- * bewaartermijnen. De opslag in bestanden en het samenstellen van JSON voor de interface staan in GebruikStore.
+ * app-sessies, naar blokken per ontgrendeling (met pincode / anders / mislukt / onbekend), schermtijd per uur/dag en per
+ * app, en de bewaartermijnen. De opslag in bestanden en het samenstellen van JSON voor de interface staan in GebruikStore.
+ *
+ * Hoe wordt "met pincode" bepaald? Alleen uit twee booleans met een tijdstip, nooit uit wat er gettypt wordt:
+ *  - "bouncer getoond": de toegankelijkheidsdienst zag dat het invoerscherm van het slot (pincode/patroon/wachtwoord)
+ *     verscheen. ALLEEN of het verscheen en wanneer — nooit toetsaanslagen, cijfers of tekst (zie AutoA11y/GebruikStore).
+ *  - een gelukte poging van Apparaatbeheer (die komt alleen ná een mislukte poging): dan óók "met pincode".
+ * Een ontgrendeling binnen een symmetrisch venster rond zo'n signaal heet "met pincode"; elk signaal telt één keer mee.
+ * Staat de toegankelijkheidsdienst uit, dan is de manier niet te bepalen: "onbekend".
  */
 public final class Gebruik {
 
@@ -26,6 +33,9 @@ public final class Gebruik {
     public static final int UNLOCKED = 5;    // vergrendelscherm weg / in gebruik (KEYGUARD_HIDDEN of USER_PRESENT)
     public static final int LOCKED = 6;      // vergrendelscherm ervoor (KEYGUARD_SHOWN)
     public static final int BOOT = 7;        // telefoon opnieuw opgestart (DEVICE_STARTUP)
+
+    public static final long DEFAULT_WINDOW = 12_000;       // symmetrisch venster rond een ontgrendeling voor het pincode-signaal
+    public static final long DEFAULT_FAIL_WINDOW = 300_000; // mislukte pogingen horen bij een ontgrendeling tot 5 min ervoor
 
     /** Eén gebeurtenis. pkg alleen bij APP_START/APP_STOP. */
     public static final class Ev {
@@ -52,7 +62,7 @@ public final class Gebruik {
         public AppUse(String pkg, long start, long dur) { this.pkg = pkg; this.start = start; this.dur = dur; }
     }
 
-    /** Een blok: ofwel een ontgrendeling (how "pincode"/"anders") met de apps erna, ofwel alleen mislukte pogingen (how "mislukt"). */
+    /** Een blok: een ontgrendeling (how "pincode"/"anders"/"onbekend") met de apps erna, of alleen mislukte pogingen ("mislukt"). */
     public static final class Unlock {
         public final long t; public final String how; public final int fails; public long end;
         public final List<AppUse> apps = new ArrayList<>();
@@ -61,12 +71,15 @@ public final class Gebruik {
 
     /**
      * App-sessies uit de gebeurtenissen. Een sessie loopt van APP_START tot de eerstvolgende APP_STOP van diezelfde app,
-     * een APP_START van een andere app, of tot het scherm uit gaat (SCREEN_OFF) of de telefoon opnieuw opstart (BOOT).
-     * Gebeurtenissen hoeven niet gesorteerd te zijn; ze worden op tijd gezet. Sessies zonder duur vallen weg.
+     * een APP_START van een andere app, of tot het scherm uit gaat (SCREEN_OFF), het slot ervoor komt (LOCKED) of de
+     * telefoon opnieuw opstart/afsluit (BOOT). Gebeurtenissen worden op tijd gezet. Sessies zonder duur vallen weg.
+     * Een sessie die nog niet is afgesloten (het scherm staat nog aan) krijgt eindtijd 'now' als die > 0 is.
      */
-    public static List<Session> sessions(List<Ev> events) {
+    public static List<Session> sessions(List<Ev> events) { return sessions(events, 0); }
+
+    public static List<Session> sessions(List<Ev> events, long now) {
         List<Ev> evs = new ArrayList<>(events);
-        Collections.sort(evs, (a, b) -> Long.compare(a.t, b.t));
+        Collections.sort(evs, (a, b) -> a.t != b.t ? Long.compare(a.t, b.t) : Integer.compare(order(a.type), order(b.type)));
         List<Session> out = new ArrayList<>();
         Session open = null;
         for (Ev e : evs) {
@@ -79,62 +92,84 @@ public final class Gebruik {
                 if (open != null) { open.end = e.t; if (open.dur() > 0) out.add(open); open = null; }
             }
         }
+        // De nu nog lopende app (scherm staat nog aan): meetellen tot nu.
+        if (open != null && now > open.start) { open.end = now; out.add(open); }
         return out;
     }
 
+    // Bij een gelijke tijd: eerst een app stoppen/scherm uit, dan pas een nieuwe app starten (nette sessiegrenzen).
+    private static int order(int type) { return type == APP_START ? 1 : 0; }
+
     /**
-     * Blokken per ontgrendeling. Bij elke UNLOCKED: "pincode" als er vlak daarvoor (binnen pinWindowMs) een gelukte
-     * poging was, anders "anders" (vingerafdruk, gezicht, smart lock of geen slot — dat kan de app niet uit elkaar houden).
-     * fails = de mislukte pogingen vlak vóór die ontgrendeling. Mislukte pogingen zonder ontgrendeling erna worden een
-     * los blok "mislukt". Bij een blok horen de app-sessies vanaf de ontgrendeling tot het scherm weer uit ging.
+     * Blokken per ontgrendeling (near-lineair, lijsten mogen ongesorteerd binnenkomen). Classificatie, zie de uitleg
+     * bovenaan: "pincode" bij een bouncer-signaal of een gelukte Apparaatbeheer-poging binnen het symmetrische venster
+     * (elk signaal één keer); anders "anders" als de manier te bepalen is (a11yOn), anders "onbekend". fails = mislukte
+     * pogingen tot failWindowMs vóór de ontgrendeling. Mislukte pogingen die bij geen ontgrendeling horen, worden eigen
+     * "mislukt"-blokken (opeenvolgende pogingen binnen failWindowMs samen). Bij een blok horen de apps tot het scherm uit.
      */
-    public static List<Unlock> unlocks(List<Ev> events, List<Pw> pwds, long pinWindowMs) {
+    public static List<Unlock> unlocks(List<Ev> events, List<Pw> pwds, List<Long> bouncer, boolean a11yOn, long windowMs, long failWindowMs) {
         List<Ev> evs = new ArrayList<>(events);
         Collections.sort(evs, (a, b) -> Long.compare(a.t, b.t));
-        List<Pw> pw = new ArrayList<>(pwds);
-        Collections.sort(pw, (a, b) -> Long.compare(a.t, b.t));
-        List<Session> sess = sessions(events);
+        List<Long> ut = new ArrayList<>();
+        List<Long> offs = new ArrayList<>();
+        for (Ev e : evs) { if (e.type == UNLOCKED) ut.add(e.t); else if (e.type == SCREEN_OFF || e.type == LOCKED || e.type == BOOT) offs.add(e.t); }
+
+        List<Long> bnc = new ArrayList<>(bouncer == null ? Collections.emptyList() : bouncer);
+        Collections.sort(bnc);
+        List<Long> succ = new ArrayList<>(), fail = new ArrayList<>();
+        for (Pw p : pwds) (p.ok ? succ : fail).add(p.t);
+        Collections.sort(succ); Collections.sort(fail);
 
         List<Unlock> out = new ArrayList<>();
-        // Mislukte pogingen die (nog) niet bij een ontgrendeling horen.
-        int pending = 0; long pendingLast = 0;
-        int pi = 0;
-        List<long[]> unlockTimes = new ArrayList<>(); // [t]
-        for (Ev e : evs) if (e.type == UNLOCKED) unlockTimes.add(new long[]{e.t});
+        int bi = 0, si = 0;            // pointers voor bouncer- en gelukte-poging-signalen (elk één keer)
+        int fi = 0;                    // pointer voor mislukte pogingen (toegekend of los)
+        boolean[] failUsed = new boolean[fail.size()];
+        int so = 0;                    // pointer voor scherm-uit (einde blok)
+        int ss = 0;                    // pointer voor sessies (apps in een blok)
+        List<Session> sess = sessions(events);
+        Collections.sort(sess, (a, b) -> Long.compare(a.start, b.start));
 
-        // Loop door pogingen en ontgrendelingen samen op tijd.
-        int ui = 0;
-        while (pi < pw.size() || ui < unlockTimes.size()) {
-            boolean takePw = ui >= unlockTimes.size() || (pi < pw.size() && pw.get(pi).t <= unlockTimes.get(ui)[0]);
-            if (takePw) {
-                Pw p = pw.get(pi++);
-                // Mislukte pogingen blijven staan tot de ontgrendeling ze meetelt; een gelukte poging wist ze niet zelf.
-                if (!p.ok) { pending++; pendingLast = p.t; }
-            } else {
-                long t = unlockTimes.get(ui++)[0];
-                // Was er vlak hiervoor een gelukte poging?
-                boolean pin = false;
-                for (int k = pw.size() - 1; k >= 0; k--) { Pw p = pw.get(k); if (p.t <= t && p.ok && t - p.t <= pinWindowMs) { pin = true; break; } if (p.t <= t && p.ok) break; }
-                int fails = pending;
-                pending = 0; pendingLast = 0;
-                out.add(new Unlock(t, pin ? "pincode" : "anders", fails, t));
+        for (int u = 0; u < ut.size(); u++) {
+            long t = ut.get(u);
+            long next = u + 1 < ut.size() ? ut.get(u + 1) : Long.MAX_VALUE;
+            // pincode-signaal: bouncer of gelukte poging binnen [t-window, t+window], elk één keer
+            boolean pin = false;
+            while (bi < bnc.size() && bnc.get(bi) < t - windowMs) bi++;
+            if (bi < bnc.size() && bnc.get(bi) <= t + windowMs) { pin = true; bi++; }
+            while (si < succ.size() && succ.get(si) < t - windowMs) si++;
+            if (si < succ.size() && succ.get(si) <= t + windowMs) { pin = true; si++; }
+            // mislukte pogingen tot failWindow vóór deze ontgrendeling
+            int fails = 0;
+            for (int k = fi; k < fail.size() && fail.get(k) <= t; k++) {
+                if (failUsed[k]) continue;
+                if (fail.get(k) >= t - failWindowMs) { fails++; failUsed[k] = true; }
             }
+            while (fi < fail.size() && fail.get(fi) <= t) fi++;
+            String how = pin ? "pincode" : a11yOn ? "anders" : "onbekend";
+            Unlock blk = new Unlock(t, how, fails, t);
+            // einde: eerstvolgende scherm-uit/slot ná t en vóór de volgende ontgrendeling
+            while (so < offs.size() && offs.get(so) <= t) so++;
+            long end = next;
+            if (so < offs.size() && offs.get(so) < next) end = offs.get(so);
+            blk.end = end == Long.MAX_VALUE ? t : end;
+            // apps in dit blok (sessies starten op volgorde; pointer loopt mee)
+            while (ss < sess.size() && sess.get(ss).start < t) ss++;
+            int k = ss;
+            while (k < sess.size() && sess.get(k).start < blk.end) { Session s = sess.get(k); blk.apps.add(new AppUse(s.pkg, s.start, s.dur())); k++; }
+            out.add(blk);
         }
-        // Mislukte pogingen die nergens bij hoorden: een los blok.
-        if (pending > 0) out.add(new Unlock(pendingLast, "mislukt", pending, pendingLast));
+        // Overgebleven mislukte pogingen: eigen "mislukt"-blokken, opeenvolgende binnen failWindow samen.
+        int run = 0; long runStart = 0, runLast = 0;
+        for (int k = 0; k < fail.size(); k++) {
+            if (failUsed[k]) { if (run > 0) { out.add(new Unlock(runStart, "mislukt", run, runLast)); run = 0; } continue; }
+            long ft = fail.get(k);
+            if (run == 0) { runStart = ft; run = 1; runLast = ft; }
+            else if (ft - runLast <= failWindowMs) { run++; runLast = ft; }
+            else { out.add(new Unlock(runStart, "mislukt", run, runLast)); runStart = ft; run = 1; runLast = ft; }
+        }
+        if (run > 0) out.add(new Unlock(runStart, "mislukt", run, runLast));
 
         Collections.sort(out, (a, b) -> Long.compare(a.t, b.t));
-
-        // Einde van elk ontgrendelingsblok: de eerstvolgende SCREEN_OFF/LOCKED na de ontgrendeling (vóór de volgende ontgrendeling).
-        for (int i = 0; i < out.size(); i++) {
-            Unlock u = out.get(i);
-            if ("mislukt".equals(u.how)) continue;
-            long next = i + 1 < out.size() ? out.get(i + 1).t : Long.MAX_VALUE;
-            long end = next;
-            for (Ev e : evs) if ((e.type == SCREEN_OFF || e.type == LOCKED) && e.t > u.t && e.t < next) { end = e.t; break; }
-            u.end = end == Long.MAX_VALUE ? u.t : end;
-            for (Session s : sess) if (s.start >= u.t && s.start < u.end) u.apps.add(new AppUse(s.pkg, s.start, s.dur()));
-        }
         return out;
     }
 
@@ -151,34 +186,44 @@ public final class Gebruik {
         return out;
     }
 
-    /** Hoe vaak een app werd geopend (aantal sessies per app). */
-    public static Map<String, Integer> counts(List<Session> sess) {
+    /** Hoe vaak een app geopend werd: opeenvolgende sessies van dezelfde app met een gaatje korter dan gapMs tellen als één keer. */
+    public static Map<String, Integer> counts(List<Session> sess, long gapMs) {
+        List<Session> l = new ArrayList<>(sess);
+        Collections.sort(l, (a, b) -> Long.compare(a.start, b.start));
         Map<String, Integer> m = new LinkedHashMap<>();
-        for (Session s : sess) { Integer v = m.get(s.pkg); m.put(s.pkg, (v == null ? 0 : v) + 1); }
+        Map<String, Long> lastEnd = new java.util.HashMap<>();
+        for (Session s : l) {
+            Long le = lastEnd.get(s.pkg);
+            if (le == null || s.start - le > gapMs) { Integer v = m.get(s.pkg); m.put(s.pkg, (v == null ? 0 : v) + 1); }
+            lastEnd.put(s.pkg, s.end);
+        }
         return m;
     }
 
-    /** Schermtijd per uur van een dag (24 emmers, milliseconden), een sessie die over uren loopt wordt verdeeld. */
-    public static long[] hourly(List<Session> sess, long dayStart) {
+    /** Schermtijd per uur van een dag (24 emmers, milliseconden), met echte lokale-tijd-uurgrenzen (ook rond zomer-/wintertijd). */
+    public static long[] hourly(List<Session> sess, long dayStart, TimeZone tz) {
         long[] h = new long[24];
-        long dayEnd = dayStart + 24L * 3600_000L;
+        long dayEnd = dayStartAfter(dayStart, 1, tz);
+        Calendar k = Calendar.getInstance(tz);
         for (Session s : sess) {
             long a = Math.max(s.start, dayStart), b = Math.min(s.end, dayEnd);
-            if (b <= a) continue;
             long t = a;
             while (t < b) {
-                int hour = (int) ((t - dayStart) / 3600_000L);
-                if (hour < 0 || hour > 23) break;
-                long bucketEnd = dayStart + (hour + 1L) * 3600_000L;
-                long until = Math.min(b, bucketEnd);
-                h[hour] += until - t;
+                k.setTimeInMillis(t);
+                int hour = k.get(Calendar.HOUR_OF_DAY);
+                k.set(Calendar.MINUTE, 0); k.set(Calendar.SECOND, 0); k.set(Calendar.MILLISECOND, 0);
+                k.add(Calendar.HOUR_OF_DAY, 1);
+                long bound = k.getTimeInMillis();
+                long until = Math.min(b, bound);
+                if (until <= t) break; // vangnet
+                if (hour >= 0 && hour < 24) h[hour] += until - t;
                 t = until;
             }
         }
         return h;
     }
 
-    /** Schermtijd per dag binnen een reeks (aantal dagen vanaf dayStart, elk 1 dag), milliseconden. */
+    /** Schermtijd per dag binnen een reeks (aantal dagen vanaf firstDayStart), milliseconden; sessies over middernacht worden geknipt. */
     public static long[] daily(List<Session> sess, long firstDayStart, int days, TimeZone tz) {
         long[] out = new long[Math.max(0, days)];
         for (int i = 0; i < out.length; i++) {
@@ -187,6 +232,24 @@ public final class Gebruik {
             for (Session s : sess) { long a = Math.max(s.start, ds), b = Math.min(s.end, de); if (b > a) out[i] += b - a; }
         }
         return out;
+    }
+
+    /** Schermtijd per dag (sleutel → milliseconden), sessies over middernacht netjes verdeeld over beide dagen. */
+    public static Map<String, long[]> perDay(List<Session> sess, TimeZone tz) {
+        // waarde: [totaal]; apps apart via perDayApp als nodig
+        Map<String, long[]> m = new LinkedHashMap<>();
+        for (Session s : sess) {
+            long t = s.start;
+            while (t < s.end) {
+                long ds = dayStart(t, tz), de = dayStartAfter(ds, 1, tz);
+                long until = Math.min(s.end, de);
+                String key = dateKey(t, tz);
+                long[] v = m.get(key); if (v == null) { v = new long[1]; m.put(key, v); }
+                v[0] += until - t;
+                t = until;
+            }
+        }
+        return m;
     }
 
     // ---------- dag-indeling en bewaartermijn ----------
@@ -217,8 +280,7 @@ public final class Gebruik {
     /** Is t ouder dan 'days' dagen vóór now (grens op het begin van de dag)? Gebruikt voor opruimen. */
     public static boolean olderThan(long t, long now, int days, TimeZone tz) {
         if (days <= 0) return false;
-        long cutoff = dayStartAfter(now, -days + 1, tz); // alles vóór het begin van die dag mag weg
-        return t < cutoff;
+        return t < dayStartAfter(now, -days + 1, tz);
     }
 
     /** Bewaartermijn in dagen → oudste tijd die nog bewaard blijft (begin van die dag). */

@@ -12,13 +12,16 @@ const GB_FUNC = { camera: ['camera', '📷'], mic: ['microfoon', '🎙'], loc: [
 
 function enterGebruik(){
   const s = gbState();
+  const off = s.set && s.set.collect === false;
+  $('#gb-start').style.display = off ? '' : 'none';
   const perm = $('#gb-perm');
-  if (!s.access) {
+  if (!off && !s.access) {
     perm.style.display = '';
     slHtml(perm, '<h2>Toegang tot gebruik</h2><p class="note">Gebruik heeft de bijzondere toegang "Toegang tot gebruik" nodig om te zien welke apps je gebruikt en wanneer. Die geef je zelf in Android.</p><button class="big" onclick="Android.gebruikOpenAccess()">Toegang geven</button>');
   } else perm.style.display = 'none';
   gbTab(gbTabV);
 }
+function gbStart(){ gbSaveOne('collect', true); enterGebruik(); }
 
 function gbTab(name){
   gbTabV = name;
@@ -30,7 +33,7 @@ function gbTab(name){
   else if (name === 'meldingen') gbRenderNotifs();
 }
 
-function gbPeriod(p){ gbPeriodV = p; document.querySelectorAll('#gb-period button').forEach(b => b.classList.toggle('on', b.dataset.p === p)); gbRenderOverview(); }
+function gbPeriod(p){ gbPeriodV = p; document.querySelectorAll('#gb-period button').forEach(b => { const on = b.dataset.p === p; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); gbRenderOverview(); }
 
 function gbRenderOverview(){
   const o = rdJson(Android.gebruikOverview(gbPeriodV), {}) || {};
@@ -38,7 +41,8 @@ function gbRenderOverview(){
   $('#gb-unlocks').textContent = (o.unlocks || 0);
   slHtml($('#gb-chart'), gbChart(o.chart || [], gbPeriodV));
   const apps = o.apps || [];
-  if (!apps.length) { slHtml($('#gb-apps'), '<p class="note">Nog niets te zien voor deze periode.</p>'); return; }
+  const longP = gbPeriodV === 'maand' || gbPeriodV === 'jaar';
+  if (!apps.length) { slHtml($('#gb-apps'), '<p class="note">' + (longP ? 'Per app zie je bij Vandaag of Week; hier gaat het om de totale schermtijd per dag of week.' : 'Nog niets te zien voor deze periode.') + '</p>'); return; }
   gbImgs = [];
   slHtml($('#gb-apps'), apps.map(a =>
     '<div class="gb-app">' + gbIcon(a) + '<div class="gb-app-t"><b>' + esc(a.name || a.pkg) + '</b><small>' + (a.opens || 0) + '× geopend</small></div><span class="gb-app-d">' + gbDur(a.ms) + '</span></div>'
@@ -60,19 +64,21 @@ function gbChart(data, period){
     const h = Math.max(1, (data[i] / max) * (H - B - 4));
     bars += '<rect class="gb-bar" x="' + (i * bw + bw * 0.12).toFixed(1) + '" y="' + (H - B - h).toFixed(1) + '" width="' + (bw * 0.76).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2"/>';
   }
-  if (period === 'week') {
-    const now = new Date();
-    for (let i = 0; i < n; i++) { const d = new Date(now.getTime() - (n - 1 - i) * 86400000); labs += '<text class="gb-lab" x="' + (i * bw + bw / 2).toFixed(1) + '" y="' + (H - 5) + '">' + ['zo','ma','di','wo','do','vr','za'][d.getDay()] + '</text>'; }
-  } else {
-    for (let i = 0; i < n; i += 6) labs += '<text class="gb-lab" x="' + (i * bw + bw / 2).toFixed(1) + '" y="' + (H - 5) + '">' + i + '</text>';
-  }
-  return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Schermtijd ' + (period === 'week' ? 'per dag' : 'per uur') + '">' + bars + labs + '</svg>';
+  const lab = (i, txt) => { labs += '<text class="gb-lab" x="' + (i * bw + bw / 2).toFixed(1) + '" y="' + (H - 5) + '">' + txt + '</text>'; };
+  let aria = 'per uur';
+  if (period === 'week') { const now = new Date(); aria = 'per dag'; for (let i = 0; i < n; i++) { const d = new Date(now.getTime() - (n - 1 - i) * 86400000); lab(i, ['zo','ma','di','wo','do','vr','za'][d.getDay()]); } }
+  else if (period === 'maand') { aria = 'per dag'; const now = new Date(); for (let i = 0; i < n; i += 7) { const d = new Date(now.getTime() - (n - 1 - i) * 86400000); lab(i, d.getDate() + '/' + (d.getMonth() + 1)); } }
+  else if (period === 'jaar') { aria = 'per week'; for (let i = 0; i < n; i += 8) lab(i, (n - i) + 'w'); }
+  else { for (let i = 0; i < n; i += 6) lab(i, i); }
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Schermtijd ' + aria + '">' + bars + labs + '</svg>';
 }
 
 function gbBadge(b){
-  if (b.how === 'pincode') return '<span class="gb-badge gb-pin">met pincode</span>';
+  const fail = b.fails ? ' <span class="gb-badge gb-fail">na ' + b.fails + '× mis</span>' : '';
+  if (b.how === 'pincode') return '<span class="gb-badge gb-pin">met pincode</span>' + fail;
   if (b.how === 'mislukt') return '<span class="gb-badge gb-fail">mislukt ×' + (b.fails || 1) + '</span>';
-  return '<span class="gb-badge">anders</span>' + (b.fails ? ' <span class="gb-badge gb-fail">eerst ' + b.fails + '× mis</span>' : '');
+  if (b.how === 'onbekend') return '<span class="gb-badge">ontgrendeld (manier onbekend)</span>' + fail;
+  return '<span class="gb-badge">anders</span>' + fail;
 }
 
 function gbRenderUnlocks(){
@@ -119,32 +125,49 @@ function gbRenderNotifs(){
 }
 
 /* ---------- foto bekijken ---------- */
+let gbLightKey = null;
+function gbCloseLight(){ const ov = $('#gb-light'); if (ov) ov.remove(); if (gbLightKey) { document.removeEventListener('keydown', gbLightKey); gbLightKey = null; } }
 function gbShowPhoto(id){
   const url = Android.gebruikPhoto(id);
   if (!url) { toast('Foto niet gevonden'); return; }
-  let ov = $('#gb-light');
-  if (!ov) { ov = document.createElement('div'); ov.id = 'gb-light'; ov.className = 'gb-light'; ov.onclick = () => ov.remove(); document.body.appendChild(ov); }
-  ov.textContent = '';
+  gbCloseLight();
+  const ov = document.createElement('div'); ov.id = 'gb-light'; ov.className = 'gb-light';
+  ov.onclick = gbCloseLight;
   const img = document.createElement('img'); img.alt = 'Foto bij ontgrendeling'; img.src = url; ov.appendChild(img);
+  const x = document.createElement('button'); x.className = 'gb-light-x'; x.setAttribute('aria-label', 'Sluiten'); x.textContent = '✕';
+  x.onclick = e => { e.stopPropagation(); gbCloseLight(); };
+  ov.appendChild(x);
+  document.body.appendChild(ov);
+  gbLightKey = e => { if (e.key === 'Escape') gbCloseLight(); };
+  document.addEventListener('keydown', gbLightKey);
 }
+/* De hardware-terugknop sluit eerst de fotoweergave (goBack roept dit via window). */
+window.gbBack = function(){ if ($('#gb-light')) { gbCloseLight(); return true; } return false; };
 
 /* ---------- instellingen ---------- */
 function enterGebruikSet(){
   const s = gbState(), set = s.set || {}, caps = s.photoCaps || {};
-  $('#gb-collect').classList.toggle('on', set.collect !== false);
-  $('#gb-collect').setAttribute('aria-checked', set.collect !== false ? 'true' : 'false');
+  gbTgEl('#gb-collect', set.collect !== false);
   gbChipSel('#gb-keep', set.keep || 365);
   gbChipSel('#gb-detail', set.detail || 60);
   gbChipSel('#gb-pafter', set.photoAfter || 3);
   gbChipSel('#gb-pkeep', set.photoKeep || 30);
+  gbChipSel('#gb-punlock', set.punlock || 'uit');
   gbTgEl('#gb-admin', s.admin);
   gbTgEl('#gb-pfail', set.photoFail);
-  gbTgEl('#gb-punlock', set.photoUnlock);
   $('#gb-admin-off').style.display = s.admin ? '' : 'none';
   $('#gb-access-note').textContent = s.access ? 'Toegang tot gebruik staat aan.' : 'Nog niet gegeven: zonder deze toegang ziet Gebruik geen schermtijd.';
-  const why = caps.why || '';
-  $('#gb-photo-status').textContent = (caps.works ? 'Werkt op deze telefoon. ' : 'Werkt mogelijk niet: ') + why + (s.lastShot && s.lastShot.indexOf('mislukt') === 0 ? ' Laatste proef: ' + s.lastShot : '');
-  if (!s.overlay) $('#gb-photo-status').innerHTML = esc($('#gb-photo-status').textContent) + ' <button class="linkish" onclick="Android.gebruikOpenOverlay()">Boven andere apps toestaan</button>';
+  $('#gb-a11y-note').textContent = s.a11y ? 'De toegankelijkheidsdienst staat aan: "met pincode" wordt herkend.' : 'De toegankelijkheidsdienst staat uit: ontgrendelingen heten dan "onbekend", en "foto alleen met pincode" werkt niet. Zet hem aan bij Automatiseringen.';
+  // Eerlijke status + knoppen om te repareren wat ontbreekt
+  const proef = s.lastShot === 'bezig' ? ' Bezig met de proefopname…' : (s.lastShot && s.lastShot.indexOf('mislukt') === 0 ? ' Laatste proef: ' + s.lastShot.slice(9) : (s.lastShot && s.lastShot.indexOf('ok|') === 0 ? ' Laatste proef: gelukt.' : ''));
+  const st = $('#gb-photo-status');
+  st.textContent = (caps.works ? 'Werkt op deze telefoon. ' : 'Werkt mogelijk niet. ') + (caps.why || '') + proef;
+  st.classList.toggle('bad', !caps.works);
+  const fix = [];
+  if (!caps.camera) fix.push(['Cameratoestemming geven', "show('setperm')"]);
+  if (!caps.overlay) fix.push(['Boven andere apps toestaan', 'Android.gebruikOpenOverlay()']);
+  if (!s.a11y) fix.push(['Toegankelijkheid aanzetten (voor "alleen met pincode")', "show('auto')"]);
+  slHtml($('#gb-photo-fix'), fix.map(f => '<button class="big ghost" onclick="' + f[1] + '">' + esc(f[0]) + '</button>').join(''));
   gbRenderPhotos();
 }
 
@@ -157,7 +180,9 @@ function gbDetail(v){ gbSaveOne('detail', v); enterGebruikSet(); }
 function gbPhotoAfter(v){ gbSaveOne('photoAfter', v); enterGebruikSet(); }
 function gbPhotoKeep(v){ gbSaveOne('photoKeep', v); enterGebruikSet(); }
 function gbPhotoTg(k){ const cur = !!gbSet()[k]; gbSaveOne(k, !cur); enterGebruikSet(); }
-function gbAdmin(){ if (gbState().admin) { Android.gebruikAdmin(false); } else { Android.gebruikAdmin(true); } }
+function gbPunlock(v){ gbSaveOne('punlock', v); enterGebruikSet(); }
+function gbAdmin(){ if (gbState().admin) gbAdminOff(); else Android.gebruikAdmin(true); }
+function gbAdminOff(){ askConfirm('Apparaatbeheer uitzetten?', 'Daarna ziet Gebruik mislukte pogingen niet meer, en kan de app weer verwijderd worden.', 'Uitzetten', () => Android.gebruikAdmin(false)); }
 
 function gbTestShot(){
   Android.gebruikTestShot();

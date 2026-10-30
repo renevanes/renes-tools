@@ -173,6 +173,7 @@ window.goBack = function(){
   // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
   if ($('#lockscr').classList.contains('on')) return false;
   if ($('#modal').classList.contains('on')) { closeModal(null); return true; }
+  if (typeof gbBack === 'function' && gbBack()) return true;
   if ($('#voice') && $('#voice').classList.contains('on')) { voiceClose(); return true; }
   if ($('#ci-ans') && $('#ci-ans').classList.contains('on')) { ciAnsClose(); return true; }
   if ($('#sleepdlg').classList.contains('on')) { sleepClose(); return true; }

@@ -132,19 +132,61 @@ public class AutoA11y extends AccessibilityService {
 
     @Override public void onInterrupt() { }
 
-    /** Alleen gebeurtenissen van deze app (en de eigen app) ontvangen; null = alleen de eigen app. */
+    /** Alleen gebeurtenissen van deze app (en de eigen app) ontvangen; null = alleen de eigen app.
+     *  Als Gebruik bijhoudt, ook com.android.systemui erbij voor het pincode-signaal (alleen of het slot-invoerscherm
+     *  verscheen; nooit toetsen of tekst, zie onder). */
     void watch(String pkg) {
         try {
             AccessibilityServiceInfo i = getServiceInfo();
             if (i == null) return;
-            i.packageNames = pkg == null ? new String[]{getPackageName()} : new String[]{pkg, getPackageName()};
+            java.util.List<String> pkgs = new java.util.ArrayList<>();
+            if (pkg != null) pkgs.add(pkg);
+            pkgs.add(getPackageName());
+            try { if (GebruikStore.collecting(this)) pkgs.add("com.android.systemui"); } catch (Throwable ignored) { }
+            i.packageNames = pkgs.toArray(new String[0]);
             setServiceInfo(i);
         } catch (Exception ignored) { }
     }
 
+    /** Gebruik is aan- of uitgezet: de luisteromvang (systemui erbij of niet) opnieuw toepassen. */
+    static void refreshScope() { AutoA11y s = inst; if (s != null) try { s.watch(s.recPkg); } catch (Throwable ignored) { } }
+
+    private long lastBouncer;
+    private static final java.util.regex.Pattern BOUNCER = java.util.regex.Pattern.compile("keyguard|bouncer|pinentry|pin_entry|passwordentry|password_entry|lockpattern|pattern|unlock");
+
+    /**
+     * Herkent dat het invoerscherm van het slot verscheen. Kijkt ALLEEN naar de klassenaam en view-id-namen (vaste namen
+     * in het systeem), nooit naar getypte tekst, cijfers of toetsaanslagen. Defensief over fabrikanten (ColorOS/Oppo).
+     */
+    private boolean bouncerLike(AccessibilityEvent e) {
+        if (BOUNCER.matcher(str(e.getClassName()).toLowerCase(java.util.Locale.ROOT)).find()) return true;
+        AccessibilityNodeInfo n = e.getSource();
+        if (n == null) return false;
+        try {
+            String vid = n.getViewIdResourceName();
+            if (vid != null && BOUNCER.matcher(vid.toLowerCase(java.util.Locale.ROOT)).find()) return true;
+            int kids = Math.min(n.getChildCount(), 8); // ondiep; alleen view-id-namen, geen tekst
+            for (int k = 0; k < kids; k++) {
+                AccessibilityNodeInfo ch = n.getChild(k);
+                if (ch == null) continue;
+                try { String v = ch.getViewIdResourceName(); if (v != null && BOUNCER.matcher(v.toLowerCase(java.util.Locale.ROOT)).find()) return true; }
+                finally { try { ch.recycle(); } catch (Throwable ignored) { } }
+            }
+        } catch (Throwable ignored) { } finally { try { n.recycle(); } catch (Throwable ignored) { } }
+        return false;
+    }
+
     @Override
     public void onAccessibilityEvent(AccessibilityEvent e) {
-        if (e == null || recPkg == null) return;
+        if (e == null) return;
+        // Pincode-signaal voor Gebruik: alleen dát het slot-invoerscherm verscheen (boolean + tijdstip), nooit de inhoud.
+        if (e.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && e.getPackageName() != null && "com.android.systemui".contentEquals(e.getPackageName())) {
+            try {
+                long now = System.currentTimeMillis();
+                if (now - lastBouncer > 1500 && bouncerLike(e)) { lastBouncer = now; GebruikStore.onBouncerShown(getApplicationContext()); }
+            } catch (Throwable ignored) { }
+        }
+        if (recPkg == null) return;
         if (e.getEventType() != AccessibilityEvent.TYPE_VIEW_CLICKED) return;
         if (e.getPackageName() == null || !recPkg.contentEquals(e.getPackageName())) return;
         if (System.currentTimeMillis() < suppressUntil) return;

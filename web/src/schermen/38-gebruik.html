@@ -10,17 +10,25 @@
     <div class="card perm" id="gb-perm" style="display:none"></div>
 
     <div class="gb-tabs" id="gb-tabs" role="tablist" aria-label="Onderdelen">
-      <button class="gb-tab on" data-tab="overzicht" onclick="gbTab('overzicht')">Schermtijd</button>
-      <button class="gb-tab" data-tab="ontgrendel" onclick="gbTab('ontgrendel')">Ontgrendelingen</button>
-      <button class="gb-tab" data-tab="functies" onclick="gbTab('functies')">Functies</button>
-      <button class="gb-tab" data-tab="meldingen" onclick="gbTab('meldingen')">Meldingen</button>
+      <button class="gb-tab on" role="tab" aria-selected="true" data-tab="overzicht" onclick="gbTab('overzicht')">Schermtijd</button>
+      <button class="gb-tab" role="tab" aria-selected="false" data-tab="ontgrendel" onclick="gbTab('ontgrendel')">Ontgrendelingen</button>
+      <button class="gb-tab" role="tab" aria-selected="false" data-tab="functies" onclick="gbTab('functies')">Functies</button>
+      <button class="gb-tab" role="tab" aria-selected="false" data-tab="meldingen" onclick="gbTab('meldingen')">Meldingen</button>
+    </div>
+
+    <div class="card" id="gb-start" style="display:none">
+      <h2>Gebruik aanzetten</h2>
+      <p class="note">Gebruik houdt niets bij tot je het zelf aanzet. Daarna zie je je schermtijd, ontgrendelingen en welke functies gebruikt worden. Alles blijft op je telefoon.</p>
+      <button class="big" onclick="gbStart()">Gebruik bijhouden aanzetten</button>
     </div>
 
     <!-- Schermtijd -->
     <div id="gb-overzicht" class="gb-pane">
       <div class="gb-seg" id="gb-period" role="group" aria-label="Periode">
-        <button class="on" data-p="today" onclick="gbPeriod('today')">Vandaag</button>
-        <button data-p="week" onclick="gbPeriod('week')">Week</button>
+        <button class="on" data-p="today" aria-pressed="true" onclick="gbPeriod('today')">Vandaag</button>
+        <button data-p="week" aria-pressed="false" onclick="gbPeriod('week')">Week</button>
+        <button data-p="maand" aria-pressed="false" onclick="gbPeriod('maand')">Maand</button>
+        <button data-p="jaar" aria-pressed="false" onclick="gbPeriod('jaar')">Jaar</button>
       </div>
       <div class="card">
         <div class="gb-top"><div><b id="gb-total">—</b><small>schermtijd</small></div><div><b id="gb-unlocks">—</b><small>keer ontgrendeld</small></div></div>
@@ -34,7 +42,7 @@
 
     <!-- Ontgrendelingen -->
     <div id="gb-ontgrendel" class="gb-pane" style="display:none">
-      <p class="note">Elke ontgrendeling als blok: wanneer, hoe (met pincode of anders), en welke apps er daarna in welke volgorde kwamen, tot het scherm weer uit ging. Mislukte pogingen staan apart.</p>
+      <p class="note">Elke ontgrendeling als blok: wanneer, hoe, en welke apps er daarna in welke volgorde kwamen, tot het scherm weer uit ging. "Met pincode" vraagt de toegankelijkheidsdienst (die herkent alleen dát het pincodescherm verscheen, nooit wat je typt); staat die uit, dan is de manier "onbekend". Mislukte pogingen (via apparaatbeheer) staan apart. Ontgrendelingen worden bijgehouden vanaf Android 9.</p>
       <div id="gb-blocks"></div>
     </div>
 
@@ -82,17 +90,22 @@
     </div>
 
     <div class="card">
-      <h2>Ontgrendelingen met pincode</h2>
-      <p class="note">Met apparaatbeheer kan Gebruik zien wanneer je met pincode, patroon of wachtwoord ontgrendelt en wanneer dat misging. Je zet het zelf aan en uit. Zolang het aanstaat, kan de app niet verwijderd worden; zet het eerst uit.</p>
-      <div class="sw"><span>Apparaatbeheer<small id="gb-admin-n">Nodig voor ontgrendelingen met pincode en mislukte pogingen</small></span><button class="tg" id="gb-admin" role="switch" aria-checked="false" aria-label="Apparaatbeheer" aria-describedby="gb-admin-n" onclick="gbAdmin()"></button></div>
-      <button class="big ghost" id="gb-admin-off" onclick="Android.gebruikAdmin(false)" style="display:none">Apparaatbeheer uitzetten</button>
+      <h2>Manier van ontgrendelen (pincode)</h2>
+      <p class="note">Of je met pincode/patroon/wachtwoord ontgrendelde, ziet Gebruik via de toegankelijkheidsdienst (die herkent alleen dát het invoerscherm verscheen, nooit wat je typt). Zet die aan bij Automatiseringen. Apparaatbeheer laat daarnaast mislukte pogingen en "ontgrendeld na mislukt" zien; dat zet je zelf aan en uit. Zolang apparaatbeheer aanstaat, kan de app niet verwijderd worden; zet het eerst uit.</p>
+      <p class="note" id="gb-a11y-note"></p>
+      <div class="sw"><span>Apparaatbeheer<small id="gb-admin-n">Voor mislukte pogingen en ontgrendeld-na-mislukt</small></span><button class="tg" id="gb-admin" role="switch" aria-checked="false" aria-label="Apparaatbeheer" aria-describedby="gb-admin-n" onclick="gbAdmin()"></button></div>
+      <button class="big ghost" id="gb-admin-off" onclick="gbAdminOff()" style="display:none">Apparaatbeheer uitzetten</button>
     </div>
 
     <div class="card">
       <h2>Foto bij ontgrendelen</h2>
-      <p class="note" id="gb-photo-status"></p>
-      <div class="sw"><span>Foto bij een mislukte poging<small id="gb-pfail-n">Een stille foto met de voorcamera bij genoeg mislukte pogingen</small></span><button class="tg" id="gb-pfail" role="switch" aria-checked="false" aria-label="Foto bij een mislukte poging" aria-describedby="gb-pfail-n" onclick="gbPhotoTg('photoFail')"></button></div>
-      <div class="sw"><span>Foto bij ontgrendelen<small id="gb-punlock-n">Ook een stille foto als er met pincode ontgrendeld wordt</small></span><button class="tg" id="gb-punlock" role="switch" aria-checked="false" aria-label="Foto bij ontgrendelen" aria-describedby="gb-punlock-n" onclick="gbPhotoTg('photoUnlock')"></button></div>
+      <p class="note">Een stille foto met de voorcamera. Android laat daarbij kort het camera-stipje zien. De foto's staan versleuteld in de app, nooit in je galerij.</p>
+      <p class="note bad" id="gb-photo-status"></p>
+      <div id="gb-photo-fix"></div>
+      <div class="sw"><span>Foto bij een mislukte poging<small id="gb-pfail-n">Bij genoeg mislukte pogingen (via apparaatbeheer)</small></span><button class="tg" id="gb-pfail" role="switch" aria-checked="false" aria-label="Foto bij een mislukte poging" aria-describedby="gb-pfail-n" onclick="gbPhotoTg('photoFail')"></button></div>
+      <b class="gb-lbl">Foto bij ontgrendelen</b>
+      <div class="chips sm" id="gb-punlock" role="radiogroup" aria-label="Foto bij ontgrendelen"><button role="radio" aria-checked="true" data-v="uit" onclick="gbPunlock('uit')">Uit</button><button role="radio" aria-checked="false" data-v="elke" onclick="gbPunlock('elke')">Bij elke ontgrendeling</button><button role="radio" aria-checked="false" data-v="pincode" onclick="gbPunlock('pincode')">Alleen met pincode</button></div>
+      <p class="note" id="gb-punlock-n">"Alleen met pincode" heeft de toegankelijkheidsdienst nodig.</p>
       <b class="gb-lbl">Foto na dit aantal mislukte pogingen</b>
       <div class="chips sm" id="gb-pafter" role="radiogroup" aria-label="Na aantal mislukte pogingen"><button role="radio" data-v="1" onclick="gbPhotoAfter(1)">1</button><button role="radio" data-v="2" onclick="gbPhotoAfter(2)">2</button><button role="radio" aria-checked="true" data-v="3" onclick="gbPhotoAfter(3)">3</button><button role="radio" data-v="5" onclick="gbPhotoAfter(5)">5</button></div>
       <b class="gb-lbl">Foto's bewaren</b>

@@ -21,6 +21,10 @@ public class GebruikAdmin extends DeviceAdminReceiver {
     }
 
     @Override public CharSequence onDisableRequested(Context context, Intent intent) {
-        return "Apparaatbeheer uitzetten. Daarna ziet Gebruik niet meer wanneer er met pincode ontgrendeld werd, en kan de app weer verwijderd worden.";
+        return "Apparaatbeheer uitzetten. Daarna ziet Gebruik mislukte pogingen en ontgrendelingen-na-mislukt niet meer, en kan de app weer verwijderd worden.";
+    }
+
+    @Override public void onDisabled(Context context, Intent intent) {
+        try { GebruikStore.prefs(context.getApplicationContext()).edit().putInt("failRun", 0).apply(); } catch (Throwable ignored) { }
     }
 }

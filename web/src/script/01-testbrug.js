@@ -849,19 +849,24 @@ if (!window.Android) window.Android = (function(){
     autoA11ySettings(){ Object.assign(this._au.perms,{a11y:true,a11yRunning:true}); },
     autoPerm(k){ const P=this._au.perms; if(k==='loc'){P.loc=true;P.fine=true;} if(k==='bgloc'){ if(!P.loc){P.loc=true;P.fine=true;} else P.bgloc=true; } if(k==='bt')P.bt=true; if(k==='notif')P.notif=true; setTimeout(()=>onAutoChanged(),50); },
     // Gebruik: schermtijd, ontgrendelingen, functies, meldingen, foto's
-    _gb:{ access:true, admin:false, notifOn:true, overlay:true, sdk:34, lastShot:'',
+    _gb:{ access:true, admin:false, a11y:true, notifOn:true, overlay:true, sdk:34, lastShot:'',
       photos:[{id:'shot-1-ontgrendeld.jpg',t:Date.now()-36e5,reason:'ontgrendeld'}],
-      set:{collect:true,keep:365,detail:60,photoFail:false,photoUnlock:false,photoAfter:3,photoKeep:30} },
-    gebruikState(){ const g=this._gb; const caps={camera:true,overlay:g.overlay,front:true,works:g.overlay,why:g.overlay?'Werkt op veel telefoons; test met Proefopname.':'Zet "Boven andere apps tonen" aan.'};
-      return JSON.stringify({access:g.access,admin:g.admin,notifOn:g.notifOn,overlay:g.overlay,sdk:g.sdk,set:g.set,photoCaps:caps,photos:g.photos.length,lastShot:g.lastShot}); },
+      set:{collect:true,keep:365,detail:60,photoFail:false,punlock:'uit',photoAfter:3,photoKeep:30} },
+    gebruikState(){ const g=this._gb; const works=g.overlay&&g.camera!==false; const caps={camera:g.camera!==false,overlay:g.overlay,front:true,works:works,why:works?'Android laat kort het camera-stipje zien. Test met Proefopname.':(!g.overlay?'Zet "Boven andere apps tonen" aan.':'Geef de app cameratoestemming.')};
+      return JSON.stringify({access:g.access,admin:g.admin,a11y:g.a11y,notifOn:g.notifOn,overlay:g.overlay,sdk:g.sdk,set:g.set,photoCaps:caps,photos:g.photos.length,lastShot:g.lastShot}); },
     gebruikSave(j){ try{ Object.assign(this._gb.set, JSON.parse(j)); }catch(e){} return JSON.stringify(this._gb.set); },
-    gebruikOverview(p){ const week=p==='week';
-      const chart = week ? [36e5,72e5,18e5,54e5,90e5,21e5,66e5] : Array.from({length:24},(_,i)=> i===9?12e5 : i===13?18e5 : i===21?24e5 : (i>=8&&i<=22?3e5:0));
+    gebruikOverview(p){
+      const chart = p==='week' ? [36e5,72e5,18e5,54e5,90e5,21e5,66e5]
+        : p==='maand' ? Array.from({length:30},(_,i)=>(i%3?3e6:6e6))
+        : p==='jaar' ? Array.from({length:52},(_,i)=>(i%2?2e7:3e7))
+        : Array.from({length:24},(_,i)=> i===9?12e5 : i===13?18e5 : i===21?24e5 : (i>=8&&i<=22?3e5:0));
       let total=0; chart.forEach(v=>total+=v);
-      const apps=[{pkg:'com.whatsapp',name:'WhatsApp',icon:'',ms:42e5,opens:14},{pkg:'com.android.chrome',name:'Chrome',icon:'',ms:27e5,opens:6},{pkg:'nl.rene.tools',name:'Tools',icon:'',ms:9e5,opens:3}];
-      return JSON.stringify({total,period:p,chart,apps,unlocks:7,pickups:7}); },
+      const longP = p==='maand'||p==='jaar';
+      const apps=longP?[]:[{pkg:'com.whatsapp',name:'WhatsApp',icon:'',ms:42e5,opens:14},{pkg:'com.android.chrome',name:'Chrome',icon:'',ms:27e5,opens:6},{pkg:'nl.rene.tools',name:'Tools',icon:'',ms:9e5,opens:3}];
+      return JSON.stringify({total,period:p,chart,apps,unlocks:longP?120:7}); },
     gebruikUnlocks(from,to){ const n=Date.now(); return JSON.stringify({blocks:[
-      {t:n-36e5,how:'pincode',fails:0,end:n-35e5,photo:'shot-1-ontgrendeld.jpg',apps:[{pkg:'com.whatsapp',name:'WhatsApp',icon:'',start:n-36e5,dur:12e5},{pkg:'com.android.chrome',name:'Chrome',icon:'',start:n-24e5,dur:6e5}]},
+      {t:n-36e5,how:'pincode',fails:2,end:n-35e5,photo:'shot-1-ontgrendeld.jpg',apps:[{pkg:'com.evil',name:'<img src=x onerror=alert(1)>',icon:'',start:n-36e5,dur:12e5},{pkg:'com.android.chrome',name:'Chrome',icon:'',start:n-24e5,dur:6e5}]},
+      {t:n-54e5,how:'onbekend',fails:0,end:n-53e5,apps:[{pkg:'nl.rene.tools',name:'Tools',icon:'',start:n-54e5,dur:2e5}]},
       {t:n-72e5,how:'anders',fails:0,end:n-71e5,apps:[{pkg:'nl.rene.tools',name:'Tools',icon:'',start:n-72e5,dur:3e5}]},
       {t:n-9e6,how:'mislukt',fails:3,end:n-9e6,apps:[]} ]}); },
     gebruikFunctions(from,to){ const n=Date.now(); return JSON.stringify({events:[

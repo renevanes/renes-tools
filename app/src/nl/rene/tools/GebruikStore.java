@@ -62,19 +62,20 @@ final class GebruikStore {
 
     // ---------- instellingen ----------
 
-    static boolean collecting(Context c) { return prefs(c).getBoolean("collect", true); }
+    // Bijhouden staat standaard UIT: pas als Rene het zelf aanzet (startkaart in Gebruik) houdt de app iets bij.
+    static boolean collecting(Context c) { return prefs(c).getBoolean("collect", false); }
     static int keepDays(Context c) { return prefs(c).getInt("keep", KEEP_DEFAULT); }
     static int detailDays(Context c) { return prefs(c).getInt("detail", DETAIL_DEFAULT); }
     static boolean photoFail(Context c) { return prefs(c).getBoolean("photoFail", false); }
-    static boolean photoUnlock(Context c) { return prefs(c).getBoolean("photoUnlock", false); }
+    /** Foto bij ontgrendelen: "uit", "elke" (elke ontgrendeling) of "pincode" (alleen met het pincode-signaal). */
+    static String photoUnlockMode(Context c) { String m = prefs(c).getString("punlock", "uit"); return "elke".equals(m) || "pincode".equals(m) ? m : "uit"; }
     static int photoAfter(Context c) { return prefs(c).getInt("photoAfter", PHOTO_AFTER_DEFAULT); }
     static int photoKeepDays(Context c) { return prefs(c).getInt("photoKeep", PHOTO_KEEP_DEFAULT); }
 
     static JSONObject settings(Context c) {
-        SharedPreferences p = prefs(c);
         try {
             return new JSONObject().put("collect", collecting(c)).put("keep", keepDays(c)).put("detail", detailDays(c))
-                    .put("photoFail", photoFail(c)).put("photoUnlock", photoUnlock(c)).put("photoAfter", photoAfter(c))
+                    .put("photoFail", photoFail(c)).put("punlock", photoUnlockMode(c)).put("photoAfter", photoAfter(c))
                     .put("photoKeep", photoKeepDays(c));
         } catch (Exception e) { return new JSONObject(); }
     }
@@ -86,11 +87,21 @@ final class GebruikStore {
         if (o.has("keep")) e.putInt("keep", clamp(o.optInt("keep"), 30, 730));
         if (o.has("detail")) e.putInt("detail", clamp(o.optInt("detail"), 7, 180));
         if (o.has("photoFail")) e.putBoolean("photoFail", o.optBoolean("photoFail"));
-        if (o.has("photoUnlock")) e.putBoolean("photoUnlock", o.optBoolean("photoUnlock"));
+        if (o.has("punlock")) { String m = o.optString("punlock"); e.putString("punlock", "elke".equals(m) || "pincode".equals(m) ? m : "uit"); }
         if (o.has("photoAfter")) e.putInt("photoAfter", clamp(o.optInt("photoAfter"), 1, 10));
         if (o.has("photoKeep")) e.putInt("photoKeep", clamp(o.optInt("photoKeep"), 1, 365));
         e.apply();
-        prune(c);
+        prune(c, true);
+    }
+
+    static final String BOUNCER = "bouncer.jsonl"; // alleen tijdstippen dat het slot-invoerscherm verscheen (nooit de inhoud)
+
+    /** Of de manier van ontgrendelen te bepalen is: dat kan alleen als de toegankelijkheidsdienst aanstaat (bouncer-signaal). */
+    static boolean a11yOn() { return AutoA11y.inst != null; }
+
+    /** De toegankelijkheidsdienst zag het invoerscherm van het slot verschijnen. Alleen dit feit en het tijdstip — nooit toetsen of tekst. */
+    static void onBouncerShown(Context c) {
+        try { if (collecting(c)) append(new File(dir(c), BOUNCER), System.currentTimeMillis() + "\n"); } catch (Throwable ignored) { }
     }
 
     static int clamp(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
@@ -121,11 +132,15 @@ final class GebruikStore {
 
     // ---------- overnemen van gebeurtenissen (UsageStatsManager) ----------
 
-    /** Neemt nieuwe gebeurtenissen over sinds de laatste keer en werkt de samenvatting per dag bij. Vangt alles af. */
-    static synchronized void collect(Context c) {
+    static void collect(Context c) { collect(c, false); }
+
+    /** Neemt nieuwe gebeurtenissen over sinds de laatste keer en werkt de samenvatting per dag bij. Vangt alles af.
+     *  Niet vaker dan eens per 10 min, tenzij force (bij het openen van het scherm of handmatig verversen). */
+    static synchronized void collect(Context c, boolean force) {
         try {
             if (!collecting(c) || !usageAccess(c)) return;
             long now = System.currentTimeMillis();
+            if (!force && now - prefs(c).getLong("lastCollect", 0) < 10 * 60_000L) return;
             long since = prefs(c).getLong("watermark", 0);
             if (since <= 0) since = now - 3L * 86_400_000L; // eerste keer: hooguit 3 dagen terug (verder houdt Android toch niet bij)
             android.app.usage.UsageStatsManager usm = (android.app.usage.UsageStatsManager) c.getSystemService(Context.USAGE_STATS_SERVICE);
@@ -134,7 +149,7 @@ final class GebruikStore {
             android.app.usage.UsageEvents.Event ev = new android.app.usage.UsageEvents.Event();
             StringBuilder lines = new StringBuilder();
             long max = since;
-            String own = c.getPackageName();
+            boolean reboot = false;
             while (ue != null && ue.getNextEvent(ev)) {
                 int t = mapType(ev.getEventType());
                 if (t == 0) continue;
@@ -143,14 +158,15 @@ final class GebruikStore {
                 if (when > max) max = when;
                 String pkg = (t == Gebruik.APP_START || t == Gebruik.APP_STOP) ? ev.getPackageName() : "";
                 if (pkg == null) pkg = "";
-                if (pkg.equals(own)) pkg = own; // eigen app ook tonen (onder eigen naam)
                 lines.append(when).append('|').append(t).append('|').append(pkg).append('\n');
+                if (t == Gebruik.BOOT) reboot = true;
             }
             if (lines.length() > 0) append(new File(dir(c), EVENTS), lines.toString());
+            if (reboot) funcEvent(c, "herstart", "");
             prefs(c).edit().putLong("watermark", max).putLong("lastCollect", now).apply();
             aggregate(c);
             snapshotFuncs(c);
-            prune(c);
+            prune(c, false);
         } catch (Throwable e) { App.log(c, "GEBRUIK", "overnemen: " + e); }
     }
 
@@ -163,7 +179,8 @@ final class GebruikStore {
             case 16: return Gebruik.SCREEN_OFF;// SCREEN_NON_INTERACTIVE
             case 17: return Gebruik.LOCKED;    // KEYGUARD_SHOWN
             case 18: return Gebruik.UNLOCKED;  // KEYGUARD_HIDDEN
-            case 26: return Gebruik.BOOT;      // DEVICE_STARTUP
+            case 26: return Gebruik.SCREEN_OFF;// DEVICE_SHUTDOWN: sessie eindigt
+            case 27: return Gebruik.BOOT;      // DEVICE_STARTUP: opnieuw opgestart
             default: return 0;
         }
     }
@@ -203,56 +220,72 @@ final class GebruikStore {
         return out;
     }
 
+    static List<Long> readBouncer(Context c, long from, long to) {
+        List<Long> out = new ArrayList<>();
+        File f = new File(dir(c), BOUNCER);
+        if (!f.isFile()) return out;
+        try (BufferedReader r = new BufferedReader(new FileReader(f))) {
+            String l;
+            while ((l = r.readLine()) != null) { l = l.trim(); if (l.isEmpty()) continue; long t = Long.parseLong(l); if (t >= from && t < to) out.add(t); }
+        } catch (Throwable ignored) { }
+        return out;
+    }
+
     // ---------- pogingen bij het vergrendelscherm (van GebruikAdmin) ----------
 
+    /** Apparaatbeheer meldt een poging. onPasswordSucceeded komt alleen ná een mislukte poging: dan telt het als "met pincode". */
     static synchronized void onPassword(Context c, boolean ok) {
         try {
+            if (!collecting(c)) return;
             long now = System.currentTimeMillis();
             append(new File(dir(c), PW), now + "|" + (ok ? "1" : "0") + "\n");
             int fails = 0;
             if (!ok) { fails = prefs(c).getInt("failRun", 0) + 1; prefs(c).edit().putInt("failRun", fails).apply(); }
             else prefs(c).edit().putInt("failRun", 0).apply();
-            // Foto bij een gelukte ontgrendeling, of bij genoeg mislukte pogingen achter elkaar
-            boolean want = (ok && photoUnlock(c)) || (!ok && photoFail(c) && fails >= photoAfter(c));
-            if (want) GebruikShot.capture(c, ok ? "ontgrendeld" : "mislukt");
+            if (!ok && photoFail(c) && fails >= photoAfter(c)) GebruikShot.capture(c, "mislukt");
         } catch (Throwable e) { App.log(c, "GEBRUIK", "poging: " + e); }
+    }
+
+    /** Het vergrendelscherm ging weg (USER_PRESENT / KEYGUARD_HIDDEN): tel-stand mislukte pogingen terug, en eventueel een foto. */
+    static synchronized void onUnlock(Context c) {
+        try {
+            if (!collecting(c)) return;
+            prefs(c).edit().putInt("failRun", 0).apply();
+            String mode = photoUnlockMode(c);
+            if ("uit".equals(mode)) return;
+            boolean pin = "pincode".equals(mode);
+            if (pin) {
+                // Alleen een foto als dit een ontgrendeling met pincode lijkt: een bouncer-signaal vlak hiervoor.
+                long now = System.currentTimeMillis();
+                List<Long> b = readBouncer(c, now - Gebruik.DEFAULT_WINDOW, now + 1);
+                if (b.isEmpty()) return;
+            }
+            GebruikShot.capture(c, "ontgrendeld");
+        } catch (Throwable e) { App.log(c, "GEBRUIK", "ontgrendeld: " + e); }
     }
 
     // ---------- samenvatting per dag (lange bewaartermijn) ----------
 
-    /** Werkt days.json bij: per afgeronde dag de schermtijd per app, aantal ontgrendelingen en keer-oppakken. */
+    /** Werkt days.json bij: per dag het totaal (over middernacht geknipt) en het aantal ontgrendelingen (lange bewaartermijn). */
     static synchronized void aggregate(Context c) {
         try {
             long now = System.currentTimeMillis();
             JSONObject days = readJson(new File(dir(c), DAYS));
             long detailFrom = Gebruik.keepSince(now, detailDays(c), tz());
             List<Gebruik.Ev> evs = readEvents(c, detailFrom, now);
-            List<Gebruik.Session> sess = Gebruik.sessions(evs);
-            // Per dag de sessies verzamelen
-            Map<String, List<Gebruik.Session>> byDay = new LinkedHashMap<>();
-            for (Gebruik.Session s : sess) {
-                String k = Gebruik.dateKey(s.start, tz());
-                List<Gebruik.Session> l = byDay.get(k); if (l == null) { l = new ArrayList<>(); byDay.put(k, l); }
-                l.add(s);
-            }
-            List<Gebruik.Unlock> unl = Gebruik.unlocks(evs, readPw(c, detailFrom, now), 30_000);
-            Map<String, Integer> unlocksByDay = new HashMap<>(), pickupsByDay = new HashMap<>();
+            List<Gebruik.Session> sess = Gebruik.sessions(evs, now);
+            Map<String, long[]> perDay = Gebruik.perDay(sess, tz()); // totaal per dag, over middernacht geknipt
+            List<Gebruik.Unlock> unl = Gebruik.unlocks(evs, readPw(c, detailFrom, now), readBouncer(c, detailFrom, now), a11yOn(), Gebruik.DEFAULT_WINDOW, Gebruik.DEFAULT_FAIL_WINDOW);
+            Map<String, Integer> unlocksByDay = new HashMap<>();
             for (Gebruik.Unlock u : unl) {
                 if ("mislukt".equals(u.how)) continue;
                 String k = Gebruik.dateKey(u.t, tz());
                 Integer n = unlocksByDay.get(k); unlocksByDay.put(k, (n == null ? 0 : n) + 1);
-                if (!"anders".equals(u.how)) { } // pincode telt gewoon mee
-                Integer p = pickupsByDay.get(k); pickupsByDay.put(k, (p == null ? 0 : p) + 1);
             }
-            for (Map.Entry<String, List<Gebruik.Session>> e : byDay.entrySet()) {
+            for (Map.Entry<String, long[]> e : perDay.entrySet()) {
                 JSONObject d = new JSONObject();
-                JSONObject apps = new JSONObject();
-                Map<String, Long> tot = Gebruik.totals(e.getValue());
-                long total = 0;
-                for (Map.Entry<String, Long> a : tot.entrySet()) { apps.put(a.getKey(), a.getValue()); total += a.getValue(); }
-                d.put("apps", apps).put("total", total);
+                d.put("total", e.getValue()[0]);
                 d.put("unlocks", unlocksByDay.containsKey(e.getKey()) ? unlocksByDay.get(e.getKey()) : 0);
-                d.put("pickups", pickupsByDay.containsKey(e.getKey()) ? pickupsByDay.get(e.getKey()) : 0);
                 days.put(e.getKey(), d);
             }
             writeJson(new File(dir(c), DAYS), days);
@@ -261,12 +294,20 @@ final class GebruikStore {
 
     // ---------- opruimen (bewaartermijn) ----------
 
-    static synchronized void prune(Context c) {
+    static final int MAX_LINES = 200_000; // harde bovengrens per logbestand, los van de bewaartermijn
+
+    /** Opruimen op de bewaartermijn. Hooguit eens per dag (tenzij force, bijv. na het wijzigen van een termijn). */
+    static synchronized void prune(Context c, boolean force) {
         try {
             long now = System.currentTimeMillis();
-            pruneLines(new File(dir(c), EVENTS), Gebruik.keepSince(now, detailDays(c), tz()));
-            pruneLines(new File(dir(c), PW), Gebruik.keepSince(now, detailDays(c), tz()));
-            pruneLines(new File(dir(c), FUNCS), Gebruik.keepSince(now, detailDays(c), tz()));
+            if (!force && Gebruik.dayStart(prefs(c).getLong("pruneAt", 0), tz()) == Gebruik.dayStart(now, tz())) return;
+            prefs(c).edit().putLong("pruneAt", now).apply();
+            long detailSince = Gebruik.keepSince(now, detailDays(c), tz());
+            pruneLines(new File(dir(c), EVENTS), detailSince);
+            pruneLines(new File(dir(c), PW), detailSince);
+            pruneLines(new File(dir(c), BOUNCER), detailSince);
+            // Telefoonfuncties ruimen we los van de toegang bij tot gebruik (ze komen van de live-callbacks).
+            pruneLines(new File(dir(c), FUNCS), detailSince);
             // days.json op de lange bewaartermijn
             JSONObject days = readJson(new File(dir(c), DAYS));
             long keep = keepDays(c);
@@ -278,27 +319,30 @@ final class GebruikStore {
                 if (dayMs > 0 && !Gebruik.olderThan(dayMs, now, (int) keep, tz())) keptDays.put(k, days.get(k));
             }
             writeJson(new File(dir(c), DAYS), keptDays);
-            // foto's op hun eigen (kortere) bewaartermijn
             long photoFrom = Gebruik.keepSince(now, photoKeepDays(c), tz());
-            File pd = photoDir(c);
-            File[] fs = pd.listFiles();
+            File[] fs = photoDir(c).listFiles();
             if (fs != null) for (File f : fs) { long t = photoTime(f.getName()); if (t > 0 && t < photoFrom) f.delete(); }
         } catch (Throwable e) { App.log(c, "GEBRUIK", "opruimen: " + e); }
     }
 
-    static void pruneLines(File f, long keepSince) {
+    /** Regels ouder dan keepSince weg; ook een harde bovengrens op het aantal regels. Schrijft via tijdelijk bestand + hernoemen. */
+    static synchronized void pruneLines(File f, long keepSince) {
         if (!f.isFile()) return;
         try {
             List<String> keep = new ArrayList<>();
             try (BufferedReader r = new BufferedReader(new FileReader(f))) {
                 String l;
                 while ((l = r.readLine()) != null) {
-                    int a = l.indexOf('|'); if (a < 0) continue;
-                    long t = Long.parseLong(l.substring(0, a));
+                    int a = l.indexOf('|'); int end = a < 0 ? l.length() : a;
+                    String ts = l.substring(0, end).trim();
+                    long t; try { t = Long.parseLong(ts); } catch (NumberFormatException e) { continue; }
                     if (t >= keepSince) keep.add(l);
                 }
             }
-            try (Writer w = new FileWriter(f)) { for (String l : keep) w.write(l + "\n"); }
+            if (keep.size() > MAX_LINES) keep = keep.subList(keep.size() - MAX_LINES, keep.size());
+            File tmp = new File(f.getPath() + ".tmp");
+            try (Writer w = new FileWriter(tmp)) { for (String l : keep) { w.write(l); w.write("\n"); } }
+            if (!tmp.renameTo(f)) { tmp.delete(); }
         } catch (Throwable ignored) { }
     }
 
@@ -307,7 +351,7 @@ final class GebruikStore {
     static JSONObject state(Context c) {
         JSONObject o = new JSONObject();
         try {
-            o.put("access", usageAccess(c)).put("admin", adminActive(c));
+            o.put("access", usageAccess(c)).put("admin", adminActive(c)).put("a11y", a11yOn());
             o.put("notifOn", NotificationHistory.enabled(c) && NotificationHistory.allowed(c));
             o.put("overlay", Build.VERSION.SDK_INT < 23 || android.provider.Settings.canDrawOverlays(c));
             o.put("sdk", Build.VERSION.SDK_INT);
@@ -319,45 +363,69 @@ final class GebruikStore {
         return o;
     }
 
-    /** period: "today" of "week". Totaal, grafiek (per uur bij vandaag, per dag bij week), top-apps, ontgrendelingen, oppakken. */
+    /** period: "today"/"week" (uit de detail-tijdlijn) of "maand"/"jaar" (uit de dag-samenvatting). */
     static JSONObject overview(Context c, String period) {
         JSONObject o = new JSONObject();
         try {
             long now = System.currentTimeMillis();
+            if ("maand".equals(period) || "jaar".equals(period)) return overviewLong(c, period, now);
             boolean week = "week".equals(period);
             long from = week ? Gebruik.dayStartAfter(now, -6, tz()) : Gebruik.dayStart(now, tz());
             List<Gebruik.Ev> evs = readEvents(c, from, now);
-            List<Gebruik.Session> sess = Gebruik.sessions(evs);
+            List<Gebruik.Session> sess = Gebruik.sessions(evs, now);
             Map<String, Long> tot = Gebruik.totals(sess);
-            Map<String, Integer> cnt = Gebruik.counts(sess);
+            Map<String, Integer> cnt = Gebruik.counts(sess, 30_000);
             long total = 0; for (Long v : tot.values()) total += v;
             o.put("total", total).put("period", period);
-            // grafiek
             JSONArray chart = new JSONArray();
             if (week) { long[] d = Gebruik.daily(sess, from, 7, tz()); for (long v : d) chart.put(v); }
-            else { long[] h = Gebruik.hourly(sess, from); for (long v : h) chart.put(v); }
+            else { long[] h = Gebruik.hourly(sess, from, tz()); for (long v : h) chart.put(v); }
             o.put("chart", chart);
-            // top apps (met naam en pictogram)
             JSONArray apps = new JSONArray();
             int n = 0;
             for (Map.Entry<String, Long> e : tot.entrySet()) {
                 if (n++ >= 12) break;
-                apps.put(new JSONObject().put("pkg", e.getKey()).put("name", appLabel(c, e.getKey())).put("icon", appIcon(c, e.getKey()))
-                        .put("ms", e.getValue()).put("opens", cnt.containsKey(e.getKey()) ? cnt.get(e.getKey()) : 0));
+                apps.put(appJson(c, e.getKey()).put("ms", e.getValue()).put("opens", cnt.containsKey(e.getKey()) ? cnt.get(e.getKey()) : 0));
             }
             o.put("apps", apps);
-            List<Gebruik.Unlock> unl = Gebruik.unlocks(evs, readPw(c, from, now), 30_000);
+            List<Gebruik.Unlock> unl = Gebruik.unlocks(evs, readPw(c, from, now), readBouncer(c, from, now), a11yOn(), Gebruik.DEFAULT_WINDOW, Gebruik.DEFAULT_FAIL_WINDOW);
             int unlocks = 0; for (Gebruik.Unlock u : unl) if (!"mislukt".equals(u.how)) unlocks++;
-            o.put("unlocks", unlocks).put("pickups", unlocks);
+            o.put("unlocks", unlocks);
         } catch (Throwable e) { return err(String.valueOf(e.getMessage())); }
         return o;
+    }
+
+    /** Maand (per dag) of jaar (per week) uit de dag-samenvatting days.json. */
+    static JSONObject overviewLong(Context c, String period, long now) throws Exception {
+        JSONObject o = new JSONObject().put("period", period);
+        JSONObject days = readJson(new File(dir(c), DAYS));
+        boolean year = "jaar".equals(period);
+        int nDays = year ? 364 : 30;
+        long first = Gebruik.dayStartAfter(now, -(nDays - 1), tz());
+        long total = 0; int unlocks = 0;
+        JSONArray chart = new JSONArray();
+        if (year) {
+            for (int w = 0; w < 52; w++) {
+                long wk = 0;
+                for (int d = 0; d < 7; d++) { JSONObject dd = days.optJSONObject(Gebruik.dateKey(Gebruik.dayStartAfter(first, w * 7 + d, tz()), tz())); if (dd != null) { wk += dd.optLong("total"); unlocks += dd.optInt("unlocks"); } }
+                chart.put(wk); total += wk;
+            }
+        } else {
+            for (int d = 0; d < nDays; d++) { JSONObject dd = days.optJSONObject(Gebruik.dateKey(Gebruik.dayStartAfter(first, d, tz()), tz())); long v = dd == null ? 0 : dd.optLong("total"); chart.put(v); total += v; if (dd != null) unlocks += dd.optInt("unlocks"); }
+        }
+        o.put("total", total).put("chart", chart).put("unlocks", unlocks).put("apps", new JSONArray());
+        return o;
+    }
+
+    static JSONObject appJson(Context c, String pkg) throws Exception {
+        return new JSONObject().put("pkg", pkg).put("name", appLabel(c, pkg)).put("icon", appIcon(c, pkg));
     }
 
     static JSONObject unlocksJson(Context c, long from, long to) {
         JSONObject o = new JSONObject();
         try {
             List<Gebruik.Ev> evs = readEvents(c, from, to);
-            List<Gebruik.Unlock> unl = Gebruik.unlocks(evs, readPw(c, from, to), 30_000);
+            List<Gebruik.Unlock> unl = Gebruik.unlocks(evs, readPw(c, from, to), readBouncer(c, from, to), a11yOn(), Gebruik.DEFAULT_WINDOW, Gebruik.DEFAULT_FAIL_WINDOW);
             Collections.sort(unl, (a, b) -> Long.compare(b.t, a.t));
             JSONArray arr = new JSONArray();
             int lim = 0;
@@ -456,7 +524,8 @@ final class GebruikStore {
             JSONArray arr = new JSONArray();
             for (File f : l) {
                 String name = f.getName();
-                arr.put(new JSONObject().put("id", name).put("t", photoTime(name)).put("reason", name.contains("mislukt") ? "mislukt" : "ontgrendeld"));
+                String reason = name.contains("-mislukt") ? "mislukt" : name.contains("-proef") ? "proef" : "ontgrendeld";
+                arr.put(new JSONObject().put("id", name).put("t", photoTime(name)).put("reason", reason));
             }
             o.put("photos", arr).put("keep", photoKeepDays(c));
         } catch (Exception e) { return err("Foto's lezen lukt niet"); }
@@ -566,7 +635,12 @@ final class GebruikStore {
     // ---------- json-bestandjes ----------
 
     static JSONObject readJson(File f) { try { if (!f.isFile()) return new JSONObject(); return new JSONObject(readAll(f)); } catch (Throwable e) { return new JSONObject(); } }
-    static void writeJson(File f, JSONObject o) { try (Writer w = new FileWriter(f)) { w.write(o.toString()); } catch (Throwable ignored) { } }
+    /** Schrijft via een tijdelijk bestand + hernoemen, zodat een lezer nooit een halve JSON ziet. */
+    static synchronized void writeJson(File f, JSONObject o) {
+        File tmp = new File(f.getPath() + ".tmp");
+        try { try (Writer w = new FileWriter(tmp)) { w.write(o.toString()); } if (!tmp.renameTo(f)) tmp.delete(); }
+        catch (Throwable e) { tmp.delete(); }
+    }
 
     static String readAll(File f) throws Exception {
         StringBuilder b = new StringBuilder();
@@ -574,7 +648,9 @@ final class GebruikStore {
         return b.toString();
     }
 
-    static synchronized void append(File f, String s) { try (Writer w = new FileWriter(f, true)) { w.write(s); } catch (Throwable ignored) { } }
+    // Eigen slot voor toevoegen: de live-callbacks (camera, microfoon …) wachten zo niet op het grote slot van collect/prune.
+    private static final Object APPEND_LOCK = new Object();
+    static void append(File f, String s) { synchronized (APPEND_LOCK) { try (Writer w = new FileWriter(f, true)) { w.write(s); } catch (Throwable ignored) { } } }
 
     static long dayKeyToMs(String key) {
         try { String[] p = key.split("-"); java.util.Calendar k = java.util.Calendar.getInstance(tz()); k.clear(); k.set(Integer.parseInt(p[0]), Integer.parseInt(p[1]) - 1, Integer.parseInt(p[2])); return k.getTimeInMillis(); }
