@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Apparaatbeheer voor Gebruik: alleen meekijken of een poging bij het vergrendelscherm lukte of misging
+     (watch-login). Geen enkele beheerbevoegdheid die iets aan de telefoon verandert. Rene zet dit zelf aan en uit. -->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <watch-login />
+    </uses-policies>
+</device-admin>

@@ -220,7 +220,24 @@ const SET_REG = [
   { id: 'ai.idle', scr: 'aisetperf', ctl: '#aic-idle', type: 'keuze', vals: [['1', '1 minuut'], ['4', '4 minuten'], ['15', '15 minuten']], label: 'Geheugen vrijgeven na', desc: 'Na hoeveel minuten niets doen het taalmodel uit het geheugen gaat.', syn: 'geheugen vrijgeven ram minuten model',
     get: () => setAiCfg('idle'), set: v => { aicSet('idle', v); return ''; } },
   { id: 'ai.wifi', scr: 'aisetperf', ctl: '#ais-wifi, #md-wifi', label: 'Modellen alleen via wifi downloaden', desc: 'De modellen zijn groot (0,6 tot 3 GB).', syn: 'wifi downloaden modellen mobiel internet data',
-    get: () => setB(!!setAi().wifiOnly), set: v => { if (!!setAi().wifiOnly !== setOnV(v)) aisWifi(); setIf('models', () => { mdSt.wifiOnly = setOnV(v); mdRender(); }); return ''; } }
+    get: () => setB(!!setAi().wifiOnly), set: v => { if (!!setAi().wifiOnly !== setOnV(v)) aisWifi(); setIf('models', () => { mdSt.wifiOnly = setOnV(v); mdRender(); }); return ''; } },
+  /* ---------- Gebruik ---------- */
+  { id: 'gebruik.aan', scr: 'gebruikset', ctl: '#gb-collect', label: 'Gebruik bijhouden', desc: 'Welke functies en apps gebruikt worden en wanneer, bijhouden op je telefoon.', syn: 'gebruik schermtijd bijhouden usage statistieken',
+    get: () => setB(gbSet().collect !== false), set: v => { gbSaveOne('collect', setOnV(v)); setIf('gebruikset', enterGebruikSet); return ''; } },
+  { id: 'gebruik.bewaren', scr: 'gebruikset', ctl: '#gb-keep', type: 'keuze', vals: [['180', '6 maanden'], ['365', '1 jaar'], ['730', '2 jaar']], label: 'Gebruik: samenvatting per dag bewaren', desc: 'Hoe lang de samenvatting per dag (schermtijd, ontgrendelingen) bewaard blijft.', syn: 'gebruik bewaren bewaartermijn dagen jaar schermtijd',
+    get: () => String(gbSet().keep || 365), set: v => { gbSaveOne('keep', +v); setIf('gebruikset', enterGebruikSet); return ''; } },
+  { id: 'gebruik.detail', scr: 'gebruikset', ctl: '#gb-detail', type: 'keuze', vals: [['30', '30 dagen'], ['60', '60 dagen'], ['90', '90 dagen']], label: 'Gebruik: gedetailleerde tijdlijn bewaren', desc: 'Hoe lang de tijdlijn met alle stapjes (per ontgrendeling, per app) bewaard blijft.', syn: 'gebruik tijdlijn detail bewaren dagen',
+    get: () => String(gbSet().detail || 60), set: v => { gbSaveOne('detail', +v); setIf('gebruikset', enterGebruikSet); return ''; } },
+  { id: 'gebruik.apparaatbeheer', scr: 'gebruikset', ctl: '#gb-admin', type: 'aan', safe: 'beveiliging', label: 'Gebruik: apparaatbeheer', desc: 'Apparaatbeheer om ontgrendelingen met pincode en mislukte pogingen te zien.', syn: 'gebruik apparaatbeheer device admin pincode ontgrendelen vergrendelscherm',
+    why: 'Apparaatbeheer zet je zelf aan en uit, met de bevestiging van Android.', get: () => setB(gbState().admin) },
+  { id: 'gebruik.foto.mislukt', scr: 'gebruikset', ctl: '#gb-pfail', type: 'aan', weak: v => v === 'aan', safe: 'privacy', label: 'Gebruik: foto bij een mislukte poging', desc: 'Een stille foto met de voorcamera bij genoeg mislukte ontgrendelpogingen (blijft alleen in de app).', syn: 'gebruik foto voorcamera mislukte poging camera',
+    why: 'Een foto bij het vergrendelscherm zet je zelf aan.', get: () => setB(gbSet().photoFail) },
+  { id: 'gebruik.foto.ontgrendeld', scr: 'gebruikset', ctl: '#gb-punlock', type: 'aan', weak: v => v === 'aan', safe: 'privacy', label: 'Gebruik: foto bij ontgrendelen', desc: 'Een stille foto met de voorcamera als er met pincode ontgrendeld wordt (blijft alleen in de app).', syn: 'gebruik foto voorcamera ontgrendelen camera',
+    why: 'Een foto bij het ontgrendelen zet je zelf aan.', get: () => setB(gbSet().photoUnlock) },
+  { id: 'gebruik.foto.na', scr: 'gebruikset', ctl: '#gb-pafter', type: 'keuze', vals: [['1', '1'], ['2', '2'], ['3', '3'], ['5', '5']], label: 'Gebruik: foto na dit aantal mislukte pogingen', desc: 'Na hoeveel mislukte pogingen achter elkaar er een foto gemaakt wordt.', syn: 'gebruik foto pogingen aantal mislukt',
+    get: () => String(gbSet().photoAfter || 3), set: v => { gbSaveOne('photoAfter', +v); setIf('gebruikset', enterGebruikSet); return ''; } },
+  { id: 'gebruik.foto.bewaren', scr: 'gebruikset', ctl: '#gb-pkeep', type: 'keuze', vals: [['7', '1 week'], ['30', '30 dagen'], ['90', '90 dagen']], label: 'Gebruik: foto\'s bewaren', desc: 'Hoe lang de foto\'s bij ontgrendelen bewaard blijven.', syn: 'gebruik foto bewaren dagen week',
+    get: () => String(gbSet().photoKeep || 30), set: v => { gbSaveOne('photoKeep', +v); setIf('gebruikset', enterGebruikSet); return ''; } }
 ];
 
 const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin'];

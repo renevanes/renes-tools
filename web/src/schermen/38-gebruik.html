@@ -1,0 +1,112 @@
+<!-- ============ GEBRUIK ============ -->
+<section class="screen" id="s-gebruik">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Gebruik</h1>
+    <button class="icon-btn" id="gb-set-btn" onclick="show('gebruikset')" aria-label="Instellingen"><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <p class="note">Welke functies van je telefoon gebruikt worden en wanneer, wanneer je ontgrendelde en wat er daarna gebeurde. Alles blijft op je telefoon; er gaat niets naar buiten.</p>
+    <div class="card perm" id="gb-perm" style="display:none"></div>
+
+    <div class="gb-tabs" id="gb-tabs" role="tablist" aria-label="Onderdelen">
+      <button class="gb-tab on" data-tab="overzicht" onclick="gbTab('overzicht')">Schermtijd</button>
+      <button class="gb-tab" data-tab="ontgrendel" onclick="gbTab('ontgrendel')">Ontgrendelingen</button>
+      <button class="gb-tab" data-tab="functies" onclick="gbTab('functies')">Functies</button>
+      <button class="gb-tab" data-tab="meldingen" onclick="gbTab('meldingen')">Meldingen</button>
+    </div>
+
+    <!-- Schermtijd -->
+    <div id="gb-overzicht" class="gb-pane">
+      <div class="gb-seg" id="gb-period" role="group" aria-label="Periode">
+        <button class="on" data-p="today" onclick="gbPeriod('today')">Vandaag</button>
+        <button data-p="week" onclick="gbPeriod('week')">Week</button>
+      </div>
+      <div class="card">
+        <div class="gb-top"><div><b id="gb-total">—</b><small>schermtijd</small></div><div><b id="gb-unlocks">—</b><small>keer ontgrendeld</small></div></div>
+        <div id="gb-chart" class="gb-chart"></div>
+      </div>
+      <div class="card">
+        <h2>Per app</h2>
+        <div id="gb-apps"></div>
+      </div>
+    </div>
+
+    <!-- Ontgrendelingen -->
+    <div id="gb-ontgrendel" class="gb-pane" style="display:none">
+      <p class="note">Elke ontgrendeling als blok: wanneer, hoe (met pincode of anders), en welke apps er daarna in welke volgorde kwamen, tot het scherm weer uit ging. Mislukte pogingen staan apart.</p>
+      <div id="gb-blocks"></div>
+    </div>
+
+    <!-- Functies -->
+    <div id="gb-functies" class="gb-pane" style="display:none">
+      <p class="note">Wanneer camera, microfoon, locatie, Bluetooth, wifi en mobiele data gebruikt werden, en — zo ver Android dat toelaat — door welke app ("waarschijnlijk via …"). Android laat deze dingen alleen zien zolang de app zelf aanstaat, dus dit is niet volledig.</p>
+      <div id="gb-funcs"></div>
+    </div>
+
+    <!-- Meldingen & opladen -->
+    <div id="gb-meldingen" class="gb-pane" style="display:none">
+      <div class="card perm" id="gb-notif-perm" style="display:none"></div>
+      <div class="card">
+        <h2>Meldingen per app</h2>
+        <p class="note">Alleen hoeveel meldingen, nooit wat erin stond.</p>
+        <div id="gb-notifs"></div>
+      </div>
+      <div class="card">
+        <h2>Opladen en opnieuw opstarten</h2>
+        <div id="gb-charge"></div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-gebruikset">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Gebruik: instellingen</h1>
+  </div>
+  <main>
+    <div class="card">
+      <div class="sw"><span>Gebruik bijhouden<small id="gb-collect-n">Uit: er wordt niets nieuws meer bijgehouden (wat er staat, blijft)</small></span><button class="tg" id="gb-collect" role="switch" aria-checked="true" aria-label="Gebruik bijhouden" aria-describedby="gb-collect-n" onclick="gbTgCollect()"></button></div>
+      <b class="gb-lbl">Samenvatting per dag bewaren</b>
+      <div class="chips sm" id="gb-keep" role="radiogroup" aria-label="Bewaren"><button role="radio" data-v="180" onclick="gbKeep(180)">6 maanden</button><button role="radio" aria-checked="true" data-v="365" onclick="gbKeep(365)">1 jaar</button><button role="radio" data-v="730" onclick="gbKeep(730)">2 jaar</button></div>
+      <b class="gb-lbl">Gedetailleerde tijdlijn bewaren</b>
+      <div class="chips sm" id="gb-detail" role="radiogroup" aria-label="Tijdlijn bewaren"><button role="radio" data-v="30" onclick="gbDetail(30)">30 dagen</button><button role="radio" aria-checked="true" data-v="60" onclick="gbDetail(60)">60 dagen</button><button role="radio" data-v="90" onclick="gbDetail(90)">90 dagen</button></div>
+      <p class="note">De samenvatting per dag (schermtijd en ontgrendelingen) blijft lang; de tijdlijn met alle stapjes korter.</p>
+    </div>
+
+    <div class="card">
+      <h2>Toegang tot gebruik</h2>
+      <p class="note" id="gb-access-note"></p>
+      <button class="big ghost" onclick="Android.gebruikOpenAccess()">Toegang tot gebruik openen</button>
+    </div>
+
+    <div class="card">
+      <h2>Ontgrendelingen met pincode</h2>
+      <p class="note">Met apparaatbeheer kan Gebruik zien wanneer je met pincode, patroon of wachtwoord ontgrendelt en wanneer dat misging. Je zet het zelf aan en uit. Zolang het aanstaat, kan de app niet verwijderd worden; zet het eerst uit.</p>
+      <div class="sw"><span>Apparaatbeheer<small id="gb-admin-n">Nodig voor ontgrendelingen met pincode en mislukte pogingen</small></span><button class="tg" id="gb-admin" role="switch" aria-checked="false" aria-label="Apparaatbeheer" aria-describedby="gb-admin-n" onclick="gbAdmin()"></button></div>
+      <button class="big ghost" id="gb-admin-off" onclick="Android.gebruikAdmin(false)" style="display:none">Apparaatbeheer uitzetten</button>
+    </div>
+
+    <div class="card">
+      <h2>Foto bij ontgrendelen</h2>
+      <p class="note" id="gb-photo-status"></p>
+      <div class="sw"><span>Foto bij een mislukte poging<small id="gb-pfail-n">Een stille foto met de voorcamera bij genoeg mislukte pogingen</small></span><button class="tg" id="gb-pfail" role="switch" aria-checked="false" aria-label="Foto bij een mislukte poging" aria-describedby="gb-pfail-n" onclick="gbPhotoTg('photoFail')"></button></div>
+      <div class="sw"><span>Foto bij ontgrendelen<small id="gb-punlock-n">Ook een stille foto als er met pincode ontgrendeld wordt</small></span><button class="tg" id="gb-punlock" role="switch" aria-checked="false" aria-label="Foto bij ontgrendelen" aria-describedby="gb-punlock-n" onclick="gbPhotoTg('photoUnlock')"></button></div>
+      <b class="gb-lbl">Foto na dit aantal mislukte pogingen</b>
+      <div class="chips sm" id="gb-pafter" role="radiogroup" aria-label="Na aantal mislukte pogingen"><button role="radio" data-v="1" onclick="gbPhotoAfter(1)">1</button><button role="radio" data-v="2" onclick="gbPhotoAfter(2)">2</button><button role="radio" aria-checked="true" data-v="3" onclick="gbPhotoAfter(3)">3</button><button role="radio" data-v="5" onclick="gbPhotoAfter(5)">5</button></div>
+      <b class="gb-lbl">Foto's bewaren</b>
+      <div class="chips sm" id="gb-pkeep" role="radiogroup" aria-label="Foto's bewaren"><button role="radio" data-v="7" onclick="gbPhotoKeep(7)">1 week</button><button role="radio" aria-checked="true" data-v="30" onclick="gbPhotoKeep(30)">30 dagen</button><button role="radio" data-v="90" onclick="gbPhotoKeep(90)">90 dagen</button></div>
+      <p class="note">De foto's staan alleen in de app (afgeschermde opslag), nooit in je galerij, en gaan niet mee in de Google-backup. Ze gaan wel mee in "Alle appgegevens" (versleuteld).</p>
+      <button class="big ghost" id="gb-test" onclick="gbTestShot()">Proefopname</button>
+      <div id="gb-photos"></div>
+      <button class="big ghost" id="gb-photos-clear" onclick="gbClearPhotos()" style="display:none">Alle foto's wissen</button>
+    </div>
+
+    <div class="card">
+      <h2>Alles wissen</h2>
+      <p class="note">Alle bijgehouden gebeurtenissen, samenvattingen en foto's van Gebruik verwijderen.</p>
+      <button class="big ghost danger" onclick="gbClearAll()">Alles van Gebruik wissen</button>
+    </div>
+  </main>
+</section>

@@ -9,6 +9,7 @@ const GS = {
   tx:       ['🎙️', 'Gesprekken', 'transcripts', 'tx-search', () => txSearchDo()],
   sleep:    ['🌙', 'Slaappraat', 'sleep', '', () => {}],
   checkin:  ['🙂', 'Check-in', 'checkin', '', () => {}],
+  gebruik:  ['📊', 'Gebruik', 'gebruik', '', () => {}],
   music:    ['🎵', 'Muziek', 'music', 'mu-search', () => muRenderHistory()],
   history:  ['🔔', 'Meldingsgeschiedenis', 'history', 'history-search', () => { historyLimit = 200; loadHistory(); }]
 };

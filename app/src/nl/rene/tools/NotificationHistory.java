@@ -92,6 +92,17 @@ final class NotificationHistory {
         return new JSONObject().put("time", cur.getLong(0)).put("package", cur.getString(1)).put("app", cur.getString(2))
                 .put("title", cur.getString(3)).put("text", cur.getString(4));
     }
+    /** Aantal meldingen per app in [from, to) — alleen tellen, nooit de inhoud (voor Gebruik). Leeg als bewaren uit staat. */
+    static synchronized java.util.Map<String, Integer> countsByPackage(Context c, long from, long to) {
+        java.util.Map<String, Integer> m = new java.util.LinkedHashMap<>();
+        if (!enabled(c)) return m;
+        try (Cursor cur = database(c).query("history", new String[]{"package", "COUNT(*) AS n"}, "time >= ? AND time < ?",
+                new String[]{Long.toString(from), Long.toString(to)}, "package", null, "n DESC")) {
+            while (cur != null && cur.moveToNext()) m.put(cur.getString(0), cur.getInt(1));
+        } catch (Throwable ignored) { }
+        return m;
+    }
+
     static String list(Context c, String query) throws Exception { return list(c, query, "", 500); }
 
     /** Lijst, nieuwste eerst; pkg = alleen deze app (leeg = alle), limit = hoeveel (met "meer laden" groter). */

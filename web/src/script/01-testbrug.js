@@ -793,7 +793,37 @@ if (!window.Android) window.Android = (function(){
     autoRecord(p){ if(!this._au.perms.a11yRunning) return 'Zet eerst de toegankelijkheid voor Tools aan'; this._au.rec={pkg:p,steps:[{t:'tap',text:'Start parkeren',id:'net.easypark.android:id/start'},{t:'tap',text:'Bevestigen'}]}; setTimeout(()=>openTool('auto-rec'),200); return ''; },
     autoRecTake(){ const r=this._au.rec; this._au.rec=null; return JSON.stringify(r); },
     autoA11ySettings(){ Object.assign(this._au.perms,{a11y:true,a11yRunning:true}); },
-    autoPerm(k){ const P=this._au.perms; if(k==='loc'){P.loc=true;P.fine=true;} if(k==='bgloc'){ if(!P.loc){P.loc=true;P.fine=true;} else P.bgloc=true; } if(k==='bt')P.bt=true; if(k==='notif')P.notif=true; setTimeout(()=>onAutoChanged(),50); }
+    autoPerm(k){ const P=this._au.perms; if(k==='loc'){P.loc=true;P.fine=true;} if(k==='bgloc'){ if(!P.loc){P.loc=true;P.fine=true;} else P.bgloc=true; } if(k==='bt')P.bt=true; if(k==='notif')P.notif=true; setTimeout(()=>onAutoChanged(),50); },
+    // Gebruik: schermtijd, ontgrendelingen, functies, meldingen, foto's
+    _gb:{ access:true, admin:false, notifOn:true, overlay:true, sdk:34, lastShot:'',
+      photos:[{id:'shot-1-ontgrendeld.jpg',t:Date.now()-36e5,reason:'ontgrendeld'}],
+      set:{collect:true,keep:365,detail:60,photoFail:false,photoUnlock:false,photoAfter:3,photoKeep:30} },
+    gebruikState(){ const g=this._gb; const caps={camera:true,overlay:g.overlay,front:true,works:g.overlay,why:g.overlay?'Werkt op veel telefoons; test met Proefopname.':'Zet "Boven andere apps tonen" aan.'};
+      return JSON.stringify({access:g.access,admin:g.admin,notifOn:g.notifOn,overlay:g.overlay,sdk:g.sdk,set:g.set,photoCaps:caps,photos:g.photos.length,lastShot:g.lastShot}); },
+    gebruikSave(j){ try{ Object.assign(this._gb.set, JSON.parse(j)); }catch(e){} return JSON.stringify(this._gb.set); },
+    gebruikOverview(p){ const week=p==='week';
+      const chart = week ? [36e5,72e5,18e5,54e5,90e5,21e5,66e5] : Array.from({length:24},(_,i)=> i===9?12e5 : i===13?18e5 : i===21?24e5 : (i>=8&&i<=22?3e5:0));
+      let total=0; chart.forEach(v=>total+=v);
+      const apps=[{pkg:'com.whatsapp',name:'WhatsApp',icon:'',ms:42e5,opens:14},{pkg:'com.android.chrome',name:'Chrome',icon:'',ms:27e5,opens:6},{pkg:'nl.rene.tools',name:'Tools',icon:'',ms:9e5,opens:3}];
+      return JSON.stringify({total,period:p,chart,apps,unlocks:7,pickups:7}); },
+    gebruikUnlocks(from,to){ const n=Date.now(); return JSON.stringify({blocks:[
+      {t:n-36e5,how:'pincode',fails:0,end:n-35e5,photo:'shot-1-ontgrendeld.jpg',apps:[{pkg:'com.whatsapp',name:'WhatsApp',icon:'',start:n-36e5,dur:12e5},{pkg:'com.android.chrome',name:'Chrome',icon:'',start:n-24e5,dur:6e5}]},
+      {t:n-72e5,how:'anders',fails:0,end:n-71e5,apps:[{pkg:'nl.rene.tools',name:'Tools',icon:'',start:n-72e5,dur:3e5}]},
+      {t:n-9e6,how:'mislukt',fails:3,end:n-9e6,apps:[]} ]}); },
+    gebruikFunctions(from,to){ const n=Date.now(); return JSON.stringify({events:[
+      {t:n-5e5,kind:'camera',pkg:'com.whatsapp',name:'WhatsApp'},{t:n-9e5,kind:'mic',name:'Assistent'},{t:n-12e5,kind:'wifi'},{t:n-15e5,kind:'bt'},{t:n-18e5,kind:'loc',name:'Maps'},{t:n-21e5,kind:'data'} ]}); },
+    gebruikNotifs(from,to){ const n=Date.now(); return JSON.stringify({notifOn:this._gb.notifOn,total:23,
+      apps:[{pkg:'com.whatsapp',name:'WhatsApp',icon:'',n:14},{pkg:'com.google.android.gm',name:'Gmail',icon:'',n:9}],
+      charge:[{t:n-2e6,on:true},{t:n-1e6,on:false}],reboots:[{t:n-5e7}]}); },
+    gebruikRefresh(){ setTimeout(()=>{ if(typeof onGebruik==='function') onGebruik(); },50); },
+    gebruikOpenAccess(){ this._gb.access=true; },
+    gebruikOpenOverlay(){ this._gb.overlay=true; },
+    gebruikAdmin(on){ this._gb.admin=!!on; setTimeout(()=>{ if(typeof onGebruik==='function') onGebruik(); },50); },
+    gebruikTestShot(){ this._gb.lastShot='ok|'+Date.now(); this._gb.photos.unshift({id:'shot-'+Date.now()+'-proef.jpg',t:Date.now(),reason:'ontgrendeld'}); },
+    gebruikPhotos(){ return JSON.stringify({photos:this._gb.photos,keep:this._gb.set.photoKeep}); },
+    gebruikPhoto(id){ return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='; },
+    gebruikClearPhotos(){ this._gb.photos=[]; },
+    gebruikClearAll(){ this._gb.photos=[]; this._gb.lastShot=''; }
   };
 })();
 
