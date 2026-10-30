@@ -597,6 +597,7 @@ public class MainActivity extends Activity {
         if (req == REQ_MIC) js("onMusicChanged", "");
         if (req == REQ_SETTINGS) js("onSettingsChanged", "\"\"");
         if (req == REQ_PERMS) js("onPermissions", permissionState());
+        if (req == ApparatenBridge.REQ_PERM) { ApparatenJob.ensure(this); js("onApChanged", ""); }
         if (req == REQ_AUTO) { Auto.armPlaces(this); Vpn.armAuto(this); js("onAutoChanged", ""); js("onVpnChanged", ""); }
         if (req == VpnBridge.REQ_CAM) {
             camAllowed = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
@@ -1796,6 +1797,7 @@ public class MainActivity extends Activity {
                 p.put(perm("history", "Meldingentoegang", "Meldingsgeschiedenis", NotificationHistory.allowed(ctx)));
                 p.put(perm("location", "Locatie", "Mijn routes", has(Manifest.permission.ACCESS_FINE_LOCATION)));
                 p.put(perm("mic", "Microfoon", "Muziek herkennen", has(Manifest.permission.RECORD_AUDIO)));
+                p.put(perm("nearby", "Apparaten in de buurt", "Apparaten (Bluetooth en wifi)", ApparatenScan.btPerm(ctx)));
                 if (Build.VERSION.SDK_INT >= 33) p.put(perm("notif", "Meldingen", "Voortgang en bediening", has(Manifest.permission.POST_NOTIFICATIONS)));
                 p.put(perm("files", "Alle bestanden", "WhatsApp backup, Gesprekken", hasFilesAccess(ctx)));
                 if (Build.VERSION.SDK_INT >= 26) p.put(perm("install", "Updates installeren", "Nieuwe app-versies", ctx.getPackageManager().canRequestPackageInstalls()));
@@ -1822,6 +1824,7 @@ public class MainActivity extends Activity {
                     case "mic": p = new String[]{Manifest.permission.RECORD_AUDIO}; break;
                     case "notif": if (Build.VERSION.SDK_INT >= 33) p = new String[]{Manifest.permission.POST_NOTIFICATIONS}; break;
                     case "calendar": p = new String[]{Manifest.permission.READ_CALENDAR}; break; // alleen lezen (Check-in)
+                    case "nearby": p = ApparatenBridge.nearby(); break; // Apparaten: Bluetooth en wifi in de buurt
                     case "files": a.requestFilesAccess(); return;
                     case "install": a.openInstallSettings(); return;
                     default: a.openAppSettings(); return;

@@ -15,13 +15,13 @@ const GS = {
 /* ---------- zoeken in de app zelf: schermen, kaarten en instellingen ---------- */
 const GS_SYN = {meldingen: 'notificaties melding geluid trillen stil dempen uitzetten', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
   backup: 'reservekopie back-up opslaan bewaren', 'telefoon-skin': 'startscherm launcher thuisscherm skin', weergave: 'tekstgrootte letters groot thema donker dark mode licht nachtmodus',
-  foutrapport: 'fout crash probleem bug', modellen: 'taalmodel spraakmodel zoekmodel ai opslag ruimte downloaden verwijderen wifi', slaappraat: 'slapen slaap praten nacht snurken dromen microfoon', 'check-in': 'checkin stemming humeur gevoel score cijfer dagboek bijhouden vraag werk hoe voel', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
+  foutrapport: 'fout crash probleem bug', modellen: 'taalmodel spraakmodel zoekmodel ai opslag ruimte downloaden verwijderen wifi', slaappraat: 'slapen slaap praten nacht snurken dromen microfoon', apparaten: 'bluetooth wifi airtag tracker smarttag tile scanner zoeken kwijt oortjes netwerk router apparaat buurt', 'check-in': 'checkin stemming humeur gevoel score cijfer dagboek bijhouden vraag werk hoe voel', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
 let gsIndex = null;
 function gsBuildIndex(){
   gsIndex = [];
   const fold = t => norm2(t);
   // Detailschermen (één notitie, chat, route …) hebben iets nodig om te tonen: die niet los openen
-  const DETAIL = ['note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'sleepnight', 'checkined', 'checkinq'];
+  const DETAIL = ['note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'sleepnight', 'checkined', 'checkinq', 'apdev'];
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);
     if (scr === 'home' || scr === 'search' || DETAIL.includes(scr)) return;

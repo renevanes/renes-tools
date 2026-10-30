@@ -353,6 +353,59 @@ if (!window.Android) window.Android = (function(){
       if (C.ans.some(a => a.q === id && a.p === s.key)) return null; C.posted[id] = { key: s.key }; return q.options.length <= 3 ? q.options.map(o => ((o.emoji || '') + ' ' + o.label).trim()) : []; },
     /* Een knop in de melding (AlarmReceiver): bewaren zonder de app te openen */
     _ciNotifAnswer(id, i){ const C = this._ci, p = C.posted[id]; if (!p) return 'geen melding'; const r = JSON.parse(this.checkinAnswer(JSON.stringify({ q: id, p: p.key, o: i, src: 'notif' }))); delete C.posted[id]; C.confirm = r.ok ? '✓ Bewaard' : (r.error || 'Was al ingevuld'); setTimeout(() => onCheckin({}), 20); return C.confirm; },
+    // Apparaten (ApparatenBridge): Bluetooth, wifi, eigen netwerk, trackers, bekend en geschiedenis
+    _ap: { set: { bg: false, every: 30, trackers: true, hist: true, keep: 30, away: false, home: false, homeSsid: '' },
+      perms: { bt: true, wifi: true, loc: true, bg: true, notif: true, btOn: true, btHw: true, locOn: true, sdk: 34 },
+      known: {}, bt: null, scanning: false, find: null, findGone: false, wifiWait: 0, lanBusy: false, lanDone: false, noWifi: false, trackers: {}, hist: true, asked: [], opened: [], wiped: null },
+    _apDevs(){ return [
+      { key: 'a:F4:12:9A:00:11:22', addr: 'F4:12:9A:00:11:22', name: 'Galaxy Buds2 Pro', type: 'oortjes', maker: 'Samsung', rssi: -58, avg: -58, dist: 0.9, ago: 1, bonded: true, ble: true, classic: false, rotating: false, n: 1, stable: true, near: true },
+      { key: 'n:jbl flip 5|87', addr: '5C:11:22:33:44:55', name: 'JBL Flip 5', type: 'speaker', maker: 'Harman (JBL)', rssi: -71, avg: -71, dist: 4.2, ago: 2, bonded: false, ble: true, classic: true, rotating: true, n: 1, stable: true, near: true },
+      { key: 'g:76|apple', addr: '4A:22:33:44:55:66', name: '', type: 'apple', maker: 'Apple', rssi: -80, avg: -80, dist: 12, ago: 1, bonded: false, ble: true, classic: false, rotating: true, n: 6, stable: false, near: true },
+      { key: 'a:C2:7E:01:02:03:04', addr: 'C2:7E:01:02:03:04', name: '', type: 'tracker', maker: 'Apple', rssi: -66, avg: -66, dist: 2.5, ago: 1, bonded: false, ble: true, classic: false, rotating: false, n: 1, stable: true, near: true,
+        tracker: { kind: 'airtag', label: 'AirTag', sep: true, warn: true } } ]; },
+    _apKnow(d){ const k = this._ap.known[d.key]; return Object.assign({}, d, { nick: k ? k.nick : '', known: !!k }); },
+    apState(){ return JSON.stringify({ set: this._ap.set, perms: this._ap.perms, muted: false }); },
+    apSet(j){ const o = JSON.parse(j); Object.keys(o).forEach(k => { if (['bg', 'every', 'trackers', 'hist', 'keep', 'away'].includes(k)) this._ap.set[k] = o[k]; }); return ''; },
+    apBtStart(classic){ const P = this._ap.perms; if (!P.bt) return 'perm'; if (!P.btOn) return 'uit'; this._ap.scanning = true; this._ap.bt = this._apDevs(); setTimeout(() => { this._ap.scanning = false; }, 400); return ''; },
+    apBt(){ return JSON.stringify({ devices: (this._ap.bt || []).map(d => this._apKnow(d)), scanning: this._ap.scanning, err: '',
+      paired: this._ap.bt ? [this._apKnow({ key: 'a:00:1B:66:AA:BB:CC', addr: '00:1B:66:AA:BB:CC', name: 'Momentum 4', type: 'koptelefoon', bonded: true, near: false })] : [] }); },
+    apStop(){ this._ap.scanning = false; this._ap.find = null; this._ap.lanBusy = false; },
+    apFind(key){ if (!this._ap.perms.bt) return 'perm'; this._ap.find = { key, i: 0 }; return ''; },
+    apFindState(key){ const f = this._ap.find; if (!f || f.key !== key) return JSON.stringify({ found: false, scanning: false });
+      f.i++; if (this._ap.findGone) return JSON.stringify({ found: f.i > 1, ago: 9000, scanning: true });
+      const avg = Math.min(-45, -82 + f.i * 3), meter = Math.round(Math.max(0, Math.min(100, (avg + 100) * 100 / 65)));
+      return JSON.stringify({ found: true, rssi: avg, avg, meter, trend: f.i > 1 ? 1 : 0, dist: Math.round(Math.pow(10, (-59 - avg) / 22) * 10) / 10, ago: 300, scanning: true }); },
+    apFindStop(){ this._ap.find = null; },
+    apWifiScan(){ const A = this._ap; if (!A.perms.wifi) return JSON.stringify({ error: 'perm' }); if (A.wifiWait) return JSON.stringify({ started: false, wait: A.wifiWait }); A.wifiWait = 95; return JSON.stringify({ started: true }); },
+    apWifi(){ if (!this._ap.perms.wifi) return JSON.stringify({ error: 'perm' });
+      const n = (ssid, bssid, rssi, freq, ch, band, width, sec, extra) => Object.assign({ ssid, bssid, rssi, freq, ch, band, width, sec, unsafe: sec === 'open' || sec === 'wep', connected: false, maker: '', local: false, age: 4 }, extra || {});
+      return JSON.stringify({ networks: [n('Thuis', '3c:a6:2f:11:22:33', -45, 2437, 6, '2,4 GHz', 20, 'wpa2', { connected: true, maker: 'AVM (FRITZ!Box)' }), n('Thuis', '3c:a6:2f:11:22:34', -52, 5180, 36, '5 GHz', 80, 'wpa3', { maker: 'AVM (FRITZ!Box)' }),
+        n('Ziggo-Gast', '26:11:22:33:44:55', -68, 2412, 1, '2,4 GHz', 20, 'open', { local: true }), n('Buren', 'a0:40:a0:01:02:03', -74, 2412, 1, '2,4 GHz', 40, 'wpa2', { maker: 'Netgear' }), n('Oud', '00:11:22:33:44:55', -86, 2462, 11, '2,4 GHz', 20, 'wep'), n('', '12:34:56:78:9a:bc', -80, 5500, 100, '5 GHz', 40, 'wpa2')],
+        crowd: { '2,4 GHz': { 1: 1.6, 2: 1.3, 3: 1.1, 4: 0.9, 5: 0.8, 6: 0.9, 7: 0.6, 8: 0.4, 9: 0.3, 10: 0.15, 11: 0.07, 12: 0.04, 13: 0.03 }, '5 GHz': { 36: 0.8, 100: 0.33 } }, best24: 11, newest: 4, wifiOn: true }); },
+    apLanStart(){ if (this._ap.noWifi) return 'wifi'; if (this._ap.lanBusy) return 'bezig'; this._ap.lanBusy = true; setTimeout(() => { this._ap.lanBusy = false; this._ap.lanDone = true; }, 700); return ''; },
+    apLanStop(){ this._ap.lanBusy = false; },
+    apLan(){ const A = this._ap, done = A.lanDone || A.lanBusy, k = key => A.known[key];
+      const d = (key, ip, name, kind, extra) => Object.assign({ key, ip, name, model: '', maker: '', kind, services: [], ports: [], gateway: false, self: false, mac: '', nieuw: false, first: Date.now() - 86400000 * 20, nick: k(key) ? k(key).nick : '', known: !!k(key), stable: !key.startsWith('l:i:') }, extra || {});
+      const list = !done ? [] : [d('l:me', '192.168.1.37', 'Deze telefoon', 'telefoon', { self: true }), d('l:gw', '192.168.1.1', 'FRITZ!Box 7590', 'router', { gateway: true, maker: 'AVM', model: 'FRITZ!Box 7590', ports: [{ p: 80, label: 'Webpagina' }, { p: 53, label: 'DNS' }] }),
+        d('l:m:woonkamer', '192.168.1.20', 'Woonkamer', 'tv', { maker: 'Google', model: 'Chromecast', services: ['Chromecast'], ports: [{ p: 8009, label: 'Chromecast' }] }),
+        d('l:u:printer-1', '192.168.1.30', 'HP ENVY 6000', 'printer', { maker: 'HP', services: ['Printer'], ports: [{ p: 631, label: 'Printer (IPP)' }, { p: 9100, label: 'Printer' }] }),
+        d('l:b:nas-zolder', '192.168.1.40', 'NAS-ZOLDER', 'nas', { nieuw: !k('l:b:nas-zolder'), first: Date.now() - 3600000, ports: [{ p: 445, label: 'Gedeelde map' }, { p: 5000, label: 'NAS-beheer' }] }),
+        d('l:i:192.168.1.77', '192.168.1.77', '', 'apparaat', {})];
+      return JSON.stringify({ devices: list, busy: A.lanBusy, phase: A.lanBusy ? 'Adressen langsgaan' : '', done: A.lanBusy ? 120 : 0, total: A.lanBusy ? 253 : 0, error: '', net: A.noWifi ? '' : 'Thuis', at: A.lanDone ? Date.now() : 0, macHidden: true, wifi: !A.noWifi, own: A.noWifi ? '' : '192.168.1.37/24' }); },
+    _apTrackerDemo(){ const t = Date.now(); this._ap.trackers['C2:7E:01:02:03:04'] = { id: 'C2:7E:01:02:03:04', key: 'a:C2:7E:01:02:03:04', kind: 'airtag', label: 'AirTag', first: t - 50 * 60000, last: t - 60000, places: 3, minutes: 42, follows: true, warned: t - 5 * 60000, status: '', rssi: -66 }; },
+    apTrackers(){ return JSON.stringify({ list: Object.values(this._ap.trackers), bg: this._ap.set.bg, on: this._ap.set.trackers, passive: true, perm: this._ap.perms.notif }); },
+    apTrackerSet(id, st){ const t = this._ap.trackers[id] || (this._ap.trackers[id] = { id, key: 'a:' + id, kind: '', label: 'Tracker', first: Date.now(), last: Date.now(), places: 0, minutes: 0, follows: false });
+      t.status = st; if (st) { t.follows = false; t.places = 0; } if (st === 'mine') this._ap.known['a:' + id] = { nick: 'Mijn tracker', type: 'tracker', name: '' }; },
+    apKnown(key, nick, type, name){ if (!/^(a|n|l):/.test(key || '')) return 'Dit apparaat is niet terug te herkennen (het wisselt van adres en heeft geen naam)'; if (!nick) delete this._ap.known[key]; else this._ap.known[key] = { nick, type, name }; return ''; },
+    apHistory(){ const A = this._ap, t = Date.now();
+      const mine = Object.keys(A.known).map(k => ({ key: k, nick: A.known[k].nick, name: A.known[k].name, type: A.known[k].type, last: k === 'a:F4:12:9A:00:11:22' ? t - 2 * 3600000 : 0, place: k === 'a:F4:12:9A:00:11:22' ? '51.92,4.48' : '', days: 3, known: true }));
+      const home = A.hist && !A.set.away ? [{ key: 'n:sonos move|1447', name: 'Sonos Move', type: 'speaker', maker: 'Sonos', first: t - 20 * 86400000, last: t - 3600000, place: 'thuis', homeDays: 18, awayDays: 0, days: 18 }] : [];
+      const away = A.hist ? [{ key: 'n:fietscomputer|135', name: 'Fietscomputer', type: 'sport', maker: 'Garmin', first: t - 9 * 86400000, last: t - 86400000, place: '51.90,4.46', homeDays: 0, awayDays: 6, days: 6 }] : [];
+      return JSON.stringify({ mine, home, away, count: A.hist ? 14 : 0, keep: A.set.keep }); },
+    apHome(clear){ if (clear) { this._ap.set.home = false; this._ap.set.homeSsid = ''; return ''; } if (!this._ap.perms.loc) return 'perm'; this._ap.set.home = true; this._ap.set.homeSsid = 'Thuis'; return ''; },
+    apWipe(all){ this._ap.wiped = all; this._ap.trackers = {}; this._ap.hist = false; this._ap.lanDone = false; if (all) { this._ap.known = {}; this._ap.set.home = false; this._ap.set.homeSsid = ''; } },
+    apPerm(k){ const A = this._ap, P = A.perms; A.asked.push(k); if (k === 'nearby') { P.bt = true; P.wifi = true; P.loc = true; } if (k === 'bgloc') P.bg = true; if (k === 'notif') P.notif = true; setTimeout(() => onApChanged(), 50); },
+    apOpenSettings(w){ this._ap.opened.push(w); if (w === 'bt') this._ap.perms.btOn = true; if (w === 'loc') this._ap.perms.locOn = true; setTimeout(() => onApChanged(), 50); },
     _ai: { st: { klein: { state: 'none' }, groot: { state: 'none' }, klein35: { state: 'none' }, groot35: { state: 'none' }, zoek: { state: 'none' } }, chat: 'klein', wifiOnly: true, notes: true, chats: [], ram: 8e9, calls: [], seq: 0,
       mem: [], learnFacts: ['Woont in Rotterdam.'],
       src: { notes: true, tx: true, sms: false, wa: false, calls: false, contacts: false, sleep: false, checkin: false }, perm: { notes: true, tx: true, sms: true, wa: false, calls: true, contacts: false, sleep: true, checkin: true },

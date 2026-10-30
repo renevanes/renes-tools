@@ -136,6 +136,7 @@ function show(name){
   if (name==='checkin') enterCheckin(); else if (name==='checkined') enterCheckinEd(); else if (name==='checkinq') enterCheckinQ(); else if (name==='checkincmp') enterCheckinCmp();
   if (name==='models') enterModels(); else if (typeof mdLeave === 'function') mdLeave();
   if (name==='car') enterCar();
+  if (name==='apparaten' || name==='apdev' || name==='apset') enterAp(name); else if (typeof apLeave === 'function') apLeave();
   if (name==='pdf') enterPdf();
   if (name==='spotify') enterSpotify();
   if (name==='vpn') enterVpn();
