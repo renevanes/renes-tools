@@ -90,11 +90,33 @@ final class AiTalk {
 
     // ---------- tijdens het voorlezen luisteren (onderbreken) ----------
 
-    private static final java.util.concurrent.atomic.AtomicReference<AudioRecord> AR = new java.util.concurrent.atomic.AtomicReference<>();
+    /** De opname met zijn echo-onderdrukking en ruisonderdrukking: samen opruimen. */
+    static final class Rec {
+        final AudioRecord r;
+        android.media.audiofx.AudioEffect aec, ns;
+        Rec(AudioRecord r) { this.r = r; }
+        void release() {
+            try { r.stop(); } catch (Throwable ignored) { }
+            if (aec != null) try { aec.release(); } catch (Throwable ignored) { }
+            if (ns != null) try { ns.release(); } catch (Throwable ignored) { }
+            try { r.release(); } catch (Throwable ignored) { }
+        }
+    }
+
+    /** Hooguit zo lang luisteren (een antwoord voorlezen duurt korter), en alleen zolang de interface kijkt (aiBarge). */
+    static final long BARGE_MAX_MS = 120_000, BARGE_POLL_MS = 3_000;
+    /** Moet het luisteren stoppen? Zuiver (getest): te lang bezig, of de interface vroeg al even niets meer. */
+    static boolean bargeExpired(long startMs, long lastPollMs, long nowMs) {
+        return nowMs - startMs >= BARGE_MAX_MS || nowMs - lastPollMs >= BARGE_POLL_MS;
+    }
+
+    private static final java.util.concurrent.atomic.AtomicReference<Rec> AR = new java.util.concurrent.atomic.AtomicReference<>();
     private static volatile Thread th;
     private static volatile boolean on, hitNow;
     private static volatile float lvNow;
     private static volatile String why = "";
+    private static volatile long lastPoll;
+    private static long nowMs() { return System.nanoTime() / 1_000_000L; }
 
     /** "" als het luisteren loopt; anders waarom niet (dan werkt alleen de knop Onderbreken). */
     static synchronized String bargeStart(Context c) {
@@ -103,32 +125,39 @@ final class AiTalk {
         if (c.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return why = "mic";
         if (!"idle".equals(VoiceNote.state) || conflict(c) != null) return why = "bezet";
         AudioRecord r = null;
+        Rec rec = null;
         try {
             int rate = VoiceNote.RATE;
             int min = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
             // Spraakbron voor bellen: daar zet de telefoon zijn echo-onderdrukking op (de eigen stem telt dan minder mee)
             r = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, Math.max(min, rate));
             if (r.getState() != AudioRecord.STATE_INITIALIZED) throw new IllegalStateException();
-            try { if (android.media.audiofx.AcousticEchoCanceler.isAvailable()) { android.media.audiofx.AcousticEchoCanceler e = android.media.audiofx.AcousticEchoCanceler.create(r.getAudioSessionId()); if (e != null) e.setEnabled(true); } } catch (Throwable ignored) { }
-            try { if (android.media.audiofx.NoiseSuppressor.isAvailable()) { android.media.audiofx.NoiseSuppressor n = android.media.audiofx.NoiseSuppressor.create(r.getAudioSessionId()); if (n != null) n.setEnabled(true); } } catch (Throwable ignored) { }
+            rec = new Rec(r);
+            try { if (android.media.audiofx.AcousticEchoCanceler.isAvailable()) { rec.aec = android.media.audiofx.AcousticEchoCanceler.create(r.getAudioSessionId()); if (rec.aec != null) rec.aec.setEnabled(true); } } catch (Throwable ignored) { }
+            try { if (android.media.audiofx.NoiseSuppressor.isAvailable()) { rec.ns = android.media.audiofx.NoiseSuppressor.create(r.getAudioSessionId()); if (rec.ns != null) rec.ns.setEnabled(true); } } catch (Throwable ignored) { }
             r.startRecording();
             if (r.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) throw new IllegalStateException();
         } catch (Throwable t) {
-            if (r != null) try { r.release(); } catch (Throwable ignored) { }
+            if (rec != null) rec.release(); else if (r != null) try { r.release(); } catch (Throwable ignored) { }
             return why = "Onderbreken door te praten lukt niet op deze telefoon";
         }
-        AR.set(r); on = true;
-        final AudioRecord my = r;
+        lastPoll = nowMs();
+        AR.set(rec); on = true;
+        final Rec my = rec;
         th = new Thread(() -> loop(my), "gesprek-onderbreken");
         th.start();
         return "";
     }
 
-    private static void loop(AudioRecord r) {
+    private static void loop(Rec rec) {
+        AudioRecord r = rec.r;
         try {
             short[] buf = new short[VoiceNote.RATE / 20]; // 50 ms
             Barge b = new Barge();
+            long start = nowMs();
             while (on) {
+                // Nooit eindeloos de microfoon open: na 2 minuten, of als de interface niet meer kijkt, stoppen
+                if (bargeExpired(start, lastPoll, nowMs())) { why = "tijd"; break; }
                 int n = r.read(buf, 0, buf.length);
                 if (n < 0) break;
                 if (n == 0) continue;
@@ -139,7 +168,7 @@ final class AiTalk {
         } catch (Throwable ignored) {
         } finally {
             // Zelf gestopt (onderbroken, of de microfoon viel weg): zelf opruimen; anders doet bargeStop dat
-            if (AR.compareAndSet(r, null)) { on = false; try { r.stop(); } catch (Throwable ignored) { } try { r.release(); } catch (Throwable ignored) { } }
+            if (AR.compareAndSet(rec, null)) { on = false; rec.release(); }
         }
     }
 
@@ -148,13 +177,14 @@ final class AiTalk {
     private static void bargeStopNow() {
         on = false;
         Thread t = th; th = null;
-        AudioRecord r = AR.getAndSet(null);
-        if (r != null) { try { r.stop(); } catch (Throwable ignored) { } }
+        Rec rec = AR.getAndSet(null);
+        if (rec != null) { try { rec.r.stop(); } catch (Throwable ignored) { } } // read() komt dan meteen terug
         if (t != null && t != Thread.currentThread()) try { t.join(400); } catch (Throwable ignored) { }
-        if (r != null) { try { r.release(); } catch (Throwable ignored) { } }
+        if (rec != null) rec.release();
     }
 
     static String bargeJson() {
+        lastPoll = nowMs(); // de interface kijkt nog
         try { return new JSONObject().put("on", on).put("hit", hitNow).put("lv", Math.round(lvNow * 100) / 100.0).put("why", why).toString(); } catch (Exception e) { return "{}"; }
     }
 

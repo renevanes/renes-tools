@@ -52,6 +52,41 @@ const { chromium } = require('playwright');
       await pg.close();
     }
   }
+  // Tekstgrootte 200% (de telefoon op de grootste letters) op 320 px: elk label past en blijft leesbaar
+  {
+    const pg = await b.newPage({ viewport: { width: 320, height: 720 } });
+    pg.on('pageerror', e => errs.push(e.message));
+    await pg.goto(url); await pg.waitForTimeout(300);
+    const labels = () => pg.evaluate(() => [...document.querySelectorAll('#tabs button>span:last-child')].map(l => ({ t: l.textContent, cut: l.scrollWidth > l.clientWidth + 1,
+      px: parseFloat(getComputedStyle(l).fontSize) * (parseFloat(document.body.style.zoom) || 1) })));
+    // 1. Zoals de testbrug tekstgrootte nadoet (alles twee keer zo groot)
+    await pg.evaluate(() => { Android.textZoomSet(200); tabsFit(); }); await pg.waitForTimeout(100);
+    let r = await labels();
+    ok(r.every(x => !x.cut) && r.every(x => x.px >= 9), 'tekstgrootte 200%: geen label afgekapt, alle labels leesbaar ' + JSON.stringify(r.filter(x => x.cut || x.px < 9)));
+    await pg.screenshot({ path: __dirname + '/shots/ai-tab-320-tekst200.png' });
+    await pg.evaluate(() => { Android.textZoomSet(0); tabsFit(); });
+    // 2. Zoals Android het doet (alleen de letters twee keer zo groot)
+    await pg.addStyleTag({ content: '#tabs button{font-size:20px!important}' });
+    await pg.evaluate(() => tabsFit()); await pg.waitForTimeout(50);
+    r = await labels();
+    ok(r.every(x => !x.cut) && r.every(x => x.px >= 9), 'letters 200%: "Instellingen" en "Assistent" passen en blijven leesbaar ' + JSON.stringify(r));
+    ok(r.find(x => x.t === 'Start').px > r.find(x => x.t === 'Instellingen').px, 'een kort label blijft groot');
+    await pg.close();
+  }
+  // Toetsenbord dicht met Terug (het vak houdt de focus): de tabbalk komt terug
+  {
+    const pg = await b.newPage({ viewport: { width: 390, height: 800 } });
+    pg.on('pageerror', e => errs.push(e.message));
+    await pg.goto(url); await pg.waitForTimeout(300);
+    await pg.evaluate(() => { Android._ai.st.klein = { state: 'ready' }; show('ai'); }); await pg.waitForTimeout(150);
+    await pg.focus('#ai-in'); await pg.setViewportSize({ width: 390, height: 450 }); await pg.waitForTimeout(250); // toetsenbord open
+    ok(!(await pg.isVisible('#tabs')), 'toetsenbord open: tabbalk weg');
+    await pg.setViewportSize({ width: 390, height: 800 }); await pg.waitForTimeout(400); // toetsenbord dicht, focus blijft
+    ok(await pg.evaluate(() => document.activeElement.id === 'ai-in') && await pg.isVisible('#tabs'), 'toetsenbord dicht: tabbalk terug');
+    await pg.setViewportSize({ width: 390, height: 450 }); await pg.waitForTimeout(250);
+    ok(!(await pg.isVisible('#tabs')), 'weer typen: tabbalk weer weg');
+    await pg.close();
+  }
   // Losse app: geen tabbalk
   const pg = await b.newPage({ viewport: { width: 360, height: 720 } });
   pg.on('pageerror', e => errs.push(e.message));

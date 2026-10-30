@@ -46,7 +46,7 @@ public class JSONObject {
     public Object get(String k) throws JSONException { Object v = map.get(k); if (v == null) throw new JSONException("Geen waarde voor " + k); return v; }
 
     public String optString(String k) { return optString(k, ""); }
-    public String optString(String k, String d) { Object v = opt(k); return v == null || v == NULL ? d : String.valueOf(v); }
+    public String optString(String k, String d) { Object v = opt(k); return v == null ? d : String.valueOf(v); } // zoals Android: JSON null wordt "null"
     public String getString(String k) throws JSONException { Object v = get(k); return String.valueOf(v); }
 
     public boolean optBoolean(String k) { return optBoolean(k, false); }

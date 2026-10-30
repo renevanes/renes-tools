@@ -74,6 +74,11 @@ public class AiTalkTest {
         for (int t = 0; t < 600; t += 50) loud.feed(0.9f, 50);
         check(loud.threshold() <= 0.93f, "luide echo: drempel hooguit 0,93 (" + loud.threshold() + ")");
 
+        // Onderbreken: nooit eindeloos de microfoon open
+        check(!AiTalk.bargeExpired(0, 0, 2_000) && !AiTalk.bargeExpired(0, 118_000, 119_000), "luistert zolang de interface kijkt (tot 2 minuten)");
+        check(AiTalk.bargeExpired(0, 119_500, 120_000), "na 2 minuten: stoppen");
+        check(AiTalk.bargeExpired(0, 1_000, 4_000) && !AiTalk.bargeExpired(0, 1_000, 3_900), "de interface vroeg 3 s niets meer: stoppen");
+
         System.out.println(fails == 0 ? "\nAlles goed" : "\n" + fails + " mislukt");
         if (fails > 0) System.exit(1);
     }

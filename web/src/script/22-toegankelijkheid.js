@@ -1,5 +1,5 @@
 /* ---------- Toegankelijkheid ---------- */
-function stZoom(v){ Android.textZoomSet(+v); toast('Tekstgrootte: ' + $('#st-zoom').selectedOptions[0].textContent); }
+function stZoom(v){ Android.textZoomSet(+v); toast('Tekstgrootte: ' + $('#st-zoom').selectedOptions[0].textContent); setTimeout(() => { if (typeof tabsFit === 'function') tabsFit(); }, 60); }
 /* Schakelaars en keuzeknoppen: TalkBack hoort aan/uit (de klasse "on" bepaalt de stand). */
 function a11yMark(el){
   if (el.classList.contains('tg')) {

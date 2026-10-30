@@ -160,6 +160,19 @@ function aiToggleNotes(){ aiSt.notes = !aiSt.notes; Android.aiPref('notes', aiSt
   const t = document.getElementById('ai-in'); if (!t) return; let tm = null;
   t.addEventListener('focus', () => { clearTimeout(tm); document.body.classList.add('ai-typing'); });
   t.addEventListener('blur', () => { clearTimeout(tm); tm = setTimeout(() => { if (document.activeElement !== t) document.body.classList.remove('ai-typing'); }, 400); });
+  // Toetsenbord dicht met Terug (het vak houdt de focus): tabbalk weer terug; tik je er weer in, dan weer weg
+  const vv = window.visualViewport; if (!vv) return;
+  let full = vv.height, w = vv.width;
+  vv.addEventListener('resize', () => {
+    if (Math.abs(vv.width - w) > 1) { w = vv.width; full = vv.height; } // gedraaid: opnieuw meten
+    full = Math.max(full, vv.height);
+    if (document.activeElement !== t) return;
+    const kb = vv.height < full - 120;
+    clearTimeout(tm);
+    if (kb) document.body.classList.add('ai-typing');
+    else tm = setTimeout(() => document.body.classList.remove('ai-typing'), 150);
+  });
+  t.addEventListener('pointerdown', () => { if (document.activeElement === t) document.body.classList.add('ai-typing'); });
 })();
 function aiGrow(){ const t = $('#ai-in'); if (!t.value.trim()) aiFromVoice = false; t.style.height = 'auto'; t.style.height = Math.min(160, t.scrollHeight) + 'px'; aiSendBtn(); }
 function aiKey(e){ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); aiSendOrStop(); } }
@@ -200,8 +213,8 @@ function aiLocalAnswer(h, v){
   const m = Object.assign({ r: 'ai', c: h.text || '', t: Date.now(), local: true }, h.set ? { set: h.set } : {}, h.src ? { src: h.src } : {}, h.cmd ? { cmd: h.cmd } : {});
   aiChat.msgs.push(m);
   aiSaveChat(aiChat); aiRenderMsgs(); aiSendBtn();
+  if (typeof aiTalkOn === 'function' && aiTalkOn()) { aiTalkLocal(m); return; } // gesprek: voorlezen (dan niet ook nog de schermlezer) en weer luisteren
   aiVSay(String(m.c).replace(/\*\*/g, '') + (aiCardOpen(m) ? ' Bevestig met de knop onder het antwoord.' : ''));
-  if (typeof aiTalkOn === 'function' && aiTalkOn()) { aiTalkLocal(m); return; } // gesprek: voorlezen en weer luisteren
   if (v && aiSt.speakVoice && m.c) setTimeout(() => { if (current === 'ai' && !document.hidden) aiSpeakStart(m, aiChat); }, 0);
 }
 const AI_OTHERS = ['sms', 'wa', 'calls', 'contacts', 'tx'];
@@ -374,7 +387,7 @@ function aiResync(chat){
 function aiSaveChat(chat){
   if (!chat || chat.discard || !chat.msgs.some(m => !m.err)) return;
   const memOf = m => { if (!m.mem) return undefined; const x = Object.assign({}, m.mem); delete x.thinking; return Object.keys(x).length ? x : undefined; };
-  const id = Android.aiChatSave(JSON.stringify({ id: chat.id, title: chat.title, msgs: chat.msgs.filter(m => m !== aiCur || m.c).map(m => ({ r: m.r, c: m.c, t: m.t, src: m.src || undefined, err: m.err || undefined, stopped: m.stopped || undefined, cut: m.cut || undefined, trim: m.trim || undefined, mem: memOf(m), memUsed: m.memUsed || undefined, act: aiActOf(m), cmd: m.cmd || undefined, att: m.att || undefined, v: m.v || undefined, set: m.set || undefined, local: m.local || undefined })) }));
+  const id = Android.aiChatSave(JSON.stringify({ id: chat.id, title: chat.title, msgs: chat.msgs.filter(m => m !== aiCur || m.c).map(m => ({ r: m.r, c: m.c, t: m.t, src: m.src || undefined, err: m.err || undefined, stopped: m.stopped || undefined, cut: m.cut || undefined, trim: m.trim || undefined, mem: memOf(m), memUsed: m.memUsed || undefined, act: aiActOf(m), cmd: typeof aiCmdSaved === 'function' ? aiCmdSaved(m.cmd) : (m.cmd || undefined), att: m.att || undefined, v: m.v || undefined, set: m.set || undefined, local: m.local || undefined })) }));
   if (id) chat.id = id;
 }
 /* Eenvoudige opmaak van een antwoord: alinea's, opsommingen, vet, cursief, code, kopjes (alles eerst ge-escaped) */

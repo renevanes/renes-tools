@@ -593,7 +593,8 @@ if (!window.Android) window.Android = (function(){
       const T = { apparaten: 'apparaten', gebruik: 'gebruik', slaappraat: 'sleep', notities: 'notes', radio: 'radio' };
       if ((m = /^open (.+)$/.exec(l)) && T[m[1]]) return J({ type: 'open', tool: T[m[1]] });
       if ((m = /^stuur een sms naar ([^:]+?)(?::| dat) (.+)$/i.exec(s))) { const nr = /^[0-9 +-]{6,}$/.test(m[1]) ? m[1].replace(/[ -]/g, '') : ''; return J(Object.assign({ type: 'sms', text: / dat /.test(s) ? m[2].charAt(0).toUpperCase() + m[2].slice(1) : m[2] }, nr ? { number: nr } : { to: m[1] })); }
-      if ((m = /^app (\S+) dat (.+)$/i.exec(s))) return J({ type: 'wa', to: m[1].charAt(0).toUpperCase() + m[1].slice(1), text: m[2].charAt(0).toUpperCase() + m[2].slice(1) });
+      // Met alleen een naam ("app Jos dat …", "vertel Jos dat …"): alleen als die in je contacten staat (zoals AiCommands.Known)
+      if ((m = /^(?:app|vertel) (\S+) dat (.+)$/i.exec(s)) && this._aiContacts.some(c => c.name.toLowerCase().split(' ').includes(m[1].toLowerCase()))) return J({ type: /^app/i.test(s) ? 'wa' : 'sms', to: m[1].charAt(0).toUpperCase() + m[1].slice(1), text: m[2].charAt(0).toUpperCase() + m[2].slice(1) });
       return ''; },
     _aiContacts: [{ name: 'Jos de Vries', number: '0612345678', label: 'mobiel' }, { name: 'Jos de Vries', number: '0101234567', label: 'thuis' }, { name: 'Marieke', number: '0687654321', label: 'mobiel' }],
     aiContact(name){ if (window.__testSolo) return '[]'; if (this._aiContactPerm === false) return '{"perm":false}'; const q = String(name || '').toLowerCase(); return JSON.stringify(this._aiContacts.filter(c => c.name.toLowerCase().split(' ').some(w => w === q) || c.name.toLowerCase() === q)); },

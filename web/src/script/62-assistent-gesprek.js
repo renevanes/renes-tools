@@ -51,6 +51,7 @@ function aiTalkSt(st, hint){
   aiTk.st = st;
   const o = $('#ai-talk'); o.dataset.st = st; o.classList.toggle('mini', st === 'bevestig');
   o.setAttribute('aria-modal', st === 'bevestig' ? 'false' : 'true'); // bevestigen: de kaart eronder moet bereikbaar zijn
+  aiTalkInert(st !== 'bevestig');
   $('#ai-talk-st').textContent = AI_TALK_ST[st][0];
   const ic = $('#ai-talk-orb .ui-icon'); if (ic) ic.dataset.icon = AI_TALK_ICON[st];
   const b = $('#ai-talk-go'), lab = AI_TALK_ST[st][1];
@@ -226,8 +227,7 @@ function aiTalkInterrupt(byVoice){
   if (aiTk.spk) { aiTk.spk = null; Android.aiSpeakStop(); }
   if (aiBusy && aiTk.wait === 'antwoord') Android.aiCancel(); // het antwoord stopt (wat er al stond, blijft)
   aiTk.card = false;
-  aiVSay(byVoice ? 'Onderbroken. Ik luister.' : 'Onderbroken');
-  aiTalkListen();
+  aiTalkListen(); // "Ik luister…" wordt voorgelezen (ai-talk-st); niet nog eens apart
 }
 
 /* ---------- stoppen ---------- */
@@ -242,11 +242,29 @@ function aiTalkStop(msg){
   Android.aiTalkScreen(false);
   document.body.classList.remove('talk-on');
   const o = $('#ai-talk'); if (o) { o.hidden = true; o.classList.remove('mini'); }
-  if (msg) toast(msg);
-  aiVSay(msg || 'Gesprek gestopt');
+  aiTalkInert(false);
+  if (msg) toast(msg); else aiVSay('Gesprek gestopt'); // de melding wordt al voorgelezen (role=status): niet twee keer
   aiSendBtn();
   const b = $('#ai-talk-btn'); if (b && current === 'ai' && b.offsetParent) b.focus({ preventScroll: true });
 }
+/* Groot in beeld: de rest van de assistent is dan niet bereikbaar (ook niet met Tab of een schermlezer) */
+function aiTalkInert(on){
+  const o = $('#ai-talk'), scr = o && o.parentElement; if (!scr) return;
+  for (const el of scr.children) if (el !== o) { if (on) { if (!el.hasAttribute('data-talk-inert')) { el.setAttribute('data-talk-inert', el.inert ? '1' : '0'); el.inert = true; } } else if (el.hasAttribute('data-talk-inert')) { el.inert = el.getAttribute('data-talk-inert') === '1'; el.removeAttribute('data-talk-inert'); } }
+  if (on && !o.hidden && !o.contains(document.activeElement)) { const h = $('#ai-talk-t'); if (h) h.focus({ preventScroll: true }); } // focus niet achterlaten op wat nu onbereikbaar is
+}
+/* Tab blijft in het gesprek; Escape stopt het (zoals de andere vensters) */
+document.addEventListener('keydown', e => {
+  if (!aiTk || aiTk.st === 'bevestig') return;
+  const o = $('#ai-talk'); if (!o || o.hidden) return;
+  if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); aiTalkStop(); return; }
+  if (e.key !== 'Tab') return;
+  const list = [...o.querySelectorAll('button, [tabindex="0"]')].filter(x => !x.disabled && x.getClientRects().length);
+  if (!list.length) { e.preventDefault(); return; }
+  const first = list[0], last = list[list.length - 1];
+  if (!o.contains(document.activeElement) || (!e.shiftKey && document.activeElement === last)) { e.preventDefault(); first.focus(); }
+  else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+}, true);
 /* Terug (knop of gebaar): eerst het gesprek stoppen */
 function aiTalkBack(){ if (!aiTk) return false; aiTalkStop(); return true; }
 (function(){ const prev = window.onPauseApp; window.onPauseApp = function(){ if (prev) prev(); if (aiTk) aiTalkStop(); }; })();

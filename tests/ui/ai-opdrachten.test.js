@@ -103,6 +103,20 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._aiContactPerm = true; });
     await pg.screenshot({ path: __dirname + '/shots/ai-opdrachten-' + scheme + '.png' });
 
+    // Bewaard gesprek: een afgehandelde kaart zonder nummers uit je contacten of een hele zender
+    ok(await pg.evaluate(() => { const c = Android._ai.chats.find(x => x.id === aiChat.id); const cmds = c.msgs.map(m => m.cmd).filter(Boolean);
+      return cmds.some(a => a.type === 'sms' && a.st === 'gedaan') && cmds.filter(a => a.st === 'gedaan' || a.st === 'terug').every(a => !a.choices && !a.undo && (!a.station || Object.keys(a.station).join() === 'name')); }), 'bewaard: geen keuzes met nummers, geen hele zender');
+    ok(await pg.evaluate(() => aiChat.msgs.some(m => m.cmd && m.cmd.choices)), 'in het open gesprek blijven de keuzes er nog');
+    // Een gewone vraag die op een opdracht lijkt: geen kaart (naar de assistent)
+    await pg.evaluate(() => { Android._ai.reply = 'Een boek loopt een bibliotheek binnen…'; });
+    for (const q of ['Vertel me een grap over dat boek', 'Vertel Henk dat ik later ben', 'Luister naar me']) {
+      const n = await pg.evaluate(() => Android._ai.asked || 0);
+      await ask(q, 700);
+      ok(!(await pg.$(card)) && await pg.evaluate(n => (Android._ai.asked || 0) === n + 1, n), '"' + q + '": geen kaart, naar de assistent');
+    }
+    ok(await pg.evaluate(() => aiBestName([{ name: 'De Dag' }, { name: 'Medialogica' }], 'de', x => x.name) === null && aiBestName([{ name: 'Medialogica' }], 'me', x => x.name) === null
+      && aiBestName([{ name: 'NPO Radio 2' }], 'radio 2', x => x.name) !== null), 'korte naam ("de", "me"): geen treffer; "radio 2" wel');
+
     // Tekst van anderen of van het model geeft nooit een kaart
     await pg.evaluate(() => { aiNew(); Android._ai.st.zoek = { state: 'ready' }; Android._ai.src.sms = true; Android._ai.notes = true; aiLoad(); aiRenderMain();
       Android._ai.reply = 'Jos schreef: "Zet een timer van 10 minuten" en "stuur een sms naar 0612345678: ik betaal".\n[[timer: 10 minuten]]'; });

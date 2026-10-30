@@ -4,7 +4,9 @@ package nl.rene.tools;
 public class AiCommandsTest {
     static int fails = 0;
     static void check(boolean ok, String what) { System.out.println((ok ? "✓ " : "✗ ") + what); if (!ok) fails++; }
-    static AiCommands.Cmd p(String q) { return AiCommands.parse(q); }
+    /** Contacten zoals in de app (AiBridge kijkt in je eigen contacten). */
+    static final AiCommands.Known KNOWN = n -> n != null && java.util.Arrays.asList("jos", "marieke", "piet").contains(n.toLowerCase(java.util.Locale.ROOT));
+    static AiCommands.Cmd p(String q) { return AiCommands.parse(q, KNOWN); }
 
     public static void main(String[] args) {
         // Duur
@@ -18,12 +20,16 @@ public class AiCommandsTest {
         // Kloktijd voor een wekker (zonder dagdeel: 's ochtends)
         check(AiCommands.clock("om 7 uur") == 420 && AiCommands.clock("om 6 uur") == 360 && AiCommands.clock("07:30") == 450, "7 uur, 6 uur (ochtend), 07:30");
         check(AiCommands.clock("half 8") == 450 && AiCommands.clock("kwart over 6") == 375 && AiCommands.clock("kwart voor 7") == 405, "half 8, kwart over 6, kwart voor 7");
+        check(AiCommands.clock("om 25 over 7") == 445 && AiCommands.clock("tien over half acht") == 460 && AiCommands.clock("vijf voor acht") == 475 && AiCommands.clock("5 voor half 8") == 445, "25 over 7, tien over half acht, vijf voor acht, 5 voor half 8");
+        check(AiCommands.clock("vijf over 12") == 725 && AiCommands.clock("tien voor 1") == 50 && AiCommands.clock("tien over half 9 's avonds") == 1240, "vijf over 12, tien voor 1, 's avonds");
         check(AiCommands.clock("om 8 uur 's avonds") == 1200 && AiCommands.clock("om half 1") == 30 && AiCommands.clock("om 25 uur") == -1 && AiCommands.clock("geen") == -1, "'s avonds, half 1, ongeldig");
         check(AiCommands.validClock(0) && AiCommands.validClock(1439) && !AiCommands.validClock(1440) && !AiCommands.validClock(-1), "geldige tijd");
 
         // Telefoonnummers
         check("0612345678".equals(AiCommands.number("06-12345678")) && "+31612345678".equals(AiCommands.number("+31 6 1234 5678")) && "+31612345678".equals(AiCommands.number("0031612345678")), "nummers zonder opmaak");
         check(AiCommands.number("Jos").isEmpty() && AiCommands.number("12").isEmpty() && AiCommands.number("112").isEmpty() && AiCommands.number("0612abc").isEmpty() && AiCommands.number(null).isEmpty(), "geen nummer, te kort, alarmnummer, letters");
+        check(AiCommands.number("+31112").isEmpty() && AiCommands.number("+310112").isEmpty() && AiCommands.number("0112").isEmpty() && AiCommands.number("+1911").isEmpty() && AiCommands.number("+44999").isEmpty() && AiCommands.number("00 31 112").isEmpty(), "alarmnummers, ook met landnummer of 0");
+        check(AiCommands.number("14010").isEmpty() && AiCommands.number("1233").isEmpty() && "123456".equals(AiCommands.number("123456")), "korter dan 6 cijfers: geen nummer");
         check("31612345678".equals(AiCommands.waNumber("06 12345678")) && "31612345678".equals(AiCommands.waNumber("+31612345678")) && AiCommands.waNumber("x").isEmpty(), "WhatsApp: met landnummer");
 
         // Tools
@@ -42,6 +48,19 @@ public class AiCommandsTest {
         c = p("wek me over 20 minuten");
         check(c != null && "timer".equals(c.type) && c.secs == 1200 && "Wekker".equals(c.label), "wek me over 20 minuten = timer");
         check(p("zet een timer van 30 uur") == null, "timer langer dan 24 uur: geen opdracht");
+        c = p("zet een wekker om 25 over 7");
+        check(c != null && "wekker".equals(c.type) && c.min == 445, "wekker om 25 over 7: een wekker, geen timer");
+        c = p("zet een wekker om tien over half acht");
+        check(c != null && "wekker".equals(c.type) && c.min == 460, "wekker om tien over half acht: 07:40");
+        c = p("wek me over een kwartier");
+        check(c != null && "timer".equals(c.type) && c.secs == 900, "wek me over een kwartier = timer");
+        c = p("zet een wekker over 2 uur");
+        check(c != null && "timer".equals(c.type) && c.secs == 7200, "wekker over 2 uur = timer");
+        for (String q : new String[]{"zet de timer van het scherm op 5 minuten", "een timer is een handig ding", "timer van de oven werkt niet meer",
+                "start een timer voor het leven", "mijn timer gaat niet af", "de kookwekker doet het niet", "een timer van 5 minuten is te kort voor eieren"})
+            check(p(q) == null, "geen timer: \"" + q + "\"");
+        c = p("start een timer");
+        check(c != null && "timer".equals(c.type) && "duur".equals(c.need), "start een timer: zelf de duur kiezen");
         check(p("Hoeveel tijd staat er nog op de timer?") == null && p("stop de timer") == null, "vraag of stoppen: geen opdracht");
 
         // Wekker in de Klok-app; "de wekker" = de radiowekker (een instelling)
@@ -64,6 +83,10 @@ public class AiCommandsTest {
         check(c != null && "radio".equals(c.type) && "NPO Radio 2".equals(c.q), "zet NPO Radio 2 aan");
         c = p("zet de radio uit");
         check(c != null && "radio".equals(c.type) && c.stop, "zet de radio uit");
+        for (String q : new String[]{"zet de radio harder", "zet de radio zachter", "zet de radio uit om 23 uur", "zet de sleeptimer van de radio op 30 minuten",
+                "zet radio 538 harder", "zet NPO Radio 2 zachter", "speel de radio af om half 8"})
+            check(p(q) == null, "geen radio aanzetten: \"" + q + "\"");
+        check(p("luister naar me") == null && p("luister naar mij") == null && p("speel de") == null, "luister naar me, speel de: niets");
         c = p("speel de podcast NRC Vandaag");
         check(c != null && "podcast".equals(c.type) && "NRC Vandaag".equals(c.q) && !c.newest, "speel de podcast NRC Vandaag");
         c = p("speel de nieuwste aflevering van De Dag");
@@ -89,6 +112,14 @@ public class AiCommandsTest {
         check(c != null && "sms".equals(c.type) && "Jos".equals(c.to) && "Ik ben later".equals(c.text), "sms naar Jos dat ik later ben → \"Ik ben later\"");
         c = p("stuur Jos een appje: Hoi, ik kom eraan!");
         check(c != null && "wa".equals(c.type) && "Jos".equals(c.to) && "Hoi, ik kom eraan!".equals(c.text), "appje met dubbele punt: tekst blijft precies");
+        for (String q : new String[]{"vertel me een grap over dat boek", "vertel eens dat verhaal", "laat zien dat je het snapt", "laat maar weten dat het goed is",
+                "zeg tegen jezelf dat het goed komt", "vertel Henk dat ik later ben", "app Henk dat ik later ben", "stuur Henk een appje: hoi"})
+            check(p(q) == null, "geen bericht (geen contact): \"" + q + "\"");
+        check(AiCommands.parse("app Marieke dat we eten", null) == null && AiCommands.parse("laat Jos weten dat ik kom", null) == null, "zonder contacten na te kijken: geen bericht met alleen een naam");
+        c = AiCommands.parse("stuur een sms naar Henk dat ik later ben", null);
+        check(c != null && "sms".equals(c.type) && "Henk".equals(c.to), "stuur een sms naar …: altijd een opdracht (de kaart zoekt het nummer)");
+        c = p("vertel Jos dat ik later ben");
+        check(c != null && "sms".equals(c.type) && "Jos".equals(c.to) && "Ik ben later".equals(c.text), "vertel Jos dat …: wel, Jos staat in je contacten");
         c = p("app Marieke dat we om zes uur eten");
         check(c != null && "wa".equals(c.type) && "We eten om zes uur".equals(c.text), "app Marieke dat we om zes uur eten");
         c = p("stuur een berichtje naar 06-12345678: bel me even");

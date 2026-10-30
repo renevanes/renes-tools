@@ -163,33 +163,43 @@ public class AiBridge extends SleepBridge {
 
     /** De opdracht in je eigen vraag, of "". */
     @JavascriptInterface public String aiCmd(String q) {
-        try { AiCommands.Cmd c = AiCommands.parse(q); return c == null ? "" : AiCommands.json(c).toString(); } catch (Throwable t) { return ""; }
+        try {
+            // "app Jos dat …" is alleen een opdracht als Jos in je contacten staat (anders: "vertel eens dat verhaal")
+            AiCommands.Cmd c = AiCommands.parse(q, name -> { try { JSONArray r = contactsNamed(name); return r != null && r.length() > 0; } catch (Throwable t) { return false; } });
+            return c == null ? "" : AiCommands.json(c).toString();
+        } catch (Throwable t) { return ""; }
     }
 
     /** Telefoonnummers van een contact uit je eigen contacten (voor een bericht): [{name, number, label}] of {perm:false}. */
     @JavascriptInterface public String aiContact(String name) {
         try {
             if (a.isSolo()) return "[]";
-            if (!Search.has(ctx, android.Manifest.permission.READ_CONTACTS)) return "{\"perm\":false}";
-            String q = name == null ? "" : name.trim().toLowerCase(java.util.Locale.ROOT);
-            if (q.length() < 2 || q.length() > 40) return "[]";
-            JSONArray best = new JSONArray(), good = new JSONArray();
-            for (ContactsDiff.Rec r : Contacts.readCached(ctx)) {
-                String n = r.name == null ? "" : r.name.toLowerCase(java.util.Locale.ROOT);
-                boolean exact = n.equals(q), word = (" " + n + " ").contains(" " + q + " ") || n.startsWith(q);
-                if (!exact && !word) continue;
-                for (String line : Contacts.lines(r.get("Telefoon"))) {
-                    String[] p = Contacts.splitLabel(line);
-                    String num = AiCommands.number(p[0]);
-                    if (num.isEmpty()) continue;
-                    JSONObject x = new JSONObject().put("name", r.name).put("number", num).put("label", p[1]);
-                    (exact ? best : good).put(x);
-                }
-                if (best.length() + good.length() >= 8) break;
-            }
-            for (int i = 0; i < good.length() && best.length() < 6; i++) best.put(good.get(i));
-            return best.toString();
+            JSONArray r = contactsNamed(name);
+            return r == null ? "{\"perm\":false}" : r.toString();
         } catch (Throwable t) { return "[]"; }
+    }
+    /** Contacten met die naam (met een geldig nummer), of null zonder toegang tot je contacten. */
+    private JSONArray contactsNamed(String name) throws Exception {
+        if (a.isSolo()) return new JSONArray();
+        if (!Search.has(ctx, android.Manifest.permission.READ_CONTACTS)) return null;
+        String q = name == null ? "" : name.trim().toLowerCase(java.util.Locale.ROOT);
+        if (q.length() < 2 || q.length() > 40) return new JSONArray();
+        JSONArray best = new JSONArray(), good = new JSONArray();
+        for (ContactsDiff.Rec r : Contacts.readCached(ctx)) {
+            String n = r.name == null ? "" : r.name.toLowerCase(java.util.Locale.ROOT);
+            boolean exact = n.equals(q), word = (" " + n + " ").contains(" " + q + " ") || n.startsWith(q);
+            if (!exact && !word) continue;
+            for (String line : Contacts.lines(r.get("Telefoon"))) {
+                String[] p = Contacts.splitLabel(line);
+                String num = AiCommands.number(p[0]);
+                if (num.isEmpty()) continue;
+                JSONObject x = new JSONObject().put("name", r.name).put("number", num).put("label", p[1]);
+                (exact ? best : good).put(x);
+            }
+            if (best.length() + good.length() >= 8) break;
+        }
+        for (int i = 0; i < good.length() && best.length() < 6; i++) best.put(good.get(i));
+        return best;
     }
 
     /** Een opdracht uitvoeren na de tik: timer of wekker (Klok-app, die je ziet), de Klok-app openen, of een sms of
@@ -245,7 +255,7 @@ public class AiBridge extends SleepBridge {
                     if (!num.isEmpty()) {
                         android.net.Uri u = android.net.Uri.parse("whatsapp://send?phone=" + num + "&text=" + android.net.Uri.encode(text));
                         tries = new android.content.Intent[]{new android.content.Intent(android.content.Intent.ACTION_VIEW, u).setPackage("com.whatsapp"),
-                                new android.content.Intent(android.content.Intent.ACTION_VIEW, u).setPackage("com.whatsapp.w4b"), new android.content.Intent(android.content.Intent.ACTION_VIEW, u)};
+                                new android.content.Intent(android.content.Intent.ACTION_VIEW, u).setPackage("com.whatsapp.w4b")}; // alleen WhatsApp zelf, geen andere app
                     } else {
                         tries = new android.content.Intent[]{new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text).setPackage("com.whatsapp"),
                                 new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text).setPackage("com.whatsapp.w4b")};
@@ -268,7 +278,7 @@ public class AiBridge extends SleepBridge {
             } catch (Throwable t) { res[0] = "Dat lukte niet"; }
             done.countDown();
         });
-        try { if (!done.await(3, java.util.concurrent.TimeUnit.SECONDS)) return ""; } catch (InterruptedException e) { return ""; }
+        try { if (!done.await(3, java.util.concurrent.TimeUnit.SECONDS)) return "Onbekend of het lukte: kijk het na in de app"; } catch (InterruptedException e) { return "Onbekend of het lukte: kijk het na in de app"; }
         return res[0];
     }
 

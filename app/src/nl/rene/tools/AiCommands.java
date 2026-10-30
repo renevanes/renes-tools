@@ -21,6 +21,7 @@ final class AiCommands {
         String type = "", q = "", label = "", to = "", number = "", text = "", tool = "", need = "";
         int secs, min = -1;
         boolean stop, radio, newest, viaDat;
+        boolean weak; // een bericht dat alleen met een bekende contactnaam een opdracht is
         String dayWord = ""; // een dag die de Klok-app niet kan kiezen ("morgen", "zaterdag")
     }
 
@@ -77,8 +78,8 @@ final class AiCommands {
         if (!t.matches("[+0-9 ()./-]{4,30}")) return "";
         String d = t.replaceAll("[ ()./-]", "");
         if (d.startsWith("00")) d = "+" + d.substring(2);
-        if (!d.matches("\\+?\\d{4,15}")) return "";
-        if (d.matches("\\+?(112|911|999|000)")) return "";
+        if (!d.matches("\\+?\\d{6,15}")) return ""; // korter: een servicenummer, geen persoon
+        if (d.matches("(?:\\+\\d{1,3})?0?(?:112|911|999|000)")) return ""; // nooit een alarmnummer (ook niet met landnummer)
         return d;
     }
 
@@ -159,6 +160,14 @@ final class AiCommands {
         int h = -1, mi = 0;
         Matcher m;
         if ((m = Pattern.compile("\\b(\\d{1,2})[:.](\\d{2})\\b").matcher(s)).find()) { h = Integer.parseInt(m.group(1)); mi = Integer.parseInt(m.group(2)); }
+        else if ((m = Pattern.compile("\\b" + NUM + "\\s+(over|voor)\\s+half\\s+" + NUM + "\\b").matcher(s)).find()) { // tien over half acht = 7:40
+            int n = number99(m.group(1)), hh = number99(m.group(3));
+            if (n >= 1 && n <= 29 && hh >= 0) { h = (hh + 23) % 24; mi = "over".equals(m.group(2)) ? 30 + n : 30 - n; }
+        }
+        else if ((m = Pattern.compile("\\b" + NUM + "\\s+(over|voor)\\s+" + NUM + "\\b").matcher(s)).find()) { // 25 over 7, vijf voor acht
+            int n = number99(m.group(1)), hh = number99(m.group(3));
+            if (n >= 1 && n <= 29 && hh >= 0) { if ("over".equals(m.group(2))) { h = hh; mi = n; } else { h = (hh + 23) % 24; mi = 60 - n; } }
+        }
         else if ((m = Pattern.compile("\\bkwart\\s+(over|voor)\\s+" + NUM + "\\b").matcher(s)).find()) { int n = number99(m.group(2)); if (n >= 0) { h = "over".equals(m.group(1)) ? n : n - 1; mi = "over".equals(m.group(1)) ? 15 : 45; } }
         else if ((m = Pattern.compile("\\bhalf\\s+" + NUM + "\\b").matcher(s)).find()) { int n = number99(m.group(1)); if (n >= 0) { h = n - 1; mi = 30; } }
         else if ((m = Pattern.compile("\\b(?:om\\s+|op\\s+|voor\\s+)?" + NUM + "\\s*(?:uur|u)\\b").matcher(s)).find()) h = number99(m.group(1));
@@ -188,12 +197,34 @@ final class AiCommands {
     }
 
     private static final Pattern P_TIMER = Pattern.compile("(?iu)\\b(timer|kookwekker|eierwekker|wekkertje)\\b");
-    private static final Pattern P_WAKE_IN = Pattern.compile("(?iu)\\b(?:wekker|alarm|wek\\s+me|maak\\s+me\\s+wakker)\\b.*\\bover\\s+");
+    private static final String TW = "(?:timer|kookwekker|eierwekker|wekkertje)";
+    private static final Pattern P_TIMER_THAT = Pattern.compile("(?iu)\\b(?:de|het|mijn|m'n|die|deze|jouw|je)\\s+" + TW + "\\b");
+    private static final Pattern P_TIMER_ABOUT = Pattern.compile("(?iu)\\b" + TW + "\\s+(?:is|was|werkt|werkte|doet|deed|gaat|ging|kan|kon|heeft|had|van\\s+(?:de|het|mijn|m'n|die)\\b)");
+    private static final Pattern P_TIMER_BARE = Pattern.compile("(?iu)^(?:(?:zet|start|stel|maak|begin)\\s+(?:een\\s+|nieuwe\\s+|n\\s+)?" + TW + "(?:\\s+(?:in|aan))?|(?:een\\s+|nieuwe\\s+)?" + TW + "\\s+(?:zetten|starten|instellen|maken)|" + TW + ")$");
+    private static final Pattern P_WAKE_WORD = Pattern.compile("(?iu)\\b(?:wekker|alarm|wek\\s+me|maak\\s+me\\s+wakker)\\b");
+    private static final Pattern P_OVER_DUR = Pattern.compile("(?iu)\\bover\\s+(?:(?:een|1|drie|3)\\s+)?(?:" + NUM + "\\s*(?:minuten|minuut|min|uur|uurtje|uren|seconden|seconde|sec)\\b|half\\s+uur|anderhalf\\s+uur|anderhalve\\s+minuut|kwartier)");
+    /** "wek me over 20 minuten": een timer. Niet "om 25 over 7" of "tien over half acht" (dat is een kloktijd). */
+    static boolean wakeIn(String s) {
+        Matcher w = P_WAKE_WORD.matcher(s);
+        if (!w.find()) return false;
+        Matcher m = P_OVER_DUR.matcher(s);
+        while (m.find()) {
+            if (m.start() < w.end()) continue;
+            String before = s.substring(0, m.start()).trim().toLowerCase(Locale.ROOT);
+            String last = before.substring(before.lastIndexOf(' ') + 1);
+            if (number99(last) >= 0 || "kwart".equals(last)) continue; // "tien over 7 uur"
+            return true;
+        }
+        return false;
+    }
     private static final Pattern P_ALARM = Pattern.compile("(?iu)^(?:(?:zet|maak|stel|plan)\\s+(?:een\\s+|nieuwe\\s+|n\\s+)?(?:wekker|alarm)(?:\\s+in)?|(?:een\\s+)?(?:wekker|alarm)|wek\\s+me|maak\\s+me\\s+wakker)\\b(.*)$");
     private static final Pattern P_RADIOWEKKER = Pattern.compile("(?iu)radiowekker|met\\s+de\\s+radio|wakker\\s+(?:worden\\s+)?met\\s+(?:de\\s+)?radio");
     private static final Pattern P_SLEEP = Pattern.compile("(?iu)^(?:(start|begin(?:\\s+met)?|zet|doe)\\s+(?:de\\s+)?slaappraat(?:\\s+(aan|uit|af))?|(stop|stoppen\\s+met|beëindig)\\s+(?:de\\s+)?slaappraat|slaappraat\\s+(aan|uit|starten|start|stoppen|stop))$");
     private static final Pattern P_RADIO_STOP = Pattern.compile("(?iu)^(?:(?:zet|doe)\\s+(?:de\\s+)?radio\\s+(?:uit|af)|stop\\s+(?:de\\s+)?radio|radio\\s+(?:uit|stop))$");
     private static final Pattern P_RADIO = Pattern.compile("(?iu)^(?:speel|start|zet|draai|luister\\s+naar|ik\\s+wil\\s+luisteren\\s+naar)\\s+(?:de\\s+)?(?:radio(?:zender)?|zender)(?:\\s+(.+?))?(?:\\s+(?:aan|op))?$");
+    /** Iets anders dan een zender aanzetten: harder, uit, een tijd, een slaaptimer (dan de gewone assistent). */
+    private static final Pattern RADIO_NOT = Pattern.compile("(?iu)\\b(?:uit|af|harder|zachter|luider|stiller|hard|zacht|volume|geluid|\\p{L}*timer|wekker|alarm|instelling\\w*)\\b"
+            + "|\\bom\\s+(?:\\d|half|kwart|een|twee|drie|vier|vijf|zes|zeven|acht|negen|tien|elf|twaalf)");
     private static final Pattern P_STATION_ON = Pattern.compile("(?iu)^(?:zet|speel|start|draai)\\s+(.+?)(?:\\s+aan|\\s+op de radio)?$");
     private static final Pattern P_LISTEN = Pattern.compile("(?iu)^(?:speel|luister\\s+naar|ik\\s+wil\\s+luisteren\\s+naar)\\s+(.+)$");
     private static final Pattern STATION_HINT = Pattern.compile("(?iu)\\bnpo\\b|\\bradio\\b|\\bfm\\b|\\d\\s?fm\\b|qmusic|\\b538\\b|sky ?radio|veronica|100% ?nl|\\bslam\\b|\\bbnr\\b|\\bkink\\b|sublime|arrow|\\bjoe\\b|funx|omroep|rijnmond|\\bbbc\\b");
@@ -206,11 +237,20 @@ final class AiCommands {
     private static final Pattern P_MSG1 = Pattern.compile("(?iu)^(?:stuur|verstuur|zend|schrijf)\\s+(?:een\\s+)?" + MSGW + "\\s+(?:naar|aan)\\s+(.+?)(?:" + SEP + "(.+))?$");
     private static final Pattern P_MSG2 = Pattern.compile("(?iu)^(?:stuur|verstuur)\\s+(.+?)\\s+(?:een\\s+)?" + MSGW + "(?:" + SEP + "(.+))?$");
     private static final Pattern P_MSG3 = Pattern.compile("(?iu)^(sms|sms'?en|whatsapp|app)\\s+(.+?)" + SEP + "(.+)$");
-    private static final Pattern P_MSG4 = Pattern.compile("(?iu)^(?:laat|vertel|zeg\\s+tegen)\\s+(.+?)\\s+(?:even\\s+)?(?:weten\\s+)?dat\\s+(.+)$");
+    private static final Pattern P_MSG4 = Pattern.compile("(?iu)^(?:laat\\s+(.+?)\\s+(?:even\\s+)?weten|vertel\\s+(.+?)|zeg\\s+tegen\\s+(.+?))\\s+(?:even\\s+)?dat\\s+(.+)$");
+    /** Woorden die geen naam zijn ("vertel me een grap", "laat maar weten", "zeg tegen jezelf"). */
+    private static final Pattern NOT_NAME = Pattern.compile("(?iu)(?:^|\\s)(?:me|mij|je|jij|jou|jezelf|mezelf|mijzelf|zichzelf|u|uzelf|ons|onszelf|hem|haar|hen|hun|ze|zij|wij|we|eens|maar|zien|even|nog|het|dat|dit|die|deze|iets|wat|niks|niets|niemand|iedereen|alles|allemaal|nou|toch|gewoon|een|over|grap|mop|verhaal|ik)(?=\\s|$)");
+
+    /** Bestaat er een contact met deze naam? In de app: je eigen contacten (AiBridge). */
+    interface Known { boolean has(String name); }
     private static final Pattern P_VIA = Pattern.compile("(?iu)\\s+(?:via|op|met|per)\\s+(whatsapp|sms)$");
 
     /** De opdracht in de vraag, of null als het geen duidelijke opdracht is (dan gewoon de assistent). */
-    static Cmd parse(String question) {
+    static Cmd parse(String question) { return parse(question, null); }
+
+    /** known: om een bericht met alleen een naam ("app Jos dat …", "laat Jos weten dat …") te herkennen moet die naam
+     *  in je contacten staan; anders is het waarschijnlijk een gewone vraag ("vertel eens dat verhaal"). null = niet na te kijken. */
+    static Cmd parse(String question, Known known) {
         if (question == null) return null;
         String raw = question.trim();
         if (raw.isEmpty() || raw.length() > 500 || raw.indexOf('\n') >= 0 && raw.indexOf('\n') < 15) return null;
@@ -227,15 +267,22 @@ final class AiCommands {
             return c;
         }
         // Timer (ook "wekker over 20 minuten")
-        if (P_TIMER.matcher(s).find() || P_WAKE_IN.matcher(s).find()) {
-            if (!l.matches("^(?:zet|start|stel|maak|begin|plan|timer|kookwekker|eierwekker|wekker|wek|een|nieuwe|\\d+)\\b.*")) return null;
+        boolean wake = wakeIn(s);
+        if (P_TIMER.matcher(s).find() || wake) {
             if (l.matches(".*\\b(?:stop|uit|annuleer|verwijder)\\b.*")) return null; // dat doe je in de Klok-app
-            Cmd c = new Cmd(); c.type = "timer";
+            if (P_TIMER_THAT.matcher(s).find() || P_TIMER_ABOUT.matcher(s).find()) return null; // over een timer die er al is (van de oven, het scherm)
             int d = duration(s);
+            if (d > 0) {
+                if (!l.matches("^(?:zet|start|stel|maak|begin|plan|timer|kookwekker|eierwekker|wekker|wek|een|nieuwe|\\d+)\\b.*")) return null;
+                // Zonder gebiedende wijs vooraan: een zin over een timer ("een timer van 5 minuten is te kort")
+                if (!l.matches("^(?:zet|start|stel|maak|begin|plan|wek)\\b.*") && l.matches(".*\\b(?:is|was|zijn|waren|werkt|duurt|duurde|lijkt|vind|vond|klinkt|heb|had|heeft)\\b.*")) return null;
+            }
+            else if (!P_TIMER_BARE.matcher(s).matches()) return null; // zonder duur alleen "zet een timer" en zo, geen zin over timers
+            Cmd c = new Cmd(); c.type = "timer";
             if (d > 0) { if (!validSecs(d)) return null; c.secs = d; } else c.need = "duur";
             Matcher lb = Pattern.compile("(?iu)\\bvoor\\s+(?:de\\s+|het\\s+|mijn\\s+)?([\\p{L}][\\p{L} '-]{1,40})$").matcher(s);
             if (lb.find() && duration(lb.group(1)) < 0) c.label = cap(lb.group(1).trim());
-            if (P_WAKE_IN.matcher(s).find() && c.label.isEmpty()) c.label = "Wekker";
+            if (wake && c.label.isEmpty()) c.label = "Wekker";
             return c;
         }
         // Wekker (een nieuwe in de Klok-app; "de wekker" = de radiowekker van de app, dat is een instelling)
@@ -255,7 +302,10 @@ final class AiCommands {
         }
         // Radio
         if (P_RADIO_STOP.matcher(s).matches()) { Cmd c = new Cmd(); c.type = "radio"; c.stop = true; return c; }
-        if ((m = P_RADIO.matcher(s)).matches()) { Cmd c = new Cmd(); c.type = "radio"; c.q = m.group(1) == null ? "" : m.group(1).trim().replaceAll("(?iu)^(?:op|naar)\\s+", "").replaceAll("(?iu)(?:^|\\s+)(?:aan|op)$", "").trim(); return c; }
+        if ((m = P_RADIO.matcher(s)).matches()) {
+            if (m.group(1) != null && RADIO_NOT.matcher(m.group(1)).find()) return null;
+            Cmd c = new Cmd(); c.type = "radio"; c.q = m.group(1) == null ? "" : m.group(1).trim().replaceAll("(?iu)^(?:op|naar)\\s+", "").replaceAll("(?iu)(?:^|\\s+)(?:aan|op)$", "").trim(); return c;
+        }
         // Podcast
         if ((m = P_NEWEST.matcher(s)).matches()) { Cmd c = new Cmd(); c.type = "podcast"; c.newest = true; c.q = m.group(1).trim(); return c; }
         if ((m = P_PODCAST.matcher(s)).matches()) {
@@ -265,6 +315,7 @@ final class AiCommands {
         }
         // Berichten (eerst: "stuur Jos een sms" mag geen "open" worden)
         Cmd msg = message(s);
+        if (msg != null && msg.weak && (known == null || !known.has(msg.to))) return null; // geen contact met die naam: gewoon de assistent
         if (msg != null) return msg;
         // Een tool openen
         if ((m = P_OPEN.matcher(s)).matches()) {
@@ -272,10 +323,14 @@ final class AiCommands {
             if (!t.isEmpty()) { Cmd c = new Cmd(); c.type = "open"; c.tool = t; return c; }
         }
         // Een zender ("zet NPO Radio 2 aan", "speel Qmusic") of iets anders om af te spelen ("speel Met het Oog op Morgen")
-        if ((m = P_STATION_ON.matcher(s)).matches() && STATION_HINT.matcher(m.group(1)).find() && !l.matches(".*\\b(?:timer|wekker|alarm|instelling\\w*)\\b.*")) {
+        if ((m = P_STATION_ON.matcher(s)).matches() && STATION_HINT.matcher(m.group(1)).find() && !RADIO_NOT.matcher(l).find()) {
             Cmd c = new Cmd(); c.type = "radio"; c.q = m.group(1).trim(); return c;
         }
-        if ((m = P_LISTEN.matcher(s)).matches() && m.group(1).length() <= 60) { Cmd c = new Cmd(); c.type = "speel"; c.q = m.group(1).trim().replaceAll("(?iu)^(?:de|het)\\s+", ""); return c; }
+        if ((m = P_LISTEN.matcher(s)).matches() && m.group(1).length() <= 60) {
+            String q = m.group(1).trim().replaceAll("(?iu)^(?:naar\\s+)?(?:me|mij|je|jou|ons|hem|haar)\\b\\s*", "").replaceAll("(?iu)^(?:de|het|een)(?:\\s+|$)", "").trim();
+            if (q.length() < 2 || RADIO_NOT.matcher(q).find()) return null;
+            Cmd c = new Cmd(); c.type = "speel"; c.q = q; return c;
+        }
         return null;
     }
 
@@ -321,14 +376,15 @@ final class AiCommands {
     static Cmd message(String s) {
         Matcher m;
         String chan, to, text, sepWord = "";
+        boolean weak = false;
         String t = s;
         Matcher via = P_VIA.matcher(t);
         String viaChan = "";
         if (via.find()) { viaChan = via.group(1).toLowerCase(Locale.ROOT); t = t.substring(0, via.start()); }
         if ((m = P_MSG1.matcher(t)).matches()) { chan = m.group(1); to = m.group(2); text = m.group(3); }
-        else if ((m = P_MSG2.matcher(t)).matches()) { chan = m.group(2); to = m.group(1); text = m.group(3); }
-        else if ((m = P_MSG3.matcher(t)).matches()) { chan = m.group(1); to = m.group(2); text = m.group(3); }
-        else if ((m = P_MSG4.matcher(t)).matches()) { chan = "sms"; to = m.group(1); text = m.group(2); sepWord = "dat"; }
+        else if ((m = P_MSG2.matcher(t)).matches()) { chan = m.group(2); to = m.group(1); text = m.group(3); weak = true; }
+        else if ((m = P_MSG3.matcher(t)).matches()) { chan = m.group(1); to = m.group(2); text = m.group(3); weak = true; }
+        else if ((m = P_MSG4.matcher(t)).matches()) { chan = "sms"; to = m.group(1) != null ? m.group(1) : m.group(2) != null ? m.group(2) : m.group(3); text = m.group(4); sepWord = "dat"; weak = true; }
         else return null;
         if (sepWord.isEmpty() && text != null) {
             int at = t.length() - text.length();
@@ -339,7 +395,9 @@ final class AiCommands {
         if (to.isEmpty() || to.length() > 40 || to.matches("(?iu).*\\b(?:een|me|mij|iets|dat)$")) return null;
         String num = number(to);
         if (num.isEmpty() && !to.matches("(?iu)[\\p{L}][\\p{L} .'-]{0,39}")) return null;
+        if (num.isEmpty() && NOT_NAME.matcher(to).find()) return null;
         Cmd c = new Cmd();
+        c.weak = weak && num.isEmpty();
         String ch = (viaChan.isEmpty() ? chan : viaChan).toLowerCase(Locale.ROOT);
         c.type = ch.startsWith("whatsapp") || ch.startsWith("app") ? "wa" : "sms";
         c.to = num.isEmpty() ? cap(to) : "";

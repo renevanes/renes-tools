@@ -34,6 +34,12 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._tkScreen === true && Android._tkCalls[0][1] === 1300), 'scherm blijft aan; stilte 1,3 s');
     ok((await pg.textContent('#ai-talk-go')) === 'Klaar met praten' && await pg.isVisible('#ai-talk-stop'), 'knoppen: Klaar met praten en Stop');
     ok(!(await pg.isVisible('#tabs')) && !(await pg.isVisible('#ai-comp')), 'tabbalk en invoervak weg tijdens het gesprek');
+    // Een venster: Tab blijft erin, de rest is niet bereikbaar; de stand wordt beleefd (polite) voorgelezen
+    ok(await pg.evaluate(() => $('#s-ai main').inert && $('#s-ai .hdr').inert && $('#ai-talk-st').getAttribute('aria-live') === 'polite'), 'de rest van de assistent onbereikbaar; stand polite');
+    for (let k = 0; k < 4; k++) await pg.keyboard.press('Tab');
+    ok(await pg.evaluate(() => $('#ai-talk').contains(document.activeElement)), 'Tab blijft in het gesprek');
+    await pg.keyboard.press('Shift+Tab'); await pg.keyboard.press('Shift+Tab'); await pg.keyboard.press('Shift+Tab');
+    ok(await pg.evaluate(() => $('#ai-talk').contains(document.activeElement)), 'Shift+Tab ook');
     await pg.screenshot({ path: __dirname + '/shots/ai-gesprek-luistert-' + scheme + '.png' });
     // Uitgesproken (stilte) → denkt → spreekt → luistert weer
     ok(await waitSt('spreekt', 3000), 'na de stilte: denkt, dan spreekt');
@@ -68,16 +74,25 @@ const { chromium } = require('playwright');
     ok(await waitSt('bevestig', 5000), 'opdracht: wacht op bevestigen');
     ok(await pg.evaluate(() => window.__spk.slice(-1)[0].t.includes('Bevestig op het scherm')), 'zegt: Bevestig op het scherm');
     ok(await pg.evaluate(() => $('#ai-talk').classList.contains('mini') && $('#ai-talk').getAttribute('aria-modal') === 'false') && await pg.isVisible('#ai-msgs .aimsg:last-child .cmdcard'), 'klein onderin; de kaart is te zien');
+    ok(await pg.evaluate(() => !$('#s-ai main').inert), 'bevestigen: de kaart is bereikbaar');
     ok(await pg.evaluate(() => !(Android._aiDone || []).length), 'nog niets gedaan');
     await pg.screenshot({ path: __dirname + '/shots/ai-gesprek-bevestig-' + scheme + '.png' });
     await pg.evaluate(() => { Android._voiceResult = { text: 'Bedankt.' }; Android._tkEndMs = 2000; });
     await pg.click('#ai-msgs .aimsg:last-child .cmdcard .cmdgo'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._aiDone.length === 1 && Android._aiDone[0].secs === 600) && await st() === 'luistert', 'na de tik: timer gezet, hij luistert weer');
+    ok(await pg.evaluate(() => $('#s-ai main').inert && $('#ai-talk').contains(document.activeElement)), 'weer groot: focus in het gesprek');
 
     // Stoppen met "stop"
     await pg.evaluate(() => { Android._voiceResult = { text: 'Stop.' }; Android._tkEnd = 1; }); await pg.waitForTimeout(500);
     ok(!(await pg.isVisible('#ai-talk')) && await pg.evaluate(() => !aiTk && Android._tkScreen === false && !Android._aiRec), '"stop": gesprek klaar, scherm mag weer uit');
     ok(await pg.isVisible('#tabs') || await pg.evaluate(() => document.body.classList.contains('ai-typing')), 'tabbalk terug');
+    ok(await pg.evaluate(() => !$('#s-ai main').inert && !$('#s-ai .hdr').inert), 'na het gesprek: alles weer bereikbaar');
+    // Escape stopt het gesprek
+    await pg.evaluate(() => { Android._tkEndMs = 0; Android._tkEnd = 0; });
+    await pg.click('#ai-talk-btn'); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => !!aiTk), 'weer gestart');
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => !aiTk && !$('#s-ai main').inert), 'Escape: gesprek gestopt');
     // Stop-knop
     await pg.evaluate(() => { Android._tkEndMs = 0; Android._tkEnd = 0; });
     await pg.click('#ai-talk-btn'); await pg.waitForTimeout(100);

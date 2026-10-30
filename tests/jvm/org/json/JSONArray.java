@@ -49,7 +49,7 @@ public class JSONArray {
     public Object get(int i) throws JSONException { Object v = opt(i); if (v == null) throw new JSONException("Geen waarde op " + i); return v; }
     public boolean isNull(int i) { Object v = opt(i); return v == null || v == JSONObject.NULL; }
     public String optString(int i) { return optString(i, ""); }
-    public String optString(int i, String d) { Object v = opt(i); return v == null || v == JSONObject.NULL ? d : String.valueOf(v); }
+    public String optString(int i, String d) { Object v = opt(i); return v == null ? d : String.valueOf(v); } // zoals Android: JSON null wordt "null"
     public String getString(int i) throws JSONException { return String.valueOf(get(i)); }
     public boolean optBoolean(int i) { Boolean b = toBool(opt(i)); return b != null && b; }
     public double optDouble(int i) { Double n = toNum(opt(i)); return n == null ? Double.NaN : n; }

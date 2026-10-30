@@ -67,8 +67,17 @@ function uiShown(name){
   document.body.classList.toggle('tabs-on', on);
   document.body.classList.toggle('tab-root', on && !viaJump);
   document.querySelectorAll('#tabs button').forEach(b => { const me = b.dataset.t === name; b.classList.toggle('on', me); if (me) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-  uiFit(); bars();
+  uiFit(); bars(); if (on) tabsFit();
 }
+/* Grote tekst (Tekstgrootte 200%): een label dat niet past wordt kleiner tot het past (niet afgekapt: "Instellingen" blijft leesbaar) */
+function tabsFit(){
+  const nav = document.getElementById('tabs'); if (!nav || !nav.getClientRects().length) return;
+  nav.querySelectorAll('button>span:last-child').forEach(l => {
+    l.style.fontSize = '';
+    for (let k = 95; l.scrollWidth > l.clientWidth + 1 && k >= 45; k -= 5) l.style.fontSize = k + '%';
+  });
+}
+addEventListener('resize', () => { if (document.body.classList.contains('tabs-on')) tabsFit(); });
 function tabGo(t){
   if (t === current && t === 'ai') { scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }); return; } // het gesprek: naar het nieuwste
   if (t === current) { scrollTo({ top: 0, behavior: 'smooth' }); if (t === 'search') $('#gs-q').focus(); return; }

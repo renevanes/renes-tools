@@ -814,7 +814,7 @@ final class LocalAi {
             }
             // Vragen over je eigen gegevens (Gebruik, Slaappraat, Check-in, Apparaten): de feiten kant-en-klaar erbij (AiData),
             // alleen als je die bron aanzette, niet in een losse app, niet bij een samenvatting of een vraag over de instellingen
-            String dataTopic = req.optBoolean("solo") || hasAtt || remember != null || forgetWhat != null || setWanted ? "" : AiData.topic(question, srcOn(c, "apparaten") ? AiData.nicks(c) : null);
+            String dataTopic = req.optBoolean("solo") || hasAtt || remember != null || forgetWhat != null || setWanted || actWanted ? "" : AiData.topic(question, srcOn(c, "apparaten") ? AiData.nicks(c) : null);
             if (!dataTopic.isEmpty() && srcOn(c, dataTopic)) {
                 long nowD = System.currentTimeMillis();
                 String facts = AiData.context(dataTopic, AiData.facts(c, dataTopic, nowD), nowD, java.util.TimeZone.getDefault());

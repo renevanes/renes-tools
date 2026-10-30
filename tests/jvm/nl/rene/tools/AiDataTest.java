@@ -24,6 +24,15 @@ public class AiDataTest {
         check("checkin".equals(AiData.topic("Hoe gaat het met mijn stemming?")) && "checkin".equals(AiData.topic("wat heb ik vandaag bij check-in ingevuld")), "stemming, check-in → Check-in");
         check("apparaten".equals(AiData.topic("Waar was mijn oortje het laatst?")) && "apparaten".equals(AiData.topic("Welke apparaten zijn in de buurt?")), "oortje, in de buurt → Apparaten");
         check("apparaten".equals(AiData.topic("waar was mijn Jabra het laatst", Arrays.asList("Jabra", ""))) && "".equals(AiData.topic("waar is mijn paspoort", Arrays.asList("Jabra"))), "eigen apparaat bij naam; paspoort niet");
+        // Over iemand anders: niet je eigen gegevens geven
+        for (String q : new String[]{"hoeveel schermtijd heeft mijn zoon", "Hoeveel schermtijd had Jos vandaag?", "welke apps gebruikt mijn dochter het meest",
+                "heeft mijn vrouw vannacht gepraat", "Jos heeft vannacht gesnurkt", "hoe gaat het met de stemming van mijn man volgens check-in",
+                "hoeveel schermtijd heeft hij vandaag", "hoe lang heb ik vandaag gebeld", "hoe lang heb ik vandaag op mijn telefoon gebeld"})
+            check("".equals(AiData.topic(q, Arrays.asList("Jabra"))), "geen eigen gegevens: \"" + q + "\"");
+        check("sleep".equals(AiData.topic("Wat zei ik vannacht over mijn zoon?")) && "gebruik".equals(AiData.topic("Hoeveel schermtijd had ik vandaag?"))
+                && "gebruik".equals(AiData.topic("Welke apps heb ik het meest gebruikt vandaag")), "over jezelf (ook als je iemand noemt): wel");
+        check("apparaten".equals(AiData.topic("Waar was mijn Jabra het laatst", Arrays.asList("Jabra"))) && !AiData.aboutOther("Wanneer had Jabra verbinding", Arrays.asList("Jabra")), "je eigen apparaat met een hoofdletter is geen persoon");
+        check(!AiData.aboutOther("Hoeveel schermtijd had WhatsApp vandaag", null) && !AiData.aboutOther("Hoeveel tijd heeft Chrome gekost", null), "een app is geen persoon");
         check("".equals(AiData.topic("Wat is de hoofdstad van Frankrijk?")) && "".equals(AiData.topic(null)) && "".equals(AiData.topic("Vertel een mop")), "gewone vraag: geen bron");
 
         // Opmaak

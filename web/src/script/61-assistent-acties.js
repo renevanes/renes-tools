@@ -39,12 +39,13 @@ function aiDur(s){
 }
 const aiHm = min => String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0');
 function aiNormName(s){ return norm2(String(s || '')).replace(/[^a-z0-9]+/g, ''); }
-/* Beste treffer op naam: precies, begint met, bevat (in beide richtingen) */
+/* Beste treffer op naam: precies, begint met, bevat (in beide richtingen). Een korte vraag ("de", "me") alleen precies. */
 function aiBestName(list, q, name){
-  const n = aiNormName(q); if (!n) return null;
+  const n = aiNormName(String(q || '').replace(/^\s*(?:naar\s+)?(?:me|mij|je|jou)\b\s*/i, '')); if (!n) return null;
+  const part = n.length >= 4;
   let best = null, score = 0;
   list.forEach(x => { const v = aiNormName(name(x)); if (!v) return;
-    const s = v === n ? 4 : v.startsWith(n) || n.startsWith(v) && v.length >= 3 ? 3 : v.includes(n) || n.includes(v) && v.length >= 4 ? 2 : 0;
+    const s = v === n ? 4 : part && (v.startsWith(n) || n.startsWith(v) && v.length >= 3) ? 3 : part && (v.includes(n) || n.includes(v) && v.length >= 4) ? 2 : 0;
     if (s > score) { score = s; best = x; } });
   return best;
 }
@@ -97,7 +98,7 @@ function aiCmdFor(q){
     case 'radio': {
       const st = rdJson(Android.radioState(), {}), playing = st.status === 'playing' || st.status === 'connecting';
       if (a.stop) { if (!playing) return { text: 'De radio speelt nu niet.' }; a.station = st.station || null; return { text: 'Zal ik de radio stoppen' + (st.station ? ' (' + st.station.name + ')' : '') + '?', cmd: Object.assign(a, { stopNow: true }) }; }
-      const s = a.q ? aiFindStation(a.q) : (st.station || st.last || aiStations()[0]);
+      const s = a.q ? aiFindStation(a.q) || (aiNormName(a.q).length < 4 ? aiFindStation('radio ' + a.q) : null) : (st.station || st.last || aiStations()[0]); // "speel radio 2": q is dan "2"
       if (!s) return { text: a.q ? 'Ik vind geen zender "' + a.q + '" bij je zenders. Zoek hem bij Radio en zet hem bij je favorieten; daarna kan ik hem voor je aanzetten.' : 'Je hebt nog geen zenders. Kies er een bij Radio.', cmd: { type: 'open', tool: 'radio', name: 'Radio', st: 'voorgesteld' } };
       a.station = { name: s.name, url: s.url, id: s.id || '', logo: s.logo || s.favicon || '' };
       return { text: 'Zal ik **' + s.name + '** aanzetten?', cmd: a };
@@ -221,6 +222,13 @@ function aiCmdToRadio(i){
   delete m.cmd; m.c = r.text; if (r.set) m.set = r.set; aiMemAfter(i);
 }
 const AI_CMD_TOOLS = ['apparaten', 'gebruik', 'sleep', 'checkin', 'radio', 'ralarm', 'podcasts', 'notes', 'contacts', 'calls', 'sms', 'wa', 'music', 'recorder', 'transcripts', 'car', 'kluis', 'pdf', 'spotify', 'vpn', 'loc', 'history', 'tracks', 'redial', 'backup', 'settings', 'auto', 'aiset', 'home']; // zelfde lijst als AiCommands.TOOLS
+/* Bewaren: is de kaart klaar, dan geen nummers uit je contacten (keuzes) en geen hele zender of Ongedaan maken meer */
+function aiCmdSaved(a){
+  if (!a || (a.st !== 'gedaan' && a.st !== 'terug')) return a || undefined;
+  const x = Object.assign({}, a); delete x.choices; delete x.undo;
+  if (x.station) x.station = { name: x.station.name || '' };
+  return x;
+}
 /* Na de tik: nog eens alles nakijken, dan doen */
 function aiCmdDo(i){
   const m = aiCmdMsgAt(i), a = m && m.cmd; if (!a || a.st !== 'voorgesteld') return;

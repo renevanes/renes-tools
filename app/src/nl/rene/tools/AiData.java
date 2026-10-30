@@ -65,13 +65,42 @@ final class AiData {
             + "|bluetooth|apparat\\w* .{0,14}(?:in de buurt|om me heen)|(?:mijn|m'n) apparaten|in de buurt.{0,20}apparat");
     private static final Pattern T_WHERE = Pattern.compile("^(?:waar|wanneer) (?:was|is|lag|ligt|zag ik|heb ik) (?:mijn|m'n) (.+?)(?: (?:het )?laatst(?: gezien)?| gezien| gebleven| gelaten)?$");
 
+    // Een vraag over iemand anders ("heeft mijn zoon …", "had Jos …"): de gegevens zijn alleen van jezelf
+    private static final String PERSON = "zoon|zoontje|dochter|dochtertje|vrouw|man|echtgenoot|echtgenote|partner|vriend|vriendin|vriendje|vriendinnetje|lief"
+            + "|kind|kindje|kinderen|kids|moeder|vader|mama|papa|ma|pa|broer|broertje|zus|zusje|opa|oma|collega|buurman|buurvrouw|baas|schoonmoeder|schoonvader|neef|nicht|oom|tante";
+    private static final Pattern OTHER = Pattern.compile("(?<!\\bover |\\btegen |\\baan |\\bmet |\\bnaar |\\bbij )\\b(?:mijn|m'n|onze|ons|zijn|haar|hun)\\s+(?:" + PERSON + ")\\b"
+            + "|\\b(?:heeft|had|hadden|hebben|gebruikt|gebruikte|deed|zei|praatte|sliep)\\s+(?:hij|zij|ze|die)\\b");
+    private static final Pattern NAME_AFTER = Pattern.compile("\\b(?:heeft|had|gebruikt|gebruikte|zei|praatte|deed|sliep)\\s+([A-Z][a-zà-ÿ]+)\\b");
+    private static final Pattern NAME_BEFORE = Pattern.compile("\\b([A-Z][a-zà-ÿ]+)\\s+(?:heeft|had|gebruikt|gebruikte|zei|praatte|deed|sliep)\\b");
+    private static final Pattern NOT_PERSON = Pattern.compile("(?i)hoeveel|hoe|wat|wie|waar|wanneer|welke|welk|waarom|ik|je|jij|hij|zij|ze|we|wij|het|dat|dit|er|mijn|gisteren|vandaag|vannacht|deze|die"
+            + "|chrome|spotify|instagram|facebook|gmail|netflix|google|telegram|signal|snapchat|outlook|teams|tiktok|youtube|maps|tools|slaappraat|gebruik");
+    /** Gaat de vraag over iemand anders dan jezelf? Zuiver (getest). */
+    static boolean aboutOther(String q, List<String> nicks) {
+        if (q == null) return false;
+        String raw = q.replace('’', '\'');
+        if (OTHER.matcher(raw.toLowerCase(Locale.ROOT)).find()) return true;
+        for (Pattern p : new Pattern[]{NAME_AFTER, NAME_BEFORE}) {
+            Matcher m = p.matcher(raw);
+            while (m.find()) {
+                String n = m.group(1);
+                if (NOT_PERSON.matcher(n).matches()) continue;
+                boolean dev = false;
+                if (nicks != null) for (String k : nicks) if (nameHit(n.toLowerCase(Locale.ROOT), k)) dev = true;
+                if (!dev) return true;
+            }
+        }
+        return false;
+    }
+    private static final Pattern CALLS = Pattern.compile("gebeld|\\bbellen\\b|\\bbelde\\b|beltijd|telefoongesprek|telefoongesprekken|\\bgesprekken\\b|aan de telefoon|aan het bellen");
+
     /** Welke bron past bij de vraag: gebruik, sleep, checkin, apparaten of "". nicks = namen van je eigen apparaten. */
     static String topic(String q, List<String> nicks) {
         String s = norm(q);
         if (s.isEmpty() || s.length() > 300) return "";
+        if (aboutOther(q, nicks)) return ""; // de gegevens zijn alleen van jezelf: dan gewoon de assistent
         if (T_SLEEP.matcher(s).find()) return "sleep";
         if (T_CHECKIN.matcher(s).find()) return "checkin";
-        if (T_GEBRUIK.matcher(s).find()) return "gebruik";
+        if (T_GEBRUIK.matcher(s).find() && !CALLS.matcher(s).find()) return "gebruik"; // bellen staat niet in Gebruik
         if (T_APP.matcher(s).find()) return "apparaten";
         Matcher m = T_WHERE.matcher(s);
         if (m.find() && nicks != null) for (String n : nicks) if (nameHit(m.group(1), n)) return "apparaten";
