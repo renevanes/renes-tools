@@ -88,6 +88,11 @@ public class PodcastBridge extends AiBridge {
 
     @JavascriptInterface public String podSubs() { return Podcasts.subs(ctx).toString(); }
 
+    /** Nieuwste nog niet beluisterde afleveringen van alles wat je volgt: [{ep, pod}]. Alleen uit de bewaarde feeds, zonder netwerk. */
+    @JavascriptInterface public String podLatest(int limit) {
+        try { return Podcasts.latest(ctx, limit).toString(); } catch (Throwable e) { return "[]"; }
+    }
+
     @JavascriptInterface public void podSeen(String id) { try { Podcasts.seen(ctx, id); } catch (Exception ignored) { } }
 
     /** Alle abonnementen bijwerken; antwoord via onPodRefreshed({fresh}). */

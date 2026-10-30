@@ -50,7 +50,8 @@ const assert = (ok, what) => { if (!ok) throw new Error('mislukt: ' + what); con
     await pg.screenshot({ path: __dirname + '/shots/fav-home-' + scheme + '.png' });
     // Podcast op startscherm
     await pg.evaluate(() => pdOpen({ feed: 'https://example.com/feed.xml', title: 'Test Pod', id: '1' })); await pg.waitForTimeout(300);
-    await pg.click('#pd-pin'); await pg.waitForTimeout(100);
+    await pg.click('#pd-menu'); await pg.waitForTimeout(100);
+    await pg.click('#sheet-acts button:has-text("Op startscherm")'); await pg.waitForTimeout(100);
     assert((await pg.evaluate(() => Android._pinned)) === 'pod|https://example.com/feed.xml', 'podcast-snelkoppeling gevraagd');
     const tt = await pg.textContent('#toast'); assert(tt.startsWith('Bevestig op je startscherm om ') && tt.includes(await pg.evaluate(() => pdPod.title)), 'toast noemt de podcast: ' + tt);
     // Verder luisteren vanuit het menu van de speler (radio)

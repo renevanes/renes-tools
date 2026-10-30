@@ -98,20 +98,21 @@ function pcDlSettings(){
   ]);
 }
 
-/* Eén podcast: nieuwe afleveringen vanzelf downloaden */
+/* Eén podcast: nieuwe afleveringen vanzelf downloaden (knop naast Volgend, en in het menu ⋯) */
+function pdDlOn(){ const s = rdJson(Android.podSubs(), []).find(x => pdPod && x.id === pdPod.id); return !!(s && s.dl); }
 function pdDlRow(subscribed){
-  const row = $('#pd-dl-row'); if (!row) return;
-  row.style.display = subscribed ? '' : 'none';
-  const s = rdJson(Android.podSubs(), []).find(x => pdPod && x.id === pdPod.id);
-  const on = !!(s && s.dl);
-  $('#pd-dl').classList.toggle('on', on); $('#pd-dl').setAttribute('aria-checked', on ? 'true' : 'false');
+  const b = $('#pd-dl'); if (!b) return;
+  b.hidden = !subscribed;
+  const on = !!subscribed && pdDlOn();
+  b.setAttribute('aria-checked', on ? 'true' : 'false');
+  b.innerHTML = uiIcon(on ? 'check' : 'download') + '<span>Vanzelf downloaden</span>';
 }
 function pdDlToggle(){
   if (!pdPod) return;
-  const on = !$('#pd-dl').classList.contains('on');
+  const on = $('#pd-dl').getAttribute('aria-checked') !== 'true';
   const e = Android.podAutoDl(pdPod.id, on);
   if (e) { toast(e); return; }
   pdDlRow(true);
   const pr = rdJson(Android.podDlPrefs(), {});
-  toast(on ? '↓ De nieuwste afleveringen worden gedownload' + (pr.wifiOnly ? ' (via wifi)' : '') : 'Niet meer vanzelf downloaden');
+  toast(on ? '↓ De nieuwste 3 die je nog niet beluisterde, worden gedownload' + (pr.wifiOnly ? ' (via wifi)' : '') : 'Niet meer vanzelf downloaden');
 }

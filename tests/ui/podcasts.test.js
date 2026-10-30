@@ -41,13 +41,16 @@ const assert = require('node:assert');
     assert.strictEqual(await pg.$$eval('#pd-eps b b', x => x.length), 0, 'geen HTML uit de feed');
     assert.match(await pg.textContent('#pd-eps .pcep:first-child b'), /Aflevering 64 <b>nieuw<\/b>/);
     // oudste eerst
-    await pg.click('#pd-sort [data-v="old"]');
+    await pg.click('#pd-sort');
     assert.match(await pg.textContent('#pd-eps .pcep:first-child b'), /^Aflevering 1$/);
-    await pg.click('#pd-sort [data-v="new"]');
+    assert.strictEqual(await pg.getAttribute('#pd-sort', 'aria-label'), 'Volgorde: oudste eerst');
+    await pg.click('#pd-sort');
+    assert.match(await pg.textContent('#pd-eps .pcep:first-child b'), /Aflevering 64/);
 
     // Volgen
     await pg.click('#pd-sub'); await pg.waitForTimeout(100);
-    assert.match(await pg.textContent('#pd-sub'), /Je volgt deze podcast/);
+    assert.match(await pg.textContent('#pd-sub'), /Volgend/);
+    assert.strictEqual(await pg.getAttribute('#pd-sub', 'aria-pressed'), 'true');
     assert.strictEqual((await P()).subs.length, 1);
 
     // Afspelen vanuit de lijst → mini-speler
@@ -59,9 +62,11 @@ const assert = require('node:assert');
     await pg.click('#pd-eps .pcep:nth-child(3) .pcmore'); await pg.waitForTimeout(150);
     await pg.click('#sheet-acts >> text=Markeren als beluisterd'); await pg.waitForTimeout(80);
     assert.strictEqual(await pg.$$eval('#pd-eps .pcep.done', x => x.length), 1);
-    await pg.check('#pd-hide');
+    await pg.click('#pd-hide');
+    assert.strictEqual(await pg.getAttribute('#pd-hide', 'aria-pressed'), 'true');
     assert.strictEqual(await pg.$$eval('#pd-eps .pcep', x => x.length), 50, 'beluisterd verborgen (nog 50 getoond)');
-    await pg.uncheck('#pd-hide');
+    assert.strictEqual(await pg.$$eval('#pd-eps .pcep.done', x => x.length), 0);
+    await pg.click('#pd-hide');
 
     // Naar het hoofdscherm, dan de speler openen
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(300);

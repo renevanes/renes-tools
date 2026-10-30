@@ -279,6 +279,112 @@ final class Podcasts {
         saveSubs(c, a);
     }
 
+    // ---------- nieuwe afleveringen van alles wat je volgt ----------
+
+    /** Per podcast de nieuwste afleveringen uit de bewaarde feed, kort gehouden; opnieuw gelezen als het bestand verandert. */
+    private static final java.util.concurrent.ConcurrentHashMap<String, Object[]> LATEST = new java.util.concurrent.ConcurrentHashMap<>();
+    static final int LATEST_PER_POD = 40; // ruim genoeg voor de nieuwste 20-30 over alle podcasts; houdt het geheugen klein
+
+    /** {podInfo, items} uit de cache van één podcast, of null (nog nooit opgehaald). Leest geen netwerk. */
+    private static Object[] latestOf(Context c, String id) {
+        File f = cacheFile(c, id);
+        if (!f.isFile()) { LATEST.remove(id); return null; }
+        long mod = f.lastModified(), len = f.length();
+        Object[] m = LATEST.get(id);
+        if (m != null && (Long) m[0] == mod && (Long) m[1] == len) return m;
+        JSONObject feed = readJson(f);
+        if (feed == null) return null;
+        JSONArray items = feed.optJSONArray("items"), slim = new JSONArray();
+        if (items != null) for (int i = 0; i < items.length() && slim.length() < LATEST_PER_POD; i++) {
+            JSONObject e = items.optJSONObject(i);
+            if (e == null || !validKey(e.optString("key")) || !httpUrl(e.optString("url"))) continue;
+            try {
+                slim.put(new JSONObject().put("key", e.optString("key")).put("guid", e.optString("guid")).put("title", FeedText.clip(e.optString("title"), 400))
+                        .put("url", e.optString("url")).put("type", e.optString("type")).put("date", e.optLong("date")).put("dur", e.optLong("dur"))
+                        .put("image", e.optString("image")).put("desc", FeedText.clip(e.optString("desc"), 1000)));
+            } catch (Exception ignored) { }
+        }
+        JSONObject pod = feed.optJSONObject("pod");
+        m = new Object[] { mod, len, pod == null ? new JSONObject() : pod, slim };
+        LATEST.put(id, m);
+        return m;
+    }
+
+    /**
+     * Welke kandidaten in "Nieuwe afleveringen" komen: de nieuwste eerst (bij gelijke datum de volgorde van binnenkomst),
+     * zonder lege of dubbele sleutels, hooguit limit. Geeft de indexen.
+     */
+    static List<Integer> pickLatest(String[] keys, long[] dates, int limit) {
+        List<Integer> idx = new ArrayList<>();
+        for (int i = 0; i < keys.length && i < dates.length; i++) idx.add(i);
+        final long[] d = dates;
+        Collections.sort(idx, (x, y) -> d[y] != d[x] ? Long.compare(d[y], d[x]) : Integer.compare(x, y)); // stabiel
+        List<Integer> out = new ArrayList<>();
+        java.util.Set<String> used = new java.util.HashSet<>();
+        for (int i : idx) {
+            if (out.size() >= limit) break;
+            String k = keys[i];
+            if (k == null || k.isEmpty() || !used.add(k)) continue;
+            out.add(i);
+        }
+        return out;
+    }
+
+    /**
+     * De nieuwste afleveringen die je nog niet beluisterde, van alle podcasts die je volgt: [{ep, pod}], nieuwste eerst.
+     * Alleen uit de bewaarde feeds (geen netwerk); bijwerken doet refreshAll op de achtergrond.
+     * ep.isNew = verschenen na de laatste keer dat je de podcast bekeek (zoals de teller "nieuw").
+     */
+    static JSONArray latest(Context c, int limit) {
+        limit = Math.max(1, Math.min(100, limit));
+        JSONArray subs = subs(c), out = new JSONArray();
+        JSONObject prog = progress(c);
+        List<JSONObject> eps = new ArrayList<>(), pods = new ArrayList<>();
+        List<Long> seens = new ArrayList<>();
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        for (int i = 0; i < subs.length(); i++) {
+            JSONObject s = subs.optJSONObject(i);
+            if (s == null) continue;
+            String id = s.optString("id");
+            if (id.isEmpty() || !ids.add(id)) continue;
+            Object[] m = latestOf(c, id);
+            if (m == null) continue;
+            JSONObject fp = (JSONObject) m[2];
+            JSONArray items = (JSONArray) m[3];
+            JSONObject pod;
+            try {
+                pod = new JSONObject().put("id", id).put("feed", s.optString("feed")).put("title", s.optString("title", fp.optString("title")))
+                        .put("author", s.optString("author", fp.optString("author"))).put("image", s.optString("image").isEmpty() ? fp.optString("image") : s.optString("image"))
+                        .put("link", fp.optString("link"));
+            } catch (Exception e) { continue; }
+            long seen = s.optLong("seen");
+            int taken = 0;
+            for (int k = 0; k < items.length() && taken < limit; k++) {
+                JSONObject e = items.optJSONObject(k);
+                if (e == null) continue;
+                JSONObject p = prog.optJSONObject(e.optString("key"));
+                if (p != null && p.optBoolean("done")) continue;
+                eps.add(e); pods.add(pod); seens.add(seen);
+                taken++;
+            }
+        }
+        for (Iterator<String> it = LATEST.keySet().iterator(); it.hasNext(); ) if (!ids.contains(it.next())) it.remove(); // niet meer gevolgd
+        String[] keys = new String[eps.size()];
+        long[] dates = new long[eps.size()];
+        for (int i = 0; i < keys.length; i++) { keys[i] = eps.get(i).optString("key"); dates[i] = eps.get(i).optLong("date"); }
+        for (int i : pickLatest(keys, dates, limit)) {
+            JSONObject e = eps.get(i), pod = pods.get(i), p = prog.optJSONObject(keys[i]);
+            try {
+                JSONObject ep = new JSONObject(e.toString());
+                if (p != null) ep.put("pos", p.optLong("p")).put("pd", p.optLong("d"));
+                long seen = seens.get(i);
+                ep.put("isNew", seen > 0 && ep.optLong("date") > seen);
+                out.put(new JSONObject().put("ep", ep).put("pod", pod));
+            } catch (Exception ignored) { }
+        }
+        return out;
+    }
+
     /** Alle abonnementen bijwerken (oudste controle eerst). Geeft het aantal nieuwe afleveringen. */
     static int refreshAll(Context c) {
         if (!REFRESHING.compareAndSet(false, true)) return -1; // loopt al

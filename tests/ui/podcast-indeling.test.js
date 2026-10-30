@@ -54,13 +54,14 @@ const { chromium } = require('playwright');
     await pg.click('#pc-cont-more'); await pg.waitForTimeout(100);
     ok((await pg.$$eval('#pc-cont .pcep', x => x.length)) === 5 && (await pg.textContent('#pc-cont-more')) === 'Minder', 'alle 5 en weer minder');
     await pg.click('#pc-cont-more');
-    ok((await pg.$$eval('#pc-subs .pcsub', x => x.length)) === 6 && (await pg.textContent('#pc-subs-more')).includes('Alle 9'), 'mijn podcasts: 6, met Alle 9');
-    ok((await pg.textContent('#pc-subs .pcsub:first-child .t')) === 'Podcast 7', 'podcast met nieuwe afleveringen vooraan');
-    await pg.click('#pc-subs .pcsub:first-child'); await pg.waitForTimeout(300);
+    ok((await pg.$$eval('#pc-subs .pcsub', x => x.length)) === 9 && await pg.evaluate(() => $('#pc-subs').classList.contains('pcrow')) && (await pg.textContent('#pc-subs-more')) === 'Alle 9', 'mijn podcasts: één rij om te vegen, met Alle 9');
+    ok((await pg.textContent('#pc-subs .pcsubw:first-child .t')) === 'Podcast 7', 'podcast met nieuwe afleveringen vooraan');
+    await pg.click('#pc-subs .pcsubw:first-child .pcsub'); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => pdPod.feed === 'https://feeds.example.org/f7'), 'de juiste podcast geopend');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(200);
     await pg.click('#pc-subs-more'); await pg.waitForTimeout(100);
-    ok((await pg.$$eval('#pc-subs .pcsub', x => x.length)) === 9, 'alle 9 podcasts');
+    ok((await pg.$$eval('#pc-subs .pcsub', x => x.length)) === 9 && await pg.evaluate(() => !$('#pc-subs').classList.contains('pcrow')) && (await pg.textContent('#pc-subs-more')) === 'Minder', 'Alle: alle 9 als raster');
+    await pg.click('#pc-subs-more'); await pg.waitForTimeout(100);
     ok(!(await pg.isVisible('#pc-listen-empty')), 'geen lege uitleg als er iets is');
     await pg.screenshot({ path: __dirname + '/shots/podcast-indeling-' + scheme + '.png' });
     // Menu: bijwerken, downloadinstellingen en Spotify

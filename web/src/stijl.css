@@ -506,7 +506,7 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .pcnow .sleepinfo{text-align:center}
 .pclist{padding-top:2px;padding-bottom:2px}
 .pcep{display:flex;align-items:center;border-top:1px solid var(--line)}.pcep:first-child{border-top:0}
-.pcepb{flex:1;display:flex;align-items:center;gap:12px;padding:11px 2px;text-align:left;min-width:0;background:none;border:0;color:inherit;font:inherit}
+.pcepb{flex:1;display:flex;align-items:center;gap:12px;padding:10px 2px;text-align:left;min-width:0;background:none;border:0;color:inherit;font:inherit}
 .pcepb .pctxt{flex:1;min-width:0}
 .pcepb b{display:block;font-size:15px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pcepb small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
@@ -514,7 +514,7 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .pcep.cur b{color:var(--brand-2)}
 .pcprog{display:block;height:3px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}.pcprog i{display:block;height:100%;background:var(--chip-on)}
 .pcplayi{width:36px;height:36px;border-radius:50%;background:var(--chip);color:var(--on-chip);display:flex;align-items:center;justify-content:center;flex:none;font-size:14px}
-.pcmore{background:none;border:0;color:var(--muted);font-size:20px;padding:8px 6px;flex:none}
+.pcmore{background:none;border:0;color:var(--muted);font-size:20px;padding:0;flex:none;min-width:44px;min-height:44px;border-radius:22px}
 .pctabs-wrap{position:sticky;top:64px;z-index:12;background:var(--bg);padding:2px 0 14px;margin-top:-2px}
 .pctabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;border-radius:24px;background:var(--hi)}
 .pctabs button{min-height:44px;min-width:0;padding:8px 2px;border-radius:20px;color:var(--muted);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;transition:background-color .15s,color .15s}
@@ -547,6 +547,42 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .pcfl{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 8px}
 .pcbar2{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 2px 10px}
 .pcdesc{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;margin:8px 0 0}
+/* Luisteren: nieuwe afleveringen van alles wat je volgt, en Mijn podcasts als smalle rij om opzij te vegen */
+.pcfla{display:flex;align-items:center;gap:16px}
+.pcfl .linkish{min-height:44px;margin:-8px 0}
+.pcnew small{display:flex;white-space:nowrap;min-width:0}.pcnew small .pcnp{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;min-width:0}.pcnew small .pcni{flex:none}
+.pcnew .pcartw{position:relative;flex:none;display:flex}
+.pcnew .pcart{width:44px;height:44px;border-radius:8px}
+.pcnewdot{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:var(--primary);border:2px solid var(--card)}
+.pcgrid.pcrow{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 16px;padding:0 16px 2px;scroll-snap-type:x proximity;scroll-padding:0 16px}
+.pcgrid.pcrow::-webkit-scrollbar{display:none}
+.pcrow .pcsubw{flex:none;width:84px;scroll-snap-align:start}
+.pcgrid:not(.pcrow){grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px}
+.pcsubw .pcsub{width:100%}
+.pcsubw .pcart{font-size:26px;border-radius:10px}
+.pcsub .badge{top:4px;right:4px}
+/* Eén podcast: compacte kop, daaronder meteen de afleveringen. De titel in de balk verschijnt pas bij scrollen. */
+#s-podcast .hrow h1{transition:opacity .15s}
+#s-podcast .hdr:not(.compact) .hrow h1{opacity:0}
+.pdhead{display:flex;gap:12px;align-items:center;margin:0 2px 10px;min-height:56px}
+.pdhead .pcart{width:56px;height:56px;border-radius:10px;font-size:22px}
+.pdhtxt{flex:1;min-width:0}
+.pdhtxt b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:18px;line-height:1.25;font-weight:600;overflow-wrap:anywhere}
+.pdhtxt small{display:block;color:var(--muted);font-size:13px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdhtxt small:empty{display:none}
+.pdacts,.pdbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+.pdchip{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:8px;border:1px solid var(--outline);background:var(--card);color:var(--ink);font-size:14px;font-weight:600;white-space:nowrap}
+.pdchip .ui-icon{width:18px;height:18px}
+.pdchip.sm{padding:0 12px;font-size:13.5px;border-color:var(--line)}
+.pdchip.cta{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.pdchip[aria-pressed=true],.pdchip[aria-checked=true]{background:var(--tonal);color:var(--on-tonal);border-color:var(--primary)}
+.pdchip[hidden],.pdresume[hidden]{display:none}
+#pd-hide[aria-pressed=false] .ui-icon{display:none}
+.pdresume{background:var(--tonal);color:var(--on-tonal);margin-bottom:10px}
+.pdresume .pcepb small,.pdresume .pcmore{color:var(--on-tonal)}
+.pdresume .pclab{display:block;font-size:12px;font-weight:700;letter-spacing:.02em;margin-bottom:1px}
+.pdresume .pcprog{background:color-mix(in srgb,var(--on-tonal) 22%,transparent)}
+.pdresume .pcplayi{background:var(--primary);color:var(--on-primary)}
 .slval{display:flex;align-items:center;justify-content:center;gap:18px;margin:6px 0 0;font-size:18px}
 .slval b{font-size:40px;font-variant-numeric:tabular-nums}
 .slpm{width:44px;height:44px;border-radius:50%;background:var(--card);color:var(--ink);font-size:24px;border:0}

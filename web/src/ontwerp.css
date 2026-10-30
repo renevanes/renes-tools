@@ -61,6 +61,7 @@ input[type=tel],textarea.key,.ntext{border-radius:8px;border-color:var(--outline
 .herow .nm,.heghead h2{min-width:0;overflow-wrap:anywhere}
 .herow button.mv{flex:none;width:44px;height:44px;border-radius:7px;display:grid;place-items:center}
 .clist.card,.stations.card{padding:4px 16px}
+.pclist.card{padding:2px 12px}
 .clist button{padding:16px 0;min-height:68px}.clist .r1{gap:12px}.clist .r1 b{font-size:15px;font-weight:650}.clist .r1 time{font-size:12px}.clist .r2{margin-top:4px;font-size:13px}
 .stations .sbtn{padding:14px 0}.logo,.pcart{border-radius:7px}
 .bub{border-radius:10px;box-shadow:none;border:1px solid var(--line)}

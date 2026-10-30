@@ -14,7 +14,7 @@ const { chromium } = require('playwright');
     await pg.click('#pc-tab-discover'); await pg.waitForTimeout(200);
     // Podcast openen, aflevering downloaden via het menu
     await pg.evaluate(() => pdOpen(Android._pc.top[0])); await pg.waitForTimeout(400);
-    ok(!(await pg.isVisible('#pd-dl-row')), 'niet gevolgd: geen "vanzelf downloaden"');
+    ok(!(await pg.isVisible('#pd-dl')), 'niet gevolgd: geen "vanzelf downloaden"');
     await pg.click('#pd-eps .pcep[data-i="1"] .pcmore'); await pg.waitForTimeout(100);
     ok((await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent))).includes('↓ Downloaden voor offline'), 'menu: downloaden');
     await pg.click('#sheet-acts button:has-text("Downloaden voor offline")'); await pg.waitForTimeout(500);
@@ -33,9 +33,12 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._dl.list.length === 1) && !(await pg.$$eval('#pd-eps .pcep small', x => x.map(e => e.textContent))).some(t => t.includes('✓ beluisterd') && t.includes('Offline')), 'beluisterd: download weg');
     // Volgen en vanzelf downloaden
     await pg.click('#pd-sub'); await pg.waitForTimeout(150);
-    ok(await pg.isVisible('#pd-dl-row'), 'gevolgd: "nieuwe afleveringen downloaden" zichtbaar');
+    ok(await pg.isVisible('#pd-dl') && (await pg.getAttribute('#pd-dl', 'aria-checked')) === 'false', 'gevolgd: "vanzelf downloaden" zichtbaar, nog uit');
     await pg.click('#pd-dl'); await pg.waitForTimeout(100);
     ok(await pg.evaluate(() => Android._pc.subs[0].dl === true) && (await pg.getAttribute('#pd-dl', 'aria-checked')) === 'true', 'vanzelf downloaden aan');
+    await pg.click('#pd-menu'); await pg.waitForTimeout(100);
+    ok((await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent))).includes('✓ Nieuwe afleveringen vanzelf downloaden'), 'menu ⋯: vanzelf downloaden staat aan');
+    await pg.evaluate(() => closeSheet());
     await pg.screenshot({ path: __dirname + '/shots/podcast-dl-' + scheme + '.png' });
     // Hoofdscherm: lijst Gedownload
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(300);
