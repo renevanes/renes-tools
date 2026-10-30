@@ -92,6 +92,7 @@ final class VoiceNote {
         final int myRun;
         synchronized (VoiceNote.class) {
             if (liveOn) { stopLive(c, done); return; }
+            if (liveFinal != null) return; // live al gestopt en aan het uitschrijven: dat antwoord komt al
             if (rec == null) { done.done("{\"error\":\"Er wordt niet opgenomen\"}"); return; }
             try { rec.stop(); } catch (Exception ignored) { }
             try { rec.release(); } catch (Exception ignored) { }
@@ -147,7 +148,7 @@ final class VoiceNote {
     /** Tussentekst over hooguit de laatste 25 seconden (whisper werkt in stukken van 30 s). */
     static final long WINDOW_BYTES = 25L * RATE * 2;
     /** Een nieuwe tussentekst pas als er minstens zoveel nieuw geluid is, en niet vaker dan om de PART_MS. */
-    static final long PART_NEW_BYTES = RATE * 2 * 6 / 5, PART_MS = 1800;
+    static final long PART_NEW_BYTES = RATE * 2 * 6 / 5, PART_MS = 1800, PART_MS_BIG = 7000;
 
     private static AudioRecord ar;
     private static Thread arThread, partThread, liveFinal;
@@ -158,6 +159,8 @@ final class VoiceNote {
     private static final float[] lv = new float[40];
     private static int lvN = 0;
     private static volatile boolean liveMode;
+    /** Waarom het opnemen vanzelf stopte (microfoon weg, telefoon vol); dan wordt uitgeschreven wat er is. */
+    private static volatile String liveErr;
 
     /** Geluidsniveau van een stuk (0 = stil, 1 = hard), op een dB-schaal van -60 tot -12 dBFS. Zuiver (getest). */
     static float level(short[] b, int n) {
@@ -197,6 +200,8 @@ final class VoiceNote {
     static synchronized String startLive(Context c, Done onAutoStop) {
         if (rec != null || liveOn) return "";
         if ("working".equals(state)) return "Even wachten: de vorige spraaknotitie wordt nog uitgeschreven";
+        // Net geannuleerd: eerst het vorige inspreken helemaal afsluiten (de opruimer zou anders de nieuwe opname loslaten)
+        if (ar != null || alive(arThread) || alive(partThread)) return "Even wachten: het vorige inspreken wordt nog afgesloten";
         if (!Transcribe.supported()) return "Uitschrijven werkt niet op deze telefoon";
         if (Transcribe.activeModel(c) == null) return "model";
         if (TranscribeService.busy) return "Er worden nu gesprekken uitgeschreven; probeer het zo opnieuw";
@@ -210,6 +215,7 @@ final class VoiceNote {
             if (min > 0) r = new AudioRecord(MediaRecorder.AudioSource.MIC, RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, Math.max(min, RATE * 2 * 2));
             if (r == null || r.getState() != AudioRecord.STATE_INITIALIZED) throw new IllegalStateException("AudioRecord");
             run++;
+            cleanTemp(c, run, false); // wat van een eerdere keer bleef staan (app werd gestopt tijdens inspreken)
             liveWav = new File(c.getCacheDir(), "spraak-live-" + run + ".wav");
             liveWav.delete();
             r.startRecording();
@@ -219,7 +225,7 @@ final class VoiceNote {
             liveMode = false;
             return start(c, onAutoStop); // gewone opname, zonder tussentekst
         }
-        ar = r; liveOn = true; liveCancelled = false; liveBytes = 0; partial = ""; lvN = 0; liveMode = true;
+        ar = r; liveOn = true; liveCancelled = false; liveBytes = 0; partial = ""; lvN = 0; liveMode = true; liveErr = null;
         since = System.currentTimeMillis();
         state = "recording";
         final Context app = c.getApplicationContext();
@@ -236,14 +242,18 @@ final class VoiceNote {
         try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO); } catch (Throwable ignored) { }
         long bytes = 0;
         boolean auto = false;
-        try (RandomAccessFile w = new RandomAccessFile(out, "rw")) {
+        String err = null;
+        RandomAccessFile w = null;
+        try {
+            w = new RandomAccessFile(out, "rw");
             w.setLength(0);
             Transcribe.writeWavHeader(w, 0);
             short[] buf = new short[RATE / 10];
             byte[] bb = new byte[buf.length * 2];
             while (liveOn) {
                 int n = r.read(buf, 0, buf.length);
-                if (n < 0) break;
+                // Fout van de microfoon (bijv. ERROR_DEAD_OBJECT: een telefoongesprek nam hem over)
+                if (n < 0) { err = "Het inspreken stopte: de microfoon werd door iets anders gebruikt (bijvoorbeeld een telefoongesprek)"; break; }
                 if (n == 0) continue;
                 for (int i = 0; i < n; i++) { bb[2 * i] = (byte) buf[i]; bb[2 * i + 1] = (byte) (buf[i] >> 8); }
                 w.write(bb, 0, n * 2);
@@ -252,11 +262,14 @@ final class VoiceNote {
                 addLevel(level(buf, n));
                 if (System.currentTimeMillis() - since >= MAX_MS) { auto = true; break; }
             }
-            Transcribe.writeWavHeader(w, (int) Math.min(Integer.MAX_VALUE, bytes));
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            err = t instanceof java.io.IOException ? "Het inspreken stopte: opslaan lukte niet (is de telefoon vol?)" : "Het inspreken stopte onverwacht";
+        } finally {
+            if (w != null) { try { Transcribe.writeWavHeader(w, (int) Math.min(Integer.MAX_VALUE, bytes)); } catch (Throwable ignored) { } try { w.close(); } catch (Throwable ignored) { } }
         }
-        // Na 5 minuten: zelf stoppen en uitschrijven (zoals bij de gewone opname)
-        if (auto && liveOn) new Thread(() -> { try { stopLive(app, onAutoStop); } catch (Throwable ignored) { } }, "spraak-live-stop").start();
+        // Na 5 minuten, of als de microfoon wegviel: zelf stoppen en uitschrijven wat er is (zoals bij de gewone opname)
+        if (err != null) liveErr = err;
+        if ((auto || err != null) && liveOn) new Thread(() -> { try { stopLive(app, onAutoStop); } catch (Throwable ignored) { } }, "spraak-live-stop").start();
     }
 
     private static void partialLoop(Context app, File src) {
@@ -266,10 +279,12 @@ final class VoiceNote {
             while (liveOn) {
                 Thread.sleep(300);
                 long total = liveBytes;
-                if (!liveOn || total - lastBytes < PART_NEW_BYTES || System.currentTimeMillis() - lastAt < PART_MS) continue;
+                // Alleen het nauwkeurige (grote) model: veel minder vaak, anders wordt de telefoon warm
                 Transcribe.Model m = Transcribe.model("base");
-                if (m == null || !Transcribe.modelFile(app, m).isFile()) m = Transcribe.activeModel(app);
+                boolean big = m == null || !Transcribe.modelFile(app, m).isFile();
+                if (big) m = Transcribe.activeModel(app);
                 if (m == null) return;
+                if (!liveOn || total - lastBytes < (big ? PART_NEW_BYTES * 3 : PART_NEW_BYTES) || System.currentTimeMillis() - lastAt < (big ? PART_MS_BIG : PART_MS)) continue;
                 long[] win = window(total, WINDOW_BYTES);
                 byte[] data = new byte[(int) win[1]];
                 try (RandomAccessFile r = new RandomAccessFile(src, "r")) { r.seek(44 + win[0]); r.readFully(data); }
@@ -288,13 +303,14 @@ final class VoiceNote {
     /** Stoppen en het geheel uitschrijven met het gekozen spraakmodel; done krijgt {text}, {error} of {cancelled}. */
     static void stopLive(Context c, Done done) {
         final Thread rt, pt;
+        final AudioRecord myAr;
         final File f;
         final int myRun;
         synchronized (VoiceNote.class) {
-            if (!liveOn) { done.done("{\"error\":\"Er wordt niet opgenomen\"}"); return; }
+            if (!liveOn) return; // al gestopt (bijv. na 5 minuten vanzelf, tegelijk met ✓): dat antwoord komt al
             liveOn = false;
             state = "working";
-            rt = arThread; pt = partThread; f = liveWav; myRun = run;
+            rt = arThread; pt = partThread; f = liveWav; myRun = run; myAr = ar;
             try { if (ar != null) ar.stop(); } catch (Throwable ignored) { }
         }
         Transcribe.stopOwnedBy(pt); // een lopende tussentekst is niet meer nodig
@@ -304,14 +320,15 @@ final class VoiceNote {
             String r;
             try {
                 try { if (rt != null) rt.join(3000); } catch (InterruptedException ignored) { }
-                synchronized (VoiceNote.class) { if (ar != null) { try { ar.release(); } catch (Throwable ignored) { } ar = null; } }
+                releaseAr(myAr);
                 try { if (pt != null) pt.join(5000); } catch (InterruptedException ignored) { }
                 if (liveCancelled) throw new InterruptedException();
-                if (f == null || f.length() < 44 + RATE * 2 * 6 / 10) throw new Exception("Te kort: tik op de microfoon, praat, en tik dan op stoppen");
+                if (f == null || f.length() < 44 + RATE * 2 * 6 / 10) throw new Exception(liveErr != null ? liveErr : "Te kort: tik op de microfoon, praat, en tik dan op stoppen");
                 String all = textOf(Transcribe.whisper(app, f, Transcribe.activeModel(app), (ph, pct) -> { }, true));
                 if (liveCancelled) throw new InterruptedException();
-                if (all.isEmpty()) throw new Exception("Er is geen spraak herkend");
+                if (all.isEmpty()) throw new Exception(liveErr != null ? liveErr : "Er is geen spraak herkend");
                 r = new JSONObject().put("text", all).toString();
+                if (liveErr != null) r = new JSONObject(r).put("note", liveErr).toString(); // wat er was, plus waarom het stopte
             } catch (InterruptedException e) {
                 r = "{\"cancelled\":true}";
             } catch (Throwable e) {
@@ -327,12 +344,39 @@ final class VoiceNote {
         fin.start();
     }
 
+    private static boolean alive(Thread t) { return t != null && t.isAlive(); }
+
+    /** Alleen de eigen opname loslaten (niet een nieuwe die intussen begon). */
+    private static void releaseAr(AudioRecord mine) {
+        if (mine == null) return;
+        try { mine.release(); } catch (Throwable ignored) { }
+        synchronized (VoiceNote.class) { if (ar == mine) ar = null; }
+    }
+
+    /** Werkbestanden met ingesproken tekst die bleven staan (de app werd gestopt tijdens inspreken of uitschrijven).
+     *  all = bij het starten van de app (dan loopt er zeker niets): ook de uitvoer van whisper. Anders alles behalve
+     *  deze keer, en uitvoer van whisper pas als die oud is (Slaappraat kan nog bezig zijn). */
+    static void cleanTemp(Context c, int keepRun, boolean all) {
+        try {
+            File[] fs = c.getCacheDir().listFiles();
+            if (fs == null) return;
+            long now = System.currentTimeMillis();
+            for (File f : fs) {
+                String n = f.getName();
+                boolean ours = n.startsWith("spraak-live-") || n.startsWith("spraak-tussen-") || n.startsWith("spraaknotitie-");
+                if (ours && (all || !n.matches("spraak(?:-live|-tussen|notitie)-?" + keepRun + "\\.(?:wav|m4a)"))) f.delete();
+                else if (n.startsWith("whisper-out") && (all || now - f.lastModified() > 15 * 60_000L)) f.delete();
+            }
+        } catch (Throwable ignored) { }
+    }
+
     /** Annuleren (ook tijdens het uitschrijven): niets uitschrijven, alles weg. */
     static synchronized void cancelLive() {
         liveCancelled = true;
         boolean was = liveOn;
         liveOn = false;
-        try { if (ar != null) ar.stop(); } catch (Throwable ignored) { }
+        final AudioRecord myAr = ar;
+        try { if (myAr != null) myAr.stop(); } catch (Throwable ignored) { }
         Transcribe.stopOwnedBy(partThread);
         if (partThread != null) partThread.interrupt();
         Transcribe.stopOwnedBy(liveFinal);
@@ -343,7 +387,8 @@ final class VoiceNote {
             final int myRun = run;
             new Thread(() -> {
                 try { if (rt != null) rt.join(3000); } catch (Throwable ignored) { }
-                synchronized (VoiceNote.class) { if (ar != null) { try { ar.release(); } catch (Throwable ignored) { } ar = null; } if (run == myRun && !liveOn) { state = "idle"; partial = ""; } }
+                releaseAr(myAr);
+                synchronized (VoiceNote.class) { if (run == myRun && !liveOn) { state = "idle"; partial = ""; } }
                 if (f != null) f.delete();
             }, "spraak-live-weg").start();
         }

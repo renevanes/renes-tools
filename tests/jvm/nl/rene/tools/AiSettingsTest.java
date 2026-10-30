@@ -58,10 +58,11 @@ public class AiSettingsTest {
         check(AiSettings.strip("Zonder regel.").equals("Zonder regel.") && AiSettings.strip(null).isEmpty(), "zonder regel ongewijzigd");
 
         // Wanneer mag het
-        check(AiSettings.allowed(true, false, null, null), "vraag over instellingen: ja");
-        check(!AiSettings.allowed(true, true, null, null), "gesprek van anderen als bijlage: nee");
-        check(!AiSettings.allowed(true, false, "ik sport op dinsdag", null) && !AiSettings.allowed(true, false, null, "Delft"), "onthoud/vergeet: nee (dat is het geheugen)");
-        check(!AiSettings.allowed(false, false, null, null), "zonder instellingen: nee");
+        check(AiSettings.allowed(true, false, false, null, null), "vraag over instellingen: ja");
+        check(!AiSettings.allowed(true, true, false, null, null), "gesprek van anderen als bijlage: nee");
+        check(!AiSettings.allowed(true, false, true, null, null), "eerder antwoord steunde op berichten van anderen (oth): nee");
+        check(!AiSettings.allowed(true, false, false, "ik sport op dinsdag", null) && !AiSettings.allowed(true, false, false, null, "Delft"), "onthoud/vergeet: nee (dat is het geheugen)");
+        check(!AiSettings.allowed(false, false, false, null, null), "zonder instellingen: nee");
 
         // Beperken en de opdracht
         List<AiSettings.Entry> lots = new ArrayList<>();

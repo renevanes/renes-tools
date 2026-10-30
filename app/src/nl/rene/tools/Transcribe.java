@@ -473,9 +473,8 @@ final class Transcribe {
             json.delete();
             throw new Exception("Uitschrijven mislukt (code " + code + ")" + (t.isEmpty() ? "" : ": " + t));
         }
-        JSONObject o = new JSONObject(Contacts.readText(json, false));
-        json.delete();
-        return o;
+        try { return new JSONObject(Contacts.readText(json, false)); }
+        finally { json.delete(); } // ook als lezen mislukt: geen uitgeschreven tekst laten staan
     }
 
     // ---------- uitschrijven en opslaan ----------

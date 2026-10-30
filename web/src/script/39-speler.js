@@ -91,7 +91,8 @@ function plSetArt(el, m){
   if (el.dataset.k === k) return;
   el.dataset.k = k;
   // Met DOM in plaats van een HTML-tekst: Chromium's vooruitlezer zag zo'n tekst in een groot script soms aan voor een echt plaatje
-  if (m.art) { const img = document.createElement('img'); img.alt = ''; img.onerror = () => plArtFallback(img.parentNode || el, m.ini); img.src = m.art; el.textContent = ''; el.appendChild(img); } else plArtFallback(el, m.ini);
+  // Een late fout van het plaatje van een vorig nummer mag de hoes van het huidige niet vervangen
+  if (m.art) { const img = document.createElement('img'); img.alt = ''; img.onerror = () => { if (img.parentNode === el && el.dataset.k === k) plArtFallback(el, m.ini); }; img.src = m.art; el.textContent = ''; el.appendChild(img); } else plArtFallback(el, m.ini);
   el.classList.toggle('ini', !m.art);
 }
 

@@ -193,8 +193,10 @@ function aiAsk(opt){
   const msgs = aiChat.msgs.filter(m => !m.err && (m.r === 'user' || m.c)).map(m => Object.assign({ role: m.r === 'user' ? 'user' : 'assistant', content: m.r === 'user' && m.att && m.att.q ? m.att.q : m.c }, m.r === 'user' && m.att ? { att: true } : {}, aiOth(m) ? { oth: true } : {}));
   const lastQ = aiChat.msgs.filter(m => m.r === 'user').slice(-1)[0] || {};
   if (!opt && typeof setOfferFor === 'function' && !lastQ.att) opt = setOfferFor(lastQ.c || ''); // opnieuw antwoorden: weer met de instellingen
+  const noDo = !!(opt && opt.noDo); // een opdracht zonder instelling: het model zegt nooit dat het iets deed
   if (opt && !opt.settings) opt = null;
   const others = aiChat.msgs.some(m => m.att); // een gesprek van anderen als bijlage: niets over jou leren en geen acties
+  if (msgs.some(m => m.oth)) opt = null; // een eerder antwoord steunde op berichten van anderen: geen instellingen (hun tekst mag niets voorstellen)
   // Het gesprek eerst bewaren: dan heeft het een id (wat de assistent onthoudt, weet uit welk gesprek het komt)
   aiSaveChat(aiChat);
   // Eerst het (lege) antwoord klaarzetten: stukjes kunnen meteen binnenkomen
@@ -205,7 +207,7 @@ function aiAsk(opt){
   aiRenderMsgs(); aiSendBtn();
   aiLearnFor = null;
   const e = Android.aiChat(JSON.stringify(Object.assign({ messages: msgs, notes: !!aiSt.notes && aiReady('zoek') && !lastQ.att, chat: aiChat.id || '', title: aiChat.title || '' },
-    others ? { noLearn: true, noAct: true } : {}, lastQ.att ? { sum: true } : {}, opt && !others ? { settings: opt.settings } : {})));
+    others ? { noLearn: true, noAct: true } : {}, lastQ.att ? { sum: true } : {}, opt && !others ? { settings: opt.settings } : {}, noDo && !others ? { noDo: true } : {})));
   if (e === AI_BUSY) {
     // Er loopt nog een antwoord (bijv. van een dubbele tik): deze vraag niet nog eens beantwoorden
     aiChat.msgs.splice(aiChat.msgs.indexOf(aiCur), 1); aiCur = null; aiGen = null; aiBusy = false; aiStatus('');
@@ -684,6 +686,7 @@ window.onAiVoice = function(r){
   const text = String(r.text || '').trim(); if (!text) { t.value = aiVPre; aiGrow(); return; }
   t.value = (aiVPre ? aiVPre + ' ' : '') + text; aiGrow();
   aiFromVoice = true; // ook als je hem eerst nakijkt: het antwoord mag dan voorgelezen worden
+  if (r.note) toast(r.note); // vanzelf gestopt (bijv. de microfoon viel weg): dit is wat er was
   aiVSay('Herkend: ' + text);
   // Alleen meteen versturen als dat aan staat, in hetzelfde gesprek, op dit scherm, als er niets loopt; anders staat het in het invoerveld
   const same = aiVoiceChat === aiChat && current === 'ai';

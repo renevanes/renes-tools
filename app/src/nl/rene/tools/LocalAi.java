@@ -754,11 +754,11 @@ final class LocalAi {
             // Acties (notitie, herinnering, agenda): alleen als de vraag erom lijkt te vragen; nooit bij "onthoud …" (dat is
             // het geheugen) of bij een samenvatting van een gesprek. Ze gebeuren pas als je onder het antwoord op de knop tikt.
             // Een gesprek om samen te vatten (berichten van anderen) zit als bijlage in het gesprek: zelf nagaan, niet alleen op de interface vertrouwen
-            boolean hasAtt = false;
-            for (int i = 0; i < in.length(); i++) { JSONObject x = in.optJSONObject(i); if (x != null && x.optBoolean("att")) hasAtt = true; }
+            boolean hasAtt = false, hasOth = false;
+            for (int i = 0; i < in.length(); i++) { JSONObject x = in.optJSONObject(i); if (x != null && x.optBoolean("att")) hasAtt = true; if (x != null && x.optBoolean("oth")) hasOth = true; }
             final boolean actWanted = actAllowed(req.optBoolean("noAct"), hasAtt, remember, forgetWhat, question);
             // Een vraag over de instellingen van de app: de paar instellingen die de interface erbij zocht (AiSettings)
-            final List<AiSettings.Entry> setOffer = AiSettings.allowed(req.optJSONArray("settings") != null, hasAtt, remember, forgetWhat)
+            final List<AiSettings.Entry> setOffer = AiSettings.allowed(req.optJSONArray("settings") != null, hasAtt, hasOth, remember, forgetWhat)
                     ? AiSettings.limit(setEntries(req.optJSONArray("settings"))) : null;
             final boolean setWanted = setOffer != null && !setOffer.isEmpty();
             // Niet leren bij een actie ("herinner me …" is geen feit over jou) of als er berichten van anderen in het gesprek staan
@@ -809,6 +809,7 @@ final class LocalAi {
             final String questionF = question;
             if (actWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiActions.prompt(System.currentTimeMillis(), java.util.TimeZone.getDefault()) + ")");
             if (setWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiSettings.prompt(setOffer) + ")");
+            else if (req.optBoolean("noDo") && remember == null && forgetWhat == null && !hasAtt) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiSettings.NO_DO + ")");
             final boolean willLearn = learnWanted;
             // Antwoordlengte; met een bijlage hooguit 700 woordjes (ook bij doorvragen) en de bijlage zelf passend gemaakt:
             // anders laat de motor het oudste bericht weg, en dat is juist het gesprek

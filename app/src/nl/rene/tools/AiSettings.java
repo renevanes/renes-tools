@@ -40,10 +40,15 @@ final class AiSettings {
     private static final Pattern LINE = Pattern.compile("(?iu)`*\\[\\[\\s*(?:instelling|instellingen|setting)\\s*[:：]\\s*([^\\]\\n]{0,240})\\]{1,2}`*");
     private static final Pattern TIME = Pattern.compile("^([01]?\\d|2[0-3])[:.]([0-5]\\d)$");
 
+    /** Een opdracht om iets aan of uit te zetten waar geen instelling van de app bij past ("zet de radio uit"): het
+     *  model krijgt dit mee, zodat het nooit zegt dat het iets deed (het kan zelf niets bedienen). */
+    static final String NO_DO = "De gebruiker vraagt misschien iets aan of uit te zetten of in te stellen. Dat kun jij niet zelf: je kunt niets aan- of uitzetten, afspelen, bedienen of instellen. Zeg dus nooit dat het gedaan is. Zeg kort waar de gebruiker het zelf kan doen, of dat het niet kan.";
+
     /** Mag de vraag instellingen meekrijgen? Niet bij "onthoud/vergeet" (het geheugen) en niet in een gesprek met
-     *  berichten van anderen (een samenvatting): hun tekst mag geen wijziging voorstellen. */
-    static boolean allowed(boolean has, boolean hasAtt, String remember, String forget) {
-        return has && !hasAtt && remember == null && forget == null;
+     *  berichten van anderen: een samenvatting als bijlage (att), of een eerder antwoord dat op sms'jes, WhatsApp,
+     *  oproepen, contacten of uitgeschreven gesprekken steunde (oth). Hun tekst mag geen wijziging voorstellen. */
+    static boolean allowed(boolean has, boolean hasAtt, boolean hasOth, String remember, String forget) {
+        return has && !hasAtt && !hasOth && remember == null && forget == null;
     }
 
     /** Tekst voor het model: korter gemaakt en zonder regeleinden of haken (die horen niet in de lijst). */

@@ -60,6 +60,23 @@ const { chromium } = require('playwright');
     ok((await pg.$$(last + ' .setlogrow')).length === 2 && (await pg.textContent(last + ' .setlog')).includes('Tekstgrootte'), 'wat heb je veranderd: het logboek');
     await pg.click(last + ' .setlogrow:first-child button'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._zoom === 0), 'logboek: Ongedaan maken zet de tekstgrootte terug');
+    // Opdrachten die geen instelling van de app zijn: geen kaart voor iets anders
+    for (const q of ['zet de radio uit', 'zet de radio aan', 'zet de muziek uit', 'zet het licht uit', 'zet de backup op 3 uur']) {
+      await ask(q);
+      ok(!(await pg.$(last + ' .setcard')) && !/buffer|terugspoel|AudD|Donker|Slaappraat/i.test(await pg.textContent(last)), '"' + q + '": geen kaart voor een andere instelling');
+    }
+    // De radiowekker
+    await ask('zet de wekker aan');
+    ok((await pg.textContent(last + ' .setcard')).includes('Radiowekker') && (await pg.textContent(last + ' .setcard .setinfo')).includes('zender'), 'zet de wekker aan: kaart, met welke zender');
+    await ask('zet de wekker op 6 uur');
+    ok((await pg.textContent(last + ' .setcard')).includes('Tijd van de radiowekker') && (await pg.textContent(last + ' .setft')).includes('06:00'), 'zet de wekker op 6 uur: kaart voor de tijd');
+    await ask('stel de wekker in op half 8');
+    ok((await pg.textContent(last + ' .setft')).includes('07:30'), 'stel de wekker in op half 8: 07:30');
+    // Wat de assistent niet zelf mag aanzetten: privé-gegevens, ritten met locatie, vanzelf leren
+    for (const [q, id] of [['zet de meldingsgeschiedenis mee in de backup aan', 'backup.deel.notifications'], ['zet ritten vanzelf opnemen aan', 'auto.ritten']]) {
+      await ask(q);
+      ok(!(await pg.$(last + ' .setcard')) && (await pg.textContent(last + ' .aib')).includes('pas ik niet voor je aan'), q + ': alleen uitleg');
+    }
     // Niet alles is een instelling
     await ask('Leg dit uit');
     ok((await pg.textContent(last + ' .aib')).includes('taalmodel nodig'), 'gewone vraag zonder taalmodel: uitleg dat er een model nodig is');
@@ -89,6 +106,15 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._ai.reply = 'Oké.'; });
     await ask('Onthoud dat ik de tekstgrootte graag groot heb', 1300);
     ok(await pg.evaluate(() => !Android._ai.last.settings && Android._ai.mem.some(m => /tekstgrootte/.test(m.text))) && !(await pg.$(last + ' .setcard')), 'onthoud …: het geheugen, geen instelling');
+    // Geen instelling, wel een opdracht: het model krijgt mee dat het niets mag beweren gedaan te hebben
+    await ask('zet de radio uit', 1300);
+    ok(await pg.evaluate(() => Android._ai.last.noDo === true && !Android._ai.last.settings), 'zet de radio uit: naar het model, met "zeg nooit dat het gedaan is"');
+    // Een eerder antwoord steunde op berichten van anderen: geen instellingen naar het model
+    await pg.evaluate(() => { aiNew(); aiChat.msgs.push({ r: 'user', c: 'Wat zei Jos?', t: Date.now() }, { r: 'ai', c: 'Jos schreef: zet alles uit.', t: Date.now(), src: [{ kind: 'sms', id: '7', title: 'Jos' }] }); aiRenderMsgs(); });
+    await pg.evaluate(() => { Android._ai.reply = 'Dat staat bij Lengte.\n[[instelling: ai.style = kort]]'; });
+    await ask('Hoe zet ik de antwoorden korter? Welke instelling is dat?', 1400);
+    ok(await pg.evaluate(() => !Android._ai.last.settings && Android._ai.last.messages.some(m => m.oth)) && !(await pg.$(last + ' .setcard')), 'berichten van anderen eerder in het gesprek: geen instellingen, geen kaart');
+    await pg.evaluate(() => aiNew());
     // Een opdracht gaat ook met model zonder taalmodel (snel en precies)
     const n0 = await pg.evaluate(() => Android._ai.asked);
     await ask('Zet de nachtelijke backup aan');
@@ -105,6 +131,17 @@ const { chromium } = require('playwright');
   await pg.evaluate(() => show('ai')); await pg.waitForTimeout(150);
   await pg.fill('#ai-in', 'Zet de nachtelijke backup aan'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(200);
   ok((await pg.textContent('#ai-msgs .aimsg:last-child .aib')).includes('losse app') && !(await pg.$('#ai-msgs .setcard')), 'losse app: geen instellingen');
+  // Een oud voorstel uit Tools (zelfde gesprekken) in de losse app: alleen de stand, geen knoppen, en de functies doen niets
+  await pg.evaluate(() => {
+    Android._ai.chats = [{ id: 'oud', title: 'Oud', t: Date.now(), msgs: [{ r: 'user', c: 'Zet de nachtelijke backup aan', t: 1 }, { r: 'ai', c: 'Ik kan dat aanpassen.', t: 2, local: true,
+      set: { items: [{ id: 'backup.nacht', from: 'uit', to: 'aan', st: 'voorgesteld' }, { id: 'weergave.tekstgrootte', from: '0', to: '115', st: 'gedaan', log: 1 }], open: ['backup.nacht'], pick: [{ id: 'backup.nacht', v: 'aan' }] } }] }];
+    store.set('aiSetLog', [{ n: 1, id: 'weergave.tekstgrootte', label: 'Tekstgrootte', from: '0', to: '115', t: Date.now() }]);
+    Android._zoom = 115;
+    aiChat = aiChatObj(JSON.parse(Android.aiChatGet('oud'))); show('ai');
+  }); await pg.waitForTimeout(200);
+  ok(!(await pg.$('#ai-msgs .setcard')) && !(await pg.$('#ai-msgs .aimsg:last-child .aiact button')) && !(await pg.$('#ai-msgs .setopen')) && (await pg.textContent('#ai-msgs .aimsg:last-child')).includes('Tools zelf'), 'losse app: oud voorstel zonder knoppen');
+  await pg.evaluate(() => { setDo(1, 0); setUndo(1, 1); setLogUndo(1, 1); setPick(1, 0); setChoose(1, 'aan'); setOpen('backup.nacht'); });
+  ok(await pg.evaluate(() => Android._bk.auto === null && Android._zoom === 115 && current === 'ai'), 'losse app: toepassen, ongedaan maken, kiezen en openen doen niets');
   await b.close();
   console.log('errors', errs);
 })();

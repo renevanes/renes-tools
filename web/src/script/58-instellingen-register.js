@@ -14,6 +14,10 @@ function setIf(scr, fn){ if (current === scr || (Array.isArray(scr) && scr.inclu
 const SET_ZOOM = [['0', 'Zoals de telefoon'], ['90', 'Kleiner'], ['100', 'Normaal'], ['115', 'Groot'], ['130', 'Groter'], ['150', 'Extra groot'], ['175', 'Maximaal']];
 const SET_LOCKT = [['0', 'Meteen'], ['30000', '30 seconden'], ['60000', '1 minuut'], ['300000', '5 minuten'], ['900000', '15 minuten'], ['3600000', '1 uur']];
 const SET_RANGE = () => RANGE.map(v => [String(v), v < 60 ? v + ' seconden' : v === 60 ? '1 minuut' : String(v / 60).replace('.', ',') + ' minuten']);
+/* Korte, vaste id uit een willekeurige tekst (een id van een automatisering kan van alles bevatten) */
+function setHash(t){ let h = 5381; const s = String(t); for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36) + '-' + s.length.toString(36); }
+/* Herinnering op bedtijd: net als op het scherm eerst toestemming voor meldingen */
+function setSlNotif(on){ slLoad(); if (on && slSt.notifOk === false) { Android.permRequest('notif'); return 'Sta eerst meldingen toe voor de app en probeer het dan opnieuw'; } return ''; }
 function setSl(){ return (rdJson(Android.sleepState(), {}) || {}).set || {}; }
 function setBk(){ return rdJson(Android.backupState(false), {}) || {}; }
 function setCar(){ carLoad(); return carSt || {}; }
@@ -22,6 +26,8 @@ function setVp(){ return rdJson(Android.vpnState(), {}) || {}; }
 function setVpAuto(k, on){ const s = setVp(), a = Object.assign({}, s.auto || {}, { [k]: on }); Android.vpnAuto(JSON.stringify(a)); setIf('vpn', vpRender); return ''; }
 function setAi(){ aiLoad(); return aiSt; }
 function setAiCfg(k){ return String((setAi().cfg || {})[k] || ''); }
+/* De zender die Opslaan bij de radiowekker gebruikt (de ingestelde, of de eerste uit de lijst) */
+function setAlarmStation(){ try { enterAlarm(); const st = alStations[+$('#al-station').value]; return st && st.name ? st.name : ''; } catch (e) { return ''; } }
 function setAlarm(fn){ enterAlarm(); fn(); return alSave() ? '' : 'De wekker opslaan lukte niet'; }
 function setRedial(){ setIf('redial', () => { chips($('#c-att'), ATT, 'attempts', 10); chips($('#c-int'), INT, 'interval', 10); renderRange(); $('#t-stop').classList.toggle('on', store.get('t-stop', true)); $('#t-spk').classList.toggle('on', store.get('t-spk', false)); }); }
 
@@ -76,7 +82,7 @@ const SET_REG = [
     get: () => setB(store.get('t-spk', false)), set: v => { store.set('t-spk', setOnV(v)); setRedial(); return ''; } },
   { id: 'redial.planning', scr: 'redial', type: 'openen', label: 'Auto redial op een tijdstip', desc: 'Auto redial vanzelf laten beginnen, bijvoorbeeld om 08:00 de huisarts. Het nummer, de tijd en de dagen kies je op het scherm.', syn: 'redial tijdstip plannen inplannen huisarts ochtend' },
   /* ---------- WhatsApp backup ---------- */
-  { id: 'wa.nacht', scr: 'wa', ctl: '#wa-auto', label: 'WhatsApp: elke nacht automatisch back-uppen', desc: 'Na 03:00, als WhatsApp zijn eigen backup heeft gemaakt.', syn: 'whatsapp backup nacht automatisch nachtelijk',
+  { id: 'wa.nacht', scr: 'wa', ctl: '#wa-auto', warn: v => v === 'uit' ? 'Je WhatsApp wordt dan niet meer vanzelf back-upt.' : '', label: 'WhatsApp: elke nacht automatisch back-uppen', desc: 'Na 03:00, als WhatsApp zijn eigen backup heeft gemaakt.', syn: 'whatsapp backup nacht automatisch nachtelijk',
     get: () => setB(waInfo().auto), set: v => { renderWa(false); $('#wa-auto').classList.toggle('on', setOnV(v)); waSave(); return ''; } },
   { id: 'wa.opladen', scr: 'wa', ctl: '#wa-charging', label: 'WhatsApp-backup alleen tijdens opladen', desc: 'De eerste backup kan lang duren.', syn: 'whatsapp backup opladen lader',
     get: () => setB(waInfo().autoCharging !== false), set: v => { renderWa(false); $('#wa-charging').classList.toggle('on', setOnV(v)); waSave(); return ''; } },
@@ -86,7 +92,7 @@ const SET_REG = [
     avail: () => readInfo().hasKey ? '' : 'Maak eerst je chats leesbaar (met de sleutel van 64 cijfers)', get: () => setB(readInfo().auto !== false), set: v => { Android.waSetReadableAuto(setOnV(v)); setIf('wa', renderReadable); return ''; } },
   { id: 'wa.sleutel', scr: 'wa', type: 'openen', safe: 'geheim', label: 'WhatsApp-sleutel (64 cijfers)', desc: 'De sleutel van de versleutelde WhatsApp-backup, om je chats leesbaar te maken.', syn: 'whatsapp sleutel 64 cijfers versleuteld', why: 'Sleutels lees ik niet voor en pas ik niet aan.' },
   /* ---------- Alles back-uppen ---------- */
-  { id: 'backup.nacht', scr: 'backup', ctl: '#bk-auto', label: 'Elke nacht alles back-uppen', desc: 'Na 03:30 vanzelf een backup van alles wat aangevinkt is.', syn: 'backup nachtelijke nachtelijk nacht automatisch elke alles reservekopie', phr: ['nachtelijke backup', 'backup elke nacht', 'automatische backup'],
+  { id: 'backup.nacht', scr: 'backup', ctl: '#bk-auto', warn: v => v === 'uit' ? 'Er wordt dan niet meer vanzelf een backup gemaakt; alleen nog met de hand.' : '', label: 'Elke nacht alles back-uppen', desc: 'Na 03:30 vanzelf een backup van alles wat aangevinkt is.', syn: 'backup nachtelijke nachtelijk nacht automatisch elke alles reservekopie', phr: ['nachtelijke backup', 'backup elke nacht', 'automatische backup'],
     get: () => setB(setBk().auto), set: v => { Android.backupSetAuto(setOnV(v), setBk().charging !== false); setIf('backup', enterBackup); return ''; } },
   { id: 'backup.opladen', scr: 'backup', ctl: '#bk-charging', label: 'Backup alleen tijdens opladen', desc: 'De nachtelijke backup wacht tot de telefoon aan de lader ligt.', syn: 'backup opladen lader', need: /opla|lader|laad/,
     get: () => setB(setBk().charging !== false), set: v => { Android.backupSetAuto(!!setBk().auto, setOnV(v)); setIf('backup', enterBackup); return ''; } },
@@ -101,9 +107,11 @@ const SET_REG = [
     get: () => setB(Android.radioTimeshift()), set: v => { const on = setOnV(v); Android.radioSetTimeshift(on); const c = $('#rd-ts'); if (c) c.checked = on; toast(on ? 'Geldt vanaf de volgende zender' : 'Uit; geldt vanaf de volgende zender'); return ''; } },
   { id: 'podcast.snelheid', scr: 'podcasts', type: 'keuze', vals: [['0.8', '0,8×'], ['1', '1× (normaal)'], ['1.1', '1,1×'], ['1.25', '1,25×'], ['1.5', '1,5×'], ['1.75', '1,75×'], ['2', '2×']], label: 'Afspeelsnelheid van podcasts', desc: 'Hoe snel podcasts afspelen.', syn: 'podcast snelheid sneller langzamer afspelen tempo',
     get: () => String(+(rdJson(Android.podState(), {}).speed || 1)), set: v => { Android.podSpeed(String(v)); if (typeof pcSt === 'object' && pcSt) pcSt.speed = +v; if (typeof plIsOpen !== 'undefined' && plIsOpen) plRender(); return ''; } },
-  { id: 'wekker.aan', scr: 'ralarm', ctl: '#al-on', label: 'Radiowekker', desc: 'De radio als wekker.', syn: 'wekker alarm radiowekker wakker ochtend',
+  { id: 'wekker.aan', scr: 'ralarm', ctl: '#al-on', label: 'Radiowekker', desc: 'De radio als wekker.', syn: 'wekker alarm radiowekker wakker ochtend', phr: ['wekker aan', 'wekker uit', 'radiowekker aan', 'radiowekker uit'],
+    note: v => { if (v !== 'aan') return ''; const z = setAlarmStation(); return z ? 'Zender: ' + z : 'Er is nog geen zender: kies eerst een zender bij Radio (anders gaat de wekker niet aan).'; },
     get: () => setB(rdJson(Android.alarmState(), {}).on), set: v => setAlarm(() => { $('#al-on').checked = setOnV(v); }) },
-  { id: 'wekker.tijd', scr: 'ralarm', ctl: '#al-time', type: 'tijd', label: 'Tijd van de radiowekker', desc: 'Hoe laat de radiowekker afgaat.', syn: 'wekker tijd alarm hoe laat radiowekker wakker',
+  { id: 'wekker.tijd', scr: 'ralarm', ctl: '#al-time', type: 'tijd', label: 'Tijd van de radiowekker', desc: 'Hoe laat de radiowekker afgaat.', syn: 'wekker tijd alarm hoe laat radiowekker wakker', phr: ['wekker op', 'wekker om', 'wekker in op', 'radiowekker op', 'radiowekker om', 'wekker zetten op'],
+    note: () => { const a = rdJson(Android.alarmState(), {}); if (!a.on) return 'De wekker staat nu uit; zet hem daarna aan bij Radiowekker.'; const z = setAlarmStation(); return z ? 'Zender: ' + z : ''; },
     get: () => { const a = rdJson(Android.alarmState(), {}); return String(a.hour != null ? a.hour : 7).padStart(2, '0') + ':' + String(a.minute || 0).padStart(2, '0'); }, set: v => setAlarm(() => { $('#al-time').value = v; }) },
   { id: 'wekker.dagen', scr: 'ralarm', ctl: '#al-days', type: 'openen', label: 'Dagen van de radiowekker', desc: 'Op welke dagen de wekker afgaat (geen dag = eenmalig).', syn: 'wekker dagen weekend werkdagen',
     get: () => { const d = rdJson(Android.alarmState(), {}).days; const n = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'].filter((x, i) => (d != null ? d : 31) & (1 << i)); return n.length ? n.join(', ') : 'eenmalig'; } },
@@ -122,7 +130,7 @@ const SET_REG = [
   { id: 'meldingen.geschiedenis', scr: 'history', ctl: '#history-enabled', weak: v => v === 'aan', safe: 'privacy', label: 'Meldingsgeschiedenis: nieuwe meldingen bewaren', desc: 'Meldingen van andere apps bewaren om later terug te lezen.', syn: 'meldingsgeschiedenis meldingen bewaren geschiedenis notificaties',
     why: 'Meldingen van andere apps bewaren zet je zelf aan.', get: () => setB(rdJson(Android.historyListBy('', '', 1), {}).enabled), set: v => { historyEnable(setOnV(v)); return ''; } },
   /* ---------- Mijn auto, Spotify, VPN, Locatie ---------- */
-  { id: 'auto.ritten', scr: 'car', ctl: '#car-trips-on', label: 'Ritten vanzelf opnemen', desc: 'Bluetooth van de auto aan = rit begint, uit = rit wordt opgeslagen.', syn: 'auto ritten rit kilometers registratie bluetooth',
+  { id: 'auto.ritten', scr: 'car', ctl: '#car-trips-on', weak: v => v === 'aan', safe: 'privacy', why: 'Elke rit met je locatie vanzelf opnemen zet je zelf aan.', label: 'Ritten vanzelf opnemen', desc: 'Bluetooth van de auto aan = rit begint, uit = rit wordt opgeslagen.', syn: 'auto ritten rit kilometers registratie bluetooth',
     get: () => setB(!!setCar().trips), set: v => setCarSave({ trips: setOnV(v) }) },
   { id: 'auto.rittype', scr: 'car', ctl: '#car-def', type: 'keuze', vals: [['prive', 'Privé'], ['zakelijk', 'Zakelijk']], label: 'Nieuwe ritten zijn privé of zakelijk', desc: 'Wat een nieuwe rit standaard is.', syn: 'auto ritten privé zakelijk standaard',
     get: () => setCar().defType || 'prive', set: v => setCarSave({ def: v }) },
@@ -141,9 +149,9 @@ const SET_REG = [
     get: () => setB(rdJson(Android.locState(), {}).jitter !== false), set: v => { Android.locJitter(setOnV(v)); setIf('loc', lcRender); return ''; } },
   /* ---------- Slaappraat ---------- */
   { id: 'slaap.herinnering', scr: 'sleep', ctl: '#sl-rem-on', label: 'Slaappraat: herinnering op bedtijd', desc: 'Elke avond een melding om Slaappraat aan te zetten.', syn: 'slaappraat herinnering bedtijd avond melding slapen',
-    get: () => setB(!!setSl().remindAt), set: v => { slLoad(); if (!!(slSt.set || {}).remindAt !== setOnV(v)) slRemToggle(); return ''; } },
+    get: () => setB(!!setSl().remindAt), set: v => { const e = setSlNotif(setOnV(v)); if (e) return e; if (!!(slSt.set || {}).remindAt !== setOnV(v)) slRemToggle(); return ''; } },
   { id: 'slaap.herinnering.tijd', scr: 'sleep', ctl: '#sl-rem', type: 'tijd', label: 'Slaappraat: tijd van de herinnering', desc: 'Hoe laat de herinnering op bedtijd komt (zet de herinnering ook aan).', syn: 'slaappraat herinnering bedtijd tijd',
-    get: () => setSl().remindAt || '', set: v => { slSet('remindAt', v); return ''; } },
+    get: () => setSl().remindAt || '', set: v => { const e = setSlNotif(true); if (e) return e; slSet('remindAt', v); return ''; } },
   { id: 'slaap.stoppen', scr: 'sleep', ctl: '#sl-stop-on', label: 'Slaappraat: vanzelf stoppen', desc: '\'s Ochtends om een vaste tijd stoppen met luisteren.', syn: 'slaappraat stoppen ochtend vanzelf',
     get: () => setB(!!setSl().stopAt), set: v => { slLoad(); if (!!(slSt.set || {}).stopAt !== setOnV(v)) slStopToggle(); return ''; } },
   { id: 'slaap.stoptijd', scr: 'sleep', ctl: '#sl-stop', type: 'tijd', label: 'Slaappraat: stoppen om', desc: 'Hoe laat Slaappraat \'s ochtends stopt.', syn: 'slaappraat stoppen tijd ochtend',
@@ -171,7 +179,7 @@ const SET_REG = [
   { id: 'ai.instr', scr: 'aisetpers', type: 'tekst', label: 'Hoe moet de assistent antwoorden?', desc: 'Eigen instructies voor de assistent.', syn: 'instructies persoonlijk aanspreken assistent' },
   { id: 'ai.mem', scr: 'aisetmem', ctl: '#aim-use', label: 'Geheugen van de assistent gebruiken', desc: 'Uit: de assistent gebruikt en onthoudt niets (wat er staat, blijft bewaard).', syn: 'geheugen onthouden assistent herinneringen',
     get: () => setAiCfg('mem') === 'uit' ? 'uit' : 'aan', set: v => { aicSet('mem', v); return ''; } },
-  { id: 'ai.learn', scr: 'aisetmem', ctl: '#aic-learn', type: 'keuze', vals: [['vragen', 'Eerst vragen'], ['vanzelf', 'Vanzelf'], ['uit', 'Uit']], label: 'Leren uit gesprekken', desc: 'Of de assistent uit gesprekken iets over je onthoudt, en of hij het eerst vraagt.', syn: 'leren geheugen onthouden assistent',
+  { id: 'ai.learn', scr: 'aisetmem', ctl: '#aic-learn', weak: v => v === 'vanzelf', safe: 'privacy', why: 'Of de assistent zonder te vragen dingen over je onthoudt, kies je zelf bij Geheugen.', type: 'keuze', vals: [['vragen', 'Eerst vragen'], ['vanzelf', 'Vanzelf'], ['uit', 'Uit']], label: 'Leren uit gesprekken', desc: 'Of de assistent uit gesprekken iets over je onthoudt, en of hij het eerst vraagt.', syn: 'leren geheugen onthouden assistent',
     get: () => setAiCfg('learn'), set: v => { aicSet('learn', v); return ''; } },
   { id: 'ai.voicesend', scr: 'aisetvoice', ctl: '#ais-vsend', label: 'Meteen versturen na inspreken', desc: 'Uit: de ingesproken tekst komt eerst in het invoerveld, zodat je hem kunt nakijken.', syn: 'inspreken spraak versturen microfoon meteen',
     get: () => setB(setAi().voiceSend === true), set: v => { if ((setAi().voiceSend === true) !== setOnV(v)) aisVoiceSend(); return ''; } },
@@ -187,15 +195,20 @@ const SET_REG = [
     get: () => setB(!!setAi().wifiOnly), set: v => { if (!!setAi().wifiOnly !== setOnV(v)) aisWifi(); setIf('models', () => { mdSt.wifiOnly = setOnV(v); mdRender(); }); return ''; } }
 ];
 
+const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin'];
 /* Lijsten die per item een instelling hebben (automatiseringen, bronnen van de AI, onderdelen van de backup) */
 const SET_GEN = [
-  { cover: '#au-list .tg', gen: () => { auLoad(); return (auState.rules || []).map(r => ({ id: 'auto.regel.' + String(r.id).toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40), scr: 'auto', label: 'Automatisering "' + (r.name || 'Zonder naam') + '"',
+  { cover: '#au-list .tg', gen: () => { auLoad(); return (auState.rules || []).map(r => ({ id: 'auto.regel.' + setHash(r.id), scr: 'auto', label: 'Automatisering "' + (r.name || 'Zonder naam') + '"',
     desc: 'Deze automatisering aan of uit.', syn: 'automatisering automatiseren regel ' + (r.name || ''), get: () => { auLoad(); const x = auState.rules.find(y => y.id === r.id); return setB(!x || x.on !== false); },
     set: v => { Android.autoSetOn(r.id, setOnV(v)); auLoad(); setIf('auto', auRender); return ''; } })); } },
   { cover: '#aid-list .tg', gen: () => AI_SRC.map(s => ({ id: 'ai.bron.' + s[0], scr: 'aisetdata', label: 'Assistent mag kijken in: ' + s[1], desc: s[3], syn: 'gegevens bron assistent zoekindex slim zoeken ' + s[1],
-    weak: ['sms', 'wa', 'calls', 'contacts'].includes(s[0]) ? (v => v === 'aan') : null, safe: ['sms', 'wa', 'calls', 'contacts'].includes(s[0]) ? 'privacy' : '', why: 'Of de assistent in berichten en gegevens van anderen mag kijken, zet je zelf aan bij Gegevens.',
+    // Berichten en gegevens van anderen (zoals AI_OTHERS) en wat elders privé is (Slaappraat, Check-in): aanzetten doe je zelf
+    weak: SET_SRC_PRIV.includes(s[0]) ? (v => v === 'aan') : null, safe: SET_SRC_PRIV.includes(s[0]) ? 'privacy' : '', why: 'Of de assistent in berichten van anderen of in privé-gegevens mag kijken, zet je zelf aan bij Gegevens.',
     get: () => { setAi(); return setB(aiSrcOn(s[0])); }, set: v => { setAi(); if (aiSrcOn(s[0]) !== setOnV(v)) aiSrcToggle(s[0]); return ''; } })) },
-  { cover: '#bk-parts input[type=checkbox]', gen: () => Object.keys(BK_PARTS).map(k => ({ id: 'backup.deel.' + k, scr: 'backup', ctl: '#bk-parts input[data-p="' + k + '"]', label: 'Mee in Alles back-uppen: ' + BK_PARTS[k], desc: 'Of dit meegaat met Alles back-uppen.', syn: 'backup mee onderdeel ' + BK_PARTS[k],
+  { cover: '#bk-parts input[type=checkbox]', gen: () => Object.keys(BK_PARTS).map(k => ({ id: 'backup.deel.' + k, scr: 'backup', ctl: '#bk-parts input[data-p="' + k + '"]', label: 'Mee in Alles back-uppen: ' + BK_PARTS[k], desc: 'Of dit meegaat met Alles back-uppen.',
+    warn: v => v === 'uit' ? BK_PARTS[k] + ' gaat dan niet meer mee in de backup.' : '',
+    // Meldingsgeschiedenis staat standaard uit: berichten van anderen (ook inlogcodes), soms onversleuteld in de backup-map
+    weak: k === 'notifications' ? (v => v === 'aan') : null, safe: k === 'notifications' ? 'privacy' : '', why: 'De meldingsgeschiedenis (met berichten van anderen) zet je zelf aan in de backup.', syn: 'backup mee onderdeel ' + BK_PARTS[k],
     get: () => { const p = setBk().parts || {}; return setB(p[k] === true || (k !== 'notifications' && p[k] !== false)); }, set: v => { Android.backupSetPart(k, setOnV(v)); setIf('backup', enterBackup); return ''; } })) },
   { cover: '#bk-private input[type=checkbox]', gen: () => Object.keys(BK_PRIV).map(k => ({ id: 'backup.prive.' + k, scr: 'backup', ctl: '#bk-private input[data-p="' + k + '"]', label: 'Privé mee in Alles back-uppen: ' + BK_PRIV[k], desc: 'Privé-onderdelen staan standaard uit; zonder versleutelen komen ze leesbaar in je backup-map.', syn: 'backup privé ' + BK_PRIV[k],
     weak: v => v === 'aan', safe: 'privacy', why: 'Privé-onderdelen in de backup zet je zelf aan, zodat je bewust kiest (bij voorkeur versleuteld).',

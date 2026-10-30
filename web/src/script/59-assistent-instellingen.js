@@ -52,20 +52,30 @@ function setIdx(e){
   if (!e._w) { const nd = SET_NEED.find(x => e.id.startsWith(x[0])); e._w = { l: setWords(e.label), s: setWords(e.syn || ''), p: setWords(setPath(e.scr)), d: setWords(e.desc || ''), n: norm2(e.label), need: e.need || (nd && nd[1]) }; }
   return e._w;
 }
-function setScore(e, qs, raw){
+function setScore(e, qs, raw, full){
   const w = setIdx(e), best = (q, list) => list.reduce((m, f) => Math.max(m, setWm(q, f)), 0);
   let s = 0;
   qs.forEach(q => { s += Math.max(3 * best(q, w.l), 2 * best(q, w.s), 1.2 * best(q, w.p), 0.6 * best(q, w.d)); });
-  const nq = norm2(raw || '');
+  const nq = norm2(raw || ''), nf = norm2(full || raw || '');
   if (w.n.length > 4 && nq.includes(w.n)) s += 2;
-  if (e.phr && e.phr.some(p => nq.includes(norm2(p)))) s += 3;
+  if (setPhr(e, nf)) s += 3;
   if (w.need && !w.need.test(nq)) s *= 0.6; // een instelling van een andere tool dan genoemd
   return s;
 }
-function setFind(text, list){
+function setFind(text, list, full){
   const qs = [...new Set(setWords(text))];
   if (!qs.length) return [];
-  return (list || setAll()).map(e => ({ e, s: setScore(e, qs, text) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
+  return (list || setAll()).map(e => ({ e, s: setScore(e, qs, text, full) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
+}
+/* Een vaste zinsnede van de instelling ("wekker op") in de hele vraag */
+function setPhr(e, nf){ return !!(e.phr && e.phr.some(p => (' ' + nf + ' ').includes(' ' + norm2(p) + ' '))); }
+/* Namen van tools: alleen zo'n woord is geen instelling ("zet de radio uit" = het afspelen, "zet de muziek uit") */
+const SET_TOOLW = new Set('radio muziek backup backups backuppen slaappraat whatsapp spotify vpn assistent podcast podcasts redial auto locatie kluis pdf app telefoon'.split(' '));
+/* Bij een opdracht: past er een woord uit de naam (of de zoekwoorden) dat meer zegt dan alleen de tool? */
+function setNameHit(e, x, full){
+  if (setPhr(e, norm2(full || ''))) return true;
+  const w = setIdx(e), fs = w.l.concat(w.s).filter(f => !SET_TOOLW.has(f));
+  return setWords(x).some(q => !SET_TOOLW.has(q) && fs.some(f => setWm(q, f) >= 0.7));
 }
 const SET_MIN = 2.4; // minstens één woord uit de naam, of een paar zoekwoorden
 
@@ -145,8 +155,10 @@ function setLookup(e, kind){
 function setNotFound(x){ return { text: 'Ik vond geen instelling die past bij "' + String(x).slice(0, 60) + '". Probeer het met andere woorden, of kijk bij Instellingen.', set: { open: ['__instellingen'] } }; }
 /* Wat de assistent aan het taalmodel meegeeft over deze instellingen */
 function setOffer(list){
-  return list.map(e => ({ id: e.id, label: e.label, where: setWhere(e), desc: e.desc || '', cur: e.safe === 'geheim' ? '' : setGet(e), type: setType(e),
-    safe: !!e.safe && !e.weak || !setCanChange(e), vals: setCanChange(e) ? setVals(e).slice(0, 12) : [] }));
+  // Geen geheimen en geen namen van buiten (zenders, Bluetooth) naar het model; en alleen waarden die de assistent mag voorstellen
+  return list.map(e => { const ok = setCanChange(e) ? setVals(e).filter(x => !setSafe(e, x[0])).slice(0, 12) : [];
+    return { id: e.id, label: e.label, where: setWhere(e), desc: e.desc || '', cur: e.safe === 'geheim' || setType(e) === 'openen' ? '' : setGet(e), type: setType(e),
+      safe: !setCanChange(e) || (!!e.safe && !e.weak) || (setType(e) !== 'tijd' && !ok.length), vals: ok }; });
 }
 /* Instellingen per scherm ("wat kan ik instellen bij de assistent") */
 function setList(x){
@@ -175,31 +187,36 @@ function setLogText(){
 function setHandle(q){
   const it = setIntent(q);
   if (!it) return null;
-  if (typeof SOLO !== 'undefined' && SOLO) return { local: true, text: 'In een losse app kan ik de instellingen van Tools niet bekijken of aanpassen. Open daarvoor Tools zelf.' };
+  if (setSolo()) return { local: true, text: 'In een losse app kan ik de instellingen van Tools niet bekijken of aanpassen. Open daarvoor Tools zelf.' };
   const model = aiChatReady();
   if (it.kind === 'log') return Object.assign({ local: true }, setLogText());
   if (it.kind === 'lijst') return Object.assign({ local: true }, setList(it.x));
-  const hits = setFind(it.x);
+  const hits = setFind(it.x, null, q);
   const top = hits[0], second = hits[1];
   const clear = top && top.s >= SET_MIN && (!second || second.s < top.s * 0.8);
   if (it.kind === 'cmd') {
     const raw = it.raw;
-    const valid = hits.slice(0, 8).filter(h => h.s >= SET_MIN && setValFor(h.e, raw) !== null);
-    if (valid.length && valid[0].s >= top.s * 0.6) {
+    // Alleen echte instellingen (geen Openen-plekken), met een woord uit de naam dat meer zegt dan de naam van de tool
+    const ch = setFind(it.x, null, q).filter(h => setType(h.e) !== 'openen' && setType(h.e) !== 'tekst' && setNameHit(h.e, it.x, q));
+    const ctop = ch[0];
+    const valid = ch.slice(0, 8).filter(h => h.s >= SET_MIN && setValFor(h.e, raw) !== null);
+    if (valid.length && valid[0].s >= ctop.s * 0.6) {
       if (valid[1] && valid[1].s >= valid[0].s * 0.85) {
         return { local: true, text: 'Welke instelling bedoel je?', set: { pick: valid.slice(0, 3).map(h => ({ id: h.e.id, v: setValFor(h.e, raw) })) } };
       }
       const e = valid[0].e;
       return Object.assign({ local: true }, setPropose(e, setValFor(e, raw)));
     }
-    if (top && top.s >= SET_MIN) {
-      const e = top.e;
+    if (ctop && ctop.s >= SET_MIN) {
+      const e = ctop.e;
       if (!setCanChange(e) || setSafe(e, 'aan') && setSafe(e, 'uit')) return Object.assign({ local: true }, setPropose(e, ''));
       if (setType(e) === 'keuze') return { local: true, text: setB0(e.label) + (setNow(e) ? ' staat nu op ' + setNow(e) + '.' : '.') + ' Kies een van deze:', set: { choose: e.id, open: [e.id] } };
-      if (setType(e) === 'tijd') return { local: true, text: 'Welke tijd wil je voor ' + setB0(e.label) + '? Zeg bijvoorbeeld "zet ' + e.label.toLowerCase() + ' op 07:30".', set: { open: [e.id] } };
+      if (setType(e) === 'tijd') return { local: true, text: 'Welke tijd wil je voor ' + setB0(e.label) + '? Zeg bijvoorbeeld "zet ' + e.label.charAt(0).toLowerCase() + e.label.slice(1) + ' op 07:30".', set: { open: [e.id] } };
     }
-    if (it.sure && (!top || top.s < SET_MIN)) return Object.assign({ local: true }, setNotFound(it.x));
-    return null; // geen duidelijke instelling ("zet dit op een rijtje"): gewoon de assistent
+    // Geen instelling van de app: zonder taalmodel eerlijk zeggen; met taalmodel gewoon antwoorden, met de opdracht
+    // nooit te zeggen dat er iets aan- of uitgezet is (de assistent kan zelf niets bedienen)
+    if (!model) return it.sure ? Object.assign({ local: true }, setNotFound(it.x)) : null;
+    return { noDo: true };
   }
   if (it.kind === 'waar' || it.kind === 'stand') {
     if (clear) return Object.assign({ local: true }, setLookup(top.e, it.kind));
@@ -235,8 +252,16 @@ function setFromModel(m, list){
 }
 
 /* ---------- kaarten onder het antwoord ---------- */
+/* In een losse app (die zonder app-slot opent) niets met instellingen: geen knoppen, en de knoppen doen niets */
+function setSolo(){ return typeof SOLO !== 'undefined' && !!SOLO; }
+function setSoloNo(){ if (!setSolo()) return false; toast('Instellingen pas je aan in Tools zelf, niet in een losse app'); return true; }
 function setMsgHtml(m, i){
   const s = m && m.set; if (!s) return '';
+  if (setSolo()) {
+    const st = { voorgesteld: 'voorgesteld, niet toegepast', gedaan: 'aangepast', terug: 'teruggezet', nee: 'niet veranderd', fout: 'niet gelukt' };
+    const rows = (s.items || []).map(x => { const e = setEntry(x.id); return e ? '<li>' + esc(e.label + ': ' + setName(e, x.to) + ' (' + (st[x.st] || '') + ')') + '</li>' : ''; }).join('');
+    return '<div class="aiact no" role="status">' + uiIcon('lock') + '<span>' + (rows ? '<ul style="margin:0;padding-left:18px">' + rows + '</ul>' : '') + '<small>Instellingen bekijk en verander je in Tools zelf, niet in een losse app.</small></span></div>';
+  }
   let h = '';
   (s.items || []).forEach((x, k) => { h += setItemHtml(x, i, k); });
   if (s.pick && s.pick.length) h += '<div class="aiact" role="group" aria-label="Welke instelling bedoel je?"><b>' + uiIcon('settings') + 'Welke bedoel je?</b><div class="aiactb">' +
@@ -262,10 +287,11 @@ function setItemHtml(x, i, k){
   if (x.st === 'terug') return '<div class="aiact done" role="status">' + uiIcon('refresh') + '<span>Teruggezet: ' + esc(e.label) + ' weer op <b>' + esc(from) + '</b></span>' + open + '</div>';
   if (x.st === 'nee') return '<div class="aiact no">' + uiIcon('settings') + '<span><s>' + esc(e.label + ' naar ' + to) + '</s> <small>(niet veranderd)</small></span><button class="linkish" onclick="setAgain(' + i + ',' + k + ')">Toch voorstellen</button></div>';
   if (x.st === 'fout') return '<div class="aiact no" role="status">' + uiIcon('alert') + '<span>' + esc(e.label) + ': ' + esc(x.err || 'aanpassen lukte niet') + '</span>' + open + '</div>';
-  const warn = e.warn ? e.warn(x.to) : '';
+  const warn = e.warn ? e.warn(x.to) : '', note = e.note ? e.note(x.to) : '';
   return '<div class="aiact setcard" role="group" aria-label="' + esc('Voorstel: ' + e.label + ' aanpassen') + '"><b>' + uiIcon('settings') + 'Instelling aanpassen?</b>' +
     '<div class="aiactt">' + esc(e.label) + '<small>' + esc(setWhere(e)) + '</small></div>' +
     '<div class="setft">' + (from ? '<span>Van <s>' + esc(from) + '</s></span>' : '') + '<span>' + (from ? 'naar' : 'Naar') + ' <b>' + esc(to) + '</b></span></div>' +
+    (note ? '<p class="note setwarn setinfo">' + uiIcon('info') + esc(note) + '</p>' : '') +
     (warn ? '<p class="note setwarn">' + uiIcon('alert') + esc(warn) + '</p>' : '') +
     '<div class="aiactb"><button class="mini on" onclick="setDo(' + i + ',' + k + ')" aria-label="' + esc('Toepassen: ' + e.label + ' naar ' + to) + '">Toepassen</button>' +
     '<button class="mini" onclick="setNo(' + i + ',' + k + ')" aria-label="' + esc('Annuleren: ' + e.label) + '">Annuleren</button>' + open + '</div></div>';
@@ -279,7 +305,7 @@ function setCheck(e, v){
   const na = e.avail ? e.avail() : ''; if (na) return na;
   return '';
 }
-function setDo(i, k){
+function setDo(i, k){ if (setSoloNo()) return;
   const it = setItem(i, k); if (!it || it.x.st !== 'voorgesteld') return;
   const x = it.x, e = setEntry(x.id), why = setCheck(e, x.to);
   if (why) { x.st = 'fout'; x.err = why; aiMemAfter(i); toast(why); return; }
@@ -295,8 +321,8 @@ function setDo(i, k){
   const msg = 'Aangepast: ' + e.label + ' staat nu op ' + setName(e, x.to);
   toast(msg); aiVSay(msg);
 }
-function setNo(i, k){ const it = setItem(i, k); if (!it || it.x.st !== 'voorgesteld') return; it.x.st = 'nee'; aiMemAfter(i); }
-function setAgain(i, k){ const it = setItem(i, k); if (!it || it.x.st !== 'nee') return; it.x.st = 'voorgesteld'; it.x.from = setGet(setEntry(it.x.id)); aiMemAfter(i); }
+function setNo(i, k){ if (setSoloNo()) return; const it = setItem(i, k); if (!it || it.x.st !== 'voorgesteld') return; it.x.st = 'nee'; aiMemAfter(i); }
+function setAgain(i, k){ if (setSoloNo()) return; const it = setItem(i, k); if (!it || it.x.st !== 'nee') return; it.x.st = 'voorgesteld'; it.x.from = setGet(setEntry(it.x.id)); aiMemAfter(i); }
 /* Terugzetten: alleen als het intussen niet al iets anders is */
 function setBack(id, from, to){
   const e = setEntry(id); if (!e) return 'Deze instelling bestaat niet meer';
@@ -306,28 +332,28 @@ function setBack(id, from, to){
   if (!err && e.get && setGet(e) !== from) err = 'Terugzetten lukte niet; kijk op het scherm (Openen)';
   return err;
 }
-function setUndo(i, k){
+function setUndo(i, k){ if (setSoloNo()) return;
   const it = setItem(i, k); if (!it || it.x.st !== 'gedaan') return;
   const x = it.x, err = setBack(x.id, x.from, x.to);
   if (err) { toast(err); return; }
   x.st = 'terug'; setLogUndone(x.log);
   aiMemAfter(i); const e = setEntry(x.id); toast('Teruggezet: ' + e.label + ' weer op ' + setName(e, x.from)); aiVSay('Teruggezet');
 }
-function setPick(i, k){
+function setPick(i, k){ if (setSoloNo()) return;
   const m = aiChat && aiChat.msgs[i], p = m && m.set && m.set.pick && m.set.pick[k]; if (!p) return;
   const e = setEntry(p.id); if (!e) return;
   const r = setPropose(e, p.v);
   m.set = Object.assign({}, r.set); m.c = r.text; aiMemAfter(i);
 }
-function setChoose(i, v){
+function setChoose(i, v){ if (setSoloNo()) return;
   const m = aiChat && aiChat.msgs[i], e = m && m.set && setEntry(m.set.choose); if (!e) return;
   const r = setPropose(e, v);
   m.set = Object.assign({ choose: e.id }, r.set); aiMemAfter(i);
 }
 /* Naar het scherm, en de instelling even aanwijzen */
 function setOpen(id){
+  if (setSoloNo()) return;
   const e = setEntry(id); if (!e) return;
-  if (typeof SOLO !== 'undefined' && SOLO) { toast('Open daarvoor Tools zelf'); return; }
   jumpTo(e.scr);
   if (!e.ctl) return;
   setTimeout(() => {
@@ -348,7 +374,7 @@ function setLogAdd(e, from, to){
   return n;
 }
 function setLogUndone(n){ const l = setLogGet(), x = l.find(y => y.n === n); if (x) { x.undone = true; store.set('aiSetLog', l); } }
-function setLogUndo(n, i){
+function setLogUndo(n, i){ if (setSoloNo()) return;
   const x = setLogGet().find(y => y.n === n); if (!x || x.undone) return;
   const err = setBack(x.id, x.from, x.to);
   if (err) { toast(err); return; }

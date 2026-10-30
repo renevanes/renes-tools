@@ -56,6 +56,8 @@ public class App extends Application {
             else { android.os.Process.killProcess(android.os.Process.myPid()); System.exit(10); }
         });
         registerActivityLifecycleCallbacks(new Visible(c));
+        // Werkbestanden met ingesproken tekst van een vorige keer (app gestopt tijdens inspreken of uitschrijven): weg
+        new Thread(() -> { try { VoiceNote.cleanTemp(c, -1, true); } catch (Throwable ignored) { } }, "spraak-opruimen").start();
         // Een terugzetten dat halverwege stopte (app omgevallen): eerst afmaken of terugdraaien, vóór iets anders de gegevens leest
         if (unlocked(c)) { try { AppBackup.recover(c); } catch (Throwable ignored) { } }
         // Na geforceerd stoppen zijn alle wekkers weg: bij de eerstvolgende start terugzetten
