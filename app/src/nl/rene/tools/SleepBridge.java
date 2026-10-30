@@ -26,16 +26,29 @@ public class SleepBridge extends CheckinBridge {
             o.put("phase", SleepService.phase).put("night", SleepService.night).put("since", SleepService.since).put("stopAt", SleepService.stopAt)
                     .put("heard", SleepService.heard).put("level", Math.round(SleepService.levelDb)).put("floor", Math.round(SleepService.floorDb))
                     .put("txDone", SleepService.txDone).put("txTotal", SleepService.txTotal).put("message", SleepService.message)
+                    .put("live", new JSONObject().put("talk", SleepService.liveTalk).put("noise", SleepService.liveNoise).put("open", SleepService.liveOpen)
+                            .put("text", SleepService.liveText).put("at", SleepService.liveAt).put("wait", SleepService.directWait).put("busy", SleepService.directBusy).put("fin", SleepService.finishing))
                     .put("hearing", SleepService.hearingNow).put("probeHits", SleepService.probeHits).put("probeLeft", Math.max(0, SleepService.probeUntil - System.currentTimeMillis()))
                     .put("notifOk", Build.VERSION.SDK_INT < 33 || ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED);
             o.put("mic", ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
                     .put("notif", Build.VERSION.SDK_INT < 33 || ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED);
-            Transcribe.Model m = Transcribe.activeModel(ctx);
+            Transcribe.Model m = SleepTalk.model(ctx);
             o.put("model", m == null ? "" : m.label);
+            // Welke spraakmodellen er zijn (voor de keuze van het uitschrijfmodel)
+            JSONArray ms = new JSONArray();
+            for (Transcribe.Model x : Transcribe.MODELS) ms.put(new JSONObject().put("id", x.id).put("label", x.label).put("ok", Transcribe.modelFile(ctx, x).isFile()));
+            o.put("models", ms);
             o.put("set", new JSONObject().put("sens", SleepTalk.sens(ctx)).put("stopAt", SleepTalk.stopAt(ctx)).put("transcribe", SleepTalk.transcribe(ctx))
-                    .put("keepNoise", SleepTalk.keepNoise(ctx)).put("keep", SleepTalk.keepDays(ctx)).put("remindAt", SleepTalk.remindAt(ctx)).put("quiet", SleepTalk.quiet(ctx)));
+                    .put("keepNoise", SleepTalk.keepNoise(ctx)).put("keep", SleepTalk.keepDays(ctx)).put("remindAt", SleepTalk.remindAt(ctx)).put("quiet", SleepTalk.quiet(ctx)).put("direct", SleepTalk.direct(ctx))
+                    .put("directWhen", SleepTalk.directWhen(ctx)).put("directBat", SleepTalk.directBat(ctx)).put("stopBat", SleepTalk.minBattery(ctx))
+                    .put("maxAudio", SleepTalk.maxAudioH(ctx)).put("minFree", SleepTalk.minFree(ctx) / (1024 * 1024)).put("whenFull", SleepTalk.whenFull(ctx))
+                    .put("clipMax", SleepTalk.clipMaxS(ctx)).put("hang", SleepTalk.hangMs(ctx)).put("pre", SleepTalk.preS(ctx))
+                    .put("format", SleepTalk.wavFormat(ctx) ? "wav" : "aac").put("txModel", SleepTalk.txModelId(ctx)));
             SleepTalk.cleanupSometimes(ctx, SleepService.running() ? SleepService.night : "");
-            o.put("nights", SleepTalk.nights(ctx));
+            JSONArray ns = SleepTalk.nights(ctx);
+            long bytes = 0;
+            for (int i = 0; i < ns.length(); i++) bytes += ns.getJSONObject(i).optLong("bytes");
+            o.put("nights", ns).put("bytes", bytes);
             return o.toString();
         } catch (Exception e) { return "{}"; }
     }
@@ -92,7 +105,9 @@ public class SleepBridge extends CheckinBridge {
 
     @JavascriptInterface public void sleepDeleteClip(String id, String clip) { sleepStopPlay(); SleepTalk.deleteClip(ctx, id, clip); }
 
-    /** Instelling: sens (1-3), stopAt ("HH:mm" of ""), transcribe, keepNoise, quiet ("true"/"false"), keep (7/14/30). "" of melding. */
+    /** Instelling: sens (1-3), stopAt ("HH:mm" of ""), transcribe, direct, keepNoise, quiet ("true"/"false"), keep (7/14/30),
+     *  de keuzes van Meer instellingen (vaste lijsten, zie SleepTalk: directWhen, directBat, stopBat, maxAudio, minFree,
+     *  whenFull, clipMax, hang, pre, format, txModel) en reset (Meer instellingen weer standaard). "" of melding. */
     @JavascriptInterface public String sleepSet(String name, String value) {
         if (name == null || value == null) return "Ongeldig";
         android.content.SharedPreferences.Editor e = SleepTalk.prefs(ctx).edit();
@@ -100,13 +115,29 @@ public class SleepBridge extends CheckinBridge {
             case "sens": if (!value.matches("[123]")) return "Ongeldig"; e.putInt("sens", Integer.parseInt(value)); break;
             case "stopAt": if (!SleepTalk.validTime(value)) return "Ongeldige tijd"; e.putString("stopAt", value); break;
             case "remindAt": if (!SleepTalk.validTime(value)) return "Ongeldige tijd"; e.putString("remindAt", value).apply(); SleepReminder.arm(ctx); return "";
-            case "transcribe": case "keepNoise": e.putBoolean(name, "true".equals(value)); break;
+            case "transcribe": case "keepNoise": case "direct": e.putBoolean(name, "true".equals(value)); break;
             case "quiet":
                 e.putBoolean("quiet", "true".equals(value)).apply();
                 // Loopt hij al, dan de melding meteen omzetten (anders geldt het vanaf de volgende keer)
                 if (SleepService.running()) a.h.post(() -> { try { a.startService(new Intent(a, SleepService.class).setAction("refresh")); } catch (Exception ignored) { } });
                 return "";
             case "keep": if (!value.matches("7|14|30")) return "Ongeldig"; e.putInt("keep", Integer.parseInt(value)); break;
+            // Meer instellingen: alleen de vaste keuzes
+            case "directWhen": if (!value.matches("altijd|lader|accu")) return "Ongeldig"; e.putString(name, value); break;
+            case "whenFull": if (!value.matches("stop|geluid|oudste")) return "Ongeldig"; e.putString(name, value); break;
+            case "format": if (!value.matches("aac|wav")) return "Ongeldig"; e.putString(name, value); break;
+            case "txModel": if (!value.isEmpty() && Transcribe.model(value) == null) return "Ongeldig"; e.putString(name, value); break;
+            case "directBat": case "stopBat": case "maxAudio": case "minFree": case "clipMax": case "hang": case "pre": {
+                // Precies een van de keuzes ("40", niet "+40" of "040")
+                if (!value.matches("[1-9][0-9]{0,3}|0")) return "Ongeldig";
+                int v = Integer.parseInt(value);
+                int[] ok = "directBat".equals(name) ? SleepTalk.DIRECT_BATS : "stopBat".equals(name) ? SleepTalk.STOP_BATS : "maxAudio".equals(name) ? SleepTalk.MAX_HOURS
+                        : "minFree".equals(name) ? SleepTalk.MIN_FREES : "clipMax".equals(name) ? SleepTalk.CLIP_MAXES : "hang".equals(name) ? SleepTalk.HANGS : SleepTalk.PRES;
+                if (!SleepTalk.allowed(v, ok)) return "Ongeldig";
+                e.putInt(name, v);
+                break;
+            }
+            case "reset": for (String k : SleepTalk.ADVANCED) e.remove(k); break;
             default: return "Ongeldig";
         }
         e.apply();
@@ -117,7 +148,7 @@ public class SleepBridge extends CheckinBridge {
     @JavascriptInterface public String sleepTranscribe(final String id) {
         if (!SleepTalk.safeId(id)) return "Onbekende nacht";
         if (SleepService.running()) return "Dat kan pas als Slaappraat klaar is met luisteren en uitschrijven";
-        if (Transcribe.activeModel(ctx) == null) return "model";
+        if (SleepTalk.model(ctx) == null) return "model";
         if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return "mic";
         SleepService.night = id; SleepService.phase = "uitschrijven"; SleepService.txDone = 0; SleepService.txTotal = SleepTalk.open(ctx, id); // meteen te zien
         a.h.post(() -> {

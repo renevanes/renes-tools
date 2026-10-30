@@ -157,6 +157,10 @@ final class AiSleepBackup {
         JSONObject o = new JSONObject().put("id", id).put("start", n.optLong("start", Long.parseLong(id))).put("end", n.optLong("end"))
                 .put("sens", n.optInt("sens", 2)).put("reason", cut(n.optString("reason"), 120)).put("restored", System.currentTimeMillis())
                 .put("batStart", n.optInt("batStart", -1)).put("batEnd", n.optInt("batEnd", -1)).put("charged", n.optBoolean("charged"));
+        // Opname-instellingen van die nacht (alleen getallen)
+        JSONObject cfg = n.optJSONObject("cfg");
+        if (cfg != null) o.put("cfg", new JSONObject().put("pre", Math.max(0, Math.min(60_000, cfg.optInt("pre")))).put("hang", Math.max(0, Math.min(60_000, cfg.optInt("hang"))))
+                .put("max", Math.max(0, Math.min(3600, cfg.optInt("max")))));
         JSONArray in = n.optJSONArray("clips"), clips = new JSONArray();
         Set<String> seen = new HashSet<>();
         if (in != null) for (int i = 0; i < in.length(); i++) {
@@ -166,6 +170,8 @@ final class AiSleepBackup {
             JSONObject c = new JSONObject().put("id", k.optString("id")).put("t", k.optLong("t")).put("dur", k.optDouble("dur", 0))
                     .put("ratio", k.optDouble("ratio", 0)).put("peak", k.optLong("peak")).put("guess", cut(k.optString("guess"), 20))
                     .put("audio", audio).put("done", done).put("full", k.optBoolean("full"));
+            String why = k.optString("why");
+            if ("max".equals(why) || "ruimte".equals(why) || "opslaan".equals(why) || "plaats".equals(why)) c.put("why", why);
             String kind = k.optString("kind");
             if (done) c.put("text", cut(k.optString("text"), 4000)).put("kind", "praten".equals(kind) || "onleesbaar".equals(kind) ? kind : "geluid");
             // Nog niet uitgeschreven en het geluid zat niet in de backup: dat is niet meer uit te schrijven

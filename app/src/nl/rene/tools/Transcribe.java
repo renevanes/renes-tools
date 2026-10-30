@@ -412,21 +412,24 @@ final class Transcribe {
     static JSONObject whisper(Context c, File wav, Model m, Progress p) throws Exception { return whisper(c, wav, m, p, false); }
 
     /** voice = voor een spraaknotitie (los van "Stoppen" bij gesprekken uitschrijven). */
-    static JSONObject whisper(Context c, File wav, Model m, Progress p, boolean voice) throws Exception {
+    static JSONObject whisper(Context c, File wav, Model m, Progress p, boolean voice) throws Exception { return whisper(c, wav, m, p, voice, 0); }
+
+    /** maxThreads > 0: hooguit zoveel rekenkernen (Slaappraat 's nachts: rustig aan, minder warm). 0 = zoals altijd. */
+    static JSONObject whisper(Context c, File wav, Model m, Progress p, boolean voice, int maxThreads) throws Exception {
         synchronized (WHISPER) {
             ModelUse.touch(c, "spraak:" + m.id);
             boolean generic = prefs(c).getBoolean("generic", false);
             try {
-                return runWhisper(c, wav, m, generic, p, voice);
+                return runWhisper(c, wav, m, generic, p, voice, maxThreads);
             } catch (IllegalStateException e) {
                 if (generic) throw new Exception(e.getMessage());
                 prefs(c).edit().putBoolean("generic", true).apply();
-                return runWhisper(c, wav, m, true, p, voice);
+                return runWhisper(c, wav, m, true, p, voice, maxThreads);
             }
         }
     }
 
-    private static JSONObject runWhisper(Context c, File wav, Model m, boolean generic, Progress p, boolean voice) throws Exception {
+    private static JSONObject runWhisper(Context c, File wav, Model m, boolean generic, Progress p, boolean voice, int maxThreads) throws Exception {
         File bin = binary(c, generic);
         if (!bin.isFile()) throw new Exception("Het uitschrijfprogramma ontbreekt in deze app-versie");
         File outBase = new File(c.getCacheDir(), "whisper-out-" + System.nanoTime()); // eigen werkbestand per keer
@@ -435,6 +438,7 @@ final class Transcribe {
         File json = new File(outBase.getPath() + ".json");
         json.delete();
         int threads = Math.max(2, Math.min(6, Runtime.getRuntime().availableProcessors() - 2));
+        if (maxThreads > 0) threads = Math.min(threads, maxThreads);
         List<String> cmd = new ArrayList<>();
         cmd.add(bin.getPath());
         cmd.add("-m"); cmd.add(modelFile(c, m).getPath());
@@ -454,6 +458,8 @@ final class Transcribe {
         StringBuilder tail = new StringBuilder();
         int code;
         try {
+        // Meteen één keer melden (zelfde als bij het begin): wie wil stoppen, kan dat zo al voor het eerste venster van 30 s
+        p.step("transcribe", 0);
         try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(pr.getInputStream(), "UTF-8"))) {
             String line;
             java.util.regex.Pattern prog = java.util.regex.Pattern.compile("progress\\s*=\\s*(\\d+)%");

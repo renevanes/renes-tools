@@ -14,6 +14,7 @@
 
     <div class="flabel stgl" role="heading" aria-level="2">Nachten</div>
     <div class="card stlist" id="sl-nights"></div>
+    <p class="note sl-size" id="sl-size"></p>
 
     <div class="card">
       <h2><span class="ui-icon" data-icon="settings" aria-hidden="true"></span>Instellingen</h2>
@@ -23,10 +24,15 @@
       <div class="sl-stoprow" id="sl-stoprow"><label for="sl-stop">Stoppen om</label><input type="time" id="sl-stop" class="sl-time" onchange="slSetStop()"></div>
       <div class="aicfg"><b id="sl-sens-l">Gevoeligheid</b><div class="chips sm" id="sl-sens" role="radiogroup" aria-labelledby="sl-sens-l"><button role="radio" aria-checked="false" data-v="1" onclick="slSet('sens', '1')">Ook gefluister</button><button role="radio" aria-checked="false" data-v="2" onclick="slSet('sens', '2')">Normaal</button><button role="radio" aria-checked="false" data-v="3" onclick="slSet('sens', '3')">Alleen duidelijk</button></div><small class="note" id="sl-sens-n"></small></div>
       <div class="sw"><span>Daarna uitschrijven<small id="sl-tx-n"></small></span><button class="tg" id="sl-tx" role="switch" aria-checked="true" aria-label="Daarna uitschrijven" aria-describedby="sl-tx-n" onclick="slSwitch('transcribe')"></button></div>
-      <div class="sw"><span>Ook snurken en andere geluiden bewaren<small id="sl-noise-n">Uit: van wat geen praten blijkt, blijft alleen het tijdstip bewaard</small></span><button class="tg" id="sl-noise" role="switch" aria-checked="false" aria-label="Ook snurken en andere geluiden bewaren" aria-describedby="sl-noise-n" onclick="slSwitch('keepNoise')"></button></div>
+      <div class="sw" id="sl-directrow"><span>Meteen uitschrijven<small id="sl-direct-n"></small></span><button class="tg on" id="sl-direct" role="switch" aria-checked="true" aria-label="Meteen uitschrijven" aria-describedby="sl-direct-n" onclick="slSwitch('direct')"></button></div>
+      <div class="sw"><span>Ook snurken en andere geluiden bewaren<small id="sl-noise-n">Aan: ook het geluid van snurken en andere geluiden blijft bewaard</small></span><button class="tg on" id="sl-noise" role="switch" aria-checked="true" aria-label="Ook snurken en andere geluiden bewaren" aria-describedby="sl-noise-n" onclick="slSwitch('keepNoise')"></button></div>
       <div class="sw"><span>Onopvallend luisteren<small id="sl-quiet-n">Aan: de melding is stil, niet op het vergrendelscherm en zonder tijdteller; 's ochtends geen melding (kijk hier wat er gehoord is)</small></span><button class="tg on" id="sl-quiet" role="switch" aria-checked="true" aria-label="Onopvallend luisteren" aria-describedby="sl-quiet-n" onclick="slSwitch('quiet')"></button></div>
       <div class="sl-stoprow" id="sl-quietrow"><button class="mini" onclick="Android.notifOpen('sleeptalk-stil')">Melding verder wegstoppen</button><small class="note">Na de eerste nacht: zet in Android Minimaliseren aan, als je telefoon dat heeft</small></div>
       <div class="aicfg"><b id="sl-keep-l">Nachten bewaren</b><div class="chips sm" id="sl-keep" role="radiogroup" aria-labelledby="sl-keep-l"><button role="radio" aria-checked="false" data-v="7" onclick="slSet('keep', '7')">1 week</button><button role="radio" aria-checked="false" data-v="14" onclick="slSet('keep', '14')">2 weken</button><button role="radio" aria-checked="false" data-v="30" onclick="slSet('keep', '30')">30 dagen</button></div></div>
+    </div>
+
+    <div class="card stlist">
+      <button class="strow" id="sl-more" onclick="show('sleepset')"><span class="stic"><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></span><span class="sttxt"><b>Meer instellingen</b><small id="sl-more-n">Uitschrijven, opslag, opnemen en accu</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
 
     <div class="card">
@@ -34,8 +40,9 @@
       <p class="note" id="sl-bat"></p>
       <ul class="sl-tips">
         <li>Leg de telefoon aan de lader, met de onderkant (de microfoon) naar je hoofd, op ongeveer een meter.</li>
-        <li>Zuinig: de app kijkt 50 keer per seconde even hoe hard het is (zonder zware berekeningen) en bewaart alleen wat opvalt. Aan de lader merk je er niets van; zonder lader stopt hij bij 15% accu.</li>
-        <li>Tijdens een telefoongesprek luistert hij niet.</li>
+        <li>Zuinig: de app kijkt 50 keer per seconde even hoe hard het is (zonder zware berekeningen) en bewaart alleen wat opvalt. Aan de lader merk je er niets van; zonder lader stopt hij bij <span id="sl-stopbat">15</span>% accu (instelbaar bij Meer instellingen). Meteen uitschrijven kost wel wat: zie de uitleg bij die schakelaar.</li>
+        <li>Tijdens een telefoongesprek luistert hij niet (en schrijft hij ook niet uit).</li>
+        <li>Per nacht blijft standaard hooguit 8 uur geluid bewaard (genoeg voor een hele nacht, ook met snurken). Is het vol, dan maakt nieuw gepraat plaats en gaat het oudste geluid weg dat al uitgeschreven is en geen woorden had. Dat, en hoeveel ruimte er vrij moet blijven, kies je bij Meer instellingen.</li>
         <li>Helemaal zonder melding kan niet: Android toont altijd iets zolang een app op de achtergrond de microfoon gebruikt (en het groene microfoonpuntje). Met Onopvallend luisteren is hij stil en niet op het vergrendelscherm; met Melding verder wegstoppen maak je hem in Android nog kleiner.</li>
         <li>Een ventilator of verwarming went vanzelf: na een paar seconden telt dat als stilte.</li>
         <li>Alles blijft op je telefoon (niet in backups) en wordt na de gekozen tijd vanzelf gewist. Slaapt er iemand naast je, vertel het dan even: de microfoon hoort diegene ook.</li>
@@ -55,5 +62,44 @@
     <div id="sln-tx"></div>
     <div class="chips sm" id="sln-filter" role="radiogroup" aria-label="Wat tonen"><button role="radio" aria-checked="true" data-v="praten" onclick="slnFilter('praten')">Gepraat</button><button role="radio" aria-checked="false" data-v="alles" onclick="slnFilter('alles')">Alles</button></div>
     <div id="sln-list" role="list"></div>
+  </main>
+</section>
+
+<section class="screen" id="s-sleepset">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Slaappraat-instellingen</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="transcript" aria-hidden="true"></span>Uitschrijven</h2>
+      <div class="aicfg"><b id="sls-when-l">Meteen uitschrijven: wanneer</b><div class="chips sm" id="sls-when" role="radiogroup" aria-labelledby="sls-when-l"><button role="radio" aria-checked="false" data-v="accu" onclick="slSet('directWhen', 'accu')">Lader of genoeg accu</button><button role="radio" aria-checked="false" data-v="lader" onclick="slSet('directWhen', 'lader')">Alleen aan de lader</button><button role="radio" aria-checked="false" data-v="altijd" onclick="slSet('directWhen', 'altijd')">Altijd</button></div><small class="note" id="sls-when-n"></small></div>
+      <div class="aicfg" id="sls-dbatrow"><b id="sls-dbat-l">Zonder lader vanaf</b><div class="chips sm" id="sls-dbat" role="radiogroup" aria-labelledby="sls-dbat-l"><button role="radio" aria-checked="false" data-v="20" onclick="slSet('directBat', '20')">20%</button><button role="radio" aria-checked="false" data-v="30" onclick="slSet('directBat', '30')">30%</button><button role="radio" aria-checked="false" data-v="40" onclick="slSet('directBat', '40')">40%</button><button role="radio" aria-checked="false" data-v="50" onclick="slSet('directBat', '50')">50%</button><button role="radio" aria-checked="false" data-v="60" onclick="slSet('directBat', '60')">60%</button><button role="radio" aria-checked="false" data-v="80" onclick="slSet('directBat', '80')">80%</button></div><small class="note">Daaronder wacht het tot je stopt met luisteren.</small></div>
+      <div class="aicfg"><b id="sls-model-l">Spraakmodel</b><div class="chips sm" id="sls-model" role="radiogroup" aria-labelledby="sls-model-l"><button role="radio" aria-checked="false" data-v="" onclick="slSet('txModel', '')">Zoals Gesprekken uitschrijven</button><button role="radio" aria-checked="false" data-v="base" onclick="slSet('txModel', 'base')">Snel</button><button role="radio" aria-checked="false" data-v="small" onclick="slSet('txModel', 'small')">Nauwkeurig</button></div><small class="note" id="sls-model-n"></small></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="folder" aria-hidden="true"></span>Opslag</h2>
+      <p class="note" id="sls-size"></p>
+      <div class="aicfg"><b id="sls-max-l">Hooguit geluid per nacht</b><div class="chips sm" id="sls-max" role="radiogroup" aria-labelledby="sls-max-l"><button role="radio" aria-checked="false" data-v="1" onclick="slSet('maxAudio', '1')">1 uur</button><button role="radio" aria-checked="false" data-v="2" onclick="slSet('maxAudio', '2')">2 uur</button><button role="radio" aria-checked="false" data-v="4" onclick="slSet('maxAudio', '4')">4 uur</button><button role="radio" aria-checked="false" data-v="8" onclick="slSet('maxAudio', '8')">8 uur</button><button role="radio" aria-checked="false" data-v="0" onclick="slSet('maxAudio', '0')">Onbeperkt</button></div><small class="note" id="sls-max-n"></small></div>
+      <div class="aicfg"><b id="sls-full-l">Als het vol is</b><div class="chips sm" id="sls-full" role="radiogroup" aria-labelledby="sls-full-l"><button role="radio" aria-checked="false" data-v="geluid" onclick="slSet('whenFull', 'geluid')">Oudste geluid weg voor gepraat</button><button role="radio" aria-checked="false" data-v="oudste" onclick="slSet('whenFull', 'oudste')">Oudste weg</button><button role="radio" aria-checked="false" data-v="stop" onclick="slSet('whenFull', 'stop')">Stoppen met bewaren</button></div><small class="note" id="sls-full-n"></small></div>
+      <div class="aicfg"><b id="sls-free-l">Altijd vrij laten op de telefoon</b><div class="chips sm" id="sls-free" role="radiogroup" aria-labelledby="sls-free-l"><button role="radio" aria-checked="false" data-v="250" onclick="slSet('minFree', '250')">250 MB</button><button role="radio" aria-checked="false" data-v="500" onclick="slSet('minFree', '500')">500 MB</button><button role="radio" aria-checked="false" data-v="1000" onclick="slSet('minFree', '1000')">1 GB</button><button role="radio" aria-checked="false" data-v="2000" onclick="slSet('minFree', '2000')">2 GB</button></div><small class="note">Is er minder vrij, dan bewaart hij van een stukje alleen het tijdstip.</small></div>
+      <div class="aicfg"><b id="sls-fmt-l">Bewaren als</b><div class="chips sm" id="sls-fmt" role="radiogroup" aria-labelledby="sls-fmt-l"><button role="radio" aria-checked="false" data-v="aac" onclick="slSet('format', 'aac')">AAC (klein)</button><button role="radio" aria-checked="false" data-v="wav" onclick="slSet('format', 'wav')">WAV (onbewerkt)</button></div><small class="note" id="sls-fmt-n"></small></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="mic" aria-hidden="true"></span>Opnemen</h2>
+      <p class="note">Geldt vanaf de volgende keer dat je begint met luisteren; elke nacht onthoudt met welke instellingen hij is opgenomen.</p>
+      <div class="aicfg"><b id="sls-clip-l">Langste stukje</b><div class="chips sm" id="sls-clip" role="radiogroup" aria-labelledby="sls-clip-l"><button role="radio" aria-checked="false" data-v="30" onclick="slSet('clipMax', '30')">30 s</button><button role="radio" aria-checked="false" data-v="60" onclick="slSet('clipMax', '60')">1 min</button><button role="radio" aria-checked="false" data-v="120" onclick="slSet('clipMax', '120')">2 min</button><button role="radio" aria-checked="false" data-v="300" onclick="slSet('clipMax', '300')">5 min</button></div><small class="note">Wat langer duurt, wordt in stukken geknipt. Langere stukken zijn langzamer uit te schrijven.</small></div>
+      <div class="aicfg"><b id="sls-hang-l">Stilte voor het einde van een stukje</b><div class="chips sm" id="sls-hang" role="radiogroup" aria-labelledby="sls-hang-l"><button role="radio" aria-checked="false" data-v="1000" onclick="slSet('hang', '1000')">1 s</button><button role="radio" aria-checked="false" data-v="1500" onclick="slSet('hang', '1500')">1,5 s</button><button role="radio" aria-checked="false" data-v="2000" onclick="slSet('hang', '2000')">2 s</button><button role="radio" aria-checked="false" data-v="3000" onclick="slSet('hang', '3000')">3 s</button></div><small class="note">Langer: een zin met pauzes blijft bij elkaar, maar een stukje snurken ook.</small></div>
+      <div class="aicfg"><b id="sls-pre-l">Voorloop</b><div class="chips sm" id="sls-pre" role="radiogroup" aria-labelledby="sls-pre-l"><button role="radio" aria-checked="false" data-v="1" onclick="slSet('pre', '1')">1 s</button><button role="radio" aria-checked="false" data-v="2" onclick="slSet('pre', '2')">2 s</button><button role="radio" aria-checked="false" data-v="3" onclick="slSet('pre', '3')">3 s</button><button role="radio" aria-checked="false" data-v="5" onclick="slSet('pre', '5')">5 s</button></div><small class="note">Zoveel van vóór het geluid gaat mee, zodat het eerste woord er heel in staat.</small></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="ui-icon" data-icon="battery" aria-hidden="true"></span>Accu</h2>
+      <div class="aicfg"><b id="sls-stop-l">Stoppen zonder lader bij</b><div class="chips sm" id="sls-stop" role="radiogroup" aria-labelledby="sls-stop-l"><button role="radio" aria-checked="false" data-v="5" onclick="slSet('stopBat', '5')">5%</button><button role="radio" aria-checked="false" data-v="10" onclick="slSet('stopBat', '10')">10%</button><button role="radio" aria-checked="false" data-v="15" onclick="slSet('stopBat', '15')">15%</button><button role="radio" aria-checked="false" data-v="20" onclick="slSet('stopBat', '20')">20%</button><button role="radio" aria-checked="false" data-v="30" onclick="slSet('stopBat', '30')">30%</button></div><small class="note">Dan stopt het luisteren, zodat je telefoon 's ochtends niet leeg is.</small></div>
+    </div>
+
+    <button class="big ghost" id="sls-reset" onclick="slsReset()">Terug naar standaard</button>
   </main>
 </section>

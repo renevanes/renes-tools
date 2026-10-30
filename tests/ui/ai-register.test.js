@@ -13,6 +13,8 @@ const { chromium } = require('playwright');
     Android._au.rules.push({ id: 'r1', name: 'Parkeren', on: true, mode: 'notify', trig: 'time', at: '08:00', act: 'app' });
     Android._tx.models.base = true; Android._tx.model = 'base'; Android._tx.files = true;
     Android._ai.st.klein35 = { state: 'ready' }; Android._ai.chat = 'klein35';
+    // Wekker met een eigen zender: niet afhankelijk van of de zenderlijst van de radio al geladen is (traag in CI)
+    Android._al.station = { name: 'Testzender', url: 'http://radio.invalid/stream' };
   });
 
   // 1. Dekking: alle schermen langs

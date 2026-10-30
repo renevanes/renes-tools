@@ -21,25 +21,75 @@ import java.util.Locale;
  * Android-backups). Per nacht een map met night.json en per stukje een WAV-bestand (16 kHz mono, zoals whisper
  * het wil). Na de nacht worden de stukjes uitgeschreven met het spraakmodel van Gesprekken uitschrijven; wat
  * geen praten blijkt (snurken, kuchen, een auto) heet "geluid" en het geluid daarvan gaat weg, tenzij je dat
- * wilt bewaren. Het zuivere rekenwerk wordt getest in SleepTalkTest.
+ * wilt bewaren. Met Meteen uitschrijven gebeurt dat al tijdens de nacht, stukje voor stukje (SleepService), zodat
+ * geluiden meteen weg kunnen en het maximum niet volloopt. Het zuivere rekenwerk wordt getest in SleepTalkTest.
  */
 final class SleepTalk {
 
     private SleepTalk() { }
 
-    /** Hooguit zoveel seconden geluid per nacht bewaren (AAC: ±20 MB; als WAV ±170 MB); daarna alleen nog tellen. */
-    static final int MAX_AUDIO_S = 90 * 60;
+    /**
+     * Standaard hooguit zoveel uur geluid per nacht bewaren (instelbaar: 1, 2, 4, 8 uur of onbeperkt); alleen wat nu nog
+     * bewaard is telt. 8 uur AAC (32 kbit/s) is ±115 MB: genoeg voor een hele nacht vol snurken, ook als je geluiden
+     * bewaart. Is het vol, dan beslist "Wat als het vol is" (makeRoom).
+     */
+    static final int MAX_AUDIO_H = 8;
+    /** Standaard blijft er altijd zoveel MB vrij op de telefoon (instelbaar); anders alleen het tijdstip bewaren. */
+    static final int MIN_FREE_MB = 500;
+    /** Meteen uitschrijven zonder lader: standaard alleen vanaf dit accupercentage (instelbaar). */
+    static final int DIRECT_MIN_BAT = 40;
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("sleeptalk", Context.MODE_PRIVATE); }
 
     static int sens(Context c) { int s = prefs(c).getInt("sens", 2); return s < 1 || s > 3 ? 2 : s; }
     static String stopAt(Context c) { String s = prefs(c).getString("stopAt", "07:30"); return validTime(s) ? s : ""; }
     static boolean transcribe(Context c) { return prefs(c).getBoolean("transcribe", true); }
-    static boolean keepNoise(Context c) { return prefs(c).getBoolean("keepNoise", false); }
+    static boolean keepNoise(Context c) { return prefs(c).getBoolean("keepNoise", true); }
+    /** Meteen uitschrijven (standaard aan): tijdens het luisteren al, stukje voor stukje (alleen als Daarna uitschrijven aan staat). */
+    static boolean direct(Context c) { return prefs(c).getBoolean("direct", true); }
     /** Onopvallend luisteren (standaard aan): de verplichte melding zo stil mogelijk, en 's ochtends geen melding. */
     static boolean quiet(Context c) { return prefs(c).getBoolean("quiet", true); }
     static int keepDays(Context c) { int d = prefs(c).getInt("keep", 14); return d == 7 || d == 30 ? d : 14; }
-    static int minBattery(Context c) { return 15; }
+    /** Stoppen zonder lader bij dit accupercentage (standaard 15). */
+    static int minBattery(Context c) { return pick(c, "stopBat", 15, 5, 10, 15, 20, 30); }
+
+    // ---------- meer instellingen (alles met een vaste lijst keuzes; iets anders = standaard) ----------
+
+    /** Een getal uit de instellingen, alleen als het een van de toegestane waarden is. */
+    static int pick(Context c, String key, int def, int... ok) {
+        int v = prefs(c).getInt(key, def);
+        for (int o : ok) if (o == v) return v;
+        return def;
+    }
+    static boolean allowed(int v, int... ok) { for (int o : ok) if (o == v) return true; return false; }
+    static final int[] DIRECT_BATS = {20, 30, 40, 50, 60, 80}, STOP_BATS = {5, 10, 15, 20, 30}, MAX_HOURS = {1, 2, 4, 8, 0},
+            MIN_FREES = {250, 500, 1000, 2000}, CLIP_MAXES = {30, 60, 120, 300}, HANGS = {1000, 1500, 2000, 3000}, PRES = {1, 2, 3, 5};
+    /** Meteen uitschrijven wanneer: "altijd", "lader" (alleen aan de lader) of "accu" (aan de lader of boven de drempel). */
+    static String directWhen(Context c) { String w = prefs(c).getString("directWhen", "accu"); return "altijd".equals(w) || "lader".equals(w) ? w : "accu"; }
+    static int directBat(Context c) { return pick(c, "directBat", DIRECT_MIN_BAT, DIRECT_BATS); }
+    /** Hooguit zoveel uur geluid per nacht; 0 = onbeperkt (alleen de vrije ruimte telt). */
+    static int maxAudioH(Context c) { return pick(c, "maxAudio", MAX_AUDIO_H, MAX_HOURS); }
+    static double maxAudioS(Context c) { int h = maxAudioH(c); return h == 0 ? Double.MAX_VALUE : h * 3600.0; }
+    static long minFree(Context c) { return pick(c, "minFree", MIN_FREE_MB, MIN_FREES) * 1024L * 1024; }
+    /** Wat als het vol is: "stop" (niets meer bewaren), "geluid" (oudste geluid weg voor nieuw gepraat) of "oudste" (oudste weg). */
+    static String whenFull(Context c) { String w = prefs(c).getString("whenFull", "geluid"); return "stop".equals(w) || "oudste".equals(w) ? w : "geluid"; }
+    static int clipMaxS(Context c) { return pick(c, "clipMax", 60, CLIP_MAXES); }
+    static int hangMs(Context c) { return pick(c, "hang", 1500, HANGS); }
+    static int preS(Context c) { return pick(c, "pre", 2, PRES); }
+    /** Bewaren als WAV (groter, zonder omzetten) in plaats van AAC. */
+    static boolean wavFormat(Context c) { return "wav".equals(prefs(c).getString("format", "aac")); }
+    /** Uitschrijfmodel voor Slaappraat: "" = zoals Gesprekken uitschrijven, of een vast model ("base", "small"). */
+    static String txModelId(Context c) { String m = prefs(c).getString("txModel", ""); return Transcribe.model(m) != null ? m : ""; }
+    /** Het model dat Slaappraat gebruikt: het gekozen model als het er is, anders dat van Gesprekken uitschrijven. */
+    static Transcribe.Model model(Context c) {
+        Transcribe.Model m = Transcribe.model(txModelId(c));
+        if (m != null && Transcribe.modelFile(c, m).isFile()) return m;
+        return Transcribe.activeModel(c);
+    }
+    /** De opname-instellingen voor een nieuwe nacht. */
+    static SleepDetect.Params detectParams(Context c) { return SleepDetect.Params.of(preS(c), hangMs(c), clipMaxS(c)); }
+    /** Alle sleutels van Meer instellingen (voor Terug naar standaard). */
+    static final String[] ADVANCED = {"directWhen", "directBat", "stopBat", "maxAudio", "minFree", "whenFull", "clipMax", "hang", "pre", "format", "txModel"};
     /** Herinnering op bedtijd ("HH:mm", of "" = uit). */
     static String remindAt(Context c) { String s = prefs(c).getString("remindAt", ""); return validTime(s) ? s : ""; }
 
@@ -85,6 +135,71 @@ final class SleepTalk {
         return "geluid";
     }
 
+    /** Praten, geluid of onleesbaar: wat whisper van een stukje maakte (ook bij meteen uitschrijven precies zo). */
+    static String kindOf(String text, boolean broken) { return broken ? "onleesbaar" : kind(text); }
+
+    /** Moet het geluid na het uitschrijven weg? Alleen geluid zonder woorden, en alleen als je dat niet wilt bewaren. */
+    static boolean dropAudio(String kind, boolean keepNoise) { return "geluid".equals(kind) && !keepNoise; }
+
+    /** Een stukje zoals het budget het ziet. */
+    static final class Slot {
+        final String id, kind, guess; final double dur, ratio; final boolean audio, done; final long t;
+        Slot(String id, long t, double dur, boolean audio, boolean done, String kind, String guess, double ratio) {
+            this.id = id; this.t = t; this.dur = dur; this.audio = audio; this.done = done; this.kind = kind == null ? "" : kind; this.guess = guess == null ? "" : guess; this.ratio = ratio;
+        }
+    }
+
+    /** Hoeveel seconden geluid er nog bewaard is (alleen stukjes met geluid tellen). */
+    static double keptSeconds(List<Slot> clips) { double s = 0; for (Slot k : clips) if (k.audio) s += k.dur; return s; }
+
+    /**
+     * Past een nieuw stukje van need seconden nog in het budget (max)? null = nee; anders de stukjes waarvan het geluid
+     * eerst weg moet (leeg zolang het budget niet echt vol is). mode = Wat als het vol is:
+     *  - "stop": niets weg; het nieuwe stukje krijgt geen geluid.
+     *  - "geluid" (standaard): alleen een stukje dat op praten lijkt (speech) maakt plaats, en alleen ten koste van
+     *    geluid dat al uitgeschreven is en geen woorden had (of onleesbaar was), het oudste eerst. Wat nog niet
+     *    uitgeschreven is (de gok kan mis zijn) en gepraat gaan nooit weg; is er niet genoeg zulk geluid, dan past het niet.
+     *  - "oudste": elk nieuw stukje gaat voor; het geluid van de oudste stukjes gaat weg (de uitgeschreven tekst blijft).
+     * busy = stukjes die nu uitgeschreven worden: alleen als het niet anders kan.
+     */
+    static List<String> makeRoom(List<Slot> clips, double need, boolean speech, double max, String mode, java.util.Set<String> busy) {
+        List<String> out = new ArrayList<>();
+        double over = keptSeconds(clips) + need - max;
+        if (over <= 1e-9) return out;
+        boolean oldest = "oudste".equals(mode);
+        if ("stop".equals(mode) || (!oldest && !speech)) return null;
+        List<Slot> cand = new ArrayList<>();
+        for (Slot k : clips) {
+            if (!k.audio) continue;
+            if (oldest || (k.done && ("geluid".equals(k.kind) || "onleesbaar".equals(k.kind)))) cand.add(k);
+        }
+        final java.util.Set<String> b = busy == null ? java.util.Collections.<String>emptySet() : busy;
+        java.util.Collections.sort(cand, (x, y) -> {
+            if (b.contains(x.id) != b.contains(y.id)) return b.contains(x.id) ? 1 : -1;
+            return Long.compare(x.t, y.t);
+        });
+        double freed = 0;
+        for (Slot k : cand) {
+            if (freed >= over - 1e-9) break;
+            out.add(k.id); freed += k.dur;
+        }
+        return freed >= over - 1e-9 ? out : null;
+    }
+
+    /** Waarom meteen uitschrijven nu wacht, of "" als het mag. Nooit tijdens een gesprek of als de telefoon warm is.
+     *  when "altijd": verder altijd; "lader": alleen aan de lader; "accu" (standaard): aan de lader, of zonder lader vanaf
+     *  minBat% en niet met batterijbesparing aan. bat -1 = onbekend. */
+    static String directWait(String when, int minBat, boolean charging, int bat, boolean inCall, boolean hot, boolean saver) {
+        if (inCall) return "tijdens het gesprek";
+        if (hot) return "de telefoon is warm";
+        if (charging || "altijd".equals(when)) return "";
+        if ("lader".equals(when)) return "niet aan de lader";
+        if (bat < 0) return "accu onbekend en niet aan de lader";
+        if (bat < minBat) return "accu onder " + minBat + "% en niet aan de lader";
+        if (saver) return "batterijbesparing staat aan";
+        return "";
+    }
+
     /** 16-bit PCM als WAV (16 kHz mono). */
     static byte[] wav(short[] pcm) {
         ByteBuffer b = ByteBuffer.allocate(44 + pcm.length * 2).order(ByteOrder.LITTLE_ENDIAN);
@@ -118,10 +233,12 @@ final class SleepTalk {
     private static void write(Context c, JSONObject n) throws Exception { Contacts.writeText(nightFile(c, n.optString("id")), n.toString(), false); version++; }
 
     /** Een nieuwe nacht; geeft het id. bat = accu bij het begin (-1 = onbekend), plugged = aan de lader. */
-    static synchronized String begin(Context c, long start, int sens, int bat, boolean plugged) throws Exception {
+    static synchronized String begin(Context c, long start, int sens, SleepDetect.Params p, int bat, boolean plugged) throws Exception {
         String id = String.valueOf(start);
         dir(c, id).mkdirs();
-        write(c, new JSONObject().put("id", id).put("start", start).put("end", 0).put("sens", sens).put("clips", new JSONArray()).put("heard", 0)
+        // De opname-instellingen van deze nacht (zo beschrijft een nacht zichzelf, ook als je ze later verandert)
+        JSONObject cfg = new JSONObject().put("pre", p.preFrames * 20).put("hang", p.hangFrames * 20).put("max", p.maxFrames / 50);
+        write(c, new JSONObject().put("id", id).put("start", start).put("end", 0).put("sens", sens).put("cfg", cfg).put("clips", new JSONArray()).put("heard", 0)
                 .put("batStart", bat).put("charged", plugged));
         return id;
     }
@@ -151,44 +268,81 @@ final class SleepTalk {
         return true;
     }
 
-    /** Hoeveel seconden geluid er al bewaard is. */
-    private static synchronized double audioSeconds(Context c, String night) {
-        JSONObject n = night(c, night);
-        JSONArray a = n == null ? null : n.optJSONArray("clips");
-        double audio = 0;
-        if (a != null) for (int i = 0; i < a.length(); i++) { JSONObject k = a.optJSONObject(i); if (k != null && k.optBoolean("audio")) audio += k.optDouble("dur"); }
-        return audio;
+    /** De stukjes van een nacht zoals het budget ze ziet. */
+    private static List<Slot> slots(JSONArray a) {
+        List<Slot> out = new ArrayList<>();
+        if (a != null) for (int i = 0; i < a.length(); i++) {
+            JSONObject k = a.optJSONObject(i);
+            if (k != null) out.add(new Slot(k.optString("id"), k.optLong("t"), k.optDouble("dur", 0), k.optBoolean("audio"), k.optBoolean("done"), k.optString("kind"), k.optString("guess"), k.optDouble("ratio", 0)));
+        }
+        return out;
     }
 
-    /** Een stukje bewaren: het geluid als AAC (.m4a; lukt dat niet, als WAV), tenzij de nacht al vol zit. Het
-     *  omzetten gebeurt buiten het slot, zodat het scherm intussen gewoon kan kijken. */
+    /** Vrije ruimte op de telefoon, of -1 als onbekend. */
+    private static long freeBytes(Context c) {
+        try { return new android.os.StatFs(c.getFilesDir().getPath()).getAvailableBytes(); } catch (Throwable t) { return -1; }
+    }
+
+    /** Stukjes die nu uitgeschreven worden (niet twee keer tegelijk, en liever niet wegdoen om plaats te maken). */
+    private static final java.util.Set<String> busy = new java.util.HashSet<>();
+
+    /** Een stukje bewaren: het geluid als AAC (.m4a; lukt dat niet, als WAV), als het nog in het budget past (eventueel
+     *  door geluid weg te doen voor iets dat op praten lijkt). Het omzetten gebeurt buiten het slot, zodat het scherm en
+     *  het meteen uitschrijven intussen gewoon doorgaan; daarna wordt het budget onder het slot opnieuw bekeken. */
     static void addClip(Context c, String night, long nightStart, SleepDetect.Clip k) throws Exception {
-        if (night(c, night) == null) return;
+        JSONObject n0 = night(c, night);
+        if (n0 == null) return;
         long t = nightStart + k.startMs();
         String id = "c" + t;
-        boolean keep = audioSeconds(c, night) + k.seconds() <= MAX_AUDIO_S;
+        boolean speech = SleepDetect.speechLike(k);
+        double sec = k.seconds();
+        String why = "";
+        List<String> plan;
+        double max = maxAudioS(c);
+        String mode = whenFull(c);
+        synchronized (SleepTalk.class) { plan = makeRoom(slots(n0.optJSONArray("clips")), sec, speech, max, mode, busy); }
+        boolean keep = plan != null;
+        if (!keep) why = "max";
         // Bijna geen ruimte meer op de telefoon: alleen het tijdstip
-        try { if (new android.os.StatFs(c.getFilesDir().getPath()).getAvailableBytes() < 300L * 1024 * 1024) keep = false; } catch (Throwable ignored) { }
-        if (keep) keep = saveAudio(dir(c, night), id, k.pcm);
+        long free = freeBytes(c);
+        if (keep && free >= 0 && free - (long) (sec * SleepDetect.RATE * 2) < minFree(c)) { keep = false; why = "ruimte"; }
+        if (keep) { keep = saveAudio(dir(c, night), id, k.pcm, wavFormat(c)); if (!keep) why = "opslaan"; }
         synchronized (SleepTalk.class) {
             JSONObject n = night(c, night);
-            if (n == null) return;
+            if (n == null) { if (keep) removeAudio(c, night, id); return; }
             JSONArray a = n.optJSONArray("clips");
             if (a == null) { a = new JSONArray(); n.put("clips", a); }
-            a.put(new JSONObject().put("id", id).put("t", t).put("dur", Math.round(k.seconds() * 10) / 10.0).put("ratio", Math.round(k.bandRatio * 100) / 100.0)
-                .put("peak", Math.round(k.peakDb)).put("guess", SleepDetect.speechLike(k) ? "praten" : "geluid").put("audio", keep).put("done", false).put("full", !keep));
+            // Opnieuw, met wat er intussen veranderde (een stukje uitgeschreven, of gewist)
+            List<String> drop = keep ? makeRoom(slots(a), sec, speech, max, mode, busy) : null;
+            if (keep && drop == null) { removeAudio(c, night, id); keep = false; why = "max"; }
+            if (drop != null) for (int i = 0; i < a.length(); i++) {
+                JSONObject x = a.getJSONObject(i);
+                if (!drop.contains(x.optString("id"))) continue;
+                removeAudio(c, night, x.optString("id"));
+                x.put("audio", false).put("why", "plaats");
+                if (!x.optBoolean("done")) x.put("full", true);
+            }
+            JSONObject o = new JSONObject().put("id", id).put("t", t).put("dur", Math.round(sec * 10) / 10.0).put("ratio", Math.round(k.bandRatio * 100) / 100.0)
+                .put("peak", Math.round(k.peakDb)).put("guess", speech ? "praten" : "geluid").put("audio", keep).put("done", false).put("full", !keep);
+            if (!keep) o.put("why", why);
+            a.put(o);
             n.put("heard", a.length());
             write(c, n);
         }
     }
 
+    private static void removeAudio(Context c, String night, String clip) {
+        new File(dir(c, night), clip + ".m4a").delete();
+        new File(dir(c, night), clip + ".wav").delete();
+    }
+
     /** Hoe vaak AAC (achter elkaar) mislukte; na twee keer gaat het de rest van de tijd meteen als WAV. */
     private static volatile int aacFails;
 
-    /** Eerst AAC, anders WAV; altijd via een tijdelijk bestand. */
-    private static boolean saveAudio(File dir, String id, short[] pcm) {
+    /** Eerst AAC (tenzij je WAV kiest), anders WAV; altijd via een tijdelijk bestand. */
+    private static boolean saveAudio(File dir, String id, short[] pcm, boolean wavOnly) {
         File tmp = new File(dir, id + ".m4a.tmp");
-        if (aacFails < 2) {
+        if (!wavOnly && aacFails < 2) {
             try {
                 AacWriter.write(pcm, SleepDetect.RATE, tmp);
                 if (tmp.length() > 200 && tmp.renameTo(new File(dir, id + ".m4a"))) { aacFails = 0; return true; }
@@ -245,6 +399,9 @@ final class SleepTalk {
             JSONObject n = night(c, d.getName());
             if (n == null) continue;
             int talk = 0, noise = 0, open = 0;
+            long bytes = 0;
+            File[] fs = d.listFiles();
+            if (fs != null) for (File f : fs) bytes += f.length();
             JSONArray a = n.optJSONArray("clips");
             String first = "";
             if (a != null) for (int i = 0; i < a.length(); i++) {
@@ -258,7 +415,7 @@ final class SleepTalk {
             try {
                 out.put(new JSONObject().put("id", n.optString("id")).put("start", n.optLong("start")).put("end", n.optLong("end")).put("reason", n.optString("reason"))
                         .put("talk", talk).put("noise", noise).put("open", open).put("first", first.length() > 120 ? first.substring(0, 120) + "…" : first)
-                        .put("batStart", n.optInt("batStart", -1)).put("batEnd", n.optInt("batEnd", -1)).put("charged", n.optBoolean("charged")));
+                        .put("batStart", n.optInt("batStart", -1)).put("batEnd", n.optInt("batEnd", -1)).put("charged", n.optBoolean("charged")).put("bytes", bytes));
             } catch (Exception ignored) { }
         }
         return out;
@@ -358,6 +515,18 @@ final class SleepTalk {
                         else if (f.getName().endsWith(".rt-part") && !AiSleepBackup.applying && System.currentTimeMillis() - f.lastModified() > 600_000L) f.delete();
                     }
                     JSONObject n = night(c, id);
+                    // Geluid dat de nacht niet (meer) kent (de app viel weg tussen opslaan en vastleggen, of wegdoen
+                    // lukte half): weg, pas na 10 minuten en niet tijdens terugzetten
+                    if (n != null && fs != null && !AiSleepBackup.applying) {
+                        java.util.Set<String> keep = new java.util.HashSet<>();
+                        JSONArray ka = n.optJSONArray("clips");
+                        if (ka != null) for (int i = 0; i < ka.length(); i++) { JSONObject k = ka.optJSONObject(i); if (k != null && k.optBoolean("audio")) keep.add(k.optString("id")); }
+                        for (File f : fs) {
+                            String fn = f.getName();
+                            if (!(fn.endsWith(".m4a") || fn.endsWith(".wav"))) continue;
+                            if (!keep.contains(fn.substring(0, fn.length() - 4)) && System.currentTimeMillis() - f.lastModified() > 600_000L) f.delete();
+                        }
+                    }
                     if (n != null && n.optLong("end") == 0) {
                         long last = n.optLong("start");
                         JSONArray a = n.optJSONArray("clips");
@@ -398,48 +567,101 @@ final class SleepTalk {
         return o;
     }
 
-    /** Alle nog niet uitgeschreven stukjes van een nacht uitschrijven (op een achtergrondthread aanroepen). */
-    static void transcribeNight(Context c, String night, Step step) throws Exception {
-        Transcribe.Model m = Transcribe.activeModel(c);
-        if (m == null) throw new Exception("Download eerst een spraakmodel (bij Gesprekken uitschrijven)");
-        List<String> todo = new ArrayList<>();
+    static synchronized boolean isBusy(String clip) { return busy.contains(clip); }
+
+    /** Het oudste stukje dat nog uitgeschreven moet worden (en niet al bezig is), of null. */
+    static synchronized String nextOpen(Context c, String night) {
+        JSONObject n = night(c, night);
+        JSONArray a = n == null ? null : n.optJSONArray("clips");
+        if (a != null) for (int i = 0; i < a.length(); i++) {
+            JSONObject k = a.optJSONObject(i);
+            if (k != null && !k.optBoolean("done") && k.optBoolean("audio") && !busy.contains(k.optString("id"))) return k.optString("id");
+        }
+        return null;
+    }
+
+    /** Hoe het met een nacht staat terwijl er geluisterd wordt: gepraat, geluiden, nog uit te schrijven, het laatste wat je zei. */
+    static final class Live {
+        int talk, noise, open; String text = ""; long at;
+    }
+
+    static synchronized Live live(Context c, String night) {
+        Live l = new Live();
+        JSONObject n = night(c, night);
+        JSONArray a = n == null ? null : n.optJSONArray("clips");
+        if (a != null) for (int i = 0; i < a.length(); i++) {
+            JSONObject k = a.optJSONObject(i);
+            if (k == null) continue;
+            if (!k.optBoolean("done")) { if (k.optBoolean("audio")) l.open++; continue; }
+            String kind = k.optString("kind");
+            if ("praten".equals(kind)) { l.talk++; if (k.optLong("t") >= l.at) { l.at = k.optLong("t"); l.text = k.optString("text"); } }
+            else if ("geluid".equals(kind)) l.noise++;
+        }
+        if (l.text.length() > 160) l.text = l.text.substring(0, 160) + "…";
+        return l;
+    }
+
+    /** Wanneer het uitschrijven van één stukje moet stoppen (het whisper-proces stopt dan meteen). */
+    interface Halt { boolean now(); }
+    /** Uitkomst van één stukje: uitgeschreven, niets te doen (al gedaan, weg of al bezig), of gestopt. */
+    static final int TX_DONE = 0, TX_SKIP = 1, TX_STOP = 2, TX_BUSY = 3;
+
+    /**
+     * Eén stukje uitschrijven en de uitkomst vastleggen (zelfde regels 's ochtends en meteen): praten, geluid of
+     * onleesbaar; geluid zonder woorden verliest zijn geluid als je dat niet wilt bewaren. Gestopt halverwege: het
+     * stukje blijft "nog niet uitgeschreven" (ook als de app wegvalt) en wordt later opnieuw gedaan. threads 0 = gewoon.
+     * Gooit een fout als whisper zelf het niet kan.
+     */
+    static int transcribeClip(Context c, String night, String clip, Transcribe.Model m, Halt halt, int threads) throws Exception {
+        long durMs = 60_000;
         synchronized (SleepTalk.class) {
             JSONObject n = night(c, night);
             JSONArray a = n == null ? null : n.optJSONArray("clips");
-            if (a != null) for (int i = 0; i < a.length(); i++) { JSONObject k = a.getJSONObject(i); if (!k.optBoolean("done") && k.optBoolean("audio")) todo.add(k.optString("id")); }
+            boolean open = false;
+            if (a != null) for (int i = 0; i < a.length(); i++) {
+                JSONObject k = a.getJSONObject(i);
+                if (clip.equals(k.optString("id"))) { open = !k.optBoolean("done") && k.optBoolean("audio"); durMs = (long) (k.optDouble("dur", 60) * 1000); break; }
+            }
+            if (!open) return TX_SKIP;
+            if (!busy.add(clip)) return TX_BUSY; // een ander is er nog mee bezig
         }
-        int done = 0;
-        txThread = Thread.currentThread();
         try {
-        for (String clip : todo) {
-            if (stopTx) return;
-            if (step != null) step.step(done, todo.size());
+            if (halt.now()) return TX_STOP;
             File f = clipFile(c, night, clip);
             String text = "";
-            boolean broken = false;
-            if (f != null && f.isFile()) {
-                JSONObject out = null;
+            boolean broken = false, missing = f == null || !f.isFile();
+            JSONObject out = null;
+            if (!missing) {
                 // whisper wil WAV: een .m4a eerst (tijdelijk) omzetten
                 File wav = f;
                 try {
                     if (f.getName().endsWith(".m4a")) {
                         wav = new File(c.getCacheDir(), "slaappraat-" + clip + ".wav");
-                        // 60 s (de langste duur van een stukje): dan meldt hij voortgang en werkt Stoppen ook tijdens het omzetten
-                        try { Transcribe.toWav(f, wav, 60_000, (ph, pct) -> { if (stopTx) throw new Stopped(); }, true); }
-                        catch (Stopped s) { return; }
+                        // De duur van het stukje: dan meldt hij voortgang en werkt Stoppen ook tijdens het omzetten
+                        try { Transcribe.toWav(f, wav, Math.max(1000, durMs), (ph, pct) -> { if (halt.now()) throw new Stopped(); }, true); }
+                        catch (Stopped s) { return TX_STOP; }
                         catch (Exception e) {
-                            if (stopTx) return;
-                            // Onleesbaar stukje: overslaan (en niet elke keer opnieuw proberen), de rest gaat door
-                            App.log(c, "SLAAP", "stukje " + clip + " onleesbaar: " + e);
-                            broken = true;
+                            if (halt.now()) return TX_STOP;
+                            // Weggedaan of gewist terwijl hij bezig was
+                            if (!f.isFile()) missing = true;
+                            else {
+                                // Onleesbaar stukje: overslaan (en niet elke keer opnieuw proberen), de rest gaat door
+                                App.log(c, "SLAAP", "stukje " + clip + " onleesbaar: " + e);
+                                broken = true;
+                            }
                         }
                     }
-                    if (!broken) {
-                        try { out = Transcribe.whisper(c, wav, m, (ph, pct) -> { if (stopTx) throw new Stopped(); }, true); }
-                        catch (Stopped s) { return; }
-                        catch (Exception e) { if (stopTx) return; throw e; } // proces gestopt: geen fout
+                    if (!broken && !missing) {
+                        try { out = Transcribe.whisper(c, wav, m, (ph, pct) -> { if (halt.now()) throw new Stopped(); }, true, threads); }
+                        catch (Stopped s) { return TX_STOP; }
+                        catch (Exception e) {
+                            if (halt.now()) return TX_STOP; // proces gestopt: geen fout
+                            if (!f.isFile()) missing = true; // weggedaan of gewist terwijl hij bezig was
+                            else throw e;
+                        }
                     }
                 } finally { if (wav != f) wav.delete(); }
+                if (halt.now()) return TX_STOP;
                 if (out != null) {
                     JSONArray tr = out.optJSONArray("transcription");
                     List<String> parts = new ArrayList<>();
@@ -450,18 +672,55 @@ final class SleepTalk {
             synchronized (SleepTalk.class) {
                 JSONObject n = night(c, night);
                 JSONArray a = n == null ? null : n.optJSONArray("clips");
+                boolean changed = false;
                 if (a != null) for (int i = 0; i < a.length(); i++) {
                     JSONObject k = a.getJSONObject(i);
-                    if (!clip.equals(k.optString("id"))) continue;
-                    String kind = broken ? "onleesbaar" : kind(text);
+                    if (!clip.equals(k.optString("id")) || k.optBoolean("done")) continue;
+                    // Geen geluid meer en niets uitgeschreven: weggedaan om plaats te maken, dan niets vastleggen
+                    if (missing && !k.optBoolean("audio")) continue;
+                    String kind = kindOf(text, broken);
                     k.put("text", text).put("kind", kind).put("done", true);
                     // Geen praten: het geluid hoeft niet te blijven (tenzij je dat wilt)
-                    if ("geluid".equals(kind) && !keepNoise(c) && f != null) { f.delete(); new File(f.getParent(), clip + ".wav").delete(); k.put("audio", false); }
+                    if (missing || dropAudio(kind, keepNoise(c))) { removeAudio(c, night, clip); k.put("audio", false); }
+                    changed = true;
                 }
-                if (n != null) write(c, n);
+                if (changed) write(c, n);
             }
-            done++;
+            return TX_DONE;
+        } finally {
+            synchronized (SleepTalk.class) { busy.remove(clip); }
         }
+    }
+
+    /** Alle nog niet uitgeschreven stukjes van een nacht uitschrijven (op een achtergrondthread aanroepen). */
+    static void transcribeNight(Context c, String night, Step step) throws Exception {
+        Transcribe.Model m = model(c);
+        if (m == null) throw new Exception("Download eerst een spraakmodel (bij Gesprekken uitschrijven)");
+        List<String> todo = new ArrayList<>();
+        synchronized (SleepTalk.class) {
+            JSONObject n = night(c, night);
+            JSONArray a = n == null ? null : n.optJSONArray("clips");
+            if (a != null) for (int i = 0; i < a.length(); i++) { JSONObject k = a.getJSONObject(i); if (!k.optBoolean("done") && k.optBoolean("audio")) todo.add(k.optString("id")); }
+        }
+        int done = 0;
+        List<String> later = new ArrayList<>();
+        txThread = Thread.currentThread();
+        try {
+            for (String clip : todo) {
+                if (stopTx) return;
+                if (step != null) step.step(done, todo.size());
+                int r = transcribeClip(c, night, clip, m, () -> stopTx, 0);
+                if (r == TX_STOP) return;
+                if (r == TX_BUSY) later.add(clip); else done++;
+            }
+            // Stukjes waar nog een ander mee bezig was (het meteen uitschrijven dat net stopte): wachten en alsnog
+            for (String clip : later) {
+                for (int i = 0; i < 120 && isBusy(clip) && !stopTx; i++) Thread.sleep(500);
+                if (stopTx) return;
+                if (step != null) step.step(done, todo.size());
+                if (transcribeClip(c, night, clip, m, () -> stopTx, 0) == TX_STOP) return;
+                done++;
+            }
         } finally { txThread = null; }
         if (step != null) step.step(done, todo.size());
     }

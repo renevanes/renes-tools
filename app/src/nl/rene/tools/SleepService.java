@@ -31,6 +31,12 @@ import java.util.concurrent.Executors;
  * luistert hij niet (dat is van de beller, en de microfoon is dan voor het gesprek). Daarna (als je dat wilt) worden
  * de stukjes uitgeschreven op de telefoon (whisper), in dezelfde dienst.
  *
+ * Meteen uitschrijven (standaard aan): terwijl hij luistert schrijft één eigen thread (lage voorrang, hooguit 2
+ * rekenkernen) elk bewaard stukje kort daarna al uit, het oudste eerst. Wanneer is instelbaar (standaard: aan de lader,
+ * of zonder lader vanaf 40% accu en zonder batterijbesparing); nooit tijdens een gesprek of als de telefoon warm is. Het luisteren en het
+ * opslaan wachten daar nooit op. Stopt het luisteren, dan stopt dit ook (een stukje dat half was blijft open) en doet
+ * het gewone uitschrijven daarna alleen wat er over is.
+ *
  * Zuinig: twee keer per seconde een blok van de microfoon, per 20 ms een paar optellingen; wegschrijven op een
  * eigen thread; niets naar internet.
  *
@@ -52,6 +58,13 @@ public final class SleepService extends Service {
     static volatile double levelDb = -90, floorDb = -90;
     static volatile String message = "";
     static volatile boolean inCall;
+    /** Meteen uitschrijven: gepraat, geluiden, nog uit te schrijven, het laatste wat je zei, en waarom het wacht ("" = niet). */
+    static volatile int liveTalk, liveNoise, liveOpen;
+    static volatile String liveText = "", directWait = "";
+    static volatile long liveAt;
+    static volatile boolean directBusy;
+    /** Het luisteren is net gestopt en hij rondt af (het meteen uitschrijven stoppen). */
+    static volatile boolean finishing;
     /** Proefronde: hoe vaak iets opgepikt, en of hij nu iets hoort. */
     static volatile boolean hearingNow;
     static volatile int probeHits;
@@ -66,6 +79,12 @@ public final class SleepService extends Service {
     private PowerManager.WakeLock wake;
     private int lastStartId;
     private ExecutorService writer;
+    private volatile Thread direct;
+    private volatile boolean directStop;
+    /** Elke ronde een eigen nummer: een oude thread die nog ergens op wachtte, gaat nooit verder met een nieuwe nacht. */
+    private volatile int directGen;
+    private final Object directLock = new Object();
+    private boolean directKick;               // onder directLock
 
     static boolean running() { return !phase.isEmpty(); }
 
@@ -111,8 +130,10 @@ public final class SleepService extends Service {
         long t0 = System.currentTimeMillis();
         int[] bat = battery();
         charged = bat[1] == 1;
-        try { night = SleepTalk.begin(this, t0, SleepTalk.sens(this), bat[0], charged); } catch (Exception e) { message = "Opslaan lukt niet"; return false; }
+        params = SleepTalk.detectParams(this);
+        try { night = SleepTalk.begin(this, t0, SleepTalk.sens(this), params, bat[0], charged); } catch (Exception e) { message = "Opslaan lukt niet"; return false; }
         since = t0; heard = 0; levelDb = -90; floorDb = -90; inCall = false;
+        liveTalk = 0; liveNoise = 0; liveOpen = 0; liveText = ""; liveAt = 0; directWait = ""; directBusy = false; finishing = false;
         stopAt = SleepTalk.stopTime(since, SleepTalk.stopAt(this), java.util.TimeZone.getDefault());
         phase = "luistert";
         SleepReminder.dismiss(this);
@@ -122,6 +143,7 @@ public final class SleepService extends Service {
         holdWake();
         notifyNow();
         if (writer == null) writer = Executors.newSingleThreadExecutor(r -> new Thread(r, "slaappraat-opslaan"));
+        startDirect(night); // eerst: dan ziet het luisteren hem altijd als het (meteen) weer stopt
         Thread t = new Thread(this::listenThenWork, "slaappraat");
         worker = t;
         t.start();
@@ -133,6 +155,7 @@ public final class SleepService extends Service {
         stop = false; stopReason = null; message = ""; probe = true; night = "";
         since = System.currentTimeMillis(); probeUntil = since + PROBE_MS; probeHits = 0; heard = 0; hearingNow = false;
         levelDb = -90; floorDb = -90; inCall = false; stopAt = 0;
+        params = SleepTalk.detectParams(this);
         phase = "proef";
         holdWake();
         notifyNow();
@@ -148,6 +171,8 @@ public final class SleepService extends Service {
         t.start();
     }
     private volatile boolean probe, charged;
+    /** Opname-instellingen van deze ronde (bij het begin vastgelegd; voor de proef de huidige). */
+    private volatile SleepDetect.Params params = SleepDetect.Params.DEFAULT;
 
     /** Op main: alleen uitschrijven (een nacht van eerder). */
     private void startTranscribe(String n) {
@@ -172,18 +197,25 @@ public final class SleepService extends Service {
         final String n = night;
         try {
             listen(n, since);
+            finishing = true; // de microfoon is al dicht: niet meer "Luistert" laten zien
+            notifyNow();
+            stopDirect();
+            refreshLive(n);
             int[] bat = battery();
             SleepTalk.end(this, n, System.currentTimeMillis(), stopReason == null ? "Gestopt" : stopReason, bat[0], charged || bat[1] == 1);
             levelDb = -90;
-            if (!destroyed && SleepTalk.transcribe(this) && Transcribe.activeModel(this) != null && SleepTalk.open(this, n) > 0) {
+            if (!destroyed && SleepTalk.transcribe(this) && SleepTalk.model(this) != null && SleepTalk.open(this, n) > 0) {
                 phase = "uitschrijven"; txDone = 0; txTotal = SleepTalk.open(this, n);
                 notifyNow();
                 transcribe(n);
             }
         } catch (Throwable t) {
             App.log(this, "SLAAP", "dienst: " + t);
+            finishing = true;
+            stopDirect();
             SleepTalk.end(this, n, System.currentTimeMillis(), "Onderbroken");
         }
+        finishing = false;
         doneNotice();
         main.post(this::afterWork);
     }
@@ -211,12 +243,15 @@ public final class SleepService extends Service {
     /** Het luisteren zelf (eigen thread). */
     private void listen(final String n, final long start) {
         AudioRecord rec = null;
-        final SleepDetect det = new SleepDetect(SleepTalk.sens(this), k -> {
+        final SleepDetect det = new SleepDetect(SleepTalk.sens(this), params, k -> {
             if (probe) { probeHits++; return; } // proef: niets bewaren
             heard++;
             final ExecutorService w = writer;
             // Wegschrijven op een eigen thread: de microfoon wordt ondertussen gewoon verder gelezen
-            if (w != null) try { w.execute(() -> { try { SleepTalk.addClip(this, n, start, k); } catch (Throwable t) { App.log(this, "SLAAP", "opslaan: " + t); } }); } catch (Throwable ignored) { }
+            if (w != null) try { w.execute(() -> {
+                try { SleepTalk.addClip(this, n, start, k); refreshLive(n); } catch (Throwable t) { App.log(this, "SLAAP", "opslaan: " + t); }
+                kickDirect();
+            }); } catch (Throwable ignored) { }
             notifyNow();
         });
         AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
@@ -229,7 +264,10 @@ public final class SleepService extends Service {
                 // Telefoongesprek (ook via internet): niet luisteren en de microfoon vrijgeven
                 int mode = am == null ? AudioManager.MODE_NORMAL : am.getMode();
                 if (mode == AudioManager.MODE_IN_CALL || mode == AudioManager.MODE_IN_COMMUNICATION) {
-                    if (!inCall) { inCall = true; pausedAt = System.currentTimeMillis(); det.flush(); notifyNow(); try { rec.stop(); } catch (Throwable ignored) { } }
+                    if (!inCall) {
+                        inCall = true; pausedAt = System.currentTimeMillis(); det.flush(); notifyNow(); try { rec.stop(); } catch (Throwable ignored) { }
+                        Transcribe.stopOwnedBy(direct); // ook niet uitschrijven tijdens het gesprek (het stukje blijft open)
+                    }
                     Thread.sleep(1000);
                     checkLimits(start);
                     continue;
@@ -288,6 +326,104 @@ public final class SleepService extends Service {
         }
     }
 
+    // ---------- meteen uitschrijven ----------
+
+    /** Op main (beginListening): de thread die tijdens het luisteren stukje voor stukje uitschrijft. */
+    private void startDirect(String n) {
+        directStop = false;
+        synchronized (directLock) { directKick = false; }
+        final int g = ++directGen;
+        Thread t = new Thread(() -> directLoop(n, g), "slaappraat-meteen");
+        direct = t;
+        t.start();
+    }
+
+    /** Er is een stukje bij: niet wachten tot de volgende ronde. */
+    private void kickDirect() { synchronized (directLock) { directKick = true; directLock.notifyAll(); } }
+
+    /** Stoppen en wachten tot hij weg is (een stukje dat half was, blijft open voor straks). Nooit op main. */
+    private void stopDirect() {
+        Thread t = direct;
+        if (t == null) return;
+        directStop = true;
+        directGen++;
+        kickDirect();
+        Transcribe.stopOwnedBy(t);
+        // Wacht hij op een ander whisper (Gesprekken uitschrijven)? Dan niet eindeloos: het vastleggen controleert zelf
+        // of een stukje al gedaan is, en zijn eerste voortgang stopt het proces meteen.
+        try { t.join(20_000); } catch (Throwable ignored) { }
+        direct = null; directBusy = false; directWait = "";
+    }
+
+    private boolean directHalt(int g) { return g != directGen || directStop || stop || destroyed || inCall; }
+
+    private void directLoop(String n, int g) {
+        try {
+            // Lage voorrang; het whisper-proces dat deze thread start, erft die (nice)
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND); } catch (Throwable ignored) { }
+            int fails = 0;
+            while (g == directGen && !directStop && !stop && !destroyed) {
+                synchronized (directLock) {
+                    if (!directKick) directLock.wait(30_000);
+                    directKick = false;
+                }
+                if (g != directGen || directStop || stop || destroyed) break;
+                if (!SleepTalk.transcribe(this) || !SleepTalk.direct(this)) { setWait(g, ""); continue; }
+                Transcribe.Model m = SleepTalk.model(this);
+                if (m == null) { setWait(g, ""); continue; }
+                String clip = SleepTalk.nextOpen(this, n);
+                if (clip == null) { setWait(g, ""); continue; }
+                String why = directReason();
+                setWait(g, why);
+                if (!why.isEmpty()) continue;
+                int r;
+                directBusy = true;
+                try { r = SleepTalk.transcribeClip(this, n, clip, m, () -> directHalt(g), 2); fails = 0; }
+                catch (Throwable e) {
+                    App.log(this, "SLAAP", "meteen uitschrijven: " + e);
+                    // Lukt het steeds niet, dan deze nacht niet meer (straks volgt het gewone uitschrijven, met een melding)
+                    if (++fails >= 3) { setWait(g, "het lukte steeds niet"); break; }
+                    continue;
+                } finally { if (g == directGen) directBusy = false; }
+                // Gestopt (of een oude ronde die nog ergens op wachtte): niets meer aan het scherm of de melding doen
+                if (directHalt(g)) continue;
+                refreshLive(n);
+                notifyNow();
+                // Klaar met een stukje: meteen door met het volgende (gestopt of overgeslagen: rustig wachten)
+                if (r == SleepTalk.TX_DONE) synchronized (directLock) { directKick = true; }
+            }
+        } catch (Throwable t) {
+            App.log(this, "SLAAP", "meteen uitschrijven: " + t);
+        }
+    }
+
+    private void setWait(int g, String why) { if (g == directGen) directWait = why; }
+
+    /** Waarom meteen uitschrijven nu wacht (zie SleepTalk.directWait), of "". */
+    private String directReason() {
+        int[] bat = battery();
+        boolean hot = false, saver = false;
+        try {
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            saver = pm.isPowerSaveMode();
+            if (Build.VERSION.SDK_INT >= 29) hot = pm.getCurrentThermalStatus() >= PowerManager.THERMAL_STATUS_MODERATE;
+            else {
+                // Oudere Android: de temperatuur van de accu (in tienden van een graad), warm vanaf 40 °C
+                Intent b = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+                hot = b != null && b.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) >= 400;
+            }
+        } catch (Throwable ignored) { }
+        return SleepTalk.directWait(SleepTalk.directWhen(this), SleepTalk.directBat(this), bat[1] == 1, bat[0], inCall, hot, saver);
+    }
+
+    /** De tellers voor het scherm en de melding (na elk opgeslagen of uitgeschreven stukje). */
+    private void refreshLive(String n) {
+        try {
+            SleepTalk.Live l = SleepTalk.live(this, n);
+            liveTalk = l.talk; liveNoise = l.noise; liveOpen = l.open; liveText = l.text; liveAt = l.at;
+        } catch (Throwable ignored) { }
+    }
+
     private long nextLimitCheck, pausedAt;
     private void checkLimits(long start) {
         long now = System.currentTimeMillis();
@@ -343,9 +479,11 @@ public final class SleepService extends Service {
         if ("proef".equals(phase)) return b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Slaappraat: proef van 30 seconden")
                 .setContentText("Praat eens zoals je in je slaap zou doen").setOngoing(true).setOnlyAlertOnce(true).setContentIntent(content)
                 .addAction(android.R.drawable.ic_media_pause, "Stoppen", stopI).build();
+        // Nooit wat je zei in de melding (die kan op het vergrendelscherm staan): alleen tellen
         String text = tx ? "Uitschrijven: " + txDone + " van " + txTotal
-                : inCall ? "Luistert niet tijdens het gesprek" : heard == 0 ? "Nog niets gehoord" : heard + " keer iets gehoord";
-        if (!tx && stopAt > 0) text += " · stopt om " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT).format(new java.util.Date(stopAt));
+                : finishing ? "Afronden…" : inCall ? "Luistert niet tijdens het gesprek" : heard == 0 ? "Nog niets gehoord"
+                : heard + " keer iets gehoord" + (liveTalk + liveNoise > 0 ? " · " + (liveTalk + liveNoise) + " uitgeschreven" : "");
+        if (!tx && !finishing && stopAt > 0) text += " · stopt om " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT).format(new java.util.Date(stopAt));
         return b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle(tx ? "Slaappraat schrijft uit" : "Slaappraat luistert")
                 .setContentText(text).setOngoing(true).setOnlyAlertOnce(true).setShowWhen(!tx && !quiet).setWhen(since).setUsesChronometer(!tx && !quiet)
                 .setContentIntent(content).addAction(android.R.drawable.ic_media_pause, "Stoppen", stopI).build();
@@ -379,6 +517,7 @@ public final class SleepService extends Service {
     private boolean goForeground() { return Fg.start(this, NOTIFICATION, build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE, 30); }
 
     private void notifyNow() {
+        if (destroyed || phase.isEmpty()) return; // nooit een melding van een ronde die al voorbij is
         try { getSystemService(NotificationManager.class).notify(NOTIFICATION, build()); } catch (Throwable ignored) { }
     }
 
@@ -403,7 +542,9 @@ public final class SleepService extends Service {
     }
 
     @Override public void onDestroy() {
-        destroyed = true; stop = true; SleepTalk.stopNow();
+        destroyed = true; stop = true; directStop = true; SleepTalk.stopNow();
+        Transcribe.stopOwnedBy(direct);
+        kickDirect();
         if (!"".equals(phase) && worker == null) phase = "";
         if (wake != null && wake.isHeld()) try { wake.release(); } catch (Throwable ignored) { }
         super.onDestroy();

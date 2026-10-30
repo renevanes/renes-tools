@@ -18,11 +18,24 @@ final class SleepDetect {
 
     static final int RATE = 16000;
     static final int FRAME = 320;                 // 20 ms
-    static final int PRE_FRAMES = 100;            // 2 s voorloop
-    static final int HANG_FRAMES = 75;            // 1,5 s stilte = einde
+    static final int PRE_FRAMES = 100;            // 2 s voorloop (standaard; instelbaar via Params)
+    static final int HANG_FRAMES = 75;            // 1,5 s stilte = einde (standaard)
     static final int POST_FRAMES = 25;            // 0,5 s naloop (na de stilte die al meetelt)
     static final int MIN_ACTIVE = 15;             // minstens 0,3 s echt geluid
-    static final int MAX_FRAMES = 60 * 50;        // hooguit 60 s per stukje
+    static final int MAX_FRAMES = 60 * 50;        // hooguit 60 s per stukje (standaard)
+
+    /** Instelbaar per nacht (vastgelegd in de nacht): voorloop, stilte voor het einde en de langste duur, in blokjes van 20 ms. */
+    static final class Params {
+        final int preFrames, hangFrames, maxFrames;
+        Params(int preFrames, int hangFrames, int maxFrames) {
+            this.preFrames = Math.max(1, Math.min(10 * 50, preFrames));
+            this.hangFrames = Math.max(25, Math.min(10 * 50, hangFrames));
+            this.maxFrames = Math.max(10 * 50, Math.min(600 * 50, maxFrames));
+        }
+        /** Uit seconden en milliseconden (zoals de instellingen ze bewaren). */
+        static Params of(int preS, int hangMs, int maxS) { return new Params(preS * 50, hangMs / 20, maxS * 50); }
+        static final Params DEFAULT = new Params(PRE_FRAMES, HANG_FRAMES, MAX_FRAMES);
+    }
     static final double ABS_MIN_DB = -62;         // zachter dan dit is altijd stilte
 
     /** Een gevonden stukje. */
@@ -51,7 +64,8 @@ final class SleepDetect {
     private int minPos = 0, minCount = 0, inBlock = 0;
     private double blockMin = 1e9;
     private long frameNo = 0;
-    private final short[][] ring = new short[PRE_FRAMES][FRAME]; // vooraf gemaakt: geen nieuw geheugen per blokje
+    private final Params prm;
+    private final short[][] ring;    // vooraf gemaakt: geen nieuw geheugen per blokje
     private int ringPos = 0, ringLen = 0;
     private final boolean[] recent = new boolean[10];
     private int recentPos = 0;
@@ -63,9 +77,13 @@ final class SleepDetect {
     private int warm = 50;           // eerste seconde: alleen het ruisniveau leren
 
     /** sensitivity: 1 = gevoelig (8 dB boven de ruis), 2 = normaal (12 dB), 3 = alleen duidelijk (16 dB). */
-    SleepDetect(int sensitivity, Sink sink) {
+    SleepDetect(int sensitivity, Sink sink) { this(sensitivity, Params.DEFAULT, sink); }
+
+    SleepDetect(int sensitivity, Params p, Sink sink) {
         this.margin = sensitivity <= 1 ? 8 : sensitivity >= 3 ? 16 : 12;
         this.sink = sink;
+        this.prm = p == null ? Params.DEFAULT : p;
+        this.ring = new short[prm.preFrames][FRAME];
     }
 
     double floorDb() { return floorDb; }
@@ -119,18 +137,20 @@ final class SleepDetect {
         append(frame);
         bandSum += band; totSum += tot; peak = Math.max(peak, totDb);
         if (loud) { active++; quiet = 0; } else quiet++;
-        if (quiet >= HANG_FRAMES + POST_FRAMES || bufLen >= MAX_FRAMES * FRAME) finish();
+        if (quiet >= prm.hangFrames + POST_FRAMES || bufLen >= prm.maxFrames * FRAME) finish();
     }
 
     private void remember(short[] f) {
-        System.arraycopy(f, 0, ring[ringPos], 0, Math.min(f.length, FRAME)); ringPos = (ringPos + 1) % PRE_FRAMES; if (ringLen < PRE_FRAMES) ringLen++;
+        int n = ring.length;
+        System.arraycopy(f, 0, ring[ringPos], 0, Math.min(f.length, FRAME)); ringPos = (ringPos + 1) % n; if (ringLen < n) ringLen++;
     }
 
     private void start(short[] f, double bandDb, double totDb, double band, double tot) {
         inClip = true;
-        buf = new short[(PRE_FRAMES + 30 * 50) * FRAME]; bufLen = 0;
+        int n = ring.length;
+        buf = new short[(n + 30 * 50) * FRAME]; bufLen = 0;
         clipStart = frameNo - 1 - ringLen;
-        for (int i = 0; i < ringLen; i++) append(ring[(ringPos - ringLen + i + PRE_FRAMES) % PRE_FRAMES]);
+        for (int i = 0; i < ringLen; i++) append(ring[(ringPos - ringLen + i + n) % n]);
         ringLen = 0;
         append(f);
         active = 1; quiet = 0; bandSum = band; totSum = tot; peak = totDb;
