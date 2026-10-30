@@ -76,9 +76,12 @@ final class ApparatenScan {
 
     static boolean granted(Context c, String p) { return c.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED; }
 
-    /** Bluetooth zoeken mag: vanaf Android 12 "Apparaten in de buurt" (zoeken + verbinden voor namen) en locatie, daarvoor locatie. */
+    /**
+     * Bluetooth zoeken mag: vanaf Android 12 "Apparaten in de buurt" (zoeken + verbinden voor namen), en altijd de precieze
+     * locatie. Zonder neverForLocation geeft Android vanaf versie 10 met alleen "geschatte locatie" geen resultaten.
+     */
     static boolean btPerm(Context c) {
-        if (Build.VERSION.SDK_INT >= 31) return granted(c, Manifest.permission.BLUETOOTH_SCAN) && granted(c, Manifest.permission.BLUETOOTH_CONNECT) && locPerm(c);
+        if (Build.VERSION.SDK_INT >= 31) return granted(c, Manifest.permission.BLUETOOTH_SCAN) && granted(c, Manifest.permission.BLUETOOTH_CONNECT) && finePerm(c);
         return granted(c, Manifest.permission.ACCESS_FINE_LOCATION);
     }
 
@@ -87,6 +90,7 @@ final class ApparatenScan {
         return granted(c, Manifest.permission.ACCESS_FINE_LOCATION) && (Build.VERSION.SDK_INT < 33 || granted(c, Manifest.permission.NEARBY_WIFI_DEVICES));
     }
 
+    static boolean finePerm(Context c) { return granted(c, Manifest.permission.ACCESS_FINE_LOCATION); }
     static boolean locPerm(Context c) { return granted(c, Manifest.permission.ACCESS_FINE_LOCATION) || granted(c, Manifest.permission.ACCESS_COARSE_LOCATION); }
     static boolean bgPerm(Context c) { return Build.VERSION.SDK_INT < 29 || granted(c, Manifest.permission.ACCESS_BACKGROUND_LOCATION); }
 
@@ -253,7 +257,7 @@ final class ApparatenScan {
                     rx = new Rx();
                     IntentFilter f = new IntentFilter(BluetoothDevice.ACTION_FOUND);
                     f.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-                    if (Build.VERSION.SDK_INT >= 33) app.registerReceiver(rx, f, Context.RECEIVER_EXPORTED); else app.registerReceiver(rx, f);
+                    if (Build.VERSION.SDK_INT >= 33) app.registerReceiver(rx, f, Context.RECEIVER_NOT_EXPORTED); else app.registerReceiver(rx, f); // systeemberichten komen toch
                 }
                 classicOn = ad.startDiscovery();
             }
@@ -386,14 +390,6 @@ final class ApparatenScan {
         return o;
     }
 
-    /** Laatste lijst als tekst voor de assistent (alleen namen en soorten, niets wordt verstuurd). */
-    static List<Dev> recent(long maxAgeMs) {
-        List<Dev> l = new ArrayList<>();
-        long now = System.currentTimeMillis();
-        synchronized (L) { for (Dev d : devs.values()) if (now - d.last <= maxAgeMs) l.add(snapshot(d)); }
-        return l;
-    }
-
     static void forget() { synchronized (L) { devs.clear(); } }
 
     // ---------- wifi ----------
@@ -476,6 +472,4 @@ final class ApparatenScan {
         } catch (Throwable e) { return ""; }
     }
 
-    /** Alle Bluetooth-sleutels die nu rond zijn (voor de assistent en tests). */
-    static int count() { synchronized (L) { int n = 0; long now = System.currentTimeMillis(); for (Iterator<Dev> it = devs.values().iterator(); it.hasNext(); ) if (now - it.next().last < 5 * 60_000L) n++; return n; } }
 }

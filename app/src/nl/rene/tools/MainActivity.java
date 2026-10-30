@@ -187,6 +187,7 @@ public class MainActivity extends Activity {
         PodcastDownloads.warm(this);
         PodcastDownloadJob.schedule(this); // vanzelf downloaden van podcasts (alleen als je dat ergens aanzette)
         TranscribeJob.ensureScheduled(this);
+        ApparatenJob.ensure(getApplicationContext(), false); // Apparaten op de achtergrond (alleen als dat aan staat)
         // Automatiseringen: plekken opnieuw instellen als Android ze kwijt kan zijn (bijv. na geforceerd stoppen op Oppo)
         if (System.currentTimeMillis() - Auto.prefs(this).getLong("armedAt", 0) > 6 * 3600_000L) Auto.armPlaces(this, true);
         // Net teruggezet na een herinstallatie: alles opnieuw inplannen en de modellen weer downloaden

@@ -98,6 +98,7 @@ public class ApparatenTest {
         check(Apparaten.channel(2412) == 1 && Apparaten.channel(2437) == 6 && Apparaten.channel(2462) == 11 && Apparaten.channel(2484) == 14, "kanalen 2,4 GHz");
         check(Apparaten.channel(5180) == 36 && Apparaten.channel(5500) == 100 && Apparaten.channel(5825) == 165, "kanalen 5 GHz");
         check(Apparaten.channel(5955) == 1 && Apparaten.channel(6115) == 33 && Apparaten.channel(1234) == 0, "kanalen 6 GHz, onbekend 0");
+        check(Apparaten.channel(5935) == 2 && "6 GHz".equals(Apparaten.band(5935)) && Apparaten.crowding(new int[]{5935}, new int[]{-50}, "6 GHz").containsKey(2), "6 GHz kanaal 2 (5935 MHz), ook in de drukte");
         check("2,4 GHz".equals(Apparaten.band(2437)) && "5 GHz".equals(Apparaten.band(5180)) && "6 GHz".equals(Apparaten.band(5955)), "banden");
         check(Apparaten.width(2) == 80 && Apparaten.width(0) == 20 && Apparaten.width(5) == 320, "kanaalbreedte");
         check("wpa3".equals(Apparaten.security("[WPA2-PSK-CCMP][RSN-SAE-CCMP][ESS]")) && "wpa2".equals(Apparaten.security("[WPA2-PSK-CCMP][ESS]")) && "open".equals(Apparaten.security("[ESS]"))
@@ -126,6 +127,7 @@ public class ApparatenTest {
         // ---------- SSDP / UPnP / mDNS / NetBIOS ----------
         Map<String, String> hd = Apparaten.ssdpHeaders("HTTP/1.1 200 OK\r\nCACHE-CONTROL: max-age=1800\r\nLOCATION: http://192.168.1.20:49152/desc.xml\r\nST: urn:schemas-upnp-org:device:MediaRenderer:1\r\nUSN: uuid:ABC-123::urn:schemas-upnp-org:device:MediaRenderer:1\r\n\r\n");
         check("http://192.168.1.20:49152/desc.xml".equals(hd.get("location")) && hd.get("st").contains("MediaRenderer") && hd.get("usn").startsWith("uuid:ABC"), "SSDP-kopregels");
+        check("".equals(Apparaten.urlHost("http://192.168.001.020/x")) && "".equals(Apparaten.urlHost("http://192.168.1.256/x")) && "10.0.0.1".equals(Apparaten.urlHost("http://10.0.0.1:80")), "adres met voorloopnullen of te groot: geweigerd");
         check("192.168.1.20".equals(Apparaten.urlHost(hd.get("location"))) && "".equals(Apparaten.urlHost("https://example.com/x")) && "".equals(Apparaten.urlHost("http://tv.local/x")), "alleen een http-adres met een IP-adres");
         String xml = "<?xml version=\"1.0\"?><root><device><deviceType>urn:schemas-upnp-org:device:MediaRenderer:1</deviceType><friendlyName>Woonkamer TV &amp; zo</friendlyName><manufacturer>Samsung Electronics</manufacturer><modelName>QE55Q80</modelName><UDN>uuid:1234-abcd</UDN></device></root>";
         check("Woonkamer TV & zo".equals(Apparaten.xmlTag(xml, "friendlyName")) && "Samsung Electronics".equals(Apparaten.xmlTag(xml, "manufacturer")) && "uuid:1234-abcd".equals(Apparaten.xmlTag(xml, "UDN")) && "".equals(Apparaten.xmlTag(xml, "serialNumber")), "UPnP-beschrijving lezen");
@@ -169,6 +171,19 @@ public class ApparatenTest {
         for (int k = 0; k < 5; k++) noLoc.add(new Apparaten.Sighting(t0 + k * 20 * 60_000L, Double.NaN, Double.NaN));
         check(!Apparaten.follows(noLoc, t0 + 2 * 3600_000L).follows, "zonder plek: geen waarschuwing");
         check(!Apparaten.follows(s, t0 + 10 * 3600_000L).follows, "ouder dan 8 uur: telt niet meer");
+        // Een tracker die stil ligt (bijv. bij de buren) terwijl de netwerklocatie verspringt: telt niet als meereizen
+        List<Apparaten.Sighting> jitter = new ArrayList<>();
+        double[][] jumps = {{51.9225, 4.4792}, {51.9270, 4.4850}, {51.9180, 4.4730}, {51.9260, 4.4720}, {51.9190, 4.4860}};
+        for (int k = 0; k < 10; k++) jitter.add(new Apparaten.Sighting(t0 + k * 10 * 60_000L, jumps[k % 5][0], jumps[k % 5][1], 400));
+        check(!Apparaten.follows(jitter, t0 + 95 * 60_000L).follows, "verspringende plaatsbepaling (±400 m): stilliggende tracker reist niet mee");
+        List<Apparaten.Sighting> exact = new ArrayList<>();
+        for (int k = 0; k < 10; k++) exact.add(new Apparaten.Sighting(t0 + k * 10 * 60_000L, jumps[k % 5][0], jumps[k % 5][1], 0));
+        check(Apparaten.follows(exact, t0 + 95 * 60_000L).places >= 3, "zelfde sprongen zonder onnauwkeurigheid zouden wel tellen (de marge doet het werk)");
+        List<Apparaten.Sighting> moving = new ArrayList<>();
+        moving.add(new Apparaten.Sighting(t0, 51.90, 4.40, 100)); moving.add(new Apparaten.Sighting(t0 + 20 * 60_000, 51.92, 4.43, 150)); moving.add(new Apparaten.Sighting(t0 + 40 * 60_000, 51.95, 4.46, 50));
+        check(Apparaten.follows(moving, t0 + 40 * 60_000).follows, "echt meereizen (kilometers) met onnauwkeurige plaatsbepaling: wel");
+        check(Apparaten.usableFix(t0 - 60_000, 50, t0) && !Apparaten.usableFix(t0 - 6 * 60_000, 50, t0) && !Apparaten.usableFix(t0 - 60_000, 250, t0) && !Apparaten.usableFix(0, 10, t0) && !Apparaten.usableFix(t0 - 1000, Double.NaN, t0),
+                "plaatsbepaling: vers (≤ 5 min) en nauwkeurig (≤ 200 m), anders niet gebruikt");
         check(Math.abs(Apparaten.meters(51.9225, 4.4792, 51.9225, 4.4792)) < 1e-6 && Math.abs(Apparaten.meters(52.0, 4.0, 52.01, 4.0) - 1112) < 5, "afstanden");
         check(Apparaten.round3(51.92254) == 51.923 && "51.92,4.48".equals(Apparaten.cell(51.9225, 4.4792)) && "".equals(Apparaten.cell(Double.NaN, 4)), "grove plekken (~100 m en ~1 km)");
         check(Apparaten.atHome(51.9226, 4.4793, 51.9225, 4.4792) && !Apparaten.atHome(51.93, 4.48, 51.9225, 4.4792), "thuis: binnen 300 m");

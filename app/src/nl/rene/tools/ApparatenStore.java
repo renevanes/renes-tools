@@ -22,7 +22,7 @@ import java.util.TimeZone;
  *  bekend.json        je eigen apparaten: sleutel → {nick, type, name, t}
  *  geschiedenis.json  vaak in de buurt: sleutel → {name, type, maker, first, last, home[], away[], place}
  *                     (dagen als "jjjj-mm-dd", plek = "thuis" of een vakje van ~1 km; nooit een spoor)
- *  trackers.json      onbekende trackers: id → {kind, label, first, last, s:[[t, lat, lon]] (~100 m, hooguit 8 uur), warned, status}
+ *  trackers.json      onbekende trackers: id → {kind, label, first, last, s:[[t, lat, lon, nauwkeurigheid]] (~100 m, hooguit 8 uur), warned, status}
  *  netwerk.json       apparaten op je eigen wifi, per netwerk: om nieuwe apparaten te laten opvallen
  */
 final class ApparatenStore {
@@ -171,7 +171,9 @@ final class ApparatenStore {
         histSave(c, m);
     }
 
+    /** Bewaartermijn van de geschiedenis én de trackers (waarnemingen hooguit 8 uur) toepassen. */
     static synchronized void histPrune(Context c) {
+        trackersPruneNow(c);
         Map<String, Apparaten.Hist> m = histLoad(c);
         int n = m.size();
         Apparaten.prune(m, System.currentTimeMillis(), keep(c), TimeZone.getDefault());
@@ -210,12 +212,22 @@ final class ApparatenStore {
     static synchronized JSONObject trackers(Context c) { return read(c, "trackers.json"); }
     static synchronized void trackersSave(Context c, JSONObject o) { write(c, "trackers.json", o); }
 
+    /** Trackers opruimen en bewaren (ook als er nu geen tracker in de buurt is). */
+    static synchronized void trackersPruneNow(Context c) {
+        File f = new File(dir(c), "trackers.json");
+        if (!f.isFile()) return;
+        JSONObject all = trackers(c);
+        String before = all.toString();
+        trackersPrune(all, System.currentTimeMillis());
+        if (!before.equals(all.toString())) trackersSave(c, all);
+    }
+
     static List<Apparaten.Sighting> sightings(JSONObject t) {
         List<Apparaten.Sighting> l = new ArrayList<>();
         JSONArray s = t == null ? null : t.optJSONArray("s");
         if (s != null) for (int i = 0; i < s.length(); i++) {
             JSONArray x = s.optJSONArray(i);
-            if (x != null && x.length() >= 3) l.add(new Apparaten.Sighting(x.optLong(0), x.optDouble(1, Double.NaN), x.optDouble(2, Double.NaN)));
+            if (x != null && x.length() >= 3) l.add(new Apparaten.Sighting(x.optLong(0), x.optDouble(1, Double.NaN), x.optDouble(2, Double.NaN), x.optDouble(3, 0)));
         }
         return l;
     }

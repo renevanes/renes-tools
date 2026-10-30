@@ -34,6 +34,7 @@ const { chromium } = require('playwright');
     ok((await pg.textContent('#ap-bt-paired')).includes('Momentum 4') && (await pg.textContent('#ap-bt-paired')).includes('niet in de buurt'), 'gekoppeld maar niet in de buurt');
     ok((await pg.textContent('#ap-p-bt .ap-foot')).includes('wisselen') && (await pg.textContent('#ap-p-bt .ap-foot')).includes('ongeveer'), 'eerlijk over wisselende adressen en de afstand');
     ok(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'niet breder dan het scherm');
+    ok(await pg.evaluate(() => [...document.querySelectorAll('#ap-bt-list .ap-row')].every(b => b.tagName === 'BUTTON' && !b.getAttribute('role') && b.parentElement.getAttribute('role') === 'listitem')), 'rijen: knop binnen een lijstitem (toegankelijk)');
 
     // Groep: geen bijnaam mogelijk
     await pg.click('#ap-bt-list .ap-row[data-k="g:76|apple"]'); await pg.waitForTimeout(200);
@@ -84,7 +85,13 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._ap.noWifi = true; }); await pg.click('#ap-t-lan'); await pg.waitForTimeout(100);
     await pg.click('#ap-lan-go'); await pg.waitForTimeout(150);
     ok((await pg.textContent('#ap-lan-st')).includes('nooit via mobiele data'), 'zonder wifi: niet zoeken (nooit via mobiel)');
-    await pg.evaluate(() => { Android._ap.noWifi = false; }); await pg.click('#ap-lan-go'); await pg.waitForTimeout(250);
+    await pg.evaluate(() => { Android._ap.noWifi = false; Android._ap.ssid = 'Hotel Gast'; }); await pg.click('#ap-lan-go'); await pg.waitForTimeout(150);
+    ok(await pg.isVisible('#modal.on') && (await pg.textContent('#modal-text')).includes('Hotel Gast') && (await pg.textContent('#modal-text')).includes('toestemming'), 'onbekend netwerk: eerst vragen');
+    await pg.click('#modal-cancel'); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => !Android._ap.lanBusy), 'niet gevraagd = niet gezocht');
+    await pg.evaluate(() => { Android._ap.ssid = 'Thuis'; Android._ap.set.homeSsid = 'Thuis'; }); await pg.click('#ap-lan-go'); await pg.waitForTimeout(250);
+    ok(!(await pg.isVisible('#modal.on')), 'je wifi thuis: meteen zoeken');
+    await pg.evaluate(() => { Android._ap.set.homeSsid = ''; });
     ok(await pg.isVisible('#ap-lan-prog') && (await pg.textContent('#ap-lan-go')).includes('Stoppen'), 'voortgang en stopknop');
     await pg.waitForTimeout(1200);
     const ll = await pg.textContent('#ap-lan-list');
@@ -117,6 +124,7 @@ const { chromium } = require('playwright');
     await pg.click('#apd-tracker button:has-text("Weer waarschuwen")'); await pg.waitForTimeout(150);
     await pg.click('#apd-tracker button:has-text("Dit is van mij")'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._ap.trackers['C2:7E:01:02:03:04'].status === 'mine' && !!Android._ap.known['a:C2:7E:01:02:03:04']), 'dit is van mij: bewaard als eigen tracker');
+    ok((await pg.textContent('#toast')).includes('nieuw adres'), 'eerlijk: na een nieuw adres kan er weer een waarschuwing komen');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => !apFinding), 'terug: zoeken gestopt');
     ok((await pg.textContent('#ap-tr-list')).includes('van jou'), 'lijst: van jou');
@@ -157,6 +165,11 @@ const { chromium } = require('playwright');
     // Het register
     ok(await pg.evaluate(() => ['apparaten.achtergrond', 'apparaten.vaak', 'apparaten.trackers', 'apparaten.geschiedenis', 'apparaten.buitenhuis', 'apparaten.bewaren', 'apparaten.toon', 'apparaten.trillen'].every(id => !!setEntry(id))), 'alle instellingen in het register');
     ok(await pg.evaluate(() => setSafe(setEntry('apparaten.trackers'), 'uit') && !setSafe(setEntry('apparaten.trackers'), 'aan')), 'trackerwaarschuwing uitzetten: alleen zelf');
+    ok(await pg.evaluate(() => setSafe(setEntry('apparaten.achtergrond'), 'uit') && !setSafe(setEntry('apparaten.achtergrond'), 'aan')), 'achtergrond uitzetten (dan ook geen trackerwaarschuwing): alleen zelf');
+    // Alleen geschatte locatie: uitleg dat het Precies moet zijn
+    await pg.evaluate(() => { Android._ap.perms.bt = false; Android._ap.perms.fine = false; show('apparaten'); apTab('bt'); }); await pg.waitForTimeout(100);
+    ok((await pg.textContent('#ap-perm')).includes('Precies') && (await pg.textContent('#ap-perm')).includes('geschatte locatie'), 'alleen geschatte locatie: uitleg Precies');
+    await pg.evaluate(() => { Android._ap.perms.bt = true; Android._ap.perms.fine = true; onApChanged(); });
     // Weg van Apparaten: alles stopt
     await pg.evaluate(() => { show('apparaten'); apTab('bt'); apBtGo(); }); await pg.waitForTimeout(200);
     await pg.evaluate(() => show('home')); await pg.waitForTimeout(100);

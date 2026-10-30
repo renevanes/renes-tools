@@ -81,8 +81,14 @@ public class ApparatenJob extends JobService {
     /** Mag het op de achtergrond? Aan gezet, Bluetooth-toestemming, en vanaf Android 10 "locatie altijd". */
     static boolean bgReady(Context c) { return ApparatenStore.bg(c) && ApparatenScan.btPerm(c) && ApparatenScan.bgPerm(c); }
 
-    /** Na een wijziging, bij het openen van de app en na elke ronde: inplannen of juist weghalen. */
-    static void ensure(Context c) {
+    /** Staat de tracker-scan van Android (in dit proces) al aan? Bij het openen van de app dan niet opnieuw starten. */
+    static volatile boolean passiveOn;
+
+    /** Na een wijziging en na elke ronde: inplannen of juist weghalen, en de tracker-scan opnieuw starten. */
+    static void ensure(Context c) { ensure(c, true); }
+
+    /** Bij het openen van de app (restart = false): alleen inplannen, de tracker-scan alleen starten als hij nog niet loopt. */
+    static void ensure(Context c, boolean restart) {
         try {
             JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
             if (js == null) return;
@@ -92,7 +98,8 @@ public class ApparatenJob extends JobService {
             if (have == null || have.getIntervalMillis() != every) {
                 js.schedule(new JobInfo.Builder(JOB_ID, new ComponentName(c, ApparatenJob.class)).setPeriodic(every).setPersisted(true).build());
             }
-            passive(c, ApparatenStore.trackersOn(c));
+            boolean on = ApparatenStore.trackersOn(c);
+            if (restart || on != passiveOn) passive(c, on);
         } catch (Throwable e) { App.log(c, "APPARATEN", "inplannen: " + e); }
     }
 
@@ -113,9 +120,17 @@ public class ApparatenJob extends JobService {
             if (s == null) return;
             PendingIntent pi = scanIntent(c);
             try { s.stopScan(pi); } catch (Throwable ignored) { }
+            passiveOn = false;
             if (!on) return;
-            ScanSettings st = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_POWER).build();
-            s.startScan(trackerFilters(), st, pi);
+            // Zuinig: de Bluetooth-chip verzamelt zelf (5 minuten per keer), of meldt een tracker alleen de eerste keer.
+            // Kan de chip geen van beide, dan geen doorlopende scan (een AirTag in huis zou de app anders elke paar
+            // seconden wekken); dan doet alleen de ronde van de job het. Herhaalde waarnemingen komen altijd uit de job.
+            ScanSettings.Builder b = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_POWER);
+            if (ad.isOffloadedScanBatchingSupported()) b.setReportDelay(5 * 60_000L);
+            else if (ad.isOffloadedFilteringSupported()) b.setCallbackType(ScanSettings.CALLBACK_TYPE_FIRST_MATCH);
+            else return;
+            s.startScan(trackerFilters(), b.build(), pi);
+            passiveOn = true;
         } catch (Throwable e) { App.log(c, "APPARATEN", "tracker-scan: " + e); }
     }
 
@@ -219,7 +234,7 @@ public class ApparatenJob extends JobService {
 
     /**
      * Grove plek: de laatst bekende van de telefoon (netwerk/passief), en met fresh=true een nieuwe netwerklocatie als
-     * die ouder is dan 10 minuten. Geen GPS. null = onbekend (geen toestemming, locatie uit).
+     * die ouder is dan 4 minuten of onnauwkeurig. Geen GPS. Geeft {lat, lon, tijd, nauwkeurigheid}. null = onbekend (geen toestemming, locatie uit).
      */
     @SuppressWarnings({"deprecation", "MissingPermission"})
     static double[] location(Context c, boolean fresh) {
@@ -231,7 +246,7 @@ public class ApparatenJob extends JobService {
             for (String p : new String[]{LocationManager.NETWORK_PROVIDER, LocationManager.PASSIVE_PROVIDER, LocationManager.GPS_PROVIDER}) {
                 try { Location l = lm.getLastKnownLocation(p); if (l != null && (best == null || l.getTime() > best.getTime())) best = l; } catch (Throwable ignored) { }
             }
-            boolean old = best == null || System.currentTimeMillis() - best.getTime() > 10 * 60_000L;
+            boolean old = best == null || System.currentTimeMillis() - best.getTime() > 4 * 60_000L || !best.hasAccuracy() || best.getAccuracy() > Apparaten.FIX_MAX_ACC;
             if (fresh && old && lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER) && Looper.myLooper() != Looper.getMainLooper()) {
                 OneFix f = new OneFix();
                 try {
@@ -242,7 +257,8 @@ public class ApparatenJob extends JobService {
                 if (f.loc != null) best = f.loc;
             }
             if (best == null || System.currentTimeMillis() - best.getTime() > 60 * 60_000L) return null; // te oud om iets te zeggen
-            return new double[]{best.getLatitude(), best.getLongitude()};
+            // lat, lon, tijd van de plaatsbepaling, nauwkeurigheid (m; onbekend = heel onnauwkeurig)
+            return new double[]{best.getLatitude(), best.getLongitude(), best.getTime(), best.hasAccuracy() ? best.getAccuracy() : 9999};
         } catch (Throwable e) { return null; }
     }
 
@@ -266,11 +282,16 @@ public class ApparatenJob extends JobService {
             }
             ApparatenStore.histRecord(c, seen, now, place);
         }
-        if (ApparatenStore.trackersOn(c)) trackers(c, devs, lat, lon, now, known);
+        if (ApparatenStore.trackersOn(c)) trackers(c, devs, loc, home, now, known);
     }
 
-    /** Tracker-waarnemingen bijschrijven (hooguit één per 4 minuten per tracker) en kijken of er een meereist. */
-    static void trackers(Context c, List<ApparatenScan.Dev> devs, double lat, double lon, long now, JSONObject known) {
+    /**
+     * Tracker-waarnemingen bijschrijven en kijken of er een meereist. Een waarneming krijgt een plek alleen met een verse
+     * en nauwkeurige plaatsbepaling (Apparaten.usableFix), met de tijd van die plaatsbepaling, hooguit één per 4 minuten,
+     * en niet thuis (daar liggen de trackers van huisgenoten).
+     */
+    static void trackers(Context c, List<ApparatenScan.Dev> devs, double[] loc, boolean home, long now, JSONObject known) {
+        boolean fix = loc != null && loc.length >= 4 && !home && Apparaten.usableFix((long) loc[2], loc[3], now);
         boolean any = false;
         for (ApparatenScan.Dev d : devs) if (d.info.tracker != null && d.info.tracker.warn) { any = true; break; }
         if (!any) return;
@@ -288,11 +309,12 @@ public class ApparatenJob extends JobService {
                     JSONArray s = t.optJSONArray("s");
                     if (s == null) { s = new JSONArray(); t.put("s", s); }
                     JSONArray lastS = s.length() > 0 ? s.optJSONArray(s.length() - 1) : null;
-                    if (!Double.isNaN(lat) && (lastS == null || now - lastS.optLong(0) >= 4 * 60_000L) && s.length() < 200)
-                        s.put(new JSONArray().put(now).put(Apparaten.round3(lat)).put(Apparaten.round3(lon)));
+                    if (fix && (lastS == null || (long) loc[2] - lastS.optLong(0) >= 4 * 60_000L) && s.length() < 200)
+                        s.put(new JSONArray().put((long) loc[2]).put(Apparaten.round3(loc[0])).put(Apparaten.round3(loc[1])).put(Math.round(loc[3])));
                     Apparaten.Follow f = Apparaten.follows(ApparatenStore.sightings(t), now);
                     t.put("places", f.places).put("minutes", f.minutes);
-                    if (f.follows && t.optLong("warned") == 0) { t.put("warned", now); warn(c, id, t); }
+                    // Alleen als de melding er echt kwam: staan meldingen uit, dan kan hij later alsnog komen
+                    if (f.follows && t.optLong("warned") == 0 && warn(c, id, t)) t.put("warned", now);
                 }
                 ApparatenStore.trackersPrune(all, now);
             } catch (Exception e) { App.log(c, "APPARATEN", "trackers: " + e); }
@@ -338,9 +360,10 @@ public class ApparatenJob extends JobService {
         return PendingIntent.getActivity(c, req, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
-    static void warn(Context c, String id, JSONObject t) {
+    /** De waarschuwing tonen. false = kon niet (meldingen uit of geen toestemming). */
+    static boolean warn(Context c, String id, JSONObject t) {
         try {
-            if (NotifCenter.muted(c)) return;
+            if (NotifCenter.muted(c) || !NotifCenter.permissionOk(c)) return false;
             channel(c);
             String label = t.optString("label", "tracker");
             Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
@@ -355,7 +378,8 @@ public class ApparatenJob extends JobService {
                     .setData(Uri.fromParts("apparaten", "negeren/" + id, null));
             b.addAction(new Notification.Action.Builder(null, "Negeren", PendingIntent.getBroadcast(c, REQ_ACT + n, ig, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT)).build());
             NotifCenter.post(c, notifId(id), b.build());
-        } catch (Throwable e) { App.log(c, "APPARATEN", "melding: " + e); }
+            return true;
+        } catch (Throwable e) { App.log(c, "APPARATEN", "melding: " + e); return false; }
     }
 
     // ---------- ontvanger: resultaten van de tracker-scan en "Negeren" ----------
@@ -396,7 +420,8 @@ public class ApparatenJob extends JobService {
             new Thread(() -> {
                 try {
                     double[] loc = location(ac, false);
-                    trackers(ac, devs, loc == null ? Double.NaN : loc[0], loc == null ? Double.NaN : loc[1], System.currentTimeMillis(), ApparatenStore.known(ac));
+                    boolean home = loc != null && ApparatenStore.atHome(ac, loc[0], loc[1], ApparatenScan.ssid(ac));
+                    trackers(ac, devs, loc, home, System.currentTimeMillis(), ApparatenStore.known(ac));
                 } catch (Throwable e) { App.log(ac, "APPARATEN", "tracker ontvangen: " + e); }
                 finally { pr.finish(); }
             }, "apparaten-tracker").start();
@@ -407,6 +432,7 @@ public class ApparatenJob extends JobService {
     static JSONObject trackersJson(Context c) {
         JSONObject o = new JSONObject();
         try {
+            ApparatenStore.trackersPruneNow(c);
             JSONObject all = ApparatenStore.trackers(c);
             JSONArray a = new JSONArray();
             long now = System.currentTimeMillis();

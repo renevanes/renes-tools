@@ -413,6 +413,7 @@ final class Apparaten {
     static int channel(int f) {
         if (f == 2484) return 14;
         if (f >= 2412 && f <= 2472) return (f - 2407) / 5;
+        if (f == 5935) return 2; // 6 GHz kanaal 2 valt buiten de gewone reeks
         if (f >= 5955 && f <= 7115) return (f - 5950) / 5;
         if (f >= 5160 && f <= 5885) return (f - 5000) / 5;
         if (f >= 4915 && f <= 4980) return (f - 4000) / 5;
@@ -545,8 +546,12 @@ final class Apparaten {
     /** Host van een LOCATION-adres (http://192.168.1.20:49152/desc.xml → 192.168.1.20); "" als het geen gewoon http-adres is. */
     static String urlHost(String url) {
         if (url == null) return "";
-        Matcher m = Pattern.compile("^http://(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})(?::(\\d{1,5}))?(/.*)?$").matcher(url.trim());
-        return m.find() ? m.group(1) : "";
+        // Elk getal zonder voorloopnullen (zo kan "010" niet als ander adres gelezen worden), en precies terug te schrijven
+        String oct = "(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
+        Matcher m = Pattern.compile("^http://(" + oct + "\\." + oct + "\\." + oct + "\\." + oct + ")(?::(\\d{1,5}))?(/.*)?$").matcher(url.trim());
+        if (!m.find()) return "";
+        String h = m.group(1);
+        return ipStr(ipInt(h)).equals(h) ? h : "";
     }
 
     // ---------- NetBIOS (naam van een Windows-computer of NAS) ----------
@@ -667,9 +672,19 @@ final class Apparaten {
 
     /** Eén keer gezien: tijd en (grove) plek. Zonder plek: lat/lon = NaN. */
     static final class Sighting {
-        final long t; final double lat, lon;
-        Sighting(long t, double lat, double lon) { this.t = t; this.lat = lat; this.lon = lon; }
+        final long t; final double lat, lon, acc;
+        Sighting(long t, double lat, double lon) { this(t, lat, lon, 0); }
+        /** t = tijd van de plaatsbepaling (niet van de waarneming), acc = nauwkeurigheid in meters (0 = onbekend). */
+        Sighting(long t, double lat, double lon, double acc) { this.t = t; this.lat = lat; this.lon = lon; this.acc = Double.isNaN(acc) || acc < 0 ? 0 : acc; }
         boolean located() { return !Double.isNaN(lat) && !Double.isNaN(lon); }
+    }
+
+    /** Een plaatsbepaling telt voor de tracker-regel als hij hooguit 5 minuten oud is en tot op 200 m nauwkeurig. */
+    static final long FIX_MAX_AGE = 5 * 60_000L;
+    static final double FIX_MAX_ACC = 200;
+
+    static boolean usableFix(long fixTime, double acc, long now) {
+        return fixTime > 0 && now - fixTime <= FIX_MAX_AGE && fixTime <= now + 60_000 && !Double.isNaN(acc) && acc >= 0 && acc <= FIX_MAX_ACC;
     }
 
     /** Afstand in meters (haversine). */
@@ -693,7 +708,8 @@ final class Apparaten {
 
     /**
      * Reist een tracker mee? Alleen waarnemingen met een plek, binnen het venster, op volgorde van tijd. Een plek telt als
-     * nieuwe plek als hij ver genoeg ligt van alle plekken die al telden. Genoeg plekken én lang genoeg (tussen de eerste
+     * nieuwe plek als hij ver genoeg ligt van alle plekken die al telden: minMeters plus de onnauwkeurigheid van beide
+     * plaatsbepalingen (zo wordt een tracker die stil ligt niet "meegereisd" door een verspringende netwerklocatie). Genoeg plekken én lang genoeg (tussen de eerste
      * en de laatste waarneming van die plekken) = meereizen.
      */
     static Follow follows(List<Sighting> list, long now, int minPlaces, double minMeters, long minMinutes, long window) {
@@ -705,7 +721,7 @@ final class Apparaten {
         long last = 0;
         for (Sighting x : s) {
             boolean far = true;
-            for (Sighting p : places) if (meters(p.lat, p.lon, x.lat, x.lon) < minMeters) { far = false; break; }
+            for (Sighting p : places) if (meters(p.lat, p.lon, x.lat, x.lon) < minMeters + p.acc + x.acc) { far = false; break; }
             if (far) places.add(x);
             last = x.t;
         }

@@ -27,7 +27,7 @@ public class ApparatenBridge extends FeatureBridge {
     /** Instellingen, toestemmingen en wat er aan/uit staat. */
     @JavascriptInterface public String apState() {
         try {
-            JSONObject p = new JSONObject().put("bt", ApparatenScan.btPerm(ctx)).put("wifi", ApparatenScan.wifiPerm(ctx)).put("loc", ApparatenScan.locPerm(ctx))
+            JSONObject p = new JSONObject().put("bt", ApparatenScan.btPerm(ctx)).put("wifi", ApparatenScan.wifiPerm(ctx)).put("loc", ApparatenScan.locPerm(ctx)).put("fine", ApparatenScan.finePerm(ctx))
                     .put("bg", ApparatenScan.bgPerm(ctx)).put("notif", NotifCenter.permissionOk(ctx)).put("btOn", ApparatenScan.btOn(ctx))
                     .put("btHw", ApparatenScan.adapter(ctx) != null).put("locOn", ApparatenScan.locOn(ctx)).put("sdk", Build.VERSION.SDK_INT);
             return new JSONObject().put("set", ApparatenStore.settings(ctx)).put("perms", p).put("muted", NotifCenter.muted(ctx)).toString();
@@ -128,11 +128,18 @@ public class ApparatenBridge extends FeatureBridge {
             if (p == null) { a.js("onApChanged", ""); return; }
             android.content.SharedPreferences sp = ctx.getSharedPreferences("perm", Context.MODE_PRIVATE);
             String key = "ap_" + kind;
-            boolean missing = false;
-            for (String x : p) if (ctx.checkSelfPermission(x) != PackageManager.PERMISSION_GRANTED) { missing = true; break; }
-            if (!missing) { a.js("onApChanged", ""); return; }
-            // Al eens geweigerd met "niet meer vragen": Android vraagt niet meer, dus naar de app-instellingen
-            if (sp.getBoolean(key, false) && !a.shouldShowRequestPermissionRationale(p[0]) && ctx.checkSelfPermission(p[0]) != PackageManager.PERMISSION_GRANTED) { a.openAppSettings(); return; }
+            String missing = null;
+            for (String x : p) if (ctx.checkSelfPermission(x) != PackageManager.PERMISSION_GRANTED) { missing = x; break; }
+            if (missing == null) { a.js("onApChanged", ""); return; }
+            // Al eens gevraagd en Android vraagt het niet meer ("niet meer vragen" of twee keer geweigerd): naar de
+            // app-instellingen, met uitleg wat daar aan moet
+            if (sp.getBoolean(key, false) && !a.shouldShowRequestPermissionRationale(missing)) {
+                String what = "bgloc".equals(kind) ? "Locatie: altijd toestaan" : "notif".equals(kind) ? "Meldingen aan"
+                        : Build.VERSION.SDK_INT >= 31 ? "Apparaten in de buurt aan, en Locatie: precies" : "Locatie: precies";
+                android.widget.Toast.makeText(a, "Android vraagt het niet meer. Zet bij Toestemmingen: " + what, android.widget.Toast.LENGTH_LONG).show();
+                a.openAppSettings();
+                return;
+            }
             sp.edit().putBoolean(key, true).apply();
             a.requestPermissions(p, REQ_PERM);
         });
