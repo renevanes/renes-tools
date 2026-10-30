@@ -1,15 +1,27 @@
 {
   "app": "Tools",
-  "versionName": "1.108",
-  "versionCode": 109,
-  "nativeLevel": 97,
+  "versionName": "1.109",
+  "versionCode": 110,
+  "nativeLevel": 98,
   "web": "index.html",
-  "webSha256": "d0518ceb772fa2cfadc4264d1504aaf65b4d691a64689db661fe3e5b81574e95",
+  "webSha256": "49154758abc64fafc680a863c751c9d4feb8b8d4c4eca066c79682466b202d10",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "2ece046b87c4bdf624a2763d2e05ee940d6633fc5c3e43d9b950be09b2d616ac",
+  "apkSha256": "38e5d71159993803c193c6f468e94d7c8b13392963550a897152b2091d659d3b",
   "changelog": [
+    {
+      "version": "1.109",
+      "date": "2026-10-30",
+      "changes": [
+        "Nieuw: Apparaten. Zie welke Bluetooth-apparaten, wifi-netwerken (met drukte per kanaal) en apparaten op je eigen wifi er in de buurt zijn, met soort, maker en ongeveer hoe ver.",
+        "Apparaten: zoek een kwijtgeraakt apparaat met warmer/kouder (meter, toon of trillen), geef je eigen apparaten een bijnaam, en zie nieuwe apparaten op je wifi meteen.",
+        "Apparaten: als je het aanzet een waarschuwing als een onbekende AirTag, SmartTag of andere tracker met je meereist, en bijhouden wat vaak in de buurt is (alleen op je telefoon).",
+        "Slaappraat schrijft nu meteen uit, al tijdens de nacht: je ziet op het scherm direct wat je zei en hoeveel geluiden er waren (aan de lader altijd, zonder lader vanaf 40% accu; nooit tijdens een gesprek of als de telefoon warm is).",
+        "Slaappraat bewaart nu standaard tot 8 uur geluid per nacht (was 1,5 uur); is het vol, dan maakt nieuw gepraat plaats en gaat het oudste geluid weg dat al uitgeschreven is en geen woorden had. Bij Meer instellingen stel je alles zelf in (wanneer uitschrijven, spraakmodel, maximum, wat als het vol is, vrije ruimte, AAC of WAV, lengte, stilte, voorloop en de accu), en je ziet hoeveel ruimte elke nacht inneemt.",
+        "Slaappraat bewaart nu standaard ook het geluid van snurken en andere geluiden (uitzetten kan bij Slaappraat → Ook snurken en andere geluiden bewaren)."
+      ]
+    },
     {
       "version": "1.108",
       "date": "2026-10-30",
@@ -960,5 +972,5 @@
       ]
     }
   ],
-  "webSig2": "a8CUvoJbFh2xMe8Zwfoh+QJEesfvK2VqsPXK/joJ16Ak6VD6UNft5AVK3SOHn0SOeNcfCd12/x7KbI3wWi0DF/pzvg4hFHlFcGVZ7RZWwOaP/Gnrs6SIRvNbG3Ur0CmLYJYyQKuEgdLVOK/U3zJyTP8atOjxp/ndRSuglKHRD9vl6RZyW0YevauTY05SnSzsbO/mL9nTaaKGib4VhZVKat94mCTcVKh59YtKLyBkKevVCY2RxFwMa56xi4+6RCqwNojojCIubWu/WyMV8RtzMZTAirUuai6qO/x7hoLBPDgOs11P/1QCx1Zs/7TV0Nx6xTKdFADDSHXiFIYjM9rJW3NZRGnIywoaHe87tQel3R8vS6rKV9UsLoG2kotee1N706evZRe3euFpjeOO9f+kUiNvCPBg2pTYmOjchkgsytZynBgDLTfLy+0vrs0y42I13jsewACJ0vRdeBG+9dBl3lrmyhKDurAyC/GZWlYTCSLJAe7zVaCWApRPINUOhYMU"
+  "webSig2": "Pq68SSqBGT3v+r7ffJcQVSnanPReg1pZKE3Zh4cD6S/Hh8Ly9siUUNa6db+3/egFYPim3FAE0UBS1vGe8jcqgv7GnnNI2hNfFLaIp+UFoYJLQOu4qA2x/qETcZCvAo9ArRlhhWgokgYQDH4pwQUWuavt4F3Tv1hKA6keuMeTNNstZfh2N1ivKUK4UFUBhs9g4glj8ebx2gT9zJGkpYEH/GYqaB08KpPKqqi3SGGqDmyw1dRKRXKN99sYTklPvUWovRxqOQvKyZJlmHfWEKuOoqL+FpE77c13LseF6/cpwgOGDbTcUzOQwEbawI9Kd+jhfmAk5c1IdDkou63CC0LqqeYKmx/SQ+xyL4c1uufZvR+GhrAJcssUgXakJ4Htscv6ATSXpXicuI9RHC1toqafaDwHDo3TzVFOVPCFkwxSACnaEkZ5i2hiH1tbYLI6TAz8+EH370ZByrYFgvOaMNLpvHBWb+Gxxy99HEhKZkm2OSbBqiztY9t+lo+5Yg9hOqIQ"
 }

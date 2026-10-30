@@ -333,6 +333,7 @@ final class Herstel {
         if (Build.VERSION.SDK_INT >= 29) o.put("bglocation", has(c, Manifest.permission.ACCESS_BACKGROUND_LOCATION));
         o.put("mic", has(c, Manifest.permission.RECORD_AUDIO));
         o.put("calendar", has(c, Manifest.permission.READ_CALENDAR));
+        o.put("nearby", ApparatenScan.btPerm(c));
         if (Build.VERSION.SDK_INT >= 33) o.put("notif", has(c, Manifest.permission.POST_NOTIFICATIONS));
         o.put("files", MainActivity.hasFilesAccess(c));
         if (Build.VERSION.SDK_INT >= 26) o.put("install", c.getPackageManager().canRequestPackageInstalls());
@@ -361,6 +362,7 @@ final class Herstel {
             {"bglocation", "Locatie altijd", "Automatiseringen op een plek en Mijn auto, ook als de app dicht is"},
             {"mic", "Microfoon", "Muziek herkennen, Slaappraat, spraak"},
             {"calendar", "Agenda", "Check-in"},
+            {"nearby", "Apparaten in de buurt", "Apparaten (Bluetooth en wifi)"},
             {"notif", "Meldingen", "Herinneringen, voortgang en bediening"},
             {"files", "Alle bestanden", "WhatsApp backup, Gesprekken uitschrijven"},
             {"install", "Updates installeren", "Nieuwe versies van de app"},

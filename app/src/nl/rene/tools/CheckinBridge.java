@@ -5,10 +5,10 @@ import android.webkit.JavascriptInterface;
 import org.json.JSONObject;
 
 /**
- * Brugfuncties voor Check-in (Android.checkinXxx). Tussen FeatureBridge en SleepBridge. Opslag en rekenwerk staan in
+ * Brugfuncties voor Check-in (Android.checkinXxx). Tussen ApparatenBridge en SleepBridge. Opslag en rekenwerk staan in
  * CheckinStore en Checkin, de meldingen in CheckinNotify. Alles blijft op de telefoon.
  */
-public class CheckinBridge extends FeatureBridge {
+public class CheckinBridge extends ApparatenBridge {
 
     CheckinBridge(MainActivity act) { super(act); }
 

@@ -4,6 +4,7 @@ stijl.css
 iconen.css
 ontwerp.css
 podcast-import.css
+apparaten.css
 body-begin.html
 schermen/01-home.html
 schermen/02-auto-redial.html
@@ -42,6 +43,7 @@ schermen/34-slaappraat.html
 schermen/35-modellen.html
 schermen/36-checkin.html
 schermen/37-herstel.html
+schermen/38-apparaten.html
 schermen/38-gebruik.html
 speler.html
 vensters.html
@@ -110,4 +112,5 @@ script/32-automatiseringen.js
 script/60-gebruik.js
 script/58-instellingen-register.js
 script/59-assistent-instellingen.js
+script/60-apparaten.js
 einde.html

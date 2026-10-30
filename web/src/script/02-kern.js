@@ -138,6 +138,7 @@ function show(name){
   if (name==='gebruik') enterGebruik(); else if (name==='gebruikset') enterGebruikSet();
   if (name==='models') enterModels(); else if (typeof mdLeave === 'function') mdLeave();
   if (name==='car') enterCar();
+  if (name==='apparaten' || name==='apdev' || name==='apset') enterAp(name); else if (typeof apLeave === 'function') apLeave();
   if (name==='pdf') enterPdf();
   if (name==='spotify') enterSpotify();
   if (name==='vpn') enterVpn();

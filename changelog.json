@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.109",
+    "date": "2026-10-30",
+    "changes": [
+      "Nieuw: Apparaten. Zie welke Bluetooth-apparaten, wifi-netwerken (met drukte per kanaal) en apparaten op je eigen wifi er in de buurt zijn, met soort, maker en ongeveer hoe ver.",
+      "Apparaten: zoek een kwijtgeraakt apparaat met warmer/kouder (meter, toon of trillen), geef je eigen apparaten een bijnaam, en zie nieuwe apparaten op je wifi meteen.",
+      "Apparaten: als je het aanzet een waarschuwing als een onbekende AirTag, SmartTag of andere tracker met je meereist, en bijhouden wat vaak in de buurt is (alleen op je telefoon).",
+      "Slaappraat schrijft nu meteen uit, al tijdens de nacht: je ziet op het scherm direct wat je zei en hoeveel geluiden er waren (aan de lader altijd, zonder lader vanaf 40% accu; nooit tijdens een gesprek of als de telefoon warm is).",
+      "Slaappraat bewaart nu standaard tot 8 uur geluid per nacht (was 1,5 uur); is het vol, dan maakt nieuw gepraat plaats en gaat het oudste geluid weg dat al uitgeschreven is en geen woorden had. Bij Meer instellingen stel je alles zelf in (wanneer uitschrijven, spraakmodel, maximum, wat als het vol is, vrije ruimte, AAC of WAV, lengte, stilte, voorloop en de accu), en je ziet hoeveel ruimte elke nacht inneemt.",
+      "Slaappraat bewaart nu standaard ook het geluid van snurken en andere geluiden (uitzetten kan bij Slaappraat → Ook snurken en andere geluiden bewaren)."
+    ]
+  },
+  {
     "version": "1.108",
     "date": "2026-10-30",
     "changes": [

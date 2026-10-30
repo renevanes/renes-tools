@@ -58,7 +58,7 @@ final class AppData {
 
     /** Instellingen die meegaan (en teruggezet mogen worden). Elke naam in de code staat hier of in PREFS_SKIP. */
     static final List<String> PREFS_KEEP = Collections.unmodifiableList(Arrays.asList(
-            "allbackup", "alarm", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "gebruik", "launcher",
+            "allbackup", "alarm", "apparaten", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "gebruik", "launcher",
             "localai", "lock", "mockloc", "models", "music", "notepins", "notification_history", "notifcenter", "pdf",
             "pdfview", "pinned_shortcuts", "player", "podcast", "podcast_dl", "radio", "redial", "redialplan", "reminders",
             "sleeptalk", "sms", "solo", "spotify", "tracks", "transcribe", "txdur", "txmeta", "ui", "vpn", "wabackup",
@@ -121,7 +121,7 @@ final class AppData {
 
     /** Mappen en bestanden in getFilesDir() die meegaan. (De kluis gaat apart: ontsleuteld via geheim/kluis.) */
     static final List<String> FILE_ROOTS = Collections.unmodifiableList(Arrays.asList(
-            "notes.json", "notes.json.bak", "music.json", "ai", "call-recordings", "checkin", "contacts", "gebruik", "podcasts",
+            "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "gebruik", "podcasts",
             "shortcut-icons", "sleep", "spotify", "tracks", "transcripts"));
 
     /** Wat in getFilesDir() bewust niet meegaat, met de reden. */

@@ -1,0 +1,148 @@
+<!-- ============ APPARATEN IN DE BUURT ============ -->
+<section class="screen" id="s-apparaten">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Apparaten</h1>
+    <button class="icon-btn" id="ap-set-btn" onclick="show('apset')" aria-label="Instellingen van Apparaten"><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <div class="ap-tabs" id="ap-tabs" role="tablist" aria-label="Soort">
+      <button role="tab" id="ap-t-bt" data-p="bt" aria-controls="ap-p-bt" onclick="apTab('bt')">Bluetooth</button>
+      <button role="tab" id="ap-t-wifi" data-p="wifi" aria-controls="ap-p-wifi" onclick="apTab('wifi')">Wifi</button>
+      <button role="tab" id="ap-t-lan" data-p="lan" aria-controls="ap-p-lan" onclick="apTab('lan')">Op mijn wifi</button>
+      <button role="tab" id="ap-t-tr" data-p="tr" aria-controls="ap-p-tr" onclick="apTab('tr')">Trackers</button>
+      <button role="tab" id="ap-t-known" data-p="known" aria-controls="ap-p-known" onclick="apTab('known')">Bekend</button>
+    </div>
+    <div class="card perm" id="ap-perm" style="display:none"></div>
+
+    <!-- Bluetooth -->
+    <div role="tabpanel" id="ap-p-bt" aria-labelledby="ap-t-bt">
+      <button class="big" id="ap-bt-go" onclick="apBtGo()"><span class="ui-icon" data-icon="search" aria-hidden="true"></span>Zoeken</button>
+      <p class="note ap-st" id="ap-bt-st" role="status" aria-live="polite"></p>
+      <div id="ap-bt-list" role="list" aria-label="Bluetooth-apparaten in de buurt"></div>
+      <div id="ap-bt-paired"></div>
+      <p class="note ap-foot">Telefoons, horloges en oortjes wisselen elke ~15 minuten van Bluetooth-adres, om niet gevolgd te kunnen worden. Zonder naam zijn ze niet uit elkaar te houden: die staan samen in één regel. De afstand is ongeveer: muren, je lichaam of een tas maken veel uit.</p>
+    </div>
+
+    <!-- Wifi-netwerken -->
+    <div role="tabpanel" id="ap-p-wifi" aria-labelledby="ap-t-wifi" hidden>
+      <button class="big" id="ap-wifi-go" onclick="apWifiGo()"><span class="ui-icon" data-icon="refresh" aria-hidden="true"></span>Opnieuw zoeken</button>
+      <p class="note ap-st" id="ap-wifi-st" role="status" aria-live="polite"></p>
+      <div class="card" id="ap-crowd-card" style="display:none">
+        <h2>Drukte per kanaal</h2>
+        <div id="ap-crowd"></div>
+        <p class="note" id="ap-crowd-tip"></p>
+      </div>
+      <div id="ap-wifi-list" role="list" aria-label="Wifi-netwerken in de buurt"></div>
+      <p class="note ap-foot">Android laat een app maar 4 keer per 2 minuten zoeken. Tussendoor zie je de netwerken die de telefoon het laatst vond. Open of WEP = onveilig: anderen kunnen meelezen.</p>
+    </div>
+
+    <!-- Op mijn wifi -->
+    <div role="tabpanel" id="ap-p-lan" aria-labelledby="ap-t-lan" hidden>
+      <button class="big" id="ap-lan-go" onclick="apLanGo()"><span class="ui-icon" data-icon="search" aria-hidden="true"></span>Zoeken op mijn wifi</button>
+      <div class="ap-prog" id="ap-lan-prog" style="display:none" role="progressbar" aria-label="Voortgang" aria-valuemin="0" aria-valuemax="100"><span id="ap-lan-bar"></span></div>
+      <p class="note ap-st" id="ap-lan-st" role="status" aria-live="polite"></p>
+      <div id="ap-lan-list" role="list" aria-label="Apparaten op je wifi"></div>
+      <p class="note ap-foot" id="ap-lan-foot">Alleen je eigen netwerk (hooguit 254 adressen), alleen via wifi en niets naar internet. De app kijkt alleen wat apparaten zelf aankondigen en welke gangbare diensten openstaan; hij logt nergens in.</p>
+    </div>
+
+    <!-- Trackers -->
+    <div role="tabpanel" id="ap-p-tr" aria-labelledby="ap-t-tr" hidden>
+      <div class="card" id="ap-tr-state"></div>
+      <div id="ap-tr-list" role="list" aria-label="Trackers"></div>
+      <button class="big ghost" id="ap-tr-go" onclick="apTrScan()"><span class="ui-icon" data-icon="search" aria-hidden="true"></span>Nu zoeken naar trackers</button>
+      <div class="card">
+        <h2><span class="ui-icon" data-icon="info" aria-hidden="true"></span>Hoe het werkt</h2>
+        <ul class="ap-tips">
+          <li>Herkend worden AirTags en andere Find My-trackers, Galaxy SmartTags, Tile, Chipolo, trackers van Google Zoek mijn apparaat en trackers volgens de gezamenlijke norm van Apple en Google.</li>
+          <li>Bij AirTags, andere Find My-trackers en trackers van Google is te zien of de eigenaar in de buurt is: die tellen alleen als ze apart zijn. SmartTag, Tile en Chipolo laten dat niet zien; die tellen altijd. Trackers bij hun eigenaar wisselen meestal om de ~15 minuten van adres en reizen dan niet lang onder hetzelfde adres mee.</li>
+          <li>Een waarschuwing komt als dezelfde onbekende tracker op minstens 3 plekken, minstens 500 meter uit elkaar, over minstens een half uur met je mee is gegaan. Thuis telt niet mee, en alleen een verse, nauwkeurige plaatsbepaling.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Bekend en geschiedenis -->
+    <div role="tabpanel" id="ap-p-known" aria-labelledby="ap-t-known" hidden>
+      <h2 class="ap-h">Mijn apparaten</h2>
+      <div id="ap-mine" role="list" aria-label="Mijn apparaten"></div>
+      <h2 class="ap-h">Vaak in de buurt, thuis</h2>
+      <div id="ap-oft-home" role="list" aria-label="Vaak in de buurt, thuis"></div>
+      <h2 class="ap-h">Vaak in de buurt, elders</h2>
+      <div id="ap-oft-away" role="list" aria-label="Vaak in de buurt, elders"></div>
+      <p class="note ap-foot" id="ap-hist-foot"></p>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-apdev">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1" id="apd-h">Apparaat</h1>
+  </div>
+  <main>
+    <div class="card ap-warn" id="apd-tracker" style="display:none"></div>
+    <div class="card" id="apd-find">
+      <h2>Zoeken: warmer of kouder</h2>
+      <div class="ap-meter" id="apd-meter" role="meter" aria-label="Signaal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="ap-ring" id="apd-ring"><b id="apd-val">–</b><small id="apd-unit">Nog niet gevonden</small></div>
+      </div>
+      <p class="ap-trend" id="apd-trend" role="status" aria-live="polite">Loop rond met de telefoon.</p>
+      <svg class="ap-spark" id="apd-spark" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"><path id="apd-spark-p" d=""/></svg>
+      <div class="sw"><span>Toon<small id="apd-tone-n">Een piep die sneller gaat naarmate je dichterbij komt</small></span><button class="tg" id="apd-tone" role="switch" aria-checked="false" aria-label="Toon" aria-describedby="apd-tone-n" onclick="apdToggle('apTone')"></button></div>
+      <div class="sw"><span>Trillen<small id="apd-vib-n">Een tik als het warmer wordt</small></span><button class="tg" id="apd-vib" role="switch" aria-checked="true" aria-label="Trillen" aria-describedby="apd-vib-n" onclick="apdToggle('apVib')"></button></div>
+      <button class="big" id="apd-go" onclick="apdFindToggle()">Zoeken</button>
+    </div>
+    <div class="card" id="apd-info"></div>
+    <div class="card" id="apd-acts"></div>
+  </main>
+</section>
+
+<section class="screen" id="s-apset">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Instellingen van Apparaten</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2>Op de achtergrond</h2>
+      <div class="sw"><span>Op de achtergrond zoeken<small id="aps-bg-n">Nodig voor de trackerwaarschuwing en voor "vaak in de buurt"</small></span><button class="tg" id="aps-bg" role="switch" aria-checked="false" aria-label="Op de achtergrond zoeken" aria-describedby="aps-bg-n" onclick="apsTg('bg')"></button></div>
+      <b class="ap-lbl" id="aps-every-l">Hoe vaak</b>
+      <div class="chips sm" id="aps-every" role="radiogroup" aria-labelledby="aps-every-l">
+        <button role="radio" data-v="15" onclick="apsSet('every', 15)">Elk kwartier</button><button role="radio" data-v="30" onclick="apsSet('every', 30)">Elk half uur</button><button role="radio" data-v="60" onclick="apsSet('every', 60)">Elk uur</button>
+      </div>
+      <p class="note" id="aps-bg-how"></p>
+    </div>
+    <div class="card">
+      <h2>Trackers</h2>
+      <div class="sw"><span>Waarschuwen voor trackers die met je meereizen<small id="aps-tr-n">Een onbekende AirTag, SmartTag, Tile … die je een tijd volgt</small></span><button class="tg" id="aps-tr" role="switch" aria-checked="true" aria-label="Waarschuwen voor trackers die met je meereizen" aria-describedby="aps-tr-n" onclick="apsTg('trackers')"></button></div>
+      <p class="note">Gebruikt alleen een grove plek (netwerklocatie, afgerond op ~100 m) en bewaart die hooguit 8 uur, alleen voor onbekende trackers.</p>
+    </div>
+    <div class="card">
+      <h2>Vaak in de buurt</h2>
+      <div class="sw"><span>Bijhouden welke apparaten vaak in de buurt zijn<small id="aps-hist-n">Thuis en elders, om bijv. te zien waar je oortjes het laatst waren</small></span><button class="tg" id="aps-hist" role="switch" aria-checked="true" aria-label="Bijhouden welke apparaten vaak in de buurt zijn" aria-describedby="aps-hist-n" onclick="apsTg('hist')"></button></div>
+      <div class="sw"><span>Alleen buiten huis<small id="aps-away-n">Thuis niets bijhouden (de apparaten van je buren ook niet)</small></span><button class="tg" id="aps-away" role="switch" aria-checked="false" aria-label="Alleen buiten huis" aria-describedby="aps-away-n" onclick="apsTg('away')"></button></div>
+      <b class="ap-lbl" id="aps-keep-l">Bewaren</b>
+      <div class="chips sm" id="aps-keep" role="radiogroup" aria-labelledby="aps-keep-l">
+        <button role="radio" data-v="7" onclick="apsSet('keep', 7)">1 week</button><button role="radio" data-v="30" onclick="apsSet('keep', 30)">30 dagen</button><button role="radio" data-v="90" onclick="apsSet('keep', 90)">90 dagen</button>
+      </div>
+      <p class="note">Per apparaat alleen: eerste en laatste keer, op hoeveel dagen, en of dat thuis of elders was (een vakje van ~1 km). Nooit een spoor van waar het was. Alleen apparaten met een vaste naam of een vast adres zijn terug te herkennen.</p>
+      <h2 class="ap-h2">Thuis</h2>
+      <p class="note" id="aps-home-st"></p>
+      <div class="row"><button class="mini" id="aps-home" onclick="apsHome(false)">Hier is thuis</button><button class="mini" id="aps-home-x" onclick="apsHome(true)">Thuis wissen</button></div>
+    </div>
+    <div class="card">
+      <h2>Toestemmingen</h2>
+      <div id="aps-perms"></div>
+    </div>
+    <div class="card">
+      <h2>Privacy</h2>
+      <ul class="ap-tips">
+        <li>Alles blijft op je telefoon, in de eigen map van de app. Het gaat niet mee in de Android-backup, wel in "Alle appgegevens" (versleuteld).</li>
+        <li>Er gaat niets naar internet: de lijst met makers zit in de app.</li>
+        <li>Andere mensen hebben ook telefoons en horloges. Daarom: geen koppeling met je contacten, en geen melding als een apparaat van iemand anders in de buurt komt.</li>
+      </ul>
+      <button class="big ghost" onclick="apsWipe(false)">Geschiedenis en trackers wissen</button>
+      <button class="big ghost" onclick="apsWipe(true)">Alles wissen, ook bijnamen en thuis</button>
+    </div>
+  </main>
+</section>

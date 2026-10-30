@@ -45,6 +45,13 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <!-- Gebruik: welke functies op Android gebruikt worden en wanneer (bijzondere toegang; die geeft Rene zelf in Instellingen) -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
+    <!-- Apparaten: Bluetooth en wifi in de buurt. Zonder neverForLocation: de app leidt er (grof) je plek uit af,
+         voor de trackerwaarschuwing en "vaak in de buurt". -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
     <!-- Telefoon-skin: alle apps met een pictogram kunnen tonen en openen -->
     <queries>
@@ -449,6 +456,15 @@
             android:name=".TranscribeJob"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <!-- Apparaten op de achtergrond (alleen als je dat aanzet): een korte scan per ronde, en de tracker-scan van Android zelf -->
+        <service
+            android:name=".ApparatenJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+        <receiver
+            android:name=".ApparatenJob$Ontvanger"
+            android:exported="false" />
 
         <service
             android:name=".TracksService"
