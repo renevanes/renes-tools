@@ -14,6 +14,7 @@
       <button class="gb-tab" role="tab" aria-selected="false" data-tab="ontgrendel" onclick="gbTab('ontgrendel')">Ontgrendelingen</button>
       <button class="gb-tab" role="tab" aria-selected="false" data-tab="functies" onclick="gbTab('functies')">Functies</button>
       <button class="gb-tab" role="tab" aria-selected="false" data-tab="meldingen" onclick="gbTab('meldingen')">Meldingen</button>
+      <button class="gb-tab" role="tab" aria-selected="false" data-tab="fotos" onclick="gbTab('fotos')">Foto's</button>
     </div>
 
     <div class="card" id="gb-start" style="display:none">
@@ -50,6 +51,13 @@
     <div id="gb-functies" class="gb-pane" style="display:none">
       <p class="note">Wanneer camera, microfoon, locatie, Bluetooth, wifi en mobiele data gebruikt werden, en — zo ver Android dat toelaat — door welke app ("waarschijnlijk via …"). Android laat deze dingen alleen zien zolang de app zelf aanstaat, dus dit is niet volledig.</p>
       <div id="gb-funcs"></div>
+    </div>
+
+    <!-- Foto's bij ontgrendelen -->
+    <div id="gb-fotos" class="gb-pane" style="display:none">
+      <p class="note">De stille foto's met de voorcamera: bij een mislukte poging, bij ontgrendelen en je proefopnames. Ze staan versleuteld alleen hier, nooit in je galerij. Tik op een foto om hem groot te zien.</p>
+      <div id="gb-fotos-list"></div>
+      <button class="big ghost" onclick="show('gebruikset')">Instellingen voor foto's</button>
     </div>
 
     <!-- Meldingen & opladen -->
@@ -110,8 +118,10 @@
       <div class="chips sm" id="gb-pafter" role="radiogroup" aria-label="Na aantal mislukte pogingen"><button role="radio" data-v="1" onclick="gbPhotoAfter(1)">1</button><button role="radio" data-v="2" onclick="gbPhotoAfter(2)">2</button><button role="radio" aria-checked="true" data-v="3" onclick="gbPhotoAfter(3)">3</button><button role="radio" data-v="5" onclick="gbPhotoAfter(5)">5</button></div>
       <b class="gb-lbl">Foto's bewaren</b>
       <div class="chips sm" id="gb-pkeep" role="radiogroup" aria-label="Foto's bewaren"><button role="radio" data-v="7" onclick="gbPhotoKeep(7)">1 week</button><button role="radio" aria-checked="true" data-v="30" onclick="gbPhotoKeep(30)">30 dagen</button><button role="radio" data-v="90" onclick="gbPhotoKeep(90)">90 dagen</button></div>
-      <p class="note">De foto's staan alleen in de app (afgeschermde opslag), nooit in je galerij, en gaan niet mee in de Google-backup. Ze gaan wel mee in "Alle appgegevens" (versleuteld).</p>
+      <p class="note">De foto's staan alleen in de app, bij Gebruik → tabblad <b>Foto's</b> (versleuteld, nooit in je galerij, niet in de Google-backup; wel in "Alle appgegevens").</p>
       <button class="big ghost" id="gb-test" onclick="gbTestShot()">Proefopname</button>
+      <p class="note" id="gb-test-res" role="status" aria-live="polite"></p>
+      <button class="big ghost" id="gb-photos-open" onclick="gbOpenPhotos()">Foto's bekijken</button>
       <div id="gb-photos"></div>
       <button class="big ghost" id="gb-photos-clear" onclick="gbClearPhotos()" style="display:none">Alle foto's wissen</button>
     </div>

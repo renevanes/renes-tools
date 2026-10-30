@@ -1799,6 +1799,7 @@ public class MainActivity extends Activity {
                 p.put(perm("history", "Meldingentoegang", "Meldingsgeschiedenis", NotificationHistory.allowed(ctx)));
                 p.put(perm("location", "Locatie", "Mijn routes", has(Manifest.permission.ACCESS_FINE_LOCATION)));
                 p.put(perm("mic", "Microfoon", "Muziek herkennen", has(Manifest.permission.RECORD_AUDIO)));
+                p.put(perm("camera", "Camera", "QR-code scannen, Gebruik: foto bij ontgrendelen", has(Manifest.permission.CAMERA)));
                 p.put(perm("nearby", "Apparaten in de buurt", "Apparaten (Bluetooth en wifi)", ApparatenScan.btPerm(ctx)));
                 if (Build.VERSION.SDK_INT >= 33) p.put(perm("notif", "Meldingen", "Voortgang en bediening", has(Manifest.permission.POST_NOTIFICATIONS)));
                 p.put(perm("files", "Alle bestanden", "WhatsApp backup, Gesprekken", hasFilesAccess(ctx)));
@@ -1824,6 +1825,7 @@ public class MainActivity extends Activity {
                     case "sms": p = new String[]{Manifest.permission.READ_SMS}; break;
                     case "location": p = new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}; break;
                     case "mic": p = new String[]{Manifest.permission.RECORD_AUDIO}; break;
+                    case "camera": p = new String[]{Manifest.permission.CAMERA}; break; // Gebruik: foto bij ontgrendelen; QR-code scannen
                     case "notif": if (Build.VERSION.SDK_INT >= 33) p = new String[]{Manifest.permission.POST_NOTIFICATIONS}; break;
                     case "calendar": p = new String[]{Manifest.permission.READ_CALENDAR}; break; // alleen lezen (Check-in)
                     case "nearby": p = ApparatenBridge.nearby(); break; // Apparaten: Bluetooth en wifi in de buurt

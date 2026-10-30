@@ -1,5 +1,5 @@
 /* ---------- Gebruik: schermtijd, ontgrendelingen, telefoonfuncties, meldingen en opladen ---------- */
-let gbTabV = 'overzicht', gbPeriodV = 'today', gbShotPoll = null;
+let gbTabV = 'overzicht', gbPeriodV = 'today', gbShotPoll = null, gbShotWait = false;
 
 function gbState(){ return rdJson(Android.gebruikState(), {}) || {}; }
 function gbSet(){ return gbState().set || {}; }
@@ -26,11 +26,12 @@ function gbStart(){ gbSaveOne('collect', true); enterGebruik(); }
 function gbTab(name){
   gbTabV = name;
   document.querySelectorAll('#gb-tabs .gb-tab').forEach(b => { const on = b.dataset.tab === name; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
-  ['overzicht', 'ontgrendel', 'functies', 'meldingen'].forEach(p => { const el = $('#gb-' + p); if (el) el.style.display = p === name ? '' : 'none'; });
+  ['overzicht', 'ontgrendel', 'functies', 'meldingen', 'fotos'].forEach(p => { const el = $('#gb-' + p); if (el) el.style.display = p === name ? '' : 'none'; });
   if (name === 'overzicht') gbRenderOverview();
   else if (name === 'ontgrendel') gbRenderUnlocks();
   else if (name === 'functies') gbRenderFuncs();
   else if (name === 'meldingen') gbRenderNotifs();
+  else if (name === 'fotos') gbRenderPhotoTab();
 }
 
 function gbPeriod(p){ gbPeriodV = p; document.querySelectorAll('#gb-period button').forEach(b => { const on = b.dataset.p === p; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); gbRenderOverview(); }
@@ -164,7 +165,7 @@ function enterGebruikSet(){
   st.textContent = (caps.works ? 'Werkt op deze telefoon. ' : 'Werkt mogelijk niet. ') + (caps.why || '') + proef;
   st.classList.toggle('bad', !caps.works);
   const fix = [];
-  if (!caps.camera) fix.push(['Cameratoestemming geven', "show('setperm')"]);
+  if (!caps.camera) fix.push(['Cameratoestemming geven', "Android.permRequest('camera')"]);
   if (!caps.overlay) fix.push(['Boven andere apps toestaan', 'Android.gebruikOpenOverlay()']);
   if (!s.a11y) fix.push(['Toegankelijkheid aanzetten (voor "alleen met pincode")', "show('auto')"]);
   slHtml($('#gb-photo-fix'), fix.map(f => '<button class="big ghost" onclick="' + f[1] + '">' + esc(f[0]) + '</button>').join(''));
@@ -184,20 +185,58 @@ function gbPunlock(v){ gbSaveOne('punlock', v); enterGebruikSet(); }
 function gbAdmin(){ if (gbState().admin) gbAdminOff(); else Android.gebruikAdmin(true); }
 function gbAdminOff(){ askConfirm('Apparaatbeheer uitzetten?', 'Daarna ziet Gebruik mislukte pogingen niet meer, en kan de app weer verwijderd worden.', 'Uitzetten', () => Android.gebruikAdmin(false)); }
 
+/* Proefopname: eerst cameratoestemming (anders vraagt hij die en gaat daarna vanzelf verder), dan wachten op de uitkomst. */
 function gbTestShot(){
+  const caps = gbState().photoCaps || {};
+  if (caps.camera === false) {
+    gbShotWait = true;
+    $('#gb-test-res').textContent = 'Geef de app toegang tot de camera; daarna start de proefopname vanzelf.';
+    Android.permRequest('camera');
+    return;
+  }
+  gbShotWait = false;
   Android.gebruikTestShot();
-  toast('Proefopname gestart…');
+  $('#gb-test-res').textContent = 'Proefopname bezig…';
   clearTimeout(gbShotPoll);
-  gbShotPoll = setTimeout(() => { if (current === 'gebruikset') enterGebruikSet(); }, 1500);
+  const t0 = Date.now();
+  const poll = () => {
+    const ls = gbState().lastShot || '';
+    if (ls.indexOf('ok|') === 0) { $('#gb-test-res').textContent = 'Gelukt: de foto staat bij Gebruik → Foto\'s.'; toast('Proefopname gelukt'); if (current === 'gebruikset') enterGebruikSet(); return; }
+    if (ls.indexOf('mislukt') === 0) { $('#gb-test-res').textContent = 'Mislukt: ' + ls.slice(9); if (current === 'gebruikset') enterGebruikSet(); return; }
+    if (Date.now() - t0 > 12000) { $('#gb-test-res').textContent = 'Geen uitkomst: de camera reageerde niet. Probeer het opnieuw.'; return; }
+    gbShotPoll = setTimeout(poll, 600);
+  };
+  gbShotPoll = setTimeout(poll, 600);
+}
+function gbOpenPhotos(){ gbTabV = 'fotos'; show('gebruik'); }
+
+/* Tabblad Foto's: echte miniaturen (ontsleuteld in de app), nieuwste eerst. */
+function gbPhotoLabel(r){ return r === 'mislukt' ? 'Mislukte poging' : r === 'proef' ? 'Proefopname' : 'Ontgrendeld'; }
+function gbRenderPhotoTab(){
+  const o = rdJson(Android.gebruikPhotos(), {}) || {}, ph = (o.photos || []).slice(0, 60);
+  const box = $('#gb-fotos-list');
+  if (!ph.length) { slHtml(box, '<div class="card"><p class="note">Nog geen foto\'s. Zet bij Instellingen "Foto bij ontgrendelen" of "Foto bij een mislukte poging" aan, of maak een proefopname.</p></div>'); return; }
+  slHtml(box, '<div class="gb-grid" role="list">' + ph.map(p => '<div role="listitem"><button class="gb-tile" data-id="' + esc(p.id) + '" onclick="gbShowPhoto(this.dataset.id)" aria-label="' + esc(gbPhotoLabel(p.reason) + ', ' + gbDay(p.t) + ' ' + gbTime(p.t)) + '"><span class="gb-tile-img"></span><small><b>' + esc(gbPhotoLabel(p.reason)) + '</b>' + esc(gbDay(p.t) + ' ' + gbTime(p.t)) + '</small></button></div>').join('') + '</div>' +
+    ((o.photos || []).length > ph.length ? '<p class="note">De nieuwste ' + ph.length + ' van ' + o.photos.length + ' foto\'s.</p>' : ''));
+  // Miniaturen één voor één ontsleutelen (het scherm blijft vlot)
+  const tiles = Array.from(box.querySelectorAll('.gb-tile'));
+  const next = () => { const t = tiles.shift(); if (!t || current !== 'gebruik' || gbTabV !== 'fotos') return; const url = Android.gebruikPhoto(t.dataset.id); const sp = t.querySelector('.gb-tile-img'); if (url && sp) { const im = document.createElement('img'); im.alt = ''; im.src = url; sp.appendChild(im); } setTimeout(next, 0); };
+  setTimeout(next, 0);
 }
 
 function gbRenderPhotos(){
   const o = rdJson(Android.gebruikPhotos(), {}) || {}, ph = o.photos || [];
   $('#gb-photos-clear').style.display = ph.length ? '' : 'none';
-  slHtml($('#gb-photos'), ph.length ? '<div class="gb-photos">' + ph.map(p => '<button class="gb-thumb" onclick="gbShowPhoto(\'' + esc(p.id) + '\')"><span class="ui-icon" data-icon="camera" aria-hidden="true"></span>' + gbDay(p.t) + ' ' + gbTime(p.t) + ' · ' + (p.reason === 'mislukt' ? 'mislukte poging' : 'ontgrendeld') + '</button>').join('') + '</div>' : '');
+  $('#gb-photos-open').textContent = ph.length ? 'Foto\'s bekijken (' + ph.length + ')' : 'Foto\'s bekijken';
+  // De laatste drie als snelle link; alles staat bij Gebruik → Foto's
+  slHtml($('#gb-photos'), ph.length ? '<div class="gb-photos">' + ph.slice(0, 3).map(p => '<button class="gb-thumb" data-id="' + esc(p.id) + '" onclick="gbShowPhoto(this.dataset.id)"><span class="ui-icon" data-icon="camera" aria-hidden="true"></span>' + esc(gbDay(p.t) + ' ' + gbTime(p.t) + ' · ' + gbPhotoLabel(p.reason)) + '</button>').join('') + '</div>' : '');
 }
 
 function gbClearPhotos(){ askConfirm('Foto\'s wissen?', 'Alle foto\'s van Gebruik verwijderen.', 'Wissen', () => { Android.gebruikClearPhotos(); gbRenderPhotos(); toast('Foto\'s gewist'); }); }
 function gbClearAll(){ askConfirm('Alles wissen?', 'Alle gebeurtenissen, samenvattingen en foto\'s van Gebruik verwijderen.', 'Wissen', () => { Android.gebruikClearAll(); toast('Alles van Gebruik gewist'); if (current === 'gebruikset') enterGebruikSet(); }); }
+
+// Na het geven van cameratoestemming: de proefopname waar je om vroeg alsnog maken
+(function(){ const prev = window.onSettingsChanged; window.onSettingsChanged = function(msg){ if (typeof prev === 'function') prev(msg);
+  if (current === 'gebruikset') { enterGebruikSet(); if (gbShotWait && (gbState().photoCaps || {}).camera) gbTestShot(); } }; })();
 
 window.onGebruik = function(){ if (current === 'gebruik') enterGebruik(); else if (current === 'gebruikset') enterGebruikSet(); };

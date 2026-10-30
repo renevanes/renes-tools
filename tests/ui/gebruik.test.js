@@ -82,11 +82,30 @@ const { chromium } = require('playwright');
       await pg.click('#gb-pfail'); await pg.waitForTimeout(100);
       ok(await pg.evaluate(() => Android._gb.set.photoFail === true), tag + ': foto bij mislukte poging aan');
       // Proefopname
+      // Zonder cameratoestemming: de knop vraagt erom en de proefopname gaat daarna vanzelf verder
+      await pg.evaluate(() => { Android._gb.camera = false; enterGebruikSet(); });
+      ok((await pg.textContent('#gb-photo-fix')).includes('Cameratoestemming geven'), tag + ': knop voor cameratoestemming');
+      await pg.click('#gb-photo-fix button:has-text("Cameratoestemming")'); await pg.waitForTimeout(250);
+      ok(await pg.evaluate(() => (Android._permAsked || []).includes('camera') && Android._gb.camera === true), tag + ': cameratoestemming echt gevraagd (niet naar een scherm zonder camera)');
+      await pg.evaluate(() => { Android._gb.camera = false; Android._permAsked = []; enterGebruikSet(); });
       const before = await pg.evaluate(() => Android._gb.photos.length);
-      await pg.click('#gb-test'); await pg.waitForTimeout(100);
-      ok(await pg.evaluate(n => Android._gb.photos.length > n, before), tag + ': proefopname zet een foto klaar');
-      await pg.evaluate(() => gbRenderPhotos());
-      ok((await pg.$$('#gb-photos .gb-thumb')).length >= 1, tag + ': foto in de lijst');
+      await pg.click('#gb-test');
+      ok(await pg.evaluate(() => (Android._permAsked || []).includes('camera') && Android._gb.photos.length >= 0) && /camera|bezig/.test(await pg.textContent('#gb-test-res')), tag + ': proefopname zonder toestemming vraagt eerst om de camera');
+      await pg.waitForTimeout(1600);
+      ok(await pg.evaluate(n => Android._gb.photos.length > n, before) && (await pg.textContent('#gb-test-res')).includes("Gebruik → Foto's"), tag + ': daarna vanzelf de proefopname, met waar de foto staat');
+      ok((await pg.$$('#gb-photos .gb-thumb')).length >= 1 && (await pg.textContent('#gb-photos-open')).includes("Foto's bekijken ("), tag + ': laatste foto als snelle link, en een knop naar alle foto\'s');
+      // Tabblad Foto's
+      await pg.click('#gb-photos-open'); await pg.waitForTimeout(300);
+      ok(await pg.evaluate(() => current === 'gebruik' && gbTabV === 'fotos') && await pg.isVisible('#gb-fotos-list .gb-tile'), tag + ': Foto\'s bekijken opent het tabblad Foto\'s');
+      ok(await pg.isVisible('#gb-fotos-list .gb-tile img') && (await pg.textContent('#gb-fotos-list')).includes('Proefopname'), tag + ': echte miniatuur met soort');
+      await pg.click('#gb-fotos-list .gb-tile'); await pg.waitForTimeout(80);
+      ok(await pg.isVisible('#gb-light img'), tag + ': tik op miniatuur: groot');
+      await pg.click('#gb-light .gb-light-x'); await pg.waitForTimeout(60);
+      await pg.evaluate(() => show('gebruikset')); await pg.waitForTimeout(150);
+      // Toestemmingen in Instellingen kent nu ook de camera
+      await pg.evaluate(() => show('setperm')); await pg.waitForTimeout(150);
+      ok((await pg.textContent('#s-setperm')).includes('Camera'), tag + ': Camera staat bij Toestemmingen');
+      await pg.evaluate(() => show('gebruikset')); await pg.waitForTimeout(150);
       // Foto bekijken + sluiten met de knop
       await pg.click('#gb-photos .gb-thumb'); await pg.waitForTimeout(80);
       ok(await pg.isVisible('#gb-light img') && await pg.isVisible('#gb-light .gb-light-x'), tag + ': foto bekijken met sluitknop');
