@@ -790,7 +790,7 @@ window.onCalendarPerm = renderCal;
 
 /* ---------- Tools ---------- */
 const TOOLS = {radio: ['📻', 'Radio'], notes: ['📝', 'Notities'], music: ['🎵', 'Muziek'], redial: ['📞', 'Redial'], backup: ['💾', 'Backup'], contacts: ['👤', 'Contacten'],
-  calls: ['📒', 'Oproepen'], transcripts: ['🎙️', 'Gesprekken'], wa: ['🟢', 'WhatsApp'], sms: ['💬', "Sms'jes"], tracks: ['🗺️', 'Routes'], settings: ['⚙️', 'Instellingen']};
+  calls: ['📒', 'Oproepen'], transcripts: ['🎙️', 'Gesprekken'], wa: ['🟢', 'WhatsApp'], sms: ['💬', "Sms'jes"], tracks: ['🗺️', 'Routes'], ai: ['✨', 'Assistent'], settings: ['⚙️', 'Instellingen']};
 function fmtD(t){ const d = new Date(t), n = new Date(); const hm = d.toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
   if (d.toDateString() === n.toDateString()) return 'vandaag ' + hm; if (new Date(t + 864e5).toDateString() === n.toDateString()) return 'gisteren ' + hm;
   return d.toLocaleDateString('nl-NL', {day: 'numeric', month: 'short'}); }

@@ -1,3 +1,0 @@
-De assistent heeft nu een eigen tab onderin (Assistent) en vertelt over je eigen gegevens als je die bron aanzet bij Lokale AI → Gegevens: schermtijd en ontgrendelingen (Gebruik), wat je vannacht zei (Slaappraat), hoe het gaat volgens Check-in en waar je eigen apparaten het laatst waren.
-De assistent kan een timer of wekker zetten, de radio of een podcast aanzetten, Slaappraat starten of stoppen, een tool openen en een sms of WhatsApp-bericht klaarzetten: altijd pas na jouw tik, en een bericht verstuur je zelf.
-Nieuw: Gesprek met de assistent zonder handen. Hij luistert, merkt zelf dat je uitgesproken bent, leest het antwoord zin voor zin voor en luistert weer; onderbreken door te praten of met de knop, stoppen met "stop" (instellingen bij Lokale AI → Spraak).

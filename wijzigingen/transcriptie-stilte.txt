@@ -1,4 +1,0 @@
-Gesprekken uitschrijven slaat losse televisievermeldingen en geluidslabels over en laat digitale stilte niet meer door het spraakmodel uitschrijven. Dit geldt ook voor inspreken.
-Geen spraak herkend? Bij het transcript staat nu hoe je de opname controleert en opnieuw probeert met het nauwkeurige spraakmodel.
-Gesprekken opnemen waarschuwt op Android 10 en nieuwer wanneer Android de microfoon dempt, ook als de opname eerder wel geluid ontving. Na opslaan blijft de waarschuwing zichtbaar.
-Gesprekken opnemen gebruikt nu de gedeelde spraakbron. Schakel vanaf Android 10 de aparte hulp bij gespreksopname in via het opnamescherm en test een kort gesprek op de luidspreker. Een geluidsmeter helpt controleren of er geluid binnenkomt. Automatisch starten vereist de actieve hulpdienst.
