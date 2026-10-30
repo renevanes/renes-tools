@@ -78,6 +78,9 @@ final class LocalAi {
             "bartowski/Qwen_Qwen3.5-4B-GGUF", "4168f45a16a1290d65a4ec0fa312ae917a4c15d6", "Qwen_Qwen3.5-4B-Q4_K_M.gguf", 3_013_027_808L,
             "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983", 4096, false).ram(BIG_RAM)
             .replaces("groot", "Nieuwer en slimmer, groter (3,0 GB)");
+    /** De AI-motor in de app (app/lib/arm64-v8a/README.txt; EngineVersionTest houdt die twee gelijk). */
+    static final String ENGINE = "llama.cpp b11500";
+
     static final Model[] MODELS = {SMALL, LARGE, SMALL35, LARGE35, EMBED};
 
     static Model model(String id) { for (Model m : MODELS) if (m.id.equals(id)) return m; return null; }

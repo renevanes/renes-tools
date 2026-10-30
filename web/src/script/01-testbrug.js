@@ -233,7 +233,7 @@ if (!window.Android) window.Android = (function(){
     // Lokale AI (assistent en slim zoeken): nagebootst, zonder model
     // Slaappraat zoals SleepBridge: nachten met stukjes, luisteren en uitschrijven worden nagebootst
     _sl: { phase: '', night: '', since: 0, stopAt: 0, heard: 0, level: -60, floor: -64, txDone: 0, txTotal: 0, message: '', mic: true, notif: true, model: 'Snel (57 MB)',
-      set: { sens: 2, stopAt: '07:30', transcribe: true, keepNoise: false, keep: 14, remindAt: '' }, nights: [], played: '', hearing: false, probeHits: 0, probeLeft: 0, notifOk: true },
+      set: { sens: 2, stopAt: '07:30', transcribe: true, keepNoise: false, keep: 14, remindAt: '', quiet: true }, nights: [], played: '', hearing: false, probeHits: 0, probeLeft: 0, notifOk: true },
     _slSum(n){ const c = n.clips; return { id: n.id, start: n.start, end: n.end, reason: n.reason || '', talk: c.filter(k => k.done && k.kind === 'praten').length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done).length, first: (c.find(k => k.done && k.kind === 'praten') || {}).text || '', batStart: n.batStart == null ? -1 : n.batStart, batEnd: n.batEnd == null ? -1 : n.batEnd, charged: !!n.charged }; },
     sleepState(){ const S = this._sl; return JSON.stringify({ phase: S.phase, night: S.night, since: S.since, stopAt: S.stopAt, heard: S.heard, level: S.level, floor: S.floor, txDone: S.txDone, txTotal: S.txTotal, message: S.message, hearing: S.hearing, probeHits: S.probeHits, probeLeft: S.probeLeft, notifOk: S.notifOk,
       mic: S.mic, notif: S.notif, model: S.model, set: S.set, nights: S.nights.slice().sort((a, b) => b.start - a.start).map(n => this._slSum(n)) }); },
@@ -249,7 +249,7 @@ if (!window.Android) window.Android = (function(){
     sleepDeleteNight(id){ const S = this._sl; if (id === S.night && S.phase) return; S.nights = S.nights.filter(n => n.id !== id); },
     sleepDeleteClip(id, clip){ const n = this._sl.nights.find(x => x.id === id); if (n) n.clips = n.clips.filter(k => k.id !== clip); },
     sleepSet(name, v){ const S = this._sl.set; if (name === 'sens') { if (!/^[123]$/.test(v)) return 'Ongeldig'; S.sens = +v; } else if (name === 'stopAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.stopAt = v; }
-      else if (name === 'transcribe' || name === 'keepNoise') S[name] = v === 'true'; else if (name === 'keep') { if (!/^(7|14|30)$/.test(v)) return 'Ongeldig'; S.keep = +v; }
+      else if (name === 'transcribe' || name === 'keepNoise' || name === 'quiet') S[name] = v === 'true'; else if (name === 'keep') { if (!/^(7|14|30)$/.test(v)) return 'Ongeldig'; S.keep = +v; }
       else if (name === 'remindAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.remindAt = v; } else return 'Ongeldig'; return ''; },
     sleepTranscribe(id){ const S = this._sl, n = S.nights.find(x => x.id === id); if (!n) return 'Onbekende nacht'; if (S.phase) return 'Dat kan pas als Slaappraat klaar is met luisteren en uitschrijven'; if (!S.model) return 'model';
       S.phase = 'uitschrijven'; S.night = id; S.txDone = 0; S.txTotal = n.clips.filter(k => !k.done && k.audio).length;
@@ -382,9 +382,9 @@ if (!window.Android) window.Android = (function(){
         (ai0.find(x => x.replaces === m.id) || {}).id ? { newer: ai0.find(x => x.replaces === m.id).id } : {}));
       const sp = [['base', 'Spraakmodel snel', 59707625], ['small', 'Spraakmodel nauwkeurig', 190085487]].map(([id, label, size]) => {
         const ready = !!T.models[id], run = !ready && T.st.running && T.st.phase === 'download' && T.dl === id;
-        return { id, key: 'spraak:' + id, kind: 'spraak', label, desc: 'Spraak naar tekst · whisper ' + id, version: 'Whisper ' + id, size, last: D.last['spraak:' + id] || 0, state: ready ? 'ready' : run ? 'running' : 'none', inUse: ready && T.model === id, bytes: run ? size * (T.st.pct || 0) / 100 : 0, total: size }; });
+        return { id, key: 'spraak:' + id, kind: 'spraak', label, desc: 'Spraak naar tekst · whisper ' + id, version: 'Whisper ' + id + ', OpenAI 2022', size, last: D.last['spraak:' + id] || 0, state: ready ? 'ready' : run ? 'running' : 'none', inUse: ready && T.model === id, bytes: run ? size * (T.st.pct || 0) / 100 : 0, total: size }; });
       const all = ai.concat(sp), used = all.filter(m => m.state === 'ready').reduce((a, m) => a + m.size, 0);
-      return JSON.stringify({ free: D.free, online: D.online, metered: D.metered, wifiOnly: A.wifiOnly, supported: true, txBusy: D.txBusy, models: all, used, leftovers: (A.orphans || 0) + (D.leftovers || 0), ram: A.ram, tts: D.tts }); },
+      return JSON.stringify({ free: D.free, online: D.online, metered: D.metered, wifiOnly: A.wifiOnly, supported: true, txBusy: D.txBusy, models: all, used, leftovers: (A.orphans || 0) + (D.leftovers || 0), ram: A.ram, tts: D.tts, engines: { ai: 'llama.cpp b11500', zoek: 'llama.cpp b11500', spraak: 'whisper.cpp 1.9.5' } }); },
     modelsClean(){ const n = (this._ai.orphans || 0) + (this._md.leftovers || 0); this._ai.orphans = 0; this._md.leftovers = 0; return String(n); },
     aiDownloadApp(id){ const A = this._ai, D = this._md, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dlApp', id]);
       Object.assign(m, { state: 'running', via: 'app', bytes: m.bytes || 0, total: m.total || 1e9, reason: undefined });

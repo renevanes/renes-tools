@@ -36,6 +36,8 @@ final class SleepTalk {
     static String stopAt(Context c) { String s = prefs(c).getString("stopAt", "07:30"); return validTime(s) ? s : ""; }
     static boolean transcribe(Context c) { return prefs(c).getBoolean("transcribe", true); }
     static boolean keepNoise(Context c) { return prefs(c).getBoolean("keepNoise", false); }
+    /** Onopvallend luisteren (standaard aan): de verplichte melding zo stil mogelijk, en 's ochtends geen melding. */
+    static boolean quiet(Context c) { return prefs(c).getBoolean("quiet", true); }
     static int keepDays(Context c) { int d = prefs(c).getInt("keep", 14); return d == 7 || d == 30 ? d : 14; }
     static int minBattery(Context c) { return 15; }
     /** Herinnering op bedtijd ("HH:mm", of "" = uit). */

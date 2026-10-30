@@ -43,7 +43,7 @@ final class Models {
             File f = Transcribe.modelFile(c, m);
             JSONObject s = new JSONObject().put("id", m.id).put("key", "spraak:" + m.id).put("kind", "spraak")
                     .put("label", "Spraakmodel " + m.label.replaceAll("\\s*\\(.*\\)$", "").toLowerCase(java.util.Locale.ROOT))
-                    .put("desc", "Spraak naar tekst · whisper " + m.id).put("version", "Whisper " + m.id).put("size", m.size).put("last", ModelUse.last(c, "spraak:" + m.id));
+                    .put("desc", "Spraak naar tekst · whisper " + m.id).put("version", "Whisper " + m.id + ", OpenAI 2022").put("size", m.size).put("last", ModelUse.last(c, "spraak:" + m.id));
             if (f.isFile()) { s.put("state", "ready").put("inUse", act != null && act.id.equals(m.id)); used += f.length(); }
             else if (TranscribeService.busy && st.optBoolean("running") && "download".equals(st.optString("phase")) && m.id.equals(dl))
                 s.put("state", "running").put("bytes", m.size * st.optInt("pct") / 100).put("total", m.size);
@@ -52,7 +52,8 @@ final class Models {
         }
         long left = 0;
         try { left = LocalAi.orphanBytes(c) + whisperParts(c, false); } catch (Throwable ignored) { }
-        o.put("models", ms).put("used", used).put("leftovers", left).put("ram", LocalAi.ramBytes(c)).put("tts", TtsCheck.json());
+        o.put("models", ms).put("used", used).put("leftovers", left).put("ram", LocalAi.ramBytes(c)).put("tts", TtsCheck.json())
+                .put("engines", new JSONObject().put("ai", LocalAi.ENGINE).put("zoek", LocalAi.ENGINE).put("spraak", Transcribe.ENGINE));
         return o;
     }
 

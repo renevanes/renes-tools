@@ -68,6 +68,12 @@ const { chromium } = require('playwright');
     // Instellingen
     await pg.click('#sl-sens button[data-v="3"]'); await pg.click('#sl-keep button[data-v="30"]'); await pg.click('#sl-noise');
     ok(await pg.evaluate(() => Android._sl.set.sens === 3 && Android._sl.set.keep === 30 && Android._sl.set.keepNoise === true) && (await pg.textContent('#sl-sens-n')).includes('duidelijk'), 'gevoeligheid, bewaren en geluiden');
+    ok((await pg.getAttribute('#sl-quiet', 'aria-checked')) === 'true' && (await pg.textContent('#sl-quiet-n')).includes('vergrendelscherm'), 'onopvallend luisteren staat standaard aan');
+    await pg.click('#sl-quietrow button'); ok(await pg.evaluate(() => Android._notifOpen === 'sleeptalk-stil'), 'melding verder wegstoppen: Android-instelling van de soort');
+    await pg.click('#sl-quiet'); await pg.waitForTimeout(60);
+    ok(await pg.evaluate(() => Android._sl.set.quiet === false) && (await pg.getAttribute('#sl-quiet', 'aria-checked')) === 'false' && (await pg.textContent('#sl-quiet-n')).includes('stopknop') && !(await pg.isVisible('#sl-quietrow')), 'onopvallend luisteren uit');
+    await pg.click('#sl-quiet'); await pg.waitForTimeout(60);
+    ok(await pg.evaluate(() => Android._sl.set.quiet === true) && (await pg.textContent('#sl-quiet-n')).includes('vergrendelscherm'), 'onopvallend luisteren weer aan');
     await pg.click('#sl-stop-on'); await pg.waitForTimeout(60);
     ok(await pg.evaluate(() => Android._sl.set.stopAt === '') && !(await pg.isVisible('#sl-stop')) && (await pg.textContent('#sl-stop-n')).includes('tot je stopt'), 'vanzelf stoppen uit');
     await pg.click('#sl-stop-on'); await pg.fill('#sl-stop', '06:45'); await pg.dispatchEvent('#sl-stop', 'change'); await pg.waitForTimeout(60);

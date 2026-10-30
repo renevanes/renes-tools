@@ -33,7 +33,7 @@ public class SleepBridge extends CheckinBridge {
             Transcribe.Model m = Transcribe.activeModel(ctx);
             o.put("model", m == null ? "" : m.label);
             o.put("set", new JSONObject().put("sens", SleepTalk.sens(ctx)).put("stopAt", SleepTalk.stopAt(ctx)).put("transcribe", SleepTalk.transcribe(ctx))
-                    .put("keepNoise", SleepTalk.keepNoise(ctx)).put("keep", SleepTalk.keepDays(ctx)).put("remindAt", SleepTalk.remindAt(ctx)));
+                    .put("keepNoise", SleepTalk.keepNoise(ctx)).put("keep", SleepTalk.keepDays(ctx)).put("remindAt", SleepTalk.remindAt(ctx)).put("quiet", SleepTalk.quiet(ctx)));
             SleepTalk.cleanupSometimes(ctx, SleepService.running() ? SleepService.night : "");
             o.put("nights", SleepTalk.nights(ctx));
             return o.toString();
@@ -92,7 +92,7 @@ public class SleepBridge extends CheckinBridge {
 
     @JavascriptInterface public void sleepDeleteClip(String id, String clip) { sleepStopPlay(); SleepTalk.deleteClip(ctx, id, clip); }
 
-    /** Instelling: sens (1-3), stopAt ("HH:mm" of ""), transcribe, keepNoise ("true"/"false"), keep (7/14/30). "" of melding. */
+    /** Instelling: sens (1-3), stopAt ("HH:mm" of ""), transcribe, keepNoise, quiet ("true"/"false"), keep (7/14/30). "" of melding. */
     @JavascriptInterface public String sleepSet(String name, String value) {
         if (name == null || value == null) return "Ongeldig";
         android.content.SharedPreferences.Editor e = SleepTalk.prefs(ctx).edit();
@@ -101,6 +101,11 @@ public class SleepBridge extends CheckinBridge {
             case "stopAt": if (!SleepTalk.validTime(value)) return "Ongeldige tijd"; e.putString("stopAt", value); break;
             case "remindAt": if (!SleepTalk.validTime(value)) return "Ongeldige tijd"; e.putString("remindAt", value).apply(); SleepReminder.arm(ctx); return "";
             case "transcribe": case "keepNoise": e.putBoolean(name, "true".equals(value)); break;
+            case "quiet":
+                e.putBoolean("quiet", "true".equals(value)).apply();
+                // Loopt hij al, dan de melding meteen omzetten (anders geldt het vanaf de volgende keer)
+                if (SleepService.running()) a.h.post(() -> { try { a.startService(new Intent(a, SleepService.class).setAction("refresh")); } catch (Exception ignored) { } });
+                return "";
             case "keep": if (!value.matches("7|14|30")) return "Ongeldig"; e.putInt("keep", Integer.parseInt(value)); break;
             default: return "Ongeldig";
         }

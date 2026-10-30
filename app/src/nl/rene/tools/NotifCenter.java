@@ -41,6 +41,7 @@ final class NotifCenter {
         {CheckinNotify.CHANNEL, "Check-in", "De vraag op het moment dat je koos, met knoppen om meteen te antwoorden (één melding per moment, nooit opnieuw)", "3"},
         {SleepReminder.CHANNEL, "Slaappraat: bedtijd", "Een herinnering op bedtijd om Slaappraat aan te zetten (als je die aanzet)", "3"},
         {SleepService.CHANNEL, "Slaappraat", "Zichtbaar zolang Slaappraat luistert of uitschrijft, met een stopknop; 's ochtends wat er gehoord is", "2"},
+        {SleepService.CHANNEL_QUIET, "Slaappraat (onopvallend)", SleepService.QUIET_INFO, "1"},
         {"call-recording", "Gespreksopname", "Zichtbaar zolang je opneemt, met een stopknop. Blijft ook zichtbaar als alle meldingen uit staan", "2"},
     };
 
@@ -96,6 +97,7 @@ final class NotifCenter {
         if (Build.VERSION.SDK_INT < 26) return;
         try {
             NotificationManager nm = c.getSystemService(NotificationManager.class);
+            SleepService.quietChannel(c); // met eigen instellingen (geen geluid, geen stip, niet op het vergrendelscherm)
             for (String[] k : KINDS) {
                 // Alleen aanmaken wat er nog niet is: de diensten zelf houden naam en uitleg bij, en de
                 // belangrijkheid blijft zoals jij hem in Android hebt gezet
