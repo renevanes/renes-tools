@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.110",
+    "date": "2026-10-30",
+    "changes": [
+      "Nieuw: Gebruik — schermtijd per app (vandaag, week, maand en jaar, met grafiek), een tijdlijn per ontgrendeling met de apps die erna kwamen, wanneer camera, microfoon, locatie, Bluetooth, wifi en data gebruikt werden (zolang de app meekijkt), en meldingen per app, opladen en herstarts. Je zet het zelf aan; alles blijft op je telefoon.",
+      "Of je met pincode ontgrendelde ziet Gebruik via de toegankelijkheidsdienst (die herkent alleen dát het pincodescherm verscheen, nooit wat je typt); staat die uit, dan heet het \"onbekend\". Apparaatbeheer (zelf aan te zetten) toont mislukte pogingen en ontgrendeld-na-mislukt. Ontgrendelingen worden bijgehouden vanaf Android 9.",
+      "Optioneel een stille voorcamera-foto bij een mislukte poging of bij ontgrendelen (bij elke of alleen met pincode); Android laat daarbij kort het camera-stipje zien. De foto's staan versleuteld in de app, nooit in je galerij, en gaan alleen mee in de versleutelde \"Alle appgegevens\"-backup."
+    ]
+  },
+  {
     "version": "1.109",
     "date": "2026-10-30",
     "changes": [
