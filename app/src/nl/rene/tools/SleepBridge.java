@@ -27,7 +27,7 @@ public class SleepBridge extends CheckinBridge {
                     .put("heard", SleepService.heard).put("level", Math.round(SleepService.levelDb)).put("floor", Math.round(SleepService.floorDb))
                     .put("txDone", SleepService.txDone).put("txTotal", SleepService.txTotal).put("message", SleepService.message)
                     .put("live", new JSONObject().put("talk", SleepService.liveTalk).put("noise", SleepService.liveNoise).put("open", SleepService.liveOpen)
-                            .put("text", SleepService.liveText).put("at", SleepService.liveAt).put("wait", SleepService.directWait).put("busy", SleepService.directBusy))
+                            .put("text", SleepService.liveText).put("at", SleepService.liveAt).put("wait", SleepService.directWait).put("busy", SleepService.directBusy).put("fin", SleepService.finishing))
                     .put("hearing", SleepService.hearingNow).put("probeHits", SleepService.probeHits).put("probeLeft", Math.max(0, SleepService.probeUntil - System.currentTimeMillis()))
                     .put("notifOk", Build.VERSION.SDK_INT < 33 || ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED);
             o.put("mic", ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
@@ -128,8 +128,9 @@ public class SleepBridge extends CheckinBridge {
             case "format": if (!value.matches("aac|wav")) return "Ongeldig"; e.putString(name, value); break;
             case "txModel": if (!value.isEmpty() && Transcribe.model(value) == null) return "Ongeldig"; e.putString(name, value); break;
             case "directBat": case "stopBat": case "maxAudio": case "minFree": case "clipMax": case "hang": case "pre": {
-                int v;
-                try { v = Integer.parseInt(value); } catch (NumberFormatException x) { return "Ongeldig"; }
+                // Precies een van de keuzes ("40", niet "+40" of "040")
+                if (!value.matches("[1-9][0-9]{0,3}|0")) return "Ongeldig";
+                int v = Integer.parseInt(value);
                 int[] ok = "directBat".equals(name) ? SleepTalk.DIRECT_BATS : "stopBat".equals(name) ? SleepTalk.STOP_BATS : "maxAudio".equals(name) ? SleepTalk.MAX_HOURS
                         : "minFree".equals(name) ? SleepTalk.MIN_FREES : "clipMax".equals(name) ? SleepTalk.CLIP_MAXES : "hang".equals(name) ? SleepTalk.HANGS : SleepTalk.PRES;
                 if (!SleepTalk.allowed(v, ok)) return "Ongeldig";

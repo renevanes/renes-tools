@@ -245,7 +245,7 @@ if (!window.Android) window.Android = (function(){
     _slSum(n){ const c = n.clips; return { bytes: this._slBytes(n), id: n.id, start: n.start, end: n.end, reason: n.reason || '', talk: c.filter(k => k.done && k.kind === 'praten').length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done).length, first: (c.find(k => k.done && k.kind === 'praten') || {}).text || '', batStart: n.batStart == null ? -1 : n.batStart, batEnd: n.batEnd == null ? -1 : n.batEnd, charged: !!n.charged }; },
     // Zoals SleepService.refreshLive: tellers van de nacht die nu loopt (meteen uitschrijven)
     _slLive(){ const S = this._sl, n = S.phase === 'luistert' && S.nights.find(x => x.id === S.night), c = n ? n.clips : [], talk = c.filter(k => k.done && k.kind === 'praten'), last = talk.slice().sort((a, b) => b.t - a.t)[0] || {};
-      return { talk: talk.length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done && k.audio).length, text: last.text || '', at: last.t || 0, wait: n ? S.directWait || '' : '', busy: false }; },
+      return { talk: talk.length, noise: c.filter(k => k.done && k.kind === 'geluid').length, open: c.filter(k => !k.done && k.audio).length, text: last.text || '', at: last.t || 0, wait: n ? S.directWait || '' : '', busy: false, fin: !!S.fin }; },
     // Eén stukje uitschrijven zoals SleepTalk.transcribeClip (praten / geluid; geluid zonder woorden verliest zijn geluid)
     _slTx(k){ const S = this._sl; k.done = true; k.text = k._text || ''; k.kind = k.text ? 'praten' : 'geluid'; if (k.kind === 'geluid' && !S.set.keepNoise) k.audio = false; },
     sleepState(){ const S = this._sl; return JSON.stringify({ phase: S.phase, night: S.night, since: S.since, stopAt: S.stopAt, heard: S.heard, level: S.level, floor: S.floor, txDone: S.txDone, txTotal: S.txTotal, message: S.message, hearing: S.hearing, probeHits: S.probeHits, probeLeft: S.probeLeft, notifOk: S.notifOk, live: this._slLive(),
@@ -273,7 +273,7 @@ if (!window.Android) window.Android = (function(){
       else if (name === 'transcribe' || name === 'keepNoise' || name === 'quiet' || name === 'direct') S[name] = v === 'true'; else if (name === 'keep') { if (!/^(7|14|30)$/.test(v)) return 'Ongeldig'; S.keep = +v; }
       else if (name === 'remindAt') { if (!/^(([01]\d|2[0-3]):[0-5]\d)?$/.test(v)) return 'Ongeldige tijd'; S.remindAt = v; }
       else if (name === 'reset') Object.assign(S, this._sl._slDef);
-      else if (this._sl._slOk[name]) { const ok = this._sl._slOk[name], x = typeof ok[0] === 'number' ? (/^\d+$/.test(v) ? +v : NaN) : v; if (!ok.includes(x)) return 'Ongeldig'; S[name] = x; }
+      else if (this._sl._slOk[name]) { const ok = this._sl._slOk[name], x = typeof ok[0] === 'number' ? (/^(0|[1-9]\d{0,3})$/.test(v) ? +v : NaN) : v; if (!ok.includes(x)) return 'Ongeldig'; S[name] = x; }
       else return 'Ongeldig'; return ''; },
     sleepTranscribe(id){ const S = this._sl, n = S.nights.find(x => x.id === id); if (!n) return 'Onbekende nacht'; if (S.phase) return 'Dat kan pas als Slaappraat klaar is met luisteren en uitschrijven'; if (!S.model) return 'model';
       S.phase = 'uitschrijven'; S.night = id; S.txDone = 0; S.txTotal = n.clips.filter(k => !k.done && k.audio).length;

@@ -157,8 +157,8 @@ final class SleepTalk {
      * eerst weg moet (leeg zolang het budget niet echt vol is). mode = Wat als het vol is:
      *  - "stop": niets weg; het nieuwe stukje krijgt geen geluid.
      *  - "geluid" (standaard): alleen een stukje dat op praten lijkt (speech) maakt plaats, en alleen ten koste van
-     *    geluid: eerst wat al uitgeschreven is en geen woorden had (of onleesbaar was), dan wat nog niet uitgeschreven is
-     *    en op geluid leek, steeds het oudste eerst. Praten (gegokt of uitgeschreven) gaat nooit weg.
+     *    geluid dat al uitgeschreven is en geen woorden had (of onleesbaar was), het oudste eerst. Wat nog niet
+     *    uitgeschreven is (de gok kan mis zijn) en gepraat gaan nooit weg; is er niet genoeg zulk geluid, dan past het niet.
      *  - "oudste": elk nieuw stukje gaat voor; het geluid van de oudste stukjes gaat weg (de uitgeschreven tekst blijft).
      * busy = stukjes die nu uitgeschreven worden: alleen als het niet anders kan.
      */
@@ -171,12 +171,11 @@ final class SleepTalk {
         List<Slot> cand = new ArrayList<>();
         for (Slot k : clips) {
             if (!k.audio) continue;
-            if (oldest || (k.done ? ("geluid".equals(k.kind) || "onleesbaar".equals(k.kind)) : !"praten".equals(k.guess))) cand.add(k);
+            if (oldest || (k.done && ("geluid".equals(k.kind) || "onleesbaar".equals(k.kind)))) cand.add(k);
         }
         final java.util.Set<String> b = busy == null ? java.util.Collections.<String>emptySet() : busy;
         java.util.Collections.sort(cand, (x, y) -> {
             if (b.contains(x.id) != b.contains(y.id)) return b.contains(x.id) ? 1 : -1;
-            if (!oldest && x.done != y.done) return x.done ? -1 : 1;
             return Long.compare(x.t, y.t);
         });
         double freed = 0;
@@ -199,13 +198,6 @@ final class SleepTalk {
         if (bat < minBat) return "accu onder " + minBat + "% en niet aan de lader";
         if (saver) return "batterijbesparing staat aan";
         return "";
-    }
-
-    /** "3 keer gepraat · 12 geluiden" (voor de melding en het scherm). */
-    static String liveLine(int talk, int noise) {
-        String s = talk == 0 ? "Nog niets gezegd" : talk == 1 ? "1 keer gepraat" : talk + " keer gepraat";
-        if (noise > 0) s += " · " + noise + (noise == 1 ? " geluid" : " geluiden");
-        return s;
     }
 
     /** 16-bit PCM als WAV (16 kHz mono). */
@@ -327,8 +319,8 @@ final class SleepTalk {
                 JSONObject x = a.getJSONObject(i);
                 if (!drop.contains(x.optString("id"))) continue;
                 removeAudio(c, night, x.optString("id"));
-                x.put("audio", false);
-                if (!x.optBoolean("done")) x.put("full", true).put("why", "plaats");
+                x.put("audio", false).put("why", "plaats");
+                if (!x.optBoolean("done")) x.put("full", true);
             }
             JSONObject o = new JSONObject().put("id", id).put("t", t).put("dur", Math.round(sec * 10) / 10.0).put("ratio", Math.round(k.bandRatio * 100) / 100.0)
                 .put("peak", Math.round(k.peakDb)).put("guess", speech ? "praten" : "geluid").put("audio", keep).put("done", false).put("full", !keep);
@@ -523,6 +515,18 @@ final class SleepTalk {
                         else if (f.getName().endsWith(".rt-part") && !AiSleepBackup.applying && System.currentTimeMillis() - f.lastModified() > 600_000L) f.delete();
                     }
                     JSONObject n = night(c, id);
+                    // Geluid dat de nacht niet (meer) kent (de app viel weg tussen opslaan en vastleggen, of wegdoen
+                    // lukte half): weg, pas na 10 minuten en niet tijdens terugzetten
+                    if (n != null && fs != null && !AiSleepBackup.applying) {
+                        java.util.Set<String> keep = new java.util.HashSet<>();
+                        JSONArray ka = n.optJSONArray("clips");
+                        if (ka != null) for (int i = 0; i < ka.length(); i++) { JSONObject k = ka.optJSONObject(i); if (k != null && k.optBoolean("audio")) keep.add(k.optString("id")); }
+                        for (File f : fs) {
+                            String fn = f.getName();
+                            if (!(fn.endsWith(".m4a") || fn.endsWith(".wav"))) continue;
+                            if (!keep.contains(fn.substring(0, fn.length() - 4)) && System.currentTimeMillis() - f.lastModified() > 600_000L) f.delete();
+                        }
+                    }
                     if (n != null && n.optLong("end") == 0) {
                         long last = n.optLong("start");
                         JSONArray a = n.optJSONArray("clips");
@@ -563,6 +567,8 @@ final class SleepTalk {
         return o;
     }
 
+    static synchronized boolean isBusy(String clip) { return busy.contains(clip); }
+
     /** Het oudste stukje dat nog uitgeschreven moet worden (en niet al bezig is), of null. */
     static synchronized String nextOpen(Context c, String night) {
         JSONObject n = night(c, night);
@@ -598,7 +604,7 @@ final class SleepTalk {
     /** Wanneer het uitschrijven van één stukje moet stoppen (het whisper-proces stopt dan meteen). */
     interface Halt { boolean now(); }
     /** Uitkomst van één stukje: uitgeschreven, niets te doen (al gedaan, weg of al bezig), of gestopt. */
-    static final int TX_DONE = 0, TX_SKIP = 1, TX_STOP = 2;
+    static final int TX_DONE = 0, TX_SKIP = 1, TX_STOP = 2, TX_BUSY = 3;
 
     /**
      * Eén stukje uitschrijven en de uitkomst vastleggen (zelfde regels 's ochtends en meteen): praten, geluid of
@@ -616,7 +622,8 @@ final class SleepTalk {
                 JSONObject k = a.getJSONObject(i);
                 if (clip.equals(k.optString("id"))) { open = !k.optBoolean("done") && k.optBoolean("audio"); durMs = (long) (k.optDouble("dur", 60) * 1000); break; }
             }
-            if (!open || !busy.add(clip)) return TX_SKIP;
+            if (!open) return TX_SKIP;
+            if (!busy.add(clip)) return TX_BUSY; // een ander is er nog mee bezig
         }
         try {
             if (halt.now()) return TX_STOP;
@@ -647,7 +654,11 @@ final class SleepTalk {
                     if (!broken && !missing) {
                         try { out = Transcribe.whisper(c, wav, m, (ph, pct) -> { if (halt.now()) throw new Stopped(); }, true, threads); }
                         catch (Stopped s) { return TX_STOP; }
-                        catch (Exception e) { if (halt.now()) return TX_STOP; throw e; } // proces gestopt: geen fout
+                        catch (Exception e) {
+                            if (halt.now()) return TX_STOP; // proces gestopt: geen fout
+                            if (!f.isFile()) missing = true; // weggedaan of gewist terwijl hij bezig was
+                            else throw e;
+                        }
                     }
                 } finally { if (wav != f) wav.delete(); }
                 if (halt.now()) return TX_STOP;
@@ -692,9 +703,19 @@ final class SleepTalk {
             if (a != null) for (int i = 0; i < a.length(); i++) { JSONObject k = a.getJSONObject(i); if (!k.optBoolean("done") && k.optBoolean("audio")) todo.add(k.optString("id")); }
         }
         int done = 0;
+        List<String> later = new ArrayList<>();
         txThread = Thread.currentThread();
         try {
             for (String clip : todo) {
+                if (stopTx) return;
+                if (step != null) step.step(done, todo.size());
+                int r = transcribeClip(c, night, clip, m, () -> stopTx, 0);
+                if (r == TX_STOP) return;
+                if (r == TX_BUSY) later.add(clip); else done++;
+            }
+            // Stukjes waar nog een ander mee bezig was (het meteen uitschrijven dat net stopte): wachten en alsnog
+            for (String clip : later) {
+                for (int i = 0; i < 120 && isBusy(clip) && !stopTx; i++) Thread.sleep(500);
                 if (stopTx) return;
                 if (step != null) step.step(done, todo.size());
                 if (transcribeClip(c, night, clip, m, () -> stopTx, 0) == TX_STOP) return;

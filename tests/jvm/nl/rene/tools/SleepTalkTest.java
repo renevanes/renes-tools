@@ -88,11 +88,9 @@ public class SleepTalkTest {
         r = SleepTalk.makeRoom(full, 45, true, max, "geluid", null);
         check(r != null && r.equals(Arrays.asList("klaar", "stuk")), "daarna wat onleesbaar was (" + r + ")");
         r = SleepTalk.makeRoom(full, 60, true, max, "geluid", null);
-        check(r != null && r.equals(Arrays.asList("klaar", "stuk", "oud")), "daarna het oudste nog niet uitgeschreven geluid (" + r + ")");
-        r = SleepTalk.makeRoom(full, 60, true, max, "geluid", new HashSet<>(Collections.singletonList("oud")));
-        check(r != null && r.equals(Arrays.asList("klaar", "stuk", "snurk")), "wat nu uitgeschreven wordt liever niet (" + r + ")");
-        r = SleepTalk.makeRoom(full, 165, true, max, "geluid", new HashSet<>(Collections.singletonList("oud")));
-        check(r != null && r.equals(Arrays.asList("klaar", "stuk", "snurk", "oud")), "maar als het niet anders kan wel (" + r + ")");
+        check(r == null, "nog niet uitgeschreven geluid gaat nooit weg (de gok kan mis zijn): past niet, dan niets weg");
+        r = SleepTalk.makeRoom(full, 20, true, max, "geluid", new HashSet<>(Collections.singletonList("klaar")));
+        check(r != null && r.equals(Arrays.asList("stuk", "klaar")), "wat nu bezig is liever niet, maar als het niet anders kan wel (" + r + ")");
         check(SleepTalk.makeRoom(full, 200, true, max, "geluid", null) == null, "praten en gegokt praten gaan nooit weg: past niet, dan niets weg");
         // Stop bewaren
         check(SleepTalk.makeRoom(full, 20, true, max, "stop", null) == null, "stop: ook praten krijgt dan geen geluid meer, niets weg");
@@ -121,6 +119,5 @@ public class SleepTalkTest {
         for (String w : new String[]{"altijd", "lader", "accu"})
             check(SleepTalk.directWait(w, b, true, 100, true, false, false).contains("gesprek") && SleepTalk.directWait(w, b, true, 100, false, true, false).contains("warm"), "tijdens een gesprek of als de telefoon warm is: nooit (" + w + ")");
         check(SleepTalk.allowed(15, SleepTalk.STOP_BATS) && !SleepTalk.allowed(16, SleepTalk.STOP_BATS) && SleepTalk.allowed(0, SleepTalk.MAX_HOURS) && SleepTalk.allowed(1500, SleepTalk.HANGS), "alleen vaste keuzes");
-        check("3 keer gepraat · 12 geluiden".equals(SleepTalk.liveLine(3, 12)) && "1 keer gepraat · 1 geluid".equals(SleepTalk.liveLine(1, 1)) && "Nog niets gezegd · 4 geluiden".equals(SleepTalk.liveLine(0, 4)), "tellen voor de melding");
     }
 }

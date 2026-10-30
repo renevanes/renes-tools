@@ -63,6 +63,8 @@ public final class SleepService extends Service {
     static volatile String liveText = "", directWait = "";
     static volatile long liveAt;
     static volatile boolean directBusy;
+    /** Het luisteren is net gestopt en hij rondt af (het meteen uitschrijven stoppen). */
+    static volatile boolean finishing;
     /** Proefronde: hoe vaak iets opgepikt, en of hij nu iets hoort. */
     static volatile boolean hearingNow;
     static volatile int probeHits;
@@ -131,7 +133,7 @@ public final class SleepService extends Service {
         params = SleepTalk.detectParams(this);
         try { night = SleepTalk.begin(this, t0, SleepTalk.sens(this), params, bat[0], charged); } catch (Exception e) { message = "Opslaan lukt niet"; return false; }
         since = t0; heard = 0; levelDb = -90; floorDb = -90; inCall = false;
-        liveTalk = 0; liveNoise = 0; liveOpen = 0; liveText = ""; liveAt = 0; directWait = ""; directBusy = false;
+        liveTalk = 0; liveNoise = 0; liveOpen = 0; liveText = ""; liveAt = 0; directWait = ""; directBusy = false; finishing = false;
         stopAt = SleepTalk.stopTime(since, SleepTalk.stopAt(this), java.util.TimeZone.getDefault());
         phase = "luistert";
         SleepReminder.dismiss(this);
@@ -195,6 +197,8 @@ public final class SleepService extends Service {
         final String n = night;
         try {
             listen(n, since);
+            finishing = true; // de microfoon is al dicht: niet meer "Luistert" laten zien
+            notifyNow();
             stopDirect();
             refreshLive(n);
             int[] bat = battery();
@@ -207,9 +211,11 @@ public final class SleepService extends Service {
             }
         } catch (Throwable t) {
             App.log(this, "SLAAP", "dienst: " + t);
+            finishing = true;
             stopDirect();
             SleepTalk.end(this, n, System.currentTimeMillis(), "Onderbroken");
         }
+        finishing = false;
         doneNotice();
         main.post(this::afterWork);
     }
@@ -258,7 +264,10 @@ public final class SleepService extends Service {
                 // Telefoongesprek (ook via internet): niet luisteren en de microfoon vrijgeven
                 int mode = am == null ? AudioManager.MODE_NORMAL : am.getMode();
                 if (mode == AudioManager.MODE_IN_CALL || mode == AudioManager.MODE_IN_COMMUNICATION) {
-                    if (!inCall) { inCall = true; pausedAt = System.currentTimeMillis(); det.flush(); notifyNow(); try { rec.stop(); } catch (Throwable ignored) { } }
+                    if (!inCall) {
+                        inCall = true; pausedAt = System.currentTimeMillis(); det.flush(); notifyNow(); try { rec.stop(); } catch (Throwable ignored) { }
+                        Transcribe.stopOwnedBy(direct); // ook niet uitschrijven tijdens het gesprek (het stukje blijft open)
+                    }
                     Thread.sleep(1000);
                     checkLimits(start);
                     continue;
@@ -359,13 +368,13 @@ public final class SleepService extends Service {
                     directKick = false;
                 }
                 if (g != directGen || directStop || stop || destroyed) break;
-                if (!SleepTalk.transcribe(this) || !SleepTalk.direct(this)) { setWait(""); continue; }
+                if (!SleepTalk.transcribe(this) || !SleepTalk.direct(this)) { setWait(g, ""); continue; }
                 Transcribe.Model m = SleepTalk.model(this);
-                if (m == null) { setWait(""); continue; }
+                if (m == null) { setWait(g, ""); continue; }
                 String clip = SleepTalk.nextOpen(this, n);
-                if (clip == null) { setWait(""); continue; }
+                if (clip == null) { setWait(g, ""); continue; }
                 String why = directReason();
-                setWait(why);
+                setWait(g, why);
                 if (!why.isEmpty()) continue;
                 int r;
                 directBusy = true;
@@ -373,9 +382,11 @@ public final class SleepService extends Service {
                 catch (Throwable e) {
                     App.log(this, "SLAAP", "meteen uitschrijven: " + e);
                     // Lukt het steeds niet, dan deze nacht niet meer (straks volgt het gewone uitschrijven, met een melding)
-                    if (++fails >= 3) { setWait("het lukte steeds niet"); break; }
+                    if (++fails >= 3) { setWait(g, "het lukte steeds niet"); break; }
                     continue;
-                } finally { directBusy = false; }
+                } finally { if (g == directGen) directBusy = false; }
+                // Gestopt (of een oude ronde die nog ergens op wachtte): niets meer aan het scherm of de melding doen
+                if (directHalt(g)) continue;
                 refreshLive(n);
                 notifyNow();
                 // Klaar met een stukje: meteen door met het volgende (gestopt of overgeslagen: rustig wachten)
@@ -386,7 +397,7 @@ public final class SleepService extends Service {
         }
     }
 
-    private void setWait(String why) { directWait = why; }
+    private void setWait(int g, String why) { if (g == directGen) directWait = why; }
 
     /** Waarom meteen uitschrijven nu wacht (zie SleepTalk.directWait), of "". */
     private String directReason() {
@@ -396,6 +407,11 @@ public final class SleepService extends Service {
             PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
             saver = pm.isPowerSaveMode();
             if (Build.VERSION.SDK_INT >= 29) hot = pm.getCurrentThermalStatus() >= PowerManager.THERMAL_STATUS_MODERATE;
+            else {
+                // Oudere Android: de temperatuur van de accu (in tienden van een graad), warm vanaf 40 °C
+                Intent b = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+                hot = b != null && b.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) >= 400;
+            }
         } catch (Throwable ignored) { }
         return SleepTalk.directWait(SleepTalk.directWhen(this), SleepTalk.directBat(this), bat[1] == 1, bat[0], inCall, hot, saver);
     }
@@ -465,9 +481,9 @@ public final class SleepService extends Service {
                 .addAction(android.R.drawable.ic_media_pause, "Stoppen", stopI).build();
         // Nooit wat je zei in de melding (die kan op het vergrendelscherm staan): alleen tellen
         String text = tx ? "Uitschrijven: " + txDone + " van " + txTotal
-                : inCall ? "Luistert niet tijdens het gesprek" : liveTalk + liveNoise > 0 ? SleepTalk.liveLine(liveTalk, liveNoise)
-                : heard == 0 ? "Nog niets gehoord" : heard + " keer iets gehoord";
-        if (!tx && stopAt > 0) text += " · stopt om " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT).format(new java.util.Date(stopAt));
+                : finishing ? "Afronden…" : inCall ? "Luistert niet tijdens het gesprek" : heard == 0 ? "Nog niets gehoord"
+                : heard + " keer iets gehoord" + (liveTalk + liveNoise > 0 ? " · " + (liveTalk + liveNoise) + " uitgeschreven" : "");
+        if (!tx && !finishing && stopAt > 0) text += " · stopt om " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT).format(new java.util.Date(stopAt));
         return b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle(tx ? "Slaappraat schrijft uit" : "Slaappraat luistert")
                 .setContentText(text).setOngoing(true).setOnlyAlertOnce(true).setShowWhen(!tx && !quiet).setWhen(since).setUsesChronometer(!tx && !quiet)
                 .setContentIntent(content).addAction(android.R.drawable.ic_media_pause, "Stoppen", stopI).build();
@@ -501,6 +517,7 @@ public final class SleepService extends Service {
     private boolean goForeground() { return Fg.start(this, NOTIFICATION, build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE, 30); }
 
     private void notifyNow() {
+        if (destroyed || phase.isEmpty()) return; // nooit een melding van een ronde die al voorbij is
         try { getSystemService(NotificationManager.class).notify(NOTIFICATION, build()); } catch (Throwable ignored) { }
     }
 

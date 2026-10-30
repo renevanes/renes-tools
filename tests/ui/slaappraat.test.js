@@ -142,7 +142,8 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => show('sleep')); await pg.waitForTimeout(100);
     // Zonder lader en weinig accu: wacht, en zegt waarom
     await pg.evaluate(() => { Android._sl.directWait = 'accu onder 40% en niet aan de lader'; Android._slHear('Niet vergeten', 3); Android._slHear('', 20);
-      Android._slHear('', 30, { audio: false, full: true, why: 'max' }); Android._slHear('', 30, { audio: false, full: true, why: 'plaats' }); }); await pg.waitForTimeout(1200);
+      Android._slHear('', 30, { audio: false, full: true, why: 'max' }); Android._slHear('', 30, { audio: false, full: true, why: 'plaats' });
+      Android._slHear('', 30, { audio: false, done: true, kind: 'geluid', why: 'plaats' }); }); await pg.waitForTimeout(1200);
     const st2 = await pg.textContent('#sl-status');
     ok(st2.includes('wacht: accu onder 40%') && st2.includes('2 nog uit te schrijven') && st2.includes('na het luisteren'), 'wacht (accu): zegt waarom, en dat de rest na het luisteren komt');
     // Stoppen: alleen wat er nog over is wordt uitgeschreven
@@ -156,6 +157,7 @@ const { chromium } = require('playwright');
     await pg.click('#sln-filter button[data-v=alles]'); await pg.waitForTimeout(80);
     const lst = await pg.textContent('#sln-list');
     ok(lst.includes('maximum aan geluid voor deze nacht') && lst.includes('plaats te maken'), 'maximum bereikt: uitleg met de nieuwe regels');
+    ok(lst.includes('Geluid (geen woorden) · Geluid weggedaan om plaats te maken'), 'ook bij een uitgeschreven stukje: geluid weggedaan om plaats te maken');
     await pg.evaluate(() => show('sleep')); await pg.waitForTimeout(100);
     // Uitzetten, en verborgen als er niet uitgeschreven wordt
     await pg.click('#sl-direct'); await pg.waitForTimeout(60);
@@ -175,6 +177,9 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._slHear('', 50); Android._slHear('Hallo', 3); }); await pg.waitForTimeout(1200);
     ok(await pg.evaluate(() => { const n = Android._sl.nights.find(x => x.id === Android._sl.night); const g = n.clips.find(k => k.kind === 'geluid'); return g && g.done && g.audio; }), 'geluiden bewaren: uitgeschreven geluid houdt zijn geluid');
     ok(/\d+ kB|\d+ MB/.test(await pg.textContent('#sl-nights .strow:first-child')), 'grootte bij de nacht');
+    await pg.evaluate(() => { Android._sl.fin = true; }); await pg.waitForTimeout(1200);
+    ok((await pg.textContent('#sl-status')).includes('Afronden') && !(await pg.textContent('#sl-status')).includes('Luistert'), 'net gestopt: Afronden…, niet meer Luistert');
+    await pg.evaluate(() => { Android._sl.fin = false; });
     await pg.click('#sl-btn'); await pg.waitForTimeout(800);
     ok((await pg.textContent('#sl-size')).includes('Slaappraat gebruikt') && (await pg.textContent('#sl-size')).includes('nachten'), 'totale grootte op het scherm');
     await pg.evaluate(() => { Android._sl.set.keepNoise = false; });
@@ -184,7 +189,7 @@ const { chromium } = require('playwright');
     const chk = id => pg.evaluate(i => (document.querySelector('#' + i + ' button[aria-checked=true]') || {}).dataset ? document.querySelector('#' + i + ' button[aria-checked=true]').dataset.v : null, id);
     ok((await chk('sls-when')) === 'accu' && (await chk('sls-dbat')) === '40' && (await chk('sls-max')) === '8' && (await chk('sls-full')) === 'geluid' && (await chk('sls-free')) === '500' && (await chk('sls-fmt')) === 'aac'
       && (await chk('sls-clip')) === '60' && (await chk('sls-hang')) === '1500' && (await chk('sls-pre')) === '2' && (await chk('sls-stop')) === '15' && (await chk('sls-model')) === '', 'standaard: zoals voorheen (60 s, 1,5 s, 2 s, 15%) en 8 uur geluid');
-    ok((await pg.textContent('#sls-size')).includes('Nu:') && (await pg.textContent('#sls-max-n')).includes('115 MB') && (await pg.textContent('#sls-full-n')).includes('Gepraat gaat nooit weg'), 'opslag: grootte en eerlijke uitleg');
+    ok((await pg.textContent('#sls-size')).includes('Nu:') && (await pg.textContent('#sls-max-n')).includes('115 MB') && (await pg.textContent('#sls-full-n')).includes('Gepraat en wat nog niet uitgeschreven is, gaan nooit weg'), 'opslag: grootte en eerlijke uitleg');
     await pg.click('#sls-when button[data-v=lader]'); await pg.waitForTimeout(60);
     ok(await pg.evaluate(() => Android._sl.set.directWhen === 'lader') && !(await pg.isVisible('#sls-dbatrow')) && (await pg.textContent('#sls-when-n')).includes('aan de lader'), 'alleen aan de lader: accudrempel niet nodig');
     await pg.click('#sls-when button[data-v=accu]'); await pg.click('#sls-dbat button[data-v="60"]'); await pg.waitForTimeout(60);
@@ -192,9 +197,9 @@ const { chromium } = require('playwright');
     await pg.click('#sls-clip button[data-v="120"]'); await pg.click('#sls-hang button[data-v="3000"]'); await pg.click('#sls-pre button[data-v="5"]'); await pg.click('#sls-stop button[data-v="20"]'); await pg.click('#sls-model button[data-v=small]'); await pg.waitForTimeout(80);
     ok(await pg.evaluate(() => { const S = Android._sl.set; return S.directWhen === 'accu' && S.directBat === 60 && S.maxAudio === 0 && S.whenFull === 'oudste' && S.minFree === 1000 && S.format === 'wav' && S.clipMax === 120 && S.hang === 3000 && S.pre === 5 && S.stopBat === 20 && S.txModel === 'small'; }), 'alles instelbaar');
     ok((await pg.textContent('#sls-max-n')).includes('Onbeperkt') && (await pg.textContent('#sls-full-n')).includes('ook van gepraat') && (await pg.textContent('#sls-fmt-n')).includes('115 MB') && (await pg.textContent('#sls-model-n')).includes('nog niet gedownload'), 'uitleg past zich aan');
-    ok(await pg.evaluate(() => Android.sleepSet('maxAudio', '3') !== '' && Android.sleepSet('whenFull', 'alles') !== '' && Android.sleepSet('hang', 'x') !== '' && Android.sleepSet('txModel', 'groot') !== '' && Android._sl.set.maxAudio === 0), 'alleen vaste keuzes');
+    ok(await pg.evaluate(() => Android.sleepSet('maxAudio', '3') !== '' && Android.sleepSet('whenFull', 'alles') !== '' && Android.sleepSet('hang', 'x') !== '' && Android.sleepSet('txModel', 'groot') !== '' && Android.sleepSet('directBat', '040') !== '' && Android.sleepSet('directBat', '+40') !== '' && Android._sl.set.maxAudio === 0), 'alleen vaste keuzes');
     await pg.evaluate(() => show('sleep')); await pg.waitForTimeout(100);
-    ok((await pg.textContent('#sl-direct-n')).includes('vanaf 60% accu'), 'hoofdscherm: meteen uitschrijven noemt de gekozen drempel');
+    ok((await pg.textContent('#sl-direct-n')).includes('vanaf 60% accu') && (await pg.textContent('#sl-stopbat')) === '20', 'hoofdscherm: noemt de gekozen drempels');
     await pg.click('#sl-more'); await pg.waitForTimeout(150);
     await pg.click('#sls-reset'); await pg.click('#modal-ok'); await pg.waitForTimeout(100);
     ok(await pg.evaluate(() => { const S = Android._sl.set; return S.directBat === 40 && S.maxAudio === 8 && S.whenFull === 'geluid' && S.format === 'aac' && S.clipMax === 60 && S.txModel === '' && S.keep === 30; }) && (await chk('sls-max')) === '8', 'terug naar standaard (nachten bewaren blijft)');

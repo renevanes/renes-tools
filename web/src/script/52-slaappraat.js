@@ -36,7 +36,11 @@ function slDur(ms){ const m = Math.round(ms / 60000); return m < 60 ? m + ' min'
 function slRender(){
   const s = slSt, set = s.set || {}, st = $('#sl-status'), btn = $('#sl-btn'), meter = $('#sl-meter');
   if (!st) return;
-  if (s.phase === 'luistert') {
+  if (s.phase === 'luistert' && (s.live || {}).fin) {
+    // Net gestopt: de microfoon is dicht, het meteen uitschrijven stopt (kan even duren)
+    slHtml(st, '<div class="sl-live"><b>Afronden</b>…</div><p class="note">' + esc(s.heard ? s.heard + ' keer iets gehoord' : 'Niets gehoord') + '</p>' + slLiveHtml(s));
+    btn.textContent = 'Stoppen'; btn.classList.add('ghost'); meter.style.display = 'none';
+  } else if (s.phase === 'luistert') {
     slHtml(st, '<div class="sl-live"><span class="sl-dot" aria-hidden="true"></span><b>Luistert</b> sinds ' + esc(slTime(s.since)) + '</div><p class="note">' +
       esc((s.heard ? s.heard + ' keer iets gehoord' : 'Nog niets gehoord') + (s.stopAt ? ' · stopt om ' + slTime(s.stopAt) : '')) + '</p>' + slLiveHtml(s));
     btn.textContent = 'Stoppen'; btn.classList.add('ghost');
@@ -67,6 +71,7 @@ function slRender(){
   const bh = (s.nights || []).map(n => slBatPerHour(n)).filter(v => v >= 0);
   $('#sl-bat').textContent = bh.length ? 'Zonder lader kostte Slaappraat gemiddeld ' + (bh.reduce((a, b) => a + b, 0) / bh.length).toFixed(1).replace('.', ',') + '% accu per uur (' + bh.length + (bh.length === 1 ? ' nacht' : ' nachten') + ').' : '';
   $('#sl-bat').style.display = bh.length ? '' : 'none';
+  $('#sl-stopbat').textContent = String(set.stopBat || 15);
   const ro = !!set.remindAt, rt = $('#sl-rem');
   if (document.activeElement !== rt) rt.value = set.remindAt || '22:30';
   $('#sl-remrow').style.display = ro ? '' : 'none';
@@ -179,7 +184,8 @@ function slnRender(){
   document.querySelectorAll('#sln-filter button').forEach(b => { const x = b.dataset.v === slFilterV; b.classList.toggle('on', x); b.setAttribute('aria-checked', x ? 'true' : 'false'); });
   const list = slFilterV === 'alles' ? clips : clips.filter(k => !k.done || k.kind === 'praten');
   slHtml($('#sln-list'), list.map(k => {
-    const kind = !k.done ? (k.audio ? 'Nog niet uitgeschreven' : k.nobk ? 'Niet uitgeschreven (geluid zat niet in de backup)' : slNotKept(k)) : k.kind === 'praten' ? '' : k.kind === 'onleesbaar' ? 'Kon dit stukje niet lezen' : 'Geluid (geen woorden)';
+    const kind = !k.done ? (k.audio ? 'Nog niet uitgeschreven' : k.nobk ? 'Niet uitgeschreven (geluid zat niet in de backup)' : slNotKept(k))
+      : [k.kind === 'praten' ? '' : k.kind === 'onleesbaar' ? 'Kon dit stukje niet lezen' : 'Geluid (geen woorden)', !k.audio && k.why === 'plaats' ? 'Geluid weggedaan om plaats te maken (maximum van de nacht bereikt)' : ''].filter(Boolean).join(' · ');
     const play = k.audio ? '<button class="iconbtn" onclick="slnPlay(\'' + esc(k.id) + '\')" aria-label="' + (slPlaying === k.id ? 'Stoppen' : 'Afspelen') + ' ' + esc(slTime(k.t)) + '">' + uiIcon(slPlaying === k.id ? 'stop' : 'play') + '</button>' : '';
     return '<div class="sl-clip' + (k.kind === 'praten' ? ' talk' : '') + '" role="listitem" data-clip="' + esc(k.id) + '"><div class="sl-ct"><b>' + esc(slTime(k.t)) + '</b><small>' + esc(Math.max(1, Math.round(k.dur)) + ' s') + '</small></div>' +
       '<div class="sl-cx">' + (k.text ? '<p>' + esc(k.text) + '</p>' : '') + (kind ? '<small>' + esc(kind) + '</small>' : '') + '</div>' + play +
@@ -260,7 +266,7 @@ function slsRender(){
   const f = set.whenFull || 'geluid';
   $('#sls-full-n').textContent = f === 'oudste' ? 'Het nieuwste gaat altijd voor: het geluid van de oudste stukjes gaat weg, ook van gepraat en ook als het nog niet uitgeschreven is (uitgeschreven tekst blijft).'
     : f === 'stop' ? 'Er gaat niets weg; van nieuwe stukjes wordt dan alleen het tijdstip bewaard.'
-    : 'Pas als het echt vol is: iets nieuws dat op praten lijkt, neemt de plaats in van het oudste geluid (eerst wat al uitgeschreven is en geen woorden had). Gepraat gaat nooit weg; nieuw geluid wordt dan niet meer bewaard.';
+    : 'Pas als het echt vol is: iets nieuws dat op praten lijkt, neemt de plaats in van het oudste geluid dat al uitgeschreven is en geen woorden had. Gepraat en wat nog niet uitgeschreven is, gaan nooit weg; is er zulk geluid niet meer, dan wordt van nieuwe stukjes alleen het tijdstip bewaard.';
   $('#sls-fmt-n').textContent = fmt === 'wav' ? '±115 MB per uur geluid (8 keer zo groot als AAC): alleen als je het onbewerkte geluid wilt.' : '±14 MB per uur geluid; goed genoeg om terug te luisteren en uit te schrijven.';
   const ns = s.nights || [];
   $('#sls-size').textContent = 'Nu: ' + fmtB(s.bytes || 0) + ' in ' + ns.length + (ns.length === 1 ? ' nacht' : ' nachten') + (ns.length ? ' (grootste nacht ' + fmtB(Math.max(...ns.map(n => n.bytes || 0))) + ')' : '') + '. Oude nachten gaan vanzelf weg na ' + ((set.keep || 14) === 7 ? '1 week' : (set.keep || 14) === 30 ? '30 dagen' : '2 weken') + '.';

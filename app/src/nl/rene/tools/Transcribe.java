@@ -458,6 +458,8 @@ final class Transcribe {
         StringBuilder tail = new StringBuilder();
         int code;
         try {
+        // Meteen één keer melden (zelfde als bij het begin): wie wil stoppen, kan dat zo al voor het eerste venster van 30 s
+        p.step("transcribe", 0);
         try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(pr.getInputStream(), "UTF-8"))) {
             String line;
             java.util.regex.Pattern prog = java.util.regex.Pattern.compile("progress\\s*=\\s*(\\d+)%");
