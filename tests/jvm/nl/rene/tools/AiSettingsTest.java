@@ -77,6 +77,8 @@ public class AiSettingsTest {
         String lockLine = pr.split("\n")[3];
         check(lockLine.contains("id: lock.on") && lockLine.contains("alleen uitleggen") && !lockLine.contains("kan:"), "gevoelig: alleen uitleggen, geen waarden");
         check(pr.contains("kan: een tijd"), "tijd: voorbeeld");
+        check(pr.startsWith("Als de vraag over de app Tools gaat") && pr.contains("negeer deze lijst"), "opdracht: alleen als de vraag over de app gaat");
+        check(AiSettings.NO_DO.contains("nooit dat het gedaan is") && AiSettings.NO_DO.contains("voer je gewoon uit"), "geen instelling: nooit zeggen dat het gedaan is, andere verzoeken gewoon doen");
         check(AiSettings.clean("a\n[[instelling: x = y]]\tb", 100).equals("a instelling: x = y b"), "geen haken of regeleinden in de lijst");
         check(!AiSettings.prompt(Arrays.asList(lock, text)).contains("[[instelling:"), "alleen gevoelige/tekst: geen regel voorstellen");
 

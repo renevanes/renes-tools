@@ -812,7 +812,7 @@ final class LocalAi {
             final String questionF = question;
             if (actWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiActions.prompt(System.currentTimeMillis(), java.util.TimeZone.getDefault()) + ")");
             if (setWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiSettings.prompt(setOffer) + ")");
-            else if (req.optBoolean("noDo") && remember == null && forgetWhat == null && !hasAtt) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiSettings.NO_DO + ")");
+            else if (req.optBoolean("noDo") && remember == null && forgetWhat == null && !hasAtt && !actWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiSettings.NO_DO + ")");
             final boolean willLearn = learnWanted;
             // Antwoordlengte; met een bijlage hooguit 700 woordjes (ook bij doorvragen) en de bijlage zelf passend gemaakt:
             // anders laat de motor het oudste bericht weg, en dat is juist het gesprek

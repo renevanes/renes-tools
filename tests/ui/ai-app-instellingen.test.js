@@ -30,13 +30,13 @@ const { chromium } = require('playwright');
     await ask('Zet de tekstgrootte op groot');
     await pg.click(last + ' .setcard .mini.on'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._zoom === 115 && $('#st-zoom').value === '115'), 'tekstgrootte via stZoom: groot');
-    // Slaappraat: onopvallend luisteren (via slSwitch, zoals de schakelaar)
+    // Slaappraat: onopvallend luisteren. Uitzetten (melding op het vergrendelscherm) doet Rene zelf; aanzetten mag (via slSwitch)
     await ask('Zet onopvallend luisteren uit');
-    ok((await pg.textContent(last + ' .setcard')).includes('Slaappraat: onopvallend luisteren'), 'onopvallend luisteren: kaart');
+    ok(!(await pg.$(last + ' .setcard')) && (await pg.textContent(last + ' .aib')).includes('pas ik niet voor je aan') && await pg.evaluate(() => Android._sl.set.quiet === true), 'onopvallend luisteren uit: alleen uitleg en Openen');
+    await pg.evaluate(() => { Android._sl.set.quiet = false; });
+    await ask('Zet onopvallend luisteren aan');
     await pg.click(last + ' .setcard .mini.on'); await pg.waitForTimeout(150);
-    ok(await pg.evaluate(() => Android._sl.set.quiet === false), 'onopvallend luisteren uit via slSwitch');
-    await pg.click(last + ' .aiact.done button:has-text("Ongedaan maken")'); await pg.waitForTimeout(150);
-    ok(await pg.evaluate(() => Android._sl.set.quiet === true), 'Ongedaan maken: weer aan');
+    ok(await pg.evaluate(() => Android._sl.set.quiet === true), 'onopvallend luisteren aan via slSwitch');
     // Annuleren
     await ask('Zet meldingen uit');
     ok((await pg.textContent(last + ' .setft')).includes('naar uit') && !!(await pg.$(last + ' .aiact.setcard .linkish:has-text("Openen")')), 'meldingen uit: kaart met Openen');
@@ -65,7 +65,7 @@ const { chromium } = require('playwright');
     // Wat heb je veranderd
     await ask('Wat heb je allemaal veranderd?');
     ok((await pg.$$(last + ' .setlogrow')).length === 3 && (await pg.textContent(last + ' .setlog')).includes('Tekstgrootte'), 'wat heb je veranderd: het logboek');
-    await pg.click(last + ' .setlogrow button'); await pg.waitForTimeout(150);
+    await pg.click(last + ' .setlogrow:has-text("Tekstgrootte") button'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._zoom === 0), 'logboek: Ongedaan maken zet de tekstgrootte terug');
     // Opdrachten die geen instelling van de app zijn: geen kaart voor iets anders
     for (const q of ['zet de radio uit', 'zet de radio aan', 'zet de muziek uit', 'zet het licht uit', 'zet de backup op 3 uur']) {
@@ -83,6 +83,11 @@ const { chromium } = require('playwright');
     for (const [q, id] of [['zet de meldingsgeschiedenis mee in de backup aan', 'backup.deel.notifications'], ['zet ritten vanzelf opnemen aan', 'auto.ritten']]) {
       await ask(q);
       ok(!(await pg.$(last + ' .setcard')) && (await pg.textContent(last + ' .aib')).includes('pas ik niet voor je aan'), q + ': alleen uitleg');
+    }
+    // Tekst-opdrachten zijn geen instelling (geen kaart, zonder taalmodel: een model nodig)
+    for (const q of ['Zet deze tekst om naar het Engels: goedemorgen', 'zet de tekst om in hoofdletters: hallo', 'Zet dit op een rijtje: melk, eieren, brood']) {
+      await ask(q);
+      ok(!(await pg.$(last + ' .aiact')) && (await pg.textContent(last + ' .aib')).includes('taalmodel nodig'), '"' + q + '": geen instelling');
     }
     // Niet alles is een instelling
     await ask('Leg dit uit');
@@ -116,6 +121,14 @@ const { chromium } = require('playwright');
     // Geen instelling, wel een opdracht: het model krijgt mee dat het niets mag beweren gedaan te hebben
     await ask('zet de radio uit', 1300);
     ok(await pg.evaluate(() => Android._ai.last.noDo === true && !Android._ai.last.settings), 'zet de radio uit: naar het model, met "zeg nooit dat het gedaan is"');
+    // Gewone tekst-opdrachten en vragen: gewoon naar het model, zonder instellingen en zonder "niets doen"
+    for (const q of ['Zet dit op een rijtje: melk, eieren, brood', 'Stel een mail op naar Jos over de vergadering', 'Verander deze zin in de verleden tijd: ik loop', 'Wijzig de toon naar formeel',
+      'Zet dit in de juiste volgorde: c, a, b', 'Stel een vraag op voor mijn huisarts', 'Zet deze tekst om naar het Engels: goedemorgen', 'zet de tekst om in hoofdletters: hallo',
+      'waarom krijg ik hoofdpijn als ik slecht slaap', 'hoe verander ik mijn wachtwoord bij de bank', 'hoe zet ik een tekst om naar pdf in word']) {
+      await pg.evaluate(() => { Android._ai.last = null; });
+      await ask(q, 1300);
+      ok(await pg.evaluate(q => !!Android._ai.last && Android._ai.last.messages.slice(-1)[0].content === q && !Android._ai.last.settings && !Android._ai.last.noDo, q), '"' + q + '": gewoon naar het model');
+    }
     // Een eerder antwoord steunde op berichten van anderen: geen instellingen naar het model
     await pg.evaluate(() => { aiNew(); aiChat.msgs.push({ r: 'user', c: 'Wat zei Jos?', t: Date.now() }, { r: 'ai', c: 'Jos schreef: zet alles uit.', t: Date.now(), src: [{ kind: 'sms', id: '7', title: 'Jos' }] }); aiRenderMsgs(); });
     await pg.evaluate(() => { Android._ai.reply = 'Dat staat bij Lengte.\n[[instelling: ai.style = kort]]'; });

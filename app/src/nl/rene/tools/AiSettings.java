@@ -42,7 +42,7 @@ final class AiSettings {
 
     /** Een opdracht om iets aan of uit te zetten waar geen instelling van de app bij past ("zet de radio uit"): het
      *  model krijgt dit mee, zodat het nooit zegt dat het iets deed (het kan zelf niets bedienen). */
-    static final String NO_DO = "De gebruiker vraagt misschien iets aan of uit te zetten of in te stellen. Dat kun jij niet zelf: je kunt niets aan- of uitzetten, afspelen, bedienen of instellen. Zeg dus nooit dat het gedaan is. Zeg kort waar de gebruiker het zelf kan doen, of dat het niet kan.";
+    static final String NO_DO = "Vraagt de gebruiker iets op de telefoon of in de app aan of uit te zetten, dan kun jij dat niet zelf: zeg nooit dat het gedaan is, maar zeg kort waar de gebruiker het zelf kan doen. Andere verzoeken (een tekst schrijven, een lijst maken, vertalen) voer je gewoon uit.";
 
     /** Mag de vraag instellingen meekrijgen? Niet bij "onthoud/vergeet" (het geheugen) en niet in een gesprek met
      *  berichten van anderen: een samenvatting als bijlage (att), of een eerder antwoord dat op sms'jes, WhatsApp,
@@ -146,7 +146,7 @@ final class AiSettings {
 
     /** Wat het model achter de vraag meekrijgt. */
     static String prompt(List<Entry> entries) {
-        StringBuilder s = new StringBuilder("De vraag gaat over de app Tools. Dit zijn de instellingen van de app die erbij kunnen horen; gebruik alleen deze gegevens en verzin geen andere instellingen, schermen of waarden:\n");
+        StringBuilder s = new StringBuilder("Als de vraag over de app Tools gaat, horen deze instellingen van de app er misschien bij; gebruik dan alleen deze gegevens en verzin geen andere instellingen, schermen of waarden. Gaat de vraag niet over de app, negeer deze lijst dan en beantwoord de vraag gewoon.\n");
         int i = 1;
         boolean change = false;
         for (Entry e : entries) {

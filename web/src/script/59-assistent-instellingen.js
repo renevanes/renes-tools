@@ -75,8 +75,14 @@ const SET_TOOLW = new Set('radio muziek backup backups backuppen slaappraat what
 function setNameHit(e, x, full){
   if (setPhr(e, norm2(full || ''))) return true;
   const w = setIdx(e), fs = w.l.concat(w.s).filter(f => !SET_TOOLW.has(f));
-  return setWords(x).some(q => !SET_TOOLW.has(q) && fs.some(f => setWm(q, f) >= 0.7));
+  return setWords(x).some(q => !SET_TOOLW.has(q) && fs.some(f => setWmStrict(q, f) >= 0.7));
 }
+/* Zoals setWm, maar een begin telt pas vanaf 6 letters ("tekst" is niet "tekstgrootte") */
+function setWmStrict(q, f){ const m = setWm(q, f); return m >= 0.9 || (m > 0 && Math.min(q.length, f.length) >= 6) ? m : 0; }
+/* Een woord uit de naam zelf (niet alleen de zoekwoorden of de tool): voor uitlegvragen ("hoe zet ik automatisch opnemen aan") */
+function setLabelHit(e, x){ const w = setIdx(e); return setWords(x).some(q => !SET_TOOLW.has(q) && w.l.some(f => !SET_TOOLW.has(f) && setWm(q, f) >= 0.9)); }
+/* Woorden waaraan je ziet dat de vraag over de app gaat */
+const SET_APPW = /\b(instelling\w*|instellen|app|tools|scherm|schakelaar|knop|assistent)\b/;
 const SET_MIN = 2.4; // minstens één woord uit de naam, of een paar zoekwoorden
 
 /* ---------- wat wordt er gevraagd ---------- */
@@ -196,6 +202,10 @@ function setHandle(q){
   const clear = top && top.s >= SET_MIN && (!second || second.s < top.s * 0.8);
   if (it.kind === 'cmd') {
     const raw = it.raw;
+    // Een tekst-opdracht ("Zet dit op een rijtje: …", "Stel een mail op naar Jos …") is geen instelling: gewoon de assistent
+    const nx = setWords(it.x).length + (it.x.match(/\b(de|het|een|mijn|m'n|deze|dit|die)\b/g) || []).length;
+    if (/[:\n]/.test(q) || q.length > 90) return null;
+    const short = nx <= 4;
     // Alleen echte instellingen (geen Openen-plekken), met een woord uit de naam dat meer zegt dan de naam van de tool
     const ch = setFind(it.x, null, q).filter(h => setType(h.e) !== 'openen' && setType(h.e) !== 'tekst' && setNameHit(h.e, it.x, q));
     const ctop = ch[0];
@@ -207,7 +217,7 @@ function setHandle(q){
       const e = valid[0].e;
       return Object.assign({ local: true }, setPropose(e, setValFor(e, raw)));
     }
-    if (ctop && ctop.s >= SET_MIN) {
+    if (ctop && ctop.s >= SET_MIN && short) {
       const e = ctop.e;
       if (!setCanChange(e) || setSafe(e, 'aan') && setSafe(e, 'uit')) return Object.assign({ local: true }, setPropose(e, ''));
       if (setType(e) === 'keuze') return { local: true, text: setB0(e.label) + (setNow(e) ? ' staat nu op ' + setNow(e) + '.' : '.') + ' Kies een van deze:', set: { choose: e.id, open: [e.id] } };
@@ -215,7 +225,8 @@ function setHandle(q){
     }
     // Geen instelling van de app: zonder taalmodel eerlijk zeggen; met taalmodel gewoon antwoorden, met de opdracht
     // nooit te zeggen dat er iets aan- of uitgezet is (de assistent kan zelf niets bedienen)
-    if (!model) return it.sure ? Object.assign({ local: true }, setNotFound(it.x)) : null;
+    if (!it.sure || !short) return null; // bijv. "Verander deze zin in de verleden tijd": een gewone vraag
+    if (!model) return Object.assign({ local: true }, setNotFound(it.x));
     return { noDo: true };
   }
   if (it.kind === 'waar' || it.kind === 'stand') {
@@ -225,15 +236,18 @@ function setHandle(q){
     if (some.length) return { local: true, text: 'Bedoel je een van deze? Tik op Openen om ernaartoe te gaan.', set: { open: some.slice(0, 3).map(e => e.id) } };
     return model ? null : Object.assign({ local: true }, setNotFound(it.x));
   }
-  // Uitleg ("hoe …", "wat doet …"): met het taalmodel als dat er is
-  const some = hits.filter(h => h.s >= SET_MIN * 0.6).slice(0, 4).map(h => h.e);
+  // Uitleg ("hoe …", "wat doet …"): met het taalmodel als dat er is. Alleen als de vraag echt over de app gaat:
+  // een woord als "instelling" of "app", of een woord uit de naam van een instelling ("waarom krijg ik hoofdpijn als
+  // ik slecht slaap" gaat niet over Slaappraat)
+  const app = SET_APPW.test(norm2(q));
+  const some = hits.filter(h => h.s >= SET_MIN * (app ? 0.6 : 1) && (app || setLabelHit(h.e, it.x))).slice(0, 4).map(h => h.e);
   if (!some.length) return null;
   if (model) return { settings: setOffer(some), set: { open: some.slice(0, 3).map(e => e.id), offer: some.map(e => e.id) } };
   if (clear) return Object.assign({ local: true }, setLookup(top.e, 'waar'));
   return { local: true, text: 'Bedoel je een van deze? Tik op Openen om ernaartoe te gaan.', set: { open: some.slice(0, 3).map(e => e.id) } };
 }
 /* Opnieuw antwoorden: zelfde instellingen als de vraag erom vroeg */
-function setOfferFor(q){ const h = setHandle(q); return h && h.settings ? h : null; }
+function setOfferFor(q){ const h = setHandle(q); return h && (h.settings || h.noDo) ? h : null; }
 
 /* Wat het taalmodel voorstelde: streng tegen het register (alleen meegegeven, niet gevoelig, een bekende waarde) */
 function setFromModel(m, list){

@@ -92,7 +92,7 @@ final class VoiceNote {
         final int myRun;
         synchronized (VoiceNote.class) {
             if (liveOn) { stopLive(c, done); return; }
-            if (liveFinal != null) return; // live al gestopt en aan het uitschrijven: dat antwoord komt al
+            if (liveFinal != null || (liveMode && rec == null && "working".equals(state))) return; // live al gestopt en aan het uitschrijven: dat antwoord komt al
             if (rec == null) { done.done("{\"error\":\"Er wordt niet opgenomen\"}"); return; }
             try { rec.stop(); } catch (Exception ignored) { }
             try { rec.release(); } catch (Exception ignored) { }
@@ -268,7 +268,7 @@ final class VoiceNote {
             if (w != null) { try { Transcribe.writeWavHeader(w, (int) Math.min(Integer.MAX_VALUE, bytes)); } catch (Throwable ignored) { } try { w.close(); } catch (Throwable ignored) { } }
         }
         // Na 5 minuten, of als de microfoon wegviel: zelf stoppen en uitschrijven wat er is (zoals bij de gewone opname)
-        if (err != null) liveErr = err;
+        if (err != null && liveOn) liveErr = err; // na ✓ of ✕ (liveOn uit) is een fout bij het stoppen geen fout
         if ((auto || err != null) && liveOn) new Thread(() -> { try { stopLive(app, onAutoStop); } catch (Throwable ignored) { } }, "spraak-live-stop").start();
     }
 
@@ -285,6 +285,8 @@ final class VoiceNote {
                 if (big) m = Transcribe.activeModel(app);
                 if (m == null) return;
                 if (!liveOn || total - lastBytes < (big ? PART_NEW_BYTES * 3 : PART_NEW_BYTES) || System.currentTimeMillis() - lastAt < (big ? PART_MS_BIG : PART_MS)) continue;
+                // Loopt er al een andere whisper (Slaappraat, gesprekken uitschrijven): geen tussentekst, niet in de rij wachten
+                if (Transcribe.proc != null) { lastAt = System.currentTimeMillis(); continue; }
                 long[] win = window(total, WINDOW_BYTES);
                 byte[] data = new byte[(int) win[1]];
                 try (RandomAccessFile r = new RandomAccessFile(src, "r")) { r.seek(44 + win[0]); r.readFully(data); }
