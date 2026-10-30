@@ -362,9 +362,10 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             try { min = Integer.parseInt(x); } catch (Exception ignored) { }
             h.removeCallbacks(sleepRun);
             sleepAt = min > 0 ? System.currentTimeMillis() + min * 60_000L : 0;
-            if (min > 0) h.postDelayed(sleepRun, Math.max(0, min * 60_000L - SLEEP_FADE));
+            sleepFadeMs = SleepFade.length(min * 60_000L);
+            if (min > 0) h.post(sleepRun);
             // Altijd het volume terug (ook als de tijd tijdens het uitfaden verlengd wordt)
-            if (player != null && !alarm) { float v = ducked ? 0.3f : 1f; try { player.setVolume(v, v); } catch (Exception ignored) { } }
+            applyVolume();
             update();
         } else if (STOP.equals(a)) {
             stopAll();
@@ -383,19 +384,26 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         }
     }
 
-    static final long SLEEP_FADE = 30_000;
+    /** Hoe lang het uitfaden van de slaaptimer duurt (hangt af van de lengte van de timer, zie SleepFade). */
+    private long sleepFadeMs = SleepFade.MAX_MS;
 
-    /** Slaaptimer: de laatste 30 seconden steeds zachter, dan stoppen. */
+    /** Slaaptimer: de laatste minuten langzaam zachter, dan stoppen. */
     private final Runnable sleepRun = this::sleepFade;
 
     private void sleepFade() {
-        long left = sleepAt - System.currentTimeMillis();
         if (sleepAt == 0) return;
+        long left = sleepAt - System.currentTimeMillis();
         if (left <= 0) { sleepAt = 0; stopAll(); return; }
+        applyVolume();
+        h.postDelayed(sleepRun, SleepFade.nextDelay(left, sleepFadeMs));
+    }
+
+    /** Volume = slaaptimer × even zachter voor een melding. De wekker regelt zijn eigen volume (ramp). */
+    private void applyVolume() {
         MediaPlayer p = player;
-        float v = Math.max(0.05f, Math.min(1f, left / (float) SLEEP_FADE));
-        if (p != null && !alarm) { try { p.setVolume(ducked ? v * 0.3f : v, ducked ? v * 0.3f : v); } catch (Exception ignored) { } }
-        h.postDelayed(sleepRun, Math.min(500, left));
+        if (p == null || alarm) return;
+        float v = (sleepAt > 0 ? SleepFade.gain(sleepAt - System.currentTimeMillis(), sleepFadeMs) : 1f) * (ducked ? 0.3f : 1f);
+        try { p.setVolume(v, v); } catch (Exception ignored) { }
     }
 
     private void startFg() {
@@ -440,10 +448,10 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
             if ("playing".equals(status) || "connecting".equals(status)) { pausedByFocus = true; interrupt(); }
         } else if (change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
             ducked = true;
-            if (player != null) player.setVolume(0.3f, 0.3f);
+            applyVolume();
         } else if (change == AudioManager.AUDIOFOCUS_GAIN) {
             ducked = false;
-            if (player != null) player.setVolume(1f, 1f);
+            applyVolume();
             if (pausedByFocus) { pausedByFocus = false; if (station != null) { retries = 0; resumeOrStart(); } }
         }
     }
@@ -457,8 +465,9 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         long other = Player.takeOver(this, Player.RADIO);
         if (other > 0 && sleepAt == 0 && !alarm) { // de wekker laat zich niet door een oude slaaptimer uitzetten
             sleepAt = other;
+            sleepFadeMs = SleepFade.length(other - System.currentTimeMillis());
             h.removeCallbacks(sleepRun);
-            h.postDelayed(sleepRun, Math.max(0, other - System.currentTimeMillis() - SLEEP_FADE));
+            h.post(sleepRun);
         }
     }
 
@@ -515,6 +524,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
             p.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
             if (alarm) p.setVolume(0.15f, 0.15f);
+            else applyVolume(); // tijdens het uitfaden van de slaaptimer niet ineens weer vol
             java.util.Map<String, String> hdr = new java.util.HashMap<>();
             hdr.put("User-Agent", Radio.UA);
             p.setDataSource(this, android.net.Uri.parse(url), hdr);

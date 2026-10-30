@@ -12,20 +12,21 @@
       <button role="tab" id="pc-tab-dl" data-tab="dl" aria-controls="pc-p-dl" aria-selected="false" tabindex="-1" onclick="pcSetTab('dl', true)">Downloads<span class="pctabn" id="pc-tab-dl-n"></span></button>
     </div></div>
 
-    <!-- Luisteren: verder luisteren en de podcasts die je volgt -->
+    <!-- Luisteren: kort en overzichtelijk (één scherm): je podcasts als rij, verder luisteren om opzij te vegen,
+         de drie nieuwste afleveringen; "Alle" opent een eigen lijst in plaats van deze pagina lang te maken -->
     <div role="tabpanel" id="pc-p-listen" aria-labelledby="pc-tab-listen">
-      <div id="pc-cont-wrap" style="display:none">
-        <div class="flabel pcfl"><span>Verder luisteren</span><button class="linkish" id="pc-cont-more" onclick="pcContAll()" aria-label="Alle onafgeronde afleveringen" hidden></button></div>
-        <div class="card pclist" id="pc-cont"></div>
+      <div id="pc-subs-wrap" style="display:none">
+        <div class="flabel pcfl"><span id="pc-subs-h">Mijn podcasts</span><span class="pcfla"><button class="linkish pcrefr" id="pc-refresh" onclick="pcRefresh()" aria-label="Alle podcasts bijwerken" title="Bijwerken">↻</button><button class="linkish" id="pc-subs-more" onclick="pcSubsAll()" aria-label="Alle abonnementen" hidden></button></span></div>
+        <div class="pcgrid pcrow" id="pc-subs" role="list" aria-labelledby="pc-subs-h"></div>
       </div>
-      <!-- Nieuwe afleveringen van alles wat je volgt: meteen in beeld, zonder eerst een podcast te openen -->
+      <div id="pc-cont-wrap" style="display:none">
+        <div class="flabel pcfl"><span id="pc-cont-h">Verder luisteren</span><span class="pcfln" id="pc-cont-n"></span></div>
+        <div class="pccont" id="pc-cont" aria-labelledby="pc-cont-h"></div>
+      </div>
+      <!-- Nieuwe afleveringen van alles wat je volgt: de nieuwste drie, de rest via Alle -->
       <div id="pc-new-wrap" style="display:none">
         <div class="flabel pcfl"><span id="pc-new-h">Nieuwe afleveringen</span><button class="linkish" id="pc-new-more" onclick="pcNewAll()" aria-label="Alle nieuwe afleveringen" hidden></button></div>
         <div class="card pclist" id="pc-new" role="list" aria-labelledby="pc-new-h"></div>
-      </div>
-      <div id="pc-subs-wrap" style="display:none">
-        <div class="flabel pcfl"><span id="pc-subs-h">Mijn podcasts</span><span class="pcfla"><button class="linkish" id="pc-refresh" onclick="pcRefresh()" aria-label="Alle podcasts bijwerken">↻ Bijwerken</button><button class="linkish" id="pc-subs-more" onclick="pcSubsAll()" aria-label="Alle abonnementen" hidden></button></span></div>
-        <div class="pcgrid pcrow" id="pc-subs" role="list" aria-labelledby="pc-subs-h"></div>
       </div>
       <div class="card pcempty" id="pc-listen-empty" style="display:none">
         <span class="ui-icon" data-icon="headphones" aria-hidden="true"></span>
@@ -58,6 +59,17 @@
         <button class="linkish" onclick="pcDlSettings()">Instellingen voor downloaden</button>
       </div>
     </div>
+  </main>
+</section>
+
+<section class="screen" id="s-podlijst">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1" id="pcx-h1">Nieuwe afleveringen</h1>
+  </div>
+  <main>
+    <div class="card pclist" id="pcx-new" role="list" aria-labelledby="pcx-h1" hidden></div>
+    <div class="pcgrid" id="pcx-subs" role="list" aria-labelledby="pcx-h1" hidden></div>
   </main>
 </section>
 
