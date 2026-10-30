@@ -119,8 +119,12 @@ const { chromium } = require('playwright');
     await ask('Onthoud dat ik de tekstgrootte graag groot heb', 1300);
     ok(await pg.evaluate(() => !Android._ai.last.settings && Android._ai.mem.some(m => /tekstgrootte/.test(m.text))) && !(await pg.$(last + ' .setcard')), 'onthoud …: het geheugen, geen instelling');
     // Geen instelling, wel een opdracht: het model krijgt mee dat het niets mag beweren gedaan te hebben
-    await ask('zet de radio uit', 1300);
-    ok(await pg.evaluate(() => Android._ai.last.noDo === true && !Android._ai.last.settings), 'zet de radio uit: naar het model, met "zeg nooit dat het gedaan is"');
+    await ask('zet het licht uit', 1300);
+    ok(await pg.evaluate(() => Android._ai.last.noDo === true && !Android._ai.last.settings), 'zet het licht uit: naar het model, met "zeg nooit dat het gedaan is"');
+    // De radio is een opdracht van de app zelf (61-assistent-acties.js): nooit naar het model, en de radio speelt niet
+    const asked = await pg.evaluate(() => Android._ai.asked);
+    await ask('zet de radio uit', 300);
+    ok(await pg.evaluate(n => Android._ai.asked === n, asked) && (await pg.textContent(last)).includes('De radio speelt nu niet'), 'zet de radio uit: de app zelf (de radio speelt niet)');
     // Gewone tekst-opdrachten en vragen: gewoon naar het model, zonder instellingen en zonder "niets doen"
     for (const q of ['Zet dit op een rijtje: melk, eieren, brood', 'Stel een mail op naar Jos over de vergadering', 'Verander deze zin in de verleden tijd: ik loop', 'Wijzig de toon naar formeel',
       'Zet dit in de juiste volgorde: c, a, b', 'Stel een vraag op voor mijn huisarts', 'Zet deze tekst om naar het Engels: goedemorgen', 'zet de tekst om in hoofdletters: hallo',

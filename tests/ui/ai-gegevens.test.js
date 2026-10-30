@@ -12,7 +12,7 @@ const { chromium } = require('playwright');
     ok((await pg.textContent('#ai-sum-data')) === 'Notities, Uitgeschreven gesprekken', 'standaard: alleen notities en gesprekken');
     await pg.click('#s-aiset .strow:has-text("Gegevens")'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => current === 'aisetdata') && (await pg.textContent('#aid-need')).includes('slim zoeken'), 'zonder zoekmodel: uitleg');
-    ok((await pg.$$('#aid-list .tg')).length === 8, 'acht soorten gegevens');
+    ok((await pg.$$('#aid-list .tg')).length === 10, 'tien soorten gegevens (ook Gebruik en Apparaten)');
     // Met zoekmodel
     await pg.evaluate(() => { Android._ai.st.zoek = { state: 'ready' }; enterAiSet(); }); await pg.waitForTimeout(100);
     ok((await pg.textContent('#aid-need')) === '' && (await pg.textContent('#aid-index')).includes('Zoekindex'), 'met zoekmodel: zoekindex zichtbaar');
