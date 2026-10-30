@@ -278,7 +278,7 @@ function apTrRender(fromPoll){
   else if (!s.trackers) h = '<h2>Trackerwaarschuwing staat uit</h2><button class="big" onclick="apsSetVal(\'trackers\', true); apTrRender()">Aanzetten</button>';
   else if (!P.bg) h = '<h2>Nog één toestemming</h2><p class="note">Sta locatie <b>altijd</b> toe, anders laat Android de app op de achtergrond niet zoeken.</p><button class="big" onclick="Android.apPerm(\'bgloc\')">Toestaan</button>';
   else if (!P.notif || apSt.muted) h = '<h2>Meldingen staan uit</h2><p class="note">De app let op trackers, maar kan je niet waarschuwen.</p>' + (apSt.muted ? '' : '<button class="big" onclick="Android.apPerm(\'notif\')">Meldingen toestaan</button>');
-  else h = '<h2>' + uiIcon('shield') + 'Aan</h2><p class="note">De app let op de achtergrond op onbekende trackers die met je meereizen' + ((apTrData || {}).passive ? ', ook tussen de rondes door (Android houdt zelf zuinig de wacht)' : '') + '.</p>';
+  else h = '<h2>' + uiIcon('shield') + 'Aan</h2><p class="note">De app let op de achtergrond op onbekende trackers die met je meereizen' + ((apTrData || {}).passive ? ' (Android helpt zuinig mee tussen de rondes door). Een waarschuwing komt na ongeveer twee rondes onderweg: kies een kortere tijd tussen de rondes voor een snellere waarschuwing' : '') + '.</p>';
   box.innerHTML = h;
   const l = apTrList();
   $('#ap-tr-list').innerHTML = l.length ? l.map(t => {
@@ -469,7 +469,7 @@ function apsRender(){
   [['aps-every', s.every || 30], ['aps-keep', s.keep || 30]].forEach(([id, v]) => document.querySelectorAll('#' + id + ' [role=radio]').forEach(b => { const on = +b.dataset.v === +v; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }));
   const sdk = P.sdk || 0;
   $('#aps-bg-how').innerHTML = esc('Elke ronde zoekt de app ongeveer 10 seconden (Android plant dat in; als de telefoon slaapt of de batterijbesparing aan staat, schuift het op). ') +
-    esc(sdk >= 26 || !sdk ? 'Daarnaast houdt Android zelf zuinig de wacht voor trackers, ook tussen de rondes door. ' : '') +
+    esc(sdk >= 26 || !sdk ? 'Daarnaast helpt Android zuinig mee tussen de rondes door; voor een waarschuwing zijn er wel een paar rondes onderweg nodig (bij elk half uur ongeveer een uur reizen). ' : '') +
     esc('Er draait geen dienst met een vaste melding. Met het scherm uit ziet de app alleen trackers en je gekoppelde apparaten. Wifi zoekt Android op de achtergrond nauwelijks (1 keer per half uur); de app gebruikt dan wat de telefoon al vond.') +
     (s.bg && !P.bg ? '<br><b class="note warn">Sta locatie "altijd" toe, anders laat Android de app op de achtergrond niet zoeken.</b> <button class="mini" onclick="Android.apPerm(\'bgloc\')">Toestaan</button>' : '');
   $('#aps-home-st').textContent = s.home ? 'Thuis is ingesteld' + (s.homeSsid ? ' (en je wifi "' + s.homeSsid + '")' : '') + '. Binnen ~300 m daarvan telt als thuis.' : s.homeSsid ? 'Thuis = verbonden met je wifi "' + s.homeSsid + '".' : 'Nog niet ingesteld: alles telt als elders.';
