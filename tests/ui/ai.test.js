@@ -30,9 +30,11 @@ const { chromium } = require('playwright');
     ok((await pg.textContent('#ai-msgs .aimsg:not(.me) .aib')).includes('Hallo! Ik ben je assistent.') && await pg.$('#ai-msgs .aimsg:not(.me) .aib b') && (await pg.$$('#ai-msgs .aimsg:not(.me) li')).length === 2, 'antwoord in stukjes, met opmaak');
     ok((await pg.getAttribute('#ai-send', 'aria-label')) === 'Versturen', 'klaar: weer versturen');
     ok(await pg.evaluate(() => Android._ai.last.messages.length === 1 && Android._ai.last.messages[0].content === 'Wie ben jij?' && !Android._ai.last.notes), 'de vraag gaat naar de assistent');
-    // Stoppen halverwege
+    // Stoppen halverwege (een langer antwoord: anders is het soms al klaar voordat de stopknop stil staat om op te tikken)
+    const kort = await pg.evaluate(() => { const r = Android._ai.reply; Android._ai.reply = r + ' ' + 'en nog wat meer tekst '.repeat(12); return r; });
     await pg.fill('#ai-in', 'Nog een vraag'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(300);
     await pg.click('#ai-send'); await pg.waitForTimeout(200);
+    await pg.evaluate(r => { Android._ai.reply = r; }, kort);
     ok((await pg.textContent('#ai-msgs .aimsg:last-child')).includes('Gestopt'), 'stoppen: het antwoord tot dan blijft, met "Gestopt"');
     ok(await pg.evaluate(() => Android._ai.last.messages.length === 3), 'vervolgvraag: het gesprek gaat mee');
     // Antwoord bewaren als notitie, kopiëren
