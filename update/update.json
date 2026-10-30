@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.113",
-  "versionCode": 114,
-  "nativeLevel": 102,
+  "versionName": "1.114",
+  "versionCode": 115,
+  "nativeLevel": 103,
   "web": "index.html",
-  "webSha256": "695f30aecfb1a13ecd8f9dd48aedc39dfa141bd10f66af609d5bbd9acc1e6f0c",
+  "webSha256": "535f2ffed7dc4a95999d77b20ff98f63e5d2206a19c08943b30d004a624f945c",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "38def6afa251bb5722402c33ea7b4d5f662caf472ba650cd9000afa84fd3cf2a",
+  "apkSha256": "ce72ef234ca80daadb00b00f0fda407b54d3b8dc831fdc5599ba74aaa4bf37e1",
   "changelog": [
+    {
+      "version": "1.114",
+      "date": "2026-10-30",
+      "changes": [
+        "Slaaptimer (podcast en radio): het geluid wordt de laatste minuten langzaam en gelijkmatig zachter in plaats van in een halve minuut; bij \"aan het einde van deze aflevering\" de laatste minuut.",
+        "Podcasts: de eerste pagina past weer op één scherm: Mijn podcasts bovenaan, Verder luisteren als rij om opzij te vegen en de drie nieuwste afleveringen; \"Alle\" opent een eigen lijst."
+      ]
+    },
     {
       "version": "1.113",
       "date": "2026-10-30",
@@ -1009,5 +1017,5 @@
       ]
     }
   ],
-  "webSig2": "nLV18uIujL7G7MKUKBrpZAFDJSPIztcuGo/KK8G0XhGOImHutV7m73l+nX1gN+W2D4w/Kg8zLM2CHTD2p2fzyPHU/3iexeG2dzwdGpx0eiPWCyiVtqZKaTTnjpa7SLjHwO12bQz8H6WTZKTTGjMJFuVGYQN4WM3cLi20RCoaNFSW4Ah5YjXpJ3u5SYWzjGK9StpSaf6VwaFeUEIHXp81t36SmFH7ondNyIJ4x3RBRLAUjDTp832XxwUuWh3p4BQsbtw5OCB9WaA0Om/yhYbmuxYRxYB1AaQKhWlsuaACDPdYvR9GGOzMkKa2j4w/2WS78OyXzRB8gUde8LAqKK9DFEtXVKMlCseReddMT56OLprqJ6qjJDUSEtfggby5bghizVKdMGh0SgVcAnB+5N1QxlnspJ6y1flj8dddWwoYfGJtHn11jlYt4ClqcI9t/JoylpLBWuWu3GqcDjH+/lX0xLWrj3RNwa0EN+1WkBf6YI/jlfJGzhkmQ41RUG9/P3YY"
+  "webSig2": "FP4WkyywSn2tDm5kC+iOM47XPXUD1sWhxMvIxwYSWqSPsOpsX07ZK7GDqq+Ky07IJBcZutOhBtEh+Vl0sttx/+twL14M7Lgs80NtOm54qpGL+SsJNBp5sgg3Yx5iNzVbMITnhvsXI5oxZjmWCrEkbKZ9BTo4FuE+gNJ2tmQKumSsWae1WxidheueC5aMtyaql+HDh2Qo+TWrKsfa/YDmL3sfQlSRL/kgCU3EUQH/kCLRG3lEpAkSPxEgqyhsaMGobEelHGKgK9VZgw/m8giAUdvyGZk+gFf6Z/jNccK5zbbtcwVc0562HJy1WJKww/z+bsD7dkYw+/ZpNbJMdnlnRmzqwKVZBE+qfMAwWFXc1/TL0Db7MeBc+1RF8VfruM+HrvINcLwzfJqdiPn3wJT2vD75DXbqy82bufrVE52l6fb5t9RL9q1RM4z+EAS07ZGO1Twctm3PpZvOaMagCyb7bGNJp3Q8D4S4jROtuzi8PEbshEj0FQSTkiP/3SPkW+RH"
 }
