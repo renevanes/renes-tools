@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.111",
-  "versionCode": 112,
-  "nativeLevel": 100,
+  "versionName": "1.112",
+  "versionCode": 113,
+  "nativeLevel": 101,
   "web": "index.html",
-  "webSha256": "db229d1d15816ecaedba406d47eeac85b9a8d40d1ee743ca9616f9d5df6ff9f3",
+  "webSha256": "ed49256bcb3d95e57334243f252387c77ee04712fa0e08b0bca58fbb630b7c71",
   "start": "start.html",
   "startSha256": "9726abfb1bc426f902a3de5c5b8e0fe579a43fd33d9a67c35c022dc193e74e03",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "ae970d45f1de3d7309dc73c101d7b096be851c79a8a0461095a7a78de4f75722",
+  "apkSha256": "611a03ed04386c6c9b99b4fde83abd48e6cfd1b1b4f182d2d60160f1166441cc",
   "changelog": [
+    {
+      "version": "1.112",
+      "date": "2026-10-30",
+      "changes": [
+        "Podcasts: op Luisteren staan nu meteen de nieuwe afleveringen van alles wat je volgt, met een afspeelknop; Mijn podcasts is een smalle rij om opzij te vegen (Alle toont ze als raster).",
+        "Eén podcast: compacte kop met Volgen en Vanzelf downloaden, de afleveringen staan direct in beeld (met Verder luisteren bovenaan); Op startscherm, Over deze podcast, bijwerken en ontvolgen zitten onder ⋯."
+      ]
+    },
     {
       "version": "1.111",
       "date": "2026-10-30",
@@ -988,5 +996,5 @@
       ]
     }
   ],
-  "webSig2": "aQjZdvtV4FRhb29022vnBfLnoQLwcHHMG6JxqyI3SamYWgd57EbWtqj0u16ODOBFDFGBgslIl1/WmFGrZKGvCk7cbI/TeIZXh+Z3sqyqJ+Ld8rCqxuKvbU0TQtqVCQzvysQReC9w71Wi0qqj8jpxbOy0B8OR8blS4O2rQshXuqKsVBHUwrFFUG2mZ0Hq56VYP2XPnqBvTgRphpydPb7niM8dgF2sAoNdtbdbhERbaRaEtQu4B6wKDfSOHBSQy2jtWz8U794WQNiELC4YHTg5xpgXcUi7mA8JP5+SfTvYE2IJb+lYMsWhZDmj25S/LPs8uinJiqxsjb2nzQc6c/K7LlbRr1ieAqeIeZMbzQTlB2L+6ihtMvJB+elSvVZlEcLkrv48hpKZ9NagXYkbv0SLrOmnKCtHMfAdGoQiHLDZbXPY1ezugzsgV9QEMghm5rEEjA6zzlt43FGnhbDCQrkGRj6Ny8h3MhKl/P9deE1IyUkE3ZmTcBYIzWJePPjXQgqB"
+  "webSig2": "X5vn20btU5rnJLIM2+6pr2PRZKo+igNFO3YAwQ/O0rLVPVbnwzpGEM+kp1ROLLaAxjB1mxHclx75hK46/VGf22Nr6T3GA8N9kM6mnYuwwaoJEQ4lPoBapPWkqdOf1JPNw+pmG0I32xvHSKCPo03Li2evO/IV1OlzB7dlJOb5mnsM+n4j45uJVYVbxJZcyiJd3rSHCcAZP5ALJIYUtDj+FwHAukUG7IPRuDfCju4iAJJts2lGJyBOwfr+VZv/RQ7I7RUjqmcGqKM3wZ3rOf2ozXTY8IMGLoOfTfx9OHJ1uZqY+yP+Oc2Je9j1j9BNghPAGE1GIUiN5OC7TQe/A8FDbCkAMUsUVp1T7p8bHH+fKH3kmv3SHfp38wz5TxYr520j6+qkQmkvUjnCrgmaGmpBg45VzIzgsk3K5gavn3COK0oy2TczfUpyaiLknXzSel1CAwa2KEriO/1XDvWDXZmO+CPWx9ccJRZJjH0FdivcdwbSJQDV1T8Sf1hTJrG3m4C8"
 }
