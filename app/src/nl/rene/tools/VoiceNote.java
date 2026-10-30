@@ -161,6 +161,10 @@ final class VoiceNote {
     private static volatile boolean liveMode;
     /** Waarom het opnemen vanzelf stopte (microfoon weg, telefoon vol); dan wordt uitgeschreven wat er is. */
     private static volatile String liveErr;
+    /** Gesprek met de assistent: na hoeveel stilte (ms) je uitgesproken bent (0 = gewoon inspreken, zelf stoppen). */
+    static volatile int talkSilence = 0;
+    private static volatile AiTalk.End endDet;
+    private static volatile int endState = AiTalk.BUSY;
 
     /** Geluidsniveau van een stuk (0 = stil, 1 = hard), op een dB-schaal van -60 tot -12 dBFS. Zuiver (getest). */
     static float level(short[] b, int n) {
@@ -184,6 +188,7 @@ final class VoiceNote {
     static synchronized String liveJson() {
         try {
             JSONObject o = new JSONObject().put("state", state).put("ms", elapsed()).put("live", liveMode).put("partial", partial);
+            if (endDet != null) o.put("end", endState).put("speech", endDet.speech);
             JSONArray a = new JSONArray();
             for (int i = 0; i < lvN; i++) a.put(Math.round(lv[i] * 100) / 100.0);
             lvN = 0;
@@ -226,6 +231,7 @@ final class VoiceNote {
             return start(c, onAutoStop); // gewone opname, zonder tussentekst
         }
         ar = r; liveOn = true; liveCancelled = false; liveBytes = 0; partial = ""; lvN = 0; liveMode = true; liveErr = null;
+        endState = AiTalk.BUSY; endDet = talkSilence > 0 ? new AiTalk.End(talkSilence) : null;
         since = System.currentTimeMillis();
         state = "recording";
         final Context app = c.getApplicationContext();
@@ -259,7 +265,10 @@ final class VoiceNote {
                 w.write(bb, 0, n * 2);
                 bytes += n * 2L;
                 liveBytes = bytes;
-                addLevel(level(buf, n));
+                float lvl = level(buf, n);
+                addLevel(lvl);
+                AiTalk.End ed = endDet;
+                if (ed != null && endState == AiTalk.BUSY) endState = ed.feed(lvl, n * 1000L / RATE); // gesprek: uitgesproken?
                 if (System.currentTimeMillis() - since >= MAX_MS) { auto = true; break; }
             }
         } catch (Throwable t) {

@@ -75,10 +75,11 @@ public class AiBridge extends SleepBridge {
     @JavascriptInterface public void aiPref(String name, boolean on) {
         boolean src = false;
         for (String k : LocalAi.SOURCES) if (("src_" + k).equals(name)) src = true;
-        if (!src && !"wifiOnly".equals(name) && !"notes".equals(name) && !"voiceSend".equals(name) && !"speakVoice".equals(name)) return;
+        if (!src && !"wifiOnly".equals(name) && !"notes".equals(name) && !"voiceSend".equals(name) && !"speakVoice".equals(name)
+                && !"talkSpeak".equals(name) && !"talkAuto".equals(name) && !"talkBarge".equals(name)) return;
         LocalAi.prefs(ctx).edit().putBoolean(name, on).apply();
-        // Bron aan: meteen (op de achtergrond) in de zoekindex; uit: eruit
-        if (src) LocalAi.sourceChanged(ctx);
+        // Bron aan: meteen (op de achtergrond) in de zoekindex; uit: eruit (Gebruik en Apparaten zitten niet in de index)
+        if (src && LocalAi.indexed(name.substring(4))) LocalAi.sourceChanged(ctx);
     }
 
     /** Melding als er al een antwoord loopt; de interface herkent hem en laat het lopende antwoord dan gewoon doorgaan. */
@@ -88,7 +89,7 @@ public class AiBridge extends SleepBridge {
      *  antwoord); de rest komt via onAi…. */
     @JavascriptInterface public String aiChat(String json) {
         final JSONObject req;
-        try { req = new JSONObject(json); } catch (Exception e) { return "Ongeldige vraag"; }
+        try { req = new JSONObject(json); req.put("solo", a.isSolo()); } catch (Exception e) { return "Ongeldige vraag"; }
         // Twee keer snel op versturen: de tweede vraag wordt geweigerd (er loopt al een antwoord), niet nog eens beantwoord
         try { if (!LocalAi.chat(ctx, req, new JsSink(a))) return BUSY; } catch (Throwable t) { return "De assistent kon niet starten"; }
         return "";
@@ -108,7 +109,7 @@ public class AiBridge extends SleepBridge {
 
     /** Geeft "" (luistert), "mic" (toestemming nodig), "model" (spraakmodel nodig) of een melding. Live: met niveau en
      *  tussentekst (whisper op de telefoon); lukt dat niet, dan de gewone opname. */
-    @JavascriptInterface public String aiVoiceStart() { try { return VoiceNote.startLive(ctx, r -> a.js("onAiVoice", r)); } catch (Throwable t) { return "Opnemen lukt niet"; } }
+    @JavascriptInterface public String aiVoiceStart() { try { VoiceNote.talkSilence = 0; return VoiceNote.startLive(ctx, r -> a.js("onAiVoice", r)); } catch (Throwable t) { return "Opnemen lukt niet"; } }
     @JavascriptInterface public void aiVoiceStop() { VoiceNote.stop(ctx, r -> a.js("onAiVoice", r)); }
     /** Ook tijdens het uitschrijven: dan komt er niets (onAiVoice({cancelled})). */
     @JavascriptInterface public void aiVoiceCancel() { VoiceNote.cancel(); }
@@ -136,6 +137,169 @@ public class AiBridge extends SleepBridge {
         AiSpeech.speak(ctx, text.length() > 30_000 ? text.substring(0, 30_000) : text, id, o -> a.js("onAiSpeak", o.toString()));
     }
     @JavascriptInterface public void aiSpeakStop() { AiSpeech.stop(); }
+
+    // ----- Je eigen gegevens: Gebruik, Slaappraat, Check-in, Apparaten (AiData). Alleen als de bron aan staat.
+
+    /** Een duidelijke vraag over je gegevens: {topic, label, text, title} (antwoord van de app zelf), {topic, off} (bron staat
+     *  uit), {topic, solo} (losse app), {topic} (voor het taalmodel, met de feiten erbij) of "" (geen vraag over je gegevens). */
+    @JavascriptInterface public String aiData(String q) {
+        try {
+            if (q == null || q.length() > 300) return "";
+            boolean devs = LocalAi.srcOn(ctx, "apparaten");
+            String topic = AiData.topic(q, devs ? AiData.nicks(ctx) : null);
+            if (topic.isEmpty()) return "";
+            JSONObject o = new JSONObject().put("topic", topic).put("label", AiData.label(topic));
+            if (a.isSolo()) return AiData.factual(topic, q) ? o.put("solo", true).toString() : "";
+            if (!LocalAi.srcOn(ctx, topic)) return AiData.factual(topic, q) ? o.put("off", true).toString() : "";
+            long now = System.currentTimeMillis();
+            AiData.Answer an = AiData.answer(topic, q, AiData.facts(ctx, topic, now), now, java.util.TimeZone.getDefault());
+            if (an == null) return o.toString();
+            return o.put("text", an.text).put("title", an.title).toString();
+        } catch (Throwable t) { return ""; }
+    }
+
+    // ----- Opdrachten (AiCommands): timer, wekker, radio, podcast, Slaappraat, een tool openen, een bericht klaarzetten.
+    // Alleen na een tik op de knop onder het antwoord; een bericht verstuur je daarna zelf.
+
+    /** De opdracht in je eigen vraag, of "". */
+    @JavascriptInterface public String aiCmd(String q) {
+        try { AiCommands.Cmd c = AiCommands.parse(q); return c == null ? "" : AiCommands.json(c).toString(); } catch (Throwable t) { return ""; }
+    }
+
+    /** Telefoonnummers van een contact uit je eigen contacten (voor een bericht): [{name, number, label}] of {perm:false}. */
+    @JavascriptInterface public String aiContact(String name) {
+        try {
+            if (a.isSolo()) return "[]";
+            if (!Search.has(ctx, android.Manifest.permission.READ_CONTACTS)) return "{\"perm\":false}";
+            String q = name == null ? "" : name.trim().toLowerCase(java.util.Locale.ROOT);
+            if (q.length() < 2 || q.length() > 40) return "[]";
+            JSONArray best = new JSONArray(), good = new JSONArray();
+            for (ContactsDiff.Rec r : Contacts.readCached(ctx)) {
+                String n = r.name == null ? "" : r.name.toLowerCase(java.util.Locale.ROOT);
+                boolean exact = n.equals(q), word = (" " + n + " ").contains(" " + q + " ") || n.startsWith(q);
+                if (!exact && !word) continue;
+                for (String line : Contacts.lines(r.get("Telefoon"))) {
+                    String[] p = Contacts.splitLabel(line);
+                    String num = AiCommands.number(p[0]);
+                    if (num.isEmpty()) continue;
+                    JSONObject x = new JSONObject().put("name", r.name).put("number", num).put("label", p[1]);
+                    (exact ? best : good).put(x);
+                }
+                if (best.length() + good.length() >= 8) break;
+            }
+            for (int i = 0; i < good.length() && best.length() < 6; i++) best.put(good.get(i));
+            return best.toString();
+        } catch (Throwable t) { return "[]"; }
+    }
+
+    /** Een opdracht uitvoeren na de tik: timer of wekker (Klok-app, die je ziet), de Klok-app openen, of een sms of
+     *  WhatsApp-bericht klaarzetten (de app opent met de tekst; versturen doe je zelf). Alles opnieuw nagekeken.
+     *  json = {type: timer|wekker|klok|sms|wa, …}. Geeft "" of een melding. */
+    @JavascriptInterface public String aiDo(String json) {
+        final android.content.Intent[] tries;
+        String none;
+        try {
+            JSONObject o = new JSONObject(json);
+            String type = o.optString("type");
+            if (a.isSolo() && !"timer".equals(type) && !"wekker".equals(type) && !"klok".equals(type)) return "Dat kan niet in een losse app";
+            String label = AiCommands.cleanText(o.optString("label"), 60);
+            switch (type) {
+                case "timer": {
+                    int secs = o.optInt("secs");
+                    if (!AiCommands.validSecs(secs)) return "Kies een tijd tussen 1 seconde en 24 uur";
+                    android.content.Intent i = new android.content.Intent(android.provider.AlarmClock.ACTION_SET_TIMER)
+                            .putExtra(android.provider.AlarmClock.EXTRA_LENGTH, secs).putExtra(android.provider.AlarmClock.EXTRA_SKIP_UI, false);
+                    if (!label.isEmpty()) i.putExtra(android.provider.AlarmClock.EXTRA_MESSAGE, label);
+                    tries = new android.content.Intent[]{i}; none = "Er is geen klok-app die een timer kan zetten";
+                    break;
+                }
+                case "wekker": {
+                    int min = o.optInt("min", -1);
+                    if (!AiCommands.validClock(min)) return "Kies een geldige tijd";
+                    android.content.Intent i = new android.content.Intent(android.provider.AlarmClock.ACTION_SET_ALARM)
+                            .putExtra(android.provider.AlarmClock.EXTRA_HOUR, min / 60).putExtra(android.provider.AlarmClock.EXTRA_MINUTES, min % 60)
+                            .putExtra(android.provider.AlarmClock.EXTRA_SKIP_UI, false);
+                    if (!label.isEmpty()) i.putExtra(android.provider.AlarmClock.EXTRA_MESSAGE, label);
+                    tries = new android.content.Intent[]{i}; none = "Er is geen klok-app die een wekker kan zetten";
+                    break;
+                }
+                case "klok": {
+                    android.content.Intent al = new android.content.Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS);
+                    tries = "timers".equals(o.optString("what")) && android.os.Build.VERSION.SDK_INT >= 26
+                            ? new android.content.Intent[]{new android.content.Intent(android.provider.AlarmClock.ACTION_SHOW_TIMERS), al} : new android.content.Intent[]{al};
+                    none = "Er is geen klok-app";
+                    break;
+                }
+                case "sms": {
+                    String num = AiCommands.number(o.optString("number"));
+                    if (num.isEmpty()) return "Dat is geen geldig telefoonnummer";
+                    tries = new android.content.Intent[]{new android.content.Intent(android.content.Intent.ACTION_SENDTO, android.net.Uri.parse("smsto:" + android.net.Uri.encode(num)))
+                            .putExtra("sms_body", AiCommands.cleanText(o.optString("text"), AiCommands.MAX_TEXT))};
+                    none = "Er is geen app voor sms'jes";
+                    break;
+                }
+                case "wa": {
+                    String text = AiCommands.cleanText(o.optString("text"), AiCommands.MAX_TEXT);
+                    String raw = o.optString("number"), num = raw.isEmpty() ? "" : AiCommands.waNumber(raw);
+                    if (!raw.isEmpty() && num.isEmpty()) return "Dat is geen geldig telefoonnummer";
+                    if (!num.isEmpty()) {
+                        android.net.Uri u = android.net.Uri.parse("whatsapp://send?phone=" + num + "&text=" + android.net.Uri.encode(text));
+                        tries = new android.content.Intent[]{new android.content.Intent(android.content.Intent.ACTION_VIEW, u).setPackage("com.whatsapp"),
+                                new android.content.Intent(android.content.Intent.ACTION_VIEW, u).setPackage("com.whatsapp.w4b"), new android.content.Intent(android.content.Intent.ACTION_VIEW, u)};
+                    } else {
+                        tries = new android.content.Intent[]{new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text).setPackage("com.whatsapp"),
+                                new android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text).setPackage("com.whatsapp.w4b")};
+                    }
+                    none = "WhatsApp staat niet op je telefoon";
+                    break;
+                }
+                default: return "Onbekende opdracht";
+            }
+        } catch (Exception e) { return "Ongeldige opdracht"; }
+        final String noApp = none;
+        final String[] res = {noApp};
+        final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+        a.h.post(() -> {
+            try {
+                for (android.content.Intent i : tries) {
+                    try { a.startActivity(i); res[0] = ""; break; } catch (android.content.ActivityNotFoundException ignored) { }
+                }
+            } catch (SecurityException e) { res[0] = "Android staat dit niet toe";
+            } catch (Throwable t) { res[0] = "Dat lukte niet"; }
+            done.countDown();
+        });
+        try { if (!done.await(3, java.util.concurrent.TimeUnit.SECONDS)) return ""; } catch (InterruptedException e) { return ""; }
+        return res[0];
+    }
+
+    // ----- Gesprek (handsfree): luisteren tot je uitgesproken bent, voorlezen, onderbreken (AiTalk)
+
+    /** Zoals aiVoiceStart, maar de opname merkt zelf dat je klaar bent (na silenceMs stilte): aiVoiceLive geeft dan end. */
+    @JavascriptInterface public String aiTalkListen(int silenceMs) {
+        try {
+            String cf = AiTalk.conflict(ctx);
+            if (cf != null) return cf;
+            AiTalk.bargeStop();
+            VoiceNote.talkSilence = Math.max(500, Math.min(4000, silenceMs));
+            return VoiceNote.startLive(ctx, r -> a.js("onAiVoice", r));
+        } catch (Throwable t) { return "Opnemen lukt niet"; }
+    }
+    /** {call, conflict}: een telefoongesprek, of iets anders dat de microfoon gebruikt. */
+    @JavascriptInterface public String aiTalkPoll() { return AiTalk.pollJson(ctx); }
+    /** Het scherm aan laten zolang het gesprek loopt. */
+    @JavascriptInterface public void aiTalkScreen(final boolean on) {
+        a.h.post(() -> {
+            try {
+                if (on) a.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                else a.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            } catch (Throwable ignored) { }
+        });
+    }
+    /** Tijdens het voorlezen luisteren of je gaat praten (onderbreken); "" of waarom niet. */
+    @JavascriptInterface public String aiBargeStart() { try { return AiTalk.bargeStart(ctx); } catch (Throwable t) { return "Onderbreken door te praten lukt niet"; } }
+    @JavascriptInterface public void aiBargeStop() { try { AiTalk.bargeStop(); } catch (Throwable ignored) { } }
+    /** {on, hit, lv, why}. */
+    @JavascriptInterface public String aiBarge() { return AiTalk.bargeJson(); }
 
     // ----- Acties van de assistent (alleen na een tik op de knop onder het antwoord)
 

@@ -32,6 +32,8 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- Assistent: een timer of wekker zetten in de Klok-app (die je dan ziet; er gebeurt niets ongemerkt) -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
     <!-- VPN: QR-code van de WireGuard-configuratie scannen (alleen als je daar zelf op tikt) -->
     <uses-permission android:name="android.permission.CAMERA" />

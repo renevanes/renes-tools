@@ -177,11 +177,14 @@ final class LocalAi {
             {"idle", "4", "1", "15"},
             {"mem", "aan", "uit"},                  // geheugen gebruiken in antwoorden
             {"learn", "vragen", "vanzelf", "uit"},  // leren uit gesprekken: eerst vragen, vanzelf, of niet
+            {"talkSilence", "1300", "1000", "1600", "2200"}, // gesprek: na hoeveel stilte (ms) je uitgesproken bent
     };
     static final int TEXT_MAX = 1000;
 
-    /** Gegevens die de assistent (en slim zoeken) mag gebruiken. Notities en gesprekken staan standaard aan, de rest uit. */
-    static final String[] SOURCES = {"notes", "tx", "sms", "wa", "calls", "contacts", "sleep", "checkin"};
+    /** Gegevens die de assistent (en slim zoeken) mag gebruiken. Notities en gesprekken staan standaard aan, de rest uit.
+     *  Gebruik en Apparaten zitten niet in de zoekindex: daarvoor rekent de app zelf de feiten uit (AiData). */
+    static final String[] SOURCES = {"notes", "tx", "sms", "wa", "calls", "contacts", "sleep", "checkin", "gebruik", "apparaten"};
+    static boolean indexed(String kind) { return !"gebruik".equals(kind) && !"apparaten".equals(kind); }
     static boolean srcDefault(String kind) { return "notes".equals(kind) || "tx".equals(kind); }
     static boolean srcOn(Context c, String kind) {
         if (c == null) return srcDefault(kind);
@@ -783,6 +786,7 @@ final class LocalAi {
             }
             JSONObject last = msgs.getJSONObject(msgs.length() - 1);
             if (!"user".equals(last.optString("role"))) throw new Exception("Geen vraag");
+            final JSONArray srcSent = new JSONArray(); // wat er onder het antwoord als bron komt
             // Met mijn notities: eerst slim zoeken, dan de stukken meegeven
             // Niet bij een vraag over de instellingen: tekst van anderen (sms, WhatsApp) mag geen wijziging voorstellen
             if (req.optBoolean("notes") && ready(c, EMBED) && remember == null && forgetWhat == null && !setWanted) {
@@ -802,10 +806,24 @@ final class LocalAi {
                             src.add(new String[]{SmartSearch.kindLabel(h.optString("kind")).replace(": ", " ") + "\"" + h.optString("title") + "\"", h.optString("snip")});
                         }
                         last.put("content", withSources(last.optString("content"), src));
+                        for (int i = 0; i < hits.length(); i++) srcSent.put(hits.get(i));
                         sink.sources(hits);
                     }
                 } catch (Exception e) { sink.status("Zoeken lukte niet: " + e.getMessage()); }
                 if (cancel) { GATE.leave(job); sink.done(new JSONObject().put("cancelled", true)); return; }
+            }
+            // Vragen over je eigen gegevens (Gebruik, Slaappraat, Check-in, Apparaten): de feiten kant-en-klaar erbij (AiData),
+            // alleen als je die bron aanzette, niet in een losse app, niet bij een samenvatting of een vraag over de instellingen
+            String dataTopic = req.optBoolean("solo") || hasAtt || remember != null || forgetWhat != null || setWanted ? "" : AiData.topic(question, srcOn(c, "apparaten") ? AiData.nicks(c) : null);
+            if (!dataTopic.isEmpty() && srcOn(c, dataTopic)) {
+                long nowD = System.currentTimeMillis();
+                String facts = AiData.context(dataTopic, AiData.facts(c, dataTopic, nowD), nowD, java.util.TimeZone.getDefault());
+                if (!facts.isEmpty()) {
+                    last.put("content", last.optString("content") + "\n\n" + facts);
+                    learnWanted = false; // feiten uit de app zijn geen dingen om over je te onthouden
+                    srcSent.put(AiData.srcJson(dataTopic, ""));
+                    sink.sources(srcSent);
+                }
             }
             if (!note.isEmpty()) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + note + ")");
             // Achter de vraag, niet in de vaste instructie: die blijft zo gelijk en de motor hoeft het gesprek niet opnieuw in te lezen
@@ -1280,7 +1298,8 @@ final class LocalAi {
         JSONArray ms = new JSONArray();
         for (Model m : MODELS) ms.put(state(c, m));
         o.put("models", ms).put("chat", chatModel(c).id).put("wifiOnly", wifiOnly(c)).put("notes", prefs(c).getBoolean("notes", true)).put("voiceSend", prefs(c).getBoolean("voiceSend", false))
-                .put("speakVoice", prefs(c).getBoolean("speakVoice", false)).put("loaded", loaded()).put("busy", busy());
+                .put("speakVoice", prefs(c).getBoolean("speakVoice", false)).put("loaded", loaded()).put("busy", busy())
+                .put("talkSpeak", prefs(c).getBoolean("talkSpeak", true)).put("talkAuto", prefs(c).getBoolean("talkAuto", true)).put("talkBarge", prefs(c).getBoolean("talkBarge", true));
         if (ready(c, EMBED)) o.put("index", SmartSearch.info(c));
         JSONObject cf = new JSONObject();
         for (String[] r : CFG) cf.put(r[0], cfg(c, r[0]));
@@ -1292,7 +1311,7 @@ final class LocalAi {
         for (String k : SOURCES) src.put(k, srcOn(c, k));
         perm.put("sms", Search.has(c, android.Manifest.permission.READ_SMS)).put("calls", Search.has(c, android.Manifest.permission.READ_CALL_LOG))
                 .put("contacts", Search.has(c, android.Manifest.permission.READ_CONTACTS)).put("wa", WaChats.dbFile(c).isFile())
-                .put("notes", true).put("tx", true).put("sleep", true).put("checkin", true);
+                .put("notes", true).put("tx", true).put("sleep", true).put("checkin", true).put("gebruik", GebruikStore.collecting(c)).put("apparaten", true);
         o.put("src", src).put("perm", perm);
         return o;
     }

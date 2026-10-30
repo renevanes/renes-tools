@@ -450,6 +450,8 @@ public class MainActivity extends Activity {
         visible = false;
         if ("recording".equals(VoiceNote.state)) VoiceNote.cancel(); // inspreken alleen met de app open
         AiSpeech.release(); // voorlezen alleen met de app open; de spraakmotor weer vrijgeven
+        AiTalk.bargeStop(); // gesprek met de assistent: niet doorluisteren
+        try { getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); } catch (Throwable ignored) { }
         js("onPauseApp", "");
     }
 
