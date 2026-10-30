@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Alleen de actieve dienst is nodig voor Androids gedeelde spraakbron. Geen scherminhoud of gebaren. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:packageNames="nl.rene.tools"
+    android:canRetrieveWindowContent="false"
+    android:canPerformGestures="false"
+    android:notificationTimeout="100"
+    android:description="@string/call_recording_access_desc" />

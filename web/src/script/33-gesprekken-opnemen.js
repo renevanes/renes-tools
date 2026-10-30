@@ -7,12 +7,18 @@ function loadRecorder(){
   if (state.error) { $('#recorder-result').textContent = state.error; return; }
   if (state.busy) recorderStarting = false;
   $('#recorder-auto').checked = !!state.autoEnabled;
-  $('#recorder-auto-state').textContent = state.autoEnabled ? (!state.autoReady ? 'Automatisch starten staat aan, maar de benodigde toestemmingen of meldingen ontbreken.' : 'Automatisch starten staat aan voor volgende mobiele oproepen; Android kan een handmatige start vereisen.') : 'Automatisch starten staat uit.';
+  $('#recorder-auto-state').textContent = state.autoEnabled ? (!state.autoReady ? 'Automatisch starten staat aan, maar de benodigde toestemmingen, meldingen of hulp bij gespreksopname ontbreken.' : 'Automatisch starten staat aan voor volgende mobiele oproepen; Android kan een handmatige start vereisen.') : 'Automatisch starten staat uit.';
+  $('#recorder-access').style.display = state.callAccessRequired ? 'block' : 'none';
+  const access = state.callAccess ? 'Hulp bij gespreksopname is actief. Controleer met een testgesprek of beide stemmen hoorbaar zijn.' : 'Hulp bij gespreksopname staat uit. Tijdens bellen kan Android daardoor alleen stilte leveren.';
+  if ($('#recorder-access-state').textContent !== access) $('#recorder-access-state').textContent = access;
+  $('#recorder-access-button').disabled = !!state.busy;
   $('#recorder-permissions').style.display = state.mic && state.notifications && state.phone ? 'none' : 'block';
   $('#recorder-permissions').disabled = !!state.busy;
   $('#recorder-phone').textContent = state.busy && !state.autoStop ? 'Automatisch stoppen is niet beschikbaar; stop deze opname zelf.' : state.phone ? 'Bij het einde van een mobiel telefoongesprek wordt de opname automatisch gestopt. Andere gesprekken stop je zelf.' : 'Zonder telefoontoegang moet je de opname zelf stoppen. Geef telefoontoegang als je automatisch stoppen wilt gebruiken.';
   const rBase = state.recording ? (state.automatic ? '● Automatische opname actief' : '● Opname actief') : state.busy || recorderStarting ? 'Opname starten…' : 'Er wordt niet opgenomen.';
   $('#recorder-state').textContent = state.recording ? rBase + ' · ' + fmtMs(state.elapsed) : rBase;
+  $('#recorder-meter').style.display = state.recording ? 'block' : 'none';
+  $('#recorder-level').value = state.silenced ? 0 : Math.max(0, Math.min(32767, +state.amplitude || 0));
   // Alleen veranderingen voorlezen (niet elke seconde de tijd)
   if ($('#recorder-live').textContent !== rBase) $('#recorder-live').textContent = rBase;
   $('#recorder-warning').style.display = state.recording && (state.silent || state.silenced) ? 'block' : 'none';
