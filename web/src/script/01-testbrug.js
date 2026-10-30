@@ -233,7 +233,7 @@ if (!window.Android) window.Android = (function(){
     // Lokale AI (assistent en slim zoeken): nagebootst, zonder model
     // Slaappraat zoals SleepBridge: nachten met stukjes, luisteren en uitschrijven worden nagebootst
     _sl: { phase: '', night: '', since: 0, stopAt: 0, heard: 0, level: -60, floor: -64, txDone: 0, txTotal: 0, message: '', mic: true, notif: true, model: 'Snel (57 MB)',
-      set: { sens: 2, stopAt: '07:30', transcribe: true, direct: true, keepNoise: false, keep: 14, remindAt: '', quiet: true,
+      set: { sens: 2, stopAt: '07:30', transcribe: true, direct: true, keepNoise: true, keep: 14, remindAt: '', quiet: true,
         directWhen: 'accu', directBat: 40, stopBat: 15, maxAudio: 8, minFree: 500, whenFull: 'geluid', clipMax: 60, hang: 1500, pre: 2, format: 'aac', txModel: '' },
       // Zoals SleepTalk: de vaste keuzes van Meer instellingen (en de standaard, voor reset)
       _slOk: { directWhen: ['altijd', 'lader', 'accu'], whenFull: ['stop', 'geluid', 'oudste'], format: ['aac', 'wav'], txModel: ['', 'base', 'small'], directBat: [20, 30, 40, 50, 60, 80], stopBat: [5, 10, 15, 20, 30],

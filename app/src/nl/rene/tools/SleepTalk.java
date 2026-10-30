@@ -44,7 +44,7 @@ final class SleepTalk {
     static int sens(Context c) { int s = prefs(c).getInt("sens", 2); return s < 1 || s > 3 ? 2 : s; }
     static String stopAt(Context c) { String s = prefs(c).getString("stopAt", "07:30"); return validTime(s) ? s : ""; }
     static boolean transcribe(Context c) { return prefs(c).getBoolean("transcribe", true); }
-    static boolean keepNoise(Context c) { return prefs(c).getBoolean("keepNoise", false); }
+    static boolean keepNoise(Context c) { return prefs(c).getBoolean("keepNoise", true); }
     /** Meteen uitschrijven (standaard aan): tijdens het luisteren al, stukje voor stukje (alleen als Daarna uitschrijven aan staat). */
     static boolean direct(Context c) { return prefs(c).getBoolean("direct", true); }
     /** Onopvallend luisteren (standaard aan): de verplichte melding zo stil mogelijk, en 's ochtends geen melding. */

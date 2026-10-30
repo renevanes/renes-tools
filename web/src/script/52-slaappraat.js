@@ -90,7 +90,9 @@ function slRender(){
   // Hoeveel ruimte Slaappraat inneemt
   const tot = s.bytes || 0;
   $('#sl-size').textContent = (s.nights || []).length ? 'Slaappraat gebruikt ' + fmtB(tot) + ' op je telefoon (' + s.nights.length + (s.nights.length === 1 ? ' nacht' : ' nachten') + ').' : '';
-  const no = $('#sl-noise'); no.classList.toggle('on', !!set.keepNoise); no.setAttribute('aria-checked', set.keepNoise ? 'true' : 'false');
+  const noise = set.keepNoise !== false;
+  const no = $('#sl-noise'); no.classList.toggle('on', noise); no.setAttribute('aria-checked', noise ? 'true' : 'false');
+  $('#sl-noise-n').textContent = noise ? 'Aan: ook het geluid van snurken en andere geluiden blijft bewaard' : 'Uit: van wat geen praten blijkt, blijft alleen het tijdstip bewaard';
   const quiet = set.quiet !== false;
   const qu = $('#sl-quiet'); qu.classList.toggle('on', quiet); qu.setAttribute('aria-checked', quiet ? 'true' : 'false');
   $('#sl-quietrow').style.display = quiet ? '' : 'none';
@@ -150,7 +152,7 @@ function slToggle(){
   setTimeout(() => { slLoad(); slRender(); slPoll(); }, 500);
 }
 function slSet(name, v){ const e = Android.sleepSet(name, String(v)); if (e) { toast(e); return; } slLoad(); if (current === 'sleepset') slsRender(); else slRender(); }
-function slSwitch(name){ const set = slSt.set || {}; const now = name === 'transcribe' || name === 'quiet' || name === 'direct' ? set[name] !== false : !!set[name]; slSet(name, !now ? 'true' : 'false'); }
+function slSwitch(name){ const set = slSt.set || {}; const now = name === 'transcribe' || name === 'quiet' || name === 'direct' || name === 'keepNoise' ? set[name] !== false : !!set[name]; slSet(name, !now ? 'true' : 'false'); }
 function slSetStop(){ const v = $('#sl-stop').value; if (v) slSet('stopAt', v); }
 function slStopToggle(){ const on = !!(slSt.set || {}).stopAt; slSet('stopAt', on ? '' : ($('#sl-stop').value || '07:30')); }
 

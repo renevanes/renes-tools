@@ -189,7 +189,7 @@ const SET_REG = [
   { id: 'slaap.stopaccu', scr: 'sleepset', ctl: '#sls-stop', type: 'keuze', vals: [['5', '5%'], ['10', '10%'], ['15', '15%'], ['20', '20%'], ['30', '30%']], label: 'Slaappraat: stoppen zonder lader bij', desc: 'Bij dit accupercentage stopt het luisteren als de telefoon niet aan de lader ligt.', syn: 'slaappraat stoppen accu batterij leeg procent',
     get: () => String(setSl().stopBat || 15), set: v => { slSet('stopBat', v); return ''; } },
   { id: 'slaap.geluiden', scr: 'sleep', ctl: '#sl-noise', label: 'Slaappraat: ook snurken en andere geluiden bewaren', desc: 'Uit: van wat geen praten blijkt, blijft alleen het tijdstip.', syn: 'slaappraat snurken geluiden bewaren',
-    get: () => setB(!!setSl().keepNoise), set: v => { slLoad(); if (!!(slSt.set || {}).keepNoise !== setOnV(v)) slSwitch('keepNoise'); return ''; } },
+    get: () => setB(setSl().keepNoise !== false), set: v => { slLoad(); if (((slSt.set || {}).keepNoise !== false) !== setOnV(v)) slSwitch('keepNoise'); return ''; } },
   { id: 'slaap.bewaren', scr: 'sleep', ctl: '#sl-keep', type: 'keuze', vals: [['7', '1 week'], ['14', '2 weken'], ['30', '30 dagen']], label: 'Slaappraat: nachten bewaren', desc: 'Hoe lang nachten bewaard blijven; daarna worden ze vanzelf gewist.', syn: 'slaappraat bewaren nachten wissen dagen weken',
     get: () => String(setSl().keep || 14), set: v => { slSet('keep', v); return ''; }, warn: v => +v < +(setSl().keep || 14) ? 'Nachten ouder dan ' + (v === '7' ? 'een week' : '2 weken') + ' worden dan gewist.' : '' },
   /* ---------- Lokale AI (de assistent) ---------- */
