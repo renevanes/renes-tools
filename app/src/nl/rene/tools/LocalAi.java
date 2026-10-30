@@ -757,8 +757,12 @@ final class LocalAi {
             boolean hasAtt = false;
             for (int i = 0; i < in.length(); i++) { JSONObject x = in.optJSONObject(i); if (x != null && x.optBoolean("att")) hasAtt = true; }
             final boolean actWanted = actAllowed(req.optBoolean("noAct"), hasAtt, remember, forgetWhat, question);
+            // Een vraag over de instellingen van de app: de paar instellingen die de interface erbij zocht (AiSettings)
+            final List<AiSettings.Entry> setOffer = AiSettings.allowed(req.optJSONArray("settings") != null, hasAtt, remember, forgetWhat)
+                    ? AiSettings.limit(setEntries(req.optJSONArray("settings"))) : null;
+            final boolean setWanted = setOffer != null && !setOffer.isEmpty();
             // Niet leren bij een actie ("herinner me …" is geen feit over jou) of als er berichten van anderen in het gesprek staan
-            boolean learnWanted = learnAllowed(memOn, req.optBoolean("noLearn"), hasAtt, actWanted, remember, forgetWhat, cfg(c, "learn"), question);
+            boolean learnWanted = learnAllowed(memOn, req.optBoolean("noLearn"), hasAtt, actWanted || setWanted, remember, forgetWhat, cfg(c, "learn"), question);
             JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", sys));
             int from = Math.max(0, in.length() - historyFor(cfg(c, "history")));
             int attAt = -1;
@@ -777,7 +781,8 @@ final class LocalAi {
             JSONObject last = msgs.getJSONObject(msgs.length() - 1);
             if (!"user".equals(last.optString("role"))) throw new Exception("Geen vraag");
             // Met mijn notities: eerst slim zoeken, dan de stukken meegeven
-            if (req.optBoolean("notes") && ready(c, EMBED) && remember == null && forgetWhat == null) {
+            // Niet bij een vraag over de instellingen: tekst van anderen (sms, WhatsApp) mag geen wijziging voorstellen
+            if (req.optBoolean("notes") && ready(c, EMBED) && remember == null && forgetWhat == null && !setWanted) {
                 sink.status("Zoeken in je gegevens…");
                 try {
                     JSONArray hits = SmartSearch.search(c, last.optString("content"), 4);
@@ -803,6 +808,7 @@ final class LocalAi {
             // Achter de vraag, niet in de vaste instructie: die blijft zo gelijk en de motor hoeft het gesprek niet opnieuw in te lezen
             final String questionF = question;
             if (actWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiActions.prompt(System.currentTimeMillis(), java.util.TimeZone.getDefault()) + ")");
+            if (setWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiSettings.prompt(setOffer) + ")");
             final boolean willLearn = learnWanted;
             // Antwoordlengte; met een bijlage hooguit 700 woordjes (ook bij doorvragen) en de bijlage zelf passend gemaakt:
             // anders laat de motor het oudste bericht weg, en dat is juist het gesprek
@@ -815,7 +821,7 @@ final class LocalAi {
                 a.put("content", fitAttachment(a.optString("content"), attBudget(m.ctx, maxTok, other, msgs.length())));
             }
             final int max = maxTok;
-            if (actWanted) sink.actWanted(); // de interface verbergt de actieregel dan al tijdens het schrijven
+            if (actWanted || setWanted) sink.actWanted(); // de interface verbergt de actieregel dan al tijdens het schrijven
             chatPhase = true; // vanaf hier het taalmodel: de index wacht op een kleinere telefoon
             if (!bigRam(c)) closeEmbedSafe(); // niet twee modellen tegelijk in een kleiner geheugen
             boolean starting = chat == null || !chat.alive() || !chat.model.equals(file(c, m)) || chat.threads != threads();
@@ -840,11 +846,18 @@ final class LocalAi {
                     // Een actieregel ([[herinnering: …]]) uit het antwoord halen en als voorstel meesturen (de interface vraagt bevestiging)
                     try {
                         String full = answer.toString();
-                        if (full.length() < 20000 && actWanted) { // alleen als er om een actie gevraagd werd
-                            String clean = AiActions.strip(full);
+                        if (full.length() < 20000 && (actWanted || setWanted)) { // alleen als er om een actie of instelling gevraagd werd
+                            String clean = actWanted ? AiActions.strip(full) : full;
+                            if (setWanted) clean = AiSettings.strip(clean);
                             if (!clean.equals(full)) o.put("clean", clean);
                             AiActions.Act act = actWanted && ok[0] ? AiActions.parse(full, questionF, System.currentTimeMillis(), java.util.TimeZone.getDefault()) : null;
                             if (act != null) o.put("action", actJson(act));
+                            // Voorgestelde wijzigingen: alleen van meegestuurde instellingen; de interface vraagt bevestiging
+                            if (setWanted && ok[0]) {
+                                JSONArray sa = new JSONArray();
+                                for (AiSettings.Change ch : AiSettings.filter(AiSettings.parse(full), setOffer)) sa.put(new JSONObject().put("id", ch.id).put("value", ch.value));
+                                if (sa.length() > 0) o.put("settings", sa);
+                            }
                         }
                     } catch (Throwable ignored) { }
                     try { o.put("turn", job); if (memUsed > 0) o.put("mem", memUsed); if (ok[0] && (willLearn || rememberedIdF != null)) o.put("learning", true); } catch (Exception ignored) { }
@@ -913,6 +926,26 @@ final class LocalAi {
             body = mark + "\n" + tail;
         }
         return head.isEmpty() ? body : head + "\n" + body;
+    }
+
+    /** De instellingen die de interface bij de vraag meestuurde: [{id, label, where, desc, cur, type, safe, vals:[[waarde, naam]]}]. */
+    static List<AiSettings.Entry> setEntries(JSONArray a) {
+        List<AiSettings.Entry> out = new ArrayList<>();
+        if (a == null) return out;
+        for (int i = 0; i < a.length() && i < 12; i++) {
+            JSONObject x = a.optJSONObject(i);
+            if (x == null) continue;
+            AiSettings.Entry e = new AiSettings.Entry();
+            e.id = x.optString("id"); e.label = AiSettings.clean(x.optString("label"), 80); e.where = AiSettings.clean(x.optString("where"), 120);
+            e.desc = AiSettings.clean(x.optString("desc"), 220); e.cur = AiSettings.clean(x.optString("cur"), 60); e.type = x.optString("type"); e.safe = x.optBoolean("safe");
+            JSONArray v = x.optJSONArray("vals");
+            if (v != null) for (int k = 0; k < v.length() && k < 24; k++) {
+                JSONArray p = v.optJSONArray(k);
+                if (p != null && p.length() > 0) e.vals.add(new String[]{AiSettings.clean(p.optString(0), 30), AiSettings.clean(p.optString(1), 40)});
+            }
+            out.add(e);
+        }
+        return out;
     }
 
     /** Een voorgestelde actie voor de interface. */
@@ -1242,7 +1275,7 @@ final class LocalAi {
         o.put("supported", supported()).put("engine", LlmProcess.binary(c).isFile()).put("ram", ramBytes(c));
         JSONArray ms = new JSONArray();
         for (Model m : MODELS) ms.put(state(c, m));
-        o.put("models", ms).put("chat", chatModel(c).id).put("wifiOnly", wifiOnly(c)).put("notes", prefs(c).getBoolean("notes", true)).put("voiceSend", prefs(c).getBoolean("voiceSend", true))
+        o.put("models", ms).put("chat", chatModel(c).id).put("wifiOnly", wifiOnly(c)).put("notes", prefs(c).getBoolean("notes", true)).put("voiceSend", prefs(c).getBoolean("voiceSend", false))
                 .put("speakVoice", prefs(c).getBoolean("speakVoice", false)).put("loaded", loaded()).put("busy", busy());
         if (ready(c, EMBED)) o.put("index", SmartSearch.info(c));
         JSONObject cf = new JSONObject();

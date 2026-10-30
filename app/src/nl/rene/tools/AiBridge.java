@@ -106,19 +106,23 @@ public class AiBridge extends SleepBridge {
     // ----- Spraak: een vraag inspreken. Op de telefoon uitgeschreven met het spraakmodel (whisper.cpp) van
     // Gesprekken uitschrijven; de opname gaat na het uitschrijven weg. Antwoord via onAiVoice({text} of {error}).
 
-    /** Geeft "" (luistert), "mic" (toestemming nodig), "model" (spraakmodel nodig) of een melding. */
-    @JavascriptInterface public String aiVoiceStart() { return VoiceNote.start(ctx, r -> a.js("onAiVoice", r)); }
+    /** Geeft "" (luistert), "mic" (toestemming nodig), "model" (spraakmodel nodig) of een melding. Live: met niveau en
+     *  tussentekst (whisper op de telefoon); lukt dat niet, dan de gewone opname. */
+    @JavascriptInterface public String aiVoiceStart() { try { return VoiceNote.startLive(ctx, r -> a.js("onAiVoice", r)); } catch (Throwable t) { return "Opnemen lukt niet"; } }
     @JavascriptInterface public void aiVoiceStop() { VoiceNote.stop(ctx, r -> a.js("onAiVoice", r)); }
+    /** Ook tijdens het uitschrijven: dan komt er niets (onAiVoice({cancelled})). */
     @JavascriptInterface public void aiVoiceCancel() { VoiceNote.cancel(); }
     /** idle, recording of working (bijv. na 5 minuten stopt Android de opname zelf, of de app ging naar de achtergrond). */
     @JavascriptInterface public String aiVoiceState() { return VoiceNote.state; }
+    /** Tijdens het inspreken (elke 0,1 s): {state, ms, live, lv:[niveaus 0–1 sinds de vorige keer], partial: tussentekst}. */
+    @JavascriptInterface public String aiVoiceLive() { return VoiceNote.liveJson(); }
 
     /** Spraakmodel aanwezig, en welk; voor de instellingen van de assistent. */
     @JavascriptInterface public String aiVoiceInfo() {
         try {
             Transcribe.Model m = Transcribe.activeModel(ctx);
             return new JSONObject().put("supported", Transcribe.supported()).put("model", m == null ? "" : m.id).put("label", m == null ? "" : m.label)
-                    .put("busy", TranscribeService.busy).put("send", LocalAi.prefs(ctx).getBoolean("voiceSend", true)).toString();
+                    .put("busy", TranscribeService.busy).put("send", LocalAi.prefs(ctx).getBoolean("voiceSend", false)).toString();
         } catch (Exception e) { return "{}"; }
     }
 

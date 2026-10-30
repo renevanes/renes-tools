@@ -1,0 +1,110 @@
+// De assistent en de instellingen van de app: opdracht → kaart → Toepassen (via dezelfde functie als het scherm) →
+// Ongedaan maken; Annuleren verandert niets; voorstel van het taalmodel streng gecontroleerd; gevoelig = alleen Openen;
+// "waar vind ik …" opent het juiste scherm; "wat heb je veranderd"; zonder taalmodel; in een losse app niet.
+// Het taalmodel is nagebootst (testbrug).
+const { chromium } = require('playwright');
+(async () => {
+  const b = await chromium.launch(); const errs = [];
+  const ok = (c, m) => { console.log((c ? '✓ ' : '✗ ') + m); if (!c) errs.push(m); };
+  for (const scheme of ['light', 'dark']) {
+    const pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
+    pg.on('pageerror', e => errs.push(e.message));
+    await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
+    const ask = async (q, ms) => { await pg.fill('#ai-in', q); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(ms || 200); };
+    const last = '#ai-msgs .aimsg:last-child';
+
+    // ---- Zonder taalmodel: opdrachten en opzoeken werken al ----
+    await pg.evaluate(() => show('ai')); await pg.waitForTimeout(200);
+    ok(await pg.isVisible('#ai-setup') && await pg.isVisible('#ai-in') && (await pg.getAttribute('#ai-in', 'placeholder')).includes('instellingen'), 'zonder taalmodel: vragen over de instellingen kan');
+    await ask('Zet de nachtelijke backup aan');
+    ok(await pg.evaluate(() => Android._ai.asked === undefined), 'opdracht: zonder taalmodel beantwoord');
+    ok(await pg.isVisible(last + ' .setcard') && (await pg.textContent(last + ' .setcard')).includes('Elke nacht alles back-uppen') && (await pg.textContent(last + ' .setft')).includes('naar aan'), 'kaart: naam, scherm, van … naar …');
+    ok(await pg.evaluate(() => Android._bk.auto === null), 'nog niets veranderd voor Toepassen');
+    await pg.screenshot({ path: __dirname + '/shots/ai-app-instellingen-' + scheme + '.png' });
+    await pg.click(last + ' .setcard .mini.on'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._bk.auto === true && Android._bk.charging === true), 'Toepassen: via backupSetAuto (zelfde functie als het scherm)');
+    ok((await pg.textContent(last + ' .aiact.done')).includes('aan') && (await pg.textContent('#toast')).includes('Aangepast'), 'bevestiging met Ongedaan maken');
+    await pg.click(last + ' .aiact.done button:has-text("Ongedaan maken")'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._bk.auto === false) && (await pg.textContent(last + ' .aiact.done')).includes('Teruggezet'), 'Ongedaan maken: weer uit');
+    // Een instelling uit de interface zelf
+    await ask('Zet de tekstgrootte op groot');
+    await pg.click(last + ' .setcard .mini.on'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._zoom === 115 && $('#st-zoom').value === '115'), 'tekstgrootte via stZoom: groot');
+    // Annuleren
+    await ask('Zet meldingen uit');
+    ok((await pg.textContent(last + ' .setft')).includes('naar uit') && !!(await pg.$(last + ' .aiact.setcard .linkish:has-text("Openen")')), 'meldingen uit: kaart met Openen');
+    await pg.click(last + ' .setcard button:has-text("Annuleren")'); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => !Android._notifMuted) && (await pg.textContent(last + ' .aiact.no')).includes('niet veranderd'), 'Annuleren: niets veranderd');
+    // Gevoelig: alleen uitleg en Openen
+    await ask('Schakel het app-slot uit');
+    ok(!(await pg.$(last + ' .setcard')) && (await pg.textContent(last + ' .aib')).includes('pas ik niet voor je aan'), 'app-slot: geen Toepassen, uitleg');
+    await pg.click(last + ' .setopen .aichip'); await pg.waitForTimeout(250);
+    ok(await pg.evaluate(() => current === 'setlock' && !!Android._st && !Android._st.lockChanged), 'app-slot: Openen gaat naar App-slot');
+    await pg.evaluate(() => show('ai')); await pg.waitForTimeout(150);
+    await ask('Zet de privé gesprekken van de assistent mee in de backup');
+    ok(!(await pg.$(last + ' .setcard')) && await pg.evaluate(() => Android._bk.parts.ai !== true), 'privé mee in de backup: niet via de assistent');
+    // Waar vind ik …: Openen naar het juiste scherm, met de instelling aangewezen
+    await ask('Waar vind ik de tekstgrootte?');
+    ok((await pg.textContent(last + ' .aib')).includes('Instellingen → Weergave') && (await pg.textContent(last + ' .aib')).includes('Groot'), 'waar vind ik: plek en stand');
+    await pg.click(last + ' .setopen .aichip'); await pg.waitForTimeout(250);
+    ok(await pg.evaluate(() => current === 'setlook' && !!document.querySelector('#s-setlook .setflash')), 'Openen: Weergave, tekstgrootte aangewezen');
+    await pg.evaluate(() => show('ai')); await pg.waitForTimeout(150);
+    // Wat kan ik instellen bij …
+    await ask('Wat kan ik instellen bij Slaappraat?');
+    ok((await pg.textContent(last + ' .aib')).includes('Slaappraat: gevoeligheid') && (await pg.$$(last + ' .aib li')).length >= 6, 'wat kan ik instellen bij Slaappraat: lijst met standen');
+    // Twijfel: kiezen
+    await ask('Zet wifi uit');
+    ok((await pg.textContent(last + ' .aib')).length > 0, 'vage opdracht: een antwoord');
+    // Wat heb je veranderd
+    await ask('Wat heb je allemaal veranderd?');
+    ok((await pg.$$(last + ' .setlogrow')).length === 2 && (await pg.textContent(last + ' .setlog')).includes('Tekstgrootte'), 'wat heb je veranderd: het logboek');
+    await pg.click(last + ' .setlogrow:first-child button'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._zoom === 0), 'logboek: Ongedaan maken zet de tekstgrootte terug');
+    // Niet alles is een instelling
+    await ask('Leg dit uit');
+    ok((await pg.textContent(last + ' .aib')).includes('taalmodel nodig'), 'gewone vraag zonder taalmodel: uitleg dat er een model nodig is');
+
+    // ---- Met taalmodel ----
+    await pg.evaluate(() => { Android._ai.st.klein35 = { state: 'ready' }; Android._ai.chat = 'klein35'; aiLoad(); aiNew(); }); await pg.waitForTimeout(150);
+    ok(await pg.isVisible('#ai-chat') && !(await pg.isVisible('#ai-setup')), 'model klaar');
+    // Uitleg met de instellingen erbij; het model stelt een wijziging voor
+    await pg.evaluate(() => { Android._ai.reply = 'Kortere antwoorden stel je in bij Lengte. Ik zet hem voor je op Kort.\n[[instelling: ai.style = kort]]'; });
+    await ask('Hoe zet ik de antwoorden korter? Welke instelling is dat?', 1400);
+    ok(await pg.evaluate(() => Array.isArray(Android._ai.last.settings) && Android._ai.last.settings.some(s => s.id === 'ai.style' && s.cur === 'normaal' && s.vals.length === 3)), 'het model krijgt de instellingen met de stand van nu');
+    ok(!(await pg.textContent(last + ' .aib')).includes('[[') && await pg.isVisible(last + ' .setcard'), 'regel uit het antwoord, kaart eronder');
+    await pg.click(last + ' .setcard .mini.on'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._ai.cfg.style === 'kort'), 'Toepassen: via aicSet');
+    // Ongeldige id of waarde, of gevoelig: geen kaart
+    await pg.evaluate(() => { Android._ai.reply = 'Dat doe ik.\n[[instelling: ai.style = superkort]]\n[[instelling: bestaat.niet = aan]]'; });
+    await ask('Hoe maak ik de antwoorden uitgebreider? Welke instelling?', 1300);
+    ok(!(await pg.$(last + ' .setcard')), 'onbekende waarde of id: geen kaart');
+    const js = await pg.evaluate(() => {
+      const m = { set: { offer: ['slot.aan', 'ai.style', 'backup.prive.ai'] } };
+      setFromModel(m, [{ id: 'slot.aan', value: 'uit' }, { id: 'backup.prive.ai', value: 'aan' }, { id: 'backup.nacht', value: 'aan' }, { id: 'ai.style', value: 'heel kort' }]);
+      const n = { set: { offer: ['ai.style'] } }; setFromModel(n, [{ id: 'ai.style', value: 'Uitgebreid' }]);
+      return [m.set.items, n.set.items];
+    });
+    ok(!js[0] && js[1] && js[1].length === 1 && js[1][0].to === 'uitgebreid', 'controle in de app: gevoelig, niet meegegeven of onbekend = niets; een naam wordt de waarde');
+    // Onthoud … is het geheugen, geen instelling
+    await pg.evaluate(() => { Android._ai.reply = 'Oké.'; });
+    await ask('Onthoud dat ik de tekstgrootte graag groot heb', 1300);
+    ok(await pg.evaluate(() => !Android._ai.last.settings && Android._ai.mem.some(m => /tekstgrootte/.test(m.text))) && !(await pg.$(last + ' .setcard')), 'onthoud …: het geheugen, geen instelling');
+    // Een opdracht gaat ook met model zonder taalmodel (snel en precies)
+    const n0 = await pg.evaluate(() => Android._ai.asked);
+    await ask('Zet de nachtelijke backup aan');
+    ok(await pg.evaluate(n => Android._ai.asked === n, n0) && await pg.isVisible(last + ' .setcard'), 'duidelijke opdracht: meteen een kaart, zonder het model');
+    // Bewaard in het gesprek
+    ok(await pg.evaluate(() => Android._ai.chats[0].msgs.some(m => m.set && m.set.items && m.set.items[0].id === 'backup.nacht')), 'kaart bewaard in het gesprek');
+    await pg.close();
+  }
+  // ---- In een losse app (zonder app-slot): niet ----
+  const pg = await b.newPage({ viewport: { width: 390, height: 844 } });
+  pg.on('pageerror', e => errs.push(e.message));
+  await pg.addInitScript(() => { window.__testSolo = 'ai'; });
+  await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
+  await pg.evaluate(() => show('ai')); await pg.waitForTimeout(150);
+  await pg.fill('#ai-in', 'Zet de nachtelijke backup aan'); await pg.evaluate(() => aiGrow()); await pg.click('#ai-send'); await pg.waitForTimeout(200);
+  ok((await pg.textContent('#ai-msgs .aimsg:last-child .aib')).includes('losse app') && !(await pg.$('#ai-msgs .setcard')), 'losse app: geen instellingen');
+  await b.close();
+  console.log('errors', errs);
+})();

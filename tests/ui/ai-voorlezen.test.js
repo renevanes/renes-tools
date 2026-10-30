@@ -57,7 +57,7 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._ai.speakVoice === true) && (await pg.getAttribute('#ais-vspeak', 'aria-checked')) === 'true', 'aan te zetten');
     await pg.evaluate(() => show('aiset')); await pg.waitForTimeout(100);
     ok((await pg.textContent('#ai-sum-voice')).includes('antwoord voorlezen'), 'in het overzicht');
-    await pg.evaluate(() => { show('ai'); aiNew(); Android._tts.said = []; Android._voiceResult = { text: 'Hoe laat is het in Tokio?' }; }); await pg.waitForTimeout(150);
+    await pg.evaluate(() => { Android._ai.voiceSend = true; aiLoad(); show('ai'); aiNew(); Android._tts.said = []; Android._voiceResult = { text: 'Hoe laat is het in Tokio?' }; }); await pg.waitForTimeout(150);
     await pg.click('#ai-mic'); await pg.waitForTimeout(200); await pg.click('#ai-mic'); await pg.waitForTimeout(1300);
     ok(await pg.evaluate(() => Android._tts.said.length === 1 && Android._tts.said[0] === Android._ai.reply), 'ingesproken vraag: antwoord vanzelf voorgelezen');
     ok(await pg.evaluate(() => Android._ai.chats[0].msgs[0].v === true), 'de vraag is gemarkeerd als ingesproken');

@@ -14,27 +14,46 @@ const { chromium } = require('playwright');
     ok(await pg.isVisible('#modal.on') && (await pg.textContent('#modal-title')).includes('Spraakmodel'), 'zonder spraakmodel: downloaden aangeboden');
     await pg.click('#modal-ok'); await pg.waitForTimeout(1600);
     ok(await pg.evaluate(() => Android._tx.models.base === true), 'spraakmodel gedownload');
-    // Inspreken: luisteren, stoppen, uitschrijven, meteen versturen
+    // Inspreken zoals in de app van Claude: luisteren (golf en tijd), tussentekst, ✓ = uitschrijven, tekst in het invoerveld
+    await pg.evaluate(() => { Android._voicePartial = 'Wat is de hoofd'; $('#ai-in').value = 'Vraag:'; aiGrow(); });
     await pg.click('#ai-mic'); await pg.waitForTimeout(700);
     ok((await pg.getAttribute('#ai-mic', 'aria-label')) === 'Stoppen met inspreken' && (await pg.textContent('#ai-vstate')).includes('Luisteren'), 'luisteren, met tijd');
-    ok(await pg.isDisabled('#ai-in'), 'tijdens het luisteren: niet typen');
+    ok(await pg.isVisible('#ai-vbar') && (await pg.$$('#ai-wave i')).length === 28 && /^0:0\d$/.test(await pg.textContent('#ai-vtime')), 'luisterbalk: golf en tijd');
+    ok(await pg.evaluate(() => [...document.querySelectorAll('#ai-wave i')].some(i => /scaleY\(0\.[2-9]/.test(i.style.transform))), 'de golf beweegt met het geluid');
+    ok((await pg.inputValue('#ai-in')) === 'Vraag: Wat is de hoofd', 'tussentekst verschijnt al tijdens het praten (achter wat er stond)');
+    ok(await pg.isDisabled('#ai-in') && await pg.isDisabled('#ai-send'), 'tijdens het luisteren: niet typen of versturen');
+    ok(await pg.isVisible('#ai-vcancel') && (await pg.getAttribute('#ai-vcancel', 'aria-label')) === 'Inspreken annuleren', 'annuleren (✕) zichtbaar');
     await pg.screenshot({ path: __dirname + '/shots/ai-spraak-' + scheme + '.png' });
     await pg.click('#ai-mic'); await pg.waitForTimeout(30);
     ok((await pg.textContent('#ai-vstate')) === 'Uitschrijven…' && await pg.isDisabled('#ai-mic'), 'uitschrijven…');
     await pg.waitForTimeout(250);
-    ok(await pg.evaluate(() => Android._ai.last && Android._ai.last.messages.slice(-1)[0].content === 'Wat is de hoofdstad van Frankrijk?'), 'ingesproken vraag meteen verstuurd');
+    ok((await pg.inputValue('#ai-in')) === 'Vraag: Wat is de hoofdstad van Frankrijk?' && !(await pg.isDisabled('#ai-in')) && !(await pg.isVisible('#ai-vbar')), 'standaard: de tekst komt in het invoerveld (na te kijken)');
+    ok(await pg.evaluate(() => !Android._ai.last) && (await pg.$$('#ai-msgs .aimsg')).length === 0, 'nog niet verstuurd');
+    await pg.click('#ai-send'); await pg.waitForTimeout(250);
+    ok(await pg.evaluate(() => Android._ai.last && Android._ai.last.messages.slice(-1)[0].content === 'Vraag: Wat is de hoofdstad van Frankrijk?'), 'zelf versturen');
     ok((await pg.textContent('#ai-msgs .aimsg.me')).includes('hoofdstad van Frankrijk'), 'de vraag staat in het gesprek');
     await pg.waitForTimeout(1200);
-    // Instelling: eerst in het invoerveld
-    await pg.evaluate(() => show('aisetvoice')); await pg.waitForTimeout(200);
+    // Annuleren tijdens het luisteren: niets in het invoerveld
+    await pg.evaluate(() => { $('#ai-in').value = ''; aiGrow(); });
+    await pg.click('#ai-mic'); await pg.waitForTimeout(450);
+    await pg.click('#ai-vcancel'); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => Android._aiVoiceCancelled === true && !aiRec) && (await pg.inputValue('#ai-in')) === '' && !(await pg.isVisible('#ai-vbar')) && (await pg.getAttribute('#ai-mic', 'aria-label')) === 'Inspreken', 'annuleren: opname weg, invoerveld leeg');
+    // Annuleren tijdens het uitschrijven: de tekst die toch nog komt, wordt genegeerd
+    await pg.evaluate(() => { Android._aiVoiceCancelled = false; $('#ai-in').value = 'Eerst'; aiGrow(); });
+    await pg.click('#ai-mic'); await pg.waitForTimeout(150);
+    await pg.evaluate(() => { aiRecStop(); if (!$('#ai-vbar').offsetParent) throw new Error('balk weg tijdens uitschrijven'); $('#ai-vcancel').click(); }); await pg.waitForTimeout(250);
+    ok((await pg.inputValue('#ai-in')) === 'Eerst' && !(await pg.isDisabled('#ai-in')), 'annuleren tijdens uitschrijven: het invoerveld blijft zoals het was');
+    // Instelling Meteen versturen na inspreken (standaard uit)
+    await pg.evaluate(() => { show('aisetvoice'); Android._voicePartial = ''; }); await pg.waitForTimeout(200);
     ok((await pg.textContent('#ais-voice')).includes('Klaar'), 'instellingen: spraakmodel klaar');
+    ok((await pg.getAttribute('#ais-vsend', 'aria-checked')) === 'false' && (await pg.textContent('#s-aisetvoice')).includes('Meteen versturen na inspreken'), 'meteen versturen: standaard uit');
     await pg.click('#ais-vsend');
-    ok(await pg.evaluate(() => Android._ai.voiceSend === false) && (await pg.getAttribute('#ais-vsend', 'aria-checked')) === 'false', 'meteen versturen uit te zetten');
-    await pg.evaluate(() => show('ai')); await pg.waitForTimeout(200);
-    const n = await pg.$$eval('#ai-msgs .aimsg', x => x.length);
-    await pg.evaluate(() => { Android._voiceResult = { text: 'Schrijf een gedicht' }; });
+    ok(await pg.evaluate(() => Android._ai.voiceSend === true) && (await pg.getAttribute('#ais-vsend', 'aria-checked')) === 'true', 'meteen versturen aan te zetten');
+    await pg.evaluate(() => { show('ai'); $('#ai-in').value = ''; aiGrow(); Android._voiceResult = { text: 'Schrijf een gedicht' }; }); await pg.waitForTimeout(200);
     await pg.click('#ai-mic'); await pg.waitForTimeout(200); await pg.click('#ai-mic'); await pg.waitForTimeout(300);
-    ok((await pg.inputValue('#ai-in')) === 'Schrijf een gedicht' && (await pg.$$eval('#ai-msgs .aimsg', x => x.length)) === n, 'ingesproken tekst eerst in het invoerveld');
+    ok(await pg.evaluate(() => Android._ai.last.messages.slice(-1)[0].content === 'Schrijf een gedicht'), 'meteen versturen: ingesproken vraag meteen verstuurd');
+    await pg.waitForTimeout(1300);
+    await pg.evaluate(() => { show('aisetvoice'); }); await pg.waitForTimeout(150); await pg.click('#ais-vsend'); await pg.evaluate(() => show('ai')); await pg.waitForTimeout(150);
     // Fout bij uitschrijven: melding, knop weer bruikbaar
     await pg.evaluate(() => { Android._voiceResult = { error: 'Er is geen spraak herkend' }; $('#ai-in').value = ''; });
     await pg.click('#ai-mic'); await pg.waitForTimeout(150); await pg.click('#ai-mic'); await pg.waitForTimeout(300);

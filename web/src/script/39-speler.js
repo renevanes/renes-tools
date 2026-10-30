@@ -90,7 +90,8 @@ function plSetArt(el, m){
   const k = (m.art || '') + '|' + m.ini;
   if (el.dataset.k === k) return;
   el.dataset.k = k;
-  if(m.art)el.innerHTML='<img src="'+esc(m.art)+'" alt="" onerror="plArtFallback(this.parentNode,'+jsq(m.ini)+')">';else plArtFallback(el,m.ini);
+  // Met DOM in plaats van een HTML-tekst: Chromium's vooruitlezer zag zo'n tekst in een groot script soms aan voor een echt plaatje
+  if (m.art) { const img = document.createElement('img'); img.alt = ''; img.onerror = () => plArtFallback(img.parentNode || el, m.ini); img.src = m.art; el.textContent = ''; el.appendChild(img); } else plArtFallback(el, m.ini);
   el.classList.toggle('ini', !m.art);
 }
 

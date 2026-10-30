@@ -365,7 +365,7 @@ if (!window.Android) window.Android = (function(){
     _aiReady(id){ return this._ai.st[id].state === 'ready'; },
     // Zoals LocalAi.chatModel: het gekozen model, of anders het eerste taalmodel dat klaar is
     _aiChat(){ const A = this._ai; if (this._aiReady(A.chat)) return A.chat; const m = A.models.find(x => x[0] !== 'zoek' && this._aiReady(x[0])); return m ? m[0] : A.chat; },
-    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: this._aiChat(), wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend !== false, speakVoice: !!A.speakVoice, cfg: Object.assign({}, this._aiCfgDef, A.cfg), memCount: A.mem.length, loaded: '', busy: !!A.busy, src: Object.assign({}, A.src), perm: Object.assign({}, A.perm),
+    aiState(){ const A = this._ai; return JSON.stringify({ supported: true, engine: true, ram: A.ram, chat: this._aiChat(), wifiOnly: A.wifiOnly, notes: A.notes, voiceSend: A.voiceSend === true, speakVoice: !!A.speakVoice, cfg: Object.assign({}, this._aiCfgDef, A.cfg), memCount: A.mem.length, loaded: '', busy: !!A.busy, src: Object.assign({}, A.src), perm: Object.assign({}, A.perm),
       models: A.models.map(m => Object.assign({ id: m[0], label: m[1], desc: m[2], size: m[3], embed: m[0] === 'zoek', ctx: m[0] === 'groot' ? 3072 : m[0] === 'zoek' ? 1024 : 4096 }, m[4] ? { replaces: m[4], news: m[5] || '' } : {}, m[6] ? { ram: m[6] } : {}, A.st[m[0]] || { state: 'none' })), orphans: A.orphans || 0,
       index: this._aiReady('zoek') ? { items: 3, chunks: 7, at: Date.now() - 6e4, stale: false } : undefined }); },
     aiDownload(id){ const A = this._ai, m = A.st[id]; if (!m) return 'Onbekend model'; A.calls.push(['dl', id]);
@@ -407,14 +407,25 @@ if (!window.Android) window.Android = (function(){
       const used = memOn ? A.mem.length : 0, learn = memOn && !rem && !fg && cfg.learn !== 'uit' && /\b(ik|mijn)\b/i.test(q) && !(r.notes && this._aiReady('zoek')) && !r.messages.some(m => m.oth);
       // Acties zoals LocalAi/AiActions: de regel [[herinnering: JJJJ-MM-DD UU:MM | tekst]] eruit, en als voorstel mee
       const act = this._aiAct(A.reply, r.noAct || r.messages.some(m => m.att)), wantAct = act.wanted(q), lrn = learn && !wantAct && !r.noLearn;
-      if (wantAct) onAiActWanted();
-      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone(Object.assign({ done: true, n: words.length, turn }, used ? { mem: used } : {}, lrn ? { learning: true } : {}, wantAct && act.clean != null ? { clean: act.clean } : {}, act.action && wantAct ? { action: act.action } : {}));
+      if (wantAct || r.settings) onAiActWanted();
+      const set = this._aiSet(A.reply, r.settings); // instellingen zoals LocalAi/AiSettings
+      const tick = () => { if (i < words.length) { onAiToken(words[i++]); A.timer = setTimeout(tick, 60); } else { A.timer = null; A.busy = false; onAiDone(Object.assign({ done: true, n: words.length, turn }, used ? { mem: used } : {}, lrn ? { learning: true } : {}, wantAct && act.clean != null ? { clean: act.clean } : {}, act.action && wantAct ? { action: act.action } : {}, set.clean != null ? { clean: set.clean } : {}, set.list.length ? { settings: set.list } : {}));
         if (lrn) { A.learningNow = true; setTimeout(() => onAiMemory({ thinking: true, turn }), 20); setTimeout(() => {
           A.learningNow = false;
           if (A.learnStop) { A.learnStop = false; onAiMemory({ none: true, stopped: true, turn }); return; }
           if (cfg.learn === 'vanzelf') onAiMemory({ saved: A.learnFacts.map(f => JSON.parse(this.aiMemAdd(f, 'geleerd', r.chat, r.title))), turn }); else onAiMemory({ ask: A.learnFacts.slice(), turn }); }, A.learnMs || 150); } } };
       if (r.notes && this._aiReady('zoek')) { onAiStatus('Zoeken in je gegevens…'); onAiSources([{ kind: 'notes', id: (notesGet()[0] || {}).id || 'x', title: 'Garage', snip: 'APK in maart', score: 0.61 }].concat(this._ai.src.sms ? [{ kind: 'sms', id: '7', title: 'Jos', snip: '[1 okt] Jos: de garage belt morgen', score: 0.5 }] : [])); }
       A.timer = setTimeout(() => { onAiStatus(''); tick(); }, 120); return ''; },
+    // Zoals AiSettings: de regels [[instelling: id = waarde]] eruit; alleen meegestuurde instellingen met een bekende waarde
+    _aiSet(reply, offer){
+      const out = { list: [] }; if (!Array.isArray(offer)) return out;
+      const re = /`*\[\[\s*instelling\s*:\s*([^\]\n]*)\]\]`*/gi; let m;
+      while ((m = re.exec(reply))) { const p = m[1].split('='), id = (p[0] || '').trim().toLowerCase(), v = (p[1] || '').trim().toLowerCase(), e = offer.find(x => x.id === id);
+        const val = e && !e.safe && (e.type === 'tijd' ? (/^\d{1,2}[:.]\d{2}$/.test(v) ? v.replace('.', ':').padStart(5, '0') : null) : ((e.vals || []).find(x => x[0].toLowerCase() === v || String(x[1]).toLowerCase() === v) || [])[0]);
+        if (val != null && val !== e.cur) out.list.push({ id, value: val }); }
+      if (re.test(reply) || out.list.length || /\[\[\s*instelling/i.test(reply)) out.clean = reply.replace(/`*\[\[\s*instelling\s*:[^\]\n]*\]\]`*/gi, '').replace(/\n{3,}/g, '\n\n').trim();
+      return out;
+    },
     _aiAct(reply, noAct){
       const out = { wanted: q => !noAct && /herinner|notitie|noteer|agenda|remind/i.test(q) && !/^\s*(onthoud|vergeet)\b/i.test(q) };
       const mt = /`*\[\[\s*(herinnering|notitie|agenda)\s*:\s*([^\]\n]*)\]\]`*/i.exec(reply);
@@ -454,7 +465,9 @@ if (!window.Android) window.Android = (function(){
     aiVoiceStop(){ this._aiRec = false; setTimeout(() => onAiVoice(this._voiceResult || { text: 'Wat is de hoofdstad van Frankrijk?' }), 80); },
     aiVoiceCancel(){ this._aiRec = false; this._aiVoiceCancelled = true; },
     aiVoiceState(){ return this._aiVoiceState || (this._aiRec ? 'recording' : 'idle'); },
-    aiVoiceInfo(){ const t = this._tx; const m = t.models.small ? 'small' : t.models.base ? 'base' : ''; return JSON.stringify({ supported: true, model: m, label: m ? 'Snel (57 MB)' : '', busy: !!t.st.running, send: this._ai.voiceSend !== false }); },
+    // Live zoals VoiceNote.liveJson: niveau en (na even praten) de tussentekst _voicePartial
+    aiVoiceLive(){ const r = !!this._aiRec, ms = r ? Date.now() - (this._vt || Date.now()) : 0; return JSON.stringify({ state: this.aiVoiceState(), ms, live: r, lv: r ? [Math.round((0.2 + 0.6 * Math.abs(Math.sin(ms / 300))) * 100) / 100] : [], partial: r && this._voicePartial && ms > 250 ? this._voicePartial : '' }); },
+    aiVoiceInfo(){ const t = this._tx; const m = t.models.small ? 'small' : t.models.base ? 'base' : ''; return JSON.stringify({ supported: true, model: m, label: m ? 'Snel (57 MB)' : '', busy: !!t.st.running, send: this._ai.voiceSend === true }); },
     aiChats(){ return JSON.stringify(this._ai.chats.map(c => ({ id: c.id, title: c.title, t: c.t, n: c.msgs.length }))); },
     aiChatGet(id){ const c = this._ai.chats.find(x => x.id === id); return c ? JSON.stringify(c) : ''; },
     aiChatSave(j){ const c = JSON.parse(j); c.id = c.id || 'c' + (++this._ai.seq); c.t = Date.now(); this._ai.chats = [c].concat(this._ai.chats.filter(x => x.id !== c.id)); return c.id; },

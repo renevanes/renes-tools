@@ -106,4 +106,6 @@ script/29-start.js
 script/30-snelkoppelingen.js
 script/31-startscherm-groepen-volgorde-verbergen.js
 script/32-automatiseringen.js
+script/58-instellingen-register.js
+script/59-assistent-instellingen.js
 einde.html
