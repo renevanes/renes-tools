@@ -1,6 +1,7 @@
 // Check-in terugkijken: opmerkingen bij een periode, los van het antwoord. Bij een gemiste dag zonder antwoord, bij een
 // ingevulde dag waar wijzigen en de notitie uit staan, wijzigen en wissen, de stip in de kalender en de grafiek,
-// inspreken, Zoeken, een gearchiveerde vraag, niet in de toekomst, en het overzicht bij terugzetten.
+// inspreken (ook: zonder spraakmodel naar Modellen zonder je tekst kwijt te raken), Zoeken, een gearchiveerde vraag,
+// per week (en meerdere antwoorden: één knop), niet in de toekomst, en Alles back-uppen.
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const errs = [];
@@ -47,6 +48,19 @@ const { chromium } = require('playwright');
     ok(day.includes('Was ziek thuis') && /opmerking van \d{1,2} [a-z]{3} \d\d:\d\d/.test(day), 'in de dag: de opmerking met wanneer (' + (day.match(/opmerking van [^W]*/) || [''])[0].trim() + ')');
     ok(await pg.$(yc + ' .ci-rm') && (await pg.getAttribute(yc, 'aria-label')).endsWith(': gemist, met een opmerking') && (await pg.getAttribute(yc, 'class')).includes('miss'), 'kalender: stip, en in tekst (' + await pg.getAttribute(yc, 'aria-label') + ')');
     ok((await pg.textContent('#ciq-legend')).includes('opmerking') && (await pg.textContent('#ciq-calsum')).includes('1 opmerking'), 'legenda en samenvatting noemen de opmerking');
+    // Inspreken zonder spraakmodel: via de link naar Modellen; de getypte tekst komt terug
+    await pg.click(addBtn); await pg.waitForTimeout(150);
+    await pg.fill('#ci-rem-text', 'Concept dat niet weg mag');
+    await pg.click('#ci-rem-mic'); await pg.waitForTimeout(100);
+    await pg.evaluate(() => { Android._voiceErr = 'model'; });
+    await pg.click('#voice-btn'); await pg.waitForTimeout(100);
+    await pg.click('#voice-state a'); await pg.waitForTimeout(250);
+    ok(await pg.evaluate(() => current === 'models') && !(await pg.isVisible('#ci-rem')) && (await pg.textContent('#toast')).includes('nog niet bewaard'), 'naar Modellen: venster dicht, tekst bewaard als concept');
+    await pg.evaluate(() => { Android._voiceErr = ''; jumpTo('checkinq'); }); await pg.waitForTimeout(250);
+    await pg.click(addBtn); await pg.waitForTimeout(150);
+    ok((await pg.inputValue('#ci-rem-text')) === 'Concept dat niet weg mag', 'terug: de tekst staat er weer');
+    await pg.click('#ci-rem-cancel'); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(y => Android._ci.rem.filter(r => r.p === y).length === 1, D.y), 'concept niet vanzelf bewaard');
     // 2. Ingevuld, met wijzigen en notitie uit: knop Opmerking bij het antwoord (geen Wijzigen)
     await toMonth(D.dby);
     const dc = '#ciq-grid .ci-d[data-k="' + D.dby + '"]';
@@ -62,6 +76,7 @@ const { chromium } = require('playwright');
     if (await pg.evaluate(() => ciqViewV) !== 'month') await pg.click('#ciq-view button[data-v=month]');
     await pg.waitForTimeout(100);
     ok((await pg.$$('#ciq-chart .ci-rmk')).length >= 1 && (await pg.getAttribute('#ciq-chart svg', 'aria-label')).includes('met een opmerking'), 'grafiek: stip bovenaan, en in de beschrijving');
+    if (D.y.slice(0, 7) === D.dby.slice(0, 7)) ok((await pg.textContent('#ciq-chart tbody')).includes('geen antwoord · opmerking'), 'als tabel: ook de dag met alleen een opmerking');
     // 3. Wijzigen
     await pg.click('#ciq-day button[aria-label^="Opmerking wijzigen"]'); await pg.waitForTimeout(150);
     ok((await pg.textContent('#ci-rem-t')) === 'Opmerking wijzigen' && (await pg.inputValue('#ci-rem-text')).includes('verhuizing'), 'wijzigen: met de tekst erin');
@@ -102,12 +117,32 @@ const { chromium } = require('playwright');
     await pg.click(addBtn); await pg.waitForTimeout(150);
     await pg.fill('#ci-rem-text', 'Terugblik na het archiveren'); await pg.click('#ci-rem-save'); await pg.waitForTimeout(200);
     ok(await pg.evaluate(y => Android._ci.rem.filter(r => r.p === y).length === 2, D.y), 'gearchiveerd: opmerking toegevoegd');
-    // 8. Vraag verwijderen: de opmerkingen gaan mee (zoals de antwoorden)
+    // 8. Per week, met meerdere antwoorden per periode: een stip in het vakje, en één knop Opmerking per periode
+    const W = await pg.evaluate(() => {
+      const w = Android._ci.qs.find(x => x.id === 'werk');
+      Object.assign(w, { on: true, tpl: false, rhythm: 'weekly', wday: 5, times: ['08:00'], until: '23:59', perPeriod: 'many', created: Date.now() - 40 * 864e5 });
+      const s = Android._ciSlots(w, Date.now() - 14 * 864e5, Date.now()).filter(x => x.end <= Date.now()).pop();
+      Android.checkinAnswer(JSON.stringify({ q: 'werk', p: s.key, o: 0 })); Android.checkinAnswer(JSON.stringify({ q: 'werk', p: s.key, o: 2 }));
+      const r = JSON.parse(Android.checkinRemark(JSON.stringify({ q: 'werk', p: s.key, text: 'Week met de deadline' })));
+      return { key: s.key, day: ciDayKey(new Date(s.at)), ok: r.ok };
+    });
+    ok(W.ok, 'opmerking bij een week (' + W.key + ')');
+    await pg.evaluate(() => { show('checkin'); ciOpen('werk'); }); await pg.waitForTimeout(250);
+    await toMonth(W.day);
+    const wc = '#ciq-grid .ci-d[data-k="' + W.key + '"]';
+    ok(await pg.$(wc + ' .ci-rm') && (await pg.getAttribute(wc, 'aria-label')).endsWith(', met een opmerking'), 'weekvakje: stip, en in tekst (' + await pg.getAttribute(wc, 'aria-label') + ')');
+    await pg.click(wc); await pg.waitForTimeout(150);
+    ok((await pg.textContent('#ciq-day')).includes('Week met de deadline') && (await pg.$$('#ciq-day button[aria-label^="Opmerking toevoegen"]')).length === 1 && await pg.isVisible('#ciq-day button[aria-label^="Opmerking toevoegen: Hoe was je werk?"]'), 'twee antwoorden in die week: één knop Opmerking voor de periode');
+    ok((await pg.textContent('#ciq-chart tbody')).includes('opmerking'), 'grafiek per week: de opmerking in de tabel');
+    // 9. Vraag verwijderen: de opmerkingen gaan mee (zoals de antwoorden)
     await pg.evaluate(() => Android.checkinDelete('voel'));
     ok(await pg.evaluate(() => !Android._ci.rem.some(r => r.q === 'voel')), 'vraag verwijderd: opmerkingen ook weg');
-    // 9. Alles back-uppen: in het overzicht en bij terugzetten
+    // 10. Alles back-uppen: in het overzicht en bij terugzetten; opmerkingen die niet te lezen waren: gemeld
     await pg.evaluate(() => { Android._wa.info.dest = true; show('backup'); }); await pg.waitForTimeout(200);
-    ok((await pg.textContent('#bk-private')).includes('3 opmerkingen') && (await pg.textContent('#bk-private')).includes('labels en opmerkingen'), 'backup: telt de opmerkingen');
+    ok((await pg.textContent('#bk-private')).includes('3 opmerkingen') && (await pg.textContent('#bk-private')).includes('labels en opmerkingen') && !(await pg.$('#bk-ci-rbroken')), 'backup: telt de opmerkingen');
+    await pg.evaluate(() => { Android._bk.extra.ciRBroken = true; bkPrivRender(bkState(true)); }); await pg.waitForTimeout(50);
+    ok(await pg.isVisible('#bk-ci-rbroken') && (await pg.textContent('#bk-ci-rbroken')).includes('Vragen en antwoorden gaan gewoon mee'), 'opmerkingen apart gezet: melding, de rest gaat mee');
+    await pg.evaluate(() => { delete Android._bk.extra.ciRBroken; });
     await pg.click('#s-backup button[onclick*="restorePick(\'checkin\')"]'); await pg.waitForTimeout(250);
     ok((await pg.textContent('#modal-text')).includes('Opmerkingen: 4 nieuw, 2 staan er al'), 'terugzetten: opmerkingen in het overzicht');
     await pg.click('#modal-cancel'); await pg.waitForTimeout(100);

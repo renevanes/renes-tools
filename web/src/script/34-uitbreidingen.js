@@ -53,7 +53,7 @@ function voiceToggle(){
   }
   const e = Android.voiceStart();
   if (e === 'mic') { Android.musicRequestMic(); $('#voice-state').textContent = 'Geef toegang tot de microfoon en tik opnieuw.'; return; }
-  if (e === 'model' && voiceOpt && voiceOpt.models) { $('#voice-state').innerHTML = 'Er is nog geen spraakmodel. Download er een bij <a href="#" onclick="voiceClose();if(typeof ciAnsClose===\'function\')ciAnsClose();if(typeof ciRemClose===\'function\')ciRemClose(true);jumpTo(\'models\');return false">Modellen</a> (Spraak naar tekst).'; return; }
+  if (e === 'model' && voiceOpt && voiceOpt.models) { $('#voice-state').innerHTML = 'Er is nog geen spraakmodel. Download er een bij <a href="#" onclick="voiceClose();if(typeof ciAnsClose===\'function\')ciAnsClose();if(typeof ciRemPark===\'function\')ciRemPark();jumpTo(\'models\');return false">Modellen</a> (Spraak naar tekst).'; return; }
   if (e === 'model') { $('#voice-state').innerHTML = 'Download eerst een spraakmodel bij <a href="#" onclick="voiceClose();jumpTo(\'transcripts\');return false">Gesprekken uitschrijven</a>.'; return; }
   if (e) { $('#voice-state').textContent = e; return; }
   b.classList.add('rec'); Android.vibrate(15);

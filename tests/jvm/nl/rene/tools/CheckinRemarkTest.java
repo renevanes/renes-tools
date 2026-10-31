@@ -75,6 +75,15 @@ public class CheckinRemarkTest {
         check(add(list, weekly, none, "2026-W44", "Deze week", now).optBoolean("ok") && add(list, weekly, none, "2026-W45", "Volgende week", now).has("error"), "per week: deze week wel, volgende niet");
         JSONObject monthly = question("mnd", "monthly").put("dom", 31);
         check(add(list, monthly, none, "2026-10", "Oktober", now).optBoolean("ok") && add(list, monthly, none, "2026-11", "November", now).has("error"), "per maand: deze maand wel (ook vóór de 31e), volgende niet");
+        JSONObject old = question("oud", "daily").put("created", at(2022, 1, 1, 12, 0));
+        check(add(list, old, none, "2022-03-15", "Lang geleden", now).optBoolean("ok"), "ook een periode van jaren terug (zoals de kalender laat zien)");
+        JSONObject multi = question("multi", "multi").put("times", new JSONArray().put("08:00").put("21:00"));
+        check(add(list, multi, none, "2026-10-31T08:00", "Ochtend", now).optBoolean("ok"), "meerdere keren per dag: het moment van vanochtend wel");
+        check(add(list, multi, none, "2026-10-31T21:00", "Avond", now).optString("error").equals("Dit moment is nog niet geweest"), "het moment van vanavond nog niet");
+        check(add(list, multi, new HashSet<>(Arrays.asList("2026-10-31T21:00")), "2026-10-31T21:00", "Al ingevuld", now).optBoolean("ok"), "wel als je het al vooraf invulde");
+        Set<String> ids = new HashSet<>();
+        for (int i = 0; i < list.length(); i++) ids.add(list.getJSONObject(i).optString("id"));
+        check(ids.size() == list.length(), "elke opmerking een eigen id");
 
         // ---------- wijzigen ----------
         String id = list.getJSONObject(0).optString("id");
@@ -109,12 +118,18 @@ public class CheckinRemarkTest {
                 .put(new JSONObject().put("id", "r5").put("q", "voel").put("p", "2026-10-22").put("t", 200).put("text", "  "))
                 .put(new JSONObject().put("id", "../x").put("q", "voel").put("p", "2026-10-22").put("t", 200).put("text", "Raar id"))
                 .put(new JSONObject().put("id", "r6").put("q", "voel").put("p", "2026-10-22").put("t", 200).put("text", "Zes").put("extra", "weg"));
-        JSONObject plan = CheckinStore.remarkPlan(have, new HashSet<>(Arrays.asList("voel")), in);
+        in.put(new JSONObject().put("id", "r7").put("q", "voel").put("p", "2026-11-05").put("t", 200).put("text", "Periode in de toekomst"))
+          .put(new JSONObject().put("id", "r8").put("q", "voel").put("p", "2026-10-22").put("t", now + 5 * 86_400_000L).put("text", "Tijd in de toekomst"));
+        JSONObject plan = CheckinStore.remarkPlan(have, new HashSet<>(Arrays.asList("voel")), in, now, AMS);
         JSONArray fresh = plan.getJSONArray("fresh");
-        check(fresh.length() == 2 && plan.optInt("dup") == 3 && plan.optInt("bad") == 4, "terugzetten: 2 nieuw, 3 dubbel, 4 overgeslagen (" + plan + ")");
+        check(fresh.length() == 2 && plan.optInt("dup") == 3 && plan.optInt("bad") == 6 && plan.optInt("full") == 0, "terugzetten: 2 nieuw, 3 dubbel, 6 overgeslagen (ook toekomst) (" + plan + ")");
         JSONObject f2 = fresh.getJSONObject(0);
         check("r2".equals(f2.optString("id")) && f2.optBoolean("voice") && f2.optLong("edited") == 300 && !fresh.getJSONObject(1).has("extra"), "teruggezet: opgeschoond, ingesproken en gewijzigd blijven");
-        check(CheckinStore.remarkPlan(null, new HashSet<String>(), null).getJSONArray("fresh").length() == 0, "oude backup zonder opmerkingen");
+        check(CheckinStore.remarkPlan(null, new HashSet<String>(), null, now, AMS).getJSONArray("fresh").length() == 0, "oude backup zonder opmerkingen");
+        JSONArray nearly = new JSONArray();
+        for (int i = 0; i < CheckinStore.MAX_REMARKS - 1; i++) nearly.put(new JSONObject().put("id", "x" + i).put("q", "voel").put("p", "2026-10-01").put("t", i + 1).put("text", "t" + i));
+        plan = CheckinStore.remarkPlan(nearly, new HashSet<>(Arrays.asList("voel")), in, now, AMS);
+        check(plan.getJSONArray("fresh").length() == 1 && plan.optInt("full") == 3, "terugzetten: niet meer dan " + CheckinStore.MAX_REMARKS + " (1 past, 3 niet) (" + plan.optInt("full") + ")");
 
         // ---------- de assistent: laatste opmerking ----------
         JSONArray qs = new JSONArray().put(new JSONObject().put("id", "voel").put("text", "Hoe voel je je?").put("emoji", "🙂")

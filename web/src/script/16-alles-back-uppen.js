@@ -89,6 +89,7 @@ function bkPrivRender(st){
   const aiInfo = (x.aiMem || x.aiChats) ? bkCount(x.aiMem, 'herinnering', 'herinneringen') + ', ' + bkCount(x.aiChats, 'gesprek', 'gesprekken') + ' · ' + fmtB(x.aiBytes || 0) : 'Nog niets bewaard';
   const slInfo = x.nights ? bkCount(x.nights, 'nacht', 'nachten') + ' · tekst ' + fmtB(x.sleepText || 0) + (x.sleepAudio ? ' · geluid ' + fmtB(x.sleepAudio) : '') : 'Nog geen nachten';
   const ciInfo = x.ciQ || x.ciA ? bkCount(x.ciQ, 'vraag', 'vragen') + ', ' + bkCount(x.ciA, 'antwoord', 'antwoorden') + (x.ciR ? ', ' + bkCount(x.ciR, 'opmerking', 'opmerkingen') : '') + ' · ' + fmtB(x.ciBytes || 0) : 'Nog niets ingevuld';
+  const ciWarn = x.ciRBroken ? '<p class="note warn" id="bk-ci-rbroken">De opmerkingen van Check-in waren niet te lezen en staan apart op je telefoon. Vragen en antwoorden gaan gewoon mee; opmerkingen pas weer als je een nieuwe schrijft.</p>' : '';
   box.innerHTML =
     '<label class=chk><input type=checkbox data-p="ai"' + (on('ai') ? ' checked' : '') + ' onchange="bkPrivSet(this)"> ' + BK_PRIV.ai + '</label>' +
     '<div class=bk-sub><p class=note>' + esc(aiInfo) + '</p></div>' +
@@ -98,7 +99,7 @@ function bkPrivRender(st){
       '<label class=chk><input type=radio name=bk-slaud id=bk-slaud-1' + (st.sleepAudio ? ' checked' : '') + ' onchange="bkSleepAudio(true)"> Met geluid' + (x.sleepAudio ? ' (+' + fmtB(x.sleepAudio) + ')' : '') + '</label>' +
       (st.sleepAudio && x.sleepAudio ? '<p class=note>Elke backup wordt zo ' + fmtB(x.sleepAudio) + ' groter.</p>' : '') : '') + '</div>' +
     '<label class=chk><input type=checkbox data-p="checkin"' + (on('checkin') ? ' checked' : '') + ' onchange="bkPrivSet(this)"> Check-in (vragen, antwoorden, notities, labels en opmerkingen)</label>' +
-    '<div class=bk-sub><p class=note>' + esc(ciInfo) + '</p></div>' +
+    '<div class=bk-sub><p class=note>' + esc(ciInfo) + '</p>' + ciWarn + '</div>' +
     (on('ai') || on('sleep') || on('checkin') ? (st.encrypted ? '<p class=note id=bk-priv-enc>' + uiIcon('lock') + ' Gaat versleuteld mee, in het archief van Alles back-uppen.</p>'
       : '<p class="note warn" id=bk-priv-warn>Let op: versleutelen staat uit. Dit komt als leesbaar bestand in je backup-map, te lezen door iedereen die bij die map kan (bijv. via OneDrive). Zet hieronder Versleutelen aan om het te beschermen.</p>') : '');
 }
@@ -144,7 +145,7 @@ window.onRestorePreview = function(d){
   if (d.kind === 'checkin') {
     if (!d.fresh) { Android.restoreCancel(); toast('Alles uit deze backup staat er al'); return; }
     askConfirm('Check-in terugzetten?', 'Vragen: ' + d.qFresh + ' nieuw' + (d.qDup ? ', ' + d.qDup + ' staan er al' : '') + '.\nAntwoorden: ' + d.aFresh + ' nieuw' + (d.aDup ? ', ' + d.aDup + ' staan er al' : '') + '.' +
-      (d.rTotal ? '\nOpmerkingen: ' + d.rFresh + ' nieuw' + (d.rDup ? ', ' + d.rDup + ' staan er al' : '') + '.' : '') +
+      (d.rTotal ? '\nOpmerkingen: ' + d.rFresh + ' nieuw' + (d.rDup ? ', ' + d.rDup + ' staan er al' : '') + (d.rFull ? ', ' + d.rFull + ' passen niet meer (hooguit 5000)' : '') + '.' : '') +
       (d.bad ? '\n' + d.bad + ' niet leesbaar (overgeslagen).' : '') + '\n\nEr wordt niets overschreven of verwijderd. Teruggezette vragen staan eerst uit: zet ze aan als je weer meldingen wilt.' +
       ((d.sample || []).length ? '\n\n' + d.sample.join('\n') : ''), 'Toevoegen', () => {
       restoreWhat = d.rTotal ? 'vragen, antwoorden en opmerkingen' : 'vragen en antwoorden'; restoreKind = 'checkin';

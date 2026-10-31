@@ -375,15 +375,18 @@ if (!window.Android) window.Android = (function(){
     checkinDeleteAnswer(id){ const C = this._ci, a = C.ans.find(x => x.id === id); if (!a) return 'Dit antwoord bestaat niet meer'; const q = C.qs.find(x => x.id === a.q);
       if (q && q.editable === false && Date.now() - a.t > 15 * 60000) return 'Wijzigen staat uit bij deze vraag'; C.ans = C.ans.filter(x => x.id !== id); return ''; },
     // Opmerkingen zoals CheckinStore.remark/remarkApply: los van het antwoord, ook bij gearchiveerd, nooit in de toekomst
-    checkinRemark(j){ const C = this._ci, r = JSON.parse(j), now = Date.now(), err = e => JSON.stringify({ error: e }), text = String(r.text || '').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').trim().slice(0, 2000);
+    checkinRemark(j){ const C = this._ci, r = JSON.parse(j), now = Date.now(), err = e => JSON.stringify({ error: e }), text = String(r.text || '').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').trim().slice(0, 2000); // MAX_REMARK
       if (r.id) { const x = C.rem.find(y => y.id === r.id); if (!x) return err('Deze opmerking bestaat niet meer'); if (!C.qs.some(q => q.id === x.q)) return err('Deze vraag bestaat niet meer');
         if (!text) return err('Schrijf iets, of kies Wissen'); x.text = text; x.edited = now; if (r.voice) x.voice = true; return JSON.stringify({ ok: true, id: x.id, key: x.p }); }
       const q = C.qs.find(x => x.id === r.q); if (!q) return err('Deze vraag bestaat niet meer');
       const key = String(r.p || ''); if (!/^(\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?|\d{4}-\d{2}|\d{4}-W\d{2})$/.test(key)) return err('Ongeldige periode');
-      if (!this._ciFind(q, key) && !C.ans.some(a => a.q === q.id && a.p === key) && !C.rem.some(x => x.q === q.id && x.p === key)) return err('Deze periode hoort niet bij de vraag');
       if (ciKeyDay(key) > this._ciKey(new Date(now))) return err('Deze periode is nog niet begonnen');
+      const slot = this._ciFind(q, key), answered = C.ans.some(a => a.q === q.id && a.p === key);
+      if (!slot && !answered && !C.rem.some(x => x.q === q.id && x.p === key)) return err('Deze periode hoort niet bij de vraag');
+      if (key.length === 16 && slot && slot.at > now && !answered) return err('Dit moment is nog niet geweest');
       if (!text) return err('Schrijf eerst je opmerking'); if (C.rem.length >= 5000) return err('Er zijn te veel opmerkingen bewaard');
-      const x = { id: 'r' + now.toString(36) + C.rem.length + Math.floor(Math.random() * 1e4), q: q.id, p: key, t: now, text }; if (r.voice) x.voice = true; C.rem.push(x);
+      let rid; do { rid = 'r' + now.toString(36) + Math.floor(Math.random() * 46656).toString(36); } while (C.rem.some(y => y.id === rid));
+      const x = { id: rid, q: q.id, p: key, t: now, text }; if (r.voice) x.voice = true; C.rem.push(x);
       return JSON.stringify({ ok: true, id: x.id, key }); },
     checkinDeleteRemark(id){ const C = this._ci; if (!C.rem.some(r => r.id === id)) return 'Deze opmerking bestaat niet meer'; C.rem = C.rem.filter(r => r.id !== id); return ''; },
     checkinHistory(id, from, to){ const C = this._ci, q = C.qs.find(x => x.id === id), now = Date.now(); if (!q) return JSON.stringify({ error: 'Deze vraag bestaat niet meer' });
