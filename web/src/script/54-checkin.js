@@ -218,7 +218,7 @@ function ciAnsClose(){
   // Focus terug naar waar je vandaan kwam (de knop is na het verversen soms nieuw: dan dezelfde knop, of de kop)
   const from = ciA && ciA.from; ciA = null;
   setTimeout(() => {
-    if ($('#ci-ans').classList.contains('on') || document.querySelector('#modal.on, #voice.on')) return;
+    if ($('#ci-ans').classList.contains('on') || document.querySelector('#modal.on, #voice.on, #ci-rem.on')) return;
     let el = from && from.isConnected && from.offsetParent ? from : null;
     if (!el && from && from.getAttribute && from.getAttribute('aria-label')) el = [...document.querySelectorAll('.screen.on button')].find(b => b.getAttribute('aria-label') === from.getAttribute('aria-label') && b.offsetParent);
     if (!el) el = document.querySelector('.screen.on .hdr h1');

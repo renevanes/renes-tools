@@ -128,7 +128,7 @@ function show(name){
   if (current_prev==='ai' && name!=='ai' && typeof aiVoiceAbort === 'function') aiVoiceAbort();
   if (current_prev==='ai' && name!=='ai' && typeof aiSpeakStop === 'function') aiSpeakStop(); // weg uit de assistent: niet doorpraten
   // Focus op de titel van het scherm; een scherm kan een zichtbare titel aanwijzen (.titelfocus) als de kleine titel in de balk nog verborgen is
-  if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' .titelfocus') || document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #voice.on, #ci-ans.on, #lockscr.on, #sheet.on, #sleepdlg.on, #player.on')) h.focus({ preventScroll: true }); }, 0);
+  if (current_prev !== name) setTimeout(() => { const h = document.querySelector('#s-' + name + ' .titelfocus') || document.querySelector('#s-' + name + ' h1'); if (h && !document.querySelector('#modal.on, #voice.on, #ci-ans.on, #ci-rem.on, #lockscr.on, #sheet.on, #sleepdlg.on, #player.on')) h.focus({ preventScroll: true }); }, 0);
   if (name==='podcasts') enterPodcasts(); else if (name!=='podcast' && typeof pcStopPoll === 'function') pcStopPoll();
   if (name==='redial') enterRedial(); else stopPoll();
   if (name==='wa') enterWa(); else stopWaPoll();
@@ -184,6 +184,7 @@ window.goBack = function(){
   if (typeof aiTalkBack === 'function' && aiTalkBack()) return true; // eerst het gesprek met de assistent stoppen
   if ($('#voice') && $('#voice').classList.contains('on')) { voiceClose(); return true; }
   if ($('#ci-ans') && $('#ci-ans').classList.contains('on')) { ciAnsClose(); return true; }
+  if ($('#ci-rem') && $('#ci-rem').classList.contains('on')) { ciRemClose(); return true; }
   if ($('#sleepdlg').classList.contains('on')) { sleepClose(); return true; }
   if ($('#vp-scan') && $('#vp-scan').classList.contains('on')) { vpScanClose(); return true; }
   if ($('#sheet').classList.contains('on')) { closeSheet(); return true; }

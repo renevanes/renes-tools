@@ -294,7 +294,7 @@ if (!window.Android) window.Android = (function(){
     sleepStopPlay(){ this._sl.played = ''; },
     sleepPlaying(){ return this._sl.played; },
     // Check-in zoals CheckinBridge/CheckinStore/Checkin (periodes in de tijd van de browser); _ciNotify/_ciNotifAnswer bootsen de melding na
-    _ci: { qs: [], ans: [], seeded: false, next: 1, notifOk: true, muted: false, calOk: false, posted: {}, done: {}, previews: [], days: {}, model: 'Snel (57 MB)' },
+    _ci: { qs: [], ans: [], rem: [], seeded: false, next: 1, notifOk: true, muted: false, calOk: false, posted: {}, done: {}, previews: [], days: {}, model: 'Snel (57 MB)' },
     _ciKey(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); },
     _ciDow(d){ return (d.getDay() + 6) % 7 + 1; },
     _ciMin(t){ const m = /^(\d\d):(\d\d)$/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : -1; },
@@ -350,7 +350,7 @@ if (!window.Android) window.Android = (function(){
       const cur = this._ciCurrent(q, now); if (cur && cur.at <= now) C.done[q.id] = cur.key;
       if (C.posted[q.id] && !(q.on && !q.archived)) delete C.posted[q.id]; else if (C.posted[q.id]) C.posted[q.id].reposted = (C.posted[q.id].reposted || 0) + 1;
       C.saved = (C.saved || 0) + 1; return JSON.stringify({ id: q.id }); },
-    checkinDelete(id){ const C = this._ci; C.qs = C.qs.filter(q => q.id !== id); C.ans = C.ans.filter(a => a.q !== id); delete C.posted[id]; return ''; },
+    checkinDelete(id){ const C = this._ci; C.qs = C.qs.filter(q => q.id !== id); C.ans = C.ans.filter(a => a.q !== id); C.rem = C.rem.filter(r => r.q !== id); delete C.posted[id]; return ''; },
     checkinMove(id, dir){ const qs = this._ci.qs, i = qs.findIndex(q => q.id === id), j = i + (dir < 0 ? -1 : 1); if (i < 0 || j < 0 || j >= qs.length) return; [qs[i], qs[j]] = [qs[j], qs[i]]; },
     checkinDuplicate(id){ const q = this._ci.qs.find(x => x.id === id); if (!q) return JSON.stringify({ error: 'Deze vraag bestaat niet meer' }); const c = JSON.parse(JSON.stringify(q)); delete c.id; c.text += ' (kopie)'; c.on = false; c.tpl = false; return this.checkinSave(JSON.stringify(c)); },
     checkinAnswer(j){ const C = this._ci, r = JSON.parse(j), now = Date.now(), q = C.qs.find(x => x.id === r.q), err = e => JSON.stringify({ error: e });
@@ -374,13 +374,28 @@ if (!window.Android) window.Android = (function(){
       return JSON.stringify({ ok: true, id: a.id, key: s.key, late }); },
     checkinDeleteAnswer(id){ const C = this._ci, a = C.ans.find(x => x.id === id); if (!a) return 'Dit antwoord bestaat niet meer'; const q = C.qs.find(x => x.id === a.q);
       if (q && q.editable === false && Date.now() - a.t > 15 * 60000) return 'Wijzigen staat uit bij deze vraag'; C.ans = C.ans.filter(x => x.id !== id); return ''; },
+    // Opmerkingen zoals CheckinStore.remark/remarkApply: los van het antwoord, ook bij gearchiveerd, nooit in de toekomst
+    checkinRemark(j){ const C = this._ci, r = JSON.parse(j), now = Date.now(), err = e => JSON.stringify({ error: e }), text = String(r.text || '').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').trim().slice(0, 2000);
+      if (r.id) { const x = C.rem.find(y => y.id === r.id); if (!x) return err('Deze opmerking bestaat niet meer'); if (!C.qs.some(q => q.id === x.q)) return err('Deze vraag bestaat niet meer');
+        if (!text) return err('Schrijf iets, of kies Wissen'); x.text = text; x.edited = now; if (r.voice) x.voice = true; return JSON.stringify({ ok: true, id: x.id, key: x.p }); }
+      const q = C.qs.find(x => x.id === r.q); if (!q) return err('Deze vraag bestaat niet meer');
+      const key = String(r.p || ''); if (!/^(\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?|\d{4}-\d{2}|\d{4}-W\d{2})$/.test(key)) return err('Ongeldige periode');
+      if (!this._ciFind(q, key) && !C.ans.some(a => a.q === q.id && a.p === key) && !C.rem.some(x => x.q === q.id && x.p === key)) return err('Deze periode hoort niet bij de vraag');
+      if (ciKeyDay(key) > this._ciKey(new Date(now))) return err('Deze periode is nog niet begonnen');
+      if (!text) return err('Schrijf eerst je opmerking'); if (C.rem.length >= 5000) return err('Er zijn te veel opmerkingen bewaard');
+      const x = { id: 'r' + now.toString(36) + C.rem.length + Math.floor(Math.random() * 1e4), q: q.id, p: key, t: now, text }; if (r.voice) x.voice = true; C.rem.push(x);
+      return JSON.stringify({ ok: true, id: x.id, key }); },
+    checkinDeleteRemark(id){ const C = this._ci; if (!C.rem.some(r => r.id === id)) return 'Deze opmerking bestaat niet meer'; C.rem = C.rem.filter(r => r.id !== id); return ''; },
     checkinHistory(id, from, to){ const C = this._ci, q = C.qs.find(x => x.id === id), now = Date.now(); if (!q) return JSON.stringify({ error: 'Deze vraag bestaat niet meer' });
-      const a = ciDate(from).setHours(0, 0, 0, 0), b = ciDate(to).setHours(0, 0, 0, 0), by = this._ciBy(id), slots = this._ciSlots(q, a, b).map(s => this._ciSlotJson(q, s, by, now)), keys = new Set(slots.map(s => s.key));
+      const a = ciDate(from).setHours(0, 0, 0, 0), b = ciDate(to).setHours(0, 0, 0, 0), by = this._ciBy(id), rem = C.rem.filter(r => r.q === id).sort((x, y) => x.t - y.t);
+      const slots = this._ciSlots(q, a, b).map(s => Object.assign(this._ciSlotJson(q, s, by, now), { remarks: rem.filter(r => r.p === s.key) })), keys = new Set(slots.map(s => s.key));
       const extra = C.ans.filter(x => x.q === id && !keys.has(x.p) && ciKeyDay(x.p) >= from && ciKeyDay(x.p) < to);
+      const remarksExtra = rem.filter(x => !keys.has(x.p) && ciKeyDay(x.p) >= from && ciKeyDay(x.p) < to);
       const vals = slots.flatMap(s => s.answers.map(x => x.v)).concat(extra.map(x => x.v)), counts = q.options.map(o => vals.filter(v => v === +o.value).length);
-      const sum = { counts, answered: slots.filter(s => s.status === 'answered').length, missed: slots.filter(s => s.status === 'missed').length, n: vals.length, streak: this._ciStreak(q, by, now) };
+      const sum = { counts, answered: slots.filter(s => s.status === 'answered').length, missed: slots.filter(s => s.status === 'missed').length, n: vals.length, streak: this._ciStreak(q, by, now),
+        remarks: slots.reduce((n, s) => n + s.remarks.length, 0) + remarksExtra.length };
       if (vals.length) sum.avg = Math.round(vals.reduce((x, y) => x + y, 0) / vals.length * 100) / 100;
-      return JSON.stringify({ q, slots, extra, summary: sum }); },
+      return JSON.stringify({ q, slots, extra, remarksExtra, summary: sum }); },
     checkinDays(from, to){ const C = this._ci, days = {}; Object.keys(C.days).forEach(d => { if (d >= from && d < to) { const x = Object.assign({}, C.days[d]); if (!C.calOk) delete x.cal; days[d] = x; } }); return JSON.stringify({ cal: C.calOk, days }); },
     checkinPreview(id){ const C = this._ci, q = C.qs.find(x => x.id === id); if (!q) return 'Deze vraag bestaat niet meer'; if (!C.notifOk) return 'notif'; const s = this._ciCurrent(q, Date.now()); if (!s) return 'Er is nu geen periode om te beantwoorden'; C.previews.push(id); C.posted[id] = { key: s.key }; return ''; },
     /* De wekker: een melding voor de periode die nu open staat (één per moment). Geeft de knoppen (alleen bij 2 of 3 antwoorden). */
@@ -799,7 +814,7 @@ if (!window.Android) window.Android = (function(){
     archiveRestore(k,e){ this._arcRestore=k+'|'+e; this._restoreKind=k; setTimeout(()=>onRestorePreview(k==='sleep'?{kind:k,total:4,fresh:2,dup:0,old:0,running:1,bad:0,keep:14,clips:9,audio:7,audioBytes:12e6,withAudio:true,fromArchive:true,sample:[Date.now()-864e5,Date.now()-2*864e5]}
       :k==='ai'?{kind:k,memTotal:5,memFresh:0,memDup:2,memFull:3,chatTotal:4,chatFresh:4,chatDup:0,chatFull:0,total:9,fresh:4,sample:[]}:k==='checkin'?{kind:k,qTotal:2,qFresh:1,qDup:1,aTotal:40,aFresh:12,aDup:28,bad:0,total:42,fresh:13,sample:['🏃 Heb je bewogen?']}:{kind:k,total:320,fresh:2,dup:318,sample:['Oom Kees','Tandarts']}),100); },
     archiveUnpack(){ setTimeout(()=>onArchiveUnpacked('ok:57'),150); }, archiveClose(){ this._arcClosed=true; },
-    _bk:{busy:false,current:'',auto:null,charging:true,parts:{},last:null,sleepAudio:false,extra:{aiMem:12,aiChats:8,aiBytes:46000,nights:5,sleepText:21000,sleepAudio:84e6,ciQ:2,ciA:57,ciBytes:9000}},
+    _bk:{busy:false,current:'',auto:null,charging:true,parts:{},last:null,sleepAudio:false,extra:{aiMem:12,aiChats:8,aiBytes:46000,nights:5,sleepText:21000,sleepAudio:84e6,ciQ:2,ciA:57,ciR:3,ciBytes:9000}},
     /* Elke nacht: zelf gekozen blijft; nooit gekozen = alleen met versleutelen en een backup-map (zoals AllBackup.auto) */
     _bkAuto(){ const b=this._bk; return b.auto==null ? (!!this._sec.on && !!this._wa.info.dest) : !!b.auto; },
     backupState(f){ const b=this._bk, auto=this._bkAuto(); return JSON.stringify({busy:b.busy,current:b.current,auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:auto?Date.now()+5*36e5:0,parts:Object.assign({ai:false,sleep:false,checkin:false},b.parts),sleepAudio:b.sleepAudio,extra:b.extra,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,space:this._sec.space,herstel:this._herstelReady()}); },
@@ -836,10 +851,10 @@ if (!window.Android) window.Android = (function(){
     restorePick(k){ this._restoreKind = k; const P = {contacts:{kind:k,total:320,fresh:9,dup:311,sample:['Oom Kees','Tandarts']}, settings:{kind:k,total:12,fresh:5,dup:7,rules:2,favs:3,alarm:true,plan:false,reminders:0,sample:['Parkeren starten']}, route:{kind:k,total:1,fresh:1,dup:0,title:'Rondje Plas',points:420,stats:{distance:5230},sample:['Rondje Plas']},
         ai:{kind:'ai',memTotal:14,memFresh:3,memDup:11,memFull:0,chatTotal:9,chatFresh:2,chatDup:7,chatFull:0,total:23,fresh:5,sample:['Woont in <b>Rotterdam</b>.','Sport op dinsdag.']},
         sleep:{kind:'sleep',total:6,fresh:3,dup:1,old:2,running:0,bad:0,keep:14,clips:17,audio:0,audioBytes:0,withAudio:true,sample:[Date.now()-864e5,Date.now()-2*864e5,Date.now()-3*864e5]},
-        checkin:{kind:'checkin',qTotal:3,qFresh:1,qDup:2,aTotal:120,aFresh:30,aDup:90,bad:1,total:123,fresh:31,sample:['🏃 Heb je bewogen?']}};
+        checkin:{kind:'checkin',qTotal:3,qFresh:1,qDup:2,aTotal:120,aFresh:30,aDup:90,rTotal:6,rFresh:4,rDup:2,bad:1,total:129,fresh:35,sample:['🏃 Heb je bewogen?']}};
       setTimeout(()=>onRestorePreview(P[k] || {kind:k,total:5,fresh:1,dup:4,sample:['Vakantie']}),100); },
     restoreCancel(){ this._restoreCancelled=(this._restoreCancelled||0)+1; this._restoreKind=null; },
-    restoreApply(){ const k=this._restoreKind; this._restoreApplied=k; setTimeout(()=>onRestoreDone(k==='sleep'?'ok:3':k==='ai'?'ok:5':k==='checkin'?'ok:31':'ok:9'),100); return ''; },
+    restoreApply(){ const k=this._restoreKind; this._restoreApplied=k; setTimeout(()=>onRestoreDone(k==='sleep'?'ok:3':k==='ai'?'ok:5':k==='checkin'?'ok:35':'ok:9'),100); return ''; },
     _al:{on:false,hour:7,minute:0,days:31,station:null,nextAt:0},
     alarmState(){ return JSON.stringify(Object.assign({exact:true},this._al)); },
     alarmSet(on,h,m,d,st){ const a=this._al; Object.assign(a,{on,hour:h,minute:m,days:d}); if(st) a.station=JSON.parse(st); if(on&&!a.station) return 'Kies een zender'; a.nextAt=on?Date.now()+8*36e5:0; return ''; },
@@ -863,8 +878,9 @@ if (!window.Android) window.Android = (function(){
       // Slaappraat: wat je zei (zoals SleepTalk.search)
       const sl=[]; (this._sl ? this._sl.nights : []).slice().sort((a,b)=>b.start-a.start).forEach(n=>n.clips.slice().reverse().forEach(k=>{ if(k.done&&k.kind==='praten'&&(k.text||'').toLowerCase().includes(ql)) sl.push({night:n.id,clip:k.id,t:k.t,text:k.text}); }));
       if(sl.length) r.sleep={total:sl.length,items:sl.slice(0,5)};
-      // Check-in: notities en labels (zoals CheckinStore.search)
-      const ci=(this._ci?this._ci.ans:[]).filter(a=>((a.note||'')+' '+(a.labels||[]).join(', ')).toLowerCase().includes(ql)).sort((a,b)=>b.t-a.t).map(a=>{ const q=this._ci.qs.find(x=>x.id===a.q)||{}; return {q:a.q,p:a.p,t:a.t,title:((q.emoji||'')+' '+(q.text||'')).trim(),text:((a.e||'')+' '+(a.l||'')).trim()+((a.labels||[]).length?' · '+a.labels.join(', '):'')+(a.note?' · '+a.note:'')}; });
+      // Check-in: notities en labels bij de antwoorden, en de opmerkingen (zoals CheckinStore.search)
+      const ciA=(this._ci?this._ci.ans:[]).filter(a=>((a.note||'')+' '+(a.labels||[]).join(', ')).toLowerCase().includes(ql)), ciR=(this._ci?this._ci.rem:[]).filter(r=>r.text.toLowerCase().includes(ql));
+      const ci=ciA.concat(ciR).sort((a,b)=>b.t-a.t).filter(a=>this._ci.qs.some(x=>x.id===a.q)).map(a=>{ const q=this._ci.qs.find(x=>x.id===a.q)||{}; return {q:a.q,p:a.p,t:a.t,title:((q.emoji||'')+' '+(q.text||'')).trim(),text:'text' in a?'Opmerking: '+a.text:((a.e||'')+' '+(a.l||'')).trim()+((a.labels||[]).length?' · '+a.labels.join(', '):'')+(a.note?' · '+a.note:'')}; });
       if(ci.length) r.checkin={total:ci.length,items:ci.slice(0,5)};
       r.done=true; onSearchAll(r); },150); return id; }, _gsId:0,
     _rp:null, _txa:{on:false},

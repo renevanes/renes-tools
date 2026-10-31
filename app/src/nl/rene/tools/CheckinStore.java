@@ -24,7 +24,8 @@ import java.util.TimeZone;
 /**
  * Check-in: de vragen en antwoorden, alleen op de telefoon (files/checkin, niet in Android-backups; wel als privé
  * onderdeel van Alles back-uppen als Rene dat aanvinkt). questions.json = {seeded, next, questions:[…]},
- * answers.json = [{id, q, p, t, o, v, l, e, note, labels, late, src}]. Schrijven gaat altijd via een tijdelijk
+ * answers.json = [{id, q, p, t, o, v, l, e, note, labels, late, src}], remarks.json = [{id, q, p, t, edited, text, voice}]
+ * (opmerkingen: Renes eigen terugblik bij een periode, los van het antwoord). Schrijven gaat altijd via een tijdelijk
  * bestand (Contacts.writeText). Het rekenwerk (periodes, reeks, tellen) staat in Checkin.
  */
 final class CheckinStore {
@@ -35,14 +36,15 @@ final class CheckinStore {
     static final String DIR = "Check-in", FILE = "checkin.json";
     static final String[] SCALES = {"buttons2", "buttons3", "smileys5", "score10", "yesno", "custom"};
     static final String[] COLORS = {"primary", "blue", "green", "orange", "red", "purple", "grey"};
-    static final int MAX_QUESTIONS = 40, MAX_ANSWERS = 50_000;
+    static final int MAX_QUESTIONS = 40, MAX_ANSWERS = 50_000, MAX_REMARKS = 5000, MAX_REMARK = 2000;
 
     static File dir(Context c) { File d = new File(c.getFilesDir(), "checkin"); d.mkdirs(); return d; }
     static File qFile(Context c) { return new File(dir(c), "questions.json"); }
     static File aFile(Context c) { return new File(dir(c), "answers.json"); }
+    static File rFile(Context c) { return new File(dir(c), "remarks.json"); }
 
     private static JSONObject db;      // {seeded, next, questions}
-    private static JSONArray answers;
+    private static JSONArray answers, remarks;
     private static volatile int version;
 
     static int version() { return version; }
@@ -62,10 +64,10 @@ final class CheckinStore {
      * begint Check-in leeg, zonder voorstellen; Alles back-uppen laat de vorige backup dan staan (brokenAside).
      */
     private static synchronized void load(Context c) {
-        if (db != null && answers != null) return;
-        String qt = read(qFile(c)), at = read(aFile(c));
+        if (db != null && answers != null && remarks != null) return;
+        String qt = read(qFile(c)), at = read(aFile(c)), rt = read(rFile(c));
         JSONObject d;
-        JSONArray a;
+        JSONArray a, r;
         try { d = qt == null ? new JSONObject() : new JSONObject(qt); }
         catch (org.json.JSONException e) {
             App.log(c, "CHECKIN", "vragen kapot, apart gezet: " + e);
@@ -79,8 +81,14 @@ final class CheckinStore {
             aFile(c).renameTo(new File(dir(c), "answers.json.kapot-" + System.currentTimeMillis()));
             a = new JSONArray();
         }
+        try { r = rt == null ? new JSONArray() : new JSONArray(rt); }
+        catch (org.json.JSONException e) {
+            App.log(c, "CHECKIN", "opmerkingen kapot, apart gezet: " + e);
+            rFile(c).renameTo(new File(dir(c), "remarks.json.kapot-" + System.currentTimeMillis()));
+            r = new JSONArray();
+        }
         if (d.optJSONArray("questions") == null) try { d.put("questions", new JSONArray()); } catch (Exception ignored) { }
-        db = d; answers = a;
+        db = d; answers = a; remarks = r;
     }
 
     /**
@@ -91,7 +99,8 @@ final class CheckinStore {
         File[] fs = dir(c).listFiles();
         if (fs != null) for (File f : fs) {
             String n = f.getName();
-            File cur = n.startsWith("questions.json.kapot-") ? qFile(c) : n.startsWith("answers.json.kapot-") ? aFile(c) : null;
+            File cur = n.startsWith("questions.json.kapot-") ? qFile(c) : n.startsWith("answers.json.kapot-") ? aFile(c)
+                    : n.startsWith("remarks.json.kapot-") ? rFile(c) : null;
             if (cur == null) continue;
             if (!cur.isFile()) return true;
             long when = f.lastModified();
@@ -103,6 +112,7 @@ final class CheckinStore {
 
     private static void saveQ(Context c) throws Exception { Contacts.writeText(qFile(c), db.toString(), false); version++; }
     private static void saveA(Context c) throws Exception { Contacts.writeText(aFile(c), answers.toString(), false); version++; }
+    private static void saveR(Context c) throws Exception { Contacts.writeText(rFile(c), remarks.toString(), false); version++; }
 
     /** De echte lijst (alleen binnen deze klasse, onder het slot). */
     private static JSONArray qs(Context c) { load(c); return db.optJSONArray("questions"); }
@@ -125,6 +135,8 @@ final class CheckinStore {
 
     static synchronized JSONArray answers(Context c) { load(c); return copy(answers); }
 
+    static synchronized JSONArray remarks(Context c) { load(c); return copy(remarks); }
+
     /** Alle antwoorden van één vraag per periode. */
     static synchronized Map<String, List<JSONObject>> byKey(Context c, String qid) {
         Map<String, List<JSONObject>> m = new HashMap<>();
@@ -137,6 +149,25 @@ final class CheckinStore {
             if (l == null) { l = new ArrayList<>(); m.put(x.optString("p"), l); }
             l.add(x);
         }
+        return m;
+    }
+
+    /** Alle opmerkingen van één vraag per periode, oudste eerst. */
+    static synchronized Map<String, List<JSONObject>> remarksByKey(Context c, String qid) {
+        load(c);
+        return group(remarks, qid);
+    }
+
+    static Map<String, List<JSONObject>> group(JSONArray list, String qid) {
+        Map<String, List<JSONObject>> m = new HashMap<>();
+        for (int i = 0; list != null && i < list.length(); i++) {
+            JSONObject x = list.optJSONObject(i);
+            if (x == null || !qid.equals(x.optString("q"))) continue;
+            List<JSONObject> l = m.get(x.optString("p"));
+            if (l == null) { l = new ArrayList<>(); m.put(x.optString("p"), l); }
+            l.add(x);
+        }
+        for (List<JSONObject> l : m.values()) java.util.Collections.sort(l, (x, y) -> Long.compare(x.optLong("t"), y.optLong("t")));
         return m;
     }
 
@@ -338,7 +369,7 @@ final class CheckinStore {
         return save(c, x);
     }
 
-    /** Vraag en al zijn antwoorden weg. */
+    /** Vraag met al zijn antwoorden en opmerkingen weg. */
     static synchronized void delete(Context c, String id) throws Exception {
         load(c);
         JSONArray qs = db.optJSONArray("questions"), keep = new JSONArray();
@@ -349,6 +380,9 @@ final class CheckinStore {
         for (int i = 0; i < answers.length(); i++) { JSONObject a = answers.optJSONObject(i); if (a != null && !id.equals(a.optString("q"))) ka.put(a); }
         answers = ka;
         saveA(c);
+        JSONArray kr = new JSONArray();
+        for (int i = 0; i < remarks.length(); i++) { JSONObject r = remarks.optJSONObject(i); if (r != null && !id.equals(r.optString("q"))) kr.put(r); }
+        if (kr.length() != remarks.length()) { remarks = kr; saveR(c); }
     }
 
     // ---------- antwoorden ----------
@@ -456,6 +490,81 @@ final class CheckinStore {
         return "";
     }
 
+    // ---------- opmerkingen (terugblik bij een periode, los van het antwoord) ----------
+
+    /**
+     * Een opmerking plaatsen of wijzigen. req = {q, p, text, voice} (nieuw) of {id, text, voice} (wijzigen).
+     * Mag ook bij een gearchiveerde vraag en los van wijzigen/achteraf invullen/notitie: het is Renes eigen terugblik,
+     * geen antwoord. Geeft {ok, id, key} of {error}.
+     */
+    static synchronized JSONObject remark(Context c, JSONObject req, long now) throws Exception {
+        load(c);
+        String id = req.optString("id");
+        String qid = req.optString("q");
+        if (!id.isEmpty() && qid.isEmpty()) for (int i = 0; i < remarks.length(); i++) { JSONObject r = remarks.optJSONObject(i); if (r != null && id.equals(r.optString("id"))) qid = r.optString("q"); }
+        JSONObject q = qLive(c, qid);
+        Set<String> keys = new HashSet<>();
+        for (int i = 0; i < answers.length(); i++) { JSONObject a = answers.optJSONObject(i); if (a != null && qid.equals(a.optString("q"))) keys.add(a.optString("p")); }
+        JSONObject r = remarkApply(remarks, q, keys, req, now, TimeZone.getDefault());
+        if (r.optBoolean("ok")) saveR(c);
+        return r;
+    }
+
+    /**
+     * Zuiver (getest): voegt toe aan list of wijzigt daarin. q = de vraag (null: bestaat niet meer), keys = periodes
+     * waarin de vraag al antwoorden heeft (ook als die na een ander ritme niet meer bij de vraag horen).
+     * Alleen periodes die bij de vraag horen en al begonnen zijn (vandaag of eerder), nooit in de toekomst.
+     */
+    static JSONObject remarkApply(JSONArray list, JSONObject q, Set<String> keys, JSONObject req, long now, TimeZone tz) throws Exception {
+        String id = req.optString("id");
+        String text = cleanNote(req.optString("text"));
+        if (!id.isEmpty()) { // wijzigen
+            JSONObject r = null;
+            for (int i = 0; i < list.length(); i++) { JSONObject x = list.optJSONObject(i); if (x != null && id.equals(x.optString("id"))) r = x; }
+            if (r == null) return err("Deze opmerking bestaat niet meer");
+            if (q == null || !q.optString("id").equals(r.optString("q"))) return err("Deze vraag bestaat niet meer");
+            if (text.isEmpty()) return err("Schrijf iets, of kies Wissen");
+            r.put("text", text).put("edited", now);
+            if (req.optBoolean("voice")) r.put("voice", true);
+            return new JSONObject().put("ok", true).put("id", id).put("key", r.optString("p"));
+        }
+        if (q == null) return err("Deze vraag bestaat niet meer");
+        String key = req.optString("p");
+        if (!Checkin.validKey(key)) return err("Ongeldige periode");
+        boolean known = keys.contains(key) || Checkin.find(rule(q), key, now, tz) != null;
+        if (!known) for (int i = 0; i < list.length() && !known; i++) { JSONObject x = list.optJSONObject(i); known = x != null && q.optString("id").equals(x.optString("q")) && key.equals(x.optString("p")); }
+        if (!known) return err("Deze periode hoort niet bij de vraag");
+        if (Checkin.keyDay(key).compareTo(Checkin.dateKey(now, tz)) > 0) return err("Deze periode is nog niet begonnen");
+        if (text.isEmpty()) return err("Schrijf eerst je opmerking");
+        if (list.length() >= MAX_REMARKS) return err("Er zijn te veel opmerkingen bewaard");
+        String rid = "r" + Long.toString(now, 36) + Integer.toString((int) (Math.random() * 46656), 36);
+        JSONObject r = new JSONObject().put("id", rid).put("q", q.optString("id")).put("p", key).put("t", now).put("text", text);
+        if (req.optBoolean("voice")) r.put("voice", true);
+        list.put(r);
+        return new JSONObject().put("ok", true).put("id", rid).put("key", key);
+    }
+
+    /** Zuiver: list zonder de opmerking met dit id, of null als die er niet (meer) is. */
+    static JSONArray remarkWithout(JSONArray list, String id) {
+        JSONArray keep = new JSONArray();
+        boolean found = false;
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject r = list.optJSONObject(i);
+            if (r != null && id != null && id.equals(r.optString("id"))) { found = true; continue; }
+            if (r != null) keep.put(r);
+        }
+        return found ? keep : null;
+    }
+
+    static synchronized String deleteRemark(Context c, String id) throws Exception {
+        load(c);
+        JSONArray keep = remarkWithout(remarks, id);
+        if (keep == null) return "Deze opmerking bestaat niet meer";
+        remarks = keep;
+        saveR(c);
+        return "";
+    }
+
     // ---------- voor het scherm ----------
 
     static JSONObject slotJson(Checkin.Rule r, Checkin.Slot s, List<JSONObject> as, long now) throws Exception {
@@ -506,7 +615,12 @@ final class CheckinStore {
         return new JSONObject().put("questions", out).put("first", first).put("now", now);
     }
 
-    /** Terugkijken: alle periodes van [from, to) ("yyyy-MM-dd", to niet meer) met hun antwoorden, en een samenvatting. */
+    static JSONArray arr(List<JSONObject> l) { JSONArray a = new JSONArray(); if (l != null) for (JSONObject x : l) a.put(x); return a; }
+
+    /**
+     * Terugkijken: alle periodes van [from, to) ("yyyy-MM-dd", to niet meer) met hun antwoorden en opmerkingen, en een
+     * samenvatting. extra/remarksExtra = antwoorden en opmerkingen die niet (meer) bij een periode horen.
+     */
     static synchronized JSONObject history(Context c, String qid, String from, String to, long now) throws Exception {
         JSONObject q = question(c, qid);
         if (q == null) return err("Deze vraag bestaat niet meer");
@@ -514,14 +628,15 @@ final class CheckinStore {
         Calendar f = Checkin.day(from, tz), t = Checkin.day(to, tz);
         if (f == null || t == null || !t.after(f)) return err("Ongeldige periode");
         Checkin.Rule r = rule(q);
-        Map<String, List<JSONObject>> by = byKey(c, qid);
+        Map<String, List<JSONObject>> by = byKey(c, qid), rby = remarksByKey(c, qid);
         long a = Checkin.at(f, 0), b = Checkin.at(t, 0);
         JSONArray slots = new JSONArray();
         Set<String> keys = new HashSet<>();
         List<Double> vals = new ArrayList<>();
-        int answered = 0, missed = 0;
+        int answered = 0, missed = 0, nRemarks = 0;
         for (Checkin.Slot s : Checkin.slots(r, a, b, tz)) {
-            JSONObject sj = slotJson(r, s, by.get(s.key), now);
+            JSONObject sj = slotJson(r, s, by.get(s.key), now).put("remarks", arr(rby.get(s.key)));
+            nRemarks += sj.getJSONArray("remarks").length();
             slots.put(sj);
             keys.add(s.key);
             String st = sj.optString("status");
@@ -538,6 +653,13 @@ final class CheckinStore {
             if (d.isEmpty() || d.compareTo(from) < 0 || d.compareTo(to) >= 0) continue;
             for (JSONObject x : e.getValue()) { extra.put(x); vals.add(x.optDouble("v")); }
         }
+        JSONArray extraR = new JSONArray();
+        for (Map.Entry<String, List<JSONObject>> e : rby.entrySet()) {
+            if (keys.contains(e.getKey())) continue;
+            String d = Checkin.keyDay(e.getKey());
+            if (d.isEmpty() || d.compareTo(from) < 0 || d.compareTo(to) >= 0) continue;
+            for (JSONObject x : e.getValue()) { extraR.put(x); nRemarks++; }
+        }
         JSONArray opts = q.optJSONArray("options");
         double[] ov = new double[opts == null ? 0 : opts.length()], av = new double[vals.size()];
         for (int i = 0; i < ov.length; i++) ov[i] = opts.getJSONObject(i).optDouble("value");
@@ -545,10 +667,10 @@ final class CheckinStore {
         JSONArray counts = new JSONArray();
         for (int n : Checkin.counts(ov, av)) counts.put(n);
         double avg = Checkin.average(av);
-        JSONObject sum = new JSONObject().put("counts", counts).put("answered", answered).put("missed", missed).put("n", av.length)
+        JSONObject sum = new JSONObject().put("counts", counts).put("answered", answered).put("missed", missed).put("n", av.length).put("remarks", nRemarks)
                 .put("streak", streak(r, by, now, tz));
         if (!Double.isNaN(avg)) sum.put("avg", Math.round(avg * 100) / 100.0);
-        return new JSONObject().put("q", q).put("slots", slots).put("extra", extra).put("summary", sum);
+        return new JSONObject().put("q", q).put("slots", slots).put("extra", extra).put("remarksExtra", extraR).put("summary", sum);
     }
 
     // ---------- slaap en agenda per dag ----------
@@ -654,7 +776,7 @@ final class CheckinStore {
 
     static String qTitle(JSONObject q) { return (q.optString("emoji") + " " + q.optString("text")).trim(); }
 
-    /** Zoeken in je notities en labels bij de antwoorden (voor Zoeken): [{q, p, t, title, text}], nieuwste eerst. */
+    /** Zoeken in je notities en labels bij de antwoorden en in je opmerkingen (voor Zoeken): [{q, p, t, title, text}], nieuwste eerst. */
     static synchronized JSONArray search(Context c, String ql) throws Exception {
         load(c);
         JSONArray out = new JSONArray(), a = answers;
@@ -667,12 +789,20 @@ final class CheckinStore {
             String hay = (x.optString("note") + " " + labels).toLowerCase(Locale.ROOT);
             if (hay.contains(ql)) hits.add(x);
         }
+        for (int i = 0; i < remarks.length(); i++) {
+            JSONObject x = remarks.optJSONObject(i);
+            if (x != null && x.optString("text").toLowerCase(Locale.ROOT).contains(ql)) hits.add(x);
+        }
         java.util.Collections.sort(hits, (x, y) -> Long.compare(y.optLong("t"), x.optLong("t")));
         for (JSONObject x : hits) {
-            JSONObject q = question(c, x.optString("q"));
+            JSONObject q = qLive(c, x.optString("q"));
             if (q == null) continue;
-            String labels = join(x.optJSONArray("labels"));
-            String text = (x.optString("e") + " " + x.optString("l")).trim() + (labels.isEmpty() ? "" : " · " + labels) + (x.optString("note").isEmpty() ? "" : " · " + x.optString("note"));
+            String text;
+            if (x.has("text")) text = "Opmerking: " + x.optString("text");
+            else {
+                String labels = join(x.optJSONArray("labels"));
+                text = (x.optString("e") + " " + x.optString("l")).trim() + (labels.isEmpty() ? "" : " · " + labels) + (x.optString("note").isEmpty() ? "" : " · " + x.optString("note"));
+            }
             out.put(new JSONObject().put("q", x.optString("q")).put("p", x.optString("p")).put("t", x.optLong("t")).put("title", qTitle(q)).put("text", text));
             if (out.length() >= 200) break;
         }
@@ -711,15 +841,8 @@ final class CheckinStore {
         for (int i = 0; i < qs.length(); i++) {
             JSONObject q = qs.getJSONObject(i);
             Map<String, List<JSONObject>> by = byKey(c, q.optString("id"));
-            Map<String, List<JSONObject>> months = new java.util.TreeMap<>();
-            for (Map.Entry<String, List<JSONObject>> e : by.entrySet()) {
-                String d = Checkin.keyDay(e.getKey());
-                if (d.isEmpty()) continue;
-                String m = d.substring(0, 7);
-                List<JSONObject> l = months.get(m);
-                if (l == null) { l = new ArrayList<>(); months.put(m, l); }
-                l.addAll(e.getValue());
-            }
+            Map<String, List<JSONObject>> months = byMonth(by), rMonths = byMonth(remarksByKey(c, q.optString("id")));
+            for (String m : rMonths.keySet()) if (!months.containsKey(m)) months.put(m, new ArrayList<JSONObject>());
             JSONArray opts = q.optJSONArray("options");
             double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE;
             if (opts != null) for (int k = 0; k < opts.length(); k++) { double v = opts.getJSONObject(k).optDouble("value"); lo = Math.min(lo, v); hi = Math.max(hi, v); }
@@ -739,7 +862,11 @@ final class CheckinStore {
                     n.put(lab, (n.containsKey(lab) ? n.get(lab) : 0) + 1);
                     last = Math.max(last, a.optLong("t"));
                 }
-                StringBuilder head = new StringBuilder("Check-in \"" + q.optString("text") + "\" in " + monthName(e.getKey()) + ": " + l.size() + " keer ingevuld.");
+                List<JSONObject> rl = rMonths.get(e.getKey());
+                if (rl == null) rl = new ArrayList<>();
+                java.util.Collections.sort(rl, (x, y) -> x.optString("p").compareTo(y.optString("p")) != 0 ? x.optString("p").compareTo(y.optString("p")) : Long.compare(x.optLong("t"), y.optLong("t")));
+                StringBuilder head = new StringBuilder("Check-in \"" + q.optString("text") + "\" in " + monthName(e.getKey()) + ": " + l.size() + " keer ingevuld"
+                        + (rl.isEmpty() ? "" : ", " + rl.size() + (rl.size() == 1 ? " opmerking" : " opmerkingen")) + ".");
                 StringBuilder cnt = new StringBuilder();
                 for (Map.Entry<String, Integer> x : n.entrySet()) if (x.getValue() > 0) cnt.append(cnt.length() > 0 ? ", " : " ").append(x.getValue()).append("× ").append(x.getKey());
                 head.append(cnt);
@@ -756,42 +883,87 @@ final class CheckinStore {
                             + (a.optBoolean("late") ? " (achteraf ingevuld)" : ""));
                     times.add(a.optLong("t"));
                 }
+                for (JSONObject x : rl) {
+                    lines.add("- " + keyLabel(x.optString("p")) + ": opmerking: " + x.optString("text"));
+                    times.add(x.optLong("t"));
+                    last = Math.max(last, x.optLong("t"));
+                }
+                times.set(0, last);
                 out.add(new Object[]{q.optString("id") + "|" + e.getKey(), q.optString("text") + " · " + monthName(e.getKey()), lines, times, last});
             }
         }
         return out;
     }
 
+    private static Map<String, List<JSONObject>> byMonth(Map<String, List<JSONObject>> by) {
+        Map<String, List<JSONObject>> months = new java.util.TreeMap<>();
+        for (Map.Entry<String, List<JSONObject>> e : by.entrySet()) {
+            String d = Checkin.keyDay(e.getKey());
+            if (d.isEmpty()) continue;
+            String m = d.substring(0, 7);
+            List<JSONObject> l = months.get(m);
+            if (l == null) { l = new ArrayList<>(); months.put(m, l); }
+            l.addAll(e.getValue());
+        }
+        return months;
+    }
+
     static String fmt(double v) { return v == Math.rint(v) ? String.valueOf((long) v) : String.valueOf(v).replace('.', ','); }
 
     /** Vingerafdruk voor slim zoeken: verandert bij elke wijziging. */
-    static String stamp(Context c) { return aFile(c).lastModified() + "/" + aFile(c).length() + "/" + qFile(c).lastModified(); }
+    static String stamp(Context c) { return aFile(c).lastModified() + "/" + aFile(c).length() + "/" + qFile(c).lastModified() + "/" + rFile(c).lastModified() + "/" + rFile(c).length(); }
 
     // ---------- Alles back-uppen (privé onderdeel) ----------
 
     /** Voor de keuze bij Alles back-uppen: aantallen en grootte. */
     static synchronized void sizes(Context c, JSONObject o) {
-        try { load(c); o.put("ciQ", qs(c).length()).put("ciA", answers.length()).put("ciBytes", qFile(c).length() + aFile(c).length()); } catch (Exception ignored) { }
+        try { load(c); o.put("ciQ", qs(c).length()).put("ciA", answers.length()).put("ciR", remarks.length()).put("ciBytes", qFile(c).length() + aFile(c).length() + rFile(c).length()); } catch (Exception ignored) { }
     }
 
-    /** Vragen en antwoorden naar Check-in/checkin.json. Geeft het aantal antwoorden (of vragen); -1 = niets te bewaren. */
+    /** Vragen, antwoorden en opmerkingen naar Check-in/checkin.json. Geeft het aantal antwoorden (of vragen); -1 = niets te bewaren. */
     static int export(Context c) throws Exception {
-        JSONArray qs, as;
+        JSONArray qs, as, rs;
         synchronized (CheckinStore.class) {
             if (brokenAside(c)) throw new Exception("Check-in was niet te lezen (apart gezet); de vorige backup blijft staan");
-            qs = questions(c); as = answers(c);
+            qs = questions(c); as = answers(c); rs = remarks(c);
         }
-        if (qs.length() == 0 && as.length() == 0) return -1;
-        JSONObject o = new JSONObject().put("format", FORMAT).put("kind", "checkin").put("t", System.currentTimeMillis()).put("questions", qs).put("answers", as);
+        if (qs.length() == 0 && as.length() == 0 && rs.length() == 0) return -1;
+        JSONObject o = new JSONObject().put("format", FORMAT).put("kind", "checkin").put("t", System.currentTimeMillis()).put("questions", qs).put("answers", as).put("remarks", rs);
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), WaBackup.destUri(c));
         WaBackup.DestDir dir = dest.dir(DIR, true);
         try (Sms.Out w = Sms.open(dest, dir, FILE, "application/json")) { w.write(o.toString()); w.done(); }
         return as.length() > 0 ? as.length() : qs.length();
     }
 
-    private static JSONArray pendingQ, pendingA;
+    private static JSONArray pendingQ, pendingA, pendingR;
 
     static String sig(JSONObject a) { return a.optString("q") + "|" + a.optString("p") + "|" + a.optLong("t") + "|" + a.optDouble("v"); }
+
+    static String rSig(JSONObject r) { return r.optString("q") + "|" + r.optString("p") + "|" + r.optLong("t") + "|" + cleanNote(r.optString("text")); }
+
+    /**
+     * Zuiver (getest): opmerkingen uit een backup, opgeschoond. Overgeslagen: dubbel (zelfde id, of zelfde vraag,
+     * periode, tijd en tekst; ook binnen de backup), onbekende vraag, foute periode of lege tekst.
+     * Geeft {fresh:[…], dup, bad}.
+     */
+    static JSONObject remarkPlan(JSONArray have, Set<String> questions, JSONArray in) throws Exception {
+        Set<String> ids = new HashSet<>(), sigs = new HashSet<>();
+        for (int i = 0; have != null && i < have.length(); i++) { JSONObject r = have.optJSONObject(i); if (r != null) { ids.add(r.optString("id")); sigs.add(rSig(r)); } }
+        JSONArray fresh = new JSONArray();
+        int dup = 0, bad = 0;
+        for (int i = 0; in != null && i < in.length(); i++) {
+            JSONObject r = in.optJSONObject(i);
+            String id = r == null ? "" : r.optString("id"), text = r == null ? "" : cleanNote(r.optString("text"));
+            if (!id.matches("[A-Za-z0-9_-]{1,40}") || !questions.contains(r.optString("q")) || !Checkin.validKey(r.optString("p")) || text.isEmpty()) { bad++; continue; }
+            if (ids.contains(id) || sigs.contains(rSig(r))) { dup++; continue; }
+            ids.add(id); sigs.add(rSig(r));
+            JSONObject x = new JSONObject().put("id", id).put("q", r.optString("q")).put("p", r.optString("p")).put("t", r.optLong("t")).put("text", text);
+            if (r.optLong("edited") > 0) x.put("edited", r.optLong("edited"));
+            if (r.optBoolean("voice")) x.put("voice", true);
+            fresh.put(x);
+        }
+        return new JSONObject().put("fresh", fresh).put("dup", dup).put("bad", bad);
+    }
 
     /**
      * Een voorstel dat nog onaangeroerd is (tpl, geen antwoorden): mag plaatsmaken voor de vraag met hetzelfde id uit
@@ -806,9 +978,10 @@ final class CheckinStore {
     /** Overzicht van wat er terug zou komen (er wordt niets overschreven; alleen een onaangeroerd voorstel maakt plaats). */
     static synchronized JSONObject preview(Context c, String text) throws Exception {
         JSONObject o = AiSleepBackup.parse(text, "checkin", "Check-in-backup (checkin.json)");
-        JSONArray inQ = o.optJSONArray("questions"), inA = o.optJSONArray("answers");
+        JSONArray inQ = o.optJSONArray("questions"), inA = o.optJSONArray("answers"), inR = o.optJSONArray("remarks");
         if (inQ == null) inQ = new JSONArray();
         if (inA == null) inA = new JSONArray();
+        if (inR == null) inR = new JSONArray();
         load(c);
         JSONArray qs = qs(c);
         Set<String> known = new HashSet<>(), oneQ = new HashSet<>();
@@ -860,18 +1033,21 @@ final class CheckinStore {
                     .put("o", a.optInt("o")).put("v", a.optDouble("v", 0)).put("l", cleanText(a.optString("l"), 40)).put("e", cleanText(a.optString("e"), 16))
                     .put("note", cleanNote(a.optString("note"))).put("labels", labels).put("late", a.optBoolean("late")).put("src", "backup"));
         }
-        pendingQ = freshQ; pendingA = freshA;
+        JSONObject rp = remarkPlan(remarks, known, inR);
+        JSONArray freshR = rp.getJSONArray("fresh");
+        pendingQ = freshQ; pendingA = freshA; pendingR = freshR;
         return new JSONObject().put("kind", "checkin").put("qTotal", inQ.length()).put("qFresh", freshQ.length()).put("qDup", qDup)
-                .put("aTotal", inA.length()).put("aFresh", freshA.length()).put("aDup", aDup).put("bad", qBad + aBad)
-                .put("total", inQ.length() + inA.length()).put("fresh", freshQ.length() + freshA.length()).put("sample", sample);
+                .put("aTotal", inA.length()).put("aFresh", freshA.length()).put("aDup", aDup)
+                .put("rTotal", inR.length()).put("rFresh", freshR.length()).put("rDup", rp.optInt("dup")).put("bad", qBad + aBad + rp.optInt("bad"))
+                .put("total", inQ.length() + inA.length() + inR.length()).put("fresh", freshQ.length() + freshA.length() + freshR.length()).put("sample", sample);
     }
 
-    static synchronized void cancel() { pendingQ = null; pendingA = null; }
+    static synchronized void cancel() { pendingQ = null; pendingA = null; pendingR = null; }
 
     /** Toevoegen wat nieuw is (nogmaals nagekeken: intussen kan er iets bijgekomen zijn). Geeft het aantal. */
     static synchronized int apply(Context c) throws Exception {
-        JSONArray inQ = pendingQ, inA = pendingA;
-        pendingQ = null; pendingA = null;
+        JSONArray inQ = pendingQ, inA = pendingA, inR = pendingR == null ? new JSONArray() : pendingR;
+        pendingQ = null; pendingA = null; pendingR = null;
         if (inQ == null || inA == null) throw new Exception("Niets om terug te zetten");
         load(c);
         JSONArray qs = db.optJSONArray("questions");
@@ -909,6 +1085,11 @@ final class CheckinStore {
             n++;
         }
         saveA(c);
+        JSONObject rp = remarkPlan(remarks, have, inR); // nogmaals: intussen kan er iets bijgekomen zijn
+        JSONArray fr = rp.getJSONArray("fresh");
+        int before = remarks.length();
+        for (int i = 0; i < fr.length() && remarks.length() < MAX_REMARKS; i++) { remarks.put(fr.get(i)); n++; }
+        if (remarks.length() != before) saveR(c);
         return n;
     }
 }

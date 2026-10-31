@@ -62,7 +62,17 @@ public class CheckinBridge extends ApparatenBridge {
         try { return CheckinStore.deleteAnswer(ctx, id); } catch (Throwable e) { return "Wissen lukt niet"; }
     }
 
-    /** Terugkijken: periodes van [from, to) met antwoorden en een samenvatting. */
+    /** Een opmerking bij een periode plaatsen of wijzigen (los van het antwoord): zie CheckinStore.remark. Geeft {ok, id, key} of {error}. */
+    @JavascriptInterface public String checkinRemark(String json) {
+        try { return CheckinStore.remark(ctx, new JSONObject(json), System.currentTimeMillis()).toString(); } catch (Throwable e) { return errJson(e); }
+    }
+
+    /** Een opmerking wissen. "" of een melding. */
+    @JavascriptInterface public String checkinDeleteRemark(String id) {
+        try { return CheckinStore.deleteRemark(ctx, id); } catch (Throwable e) { return "Wissen lukt niet"; }
+    }
+
+    /** Terugkijken: periodes van [from, to) met antwoorden, opmerkingen en een samenvatting. */
     @JavascriptInterface public String checkinHistory(String id, String from, String to) {
         try { return CheckinStore.history(ctx, id, from, to, System.currentTimeMillis()).toString(); } catch (Throwable e) { return errJson(e); }
     }

@@ -360,7 +360,10 @@ final class AiData {
     // ---------- Check-in ----------
 
     /** questions/answers zoals CheckinStore ze bewaart. Per vraag: laatste antwoord, gemiddelde deze 7 dagen en de 7 daarvoor. */
-    static JSONObject checkinFacts(JSONArray questions, JSONArray answers, long now) throws Exception {
+    static JSONObject checkinFacts(JSONArray questions, JSONArray answers, long now) throws Exception { return checkinFacts(questions, answers, null, now); }
+
+    /** Zelfde, en per vraag ook je laatste opmerking (remarks zoals CheckinStore ze bewaart). */
+    static JSONObject checkinFacts(JSONArray questions, JSONArray answers, JSONArray remarks, long now) throws Exception {
         JSONArray qs = new JSONArray();
         long w1 = now - 7 * 86_400_000L, w2 = now - 14 * 86_400_000L;
         if (questions != null) for (int i = 0; i < questions.length() && qs.length() < 8; i++) {
@@ -392,6 +395,13 @@ final class AiData {
                 if (!labels.isEmpty()) l.put("labels", clip(labels, 80));
                 o.put("last", l);
             }
+            JSONObject lr = null;
+            if (remarks != null) for (int k = 0; k < remarks.length(); k++) {
+                JSONObject r = remarks.optJSONObject(k);
+                if (r == null || !id.equals(r.optString("q")) || r.optString("text").isEmpty()) continue;
+                if (lr == null || Math.max(r.optLong("t"), r.optLong("edited")) > Math.max(lr.optLong("t"), lr.optLong("edited"))) lr = r;
+            }
+            if (lr != null) o.put("lastRemark", new JSONObject().put("text", clip(lr.optString("text"), 160)).put("p", CheckinStore.keyLabel(lr.optString("p"))));
             qs.put(o);
         }
         return new JSONObject().put("qs", qs);
@@ -416,9 +426,10 @@ final class AiData {
     }
 
     private static String lastLine(JSONObject q, long now, TimeZone tz) {
-        JSONObject l = q.optJSONObject("last");
-        if (l == null) return q.optString("title") + ": nog niet ingevuld";
-        return q.optString("title") + ": " + l.optString("label") + " (" + ago(l.optLong("t"), now, tz) + ")" + (l.has("labels") ? " · " + l.optString("labels") : "") + (l.has("note") ? " · notitie: " + l.optString("note") : "");
+        JSONObject l = q.optJSONObject("last"), r = q.optJSONObject("lastRemark");
+        String rem = r == null ? "" : " · laatste opmerking (over " + r.optString("p") + "): " + r.optString("text");
+        if (l == null) return q.optString("title") + ": nog niet ingevuld" + rem;
+        return q.optString("title") + ": " + l.optString("label") + " (" + ago(l.optLong("t"), now, tz) + ")" + (l.has("labels") ? " · " + l.optString("labels") : "") + (l.has("note") ? " · notitie: " + l.optString("note") : "") + rem;
     }
 
     static Answer checkinAnswer(String q, JSONObject f, long now, TimeZone tz) {
@@ -645,7 +656,7 @@ final class AiData {
                     JSONObject last = ns.length() > 0 ? SleepTalk.night(c, ns.getJSONObject(0).optString("id")) : null;
                     return sleepFacts(ns, last, "luistert".equals(SleepService.phase) ? SleepService.night : "");
                 }
-                case "checkin": return checkinFacts(CheckinStore.questions(c), CheckinStore.answers(c), now);
+                case "checkin": return checkinFacts(CheckinStore.questions(c), CheckinStore.answers(c), CheckinStore.remarks(c), now);
                 case "apparaten": return apparatenFacts(ApparatenStore.histOverview(c), ApparatenScan.btJson(c), ApparatenStore.histOn(c), now);
                 default: return null;
             }

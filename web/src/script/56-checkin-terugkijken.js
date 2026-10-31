@@ -17,6 +17,16 @@ function ciByDay(h){
   (h.extra || []).forEach(a => { const d = /^\d{4}-\d{2}-\d{2}/.test(a.p) ? a.p.slice(0, 10) : ciDayKey(new Date(a.t)); (m[d] = m[d] || []).push(a); });
   return m;
 }
+/** Opmerkingen per dag (zoals ciByDay; de opmerkingen die niet bij een periode horen op de dag van hun periode). Zuiver. */
+function ciRemByDay(h){
+  const m = {};
+  (h.slots || []).forEach(s => { if ((s.remarks || []).length) { const d = ciDayKey(new Date(s.at)); (m[d] = m[d] || []).push(...s.remarks); } });
+  (h.remarksExtra || []).forEach(r => { const d = ciKeyDay(r.p); (m[d] = m[d] || []).push(r); });
+  return m;
+}
+/** "31 okt 18:49". Zuiver. */
+function ciWhen(t){ const d = new Date(t); return d.getDate() + ' ' + CI_MON[d.getMonth()].slice(0, 3) + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '') + ' ' + ciTime(t); }
+function ciRemCount(n){ return n === 1 ? 'met een opmerking' : 'met ' + n + ' opmerkingen'; }
 /** Trend: kleinste kwadraten over de punten [x, y]; geeft de verandering over het hele bereik (y is 0..1). Zuiver. */
 function ciTrend(pts){
   if (pts.length < 3) return null;
@@ -65,33 +75,37 @@ function ciqCells(q){
   const h = ciqHist, today = ciDayKey(new Date()), [from, , yearly] = ciqSpan(q);
   const status = ss => ss.some(s => s.status === 'open') ? 'open' : ss.some(s => s.status === 'missed') ? 'miss' : ss.length && ss.every(s => s.status === 'quiet') ? 'quiet' : ss.some(s => s.status === 'upcoming') ? 'up' : 'none';
   const word = { open: 'nog open', miss: 'gemist', quiet: 'stil (telt niet)', up: 'komt nog', none: 'geen vraag' };
-  const cell = (key, label, small, ans, ss, aria) => {
+  const cell = (key, label, small, ans, ss, aria, rem) => {
     const vs = ans.map(a => +a.v), avg = ciAvg(vs);
     const state = ans.length ? ciLevel(ciNorm(q, avg)) : status(ss);
     let txt = ans.length === 1 ? ciAnsText(ans[0]) : ans.length ? ans.length + ' antwoorden, gemiddeld ' + ciNum(avg) + ' (' + ciOptText(ciNearest(q, avg)) + ')' : word[state];
     const mark = ans.length === 1 ? (ans[0].e || ans[0].l || '') : ans.length > 1 ? ans.length + '×' : state === 'miss' ? '–' : '';
-    return { key, label, small: small != null ? small : mark, state, aria: aria + ': ' + txt, ans, ss };
+    return { key, label, small: small != null ? small : mark, state, aria: aria + ': ' + txt, ans, ss, rem };
   };
   if (CI_DAYRHYTHM(q.rhythm)) {
-    const by = ciByDay(h), slotsBy = {};
+    const by = ciByDay(h), rby = ciRemByDay(h), slotsBy = {};
     (h.slots || []).forEach(s => { const d = ciDayKey(new Date(s.at)); (slotsBy[d] = slotsBy[d] || []).push(s); });
     const a = ciDate(from), cells = [], lead = (a.getDay() + 6) % 7;
     for (let i = 0; i < lead; i++) cells.push(null);
     for (let d = new Date(a); d.getMonth() === a.getMonth(); d.setDate(d.getDate() + 1)) {
-      const k = ciDayKey(d), c = cell(k, String(d.getDate()), null, by[k] || [], slotsBy[k] || [], CI_DOW_L[(d.getDay() + 6) % 7 + 1] + ' ' + d.getDate() + ' ' + CI_MON[d.getMonth()]);
+      const k = ciDayKey(d), c = cell(k, String(d.getDate()), null, by[k] || [], slotsBy[k] || [], CI_DOW_L[(d.getDay() + 6) % 7 + 1] + ' ' + d.getDate() + ' ' + CI_MON[d.getMonth()], rby[k] || []);
       c.today = k === today; cells.push(c);
     }
+    ciRemAria(cells);
     return { cells, wide: false };
   }
   // Per week of per maand: een vakje per periode
   const cells = (h.slots || []).map(s => {
     const lab = q.rhythm === 'weekly' ? 'wk ' + (+s.key.slice(6)) : CI_MON[+s.key.slice(5) - 1].slice(0, 3);
-    const c = cell(s.key, lab, null, s.answers || [], [s], ciKeyLabel(s.key));
+    const c = cell(s.key, lab, null, s.answers || [], [s], ciKeyLabel(s.key), s.remarks || []);
     c.today = s.status === 'open'; return c;
   });
-  (h.extra || []).forEach(a => { if (!cells.some(c => c.key === a.p)) cells.push(cell(a.p, ciKeyLabel(a.p), null, [a], [], ciKeyLabel(a.p))); });
+  (h.extra || []).forEach(a => { if (!cells.some(c => c.key === a.p)) cells.push(cell(a.p, ciKeyLabel(a.p), null, [a], [], ciKeyLabel(a.p), [])); });
+  (h.remarksExtra || []).forEach(r => { const c = cells.find(x => x.key === r.p); if (c) c.rem.push(r); else cells.push(cell(r.p, ciKeyLabel(r.p), null, [], [], ciKeyLabel(r.p), [r])); });
+  ciRemAria(cells);
   return { cells, wide: true, yearly };
 }
+function ciRemAria(cells){ cells.forEach(c => { if (c && c.rem.length) c.aria += ', ' + ciRemCount(c.rem.length); }); }
 function ciqRenderCal(q){
   const [from, , yearly] = ciqSpan(q), a = ciDate(from), now = new Date();
   $('#ciq-month').textContent = yearly ? String(a.getFullYear()) : CI_MON[a.getMonth()].replace(/^./, x => x.toUpperCase()) + ' ' + a.getFullYear();
@@ -100,12 +114,12 @@ function ciqRenderCal(q){
   $('#ciq-prev').setAttribute('aria-label', yearly ? 'Vorig jaar' : 'Vorige maand'); $('#ciq-next').setAttribute('aria-label', yearly ? 'Volgend jaar' : 'Volgende maand');
   const { cells, wide } = ciqCells(q);
   const head = wide ? '' : CI_DOW.slice(1).map(d => '<div class="ci-dh" aria-hidden="true">' + d + '</div>').join('');
-  const html = '<div class="ci-cal' + (wide ? ' wide' : '') + '" id="ciq-grid">' + head + cells.map(c => c ? '<button class="ci-d ' + c.state + (c.today ? ' today' : '') + (c.key === ciqSelKey ? ' sel' : '') + '" data-k="' + esc(c.key) + '" onclick="ciqPick(this.dataset.k)" aria-label="' + esc(c.aria) + '"' + (c.key === ciqSelKey ? ' aria-current="date"' : '') + '><span aria-hidden="true">' + esc(c.label) + '</span>' + (c.small ? '<small aria-hidden="true">' + esc(c.small) + '</small>' : '') + '</button>' : '<span aria-hidden="true"></span>').join('') + '</div>';
+  const html = '<div class="ci-cal' + (wide ? ' wide' : '') + '" id="ciq-grid">' + head + cells.map(c => c ? '<button class="ci-d ' + c.state + (c.today ? ' today' : '') + (c.key === ciqSelKey ? ' sel' : '') + '" data-k="' + esc(c.key) + '" onclick="ciqPick(this.dataset.k)" aria-label="' + esc(c.aria) + '"' + (c.key === ciqSelKey ? ' aria-current="date"' : '') + '><span aria-hidden="true">' + esc(c.label) + '</span>' + (c.small ? '<small aria-hidden="true">' + esc(c.small) + '</small>' : '') + (c.rem.length ? '<i class="ci-rm" aria-hidden="true"></i>' : '') + '</button>' : '<span aria-hidden="true"></span>').join('') + '</div>';
   slHtml($('#ciq-cal'), cells.filter(Boolean).length ? html : '<p class="note">Geen periodes in deze ' + (yearly ? 'tijd' : 'maand') + '.</p>');
   const [lo, hi] = ciRange(q), ol = ciNearest(q, lo), oh = ciNearest(q, hi);
-  $('#ciq-legend').innerHTML = '<span><i class="l1"></i>' + esc(ciOptText(ol) || 'laag') + '</span><span><i class="l4"></i>' + esc(ciOptText(oh) || 'hoog') + '</span><span><i class="miss"></i>gemist</span><span><i class="quiet"></i>stil</span>';
+  $('#ciq-legend').innerHTML = '<span><i class="l1"></i>' + esc(ciOptText(ol) || 'laag') + '</span><span><i class="l4"></i>' + esc(ciOptText(oh) || 'hoog') + '</span><span><i class="miss"></i>gemist</span><span><i class="quiet"></i>stil</span>' + (cells.some(c => c && c.rem.length) ? '<span><i class="rm"></i>opmerking</span>' : '');
   const s = ciqHist.summary || {};
-  $('#ciq-calsum').textContent = (s.answered || 0) + ' ingevuld, ' + (s.missed || 0) + ' gemist. Tik op een ' + (wide ? 'vakje' : 'dag') + ' om te zien wat je antwoordde' + (q.backfill !== false && !q.archived ? ', of om achteraf in te vullen' : '') + '.';
+  $('#ciq-calsum').textContent = (s.answered || 0) + ' ingevuld, ' + (s.missed || 0) + ' gemist. Tik op een ' + (wide ? 'vakje' : 'dag') + ' om te zien wat je antwoordde' + (q.backfill !== false && !q.archived ? ', om achteraf in te vullen' : '') + ' of om er een opmerking bij te zetten.' + (s.remarks ? ' ' + s.remarks + (s.remarks === 1 ? ' opmerking' : ' opmerkingen') + ' in deze ' + (yearly ? 'tijd' : 'maand') + '.' : '');
   // Vegen: vorige of volgende maand
   const g = $('#ciq-grid');
   if (g && !g._swipe) {
@@ -130,34 +144,50 @@ function ciDayInfo(day, info){
   if ((info || {}).cal) out.push(['calendar', x.cal ? 'Agenda: ' + (x.cal.n ? x.cal.n + (x.cal.n === 1 ? ' afspraak' : ' afspraken') + (x.cal.busy ? ', ' + ciDur(x.cal.busy) + ' bezet' : '') : 'geen afspraken met een tijd') + (x.cal.allDay ? ' (+' + x.cal.allDay + ' hele dag)' : '') : 'Agenda: niets gepland']);
   return out;
 }
+/** Een opmerking in de dag: tekst, wanneer, en Wijzigen/Wissen. */
+function ciRemHtml(r){
+  return '<div class="ci-rem"><p class="ci-note">' + (r.voice ? uiIcon('mic') + ' ' : '') + esc(r.text) + '</p><small class="note">' + esc('opmerking van ' + ciWhen(r.t) + (r.edited ? ' · gewijzigd ' + ciWhen(r.edited) : '')) + '</small>' +
+    '<div class="ci-acts"><button class="mini" data-r="' + esc(r.id) + '" onclick="ciRemOpen(\'\', this.dataset.r)" aria-label="' + esc('Opmerking wijzigen, ' + ciKeyLabel(r.p)) + '">Wijzigen</button>' +
+    '<button class="mini" data-r="' + esc(r.id) + '" onclick="ciqRemDel(this.dataset.r)" aria-label="' + esc('Opmerking wissen, ' + ciKeyLabel(r.p)) + '">Wissen</button></div></div>';
+}
 function ciqRenderDay(q){
   const box = $('#ciq-day');
   if (!ciqSelKey) { box.style.display = 'none'; return; }
   const c = ciqCells(q).cells.find(x => x && x.key === ciqSelKey);
   if (!c) { box.style.display = 'none'; return; }
   box.style.display = '';
-  const now = Date.now(), canEdit = a => q.editable !== false || now - a.t < 15 * 60000;
+  const now = Date.now(), today = ciDayKey(new Date()), canEdit = a => q.editable !== false || now - a.t < 15 * 60000;
   let h = '<h2>' + esc(ciKeyLabel(c.key).replace(/^./, x => x.toUpperCase())) + '</h2>';
-  const ss = c.ss.length ? c.ss : [{ key: c.key, status: c.ans.length ? 'answered' : 'none', answers: c.ans }];
+  const real = c.ss.length > 0, ss = real ? c.ss : [{ key: c.key, status: c.ans.length ? 'answered' : 'none', answers: c.ans }];
+  const keys = new Set(ss.map(s => s.key));
   ss.forEach(s => {
-    const ans = s.answers || [];
+    const ans = s.answers || [], rem = real ? c.rem.filter(r => r.p === s.key) : c.rem;
     if (q.rhythm === 'multi' && s.at) h += '<p class="ci-st"><b>' + esc(ciTime(s.at)) + '</b> · ' + esc(ans.length ? 'ingevuld' : { open: 'nog open', missed: 'gemist', quiet: 'stil', upcoming: 'komt nog', before: 'van vóór de vraag' }[s.status] || '') + '</p>';
     ans.forEach(a => {
+      const ed = canEdit(a) && !q.archived;
       h += '<div class="ci-ans"><b>' + esc(ciAnsText(a)) + '</b> <small class="note">' + esc((a.late ? 'achteraf ingevuld' : a.src === 'notif' ? 'uit de melding' : 'ingevuld') + ' om ' + ciShort(new Date(a.t)) + ' ' + ciTime(a.t)) + '</small>' +
         ((a.labels || []).length ? '<div class="ci-tags">' + a.labels.map(l => '<span>' + esc(l) + '</span>').join('') + '</div>' : '') +
         (a.note ? '<p class="ci-note">' + (a.voice ? uiIcon('mic') + ' ' : '') + esc(a.note) + '</p>' : '') +
-        (canEdit(a) && !q.archived ? '<div class="ci-acts"><button class="mini" data-k="' + esc(s.key) + '" data-a="' + esc(a.id) + '" onclick="ciqEdit(this.dataset.k, this.dataset.a)" aria-label="' + esc('Wijzigen: ' + ciAnsText(a) + ', ' + ciKeyLabel(s.key)) + '">Wijzigen</button>' +
-          '<button class="mini" data-a="' + esc(a.id) + '" onclick="ciqDelAns(this.dataset.a)" aria-label="' + esc('Wissen: ' + ciAnsText(a) + ', ' + ciKeyLabel(s.key)) + '">Wissen</button></div>' : '') + '</div>';
+        '<div class="ci-acts">' + (ed ? '<button class="mini" data-k="' + esc(s.key) + '" data-a="' + esc(a.id) + '" onclick="ciqEdit(this.dataset.k, this.dataset.a)" aria-label="' + esc('Wijzigen: ' + ciAnsText(a) + ', ' + ciKeyLabel(s.key)) + '">Wijzigen</button>' +
+          '<button class="mini" data-a="' + esc(a.id) + '" onclick="ciqDelAns(this.dataset.a)" aria-label="' + esc('Wissen: ' + ciAnsText(a) + ', ' + ciKeyLabel(s.key)) + '">Wissen</button>' : '') +
+        '<button class="mini" data-k="' + esc(a.p) + '" onclick="ciRemOpen(this.dataset.k)" aria-label="' + esc('Opmerking toevoegen: ' + ciAnsText(a) + ', ' + ciKeyLabel(a.p)) + '">' + uiIcon('edit') + 'Opmerking</button></div></div>';
     });
-    if (q.archived) return;
-    const one = q.perPeriod !== 'many', past = s.status === 'missed' || s.status === 'before' || (s.status === 'answered' && s.end && s.end <= now), todayUp = s.status === 'upcoming' && ciDayKey(new Date(s.at)) === ciDayKey(new Date());
-    let act = '';
-    if ((s.status === 'open' || todayUp) && !ans.length) act = 'Invullen';
-    else if (s.status === 'open' && !one) act = 'Nog een antwoord';
-    else if (past && q.backfill !== false && (!ans.length || !one)) act = ans.length ? 'Nog een antwoord (achteraf)' : 'Achteraf invullen';
-    if (act) h += '<div class="ci-acts"><button class="mini on" data-k="' + esc(s.key) + '" data-l="' + (past ? 1 : 0) + '" onclick="ciAsk(ciqId, this.dataset.k, {late: this.dataset.l === \'1\'})" aria-label="' + esc(act + ': ' + q.text + ', ' + ciKeyLabel(s.key)) + '">' + act + '</button></div>';
-    else if (!ans.length && past && q.backfill === false) h += '<p class="note">Achteraf invullen staat uit bij deze vraag.</p>';
+    h += rem.map(ciRemHtml).join('');
+    const begun = !!s.at && ciKeyDay(s.key) <= today, addRem = begun && !ans.length;
+    const remBtn = addRem ? '<button class="mini" data-k="' + esc(s.key) + '" onclick="ciRemOpen(this.dataset.k)" aria-label="' + esc('Opmerking toevoegen: ' + q.text + ', ' + ciKeyLabel(s.key)) + '">' + uiIcon('edit') + 'Opmerking toevoegen</button>' : '';
+    let act = '', off = '';
+    if (!q.archived) {
+      const one = q.perPeriod !== 'many', past = s.status === 'missed' || s.status === 'before' || (s.status === 'answered' && s.end && s.end <= now), todayUp = s.status === 'upcoming' && ciDayKey(new Date(s.at)) === today;
+      if ((s.status === 'open' || todayUp) && !ans.length) act = 'Invullen';
+      else if (s.status === 'open' && !one) act = 'Nog een antwoord';
+      else if (past && q.backfill !== false && (!ans.length || !one)) act = ans.length ? 'Nog een antwoord (achteraf)' : 'Achteraf invullen';
+      if (act) act = '<button class="mini on" data-k="' + esc(s.key) + '" data-l="' + (past ? 1 : 0) + '" onclick="ciAsk(ciqId, this.dataset.k, {late: this.dataset.l === \'1\'})" aria-label="' + esc(act + ': ' + q.text + ', ' + ciKeyLabel(s.key)) + '">' + act + '</button>';
+      else if (!ans.length && past && q.backfill === false) off = '<p class="note">Achteraf invullen staat uit bij deze vraag.</p>';
+    }
+    if (act || remBtn) h += '<div class="ci-acts">' + act + remBtn + '</div>';
+    h += off;
   });
+  if (real) h += c.rem.filter(r => !keys.has(r.p)).map(ciRemHtml).join(''); // opmerkingen bij een periode die niet meer bij het ritme hoort
   if (CI_DAYRHYTHM(q.rhythm)) {
     ciDayInfo(c.key, ciqDaysInfo).forEach(([ic, t]) => { h += '<p class="ci-info">' + uiIcon(ic) + '<span>' + esc(t) + '</span></p>'; });
     if (ciqDaysInfo && !ciqDaysInfo.cal) h += '<p class="ci-info">' + uiIcon('calendar') + '<span>Je agenda erbij zien? <button class="linkish" onclick="Android.permRequest(\'calendar\')">Toegang geven (alleen lezen)</button></span></p>';
@@ -174,16 +204,69 @@ function ciqDelAns(aid){
 }
 function ciqMenu(){ if (ciqId) ciMenu(ciqId); }
 
+/* ---------- opmerkingen: je eigen terugblik bij een periode, los van het antwoord ---------- */
+let ciR = null;
+function ciqAllRem(){ const h = ciqHist || {}; return (h.slots || []).flatMap(s => s.remarks || []).concat(h.remarksExtra || []); }
+/** Het venster om een opmerking te schrijven of in te spreken; key = de periode, rid = wijzigen. */
+function ciRemOpen(key, rid){
+  const q = ciQ(ciqId); if (!q) { toast('Deze vraag bestaat niet meer'); return; }
+  const r = rid ? ciqAllRem().find(x => x.id === rid) : null;
+  if (rid && !r) { toast('Deze opmerking bestaat niet meer'); return; }
+  ciR = { q: q.id, key: r ? r.p : key, id: rid || '', voice: false, text0: r ? r.text : '', from: document.activeElement };
+  $('#ci-rem-t').textContent = rid ? 'Opmerking wijzigen' : 'Opmerking toevoegen';
+  $('#ci-rem-p').textContent = (q.emoji ? q.emoji + ' ' : '') + q.text + ' · ' + ciKeyLabel(ciR.key);
+  $('#ci-rem-text').value = ciR.text0;
+  $('#ci-rem').classList.add('on');
+  setTimeout(() => { const t = $('#ci-rem-text'); if (t && ciR) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 60);
+}
+function ciRemDirty(){ return !!ciR && $('#ci-rem-text').value.trim() !== ciR.text0.trim(); }
+function ciRemSave(){
+  if (!ciR) return;
+  const text = $('#ci-rem-text').value, req = ciR.id ? { id: ciR.id, q: ciR.q, text, voice: ciR.voice } : { q: ciR.q, p: ciR.key, text, voice: ciR.voice };
+  const r = rdJson(Android.checkinRemark(JSON.stringify(req)), {});
+  if (r.error) { toast(r.error); return; }
+  const edit = !!ciR.id;
+  ciRemClose(true); ciAfter();
+  toast(edit ? '✓ Opmerking gewijzigd' : '✓ Opmerking bewaard');
+}
+/** Sluiten; met tekst die nog niet bewaard is eerst vragen (behalve bij Annuleren en na Bewaren). */
+function ciRemClose(sure){
+  if (!ciR) { $('#ci-rem').classList.remove('on'); return; }
+  if (!sure && ciRemDirty()) { askConfirm('Opmerking niet bewaren?', 'Wat je schreef gaat weg.', 'Weggooien', () => ciRemClose(true)); return; }
+  $('#ci-rem').classList.remove('on');
+  const from = ciR.from; ciR = null;
+  setTimeout(() => {
+    if (document.querySelector('#modal.on, #voice.on, #ci-ans.on, #ci-rem.on')) return;
+    let el = from && from.isConnected && from.offsetParent ? from : null;
+    if (!el && from && from.getAttribute && from.getAttribute('aria-label')) el = [...document.querySelectorAll('.screen.on button')].find(b => b.getAttribute('aria-label') === from.getAttribute('aria-label') && b.offsetParent);
+    if (!el) el = $('#ciq-day').offsetParent ? $('#ciq-day') : document.querySelector('.screen.on .hdr h1');
+    if (el) el.focus({ preventScroll: true });
+  }, 0);
+}
+/* Inspreken: hetzelfde venster als bij een notitie; de tekst komt achter wat er al staat */
+function ciRemVoice(){
+  if (!ciR) return;
+  voiceOpen(null, { title: 'Opmerking inspreken', models: true, done: text => {
+    if (!ciR || !text) return;
+    const t = $('#ci-rem-text'); t.value = (t.value.trim() ? t.value.trim() + ' ' : '') + text; ciR.voice = true;
+    setTimeout(() => t.focus(), 0);
+  } });
+}
+function ciqRemDel(rid){
+  askConfirm('Opmerking wissen?', 'Alleen de opmerking gaat weg; het antwoord blijft staan.', 'Wissen', () => { const e = Android.checkinDeleteRemark(rid); if (e) { toast(e); return; } toast('Opmerking gewist'); ciAfter(); });
+}
+
 /* ---------- grafiek ---------- */
 function ciqView(v){ ciqViewV = v; store.set('ciView', v); const q = ciQ(ciqId); if (q) ciqRenderChart(q); }
 /** Punten voor de grafiek: [{label, long, v (gemiddelde) of null}]. */
 function ciqPoints(q){
   const now = new Date(), view = ciqViewV;
   if (view === 'year') {
-    const y = (ciqMonthAt || now).getFullYear(), h = ciHistory(q.id, y + '-01-01', (y + 1) + '-01-01'), by = ciByDay(h);
+    const y = (ciqMonthAt || now).getFullYear(), h = ciHistory(q.id, y + '-01-01', (y + 1) + '-01-01'), by = ciByDay(h), rby = ciRemByDay(h);
     ciqChartHist = h;
-    return CI_MON.map((m, i) => { const vs = []; Object.keys(by).forEach(d => { if (+d.slice(5, 7) === i + 1 && +d.slice(0, 4) === y) by[d].forEach(a => vs.push(+a.v)); });
-      return { label: m.slice(0, 1).toUpperCase(), long: m + ' ' + y, v: vs.length ? ciAvg(vs) : null, n: vs.length }; });
+    return CI_MON.map((m, i) => { const vs = [], inM = d => +d.slice(5, 7) === i + 1 && +d.slice(0, 4) === y; Object.keys(by).forEach(d => { if (inM(d)) by[d].forEach(a => vs.push(+a.v)); });
+      const r = Object.keys(rby).filter(inM).reduce((n, d) => n + rby[d].length, 0);
+      return { label: m.slice(0, 1).toUpperCase(), long: m + ' ' + y, v: vs.length ? ciAvg(vs) : null, n: vs.length, r }; });
   }
   let h, days = [];
   if (view === 'week') {
@@ -196,9 +279,9 @@ function ciqPoints(q){
   }
   ciqChartHist = h;
   if (!CI_DAYRHYTHM(q.rhythm)) // per periode
-    return (h.slots || []).map(s => { const vs = (s.answers || []).map(a => +a.v); return { label: q.rhythm === 'weekly' ? 'wk' + (+s.key.slice(6)) : CI_MON[+s.key.slice(5) - 1].slice(0, 3), long: ciKeyLabel(s.key), v: vs.length ? ciAvg(vs) : null, n: vs.length }; });
-  const by = ciByDay(h);
-  return days.map(d => { const k = ciDayKey(d), vs = (by[k] || []).map(a => +a.v); return { label: view === 'week' ? CI_DOW[(d.getDay() + 6) % 7 + 1] : String(d.getDate()), long: ciShort(d), v: vs.length ? ciAvg(vs) : null, n: vs.length }; });
+    return (h.slots || []).map(s => { const vs = (s.answers || []).map(a => +a.v); return { label: q.rhythm === 'weekly' ? 'wk' + (+s.key.slice(6)) : CI_MON[+s.key.slice(5) - 1].slice(0, 3), long: ciKeyLabel(s.key), v: vs.length ? ciAvg(vs) : null, n: vs.length, r: (s.remarks || []).length }; });
+  const by = ciByDay(h), rby = ciRemByDay(h);
+  return days.map(d => { const k = ciDayKey(d), vs = (by[k] || []).map(a => +a.v); return { label: view === 'week' ? CI_DOW[(d.getDay() + 6) % 7 + 1] : String(d.getDate()), long: ciShort(d), v: vs.length ? ciAvg(vs) : null, n: vs.length, r: (rby[k] || []).length }; });
 }
 /** Staafjes met het gemiddelde (streepjes) en de trend; met een tabel als tekst. */
 function ciChartSvg(q, pts, title){
@@ -211,15 +294,17 @@ function ciChartSvg(q, pts, title){
   pts.forEach((p, i) => {
     const x = L + 2 + i * bw;
     if (p.v != null) { const top = y(p.v), hgt = Math.max(2, H - B - top); s += '<rect class="ci-bar" x="' + (x + bw * .15).toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + Math.max(1, bw * .7).toFixed(1) + '" height="' + hgt.toFixed(1) + '" rx="2"/>'; }
+    if (p.r) s += '<circle class="ci-rmk" cx="' + (x + bw / 2).toFixed(1) + '" cy="4" r="2.5"/>';
     if (n <= 12 || i % Math.ceil(n / 10) === 0) s += '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle">' + esc(p.label) + '</text>';
   });
   if (!isNaN(avg)) s += '<line class="ci-avg" x1="' + L + '" x2="' + W + '" y1="' + y(avg).toFixed(1) + '" y2="' + y(avg).toFixed(1) + '"/>';
   if (tr) { const yy = v => T + (1 - Math.max(0, Math.min(1, v))) * (H - T - B), xx = i => L + 2 + i * bw + bw / 2; s += '<line class="ci-tr" x1="' + xx(tr.x0).toFixed(1) + '" x2="' + xx(tr.x1).toFixed(1) + '" y1="' + yy(tr.a + tr.b * tr.x0).toFixed(1) + '" y2="' + yy(tr.a + tr.b * tr.x1).toFixed(1) + '"/>'; }
-  const desc = got.length ? 'Gemiddeld ' + ciNum(avg) + ' (' + ciOptText(ciNearest(q, avg)) + ') op een schaal van ' + ciNum(lo) + ' tot ' + ciNum(hi) + ', ' + got.length + (got.length === 1 ? ' antwoord' : ' keer ingevuld') + '; trend: ' + ciTrendText(tr) + '.' : 'Nog geen antwoorden in deze periode.';
+  const nr = pts.filter(p => p.r).length, rtxt = nr ? ' ' + nr + (nr === 1 ? ' periode' : ' periodes') + ' met een opmerking (stip bovenaan).' : '';
+  const desc = (got.length ? 'Gemiddeld ' + ciNum(avg) + ' (' + ciOptText(ciNearest(q, avg)) + ') op een schaal van ' + ciNum(lo) + ' tot ' + ciNum(hi) + ', ' + got.length + (got.length === 1 ? ' antwoord' : ' keer ingevuld') + '; trend: ' + ciTrendText(tr) + '.' : 'Nog geen antwoorden in deze periode.') + rtxt;
   return '<p class="ci-big-txt">' + esc(desc) + '</p>' + (got.length ? '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(title + '. ' + desc) + '">' + s + '</svg>' +
-    '<p class="note"><span class="ci-key"><i style="background:var(--qc)"></i>antwoord</span><span class="ci-key"><i style="border-top:2px dashed var(--ink)"></i>gemiddeld</span>' + (tr ? '<span class="ci-key"><i style="background:var(--warn)"></i>trend</span>' : '') + '</p>' +
+    '<p class="note"><span class="ci-key"><i style="background:var(--qc)"></i>antwoord</span><span class="ci-key"><i style="border-top:2px dashed var(--ink)"></i>gemiddeld</span>' + (tr ? '<span class="ci-key"><i style="background:var(--warn)"></i>trend</span>' : '') + (nr ? '<span class="ci-key"><i style="background:var(--ink);width:6px;height:6px;border-radius:50%"></i>opmerking</span>' : '') + '</p>' +
     '<details><summary>Als tabel</summary><table class="ci-tbl"><thead><tr><th scope="col">Periode</th><th scope="col">Antwoord</th></tr></thead><tbody>' +
-    pts.filter(p => p.v != null).map(p => '<tr><td>' + esc(p.long) + '</td><td>' + esc((p.n > 1 ? 'gem. ' + ciNum(p.v) + ' ' : '') + ciOptText(ciNearest(q, p.v))) + '</td></tr>').join('') + '</tbody></table></details>' : '');
+    pts.filter(p => p.v != null).map(p => '<tr><td>' + esc(p.long) + '</td><td>' + esc((p.n > 1 ? 'gem. ' + ciNum(p.v) + ' ' : '') + ciOptText(ciNearest(q, p.v)) + (p.r ? ' · opmerking' : '')) + '</td></tr>').join('') + '</tbody></table></details>' : '');
 }
 function ciqRenderChart(q){
   ciqViewV = store.get('ciView', ciqViewV);

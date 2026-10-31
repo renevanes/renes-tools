@@ -969,18 +969,24 @@ textarea.ci-in{resize:vertical;min-height:72px;line-height:1.4}
 .ci-d.open{border-color:var(--qc)}.ci-d.up{background:transparent;border:1px solid var(--line)}
 .ci-d.today{font-weight:700;text-decoration:underline}
 .ci-d.sel{box-shadow:0 0 0 2px var(--ink)}
+.ci-d{position:relative}.ci-d .ci-rm{position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:currentColor}
 .ci-legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:10px;font-size:12px;color:var(--muted);align-items:center}
 .ci-legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px}
 .ci-legend .l1{background:color-mix(in srgb,var(--qc) 22%,var(--card))}.ci-legend .l4{background:var(--qc)}.ci-legend .miss{border:2px dashed var(--outline)}
+.ci-legend .rm{width:6px;height:6px;border-radius:50%;background:var(--ink);vertical-align:1px}
 .ci-legend .quiet{background:repeating-linear-gradient(45deg,var(--hi),var(--hi) 3px,transparent 3px,transparent 6px);border:1px solid var(--line)}
 /* Dag */
 .ci-ans{padding:10px 0;border-top:1px solid var(--line)}.ci-ans:first-of-type{border-top:0}
 .ci-ans b{font-size:16px}.ci-ans .ci-note{margin:4px 0 0;color:var(--ink);font-size:14.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.ci-rem{padding:10px 12px;margin:8px 0 0;border-radius:12px;background:var(--hi);border:1px solid var(--line)}.ci-rem .ci-note{margin:0 0 2px;color:var(--ink);font-size:14.5px;white-space:pre-wrap;overflow-wrap:anywhere}.ci-rem .ci-note .ui-icon{width:16px;height:16px;vertical-align:-3px;color:var(--muted)}
+.ci-rem small{display:block}.ci-rem .ci-acts{margin-top:6px}
+.ci-acts .mini .ui-icon{width:16px;height:16px;margin-right:4px;vertical-align:-3px}
 .ci-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.ci-tags span{font-size:12.5px;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--on-chip)}
 .ci-info{display:flex;gap:8px;align-items:flex-start;margin:8px 0 0;font-size:14px;color:var(--ink)}.ci-info .ui-icon{color:var(--muted);margin-top:1px}
 /* Grafiek en samenvatting */
 .ci-chart svg{width:100%;height:auto;display:block;margin-top:6px}
 .ci-chart .ci-bar{fill:var(--qc)}.ci-chart .ci-gl{stroke:var(--line);stroke-width:1}.ci-chart .ci-avg{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:4 3}
+.ci-chart .ci-rmk{fill:var(--ink)}
 .ci-chart .ci-tr{stroke:var(--warn);stroke-width:2}.ci-chart text{fill:var(--muted);font-size:10px}
 .ci-chart .ci-lb{stroke:var(--ci-orange);stroke-width:2;fill:none}.ci-chart .ci-la{stroke:var(--qc);stroke-width:2;fill:none}
 .ci-chart details{margin-top:8px;font-size:14px}.ci-chart summary{min-height:44px;display:flex;align-items:center;color:var(--primary);font-weight:600;cursor:pointer}
@@ -1001,7 +1007,9 @@ textarea.ci-in{resize:vertical;min-height:72px;line-height:1.4}
 #ci-ans-x .chips{margin:8px 0}
 .ci-notebar{display:flex;gap:8px;align-items:flex-start}.ci-notebar textarea{flex:1}
 .ci-notebar .iconbtn{border:1px solid var(--line);min-width:48px;min-height:48px}
-#ci-ans .modal-btns .big{flex:1}
+#ci-ans .modal-btns .big,#ci-rem .modal-btns .big{flex:1}
+#ci-rem-text{width:100%;min-height:110px;resize:vertical}
+.ci-rem-mic{margin-top:8px}
 /* ---------- Gebruik ---------- */
 .gb-tabs{display:flex;gap:8px;overflow-x:auto;margin:0 -2px 14px;padding:2px;scrollbar-width:none}
 .gb-tabs::-webkit-scrollbar{display:none}
