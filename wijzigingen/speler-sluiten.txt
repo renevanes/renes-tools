@@ -1,0 +1,1 @@
+Speler: de minispeler onderaan heeft nu een ✕ om hem te sluiten (of veeg hem omlaag), op elk scherm. Bij een podcast blijft je plek bewaard; met Ongedaan maken speelt hij meteen verder.

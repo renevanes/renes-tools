@@ -11,6 +11,7 @@ const PL_IC = {
   prev: '<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M18.5 6.3v11.4a1 1 0 0 1-1.55.83l-8.2-5.7a1 1 0 0 1 0-1.66l8.2-5.7a1 1 0 0 1 1.55.83z"/><rect x="4.8" y="5.5" width="2.6" height="13" rx="1.1"/></svg>',
   back: n => '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M6.7 2.8v3.9h3.9"/><text x="12" y="15.3" font-size="7.4" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">' + n + '</text></svg>',
   fwd: n => '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M17.3 2.8v3.9h-3.9"/><text x="12" y="15.3" font-size="7.4" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">' + n + '</text></svg>',
+  close: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
   star: on => '<svg viewBox="0 0 24 24" width="26" height="26" fill="' + (on ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>'
 };
 
@@ -113,6 +114,7 @@ function plRender(){
   const pp = m.playing ? 'pause' : 'play', ppLabel = m.playing ? 'Pauze' : 'Afspelen';
   for (const b of [$('#plbar-pp'), $('#pl-pp')]) { plSetHtml(b, PL_IC[pp]); if (b.getAttribute('aria-label') !== ppLabel) b.setAttribute('aria-label', ppLabel); }
   plSetHtml($('#plbar-next'), PL_IC.next);
+  plSetHtml($('#plbar-x'), PL_IC.close);
   $('#plbar-next').setAttribute('aria-label', m.src === 'radio' ? 'Volgende zender' : 'Volgende aflevering');
   $('#plbar-open').setAttribute('aria-label', 'Speler openen: ' + m.title + (m.sub ? ', ' + m.sub : ''));
   const pct = m.src === 'podcast' && m.dur > 0 ? Math.min(100, m.pos / m.dur * 100) : 0;
@@ -282,6 +284,22 @@ function plStop(){
   plClose(); setTimeout(plTick, 300);
   setTimeout(() => { const h = document.querySelector('.screen.on h1'); if (h) h.focus({ preventScroll: true }); }, 350); // de balk is dan weg
 }
+/* De minispeler sluiten (✕ of omlaag vegen op de balk): stoppen en de balk weg, op elk scherm.
+   Bij een podcast blijft je plek bewaard (Verder luisteren); even terug kan met Ongedaan maken. */
+function plDismiss(){
+  const m = plModel(); if (!m) return;
+  const pod = m.src === 'podcast' ? { ep: Object.assign({}, pcSt.ep || {}), pod: Object.assign({}, pcSt.pod || {}), pos: +pcSt.pos || 0 } : null;
+  const station = m.src === 'radio' ? m.station : null, wasPlaying = m.playing;
+  if (m.src === 'podcast') Android.podStop(); else Android.radioStop();
+  if (m.src === 'podcast') pcSt = { status: 'stopped' }; else rdState = Object.assign({}, rdState, { status: 'stopped' });
+  plRender(); setTimeout(plTick, 300);
+  setTimeout(() => { const h = document.querySelector('.screen.on h1'); if (h) h.focus({ preventScroll: true }); }, 50); // de balk is weg
+  undoToast(pod ? 'Speler gesloten · je plek is bewaard' : 'Speler gesloten', () => {
+    if (!wasPlaying) { toast('Staat weer klaar bij ' + (pod ? 'Podcasts → Verder luisteren' : 'Radio')); return; }
+    if (pod && pod.ep.url) pcPlayEp(pod.ep, pod.pod, false); // de app weet zelf waar je was
+    else if (station && station.url) { Android.radioPlay(JSON.stringify(station)); rdState = { status: 'connecting', station, title: '' }; plHintSrc('radio'); plRender(); }
+  });
+}
 function plFav(){ rdFavNow(); plQueueSig = ''; plRender(); }
 function plGoSource(){
   const m = plModel(); if (!m) return;
@@ -427,6 +445,7 @@ function plCoverBack(){ const a = $('#pl-art'); if (a) { a.style.transition = 't
     else if (kind === 'bar') {
       if (up) { plOpen(); plBarSwiped = Date.now(); } // de klik die nog volgt niet nog eens
       else if (horiz) { plBarSwiped = Date.now(); plStep(dx < 0 ? 1 : -1); }
+      else if (dy > 40 && dy > Math.abs(dx)) { plBarSwiped = Date.now(); plDismiss(); } // omlaag vegen = sluiten
     }
   });
 })();
