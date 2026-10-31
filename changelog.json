@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.116",
+    "date": "2026-10-31",
+    "changes": [
+      "Speler: de minispeler onderaan heeft nu een ✕ om hem te sluiten (of veeg hem omlaag), op elk scherm. Bij een podcast blijft je plek bewaard; met Ongedaan maken speelt hij meteen verder."
+    ]
+  },
+  {
     "version": "1.115",
     "date": "2026-10-30",
     "changes": [

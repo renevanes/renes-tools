@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.115",
-  "versionCode": 116,
+  "versionName": "1.116",
+  "versionCode": 117,
   "nativeLevel": 104,
   "web": "index.html",
-  "webSha256": "1916785c218d07a512c6faf21f681283c8e752fcc3cbc323b2767646fa7c170d",
+  "webSha256": "5b04f7a92dd44f04e372ac5a82efa5378e1ef0c39e36199a77f46efe4fb1dd2a",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "f26531acfa66529f0e77d88216be8035c0b0811149f1939bd8e1fce2895023de",
+  "apkSha256": "f91932e594504d2edda00d96051c5175385ac1e274551234b08285bc28aace35",
   "changelog": [
+    {
+      "version": "1.116",
+      "date": "2026-10-31",
+      "changes": [
+        "Speler: de minispeler onderaan heeft nu een ✕ om hem te sluiten (of veeg hem omlaag), op elk scherm. Bij een podcast blijft je plek bewaard; met Ongedaan maken speelt hij meteen verder."
+      ]
+    },
     {
       "version": "1.115",
       "date": "2026-10-30",
@@ -1030,5 +1037,5 @@
       ]
     }
   ],
-  "webSig2": "TgLKTAdopD9CMKA07oKFJh3ioL6TiPlnFvlxZcI33vfhaWeFz4Mm2Hss9iqa2gIM9o9UJtozEpKyFhEWAoRMzs8IyUj1B9vOww89FxdErn+RDml0UqF2iHWbXwRKJBQdKHNdxrVpaRS2R5PwmHfgF6m1jIgnUobGJQWsI5+x3uZa+ySisORHGFEOHbhBkrFnTdw5dC5FND98QwKkLQbKnZSh9B3u0IdJuWMrWrS66NNed0zZ4HndZwiV31IR+MRCb+JKpVTX6S0t89elq15xWbx0YjkWiEQ5Uc8AgV+TJaO6JNOXIRo97NqCqCIQet9wQkrcNUg7Lg3wctTXEcig+2Ju1Idyl4ryP/uyJ/99N7CwOuDA3HcCLSsER8VLS8WB0Vr7Y6KLnOb7qmIvDMUbZnmiMVxY+sQVihZs/mxz8OKld2W1Hvf+Csxr2c78WRrx6DgGJxDybndSg3lRs0dC4hNUpmf1AMa0hfz/CdfXs9LU/wGAKkM3Q6+sffKh8jX4"
+  "webSig2": "OLuoc9Xl5Rsom9BwYflMfkgolKbdgYFw2/g0VnTkgg96cJ5MuCkFJ3YJWIsAW3hkhZErCetEiKZ7kTy9aDONR8H7lFQ0nb27wBvrl1Srj2oUu7qst+ZR3JvHBGFsJWXzZ5skde44PPxnEZDc8i4YEB4FK/FPfJGsbrkhbx5x/yRdjbbLpn7KcHVFlqdQep3dhYex6e/YCSSSDINzITp9xb0xToT4Ut30RdvFbHOdwlRQoBtqCeU2z8qwq5WqsrVKdWDtKmkukffRL/6UMKrk9x50VcSwzcVEDU1VNUZbM3K+EO2hR9Db86AgfaU8flkO1H41HI0Cym8HTWWhkpazDlLSl7I+eRo3h7Hc3zrz001+KH/85dILMYzTa+iDOfaGUTBlJL1CwR/+UmbsgOZeLxl/5vI8kW/BBp4a1GMbxH71bo2RC2yltIXsRingYAWsLuQsejnToLigORK9rkZZT/h/akfmFwjZxGfcLs8XSzRjKZsPhHnth8dU1cUyUzML"
 }
