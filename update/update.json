@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.116",
-  "versionCode": 117,
-  "nativeLevel": 104,
+  "versionName": "1.117",
+  "versionCode": 118,
+  "nativeLevel": 105,
   "web": "index.html",
-  "webSha256": "5b04f7a92dd44f04e372ac5a82efa5378e1ef0c39e36199a77f46efe4fb1dd2a",
+  "webSha256": "3167aa3e9b1ef2b131b89602b472611ce73ea63f30c8fa0f4d1364af3b8be47c",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "f91932e594504d2edda00d96051c5175385ac1e274551234b08285bc28aace35",
+  "apkSha256": "1ed7c0776b0fdfd73cd4d51981c693f505eb3d818219be3403941db29bd3e934",
   "changelog": [
+    {
+      "version": "1.117",
+      "date": "2026-10-31",
+      "changes": [
+        "Check-in terugkijken: zet bij elke dag, week of maand uit het verleden een opmerking (typen of inspreken), ook als je toen niets invulde of als wijzigen uit staat; een stip in de kalender laat zien waar er een staat.",
+        "Opmerkingen tellen mee bij Zoeken, bij de assistent en in de backup van Check-in."
+      ]
+    },
     {
       "version": "1.116",
       "date": "2026-10-31",
@@ -1037,5 +1045,5 @@
       ]
     }
   ],
-  "webSig2": "OLuoc9Xl5Rsom9BwYflMfkgolKbdgYFw2/g0VnTkgg96cJ5MuCkFJ3YJWIsAW3hkhZErCetEiKZ7kTy9aDONR8H7lFQ0nb27wBvrl1Srj2oUu7qst+ZR3JvHBGFsJWXzZ5skde44PPxnEZDc8i4YEB4FK/FPfJGsbrkhbx5x/yRdjbbLpn7KcHVFlqdQep3dhYex6e/YCSSSDINzITp9xb0xToT4Ut30RdvFbHOdwlRQoBtqCeU2z8qwq5WqsrVKdWDtKmkukffRL/6UMKrk9x50VcSwzcVEDU1VNUZbM3K+EO2hR9Db86AgfaU8flkO1H41HI0Cym8HTWWhkpazDlLSl7I+eRo3h7Hc3zrz001+KH/85dILMYzTa+iDOfaGUTBlJL1CwR/+UmbsgOZeLxl/5vI8kW/BBp4a1GMbxH71bo2RC2yltIXsRingYAWsLuQsejnToLigORK9rkZZT/h/akfmFwjZxGfcLs8XSzRjKZsPhHnth8dU1cUyUzML"
+  "webSig2": "UfwRDv0a1N9uZI/BG4pNUt83XxrqbjYPtvOzEEogbQNYU+uUYMH7TyZOvUT/tRK0v0cT81Ra7x1bFDg5czATJO1ulbyiaofSp4Xq6jLA9+UZa8MlW9wySYV4y2jn0fAiZaz9OZEF1Fc/3+ZxopJJm843zi24XGjO1lRWLkIlk+9X/zcpbQe5Q01uPjZMcuevDNc21A2vvmbvi7MstdEHX7idtBaYXDQ1XuB+NGxK2zy3QIfKFNTI5hNapjquBmCI8X/ee4oE4aXRqLh0coXJL/d0zMWa9V6eisNCzKYWK/KFnVDki3wJ32phnOTA05R/eKCzn/1W9VhYtubjfIq1cQ8eiIz7L9jnfNE2xB63fzeJ8zqgnhVo/fMRLfzpozS1uhO/jwsqRMla5Qa2n1A2t5x01Euc9EFP03ssWGSPbRPhe9+QmRjtGCgW14LtXAOMyIlT+rmiU4NcXvRQfwl/aMWh1O/Tb5P1bqjbh1EDNOpuNSsKG2DrfkfLKZOWUx/o"
 }

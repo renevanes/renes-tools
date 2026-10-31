@@ -1,2 +1,0 @@
-Check-in terugkijken: zet bij elke dag, week of maand uit het verleden een opmerking (typen of inspreken), ook als je toen niets invulde of als wijzigen uit staat; een stip in de kalender laat zien waar er een staat.
-Opmerkingen tellen mee bij Zoeken, bij de assistent en in de backup van Check-in.

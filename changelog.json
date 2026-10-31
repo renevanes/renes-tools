@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.117",
+    "date": "2026-10-31",
+    "changes": [
+      "Check-in terugkijken: zet bij elke dag, week of maand uit het verleden een opmerking (typen of inspreken), ook als je toen niets invulde of als wijzigen uit staat; een stip in de kalender laat zien waar er een staat.",
+      "Opmerkingen tellen mee bij Zoeken, bij de assistent en in de backup van Check-in."
+    ]
+  },
+  {
     "version": "1.116",
     "date": "2026-10-31",
     "changes": [
