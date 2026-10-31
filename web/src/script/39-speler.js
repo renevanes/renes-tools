@@ -285,19 +285,27 @@ function plStop(){
   setTimeout(() => { const h = document.querySelector('.screen.on h1'); if (h) h.focus({ preventScroll: true }); }, 350); // de balk is dan weg
 }
 /* De minispeler sluiten (✕ of omlaag vegen op de balk): stoppen en de balk weg, op elk scherm.
-   Bij een podcast blijft je plek bewaard (Verder luisteren); even terug kan met Ongedaan maken. */
+   Bij een podcast blijft je plek bewaard (Verder luisteren). Speelde het, dan kan het even terug met Ongedaan maken. */
 function plDismiss(){
   const m = plModel(); if (!m) return;
-  const pod = m.src === 'podcast' ? { ep: Object.assign({}, pcSt.ep || {}), pod: Object.assign({}, pcSt.pod || {}), pos: +pcSt.pos || 0 } : null;
-  const station = m.src === 'radio' ? m.station : null, wasPlaying = m.playing;
-  if (m.src === 'podcast') Android.podStop(); else Android.radioStop();
+  const inBar = $('#plbar').contains(document.activeElement);
+  const cast = m.cast ? String(m.cast) : '';
+  const pod = m.src === 'podcast' && !cast && pcSt.ep && pcSt.ep.url ? { ep: Object.assign({}, pcSt.ep), pod: Object.assign({}, pcSt.pod || {}) } : null;
+  const station = m.src === 'radio' && !cast && m.station && m.station.url ? m.station : null, wasPlaying = m.playing;
+  if (m.src === 'podcast') Android.podStop(); else Android.radioStop(); // stopt ook het casten
   if (m.src === 'podcast') pcSt = { status: 'stopped' }; else rdState = Object.assign({}, rdState, { status: 'stopped' });
-  plRender(); setTimeout(plTick, 300);
-  setTimeout(() => { const h = document.querySelector('.screen.on h1'); if (h) h.focus({ preventScroll: true }); }, 50); // de balk is weg
+  if (cast) plCast = {};
+  plRender(); if (current === 'radio' && typeof rdRender === 'function') rdRender();
+  setTimeout(plTick, 300);
+  // Focus alleen verplaatsen als die op de balk stond (anders geen toetsenbord dichtklappen)
+  if (inBar) setTimeout(() => { const h = document.querySelector('.screen.on h1'); if (h) h.focus({ preventScroll: true }); }, 50);
+  const where = m.src === 'podcast' ? 'Podcasts → Verder luisteren' : 'Radio';
+  if (cast) { toast('Gestopt op ' + cast); return; }
+  if (!wasPlaying || (!pod && !station)) { toast('Speler gesloten · staat klaar bij ' + where); return; }
   undoToast(pod ? 'Speler gesloten · je plek is bewaard' : 'Speler gesloten', () => {
-    if (!wasPlaying) { toast('Staat weer klaar bij ' + (pod ? 'Podcasts → Verder luisteren' : 'Radio')); return; }
-    if (pod && pod.ep.url) pcPlayEp(pod.ep, pod.pod, false); // de app weet zelf waar je was
-    else if (station && station.url) { Android.radioPlay(JSON.stringify(station)); rdState = { status: 'connecting', station, title: '' }; plHintSrc('radio'); plRender(); }
+    if (plModel()) { toast('Er speelt al iets anders'); return; } // intussen iets anders gestart: dat niet vervangen
+    if (pod) pcPlayEp(pod.ep, pod.pod, false); // de app weet zelf waar je was
+    else { Android.radioPlay(JSON.stringify(station)); rdState = { status: 'connecting', station, title: '' }; plHintSrc('radio'); plRender(); if (current === 'radio' && typeof rdRender === 'function') rdRender(); }
   });
 }
 function plFav(){ rdFavNow(); plQueueSig = ''; plRender(); }

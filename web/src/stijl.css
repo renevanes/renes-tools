@@ -624,7 +624,7 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .pltxt small{display:block;font-size:12.5px;opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .plbar-btn{width:44px;height:44px;display:grid;place-items:center;color:#fff;flex:none;border-radius:50%;padding:9px}
 .plbar-btn svg{width:26px;height:26px}
-.plbar-x{opacity:.85}.plbar-x svg{width:20px;height:20px}
+.plbar-x{opacity:.85;margin-left:8px}.plbar-x svg{width:20px;height:20px}
 .plbar-btn:active,.pl-ic:active{background:rgba(255,255,255,.16)}
 body.has-plbar main{padding-bottom:92px}
 body.has-plbar .fab{bottom:92px}

@@ -15,11 +15,11 @@ const { chromium } = require('playwright');
     const name = await pg.evaluate(() => (Android._rd.st.station || {}).name);
     await pg.evaluate(() => show('notes')); await pg.waitForTimeout(300);
     ok(await pg.isVisible('#plbar') && await pg.isVisible('#plbar-x'), t + 'minispeler met ✕ op een ander scherm');
-    ok((await pg.getAttribute('#plbar-x', 'aria-label')) === 'Speler sluiten', t + '✕ heeft een naam');
+    ok((await pg.getAttribute('#plbar-x', 'aria-label')) === 'Stoppen en speler sluiten', t + '✕ heeft een naam');
     const box = await pg.$eval('#plbar-x', e => { const r = e.getBoundingClientRect(); return [r.width, r.height]; });
     ok(box[0] >= 44 && box[1] >= 44, t + '✕ is groot genoeg (' + box + ')');
-    await pg.click('#plbar-x'); await pg.waitForTimeout(250);
-    ok(!(await pg.isVisible('#plbar')) && await pg.evaluate(() => Android._rd.st.status === 'stopped' && current === 'notes'), t + 'radio gestopt, balk weg, je blijft op het scherm');
+    await pg.click('#plbar-x'); await pg.waitForTimeout(1300);
+    ok(!(await pg.isVisible('#plbar')) && await pg.evaluate(() => Android._rd.st.status === 'stopped' && current === 'notes'), t + 'radio gestopt, balk blijft weg (ook na het bijwerken), je blijft op het scherm');
     ok(await pg.isVisible('#undo') && (await pg.textContent('#undo-t')).includes('Speler gesloten'), t + 'met Ongedaan maken');
     await pg.click('#undo-b'); await pg.waitForTimeout(900);
     ok(await pg.evaluate(n => Android._rd.st.status !== 'stopped' && (Android._rd.st.station || {}).name === n, name) && await pg.isVisible('#plbar'), t + 'ongedaan: dezelfde zender speelt weer');
@@ -28,6 +28,21 @@ const { chromium } = require('playwright');
     await pg.mouse.move(bb[0], bb[1]); await pg.mouse.down(); await pg.mouse.move(bb[0], bb[1] + 30, { steps: 3 }); await pg.mouse.move(bb[0], bb[1] + 70, { steps: 3 }); await pg.mouse.up(); await pg.waitForTimeout(250);
     ok(!(await pg.isVisible('#plbar')) && await pg.evaluate(() => Android._rd.st.status === 'stopped'), t + 'omlaag vegen sluit de speler');
     ok(await pg.evaluate(() => current === 'notes' && !document.querySelector('#player.on, #player[aria-hidden="false"]')), t + 'vegen opent de grote speler niet');
+    // Ongedaan maken vervangt niet wat je intussen startte
+    await pg.click('#tile-radio') .catch(() => {}); await pg.evaluate(() => show('radio')); await pg.waitForTimeout(300);
+    await pg.click('#rd-list .srow:nth-child(2) .sbtn'); await pg.waitForTimeout(1300);
+    await pg.click('#plbar-x'); await pg.waitForTimeout(300);
+    ok(!(await pg.$('#rd-list .srow.playing')), t + 'op het Radio-scherm: zender niet meer als spelend getoond');
+    await pg.click('#rd-list .srow:nth-child(3) .sbtn'); await pg.waitForTimeout(1300);
+    const other = await pg.evaluate(() => (Android._rd.st.station || {}).name);
+    await pg.click('#undo-b').catch(() => {}); await pg.waitForTimeout(500);
+    ok(await pg.evaluate(n => (Android._rd.st.station || {}).name === n, other), t + 'ongedaan maken vervangt niet wat je intussen startte');
+    // Gepauzeerd sluiten: geen Ongedaan maken, wel waar je hem terugvindt
+    await pg.click('#plbar-pp'); await pg.waitForTimeout(400);
+    await pg.click('#plbar-x'); await pg.waitForTimeout(300);
+    ok(!(await pg.isVisible('#undo')) || !(await pg.evaluate(() => document.querySelector('#undo').classList.contains('on'))), t + 'gepauzeerd: geen Ongedaan maken');
+    ok((await pg.textContent('#toast')).includes('staat klaar bij'), t + 'gepauzeerd: zegt waar je hem terugvindt');
+    await pg.evaluate(() => show('notes')); await pg.waitForTimeout(200);
     // Podcast: plek bewaard, ongedaan speelt verder
     await pg.evaluate(() => { const A = Android._pc; const p = (A.top || [])[0]; A.subs.push(Object.assign({ fresh: 0 }, p)); });
     await pg.evaluate(() => { const p = Android._pc.top[0]; pdOpen(p); }); await pg.waitForTimeout(600);
