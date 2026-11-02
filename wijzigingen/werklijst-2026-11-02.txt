@@ -1,4 +1,4 @@
-Assistent: "Hoe lang zat ik op WhatsApp?" en "Hoeveel tijd heeft Duolingo me gekost?" krijgen nu het antwoord uit Gebruik; staat de app er niet bij, dan zegt de assistent dat (in plaats van je totale schermtijd)
+Assistent: "Hoe lang zat ik op WhatsApp?" en "Hoeveel tijd heeft Duolingo me gekost?" gaan nu naar Gebruik; staat de app er niet bij, dan krijg je niet meer je totale schermtijd als antwoord
 Assistent: vragen als "Toen zei ik vannacht…" of "Maandag had ik…" worden niet meer aangezien voor een vraag over iemand anders
 Gegevens terugzetten: foto's bij ontgrendelen die bij het maken van de backup niet te lezen waren, staan nu in de samenvatting
 Podcasts: de schermlezer hoort de titel van een podcast nog maar één keer als kop
