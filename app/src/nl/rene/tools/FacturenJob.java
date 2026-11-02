@@ -20,7 +20,7 @@ import java.util.List;
  */
 public class FacturenJob extends JobService {
 
-    static final int JOB_ID = 4401, JOB_NOG = 4402, JOB_TIJD = 4403;
+    static final int JOB_ID = 4401, JOB_NOG = 4402, JOB_TIJD = 4403, JOB_WIFI = 4404;
     static volatile boolean gestopt;
 
     @Override
@@ -28,25 +28,36 @@ public class FacturenJob extends JobService {
         final Context ctx = getApplicationContext();
         if (!App.unlocked(ctx)) return false;
         final List<String> beurt = aanDeBeurt(ctx, System.currentTimeMillis());
-        if (beurt.isEmpty()) return false;
+        // Opnieuw plannen pas ná deze taak (een taak met dezelfde id herplannen terwijl hij loopt, stopt hem)
+        final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        if (beurt.isEmpty()) { h.post(() -> schedule(ctx)); return false; }
         gestopt = false;
         // Eén leverancier per keer (Android geeft een taak ±10 minuten); de volgende komt een minuut later
         String id = beurt.get(0);
         String err = FacturenRun.begin(ctx, id, null, r -> {
-            schedule(ctx); // het volgende geplande moment
             try {
                 JSONObject lev = Facturen.leverancier(ctx, id);
-                if (lev != null) Facturen.melding(ctx, lev, r);
+                if (lev != null && (r.optBoolean("ok") || eersteFout(ctx, lev))) Facturen.melding(ctx, lev, r);
             } catch (Throwable ignored) {
             } finally {
-                if (!gestopt) nog(ctx);
+                final boolean verder = !gestopt;
                 jobFinished(params, false);
+                h.post(() -> { try { schedule(ctx); if (verder) nog(ctx); } catch (Throwable ignored) { } });
             }
         });
-        if (!err.isEmpty()) { schedule(ctx); return false; } // er loopt al iets (met de hand gestart): later opnieuw
+        if (!err.isEmpty()) { h.post(() -> schedule(ctx)); return false; } // er loopt al iets (met de hand gestart): later opnieuw
         FacturenRun r = FacturenRun.LOPEND.get();
         if (r != null) r.klaarAuto = true;
         return true;
+    }
+
+    /** Alleen bij de eerste mislukte poging van een periode een melding (niet bij elke nieuwe poging). */
+    static boolean eersteFout(Context c, JSONObject lev) {
+        long g = Facturen.gepland(lev, System.currentTimeMillis(), false, java.util.TimeZone.getDefault());
+        JSONArray log = Facturen.toestand(c, lev.optString("id")).optJSONArray("log");
+        int fouten = 0;
+        for (int i = 0; log != null && i < log.length(); i++) { JSONObject r = log.optJSONObject(i); if (r != null && !r.optBoolean("ok") && r.optLong("t") >= g) fouten++; }
+        return fouten <= 1;
     }
 
     /** Zijn er na deze nog leveranciers aan de beurt? Dan over een minuut nog een keer. */
@@ -89,32 +100,46 @@ public class FacturenJob extends JobService {
         return false;
     }
 
-    /** Het eerstvolgende geplande moment van alle leveranciers (of Long.MAX_VALUE). */
-    static long volgende(Context c, long nu) {
-        long min = Long.MAX_VALUE;
+    /**
+     * Het eerstvolgende moment om te kijken: {met elk internet, alleen wifi}. Per leverancier het volgende vaste moment,
+     * of (staat er nog iets open van deze periode) de volgende poging na "opnieuw" uur.
+     */
+    static long[] volgende(Context c, long nu) {
+        long any = Long.MAX_VALUE, wifi = Long.MAX_VALUE;
+        java.util.TimeZone tz = java.util.TimeZone.getDefault();
         JSONArray l = Facturen.lijst(c);
         for (int i = 0; i < l.length(); i++) {
             JSONObject lev = l.optJSONObject(i);
-            if (lev != null) min = Math.min(min, Facturen.gepland(lev, nu, true, java.util.TimeZone.getDefault()));
+            if (lev == null || "uit".equals(lev.optString("schema"))) continue;
+            long m = Facturen.gepland(lev, nu, true, tz);
+            JSONObject t = Facturen.toestand(c, lev.optString("id"));
+            if (t.optLong("lastOk") < Facturen.gepland(lev, nu, false, tz)) // nog open: opnieuw proberen
+                m = Math.min(m, Math.max(nu + 60_000L, t.optLong("lastTry") + lev.optInt("opnieuw", 3) * 3_600_000L));
+            if (lev.optBoolean("wifi")) wifi = Math.min(wifi, m); else any = Math.min(any, m);
         }
-        return min;
+        return new long[]{any, wifi};
+    }
+
+    private static void plan(JobScheduler js, Context c, int id, long op, long nu, int net) {
+        if (op == Long.MAX_VALUE) { js.cancel(id); return; }
+        js.schedule(new JobInfo.Builder(id, new ComponentName(c, FacturenJob.class))
+                .setMinimumLatency(Math.max(0, op - nu)).setOverrideDeadline(Math.max(0, op - nu) + 6 * 3_600_000L)
+                .setRequiredNetworkType(net).setPersisted(true).build());
     }
 
     /**
-     * Plannen: een taak op het eerstvolgende vaste moment (met internet; Android kan hem bij een slapende telefoon
-     * iets later starten), plus elke dag een controle die gemiste momenten inhaalt. Alles uit: niets gepland.
+     * Plannen: een taak op het eerstvolgende moment (met internet, of alleen wifi voor leveranciers die dat willen;
+     * Android kan hem bij een slapende telefoon iets later starten), plus elke dag een controle die gemiste momenten
+     * inhaalt. Alles uit: niets gepland. Niet aanroepen terwijl een van deze taken loopt (dan stopt Android hem).
      */
     static void schedule(Context c) {
         JobScheduler js = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
         if (js == null) return;
-        if (!nodig(c)) { js.cancel(JOB_ID); js.cancel(JOB_NOG); js.cancel(JOB_TIJD); return; }
-        long nu = System.currentTimeMillis(), v = volgende(c, nu);
-        if (v != Long.MAX_VALUE) {
-            JobInfo.Builder t = new JobInfo.Builder(JOB_TIJD, new ComponentName(c, FacturenJob.class))
-                    .setMinimumLatency(Math.max(0, v - nu)).setOverrideDeadline(Math.max(0, v - nu) + 6 * 3_600_000L)
-                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true);
-            js.schedule(t.build());
-        }
+        if (!nodig(c)) { js.cancel(JOB_ID); js.cancel(JOB_NOG); js.cancel(JOB_TIJD); js.cancel(JOB_WIFI); return; }
+        long nu = System.currentTimeMillis();
+        long[] v = volgende(c, nu);
+        plan(js, c, JOB_TIJD, v[0], nu, JobInfo.NETWORK_TYPE_ANY);
+        plan(js, c, JOB_WIFI, v[1], nu, JobInfo.NETWORK_TYPE_UNMETERED);
         if (js.getPendingJob(JOB_ID) != null) return;
         JobInfo.Builder b = new JobInfo.Builder(JOB_ID, new ComponentName(c, FacturenJob.class))
                 .setPeriodic(86_400_000L)

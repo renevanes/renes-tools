@@ -144,7 +144,7 @@ final class Facturen {
         String schema = in.optString("schema", "maand");
         if (!in(schema, SCHEMA)) throw new Exception("Onbekende keuze voor hoe vaak");
         o.put("schema", schema);
-        // Vast moment: maand = dag 1–28 van de maand, week = weekdag (1 = maandag), altijd met een tijd (UU:MM)
+        // Vast moment: maand = dag 1–31 van de maand (in kortere maanden de laatste dag), week = weekdag (1 = maandag), altijd met een tijd (UU:MM)
         o.put("dag", Math.max(1, Math.min(31, in.optInt("dag", 5)))); // 29–31: in kortere maanden de laatste dag
         o.put("opnieuw", Math.max(1, Math.min(24, in.optInt("opnieuw", 3))));   // uren tussen pogingen na een fout
         o.put("wifi", in.optBoolean("wifi", false));                             // vanzelf alleen via wifi
@@ -261,7 +261,7 @@ final class Facturen {
 
     /**
      * Aan de beurt: het laatste geplande moment is voorbij en sindsdien is er nog niet gelukt.
-     * Mislukt na het geplande moment: elke 3 uur opnieuw (niet elke keer meteen een melding).
+     * Mislukt na het geplande moment: na "opnieuw" uur opnieuw (melding alleen bij de eerste fout van de periode).
      */
     static boolean aanDeBeurt(JSONObject lev, long lastOk, long lastTry, long nu, java.util.TimeZone tz) {
         if ("uit".equals(lev.optString("schema", "maand"))) return false;

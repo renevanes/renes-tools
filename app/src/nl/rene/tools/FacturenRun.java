@@ -463,6 +463,7 @@ final class FacturenRun {
             }
             voortgang = uit.optString("msg");
             if (klaar != null) { try { klaar.klaar(uit); } catch (Throwable ignored) { } }
+            if (!klaarAuto) { try { FacturenJob.schedule(c); } catch (Throwable ignored) { } } // met de hand: planning bijwerken (de taak doet dat zelf)
         }, "facturen-bewaren").start();
     }
 
