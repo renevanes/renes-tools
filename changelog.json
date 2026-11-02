@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.123",
+    "date": "2026-11-02",
+    "changes": [
+      "Facturen: bewaar je facturen nu ook in een zelf gekozen map op je telefoon (bijv. Documenten) of in je eigen Google Drive (map Facturen). Per leverancier kies je waar ze heen gaan."
+    ]
+  },
+  {
     "version": "1.122",
     "date": "2026-11-02",
     "changes": [

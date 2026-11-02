@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.122",
-  "versionCode": 123,
-  "nativeLevel": 109,
+  "versionName": "1.123",
+  "versionCode": 124,
+  "nativeLevel": 110,
   "web": "index.html",
-  "webSha256": "7809e2b91a134841e68b300d937eedba9cfe2ad87ff46440772a464fb0d14706",
+  "webSha256": "6310b29410ed7ff3d71589786e3effd01cb00878782c391bd0ab878b42138214",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "46584476e167fd68c64ead5d78d6f980cfd9e397ea5e0f2fbc292f861316c116",
+  "apkSha256": "ca26743d93085fb16ef96631ad20f5569f4377cf3ce6f050842b5b8b1f4c28b1",
   "changelog": [
+    {
+      "version": "1.123",
+      "date": "2026-11-02",
+      "changes": [
+        "Facturen: bewaar je facturen nu ook in een zelf gekozen map op je telefoon (bijv. Documenten) of in je eigen Google Drive (map Facturen). Per leverancier kies je waar ze heen gaan."
+      ]
+    },
     {
       "version": "1.122",
       "date": "2026-11-02",
@@ -1084,5 +1091,5 @@
       ]
     }
   ],
-  "webSig2": "Ol30WzSJMOAB/1iD2jNV2bdIqnDogwTEjw0qqJ1La/qhPeCLnJHrzlRUSYT8zQlCxjDAZdtVEpvX/7ghsYK/1pFDGY6sbzLetxxcRSHDw5CLJRgXK0Lc8kiAwTjZoKdNy9mrIDfC5afEJ6t5DvFpvyQ2J3aJC1C4szLdKfGgtABescfaGEIZ0CMyc3myIbMn8N5Yug44JZTBozv+W0jar1KoDkkK5lPMWExtQNDbcq0l++Y83bgstGcJquAMpFhtA9rX7KnseVZZwDTqXu4HROfgkupKZ41PbANYoBjJST4YYxMECQIi6ZpYMHUkFxcDrJyturbTuUuNcGHJv7MwFnqyhEVjpR8plyja39thKfszBx0w30lp/k+35eUNMtepnM0rfsx8Pi76RWMKZFz0h+qhI+VCqBZKOGAIOIX+g4xDPOkxCL/HLVfYasDog74WiZ8oC2dj/9gglC3Kwbv5maqBnHPPuETgwt9maJ3X9K20CkwEiUMHwX7pp6waxl89"
+  "webSig2": "SBlKz1ckWYDjz1SdhZp7+Ooxu81wleJeBHPJkr8tAc8CiT9b231f+Mj0MbZRJ02LV/srgybW7RzNjRn9kRdhHJrir8mRbKr2zy615WAe0iUxFbLjWJNslMVwzafg9/FXzGFICo9JRyF5CCYMw4xDjN1H2zomYsGlsDDBIo41teRKH6pyTutRfiWE2E5uURA4iUNQiGidBMaJni5K96A2XAsIATtCL2XpZzZf5UbeUzmyFNVu2WwY1mUnuT2X5n5s/Klhv3lGe+19cSB5QFOck4id51neAa+ayzMKsp74WqabAwSOAyBKwm7h5EWthk47L3tCE3SsK9V0wE71ltU3KtnYPmuiUA1q2bSeqoQb7uIRGJWJ0g3Z5Y3ShNR60g2w6kQdhT41dV0xxuDsCC3RgTHIpigxj2wpDfXZvNBb/4IU12c0L2O/ZBtPuG3+WUuaRhIhdNH06Z5/jN0w/cpziF9TFkoKUjQX5wIvS5pC8vCbpc1Ct8edg1K4vDEL46cC"
 }
