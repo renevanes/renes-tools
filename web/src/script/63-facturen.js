@@ -43,6 +43,17 @@ function faRender(geenLaad){
   $('#fa-ec-pw').value = ''; $('#fa-ec-pw').placeholder = ec.heeftWachtwoord ? 'Ongewijzigd' : '';
   $('#fa-ec-stand').textContent = ec.url && ec.heeftWachtwoord ? 'Gekoppeld met ' + ec.url.replace(/^https:\/\//, '') + '. Facturen gaan als mail met de PDF naar ' + (ec.adres || ec.gebruiker) + '.'
     : 'Niet gekoppeld. Koppel Eigen Cloud om facturen in je eigen mail te krijgen, of om de inlogcode uit je mail te lezen.';
+  const lok = faSt.lokaal || '';
+  $('#fa-lok-stand').textContent = lok === '!' ? 'Tools kan niet meer bij de gekozen map. Kies hem opnieuw.' : lok ? 'Facturen komen in ' + lok + ', per leverancier een eigen map.' : 'Nog geen map gekozen. Kies bijvoorbeeld Documenten; per leverancier komt er een eigen map in.';
+  $('#fa-lok-stand').classList.toggle('bad', lok === '!');
+  $('#fa-lok-kies').textContent = lok ? 'Andere map kiezen' : 'Map kiezen';
+  $('#fa-lok-los').style.display = lok ? 'block' : 'none';
+  const gd = faSt.drive || {};
+  $('#fa-gd-setup').style.display = gd.gekoppeld ? 'none' : 'block';
+  $('#fa-gd-aan').style.display = gd.gekoppeld ? 'block' : 'none';
+  $('#fa-gd-stand').textContent = gd.gekoppeld ? 'Gekoppeld' + (gd.gebruiker ? ' met ' + gd.gebruiker : '') + '. Facturen komen in de map Facturen in je Drive.' : '';
+  if (!gd.gekoppeld && gd.clientId && !$('#fa-gd-id').value) $('#fa-gd-id').value = gd.clientId;
+  $('#fa-gd-geheim').placeholder = gd.heeftGeheim ? 'Client secret (ongewijzigd)' : 'Client secret';
   $('#fa-map').textContent = faSt.map ? 'Kopieën komen in je backup-map, in de map Facturen.' : 'Tip: kies een backup-map (Instellingen), dan komen de facturen ook in de map Facturen.';
 }
 function faOpen(id){
@@ -87,6 +98,7 @@ function flOpen(l, nieuw){
   $('#fl-pw').value = ''; $('#fl-pw').placeholder = l.heeftWachtwoord ? 'Ongewijzigd' : '';
   $('#fl-bron').value = c.bron || 'geen'; $('#fl-afz').value = c.afzender || ''; $('#fl-pat').value = c.patroon || '';
   $('#fl-schema').value = l.schema || 'week'; $('#fl-map').checked = l.map !== false; $('#fl-ec').checked = !!l.eigenCloud;
+  $('#fl-lok').checked = !!l.lokaal; $('#fl-gd').checked = !!l.drive;
   $('#fl-facturl').value = l.facturenUrl || ''; $('#fl-menu').value = l.menu || ''; $('#fl-knoppen').value = l.knoppen || '';
   $('#fl-max').value = l.max || 12; $('#fl-sub').value = l.submap || '';
   ['gebruiker', 'wachtwoord', 'code', 'knop'].forEach(k => $('#fl-v-' + k).value = v[k] || '');
@@ -105,12 +117,14 @@ function flBewaar(){
     naam: $('#fl-naam').value.trim(), startUrl: $('#fl-start').value.trim(), gebruiker: $('#fl-user').value.trim(), wachtwoord: $('#fl-pw').value,
     facturenUrl: $('#fl-facturl').value.trim(), menu: $('#fl-menu').value.trim(), knoppen: $('#fl-knoppen').value.trim(), max: Number($('#fl-max').value) || 12,
     code: { bron: $('#fl-bron').value, afzender: $('#fl-afz').value.trim(), patroon: $('#fl-pat').value.trim() },
-    schema: $('#fl-schema').value, map: $('#fl-map').checked, eigenCloud: $('#fl-ec').checked, submap: $('#fl-sub').value.trim(),
+    schema: $('#fl-schema').value, map: $('#fl-map').checked, lokaal: $('#fl-lok').checked, drive: $('#fl-gd').checked, eigenCloud: $('#fl-ec').checked, submap: $('#fl-sub').value.trim(),
     velden: { gebruiker: $('#fl-v-gebruiker').value.trim(), wachtwoord: $('#fl-v-wachtwoord').value.trim(), code: $('#fl-v-code').value.trim(), knop: $('#fl-v-knop').value.trim() }
   };
   for (const [p, wat] of [[o.menu, 'De tekst van de link naar de facturen'], [o.knoppen, 'Het herkennen van downloadknoppen']]) {
     try { new RegExp(p, 'i'); } catch (e) { $('#fl-msg').textContent = wat + ' is geen geldig zoekpatroon.'; $('#fl-geavanceerd').open = true; return; }
   }
+  if (o.lokaal && !faSt.lokaal) { $('#fl-msg').textContent = 'Kies eerst een map op je telefoon (op het scherm Facturen), of zet "In een map op je telefoon" uit.'; return; }
+  if (o.drive && !(faSt.drive || {}).gekoppeld) { $('#fl-msg').textContent = 'Koppel eerst Google Drive (op het scherm Facturen), of zet "In Google Drive" uit.'; return; }
   const ec = faSt.ec || {};
   if (o.eigenCloud && !(ec.url && ec.heeftWachtwoord)) { $('#fl-msg').textContent = 'Koppel eerst Eigen Cloud (op het scherm Facturen), of zet "Naar je mail in Eigen Cloud" uit.'; return; }
   if (o.code.bron === 'eigencloud' && !(ec.url && ec.heeftWachtwoord)) { $('#fl-msg').textContent = 'Koppel eerst Eigen Cloud om de code uit je mail te lezen.'; return; }
@@ -123,6 +137,26 @@ function flBewaar(){
   if (nieuw) setTimeout(() => askConfirm('Nu ophalen?', 'De eerste keer is meekijken handig: je ziet of de app de inlogvelden en downloadknoppen vindt, en je kunt zelf bijspringen.', 'Meekijken', () => faNu(r.id, true)), 300);
   else toast('✓ Bewaard');
 }
+/* Map op de telefoon en Google Drive */
+window.onFacturenMap = function(fout){
+  if (fout && fout !== 'geen') toast(fout); else if (!fout) toast('✓ Map gekozen');
+  if (current === 'facturen') faRender();
+};
+function faGdKoppel(){
+  $('#fa-gd-msg').textContent = '';
+  const id = $('#fa-gd-id').value.trim(), geheim = $('#fa-gd-geheim').value.trim();
+  if (!/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(id)) { $('#fa-gd-msg').textContent = 'Een Client ID van Google eindigt op .apps.googleusercontent.com. Kopieer hem uit je Google-project.'; return; }
+  if (!geheim && !(faSt.drive || {}).heeftGeheim) { $('#fa-gd-msg').textContent = 'Vul ook het Client secret in.'; return; }
+  const e = Android.facturenDriveKoppel(id, geheim);
+  $('#fa-gd-geheim').value = '';
+  if (e) { $('#fa-gd-msg').textContent = e; return; }
+  toast('Log in bij Google en geef toestemming; kom daarna terug');
+}
+window.onFacturenDrive = function(r){
+  if (r.error) { $('#fa-gd-msg').textContent = r.error; toast(r.error); }
+  else toast('✓ Google Drive gekoppeld' + (r.naam ? ' (' + r.naam + ')' : ''));
+  if (current === 'facturen') faRender();
+};
 /* Eigen Cloud */
 function faEcBewaar(){
   const e = Android.facturenEc(JSON.stringify({ url: $('#fa-ec-url').value.trim(), gebruiker: $('#fa-ec-user').value.trim(), adres: $('#fa-ec-adres').value.trim(), wachtwoord: $('#fa-ec-pw').value }));

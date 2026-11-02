@@ -66,6 +66,7 @@ public class MainActivity extends Activity {
     private static final int REQ_HOME = 25;
     private static final int REQ_AUTO = 26;
     static final int REQ_KLUIS = 27;
+    static final int REQ_FACT_TREE = 46;
     static final int REQ_PDF_IMG = 28, REQ_PDF_FILE = 29, REQ_PDF_SAVE = 30, REQ_PDF_DOC = 31, REQ_PDF_VIEW = 32;
     volatile String pdfSaveName = null;
     volatile String importKind = null;
@@ -480,6 +481,16 @@ public class MainActivity extends Activity {
         return Math.max(85, Math.min(200, Math.round(fs * 100)));
     }
 
+    /** Een map op de telefoon kiezen voor Facturen (begint in Documenten). */
+    void pickFacturenFolder() {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                | Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        if (android.os.Build.VERSION.SDK_INT >= 26)
+            i.putExtra(DocumentsContract.EXTRA_INITIAL_URI, DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Documents"));
+        try { startActivityForResult(i, REQ_FACT_TREE); }
+        catch (ActivityNotFoundException e) { Toast.makeText(this, "Mappenkiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+    }
+
     /** Roept window[fn](arg) aan in de pagina als die functie bestaat. */
     void js(String fn, String arg) {
         if (web == null) return;
@@ -616,6 +627,17 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == REQ_FACT_TREE) {
+            String fout = "";
+            if (res == RESULT_OK && data != null && data.getData() != null) {
+                try {
+                    getContentResolver().takePersistableUriPermission(data.getData(), Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                    Facturen.prefs(this).edit().putString("lokaal", data.getData().toString()).apply();
+                } catch (Exception e) { fout = "Deze map kan niet worden gebruikt"; }
+            } else fout = "geen";
+            js("onFacturenMap", JSONObject.quote(fout));
+            return;
+        }
         if (req == REQ_TREE || req == REQ_HERSTEL_TREE) {
             final boolean herstel = req == REQ_HERSTEL_TREE;
             if (res == RESULT_OK && data != null && data.getData() != null) {

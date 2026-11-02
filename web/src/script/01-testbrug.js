@@ -704,7 +704,7 @@ if (!window.Android) window.Android = (function(){
       { sjabloon: 'kpn-zakelijk', naam: 'KPN Zakelijk', omschrijving: 'MijnKPN Zakelijk: facturen van je zakelijke abonnementen', startUrl: 'https://mijnkpnzakelijk.kpn.com', facturenUrl: '', menu: 'facturen|factuur', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, code: { bron: 'sms', afzender: 'KPN', patroon: '' }, tip: 'KPN stuurt na je wachtwoord een code per sms of mail.' },
       { sjabloon: 'anders', naam: '', omschrijving: 'Een andere website met facturen: vul zelf de inlogpagina in', startUrl: '', facturenUrl: '', menu: 'facturen|factuur|invoices|documenten', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, code: { bron: 'geen', afzender: '', patroon: '' }, tip: 'Kijk de eerste keer mee.' }],
     facturenState(){ const f = this._fa; return JSON.stringify({ leveranciers: f.lev.map(l => ({ ...l, toestand: f.toestand[l.id] || {}, heeftWachtwoord: !!f.pw[l.id], aantal: (f.pdf[l.id] || []).length })),
-      bezig: f.bezig, voortgang: f.voortgang, zichtbaar: false, ec: f.ec, map: !!this._wa.info.dest, sms: !!this._sms.perm, sjablonen: this._faSjablonen }); },
+      bezig: f.bezig, voortgang: f.voortgang, zichtbaar: false, ec: f.ec, lokaal: f.lokaal || '', drive: f.drive || { gekoppeld: false, gebruiker: '', clientId: '', heeftGeheim: false }, map: !!this._wa.info.dest, sms: !!this._sms.perm, sjablonen: this._faSjablonen }); },
     facturenBewaar(json){ const o = JSON.parse(json), f = this._fa; f.calls.push(['bewaar', JSON.parse(json)]);
       if (!o.naam) return JSON.stringify({ error: 'Geef de leverancier een naam' });
       if (!/^https:\/\//i.test(o.startUrl || '')) return JSON.stringify({ error: 'De inlogpagina moet beginnen met https://' });
@@ -722,6 +722,11 @@ if (!window.Android) window.Android = (function(){
         if (r.ok) f.pdf[id] = [{ naam: 'KPN Zakelijk Factuur 2026-10.pdf', t: now, grootte: 81234 }, { naam: 'KPN Zakelijk Factuur 2026-09.pdf', t: now - 1000, grootte: 80122 }];
         onFacturenKlaar(r); }, 1200); return ''; },
     facturenStop(){ this._fa.calls.push(['stop']); },
+    facturenKiesMap(){ this._fa.calls.push(['kiesmap']); setTimeout(() => { this._fa.lokaal = 'Documents/Facturen'; onFacturenMap(''); }, 150); },
+    facturenMapLos(){ this._fa.lokaal = ''; },
+    facturenDriveKoppel(id, geheim){ const f = this._fa; f.calls.push(['drive', id, geheim]); if (!/googleusercontent\.com$/.test(id)) return 'Dat lijkt geen Client ID van Google (eindigt op .apps.googleusercontent.com)';
+      setTimeout(() => { f.drive = { gekoppeld: true, gebruiker: 'rene@gmail.com', clientId: id, heeftGeheim: true }; onFacturenDrive({ naam: 'rene@gmail.com' }); }, 200); return ''; },
+    facturenDriveLos(){ const f = this._fa; f.drive = { ...(f.drive || {}), gekoppeld: false, gebruiker: '' }; },
     facturenLijst(id){ return JSON.stringify(this._fa.pdf[id] || []); },
     facturenOpen(id, naam){ this._fa.calls.push(['open', id, naam]); },
     facturenEc(json){ const o = JSON.parse(json), f = this._fa; if (!o.url && !o.gebruiker) { f.ec = { url: '', gebruiker: '', adres: '', heeftWachtwoord: false }; return ''; }

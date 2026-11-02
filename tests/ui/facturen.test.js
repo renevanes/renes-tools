@@ -64,14 +64,26 @@ const { chromium } = require('playwright');
     ok((await pg.textContent('#fa-ec-stand')).includes('Gekoppeld met cloud.esape.nl'), 'Eigen Cloud gekoppeld');
     await pg.click('#fa-ec-test'); await pg.waitForTimeout(400);
     ok((await pg.textContent('#toast')).includes('Verbinding met Eigen Cloud werkt'), 'test geslaagd');
+    // Map op de telefoon en Google Drive
+    await pg.click('#fa-lok-kies'); await pg.waitForTimeout(300);
+    ok((await pg.textContent('#fa-lok-stand')).includes('Documents/Facturen'), 'map op de telefoon gekozen');
+    ok(await pg.isVisible('#fa-gd-setup'), 'stappen voor Google Drive zichtbaar');
+    await pg.fill('#fa-gd-id', 'iets-anders'); await pg.click('#fa-gd button:has-text("Koppelen met Google Drive")'); await pg.waitForTimeout(100);
+    ok((await pg.textContent('#fa-gd-msg')).includes('googleusercontent'), 'Client ID van Google gecontroleerd');
+    await pg.fill('#fa-gd-id', '1234567890-abc123.apps.googleusercontent.com');
+    await pg.click('#fa-gd button:has-text("Koppelen met Google Drive")'); await pg.waitForTimeout(100);
+    ok((await pg.textContent('#fa-gd-msg')).includes('Client secret'), 'secret nodig');
+    await pg.fill('#fa-gd-geheim', 'GOCSPX-geheim'); await pg.click('#fa-gd button:has-text("Koppelen met Google Drive")'); await pg.waitForTimeout(400);
+    ok(await pg.isVisible('#fa-gd-aan') && (await pg.textContent('#fa-gd-stand')).includes('rene@gmail.com'), 'Google Drive gekoppeld');
+    ok(await pg.inputValue('#fa-gd-geheim') === '', 'secret niet in het veld laten staan');
     // Bewerken: Eigen Cloud aan, wachtwoord blijft ongewijzigd
     await pg.evaluate(() => { Android._faFout = ''; });
     await pg.click('#fa-lijst .sbtn'); await pg.waitForTimeout(150);
     await pg.click('#sheet button:has-text("Instellingen")'); await pg.waitForTimeout(150);
     ok(await pg.getAttribute('#fl-pw', 'placeholder') === 'Ongewijzigd', 'wachtwoord: ongewijzigd');
-    await pg.check('#fl-ec'); await pg.selectOption('#fl-schema', 'maand'); await pg.click('#fl-save'); await pg.waitForTimeout(200);
+    await pg.check('#fl-ec'); await pg.check('#fl-lok'); await pg.check('#fl-gd'); await pg.selectOption('#fl-schema', 'maand'); await pg.click('#fl-save'); await pg.waitForTimeout(200);
     const laatste = await pg.evaluate(() => Android._fa.calls.filter(c => c[0] === 'bewaar').pop()[1]);
-    ok(laatste.id === 'kpn-zakelijk' && laatste.eigenCloud === true && laatste.schema === 'maand' && laatste.wachtwoord === '', 'bijgewerkt zonder nieuw wachtwoord');
+    ok(laatste.id === 'kpn-zakelijk' && laatste.eigenCloud === true && laatste.lokaal === true && laatste.drive === true && laatste.schema === 'maand' && laatste.wachtwoord === '', 'bijgewerkt zonder nieuw wachtwoord');
     ok((await pg.textContent('#fa-lijst')).includes('elke maand'), 'elke maand in de lijst');
     // Terug naar huis
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);

@@ -40,6 +40,9 @@ public class FacturenBridge extends GebruikBridge {
                     .put("ec", new JSONObject().put("url", p.getString("ecUrl", "")).put("gebruiker", p.getString("ecGebruiker", ""))
                             .put("adres", p.getString("ecAdres", "")).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "ec")))
                     .put("map", WaBackup.destUri(ctx) != null)
+                    .put("lokaal", lokaalNaam())
+                    .put("drive", new JSONObject().put("gekoppeld", FacturenDrive.gekoppeld(ctx)).put("gebruiker", p.getString("gdGebruiker", ""))
+                            .put("clientId", p.getString("gdClientId", "")).put("heeftGeheim", Facturen.heeftGeheim(ctx, "gd_secret")))
                     .put("sms", ctx.checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED)
                     .put("sjablonen", Facturen.sjablonen(ctx)).toString();
         } catch (Exception e) { return "{\"leveranciers\":[],\"sjablonen\":[],\"ec\":{},\"error\":\"Laden lukt niet\"}"; }
@@ -139,6 +142,41 @@ public class FacturenBridge extends GebruikBridge {
             a.js("onFacturenEcTest", r);
         }, "facturen-ec-test").start();
     }
+
+    /** De gekozen map op de telefoon, leesbaar ("Documents/Facturen"), of "" (geen) of "!" (geen toegang meer). */
+    private String lokaalNaam() {
+        android.net.Uri u = Facturen.lokaleMap(ctx);
+        if (u == null) return "";
+        if (!WaBackup.hasGrant(ctx.getContentResolver(), u)) return "!";
+        try {
+            String id = android.provider.DocumentsContract.getTreeDocumentId(u);
+            int i = id.indexOf(':');
+            String rel = i < 0 ? id : id.substring(i + 1), vol = i < 0 ? "" : id.substring(0, i);
+            return ("primary".equals(vol) ? "" : vol + ": ") + (rel.isEmpty() ? "hoofdmap" : rel);
+        } catch (Exception e) { return "gekozen map"; }
+    }
+
+    /** Map op de telefoon kiezen; antwoord via onFacturenMap("" of fout of "geen"). */
+    @JavascriptInterface public void facturenKiesMap() { a.h.post(a::pickFacturenFolder); }
+
+    @JavascriptInterface public void facturenMapLos() {
+        android.net.Uri u = Facturen.lokaleMap(ctx);
+        if (u != null) try { ctx.getContentResolver().releasePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION); } catch (Exception ignored) { }
+        Facturen.prefs(ctx).edit().remove("lokaal").apply();
+    }
+
+    /** Google Drive koppelen: opent de inlogpagina van Google in de browser. Antwoord via onFacturenDrive({error|naam}). */
+    @JavascriptInterface public String facturenDriveKoppel(String clientId, String geheim) {
+        try {
+            String url = FacturenDrive.start(ctx, clientId, geheim, (err, naam) -> {
+                try { a.js("onFacturenDrive", (err != null ? new JSONObject().put("error", err) : new JSONObject().put("naam", naam)).toString()); } catch (Exception ignored) { }
+            });
+            a.h.post(() -> { try { a.startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE)); } catch (Exception e) { a.js("onFacturenDrive", "{\"error\":\"Geen browser gevonden\"}"); } });
+            return "";
+        } catch (Exception e) { return e.getMessage() == null ? "Koppelen lukt niet" : e.getMessage(); }
+    }
+
+    @JavascriptInterface public void facturenDriveLos() { FacturenDrive.ontkoppel(ctx); }
 
     private static String err(Exception e, String fb) {
         try { return new JSONObject().put("error", e.getMessage() == null ? fb : e.getMessage()).toString(); } catch (Exception x) { return "{\"error\":\"" + fb + "\"}"; }

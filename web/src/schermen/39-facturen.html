@@ -5,13 +5,45 @@
     <h1 tabindex="-1">Facturen</h1>
   </div>
   <main>
-    <p class="note" style="margin:0 2px 12px">Haalt je facturen (PDF) vanzelf op bij websites waar je moet inloggen, zoals KPN Zakelijk, en zet ze in je backup-map en/of in Eigen Cloud.</p>
+    <p class="note" style="margin:0 2px 12px">Haalt je facturen (PDF) vanzelf op bij websites waar je moet inloggen, zoals KPN Zakelijk, en bewaart ze waar je wilt: in een map op je telefoon, je backup-map, Google Drive of Eigen Cloud.</p>
     <div class="card" id="fa-bezig" style="display:none" role="status" aria-live="polite">
       <div class="row" style="align-items:center;gap:8px"><b style="flex:1;min-width:0" id="fa-bezig-txt">Bezig…</b><button class="mini" style="float:none" onclick="Android.facturenStop()">Stoppen</button></div>
     </div>
     <div class="flabel" style="margin:4px 2px 8px">Leveranciers</div>
     <div class="card stations" id="fa-lijst"></div>
     <button class="big" id="fa-nieuw" onclick="faNieuw()">Leverancier toevoegen</button>
+
+    <div class="flabel" style="margin:18px 2px 8px">Opslaan</div>
+    <div class="card">
+      <h2>Map op je telefoon</h2>
+      <p class="note" style="margin-top:0" id="fa-lok-stand">Nog geen map gekozen. Kies bijvoorbeeld Documenten; per leverancier komt er een eigen map in.</p>
+      <div class="row" style="gap:8px">
+        <button class="big" style="flex:1" id="fa-lok-kies" onclick="Android.facturenKiesMap()">Map kiezen</button>
+        <button class="big ghost" style="flex:1;display:none" id="fa-lok-los" onclick="Android.facturenMapLos();faRender()">Niet meer gebruiken</button>
+      </div>
+    </div>
+    <div class="card" id="fa-gd">
+      <h2>Google Drive</h2>
+      <div id="fa-gd-setup">
+        <p class="note" style="margin-top:0">Eenmalig: Google geeft alleen toegang via een eigen (gratis) Google-project. Tools krijgt daarmee alleen toegang tot de mappen en bestanden die het zelf maakt, niet tot de rest van je Drive.</p>
+        <ol class="spsteps">
+          <li>Open de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/projectcreate');return false">Google Cloud Console</a> en maak een project (naam bijv. "Tools").</li>
+          <li>Zet de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/apis/library/drive.googleapis.com');return false">Google Drive API</a> aan (<b>Inschakelen</b>).</li>
+          <li>Ga naar <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/auth/overview');return false">Google Auth Platform</a>, tik op <b>Aan de slag</b>, vul een app-naam en je mailadres in en kies <b>Extern</b>.</li>
+          <li>Bij <b>Doelgroep</b>: tik op <b>App publiceren</b> (In productie). Anders vervalt de koppeling na 7 dagen.</li>
+          <li>Bij <b>Clients</b>: <b>Client maken</b>, type <b>Desktop-app</b>. Kopieer de Client ID en het Client secret hieronder.</li>
+        </ol>
+        <input class="aein" id="fa-gd-id" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Client ID (…apps.googleusercontent.com)" aria-label="Client ID">
+        <input class="aein" id="fa-gd-geheim" type="password" autocomplete="off" style="margin-top:8px" placeholder="Client secret" aria-label="Client secret">
+        <button class="big" style="margin-top:10px" onclick="faGdKoppel()">Koppelen met Google Drive</button>
+        <p class="note">Google zegt daarna mogelijk "Google heeft deze app niet geverifieerd": het is je eigen app, tik op <b>Doorgaan</b>.</p>
+      </div>
+      <div id="fa-gd-aan" style="display:none">
+        <p class="note" style="margin-top:0" id="fa-gd-stand"></p>
+        <button class="big ghost" onclick="askConfirm('Google Drive ontkoppelen?', 'De facturen die al in Drive staan, blijven daar staan.', 'Ontkoppelen', () => { Android.facturenDriveLos(); faRender(); })">Ontkoppelen</button>
+      </div>
+      <p class="note bad" id="fa-gd-msg" role="status" aria-live="polite"></p>
+    </div>
 
     <div class="flabel" style="margin:18px 2px 8px">Eigen Cloud</div>
     <div class="card">
@@ -72,6 +104,8 @@
       <div class="row setrow"><label for="fl-schema" style="flex:1">Vanzelf ophalen</label>
         <select class="sel" id="fl-schema"><option value="dag">Elke dag</option><option value="week">Elke week</option><option value="maand">Elke maand</option><option value="uit">Uit</option></select></div>
       <label class="chk"><input type="checkbox" id="fl-map"> In je backup-map (map Facturen)</label>
+      <label class="chk"><input type="checkbox" id="fl-lok"> In een map op je telefoon</label>
+      <label class="chk"><input type="checkbox" id="fl-gd"> In Google Drive (map Facturen)</label>
       <label class="chk"><input type="checkbox" id="fl-ec"> Naar je mail in Eigen Cloud</label>
     </div>
 

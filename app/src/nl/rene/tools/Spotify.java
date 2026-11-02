@@ -250,7 +250,7 @@ final class Spotify {
                 + "&redirect_uri=" + enc(redirect) + "&state=" + enc(state) + "&code_challenge_method=S256&code_challenge=" + enc(challenge);
     }
 
-    private static String randomString(java.security.SecureRandom r, int n) {
+    static String randomString(java.security.SecureRandom r, int n) {
         String a = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
         StringBuilder b = new StringBuilder(n);
         for (int i = 0; i < n; i++) b.append(a.charAt(r.nextInt(a.length())));
@@ -258,7 +258,7 @@ final class Spotify {
     }
 
     /** Wacht op de browser die terugkomt op /callback; geeft {code, socket} (het antwoord volgt na het inwisselen). */
-    private static Object[] awaitCode(ServerSocket ss, String state) throws Exception {
+    static Object[] awaitCode(ServerSocket ss, String state) throws Exception {
         while (true) {
             Socket s = ss.accept();
             boolean keep = false;
@@ -284,7 +284,7 @@ final class Spotify {
     }
 
     /** Leest de verzoekregel en de koppen (tot de lege regel, hooguit 16 kB); geeft het pad of null. */
-    private static String readRequest(InputStream in) throws java.io.IOException {
+    static String readRequest(InputStream in) throws java.io.IOException {
         StringBuilder line = new StringBuilder();
         String first = null;
         int ch, total = 0;
@@ -300,9 +300,9 @@ final class Spotify {
         return parts.length >= 2 && "GET".equals(parts[0]) ? parts[1] : null;
     }
 
-    private static String esc(String s) { return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"); }
+    static String esc(String s) { return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"); }
 
-    private static void reply(Socket s, int code, String text) {
+    static void reply(Socket s, int code, String text) {
         try {
             String html = "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'><title>Tools</title>"
                     + "<body style='font-family:sans-serif;padding:28px;font-size:18px;line-height:1.5'><h2>Tools</h2><p>" + text + "</p></body>";

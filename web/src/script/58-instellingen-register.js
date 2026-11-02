@@ -300,7 +300,7 @@ const SET_EXCLUDE = [
   ['#rp-time, #rp-days', 'Auto redial op een tijdstip hoort bij een nummer; dat plan je op het scherm (zie redial.planning)'],
   ['#wa-cats', 'De selectie van WhatsApp-mappen kies je op het scherm'],
   ['#bk-wa', 'Keuze voor één keer, bij Nu alles back-uppen'],
-  ['#fl-bron, #fl-schema, #fl-map, #fl-ec', 'Hoort bij één leverancier van Facturen; je stelt het in en bewaart het op het scherm van die leverancier'],
+  ['#fl-bron, #fl-schema, #fl-map, #fl-lok, #fl-gd, #fl-ec', 'Hoort bij één leverancier van Facturen; je stelt het in en bewaart het op het scherm van die leverancier'],
   ['#rd-genres', 'Een filter in de zenderlijst, geen instelling'],
   ['#note-split-source, #note-split-separator, #note-split-keep', 'Keuzes van het venster Lijst splitsen, voor één keer'],
   ['#note-repeat, #note-rem-rep, #note-pin-app', 'Hoort bij één notitie of herinnering'],

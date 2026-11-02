@@ -146,6 +146,8 @@ final class Facturen {
         o.put("schema", schema);
         o.put("map", in.optBoolean("map", true));
         o.put("eigenCloud", in.optBoolean("eigenCloud", false));
+        o.put("lokaal", in.optBoolean("lokaal", false));
+        o.put("drive", in.optBoolean("drive", false));
         String sub = veiligeNaam(tekst(in, "submap", 60, naam)).replace('.', '_').trim();
         o.put("submap", sub.isEmpty() ? veiligeNaam(naam).replace('.', '_') : sub);
         JSONObject vi = in.optJSONObject("velden");
@@ -382,14 +384,7 @@ final class Facturen {
             if (rec == null) continue;
             File f = new File(d, rec.optString("n"));
             if (!f.isFile()) continue;
-            boolean gewijzigd = false;
-            if (lev.optBoolean("map", true) && !rec.optBoolean("map")) {
-                try { naarMap(c, lev, rec.optString("n"), f); rec.put("map", true); gewijzigd = true; } catch (Exception e) { fouten.put("Backup-map: " + kort(e)); }
-            }
-            if (lev.optBoolean("eigenCloud", false) && !rec.optBoolean("ec")) {
-                try { naarEigenCloud(c, lev, rec.optString("n"), p); rec.put("ec", true); gewijzigd = true; } catch (Exception e) { fouten.put("Eigen Cloud: " + kort(e)); }
-            }
-            if (gewijzigd) werkBij(c, id, new JSONObject().put("verwerkt", verwerkt));
+            if (aflever(c, lev, rec.optString("n"), f, p, rec, fouten)) werkBij(c, id, new JSONObject().put("verwerkt", verwerkt));
         }
         Set<String> namenGehad = new java.util.HashSet<>();
         for (Iterator<String> it = verwerkt.keys(); it.hasNext(); ) { JSONObject r = verwerkt.optJSONObject(it.next()); if (r != null && !r.optString("o").isEmpty()) namenGehad.add(r.optString("o")); }
@@ -403,14 +398,7 @@ final class Facturen {
             for (int n = 2; f.exists(); n++) { naam = p.naam.replaceAll("\\.pdf$", "") + " (" + n + ").pdf"; f = new File(d, naam); }
             try (FileOutputStream o = new FileOutputStream(f)) { o.write(p.data); o.getFD().sync(); }
             JSONObject rec = new JSONObject().put("n", naam).put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis());
-            if (lev.optBoolean("map", true)) {
-                try { naarMap(c, lev, naam, f); rec.put("map", true); }
-                catch (Exception e) { fouten.put("Backup-map: " + kort(e)); }
-            }
-            if (lev.optBoolean("eigenCloud", false)) {
-                try { naarEigenCloud(c, lev, naam, p); rec.put("ec", true); }
-                catch (Exception e) { fouten.put("Eigen Cloud: " + kort(e)); }
-            }
+            aflever(c, lev, naam, f, p, rec, fouten);
             verwerkt.put(p.sha, rec);
             if (eigenNaam) namenGehad.add(p.naam);
             namen.put(naam);
@@ -420,18 +408,46 @@ final class Facturen {
         return new JSONObject().put("nieuw", nieuw).put("gevonden", pdfs.size()).put("namen", namen).put("fouten", fouten);
     }
 
+    /** Naar elke gekozen plek die nog niet gelukt is (backup-map, map op de telefoon, Google Drive, Eigen Cloud). Geeft true als er iets bij kwam. */
+    static boolean aflever(Context c, JSONObject lev, String naam, File f, Pdf p, JSONObject rec, JSONArray fouten) throws Exception {
+        boolean bij = false;
+        if (lev.optBoolean("map", true) && !rec.optBoolean("map")) {
+            try { naarBoom(c, WaBackup.destUri(c), "kies eerst een backup-map (Instellingen)", MAP + "/" + lev.optString("submap", "Facturen"), naam, f); rec.put("map", true); bij = true; }
+            catch (Exception e) { fouten.put("Backup-map: " + kort(e)); }
+        }
+        if (lev.optBoolean("lokaal", false) && !rec.optBoolean("lok")) {
+            try { naarBoom(c, lokaleMap(c), "kies eerst een map op je telefoon (bovenaan in Facturen)", lev.optString("submap", "Facturen"), naam, f); rec.put("lok", true); bij = true; }
+            catch (Exception e) { fouten.put("Map op je telefoon: " + kort(e)); }
+        }
+        if (lev.optBoolean("drive", false) && !rec.optBoolean("gd")) {
+            try { FacturenDrive.upload(c, lev.optString("submap", "Facturen"), naam, p.data); rec.put("gd", true); bij = true; }
+            catch (Exception e) { fouten.put("Google Drive: " + kort(e)); }
+        }
+        if (lev.optBoolean("eigenCloud", false) && !rec.optBoolean("ec")) {
+            try { naarEigenCloud(c, lev, naam, p); rec.put("ec", true); bij = true; }
+            catch (Exception e) { fouten.put("Eigen Cloud: " + kort(e)); }
+        }
+        return bij;
+    }
+
+    /** De zelf gekozen map op de telefoon (bijv. Documenten/Facturen), of null. */
+    static Uri lokaleMap(Context c) {
+        String s = prefs(c).getString("lokaal", null);
+        return s == null ? null : Uri.parse(s);
+    }
+
     static String kort(Throwable e) {
         String m = e instanceof java.net.UnknownHostException || e instanceof java.net.SocketTimeoutException || e instanceof java.net.ConnectException
                 ? "geen verbinding" : e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
         return m.length() > 200 ? m.substring(0, 200) + "…" : m;
     }
 
-    /** Kopie in de backup-map: Facturen/&lt;leverancier&gt;/naam.pdf. */
-    static void naarMap(Context c, JSONObject lev, String naam, File f) throws Exception {
-        Uri tree = WaBackup.destUri(c);
-        if (tree == null) throw new Exception("kies eerst een backup-map (Instellingen)");
+    /** Kopie in een gekozen map (backup-map: Facturen/&lt;leverancier&gt;; eigen map: &lt;leverancier&gt;). */
+    static void naarBoom(Context c, Uri tree, String geenMap, String rel, String naam, File f) throws Exception {
+        if (tree == null) throw new Exception(geenMap);
+        if (!WaBackup.hasGrant(c.getContentResolver(), tree)) throw new Exception("geen toegang meer tot de map: kies hem opnieuw");
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
-        WaBackup.DestDir map = dest.dir(MAP + "/" + lev.optString("submap", "Facturen"), true);
+        WaBackup.DestDir map = dest.dir(rel, true);
         if (map.kids.containsKey(naam)) return; // staat er al
         Uri tmp = WaBackup.create(dest, map.uri, "application/pdf", naam + ".part");
         if (tmp == null) throw new Exception("bestand maken lukt niet");

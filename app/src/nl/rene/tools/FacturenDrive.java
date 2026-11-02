@@ -1,0 +1,227 @@
+package nl.rene.tools;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * Facturen in Google Drive zetten: Facturen/&lt;leverancier&gt;/naam.pdf in Rene's eigen Drive.
+ * Koppelen zoals bij Spotify: Rene maakt eenmalig een eigen Google-"Desktop app" (Client ID + geheim), logt in de browser
+ * in en Google stuurt terug naar 127.0.0.1 op de telefoon (PKCE). Alleen de rechten "drive.file": de app ziet en
+ * maakt uitsluitend zijn eigen bestanden en mappen, niet de rest van je Drive.
+ * De ververs-sleutel en het geheim staan versleuteld (Facturen.zetGeheim, "facturen_geheim").
+ */
+final class FacturenDrive {
+    private FacturenDrive() { }
+
+    static final int PORT = 43821;
+    static final String REDIRECT = "http://127.0.0.1:" + PORT + "/callback";
+    static final String SCOPE = "https://www.googleapis.com/auth/drive.file";
+    static final String AUTH = "https://accounts.google.com/o/oauth2/v2/auth", TOKEN = "https://oauth2.googleapis.com/token";
+    static final String API = "https://www.googleapis.com/drive/v3", UPLOAD = "https://www.googleapis.com/upload/drive/v3";
+    static final String MAP_MIME = "application/vnd.google-apps.folder";
+
+    static SharedPreferences prefs(Context c) { return Facturen.prefs(c); }
+    static boolean gekoppeld(Context c) { return Facturen.heeftGeheim(c, "gd_refresh"); }
+
+    private static final Object TOKEN_LOCK = new Object();
+    private static String access; private static long accessTot;
+
+    static boolean geldigeClientId(String id) { return id != null && id.trim().matches("[0-9]+-[a-z0-9]+\\.apps\\.googleusercontent\\.com"); }
+
+    // ---------- koppelen ----------
+
+    static volatile ServerSocket wacht;
+
+    /** Inloggen starten: geeft het adres voor de browser. done komt op een achtergrondthread. */
+    static String start(Context c, String clientId, String geheim, Spotify.Done done) throws Exception {
+        final String cid = clientId == null ? "" : clientId.trim();
+        if (!geldigeClientId(cid)) throw new Exception("Dat lijkt geen Client ID van Google (eindigt op .apps.googleusercontent.com)");
+        final String sec = geheim == null || geheim.trim().isEmpty() ? Facturen.geheim(c, "gd_secret") : geheim.trim();
+        if (sec == null || sec.isEmpty()) throw new Exception("Vul ook het Client secret in");
+        ServerSocket oud = wacht;
+        if (oud != null) try { oud.close(); } catch (Exception ignored) { }
+        final ServerSocket ss = new ServerSocket();
+        ss.setReuseAddress(true);
+        try { ss.bind(new java.net.InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT), 4); } // alleen de telefoon zelf
+        catch (Exception e) { try { ss.close(); } catch (Exception ignored) { } throw new Exception("Poort " + PORT + " is bezet; probeer het zo opnieuw"); }
+        ss.setSoTimeout(300_000);
+        wacht = ss;
+        java.security.SecureRandom rnd = new java.security.SecureRandom();
+        final String verifier = Spotify.randomString(rnd, 64), state = Spotify.randomString(rnd, 24);
+        byte[] dig = java.security.MessageDigest.getInstance("SHA-256").digest(verifier.getBytes(StandardCharsets.US_ASCII));
+        String challenge = android.util.Base64.encodeToString(dig, android.util.Base64.URL_SAFE | android.util.Base64.NO_PADDING | android.util.Base64.NO_WRAP);
+        final Context app = c.getApplicationContext();
+        new Thread(() -> {
+            String err = null, naam = null;
+            Socket browser = null;
+            try {
+                Object[] got;
+                try { got = Spotify.awaitCode(ss, state); }
+                catch (java.net.SocketTimeoutException e) { throw new Spotify.LoginEnd("Geen antwoord van Google binnen 5 minuten; probeer opnieuw"); }
+                catch (java.net.SocketException e) { throw new Spotify.LoginEnd(wacht == ss ? "Koppelen afgebroken" : null); }
+                browser = (Socket) got[1];
+                JSONObject t = form("grant_type=authorization_code&code=" + enc((String) got[0]) + "&redirect_uri=" + enc(REDIRECT)
+                        + "&client_id=" + enc(cid) + "&client_secret=" + enc(sec) + "&code_verifier=" + enc(verifier));
+                if (t.has("error")) throw new Exception("Google: " + t.optString("error_description", t.optString("error")));
+                String refresh = t.optString("refresh_token", "");
+                if (refresh.isEmpty()) throw new Exception("Google gaf geen blijvende toegang; probeer opnieuw");
+                Facturen.zetGeheim(app, "gd_secret", sec);
+                Facturen.zetGeheim(app, "gd_refresh", refresh);
+                prefs(app).edit().putString("gdClientId", cid).remove("gdMappen").apply();
+                synchronized (TOKEN_LOCK) { access = t.optString("access_token", null); accessTot = System.currentTimeMillis() + Math.max(0, t.optLong("expires_in", 3600) - 120) * 1000L; }
+                JSONObject over = api(app, "GET", API + "/about?fields=user(emailAddress,displayName)", null);
+                JSONObject u = over.optJSONObject("user");
+                naam = u == null ? "" : u.optString("emailAddress", u.optString("displayName", ""));
+                prefs(app).edit().putString("gdGebruiker", naam).apply();
+                Spotify.reply(browser, 200, "✓ Google Drive is gekoppeld met Tools" + (naam.isEmpty() ? "" : " (" + Spotify.esc(naam) + ")") + ". Je kunt dit tabblad sluiten en terug naar de app.");
+            } catch (Spotify.LoginEnd e) { err = e.getMessage();
+            } catch (Exception e) {
+                err = e.getMessage() == null ? "Koppelen lukt niet" : e.getMessage().replace("Spotify: ", "Google: ");
+                if (browser != null) Spotify.reply(browser, 200, "Niet gekoppeld: " + Spotify.esc(err) + ". Probeer het opnieuw vanuit de app.");
+            } finally {
+                if (browser != null) try { browser.close(); } catch (Exception ignored) { }
+                try { ss.close(); } catch (Exception ignored) { }
+                if (wacht == ss) wacht = null;
+            }
+            if (err != null || naam != null) done.done(err, naam);
+        }, "facturen-drive-login").start();
+        return AUTH + "?response_type=code&client_id=" + enc(cid) + "&scope=" + enc(SCOPE) + "&redirect_uri=" + enc(REDIRECT)
+                + "&state=" + enc(state) + "&code_challenge_method=S256&code_challenge=" + enc(challenge)
+                + "&access_type=offline&prompt=consent";
+    }
+
+    static void ontkoppel(Context c) {
+        ServerSocket ss = wacht; if (ss != null) try { ss.close(); } catch (Exception ignored) { }
+        synchronized (TOKEN_LOCK) { access = null; accessTot = 0; }
+        Facturen.geheim(c).edit().remove("gd_refresh").apply(); // geheim blijft: opnieuw koppelen zonder overtypen
+        prefs(c).edit().remove("gdGebruiker").remove("gdMappen").apply();
+    }
+
+    // ---------- toegang ----------
+
+    static String token(Context c) throws Exception {
+        synchronized (TOKEN_LOCK) {
+            if (access != null && System.currentTimeMillis() < accessTot) return access;
+            String refresh = Facturen.geheim(c, "gd_refresh"), sec = Facturen.geheim(c, "gd_secret");
+            if (refresh == null || sec == null) throw new Exception("Koppel Google Drive (opnieuw) in Facturen");
+            JSONObject t = form("grant_type=refresh_token&refresh_token=" + enc(refresh) + "&client_id=" + enc(prefs(c).getString("gdClientId", "")) + "&client_secret=" + enc(sec));
+            if ("invalid_grant".equals(t.optString("error"))) { ontkoppel(c); throw new Exception("Google vraagt om opnieuw koppelen (staat je Google-app op 'In productie'?)"); }
+            if (t.has("error") || t.optString("access_token").isEmpty()) throw new Exception("Google: " + t.optString("error_description", t.optString("error", "geen toegang")));
+            access = t.getString("access_token");
+            accessTot = System.currentTimeMillis() + Math.max(0, t.optLong("expires_in", 3600) - 120) * 1000L;
+            return access;
+        }
+    }
+
+    static String enc(String s) { try { return URLEncoder.encode(s, "UTF-8"); } catch (Exception e) { return ""; } }
+
+    private static JSONObject form(String body) throws Exception {
+        HttpURLConnection h = (HttpURLConnection) new URL(TOKEN).openConnection();
+        try {
+            h.setConnectTimeout(20_000); h.setReadTimeout(30_000); h.setRequestMethod("POST"); h.setDoOutput(true);
+            h.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            byte[] b = body.getBytes(StandardCharsets.UTF_8);
+            h.setFixedLengthStreamingMode(b.length);
+            try (OutputStream o = h.getOutputStream()) { o.write(b); }
+            int code = h.getResponseCode();
+            InputStream in = code >= 400 ? h.getErrorStream() : h.getInputStream();
+            String t = in == null ? "" : new String(Facturen.lees(in, 1_000_000), StandardCharsets.UTF_8);
+            return t.trim().startsWith("{") ? new JSONObject(t) : new JSONObject().put("error", "fout " + code);
+        } finally { h.disconnect(); }
+    }
+
+    /** Eén Drive-verzoek; body = JSON (metadata) of null. Bij 401 één keer met een nieuw token. */
+    static JSONObject api(Context c, String methode, String url, JSONObject body) throws Exception {
+        return stuur(c, methode, url, body == null ? null : body.toString().getBytes(StandardCharsets.UTF_8), "application/json; charset=UTF-8");
+    }
+
+    private static JSONObject stuur(Context c, String methode, String url, byte[] body, String type) throws Exception {
+        for (int poging = 0; ; poging++) {
+            HttpURLConnection h = (HttpURLConnection) new URL(url).openConnection();
+            try {
+                h.setConnectTimeout(20_000); h.setReadTimeout(120_000); h.setRequestMethod(methode);
+                h.setRequestProperty("Authorization", "Bearer " + token(c));
+                if (body != null) {
+                    h.setDoOutput(true); h.setRequestProperty("Content-Type", type); h.setFixedLengthStreamingMode(body.length);
+                    try (OutputStream o = h.getOutputStream()) { o.write(body); }
+                }
+                int code = h.getResponseCode();
+                if (code == 401 && poging == 0) { synchronized (TOKEN_LOCK) { accessTot = 0; } continue; }
+                InputStream in = code >= 400 ? h.getErrorStream() : h.getInputStream();
+                String t = in == null ? "" : new String(Facturen.lees(in, 5_000_000), StandardCharsets.UTF_8);
+                JSONObject o = t.trim().startsWith("{") ? new JSONObject(t) : new JSONObject();
+                if (code >= 400) {
+                    JSONObject e = o.optJSONObject("error");
+                    String m = e == null ? "" : e.optString("message", "");
+                    if (code == 403 && m.toLowerCase(java.util.Locale.ROOT).contains("api has not been used")) m = "zet de Google Drive API aan in je Google-project";
+                    throw new Exception("Google Drive: " + (m.isEmpty() ? "fout " + code : m));
+                }
+                return o;
+            } finally { h.disconnect(); }
+        }
+    }
+
+    // ---------- mappen en uploaden ----------
+
+    static String q(String s) { return s.replace("\\", "\\\\").replace("'", "\\'"); }
+
+    /** Map-id van Facturen/sub (aanmaken als hij er niet is); onthouden. */
+    static String map(Context c, String sub) throws Exception {
+        JSONObject cache;
+        try { cache = new JSONObject(prefs(c).getString("gdMappen", "{}")); } catch (Exception e) { cache = new JSONObject(); }
+        String pad = Facturen.MAP + "/" + sub;
+        if (!cache.optString(pad).isEmpty()) {
+            try { // bestaat hij nog (niet in de prullenbak)?
+                JSONObject f = api(c, "GET", API + "/files/" + enc(cache.optString(pad)) + "?fields=id,trashed", null);
+                if (!f.optBoolean("trashed")) return cache.optString(pad);
+            } catch (Exception ignored) { }
+        }
+        String ouder = "root";
+        for (String naam : new String[]{Facturen.MAP, sub}) {
+            String zoek = "name='" + q(naam) + "' and mimeType='" + MAP_MIME + "' and '" + q(ouder) + "' in parents and trashed=false";
+            JSONArray l = api(c, "GET", API + "/files?fields=files(id)&spaces=drive&q=" + enc(zoek), null).optJSONArray("files");
+            if (l != null && l.length() > 0) ouder = l.getJSONObject(0).getString("id");
+            else ouder = api(c, "POST", API + "/files?fields=id", new JSONObject().put("name", naam).put("mimeType", MAP_MIME)
+                    .put("parents", new JSONArray().put(ouder))).getString("id");
+        }
+        cache.put(pad, ouder);
+        prefs(c).edit().putString("gdMappen", cache.toString()).apply();
+        return ouder;
+    }
+
+    /** Een factuur in Drive zetten (staat er al een met dezelfde naam in de map: niets doen). */
+    static void upload(Context c, String sub, String naam, byte[] data) throws Exception {
+        String map = map(c, sub);
+        String zoek = "name='" + q(naam) + "' and '" + q(map) + "' in parents and trashed=false";
+        JSONArray l = api(c, "GET", API + "/files?fields=files(id)&spaces=drive&q=" + enc(zoek), null).optJSONArray("files");
+        if (l != null && l.length() > 0) return;
+        String grens = "tools" + Long.toHexString(System.nanoTime());
+        byte[] meta = new JSONObject().put("name", naam).put("mimeType", "application/pdf").put("parents", new JSONArray().put(map)).toString().getBytes(StandardCharsets.UTF_8);
+        java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream(data.length + meta.length + 512);
+        b.write(("--" + grens + "\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+        b.write(meta);
+        b.write(("\r\n--" + grens + "\r\nContent-Type: application/pdf\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+        b.write(data);
+        b.write(("\r\n--" + grens + "--\r\n").getBytes(StandardCharsets.US_ASCII));
+        stuur(c, "POST", UPLOAD + "/files?uploadType=multipart&fields=id", b.toByteArray(), "multipart/related; boundary=" + grens);
+    }
+
+    /** Koppeling testen. */
+    static String test(Context c) throws Exception {
+        JSONObject u = api(c, "GET", API + "/about?fields=user(emailAddress)", null).optJSONObject("user");
+        return u == null ? "" : u.optString("emailAddress");
+    }
+}

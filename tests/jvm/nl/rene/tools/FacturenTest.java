@@ -32,6 +32,9 @@ public class FacturenTest {
         JSONObject kpn = Facturen.normaal(lijst.getJSONObject(0));
         check(kpn.getString("id").equals("kpn-zakelijk") && kpn.getJSONObject("code").getString("bron").equals("sms"), "KPN: id en code per sms");
         check(kpn.getString("schema").equals("week") && kpn.getBoolean("map") && !kpn.getBoolean("eigenCloud"), "standaard: elke week, backup-map aan, Eigen Cloud uit");
+        check(!kpn.getBoolean("lokaal") && !kpn.getBoolean("drive"), "map op de telefoon en Google Drive staan standaard uit");
+        check(FacturenDrive.geldigeClientId("1234567890-abc123def.apps.googleusercontent.com") && !FacturenDrive.geldigeClientId("abc") && !FacturenDrive.geldigeClientId(null), "Client ID van Google herkennen");
+        check(FacturenDrive.q("Rene's facturen").equals("Rene\\'s facturen"), "naam veilig in een Drive-zoekvraag");
         check(kpn.getString("submap").equals("KPN Zakelijk"), "mapnaam = naam");
 
         // ---------- controleren ----------
