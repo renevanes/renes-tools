@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.121",
+    "date": "2026-11-02",
+    "changes": [
+      "Assistent: \"Hoe lang zat ik op WhatsApp?\" en \"Hoeveel tijd heeft Duolingo me gekost?\" gaan nu naar Gebruik; staat de app er niet bij, dan krijg je niet meer je totale schermtijd als antwoord",
+      "Assistent: vragen als \"Toen zei ik vannacht…\" of \"Maandag had ik…\" worden niet meer aangezien voor een vraag over iemand anders",
+      "Gegevens terugzetten: foto's bij ontgrendelen die bij het maken van de backup niet te lezen waren, staan nu in de samenvatting",
+      "Podcasts: de schermlezer hoort de titel van een podcast nog maar één keer als kop"
+    ]
+  },
+  {
     "version": "1.120",
     "date": "2026-11-02",
     "changes": [

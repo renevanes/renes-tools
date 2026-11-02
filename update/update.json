@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.120",
-  "versionCode": 121,
-  "nativeLevel": 107,
+  "versionName": "1.121",
+  "versionCode": 122,
+  "nativeLevel": 108,
   "web": "index.html",
-  "webSha256": "2fd532d8726f335da33b1508c9a81c1768f17072d652a260c94d813fda579dce",
+  "webSha256": "51b399f56ad09ad42ff555f4afd1599cb3318f323ec98a386955b1639bb50a8b",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "d348dec31ebe07fdb2ea781852c44305d101547a762c97b2a75d7ffd075589bd",
+  "apkSha256": "6d2b4341eaacb3d8cbcbfa4898b81056c9df52d1a13047e77aeb217152c5bdb4",
   "changelog": [
+    {
+      "version": "1.121",
+      "date": "2026-11-02",
+      "changes": [
+        "Assistent: \"Hoe lang zat ik op WhatsApp?\" en \"Hoeveel tijd heeft Duolingo me gekost?\" gaan nu naar Gebruik; staat de app er niet bij, dan krijg je niet meer je totale schermtijd als antwoord",
+        "Assistent: vragen als \"Toen zei ik vannacht…\" of \"Maandag had ik…\" worden niet meer aangezien voor een vraag over iemand anders",
+        "Gegevens terugzetten: foto's bij ontgrendelen die bij het maken van de backup niet te lezen waren, staan nu in de samenvatting",
+        "Podcasts: de schermlezer hoort de titel van een podcast nog maar één keer als kop"
+      ]
+    },
     {
       "version": "1.120",
       "date": "2026-11-02",
@@ -1067,5 +1077,5 @@
       ]
     }
   ],
-  "webSig2": "Sma0SLcI4N4lZn3ad/Nq7E82mefjV+YIZ7MPni0OT4HBZ9y4LO7Ucq6E0oEvMBAbVuI9ymHjJRBfNnO56otu101plz6vUmwpi1VxD0PZuEhF0rVM3zf3jeHUbm0Vu949RevPdHw3d85+5ru75GyBOg1fKHMj6EN7a2Fm6ZzOq+YZnZNakMDrmkOvLwNYOrAbkRvj3yMQ2D0SFAdEZ2uIVbNxG9riI50KNa+vfzuFv9hpIfOqtAvJ8NUaftqXhF1fsZSkAi0z74UqyG1vt2cxNIhH2Dq6lOvcThZ6q9M4j6J3fWM2m3BNNBre6aYMRZtggWQtUPoV3rfOpPSMGMmMYWlINzKNBlyCltx2yQmSoHvrIBPFF4npSuAHHUGeq8DuLwJNPXXsbzG4x0ISX0w141Otsen2sigdwAzX+6U8ibNS/gE8usw42k4VXy2PuemCs1EzAAPoCGHcfN9gncLA/UVPlCaAf06t5NRWizv+OH6hPPhrVs1xMgkNDt3QufN3"
+  "webSig2": "Gm8OFu+ct+Mag+bxHMNoqY+kK7MOS2T2TZMTyIVXl++QFLqzaI1mqyAo9pxYFq0V+CPx3EFZcmGcVSZ5SPp4c7c4MBfd+qW/skAyKJPadQnNCjSK9N6pIgLC11lflOC4VmDLkjwvbvvAREuGedvqoP4qlAZxxFy5bm7TRhSh9GYVkUzcwAW6F/va42FJ+TGEBXVP9LhSgaqvHMyA1wCuC8UTixi/cgyXz6ibgiLKevxTGd9vM34b5XKNxd50MUltoWwhhdHmhYwF2mMcmPWpm9tuUBPwlDokFjcPd4xTB8SarLG8+umziSzHHsnKgGlcfBPVQyuc1BfzQAbVZiSlziem8zjhsB0cDrxlU3mN2ntSfPIdh80R8lDjPv1P84ZrMRdDLovfJ2pvqtbbrD9z7yoheSwh6Z4uvjuNAJ404QkRDM597eK8W1OP1c1trjeJrUdfHslWQMN+JrevvcbK+ayZ+JSR5Oc0ghuqASVNt/q7u+WauN41yn7WEJT7vlFH"
 }
