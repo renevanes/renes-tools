@@ -222,6 +222,21 @@ Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api
 Voorstellen (3–5 uitbreidingen als `voorstel`-issue). Vaste opdracht van Rene: ook deze taken publiceren zelf, na
 geslaagde tests en een onafhankelijke review, en melden kort wat er gepubliceerd is (en of er een nieuwe APK nodig is).
 
+## Facturen ophalen (algemeen raamwerk, leveranciers toevoegen)
+Facturen (scherm `s-facturen`, `Facturen*.java`) logt in bij websites van leveranciers en downloadt PDF-facturen, op de
+achtergrond (`FacturenJob`, onzichtbare WebView) of terwijl Rene meekijkt (`FacturenActivity`). Eerste leverancier: KPN Zakelijk.
+- **Een leverancier is alleen een instelling.** Sjablonen staan in `web/facturen-leveranciers.json` (in de app te kiezen bij
+  "Leverancier toevoegen"); alles is in de app aan te passen. Nieuwe leverancier = een blok erbij met `sjabloon`, `naam`,
+  `startUrl` (https), eventueel `facturenUrl`, `menu`/`knoppen` (zoekpatronen), `code` (`bron` geen/sms/eigencloud,
+  `afzender`) en een `tip`. `FacturenTest` controleert elk sjabloon met `Facturen.normaal`.
+- **De robot** (`web/facturen-robot.js`) draait in de website: velden vinden en invullen, versturen, menu en downloadknoppen
+  zoeken, PDF's die de pagina zelf maakt (blob:) doorgeven. `FacturenRun` beslist (inloggen → facturen → knoppen → afleveren).
+  Robot en sjablonen zitten in de APK (assets): een wijziging daarin komt pas met een nieuwe APK. Test de robot met
+  `tests/ui/facturen-robot.test.js` (nagebootste leverancier) en de beslislogica/regels met `FacturenTest`.
+- **Grenzen:** alleen https; alleen echte PDF's (`%PDF`) tellen; wachtwoorden versleuteld (`facturen_geheim`, niet in backups);
+  de inlogcode alleen uit sms van de ingestelde afzender of uit Rene's eigen Eigen Cloud; afleveren alleen naar zijn
+  backup-map en zijn eigen Eigen Cloud (`/api/mail/send` naar zichzelf). Geen andere bestemmingen toevoegen zonder Rene.
+
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK
 installeren als `NATIVE_LEVEL` omhoog ging, of opnieuw koppelen).

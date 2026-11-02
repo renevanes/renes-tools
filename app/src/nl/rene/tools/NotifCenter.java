@@ -39,6 +39,7 @@ final class NotifCenter {
         {Car.CHANNEL, "Mijn auto", "Als een rit niet vanzelf kon starten", "3"},
         {"auto-call-recording", "Automatische gespreksopname", "Als een automatische opname niet kon starten", "3"},
         {ApparatenJob.CHANNEL, "Apparaten: onbekende tracker", "Als een onbekende tracker (AirTag, SmartTag, Tile …) een tijd met je meereist", "4"},
+        {Facturen.CHANNEL, "Facturen", "Als er nieuwe facturen zijn opgehaald, of als inloggen bij een leverancier niet lukt", "3"},
         {CheckinNotify.CHANNEL, "Check-in", "De vraag op het moment dat je koos, met knoppen om meteen te antwoorden (één melding per moment, nooit opnieuw)", "3"},
         {SleepReminder.CHANNEL, "Slaappraat: bedtijd", "Een herinnering op bedtijd om Slaappraat aan te zetten (als je die aanzet)", "3"},
         {SleepService.CHANNEL, "Slaappraat", "Zichtbaar zolang Slaappraat luistert of uitschrijft, met een stopknop; 's ochtends wat er gehoord is", "2"},

@@ -698,6 +698,36 @@ if (!window.Android) window.Android = (function(){
     castForget(){ if (!this._cast.active) this._cast = { active: false }; }, castVolume(v){ this._cast.volume = +v; },
     playerPlayPause(){ const c = this._cast; if (c.active) { c.playing = !c.playing; c.status = c.playing ? 'playing' : 'paused'; } },
     outputSwitcher(){ this._switcher = (this._switcher || 0) + 1; return ''; },
+    /* Facturen ophalen (nagebootst): één run duurt ±1,2 s; _faFout = foutmelding, _faInlog = inloggen nodig */
+    _fa: { lev: [], toestand: {}, ec: { url: '', gebruiker: '', adres: '', heeftWachtwoord: false }, pw: {}, bezig: '', voortgang: '', pdf: {}, calls: [] },
+    _faSjablonen: [
+      { sjabloon: 'kpn-zakelijk', naam: 'KPN Zakelijk', omschrijving: 'MijnKPN Zakelijk: facturen van je zakelijke abonnementen', startUrl: 'https://mijnkpnzakelijk.kpn.com', facturenUrl: '', menu: 'facturen|factuur', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, code: { bron: 'sms', afzender: 'KPN', patroon: '' }, tip: 'KPN stuurt na je wachtwoord een code per sms of mail.' },
+      { sjabloon: 'anders', naam: '', omschrijving: 'Een andere website met facturen: vul zelf de inlogpagina in', startUrl: '', facturenUrl: '', menu: 'facturen|factuur|invoices|documenten', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, code: { bron: 'geen', afzender: '', patroon: '' }, tip: 'Kijk de eerste keer mee.' }],
+    facturenState(){ const f = this._fa; return JSON.stringify({ leveranciers: f.lev.map(l => ({ ...l, toestand: f.toestand[l.id] || {}, heeftWachtwoord: !!f.pw[l.id], aantal: (f.pdf[l.id] || []).length })),
+      bezig: f.bezig, voortgang: f.voortgang, zichtbaar: false, ec: f.ec, map: !!this._wa.info.dest, sms: !!this._sms.perm, sjablonen: this._faSjablonen }); },
+    facturenBewaar(json){ const o = JSON.parse(json), f = this._fa; f.calls.push(['bewaar', JSON.parse(json)]);
+      if (!o.naam) return JSON.stringify({ error: 'Geef de leverancier een naam' });
+      if (!/^https:\/\//i.test(o.startUrl || '')) return JSON.stringify({ error: 'De inlogpagina moet beginnen met https://' });
+      const pw = o.wachtwoord; delete o.wachtwoord;
+      let id = o.id; if (!id) { id = o.naam.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); let n = 2, b = id; while (f.lev.some(l => l.id === id)) id = b + '-' + n++; }
+      o.id = id; o.submap = o.submap || o.naam; const i = f.lev.findIndex(l => l.id === id); if (i >= 0) f.lev[i] = o; else f.lev.push(o);
+      if (pw) f.pw[id] = true; return JSON.stringify({ id }); },
+    facturenVerwijder(id){ const f = this._fa; if (f.bezig === id) return 'Even wachten: deze leverancier wordt nu opgehaald'; f.lev = f.lev.filter(l => l.id !== id); delete f.pdf[id]; return ''; },
+    facturenNu(id, meekijken){ const f = this._fa; if (f.bezig) return 'Er worden al facturen opgehaald'; f.calls.push(['nu', id, !!meekijken]); if (meekijken) { this._faMeekijken = id; return ''; }
+      f.bezig = id; f.voortgang = 'Inloggen…'; const l = f.lev.find(x => x.id === id);
+      setTimeout(() => { f.voortgang = 'Factuur 1 van 2 ophalen…'; }, 500);
+      setTimeout(() => { f.bezig = ''; const now = Date.now();
+        const r = this._faFout ? { id, naam: l.naam, ok: false, msg: this._faFout, inlogNodig: !!this._faInlog } : { id, naam: l.naam, ok: true, nieuw: 2, gevonden: 2, namen: ['KPN Zakelijk Factuur 2026-09.pdf', 'KPN Zakelijk Factuur 2026-10.pdf'], fouten: [], msg: '2 nieuwe facturen' };
+        f.toestand[id] = { lastTry: now, ok: r.ok, msg: r.msg, inlogNodig: !!r.inlogNodig, ...(r.ok ? { lastOk: now, nieuw: 2 } : {}) };
+        if (r.ok) f.pdf[id] = [{ naam: 'KPN Zakelijk Factuur 2026-10.pdf', t: now, grootte: 81234 }, { naam: 'KPN Zakelijk Factuur 2026-09.pdf', t: now - 1000, grootte: 80122 }];
+        onFacturenKlaar(r); }, 1200); return ''; },
+    facturenStop(){ this._fa.calls.push(['stop']); },
+    facturenLijst(id){ return JSON.stringify(this._fa.pdf[id] || []); },
+    facturenOpen(id, naam){ this._fa.calls.push(['open', id, naam]); },
+    facturenEc(json){ const o = JSON.parse(json), f = this._fa; if (!o.url && !o.gebruiker) { f.ec = { url: '', gebruiker: '', adres: '', heeftWachtwoord: false }; return ''; }
+      if (!/^https:\/\//i.test(o.url)) return 'Het adres van Eigen Cloud moet beginnen met https://'; if (!o.gebruiker) return 'Vul je gebruikersnaam of mailadres in';
+      f.ec = { url: o.url.replace(/\/+$/, ''), gebruiker: o.gebruiker, adres: o.adres || '', heeftWachtwoord: f.ec.heeftWachtwoord || !!o.wachtwoord }; return ''; },
+    facturenEcTest(){ setTimeout(() => onFacturenEcTest(this._fa.ec.heeftWachtwoord ? { ok: true } : { error: 'Koppel eerst Eigen Cloud (bovenaan in Facturen)' }), 200); },
     /* Spotify-backup (nagebootst) */
     _sp: { linked: false, clientId: '', user: '', auto: 'day', lastAt: 0, versions: [], log: '' },
     spotifyState(){ const s = this._sp; const own = (this._spNow || []).filter(p => p.own); return JSON.stringify({ libRelink: !!this._spRelink, linked: s.linked, clientId: s.clientId, user: s.user, auto: s.auto, busy: !!s.busy, progress: s.busy ? 'Playlist 1 van 3: Roadtrip' : '',

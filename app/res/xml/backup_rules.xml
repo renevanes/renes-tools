@@ -19,6 +19,8 @@
     <exclude domain="file" path="apparaten/" />
     <exclude domain="sharedpref" path="apparaten.xml" />
     <exclude domain="sharedpref" path="checkin.xml" />
+    <exclude domain="file" path="facturen/" />
+    <exclude domain="sharedpref" path="facturen_geheim.xml" />
     <exclude domain="file" path="gebruik/" />
     <exclude domain="sharedpref" path="gebruik.xml" />
     <exclude domain="file" path="ai-models/" />

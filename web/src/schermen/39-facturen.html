@@ -1,0 +1,104 @@
+<!-- ============ FACTUREN OPHALEN ============ -->
+<section class="screen" id="s-facturen">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Facturen</h1>
+  </div>
+  <main>
+    <p class="note" style="margin:0 2px 12px">Haalt je facturen (PDF) vanzelf op bij websites waar je moet inloggen, zoals KPN Zakelijk, en zet ze in je backup-map en/of in Eigen Cloud.</p>
+    <div class="card" id="fa-bezig" style="display:none" role="status" aria-live="polite">
+      <div class="row" style="align-items:center;gap:8px"><b style="flex:1;min-width:0" id="fa-bezig-txt">Bezig…</b><button class="mini" style="float:none" onclick="Android.facturenStop()">Stoppen</button></div>
+    </div>
+    <div class="flabel" style="margin:4px 2px 8px">Leveranciers</div>
+    <div class="card stations" id="fa-lijst"></div>
+    <button class="big" id="fa-nieuw" onclick="faNieuw()">Leverancier toevoegen</button>
+
+    <div class="flabel" style="margin:18px 2px 8px">Eigen Cloud</div>
+    <div class="card">
+      <p class="note" style="margin-top:0" id="fa-ec-stand">Niet gekoppeld. Koppel Eigen Cloud om facturen in je eigen mail te krijgen, of om de inlogcode uit je mail te lezen.</p>
+      <div class="flabel"><label for="fa-ec-url">Adres van je Eigen Cloud</label></div>
+      <input class="aein" id="fa-ec-url" type="url" placeholder="https://cloud.jouwdomein.nl" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fa-ec-user">Gebruikersnaam of mailadres</label></div>
+      <input class="aein" id="fa-ec-user" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fa-ec-pw">Wachtwoord</label></div>
+      <input class="aein" id="fa-ec-pw" type="password" autocomplete="off">
+      <div class="flabel" style="margin-top:8px"><label for="fa-ec-adres">Facturen sturen naar <small>(leeg = je gebruikersnaam)</small></label></div>
+      <input class="aein" id="fa-ec-adres" type="email" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <p class="note bad" id="fa-ec-msg" role="status" aria-live="polite"></p>
+      <div class="row" style="gap:8px">
+        <button class="big" style="flex:1" onclick="faEcBewaar()">Bewaren</button>
+        <button class="big ghost" style="flex:1" id="fa-ec-test" onclick="faEcTest()">Testen</button>
+      </div>
+    </div>
+    <p class="note" id="fa-map"></p>
+  </main>
+</section>
+
+<!-- Eén leverancier instellen -->
+<section class="screen" id="s-faclev">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="fl-h">Leverancier</h1>
+  </div>
+  <main>
+    <div class="card">
+      <p class="note" style="margin-top:0" id="fl-tip"></p>
+      <div class="flabel"><label for="fl-naam">Naam</label></div>
+      <input class="aein" id="fl-naam" maxlength="60" autocomplete="off">
+      <div class="flabel" style="margin-top:8px"><label for="fl-start">Inlogpagina</label></div>
+      <input class="aein" id="fl-start" type="url" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fl-user">Gebruikersnaam of mailadres</label></div>
+      <input class="aein" id="fl-user" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fl-pw">Wachtwoord</label></div>
+      <input class="aein" id="fl-pw" type="password" autocomplete="off">
+      <p class="note" style="margin:4px 0 0">Versleuteld op deze telefoon bewaard. Leeg laten: je logt zelf in tijdens meekijken.</p>
+    </div>
+
+    <div class="card">
+      <h2>Inlogcode</h2>
+      <div class="row setrow"><label for="fl-bron" style="flex:1">De code komt per</label>
+        <select class="sel" id="fl-bron" onchange="flBron()">
+          <option value="sms">Sms</option><option value="eigencloud">Mail in Eigen Cloud</option><option value="geen">Geen code / zelf invullen</option>
+        </select></div>
+      <div id="fl-bronvelden">
+        <div class="flabel" style="margin-top:8px"><label for="fl-afz">Afzender bevat</label></div>
+        <input class="aein" id="fl-afz" maxlength="60" placeholder="Bijv. KPN" autocomplete="off">
+        <p class="note bad" id="fl-sms" style="display:none">Tools heeft nog geen toegang tot sms. <button class="linkish" onclick="Android.smsRequestPermission()">Toegang geven</button></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Ophalen</h2>
+      <div class="row setrow"><label for="fl-schema" style="flex:1">Vanzelf ophalen</label>
+        <select class="sel" id="fl-schema"><option value="dag">Elke dag</option><option value="week">Elke week</option><option value="maand">Elke maand</option><option value="uit">Uit</option></select></div>
+      <label class="chk"><input type="checkbox" id="fl-map"> In je backup-map (map Facturen)</label>
+      <label class="chk"><input type="checkbox" id="fl-ec"> Naar je mail in Eigen Cloud</label>
+    </div>
+
+    <details class="card rinfo" id="fl-geavanceerd"><summary>Geavanceerd</summary>
+      <div class="flabel" style="margin-top:8px"><label for="fl-facturl">Facturenpagina <small>(leeg = de app zoekt zelf)</small></label></div>
+      <input class="aein" id="fl-facturl" type="url" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fl-menu">Tekst van de link naar de facturen</label></div>
+      <input class="aein" id="fl-menu" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fl-knoppen">Herkennen van downloadknoppen</label></div>
+      <input class="aein" id="fl-knoppen" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fl-max">Hooguit zoveel facturen per keer</label></div>
+      <input class="aein" id="fl-max" type="number" min="1" max="50" inputmode="numeric">
+      <div class="flabel" style="margin-top:8px"><label for="fl-pat">Patroon van de code <small>(leeg = vanzelf)</small></label></div>
+      <input class="aein" id="fl-pat" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fl-sub">Mapnaam</label></div>
+      <input class="aein" id="fl-sub" maxlength="60" autocomplete="off">
+      <p class="note">Velden aanwijzen (alleen als de app ze niet zelf vindt; een CSS-selector, bijv. <code>#username</code>):</p>
+      <div class="flabel"><label for="fl-v-gebruiker">Veld gebruikersnaam</label></div>
+      <input class="aein" id="fl-v-gebruiker" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fl-v-wachtwoord">Veld wachtwoord</label></div>
+      <input class="aein" id="fl-v-wachtwoord" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fl-v-code">Veld inlogcode</label></div>
+      <input class="aein" id="fl-v-code" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fl-v-knop">Inlogknop</label></div>
+      <input class="aein" id="fl-v-knop" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </details>
+    <p class="note bad" id="fl-msg" role="status" aria-live="polite"></p>
+    <button class="big" id="fl-save" onclick="flBewaar()">Bewaren</button>
+  </main>
+</section>

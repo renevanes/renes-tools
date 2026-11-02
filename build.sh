@@ -37,6 +37,7 @@ mkdir -p $B/assets/vendor
 cp web/vendor/leaflet.js web/vendor/leaflet.css web/vendor/jsQR.js $B/assets/vendor/
 cp web/ontsleutelen.html $B/assets/
 cp web/start.html $B/assets/
+cp web/facturen-robot.js web/facturen-leveranciers.json $B/assets/
 cp web/neutraal.html $B/assets/
 # Licenties: van de app zelf (GPL-3.0) en van de meegeleverde onderdelen van anderen
 mkdir -p $B/assets/licenties

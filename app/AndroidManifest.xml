@@ -188,6 +188,17 @@
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <service
+            android:name=".FacturenJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <activity
+            android:name=".FacturenActivity"
+            android:exported="false"
+            android:label="Facturen ophalen"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" />
+
+        <service
             android:name=".WaBackupJob"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />

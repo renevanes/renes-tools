@@ -770,7 +770,7 @@ public class MainActivity extends Activity {
     // ---------- brug naar JavaScript ----------
 
     /** Alle functies voor de interface. Nieuwere onderdelen staan in FeatureBridge (eigen bestand). */
-    static final class Bridge extends GebruikBridge {
+    static final class Bridge extends FacturenBridge {
         private final MainActivity a;
         private final Context ctx;
         static volatile boolean smsBusy = false;

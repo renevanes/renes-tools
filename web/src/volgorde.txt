@@ -45,6 +45,7 @@ schermen/36-checkin.html
 schermen/37-herstel.html
 schermen/38-apparaten.html
 schermen/38-gebruik.html
+schermen/39-facturen.html
 speler.html
 vensters.html
 script/00-begin.js
@@ -116,5 +117,6 @@ script/58-instellingen-register.js
 script/59-assistent-instellingen.js
 script/61-assistent-acties.js
 script/62-assistent-gesprek.js
+script/63-facturen.js
 script/60-apparaten.js
 einde.html
