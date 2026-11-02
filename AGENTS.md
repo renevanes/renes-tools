@@ -207,7 +207,7 @@ functies, herhaalde blokken Java). Het zijn **kandidaten**: hij ziet geen namen 
 6. Bouwen, `run-jvm.sh`, `run-ui.sh`, `check-bridge.py`, de controle op anonieme classes, onafhankelijke review, push naar
    main zoals bij onderhoud. Verandert `app/`, `web/` of `tools/`, schrijf dan `wijzigingen/opruimen-JJJJ-MM-DD.txt` met één
    korte regel ("Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"); zonder bestand neemt Publiceren
-   de commitregels over. Zet in het issue Opruimen wat weg is, wat bewust bleef en wat volgende maand aan de beurt is.
+   de commitregels over. Zet in het issue Opruimen wat weg is, wat bewust bleef en wat de volgende ronde aan de beurt is.
 
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK
