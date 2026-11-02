@@ -1,1 +1,0 @@
-Nieuw: Facturen. Haalt je facturen (PDF) vanzelf op bij websites waar je moet inloggen, te beginnen met KPN Zakelijk. Inloggen gaat zelf, ook met de code per sms of uit je Eigen Cloud-mail; de facturen komen in je backup-map (map Facturen) en/of als mail in Eigen Cloud. Elke dag, week of maand, of met de hand; de eerste keer kun je meekijken.

@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.121",
-  "versionCode": 122,
-  "nativeLevel": 108,
+  "versionName": "1.122",
+  "versionCode": 123,
+  "nativeLevel": 109,
   "web": "index.html",
-  "webSha256": "51b399f56ad09ad42ff555f4afd1599cb3318f323ec98a386955b1639bb50a8b",
+  "webSha256": "7809e2b91a134841e68b300d937eedba9cfe2ad87ff46440772a464fb0d14706",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "6d2b4341eaacb3d8cbcbfa4898b81056c9df52d1a13047e77aeb217152c5bdb4",
+  "apkSha256": "46584476e167fd68c64ead5d78d6f980cfd9e397ea5e0f2fbc292f861316c116",
   "changelog": [
+    {
+      "version": "1.122",
+      "date": "2026-11-02",
+      "changes": [
+        "Nieuw: Facturen. Haalt je facturen (PDF) vanzelf op bij websites waar je moet inloggen, te beginnen met KPN Zakelijk. Inloggen gaat zelf, ook met de code per sms of uit je Eigen Cloud-mail; de facturen komen in je backup-map (map Facturen) en/of als mail in Eigen Cloud. Elke dag, week of maand, of met de hand; de eerste keer kun je meekijken."
+      ]
+    },
     {
       "version": "1.121",
       "date": "2026-11-02",
@@ -1077,5 +1084,5 @@
       ]
     }
   ],
-  "webSig2": "Gm8OFu+ct+Mag+bxHMNoqY+kK7MOS2T2TZMTyIVXl++QFLqzaI1mqyAo9pxYFq0V+CPx3EFZcmGcVSZ5SPp4c7c4MBfd+qW/skAyKJPadQnNCjSK9N6pIgLC11lflOC4VmDLkjwvbvvAREuGedvqoP4qlAZxxFy5bm7TRhSh9GYVkUzcwAW6F/va42FJ+TGEBXVP9LhSgaqvHMyA1wCuC8UTixi/cgyXz6ibgiLKevxTGd9vM34b5XKNxd50MUltoWwhhdHmhYwF2mMcmPWpm9tuUBPwlDokFjcPd4xTB8SarLG8+umziSzHHsnKgGlcfBPVQyuc1BfzQAbVZiSlziem8zjhsB0cDrxlU3mN2ntSfPIdh80R8lDjPv1P84ZrMRdDLovfJ2pvqtbbrD9z7yoheSwh6Z4uvjuNAJ404QkRDM597eK8W1OP1c1trjeJrUdfHslWQMN+JrevvcbK+ayZ+JSR5Oc0ghuqASVNt/q7u+WauN41yn7WEJT7vlFH"
+  "webSig2": "Ol30WzSJMOAB/1iD2jNV2bdIqnDogwTEjw0qqJ1La/qhPeCLnJHrzlRUSYT8zQlCxjDAZdtVEpvX/7ghsYK/1pFDGY6sbzLetxxcRSHDw5CLJRgXK0Lc8kiAwTjZoKdNy9mrIDfC5afEJ6t5DvFpvyQ2J3aJC1C4szLdKfGgtABescfaGEIZ0CMyc3myIbMn8N5Yug44JZTBozv+W0jar1KoDkkK5lPMWExtQNDbcq0l++Y83bgstGcJquAMpFhtA9rX7KnseVZZwDTqXu4HROfgkupKZ41PbANYoBjJST4YYxMECQIi6ZpYMHUkFxcDrJyturbTuUuNcGHJv7MwFnqyhEVjpR8plyja39thKfszBx0w30lp/k+35eUNMtepnM0rfsx8Pi76RWMKZFz0h+qhI+VCqBZKOGAIOIX+g4xDPOkxCL/HLVfYasDog74WiZ8oC2dj/9gglC3Kwbv5maqBnHPPuETgwt9maJ3X9K20CkwEiUMHwX7pp6waxl89"
 }
