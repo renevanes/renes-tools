@@ -1,1 +1,0 @@
-De assistent als losse app (die zonder app-slot opent) zoekt niet meer in je notities, sms, WhatsApp en andere gegevens

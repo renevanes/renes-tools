@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.117",
-  "versionCode": 118,
+  "versionName": "1.118",
+  "versionCode": 119,
   "nativeLevel": 105,
   "web": "index.html",
-  "webSha256": "3167aa3e9b1ef2b131b89602b472611ce73ea63f30c8fa0f4d1364af3b8be47c",
+  "webSha256": "896b5721ae0a841f60e7bc03f3957ff8ea0ae81838dd56cab139b274ac40bc0a",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1ed7c0776b0fdfd73cd4d51981c693f505eb3d818219be3403941db29bd3e934",
+  "apkSha256": "e07cb84eb697ae1b49e2f7bc7163dfc3723ffba30bd835301ad8d843b14df8f1",
   "changelog": [
+    {
+      "version": "1.118",
+      "date": "2026-11-02",
+      "changes": [
+        "De assistent als losse app (die zonder app-slot opent) zoekt niet meer in je notities, sms, WhatsApp en andere gegevens"
+      ]
+    },
     {
       "version": "1.117",
       "date": "2026-10-31",
@@ -1045,5 +1052,5 @@
       ]
     }
   ],
-  "webSig2": "UfwRDv0a1N9uZI/BG4pNUt83XxrqbjYPtvOzEEogbQNYU+uUYMH7TyZOvUT/tRK0v0cT81Ra7x1bFDg5czATJO1ulbyiaofSp4Xq6jLA9+UZa8MlW9wySYV4y2jn0fAiZaz9OZEF1Fc/3+ZxopJJm843zi24XGjO1lRWLkIlk+9X/zcpbQe5Q01uPjZMcuevDNc21A2vvmbvi7MstdEHX7idtBaYXDQ1XuB+NGxK2zy3QIfKFNTI5hNapjquBmCI8X/ee4oE4aXRqLh0coXJL/d0zMWa9V6eisNCzKYWK/KFnVDki3wJ32phnOTA05R/eKCzn/1W9VhYtubjfIq1cQ8eiIz7L9jnfNE2xB63fzeJ8zqgnhVo/fMRLfzpozS1uhO/jwsqRMla5Qa2n1A2t5x01Euc9EFP03ssWGSPbRPhe9+QmRjtGCgW14LtXAOMyIlT+rmiU4NcXvRQfwl/aMWh1O/Tb5P1bqjbh1EDNOpuNSsKG2DrfkfLKZOWUx/o"
+  "webSig2": "WAyQJQyNkPN7EMMUVaJX2G75enU6fnV/vcGanMscNEZrPtXxI3PQ1L4kDg+wHWG+vFsEY3nRfkm3eXMMhMCh862s5cgAo/+v91emgrNOwnQmaTq9l9aqFpCxNf5GP4Rb6iIfZ4RpEuYoEZoLO/UFxAA64wzi0/Pj8OoOY0NYgBFripphK7WffHr2LrtpLbGqA/YO8cASWXjx8q9A2O+coUdmdi6s9Vze3ZAJpRbOg99tROnZ9VK6KdMPRvEhBsNyGGE9QwYbaHDM1Oo4wQCoMiUpP5dJE6lD/DjB+ngHcusSsZzYTVXs3qM4hc4e2iO9ZFoLVVLhS7zqE+CM6rjf0Nn5TrqMOpUTHV32JOmJDMUIXEAgmiE+IkLVjiicwzE6UUIjPCnKpCWyhN/rD1nGj3ujYHweoFThCFfc+LWIxn5DMA20g8CrHEa1vdwMvfyceGb2CxdZZaPRrxKYD3sxdFQOyIRjmm74peJK8PY9dawEmhcxN7pIljX9vh7XLD3e"
 }
