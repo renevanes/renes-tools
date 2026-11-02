@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.118",
-  "versionCode": 119,
-  "nativeLevel": 105,
+  "versionName": "1.119",
+  "versionCode": 120,
+  "nativeLevel": 106,
   "web": "index.html",
-  "webSha256": "896b5721ae0a841f60e7bc03f3957ff8ea0ae81838dd56cab139b274ac40bc0a",
+  "webSha256": "629f94d351d3f969e3b64a3ebe9f3933a85342ad71b7b79679be5df6023d5ce3",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "e07cb84eb697ae1b49e2f7bc7163dfc3723ffba30bd835301ad8d843b14df8f1",
+  "apkSha256": "c0882691657da20db567a0118540dec2e0fd07d63841f9d45822bb85b75d21c4",
   "changelog": [
+    {
+      "version": "1.119",
+      "date": "2026-11-02",
+      "changes": [
+        "Nieuw bij Instellingen → Foutrapport en statistieken: elke week tellingen en fouten (geen inhoud) naar een privé GitHub-repository die je zelf instelt, om de app te verbeteren. Staat aan, maar er gaat pas iets weg als je een repository en sleutel invult"
+      ]
+    },
     {
       "version": "1.118",
       "date": "2026-11-02",
@@ -1052,5 +1059,5 @@
       ]
     }
   ],
-  "webSig2": "WAyQJQyNkPN7EMMUVaJX2G75enU6fnV/vcGanMscNEZrPtXxI3PQ1L4kDg+wHWG+vFsEY3nRfkm3eXMMhMCh862s5cgAo/+v91emgrNOwnQmaTq9l9aqFpCxNf5GP4Rb6iIfZ4RpEuYoEZoLO/UFxAA64wzi0/Pj8OoOY0NYgBFripphK7WffHr2LrtpLbGqA/YO8cASWXjx8q9A2O+coUdmdi6s9Vze3ZAJpRbOg99tROnZ9VK6KdMPRvEhBsNyGGE9QwYbaHDM1Oo4wQCoMiUpP5dJE6lD/DjB+ngHcusSsZzYTVXs3qM4hc4e2iO9ZFoLVVLhS7zqE+CM6rjf0Nn5TrqMOpUTHV32JOmJDMUIXEAgmiE+IkLVjiicwzE6UUIjPCnKpCWyhN/rD1nGj3ujYHweoFThCFfc+LWIxn5DMA20g8CrHEa1vdwMvfyceGb2CxdZZaPRrxKYD3sxdFQOyIRjmm74peJK8PY9dawEmhcxN7pIljX9vh7XLD3e"
+  "webSig2": "B9lpI4qqPUxBhu8BNeYbwxJJ9X8b3yurvtFvxNl5yibswu+S9ZTZwt9yd9fBI/1+SKuENr6+GUlkqqi4fVnanGjDRTq4Imcj+dOdJFikQ9d70NraRXYEsgVmxVaK3qxcp2Y0J4RIMVnTtgYY4Z3cg59H9XYp2EkiWp9YvgaW9uzahId8ZrUIUHL4u337Ci1hoTIyrHCijz9A4Vm6WNN7nmLWEGYS7HW6o3funEgRB7dPyf/DmchXgZl26BORcvBV+rgmPpPsRAoQFNDqKln9uGyXpGEjYwiFI3cFRNnjHTY90+DXyvSoGZJb6y6ubRj4btS5y8RCK8SMrzseJEiHeJv0Bb1eC2TaxdN9GsFSU2wBepfpUAvO8TyqoXkO4IXkfrWCPOMh7sV2wsTwIo9KaQCd3NPFtmPq69LV/z+tEn2j8fvnDH3KNd/wD0DvhTE6QC+mf7qVN4v9X7f5l8UxhpA9wKiiBYmi4dxBvplQ7LxbLnEHDrWNInFmNWah/+Go"
 }

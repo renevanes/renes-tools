@@ -1,1 +1,0 @@
-Nieuw bij Instellingen → Foutrapport en statistieken: elke week tellingen en fouten (geen inhoud) naar een privé GitHub-repository die je zelf instelt, om de app te verbeteren. Staat aan, maar er gaat pas iets weg als je een repository en sleutel invult
