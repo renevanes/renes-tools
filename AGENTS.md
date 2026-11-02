@@ -196,11 +196,8 @@ functies, herhaalde blokken Java). Het zijn **kandidaten**: hij ziet geen namen 
    in `01-testbrug.js` en tests die alleen het weggehaalde controleerden. Versimpelen (opsplitsen, een gedeelde hulpfunctie)
    alleen met tests die het gedrag vóór en na vastleggen; ontbreekt zo'n test, schrijf die eerst.
 3. **Klein houden:** per ronde de duidelijkste kandidaten, liefst onder de ±500 gewijzigde regels; per onderwerp een commit.
-4. **Java = nieuwe APK.** Alles in `app/` laat `NATIVE_LEVEL` stijgen, dus Rene moet een APK installeren. Java-opruimwerk
-   daarom bundelen: elke week voorbereiden en testen, maar alleen publiceren als `app/` die week toch verandert of op de
-   eerste maandag van de maand (dan alles van die maand samen). Tot dan op de branch laten staan (pushen naar
-   `opruimen/…`, niet naar main) en in het issue noemen; de volgende ronde voegt die branch eerst samen.
-   Opruimen in `web/`, tests en scripts gaat elke week mee.
+4. **Alles gaat elke ronde live, ook Java** (keuze van Rene). Alles in `app/` laat `NATIVE_LEVEL` stijgen, dus Rene moet
+   dan een nieuwe APK installeren: zeg dat in het bericht aan hem. Houd het Java-deel daarom wel klein en goed getest.
 5. **Niet in een opruimronde:** de updatecontrole (`Updater`, `WebUpdateStore`), versleuteling en sleutels (`Secure`,
    `Kluis`, `Lock`, `*Crypto*`, `WaCrypt`), backup terugzetten (`AppBackup`/`AppData`) en de publicatiescripts herschrijven.
    Dode code daar weghalen mag, met extra zorg in de review.
