@@ -77,6 +77,7 @@ jobs:
           fi
 
       - name: Opruimscan (dode code en versimpelen)
+        continue-on-error: true   # een mislukte scan mag het onderhoudsissue niet rood maken (Bouwen en testen vangt hem)
         env:
           OPRUIM: 'Opruimen: dode code en versimpelen'
         run: |

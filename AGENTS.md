@@ -123,7 +123,7 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
   met de nieuwste versies
   en met de OSV-kwetsbaarhedendatabase, en zet alles wat te doen is in het issue "Onderhoud: updates en beveiliging".
   Daarna draait `.github/scripts/opruim-scan.py` (dode code en versimpelen) en zet het rapport in het issue
-  "Opruimen: dode code en versimpelen" (label `opruimen`); zie "Opruimen en versimpelen" hieronder.
+  "Opruimen: dode code en versimpelen" (label `opruimen`, blijft altijd open); zie "Opruimen en versimpelen" hieronder.
 
 **Alle onderdelen van buitenaf** (houd deze lijst bij als er iets bijkomt; `onderhoud-controle.py --bestanden` moet
 alles kunnen lezen, dat controleert Bouwen en testen):
@@ -191,7 +191,7 @@ functies, herhaalde blokken Java). Het zijn **kandidaten**: hij ziet geen namen 
 4. **Java = nieuwe APK.** Alles in `app/` laat `NATIVE_LEVEL` stijgen, dus Rene moet een APK installeren. Java-opruimwerk
    daarom bundelen: hooguit één keer per maand, of meenemen met een andere app-wijziging. Opruimen in `web/` mag altijd.
 5. **Niet in een opruimronde:** de updatecontrole (`Updater`, `WebUpdateStore`), versleuteling en sleutels (`Secure`,
-   `Kluis`, `Lock`, `*Crypto*`), backup terugzetten (`AppBackup`/`AppData`) en de publicatiescripts herschrijven.
+   `Kluis`, `Lock`, `*Crypto*`, `WaCrypt`), backup terugzetten (`AppBackup`/`AppData`) en de publicatiescripts herschrijven.
    Dode code daar weghalen mag, met extra zorg in de review.
 6. Bouwen, `run-jvm.sh`, `run-ui.sh`, `check-bridge.py`, de controle op anonieme classes, onafhankelijke review, push naar
    main zoals bij onderhoud. Verandert `app/`, `web/` of `tools/`, schrijf dan `wijzigingen/opruimen-JJJJ-MM.txt` met één

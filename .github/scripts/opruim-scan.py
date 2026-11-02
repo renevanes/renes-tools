@@ -135,12 +135,16 @@ def main():
             brug |= set(re.findall(r'@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+(\w+)\s*\(', tekst[p]))
     aangeroepen = set(re.findall(r'\bAndroid\.(\w+)', app_web))
     rapport['brug'] = sorted(f'`{f}`' for f in brug - aangeroepen - {'toast'} - skip)
+    # Telefoon-skin: HomeActivity tegen web/start.html (zonder de eigen nabootsing daarin: `naam: () =>` / `naam() {`)
+    home = set(re.findall(r'@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+(\w+)\s*\(', tekst['app/src/nl/rene/tools/HomeActivity.java']))
+    start = set(re.findall(r'\bAndroid\.(\w+)', tekst['web/start.html']))
+    rapport['brug'] += sorted(f'`{f}` (Telefoon-skin)' for f in home - start - skip)
 
     # 4. CSS-klassen
     gebruik = app_web + app_java + vendor
     # klassen die in stukken worden opgebouwd: 'sf-' + x, "sfrow sf-'+esc(…)", `ci-${x}`
     dyn = set(re.findall(r'''([a-z][\w]*-)['"`]\s*\+''', gebruik)) | set(re.findall(r'([a-z][\w]*-)\$\{', gebruik))
-    css_dood = []
+    css_dood = defaultdict(list)
     for p in css:
         for k in sorted(set(re.findall(r'\.([a-zA-Z][\w-]*)(?=[\s.,:{>\[)+~])', re.sub(r'/\*.*?\*/', '', tekst[p], flags=re.S)))):
             if k in skip or re.match(r'^\d', k):
@@ -148,8 +152,8 @@ def main():
             if any(k.startswith(d) for d in dyn):
                 continue
             if not re.search(r'(?<![\w-])' + re.escape(k) + r'(?![\w-])', gebruik):
-                css_dood.append(f'`.{k}` — {p}')
-    rapport['css'] = css_dood
+                css_dood[k].append(p)
+    rapport['css'] = [f'`.{k}` — ' + ', '.join(ps) for k, ps in sorted(css_dood.items())]
 
     # 5. Versimpelen
     groot = sorted(((len(tekst[p].splitlines()), len(tekst[p]), p) for p in java + js_app), reverse=True)
@@ -222,8 +226,8 @@ def markdown(r):
     print('\n## Versimpelen')
     lijst('Grootste bestanden', r['grote_bestanden'], 'Kandidaten om op te splitsen, langs de grenzen van de tools.')
     lijst('Langste functies', r['lange_functies'], 'Kandidaten om in kleinere, geteste stukken te verdelen.')
-    lijst('Herhaalde blokken Java-code (8+ gelijke regels)', r['herhaald'] + ([f'… {r["_aantal_herhaald"] - 20} meer'] if r['_aantal_herhaald'] > 20 else []),
-          'Kandidaten voor één gedeelde hulpfunctie.')
+    lijst('Herhaalde blokken Java-code (8+ gelijke regels)', r['herhaald'],
+          'Kandidaten voor één gedeelde hulpfunctie.' + (f' (de eerste 20 van {r["_aantal_herhaald"]})' if r['_aantal_herhaald'] > 20 else ''))
 
 
 if __name__ == '__main__':
