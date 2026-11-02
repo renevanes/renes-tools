@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.120",
+    "date": "2026-11-02",
+    "changes": [
+      "De losse assistent-app zoekt nooit in je notities en berichten, ook niet als de interface erom vraagt",
+      "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
+    ]
+  },
+  {
     "version": "1.119",
     "date": "2026-11-02",
     "changes": [

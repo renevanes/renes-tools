@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.119",
-  "versionCode": 120,
-  "nativeLevel": 106,
+  "versionName": "1.120",
+  "versionCode": 121,
+  "nativeLevel": 107,
   "web": "index.html",
-  "webSha256": "629f94d351d3f969e3b64a3ebe9f3933a85342ad71b7b79679be5df6023d5ce3",
+  "webSha256": "2fd532d8726f335da33b1508c9a81c1768f17072d652a260c94d813fda579dce",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "c0882691657da20db567a0118540dec2e0fd07d63841f9d45822bb85b75d21c4",
+  "apkSha256": "d348dec31ebe07fdb2ea781852c44305d101547a762c97b2a75d7ffd075589bd",
   "changelog": [
+    {
+      "version": "1.120",
+      "date": "2026-11-02",
+      "changes": [
+        "De losse assistent-app zoekt nooit in je notities en berichten, ook niet als de interface erom vraagt",
+        "Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"
+      ]
+    },
     {
       "version": "1.119",
       "date": "2026-11-02",
@@ -1059,5 +1067,5 @@
       ]
     }
   ],
-  "webSig2": "B9lpI4qqPUxBhu8BNeYbwxJJ9X8b3yurvtFvxNl5yibswu+S9ZTZwt9yd9fBI/1+SKuENr6+GUlkqqi4fVnanGjDRTq4Imcj+dOdJFikQ9d70NraRXYEsgVmxVaK3qxcp2Y0J4RIMVnTtgYY4Z3cg59H9XYp2EkiWp9YvgaW9uzahId8ZrUIUHL4u337Ci1hoTIyrHCijz9A4Vm6WNN7nmLWEGYS7HW6o3funEgRB7dPyf/DmchXgZl26BORcvBV+rgmPpPsRAoQFNDqKln9uGyXpGEjYwiFI3cFRNnjHTY90+DXyvSoGZJb6y6ubRj4btS5y8RCK8SMrzseJEiHeJv0Bb1eC2TaxdN9GsFSU2wBepfpUAvO8TyqoXkO4IXkfrWCPOMh7sV2wsTwIo9KaQCd3NPFtmPq69LV/z+tEn2j8fvnDH3KNd/wD0DvhTE6QC+mf7qVN4v9X7f5l8UxhpA9wKiiBYmi4dxBvplQ7LxbLnEHDrWNInFmNWah/+Go"
+  "webSig2": "Sma0SLcI4N4lZn3ad/Nq7E82mefjV+YIZ7MPni0OT4HBZ9y4LO7Ucq6E0oEvMBAbVuI9ymHjJRBfNnO56otu101plz6vUmwpi1VxD0PZuEhF0rVM3zf3jeHUbm0Vu949RevPdHw3d85+5ru75GyBOg1fKHMj6EN7a2Fm6ZzOq+YZnZNakMDrmkOvLwNYOrAbkRvj3yMQ2D0SFAdEZ2uIVbNxG9riI50KNa+vfzuFv9hpIfOqtAvJ8NUaftqXhF1fsZSkAi0z74UqyG1vt2cxNIhH2Dq6lOvcThZ6q9M4j6J3fWM2m3BNNBre6aYMRZtggWQtUPoV3rfOpPSMGMmMYWlINzKNBlyCltx2yQmSoHvrIBPFF4npSuAHHUGeq8DuLwJNPXXsbzG4x0ISX0w141Otsen2sigdwAzX+6U8ibNS/gE8usw42k4VXy2PuemCs1EzAAPoCGHcfN9gncLA/UVPlCaAf06t5NRWizv+OH6hPPhrVs1xMgkNDt3QufN3"
 }
