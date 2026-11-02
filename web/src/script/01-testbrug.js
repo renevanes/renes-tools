@@ -806,7 +806,7 @@ if (!window.Android) window.Android = (function(){
     statOn(on){ this._stat.on = !!on; if (!on) this._stat.tags = {}; },
     statDest(repo, token){ const s = this._stat; if (!repo && !token) { s.repo = ''; s.token = false; return ''; }
       if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}$/.test(repo)) return 'Vul de repository in als eigenaar/naam, bijv. renevanes/renes-tools-statistiek';
-      if (token && !/^[A-Za-z0-9_]{20,255}$/.test(token)) return 'Dit lijkt geen GitHub-sleutel';
+      if (token && !/^github_pat_[A-Za-z0-9_]{20,250}$/.test(token)) return 'Gebruik een fine-grained sleutel (begint met github_pat_) die alleen in deze repository mag schrijven';
       if (!token && !s.token) return 'Vul ook de sleutel in';
       s.repo = repo; if (token) s.token = true; return ''; },
     statPreview(){ const s = this._stat; return JSON.stringify({ schema: 1, installatie: 'a1b2c3d4', app: VERSION_NAME, android: 36, toestel: 'Test Telefoon', achtergrondBeperkt: false, logregels: s.tags, vastlopers: [] }, null, 2); },

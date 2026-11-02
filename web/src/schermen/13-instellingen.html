@@ -195,7 +195,7 @@
       <div class="sw"><span>Elke week versturen<small id="st-stat-sub"></small></span><button class="tg" id="st-stat-on" role="switch" aria-label="Statistieken elke week versturen" onclick="togUi(this); stStatOn(this.classList.contains('on'))"></button></div>
       <p class="note">Alleen tellingen: hoe vaak elk soort logregel voorkwam, en bij een vastloper het soort fout en de plek in de code. Geen foutteksten, namen, nummers, berichten of adressen. Gaat naar een privé GitHub-repository die jij hier instelt, zodat een agent er verbeteringen uit kan halen.</p>
       <input class="search" id="st-stat-repo" placeholder="Repository, bijv. renevanes/renes-tools-statistiek" aria-label="Repository (eigenaar/naam)" autocomplete="off" autocapitalize="off" spellcheck="false" style="margin:8px 0">
-      <input class="search" id="st-stat-token" type="password" placeholder="GitHub-sleutel (alleen schrijven in die repository)" aria-label="GitHub-sleutel" autocomplete="off" style="margin:0 0 8px">
+      <input class="search" id="st-stat-token" type="password" placeholder="Fine-grained GitHub-sleutel (github_pat_…)" aria-label="GitHub-sleutel" autocomplete="off" style="margin:0 0 8px">
       <div class="row">
         <button class="big" style="flex:1" onclick="stStatSave()">Opslaan</button>
         <button class="big ghost" style="flex:1" id="st-stat-send" onclick="stStatSend()">Nu versturen</button>

@@ -49,6 +49,7 @@ public class App extends Application {
             try {
                 StringWriter sw = new StringWriter();
                 e.printStackTrace(new PrintWriter(sw));
+                Statistiek.crash(c, e); // alleen soort fout en plek in de eigen code
                 log(c, "CRASH", "thread " + t.getName() + "\n" + sw);
                 c.getSharedPreferences("crash", MODE_PRIVATE).edit().putBoolean("new", true).commit();
             } catch (Throwable ignored) { }
@@ -114,7 +115,7 @@ public class App extends Application {
                 o.write((head + text.trim() + "\n\n").getBytes(StandardCharsets.UTF_8));
             }
         } catch (Throwable ignored) { }
-        Statistiek.count(c, kind, text); // alleen tellen (soort regel, bij een vastloper soort fout en plek), nooit de tekst
+        Statistiek.count(c, kind); // alleen tellen per soort regel, nooit de tekst
     }
 
     /** Het rapport om te delen: toestel, versie en het logboek. */

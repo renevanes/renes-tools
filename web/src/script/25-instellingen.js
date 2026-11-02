@@ -117,7 +117,7 @@ function stStatRender(){
   const s = stJson(Android.statState()), on = s.on !== false, b = $('#st-stat-on');
   b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
   const r = $('#st-stat-repo'); if (document.activeElement !== r) r.value = s.repo || '';
-  $('#st-stat-token').placeholder = s.token ? 'Sleutel is ingesteld (leeg laten = houden)' : 'GitHub-sleutel (alleen schrijven in die repository)';
+  $('#st-stat-token').placeholder = s.token ? 'Sleutel is ingesteld (leeg laten = houden)' : 'Fine-grained GitHub-sleutel (github_pat_…)';
   $('#st-stat-sub').textContent = !on ? 'Uit: er wordt niets geteld of verstuurd' : !(s.repo && s.token) ? 'Aan, maar nog geen bestemming: er gaat niets weg' :
     s.lastResult && s.lastResult !== 'ok' ? 'Laatste poging: ' + s.lastResult : s.lastSent ? 'Laatst verstuurd: ' + fmtD(s.lastSent) : 'Wordt deze week voor het eerst verstuurd';
   $('#st-stat-send').disabled = !(on && s.repo && s.token);

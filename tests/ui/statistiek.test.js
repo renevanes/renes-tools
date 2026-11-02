@@ -21,6 +21,8 @@ const { chromium } = require('playwright');
     ok((await pg.textContent('#toast')).includes('eigenaar/naam'), 'ongeldige repository: uitleg');
     await pg.fill('#st-stat-repo', 'renevanes/renes-tools-statistiek'); await pg.click('#s-setcrash button:has-text("Opslaan")'); await pg.waitForTimeout(100);
     ok((await pg.textContent('#toast')).includes('sleutel'), 'zonder sleutel: vraagt de sleutel');
+    await pg.fill('#st-stat-token', 'ghp_abcdefghijklmnopqrstuvwxyz0123456789'); await pg.click('#s-setcrash button:has-text("Opslaan")'); await pg.waitForTimeout(100);
+    ok((await pg.textContent('#toast')).includes('fine-grained') && !(await pg.evaluate(() => Android._stat.token)), 'klassieke sleutel (mag overal schrijven): geweigerd');
     await pg.fill('#st-stat-token', 'github_pat_11ABCDEFGHIJ0123456789_abcdefghij'); await pg.click('#s-setcrash button:has-text("Opslaan")'); await pg.waitForTimeout(100);
     ok(await pg.evaluate(() => Android._stat.repo === 'renevanes/renes-tools-statistiek' && Android._stat.token) && (await pg.inputValue('#st-stat-token')) === ''
       && (await pg.getAttribute('#st-stat-token', 'placeholder')).includes('ingesteld'), 'bewaard; de sleutel staat niet meer in het veld');

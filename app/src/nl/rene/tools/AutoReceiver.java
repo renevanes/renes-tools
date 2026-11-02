@@ -27,12 +27,12 @@ public class AutoReceiver extends BroadcastReceiver {
                 Runnable carDone = once(() -> { if (left.decrementAndGet() == 0) done.run(); });
                 boolean on = BluetoothDevice.ACTION_ACL_CONNECTED.equals(a);
                 try { Auto.onBluetooth(c, on, d.getAddress(), autoDone); }
-                catch (Exception e) { autoDone.run(); App.log(c, "AutoReceiver", android.util.Log.getStackTraceString(e)); }
+                catch (Exception e) { autoDone.run(); App.log(c, "AUTO", android.util.Log.getStackTraceString(e)); }
                 try { Car.onBluetooth(c, on, d.getAddress(), carDone); }
                 catch (Exception e) { carDone.run(); throw e; }
             }
         } catch (Exception e) {
-            App.log(c, "AutoReceiver", android.util.Log.getStackTraceString(e));
+            App.log(c, "AUTO", android.util.Log.getStackTraceString(e));
         }
     }
 
@@ -58,7 +58,7 @@ public class AutoReceiver extends BroadcastReceiver {
                     Auto.cancel(c, i.getIntExtra("nid", 0));
                 }
             } catch (Exception e) {
-                App.log(c, "AutoReceiver", android.util.Log.getStackTraceString(e));
+                App.log(c, "AUTO", android.util.Log.getStackTraceString(e));
             }
         }
     }

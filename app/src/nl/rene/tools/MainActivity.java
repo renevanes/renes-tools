@@ -1861,15 +1861,16 @@ public class MainActivity extends Activity {
         // ----- Statistieken voor verbeteringen (Statistiek): tellingen en fouten, naar een privé GitHub-repository -----
 
         @JavascriptInterface public String statState() { return Statistiek.state(ctx).toString(); }
-        @JavascriptInterface public void statOn(boolean on) { Statistiek.setOn(ctx, on); }
+        @JavascriptInterface public void statOn(boolean on) { if (!a.isSolo()) Statistiek.setOn(ctx, on); } // losse app: zonder app-slot
         /** "" bij succes, anders de reden. Een lege sleutel laat de bewaarde staan; beide leeg = bestemming weg. */
-        @JavascriptInterface public String statDest(String repo, String token) { return Statistiek.setDest(ctx, repo, token); }
+        @JavascriptInterface public String statDest(String repo, String token) { return a.isSolo() ? "Kan alleen vanuit de gewone app" : Statistiek.setDest(ctx, repo, token); }
         /** Precies wat er verstuurd zou worden (om te bekijken). */
         @JavascriptInterface public String statPreview() {
             try { return Statistiek.report(ctx).toString(2); } catch (Exception e) { return ""; }
         }
         /** Nu versturen; de uitkomst komt via onStatSent("" of de reden). */
         @JavascriptInterface public void statSend() {
+            if (a.isSolo()) return;
             new Thread(() -> {
                 String r;
                 try { r = Statistiek.send(ctx); } catch (Throwable t) { r = "Versturen lukte niet"; }

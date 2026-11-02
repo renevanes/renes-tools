@@ -15,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.UUID;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -38,32 +37,47 @@ final class Statistiek {
     static final long WEEK = 7 * 86_400_000L;
     static final int MAX_TAGS = 80, MAX_CRASHES = 30;
     private static final Pattern REPO = Pattern.compile("[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}");
-    private static final Pattern TOKEN = Pattern.compile("[A-Za-z0-9_]{20,255}");
+    /** Alleen een fine-grained sleutel (github_pat_…): die kan beperkt worden tot één repository. */
+    private static final Pattern TOKEN = Pattern.compile("github_pat_[A-Za-z0-9_]{20,250}");
     private static final Pattern TAG = Pattern.compile("[A-Z][A-Z0-9_ -]{0,23}");
-    private static final Pattern EXC = Pattern.compile("(?m)^\\s*(?:Caused by: )?([a-zA-Z_$][\\w$]*(?:\\.[a-zA-Z_$][\\w$]*)+)(?::|\\s*$)");
-    private static final Pattern FRAME = Pattern.compile("at nl\\.rene\\.tools\\.([A-Za-z_][A-Za-z0-9_]*)(?:\\$[\\w$]+)*\\.([\\w$<>]+)\\([A-Za-z0-9_$]+\\.java:(\\d+)\\)");
+    private static final String OWN = "nl.rene.tools.";
+    /** Eén slot voor de tellingen. Nooit vasthouden tijdens het versturen: App.log wacht erop. */
+    private static final Object LOCK = new Object();
+    private static final java.util.concurrent.atomic.AtomicBoolean SENDING = new java.util.concurrent.atomic.AtomicBoolean(false);
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("statistiek", Context.MODE_PRIVATE); }
 
     // ---------- tellen (vanuit App.log) ----------
 
     /** Telt één logregel. Nooit een fout naar buiten: dit draait in het foutlogboek zelf. */
-    static synchronized void count(Context c, String kind, String text) {
+    static void count(Context c, String kind) {
         try {
-            SharedPreferences p = prefs(c);
-            if (!p.getBoolean("on", true)) return;
-            JSONObject tags = new JSONObject(p.getString("tags", "{}"));
-            String k = tag(kind);
-            if (tags.has(k) || tags.length() < MAX_TAGS) tags.put(k, tags.optInt(k) + 1);
-            SharedPreferences.Editor e = p.edit().putString("tags", tags.toString());
-            if (!p.contains("since")) e.putLong("since", System.currentTimeMillis());
-            if ("CRASH".equals(kind)) {
-                JSONObject cr = new JSONObject(p.getString("crashes", "{}"));
-                String key = crashKey(text);
-                if (cr.has(key) || cr.length() < MAX_CRASHES) cr.put(key, cr.optInt(key) + 1);
-                e.putString("crashes", cr.toString());
+            synchronized (LOCK) {
+                SharedPreferences p = prefs(c);
+                if (!p.getBoolean("on", true)) return;
+                JSONObject tags = new JSONObject(p.getString("tags", "{}"));
+                String k = tag(kind);
+                if (tags.has(k) || tags.length() < MAX_TAGS) tags.put(k, tags.optInt(k) + 1);
+                SharedPreferences.Editor e = p.edit().putString("tags", tags.toString());
+                if (!p.contains("since")) e.putLong("since", System.currentTimeMillis());
+                e.apply();
             }
-            e.apply();
+        } catch (Throwable ignored) { }
+    }
+
+    /** Een vastloper (vanuit de foutafhandeling van App, vlak voordat het proces stopt): meteen wegschrijven. */
+    static void crash(Context c, Throwable t) {
+        try {
+            synchronized (LOCK) {
+                SharedPreferences p = prefs(c);
+                if (!p.getBoolean("on", true)) return;
+                JSONObject cr = new JSONObject(p.getString("crashes", "{}"));
+                String key = crashKey(t);
+                if (cr.has(key) || cr.length() < MAX_CRASHES) cr.put(key, cr.optInt(key) + 1);
+                SharedPreferences.Editor e = p.edit().putString("crashes", cr.toString());
+                if (!p.contains("since")) e.putLong("since", System.currentTimeMillis());
+                e.commit(); // apply() haalt het niet: het proces stopt zo meteen
+            }
         } catch (Throwable ignored) { }
     }
 
@@ -72,36 +86,42 @@ final class Statistiek {
         return kind != null && TAG.matcher(kind).matches() ? kind : "ANDERS";
     }
 
-    /** "soort fout | plek in de eigen code" uit een stacktrace, zonder de fouttekst (die kan gegevens bevatten). */
-    static String crashKey(String trace) {
-        String soort = "onbekend", plek = "buiten de app";
-        if (trace != null) {
-            String t = trace.length() > 20_000 ? trace.substring(0, 20_000) : trace;
-            // de oorzaak onderaan is meestal de echte fout; de eerste regel in de eigen code daarvan is de plek
-            int cause = t.lastIndexOf("Caused by: ");
-            String deel = cause >= 0 ? t.substring(cause) : t;
-            Matcher m = EXC.matcher(deel);
-            while (m.find()) {
-                String naam = m.group(1);
-                if (naam.contains("Exception") || naam.contains("Error") || naam.endsWith("Throwable")) { soort = naam; break; }
+    /** "soort fout | plek in de eigen code" uit de fout zelf (nooit de fouttekst: die kan gegevens bevatten).
+     *  De diepste oorzaak is de echte fout; de plek is de eerste regel in de eigen code (van de oorzaak, anders hoger). */
+    static String crashKey(Throwable t) {
+        if (t == null) return "onbekend | buiten de app";
+        java.util.List<Throwable> chain = new java.util.ArrayList<>();
+        for (Throwable x = t; x != null && chain.size() < 20 && !chain.contains(x); x = x.getCause()) chain.add(x);
+        Throwable root = chain.get(chain.size() - 1);
+        String plek = "buiten de app";
+        for (int i = chain.size() - 1; i >= 0 && "buiten de app".equals(plek); i--) {
+            for (StackTraceElement el : chain.get(i).getStackTrace()) {
+                String cls = el.getClassName();
+                if (cls == null || !cls.startsWith(OWN) || el.getLineNumber() < 0) continue;
+                String naam = cls.substring(OWN.length());
+                int d = naam.indexOf('$');
+                if (d > 0) naam = naam.substring(0, d);
+                plek = naam + "." + el.getMethodName() + ":" + el.getLineNumber();
+                break;
             }
-            Matcher f = FRAME.matcher(deel);
-            if (!f.find()) { f = FRAME.matcher(t); if (!f.find()) f = null; }
-            if (f != null) plek = f.group(1) + "." + f.group(2) + ":" + f.group(3);
         }
-        return soort + " | " + plek;
+        return root.getClass().getName() + " | " + plek;
     }
 
     // ---------- het rapport ----------
 
     /** Het weekrapport (alleen tellingen). Ook om te bekijken in de app ("Wat wordt er verstuurd?"). */
     static JSONObject report(Context c) throws Exception {
-        SharedPreferences p = prefs(c);
-        String toestel = Build.MANUFACTURER + " " + Build.MODEL;
-        return report(new JSONObject(p.getString("tags", "{}")), new JSONObject(p.getString("crashes", "{}")),
-                p.getLong("since", System.currentTimeMillis()), System.currentTimeMillis(),
-                Version.NAME, Version.CODE, Version.NATIVE_LEVEL, Build.VERSION.SDK_INT, toestel, installId(c),
-                Care.batteryProblem(c) != null);
+        boolean beperkt = Care.batteryProblem(c) != null;
+        String id = installId(c);
+        String tags, crashes;
+        long since;
+        synchronized (LOCK) {
+            SharedPreferences p = prefs(c);
+            tags = p.getString("tags", "{}"); crashes = p.getString("crashes", "{}"); since = p.getLong("since", System.currentTimeMillis());
+        }
+        return report(new JSONObject(tags), new JSONObject(crashes), since, System.currentTimeMillis(),
+                Version.NAME, Version.CODE, Version.NATIVE_LEVEL, Build.VERSION.SDK_INT, Build.MANUFACTURER + " " + Build.MODEL, id, beperkt);
     }
 
     /** Bouwt het rapport uit losse waarden (zonder Android: zo is het te testen). */
@@ -136,16 +156,20 @@ final class Statistiek {
     }
 
     /** Willekeurige naam van deze installatie (om toestellen uit elkaar te houden; zegt niets over wie het is). */
-    static synchronized String installId(Context c) {
-        SharedPreferences p = prefs(c);
-        String id = p.getString("id", "");
-        if (id.isEmpty()) { id = UUID.randomUUID().toString().substring(0, 8); p.edit().putString("id", id).apply(); }
-        return id;
+    static String installId(Context c) {
+        synchronized (LOCK) {
+            SharedPreferences p = prefs(c);
+            String id = p.getString("id", "");
+            if (id.isEmpty()) { id = UUID.randomUUID().toString().substring(0, 8); p.edit().putString("id", id).apply(); }
+            return id;
+        }
     }
 
     // ---------- instellen ----------
 
-    static boolean validRepo(String r) { return r != null && REPO.matcher(r).matches() && !r.contains(".."); }
+    static boolean validRepo(String r) {
+        return r != null && REPO.matcher(r).matches() && !r.contains("..") && !r.substring(r.indexOf('/') + 1).matches("\\.+");
+    }
     static boolean validToken(String t) { return t != null && TOKEN.matcher(t).matches(); }
 
     /** {on, repo, token (alleen of hij er is), since, lastSent, lastResult} voor het instellingenscherm. */
@@ -159,9 +183,11 @@ final class Statistiek {
     }
 
     static void setOn(Context c, boolean on) {
-        SharedPreferences.Editor e = prefs(c).edit().putBoolean("on", on);
-        if (!on) e.remove("tags").remove("crashes").remove("since"); // uit = ook de tellingen weg
-        e.apply();
+        synchronized (LOCK) {
+            SharedPreferences.Editor e = prefs(c).edit().putBoolean("on", on);
+            if (!on) e.remove("tags").remove("crashes").remove("since").remove("pendingPath").remove("pendingBody"); // uit = ook de tellingen weg
+            e.apply();
+        }
     }
 
     /** Repository en sleutel; een lege sleutel laat de bestaande staan. "" bij succes, anders de reden. */
@@ -170,7 +196,7 @@ final class Statistiek {
         token = token == null ? "" : token.trim();
         if (repo.isEmpty() && token.isEmpty()) { prefs(c).edit().remove("repo").remove("token").apply(); return ""; }
         if (!validRepo(repo)) return "Vul de repository in als eigenaar/naam, bijv. renevanes/renes-tools-statistiek";
-        if (!token.isEmpty() && !validToken(token)) return "Dit lijkt geen GitHub-sleutel";
+        if (!token.isEmpty() && !validToken(token)) return "Gebruik een fine-grained sleutel (begint met github_pat_) die alleen in deze repository mag schrijven";
         SharedPreferences.Editor e = prefs(c).edit().putString("repo", repo);
         if (!token.isEmpty()) {
             try { e.putString("token", seal(token)); } catch (Exception x) { return "Versleuteld bewaren lukt niet"; }
@@ -189,29 +215,46 @@ final class Statistiek {
         send(c);
     }
 
-    /** Verstuurt het rapport nu. "" bij succes, anders de reden (ook bewaard als lastResult). Niet op de hoofdthread. */
-    static synchronized String send(Context c) {
-        SharedPreferences p = prefs(c);
-        String result;
+    /** Verstuurt het rapport nu. "" bij succes, anders de reden (ook bewaard als lastResult). Niet op de hoofdthread.
+     *  De tellingen gaan eerst over naar een "klaarstaand" rapport (onder het slot, kort); daarna wordt zonder slot
+     *  verstuurd, zodat App.log nooit op het netwerk wacht. Lukt het niet, dan gaat dezelfde inhoud de volgende keer
+     *  opnieuw onder dezelfde naam (een 422 = die staat er al: dan was het toch aangekomen). */
+    static String send(Context c) {
+        if (!SENDING.compareAndSet(false, true)) return "Er wordt al verstuurd";
         try {
+            SharedPreferences p = prefs(c);
+            if (!p.getBoolean("on", true)) return "Staat uit";
             String repo = p.getString("repo", ""), sealed = p.getString("token", "");
             if (!validRepo(repo) || sealed.isEmpty()) return "Stel eerst de repository en de sleutel in";
-            JSONObject r = report(c);
-            long now = System.currentTimeMillis();
-            String path = "statistiek/" + iso(now).substring(0, 10) + "-" + installId(c) + ".json";
-            int code = put(repo, open(sealed), path, r.toString(2));
-            if (code == 201 || code == 200) {
-                // alleen de tellingen tot nu toe weg; wat er intussen bijkwam telt voor de volgende week
-                p.edit().remove("tags").remove("crashes").putLong("since", now).putLong("lastSent", now).apply();
-                result = "";
-            } else result = code == 401 || code == 403 ? "De sleutel werkt niet (meer), of mag niet in deze repository schrijven"
-                    : code == 404 ? "Repository niet gevonden (of de sleutel mag er niet bij)"
-                    : code == 422 ? "Er staat vandaag al een rapport" : "Versturen lukte niet (HTTP " + code + ")";
-        } catch (Exception e) {
-            result = "Versturen lukte niet (geen verbinding?)";
-        }
-        p.edit().putString("lastResult", result.isEmpty() ? "ok" : result).putLong("lastTry", System.currentTimeMillis()).apply();
-        return result;
+            String result;
+            try {
+                String path, body;
+                synchronized (LOCK) { // kort: alleen voorkeuren lezen en schrijven (het slot is herintreedbaar)
+                    path = p.getString("pendingPath", "");
+                    body = p.getString("pendingBody", "");
+                    if (path.isEmpty() || body.isEmpty()) {
+                        long now = System.currentTimeMillis();
+                        path = "statistiek/" + iso(now).substring(0, 10) + "-" + installId(c) + ".json";
+                        body = report(c).toString(2);
+                        // wat na dit moment geteld wordt, hoort bij het volgende rapport
+                        p.edit().putString("pendingPath", path).putString("pendingBody", body)
+                                .remove("tags").remove("crashes").putLong("since", now).commit();
+                    }
+                }
+                int code = put(repo, open(sealed), path, body);
+                if (code == 201 || code == 200 || code == 422) {
+                    synchronized (LOCK) {
+                        p.edit().remove("pendingPath").remove("pendingBody").putLong("lastSent", System.currentTimeMillis()).apply();
+                    }
+                    result = "";
+                } else result = code == 401 || code == 403 ? "De sleutel werkt niet (meer), of mag niet in deze repository schrijven"
+                        : code == 404 ? "Repository niet gevonden (of de sleutel mag er niet bij)" : "Versturen lukte niet (HTTP " + code + ")";
+            } catch (Exception e) {
+                result = "Versturen lukte niet (geen verbinding?)";
+            }
+            p.edit().putString("lastResult", result.isEmpty() ? "ok" : result).putLong("lastTry", System.currentTimeMillis()).apply();
+            return result;
+        } finally { SENDING.set(false); }
     }
 
     /** PUT naar de GitHub-API (vaste host, alleen https). Geeft de HTTP-status. */

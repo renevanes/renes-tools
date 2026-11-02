@@ -8,18 +8,23 @@ public class StatistiekTest {
     static void check(boolean ok, String m) { if (!ok) throw new AssertionError(m); System.out.println("✓ " + m); }
 
     public static void main(String[] a) throws Exception {
-        String trace = "thread main\njava.lang.IllegalStateException: sms van Jan 0612345678 over het feest\n"
-                + "\tat android.os.Handler.dispatch(Handler.java:10)\n\tat nl.rene.tools.Podcasts.open(Podcasts.java:72)\n"
-                + "\tat nl.rene.tools.MainActivity$Bridge.podcast(MainActivity.java:900)\n"
-                + "Caused by: java.io.FileNotFoundException: /storage/emulated/0/Jan de Vries.pdf\n\tat java.io.File.open(File.java:1)\n"
-                + "\tat nl.rene.tools.PdfTools.copy(PdfTools.java:91)\n";
-        String k = Statistiek.crashKey(trace);
+        Throwable cause = new java.io.FileNotFoundException("/storage/emulated/0/Jan de Vries.pdf");
+        cause.setStackTrace(new StackTraceElement[]{ new StackTraceElement("java.io.File", "open", "File.java", 1),
+                new StackTraceElement("nl.rene.tools.PdfTools", "copy", "PdfTools.java", 91) });
+        IllegalStateException top = new IllegalStateException("sms van Jan 0612345678 over het feest", cause);
+        top.setStackTrace(new StackTraceElement[]{ new StackTraceElement("android.os.Handler", "dispatch", "Handler.java", 10),
+                new StackTraceElement("nl.rene.tools.Podcasts", "open", "Podcasts.java", 72) });
+        String k = Statistiek.crashKey(top);
         check(k.equals("java.io.FileNotFoundException | PdfTools.copy:91"), "vastloper: soort en plek van de oorzaak (" + k + ")");
         check(!k.contains("Jan") && !k.contains("0612") && !k.contains("storage"), "geen fouttekst, naam, nummer of pad");
-        check(Statistiek.crashKey("thread x\njava.lang.OutOfMemoryError\n\tat java.util.Arrays.copyOf(Arrays.java:1)\n").equals("java.lang.OutOfMemoryError | buiten de app"), "fout buiten de eigen code");
-        check(Statistiek.crashKey("thread x\nkapot: geheim 123\n").equals("onbekend | buiten de app"), "onleesbaar: niets van de tekst");
+        Error oom = new OutOfMemoryError("geheim 123");
+        oom.setStackTrace(new StackTraceElement[]{ new StackTraceElement("java.util.Arrays", "copyOf", "Arrays.java", 1) });
+        check(Statistiek.crashKey(oom).equals("java.lang.OutOfMemoryError | buiten de app"), "fout buiten de eigen code");
+        Throwable noOwn = new IllegalStateException("x", new RuntimeException("y"));
+        noOwn.setStackTrace(new StackTraceElement[]{ new StackTraceElement("nl.rene.tools.Outer$Inner", "run", "Outer.java", 5) });
+        noOwn.getCause().setStackTrace(new StackTraceElement[0]);
+        check(Statistiek.crashKey(noOwn).equals("java.lang.RuntimeException | Outer.run:5"), "oorzaak zonder eigen code: plek van hoger; geneste class: buitenste naam");
         check(Statistiek.crashKey(null).equals("onbekend | buiten de app"), "leeg");
-        check(Statistiek.crashKey("java.lang.RuntimeException: x\n\tat nl.rene.tools.Outer$Inner.run(Outer.java:5)\n").equals("java.lang.RuntimeException | Outer.run:5"), "geneste class: buitenste naam");
 
         check(Statistiek.tag("BACKUP").equals("BACKUP") && Statistiek.tag("Jan belde").equals("ANDERS") && Statistiek.tag(null).equals("ANDERS")
                 && Statistiek.tag("0612345678").equals("ANDERS"), "alleen vaste namen als soort logregel");
@@ -27,7 +32,9 @@ public class StatistiekTest {
         check(Statistiek.validRepo("renevanes/renes-tools-statistiek") && !Statistiek.validRepo("renevanes") && !Statistiek.validRepo("a/../b")
                 && !Statistiek.validRepo("evil.com/x") && !Statistiek.validRepo("a/b?x=1") && !Statistiek.validRepo("a/b/c"), "repository: alleen eigenaar/naam");
         check(Statistiek.validToken("github_pat_11ABCDEFG0123456789_abcdefghijklmnopqrstuvwxyz") && !Statistiek.validToken("kort")
-                && !Statistiek.validToken("abc def ghi jkl mno pqr stu"), "sleutel: vorm van een GitHub-sleutel");
+                && !Statistiek.validToken("ghp_abcdefghijklmnopqrstuvwxyz0123456789") && !Statistiek.validToken("github_pat_abc def ghi jkl mno pqr"),
+                "sleutel: alleen een fine-grained sleutel");
+        check(!Statistiek.validRepo("renevanes/.") && !Statistiek.validRepo("renevanes/..."), "repository: niet alleen punten");
 
         JSONObject tags = new JSONObject().put("BACKUP", 3).put("PODCAST", 1).put("Jan de Vries", 2);
         JSONObject crashes = new JSONObject().put(k, 2);

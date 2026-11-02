@@ -19,7 +19,7 @@ const { chromium } = require('playwright');
     await pg.screenshot({ path: __dirname + '/shots/instellingen-' + scheme + '.png', fullPage: true });
     // Elk onderwerp opent zijn eigen scherm, terug = het overzicht
     const subs = [['Meldingen', 'setnotif', '#st-notif-mute'], ['Weergave', 'setlook', '#st-zoom'], ['Telefoon-skin', 'setskin', '#st-home-btn'], ['App-slot', 'setlock', '#st-lock-btn'],
-      ['Losse apps', 'setsolo', '#st-solo-list'], ['Toestemmingen', 'setperm', '#st-perms'], ['Backup-map', 'setbackup', '#st-dest'], ['Muziek herkennen', 'setmusic', '#st-audd', 'AudD-sleutel'], ['Foutrapport', 'setcrash', '#st-crash']];
+      ['Losse apps', 'setsolo', '#st-solo-list'], ['Toestemmingen', 'setperm', '#st-perms'], ['Backup-map', 'setbackup', '#st-dest'], ['Muziek herkennen', 'setmusic', '#st-audd', 'AudD-sleutel'], ['Foutrapport en statistieken', 'setcrash', '#st-crash']];
     for (const [t, scr, el, h1] of subs) {
       await pg.click('#s-settings .strow:has-text("' + t + '")'); await pg.waitForTimeout(120);
       const good = await pg.evaluate(s => current === s, scr) && await pg.isVisible(el) && (await pg.textContent('#s-' + scr + ' h1')) === (h1 || t);
