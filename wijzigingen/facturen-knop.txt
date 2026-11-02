@@ -1,0 +1,1 @@
+Facturen: de knop Leverancier toevoegen werkte niet zolang er nog geen leverancier was; opgelost.

@@ -37,6 +37,12 @@ public class FacturenTest {
         check(FacturenDrive.q("Rene's facturen").equals("Rene\\'s facturen"), "naam veilig in een Drive-zoekvraag");
         check(kpn.getString("submap").equals("KPN Zakelijk"), "mapnaam = naam");
 
+        // ---------- opgeslagen lijst ----------
+        check(Facturen.lijstUit("{}").length() == 0, "nog niets opgeslagen = lege lijst (knop Leverancier toevoegen werkt)");
+        check(Facturen.lijstUit("{\"lijst\":[{\"id\":\"a\"}]}").length() == 1, "opgeslagen lijst lezen");
+        boolean fout = false; try { Facturen.lijstUit("{\"x\":1}"); } catch (Exception e) { fout = true; }
+        check(fout, "echt onleesbaar blijft onleesbaar");
+
         // ---------- controleren ----------
         JSONObject basis = new JSONObject().put("naam", "Ziggo").put("startUrl", "https://www.ziggo.nl/mijn-ziggo");
         check(fout(basis).isEmpty(), "naam + https-adres is genoeg");

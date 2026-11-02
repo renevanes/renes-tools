@@ -255,9 +255,18 @@ final class Facturen {
 
     static JSONArray leveranciers(Context c) {
         synchronized (LOCK) {
-            try { return new JSONObject(JsonFileStore.read(levFile(c), Facturen::checkLijst)).optJSONArray("lijst"); }
+            try { return lijstUit(JsonFileStore.read(levFile(c), Facturen::checkLijst)); }
             catch (Exception e) { return null; }
         }
+    }
+
+    /** De lijst uit het bestand; nog geen bestand ("{}") = een lege lijst, niet "onleesbaar". */
+    static JSONArray lijstUit(String tekst) throws Exception {
+        JSONObject o = new JSONObject(tekst);
+        if (o.length() == 0) return new JSONArray();
+        JSONArray l = o.optJSONArray("lijst");
+        if (l == null) throw new Exception("onleesbaar");
+        return l;
     }
 
     static JSONArray lijst(Context c) { JSONArray l = leveranciers(c); return l == null ? new JSONArray() : l; }
