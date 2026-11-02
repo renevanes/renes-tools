@@ -82,7 +82,7 @@ jobs:
           OPRUIM: 'Opruimen: dode code en versimpelen'
         run: |
           {
-            echo "Automatisch bijgewerkt door de workflow Onderhoud ($(date -u +%F)). Afwerken in de maandelijkse opruimronde (AGENTS.md)."
+            echo "Automatisch bijgewerkt door de workflow Onderhoud ($(date -u +%F)). Afwerken in de wekelijkse opruimronde (AGENTS.md)."
             echo
             python3 .github/scripts/opruim-scan.py
           } > opruim.md

@@ -3,7 +3,7 @@
 
 Gebruik:  python3 .github/scripts/opruim-scan.py            (rapport)
           python3 .github/scripts/opruim-scan.py --json     (zelfde, als JSON)
-De workflow Onderhoud zet het rapport in het issue "Opruimen: dode code en versimpelen"; de maandelijkse
+De workflow Onderhoud zet het rapport in het issue "Opruimen: dode code en versimpelen"; de wekelijkse
 opruimronde (AGENTS.md) werkt het af. Alles is een *kandidaat*: de scan zoekt op naam, dus een naam die alleen in een
 tekenreeks wordt opgebouwd ('ci-' + x, "on" + naam, reflectie) ziet hij niet. Controleer altijd met grep vóór het weghalen.
 Bekende uitzonderingen (bewust laten staan) in .github/opruim-uitzonderingen.txt: één naam per regel, # = opmerking.

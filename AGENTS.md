@@ -178,14 +178,14 @@ Playwright, Node of Java van de CI.
    hierboven; controleer dat Publiceren slaagt. (Publiceren start alleen als `app/`, `web/`, `tools/`, `build.sh` of
    `publiceren.yml` veranderde; bij alleen andere workflows of scripts komt er geen run en geen nieuwe versie.) Is er niets veilig te doen, laat het dan staan en zet in het issue waarom.
 6. Meld Rene kort: wat bijgewerkt is, wat opgelost is, en wat bewust is blijven liggen.
-7. **Eerste maandag van de maand:** doe daarna ook de opruimronde hieronder (eigen branch `opruimen/JJJJ-MM`).
+7. **Elke keer:** doe daarna ook de opruimronde hieronder, met het rapport van die week (eigen branch `opruimen/JJJJ-MM-DD`).
 8. **Statistieken:** staat de privé repository met de weekrapporten (Instellingen → Foutrapport en statistieken, map
    `statistiek/`) open voor de sessie, lees dan de rapporten sinds vorige week. Vastlopers (soort + plek) en logsoorten die
    opeens vaak voorkomen: oplossen, of met de reden in het issue zetten. Niet bereikbaar: zeg dat in de reactie.
 Nooit in het kader van onderhoud: de updatecontrole, de sleutel of `publiceren.yml`-beveiliging verzwakken, of
 pull requests van anderen (mensen of andere bots dan Dependabot) samenvoegen.
 
-## Opruimen en versimpelen (maandelijks)
+## Opruimen en versimpelen (bij elke scan, dus wekelijks)
 De scan (`python3 .github/scripts/opruim-scan.py`, ook lokaal te draaien) zoekt op naam naar dode code (JS-functies,
 Java-classes en -methoden, brugfuncties, CSS-klassen) en naar plekken om te versimpelen (grootste bestanden, langste
 functies, herhaalde blokken Java). Het zijn **kandidaten**: hij ziet geen namen die in een tekenreeks worden opgebouwd.
@@ -197,12 +197,15 @@ functies, herhaalde blokken Java). Het zijn **kandidaten**: hij ziet geen namen 
    alleen met tests die het gedrag vóór en na vastleggen; ontbreekt zo'n test, schrijf die eerst.
 3. **Klein houden:** per ronde de duidelijkste kandidaten, liefst onder de ±500 gewijzigde regels; per onderwerp een commit.
 4. **Java = nieuwe APK.** Alles in `app/` laat `NATIVE_LEVEL` stijgen, dus Rene moet een APK installeren. Java-opruimwerk
-   daarom bundelen: hooguit één keer per maand, of meenemen met een andere app-wijziging. Opruimen in `web/` mag altijd.
+   daarom bundelen: elke week voorbereiden en testen, maar alleen publiceren als `app/` die week toch verandert of op de
+   eerste maandag van de maand (dan alles van die maand samen). Tot dan op de branch laten staan (pushen naar
+   `opruimen/…`, niet naar main) en in het issue noemen; de volgende ronde voegt die branch eerst samen.
+   Opruimen in `web/`, tests en scripts gaat elke week mee.
 5. **Niet in een opruimronde:** de updatecontrole (`Updater`, `WebUpdateStore`), versleuteling en sleutels (`Secure`,
    `Kluis`, `Lock`, `*Crypto*`, `WaCrypt`), backup terugzetten (`AppBackup`/`AppData`) en de publicatiescripts herschrijven.
    Dode code daar weghalen mag, met extra zorg in de review.
 6. Bouwen, `run-jvm.sh`, `run-ui.sh`, `check-bridge.py`, de controle op anonieme classes, onafhankelijke review, push naar
-   main zoals bij onderhoud. Verandert `app/`, `web/` of `tools/`, schrijf dan `wijzigingen/opruimen-JJJJ-MM.txt` met één
+   main zoals bij onderhoud. Verandert `app/`, `web/` of `tools/`, schrijf dan `wijzigingen/opruimen-JJJJ-MM-DD.txt` met één
    korte regel ("Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"); zonder bestand neemt Publiceren
    de commitregels over. Zet in het issue Opruimen wat weg is, wat bewust bleef en wat volgende maand aan de beurt is.
 
