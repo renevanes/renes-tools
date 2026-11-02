@@ -79,7 +79,8 @@ const { chromium } = require('playwright');
     await pg.click(yc); await pg.waitForTimeout(100);
     ok(!(await pg.isVisible('#ciq-day button:has-text("Achteraf invullen")')) && (await pg.textContent('#ciq-day')).includes('staat uit'), 'achteraf invullen uit: niet aangeboden');
     await pg.evaluate(() => { Android._ci.qs.find(x => x.id === 'voel').backfill = true; ciqLoad(); });
-    // Grafiek: maand, week, jaar; met tekst en tabel
+    // Grafiek: maand, week, jaar; met tekst en tabel. Begin van de maand: de ingevulde dagen vallen in de vorige maand
+    if (!(await pg.evaluate(ks => ks.some(k => k.slice(0, 7) === ciDayKey(ciqMonthAt).slice(0, 7)), D.keys))) { await pg.click('#ciq-prev'); await pg.waitForTimeout(200); }
     ok(await pg.isVisible('#ciq-chart svg[role=img]') && (await pg.getAttribute('#ciq-chart svg', 'aria-label')).includes('Gemiddeld'), 'grafiek (maand) met beschrijving');
     ok((await pg.$$('#ciq-chart .ci-bar')).length >= 1 && (await pg.$$('#ciq-chart .ci-avg')).length === 1, 'staafjes en gemiddelde');
     await pg.click('#ciq-chart summary'); await pg.waitForTimeout(50);

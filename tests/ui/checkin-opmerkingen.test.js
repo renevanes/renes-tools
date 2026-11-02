@@ -23,7 +23,8 @@ const { chromium } = require('playwright');
     });
     // Naar terugkijken, in de maand van gisteren (eergisteren kan in de maand ervoor vallen: dan die ook bekijken)
     await pg.evaluate(() => { show('checkin'); ciOpen('voel'); }); await pg.waitForTimeout(250);
-    const toMonth = async k => { for (let i = 0; i < 2 && await pg.evaluate(k => ciDayKey(ciqMonthAt).slice(0, 7) !== k.slice(0, 7), k); i++) { await pg.click('#ciq-prev'); await pg.waitForTimeout(150); } };
+    // Naar de maand van k, terug of vooruit (eerder kan een andere maand open staan, bijv. die van eergisteren)
+    const toMonth = async k => { for (let i = 0; i < 3; i++) { const d = await pg.evaluate(k => Math.sign(k.slice(0, 7).localeCompare(ciDayKey(ciqMonthAt).slice(0, 7))), k); if (!d) break; await pg.click(d < 0 ? '#ciq-prev' : '#ciq-next'); await pg.waitForTimeout(150); } };
     await toMonth(D.y);
     const yc = '#ciq-grid .ci-d[data-k="' + D.y + '"]';
     ok(!(await pg.$(yc + ' .ci-rm')), 'gisteren: nog geen stip');

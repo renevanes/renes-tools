@@ -71,6 +71,11 @@ const { chromium } = require('playwright');
   await pg.evaluate(() => { Android._ai.st.klein = { state: 'ready' }; Android._ai.src.gebruik = true; enterAi(); });
   await pg.fill('#ai-in', 'Hoeveel schermtijd vandaag?'); await pg.click('#ai-send'); await pg.waitForTimeout(250);
   ok((await pg.textContent('#ai-msgs .aimsg:last-child')).includes('In een losse app kijk ik niet in je Gebruik') && !(await pg.evaluate(() => Android._ai.calls.some(c => c[0] === 'data'))), 'losse app: niet in Gebruik kijken');
+  // Losse app: ook niet zoeken in notities, sms of WhatsApp (geen knop, geen voorbeeld, en de vraag gaat zonder zoeken)
+  await pg.evaluate(() => { Android._ai.st.zoek = { state: 'ready' }; Android._ai.notes = true; Android._ai.src.sms = true; aiNew(); enterAi(); }); await pg.waitForTimeout(200);
+  ok(await pg.evaluate(() => aiReady('zoek') && aiSt.notes) && !(await pg.isVisible('#ai-notes')) && !(await pg.textContent('#ai-sugg')).includes('in mijn notities'), 'losse app: geen knop of voorbeeld om in je gegevens te zoeken');
+  await pg.fill('#ai-in', 'Wat schreef Jan over zaterdag?'); await pg.click('#ai-send'); await pg.waitForTimeout(300);
+  ok(await pg.evaluate(() => Android._ai.last && Android._ai.last.notes === false), 'losse app: de vraag gaat zonder zoeken in je gegevens');
   await b.close();
   console.log('errors', errs);
 })();

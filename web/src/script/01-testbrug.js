@@ -1,6 +1,9 @@
 /* In een gewone browser (voorbeeld/test) bestaat de Android-brug niet: dan een test-brug. */
 if (!window.Android) window.Android = (function(){
   let st = {running:false, phase:'idle'}, t0 = 0, timer = null;
+  // Twee ritten (gisteren en eergisteren), altijd in deze maand: aan het begin van de maand dichter bij elkaar
+  const TB_TRIP = (() => { const n = Date.now(), m = new Date(n); m.setDate(1); m.setHours(0, 0, 0, 0);
+    return n - 2 * 864e5 >= m.getTime() ? [n - 864e5, n - 2 * 864e5] : [m.getTime() + (n - m.getTime()) * 2 / 3, m.getTime() + (n - m.getTime()) / 3]; })();
   const tick = () => {
     const el = Date.now() - t0, per = st.interval*1000 + 6000, a = Math.floor(el/per)+1, inCall = (el%per) < 6000;
     if (st.maxAttempts && a > st.maxAttempts) { st = {...st, running:false, phase:'done', result:'maxed', message:'Niet opgenomen na '+st.maxAttempts+' pogingen'}; clearInterval(timer); return; }
@@ -181,7 +184,7 @@ if (!window.Android) window.Android = (function(){
     radioCache(){ return '[]'; },
     radioFavorites(){ return JSON.stringify(this._rd.favs); },
     radioToggleFav(j){ const s=JSON.parse(j); const i=this._rd.favs.findIndex(f=>f.id===s.id); if(i>=0){ this._rd.favs.splice(i,1); return false; } this._rd.favs.push(s); return true; },
-    _car: {addr: '', trips: false, defType: 'prive', log: [{t: Date.now() - 7200e3, lat: 51.92, lon: 4.48, acc: 12}], tripList: [{id: 't1', start: Date.now() - 864e5, end: Date.now() - 864e5 + 1800e3, m: 23400, type: 'zakelijk', note: 'Klant', route: '1__Rit.trk'}, {id: 't2', start: Date.now() - 2 * 864e5, end: Date.now() - 2 * 864e5 + 900e3, m: 8100, type: 'prive', note: '', route: ''}], locOk: true, bgLoc: false, btOk: true, battery: false, dest: true},
+    _car: {addr: '', trips: false, defType: 'prive', log: [{t: Date.now() - 7200e3, lat: 51.92, lon: 4.48, acc: 12}], tripList: [{id: 't1', start: TB_TRIP[0], end: TB_TRIP[0] + 1800e3, m: 23400, type: 'zakelijk', note: 'Klant', route: '1__Rit.trk'}, {id: 't2', start: TB_TRIP[1], end: TB_TRIP[1] + 900e3, m: 8100, type: 'prive', note: '', route: ''}], locOk: true, bgLoc: false, btOk: true, battery: false, dest: true},
     carState(){ return JSON.stringify(this._car); }, carSet(a, n, t, d){ Object.assign(this._car, {addr: a, name: n, trips: t, defType: d}); },
     carParkNow(){ this._car.park = {t: Date.now(), how: 'hand', lat: 51.92, lon: 4.48, acc: 8}; setTimeout(() => onCarChanged('ok'), 50); }, carLeft(){ delete this._car.park; },
     carTripSet(id, type, note){ const t = this._car.tripList.find(x => x.id === id); if (t) { if (type != null) t.type = type; if (note != null) t.note = note; } return ''; },

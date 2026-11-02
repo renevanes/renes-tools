@@ -140,10 +140,10 @@ function aiRenderMain(){
   }
   $('#ai-newmodel').innerHTML = aiNewHtml();
   const n = $('#ai-notes');
-  n.style.display = aiReady('zoek') ? '' : 'none';
+  n.style.display = aiReady('zoek') && !SOLO ? '' : 'none'; // losse app (zonder app-slot): niet zoeken in je gegevens
   n.classList.toggle('on', !!aiSt.notes); n.setAttribute('aria-checked', aiSt.notes ? 'true' : 'false');
   $('#ai-sugg').innerHTML = '<p class="note aisugh">Wat ik kan: vragen beantwoorden, je eigen gegevens bekijken (alleen wat je aanzet), en dingen voor je klaarzetten, altijd pas na jouw tik. Alles blijft op je telefoon.</p>' +
-    AI_SUGG.filter(s => (!s[2] || aiReady('zoek')) && (s[3] !== 'gesprek' || aiTalkCan())).map(s => '<button class="chip' + (s[3] ? ' new' : '') + '" onclick="aiSugg(' + AI_SUGG.indexOf(s) + ')">' + (s[3] === 'gesprek' ? uiIcon('mic') : '') + esc(s[0]) + '</button>').join('');
+    AI_SUGG.filter(s => (!s[2] || aiReady('zoek') && !SOLO) && (s[3] !== 'gesprek' || aiTalkCan())).map(s => '<button class="chip' + (s[3] ? ' new' : '') + '" onclick="aiSugg(' + AI_SUGG.indexOf(s) + ')">' + (s[3] === 'gesprek' ? uiIcon('mic') : '') + esc(s[0]) + '</button>').join('');
   aiSendBtn();
 }
 const AI_SET_SUGG = ['Hoeveel schermtijd vandaag?', 'Zet een timer van 10 minuten', 'Wat kan ik instellen bij de assistent?', 'Waar vind ik de tekstgrootte?', 'Zet de nachtelijke backup aan'];
@@ -244,7 +244,7 @@ function aiAsk(opt){
   aiSentAt = Date.now(); clearTimeout(aiSentT); aiSentT = setTimeout(() => { aiSentAt = 0; aiSendBtn(); }, AI_TAP_MS);
   aiRenderMsgs(); aiSendBtn();
   aiLearnFor = null;
-  const e = Android.aiChat(JSON.stringify(Object.assign({ messages: msgs, notes: !!aiSt.notes && aiReady('zoek') && !lastQ.att, chat: aiChat.id || '', title: aiChat.title || '' },
+  const e = Android.aiChat(JSON.stringify(Object.assign({ messages: msgs, notes: !SOLO && !!aiSt.notes && aiReady('zoek') && !lastQ.att, chat: aiChat.id || '', title: aiChat.title || '' },
     others ? { noLearn: true, noAct: true } : {}, lastQ.att ? { sum: true } : {}, opt && !others ? { settings: opt.settings } : {}, noDo && !others ? { noDo: true } : {})));
   if (e === AI_BUSY) {
     // Er loopt nog een antwoord (bijv. van een dubbele tik): deze vraag niet nog eens beantwoorden
