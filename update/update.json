@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.123",
-  "versionCode": 124,
-  "nativeLevel": 110,
+  "versionName": "1.124",
+  "versionCode": 125,
+  "nativeLevel": 111,
   "web": "index.html",
-  "webSha256": "6310b29410ed7ff3d71589786e3effd01cb00878782c391bd0ab878b42138214",
+  "webSha256": "8e9f95093e4751fc67c8445cb861ca595e63f11d443f8e2194fc060ad0d3fd7d",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "ca26743d93085fb16ef96631ad20f5569f4377cf3ce6f050842b5b8b1f4c28b1",
+  "apkSha256": "319f0db945870969cc6bb86bda9b7237c1298fa9f6086405c9e688a83626c0b2",
   "changelog": [
+    {
+      "version": "1.124",
+      "date": "2026-11-02",
+      "changes": [
+        "Facturen: de knop Leverancier toevoegen werkte niet zolang er nog geen leverancier was; opgelost."
+      ]
+    },
     {
       "version": "1.123",
       "date": "2026-11-02",
@@ -1091,5 +1098,5 @@
       ]
     }
   ],
-  "webSig2": "SBlKz1ckWYDjz1SdhZp7+Ooxu81wleJeBHPJkr8tAc8CiT9b231f+Mj0MbZRJ02LV/srgybW7RzNjRn9kRdhHJrir8mRbKr2zy615WAe0iUxFbLjWJNslMVwzafg9/FXzGFICo9JRyF5CCYMw4xDjN1H2zomYsGlsDDBIo41teRKH6pyTutRfiWE2E5uURA4iUNQiGidBMaJni5K96A2XAsIATtCL2XpZzZf5UbeUzmyFNVu2WwY1mUnuT2X5n5s/Klhv3lGe+19cSB5QFOck4id51neAa+ayzMKsp74WqabAwSOAyBKwm7h5EWthk47L3tCE3SsK9V0wE71ltU3KtnYPmuiUA1q2bSeqoQb7uIRGJWJ0g3Z5Y3ShNR60g2w6kQdhT41dV0xxuDsCC3RgTHIpigxj2wpDfXZvNBb/4IU12c0L2O/ZBtPuG3+WUuaRhIhdNH06Z5/jN0w/cpziF9TFkoKUjQX5wIvS5pC8vCbpc1Ct8edg1K4vDEL46cC"
+  "webSig2": "Xb6T9bngAo9Qjw1kj0AI3R0eqvdLg5LVyG38yNvOczBPOARzlssB4tcXFpQ6s0BGnqeIHFHJgCU4lmqaDilTC966KG0OlCSy7J6gAgVmlb0ApXZXjhmGZAkt24yk6ZFHxYtzGCvvjwXsd4s66yC0W6Nu5uHoNXJuq/QYYz+STtzBNZAxpd7TPTMMq96h4S06pRMcl4Ea6rP2QEcaIeC+6Pjn7mFuhzecQxxcQ7Eua0osJeIx0GZPuvyRxR8IBBDSTkAyg13USd0bjD33LzMeylnYWRtdwJiQrGB2vqbuyetEuY8E+mX8j03LbBuyV9quoN4ozZhHGoVR+mIfxFMZMiVphLluBP7WjqeMtrpKMMsckeh8azRzZ8ImsYf2JM59BEx3xyO+SS4t0ABNcVDy4trzWbPNM4R7aIm14Lf9MhHDHlQK5hw8FNK+h3A7rR3fYQcAWvAVkMs3dLU6zsOJ2WKCN4IWre1xiMNodlJlWMd8eqZG92SGB5ZKxrULlb2e"
 }

@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.124",
+    "date": "2026-11-02",
+    "changes": [
+      "Facturen: de knop Leverancier toevoegen werkte niet zolang er nog geen leverancier was; opgelost."
+    ]
+  },
+  {
     "version": "1.123",
     "date": "2026-11-02",
     "changes": [
