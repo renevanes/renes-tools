@@ -161,8 +161,8 @@ public class FacturenBridge extends GebruikBridge {
 
     @JavascriptInterface public void facturenMapLos() {
         android.net.Uri u = Facturen.lokaleMap(ctx);
-        if (u != null) try { ctx.getContentResolver().releasePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION); } catch (Exception ignored) { }
         Facturen.prefs(ctx).edit().remove("lokaal").apply();
+        Facturen.laatMapLos(ctx, u);
     }
 
     /** Google Drive koppelen: opent de inlogpagina van Google in de browser. Antwoord via onFacturenDrive({error|naam}). */

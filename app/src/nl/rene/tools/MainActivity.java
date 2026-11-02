@@ -632,7 +632,9 @@ public class MainActivity extends Activity {
             if (res == RESULT_OK && data != null && data.getData() != null) {
                 try {
                     getContentResolver().takePersistableUriPermission(data.getData(), Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                    Uri oud = Facturen.lokaleMap(this);
                     Facturen.prefs(this).edit().putString("lokaal", data.getData().toString()).apply();
+                    if (oud != null && !oud.equals(data.getData())) Facturen.laatMapLos(this, oud);
                 } catch (Exception e) { fout = "Deze map kan niet worden gebruikt"; }
             } else fout = "geen";
             js("onFacturenMap", JSONObject.quote(fout));

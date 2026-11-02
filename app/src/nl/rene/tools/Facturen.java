@@ -436,6 +436,17 @@ final class Facturen {
         return s == null ? null : Uri.parse(s);
     }
 
+    /** Toegang tot een vroeger gekozen map teruggeven, maar nooit als de backup-map dezelfde map is. */
+    static void laatMapLos(Context c, Uri u) {
+        if (u == null) return;
+        Uri backup = WaBackup.destUri(c), nu = lokaleMap(c);
+        if (u.equals(backup) || u.equals(nu)) return;
+        try {
+            for (android.content.UriPermission p : c.getContentResolver().getPersistedUriPermissions())
+                if (p.getUri().equals(u)) { c.getContentResolver().releasePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION); break; }
+        } catch (Exception ignored) { }
+    }
+
     static String kort(Throwable e) {
         String m = e instanceof java.net.UnknownHostException || e instanceof java.net.SocketTimeoutException || e instanceof java.net.ConnectException
                 ? "geen verbinding" : e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();

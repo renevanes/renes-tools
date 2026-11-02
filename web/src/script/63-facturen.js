@@ -146,7 +146,8 @@ function faGdKoppel(){
   $('#fa-gd-msg').textContent = '';
   const id = $('#fa-gd-id').value.trim(), geheim = $('#fa-gd-geheim').value.trim();
   if (!/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(id)) { $('#fa-gd-msg').textContent = 'Een Client ID van Google eindigt op .apps.googleusercontent.com. Kopieer hem uit je Google-project.'; return; }
-  if (!geheim && !(faSt.drive || {}).heeftGeheim) { $('#fa-gd-msg').textContent = 'Vul ook het Client secret in.'; return; }
+  const gd = faSt.drive || {};
+  if (!geheim && (!gd.heeftGeheim || id !== gd.clientId)) { $('#fa-gd-msg').textContent = 'Vul ook het Client secret in' + (gd.heeftGeheim ? ' (nieuwe Client ID = ook een nieuw secret).' : '.'); return; }
   const e = Android.facturenDriveKoppel(id, geheim);
   $('#fa-gd-geheim').value = '';
   if (e) { $('#fa-gd-msg').textContent = e; return; }

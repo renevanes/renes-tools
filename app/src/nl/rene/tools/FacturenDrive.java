@@ -52,6 +52,7 @@ final class FacturenDrive {
         final String sec = geheim == null || geheim.trim().isEmpty() ? Facturen.geheim(c, "gd_secret") : geheim.trim();
         if (sec == null || sec.isEmpty()) throw new Exception("Vul ook het Client secret in");
         ServerSocket oud = wacht;
+        wacht = null; // eerst loslaten: de oude poging stopt dan stil (geen "afgebroken" midden in de nieuwe)
         if (oud != null) try { oud.close(); } catch (Exception ignored) { }
         final ServerSocket ss = new ServerSocket();
         ss.setReuseAddress(true);
@@ -76,19 +77,22 @@ final class FacturenDrive {
                 JSONObject t = form("grant_type=authorization_code&code=" + enc((String) got[0]) + "&redirect_uri=" + enc(REDIRECT)
                         + "&client_id=" + enc(cid) + "&client_secret=" + enc(sec) + "&code_verifier=" + enc(verifier));
                 if (t.has("error")) throw new Exception("Google: " + t.optString("error_description", t.optString("error")));
-                String refresh = t.optString("refresh_token", "");
-                if (refresh.isEmpty()) throw new Exception("Google gaf geen blijvende toegang; probeer opnieuw");
-                Facturen.zetGeheim(app, "gd_secret", sec);
-                Facturen.zetGeheim(app, "gd_refresh", refresh);
-                prefs(app).edit().putString("gdClientId", cid).remove("gdMappen").apply();
-                synchronized (TOKEN_LOCK) { access = t.optString("access_token", null); accessTot = System.currentTimeMillis() + Math.max(0, t.optLong("expires_in", 3600) - 120) * 1000L; }
-                JSONObject over = api(app, "GET", API + "/about?fields=user(emailAddress,displayName)", null);
+                String refresh = t.optString("refresh_token", ""), acc = t.optString("access_token", "");
+                if (refresh.isEmpty() || acc.isEmpty()) throw new Exception("Google gaf geen blijvende toegang; probeer opnieuw");
+                // Eerst kijken of Drive echt werkt (Drive API aan?), pas dan bewaren
+                JSONObject over = metToken(acc, API + "/about?fields=user(emailAddress,displayName)");
+                synchronized (TOKEN_LOCK) {
+                    Facturen.zetGeheim(app, "gd_secret", sec);
+                    Facturen.zetGeheim(app, "gd_refresh", refresh);
+                    prefs(app).edit().putString("gdClientId", cid).remove("gdMappen").apply();
+                    access = acc; accessTot = System.currentTimeMillis() + Math.max(0, t.optLong("expires_in", 3600) - 120) * 1000L;
+                }
                 JSONObject u = over.optJSONObject("user");
                 naam = u == null ? "" : u.optString("emailAddress", u.optString("displayName", ""));
                 prefs(app).edit().putString("gdGebruiker", naam).apply();
                 Spotify.reply(browser, 200, "✓ Google Drive is gekoppeld met Tools" + (naam.isEmpty() ? "" : " (" + Spotify.esc(naam) + ")") + ". Je kunt dit tabblad sluiten en terug naar de app.");
             } catch (Spotify.LoginEnd e) { err = e.getMessage();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 err = e.getMessage() == null ? "Koppelen lukt niet" : e.getMessage().replace("Spotify: ", "Google: ");
                 if (browser != null) Spotify.reply(browser, 200, "Niet gekoppeld: " + Spotify.esc(err) + ". Probeer het opnieuw vanuit de app.");
             } finally {
@@ -103,11 +107,44 @@ final class FacturenDrive {
                 + "&access_type=offline&prompt=consent";
     }
 
+    /** Ontkoppelen (knop): ook bij Google intrekken, op de achtergrond. Het secret blijft: opnieuw koppelen zonder overtypen. */
     static void ontkoppel(Context c) {
-        ServerSocket ss = wacht; if (ss != null) try { ss.close(); } catch (Exception ignored) { }
-        synchronized (TOKEN_LOCK) { access = null; accessTot = 0; }
-        Facturen.geheim(c).edit().remove("gd_refresh").apply(); // geheim blijft: opnieuw koppelen zonder overtypen
-        prefs(c).edit().remove("gdGebruiker").remove("gdMappen").apply();
+        ServerSocket ss = wacht; wacht = null; if (ss != null) try { ss.close(); } catch (Exception ignored) { }
+        final String refresh;
+        synchronized (TOKEN_LOCK) {
+            refresh = Facturen.geheim(c, "gd_refresh");
+            access = null; accessTot = 0;
+            Facturen.geheim(c).edit().remove("gd_refresh").apply();
+            prefs(c).edit().remove("gdGebruiker").remove("gdMappen").apply();
+        }
+        if (refresh != null) new Thread(() -> {
+            try {
+                HttpURLConnection h = (HttpURLConnection) new URL("https://oauth2.googleapis.com/revoke?token=" + enc(refresh)).openConnection();
+                h.setConnectTimeout(15_000); h.setReadTimeout(15_000); h.setRequestMethod("POST"); h.setDoOutput(true);
+                h.setRequestProperty("Content-Type", "application/x-www-form-urlencoded"); h.setFixedLengthStreamingMode(0);
+                h.getOutputStream().close(); h.getResponseCode(); h.disconnect();
+            } catch (Throwable ignored) { }
+        }, "facturen-drive-intrekken").start();
+    }
+
+    /** Eén GET met een gegeven token (bij het koppelen, voordat er iets bewaard is). */
+    private static JSONObject metToken(String token, String url) throws Exception {
+        HttpURLConnection h = (HttpURLConnection) new URL(url).openConnection();
+        try {
+            h.setConnectTimeout(20_000); h.setReadTimeout(30_000);
+            h.setRequestProperty("Authorization", "Bearer " + token);
+            int code = h.getResponseCode();
+            InputStream in = code >= 400 ? h.getErrorStream() : h.getInputStream();
+            String t = in == null ? "" : new String(Facturen.lees(in, 1_000_000), StandardCharsets.UTF_8);
+            JSONObject o = t.trim().startsWith("{") ? new JSONObject(t) : new JSONObject();
+            if (code >= 400) {
+                JSONObject e = o.optJSONObject("error");
+                String m = e == null ? "" : e.optString("message", "");
+                if (code == 403) m = "zet eerst de Google Drive API aan in je Google-project (stap 2)";
+                throw new Exception("Google Drive: " + (m.isEmpty() ? "fout " + code : m));
+            }
+            return o;
+        } finally { h.disconnect(); }
     }
 
     // ---------- toegang ----------
@@ -118,7 +155,13 @@ final class FacturenDrive {
             String refresh = Facturen.geheim(c, "gd_refresh"), sec = Facturen.geheim(c, "gd_secret");
             if (refresh == null || sec == null) throw new Exception("Koppel Google Drive (opnieuw) in Facturen");
             JSONObject t = form("grant_type=refresh_token&refresh_token=" + enc(refresh) + "&client_id=" + enc(prefs(c).getString("gdClientId", "")) + "&client_secret=" + enc(sec));
-            if ("invalid_grant".equals(t.optString("error"))) { ontkoppel(c); throw new Exception("Google vraagt om opnieuw koppelen (staat je Google-app op 'In productie'?)"); }
+            if ("invalid_grant".equals(t.optString("error"))) {
+                if (refresh.equals(Facturen.geheim(c, "gd_refresh"))) { // niet een net opnieuw gekoppelde sleutel weghalen
+                    Facturen.geheim(c).edit().remove("gd_refresh").apply();
+                    prefs(c).edit().remove("gdGebruiker").apply();
+                }
+                throw new Exception("Google vraagt om opnieuw koppelen (staat je Google-app op 'In productie'?)");
+            }
             if (t.has("error") || t.optString("access_token").isEmpty()) throw new Exception("Google: " + t.optString("error_description", t.optString("error", "geen toegang")));
             access = t.getString("access_token");
             accessTot = System.currentTimeMillis() + Math.max(0, t.optLong("expires_in", 3600) - 120) * 1000L;
