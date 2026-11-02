@@ -391,7 +391,7 @@ function pdTitleBar(){
   // Eén kop tegelijk voor de schermlezer: de verborgen h1 in de balk niet; na scrollen is de titel in de kop gewone tekst
   // (niet verborgen: de focus kan er nog op staan)
   const h1 = $('#pd-h1'), t = $('#pd-title');
-  if (h1) { if (past) h1.removeAttribute('aria-hidden'); else h1.setAttribute('aria-hidden', 'true'); }
+  if (h1) { if (past || document.activeElement === h1) h1.removeAttribute('aria-hidden'); else h1.setAttribute('aria-hidden', 'true'); }
   if (t) { if (past) { t.removeAttribute('role'); t.removeAttribute('aria-level'); } else { t.setAttribute('role', 'heading'); t.setAttribute('aria-level', '2'); } }
 }
 addEventListener('scroll', () => { if (current === 'podcast') pdTitleBar(); }, { passive: true });

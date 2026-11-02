@@ -53,7 +53,7 @@ final class AiData {
     static boolean explain(String s) { return EXPLAIN.matcher(s).find(); }
 
     /** Na "op": een woord dat een app kan zijn ("op whatsapp"), niet "op de bank", "op mijn werk" of "op school". */
-    private static final String APP_WORD = "(?!(?:de|het|een|mijn|m'n|je|jouw|zijn|haar|ons|onze|hun|deze|die|dat|dit|school|werk|bed|reis|vakantie|bezoek|kantoor|tijd|weg|straat|zee|stap)\\b)[a-z0-9][\\w.+'-]*";
+    private static final String APP_WORD = "(?!(?:de|het|een|mijn|m'n|je|jouw|zijn|haar|ons|onze|hun|deze|die|dat|dit|school|werk|bed|reis|vakantie|bezoek|kantoor|tijd|weg|straat|zee|stap|stage|training|les|cursus|kamp|pad|visite|zolder|internet|vakantie|terras|hem|haar|jou|u|iemand|elkaar|zichzelf|mezelf|jezelf|hen|ze|jullie|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|vandaag|gisteren|zondag|weekend|reis)\\b)[a-z0-9][\\w.+'-]*";
     private static final Pattern T_GEBRUIK = Pattern.compile("schermtijd|scherm tijd|screen ?time|telefoongebruik|appgebruik|ontgrendel"
             + "|mislukte (?:poging|ontgrendel|code|pincode)|verkeerde (?:code|pincode)|op (?:mijn|m'n|de) (?:telefoon|mobiel) (?:gezeten|geweest|bezig)"
             + "|(?:hoe lang|hoeveel tijd|hoeveel uur|hoeveel minuten)\\b.{0,50}\\b(?:telefoon|mobiel|gebruikt|gezeten)"
@@ -77,27 +77,27 @@ final class AiData {
     private static final Pattern NAME_AFTER = Pattern.compile("\\b(?:heeft|had|gebruikt|gebruikte|zei|praatte|deed|sliep)\\s+([A-Z][a-zà-ÿ]+)\\b");
     private static final Pattern NAME_BEFORE = Pattern.compile("\\b([A-Z][a-zà-ÿ]+)\\s+(?:heeft|had|gebruikt|gebruikte|zei|praatte|deed|sliep)\\b");
     private static final Pattern NOT_PERSON = Pattern.compile("(?i)hoeveel|hoe|wat|wie|waar|wanneer|welke|welk|waarom|ik|je|jij|hij|zij|ze|we|wij|het|dat|dit|er|mijn|gisteren|vandaag|vannacht|deze|die"
-            + "|toen|dus|daarna|daarvoor|nu|dan|echt|ook|wel|niet|nog|al|soms|vaak|altijd|nooit|eerst|later|vanochtend|vanmiddag|vanavond|gisteravond|gisternacht|morgen|eergisteren"
-            + "|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|weekend|vorige|afgelopen|vanmorgen"
-            + "|januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december"
             + "|chrome|spotify|instagram|facebook|gmail|netflix|google|telegram|signal|snapchat|outlook|teams|tiktok|youtube|maps|tools|slaappraat|gebruik");
-    /** Na het werkwoord: "Toen zei ik", "Dus had je": het woord ervoor is dan geen persoon. */
-    private static final Pattern SELF_NEXT = Pattern.compile("^\\s+(?:ik|je|jij|we|wij|me|mij)\\b", Pattern.CASE_INSENSITIVE);
-    /** "Hoeveel tijd heeft Duolingo me gekost": een app die tijd kost, geen persoon. */
-    private static final Pattern COST = Pattern.compile("(?i)\\b(?:gekost|kostte)\\b");
+    /** Alleen aan het begin van een zin geen persoon ("Toen zei ik", "Maandag had ik"); midden in de zin kan het een naam zijn (Dan, Al, Mei). */
+    private static final Pattern NOT_PERSON_START = Pattern.compile("(?i)toen|dus|daarna|daarvoor|nu|dan|echt|ook|wel|niet|nog|al|soms|vaak|altijd|nooit|eerst|later"
+            + "|vanochtend|vanmorgen|vanmiddag|vanavond|gisteravond|gisternacht|morgen|eergisteren|vorige|afgelopen|weekend"
+            + "|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag"
+            + "|januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december");
+    private static final Pattern SENTENCE_START = Pattern.compile("(?:^|[.?!,;:]\\s*)$");
+    /** "Hoeveel tijd heeft Duolingo me gekost": direct na de naam "me … gekost" = een app die tijd kost, geen persoon. */
+    private static final Pattern COST_NEXT = Pattern.compile("^\\s+(?:me|mij)\\b.{0,30}\\b(?:gekost|kostte)\\b", Pattern.CASE_INSENSITIVE);
     /** Gaat de vraag over iemand anders dan jezelf? Zuiver (getest). */
     static boolean aboutOther(String q, List<String> nicks) {
         if (q == null) return false;
         String raw = q.replace('’', '\'');
         if (OTHER.matcher(raw.toLowerCase(Locale.ROOT)).find()) return true;
-        boolean cost = COST.matcher(raw).find();
         for (Pattern p : new Pattern[]{NAME_AFTER, NAME_BEFORE}) {
             Matcher m = p.matcher(raw);
             while (m.find()) {
                 String n = m.group(1);
                 if (NOT_PERSON.matcher(n).matches()) continue;
-                if (p == NAME_BEFORE && SELF_NEXT.matcher(raw.substring(m.end())).find()) continue; // "Toen zei ik …"
-                if (p == NAME_AFTER && cost) continue; // "heeft Duolingo me gekost": een app
+                if (NOT_PERSON_START.matcher(n).matches() && SENTENCE_START.matcher(raw.substring(0, m.start(1)).trim()).find()) continue; // "Toen zei ik …"
+                if (p == NAME_AFTER && COST_NEXT.matcher(raw.substring(m.end(1))).find()) continue; // "heeft Duolingo me gekost": een app
                 boolean dev = false;
                 if (nicks != null) for (String k : nicks) if (nameHit(n.toLowerCase(Locale.ROOT), k)) dev = true;
                 if (!dev) return true;
@@ -229,20 +229,18 @@ final class AiData {
         // Eén app ("hoe lang zat ik op WhatsApp", "hoeveel tijd heeft Duolingo me gekost")
         String asked = askedApp(s);
         JSONArray apps = p.optJSONArray("apps");
-        if (apps != null) for (int i = 0; i < apps.length(); i++) {
+        if (apps != null) for (int pass = 0; pass < 2; pass++) for (int i = 0; i < apps.length(); i++) { // eerst precies de naam, dan het begin ervan
             JSONObject x = apps.optJSONObject(i);
             String nm = x.optString("name").toLowerCase(Locale.ROOT);
-            if (nm.length() >= 3 && ((" " + s + " ").contains(" " + nm + " ") || (asked.length() >= 4 && nm.startsWith(asked)))) {
+            if (nm.length() >= 3 && (pass == 0 ? (" " + s + " ").contains(" " + nm + " ") : asked.length() >= 4 && nm.startsWith(asked))) {
                 if (yest) { a.text = "Per app weet ik alleen vandaag en de afgelopen 7 dagen. Vandaag: " + x.optString("name") + " **" + dur(x.optLong("ms")) + "**."; return a; }
                 a.text = when + " gebruikte je " + x.optString("name") + " **" + dur(x.optLong("ms")) + "**" + (x.optInt("opens") > 0 ? ", " + x.optInt("opens") + " keer geopend." : ".");
                 return a;
             }
         }
-        if (!asked.isEmpty()) { // naar één app gevraagd die er niet bij staat: niet de totale schermtijd als antwoord
-            a.text = (week ? "De afgelopen 7 dagen" : yest ? "Per app weet ik alleen vandaag en de afgelopen 7 dagen. Vandaag" : "Vandaag") + " zie ik geen gebruik van **" + asked + "**."
-                    + " Alle apps staan bij Gebruik.";
-            return a;
-        }
+        // Naar één ding gevraagd dat niet bij de apps staat (misschien geen app, misschien niet gebruikt): niet de totale
+        // schermtijd als antwoord, maar het taalmodel met de feiten erbij
+        if (!asked.isEmpty()) return null;
         if (Pattern.compile("welke apps?|meest|vaakst|langst").matcher(s).find()) {
             String t = topApps(p, 5);
             a.text = t.isEmpty() ? when + " is er nog geen gebruik van apps bijgehouden." : when + " gebruikte je het meest: " + t + ".";
