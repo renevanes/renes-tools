@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.125",
+    "date": "2026-11-02",
+    "changes": [
+      "Facturen: inloggen bij KPN Zakelijk met de code per sms werkt nu (de codevraag ligt als venster over het inlogscherm). De app vinkt ook 'Onthoud dit apparaat' aan en klikt de cookiemelding weg."
+    ]
+  },
+  {
     "version": "1.124",
     "date": "2026-11-02",
     "changes": [

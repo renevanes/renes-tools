@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.124",
-  "versionCode": 125,
-  "nativeLevel": 111,
+  "versionName": "1.125",
+  "versionCode": 126,
+  "nativeLevel": 112,
   "web": "index.html",
-  "webSha256": "8e9f95093e4751fc67c8445cb861ca595e63f11d443f8e2194fc060ad0d3fd7d",
+  "webSha256": "589733daef0e123e199cb83430ca336d1561a39776323be1e0e7f613a53e8597",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "319f0db945870969cc6bb86bda9b7237c1298fa9f6086405c9e688a83626c0b2",
+  "apkSha256": "aa319c91d4ecb6e7e2b3fed1045ebfaedf9e6de2e6e793cbf00f93985af142e5",
   "changelog": [
+    {
+      "version": "1.125",
+      "date": "2026-11-02",
+      "changes": [
+        "Facturen: inloggen bij KPN Zakelijk met de code per sms werkt nu (de codevraag ligt als venster over het inlogscherm). De app vinkt ook 'Onthoud dit apparaat' aan en klikt de cookiemelding weg."
+      ]
+    },
     {
       "version": "1.124",
       "date": "2026-11-02",
@@ -1098,5 +1105,5 @@
       ]
     }
   ],
-  "webSig2": "Xb6T9bngAo9Qjw1kj0AI3R0eqvdLg5LVyG38yNvOczBPOARzlssB4tcXFpQ6s0BGnqeIHFHJgCU4lmqaDilTC966KG0OlCSy7J6gAgVmlb0ApXZXjhmGZAkt24yk6ZFHxYtzGCvvjwXsd4s66yC0W6Nu5uHoNXJuq/QYYz+STtzBNZAxpd7TPTMMq96h4S06pRMcl4Ea6rP2QEcaIeC+6Pjn7mFuhzecQxxcQ7Eua0osJeIx0GZPuvyRxR8IBBDSTkAyg13USd0bjD33LzMeylnYWRtdwJiQrGB2vqbuyetEuY8E+mX8j03LbBuyV9quoN4ozZhHGoVR+mIfxFMZMiVphLluBP7WjqeMtrpKMMsckeh8azRzZ8ImsYf2JM59BEx3xyO+SS4t0ABNcVDy4trzWbPNM4R7aIm14Lf9MhHDHlQK5hw8FNK+h3A7rR3fYQcAWvAVkMs3dLU6zsOJ2WKCN4IWre1xiMNodlJlWMd8eqZG92SGB5ZKxrULlb2e"
+  "webSig2": "n3mPb511Iono7JsAEJ+pTURE++NBXu4LuSe8Q0vK+L2XAeWqPVZiL5qyL+fLrg8qdzs9EAbJtKCYhrYLvdrnqf2jnZ6e0hZbXDsxwQVPPcakx0jUQ0ylZoEMR9GWzWcX0FfQP8353Bdfq+kBVu6V6/jt6gBbGF9uKpwyl8rua7Hos+ge1OBlfYZ1S8W+ZhFfCTpsT4sinexbFE/xDannWkUaSxYA7ZTdjJhReI31zHS8mCcBNLgmFIveAtz1ueqycKlO8Tts0P9OQ5ZRLgx3d+pQZa/92wB7LCIk5nq8zbkiDEgvhxDD4glRLzFJbPxz0w31WGpwHwPcytxrUwdYIK9n5B3qCE/K/8CRldkjuQMtVDC6iZcT3u+zjImM5Pe3nkQbmIzjlmFB3wtbQHd+7TUPqECMSI+D6Kv3vtShunNZndXWbd4+aIxz+V3xYIJsY+ynDPQ0wNhbfws3ii101hODfkQ2k7LaAWLsG4pHHObA9ThGL0VYEphjyFl6+zop"
 }
