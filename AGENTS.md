@@ -206,6 +206,22 @@ functies, herhaalde blokken Java). Het zijn **kandidaten**: hij ziet geen namen 
    korte regel ("Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"); zonder bestand neemt Publiceren
    de commitregels over. Zet in het issue Opruimen wat weg is, wat bewust bleef en wat de volgende ronde aan de beurt is.
 
+## Werklijst: openstaande punten, wensen en voorstellen
+Alles wat nog moet gebeuren staat als GitHub-issue, met een label (REST: `gh api repos/renevanes/renes-tools/issues?labels=…`):
+- `openstaand` — bewust geparkeerd bij een review of test (een issue per onderdeel, met een afvinklijst). **Laat je bij
+  een review iets liggen, zet het dan hier** (bestaand issue aanvullen of een nieuw), anders raakt het kwijt.
+- `wens` — een idee of verzoek van Rene. `voorstel` — een idee van een agent; pas bouwen als Rene het label `doen`
+  geeft (of "doen" reageert). `doen` — mag gebouwd worden.
+- Klaar = vakje afvinken (issue bijwerken) en het issue sluiten als alles af is, met de versie erbij.
+- Werk op een branch altijd regelmatig pushen (`git push -u origin <branch>`, nooit main): de omgeving van een agent
+  kan zomaar opnieuw beginnen, en wat alleen lokaal stond is dan weg.
+
+**Geplande taken (Claude, in de cloud):** maandag Onderhoud (hierboven); woensdag Werklijst (de belangrijkste
+`openstaand`- en `doen`-punten oppakken); om de week vrijdag Betrouwbaarheid en schermcheck (wankele tests, telefoontest,
+één scherm kritisch nalopen: indeling, gebruiksgemak, toegankelijkheid, licht/donker); de eerste van de maand
+Voorstellen (3–5 uitbreidingen als `voorstel`-issue). Vaste opdracht van Rene: ook deze taken publiceren zelf, na
+geslaagde tests en een onafhankelijke review, en melden kort wat er gepubliceerd is (en of er een nieuwe APK nodig is).
+
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK
 installeren als `NATIVE_LEVEL` omhoog ging, of opnieuw koppelen).
