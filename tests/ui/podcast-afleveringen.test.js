@@ -21,11 +21,14 @@ const { chromium } = require('playwright');
     ok(/64 afleveringen · nieuwste vandaag/.test(await pg.textContent('#pd-meta')), 'aantal en nieuwste in de kop');
     ok(await pg.evaluate(() => getComputedStyle($('#pd-h1')).opacity === '0'), 'titel in de balk pas bij scrollen (staat al in de kop)');
     ok(await pg.evaluate(() => document.activeElement === $('#pd-title')), 'focus bij openen op de zichtbare titel, niet op de verborgen');
+    ok(await pg.evaluate(() => $('#pd-h1').getAttribute('aria-hidden') === 'true' && $('#pd-title').getAttribute('role') === 'heading'), 'titel maar één keer voor de schermlezer (verborgen h1 in de balk niet)');
     await pg.evaluate(() => scrollTo(0, 40)); await pg.waitForTimeout(200);
     ok(await pg.evaluate(() => getComputedStyle($('#pd-h1')).opacity === '0'), 'een klein stukje gescrold (kop nog in beeld): nog geen titel in de balk');
     await pg.evaluate(() => scrollTo(0, 400)); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => getComputedStyle($('#pd-h1')).opacity === '1'), 'gescrold: titel in de balk');
+    ok(await pg.evaluate(() => !$('#pd-h1').hasAttribute('aria-hidden') && !$('#pd-title').hasAttribute('role')), 'gescrold: alleen de titel in de balk is een kop voor de schermlezer');
     await pg.evaluate(() => scrollTo(0, 0)); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => $('#pd-h1').getAttribute('aria-hidden') === 'true' && $('#pd-title').getAttribute('role') === 'heading'), 'terug naar boven: weer de titel in de kop');
     // Knoppen groot genoeg om te tikken
     const small = await pg.evaluate(() => [...document.querySelectorAll('#s-podcast .pdchip, #s-podcast .pcmore, #pd-menu')].filter(x => x.offsetParent).map(x => x.getBoundingClientRect()).filter(r => r.height < 44 || r.width < 44).length);
     ok(small === 0, 'knoppen minstens 44 px');

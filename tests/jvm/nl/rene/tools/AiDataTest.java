@@ -36,6 +36,19 @@ public class AiDataTest {
                 && "gebruik".equals(AiData.topic("Welke apps heb ik het meest gebruikt vandaag")), "over jezelf (ook als je iemand noemt): wel");
         check("apparaten".equals(AiData.topic("Waar was mijn Jabra het laatst", Arrays.asList("Jabra"))) && !AiData.aboutOther("Wanneer had Jabra verbinding", Arrays.asList("Jabra")), "je eigen apparaat met een hoofdletter is geen persoon");
         check(!AiData.aboutOther("Hoeveel schermtijd had WhatsApp vandaag", null) && !AiData.aboutOther("Hoeveel tijd heeft Chrome gekost", null), "een app is geen persoon");
+        // Geen persoon: woorden als Toen/Dus, weekdagen, "zei ik", en een app die tijd kost
+        for (String q : new String[]{"Toen zei ik vannacht iets raars?", "Dus zei ik vannacht weer wat?", "Wat zei ik vannacht?", "Daarna praatte ik vannacht nog?",
+                "Maandag had ik veel schermtijd, en vandaag?", "Hoeveel tijd heeft Duolingo me gekost", "Hoeveel tijd heeft Duolingo me vandaag gekost?"})
+            check(!AiData.aboutOther(q, null), "geen persoon: \"" + q + "\"");
+        check("sleep".equals(AiData.topic("Toen zei ik vannacht iets raars?")) && "gebruik".equals(AiData.topic("Hoeveel tijd heeft Duolingo me gekost")), "Toen zei ik → Slaappraat; Duolingo gekost → Gebruik");
+        check(AiData.aboutOther("Jos zei vannacht iets", null) && AiData.aboutOther("Hoeveel tijd heeft Jos gebruikt", null), "een naam blijft een persoon");
+        // Eén app bij naam
+        for (String q : new String[]{"Hoe lang zat ik op WhatsApp vandaag", "hoeveel tijd zat ik vandaag op instagram?", "Hoe lang was ik op TikTok deze week"})
+            check("gebruik".equals(AiData.topic(q)), "app bij naam → Gebruik: \"" + q + "\"");
+        for (String q : new String[]{"Hoe lang zat ik op de bank?", "hoe lang was ik op mijn werk vandaag", "Hoe lang ben ik op school geweest", "hoeveel tijd heeft de verbouwing me gekost"})
+            check("".equals(AiData.topic(q)), "geen app: \"" + q + "\"");
+        check("whatsapp".equals(AiData.askedApp(AiData.norm("Hoe lang zat ik op WhatsApp vandaag?"))) && "duolingo".equals(AiData.askedApp(AiData.norm("Hoeveel tijd heeft Duolingo me gekost")))
+                && "".equals(AiData.askedApp(AiData.norm("Hoe lang heb ik op mijn telefoon gezeten"))) && "".equals(AiData.askedApp(AiData.norm("Hoeveel schermtijd vandaag"))), "welke app");
         check("".equals(AiData.topic("Wat is de hoofdstad van Frankrijk?")) && "".equals(AiData.topic(null)) && "".equals(AiData.topic("Vertel een mop")), "gewone vraag: geen bron");
 
         // Opmaak
@@ -66,6 +79,12 @@ public class AiDataTest {
         check(a != null && a.text.startsWith("Vandaag gebruikte je het meest: WhatsApp"), "meest gebruikte app");
         a = AiData.answer("gebruik", "Hoe lang heb ik vandaag op YouTube gezeten?", gf, now, TZ);
         check(a != null && a.text.contains("YouTube **22 min**"), "één app: YouTube");
+        a = AiData.answer("gebruik", "Hoe lang zat ik op WhatsApp vandaag", gf, now, TZ);
+        check(a != null && a.text.contains("WhatsApp **48 min**") && a.text.contains("21 keer"), "één app: WhatsApp");
+        a = AiData.answer("gebruik", "Hoe lang zat ik op youtu vandaag", gf, now, TZ);
+        check(a != null && a.text.contains("YouTube **22 min**"), "begin van de naam is genoeg");
+        a = AiData.answer("gebruik", "Hoeveel tijd heeft Duolingo me gekost", gf, now, TZ);
+        check(a != null && a.text.contains("geen gebruik van **duolingo**") && !a.text.contains("schermtijd"), "app niet gebruikt: dat zeggen, niet de totale schermtijd: " + (a == null ? "" : a.text));
         a = AiData.answer("gebruik", "Zijn er foto's bij het ontgrendelen gemaakt?", gf, now, TZ);
         check(a != null && a.text.contains("**3**") && a.text.contains("daar kijk ik niet in"), "foto's: alleen het aantal");
         check(AiData.answer("gebruik", "Hoe kan ik minder schermtijd hebben?", gf, now, TZ) == null, "advies: naar het taalmodel");

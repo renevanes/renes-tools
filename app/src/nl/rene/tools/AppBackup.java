@@ -662,8 +662,10 @@ final class AppBackup {
     /** Wat er niet (helemaal) in de backup zit, in gewone woorden. */
     static void missing(Staged s, AppData.Manifest m) {
         Set<String> seen = new HashSet<>();
+        int photos = 0;
         for (String[] sk : m.skipped) {
             String k = sk[0], text;
+            if (k.startsWith("gebruik-foto/")) { photos++; continue; } // samen geteld, hieronder
             if ("kluis".equals(k)) text = "de kluis (niet te lezen bij het maken): je huidige kluis blijft";
             else if (k.startsWith("kluis:")) text = "een deel van de kluis (niet te lezen bij het maken): je huidige documenten blijven erbij";
             else if ("meldingen".equals(k)) text = "de meldingsgeschiedenis (" + sk[1].toLowerCase(java.util.Locale.ROOT) + "): de huidige blijft";
@@ -675,6 +677,7 @@ final class AppBackup {
             else continue; // modellen, zoekindex e.d.: bewust, staat in de uitleg
             if (seen.add(text)) s.missing.add(text);
         }
+        if (photos > 0) s.missing.add(photos == 1 ? "1 foto bij ontgrendelen (niet te lezen bij het maken)" : photos + " foto's bij ontgrendelen (niet te lezen bij het maken)");
         if (s.broken > 0 && seen.add("broken")) s.missing.add(s.broken + (s.broken == 1 ? " bestand dat" : " bestanden die") + " bij het maken niet af kwam");
     }
 
