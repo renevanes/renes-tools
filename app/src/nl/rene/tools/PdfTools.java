@@ -162,8 +162,6 @@ final class PdfTools {
         }
     }
 
-    static void addImageFile(File f) { synchronized (IMG) { if (images.size() < MAX_IMAGES) images.add(f); else f.delete(); } }
-
     static String imagesJson(Context c) {
         List<File> snap;
         synchronized (IMG) { snap = new ArrayList<>(images); meta.keySet().retainAll(snap); }

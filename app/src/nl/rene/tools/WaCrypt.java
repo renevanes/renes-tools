@@ -343,24 +343,4 @@ final class WaCrypt {
         }
     }
 
-    /** Schrijft een backup (voor tests): het omgekeerde van decrypt. */
-    static void encryptForTest(byte[] sqlite, byte[] rootKey, byte[] iv, File out) throws Exception {
-        ByteArrayOutputStream z = new ByteArrayOutputStream();
-        try (java.util.zip.DeflaterOutputStream d = new java.util.zip.DeflaterOutputStream(z)) { d.write(sqlite); }
-        Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
-        c.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(deriveKey(rootKey), "AES"), new javax.crypto.spec.GCMParameterSpec(128, iv));
-        byte[] enc = c.doFinal(z.toByteArray()); // gegevens + tag
-        ByteArrayOutputStream pb = new ByteArrayOutputStream();
-        pb.write(0x08); pb.write(0x01);                 // key_type = 1
-        pb.write(0x1a); pb.write(18); pb.write(0x0a); pb.write(16); pb.write(iv); // e2ee_key_data { encryption_iv }
-        byte[] ver = "2.26.1.1".getBytes();
-        pb.write(0x22); pb.write(ver.length + 2); pb.write(0x0a); pb.write(ver.length); pb.write(ver);
-        ByteArrayOutputStream all = new ByteArrayOutputStream();
-        all.write(pb.size());
-        all.write(pb.toByteArray());
-        all.write(enc);
-        byte[] md5 = MessageDigest.getInstance("MD5").digest(all.toByteArray());
-        all.write(md5);
-        try (FileOutputStream o = new FileOutputStream(out)) { o.write(all.toByteArray()); }
-    }
 }

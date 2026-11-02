@@ -140,7 +140,6 @@ final class Podcasts {
 
     static JSONObject readJson(File f) { try { return f.isFile() ? new JSONObject(Contacts.readText(f, false)) : null; } catch (Exception e) { return null; } }
 
-    static JSONObject epJson(String feedUrl, PodcastFeed.Episode e) throws Exception { return epJsonKey(epKey(feedUrl, e), e); }
 
     static JSONObject epJsonKey(String key, PodcastFeed.Episode e) throws Exception {
         return new JSONObject().put("key", key).put("guid", e.guid).put("title", e.title).put("url", e.url).put("type", e.type)

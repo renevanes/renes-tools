@@ -174,9 +174,6 @@ final class AppData {
         return null;
     }
 
-    /** Is dit een losse rootnaam die een bestand is (geen map)? */
-    static boolean rootIsFile(String top) { return top.contains("."); }
-
     /** Geluid (Slaappraat): gaat alleen mee als "Slaappraat met geluid" aan staat. */
     static boolean audio(String name) {
         String n = name.toLowerCase(Locale.ROOT);

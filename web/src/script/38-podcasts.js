@@ -93,7 +93,6 @@ function pcSpeedMenu(){
   const opts = [0.8, 1, 1.1, 1.25, 1.5, 1.75, 2];
   openSheet('Afspeelsnelheid', 'Nu ' + pcSpeedTxt(pcSt.speed), opts.map(v => [pcSpeedTxt(v) + (v === 1 ? ' (normaal)' : ''), () => { Android.podSpeed(String(v)); pcSt.speed = v; plRender(); }]));
 }
-function pcOpenNowPod(){ const p = pcSt.pod; if (p && p.feed) pdOpen(p); }
 function pcNowMenu(){
   const st = pcSt; if (!st.ep) return;
   const acts = [];

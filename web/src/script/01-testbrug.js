@@ -295,7 +295,6 @@ if (!window.Android) window.Android = (function(){
       setTimeout(() => { n.clips.forEach(k => { if (!k.done && k.audio) { k.done = true; k.text = k._text || ''; k.kind = k.text ? 'praten' : 'geluid'; if (k.kind === 'geluid' && !S.set.keepNoise) k.audio = false; } }); S.phase = ''; }, S.txMs || 300); return ''; },
     sleepPlay(id, clip){ const n = this._sl.nights.find(x => x.id === id), k = n && n.clips.find(x => x.id === clip); if (!k || !k.audio) return 'Het geluid van dit stukje is er niet meer'; this._sl.played = clip; return ''; },
     sleepStopPlay(){ this._sl.played = ''; },
-    sleepPlaying(){ return this._sl.played; },
     // Check-in zoals CheckinBridge/CheckinStore/Checkin (periodes in de tijd van de browser); _ciNotify/_ciNotifAnswer bootsen de melding na
     _ci: { qs: [], ans: [], rem: [], seeded: false, next: 1, notifOk: true, muted: false, calOk: false, posted: {}, done: {}, previews: [], days: {}, model: 'Snel (57 MB)' },
     _ciKey(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); },
@@ -963,7 +962,6 @@ if (!window.Android) window.Android = (function(){
     gebruikNotifs(from,to){ const n=Date.now(); return JSON.stringify({notifOn:this._gb.notifOn,total:23,
       apps:[{pkg:'com.whatsapp',name:'WhatsApp',icon:'',n:14},{pkg:'com.google.android.gm',name:'Gmail',icon:'',n:9}],
       charge:[{t:n-2e6,on:true},{t:n-1e6,on:false}],reboots:[{t:n-5e7}]}); },
-    gebruikRefresh(){ setTimeout(()=>{ if(typeof onGebruik==='function') onGebruik(); },50); },
     gebruikOpenAccess(){ this._gb.access=true; },
     gebruikOpenOverlay(){ this._gb.overlay=true; },
     gebruikAdmin(on){ this._gb.admin=!!on; setTimeout(()=>{ if(typeof onGebruik==='function') onGebruik(); },50); },

@@ -61,11 +61,6 @@ public class GebruikBridge extends LocBridge {
         } catch (Throwable e) { return GebruikStore.err("Opslaan lukt niet").toString(); }
     }
 
-    /** Nu meteen de nieuwste gebeurtenissen overnemen. */
-    @JavascriptInterface public void gebruikRefresh() {
-        new Thread(() -> { try { GebruikStore.collect(ctx, true); a.js("onGebruik", "\"ok\""); } catch (Throwable ignored) { } }, "gebruik-refresh").start();
-    }
-
     /** Het Android-scherm "Toegang tot gebruik" openen (die toegang geeft Rene zelf). */
     @JavascriptInterface public void gebruikOpenAccess() {
         a.h.post(() -> {

@@ -161,7 +161,6 @@ public class SleepBridge extends CheckinBridge {
     }
 
     private static android.media.MediaPlayer player;
-    private static String playing = "";
 
     /** Een stukje afspelen; einde via onSleep({played}). */
     @JavascriptInterface public String sleepPlay(String id, String clip) {
@@ -174,7 +173,7 @@ public class SleepBridge extends CheckinBridge {
                 p.setDataSource(f.getPath());
                 p.setOnCompletionListener(mp -> { sleepStopPlay(); a.js("onSleep", "{\"played\":true}"); });
                 p.prepare(); p.start();
-                player = p; playing = clip;
+                player = p;
                 return "";
             } catch (Exception e) { return "Afspelen lukt niet"; }
         }
@@ -183,9 +182,7 @@ public class SleepBridge extends CheckinBridge {
     @JavascriptInterface public void sleepStopPlay() {
         synchronized (SleepBridge.class) {
             if (player != null) { try { player.stop(); } catch (Exception ignored) { } try { player.release(); } catch (Exception ignored) { } player = null; }
-            playing = "";
         }
     }
 
-    @JavascriptInterface public String sleepPlaying() { return playing; }
 }

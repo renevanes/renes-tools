@@ -226,14 +226,6 @@ final class WsModel {
         for (Item i : homeless) if (place(i, 0) < 0) lost.add(i);
     }
 
-    /** Alle app-sleutels die ergens op het werkblad of in het dock staan. */
-    List<String> appKeys() {
-        List<String> out = new ArrayList<>();
-        for (Page p : pages) for (Item i : p.items) if (i.isApp()) out.add(i.key);
-        for (Item i : dock) if (i.isApp()) out.add(i.key);
-        return out;
-    }
-
     /** Alle widget-ids (om bij het opstarten te controleren of ze nog bestaan). */
     List<Item> widgets() {
         List<Item> out = new ArrayList<>();

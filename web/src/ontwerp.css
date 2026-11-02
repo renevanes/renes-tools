@@ -10,7 +10,7 @@ button[data-icon]::before{vertical-align:middle;margin-right:7px}
 .hdr.compact .hrow{background:var(--card)}
 .hdr h1{font-size:27px;font-weight:650;letter-spacing:-.7px;padding:10px 20px 20px;line-height:1.2}
 .hs,.hdr.sm .hrow h1{font-size:19px;font-weight:650;letter-spacing:-.25px}
-.hdr .back,.hdr .icon-btn,.hdr .hbtn,.hrow>button:not(.hsearch){border-radius:8px}
+.hdr .back,.hdr .icon-btn,.hrow>button:not(.hsearch){border-radius:8px}
 .hdr svg[stroke],.tabs svg[stroke]{stroke-width:1.8}
 .hdr.home .hrow{padding:0 16px;background:var(--bg)}
 .hdr.home .hrow h1{font-size:21px;letter-spacing:-.6px;padding-left:0}
