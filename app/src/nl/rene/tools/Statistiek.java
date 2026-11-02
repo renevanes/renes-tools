@@ -112,8 +112,11 @@ final class Statistiek {
 
     /** Het weekrapport (alleen tellingen). Ook om te bekijken in de app ("Wat wordt er verstuurd?"). */
     static JSONObject report(Context c) throws Exception {
-        boolean beperkt = Care.batteryProblem(c) != null;
-        String id = installId(c);
+        return report(c, Care.batteryProblem(c) != null, installId(c));
+    }
+
+    /** Idem, met de waarden die Android-diensten nodig hebben al opgehaald (dan kan het binnen het slot). */
+    static JSONObject report(Context c, boolean beperkt, String id) throws Exception {
         String tags, crashes;
         long since;
         synchronized (LOCK) {
@@ -229,20 +232,24 @@ final class Statistiek {
             String result;
             try {
                 String path, body;
+                boolean retry;
+                boolean beperkt = Care.batteryProblem(c) != null; // Android-diensten buiten het slot
+                String id = installId(c);
                 synchronized (LOCK) { // kort: alleen voorkeuren lezen en schrijven (het slot is herintreedbaar)
                     path = p.getString("pendingPath", "");
                     body = p.getString("pendingBody", "");
-                    if (path.isEmpty() || body.isEmpty()) {
+                    retry = !path.isEmpty() && !body.isEmpty();
+                    if (!retry) {
                         long now = System.currentTimeMillis();
-                        path = "statistiek/" + iso(now).substring(0, 10) + "-" + installId(c) + ".json";
-                        body = report(c).toString(2);
+                        path = path(now, id);
+                        body = report(c, beperkt, id).toString(2);
                         // wat na dit moment geteld wordt, hoort bij het volgende rapport
                         p.edit().putString("pendingPath", path).putString("pendingBody", body)
                                 .remove("tags").remove("crashes").putLong("since", now).commit();
                     }
                 }
                 int code = put(repo, open(sealed), path, body);
-                if (code == 201 || code == 200 || code == 422) {
+                if (delivered(code, retry)) {
                     synchronized (LOCK) {
                         p.edit().remove("pendingPath").remove("pendingBody").putLong("lastSent", System.currentTimeMillis()).apply();
                     }
@@ -255,6 +262,27 @@ final class Statistiek {
             p.edit().putString("lastResult", result.isEmpty() ? "ok" : result).putLong("lastTry", System.currentTimeMillis()).apply();
             return result;
         } finally { SENDING.set(false); }
+    }
+
+    /** Bestandsnaam van een nieuw rapport: tot op de seconde, dus nooit dezelfde als een eerder rapport. */
+    static String path(long now, String id) {
+        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HHmmss'Z'", Locale.US);
+        f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+        return "statistiek/" + f.format(new java.util.Date(now)) + "-" + id + ".json";
+    }
+
+    /** Is het rapport aangekomen? 422 ("bestaat al") telt alleen bij opnieuw versturen van hetzelfde klaarstaande
+     *  rapport: dan was een eerdere poging wel aangekomen. Bij een eerste poging is 422 een gewone fout. */
+    static boolean delivered(int code, boolean retry) {
+        return code == 200 || code == 201 || (retry && code == 422);
+    }
+
+    /** Wat er verstuurd wordt: eerst een klaarstaand rapport (vorige poging mislukt), anders de tellingen van nu. */
+    static String preview(Context c) throws Exception {
+        String pending;
+        synchronized (LOCK) { pending = prefs(c).getString("pendingBody", ""); }
+        String now = report(c).toString(2);
+        return pending.isEmpty() ? now : "Staat nog klaar (vorige poging lukte niet):\n" + pending + "\n\nDaarna, de tellingen van nu:\n" + now;
     }
 
     /** PUT naar de GitHub-API (vaste host, alleen https). Geeft de HTTP-status. */

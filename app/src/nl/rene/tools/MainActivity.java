@@ -1866,7 +1866,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String statDest(String repo, String token) { return a.isSolo() ? "Kan alleen vanuit de gewone app" : Statistiek.setDest(ctx, repo, token); }
         /** Precies wat er verstuurd zou worden (om te bekijken). */
         @JavascriptInterface public String statPreview() {
-            try { return Statistiek.report(ctx).toString(2); } catch (Exception e) { return ""; }
+            try { return Statistiek.preview(ctx); } catch (Exception e) { return ""; }
         }
         /** Nu versturen; de uitkomst komt via onStatSent("" of de reden). */
         @JavascriptInterface public void statSend() {

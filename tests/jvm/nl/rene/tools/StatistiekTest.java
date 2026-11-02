@@ -36,6 +36,11 @@ public class StatistiekTest {
                 "sleutel: alleen een fine-grained sleutel");
         check(!Statistiek.validRepo("renevanes/.") && !Statistiek.validRepo("renevanes/..."), "repository: niet alleen punten");
 
+        check(Statistiek.delivered(201, false) && Statistiek.delivered(200, true) && !Statistiek.delivered(422, false)
+                && Statistiek.delivered(422, true) && !Statistiek.delivered(401, true) && !Statistiek.delivered(500, false),
+                "aangekomen: 200/201; 422 alleen bij opnieuw versturen van hetzelfde rapport");
+        check(Statistiek.path(0L, "a1b2c3d4").equals("statistiek/1970-01-01T000000Z-a1b2c3d4.json")
+                && !Statistiek.path(1000L, "x").equals(Statistiek.path(2000L, "x")), "bestandsnaam: tot op de seconde, nooit dezelfde");
         JSONObject tags = new JSONObject().put("BACKUP", 3).put("PODCAST", 1).put("Jan de Vries", 2);
         JSONObject crashes = new JSONObject().put(k, 2);
         JSONObject r = Statistiek.report(tags, crashes, 0L, 7 * 86_400_000L, "1.118", 119, 105, 36, "Fabrikant Model", "a1b2c3d4", false);
