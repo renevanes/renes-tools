@@ -95,6 +95,7 @@ final class AiData {
 
     /** Welke bron past bij de vraag: gebruik, sleep, checkin, apparaten of "". nicks = namen van je eigen apparaten. */
     static String topic(String q, List<String> nicks) {
+        if (q == null || q.length() > 2000) return ""; // eerst de lengte: norm() is traag op heel lange tekst
         String s = norm(q);
         if (s.isEmpty() || s.length() > 300) return "";
         if (aboutOther(q, nicks)) return ""; // de gegevens zijn alleen van jezelf: dan gewoon de assistent

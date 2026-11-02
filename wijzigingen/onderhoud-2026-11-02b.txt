@@ -1,0 +1,1 @@
+De losse assistent-app zoekt nooit in je notities en berichten, ook niet als de interface erom vraagt

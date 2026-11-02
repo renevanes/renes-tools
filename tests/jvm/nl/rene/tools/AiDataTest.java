@@ -20,6 +20,9 @@ public class AiDataTest {
         // Welke bron
         check("gebruik".equals(AiData.topic("Hoeveel schermtijd vandaag?")) && "gebruik".equals(AiData.topic("hoe vaak heb ik mijn telefoon ontgrendeld")), "schermtijd, ontgrendeld → Gebruik");
         check("gebruik".equals(AiData.topic("Hoe lang heb ik vandaag op mijn telefoon gezeten?")), "hoe lang op mijn telefoon → Gebruik");
+        { StringBuilder lang = new StringBuilder("schermtijd"); for (int i = 0; i < 20000; i++) lang.append('?');
+          long t0 = System.currentTimeMillis(); String r = AiData.topic(lang.toString());
+          check("".equals(r) && System.currentTimeMillis() - t0 < 200, "heel lange vraag: meteen geen onderwerp (lengte vóór norm)"); }
         check("sleep".equals(AiData.topic("Wat zei ik vannacht?")) && "sleep".equals(AiData.topic("Heb ik gesnurkt?")) && "sleep".equals(AiData.topic("Hoe waren mijn nachten met slaappraat?")), "vannacht, gesnurkt, slaappraat → Slaappraat");
         check("checkin".equals(AiData.topic("Hoe gaat het met mijn stemming?")) && "checkin".equals(AiData.topic("wat heb ik vandaag bij check-in ingevuld")), "stemming, check-in → Check-in");
         check("apparaten".equals(AiData.topic("Waar was mijn oortje het laatst?")) && "apparaten".equals(AiData.topic("Welke apparaten zijn in de buurt?")), "oortje, in de buurt → Apparaten");

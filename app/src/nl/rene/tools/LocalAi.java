@@ -789,7 +789,8 @@ final class LocalAi {
             final JSONArray srcSent = new JSONArray(); // wat er onder het antwoord als bron komt
             // Met mijn notities: eerst slim zoeken, dan de stukken meegeven
             // Niet bij een vraag over de instellingen: tekst van anderen (sms, WhatsApp) mag geen wijziging voorstellen
-            if (req.optBoolean("notes") && ready(c, EMBED) && remember == null && forgetWhat == null && !setWanted) {
+            // Niet in de losse app (zonder app-slot): daar zoekt de assistent niet in je gegevens
+            if (req.optBoolean("notes") && !req.optBoolean("solo") && ready(c, EMBED) && remember == null && forgetWhat == null && !setWanted) {
                 sink.status("Zoeken in je gegevens…");
                 try {
                     JSONArray hits = SmartSearch.search(c, last.optString("content"), 4);

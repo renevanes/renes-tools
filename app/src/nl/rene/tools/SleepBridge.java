@@ -184,5 +184,4 @@ public class SleepBridge extends CheckinBridge {
             if (player != null) { try { player.stop(); } catch (Exception ignored) { } try { player.release(); } catch (Exception ignored) { } player = null; }
         }
     }
-
 }
