@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.125",
-  "versionCode": 126,
-  "nativeLevel": 112,
+  "versionName": "1.126",
+  "versionCode": 127,
+  "nativeLevel": 113,
   "web": "index.html",
-  "webSha256": "589733daef0e123e199cb83430ca336d1561a39776323be1e0e7f613a53e8597",
+  "webSha256": "20023d6ca93ce2b4b147ec050bf1db9047316b20ac8da1c192b6f391ece0e1ac",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "aa319c91d4ecb6e7e2b3fed1045ebfaedf9e6de2e6e793cbf00f93985af142e5",
+  "apkSha256": "78b3e27f4499ca8b534b0e68813d46019049b1395aa258193dbf7c81517e929e",
   "changelog": [
+    {
+      "version": "1.126",
+      "date": "2026-11-02",
+      "changes": [
+        "Facturen: kies per leverancier een vast moment (bijv. elke maand op de 5e om 08:00, of de laatste dag), hoe snel hij het na een fout opnieuw probeert, alleen via wifi en welke meldingen je krijgt. Nieuw overzicht: deze maand, per maand wat er binnenkwam, de volgende keer en de geschiedenis per leverancier."
+      ]
+    },
     {
       "version": "1.125",
       "date": "2026-11-02",
@@ -1105,5 +1112,5 @@
       ]
     }
   ],
-  "webSig2": "n3mPb511Iono7JsAEJ+pTURE++NBXu4LuSe8Q0vK+L2XAeWqPVZiL5qyL+fLrg8qdzs9EAbJtKCYhrYLvdrnqf2jnZ6e0hZbXDsxwQVPPcakx0jUQ0ylZoEMR9GWzWcX0FfQP8353Bdfq+kBVu6V6/jt6gBbGF9uKpwyl8rua7Hos+ge1OBlfYZ1S8W+ZhFfCTpsT4sinexbFE/xDannWkUaSxYA7ZTdjJhReI31zHS8mCcBNLgmFIveAtz1ueqycKlO8Tts0P9OQ5ZRLgx3d+pQZa/92wB7LCIk5nq8zbkiDEgvhxDD4glRLzFJbPxz0w31WGpwHwPcytxrUwdYIK9n5B3qCE/K/8CRldkjuQMtVDC6iZcT3u+zjImM5Pe3nkQbmIzjlmFB3wtbQHd+7TUPqECMSI+D6Kv3vtShunNZndXWbd4+aIxz+V3xYIJsY+ynDPQ0wNhbfws3ii101hODfkQ2k7LaAWLsG4pHHObA9ThGL0VYEphjyFl6+zop"
+  "webSig2": "Dj5CC91/brxj4NcnYm100wzCyqdGdf2cvgfh4VgRLALdKT5qmrGYaP4lPafZLqJu5qZ3wmz6U6BrYP0tuEm217S9M+SZCcOLMfd/Sp+mskCKitUWmRteF3hMTD//OZeRae9G47VAjWtIQKCuD2IXZCyfcDc2wYW5PCoIL3+Kl62SbmoAapccnP1N6BtHO/sTnMUfH4cTzFH1yC+Fvnchib7uT6eSCkuTH7WDoSdUrMXvKhIKkOd+UmmgGfCqR/YZ7GHWeCjHLTE77jljGnU/9QWeJYYRLnF3Cp2o28RuqzJYO0bc+hBzOAiL+6a9/pDA6pMcFaEoyWwDJvsZBjJ2viZ1/FH2A6orI/FinoHDXIBilOrm+PqGq6rROR59mG7381INEGiWBZmQPQfd5EadJBeuLA++9/3nFzWUv0mPjdc0Mmd876PqcV/bKioCMDLfV+py94/Ki/xZjEIlbXISOhdWDJl8RzD77jOHON707fOdftKDg7cj5a4VW/UVZH+U"
 }
