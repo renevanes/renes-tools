@@ -88,6 +88,49 @@ const srv = http.createServer((req, res) => {
   await js('__fr.klik(' + k[2].i + ')');
   await popup; ok(await pg.evaluate(() => window.__open) === '/f/aug.pdf', 'nieuw venster met de PDF geopend (de app vangt dat adres op)');
   ok((await js('__fr.klik(99)')) === 'weg', 'onbekende knop');
+  // Zoals KPN: de codevraag ligt als venster óver het wachtwoordscherm (dat blijft zichtbaar), met een cookiemelding
+  // eronder, vijf losse vakjes zonder formulier, "Onthoud dit apparaat" en de knop "Log extra veilig in".
+  await pg.setContent(`<style>.v{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
+    .m{background:#fff;padding:20px}.d{width:44px;height:44px}</style>
+    <form id=lf><input name=username value="rene@bedrijf.nl"><input type=password id=pw value="geheim"><button type=submit>Inloggen</button></form>
+    <div class=v id=ck><div class=m><h2>Cookies en privacy</h2><button id=nee onclick="window.__ck='nee';document.getElementById('ck').remove()">Nee, dank je</button><button onclick="window.__ck='ja'">Accepteren</button></div></div>
+    <div class=v id=mod><div class=m><h2>Verificatie in 2 stappen</h2><p>Vul de code in die je via sms hebt ontvangen</p>
+      <div class=boxes><input class=d><input class=d><input class=d><input class=d><input class=d></div>
+      <label><input type=checkbox id=onth> Onthoud dit apparaat</label>
+      <button id=go onclick="window.__code=Array.from(document.querySelectorAll('.d')).map(i=>i.value).join('')">Log extra veilig in</button></div></div>`);
+  st = await stand();
+  ok(st.code && !st.pw && !st.user, 'codevenster over het wachtwoordscherm: code, niet het wachtwoord');
+  ok(await pg.evaluate(() => window.__ck) === 'nee', 'cookiemelding: Nee, dank je');
+  ok((await js("__fr.vul('code', '48291', {})")) === 'vakjes 5', 'code over vijf vakjes zonder formulier');
+  ok(await pg.isChecked('#onth'), 'Onthoud dit apparaat aangevinkt');
+  ok((await js("__fr.verstuur('code', {})")) === 'knop' && await pg.evaluate(() => window.__code) === '48291', 'Log extra veilig in geklikt met de code');
+  // Gewone pagina met "Akkoord" buiten een cookiemelding: niet aanklikken
+  await pg.setContent('<p>Voorwaarden</p><button id=ak onclick="window.__ak=1">Akkoord</button><input type=password>');
+  await stand();
+  ok(!(await pg.evaluate(() => window.__ak)), 'geen willekeurige Akkoord-knop');
+  // Gewone inlogpagina's mogen niet als codestap gelden (review)
+  for (const [html, wat] of [
+    ['<form><input name=username><input name=postcode><input type=password></form>', 'postcode naast wachtwoord'],
+    ['<form><input name=klantnummer inputmode=numeric><input type=password></form>', 'klantnummer naast wachtwoord'],
+    ['<form><input name=email><input maxlength=2 style="width:40px"><input maxlength=2 style="width:40px"><input maxlength=4 style="width:60px"><input type=color><input type=password></form>', 'geboortedatum in vakjes naast wachtwoord']]) {
+    await pg.setContent(html); st = await stand();
+    ok(st.pw && !st.code, 'gewoon inloggen: ' + wat);
+  }
+  await pg.setContent('<form><input name=email><input maxlength=2 style="width:40px"><input maxlength=2 style="width:40px"><input maxlength=4 style="width:60px"></form>');
+  st = await stand(); ok(!st.code, 'datum in vakjes is geen code');
+  // Zwevend label over het veld: veld telt wel
+  await pg.setContent('<form><div style="position:relative;width:300px"><input name=email style="width:300px;height:40px"><span style="position:absolute;left:8px;top:10px">E-mailadres</span></div><div style="position:relative;width:300px"><input type=password style="width:300px;height:40px"><span style="position:absolute;left:8px;top:10px">Wachtwoord</span></div></form>');
+  st = await stand(); ok(st.pw && st.user, 'velden met zwevend label gevonden');
+  // Cookiebeleid in de voettekst + Akkoord-knop bij voorwaarden: niet klikken
+  await pg.setContent('<main><h1>Nieuwe voorwaarden</h1><button onclick="window.__ak2=1">Akkoord</button><button onclick="window.__ak2=1">Accepteren</button></main><footer><a href="#">Cookiebeleid</a></footer>');
+  await stand(); ok(!(await pg.evaluate(() => window.__ak2)), 'voorwaarden niet geaccepteerd door de cookieregel');
+  // Onthoud alleen het eigen vakje
+  await pg.setContent('<div><label><input type=checkbox id=a1> Ja, stuur me aanbiedingen</label><label><input type=checkbox id=a2> Onthoud dit apparaat</label><input class=d style="width:40px" maxlength=1><input class=d style="width:40px" maxlength=1><input class=d style="width:40px" maxlength=1><input class=d style="width:40px" maxlength=1><button>Bevestigen</button></div>');
+  await js("__fr.vul('code', '1234', {})");
+  ok(await pg.isChecked('#a2') && !(await pg.isChecked('#a1')), 'alleen Onthoud dit apparaat aangevinkt, geen aanbiedingen');
+  // Knoppen die niet bedoeld zijn
+  await pg.setContent('<form><input type=password><a href="#" onclick="window.__w=\'uit\'">Log uit en log opnieuw in</a><button type=button onclick="window.__w=\'digid\'">Login met DigiD</button><button type=button onclick="window.__w=\'ok\'">Inloggen</button></form>');
+  await js("__fr.verstuur('wachtwoord', {})"); ok(await pg.evaluate(() => window.__w) === 'ok', 'Inloggen, niet uitloggen of DigiD');
   // Eigen veldaanwijzingen gaan voor
   await pg.setContent('<form><input id=a name=x><input id=b name=y type=password><button id=go type=button onclick="window.__go=1">Gaan</button></form>');
   await js("__fr.vul('gebruiker', 'u1', {velden:{gebruiker:'#a'}})");

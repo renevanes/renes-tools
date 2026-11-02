@@ -1,0 +1,1 @@
+Facturen: inloggen bij KPN Zakelijk met de code per sms werkt nu (de codevraag ligt als venster over het inlogscherm). De app vinkt ook 'Onthoud dit apparaat' aan en klikt de cookiemelding weg.

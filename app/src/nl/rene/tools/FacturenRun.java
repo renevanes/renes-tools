@@ -229,7 +229,7 @@ final class FacturenRun {
             stil = 0;
             if (handmatig) return;
             if (wachtwoord == null || wachtwoord.isEmpty()) { handmatigOf("Er is geen wachtwoord ingevuld"); return; }
-            if (pwPogingen >= 2) { einde(fout(fout.isEmpty() ? "Inloggen lukt niet: controleer je gebruikersnaam en wachtwoord" : "De website zegt: " + fout, true)); return; }
+            if (pwPogingen >= 2) { einde(fout(fout.isEmpty() ? "Inloggen lukt niet: controleer je gebruikersnaam en wachtwoord, of kijk mee wat de website vraagt" : "De website zegt: " + fout, true)); return; }
             if (user && st.optBoolean("userLeeg") && !gebruiker.isEmpty()) js("__fr.vul('gebruiker'," + JSONObject.quote(gebruiker) + "," + cfgJs + ")", null);
             js("__fr.vul('wachtwoord'," + JSONObject.quote(wachtwoord) + "," + cfgJs + ")", r -> js("__fr.verstuur('wachtwoord'," + cfgJs + ")", null));
             codeSinds = nu; pwPogingen++;

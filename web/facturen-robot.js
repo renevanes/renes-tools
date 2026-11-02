@@ -10,7 +10,11 @@
     code: 'input[autocomplete="one-time-code"], input[name*="otp" i], input[id*="otp" i], input[name*="code" i], input[id*="code" i], input[name*="token" i], input[id*="token" i], input[name*="verif" i], input[id*="verif" i], input[inputmode="numeric"]',
     gebruiker: 'input[type="email"], input[autocomplete="username"], input[autocomplete="email"], input[name*="user" i], input[id*="user" i], input[name*="gebruik" i], input[id*="gebruik" i], input[name*="login" i], input[id*="login" i], input[name*="email" i], input[id*="email" i], input[name*="account" i]'
   };
-  const KNOP = /^(inloggen|log ?in|aanmelden|volgende|ga verder|doorgaan|verder|bevestig(en)?|verifi[eë]{1,2}r(en)?|controleer|verstuur|versturen|indienen|submit|next|continue|sign ?in|verify|confirm|ok)\b/i;
+  // Ook "Log extra veilig in" (KPN, tweede stap) en "Ga verder met inloggen"
+  const KNOP = /^(inloggen|log ?in|log\b.{0,30}\bin|aanmelden|volgende|ga verder|doorgaan|verder|bevestig(en)?|verifi[eë]{1,2}r(en)?|controleer|verstuur|versturen|indienen|submit|next|continue|sign ?in|verify|confirm|ok)\b/i;
+  // Cookiemelding: liefst weigeren, anders accepteren (anders ligt hij over de knoppen heen)
+  const COOKIE_NEE = /^(nee,? dank je( wel)?|weigeren|alles weigeren|alleen (functionele|noodzakelijke|essentiële)( cookies)?|cookies weigeren|reject( all)?|decline)$/i;
+  const COOKIE_JA = /^(alle cookies accepteren|accepteren|alles accepteren|akkoord|ja,? (prima|akkoord)|accept( all)?)$/i;
 
   function zichtbaar(el){
     if (!el || el.disabled || el.type === 'hidden') return false;
@@ -27,16 +31,73 @@
     } catch (e) { }
     return out;
   }
+  /** Ligt het element bovenop (niet onder een venster of melding)? Buiten beeld of in een iframe/shadow-DOM: ja. */
+  function bovenop(el){
+    try {
+      if (el.getRootNode() !== document || el.ownerDocument !== document) return true;
+      const r = el.getBoundingClientRect(), y = r.top + r.height / 2;
+      // De eigen omhulling van het veld (met zwevend label of icoon), niet de hele pagina
+      let dichtbij = null;
+      for (let n = el.parentElement, i = 0; n && n !== document.body && i < 2; n = n.parentElement, i++) {
+        const q = n.getBoundingClientRect();
+        if (q.height <= r.height * 3 + 40 && q.width <= r.width * 1.6 + 60) dichtbij = n; else break;
+      }
+      // Midden en driekwart: een zwevend label of icoon in het veld telt niet als "erover"
+      return [r.left + r.width / 2, r.left + r.width * 0.75].some(x => {
+        if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) return true;
+        const t = document.elementFromPoint(x, y);
+        return !t || t === el || el.contains(t) || t.contains(el) || (dichtbij && dichtbij.contains(t)) || (el.labels && Array.from(el.labels).some(l => l.contains(t)));
+      });
+    } catch (e) { return true; }
+  }
+  const TEKSTVELD = e => e.tagName === 'INPUT' && !/^(checkbox|radio|submit|button|search|hidden|file|image|reset|color|date|datetime-local|month|week|time|range)$/i.test(e.type);
   function vind(soort, cfg, behalve){
     const eigen = cfg && cfg.velden && cfg.velden[soort];
-    const l = alle(eigen || AUTO[soort]).filter(e => zichtbaar(e) && !(behalve || []).includes(e) && (eigen || (e.tagName === 'INPUT' && !/^(checkbox|radio|submit|button|search)$/i.test(e.type))));
-    return l[0] || null;
+    const l = alle(eigen || AUTO[soort]).filter(e => zichtbaar(e) && !(behalve || []).includes(e) && (eigen || TEKSTVELD(e)));
+    return l.filter(bovenop)[0] || null;
+  }
+  /** Een code in losse vakjes (4–8 smalle velden naast elkaar, één teken per vak). */
+  function vakjes(){
+    const l = alle('input').filter(e => /^(text|tel|number|)$/i.test(e.type) && zichtbaar(e) && bovenop(e)
+      && (e.maxLength === 1 || (e.maxLength < 0 && e.getBoundingClientRect().width < 70)));
+    if (l.length < 4 || l.length > 8) return null;
+    // Eén rij even brede vakjes, in hetzelfde blok
+    const r0 = l[0].getBoundingClientRect();
+    if (!l.every(e => { const r = e.getBoundingClientRect(); return Math.abs(r.top - r0.top) < 6 && Math.abs(r.width - r0.width) < 3; })) return null;
+    const p = l[0].parentElement && l[0].parentElement.parentElement;
+    return p && l.every(e => p.contains(e)) ? l : null;
   }
   function velden(cfg){
+    // Een wachtwoordveld dat bovenop ligt gaat voor; ligt er een codevenster overheen, dan telt het niet (bovenop)
     const pw = vind('wachtwoord', cfg);
     const user = vind('gebruiker', cfg, [pw]);
-    const code = pw ? null : vind('code', cfg, [user]);
-    return { pw, user, code };
+    if (pw) return { pw, user, code: null };
+    const vk = vakjes();
+    const code = vk ? vk[0] : vind('code', cfg, [user]);
+    if (code) return { pw: null, user: null, code, vakjes: vk };
+    return { pw: null, user, code: null };
+  }
+  function cookiesWeg(){
+    // Alleen knoppen in een echte cookiemelding: een venster of vaste balk (of met cookie/consent in de naam),
+    // kort en over cookies. Nooit links, nooit zomaar ergens "Akkoord".
+    const melding = n => {
+      const s = getComputedStyle(n), naam = (n.id || '') + ' ' + (typeof n.className === 'string' ? n.className : '');
+      return (n.getAttribute('role') === 'dialog' || n.getAttribute('aria-modal') === 'true' || s.position === 'fixed' || s.position === 'sticky' || /cookie|consent|cmp/i.test(naam))
+        && /cookie/i.test(n.innerText || '') && (n.innerText || '').length < 1500;
+    };
+    const inMelding = e => { for (let n = e.parentElement, i = 0; n && n !== document.body && i < 10; n = n.parentElement, i++) if (melding(n)) return true; return false; };
+    const knoppen = alle('button, [role="button"]').filter(e => zichtbaar(e) && inMelding(e));
+    const k = knoppen.find(e => COOKIE_NEE.test(tekstVan(e))) || knoppen.find(e => COOKIE_JA.test(tekstVan(e)));
+    if (k) { try { k.click(); } catch (e) { } return true; }
+    return false;
+  }
+  /** "Onthoud dit apparaat" aanvinken: dan vraagt de website de volgende keer minder vaak om een code. */
+  function onthoud(){
+    alle('input[type="checkbox"]').forEach(c => {
+      const p = c.parentElement, eenInOuder = p && p.querySelectorAll('input[type="checkbox"]').length === 1;
+      const lab = (c.labels && c.labels[0] ? c.labels[0].innerText : '') + ' ' + (c.closest('label') ? c.closest('label').innerText : '') + ' ' + (c.getAttribute('aria-label') || '') + ' ' + (eenInOuder ? p.innerText : '');
+      if (!c.checked && /onthoud|vertrouw|remember|trust/i.test(lab) && zichtbaar(c.closest('label') || c)) (c.closest('label') || c).click();
+    });
   }
   function inlogEl(){
     const re = /^(inloggen|log ?in|aanmelden|sign ?in|direct inloggen|mijn ?[a-z]+( zakelijk)? inloggen)$/i;
@@ -59,6 +120,7 @@
     versie: 1,
     /** Wat staat er op de pagina? {pw, user, userLeeg, code, fout, url, titel} */
     stand(cfg){
+      cookiesWeg();
       const v = velden(cfg);
       const fout = alle('[role="alert"], .error, .alert, .alert-danger, .notification--error, .form-error, .field-error, [aria-live="assertive"]')
         .filter(zichtbaar).map(e => (e.innerText || '').trim()).filter(Boolean)[0] || '';
@@ -70,10 +132,10 @@
     vul(soort, waarde, cfg){
       const v = velden(cfg); const el = v[soort === 'wachtwoord' ? 'pw' : soort === 'gebruiker' ? 'user' : 'code'];
       if (!el) return 'geen veld';
-      if (soort === 'code' && el.maxLength === 1) {
-        const vakjes = alle('input').filter(e => zichtbaar(e) && e.maxLength === 1 && (e.form === el.form));
-        String(waarde).split('').forEach((ch, i) => { if (vakjes[i]) zet(vakjes[i], ch); });
-        return 'vakjes ' + vakjes.length;
+      if (soort === 'code') onthoud();
+      if (soort === 'code' && v.vakjes) {
+        String(waarde).split('').forEach((ch, i) => { if (v.vakjes[i]) zet(v.vakjes[i], ch); });
+        return 'vakjes ' + v.vakjes.length;
       }
       zet(el, waarde);
       return 'ok';
@@ -83,10 +145,15 @@
       if (cfg && cfg.velden && cfg.velden.knop) { const k = alle(cfg.velden.knop).filter(zichtbaar)[0]; if (k) { k.click(); return 'eigen knop'; } }
       const v = velden(cfg); const el = v[soort === 'wachtwoord' ? 'pw' : soort === 'gebruiker' ? 'user' : 'code'] || v.pw || v.user || v.code;
       const form = el && el.closest('form');
+      const NIET = /\buit\b|uitloggen|digid|eherkenning|google|microsoft|apple|facebook|wachtwoord vergeten/i;
+      const goed = e => zichtbaar(e) && bovenop(e) && !COOKIE_NEE.test(tekstVan(e)) && !COOKIE_JA.test(tekstVan(e)) && !NIET.test(tekstVan(e));
       const binnen = form ? alle('button, input[type="submit"], [role="button"]', form) : [];
-      const sub = binnen.filter(e => zichtbaar(e) && (e.type === 'submit' || KNOP.test(tekstVan(e))))[0];
+      let sub = binnen.filter(e => goed(e) && (e.type === 'submit' || KNOP.test(tekstVan(e))))[0];
+      // Zonder formulier (vensters, zoals de codevraag van KPN): de knop in hetzelfde blok als het veld
+      for (let n = el && el.parentElement, i = 0; !sub && n && i < 8; n = n.parentElement, i++)
+        sub = alle('button, input[type="submit"], [role="button"]', n).filter(e => goed(e) && KNOP.test(tekstVan(e)))[0];
       if (sub) { sub.click(); return 'knop'; }
-      const los = alle('button, input[type="submit"], [role="button"], a').filter(e => zichtbaar(e) && KNOP.test(tekstVan(e)))[0];
+      const los = alle('button, input[type="submit"], [role="button"], a').filter(e => goed(e) && KNOP.test(tekstVan(e)))[0];
       if (los) { los.click(); return 'losse knop'; }
       if (form && form.requestSubmit) { form.requestSubmit(); return 'formulier'; }
       if (el) { ['keydown', 'keypress', 'keyup'].forEach(t => el.dispatchEvent(new KeyboardEvent(t, { bubbles: true, key: 'Enter', keyCode: 13, which: 13 }))); return 'enter'; }
