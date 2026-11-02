@@ -73,6 +73,7 @@ final class AppData {
         m.put("secure", "sleutel van de versleuteling: wordt na terugzetten opnieuw gemaakt met je wachtwoord");
         m.put("intent_token", "geheim van deze installatie");
         m.put("crash", "foutmeldingen van deze installatie");
+        m.put("statistiek", "tellingen en de versleutelde GitHub-sleutel van deze installatie (sleutel opnieuw invullen)");
         m.put("selftest", "uitkomst van de zelftest van deze installatie");
         m.put("perm", "welke toestemmingen al eens gevraagd zijn (Android vergeet de toestemmingen zelf ook)");
         m.put("update", "toestand van de updates van deze installatie");

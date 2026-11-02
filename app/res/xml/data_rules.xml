@@ -40,6 +40,7 @@
         <exclude domain="sharedpref" path="lock.xml" />
         <exclude domain="sharedpref" path="spotify.xml" />
         <exclude domain="sharedpref" path="vpn.xml" />
+        <exclude domain="sharedpref" path="statistiek.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="database" path="notification-history.db" />
@@ -79,5 +80,6 @@
         <exclude domain="sharedpref" path="lock.xml" />
         <exclude domain="sharedpref" path="spotify.xml" />
         <exclude domain="sharedpref" path="vpn.xml" />
+        <exclude domain="sharedpref" path="statistiek.xml" />
     </device-transfer>
 </data-extraction-rules>

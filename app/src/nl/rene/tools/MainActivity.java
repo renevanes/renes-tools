@@ -1858,6 +1858,25 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return false; }
         }
 
+        // ----- Statistieken voor verbeteringen (Statistiek): tellingen en fouten, naar een privé GitHub-repository -----
+
+        @JavascriptInterface public String statState() { return Statistiek.state(ctx).toString(); }
+        @JavascriptInterface public void statOn(boolean on) { Statistiek.setOn(ctx, on); }
+        /** "" bij succes, anders de reden. Een lege sleutel laat de bewaarde staan; beide leeg = bestemming weg. */
+        @JavascriptInterface public String statDest(String repo, String token) { return Statistiek.setDest(ctx, repo, token); }
+        /** Precies wat er verstuurd zou worden (om te bekijken). */
+        @JavascriptInterface public String statPreview() {
+            try { return Statistiek.report(ctx).toString(2); } catch (Exception e) { return ""; }
+        }
+        /** Nu versturen; de uitkomst komt via onStatSent("" of de reden). */
+        @JavascriptInterface public void statSend() {
+            new Thread(() -> {
+                String r;
+                try { r = Statistiek.send(ctx); } catch (Throwable t) { r = "Versturen lukte niet"; }
+                a.js("onStatSent", JSONObject.quote(r));
+            }, "statistiek").start();
+        }
+
         @JavascriptInterface public void crashClear() {
             App.file(ctx).delete();
             ctx.getSharedPreferences("crash", Context.MODE_PRIVATE).edit().remove("new").apply();

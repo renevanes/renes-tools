@@ -801,7 +801,16 @@ if (!window.Android) window.Android = (function(){
     notifMute(on){ this._notifMuted = !!on; },
     notifState(){ return JSON.stringify({muted: !!this._notifMuted, allowed: !this._notifOff, perm: !this._notifOff, kinds: [{id: 'reminders', name: 'Herinneringen', desc: 'Herinneringen die je bij een notitie zet', on: true, level: 4}, {id: 'radio', name: 'Radio', desc: 'Bediening van de radio', on: false, level: 0}]}); },
     notifOpen(id){ this._notifOpen = id; }, notifAsk(){ this._notifOff = false; this._notifAsk = true; },
-    uiReady(){ this._uiReady = true; }, crashCopy(){ this._copied = true; toast('Foutrapport gekopieerd'); }, freshInstall(){ return true; }, crashClear(){ this._st.crashes=0; }, crashNew(){ return false; }, logJs(m){ this._jsErr=m; },
+    uiReady(){ this._uiReady = true; }, crashCopy(){ this._copied = true; toast('Foutrapport gekopieerd'); }, freshInstall(){ return true; }, crashClear(){ this._st.crashes=0; }, _stat: { on: true, repo: '', token: false, since: Date.now() - 3 * 864e5, lastSent: 0, lastResult: '', tags: { BACKUP: 2, PODCAST: 1 }, sent: 0 },
+    statState(){ const s = this._stat; return JSON.stringify({ on: s.on, repo: s.repo, token: s.token, since: s.since, lastSent: s.lastSent, lastResult: s.lastResult }); },
+    statOn(on){ this._stat.on = !!on; if (!on) this._stat.tags = {}; },
+    statDest(repo, token){ const s = this._stat; if (!repo && !token) { s.repo = ''; s.token = false; return ''; }
+      if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}$/.test(repo)) return 'Vul de repository in als eigenaar/naam, bijv. renevanes/renes-tools-statistiek';
+      if (token && !/^[A-Za-z0-9_]{20,255}$/.test(token)) return 'Dit lijkt geen GitHub-sleutel';
+      if (!token && !s.token) return 'Vul ook de sleutel in';
+      s.repo = repo; if (token) s.token = true; return ''; },
+    statPreview(){ const s = this._stat; return JSON.stringify({ schema: 1, installatie: 'a1b2c3d4', app: VERSION_NAME, android: 36, toestel: 'Test Telefoon', achtergrondBeperkt: false, logregels: s.tags, vastlopers: [] }, null, 2); },
+    statSend(){ const s = this._stat; setTimeout(() => { s.sent++; s.lastSent = Date.now(); s.lastResult = 'ok'; s.tags = {}; window.onStatSent && window.onStatSent(''); }, 50); }, crashNew(){ return false; }, logJs(m){ this._jsErr=m; },
     lockState(){ const t=this._st; return JSON.stringify({on:t.lock,locked:!!t.locked,timeout:t.timeout,secure:t.secure!==false,code:!!t.code,decoy:!!t.decoy&&!!t.code,bio:!!t.code&&!!t.codeBio&&t.secure!==false,codeBio:!!t.codeBio,wait:0}); },
     lockTryCode(c){ const t=this._st; t.tries=(t.tries||[]).concat([c]); let r; if (c===t.code) { t.locked=false; setTimeout(()=>onUnlocked(),20); r=''; } else if (t.decoy) { t.neutral=true; r='neutral'; } else r='Verkeerde code'; setTimeout(()=>onLockResult(r),30); },
     lockBio(){ this._st.bioAsked=true; },

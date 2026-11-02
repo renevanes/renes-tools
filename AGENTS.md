@@ -31,6 +31,11 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
 - **Nieuwe brugfunctie** (`@JavascriptInterface`) = ook een nabootsing in `01-testbrug.js`; `python3 tools/check-bridge.py` controleert dat.
 - **Privacy**: backups en exports bevatten alleen Rene's eigen gegevens en gaan naar plekken die hij zelf kiest.
   Geen meelezen van andermans berichten of meldingen voor toezicht, geen OSINT op contacten.
+  Ook **Statistieken voor verbeteringen** (`Statistiek.java`, Instellingen → Foutrapport en statistieken) volgt dat: het
+  gaat alleen naar de privé GitHub-repository die Rene zelf instelt. Het staat standaard aan, maar zonder ingestelde repository en sleutel gaat er niets weg. Erin mogen alleen
+  tellingen en versies: per vaste logsoort (`App.log`-naam zoals BACKUP) een aantal, en bij een vastloper het soort fout en
+  de plek in de eigen code. Nooit foutteksten, namen, nummers, berichten, bestandsnamen, adressen of locaties
+  (`StatistiekTest` controleert dat). Iets toevoegen aan het rapport = eerst Rene vragen en de test uitbreiden.
   VPN-sleutels en wachtwoorden blijven versleuteld (`Secure.deviceKey`, AES-GCM) en buiten Android-backups.
   Alleen "Alle appgegevens" (`AppBackup`/`AppData`, terugzetten na herinstallatie) neemt ze mee, en alleen binnen het
   versleutelde archief (.rtb, wachtwoord van de backup); bij terugzetten worden ze opnieuw versleuteld met de sleutel van
@@ -174,6 +179,9 @@ Playwright, Node of Java van de CI.
    `publiceren.yml` veranderde; bij alleen andere workflows of scripts komt er geen run en geen nieuwe versie.) Is er niets veilig te doen, laat het dan staan en zet in het issue waarom.
 6. Meld Rene kort: wat bijgewerkt is, wat opgelost is, en wat bewust is blijven liggen.
 7. **Eerste maandag van de maand:** doe daarna ook de opruimronde hieronder (eigen branch `opruimen/JJJJ-MM`).
+8. **Statistieken:** staat de privé repository met de weekrapporten (Instellingen → Foutrapport en statistieken, map
+   `statistiek/`) open voor de sessie, lees dan de rapporten sinds vorige week. Vastlopers (soort + plek) en logsoorten die
+   opeens vaak voorkomen: oplossen, of met de reden in het issue zetten. Niet bereikbaar: zeg dat in de reactie.
 Nooit in het kader van onderhoud: de updatecontrole, de sleutel of `publiceren.yml`-beveiliging verzwakken, of
 pull requests van anderen (mensen of andere bots dan Dependabot) samenvoegen.
 

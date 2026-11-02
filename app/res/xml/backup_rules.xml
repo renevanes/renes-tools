@@ -42,4 +42,5 @@
         <exclude domain="sharedpref" path="lock.xml" />
         <exclude domain="sharedpref" path="spotify.xml" />
         <exclude domain="sharedpref" path="vpn.xml" />
+        <exclude domain="sharedpref" path="statistiek.xml" />
 </full-backup-content>

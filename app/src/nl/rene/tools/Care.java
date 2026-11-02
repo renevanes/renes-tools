@@ -83,6 +83,8 @@ public class Care extends JobService {
             String title = r.optBoolean("ok") ? "Backup-controle: alles in orde ✓" : "Backup-controle: er is iets mis";
             notify(c, 4312, title, r.optString("summary"), "backup");
         }
+        // Elke week: de statistieken voor verbeteringen (alleen als je een bestemming hebt ingesteld)
+        try { Statistiek.daily(c); } catch (Throwable t) { App.log(c, "STATISTIEK", t.getClass().getSimpleName()); }
     }
 
     // ---------- batterij ----------

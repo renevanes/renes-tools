@@ -69,6 +69,7 @@ function enterSettings(){
     '<div class="row setrow"><span style="flex:1"><b>' + esc(p.name) + '</b><small class=note style="display:block;margin:0">' + esc(p.used) + '</small></span>' +
     (p.ok ? '<span class=permok>✓ Aan</span>' : '<button class="mini" style="float:none" data-p="' + esc(p.id) + '" onclick="Android.permRequest(this.dataset.p)">Toestaan</button>') + '</div>').join('');
   $('#st-crash').textContent = i.crashes ? i.crashes + (i.crashes === 1 ? ' fout' : ' fouten') + ' vastgelegd.' : 'Er zijn geen fouten vastgelegd. ✓';
+  stStatRender();
   stSummaries(i);
 }
 function stHomeRender(){
@@ -110,5 +111,25 @@ function stCodeClear(){
     else Android.lockCodeClear('');
   });
 }
+/* Statistieken voor verbeteringen: standaard aan, maar er gaat pas iets weg als er een repository en sleutel zijn */
+function stStatRender(){
+  if (typeof Android.statState !== 'function') { $('#st-stat').style.display = 'none'; return; }
+  const s = stJson(Android.statState()), on = s.on !== false, b = $('#st-stat-on');
+  b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+  const r = $('#st-stat-repo'); if (document.activeElement !== r) r.value = s.repo || '';
+  $('#st-stat-token').placeholder = s.token ? 'Sleutel is ingesteld (leeg laten = houden)' : 'GitHub-sleutel (alleen schrijven in die repository)';
+  $('#st-stat-sub').textContent = !on ? 'Uit: er wordt niets geteld of verstuurd' : !(s.repo && s.token) ? 'Aan, maar nog geen bestemming: er gaat niets weg' :
+    s.lastResult && s.lastResult !== 'ok' ? 'Laatste poging: ' + s.lastResult : s.lastSent ? 'Laatst verstuurd: ' + fmtD(s.lastSent) : 'Wordt deze week voor het eerst verstuurd';
+  $('#st-stat-send').disabled = !(on && s.repo && s.token);
+  $('#st-stat-preview').textContent = Android.statPreview();
+}
+function stStatOn(on){ Android.statOn(on); stStatRender(); toast(on ? 'Statistieken staan aan' : 'Statistieken staan uit; de tellingen zijn gewist'); }
+function stStatSave(){
+  const t = $('#st-stat-token'), e = Android.statDest($('#st-stat-repo').value.trim(), t.value.trim());
+  if (e) { toast(e); return; }
+  t.value = ''; stStatRender(); toast($('#st-stat-repo').value.trim() ? 'Bestemming bewaard' : 'Bestemming verwijderd');
+}
+function stStatSend(){ const b = $('#st-stat-send'); b.disabled = true; b.textContent = 'Versturen…'; Android.statSend(); }
+window.onStatSent = function(e){ const b = $('#st-stat-send'); if (b) b.textContent = 'Nu versturen'; toast(e || 'Verstuurd ✓'); if (current === 'setcrash') stStatRender(); };
 function stCrashClear(){ askConfirm('Foutrapport wissen?', 'De vastgelegde foutmeldingen worden verwijderd.', 'Wissen', () => { Android.crashClear(); enterSettings(); }); }
 

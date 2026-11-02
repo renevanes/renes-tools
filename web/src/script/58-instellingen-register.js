@@ -58,6 +58,8 @@ const SET_REG = [
     why: 'Dit hoort bij het app-slot; dat stel je zelf in.', get: () => setB(stJson(Android.lockState()).codeBio) },
   { id: 'losse.apps', scr: 'setsolo', ctl: '#st-solo-list .tg', type: 'openen', safe: 'beveiliging', label: 'Losse apps', desc: 'Een tool als eigen app op je startscherm. Zo\'n losse app opent zonder vingerafdruk of app-code.', syn: 'losse app eigen app snelkoppeling startscherm los',
     why: 'Een losse app opent zonder app-slot; dat kies je zelf.' },
+  { id: 'statistieken', scr: 'setcrash', ctl: '#st-stat-on', type: 'openen', safe: 'beveiliging', label: 'Statistieken voor verbeteringen', desc: 'Elke week tellingen en fouten (geen inhoud) naar een privé GitHub-repository die je zelf instelt.', syn: 'statistiek statistieken telemetrie logboek fouten verbeteren versturen github',
+    why: 'Wat de app verstuurt en waarheen, stel je zelf in.' },
   { id: 'toestemmingen', scr: 'setperm', type: 'openen', safe: 'beveiliging', label: 'Toestemmingen', desc: 'Wat de app van Android mag (sms, oproepen, contacten, microfoon, locatie …) en waarvoor.', syn: 'toestemming rechten permissie toegang android microfoon locatie sms',
     why: 'Toestemmingen geef je zelf, in Android.' },
   { id: 'backup.map', scr: 'setbackup', type: 'openen', label: 'Backup-map', desc: 'De map (bijv. USB-stick, SD-kaart of OneDrive) waar alle tools hun backups en exports neerzetten.', syn: 'backup map folder usb onedrive sd kaart opslag export',

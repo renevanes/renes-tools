@@ -114,6 +114,7 @@ public class App extends Application {
                 o.write((head + text.trim() + "\n\n").getBytes(StandardCharsets.UTF_8));
             }
         } catch (Throwable ignored) { }
+        Statistiek.count(c, kind, text); // alleen tellen (soort regel, bij een vastloper soort fout en plek), nooit de tekst
     }
 
     /** Het rapport om te delen: toestel, versie en het logboek. */

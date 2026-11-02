@@ -27,7 +27,7 @@
     </div>
     <div class="flabel stgl" role="heading" aria-level="2">Over de app</div>
     <div class="card stlist">
-      <button class="strow" onclick="show('setcrash')"><span class="stic"><span class="ui-icon" data-icon="alert" aria-hidden="true"></span></span><span class="sttxt"><b>Foutrapport</b><small id="st-sum-crash"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('setcrash')"><span class="stic"><span class="ui-icon" data-icon="alert" aria-hidden="true"></span></span><span class="sttxt"><b>Foutrapport en statistieken</b><small id="st-sum-crash"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('selftest')"><span class="stic"><span class="ui-icon" data-icon="check" aria-hidden="true"></span></span><span class="sttxt"><b>Zelftest</b><small id="st-sum-self"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="jumpTo('info')"><span class="stic"><span class="ui-icon" data-icon="info" aria-hidden="true"></span></span><span class="sttxt"><b>Versie en updates</b><small id="st-sum-info"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
@@ -177,7 +177,7 @@
 <section class="screen" id="s-setcrash">
   <div class="hdr sm">
     <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
-    <h1 tabindex="-1">Foutrapport</h1>
+    <h1 tabindex="-1">Foutrapport en statistieken</h1>
   </div>
   <main>
     <div class="card">
@@ -189,6 +189,18 @@
         <button class="big ghost" style="flex:1" onclick="stCrashClear()">Wissen</button>
       </div>
       <p class="note">Het rapport bevat het toestel, de versie en de technische foutmeldingen, geen berichten, contacten of andere gegevens. Delen gaat via WhatsApp, mail of een andere app naar keuze.</p>
+    </div>
+    <div class="card" id="st-stat">
+      <h2>Statistieken voor verbeteringen</h2>
+      <div class="sw"><span>Elke week versturen<small id="st-stat-sub"></small></span><button class="tg" id="st-stat-on" role="switch" aria-label="Statistieken elke week versturen" onclick="togUi(this); stStatOn(this.classList.contains('on'))"></button></div>
+      <p class="note">Alleen tellingen: hoe vaak elk soort logregel voorkwam, en bij een vastloper het soort fout en de plek in de code. Geen foutteksten, namen, nummers, berichten of adressen. Gaat naar een privé GitHub-repository die jij hier instelt, zodat een agent er verbeteringen uit kan halen.</p>
+      <input class="search" id="st-stat-repo" placeholder="Repository, bijv. renevanes/renes-tools-statistiek" aria-label="Repository (eigenaar/naam)" autocomplete="off" autocapitalize="off" spellcheck="false" style="margin:8px 0">
+      <input class="search" id="st-stat-token" type="password" placeholder="GitHub-sleutel (alleen schrijven in die repository)" aria-label="GitHub-sleutel" autocomplete="off" style="margin:0 0 8px">
+      <div class="row">
+        <button class="big" style="flex:1" onclick="stStatSave()">Opslaan</button>
+        <button class="big ghost" style="flex:1" id="st-stat-send" onclick="stStatSend()">Nu versturen</button>
+      </div>
+      <details id="st-stat-what"><summary>Wat wordt er verstuurd?</summary><pre class="note" id="st-stat-preview" style="white-space:pre-wrap;word-break:break-word;font-size:12px"></pre></details>
     </div>
   </main>
 </section>
