@@ -47,6 +47,9 @@ jobs:
       - name: Versies van meegeleverde onderdelen leesbaar (voor de onderhoudscontrole)
         run: python3 .github/scripts/onderhoud-controle.py --bestanden
 
+      - name: Opruimscan loopt (rapport in het issue Opruimen)
+        run: python3 .github/scripts/opruim-scan.py > /dev/null
+
       - name: Publicatie mag alleen geteste bron gebruiken
         run: bash tests/publicatie-bron.sh
 

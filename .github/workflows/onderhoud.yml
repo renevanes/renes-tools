@@ -13,7 +13,7 @@ on:
     branches: [main]
   push:                     # ook meteen na een wijziging aan de controle zelf
     branches: [main]
-    paths: ['.github/scripts/onderhoud-controle.py', '.github/workflows/onderhoud.yml']
+    paths: ['.github/scripts/onderhoud-controle.py', '.github/scripts/opruim-scan.py', '.github/workflows/onderhoud.yml']
 
 permissions:
   contents: read
@@ -75,3 +75,18 @@ jobs:
           elif [ -n "$nr" ]; then
             gh issue close "$nr" -R "$REPO" --comment "Alles is bij; niets meer te doen."
           fi
+
+      - name: Opruimscan (dode code en versimpelen)
+        env:
+          OPRUIM: 'Opruimen: dode code en versimpelen'
+        run: |
+          {
+            echo "Automatisch bijgewerkt door de workflow Onderhoud ($(date -u +%F)). Afwerken in de maandelijkse opruimronde (AGENTS.md)."
+            echo
+            python3 .github/scripts/opruim-scan.py
+          } > opruim.md
+          cat opruim.md >> "$GITHUB_STEP_SUMMARY"
+          gh label create opruimen -R "$REPO" --color D4C5F9 --description "Dode code en versimpelen" 2>/dev/null || true
+          nr=$(gh issue list -R "$REPO" --label opruimen --state open --search "in:title \"$OPRUIM\"" --json number --jq '.[0].number // empty')
+          if [ -n "$nr" ]; then gh issue edit "$nr" -R "$REPO" --body-file opruim.md
+          else gh issue create -R "$REPO" --title "$OPRUIM" --label opruimen --body-file opruim.md; fi

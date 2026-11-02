@@ -122,6 +122,8 @@ Dit gaat grotendeels vanzelf; een agent doet wekelijks (maandagochtend) het deel
   ongeveer dezelfde grootte) en het gereedschap (build-tools, android.jar/targetSdk, aapt2, zig, Playwright, Node, Java)
   met de nieuwste versies
   en met de OSV-kwetsbaarhedendatabase, en zet alles wat te doen is in het issue "Onderhoud: updates en beveiliging".
+  Daarna draait `.github/scripts/opruim-scan.py` (dode code en versimpelen) en zet het rapport in het issue
+  "Opruimen: dode code en versimpelen" (label `opruimen`); zie "Opruimen en versimpelen" hieronder.
 
 **Alle onderdelen van buitenaf** (houd deze lijst bij als er iets bijkomt; `onderhoud-controle.py --bestanden` moet
 alles kunnen lezen, dat controleert Bouwen en testen):
@@ -171,8 +173,30 @@ Playwright, Node of Java van de CI.
    hierboven; controleer dat Publiceren slaagt. (Publiceren start alleen als `app/`, `web/`, `tools/`, `build.sh` of
    `publiceren.yml` veranderde; bij alleen andere workflows of scripts komt er geen run en geen nieuwe versie.) Is er niets veilig te doen, laat het dan staan en zet in het issue waarom.
 6. Meld Rene kort: wat bijgewerkt is, wat opgelost is, en wat bewust is blijven liggen.
+7. **Eerste maandag van de maand:** doe daarna ook de opruimronde hieronder (eigen branch `opruimen/JJJJ-MM`).
 Nooit in het kader van onderhoud: de updatecontrole, de sleutel of `publiceren.yml`-beveiliging verzwakken, of
 pull requests van anderen (mensen of andere bots dan Dependabot) samenvoegen.
+
+## Opruimen en versimpelen (maandelijks)
+De scan (`python3 .github/scripts/opruim-scan.py`, ook lokaal te draaien) zoekt op naam naar dode code (JS-functies,
+Java-classes en -methoden, brugfuncties, CSS-klassen) en naar plekken om te versimpelen (grootste bestanden, langste
+functies, herhaalde blokken Java). Het zijn **kandidaten**: hij ziet geen namen die in een tekenreeks worden opgebouwd.
+1. **Eerst nagaan, dan weghalen.** Per kandidaat grep op de naam, ook in tekenreeksen (`onclick`, `'ci-' + x`,
+   `evaluateJavascript`, `on…`-terugroepnamen), `web/start.html`, het manifest, `app/res/` en reflectie. Bewust laten
+   staan? Zet de naam met de reden in `.github/opruim-uitzonderingen.txt`, dan meldt de scan hem niet meer.
+2. **Alleen gedrag-neutraal.** Opruimen verandert niets aan wat Rene ziet of wat de app doet. Weg = ook de nabootsing
+   in `01-testbrug.js` en tests die alleen het weggehaalde controleerden. Versimpelen (opsplitsen, een gedeelde hulpfunctie)
+   alleen met tests die het gedrag vóór en na vastleggen; ontbreekt zo'n test, schrijf die eerst.
+3. **Klein houden:** per ronde de duidelijkste kandidaten, liefst onder de ±500 gewijzigde regels; per onderwerp een commit.
+4. **Java = nieuwe APK.** Alles in `app/` laat `NATIVE_LEVEL` stijgen, dus Rene moet een APK installeren. Java-opruimwerk
+   daarom bundelen: hooguit één keer per maand, of meenemen met een andere app-wijziging. Opruimen in `web/` mag altijd.
+5. **Niet in een opruimronde:** de updatecontrole (`Updater`, `WebUpdateStore`), versleuteling en sleutels (`Secure`,
+   `Kluis`, `Lock`, `*Crypto*`), backup terugzetten (`AppBackup`/`AppData`) en de publicatiescripts herschrijven.
+   Dode code daar weghalen mag, met extra zorg in de review.
+6. Bouwen, `run-jvm.sh`, `run-ui.sh`, `check-bridge.py`, de controle op anonieme classes, onafhankelijke review, push naar
+   main zoals bij onderhoud. Verandert `app/`, `web/` of `tools/`, schrijf dan `wijzigingen/opruimen-JJJJ-MM.txt` met één
+   korte regel ("Opgeruimd: oude, ongebruikte code weggehaald; je merkt er niets van"); zonder bestand neemt Publiceren
+   de commitregels over. Zet in het issue Opruimen wat weg is, wat bewust bleef en wat volgende maand aan de beurt is.
 
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK

@@ -1,0 +1,2 @@
+# Namen die de opruimscan (.github/scripts/opruim-scan.py) niet meer moet melden: bewust laten staan.
+# Eén naam per regel (functie, methode, class of CSS-klasse zonder punt), met de reden erachter als opmerking.
