@@ -701,9 +701,10 @@ if (!window.Android) window.Android = (function(){
     /* Facturen ophalen (nagebootst): één run duurt ±1,2 s; _faFout = foutmelding, _faInlog = inloggen nodig */
     _fa: { lev: [], toestand: {}, ec: { url: '', gebruiker: '', adres: '', heeftWachtwoord: false }, pw: {}, bezig: '', voortgang: '', pdf: {}, calls: [] },
     _faSjablonen: [
-      { sjabloon: 'kpn-zakelijk', naam: 'KPN Zakelijk', omschrijving: 'MijnKPN Zakelijk: facturen van je zakelijke abonnementen', startUrl: 'https://mijnkpnzakelijk.kpn.com', facturenUrl: '', menu: 'facturen|factuur', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, code: { bron: 'sms', afzender: 'KPN', patroon: '' }, tip: 'KPN stuurt na je wachtwoord een code per sms of mail.' },
-      { sjabloon: 'anders', naam: '', omschrijving: 'Een andere website met facturen: vul zelf de inlogpagina in', startUrl: '', facturenUrl: '', menu: 'facturen|factuur|invoices|documenten', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, code: { bron: 'geen', afzender: '', patroon: '' }, tip: 'Kijk de eerste keer mee.' }],
-    facturenState(){ const f = this._fa; return JSON.stringify({ leveranciers: f.lev.map(l => ({ ...l, toestand: f.toestand[l.id] || {}, heeftWachtwoord: !!f.pw[l.id], aantal: (f.pdf[l.id] || []).length })),
+      { sjabloon: 'kpn-zakelijk', naam: 'KPN Zakelijk', omschrijving: 'MijnKPN Zakelijk: facturen van je zakelijke abonnementen', startUrl: 'https://mijnkpnzakelijk.kpn.com', facturenUrl: '', menu: 'facturen|factuur', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, schema: 'maand', dag: 5, tijd: '08:00', code: { bron: 'sms', afzender: 'KPN', patroon: '' }, tip: 'KPN stuurt na je wachtwoord een code per sms of mail.' },
+      { sjabloon: 'anders', naam: '', omschrijving: 'Een andere website met facturen: vul zelf de inlogpagina in', startUrl: '', facturenUrl: '', menu: 'facturen|factuur|invoices|documenten', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, schema: 'maand', dag: 5, tijd: '08:00', code: { bron: 'geen', afzender: '', patroon: '' }, tip: 'Kijk de eerste keer mee.' }],
+    facturenState(){ const f = this._fa; return JSON.stringify({ leveranciers: f.lev.map(l => ({ ...l, toestand: f.toestand[l.id] || {}, heeftWachtwoord: !!f.pw[l.id], aantal: (f.pdf[l.id] || []).length,
+        maanden: f.maanden && f.maanden[l.id] || {}, vorige: l.schema === 'uit' ? 0 : (this._faVorige || Date.now() - 2 * 864e5), volgende: l.schema === 'uit' ? 0 : faVolgende(l, Date.now()) })),
       bezig: f.bezig, voortgang: f.voortgang, zichtbaar: false, ec: f.ec, lokaal: f.lokaal || '', drive: f.drive || { gekoppeld: false, gebruiker: '', clientId: '', heeftGeheim: false }, map: !!this._wa.info.dest, sms: !!this._sms.perm, sjablonen: this._faSjablonen }); },
     facturenBewaar(json){ const o = JSON.parse(json), f = this._fa; f.calls.push(['bewaar', JSON.parse(json)]);
       if (!o.naam) return JSON.stringify({ error: 'Geef de leverancier een naam' });
@@ -718,7 +719,9 @@ if (!window.Android) window.Android = (function(){
       setTimeout(() => { f.voortgang = 'Factuur 1 van 2 ophalen…'; }, 500);
       setTimeout(() => { f.bezig = ''; const now = Date.now();
         const r = this._faFout ? { id, naam: l.naam, ok: false, msg: this._faFout, inlogNodig: !!this._faInlog } : { id, naam: l.naam, ok: true, nieuw: 2, gevonden: 2, namen: ['KPN Zakelijk Factuur 2026-09.pdf', 'KPN Zakelijk Factuur 2026-10.pdf'], fouten: [], msg: '2 nieuwe facturen' };
-        f.toestand[id] = { lastTry: now, ok: r.ok, msg: r.msg, inlogNodig: !!r.inlogNodig, ...(r.ok ? { lastOk: now, nieuw: 2 } : {}) };
+        const oud = f.toestand[id] || {};
+        f.toestand[id] = { ...oud, lastTry: now, ok: r.ok, msg: r.msg, inlogNodig: !!r.inlogNodig, ...(r.ok ? { lastOk: now, nieuw: 2 } : {}), log: [{ t: now, ok: r.ok, msg: r.msg, nieuw: r.ok ? 2 : 0, namen: r.namen || [], auto: false }].concat(oud.log || []) };
+        if (r.ok) { f.maanden = f.maanden || {}; const m = faMaandSleutel(now); f.maanden[id] = { ...(f.maanden[id] || {}), [m]: ((f.maanden[id] || {})[m] || 0) + 2 }; }
         if (r.ok) f.pdf[id] = [{ naam: 'KPN Zakelijk Factuur 2026-10.pdf', t: now, grootte: 81234 }, { naam: 'KPN Zakelijk Factuur 2026-09.pdf', t: now - 1000, grootte: 80122 }];
         onFacturenKlaar(r); }, 1200); return ''; },
     facturenStop(){ this._fa.calls.push(['stop']); },

@@ -141,9 +141,20 @@ final class Facturen {
         if (!in(bron, BRON)) throw new Exception("Onbekende bron voor de inlogcode");
         co.put("bron", bron).put("afzender", tekst(ci, "afzender", 60, "")).put("patroon", patroon(ci, "patroon", "", "Het codepatroon"));
         o.put("code", co);
-        String schema = in.optString("schema", "week");
+        String schema = in.optString("schema", "maand");
         if (!in(schema, SCHEMA)) throw new Exception("Onbekende keuze voor hoe vaak");
         o.put("schema", schema);
+        // Vast moment: maand = dag 1–28 van de maand, week = weekdag (1 = maandag), altijd met een tijd (UU:MM)
+        o.put("dag", Math.max(1, Math.min(31, in.optInt("dag", 5)))); // 29–31: in kortere maanden de laatste dag
+        o.put("opnieuw", Math.max(1, Math.min(24, in.optInt("opnieuw", 3))));   // uren tussen pogingen na een fout
+        o.put("wifi", in.optBoolean("wifi", false));                             // vanzelf alleen via wifi
+        o.put("meldNieuw", in.optBoolean("meldNieuw", true));                    // melding bij nieuwe facturen
+        o.put("meldFout", in.optBoolean("meldFout", true));                      // melding als het mislukt
+        o.put("weekdag", Math.max(1, Math.min(7, in.optInt("weekdag", 1))));
+        String tijd = in.optString("tijd", "08:00").trim();
+        if (!tijd.matches("([01]?\\d|2[0-3]):[0-5]\\d")) throw new Exception("Vul een tijd in als 08:00");
+        if (tijd.length() == 4) tijd = "0" + tijd;
+        o.put("tijd", tijd);
         o.put("map", in.optBoolean("map", true));
         o.put("eigenCloud", in.optBoolean("eigenCloud", false));
         o.put("lokaal", in.optBoolean("lokaal", false));
@@ -214,20 +225,51 @@ final class Facturen {
         return n + ".pdf";
     }
 
-    static long periode(String schema) {
-        if ("dag".equals(schema)) return 86_400_000L;
-        if ("week".equals(schema)) return 7 * 86_400_000L;
-        if ("maand".equals(schema)) return 30 * 86_400_000L;
-        return Long.MAX_VALUE;
+    // ================= planning: vast moment per dag, week of maand =================
+
+    /** Het geplande moment op of vóór nu (volgende = false) of erna (true). Long.MAX_VALUE bij "uit". */
+    static long gepland(JSONObject lev, long nu, boolean volgende, java.util.TimeZone tz) {
+        String schema = lev.optString("schema", "maand");
+        if ("uit".equals(schema)) return volgende ? Long.MAX_VALUE : Long.MIN_VALUE;
+        String[] hm = lev.optString("tijd", "08:00").split(":");
+        int uur = Integer.parseInt(hm[0]), min = Integer.parseInt(hm[1]);
+        java.util.Calendar c = java.util.Calendar.getInstance(tz);
+        c.setTimeInMillis(nu);
+        c.set(java.util.Calendar.SECOND, 0); c.set(java.util.Calendar.MILLISECOND, 0);
+        c.set(java.util.Calendar.HOUR_OF_DAY, uur); c.set(java.util.Calendar.MINUTE, min);
+        int veld;
+        if ("maand".equals(schema)) {
+            // Dag 29–31 in een kortere maand: de laatste dag. Per maand opnieuw bepalen.
+            int dag = lev.optInt("dag", 5);
+            c.set(java.util.Calendar.DAY_OF_MONTH, 1);
+            c.set(java.util.Calendar.DAY_OF_MONTH, Math.min(dag, c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)));
+            if (volgende) { while (c.getTimeInMillis() <= nu) { c.set(java.util.Calendar.DAY_OF_MONTH, 1); c.add(java.util.Calendar.MONTH, 1); c.set(java.util.Calendar.DAY_OF_MONTH, Math.min(dag, c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH))); } }
+            else { while (c.getTimeInMillis() > nu) { c.set(java.util.Calendar.DAY_OF_MONTH, 1); c.add(java.util.Calendar.MONTH, -1); c.set(java.util.Calendar.DAY_OF_MONTH, Math.min(dag, c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH))); } }
+            return c.getTimeInMillis();
+        }
+        else if ("week".equals(schema)) {
+            int wd = lev.optInt("weekdag", 1); // 1 = maandag … 7 = zondag
+            int nuWd = (c.get(java.util.Calendar.DAY_OF_WEEK) + 5) % 7 + 1;
+            c.add(java.util.Calendar.DAY_OF_MONTH, wd - nuWd);
+            veld = java.util.Calendar.WEEK_OF_YEAR;
+        } else veld = java.util.Calendar.DAY_OF_MONTH;
+        // c is nu het moment in deze periode; schuif naar de juiste kant van "nu"
+        if (volgende) { while (c.getTimeInMillis() <= nu) c.add(veld, 1); }
+        else { while (c.getTimeInMillis() > nu) c.add(veld, -1); }
+        return c.getTimeInMillis();
     }
 
-    /** Is deze leverancier aan de beurt? Na een mislukte poging pas na een paar uur opnieuw (anders elke keer een melding). */
-    static boolean aanDeBeurt(String schema, long lastOk, long lastTry, long nu) {
-        long p = periode(schema);
-        if (p == Long.MAX_VALUE) return false;
-        if (nu - lastOk < p - 2 * 3_600_000L) return false;
-        return nu - lastTry >= Math.min(p, 20 * 3_600_000L) - 3_600_000L;
+    /**
+     * Aan de beurt: het laatste geplande moment is voorbij en sindsdien is er nog niet gelukt.
+     * Mislukt na het geplande moment: elke 3 uur opnieuw (niet elke keer meteen een melding).
+     */
+    static boolean aanDeBeurt(JSONObject lev, long lastOk, long lastTry, long nu, java.util.TimeZone tz) {
+        if ("uit".equals(lev.optString("schema", "maand"))) return false;
+        long g = gepland(lev, nu, false, tz);
+        if (lastOk >= g) return false;
+        return !(lastTry >= g && nu - lastTry < lev.optInt("opnieuw", 3) * 3_600_000L);
     }
+
 
     /** Een naam die één factuur aanwijst (met een nummer of datum), niet "factuur.pdf" of onze eigen noodnaam. */
     static boolean uniekeNaam(String n) {
@@ -341,6 +383,22 @@ final class Facturen {
     static JSONObject toestand(Context c, String id) {
         JSONObject t = toestand(c).optJSONObject(id);
         return t == null ? new JSONObject() : t;
+    }
+
+    /** Eén regel in de geschiedenis van een leverancier (nieuwste eerst, hooguit 40). */
+    static void logRun(Context c, String id, JSONObject regel) {
+        synchronized (LOCK) {
+            try {
+                JSONObject all = toestand(c);
+                JSONObject t = all.optJSONObject(id);
+                if (t == null) t = new JSONObject();
+                JSONArray oud = t.optJSONArray("log"), nieuw = new JSONArray().put(regel);
+                for (int i = 0; oud != null && i < oud.length() && nieuw.length() < 40; i++) nieuw.put(oud.get(i));
+                t.put("log", nieuw);
+                all.put(id, t);
+                bewaarToestand(c, all);
+            } catch (Exception ignored) { }
+        }
     }
 
     static void werkBij(Context c, String id, JSONObject wijziging) {
@@ -617,9 +675,13 @@ final class Facturen {
             if (r.optBoolean("ok")) {
                 int n = r.optInt("nieuw");
                 if (n == 0 && r.optJSONArray("fouten") != null && r.optJSONArray("fouten").length() == 0) return; // niets nieuws: stil
+                if (n > 0 && !lev.optBoolean("meldNieuw", true)) return;
+                if (n == 0 && !lev.optBoolean("meldFout", true)) return;
                 titel = n == 0 ? naam + ": niet alles afgeleverd" : n + (n == 1 ? " nieuwe factuur van " : " nieuwe facturen van ") + naam;
                 JSONArray f = r.optJSONArray("fouten");
                 tekst = f != null && f.length() > 0 ? f.optString(0) : r.optJSONArray("namen") == null ? "" : r.optJSONArray("namen").optString(0);
+            } else if (!lev.optBoolean("meldFout", true)) {
+                return;
             } else if (r.optBoolean("inlogNodig")) {
                 titel = naam + ": inloggen nodig";
                 tekst = "Tik om mee te kijken en zelf in te loggen. " + r.optString("msg");

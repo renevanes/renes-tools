@@ -1,0 +1,1 @@
+Facturen: kies per leverancier een vast moment (bijv. elke maand op de 5e om 08:00, of de laatste dag), hoe snel hij het na een fout opnieuw probeert, alleen via wifi en welke meldingen je krijgt. Nieuw overzicht: deze maand, per maand wat er binnenkwam, de volgende keer en de geschiedenis per leverancier.

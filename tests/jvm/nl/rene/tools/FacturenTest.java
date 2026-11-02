@@ -31,7 +31,7 @@ public class FacturenTest {
         }
         JSONObject kpn = Facturen.normaal(lijst.getJSONObject(0));
         check(kpn.getString("id").equals("kpn-zakelijk") && kpn.getJSONObject("code").getString("bron").equals("sms"), "KPN: id en code per sms");
-        check(kpn.getString("schema").equals("week") && kpn.getBoolean("map") && !kpn.getBoolean("eigenCloud"), "standaard: elke week, backup-map aan, Eigen Cloud uit");
+        check(kpn.getString("schema").equals("maand") && kpn.getInt("dag") == 5 && kpn.getString("tijd").equals("08:00") && kpn.getBoolean("map") && !kpn.getBoolean("eigenCloud"), "KPN: elke maand op de 5e om 08:00, backup-map aan, Eigen Cloud uit");
         check(!kpn.getBoolean("lokaal") && !kpn.getBoolean("drive"), "map op de telefoon en Google Drive staan standaard uit");
         check(FacturenDrive.geldigeClientId("1234567890-abc123def.apps.googleusercontent.com") && !FacturenDrive.geldigeClientId("abc") && !FacturenDrive.geldigeClientId(null), "Client ID van Google herkennen");
         check(FacturenDrive.q("Rene's facturen").equals("Rene\\'s facturen"), "naam veilig in een Drive-zoekvraag");
@@ -100,16 +100,32 @@ public class FacturenTest {
         check(Facturen.isPdf(("\n\n%PDF-1.4").getBytes(StandardCharsets.UTF_8)), "PDF met wat ervoor");
         check(!Facturen.isPdf("<!doctype html><html>".getBytes(StandardCharsets.UTF_8)) && !Facturen.isPdf(null) && !Facturen.isPdf(new byte[2]), "geen PDF");
 
-        // ---------- aan de beurt ----------
-        long dag = 86_400_000L, nu = 100 * dag;
-        check(Facturen.aanDeBeurt("week", 0, 0, nu), "nooit opgehaald: aan de beurt");
-        check(!Facturen.aanDeBeurt("week", nu - 3 * dag, nu - 3 * dag, nu), "week: 3 dagen geleden nog niet");
-        check(Facturen.aanDeBeurt("week", nu - 7 * dag, nu - 7 * dag, nu), "week: na 7 dagen wel");
-        check(Facturen.aanDeBeurt("week", nu - 7 * dag + 3_600_000L, nu - 7 * dag + 3_600_000L, nu), "dagelijkse taak iets eerder: toch aan de beurt");
-        check(!Facturen.aanDeBeurt("week", nu - 9 * dag, nu - 2 * 3_600_000L, nu), "net mislukt: niet meteen weer (geen meldingenregen)");
-        check(Facturen.aanDeBeurt("week", nu - 9 * dag, nu - dag, nu), "mislukt gisteren: vandaag opnieuw");
-        check(Facturen.aanDeBeurt("dag", nu - dag, nu - dag, nu) && Facturen.aanDeBeurt("maand", nu - 30 * dag, nu - 30 * dag, nu) && !Facturen.aanDeBeurt("maand", nu - 20 * dag, nu - 20 * dag, nu), "dag en maand");
-        check(!Facturen.aanDeBeurt("uit", 0, 0, nu), "uit: nooit vanzelf");
+        // ---------- planning: vast moment ----------
+        java.util.TimeZone ams = java.util.TimeZone.getTimeZone("Europe/Amsterdam");
+        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm"); f.setTimeZone(ams);
+        long nu = f.parse("2026-11-02 19:30").getTime();
+        JSONObject m5 = Facturen.normaal(new JSONObject(basis.toString()).put("schema", "maand").put("dag", 5).put("tijd", "08:00"));
+        check(f.format(new java.util.Date(Facturen.gepland(m5, nu, true, ams))).equals("2026-11-05 08:00"), "maand: volgende 5 nov 08:00");
+        check(f.format(new java.util.Date(Facturen.gepland(m5, nu, false, ams))).equals("2026-10-05 08:00"), "maand: vorige 5 okt 08:00");
+        JSONObject m31 = Facturen.normaal(new JSONObject(m5.toString()).put("dag", 31));
+        check(f.format(new java.util.Date(Facturen.gepland(m31, nu, true, ams))).equals("2026-11-30 08:00"), "laatste dag: 30 nov");
+        check(f.format(new java.util.Date(Facturen.gepland(m31, f.parse("2027-02-01 09:00").getTime(), true, ams))).equals("2027-02-28 08:00"), "laatste dag in februari");
+        JSONObject w = Facturen.normaal(new JSONObject(basis.toString()).put("schema", "week").put("weekdag", 5).put("tijd", "7:15"));
+        check(w.getString("tijd").equals("07:15"), "tijd netjes: 07:15");
+        check(f.format(new java.util.Date(Facturen.gepland(w, nu, true, ams))).equals("2026-11-06 07:15"), "week: vrijdag 6 nov 07:15");
+        JSONObject d = Facturen.normaal(new JSONObject(basis.toString()).put("schema", "dag").put("tijd", "20:00"));
+        check(f.format(new java.util.Date(Facturen.gepland(d, nu, true, ams))).equals("2026-11-02 20:00"), "dag: vanavond 20:00");
+        check(fout(new JSONObject(basis.toString()).put("tijd", "25:00")).contains("tijd"), "ongeldige tijd geweigerd");
+        check(m5.getInt("opnieuw") == 3 && !m5.getBoolean("wifi") && m5.getBoolean("meldNieuw") && m5.getBoolean("meldFout"), "standaard: na 3 uur opnieuw, ook mobiel, beide meldingen");
+        long okt5 = f.parse("2026-10-05 08:00").getTime(), nov5 = f.parse("2026-11-05 08:00").getTime(), uur = 3_600_000L;
+        check(!Facturen.aanDeBeurt(m5, okt5 + uur, okt5 + uur, nu, ams), "oktober al opgehaald: nu niet");
+        check(Facturen.aanDeBeurt(m5, okt5 - uur, 0, nu, ams), "oktober gemist: inhalen");
+        check(Facturen.aanDeBeurt(m5, okt5 + uur, okt5 + uur, nov5 + 60_000, ams), "5 nov net na 08:00: aan de beurt");
+        check(!Facturen.aanDeBeurt(m5, okt5 + uur, nov5 + 60_000, nov5 + 2 * uur, ams), "net mislukt: nog niet opnieuw");
+        check(Facturen.aanDeBeurt(m5, okt5 + uur, nov5 + 60_000, nov5 + 4 * uur, ams), "na 3 uur opnieuw");
+        JSONObject m5b = Facturen.normaal(new JSONObject(m5.toString()).put("opnieuw", 12));
+        check(!Facturen.aanDeBeurt(m5b, okt5 + uur, nov5 + 60_000, nov5 + 4 * uur, ams), "opnieuw na 12 uur: na 4 uur nog niet");
+        check(!Facturen.aanDeBeurt(Facturen.normaal(new JSONObject(basis.toString()).put("schema", "uit")), 0, 0, nu, ams), "uit: nooit vanzelf");
 
         // ---------- evaluateJavascript-uitkomst ----------
         check(FacturenRun.str("\"{\\\"a\\\":1}\"").equals("{\"a\":1}") && FacturenRun.str("null").isEmpty() && FacturenRun.str(null).isEmpty() && FacturenRun.str("12").equals("12"), "uitkomst van de robot lezen");

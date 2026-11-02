@@ -85,6 +85,32 @@ const { chromium } = require('playwright');
     const laatste = await pg.evaluate(() => Android._fa.calls.filter(c => c[0] === 'bewaar').pop()[1]);
     ok(laatste.id === 'kpn-zakelijk' && laatste.eigenCloud === true && laatste.lokaal === true && laatste.drive === true && laatste.schema === 'maand' && laatste.wachtwoord === '', 'bijgewerkt zonder nieuw wachtwoord');
     ok((await pg.textContent('#fa-lijst')).includes('elke maand'), 'elke maand in de lijst');
+    // Planning: vast moment en alles instelbaar
+    await pg.click('#fa-lijst .sbtn'); await pg.waitForTimeout(150);
+    await pg.click('#sheet button:has-text("Instellingen")'); await pg.waitForTimeout(150);
+    ok(await pg.isVisible('#fl-dag') && !(await pg.isVisible('#fl-wd')) && await pg.isVisible('#fl-tijd'), 'maand: dag en tijd, geen weekdag');
+    await pg.selectOption('#fl-dag', '31'); await pg.fill('#fl-tijd', '06:30'); await pg.dispatchEvent('#fl-tijd', 'change');
+    ok((await pg.textContent('#fl-plan')).includes('laatste dag') && (await pg.textContent('#fl-plan')).includes('06:30'), 'uitleg: laatste dag om 06:30');
+    await pg.selectOption('#fl-schema', 'week'); await pg.waitForTimeout(50);
+    ok(await pg.isVisible('#fl-wd') && !(await pg.isVisible('#fl-dag')), 'week: weekdag in plaats van dag');
+    await pg.selectOption('#fl-wd', '5');
+    ok((await pg.textContent('#fl-plan')).includes('elke vrijdag om 06:30'), 'uitleg: elke vrijdag');
+    await pg.selectOption('#fl-schema', 'maand'); await pg.selectOption('#fl-opnieuw', '6'); await pg.check('#fl-wifi'); await pg.uncheck('#fl-meldnieuw');
+    ok((await pg.textContent('#fl-plan')).includes('zonder wifi') && (await pg.textContent('#fl-plan')).includes('na 6 uur'), 'uitleg: wifi en na 6 uur');
+    await pg.click('#fl-save'); await pg.waitForTimeout(200);
+    const plan = await pg.evaluate(() => Android._fa.calls.filter(c => c[0] === 'bewaar').pop()[1]);
+    ok(plan.schema === 'maand' && plan.dag === 31 && plan.tijd === '06:30' && plan.weekdag === 5 && plan.opnieuw === 6 && plan.wifi === true && plan.meldNieuw === false && plan.meldFout === true, 'planning bewaard: ' + JSON.stringify([plan.dag, plan.tijd, plan.opnieuw, plan.wifi]));
+    ok((await pg.textContent('#fa-lijst')).includes('Volgende keer:') && (await pg.textContent('#fa-lijst')).includes('laatste dag om 06:30'), 'lijst: volgende keer en planning');
+    // Inzicht: deze maand, overzicht per maand, geschiedenis
+    ok(await pg.isVisible('#fa-maand') && (await pg.textContent('#fa-maand')).includes('2 facturen binnen'), 'deze maand: 2 facturen binnen');
+    await pg.click('#fa-overzicht summary'); await pg.waitForTimeout(100);
+    ok(await pg.$$eval('#fa-overzicht-lijst tbody tr', r => r.length) === 12 && (await pg.textContent('#fa-overzicht-lijst tbody tr')).includes('✓ 2'), 'overzicht: 12 maanden, deze maand ✓ 2');
+    ok((await pg.textContent('#fa-overzicht-lijst')).includes('✗'), 'overzicht: mislukte poging zichtbaar');
+    await pg.screenshot({ path: __dirname + '/shots/facturen-overzicht-' + scheme + '.png', fullPage: true });
+    await pg.click('#fa-lijst .sbtn'); await pg.waitForTimeout(150);
+    await pg.click('#sheet button:has-text("Geschiedenis")'); await pg.waitForTimeout(150);
+    ok(await pg.isVisible('#modal.on') && (await pg.textContent('#modal')).includes('✗') && (await pg.textContent('#modal')).includes('✓'), 'geschiedenis met gelukte en mislukte pogingen');
+    await pg.click('#modal button:has-text("Sluiten")'); await pg.waitForTimeout(100);
     // Terug naar huis
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => current) === 'home', 'terug naar het startscherm');

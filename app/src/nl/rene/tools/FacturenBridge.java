@@ -28,7 +28,19 @@ public class FacturenBridge extends GebruikBridge {
                 String id = o.optString("id");
                 JSONObject t = all.optJSONObject(id);
                 if (t == null) t = new JSONObject();
+                // Per maand: hoeveel facturen er binnenkwamen (voor het overzicht)
+                JSONObject maanden = new JSONObject(), vw = t.optJSONObject("verwerkt");
+                java.text.SimpleDateFormat ym = new java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US);
+                if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) {
+                    JSONObject r = vw.optJSONObject(it.next());
+                    if (r == null || r.optLong("t") == 0) continue;
+                    String m = ym.format(new java.util.Date(r.optLong("t")));
+                    maanden.put(m, maanden.optInt(m) + 1);
+                }
                 t.remove("verwerkt");
+                long nu = System.currentTimeMillis();
+                long volgende = Facturen.gepland(o, nu, true, java.util.TimeZone.getDefault()), vorige = Facturen.gepland(o, nu, false, java.util.TimeZone.getDefault());
+                o.put("maanden", maanden).put("volgende", volgende == Long.MAX_VALUE ? 0 : volgende).put("vorige", vorige == Long.MIN_VALUE ? 0 : vorige);
                 o.put("toestand", t).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "lev_" + id))
                         .put("aantal", Facturen.bestanden(ctx, id).length());
                 out.put(o);

@@ -9,9 +9,17 @@
     <div class="card" id="fa-bezig" style="display:none" role="status" aria-live="polite">
       <div class="row" style="align-items:center;gap:8px"><b style="flex:1;min-width:0" id="fa-bezig-txt">Bezig…</b><button class="mini" style="float:none" onclick="Android.facturenStop()">Stoppen</button></div>
     </div>
+    <div class="card" id="fa-maand" style="display:none">
+      <h2 id="fa-maand-h">Deze maand</h2>
+      <div id="fa-maand-lijst"></div>
+    </div>
     <div class="flabel" style="margin:4px 2px 8px">Leveranciers</div>
     <div class="card stations" id="fa-lijst"></div>
     <button class="big" id="fa-nieuw" onclick="faNieuw()">Leverancier toevoegen</button>
+
+    <details class="card rinfo" id="fa-overzicht" style="display:none"><summary>Overzicht per maand</summary>
+      <div id="fa-overzicht-lijst" style="overflow-x:auto"></div>
+    </details>
 
     <div class="flabel" style="margin:18px 2px 8px">Opslaan</div>
     <div class="card">
@@ -103,7 +111,19 @@
     <div class="card">
       <h2>Ophalen</h2>
       <div class="row setrow"><label for="fl-schema" style="flex:1">Vanzelf ophalen</label>
-        <select class="sel" id="fl-schema"><option value="dag">Elke dag</option><option value="week">Elke week</option><option value="maand">Elke maand</option><option value="uit">Uit</option></select></div>
+        <select class="sel" id="fl-schema" onchange="flPlan()"><option value="maand">Elke maand</option><option value="week">Elke week</option><option value="dag">Elke dag</option><option value="uit">Uit</option></select></div>
+      <div class="row setrow" id="fl-dagrij"><label for="fl-dag" style="flex:1">Op dag van de maand</label>
+        <select class="sel" id="fl-dag" onchange="flPlan()"></select></div>
+      <div class="row setrow" id="fl-wdrij"><label for="fl-wd" style="flex:1">Op</label>
+        <select class="sel" id="fl-wd" onchange="flPlan()"><option value="1">maandag</option><option value="2">dinsdag</option><option value="3">woensdag</option><option value="4">donderdag</option><option value="5">vrijdag</option><option value="6">zaterdag</option><option value="7">zondag</option></select></div>
+      <div class="row setrow" id="fl-tijdrij"><label for="fl-tijd" style="flex:1">Om</label>
+        <input class="sel" id="fl-tijd" type="time" value="08:00" onchange="flPlan()"></div>
+      <div class="row setrow" id="fl-opnrij"><label for="fl-opnieuw" style="flex:1">Na een fout opnieuw proberen</label>
+        <select class="sel" id="fl-opnieuw" onchange="flPlan()"><option value="1">na 1 uur</option><option value="2">na 2 uur</option><option value="3">na 3 uur</option><option value="6">na 6 uur</option><option value="12">na 12 uur</option><option value="24">na 24 uur</option></select></div>
+      <label class="chk" id="fl-wifirij"><input type="checkbox" id="fl-wifi" onchange="flPlan()"> Vanzelf alleen via wifi</label>
+      <label class="chk"><input type="checkbox" id="fl-meldnieuw"> Melding bij nieuwe facturen</label>
+      <label class="chk"><input type="checkbox" id="fl-meldfout"> Melding als ophalen mislukt</label>
+      <p class="note" id="fl-plan" role="status" aria-live="polite"></p>
       <label class="chk"><input type="checkbox" id="fl-map"> In je backup-map (map Facturen)</label>
       <label class="chk"><input type="checkbox" id="fl-lok"> In een map op je telefoon</label>
       <label class="chk"><input type="checkbox" id="fl-gd"> In Google Drive (map Facturen)</label>

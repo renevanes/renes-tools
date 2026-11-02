@@ -20,7 +20,7 @@ import java.util.List;
  */
 public class FacturenJob extends JobService {
 
-    static final int JOB_ID = 4401, JOB_NOG = 4402;
+    static final int JOB_ID = 4401, JOB_NOG = 4402, JOB_TIJD = 4403;
     static volatile boolean gestopt;
 
     @Override
@@ -33,6 +33,7 @@ public class FacturenJob extends JobService {
         // Eén leverancier per keer (Android geeft een taak ±10 minuten); de volgende komt een minuut later
         String id = beurt.get(0);
         String err = FacturenRun.begin(ctx, id, null, r -> {
+            schedule(ctx); // het volgende geplande moment
             try {
                 JSONObject lev = Facturen.leverancier(ctx, id);
                 if (lev != null) Facturen.melding(ctx, lev, r);
@@ -42,7 +43,9 @@ public class FacturenJob extends JobService {
                 jobFinished(params, false);
             }
         });
-        if (!err.isEmpty()) return false; // er loopt al iets (met de hand gestart): de volgende dag weer
+        if (!err.isEmpty()) { schedule(ctx); return false; } // er loopt al iets (met de hand gestart): later opnieuw
+        FacturenRun r = FacturenRun.LOPEND.get();
+        if (r != null) r.klaarAuto = true;
         return true;
     }
 
@@ -68,11 +71,14 @@ public class FacturenJob extends JobService {
     static List<String> aanDeBeurt(Context c, long nu) {
         List<String> out = new ArrayList<>();
         JSONArray l = Facturen.lijst(c);
+        boolean betaald = true; // mobiel internet (kan geld kosten)?
+        try { android.net.ConnectivityManager cm = (android.net.ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE); betaald = cm == null || cm.isActiveNetworkMetered(); } catch (Throwable ignored) { }
         for (int i = 0; i < l.length(); i++) {
             JSONObject lev = l.optJSONObject(i);
             if (lev == null) continue;
+            if (lev.optBoolean("wifi") && betaald) continue; // wacht op wifi (de dagelijkse controle haalt het in)
             JSONObject t = Facturen.toestand(c, lev.optString("id"));
-            if (Facturen.aanDeBeurt(lev.optString("schema", "week"), t.optLong("lastOk"), t.optLong("lastTry"), nu)) out.add(lev.optString("id"));
+            if (Facturen.aanDeBeurt(lev, t.optLong("lastOk"), t.optLong("lastTry"), nu, java.util.TimeZone.getDefault())) out.add(lev.optString("id"));
         }
         return out;
     }
@@ -83,11 +89,32 @@ public class FacturenJob extends JobService {
         return false;
     }
 
-    /** Elke dag kijken (of niet, als alles uit staat). */
+    /** Het eerstvolgende geplande moment van alle leveranciers (of Long.MAX_VALUE). */
+    static long volgende(Context c, long nu) {
+        long min = Long.MAX_VALUE;
+        JSONArray l = Facturen.lijst(c);
+        for (int i = 0; i < l.length(); i++) {
+            JSONObject lev = l.optJSONObject(i);
+            if (lev != null) min = Math.min(min, Facturen.gepland(lev, nu, true, java.util.TimeZone.getDefault()));
+        }
+        return min;
+    }
+
+    /**
+     * Plannen: een taak op het eerstvolgende vaste moment (met internet; Android kan hem bij een slapende telefoon
+     * iets later starten), plus elke dag een controle die gemiste momenten inhaalt. Alles uit: niets gepland.
+     */
     static void schedule(Context c) {
         JobScheduler js = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
         if (js == null) return;
-        if (!nodig(c)) { js.cancel(JOB_ID); js.cancel(JOB_NOG); return; }
+        if (!nodig(c)) { js.cancel(JOB_ID); js.cancel(JOB_NOG); js.cancel(JOB_TIJD); return; }
+        long nu = System.currentTimeMillis(), v = volgende(c, nu);
+        if (v != Long.MAX_VALUE) {
+            JobInfo.Builder t = new JobInfo.Builder(JOB_TIJD, new ComponentName(c, FacturenJob.class))
+                    .setMinimumLatency(Math.max(0, v - nu)).setOverrideDeadline(Math.max(0, v - nu) + 6 * 3_600_000L)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true);
+            js.schedule(t.build());
+        }
         if (js.getPendingJob(JOB_ID) != null) return;
         JobInfo.Builder b = new JobInfo.Builder(JOB_ID, new ComponentName(c, FacturenJob.class))
                 .setPeriodic(86_400_000L)

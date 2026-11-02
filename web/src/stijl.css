@@ -1082,3 +1082,7 @@ body.talk-on #s-ai main{padding-bottom:200px}
 .aitalk.mini .aitalk-st{font-size:16px;margin:0 0 2px;align-self:stretch;text-align:left}
 .aitalk.mini .aitalk-hint{text-align:left;margin:0 0 8px;align-self:stretch}
 .aitalk.mini .aitalk-b .big{min-height:48px;font-size:15px}
+
+/* Facturen: overzicht per maand */
+.fa-tab{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}.fa-tab th,.fa-tab td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.fa-tab thead th{color:var(--muted);font-weight:600}.fa-tab .good{color:var(--ok)}.fa-tab .bad{color:var(--bad)}
+#fa-maand-lijst .good{color:var(--ok)}#fa-maand-lijst .bad{color:var(--bad)}

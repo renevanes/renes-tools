@@ -67,6 +67,8 @@ final class FacturenRun {
     volatile String voortgang = "Starten…";
     volatile int fase = LADEN;
 
+    /** Vanzelf gestart (achtergrondtaak) of met de hand. */
+    volatile boolean klaarAuto;
     boolean geladen, codeBezig, handmatig, naarGeladen, klaarGemeld;
     int pwPogingen, userPogingen, codePogingen, inlogKlikken, stil, menuPogingen, zoekPogingen, terug;
     long codeSinds, wachtTot, knopSinds, afrondenSinds;
@@ -448,6 +450,9 @@ final class FacturenRun {
                         .put("inlogNodig", uit.optBoolean("inlogNodig")).put("bezigSinds", 0);
                 if (uit.optBoolean("ok")) t.put("lastOk", nu).put("nieuw", uit.optInt("nieuw"));
                 Facturen.werkBij(c, id, t);
+                Facturen.logRun(c, id, new JSONObject().put("t", nu).put("ok", uit.optBoolean("ok")).put("msg", uit.optString("msg"))
+                        .put("nieuw", uit.optInt("nieuw")).put("namen", uit.optJSONArray("namen") == null ? new JSONArray() : uit.optJSONArray("namen"))
+                        .put("auto", !zichtbaar && klaarAuto));
                 if (!uit.optBoolean("ok")) App.log(c, "FACTUREN", lev.optString("naam") + ": " + uit.optString("msg"));
             } catch (Throwable e) {
                 try { uit = fout("Bewaren mislukt: " + Facturen.kort(e), false).put("id", id).put("naam", lev.optString("naam")); } catch (Exception ignored) { }
