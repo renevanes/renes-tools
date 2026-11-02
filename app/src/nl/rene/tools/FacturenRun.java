@@ -73,6 +73,13 @@ final class FacturenRun {
     int knopIndex, vangstenVoor;
     JSONArray knoppen;
     String lijstUrl;
+    /** Geheim van deze run: alleen de robot (in een afgesloten functie) kent het; andere scripts en iframes niet. */
+    final String sleutel = java.util.UUID.randomUUID().toString().replace("-", "");
+    /** Het domein van de leverancier (bijv. kpn.com): alleen daar wordt ingelogd en gedownload. */
+    final String domein;
+    final Set<String> codeGezien = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+    final java.util.List<WebView> kinderen = new java.util.ArrayList<>();
+    volatile String paginaUrl = "";
 
     private FacturenRun(Context c, JSONObject lev, String wachtwoord, WebView zicht, Klaar k) throws Exception {
         this.c = c.getApplicationContext();
@@ -86,6 +93,7 @@ final class FacturenRun {
         this.wv = zicht != null ? zicht : new WebView(this.c);
         this.klaar = k;
         this.maxDuur = zichtbaar ? 15 * 60_000L : 9 * 60_000L;
+        this.domein = Facturen.domein(lev.optString("startUrl"));
     }
 
     /** Starten (op de hoofdthread). Geeft "" of de reden waarom het niet kan. */
@@ -140,6 +148,8 @@ final class FacturenRun {
         voortgang = "Website openen…";
         wv.loadUrl(lev.optString("startUrl"));
         h.postDelayed(this::tik, 3000);
+        // Waakhond: ook als de website niet meer antwoordt (geen terugmelding van de robot), stopt het op tijd
+        h.postDelayed(() -> einde(fout("De website reageert niet meer", fase <= INLOG)), maxDuur + 60_000L);
     }
 
     // ================= de beslislus =================
@@ -149,6 +159,7 @@ final class FacturenRun {
         try {
             long nu = System.currentTimeMillis();
             if (stop.get()) { einde(fout("Gestopt", false)); return; }
+            paginaUrl = wv.getUrl() == null ? "" : wv.getUrl();
             if (nu - start > maxDuur) { einde(fout(fase <= INLOG ? "Inloggen duurde te lang" : "Het ophalen duurde te lang", fase <= INLOG)); return; }
             if (fase == DOWNLOAD) { volgendeKnop(); return; }
             if (fase == AFRONDEN) { afronden(); return; }
@@ -180,6 +191,12 @@ final class FacturenRun {
 
     private void inlog(JSONObject st) {
         long nu = System.currentTimeMillis();
+        boolean veld = st.optBoolean("pw") || st.optBoolean("user") || st.optBoolean("code");
+        if (veld && !handmatig && !Facturen.eigenSite(st.optString("url"), domein)) {
+            // Nooit gegevens invullen op een andere website (of zonder https)
+            handmatigOf("De inlogpagina staat niet op " + domein + " (" + Facturen.host(st.optString("url")) + ")");
+            return;
+        }
         boolean pw = st.optBoolean("pw"), user = st.optBoolean("user"), code = st.optBoolean("code");
         String fout = st.optString("fout");
         if (code && !pw) {
@@ -193,9 +210,9 @@ final class FacturenRun {
             final long sinds = codeSinds > 0 ? codeSinds : nu - 120_000L;
             Thread t = new Thread(() -> {
                 try {
-                    String cd = Facturen.wachtOpCode(c, lev, sinds, stop);
+                    String cd = Facturen.wachtOpCode(c, lev, sinds, stop, codeGezien);
                     h.post(() -> {
-                        codeBezig = false; codePogingen++;
+                        codeBezig = false; codePogingen++; codeSinds = System.currentTimeMillis();
                         if (fase == KLAAR) return;
                         voortgang = "Code invullen…";
                         js("__fr.vul('code'," + JSONObject.quote(cd) + "," + cfgJs + ")", r -> js("__fr.verstuur('code'," + cfgJs + ")", null));
@@ -302,7 +319,7 @@ final class FacturenRun {
         JSONObject k = knoppen.optJSONObject(knopIndex);
         voortgang = "Factuur " + (knopIndex + 1) + " van " + knoppen.length() + " ophalen…";
         String href = k == null ? "" : k.optString("href", "");
-        if (!href.isEmpty()) { haal(href, null, lijstUrl); knopIndex++; verder(300); return; }
+        if (!href.isEmpty()) { if (Facturen.eigenSite(href, domein)) haal(href, null, lijstUrl); knopIndex++; verder(300); return; } // links naar andere websites: niet
         vangstenVoor = vangsten.get(); knopSinds = nu;
         js("__fr.klik(" + (k == null ? -1 : k.optInt("i")) + ")", null);
         verder(800);
@@ -332,14 +349,14 @@ final class FacturenRun {
     void opData(String dataUrl, String naam) {
         try {
             int i = dataUrl.indexOf(',');
-            if (i < 0 || dataUrl.length() > 36_000_000 || !dataUrl.substring(0, i).contains(";base64")) return;
+            if (i < 0 || dataUrl.length() > 21_000_000 || !dataUrl.substring(0, i).contains(";base64")) return;
             byte[] b = android.util.Base64.decode(dataUrl.substring(i + 1), android.util.Base64.DEFAULT);
             neem(b, naam, null);
         } catch (Throwable ignored) { }
     }
 
     void haal(String url, String cd, String referer) {
-        if (url == null || !url.matches("(?i)https?://.*")) return;
+        if (url == null || !url.matches("(?i)https://.*")) return; // alleen https
         synchronized (opgehaald) { if (!opgehaald.add(url)) return; }
         bezig.incrementAndGet();
         final String ref = referer;
@@ -360,13 +377,13 @@ final class FacturenRun {
                 h.setRequestProperty("Accept", "application/pdf,*/*");
                 String ck = cm.getCookie(u);
                 if (ck != null) h.setRequestProperty("Cookie", ck);
-                if (referer != null) h.setRequestProperty("Referer", referer);
+                if (referer != null && Facturen.host(referer).equals(Facturen.host(u))) h.setRequestProperty("Referer", referer);
                 int code = h.getResponseCode();
                 List<String> zet = h.getHeaderFields().get("Set-Cookie");
                 if (zet != null) for (String z : zet) cm.setCookie(u, z);
                 if (code >= 300 && code < 400 && h.getHeaderField("Location") != null) {
                     u = new URL(new URL(u), h.getHeaderField("Location")).toString();
-                    if (!u.matches("(?i)https?://.*")) return;
+                    if (!u.matches("(?i)https://.*")) return;
                     continue;
                 }
                 if (code >= 400) return;
@@ -409,6 +426,8 @@ final class FacturenRun {
         stop.set(true);
         h.removeCallbacksAndMessages(null);
         try { CookieManager.getInstance().flush(); } catch (Throwable ignored) { }
+        for (WebView k : kinderen) { try { k.destroy(); } catch (Throwable ignored) { } }
+        kinderen.clear();
         if (eigenWv) { try { wv.stopLoading(); wv.removeJavascriptInterface("FrBrug"); wv.destroy(); } catch (Throwable ignored) { } }
         else { try { wv.removeJavascriptInterface("FrBrug"); } catch (Throwable ignored) { } }
         final java.util.List<Facturen.Pdf> lijst;
@@ -450,7 +469,7 @@ final class FacturenRun {
     private void js(String expr, android.webkit.ValueCallback<String> cb) {
         if (fase == KLAAR && cb != null) return;
         try {
-            wv.evaluateJavascript(robot(c) + "\n;" + expr, v -> { if (cb != null) cb.onReceiveValue(str(v)); });
+            wv.evaluateJavascript(robot(c).replace("__SLEUTEL__", sleutel) + "\n;" + expr, v -> { if (cb != null) cb.onReceiveValue(str(v)); });
         } catch (Throwable e) { if (cb != null) cb.onReceiveValue(""); }
     }
 
@@ -467,11 +486,14 @@ final class FacturenRun {
         @Override public void onPageStarted(WebView v, String url, Bitmap fav) { r.js("0", null); }
         @Override public void onPageFinished(WebView v, String url) { r.geladen = true; r.js("0", null); }
         @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
-            String s = req.getUrl().getScheme();
-            return !"https".equalsIgnoreCase(s) && !"http".equalsIgnoreCase(s); // geen andere apps openen (intent:, tel: …)
+            // Alleen https; geen andere apps openen (intent:, tel: …) en geen onversleutelde pagina's
+            return !"https".equalsIgnoreCase(req.getUrl().getScheme());
         }
         @Override public boolean onRenderProcessGone(WebView v, RenderProcessGoneDetail d) {
             r.einde(r.fout("De website liep vast", false));
+            if (!r.eigenWv) { // meekijken: deze WebView is onbruikbaar en moet weg
+                try { android.view.ViewGroup p = (android.view.ViewGroup) v.getParent(); if (p != null) p.removeView(v); v.destroy(); } catch (Throwable ignored) { }
+            }
             return true; // anders stopt de hele app
         }
     }
@@ -481,7 +503,9 @@ final class FacturenRun {
         final FacturenRun r;
         Chrome(FacturenRun r) { this.r = r; }
         @Override public boolean onCreateWindow(WebView v, boolean dialog, boolean gebaar, Message msg) {
+            if (r.fase == KLAAR) return false;
             WebView kind = new WebView(r.c);
+            r.kinderen.add(kind);
             kind.getSettings().setJavaScriptEnabled(false);
             kind.setWebViewClient(new Kind(r));
             kind.setDownloadListener((url, agent, cd, mime, len) -> { r.opDownload(url, cd); r.h.post(kind::destroy); });
@@ -502,14 +526,19 @@ final class FacturenRun {
         @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) { vang(v, req.getUrl().toString()); return true; }
         @Override public void onPageStarted(WebView v, String url, Bitmap fav) { if (url != null && !url.startsWith("about:")) { v.stopLoading(); vang(v, url); } }
         private void vang(WebView v, String url) { r.opDownload(url, null); r.h.post(v::destroy); }
+        @Override public boolean onRenderProcessGone(WebView v, RenderProcessGoneDetail d) {
+            try { r.kinderen.remove(v); v.destroy(); } catch (Throwable ignored) { }
+            return true; // nooit de hele app laten stoppen
+        }
     }
 
     /** Alleen voor de robot in de pagina: PDF's die de pagina zelf maakt (blob:/data:). */
     static final class Brug {
         final FacturenRun r;
         Brug(FacturenRun r) { this.r = r; }
-        @JavascriptInterface public void blob(String dataUrl, String naam) {
+        @JavascriptInterface public void blob(String sleutel, String dataUrl, String naam) {
             if (r.fase < ZOEK || r.fase == KLAAR || dataUrl == null) return; // alleen tijdens het ophalen
+            if (!r.sleutel.equals(sleutel) || !Facturen.eigenSite(r.paginaUrl, r.domein)) return; // alleen van onze robot, op de eigen website
             r.opData(dataUrl, naam == null ? "" : naam);
         }
     }

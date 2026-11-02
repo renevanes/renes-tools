@@ -20,7 +20,7 @@ import java.util.List;
  */
 public class FacturenJob extends JobService {
 
-    static final int JOB_ID = 4401;
+    static final int JOB_ID = 4401, JOB_NOG = 4402;
     static volatile boolean gestopt;
 
     @Override
@@ -30,19 +30,30 @@ public class FacturenJob extends JobService {
         final List<String> beurt = aanDeBeurt(ctx, System.currentTimeMillis());
         if (beurt.isEmpty()) return false;
         gestopt = false;
-        volgende(ctx, params, beurt, 0); // JobService start op de hoofdthread: daar moet de WebView ook
+        // Eén leverancier per keer (Android geeft een taak ±10 minuten); de volgende komt een minuut later
+        String id = beurt.get(0);
+        String err = FacturenRun.begin(ctx, id, null, r -> {
+            try {
+                JSONObject lev = Facturen.leverancier(ctx, id);
+                if (lev != null) Facturen.melding(ctx, lev, r);
+            } catch (Throwable ignored) {
+            } finally {
+                if (!gestopt) nog(ctx);
+                jobFinished(params, false);
+            }
+        });
+        if (!err.isEmpty()) return false; // er loopt al iets (met de hand gestart): de volgende dag weer
         return true;
     }
 
-    private void volgende(Context ctx, JobParameters params, List<String> ids, int i) {
-        if (i >= ids.size() || gestopt) { jobFinished(params, false); return; }
-        String id = ids.get(i);
-        String err = FacturenRun.begin(ctx, id, null, r -> {
-            JSONObject lev = Facturen.leverancier(ctx, id);
-            if (lev != null) Facturen.melding(ctx, lev, r);
-            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> volgende(ctx, params, ids, i + 1));
-        });
-        if (!err.isEmpty()) volgende(ctx, params, ids, i + 1); // bijv. er loopt al iets (met de hand gestart): volgende keer
+    /** Zijn er na deze nog leveranciers aan de beurt? Dan over een minuut nog een keer. */
+    static void nog(Context c) {
+        if (aanDeBeurt(c, System.currentTimeMillis()).isEmpty()) return;
+        JobScheduler js = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
+        if (js == null) return;
+        js.schedule(new JobInfo.Builder(JOB_NOG, new ComponentName(c, FacturenJob.class))
+                .setMinimumLatency(60_000L).setOverrideDeadline(6 * 3_600_000L)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).build());
     }
 
     @Override
@@ -76,7 +87,7 @@ public class FacturenJob extends JobService {
     static void schedule(Context c) {
         JobScheduler js = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
         if (js == null) return;
-        if (!nodig(c)) { js.cancel(JOB_ID); return; }
+        if (!nodig(c)) { js.cancel(JOB_ID); js.cancel(JOB_NOG); return; }
         if (js.getPendingJob(JOB_ID) != null) return;
         JobInfo.Builder b = new JobInfo.Builder(JOB_ID, new ComponentName(c, FacturenJob.class))
                 .setPeriodic(86_400_000L)

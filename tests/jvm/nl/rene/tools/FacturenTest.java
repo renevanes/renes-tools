@@ -76,6 +76,16 @@ public class FacturenTest {
         check(Facturen.bestandsnaam("../../geheim.pdf", null, "X", sha).equals("X .._.._geheim.pdf"), "geen mappen in de naam: " + Facturen.bestandsnaam("../../geheim.pdf", null, "X", sha));
         check(!Facturen.bestandsnaam("a:b*c?.pdf", null, "", sha).matches(".*[:*?].*"), "FAT-veilig");
 
+        // ---------- alleen op de eigen website van de leverancier ----------
+        check(Facturen.domein("https://mijnkpnzakelijk.kpn.com").equals("kpn.com"), "domein van KPN Zakelijk");
+        check(Facturen.domein("https://login.example.co.uk/x").equals("example.co.uk") && Facturen.domein("https://kpn.com").equals("kpn.com"), "domein bij .co.uk en kort adres");
+        check(Facturen.eigenSite("https://id.kpn.com/login?x=1", "kpn.com"), "id.kpn.com hoort bij kpn.com");
+        check(!Facturen.eigenSite("http://id.kpn.com/login", "kpn.com"), "zonder https: niet");
+        check(!Facturen.eigenSite("https://kpn.com.aanvaller.nl/login", "kpn.com") && !Facturen.eigenSite("https://nepkpn.com/", "kpn.com"), "lijkt op kpn.com maar is het niet");
+        check(!Facturen.eigenSite("https://kpn.com@aanvaller.nl/", "kpn.com"), "gebruikersnaam-truc in het adres");
+        check(Facturen.host("https://user@ID.KPN.com:443/a").equals("id.kpn.com") && Facturen.host("javascript:x").isEmpty(), "host lezen");
+        check(Facturen.uniekeNaam("KPN Zakelijk Factuur 2026-10.pdf") && Facturen.uniekeNaam("F-123-45.pdf") && !Facturen.uniekeNaam("KPN Zakelijk factuur.pdf") && !Facturen.uniekeNaam("KPN factuur 0123abcd.pdf"), "naam die één factuur aanwijst");
+
         // ---------- PDF herkennen ----------
         check(Facturen.isPdf("%PDF-1.7\n...".getBytes(StandardCharsets.UTF_8)), "PDF");
         check(Facturen.isPdf(("\n\n%PDF-1.4").getBytes(StandardCharsets.UTF_8)), "PDF met wat ervoor");

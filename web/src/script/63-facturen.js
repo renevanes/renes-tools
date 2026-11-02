@@ -81,7 +81,7 @@ function flOpen(l, nieuw){
   faEdit = JSON.parse(JSON.stringify(l)); faEdit._nieuw = !!nieuw;
   const c = l.code || {}, v = l.velden || {};
   $('#fl-h').textContent = nieuw ? (l.naam ? l.naam + ' toevoegen' : 'Leverancier toevoegen') : l.naam;
-  $('#fl-tip').textContent = l.tip || (faSt.sjablonen.find(s => s.sjabloon === l.sjabloon) || {}).tip || '';
+  $('#fl-tip').textContent = l.tip || ((faSt.sjablonen || []).find(s => s.sjabloon === l.sjabloon) || {}).tip || '';
   $('#fl-tip').style.display = $('#fl-tip').textContent ? 'block' : 'none';
   $('#fl-naam').value = l.naam || ''; $('#fl-start').value = l.startUrl || ''; $('#fl-user').value = l.gebruiker || '';
   $('#fl-pw').value = ''; $('#fl-pw').placeholder = l.heeftWachtwoord ? 'Ongewijzigd' : '';
@@ -108,6 +108,9 @@ function flBewaar(){
     schema: $('#fl-schema').value, map: $('#fl-map').checked, eigenCloud: $('#fl-ec').checked, submap: $('#fl-sub').value.trim(),
     velden: { gebruiker: $('#fl-v-gebruiker').value.trim(), wachtwoord: $('#fl-v-wachtwoord').value.trim(), code: $('#fl-v-code').value.trim(), knop: $('#fl-v-knop').value.trim() }
   };
+  for (const [p, wat] of [[o.menu, 'De tekst van de link naar de facturen'], [o.knoppen, 'Het herkennen van downloadknoppen']]) {
+    try { new RegExp(p, 'i'); } catch (e) { $('#fl-msg').textContent = wat + ' is geen geldig zoekpatroon.'; $('#fl-geavanceerd').open = true; return; }
+  }
   const ec = faSt.ec || {};
   if (o.eigenCloud && !(ec.url && ec.heeftWachtwoord)) { $('#fl-msg').textContent = 'Koppel eerst Eigen Cloud (op het scherm Facturen), of zet "Naar je mail in Eigen Cloud" uit.'; return; }
   if (o.code.bron === 'eigencloud' && !(ec.url && ec.heeftWachtwoord)) { $('#fl-msg').textContent = 'Koppel eerst Eigen Cloud om de code uit je mail te lezen.'; return; }

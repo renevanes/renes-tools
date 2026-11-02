@@ -70,6 +70,31 @@ final class Facturen {
         return b.toString();
     }
 
+    static String host(String url) {
+        if (url == null) return "";
+        java.util.regex.Matcher m = Pattern.compile("(?i)^[a-z][a-z0-9+.-]*://(?:[^/@?#]*@)?([^/:?#]+)").matcher(url.trim());
+        return m.find() ? m.group(1).toLowerCase(Locale.ROOT).replaceAll("\\.$", "") : "";
+    }
+
+    /** Het domein van een adres: mijnkpnzakelijk.kpn.com → kpn.com (ook bij .co.uk e.d.: drie delen). */
+    static String domein(String url) {
+        String h = host(url);
+        if (h.isEmpty() || h.matches("[0-9.]+") || h.contains(":")) return h;
+        String[] d = h.split("\\.");
+        if (d.length <= 2) return h;
+        int n = d[d.length - 2].length() <= 3 && d[d.length - 1].length() == 2 && d[d.length - 2].matches("co|com|org|net|gov|ac|edu") ? 3 : 2;
+        StringBuilder b = new StringBuilder();
+        for (int i = d.length - n; i < d.length; i++) b.append(i > d.length - n ? "." : "").append(d[i]);
+        return b.toString();
+    }
+
+    /** Staat dit adres op de eigen website van de leverancier, met https? Alleen daar vult de app iets in. */
+    static boolean eigenSite(String url, String domein) {
+        if (url == null || domein == null || domein.isEmpty() || !url.trim().toLowerCase(Locale.ROOT).startsWith("https://")) return false;
+        String h = host(url);
+        return h.equals(domein) || h.endsWith("." + domein);
+    }
+
     static boolean in(String v, String[] set) { for (String s : set) if (s.equals(v)) return true; return false; }
 
     private static String tekst(JSONObject o, String k, int max, String def) throws Exception {
@@ -200,6 +225,11 @@ final class Facturen {
         if (p == Long.MAX_VALUE) return false;
         if (nu - lastOk < p - 2 * 3_600_000L) return false;
         return nu - lastTry >= Math.min(p, 20 * 3_600_000L) - 3_600_000L;
+    }
+
+    /** Een naam die één factuur aanwijst (met een nummer of datum), niet "factuur.pdf" of onze eigen noodnaam. */
+    static boolean uniekeNaam(String n) {
+        return n != null && !n.matches("(?i).*factuur [0-9a-f]{8}\\.pdf") && n.matches(".*\\d{4,}.*|.*\\d+[-_.]\\d+.*");
     }
 
     static boolean isPdf(byte[] b) {
@@ -346,13 +376,33 @@ final class Facturen {
         int nieuw = 0;
         File d = pdfDir(c, id);
         if (!d.isDirectory() && !d.mkdirs()) throw new Exception("Opslagmap maken lukt niet");
+        // Al eerder: alleen opnieuw afleveren wat toen mislukte (backup-map of Eigen Cloud)
+        for (Pdf p : pdfs) {
+            JSONObject rec = verwerkt.optJSONObject(p.sha);
+            if (rec == null) continue;
+            File f = new File(d, rec.optString("n"));
+            if (!f.isFile()) continue;
+            boolean gewijzigd = false;
+            if (lev.optBoolean("map", true) && !rec.optBoolean("map")) {
+                try { naarMap(c, lev, rec.optString("n"), f); rec.put("map", true); gewijzigd = true; } catch (Exception e) { fouten.put("Backup-map: " + kort(e)); }
+            }
+            if (lev.optBoolean("eigenCloud", false) && !rec.optBoolean("ec")) {
+                try { naarEigenCloud(c, lev, rec.optString("n"), p); rec.put("ec", true); gewijzigd = true; } catch (Exception e) { fouten.put("Eigen Cloud: " + kort(e)); }
+            }
+            if (gewijzigd) werkBij(c, id, new JSONObject().put("verwerkt", verwerkt));
+        }
+        Set<String> namenGehad = new java.util.HashSet<>();
+        for (Iterator<String> it = verwerkt.keys(); it.hasNext(); ) { JSONObject r = verwerkt.optJSONObject(it.next()); if (r != null && !r.optString("o").isEmpty()) namenGehad.add(r.optString("o")); }
         for (Pdf p : pdfs) {
             if (verwerkt.has(p.sha)) continue;
+            // Zelfde factuur, andere bytes (sommige websites zetten het downloadmoment in de PDF): op naam herkennen
+            boolean eigenNaam = uniekeNaam(p.naam);
+            if (eigenNaam && namenGehad.contains(p.naam)) continue;
             String naam = p.naam;
             File f = new File(d, naam);
             for (int n = 2; f.exists(); n++) { naam = p.naam.replaceAll("\\.pdf$", "") + " (" + n + ").pdf"; f = new File(d, naam); }
             try (FileOutputStream o = new FileOutputStream(f)) { o.write(p.data); o.getFD().sync(); }
-            JSONObject rec = new JSONObject().put("n", naam).put("t", System.currentTimeMillis());
+            JSONObject rec = new JSONObject().put("n", naam).put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis());
             if (lev.optBoolean("map", true)) {
                 try { naarMap(c, lev, naam, f); rec.put("map", true); }
                 catch (Exception e) { fouten.put("Backup-map: " + kort(e)); }
@@ -362,6 +412,7 @@ final class Facturen {
                 catch (Exception e) { fouten.put("Eigen Cloud: " + kort(e)); }
             }
             verwerkt.put(p.sha, rec);
+            if (eigenNaam) namenGehad.add(p.naam);
             namen.put(naam);
             nieuw++;
             werkBij(c, id, new JSONObject().put("verwerkt", verwerkt)); // na elke factuur: bij een onderbreking niet dubbel
@@ -467,12 +518,11 @@ final class Facturen {
     // ================= inlogcode =================
 
     /** Wacht (hooguit 4 minuten) op de inlogcode van de leverancier, per sms of uit Eigen Cloud. */
-    static String wachtOpCode(Context c, JSONObject lev, long sinds, java.util.concurrent.atomic.AtomicBoolean stop) throws Exception {
+    static String wachtOpCode(Context c, JSONObject lev, long sinds, java.util.concurrent.atomic.AtomicBoolean stop, Set<String> gezien) throws Exception {
         JSONObject ci = lev.optJSONObject("code");
         String bron = ci == null ? "geen" : ci.optString("bron", "geen");
         String afz = ci == null ? "" : ci.optString("afzender", ""), pat = ci == null ? "" : ci.optString("patroon", "");
         long tot = System.currentTimeMillis() + 4 * 60_000L;
-        Set<String> gezien = new java.util.HashSet<>();
         Ec ec = "eigencloud".equals(bron) ? Ec.open(c) : null;
         try {
             while (System.currentTimeMillis() < tot && !stop.get()) {

@@ -42,7 +42,7 @@ const srv = http.createServer((req, res) => {
   const base = 'http://127.0.0.1:' + srv.address().port;
   const b = await chromium.launch();
   const ctx = await b.newContext({ acceptDownloads: true });
-  await ctx.addInitScript(() => { window.__got = []; window.FrBrug = { blob: (d, n) => window.__got.push([String(d).slice(0, 40), n]) };
+  await ctx.addInitScript(() => { window.__got = []; window.FrBrug = { blob: (s, d, n) => window.__got.push([String(d).slice(0, 40), n, s]) };
     const o = window.open; window.open = function(u){ window.__open = String(u); return o.apply(this, arguments); }; });
   const pg = await ctx.newPage();
   const errs = []; pg.on('pageerror', e => errs.push(e.message));
@@ -84,6 +84,7 @@ const srv = http.createServer((req, res) => {
   const got = await pg.evaluate(() => window.__got);
   ok(got.length >= 1 && got[0][0].startsWith('data:application/pdf;base64,'), 'PDF die de pagina maakt (blob) doorgegeven');
   ok(got.some(g => g[1] === 'Factuur 2026-10.pdf'), 'met de bestandsnaam van de download');
+  ok(got.every(g => g[2] === '__SLEUTEL__'), 'met de sleutel van de run');
   await js('__fr.klik(' + k[2].i + ')');
   await popup; ok(await pg.evaluate(() => window.__open) === '/f/aug.pdf', 'nieuw venster met de PDF geopend (de app vangt dat adres op)');
   ok((await js('__fr.klik(99)')) === 'weg', 'onbekende knop');

@@ -4,6 +4,7 @@
  * Ook getest in een gewone browser (tests/ui/facturen-robot.test.js) tegen een nagebootste leverancier. */
 (function(){
   if (window.__fr) return;
+  const SLEUTEL = '__SLEUTEL__'; // per run door de app ingevuld; alleen deze robot kent hem
   const AUTO = {
     wachtwoord: 'input[type="password"]',
     code: 'input[autocomplete="one-time-code"], input[name*="otp" i], input[id*="otp" i], input[name*="code" i], input[id*="code" i], input[name*="token" i], input[id*="token" i], input[name*="verif" i], input[id*="verif" i], input[inputmode="numeric"]',
@@ -143,9 +144,9 @@
   // PDF's die de pagina zelf maakt (blob:/data:), zoals "Download" in moderne portalen: doorgeven aan de app.
   const blobs = new Map();
   const geef = (blob, naam) => {
-    if (!window.FrBrug || !blob || blob.size > 25 * 1024 * 1024) return;
+    if (!window.FrBrug || !blob || blob.size > 15 * 1024 * 1024) return;
     const r = new FileReader();
-    r.onload = () => { try { window.FrBrug.blob(String(r.result), naam || ''); } catch (e) { } };
+    r.onload = () => { try { window.FrBrug.blob(SLEUTEL, String(r.result), naam || ''); } catch (e) { } };
     r.readAsDataURL(blob);
   };
   const orig = URL.createObjectURL;
@@ -157,7 +158,7 @@
   const vang = (href, naam) => {
     if (!href) return;
     if (href.startsWith('blob:') && blobs.has(href)) geef(blobs.get(href), naam);
-    else if (/^data:application\/(pdf|octet-stream)/i.test(href) && window.FrBrug) { try { window.FrBrug.blob(href, naam || ''); } catch (e) { } }
+    else if (/^data:application\/(pdf|octet-stream)/i.test(href) && window.FrBrug) { try { window.FrBrug.blob(SLEUTEL, href, naam || ''); } catch (e) { } }
   };
   document.addEventListener('click', ev => {
     const a = ev.target && ev.target.closest && ev.target.closest('a[href]');

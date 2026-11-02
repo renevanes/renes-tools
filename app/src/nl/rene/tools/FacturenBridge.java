@@ -35,7 +35,6 @@ public class FacturenBridge extends GebruikBridge {
             }
             SharedPreferences p = Facturen.prefs(ctx);
             FacturenRun r = FacturenRun.LOPEND.get();
-            FacturenJob.schedule(ctx);
             return new JSONObject().put("leveranciers", out).put("onleesbaar", l == null)
                     .put("bezig", r == null ? "" : r.id).put("voortgang", r == null ? "" : r.voortgang).put("zichtbaar", r != null && r.zichtbaar)
                     .put("ec", new JSONObject().put("url", p.getString("ecUrl", "")).put("gebruiker", p.getString("ecGebruiker", ""))
@@ -43,7 +42,7 @@ public class FacturenBridge extends GebruikBridge {
                     .put("map", WaBackup.destUri(ctx) != null)
                     .put("sms", ctx.checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED)
                     .put("sjablonen", Facturen.sjablonen(ctx)).toString();
-        } catch (Exception e) { return "{\"leveranciers\":[],\"error\":\"Laden lukt niet\"}"; }
+        } catch (Exception e) { return "{\"leveranciers\":[],\"sjablonen\":[],\"ec\":{},\"error\":\"Laden lukt niet\"}"; }
     }
 
     /** Leverancier bewaren; json met de instellingen en eventueel "wachtwoord". Geeft {id} of {error}. */
@@ -126,6 +125,7 @@ public class FacturenBridge extends GebruikBridge {
             Facturen.prefs(ctx).edit().putString("ecUrl", url).putString("ecGebruiker", user).putString("ecAdres", adres).apply();
             String pw = o.optString("wachtwoord", "");
             if (!pw.isEmpty()) Facturen.zetGeheim(ctx, "ec", pw);
+            FacturenJob.schedule(ctx);
             return "";
         } catch (Exception e) { return e.getMessage() == null ? "Bewaren lukt niet" : e.getMessage(); }
     }
