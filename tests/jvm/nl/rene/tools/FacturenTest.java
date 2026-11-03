@@ -36,6 +36,12 @@ public class FacturenTest {
         check(FacturenDrive.geldigeClientId("1234567890-abc123def.apps.googleusercontent.com") && !FacturenDrive.geldigeClientId("abc") && !FacturenDrive.geldigeClientId(null), "Client ID van Google herkennen");
         check(FacturenDrive.q("Rene's facturen").equals("Rene\\'s facturen"), "naam veilig in een Drive-zoekvraag");
         check(kpn.getString("submap").equals("KPN Zakelijk"), "mapnaam = naam");
+        JSONObject ziggo = null, fi = null;
+        for (int i = 0; i < lijst.length(); i++) { String zj = lijst.getJSONObject(i).getString("sjabloon"); if (zj.equals("ziggo-zakelijk")) ziggo = Facturen.normaal(lijst.getJSONObject(i)); if (zj.equals("ziggo-factuurinzicht")) fi = Facturen.normaal(lijst.getJSONObject(i)); }
+        check(ziggo != null && ziggo.getString("id").equals("ziggo-zakelijk") && ziggo.getJSONObject("code").getString("bron").equals("sms") && ziggo.getJSONObject("code").getString("afzender").equals("Ziggo"), "Ziggo Zakelijk: code per sms van Ziggo");
+        check(ziggo != null && Facturen.eigenSite("https://www.ziggo.nl/mijn-ziggo/facturen/factuur.pdf", Facturen.domein(ziggo.getString("startUrl"))), "Ziggo: downloads van ziggo.nl horen bij de leverancier");
+        check(fi != null && Facturen.domein(fi.getString("startUrl")).equals("ziggo.nl"), "Ziggo Factuurinzicht: domein ziggo.nl");
+        check("482913".equals(Facturen.vindCode("Je Ziggo verificatiecode is 482913. Deel deze code met niemand.", "")) && Facturen.komtVan("Ziggo", "x", "Ziggo"), "Ziggo: sms-code van 6 cijfers herkend");
 
         // ---------- opgeslagen lijst ----------
         check(Facturen.lijstUit("{}").length() == 0, "nog niets opgeslagen = lege lijst (knop Leverancier toevoegen werkt)");
