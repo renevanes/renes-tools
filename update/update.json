@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.131",
-  "versionCode": 132,
-  "nativeLevel": 118,
+  "versionName": "1.132",
+  "versionCode": 133,
+  "nativeLevel": 119,
   "web": "index.html",
-  "webSha256": "a9b9fae6668ed516e8750eb8b4f1789a332cc6bb4afaa6e2eb1f910ac0a686e6",
+  "webSha256": "b1271f9eeb22da90209d5278d0a3029deeb57f447408aa5348ecdf1962044353",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "80cf23a226c904bdcfc48c1f0f4d7f0a1f6a4f854b060af3ad54f9ce1808815e",
+  "apkSha256": "ddd00ec9044ac230d9872d85c2bb0e9f2cb6cf5c15a1a791a1449e44db8d7056",
   "changelog": [
+    {
+      "version": "1.132",
+      "date": "2026-11-03",
+      "changes": [
+        "Facturen: dossier kiest nu op periode (deze/vorige maand, kwartaal, jaar of zelf van–tot); facturen die al eerder waren opgehaald, worden opnieuw gelezen zodat datum, bedrag en betaaldatum er alsnog bij komen; zonder factuurdatum staat de dag van ophalen er (met *)"
+      ]
+    },
     {
       "version": "1.131",
       "date": "2026-11-03",
@@ -1152,5 +1159,5 @@
       ]
     }
   ],
-  "webSig2": "PV0Gb1/PMA7vy5nphgFqRbaWvplxC4Qsooj2hz7nfNQ9ArGxoD8Xg0nXJpn5yt2NxrT/cqX6fNLES9eRTmqeBe6cciMAUTOqln9IDKKKRwRPxpSeGqA5WKlErP/ffTaBpDppVOlnc0+5r12EtWuMJxu8ScjbMQY3+RLAy6Vm/Ct1Ho603bENNDV6XsXd1Ytk4OPexgUxTYkQr7940VzQ7VJWhGwsXv6Iza2oTOq5oa8l+p4yGE0kK2DDok/yCtZm7ShzbjofpuFGG+b1oViCDW+ulwHggWpXOzg5Dy+qxFbHAKoh5wUcWbWO9YSPNbdpHX/Rg8AZ4DYbx8ytHTxVnudfblzsEuG6g9H+YuCpXaOpNMN7uMssMe8DH9+3gcVQtd6ISDEVZtOqbCmwf0KBF2IuA0wJUDR5jDQs4+xyYvCEYefmn3b17F2LiWl6rpcaLqvMzjbUrU9FEDLR1h1KEtS4lMbAU21gbaYxl7dKPBZgKZlKhfeoV+4lTrgm7l4Z"
+  "webSig2": "m3HpDq/OK+e1hfRtZEzp1EyfQBuC5e/LKi7jfzotBy8GZOvdDYMQ4seuz33Dxo3VhHVrVEHRhGUdZcj2yueYYd6ux51Tz1D/K9rCsUSRoEI+G4gOiBnqQ78A7sEeImAXvJOjtIXpB99NHvCU/lcBCa6l9TVGrWRXv6LXNjVK3gTwNf3ar1ZFbN7qj8vuYUj0Xff3oHQFPVg/1k2JLkylUbJne7+9JnwcUaBxGbRH62WtSKAdlIQEdyUn6Dx4NxLq6y4XYsDoNTj1pQkxkAncG3dX4Ul/4aaeC0kKX297zpiWso9LyWHiAXggegQV6xTu4LPE+rgrUjVCNyYUl5gJL6YI0cSuLbBMZXs5VAIbeCk4q/IKl424nPD7TPqFM2mvXjumUrR0oTARiQo7OAhkTyTXbzF1ujxzmPYWiVjDVkwSA7gBpkBrlWjdmL3JilxS3UnddFKLYDSk01yTILL2fKwOolpTvAPkP2UdW70DyxBZhJ1HEBZQrBLpqmWPD/ra"
 }
