@@ -102,6 +102,7 @@ const srv = http.createServer((req, res) => {
   ok(st.code && !st.pw && !st.user, 'codevenster over het wachtwoordscherm: code, niet het wachtwoord');
   ok(await pg.evaluate(() => window.__ck) === 'nee', 'cookiemelding: Nee, dank je');
   ok((await js("__fr.vul('code', '48291', {})")) === 'vakjes 5', 'code over vijf vakjes zonder formulier');
+  ok((await js("__fr.vul('wachtwoord', 'geheim', { domeinen: ['ziggo.nl', 'vodafone.nl'] })")) === 'andere website', 'niet invullen buiten de domeinen van de leverancier');
   ok(await pg.isChecked('#onth'), 'Onthoud dit apparaat aangevinkt');
   ok((await js("__fr.verstuur('code', {})")) === 'knop' && await pg.evaluate(() => window.__code) === '48291', 'Log extra veilig in geklikt met de code');
   // Gewone pagina met "Akkoord" buiten een cookiemelding: niet aanklikken

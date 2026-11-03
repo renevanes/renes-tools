@@ -130,6 +130,8 @@
     },
     /** Veld invullen. Een code in losse vakjes (één cijfer per vak) wordt verdeeld. */
     vul(soort, waarde, cfg){
+      // Alleen op de eigen website(s) van de leverancier, met https (de pagina kan intussen ergens anders zijn)
+      if (cfg && Array.isArray(cfg.domeinen) && !(location.protocol === 'https:' && cfg.domeinen.some(d => location.hostname === d || location.hostname.endsWith('.' + d)))) return 'andere website';
       const v = velden(cfg); const el = v[soort === 'wachtwoord' ? 'pw' : soort === 'gebruiker' ? 'user' : 'code'];
       if (!el) return 'geen veld';
       if (soort === 'code') onthoud();

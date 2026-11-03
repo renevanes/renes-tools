@@ -93,7 +93,10 @@ final class FacturenRun {
         this.id = lev.getString("id");
         this.wachtwoord = wachtwoord;
         this.gebruiker = lev.optString("gebruiker", "");
-        this.cfgJs = new JSONObject().put("velden", lev.optJSONObject("velden") == null ? new JSONObject() : lev.optJSONObject("velden")).toString();
+        this.domeinen = Facturen.domeinen(this.c, lev);
+        // De robot controleert vlak voor het invullen nog een keer waar de pagina is (de code kan minuten later komen)
+        this.cfgJs = new JSONObject().put("velden", lev.optJSONObject("velden") == null ? new JSONObject() : lev.optJSONObject("velden"))
+                .put("domeinen", new JSONArray(java.util.Arrays.asList(domeinen))).toString();
         this.mail = "mail".equals(lev.optString("soort"));
         this.zichtbaar = zicht != null && !mail;
         this.eigenWv = zicht == null && !mail;
@@ -101,7 +104,6 @@ final class FacturenRun {
         this.klaar = k;
         this.maxDuur = zichtbaar ? 15 * 60_000L : 9 * 60_000L;
         this.domein = Facturen.domein(lev.optString("startUrl"));
-        this.domeinen = Facturen.domeinen(this.c, lev);
     }
 
     /** Starten (op de hoofdthread). Geeft "" of de reden waarom het niet kan. */
@@ -160,6 +162,9 @@ final class FacturenRun {
         s.setAllowContentAccess(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         s.setMediaPlaybackRequiresUserGesture(true);
+        s.setSaveFormData(false); // nooit formuliergegevens (gebruikersnaam) in de WebView bewaren
+        // Onzichtbaar inloggen: Android-autofill (wachtwoordbeheer) mag de ingevulde gegevens niet zien of opslaan
+        if (eigenWv && android.os.Build.VERSION.SDK_INT >= 26) wv.setImportantForAutofill(android.view.View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
         // Als gewone Chrome: sommige inlogpagina's weigeren een "WebView"
         ua = s.getUserAgentString().replace("; wv)", ")").replaceAll("Version/[0-9.]+ ", "");
         s.setUserAgentString(ua);

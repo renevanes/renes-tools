@@ -42,10 +42,12 @@ public class FacturenTest {
         check(ziggo != null && Facturen.eigenSite("https://www.ziggo.nl/mijn-ziggo/facturen/factuur.pdf", Facturen.domein(ziggo.getString("startUrl"))), "Ziggo: downloads van ziggo.nl horen bij de leverancier");
         check(fi != null && Facturen.domein(fi.getString("startUrl")).equals("ziggo.nl"), "Ziggo Factuurinzicht: domein ziggo.nl");
         check(ziggo != null && "vodafone.nl, vodafoneziggo.nl".equals(ziggo.optString("domeinen")), "Ziggo: inloggen via vodafone.nl hoort erbij");
+        JSONObject metPw = Facturen.normaal(new JSONObject(lijst.getJSONObject(0).toString()).put("wachtwoord", "geheim123").put("code", new JSONObject().put("bron", "sms").put("wachtwoord", "x")));
+        check(!metPw.toString().contains("geheim123") && !metPw.has("wachtwoord"), "wachtwoord komt nooit in de instellingen (alleen versleuteld apart)");
         String[] zd = Facturen.domeinen(null, ziggo);
         check(zd.length == 3 && Facturen.eigenSite("https://www.vodafone.nl/inloggen", zd) && Facturen.eigenSite("https://www.ziggo.nl/x", zd) && !Facturen.eigenSite("https://vodafone.nl.boos.com/x", zd) && !Facturen.eigenSite("http://www.vodafone.nl/x", zd), "Ziggo: ziggo.nl en vodafone.nl, niets anders en alleen https");
         check("vodafone.nl, ziggo.nl".equals(Facturen.extraDomeinen("https://Vodafone.nl/login; *.ziggo.nl vodafone.nl")), "andere domeinen normaliseren");
-        for (String slecht : new String[]{"nl", "co.uk", "evil..nl", "a b", "<x>.nl"}) {
+        for (String slecht : new String[]{"nl", "co.uk", "evil..nl", "a b", "<x>.nl", "1.2.3.4", "3.4", "github.io", "vercel.app", "-x.nl", "x-.nl"}) {
             boolean geweigerd = false;
             try { Facturen.extraDomeinen(slecht); } catch (Exception e) { geweigerd = true; }
             check(geweigerd, "geen geldig domein: " + slecht);

@@ -95,6 +95,11 @@ final class Facturen {
         return h.equals(domein) || h.endsWith("." + domein);
     }
 
+    /** Domeinen waar iedereen een eigen website op kan zetten: daar nooit gegevens invullen. */
+    static final String[] GEDEELD = {"github.io", "gitlab.io", "vercel.app", "netlify.app", "pages.dev", "workers.dev", "herokuapp.com", "blogspot.com",
+            "wordpress.com", "wixsite.com", "web.app", "firebaseapp.com", "appspot.com", "azurewebsites.net", "cloudfront.net", "amazonaws.com",
+            "googleusercontent.com", "ngrok.io", "ngrok.app", "glitch.me", "repl.co", "onrender.com", "fly.dev", "ltd.uk", "plc.uk", "me.uk"};
+
     /** Op een van deze domeinen (bijv. ziggo.nl en vodafone.nl, waar Ziggo inlogt)? */
     static boolean eigenSite(String url, String[] domeinen) {
         for (String d : domeinen) if (eigenSite(url, d)) return true;
@@ -108,7 +113,8 @@ final class Facturen {
         for (String x : (s == null ? "" : s).split("[,;\\s]+")) {
             String d = x.trim().toLowerCase(Locale.ROOT).replaceAll("^https?://", "").replaceAll("/.*$", "").replaceAll("^\\*?\\.", "");
             if (d.isEmpty()) continue;
-            if (!d.matches("[a-z0-9-]+(\\.[a-z0-9-]+)+") || d.length() > 100 || !domein("https://" + d).equals(d) || d.matches("(co|com|org|net|gov|ac|edu)\\.[a-z]{2}"))
+            if (!d.matches("[a-z0-9-]+(\\.[a-z0-9-]+)+") || d.length() > 100 || !domein("https://" + d).equals(d) || d.matches("(co|com|org|net|gov|ac|edu)\\.[a-z]{2}") || d.matches("[0-9.]+|.*\\.[0-9]+")
+                    || d.matches("(.*\\.)?-.*|.*-(\\..*)?") || d.matches(".*\\.-.*|.*-\\..*") || in(d, GEDEELD))
                 throw new Exception("Geen geldig domein: " + (d.length() > 40 ? d.substring(0, 40) + "…" : d) + " (bijv. vodafone.nl)");
             if (++n > 5) throw new Exception("Hooguit 5 andere domeinen");
             if (!(", " + b + ",").contains(", " + d + ",")) b.append(b.length() > 0 ? ", " : "").append(d);
