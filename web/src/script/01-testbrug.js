@@ -1007,7 +1007,52 @@ if (!window.Android) window.Android = (function(){
     gebruikPhotos(){ return JSON.stringify({photos:this._gb.photos,keep:this._gb.set.photoKeep}); },
     gebruikPhoto(id){ return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='; },
     gebruikClearPhotos(){ this._gb.photos=[]; },
-    gebruikClearAll(){ this._gb.photos=[]; this._gb.lastShot=''; }
+    gebruikClearAll(){ this._gb.photos=[]; this._gb.lastShot=''; },
+    // ---------- Bankzaken (testbrug: versleuteling en bank nagebootst) ----------
+    _bk: { open: false, data: null, saves: 0, calls: [], ai: [], secure: false, uitkomst: '', aiKlaar: true, ontgrendelFout: '' },
+    _bkVoorbeeld(){
+      const tx = [], acc = 'NL20INGB0001234567', spaar = 'NL55INGB0009876543';
+      let n = 0;
+      const add = (d, a, cp, ds, ci, extra) => tx.push(Object.assign({ id: 'id' + (n++), acc, d, a, cp, ci: ci || '', ds: ds || '', ty: '', src: 'ING', in: 1 }, extra || {}));
+      for (const m of ['2026-08', '2026-09', '2026-10']) {
+        add(m + '-01', -125000, 'Woonstichting Rotterdam', 'Huur ' + m, 'NL11WONI0000000001');
+        add(m + '-03', -1399, 'Netflix International B.V.', 'Netflix maand', '');
+        add(m + '-05', -2345, 'ALBERT HEIJN 1234', 'Pasvolgnr 008', '');
+        add(m + '-12', -6710, 'Jumbo Rotterdam', '', '');
+        add(m + '-15', -8950, 'Vattenfall Klantenservice', 'Termijnbedrag', '');
+        add(m + '-20', -20000, 'Mijn spaarrekening', 'Sparen', spaar);
+        add(m + '-25', 310000, 'Werkgever B.V.', 'Salaris', 'NL02RABO0123456789');
+        add(m + '-26', -4500, 'Restaurant De Kade', '', '');
+      }
+      add('2026-10-28', -4999, '<img src=x onerror=alert(1)>', 'Bestelling <b>vet</b>', '');
+      add('2026-10-29', -3200, 'Kapper Knip', 'Knipbeurt', '');
+      add('2026-10-30', 2500, 'bol.com', 'Retour', '');
+      tx.forEach((t, i) => { t.b = 500000 + i * 100; });
+      return { v: 1, tx, imports: [{ t: 1, bank: 'ING', format: 'CSV', nieuw: tx.length, dubbel: 0, overgeslagen: 0, van: '2026-08-01', tot: '2026-10-30', rekeningen: [acc] }] };
+    },
+    bankState(){ const b = this._bk; return JSON.stringify({ open: b.open, left: b.open ? 290000 : 0, data: !!b.data, sleutel: !!b.data || b.open, kwijt: false, ontgrendeling: true, hardware: true, slot: true,
+      ai: { kan: true, klaar: b.aiKlaar, model: 'Klein en snel' } }); },
+    bankUnlock(){ const b = this._bk; b.calls.push(['unlock']); setTimeout(() => { if (b.ontgrendelFout) { onBank(b.ontgrendelFout); return; } b.open = true; onBank(true); }, 60); },
+    bankLoad(){ const b = this._bk; if (!b.open) return '{"locked":true}'; return JSON.stringify({ left: 290000, store: b.data }); },
+    bankSave(json){ const b = this._bk; if (!b.open) return 'Bankzaken is op slot'; b.data = JSON.parse(json); b.saves++; return ''; },
+    bankTouch(){ return this._bk.open ? '290000' : '0'; },
+    bankLock(){ this._bk.open = false; this._bk.calls.push(['lock']); },
+    bankWipe(){ const b = this._bk; if (!b.open) return 'Ontgrendel Bankzaken eerst'; b.data = null; b.open = false; b.calls.push(['wipe']); return ''; },
+    bankSecure(on){ this._bk.secure = !!on; },
+    bankImport(wis){ const b = this._bk; b.calls.push(['import', !!wis]); setTimeout(() => {
+      const nieuw = !b.data; if (nieuw) b.data = this._bkVoorbeeld();
+      onBankImport(({ bestanden: [{ naam: 'NL20INGB_aug-okt.csv', ok: true, sum: { bank: 'ING', nieuw: nieuw ? b.data.tx.length : 0, dubbel: nieuw ? 0 : b.data.tx.length, overgeslagen: 0, van: '2026-08-01', tot: '2026-10-30' }, gewist: !!wis }, { naam: 'foto.jpg', ok: false, fout: 'Dit bestand herken ik niet' }], ok: 1, gewist: wis ? 1 : 0 })); }, 80); },
+    bankBanken(){ return JSON.stringify([{ id: 'rabobank', naam: 'Rabobank', robot: true, uitleg: 'Rabo App → Rekeningen → Transacties downloaden', appNaam: 'Rabo App' },
+      { id: 'ing', naam: 'ING', robot: false, uitleg: 'Mijn ING → Af- en bijschrijvingen downloaden', appNaam: '' }, { id: 'anders', naam: 'Een andere bank', robot: false, uitleg: 'CAMT.053, MT940 of CSV', appNaam: '' }]); },
+    bankKoppel(id, van){ const b = this._bk; if (!b.open) return 'Bankzaken is op slot'; b.calls.push(['koppel', id, van]); return ''; },
+    bankKoppelUitkomst(){ const u = this._bk.uitkomst; this._bk.uitkomst = ''; return u; },
+    bankAi(json){ const b = this._bk; if (!b.open) return 'Bankzaken is op slot'; const r = JSON.parse(json); b.ai.push(r);
+      const ant = r.mode === 'categorie' ? '1: Persoonlijke verzorging\n2: Uit eten & drinken\n3: Iets wat niet bestaat' : r.mode === 'samenvatting' ? 'Je gaf deze periode € 1.500 uit. Tip: kijk naar je \u003cscript>abonnementen\u003c/script>.' : 'Je gaf het meeste uit aan Wonen.';
+      setTimeout(() => { onBankAiStatus('Model laden…'); }, 20);
+      setTimeout(() => { onBankAiStatus(''); onBankAiToken(ant.slice(0, 10)); }, 60);
+      setTimeout(() => { onBankAiToken(ant.slice(10)); onBankAiDone({}); }, 120);
+      return ''; },
+    bankAiCancel(){ this._bk.calls.push(['aiStop']); }
   };
 })();
 

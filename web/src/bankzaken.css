@@ -1,0 +1,54 @@
+/* Bankzaken */
+#s-bank [hidden]{display:none!important}
+.pctabs.bk-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:379px){.pctabs.bk-tabs button{font-size:12.5px}}
+.bk-filterrij{align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0}
+.bk-filterrij .f{margin:0;min-width:64px}
+.bk-filterrij .sel,.bk-filterrij input{flex:1;min-width:0;margin:0}
+.bk-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.bk-kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-width:0}
+.bk-kpi small{display:block;color:var(--muted);font-size:12.5px;font-weight:600}
+.bk-kpi b{display:block;font-size:20px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.bk-kpi span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.bk-plus{color:var(--ok)}.bk-min{color:var(--bad)}.bk-neutraal{color:var(--muted)}
+.bk-bars{display:flex;flex-direction:column;gap:9px}
+.bk-bar{display:block;width:100%;text-align:left;background:none;border:0;padding:0;color:var(--ink);font:inherit;cursor:pointer}
+.bk-bar .bk-bar-kop{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.bk-bar .bk-bar-kop span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-bar .bk-bar-kop b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.bk-bar .bk-spoor{height:8px;border-radius:4px;background:var(--hi);margin-top:4px;overflow:hidden}
+.bk-bar .bk-vul{height:100%;border-radius:4px;background:var(--primary)}
+.bk-bar .bk-vul.over{background:var(--bad)}
+.bk-bar small{color:var(--muted);font-size:12px}
+.bk-grafiek{width:100%;height:auto;display:block}
+.bk-grafiek text{fill:var(--muted);font-size:10px;font-family:inherit}
+.bk-legenda{display:flex;gap:14px;font-size:12.5px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.bk-legenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.bk-rij{display:flex;gap:10px;align-items:baseline;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.bk-rij:first-child{border-top:0}
+.bk-rij .bk-naam{flex:1;min-width:0;overflow-wrap:anywhere}
+.bk-rij .bk-naam small{display:block;color:var(--muted);font-size:12.5px}
+.bk-rij b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.bk-lijst{padding-top:4px;padding-bottom:4px}
+.bk-tx{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:10px 0;color:var(--ink);font:inherit;cursor:pointer;min-height:48px}
+.bk-tx:first-child{border-top:0}
+.bk-tx .bk-naam{flex:1;min-width:0}
+.bk-tx .bk-naam b{display:block;font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-tx .bk-naam small{display:block;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-tx .bk-bedrag{font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bk-dag{font-size:12.5px;font-weight:700;color:var(--muted);padding:12px 0 2px}
+.bk-chips{flex-wrap:wrap;display:flex;margin:4px 0 10px}
+.bk-ai-uit{white-space:pre-wrap;line-height:1.5;font-size:15px;overflow-wrap:anywhere}
+.bk-veilig{margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.5}
+.bk-veilig li{margin:4px 0}
+.bk-gevaar{color:var(--bad)!important;margin-top:8px}
+.bk-voorstel{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.bk-voorstel:first-child{border-top:0}
+.bk-voorstel span{flex:1;min-width:0;overflow-wrap:anywhere}
+.bk-voorstel select{max-width:48%}
+.bk-bank{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.bk-bank:first-child{border-top:0}
+.bk-bank span{flex:1;min-width:0}
+.bk-bank small{display:block;color:var(--muted);font-size:12.5px}
+.bk-res{font-size:14px;padding:6px 0;border-top:1px solid var(--line)}
+.bk-res:first-child{border-top:0}

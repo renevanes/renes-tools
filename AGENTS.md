@@ -239,6 +239,25 @@ achtergrond (`FacturenJob`, onzichtbare WebView) of terwijl Rene meekijkt (`Fact
   Google-project, alleen de rechten `drive.file`) en zijn eigen Eigen Cloud (`/api/mail/send` naar zichzelf). Geen andere
   bestemmingen toevoegen zonder Rene. Nieuwe bestemming = ook in `Facturen.aflever` (met opnieuw proberen bij een fout).
 
+## Bankzaken (afschriften analyseren, alles op de telefoon)
+Bankzaken (scherm `s-bank`, `web/src/script/64-bankzaken.js` en `65-bankzaken-ai.js`, `Bank*.java`) maakt rapportages over
+Rene's inkomsten en uitgaven. **Niets mag de telefoon verlaten** (wens van Rene): houd dat bij elke wijziging vast.
+- **Opslag:** `Bank` + `BankCrypt` (AES-256-GCM, gzip, blokken met volgnummer); sleutel `renes_bankzaken` in de Android
+  Keystore, waar mogelijk gekoppeld aan de ontgrendeling (15 minuten). Map `bank/` gaat bewust nergens mee (Android-backup,
+  Alles back-uppen, "Alle appgegevens"), niet in zoeken, de assistent of Statistieken. Logregels (`App.log` soort BANK)
+  bevatten nooit bedragen, namen of rekeningnummers. Op slot na 5 minuten niets doen en zodra de app uit beeld gaat;
+  de interface vergeet dan alles. Op het scherm FLAG_SECURE (`bankSecure`). Niet als losse app.
+- **Inlezen:** `BankImport` (zuiver, getest in `BankTest`): CSV met kopregel (ING, Rabobank, Knab, bunq, algemeen), zonder
+  kopregel (ABN AMRO TXT, ASN/SNS/RegioBank, Triodos), MT940 en CAMT.053/052/054 (XML zonder DOCTYPE: XXE). Dubbele
+  boekingen: id = rekening|datum|bedrag|volgnummer op die dag. Nieuwe bank = herkenning erbij + een test met een voorbeeld.
+- **Automatisch ophalen:** `BankLinkActivity` + `web/bank-robot.js` + `web/bank-banken.json` (in de APK). Alleen https en
+  alleen de domeinen van de bank; de robot logt nooit zelf in (Rene doet dat met de app van de bank) en zoekt daarna
+  "Transacties downloaden"; het bestand gaat in het geheugen rechtstreeks naar `Bank.importeer`. Na afloop cookies en
+  websitegegevens van de bank weg. Eerste bank: Rabobank. Nieuwe bank = een blok met `robot: true`, `domeinen`, `apps`
+  en de patronen; test met `tests/ui/bank-robot.test.js`. Geen PSD2-tussendiensten of andere partijen zonder Rene.
+- **Lokale AI:** `LocalAi.privateChat` (geen geheugen, leren, acties of opgeslagen gesprek) via `bankAi`; de interface
+  stuurt alleen een samenvatting met cijfers. Antwoorden altijd als tekst tonen (`textContent`), nooit als HTML.
+
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK
 installeren als `NATIVE_LEVEL` omhoog ging, of opnieuw koppelen).

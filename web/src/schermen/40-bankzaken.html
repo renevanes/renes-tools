@@ -1,0 +1,157 @@
+<!-- ============ BANKZAKEN ============ -->
+<section class="screen" id="s-bank">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Bankzaken</h1>
+  </div>
+  <main>
+    <!-- Op slot -->
+    <div id="bk-dicht">
+      <div class="card">
+        <h2>Je bankzaken, alleen op deze telefoon</h2>
+        <p class="note" style="margin-top:0">Rapportages over je inkomsten en uitgaven, met lokale AI. Je afschriften staan versleuteld op deze telefoon, met een sleutel die de beveiligde hardware niet uit kan. Niets gaat naar internet of naar een backup.</p>
+        <button class="big" id="bk-open-knop" onclick="bkOntgrendel()" data-icon="lock">Ontgrendelen</button>
+        <p class="note" id="bk-msg" role="status" aria-live="polite"></p>
+        <div id="bk-kwijt" hidden>
+          <p class="note warn" id="bk-kwijt-txt"></p>
+          <button class="big ghost" onclick="bkWis()">Gegevens wissen en opnieuw beginnen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Open -->
+    <div id="bk-los" hidden>
+      <div class="pctabs-wrap"><div class="pctabs bk-tabs" role="tablist" aria-label="Bankzaken">
+        <button role="tab" id="bk-tab-overzicht" data-tab="overzicht" aria-controls="bk-p-overzicht" aria-selected="true" tabindex="0" onclick="bkTab('overzicht')">Overzicht</button>
+        <button role="tab" id="bk-tab-boekingen" data-tab="boekingen" aria-controls="bk-p-boekingen" aria-selected="false" tabindex="-1" onclick="bkTab('boekingen')">Boekingen</button>
+        <button role="tab" id="bk-tab-ai" data-tab="ai" aria-controls="bk-p-ai" aria-selected="false" tabindex="-1" onclick="bkTab('ai')">Vragen</button>
+        <button role="tab" id="bk-tab-beheer" data-tab="beheer" aria-controls="bk-p-beheer" aria-selected="false" tabindex="-1" onclick="bkTab('beheer')">Beheer</button>
+      </div></div>
+
+      <!-- Periode en rekening (voor overzicht, boekingen en vragen) -->
+      <div class="card bk-filters" id="bk-filters">
+        <div class="row bk-filterrij">
+          <label class="f" for="bk-periode">Periode</label>
+          <select class="sel" id="bk-periode" onchange="bkPeriode()">
+            <option value="m0">Deze maand</option><option value="m1">Vorige maand</option><option value="m3">Laatste 3 maanden</option>
+            <option value="12m">Laatste 12 maanden</option><option value="y0">Dit jaar</option><option value="y1">Vorig jaar</option>
+            <option value="alles">Alles</option><option value="eigen">Zelf kiezen…</option>
+          </select>
+        </div>
+        <div class="row bk-filterrij" id="bk-eigen" hidden>
+          <label class="f" for="bk-van">Van</label><input class="search" type="date" id="bk-van" onchange="bkRender()">
+          <label class="f" for="bk-tot">Tot en met</label><input class="search" type="date" id="bk-tot" onchange="bkRender()">
+        </div>
+        <div class="row bk-filterrij" id="bk-rek-rij" hidden>
+          <label class="f" for="bk-rek">Rekening</label>
+          <select class="sel" id="bk-rek" onchange="bkRender()"></select>
+        </div>
+        <p class="note" id="bk-periode-txt" style="margin:4px 0 0"></p>
+      </div>
+
+      <!-- Leeg -->
+      <div class="card" id="bk-leeg" hidden>
+        <h2>Nog geen afschriften</h2>
+        <p class="note" style="margin-top:0">Haal je transacties automatisch op bij je bank, of importeer een afschrift dat je zelf hebt gedownload (CAMT.053, MT940 of CSV). Dat kan van ING, Rabobank, ABN AMRO, ASN, SNS, RegioBank, Triodos, Knab, bunq en de meeste andere banken.</p>
+        <div class="bk-auto-lijst"></div>
+        <button class="big" onclick="bkImporteren()" data-icon="upload">Afschrift importeren</button>
+      </div>
+
+      <div role="tabpanel" id="bk-p-overzicht" aria-labelledby="bk-tab-overzicht">
+        <div id="bk-overzicht"></div>
+      </div>
+
+      <div role="tabpanel" id="bk-p-boekingen" aria-labelledby="bk-tab-boekingen" hidden>
+        <div class="card">
+          <input class="search" id="bk-zoek" type="search" aria-label="Zoek in boekingen" placeholder="Zoek op naam, omschrijving of bedrag…" oninput="bkLijstRender()" autocomplete="off" spellcheck="false">
+          <div class="row bk-filterrij">
+            <label class="f" for="bk-cat">Categorie</label><select class="sel" id="bk-cat" onchange="bkLijstRender()"></select>
+          </div>
+          <div class="row bk-filterrij">
+            <label class="f" for="bk-sort">Sorteren</label>
+            <select class="sel" id="bk-sort" onchange="bkLijstRender()"><option value="nieuw">Nieuwste eerst</option><option value="oud">Oudste eerst</option><option value="hoog">Grootste uitgave eerst</option><option value="bij">Grootste bijschrijving eerst</option></select>
+          </div>
+          <p class="note" id="bk-lijst-telling" role="status"></p>
+        </div>
+        <div class="card bk-lijst" id="bk-lijst"></div>
+        <button class="big ghost" id="bk-meer" onclick="bkMeer()" hidden>Meer tonen</button>
+      </div>
+
+      <div role="tabpanel" id="bk-p-ai" aria-labelledby="bk-tab-ai" hidden>
+        <div class="card">
+          <h2>Vraag het je lokale AI</h2>
+          <p class="note" style="margin-top:0" id="bk-ai-model">De AI draait op deze telefoon. Hij krijgt alleen een samenvatting van de gekozen periode, onthoudt niets en bewaart het gesprek niet.</p>
+          <div class="chips bk-chips" id="bk-ai-chips">
+            <button onclick="bkVraag('Waar heb ik het meeste geld aan uitgegeven?')">Waar gaat mijn geld heen?</button>
+            <button onclick="bkVraag('Welke vaste lasten en abonnementen heb ik, en wat kost dat per maand?')">Vaste lasten</button>
+            <button onclick="bkVraag('Wat is er veranderd ten opzichte van de vorige periode?')">Vergeleken met vorige periode</button>
+            <button onclick="bkVraag('Waar kan ik het makkelijkst op besparen?')">Besparen</button>
+          </div>
+          <label class="f" for="bk-ai-in">Je vraag</label>
+          <textarea class="search" id="bk-ai-in" rows="2" maxlength="600" placeholder="Bijv. hoeveel gaf ik uit aan boodschappen?" autocomplete="off" spellcheck="false"></textarea>
+          <div class="row" style="gap:8px">
+            <button class="big" style="flex:1" id="bk-ai-stuur" onclick="bkVraag()">Vragen</button>
+            <button class="big ghost" style="flex:1" id="bk-ai-sam" onclick="bkSamenvatting()">Analyse van deze periode</button>
+          </div>
+          <button class="big ghost" id="bk-ai-stop" onclick="Android.bankAiCancel()" hidden>Stoppen</button>
+        </div>
+        <div class="card" id="bk-ai-uit-kaart" hidden>
+          <p class="note" id="bk-ai-status" role="status" aria-live="polite" style="margin-top:0"></p>
+          <div id="bk-ai-uit" class="bk-ai-uit" aria-live="polite"></div>
+          <p class="note" style="margin-bottom:0">Gemaakt door de lokale AI op basis van je eigen cijfers; controleer belangrijke bedragen in het overzicht.</p>
+        </div>
+      </div>
+
+      <div role="tabpanel" id="bk-p-beheer" aria-labelledby="bk-tab-beheer" hidden>
+        <div class="flabel" style="margin:4px 2px 8px">Afschriften</div>
+        <div class="card">
+          <h2>Automatisch ophalen</h2>
+          <p class="note" style="margin-top:0">De app opent de website van je bank. Jij logt in met de app van je bank; daarna zoekt de app zelf je transacties op en downloadt ze rechtstreeks in Bankzaken. Alleen je telefoon en je bank, geen andere partij. Na afloop wordt de sessie op de telefoon gewist.</p>
+          <div class="bk-auto-lijst"></div>
+        </div>
+        <div class="card">
+          <h2>Zelf importeren</h2>
+          <p class="note" style="margin-top:0">Download bij je bank een afschrift (CAMT.053, MT940 of CSV) en kies het hier. Meerdere bestanden en overlappende periodes mogen: dubbele boekingen vallen weg.</p>
+          <label class="chk"><input type="checkbox" id="bk-wis-bron" checked> Gekozen bestanden na het importeren van de telefoon verwijderen</label>
+          <button class="big" onclick="bkImporteren()" data-icon="upload">Afschrift importeren</button>
+          <details class="rinfo"><summary>Zo download je een afschrift</summary><div id="bk-uitleg"></div></details>
+          <div id="bk-imports"></div>
+        </div>
+
+        <div class="flabel" style="margin:18px 2px 8px">Indelen</div>
+        <div class="card">
+          <h2>Categorieën met AI</h2>
+          <p class="note" style="margin-top:0" id="bk-zonder"></p>
+          <button class="big ghost" id="bk-ai-cat" onclick="bkAiCategoriseren()" data-icon="sparkle">Voorstellen laten maken</button>
+          <div id="bk-ai-cat-uit"></div>
+        </div>
+        <div class="card">
+          <h2>Mijn regels</h2>
+          <p class="note" style="margin-top:0">Een regel deelt alles met deze tekst in de naam of omschrijving in bij een categorie. Maak er een vanuit een boeking.</p>
+          <div id="bk-regels"></div>
+        </div>
+        <div class="card">
+          <h2>Budget per maand</h2>
+          <p class="note" style="margin-top:0">Zet een maandbudget per categorie; het overzicht laat zien hoeveel er deze maand nog over is.</p>
+          <div id="bk-budgetten"></div>
+          <button class="big ghost" onclick="bkBudgetNieuw()" data-icon="plus">Budget toevoegen</button>
+        </div>
+        <div class="card">
+          <h2>Mijn rekeningen</h2>
+          <p class="note" style="margin-top:0">Overboekingen tussen je eigen rekeningen tellen niet als inkomsten of uitgaven. Voeg ook rekeningen toe die je niet importeert (bijv. een spaarrekening bij een andere bank).</p>
+          <div id="bk-rekeningen"></div>
+          <button class="big ghost" onclick="bkEigenNieuw()" data-icon="plus">Eigen rekening toevoegen</button>
+        </div>
+
+        <div class="flabel" style="margin:18px 2px 8px">Beveiliging</div>
+        <div class="card">
+          <h2>Zo blijven je gegevens veilig</h2>
+          <ul class="bk-veilig" id="bk-veilig"></ul>
+          <button class="big ghost" onclick="bkSluit()" data-icon="lock">Nu op slot doen</button>
+          <button class="big ghost bk-gevaar" onclick="bkWis()" data-icon="trash">Alle bankgegevens wissen</button>
+        </div>
+      </div>
+      <p class="note" id="bk-tijd" role="status"></p>
+    </div>
+  </main>
+</section>
