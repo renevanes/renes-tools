@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.131",
+    "date": "2026-11-03",
+    "changes": [
+      "Facturen: het dossier is nu een overzichtelijke tabel: kies zelf de kolommen (bedrag, factuurdatum, leverancier, uiterste betaaldatum, betaald op, factuurnummer, categorie …), sorteer door op een kolom te tikken, groepeer per maand, kwartaal, leverancier of categorie met subtotalen, en filter op nog te betalen of te laat"
+    ]
+  },
+  {
     "version": "1.130",
     "date": "2026-11-03",
     "changes": [
