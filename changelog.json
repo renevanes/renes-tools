@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.130",
+    "date": "2026-11-03",
+    "changes": [
+      "Facturen: Ziggo Zakelijk toegevoegd als leverancier (Mijn Ziggo Zakelijk en Factuurinzicht), met de sms-code van Ziggo"
+    ]
+  },
+  {
+    "version": "1.129",
+    "date": "2026-11-03",
+    "changes": [
+      "Facturen: nieuw Dossier met alle opgehaalde facturen: waar ze vandaan komen, factuurnummer, datum en bedrag (herkend, aan te passen), waar ze staan en aan wie ze zijn aangeleverd; ook te exporteren als CSV",
+      "Facturen: aanleveren aan je accountant of boekhouder per e-mail (via Eigen Cloud, je eigen mailserver of Gmail), direct na het ophalen of elke dag, week of maand; wat al verstuurd is gaat niet nog een keer"
+    ]
+  },
+  {
     "version": "1.128",
     "date": "2026-11-03",
     "changes": [

@@ -20,6 +20,7 @@ const { chromium } = require('playwright');
     await pg.screenshot({ path: __dirname + '/shots/facturen-leeg-' + scheme + '.png', fullPage: true });
     // KPN Zakelijk toevoegen via het sjabloon: tabbladen Inloggen, Planning, Opslaan, Meer
     await pg.click('#fa-nieuw'); await pg.waitForTimeout(150);
+    ok(await pg.isVisible('#sheet button:has-text("Ziggo Zakelijk")'), 'sjabloon Ziggo Zakelijk te kiezen');
     await pg.click('#sheet button:has-text("KPN Zakelijk")'); await pg.waitForTimeout(200);
     ok(await scherm() === 'faclev', 'instellingen van de leverancier open');
     ok(await pg.isVisible('.fl-tabs button[data-tab="inlog"]') && !(await pg.isVisible('.fl-tabs button[data-tab="zoek"]')), 'website: tabblad Inloggen, geen Zoeken');
