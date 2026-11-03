@@ -435,7 +435,9 @@ function skinAccentInk(hex){
 }
 function applyLook(){
   const r = document.documentElement;
+  // "Zoals Tools": het thema van de app (Weergave → Thema: systeem, licht, donker of automatisch 's avonds)
   let sysDark = matchMedia('(prefers-color-scheme: dark)').matches; try { if (typeof Android.isNight === 'function') sysDark = !!Android.isNight(); } catch(e){}
+  applyLook.night = sysDark;
   const dark = cfg.theme === 'dark' || (cfg.theme === 'auto' && sysDark);
   r.classList.toggle('dark', dark);
   const accent=/^#[0-9a-f]{6}$/i.test(cfg.accent||'')?cfg.accent:'#185D52';
@@ -459,6 +461,12 @@ function applyLook(){
   document.querySelectorAll('.onwall').forEach(e => e.style.textShadow = LIGHTBG[bg] ? 'none' : '');
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener && matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyLook);
+/* Het thema van Tools kan vanzelf wisselen (automatisch op tijd of met de zon): bij elke kloktik en bij terugkomen kijken */
+function skinThemeCheck(){
+  if (cfg.theme !== 'auto') return;
+  let d; try { d = typeof Android.isNight === 'function' ? !!Android.isNight() : matchMedia('(prefers-color-scheme: dark)').matches; } catch(e){ return; }
+  if (d !== applyLook.night) applyLook();
+}
 window.setInsets = function(t, b, k){ const r = document.documentElement.style; r.setProperty('--st', t + 'px'); r.setProperty('--sb', b + 'px'); r.setProperty('--kb', (k || 0) + 'px'); };
 try { const i = String(Android.insets()).split(','); if (i.length >= 2) setInsets(+i[0], +i[1], +i[2] || 0); } catch(e){}
 
@@ -737,6 +745,7 @@ function tickClock(){
   $('#date').textContent = ds.charAt(0).toUpperCase() + ds.slice(1);
   const a = Android.nextAlarm();
   $('#alarm').innerHTML = a && a - Date.now() < 7 * 864e5 ? skinGlyph('⏰')+' '+esc(new Date(a).toLocaleString('nl-NL', {weekday: 'short', hour: '2-digit', minute: '2-digit'})) : '';
+  skinThemeCheck();
 }
 
 /* ---------- weer ---------- */
@@ -941,7 +950,7 @@ function closeLook(){ $('#look').classList.remove('on'); ovCheck(); }
 function seg(id, opts, cur, fn){ $(id).innerHTML = opts.map(([v, l]) => '<button data-v="' + esc(v) + '"' + (String(v) === String(cur) ? ' class=on' : '') + '>' + l + '</button>').join('');
   $(id).querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); renderLook(); }); }
 function renderLook(){
-  seg('#l-theme', [['auto', 'Zoals de telefoon'], ['light', 'Licht'], ['dark', 'Donker']], cfg.theme, v => { cfg.theme = v; save(); applyLook(); });
+  seg('#l-theme', [['auto', 'Zoals Tools'], ['light', 'Licht'], ['dark', 'Donker']], cfg.theme, v => { cfg.theme = v; save(); applyLook(); });
   $('#l-acc').innerHTML = ACCENTS.map(c => '<button class="sw2' + (c === cfg.accent ? ' on' : '') + '" data-c="' + c + '" style="background:' + c + '" aria-label="Kleur ' + c + '"></button>').join('');
   $('#l-acc').querySelectorAll('button').forEach(b => b.onclick = () => { cfg.accent = b.dataset.c; save(); applyLook(); renderLook(); });
   $('#l-bg').innerHTML = Object.keys(BGS).map(k => '<button data-b="' + k + '"' + (k === cfg.bg ? ' class=on' : '') + ' style="background:' + (BGS[k][1] || 'linear-gradient(135deg,#94a3b8,#475569)') + '">' + BGS[k][0] + '</button>').join('');
@@ -1054,7 +1063,7 @@ function refreshCards(all){
   if (cfg.show.weather) Android.weather(false); else $('#weather').style.display = 'none';
   $('#banner').classList.toggle('on', !Android.isDefault() && !cfg.bannerOff);
 }
-window.onResumeHome = function(){ renderTools.force = true; refreshCards(false); clearInterval(window._tick); window._tick = setInterval(tickClock, 10000); };
+window.onResumeHome = function(){ skinThemeCheck(); renderTools.force = true; refreshCards(false); clearInterval(window._tick); window._tick = setInterval(tickClock, 10000); };
 window.onPauseHome = function(){ clearInterval(window._tick); closeSheet(); closeAsk(); setTimeout(() => { if (document.visibilityState !== 'visible') { closeDrawer(); closeFolder(); closeLook(); } }, 400); };
 window.onHomePressed = function(){ closeSheet(); closeAsk(); if (pk) closePick(false); $('#wpick').classList.remove('on'); closeFolder(); closeLook(); closeDrawer(); $('#home').scrollTo({top: 0, behavior: 'smooth'}); };
 window.onBack = function(){

@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.132",
-  "versionCode": 133,
-  "nativeLevel": 119,
+  "versionName": "1.133",
+  "versionCode": 134,
+  "nativeLevel": 120,
   "web": "index.html",
-  "webSha256": "b1271f9eeb22da90209d5278d0a3029deeb57f447408aa5348ecdf1962044353",
+  "webSha256": "584c6d1ce3d89a7b6c5d2956d3a2eadaa8c7d55b3cf730769c118767a1e14c85",
   "start": "start.html",
-  "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
+  "startSha256": "7deb33e30796defe3bbb456d3130254b915c2e512abc813657027d1be48c6abc",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "ddd00ec9044ac230d9872d85c2bb0e9f2cb6cf5c15a1a791a1449e44db8d7056",
+  "apkSha256": "9457a6df7c0452a79b7fa744b4606a3989fd3f6672bfa80a301e6b3ce0e2b841",
   "changelog": [
+    {
+      "version": "1.133",
+      "date": "2026-11-03",
+      "changes": [
+        "Thema bij Instellingen → Weergave: Systeem, Licht, Donker, of automatisch donker op een vaste tijd (standaard 20:00–07:00) of van zonsondergang tot zonsopkomst (berekend op de telefoon, zonder internet), met Zwart (AMOLED) en een snelle knop in Instellingen.",
+        "De Telefoon-skin volgt het thema van Tools (\"Zoals Tools\"), en de app start meteen in de goede kleur: geen witte flits meer in het donker."
+      ]
+    },
     {
       "version": "1.132",
       "date": "2026-11-03",
@@ -1159,5 +1167,5 @@
       ]
     }
   ],
-  "webSig2": "m3HpDq/OK+e1hfRtZEzp1EyfQBuC5e/LKi7jfzotBy8GZOvdDYMQ4seuz33Dxo3VhHVrVEHRhGUdZcj2yueYYd6ux51Tz1D/K9rCsUSRoEI+G4gOiBnqQ78A7sEeImAXvJOjtIXpB99NHvCU/lcBCa6l9TVGrWRXv6LXNjVK3gTwNf3ar1ZFbN7qj8vuYUj0Xff3oHQFPVg/1k2JLkylUbJne7+9JnwcUaBxGbRH62WtSKAdlIQEdyUn6Dx4NxLq6y4XYsDoNTj1pQkxkAncG3dX4Ul/4aaeC0kKX297zpiWso9LyWHiAXggegQV6xTu4LPE+rgrUjVCNyYUl5gJL6YI0cSuLbBMZXs5VAIbeCk4q/IKl424nPD7TPqFM2mvXjumUrR0oTARiQo7OAhkTyTXbzF1ujxzmPYWiVjDVkwSA7gBpkBrlWjdmL3JilxS3UnddFKLYDSk01yTILL2fKwOolpTvAPkP2UdW70DyxBZhJ1HEBZQrBLpqmWPD/ra"
+  "webSig2": "WSV9EkYurqp9z6SrbTHPotfB8na9P1qb0qDHI+77OseLC0CRQqhWh8wJjKwSVhNNiif9pKlsAPYNwxtzixKCaoGz0b1nc47btzJHTCxlJQvLlj5qJxaaXdp4OiU1+l8pUFcT9Ag/VQbXWPWAw1e1ttohp3nsyVbNK7HX6RhiJPBuB4pQA7Q8pcdTuh+CFetvkc7LvxhXApcmMdSHPmOrdJHyr9d5AXmE2nQmYFIZwU04+NpeIFkGT5Ky5YvTfcdVMfUJEdhCw6coy4ZOg3YINXjMK42iPNnG/PDDXFfjiTLKDWmPE1KT1L7FEXewxUYmys+pOePDvePdfpZLracr2cg28KEe6PQYlRyowX1iHuINZgZp4cFHxTCfekW4cS0VmYIskIDvSRVoOWZmTxvxHx7ksdK72QFvUDeZdNUxUmfsJhpv84u2DCKvBQwN9XPYU5RMPOtmxP4isAxCjKY3G2yRS1BinlqZtFJL4IQnBQC+xsXdMsm+bmqDssAqKohd"
 }
