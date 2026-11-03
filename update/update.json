@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.129",
-  "versionCode": 130,
-  "nativeLevel": 116,
+  "versionName": "1.130",
+  "versionCode": 131,
+  "nativeLevel": 117,
   "web": "index.html",
-  "webSha256": "4cc0f16b7b9ac24d44aa6662c7068d40c0fdeafc66929c00f22c15749ec08f15",
+  "webSha256": "fab5a2296f75b467a798ce4a9b6a31a3696be3b81ecd92418ffb7f2ce1bf31ad",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "9b735f0081f783d296db2db8244e9d62a9cf97fc36551350526ed89c89d305b0",
+  "apkSha256": "d142bba0b9df719244e6fb595a1ed837c4196dbf362750baeabe9dd33b3c730d",
   "changelog": [
+    {
+      "version": "1.130",
+      "date": "2026-11-03",
+      "changes": [
+        "Facturen: Ziggo Zakelijk toegevoegd als leverancier (Mijn Ziggo Zakelijk en Factuurinzicht), met de sms-code van Ziggo"
+      ]
+    },
     {
       "version": "1.129",
       "date": "2026-11-03",
@@ -1138,5 +1145,5 @@
       ]
     }
   ],
-  "webSig2": "KWOnMb5EoH0X8lME5ELwC0t6GaM//9yhrTD09TABSQlPZaNaYdCQ7Kymw2udOobTMebTinEEQibVOo0BxZNWLZQhAx1f31JpWhjuHbHnQU6TfyVT5yG90NCGQRL2/0lO+WgmHnqoVPr4FSocxW2TKXluZc5KmHWu2hsE+sBByCpJlGqum5CaygMVwMMB1vIHBzh70GSb0xLm08S8IveuOtWxJDOp8eYCr+cbAUOIM5puhjSl9mecY99KcsP5kAXBdLn6JNp3XnUwg1xx5B7h9Eck42PG7/wWlglozZd6JDpsC1UemcEATyghMF77uGgOXfkVwBifIkubRQ2jtgh10pmL9eGfcClkrWgcKQtsc5tV7K93ca8wTncODRDRqcFjHS0+HBL5U2OClsyWXj6jfQAhvvBlFVmVTyFgffxhxxzpDWucF8aFOt0R7e6mM9IfNvQVcsqfooI07zh64088WcW35w22kmqr0+tqU57SW0WWqh2etS+Djpo+ib5k7Ozp"
+  "webSig2": "HsJwo92z3XYOABScEZjjEDApIUyaiMwFZoP95Hhkiw18bxOZjspk2nd3D9Mg93/wYXXlFGTbsVFrAfIvznoJ3xzvnBebuYAkI/Dmd71iFlv6+Xc1JieEdWeOV1v/m3YbC/HZxbkZk+U+LNgC8SsP8OnE2wNtrQC5Thj9/IKVh5kEJNPoVvSh4EnPs3VQZA1q4e5eMjBh8wgAmzYvZ2XpP+o2WS4cnZOGDeiRl8YV+rMMlqHjM4DaoVLKQuNUAwTrnQfyO7gWD1UnE3cwvwYFmrom8O7Zvh3HFBcsbhz8c2eSH0T2Rh3lH4BDZq+Jxsfjxra9NRQ5oeDpfqUXsdw/TJZKsiGVkCKJxzpYOQZ68X8D2muADgW+HJXNVSx2oYaxVBniViIP+70s/v53/T9a+epRLDDFvzjNRQ8hgVcwy7fEARHjCyRrYIbiWTQme2v2RS1wXZkGh4dtNoUvwuNBauJ+gi2Cnws0GfgeuqutnlmPNs0u9AUbvYMAoXNPx1eV"
 }
