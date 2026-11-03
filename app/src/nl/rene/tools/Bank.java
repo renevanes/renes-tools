@@ -47,7 +47,19 @@ final class Bank {
     /** Bestanden kiezen loopt (de app gaat dan even uit beeld): niet op slot doen. */
     static volatile boolean picking = false;
 
-    static boolean isOpen() { long n = System.currentTimeMillis(); return n < openUntil && n < maxUntil; }
+    static boolean isOpen() {
+        long n = System.currentTimeMillis();
+        boolean open = n < openUntil && n < maxUntil;
+        if (!open && (aiUsed || openUntil != 0)) close(); // vanzelf verlopen: ook het taalmodel en wachtende afschriften opruimen
+        return open;
+    }
+    /** Bestanden kiezen telt hooguit 2 minuten als "binnen de app" (daarna gewoon op slot als de app uit beeld gaat). */
+    static volatile long pickingAt = 0;
+    static boolean kiest() { return picking && System.currentTimeMillis() - pickingAt < 120_000L; }
+    /** Versie van de opgeslagen gegevens: een opslag vanuit het scherm met een oudere versie wordt geweigerd (geen import kwijt). */
+    static volatile long rev = 0;
+    /** De sleutel bestaat nog, maar is door de telefoon ongeldig gemaakt (schermvergrendeling gewijzigd). */
+    static volatile boolean ongeldig = false;
     static long remaining() { long n = System.currentTimeMillis(); return Math.max(0, Math.min(openUntil, maxUntil) - n); }
 
     static void open() { long n = System.currentTimeMillis(); maxUntil = n + MAX_MS; openUntil = n + IDLE_MS; }
@@ -55,6 +67,7 @@ final class Bank {
 
     static void close() {
         openUntil = 0; maxUntil = 0;
+        synchronized (WACHT) { if (System.currentTimeMillis() > wachtTot) WACHT.clear(); }
         if (aiUsed) {
             aiUsed = false;
             try { LocalAi.cancel(); } catch (Throwable ignored) { }
@@ -92,12 +105,13 @@ final class Bank {
     /** Nieuwe sleutel, direct na een geslaagde vingerafdruk/pincode. Eerst met verplichte ontgrendeling (hardware);
      *  werkt dat op deze telefoon niet, dan zonder, en dat staat dan eerlijk bij "Beveiliging". */
     static SecretKey createKey(Context c) throws Exception {
-        try {
+        for (int poging = 0; poging < 2; poging++) try {
             SecretKey k = generate(true);
             BankCrypt.decrypt(BankCrypt.encrypt(new byte[]{1}, k), k); // werkt hij echt na deze ontgrendeling?
             writeMeta(c, true);
             return k;
-        } catch (Throwable t) {
+        } catch (Throwable t) { try { ks().deleteEntry(ALIAS); } catch (Throwable ignored) { } }
+        {
             try { ks().deleteEntry(ALIAS); } catch (Throwable ignored) { }
             App.log(c, "BANK", "sleutel zonder verplichte ontgrendeling");
             SecretKey k = generate(false);
@@ -131,6 +145,8 @@ final class Bank {
     static SecretKey key(Context c) throws Exception {
         synchronized (LOCK) {
             SecretKey k = existingKey();
+            // Nog geen gegevens en de sleutel was niet aan de ontgrendeling gekoppeld: opnieuw proberen (net ontgrendeld)
+            if (k != null && !hasData(c) && !metaJson(c).optBoolean("ontgrendeling", false)) { try { ks().deleteEntry(ALIAS); } catch (Throwable ignored) { } k = null; }
             if (k != null) return k;
             if (hasData(c)) throw new Exception(LOST);
             return createKey(c);
@@ -162,12 +178,35 @@ final class Bank {
             try (FileInputStream in = new FileInputStream(f)) { int off = 0, r; while (off < blob.length && (r = in.read(blob, off, blob.length - off)) > 0) off += r; }
             SecretKey k = existingKey();
             if (k == null) throw new Exception(LOST);
-            return new String(BankCrypt.decrypt(blob, k), StandardCharsets.UTF_8);
+            String s;
+            try { s = new String(BankCrypt.decrypt(blob, k), StandardCharsets.UTF_8); }
+            catch (Throwable t) { if (why(t).equals(LOST)) ongeldig = true; throw t; }
+            rev = new JSONObject(s).optLong("rev", 0);
+            return s;
+        }
+    }
+
+    static final String VEROUDERD = "Er is intussen iets geïmporteerd; het scherm is bijgewerkt. Doe je laatste wijziging nog eens.";
+
+    /** Opslaan vanuit het scherm: alleen als het op de laatste versie voortbouwt (anders zou een import verloren gaan). */
+    static void saveFromUi(Context c, JSONObject o) throws Exception {
+        synchronized (LOCK) {
+            if (hasData(c) && o.optLong("rev", 0) != rev) throw new Exception(VEROUDERD);
+            save(c, o);
+        }
+    }
+
+    /** Opslaan met een nieuwe versie (rev + 1). */
+    static void save(Context c, JSONObject o) throws Exception {
+        synchronized (LOCK) {
+            o.put("rev", rev + 1);
+            save(c, o.toString());
+            rev = rev + 1;
         }
     }
 
     /** Versleuteld opslaan: eerst volledig schrijven en teruglezen, pas dan het oude bestand vervangen. */
-    static void save(Context c, String json) throws Exception {
+    private static void save(Context c, String json) throws Exception {
         synchronized (LOCK) {
             if (!isOpen()) throw new Exception("Bankzaken is op slot");
             byte[] plain = json.getBytes(StandardCharsets.UTF_8);
@@ -194,7 +233,7 @@ final class Bank {
             }
             try { ks().deleteEntry(ALIAS); } catch (Throwable ignored) { }
             synchronized (WACHT) { WACHT.clear(); }
-            laatsteKoppeling = "";
+            laatsteKoppeling = ""; rev = 0; ongeldig = false;
             close();
         }
     }
@@ -204,7 +243,7 @@ final class Bank {
         JSONObject m = metaJson(c);
         boolean key = hasKey();
         return new JSONObject().put("open", isOpen()).put("left", remaining()).put("data", hasData(c))
-                .put("sleutel", key).put("kwijt", hasData(c) && !key)
+                .put("sleutel", key).put("kwijt", hasData(c) && (!key || ongeldig))
                 .put("ontgrendeling", m.optBoolean("ontgrendeling", false))
                 .put("hardware", key && hardware())
                 .put("slot", Lock.deviceSecure(c));
@@ -262,7 +301,7 @@ final class Bank {
                 } catch (Throwable t) { f.put("ok", false).put("fout", t instanceof OutOfMemoryError ? "Bestand is te groot" : t.getMessage() == null ? "Inlezen lukt niet" : t.getMessage()); }
                 files.put(f);
             }
-            if (ok > 0) save(c, store.toString());
+            if (ok > 0) save(c, store);
             App.log(c, "BANK", "import");
             return new JSONObject().put("bestanden", files).put("ok", ok);
         }

@@ -78,7 +78,7 @@ public class BankBridge extends FacturenBridge {
             JSONObject o = new JSONObject(json);
             if (o.optJSONArray("tx") == null) return "Ongeldige gegevens";
             Bank.touch();
-            Bank.save(ctx, json);
+            Bank.saveFromUi(ctx, o);
             return "";
         } catch (Throwable t) { return t instanceof OutOfMemoryError ? "Te veel gegevens" : Bank.why(t); }
     }
@@ -97,7 +97,7 @@ public class BankBridge extends FacturenBridge {
     /** Op het scherm van Bankzaken: geen schermafdrukken, schermopnames of voorbeeld in "recente apps". */
     @JavascriptInterface public void bankSecure(boolean on) {
         a.bankScreen = on;
-        a.h.post(a::applySecure);
+        a.h.post(() -> { a.applySecure(); a.bankPrive(on); });
     }
 
     /** Afschriften kiezen (meerdere tegelijk). wis = de gekozen bestanden na het inlezen verwijderen. Antwoord via onBankImport. */
@@ -108,7 +108,7 @@ public class BankBridge extends FacturenBridge {
             Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
                     .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
                     .putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"text/*", "application/xml", "application/octet-stream", "application/vnd.ms-excel", "application/csv"});
-            Bank.picking = true;
+            Bank.picking = true; Bank.pickingAt = System.currentTimeMillis();
             try { a.startActivityForResult(i, REQ_BANK); }
             catch (ActivityNotFoundException e) { Bank.picking = false; Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
         });
@@ -230,13 +230,14 @@ public class BankBridge extends FacturenBridge {
             JSONArray msgs = req.optJSONArray("messages");
             if (msgs == null || msgs.length() == 0 || msgs.length() > 20) return "Geen vraag";
             Bank.touch();
-            Bank.aiUsed = true;
             if (!LocalAi.privateChat(ctx, system(mode), msgs, maxFor(mode), new BankSink(a))) return AiBridge.BUSY;
+            Bank.aiUsed = true;
             return "";
         } catch (Throwable t) { return "De lokale AI kon niet starten"; }
     }
 
-    @JavascriptInterface public void bankAiCancel() { LocalAi.cancel(); }
+    /** Alleen een antwoord van Bankzaken stoppen, nooit een lopend antwoord van de assistent. */
+    @JavascriptInterface public void bankAiCancel() { if (Bank.aiUsed) LocalAi.cancel(); }
 
     static final class BankSink implements LocalAi.Sink {
         final MainActivity a;

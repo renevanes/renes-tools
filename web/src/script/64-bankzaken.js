@@ -103,20 +103,16 @@ function bkPeriodeVan(){
 }
 /** De periode ervoor, even lang (voor de vergelijking). */
 function bkVorige(van, tot){
-  const a = new Date(van + 'T12:00:00'), b = new Date(tot + 'T12:00:00');
-  const dagen = Math.round((b - a) / 864e5) + 1;
-  const pt = new Date(a.getTime() - 864e5), pv = new Date(a.getTime() - dagen * 864e5);
   const f = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  // Hele maanden: vergelijk met de hele maand(en) ervoor
+  const a = new Date(van + 'T12:00:00'), b = new Date(tot + 'T12:00:00');
   if (van.slice(8) === '01') {
-    const mnd = (Number(tot.slice(0, 4)) - Number(van.slice(0, 4))) * 12 + Number(tot.slice(5, 7)) - Number(van.slice(5, 7)) + 1;
-    const s = new Date(Number(van.slice(0, 4)), Number(van.slice(5, 7)) - 1 - mnd, 1);
-    const totDag = Math.min(Number(tot.slice(8)), 31);
-    const e = new Date(Number(van.slice(0, 4)), Number(van.slice(5, 7)) - 1, 0);
-    const eindVorige = new Date(e.getFullYear(), e.getMonth(), Math.min(e.getDate(), tot.slice(5, 7) === van.slice(5, 7) && mnd === 1 ? totDag : e.getDate()));
-    return [f(s), f(eindVorige)];
+    // Begint op de 1e: dezelfde stukken maanden ervoor (1 sep–3 nov ↔ 1 jun–3 aug), dag afgekapt op de maandlengte
+    const mnd = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth() + 1;
+    const terug = (d, m) => { const x = new Date(d.getFullYear(), d.getMonth() - m, 1, 12); const laatste = new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate(); x.setDate(Math.min(d.getDate(), laatste)); return x; };
+    return [f(terug(a, mnd)), f(terug(b, mnd))];
   }
-  return [f(pv), f(pt)];
+  const dagen = Math.round((b - a) / 864e5) + 1;
+  return [f(new Date(a.getTime() - dagen * 864e5)), f(new Date(a.getTime() - 864e5))];
 }
 function bkRekening(){ const s = $('#bk-rek'); return s && s.value ? s.value : 'alle'; }
 function bkSelectie(van, tot){
@@ -224,7 +220,12 @@ window.onBank = function(r){
 };
 function bkLaad(){
   let d; try { d = JSON.parse(Android.bankLoad()); } catch (e) { d = { error: 'Openen lukt niet' }; }
-  if (d.locked || d.error) { if (d.error) $('#bk-msg').textContent = d.error; Android.bankLock(); bkToestand(); return; }
+  if (d.locked || d.error) {
+    if (d.error) $('#bk-msg').textContent = d.error;
+    // Sleutel ongeldig: niet op slot doen, dan kan er nog gewist worden
+    if (!(d.error && /niet meer te openen/.test(d.error))) Android.bankLock();
+    bkToestand(); return;
+  }
   bk.store = d.store || { v: 1, tx: [], imports: [] };
   for (const k of ['tx', 'imports', 'rules', 'cats', 'eigen']) if (!Array.isArray(bk.store[k])) bk.store[k] = [];
   if (!bk.store.budget || typeof bk.store.budget !== 'object') bk.store.budget = {};
@@ -241,6 +242,10 @@ function bkLaad(){
 function bkVergeet(){
   bk.store = null; bk.catCache.clear(); bk.eigen = new Set(); bk.voorstellen = null; bk.aiTekst = ''; bk.lijstN = 100;
   for (const id of ['#bk-overzicht', '#bk-lijst', '#bk-regels', '#bk-budgetten', '#bk-rekeningen', '#bk-imports', '#bk-ai-cat-uit', '#bk-ai-uit']) { const e = $(id); if (e) e.replaceChildren(); }
+  for (const id of ['#bk-rek', '#bk-cat']) { const e = $(id); if (e) e.replaceChildren(); }
+  for (const id of ['#bk-lijst-telling', '#bk-periode-txt', '#bk-ai-status', '#bk-zonder', '#bk-tijd', '#bk-uitleg']) { const e = $(id); if (e) e.textContent = ''; }
+  // Een open menu of venster met gegevens van een boeking dicht en leeg
+  if (bk.venster) { bk.venster = false; try { closeSheet(); } catch (e) { } try { if ($('#modal.on')) closeModal(null); } catch (e) { } const s = $('#sheet-sub'); if (s) s.textContent = ''; const t = $('#sheet-title'); if (t) t.textContent = ''; }
   const zoek = $('#bk-zoek'); if (zoek) zoek.value = '';
   const ai = $('#bk-ai-in'); if (ai) ai.value = '';
   const k = $('#bk-ai-uit-kaart'); if (k) k.hidden = true;
@@ -250,7 +255,11 @@ function bkSluit(){ Android.bankLock(); bkToestand(); }
 function bkSave(){
   if (!bk.store) return false;
   const r = Android.bankSave(JSON.stringify(bk.store));
-  if (r) { toast(r); if (/op slot|Ontgrendel/i.test(r)) { Android.bankLock(); bkToestand(); } return false; }
+  if (r) {
+    if (/intussen iets ge/.test(r)) { askConfirm('Bijgewerkt', r, 'OK', () => {}); bkLaad(); return false; } // een import was eerder klaar
+    toast(r); if (/op slot|Ontgrendel/i.test(r)) { Android.bankLock(); bkToestand(); } return false;
+  }
+  bk.store.rev = (bk.store.rev || 0) + 1;
   return true;
 }
 /** Elke 10 seconden kijken of Bankzaken nog open is (na 5 minuten niets doen gaat hij vanzelf op slot); tikken telt als bezig. */
@@ -269,7 +278,7 @@ document.addEventListener('pointerdown', ev => {
   if (Date.now() - bk.aanraak > 20000) { bk.aanraak = Date.now(); try { Android.bankTouch(); } catch (e) { } }
 }, true);
 document.addEventListener('input', ev => { if (current === 'bank' && ev.target.closest && ev.target.closest('#s-bank') && Date.now() - bk.aanraak > 20000) { bk.aanraak = Date.now(); try { Android.bankTouch(); } catch (e) { } } }, true);
-function bkVerlaat(){ try { Android.bankAiCancel(); } catch (e) { } Android.bankLock(); bkVergeet(); try { Android.bankSecure(false); } catch (e) { } $('#bk-dicht').hidden = false; $('#bk-los').hidden = true; }
+function bkVerlaat(){ if (bk.aiBezig) { try { Android.bankAiCancel(); } catch (e) { } bk.aiBezig = false; } Android.bankLock(); bkVergeet(); try { Android.bankSecure(false); } catch (e) { } $('#bk-dicht').hidden = false; $('#bk-los').hidden = true; }
 (function(){ const prev = window.onPauseApp; window.onPauseApp = function(){ if (prev) prev(); if (bk.store) { bkVergeet(); $('#bk-dicht').hidden = false; $('#bk-los').hidden = true; } }; })();
 
 // ---------- tabs en filters ----------
@@ -446,6 +455,7 @@ function bkTx(id){
   if (t.ty) regels.push(t.ty);
   regels.push('Rekening ' + bkRekNaam(t.acc) + (t.src ? ' · ' + t.src : ''));
   if (t.n) regels.push('Notitie: ' + t.n);
+  bk.venster = true;
   openSheet(t.cp || t.ci || 'Boeking', regels.join('\n'), [
     ['Categorie wijzigen', () => bkKiesCat(id, false), 'edit'],
     ['Altijd zo indelen: ' + (bkSleutel(t).slice(0, 30) || 'deze naam'), () => bkKiesCat(id, true), 'repeat'],
@@ -470,6 +480,7 @@ function bkKiesCat(id, regel){
   }]);
   acts.push(['Nieuwe categorie…', () => bkNieuweCat(c => { if (regel) { bk.store.rules.unshift({ p: bkSleutel(t), cat: c, t: t.a > 0 ? '+' : '-' }); } else t.c = c; bkHerbereken(); bkSave(); bkRender(); }), 'plus']);
   if (t.c && !regel) acts.push(['Automatisch laten indelen', () => { delete t.c; bkHerbereken(); bkSave(); bkRender(); }, 'refresh']);
+  bk.venster = true;
   openSheet(regel ? 'Altijd indelen als…' : 'Categorie', regel ? 'Voor alles met “' + p0(t) + '” in de naam of omschrijving' : '', acts);
 }
 const p0 = t => bkSleutel(t).slice(0, 40);
@@ -494,6 +505,7 @@ window.onBankImport = function(r){
   let nieuw = 0, dubbel = 0; const fout = [];
   for (const f of fs) { if (f.ok && f.sum) { nieuw += f.sum.nieuw || 0; dubbel += f.sum.dubbel || 0; } else fout.push(f.naam + ': ' + (f.fout || 'niet gelukt')); }
   const tekst = nieuw + ' nieuwe boekingen' + (dubbel ? ', ' + dubbel + ' stonden er al' : '') + (r.gewist ? '. ' + r.gewist + (r.gewist === 1 ? ' bestand' : ' bestanden') + ' van de telefoon verwijderd' : '') + (fout.length ? '.\n\nNiet gelukt:\n' + fout.join('\n') : '.');
+  bk.venster = true;
   askConfirm('Afschrift geïmporteerd', tekst, 'OK', () => {});
 };
 function bkKoppel(id){

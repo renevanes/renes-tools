@@ -92,9 +92,25 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._bank.data.rules[0].p === 'restaurant de kade' && Android._bank.data.rules[0].cat === 'Vrije tijd & sport'), 'regel gemaakt vanuit een boeking');
     ok((await tekst('#bk-lijst')).includes('Vrije tijd & sport'), 'boekingen direct anders ingedeeld');
 
+    // Import op de achtergrond klaar terwijl het scherm een oudere versie had: niets kwijt, scherm bijgewerkt
+    await pg.evaluate(() => { Android._bank.data.rev += 1; Android._bank.data.tx.push(Object.assign({}, Android._bank.data.tx[0], { id: 'laat', cp: 'Later Geimporteerd' })); });
+    await pg.click('#bk-lijst .bk-tx'); await pg.waitForTimeout(150);
+    await pg.click('#sheet button:has-text("Categorie wijzigen")'); await pg.waitForTimeout(150);
+    await pg.click('#sheet button:has-text("Reizen & vakantie")'); await pg.waitForTimeout(200);
+    ok(await pg.isVisible('#modal.on') && (await tekst('#modal')).includes('intussen iets geïmporteerd'), 'oudere versie: opslaan geweigerd met uitleg');
+    ok(await pg.evaluate(() => Android._bank.data.tx.some(t => t.id === 'laat') && bk.store.tx.some(t => t.id === 'laat')), 'de import blijft bewaard en staat in het scherm');
+    await pg.click('#modal button:has-text("OK")'); await pg.waitForTimeout(100);
+    // Vergelijking met de periode ervoor
+    ok(await pg.evaluate(() => JSON.stringify(bkVorige('2026-09-01', '2026-11-03'))) === '["2026-06-01","2026-08-03"]', 'vorige periode: zelfde stuk maanden ervoor');
+    ok(await pg.evaluate(() => JSON.stringify(bkVorige('2026-03-01', '2026-03-31'))) === '["2026-02-01","2026-02-28"]', 'vorige maand afgekapt op de maandlengte');
+    ok(await pg.evaluate(() => JSON.stringify(bkVorige('2026-10-10', '2026-10-19'))) === '["2026-09-30","2026-10-09"]', 'andere periode: even lang ervoor');
+    // Open boeking-menu en dan app uit beeld: menu dicht en leeg
+    await pg.click('#bk-lijst .bk-tx'); await pg.waitForTimeout(150);
+
     // App uit beeld: alles uit het geheugen
     await pg.evaluate(() => onPauseApp()); await pg.waitForTimeout(50);
     ok(await pg.evaluate(() => bk.store === null) && (await tekst('#bk-overzicht')) === '' && await pg.isVisible('#bk-dicht'), 'app uit beeld: gegevens weg uit het geheugen');
+    ok(!(await pg.isVisible('#sheet.on')) && (await tekst('#sheet-title')) === '' && (await tekst('#bk-lijst-telling')) === '' && await pg.$$eval('#bk-rek option', l => l.length) === 0, 'ook geen open menu of tekst met gegevens meer');
     await pg.evaluate(() => { Android._bank.open = false; onResumeApp(); }); await pg.waitForTimeout(100);
     ok(await pg.isVisible('#bk-dicht'), 'terug in de app: op slot');
 

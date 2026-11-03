@@ -141,8 +141,9 @@ function bkVoorstellenOvernemen(){
   document.querySelectorAll('#bk-ai-cat-uit input[type=checkbox]').forEach(cb => {
     if (!cb.checked) return;
     const i = Number(cb.dataset.i), k = v.keuze[i], sel = document.querySelector('#bk-ai-cat-uit select[data-i="' + i + '"]');
+    if (!k) return;
     const c = sel ? sel.value : k.c;
-    if (!k || !bkAlleCats().includes(c)) return;
+    if (!bkAlleCats().includes(c)) return;
     const t = k.x.plus > k.x.n / 2 ? '+' : '-';
     bk.store.rules = bk.store.rules.filter(g => !(g.p === k.x.k && g.t === t));
     bk.store.rules.push({ p: k.x.k, cat: c, t });

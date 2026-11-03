@@ -1,6 +1,5 @@
 package nl.rene.tools;
 
-import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
@@ -559,7 +558,7 @@ final class BankImport {
         try { dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false); } catch (Throwable ignored) { }
         try { dbf.setXIncludeAware(false); } catch (Throwable ignored) { }
         org.w3c.dom.Document doc;
-        try { doc = dbf.newDocumentBuilder().parse(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8))); }
+        try { doc = dbf.newDocumentBuilder().parse(new org.xml.sax.InputSource(new java.io.StringReader(text))); } // al gedecodeerd: de encoding-kop telt niet meer
         catch (Exception e) { throw new Exception("Dit XML-bestand is geen leesbaar CAMT-afschrift"); }
         Result r = new Result();
         r.format = "CAMT";

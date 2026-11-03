@@ -63,6 +63,8 @@ public class BankLinkActivity extends Activity {
     volatile boolean klaar = false, bezig = false, geladen = false;
     volatile String paginaUrl = "";
     long start, inlogSinds, wachtSinds;
+    /** Uit beeld sinds (0 = in beeld) en wanneer de app van de bank geopend werd (om de inlog te bevestigen). */
+    volatile long wegSinds = 0, appGeopend = 0;
     String ua = "";
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -161,7 +163,7 @@ public class BankLinkActivity extends Activity {
 
     void openApp(String pkg) {
         if (!BankLink.appToegestaan(pkg, bank)) return;
-        try { Intent i = getPackageManager().getLaunchIntentForPackage(pkg); if (i != null) startActivity(i); }
+        try { Intent i = getPackageManager().getLaunchIntentForPackage(pkg); if (i != null) { appGeopend = System.currentTimeMillis(); startActivity(i); } }
         catch (Throwable t) { Toast.makeText(this, "Openen lukt niet", Toast.LENGTH_SHORT).show(); }
     }
 
@@ -171,6 +173,13 @@ public class BankLinkActivity extends Activity {
     void tik() {
         if (klaar || wv == null || isFinishing()) return;
         if (System.currentTimeMillis() - start > MAX_MS) { einde("Gestopt: het duurde te lang. Probeer het opnieuw of importeer een bestand.", false); return; }
+        if (wegSinds > 0) {
+            // Uit beeld: Bankzaken niet open houden. Alleen even wachten als je net de app van je bank opende om te bevestigen.
+            long nu = System.currentTimeMillis(), mag = nu - appGeopend < 4 * 60_000L ? 3 * 60_000L : 45_000L;
+            if (nu - wegSinds > mag) { Bank.close(); Bank.linking = false; finish(); return; }
+            h.postDelayed(this::tik, 1500);
+            return;
+        }
         Bank.touch();
         if (!bezig && geladen && BankLink.toegestaan(paginaUrl, bank)) {
             wv.evaluateJavascript(robot, null);
@@ -194,10 +203,10 @@ public class BankLinkActivity extends Activity {
     // ---------- bestanden opvangen ----------
 
     void opDownload(String url, String cd) {
-        if (url == null || klaar) return;
+        if (url == null || klaar || wv == null) return;
         String naam = Facturen.naamUitDisposition(cd);
         if (url.startsWith("blob:")) { wv.evaluateJavascript("window.__br&&__br.blob(" + JSONObject.quote(url) + "," + JSONObject.quote(naam) + ")", null); return; }
-        if (url.startsWith("data:")) { opData(url, naam); return; }
+        if (url.startsWith("data:")) { new Thread(() -> { try { opData(url, naam); } catch (Throwable ignored) { } }, "bank-data").start(); return; }
         if (!BankLink.toegestaan(url, bank) || !opgehaald.add(url)) return;
         final String ref = wv.getUrl();
         zet("Bestand ophalen…");
@@ -272,9 +281,18 @@ public class BankLinkActivity extends Activity {
 
     void einde(String tekst, boolean ok) {
         klaar = true;
+        if (!ok) Bank.linking = false; // mislukt: Bankzaken gaat weer gewoon op slot als de app uit beeld gaat
         zet(tekst);
         h.post(() -> { if (knop != null) knop.setText("Sluiten"); });
-        if (ok) h.postDelayed(this::finish, 2500);
+        h.postDelayed(this::finish, ok ? 2500 : 6000);
+    }
+
+    @Override protected void onStop() { super.onStop(); if (!isFinishing()) wegSinds = System.currentTimeMillis(); }
+    @Override protected void onStart() {
+        super.onStart();
+        // Terug na te lang weg (Bankzaken ging op slot): stoppen
+        if (wegSinds > 0 && !Bank.isOpen() && !klaar) { Bank.linking = false; finish(); return; }
+        wegSinds = 0;
     }
 
     // ---------- opruimen ----------
@@ -283,9 +301,9 @@ public class BankLinkActivity extends Activity {
     protected void onDestroy() {
         Bank.linking = false;
         h.removeCallbacksAndMessages(null);
+        wisSporen();
         if (wv != null) {
             try { wv.stopLoading(); wv.removeJavascriptInterface("BrBrug"); } catch (Throwable ignored) { }
-            wisSporen();
             try { ((ViewGroup) wv.getParent()).removeView(wv); } catch (Throwable ignored) { }
             try { wv.destroy(); } catch (Throwable ignored) { }
             wv = null;
@@ -308,9 +326,15 @@ public class BankLinkActivity extends Activity {
                 String naam = part.split("=", 2)[0].trim();
                 if (naam.isEmpty()) continue;
                 cm.setCookie(u, naam + "=; Max-Age=0; Path=/");
-                if (dom != null) for (int i = 0; i < dom.length(); i++) cm.setCookie(u, naam + "=; Max-Age=0; Path=/; Domain=." + dom.optString(i));
+                cm.setCookie(u, naam + "=; Max-Age=0; Path=/; Secure"); // __Host-/__Secure-cookies verdwijnen alleen met Secure
+                if (dom != null) for (int i = 0; i < dom.length(); i++) {
+                    cm.setCookie(u, naam + "=; Max-Age=0; Path=/; Domain=." + dom.optString(i));
+                    cm.setCookie(u, naam + "=; Max-Age=0; Path=/; Secure; Domain=." + dom.optString(i));
+                }
             }
         }
+        // Sessiecookies (zonder einddatum) van de bank weg, als er geen Facturen-run loopt die ze nodig heeft
+        if (FacturenRun.LOPEND.get() == null) try { cm.removeSessionCookies(null); } catch (Throwable ignored) { }
         try { cm.flush(); } catch (Throwable ignored) { }
     }
 
@@ -334,12 +358,17 @@ public class BankLinkActivity extends Activity {
                 // Inloggen met de app van de bank: alleen die app (uit de lijst) mag geopend worden
                 try {
                     Intent i = scheme.equals("intent") ? Intent.parseUri(s, Intent.URI_INTENT_SCHEME) : new Intent(Intent.ACTION_VIEW, u);
+                    // Geen rechten of bestanden meegeven: alleen de app van de bank openen
+                    Uri data = i.getData();
+                    if (data != null && data.getScheme() != null && data.getScheme().toLowerCase(java.util.Locale.ROOT).matches("content|file|android\\.resource")) return true;
+                    i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    i.setClipData(null);
                     i.addCategory(Intent.CATEGORY_BROWSABLE);
                     i.setComponent(null);
                     if (Build.VERSION.SDK_INT >= 15) i.setSelector(null);
                     String pkg = i.getPackage();
                     if (pkg == null) { android.content.pm.ResolveInfo ri = a.getPackageManager().resolveActivity(i, 0); if (ri != null && ri.activityInfo != null) pkg = ri.activityInfo.packageName; }
-                    if (BankLink.appToegestaan(pkg, a.bank)) { i.setPackage(pkg); a.startActivity(i); }
+                    if (BankLink.appToegestaan(pkg, a.bank)) { i.setPackage(pkg); a.appGeopend = System.currentTimeMillis(); a.startActivity(i); }
                 } catch (Throwable ignored) { }
                 return true;
             }
@@ -347,6 +376,7 @@ public class BankLinkActivity extends Activity {
             return true;
         }
         @Override public boolean onRenderProcessGone(WebView v, RenderProcessGoneDetail d) {
+            if (v != a.wv) { try { v.destroy(); } catch (Throwable ignored) { } return true; }
             a.einde("De website liep vast. Probeer het opnieuw.", false);
             try { ((ViewGroup) v.getParent()).removeView(v); v.destroy(); } catch (Throwable ignored) { }
             a.wv = null;
@@ -370,7 +400,7 @@ public class BankLinkActivity extends Activity {
             return true;
         }
         @Override public boolean onJsAlert(WebView v, String url, String m, JsResult res) { res.confirm(); return true; }
-        @Override public boolean onJsConfirm(WebView v, String url, String m, JsResult res) { res.confirm(); return true; }
+        @Override public boolean onJsConfirm(WebView v, String url, String m, JsResult res) { res.cancel(); return true; } // nooit ongezien iets bevestigen
         @Override public boolean onJsPrompt(WebView v, String url, String m, String d, JsPromptResult res) { res.cancel(); return true; }
     }
 

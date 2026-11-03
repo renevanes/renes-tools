@@ -1034,13 +1034,15 @@ if (!window.Android) window.Android = (function(){
       ai: { kan: true, klaar: b.aiKlaar, model: 'Klein en snel' } }); },
     bankUnlock(){ const b = this._bank; b.calls.push(['unlock']); setTimeout(() => { if (b.ontgrendelFout) { onBank(b.ontgrendelFout); return; } b.open = true; onBank(true); }, 60); },
     bankLoad(){ const b = this._bank; if (!b.open) return '{"locked":true}'; return JSON.stringify({ left: 290000, store: b.data }); },
-    bankSave(json){ const b = this._bank; if (!b.open) return 'Bankzaken is op slot'; b.data = JSON.parse(json); b.saves++; return ''; },
+    bankSave(json){ const b = this._bank; if (!b.open) return 'Bankzaken is op slot'; const o = JSON.parse(json);
+      if (b.data && (o.rev || 0) !== (b.data.rev || 0)) return 'Er is intussen iets geïmporteerd; het scherm is bijgewerkt. Doe je laatste wijziging nog eens.';
+      o.rev = (o.rev || 0) + 1; b.data = o; b.saves++; return ''; },
     bankTouch(){ return this._bank.open ? '290000' : '0'; },
     bankLock(){ this._bank.open = false; this._bank.calls.push(['lock']); },
     bankWipe(){ const b = this._bank; if (!b.open) return 'Ontgrendel Bankzaken eerst'; b.data = null; b.open = false; b.calls.push(['wipe']); return ''; },
     bankSecure(on){ this._bank.secure = !!on; },
     bankImport(wis){ const b = this._bank; b.calls.push(['import', !!wis]); setTimeout(() => {
-      const nieuw = !b.data; if (nieuw) b.data = this._bankVoorbeeld();
+      const nieuw = !b.data; if (nieuw) b.data = this._bankVoorbeeld(); b.data.rev = (b.data.rev || 0) + 1;
       onBankImport(({ bestanden: [{ naam: 'NL20INGB_aug-okt.csv', ok: true, sum: { bank: 'ING', nieuw: nieuw ? b.data.tx.length : 0, dubbel: nieuw ? 0 : b.data.tx.length, overgeslagen: 0, van: '2026-08-01', tot: '2026-10-30' }, gewist: !!wis }, { naam: 'foto.jpg', ok: false, fout: 'Dit bestand herken ik niet' }], ok: 1, gewist: wis ? 1 : 0 })); }, 80); },
     bankBanken(){ return JSON.stringify([{ id: 'rabobank', naam: 'Rabobank', robot: true, uitleg: 'Rabo App → Rekeningen → Transacties downloaden', appNaam: 'Rabo App' },
       { id: 'ing', naam: 'ING', robot: false, uitleg: 'Mijn ING → Af- en bijschrijvingen downloaden', appNaam: '' }, { id: 'anders', naam: 'Een andere bank', robot: false, uitleg: 'CAMT.053, MT940 of CSV', appNaam: '' }]); },
