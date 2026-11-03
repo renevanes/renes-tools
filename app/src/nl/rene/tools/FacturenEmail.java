@@ -59,7 +59,9 @@ final class FacturenEmail implements FacturenAanlever.Kanaal {
 
     @Override public String naam() { return "E-mail"; }
 
-    static final String ADRES = "[^\\s@<>,;\"'()\\\\]+@[^\\s@<>,;\"'()\\\\]+\\.[^\\s@<>,;\"'()\\\\]+";
+    /** Alleen gewone (ASCII-)tekens: de koppen van de mail zijn ASCII en SMTP zonder SMTPUTF8. */
+    private static final String ADRESDEEL = "[\\x21-\\x7e&&[^@<>,;\"'()\\\\\\[\\]]]+";
+    static final String ADRES = ADRESDEEL + "@" + ADRESDEEL + "\\." + ADRESDEEL;
 
     /** "a@b.nl, c@d.nl; e@f.nl" → lijst (gecontroleerd). */
     static List<String> adressen(String s, int max, String wat) throws Exception {
@@ -101,7 +103,8 @@ final class FacturenEmail implements FacturenAanlever.Kanaal {
         return v == null ? "Kies waarmee de mail verstuurd wordt" : v.klaar(c);
     }
 
-    @Override public long maxZending(JSONObject ontv) { return ontv.optInt("maxMb", 15) * MB; }
+    /** Bijlagen samen hooguit zo groot dat de hele mail (base64 is 4/3 groter, plus koppen en tekst) onder maxMb blijft. */
+    @Override public long maxZending(JSONObject ontv) { return ontv.optInt("maxMb", 15) * MB * 3 / 4 - 100_000L; }
 
     @Override public String stuur(Context c, JSONObject ontv, FacturenAanlever.Zending z, boolean proef) throws Exception {
         Verzender v = VERZENDERS.get(ontv.optString("via"));
@@ -153,6 +156,21 @@ final class FacturenEmail implements FacturenAanlever.Kanaal {
             if (wrap && lijn >= 76 && i + 3 < d.length) { b.append("\r\n"); lijn = 0; }
         }
         return b.toString();
+    }
+
+    /** Base64 met regels van 76 tekens rechtstreeks in een stream (geen grote String in het geheugen). */
+    static void base64(byte[] d, java.io.OutputStream o) throws java.io.IOException {
+        byte[] regel = new byte[78];
+        for (int i = 0; i < d.length; i += 57) {
+            int eind = Math.min(d.length, i + 57), p = 0;
+            for (int j = i; j < eind; j += 3) {
+                int n = (d[j] & 0xff) << 16 | (j + 1 < eind ? (d[j + 1] & 0xff) << 8 : 0) | (j + 2 < eind ? d[j + 2] & 0xff : 0);
+                regel[p++] = (byte) B64[n >> 18 & 63]; regel[p++] = (byte) B64[n >> 12 & 63];
+                regel[p++] = (byte) (j + 1 < eind ? B64[n >> 6 & 63] : '='); regel[p++] = (byte) (j + 2 < eind ? B64[n & 63] : '=');
+            }
+            regel[p++] = '\r'; regel[p++] = '\n';
+            o.write(regel, 0, p);
+        }
     }
 
     static boolean ascii(String s) { for (int i = 0; i < s.length(); i++) { char ch = s.charAt(i); if (ch < 32 || ch > 126) return false; } return true; }
@@ -208,7 +226,9 @@ final class FacturenEmail implements FacturenAanlever.Kanaal {
         h.append("Content-Type: multipart/mixed; boundary=\"").append(grens).append("\"\r\n\r\n");
         h.append("--").append(grens).append("\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n");
         h.append(base64(b.tekst.replace("\r", "").replace("\n", "\r\n").getBytes(StandardCharsets.UTF_8), true)).append("\r\n");
-        ByteArrayOutputStream o = new ByteArrayOutputStream();
+        long tot = h.length() + 1024;
+        for (Bijlage x : b.bijlagen) tot += x.data.length * 4L / 3 + x.data.length / 57 * 2 + 512;
+        ByteArrayOutputStream o = new ByteArrayOutputStream((int) Math.min(Integer.MAX_VALUE - 16, tot));
         try {
             o.write(h.toString().getBytes(StandardCharsets.US_ASCII));
             for (Bijlage x : b.bijlagen) {
@@ -216,8 +236,7 @@ final class FacturenEmail implements FacturenAanlever.Kanaal {
                 String terug = ascii(n) ? n : n.replaceAll("[^\\x20-\\x7e]", "_");
                 o.write(("--" + grens + "\r\nContent-Type: " + x.mime + "; name=\"" + terug + "\"\r\nContent-Disposition: attachment; filename=\"" + terug + "\""
                         + (ascii(n) ? "" : "; filename*=UTF-8''" + procent(n)) + "\r\nContent-Transfer-Encoding: base64\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
-                o.write(base64(x.data, true).getBytes(StandardCharsets.US_ASCII));
-                o.write("\r\n".getBytes(StandardCharsets.US_ASCII));
+                base64(x.data, o);
             }
             o.write(("--" + grens + "--\r\n").getBytes(StandardCharsets.US_ASCII));
         } catch (java.io.IOException e) { throw new IllegalStateException(e); }
@@ -258,11 +277,14 @@ final class FacturenEmail implements FacturenAanlever.Kanaal {
     static final class Smtp implements Verzender {
         @Override public String naam() { return "Eigen mailserver (SMTP)"; }
         @Override public String klaar(Context c) {
-            return Facturen.prefs(c).getString("smtpHost", "").isEmpty() || Facturen.prefs(c).getString("smtpVan", "").isEmpty() ? "Stel eerst je mailserver in (Facturen → Koppelingen → Mailserver)" : "";
+            android.content.SharedPreferences p = Facturen.prefs(c);
+            if (p.getString("smtpHost", "").isEmpty() || p.getString("smtpVan", "").isEmpty()) return "Stel eerst je mailserver in (Facturen → Koppelingen → Mailserver)";
+            return !p.getString("smtpGebruiker", "").isEmpty() && !Facturen.heeftGeheim(c, "smtp") ? "Vul het wachtwoord van je mailserver in (Facturen → Koppelingen → Mailserver)" : "";
         }
         @Override public String van(Context c) { return Facturen.prefs(c).getString("smtpVan", ""); }
         @Override public void stuur(Context c, Bericht b, String sleutel) throws Exception {
             android.content.SharedPreferences p = Facturen.prefs(c);
+            if (!p.getString("smtpGebruiker", "").isEmpty() && Facturen.geheim(c, "smtp") == null) throw new Exception("Vul het wachtwoord van de mailserver in (Facturen → Koppelingen → Mailserver)");
             if (!p.getString("smtpNaam", "").isEmpty()) b.vanNaam = p.getString("smtpNaam", "");
             byte[] m = mime(b, messageId(sleutel, b.van), System.currentTimeMillis(), false);
             FacturenSmtp.stuur(p.getString("smtpHost", ""), p.getInt("smtpPoort", 587), p.getString("smtpBeveiliging", "starttls"),

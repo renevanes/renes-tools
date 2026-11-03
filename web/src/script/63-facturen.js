@@ -428,9 +428,9 @@ function fsToon(sha){
   const ontv = faDos.ontvangers || [];
   $('#fs-aan').innerHTML = ontv.map(o => {
     const x = (s.verzonden || {})[o.id];
-    const st = !x ? 'Nog niet' : x.ok ? '✓ ' + faDatum(x.t) + (x.aan ? ' aan ' + x.aan : '') : x.opnieuw ? 'Gaat opnieuw' : '✗ ' + (x.fout || 'mislukt') + ' (' + faDatum(x.t) + ')';
+    const st = !x ? 'Nog niet' : x.ok ? '✓ ' + faDatum(x.t) + (x.aan ? ' aan ' + x.aan : '') : x.opnieuw ? 'Gaat opnieuw' : '✗ ' + (x.fout || 'mislukt') + ' (' + faDatum(x.t) + ')' + ((x.pogingen || 0) >= 5 ? '; gestopt na ' + x.pogingen + ' pogingen' : '');
     return '<div class="bkres"><b>' + esc(o.naam) + '</b><span' + (x && !x.ok && !x.opnieuw ? ' class="bad"' : x && x.ok ? ' class="good"' : '') + '>' + esc(st) +
-      (x && x.ok ? ' <button class="linkish" data-o="' + esc(o.id) + '" onclick="fsOpnieuw(this.dataset.o)">Opnieuw</button>' : '') + '</span></div>';
+      (x && (x.ok || (x.pogingen || 0) >= 5) ? ' <button class="linkish" data-o="' + esc(o.id) + '" onclick="fsOpnieuw(this.dataset.o)">Opnieuw</button>' : '') + '</span></div>';
   }).join('') || '<p class="note">Nog geen ontvanger. <button class="linkish" onclick="faNaar(\'facaanl\')">Ontvanger toevoegen</button></p>';
   if (current !== 'facstuk') faNaar('facstuk');
 }

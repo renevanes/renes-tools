@@ -58,6 +58,8 @@ final class FacturenAanlever {
     static final Map<String, Kanaal> KANALEN = new LinkedHashMap<>();
     static { KANALEN.put("email", new FacturenEmail()); }
 
+    /** Zo vaak mislukt: dan niet meer vanzelf (anders houdt een kapotte factuur de rest tegen); in het dossier: Opnieuw. */
+    static final int MAX_POGINGEN = 5;
     static final String[] SCHEMA = {"direct", "dag", "week", "maand", "uit"};
     static final AtomicBoolean BEZIG = new AtomicBoolean(false);
     static volatile String voortgang = "";
@@ -178,6 +180,8 @@ final class FacturenAanlever {
             }
             o.put("id", id);
             if (plek < 0) l.put(o); else l.put(plek, o);
+            // Nieuw: de eerste keer op het eerstvolgende geplande moment (niet meteen, tenzij "direct")
+            if (plek < 0) d.getJSONObject("toestand").put(id, new JSONObject().put("lastOk", System.currentTimeMillis()).put("ok", true));
             bewaarData(c, d);
             return id;
         }
@@ -206,15 +210,19 @@ final class FacturenAanlever {
             if (!ja) return false;
         }
         JSONObject v = stuk.optJSONObject("verzonden"), x = v == null ? null : v.optJSONObject(ontv.optString("id"));
-        if (x != null) return !x.optBoolean("ok"); // al eens geprobeerd (of "opnieuw aanleveren"): open tot het lukt
+        if (x != null) return !x.optBoolean("ok") && x.optInt("pogingen") < MAX_POGINGEN; // na 5 keer mislukt alleen nog via Opnieuw in het dossier // al eens geprobeerd (of "opnieuw aanleveren"): open tot het lukt
         return stuk.optLong("opgehaald") >= ontv.optLong("vanaf");
     }
 
-    static File bestand(JSONObject stuk) {
+    /** Het bestand in de app, alleen als het echt in de facturenmap staat (een aangepast dossier kan niets anders meesturen). */
+    static File bestand(Context c, JSONObject stuk) {
         JSONObject p = stuk.optJSONObject("plekken"), app = p == null ? null : p.optJSONObject("app");
         if (app == null || app.optLong("weg") > 0 || app.optString("pad").isEmpty()) return null;
-        File f = new File(app.optString("pad"));
-        return f.isFile() ? f : null;
+        try {
+            File f = new File(app.optString("pad")).getCanonicalFile();
+            String root = new File(Facturen.dir(c), "pdf").getCanonicalPath() + File.separator;
+            return f.getPath().startsWith(root) && f.isFile() ? f : null;
+        } catch (Exception e) { return null; }
     }
 
     /** De stukken die nog naar deze ontvanger moeten (en nog in de app staan), oudste eerst. */
@@ -223,7 +231,7 @@ final class FacturenAanlever {
         JSONObject all = FacturenDossier.alle(c);
         for (Iterator<String> it = all.keys(); it.hasNext(); ) {
             JSONObject s = all.optJSONObject(it.next());
-            if (open(ontv, s) && bestand(s) != null) out.add(s);
+            if (open(ontv, s) && bestand(c, s) != null) out.add(s);
         }
         java.util.Collections.sort(out, (x, y) -> Long.compare(x.optLong("opgehaald"), y.optLong("opgehaald")));
         return out;
@@ -255,7 +263,7 @@ final class FacturenAanlever {
         for (JSONObject s : stukken) {
             JSONObject m = s.optJSONObject("meta");
             String d = m == null ? "" : m.optString("datum");
-            String x = d.matches("\\d{4}-\\d{2}.*") ? d.substring(0, 7) : ym.format(new java.util.Date(s.optLong("opgehaald")));
+            String x = d.matches("\\d{4}-(0[1-9]|1[0-2]).*") ? d.substring(0, 7) : ym.format(new java.util.Date(s.optLong("opgehaald")));
             if (van == null || x.compareTo(van) < 0) van = x;
             if (tot == null || x.compareTo(tot) > 0) tot = x;
         }
@@ -300,7 +308,7 @@ final class FacturenAanlever {
     /** Alles wat nog open staat naar deze ontvanger sturen (of een proef naar jezelf). Geeft {ok, msg, aantal, fouten}. */
     static JSONObject stuurNu(Context c, String id, boolean proef, boolean auto) {
         JSONObject r = new JSONObject();
-        if (!BEZIG.compareAndSet(false, true)) return zet(r, false, "Er wordt al aangeleverd; even wachten");
+        if (!BEZIG.compareAndSet(false, true)) { try { r.put("bezig", true); } catch (Exception ignored) { } return zet(r, false, "Er wordt al aangeleverd; even wachten"); }
         try {
             JSONObject ontv = ontvanger(c, id);
             if (ontv == null) return zet(r, false, "Ontvanger niet gevonden");
@@ -308,10 +316,11 @@ final class FacturenAanlever {
             if (k == null) return zet(r, false, "Onbekend kanaal");
             String mist = k.klaar(c, ontv);
             if (!mist.isEmpty()) { r.put("koppelNodig", true); return einde(c, ontv, r, false, mist, 0, proef, auto, null); }
+            if (!FacturenDossier.leesbaar(c)) return einde(c, ontv, r, false, "Het dossier is onleesbaar: er wordt niets aangeleverd (herstel eerst de opgeslagen gegevens)", 0, proef, auto, null);
             List<JSONObject> open = openStukken(c, ontv);
             if (proef) {
                 Zending z = new Zending();
-                if (!open.isEmpty()) { JSONObject s = open.get(0); File f = bestand(s); z.stukken.add(s); z.bestanden.add(f); z.grootte = f.length(); }
+                if (!open.isEmpty()) { JSONObject s = open.get(0); File f = bestand(c, s); z.stukken.add(s); z.bestanden.add(f); z.grootte = f.length(); }
                 z.sleutel = "proef-" + System.currentTimeMillis();
                 voortgang = "Proef versturen…";
                 String aan = k.stuur(c, ontv, z, true);
@@ -327,29 +336,37 @@ final class FacturenAanlever {
                 voortgang = delen.size() == 1 ? "Versturen…" : "Versturen " + n + " van " + delen.size() + "…";
                 Zending z = new Zending();
                 StringBuilder sl = new StringBuilder(id);
-                for (JSONObject s : deel) { File f = bestand(s); if (f == null) continue; z.stukken.add(s); z.bestanden.add(f); z.grootte += f.length(); sl.append(s.optString("sha")); }
+                for (JSONObject s : deel) {
+                    File f = bestand(c, s); if (f == null) continue;
+                    z.stukken.add(s); z.bestanden.add(f); z.grootte += f.length(); sl.append(s.optString("sha"));
+                    JSONObject x = s.optJSONObject("verzonden") == null ? null : s.optJSONObject("verzonden").optJSONObject(id);
+                    long ronde = x == null ? 0 : x.optBoolean("opnieuw") ? x.optLong("t") : x.optLong("ronde");
+                    if (ronde > 0) sl.append('@').append(ronde); // bewust opnieuw: een nieuwe zending (ook bij de pogingen daarna)
+                }
                 if (z.stukken.isEmpty()) continue;
                 long t = System.currentTimeMillis();
                 if (z.grootte > max) {
                     String fout = z.stukken.get(0).optString("naam") + " is te groot om te versturen (" + (z.grootte / 1_048_576 + 1) + " MB)";
                     fouten.put(fout);
-                    for (JSONObject s : z.stukken) FacturenDossier.verzonden(c, s.optString("sha"), id, new JSONObject().put("ok", false).put("t", t).put("naam", ontv.optString("naam")).put("fout", fout));
+                    for (JSONObject s : z.stukken) FacturenDossier.verzonden(c, s.optString("sha"), id, mislukt(s, id, t, ontv, fout).put("pogingen", MAX_POGINGEN));
                     continue;
                 }
                 z.sleutel = Facturen.sha(sl.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)).substring(0, 40);
-                try {
-                    String aan = k.stuur(c, ontv, z, false);
-                    gelukt += z.stukken.size();
-                    for (JSONObject s : z.stukken) {
-                        namen.put(s.optString("naam"));
-                        FacturenDossier.verzonden(c, s.optString("sha"), id, new JSONObject().put("ok", true).put("t", t).put("naam", ontv.optString("naam"))
-                                .put("aan", aan).put("kanaal", ontv.optString("kanaal")).put("via", ontv.optString("via")).put("auto", auto));
-                    }
-                } catch (Exception e) {
-                    String fout = Facturen.kort(e);
+                String aan;
+                try { aan = k.stuur(c, ontv, z, false); }
+                catch (Throwable e) { // ook te weinig geheugen: dan telt het als een mislukte poging
+                    String fout = e instanceof OutOfMemoryError ? "te groot om in een keer te versturen: kies een kleinere mail" : Facturen.kort(e);
                     fouten.put(fout);
-                    for (JSONObject s : z.stukken) FacturenDossier.verzonden(c, s.optString("sha"), id, new JSONObject().put("ok", false).put("t", t).put("naam", ontv.optString("naam")).put("fout", fout));
-                    if (gelukt == 0 && fouten.length() >= 2) break; // verbinding of koppeling klopt niet: niet alles proberen
+                    for (JSONObject s : z.stukken) FacturenDossier.verzonden(c, s.optString("sha"), id, mislukt(s, id, t, ontv, fout));
+                    if (gelukt == 0 && fouten.length() >= 3) break; // verbinding of koppeling klopt niet: niet alles proberen
+                    continue;
+                }
+                gelukt += z.stukken.size();
+                // Verstuurd: vastleggen. Lukt dat niet, dan stoppen (anders gaat het de volgende keer nog een keer)
+                for (JSONObject s : z.stukken) {
+                    namen.put(s.optString("naam"));
+                    FacturenDossier.verzonden(c, s.optString("sha"), id, new JSONObject().put("ok", true).put("t", t).put("naam", ontv.optString("naam"))
+                            .put("aan", aan).put("kanaal", ontv.optString("kanaal")).put("via", ontv.optString("via")).put("auto", auto));
                 }
             }
             r.put("aantal", gelukt).put("fouten", fouten).put("namen", namen);
@@ -364,6 +381,13 @@ final class FacturenAanlever {
             voortgang = "";
             BEZIG.set(false);
         }
+    }
+
+    private static JSONObject mislukt(JSONObject s, String id, long t, JSONObject ontv, String fout) throws Exception {
+        JSONObject x = s.optJSONObject("verzonden") == null ? null : s.optJSONObject("verzonden").optJSONObject(id);
+        int n = x == null || x.optBoolean("opnieuw") ? 0 : x.optInt("pogingen");
+        long ronde = x == null ? 0 : x.optBoolean("opnieuw") ? x.optLong("t") : x.optLong("ronde");
+        return new JSONObject().put("ok", false).put("t", t).put("naam", ontv.optString("naam")).put("fout", fout).put("pogingen", n + 1).put("ronde", ronde);
     }
 
     private static JSONObject zet(JSONObject r, boolean ok, String msg) { try { r.put("ok", ok).put("msg", msg); } catch (Exception ignored) { } return r; }

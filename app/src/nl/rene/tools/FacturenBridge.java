@@ -264,9 +264,11 @@ public class FacturenBridge extends GebruikBridge {
     @JavascriptInterface public String facturenAanleveren(String id, boolean proef) {
         if (FacturenAanlever.BEZIG.get()) return "Er wordt al aangeleverd; even wachten";
         new Thread(() -> {
-            JSONObject r = FacturenAanlever.stuurNu(ctx, id, proef, false);
-            a.js("onFacturenAanlever", r.toString());
-            a.h.post(() -> { try { FacturenJob.schedule(ctx); } catch (Throwable ignored) { } });
+            try {
+                JSONObject r = FacturenAanlever.stuurNu(ctx, id, proef, false);
+                a.js("onFacturenAanlever", r.toString());
+                a.h.post(() -> { try { FacturenJob.schedule(ctx); } catch (Throwable ignored) { } });
+            } catch (Throwable ignored) { }
         }, "facturen-aanleveren").start();
         return "";
     }

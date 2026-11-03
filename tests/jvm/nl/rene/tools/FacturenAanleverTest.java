@@ -78,6 +78,10 @@ public class FacturenAanleverTest {
         check(!FacturenAanlever.open(ontv, s1), "al aangeleverd: niet");
         JSONObject mis = stuk("y", "kpn", 1000, "", ""); mis.getJSONObject("verzonden").put("jansen", new JSONObject().put("ok", false));
         check(FacturenAanlever.open(ontv, mis), "mislukt: weer open");
+        mis.getJSONObject("verzonden").getJSONObject("jansen").put("pogingen", 5);
+        check(!FacturenAanlever.open(ontv, mis), "na 5 mislukte pogingen niet meer vanzelf");
+        check(fout(new JSONObject(o.toString()).put("aan", "jänsen@voorbeeld.nl")).contains("klopt niet"), "alleen ASCII-adressen");
+        check(new FacturenEmail().maxZending(new JSONObject().put("maxMb", 20)) < 20 * FacturenEmail.MB * 3 / 4, "grootte rekent met base64");
         JSONObject opn = stuk("z", "kpn", 100, "", ""); opn.getJSONObject("verzonden").put("jansen", new JSONObject().put("ok", false).put("opnieuw", true));
         check(FacturenAanlever.open(ontv, opn), "opnieuw aanleveren: open, ook van vóór de ontvanger");
         JSONObject alleenKpn = new JSONObject(ontv.toString()).put("leveranciers", new JSONArray().put("kpn"));

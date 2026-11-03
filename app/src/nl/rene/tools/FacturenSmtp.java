@@ -79,12 +79,18 @@ final class FacturenSmtp {
         @Override public void close() { try { if (s != null) s.close(); } catch (Exception ignored) { } }
     }
 
-    static boolean lokaal(String host) { return "localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host) || "::1".equals(host); }
+    static boolean lokaal(String host) { return "localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host) || "::1".equals(host) || "[::1]".equals(host); }
 
+    private static Socket verbind(String host, int poort) throws Exception {
+        Socket s = new Socket();
+        s.connect(new InetSocketAddress(host.replaceAll("^\\[|\\]$", ""), poort), 20_000);
+        return s;
+    }
+
+    /** TLS over een verbinding; met de servernaam erbij (SNI), zodat de server het juiste certificaat geeft. */
     private static SSLSocket tls(Socket onder, String host, int poort) throws Exception {
         SSLSocketFactory f = (SSLSocketFactory) SSLSocketFactory.getDefault();
-        SSLSocket s = onder == null ? (SSLSocket) f.createSocket() : (SSLSocket) f.createSocket(onder, host, poort, true);
-        if (onder == null) s.connect(new InetSocketAddress(host, poort), 20_000);
+        SSLSocket s = (SSLSocket) f.createSocket(onder, host, poort, true);
         s.setSoTimeout(60_000);
         s.startHandshake();
         // SSLSocket controleert de servernaam niet zelf: doe dat zoals HTTPS
@@ -105,8 +111,8 @@ final class FacturenSmtp {
         controleer(host, poort, beveiliging);
         if (mime != null && rcpt.isEmpty()) throw new Exception("Geen ontvanger");
         try (Verbinding v = new Verbinding(host)) {
-            if ("ssl".equals(beveiliging)) v.zet(tls(null, host, poort));
-            else { Socket s = new Socket(); s.connect(new InetSocketAddress(host, poort), 20_000); v.zet(s); }
+            v.zet(verbind(host, poort)); // eerst vastleggen: zo sluit close() hem ook als TLS mislukt
+            if ("ssl".equals(beveiliging)) v.zet(tls(v.s, host, poort));
             if (v.antwoord() != 220) throw new Exception(v.fout(0, "CONNECT"));
             v.vraag("EHLO tools.local", 250);
             String mogelijk = v.laatste.toUpperCase(Locale.ROOT);
@@ -133,7 +139,7 @@ final class FacturenSmtp {
             v.vraag("MAIL FROM:<" + adres(van) + ">", 250);
             for (String r : rcpt) v.vraag("RCPT TO:<" + adres(r) + ">", 250, 251);
             v.vraag("DATA", 354);
-            v.out.write(punten(mime));
+            punten(mime, v.out);
             v.out.write(".\r\n".getBytes(StandardCharsets.US_ASCII));
             v.out.flush();
             int code = v.antwoord();
@@ -150,6 +156,13 @@ final class FacturenSmtp {
     /** Regels die met een punt beginnen krijgen een extra punt (RFC 5321 4.5.2); eindigt altijd op CRLF. */
     static byte[] punten(byte[] m) {
         ByteArrayOutputStream o = new ByteArrayOutputStream(m.length + 64);
+        try { punten(m, o); } catch (java.io.IOException e) { throw new IllegalStateException(e); }
+        return o.toByteArray();
+    }
+
+    /** Rechtstreeks naar de server (gebufferd), zonder een tweede kopie van de mail in het geheugen. */
+    static void punten(byte[] m, OutputStream uit) throws java.io.IOException {
+        java.io.BufferedOutputStream o = new java.io.BufferedOutputStream(uit, 65536);
         boolean begin = true;
         for (int i = 0; i < m.length; i++) {
             byte b = m[i];
@@ -159,6 +172,6 @@ final class FacturenSmtp {
             begin = b == '\n';
         }
         if (!begin) { o.write('\r'); o.write('\n'); }
-        return o.toByteArray();
+        o.flush();
     }
 }

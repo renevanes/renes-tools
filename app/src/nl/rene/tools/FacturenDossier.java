@@ -37,8 +37,20 @@ final class FacturenDossier {
         }
     }
 
+    /** Is het dossier te lezen? Zo niet, dan wordt er niets in geschreven en niets aangeleverd (anders gaat alles kwijt of dubbel). */
+    static boolean leesbaar(Context c) {
+        synchronized (Facturen.LOCK) {
+            File f = file(c);
+            if (!JsonFileStore.exists(f)) return true;
+            try { JsonFileStore.read(f, FacturenDossier::check); return true; } catch (Exception e) { return false; }
+        }
+    }
+
     static void bewaar(Context c, JSONObject items) throws Exception {
-        synchronized (Facturen.LOCK) { JsonFileStore.write(file(c), new JSONObject().put("items", items).toString(), FacturenDossier::check); }
+        synchronized (Facturen.LOCK) {
+            if (!leesbaar(c)) throw new Exception("Het dossier is onleesbaar; er is niets veranderd");
+            JsonFileStore.write(file(c), new JSONObject().put("items", items).toString(), FacturenDossier::check);
+        }
     }
 
     /** Een stuk bijwerken (velden samenvoegen; JSONObject-velden zoals plekken en verzonden worden ook samengevoegd). */
@@ -81,7 +93,13 @@ final class FacturenDossier {
             s.put("meta", meta);
             synchronized (Facturen.LOCK) {
                 JSONObject all = alle(c);
-                if (!all.has(p.sha)) { all.put(p.sha, s); bewaar(c, all); }
+                JSONObject oud = all.optJSONObject(p.sha);
+                if (oud == null) all.put(p.sha, s);
+                else { // opnieuw opgehaald (bijv. na het opnieuw toevoegen van de leverancier): de plek in de app klopt weer
+                    if (oud.optJSONObject("plekken") == null) oud.put("plekken", new JSONObject());
+                    oud.getJSONObject("plekken").put("app", s.getJSONObject("plekken").getJSONObject("app"));
+                }
+                bewaar(c, all);
             }
         } catch (Throwable ignored) { }
     }
@@ -92,8 +110,14 @@ final class FacturenDossier {
     }
 
     /** Aangeleverd (of mislukt) aan een afnemer. */
-    static void verzonden(Context c, String sha, String ontvanger, JSONObject info) {
-        try { werkBij(c, sha, new JSONObject().put("verzonden", new JSONObject().put(ontvanger, info))); } catch (Exception ignored) { }
+    static void verzonden(Context c, String sha, String ontvanger, JSONObject info) throws Exception {
+        synchronized (Facturen.LOCK) {
+            JSONObject all = alle(c), s = all.optJSONObject(sha);
+            if (s == null) throw new Exception("Factuur niet gevonden in het dossier");
+            if (s.optJSONObject("verzonden") == null) s.put("verzonden", new JSONObject());
+            s.getJSONObject("verzonden").put(ontvanger, info); // vervangen, niet samenvoegen (geen oude fout of opnieuw-vlag)
+            bewaar(c, all);
+        }
     }
 
     /** Opnieuw aanleveren aan deze ontvanger: de aantekening weghalen, dan staat hij weer open. */
@@ -116,7 +140,7 @@ final class FacturenDossier {
             if (v.length() > ("notitie".equals(k) ? 1000 : 80)) throw new Exception("Te lang: " + k);
             m.put(k, v);
         }
-        if (!m.optString("datum").isEmpty() && !m.optString("datum").matches("\\d{4}-\\d{2}-\\d{2}")) throw new Exception("Datum als JJJJ-MM-DD, bijv. 2026-10-05");
+        if (!m.optString("datum").isEmpty() && !m.optString("datum").matches("(19|20|21)\\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])")) throw new Exception("Datum als JJJJ-MM-DD, bijv. 2026-10-05");
         if (!m.optString("bedrag").isEmpty() && bedrag(m.optString("bedrag")) == null) throw new Exception("Bedrag als 123,45");
         m.put("bron", "zelf");
         synchronized (Facturen.LOCK) {
