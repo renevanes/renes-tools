@@ -79,6 +79,8 @@ final class FacturenRun {
     final String sleutel = java.util.UUID.randomUUID().toString().replace("-", "");
     /** Het domein van de leverancier (bijv. kpn.com): alleen daar wordt ingelogd en gedownload. */
     final String domein;
+    /** Alle domeinen waar de leverancier op zit (bijv. ziggo.nl en vodafone.nl voor het inloggen). */
+    final String[] domeinen;
     final Set<String> codeGezien = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     final java.util.List<WebView> kinderen = new java.util.ArrayList<>();
     volatile String paginaUrl = "";
@@ -99,6 +101,7 @@ final class FacturenRun {
         this.klaar = k;
         this.maxDuur = zichtbaar ? 15 * 60_000L : 9 * 60_000L;
         this.domein = Facturen.domein(lev.optString("startUrl"));
+        this.domeinen = Facturen.domeinen(this.c, lev);
     }
 
     /** Starten (op de hoofdthread). Geeft "" of de reden waarom het niet kan. */
@@ -221,9 +224,10 @@ final class FacturenRun {
     private void inlog(JSONObject st) {
         long nu = System.currentTimeMillis();
         boolean veld = st.optBoolean("pw") || st.optBoolean("user") || st.optBoolean("code");
-        if (veld && !handmatig && !Facturen.eigenSite(st.optString("url"), domein)) {
+        if (veld && !handmatig && !Facturen.eigenSite(st.optString("url"), domeinen)) {
             // Nooit gegevens invullen op een andere website (of zonder https)
-            handmatigOf("De inlogpagina staat niet op " + domein + " (" + Facturen.host(st.optString("url")) + ")");
+            handmatigOf("De inlogpagina staat niet op " + android.text.TextUtils.join(" of ", domeinen) + " (" + Facturen.host(st.optString("url"))
+                    + "). Hoort dat domein bij de leverancier, zet het dan bij Instellingen → Meer → Andere domeinen");
             return;
         }
         boolean pw = st.optBoolean("pw"), user = st.optBoolean("user"), code = st.optBoolean("code");
@@ -348,7 +352,7 @@ final class FacturenRun {
         JSONObject k = knoppen.optJSONObject(knopIndex);
         voortgang = "Factuur " + (knopIndex + 1) + " van " + knoppen.length() + " ophalen…";
         String href = k == null ? "" : k.optString("href", "");
-        if (!href.isEmpty()) { if (Facturen.eigenSite(href, domein)) haal(href, null, lijstUrl); knopIndex++; verder(300); return; } // links naar andere websites: niet
+        if (!href.isEmpty()) { if (Facturen.eigenSite(href, domeinen)) haal(href, null, lijstUrl); knopIndex++; verder(300); return; } // links naar andere websites: niet
         vangstenVoor = vangsten.get(); knopSinds = nu;
         js("__fr.klik(" + (k == null ? -1 : k.optInt("i")) + ")", null);
         verder(800);
@@ -575,7 +579,7 @@ final class FacturenRun {
         Brug(FacturenRun r) { this.r = r; }
         @JavascriptInterface public void blob(String sleutel, String dataUrl, String naam) {
             if (r.fase < ZOEK || r.fase == KLAAR || dataUrl == null) return; // alleen tijdens het ophalen
-            if (!r.sleutel.equals(sleutel) || !Facturen.eigenSite(r.paginaUrl, r.domein)) return; // alleen van onze robot, op de eigen website
+            if (!r.sleutel.equals(sleutel) || !Facturen.eigenSite(r.paginaUrl, r.domeinen)) return; // alleen van onze robot, op de eigen website
             r.opData(dataUrl, naam == null ? "" : naam);
         }
     }

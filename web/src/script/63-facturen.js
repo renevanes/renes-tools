@@ -202,6 +202,7 @@ function flOpen(l, nieuw){
   $('#fl-opnieuw').value = String(l.opnieuw || 3); $('#fl-wifi').checked = !!l.wifi;
   $('#fl-meldnieuw').checked = l.meldNieuw !== false; $('#fl-meldfout').checked = l.meldFout !== false; $('#fl-map').checked = l.map !== false; $('#fl-ec').checked = !!l.eigenCloud;
   $('#fl-lok').checked = !!l.lokaal; $('#fl-gd').checked = !!l.drive;
+  $('#fl-domeinen').value = l.domeinen != null ? l.domeinen : (((faSt.sjablonen || []).find(s => s.sjabloon === l.sjabloon) || {}).domeinen || '');
   $('#fl-facturl').value = l.facturenUrl || ''; $('#fl-menu').value = l.menu || ''; $('#fl-knoppen').value = l.knoppen || '';
   $('#fl-max').value = l.max || 12; $('#fl-sub').value = l.submap || '';
   $('#fl-start').placeholder = 'https://…';
@@ -284,7 +285,7 @@ function flBewaar(){
     mail: { bron: $('#fl-m-bron').value, woorden: $('#fl-m-woorden').value, afzenders: $('#fl-m-afz').value, negeer: $('#fl-m-neg').value, extra: $('#fl-m-extra').value.trim(),
       dagen: Number($('#fl-m-dagen').value) || 90, max: Number($('#fl-m-max').value) || 50, perAfzender: $('#fl-m-per').checked },
     naam: $('#fl-naam').value.trim(), startUrl: $('#fl-start').value.trim(), gebruiker: $('#fl-user').value.trim(), wachtwoord: $('#fl-pw').value,
-    facturenUrl: $('#fl-facturl').value.trim(), menu: $('#fl-menu').value.trim(), knoppen: $('#fl-knoppen').value.trim(), max: Number($('#fl-max').value) || 12,
+    facturenUrl: $('#fl-facturl').value.trim(), domeinen: $('#fl-domeinen').value.trim(), menu: $('#fl-menu').value.trim(), knoppen: $('#fl-knoppen').value.trim(), max: Number($('#fl-max').value) || 12,
     code: { bron: $('#fl-bron').value, afzender: $('#fl-afz').value.trim(), patroon: $('#fl-pat').value.trim() },
     schema: $('#fl-schema').value, dag: Number($('#fl-dag').value) || 5, weekdag: Number($('#fl-wd').value) || 1, tijd: $('#fl-tijd').value || '08:00',
     opnieuw: Number($('#fl-opnieuw').value) || 3, wifi: $('#fl-wifi').checked, meldNieuw: $('#fl-meldnieuw').checked, meldFout: $('#fl-meldfout').checked, map: $('#fl-map').checked, lokaal: $('#fl-lok').checked, drive: $('#fl-gd').checked, eigenCloud: $('#fl-ec').checked, submap: $('#fl-sub').value.trim(),
@@ -308,6 +309,7 @@ function flBewaar(){
     const e = r.error;
     if (/facturenpagina|veld|patroon|menu|knoppen/i.test(e)) flTab('adv');
     else if (/zoekwoord|afzender|zoekopdracht|mailbron/i.test(e)) flTab('zoek');
+    else if (/domein/i.test(e)) flTab('adv');
     else if (/inlogpagina|gebruiker|bron voor de inlogcode/i.test(e)) flTab('inlog');
     else if (/tijd|hoe vaak/i.test(e)) flTab('plan');
     else if (/submap|mapnaam/i.test(e)) flTab('opslag');

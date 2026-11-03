@@ -95,6 +95,41 @@ final class Facturen {
         return h.equals(domein) || h.endsWith("." + domein);
     }
 
+    /** Op een van deze domeinen (bijv. ziggo.nl en vodafone.nl, waar Ziggo inlogt)? */
+    static boolean eigenSite(String url, String[] domeinen) {
+        for (String d : domeinen) if (eigenSite(url, d)) return true;
+        return false;
+    }
+
+    /** Andere domeinen van dezelfde leverancier, bijv. "vodafone.nl, vodafoneziggo.nl" → gecontroleerd en genormaliseerd. */
+    static String extraDomeinen(String s) throws Exception {
+        StringBuilder b = new StringBuilder();
+        int n = 0;
+        for (String x : (s == null ? "" : s).split("[,;\\s]+")) {
+            String d = x.trim().toLowerCase(Locale.ROOT).replaceAll("^https?://", "").replaceAll("/.*$", "").replaceAll("^\\*?\\.", "");
+            if (d.isEmpty()) continue;
+            if (!d.matches("[a-z0-9-]+(\\.[a-z0-9-]+)+") || d.length() > 100 || !domein("https://" + d).equals(d) || d.matches("(co|com|org|net|gov|ac|edu)\\.[a-z]{2}"))
+                throw new Exception("Geen geldig domein: " + (d.length() > 40 ? d.substring(0, 40) + "…" : d) + " (bijv. vodafone.nl)");
+            if (++n > 5) throw new Exception("Hooguit 5 andere domeinen");
+            if (!(", " + b + ",").contains(", " + d + ",")) b.append(b.length() > 0 ? ", " : "").append(d);
+        }
+        return b.toString();
+    }
+
+    /** Alle domeinen van een leverancier: dat van de inlogpagina plus de andere (zonder eigen keuze: die van het sjabloon). */
+    static String[] domeinen(Context c, JSONObject lev) {
+        java.util.LinkedHashSet<String> l = new java.util.LinkedHashSet<>();
+        String eerste = domein(lev.optString("startUrl"));
+        if (!eerste.isEmpty()) l.add(eerste);
+        String extra = lev.has("domeinen") ? lev.optString("domeinen") : null;
+        if (extra == null && c != null) {
+            JSONArray sj = sjablonen(c);
+            for (int i = 0; i < sj.length(); i++) { JSONObject s = sj.optJSONObject(i); if (s != null && s.optString("sjabloon").equals(lev.optString("sjabloon"))) extra = s.optString("domeinen"); }
+        }
+        try { for (String d : extraDomeinen(extra).split(", ")) if (!d.isEmpty()) l.add(d); } catch (Exception ignored) { }
+        return l.toArray(new String[0]);
+    }
+
     static boolean in(String v, String[] set) { for (String s : set) if (s.equals(v)) return true; return false; }
 
     private static String tekst(JSONObject o, String k, int max, String def) throws Exception {
@@ -133,6 +168,7 @@ final class Facturen {
         o.put("startUrl", adres(tekst(in, "startUrl", 500, ""), !mail, "de inlogpagina"));
         if (mail) o.put("mail", FacturenMail.normaal(in.optJSONObject("mail")));
         o.put("facturenUrl", adres(tekst(in, "facturenUrl", 500, ""), false, "de facturenpagina"));
+        if (in.has("domeinen")) o.put("domeinen", extraDomeinen(tekst(in, "domeinen", 400, "")));
         o.put("gebruiker", tekst(in, "gebruiker", 200, ""));
         o.put("menu", patroon(in, "menu", "facturen|factuur", "De tekst naar de facturen"));
         String knoppen = patroon(in, "knoppen", "download|\\bpdf\\b|\\.pdf", "Het patroon voor downloadknoppen");

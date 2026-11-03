@@ -41,6 +41,16 @@ public class FacturenTest {
         check(ziggo != null && ziggo.getString("id").equals("ziggo-zakelijk") && ziggo.getJSONObject("code").getString("bron").equals("sms") && ziggo.getJSONObject("code").getString("afzender").equals("Ziggo"), "Ziggo Zakelijk: code per sms van Ziggo");
         check(ziggo != null && Facturen.eigenSite("https://www.ziggo.nl/mijn-ziggo/facturen/factuur.pdf", Facturen.domein(ziggo.getString("startUrl"))), "Ziggo: downloads van ziggo.nl horen bij de leverancier");
         check(fi != null && Facturen.domein(fi.getString("startUrl")).equals("ziggo.nl"), "Ziggo Factuurinzicht: domein ziggo.nl");
+        check(ziggo != null && "vodafone.nl, vodafoneziggo.nl".equals(ziggo.optString("domeinen")), "Ziggo: inloggen via vodafone.nl hoort erbij");
+        String[] zd = Facturen.domeinen(null, ziggo);
+        check(zd.length == 3 && Facturen.eigenSite("https://www.vodafone.nl/inloggen", zd) && Facturen.eigenSite("https://www.ziggo.nl/x", zd) && !Facturen.eigenSite("https://vodafone.nl.boos.com/x", zd) && !Facturen.eigenSite("http://www.vodafone.nl/x", zd), "Ziggo: ziggo.nl en vodafone.nl, niets anders en alleen https");
+        check("vodafone.nl, ziggo.nl".equals(Facturen.extraDomeinen("https://Vodafone.nl/login; *.ziggo.nl vodafone.nl")), "andere domeinen normaliseren");
+        for (String slecht : new String[]{"nl", "co.uk", "evil..nl", "a b", "<x>.nl"}) {
+            boolean geweigerd = false;
+            try { Facturen.extraDomeinen(slecht); } catch (Exception e) { geweigerd = true; }
+            check(geweigerd, "geen geldig domein: " + slecht);
+        }
+        check(Facturen.domeinen(null, new JSONObject().put("startUrl", "https://mijn.kpn.com")).length == 1, "zonder andere domeinen: alleen dat van de inlogpagina");
         check("482913".equals(Facturen.vindCode("Je Ziggo verificatiecode is 482913. Deel deze code met niemand.", "")) && Facturen.komtVan("Ziggo", "x", "Ziggo"), "Ziggo: sms-code van 6 cijfers herkend");
 
         // ---------- opgeslagen lijst ----------

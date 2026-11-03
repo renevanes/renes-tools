@@ -25,6 +25,7 @@
       "naam": "Ziggo Zakelijk",
       "omschrijving": "Mijn Ziggo Zakelijk: facturen van je zakelijke internet, telefonie en tv",
       "startUrl": "https://www.ziggo.nl/mijn-ziggo/welkom/",
+      "domeinen": "vodafone.nl, vodafoneziggo.nl",
       "facturenUrl": "",
       "menu": "facturen|factuur|factuur en betalen|invoices",
       "knoppen": "download|\\bpdf\\b|\\.pdf|bekijk factuur",
@@ -37,13 +38,14 @@
         "afzender": "Ziggo",
         "patroon": ""
       },
-      "tip": "Ziggo stuurt bij elke keer inloggen een code van 6 cijfers per sms naar het telefoonnummer bij Ziggo (dat staat altijd aan). Geef Tools toegang tot je sms, dan vult de app de code zelf in. Mijn Ziggo toont de facturen van de afgelopen 12 maanden. Staat er een debiteurnummer op je factuur, kies dan het sjabloon Ziggo Zakelijk (Factuurinzicht)."
+      "tip": "Inloggen gaat via de website van Vodafone (VodafoneZiggo); die hoort erbij. Ziggo stuurt bij elke keer inloggen een code van 6 cijfers per sms naar het telefoonnummer bij Ziggo (dat staat altijd aan). Geef Tools toegang tot je sms, dan vult de app de code zelf in. Mijn Ziggo toont de facturen van de afgelopen 12 maanden. Staat er een debiteurnummer op je factuur, kies dan het sjabloon Ziggo Zakelijk (Factuurinzicht)."
     },
     {
       "sjabloon": "ziggo-factuurinzicht",
       "naam": "Ziggo Zakelijk (Factuurinzicht)",
       "omschrijving": "Ziggo Factuurinzicht: voor grotere contracten (Zakelijk Internet Pro, met een debiteurnummer op de factuur)",
       "startUrl": "https://factuurinzicht.ziggo.nl/portal/#/login",
+      "domeinen": "vodafone.nl, vodafoneziggo.nl",
       "facturenUrl": "",
       "menu": "facturen|factuur|factuur en betalen|invoices",
       "knoppen": "download|\\bpdf\\b|\\.pdf|bekijk factuur",
