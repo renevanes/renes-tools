@@ -100,6 +100,34 @@ public class FacturenTest {
         check(Facturen.isPdf(("\n\n%PDF-1.4").getBytes(StandardCharsets.UTF_8)), "PDF met wat ervoor");
         check(!Facturen.isPdf("<!doctype html><html>".getBytes(StandardCharsets.UTF_8)) && !Facturen.isPdf(null) && !Facturen.isPdf(new byte[2]), "geen PDF");
 
+        // ---------- facturen uit de mail (Gmail) ----------
+        JSONObject gmail = null;
+        for (int i = 0; i < lijst.length(); i++) if ("gmail".equals(lijst.getJSONObject(i).optString("sjabloon"))) gmail = Facturen.normaal(lijst.getJSONObject(i));
+        check(gmail != null && gmail.getString("soort").equals("mail") && gmail.getString("startUrl").isEmpty() && gmail.getJSONObject("mail").getString("bron").equals("gmail"), "sjabloon Gmail: soort mail, geen inlogpagina nodig");
+        check(fout(new JSONObject().put("naam", "X").put("soort", "fax")).contains("soort"), "onbekende soort geweigerd");
+        check(fout(new JSONObject().put("naam", "X").put("soort", "mail").put("mail", new JSONObject().put("bron", "duifpost"))).contains("mailbron"), "onbekende mailbron geweigerd");
+        check(fout(new JSONObject().put("naam", "X")).contains("inlogpagina"), "website zonder inlogpagina: geweigerd");
+        JSONObject mm = FacturenMail.normaal(new JSONObject().put("woorden", "factuur; invoice,  factuur ,\"(x)\"").put("afzenders", "kpn.com, Ziggo NL").put("dagen", 5000).put("max", 0));
+        check(mm.getString("woorden").equals("factuur, invoice, x"), "zoekwoorden opgeschoond: " + mm.getString("woorden"));
+        check(mm.getInt("dagen") == 730 && mm.getInt("max") == 1 && mm.getBoolean("perAfzender"), "grenzen en standaard per afzender");
+        String q = FacturenGmail.zoekvraag(mm.put("negeer", "nieuws@winkel.nl").put("extra", "-in:spam"), 1_700_000_000_000L);
+        check(q.equals("has:attachment filename:pdf (factuur OR filename:factuur OR invoice OR filename:invoice OR x OR filename:x) from:(kpn.com OR \"Ziggo NL\") -from:nieuws@winkel.nl -in:spam after:1700000000"), "Gmail-zoekopdracht: " + q);
+        check(FacturenGmail.zoekvraag(new JSONObject().put("woorden", "").put("afzenders", ""), 0).equals("has:attachment filename:pdf"), "zonder woorden: alleen PDF-bijlagen");
+        check(FacturenMail.sinds(mm, 0, 100 * 86_400_000L) == 100 * 86_400_000L - 730 * 86_400_000L, "eerste keer: dagen terug");
+        check(FacturenMail.sinds(mm, 50 * 86_400_000L, 100 * 86_400_000L) == 48 * 86_400_000L, "daarna: sinds de vorige keer, 2 dagen overlap");
+        check(FacturenMail.afzenderNaam("KPN Zakelijk <noreply@kpn.com>").equals("KPN Zakelijk"), "afzender met naam");
+        check(FacturenMail.afzenderNaam("\"Vattenfall\" <facturen@vattenfall.nl>").equals("Vattenfall"), "afzender met aanhalingstekens");
+        check(FacturenMail.afzenderNaam("facturen@Ziggo.NL").equals("ziggo.nl") && FacturenMail.afzenderNaam("<x@kpn.com>").equals("kpn.com"), "zonder naam: het domein");
+        check(FacturenMail.afzenderNaam("A/B: Bedrijf <a@b.nl>").equals("A_B_ Bedrijf"), "afzender veilig als mapnaam: " + FacturenMail.afzenderNaam("A/B: Bedrijf <a@b.nl>"));
+        JSONObject bericht = new JSONObject("{\"mimeType\":\"multipart/mixed\",\"parts\":[{\"mimeType\":\"text/plain\",\"body\":{\"size\":10}},"
+                + "{\"mimeType\":\"multipart/alternative\",\"parts\":[{\"filename\":\"Factuur 2026-10.pdf\",\"mimeType\":\"application/pdf\",\"body\":{\"attachmentId\":\"ANGjdJ8\",\"size\":81234}}]},"
+                + "{\"filename\":\"logo.png\",\"mimeType\":\"image/png\",\"body\":{\"attachmentId\":\"x\"}},{\"filename\":\"SPEC.PDF\",\"mimeType\":\"application/octet-stream\",\"body\":{\"data\":\"JVBERi0\"}}]}");
+        java.util.List<JSONObject> bij = FacturenGmail.bijlagen(bericht, null);
+        check(bij.size() == 2 && bij.get(0).getString("naam").equals("Factuur 2026-10.pdf") && bij.get(0).getString("id").equals("ANGjdJ8") && bij.get(1).getString("data").equals("JVBERi0"), "PDF-bijlagen ook diep in het bericht, geen plaatjes");
+        check(FacturenGmail.kop(new JSONObject("{\"headers\":[{\"name\":\"from\",\"value\":\"KPN <a@kpn.com>\"}]}"), "From").equals("KPN <a@kpn.com>"), "kop lezen");
+        check(new Facturen.Pdf(new byte[0], "x.pdf", "s", "KPN: Zakelijk").sub.equals("KPN_ Zakelijk") && new Facturen.Pdf(new byte[0], "x.pdf", "s", " ").sub == null, "eigen submap per bestand (veilig)");
+        check(FacturenDrive.scopes("gmail").equals(FacturenGmail.SCOPE) && FacturenDrive.scopes("drive,gmail").equals(FacturenDrive.SCOPE + " " + FacturenGmail.SCOPE) && FacturenDrive.scopes(null).equals(FacturenDrive.SCOPE), "Google-rechten → scopes");
+
         // ---------- planning: vast moment ----------
         java.util.TimeZone ams = java.util.TimeZone.getTimeZone("Europe/Amsterdam");
         java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm"); f.setTimeZone(ams);

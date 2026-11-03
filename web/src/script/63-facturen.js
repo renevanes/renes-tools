@@ -2,10 +2,18 @@
  * Algemeen raamwerk: per leverancier (eerste: KPN Zakelijk) inloggen, facturen zoeken en PDF's bewaren.
  * Het eigenlijke werk doet de app (FacturenRun, web/facturen-robot.js); hier de lijst en de instellingen. */
 let faSt = { leveranciers: [], sjablonen: [], ec: {} }, faPollT = null, faEdit = null;
+/** De schermen van Facturen (voor enterFacturen en het verversen). */
+const FA_SCHERMEN = ['facturen', 'facoverz', 'facopslag', 'faclok', 'fackopp', 'facgoogle', 'facec', 'faclev'];
+/** Naar een onderdeel; terug gaat naar waar je vandaan kwam (Google en Eigen Cloud zijn via Opslaan én Koppelingen te bereiken). */
+function faNaar(scr){ BACK[scr] = current; show(scr); }
+function faBackupMap(){
+  askConfirm('Backup-map', faSt.map ? 'Facturen gaan in je backup-map in de map Facturen (per leverancier een eigen map). De backup-map zelf kies je in Instellingen.' : 'Er is nog geen backup-map gekozen. Kies er nu een; dezelfde map gebruikt de app ook voor de andere backups.', faSt.map ? 'Andere map kiezen' : 'Map kiezen', () => Android.waPickFolder());
+}
 function faDatum(t){ return t ? new Date(t).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''; }
 function enterFacturen(){
   faRender();
   if (!faPollT) faPollT = setInterval(() => { if (current !== 'facturen') { clearInterval(faPollT); faPollT = null; return; } faPoll(); }, 1000);
+  if (current === 'facgoogle') { $('#fa-gd-msg').textContent = ''; }
 }
 function faLaad(){ faSt = rdJson(Android.facturenState(), { leveranciers: [], sjablonen: [], ec: {} }); return faSt; }
 function faPoll(){
@@ -51,13 +59,14 @@ function faRender(geenLaad){
   $('#fa-lijst').innerHTML = faSt.leveranciers.map(l => {
     const p = faPeriode(l), fout = p.soort === 'mis' || p.soort === 'pw';
     const volgende = l.schema !== 'uit' && l.volgende ? 'Volgende keer: ' + faMoment(l.volgende) : 'Vanzelf: ' + faPlanTekst(l);
-    return '<div class="srow"><button class="sbtn" data-id="' + esc(l.id) + '" onclick="faOpen(this.dataset.id)"><span class="vpic" aria-hidden="true">' + uiIcon('document') + '</span>' +
+    return '<div class="srow"><button class="sbtn" data-id="' + esc(l.id) + '" onclick="faOpen(this.dataset.id)"><span class="vpic" aria-hidden="true">' + uiIcon(l.soort === 'mail' ? 'mail' : 'document') + '</span>' +
       '<span class="stxt"><b>' + esc(l.naam) + '</b><small' + (fout ? ' class="bad"' : '') + '>' + esc(p.tekst) + '</small><small>' + esc(volgende + ' · ' + faPlanTekst(l)) + '</small></span></button></div>';
   }).join('') || '<p class="note" style="padding:14px">Nog geen leveranciers. Tik op <b>Leverancier toevoegen</b>.</p>';
   $('#fa-nieuw').disabled = !!faSt.onleesbaar;
   faMaandRender();
   const ec = faSt.ec || {};
-  if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#s-facturen .card input')) return; // niet overschrijven tijdens typen
+  faSamenvatting();
+  if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#s-facec .card input, #s-facgoogle .card input')) return; // niet overschrijven tijdens typen
   $('#fa-ec-url').value = ec.url || ''; $('#fa-ec-user').value = ec.gebruiker || ''; $('#fa-ec-adres').value = ec.adres || '';
   $('#fa-ec-pw').value = ''; $('#fa-ec-pw').placeholder = ec.heeftWachtwoord ? 'Ongewijzigd' : '';
   $('#fa-ec-stand').textContent = ec.url && ec.heeftWachtwoord ? 'Gekoppeld met ' + ec.url.replace(/^https:\/\//, '') + '. Facturen gaan als mail met de PDF naar ' + (ec.adres || ec.gebruiker) + '.'
@@ -70,17 +79,34 @@ function faRender(geenLaad){
   const gd = faSt.drive || {};
   $('#fa-gd-setup').style.display = gd.gekoppeld ? 'none' : 'block';
   $('#fa-gd-aan').style.display = gd.gekoppeld ? 'block' : 'none';
-  $('#fa-gd-stand').textContent = gd.gekoppeld ? 'Gekoppeld' + (gd.gebruiker ? ' met ' + gd.gebruiker : '') + '. Facturen komen in de map Facturen in je Drive.' : '';
+  $('#fa-gd-stand').textContent = gd.gekoppeld ? 'Gekoppeld' + (gd.gebruiker ? ' met ' + gd.gebruiker : '') + '.' : '';
+  $('#fa-gd-rechten').textContent = gd.gekoppeld ? 'Gmail: ' + (gd.rechtGmail ? '✓ facturen zoeken (alleen lezen)' : '– geen toegang') + ' · Drive: ' + (gd.rechtDrive ? '✓ bewaren in de map Facturen' : '– geen toegang') + '. Tools ziet in Drive alleen zijn eigen mappen.' : '';
+  if (gd.gekoppeld) { $('#fa-gd-r-gmail').checked = !!gd.rechtGmail || $('#fa-gd-r-gmail').checked; $('#fa-gd-r-drive').checked = !!gd.rechtDrive; }
+  $('#fa-gd-knop').textContent = gd.gekoppeld ? 'Opnieuw koppelen met deze rechten' : 'Koppelen met Google';
   if (!gd.gekoppeld && gd.clientId && !$('#fa-gd-id').value) $('#fa-gd-id').value = gd.clientId;
   $('#fa-gd-geheim').placeholder = gd.heeftGeheim ? 'Client secret (ongewijzigd)' : 'Client secret';
-  $('#fa-map').textContent = faSt.map ? 'Kopieën komen in je backup-map, in de map Facturen.' : 'Tip: kies een backup-map (Instellingen), dan komen de facturen ook in de map Facturen.';
+}
+/** De korte stand onder elke rij van Meer, Opslaan en Koppelingen. */
+function faSamenvatting(){
+  const gd = faSt.drive || {}, ec = faSt.ec || {}, lok = faSt.lokaal || '';
+  const ecAan = !!(ec.url && ec.heeftWachtwoord);
+  const plekken = [lok && lok !== '!' ? 'telefoon' : '', faSt.map ? 'backup-map' : '', gd.rechtDrive ? 'Drive' : '', ecAan ? 'Eigen Cloud' : ''].filter(Boolean);
+  const zet = (id, t) => { const e = $('#' + id); if (e) e.textContent = t; };
+  zet('fa-sum-overz', faSt.leveranciers.length ? 'De laatste 12 maanden per leverancier' : 'Nog geen leveranciers');
+  zet('fa-sum-opslag', plekken.length ? 'Ingesteld: ' + plekken.join(', ') : 'Nog niets ingesteld (alleen in de app)');
+  zet('fa-sum-kopp', [gd.gekoppeld ? 'Google' : '', ecAan ? 'Eigen Cloud' : ''].filter(Boolean).join(', ') || 'Nog niets gekoppeld');
+  zet('fa-sum-lok', lok === '!' ? 'Geen toegang meer: kies hem opnieuw' : lok || 'Nog geen map gekozen');
+  zet('fa-sum-backup', faSt.map ? 'Map Facturen in je backup-map' : 'Nog geen backup-map gekozen');
+  zet('fa-sum-drive', gd.rechtDrive ? 'Gekoppeld' + (gd.gebruiker ? ' · ' + gd.gebruiker : '') : gd.gekoppeld ? 'Google gekoppeld, maar zonder Drive' : 'Niet gekoppeld');
+  zet('fa-sum-ec', ecAan ? 'Gekoppeld · ' + ec.url.replace(/^https:\/\//, '') : 'Niet gekoppeld');
+  zet('fa-sum-ec2', ecAan ? 'Gekoppeld · ' + ec.url.replace(/^https:\/\//, '') : 'Niet gekoppeld');
+  zet('fa-sum-google', gd.gekoppeld ? [gd.rechtGmail ? 'Gmail' : '', gd.rechtDrive ? 'Drive' : ''].filter(Boolean).join(' en ') + (gd.gebruiker ? ' · ' + gd.gebruiker : '') : 'Niet gekoppeld');
 }
 /* Overzicht: deze maand per leverancier, en per maand wat er binnenkwam */
 function faMaandRender(){
   const l = faSt.leveranciers, nu = Date.now(), dezeMaand = faMaandSleutel(nu);
   $('#fa-maand').style.display = l.length ? 'block' : 'none';
-  $('#fa-overzicht').style.display = l.length ? 'block' : 'none';
-  if (!l.length) return;
+  if (!l.length) { $('#fa-overzicht-lijst').innerHTML = '<p class="note">Nog geen leveranciers.</p>'; return; }
   $('#fa-maand-h').textContent = 'Deze maand · ' + faMaandNaam(dezeMaand);
   $('#fa-maand-lijst').innerHTML = l.map(x => {
     const n = (x.maanden || {})[dezeMaand] || 0, p = faPeriode(x);
@@ -110,12 +136,12 @@ function faOpen(id){
   const busy = !!faSt.bezig;
   const acts = [
     ['Nu ophalen', () => faNu(id, false)],
-    ['Ophalen en meekijken', () => faNu(id, true)],
+    ...(l.soort === 'mail' ? [] : [['Ophalen en meekijken', () => faNu(id, true)]]),
     ['Facturen bekijken' + (l.aantal ? ' (' + l.aantal + ')' : ''), () => faBekijk(l)],
     ['Geschiedenis', () => faGeschiedenis(l)],
     ['Instellingen', () => flOpen(l)],
     ['Verwijderen…', () => askConfirm(l.naam + ' verwijderen?', 'De instellingen en de facturen in de app gaan weg. Kopieën in je backup-map en in Eigen Cloud blijven staan.', 'Verwijderen', () => { const e = Android.facturenVerwijder(id); if (e) toast(e); faRender(); })]];
-  openSheet(l.naam, busy ? 'Er wordt nu opgehaald: even wachten' : faStatus(l), busy ? acts.slice(2) : acts);
+  openSheet(l.naam, busy ? 'Er wordt nu opgehaald: even wachten' : faStatus(l), busy ? acts.filter(a => !/^(Nu ophalen|Ophalen en meekijken)/.test(a[0])) : acts);
 }
 function faNu(id, meekijken){
   const e = Android.facturenNu(id, !!meekijken);
@@ -126,7 +152,7 @@ window.onFacturenKlaar = function(r){
   toast((r.ok ? '✓ ' : '') + (r.naam ? r.naam + ': ' : '') + (r.msg || ''));
   if (r.ok && (r.fouten || []).length) setTimeout(() => toast('Niet alles afgeleverd: ' + r.fouten[0]), 2800);
   if (!r.ok && r.inlogNodig) setTimeout(() => askConfirm('Inloggen nodig', (r.msg || '') + '\n\nKijk één keer mee: dan log je zelf in en gaat de app daarna verder.', 'Meekijken', () => faNu(r.id, true)), 600);
-  if (current === 'facturen') faRender();
+  if (FA_SCHERMEN.includes(current)) faRender();
 };
 function faBekijk(l){
   const lijst = rdJson(Android.facturenLijst(l.id), []);
@@ -135,7 +161,7 @@ function faBekijk(l){
 }
 function faNieuw(){
   const s = faSt.sjablonen || [];
-  openSheet('Leverancier toevoegen', 'Kies een sjabloon; alles is daarna aan te passen', s.map(x => [(x.naam || 'Andere website') + (x.omschrijving ? ' · ' + x.omschrijving : ''), () => flOpen(Object.assign({}, x, { id: '' }), true)]));
+  openSheet('Leverancier toevoegen', 'Kies een sjabloon; alles is daarna aan te passen', s.map(x => [(x.naam || 'Andere website') + (x.omschrijving ? ' · ' + x.omschrijving : ''), () => flOpen(Object.assign({ soort: 'website' }, x, { id: '' }), true)]));
 }
 /* Instellingen van één leverancier */
 function flOpen(l, nieuw){
@@ -155,10 +181,50 @@ function flOpen(l, nieuw){
   $('#fl-lok').checked = !!l.lokaal; $('#fl-gd').checked = !!l.drive;
   $('#fl-facturl').value = l.facturenUrl || ''; $('#fl-menu').value = l.menu || ''; $('#fl-knoppen').value = l.knoppen || '';
   $('#fl-max').value = l.max || 12; $('#fl-sub').value = l.submap || '';
+  $('#fl-start').placeholder = 'https://…';
   ['gebruiker', 'wachtwoord', 'code', 'knop'].forEach(k => $('#fl-v-' + k).value = v[k] || '');
-  $('#fl-geavanceerd').open = false; $('#fl-msg').textContent = '';
-  flBron(); flPlan();
-  show('faclev');
+  const m = l.mail || {};
+  $('#fl-m-bron').value = m.bron || 'gmail'; $('#fl-m-woorden').value = m.woorden != null ? m.woorden : 'factuur, invoice, rekening, nota';
+  $('#fl-m-afz').value = m.afzenders || ''; $('#fl-m-neg').value = m.negeer || ''; $('#fl-m-extra').value = m.extra || '';
+  $('#fl-m-dagen').value = String([30, 90, 180, 365, 730].includes(m.dagen) ? m.dagen : 90); $('#fl-m-max').value = m.max || 50; $('#fl-m-per').checked = m.perAfzender !== false;
+  $('#fl-msg').textContent = '';
+  flBron(); flPlan(); flZoek(); flOpslag();
+  flTab(faEdit.soort === 'mail' ? 'zoek' : 'inlog');
+  faNaar('faclev');
+  $('#fl-m-woorden').oninput = $('#fl-m-afz').oninput = $('#fl-m-neg').oninput = $('#fl-m-extra').oninput = flZoek;
+  ['fl-lok', 'fl-map', 'fl-gd', 'fl-ec'].forEach(i => $('#' + i).onchange = flOpslag);
+}
+/** Tabbladen: website = Inloggen, Planning, Opslaan, Meer; mail = Zoeken, Planning, Opslaan. */
+function flTab(t){
+  const mail = faEdit && faEdit.soort === 'mail', mag = mail ? ['zoek', 'plan', 'opslag'] : ['inlog', 'plan', 'opslag', 'adv'];
+  if (!mag.includes(t)) t = mag[0];
+  document.querySelectorAll('.fl-tabs button').forEach(b => { const ok = mag.includes(b.dataset.tab); b.style.display = ok ? '' : 'none'; b.classList.toggle('on', b.dataset.tab === t); b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'); });
+  document.querySelectorAll('.fl-paneel').forEach(p => p.classList.toggle('on', p.dataset.tab === t));
+}
+/** Zoeken in de mail: de Gmail-zoekopdracht laten zien (zelfde regels als FacturenGmail.zoekvraag) en de koppeling controleren. */
+function faDelen(s){ return String(s || '').split(/[,;\n]/).map(x => x.replace(/["(){}]/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean); }
+function faZoekvraag(m){
+  let q = 'has:attachment filename:pdf';
+  const w = faDelen(m.woorden), q1 = t => t.includes(' ') ? '"' + t + '"' : t;
+  if (w.length) q += ' (' + w.map(t => q1(t) + (t.includes(' ') ? '' : ' OR filename:' + t)).join(' OR ') + ')';
+  const a = faDelen(m.afzenders); if (a.length) q += ' from:(' + a.map(q1).join(' OR ') + ')';
+  faDelen(m.negeer).forEach(n => q += ' -from:' + q1(n));
+  if ((m.extra || '').trim()) q += ' ' + m.extra.trim();
+  return q;
+}
+function flZoek(){
+  const gd = faSt.drive || {};
+  $('#fl-m-kopp').style.display = gd.rechtGmail ? 'none' : 'block';
+  $('#fl-m-vraag').textContent = 'Zoekt in Gmail op: ' + faZoekvraag({ woorden: $('#fl-m-woorden').value, afzenders: $('#fl-m-afz').value, negeer: $('#fl-m-neg').value, extra: $('#fl-m-extra').value }) + ' (en alleen nieuwe mails sinds de vorige keer).';
+}
+function flOpslag(){
+  const gd = faSt.drive || {}, ec = faSt.ec || {}, mis = [];
+  if ($('#fl-lok').checked && !(faSt.lokaal && faSt.lokaal !== '!')) mis.push('kies een map op je telefoon');
+  if ($('#fl-map').checked && !faSt.map) mis.push('kies een backup-map');
+  if ($('#fl-gd').checked && !gd.rechtDrive) mis.push('koppel Google met Drive');
+  if ($('#fl-ec').checked && !(ec.url && ec.heeftWachtwoord)) mis.push('koppel Eigen Cloud');
+  $('#fl-opslag-msg').textContent = mis.length ? 'Nog te doen bij Facturen → Opslaan: ' + mis.join(', ') + '.' : '';
+  $('#fl-opslag-msg').classList.toggle('bad', mis.length > 0);
 }
 /** Volgende keer volgens de keuzes op het scherm (zelfde regels als Facturen.gepland in de app). */
 function faVolgende(o, nu){
@@ -189,7 +255,9 @@ function flBron(){
 }
 function flBewaar(){
   const o = {
-    id: faEdit && !faEdit._nieuw ? faEdit.id : '', sjabloon: faEdit ? faEdit.sjabloon || 'anders' : 'anders',
+    id: faEdit && !faEdit._nieuw ? faEdit.id : '', sjabloon: faEdit ? faEdit.sjabloon || 'anders' : 'anders', soort: faEdit && faEdit.soort === 'mail' ? 'mail' : 'website',
+    mail: { bron: $('#fl-m-bron').value, woorden: $('#fl-m-woorden').value, afzenders: $('#fl-m-afz').value, negeer: $('#fl-m-neg').value, extra: $('#fl-m-extra').value.trim(),
+      dagen: Number($('#fl-m-dagen').value) || 90, max: Number($('#fl-m-max').value) || 50, perAfzender: $('#fl-m-per').checked },
     naam: $('#fl-naam').value.trim(), startUrl: $('#fl-start').value.trim(), gebruiker: $('#fl-user').value.trim(), wachtwoord: $('#fl-pw').value,
     facturenUrl: $('#fl-facturl').value.trim(), menu: $('#fl-menu').value.trim(), knoppen: $('#fl-knoppen').value.trim(), max: Number($('#fl-max').value) || 12,
     code: { bron: $('#fl-bron').value, afzender: $('#fl-afz').value.trim(), patroon: $('#fl-pat').value.trim() },
@@ -198,26 +266,30 @@ function flBewaar(){
     velden: { gebruiker: $('#fl-v-gebruiker').value.trim(), wachtwoord: $('#fl-v-wachtwoord').value.trim(), code: $('#fl-v-code').value.trim(), knop: $('#fl-v-knop').value.trim() }
   };
   for (const [p, wat] of [[o.menu, 'De tekst van de link naar de facturen'], [o.knoppen, 'Het herkennen van downloadknoppen']]) {
-    try { new RegExp(p, 'i'); } catch (e) { $('#fl-msg').textContent = wat + ' is geen geldig zoekpatroon.'; $('#fl-geavanceerd').open = true; return; }
+    if (o.soort === 'mail') break;
+    try { new RegExp(p, 'i'); } catch (e) { $('#fl-msg').textContent = wat + ' is geen geldig zoekpatroon.'; flTab('adv'); return; }
   }
-  if (o.lokaal && !faSt.lokaal) { $('#fl-msg').textContent = 'Kies eerst een map op je telefoon (op het scherm Facturen), of zet "In een map op je telefoon" uit.'; return; }
-  if (o.drive && !(faSt.drive || {}).gekoppeld) { $('#fl-msg').textContent = 'Koppel eerst Google Drive (op het scherm Facturen), of zet "In Google Drive" uit.'; return; }
+  const fout = (t, tab) => { $('#fl-msg').textContent = t; flTab(tab); };
+  if (o.lokaal && !faSt.lokaal) return fout('Kies eerst een map op je telefoon (Facturen → Opslaan), of zet "In een map op je telefoon" uit.', 'opslag');
+  if (o.drive && !(faSt.drive || {}).rechtDrive) return fout('Koppel eerst Google met Drive (Facturen → Koppelingen), of zet "In Google Drive" uit.', 'opslag');
   const ec = faSt.ec || {};
-  if (o.eigenCloud && !(ec.url && ec.heeftWachtwoord)) { $('#fl-msg').textContent = 'Koppel eerst Eigen Cloud (op het scherm Facturen), of zet "Naar je mail in Eigen Cloud" uit.'; return; }
-  if (o.code.bron === 'eigencloud' && !(ec.url && ec.heeftWachtwoord)) { $('#fl-msg').textContent = 'Koppel eerst Eigen Cloud om de code uit je mail te lezen.'; return; }
+  if (o.eigenCloud && !(ec.url && ec.heeftWachtwoord)) return fout('Koppel eerst Eigen Cloud (Facturen → Koppelingen), of zet "Naar je mail in Eigen Cloud" uit.', 'opslag');
+  if (o.soort !== 'mail' && o.code.bron === 'eigencloud' && !(ec.url && ec.heeftWachtwoord)) return fout('Koppel eerst Eigen Cloud om de code uit je mail te lezen.', 'inlog');
+  if (o.soort === 'mail' && !faDelen(o.mail.woorden).length && !faDelen(o.mail.afzenders).length && !o.mail.extra) return fout('Vul zoekwoorden of afzenders in, anders zoekt de app naar elke PDF in je mail.', 'zoek');
   const r = rdJson(Android.facturenBewaar(JSON.stringify(o)), { error: 'Bewaren lukt niet' });
   $('#fl-pw').value = '';
-  if (r.error) { $('#fl-msg').textContent = r.error; return; }
+  if (r.error) { $('#fl-msg').textContent = r.error; if (/inlogpagina|https/.test(r.error)) flTab('inlog'); else if (/tijd/.test(r.error)) flTab('plan'); return; }
   const nieuw = faEdit && faEdit._nieuw;
   goBack(); faRender();
-  if (o.code.bron === 'sms' && !faSt.sms) Android.smsRequestPermission();
-  if (nieuw) setTimeout(() => askConfirm('Nu ophalen?', 'De eerste keer is meekijken handig: je ziet of de app de inlogvelden en downloadknoppen vindt, en je kunt zelf bijspringen.', 'Meekijken', () => faNu(r.id, true)), 300);
+  if (o.soort !== 'mail' && o.code.bron === 'sms' && !faSt.sms) Android.smsRequestPermission();
+  if (nieuw && o.soort === 'mail') setTimeout(() => (faSt.drive || {}).rechtGmail ? askConfirm('Nu zoeken?', 'De app zoekt nu in je Gmail naar facturen van de afgelopen tijd.', 'Nu zoeken', () => faNu(r.id, false)) : askConfirm('Google koppelen', 'Om in Gmail te zoeken moet Tools eerst toegang krijgen tot Gmail (alleen lezen).', 'Nu koppelen', () => faNaar('facgoogle')), 300);
+  else if (nieuw) setTimeout(() => askConfirm('Nu ophalen?', 'De eerste keer is meekijken handig: je ziet of de app de inlogvelden en downloadknoppen vindt, en je kunt zelf bijspringen.', 'Meekijken', () => faNu(r.id, true)), 300);
   else toast('✓ Bewaard');
 }
 /* Map op de telefoon en Google Drive */
 window.onFacturenMap = function(fout){
   if (fout && fout !== 'geen') toast(fout); else if (!fout) toast('✓ Map gekozen');
-  if (current === 'facturen') faRender();
+  if (FA_SCHERMEN.includes(current)) faRender();
 };
 function faGdKoppel(){
   $('#fa-gd-msg').textContent = '';
@@ -225,15 +297,17 @@ function faGdKoppel(){
   if (!/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(id)) { $('#fa-gd-msg').textContent = 'Een Client ID van Google eindigt op .apps.googleusercontent.com. Kopieer hem uit je Google-project.'; return; }
   const gd = faSt.drive || {};
   if (!geheim && (!gd.heeftGeheim || id !== gd.clientId)) { $('#fa-gd-msg').textContent = 'Vul ook het Client secret in' + (gd.heeftGeheim ? ' (nieuwe Client ID = ook een nieuw secret).' : '.'); return; }
-  const e = Android.facturenDriveKoppel(id, geheim);
+  const rechten = [$('#fa-gd-r-gmail').checked ? 'gmail' : '', $('#fa-gd-r-drive').checked ? 'drive' : ''].filter(Boolean).join(',');
+  if (!rechten) { $('#fa-gd-msg').textContent = 'Vink aan waarvoor Tools Google mag gebruiken (Gmail en/of Drive).'; return; }
+  const e = Android.facturenDriveKoppel(id, geheim, rechten);
   $('#fa-gd-geheim').value = '';
   if (e) { $('#fa-gd-msg').textContent = e; return; }
   toast('Log in bij Google en geef toestemming; kom daarna terug');
 }
 window.onFacturenDrive = function(r){
   if (r.error) { $('#fa-gd-msg').textContent = r.error; toast(r.error); }
-  else toast('✓ Google Drive gekoppeld' + (r.naam ? ' (' + r.naam + ')' : ''));
-  if (current === 'facturen') faRender();
+  else toast('✓ Google gekoppeld' + (r.naam ? ' (' + r.naam + ')' : ''));
+  if (FA_SCHERMEN.includes(current)) faRender();
 };
 /* Eigen Cloud */
 function faEcBewaar(){

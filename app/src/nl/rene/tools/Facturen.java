@@ -126,7 +126,12 @@ final class Facturen {
         String id = in.optString("id", "").trim();
         o.put("id", id.isEmpty() ? veiligId(naam) : veiligId(id));
         o.put("sjabloon", veiligId(in.optString("sjabloon", "anders")));
-        o.put("startUrl", adres(tekst(in, "startUrl", 500, ""), true, "de inlogpagina"));
+        String soort = in.optString("soort", "website");
+        if (!"website".equals(soort) && !"mail".equals(soort)) throw new Exception("Onbekende soort leverancier");
+        o.put("soort", soort);
+        boolean mail = "mail".equals(soort);
+        o.put("startUrl", adres(tekst(in, "startUrl", 500, ""), !mail, "de inlogpagina"));
+        if (mail) o.put("mail", FacturenMail.normaal(in.optJSONObject("mail")));
         o.put("facturenUrl", adres(tekst(in, "facturenUrl", 500, ""), false, "de facturenpagina"));
         o.put("gebruiker", tekst(in, "gebruiker", 200, ""));
         o.put("menu", patroon(in, "menu", "facturen|factuur", "De tekst naar de facturen"));
@@ -432,7 +437,10 @@ final class Facturen {
 
     static final class Pdf {
         final byte[] data; final String naam; final String sha;
-        Pdf(byte[] d, String n, String s) { data = d; naam = n; sha = s; }
+        /** Eigen submap (bijv. per afzender bij facturen uit de mail), of null = die van de leverancier. */
+        final String sub;
+        Pdf(byte[] d, String n, String s) { this(d, n, s, null); }
+        Pdf(byte[] d, String n, String s, String sub) { data = d; naam = n; sha = s; this.sub = sub == null || sub.trim().isEmpty() ? null : veiligeNaam(sub).replace('.', '_').trim(); }
     }
 
     /** Nieuwe facturen bewaren en afleveren; geeft {nieuw, gevonden, namen, fouten} terug. */
@@ -465,6 +473,7 @@ final class Facturen {
             for (int n = 2; f.exists(); n++) { naam = p.naam.replaceAll("\\.pdf$", "") + " (" + n + ").pdf"; f = new File(d, naam); }
             try (FileOutputStream o = new FileOutputStream(f)) { o.write(p.data); o.getFD().sync(); }
             JSONObject rec = new JSONObject().put("n", naam).put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis());
+            if (p.sub != null) rec.put("s", p.sub);
             aflever(c, lev, naam, f, p, rec, fouten);
             verwerkt.put(p.sha, rec);
             if (eigenNaam) namenGehad.add(p.naam);
@@ -478,16 +487,17 @@ final class Facturen {
     /** Naar elke gekozen plek die nog niet gelukt is (backup-map, map op de telefoon, Google Drive, Eigen Cloud). Geeft true als er iets bij kwam. */
     static boolean aflever(Context c, JSONObject lev, String naam, File f, Pdf p, JSONObject rec, JSONArray fouten) throws Exception {
         boolean bij = false;
+        String sub = rec.optString("s", "").isEmpty() ? lev.optString("submap", "Facturen") : rec.optString("s");
         if (lev.optBoolean("map", true) && !rec.optBoolean("map")) {
-            try { naarBoom(c, WaBackup.destUri(c), "kies eerst een backup-map (Instellingen)", MAP + "/" + lev.optString("submap", "Facturen"), naam, f); rec.put("map", true); bij = true; }
+            try { naarBoom(c, WaBackup.destUri(c), "kies eerst een backup-map (Instellingen)", MAP + "/" + sub, naam, f); rec.put("map", true); bij = true; }
             catch (Exception e) { fouten.put("Backup-map: " + kort(e)); }
         }
         if (lev.optBoolean("lokaal", false) && !rec.optBoolean("lok")) {
-            try { naarBoom(c, lokaleMap(c), "kies eerst een map op je telefoon (bovenaan in Facturen)", lev.optString("submap", "Facturen"), naam, f); rec.put("lok", true); bij = true; }
+            try { naarBoom(c, lokaleMap(c), "kies eerst een map op je telefoon (Facturen → Opslaan)", sub, naam, f); rec.put("lok", true); bij = true; }
             catch (Exception e) { fouten.put("Map op je telefoon: " + kort(e)); }
         }
         if (lev.optBoolean("drive", false) && !rec.optBoolean("gd")) {
-            try { FacturenDrive.upload(c, lev.optString("submap", "Facturen"), naam, p.data); rec.put("gd", true); bij = true; }
+            try { FacturenDrive.upload(c, sub, naam, p.data); rec.put("gd", true); bij = true; }
             catch (Exception e) { fouten.put("Google Drive: " + kort(e)); }
         }
         if (lev.optBoolean("eigenCloud", false) && !rec.optBoolean("ec")) {

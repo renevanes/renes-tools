@@ -1,5 +1,5 @@
 {
-  "uitleg": "Sjablonen voor Facturen ophalen. Elke leverancier is gewoon een instelling: alles hieronder kun je in de app ook zelf aanpassen. Een nieuwe leverancier toevoegen = hier een blok bij (zie AGENTS.md, Facturen).",
+  "uitleg": "Sjablonen voor Facturen ophalen. Soort website (inloggen en downloaden) of mail (PDF-bijlagen zoeken in een mailbox, bron gmail; later bijv. outlook). Alles is in de app aan te passen. Een nieuwe leverancier toevoegen = hier een blok bij (zie AGENTS.md, Facturen).",
   "sjablonen": [
     {
       "sjabloon": "kpn-zakelijk",
@@ -13,8 +13,33 @@
       "schema": "maand",
       "dag": 5,
       "tijd": "08:00",
-      "code": { "bron": "sms", "afzender": "KPN", "patroon": "" },
+      "code": {
+        "bron": "sms",
+        "afzender": "KPN",
+        "patroon": ""
+      },
       "tip": "KPN stuurt na je wachtwoord een code per sms of mail. Staat bij KPN je telefoonnummer, kies dan Sms; staat er een mailadres dat in Eigen Cloud binnenkomt, kies Eigen Cloud. De beheerder kan de code ook uitzetten (Gebruiksbeheer → Identiteit → Directories → Authenticaties)."
+    },
+    {
+      "sjabloon": "gmail",
+      "soort": "mail",
+      "naam": "Facturen in Gmail",
+      "omschrijving": "Zoekt facturen (PDF-bijlagen) in je Gmail; alleen lezen",
+      "startUrl": "",
+      "schema": "dag",
+      "dag": 5,
+      "tijd": "07:00",
+      "mail": {
+        "bron": "gmail",
+        "woorden": "factuur, invoice, rekening, nota",
+        "afzenders": "",
+        "negeer": "",
+        "extra": "",
+        "dagen": 90,
+        "max": 50,
+        "perAfzender": true
+      },
+      "tip": "Koppel eerst Google met toegang tot Gmail (Facturen → Koppelingen → Google). Tools leest alleen; het verandert niets in je mail. Elke afzender krijgt een eigen map."
     },
     {
       "sjabloon": "anders",
@@ -28,7 +53,11 @@
       "schema": "maand",
       "dag": 5,
       "tijd": "08:00",
-      "code": { "bron": "geen", "afzender": "", "patroon": "" },
+      "code": {
+        "bron": "geen",
+        "afzender": "",
+        "patroon": ""
+      },
       "tip": "Kijk de eerste keer mee: dan zie je of de app de inlogvelden en downloadknoppen vindt. Lukt dat niet, vul dan bij Geavanceerd de facturenpagina of de velden in."
     }
   ]

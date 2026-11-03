@@ -1,11 +1,13 @@
-<!-- ============ FACTUREN OPHALEN ============ -->
+<!-- ============ FACTUREN OPHALEN ============
+     Opgedeeld in losse schermen: Facturen (overzicht en leveranciers), Overzicht per maand, Opslaan (waar de PDF's heen
+     gaan), Koppelingen (Google, Eigen Cloud; later bijv. Microsoft) en per leverancier de instellingen met tabbladen. -->
 <section class="screen" id="s-facturen">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Facturen</h1>
   </div>
   <main>
-    <p class="note" style="margin:0 2px 12px">Haalt je facturen (PDF) vanzelf op bij websites waar je moet inloggen, zoals KPN Zakelijk, en bewaart ze waar je wilt: in een map op je telefoon, je backup-map, Google Drive of Eigen Cloud.</p>
+    <p class="note" style="margin:0 2px 12px">Haalt je facturen (PDF) vanzelf op: van websites waar je inlogt, zoals KPN Zakelijk, en uit je mail (Gmail). En bewaart ze waar jij wilt.</p>
     <div class="card" id="fa-bezig" style="display:none" role="status" aria-live="polite">
       <div class="row" style="align-items:center;gap:8px"><b style="flex:1;min-width:0" id="fa-bezig-txt">Bezig…</b><button class="mini" style="float:none" onclick="Android.facturenStop()">Stoppen</button></div>
     </div>
@@ -16,45 +18,116 @@
     <div class="flabel" style="margin:4px 2px 8px">Leveranciers</div>
     <div class="card stations" id="fa-lijst"></div>
     <button class="big" id="fa-nieuw" onclick="faNieuw()">Leverancier toevoegen</button>
+    <div class="flabel stgl" role="heading" aria-level="2" style="margin-top:18px">Meer</div>
+    <div class="card stlist">
+      <button class="strow" onclick="faNaar('facoverz')"><span class="stic"><span class="ui-icon" data-icon="calendar" aria-hidden="true"></span></span><span class="sttxt"><b>Overzicht per maand</b><small id="fa-sum-overz"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="faNaar('facopslag')"><span class="stic"><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span><span class="sttxt"><b>Opslaan</b><small id="fa-sum-opslag"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="faNaar('fackopp')"><span class="stic"><span class="ui-icon" data-icon="plug" aria-hidden="true"></span></span><span class="sttxt"><b>Koppelingen</b><small id="fa-sum-kopp"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+  </main>
+</section>
 
-    <details class="card rinfo" id="fa-overzicht" style="display:none"><summary>Overzicht per maand</summary>
-      <div id="fa-overzicht-lijst" style="overflow-x:auto"></div>
-    </details>
+<!-- Overzicht per maand -->
+<section class="screen" id="s-facoverz">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Overzicht per maand</h1>
+  </div>
+  <main>
+    <div class="card"><div id="fa-overzicht-lijst" style="overflow-x:auto"></div></div>
+  </main>
+</section>
 
-    <div class="flabel" style="margin:18px 2px 8px">Opslaan</div>
+<!-- Opslaan: waar de facturen heen gaan (per leverancier kies je welke van deze plekken) -->
+<section class="screen" id="s-facopslag">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Opslaan</h1>
+  </div>
+  <main>
+    <p class="note" style="margin:0 2px 12px">Hier stel je de plekken in. Per leverancier kies je daarna welke hij gebruikt (Instellingen → Opslaan). Een kopie blijft altijd in de app.</p>
+    <div class="card stlist">
+      <button class="strow" onclick="faNaar('faclok')"><span class="stic"><span class="ui-icon" data-icon="smartphone" aria-hidden="true"></span></span><span class="sttxt"><b>Map op je telefoon</b><small id="fa-sum-lok"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="faBackupMap()"><span class="stic"><span class="ui-icon" data-icon="backup" aria-hidden="true"></span></span><span class="sttxt"><b>Backup-map</b><small id="fa-sum-backup"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="faNaar('facgoogle')"><span class="stic"><span class="ui-icon" data-icon="upload" aria-hidden="true"></span></span><span class="sttxt"><b>Google Drive</b><small id="fa-sum-drive"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="faNaar('facec')"><span class="stic"><span class="ui-icon" data-icon="mail" aria-hidden="true"></span></span><span class="sttxt"><b>Eigen Cloud (mail)</b><small id="fa-sum-ec"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+  </main>
+</section>
+
+<!-- Map op de telefoon -->
+<section class="screen" id="s-faclok">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Map op je telefoon</h1>
+  </div>
+  <main>
     <div class="card">
-      <h2>Map op je telefoon</h2>
       <p class="note" style="margin-top:0" id="fa-lok-stand">Nog geen map gekozen. Kies bijvoorbeeld Documenten; per leverancier komt er een eigen map in.</p>
       <div class="row" style="gap:8px">
         <button class="big" style="flex:1" id="fa-lok-kies" onclick="Android.facturenKiesMap()">Map kiezen</button>
         <button class="big ghost" style="flex:1;display:none" id="fa-lok-los" onclick="Android.facturenMapLos();faRender()">Niet meer gebruiken</button>
       </div>
     </div>
-    <div class="card" id="fa-gd">
-      <h2>Google Drive</h2>
-      <div id="fa-gd-setup">
-        <p class="note" style="margin-top:0">Eenmalig: Google geeft alleen toegang via een eigen (gratis) Google-project. Tools krijgt daarmee alleen toegang tot de mappen en bestanden die het zelf maakt, niet tot de rest van je Drive.</p>
-        <ol class="spsteps">
-          <li>Open de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/projectcreate');return false">Google Cloud Console</a> en maak een project (naam bijv. "Tools").</li>
-          <li>Zet de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/apis/library/drive.googleapis.com');return false">Google Drive API</a> aan (<b>Inschakelen</b>).</li>
-          <li>Ga naar <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/auth/overview');return false">Google Auth Platform</a>, tik op <b>Aan de slag</b>, vul een app-naam en je mailadres in en kies <b>Extern</b>.</li>
-          <li>Bij <b>Doelgroep</b>: tik op <b>App publiceren</b> (In productie). Anders vervalt de koppeling na 7 dagen.</li>
-          <li>Bij <b>Clients</b>: <b>Client maken</b>, type <b>Desktop-app</b>. Kopieer de Client ID en het Client secret hieronder.</li>
-        </ol>
-        <input class="aein" id="fa-gd-id" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Client ID (…apps.googleusercontent.com)" aria-label="Client ID">
-        <input class="aein" id="fa-gd-geheim" type="password" autocomplete="off" style="margin-top:8px" placeholder="Client secret" aria-label="Client secret">
-        <button class="big" style="margin-top:10px" onclick="faGdKoppel()">Koppelen met Google Drive</button>
-        <p class="note">Google zegt daarna mogelijk "Google heeft deze app niet geverifieerd": het is je eigen app, tik op <b>Doorgaan</b>.</p>
-      </div>
-      <div id="fa-gd-aan" style="display:none">
-        <p class="note" style="margin-top:0" id="fa-gd-stand"></p>
-        <p class="note">Tools ziet alleen zijn eigen mappen: een map Facturen die je zelf in Drive maakte, gebruikt hij niet (hij maakt er een eigen).</p>
-        <button class="big ghost" onclick="askConfirm('Google Drive ontkoppelen?', 'De facturen die al in Drive staan, blijven daar staan.', 'Ontkoppelen', () => { Android.facturenDriveLos(); faRender(); })">Ontkoppelen</button>
-      </div>
-      <p class="note bad" id="fa-gd-msg" role="status" aria-live="polite"></p>
-    </div>
+  </main>
+</section>
 
-    <div class="flabel" style="margin:18px 2px 8px">Eigen Cloud</div>
+<!-- Koppelingen met diensten van buitenaf -->
+<section class="screen" id="s-fackopp">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Koppelingen</h1>
+  </div>
+  <main>
+    <p class="note" style="margin:0 2px 12px">Diensten waarmee Tools facturen zoekt of bewaart. Elke koppeling stel je één keer in; leveranciers gebruiken ze daarna.</p>
+    <div class="card stlist">
+      <button class="strow" onclick="faNaar('facgoogle')"><span class="stic"><span class="ui-icon" data-icon="globe" aria-hidden="true"></span></span><span class="sttxt"><b>Google (Gmail en Drive)</b><small id="fa-sum-google"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="faNaar('facec')"><span class="stic"><span class="ui-icon" data-icon="mail" aria-hidden="true"></span></span><span class="sttxt"><b>Eigen Cloud</b><small id="fa-sum-ec2"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+  </main>
+</section>
+
+<!-- Google: één koppeling voor Gmail (facturen zoeken) en Drive (opslaan) -->
+<section class="screen" id="s-facgoogle">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Google</h1>
+  </div>
+  <main>
+    <div class="card" id="fa-gd-aan" style="display:none">
+      <p class="note" style="margin-top:0" id="fa-gd-stand"></p>
+      <p class="note" id="fa-gd-rechten"></p>
+      <button class="big" onclick="$('#fa-gd-setup').style.display='block';$('#fa-gd-setup').scrollIntoView({behavior:'smooth'})">Rechten aanpassen</button>
+      <button class="big ghost" style="margin-top:8px" onclick="askConfirm('Google ontkoppelen?', 'Facturen die al in Drive staan, blijven daar staan. Leveranciers die Gmail gebruiken, stoppen tot je weer koppelt.', 'Ontkoppelen', () => { Android.facturenDriveLos(); faRender(); })">Ontkoppelen</button>
+    </div>
+    <div class="card" id="fa-gd-setup">
+      <h2>Waarvoor mag Tools Google gebruiken?</h2>
+      <label class="chk"><input type="checkbox" id="fa-gd-r-gmail" checked> Gmail: facturen zoeken (alleen lezen)</label>
+      <label class="chk"><input type="checkbox" id="fa-gd-r-drive" checked> Drive: facturen bewaren (alleen eigen mappen)</label>
+      <p class="note">Eenmalig: Google geeft alleen toegang via een eigen (gratis) Google-project.</p>
+      <ol class="spsteps">
+        <li>Open de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/projectcreate');return false">Google Cloud Console</a> en maak een project (naam bijv. "Tools").</li>
+        <li>Zet de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/apis/library/gmail.googleapis.com');return false">Gmail API</a> en/of de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/apis/library/drive.googleapis.com');return false">Google Drive API</a> aan (<b>Inschakelen</b>).</li>
+        <li>Ga naar <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/auth/overview');return false">Google Auth Platform</a>, tik op <b>Aan de slag</b>, vul een app-naam en je mailadres in en kies <b>Extern</b>.</li>
+        <li>Bij <b>Doelgroep</b>: tik op <b>App publiceren</b> (In productie). Anders vervalt de koppeling na 7 dagen.</li>
+        <li>Bij <b>Clients</b>: <b>Client maken</b>, type <b>Desktop-app</b>. Kopieer de Client ID en het Client secret hieronder.</li>
+      </ol>
+      <input class="aein" id="fa-gd-id" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Client ID (…apps.googleusercontent.com)" aria-label="Client ID">
+      <input class="aein" id="fa-gd-geheim" type="password" autocomplete="off" style="margin-top:8px" placeholder="Client secret" aria-label="Client secret">
+      <button class="big" style="margin-top:10px" id="fa-gd-knop" onclick="faGdKoppel()">Koppelen met Google</button>
+      <p class="note">Google zegt daarna mogelijk "Google heeft deze app niet geverifieerd": het is je eigen app, tik op <b>Doorgaan</b> en vink de gevraagde rechten aan.</p>
+    </div>
+    <p class="note bad" id="fa-gd-msg" role="status" aria-live="polite"></p>
+  </main>
+</section>
+
+<!-- Eigen Cloud -->
+<section class="screen" id="s-facec">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Eigen Cloud</h1>
+  </div>
+  <main>
     <div class="card">
       <p class="note" style="margin-top:0" id="fa-ec-stand">Niet gekoppeld. Koppel Eigen Cloud om facturen in je eigen mail te krijgen, of om de inlogcode uit je mail te lezen.</p>
       <div class="flabel"><label for="fa-ec-url">Adres van je Eigen Cloud</label></div>
@@ -71,88 +144,131 @@
         <button class="big ghost" style="flex:1" id="fa-ec-test" onclick="faEcTest()">Testen</button>
       </div>
     </div>
-    <p class="note" id="fa-map"></p>
   </main>
 </section>
 
-<!-- Eén leverancier instellen -->
+<!-- Eén leverancier instellen, in tabbladen -->
 <section class="screen" id="s-faclev">
   <div class="hdr sm">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1" id="fl-h">Leverancier</h1>
   </div>
   <main>
+    <div class="gb-seg fl-tabs" role="tablist" aria-label="Onderdelen">
+      <button role="tab" data-tab="inlog" onclick="flTab('inlog')">Inloggen</button><button role="tab" data-tab="zoek" onclick="flTab('zoek')">Zoeken</button><button role="tab" data-tab="plan" onclick="flTab('plan')">Planning</button><button role="tab" data-tab="opslag" onclick="flTab('opslag')">Opslaan</button><button role="tab" data-tab="adv" onclick="flTab('adv')">Meer</button>
+    </div>
     <div class="card">
       <p class="note" style="margin-top:0" id="fl-tip"></p>
       <div class="flabel"><label for="fl-naam">Naam</label></div>
       <input class="aein" id="fl-naam" maxlength="60" autocomplete="off">
-      <div class="flabel" style="margin-top:8px"><label for="fl-start">Inlogpagina</label></div>
-      <input class="aein" id="fl-start" type="url" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="flabel" style="margin-top:8px"><label for="fl-user">Gebruikersnaam of mailadres</label></div>
-      <input class="aein" id="fl-user" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="flabel" style="margin-top:8px"><label for="fl-pw">Wachtwoord</label></div>
-      <input class="aein" id="fl-pw" type="password" autocomplete="off">
-      <p class="note" style="margin:4px 0 0">Versleuteld op deze telefoon bewaard. Leeg laten: je logt zelf in tijdens meekijken.</p>
     </div>
 
-    <div class="card">
-      <h2>Inlogcode</h2>
-      <div class="row setrow"><label for="fl-bron" style="flex:1">De code komt per</label>
-        <select class="sel" id="fl-bron" onchange="flBron()">
-          <option value="sms">Sms</option><option value="eigencloud">Mail in Eigen Cloud</option><option value="geen">Geen code / zelf invullen</option>
-        </select></div>
-      <div id="fl-bronvelden">
-        <div class="flabel" style="margin-top:8px"><label for="fl-afz">Afzender bevat</label></div>
-        <input class="aein" id="fl-afz" maxlength="60" placeholder="Bijv. KPN" autocomplete="off">
-        <p class="note bad" id="fl-sms" style="display:none">Tools heeft nog geen toegang tot sms. <button class="linkish" onclick="Android.smsRequestPermission()">Toegang geven</button></p>
+    <div class="fl-paneel" data-tab="inlog" role="tabpanel">
+      <div class="card">
+        <div class="flabel"><label for="fl-start">Inlogpagina</label></div>
+        <input class="aein" id="fl-start" type="url" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="fl-user">Gebruikersnaam of mailadres</label></div>
+        <input class="aein" id="fl-user" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="fl-pw">Wachtwoord</label></div>
+        <input class="aein" id="fl-pw" type="password" autocomplete="off">
+        <p class="note" style="margin:4px 0 0">Versleuteld op deze telefoon bewaard. Leeg laten: je logt zelf in tijdens meekijken.</p>
+      </div>
+      <div class="card">
+        <h2>Inlogcode</h2>
+        <div class="row setrow"><label for="fl-bron" style="flex:1">De code komt per</label>
+          <select class="sel" id="fl-bron" onchange="flBron()">
+            <option value="sms">Sms</option><option value="eigencloud">Mail in Eigen Cloud</option><option value="geen">Geen code / zelf invullen</option>
+          </select></div>
+        <div id="fl-bronvelden">
+          <div class="flabel" style="margin-top:8px"><label for="fl-afz">Afzender bevat</label></div>
+          <input class="aein" id="fl-afz" maxlength="60" placeholder="Bijv. KPN" autocomplete="off">
+          <p class="note bad" id="fl-sms" style="display:none">Tools heeft nog geen toegang tot sms. <button class="linkish" onclick="Android.smsRequestPermission()">Toegang geven</button></p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="fl-paneel" data-tab="zoek" role="tabpanel">
+      <div class="card">
+        <div class="row setrow"><label for="fl-m-bron" style="flex:1">Zoeken in</label>
+          <select class="sel" id="fl-m-bron"><option value="gmail">Gmail</option></select></div>
+        <p class="note bad" id="fl-m-kopp" style="display:none">Google is nog niet gekoppeld met toegang tot Gmail. <button class="linkish" onclick="faNaar('facgoogle')">Nu koppelen</button></p>
+        <div class="flabel" style="margin-top:8px"><label for="fl-m-woorden">Zoekwoorden <small>(één ervan in onderwerp, tekst of bestandsnaam)</small></label></div>
+        <input class="aein" id="fl-m-woorden" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="factuur, invoice, rekening, nota">
+        <div class="flabel" style="margin-top:8px"><label for="fl-m-afz">Alleen van deze afzenders <small>(leeg = iedereen)</small></label></div>
+        <input class="aein" id="fl-m-afz" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="bijv. kpn.com, ziggo.nl">
+        <div class="flabel" style="margin-top:8px"><label for="fl-m-neg">Afzenders overslaan</label></div>
+        <input class="aein" id="fl-m-neg" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="bijv. nieuwsbrief@winkel.nl">
+        <div class="row setrow"><label for="fl-m-dagen" style="flex:1">De eerste keer terugkijken</label>
+          <select class="sel" id="fl-m-dagen"><option value="30">1 maand</option><option value="90">3 maanden</option><option value="180">6 maanden</option><option value="365">1 jaar</option><option value="730">2 jaar</option></select></div>
+        <label class="chk"><input type="checkbox" id="fl-m-per"> Per afzender een eigen map</label>
+        <details class="rinfo" style="margin-top:6px"><summary>Meer zoekopties</summary>
+          <div class="flabel" style="margin-top:8px"><label for="fl-m-extra">Extra Gmail-zoekopdracht</label></div>
+          <input class="aein" id="fl-m-extra" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="bijv. label:administratie -in:spam">
+          <div class="flabel" style="margin-top:8px"><label for="fl-m-max">Hooguit zoveel mails per keer</label></div>
+          <input class="aein" id="fl-m-max" type="number" min="1" max="200" inputmode="numeric">
+        </details>
+        <p class="note" id="fl-m-vraag" style="overflow-wrap:anywhere"></p>
       </div>
     </div>
 
-    <div class="card">
-      <h2>Ophalen</h2>
-      <div class="row setrow"><label for="fl-schema" style="flex:1">Vanzelf ophalen</label>
-        <select class="sel" id="fl-schema" onchange="flPlan()"><option value="maand">Elke maand</option><option value="week">Elke week</option><option value="dag">Elke dag</option><option value="uit">Uit</option></select></div>
-      <div class="row setrow" id="fl-dagrij"><label for="fl-dag" style="flex:1">Op dag van de maand</label>
-        <select class="sel" id="fl-dag" onchange="flPlan()"></select></div>
-      <div class="row setrow" id="fl-wdrij"><label for="fl-wd" style="flex:1">Op</label>
-        <select class="sel" id="fl-wd" onchange="flPlan()"><option value="1">maandag</option><option value="2">dinsdag</option><option value="3">woensdag</option><option value="4">donderdag</option><option value="5">vrijdag</option><option value="6">zaterdag</option><option value="7">zondag</option></select></div>
-      <div class="row setrow" id="fl-tijdrij"><label for="fl-tijd" style="flex:1">Om</label>
-        <input class="sel" id="fl-tijd" type="time" value="08:00" onchange="flPlan()"></div>
-      <div class="row setrow" id="fl-opnrij"><label for="fl-opnieuw" style="flex:1">Na een fout opnieuw proberen</label>
-        <select class="sel" id="fl-opnieuw" onchange="flPlan()"><option value="1">na 1 uur</option><option value="2">na 2 uur</option><option value="3">na 3 uur</option><option value="6">na 6 uur</option><option value="12">na 12 uur</option><option value="24">na 24 uur</option></select></div>
-      <label class="chk" id="fl-wifirij"><input type="checkbox" id="fl-wifi" onchange="flPlan()"> Vanzelf alleen via wifi</label>
-      <label class="chk"><input type="checkbox" id="fl-meldnieuw"> Melding bij nieuwe facturen</label>
-      <label class="chk"><input type="checkbox" id="fl-meldfout"> Melding als ophalen mislukt</label>
-      <p class="note" id="fl-plan" role="status" aria-live="polite"></p>
-      <label class="chk"><input type="checkbox" id="fl-map"> In je backup-map (map Facturen)</label>
-      <label class="chk"><input type="checkbox" id="fl-lok"> In een map op je telefoon</label>
-      <label class="chk"><input type="checkbox" id="fl-gd"> In Google Drive (map Facturen)</label>
-      <label class="chk"><input type="checkbox" id="fl-ec"> Naar je mail in Eigen Cloud</label>
+    <div class="fl-paneel" data-tab="plan" role="tabpanel">
+      <div class="card">
+        <h2>Wanneer</h2>
+        <div class="row setrow"><label for="fl-schema" style="flex:1">Vanzelf ophalen</label>
+          <select class="sel" id="fl-schema" onchange="flPlan()"><option value="maand">Elke maand</option><option value="week">Elke week</option><option value="dag">Elke dag</option><option value="uit">Uit</option></select></div>
+        <div class="row setrow" id="fl-dagrij"><label for="fl-dag" style="flex:1">Op dag van de maand</label>
+          <select class="sel" id="fl-dag" onchange="flPlan()"></select></div>
+        <div class="row setrow" id="fl-wdrij"><label for="fl-wd" style="flex:1">Op</label>
+          <select class="sel" id="fl-wd" onchange="flPlan()"><option value="1">maandag</option><option value="2">dinsdag</option><option value="3">woensdag</option><option value="4">donderdag</option><option value="5">vrijdag</option><option value="6">zaterdag</option><option value="7">zondag</option></select></div>
+        <div class="row setrow" id="fl-tijdrij"><label for="fl-tijd" style="flex:1">Om</label>
+          <input class="sel" id="fl-tijd" type="time" value="08:00" onchange="flPlan()"></div>
+        <div class="row setrow" id="fl-opnrij"><label for="fl-opnieuw" style="flex:1">Na een fout opnieuw proberen</label>
+          <select class="sel" id="fl-opnieuw" onchange="flPlan()"><option value="1">na 1 uur</option><option value="2">na 2 uur</option><option value="3">na 3 uur</option><option value="6">na 6 uur</option><option value="12">na 12 uur</option><option value="24">na 24 uur</option></select></div>
+        <label class="chk" id="fl-wifirij"><input type="checkbox" id="fl-wifi" onchange="flPlan()"> Vanzelf alleen via wifi</label>
+        <label class="chk"><input type="checkbox" id="fl-meldnieuw"> Melding bij nieuwe facturen</label>
+        <label class="chk"><input type="checkbox" id="fl-meldfout"> Melding als ophalen mislukt</label>
+        <p class="note" id="fl-plan" role="status" aria-live="polite"></p>
+      </div>
     </div>
 
-    <details class="card rinfo" id="fl-geavanceerd"><summary>Geavanceerd</summary>
-      <div class="flabel" style="margin-top:8px"><label for="fl-facturl">Facturenpagina <small>(leeg = de app zoekt zelf)</small></label></div>
-      <input class="aein" id="fl-facturl" type="url" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="flabel" style="margin-top:8px"><label for="fl-menu">Tekst van de link naar de facturen</label></div>
-      <input class="aein" id="fl-menu" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="flabel" style="margin-top:8px"><label for="fl-knoppen">Herkennen van downloadknoppen</label></div>
-      <input class="aein" id="fl-knoppen" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="flabel" style="margin-top:8px"><label for="fl-max">Hooguit zoveel facturen per keer</label></div>
-      <input class="aein" id="fl-max" type="number" min="1" max="50" inputmode="numeric">
-      <div class="flabel" style="margin-top:8px"><label for="fl-pat">Patroon van de code <small>(leeg = vanzelf)</small></label></div>
-      <input class="aein" id="fl-pat" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="flabel" style="margin-top:8px"><label for="fl-sub">Mapnaam</label></div>
-      <input class="aein" id="fl-sub" maxlength="60" autocomplete="off">
-      <p class="note">Velden aanwijzen (alleen als de app ze niet zelf vindt; een CSS-selector, bijv. <code>#username</code>):</p>
-      <div class="flabel"><label for="fl-v-gebruiker">Veld gebruikersnaam</label></div>
-      <input class="aein" id="fl-v-gebruiker" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="flabel" style="margin-top:8px"><label for="fl-v-wachtwoord">Veld wachtwoord</label></div>
-      <input class="aein" id="fl-v-wachtwoord" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="flabel" style="margin-top:8px"><label for="fl-v-code">Veld inlogcode</label></div>
-      <input class="aein" id="fl-v-code" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="flabel" style="margin-top:8px"><label for="fl-v-knop">Inlogknop</label></div>
-      <input class="aein" id="fl-v-knop" autocomplete="off" autocapitalize="off" spellcheck="false">
-    </details>
+    <div class="fl-paneel" data-tab="opslag" role="tabpanel">
+      <div class="card">
+        <h2>Waar heen</h2>
+        <p class="note" style="margin-top:0">Een kopie blijft altijd in de app. De plekken zelf stel je in bij Facturen → Opslaan.</p>
+        <label class="chk"><input type="checkbox" id="fl-lok"> In een map op je telefoon</label>
+        <label class="chk"><input type="checkbox" id="fl-map"> In je backup-map (map Facturen)</label>
+        <label class="chk"><input type="checkbox" id="fl-gd"> In Google Drive (map Facturen)</label>
+        <label class="chk"><input type="checkbox" id="fl-ec"> Naar je mail in Eigen Cloud</label>
+        <div class="flabel" style="margin-top:8px"><label for="fl-sub">Mapnaam</label></div>
+        <input class="aein" id="fl-sub" maxlength="60" autocomplete="off">
+        <p class="note" id="fl-opslag-msg"></p>
+      </div>
+    </div>
+
+    <div class="fl-paneel" data-tab="adv" role="tabpanel">
+      <div class="card">
+        <div class="flabel"><label for="fl-facturl">Facturenpagina <small>(leeg = de app zoekt zelf)</small></label></div>
+        <input class="aein" id="fl-facturl" type="url" placeholder="https://…" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="fl-menu">Tekst van de link naar de facturen</label></div>
+        <input class="aein" id="fl-menu" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="fl-knoppen">Herkennen van downloadknoppen</label></div>
+        <input class="aein" id="fl-knoppen" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="fl-max">Hooguit zoveel facturen per keer</label></div>
+        <input class="aein" id="fl-max" type="number" min="1" max="50" inputmode="numeric">
+        <div class="flabel" style="margin-top:8px"><label for="fl-pat">Patroon van de code <small>(leeg = vanzelf)</small></label></div>
+        <input class="aein" id="fl-pat" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <p class="note">Velden aanwijzen (alleen als de app ze niet zelf vindt; een CSS-selector, bijv. <code>#username</code>):</p>
+        <div class="flabel"><label for="fl-v-gebruiker">Veld gebruikersnaam</label></div>
+        <input class="aein" id="fl-v-gebruiker" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="fl-v-wachtwoord">Veld wachtwoord</label></div>
+        <input class="aein" id="fl-v-wachtwoord" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="fl-v-code">Veld inlogcode</label></div>
+        <input class="aein" id="fl-v-code" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="fl-v-knop">Inlogknop</label></div>
+        <input class="aein" id="fl-v-knop" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </div>
+    </div>
     <p class="note bad" id="fl-msg" role="status" aria-live="polite"></p>
     <button class="big" id="fl-save" onclick="flBewaar()">Bewaren</button>
   </main>

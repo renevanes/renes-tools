@@ -1,0 +1,1 @@
+Facturen: zoekt nu ook facturen in je Gmail (PDF-bijlagen, alleen lezen), met zelf te kiezen zoekwoorden, afzenders en per afzender een eigen map. Het scherm is opgedeeld: Opslaan, Koppelingen en Overzicht per maand hebben elk een eigen scherm, en de instellingen van een leverancier staan in tabbladen.
