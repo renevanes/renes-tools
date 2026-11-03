@@ -1,0 +1,2 @@
+Thema bij Instellingen → Weergave: Systeem, Licht, Donker, of automatisch donker op een vaste tijd (standaard 20:00–07:00) of van zonsondergang tot zonsopkomst (berekend op de telefoon, zonder internet), met Zwart (AMOLED) en een snelle knop in Instellingen.
+De Telefoon-skin volgt het thema van Tools ("Zoals Tools"), en de app start meteen in de goede kleur: geen witte flits meer in het donker.

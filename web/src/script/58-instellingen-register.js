@@ -43,7 +43,8 @@ const SET_REG = [
     get: () => setB(store.get('dynColor', false) && typeof Android.themeColors === 'function' && !!Android.themeColors()), set: v => { stDynColor(setOnV(v)); setIf(['setlook', 'settings'], enterSettings); return ''; } },
   { id: 'weergave.tekstgrootte', scr: 'setlook', ctl: '#st-zoom', type: 'keuze', vals: SET_ZOOM, label: 'Tekstgrootte', desc: 'Hoe groot de tekst in de app is.', syn: 'tekst letters lettergrootte groot groter kleiner zoom lezen slechtziend',
     get: () => String(Android.textZoomGet()), set: v => { const z = $('#st-zoom'); z.value = v; stZoom(v); return ''; } },
-  { id: 'weergave.thema', scr: 'setlook', ctl: '#st-theme', type: 'keuze', vals: TH_MODES, label: 'Thema: licht of donker', desc: 'Systeem volgt je telefoon. Licht of Donker: altijd zo. Of automatisch donker: op een vaste tijd, of van zonsondergang tot zonsopkomst.',
+  // "zet het licht uit" (een lamp) is geen thema: zonder een themawoord telt de instelling minder zwaar
+  { id: 'weergave.thema', scr: 'setlook', ctl: '#st-theme', type: 'keuze', vals: TH_MODES, need: /thema|modus|mode|donker|nacht|avond|automatisch|zon|systeem|weergave/, label: 'Thema: licht of donker', desc: 'Systeem volgt je telefoon. Licht of Donker: altijd zo. Of automatisch donker: op een vaste tijd, of van zonsondergang tot zonsopkomst.',
     syn: 'thema donker licht dark mode light mode nachtmodus nacht avond automatisch zonsondergang zonsopkomst zon schemer zwart wit systeem', phr: ['thema op', 'licht thema', 'lichte modus', 'light mode'],
     get: () => thCfg().mode, set: v => { thSetMode(v); setIf('settings', enterSettings); return ''; } },
   { id: 'weergave.donker', scr: 'setlook', label: 'Donker thema', desc: 'Aan: de app is altijd donker. Uit: altijd licht. Automatisch, of zoals je telefoon, kies je bij Thema.', syn: 'donker dark mode nachtmodus nacht zwart avond thema', phr: ['dark mode', 'nachtmodus', 'donker thema', 'donkere modus'],
@@ -51,7 +52,7 @@ const SET_REG = [
   { id: 'weergave.donkervanaf', scr: 'setlook', ctl: '#st-th-dark', type: 'tijd', label: 'Donker vanaf (thema op tijd)', desc: 'Hoe laat de app donker wordt bij Automatisch op tijd. Zet het thema ook op Automatisch op tijd.', syn: 'donker vanaf avond nacht tijd automatisch thema dark mode nachtmodus',
     note: () => thCfg().mode !== 'time' ? 'Het thema gaat daarmee ook op Automatisch op tijd.' : '',
     get: () => thCfg().dark, set: v => { thSave({ dark: v, mode: 'time' }); return ''; } },
-  { id: 'weergave.lichtvanaf', scr: 'setlook', ctl: '#st-th-light', type: 'tijd', label: 'Licht vanaf (thema op tijd)', desc: 'Hoe laat de app weer licht wordt bij Automatisch op tijd. Zet het thema ook op Automatisch op tijd.', syn: 'licht vanaf ochtend dag tijd automatisch thema light mode',
+  { id: 'weergave.lichtvanaf', scr: 'setlook', ctl: '#st-th-light', type: 'tijd', need: /thema|vanaf|automatisch|ochtend|weergave/, label: 'Licht vanaf (thema op tijd)', desc: 'Hoe laat de app weer licht wordt bij Automatisch op tijd. Zet het thema ook op Automatisch op tijd.', syn: 'licht vanaf ochtend dag tijd automatisch thema light mode',
     note: () => thCfg().mode !== 'time' ? 'Het thema gaat daarmee ook op Automatisch op tijd.' : '',
     get: () => thCfg().light, set: v => { thSave({ light: v, mode: 'time' }); return ''; } },
   { id: 'weergave.zon', scr: 'setlook', ctl: '#st-th-off', type: 'keuze', vals: TH_OFF, label: 'Donker worden bij zonsondergang (eerder of later)', desc: 'Bij Automatisch zonsondergang–zonsopkomst: precies bij zonsondergang donker, of een kwartier tot een uur eerder of later (en licht net zoveel later of eerder).',
