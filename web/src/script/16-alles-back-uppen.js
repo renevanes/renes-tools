@@ -197,7 +197,7 @@ window.onRestoreDone = function(r){
     if (restoreKind === 'checkin' && typeof ciAfter === 'function') ciAfter();
     if (restoreKind === 'notes') { notes = null; notesBroken = false; refreshNotesTile(); }
     if (restoreKind === 'route' && current === 'tracks') enterTracks();
-    if (restoreKind === 'settings') { webStoreRestore(); if (typeof renderHome === 'function') try { renderHome(); } catch(e){} }
+    if (restoreKind === 'settings') { webStoreRestore(); if (typeof rgReload === 'function') rgReload(); if (typeof renderHome === 'function') try { renderHome(); } catch(e){} }
   } else toast(r);
 };
 

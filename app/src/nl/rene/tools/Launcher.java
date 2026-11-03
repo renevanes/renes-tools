@@ -231,7 +231,7 @@ final class Launcher {
         if (phonePlace(c) != null) return "";
         Regio.Cfg r = Regio.cfg(c);
         if (Regio.place(r) != null) return Regio.placeName(r);
-        return r.home != null ? (r.homeName.isEmpty() ? "Thuis" : r.homeName) : "";
+        return r.home() != null ? (r.homeName.isEmpty() ? "Thuis" : r.homeName) : "";
     }
 
     static double[] phonePlace(Context c) {

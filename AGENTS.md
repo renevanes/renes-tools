@@ -46,7 +46,11 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `Regio.java` (`Regio.df`, `Regio.fmt`, `Regio.num`, `Regio.dist`, `Regio.deg`, `Regio.size`), nooit zelf met
   `toLocaleString('nl-NL')`, `toFixed().replace('.', ',')` of `SimpleDateFormat` met Nederlands. Machinale notaties (ISO voor
   opslag, bestandsnamen, parameters, tekst voor het taalmodel) blijven vast. `tests/ui/regio-guard.test.js` bewaakt dat
-  (met een lijst uitzonderingen en de reden). Thuis, werk en de standaardplaats: `rgPlace()` / `Regio.home()`.
+  (met een lijst uitzonderingen en de reden). Thuis, werk en de standaardplaats: `rgPlace()` / `Regio.home()`; thuis en
+  werk staan alleen in Java (`regio.xml`, niet in localStorage/webstore en niet in de Android-backup). Getallen uit een
+  invoerveld: `parseNum()`, vooraf invullen met `fmtNumIn()`.
+  Datum-alleen-waarden en daglogica (vandaag) volgen de telefoon; er is geen eigen tijdzone.
+  Tekst voor het taalmodel blijft vast nl-NL (niet via de helpers).
 - **Interface**: gebruik de kleurrollen uit `stijl.css` (nooit vaste kleuren als `#fff` op `--primary`: in donker is
   `--primary` licht). Elk scherm heeft `<div class="hdr">` met terugknop en `<h1>`; detailschermen `class="hdr sm"`.
 

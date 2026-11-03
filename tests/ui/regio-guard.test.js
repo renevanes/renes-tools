@@ -14,13 +14,15 @@ const rd = p => fs.readFileSync(path.join(root, p), 'utf8');
 const JS_FILES_OK = {
   'web/src/script/02-regio.js': 'de helpers zelf',
   'web/src/script/43-regio-en-taal.js': 'het scherm Regio en taal (lijst met tijdzones, tijdzone van de telefoon)',
-  'web/src/script/01-testbrug.js': 'testbrug, niet in de app'
+  'web/src/script/01-testbrug.js': 'testbrug, niet in de app',
+  'web/neutraal.html': 'de neutrale versie (na een verkeerde app-code): een losse rekenhulp zonder app-instellingen of brug, bewust vast nl-NL'
 };
 // Regels die bewust zo blijven: [bestand, stukje tekst, reden]
 const JS_LINES_OK = [
   ['web/src/script/63-facturen.js', "toLocaleDateString('sv-SE')", 'ISO-datum (jjjj-mm-dd) voor opslag en invoervelden'],
   ['web/src/schermen/39-facturen.html', "toLocaleDateString('sv-SE')", 'ISO-datum in een invoerveld (type=date)'],
-  ['web/src/script/55-checkin-bewerken.js', "esc(String(o.value).replace('.', ','))", 'invoerveld voor een waarde (wordt weer ingelezen)'],
+  ['web/src/script/51-assistent.js', "d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })", 'aiSumLines: tekst voor het taalmodel blijft vast nl-NL'],
+  ['web/src/script/51-assistent.js', "d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + ' ' + (m.me", 'aiSumLines: tekst voor het taalmodel blijft vast nl-NL'],
 ];
 const JS_BAD = [
   [/\.toLocale(String|DateString|TimeString)\s*\(/, 'toLocale…() (gebruik fmtDate, fmtTime, fmtDT of fmtNum)'],
@@ -29,9 +31,12 @@ const JS_BAD = [
   [/\.toFixed\(\d\)\s*\.replace\(\s*['"]\.['"]\s*,\s*['"],['"]\s*\)/, "toFixed().replace('.', ',') (gebruik fmtNum)"],
   [/\.replace\(\s*['"]\.['"]\s*,\s*['"],['"]\s*\)/, "replace('.', ',') voor een getal (gebruik fmtNum)"],
   [/['"]€ ?['"]\s*\+/, "'€ ' + bedrag (gebruik fmtMoney)"],
+  [/\.replace\(\s*\/\\\.\/g?\s*,\s*['"],['"]\s*\)/, "replace(/\\./, ',') voor een getal (gebruik fmtNum)"],
+  [/\.toFixed\([^)]*\)\s*\+\s*['"]\s*(km|mi|m|kB|MB|GB|km\/u|mph|°C?)['"]/, "toFixed() + eenheid (gebruik fmtDist, fmtSize, fmtSpeed of fmtTemp)"],
+  [/\+\s*['"]°[CF]?['"]/, "+ '°' (gebruik fmtTemp)"],
 ];
-const jsFiles = fs.readdirSync(path.join(root, 'web/src/script')).filter(f => f.endsWith('.js')).map(f => 'web/src/script/' + f)
-  .concat(fs.readdirSync(path.join(root, 'web/src/schermen')).filter(f => f.endsWith('.html')).map(f => 'web/src/schermen/' + f), ['web/src/vensters.html', 'web/src/speler.html']);
+const jsFiles = ['web/neutraal.html'].concat(fs.readdirSync(path.join(root, 'web/src/script')).filter(f => f.endsWith('.js')).map(f => 'web/src/script/' + f)
+  .concat(fs.readdirSync(path.join(root, 'web/src/schermen')).filter(f => f.endsWith('.html')).map(f => 'web/src/schermen/' + f), ['web/src/vensters.html', 'web/src/speler.html']));
 const bad = [];
 const strip = l => l.replace(/\/\*.*?\*\//g, '').replace(/(^|[^:'"\\])\/\/.*$/, '$1'); // opmerkingen tellen niet
 for (const f of jsFiles) {
@@ -42,6 +47,7 @@ for (const f of jsFiles) {
   });
 }
 ok(!bad.length, 'interface: geen vaste notaties buiten de helpers' + (bad.length ? ':\n  ' + bad.join('\n  ') : ''));
+for (const f of Object.keys(JS_FILES_OK)) ok(fs.existsSync(path.join(root, f)), 'uitzondering bestaat: ' + f);
 
 // Telefoon-skin: alleen in het blok "Regio en taal"
 {
@@ -56,17 +62,21 @@ ok(!bad.length, 'interface: geen vaste notaties buiten de helpers' + (bad.length
 // ---------- Java ----------
 // Een SimpleDateFormat met Nederlands, of Locale.GERMANY/replace voor getallen, is een notatie voor Rene: via Regio.
 // Machinale patronen (Locale.US/ROOT: bestandsnamen, ISO, logboek) mogen gewoon.
+const JAVA_FILES_OK = { 'Regio.java': 'de helper zelf' };
+// Regels die bewust vast blijven: [bestand, stukje tekst, reden]
 const JAVA_OK = [
-  ['Regio.java', 'de helper zelf'],
-  ['AiSpeech.java', 'taal van de stem (geen notatie)'], ['TtsCheck.java', 'taal van de stem (geen notatie)'],
-  ['LocBridge.java', 'taal voor het zoeken van adressen (geen notatie)'],
-  ['LocalAi.java', 'datum en groottes in de vaste tekst voor het taalmodel'],
-  ['SmartSearch.java', 'datums in de zoekindex voor het taalmodel'],
-  ['AiData.java', 'tekst voor het taalmodel'], ['CheckinStore.java', 'tekst voor het taalmodel en de zoekindex'],
-  ['FacturenAanlever.java', 'datum in de brief aan de accountant (vast sjabloon met eigen tijdzone)'],
-  ['FacturenDossier.java', 'bedrag in de CSV voor de accountant (vaste notatie)'],
-  ['Car.java', 'kilometers in de ritten-export voor de belasting (altijd km)'],
-  ['Secure.java', 'datum in inhoud.txt binnen het versleutelde archief (zonder Context)'],
+  ['LocalAi.java', 'new java.text.SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL"))', 'datum in de vaste tekst voor het taalmodel'],
+  ['SmartSearch.java', 'new java.text.SimpleDateFormat("d MMM yyyy HH:mm", new java.util.Locale("nl", "NL"))', 'datums in de zoekindex voor het taalmodel'],
+  ['SmartSearch.java', 'new java.text.SimpleDateFormat("EEEE d MMMM", new java.util.Locale("nl", "NL"))', 'nachten in de zoekindex voor het taalmodel'],
+  ['AiData.java', "m.group(1).replace('.', ',')", 'plek in tekst voor het taalmodel'],
+  ['AiData.java', 'String.format(Locale.ROOT, "%.1f", v).replace(\'.\', \',\')', 'getal in tekst voor het taalmodel'],
+  ['CheckinStore.java', 'String.format(Locale.ROOT, "%.1f", avg).replace(\'.\', \',\')', 'gemiddelde in tekst voor het taalmodel en de zoekindex'],
+  ['CheckinStore.java', "String.valueOf(v).replace('.', ',')", 'getal in tekst voor het taalmodel en de zoekindex'],
+  ['FacturenAanlever.java', 'new java.text.SimpleDateFormat("d MMMM yyyy", new Locale("nl"))', 'datum in de brief aan de accountant (vast sjabloon met eigen tijdzone)'],
+  ['FacturenDossier.java', 'String.format(Locale.ROOT, "%.2f", Double.parseDouble(v)).replace(\'.\', \',\')', 'bedrag in de CSV voor de accountant (vaste notatie)'],
+  ['Car.java', 'String.format(Locale.GERMANY, "%.1f", km)', 'kilometers in de ritten-export voor de belasting (altijd km, vaste notatie)'],
+  ['Car.java', 'String.format(Locale.GERMANY, "%.1f", zak)', 'totaal in de ritten-export voor de belasting'],
+  ['Secure.java', 'new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL")).format(new Date())', 'datum in inhoud.txt binnen het versleutelde archief (zonder Context)'],
 ];
 const JAVA_BAD = [
   [/new\s+(java\.text\.)?SimpleDateFormat\([^)]*new\s+(java\.util\.)?Locale\("nl"/, 'SimpleDateFormat met Nederlands (gebruik Regio.df of Regio.fmt)'],
@@ -75,13 +85,13 @@ const JAVA_BAD = [
 ];
 const jdir = 'app/src/nl/rene/tools', jbad = [];
 for (const f of fs.readdirSync(path.join(root, jdir)).filter(f => f.endsWith('.java'))) {
-  if (JAVA_OK.some(x => x[0] === f)) continue;
-  rd(jdir + '/' + f).split('\n').forEach((line, i) => { for (const [re, why] of JAVA_BAD) if (re.test(line)) jbad.push(f + ':' + (i + 1) + ' ' + why + ': ' + line.trim().slice(0, 120)); });
+  if (JAVA_FILES_OK[f]) continue;
+  rd(jdir + '/' + f).split('\n').forEach((line, i) => { for (const [re, why] of JAVA_BAD) if (re.test(line) && !JAVA_OK.some(([af, part]) => af === f && line.includes(part))) jbad.push(f + ':' + (i + 1) + ' ' + why + ': ' + line.trim().slice(0, 120)); });
 }
 ok(!jbad.length, 'Java: geen vaste notaties voor Rene buiten Regio' + (jbad.length ? ':\n  ' + jbad.join('\n  ') : ''));
 // De uitzonderingen moeten nog nodig zijn (anders weghalen)
 for (const [f, part] of JS_LINES_OK) ok(rd(f).includes(part), 'uitzondering nog nodig: ' + f + ' (' + part + ')');
-for (const [f] of JAVA_OK) ok(fs.existsSync(path.join(root, jdir, f)), 'uitzondering bestaat: ' + f);
+for (const [f, part] of JAVA_OK) ok(rd(jdir + '/' + f).includes(part), 'uitzondering nog nodig: ' + f + ' (' + part.slice(0, 50) + ')');
 
 // De helpers zitten vóór de schermen in de volgorde (thema en kern gebruiken ze al bij het laden)
 {

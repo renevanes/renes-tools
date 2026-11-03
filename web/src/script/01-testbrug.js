@@ -26,7 +26,7 @@ if (!window.Android) window.Android = (function(){
       steps.forEach((s, i) => setTimeout(() => { if (s) { this._updLog.push(s); onUpdateStatus(s); } if (i === steps.length - 1) this._upd = false; }, (this._updMs || 60) * (i + 1)));
     }, permissions:()=>JSON.stringify({call:true,phoneState:true,callLog:true,notifications:true}),
     requestPermissions(){}, openAppSettings(){}, pickContact(){ onContactPicked({number:'010 123 4567', name:'Huisarts'}); },
-    setBars(t, b, l){ this._bars = [t, b, l]; }, themeColors(){ return this._theme ? JSON.stringify(this._theme) : ''; }, themeSet(j){ this._themeCfg = j; }, regioSet(j){ this._regioCfg = j; }, themeLocation(){ return this._themeLoc || ''; }, themeDark(){ return !!this._themeDark; }, vibrate(){}, toast(m){ toast(m); }, pendingOpen:()=>'',
+    setBars(t, b, l){ this._bars = [t, b, l]; }, themeColors(){ return this._theme ? JSON.stringify(this._theme) : ''; }, themeSet(j){ this._themeCfg = j; }, regioSet(j){ this._regioCfg = j; }, regioSpots(){ return this._regioSpots || '{}'; }, regioSpotsSet(j){ this._regioSpots = j; return true; }, themeLocation(){ return this._themeLoc || ''; }, themeDark(){ return !!this._themeDark; }, vibrate(){}, toast(m){ toast(m); }, pendingOpen:()=>'',
     redialStart(n,name,a,i){ st={running:true,number:n,name,attempt:1,maxAttempts:a,interval:i,phase:'dialing',message:'Bellen…'}; t0=Date.now(); timer=setInterval(tick,300); return ''; },
     redialStart2(n,name,a,i,rmin,rmax){ const r=this.redialStart(n,name,a,rmin?rmin:i); st.randomMin=rmin; st.randomMax=rmax; return r; },
     redialStop(){ clearInterval(timer); st={...st,running:false,phase:'done',result:'stopped',message:'Gestopt'}; },
@@ -420,7 +420,7 @@ if (!window.Android) window.Android = (function(){
       { key: 'a:C2:7E:01:02:03:04', addr: 'C2:7E:01:02:03:04', name: '', type: 'tracker', maker: 'Apple', rssi: -66, avg: -66, dist: 2.5, ago: 1, bonded: false, ble: true, classic: false, rotating: false, n: 1, stable: true, near: true,
         tracker: { kind: 'airtag', label: 'AirTag', sep: true, warn: true } } ]; },
     _apKnow(d){ const k = this._ap.known[d.key]; return Object.assign({}, d, { nick: k ? k.nick : '', known: !!k }); },
-    apState(){ let rh = false; try { rh = !!(JSON.parse(this._regioCfg || '{}') || {}).home; } catch (e) { } return JSON.stringify({ set: Object.assign({}, this._ap.set, { homeRegio: !this._ap.set.home && rh }), perms: this._ap.perms, muted: false }); },
+    apState(){ let rh = false; try { rh = !!(JSON.parse(this._regioSpots || '{}') || {}).home; } catch (e) { } return JSON.stringify({ set: Object.assign({}, this._ap.set, { homeRegio: !this._ap.set.home && rh }), perms: this._ap.perms, muted: false }); },
     apSet(j){ const o = JSON.parse(j); Object.keys(o).forEach(k => { if (['bg', 'every', 'trackers', 'hist', 'keep', 'away'].includes(k)) this._ap.set[k] = o[k]; }); return ''; },
     apBtStart(classic){ const P = this._ap.perms; if (!P.bt) return 'perm'; if (!P.btOn) return 'uit'; this._ap.scanning = true; this._ap.bt = this._apDevs(); setTimeout(() => { this._ap.scanning = false; }, 400); return ''; },
     apBt(){ return JSON.stringify({ devices: (this._ap.bt || []).map(d => this._apKnow(d)), scanning: this._ap.scanning, err: '',

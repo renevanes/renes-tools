@@ -111,7 +111,8 @@ function trEnds(line){
   if (!line || line.length < 2 || typeof rgNear !== 'function') return '';
   const pt = x => ({ lat: x[0], lon: x[1] }), a = rgNear(pt(line[0])), b = rgNear(pt(line[line.length - 1]));
   if (!a && !b) return '';
-  return ' · ' + (a ? a.toLowerCase() : 'onderweg') + ' → ' + (b ? b.toLowerCase() : 'onderweg');
+  const lc = n => n === 'Thuis' || n === 'Werk' ? n.toLowerCase() : n; // eigen namen houden hun hoofdletters
+  return ' · ' + (a ? lc(a) : 'onderweg') + ' → ' + (b ? lc(b) : 'onderweg');
 }
 function trSave(){ const err = Android.trackSave($('#tr-name').value.trim()); if (err) { toast(err); return; } $('#tr-name').value=''; toast('Route opgeslagen ✓'); loadTrackList(); trackPollOnce(); }
 function trDiscard(){ askConfirm('Opname weggooien?', 'De opgenomen punten gaan verloren.', 'Weggooien', () => { Android.trackDiscard(); $('#tr-name').value=''; trackPollOnce(); }); }

@@ -134,5 +134,7 @@ input[type=tel],textarea.key,.ntext{border-radius:8px;border-color:var(--outline
 .rg-spot{display:block;margin:2px 0 0;overflow-wrap:anywhere}
 #rgp-results .srow{margin-bottom:6px}
 #rgp-here{margin-top:4px}
-#s-setregio .setrow{flex-wrap:nowrap}#s-setregio .setrow>label{min-width:0}
+#s-setregio .setrow{flex-wrap:nowrap}#s-setregio .setrow>label{min-width:5.5em;overflow-wrap:anywhere;hyphens:manual}
+.rg-part{white-space:nowrap}#s-setregio .setrow.rg-hasnote{padding-bottom:4px}
+.rg-val{color:var(--muted);text-align:right;min-width:0;overflow-wrap:anywhere}
 #s-setregio .setrow>.sel{flex:0 1 auto;max-width:60%;min-width:0;text-overflow:ellipsis}

@@ -272,7 +272,7 @@ function aeAddWait(){ (aeRule.steps = aeRule.steps || []).push({ t: 'wait', ms: 
 function aeEditStep(i){
   const s = aeRule.steps[i]; if (!s) return;
   if (s.t === 'wait') {
-    askInput('Wachten', 'Aantal seconden', String((s.ms || 1000) / 1000), 'OK', v => { const n = parseFloat(String(v).replace(',', '.')); if (n > 0) { s.ms = Math.round(Math.min(30, n) * 1000); aeRender(); } });
+    askInput('Wachten', 'Aantal seconden', fmtNumIn((s.ms || 1000) / 1000), 'OK', v => { const n = parseNum(v); if (n > 0) { s.ms = Math.round(Math.min(30, n) * 1000); aeRender(); } });
   } else if (s.t === 'tap') {
     askInput('Tik op tekst', 'De tekst op de knop', s.text || s.desc || '', 'OK', v => { v = v.trim(); if (!v) return; s.text = v.slice(0, 60); delete s.desc; aeRender(); });
   }

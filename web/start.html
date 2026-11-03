@@ -21,7 +21,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 body.drawer-on #home{transform:translateY(-6%) scale(.97);opacity:.25;pointer-events:none}
 .onwall{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.45)}
 #clock{display:block;text-align:left;width:100%;padding:8px 6px 4px}
-#time{display:block;font-size:var(--clk,76px);font-weight:200;letter-spacing:-2px;line-height:1;font-variant-numeric:tabular-nums}
+#time{display:block;font-size:var(--clk,76px);font-weight:200;letter-spacing:-2px;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}#time .ampm{font-size:.34em;font-weight:400;letter-spacing:0;margin-left:.15em}
 #date{display:block;font-size:18px;font-weight:500;margin-top:6px}
 #alarm{font-size:14px;padding:2px 6px;opacity:.95;min-height:0}
 .card{padding:14px 16px;margin-top:12px}
@@ -32,7 +32,7 @@ body.drawer-on #home{transform:translateY(-6%) scale(.97);opacity:.25;pointer-ev
 #weather .wd b{display:block;color:var(--ink);font-size:14px}
 .wdays{display:flex;gap:6px;margin-top:4px}.wdays span{flex:1;text-align:center;font-size:12px;color:var(--muted)}.wdays b{display:block;font-size:18px}
 .ev{display:flex;gap:10px;width:100%;text-align:left;padding:7px 0;border-top:1px solid var(--line);align-items:flex-start}.ev:first-of-type{border-top:0}
-.ev i{width:4px;align-self:stretch;border-radius:3px;background:var(--acc);flex:none}.ev .et{width:62px;flex:none;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ev i{width:4px;align-self:stretch;border-radius:3px;background:var(--acc);flex:none}.ev .et{min-width:62px;max-width:40%;flex:none;font-size:13px;white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums}
 .ev b{display:block;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ev small{color:var(--muted);font-size:12px}.ev>div{flex:1;min-width:0}
 .radio{display:flex;align-items:center;gap:10px}.radio .rn{flex:1;min-width:0}.radio .rn b{display:block;font-size:15px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .radio .rn small{display:block;color:var(--muted);font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -743,8 +743,7 @@ let skRgC = null, skRgT = 0;
 function skRg(){
   if (skRgC && Date.now() - skRgT < 60000) return skRgC;
   let o = {}; try { if (typeof Android.regio === 'function') o = JSON.parse(Android.regio() || '{}') || {}; } catch(e){ o = {}; }
-  let tz = typeof o.tz === 'string' ? o.tz : ''; try { if (tz) new Intl.DateTimeFormat('en', {timeZone: tz}); } catch(e){ tz = ''; }
-  skRgC = {loc: 'nl-NL', h12: o.clock === '12', date: o.date === 'iso' || o.date === 'dmon' ? o.date : 'dmy', tz, f: o.temp === 'f', dec: o.dec === '.' ? '.' : ',', grp: typeof o.grp === 'string' && o.grp.length <= 1 ? o.grp : '.'};
+  skRgC = {loc: 'nl-NL', h12: o.clock === '12', date: o.date === 'iso' || o.date === 'dmon' ? o.date : 'dmy', f: o.temp === 'f', dec: o.dec === '.' ? '.' : ',', grp: typeof o.grp === 'string' && o.grp.length <= 1 ? o.grp : '.'};
   if (skRgC.grp === skRgC.dec) skRgC.grp = skRgC.dec === ',' ? '.' : ',';
   skRgT = Date.now(); return skRgC;
 }
@@ -752,21 +751,30 @@ function skFmt(t, o){
   const d = t instanceof Date ? t : new Date(t), c = skRg(), x = Object.assign({}, o);
   if (isNaN(d.getTime())) return '';
   if (x.hour) { if (c.h12) { x.hour12 = true; if (x.hour === '2-digit') x.hour = 'numeric'; } else x.hourCycle = 'h23'; }
-  if (c.tz) x.timeZone = c.tz;
   if (x.day && x.month && x.year && !x.weekday) {
-    if (c.date === 'iso') { const p = {}; new Intl.DateTimeFormat('en-US', {timeZone: c.tz || undefined, year: 'numeric', month: '2-digit', day: '2-digit'}).formatToParts(d).forEach(q => { p[q.type] = q.value; }); return p.year + '-' + p.month + '-' + p.day; }
+    if (c.date === 'iso') return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     if (c.date === 'dmon' && (x.month === 'numeric' || x.month === '2-digit')) x.month = 'short';
   }
   return new Intl.DateTimeFormat(c.loc, x).format(d);
 }
+/* De klok: bij 12 uur "a.m."/"p.m." klein erachter (en nooit op een tweede regel) */
+function skClock(d){
+  const c = skRg(), x = c.h12 ? {hour: 'numeric', minute: '2-digit', hour12: true} : {hour: '2-digit', minute: '2-digit', hourCycle: 'h23'};
+  return new Intl.DateTimeFormat(c.loc, x).formatToParts(d).map(p => p.type === 'dayPeriod' ? '<small class=ampm>' + esc(p.value) + '</small>' : p.type === 'literal' && /^\s+$/.test(p.value) && c.h12 ? '' : esc(p.value)).join('');
+}
+/* Getal met het decimaalteken en de duizendtallen van de app */
+function skNum(v, digits){
+  const c = skRg(), s = Math.abs(v).toFixed(digits || 0), [i, f] = s.split('.'), g = c.grp === ' ' ? '\u202f' : c.grp;
+  return (v < 0 && /[1-9]/.test(s) ? '-' : '') + i.replace(/\B(?=(\d{3})+(?!\d))/g, g) + (f ? c.dec + f : '');
+}
 const fmtDT = (t, o) => skFmt(t, o), fmtDate = (t, o) => skFmt(t, o || {day: 'numeric', month: 'numeric', year: 'numeric'}), fmtTime = (t, o) => skFmt(t, o || {hour: '2-digit', minute: '2-digit'});
 /* "18°" uit graden Celsius */
-function fmtTemp(c){ if (c == null || !isFinite(+c)) return '–'; const k = skRg(), v = Math.round(k.f ? +c * 9 / 5 + 32 : +c); return v + '°'; }
+function fmtTemp(c){ if (c == null || !isFinite(+c)) return '–'; const k = skRg(); return skNum(Math.round(k.f ? +c * 9 / 5 + 32 : +c)) + '°'; }
 
 /* ---------- klok, wekker ---------- */
 function tickClock(){
   const d = new Date();
-  $('#time').textContent = fmtTime(d, {hour: '2-digit', minute: '2-digit'});
+  $('#time').innerHTML = skClock(d);
   const ds = fmtDate(d, {weekday: 'long', day: 'numeric', month: 'long'});
   $('#date').textContent = ds.charAt(0).toUpperCase() + ds.slice(1);
   const a = Android.nextAlarm();

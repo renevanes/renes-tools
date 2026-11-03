@@ -36,7 +36,7 @@ function apPlace(p){
   if (!p) return '';
   if (p === 'thuis') return 'thuis';
   const m = /^(-?\d+\.\d+),(-?\d+\.\d+)$/.exec(p); if (!m) return 'elders';
-  return 'elders (rond ' + fmtNum(+m[1], { maximumFractionDigits: 2 }) + ' N, ' + fmtNum(+m[2], { maximumFractionDigits: 2 }) + ' O, ±' + fmtDist(1000, 0) + ')';
+  return 'elders (rond ' + fmtNum(+m[1], { maximumFractionDigits: 2 }) + ' N, ' + fmtNum(+m[2], { maximumFractionDigits: 2 }) + ' O, ±' + (rgCfg().dist === 'mi' ? fmtDist(1000, 1) : fmtDist(1000, 0)) + ')';
 }
 
 /* ---------- in en uit ---------- */

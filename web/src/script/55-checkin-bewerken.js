@@ -34,7 +34,7 @@ function cedSync(){
   if (!cedQ || current !== 'checkined') return;
   cedQ.text = $('#ced-text').value; cedQ.emoji = $('#ced-emoji').value.trim();
   document.querySelectorAll('#ced-opts .ci-optrow').forEach((r, i) => { const o = cedQ.options[i]; if (!o) return;
-    o.emoji = r.querySelector('.oe').value.trim(); o.label = r.querySelector('.ol').value; const v = parseFloat(String(r.querySelector('.ov').value).replace(',', '.')); o.value = isNaN(v) ? o.value : v; });
+    o.emoji = r.querySelector('.oe').value.trim(); o.label = r.querySelector('.ol').value; const v = parseNum(r.querySelector('.ov').value); o.value = v == null ? o.value : v; });
   const ts = [...document.querySelectorAll('#ced-times input[type=time]')].map(e => e.value).filter(Boolean);
   if (ts.length) cedQ.times = cedQ.rhythm === 'multi' ? ts : [ts[0]].concat(cedQ.times.slice(1));
   cedQ.until = $('#ced-until').value || '23:59';
@@ -59,7 +59,7 @@ function cedRender(){
   $('#ced-opts').innerHTML = q.options.map((o, i) => '<div class="ci-optrow" role="listitem">' +
     '<input class="ci-in oe" value="' + esc(o.emoji) + '" maxlength="16" aria-label="Emoji van antwoord ' + (i + 1) + '" autocomplete="off">' +
     '<input class="ci-in ol" value="' + esc(o.label) + '" maxlength="40" aria-label="Naam van antwoord ' + (i + 1) + '" autocomplete="off">' +
-    '<input class="ci-in ov" type="text" inputmode="decimal" value="' + esc(String(o.value).replace('.', ',')) + '" aria-label="Waarde van antwoord ' + (i + 1) + '" autocomplete="off">' +
+    '<input class="ci-in ov" type="text" inputmode="decimal" value="' + esc(fmtNumIn(o.value)) + '" aria-label="Waarde van antwoord ' + (i + 1) + '" autocomplete="off">' +
     (q.scale === 'custom' && n > 2 ? '<button class="iconbtn" data-i="' + i + '" onclick="cedOptDel(+this.dataset.i)" aria-label="Antwoord ' + (i + 1) + ' weghalen">' + uiIcon('close') + '</button>' : '') + '</div>').join('');
   $('#ced-opt-add').style.display = q.scale === 'custom' && n < 7 ? '' : 'none';
   cedRadios('#ced-rhythm', CED_RHYTHMS, q.rhythm, 'cedRhythm');

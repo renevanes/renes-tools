@@ -109,15 +109,19 @@ function setIntent(q){
   if ((m = /^waar (?:vind|zie|zet|stel|verander|regel|kan|zit|staat|staan|zitten|pas) (?:ik |je |jij )?(.+?)(?: (?:vinden|instellen|aanzetten|uitzetten|aanpassen|veranderen|zien|in|aan|uit))*$/.exec(s))) return { kind: 'waar', x: m[1] };
   if ((m = /^(?:wat|hoe) (?:staat|staan) (.+?) (?:op|ingesteld)$/.exec(s)) || (m = /^(?:staat|staan|is) (.+?) (?:aan|uit|ingeschakeld|uitgeschakeld|ingesteld)$/.exec(s))) return { kind: 'stand', x: m[1] };
   // Regio en taal: "gebruik mijlen", "toon temperaturen in fahrenheit", "valuta dollar" (alleen als de waarde past)
-  if ((m = new RegExp('^' + SET_PRE + '(?:gebruik|toon (?:alles |de \\w+ |\\w+ )?in|reken (?:in|met)|schrijf (?:alles |de \\w+ |\\w+ )?in)\\s+(?:de |het |alleen )?(.+)$').exec(s))) { const r = setRgUse('', m[1]); if (r) return r; }
-  if ((m = /^(valuta|munteenheid|munt|afstand|temperatuur|tijdnotatie|tijdsnotatie|tijdzone|datumnotatie|snelheid|inhoud|decimaalteken|taal)\s+(?:op |naar |in )?(.+)$/.exec(s))) { const r = setRgUse(m[1], m[2]); if (r) return r; }
+  if ((m = new RegExp('^' + SET_PRE + '(?:gebruik|(?:toon|schrijf|laat) (?:(?:alles|de|het|mijn) )?(?:\\w+ )?(?:zien )?in)\\s+(?:de |het |alleen )?(.+)$').exec(s))) { const r = setRgUse('', m[1]); if (r) return r; }
+  // "reken in dollars": alleen munten
+  if ((m = new RegExp('^' + SET_PRE + 'reken (?:in|met)\\s+(?:de |het )?(.+)$').exec(s))) { const r = setRgUse('', m[1], ['regio.valuta']); if (r) return r; }
+  // "begin de week op zondag"
+  if ((m = new RegExp('^' + SET_PRE + '(?:begin|start|laat) (?:de|mijn) week (?:op|met|beginnen op|beginnen met) (\\w+)$').exec(s))) { const r = setRgUse('week', m[1]); if (r) return r; }
+  if ((m = /^(valuta|standaardvaluta|munteenheid|munt|afstand|temperatuur|tijdnotatie|tijdsnotatie|datumnotatie|snelheid|decimaalteken|taal)\s+(?:op |naar |in )?(.+)$/.exec(s))) { const r = setRgUse(m[1], m[2]); if (r) return r; }
   if (SET_Q.test(s)) return { kind: 'vraag', x: s };
   return null;
 }
 /* Een waarde van Regio en taal ("mijlen", "dollar", "12-uurs"): welke instelling past erbij? word = het genoemde onderwerp */
-function setRgUse(word, raw){
+function setRgUse(word, raw, only){
   // Zonder onderwerp alleen eenheden, klok en valuta ("gebruik de telefoon" of "gebruik thuis" is geen instelling)
-  const RG_USE = ['regio.klok', 'regio.afstand', 'regio.temperatuur', 'regio.inhoud', 'regio.snelheid', 'regio.valuta'];
+  const RG_USE = only || ['regio.klok', 'regio.afstand', 'regio.temperatuur', 'regio.snelheid', 'regio.valuta'];
   const list = SET_REG.filter(e => e.id.startsWith('regio.') && setCanChange(e) && (word || RG_USE.includes(e.id)));
   const pick = word ? setFind(word, list).filter(h => h.s >= SET_MIN).map(h => h.e) : list;
   const e = pick.find(x => setValFor(x, raw) !== null);
@@ -133,10 +137,11 @@ function setValFor(e, raw){
   if (t !== 'keuze') return null;
   if (e.alias && e.alias[r]) return e.alias[r];
   const nm = x => norm2(x).replace(/[×x]$/, '').replace(',', '.').trim(), rr = nm(r);
-  let v = vals.find(x => nm(x[0]) === rr || nm(x[1]) === rr);
+  // noNum: een kaal getal is geen waarde ("zet de klok op 12 uur" is een tijdstip, geen 12-uurs klok)
+  let v = vals.find(x => (!e.noNum && nm(x[0]) === rr) || nm(x[1]) === rr);
   if (!v && SET_OFF.test(r)) v = vals.find(x => /^(uit|off)$/.test(nm(x[0])) || nm(x[1]) === 'uit');
   if (!v && rr.length >= 3) v = vals.find(x => nm(x[1]).startsWith(rr) || nm(x[1]).split(' ')[0] === rr);
-  if (!v && /^\d+([.]\d+)?$/.test(rr)) v = vals.find(x => parseFloat(nm(x[0])) === parseFloat(rr) || parseFloat(nm(x[1])) === parseFloat(rr));
+  if (!v && !e.noNum && /^\d+([.]\d+)?$/.test(rr)) v = vals.find(x => parseFloat(nm(x[0])) === parseFloat(rr) || parseFloat(nm(x[1])) === parseFloat(rr));
   return v ? v[0] : null;
 }
 /* "7:30", "07.30", "7 uur", "half 8" → "07:30" */
@@ -236,7 +241,8 @@ function setHandle(q){
       const e = valid[0].e;
       return Object.assign({ local: true }, setPropose(e, setValFor(e, raw)));
     }
-    if (ctop && ctop.s >= SET_MIN && short) {
+    // Regio en taal: nooit "Kies een van deze" ("zet de temperatuur op 20 graden" of "zet de datum op morgen" is geen notatie)
+    if (ctop && ctop.s >= SET_MIN && short && !ctop.e.id.startsWith('regio.')) {
       const e = ctop.e;
       if (!setCanChange(e) || setSafe(e, 'aan') && setSafe(e, 'uit')) return Object.assign({ local: true }, setPropose(e, ''));
       if (setType(e) === 'keuze') return { local: true, text: setB0(e.label) + (setNow(e) ? ' staat nu op ' + setNow(e) + '.' : '.') + ' Kies een van deze:', set: { choose: e.id, open: [e.id] } };

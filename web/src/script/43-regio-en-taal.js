@@ -5,15 +5,7 @@ function rgOpts(sel, list){
   if (el.dataset.k !== key) { el.innerHTML = list.map(x => '<option value="' + esc(x[0]) + '">' + esc(x[1]) + '</option>').join(''); el.dataset.k = key; }
   return el;
 }
-/* Tijdzones: zoals de telefoon, of een vaste (alle zones die de telefoon kent) */
-function rgZones(){
-  if (rgZones.c) return rgZones.c;
-  let z = [];
-  try { if (typeof Intl.supportedValuesOf === 'function') z = Intl.supportedValuesOf('timeZone'); } catch (e) { }
-  if (!z.length) z = ['Europe/Amsterdam', 'Europe/Brussels', 'Europe/London', 'Europe/Lisbon', 'Europe/Berlin', 'Europe/Paris', 'Europe/Madrid', 'Europe/Rome', 'Europe/Athens', 'Europe/Istanbul',
-    'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Paramaribo', 'America/Curacao', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Bangkok', 'Asia/Tokyo', 'Australia/Sydney', 'UTC'];
-  return (rgZones.c = z.map(x => [x, x.replace(/_/g, ' ')]));
-}
+/* De tijdzone volgt altijd de telefoon (alleen ter info) */
 function rgPhoneTz(){ try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } }
 function rgPlaceList(){
   const c = rgCfg();
@@ -23,8 +15,9 @@ function rgName(list, v){ const x = list.find(p => p[0] === String(v)); return x
 /* "dinsdag 3-11-2026 · 14:05 · € 1.234,56 · 12,5 km · 18 °C" */
 function rgPreview(){
   const n = Date.now();
-  return fmtDate(n, 'wdl') + ' ' + fmtDate(n) + ' · ' + fmtTime(n) + ' · ' + fmtMoney(1234.56) + ' · ' + fmtDist(12500) + ' · ' + fmtTemp(18);
+  return rgPreviewParts(n).join(' · ');
 }
+function rgPreviewParts(n){ return [fmtDate(n, 'wdl') + ' ' + fmtDate(n), fmtTime(n), fmtMoney(1234.56), fmtDist(12500), fmtTemp(18)]; }
 function rgSummary(){
   const c = rgCfg();
   return rgLang().name + ' · ' + (c.clock === '12' ? '12 uur' : '24 uur') + ' · ' + fmtDate(Date.now()) + ' · ' + distUnit() + ' · ' + rgCurInfo(c.cur).sym;
@@ -38,21 +31,20 @@ function rgRender(){
   rgOpts('#rg-date', RG_DATE).value = c.date;
   rgOpts('#rg-week', RG_WEEK).value = String(c.week);
   const ptz = rgPhoneTz();
-  rgOpts('#rg-tz', [['', 'Zoals de telefoon' + (ptz ? ' (' + ptz.replace(/_/g, ' ') + ')' : '')]].concat(rgZones())).value = c.tz;
-  $('#rg-tz-note').textContent = c.tz ? 'Tijden staan in ' + c.tz.replace(/_/g, ' ') + ', ook als je telefoon in een andere tijdzone staat. Wekkers en herinneringen blijven de klok van je telefoon volgen.' : 'De app volgt de tijdzone van je telefoon.';
+  $('#rg-tz').textContent = (ptz ? ptz.replace(/_/g, ' ') + ' ' : '') + '(volgt de telefoon)';
   rgOpts('#rg-place', rgPlaceList()).value = c.place;
   ['home', 'work'].forEach(w => { const p = c[w]; $('#rg-' + w + '-sub').textContent = p ? (p.name && p.name !== rgSpotName(w) ? p.name + ' · ' : '') + rgSpotText(p) : 'Nog niet ingesteld'; $('#rg-' + w + '-btn').textContent = p ? 'Wijzigen' : 'Kiezen'; });
   rgOpts('#rg-dist', RG_DIST).value = c.dist;
   rgOpts('#rg-temp', RG_TEMP).value = c.temp;
-  rgOpts('#rg-vol', RG_VOL).value = c.vol;
   rgOpts('#rg-size', RG_SIZE).value = c.size;
   rgOpts('#rg-speed', RG_SPEED).value = c.speed;
   rgOpts('#rg-cur', RG_CUR).value = c.cur;
   rgOpts('#rg-dec', RG_DEC).value = c.dec;
   // Duizendtallen: niet hetzelfde teken als de decimalen
   rgOpts('#rg-grp', RG_GRP.filter(x => x[0] !== c.dec)).value = c.grp;
-  const t = rgPreview(); if ($('#rg-prev').textContent !== t) $('#rg-prev').textContent = t;
-  $('#rg-num-prev').textContent = 'Voorbeeld: ' + fmtNum(1234567.89, 2) + ' · ' + fmtMoney(-1234.5) + ' · ' + fmtNum(0.5, 1) + ' · ' + fmtSize(1.5 * 1073741824) + ' · ' + fmtVol(40) + ' · ' + fmtSpeed(100, 0);
+  // Elk deel blijft heel (geen "€" aan het eind van een regel)
+  const t = rgPreview(); if ($('#rg-prev').textContent !== t) $('#rg-prev').innerHTML = rgPreviewParts(Date.now()).map(x => '<span class="rg-part">' + esc(x) + '</span>').join(' · ');
+  $('#rg-num-prev').textContent = 'Voorbeeld: ' + fmtNum(1234567.89, 2) + ' · ' + fmtMoney(-1234.5) + ' · ' + fmtNum(0.5, 1) + ' · ' + fmtSize(1.5 * 1073741824) + ' · ' + fmtSpeed(100, 0);
 }
 function rgSet(k, v){
   rgSave({ [k]: v });
@@ -61,7 +53,7 @@ function rgSet(k, v){
 }
 function rgReset(){
   const prev = rgCfg(), keep = { home: prev.home, work: prev.work };
-  askConfirm('Terug naar de standaard?', 'Nederlands, 24 uur, 3-11-2026, maandag, de tijdzone van je telefoon, km, °C, liter, euro en 1.234,56. Thuis en werk blijven bewaard.', 'Terugzetten', () => {
+  askConfirm('Terug naar de standaard?', 'Nederlands, 24 uur, 3-11-2026, maandag, km, °C, euro en 1.234,56. Thuis en werk blijven bewaard.', 'Terugzetten', () => {
     rgSave(Object.assign({}, RG_DEF, keep)); rgRender();
     undoToast('Regio en taal: standaard', () => { rgSave(prev); rgRender(); });
   });

@@ -113,9 +113,7 @@
         <select class="sel" id="rg-date" onchange="rgSet('date', this.value)"></select></div>
       <div class="row setrow"><label for="rg-week" style="flex:1">Eerste dag van de week</label>
         <select class="sel" id="rg-week" onchange="rgSet('week', +this.value)"></select></div>
-      <div class="row setrow"><label for="rg-tz" style="flex:1">Tijdzone</label>
-        <select class="sel" id="rg-tz" onchange="rgSet('tz', this.value)"></select></div>
-      <p class="note" id="rg-tz-note" style="margin-bottom:0"></p>
+      <div class="row setrow"><span style="flex:1">Tijdzone</span><span class="rg-val" id="rg-tz"></span></div>
     </div>
     <div class="card" id="rg-loc-card">
       <h2>Locatie</h2>
@@ -123,7 +121,7 @@
         <button class="big ghost rg-btn" id="rg-home-btn" onclick="rgPlek('home')">Kiezen</button></div>
       <div class="row setrow"><span style="flex:1;min-width:0"><b>Werk</b><small class="note rg-spot" id="rg-work-sub"></small></span>
         <button class="big ghost rg-btn" id="rg-work-btn" onclick="rgPlek('work')">Kiezen</button></div>
-      <div class="row setrow"><label for="rg-place" style="flex:1">Standaardplaats</label>
+      <div class="row setrow"><label for="rg-place" style="flex:1">Standaard&shy;plaats</label>
         <select class="sel" id="rg-place" onchange="rgSet('place', this.value)"></select></div>
       <p class="note" style="margin-bottom:0">De standaardplaats gebruikt de app als je locatie niet bekend is: voor het weer, het thema met de zon en kaarten. Thuis gebruiken ook Apparaten en Mijn routes.</p>
     </div>
@@ -131,13 +129,13 @@
       <h2>Eenheden</h2>
       <div class="row setrow"><label for="rg-dist" style="flex:1">Afstand</label><select class="sel" id="rg-dist" onchange="rgSet('dist', this.value)"></select></div>
       <div class="row setrow"><label for="rg-temp" style="flex:1">Temperatuur</label><select class="sel" id="rg-temp" onchange="rgSet('temp', this.value)"></select></div>
-      <div class="row setrow"><label for="rg-vol" style="flex:1">Inhoud</label><select class="sel" id="rg-vol" onchange="rgSet('vol', this.value)"></select></div>
       <div class="row setrow"><label for="rg-size" style="flex:1">Opslag</label><select class="sel" id="rg-size" onchange="rgSet('size', this.value)"></select></div>
       <div class="row setrow"><label for="rg-speed" style="flex:1">Snelheid</label><select class="sel" id="rg-speed" onchange="rgSet('speed', this.value)"></select></div>
     </div>
     <div class="card" id="rg-num-card">
       <h2>Valuta en getallen</h2>
-      <div class="row setrow"><label for="rg-cur" style="flex:1">Valuta</label><select class="sel" id="rg-cur" onchange="rgSet('cur', this.value)"></select></div>
+      <div class="row setrow rg-hasnote"><label for="rg-cur" style="flex:1">Standaard&shy;valuta</label><select class="sel" id="rg-cur" aria-describedby="rg-cur-note" onchange="rgSet('cur', this.value)"></select></div>
+      <p class="note" id="rg-cur-note" style="margin:0 2px 6px">Voor nieuwe bedragen en voorbeelden; bank en facturen tonen de valuta van het bedrag zelf.</p>
       <div class="row setrow"><label for="rg-dec" style="flex:1">Decimaalteken</label><select class="sel" id="rg-dec" onchange="rgSet('dec', this.value)"></select></div>
       <div class="row setrow"><label for="rg-grp" style="flex:1">Duizendtallen</label><select class="sel" id="rg-grp" onchange="rgSet('grp', this.value)"></select></div>
       <p class="note" id="rg-num-prev" aria-live="polite" style="margin-bottom:0"></p>
@@ -162,7 +160,7 @@
         <button class="big" id="rgp-search" style="width:auto;padding:10px 16px" onclick="rgpSearch()">Zoeken</button></div>
       <div id="rgp-results"></div>
       <button class="big ghost" id="rgp-here" onclick="rgpHere()"><span class="ui-icon" data-icon="pin" aria-hidden="true"></span> Mijn huidige locatie</button>
-      <p class="note">Het adres zoeken gaat via Android; je huidige locatie bepaalt de telefoon zelf. De plek blijft op je telefoon (en in je eigen backups).</p>
+      <p class="note">Het adres zoeken gaat via Android; je huidige locatie bepaalt de telefoon zelf. De plek blijft op je telefoon: niet in de Google-backup, wel in je eigen versleutelde backup "Alle appgegevens".</p>
       <div class="row" style="gap:8px">
         <button class="big" style="flex:1" id="rgp-save" onclick="rgpSave()">Bewaren</button>
         <button class="big ghost" style="flex:1" id="rgp-clear" onclick="rgpClear()">Wissen</button>

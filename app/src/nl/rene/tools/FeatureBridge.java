@@ -39,14 +39,29 @@ public class FeatureBridge {
 
     /** De interface geeft de keuze van Regio en taal door (zie Regio): meldingen, widgets en de skin schrijven dan hetzelfde. */
     @JavascriptInterface public void regioSet(String json) {
-        String before = Regio.json(ctx);
-        if (!Regio.save(ctx, json)) return;
-        String after = Regio.json(ctx);
-        if (after.equals(before)) return;
+        Regio.Cfg before = Regio.cfg(ctx);
+        String was = Regio.json(ctx);
+        if (!Regio.save(ctx, json) || Regio.json(ctx).equals(was)) return;
+        regioChanged(before);
+    }
+
+    /** Thuis en werk ({home, work}): alleen hier bewaard (regio.xml, niet in de Android-backup). */
+    @JavascriptInterface public String regioSpots() { return Regio.spots(ctx); }
+
+    @JavascriptInterface public boolean regioSpotsSet(String json) {
+        Regio.Cfg before = Regio.cfg(ctx);
+        String was = Regio.spots(ctx);
+        if (!Regio.saveSpots(ctx, json)) return false;
+        if (!Regio.spots(ctx).equals(was)) regioChanged(before);
+        return true;
+    }
+
+    /** Na een andere keuze: widgets opnieuw, en bij een andere plek het weer opnieuw ophalen. */
+    private void regioChanged(Regio.Cfg before) {
+        Regio.Cfg after = Regio.cfg(ctx);
         new Thread(() -> {
             try {
-                // Andere standaardplaats: het weer opnieuw ophalen (als er geen eigen plaats voor het weer is)
-                if (!java.util.Arrays.equals(Regio.place(Regio.parse(before)), Regio.place(Regio.parse(after))) || !java.util.Arrays.equals(Regio.parse(before).home, Regio.parse(after).home))
+                if (!java.util.Arrays.equals(Regio.place(before), Regio.place(after)) || !java.util.Arrays.equals(before.home(), after.home()))
                     Launcher.prefs(ctx).edit().remove("weather").apply();
                 for (Class<?> w : new Class<?>[]{HomeWidgets.Agenda.class, HomeWidgets.Weather.class, HomeWidgets.Overview.class, HomeWidgets.Park.class}) HomeWidgets.refresh(ctx, w);
             } catch (Throwable t) { App.log(ctx, "REGIO", String.valueOf(t)); }

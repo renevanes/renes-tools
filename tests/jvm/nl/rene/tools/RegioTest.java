@@ -31,6 +31,10 @@ public class RegioTest {
         eq(Regio.size(d, 5 * 1024, 1, 2), "5 kB", "kB");
         eq(Regio.size(d, 5L * 1024 * 1024 + 1024 * 300, 1, 2), "5,3 MB", "MB");
         eq(Regio.size(d, 3L * 1024 * 1024 * 1024, 1, 2), "3,00 GB", "GB");
+        eq(Regio.size(d, 1023L * 1024, 1, 2), "1023 kB", "geen duizendtallen bij kB (zoals altijd)");
+        eq(Regio.size(d, 1023L * 1024 * 1024, 1, 2), "1023,0 MB", "geen duizendtallen bij MB");
+        eq(Regio.money(d, -0.004, "EUR"), "€ 0,00", "afgerond nul: geen minteken");
+        eq(Regio.money(d, -0.005, "EUR"), "− € 0,01", "afgerond niet nul: wel een minteken");
 
         // 12-uurs klok
         Regio.Cfg h = Regio.parse("{\"clock\":\"12\"}");
@@ -49,10 +53,9 @@ public class RegioTest {
         Regio.Cfg dmon = Regio.parse("{\"date\":\"dmon\"}");
         eq(Regio.pattern(dmon, "d-M-yyyy"), "d MMM yyyy", "31 okt 2026: cijferdatum met maandnaam");
 
-        // Tijdzone
-        Regio.Cfg ny = Regio.parse("{\"tz\":\"America/New_York\"}");
-        eq(Regio.df(ny, "HH:mm").format(new java.util.Date(t)), "08:05", "vaste tijdzone (New York)");
-        check(Regio.parse("{\"tz\":\"Mars/Olympus\"}").tz.isEmpty() && Regio.parse("{\"tz\":\"../x\"}").tz.isEmpty(), "onbekende tijdzone: zoals de telefoon");
+        // Geen eigen tijdzone: altijd die van de telefoon (ook als er nog een oude keuze in staat)
+        eq(Regio.df(Regio.parse("{\"tz\":\"America/New_York\"}"), "HH:mm").format(new java.util.Date(t)), "14:05", "tijdzone van de telefoon");
+        check(!Regio.clean("{\"tz\":\"America/New_York\"}").contains("tz"), "tijdzone wordt niet bewaard");
 
         // Getallen, valuta en eenheden
         Regio.Cfg us = Regio.parse("{\"dec\":\".\",\"grp\":\",\",\"cur\":\"USD\",\"dist\":\"mi\",\"temp\":\"f\",\"size\":\"1000\"}");
@@ -63,22 +66,40 @@ public class RegioTest {
         eq(Regio.deg(us, 20), "68°", "Fahrenheit");
         eq(Regio.size(us, 2_500_000_000L, 1, 2), "2.50 GB", "1000 per stap");
         Regio.Cfg sp = Regio.parse("{\"grp\":\" \"}");
-        eq(Regio.num(sp, 1234567, 0), "1 234 567", "spatie voor duizendtallen");
+        eq(Regio.num(sp, 1234567, 0), "1\u202F234\u202F567", "spatie voor duizendtallen: smalle vaste spatie (U+202F)");
         eq(Regio.num(Regio.parse("{\"grp\":\"\"}"), 1234567, 0), "1234567", "geen teken voor duizendtallen");
         eq(Regio.parse("{\"dec\":\",\",\"grp\":\",\"}").grp, ".", "hetzelfde teken voor beide kan niet");
         eq(Regio.money(Regio.parse("{\"cur\":\"JPY\"}"), 1234.5, null), "¥ 1.235", "yen zonder decimalen");
 
-        // Thuis, werk en de standaardplaats
-        Regio.Cfg p = Regio.parse("{\"home\":{\"name\":\"Thuis\",\"lat\":51.9,\"lon\":4.4},\"place\":\"home\"}");
-        check(p.home != null && p.home[0] == 51.9 && Regio.place(p)[1] == 4.4 && "Thuis".equals(Regio.placeName(p)), "thuis als standaardplaats");
+        // Thuis, werk en de standaardplaats (thuis en werk apart: "spots")
+        Regio.Cfg p = Regio.parse("{\"place\":\"home\"}", "{\"home\":{\"name\":\"Thuis\",\"lat\":51.9,\"lon\":4.4}}");
+        check(p.home() != null && p.home()[0] == 51.9 && Regio.place(p)[1] == 4.4 && "Thuis".equals(Regio.placeName(p)), "thuis als standaardplaats");
+        double[] hc = p.home(); hc[0] = 0;
+        check(p.home()[0] == 51.9, "thuis is een kopie (de keuze verandert niet van buitenaf)");
+        check(Regio.parse("{\"home\":{\"lat\":51.9,\"lon\":4.4}}", "").home() == null, "thuis in de keuze zelf telt niet (alleen in spots)");
         check(Regio.place(Regio.parse("{\"place\":\"groningen\"}"))[0] == 53.22, "vaste plaats");
         check(Regio.place(d) == null, "mijn locatie: geen vaste plaats");
-        check(Regio.parse("{\"home\":{\"lat\":95,\"lon\":4}}").home == null, "onmogelijke plek geweigerd");
+        check(Regio.parse("", "{\"home\":{\"lat\":95,\"lon\":4}}").home() == null, "onmogelijke plek geweigerd");
 
         // Bewaren: alleen een gecontroleerde, opnieuw opgebouwde versie
         check(Regio.clean("kapot{") == null && Regio.clean("[1]") == null && Regio.clean(null) == null, "onleesbaar geweigerd");
-        String c = Regio.clean("{\"clock\":\"12\",\"evil\":\"<script>\",\"home\":{\"name\":\"Thuis\",\"addr\":\"Coolsingel 40\",\"lat\":51.92,\"lon\":4.48,\"x\":1}}");
-        check(c != null && !c.contains("evil") && !c.contains("\"x\"") && c.contains("Coolsingel 40") && Regio.parse(c).h12(), "schoon bewaard: " + c);
+        String c = Regio.clean("{\"clock\":\"12\",\"evil\":\"<script>\",\"home\":{\"name\":\"Thuis\",\"addr\":\"Coolsingel 40\",\"lat\":51.92,\"lon\":4.48}}");
+        check(c != null && !c.contains("evil") && !c.contains("Coolsingel") && !c.contains("home") && Regio.parse(c).h12(), "keuze schoon bewaard, zonder thuis: " + c);
+        String sp2 = Regio.cleanSpots("{\"home\":{\"name\":\"Thuis\",\"addr\":\"Coolsingel 40\",\"lat\":51.92,\"lon\":4.48,\"x\":1},\"evil\":1,\"work\":{\"lat\":200,\"lon\":1}}");
+        check(sp2 != null && sp2.contains("Coolsingel 40") && !sp2.contains("\"x\"") && !sp2.contains("evil") && !sp2.contains("work"), "thuis en werk schoon bewaard: " + sp2);
+        check(Regio.cleanSpots("kapot") == null, "onleesbare plekken geweigerd");
+
+        // Backup: regio.xml (met thuis en werk) nooit in de Android-backup, wel in "Alle appgegevens" (versleuteld)
+        try {
+            String br = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("app/res/xml/backup_rules.xml")), "UTF-8");
+            String dr = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("app/res/xml/data_rules.xml")), "UTF-8");
+            String ex = "<exclude domain=\"sharedpref\" path=\"regio.xml\" />";
+            int cb = dr.indexOf("<cloud-backup>"), dt = dr.indexOf("<device-transfer>");
+            check(br.contains(ex), "Android-backup (7–11): regio.xml uitgesloten");
+            check(cb >= 0 && dt > cb && dr.substring(cb, dt).contains(ex), "cloudbackup (12+): regio.xml uitgesloten");
+            check(dt >= 0 && dr.substring(dt).contains(ex), "overzetten naar een nieuwe telefoon: regio.xml uitgesloten");
+        } catch (Exception e) { check(false, "backupregels te lezen: " + e); }
+        check(AppData.PREFS_KEEP.contains("regio"), "Alle appgegevens (eigen, versleuteld): regio gaat mee");
         check(Regio.parse("{\"lang\":\"en\"}").lang.equals("nl"), "alleen bekende talen (nu Nederlands)");
         check(Regio.DEFAULT.locale().getLanguage().equals("nl") && Regio.DEFAULT.locale().getCountry().equals("NL"), "taal: nl-NL");
 

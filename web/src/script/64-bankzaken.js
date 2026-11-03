@@ -419,12 +419,12 @@ function bkCatSelect(){
 }
 function bkGefilterd(){
   const [van, tot] = bkPeriodeVan(), q = $('#bk-zoek').value.trim().toLowerCase(), cat = $('#bk-cat').value, sort = $('#bk-sort').value;
-  const qBedrag = q.replace(/[€\s]/g, '').replace(',', '.');
+  const qBedrag = /^[-−€\s\d.,\u202f]+$/.test(q) ? parseNum(q) : null; // een bedrag zoeken, volgens Regio en taal
   let l = bkSelectie(van, tot).filter(t => {
     const c = bkCat(t);
     if (cat === '*zonder' ? !(c === 'Overig' || c === 'Overige inkomsten') : cat && c !== cat) return false;
     if (!q) return true;
-    if (/^\d+(\.\d{1,2})?$/.test(qBedrag) && Math.abs(Math.abs(t.a) / 100 - Number(qBedrag)) < 0.005) return true;
+    if (qBedrag != null && Math.abs(Math.abs(t.a) / 100 - Math.abs(qBedrag)) < 0.005) return true;
     return ((t.cp || '') + ' ' + (t.ds || '') + ' ' + (t.ci || '') + ' ' + c + ' ' + (t.n || '')).toLowerCase().includes(q);
   });
   l.sort(sort === 'oud' ? (a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0 : sort === 'hoog' ? (a, b) => a.a - b.a : sort === 'bij' ? (a, b) => b.a - a.a : (a, b) => a.d > b.d ? -1 : a.d < b.d ? 1 : 0);
@@ -562,8 +562,8 @@ function bkRegelWeg(i){ bk.store.rules.splice(i, 1); bkHerbereken(); bkSave(); b
 function bkBudgetWeg(c){ delete bk.store.budget[c]; bkSave(); bkRender(); }
 function bkBudgetNieuw(){
   const cats = bkAlleCats().filter(c => bkCatSoort(c) === 'uit');
-  openSheet('Budget voor…', '', cats.map(c => [c, () => askInput('Budget ' + c, 'Bedrag per maand in euro.', bk.store.budget[c] ? String(bk.store.budget[c] / 100) : '', 'Bewaren', v => {
-    const n = Math.round(Number(String(v || '').replace(/[€\s.]/g, '').replace(',', '.')) * 100);
+  openSheet('Budget voor…', '', cats.map(c => [c, () => askInput('Budget ' + c, 'Bedrag per maand in euro.', bk.store.budget[c] ? fmtNumIn(bk.store.budget[c] / 100, 2) : '', 'Bewaren', v => {
+    const p = parseNum(v), n = p == null ? NaN : Math.round(p * 100); // "12,50", "12.50" en "1.250" (Regio en taal)
     if (!(n > 0) || n > 1e10) { toast('Vul een bedrag in'); return; }
     bk.store.budget[c] = n; bkSave(); bkRender();
   })]));

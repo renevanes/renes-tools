@@ -1093,9 +1093,10 @@ function aiSumLines(msgs, who){
   const out = []; let day = '';
   for (const m of msgs) {
     const text = String(m.text || m.label || '').replace(/\s+/g, ' ').trim(); if (!text) continue;
-    const d = new Date(m.t), dd = fmtDate(d, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    // Tekst voor het taalmodel: vast nl-NL (niet volgens Regio en taal), zodat het model altijd hetzelfde leest
+    const d = new Date(m.t), dd = d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     if (dd !== day) { out.push('— ' + dd + ' —'); day = dd; }
-    out.push(fmtTime(d, { hour: '2-digit', minute: '2-digit' }) + ' ' + (m.me ? 'Ik' : who(m)) + ': ' + text);
+    out.push(d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + ' ' + (m.me ? 'Ik' : who(m)) + ': ' + text);
   }
   return out;
 }

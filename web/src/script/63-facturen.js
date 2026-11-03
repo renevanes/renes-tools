@@ -373,7 +373,7 @@ function fdAanl(s){
 }
 /* Het overzicht: een tabel met kolommen naar keuze, sorteren op elke kolom en groeperen met subtotalen */
 const FD_DAG = d => d ? fmtDate(d + 'T12:00', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-const FD_EUR = v => v === '' || v == null || isNaN(v) ? '' : fmtMoney(Number(v), 'EUR'); // facturen zijn in euro
+const FD_EUR = v => v === '' || v == null || isNaN(v) ? '' : fmtMoney(Number(v), 'EUR', { minusIn: true }); // facturen zijn in euro; negatief zoals altijd: "€ -12,50"
 /** "1.234,56", "1234,56", "12.50", "1,234.56" → getal (zelfde regels als FacturenDossier.bedrag). */
 const fdGetal = x => { let s = String(x || '').replace(/[€\s]|eur/gi, ''); if (/^-?\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s)) s = s.replace(/\./g, ''); else if (/^-?\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(s)) s = s.replace(/,/g, ''); const v = parseFloat(s.replace(',', '.')); return isNaN(v) ? '' : v; };
 const fdVandaag = () => new Date().toLocaleDateString('sv-SE');
