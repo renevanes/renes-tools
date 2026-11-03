@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.127",
+    "date": "2026-11-03",
+    "changes": [
+      "Facturen: zoekt nu ook facturen in je Gmail (PDF-bijlagen, alleen lezen), met zelf te kiezen zoekwoorden, afzenders en per afzender een eigen map. Het scherm is opgedeeld: Opslaan, Koppelingen en Overzicht per maand hebben elk een eigen scherm, en de instellingen van een leverancier staan in tabbladen."
+    ]
+  },
+  {
     "version": "1.126",
     "date": "2026-11-02",
     "changes": [
