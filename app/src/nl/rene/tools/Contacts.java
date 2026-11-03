@@ -531,7 +531,7 @@ final class Contacts {
         }
         try (Sms.Out w = Sms.open(dest, dir, file, "text/x-vcard")) { writeVcf(w, list); w.done(); }
         JSONArray idx = index(c);
-        SimpleDateFormat df = new SimpleDateFormat("EEE d MMM yyyy HH:mm", new Locale("nl", "NL"));
+        SimpleDateFormat df = Regio.df(c, "EEE d MMM yyyy HH:mm");
         try (Sms.Out w = Sms.open(dest, dir, "wijzigingslog.txt", "text/plain")) {
             w.write("Contacten - wijzigingslog - Tools\r\n\r\n");
             if (idx != null) for (int i = idx.length() - 1; i >= 0; i--) {

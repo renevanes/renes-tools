@@ -36,7 +36,7 @@ function lcMapInit(){
     lcMap = L.map('lc-map', { attributionControl: true, zoomControl: true });
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(lcMap);
     lcMap.on('click', e => lcSet(e.latlng.lat, e.latlng.lng, '', false));
-    if (lcPt) lcMap.setView([lcPt.lat, lcPt.lng], 15); else lcMap.setView([51.92, 4.48], 11);
+    if (lcPt) lcMap.setView([lcPt.lat, lcPt.lng], 15); else { const dp = rgPlace() || rgPlace('home'); lcMap.setView(dp ? [dp.lat, dp.lon] : [51.92, 4.48], 11); } // standaardplaats (Regio en taal), anders Rotterdam
   }
   lcMap.invalidateSize();
   lcDraw();

@@ -100,7 +100,7 @@ function gsItem(kind, x, ql){
     case 'calls': return t(hl(x.name || x.number || 'Onbekend', ql), esc((x.label || '') + ' · ' + fmtD(x.date) + (x.number && x.number !== x.name ? ' · ' + x.number : '')), {ck: x.ck || '', cid: x.cid || '', number: x.number || ''});
     case 'tx': return t(esc(x.name) + ' <small style="display:inline">· ' + esc(fmtD(x.mtime)) + '</small>', gsSnip(x.text, ql), {id: x.id, from: x.from});
     case 'music': return t(hl(x.title || '', ql), hl(x.artist || '', ql) + ' · ' + esc(fmtD(x.t)), {t: x.t});
-    case 'sleep': return t(esc(typeof slNightName === 'function' ? slNightName(x.t) : fmtD(x.t)) + ' <small style="display:inline">· ' + esc(new Date(x.t).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })) + '</small>', gsSnip(x.text, ql), {night: x.night, clip: x.clip});
+    case 'sleep': return t(esc(typeof slNightName === 'function' ? slNightName(x.t) : fmtD(x.t)) + ' <small style="display:inline">· ' + esc(fmtTime(x.t, { hour: '2-digit', minute: '2-digit' })) + '</small>', gsSnip(x.text, ql), {night: x.night, clip: x.clip});
     case 'checkin': return t(esc(x.title) + ' <small style="display:inline">· ' + esc(typeof ciKeyLabel === 'function' ? ciKeyLabel(x.p) : fmtD(x.t)) + '</small>', gsSnip(x.text, ql), {q: x.q, p: x.p});
     case 'app': return t(hl(x.title, ql), esc(x.sub), {i: x.i});
     case 'history': return t(esc(x.app) + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.title ? esc(x.title) + ': ' : '') + gsSnip(x.text, ql), {});

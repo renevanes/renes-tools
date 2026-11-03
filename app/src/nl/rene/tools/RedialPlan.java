@@ -84,7 +84,7 @@ final class RedialPlan {
             if (t < now) {
                 // Eenmalig en het moment is voorbij (telefoon stond uit): kort te laat → nu; anders vervalt het.
                 if (now - t < 10 * 60 * 1000L) t = now + 2000;
-                else { prefs(c).edit().remove("plan").remove("next").putString("last", "Gemist (telefoon stond uit) " + stamp()).apply(); am.cancel(op(c)); return; }
+                else { prefs(c).edit().remove("plan").remove("next").putString("last", "Gemist (telefoon stond uit) " + stamp(c)).apply(); am.cancel(op(c)); return; }
             }
         } else t = RadioAlarm.next(p.optInt("hour"), p.optInt("minute"), p.optInt("days"), now);
         prefs(c).edit().putLong("next", t).apply();
@@ -121,12 +121,12 @@ final class RedialPlan {
                 notifyTap(c, p);
             }
         }
-        prefs(c).edit().putString("last", (err == null ? "Gestart " : err + " ") + stamp()).apply();
+        prefs(c).edit().putString("last", (err == null ? "Gestart " : err + " ") + stamp(c)).apply();
         if (p.optInt("days") == 0) { prefs(c).edit().remove("plan").remove("next").apply(); }
         else arm(c);
     }
 
-    static String stamp() { return new java.text.SimpleDateFormat("d MMM HH:mm", new java.util.Locale("nl", "NL")).format(new java.util.Date()); }
+    static String stamp(Context c) { return Regio.fmt(c, "d MMM HH:mm", System.currentTimeMillis()); }
 
     /** Tik op de melding: vanuit de app (voorgrond) mag het starten wel. Alleen binnen een uur na het geplande moment. */
     static void startMissed(Context c, Intent i) {

@@ -211,10 +211,30 @@ final class Launcher {
 
     // ---------- weer ----------
 
-    /** Plek voor het weer: zelf gekozen plaats, anders de laatst bekende locatie van de telefoon. */
+    /**
+     * Plek voor het weer: zelf gekozen plaats (bij het weer), anders de laatst bekende locatie van de telefoon, en als
+     * die er niet is de standaardplaats van Regio en taal (een vaste plaats, of thuis).
+     */
     static double[] place(Context c) {
         SharedPreferences p = prefs(c);
         if (p.contains("lat")) return new double[]{Double.longBitsToDouble(p.getLong("lat", 0)), Double.longBitsToDouble(p.getLong("lon", 0))};
+        double[] phone = phonePlace(c);
+        if (phone != null) return phone;
+        double[] rg = Regio.place(c);
+        return rg != null ? rg : Regio.home(c);
+    }
+
+    /** Naam bij het weer: de eigen plaats, of die van Regio en taal als het weer die gebruikt. */
+    static String placeName(Context c) {
+        SharedPreferences p = prefs(c);
+        if (p.contains("lat")) return p.getString("placeName", "");
+        if (phonePlace(c) != null) return "";
+        Regio.Cfg r = Regio.cfg(c);
+        if (Regio.place(r) != null) return Regio.placeName(r);
+        return r.home != null ? (r.homeName.isEmpty() ? "Thuis" : r.homeName) : "";
+    }
+
+    static double[] phonePlace(Context c) {
         if (!has(c, Manifest.permission.ACCESS_COARSE_LOCATION) && !has(c, Manifest.permission.ACCESS_FINE_LOCATION)) return null;
         try {
             LocationManager lm = (LocationManager) c.getSystemService(Context.LOCATION_SERVICE);
@@ -277,7 +297,7 @@ final class Launcher {
                     .put("wind", num(cur, "wind_speed_10m")).put("rainSoon", rainSoon)
                     .put("sunrise", d.optJSONArray("sunrise") == null ? "" : d.getJSONArray("sunrise").optString(0))
                     .put("sunset", d.optJSONArray("sunset") == null ? "" : d.getJSONArray("sunset").optString(0))
-                    .put("place", p.getString("placeName", "")).put("days", days);
+                    .put("place", placeName(c)).put("days", days);
             p.edit().putString("weather", o.toString()).apply();
             return o.toString();
         } catch (Exception e) {

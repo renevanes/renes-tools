@@ -635,7 +635,7 @@ final class Facturen {
         try (Ec ec = Ec.open(c)) {
             JSONObject mail = new JSONObject().put("to", new JSONArray().put(aan))
                     .put("subject", "Factuur " + lev.optString("naam") + " – " + naam.replaceAll("\\.pdf$", ""))
-                    .put("text", "Nieuwe factuur van " + lev.optString("naam") + ", opgehaald door Tools op " + new java.text.SimpleDateFormat("d MMMM yyyy HH:mm", new Locale("nl")).format(new java.util.Date()) + ".\n\nBestand: " + naam + "\n")
+                    .put("text", "Nieuwe factuur van " + lev.optString("naam") + ", opgehaald door Tools op " + Regio.fmt(c, "d MMMM yyyy HH:mm", System.currentTimeMillis()) + ".\n\nBestand: " + naam + "\n")
                     .put("attachments", new JSONArray().put(new JSONObject().put("filename", naam).put("contentType", "application/pdf")
                             .put("base64", android.util.Base64.encodeToString(p.data, android.util.Base64.NO_WRAP))));
             JSONObject r = ec.vraag("POST", "/api/mail/send", mail, "tools-factuur-" + p.sha.substring(0, 40));

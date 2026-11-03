@@ -45,6 +45,7 @@
         <exclude domain="sharedpref" path="vpn.xml" />
         <exclude domain="sharedpref" path="statistiek.xml" />
         <exclude domain="sharedpref" path="thema.xml" />
+        <exclude domain="sharedpref" path="regio.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="database" path="notification-history.db" />
@@ -89,5 +90,6 @@
         <exclude domain="sharedpref" path="vpn.xml" />
         <exclude domain="sharedpref" path="statistiek.xml" />
         <exclude domain="sharedpref" path="thema.xml" />
+        <exclude domain="sharedpref" path="regio.xml" />
     </device-transfer>
 </data-extraction-rules>

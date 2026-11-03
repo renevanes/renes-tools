@@ -67,7 +67,7 @@ window.onSpace = function(r){
 };
 function bkRenderSpace(r){
   const d = (r.dirs || []).slice().sort((a, b) => b.bytes - a.bytes);
-  $('#bk-space').innerHTML = d.map(x => '<div class=spc><span>' + esc(x.name) + ' <small>' + x.files.toLocaleString('nl-NL') + ' bestanden</small></span><span>' + fmtB(x.bytes) + '</span></div>').join('') +
+  $('#bk-space').innerHTML = d.map(x => '<div class=spc><span>' + esc(x.name) + ' <small>' + fmtNum(x.files) + ' bestanden</small></span><span>' + fmtB(x.bytes) + '</span></div>').join('') +
     '<div class="spc tot"><span>Totaal</span><span>' + fmtB(r.total || 0) + '</span></div><p class=note>Berekend ' + fmtD(r.t) + '</p>';
   $('#bk-space-btn').textContent = 'Opnieuw berekenen';
 }

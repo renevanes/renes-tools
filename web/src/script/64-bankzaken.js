@@ -47,12 +47,10 @@ let bk = { st: null, store: null, tab: 'overzicht', lijstN: 100, catCache: new M
 
 const bkVandaag = () => window.BK_VANDAAG || (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
 function bkEuro(c, teken){
-  const v = Math.abs(c) / 100;
-  const s = '€ ' + v.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return (teken && c > 0 ? '+ ' : '') + (c < 0 ? '− ' : '') + s;
+  return fmtMoney(c / 100, 'EUR', { sign: !!teken }); // de rekeningen zijn in euro; tekens volgens Regio en taal
 }
-const bkEuroKort = c => '€ ' + Math.round(Math.abs(c) / 100).toLocaleString('nl-NL');
-const bkDatum = (d, opt) => new Date(d + 'T12:00:00').toLocaleDateString('nl-NL', opt || { day: 'numeric', month: 'short', year: 'numeric' });
+const bkEuroKort = c => fmtMoney(c / 100, 'EUR', { round: true, minus: '' });
+const bkDatum = (d, opt) => fmtDate(d + 'T12:00:00', opt || { day: 'numeric', month: 'short', year: 'numeric' });
 const BK_MAANDEN = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 const bkMaandNaam = ym => BK_MAANDEN[Number(ym.slice(5, 7)) - 1] + ' ' + ym.slice(2, 4);
 
@@ -363,7 +361,7 @@ function bkOverzicht(van, tot){
   if (vast.length) {
     const som = actief.reduce((s, v) => s + v.perMaand, 0);
     h += bkKaart('Vaste lasten en abonnementen', '<p class="note" style="margin-top:0">Samen ongeveer <b>' + esc(bkEuro(som)) + '</b> per maand (' + actief.length + ' terugkerende betalingen).</p>'
-      + vast.slice(0, 25).map(v => '<div class="bk-rij"><span class="bk-naam">' + esc(v.naam) + '<small>' + esc(v.cat) + ' · ' + esc(v.soort) + ' · ' + (v.gestopt ? 'mogelijk gestopt (laatst ' + esc(bkDatum(v.laatst)) + ')' : 'volgende rond ' + esc(v.volgende.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }))) + '</small></span><b' + (v.gestopt ? ' class="bk-neutraal"' : '') + '>' + esc(bkEuro(v.bedrag)) + '</b></div>').join(''));
+      + vast.slice(0, 25).map(v => '<div class="bk-rij"><span class="bk-naam">' + esc(v.naam) + '<small>' + esc(v.cat) + ' · ' + esc(v.soort) + ' · ' + (v.gestopt ? 'mogelijk gestopt (laatst ' + esc(bkDatum(v.laatst)) + ')' : 'volgende rond ' + esc(fmtDate(v.volgende, { day: 'numeric', month: 'short' }))) + '</small></span><b' + (v.gestopt ? ' class="bk-neutraal"' : '') + '>' + esc(bkEuro(v.bedrag)) + '</b></div>').join(''));
   }
   // Grootste ontvangers
   const tp = bkTegenpartijen(lijst).slice(0, 10);
@@ -547,7 +545,7 @@ function bkBeheer(){
   const acc = [...new Set(s.tx.map(t => t.acc))].sort();
   $('#bk-rekeningen').innerHTML = acc.map(a => '<div class="bk-rij"><span class="bk-naam">' + esc(bkRekNaam(a)) + '<small>' + esc(a) + ' · geïmporteerd</small></span><button class="mini" style="float:none" onclick="bkRekHernoem(' + jsq(a) + ')">Naam</button></div>').join('')
     + s.eigen.map((e, i) => '<div class="bk-rij"><span class="bk-naam">' + esc(e.naam || e.iban) + '<small>' + esc(e.iban) + ' · zelf toegevoegd</small></span><button class="mini" style="float:none" onclick="bkEigenWeg(' + i + ')">Weg</button></div>').join('');
-  $('#bk-imports').innerHTML = s.imports.length ? '<details class="rinfo"><summary>Eerdere imports (' + s.imports.length + ')</summary>' + s.imports.slice().reverse().slice(0, 30).map(i => '<div class="bk-res">' + esc(new Date(i.t).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })) + ' · ' + esc(i.bank || i.format) + ' · ' + esc(i.van ? bkDatum(i.van) + ' t/m ' + bkDatum(i.tot) : '') + ' · ' + (i.nieuw || 0) + ' nieuw</div>').join('') + '</details>' : '';
+  $('#bk-imports').innerHTML = s.imports.length ? '<details class="rinfo"><summary>Eerdere imports (' + s.imports.length + ')</summary>' + s.imports.slice().reverse().slice(0, 30).map(i => '<div class="bk-res">' + esc(fmtDate(i.t, { day: 'numeric', month: 'short', year: 'numeric' })) + ' · ' + esc(i.bank || i.format) + ' · ' + esc(i.van ? bkDatum(i.van) + ' t/m ' + bkDatum(i.tot) : '') + ' · ' + (i.nieuw || 0) + ' nieuw</div>').join('') + '</details>' : '';
   const st = bk.st || {};
   const veilig = [
     'Versleuteld met AES-256-GCM; de sleutel ' + (st.hardware ? 'zit in de beveiligde hardware van deze telefoon' : 'zit in de beveiligde sleutelopslag van Android') + ' en kan er niet uit.',

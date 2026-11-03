@@ -35,6 +35,24 @@ public class FeatureBridge {
     /** Laatst bekende plek, grof ("51.92,4.48"), of "" zonder toestemming; voor zonsopkomst en -ondergang. */
     @JavascriptInterface public String themeLocation() { return Thema.lastLocation(ctx); }
 
+    // ----- Regio en taal -----
+
+    /** De interface geeft de keuze van Regio en taal door (zie Regio): meldingen, widgets en de skin schrijven dan hetzelfde. */
+    @JavascriptInterface public void regioSet(String json) {
+        String before = Regio.json(ctx);
+        if (!Regio.save(ctx, json)) return;
+        String after = Regio.json(ctx);
+        if (after.equals(before)) return;
+        new Thread(() -> {
+            try {
+                // Andere standaardplaats: het weer opnieuw ophalen (als er geen eigen plaats voor het weer is)
+                if (!java.util.Arrays.equals(Regio.place(Regio.parse(before)), Regio.place(Regio.parse(after))) || !java.util.Arrays.equals(Regio.parse(before).home, Regio.parse(after).home))
+                    Launcher.prefs(ctx).edit().remove("weather").apply();
+                for (Class<?> w : new Class<?>[]{HomeWidgets.Agenda.class, HomeWidgets.Weather.class, HomeWidgets.Overview.class, HomeWidgets.Park.class}) HomeWidgets.refresh(ctx, w);
+            } catch (Throwable t) { App.log(ctx, "REGIO", String.valueOf(t)); }
+        }, "regio").start();
+    }
+
     // ----- PDF -----
 
     private void pick(String type, String[] mimes, boolean multi, int req) {

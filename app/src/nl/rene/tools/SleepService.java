@@ -483,7 +483,7 @@ public final class SleepService extends Service {
         String text = tx ? "Uitschrijven: " + txDone + " van " + txTotal
                 : finishing ? "Afronden…" : inCall ? "Luistert niet tijdens het gesprek" : heard == 0 ? "Nog niets gehoord"
                 : heard + " keer iets gehoord" + (liveTalk + liveNoise > 0 ? " · " + (liveTalk + liveNoise) + " uitgeschreven" : "");
-        if (!tx && !finishing && stopAt > 0) text += " · stopt om " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT).format(new java.util.Date(stopAt));
+        if (!tx && !finishing && stopAt > 0) text += " · stopt om " + Regio.time(this, stopAt);
         return b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle(tx ? "Slaappraat schrijft uit" : "Slaappraat luistert")
                 .setContentText(text).setOngoing(true).setOnlyAlertOnce(true).setShowWhen(!tx && !quiet).setWhen(since).setUsesChronometer(!tx && !quiet)
                 .setContentIntent(content).addAction(android.R.drawable.ic_media_pause, "Stoppen", stopI).build();

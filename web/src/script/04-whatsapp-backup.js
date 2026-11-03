@@ -3,12 +3,12 @@ const WA_CATS = [['chats','Chats','backup van al je berichten'],['images',"Foto'
   ['audio','Audio'],['documents','Documenten'],['stickers',"Stickers en GIF's"],['other','Overig','profielfoto\'s, achtergronden'],['statuses','Statussen','van anderen, verdwijnen na 24 uur']];
 const WA_ALL = ['chats','images','video','voice','audio','documents','stickers','other'];
 let waPoll = null, waInfoC = {}, waSizesC = null, waSel = new Set(), waLastKey = '', waWasRunning = false;
-function fmtB(b){ if (b < 1048576) return Math.max(1, Math.round(b/1024)) + ' kB'; if (b < 1073741824) return (b/1048576).toFixed(0) + ' MB'; return (b/1073741824).toFixed(1).replace('.', ',') + ' GB'; }
+function fmtB(b){ return fmtSize(b); } // opslag: Regio en taal (1024 of 1000 per stap)
 function fmtD(t){ const d = new Date(t), n = new Date(), y = new Date(Date.now()-864e5);
-  const hm = d.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'});
+  const hm = fmtTime(d, {hour:'2-digit', minute:'2-digit'});
   if (d.toDateString() === n.toDateString()) return 'vandaag ' + hm;
   if (d.toDateString() === y.toDateString()) return 'gisteren ' + hm;
-  return d.toLocaleDateString('nl-NL', {day:'numeric', month:'short'}) + ' ' + hm; }
+  return fmtDate(d, {day:'numeric', month:'short'}) + ' ' + hm; }
 function waInfo(){ try { return JSON.parse(Android.waInfo()); } catch(e){ return {}; } }
 function enterWa(){ renderWa(true); stopWaPoll(); waPoll = setInterval(waPollOnce, 700); waPollOnce(); }
 function stopWaPoll(){ if (waPoll) { clearInterval(waPoll); waPoll = null; } }
@@ -54,7 +54,7 @@ function renderWaCats(){
     b.onclick = () => { waSel.has(k) ? waSel.delete(k) : waSel.add(k); Android.vibrate(10); waSave(); renderWaCats(); };
     el.appendChild(b);
   });
-  $('#wa-all-size').textContent = 'Chats en alle media, zonder statussen' + (waSizesC ? ' · ' + fmtB(all) + ' in ' + allF.toLocaleString('nl-NL') + ' bestanden' : '');
+  $('#wa-all-size').textContent = 'Chats en alle media, zonder statussen' + (waSizesC ? ' · ' + fmtB(all) + ' in ' + fmtNum(allF) + ' bestanden' : '');
 }
 function waSave(){
   const sel = WA_CATS.map(c=>c[0]).filter(k=>waSel.has(k)).join(',');
@@ -87,7 +87,7 @@ function waPollOnce(){
     $('#wa-run-phase').textContent = ph;
     const pct = s.phase === 'copy' && s.bytesTotal > 0 ? 100 * s.bytesDone / s.bytesTotal : 0;
     $('#wa-bar').style.width = pct.toFixed(1) + '%';
-    $('#wa-run-count').textContent = s.phase === 'copy' ? (s.filesDone||0).toLocaleString('nl-NL') + ' van ' + (s.filesTotal||0).toLocaleString('nl-NL') + ' bestanden · ' + fmtB(s.bytesDone||0) + ' van ' + fmtB(s.bytesTotal||0) : '';
+    $('#wa-run-count').textContent = s.phase === 'copy' ? fmtNum(s.filesDone||0) + ' van ' + fmtNum(s.filesTotal||0) + ' bestanden · ' + fmtB(s.bytesDone||0) + ' van ' + fmtB(s.bytesTotal||0) : '';
     $('#wa-run-cur').textContent = s.current || '';
   } else if (s.phase === 'done' && s.finishedAt) {
     const key = s.finishedAt + s.result;

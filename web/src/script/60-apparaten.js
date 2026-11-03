@@ -17,7 +17,7 @@ function setAp(){ return apLoad().set; }
 function apType(t){ return AP_TYPES[t] || AP_TYPES.apparaat; }
 function apIcon(t, tr){ return '<span class="ic' + (tr ? ' tr' : '') + '" aria-hidden="true">' + uiIcon(apType(t)[1]) + '</span>'; }
 /* Afstand in woorden: altijd "ongeveer" */
-function apDist(m){ if (m == null || m < 0) return ''; return m < 1 ? 'dichtbij (minder dan 1 m)' : 'ongeveer ' + ( m < 10 ? String(Math.round(m * 2) / 2).replace('.', ',') + ' m' : Math.round(m) + ' m'); }
+function apDist(m){ if (m == null || m < 0) return ''; return m < 1 ? 'dichtbij (minder dan ' + fmtMeters(1) + ')' : 'ongeveer ' + (m < 10 ? fmtMeters(Math.round(m * 2) / 2, 1) : fmtMeters(m)); }
 function apBars(rssi){ const n = rssi >= -60 ? 4 : rssi >= -70 ? 3 : rssi >= -80 ? 2 : 1; return '<span class="sig" role="img" aria-label="Signaal ' + n + ' van 4">' + [1, 2, 3, 4].map(i => '<i' + (i <= n ? ' class="on"' : '') + '></i>').join('') + '</span>'; }
 function apBadge(t, cls){ return '<span class="ap-badge' + (cls ? ' ' + cls : '') + '">' + esc(t) + '</span>'; }
 function apAgo(t){
@@ -26,17 +26,17 @@ function apAgo(t){
   if (s < 90) return 'net';
   if (s < 3600) return Math.round(s / 60) + ' min geleden';
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const hm = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  const hm = fmtTime(d, { hour: '2-digit', minute: '2-digit' });
   if (t >= today.getTime()) return 'vandaag ' + hm;
   if (t >= today.getTime() - 86400000) return 'gisteren ' + hm;
-  return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }) + ' ' + hm;
+  return fmtDate(d, { day: 'numeric', month: 'short' }) + ' ' + hm;
 }
 /* Plek uit de geschiedenis: "thuis", of een vakje van ~1 km */
 function apPlace(p){
   if (!p) return '';
   if (p === 'thuis') return 'thuis';
   const m = /^(-?\d+\.\d+),(-?\d+\.\d+)$/.exec(p); if (!m) return 'elders';
-  return 'elders (rond ' + m[1].replace('.', ',') + ' N, ' + m[2].replace('.', ',') + ' O, ±1 km)';
+  return 'elders (rond ' + fmtNum(+m[1], { maximumFractionDigits: 2 }) + ' N, ' + fmtNum(+m[2], { maximumFractionDigits: 2 }) + ' O, ±' + fmtDist(1000, 0) + ')';
 }
 
 /* ---------- in en uit ---------- */
@@ -204,7 +204,7 @@ function apCrowdRender(){
   $('#ap-crowd').innerHTML = bands.map(band => {
     const chs = Object.keys(cr[band]).map(Number).sort((a, b) => a - b), max = Math.max(1, ...chs.map(c => cr[band][c]));
     const bars = chs.map(c => { const v = cr[band][c], cls = band === '2,4 GHz' && c === d.best24 ? 'best' : v >= max * .75 && v > .5 ? 'hot' : ''; return '<div class="' + cls + '" title="Kanaal ' + c + '"><i style="height:' + Math.max(3, Math.round(v / max * 100)) + '%"></i></div>'; }).join('');
-    return '<div class="ap-crowd"><div class="band">' + esc(band) + '</div><div class="ap-bars" role="img" aria-label="Drukte per kanaal op ' + esc(band) + ': ' + chs.map(c => 'kanaal ' + c + ' ' + String(cr[band][c]).replace('.', ',')).join(', ') + '">' + bars + '</div><div class="ap-lbls" aria-hidden="true">' + chs.map(c => '<span>' + c + '</span>').join('') + '</div></div>';
+    return '<div class="ap-crowd"><div class="band">' + esc(band) + '</div><div class="ap-bars" role="img" aria-label="Drukte per kanaal op ' + esc(band) + ': ' + chs.map(c => 'kanaal ' + c + ' ' + fmtNum(cr[band][c], { maximumFractionDigits: 3 })).join(', ') + '">' + bars + '</div><div class="ap-lbls" aria-hidden="true">' + chs.map(c => '<span>' + c + '</span>').join('') + '</div></div>';
   }).join('');
   let tip = '';
   if (d.best24) tip = 'Op 2,4 GHz is kanaal ' + d.best24 + ' nu het rustigst (van 1, 6 en 11, die elkaar niet overlappen).';
@@ -437,7 +437,7 @@ function apdFindPoll(){
     m.setAttribute('aria-valuenow', 0); apFindLevel = 0;
   } else {
     ring.style.setProperty('--p', f.meter); m.setAttribute('aria-valuenow', f.meter); apFindLevel = f.meter;
-    $('#apd-val').textContent = f.dist < 1 ? '< 1 m' : '± ' + (f.dist < 10 ? String(Math.round(f.dist * 2) / 2).replace('.', ',') : Math.round(f.dist)) + ' m';
+    $('#apd-val').textContent = f.dist < 1 ? '< ' + fmtMeters(1) : '± ' + (f.dist < 10 ? fmtMeters(Math.round(f.dist * 2) / 2, 1) : fmtMeters(f.dist));
     $('#apd-unit').textContent = 'ongeveer · ' + Math.round(f.avg) + ' dBm';
     const t = f.trend;
     tr.textContent = f.meter >= 85 ? 'Heel dichtbij!' : t > 0 ? 'Warmer ↑' : t < 0 ? 'Kouder ↓' : 'Gelijk';
@@ -473,7 +473,9 @@ function apsRender(){
     esc(sdk >= 26 || !sdk ? 'Daarnaast helpt Android zuinig mee tussen de rondes door; voor een waarschuwing zijn er wel een paar rondes onderweg nodig (bij elk half uur ongeveer een uur reizen). ' : '') +
     esc('Er draait geen dienst met een vaste melding. Met het scherm uit ziet de app alleen trackers en je gekoppelde apparaten. Wifi zoekt Android op de achtergrond nauwelijks (1 keer per half uur); de app gebruikt dan wat de telefoon al vond.') +
     (s.bg && !P.bg ? '<br><b class="note warn">Sta locatie "altijd" toe, anders laat Android de app op de achtergrond niet zoeken.</b> <button class="mini" onclick="Android.apPerm(\'bgloc\')">Toestaan</button>' : '');
-  $('#aps-home-st').textContent = s.home ? 'Thuis is ingesteld' + (s.homeSsid ? ' (en je wifi "' + s.homeSsid + '")' : '') + '. Binnen ~300 m daarvan telt als thuis.' : s.homeSsid ? 'Thuis = verbonden met je wifi "' + s.homeSsid + '".' : 'Nog niet ingesteld: alles telt als elders.';
+  $('#aps-home-st').textContent = s.home ? 'Thuis is ingesteld' + (s.homeSsid ? ' (en je wifi "' + s.homeSsid + '")' : '') + '. Binnen ~' + fmtMeters(300) + ' daarvan telt als thuis.'
+    : s.homeRegio ? 'Thuis uit Regio en taal' + (s.homeSsid ? ' (en je wifi "' + s.homeSsid + '")' : '') + '. Binnen ~' + fmtMeters(300) + ' daarvan telt als thuis. Met "Hier is thuis" kies je een eigen plek voor Apparaten.'
+    : s.homeSsid ? 'Thuis = verbonden met je wifi "' + s.homeSsid + '".' : 'Nog niet ingesteld: alles telt als elders. Je kunt thuis ook instellen bij Instellingen → Regio en taal.';
   $('#aps-home-x').style.display = s.home || s.homeSsid ? '' : 'none';
   const row = (name, why, ok, kind) => '<div class="ap-perm-row"><span>' + esc(name) + '<small>' + esc(why) + '</small></span>' + (ok ? apBadge('✓ toegestaan', 'ok') : '<button class="mini" onclick="Android.apPerm(\'' + kind + '\')">Toestaan</button>') + '</div>';
   $('#aps-perms').innerHTML = row('Apparaten in de buurt en locatie', 'Bluetooth en wifi in de buurt zien' + (sdk && sdk < 31 ? ' (Android vraagt hiervoor locatie)' : ''), P.bt && P.wifi, 'nearby') +

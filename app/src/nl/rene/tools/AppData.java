@@ -74,6 +74,7 @@ final class AppData {
         m.put("intent_token", "geheim van deze installatie");
         m.put("crash", "foutmeldingen van deze installatie");
         m.put("thema", "themastand voor het opstarten (met een grove plek bij Automatisch met de zon); de keuze zelf gaat mee met de interface-instellingen en wordt bij het openen opnieuw doorgegeven");
+        m.put("regio", "kopie van Regio en taal (met thuis en werk) voor meldingen, widgets en de Telefoon-skin; de keuze zelf gaat mee met de interface-instellingen en wordt bij het openen opnieuw doorgegeven");
         m.put("statistiek", "tellingen en de versleutelde GitHub-sleutel van deze installatie (sleutel opnieuw invullen)");
         m.put("selftest", "uitkomst van de zelftest van deze installatie");
         m.put("perm", "welke toestemmingen al eens gevraagd zijn (Android vergeet de toestemmingen zelf ook)");

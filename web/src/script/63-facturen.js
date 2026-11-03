@@ -16,7 +16,7 @@ function faNaar(scr){
 function faBackupMap(){
   askConfirm('Backup-map', faSt.map ? 'Facturen gaan in je backup-map in de map Facturen (per leverancier een eigen map). De backup-map zelf kies je in Instellingen.' : 'Er is nog geen backup-map gekozen. Kies er nu een; dezelfde map gebruikt de app ook voor de andere backups.', faSt.map ? 'Andere map kiezen' : 'Map kiezen', () => Android.waPickFolder());
 }
-function faDatum(t){ return t ? new Date(t).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''; }
+function faDatum(t){ return t ? fmtDT(t, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''; }
 function enterFacturen(){
   faRender();
   if (!faPollT) faPollT = setInterval(() => { if (current !== 'facturen') { clearInterval(faPollT); faPollT = null; return; } faPoll(); }, 1000);
@@ -37,13 +37,13 @@ function faBezig(){
   $('#fa-bezig-txt').textContent = faSt.bezig ? (l ? l.naam + ': ' : '') + (faSt.voortgang || 'Bezig…') : '';
 }
 const FA_WD = ['', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
-function faMoment(t){ return t ? new Date(t).toLocaleString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''; }
+function faMoment(t){ return t ? fmtDT(t, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''; }
 function faMaandSleutel(t){ const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
-function faMaandNaam(k){ const [y, m] = k.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleString('nl-NL', { month: 'long', year: 'numeric' }); }
+function faMaandNaam(k){ const [y, m] = k.split('-').map(Number); return fmtDate(new Date(y, m - 1, 15, 12), 'maand'); }
 /** Wanneer vanzelf, in gewone woorden: "elke maand op de 5e om 08:00". */
 function faPlanTekst(l){
   if (l.schema === 'uit') return 'alleen met de hand';
-  const tijd = l.tijd || '08:00';
+  const tijd = fmtHm(l.tijd || '08:00');
   if (l.schema === 'maand') return 'elke maand op ' + ((l.dag || 5) >= 31 ? 'de laatste dag' : 'de ' + (l.dag || 5) + 'e' + ((l.dag || 5) > 28 ? ' (of de laatste dag)' : '')) + ' om ' + tijd;
   if (l.schema === 'week') return 'elke ' + FA_WD[l.weekdag || 1] + ' om ' + tijd;
   return 'elke dag om ' + tijd;
@@ -372,8 +372,8 @@ function fdAanl(s){
   return { soort: (faDos.ontvangers || []).length ? 'open' : 'geen', tekst: (faDos.ontvangers || []).length ? 'Nog niet aangeleverd' : '' };
 }
 /* Het overzicht: een tabel met kolommen naar keuze, sorteren op elke kolom en groeperen met subtotalen */
-const FD_DAG = d => d ? new Date(d + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-const FD_EUR = v => v === '' || v == null || isNaN(v) ? '' : '€ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d),)/g, '.');
+const FD_DAG = d => d ? fmtDate(d + 'T12:00', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const FD_EUR = v => v === '' || v == null || isNaN(v) ? '' : fmtMoney(Number(v), 'EUR'); // facturen zijn in euro
 /** "1.234,56", "1234,56", "12.50", "1,234.56" → getal (zelfde regels als FacturenDossier.bedrag). */
 const fdGetal = x => { let s = String(x || '').replace(/[€\s]|eur/gi, ''); if (/^-?\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s)) s = s.replace(/\./g, ''); else if (/^-?\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(s)) s = s.replace(/,/g, ''); const v = parseFloat(s.replace(',', '.')); return isNaN(v) ? '' : v; };
 const fdVandaag = () => new Date().toLocaleDateString('sv-SE');
@@ -529,7 +529,7 @@ function fsToon(sha){
   $('#fs-h').textContent = s.leverancierNaam || 'Factuur';
   const rij = (k, v) => v ? '<div class="bkres"><b>' + esc(k) + '</b><span style="overflow-wrap:anywhere">' + esc(v) + '</span></div>' : '';
   $('#fs-info').innerHTML = rij('Bestand', s.naam) + (s.origineel && s.origineel !== s.naam ? rij('Oorspronkelijke naam', s.origineel) : '') + rij('Leverancier', s.leverancierNaam) + rij('Opgehaald', faDatum(s.opgehaald)) +
-    rij('Grootte', s.grootte ? Math.max(1, Math.round(s.grootte / 1024)) + ' kB' : '') +
+    rij('Grootte', s.grootte ? fmtSize(s.grootte) : '') +
     (b.soort === 'mail' ? rij('Uit de mail van', b.afzender) + rij('Onderwerp', b.onderwerp) + rij('Mail ontvangen', b.maildatum ? faDatum(b.maildatum) : '') : rij('Website', b.site) + rij('Pagina', b.pagina)) +
     rij('Controlegetal (SHA-256)', (s.sha || '').slice(0, 16) + '…');
   const app = (s.plekken || {}).app;

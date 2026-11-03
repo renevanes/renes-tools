@@ -668,7 +668,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         String title = optEp("title"), podTitle = optPod("title");
         String text = "connecting".equals(status) ? "Laden…" : "error".equals(status) ? (error == null ? "Fout" : error)
                 : "ended".equals(status) ? "Afgelopen" : podTitle;
-        if (sleepAt > 0) text += " · stopt om " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(new java.util.Date(sleepAt));
+        if (sleepAt > 0) text += " · stopt om " + Regio.time(this, sleepAt);
         else if (sleepEnd) text += " · stopt na deze aflevering";
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         boolean playing = "playing".equals(status) || "connecting".equals(status);

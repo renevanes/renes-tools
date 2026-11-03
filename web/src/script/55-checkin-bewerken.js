@@ -65,7 +65,7 @@ function cedRender(){
   cedRadios('#ced-rhythm', CED_RHYTHMS, q.rhythm, 'cedRhythm');
   const showDays = q.rhythm === 'weekdays' || q.rhythm === 'multi';
   $('#ced-days-w').style.display = showDays ? '' : 'none';
-  $('#ced-days').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(d => { const on = q.days.includes(d); return '<button class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '" data-d="' + d + '" onclick="cedDay(+this.dataset.d)" aria-label="' + CI_DOW_L[d] + '">' + CI_DOW[d] + '</button>'; }).join('');
+  $('#ced-days').innerHTML = (typeof weekDays === 'function' ? weekDays().map(g => (g + 6) % 7 + 1) : [1, 2, 3, 4, 5, 6, 7]).map(d => { const on = q.days.includes(d); return '<button class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '" data-d="' + d + '" onclick="cedDay(+this.dataset.d)" aria-label="' + CI_DOW_L[d] + '">' + CI_DOW[d] + '</button>'; }).join('');
   $('#ced-wday-w').style.display = q.rhythm === 'weekly' ? '' : 'none';
   $('#ced-wday').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(d => '<option value="' + d + '"' + (d === q.wday ? ' selected' : '') + '>' + CI_DOW_L[d] + '</option>').join('');
   $('#ced-wday').onchange = () => { cedSync(); cedRender(); };

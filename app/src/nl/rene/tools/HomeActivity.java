@@ -637,6 +637,8 @@ public class HomeActivity extends Activity {
         }
         /** Donker volgens het thema van Tools (Weergave → Thema; standaard zoals de telefoon). */
         @JavascriptInterface public boolean isNight() { return Thema.dark(a); }
+        /** Regio en taal (zoals de app die doorgaf): tijd, datum, eenheden en getallen voor de skin. */
+        @JavascriptInterface public String regio() { return Regio.json(ctx); }
         /** Terug zonder iets te sluiten: als dit (nog) niet het startscherm van de telefoon is, gewoon dicht. */
         @JavascriptInterface public void backUnhandled() {
             a.h.post(() -> {

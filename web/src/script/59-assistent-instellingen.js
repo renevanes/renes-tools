@@ -18,7 +18,7 @@ function setEntry(id){ return setAll().find(e => e.id === id) || null; }
 function setType(e){ return e.type || 'aan'; }
 function setVals(e){ let v = e.vals; if (typeof v === 'function') { try { v = v(); } catch (x) { v = []; } } return v || (setType(e) === 'aan' ? SET_AU : []); }
 function setGet(e){ if (!e || !e.get || e.safe === 'geheim') return ''; try { const v = e.get(); return v == null ? '' : String(v); } catch (x) { return ''; } }
-function setName(e, v){ if (v === '' || v == null) return ''; const x = setVals(e).find(p => p[0] === v); return x ? (setType(e) === 'aan' ? x[1].toLowerCase() : x[1]) : e.vname ? String(e.vname(v)) : String(v); }
+function setName(e, v){ if (v === '' || v == null) return ''; if (setType(e) === 'tijd' && typeof fmtHm === 'function') return fmtHm(v); const x = setVals(e).find(p => p[0] === v); return x ? (setType(e) === 'aan' ? x[1].toLowerCase() : x[1]) : e.vname ? String(e.vname(v)) : String(v); }
 /* Mag de assistent dit naar deze waarde zetten? Gevoelig = nee (alleen uitleg en Openen) */
 function setSafe(e, v){ return !!e.safe && (e.safe === 'geheim' || !e.weak || !!e.weak(v)); }
 function setCanChange(e){ const t = setType(e); return (t === 'aan' || t === 'keuze' || t === 'tijd') && typeof e.set === 'function' && e.safe !== 'geheim'; }
@@ -108,8 +108,20 @@ function setIntent(q){
   if ((m = new RegExp('^' + SET_PRE + '(.+?)\\s+(?:op|naar)\\s+(.+?)\\s+(?:zetten|instellen|veranderen|wijzigen)$').exec(s))) return { kind: 'cmd', x: m[1], raw: m[2] };
   if ((m = /^waar (?:vind|zie|zet|stel|verander|regel|kan|zit|staat|staan|zitten|pas) (?:ik |je |jij )?(.+?)(?: (?:vinden|instellen|aanzetten|uitzetten|aanpassen|veranderen|zien|in|aan|uit))*$/.exec(s))) return { kind: 'waar', x: m[1] };
   if ((m = /^(?:wat|hoe) (?:staat|staan) (.+?) (?:op|ingesteld)$/.exec(s)) || (m = /^(?:staat|staan|is) (.+?) (?:aan|uit|ingeschakeld|uitgeschakeld|ingesteld)$/.exec(s))) return { kind: 'stand', x: m[1] };
+  // Regio en taal: "gebruik mijlen", "toon temperaturen in fahrenheit", "valuta dollar" (alleen als de waarde past)
+  if ((m = new RegExp('^' + SET_PRE + '(?:gebruik|toon (?:alles |de \\w+ |\\w+ )?in|reken (?:in|met)|schrijf (?:alles |de \\w+ |\\w+ )?in)\\s+(?:de |het |alleen )?(.+)$').exec(s))) { const r = setRgUse('', m[1]); if (r) return r; }
+  if ((m = /^(valuta|munteenheid|munt|afstand|temperatuur|tijdnotatie|tijdsnotatie|tijdzone|datumnotatie|snelheid|inhoud|decimaalteken|taal)\s+(?:op |naar |in )?(.+)$/.exec(s))) { const r = setRgUse(m[1], m[2]); if (r) return r; }
   if (SET_Q.test(s)) return { kind: 'vraag', x: s };
   return null;
+}
+/* Een waarde van Regio en taal ("mijlen", "dollar", "12-uurs"): welke instelling past erbij? word = het genoemde onderwerp */
+function setRgUse(word, raw){
+  // Zonder onderwerp alleen eenheden, klok en valuta ("gebruik de telefoon" of "gebruik thuis" is geen instelling)
+  const RG_USE = ['regio.klok', 'regio.afstand', 'regio.temperatuur', 'regio.inhoud', 'regio.snelheid', 'regio.valuta'];
+  const list = SET_REG.filter(e => e.id.startsWith('regio.') && setCanChange(e) && (word || RG_USE.includes(e.id)));
+  const pick = word ? setFind(word, list).filter(h => h.s >= SET_MIN).map(h => h.e) : list;
+  const e = pick.find(x => setValFor(x, raw) !== null);
+  return e ? { kind: 'cmd', x: e.label, raw, id: e.id, sure: true } : null;
 }
 /* De waarde uit de vraag, zoals de app hem kent; null als hij niet bij deze instelling past */
 function setValFor(e, raw){
@@ -206,6 +218,7 @@ function setHandle(q){
   const hits = setFind(it.x, null, q);
   const top = hits[0], second = hits[1];
   const clear = top && top.s >= SET_MIN && (!second || second.s < top.s * 0.8);
+  if (it.kind === 'cmd' && it.id) { const e = setEntry(it.id); if (e) return Object.assign({ local: true }, setPropose(e, setValFor(e, it.raw))); }
   if (it.kind === 'cmd') {
     const raw = it.raw;
     // Een tekst-opdracht ("Zet dit op een rijtje: …", "Stel een mail op naar Jos …") is geen instelling: gewoon de assistent

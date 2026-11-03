@@ -11,6 +11,7 @@
     <div class="card stlist">
       <button class="strow" onclick="show('setnotif')"><span class="stic"><span class="ui-icon" data-icon="bell" aria-hidden="true"></span></span><span class="sttxt"><b>Meldingen</b><small id="st-sum-notif"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setlook')"><span class="stic"><span class="ui-icon" data-icon="eye" aria-hidden="true"></span></span><span class="sttxt"><b>Weergave</b><small id="st-sum-look"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('setregio')"><span class="stic"><span class="ui-icon" data-icon="globe" aria-hidden="true"></span></span><span class="sttxt"><b>Regio en taal</b><small id="st-sum-regio"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setskin')"><span class="stic"><span class="ui-icon" data-icon="smartphone" aria-hidden="true"></span></span><span class="sttxt"><b>Telefoon-skin</b><small id="st-sum-skin"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
     <div class="flabel stgl" role="heading" aria-level="2">Beveiliging en privacy</div>
@@ -84,6 +85,88 @@
           <option value="115">Groot</option><option value="130">Groter</option><option value="150">Extra groot</option><option value="175">Maximaal</option>
         </select></div>
       <p class="note" id="st-zoom-prev" style="margin-bottom:0">Zo ziet tekst er nu uit.</p>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-setregio">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Regio en taal</h1>
+  </div>
+  <main>
+    <div class="card rg-prevcard">
+      <p class="rg-prev" id="rg-prev" aria-live="polite"></p>
+      <p class="note" style="margin:4px 0 0">Zo schrijft de hele app datums, tijden, bedragen en eenheden, ook in meldingen, widgets en de Telefoon-skin.</p>
+    </div>
+    <div class="card" id="rg-lang-card">
+      <h2>Taal</h2>
+      <div class="row setrow"><label for="rg-lang" style="flex:1">Taal van de app</label>
+        <select class="sel" id="rg-lang" onchange="rgSet('lang', this.value)"></select></div>
+      <p class="note" style="margin-bottom:0">Er is nu alleen Nederlands.</p>
+    </div>
+    <div class="card" id="rg-time-card">
+      <h2>Tijd en datum</h2>
+      <div class="row setrow"><label for="rg-clock" style="flex:1">Tijd</label>
+        <select class="sel" id="rg-clock" onchange="rgSet('clock', this.value)"></select></div>
+      <div class="row setrow"><label for="rg-date" style="flex:1">Datumnotatie</label>
+        <select class="sel" id="rg-date" onchange="rgSet('date', this.value)"></select></div>
+      <div class="row setrow"><label for="rg-week" style="flex:1">Eerste dag van de week</label>
+        <select class="sel" id="rg-week" onchange="rgSet('week', +this.value)"></select></div>
+      <div class="row setrow"><label for="rg-tz" style="flex:1">Tijdzone</label>
+        <select class="sel" id="rg-tz" onchange="rgSet('tz', this.value)"></select></div>
+      <p class="note" id="rg-tz-note" style="margin-bottom:0"></p>
+    </div>
+    <div class="card" id="rg-loc-card">
+      <h2>Locatie</h2>
+      <div class="row setrow"><span style="flex:1;min-width:0"><b>Thuis</b><small class="note rg-spot" id="rg-home-sub"></small></span>
+        <button class="big ghost rg-btn" id="rg-home-btn" onclick="rgPlek('home')">Kiezen</button></div>
+      <div class="row setrow"><span style="flex:1;min-width:0"><b>Werk</b><small class="note rg-spot" id="rg-work-sub"></small></span>
+        <button class="big ghost rg-btn" id="rg-work-btn" onclick="rgPlek('work')">Kiezen</button></div>
+      <div class="row setrow"><label for="rg-place" style="flex:1">Standaardplaats</label>
+        <select class="sel" id="rg-place" onchange="rgSet('place', this.value)"></select></div>
+      <p class="note" style="margin-bottom:0">De standaardplaats gebruikt de app als je locatie niet bekend is: voor het weer, het thema met de zon en kaarten. Thuis gebruiken ook Apparaten en Mijn routes.</p>
+    </div>
+    <div class="card" id="rg-unit-card">
+      <h2>Eenheden</h2>
+      <div class="row setrow"><label for="rg-dist" style="flex:1">Afstand</label><select class="sel" id="rg-dist" onchange="rgSet('dist', this.value)"></select></div>
+      <div class="row setrow"><label for="rg-temp" style="flex:1">Temperatuur</label><select class="sel" id="rg-temp" onchange="rgSet('temp', this.value)"></select></div>
+      <div class="row setrow"><label for="rg-vol" style="flex:1">Inhoud</label><select class="sel" id="rg-vol" onchange="rgSet('vol', this.value)"></select></div>
+      <div class="row setrow"><label for="rg-size" style="flex:1">Opslag</label><select class="sel" id="rg-size" onchange="rgSet('size', this.value)"></select></div>
+      <div class="row setrow"><label for="rg-speed" style="flex:1">Snelheid</label><select class="sel" id="rg-speed" onchange="rgSet('speed', this.value)"></select></div>
+    </div>
+    <div class="card" id="rg-num-card">
+      <h2>Valuta en getallen</h2>
+      <div class="row setrow"><label for="rg-cur" style="flex:1">Valuta</label><select class="sel" id="rg-cur" onchange="rgSet('cur', this.value)"></select></div>
+      <div class="row setrow"><label for="rg-dec" style="flex:1">Decimaalteken</label><select class="sel" id="rg-dec" onchange="rgSet('dec', this.value)"></select></div>
+      <div class="row setrow"><label for="rg-grp" style="flex:1">Duizendtallen</label><select class="sel" id="rg-grp" onchange="rgSet('grp', this.value)"></select></div>
+      <p class="note" id="rg-num-prev" aria-live="polite" style="margin-bottom:0"></p>
+    </div>
+    <button class="big ghost" id="rg-reset" style="margin:4px 0 16px" onclick="rgReset()">Terug naar de standaard</button>
+  </main>
+</section>
+
+<section class="screen" id="s-setregioplek">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1" id="rgp-title">Thuis</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2>Plek</h2>
+      <p class="note" id="rgp-now" style="margin-top:0"></p>
+      <div class="flabel"><label for="rgp-name">Naam</label></div>
+      <input class="search" id="rgp-name" maxlength="60" autocomplete="off" style="margin:0 0 10px">
+      <div class="flabel"><label for="rgp-q">Adres of coördinaten</label></div>
+      <div class="row" style="gap:8px;margin-bottom:8px"><input class="search" id="rgp-q" style="flex:1;margin:0" placeholder="Bijv. Coolsingel 40, Rotterdam of 51.92, 4.48" autocomplete="off" enterkeyhint="search" onkeydown="if(event.key==='Enter')rgpSearch()">
+        <button class="big" id="rgp-search" style="width:auto;padding:10px 16px" onclick="rgpSearch()">Zoeken</button></div>
+      <div id="rgp-results"></div>
+      <button class="big ghost" id="rgp-here" onclick="rgpHere()"><span class="ui-icon" data-icon="pin" aria-hidden="true"></span> Mijn huidige locatie</button>
+      <p class="note">Het adres zoeken gaat via Android; je huidige locatie bepaalt de telefoon zelf. De plek blijft op je telefoon (en in je eigen backups).</p>
+      <div class="row" style="gap:8px">
+        <button class="big" style="flex:1" id="rgp-save" onclick="rgpSave()">Bewaren</button>
+        <button class="big ghost" style="flex:1" id="rgp-clear" onclick="rgpClear()">Wissen</button>
+      </div>
     </div>
   </main>
 </section>

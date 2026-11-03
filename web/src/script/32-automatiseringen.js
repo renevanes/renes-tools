@@ -86,11 +86,11 @@ function auRender(){
 
 function auWhen(t){
   const d = new Date(t), now = new Date();
-  const time = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  const time = fmtTime(d, { hour: '2-digit', minute: '2-digit' });
   if (d.toDateString() === now.toDateString()) return 'vandaag ' + time;
   const y = new Date(now); y.setDate(now.getDate() - 1);
   if (d.toDateString() === y.toDateString()) return 'gisteren ' + time;
-  return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }) + ' ' + time;
+  return fmtDate(d, { day: 'numeric', month: 'short' }) + ' ' + time;
 }
 
 function auFix(k){
@@ -293,7 +293,7 @@ function aeMapInit(){
     aeMap.invalidateSize();
     if (aeMap._ruleId !== aeRule.id) {
       aeMap._ruleId = aeRule.id;
-      if (p.lat != null) aeMap.setView([p.lat, p.lng], 16); else aeMap.setView([51.92, 4.48], 11);
+      if (p.lat != null) aeMap.setView([p.lat, p.lng], 16); else { const dp = rgPlace() || rgPlace('home'); aeMap.setView(dp ? [dp.lat, dp.lon] : [51.92, 4.48], 11); } // standaardplaats (Regio en taal), anders Rotterdam
     }
     aeMapDraw();
   } catch (e) { $('#ae-map').style.display = 'none'; }

@@ -282,7 +282,7 @@ final class Notes {
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir dir = dest.dir(DIR, true);
         try (Sms.Out w = Sms.open(dest, dir, "notities.json", "application/json")) { w.write(json); w.done(); }
-        SimpleDateFormat df = new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL"));
+        SimpleDateFormat df = Regio.df(c, "d MMM yyyy HH:mm");
         try (Sms.Out w = Sms.open(dest, dir, "notities.txt", "text/plain")) {
             w.write("Notities - Tools - " + df.format(new Date()) + "\r\n\r\n");
             for (int i = 0; i < arr.length(); i++) {

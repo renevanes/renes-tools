@@ -11,7 +11,7 @@ function enterAlarm(){
   add(a.station); rdJson(Android.radioFavorites(), []).forEach(add); add(rdState.station); add(rdState.last); rdStations.slice(0, 20).forEach(add);
   alStations = list;
   $('#al-station').innerHTML = list.map((s, i) => '<option value="' + i + '">' + esc(s.name) + '</option>').join('') || '<option value="">Kies eerst een zender in Radio</option>';
-  $('#al-next').textContent = a.on && a.nextAt ? 'Gaat af: ' + new Date(a.nextAt).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}) : '';
+  $('#al-next').textContent = a.on && a.nextAt ? 'Gaat af: ' + fmtDT(a.nextAt, {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}) : '';
   $('#al-exact').style.display = a.exact === false ? 'block' : 'none';
 }
 let alStations = [];

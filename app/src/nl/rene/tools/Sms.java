@@ -278,9 +278,9 @@ final class Sms {
             if (l == null) { l = new ArrayList<>(); byThread.put(m.threadId, l); }
             l.add(m);
         }
-        SimpleDateFormat day = new SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL"));
-        SimpleDateFormat hm = new SimpleDateFormat("HH:mm", Locale.US);
-        SimpleDateFormat full = new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL"));
+        SimpleDateFormat day = Regio.df(c, "EEEE d MMMM yyyy");
+        SimpleDateFormat hm = Regio.df(c, "HH:mm");
+        SimpleDateFormat full = Regio.df(c, "d MMM yyyy HH:mm");
         java.util.Set<String> used = new java.util.HashSet<>();
         used.add("index"); // het overzicht heet index.html: een gesprek met de naam "index" mag dat niet overschrijven
         StringBuilder idx = new StringBuilder();

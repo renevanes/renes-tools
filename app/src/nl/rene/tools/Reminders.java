@@ -195,7 +195,7 @@ final class Reminders {
                 .setData(android.net.Uri.fromParts("note", rid, null));
         PendingIntent pi = PendingIntent.getActivity(c, 6000 + (rid.hashCode() & 0xffff), open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
-        String sub = nxt > 0 ? "Volgende keer: " + new java.text.SimpleDateFormat("EEE d MMM HH:mm", new java.util.Locale("nl", "NL")).format(new java.util.Date(nxt)) : "Herinnering uit je notities";
+        String sub = nxt > 0 ? "Volgende keer: " + Regio.fmt(c, "EEE d MMM HH:mm", nxt) : "Herinnering uit je notities";
         b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title.isEmpty() ? "Herinnering" : title)
                 .setContentText(sub).setAutoCancel(true).setContentIntent(pi)
                 .setCategory(Notification.CATEGORY_REMINDER)

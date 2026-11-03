@@ -2,7 +2,7 @@
 const ATT = [[5,'5'],[10,'10'],[25,'25'],[50,'50'],[0,'∞']];
 const INT = [[5,'5 s'],[10,'10 s'],[20,'20 s'],[30,'30 s'],[60,'1 min'],[-1,'Willekeurig']];
 const RANGE = [5,10,15,20,30,45,60,90,120,180,300];
-const fmtS = v => v < 60 ? v + ' s' : (v % 60 ? (v/60).toFixed(1).replace('.',',') : v/60) + ' min';
+const fmtS = v => v < 60 ? v + ' s' : (v % 60 ? fmtNum(v/60, 1) : v/60) + ' min';
 function renderRange(){
   const on = store.get('interval',10) === -1;
   $('#rand-range').classList.toggle('on', on);

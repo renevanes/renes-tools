@@ -90,7 +90,7 @@ function loadMore(initial){
 function renderMsgs(msgs){
   let out = '', lastDay = '';
   for (const m of msgs) {
-    const d = new Date(m.t), dd = d.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    const d = new Date(m.t), dd = fmtDate(d, {weekday:'long', day:'numeric', month:'long', year:'numeric'});
     if (dd !== lastDay) { out += '<div class=dsep>' + esc(dd) + '</div>'; lastDay = dd; }
     out += '<div class="bub' + (m.me ? ' me' : '') + '">';
     // Afzender tonen in groepen; ook als de groep via zoeken is geopend (dan is de afzender een ander dan de chatnaam)
@@ -100,7 +100,7 @@ function renderMsgs(msgs){
     else if (m.label && !m.text) out += '<span class=lb>' + esc(m.label) + '</span>';
     else if (m.label && m.media) out += '<span class=lb>' + esc(m.label) + '</span>\n';
     if (m.text) out += esc(m.text);
-    out += '<span class=tm>' + d.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) + '</span></div>';
+    out += '<span class=tm>' + fmtTime(d, {hour:'2-digit', minute:'2-digit'}) + '</span></div>';
   }
   return out;
 }

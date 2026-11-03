@@ -172,7 +172,7 @@ final class NotificationHistory {
             WaBackup.DestDir dir = dest.dir(DIR, true);
             // Naam die "Oude backups opruimen" herkent (anders stapelen deze leesbare exports zich eindeloos op)
             String name = "meldingen-" + new SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(new Date());
-            SimpleDateFormat df = new SimpleDateFormat("d MMM yyyy HH:mm:ss", new Locale("nl", "NL"));
+            SimpleDateFormat df = Regio.df(c, "d MMM yyyy HH:mm:ss");
             int count = 0;
             java.io.File snapshot = java.io.File.createTempFile("history-export-", ".jsonl", c.getCacheDir());
             try {

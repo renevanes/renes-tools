@@ -6,9 +6,9 @@ function enterVpn(){ vpRender(); clearInterval(vpTimer); vpTimer = setInterval((
 function vpAgo(t){
   if (!t) return 'nog niet';
   const s = Math.max(0, Math.round((Date.now() - t) / 1000));
-  return s < 60 ? s + ' s geleden' : s < 3600 ? Math.round(s / 60) + ' min geleden' : new Date(t).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  return s < 60 ? s + ' s geleden' : s < 3600 ? Math.round(s / 60) + ' min geleden' : fmtTime(t, { hour: '2-digit', minute: '2-digit' });
 }
-function vpSize(b){ b = +b || 0; return b < 1024 ? b + ' B' : b < 1048576 ? Math.round(b / 1024) + ' kB' : b < 1073741824 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : (b / 1073741824).toFixed(2).replace('.', ',') + ' GB'; }
+function vpSize(b){ return fmtSize(b, { bytes: true, mb: 1, gb: 2 }); }
 const VP_REASON = { app: '', tegel: 'via de tegel', snelkoppeling: 'via de snelkoppeling', wifi: 'vanzelf: onbekende wifi', mobiel: 'vanzelf: mobiel internet', auto: 'door Automatiseren', altijd: 'Altijd-aan VPN van Android', melding: 'via de melding' };
 
 function vpRender(light){

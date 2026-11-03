@@ -16,15 +16,15 @@ function pcDate(t){
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   if (t >= start) return 'vandaag';
   if (t >= start - day) return 'gisteren';
-  if (t >= start - 6 * day) return d.toLocaleDateString('nl-NL', { weekday: 'long' });
-  return d.toLocaleDateString('nl-NL', d.getFullYear() === now.getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+  if (t >= start - 6 * day) return fmtDate(d, { weekday: 'long' });
+  return fmtDate(d, d.getFullYear() === now.getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
 }
 /* Hoesje: alleen https (de app laadt niets onveiligs); anders een 🎧 */
 function pcImg(u){ u = String(u || ''); if (u.startsWith('http://')) u = 'https://' + u.slice(7); return /^https:\/\//.test(u) ? u : ''; }
 function pcArtInner(u){ const s = pcImg(u); return s ? '<img src="' + esc(s) + '" alt="" loading="lazy" onerror="this.parentNode.innerHTML=uiIcon(\'headphones\')">' : uiIcon('headphones'); }
 function pcArt(u, cls){ return '<span class="pcart' + (cls ? ' ' + cls : '') + '" aria-hidden="true">' + pcArtInner(u) + '</span>'; }
 function pcSetArt(el, u){ const s = pcImg(u); if (el.dataset.src === s && el.innerHTML) return; el.dataset.src = s; el.innerHTML = pcArtInner(u); }
-function pcSpeedTxt(v){ return String(+(+v || 1).toFixed(2)).replace('.', ',') + '×'; }
+function pcSpeedTxt(v){ return fmtNum(+(+v || 1).toFixed(2), { maximumFractionDigits: 2 }) + '×'; }
 function pcSlimEp(e){ return { key: e.key, guid: e.guid, title: e.title, url: e.url, type: e.type, date: e.date, dur: e.dur, image: e.image, desc: String(e.desc || '').slice(0, 1500) }; }
 function pcSlimPod(p){ p = p || {}; return { id: p.id, feed: p.feed, title: p.title, author: p.author, image: p.image, link: p.link }; }
 
@@ -537,7 +537,7 @@ function sleepOpen(target){
   $('#sl-range').value = Math.max(1, Math.min(240, +store.get('sleepMin', 30) || 30));
   $('#sl-quick').innerHTML = [10, 15, 20, 30, 45, 60, 90, 120].map(m => '<button data-m="' + m + '" onclick="$(\'#sl-range\').value=' + m + ';sleepShow()">' + fmtMin(m) + '</button>').join('');
   $('#sl-end').style.display = slTarget === 'pod' ? '' : 'none';
-  $('#sl-state').textContent = st.sleepAt ? 'Stopt nu om ' + new Date(st.sleepAt).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + ' (nog ' + fmtMin((st.sleepAt - Date.now()) / 6e4) + ').'
+  $('#sl-state').textContent = st.sleepAt ? 'Stopt nu om ' + fmtTime(st.sleepAt, { hour: '2-digit', minute: '2-digit' }) + ' (nog ' + fmtMin((st.sleepAt - Date.now()) / 6e4) + ').'
     : st.sleepEnd ? 'Stopt nu aan het einde van deze aflevering.' : (slTarget === 'pod' ? 'Stop de podcast na…' : 'Stop de radio na…');
   $('#sl-add').style.display = st.sleepAt ? 'flex' : 'none';
   $('#sl-off').textContent = active ? 'Uitzetten' : 'Annuleren';
@@ -572,7 +572,7 @@ function sleepAt(){
   if (t.getTime() <= Date.now()) t.setDate(t.getDate() + 1);
   const m = Math.max(1, Math.ceil((t.getTime() - Date.now()) / 6e4));
   sleepClose();
-  if (sleepApply(m)) toast('⏾ Stopt om ' + t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }));
+  if (sleepApply(m)) toast('⏾ Stopt om ' + fmtTime(t, { hour: '2-digit', minute: '2-digit' }));
 }
 function sleepAdd(n){
   const st = sleepState();

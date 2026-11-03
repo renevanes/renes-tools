@@ -854,7 +854,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
                 : ts != null && shiftBehind > LIVE_LAG + 2 ? behindText(shiftBehind) + " achter live" // de ICY-titel is die van live: niet tonen
                 : (title.isEmpty() ? "Live" : title);
         if (alarm) text = "⏰ Wekker · " + text;
-        if (sleepAt > 0) text += " · stopt om " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(new java.util.Date(sleepAt));
+        if (sleepAt > 0) text += " · stopt om " + Regio.time(this, sleepAt);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         boolean playing = "playing".equals(status) || "connecting".equals(status) || "interrupted".equals(status);
         boolean shift = ts != null && shiftOn && !alarm && !"error".equals(status);

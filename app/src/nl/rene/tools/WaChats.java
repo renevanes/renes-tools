@@ -325,9 +325,9 @@ final class WaChats {
                     chatName(c, cur.getString(1), cur.getString(2), cur.getString(3), cur.getString(8)),
                     cur.getLong(4), cur.getLong(5), "g.us".equals(cur.getString(2))});
         }
-        SimpleDateFormat day = new SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL"));
-        SimpleDateFormat hm = new SimpleDateFormat("HH:mm", Locale.US);
-        SimpleDateFormat full = new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL"));
+        SimpleDateFormat day = Regio.df(c, "EEEE d MMMM yyyy");
+        SimpleDateFormat hm = Regio.df(c, "HH:mm");
+        SimpleDateFormat full = Regio.df(c, "d MMM yyyy HH:mm");
         Set<String> used = new HashSet<>();
         used.add("index"); // het overzicht heet index.html: een chat met de naam "index" mag dat niet overschrijven
         StringBuilder idx = new StringBuilder();

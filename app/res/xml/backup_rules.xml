@@ -47,4 +47,5 @@
         <exclude domain="sharedpref" path="vpn.xml" />
         <exclude domain="sharedpref" path="statistiek.xml" />
         <exclude domain="sharedpref" path="thema.xml" />
+        <exclude domain="sharedpref" path="regio.xml" />
 </full-backup-content>

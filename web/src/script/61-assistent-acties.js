@@ -38,6 +38,7 @@ function aiDur(s){
   return [h ? h + ' uur' : '', m ? m + ' min' : '', x ? x + ' s' : ''].filter(Boolean).join(' ') || '0 min';
 }
 const aiHm = min => String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0');
+const aiHmT = min => fmtHm(aiHm(min)); // om te tonen (12- of 24-uurs, Regio en taal)
 function aiNormName(s){ return norm2(String(s || '')).replace(/[^a-z0-9]+/g, ''); }
 /* Beste treffer op naam: precies, begint met, bevat (in beide richtingen). Een korte vraag ("de", "me") alleen precies. */
 function aiBestName(list, q, name){
@@ -91,7 +92,7 @@ function aiCmdFor(q){
     case 'wekker': {
       if (a.radio && !(typeof SOLO !== 'undefined' && SOLO)) return aiCmdRadioAlarm(a.min, a.need === 'tijd');
       a.radioOk = !!aiStations().length && !(typeof SOLO !== 'undefined' && SOLO);
-      let t = a.min >= 0 ? 'Ik kan een wekker om **' + aiHm(a.min) + '** zetten in je Klok-app; die gaat zeker af, ook als Tools dicht is.' : 'Hoe laat moet de wekker gaan? Kies het hieronder.';
+      let t = a.min >= 0 ? 'Ik kan een wekker om **' + aiHmT(a.min) + '** zetten in je Klok-app; die gaat zeker af, ook als Tools dicht is.' : 'Hoe laat moet de wekker gaan? Kies het hieronder.';
       if (a.radioOk) t += ' Liever wakker worden met de radio? Kies dan **Met de radio** (de Radiowekker van Tools).';
       return { text: t, cmd: a };
     }
@@ -155,7 +156,7 @@ function aiCmdSoloBlocked(a){ return typeof SOLO !== 'undefined' && !!SOLO && !A
 function aiCmdWhat(a){
   switch (a.type) {
     case 'timer': return a.secs ? 'Timer van ' + aiDur(a.secs) + (a.label ? ': ' + a.label : '') : 'Timer';
-    case 'wekker': return a.min >= 0 ? 'Wekker om ' + aiHm(a.min) + (a.label ? ': ' + a.label : '') : 'Wekker';
+    case 'wekker': return a.min >= 0 ? 'Wekker om ' + aiHmT(a.min) + (a.label ? ': ' + a.label : '') : 'Wekker';
     case 'radio': return a.stopNow ? 'Radio stoppen' + (a.station ? ' (' + a.station.name + ')' : '') : (a.station ? a.station.name : 'Radio');
     case 'podcast': return a.ep ? a.ep.title + (a.pod && a.pod.title ? ' · ' + a.pod.title : '') : 'Podcast';
     case 'slaap': return a.stop ? 'Slaappraat stoppen' : 'Slaappraat starten';
@@ -203,8 +204,8 @@ function aiCmdHtml(m, i){
 /* De Klok-app kiest altijd de eerstvolgende keer op die tijd: zeg het als dat niet de dag is die je noemde */
 function aiCmdAlarmNote(a){
   if (!a.day || a.min < 0) return '';
-  if (a.day === 'morgen') { const d = new Date(), now = d.getHours() * 60 + d.getMinutes(); return a.min > now ? 'Let op: de Klok-app zet hem op de eerstvolgende ' + aiHm(a.min) + ', en dat is vandaag. Voor morgen pas je dat daar aan.' : ''; }
-  return 'De dag (' + a.day + ') kies je daarna zelf in de Klok-app; die zet hem op de eerstvolgende ' + aiHm(a.min) + '.';
+  if (a.day === 'morgen') { const d = new Date(), now = d.getHours() * 60 + d.getMinutes(); return a.min > now ? 'Let op: de Klok-app zet hem op de eerstvolgende ' + aiHmT(a.min) + ', en dat is vandaag. Voor morgen pas je dat daar aan.' : ''; }
+  return 'De dag (' + a.day + ') kies je daarna zelf in de Klok-app; die zet hem op de eerstvolgende ' + aiHmT(a.min) + '.';
 }
 function aiCmdMsgAt(i){ const m = aiChat && aiChat.msgs[i]; return m && m.cmd ? m : null; }
 function aiCmdSet(i, k, v){ const m = aiCmdMsgAt(i); if (m) m.cmd[k] = v; }
@@ -250,7 +251,7 @@ function aiCmdDo(i){
       if (!(min >= 0 && min < 1440)) { fail('Kies een tijd'); return; }
       if (!go()) return;
       const e = Android.aiDo(JSON.stringify({ type: 'wekker', min, label: a.label || '' })); if (e) { fail(e); return; }
-      a.min = min; a.done = 'Wekker om ' + aiHm(min) + ' gezet'; a.doneNote = 'In je Klok-app; uitzetten of een andere dag kiezen doe je daar.'; break;
+      a.min = min; a.done = 'Wekker om ' + aiHmT(min) + ' gezet'; a.doneNote = 'In je Klok-app; uitzetten of een andere dag kiezen doe je daar.'; break;
     }
     case 'radio': {
       if (!go()) return;

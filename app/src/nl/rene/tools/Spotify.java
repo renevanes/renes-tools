@@ -576,7 +576,7 @@ final class Spotify {
             File f = logFile(c);
             String old = f.isFile() ? Contacts.readText(f, false) : "";
             StringBuilder b = new StringBuilder();
-            String when = new SimpleDateFormat("d MMM yyyy HH:mm", new Locale("nl", "NL")).format(new Date(t));
+            String when = Regio.fmt(c, "d MMM yyyy HH:mm", t);
             b.append(when).append(lines.isEmpty() ? " · (alleen volgorde of omschrijving)\n" : "\n");
             for (String l : lines) b.append("  ").append(l).append('\n');
             String all = b + old;
@@ -738,7 +738,7 @@ final class Spotify {
                 }
             } else {
                 progress = "Playlist maken…";
-                String when = new SimpleDateFormat("d-M-yyyy", new Locale("nl", "NL")).format(new Date());
+                String when = Regio.fmt(c, "d-M-yyyy", System.currentTimeMillis());
                 JSONObject made = api(c, "POST", "/me/playlists", new JSONObject().put("name", PodcastFeed.cut(name + " (hersteld " + when + ")", 100))
                         .put("public", false).put("description", PodcastFeed.cut("Teruggezet door Tools uit een backup. " + meta.optString("desc"), 300)));
                 target = made.optString("id");

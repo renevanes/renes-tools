@@ -12,7 +12,7 @@ function noteRemShow(){
   const l = noteRemList(noteCur);
   $('#note-rem').value = localIso(Date.now() + 36e5);
   $('#note-rem-del').style.display = l.length > 1 ? 'block' : 'none';
-  $('#note-rem-list').innerHTML = l.map(r => '<div class="remrow"><span>'+uiIcon('bell')+' ' + esc(new Date(r.t).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) +
+  $('#note-rem-list').innerHTML = l.map(r => '<div class="remrow"><span>'+uiIcon('bell')+' ' + esc(fmtDT(r.t, {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) +
     (r.rep ? ' <small>· ' + esc(REM_REP[r.rep] || '') + '</small>' : '') + '</span><button class="mini" data-id="' + esc(r.id) + '" onclick="noteDelOneRem(this.dataset.id)" aria-label="Herinnering weghalen">Weghalen</button></div>').join('');
   noteUiSummaries();
 }

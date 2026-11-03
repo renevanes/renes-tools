@@ -670,7 +670,7 @@ final class Transcribe {
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir dir = dest.dir(DIR, true);
         java.text.SimpleDateFormat fn = new java.text.SimpleDateFormat("yyyy-MM-dd_HHmm", Locale.US);
-        java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("EEEE d MMMM yyyy HH:mm", new Locale("nl", "NL"));
+        java.text.SimpleDateFormat df = Regio.df(c, "EEEE d MMMM yyyy HH:mm");
         int n = 0;
         File[] ts = transcriptDir(c).listFiles();
         // Eerst alle namen bepalen: twee gesprekken in dezelfde minuut met dezelfde persoon (of twee zonder naam)

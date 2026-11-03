@@ -102,7 +102,7 @@ function txOpen(id, ms){
   txCur = id; txT = t;
   $('#txd-title').textContent = t.name || t.file;
   const when = t.callDate || t.mtime;
-  $('#txd-sub').textContent = new Date(when).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}) +
+  $('#txd-sub').textContent = fmtDT(when, {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}) +
     ' · ' + fmtMs(t.duration) + (t.kind ? ' · ' + (TXKIND[t.kind] || '') : '') + (t.number && t.number !== t.name ? ' · ' + t.number : '');
   $('#txd-segs').innerHTML = (t.segments || []).map((s, i) =>
     '<p class=seg id="seg' + i + '" data-ms="' + (+s.from || 0) + '" onclick="txSegTap(this)"><time>' + fmtMs(s.from) + '</time>' + esc(s.text) + '</p>').join('') ||

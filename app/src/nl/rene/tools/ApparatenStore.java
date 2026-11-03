@@ -63,7 +63,8 @@ final class ApparatenStore {
             o.put("bg", p.getBoolean("bg", false)).put("every", p.getInt("every", 30)).put("trackers", p.getBoolean("trackers", true))
                     .put("hist", p.getBoolean("hist", true)).put("keep", p.getInt("keep", 30)).put("away", p.getBoolean("away", false));
             boolean home = p.contains("homeLat");
-            o.put("home", home).put("homeSsid", p.getString("homeSsid", ""));
+            // Zonder eigen thuis telt Thuis uit Regio en taal (als die is ingesteld)
+            o.put("home", home).put("homeSsid", p.getString("homeSsid", "")).put("homeRegio", !home && Regio.home(c) != null);
         } catch (Exception ignored) { }
         return o;
     }
@@ -94,10 +95,12 @@ final class ApparatenStore {
 
     static void clearHome(Context c) { prefs(c).edit().remove("homeLat").remove("homeLon").remove("homeSsid").apply(); }
 
+    /** Thuis zoals hier gekozen, anders Thuis uit Regio en taal (of null). */
     static double[] home(Context c) {
         SharedPreferences p = prefs(c);
-        try { return p.contains("homeLat") ? new double[]{Double.parseDouble(p.getString("homeLat", "")), Double.parseDouble(p.getString("homeLon", ""))} : null; }
+        try { if (p.contains("homeLat")) return new double[]{Double.parseDouble(p.getString("homeLat", "")), Double.parseDouble(p.getString("homeLon", ""))}; }
         catch (Exception e) { return null; }
+        return Regio.home(c);
     }
 
     /** Ben je thuis? Verbonden met je wifi thuis, of binnen 300 m van de plek die je als thuis koos. */

@@ -30,7 +30,6 @@ public final class HomeWidgets {
 
     static final String REFRESH = "nl.rene.tools.WIDGET_REFRESH", PARK_DONE = "nl.rene.tools.PARK_DONE";
     static final int[] ROWS = {R.id.w_r0, R.id.w_r1, R.id.w_r2, R.id.w_r3};
-    static final Locale NL = new Locale("nl", "NL");
     static final int IMM = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
 
     static final java.util.concurrent.ExecutorService WORKER = java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -107,7 +106,7 @@ public final class HomeWidgets {
         RemoteViews build(Context c, boolean force) {
             RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_rows);
             v.setTextViewText(R.id.w_title, "📅 Agenda");
-            v.setTextViewText(R.id.w_sub, new SimpleDateFormat("EEE d MMM", NL).format(new Date()));
+            v.setTextViewText(R.id.w_sub, Regio.fmt(c, "EEE d MMM", System.currentTimeMillis()));
             Intent cal = new Intent(Intent.ACTION_VIEW, android.provider.CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build())
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             v.setOnClickPendingIntent(R.id.w_head, PendingIntent.getActivity(c, 7100, cal, IMM));
@@ -126,7 +125,7 @@ public final class HomeWidgets {
                 } else {
                     JSONArray ev = o.optJSONArray("events");
                     Calendar today = Calendar.getInstance();
-                    SimpleDateFormat time = new SimpleDateFormat("HH:mm", NL), day = new SimpleDateFormat("EEE", NL);
+                    SimpleDateFormat time = Regio.df(c, "HH:mm"), day = Regio.df(c, "EEE");
                     if (ev != null) for (int i = 0; i < ev.length() && lines.size() < ROWS.length; i++) {
                         JSONObject e = ev.optJSONObject(i);
                         if (e == null || e.optLong("end") < System.currentTimeMillis()) continue;
@@ -176,7 +175,8 @@ public final class HomeWidgets {
         }
     }
 
-    static String deg(Object d) { return d instanceof Number ? Math.round(((Number) d).doubleValue()) + "°" : "–"; }
+    /** "18°" (of in °F, Regio en taal) */
+    static String deg(Context c, Object d) { return Regio.deg(c, d); }
 
     static volatile long lastForce = 0;
 
@@ -202,23 +202,23 @@ public final class HomeWidgets {
                 }
                 String[] now = wmo(w.optInt("code"), w.optBoolean("day", true));
                 v.setTextViewText(R.id.w_wi, now[0]);
-                v.setTextViewText(R.id.w_wt, deg(w.opt("temp")));
+                v.setTextViewText(R.id.w_wt, deg(c, w.opt("temp")));
                 String place = w.optString("place");
                 v.setTextViewText(R.id.w_wd, now[1] + (place.isEmpty() ? "" : " · " + place));
                 JSONArray days = w.optJSONArray("days");
                 JSONObject today = days == null ? null : days.optJSONObject(0);
                 int rain = w.optInt("rainSoon", -1);
-                v.setTextViewText(R.id.w_ws, (today == null ? "" : deg(today.opt("max")) + " / " + deg(today.opt("min")))
+                v.setTextViewText(R.id.w_ws, (today == null ? "" : deg(c, today.opt("max")) + " / " + deg(c, today.opt("min")))
                         + (rain >= 30 ? "  ·  ☔ " + rain + "% kans op regen" : rain >= 0 ? "  ·  droog de komende uren" : ""));
                 StringBuilder sb = new StringBuilder();
                 if (days != null) for (int i = 1; i < Math.min(4, days.length()); i++) {
                     JSONObject d = days.optJSONObject(i);
                     if (d == null) continue;
                     String wd;
-                    try { wd = new SimpleDateFormat("EEE", NL).format(new SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(d.optString("date"))); }
+                    try { wd = Regio.df(c, "EEE").format(new SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(d.optString("date"))); }
                     catch (Exception e) { continue; }
                     if (sb.length() > 0) sb.append("    ");
-                    sb.append(wd).append(' ').append(wmo(d.optInt("code"), true)[0]).append(' ').append(deg(d.opt("max"))).append('/').append(deg(d.opt("min")));
+                    sb.append(wd).append(' ').append(wmo(d.optInt("code"), true)[0]).append(' ').append(deg(c, d.opt("max"))).append('/').append(deg(c, d.opt("min")));
                 }
                 v.setTextViewText(R.id.w_wdays, sb.toString());
             } catch (Exception e) { v.setTextViewText(R.id.w_ws, "Weer niet op te halen"); }
@@ -242,7 +242,7 @@ public final class HomeWidgets {
             List<PendingIntent> taps = new ArrayList<>();
             try {
                 JSONObject t = new JSONObject(Launcher.toolsJson(c));
-                SimpleDateFormat when = new SimpleDateFormat("EEE d MMM HH:mm", NL), hm = new SimpleDateFormat("HH:mm", NL);
+                SimpleDateFormat when = Regio.df(c, "EEE d MMM HH:mm"), hm = Regio.df(c, "HH:mm");
                 JSONObject bk = t.optJSONObject("backup");
                 JSONObject last = bk == null ? null : bk.optJSONObject("last");
                 if (bk != null && bk.optBoolean("busy")) lines.add("💾  Backup is bezig…");
@@ -347,7 +347,7 @@ public final class HomeWidgets {
             v.setTextViewText(R.id.w_ptitle, app == null ? "Parkeren" : app.optString("n", "Parkeren"));
             long start = Auto.prefs(c).getLong("parkStart", 0);
             boolean running = start > 0 && System.currentTimeMillis() - start < 24 * 3_600_000L;
-            v.setTextViewText(R.id.w_pstate, running ? "Gestart om " + new SimpleDateFormat("HH:mm", NL).format(new Date(start)) + " · tik als je klaar bent"
+            v.setTextViewText(R.id.w_pstate, running ? "Gestart om " + Regio.time(c, start) + " · tik als je klaar bent"
                     : "Niet gestart (" + r.optString("name") + ")");
             v.setViewVisibility(R.id.w_pstart, running ? android.view.View.GONE : android.view.View.VISIBLE);
             v.setViewVisibility(R.id.w_popen, android.view.View.VISIBLE);

@@ -102,7 +102,7 @@ function pdfEditText(){
   const o = Object.assign({type:'text',page:pdfEd.page,x:.1,y:.1,w:.6}, old || {}, {text,size:+$('#pdf-edit-size').value,color:$('#pdf-edit-color').value});
   pdfEditPut(o);
 }
-function pdfEditDate(){ pdfEditSelect(-1); $('#pdf-edit-text').value = new Date().toLocaleDateString('nl-NL'); pdfEditText(); }
+function pdfEditDate(){ pdfEditSelect(-1); $('#pdf-edit-text').value = fmtDate(Date.now()); pdfEditText(); }
 function pdfEditStyle(){
   const o = pdfEd.items[pdfEd.selected]; if (!o) return;
   const n = Object.assign({}, o, {color:$('#pdf-edit-color').value}); if (o.type === 'text') n.size = +$('#pdf-edit-size').value;

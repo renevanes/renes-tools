@@ -7,9 +7,8 @@
 const TH_MODES = [['system', 'Systeem (volgt je telefoon)'], ['light', 'Licht'], ['dark', 'Donker'], ['time', 'Automatisch op tijd'], ['sun', 'Automatisch zonsondergang–zonsopkomst']];
 const TH_OFF = [['-60', 'Een uur eerder donker'], ['-30', 'Half uur eerder donker'], ['-15', 'Kwartier eerder donker'], ['0', 'Bij zonsondergang'], ['15', 'Kwartier later donker'], ['30', 'Half uur later donker'], ['60', 'Een uur later donker']];
 /* Plaatsen voor als de app je locatie niet weet (of je die niet wilt gebruiken) */
-const TH_PLACES = [['auto', 'Mijn locatie (anders Rotterdam)'], ['rotterdam', 'Rotterdam', 51.92, 4.48], ['amsterdam', 'Amsterdam', 52.37, 4.9], ['den-haag', 'Den Haag', 52.08, 4.31],
-  ['utrecht', 'Utrecht', 52.09, 5.12], ['eindhoven', 'Eindhoven', 51.44, 5.48], ['groningen', 'Groningen', 53.22, 6.57], ['maastricht', 'Maastricht', 50.85, 5.69],
-  ['middelburg', 'Middelburg', 51.5, 3.61], ['leeuwarden', 'Leeuwarden', 53.2, 5.8], ['enschede', 'Enschede', 52.22, 6.89], ['brussel', 'Brussel', 50.85, 4.35]];
+/* De steden komen uit Regio en taal (RG_CITIES); Thuis en Werk ook (als die daar ingesteld zijn), anders telt het als Mijn locatie */
+const TH_PLACES = [['auto', 'Mijn locatie (anders de standaardplaats)'], ['home', 'Thuis (Regio en taal)'], ['work', 'Werk (Regio en taal)']].concat(typeof RG_CITIES !== 'undefined' ? RG_CITIES : [['rotterdam', 'Rotterdam', 51.92, 4.48]]);
 const TH_DEF = { mode: 'system', amoled: false, dark: '20:00', light: '07:00', off: 0, place: 'auto' };
 
 /* ---------- puur rekenwerk (getest in tests/ui/thema-reken.test.js) ---------- */
@@ -89,12 +88,17 @@ let thState = null, thLocC = null;
 function thLoc(c){
   const p = TH_PLACES.find(x => x[0] === c.place && x.length > 2);
   if (p) return { lat: p[2], lon: p[3], name: p[1], own: false };
+  const sp = (c.place === 'home' || c.place === 'work') && typeof rgPlace === 'function' ? rgPlace(c.place) : null;
+  if (sp) return { lat: sp.lat, lon: sp.lon, name: sp.name, own: false, where: sp.name === 'Thuis' ? 'thuis' : sp.name === 'Werk' ? 'op je werk' : 'bij ' + sp.name };
   if (!thLocC || Date.now() - thLocC.t > 30 * 6e4) {
     let v = ''; try { if (typeof Android !== 'undefined' && typeof Android.themeLocation === 'function') v = String(Android.themeLocation() || ''); } catch (e) { }
     const m = /^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/.exec(v);
     thLocC = { t: Date.now(), p: m && Math.abs(+m[1]) <= 90 && Math.abs(+m[2]) <= 180 ? { lat: +m[1], lon: +m[2] } : null };
   }
-  return thLocC.p ? { lat: thLocC.p.lat, lon: thLocC.p.lon, name: 'je locatie', own: true } : { lat: 51.92, lon: 4.48, name: 'Rotterdam', own: false, fallback: true };
+  if (thLocC.p) return { lat: thLocC.p.lat, lon: thLocC.p.lon, name: 'je locatie', own: true };
+  // Locatie niet bekend: de standaardplaats van Regio en taal (als die vast is), anders Rotterdam zoals altijd
+  const d = typeof rgPlace === 'function' ? rgPlace() : null;
+  return d ? { lat: d.lat, lon: d.lon, name: d.name, own: false, fallback: true } : { lat: 51.92, lon: 4.48, name: 'Rotterdam', own: false, fallback: true };
 }
 function thSys(){ try { return matchMedia('(prefers-color-scheme: dark)').matches; } catch (e) { return false; } }
 /* Donker of licht, zoals de app nu getoond wordt (gebruik dit in plaats van matchMedia('(prefers-color-scheme: dark)')) */
@@ -163,7 +167,7 @@ function thNative(c, now, loc, dark){
 }
 
 /* ---------- scherm Weergave ---------- */
-function thHm(t){ const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function thHm(t){ return fmtTime(t); }
 function thWhen(t){
   const k = Math.round((thDay(t, 0) - thDay(Date.now(), 0)) / 864e5);
   return (k === 0 ? 'om ' : k === 1 ? 'morgen om ' : 'over ' + k + ' dagen om ') + thHm(t);
@@ -178,7 +182,7 @@ function thStatus(){
 }
 function thSunNote(c){
   const loc = thLoc(c), d = new Date(), s = thSun(d.getFullYear(), d.getMonth(), d.getDate(), loc.lat, loc.lon);
-  const where = loc.own ? 'op je laatst bekende locatie' : 'in ' + loc.name + (c.place === 'auto' ? ' (je locatie is niet bekend)' : '');
+  const where = loc.where || (loc.own ? 'op je laatst bekende locatie' : 'in ' + loc.name + (c.place === 'auto' || c.place === 'home' || c.place === 'work' ? ' (je locatie is niet bekend)' : ''));
   const sun = s.polar ? (s.polar === 'night' ? 'Vandaag komt de zon niet op ' : 'Vandaag gaat de zon niet onder ') + where : 'Vandaag zon op ' + thHm(s.rise) + ', onder ' + thHm(s.set) + ' ' + where;
   return sun + '. Berekend op de telefoon, zonder internet.';
 }
