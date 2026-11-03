@@ -309,7 +309,8 @@ function bkRender(){
   if (bk.tab === 'beheer') { bkBeheer(); return; }
   if (leeg) { $('#bk-overzicht').replaceChildren(); $('#bk-lijst').replaceChildren(); $('#bk-periode-txt').textContent = ''; return; }
   const [van, tot, label] = bkPeriodeVan();
-  $('#bk-periode-txt').textContent = label + ': ' + bkDatum(van) + ' t/m ' + bkDatum(tot);
+  let laatste = ''; for (const t of bk.store.tx) if (t.d > laatste) laatste = t.d;
+  $('#bk-periode-txt').textContent = label + ': ' + bkDatum(van) + ' t/m ' + bkDatum(tot) + (laatste ? ' · nieuwste boeking ' + bkDatum(laatste) : '');
   if (bk.tab === 'overzicht') bkOverzicht(van, tot);
   if (bk.tab === 'boekingen') { bkCatSelect(); bkLijstRender(); }
   if (bk.tab === 'ai') bkAiRender();

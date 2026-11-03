@@ -43,6 +43,7 @@ const { chromium } = require('playwright');
 
     // Overzicht laatste 3 maanden
     await pg.selectOption('#bk-periode', 'm3'); await pg.waitForTimeout(150);
+    ok((await tekst('#bk-periode-txt')).includes('nieuwste boeking 30 okt 2026'), 'datum van de nieuwste boeking');
     const ov = await tekst('#bk-overzicht');
     ok(ov.includes('€ 9.325,00'), 'inkomsten: salaris + terugbetaling');
     ok(ov.includes('€ 4.549,11'), 'uitgaven zonder sparen');

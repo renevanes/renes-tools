@@ -107,6 +107,12 @@ public class BankTest {
         String xxe = "<?xml version=\"1.0\"?><!DOCTYPE d [<!ENTITY x SYSTEM \"file:///etc/passwd\">]><Document><Stmt><Ntry><Amt>1.00</Amt></Ntry></Stmt></Document>";
         check(err(xxe, "x.xml").contains("veiligheidsredenen"), "XML met DOCTYPE/entiteit geweigerd (XXE)");
 
+        // CAMT in ISO-8859-1 (oude export): accenten goed
+        byte[] latin = ("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><Document><BkToCstmrStmt><Stmt><Acct><Id><IBAN>NL02RABO0123456789</IBAN></Id></Acct>"
+                + "<Ntry><Amt Ccy=\"EUR\">4.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><BookgDt><Dt>2026-10-08</Dt></BookgDt><NtryDtls><TxDtls><RltdPties><Cdtr><Nm>Caf\u00e9 De Unie</Nm></Cdtr></RltdPties></TxDtls></NtryDtls></Ntry>"
+                + "</Stmt></BkToCstmrStmt></Document>").getBytes("ISO-8859-1");
+        check(BankImport.parse(latin, "camt.xml").tx.get(0).cp.equals("Caf\u00e9 De Unie"), "CAMT in ISO-8859-1: accenten goed");
+
         // ---------- fouten ----------
         check(err("", "a.csv").contains("leeg") && err("hallo wereld\nnog een regel\n", "a.csv").contains("herken ik niet"), "lege of onbekende bestanden: duidelijke melding");
         check(err("\"Datum\";\"Bedrag\"\n\"geen\";\"x\"\n", "a.csv").contains("Geen boekingen"), "kopregel zonder geldige regels");
