@@ -25,7 +25,9 @@ final class Thema {
 
     private Thema() { }
 
-    static final String PREFS = "ui", KEY = "theme";
+    /** Eigen bestand, buiten de Android-backup (bij "zon" staat er een grove plek in het rooster); zie AppData. */
+    static final String PREFS = "thema";
+    static final String KEY = "theme";
     /** Achtergrond (--bg uit stijl.css) in licht, donker en zwart (AMOLED). */
     static final int BG_LIGHT = 0xFFF4F5F6, BG_DARK = 0xFF111619, BG_BLACK = 0xFF000000;
     private static final int MAX = 16 * 1024, MAX_SCHED = 200;

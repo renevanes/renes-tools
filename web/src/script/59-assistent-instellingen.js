@@ -98,7 +98,10 @@ function setIntent(q){
   if ((m = new RegExp('^' + SET_PRE + 'wat (?:kan|kun) (?:ik|je) (?:allemaal |zoal )?(?:instellen|aanpassen|veranderen|regelen) (?:bij|in|voor|aan|van) (.+)$').exec(s)) ||
       (m = /^welke instellingen (?:heeft|hebben|zijn er (?:bij|voor|in)|zitten er in|horen bij) (.+)$/.exec(s)) || (m = /^(?:de )?instellingen (?:van|voor|bij) (.+)$/.exec(s))) return { kind: 'lijst', x: m[1] };
   // "maak het automatisch donker vanaf 21 uur": het thema op tijd
-  if ((m = new RegExp('^' + SET_PRE + '(?:maak|zet) (?:het |de app |tools |alles )?(?:automatisch |vanzelf )?(donker|licht) (?:vanaf|om|na) (.+)$').exec(s))) return { kind: 'cmd', x: m[1] + ' vanaf', raw: m[2] };
+  // Niet voor een lamp: "zet het licht om 7 uur uit", "maak het licht om 8 uur" (licht alleen met app, thema, scherm of automatisch)
+  if ((m = new RegExp('^' + SET_PRE + '(?:maak|zet) (het |de app |tools |alles |het scherm |het thema )?(automatisch |vanzelf )?(donker|licht) (vanaf|om|na) (.+)$').exec(s))
+      && !/\b(aan|uit|af)$/.test(m[5]) && (m[3] === 'donker' || m[2] || /^(de app|tools|het scherm|het thema) $/.test(m[1] || '')))
+    return { kind: 'cmd', x: m[3] + ' vanaf', raw: m[5] };
   if ((m = new RegExp('^' + SET_PRE + '(?:zet|schakel|doe)\\s+(.+?)\\s+(aan|uit|in|af)$').exec(s))) return { kind: 'cmd', x: m[1], raw: m[2], sure: true };
   if ((m = new RegExp('^' + SET_PRE + '(.+?)\\s+(aanzetten|uitzetten|aan zetten|uit zetten|inschakelen|uitschakelen)$').exec(s))) return { kind: 'cmd', x: m[1], raw: m[2], sure: true };
   if ((m = new RegExp('^' + SET_PRE + '(?:zet|stel|verander|wijzig)\\s+(.+?)\\s+(?:op|naar|in|om)\\s+(.+)$').exec(s))) return { kind: 'cmd', x: m[1], raw: m[2] };
@@ -116,6 +119,7 @@ function setValFor(e, raw){
   if (t === 'aan') return SET_ON.test(r) ? 'aan' : SET_OFF.test(r) ? 'uit' : null;
   if (t === 'tijd') return setTime(r);
   if (t !== 'keuze') return null;
+  if (e.alias && e.alias[r]) return e.alias[r];
   const nm = x => norm2(x).replace(/[×x]$/, '').replace(',', '.').trim(), rr = nm(r);
   let v = vals.find(x => nm(x[0]) === rr || nm(x[1]) === rr);
   if (!v && SET_OFF.test(r)) v = vals.find(x => /^(uit|off)$/.test(nm(x[0])) || nm(x[1]) === 'uit');
@@ -206,7 +210,7 @@ function setHandle(q){
     const raw = it.raw;
     // Een tekst-opdracht ("Zet dit op een rijtje: …", "Stel een mail op naar Jos …") is geen instelling: gewoon de assistent
     const nx = setWords(it.x).length + (it.x.match(/\b(de|het|een|mijn|m'n|deze|dit|die)\b/g) || []).length;
-    if (/[:\n]/.test(q) || q.length > 90) return null;
+    if (/[:\n]/.test(q.replace(/\b\d{1,2}:\d{2}\b/g, '')) || q.length > 90) return null; // een tijd (21:00) mag wel
     const short = nx <= 4;
     // Alleen echte instellingen (geen Openen-plekken), met een woord uit de naam dat meer zegt dan de naam van de tool
     const ch = setFind(it.x, null, q).filter(h => setType(h.e) !== 'openen' && setType(h.e) !== 'tekst' && setNameHit(h.e, it.x, q));

@@ -110,16 +110,20 @@ function thApply(quiet){
     if (prev && !quiet && prev.dark !== r.dark) thAnim();
     thCss(forced); thAmoled(amoled);
     document.documentElement.dataset.thema = r.dark ? 'donker' : 'licht';
-    // Voor body-begin.html bij de volgende start (niet in backups: zie WS_SKIP)
-    try { localStorage.setItem('rt.themeNow', JSON.stringify({ dark: forced, until: c.mode === 'time' || c.mode === 'sun' ? (r.next || now + 864e5) : 0 })); } catch (e) { }
   }
-  thNative(c, now, loc);
+  // Voor body-begin.html bij de volgende start (niet in backups: zie WS_SKIP): de stand en tot wanneer die geldt
+  const auto = c.mode === 'time' || c.mode === 'sun', pre = JSON.stringify({ dark: forced, until: auto ? (r.next || thDay(now, 1).getTime()) : 0 });
+  try { if (thApply.pre === undefined) thApply.pre = localStorage.getItem('rt.themeNow'); if (pre !== thApply.pre) { localStorage.setItem('rt.themeNow', pre); thApply.pre = pre; } } catch (e) { }
+  thNative(c, now, loc, r.dark);
+  // Precies op de volgende wissel (naast de minuuttik), hooguit 6 uur vooruit
+  clearTimeout(thApply.t);
+  if (r.next) thApply.t = setTimeout(() => thApply(), Math.max(1000, Math.min(r.next - now + 1000, 6 * 36e5)));
   if (changed && prev) {
     if (typeof bars === 'function') { bars.last = null; bars(); }
     try { window.dispatchEvent(new CustomEvent('themechange', { detail: { dark: r.dark } })); } catch (e) { }
   }
   if (changed) thQuickIcon();
-  if (typeof current !== 'undefined' && current === 'setlook') thRender();
+  if (typeof current !== 'undefined' && current === 'setlook') thRender(c);
   return thState;
 }
 /* Na een nieuwe stylesheet (zoals #dyn-theme) de themaregels opnieuw vastzetten */
@@ -131,15 +135,17 @@ function thAnim(){
 /* Zwart (AMOLED): bij donker de achtergrondrollen zwart (:root:root wint van stijl.css en #dyn-theme) */
 function thAmoled(on){
   let st = document.getElementById('th-amoled');
-  const css = on ? ':root:root{--bg:#000000;--card:#111416;--hi:#0B0D0E;--line:#262C30;--chip:#1C2226}' : '';
+  // --hi (zoekvelden, vensters, schakelaars) lichter dan --card, en die lichter dan de zwarte --bg
+  const css = on ? ':root:root{--bg:#000000;--card:#101315;--hi:#1E2529;--line:#2C3439;--chip:#232B30}' : '';
   if (!st && !on) return;
   if (!st) { st = document.createElement('style'); st.id = 'th-amoled'; document.head.appendChild(st); }
   if (st.textContent !== css) st.textContent = css;
 }
 /* Java: de keuze plus (bij de zon) een rooster van wissels voor ruim vier weken */
-function thNative(c, now, loc){
+function thNative(c, now, loc, dark){
   if (typeof Android === 'undefined' || typeof Android.themeSet !== 'function') return;
-  const key = JSON.stringify([c, loc && [loc.lat, loc.lon], new Date(now).toDateString()]);
+  // Ook bij elke wissel opnieuw: dan zet Java meteen de achtergrond (en de afdeklaag van het app-slot) in de nieuwe kleur
+  const key = JSON.stringify([c, loc && [loc.lat, loc.lon], new Date(now).toDateString(), !!dark]);
   if (key === thNative.key) return;
   thNative.key = key;
   const o = { mode: c.mode, amoled: c.amoled };
@@ -176,9 +182,9 @@ function thSunNote(c){
   const sun = s.polar ? (s.polar === 'night' ? 'Vandaag komt de zon niet op ' : 'Vandaag gaat de zon niet onder ') + where : 'Vandaag zon op ' + thHm(s.rise) + ', onder ' + thHm(s.set) + ' ' + where;
   return sun + '. Berekend op de telefoon, zonder internet.';
 }
-function thRender(){
+function thRender(cfg){
   const sel = $('#st-theme'); if (!sel) return;
-  const c = thCfg();
+  const c = cfg || thCfg();
   if (!sel.options.length) sel.innerHTML = TH_MODES.map(m => '<option value="' + m[0] + '">' + esc(m[1]) + '</option>').join('');
   const off = $('#st-th-off'); if (!off.options.length) off.innerHTML = TH_OFF.map(m => '<option value="' + m[0] + '">' + esc(m[1]) + '</option>').join('');
   const pl = $('#st-th-loc'); if (!pl.options.length) pl.innerHTML = TH_PLACES.map(m => '<option value="' + m[0] + '">' + esc(m[1]) + '</option>').join('');
@@ -191,7 +197,7 @@ function thRender(){
   const a = $('#st-amoled'); a.classList.toggle('on', c.amoled); a.setAttribute('aria-checked', c.amoled ? 'true' : 'false');
   const st = $('#st-th-now'), t = thStatus(); if (st.textContent !== t) st.textContent = t;
 }
-function thSave(patch){ store.set('theme', thClean(Object.assign(thCfg(), patch))); thApply(); thRender(); }
+function thSave(patch){ store.set('theme', thClean(Object.assign(thCfg(), patch))); thApply(); if (current !== 'setlook') thRender(); }
 function thSetMode(v){ thSave({ mode: v }); toast('Thema: ' + thModeName(thCfg().mode).replace(/ \(.*\)$/, '').toLowerCase()); }
 function thSetVal(k, v){
   if ((k === 'dark' || k === 'light') && thMin(v) < 0) { thRender(); return; }

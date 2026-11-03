@@ -411,6 +411,7 @@ public class MainActivity extends Activity {
         boolean lock = !isSolo() && Lock.onShown(this); // losse app: geen app-slot (en het slot van de app blijft zoals het was)
         Notes.applyRepeats(this); // terugkerende lijstjes die weer leeg moeten
         if (uiReady) js("onNotesMaybeChanged", ""); // misschien afgestreept in de widget
+        themeChanged(); // automatisch thema kan intussen gewisseld zijn: afdeklaag en achtergrond in de kleur van nu
         if (!uiReady && !isSolo() && Lock.active(this)) return; // eerste keer: showUi() toont hem zodra de pagina (met slotscherm) klaar is
         coverOff(lock); // eerst het slotscherm tekenen, dan pas de afdekking weg (geen flits van de inhoud)
     }
@@ -420,7 +421,7 @@ public class MainActivity extends Activity {
         if (!isSolo()) {
             Lock.onHidden();
             // Met app-slot de inhoud alvast verbergen; bij terugkomen beslist onStart of hij op slot moet.
-            if (web != null && Lock.active(this) && !Lock.internalNav && !Lock.busy()) coverOn();
+            if (web != null && Lock.active(this) && !Lock.internalNav && !Lock.busy()) { themeChanged(); coverOn(); }
         }
         super.onStop();
     }

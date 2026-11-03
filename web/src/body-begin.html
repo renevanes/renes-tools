@@ -27,5 +27,17 @@ function thCss(forced){
   for (const s of document.styleSheets) { let rs = null; try { rs = s.cssRules; } catch (e) { } if (rs) walk(rs); }
   for (const r of [...thOrig.keys()]) if (!seen.has(r)) thOrig.delete(r); // stylesheets die weg zijn
 }
-try { const n = JSON.parse(localStorage.getItem('rt.themeNow') || 'null'); if (n && typeof n.dark === 'boolean' && (!n.until || Date.now() < n.until)) thCss(n.dark); } catch (e) { }
+(function(){
+  let d = null;
+  try {
+    const n = JSON.parse(localStorage.getItem('rt.themeNow') || 'null');
+    if (n && typeof n.dark === 'boolean') {
+      if (!n.until || Date.now() < n.until) d = n.dark;
+      // Automatisch en intussen gewisseld (bijv. de eerste keer 's avonds): de app weet hoe het nu moet
+      else if (typeof Android !== 'undefined' && typeof Android.themeDark === 'function') d = !!Android.themeDark();
+    }
+  } catch (e) { d = null; }
+  window.thPre = d; // voor de tests: wat er vóór de eerste weergave gebeurde
+  if (d != null) thCss(d);
+})();
 </script>

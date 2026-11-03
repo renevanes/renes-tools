@@ -29,6 +29,9 @@ public class FeatureBridge {
         if (Thema.save(ctx, json)) a.h.post(a::themeChanged);
     }
 
+    /** Donker of licht volgens het thema, nu (voor de stand vóór de eerste weergave als de onthouden stand verlopen is). */
+    @JavascriptInterface public boolean themeDark() { return Thema.dark(ctx); }
+
     /** Laatst bekende plek, grof ("51.92,4.48"), of "" zonder toestemming; voor zonsopkomst en -ondergang. */
     @JavascriptInterface public String themeLocation() { return Thema.lastLocation(ctx); }
 

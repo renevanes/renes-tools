@@ -16,6 +16,8 @@ const LIGHT = '#F4F5F6', DARK = '#111619';
   };
   const url = 'file://' + path.join(__dirname, 'ui', 'index.html');
   const bg = pg => pg.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim().toUpperCase());
+  const lum = h => { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; const n = parseInt(h.slice(1), 16); return .2126 * f(n >> 16 & 255) + .7152 * f(n >> 8 & 255) + .0722 * f(n & 255); };
+  const roles = pg => pg.evaluate(() => { const cs = getComputedStyle(document.documentElement); return ['--bg', '--card', '--hi', '--ink', '--muted'].map(n => cs.getPropertyValue(n).trim()); });
 
   // 1. Licht schema in de browser: Systeem volgt, Donker wordt donker
   {
@@ -38,6 +40,9 @@ const LIGHT = '#F4F5F6', DARK = '#111619';
     // Zwart (AMOLED)
     await pg.click('#st-amoled'); await pg.waitForTimeout(100);
     ok(await bg(pg) === '#000000' && await pg.evaluate(() => thCfg().amoled), 'Zwart (AMOLED): zwarte achtergrond');
+    { const [b0, c0, h0, ink, mu] = await roles(pg), ratio = (a, b) => (Math.max(lum(a), lum(b)) + .05) / (Math.min(lum(a), lum(b)) + .05);
+      ok(lum(h0) > lum(c0) && lum(c0) > lum(b0), 'Zwart (AMOLED): --hi (' + h0 + ') lichter dan --card (' + c0 + '), lichter dan --bg');
+      ok(ratio(h0, c0) >= 1.17 && ratio(ink, h0) >= 7 && ratio(mu, h0) >= 4.5 && ratio(ink, c0) >= 7, 'Zwart (AMOLED): velden zichtbaar op een kaart, tekst goed leesbaar (' + ratio(h0, c0).toFixed(2) + ', ' + ratio(mu, h0).toFixed(1) + ')'); }
     // Met kleuren uit je achtergrond: ook die volgen het thema
     await pg.evaluate(() => { const t = [0, 10, 50, 100, 200, 400, 500, 600, 700, 800, 900, 1000], pal = () => Object.fromEntries(t.map(x => { const v = Math.round(255 - x * .255).toString(16).padStart(2, '0'); return [x, '#' + v + v + v]; }));
       Android._theme = { accent1: pal(), accent2: pal(), neutral1: pal(), neutral2: pal() }; store.set('dynColor', true); applyTheme(); });
@@ -87,11 +92,18 @@ const LIGHT = '#F4F5F6', DARK = '#111619';
     ok(await pg.inputValue('#st-th-dark') === '20:00' && await pg.inputValue('#st-th-light') === '07:00', 'standaard 20:00 en 07:00');
     ok(await bg(pg) === LIGHT && /Nu: licht · wordt donker om 20:00/.test(await pg.textContent('#st-th-now')), 'om 19:57: ' + await pg.textContent('#st-th-now'));
     ok(JSON.parse(await pg.evaluate(() => Android._themeCfg)).win.join() === '1200,420', 'Java krijgt het venster 20:00–07:00');
+    const tn = () => pg.evaluate(() => JSON.parse(localStorage.getItem('rt.themeNow')));
+    ok((await tn()).dark === false && (await tn()).until === new Date('2026-11-03T20:00:00+01:00').getTime(), 'onthouden stand: licht tot 20:00');
+    await pg.evaluate(() => { window._ts = 0; const o = Android.themeSet.bind(Android); Android.themeSet = j => { window._ts++; o(j); }; });
     await pg.clock.runFor(3 * 60000); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => window._ts) === 1, 'bij de wissel krijgt Java het opnieuw (achtergrond en afdeklaag van het app-slot)');
+    ok((await tn()).dark === true && (await tn()).until === new Date('2026-11-04T07:00:00+01:00').getTime(), 'onthouden stand bijgewerkt: donker tot morgen 07:00');
+    ok(await pg.evaluate(() => setGet(setEntry('weergave.donker'))) === 'aan', 'register: "Donker thema" staat aan zolang de app automatisch donker is');
     ok(await bg(pg) === DARK && /Nu: donker · wordt licht morgen om 07:00/.test(await pg.textContent('#st-th-now')), 'om 20:00 vanzelf donker: ' + await pg.textContent('#st-th-now'));
     ok((await pg.evaluate(() => window._anim)).slice(-1)[0] === true, 'met een korte overgang');
     await pg.fill('#st-th-dark', '21:30'); await pg.dispatchEvent('#st-th-dark', 'change'); await pg.waitForTimeout(100);
     ok(await bg(pg) === LIGHT && await pg.evaluate(() => thCfg().dark) === '21:30', 'donker vanaf 21:30: om 20:00 weer licht');
+    ok((await tn()).dark === false && (await tn()).until === new Date('2026-11-03T21:30:00+01:00').getTime(), 'na een andere tijd: onthouden stand licht tot 21:30 (niet verouderd)');
     await pg.clock.runFor(100 * 60000); await pg.waitForTimeout(100);
     ok(await bg(pg) === DARK, 'om 21:40 donker');
     await pg.clock.runFor(10 * 3600000); await pg.waitForTimeout(100);
@@ -147,7 +159,15 @@ const LIGHT = '#F4F5F6', DARK = '#111619';
       const h4 = setHandle('zet nachtmodus aan'), it4 = h4 && h4.set && h4.set.items && h4.set.items[0];
       out.zin4 = it4 ? it4.id + '=' + it4.to : JSON.stringify(h4);
       out.syn = ['dark mode', 'avond', 'zonsondergang'].map(q => (setFind(q)[0] || {}).e).map(e => e && e.id);
+      const one = q => { const h = setHandle(q), it = h && h.set && h.set.items && h.set.items[0]; return it ? it.id + '=' + it.to : h && h.set && h.set.choose ? 'kies ' + h.set.choose : ''; };
+      out.lamp = ['zet het licht om 7 uur uit', 'zet het licht om 22 uur aan', 'maak het licht om 8 uur', 'zet het licht uit', 'maak het licht vanaf 7 uur'].map(q => q + ' → ' + one(q));
+      out.kleur = [one('maak het donker vanaf 21:00'), one('maak de app automatisch licht vanaf 6:45'), one('zet het thema op zon'), one('zet het thema op tijd')];
       return out;
+    });
+    const r2 = await pg.evaluate(() => {
+      const hh = k => { const d = new Date(Date.now() + k * 36e5); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+      thSave({ mode: 'time', light: hh(-1), dark: hh(1) }); // nu licht, wat de klok ook is
+      const e = setEntry('weergave.donker'); return [setGet(e), e.note('uit')];
     });
     ok(r.donker.join() === 'aan,dark,true', 'register: donker thema aan (' + r.donker + ')');
     ok(r.sys === false, 'register: terug naar Systeem');
@@ -158,7 +178,34 @@ const LIGHT = '#F4F5F6', DARK = '#111619';
     ok(r.zin3 === 'weergave.thema=light', '"zet het thema op licht" → ' + r.zin3);
     ok(r.zin4 === 'weergave.donker=aan', '"zet nachtmodus aan" → ' + r.zin4);
     ok(r.syn.every(id => /^weergave\./.test(id || '')), 'zoekwoorden dark mode, avond, zonsondergang → ' + r.syn.join(', '));
+    ok(r.lamp.every(x => !/weergave\./.test(x)), 'een lamp is geen thema: ' + r.lamp.join(' | '));
+    ok(r.kleur.join() === 'weergave.donkervanaf=21:00,weergave.lichtvanaf=06:45,weergave.thema=sun,weergave.thema=time', 'thema-zinnen: ' + r.kleur.join(', '));
+    ok(r2[0] === 'uit' && /stond op Automatisch op tijd; daarna is het altijd licht/.test(r2[1]), 'Donker thema in Automatisch op tijd (overdag): ' + r2.join(' / '));
     await ctx.close();
+  }
+
+  // 5b. Vóór de eerste weergave (body-begin.html): onthouden stand, verlopen stand, en dan vragen aan de app
+  {
+    const prePage = async (now, java) => {
+      const { ctx, pg } = await page('light');
+      await pg.addInitScript(([n, j]) => {
+        try { localStorage.setItem('rt.themeNow', JSON.stringify(n)); localStorage.setItem('rt.theme', JSON.stringify({ mode: 'time', dark: '00:00', light: '00:01' })); } catch (e) { }
+        if (j == null) return;
+        // De echte app heeft Android al vóór de pagina; hier alleen voor body-begin.html (daarna neemt de testbrug het over)
+        const stub = { themeDark: () => j };
+        Object.defineProperty(window, 'Android', { configurable: true, get: () => document.scripts.length <= 2 ? stub : undefined,
+          set: v => Object.defineProperty(window, 'Android', { value: v, writable: true, configurable: true }) });
+      }, [now, java]);
+      await pg.goto(url); await pg.waitForTimeout(300);
+      const pre = await pg.evaluate(() => window.thPre);
+      await ctx.close();
+      return pre;
+    };
+    ok(await prePage({ dark: true, until: Date.now() + 36e5 }, null) === true, 'onthouden stand nog geldig: meteen donker');
+    ok(await prePage({ dark: true, until: 0 }, null) === true, 'vaste keuze (Donker): meteen donker');
+    ok(await prePage({ dark: false, until: Date.now() - 6e4 }, null) === null, 'verlopen stand, geen app: niets vastzetten (geen verouderde kleur)');
+    ok(await prePage({ dark: false, until: Date.now() - 6e4 }, true) === true, 'verlopen stand: de app zegt donker, dan meteen donker');
+    ok(await prePage({ dark: null, until: 0 }, true) === null, 'Systeem: niets vastzetten');
   }
 
   // 6. Telefoon-skin: "Zoals Tools" volgt het thema van de app (Android.isNight), ook als dat vanzelf wisselt

@@ -19,7 +19,7 @@
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 body{transition:background-color .3s}
 /* Thema wisselt (bijv. automatisch 's avonds): kort overvloeien, niet bij Minder beweging */
-@media (prefers-reduced-motion: no-preference){html.th-anim,html.th-anim *,html.th-anim *::before,html.th-anim *::after{transition:background-color .45s ease,color .45s ease,border-color .45s ease,fill .45s ease,stroke .45s ease!important}}
+@media (prefers-reduced-motion: no-preference){html.th-anim,html.th-anim *,html.th-anim *::before,html.th-anim *::after{transition:background-color .45s ease,color .45s ease,border-color .45s ease}}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 /* Kop: bovenste rij blijft staan, de grote titel schuift weg (top wordt in 43-uiterlijk.js gezet) */
