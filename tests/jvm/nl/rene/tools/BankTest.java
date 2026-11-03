@@ -151,6 +151,27 @@ public class BankTest {
         byte[] one = BankCrypt.encrypt(new byte[0], k);
         check(BankCrypt.decrypt(one, k).length == 0, "lege inhoud kan ook");
 
+        // ---------- automatisch importeren: banken en waar de website heen mag ----------
+        org.json.JSONArray banken = BankLink.banken(new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("web/bank-banken.json")), StandardCharsets.UTF_8));
+        JSONObject rb = BankLink.bank(banken, "rabobank");
+        check(rb != null && rb.getBoolean("robot") && banken.getJSONObject(0).getString("id").equals("rabobank"), "Rabobank eerst, automatisch importeren aan");
+        check(BankLink.bank(banken, "ing") != null && !BankLink.bank(banken, "ing").getBoolean("robot") && !BankLink.bank(banken, "ing").getString("uitleg").isEmpty(), "andere banken: handmatig, met uitleg");
+        java.util.HashSet<String> ids = new java.util.HashSet<>();
+        boolean uniek = true;
+        for (int i = 0; i < banken.length(); i++) uniek &= ids.add(banken.getJSONObject(i).getString("id"));
+        check(uniek && banken.length() >= 7, "bank-id's uniek, meerdere banken");
+        check(BankLink.toegestaan("https://bankieren.rabobank.nl/klanten", rb) && BankLink.toegestaan("https://www.rabobank.com/x", rb), "eigen domeinen van de bank toegestaan");
+        check(!BankLink.toegestaan("http://bankieren.rabobank.nl/", rb) && !BankLink.toegestaan("https://rabobank.nl.boef.example/", rb)
+                && !BankLink.toegestaan("https://boefrabobank.nl/", rb) && !BankLink.toegestaan("https://evil.com/?u=https://rabobank.nl", rb)
+                && !BankLink.toegestaan("https://user@evil.com/rabobank.nl", rb) && !BankLink.toegestaan("javascript:alert(1)", rb), "geen http, lookalikes of andere websites");
+        check(BankLink.appToegestaan("nl.rabomobiel", rb) && !BankLink.appToegestaan("com.boef.app", rb) && !BankLink.appToegestaan(null, rb), "alleen de Rabo App mag geopend worden");
+        JSONObject slecht = new JSONObject(rb.toString()).put("startUrl", "https://evil.com/");
+        JSONObject regex = new JSONObject(rb.toString()).put("knop", "([");
+        check(!BankLink.geldig(slecht) && !BankLink.geldig(regex) && BankLink.geldig(rb), "ongeldige instellingen: geen robot");
+        check(BankLink.vanaf("2026-11-03", "2026-10-30").equals("2026-10-25") && BankLink.vanaf("2026-11-03", "").equals("2025-10-03") && BankLink.vanaf("2026-03-02", "2026-03-02").equals("2026-02-25"), "periode: 5 dagen overlap, anders 13 maanden");
+        String rcfg = BankLink.robotCfg(rb, "2026-10-25");
+        check(rcfg.contains("\"van\":\"2026-10-25\"") && !rcfg.contains("startUrl") && new JSONObject(rcfg).has("knop"), "robot krijgt alleen patronen en de begindatum");
+
         System.out.println(fails == 0 ? "alles goed" : fails + " mislukt");
         System.exit(fails == 0 ? 0 : 1);
     }

@@ -454,7 +454,7 @@ public class MainActivity extends Activity {
         super.onPause();
         visible = false;
         // Bankzaken gaat op slot zodra de app uit beeld gaat (niet tijdens bestanden kiezen of de vraag om te ontgrendelen)
-        if (!Bank.picking && !Lock.authBusy && Bank.isOpen()) Bank.close();
+        if (!Bank.picking && !Bank.linking && !Lock.authBusy && Bank.isOpen()) Bank.close();
         if ("recording".equals(VoiceNote.state)) VoiceNote.cancel(); // inspreken alleen met de app open
         AiSpeech.release(); // voorlezen alleen met de app open; de spraakmotor weer vrijgeven
         AiTalk.bargeStop(); // gesprek met de assistent: niet doorluisteren

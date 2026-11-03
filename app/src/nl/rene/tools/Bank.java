@@ -193,6 +193,8 @@ final class Bank {
                 f.delete();
             }
             try { ks().deleteEntry(ALIAS); } catch (Throwable ignored) { }
+            synchronized (WACHT) { WACHT.clear(); }
+            laatsteKoppeling = "";
             close();
         }
     }
@@ -222,4 +224,64 @@ final class Bank {
 
     @SuppressWarnings("deprecation")
     private static boolean insideHw(android.security.keystore.KeyInfo i) { return i.isInsideSecureHardware(); }
+
+    // ---------- importeren (bestanden kiezen of automatisch bij de bank) ----------
+
+    /** Een afschrift in het geheugen (nooit onversleuteld op de opslag). data = null als het lezen al mislukte. */
+    static final class Bestand {
+        final String naam; final byte[] data;
+        Bestand(String naam, byte[] data) { this.naam = naam; this.data = data; }
+    }
+
+    /** Opgehaald bij de bank, maar Bankzaken ging intussen op slot: wacht (alleen in het geheugen) tot je weer ontgrendelt. */
+    static final java.util.List<Bestand> WACHT = new java.util.ArrayList<>();
+    /** Uitkomst van de laatste automatische import, voor het scherm (eenmalig opgehaald). */
+    static volatile String laatsteKoppeling = "";
+    /** Automatisch importeren loopt (eigen scherm met de website van de bank): niet op slot gaan. */
+    static volatile boolean linking = false;
+    /** Tot wanneer een opgehaald afschrift in het geheugen mag wachten (daarna weg). */
+    static volatile long wachtTot = 0;
+
+    /** Inlezen, samenvoegen met wat er is en versleuteld opslaan. fouten (mag null) = per bestand al een leesfout. */
+    static JSONObject importeer(Context c, java.util.List<Bestand> lijst, java.util.List<String> fouten) throws Exception {
+        synchronized (LOCK) {
+            if (!isOpen()) throw new Exception("Bankzaken ging op slot; ontgrendel en probeer opnieuw");
+            String cur = load(c);
+            JSONObject store = cur.isEmpty() ? new JSONObject().put("v", 1) : new JSONObject(cur);
+            org.json.JSONArray files = new org.json.JSONArray();
+            int ok = 0;
+            for (int i = 0; i < lijst.size(); i++) {
+                Bestand b = lijst.get(i);
+                JSONObject f = new JSONObject().put("naam", b.naam);
+                String fout = fouten == null ? null : fouten.get(i);
+                if (fout != null || b.data == null) { f.put("ok", false).put("fout", fout == null ? "Lezen lukt niet" : fout); files.put(f); continue; }
+                try {
+                    BankImport.Result r = BankImport.parse(b.data, b.naam);
+                    f.put("ok", true).put("sum", BankImport.merge(store, r, System.currentTimeMillis()));
+                    ok++;
+                } catch (Throwable t) { f.put("ok", false).put("fout", t instanceof OutOfMemoryError ? "Bestand is te groot" : t.getMessage() == null ? "Inlezen lukt niet" : t.getMessage()); }
+                files.put(f);
+            }
+            if (ok > 0) save(c, store.toString());
+            App.log(c, "BANK", "import");
+            return new JSONObject().put("bestanden", files).put("ok", ok);
+        }
+    }
+
+    /** Na ontgrendelen: wat er nog wachtte (automatisch opgehaald) alsnog importeren. Geeft null als er niets wachtte. */
+    static JSONObject wachtendeImporteren(Context c) {
+        java.util.List<Bestand> l;
+        synchronized (WACHT) {
+            if (WACHT.isEmpty()) return null;
+            if (System.currentTimeMillis() > wachtTot) { WACHT.clear(); return null; } // te lang gewacht: weg uit het geheugen
+            l = new java.util.ArrayList<>(WACHT);
+        }
+        try {
+            JSONObject r = importeer(c, l, null);
+            synchronized (WACHT) { WACHT.removeAll(l); }
+            return r;
+        } catch (Throwable t) {
+            try { return new JSONObject().put("error", why(t)); } catch (Exception e) { return null; }
+        }
+    }
 }

@@ -193,6 +193,12 @@
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <activity
+            android:name=".BankLinkActivity"
+            android:exported="false"
+            android:label="Bankzaken"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" />
+        <activity
             android:name=".FacturenActivity"
             android:exported="false"
             android:label="Facturen ophalen"

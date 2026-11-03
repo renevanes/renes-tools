@@ -1,0 +1,65 @@
+{
+  "versie": 1,
+  "uitleg": "Banken voor Bankzaken. robot=true: automatisch importeren (de app opent de website van de bank, jij logt in met de app van je bank, de rest gaat vanzelf). De patronen zijn hoofdletterongevoelige reguliere expressies op de zichtbare tekst van knoppen en links. Alleen https en alleen de genoemde domeinen.",
+  "banken": [
+    {
+      "id": "rabobank",
+      "naam": "Rabobank",
+      "robot": true,
+      "startUrl": "https://bankieren.rabobank.nl/",
+      "domeinen": ["rabobank.nl", "rabobank.com"],
+      "apps": ["nl.rabomobiel"],
+      "appNaam": "Rabo App",
+      "inlog": "inloggen met (de )?rabo app|scan de (qr|code)|open de rabo app|bevestig (in|met) (de|je) (rabo )?app|rabo scanner",
+      "menu": "^(rekeningen?|betalen( en sparen)?|overzichten|mijn rekeningen|zelf regelen)$",
+      "naarDownload": "transacties downloaden|download(en)? transacties|transacties exporteren|^download(en)?$|^exporteren$|downloaden en exporteren",
+      "formaat": "camt\\.?\\s?053|camt|xml",
+      "formaatReserve": "^csv|komma|csv\\b",
+      "alleRekeningen": "alle rekeningen|all accounts|alle betaalrekeningen",
+      "knop": "^(download(en)?|bestand downloaden|start download|exporteren|downloaden starten)$",
+      "uitleg": "Rabo App of Rabo Internetbankieren → Rekeningen → Transacties downloaden → kies CAMT.053 of CSV en de periode."
+    },
+    {
+      "id": "ing",
+      "naam": "ING",
+      "robot": false,
+      "uitleg": "Mijn ING (website) → Betalen → je rekening → Af- en bijschrijvingen downloaden → kies Kommagescheiden CSV (puntkomma) of MT940/CAMT.053 en de periode."
+    },
+    {
+      "id": "abnamro",
+      "naam": "ABN AMRO",
+      "robot": false,
+      "uitleg": "Internet Bankieren → Zelf regelen → Mutaties downloaden → kies TXT, MT940 of CAMT.053 en de periode."
+    },
+    {
+      "id": "volksbank",
+      "naam": "ASN Bank, SNS of RegioBank",
+      "robot": false,
+      "uitleg": "Mijn ASN/SNS/RegioBank → Betalen → Transacties downloaden → kies CSV of CAMT.053."
+    },
+    {
+      "id": "triodos",
+      "naam": "Triodos",
+      "robot": false,
+      "uitleg": "Internetbankieren → Rekeningen → Transacties downloaden → kies CSV of MT940."
+    },
+    {
+      "id": "knab",
+      "naam": "Knab",
+      "robot": false,
+      "uitleg": "Knab (website) → Rekening → Transacties exporteren → kies CSV."
+    },
+    {
+      "id": "bunq",
+      "naam": "bunq",
+      "robot": false,
+      "uitleg": "bunq-app → je rekening → ⋯ → Afschriften exporteren → kies CSV of MT940."
+    },
+    {
+      "id": "anders",
+      "naam": "Een andere bank",
+      "robot": false,
+      "uitleg": "Download bij je bank je transacties als CAMT.053 (XML), MT940 of CSV met een kopregel (datum, bedrag, naam). Dat kan bij bijna elke bank."
+    }
+  ]
+}

@@ -49,6 +49,9 @@ public class BankBridge extends FacturenBridge {
                         // De sleutel meteen na de ontgrendeling maken (dan kan hij aan die ontgrendeling gekoppeld worden)
                         if (!Bank.hasData(ctx)) Bank.key(ctx);
                         a.js("onBank", "true");
+                        // Automatisch opgehaald terwijl Bankzaken op slot ging: nu alsnog importeren
+                        JSONObject w = Bank.wachtendeImporteren(ctx);
+                        if (w != null) a.js("onBankImport", w.toString());
                     } catch (Throwable t) { a.js("onBank", q(Bank.why(t))); }
                 }, "bank-open").start();
             });
@@ -117,30 +120,22 @@ public class BankBridge extends FacturenBridge {
         new Thread(() -> {
             JSONObject out = new JSONObject();
             try {
-                if (!Bank.isOpen()) throw new Exception("Bankzaken ging op slot; ontgrendel en importeer opnieuw");
-                String cur = Bank.load(ctx);
-                JSONObject store = cur.isEmpty() ? new JSONObject().put("v", 1) : new JSONObject(cur);
-                JSONArray files = new JSONArray();
-                int ok = 0;
+                java.util.List<Bank.Bestand> lijst = new java.util.ArrayList<>();
+                java.util.List<String> fouten = new java.util.ArrayList<>();
                 for (Uri u : uris) {
-                    JSONObject f = new JSONObject().put("naam", name(a, u));
-                    try {
-                        BankImport.Result r = BankImport.parse(read(a, u), f.optString("naam"));
-                        JSONObject s = BankImport.merge(store, r, System.currentTimeMillis());
-                        f.put("ok", true).put("sum", s);
-                        ok++;
-                    } catch (Throwable t) { f.put("ok", false).put("fout", t instanceof OutOfMemoryError ? "Bestand is te groot" : t.getMessage() == null ? "Inlezen lukt niet" : t.getMessage()); }
-                    files.put(f);
+                    String n = name(a, u);
+                    try { lijst.add(new Bank.Bestand(n, read(a, u))); fouten.add(null); }
+                    catch (Throwable t) { lijst.add(new Bank.Bestand(n, null)); fouten.add(t instanceof OutOfMemoryError ? "Bestand is te groot" : t.getMessage() == null ? "Lezen lukt niet" : t.getMessage()); }
                 }
-                if (ok > 0) Bank.save(ctx, store.toString());
+                out = Bank.importeer(ctx, lijst, fouten);
                 // Pas na veilig opslaan de bronbestanden weghalen (als dat gevraagd is)
                 int weg = 0;
-                if (ok > 0 && wis) for (int i = 0; i < uris.size(); i++) {
+                JSONArray files = out.getJSONArray("bestanden");
+                if (wis) for (int i = 0; i < uris.size(); i++) {
                     if (!files.getJSONObject(i).optBoolean("ok")) continue;
                     try { if (DocumentsContract.deleteDocument(a.getContentResolver(), uris.get(i))) { weg++; files.getJSONObject(i).put("gewist", true); } } catch (Throwable ignored) { }
                 }
-                out.put("bestanden", files).put("gewist", weg);
-                App.log(ctx, "BANK", "import");
+                out.put("gewist", weg);
             } catch (Throwable t) {
                 try { out.put("error", t instanceof OutOfMemoryError ? "Te veel gegevens" : Bank.why(t)); } catch (Exception ignored) { }
             }
@@ -164,6 +159,41 @@ public class BankBridge extends FacturenBridge {
             return b.toByteArray();
         }
     }
+
+    // ---------- automatisch importeren bij de bank ----------
+
+    /** De banken: welke automatisch kunnen (robot) en hoe je bij de andere zelf een afschrift downloadt. */
+    @JavascriptInterface public String bankBanken() {
+        try {
+            JSONArray l = BankLink.banken(ctx), out = new JSONArray();
+            for (int i = 0; i < l.length(); i++) {
+                JSONObject b = l.getJSONObject(i);
+                JSONObject o = new JSONObject().put("id", b.optString("id")).put("naam", b.optString("naam")).put("robot", b.optBoolean("robot"))
+                        .put("uitleg", b.optString("uitleg")).put("appNaam", b.optString("appNaam"));
+                out.put(o);
+            }
+            return out.toString();
+        } catch (Throwable t) { return "[]"; }
+    }
+
+    /** Automatisch importeren starten: de website van de bank in beeld (BankLinkActivity). van = jjjj-mm-dd. Geeft "" of een melding. */
+    @JavascriptInterface public String bankKoppel(String id, String van) {
+        if (!Bank.isOpen()) return "Bankzaken is op slot";
+        if (Bank.linking) return "Er loopt al een automatische import";
+        JSONObject b = BankLink.bank(BankLink.banken(ctx), id == null ? "" : id);
+        if (b == null || !b.optBoolean("robot")) return "Voor deze bank kan dat (nog) niet automatisch";
+        String v = van != null && van.matches("\\d{4}-\\d{2}-\\d{2}") ? van : "";
+        Bank.touch();
+        Bank.linking = true; // al vóór het openen: anders gaat Bankzaken op slot zodra dit scherm uit beeld gaat
+        a.h.post(() -> {
+            try { a.startActivityForResult(new Intent(a, BankLinkActivity.class).putExtra("bank", b.optString("id")).putExtra("van", v), 48); }
+            catch (Throwable t) { Bank.linking = false; Toast.makeText(a, "Openen lukt niet", Toast.LENGTH_SHORT).show(); }
+        });
+        return "";
+    }
+
+    /** Uitkomst van de laatste automatische import (eenmalig; daarna leeg). */
+    @JavascriptInterface public String bankKoppelUitkomst() { String s = Bank.laatsteKoppeling; Bank.laatsteKoppeling = ""; return s; }
 
     // ---------- lokale AI ----------
 
