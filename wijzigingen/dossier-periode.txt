@@ -1,1 +1,0 @@
-Facturen: dossier kiest nu op periode (deze/vorige maand, kwartaal, jaar of zelf van–tot); facturen die al eerder waren opgehaald, worden opnieuw gelezen zodat datum, bedrag en betaaldatum er alsnog bij komen; zonder factuurdatum staat de dag van ophalen er (met *)
