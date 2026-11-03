@@ -288,7 +288,7 @@
     <input class="aein" id="fd-zoek" type="search" placeholder="Zoeken op leverancier, nummer, bedrag of notitie" aria-label="Zoeken in het dossier" oninput="fdRender()" autocomplete="off">
     <div class="row" style="gap:8px;margin:8px 0 0">
       <select class="sel" id="fd-lev" style="flex:1;min-width:0" onchange="fdRender()" aria-label="Leverancier"></select>
-      <select class="sel" id="fd-filter" style="flex:1;min-width:0" onchange="fdRender()" aria-label="Filter"><option value="">Alle facturen</option><option value="open">Nog niet aangeleverd</option><option value="mis">Aanleveren mislukt</option><option value="tebetalen">Nog te betalen</option><option value="telaat">Over de betaaldatum</option></select>
+      <select class="sel" id="fd-filter" style="flex:1;min-width:0" onchange="fdRender()" aria-label="Filter"><option value="">Alle facturen</option><option value="open">Nog niet aangeleverd</option><option value="mis">Aanleveren mislukt</option><option value="tebetalen">Betaaldatum nog niet verstreken</option><option value="telaat">Over de betaaldatum</option></select>
     </div>
     <div class="row" style="gap:8px;margin:8px 0">
       <select class="sel" id="fd-groep" style="flex:1;min-width:0" onchange="fdKeuze()" aria-label="Groeperen"><option value="">Niet groeperen</option><option value="maand">Per maand</option><option value="kwartaal">Per kwartaal</option><option value="lev">Per leverancier</option><option value="cat">Per categorie</option></select>
@@ -329,7 +329,7 @@
         <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-verval">Uiterste betaaldatum</label></div><input class="aein" id="fs-verval" type="date"></div>
         <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-betaald">Betaald op</label></div><input class="aein" id="fs-betaald" type="date"></div>
       </div>
-      <button class="linkish" style="margin-top:4px" onclick="$('#fs-betaald').value=new Date().toLocaleDateString('sv-SE')">Vandaag betaald</button>
+      <button class="linkish" style="margin-top:4px" onclick="$('#fs-betaald').value=new Date().toLocaleDateString('sv-SE');fsBewaar()">Vandaag betaald (bewaren)</button>
       <div class="flabel" style="margin-top:8px"><label for="fs-cat">Categorie</label></div>
       <input class="aein" id="fs-cat" maxlength="80" autocomplete="off" placeholder="bijv. telefoon, kantoor" list="fs-cats">
       <datalist id="fs-cats"></datalist>

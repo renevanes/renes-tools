@@ -142,7 +142,12 @@ final class FacturenDossier {
         }
         for (String k : new String[]{"datum", "vervaldatum", "betaald"})
             if (!m.optString(k).isEmpty() && !m.optString(k).matches("(19|20|21)\\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])")) throw new Exception("Datum als JJJJ-MM-DD, bijv. 2026-10-05");
-        if (!m.optString("bedrag").isEmpty() && bedrag(m.optString("bedrag")) == null) throw new Exception("Bedrag als 123,45");
+        for (String k : new String[]{"bedrag", "btw"}) { // als 1234,56 bewaren (ook als er 1.234,56 of 12.50 is ingetypt)
+            if (m.optString(k).isEmpty()) continue;
+            String b = bedrag(m.optString(k));
+            if (b == null) throw new Exception(("btw".equals(k) ? "Btw" : "Bedrag") + " als 123,45");
+            m.put(k, b);
+        }
         m.put("bron", "zelf");
         synchronized (Facturen.LOCK) {
             JSONObject all = alle(c);
@@ -208,11 +213,17 @@ final class FacturenDossier {
             Matcher x = Pattern.compile("(?i)(?:factuur ?(?:nummer|nr\\.?|no\\.?)|invoice ?(?:number|no\\.?|#)|nota ?(?:nummer|nr\\.?)|rekening ?nummer|factuur)[\\s:#.]{1,6}([A-Z0-9][A-Z0-9./-]{2,30})").matcher(t);
             while (x.find()) { String n = x.group(1).replaceAll("[./-]+$", ""); if (n.matches(".*\\d.*") && !n.matches("\\d{1,2}[-/.]\\d{1,2}[-/.]\\d{2,4}")) { m.put("nummer", n); break; } }
             String d = null;
-            x = Pattern.compile("(?i)(?<![a-z])(?:factuurdatum|datum factuur|invoice date|datum|date)[\\s:]{1,6}(\\d{1,2}[-/. ](?:\\d{1,2}|" + MAAND + ")[-/. ]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})").matcher(t);
+            // Eerst de duidelijke namen, dan een losse "datum"/"date" (niet die van betaal-, verval- of due date)
+            String waarde = "[\\s:]{1,6}(\\d{1,2}[-/. ](?:\\d{1,2}|" + MAAND + ")[-/. ]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})";
+            x = Pattern.compile("(?i)(?:factuurdatum|factuur datum|notadatum|documentdatum|datum factuur|invoice date|rechnungsdatum)" + waarde).matcher(t);
             if (x.find()) d = datum(x.group(1));
+            if (d == null) {
+                x = Pattern.compile("(?i)(?<![a-z])(?<!due |payment |verval |uiterste |betaal |betalings)(?:datum|date)" + waarde).matcher(t);
+                if (x.find()) d = datum(x.group(1));
+            }
             if (d == null) { x = Pattern.compile("\\b(20\\d{2})[-_.](0[1-9]|1[0-2])(?:[-_.](0[1-9]|[12]\\d|3[01]))?\\b").matcher(t); if (x.find()) d = x.group(1) + "-" + x.group(2) + "-" + (x.group(3) == null ? "01" : x.group(3)); }
             if (d != null) m.put("datum", d);
-            x = Pattern.compile("(?i)(?:uiterste betaaldatum|uiterlijk betalen(?: op| voor)?|te betalen (?:voor|v\\u00f3\\u00f3r|uiterlijk)|vervaldatum|betaaldatum|due date|payment due)[\\s:]{1,6}(\\d{1,2}[-/. ](?:\\d{1,2}|" + MAAND + ")[-/. ]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})").matcher(t);
+            x = Pattern.compile("(?iu)(?:uiterste betaaldatum|uiterlijk betalen(?: op| voor)?|te betalen (?:voor|v\\u00f3\\u00f3r|uiterlijk)|vervaldatum|betaaldatum|due date|payment due)[\\s:]{1,6}(\\d{1,2}[-/. ](?:\\d{1,2}|" + MAAND + ")[-/. ]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})").matcher(t);
             if (x.find()) { String v = datum(x.group(1)); if (v != null) m.put("vervaldatum", v); }
             x = Pattern.compile("(?i)(?:totaal ?(?:te betalen|bedrag|incl\\.?(?: btw)?|factuurbedrag)?|te betalen|totaalbedrag|bedrag|amount due|total(?: due| amount)?)[^\\d€\\n]{0,25}(?:€|eur|euro)?\\s*(-?\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d{2})|-?\\d+(?:[.,]\\d{2}))").matcher(t);
             String best = null;

@@ -66,7 +66,7 @@ const { chromium } = require('playwright');
     await pg.fill('#fs-bedrag', 'veel'); await pg.click('#s-facstuk button:has-text("Bewaren")'); await pg.waitForTimeout(80);
     ok((await tekst('#fs-msg')).includes('123,45'), 'ongeldig bedrag geweigerd');
     ok(await pg.inputValue('#fs-verval') === '2099-10-19', 'uiterste betaaldatum ingevuld');
-    await pg.click('#s-facstuk button:has-text("Vandaag betaald")'); await pg.waitForTimeout(40);
+    await pg.click('#s-facstuk button:has-text("Vandaag betaald")'); await pg.waitForTimeout(120);
     ok(await pg.inputValue('#fs-betaald') === await pg.evaluate(() => new Date().toLocaleDateString('sv-SE')), 'vandaag betaald');
     await pg.fill('#fs-bedrag', '50,00'); await pg.fill('#fs-cat', 'telefoon'); await pg.click('#s-facstuk button:has-text("Bewaren")'); await pg.waitForTimeout(100);
     ok((await tekst('#fs-bron')).includes('Door jou') && await pg.inputValue('#fs-cat') === 'telefoon', 'gegevens bewaard');

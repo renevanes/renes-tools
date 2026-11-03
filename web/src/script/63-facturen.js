@@ -374,7 +374,8 @@ function fdAanl(s){
 /* Het overzicht: een tabel met kolommen naar keuze, sorteren op elke kolom en groeperen met subtotalen */
 const FD_DAG = d => d ? new Date(d + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 const FD_EUR = v => v === '' || v == null || isNaN(v) ? '' : '€ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d),)/g, '.');
-const fdGetal = x => { const v = parseFloat(String(x || '').replace(/\./g, '').replace(',', '.')); return isNaN(v) ? '' : v; };
+/** "1.234,56", "1234,56", "12.50", "1,234.56" → getal (zelfde regels als FacturenDossier.bedrag). */
+const fdGetal = x => { let s = String(x || '').replace(/[€\s]|eur/gi, ''); if (/^-?\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s)) s = s.replace(/\./g, ''); else if (/^-?\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(s)) s = s.replace(/,/g, ''); const v = parseFloat(s.replace(',', '.')); return isNaN(v) ? '' : v; };
 const fdVandaag = () => new Date().toLocaleDateString('sv-SE');
 /** Alle velden die als kolom kunnen: id, naam, waarde (om te sorteren), tekst (in de tabel), num = bedrag (rechts, met totaal). */
 const FD_VELDEN = [
@@ -392,7 +393,10 @@ const FD_VELDEN = [
   { id: 'afzender', naam: 'Afzender (mail)', lang: true, w: s => ((s.bron || {}).afzender || '').toLowerCase(), t: s => (s.bron || {}).afzender || '' },
   { id: 'notitie', naam: 'Notitie', lang: true, w: s => ((s.meta || {}).notitie || '').toLowerCase(), t: s => (s.meta || {}).notitie || '' }];
 const FD_STANDAARD = { kolommen: ['datum', 'lev', 'bedrag', 'verval', 'aan'], sort: 'datum', af: true, groep: '' };
-function fdInst(){ const o = store.get('faDosWeergave', null) || {}; return { ...FD_STANDAARD, ...o, kolommen: Array.isArray(o.kolommen) && o.kolommen.length ? o.kolommen.filter(k => FD_VELDEN.some(v => v.id === k)) : FD_STANDAARD.kolommen }; }
+function fdInst(){
+  const o = store.get('faDosWeergave', null) || {}, k = Array.isArray(o.kolommen) ? o.kolommen.filter(x => FD_VELDEN.some(v => v.id === x)) : [];
+  return { ...FD_STANDAARD, ...o, kolommen: k.length ? k : FD_STANDAARD.kolommen, groep: ['', 'maand', 'kwartaal', 'lev', 'cat'].includes(o.groep) ? o.groep : '', sort: FD_VELDEN.some(v => v.id === o.sort) ? o.sort : FD_STANDAARD.sort };
+}
 function fdBewaarInst(i){ try { store.set('faDosWeergave', i); } catch (e) { } }
 function fdKolommen(){
   const open = $('#fd-kol').style.display === 'none';
@@ -413,7 +417,7 @@ function fdGroep(s, g){
   const d = (s.meta || {}).datum || (s.opgehaald ? new Date(s.opgehaald).toLocaleDateString('sv-SE') : '');
   if (g === 'maand') return d ? [d.slice(0, 7), faMaandNaam(d.slice(0, 7))] : ['', 'Zonder datum'];
   if (g === 'kwartaal') return d ? [d.slice(0, 4) + '-' + Math.ceil(+d.slice(5, 7) / 3), 'Q' + Math.ceil(+d.slice(5, 7) / 3) + ' ' + d.slice(0, 4)] : ['', 'Zonder datum'];
-  if (g === 'lev') return [(s.leverancierNaam || '').toLowerCase(), s.leverancierNaam || 'Onbekend'];
+  if (g === 'lev') return s.leverancierNaam ? ['0' + s.leverancierNaam.toLowerCase(), s.leverancierNaam] : ['1', 'Onbekend'];
   if (g === 'cat') { const c = (s.meta || {}).categorie || ''; return [c ? '0' + c.toLowerCase() : '1', c || 'Zonder categorie']; }
   return ['', ''];
 }
@@ -431,7 +435,7 @@ function fdRender(laad){
     const a = fdAanl(s);
     if (f === 'open' && a.soort !== 'open' && a.soort !== 'mis') return false;
     if (f === 'mis' && a.soort !== 'mis') return false;
-    if (f === 'tebetalen' && (m.betaald || !m.vervaldatum)) return false;
+    if (f === 'tebetalen' && (m.betaald || !m.vervaldatum || m.vervaldatum < vandaag)) return false;
     if (f === 'telaat' && (m.betaald || !m.vervaldatum || m.vervaldatum >= vandaag)) return false;
     if (!q) return true;
     return [s.leverancierNaam, s.naam, m.nummer, m.bedrag, m.datum, m.categorie, m.notitie, (s.bron || {}).afzender, (s.bron || {}).onderwerp].some(x => String(x || '').toLowerCase().includes(q));
@@ -443,18 +447,20 @@ function fdRender(laad){
   const totaal = som(lijst);
   $('#fd-tel').textContent = items.length ? lijst.length + ' van ' + items.length + (items.length === 1 ? ' factuur' : ' facturen') + (totaal ? ' · samen ' + FD_EUR(totaal) : '') : '';
   if (!lijst.length) { $('#fd-lijst').innerHTML = '<p class="note" style="padding:14px">' + (items.length ? 'Niets gevonden.' : 'Nog geen facturen in het dossier. Ze komen er vanzelf in zodra er facturen zijn opgehaald.') + '</p>'; $('#fd-csv').disabled = !items.length; return; }
-  const kop = '<thead><tr>' + kol.map(v => '<th scope="col" class="' + (v.num ? 'num' : '') + '"' + (v.id === sv.id ? ' aria-sort="' + (inst.af ? 'descending' : 'ascending') + '"' : '') + '><button data-k="' + v.id + '" onclick="fdSorteer(this.dataset.k)">' + esc(v.naam) + (v.id === sv.id ? (inst.af ? ' ↓' : ' ↑') : '') + '</button></th>').join('') + '</tr></thead>';
+  const kop = '<thead><tr>' + kol.map(v => '<th scope="col" class="' + (v.num ? 'num' : '') + '"' + (v.id === sv.id ? ' aria-sort="' + (inst.af ? 'descending' : 'ascending') + '"' : '') + '><button data-k="' + v.id + '" onclick="fdSorteer(this.dataset.k)">' + esc(v.naam) + (v.id === sv.id ? '<span aria-hidden="true">' + (inst.af ? ' ↓' : ' ↑') + '</span>' : '') + '</button></th>').join('') + '</tr></thead>';
   const cel = (v, s) => '<td class="' + [v.num ? 'num' : '', v.lang ? 'lang' : '', v.id === 'aan' && fdAanl(s).soort === 'ok' ? 'good' : '', v.id === 'aan' && fdAanl(s).soort === 'mis' ? 'bad' : '', v.id === 'verval' && /⚠/.test(v.t(s)) ? 'bad' : ''].filter(Boolean).join(' ') + '">' + esc(v.t(s)) + '</td>';
-  const rij = s => '<tr class="fd-rij" tabindex="0" data-sha="' + esc(s.sha) + '" aria-label="' + esc((s.leverancierNaam || '') + ' ' + (s.naam || '')) + '">' + kol.map(v => cel(v, s)).join('') + '</tr>';
+  const rij = s => '<tr class="fd-rij" tabindex="0" data-sha="' + esc(s.sha) + '">' + kol.map(v => cel(v, s)).join('') + '</tr>';
   const somRij = l => '<tr>' + kol.map((v, i) => '<td class="' + (v.num ? 'num' : '') + '">' + (v.id === 'bedrag' ? esc(FD_EUR(som(l))) : v.id === 'btw' ? esc(FD_EUR(l.reduce((t, s) => t + (fdGetal((s.meta || {}).btw) || 0), 0))) : i === 0 ? 'Totaal' : '') + '</td>').join('') + '</tr>';
   let body = '', groep = null;
   const delen = [];
-  for (const s of lijst.slice(0, 500)) { const g = inst.groep ? fdGroep(s, inst.groep) : ['', '']; if (!groep || g[0] !== groep.k) { groep = { k: g[0], naam: g[1], l: [] }; delen.push(groep); } groep.l.push(s); }
+  for (const s of lijst) { const g = inst.groep ? fdGroep(s, inst.groep) : ['', '']; if (!groep || g[0] !== groep.k) { groep = { k: g[0], naam: g[1], l: [] }; delen.push(groep); } groep.l.push(s); }
   for (const g of delen) {
     if (inst.groep) body += '<tr class="fd-groep"><td colspan="' + kol.length + '">' + esc(g.naam + ' · ' + g.l.length + (g.l.length === 1 ? ' factuur' : ' facturen') + (som(g.l) ? ' · ' + FD_EUR(som(g.l)) : '')) + '</td></tr>';
-    body += g.l.map(rij).join('');
+    const nog = 500 - (body.match(/class="fd-rij"/g) || []).length;
+    if (nog <= 0) break;
+    body += g.l.slice(0, nog).map(rij).join('');
   }
-  $('#fd-lijst').innerHTML = '<table class="fa-tab fd-tab">' + kop + '<tbody>' + body + '</tbody>' + (kol.some(v => v.id === 'bedrag' || v.id === 'btw') && totaal ? '<tfoot>' + somRij(lijst) + '</tfoot>' : '') + '</table>' + (lijst.length > 500 ? '<p class="note" style="padding:8px 14px">De eerste 500; zoek of filter om de rest te zien.</p>' : '');
+  $('#fd-lijst').innerHTML = '<table class="fa-tab fd-tab">' + kop + '<tbody>' + body + '</tbody>' + (kol.some(v => v.id === 'bedrag' || v.id === 'btw') && lijst.some(s => fdGetal((s.meta || {}).bedrag) !== '') ? '<tfoot>' + somRij(lijst) + '</tfoot>' : '') + '</table>' + (lijst.length > 500 ? '<p class="note" style="padding:8px 14px">De eerste 500; zoek of filter om de rest te zien.</p>' : '');
   $('#fd-lijst').querySelectorAll('tr.fd-rij').forEach(tr => { tr.onclick = () => fsToon(tr.dataset.sha); tr.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fsToon(tr.dataset.sha); } }; });
   $('#fd-csv').disabled = !items.length;
 }
