@@ -307,6 +307,7 @@ const SET_EXCLUDE = [
   ['#calls-filter, #cf-period, #cf-who, #cf-dur', 'Filters in de oproepenlijst, geen instelling'],
   ['#s-autoed .tg, #s-autoed [role=radiogroup], #s-autoed .chips, #s-autoed select, #s-autoed input', 'Hoort bij één automatisering (de editor)'],
   ['#kl-category, #kl-favorites, #kl-sort, #kl-edit-favorite', 'Filters en gegevens van één document in de kluis'],
+  ['#s-bank select, #s-bank input, #s-bank .chips', 'Filters en keuzes in Bankzaken (gegevens die versleuteld en alleen daar bewaard worden); de assistent komt bewust niet aan bankgegevens'],
   ['#history-apps', 'Filter in de meldingsgeschiedenis'],
   ['#s-pdf select, #s-pdf input, #s-pdf [role=radiogroup], #s-pdf .chips', 'Keuzes bij het maken of bewerken van één pdf'],
   ['#pd-dl, #pd-sort, #pd-hide', 'Hoort bij één podcast, of is een filter'],
