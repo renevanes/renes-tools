@@ -205,8 +205,25 @@ public class FacturenBridge extends GebruikBridge {
         try {
             JSONArray o = new JSONArray(), l = FacturenAanlever.lijst(ctx);
             for (int i = 0; i < l.length(); i++) o.put(new JSONObject().put("id", l.getJSONObject(i).optString("id")).put("naam", l.getJSONObject(i).optString("naam")));
-            return new JSONObject().put("items", FacturenDossier.lijst(ctx)).put("ontvangers", o).toString();
+            JSONArray items = FacturenDossier.lijst(ctx);
+            int teLezen = 0;
+            for (int i = 0; PdfDoc.canText() && i < items.length(); i++) if (FacturenDossier.opnieuwLezen(items.getJSONObject(i))) teLezen++;
+            return new JSONObject().put("items", items).put("ontvangers", o).put("pdfTekst", PdfDoc.canText()).put("teLezen", teLezen).put("bezigMetLezen", HERKEN.get()).toString();
         } catch (Exception e) { return "{\"items\":[],\"ontvangers\":[]}"; }
+    }
+
+    /** Ontbrekende gegevens opnieuw uit de PDF's lezen (op de achtergrond); antwoord via onFacturenHerkend({aantal} of {error}). */
+    private static final java.util.concurrent.atomic.AtomicBoolean HERKEN = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    @JavascriptInterface public void facturenDossierHerken() {
+        if (!HERKEN.compareAndSet(false, true)) return; // loopt al: die meldt zich straks
+        new Thread(() -> {
+            String r;
+            try { r = new JSONObject().put("aantal", PdfDoc.canText() ? FacturenDossier.herkenAlle(ctx) : 0).put("pdfTekst", PdfDoc.canText()).toString(); }
+            catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(Facturen.kort(e)) + "}"; }
+            HERKEN.set(false);
+            try { a.js("onFacturenHerkend", r); } catch (Throwable ignored) { }
+        }, "facturen-herken").start();
     }
 
     /** Factuurgegevens aanpassen: {nummer, datum, bedrag, btw, categorie, notitie}. Geeft "" of een fout. */

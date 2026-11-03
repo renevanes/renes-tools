@@ -21,7 +21,7 @@ function enterFacturen(){
   faRender();
   if (!faPollT) faPollT = setInterval(() => { if (current !== 'facturen') { clearInterval(faPollT); faPollT = null; return; } faPoll(); }, 1000);
   if (current === 'facgoogle') { $('#fa-gd-msg').textContent = ''; }
-  if (current === 'facdos') fdRender(true);
+  if (current === 'facdos') { $('#fd-kol').style.display = 'none'; $('#fd-kol-knop').setAttribute('aria-expanded', 'false'); fdGelezen = false; fdRender(true); fdLees(); }
   if (current === 'facaanl') foRender(true);
 }
 function faLaad(){ faSt = rdJson(Android.facturenState(), { leveranciers: [], sjablonen: [], ec: {} }); return faSt; }
@@ -371,30 +371,148 @@ function fdAanl(s){
   if (ok.length) return { soort: 'ok', tekst: '✓ Aangeleverd aan ' + ok.map(([id, x]) => (x.naam || id) + ' (' + faDatum(x.t) + ')').join(', ') };
   return { soort: (faDos.ontvangers || []).length ? 'open' : 'geen', tekst: (faDos.ontvangers || []).length ? 'Nog niet aangeleverd' : '' };
 }
+/* Het overzicht: een tabel met kolommen naar keuze, sorteren op elke kolom en groeperen met subtotalen */
+const FD_DAG = d => d ? new Date(d + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const FD_EUR = v => v === '' || v == null || isNaN(v) ? '' : '€ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d),)/g, '.');
+/** "1.234,56", "1234,56", "12.50", "1,234.56" → getal (zelfde regels als FacturenDossier.bedrag). */
+const fdGetal = x => { let s = String(x || '').replace(/[€\s]|eur/gi, ''); if (/^-?\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s)) s = s.replace(/\./g, ''); else if (/^-?\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(s)) s = s.replace(/,/g, ''); const v = parseFloat(s.replace(',', '.')); return isNaN(v) ? '' : v; };
+const fdVandaag = () => new Date().toLocaleDateString('sv-SE');
+/** De datum van een factuur: de factuurdatum, of (onbekend) de dag waarop hij is opgehaald. JJJJ-MM-DD. */
+const fdDatum = s => (s.meta || {}).datum || (s.opgehaald ? new Date(s.opgehaald).toLocaleDateString('sv-SE') : '');
+/** Van en tot (JJJJ-MM-DD, tot en met) bij een periode; leeg = geen grens. */
+function fdVanTot(p, van, tot, nu){
+  const d = nu ? new Date(nu) : new Date(), y = d.getFullYear(), m = d.getMonth(), q = Math.floor(m / 3);
+  const dag = (yy, mm, dd) => new Date(yy, mm, dd).toLocaleDateString('sv-SE');
+  if (p === 'maand') return [dag(y, m, 1), dag(y, m + 1, 0)];
+  if (p === 'vmaand') return [dag(y, m - 1, 1), dag(y, m, 0)];
+  if (p === 'kwartaal') return [dag(y, q * 3, 1), dag(y, q * 3 + 3, 0)];
+  if (p === 'vkwartaal') return [dag(y, q * 3 - 3, 1), dag(y, q * 3, 0)];
+  if (p === 'jaar') return [dag(y, 0, 1), dag(y, 11, 31)];
+  if (p === 'vjaar') return [dag(y - 1, 0, 1), dag(y - 1, 11, 31)];
+  if (p === 'zelf') return van && tot && van > tot ? [tot, van] : [van || '', tot || '']; // omgedraaid ingevuld: gewoon omdraaien
+  return ['', ''];
+}
+function fdPeriode(){
+  const i = fdInst(); i.periode = $('#fd-periode').value; i.van = $('#fd-van').value; i.tot = $('#fd-tot').value;
+  $('#fd-vantot').style.display = i.periode === 'zelf' ? 'flex' : 'none';
+  fdBewaarInst(i); fdRender();
+}
+/** Ontbrekende gegevens van eerder opgehaalde facturen uit de PDF's lezen (één keer per keer openen). */
+let fdGelezen = false;
+function fdLees(){
+  if (fdGelezen || !faDos) return;
+  fdGelezen = true;
+  const e = $('#fd-lees');
+  if (faDos.bezigMetLezen) { e.style.display = 'block'; e.textContent = 'Gegevens uit de facturen lezen…'; return; }
+  e.style.display = 'none'; e.textContent = '';
+  const mist = faDos.teLezen || 0; // de app telt zelf wat er nog gelezen moet worden
+  if (!faDos.pdfTekst) {
+    if ((faDos.items || []).some(s => !(s.meta || {}).bedrag)) { $('#fd-lees').style.display = 'block'; $('#fd-lees').textContent = 'Op deze telefoon (Android 14 of ouder) kan de app de factuurgegevens niet uit de PDF lezen. Tik op een factuur om datum en bedrag zelf in te vullen.'; }
+    return;
+  }
+  if (!mist) return;
+  $('#fd-lees').style.display = 'block'; $('#fd-lees').textContent = 'Gegevens uit ' + mist + (mist === 1 ? ' factuur' : ' facturen') + ' lezen…';
+  Android.facturenDossierHerken();
+}
+window.onFacturenHerkend = function(r){
+  const e = $('#fd-lees');
+  if (r.error) { e.textContent = 'Lezen lukt niet: ' + r.error; return; }
+  e.textContent = r.aantal ? '✓ Bij ' + r.aantal + (r.aantal === 1 ? ' factuur' : ' facturen') + ' gegevens gevonden. Controleer ze even.' : 'Geen extra gegevens gevonden in de facturen. Tik op een factuur om ze zelf in te vullen.';
+  setTimeout(() => { if (e.textContent.startsWith('✓')) e.style.display = 'none'; }, 6000);
+  if (current === 'facdos') fdRender(true);
+  else if (current === 'facstuk') { fdLaad(); if (!document.activeElement || !document.activeElement.closest('#s-facstuk')) fsToon(fsSha); }
+};
+/** Alle velden die als kolom kunnen: id, naam, waarde (om te sorteren), tekst (in de tabel), num = bedrag (rechts, met totaal). */
+const FD_VELDEN = [
+  { id: 'datum', naam: 'Factuurdatum', w: s => fdDatum(s), t: s => (s.meta || {}).datum ? FD_DAG(s.meta.datum) : s.opgehaald ? FD_DAG(fdDatum(s)) + ' *' : '' },
+  { id: 'lev', naam: 'Leverancier', w: s => (s.leverancierNaam || '').toLowerCase(), t: s => s.leverancierNaam || '' },
+  { id: 'bedrag', naam: 'Bedrag', num: true, w: s => fdGetal((s.meta || {}).bedrag), t: s => FD_EUR(fdGetal((s.meta || {}).bedrag)) },
+  { id: 'btw', naam: 'Btw', num: true, w: s => fdGetal((s.meta || {}).btw), t: s => FD_EUR(fdGetal((s.meta || {}).btw)) },
+  { id: 'nummer', naam: 'Factuurnummer', w: s => (s.meta || {}).nummer || '', t: s => (s.meta || {}).nummer || '' },
+  { id: 'verval', naam: 'Uiterste betaaldatum', w: s => (s.meta || {}).vervaldatum || '', t: s => { const m = s.meta || {}; return FD_DAG(m.vervaldatum) + (m.vervaldatum && !m.betaald && m.vervaldatum < fdVandaag() ? ' ⚠' : ''); } },
+  { id: 'betaald', naam: 'Betaald op', w: s => (s.meta || {}).betaald || '', t: s => FD_DAG((s.meta || {}).betaald) },
+  { id: 'cat', naam: 'Categorie', w: s => ((s.meta || {}).categorie || '').toLowerCase(), t: s => (s.meta || {}).categorie || '' },
+  { id: 'aan', naam: 'Aangeleverd', w: s => { const a = fdAanl(s); return a.soort === 'ok' ? 2 : a.soort === 'mis' ? 0 : 1; }, t: s => { const a = fdAanl(s); return a.soort === 'ok' ? '✓' : a.soort === 'mis' ? '✗' : a.soort === 'open' ? '–' : ''; } },
+  { id: 'opgehaald', naam: 'Opgehaald', w: s => s.opgehaald || 0, t: s => faDatum(s.opgehaald) },
+  { id: 'bestand', naam: 'Bestand', lang: true, w: s => (s.naam || '').toLowerCase(), t: s => s.naam || '' },
+  { id: 'afzender', naam: 'Afzender (mail)', lang: true, w: s => ((s.bron || {}).afzender || '').toLowerCase(), t: s => (s.bron || {}).afzender || '' },
+  { id: 'notitie', naam: 'Notitie', lang: true, w: s => ((s.meta || {}).notitie || '').toLowerCase(), t: s => (s.meta || {}).notitie || '' }];
+const FD_STANDAARD = { kolommen: ['datum', 'lev', 'bedrag', 'verval', 'aan'], sort: 'datum', af: true, groep: '', periode: '', van: '', tot: '' };
+function fdInst(){
+  const o = store.get('faDosWeergave', null) || {}, k = Array.isArray(o.kolommen) ? o.kolommen.filter(x => FD_VELDEN.some(v => v.id === x)) : [];
+  return { ...FD_STANDAARD, ...o, kolommen: k.length ? k : FD_STANDAARD.kolommen, groep: ['', 'maand', 'kwartaal', 'lev', 'cat'].includes(o.groep) ? o.groep : '', periode: ['', 'maand', 'vmaand', 'kwartaal', 'vkwartaal', 'jaar', 'vjaar', 'zelf'].includes(o.periode) ? o.periode : '', sort: FD_VELDEN.some(v => v.id === o.sort) ? o.sort : FD_STANDAARD.sort };
+}
+function fdBewaarInst(i){ try { store.set('faDosWeergave', i); } catch (e) { } }
+function fdKolommen(){
+  const open = $('#fd-kol').style.display === 'none';
+  $('#fd-kol').style.display = open ? 'block' : 'none'; $('#fd-kol-knop').setAttribute('aria-expanded', String(open));
+  const k = fdInst().kolommen;
+  $('#fd-kol-lijst').innerHTML = FD_VELDEN.map(v => '<label class="chk"><input type="checkbox" value="' + v.id + '"' + (k.includes(v.id) ? ' checked' : '') + ' onchange="fdKolom(this)"> ' + esc(v.naam) + '</label>').join('');
+}
+function fdKolom(el){
+  const i = fdInst();
+  i.kolommen = FD_VELDEN.map(v => v.id).filter(id => id === el.value ? el.checked : i.kolommen.includes(id));
+  if (!i.kolommen.length) { el.checked = true; toast('Kies minstens één kolom'); return; }
+  fdBewaarInst(i); fdRender();
+}
+function fdSorteer(id){ const i = fdInst(); if (i.sort === id) i.af = !i.af; else { i.sort = id; i.af = ['datum', 'verval', 'betaald', 'opgehaald', 'bedrag', 'btw'].includes(id); } fdBewaarInst(i); fdRender(); }
+function fdKeuze(){ const i = fdInst(); i.groep = $('#fd-groep').value; fdBewaarInst(i); fdRender(); }
+/** Groep van een factuur: maand/kwartaal van de factuurdatum (anders van ophalen), leverancier of categorie. */
+function fdGroep(s, g){
+  const d = fdDatum(s);
+  if (g === 'maand') return d ? [d.slice(0, 7), faMaandNaam(d.slice(0, 7))] : ['', 'Zonder datum'];
+  if (g === 'kwartaal') return d ? [d.slice(0, 4) + '-' + Math.ceil(+d.slice(5, 7) / 3), 'Q' + Math.ceil(+d.slice(5, 7) / 3) + ' ' + d.slice(0, 4)] : ['', 'Zonder datum'];
+  if (g === 'lev') return s.leverancierNaam ? ['0' + s.leverancierNaam.toLowerCase(), s.leverancierNaam] : ['1', 'Onbekend'];
+  if (g === 'cat') { const c = (s.meta || {}).categorie || ''; return [c ? '0' + c.toLowerCase() : '1', c || 'Zonder categorie']; }
+  return ['', ''];
+}
 function fdRender(laad){
   if (laad || !faDos) fdLaad();
-  const items = faDos.items || [];
+  const items = faDos.items || [], inst = fdInst();
+  $('#fd-groep').value = inst.groep; $('#fd-periode').value = inst.periode;
+  if (document.activeElement !== $('#fd-van')) $('#fd-van').value = inst.van || '';
+  if (document.activeElement !== $('#fd-tot')) $('#fd-tot').value = inst.tot || '';
+  $('#fd-vantot').style.display = inst.periode === 'zelf' ? 'flex' : 'none';
+  const [pvan, ptot] = fdVanTot(inst.periode, inst.van, inst.tot);
   const sel = $('#fd-lev'), was = sel.value, levs = [...new Map(items.map(s => [s.leverancier, s.leverancierNaam || s.leverancier])).entries()];
   sel.innerHTML = '<option value="">Alle leveranciers</option>' + levs.map(([id, n]) => '<option value="' + esc(id) + '">' + esc(n) + '</option>').join('');
   sel.value = levs.some(([id]) => id === was) ? was : '';
-  const q = $('#fd-zoek').value.trim().toLowerCase(), f = $('#fd-filter').value;
-  const lijst = items.filter(s => {
+  const q = $('#fd-zoek').value.trim().toLowerCase(), f = $('#fd-filter').value, vandaag = fdVandaag();
+  let lijst = items.filter(s => {
+    const m = s.meta || {};
     if (sel.value && s.leverancier !== sel.value) return false;
+    if (pvan || ptot) { const d = fdDatum(s); if (!d || (pvan && d < pvan) || (ptot && d > ptot)) return false; }
     const a = fdAanl(s);
     if (f === 'open' && a.soort !== 'open' && a.soort !== 'mis') return false;
     if (f === 'mis' && a.soort !== 'mis') return false;
+    if (f === 'tebetalen' && (m.betaald || !m.vervaldatum || m.vervaldatum < vandaag)) return false;
+    if (f === 'telaat' && (m.betaald || !m.vervaldatum || m.vervaldatum >= vandaag)) return false;
     if (!q) return true;
-    const m = s.meta || {};
     return [s.leverancierNaam, s.naam, m.nummer, m.bedrag, m.datum, m.categorie, m.notitie, (s.bron || {}).afzender, (s.bron || {}).onderwerp].some(x => String(x || '').toLowerCase().includes(q));
   });
-  const som = lijst.reduce((t, s) => t + (parseFloat(String((s.meta || {}).bedrag || '').replace(',', '.')) || 0), 0);
-  $('#fd-tel').textContent = items.length ? lijst.length + ' van ' + items.length + (items.length === 1 ? ' factuur' : ' facturen') + (som ? ' · samen € ' + som.toFixed(2).replace('.', ',') : '') : '';
-  $('#fd-lijst').innerHTML = lijst.slice(0, 300).map(s => {
-    const m = s.meta || {}, a = fdAanl(s);
-    const regel = [m.datum ? new Date(m.datum + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : 'opgehaald ' + faDatum(s.opgehaald), m.nummer ? 'nr. ' + m.nummer : '', m.bedrag ? '€ ' + m.bedrag : ''].filter(Boolean).join(' · ');
-    return '<div class="srow"><button class="sbtn" data-sha="' + esc(s.sha) + '" onclick="fsToon(this.dataset.sha)"><span class="vpic" aria-hidden="true">' + uiIcon((s.bron || {}).soort === 'mail' ? 'mail' : 'document') + '</span>' +
-      '<span class="stxt"><b>' + esc(s.naam || '') + '</b><small>' + esc((s.leverancierNaam ? s.leverancierNaam + ' · ' : '') + regel) + '</small>' + (a.tekst ? '<small' + (a.soort === 'mis' ? ' class="bad"' : a.soort === 'ok' ? ' class="good"' : '') + '>' + esc(a.tekst) + '</small>' : '') + '</span></button></div>';
-  }).join('') || '<p class="note" style="padding:14px">' + (items.length ? 'Niets gevonden.' : 'Nog geen facturen in het dossier. Ze komen er vanzelf in zodra er facturen zijn opgehaald.') + '</p>';
+  const kol = inst.kolommen.map(id => FD_VELDEN.find(v => v.id === id)).filter(Boolean), sv = FD_VELDEN.find(v => v.id === inst.sort) || FD_VELDEN[0];
+  const vgl = (x, y) => { const a = sv.w(x), b = sv.w(y); if (a === '' && b !== '') return 1; if (b === '' && a !== '') return -1; const r = a < b ? -1 : a > b ? 1 : 0; return inst.af ? -r : r; };
+  lijst = lijst.slice().sort((x, y) => { if (inst.groep) { const gx = fdGroep(x, inst.groep)[0], gy = fdGroep(y, inst.groep)[0]; if (gx !== gy) return (inst.groep === 'maand' || inst.groep === 'kwartaal') ? (gx < gy ? 1 : -1) : (gx < gy ? -1 : 1); } return vgl(x, y) || (y.opgehaald || 0) - (x.opgehaald || 0); });
+  const som = l => l.reduce((t, s) => t + (fdGetal((s.meta || {}).bedrag) || 0), 0);
+  const totaal = som(lijst);
+  $('#fd-tel').textContent = items.length ? lijst.length + ' van ' + items.length + (items.length === 1 ? ' factuur' : ' facturen') + (totaal ? ' · samen ' + FD_EUR(totaal) : '') : '';
+  if (!lijst.length) { $('#fd-lijst').innerHTML = '<p class="note" style="padding:14px">' + (items.length ? 'Niets gevonden.' : 'Nog geen facturen in het dossier. Ze komen er vanzelf in zodra er facturen zijn opgehaald.') + '</p>'; $('#fd-csv').disabled = !items.length; return; }
+  const kop = '<thead><tr>' + kol.map(v => '<th scope="col" class="' + (v.num ? 'num' : '') + '"' + (v.id === sv.id ? ' aria-sort="' + (inst.af ? 'descending' : 'ascending') + '"' : '') + '><button data-k="' + v.id + '" onclick="fdSorteer(this.dataset.k)">' + esc(v.naam) + (v.id === sv.id ? '<span aria-hidden="true">' + (inst.af ? ' ↓' : ' ↑') + '</span>' : '') + '</button></th>').join('') + '</tr></thead>';
+  const cel = (v, s) => '<td class="' + [v.num ? 'num' : '', v.lang ? 'lang' : '', v.id === 'aan' && fdAanl(s).soort === 'ok' ? 'good' : '', v.id === 'aan' && fdAanl(s).soort === 'mis' ? 'bad' : '', v.id === 'verval' && /⚠/.test(v.t(s)) ? 'bad' : ''].filter(Boolean).join(' ') + '">' + esc(v.t(s)) + '</td>';
+  const rij = s => '<tr class="fd-rij" tabindex="0" data-sha="' + esc(s.sha) + '">' + kol.map(v => cel(v, s)).join('') + '</tr>';
+  const somRij = l => '<tr>' + kol.map((v, i) => '<td class="' + (v.num ? 'num' : '') + '">' + (v.id === 'bedrag' ? esc(FD_EUR(som(l))) : v.id === 'btw' ? esc(FD_EUR(l.reduce((t, s) => t + (fdGetal((s.meta || {}).btw) || 0), 0))) : i === 0 ? 'Totaal' : '') + '</td>').join('') + '</tr>';
+  let body = '', groep = null;
+  const delen = [];
+  for (const s of lijst) { const g = inst.groep ? fdGroep(s, inst.groep) : ['', '']; if (!groep || g[0] !== groep.k) { groep = { k: g[0], naam: g[1], l: [] }; delen.push(groep); } groep.l.push(s); }
+  for (const g of delen) {
+    if (inst.groep) body += '<tr class="fd-groep"><td colspan="' + kol.length + '">' + esc(g.naam + ' · ' + g.l.length + (g.l.length === 1 ? ' factuur' : ' facturen') + (som(g.l) ? ' · ' + FD_EUR(som(g.l)) : '')) + '</td></tr>';
+    const nog = 500 - (body.match(/class="fd-rij"/g) || []).length;
+    if (nog <= 0) break;
+    body += g.l.slice(0, nog).map(rij).join('');
+  }
+  $('#fd-lijst').innerHTML = '<table class="fa-tab fd-tab">' + kop + '<tbody>' + body + '</tbody>' + (kol.some(v => v.id === 'bedrag' || v.id === 'btw') && lijst.some(s => fdGetal((s.meta || {}).bedrag) !== '') ? '<tfoot>' + somRij(lijst) + '</tfoot>' : '') + '</table>' + (lijst.length > 500 ? '<p class="note" style="padding:8px 14px">De eerste 500; zoek of filter om de rest te zien.</p>' : '');
+  if (kol.some(v => v.id === 'datum') && lijst.some(s => !(s.meta || {}).datum)) $('#fd-lijst').insertAdjacentHTML('beforeend', '<p class="note" style="padding:8px 14px">* factuurdatum onbekend: dit is de dag van ophalen. Tik op de factuur om hem in te vullen.</p>');
+  $('#fd-lijst').querySelectorAll('tr.fd-rij').forEach(tr => { tr.onclick = () => fsToon(tr.dataset.sha); tr.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fsToon(tr.dataset.sha); } }; });
   $('#fd-csv').disabled = !items.length;
 }
 function fdCsv(){ $('#fd-csv-msg').textContent = 'Exporteren…'; $('#fd-csv').disabled = true; Android.facturenDossierCsv(); }
@@ -417,7 +535,7 @@ function fsToon(sha){
   const app = (s.plekken || {}).app;
   $('#fs-open').disabled = !(app && !app.weg);
   $('#fs-bron').textContent = m.bron === 'zelf' ? 'Door jou ingevuld.' : m.bron === 'herkend' ? 'Herkend uit de factuur; controleer en pas aan waar nodig.' : 'Niet herkend: vul zelf in.';
-  $('#fs-nummer').value = m.nummer || ''; $('#fs-datum').value = m.datum || ''; $('#fs-bedrag').value = m.bedrag || ''; $('#fs-btw').value = m.btw || '';
+  $('#fs-nummer').value = m.nummer || ''; $('#fs-datum').value = m.datum || ''; $('#fs-bedrag').value = m.bedrag || ''; $('#fs-btw').value = m.btw || ''; $('#fs-verval').value = m.vervaldatum || ''; $('#fs-betaald').value = m.betaald || '';
   $('#fs-cat').value = m.categorie || ''; $('#fs-notitie').value = m.notitie || ''; $('#fs-msg').textContent = '';
   $('#fs-cats').innerHTML = [...new Set((faDos.items || []).map(x => (x.meta || {}).categorie).filter(Boolean))].map(c => '<option value="' + esc(c) + '">').join('');
   $('#fs-plekken').innerHTML = Object.entries(s.plekken || {}).map(([k, x]) => {
@@ -436,7 +554,7 @@ function fsToon(sha){
 }
 function fsOpen(){ const s = (faDos.items || []).find(x => x.sha === fsSha); if (s) Android.facturenOpen(s.leverancier, s.naam); }
 function fsBewaar(){
-  const e = Android.facturenDossierMeta(fsSha, JSON.stringify({ nummer: $('#fs-nummer').value.trim(), datum: $('#fs-datum').value, bedrag: $('#fs-bedrag').value.trim(), btw: $('#fs-btw').value.trim(), categorie: $('#fs-cat').value.trim(), notitie: $('#fs-notitie').value.trim() }));
+  const e = Android.facturenDossierMeta(fsSha, JSON.stringify({ nummer: $('#fs-nummer').value.trim(), datum: $('#fs-datum').value, bedrag: $('#fs-bedrag').value.trim(), btw: $('#fs-btw').value.trim(), vervaldatum: $('#fs-verval').value, betaald: $('#fs-betaald').value, categorie: $('#fs-cat').value.trim(), notitie: $('#fs-notitie').value.trim() }));
   $('#fs-msg').textContent = e || '';
   if (e) return;
   fdLaad(); toast('✓ Bewaard'); fsToon(fsSha);

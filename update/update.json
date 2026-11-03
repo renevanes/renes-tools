@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.130",
-  "versionCode": 131,
-  "nativeLevel": 117,
+  "versionName": "1.131",
+  "versionCode": 132,
+  "nativeLevel": 118,
   "web": "index.html",
-  "webSha256": "fab5a2296f75b467a798ce4a9b6a31a3696be3b81ecd92418ffb7f2ce1bf31ad",
+  "webSha256": "a9b9fae6668ed516e8750eb8b4f1789a332cc6bb4afaa6e2eb1f910ac0a686e6",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "d142bba0b9df719244e6fb595a1ed837c4196dbf362750baeabe9dd33b3c730d",
+  "apkSha256": "80cf23a226c904bdcfc48c1f0f4d7f0a1f6a4f854b060af3ad54f9ce1808815e",
   "changelog": [
+    {
+      "version": "1.131",
+      "date": "2026-11-03",
+      "changes": [
+        "Facturen: het dossier is nu een overzichtelijke tabel: kies zelf de kolommen (bedrag, factuurdatum, leverancier, uiterste betaaldatum, betaald op, factuurnummer, categorie …), sorteer door op een kolom te tikken, groepeer per maand, kwartaal, leverancier of categorie met subtotalen, en filter op nog te betalen of te laat"
+      ]
+    },
     {
       "version": "1.130",
       "date": "2026-11-03",
@@ -1145,5 +1152,5 @@
       ]
     }
   ],
-  "webSig2": "HsJwo92z3XYOABScEZjjEDApIUyaiMwFZoP95Hhkiw18bxOZjspk2nd3D9Mg93/wYXXlFGTbsVFrAfIvznoJ3xzvnBebuYAkI/Dmd71iFlv6+Xc1JieEdWeOV1v/m3YbC/HZxbkZk+U+LNgC8SsP8OnE2wNtrQC5Thj9/IKVh5kEJNPoVvSh4EnPs3VQZA1q4e5eMjBh8wgAmzYvZ2XpP+o2WS4cnZOGDeiRl8YV+rMMlqHjM4DaoVLKQuNUAwTrnQfyO7gWD1UnE3cwvwYFmrom8O7Zvh3HFBcsbhz8c2eSH0T2Rh3lH4BDZq+Jxsfjxra9NRQ5oeDpfqUXsdw/TJZKsiGVkCKJxzpYOQZ68X8D2muADgW+HJXNVSx2oYaxVBniViIP+70s/v53/T9a+epRLDDFvzjNRQ8hgVcwy7fEARHjCyRrYIbiWTQme2v2RS1wXZkGh4dtNoUvwuNBauJ+gi2Cnws0GfgeuqutnlmPNs0u9AUbvYMAoXNPx1eV"
+  "webSig2": "PV0Gb1/PMA7vy5nphgFqRbaWvplxC4Qsooj2hz7nfNQ9ArGxoD8Xg0nXJpn5yt2NxrT/cqX6fNLES9eRTmqeBe6cciMAUTOqln9IDKKKRwRPxpSeGqA5WKlErP/ffTaBpDppVOlnc0+5r12EtWuMJxu8ScjbMQY3+RLAy6Vm/Ct1Ho603bENNDV6XsXd1Ytk4OPexgUxTYkQr7940VzQ7VJWhGwsXv6Iza2oTOq5oa8l+p4yGE0kK2DDok/yCtZm7ShzbjofpuFGG+b1oViCDW+ulwHggWpXOzg5Dy+qxFbHAKoh5wUcWbWO9YSPNbdpHX/Rg8AZ4DYbx8ytHTxVnudfblzsEuG6g9H+YuCpXaOpNMN7uMssMe8DH9+3gcVQtd6ISDEVZtOqbCmwf0KBF2IuA0wJUDR5jDQs4+xyYvCEYefmn3b17F2LiWl6rpcaLqvMzjbUrU9FEDLR1h1KEtS4lMbAU21gbaYxl7dKPBZgKZlKhfeoV+4lTrgm7l4Z"
 }

@@ -90,6 +90,7 @@ final class FacturenDossier {
             // Factuurgegevens uit de tekst van de PDF (Android 15+), anders uit de bestandsnaam
             JSONObject meta = herken(tekst(f) + "\n" + p.naam);
             meta.put("bron", meta.length() > 0 ? "herkend" : "");
+            if (PdfDoc.canText()) meta.put("versie", HERKEN_VERSIE);
             s.put("meta", meta);
             synchronized (Facturen.LOCK) {
                 JSONObject all = alle(c);
@@ -135,13 +136,19 @@ final class FacturenDossier {
     /** Factuurgegevens met de hand aanpassen. */
     static void meta(Context c, String sha, JSONObject in) throws Exception {
         JSONObject m = new JSONObject();
-        for (String k : new String[]{"nummer", "datum", "bedrag", "btw", "notitie", "categorie"}) {
+        for (String k : new String[]{"nummer", "datum", "bedrag", "btw", "notitie", "categorie", "vervaldatum", "betaald"}) {
             String v = in.optString(k, "").trim();
             if (v.length() > ("notitie".equals(k) ? 1000 : 80)) throw new Exception("Te lang: " + k);
             m.put(k, v);
         }
-        if (!m.optString("datum").isEmpty() && !m.optString("datum").matches("(19|20|21)\\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])")) throw new Exception("Datum als JJJJ-MM-DD, bijv. 2026-10-05");
-        if (!m.optString("bedrag").isEmpty() && bedrag(m.optString("bedrag")) == null) throw new Exception("Bedrag als 123,45");
+        for (String k : new String[]{"datum", "vervaldatum", "betaald"})
+            if (!m.optString(k).isEmpty() && !m.optString(k).matches("(19|20|21)\\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])")) throw new Exception("Datum als JJJJ-MM-DD, bijv. 2026-10-05");
+        for (String k : new String[]{"bedrag", "btw"}) { // als 1234,56 bewaren (ook als er 1.234,56 of 12.50 is ingetypt)
+            if (m.optString(k).isEmpty()) continue;
+            String b = bedrag(m.optString(k));
+            if (b == null) throw new Exception(("btw".equals(k) ? "Btw" : "Bedrag") + " als 123,45");
+            m.put(k, b);
+        }
         m.put("bron", "zelf");
         synchronized (Facturen.LOCK) {
             JSONObject all = alle(c);
@@ -193,6 +200,69 @@ final class FacturenDossier {
         return items;
     }
 
+    /** Versie van het herkennen: gaat omhoog als herken() beter wordt, dan wordt alles nog een keer gelezen. */
+    static final int HERKEN_VERSIE = 2;
+
+    /** Mist er iets (geen datum, bedrag of betaaldatum) en is het niet met de hand ingevuld? Dan nog eens lezen. (zonder Android) */
+    static boolean opnieuwLezen(JSONObject s) {
+        JSONObject m = s.optJSONObject("meta");
+        if (m == null) return true;
+        if ("zelf".equals(m.optString("bron"))) return false;
+        if (m.optInt("versie") >= HERKEN_VERSIE) return false;
+        return m.optString("datum").isEmpty() || m.optString("bedrag").isEmpty() || m.optString("nummer").isEmpty() || m.optString("vervaldatum").isEmpty();
+    }
+
+    static int gevuld(JSONObject m) { int n = 0; if (m != null) for (String k : new String[]{"nummer", "datum", "bedrag", "btw", "vervaldatum"}) if (!m.optString(k).isEmpty()) n++; return n; }
+
+    /** Wat al herkend was aanvullen met wat nu herkend wordt (niets overschrijven). (zonder Android) */
+    static JSONObject aanvullen(JSONObject oud, JSONObject nieuw) throws Exception {
+        JSONObject m = oud == null ? new JSONObject() : new JSONObject(oud.toString());
+        for (String k : new String[]{"nummer", "datum", "bedrag", "btw", "vervaldatum"})
+            if (m.optString(k).isEmpty() && !nieuw.optString(k).isEmpty()) m.put(k, nieuw.optString(k));
+        boolean iets = false;
+        for (String k : new String[]{"nummer", "datum", "bedrag", "btw", "vervaldatum"}) if (!m.optString(k).isEmpty()) iets = true;
+        m.put("bron", iets ? "herkend" : "").put("versie", HERKEN_VERSIE);
+        return m;
+    }
+
+    /**
+     * De facturen in het dossier waar nog gegevens ontbreken opnieuw lezen (de tekst van de PDF, Android 15+): bijv. facturen
+     * die al waren opgehaald voordat het dossier bestond. Met de hand ingevulde gegevens blijven zoals ze zijn. Geeft het
+     * aantal facturen waarbij er iets bij kwam.
+     */
+    static int herkenAlle(Context c) throws Exception {
+        java.util.Map<String, JSONObject> lezen = new java.util.LinkedHashMap<>();
+        synchronized (Facturen.LOCK) {
+            JSONObject all = alle(c);
+            for (Iterator<String> it = all.keys(); it.hasNext(); ) {
+                String sha = it.next();
+                JSONObject s = all.optJSONObject(sha);
+                if (s != null && opnieuwLezen(s)) lezen.put(sha, s);
+            }
+        }
+        if (lezen.isEmpty()) return 0;
+        java.util.Map<String, JSONObject> nieuw = new java.util.LinkedHashMap<>();
+        for (java.util.Map.Entry<String, JSONObject> e : lezen.entrySet()) { // buiten het slot: PDF's lezen duurt even
+            JSONObject s = e.getValue();
+            File f = FacturenAanlever.bestand(c, s);
+            String tekst = f == null ? "" : tekst(f);
+            nieuw.put(e.getKey(), herken(tekst + "\n" + s.optString("origineel") + "\n" + s.optString("naam")));
+        }
+        int beter = 0;
+        synchronized (Facturen.LOCK) {
+            JSONObject all = alle(c);
+            for (java.util.Map.Entry<String, JSONObject> e : nieuw.entrySet()) {
+                JSONObject s = all.optJSONObject(e.getKey());
+                if (s == null || !opnieuwLezen(s)) continue; // intussen met de hand aangepast
+                JSONObject oud = s.optJSONObject("meta"), m = aanvullen(oud, e.getValue());
+                if (gevuld(m) > gevuld(oud)) beter++;
+                s.put("meta", m);
+            }
+            bewaar(c, all);
+        }
+        return beter;
+    }
+
     // ================= factuurgegevens herkennen (zonder Android: getest in FacturenTest) =================
 
     private static final String MAAND = "(jan(?:uari)?|feb(?:ruari)?|mrt|maart|apr(?:il)?|mei|jun(?:i)?|jul(?:i)?|aug(?:ustus)?|sep(?:t(?:ember)?)?|okt(?:ober)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|"
@@ -207,10 +277,18 @@ final class FacturenDossier {
             Matcher x = Pattern.compile("(?i)(?:factuur ?(?:nummer|nr\\.?|no\\.?)|invoice ?(?:number|no\\.?|#)|nota ?(?:nummer|nr\\.?)|rekening ?nummer|factuur)[\\s:#.]{1,6}([A-Z0-9][A-Z0-9./-]{2,30})").matcher(t);
             while (x.find()) { String n = x.group(1).replaceAll("[./-]+$", ""); if (n.matches(".*\\d.*") && !n.matches("\\d{1,2}[-/.]\\d{1,2}[-/.]\\d{2,4}")) { m.put("nummer", n); break; } }
             String d = null;
-            x = Pattern.compile("(?i)(?:factuurdatum|datum factuur|invoice date|datum|date)[\\s:]{1,6}(\\d{1,2}[-/. ](?:\\d{1,2}|" + MAAND + ")[-/. ]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})").matcher(t);
+            // Eerst de duidelijke namen, dan een losse "datum"/"date" (niet die van betaal-, verval- of due date)
+            String waarde = "[\\s:]{1,6}(\\d{1,2}[-/. ](?:\\d{1,2}|" + MAAND + ")[-/. ]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})";
+            x = Pattern.compile("(?i)(?:factuurdatum|factuur datum|notadatum|documentdatum|datum factuur|invoice date|rechnungsdatum)" + waarde).matcher(t);
             if (x.find()) d = datum(x.group(1));
+            if (d == null) {
+                x = Pattern.compile("(?i)(?<![a-z])(?<!due |payment |verval |uiterste |betaal |betalings)(?:datum|date)" + waarde).matcher(t);
+                if (x.find()) d = datum(x.group(1));
+            }
             if (d == null) { x = Pattern.compile("\\b(20\\d{2})[-_.](0[1-9]|1[0-2])(?:[-_.](0[1-9]|[12]\\d|3[01]))?\\b").matcher(t); if (x.find()) d = x.group(1) + "-" + x.group(2) + "-" + (x.group(3) == null ? "01" : x.group(3)); }
             if (d != null) m.put("datum", d);
+            x = Pattern.compile("(?iu)(?:uiterste betaaldatum|uiterlijk betalen(?: op| voor)?|te betalen (?:voor|v\\u00f3\\u00f3r|uiterlijk)|vervaldatum|betaaldatum|due date|payment due)[\\s:]{1,6}(\\d{1,2}[-/. ](?:\\d{1,2}|" + MAAND + ")[-/. ]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})").matcher(t);
+            if (x.find()) { String v = datum(x.group(1)); if (v != null) m.put("vervaldatum", v); }
             x = Pattern.compile("(?i)(?:totaal ?(?:te betalen|bedrag|incl\\.?(?: btw)?|factuurbedrag)?|te betalen|totaalbedrag|bedrag|amount due|total(?: due| amount)?)[^\\d€\\n]{0,25}(?:€|eur|euro)?\\s*(-?\\d{1,3}(?:[.\\s]\\d{3})*(?:,\\d{2})|-?\\d+(?:[.,]\\d{2}))").matcher(t);
             String best = null;
             while (x.find()) best = x.group(1); // de laatste "totaal" is meestal het eindbedrag
@@ -278,7 +356,7 @@ final class FacturenDossier {
 
     /** Het dossier als CSV (puntkomma, met BOM, voor Excel): één regel per factuur. */
     static String csv(JSONObject items) {
-        StringBuilder b = new StringBuilder("\ufeffOpgehaald;Leverancier;Bestand;Factuurnummer;Factuurdatum;Bedrag;Btw;Categorie;Notitie;Bron;Afzender;Onderwerp;Plekken;Aangeleverd;SHA-256\r\n");
+        StringBuilder b = new StringBuilder("\ufeffOpgehaald;Leverancier;Bestand;Factuurnummer;Factuurdatum;Bedrag;Btw;Uiterste betaaldatum;Betaald op;Categorie;Notitie;Bron;Afzender;Onderwerp;Plekken;Aangeleverd;SHA-256\r\n");
         java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
         java.util.List<JSONObject> l = new java.util.ArrayList<>();
         for (Iterator<String> it = items.keys(); it.hasNext(); ) { JSONObject s = items.optJSONObject(it.next()); if (s != null) l.add(s); }
@@ -293,6 +371,7 @@ final class FacturenDossier {
             if (v != null) for (Iterator<String> it = v.keys(); it.hasNext(); ) { JSONObject x = v.optJSONObject(it.next()); if (x != null && x.optBoolean("ok")) aan.append(aan.length() > 0 ? ", " : "").append(x.optString("naam")).append(" (").append(df.format(new java.util.Date(x.optLong("t")))).append(")"); }
             b.append(cel(df.format(new java.util.Date(s.optLong("opgehaald"))))).append(';').append(cel(s.optString("leverancierNaam"))).append(';').append(cel(s.optString("naam"))).append(';')
                     .append(cel(m.optString("nummer"))).append(';').append(cel(m.optString("datum"))).append(';').append(cel(m.optString("bedrag"))).append(';').append(cel(m.optString("btw"))).append(';')
+                    .append(cel(m.optString("vervaldatum"))).append(';').append(cel(m.optString("betaald"))).append(';')
                     .append(cel(m.optString("categorie"))).append(';').append(cel(m.optString("notitie"))).append(';').append(cel(bron.optString("soort"))).append(';')
                     .append(cel(bron.optString("afzender"))).append(';').append(cel(bron.optString("onderwerp"))).append(';').append(cel(plekken.toString())).append(';')
                     .append(cel(aan.toString())).append(';').append(s.optString("sha")).append("\r\n");
