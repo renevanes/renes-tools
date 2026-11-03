@@ -742,7 +742,8 @@ if (!window.Android) window.Android = (function(){
       if (!/^https:\/\//i.test(o.url)) return 'Het adres van Eigen Cloud moet beginnen met https://'; if (!o.gebruiker) return 'Vul je gebruikersnaam of mailadres in';
       f.ec = { url: o.url.replace(/\/+$/, ''), gebruiker: o.gebruiker, adres: o.adres || '', heeftWachtwoord: f.ec.heeftWachtwoord || !!o.wachtwoord }; return ''; },
     /* Dossier en aanleveren (nagebootst); _foFout = foutmelding bij versturen */
-    facturenDossier(){ const f = this._fa; return JSON.stringify({ items: Object.values(f.dos || {}).sort((a, b) => b.opgehaald - a.opgehaald), ontvangers: (f.ontv || []).map(o => ({ id: o.id, naam: o.naam })) }); },
+    facturenDossier(){ const f = this._fa; return JSON.stringify({ items: Object.values(f.dos || {}).sort((a, b) => b.opgehaald - a.opgehaald), ontvangers: (f.ontv || []).map(o => ({ id: o.id, naam: o.naam })), pdfTekst: this._faGeenTekst ? false : true }); },
+    facturenDossierHerken(){ const f = this._fa; f.calls.push(['herken']); setTimeout(() => { let n = 0; Object.values(f.dos || {}).forEach(s => { const m = s.meta || {}; if (m.bron !== 'zelf' && !m.bedrag && s._pdf) { s.meta = { ...m, ...s._pdf, bron: 'herkend', versie: 2 }; n++; } else if (m.bron !== 'zelf') s.meta = { ...m, versie: 2 }; }); onFacturenHerkend({ aantal: n, pdfTekst: true }); }, 150); },
     facturenDossierMeta(sha, json){ const s = (this._fa.dos || {})[sha], m = JSON.parse(json); if (!s) return 'Factuur niet gevonden in het dossier';
       if ([m.datum, m.vervaldatum, m.betaald].some(d => d && !/^\d{4}-\d{2}-\d{2}$/.test(d))) return 'Datum als JJJJ-MM-DD, bijv. 2026-10-05'; if (m.bedrag && !/^-?\d+([.,]\d{1,2})?$/.test(m.bedrag.replace(/\./g, ''))) return 'Bedrag als 123,45';
       s.meta = { ...m, bron: 'zelf' }; this._fa.calls.push(['meta', sha, m]); return ''; },

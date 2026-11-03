@@ -90,6 +90,7 @@ final class FacturenDossier {
             // Factuurgegevens uit de tekst van de PDF (Android 15+), anders uit de bestandsnaam
             JSONObject meta = herken(tekst(f) + "\n" + p.naam);
             meta.put("bron", meta.length() > 0 ? "herkend" : "");
+            if (PdfDoc.canText()) meta.put("versie", HERKEN_VERSIE);
             s.put("meta", meta);
             synchronized (Facturen.LOCK) {
                 JSONObject all = alle(c);
@@ -197,6 +198,69 @@ final class FacturenDossier {
             }
         }
         return items;
+    }
+
+    /** Versie van het herkennen: gaat omhoog als herken() beter wordt, dan wordt alles nog een keer gelezen. */
+    static final int HERKEN_VERSIE = 2;
+
+    /** Mist er iets (geen datum, bedrag of betaaldatum) en is het niet met de hand ingevuld? Dan nog eens lezen. (zonder Android) */
+    static boolean opnieuwLezen(JSONObject s) {
+        JSONObject m = s.optJSONObject("meta");
+        if (m == null) return true;
+        if ("zelf".equals(m.optString("bron"))) return false;
+        if (m.optInt("versie") >= HERKEN_VERSIE) return false;
+        return m.optString("datum").isEmpty() || m.optString("bedrag").isEmpty() || m.optString("nummer").isEmpty() || m.optString("vervaldatum").isEmpty();
+    }
+
+    static int gevuld(JSONObject m) { int n = 0; if (m != null) for (String k : new String[]{"nummer", "datum", "bedrag", "btw", "vervaldatum"}) if (!m.optString(k).isEmpty()) n++; return n; }
+
+    /** Wat al herkend was aanvullen met wat nu herkend wordt (niets overschrijven). (zonder Android) */
+    static JSONObject aanvullen(JSONObject oud, JSONObject nieuw) throws Exception {
+        JSONObject m = oud == null ? new JSONObject() : new JSONObject(oud.toString());
+        for (String k : new String[]{"nummer", "datum", "bedrag", "btw", "vervaldatum"})
+            if (m.optString(k).isEmpty() && !nieuw.optString(k).isEmpty()) m.put(k, nieuw.optString(k));
+        boolean iets = false;
+        for (String k : new String[]{"nummer", "datum", "bedrag", "btw", "vervaldatum"}) if (!m.optString(k).isEmpty()) iets = true;
+        m.put("bron", iets ? "herkend" : "").put("versie", HERKEN_VERSIE);
+        return m;
+    }
+
+    /**
+     * De facturen in het dossier waar nog gegevens ontbreken opnieuw lezen (de tekst van de PDF, Android 15+): bijv. facturen
+     * die al waren opgehaald voordat het dossier bestond. Met de hand ingevulde gegevens blijven zoals ze zijn. Geeft het
+     * aantal facturen waarbij er iets bij kwam.
+     */
+    static int herkenAlle(Context c) throws Exception {
+        java.util.Map<String, JSONObject> lezen = new java.util.LinkedHashMap<>();
+        synchronized (Facturen.LOCK) {
+            JSONObject all = alle(c);
+            for (Iterator<String> it = all.keys(); it.hasNext(); ) {
+                String sha = it.next();
+                JSONObject s = all.optJSONObject(sha);
+                if (s != null && opnieuwLezen(s)) lezen.put(sha, s);
+            }
+        }
+        if (lezen.isEmpty()) return 0;
+        java.util.Map<String, JSONObject> nieuw = new java.util.LinkedHashMap<>();
+        for (java.util.Map.Entry<String, JSONObject> e : lezen.entrySet()) { // buiten het slot: PDF's lezen duurt even
+            JSONObject s = e.getValue();
+            File f = FacturenAanlever.bestand(c, s);
+            String tekst = f == null ? "" : tekst(f);
+            nieuw.put(e.getKey(), herken(tekst + "\n" + s.optString("origineel") + "\n" + s.optString("naam")));
+        }
+        int beter = 0;
+        synchronized (Facturen.LOCK) {
+            JSONObject all = alle(c);
+            for (java.util.Map.Entry<String, JSONObject> e : nieuw.entrySet()) {
+                JSONObject s = all.optJSONObject(e.getKey());
+                if (s == null || !opnieuwLezen(s)) continue; // intussen met de hand aangepast
+                JSONObject oud = s.optJSONObject("meta"), m = aanvullen(oud, e.getValue());
+                if (gevuld(m) > gevuld(oud)) beter++;
+                s.put("meta", m);
+            }
+            bewaar(c, all);
+        }
+        return beter;
     }
 
     // ================= factuurgegevens herkennen (zonder Android: getest in FacturenTest) =================

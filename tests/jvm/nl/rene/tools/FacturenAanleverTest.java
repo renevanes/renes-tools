@@ -42,6 +42,10 @@ public class FacturenAanleverTest {
         JSONObject dd = FacturenDossier.herken("Due date: 19-10-2026\nInvoice date: 05-10-2026");
         check("2026-10-05".equals(dd.optString("datum")) && "2026-10-19".equals(dd.optString("vervaldatum")), "Engels: due date is niet de factuurdatum");
         check("2026-03-02".equals(FacturenDossier.herken("Notadatum 2 maart 2026").optString("datum")) && "2026-03-02".equals(FacturenDossier.herken("Datum: 02-03-2026").optString("datum")), "notadatum en losse datum");
+        JSONObject leeg = new JSONObject().put("meta", new JSONObject().put("bron", ""));
+        check(FacturenDossier.opnieuwLezen(leeg) && !FacturenDossier.opnieuwLezen(new JSONObject().put("meta", new JSONObject().put("bron", "zelf"))), "ontbrekende gegevens opnieuw lezen, met de hand ingevuld niet");
+        JSONObject aan = FacturenDossier.aanvullen(new JSONObject().put("nummer", "F1").put("bron", "herkend"), new JSONObject().put("nummer", "F2").put("bedrag", "10,00"));
+        check("F1".equals(aan.optString("nummer")) && "10,00".equals(aan.optString("bedrag")) && aan.optInt("versie") == FacturenDossier.HERKEN_VERSIE && !FacturenDossier.opnieuwLezen(new JSONObject().put("meta", aan)), "aanvullen zonder te overschrijven, daarna niet opnieuw");
         check("2026-11-30".equals(FacturenDossier.herken("Te betalen voor 30 november 2026").optString("vervaldatum")), "te betalen voor …");
         check(FacturenDossier.herken("geen gegevens hier").length() == 0, "niets herkend: leeg");
         check("1234,56".equals(FacturenDossier.bedrag("1.234,56")) && "1234,56".equals(FacturenDossier.bedrag("1,234.56")) && "12,50".equals(FacturenDossier.bedrag("12,5")) && FacturenDossier.bedrag("veel") == null, "bedragen");

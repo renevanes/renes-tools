@@ -72,6 +72,23 @@ const { chromium } = require('playwright');
     ok((await tekst('#fs-bron')).includes('Door jou') && await pg.inputValue('#fs-cat') === 'telefoon', 'gegevens bewaard');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);
     ok(await scherm() === 'facdos' && (await tekst('#fd-tel')).includes('€ 95,10'), 'terug naar het dossier, som bijgewerkt');
+    // Periode: zelf kiezen (van/tot), alleen die facturen
+    await pg.selectOption('#fd-periode', 'zelf'); await pg.waitForTimeout(60);
+    ok(await pg.isVisible('#fd-van') && await pg.isVisible('#fd-tot'), 'eigen periode: van en tot');
+    await pg.fill('#fd-van', '2026-10-01'); await pg.fill('#fd-tot', '2026-10-31'); await pg.dispatchEvent('#fd-tot', 'change'); await pg.waitForTimeout(80);
+    ok((await pg.$$('#fd-lijst tr.fd-rij')).length === 1 && (await tekst('#fd-lijst')).includes('5 okt 2026'), 'alleen oktober');
+    await pg.selectOption('#fd-periode', ''); await pg.waitForTimeout(60);
+    ok((await pg.$$('#fd-lijst tr.fd-rij')).length === 2 && !(await pg.isVisible('#fd-van')), 'weer alle data');
+    // Eerder opgehaalde facturen zonder gegevens: worden bij het openen uit de PDF gelezen
+    await pg.evaluate(() => { const f = Android._fa; f.dos.oud1 = { sha: 'oud1', naam: 'KPN 1.pdf', leverancier: 'kpn-zakelijk', leverancierNaam: 'KPN Zakelijk', opgehaald: new Date('2026-08-20T10:00').getTime(), grootte: 1, bron: { soort: 'website' }, plekken: { app: { pad: '/x' } }, verzonden: {}, meta: { bron: '' }, _pdf: { datum: '2026-08-05', bedrag: '40,00', vervaldatum: '2026-08-19' } };
+      f.dos.oud2 = { sha: 'oud2', naam: 'KPN 2.pdf', leverancier: 'kpn-zakelijk', leverancierNaam: 'KPN Zakelijk', opgehaald: new Date('2026-07-20T10:00').getTime(), grootte: 1, bron: { soort: 'website' }, plekken: { app: { pad: '/x' } }, verzonden: {}, meta: { bron: '' } };
+      goBack(); faNaar('facdos'); });
+    await pg.waitForTimeout(400);
+    ok(await pg.evaluate(() => Android._fa.calls.some(c => c[0] === 'herken')), 'ontbrekende gegevens worden gelezen');
+    ok((await tekst('#fd-lees')).includes('Bij 1 factuur'), 'melding: gegevens gevonden');
+    ok((await tekst('#fd-lijst')).includes('5 aug 2026') && (await tekst('#fd-lijst')).includes('€ 40,00'), 'gelezen datum en bedrag in de tabel');
+    ok((await tekst('#fd-lijst')).includes('20 jul 2026 *') && (await tekst('#fd-lijst')).includes('dag van ophalen'), 'onbekende factuurdatum: dag van ophalen met *');
+    await pg.evaluate(() => { const f = Android._fa; delete f.dos.oud1; delete f.dos.oud2; fdRender(true); }); await pg.waitForTimeout(60);
     await pg.click('#fd-csv'); await pg.waitForTimeout(250);
     ok((await tekst('#fd-csv-msg')).includes('Kies eerst'), 'CSV zonder map: zegt wat te doen');
     // Aanleveren: ontvanger toevoegen (Eigen Cloud nog niet gekoppeld)
