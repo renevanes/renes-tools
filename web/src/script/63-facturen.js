@@ -389,7 +389,7 @@ function fdVanTot(p, van, tot, nu){
   if (p === 'vkwartaal') return [dag(y, q * 3 - 3, 1), dag(y, q * 3, 0)];
   if (p === 'jaar') return [dag(y, 0, 1), dag(y, 11, 31)];
   if (p === 'vjaar') return [dag(y - 1, 0, 1), dag(y - 1, 11, 31)];
-  if (p === 'zelf') return [van || '', tot || ''];
+  if (p === 'zelf') return van && tot && van > tot ? [tot, van] : [van || '', tot || '']; // omgedraaid ingevuld: gewoon omdraaien
   return ['', ''];
 }
 function fdPeriode(){
@@ -402,7 +402,10 @@ let fdGelezen = false;
 function fdLees(){
   if (fdGelezen || !faDos) return;
   fdGelezen = true;
-  const mist = (faDos.items || []).filter(s => (s.meta || {}).bron !== 'zelf' && (!(s.meta || {}).datum || !(s.meta || {}).bedrag) && (s.meta || {}).versie !== 2).length;
+  const e = $('#fd-lees');
+  if (faDos.bezigMetLezen) { e.style.display = 'block'; e.textContent = 'Gegevens uit de facturen lezen…'; return; }
+  e.style.display = 'none'; e.textContent = '';
+  const mist = faDos.teLezen || 0; // de app telt zelf wat er nog gelezen moet worden
   if (!faDos.pdfTekst) {
     if ((faDos.items || []).some(s => !(s.meta || {}).bedrag)) { $('#fd-lees').style.display = 'block'; $('#fd-lees').textContent = 'Op deze telefoon (Android 14 of ouder) kan de app de factuurgegevens niet uit de PDF lezen. Tik op een factuur om datum en bedrag zelf in te vullen.'; }
     return;
@@ -417,6 +420,7 @@ window.onFacturenHerkend = function(r){
   e.textContent = r.aantal ? '✓ Bij ' + r.aantal + (r.aantal === 1 ? ' factuur' : ' facturen') + ' gegevens gevonden. Controleer ze even.' : 'Geen extra gegevens gevonden in de facturen. Tik op een factuur om ze zelf in te vullen.';
   setTimeout(() => { if (e.textContent.startsWith('✓')) e.style.display = 'none'; }, 6000);
   if (current === 'facdos') fdRender(true);
+  else if (current === 'facstuk') { fdLaad(); if (!document.activeElement || !document.activeElement.closest('#s-facstuk')) fsToon(fsSha); }
 };
 /** Alle velden die als kolom kunnen: id, naam, waarde (om te sorteren), tekst (in de tabel), num = bedrag (rechts, met totaal). */
 const FD_VELDEN = [
