@@ -1086,3 +1086,5 @@ body.talk-on #s-ai main{padding-bottom:200px}
 /* Facturen: overzicht per maand */
 .fa-tab{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}.fa-tab th,.fa-tab td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.fa-tab thead th{color:var(--muted);font-weight:600}.fa-tab .good{color:var(--ok)}.fa-tab .bad{color:var(--bad)}
 #fa-maand-lijst .good{color:var(--ok)}#fa-maand-lijst .bad{color:var(--bad)}
+.fl-tabs{display:flex;width:100%;margin:0 0 12px}.fl-tabs button{flex:1;padding:6px 4px;min-width:0}
+.fl-paneel{display:none}.fl-paneel.on{display:block}

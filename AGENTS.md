@@ -233,10 +233,19 @@ achtergrond (`FacturenJob`, onzichtbare WebView) of terwijl Rene meekijkt (`Fact
   zoeken, PDF's die de pagina zelf maakt (blob:) doorgeven. `FacturenRun` beslist (inloggen → facturen → knoppen → afleveren).
   Robot en sjablonen zitten in de APK (assets): een wijziging daarin komt pas met een nieuwe APK. Test de robot met
   `tests/ui/facturen-robot.test.js` (nagebootste leverancier) en de beslislogica/regels met `FacturenTest`.
+- **Facturen uit de mail** (soort `mail`): `FacturenMail` is het raamwerk, een mailbron is een `FacturenMail.Bron` (eerste:
+  `FacturenGmail`, Gmail-API met alleen-lezen-rechten via de Google-koppeling in `FacturenDrive`). Instellingen per leverancier
+  in `mail` (zoekwoorden, afzenders, overslaan, extra zoekopdracht, terugkijken, per afzender een map). **Nieuwe bron**
+  (bijv. Outlook via Microsoft Graph): een klasse die `Bron` doet, toevoegen in `FacturenMail.BRONNEN` en `bron()`, een
+  eigen koppeling (OAuth zoals `FacturenDrive`, eigen geheimen in `facturen_geheim`), een optie in `#fl-m-bron`, een rij op
+  het scherm Koppelingen, en tests (zoekopdracht en bijlagen) in `FacturenTest`.
+- **Schermen:** Facturen (deze maand, leveranciers, Meer) → Overzicht per maand, Opslaan (plekken) en Koppelingen (Google,
+  Eigen Cloud); een leverancier heeft tabbladen (website: Inloggen, Planning, Opslaan, Meer; mail: Zoeken, Planning, Opslaan).
+  Google en Eigen Cloud zijn via Opslaan én Koppelingen te bereiken: navigeer met `faNaar()` zodat terug klopt.
 - **Grenzen:** alleen https; alleen echte PDF's (`%PDF`) tellen; wachtwoorden versleuteld (`facturen_geheim`, niet in backups);
   de inlogcode alleen uit sms van de ingestelde afzender of uit Rene's eigen Eigen Cloud; afleveren alleen naar plekken
   die hij zelf kiest: zijn backup-map, een zelf gekozen map op de telefoon, zijn eigen Google Drive (`FacturenDrive`, eigen
-  Google-project, alleen de rechten `drive.file`) en zijn eigen Eigen Cloud (`/api/mail/send` naar zichzelf). Geen andere
+  Google-project, alleen de rechten `drive.file`; Gmail alleen `gmail.readonly`) en zijn eigen Eigen Cloud (`/api/mail/send` naar zichzelf). Geen andere
   bestemmingen toevoegen zonder Rene. Nieuwe bestemming = ook in `Facturen.aflever` (met opnieuw proberen bij een fout).
 
 ## Bankzaken (afschriften analyseren, alles op de telefoon)

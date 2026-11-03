@@ -702,13 +702,14 @@ if (!window.Android) window.Android = (function(){
     _fa: { lev: [], toestand: {}, ec: { url: '', gebruiker: '', adres: '', heeftWachtwoord: false }, pw: {}, bezig: '', voortgang: '', pdf: {}, calls: [] },
     _faSjablonen: [
       { sjabloon: 'kpn-zakelijk', naam: 'KPN Zakelijk', omschrijving: 'MijnKPN Zakelijk: facturen van je zakelijke abonnementen', startUrl: 'https://mijnkpnzakelijk.kpn.com', facturenUrl: '', menu: 'facturen|factuur', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, schema: 'maand', dag: 5, tijd: '08:00', code: { bron: 'sms', afzender: 'KPN', patroon: '' }, tip: 'KPN stuurt na je wachtwoord een code per sms of mail.' },
+      { sjabloon: 'gmail', soort: 'mail', naam: 'Facturen in Gmail', omschrijving: 'Zoekt facturen (PDF-bijlagen) in je Gmail; alleen lezen', startUrl: '', schema: 'dag', dag: 5, tijd: '07:00', mail: { bron: 'gmail', woorden: 'factuur, invoice, rekening, nota', afzenders: '', negeer: '', extra: '', dagen: 90, max: 50, perAfzender: true }, tip: 'Koppel eerst Google met toegang tot Gmail.' },
       { sjabloon: 'anders', naam: '', omschrijving: 'Een andere website met facturen: vul zelf de inlogpagina in', startUrl: '', facturenUrl: '', menu: 'facturen|factuur|invoices|documenten', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, schema: 'maand', dag: 5, tijd: '08:00', code: { bron: 'geen', afzender: '', patroon: '' }, tip: 'Kijk de eerste keer mee.' }],
     facturenState(){ const f = this._fa; return JSON.stringify({ leveranciers: f.lev.map(l => ({ ...l, toestand: f.toestand[l.id] || {}, heeftWachtwoord: !!f.pw[l.id], aantal: (f.pdf[l.id] || []).length,
         maanden: f.maanden && f.maanden[l.id] || {}, vorige: l.schema === 'uit' ? 0 : (this._faVorige || Date.now() - 2 * 864e5), volgende: l.schema === 'uit' ? 0 : faVolgende(l, Date.now()) })),
       bezig: f.bezig, voortgang: f.voortgang, zichtbaar: false, ec: f.ec, lokaal: f.lokaal || '', drive: f.drive || { gekoppeld: false, gebruiker: '', clientId: '', heeftGeheim: false }, map: !!this._wa.info.dest, sms: !!this._sms.perm, sjablonen: this._faSjablonen }); },
     facturenBewaar(json){ const o = JSON.parse(json), f = this._fa; f.calls.push(['bewaar', JSON.parse(json)]);
       if (!o.naam) return JSON.stringify({ error: 'Geef de leverancier een naam' });
-      if (!/^https:\/\//i.test(o.startUrl || '')) return JSON.stringify({ error: 'De inlogpagina moet beginnen met https://' });
+      if (o.soort !== 'mail' && !/^https:\/\//i.test(o.startUrl || '')) return JSON.stringify({ error: 'De inlogpagina moet beginnen met https://' });
       const pw = o.wachtwoord; delete o.wachtwoord;
       let id = o.id; if (!id) { id = o.naam.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); let n = 2, b = id; while (f.lev.some(l => l.id === id)) id = b + '-' + n++; }
       o.id = id; o.submap = o.submap || o.naam; const i = f.lev.findIndex(l => l.id === id); if (i >= 0) f.lev[i] = o; else f.lev.push(o);
@@ -727,9 +728,9 @@ if (!window.Android) window.Android = (function(){
     facturenStop(){ this._fa.calls.push(['stop']); },
     facturenKiesMap(){ this._fa.calls.push(['kiesmap']); setTimeout(() => { this._fa.lokaal = 'Documents/Facturen'; onFacturenMap(''); }, 150); },
     facturenMapLos(){ this._fa.lokaal = ''; },
-    facturenDriveKoppel(id, geheim){ const f = this._fa; f.calls.push(['drive', id, geheim]); if (!/googleusercontent\.com$/.test(id)) return 'Dat lijkt geen Client ID van Google (eindigt op .apps.googleusercontent.com)';
-      setTimeout(() => { f.drive = { gekoppeld: true, gebruiker: 'rene@gmail.com', clientId: id, heeftGeheim: true }; onFacturenDrive({ naam: 'rene@gmail.com' }); }, 200); return ''; },
-    facturenDriveLos(){ const f = this._fa; f.drive = { ...(f.drive || {}), gekoppeld: false, gebruiker: '' }; },
+    facturenDriveKoppel(id, geheim, rechten){ const f = this._fa; f.calls.push(['drive', id, geheim, rechten]); if (!rechten) return 'Kies waarvoor Tools Google mag gebruiken (Drive en/of Gmail)'; if (!/googleusercontent\.com$/.test(id)) return 'Dat lijkt geen Client ID van Google (eindigt op .apps.googleusercontent.com)';
+      setTimeout(() => { f.drive = { gekoppeld: true, gebruiker: 'rene@gmail.com', clientId: id, heeftGeheim: true, rechtDrive: rechten.includes('drive'), rechtGmail: rechten.includes('gmail') }; onFacturenDrive({ naam: 'rene@gmail.com' }); }, 200); return ''; },
+    facturenDriveLos(){ const f = this._fa; f.drive = { ...(f.drive || {}), gekoppeld: false, gebruiker: '', rechtDrive: false, rechtGmail: false }; },
     facturenLijst(id){ return JSON.stringify(this._fa.pdf[id] || []); },
     facturenOpen(id, naam){ this._fa.calls.push(['open', id, naam]); },
     facturenEc(json){ const o = JSON.parse(json), f = this._fa; if (!o.url && !o.gebruiker) { f.ec = { url: '', gebruiker: '', adres: '', heeftWachtwoord: false }; return ''; }

@@ -53,7 +53,8 @@ public class FacturenBridge extends GebruikBridge {
                             .put("adres", p.getString("ecAdres", "")).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "ec")))
                     .put("map", WaBackup.destUri(ctx) != null)
                     .put("lokaal", lokaalNaam())
-                    .put("drive", new JSONObject().put("gekoppeld", FacturenDrive.gekoppeld(ctx)).put("gebruiker", p.getString("gdGebruiker", ""))
+                    .put("drive", new JSONObject().put("gekoppeld", FacturenDrive.gekoppeld(ctx))
+                            .put("rechtDrive", FacturenDrive.heeftRecht(ctx, "drive")).put("rechtGmail", FacturenDrive.heeftRecht(ctx, "gmail")).put("gebruiker", p.getString("gdGebruiker", ""))
                             .put("clientId", p.getString("gdClientId", "")).put("heeftGeheim", Facturen.heeftGeheim(ctx, "gd_secret")))
                     .put("sms", ctx.checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED)
                     .put("sjablonen", Facturen.sjablonen(ctx)).toString();
@@ -85,8 +86,9 @@ public class FacturenBridge extends GebruikBridge {
     /** Nu ophalen. Meekijken = in beeld (FacturenActivity). Uitkomst via onFacturenKlaar({id, ok, msg, nieuw …}). */
     @JavascriptInterface public String facturenNu(String id, boolean meekijken) {
         if (FacturenRun.LOPEND.get() != null) return "Er worden al facturen opgehaald";
-        if (Facturen.leverancier(ctx, id) == null) return "Leverancier niet gevonden";
-        if (meekijken) {
+        JSONObject lev = Facturen.leverancier(ctx, id);
+        if (lev == null) return "Leverancier niet gevonden";
+        if (meekijken && !"mail".equals(lev.optString("soort"))) { // facturen uit de mail: niets om naar te kijken
             a.h.post(() -> {
                 try { a.startActivity(new Intent(a, FacturenActivity.class).putExtra("id", id)); }
                 catch (Exception e) { Toast.makeText(a, "Openen lukt niet", Toast.LENGTH_SHORT).show(); }
@@ -178,9 +180,11 @@ public class FacturenBridge extends GebruikBridge {
     }
 
     /** Google Drive koppelen: opent de inlogpagina van Google in de browser. Antwoord via onFacturenDrive({error|naam}). */
-    @JavascriptInterface public String facturenDriveKoppel(String clientId, String geheim) {
+    /** rechten: "drive", "gmail" of "drive,gmail". */
+    @JavascriptInterface public String facturenDriveKoppel(String clientId, String geheim, String rechten) {
         try {
-            String url = FacturenDrive.start(ctx, clientId, geheim, (err, naam) -> {
+            if (rechten == null || (!rechten.contains("drive") && !rechten.contains("gmail"))) return "Kies waarvoor Tools Google mag gebruiken (Drive en/of Gmail)";
+            String url = FacturenDrive.start(ctx, clientId, geheim, rechten, (err, naam) -> {
                 try { a.js("onFacturenDrive", (err != null ? new JSONObject().put("error", err) : new JSONObject().put("naam", naam)).toString()); } catch (Exception ignored) { }
             });
             a.h.post(() -> { try { a.startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE)); } catch (Exception e) { a.js("onFacturenDrive", "{\"error\":\"Geen browser gevonden\"}"); } });

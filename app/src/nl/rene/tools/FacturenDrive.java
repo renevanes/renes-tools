@@ -36,6 +36,22 @@ final class FacturenDrive {
     static SharedPreferences prefs(Context c) { return Facturen.prefs(c); }
     static boolean gekoppeld(Context c) { return Facturen.heeftGeheim(c, "gd_refresh"); }
 
+    /** Welke rechten de Google-koppeling heeft gekregen: "drive" (opslaan in Drive) en/of "gmail" (facturen zoeken, alleen lezen). */
+    static boolean heeftRecht(Context c, String recht) {
+        if (!gekoppeld(c)) return false;
+        String s = prefs(c).getString("gdScopes", null);
+        if (s == null) return "drive".equals(recht); // oudere koppeling: alleen Drive
+        return s.contains("drive".equals(recht) ? SCOPE : FacturenGmail.SCOPE);
+    }
+
+    /** Rechten (bijv. "drive,gmail") → de scopes voor Google. */
+    static String scopes(String rechten) {
+        StringBuilder b = new StringBuilder();
+        if (rechten == null || rechten.contains("drive")) b.append(SCOPE);
+        if (rechten != null && rechten.contains("gmail")) b.append(b.length() > 0 ? " " : "").append(FacturenGmail.SCOPE);
+        return b.length() == 0 ? SCOPE : b.toString();
+    }
+
     private static final Object TOKEN_LOCK = new Object();
     private static String access; private static long accessTot;
 
@@ -46,7 +62,8 @@ final class FacturenDrive {
     static volatile ServerSocket wacht;
 
     /** Inloggen starten: geeft het adres voor de browser. done komt op een achtergrondthread. */
-    static String start(Context c, String clientId, String geheim, Spotify.Done done) throws Exception {
+    static String start(Context c, String clientId, String geheim, String rechten, Spotify.Done done) throws Exception {
+        final String scope = scopes(rechten);
         final String cid = clientId == null ? "" : clientId.trim();
         if (!geldigeClientId(cid)) throw new Exception("Dat lijkt geen Client ID van Google (eindigt op .apps.googleusercontent.com)");
         final String sec = geheim == null || geheim.trim().isEmpty() ? Facturen.geheim(c, "gd_secret") : geheim.trim();
@@ -79,12 +96,19 @@ final class FacturenDrive {
                 if (t.has("error")) throw new Exception("Google: " + t.optString("error_description", t.optString("error")));
                 String refresh = t.optString("refresh_token", ""), acc = t.optString("access_token", "");
                 if (refresh.isEmpty() || acc.isEmpty()) throw new Exception("Google gaf geen blijvende toegang; probeer opnieuw");
-                // Eerst kijken of Drive echt werkt (Drive API aan?), pas dan bewaren
-                JSONObject over = metToken(acc, API + "/about?fields=user(emailAddress,displayName)");
+                // Eerst kijken of het echt werkt (Drive API / Gmail API aan?), pas dan bewaren
+                String gekregen = t.optString("scope", scope);
+                if (scope.contains(SCOPE) && !gekregen.contains(SCOPE)) throw new Exception("Je gaf geen toestemming voor Google Drive; vink die aan bij Google");
+                if (scope.contains(FacturenGmail.SCOPE) && !gekregen.contains(FacturenGmail.SCOPE)) throw new Exception("Je gaf geen toestemming voor Gmail; vink die aan bij Google");
+                JSONObject over = gekregen.contains(SCOPE) ? metToken(acc, API + "/about?fields=user(emailAddress,displayName)") : null;
+                if (gekregen.contains(FacturenGmail.SCOPE)) {
+                    JSONObject p = metToken(acc, FacturenGmail.API + "/profile");
+                    if (over == null) over = new JSONObject().put("user", new JSONObject().put("emailAddress", p.optString("emailAddress")));
+                }
                 synchronized (TOKEN_LOCK) {
                     Facturen.zetGeheim(app, "gd_secret", sec);
                     Facturen.zetGeheim(app, "gd_refresh", refresh);
-                    prefs(app).edit().putString("gdClientId", cid).remove("gdMappen").apply();
+                    prefs(app).edit().putString("gdClientId", cid).putString("gdScopes", gekregen).remove("gdMappen").apply();
                     access = acc; accessTot = System.currentTimeMillis() + Math.max(0, t.optLong("expires_in", 3600) - 120) * 1000L;
                 }
                 JSONObject u = over.optJSONObject("user");
@@ -102,7 +126,7 @@ final class FacturenDrive {
             }
             if (err != null || naam != null) done.done(err, naam);
         }, "facturen-drive-login").start();
-        return AUTH + "?response_type=code&client_id=" + enc(cid) + "&scope=" + enc(SCOPE) + "&redirect_uri=" + enc(REDIRECT)
+        return AUTH + "?response_type=code&client_id=" + enc(cid) + "&scope=" + enc(scope) + "&redirect_uri=" + enc(REDIRECT)
                 + "&state=" + enc(state) + "&code_challenge_method=S256&code_challenge=" + enc(challenge)
                 + "&access_type=offline&prompt=consent";
     }
@@ -115,7 +139,7 @@ final class FacturenDrive {
             refresh = Facturen.geheim(c, "gd_refresh");
             access = null; accessTot = 0;
             Facturen.geheim(c).edit().remove("gd_refresh").apply();
-            prefs(c).edit().remove("gdGebruiker").remove("gdMappen").apply();
+            prefs(c).edit().remove("gdGebruiker").remove("gdMappen").remove("gdScopes").apply();
         }
         if (refresh != null) new Thread(() -> {
             try {
@@ -140,8 +164,10 @@ final class FacturenDrive {
             if (code >= 400) {
                 JSONObject e = o.optJSONObject("error");
                 String m = e == null ? "" : e.optString("message", "");
-                if (code == 403) m = "zet eerst de Google Drive API aan in je Google-project (stap 2)";
-                throw new Exception("Google Drive: " + (m.isEmpty() ? "fout " + code : m));
+                boolean gm = url.startsWith(FacturenGmail.API);
+                if (code == 403 && (m.isEmpty() || m.toLowerCase(java.util.Locale.ROOT).contains("has not been used") || m.toLowerCase(java.util.Locale.ROOT).contains("disabled")))
+                    m = gm ? "zet eerst de Gmail API aan in je Google-project (stap 2)" : "zet eerst de Google Drive API aan in je Google-project (stap 2)";
+                throw new Exception((gm ? "Gmail: " : "Google Drive: ") + (m.isEmpty() ? "fout " + code : m));
             }
             return o;
         } finally { h.disconnect(); }
@@ -188,10 +214,19 @@ final class FacturenDrive {
 
     /** Eén Drive-verzoek; body = JSON (metadata) of null. Bij 401 één keer met een nieuw token. */
     static JSONObject api(Context c, String methode, String url, JSONObject body) throws Exception {
-        return stuur(c, methode, url, body == null ? null : body.toString().getBytes(StandardCharsets.UTF_8), "application/json; charset=UTF-8");
+        return stuur(c, methode, url, body == null ? null : body.toString().getBytes(StandardCharsets.UTF_8), "application/json; charset=UTF-8", 5_000_000L);
+    }
+
+    /** Een GET met een groot antwoord (bijlage uit Gmail: base64 van een PDF tot Facturen.MAX_PDF). */
+    static JSONObject apiGroot(Context c, String url) throws Exception {
+        return stuur(c, "GET", url, null, null, Facturen.MAX_PDF * 4 / 3 + 65_536);
     }
 
     private static JSONObject stuur(Context c, String methode, String url, byte[] body, String type) throws Exception {
+        return stuur(c, methode, url, body, type, 5_000_000L);
+    }
+
+    private static JSONObject stuur(Context c, String methode, String url, byte[] body, String type, long max) throws Exception {
         for (int poging = 0; ; poging++) {
             HttpURLConnection h = (HttpURLConnection) new URL(url).openConnection();
             try {
@@ -204,13 +239,14 @@ final class FacturenDrive {
                 int code = h.getResponseCode();
                 if (code == 401 && poging == 0) { synchronized (TOKEN_LOCK) { accessTot = 0; } continue; }
                 InputStream in = code >= 400 ? h.getErrorStream() : h.getInputStream();
-                String t = in == null ? "" : new String(Facturen.lees(in, 5_000_000), StandardCharsets.UTF_8);
+                String t = in == null ? "" : new String(Facturen.lees(in, max), StandardCharsets.UTF_8);
                 JSONObject o = t.trim().startsWith("{") ? new JSONObject(t) : new JSONObject();
                 if (code >= 400) {
+                    if (code == 404) throw new Exception("niet (meer) gevonden");
                     JSONObject e = o.optJSONObject("error");
                     String m = e == null ? "" : e.optString("message", "");
-                    if (code == 403 && m.toLowerCase(java.util.Locale.ROOT).contains("api has not been used")) m = "zet de Google Drive API aan in je Google-project";
-                    throw new Exception("Google Drive: " + (m.isEmpty() ? "fout " + code : m));
+                    if (code == 403 && m.toLowerCase(java.util.Locale.ROOT).contains("api has not been used")) m = url.startsWith(FacturenGmail.API) ? "zet de Gmail API aan in je Google-project" : "zet de Google Drive API aan in je Google-project";
+                    throw new Exception((url.startsWith(FacturenGmail.API) ? "Gmail: " : "Google Drive: ") + (m.isEmpty() ? "fout " + code : m));
                 }
                 return o;
             } finally { h.disconnect(); }
@@ -233,7 +269,10 @@ final class FacturenDrive {
             } catch (Exception ignored) { }
         }
         String ouder = "root";
-        for (String naam : new String[]{Facturen.MAP, sub}) {
+        java.util.List<String> delen = new java.util.ArrayList<>();
+        delen.add(Facturen.MAP);
+        for (String d : sub.split("/")) if (!d.trim().isEmpty()) delen.add(d.trim()); // ook Facturen/<leverancier>/<afzender>
+        for (String naam : delen) {
             String zoek = "name='" + q(naam) + "' and mimeType='" + MAP_MIME + "' and '" + q(ouder) + "' in parents and trashed=false";
             JSONArray l = api(c, "GET", API + "/files?fields=files(id)&spaces=drive&q=" + enc(zoek), null).optJSONArray("files");
             if (l != null && l.length() > 0) ouder = l.getJSONObject(0).getString("id");
@@ -247,6 +286,7 @@ final class FacturenDrive {
 
     /** Een factuur in Drive zetten (staat er al een met dezelfde naam in de map: niets doen). */
     static void upload(Context c, String sub, String naam, byte[] data) throws Exception {
+        if (gekoppeld(c) && !heeftRecht(c, "drive")) throw new Exception("geef Tools toegang tot Drive (Facturen → Koppelingen → Google)");
         String map = map(c, sub);
         String zoek = "name='" + q(naam) + "' and '" + q(map) + "' in parents and trashed=false";
         JSONArray l = api(c, "GET", API + "/files?fields=files(id)&spaces=drive&q=" + enc(zoek), null).optJSONArray("files");

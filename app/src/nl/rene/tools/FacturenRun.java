@@ -82,6 +82,8 @@ final class FacturenRun {
     final Set<String> codeGezien = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     final java.util.List<WebView> kinderen = new java.util.ArrayList<>();
     volatile String paginaUrl = "";
+    /** Facturen uit de mail (FacturenMail) in plaats van van een website. */
+    final boolean mail;
 
     private FacturenRun(Context c, JSONObject lev, String wachtwoord, WebView zicht, Klaar k) throws Exception {
         this.c = c.getApplicationContext();
@@ -90,9 +92,10 @@ final class FacturenRun {
         this.wachtwoord = wachtwoord;
         this.gebruiker = lev.optString("gebruiker", "");
         this.cfgJs = new JSONObject().put("velden", lev.optJSONObject("velden") == null ? new JSONObject() : lev.optJSONObject("velden")).toString();
-        this.zichtbaar = zicht != null;
-        this.eigenWv = zicht == null;
-        this.wv = zicht != null ? zicht : new WebView(this.c);
+        this.mail = "mail".equals(lev.optString("soort"));
+        this.zichtbaar = zicht != null && !mail;
+        this.eigenWv = zicht == null && !mail;
+        this.wv = mail ? null : zicht != null ? zicht : new WebView(this.c); // mail: geen website, geen WebView
         this.klaar = k;
         this.maxDuur = zichtbaar ? 15 * 60_000L : 9 * 60_000L;
         this.domein = Facturen.domein(lev.optString("startUrl"));
@@ -104,7 +107,7 @@ final class FacturenRun {
             JSONObject lev = Facturen.leverancier(c, id);
             if (lev == null) return "Leverancier niet gevonden";
             FacturenRun r = new FacturenRun(c, lev, Facturen.geheim(c, "lev_" + id), zicht, k);
-            if (!LOPEND.compareAndSet(null, r)) { if (r.eigenWv) r.wv.destroy(); return "Er worden al facturen opgehaald"; }
+            if (!LOPEND.compareAndSet(null, r)) { if (r.eigenWv && r.wv != null) r.wv.destroy(); return "Er worden al facturen opgehaald"; }
             try { r.start(); } catch (Throwable e) { LOPEND.compareAndSet(r, null); throw e; }
             Facturen.werkBij(c, id, new JSONObject().put("bezigSinds", r.start));
             return "";
@@ -119,8 +122,32 @@ final class FacturenRun {
         return robot;
     }
 
+    /** Facturen uit de mail: op een eigen thread (geen WebView). */
+    private void startMail() {
+        voortgang = "Mail doorzoeken…";
+        h.postDelayed(() -> einde(fout("Het zoeken in de mail duurde te lang", false)), maxDuur);
+        new Thread(() -> {
+            JSONObject r;
+            try {
+                JSONObject m = lev.optJSONObject("mail") == null ? new JSONObject() : lev.optJSONObject("mail");
+                JSONObject tt = Facturen.toestand(c, id);
+                long sinds = FacturenMail.sinds(m, tt.optLong("lastOk"), tt.optLong("mailSinds"), System.currentTimeMillis());
+                java.util.List<Facturen.Pdf> l = FacturenMail.bron(m.optString("bron", "gmail")).haal(c, lev, sinds, stop, t -> voortgang = t);
+                synchronized (pdfs) { for (Facturen.Pdf p : l) if (!pdfs.containsKey(p.sha)) pdfs.put(p.sha, p); }
+                r = new JSONObject().put("ok", true);
+            } catch (Throwable e) {
+                String msg = Facturen.kort(e);
+                r = fout(msg, false);
+                try { if (msg.contains("Koppel") || msg.contains("toegang tot Gmail")) r.put("koppelNodig", true); } catch (Exception ignored) { }
+            }
+            final JSONObject uit = r;
+            h.post(() -> einde(uit));
+        }, "facturen-mail").start();
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private void start() {
+        if (mail) { startMail(); return; }
         WebSettings s = wv.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -157,7 +184,7 @@ final class FacturenRun {
     // ================= de beslislus =================
 
     private void tik() {
-        if (fase == KLAAR) return;
+        if (fase == KLAAR || wv == null) return;
         try {
             long nu = System.currentTimeMillis();
             if (stop.get()) { einde(fout("Gestopt", false)); return; }
@@ -430,8 +457,8 @@ final class FacturenRun {
         try { CookieManager.getInstance().flush(); } catch (Throwable ignored) { }
         for (WebView k : kinderen) { try { k.destroy(); } catch (Throwable ignored) { } }
         kinderen.clear();
-        if (eigenWv) { try { wv.stopLoading(); wv.removeJavascriptInterface("FrBrug"); wv.destroy(); } catch (Throwable ignored) { } }
-        else { try { wv.removeJavascriptInterface("FrBrug"); } catch (Throwable ignored) { } }
+        if (wv != null && eigenWv) { try { wv.stopLoading(); wv.removeJavascriptInterface("FrBrug"); wv.destroy(); } catch (Throwable ignored) { } }
+        else if (wv != null) { try { wv.removeJavascriptInterface("FrBrug"); } catch (Throwable ignored) { } }
         final java.util.List<Facturen.Pdf> lijst;
         synchronized (pdfs) { lijst = new java.util.ArrayList<>(pdfs.values()); }
         voortgang = r.optBoolean("ok") ? "Facturen bewaren…" : r.optString("msg");
@@ -444,6 +471,7 @@ final class FacturenRun {
                     for (java.util.Iterator<String> it = v.keys(); it.hasNext(); ) { String k = it.next(); uit.put(k, v.get(k)); }
                     int n = v.optInt("nieuw");
                     uit.put("msg", n == 0 ? "Geen nieuwe facturen (" + v.optInt("gevonden") + " bekeken)" : n + (n == 1 ? " nieuwe factuur" : " nieuwe facturen"));
+                    if (mail && v.optInt("gevonden") == 0) uit.put("msg", "Geen facturen gevonden in de mail");
                 }
                 long nu = System.currentTimeMillis();
                 JSONObject t = new JSONObject().put("lastTry", nu).put("ok", uit.optBoolean("ok")).put("msg", uit.optString("msg"))
@@ -473,7 +501,7 @@ final class FacturenRun {
     // ================= hulp =================
 
     private void js(String expr, android.webkit.ValueCallback<String> cb) {
-        if (fase == KLAAR && cb != null) return;
+        if (wv == null || (fase == KLAAR && cb != null)) return;
         try {
             wv.evaluateJavascript(robot(c).replace("__SLEUTEL__", sleutel) + "\n;" + expr, v -> { if (cb != null) cb.onReceiveValue(str(v)); });
         } catch (Throwable e) { if (cb != null) cb.onReceiveValue(""); }

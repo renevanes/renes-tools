@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.126",
-  "versionCode": 127,
-  "nativeLevel": 113,
+  "versionName": "1.127",
+  "versionCode": 128,
+  "nativeLevel": 114,
   "web": "index.html",
-  "webSha256": "20023d6ca93ce2b4b147ec050bf1db9047316b20ac8da1c192b6f391ece0e1ac",
+  "webSha256": "9349ac92c859692f96fcfcbba89136703cc9879560367f2bcf305141da9419f6",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "78b3e27f4499ca8b534b0e68813d46019049b1395aa258193dbf7c81517e929e",
+  "apkSha256": "6b9b1ba842367664f132938b19147f97d7b4a98fef306d529e5107ab22a4b0fa",
   "changelog": [
+    {
+      "version": "1.127",
+      "date": "2026-11-03",
+      "changes": [
+        "Facturen: zoekt nu ook facturen in je Gmail (PDF-bijlagen, alleen lezen), met zelf te kiezen zoekwoorden, afzenders en per afzender een eigen map. Het scherm is opgedeeld: Opslaan, Koppelingen en Overzicht per maand hebben elk een eigen scherm, en de instellingen van een leverancier staan in tabbladen."
+      ]
+    },
     {
       "version": "1.126",
       "date": "2026-11-02",
@@ -1112,5 +1119,5 @@
       ]
     }
   ],
-  "webSig2": "Dj5CC91/brxj4NcnYm100wzCyqdGdf2cvgfh4VgRLALdKT5qmrGYaP4lPafZLqJu5qZ3wmz6U6BrYP0tuEm217S9M+SZCcOLMfd/Sp+mskCKitUWmRteF3hMTD//OZeRae9G47VAjWtIQKCuD2IXZCyfcDc2wYW5PCoIL3+Kl62SbmoAapccnP1N6BtHO/sTnMUfH4cTzFH1yC+Fvnchib7uT6eSCkuTH7WDoSdUrMXvKhIKkOd+UmmgGfCqR/YZ7GHWeCjHLTE77jljGnU/9QWeJYYRLnF3Cp2o28RuqzJYO0bc+hBzOAiL+6a9/pDA6pMcFaEoyWwDJvsZBjJ2viZ1/FH2A6orI/FinoHDXIBilOrm+PqGq6rROR59mG7381INEGiWBZmQPQfd5EadJBeuLA++9/3nFzWUv0mPjdc0Mmd876PqcV/bKioCMDLfV+py94/Ki/xZjEIlbXISOhdWDJl8RzD77jOHON707fOdftKDg7cj5a4VW/UVZH+U"
+  "webSig2": "KLqQV9C7yWverIDSF3D0/TQrLOi6I5Q/M3sd3wNbRfEFvwZU41DTDzNzjFEirdCqshvRmK/RDSf0WDl8/lCJjW43TewHbAaULQqT53CZtwzAw1JFF+zIcWCkUhEqXyqrfgZKuxGjnmWGsTQIc2G5mukjcy2fNwUNIh/rIgNnVnIRnall/USoxvgIhZwxPyuOXE6YUky9eIwgY3egSGUq4hlBoZuQ1M1uaue/zRZa8jEQ81Dy3w/Sk+vY2bQ6Ox8d0+9JWoCCPSFNrapZEKSltfRCwhYsu/T8JbMVffPRmAEped/exNhuci/mjCDoWVuqQTfDqWSQ2BKlkdTE5xix7m/kiJo5AR6OtOHn+wzCyRiGkXdq5q/eBVxUTBzQsMCBPBnm/zdKDxkv9k1NvjJEcUUsnHF9kzcj0vLco3O5SPOkxgbQpZJyIp/W5Y05AYyXADGPDW3Nc3LY60qY9iyYF10wp/q9l4EFGL6f8DlcrEaVcAsgNtb7Ob6Yw8+G5ZWZ"
 }
