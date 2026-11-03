@@ -41,15 +41,26 @@ final class FacturenDrive {
         if (!gekoppeld(c)) return false;
         String s = prefs(c).getString("gdScopes", null);
         if (s == null) return "drive".equals(recht); // oudere koppeling: alleen Drive
-        return s.contains("drive".equals(recht) ? SCOPE : FacturenGmail.SCOPE);
+        return s.contains("drive".equals(recht) ? SCOPE : "gmailsend".equals(recht) ? GMAIL_SEND : FacturenGmail.SCOPE);
     }
 
     /** Rechten (bijv. "drive,gmail") → de scopes voor Google. */
     static String scopes(String rechten) {
         StringBuilder b = new StringBuilder();
         if (rechten == null || rechten.contains("drive")) b.append(SCOPE);
-        if (rechten != null && rechten.contains("gmail")) b.append(b.length() > 0 ? " " : "").append(FacturenGmail.SCOPE);
+        if (rechten != null && rechten.matches(".*\\bgmail\\b.*")) b.append(b.length() > 0 ? " " : "").append(FacturenGmail.SCOPE);
+        if (rechten != null && rechten.contains("gmailsend")) b.append(b.length() > 0 ? " " : "").append(GMAIL_SEND);
         return b.length() == 0 ? SCOPE : b.toString();
+    }
+
+    /** Mail versturen met Gmail (facturen aanleveren aan je boekhouder); Tools kan daarmee geen mail lezen. */
+    static final String GMAIL_SEND = "https://www.googleapis.com/auth/gmail.send";
+
+    /** Een volledige mail (RFC 5322) versturen met Gmail. */
+    static void gmailVerstuur(Context c, byte[] mime) throws Exception {
+        if (!heeftRecht(c, "gmailsend")) throw new Exception("Geef Tools het recht om met Gmail te versturen (Facturen → Koppelingen → Google)");
+        JSONObject r = stuur(c, "POST", "https://gmail.googleapis.com/upload/gmail/v1/users/me/messages/send?uploadType=media", mime, "message/rfc822");
+        if (r.optString("id", "").isEmpty()) throw new Exception("Gmail: niet verstuurd");
     }
 
     private static final Object TOKEN_LOCK = new Object();
@@ -245,8 +256,8 @@ final class FacturenDrive {
                     if (code == 404) throw new Exception("niet (meer) gevonden");
                     JSONObject e = o.optJSONObject("error");
                     String m = e == null ? "" : e.optString("message", "");
-                    if (code == 403 && m.toLowerCase(java.util.Locale.ROOT).contains("api has not been used")) m = url.startsWith(FacturenGmail.API) ? "zet de Gmail API aan in je Google-project" : "zet de Google Drive API aan in je Google-project";
-                    throw new Exception((url.startsWith(FacturenGmail.API) ? "Gmail: " : "Google Drive: ") + (m.isEmpty() ? "fout " + code : m));
+                    if (code == 403 && m.toLowerCase(java.util.Locale.ROOT).contains("api has not been used")) m = url.contains("gmail.googleapis.com") ? "zet de Gmail API aan in je Google-project" : "zet de Google Drive API aan in je Google-project";
+                    throw new Exception((url.contains("gmail.googleapis.com") ? "Gmail: " : "Google Drive: ") + (m.isEmpty() ? "fout " + code : m));
                 }
                 return o;
             } finally { h.disconnect(); }

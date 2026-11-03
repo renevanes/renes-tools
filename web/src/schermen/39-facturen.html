@@ -20,6 +20,8 @@
     <button class="big" id="fa-nieuw" onclick="faNieuw()">Leverancier toevoegen</button>
     <div class="flabel stgl" role="heading" aria-level="2" style="margin-top:18px">Meer</div>
     <div class="card stlist">
+      <button class="strow" onclick="faNaar('facdos')"><span class="stic"><span class="ui-icon" data-icon="clipboard" aria-hidden="true"></span></span><span class="sttxt"><b>Dossier</b><small id="fa-sum-dos"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="faNaar('facaanl')"><span class="stic"><span class="ui-icon" data-icon="upload" aria-hidden="true"></span></span><span class="sttxt"><b>Aanleveren aan je boekhouder</b><small id="fa-sum-aanl"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="faNaar('facoverz')"><span class="stic"><span class="ui-icon" data-icon="calendar" aria-hidden="true"></span></span><span class="sttxt"><b>Overzicht per maand</b><small id="fa-sum-overz"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="faNaar('facopslag')"><span class="stic"><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span><span class="sttxt"><b>Opslaan</b><small id="fa-sum-opslag"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="faNaar('fackopp')"><span class="stic"><span class="ui-icon" data-icon="plug" aria-hidden="true"></span></span><span class="sttxt"><b>Koppelingen</b><small id="fa-sum-kopp"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
@@ -79,10 +81,11 @@
     <h1 tabindex="-1">Koppelingen</h1>
   </div>
   <main>
-    <p class="note" style="margin:0 2px 12px">Diensten waarmee Tools facturen zoekt of bewaart. Elke koppeling stel je één keer in; leveranciers gebruiken ze daarna.</p>
+    <p class="note" style="margin:0 2px 12px">Diensten waarmee Tools facturen zoekt, bewaart of aanlevert. Elke koppeling stel je één keer in; leveranciers gebruiken ze daarna.</p>
     <div class="card stlist">
       <button class="strow" onclick="faNaar('facgoogle')"><span class="stic"><span class="ui-icon" data-icon="globe" aria-hidden="true"></span></span><span class="sttxt"><b>Google (Gmail en Drive)</b><small id="fa-sum-google"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="faNaar('facec')"><span class="stic"><span class="ui-icon" data-icon="mail" aria-hidden="true"></span></span><span class="sttxt"><b>Eigen Cloud</b><small id="fa-sum-ec2"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="faNaar('facsmtp')"><span class="stic"><span class="ui-icon" data-icon="message" aria-hidden="true"></span></span><span class="sttxt"><b>Eigen mailserver (SMTP)</b><small id="fa-sum-smtp"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
   </main>
 </section>
@@ -104,6 +107,7 @@
       <h2>Waarvoor mag Tools Google gebruiken?</h2>
       <label class="chk"><input type="checkbox" id="fa-gd-r-gmail" checked> Gmail: facturen zoeken (alleen lezen)</label>
       <label class="chk"><input type="checkbox" id="fa-gd-r-drive" checked> Drive: facturen bewaren (alleen eigen mappen)</label>
+      <label class="chk"><input type="checkbox" id="fa-gd-r-send"> Gmail: facturen versturen aan je boekhouder (geen lezen)</label>
       <p class="note">Eenmalig: Google geeft alleen toegang via een eigen (gratis) Google-project.</p>
       <ol class="spsteps">
         <li>Open de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/projectcreate');return false">Google Cloud Console</a> en maak een project (naam bijv. "Tools").</li>
@@ -271,5 +275,162 @@
     </div>
     <p class="note bad" id="fl-msg" role="status" aria-live="polite"></p>
     <button class="big" id="fl-save" onclick="flBewaar()">Bewaren</button>
+  </main>
+</section>
+
+<!-- Dossier: elke opgehaalde factuur met alle gegevens, waar hij staat en aan wie hij is aangeleverd -->
+<section class="screen" id="s-facdos">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Dossier</h1>
+  </div>
+  <main>
+    <p class="note" style="margin:0 2px 12px">Alle opgehaalde facturen: waar ze vandaan komen, de factuurgegevens, waar ze staan en aan wie ze zijn aangeleverd. Tik op een factuur voor alles en om gegevens aan te passen.</p>
+    <input class="aein" id="fd-zoek" type="search" placeholder="Zoeken op leverancier, bestand, nummer of bedrag" aria-label="Zoeken in het dossier" oninput="fdRender()" autocomplete="off">
+    <div class="row" style="gap:8px;margin:8px 0">
+      <select class="sel" id="fd-lev" style="flex:1" onchange="fdRender()" aria-label="Leverancier"></select>
+      <select class="sel" id="fd-filter" style="flex:1" onchange="fdRender()" aria-label="Filter"><option value="">Alles</option><option value="open">Nog niet aangeleverd</option><option value="mis">Aanleveren mislukt</option></select>
+    </div>
+    <p class="note" id="fd-tel" style="margin:0 2px 8px"></p>
+    <div class="card stations" id="fd-lijst"></div>
+    <button class="big ghost" id="fd-csv" onclick="fdCsv()">Exporteren als CSV (voor Excel)</button>
+    <p class="note" id="fd-csv-msg" role="status" aria-live="polite"></p>
+  </main>
+</section>
+
+<!-- Eén factuur uit het dossier -->
+<section class="screen" id="s-facstuk">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="fs-h">Factuur</h1>
+  </div>
+  <main>
+    <div class="card"><div id="fs-info"></div>
+      <button class="big" style="margin-top:8px" id="fs-open" onclick="fsOpen()">Openen</button></div>
+    <div class="card">
+      <h2>Factuurgegevens</h2>
+      <p class="note" style="margin-top:0" id="fs-bron"></p>
+      <div class="flabel"><label for="fs-nummer">Factuurnummer</label></div>
+      <input class="aein" id="fs-nummer" maxlength="80" autocomplete="off">
+      <div class="row" style="gap:8px;margin-top:8px">
+        <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-datum">Factuurdatum</label></div><input class="aein" id="fs-datum" type="date"></div>
+        <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-bedrag">Bedrag (€)</label></div><input class="aein" id="fs-bedrag" inputmode="decimal" placeholder="123,45" autocomplete="off"></div>
+        <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-btw">Btw (€)</label></div><input class="aein" id="fs-btw" inputmode="decimal" placeholder="21,43" autocomplete="off"></div>
+      </div>
+      <div class="flabel" style="margin-top:8px"><label for="fs-cat">Categorie</label></div>
+      <input class="aein" id="fs-cat" maxlength="80" autocomplete="off" placeholder="bijv. telefoon, kantoor" list="fs-cats">
+      <datalist id="fs-cats"></datalist>
+      <div class="flabel" style="margin-top:8px"><label for="fs-notitie">Notitie</label></div>
+      <textarea class="aein" id="fs-notitie" rows="3" maxlength="1000" style="resize:vertical"></textarea>
+      <p class="note bad" id="fs-msg" role="status" aria-live="polite"></p>
+      <button class="big" onclick="fsBewaar()">Bewaren</button>
+    </div>
+    <div class="card"><h2>Waar hij staat</h2><div id="fs-plekken"></div></div>
+    <div class="card"><h2>Aangeleverd</h2><div id="fs-aan"></div></div>
+  </main>
+</section>
+
+<!-- Aanleveren aan de accountant of boekhouder -->
+<section class="screen" id="s-facaanl">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Aanleveren</h1>
+  </div>
+  <main>
+    <p class="note" style="margin:0 2px 12px">Stuur je facturen vanzelf naar je accountant of boekhouder. Per ontvanger kies je het kanaal (nu: e-mail), welke leveranciers en wanneer. Wat al verstuurd is, gaat niet nog een keer.</p>
+    <div class="card" id="fo-bezig" style="display:none" role="status" aria-live="polite"><b id="fo-bezig-txt">Versturen…</b></div>
+    <div class="card stations" id="fo-lijst"></div>
+    <button class="big" id="fo-nieuw" onclick="foNieuw()">Ontvanger toevoegen</button>
+    <button class="big ghost" style="margin-top:8px" onclick="foLog()">Logboek</button>
+  </main>
+</section>
+
+<!-- Eén ontvanger instellen -->
+<section class="screen" id="s-facontv">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="fo-h">Ontvanger</h1>
+  </div>
+  <main>
+    <div class="card">
+      <div class="flabel"><label for="fo-naam">Naam</label></div>
+      <input class="aein" id="fo-naam" maxlength="80" autocomplete="off" placeholder="bijv. Boekhouder Jansen">
+      <div class="row setrow"><label for="fo-kanaal" style="flex:1">Kanaal</label><select class="sel" id="fo-kanaal" onchange="foKanaal()"></select></div>
+      <label class="chk"><input type="checkbox" id="fo-actief"> Actief</label>
+    </div>
+    <div class="card fo-k" data-kanaal="email">
+      <h2>E-mail</h2>
+      <div class="flabel"><label for="fo-aan">Aan <small>(meerdere: met een komma)</small></label></div>
+      <input class="aein" id="fo-aan" type="email" multiple autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="facturen@boekhouder.nl">
+      <div class="flabel" style="margin-top:8px"><label for="fo-cc">Cc</label></div>
+      <input class="aein" id="fo-cc" type="email" multiple autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="row setrow"><label for="fo-via" style="flex:1">Versturen met</label><select class="sel" id="fo-via" onchange="foVia()"></select></div>
+      <p class="note" id="fo-via-msg"></p>
+      <label class="chk"><input type="checkbox" id="fo-mij"> Een kopie (bcc) naar mezelf</label>
+      <div class="row setrow"><label for="fo-bundel" style="flex:1">Bijlagen</label><select class="sel" id="fo-bundel"><option value="samen">Samen in één mail</option><option value="los">Eén mail per factuur</option></select></div>
+      <div class="row setrow"><label for="fo-mb" style="flex:1">Mail hooguit</label><select class="sel" id="fo-mb"><option value="5">5 MB</option><option value="10">10 MB</option><option value="15">15 MB</option><option value="20">20 MB</option></select></div>
+      <div class="flabel" style="margin-top:8px"><label for="fo-ond">Onderwerp</label></div>
+      <input class="aein" id="fo-ond" maxlength="200" autocomplete="off">
+      <div class="flabel" style="margin-top:8px"><label for="fo-tekst">Tekst</label></div>
+      <textarea class="aein" id="fo-tekst" rows="7" maxlength="5000" style="resize:vertical"></textarea>
+      <p class="note">Wordt ingevuld: {aantal}, {lijst} (een regel per factuur), {leveranciers}, {periode}, {datum}, {naam}.</p>
+    </div>
+    <div class="card">
+      <h2>Welke facturen</h2>
+      <p class="note" style="margin-top:0">Geen leverancier aangevinkt = van alle leveranciers.</p>
+      <div id="fo-levs"></div>
+      <label class="chk" id="fo-oudrij"><input type="checkbox" id="fo-oud"> Ook de facturen die al in het dossier staan</label>
+    </div>
+    <div class="card">
+      <h2>Wanneer</h2>
+      <div class="row setrow"><label for="fo-schema" style="flex:1">Vanzelf aanleveren</label>
+        <select class="sel" id="fo-schema" onchange="foPlan()"><option value="direct">Direct na het ophalen</option><option value="maand">Elke maand</option><option value="week">Elke week</option><option value="dag">Elke dag</option><option value="uit">Alleen met de hand</option></select></div>
+      <div class="row setrow" id="fo-dagrij"><label for="fo-dag" style="flex:1">Op dag van de maand</label><select class="sel" id="fo-dag" onchange="foPlan()"></select></div>
+      <div class="row setrow" id="fo-wdrij"><label for="fo-wd" style="flex:1">Op</label>
+        <select class="sel" id="fo-wd" onchange="foPlan()"><option value="1">maandag</option><option value="2">dinsdag</option><option value="3">woensdag</option><option value="4">donderdag</option><option value="5">vrijdag</option><option value="6">zaterdag</option><option value="7">zondag</option></select></div>
+      <div class="row setrow" id="fo-tijdrij"><label for="fo-tijd" style="flex:1">Om</label><input class="sel" id="fo-tijd" type="time" value="09:00" onchange="foPlan()"></div>
+      <div class="row setrow" id="fo-opnrij"><label for="fo-opnieuw" style="flex:1">Na een fout opnieuw proberen</label>
+        <select class="sel" id="fo-opnieuw"><option value="1">na 1 uur</option><option value="3">na 3 uur</option><option value="6">na 6 uur</option><option value="12">na 12 uur</option><option value="24">na 24 uur</option></select></div>
+      <label class="chk"><input type="checkbox" id="fo-meldfout"> Melding als aanleveren mislukt</label>
+      <label class="chk"><input type="checkbox" id="fo-meldok"> Melding als het gelukt is</label>
+      <p class="note" id="fo-plan" role="status" aria-live="polite"></p>
+    </div>
+    <p class="note bad" id="fo-msg" role="status" aria-live="polite"></p>
+    <button class="big" onclick="foBewaar()">Bewaren</button>
+  </main>
+</section>
+
+<!-- Eigen mailserver (SMTP) om mee te versturen -->
+<section class="screen" id="s-facsmtp">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Eigen mailserver</h1>
+  </div>
+  <main>
+    <div class="card">
+      <p class="note" style="margin-top:0" id="fm-stand">Niet ingesteld. Met je eigen mailserver (SMTP) kan Tools facturen versturen aan je boekhouder vanaf je eigen adres.</p>
+      <div class="flabel"><label for="fm-host">Server</label></div>
+      <input class="aein" id="fm-host" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="smtp.jouwdomein.nl">
+      <div class="row" style="gap:8px;margin-top:8px">
+        <div style="flex:1;min-width:0"><div class="flabel"><label for="fm-bev">Beveiliging</label></div>
+          <select class="sel" id="fm-bev" style="width:100%" onchange="fmBev()"><option value="starttls">STARTTLS</option><option value="ssl">SSL/TLS</option></select></div>
+        <div style="flex:1;min-width:0"><div class="flabel"><label for="fm-poort">Poort</label></div><input class="aein" id="fm-poort" type="number" min="1" max="65535" inputmode="numeric" value="587"></div>
+      </div>
+      <div class="flabel" style="margin-top:8px"><label for="fm-user">Gebruikersnaam</label></div>
+      <input class="aein" id="fm-user" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fm-pw">Wachtwoord</label></div>
+      <input class="aein" id="fm-pw" type="password" autocomplete="off">
+      <div class="flabel" style="margin-top:8px"><label for="fm-van">Je eigen mailadres (afzender)</label></div>
+      <input class="aein" id="fm-van" type="email" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="flabel" style="margin-top:8px"><label for="fm-naam">Naam van de afzender</label></div>
+      <input class="aein" id="fm-naam" maxlength="80" autocomplete="off" placeholder="Rene van Es">
+      <p class="note">Het wachtwoord wordt versleuteld op deze telefoon bewaard. Alleen versleutelde verbindingen; het certificaat van de server wordt gecontroleerd.</p>
+      <p class="note bad" id="fm-msg" role="status" aria-live="polite"></p>
+      <div class="row" style="gap:8px">
+        <button class="big" style="flex:1" onclick="fmBewaar()">Bewaren</button>
+        <button class="big ghost" style="flex:1" id="fm-test" onclick="fmTest()">Testen</button>
+      </div>
+      <button class="big ghost" style="margin-top:8px;display:none" id="fm-los" onclick="askConfirm('Mailserver niet meer gebruiken?', 'Ontvangers die via deze mailserver versturen, stoppen tot je een andere manier kiest.', 'Loskoppelen', () => { Android.facturenSmtp('{}'); faRender(); })">Loskoppelen</button>
+    </div>
   </main>
 </section>

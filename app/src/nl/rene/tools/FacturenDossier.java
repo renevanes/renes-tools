@@ -96,6 +96,18 @@ final class FacturenDossier {
         try { werkBij(c, sha, new JSONObject().put("verzonden", new JSONObject().put(ontvanger, info))); } catch (Exception ignored) { }
     }
 
+    /** Opnieuw aanleveren aan deze ontvanger: de aantekening weghalen, dan staat hij weer open. */
+    static void vergeet(Context c, String sha, String ontvanger) throws Exception {
+        synchronized (Facturen.LOCK) {
+            JSONObject all = alle(c), s = all.optJSONObject(sha);
+            if (s == null) throw new Exception("Factuur niet gevonden in het dossier");
+            JSONObject v = s.optJSONObject("verzonden");
+            if (v == null) { v = new JSONObject(); s.put("verzonden", v); }
+            v.put(ontvanger, new JSONObject().put("ok", false).put("opnieuw", true).put("t", System.currentTimeMillis()));
+            bewaar(c, all);
+        }
+    }
+
     /** Factuurgegevens met de hand aanpassen. */
     static void meta(Context c, String sha, JSONObject in) throws Exception {
         JSONObject m = new JSONObject();

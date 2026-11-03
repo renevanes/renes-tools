@@ -54,8 +54,12 @@ public class FacturenBridge extends GebruikBridge {
                     .put("map", WaBackup.destUri(ctx) != null)
                     .put("lokaal", lokaalNaam())
                     .put("drive", new JSONObject().put("gekoppeld", FacturenDrive.gekoppeld(ctx))
-                            .put("rechtDrive", FacturenDrive.heeftRecht(ctx, "drive")).put("rechtGmail", FacturenDrive.heeftRecht(ctx, "gmail")).put("gebruiker", p.getString("gdGebruiker", ""))
+                            .put("rechtDrive", FacturenDrive.heeftRecht(ctx, "drive")).put("rechtGmail", FacturenDrive.heeftRecht(ctx, "gmail")).put("rechtGmailSend", FacturenDrive.heeftRecht(ctx, "gmailsend")).put("gebruiker", p.getString("gdGebruiker", ""))
                             .put("clientId", p.getString("gdClientId", "")).put("heeftGeheim", Facturen.heeftGeheim(ctx, "gd_secret")))
+                    .put("smtp", new JSONObject().put("host", p.getString("smtpHost", "")).put("poort", p.getInt("smtpPoort", 587))
+                            .put("beveiliging", p.getString("smtpBeveiliging", "starttls")).put("gebruiker", p.getString("smtpGebruiker", ""))
+                            .put("van", p.getString("smtpVan", "")).put("naam", p.getString("smtpNaam", "")).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "smtp")))
+                    .put("ontvangers", FacturenAanlever.lijst(ctx).length()).put("dossier", FacturenDossier.alle(ctx).length())
                     .put("sms", ctx.checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED)
                     .put("sjablonen", Facturen.sjablonen(ctx)).toString();
         } catch (Exception e) { return "{\"leveranciers\":[],\"sjablonen\":[],\"ec\":{},\"error\":\"Laden lukt niet\"}"; }
@@ -193,6 +197,117 @@ public class FacturenBridge extends GebruikBridge {
     }
 
     @JavascriptInterface public void facturenDriveLos() { FacturenDrive.ontkoppel(ctx); }
+
+    // ================= dossier =================
+
+    /** Het dossier: {items: [stuk], ontvangers: [{id, naam}]}, nieuwste eerst. */
+    @JavascriptInterface public String facturenDossier() {
+        try {
+            JSONArray o = new JSONArray(), l = FacturenAanlever.lijst(ctx);
+            for (int i = 0; i < l.length(); i++) o.put(new JSONObject().put("id", l.getJSONObject(i).optString("id")).put("naam", l.getJSONObject(i).optString("naam")));
+            return new JSONObject().put("items", FacturenDossier.lijst(ctx)).put("ontvangers", o).toString();
+        } catch (Exception e) { return "{\"items\":[],\"ontvangers\":[]}"; }
+    }
+
+    /** Factuurgegevens aanpassen: {nummer, datum, bedrag, btw, categorie, notitie}. Geeft "" of een fout. */
+    @JavascriptInterface public String facturenDossierMeta(String sha, String json) {
+        try { FacturenDossier.meta(ctx, sha, new JSONObject(json == null ? "{}" : json)); return ""; }
+        catch (Exception e) { return e.getMessage() == null ? "Bewaren lukt niet" : e.getMessage(); }
+    }
+
+    /** Opnieuw aanleveren aan deze ontvanger (de volgende keer, of met Nu versturen). */
+    @JavascriptInterface public String facturenDossierOpnieuw(String sha, String ontvanger) {
+        try { FacturenDossier.vergeet(ctx, sha, ontvanger); a.h.post(() -> FacturenJob.schedule(ctx)); return ""; }
+        catch (Exception e) { return e.getMessage() == null ? "Lukt niet" : e.getMessage(); }
+    }
+
+    /** Het dossier als CSV in de map op de telefoon of de backup-map; antwoord via onFacturenCsv({waar} of {error}). */
+    @JavascriptInterface public void facturenDossierCsv() {
+        new Thread(() -> {
+            String r;
+            try { r = new JSONObject().put("waar", FacturenDossier.exporteer(ctx)).toString(); }
+            catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(Facturen.kort(e)) + "}"; }
+            a.js("onFacturenCsv", r);
+        }, "facturen-csv").start();
+    }
+
+    // ================= aanleveren =================
+
+    /** Ontvangers (accountant, boekhouder) met wat er open staat, de kanalen en manieren van versturen, en het logboek. */
+    @JavascriptInterface public String facturenOntvangers() {
+        try {
+            JSONArray kan = new JSONArray(), via = new JSONArray();
+            for (java.util.Map.Entry<String, FacturenAanlever.Kanaal> k : FacturenAanlever.KANALEN.entrySet()) kan.put(new JSONObject().put("id", k.getKey()).put("naam", k.getValue().naam()));
+            for (java.util.Map.Entry<String, FacturenEmail.Verzender> v : FacturenEmail.VERZENDERS.entrySet())
+                via.put(new JSONObject().put("id", v.getKey()).put("naam", v.getValue().naam()).put("mist", v.getValue().klaar(ctx)).put("van", v.getValue().van(ctx)));
+            return new JSONObject().put("lijst", FacturenAanlever.overzicht(ctx)).put("kanalen", kan).put("via", via)
+                    .put("log", FacturenAanlever.data(ctx).optJSONArray("log")).put("bezig", FacturenAanlever.BEZIG.get())
+                    .put("voortgang", FacturenAanlever.voortgang).toString();
+        } catch (Exception e) { return "{\"lijst\":[],\"kanalen\":[],\"via\":[],\"log\":[],\"error\":\"Laden lukt niet\"}"; }
+    }
+
+    /** Ontvanger bewaren. Geeft {id} of {error}. */
+    @JavascriptInterface public String facturenOntvangerBewaar(String json) {
+        try {
+            String id = FacturenAanlever.bewaar(ctx, new JSONObject(json == null ? "{}" : json));
+            a.h.post(() -> FacturenJob.schedule(ctx));
+            return new JSONObject().put("id", id).toString();
+        } catch (Exception e) { return err(e, "Bewaren lukt niet"); }
+    }
+
+    @JavascriptInterface public String facturenOntvangerWeg(String id) {
+        try { FacturenAanlever.verwijder(ctx, id); a.h.post(() -> FacturenJob.schedule(ctx)); return ""; }
+        catch (Exception e) { return e.getMessage() == null ? "Verwijderen lukt niet" : e.getMessage(); }
+    }
+
+    /** Nu aanleveren (of een proef naar jezelf). Antwoord via onFacturenAanlever({id, ok, msg, aantal}). */
+    @JavascriptInterface public String facturenAanleveren(String id, boolean proef) {
+        if (FacturenAanlever.BEZIG.get()) return "Er wordt al aangeleverd; even wachten";
+        new Thread(() -> {
+            JSONObject r = FacturenAanlever.stuurNu(ctx, id, proef, false);
+            a.js("onFacturenAanlever", r.toString());
+            a.h.post(() -> { try { FacturenJob.schedule(ctx); } catch (Throwable ignored) { } });
+        }, "facturen-aanleveren").start();
+        return "";
+    }
+
+    /** Eigen mailserver (SMTP): {host, poort, beveiliging, gebruiker, van, naam, wachtwoord (leeg = ongewijzigd)}. Leeg = loskoppelen. */
+    @JavascriptInterface public String facturenSmtp(String json) {
+        try {
+            JSONObject o = new JSONObject(json == null ? "{}" : json);
+            String host = o.optString("host", "").trim(), van = o.optString("van", "").trim(), user = o.optString("gebruiker", "").trim(), naam = o.optString("naam", "").trim();
+            if (host.isEmpty() && van.isEmpty()) {
+                Facturen.prefs(ctx).edit().remove("smtpHost").remove("smtpPoort").remove("smtpBeveiliging").remove("smtpGebruiker").remove("smtpVan").remove("smtpNaam").apply();
+                Facturen.geheim(ctx).edit().remove("smtp").apply();
+                return "";
+            }
+            int poort = o.optInt("poort", 587);
+            String bev = o.optString("beveiliging", "starttls");
+            FacturenSmtp.controleer(host, poort, bev);
+            if (!van.matches(FacturenEmail.ADRES) || van.length() > 254) return "Vul je eigen mailadres in (de afzender)";
+            if (user.length() > 320 || naam.length() > 80 || naam.matches("(?s).*[\\r\\n\"<>].*")) return "Gebruikersnaam of naam klopt niet";
+            Facturen.prefs(ctx).edit().putString("smtpHost", host).putInt("smtpPoort", poort).putString("smtpBeveiliging", bev)
+                    .putString("smtpGebruiker", user).putString("smtpVan", van.toLowerCase(java.util.Locale.ROOT)).putString("smtpNaam", naam).apply();
+            String pw = o.optString("wachtwoord", "");
+            if (!pw.isEmpty()) Facturen.zetGeheim(ctx, "smtp", pw);
+            return "";
+        } catch (Exception e) { return e.getMessage() == null ? "Bewaren lukt niet" : e.getMessage(); }
+    }
+
+    /** Mailserver testen (verbinden en inloggen, niets versturen); antwoord via onFacturenSmtpTest({ok} of {error}). */
+    @JavascriptInterface public void facturenSmtpTest() {
+        new Thread(() -> {
+            String r;
+            try {
+                SharedPreferences p = Facturen.prefs(ctx);
+                if (p.getString("smtpHost", "").isEmpty()) throw new Exception("Stel eerst de mailserver in");
+                FacturenSmtp.stuur(p.getString("smtpHost", ""), p.getInt("smtpPoort", 587), p.getString("smtpBeveiliging", "starttls"),
+                        p.getString("smtpGebruiker", ""), Facturen.geheim(ctx, "smtp"), p.getString("smtpVan", ""), new java.util.ArrayList<String>(), null);
+                r = "{\"ok\":true}";
+            } catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(Facturen.kort(e)) + "}"; }
+            a.js("onFacturenSmtpTest", r);
+        }, "facturen-smtp-test").start();
+    }
 
     private static String err(Exception e, String fb) {
         try { return new JSONObject().put("error", e.getMessage() == null ? fb : e.getMessage()).toString(); } catch (Exception x) { return "{\"error\":\"" + fb + "\"}"; }

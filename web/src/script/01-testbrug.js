@@ -706,7 +706,8 @@ if (!window.Android) window.Android = (function(){
       { sjabloon: 'anders', naam: '', omschrijving: 'Een andere website met facturen: vul zelf de inlogpagina in', startUrl: '', facturenUrl: '', menu: 'facturen|factuur|invoices|documenten', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, schema: 'maand', dag: 5, tijd: '08:00', code: { bron: 'geen', afzender: '', patroon: '' }, tip: 'Kijk de eerste keer mee.' }],
     facturenState(){ const f = this._fa; return JSON.stringify({ leveranciers: f.lev.map(l => ({ ...l, toestand: f.toestand[l.id] || {}, heeftWachtwoord: !!f.pw[l.id], aantal: (f.pdf[l.id] || []).length,
         maanden: f.maanden && f.maanden[l.id] || {}, vorige: l.schema === 'uit' ? 0 : (this._faVorige || Date.now() - 2 * 864e5), volgende: l.schema === 'uit' ? 0 : faVolgende(l, Date.now()) })),
-      bezig: f.bezig, voortgang: f.voortgang, zichtbaar: false, ec: f.ec, lokaal: f.lokaal || '', drive: f.drive || { gekoppeld: false, gebruiker: '', clientId: '', heeftGeheim: false }, map: !!this._wa.info.dest, sms: !!this._sms.perm, sjablonen: this._faSjablonen }); },
+      bezig: f.bezig, voortgang: f.voortgang, zichtbaar: false, ec: f.ec, smtp: f.smtp || { host: '', poort: 587, beveiliging: 'starttls', gebruiker: '', van: '', naam: '', heeftWachtwoord: false },
+      ontvangers: (f.ontv || []).length, dossier: Object.keys(f.dos || {}).length, lokaal: f.lokaal || '', drive: f.drive || { gekoppeld: false, gebruiker: '', clientId: '', heeftGeheim: false }, map: !!this._wa.info.dest, sms: !!this._sms.perm, sjablonen: this._faSjablonen }); },
     facturenBewaar(json){ const o = JSON.parse(json), f = this._fa; f.calls.push(['bewaar', JSON.parse(json)]);
       if (!o.naam) return JSON.stringify({ error: 'Geef de leverancier een naam' });
       if (o.soort !== 'mail' && !/^https:\/\//i.test(o.startUrl || '')) return JSON.stringify({ error: 'De inlogpagina moet beginnen met https://' });
@@ -724,18 +725,59 @@ if (!window.Android) window.Android = (function(){
         f.toestand[id] = { ...oud, lastTry: now, ok: r.ok, msg: r.msg, inlogNodig: !!r.inlogNodig, ...(r.ok ? { lastOk: now, nieuw: 2 } : {}), log: [{ t: now, ok: r.ok, msg: r.msg, nieuw: r.ok ? 2 : 0, namen: r.namen || [], auto: false }].concat(oud.log || []) };
         if (r.ok) { f.maanden = f.maanden || {}; const m = faMaandSleutel(now); f.maanden[id] = { ...(f.maanden[id] || {}), [m]: ((f.maanden[id] || {})[m] || 0) + 2 }; }
         if (r.ok) f.pdf[id] = [{ naam: 'KPN Zakelijk Factuur 2026-10.pdf', t: now, grootte: 81234 }, { naam: 'KPN Zakelijk Factuur 2026-09.pdf', t: now - 1000, grootte: 80122 }];
+        if (r.ok) { f.dos = f.dos || {}; f.pdf[id].forEach((p, i) => { const sha = (id + p.naam).replace(/[^a-z0-9]/gi, '').toLowerCase().padEnd(64, '0').slice(0, 64);
+          if (!f.dos[sha]) f.dos[sha] = { sha, naam: p.naam, origineel: p.naam, grootte: p.grootte, leverancier: id, leverancierNaam: l.naam, opgehaald: now - i * 1000, bron: { soort: l.soort || 'website', site: 'kpn.com' },
+            plekken: { app: { pad: '/data/user/0/nl.rene.tools/files/facturen/pdf/' + id + '/' + p.naam, t: now } }, verzonden: {}, meta: { nummer: '80012345' + i, datum: i ? '2026-09-05' : '2026-10-05', bedrag: i ? '45,10' : '48,37', btw: '', bron: 'herkend' } }; }); }
         onFacturenKlaar(r); }, 1200); return ''; },
     facturenStop(){ this._fa.calls.push(['stop']); },
     facturenKiesMap(){ this._fa.calls.push(['kiesmap']); setTimeout(() => { this._fa.lokaal = 'Documents/Facturen'; onFacturenMap(''); }, 150); },
     facturenMapLos(){ this._fa.lokaal = ''; },
     facturenDriveKoppel(id, geheim, rechten){ const f = this._fa; f.calls.push(['drive', id, geheim, rechten]); if (!rechten) return 'Kies waarvoor Tools Google mag gebruiken (Drive en/of Gmail)'; if (!/googleusercontent\.com$/.test(id)) return 'Dat lijkt geen Client ID van Google (eindigt op .apps.googleusercontent.com)';
-      setTimeout(() => { f.drive = { gekoppeld: true, gebruiker: 'rene@gmail.com', clientId: id, heeftGeheim: true, rechtDrive: rechten.includes('drive'), rechtGmail: rechten.includes('gmail') }; onFacturenDrive({ naam: 'rene@gmail.com' }); }, 200); return ''; },
+      setTimeout(() => { f.drive = { gekoppeld: true, gebruiker: 'rene@gmail.com', clientId: id, heeftGeheim: true, rechtDrive: rechten.includes('drive'), rechtGmail: /\bgmail\b/.test(rechten), rechtGmailSend: rechten.includes('gmailsend') }; onFacturenDrive({ naam: 'rene@gmail.com' }); }, 200); return ''; },
     facturenDriveLos(){ const f = this._fa; f.drive = { ...(f.drive || {}), gekoppeld: false, gebruiker: '', rechtDrive: false, rechtGmail: false }; },
     facturenLijst(id){ return JSON.stringify(this._fa.pdf[id] || []); },
     facturenOpen(id, naam){ this._fa.calls.push(['open', id, naam]); },
     facturenEc(json){ const o = JSON.parse(json), f = this._fa; if (!o.url && !o.gebruiker) { f.ec = { url: '', gebruiker: '', adres: '', heeftWachtwoord: false }; return ''; }
       if (!/^https:\/\//i.test(o.url)) return 'Het adres van Eigen Cloud moet beginnen met https://'; if (!o.gebruiker) return 'Vul je gebruikersnaam of mailadres in';
       f.ec = { url: o.url.replace(/\/+$/, ''), gebruiker: o.gebruiker, adres: o.adres || '', heeftWachtwoord: f.ec.heeftWachtwoord || !!o.wachtwoord }; return ''; },
+    /* Dossier en aanleveren (nagebootst); _foFout = foutmelding bij versturen */
+    facturenDossier(){ const f = this._fa; return JSON.stringify({ items: Object.values(f.dos || {}).sort((a, b) => b.opgehaald - a.opgehaald), ontvangers: (f.ontv || []).map(o => ({ id: o.id, naam: o.naam })) }); },
+    facturenDossierMeta(sha, json){ const s = (this._fa.dos || {})[sha], m = JSON.parse(json); if (!s) return 'Factuur niet gevonden in het dossier';
+      if (m.datum && !/^\d{4}-\d{2}-\d{2}$/.test(m.datum)) return 'Datum als JJJJ-MM-DD, bijv. 2026-10-05'; if (m.bedrag && !/^-?\d+([.,]\d{1,2})?$/.test(m.bedrag.replace(/\./g, ''))) return 'Bedrag als 123,45';
+      s.meta = { ...m, bron: 'zelf' }; this._fa.calls.push(['meta', sha, m]); return ''; },
+    facturenDossierOpnieuw(sha, ontv){ const s = (this._fa.dos || {})[sha]; if (!s) return 'Factuur niet gevonden in het dossier'; s.verzonden[ontv] = { ok: false, opnieuw: true, t: Date.now() }; return ''; },
+    facturenDossierCsv(){ this._fa.calls.push(['csv']); setTimeout(() => onFacturenCsv(this._fa.lokaal || this._wa.info.dest ? { waar: 'de map op je telefoon (dossier.csv)' } : { error: 'Kies eerst een map op je telefoon of een backup-map' }), 150); },
+    _foOpen(o){ return Object.values(this._fa.dos || {}).filter(s => (!o.leveranciers.length || o.leveranciers.includes(s.leverancier)) && (s.verzonden[o.id] ? !s.verzonden[o.id].ok : s.opgehaald >= o.vanaf)); },
+    _foMist(o){ const f = this._fa; return o.via === 'smtp' ? (f.smtp && f.smtp.host ? '' : 'Stel eerst je mailserver in (Facturen → Koppelingen → Mailserver)') : o.via === 'gmail' ? ((f.drive || {}).rechtGmailSend ? '' : 'Geef Tools het recht om met Gmail te versturen (Facturen → Koppelingen → Google)') : (f.ec.url && f.ec.heeftWachtwoord ? '' : 'Koppel eerst Eigen Cloud (Facturen → Koppelingen)'); },
+    facturenOntvangers(){ const f = this._fa;
+      return JSON.stringify({ lijst: (f.ontv || []).map(o => ({ ...o, toestand: (f.otoe || {})[o.id] || {}, open: this._foOpen(o).length, volgende: o.schema === 'uit' || o.schema === 'direct' ? 0 : faVolgende(o, Date.now()), mist: this._foMist(o) })),
+        kanalen: [{ id: 'email', naam: 'E-mail' }], via: [{ id: 'eigencloud', naam: 'Eigen Cloud', mist: this._foMist({ via: 'eigencloud' }), van: f.ec.adres || f.ec.gebruiker || '' }, { id: 'smtp', naam: 'Eigen mailserver (SMTP)', mist: this._foMist({ via: 'smtp' }), van: (f.smtp || {}).van || '' }, { id: 'gmail', naam: 'Gmail', mist: this._foMist({ via: 'gmail' }), van: (f.drive || {}).gebruiker || '' }],
+        log: f.alog || [], bezig: !!f.obezig, voortgang: f.obezig ? 'Versturen…' : '' }); },
+    facturenOntvangerBewaar(json){ const o = JSON.parse(json), f = this._fa; f.calls.push(['ontv', JSON.parse(json)]); f.ontv = f.ontv || [];
+      if (!o.naam) return JSON.stringify({ error: 'Geef de ontvanger een naam (bijv. de naam van je boekhouder)' });
+      const adr = s => String(s || '').split(/[,;\s]+/).filter(Boolean); const fout = adr(o.aan).concat(adr(o.cc)).find(a => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a));
+      if (!adr(o.aan).length) return JSON.stringify({ error: 'Vul het mailadres van je accountant of boekhouder in' }); if (fout) return JSON.stringify({ error: 'Het adres klopt niet: ' + fout });
+      let id = o.id; const oud = f.ontv.find(x => x.id === id);
+      if (!oud) { id = o.naam.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); let n = 2, b = id; while (f.ontv.some(x => x.id === id)) id = b + '-' + n++; }
+      const n = { ...o, id, vanaf: o.ookOud ? 0 : oud ? oud.vanaf : Date.now() }; delete n.ookOud;
+      if (oud) f.ontv[f.ontv.indexOf(oud)] = n; else f.ontv.push(n); return JSON.stringify({ id }); },
+    facturenOntvangerWeg(id){ const f = this._fa; f.ontv = (f.ontv || []).filter(o => o.id !== id); return ''; },
+    facturenAanleveren(id, proef){ const f = this._fa; if (f.obezig) return 'Er wordt al aangeleverd; even wachten'; const o = (f.ontv || []).find(x => x.id === id); if (!o) return 'Ontvanger niet gevonden';
+      f.calls.push(['aanlever', id, !!proef]); f.obezig = true;
+      setTimeout(() => { f.obezig = false; const now = Date.now(), mist = this._foMist(o), open = this._foOpen(o); f.otoe = f.otoe || {}; f.alog = f.alog || [];
+        let r;
+        if (mist) r = { id, naam: o.naam, ok: false, msg: mist, koppelNodig: true };
+        else if (this._foFout && !proef) { r = { id, naam: o.naam, ok: false, msg: 'niet alles gelukt: ' + this._foFout }; open.forEach(s => s.verzonden[id] = { ok: false, t: now, naam: o.naam, fout: this._foFout }); }
+        else if (proef) r = { id, naam: o.naam, ok: true, msg: 'Proef verstuurd naar ' + (this._foMist({ via: 'eigencloud' }) ? 'jou' : f.ec.adres || f.ec.gebruiker) };
+        else if (!open.length) r = { id, naam: o.naam, ok: true, msg: 'Niets aan te leveren: alles is al verstuurd', aantal: 0 };
+        else { open.forEach(s => s.verzonden[id] = { ok: true, t: now, naam: o.naam, aan: o.aan, kanaal: 'email', via: o.via }); r = { id, naam: o.naam, ok: true, aantal: open.length, msg: open.length + (open.length === 1 ? ' factuur' : ' facturen') + ' aangeleverd aan ' + o.naam }; }
+        f.alog.unshift({ t: now, ontvanger: id, naam: o.naam, ok: r.ok, msg: r.msg, aantal: r.aantal || 0, proef: !!proef, auto: false, namen: r.aantal ? open.map(s => s.naam) : [] });
+        if (!proef) f.otoe[id] = { lastTry: now, ok: r.ok, msg: r.msg, ...(r.ok ? { lastOk: now } : {}) };
+        onFacturenAanlever(r); }, 300); return ''; },
+    facturenSmtp(json){ const o = JSON.parse(json), f = this._fa; if (!o.host && !o.van) { f.smtp = null; return ''; }
+      if (!/^[A-Za-z0-9.-]+$/.test(o.host || '')) return 'Vul de naam van de mailserver in, bijv. smtp.voorbeeld.nl'; if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(o.van || '')) return 'Vul je eigen mailadres in (de afzender)';
+      f.smtp = { host: o.host, poort: o.poort, beveiliging: o.beveiliging, gebruiker: o.gebruiker, van: o.van, naam: o.naam, heeftWachtwoord: (f.smtp || {}).heeftWachtwoord || !!o.wachtwoord }; return ''; },
+    facturenSmtpTest(){ setTimeout(() => onFacturenSmtpTest((this._fa.smtp || {}).heeftWachtwoord ? { ok: true } : { error: 'Inloggen bij de mailserver lukt niet: controleer gebruikersnaam en wachtwoord' }), 150); },
     facturenEcTest(){ setTimeout(() => onFacturenEcTest(this._fa.ec.heeftWachtwoord ? { ok: true } : { error: 'Koppel eerst Eigen Cloud (bovenaan in Facturen)' }), 200); },
     /* Spotify-backup (nagebootst) */
     _sp: { linked: false, clientId: '', user: '', auto: 'day', lastAt: 0, versions: [], log: '' },

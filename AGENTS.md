@@ -239,13 +239,28 @@ achtergrond (`FacturenJob`, onzichtbare WebView) of terwijl Rene meekijkt (`Fact
   (bijv. Outlook via Microsoft Graph): een klasse die `Bron` doet, toevoegen in `FacturenMail.BRONNEN` en `bron()`, een
   eigen koppeling (OAuth zoals `FacturenDrive`, eigen geheimen in `facturen_geheim`), een optie in `#fl-m-bron`, een rij op
   het scherm Koppelingen, en tests (zoekopdracht en bijlagen) in `FacturenTest`.
-- **Schermen:** Facturen (deze maand, leveranciers, Meer) → Overzicht per maand, Opslaan (plekken) en Koppelingen (Google,
-  Eigen Cloud); een leverancier heeft tabbladen (website: Inloggen, Planning, Opslaan, Meer; mail: Zoeken, Planning, Opslaan).
+- **Dossier** (`FacturenDossier`, `facturen/dossier.json`, scherm `s-facdos`/`s-facstuk`): per factuur (sleutel = SHA-256)
+  de bron (website of mail: afzender, onderwerp, datum), herkende factuurgegevens (nummer, datum, bedrag, btw; Rene kan ze
+  aanpassen), alle plekken waar hij staat (`Facturen.aflever` noteert ze met `FacturenDossier.plek`) en aan wie hij is
+  aangeleverd. Export als CSV (puntkomma, geen formules) naar een map die Rene kiest. Nieuwe opslagplek = ook `plek(…)` aanroepen.
+- **Aanleveren** aan de accountant of boekhouder (`FacturenAanlever`, `facturen/aanleveren.json`, scherm `s-facaanl`/`s-facontv`):
+  een ontvanger is een instelling met een **kanaal** (`FacturenAanlever.Kanaal`, register `KANALEN`; eerste: `email` =
+  `FacturenEmail`). Wat open staat volgt uit het dossier (`verzonden` per ontvanger), dus niets gaat dubbel en een mislukte
+  zending komt vanzelf terug. Moment: direct na het ophalen, dag/week/maand (zelfde planning als leveranciers) of met de hand;
+  `FacturenJob` doet het als er niets op te halen is. E-mail gaat via Rene's eigen account: Eigen Cloud (`/api/mail/send`),
+  zijn eigen mailserver (`FacturenSmtp`: alleen SSL/STARTTLS met certificaat- en naamcontrole; zonder versleuteling alleen
+  localhost) of Gmail (recht `gmailsend` = scope `gmail.send`, apart aan te vinken). **Nieuw kanaal** (bijv. uploaden naar een
+  boekhoudpakket): een klasse die `Kanaal` doet, in `KANALEN`, velden in een `.fo-k`-kaart op `s-facontv` (`data-kanaal`), testbrug en
+  tests in `FacturenAanleverTest`. **Nieuwe manier van mailen** (bijv. Outlook): een `FacturenEmail.Verzender` in `VERZENDERS`.
+  Alleen naar adressen/bestemmingen die Rene zelf invult; de proef gaat alleen naar zijn eigen adres.
+- **Schermen:** Facturen (deze maand, leveranciers, Meer) → Dossier, Aanleveren, Overzicht per maand, Opslaan (plekken) en
+  Koppelingen (Google, Eigen Cloud, eigen mailserver); een leverancier heeft tabbladen (website: Inloggen, Planning, Opslaan, Meer; mail: Zoeken, Planning, Opslaan).
   Google en Eigen Cloud zijn via Opslaan én Koppelingen te bereiken: navigeer met `faNaar()` zodat terug klopt.
 - **Grenzen:** alleen https; alleen echte PDF's (`%PDF`) tellen; wachtwoorden versleuteld (`facturen_geheim`, niet in backups);
   de inlogcode alleen uit sms van de ingestelde afzender of uit Rene's eigen Eigen Cloud; afleveren alleen naar plekken
   die hij zelf kiest: zijn backup-map, een zelf gekozen map op de telefoon, zijn eigen Google Drive (`FacturenDrive`, eigen
-  Google-project, alleen de rechten `drive.file`; Gmail alleen `gmail.readonly`) en zijn eigen Eigen Cloud (`/api/mail/send` naar zichzelf). Geen andere
+  Google-project, alleen de rechten `drive.file`; Gmail `gmail.readonly` en, als Rene het aanvinkt, `gmail.send`) en zijn eigen Eigen Cloud (`/api/mail/send` naar zichzelf).
+  Aanleveren gaat alleen naar de ontvangers die Rene zelf instelt (zijn accountant of boekhouder). Geen andere
   bestemmingen toevoegen zonder Rene. Nieuwe bestemming = ook in `Facturen.aflever` (met opnieuw proberen bij een fout).
 
 ## Berichten aan Rene

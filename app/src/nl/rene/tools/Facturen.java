@@ -705,6 +705,16 @@ final class Facturen {
 
     // ================= meldingen =================
 
+    static void kanaal(Context c) {
+        if (Build.VERSION.SDK_INT < 26) return;
+        android.app.NotificationManager nm = c.getSystemService(android.app.NotificationManager.class);
+        if (nm.getNotificationChannel(CHANNEL) == null) {
+            android.app.NotificationChannel ch = new android.app.NotificationChannel(CHANNEL, "Facturen", android.app.NotificationManager.IMPORTANCE_DEFAULT);
+            ch.setDescription("Als er nieuwe facturen zijn opgehaald, als inloggen bij een leverancier niet lukt, of als aanleveren niet lukt");
+            nm.createNotificationChannel(ch);
+        }
+    }
+
     static void melding(Context c, JSONObject lev, JSONObject r) {
         try {
             String naam = lev.optString("naam"), id = lev.optString("id");
@@ -731,14 +741,7 @@ final class Facturen {
                 titel = "Facturen ophalen bij " + naam + " mislukt";
                 tekst = r.optString("msg");
             }
-            if (Build.VERSION.SDK_INT >= 26) {
-                android.app.NotificationManager nm = c.getSystemService(android.app.NotificationManager.class);
-                if (nm.getNotificationChannel(CHANNEL) == null) {
-                    android.app.NotificationChannel ch = new android.app.NotificationChannel(CHANNEL, "Facturen", android.app.NotificationManager.IMPORTANCE_DEFAULT);
-                    ch.setDescription("Als er nieuwe facturen zijn opgehaald, of als inloggen bij een leverancier niet lukt");
-                    nm.createNotificationChannel(ch);
-                }
-            }
+            kanaal(c);
             Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
             Intent i = new Intent(c, MainActivity.class).putExtra("open", open).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             int nr = 4400 + (Math.abs(id.hashCode()) % 90);

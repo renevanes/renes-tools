@@ -30,7 +30,26 @@ public class FacturenJob extends JobService {
         final List<String> beurt = aanDeBeurt(ctx, System.currentTimeMillis());
         // Opnieuw plannen pas ná deze taak (een taak met dezelfde id herplannen terwijl hij loopt, stopt hem)
         final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
-        if (beurt.isEmpty()) { h.post(() -> schedule(ctx)); return false; }
+        if (beurt.isEmpty()) {
+            // Niets op te halen: dan aanleveren aan de accountant/boekhouder als dat aan de beurt is
+            final List<String> ontv = FacturenAanlever.aanDeBeurt(ctx, System.currentTimeMillis());
+            if (ontv.isEmpty() || FacturenAanlever.BEZIG.get()) { h.post(() -> schedule(ctx)); return false; }
+            new Thread(() -> {
+                try {
+                    for (String id : ontv) {
+                        if (gestopt) break;
+                        JSONObject r = FacturenAanlever.stuurNu(ctx, id, false, true);
+                        JSONObject o = FacturenAanlever.ontvanger(ctx, id);
+                        if (o != null && (r.optBoolean("ok") || FacturenAanlever.eersteFout(ctx, id))) FacturenAanlever.melding(ctx, o, r);
+                    }
+                } catch (Throwable ignored) {
+                } finally {
+                    jobFinished(params, false);
+                    h.post(() -> { try { schedule(ctx); } catch (Throwable ignored) { } });
+                }
+            }, "facturen-aanleveren").start();
+            return true;
+        }
         gestopt = false;
         // Eén leverancier per keer (Android geeft een taak ±10 minuten); de volgende komt een minuut later
         String id = beurt.get(0);
@@ -62,7 +81,8 @@ public class FacturenJob extends JobService {
 
     /** Zijn er na deze nog leveranciers aan de beurt? Dan over een minuut nog een keer. */
     static void nog(Context c) {
-        if (aanDeBeurt(c, System.currentTimeMillis()).isEmpty()) return;
+        long nu = System.currentTimeMillis();
+        if (aanDeBeurt(c, nu).isEmpty() && FacturenAanlever.aanDeBeurt(c, nu).isEmpty()) return;
         JobScheduler js = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
         if (js == null) return;
         js.schedule(new JobInfo.Builder(JOB_NOG, new ComponentName(c, FacturenJob.class))
@@ -98,7 +118,7 @@ public class FacturenJob extends JobService {
     static boolean nodig(Context c) {
         JSONArray l = Facturen.lijst(c);
         for (int i = 0; i < l.length(); i++) if (!"uit".equals(l.optJSONObject(i) == null ? "uit" : l.optJSONObject(i).optString("schema"))) return true;
-        return false;
+        return FacturenAanlever.nodig(c);
     }
 
     /**
@@ -119,6 +139,7 @@ public class FacturenJob extends JobService {
                 m = Math.min(m, Math.max(nu + 60_000L, t.optLong("lastTry") + lev.optInt("opnieuw", 3) * 3_600_000L));
             if (lev.optBoolean("wifi")) wifi = Math.min(wifi, m); else any = Math.min(any, m);
         }
+        any = Math.min(any, FacturenAanlever.volgende(c, nu)); // aanleveren: altijd met elk internet
         return new long[]{any, wifi};
     }
 
