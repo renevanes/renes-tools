@@ -90,6 +90,8 @@ public class MainActivity extends Activity {
     /** Losse kluis: met welke ontgrendeling (Kluis.gen) dit venster de kluis zelf opende; -1 = nog niet. */
     volatile int kluisGen = -1;
 
+    /** Bankzaken staat in beeld (schermbeveiliging aan) / de gekozen afschriften na inlezen verwijderen. */
+    volatile boolean bankScreen = false, bankWis = false;
     boolean isSoloKluis() { return isSolo() && "kluis".equals(solo); }
     /** Losse app (zonder app-slot): de kluis telt alleen als open als dit venster hem zelf met vingerafdruk opende. */
     boolean kluisMine() { return !isSolo() || kluisGen == Kluis.gen; }
@@ -201,7 +203,7 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         topBar = new View(this);
         bottomBar = new View(this);
-        web = new WebView(this);
+        web = new PrivWeb(this);
         root.addView(topBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
         // De WebView met daarover een dichte laag: met app-slot blijft die liggen tot het slotscherm echt getekend is.
         android.widget.FrameLayout holder = new android.widget.FrameLayout(this);
@@ -436,12 +438,32 @@ public class MainActivity extends Activity {
         super.startActivityForResult(intent, requestCode, options);
     }
 
+    /** Bankzaken in beeld: geen automatisch invullen (Autofill-diensten) en het toetsenbord leert niets van wat je typt. */
+    void bankPrive(boolean on) {
+        if (web instanceof PrivWeb) ((PrivWeb) web).prive = on;
+        if (web != null && Build.VERSION.SDK_INT >= 26) web.setImportantForAutofill(on ? View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS : View.IMPORTANT_FOR_AUTOFILL_AUTO);
+        if (web != null) try { ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).restartInput(web); } catch (Throwable ignored) { }
+    }
+
+    /** De WebView van de app; met prive aan vraagt hij het toetsenbord niets te leren (incognito-toetsenbord). */
+    static final class PrivWeb extends WebView {
+        volatile boolean prive = false;
+        PrivWeb(Context c) { super(c); }
+        @Override public android.view.inputmethod.InputConnection onCreateInputConnection(android.view.inputmethod.EditorInfo out) {
+            android.view.inputmethod.InputConnection ic = super.onCreateInputConnection(out);
+            if (prive && out != null && Build.VERSION.SDK_INT >= 26) out.imeOptions |= android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING;
+            return ic;
+        }
+    }
+
     /** Met app-slot: inhoud niet tonen in "recente apps". */
     void applySecure() {
         // losse app: zonder slot, dus ook zichtbaar in "recente apps"; behalve de losse kluis (documentnamen)
         boolean on = isSolo() ? isSoloKluis() : Lock.enabled(this);
-        if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on);
-        else if (on) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+        // Bankzaken in beeld: ook geen schermafdrukken of schermopnames (FLAG_SECURE), op elke Android-versie
+        boolean block = bankScreen || (Build.VERSION.SDK_INT < 33 && on);
+        if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on && !bankScreen);
+        if (block) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
         else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
     }
 
@@ -449,6 +471,8 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         visible = false;
+        // Bankzaken gaat op slot zodra de app uit beeld gaat (niet tijdens bestanden kiezen of de vraag om te ontgrendelen)
+        if (!Bank.kiest() && !Bank.linking && !Lock.authBusy && Bank.isOpen()) Bank.close();
         if ("recording".equals(VoiceNote.state)) VoiceNote.cancel(); // inspreken alleen met de app open
         AiSpeech.release(); // voorlezen alleen met de app open; de spraakmotor weer vrijgeven
         AiTalk.bargeStop(); // gesprek met de assistent: niet doorluisteren
@@ -709,6 +733,17 @@ public class MainActivity extends Activity {
             new Thread(() -> js("onPdf", FeatureBridge.pdfResult(app, req, us, saveName)), "pdf-pick").start();
             return;
         }
+        if (req == BankBridge.REQ_BANK) {
+            Bank.picking = false;
+            java.util.List<Uri> us = new java.util.ArrayList<>();
+            if (res == RESULT_OK && data != null) {
+                if (data.getClipData() != null) for (int i = 0; i < data.getClipData().getItemCount() && i < 50; i++) us.add(data.getClipData().getItemAt(i).getUri());
+                else if (data.getData() != null) us.add(data.getData());
+            }
+            if (us.isEmpty()) { js("onBankImport", "{\"cancelled\":true}"); return; }
+            BankBridge.onPicked(this, us, bankWis);
+            return;
+        }
         if (req == REQ_KLUIS) {
             if (res != RESULT_OK || data == null || data.getData() == null) return;
             final Uri u = data.getData();
@@ -794,7 +829,7 @@ public class MainActivity extends Activity {
     // ---------- brug naar JavaScript ----------
 
     /** Alle functies voor de interface. Nieuwere onderdelen staan in FeatureBridge (eigen bestand). */
-    static final class Bridge extends FacturenBridge {
+    static final class Bridge extends BankBridge {
         private final MainActivity a;
         private final Context ctx;
         static volatile boolean smsBusy = false;

@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.128",
+    "date": "2026-11-03",
+    "changes": [
+      "Nieuw: Bankzaken. Rapportages over je inkomsten en uitgaven (per categorie, per maand, vaste lasten en abonnementen, budgetten, saldo), volledig op je telefoon",
+      "Bankzaken leest afschriften van ING, Rabobank, ABN AMRO, ASN, SNS, RegioBank, Triodos, Knab, bunq en andere banken (CAMT.053, MT940 of CSV); dubbele boekingen vallen vanzelf weg",
+      "Bankzaken haalt je transacties automatisch op bij de Rabobank: jij logt in met de Rabo App, de rest gaat vanzelf (alleen je telefoon en de bank, geen andere partij)",
+      "Bankzaken met lokale AI: stel vragen over je uitgaven, laat een analyse met bespaartips maken en laat categorieën voorstellen; de AI onthoudt niets",
+      "Bankzaken is extra beveiligd: versleuteld met een sleutel in de beveiligde hardware, alleen open na vingerafdruk of pincode, gaat vanzelf op slot, geen schermafdrukken en nooit in een backup"
+    ]
+  },
+  {
     "version": "1.127",
     "date": "2026-11-03",
     "changes": [

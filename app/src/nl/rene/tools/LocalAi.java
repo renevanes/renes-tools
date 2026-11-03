@@ -715,6 +715,76 @@ final class LocalAi {
         return true;
     }
 
+    /** Een losse vraag zonder geheugen, leren, acties, zoeken of opgeslagen gesprek (Bankzaken): niets van de vraag of het
+     *  antwoord wordt bewaard. msgs = [{role, content}]. Geeft false als er al een antwoord loopt. */
+    static boolean privateChat(final Context c, final String system, final JSONArray msgs, final int maxTok, final Sink sink) {
+        final long job = GATE.enter();
+        if (job == 0) return false;
+        cancel = false; cancelAt = 0;
+        stopLearning();
+        try { AI.execute(() -> privateRun(c, system, msgs, maxTok, sink, job)); }
+        catch (Throwable t) { GATE.leave(job); throw t; }
+        return true;
+    }
+
+    private static void privateRun(final Context c, final String system, final JSONArray in, final int maxTok, final Sink sink, final long job) {
+        try {
+            if (!supported()) throw new Exception("De lokale AI werkt alleen op telefoons met een 64-bits ARM-processor");
+            Model m = chatModel(c);
+            if (!ready(c, m)) throw new Exception("Download eerst een taalmodel (Instellingen → Taalmodel)");
+            if (in == null || in.length() == 0) throw new Exception("Geen vraag");
+            int max = Math.max(160, Math.min(maxTok, m.ctx / 2));
+            JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", system));
+            int other = system.length();
+            for (int i = 0; i < in.length() - 1; i++) other += in.getJSONObject(i).optString("content").length();
+            for (int i = 0; i < in.length(); i++) {
+                JSONObject x = in.getJSONObject(i);
+                String content = x.optString("content");
+                // Het laatste bericht (de vraag met de cijfers) passend maken voor het model; het begin (de vraag) blijft
+                if (i == in.length() - 1) { int budget = attBudget(m.ctx, max, other, in.length() + 1); if (content.length() > budget) content = content.substring(0, budget); }
+                else if (content.length() > 4000) content = content.substring(0, 4000);
+                msgs.put(new JSONObject().put("role", "assistant".equals(x.optString("role")) ? "assistant" : "user").put("content", content));
+            }
+            chatPhase = true;
+            if (!bigRam(c)) closeEmbedSafe();
+            boolean starting = chat == null || !chat.alive() || !chat.model.equals(file(c, m)) || chat.threads != threads();
+            if (starting) sink.status("Model laden…");
+            LlmProcess p = chatEngine(c, m);
+            if (cancel) { GATE.leave(job); sink.done(new JSONObject().put("cancelled", true)); return; }
+            sink.status("");
+            final CountDownLatch done = new CountDownLatch(1);
+            final long rid = REQ.incrementAndGet();
+            p.listen(o -> {
+                if (o.optBoolean("gone")) { if (done.getCount() > 0) { GATE.leave(job); done.countDown(); sink.error(o.optString("error")); } return; }
+                if (o.optLong("id") != rid || done.getCount() == 0) return;
+                if (o.has("t")) sink.token(o.optString("t"));
+                else if (o.optBoolean("done")) { GATE.leave(job); done.countDown(); sink.done(o); }
+                else if (o.has("error")) { GATE.leave(job); done.countDown(); sink.error(o.optString("error")); }
+            });
+            try {
+                p.send(new JSONObject().put("op", "chat").put("id", rid).put("messages", msgs).put("max", max)
+                        .put("temp", 0.3).put("top_p", 0.8).put("top_k", 20));
+                while (!done.await(500, TimeUnit.MILLISECONDS)) {
+                    if (!p.alive()) { if (done.getCount() > 0) { GATE.leave(job); done.countDown(); sink.error("De AI-motor is gestopt"); } break; }
+                    if (cancel && stuck(cancelAt, System.currentTimeMillis())) {
+                        p.listen(null);
+                        if (done.getCount() > 0) { GATE.leave(job); done.countDown(); sink.done(new JSONObject().put("cancelled", true)); }
+                        synchronized (LocalAi.class) { if (chat == p) closeChat(); else p.destroy(); }
+                        break;
+                    }
+                }
+            } finally { p.listen(null); }
+            p.lastUse = System.currentTimeMillis();
+        } catch (Throwable t) {
+            GATE.leave(job);
+            sink.error(t.getMessage() == null ? "Er ging iets mis" : t.getMessage());
+        } finally {
+            chatPhase = false;
+            GATE.leave(job);
+            scheduleIdle();
+        }
+    }
+
     private static void chatRun(final Context c, final JSONObject req, final Sink sink, final long job) {
         try {
             if (!supported()) throw new Exception("De lokale AI werkt alleen op telefoons met een 64-bits ARM-processor");

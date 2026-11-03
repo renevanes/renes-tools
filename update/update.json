@@ -1,15 +1,26 @@
 {
   "app": "Tools",
-  "versionName": "1.127",
-  "versionCode": 128,
-  "nativeLevel": 114,
+  "versionName": "1.128",
+  "versionCode": 129,
+  "nativeLevel": 115,
   "web": "index.html",
-  "webSha256": "9349ac92c859692f96fcfcbba89136703cc9879560367f2bcf305141da9419f6",
+  "webSha256": "4c9fc2283802b9b5f4fb2ec4d970b7b81e726fdb7152ee11c03abc447d2cb4d4",
   "start": "start.html",
   "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "6b9b1ba842367664f132938b19147f97d7b4a98fef306d529e5107ab22a4b0fa",
+  "apkSha256": "ca1005d343e334c58fe7c7dd9e42405d297348109d4618260eae8908c1311c19",
   "changelog": [
+    {
+      "version": "1.128",
+      "date": "2026-11-03",
+      "changes": [
+        "Nieuw: Bankzaken. Rapportages over je inkomsten en uitgaven (per categorie, per maand, vaste lasten en abonnementen, budgetten, saldo), volledig op je telefoon",
+        "Bankzaken leest afschriften van ING, Rabobank, ABN AMRO, ASN, SNS, RegioBank, Triodos, Knab, bunq en andere banken (CAMT.053, MT940 of CSV); dubbele boekingen vallen vanzelf weg",
+        "Bankzaken haalt je transacties automatisch op bij de Rabobank: jij logt in met de Rabo App, de rest gaat vanzelf (alleen je telefoon en de bank, geen andere partij)",
+        "Bankzaken met lokale AI: stel vragen over je uitgaven, laat een analyse met bespaartips maken en laat categorieën voorstellen; de AI onthoudt niets",
+        "Bankzaken is extra beveiligd: versleuteld met een sleutel in de beveiligde hardware, alleen open na vingerafdruk of pincode, gaat vanzelf op slot, geen schermafdrukken en nooit in een backup"
+      ]
+    },
     {
       "version": "1.127",
       "date": "2026-11-03",
@@ -1119,5 +1130,5 @@
       ]
     }
   ],
-  "webSig2": "KLqQV9C7yWverIDSF3D0/TQrLOi6I5Q/M3sd3wNbRfEFvwZU41DTDzNzjFEirdCqshvRmK/RDSf0WDl8/lCJjW43TewHbAaULQqT53CZtwzAw1JFF+zIcWCkUhEqXyqrfgZKuxGjnmWGsTQIc2G5mukjcy2fNwUNIh/rIgNnVnIRnall/USoxvgIhZwxPyuOXE6YUky9eIwgY3egSGUq4hlBoZuQ1M1uaue/zRZa8jEQ81Dy3w/Sk+vY2bQ6Ox8d0+9JWoCCPSFNrapZEKSltfRCwhYsu/T8JbMVffPRmAEped/exNhuci/mjCDoWVuqQTfDqWSQ2BKlkdTE5xix7m/kiJo5AR6OtOHn+wzCyRiGkXdq5q/eBVxUTBzQsMCBPBnm/zdKDxkv9k1NvjJEcUUsnHF9kzcj0vLco3O5SPOkxgbQpZJyIp/W5Y05AYyXADGPDW3Nc3LY60qY9iyYF10wp/q9l4EFGL6f8DlcrEaVcAsgNtb7Ob6Yw8+G5ZWZ"
+  "webSig2": "bt/25W4D2O7vsw8MUjZKgJDZpfhKIR5uYt7jGzbv8gY2IRLa42lMBbf+Mmb1Q/04yFeagYoTZbgp2zzAHmA5tqBV33ifnXRWaAQ+4AScOsBCEaZAb5l3z8yFCCCm5EHkrPvfijcuC76/ni2pTIPU8wbPuCZCe92mVplA8A0mw58PTV7sJRD5hKrlIqhSNj0FMKJIIMsJ3DKyIE9Xwytf6P1uhGe5NRTmGBPSiEnumdEv/9OqhxVs/KinjbAc8281xbAzML2tpA9kVzYKS6CjhxNC/j4HWrfA/6ggfMTSArqneDQhurVavZaxzJDdMtAVTM1eap0NiKR4rYzx+O03NSvhZpxXJHfivXQSWN9cMADWu9QSlC4qloxeZhcoxIdnMy/csB1OxtPCfEIK2SaenqhPI3eqyOzL1ZVId9P/Zr4GMHdvlNjJxxRCZGY8K8hxLRTavzmTHby+3ScNtbbBSepg5VhEWyUhrDSmrxlHq4w6JIZQkm5SttXoAiBKeAwF"
 }
