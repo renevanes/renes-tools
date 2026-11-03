@@ -285,12 +285,13 @@ final class FacturenDrive {
     }
 
     /** Een factuur in Drive zetten (staat er al een met dezelfde naam in de map: niets doen). */
-    static void upload(Context c, String sub, String naam, byte[] data) throws Exception {
+    /** Geeft de id van het bestand in Drive. */
+    static String upload(Context c, String sub, String naam, byte[] data) throws Exception {
         if (gekoppeld(c) && !heeftRecht(c, "drive")) throw new Exception("geef Tools toegang tot Drive (Facturen → Koppelingen → Google)");
         String map = map(c, sub);
         String zoek = "name='" + q(naam) + "' and '" + q(map) + "' in parents and trashed=false";
         JSONArray l = api(c, "GET", API + "/files?fields=files(id)&spaces=drive&q=" + enc(zoek), null).optJSONArray("files");
-        if (l != null && l.length() > 0) return;
+        if (l != null && l.length() > 0) return l.getJSONObject(0).optString("id");
         String grens = "tools" + Long.toHexString(System.nanoTime());
         byte[] meta = new JSONObject().put("name", naam).put("mimeType", "application/pdf").put("parents", new JSONArray().put(map)).toString().getBytes(StandardCharsets.UTF_8);
         java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream(data.length + meta.length + 512);
@@ -299,7 +300,7 @@ final class FacturenDrive {
         b.write(("\r\n--" + grens + "\r\nContent-Type: application/pdf\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
         b.write(data);
         b.write(("\r\n--" + grens + "--\r\n").getBytes(StandardCharsets.US_ASCII));
-        stuur(c, "POST", UPLOAD + "/files?uploadType=multipart&fields=id", b.toByteArray(), "multipart/related; boundary=" + grens);
+        return stuur(c, "POST", UPLOAD + "/files?uploadType=multipart&fields=id", b.toByteArray(), "multipart/related; boundary=" + grens).optString("id", "");
     }
 
     /** Koppeling testen. */

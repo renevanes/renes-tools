@@ -127,7 +127,9 @@ final class FacturenGmail implements FacturenMail.Bron {
                     // Zonder nummer of datum in de naam: de datum van de mail ervoor (anders heten alle facturen "factuur.pdf")
                     String basis = Facturen.uniekeNaam(origineel) ? origineel : dag.format(new java.util.Date(t)) + " " + origineel;
                     String naam = Facturen.bestandsnaam(basis, null, afzender, sha);
-                    uit.add(new Facturen.Pdf(data, naam, sha, mail.optBoolean("perAfzender", true) ? afzender : null));
+                    JSONObject bron = new JSONObject().put("mailbron", "gmail").put("afzender", kop(payload, "From")).put("afzenderNaam", afzender)
+                        .put("onderwerp", kop(payload, "Subject")).put("maildatum", t).put("mailId", id).put("bijlage", origineel);
+                uit.add(new Facturen.Pdf(data, naam, sha, mail.optBoolean("perAfzender", true) ? afzender : null, bron));
                 }
             } catch (Exception e) {
                 fouten++;

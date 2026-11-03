@@ -432,7 +432,10 @@ final class FacturenRun {
         try {
             String sha = Facturen.sha(b);
             synchronized (pdfs) {
-                if (!pdfs.containsKey(sha)) pdfs.put(sha, new Facturen.Pdf(b, Facturen.bestandsnaam(naam, url, lev.optString("naam"), sha), sha));
+                if (!pdfs.containsKey(sha)) {
+                    JSONObject bron = new JSONObject().put("site", domein).put("url", url == null ? "" : url.replaceAll("[?#].*$", "")).put("pagina", paginaUrl == null ? "" : paginaUrl.replaceAll("[?#].*$", ""));
+                    pdfs.put(sha, new Facturen.Pdf(b, Facturen.bestandsnaam(naam, url, lev.optString("naam"), sha), sha, null, bron));
+                }
             }
             vangsten.incrementAndGet();
             return true;

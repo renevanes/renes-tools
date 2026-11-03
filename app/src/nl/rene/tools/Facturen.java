@@ -363,7 +363,8 @@ final class Facturen {
             JsonFileStore.write(levFile(c), new JSONObject().put("lijst", nieuw).toString(), Facturen::checkLijst);
             geheim(c).edit().remove("lev_" + id).apply();
             JSONObject t = toestand(c); t.remove(id); bewaarToestand(c, t);
-            // De facturen in de app gaan mee weg; de kopieën in je backup-map en in Eigen Cloud blijven staan.
+            // De facturen in de app gaan mee weg; de kopieën in je backup-map en in Eigen Cloud blijven staan (en in het dossier).
+            FacturenDossier.appWeg(c, id);
             File d = pdfDir(c, id);
             File[] fs = d.listFiles();
             if (fs != null) for (File f : fs) f.delete();
@@ -439,8 +440,11 @@ final class Facturen {
         final byte[] data; final String naam; final String sha;
         /** Eigen submap (bijv. per afzender bij facturen uit de mail), of null = die van de leverancier. */
         final String sub;
-        Pdf(byte[] d, String n, String s) { this(d, n, s, null); }
-        Pdf(byte[] d, String n, String s, String sub) { data = d; naam = n; sha = s; this.sub = sub == null || sub.trim().isEmpty() ? null : veiligeNaam(sub).replace('.', '_').trim(); }
+        /** Waar hij vandaan komt, voor het dossier: website {url, site} of mail {afzender, onderwerp, maildatum, mailId}. */
+        final JSONObject bron;
+        Pdf(byte[] d, String n, String s) { this(d, n, s, null, null); }
+        Pdf(byte[] d, String n, String s, String sub) { this(d, n, s, sub, null); }
+        Pdf(byte[] d, String n, String s, String sub, JSONObject bron) { data = d; naam = n; sha = s; this.sub = sub == null || sub.trim().isEmpty() ? null : veiligeNaam(sub).replace('.', '_').trim(); this.bron = bron; }
     }
 
     /** Nieuwe facturen bewaren en afleveren; geeft {nieuw, gevonden, namen, fouten} terug. */
@@ -472,6 +476,7 @@ final class Facturen {
             File f = new File(d, naam);
             for (int n = 2; f.exists(); n++) { naam = p.naam.replaceAll("\\.pdf$", "") + " (" + n + ").pdf"; f = new File(d, naam); }
             try (FileOutputStream o = new FileOutputStream(f)) { o.write(p.data); o.getFD().sync(); }
+            FacturenDossier.nieuw(c, lev, p, naam, f);
             JSONObject rec = new JSONObject().put("n", naam).put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis());
             if (p.sub != null) rec.put("s", p.sub);
             aflever(c, lev, naam, f, p, rec, fouten);
@@ -489,20 +494,26 @@ final class Facturen {
         boolean bij = false;
         // Eigen map per bestand (afzender bij facturen uit de mail): in de map van de leverancier
         String sub = rec.optString("s", "").isEmpty() ? lev.optString("submap", "Facturen") : lev.optString("submap", "Facturen") + "/" + rec.optString("s");
+        // Elke plek ook in het dossier, met waar hij precies staat
         if (lev.optBoolean("map", true) && !rec.optBoolean("map")) {
-            try { naarBoom(c, WaBackup.destUri(c), "kies eerst een backup-map (Instellingen)", MAP + "/" + sub, naam, f); rec.put("map", true); bij = true; }
+            try { Uri u = naarBoom(c, WaBackup.destUri(c), "kies eerst een backup-map (Instellingen)", MAP + "/" + sub, naam, f, false); rec.put("map", true); bij = true;
+                  FacturenDossier.plek(c, p.sha, "map", new JSONObject().put("pad", "Backup-map/" + MAP + "/" + sub + "/" + naam).put("uri", u == null ? "" : u.toString())); }
             catch (Exception e) { fouten.put("Backup-map: " + kort(e)); }
         }
         if (lev.optBoolean("lokaal", false) && !rec.optBoolean("lok")) {
-            try { naarBoom(c, lokaleMap(c), "kies eerst een map op je telefoon (Facturen → Opslaan)", sub, naam, f); rec.put("lok", true); bij = true; }
+            try { Uri u = naarBoom(c, lokaleMap(c), "kies eerst een map op je telefoon (Facturen → Opslaan)", sub, naam, f, false); rec.put("lok", true); bij = true;
+                  FacturenDossier.plek(c, p.sha, "lok", new JSONObject().put("pad", boomNaam(lokaleMap(c)) + "/" + sub + "/" + naam).put("uri", u == null ? "" : u.toString())); }
             catch (Exception e) { fouten.put("Map op je telefoon: " + kort(e)); }
         }
         if (lev.optBoolean("drive", false) && !rec.optBoolean("gd")) {
-            try { FacturenDrive.upload(c, sub, naam, p.data); rec.put("gd", true); bij = true; }
+            try { String id = FacturenDrive.upload(c, sub, naam, p.data); rec.put("gd", true); bij = true;
+                  FacturenDossier.plek(c, p.sha, "gd", new JSONObject().put("pad", "Google Drive/" + MAP + "/" + sub + "/" + naam).put("id", id)
+                          .put("link", id.isEmpty() ? "" : "https://drive.google.com/file/d/" + id + "/view")); }
             catch (Exception e) { fouten.put("Google Drive: " + kort(e)); }
         }
         if (lev.optBoolean("eigenCloud", false) && !rec.optBoolean("ec")) {
-            try { naarEigenCloud(c, lev, naam, p); rec.put("ec", true); bij = true; }
+            try { String aan = naarEigenCloud(c, lev, naam, p); rec.put("ec", true); bij = true;
+                  FacturenDossier.plek(c, p.sha, "ec", new JSONObject().put("pad", "Eigen Cloud, mail aan " + aan).put("aan", aan)); }
             catch (Exception e) { fouten.put("Eigen Cloud: " + kort(e)); }
         }
         return bij;
@@ -532,13 +543,26 @@ final class Facturen {
     }
 
     /** Kopie in een gekozen map (backup-map: Facturen/&lt;leverancier&gt;; eigen map: &lt;leverancier&gt;). */
-    static void naarBoom(Context c, Uri tree, String geenMap, String rel, String naam, File f) throws Exception {
+    /** Leesbare naam van een gekozen map ("Documents/Facturen"). */
+    static String boomNaam(Uri u) {
+        try {
+            String id = DocumentsContract.getTreeDocumentId(u);
+            int i = id.indexOf(':');
+            String rel = i < 0 ? id : id.substring(i + 1), vol = i < 0 ? "" : id.substring(0, i);
+            return ("primary".equals(vol) ? "" : vol + ": ") + (rel.isEmpty() ? "hoofdmap" : rel);
+        } catch (Exception e) { return "gekozen map"; }
+    }
+
+    /** Bestand in een gekozen map zetten (rel "" = de map zelf). vervang = een bestaand bestand overschrijven (bijv. dossier.csv). */
+    static Uri naarBoom(Context c, Uri tree, String geenMap, String rel, String naam, File f, boolean vervang) throws Exception {
         if (tree == null) throw new Exception(geenMap);
         if (!WaBackup.hasGrant(c.getContentResolver(), tree)) throw new Exception("geen toegang meer tot de map: kies hem opnieuw");
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
-        WaBackup.DestDir map = dest.dir(rel, true);
-        if (map.kids.containsKey(naam)) return; // staat er al
-        Uri tmp = WaBackup.create(dest, map.uri, "application/pdf", naam + ".part");
+        WaBackup.DestDir map = rel == null || rel.isEmpty() ? dest.root() : dest.dir(rel, true);
+        WaBackup.Child er = map.kids.get(naam);
+        if (er != null && !vervang) return DocumentsContract.buildDocumentUriUsingTree(dest.tree, er.docId); // staat er al
+        if (er != null) { try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, er.docId)); } catch (Exception ignored) { } map.kids.remove(naam); }
+        Uri tmp = WaBackup.create(dest, map.uri, naam.endsWith(".csv") ? "text/csv" : "application/pdf", naam + ".part");
         if (tmp == null) throw new Exception("bestand maken lukt niet");
         boolean klaar = false;
         try {
@@ -547,8 +571,10 @@ final class Facturen {
                 byte[] buf = new byte[32768]; int n;
                 while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
             }
-            if (WaBackup.rename(dest, tmp, naam) == null) throw new Exception("bestand afronden lukt niet");
+            Uri af = WaBackup.rename(dest, tmp, naam);
+            if (af == null) throw new Exception("bestand afronden lukt niet");
             klaar = true;
+            return af;
         } finally { if (!klaar) try { DocumentsContract.deleteDocument(dest.cr, tmp); } catch (Exception ignored) { } }
     }
 
@@ -603,7 +629,7 @@ final class Facturen {
         }
     }
 
-    static void naarEigenCloud(Context c, JSONObject lev, String naam, Pdf p) throws Exception {
+    static String naarEigenCloud(Context c, JSONObject lev, String naam, Pdf p) throws Exception {
         String aan = prefs(c).getString("ecAdres", "");
         if (aan.isEmpty()) aan = prefs(c).getString("ecGebruiker", "");
         try (Ec ec = Ec.open(c)) {
@@ -614,6 +640,7 @@ final class Facturen {
                             .put("base64", android.util.Base64.encodeToString(p.data, android.util.Base64.NO_WRAP))));
             JSONObject r = ec.vraag("POST", "/api/mail/send", mail, "tools-factuur-" + p.sha.substring(0, 40));
             if (!r.optBoolean("ok", false)) throw new Exception("niet verstuurd");
+            return aan;
         }
     }
 
