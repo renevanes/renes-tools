@@ -728,7 +728,7 @@ if (!window.Android) window.Android = (function(){
         if (r.ok) f.pdf[id] = [{ naam: 'KPN Zakelijk Factuur 2026-10.pdf', t: now, grootte: 81234 }, { naam: 'KPN Zakelijk Factuur 2026-09.pdf', t: now - 1000, grootte: 80122 }];
         if (r.ok) { f.dos = f.dos || {}; f.pdf[id].forEach((p, i) => { const sha = (id + p.naam).replace(/[^a-z0-9]/gi, '').toLowerCase().padEnd(64, '0').slice(0, 64);
           if (!f.dos[sha]) f.dos[sha] = { sha, naam: p.naam, origineel: p.naam, grootte: p.grootte, leverancier: id, leverancierNaam: l.naam, opgehaald: now - i * 1000, bron: { soort: l.soort || 'website', site: 'kpn.com' },
-            plekken: { app: { pad: '/data/user/0/nl.rene.tools/files/facturen/pdf/' + id + '/' + p.naam, t: now } }, verzonden: {}, meta: { nummer: '80012345' + i, datum: i ? '2026-09-05' : '2026-10-05', bedrag: i ? '45,10' : '48,37', btw: '', bron: 'herkend' } }; }); }
+            plekken: { app: { pad: '/data/user/0/nl.rene.tools/files/facturen/pdf/' + id + '/' + p.naam, t: now } }, verzonden: {}, meta: { nummer: '80012345' + i, datum: i ? '2026-09-05' : '2026-10-05', bedrag: i ? '45,10' : '48,37', btw: '', vervaldatum: i ? '2026-09-19' : '2099-10-19', bron: 'herkend' } }; }); }
         onFacturenKlaar(r); }, 1200); return ''; },
     facturenStop(){ this._fa.calls.push(['stop']); },
     facturenKiesMap(){ this._fa.calls.push(['kiesmap']); setTimeout(() => { this._fa.lokaal = 'Documents/Facturen'; onFacturenMap(''); }, 150); },
@@ -744,7 +744,7 @@ if (!window.Android) window.Android = (function(){
     /* Dossier en aanleveren (nagebootst); _foFout = foutmelding bij versturen */
     facturenDossier(){ const f = this._fa; return JSON.stringify({ items: Object.values(f.dos || {}).sort((a, b) => b.opgehaald - a.opgehaald), ontvangers: (f.ontv || []).map(o => ({ id: o.id, naam: o.naam })) }); },
     facturenDossierMeta(sha, json){ const s = (this._fa.dos || {})[sha], m = JSON.parse(json); if (!s) return 'Factuur niet gevonden in het dossier';
-      if (m.datum && !/^\d{4}-\d{2}-\d{2}$/.test(m.datum)) return 'Datum als JJJJ-MM-DD, bijv. 2026-10-05'; if (m.bedrag && !/^-?\d+([.,]\d{1,2})?$/.test(m.bedrag.replace(/\./g, ''))) return 'Bedrag als 123,45';
+      if ([m.datum, m.vervaldatum, m.betaald].some(d => d && !/^\d{4}-\d{2}-\d{2}$/.test(d))) return 'Datum als JJJJ-MM-DD, bijv. 2026-10-05'; if (m.bedrag && !/^-?\d+([.,]\d{1,2})?$/.test(m.bedrag.replace(/\./g, ''))) return 'Bedrag als 123,45';
       s.meta = { ...m, bron: 'zelf' }; this._fa.calls.push(['meta', sha, m]); return ''; },
     facturenDossierOpnieuw(sha, ontv){ const s = (this._fa.dos || {})[sha]; if (!s) return 'Factuur niet gevonden in het dossier'; s.verzonden[ontv] = { ok: false, opnieuw: true, t: Date.now() }; return ''; },
     facturenDossierCsv(){ this._fa.calls.push(['csv']); setTimeout(() => onFacturenCsv(this._fa.lokaal || this._wa.info.dest ? { waar: 'de map op je telefoon (dossier.csv)' } : { error: 'Kies eerst een map op je telefoon of een backup-map' }), 150); },

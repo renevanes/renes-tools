@@ -285,14 +285,22 @@
     <h1 tabindex="-1">Dossier</h1>
   </div>
   <main>
-    <p class="note" style="margin:0 2px 12px">Alle opgehaalde facturen: waar ze vandaan komen, de factuurgegevens, waar ze staan en aan wie ze zijn aangeleverd. Tik op een factuur voor alles en om gegevens aan te passen.</p>
-    <input class="aein" id="fd-zoek" type="search" placeholder="Zoeken op leverancier, bestand, nummer of bedrag" aria-label="Zoeken in het dossier" oninput="fdRender()" autocomplete="off">
-    <div class="row" style="gap:8px;margin:8px 0">
-      <select class="sel" id="fd-lev" style="flex:1" onchange="fdRender()" aria-label="Leverancier"></select>
-      <select class="sel" id="fd-filter" style="flex:1" onchange="fdRender()" aria-label="Filter"><option value="">Alles</option><option value="open">Nog niet aangeleverd</option><option value="mis">Aanleveren mislukt</option></select>
+    <input class="aein" id="fd-zoek" type="search" placeholder="Zoeken op leverancier, nummer, bedrag of notitie" aria-label="Zoeken in het dossier" oninput="fdRender()" autocomplete="off">
+    <div class="row" style="gap:8px;margin:8px 0 0">
+      <select class="sel" id="fd-lev" style="flex:1;min-width:0" onchange="fdRender()" aria-label="Leverancier"></select>
+      <select class="sel" id="fd-filter" style="flex:1;min-width:0" onchange="fdRender()" aria-label="Filter"><option value="">Alle facturen</option><option value="open">Nog niet aangeleverd</option><option value="mis">Aanleveren mislukt</option><option value="tebetalen">Nog te betalen</option><option value="telaat">Over de betaaldatum</option></select>
     </div>
-    <p class="note" id="fd-tel" style="margin:0 2px 8px"></p>
-    <div class="card stations" id="fd-lijst"></div>
+    <div class="row" style="gap:8px;margin:8px 0">
+      <select class="sel" id="fd-groep" style="flex:1;min-width:0" onchange="fdKeuze()" aria-label="Groeperen"><option value="">Niet groeperen</option><option value="maand">Per maand</option><option value="kwartaal">Per kwartaal</option><option value="lev">Per leverancier</option><option value="cat">Per categorie</option></select>
+      <button class="big ghost" style="flex:1;min-width:0;margin:0" id="fd-kol-knop" onclick="fdKolommen()" aria-expanded="false" aria-controls="fd-kol">Kolommen</button>
+    </div>
+    <div class="card" id="fd-kol" style="display:none">
+      <h2>Kolommen</h2>
+      <p class="note" style="margin-top:0">Kies wat je in het overzicht ziet. Tik op een kolomkop om daarop te sorteren.</p>
+      <div id="fd-kol-lijst" class="fd-kol"></div>
+    </div>
+    <p class="note" id="fd-tel" style="margin:0 2px 8px" role="status" aria-live="polite"></p>
+    <div class="card" style="padding:0;overflow:hidden"><div id="fd-lijst" style="overflow-x:auto"></div></div>
     <button class="big ghost" id="fd-csv" onclick="fdCsv()">Exporteren als CSV (voor Excel)</button>
     <p class="note" id="fd-csv-msg" role="status" aria-live="polite"></p>
   </main>
@@ -317,6 +325,11 @@
         <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-bedrag">Bedrag (€)</label></div><input class="aein" id="fs-bedrag" inputmode="decimal" placeholder="123,45" autocomplete="off"></div>
         <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-btw">Btw (€)</label></div><input class="aein" id="fs-btw" inputmode="decimal" placeholder="21,43" autocomplete="off"></div>
       </div>
+      <div class="row" style="gap:8px;margin-top:8px">
+        <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-verval">Uiterste betaaldatum</label></div><input class="aein" id="fs-verval" type="date"></div>
+        <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-betaald">Betaald op</label></div><input class="aein" id="fs-betaald" type="date"></div>
+      </div>
+      <button class="linkish" style="margin-top:4px" onclick="$('#fs-betaald').value=new Date().toLocaleDateString('sv-SE')">Vandaag betaald</button>
       <div class="flabel" style="margin-top:8px"><label for="fs-cat">Categorie</label></div>
       <input class="aein" id="fs-cat" maxlength="80" autocomplete="off" placeholder="bijv. telefoon, kantoor" list="fs-cats">
       <datalist id="fs-cats"></datalist>

@@ -37,6 +37,9 @@ public class FacturenAanleverTest {
         JSONObject n = FacturenDossier.herken("Invoice number: INV-2026-0042\nInvoice date: 03/11/2026\nAmount due EUR 1.234,50");
         check("INV-2026-0042".equals(n.optString("nummer")) && "2026-11-03".equals(n.optString("datum")) && "1234,50".equals(n.optString("bedrag")), "Engelse factuur");
         check("2026-09-01".equals(FacturenDossier.herken("KPN Zakelijk Factuur 2026-09.pdf").optString("datum")), "datum uit de bestandsnaam");
+        JSONObject v = FacturenDossier.herken("Uiterste betaaldatum: 19-10-2026\nFactuurdatum: 5-10-2026\nTotaal € 10,00");
+        check("2026-10-19".equals(v.optString("vervaldatum")) && "2026-10-05".equals(v.optString("datum")), "uiterste betaaldatum apart van de factuurdatum");
+        check("2026-11-30".equals(FacturenDossier.herken("Te betalen voor 30 november 2026").optString("vervaldatum")), "te betalen voor …");
         check(FacturenDossier.herken("geen gegevens hier").length() == 0, "niets herkend: leeg");
         check("1234,56".equals(FacturenDossier.bedrag("1.234,56")) && "1234,56".equals(FacturenDossier.bedrag("1,234.56")) && "12,50".equals(FacturenDossier.bedrag("12,5")) && FacturenDossier.bedrag("veel") == null, "bedragen");
         check("2026-03-07".equals(FacturenDossier.datum("7 mrt 2026")) && "2026-05-01".equals(FacturenDossier.datum("1-5-26")) && FacturenDossier.datum("31-13-2026") == null, "datums");
