@@ -76,7 +76,11 @@ final class FacturenMail {
     }
 
     /** Vanaf wanneer zoeken: sinds de vorige gelukte keer (2 dagen overlap), de eerste keer "dagen" terug. */
-    static long sinds(JSONObject mail, long lastOk, long nu) {
+    static long sinds(JSONObject mail, long lastOk, long nu) { return sinds(mail, lastOk, 0, nu); }
+
+    /** Met "verder": de vorige keer was er meer dan "max"; dan vanaf de laatst opgehaalde mail. */
+    static long sinds(JSONObject mail, long lastOk, long verder, long nu) {
+        if (verder > 0) return verder - 1000L;
         if (lastOk > 0) return lastOk - 2 * 86_400_000L;
         return nu - mail.optInt("dagen", 90) * 86_400_000L;
     }

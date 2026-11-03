@@ -487,7 +487,8 @@ final class Facturen {
     /** Naar elke gekozen plek die nog niet gelukt is (backup-map, map op de telefoon, Google Drive, Eigen Cloud). Geeft true als er iets bij kwam. */
     static boolean aflever(Context c, JSONObject lev, String naam, File f, Pdf p, JSONObject rec, JSONArray fouten) throws Exception {
         boolean bij = false;
-        String sub = rec.optString("s", "").isEmpty() ? lev.optString("submap", "Facturen") : rec.optString("s");
+        // Eigen map per bestand (afzender bij facturen uit de mail): in de map van de leverancier
+        String sub = rec.optString("s", "").isEmpty() ? lev.optString("submap", "Facturen") : lev.optString("submap", "Facturen") + "/" + rec.optString("s");
         if (lev.optBoolean("map", true) && !rec.optBoolean("map")) {
             try { naarBoom(c, WaBackup.destUri(c), "kies eerst een backup-map (Instellingen)", MAP + "/" + sub, naam, f); rec.put("map", true); bij = true; }
             catch (Exception e) { fouten.put("Backup-map: " + kort(e)); }
@@ -692,6 +693,9 @@ final class Facturen {
                 tekst = f != null && f.length() > 0 ? f.optString(0) : r.optJSONArray("namen") == null ? "" : r.optJSONArray("namen").optString(0);
             } else if (!lev.optBoolean("meldFout", true)) {
                 return;
+            } else if (r.optBoolean("koppelNodig")) {
+                titel = naam + ": koppeling nodig";
+                tekst = r.optString("msg");
             } else if (r.optBoolean("inlogNodig")) {
                 titel = naam + ": inloggen nodig";
                 tekst = "Tik om mee te kijken en zelf in te loggen. " + r.optString("msg");

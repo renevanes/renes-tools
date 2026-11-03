@@ -130,13 +130,15 @@ final class FacturenRun {
             JSONObject r;
             try {
                 JSONObject m = lev.optJSONObject("mail") == null ? new JSONObject() : lev.optJSONObject("mail");
-                long sinds = FacturenMail.sinds(m, Facturen.toestand(c, id).optLong("lastOk"), System.currentTimeMillis());
+                JSONObject tt = Facturen.toestand(c, id);
+                long sinds = FacturenMail.sinds(m, tt.optLong("lastOk"), tt.optLong("mailSinds"), System.currentTimeMillis());
                 java.util.List<Facturen.Pdf> l = FacturenMail.bron(m.optString("bron", "gmail")).haal(c, lev, sinds, stop, t -> voortgang = t);
                 synchronized (pdfs) { for (Facturen.Pdf p : l) if (!pdfs.containsKey(p.sha)) pdfs.put(p.sha, p); }
                 r = new JSONObject().put("ok", true);
             } catch (Throwable e) {
                 String msg = Facturen.kort(e);
-                r = fout(msg, msg.contains("Koppel") || msg.contains("toegang"));
+                r = fout(msg, false);
+                try { if (msg.contains("Koppel") || msg.contains("toegang tot Gmail")) r.put("koppelNodig", true); } catch (Exception ignored) { }
             }
             final JSONObject uit = r;
             h.post(() -> einde(uit));

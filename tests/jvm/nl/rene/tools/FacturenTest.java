@@ -115,6 +115,7 @@ public class FacturenTest {
         check(FacturenGmail.zoekvraag(new JSONObject().put("woorden", "").put("afzenders", ""), 0).equals("has:attachment filename:pdf"), "zonder woorden: alleen PDF-bijlagen");
         check(FacturenMail.sinds(mm, 0, 100 * 86_400_000L) == 100 * 86_400_000L - 730 * 86_400_000L, "eerste keer: dagen terug");
         check(FacturenMail.sinds(mm, 50 * 86_400_000L, 100 * 86_400_000L) == 48 * 86_400_000L, "daarna: sinds de vorige keer, 2 dagen overlap");
+        check(FacturenMail.sinds(mm, 50 * 86_400_000L, 60 * 86_400_000L, 100 * 86_400_000L) == 60 * 86_400_000L - 1000, "meer dan max: verder vanaf de laatst opgehaalde mail");
         check(FacturenMail.afzenderNaam("KPN Zakelijk <noreply@kpn.com>").equals("KPN Zakelijk"), "afzender met naam");
         check(FacturenMail.afzenderNaam("\"Vattenfall\" <facturen@vattenfall.nl>").equals("Vattenfall"), "afzender met aanhalingstekens");
         check(FacturenMail.afzenderNaam("facturen@Ziggo.NL").equals("ziggo.nl") && FacturenMail.afzenderNaam("<x@kpn.com>").equals("kpn.com"), "zonder naam: het domein");

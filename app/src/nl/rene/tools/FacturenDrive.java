@@ -164,8 +164,10 @@ final class FacturenDrive {
             if (code >= 400) {
                 JSONObject e = o.optJSONObject("error");
                 String m = e == null ? "" : e.optString("message", "");
-                if (code == 403) m = url.startsWith(FacturenGmail.API) ? "zet eerst de Gmail API aan in je Google-project (stap 2)" : "zet eerst de Google Drive API aan in je Google-project (stap 2)";
-                throw new Exception("Google Drive: " + (m.isEmpty() ? "fout " + code : m));
+                boolean gm = url.startsWith(FacturenGmail.API);
+                if (code == 403 && (m.isEmpty() || m.toLowerCase(java.util.Locale.ROOT).contains("has not been used") || m.toLowerCase(java.util.Locale.ROOT).contains("disabled")))
+                    m = gm ? "zet eerst de Gmail API aan in je Google-project (stap 2)" : "zet eerst de Google Drive API aan in je Google-project (stap 2)";
+                throw new Exception((gm ? "Gmail: " : "Google Drive: ") + (m.isEmpty() ? "fout " + code : m));
             }
             return o;
         } finally { h.disconnect(); }
@@ -212,10 +214,19 @@ final class FacturenDrive {
 
     /** Eén Drive-verzoek; body = JSON (metadata) of null. Bij 401 één keer met een nieuw token. */
     static JSONObject api(Context c, String methode, String url, JSONObject body) throws Exception {
-        return stuur(c, methode, url, body == null ? null : body.toString().getBytes(StandardCharsets.UTF_8), "application/json; charset=UTF-8");
+        return stuur(c, methode, url, body == null ? null : body.toString().getBytes(StandardCharsets.UTF_8), "application/json; charset=UTF-8", 5_000_000L);
+    }
+
+    /** Een GET met een groot antwoord (bijlage uit Gmail: base64 van een PDF tot Facturen.MAX_PDF). */
+    static JSONObject apiGroot(Context c, String url) throws Exception {
+        return stuur(c, "GET", url, null, null, Facturen.MAX_PDF * 4 / 3 + 65_536);
     }
 
     private static JSONObject stuur(Context c, String methode, String url, byte[] body, String type) throws Exception {
+        return stuur(c, methode, url, body, type, 5_000_000L);
+    }
+
+    private static JSONObject stuur(Context c, String methode, String url, byte[] body, String type, long max) throws Exception {
         for (int poging = 0; ; poging++) {
             HttpURLConnection h = (HttpURLConnection) new URL(url).openConnection();
             try {
@@ -228,13 +239,14 @@ final class FacturenDrive {
                 int code = h.getResponseCode();
                 if (code == 401 && poging == 0) { synchronized (TOKEN_LOCK) { accessTot = 0; } continue; }
                 InputStream in = code >= 400 ? h.getErrorStream() : h.getInputStream();
-                String t = in == null ? "" : new String(Facturen.lees(in, 5_000_000), StandardCharsets.UTF_8);
+                String t = in == null ? "" : new String(Facturen.lees(in, max), StandardCharsets.UTF_8);
                 JSONObject o = t.trim().startsWith("{") ? new JSONObject(t) : new JSONObject();
                 if (code >= 400) {
+                    if (code == 404) throw new Exception("niet (meer) gevonden");
                     JSONObject e = o.optJSONObject("error");
                     String m = e == null ? "" : e.optString("message", "");
                     if (code == 403 && m.toLowerCase(java.util.Locale.ROOT).contains("api has not been used")) m = url.startsWith(FacturenGmail.API) ? "zet de Gmail API aan in je Google-project" : "zet de Google Drive API aan in je Google-project";
-                    throw new Exception("Google Drive: " + (m.isEmpty() ? "fout " + code : m));
+                    throw new Exception((url.startsWith(FacturenGmail.API) ? "Gmail: " : "Google Drive: ") + (m.isEmpty() ? "fout " + code : m));
                 }
                 return o;
             } finally { h.disconnect(); }
@@ -257,7 +269,10 @@ final class FacturenDrive {
             } catch (Exception ignored) { }
         }
         String ouder = "root";
-        for (String naam : new String[]{Facturen.MAP, sub}) {
+        java.util.List<String> delen = new java.util.ArrayList<>();
+        delen.add(Facturen.MAP);
+        for (String d : sub.split("/")) if (!d.trim().isEmpty()) delen.add(d.trim()); // ook Facturen/<leverancier>/<afzender>
+        for (String naam : delen) {
             String zoek = "name='" + q(naam) + "' and mimeType='" + MAP_MIME + "' and '" + q(ouder) + "' in parents and trashed=false";
             JSONArray l = api(c, "GET", API + "/files?fields=files(id)&spaces=drive&q=" + enc(zoek), null).optJSONArray("files");
             if (l != null && l.length() > 0) ouder = l.getJSONObject(0).getString("id");
