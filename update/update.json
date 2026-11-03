@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.133",
-  "versionCode": 134,
-  "nativeLevel": 120,
+  "versionName": "1.134",
+  "versionCode": 135,
+  "nativeLevel": 121,
   "web": "index.html",
-  "webSha256": "584c6d1ce3d89a7b6c5d2956d3a2eadaa8c7d55b3cf730769c118767a1e14c85",
+  "webSha256": "86a357886dbc78abe5af00054e529c377265808a4208b8209e97efec2c1574ae",
   "start": "start.html",
-  "startSha256": "7deb33e30796defe3bbb456d3130254b915c2e512abc813657027d1be48c6abc",
+  "startSha256": "0ea90522dcf4d73fe5b0b6a7486ed095bcce9c93ee25b9ef370a77ac24c147f0",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "9457a6df7c0452a79b7fa744b4606a3989fd3f6672bfa80a301e6b3ce0e2b841",
+  "apkSha256": "0c296d6df317da3fd489d0ad8c7c5a7fb47b85243d6b8a211ee448cf94b94b4f",
   "changelog": [
+    {
+      "version": "1.134",
+      "date": "2026-11-03",
+      "changes": [
+        "Nieuw: Instellingen → Regio en taal: kies tijdnotatie (24- of 12-uurs), datumnotatie en eerste dag van de week, je thuis- en werkadres en een standaardplaats, eenheden (km of mijl, °C of °F, opslag, snelheid) en getallen (komma of punt, duizendtallen) en een standaardvaluta, met een voorbeeld. De hele app gebruikt ze, ook meldingen, widgets en de Telefoon-skin. Standaard blijft alles zoals het was.",
+        "Thuis uit Regio en taal gebruiken ook Apparaten, Mijn routes (thuis → werk), het weer en het thema met de zon als je locatie niet bekend is. Thuis en werk blijven op je telefoon (niet in de Google-backup).",
+        "De assistent kan het voor je aanpassen, bijvoorbeeld \"gebruik 12-uurs klok\", \"gebruik mijlen\" of \"valuta dollar\" (je bevestigt het eerst).",
+        "Bankzaken: een budget als \"12.50\" wordt nu € 12,50 (niet meer € 1250)."
+      ]
+    },
     {
       "version": "1.133",
       "date": "2026-11-03",
@@ -1167,5 +1177,5 @@
       ]
     }
   ],
-  "webSig2": "WSV9EkYurqp9z6SrbTHPotfB8na9P1qb0qDHI+77OseLC0CRQqhWh8wJjKwSVhNNiif9pKlsAPYNwxtzixKCaoGz0b1nc47btzJHTCxlJQvLlj5qJxaaXdp4OiU1+l8pUFcT9Ag/VQbXWPWAw1e1ttohp3nsyVbNK7HX6RhiJPBuB4pQA7Q8pcdTuh+CFetvkc7LvxhXApcmMdSHPmOrdJHyr9d5AXmE2nQmYFIZwU04+NpeIFkGT5Ky5YvTfcdVMfUJEdhCw6coy4ZOg3YINXjMK42iPNnG/PDDXFfjiTLKDWmPE1KT1L7FEXewxUYmys+pOePDvePdfpZLracr2cg28KEe6PQYlRyowX1iHuINZgZp4cFHxTCfekW4cS0VmYIskIDvSRVoOWZmTxvxHx7ksdK72QFvUDeZdNUxUmfsJhpv84u2DCKvBQwN9XPYU5RMPOtmxP4isAxCjKY3G2yRS1BinlqZtFJL4IQnBQC+xsXdMsm+bmqDssAqKohd"
+  "webSig2": "LRkCeTjYavuYzb1862qo+t5pACogdi/b54l6nU4bPiyExIVS6dQELxDOBZug3ZaOD4n+2sULTolXPRHdWxIVujwD5j2+Eru6ATzG7xhZ0Mp97tGx1ltS9JAC/QcibEDg7QdYhRXRFRUyERE5rNiCyWW/Y/R56rUlbNR7BgUK6BABOt1mxsVLj6b/CpDuSX0DCBA89GGQvueBT7ms1F2bR5dDZTdwx1xT2CfpB4WCWIQbHO2liIyR3dd2cNOGRe7CcbZbsFBsSvPOUmpgPyRIh8uTvjwTc07dqPZhM5UUtBn6XCwLZczkBiuAx5XDsZXG83YiAw7RPiCpW9y4xgD9xyddc8Uq2J6QSXCrx/LUgeJVwnnxVPK6uox7nqbDTGy1LxU28iSr/1H61sJLJhefAs/law/7boPoUJvwmCAuMfGGluYosy87UOBnpECCw7OTPRqmceL0WrF1w4K1sUKrwpV0db7qlMqcbH0ObPzMavhD+ytI4fDGSfhcnYrlmQo0"
 }

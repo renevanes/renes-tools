@@ -1,4 +1,0 @@
-Nieuw: Instellingen → Regio en taal: kies tijdnotatie (24- of 12-uurs), datumnotatie en eerste dag van de week, je thuis- en werkadres en een standaardplaats, eenheden (km of mijl, °C of °F, opslag, snelheid) en getallen (komma of punt, duizendtallen) en een standaardvaluta, met een voorbeeld. De hele app gebruikt ze, ook meldingen, widgets en de Telefoon-skin. Standaard blijft alles zoals het was.
-Thuis uit Regio en taal gebruiken ook Apparaten, Mijn routes (thuis → werk), het weer en het thema met de zon als je locatie niet bekend is. Thuis en werk blijven op je telefoon (niet in de Google-backup).
-De assistent kan het voor je aanpassen, bijvoorbeeld "gebruik 12-uurs klok", "gebruik mijlen" of "valuta dollar" (je bevestigt het eerst).
-Bankzaken: een budget als "12.50" wordt nu € 12,50 (niet meer € 1250).
