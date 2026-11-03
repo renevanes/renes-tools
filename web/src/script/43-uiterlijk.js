@@ -22,13 +22,14 @@ function dynPalette(){
   return p;
 }
 function applyTheme(){
+  thApply(); // thema opnieuw (bij terugkomen in de app: misschien is het intussen avond)
   const p = dynPalette();
   const decl = o => Object.entries(o).map(([k, v]) => '--' + k + ':' + v).join(';');
   let css = '';
   if (p) { const t = dynTokens(p); css = ':root{' + decl(t.light) + '}@media (prefers-color-scheme: dark){:root{' + decl(t.dark) + '}}'; }
   let st = document.getElementById('dyn-theme');
   if (!st) { st = document.createElement('style'); st.id = 'dyn-theme'; document.head.appendChild(st); }
-  if (st.textContent !== css) { st.textContent = css; bars.last = null; }
+  if (st.textContent !== css) { st.textContent = css; thCssNow(); bars.last = null; } // nieuwe regels: thema meteen vastzetten
   bars();
 }
 function stDynColor(on){ store.set('dynColor', !!on); applyTheme(); toast(on ? 'Kleuren uit je achtergrond' : 'Standaardkleuren'); }

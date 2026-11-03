@@ -1,7 +1,6 @@
 package nl.rene.tools;
 
 import android.app.Activity;
-import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.WindowInsetsController;
@@ -22,7 +21,7 @@ public class NeutralActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        boolean dark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        boolean dark = Thema.dark(this); // zoals het thema van de app (Weergave → Thema)
         int brand = dark ? 0xFF173F75 : 0xFF1E5AA8, bg = dark ? 0xFF0F141B : 0xFFF3F5F9;
         getWindow().setStatusBarColor(brand);
         getWindow().setNavigationBarColor(bg);
@@ -45,6 +44,7 @@ public class NeutralActivity extends Activity {
         try (java.io.InputStream in = getAssets().open("neutraal.html")) { html = new String(SelfTest.readAll(in), java.nio.charset.StandardCharsets.UTF_8); }
         catch (Exception e) { html = "<html><body style='font-family:sans-serif;padding:24px'>Tools</body></html>"; }
         html = html.replace("__VERSION_NAME__", versionName());
+        html = Thema.forceCss(html, dark);
         web.loadDataWithBaseURL("about:blank", html, "text/html", "utf-8", null);
         // Niet in "recente apps" met inhoud
         if (Build.VERSION.SDK_INT >= 33) {

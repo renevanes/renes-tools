@@ -26,7 +26,7 @@ if (!window.Android) window.Android = (function(){
       steps.forEach((s, i) => setTimeout(() => { if (s) { this._updLog.push(s); onUpdateStatus(s); } if (i === steps.length - 1) this._upd = false; }, (this._updMs || 60) * (i + 1)));
     }, permissions:()=>JSON.stringify({call:true,phoneState:true,callLog:true,notifications:true}),
     requestPermissions(){}, openAppSettings(){}, pickContact(){ onContactPicked({number:'010 123 4567', name:'Huisarts'}); },
-    setBars(t, b, l){ this._bars = [t, b, l]; }, themeColors(){ return this._theme ? JSON.stringify(this._theme) : ''; }, vibrate(){}, toast(m){ toast(m); }, pendingOpen:()=>'',
+    setBars(t, b, l){ this._bars = [t, b, l]; }, themeColors(){ return this._theme ? JSON.stringify(this._theme) : ''; }, themeSet(j){ this._themeCfg = j; }, themeLocation(){ return this._themeLoc || ''; }, vibrate(){}, toast(m){ toast(m); }, pendingOpen:()=>'',
     redialStart(n,name,a,i){ st={running:true,number:n,name,attempt:1,maxAttempts:a,interval:i,phase:'dialing',message:'Bellen…'}; t0=Date.now(); timer=setInterval(tick,300); return ''; },
     redialStart2(n,name,a,i,rmin,rmax){ const r=this.redialStart(n,name,a,rmin?rmin:i); st.randomMin=rmin; st.randomMax=rmax; return r; },
     redialStop(){ clearInterval(timer); st={...st,running:false,phase:'done',result:'stopped',message:'Gestopt'}; },

@@ -159,6 +159,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        // Meteen in de kleur van het gekozen thema (ook automatisch 's avonds donker): geen witte flits bij het opstarten
+        final int bg0 = Thema.bg(this);
+        final String bgHex = Thema.hex(bg0);
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(bg0));
         if (isSolo()) {
             String t = getIntent() == null ? null : getIntent().getStringExtra("solo");
             if (!Solo.allowed(this, t)) {
@@ -209,14 +213,14 @@ public class MainActivity extends Activity {
         android.widget.FrameLayout holder = new android.widget.FrameLayout(this);
         holder.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
         cover = new View(this);
-        cover.setBackgroundColor(HomeActivity.night(this) ? 0xFF0F1115 : 0xFFEEF0F7);
+        cover.setBackgroundColor(bg0);
         cover.setClickable(true); // aanrakingen niet doorlaten naar de inhoud eronder
         cover.setVisibility(View.GONE);
         holder.addView(cover, new android.widget.FrameLayout.LayoutParams(-1, -1));
         root.addView(holder, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         root.addView(bottomBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
         setContentView(root);
-        setBars(HomeActivity.night(this) ? "#0F1115" : "#EEF0F7", HomeActivity.night(this) ? "#0F1115" : "#EEF0F7", !HomeActivity.night(this));
+        setBars(bgHex, bgHex, bg0 == Thema.BG_LIGHT);
 
         if (Build.VERSION.SDK_INT >= 35) {
             // Android 15+: app tekent achter de systeembalken; wij houden ruimte vrij.
@@ -244,7 +248,7 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new MediaClient(this));
         web.setWebChromeClient(new Chrome(this));
         web.addJavascriptInterface(new Bridge(this), "Android");
-        web.setBackgroundColor(Color.parseColor(HomeActivity.night(this) ? "#0F1115" : "#EEF0F7"));
+        web.setBackgroundColor(bg0);
 
         if (Build.VERSION.SDK_INT >= 33) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
@@ -552,6 +556,14 @@ public class MainActivity extends Activity {
     @Override
     @SuppressWarnings("deprecation")
     public void onBackPressed() { handleBack(); }
+
+    /** Thema gewisseld (in de interface): achtergrond van venster, WebView en afdeklaag mee (op de hoofdthread). */
+    void themeChanged() {
+        int c = Thema.bg(this);
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(c));
+        if (web != null) web.setBackgroundColor(c);
+        if (cover != null) cover.setBackgroundColor(c);
+    }
 
     void setBars(String top, String bottom, boolean lightBottom) {
         int t = Color.parseColor(top), b = Color.parseColor(bottom);

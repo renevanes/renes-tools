@@ -4,6 +4,7 @@
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Instellingen</h1>
+    <button class="icon-btn" id="st-th-quick" onclick="thQuick()" aria-label="Donker thema"><span class="ui-icon" data-icon="moon" aria-hidden="true"></span></button>
   </div>
   <main>
     <div class="flabel stgl" role="heading" aria-level="2">Algemeen</div>
@@ -58,6 +59,22 @@
     <h1 tabindex="-1">Weergave</h1>
   </div>
   <main>
+    <div class="card" id="st-th-card">
+      <h2>Thema</h2>
+      <div class="row setrow"><label for="st-theme" style="flex:1">Licht of donker</label>
+        <select class="sel" id="st-theme" onchange="thSetMode(this.value)"></select></div>
+      <div id="st-th-time" hidden>
+        <div class="row setrow"><label for="st-th-dark" style="flex:1">Donker vanaf</label><input class="sel" type="time" id="st-th-dark" value="20:00" onchange="thSetVal('dark', this.value)"></div>
+        <div class="row setrow"><label for="st-th-light" style="flex:1">Licht vanaf</label><input class="sel" type="time" id="st-th-light" value="07:00" onchange="thSetVal('light', this.value)"></div>
+      </div>
+      <div id="st-th-sun" hidden>
+        <div class="row setrow"><label for="st-th-off" style="flex:1">Donker worden</label><select class="sel" id="st-th-off" onchange="thSetVal('off', this.value)"></select></div>
+        <div class="row setrow"><label for="st-th-loc" style="flex:1">Plaats</label><select class="sel" id="st-th-loc" onchange="thSetVal('place', this.value)"></select></div>
+        <p class="note" id="st-th-sunnote" style="margin-bottom:0"></p>
+      </div>
+      <div class="sw" id="st-amoled-row"><span>Zwart (AMOLED)<small>Bij donker een zwarte achtergrond: rustig en zuinig op een AMOLED-scherm</small></span><button class="tg" id="st-amoled" aria-label="Zwart (AMOLED)" onclick="togUi(this); thSetVal('amoled', this.classList.contains('on'))"></button></div>
+      <p class="note" id="st-th-now" aria-live="polite" style="margin-bottom:0"></p>
+    </div>
     <div class="card">
       <h2>Weergave</h2>
       <div class="sw" id="st-dyn-row"><span>Kleuren uit je achtergrond<small id="st-dyn-sub">Net als Android: de app neemt de kleuren van je achtergrond over</small></span><button class="tg" id="st-dyn" aria-label="Kleuren uit je achtergrond" onclick="togUi(this); stDynColor(this.classList.contains('on'))"></button></div>

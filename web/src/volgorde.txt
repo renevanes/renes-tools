@@ -55,6 +55,7 @@ script/00-iconen.js
 script/01-testbrug.js
 script/02-kern.js
 script/02-dialogen.js
+script/02-thema.js
 script/03-auto-redial.js
 script/04-whatsapp-backup.js
 script/05-leesbare-chats.js

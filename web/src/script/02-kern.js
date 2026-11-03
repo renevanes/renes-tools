@@ -8,7 +8,7 @@ const store = {
   set(k, v){ try { localStorage.setItem('rt.'+k, JSON.stringify(v)); } catch(e){} webStoreSync(); }
 };
 /* Instellingen van de interface (startschermindeling, keuzes) ook in de app bewaren, zodat ze mee kunnen in Alles back-uppen. */
-const WS_SKIP = /^(autoDraft|seenVersion|askedPerms|.*Asked)$/;
+const WS_SKIP = /^(autoDraft|seenVersion|askedPerms|themeNow|.*Asked)$/; // themeNow: laatst berekende themastand, hoort bij dit moment
 let webStoreTmr = null;
 function webStoreSync(){
   clearTimeout(webStoreTmr);
@@ -89,7 +89,7 @@ function closeModal(result){
 $('#modal-cancel').onclick = () => closeModal(null);
 $('#modal-ok').onclick = () => { const inp = $('#modal-input'); closeModal(inp.style.display === 'none' ? true : inp.value); };
 $('#modal').onclick = e => { if (e.target === $('#modal')) closeModal(null); };
-function dark(){ return matchMedia('(prefers-color-scheme: dark)').matches; }
+function dark(){ return uiDark(); } // het thema van de app (02-thema.js), niet alleen dat van de telefoon
 /* Systeembalken in de kleur van de kop (boven) en de tabbalk of achtergrond (onder) */
 function bars(){
   const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue(n).trim();

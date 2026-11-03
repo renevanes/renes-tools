@@ -1,4 +1,31 @@
 </style>
 </head>
 <body>
-
+<script>
+/* Thema (Weergave → Thema): alle opmaak voor donker staat in @media (prefers-color-scheme: dark). Bij Licht of Donker
+ * zet thCss die regels in de stylesheets vast op "all" of "not all" (en "light"-regels andersom); bij Systeem weer zoals
+ * ze waren. Hier al vóór de eerste weergave, met de laatst berekende stand; 02-thema.js rekent het daarna precies uit. */
+const TH_RE = /\(\s*prefers-color-scheme\s*:\s*(dark|light)\s*\)/;
+const thOrig = new Map(); // regel → oorspronkelijke mediaText (null = geen themaregel); houdt de regels vast
+function thMedia(o, dark){
+  const m = /^\s*\(\s*prefers-color-scheme\s*:\s*(dark|light)\s*\)\s*$/.exec(o);
+  if (m) return (m[1] === 'dark') === dark ? 'all' : 'not all';
+  // samengesteld, bijv. "(prefers-color-scheme: dark) and (max-width: 400px)": het themadeel altijd waar of onwaar
+  return o.replace(/\(\s*prefers-color-scheme\s*:\s*(dark|light)\s*\)/g, (x, k) => (k === 'dark') === dark ? '(min-width: 0px)' : '(max-width: -1px)');
+}
+function thCss(forced){
+  const seen = new Set();
+  const walk = rs => { for (const r of rs) {
+    if (r.media && r.cssRules) {
+      let o = thOrig.get(r);
+      if (o === undefined) { o = TH_RE.test(r.media.mediaText) ? r.media.mediaText : null; thOrig.set(r, o); }
+      seen.add(r);
+      if (o != null) { const t = forced == null ? o : thMedia(o, forced); if (r.media.mediaText !== t) r.media.mediaText = t; }
+    }
+    if (r.cssRules && r.cssRules.length) walk(r.cssRules);
+  } };
+  for (const s of document.styleSheets) { let rs = null; try { rs = s.cssRules; } catch (e) { } if (rs) walk(rs); }
+  for (const r of [...thOrig.keys()]) if (!seen.has(r)) thOrig.delete(r); // stylesheets die weg zijn
+}
+try { const n = JSON.parse(localStorage.getItem('rt.themeNow') || 'null'); if (n && typeof n.dark === 'boolean' && (!n.until || Date.now() < n.until)) thCss(n.dark); } catch (e) { }
+</script>

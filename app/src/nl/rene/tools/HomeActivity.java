@@ -635,7 +635,8 @@ public class HomeActivity extends Activity {
             int b = "today".equals(mode) ? a.insBottom + DOCK_AREA_DP : a.insBottom;
             return a.insTop + "," + b + "," + a.insKb;
         }
-        @JavascriptInterface public boolean isNight() { return night(a); }
+        /** Donker volgens het thema van Tools (Weergave → Thema; standaard zoals de telefoon). */
+        @JavascriptInterface public boolean isNight() { return Thema.dark(a); }
         /** Terug zonder iets te sluiten: als dit (nog) niet het startscherm van de telefoon is, gewoon dicht. */
         @JavascriptInterface public void backUnhandled() {
             a.h.post(() -> {

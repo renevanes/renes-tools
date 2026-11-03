@@ -22,6 +22,16 @@ public class FeatureBridge {
 
     FeatureBridge(MainActivity act) { a = act; ctx = act.getApplicationContext(); }
 
+    // ----- Thema (Weergave) -----
+
+    /** De interface geeft de gekozen stand door (zie Thema): voor de achtergrond bij het opstarten en de Telefoon-skin. */
+    @JavascriptInterface public void themeSet(String json) {
+        if (Thema.save(ctx, json)) a.h.post(a::themeChanged);
+    }
+
+    /** Laatst bekende plek, grof ("51.92,4.48"), of "" zonder toestemming; voor zonsopkomst en -ondergang. */
+    @JavascriptInterface public String themeLocation() { return Thema.lastLocation(ctx); }
+
     // ----- PDF -----
 
     private void pick(String type, String[] mimes, boolean multi, int req) {

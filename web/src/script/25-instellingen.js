@@ -8,7 +8,7 @@ function stSum(id, t){ const e = $('#st-sum-' + id); if (e) e.textContent = t; }
 function stSummaries(i){
   const lk = i.lock || {};
   if (typeof Android.notifState === 'function') { const n = stJson(Android.notifState()); stSum('notif', n.muted ? 'Alle meldingen uit' : !n.allowed ? 'Uit voor deze app' : 'Aan'); }
-  const z = $('#st-zoom'); stSum('look', (z && z.selectedIndex >= 0 ? 'Tekst: ' + z.options[z.selectedIndex].text.toLowerCase() : '') + ($('#st-dyn').classList.contains('on') ? ' · kleuren uit je achtergrond' : ''));
+  const z = $('#st-zoom'); stSum('look', 'Thema: ' + thModeName(thCfg().mode).replace(/ \(.*\)$/, '').toLowerCase() + (z && z.selectedIndex >= 0 ? ' · tekst: ' + z.options[z.selectedIndex].text.toLowerCase() : '') + ($('#st-dyn').classList.contains('on') ? ' · kleuren uit je achtergrond' : ''));
   stSum('skin', Android.homeIsDefault() ? '✓ Tools is je startscherm' : 'Tools als startscherm gebruiken');
   stSum('lock', lk.on && !(lk.secure || lk.code) ? 'Aan, maar werkt nog niet: stel een vergrendeling of app-code in' : lk.on ? 'Aan' + (lk.code ? ' · eigen app-code' : '') : 'Uit');
   const so = typeof soloAllowedList === 'function' ? soloAllowedList().length : 0;
@@ -53,6 +53,7 @@ function enterSettings(){
     $('#st-dyn').classList.toggle('on', on); $('#st-dyn').setAttribute('aria-checked', on ? 'true' : 'false'); $('#st-dyn').disabled = !can;
     $('#st-dyn-sub').textContent = can ? 'Net als Android: de app neemt de kleuren van je achtergrond over' : 'Kan vanaf Android 12; nu vaste kleuren'; }
   stHomeRender();
+  thRender();
   const i = stJson(Android.settingsInfo());
   const lk = i.lock || {};
   $('#st-lock-btn').textContent = lk.on ? 'Uitzetten' : 'Aanzetten';

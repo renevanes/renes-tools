@@ -1,6 +1,6 @@
 /* ---------- start ---------- */
 $('#hver').textContent = '(v' + ver().webName + ')';
-bars(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
+bars(); // wisselt het thema (ook de telefoon bij Systeem), dan roept 02-thema.js bars() opnieuw aan
 refreshTile(); refreshWaTile(); refreshTrackTile(); refreshSmsTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); refreshPodTile();
 const po = SOLO || Android.pendingOpen(); if (po) openTool(po); // losse app: meteen de eigen tool
 // Nieuwe installatie: eerst aanbieden om je gegevens terug te zetten; net teruggezet: het lijstje van wat opnieuw moet
