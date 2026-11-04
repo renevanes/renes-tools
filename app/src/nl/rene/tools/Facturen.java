@@ -268,7 +268,9 @@ final class Facturen {
      * Daarna alleen wat sinds de vorige keer is binnengekomen. Zuiver (getest).
      */
     static boolean heelPeriode(JSONObject lev, JSONObject t, long nu, java.util.TimeZone tz) {
-        if (t == null || t.optLong("lastOk") <= 0 || !t.has("gedekt")) return true;
+        if (t == null || t.optLong("lastOk") <= 0) return true;
+        if (t.optInt("heelPogingen") >= 3) return false; // drie keer niet gelukt (bijv. te lang): gewoon verder; "Alles opnieuw ophalen" probeert weer
+        if (!t.has("gedekt")) return true;
         long v = vanaf(lev, nu, tz), g = t.optLong("gedekt");
         return v < g - 86_400_000L; // ook "alles" (0) terwijl er maar een deel gedekt is
     }
@@ -581,7 +583,7 @@ final class Facturen {
         boolean heel = heelPeriode(lev, t, nu0, java.util.TimeZone.getDefault());
         // De hele periode: wat eerder buiten de (toen kleinere) periode viel, opnieuw bekijken
         if (heel) for (Iterator<String> it = verwerkt.keys(); it.hasNext(); ) { JSONObject r = verwerkt.optJSONObject(it.next()); if (r != null && r.optBoolean("buiten")) it.remove(); }
-        long grens = grens(lev, heel ? 0 : t.optLong("lastOk"), nu0, java.util.TimeZone.getDefault());
+        long grens = grens(lev, t.optLong("lastOk"), nu0, java.util.TimeZone.getDefault()); // met de marge over de jaarwisseling, ook bij inhalen
         java.util.List<String> nieuweSha = new java.util.ArrayList<>();
         File d = pdfDir(c, id);
         if (!d.isDirectory() && !d.mkdirs()) throw new Exception("Opslagmap maken lukt niet");
@@ -624,7 +626,7 @@ final class Facturen {
             werkBij(c, id, new JSONObject().put("verwerkt", verwerkt)); // na elke factuur: bij een onderbreking niet dubbel
         }
         // Tellen in facturen, niet in documenten: bijlagen en specificaties horen bij hun factuur
-        int facturen = nieuw == 0 ? 0 : FacturenDossier.aantal(FacturenDossier.alle(c), nieuweSha);
+        int facturen = nieuw == 0 ? 0 : FacturenDossier.aantalNieuw(FacturenDossier.alle(c), nieuweSha);
         return new JSONObject().put("nieuw", facturen).put("documenten", nieuw).put("gevonden", pdfs.size()).put("buiten", buiten).put("namen", namen).put("fouten", fouten)
                 .put("heel", heel).put("vanaf", vanaf(lev, nu0, java.util.TimeZone.getDefault()));
     }

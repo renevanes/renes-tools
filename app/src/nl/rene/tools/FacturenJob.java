@@ -137,6 +137,7 @@ public class FacturenJob extends JobService {
             long m = Facturen.gepland(lev, nu, true, tz);
             JSONObject t = Facturen.toestand(c, lev.optString("id"));
             if (t.optBoolean("mailMeer")) m = Math.min(m, Math.max(nu + 60_000L, t.optLong("lastTry") + 3_600_000L)); // de rest van de mail over een uur
+            if (Facturen.heelPeriode(lev, t, nu, tz)) m = Math.min(m, Math.max(nu + 60_000L, t.optLong("lastTry") + lev.optInt("opnieuw", 3) * 3_600_000L)); // hele periode nog inhalen
             if (t.optLong("lastOk") < Facturen.gepland(lev, nu, false, tz)) // nog open: opnieuw proberen
                 m = Math.min(m, Math.max(nu + 60_000L, t.optLong("lastTry") + lev.optInt("opnieuw", 3) * 3_600_000L));
             if (lev.optBoolean("wifi")) wifi = Math.min(wifi, m); else any = Math.min(any, m);

@@ -109,6 +109,8 @@ final class FacturenDossier {
 
     static String nummer(JSONObject s) { JSONObject m = s.optJSONObject("meta"); return m == null ? "" : m.optString("nummer", "").trim().toLowerCase(Locale.ROOT); }
     static String mailId(JSONObject s) { JSONObject b = s.optJSONObject("bron"); return b == null ? "" : b.optString("mailId", ""); }
+    /** jjjj-mm van de herkende factuurdatum, of "". */
+    static String maand(JSONObject s) { JSONObject m = s.optJSONObject("meta"); String d = m == null ? "" : m.optString("datum", ""); return d.matches("\\d{4}-\\d{2}-\\d{2}") ? d.substring(0, 7) : ""; }
 
     /**
      * Per document (sha) de sleutel van de factuur waar het bij hoort. Zelfde leverancier (bij mail: afzender) en
@@ -121,12 +123,17 @@ final class FacturenDossier {
         java.util.List<String> keys = new java.util.ArrayList<>();
         for (Iterator<String> it = items.keys(); it.hasNext(); ) keys.add(it.next());
         java.util.Collections.sort(keys); // vaste volgorde
-        for (String k : keys) {
+        // Zelfde nummer maar een andere maand (bijv. een klantnummer dat als factuurnummer is herkend): aparte facturen.
+        // Een document met nummer maar zonder datum hoort bij de eerste factuur met dat nummer.
+        java.util.Map<String, String> eersteMetNr = new java.util.HashMap<>();
+        for (int ronde = 0; ronde < 2; ronde++) for (String k : keys) {
             JSONObject s = items.optJSONObject(k); if (s == null) continue;
-            String nr = nummer(s), mid = mailId(s);
-            if (nr.isEmpty()) continue;
+            String nr = nummer(s), mid = mailId(s), mnd = maand(s);
+            if (nr.isEmpty() || (ronde == 0) == mnd.isEmpty()) continue; // eerst de documenten met datum
             JSONObject b = s.optJSONObject("bron");
-            String g = "n|" + s.optString("leverancier") + "|" + (b == null ? "" : b.optString("afzender", "")) + "|" + nr;
+            String basis = "n|" + s.optString("leverancier") + "|" + (b == null ? "" : b.optString("afzender", "")) + "|" + nr;
+            String g = !mnd.isEmpty() ? basis + "|" + mnd : eersteMetNr.containsKey(basis) ? eersteMetNr.get(basis) : basis;
+            if (!eersteMetNr.containsKey(basis)) eersteMetNr.put(basis, g);
             uit.put(k, g);
             if (!mid.isEmpty() && !perMail.containsKey(s.optString("leverancier") + "|" + mid)) perMail.put(s.optString("leverancier") + "|" + mid, g);
         }
@@ -144,6 +151,15 @@ final class FacturenDossier {
         java.util.Map<String, String> g = groepen(items);
         java.util.Set<String> s = new java.util.HashSet<>();
         for (String sha : shas) s.add(g.containsKey(sha) ? g.get(sha) : "s|" + sha);
+        return s.size();
+    }
+
+    /** Hoeveel nieuwe facturen: documenten die bij een factuur horen die er al was (een extra bijlage) tellen niet. */
+    static int aantalNieuw(JSONObject items, java.util.Collection<String> nieuw) {
+        java.util.Map<String, String> g = groepen(items);
+        java.util.Set<String> oud = new java.util.HashSet<>(), s = new java.util.HashSet<>();
+        for (Iterator<String> it = items.keys(); it.hasNext(); ) { String k = it.next(); if (!nieuw.contains(k) && g.containsKey(k)) oud.add(g.get(k)); }
+        for (String sha : nieuw) { String k = g.containsKey(sha) ? g.get(sha) : "s|" + sha; if (!oud.contains(k)) s.add(k); }
         return s.size();
     }
 

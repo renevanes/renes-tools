@@ -211,7 +211,15 @@ final class FacturenAanlever {
         }
         JSONObject v = stuk.optJSONObject("verzonden"), x = v == null ? null : v.optJSONObject(ontv.optString("id"));
         if (x != null) return !x.optBoolean("ok") && x.optInt("pogingen") < MAX_POGINGEN; // na 5 keer mislukt alleen nog via Opnieuw in het dossier // al eens geprobeerd (of "opnieuw aanleveren"): open tot het lukt
-        return stuk.optLong("opgehaald") >= ontv.optLong("vanaf");
+        if (stuk.optLong("opgehaald") < ontv.optLong("vanaf")) return false;
+        // Oude facturen die later alsnog zijn opgehaald (de hele periode inhalen): niet vanzelf meesturen; dat kan met de hand
+        JSONObject m = stuk.optJSONObject("meta");
+        String d = m == null ? "" : m.optString("datum", "");
+        if (ontv.optLong("vanaf") > 0 && d.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            String grens = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(new java.util.Date(ontv.optLong("vanaf") - 60L * 86_400_000L));
+            if (d.compareTo(grens) < 0) return false;
+        }
+        return true;
     }
 
     /** Het bestand in de app, alleen als het echt in de facturenmap staat (een aangepast dossier kan niets anders meesturen). */

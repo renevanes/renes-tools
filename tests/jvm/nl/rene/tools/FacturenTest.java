@@ -213,6 +213,10 @@ public class FacturenTest {
             JSONObject t = new JSONObject().put("lastOk", nuP - 86_400_000L).put("lastTry", nuP - 3_600_000L);
             check(!Facturen.inhalen(levJaar.put("opnieuw", 3), t, nuP, tz) && Facturen.inhalen(levJaar, t.put("lastTry", nuP - 4 * 3_600_000L), nuP, tz), "inhalen hooguit om de paar uur");
             check(!Facturen.inhalen(new JSONObject(levJaar.toString()).put("schema", "uit"), t, nuP, tz), "met de hand: niet vanzelf inhalen");
+            check(!Facturen.heelPeriode(levJaar, new JSONObject().put("lastOk", 1).put("heelPogingen", 3), nuP, tz), "drie keer niet gelukt: niet meer vanzelf inhalen");
+            JSONObject levM = new JSONObject().put("periode", new JSONObject().put("soort", "jaar"));
+            long lo = nuP - 330L * 86_400_000L; // vorige keer eind vorig jaar
+            check(FacturenMail.sindsHeel(levM, lo, 0, nuP, tz) == lo - 2 * 86_400_000L && FacturenMail.sindsHeel(levM, 0, 0, nuP, tz) == Facturen.vanaf(levM, nuP, tz), "inhalen houdt de marge over de jaarwisseling");
         }
 
         // ---------- documenten per factuur en overzicht per maand ----------
@@ -233,6 +237,13 @@ public class FacturenTest {
             check(g.get("m1").equals(g.get("m2")) && !g.get("m3").equals(g.get("m1")), "bijlage zonder nummer uit dezelfde mail hoort bij de factuur");
             check(FacturenDossier.aantalVan(items, "kpn") == 2 && FacturenDossier.aantalVan(items, "gm") == 2, "aantal facturen, niet documenten");
             check(FacturenDossier.aantal(items, Arrays.asList("a", "b", "m2")) == 2, "nieuwe documenten tellen als facturen");
+            // Zelfde "nummer" in een andere maand (bijv. een klantnummer): aparte facturen
+            JSONObject items2 = new JSONObject(items.toString());
+            items2.put("d", new JSONObject().put("sha", "d").put("leverancier", "kpn").put("bron", new JSONObject()).put("meta", new JSONObject().put("nummer", "7001").put("datum", "2026-03-05").put("bedrag", "41,00")));
+            items2.put("e", new JSONObject().put("sha", "e").put("leverancier", "kpn").put("bron", new JSONObject()).put("meta", new JSONObject().put("nummer", "7001")));
+            java.util.Map<String, String> g2 = FacturenDossier.groepen(items2);
+            check(!g2.get("d").equals(g2.get("a")) && g2.get("e") != null && (g2.get("e").equals(g2.get("a")) || g2.get("e").equals(g2.get("d"))), "zelfde nummer in een andere maand: aparte factuur; zonder datum hoort hij bij een ervan");
+            check(FacturenDossier.aantalNieuw(items, Arrays.asList("b")) == 0 && FacturenDossier.aantalNieuw(items, Arrays.asList("c", "m3")) == 2, "extra bijlage bij een bestaande factuur is geen nieuwe factuur");
             JSONObject mk = FacturenDossier.maanden(items, "kpn");
             check(mk.optInt("2026-01") == 1 && mk.optInt("2026-02") == 1 && mk.length() == 2, "overzicht per maand op factuurdatum: " + mk);
             JSONObject mg = FacturenDossier.maanden(items, "gm");

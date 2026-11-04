@@ -120,7 +120,7 @@ public class FacturenBridge extends GebruikBridge {
             synchronized (Facturen.LOCK) {
                 JSONObject t = Facturen.toestand(ctx, id), vw = t.optJSONObject("verwerkt");
                 if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) { JSONObject r = vw.optJSONObject(it.next()); if (r != null && r.optBoolean("buiten")) it.remove(); }
-                Facturen.werkBij(ctx, id, new JSONObject().put("lastOk", 0).put("mailSinds", 0).put("mailMeer", false).put("verwerkt", vw == null ? new JSONObject() : vw));
+                Facturen.werkBij(ctx, id, new JSONObject().put("lastOk", 0).put("mailSinds", 0).put("mailMeer", false).put("heelPogingen", 0).put("verwerkt", vw == null ? new JSONObject() : vw));
             }
             return "";
         } catch (Exception e) { return e.getMessage() == null ? "Lukt niet" : e.getMessage(); }

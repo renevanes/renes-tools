@@ -113,6 +113,12 @@ public class FacturenAanleverTest {
         JSONObject ontv = new JSONObject(on.toString()).put("id", "jansen").put("vanaf", 900);
         check(FacturenAanlever.open(ontv, stuk("x", "kpn", 1000, "", "")), "nieuw stuk staat open");
         check(!FacturenAanlever.open(ontv, stuk("x", "kpn", 800, "", "")), "van vóór de ontvanger: niet");
+        { // Later alsnog opgehaalde oude factuur (de hele periode inhalen): niet vanzelf naar de ontvanger
+            long okt = 1_790_800_000_000L; // begin oktober 2026
+            JSONObject o2 = new JSONObject(on.toString()).put("id", "jansen").put("vanaf", okt);
+            check(!FacturenAanlever.open(o2, stuk("y", "kpn", okt + 86_400_000L, "2026-02-01", "10,00")), "oude factuur die later binnenkwam: niet vanzelf");
+            check(FacturenAanlever.open(o2, stuk("z", "kpn", okt + 86_400_000L, "2026-09-25", "10,00")) && FacturenAanlever.open(o2, stuk("w", "kpn", okt + 86_400_000L, "", "")), "recente factuur of zonder datum: wel");
+        }
         check(!FacturenAanlever.open(ontv, s1), "al aangeleverd: niet");
         JSONObject mis = stuk("y", "kpn", 1000, "", ""); mis.getJSONObject("verzonden").put("jansen", new JSONObject().put("ok", false));
         check(FacturenAanlever.open(ontv, mis), "mislukt: weer open");

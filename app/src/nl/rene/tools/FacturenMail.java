@@ -92,6 +92,13 @@ final class FacturenMail {
         return Facturen.vanaf(lev, nu, tz);
     }
 
+    /** Hele periode inhalen: vanaf het begin van de periode, maar nooit later dan sinds de vorige keer (jaarwisseling). */
+    static long sindsHeel(JSONObject lev, long lastOk, long verder, long nu, java.util.TimeZone tz) {
+        if (verder > 0) return verder - 1000L;
+        long v = Facturen.vanaf(lev, nu, tz);
+        return lastOk > 0 ? Math.min(v, lastOk - 2 * 86_400_000L) : v;
+    }
+
     /** "KPN Zakelijk <noreply@kpn.com>" → "KPN Zakelijk"; zonder naam het domein ("kpn.com"). */
     static String afzenderNaam(String van) {
         if (van == null) return "Onbekend";

@@ -140,7 +140,7 @@ function faMaandRender(){
   $('#fa-maand-h').textContent = 'Deze maand · ' + faMaandNaam(dezeMaand);
   $('#fa-maand-lijst').innerHTML = l.map(x => {
     const n = (x.maanden || {})[dezeMaand] || 0, p = faPeriode(x);
-    const binnen = n ? '✓ ' + n + (n === 1 ? ' factuur binnen' : ' facturen binnen') : p.soort === 'mis' ? '✗ Nog niet: mislukt' : x.schema !== 'uit' && x.volgende && faMaandSleutel(x.volgende) === dezeMaand && !(x.vorige && faMaandSleutel(x.vorige) === dezeMaand) ? 'Gepland ' + faMoment(x.volgende) : x.schema === 'uit' ? 'Alleen met de hand' : 'Nog niets binnen';
+    const binnen = n ? '✓ ' + n + (n === 1 ? ' factuur van deze maand' : ' facturen van deze maand') : p.soort === 'ok' ? 'Opgehaald; nog geen factuur met een datum in deze maand' : p.soort === 'mis' ? '✗ Nog niet: mislukt' : x.schema !== 'uit' && x.volgende && faMaandSleutel(x.volgende) === dezeMaand && !(x.vorige && faMaandSleutel(x.vorige) === dezeMaand) ? 'Gepland ' + faMoment(x.volgende) : x.schema === 'uit' ? 'Alleen met de hand' : 'Nog niets binnen';
     return '<div class="bkres"><b>' + esc(x.naam) + '</b><span class="' + (n ? 'good' : p.soort === 'mis' ? 'bad' : '') + '">' + esc(binnen) + '</span></div>';
   }).join('');
   // Laatste 12 maanden; ✓ = facturen binnen, ✗ = alleen mislukte pogingen, – = niets
@@ -154,7 +154,7 @@ function faMaandRender(){
   };
   $('#fa-overzicht-lijst').innerHTML = '<table class="fa-tab"><thead><tr><th scope="col">Maand</th>' + l.map(x => '<th scope="col">' + esc(x.naam) + '</th>').join('') + '</tr></thead><tbody>' +
     maanden.map(m => '<tr><th scope="row">' + esc(faMaandNaam(m)) + '</th>' + l.map(x => cel(x, m)).join('') + '</tr>').join('') + '</tbody></table>' +
-    '<p class="note">✓ = aantal facturen dat binnenkwam, ✗ = ophalen mislukt, – = niets.</p>';
+    '<p class="note">✓ = aantal facturen met een factuurdatum in die maand (bijlagen tellen niet apart; zonder herkende datum telt de dag van de mail of van ophalen), ✗ = ophalen mislukt in die maand, – = niets.</p>';
 }
 function faGeschiedenis(l){
   const log = (l.toestand || {}).log || [];
@@ -189,7 +189,7 @@ window.onFacturenKlaar = function(r){
 function faBekijk(l){
   const lijst = rdJson(Android.facturenLijst(l.id), []);
   if (!lijst.length) { toast('Nog geen facturen in de app'); return; }
- openSheet(l.naam, lijst.length + (lijst.length === 1 ? ' document' : ' documenten') + (l.facturen && l.facturen < lijst.length ? ' (' + l.facturen + (l.facturen === 1 ? ' factuur' : ' facturen') + ' met bijlagen)' : ''), lijst.slice(0, 40).map(f => [f.naam + ' · ' + faDatum(f.t), () => Android.facturenOpen(l.id, f.naam)]));
+  openSheet(l.naam, lijst.length + (lijst.length === 1 ? ' document' : ' documenten') + (l.facturen && l.facturen < lijst.length ? ' (' + l.facturen + (l.facturen === 1 ? ' factuur' : ' facturen') + ' met bijlagen)' : ''), lijst.slice(0, 40).map(f => [f.naam + ' · ' + faDatum(f.t), () => Android.facturenOpen(l.id, f.naam)]));
 }
 function faNieuw(){
   const s = faSt.sjablonen || [];
@@ -529,8 +529,17 @@ function fdGroep(s, g){
 function fdGroepen(items){
   const uit = new Map(), perMail = new Map(), nr = s => String((s.meta || {}).nummer || '').trim().toLowerCase(), mid = s => (s.bron || {}).mailId || '';
   const l = items.slice().sort((a, b) => a.sha < b.sha ? -1 : a.sha > b.sha ? 1 : 0);
-  for (const s of l) { if (!nr(s)) continue; const g = 'n|' + s.leverancier + '|' + ((s.bron || {}).afzender || '') + '|' + nr(s); uit.set(s.sha, g); if (mid(s) && !perMail.has(s.leverancier + '|' + mid(s))) perMail.set(s.leverancier + '|' + mid(s), g); }
-  for (const s of l) { if (uit.has(s.sha)) continue; uit.set(s.sha, mid(s) ? (perMail.get(s.leverancier + '|' + mid(s)) || 'm|' + s.leverancier + '|' + mid(s)) : 's|' + s.sha); }
+  // Zelfde nummer in een andere maand: aparte facturen; een document met nummer zonder datum hoort bij de eerste met dat nummer
+  const mnd = s => /^\d{4}-\d{2}-\d{2}$/.test((s.meta || {}).datum || '') ? s.meta.datum.slice(0, 7) : '', eerste = new Map();
+  for (const ronde of [0, 1]) for (const s of l) {
+    if (!nr(s) || (ronde === 0) === !mnd(s)) continue;
+    const basis = 'n|' + (s.leverancier || '') + '|' + ((s.bron || {}).afzender || '') + '|' + nr(s);
+    const g = mnd(s) ? basis + '|' + mnd(s) : eerste.has(basis) ? eerste.get(basis) : basis;
+    if (!eerste.has(basis)) eerste.set(basis, g);
+    uit.set(s.sha, g);
+    if (mid(s) && !perMail.has((s.leverancier || '') + '|' + mid(s))) perMail.set((s.leverancier || '') + '|' + mid(s), g);
+  }
+  for (const s of l) { if (uit.has(s.sha)) continue; const lv = s.leverancier || ''; uit.set(s.sha, mid(s) ? (perMail.get(lv + '|' + mid(s)) || 'm|' + lv + '|' + mid(s)) : 's|' + s.sha); }
   return uit;
 }
 /** Het hoofddocument van een factuur: met bedrag en datum, anders met bedrag, anders het eerste. */
@@ -636,6 +645,7 @@ function fsToon(sha){
   $('#fs-docs-l').innerHTML = geord.map((x, i) => {
     const kan = !!((x.plekken || {}).app && !(x.plekken || {}).app.weg), dit = x.sha === sha;
     return '<div class="fs-doc' + (dit ? ' fs-dit' : '') + '"><span class="fs-doc-n"><b>' + (i === 0 ? 'Factuur' : 'Bijlage ' + i) + (dit ? ' · getoond' : '') + '</b><small>' + esc(x.naam || '') + '</small></span>'
+      + (kan ? '' : '<small class="note" style="margin:0">niet meer in de app</small>')
       + '<button class="mini" style="float:none" data-i="' + i + '" onclick="fsOpenDoc(+this.dataset.i)"' + (kan ? '' : ' disabled') + ' aria-label="' + esc((i === 0 ? 'Factuur' : 'Bijlage ' + i) + ' openen: ' + (x.naam || '')) + '">Openen</button>'
       + (dit ? '' : '<button class="mini" style="float:none" data-sha="' + esc(x.sha) + '" onclick="fsToon(this.dataset.sha)" aria-label="Gegevens van ' + esc(x.naam || '') + '">Gegevens</button>') + '</div>';
   }).join('');
