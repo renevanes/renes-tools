@@ -347,7 +347,7 @@ if (!window.Android) window.Android = (function(){
       {title: 'Tandarts', begin: n + 2 * 36e5, end: n + 3 * 36e5, allDay: false, loc: 'Coolsingel 1', id: 1, color: '#e11d48'},
       {title: 'Overleg met team', begin: n + 26 * 36e5, end: n + 27 * 36e5, allDay: false, loc: '', id: 2, color: '#2563eb'},
       {title: 'Verjaardag Jos', begin: n + 50 * 36e5, end: n + 74 * 36e5, allDay: true, loc: '', id: 3, color: '#16a34a'}]}); },
-    calendarPermission(){}, openEvent(id){ this._ev = id; }, nextAlarm(){ return Date.now() + 15 * 36e5; }, openClock(){ this._clock = true; },
+    calendarPermission(){}, openEvent(id){ this._ev = id; }, nextAlarm(){ return Date.now() + 15 * 36e5; }, taal(){ try { return localStorage.getItem('skinTestTaal') || ''; } catch (e) { return ''; } }, regio(){ try { return localStorage.getItem('skinTestRegio') || '{}'; } catch (e) { return '{}'; } }, openClock(){ this._clock = true; },
     weather(){ setTimeout(() => onWeather({t: Date.now(), temp: 14.6, code: 3, day: true, wind: 18, rainSoon: 60, place: 'Rotterdam',
       days: [{date: '2026-10-04', code: 3, max: 16, min: 9, rain: 60}, {date: '2026-10-05', code: 61, max: 14, min: 8, rain: 80}, {date: '2026-10-06', code: 1, max: 17, min: 7, rain: 10}, {date: '2026-10-07', code: 2, max: 18, min: 10, rain: 20}]}), 50); },
     cities(q){ setTimeout(() => onCities([{name: 'Rotterdam', sub: 'Zuid-Holland, Nederland', lat: 51.92, lon: 4.48}, {name: 'Rotterdam', sub: 'New York, Verenigde Staten', lat: 42.8, lon: -73.9}]), 50); },
@@ -389,8 +389,148 @@ if (MODE === 'overlay') document.addEventListener('pointerdown', () => {
 }, true);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const J = (s, d) => { try { return JSON.parse(s); } catch(e) { return d; } };
-function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); }
-window.addEventListener('error', e => { try { Android.logJs((e.message || 'fout') + ' :' + (e.lineno || 0)); } catch(x){} });
+/* Taal (Instellingen → Regio en taal → Taal): staat de app in het Engels, dan geeft Java het woordenboek (Android.taal) */
+var TAAL = { on: false, d: null, obs: null, busy: false }, TAAL_JSON = '';
+try { TAAL_JSON = typeof Android.taal === 'function' ? String(Android.taal() || '') : ''; } catch (e) { TAAL_JSON = ''; }
+function taalDict(){ if (!TAAL.d) { let d = {}; try { if (TAAL_JSON) d = JSON.parse(TAAL_JSON) || {}; } catch (e) { d = {}; } TAAL.d = new Map(Object.entries(d)); } return TAAL.d; }
+/* taal-kern: begin — dit blok staat letterlijk ook in web/start.html (de Telefoon-skin); taal-dekking.test.js vergelijkt ze */
+/* Hoe een sleutel eruitziet: witruimte samengevoegd, zonder zachte afbreekstreepjes, zonder spaties aan de randen */
+function taalNorm(s){ return String(s).replace(/\u00ad/g, '').replace(/[ \t\r\n]+/g, ' ').trim(); }
+/* Vul {naam} in (alleen namen die in v staan) */
+function taalFill(s, v){ return v ? String(s).replace(/\{(\w+)\}/g, (m, k) => Object.prototype.hasOwnProperty.call(v, k) && v[k] != null ? String(v[k]) : m) : s; }
+/* De vertaling van een sleutel, of undefined; houdt de witruimte aan de randen van de oorspronkelijke tekst vast */
+function taalLookup(s, v){
+  const raw = String(s), k = taalNorm(raw); if (!k) return undefined;
+  let e = taalDict().get(k);
+  if (e == null) return undefined;
+  if (Array.isArray(e)) e = e[v && +v.n === 1 ? 0 : 1];
+  const lead = /^\s*/.exec(raw)[0], trail = /\s*$/.exec(raw)[0];
+  return lead + e + (trail.length < raw.length - lead.length ? trail : '');
+}
+function t(s, v){
+  if (s == null) return '';
+  if (TAAL.on) {
+    const r = taalLookup(s, v);
+    if (r !== undefined) {
+      // Onthouden welk Nederlands bij deze Engelse tekst hoort: dan kan terug naar Nederlands precies (ook ingevuld)
+      const en = taalFill(r, v), m = TAAL.src || (TAAL.src = new Map());
+      if (m.size > 5000) m.clear();
+      m.set(taalNorm(en), taalFill(s, v));
+      return en;
+    }
+  }
+  return taalFill(s, v);
+}
+/* Enkelvoud of meervoud: tn(3, 'Eén bestand', '{n} bestanden') → "3 bestanden" / "3 files" */
+function tn(n, one, many, v){ return t(+n === 1 ? one : many, Object.assign({ n: n }, v)); }
+/* Een woord dat in het Engels per plek iets anders is ("Klaar": Done of Ready): tc('status', 'Klaar') zoekt eerst
+   "Klaar @status" in het woordenboek, anders gewoon "Klaar". In HTML: data-taal="status" op het element zelf. */
+function tc(c, s, v){
+  const r = TAAL.on && s != null ? taalLookup(taalNorm(s) + ' @' + c, v) : undefined;
+  if (r === undefined) return t(s, v);
+  const en = taalFill(r, v), m = TAAL.src || (TAAL.src = new Map());
+  m.set(taalNorm(en), taalFill(s, v));
+  return en;
+}
+/* Tekst in de taal van de app, voor de assistent en Java: 'nl' of 'en' */
+function appLang(){ return TAAL.on ? 'en' : 'nl'; }
+
+/* ---------- de schermen vertalen ---------- */
+const TAAL_ATTRS = ['placeholder', 'aria-label', 'title', 'alt'];
+const TAAL_INLINE = new Set(['BUTTON', 'B', 'I', 'EM', 'STRONG', 'SMALL', 'U', 'BR', 'CODE', 'KBD', 'SUP', 'SUB', 'A', 'SPAN', 'MARK', 'S', 'Q', 'ABBR', 'WBR']);
+const TAAL_SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'NOSCRIPT', 'SVG', 'svg', 'CODE', 'PRE']);
+/* Element dat als geheel vertaald wordt: eigen tekst én opmaak met tekst, alleen opmaak-elementen, niets met een id */
+function taalUnit(el){
+  if (!el.firstElementChild || !el.firstChild) return false;
+  let text = false, inl = false;
+  for (let c = el.firstChild; c; c = c.nextSibling) {
+    if (c.nodeType === 3) { if (/\S/.test(c.data)) text = true; }
+    else if (c.nodeType === 1) { if (!taalInl(c)) return false; if (/\S/.test(c.textContent)) inl = true; }
+  }
+  if (!text || !inl) return false;
+  for (const d of el.querySelectorAll('*')) if (!taalInl(d) || d.hasAttribute('translate')) return false;
+  return true;
+}
+/* Opmaak zonder id; eenheden die Regio en taal zelf invult (rg-u-…) wisselen, die horen er niet bij */
+function taalInl(e){ return TAAL_INLINE.has(e.tagName) && !e.id && !/\brg-u-/.test(e.className || ''); }
+function taalSkip(el){ return el.nodeType === 1 && (TAAL_SKIP.has(el.tagName) || el.getAttribute('translate') === 'no' || el.isContentEditable); }
+/* Alle sleutels van een stuk pagina (ook gebruikt door de dekkingstest): [soort, sleutel] */
+function taalKeys(root){
+  const out = [];
+  const walk = n => {
+    if (n.nodeType === 3) { const k = taalNorm(n.data); if (/\p{L}/u.test(k)) out.push(['tekst', k + taalCtx(n)]); return; }
+    if (n.nodeType !== 1) return;
+    const ta = n.tagName === 'TEXTAREA' && n.getAttribute('translate') !== 'no'; // wel de placeholder, niet de inhoud
+    if (taalSkip(n) && !ta) return;
+    for (const a of TAAL_ATTRS) { const v = n.getAttribute(a); if (v && /\p{L}/u.test(v)) out.push(['attr', taalNorm(v)]); }
+    if (ta) return;
+    if (n.tagName === 'INPUT' && /^(button|submit)$/i.test(n.type) && n.value) out.push(['attr', taalNorm(n.value)]);
+    if (taalUnit(n)) { out.push(['html', taalNorm(n.innerHTML)]); return; }
+    for (let c = n.firstChild; c; c = c.nextSibling) walk(c);
+  };
+  walk(root);
+  return out;
+}
+/* Eén tekstknoop: de Nederlandse tekst onthouden (voor terug naar Nederlands) en de vertaling zetten */
+function taalText(n){
+  const d = n.data; if (d === n.__tEn || !/\p{L}/u.test(d)) return;
+  const p = n.parentNode; if (!p || (p.nodeType === 1 && (taalSkip(p) || p.closest('[translate="no"]')))) return;
+  const c = taalCtx(n), r = (c && taalLookup(d.trim() + c)) || taalLookup(d); if (r === undefined) return;
+  n.__tNl = d; n.__tEn = r; n.data = r;
+}
+/* De plek van een tekst (data-taal op het element eromheen), als " @plek" achter de sleutel */
+function taalCtx(n){ const p = n.parentNode, c = p && p.nodeType === 1 && p.getAttribute('data-taal'); return c ? ' @' + c : ''; }
+function taalAttr(el, a){
+  const v = el.getAttribute(a); if (!v || (el.__tEnA && el.__tEnA[a] === v)) return;
+  const r = taalLookup(v); if (r === undefined) return;
+  (el.__tNlA = el.__tNlA || {})[a] = v; (el.__tEnA = el.__tEnA || {})[a] = r;
+  el.setAttribute(a, r);
+}
+function taalWalk(root){
+  if (root.nodeType === 3) { taalText(root); return; }
+  if (root.nodeType !== 1 && root.nodeType !== 11) return;
+  if (root.nodeType === 1 && root.closest('[translate="no"]')) return;
+  const walk = n => {
+    if (n.nodeType === 3) { taalText(n); return; }
+    if (n.nodeType !== 1 && n.nodeType !== 11) return;
+    if (n.nodeType === 1) {
+      const ta = n.tagName === 'TEXTAREA' && n.getAttribute('translate') !== 'no'; // wel de placeholder, niet de inhoud
+      if (taalSkip(n) && !ta) return;
+      for (const a of TAAL_ATTRS) if (n.hasAttribute(a)) taalAttr(n, a);
+      if (ta) return;
+      if (n.tagName === 'INPUT' && /^(button|submit)$/i.test(n.type) && n.value) { const r = taalLookup(n.value); if (r !== undefined) { n.__tNlV = n.value; n.value = r; } }
+      if (n.__tEnH !== undefined && n.innerHTML === n.__tEnH) return;
+      if (taalUnit(n)) {
+        const r = taalLookup(n.innerHTML);
+        if (r !== undefined) { n.__tNlH = n.innerHTML; n.innerHTML = r; n.__tEnH = n.innerHTML; return; }
+      }
+    }
+    for (let c = n.firstChild; c; c = c.nextSibling) walk(c);
+  };
+  walk(root);
+}
+function taalObserve(recs){
+  if (TAAL.busy) return;
+  TAAL.busy = true;
+  try {
+    const seen = new Set();
+    for (const r of recs) {
+      if (r.type === 'characterData') { taalText(r.target); continue; }
+      if (r.type === 'attributes') { if (r.target.nodeType === 1) taalAttr(r.target, r.attributeName); continue; }
+      // Nieuwe knopen: het ouder-element opnieuw bekijken (een geheel met opmaak kan net compleet zijn geworden)
+      const p = r.target;
+      if (!p || p.nodeType !== 1 || seen.has(p) || !p.isConnected) continue;
+      if (taalUnit(p)) { seen.add(p); taalWalk(p); }
+      else r.addedNodes.forEach(n => { if (n.isConnected) taalWalk(n); });
+    }
+  } catch (e) { }
+  finally { TAAL.busy = false; taalObs().takeRecords(); }
+}
+function taalObs(){ return TAAL.obs || (TAAL.obs = new MutationObserver(taalObserve)); }
+/* taal-kern: eind */
+if (TAAL_JSON) { TAAL.on = true; document.documentElement.lang = 'en'; const go = () => { TAAL.busy = true; try { taalWalk(document.body); } finally { TAAL.busy = false; } taalObs().observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: TAAL_ATTRS }); }; if (document.body) go(); else addEventListener('DOMContentLoaded', go); }
+function toast(m){ const el = $('#toast'); el.textContent = t(m); el.classList.add('on'); clearTimeout(toast.tm); toast.tm = setTimeout(() => el.classList.remove('on'), 2400); }
+window.addEventListener('error', e => { try { Android.logJs((e.message || 'fout') /* taal-vast: logregel, niet in beeld */ + ' :' + (e.lineno || 0)); } catch(x){} });
 
 /* ---------- instellingen (indeling en look) ---------- */
 const DEF = {pinned: [], dock: null, hidden: [], folders: {}, theme: 'auto', accent: '#3b82f6', bg: 'wallpaper', icon: 'm', cols: 4, labels: true,
@@ -522,10 +662,10 @@ document.addEventListener('error', e => {
 function appHtml(k, where){
   if (k.startsWith('f:')) {
     const f = k.slice(2), l = (hasF(f) ? cfg.folders[f] : []).filter(x => byKey[x]);
-    return '<button class="app fold" data-k="' + esc(k) + '" data-w="' + where + '" aria-label="Map ' + esc(f) + '"><span class=fi>' + l.slice(0, 4).map(x => icon(x, 64)).join('') + '</span><span class=lb>' + esc(f) + '</span></button>';
+    return '<button class="app fold" data-k="' + esc(k) + '" data-w="' + where + '" aria-label="' + esc(t('Map {naam}', { naam: f })) + '"><span class=fi>' + l.slice(0, 4).map(x => icon(x, 64)).join('') + '</span><span class=lb translate="no">' + esc(f) + '</span></button>';
   }
   const a = byKey[k]; if (!a) return '';
-  return '<button class=app data-k="' + esc(k) + '" data-w="' + where + '" aria-label="' + esc(a.n) + '">' + icon(k) + '<span class=lb>' + esc(a.n) + '</span></button>';
+  return '<button class=app translate="no" data-k="' + esc(k) + '" data-w="' + where + '" aria-label="' + esc(a.n) + '">' + icon(k) + '<span class=lb>' + esc(a.n) + '</span></button>'; // app-namen zijn gegevens van de telefoon
 }
 function renderPinned(){ $('#pinned').innerHTML = cfg.pinned.filter(k => exists(k) && !blockedK(k)).map(k => appHtml(k, 'home')).join(''); $('#hint').style.display = 'block'; }
 function renderDock(){ const d = (cfg.dock || []).filter(k => exists(k) && !blockedK(k)); document.documentElement.style.setProperty('--dn', Math.max(4, d.length)); $('#dock').innerHTML = d.map(k => appHtml(k, 'dock')).join('') || '<span style="grid-column:1/-1;text-align:center;font-size:13px;color:var(--muted)">Houd een app ingedrukt om hem hier te zetten</span>'; }
@@ -539,7 +679,7 @@ function renderDrawer(){
       .sort((a, b) => (norm(b.n).startsWith(q) ? 1 : 0) - (norm(a.n).startsWith(q) ? 1 : 0));
     html = '<div class=grid>' + hits.map(a => appHtml(a.k, 'drawer')).join('') + '</div>';
     html += searchMore($('#q').value.trim(), q);
-    html += '<button class=websearch onclick="Android.webSearch($(\'#q\').value.trim())"><span class="ui-icon" data-icon="search" aria-hidden="true"></span><span>Zoek op internet naar “' + esc($('#q').value.trim()) + '”</span></button>';
+    html += '<button class=websearch onclick="Android.webSearch($(\'#q\').value.trim())"><span class="ui-icon" data-icon="search" aria-hidden="true"></span><span>' + esc(t('Zoek op internet naar “{q}”', { q: $('#q').value.trim() })) + '</span></button>';
     if (!hits.length) html = '<p class=empty>Geen app gevonden</p>' + html;
   } else {
     const folders = NATIVE ? [] : Object.keys(cfg.folders).filter(f => exists('f:' + f)).sort((a, b) => a.localeCompare(b, 'nl'));
@@ -553,7 +693,8 @@ function renderDrawer(){
 const SETTINGS = [['wifi', 'Wifi', '📶'], ['bt', 'Bluetooth', '🔵'], ['display', 'Scherm en helderheid', '🔆'], ['sound', 'Geluid en trillen', '🔊'], ['battery', 'Batterij', '🔋'],
   ['apps', 'Apps', '📱'], ['notif', 'Meldingen', '🔔'], ['location', 'Locatie', '📍'], ['security', 'Beveiliging en vingerafdruk', '🔒'], ['storage', 'Opslag', '💾'],
   ['date', 'Datum en tijd', '🕒'], ['a11y', 'Toegankelijkheid', '♿'], ['data', 'Mobiel netwerk en data', '📡'], ['hotspot', 'Hotspot en verbindingen', '📶'], ['home', 'Standaard-startscherm', '🏠'], ['all', 'Alle instellingen', '⚙️']];
-function srow(icon, title, sub, act, val){ return '<button class=srow data-a="' + act + '" data-v="' + esc(val) + '" onclick="srAct(this)"><span class=si>' + icon + '</span><span><b>' + esc(title) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</span></button>'; }
+/* Een zoekresultaat; gegevens (notities, contacten) niet vertalen, onderdelen van de app (ui) wel */
+function srow(icon, title, sub, act, val, ui){ const tn0 = ui ? '' : ' translate="no"'; return '<button class=srow data-a="' + act + '" data-v="' + esc(val) + '" onclick="srAct(this)"><span class=si>' + icon + '</span><span><b' + tn0 + '>' + esc(title) + '</b>' + (sub ? '<small' + tn0 + '>' + esc(sub) + '</small>' : '') + '</span></button>'; }
 /* Notities en contacten na een korte pauze in het typen (niet bij elke toets de notities doorzoeken). */
 function searchMore(raw, nq){
   if (!raw) return '';
@@ -565,12 +706,12 @@ function searchMoreNow(raw, nq){
   let h = '';
   const r = (raw.length >= 2 && typeof Android.searchMore === 'function') ? J(Android.searchMore(raw), {}) : {};
   if (r.notes && r.notes.length) h += '<div class=srh>Notities</div>' + r.notes.map(n => srow('📝', n.title, n.snip, 'note', n.id)).join('');
-  else if (r.notesLocked) h += '<div class=srh>Notities</div>' + srow('🔒', 'Zoeken in Notities', 'Notities zijn vergrendeld: openen in Tools', 'tool', 'notes');
+  else if (r.notesLocked) h += '<div class=srh>Notities</div>' + srow('🔒', 'Zoeken in Notities', 'Notities zijn vergrendeld: openen in Tools', 'tool', 'notes', true);
   if (r.contacts && r.contacts.length) h += '<div class=srh>Contacten</div>' + r.contacts.map(c => srow('👤', c.name, '', 'contact', c.uri)).join('');
   const tl = Object.keys(TOOLS).filter(k => norm(TOOLS[k][1]).includes(nq)).slice(0, 4);
-  if (tl.length) h += '<div class=srh>Tools</div>' + tl.map(k => srow(TOOLS[k][0], TOOLS[k][1], '', 'tool', k)).join('');
+  if (tl.length) h += '<div class=srh>Tools</div>' + tl.map(k => srow(TOOLS[k][0], TOOLS[k][1], '', 'tool', k, true)).join('');
   const st = typeof Android.openSetting === 'function' ? SETTINGS.filter(s => norm(s[1]).includes(nq)).slice(0, 4) : [];
-  if (st.length) h += '<div class=srh>Instellingen</div>' + st.map(s => srow(s[2], s[1], '', 'set', s[0])).join('');
+  if (st.length) h += '<div class=srh>Instellingen</div>' + st.map(s => srow(s[2], s[1], '', 'set', s[0], true)).join('');
   searchMore.last = [raw, h];
   return h;
 }
@@ -657,11 +798,11 @@ function appSheet(k, where){
     } else if (!cfg.dock.includes(k)) { if (cfg.dock.length < 6) acts.push(['In het dock (onderbalk)', () => { cfg.dock.push(k); saveAll(); }]); }
     else acts.push(['Uit het dock', () => { cfg.dock = cfg.dock.filter(x => x !== k); saveAll(); }]);
     if (where !== 'folder' && !NATIVE) acts.push(['In een map…', () => askFolder(k)]);
-    acts.push(['Verbergen', () => { cfg.hidden.push(k); cfg.pinned = cfg.pinned.filter(x => x !== k); cfg.dock = cfg.dock.filter(x => x !== k); for (const f of Object.keys(cfg.folders)) cfg.folders[f] = cfg.folders[f].filter(x => x !== k); dropEmptyFolders(); if (openF) closeFolder(); saveAll(); toast(name + ' is verborgen (terug te zetten via Look aanpassen)'); }]);
+    acts.push(['Verbergen', () => { cfg.hidden.push(k); cfg.pinned = cfg.pinned.filter(x => x !== k); cfg.dock = cfg.dock.filter(x => x !== k); for (const f of Object.keys(cfg.folders)) cfg.folders[f] = cfg.folders[f].filter(x => x !== k); dropEmptyFolders(); if (openF) closeFolder(); saveAll(); toast(t('{naam} is verborgen (terug te zetten via Look aanpassen)', { naam: name })); }]);
     acts.push(['App-info', () => Android.appInfo(k)]);
     if (a && !a.sys) acts.push(['Verwijderen…', () => Android.uninstall(k)]);
   } else {
-    acts.push(['Map hernoemen…', () => ask('Map hernoemen', k.slice(2), v => { v = v.trim(); if (badName(v)) { toast('Kies een andere naam'); return; } if (hasF(v)) { toast('Er is al een map ' + v); return; } cfg.folders[v] = cfg.folders[k.slice(2)]; delete cfg.folders[k.slice(2)]; cfg.pinned = cfg.pinned.map(x => x === k ? 'f:' + v : x); saveAll(); })]);
+    acts.push(['Map hernoemen…', () => ask('Map hernoemen', k.slice(2), v => { v = v.trim(); if (badName(v)) { toast('Kies een andere naam'); return; } if (hasF(v)) { toast(t('Er is al een map {naam}', { naam: v })); return; } cfg.folders[v] = cfg.folders[k.slice(2)]; delete cfg.folders[k.slice(2)]; cfg.pinned = cfg.pinned.map(x => x === k ? 'f:' + v : x); saveAll(); })]);
     acts.push(['Map opheffen (apps blijven)', () => { delete cfg.folders[k.slice(2)]; cfg.pinned = cfg.pinned.filter(x => x !== k); saveAll(); }]);
   }
   openSheet(isF ? '<span class=ib><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span>' : icon(k, 96), name, acts);
@@ -705,7 +846,7 @@ function askFolder(k){
     cfg.folders[v].push(k);
     cfg.pinned = cfg.pinned.filter(x => x !== k);
     dropEmptyFolders();
-    saveAll(); toast('In map ' + v);
+    saveAll(); toast(t('In map {naam}', { naam: v }));
   }, names.length ? '<div class=seg style="margin-bottom:12px">' + names.map(n => '<button data-n="' + esc(n) + '" onclick="$(\'#askin\').value=this.dataset.n">' + esc(n) + '</button>').join('') + '</div>' : '', 'Naam van een nieuwe of bestaande map');
 }
 let askCb = null;
@@ -738,7 +879,7 @@ function closeDrawer(){ document.body.classList.remove('drawer-on'); $('#q').val
 $('#hint').onclick = () => openDrawer();
 
 /* ---------- Regio en taal (zoals de app die doorgaf, zie web/src/script/02-regio.js en Regio.java) ----------
- * Een klein deel van de functies van de app: tijd, datum en temperatuur. Zonder keuze: zoals altijd (nl-NL, 24 uur, °C). */
+ * Een klein deel van de functies van de app: tijd, datum en temperatuur. Zonder keuze: zoals altijd (nl-NL, 24 uur, °C); in het Engels en-GB. */
 let skRgC = null, skRgT = 0;
 function skRg(){
   if (skRgC && Date.now() - skRgT < 60000) return skRgC;
@@ -746,7 +887,7 @@ function skRg(){
   // Tijdzone: de app-zone (leeg = de telefoon); alleen als de WebView hem precies zo kent
   let tz = typeof o.tz === 'string' && /^[A-Za-z][A-Za-z0-9_+\-\/]{0,63}$/.test(o.tz) ? o.tz : '';
   try { if (tz) new Intl.DateTimeFormat('en-US', {timeZone: tz}); } catch(e){ tz = ''; } // Java gaf hem door (Regio.tzOk); ook een andere naam voor dezelfde zone mag
-  skRgC = {loc: 'nl-NL', h12: o.clock === '12', date: o.date === 'iso' || o.date === 'dmon' ? o.date : 'dmy', f: o.temp === 'f', dec: o.dec === '.' ? '.' : ',', grp: typeof o.grp === 'string' && o.grp.length <= 1 ? o.grp : '.', tz};
+  skRgC = {loc: o.lang === 'en' || (typeof TAAL !== 'undefined' && TAAL.on) ? 'en-GB' : 'nl-NL', h12: o.clock === '12', date: o.date === 'iso' || o.date === 'dmon' ? o.date : 'dmy', f: o.temp === 'f', dec: o.dec === '.' ? '.' : ',', grp: typeof o.grp === 'string' && o.grp.length <= 1 ? o.grp : '.', tz};
   if (skRgC.grp === skRgC.dec) skRgC.grp = skRgC.dec === ',' ? '.' : ',';
   skRgT = Date.now(); return skRgC;
 }
@@ -809,23 +950,23 @@ window.onWeather = function(w){
   const el = $('#weather');
   if (!cfg.show.weather) { el.style.display = 'none'; return; }
   el.style.display = 'flex';
-  if (w.noPlace) { el.innerHTML = '<span class=wi><span class="ui-icon" data-icon="sun" aria-hidden="true"></span></span><span class=wd><b>Weer</b>Tik om je plaats te kiezen' + (w.locPerm ? '' : ' of locatie toe te staan') + '</span>'; return; }
+  if (w.noPlace) { el.innerHTML = '<span class=wi><span class="ui-icon" data-icon="sun" aria-hidden="true"></span></span><span class=wd><b>' + t('Weer') + '</b>' + t(w.locPerm ? 'Tik om je plaats te kiezen' : 'Tik om je plaats te kiezen of locatie toe te staan') + '</span>'; return; }
   if (w.error && w.temp == null) { el.innerHTML = '<span class=wi><span class="ui-icon" data-icon="temperature" aria-hidden="true"></span></span><span class=wd><b>Weer</b>' + esc(w.error) + '</span>'; return; }
   const [ic, txt] = wmo(w.code, w.day);
   const days = (w.days || []).slice(1, 4).map(d => '<span>' + fmtDate(d.date + 'T12:00', {weekday: 'short'}) + '<b>' + skinGlyph(wmo(d.code)[0]) + '</b>' + fmtTemp(d.max) + '/' + fmtTemp(d.min) + '</span>').join('');
   const today = (w.days || [])[0];
-  el.innerHTML = '<span class=wi>' + skinGlyph(ic) + '</span><span class=wt>' + fmtTemp(w.temp) + '</span><span class=wd><b>' + esc(txt) + (w.place ? ' · ' + esc(w.place) : '') + '</b>' +
-    (today ? fmtTemp(today.max) + ' / ' + fmtTemp(today.min) : '') + (w.rainSoon >= 50 ? ' · ' + skinGlyph('☔')+' '+w.rainSoon + '% kans op regen' : '') +
+  el.innerHTML = '<span class=wi>' + skinGlyph(ic) + '</span><span class=wt>' + fmtTemp(w.temp) + '</span><span class=wd><b>' + esc(t(txt)) + (w.place ? ' · ' + esc(w.place) : '') + '</b>' +
+    (today ? fmtTemp(today.max) + ' / ' + fmtTemp(today.min) : '') + (w.rainSoon >= 50 ? ' · ' + skinGlyph('☔') + ' ' + t('{pct}% kans op regen', { pct: w.rainSoon }) : '') +
     '<span class=wdays>' + days + '</span></span>';
 };
 function weatherTap(){ if (wx && wx.noPlace) askPlace(); else Android.weather(true); }
 function askPlace(){
   ask('Plaats voor het weer', Android.placeName(), v => { v = v.trim(); if (!v) { Android.setPlace('', 0, 0); Android.weather(true); renderLook(); return; } Android.cities(v); toast('Zoeken…'); },
-    '<p style="margin:0 0 8px;font-size:13px;color:var(--muted)">Leeg laten = de locatie van je telefoon gebruiken' + (Android.hasPerm('location') ? '' : ' (<a href="#" onclick="Android.locationPermission();return false" style="color:var(--acc)">toestaan</a>)') + '.</p>', 'Bijv. Rotterdam');
+    '<p style="margin:0 0 8px;font-size:13px;color:var(--muted)">' + t('Leeg laten = de locatie van je telefoon gebruiken') + (Android.hasPerm('location') ? '' : ' (<a href="#" onclick="Android.locationPermission();return false" style="color:var(--acc)">' + t('toestaan') + '</a>)') + '.</p>', t('Bijv. Rotterdam'));
 }
 window.onCities = function(l){
   if (l.error || !l.length) { toast(l.error || 'Geen plaats gevonden'); return; }
-  openSheet('<span class=ib><span class="ui-icon" data-icon="pin" aria-hidden="true"></span></span>', 'Welke plaats?', l.map(c => [c.name + ' — ' + c.sub, () => { Android.setPlace(c.name, c.lat, c.lon); Android.weather(true); renderLook(); toast('Weer voor ' + c.name); }]));
+  openSheet('<span class=ib><span class="ui-icon" data-icon="pin" aria-hidden="true"></span></span>', 'Welke plaats?', l.map(c => [c.name + ' — ' + c.sub, () => { Android.setPlace(c.name, c.lat, c.lon); Android.weather(true); renderLook(); toast(t('Weer voor {plaats}', { plaats: c.name })); }]));
 };
 window.onLocationPerm = function(){ Android.weather(true); };
 
@@ -837,20 +978,20 @@ function renderCal(){
   el.style.display = 'block';
   if (!c.perm) { el.innerHTML = '<h3>Agenda</h3><button class="big2 ghost" onclick="Android.calendarPermission()">Afspraken tonen (toestemming geven)</button>'; return; }
   const ev = (c.events || []).slice(0, 4);
-  const day = t => { const k = skDayKey(t), n = skDayKey(Date.now()); // vandaag in de app-zone
-    return k === n ? '' : k === skDayAdd(n, 1) ? 'morgen ' : fmtDate(t, {weekday: 'short'}) + ' '; };
+  const day = ms => { const k = skDayKey(ms), n = skDayKey(Date.now()); // vandaag in de app-zone
+    return k === n ? '' : k === skDayAdd(n, 1) ? t('morgen') + ' ' : fmtDate(ms, {weekday: 'short'}) + ' '; };
   el.innerHTML = '<h3>Agenda <button class=more onclick="Android.openEvent(\'0\')">Openen ›</button></h3>' + (ev.map(e =>
     '<button class=ev data-id="' + e.id + '" onclick="Android.openEvent(this.dataset.id)"><i style="background:' + esc(e.color || '') + '"></i><span class=et>' +
-    (e.allDay ? (day(e.begin) || 'vandaag') + '<br>hele dag' : day(e.begin) + fmtTime(e.begin, {hour: '2-digit', minute: '2-digit'})) +
-    '</span><div><b>' + esc(e.title) + '</b>' + (e.loc ? '<small>' + esc(e.loc) + '</small>' : '') + '</div></button>').join('') || '<p style="margin:0;color:var(--muted);font-size:14px">Geen afspraken de komende week</p>');
+    (e.allDay ? (day(e.begin) || t('vandaag')) + '<br>' + t('hele dag') : day(e.begin) + fmtTime(e.begin, {hour: '2-digit', minute: '2-digit'})) +
+    '</span><div translate="no"><b>' + esc(e.title) + '</b>' + (e.loc ? '<small>' + esc(e.loc) + '</small>' : '') + '</div></button>').join('') || '<p style="margin:0;color:var(--muted);font-size:14px">Geen afspraken de komende week</p>');
 }
 window.onCalendarPerm = renderCal;
 
 /* ---------- Tools ---------- */
 const TOOLS = {radio: ['📻', 'Radio'], notes: ['📝', 'Notities'], music: ['🎵', 'Muziek'], redial: ['📞', 'Redial'], backup: ['💾', 'Backup'], contacts: ['👤', 'Contacten'],
   calls: ['📒', 'Oproepen'], transcripts: ['🎙️', 'Gesprekken'], wa: ['🟢', 'WhatsApp'], sms: ['💬', "Sms'jes"], tracks: ['🗺️', 'Routes'], ai: ['✨', 'Assistent'], settings: ['⚙️', 'Instellingen']};
-function fmtD(t){ const d = new Date(t), k = skDayKey(t), n = skDayKey(Date.now()); const hm = fmtTime(d, {hour: '2-digit', minute: '2-digit'});
-  if (k === n) return 'vandaag ' + hm; if (k === skDayAdd(n, -1)) return 'gisteren ' + hm;
+function fmtD(ms){ const d = new Date(ms), k = skDayKey(ms), n = skDayKey(Date.now()); const hm = fmtTime(d, {hour: '2-digit', minute: '2-digit'});
+  if (k === n) return t('vandaag {tijd}', { tijd: hm }); if (k === skDayAdd(n, -1)) return t('gisteren {tijd}', { tijd: hm });
   return fmtDate(d, {day: 'numeric', month: 'short'}); }
 function renderTools(){
   const el = $('#tools');
@@ -858,30 +999,30 @@ function renderTools(){
   const raw = Android.tools();
   if (raw === renderTools.last && el.style.display === 'block' && !renderTools.force) return;
   renderTools.last = raw; renderTools.force = false;
-  const t = J(raw, {});
-  const r = t.radio || {}, st = r.status || 'stopped', s = r.station || t.radioLast;
+  const ts = J(raw, {});
+  const r = ts.radio || {}, st = r.status || 'stopped', s = r.station || ts.radioLast;
   const playing = st === 'playing' || st === 'connecting';
   let h = '<h3>Tools <button class=more onclick="Android.openTool(\'\')">Openen ›</button></h3>';
-  if (s) h += '<div class=radio><button class=rn style="text-align:left" onclick="Android.openTool(\'radio\')"><b>' + esc(s.name) + '</b><small>' +
-      esc(st === 'connecting' ? 'Verbinden…' : st === 'paused' ? 'Gepauzeerd' : st === 'playing' ? (r.shift && r.shift.behind > 8 ? 'achter live' : (r.title || 'Live')) : 'Tik ▶ om te luisteren') + '</small></button>' +
+  if (s) h += '<div class=radio><button class=rn style="text-align:left" onclick="Android.openTool(\'radio\')"><b translate="no">' + esc(s.name) + '</b><small>' +
+      esc(st === 'connecting' ? t('Verbinden…') : st === 'paused' ? t('Gepauzeerd') : st === 'playing' ? (r.shift && r.shift.behind > 8 ? t('achter live') : (r.title || 'Live')) : t('Tik ▶ om te luisteren')) + '</small></button>' +
     (r.shift && st !== 'stopped' ? '<button class=rb onclick="radioDo(\'rew\')" aria-label="30 seconden terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>' : '') +
     '<button class="rb main" onclick="radioDo(\'' + (playing ? 'pause' : st === 'paused' ? 'resume' : 'play') + '\')" aria-label="' + (playing ? 'Pauze' : 'Afspelen') + '">' + skinGlyph(playing ? '❚❚' : '▶') + '</button>' +
     (st !== 'stopped' ? '<button class=rb onclick="radioDo(\'stop\')" aria-label="Stoppen" data-icon="stop"></button>' : '') + '</div>';
   const rows = [];
-  const bk = t.backup || {}, l = bk.last;
-  if (bk.busy) rows.push(['💾', 'Backup is bezig…', 'backup', '']);
+  const bk = ts.backup || {}, l = bk.last;
+  if (bk.busy) rows.push(['💾', t('Backup is bezig…'), 'backup', '']);
   else if (l && l.t) { const failed = Object.keys(l).filter(k => l[k] && l[k].ok === false).length, old = Date.now() - l.t > 3 * 864e5;
-    rows.push(['💾', 'Backup: ' + fmtD(l.t) + (failed ? ' · ' + failed + ' mislukt' : old ? ' · al even geleden' : ' ✓'), 'backup', failed ? 'b' : old ? 'w' : '']); }
+    rows.push(['💾', t('Backup: {wanneer}', { wanneer: fmtD(l.t) }) + (failed ? ' · ' + t('{n} mislukt', { n: failed }) : old ? ' · ' + t('al even geleden') : ' ✓'), 'backup', failed ? 'b' : old ? 'w' : '']); }
   const today = skDayKey(Date.now()); // herinneringen van vandaag (in de app-zone)
-  const rem = Object.values(t.reminders || {}).filter(x => x >= Date.now() && skDayKey(x) === today).sort();
-  if (rem.length) rows.push(['🔔', rem.length + (rem.length === 1 ? ' herinnering' : ' herinneringen') + ' vandaag, eerst om ' + fmtTime(rem[0], {hour: '2-digit', minute: '2-digit'}), 'notes', '']);
-  const bd = t.birthdays || [];
+  const rem = Object.values(ts.reminders || {}).filter(x => x >= Date.now() && skDayKey(x) === today).sort();
+  if (rem.length) rows.push(['🔔', tn(rem.length, '{n} herinnering vandaag, eerst om {tijd}', '{n} herinneringen vandaag, eerst om {tijd}', { tijd: fmtTime(rem[0], {hour: '2-digit', minute: '2-digit'}) }), 'notes', '']);
+  const bd = ts.birthdays || [];
   if (bd.length) {
     const today = bd.filter(b => b.days === 0), soon = bd.filter(b => b.days > 0);
-    if (today.length) rows.push(['🎂', 'Vandaag jarig: ' + today.map(b => b.name + (b.age ? ' (' + b.age + ')' : '')).join(', '), 'contacts', '']);
-    if (soon.length) rows.push(['🎈', soon.slice(0, 3).map(b => b.name + ' ' + (b.days === 1 ? 'morgen' : 'over ' + b.days + ' dagen')).join(', '), 'contacts', '']);
+    if (today.length) rows.push(['🎂', t('Vandaag jarig: {wie}', { wie: today.map(b => b.name + (b.age ? ' (' + b.age + ')' : '')).join(', ') }), 'contacts', '']);
+    if (soon.length) rows.push(['🎈', soon.slice(0, 3).map(b => b.name + ' ' + (b.days === 1 ? t('morgen') : t('over {n} dagen', { n: b.days }))).join(', '), 'contacts', '']);
   }
-  const rp = t.redial || {};
+  const rp = ts.redial || {};
   if (rp.plan && rp.next > Date.now() && rp.next - Date.now() < 2 * 864e5) rows.push(['📞', 'Auto redial: ' + (rp.plan.name || rp.plan.number) + ' · ' + fmtDT(rp.next, {weekday: 'short', hour: '2-digit', minute: '2-digit'}), 'redial', '']);
   h += rows.map(x => '<button class=trow data-t="' + x[2] + '" onclick="Android.openTool(this.dataset.t)"><span>' + skinGlyph(x[0]) + '</span><span class="' + x[3] + '">' + esc(x[1]) + '</span></button>').join('');
   h += '<div class=tchips>' + cfg.tools.filter(k => TOOLS[k]).map(k => '<button class=tchip data-t="' + k + '" onclick="Android.openTool(this.dataset.t)"><span>' + skinGlyph(TOOLS[k][0]) + '</span>' + TOOLS[k][1] + '</button>').join('') + '</div>';
@@ -896,9 +1037,9 @@ function renderNotes(){
   if (raw === renderNotes.last && !renderNotes.force) return;
   renderNotes.last = raw; renderNotes.force = false;
   el.style.display = l.length ? 'block' : 'none';
-  el.innerHTML = l.map(n => '<button class="glass nc" data-id="' + esc(n.id) + '" onclick="noteClick(this)"><b><span class=nc-title>' + esc(n.title) + '</span>' +
+  el.innerHTML = l.map(n => '<button class="glass nc" data-id="' + esc(n.id) + '" onclick="noteClick(this)"><b><span class=nc-title translate="no">' + esc(n.title) + '</span>' +
     '<small>' + (n.total ? (n.open ? n.open + ' open' : 'alles afgestreept ✓') : '') + '</small></b>' +
-    (n.items.length ? '<ul>' + n.items.map(t => '<li>' + esc(t) + '</li>').join('') + (n.open > n.items.length ? '<li style="color:var(--muted)">en nog ' + (n.open - n.items.length) + '…</li>' : '') + '</ul>'
+    (n.items.length ? '<ul>' + n.items.map(x => '<li translate="no">' + esc(x) + '</li>').join('') + (n.open > n.items.length ? '<li style="color:var(--muted)">' + t('en nog {n}…', { n: n.open - n.items.length }) + '</li>' : '') + '</ul>'
       : n.text ? '<p>' + esc(n.text) + '</p>' : '') + '</button>').join('');
 }
 /* Lang indrukken op een vastgezette notitie: openen of van het startscherm halen. */
@@ -937,7 +1078,7 @@ function renderPick(){
   const q = norm($('#pk-q').value.trim());
   let h = '';
   if (pk.mode !== 'drawer') {
-    h += '<div class=pkhd>Gekozen (' + pk.sel.length + (pk.max ? ' van max. ' + pk.max : '') + ') · in deze volgorde</div>';
+    h += '<div class=pkhd>' + (pk.max ? t('Gekozen ({n} van max. {max}) · in deze volgorde', { n: pk.sel.length, max: pk.max }) : t('Gekozen ({n}) · in deze volgorde', { n: pk.sel.length })) + '</div>';
     h += pk.sel.map((k, i) => '<div class=pk>' + pkIcon(k) + '<span class=nm>' + esc(pkName(k)) + '</span>' +
       '<button class=mini2 data-i="' + i + '" data-d="-1" onclick="pkMove(this)"' + (i ? '' : ' disabled') + ' aria-label="Naar voren">↑</button>' +
       '<button class=mini2 data-i="' + i + '" data-d="1" onclick="pkMove(this)"' + (i < pk.sel.length - 1 ? '' : ' disabled') + ' aria-label="Naar achteren">↓</button>' +
@@ -947,13 +1088,13 @@ function renderPick(){
   } else {
     h += '<div class=sw style="padding:10px 4px"><span>Verborgen apps blokkeren<small style="display:block;font-size:12px;color:var(--muted)">Dan staan ze ook niet op het startscherm of in het dock en zijn ze vanuit de skin niet te starten. Wijzigen vraagt je vingerafdruk.</small></span>' +
       '<button class="tg' + (pk.lock ? ' on' : '') + '" role="switch" aria-checked="' + pk.lock + '" aria-label="Verborgen apps blokkeren" onclick="pk.lock=!pk.lock;renderPick()"></button></div>';
-    h += '<div class=pkhd>' + pk.sel.length + ' van ' + apps.length + ' zichtbaar · vinkje weg = ' + (pk.lock ? 'geblokkeerd' : 'verborgen') + '</div>';
+    h += '<div class=pkhd>' + t(pk.lock ? '{n} van {totaal} zichtbaar · vinkje weg = geblokkeerd' : '{n} van {totaal} zichtbaar · vinkje weg = verborgen', { n: pk.sel.length, totaal: apps.length }) + '</div>';
   }
   const list = (pk.mode === 'pinned' && !NATIVE ? Object.keys(cfg.folders).filter(f => exists('f:' + f)).map(f => ({k: 'f:' + f, n: '📁 ' + f})) : []).concat(apps)
     .filter(a => !q || norm(a.n).includes(q));
   h += list.map(a => { const on = pk.sel.includes(a.k);
     return '<button class=pk style="width:100%;text-align:left" data-k="' + esc(a.k) + '" onclick="pkToggle(this.dataset.k)" role="checkbox" aria-checked="' + on + '">' + pkIcon(a.k) +
-      '<span class=nm>' + esc(a.n) + '</span><span class="chk2' + (on ? ' on' : '') + '">' + (on ? '✓' : '') + '</span></button>'; }).join('') || '<p class=empty>Geen app gevonden</p>';
+      '<span class=nm translate="no">' + esc(a.n) + '</span><span class="chk2' + (on ? ' on' : '') + '">' + (on ? '✓' : '') + '</span></button>'; }).join('') || '<p class=empty>Geen app gevonden</p>';
   const y = $('#pk-list').scrollTop;
   $('#pk-list').innerHTML = h;
   $('#pk-list').scrollTop = y;
@@ -961,7 +1102,7 @@ function renderPick(){
 function pkToggle(k){
   const i = pk.sel.indexOf(k);
   if (i >= 0) pk.sel.splice(i, 1);
-  else { if (pk.max && pk.sel.length >= pk.max) { toast('Het dock heeft plaats voor ' + pk.max + ' apps'); return; } pk.sel.push(k); }
+  else { if (pk.max && pk.sel.length >= pk.max) { toast(t('Het dock heeft plaats voor {n} apps', { n: pk.max })); return; } pk.sel.push(k); }
   Android.vibrate(8); renderPick();
 }
 function pkMove(b){ const i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j >= pk.sel.length) return; const x = pk.sel[i]; pk.sel[i] = pk.sel[j]; pk.sel[j] = x; renderPick(); }
@@ -1000,7 +1141,7 @@ function seg(id, opts, cur, fn){ $(id).innerHTML = opts.map(([v, l]) => '<button
   $(id).querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); renderLook(); }); }
 function renderLook(){
   seg('#l-theme', [['auto', 'Zoals Tools'], ['light', 'Licht'], ['dark', 'Donker']], cfg.theme, v => { cfg.theme = v; save(); applyLook(); });
-  $('#l-acc').innerHTML = ACCENTS.map(c => '<button class="sw2' + (c === cfg.accent ? ' on' : '') + '" data-c="' + c + '" style="background:' + c + '" aria-label="Kleur ' + c + '"></button>').join('');
+  $('#l-acc').innerHTML = ACCENTS.map(c => '<button class="sw2' + (c === cfg.accent ? ' on' : '') + '" data-c="' + c + '" style="background:' + c + '" aria-label="' + t('Kleur {kleur}', { kleur: c }) + '"></button>').join('');
   $('#l-acc').querySelectorAll('button').forEach(b => b.onclick = () => { cfg.accent = b.dataset.c; save(); applyLook(); renderLook(); });
   $('#l-bg').innerHTML = Object.keys(BGS).map(k => '<button data-b="' + k + '"' + (k === cfg.bg ? ' class=on' : '') + ' style="background:' + (BGS[k][1] || 'linear-gradient(135deg,#94a3b8,#475569)') + '">' + BGS[k][0] + '</button>').join('');
   $('#l-bg').querySelectorAll('button').forEach(b => b.onclick = () => { cfg.bg = b.dataset.b; save(); applyLook(); renderLook(); });
@@ -1018,14 +1159,14 @@ function renderLook(){
   $('#l-kind-btn').textContent = MODE === 'legacy' ? 'Launcher met pagina\'s en widgets gebruiken' : 'Klassieke skin gebruiken (zonder pagina\'s)';
   $('#l-widgets').style.display = NATIVE ? 'block' : 'none';
   $('#l-kind').style.display = typeof Android.setClassic === 'function' ? 'block' : 'none';
-  $('#l-n-drawer').textContent = apps.filter(a => !cfg.hidden.includes(a.k)).length + ' van ' + apps.length + (cfg.lockHidden ? ' · 🔒 rest geblokkeerd' : '');
+  $('#l-n-drawer').textContent = t('{n} van {totaal}', { n: apps.filter(a => !cfg.hidden.includes(a.k)).length, totaal: apps.length }) + (cfg.lockHidden ? ' · ' + t('🔒 rest geblokkeerd') : '');
   seg('#l-sort', [['az', 'A–Z'], ['used', 'Meest gebruikt'], ['new', 'Nieuwste eerst']], cfg.sort, v => { cfg.sort = v; save(); renderDrawer(); });
   seg('#l-clk', [['big', 'Groot'], ['medium', 'Middel'], ['small', 'Klein'], ['off', 'Uit']], cfg.clock.size, v => { cfg.clock.size = v; save(); applyLook(); });
   seg('#l-rad', [['round', 'Rond'], ['soft', 'Zacht'], ['square', 'Hoekig']], cfg.rad, v => { cfg.rad = v; save(); applyLook(); });
   $('#l-glass').value = cfg.glass;
   const showable = {weather: 1, cal: 1, tools: 1, notes: 1};
   $('#l-order').innerHTML = cfg.order.filter(k => !(NATIVE && k === 'apps')).map((k, i, arr) => '<div class=ordrow><span>' + PARTS[k][0] + '</span><span class=on2>' + esc(PARTS[k][1]) + '</span>' +
-    (showable[k] ? '<button class="tg' + (cfg.show[k] ? ' on' : '') + '" role="switch" aria-checked="' + !!cfg.show[k] + '" aria-label="' + esc(PARTS[k][1]) + ' tonen" data-k="' + k + '" onclick="toggleShow(this.dataset.k)"></button>' : '') +
+    (showable[k] ? '<button class="tg' + (cfg.show[k] ? ' on' : '') + '" role="switch" aria-checked="' + !!cfg.show[k] + '" aria-label="' + esc(t('{naam} tonen', { naam: t(PARTS[k][1]) })) + '" data-k="' + k + '" onclick="toggleShow(this.dataset.k)"></button>' : '') +
     '<button class=mini2 data-k="' + k + '" data-d="-1" onclick="ordMove(this)"' + (i ? '' : ' disabled') + ' aria-label="Hoger">↑</button>' +
     '<button class=mini2 data-k="' + k + '" data-d="1" onclick="ordMove(this)"' + (i < arr.length - 1 ? '' : ' disabled') + ' aria-label="Lager">↓</button></div>').join('');
   $('#l-place').textContent = Android.placeName() || 'Automatisch';
