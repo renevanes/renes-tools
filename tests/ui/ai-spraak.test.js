@@ -24,8 +24,9 @@ const { chromium } = require('playwright');
     ok(await pg.isDisabled('#ai-in') && await pg.isDisabled('#ai-send'), 'tijdens het luisteren: niet typen of versturen');
     ok(await pg.isVisible('#ai-vcancel') && (await pg.getAttribute('#ai-vcancel', 'aria-label')) === 'Inspreken annuleren', 'annuleren (✕) zichtbaar');
     await pg.screenshot({ path: __dirname + '/shots/ai-spraak-' + scheme + '.png' });
-    await pg.click('#ai-mic'); await pg.waitForTimeout(30);
-    ok((await pg.textContent('#ai-vstate')) === 'Uitschrijven…' && await pg.isDisabled('#ai-mic'), 'uitschrijven…');
+    // Tikken en meteen kijken (in één keer: de testbrug is na 80 ms al klaar met uitschrijven, ook als de machine druk is)
+    const vs = await pg.evaluate(() => { $('#ai-mic').click(); return { st: $('#ai-vstate').textContent, dis: $('#ai-mic').getAttribute('aria-disabled') === 'true' }; });
+    ok(vs.st === 'Uitschrijven…' && vs.dis, 'uitschrijven…' + (vs.st === 'Uitschrijven…' ? '' : ': ' + vs.st));
     await pg.waitForTimeout(250);
     ok((await pg.inputValue('#ai-in')) === 'Vraag: Wat is de hoofdstad van Frankrijk?' && !(await pg.isDisabled('#ai-in')) && !(await pg.isVisible('#ai-vbar')), 'standaard: de tekst komt in het invoerveld (na te kijken)');
     ok(await pg.evaluate(() => !Android._ai.last) && (await pg.$$('#ai-msgs .aimsg')).length === 0, 'nog niet verstuurd');
