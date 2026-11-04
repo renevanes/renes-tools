@@ -20,7 +20,7 @@ verspreid en bijgewerkt.
 | 2 | Overzicht van diensten buiten de telefoon (basis voor privacybeleid en Data safety-formulier) | nee | klaar |
 | 3 | Winkelteksten in `fastlane/metadata/android/nl-NL/` (werkt voor Play én F-Droid) | nee | concept |
 | 4 | Proefbouw `./build-play.sh`: eigen pakket `nl.rene.tools.play`, eigen manifest zonder wat Play niet toestaat, `.aab` | nee (los script, `build.sh` blijft gelijk) | klaar |
-| 5 | Privacybeleid op een vaste webpagina (GitHub Pages) | nee | nog doen |
+| 5 | Privacybeleid: `docs/privacybeleid.md` (Nederlands, met Engelse samenvatting); in de Play Console de vaste link naar dit bestand op GitHub, of naar GitHub Pages als Rene dat aanzet | nee | klaar (concept) |
 | 6 | Uploadsleutel maken en als geheim bewaren (Rene; Google ondertekent de winkelversie zelf) | nee | nog doen |
 | 7 | In de Play-versie de updater uitzetten en tools verbergen waarvan de toestemming ontbreekt (`66-play-versie.js`, `Updater.viaPlay`) | nee: alleen actief bij pakket `*.play`; wel een nieuwe APK | klaar |
 | 8 | Uitleg vóór gevoelige toestemmingen ("prominent disclosure") | ja, ook in de GitHub-versie (verbetering) | eerst overleggen |
@@ -51,7 +51,7 @@ De app herkent de Play-versie aan de pakketnaam (`Updater.viaPlay`: eindigt op `
 Tests: `PlayVersieTest` (Java) en `tests/ui/play-versie.test.js` (gewone versie ongewijzigd, Play-versie zonder deze delen).
 Nieuwe tool die een toestemming uit de lijst `niet`/`streng` nodig heeft? Zet hem in `PLAY_WEG`.
 
-Nog niet geschikt voor de winkel: privacybeleid (stap 5), uploadsleutel (stap 6) en uitleg vóór gevoelige
+Nog niet geschikt voor de winkel: uploadsleutel (stap 6) en uitleg vóór gevoelige
 toestemmingen (stap 8). De proefbouw draait niet in CI; hij is alleen hier gecontroleerd (pakketnaam, toestemmingen en
 providers in een universele APK, `extractNativeLibs` in de gesplitste APK's), niet op een telefoon. De bestanden
 in `res/xml/` van de weggelaten onderdelen gaan nog mee; onschuldig, eventueel later weglaten.
@@ -118,7 +118,7 @@ startscherm (laatst bekende locatie).
 | Radiostreams en zenderlogo's (o.a. icecast.omroep.nl) | radio | niets persoonlijks (elke host mogelijk) |
 | Eigen cloud / eigen VPN-server | opslag, VPN | wat de gebruiker zelf instelt |
 
-Bijhouden: komt er een dienst bij, zet hem dan in deze tabel.
+Bijhouden: komt er een dienst bij, zet hem dan in deze tabel én in `docs/privacybeleid.md`.
 
 ## 3. Winkelteksten
 
