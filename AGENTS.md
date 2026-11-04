@@ -269,7 +269,7 @@ achtergrond (`FacturenJob`, onzichtbare WebView) of terwijl Rene meekijkt (`Fact
 - **Grenzen:** alleen https; alleen echte PDF's (`%PDF`) tellen; wachtwoorden versleuteld (`facturen_geheim`, niet in backups);
   de inlogcode alleen uit sms van de ingestelde afzender of uit Rene's eigen Eigen Cloud; afleveren alleen naar plekken
   die hij zelf kiest: zijn backup-map, een zelf gekozen map op de telefoon, zijn eigen Google Drive (`FacturenDrive`, eigen
-  Google-project, alleen de rechten `drive.file`; Gmail `gmail.readonly` en, als Rene het aanvinkt, `gmail.send`) en zijn eigen Eigen Cloud (`/api/mail/send` naar zichzelf).
+  Google-project (koppelen met het Google-account op de telefoon via `FacturenGoogleToestel`/AccountManager en een Android-client met pakketnaam en SHA-1, of via de browser met een desktop-client), alleen de rechten `drive.file`; Gmail `gmail.readonly` en, als Rene het aanvinkt, `gmail.send`) en zijn eigen Eigen Cloud (`/api/mail/send` naar zichzelf).
   Aanleveren gaat alleen naar de ontvangers die Rene zelf instelt (zijn accountant of boekhouder). Geen andere
   bestemmingen toevoegen zonder Rene. Nieuwe bestemming = ook in `Facturen.aflever` (met opnieuw proberen bij een fout).
 

@@ -9,7 +9,7 @@
       "facturenUrl": "",
       "menu": "facturen|factuur",
       "knoppen": "download|\\bpdf\\b|\\.pdf",
-      "max": 12,
+      "max": 50,
       "schema": "maand",
       "dag": 5,
       "tijd": "08:00",
@@ -18,7 +18,10 @@
         "afzender": "KPN",
         "patroon": ""
       },
-      "tip": "KPN stuurt na je wachtwoord een code per sms of mail. Staat bij KPN je telefoonnummer, kies dan Sms; staat er een mailadres dat in Eigen Cloud binnenkomt, kies Eigen Cloud. De beheerder kan de code ook uitzetten (Gebruiksbeheer → Identiteit → Directories → Authenticaties)."
+      "tip": "KPN stuurt na je wachtwoord een code per sms of mail. Staat bij KPN je telefoonnummer, kies dan Sms; staat er een mailadres dat in Eigen Cloud binnenkomt, kies Eigen Cloud. De beheerder kan de code ook uitzetten (Gebruiksbeheer → Identiteit → Directories → Authenticaties).",
+      "periode": {
+        "soort": "jaar"
+      }
     },
     {
       "sjabloon": "ziggo-zakelijk",
@@ -29,7 +32,7 @@
       "facturenUrl": "",
       "menu": "facturen|factuur|factuur en betalen|invoices",
       "knoppen": "download|\\bpdf\\b|\\.pdf|bekijk factuur",
-      "max": 12,
+      "max": 50,
       "schema": "maand",
       "dag": 5,
       "tijd": "08:00",
@@ -38,7 +41,10 @@
         "afzender": "Ziggo",
         "patroon": ""
       },
-      "tip": "Inloggen gaat via de website van Vodafone (VodafoneZiggo); die hoort erbij. Ziggo stuurt bij elke keer inloggen een code van 6 cijfers per sms naar het telefoonnummer bij Ziggo (dat staat altijd aan). Geef Tools toegang tot je sms, dan vult de app de code zelf in. Mijn Ziggo toont de facturen van de afgelopen 12 maanden. Staat er een debiteurnummer op je factuur, kies dan het sjabloon Ziggo Zakelijk (Factuurinzicht)."
+      "tip": "Inloggen gaat via de website van Vodafone (VodafoneZiggo); die hoort erbij. Ziggo stuurt bij elke keer inloggen een code van 6 cijfers per sms naar het telefoonnummer bij Ziggo (dat staat altijd aan). Geef Tools toegang tot je sms, dan vult de app de code zelf in. Mijn Ziggo toont de facturen van de afgelopen 12 maanden. Staat er een debiteurnummer op je factuur, kies dan het sjabloon Ziggo Zakelijk (Factuurinzicht).",
+      "periode": {
+        "soort": "jaar"
+      }
     },
     {
       "sjabloon": "ziggo-factuurinzicht",
@@ -49,7 +55,7 @@
       "facturenUrl": "",
       "menu": "facturen|factuur|factuur en betalen|invoices",
       "knoppen": "download|\\bpdf\\b|\\.pdf|bekijk factuur",
-      "max": 12,
+      "max": 50,
       "schema": "maand",
       "dag": 5,
       "tijd": "08:00",
@@ -58,7 +64,10 @@
         "afzender": "Ziggo",
         "patroon": ""
       },
-      "tip": "Factuurinzicht is het facturenportaal van Ziggo voor grotere zakelijke contracten. Krijg je een code per sms, laat dan Sms staan; zo niet, kies bij Inloggen 'geen'. Kijk de eerste keer mee: dan zie je of de app de inlogvelden en downloadknoppen vindt."
+      "tip": "Factuurinzicht is het facturenportaal van Ziggo voor grotere zakelijke contracten. Krijg je een code per sms, laat dan Sms staan; zo niet, kies bij Inloggen 'geen'. Kijk de eerste keer mee: dan zie je of de app de inlogvelden en downloadknoppen vindt.",
+      "periode": {
+        "soort": "jaar"
+      }
     },
     {
       "sjabloon": "gmail",
@@ -75,11 +84,13 @@
         "afzenders": "",
         "negeer": "",
         "extra": "",
-        "dagen": 90,
         "max": 50,
         "perAfzender": true
       },
-      "tip": "Koppel eerst Google met toegang tot Gmail (Facturen → Koppelingen → Google). Tools leest alleen; het verandert niets in je mail. Elke afzender krijgt een eigen map."
+      "tip": "Koppel eerst Google met toegang tot Gmail (Facturen → Koppelingen → Google). Tools leest alleen; het verandert niets in je mail. Elke afzender krijgt een eigen map.",
+      "periode": {
+        "soort": "jaar"
+      }
     },
     {
       "sjabloon": "anders",
@@ -89,7 +100,7 @@
       "facturenUrl": "",
       "menu": "facturen|factuur|invoices|documenten",
       "knoppen": "download|\\bpdf\\b|\\.pdf",
-      "max": 12,
+      "max": 50,
       "schema": "maand",
       "dag": 5,
       "tijd": "08:00",
@@ -98,7 +109,10 @@
         "afzender": "",
         "patroon": ""
       },
-      "tip": "Kijk de eerste keer mee: dan zie je of de app de inlogvelden en downloadknoppen vindt. Lukt dat niet, vul dan bij Geavanceerd de facturenpagina of de velden in."
+      "tip": "Kijk de eerste keer mee: dan zie je of de app de inlogvelden en downloadknoppen vindt. Lukt dat niet, vul dan bij Geavanceerd de facturenpagina of de velden in.",
+      "periode": {
+        "soort": "jaar"
+      }
     }
   ]
 }

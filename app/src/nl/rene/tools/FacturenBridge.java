@@ -33,7 +33,7 @@ public class FacturenBridge extends GebruikBridge {
                 java.text.SimpleDateFormat ym = new java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US);
                 if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) {
                     JSONObject r = vw.optJSONObject(it.next());
-                    if (r == null || r.optLong("t") == 0) continue;
+                    if (r == null || r.optLong("t") == 0 || r.optBoolean("buiten")) continue; // buiten de periode: niet binnengekomen
                     String m = ym.format(new java.util.Date(r.optLong("t")));
                     maanden.put(m, maanden.optInt(m) + 1);
                 }
@@ -55,7 +55,8 @@ public class FacturenBridge extends GebruikBridge {
                     .put("lokaal", lokaalNaam())
                     .put("drive", new JSONObject().put("gekoppeld", FacturenDrive.gekoppeld(ctx))
                             .put("rechtDrive", FacturenDrive.heeftRecht(ctx, "drive")).put("rechtGmail", FacturenDrive.heeftRecht(ctx, "gmail")).put("rechtGmailSend", FacturenDrive.heeftRecht(ctx, "gmailsend")).put("gebruiker", p.getString("gdGebruiker", ""))
-                            .put("clientId", p.getString("gdClientId", "")).put("heeftGeheim", Facturen.heeftGeheim(ctx, "gd_secret")))
+                            .put("clientId", p.getString("gdClientId", "")).put("heeftGeheim", Facturen.heeftGeheim(ctx, "gd_secret"))
+                            .put("viaToestel", FacturenGoogleToestel.actief(ctx)).put("accountWeg", FacturenGoogleToestel.actief(ctx) && !FacturenGoogleToestel.werkt(ctx)))
                     .put("smtp", new JSONObject().put("host", p.getString("smtpHost", "")).put("poort", p.getInt("smtpPoort", 587))
                             .put("beveiliging", p.getString("smtpBeveiliging", "starttls")).put("gebruiker", p.getString("smtpGebruiker", ""))
                             .put("van", p.getString("smtpVan", "")).put("naam", p.getString("smtpNaam", "")).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "smtp")))
@@ -104,6 +105,23 @@ public class FacturenBridge extends GebruikBridge {
             if (!e.isEmpty()) a.js("onFacturenKlaar", "{\"id\":" + JSONObject.quote(id) + ",\"ok\":false,\"msg\":" + JSONObject.quote(e) + "}");
         });
         return "";
+    }
+
+    /**
+     * Alles van de gekozen periode (opnieuw) ophalen: de app begint weer bij het begin van de periode (mail: vanaf die datum;
+     * website: ook de facturen die eerder buiten de periode vielen). Wat al binnen is, komt niet dubbel.
+     */
+    @JavascriptInterface public String facturenOpnieuw(String id) {
+        try {
+            if (Facturen.leverancier(ctx, id) == null) return "Leverancier niet gevonden";
+            if (FacturenRun.LOPEND.get() != null) return "Er worden al facturen opgehaald; probeer het straks nog een keer";
+            synchronized (Facturen.LOCK) {
+                JSONObject t = Facturen.toestand(ctx, id), vw = t.optJSONObject("verwerkt");
+                if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) { JSONObject r = vw.optJSONObject(it.next()); if (r != null && r.optBoolean("buiten")) it.remove(); }
+                Facturen.werkBij(ctx, id, new JSONObject().put("lastOk", 0).put("mailSinds", 0).put("mailMeer", false).put("verwerkt", vw == null ? new JSONObject() : vw));
+            }
+            return "";
+        } catch (Exception e) { return e.getMessage() == null ? "Lukt niet" : e.getMessage(); }
     }
 
     @JavascriptInterface public void facturenStop() { FacturenRun r = FacturenRun.LOPEND.get(); if (r != null) r.stoppen(); }
@@ -196,6 +214,19 @@ public class FacturenBridge extends GebruikBridge {
         } catch (Exception e) { return e.getMessage() == null ? "Koppelen lukt niet" : e.getMessage(); }
     }
 
+    /** Google koppelen met het Google-account op deze telefoon (geen browser). Antwoord via onFacturenDrive({error|naam}). */
+    @JavascriptInterface public String facturenGoogleToestel(String rechten) {
+        if (rechten == null || (!rechten.contains("drive") && !rechten.contains("gmail"))) return "Kies waarvoor Tools Google mag gebruiken (Drive en/of Gmail)";
+        a.h.post(() -> a.kiesGoogleAccount(rechten));
+        return "";
+    }
+
+    /** Pakketnaam en SHA-1 van deze app, voor de Android-client in het Google-project: {pakket, sha1}. */
+    @JavascriptInterface public String facturenAppSleutel() {
+        try { return new JSONObject().put("pakket", ctx.getPackageName()).put("sha1", FacturenGoogleToestel.sha1(ctx)).toString(); }
+        catch (Exception e) { return "{}"; }
+    }
+
     @JavascriptInterface public void facturenDriveLos() { FacturenDrive.ontkoppel(ctx); }
 
     // ================= dossier =================
@@ -224,6 +255,17 @@ public class FacturenBridge extends GebruikBridge {
             HERKEN.set(false);
             try { a.js("onFacturenHerkend", r); } catch (Throwable ignored) { }
         }, "facturen-herken").start();
+    }
+
+    /** De tekst uit de PDF van een factuur (om de herkenning te controleren): {tekst} of {error}. Blijft op de telefoon. */
+    @JavascriptInterface public String facturenDossierTekst(String sha) {
+        try {
+            if (!PdfDoc.canText()) return "{\"error\":\"Tekst uit een PDF lezen kan pas vanaf Android 15\"}";
+            JSONObject s = FacturenDossier.alle(ctx).optJSONObject(sha == null ? "" : sha);
+            java.io.File f = s == null ? null : FacturenAanlever.bestand(ctx, s);
+            if (f == null) return "{\"error\":\"De factuur staat niet (meer) in de app\"}";
+            return new JSONObject().put("tekst", FacturenDossier.tekst(f)).toString();
+        } catch (Throwable e) { return "{\"error\":\"Lezen lukt niet\"}"; }
     }
 
     /** Factuurgegevens aanpassen: {nummer, datum, bedrag, btw, categorie, notitie}. Geeft "" of een fout. */
