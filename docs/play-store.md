@@ -40,9 +40,14 @@ telefoon te veranderen:
 De app herkent de Play-versie aan de pakketnaam (`Updater.viaPlay`: eindigt op `.play`). Dan:
 - geen eigen updates: geen controle bij het openen, `Updater.check` en `downloadAndInstall` doen niets, en bij Versie
   en updates staat "Updates van deze versie komen via Google Play";
-- `web/src/script/66-play-versie.js` verbergt de tools in `PLAY_WEG` (Auto redial, SMS-backup, Oproepen, Gesprekken
-  opnemen) en weigert ze te openen, ook via zoeken of de assistent; bij Gebruik verdwijnen apparaatbeheer en de stille
-  foto's bij ontgrendelen.
+- `web/src/script/66-play-versie.js` (vóór `29-start.js`) verbergt de tools in `PLAY_WEG` (Auto redial, SMS-backup,
+  Oproepen, Gesprekken opnemen) en weigert ze en hun subschermen te openen (`show`, ook bij het starten via een
+  snelkoppeling, widget, melding of losse app); ze verdwijnen uit Overal zoeken, de instellingen-zoeker, de losse apps
+  en de keuzes bij het app-icoon, en de assistent zegt dat ze er niet in zitten. Bij Gebruik verdwijnen
+  apparaatbeheer en de stille foto's bij ontgrendelen; bij Toestemmingen de regel "Updates installeren".
+- Nog over (alleen in de Play-versie, cosmetisch): ze staan nog in Startscherm aanpassen en in de Telefoon-skin
+  (openen wordt daar ook geweigerd), het overzicht op het startscherm kan een regel Auto redial tonen, en een groep
+  met alleen verborgen tegels houdt zijn kop.
 Tests: `PlayVersieTest` (Java) en `tests/ui/play-versie.test.js` (gewone versie ongewijzigd, Play-versie zonder deze delen).
 Nieuwe tool die een toestemming uit de lijst `niet`/`streng` nodig heeft? Zet hem in `PLAY_WEG`.
 

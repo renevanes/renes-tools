@@ -29,9 +29,10 @@ const TEGEL = { redial: 'tile-redial', sms: 'tile-sms', calls: 'tile-calls', rec
     assert((await pg.evaluate(() => 'sms' in GS && 'calls' in GS)) === !play, naam + ': sms en oproepen in Overal zoeken ' + (play ? 'weg' : 'er'));
     assert((await pg.evaluate(() => SET_REG.some(r => r.scr === 'redial'))) === !play, naam + ': instellingen van Auto redial in zoeken ' + (play ? 'weg' : 'er'));
     assert((await pg.evaluate(() => SOLO_TOOLS.includes('redial'))) === !play, naam + ': Auto redial als losse app ' + (play ? 'weg' : 'er'));
-    await pg.evaluate(() => setDynamicShortcuts());
+    await pg.evaluate(() => { toggleFav('redial'); setDynamicShortcuts(); }); // als favoriet zou hij er in de gewone versie zeker bij staan
     const dyn = JSON.parse(await pg.evaluate(() => Android._dyn)).map(x => x[0]);
     assert(dyn.includes('redial') === !play, naam + ': app-icoon-keuzes ' + (play ? 'zonder' : 'met') + ' Auto redial: ' + dyn);
+    await pg.evaluate(() => toggleFav('redial'));
     // Updates
     await pg.evaluate(() => show('info')); await pg.waitForTimeout(150);
     assert((await zichtbaar('chk-btn')) === !play, naam + ': knop "Controleren op updates" ' + (play ? 'weg' : 'er'));
