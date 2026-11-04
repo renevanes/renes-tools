@@ -11,7 +11,7 @@ python3 -m unittest discover -s play -p 'test_*.py'
 
 De bouw controleert de SHA-256 van bundletool 1.18.3, valideert de AAB en controleert het werkelijke bundelmanifest en de inhoud. Onverwachte rechten, componenten, verkeerde provider-namen of native bestanden laten de bouw falen. De basis bevat geen native bibliotheken; de oude whisper/llama-ABI-bestanden gaan niet mee. Java-bron en providernamen worden in een aparte bouwmap verwerkt. `build.sh` bouwt de volledige versie.
 
-Workflow **Play-controle** bouwt met een tijdelijke CI-sleutel, installeert de volledige en de Play-app naast elkaar en doet een rooktest op API 24 en 36. De CI-AAB is uitsluitend een testartifact, geen productiebundel. Lokale interface- en Java-tests controleren ook de begrenzing van teruggezette instellingen en verborgen schermen.
+Workflow **Play-controle** bouwt met een tijdelijke CI-sleutel, installeert de volledige en de Play-app naast elkaar en doet een rooktest op API 24 en 36. Daarbij worden oude opname-/fotovoorkeuren en beschadigde automatiseringsregels vóór het starten teruggezet; de test controleert dat die daarna uitgeschakeld zijn. De CI-AAB is uitsluitend een testartifact, geen productiebundel. Lokale interface- en Java-tests controleren ook de begrenzing van teruggezette instellingen en verborgen schermen.
 
 Voor een echte upload gebruik je een afzonderlijke uploadsleutel, aangemaakt en veilig bewaard door de accounteigenaar:
 
