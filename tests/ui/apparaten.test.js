@@ -93,7 +93,7 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._ap.ssid = 'Vakantiehuis'; }); await pg.click('#ap-lan-go'); await pg.waitForTimeout(150);
     ok(await pg.isVisible('#modal.on') && (await pg.textContent('#modal-text')).includes('Vakantiehuis'), 'ander onbekend netwerk: vragen');
     await pg.click('#modal-ok'); await pg.waitForTimeout(150);
-    ok(await pg.evaluate(() => Android._ap.lanBusy && Android._ap.nets['Vakantiehuis']), 'bevestigd = zoeken');
+    ok(await pg.evaluate(() => Android._ap.lanBusy && !Android._ap.nets['Vakantiehuis']), 'bevestigd = zoeken (onthouden pas als de ronde klaar is)');
     await pg.waitForTimeout(900);
     ok(await pg.evaluate(() => Android.apLanStart(false) === '' ), 'eenmaal onderzocht: volgende keer niet opnieuw vragen');
     await pg.waitForTimeout(900);

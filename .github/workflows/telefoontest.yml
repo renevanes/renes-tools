@@ -28,7 +28,7 @@ jobs:
   telefoon:
     name: Telefoontest (API ${{ matrix.api }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 70   # ruimte voor één herkansing van de emulator
     strategy:
       fail-fast: false
       matrix:
