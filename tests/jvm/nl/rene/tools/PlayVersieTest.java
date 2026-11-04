@@ -21,6 +21,9 @@ public class PlayVersieTest {
             ok("[]".equals(PlayPolicy.sanitizeRules("nl.rene.tools.play", "beschadigd")), "ongeldige uitgesloten regels blokkeren herstel niet");
             ok("beschadigd".equals(PlayPolicy.sanitizeRules("nl.rene.tools", "beschadigd")), "gewone regels ongewijzigd");
         } catch (Exception e) { ok(false, "opschonen faalde"); }
+        ok(NotifCenter.available("nl.rene.tools", "call-recording"), "gewone meldingssoorten behouden");
+        ok(NotifCenter.available("nl.rene.tools.play", "radio"), "Play-radio meldingen behouden");
+        ok(!NotifCenter.available("nl.rene.tools.play", "call-recording"), "Play biedt geen uitgesloten meldingssoorten");
         if (!all) System.exit(1);
     }
 }

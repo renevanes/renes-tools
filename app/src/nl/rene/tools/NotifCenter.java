@@ -95,12 +95,18 @@ final class NotifCenter {
     }
 
     /** Alle soorten aanmaken (met nette namen en uitleg), zodat ze allemaal in Android te zien en in te stellen zijn. */
+    static boolean available(String pkg, String id) {
+        return !Updater.isPlayPackage(pkg) || Reminders.CHANNEL.equals(id) || RadioService.CHANNEL.equals(id)
+                || PodcastService.CHANNEL.equals(id) || CastService.CHANNEL.equals(id);
+    }
+
     static void ensureAll(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
         try {
             NotificationManager nm = c.getSystemService(NotificationManager.class);
-            SleepService.quietChannel(c); // met eigen instellingen (geen geluid, geen stip, niet op het vergrendelscherm)
+            if (!Updater.viaPlay(c)) SleepService.quietChannel(c); // met eigen instellingen (geen geluid, geen stip, niet op het vergrendelscherm)
             for (String[] k : KINDS) {
+                if (!available(c.getPackageName(), k[0])) continue;
                 // Alleen aanmaken wat er nog niet is: de diensten zelf houden naam en uitleg bij, en de
                 // belangrijkheid blijft zoals jij hem in Android hebt gezet
                 if (nm.getNotificationChannel(k[0]) != null) continue;
@@ -124,6 +130,7 @@ final class NotifCenter {
             o.put("muted", muted(c)).put("allowed", nm.areNotificationsEnabled()).put("perm", permissionOk(c));
             JSONArray a = new JSONArray();
             for (String[] k : KINDS) {
+                if (!available(c.getPackageName(), k[0])) continue;
                 int level = Integer.parseInt(k[3]);
                 if (Build.VERSION.SDK_INT >= 26) {
                     NotificationChannel ch = nm.getNotificationChannel(k[0]);

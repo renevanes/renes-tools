@@ -6,16 +6,16 @@ const TEGEL = Object.fromEntries(WEG.map(t => [t, 'tile-' + t]));
 (async () => {
   const b = await chromium.launch();
   const errs = [];
-  const open = async (play, init) => {
-    const pg = await b.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  const open = async (play, init, colorScheme = 'light') => {
+    const pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme, hasTouch: true });
     pg.on('pageerror', e => errs.push(e.message));
     await pg.addInitScript(([p, o]) => { if (p) window.__testPlay = true; if (o) window.__testOpen = o; }, [play, init || '']);
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
     return pg;
   };
-  for (const play of [false, true]) {
+  for (const colorScheme of ['light', 'dark']) for (const play of [false, true]) {
     const naam = play ? 'Play-versie' : 'gewone versie';
-    const pg = await open(play);
+    const pg = await open(play, '', colorScheme);
     const zichtbaar = id => pg.$eval('#' + id, el => el.checkVisibility()).catch(() => false);
     for (const t of WEG) assert((await zichtbaar(TEGEL[t])) === !play, naam + ': tegel ' + t + (play ? ' verborgen' : ' zichtbaar'));
     assert(await zichtbaar('tile-notes'), naam + ': notities zichtbaar');
@@ -67,7 +67,7 @@ const TEGEL = Object.fromEntries(WEG.map(t => [t, 'tile-' + t]));
     assert((await zichtbaar('gb-test')) === !play, naam + ': foto bij ontgrendelen ' + (play ? 'weg' : 'er'));
     await pg.evaluate(() => show('gebruik')); await pg.waitForTimeout(150);
     assert((await pg.$eval('#gb-tabs [data-tab="fotos"]', el => el.checkVisibility())) === !play, naam + ": tabblad Foto's " + (play ? 'weg' : 'er'));
-    if (play) await pg.screenshot({ path: __dirname + '/shots/play-versie.png' });
+    if (play) await pg.screenshot({ path: __dirname + '/shots/play-versie-' + colorScheme + '.png' });
     await pg.close();
   }
   // Bij het starten een tool openen (snelkoppeling, widget, melding, losse app)
