@@ -27,16 +27,16 @@ function auDaysLabel(m){
 }
 function auSummary(r){
   const p = r.place || {}, parts = [];
-  const where = p.name || 'de plek';
-  if (r.trig === 'arrive' || r.trig === 'leave') parts.push(AU_TRIG[r.trig] + ' ' + where);
-  else if (r.trig === 'time') parts.push('Om ' + (r.at || '?'));
-  else parts.push((AU_TRIG[r.trig] || '?') + (r.usePlace && r.place ? ' bij ' + where : ''));
+  const where = p.name || t('de plek');
+  if (r.trig === 'arrive' || r.trig === 'leave') parts.push(t(AU_TRIG[r.trig]) + ' ' + where);
+  else if (r.trig === 'time') parts.push(t('Om {tijd}', { tijd: r.at || '?' }));
+  else parts.push(t(AU_TRIG[r.trig] || '?') + (r.usePlace && r.place ? ' ' + t('bij {plek}', { plek: where }) : ''));
   const d = auDaysLabel(r.days); if (d) parts.push(d);
   if (r.from && r.to && r.from !== r.to) parts.push(r.from + '–' + r.to);
-  let act = AU_MODE[r.mode] || '';
-  if (r.act && r.act !== 'app') return parts.join(' · ') + ' → ' + AU_ACT[r.act] + (r.act === 'note' && r.note ? ': ' + r.note.title : r.act === 'radio' && r.radio ? ': ' + r.radio.name : '') + (r.act === 'note' ? '' : ', ' + (r.mode === 'auto' ? 'meteen' : act));
+  let act = t(AU_MODE[r.mode] || '');
+  if (r.act && r.act !== 'app') return parts.join(' · ') + ' → ' + t(AU_ACT[r.act]) + (r.act === 'note' && r.note ? ': ' + r.note.title : r.act === 'radio' && r.radio ? ': ' + r.radio.name : '') + (r.act === 'note' ? '' : ', ' + (r.mode === 'auto' ? t('meteen') : act));
   if (r.app && r.app.n && r.mode !== 'notify') act = r.app.n + ', ' + act;
-  if (r.mode !== 'notify' && r.steps && r.steps.length) act += ' (' + r.steps.length + (r.steps.length === 1 ? ' knop' : ' knoppen') + ')';
+  if (r.mode !== 'notify' && r.steps && r.steps.length) act += ' (' + tn(r.steps.length, '{n} knop', '{n} knoppen') + ')';
   return parts.join(' · ') + ' → ' + act;
 }
 

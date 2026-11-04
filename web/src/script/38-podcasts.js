@@ -400,7 +400,7 @@ function pdSortToggle(){ pdSort = pdSort === 'old' ? 'new' : 'old'; pdSortShow()
 function pdSortShow(){
   const b = $('#pd-sort'), tt = pdSort === 'old' ? 'Oudste eerst' : 'Nieuwste eerst';
   b.dataset.v = pdSort; b.querySelector('.lang').textContent = tt; b.querySelector('.kort').textContent = pdSort === 'old' ? 'Oudste' : 'Nieuwste';
-  b.setAttribute('aria-label', 'Volgorde: ' + tt.toLowerCase());
+  b.setAttribute('aria-label', t('Volgorde: {volgorde}', { volgorde: t(tt).toLowerCase() }));
 }
 function pdHideToggle(){ pdHide = !pdHide; $('#pd-hide').setAttribute('aria-pressed', pdHide ? 'true' : 'false'); pdRender(); }
 function pdList(){

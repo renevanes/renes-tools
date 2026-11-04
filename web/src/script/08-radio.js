@@ -173,7 +173,7 @@ function rdShowSong(tt, inf){
   if (!tt) { box.style.display = 'none'; return; }
   box.style.display = 'block';
   const q = encodeURIComponent(tt);
-  box.innerHTML = (inf.song ? '<b>' + esc(inf.song) + '</b><span>' + esc(inf.artist) + '</span>' : '<b>' + esc(tt) + '</b><span>Nu op ' + esc((rdState.station || {}).name || 'de radio') + '</span>') +
+  box.innerHTML = (inf.song ? '<b>' + esc(inf.song) + '</b><span>' + esc(inf.artist) + '</span>' : '<b>' + esc(tt) + '</b><span>' + esc(t('Nu op {zender}', { zender: (rdState.station || {}).name || t('de radio') })) + '</span>') +
     '<div class=lnk><button class=mini onclick="rdSaveSong()" aria-label="Nummer bewaren in Herkende muziek">★ Bewaar</button>' +
     '<button class=mini data-u="https://music.youtube.com/search?q=' + q + '" onclick="Android.openUrl(this.dataset.u)">YouTube</button>' +
     '<button class=mini data-u="https://open.spotify.com/search/' + q + '" onclick="Android.openUrl(this.dataset.u)">Spotify</button>' +

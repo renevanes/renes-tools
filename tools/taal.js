@@ -141,7 +141,7 @@ function jsScan(){
       }
     }
     // 2. textContent = 'tekst' + …  (bewaker) en textContent = 'tekst' (sleutel; de observer vertaalt hem)
-    const rt = /\.(textContent|innerText)\s*=(?!=)\s*/g;
+    const rt = /\.(textContent|innerText|placeholder|title|ariaLabel)\s*=(?!=)\s*|\.setAttribute\(\s*'(?:aria-label|title|placeholder|alt)'\s*,\s*/g;
     while ((m = rt.exec(src))) {
       const s0 = m.index + m[0].length; let e = s0, d = 0;
       for (; e < src.length; e++) { const c = src[e]; const tk = byAt.get(e); if (tk) { e = tk.end - 1; continue; } if (c === '(' || c === '[' || c === '{') d++; else if (c === ')' || c === ']' || c === '}') { if (!d) break; d--; } else if ((c === ';' || c === '\n') && !d) break; else if (c === ',' && !d) break; }
@@ -150,7 +150,7 @@ function jsScan(){
       if (/^\s*t\(|^\s*tn\(/.test(raw)) continue;
       if (/\+/.test(bare) || lits.some(x => x.tpl)) {
         const dutch = lits.filter(x => !inT(src, x.at) && looksDutch(x.s.replace(/\$\{…\}/g, ' ')) && /\p{L}{3}/u.test(x.s));
-        if (dutch.length) guard.push([where, m[1] + ' plakt tekst aan elkaar zonder t(): ' + dutch.map(x => JSON.stringify(x.s)).join(' + ')]);
+        if (dutch.length) guard.push([where, (m[1] || 'setAttribute') + ' plakt tekst aan elkaar zonder t(): ' + dutch.map(x => JSON.stringify(x.s)).join(' + ')]);
       } else lits.forEach(x => { if (looksDutch(x.s) && !inT(src, x.at)) add(x.s, where); });
     }
     // 2b. Elke andere Nederlandse tekst die met + aan iets vastgeplakt wordt (in HTML, een variabele, een aria-label …),
@@ -164,7 +164,7 @@ function jsScan(){
       const frags = [];
       if (before) { const lead = tk.s.split(/[<"]/)[0]; if (!/(uiIcon|icon|Icon|svg\w*)\([^()]*\)\s*\+\s*$/.test(src.slice(Math.max(0, tk.at - 60), tk.at))) frags.push(lead); }
       if (after) { const m2 = /(?:aria-label|title|placeholder|alt)="([^"]*)$/.exec(tk.s); frags.push(m2 ? m2[1] : /[>"]/.test(tk.s) ? tk.s.slice(Math.max(tk.s.lastIndexOf('>'), tk.s.lastIndexOf('"')) + 1) : tk.s); }
-      const bad = frags.filter(f => /\p{L}{3}/u.test(f) && looksDutch(f) && DUTCHY.test(f));
+      const bad = frags.filter(f => /\p{L}{2}/u.test(f) && looksDutch(f) && DUTCHY.test(f));
       if (!bad.length) continue;
       const line = lineOf(src, tk.at), where = name + ':' + line;
       if (seenLine.has(where) || guard.some(g => g[0] === where)) continue;

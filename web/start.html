@@ -441,8 +441,11 @@ function taalKeys(root){
   const out = [];
   const walk = n => {
     if (n.nodeType === 3) { const k = taalNorm(n.data); if (/\p{L}/u.test(k)) out.push(['tekst', k]); return; }
-    if (n.nodeType !== 1 || taalSkip(n)) return;
+    if (n.nodeType !== 1) return;
+    const ta = n.tagName === 'TEXTAREA' && n.getAttribute('translate') !== 'no'; // wel de placeholder, niet de inhoud
+    if (taalSkip(n) && !ta) return;
     for (const a of TAAL_ATTRS) { const v = n.getAttribute(a); if (v && /\p{L}/u.test(v)) out.push(['attr', taalNorm(v)]); }
+    if (ta) return;
     if (n.tagName === 'INPUT' && /^(button|submit)$/i.test(n.type) && n.value) out.push(['attr', taalNorm(n.value)]);
     if (taalUnit(n)) { out.push(['html', taalNorm(n.innerHTML)]); return; }
     for (let c = n.firstChild; c; c = c.nextSibling) walk(c);
@@ -466,13 +469,15 @@ function taalAttr(el, a){
 function taalWalk(root){
   if (root.nodeType === 3) { taalText(root); return; }
   if (root.nodeType !== 1 && root.nodeType !== 11) return;
-  if (root.nodeType === 1 && (taalSkip(root) || root.closest('[translate="no"]'))) return;
+  if (root.nodeType === 1 && root.closest('[translate="no"]')) return;
   const walk = n => {
     if (n.nodeType === 3) { taalText(n); return; }
     if (n.nodeType !== 1 && n.nodeType !== 11) return;
     if (n.nodeType === 1) {
-      if (taalSkip(n)) return;
+      const ta = n.tagName === 'TEXTAREA' && n.getAttribute('translate') !== 'no'; // wel de placeholder, niet de inhoud
+      if (taalSkip(n) && !ta) return;
       for (const a of TAAL_ATTRS) if (n.hasAttribute(a)) taalAttr(n, a);
+      if (ta) return;
       if (n.tagName === 'INPUT' && /^(button|submit)$/i.test(n.type) && n.value) { const r = taalLookup(n.value); if (r !== undefined) { n.__tNlV = n.value; n.value = r; } }
       if (n.__tEnH !== undefined && n.innerHTML === n.__tEnH) return;
       if (taalUnit(n)) {

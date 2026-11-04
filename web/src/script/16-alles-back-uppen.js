@@ -14,7 +14,7 @@ function bkPrivNoLonger(priv){
   }
   const N = { ai: 'het geheugen en de gesprekken van de assistent', sleep: 'Slaappraat', checkin: 'Check-in' }, ns = priv.map(k => N[k]), ai = priv.includes('ai');
   // Met de assistent erbij staat er al "en" in de naam: dan met komma's ("…, en Slaappraat,")
-  const wie = (ns.length === 1 ? ns[0] : ai ? ns.slice(0, -1).join(', ') + ', en ' + ns[ns.length - 1] + ',' : ns.slice(0, -1).join(', ') + ' en ' + ns[ns.length - 1]).replace(/^./, c => c.toUpperCase());
+  const wie = (ns.length === 1 ? ns[0] : ai ? ns.slice(0, -1).join(', ') + ', en ' + ns[ns.length - 1] + ',' : ns.slice(0, -1).join(', ') + ' en ' + ns[ns.length - 1]).replace(/^./, c => c.toUpperCase()); // taal-vast: Nederlandse opsomming; het Engels staat hierboven
   const mv = priv.length > 1 || ai;
   return wie + (mv ? ' gaan' : ' gaat') + ' dan niet meer mee, want ' + (mv ? 'die zijn' : 'dat is') + ' privé. Wil je ' + (mv ? 'ze' : 'het') + ' toch onversleuteld meenemen, vink ' + (mv ? 'ze' : 'het') + ' dan opnieuw aan.'; // taal-vast: de Nederlandse zin; het Engels staat hierboven in t()
 }

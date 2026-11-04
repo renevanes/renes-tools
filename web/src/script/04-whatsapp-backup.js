@@ -50,7 +50,7 @@ function renderWaCats(){
     const z = waSizesC && waSizesC[k];
     if (z && WA_ALL.includes(k)) { all += z.bytes; allF += z.files; }
     const b = document.createElement('button'); b.className = 'cat' + (waSel.has(k) ? ' on' : '');
-    b.innerHTML = '<i class="cb"></i><span>' + esc(label) + (sub ? '<br><small style="white-space:normal">' + esc(sub) + '</small>' : '') + '</span><small>' + (z ? fmtB(z.bytes) : '') + '</small>';
+    b.innerHTML = '<i class="cb"></i><span>' + esc(t(label)) + (sub ? '<br><small style="white-space:normal">' + esc(t(sub)) + '</small>' : '') + '</span><small>' + (z ? fmtB(z.bytes) : '') + '</small>';
     b.onclick = () => { waSel.has(k) ? waSel.delete(k) : waSel.add(k); Android.vibrate(10); waSave(); renderWaCats(); };
     el.appendChild(b);
   });
