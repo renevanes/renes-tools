@@ -7,12 +7,13 @@ function bkAiRender(){
   const ok = ai.kan && ai.klaar;
   $('#bk-ai-model').textContent = !ai.kan ? 'De lokale AI werkt niet op deze telefoon (er is een 64-bits ARM-processor nodig). De rapportages werken wel gewoon.'
     : !ai.klaar ? 'Download eerst een taalmodel (Instellingen → Taalmodel). Daarna kun je hier vragen stellen over je uitgaven; de AI draait op deze telefoon en onthoudt niets.'
-    : 'Model: ' + (ai.model || 'lokaal') + '. De AI draait op deze telefoon, krijgt alleen een samenvatting van de gekozen periode, onthoudt niets en bewaart het gesprek niet.';
+    : t('Model: {model}. De AI draait op deze telefoon, krijgt alleen een samenvatting van de gekozen periode, onthoudt niets en bewaart het gesprek niet.', { model: ai.model || t('lokaal') });
   for (const id of ['#bk-ai-stuur', '#bk-ai-sam']) $(id).disabled = !ok || bk.aiBezig;
   document.querySelectorAll('#bk-ai-chips button').forEach(b => { b.disabled = !ok || bk.aiBezig; });
   $('#bk-ai-stop').hidden = !bk.aiBezig;
 }
 
+/* taal-vast-begin: tekst voor het taalmodel (de cijfers), niet voor in beeld */
 /** De cijfers voor de AI: totalen, vergelijking, categorieën, tegenpartijen, maanden, vaste lasten, grootste uitgaven. */
 function bkFeiten(vraag){
   const [van, tot, label] = bkPeriodeVan(), lijst = bkSelectie(van, tot), tt = bkTotalen(lijst);
@@ -48,6 +49,7 @@ function bkFeiten(vraag){
   return r.join('\n\n').slice(0, 9000);
 }
 const BK_STOP = new Set(['hoeveel', 'heb', 'waar', 'mijn', 'deze', 'maand', 'vorige', 'periode', 'uitgegeven', 'uitgaven', 'inkomsten', 'geld', 'aan', 'welke', 'wat', 'waarom', 'zijn', 'kost', 'kosten', 'meeste', 'besparen', 'hoe', 'kan', 'ik', 'het', 'een', 'van', 'voor', 'met', 'bij', 'per', 'jaar', 'week', 'totaal', 'veranderd', 'opzichte', 'vaste', 'lasten', 'abonnementen', 'makkelijkst', 'heeft', 'zijn', 'waren', 'gaat', 'mijn', 'allemaal']);
+/* taal-vast-eind */
 /** Namen van buiten (afschriften) ingekort en zonder regeleinden: het blijven gegevens in de lijst. */
 const bkKort = s => String(s || 'onbekend').replace(/[\r\n]+/g, ' ').slice(0, 50);
 
@@ -60,7 +62,7 @@ function bkVraag(vraag){
 }
 function bkSamenvatting(){
   if (bk.aiBezig || !bk.store) return;
-  bkAiStart('samenvatting', 'Maak een analyse van mijn geldzaken in deze periode.\n\nMijn cijfers:\n' + bkFeiten(''));
+  bkAiStart('samenvatting', 'Maak een analyse van mijn geldzaken in deze periode.\n\nMijn cijfers:\n' + bkFeiten('')); // taal-vast: tekst voor het taalmodel
 }
 function bkAiStart(mode, inhoud){
   bk.aiTekst = ''; bk.aiDoel = mode;
@@ -109,7 +111,7 @@ function bkAiCategoriseren(){
   if (!lijst.length) { toast('Er is niets meer in te delen'); return; }
   bk.voorstellen = { lijst, keuze: [] };
   const cats = bkAlleCats().filter(c => c !== 'Eigen rekeningen');
-  const inhoud = 'Categorieën: ' + cats.join(', ') + '\n\nNamen:\n' + lijst.map((x, i) => (i + 1) + ': ' + bkKort(x.naam) + ' (' + x.n + '×, ' + (x.plus > x.n / 2 ? 'bijschrijving' : 'afschrijving') + ', gemiddeld ' + bkEuro(Math.round(x.som / x.n)) + ')').join('\n');
+  const inhoud = 'Categorieën: ' + cats.join(', ') + '\n\nNamen:\n' + lijst.map((x, i) => (i + 1) + ': ' + bkKort(x.naam) + ' (' + x.n + '×, ' + (x.plus > x.n / 2 ? 'bijschrijving' : 'afschrijving') + ', gemiddeld ' + bkEuro(Math.round(x.som / x.n)) + ')').join('\n'); // taal-vast: tekst voor het taalmodel
   bk.aiTekst = ''; bk.aiDoel = 'categorie';
   $('#bk-ai-cat-uit').textContent = 'Bezig…';
   const r = Android.bankAi(JSON.stringify({ mode: 'categorie', messages: [{ role: 'user', content: inhoud }] }));

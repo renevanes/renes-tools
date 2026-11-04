@@ -18,7 +18,7 @@ function apType(tt){ return AP_TYPES[tt] || AP_TYPES.apparaat; }
 function apIcon(tt, tr){ return '<span class="ic' + (tr ? ' tr' : '') + '" aria-hidden="true">' + uiIcon(apType(tt)[1]) + '</span>'; }
 /* Afstand in woorden: altijd "ongeveer" */
 function apDist(m){ if (m == null || m < 0) return ''; return m < 1 ? 'dichtbij (minder dan ' + fmtMeters(1) + ')' : 'ongeveer ' + (m < 10 ? fmtMeters(Math.round(m * 2) / 2, 1) : fmtMeters(m)); }
-function apBars(rssi){ const n = rssi >= -60 ? 4 : rssi >= -70 ? 3 : rssi >= -80 ? 2 : 1; return '<span class="sig" role="img" aria-label="Signaal ' + n + ' van 4">' + [1, 2, 3, 4].map(i => '<i' + (i <= n ? ' class="on"' : '') + '></i>').join('') + '</span>'; }
+function apBars(rssi){ const n = rssi >= -60 ? 4 : rssi >= -70 ? 3 : rssi >= -80 ? 2 : 1; return '<span class="sig" role="img" aria-label="' + t('Signaal {n} van 4', { n: n }) + '">' + [1, 2, 3, 4].map(i => '<i' + (i <= n ? ' class="on"' : '') + '></i>').join('') + '</span>'; }
 function apBadge(tt, cls){ return '<span class="ap-badge' + (cls ? ' ' + cls : '') + '">' + esc(tt) + '</span>'; }
 function apAgo(tt){
   if (!tt) return '';
@@ -96,14 +96,14 @@ document.addEventListener('keydown', e => {
 /* Uitleg en knop als er iets ontbreekt (in context, met de reden) */
 function apPermCard(tt){
   const c = $('#ap-perm'), P = apSt.perms; let h = '';
-  const nearby = '<p>Om ' + (tt === 'wifi' ? 'wifi-netwerken' : 'Bluetooth-apparaten') + ' in de buurt te zien, heeft de app de toestemming <b>Apparaten in de buurt</b> en <b>Locatie</b> nodig' +
-    (P.loc && !P.fine ? '. Kies bij locatie <b>Precies</b>: met alleen "geschatte locatie" geeft Android geen apparaten door' : ' (kies <b>Precies</b>)') +
-    '. Android vraagt locatie omdat je hieruit je plek kunt afleiden; de app gebruikt die alleen grof, voor trackers en "vaak in de buurt". Er gaat niets naar internet.</p><button class="big" onclick="Android.apPerm(\'nearby\')">Toestaan</button>';
+  const nearby = '<p>' + t('Om {wat} in de buurt te zien, heeft de app de toestemming <b>Apparaten in de buurt</b> en <b>Locatie</b> nodig', { wat: t(tt === 'wifi' ? 'wifi-netwerken' : 'Bluetooth-apparaten') }) +
+    t(P.loc && !P.fine ? '. Kies bij locatie <b>Precies</b>: met alleen "geschatte locatie" geeft Android geen apparaten door' : ' (kies <b>Precies</b>)') +
+    t('. Android vraagt locatie omdat je hieruit je plek kunt afleiden; de app gebruikt die alleen grof, voor trackers en "vaak in de buurt". Er gaat niets naar internet.') + '</p><button class="big" onclick="Android.apPerm(\'nearby\')">Toestaan</button>';
   if ((tt === 'bt' || tt === 'tr') && P.btHw === false) h = '<p>Deze telefoon heeft geen Bluetooth.</p>';
   else if ((tt === 'bt' || tt === 'tr') && !P.bt) h = nearby;
   else if ((tt === 'bt' || tt === 'tr') && !P.btOn) h = '<p>Bluetooth staat uit. Zet het aan om apparaten in de buurt te zien.</p><button class="big" onclick="Android.apOpenSettings(\'bt\')">Bluetooth aanzetten</button>';
   else if (tt === 'wifi' && !P.wifi) h = nearby;
-  else if ((tt === 'bt' || tt === 'wifi' || tt === 'tr') && P.locOn === false) h = '<p>Locatie staat uit op je telefoon. Dan geeft Android geen ' + (tt === 'wifi' ? 'wifi-netwerken' : 'Bluetooth-apparaten') + ' door.</p><button class="big" onclick="Android.apOpenSettings(\'loc\')">Locatie aanzetten</button>';
+  else if ((tt === 'bt' || tt === 'wifi' || tt === 'tr') && P.locOn === false) h = '<p>' + t('Locatie staat uit op je telefoon. Dan geeft Android geen {wat} door.', { wat: t(tt === 'wifi' ? 'wifi-netwerken' : 'Bluetooth-apparaten') }) + '</p><button class="big" onclick="Android.apOpenSettings(\'loc\')">Locatie aanzetten</button>';
   c.innerHTML = h; c.style.display = h ? '' : 'none';
 }
 
@@ -204,11 +204,11 @@ function apCrowdRender(){
   $('#ap-crowd').innerHTML = bands.map(band => {
     const chs = Object.keys(cr[band]).map(Number).sort((a, b) => a - b), max = Math.max(1, ...chs.map(c => cr[band][c]));
     const bars = chs.map(c => { const v = cr[band][c], cls = band === '2,4 GHz' && c === d.best24 ? 'best' : v >= max * .75 && v > .5 ? 'hot' : ''; return '<div class="' + cls + '" title="' + t('Kanaal {n}', { n: c }) + '"><i style="height:' + Math.max(3, Math.round(v / max * 100)) + '%"></i></div>'; }).join('');
-    return '<div class="ap-crowd"><div class="band">' + esc(band) + '</div><div class="ap-bars" role="img" aria-label="Drukte per kanaal op ' + esc(band) + ': ' + chs.map(c => 'kanaal ' + c + ' ' + fmtNum(cr[band][c], { maximumFractionDigits: 3 })).join(', ') + '">' + bars + '</div><div class="ap-lbls" aria-hidden="true">' + chs.map(c => '<span>' + c + '</span>').join('') + '</div></div>';
+    return '<div class="ap-crowd"><div class="band">' + esc(band) + '</div><div class="ap-bars" role="img" aria-label="' + esc(t('Drukte per kanaal op {band}: {kanalen}', { band: band, kanalen: chs.map(c => t('kanaal {n}', { n: c }) + ' ' + fmtNum(cr[band][c], { maximumFractionDigits: 3 })).join(', ') })) + '">' + bars + '</div><div class="ap-lbls" aria-hidden="true">' + chs.map(c => '<span>' + c + '</span>').join('') + '</div></div>';
   }).join('');
   let tip = '';
-  if (d.best24) tip = 'Op 2,4 GHz is kanaal ' + d.best24 + ' nu het rustigst (van 1, 6 en 11, die elkaar niet overlappen).';
-  if (mine) tip += ' Je eigen netwerk zit op kanaal ' + mine.ch + ' (' + mine.band + ').' + (mine.band === '2,4 GHz' && d.best24 && mine.ch !== d.best24 ? ' Je kunt dat in je router veranderen als het traag is.' : '');
+  if (d.best24) tip = t('Op 2,4 GHz is kanaal {n} nu het rustigst (van 1, 6 en 11, die elkaar niet overlappen).', { n: d.best24 });
+  if (mine) tip += ' ' + t('Je eigen netwerk zit op kanaal {n} ({band}).', { n: mine.ch, band: mine.band }) + (mine.band === '2,4 GHz' && d.best24 && mine.ch !== d.best24 ? ' ' + t('Je kunt dat in je router veranderen als het traag is.') : '');
   $('#ap-crowd-tip').textContent = tip.trim();
 }
 
@@ -245,7 +245,7 @@ function apLanRender(){
   prog.style.display = d.busy ? '' : 'none'; $('#ap-lan-bar').style.width = pct + '%'; prog.setAttribute('aria-valuenow', pct);
   const nNew = list.filter(x => x.nieuw).length;
   $('#ap-lan-st').textContent = d.busy ? t(d.phase || 'Zoeken') + '… ' + t('{n} gevonden', { n: Math.max(0, list.length - 1) }) : d.error ? t(d.error)
-    : d.at ? Math.max(0, list.length - 1) + ' apparaten op ' + (d.net || 'je wifi') + (nNew ? ', waarvan ' + nNew + ' nieuw' : '') : d.wifi === false ? 'Je bent niet met wifi verbonden.' : 'Tik op Zoeken om te zien wat er op je wifi zit' + (d.net ? ' (' + d.net + ')' : '') + '.';
+    : d.at ? t('{n} apparaten op {net}', { n: Math.max(0, list.length - 1), net: d.net || t('je wifi') }) + (nNew ? t(', waarvan {n} nieuw', { n: nNew }) : '') : d.wifi === false ? t('Je bent niet met wifi verbonden.') : t('Tik op Zoeken om te zien wat er op je wifi zit') + (d.net ? ' (' + d.net + ')' : '') + '.';
   $('#ap-lan-list').innerHTML = list.map(x => {
     const sub = [x.self ? 'deze telefoon' : apType(x.kind)[0]];
     if (x.maker) sub.push(x.maker); if (x.model && x.model !== apLanTitle(x)) sub.push(x.model); sub.push(x.ip);
@@ -258,7 +258,7 @@ function apLanRender(){
       (svc.length ? '<small>' + esc(svc.join(', ')) + '</small>' : '') + (b ? '<span>' + b + '</span>' : '') + '</span></button></div>';
   }).join('');
   $('#ap-lan-foot').textContent = t('Alleen je eigen netwerk{eigen}, hooguit 254 adressen, alleen via wifi en niets naar internet. De app kijkt alleen wat apparaten zelf aankondigen en welke gangbare diensten openstaan; hij logt nergens in.', { eigen: d.own ? ' (' + d.own + ')' : '' }) +
-    (d.macHidden ? ' Het MAC-adres (en daarmee de maker) houdt Android vanaf versie 10 verborgen; de maker komt dan uit wat het apparaat zelf zegt.' : '') + ' Nieuw = de eerste keer gezien op dit netwerk (de eerste keer zoeken is de basis).';
+    (d.macHidden ? ' ' + t('Het MAC-adres (en daarmee de maker) houdt Android vanaf versie 10 verborgen; de maker komt dan uit wat het apparaat zelf zegt.') : '') + ' ' + t('Nieuw = de eerste keer gezien op dit netwerk (de eerste keer zoeken is de basis).');
 }
 function apOpenLan(key){ const d = ((apLanData || {}).devices || []).find(x => x.key === key); apDev = { src: 'lan', key, d: d || null }; show('apdev'); }
 
@@ -279,17 +279,17 @@ function apTrRender(fromPoll){
   else if (!s.trackers) h = '<h2>Trackerwaarschuwing staat uit</h2><button class="big" onclick="apsSetVal(\'trackers\', true); apTrRender()">Aanzetten</button>';
   else if (!P.bg) h = '<h2>Nog één toestemming</h2><p class="note">Sta locatie <b>altijd</b> toe, anders laat Android de app op de achtergrond niet zoeken.</p><button class="big" onclick="Android.apPerm(\'bgloc\')">Toestaan</button>';
   else if (!P.notif || apSt.muted) h = '<h2>Meldingen staan uit</h2><p class="note">De app let op trackers, maar kan je niet waarschuwen.</p>' + (apSt.muted ? '' : '<button class="big" onclick="Android.apPerm(\'notif\')">Meldingen toestaan</button>');
-  else h = '<h2>' + uiIcon('shield') + 'Aan</h2><p class="note">De app let op de achtergrond op onbekende trackers die met je meereizen' + ((apTrData || {}).passive ? ' (Android helpt zuinig mee tussen de rondes door). Een waarschuwing komt na ongeveer twee rondes onderweg: kies een kortere tijd tussen de rondes voor een snellere waarschuwing' : '') + '.</p>';
+  else h = '<h2>' + uiIcon('shield') + 'Aan</h2><p class="note">' + t((apTrData || {}).passive ? 'De app let op de achtergrond op onbekende trackers die met je meereizen (Android helpt zuinig mee tussen de rondes door). Een waarschuwing komt na ongeveer twee rondes onderweg: kies een kortere tijd tussen de rondes voor een snellere waarschuwing.' : 'De app let op de achtergrond op onbekende trackers die met je meereizen.') + '</p>';
   box.innerHTML = h;
   const l = apTrList();
   $('#ap-tr-list').innerHTML = l.length ? l.map(tt => {
     const sub = [];
-    if (tt.status === 'mine' || tt.known) sub.push('van jou');
-    else if (tt.status === 'ignored') sub.push('genegeerd');
-    else if (tt.follows) sub.push('reist mee: ' + tt.places + ' plekken, ' + tt.minutes + ' minuten');
-    else if (tt.places) sub.push('gezien op ' + tt.places + (tt.places === 1 ? ' plek' : ' plekken'));
-    if (tt.near) sub.push('nu in de buurt, ' + apDist(tt.dist)); else if (tt.last) sub.push('laatst ' + apAgo(tt.last));
-    if (tt.warn === false) sub.push('de eigenaar is in de buurt');
+    if (tt.status === 'mine' || tt.known) sub.push(t('van jou'));
+    else if (tt.status === 'ignored') sub.push(t('genegeerd'));
+    else if (tt.follows) sub.push(t('reist mee: {plekken} plekken, {min} minuten', { plekken: tt.places, min: tt.minutes }));
+    else if (tt.places) sub.push(tn(tt.places, 'gezien op {n} plek', 'gezien op {n} plekken'));
+    if (tt.near) sub.push(t('nu in de buurt, {afstand}', { afstand: apDist(tt.dist) })); else if (tt.last) sub.push(t('laatst {wanneer}', { wanneer: apAgo(tt.last) }));
+    if (tt.warn === false) sub.push(t('de eigenaar is in de buurt'));
     const b = tt.follows && !tt.status ? apBadge('let op', 'bad') : '';
     return '<div role="listitem"><button class="ap-row" data-k="' + esc(tt.key) + '" onclick="apOpenTr(this.dataset.k)">' + apIcon('tracker', tt.follows && !tt.status) + '<span class="tx"><b>' + esc(tt.nick || tt.label || 'Tracker') + '</b><small>' + esc(sub.join(' · ')) + '</small>' + (b ? '<span>' + b + '</span>' : '') + '</span>' + (tt.near ? apBars(tt.avg) : '') + '</button></div>';
   }).join('') : '<p class="ap-empty">Geen trackers gezien.</p>';
@@ -340,8 +340,8 @@ function apdRender(){
   if (tr) {
     const st = d.status || '', label = d.label || (d.tracker && d.tracker.label) || 'tracker';
     const apple = /airtag|find my/i.test(label), samsung = /smarttag/i.test(label), google = /google/i.test(label), tile = /tile|chipolo/i.test(label);
-    tc.innerHTML = '<h2>' + uiIcon('alert') + (st === 'mine' || d.known ? 'Je eigen ' + esc(label) : st === 'ignored' ? esc(label) + ' (genegeerd)' : 'Onbekende ' + esc(label)) + '</h2>' +
-      (d.follows ? '<p>Deze tracker is <b>' + d.minutes + ' minuten</b> met je meegegaan, op <b>' + d.places + ' plekken</b>.</p>' : d.places ? '<p>Gezien op ' + d.places + (d.places === 1 ? ' plek' : ' plekken') + '.</p>' : '') +
+    tc.innerHTML = '<h2>' + uiIcon('alert') + esc(st === 'mine' || d.known ? t('Je eigen {naam}', { naam: label }) : st === 'ignored' ? t('{naam} (genegeerd)', { naam: label }) : t('Onbekende {naam}', { naam: label })) + '</h2>' +
+      (d.follows ? '<p>' + t('Deze tracker is <b>{min} minuten</b> met je meegegaan, op <b>{plekken} plekken</b>.', { min: d.minutes, plekken: d.places }) + '</p>' : d.places ? '<p>' + tn(d.places, 'Gezien op {n} plek.', 'Gezien op {n} plekken.') + '</p>' : '') +
       '<ol class="ap-tips"><li>Zoek hem met de meter hieronder: het signaal wordt sterker als je dichterbij komt. Kijk in je tas, jaszakken, auto (onder de stoelen, kofferbak) en fiets.</li>' +
       (apple ? '<li>AirTag: houd hem tegen de achterkant van een telefoon met NFC. Je ziet dan het serienummer en een deel van het telefoonnummer van de eigenaar. Uitzetten: druk het klepje in, draai het linksom en haal de batterij eruit.</li>' : '') +
       (samsung ? '<li>SmartTag: Samsung-telefoons vinden hem met SmartThings → Onbekende tags zoeken, en kunnen hem laten piepen. Uitzetten: open het klepje en haal de batterij eruit.</li>' : '') +
@@ -368,15 +368,15 @@ function apdRender(){
     info += kv('Soort', apType(d.type)[0]) + kv('Naam', d.name) + kv('Maker', d.maker) + kv('Adres', d.n > 1 ? d.n + ' adressen' : d.addr) + kv('Signaal', d.rssi != null && d.near !== false ? d.rssi + ' dBm' : '') +
       kv('Afstand', d.near !== false && d.dist != null ? apDist(d.dist) : '') + kv('Bluetooth', [d.ble ? 'Bluetooth LE' : '', d.classic ? 'klassiek' : ''].filter(Boolean).join(' en ')) + kv('Gekoppeld', d.bonded ? 'ja' : '') +
       (apDev.src === 'hist' ? kv('Laatst gezien', d.last ? apAgo(d.last) + (d.place ? ', ' + apPlace(d.place) : '') : 'nog niet') + kv('Gezien op', d.days ? d.days + (d.days === 1 ? ' dag' : ' dagen') : '') : '');
-    if (d.rotating) info += '<p class="note">Dit apparaat wisselt van adres (dat doen telefoons, horloges en oortjes om niet gevolgd te kunnen worden).' + (d.name ? ' Het wordt herkend aan zijn naam.' : ' Zonder naam is het niet terug te herkennen.') + '</p>';
+    if (d.rotating) info += '<p class="note">' + t('Dit apparaat wisselt van adres (dat doen telefoons, horloges en oortjes om niet gevolgd te kunnen worden).') + ' ' + t(d.name ? 'Het wordt herkend aan zijn naam.' : 'Zonder naam is het niet terug te herkennen.') + '</p>';
   }
   $('#apd-info').innerHTML = info;
   // Bekend / bijnaam
   const stable = /^(a|n|l):/.test(apDev.key) && (lan ? d.stable !== false : true), known = d.known || (apDev.src === 'hist' && d.nick);
   $('#apd-acts').style.display = tr && !known ? 'none' : '';
   $('#apd-acts').innerHTML = '<h2>Mijn apparaat</h2>' + (!stable ? '<p class="note">Dit apparaat is niet terug te herkennen (het wisselt van adres en heeft geen vaste naam), dus een bijnaam kan niet.</p>'
-    : known ? '<p class="note">Bijnaam: <b>' + esc(d.nick) + '</b>. ' + (lan ? 'Het valt niet meer op als nieuw.' : 'Je ziet bij Bekend waar het het laatst was.') + '</p><div class="ap-acts"><button class="mini" onclick="apdKnown(true)">Bijnaam wijzigen</button><button class="mini" onclick="apdKnown(false)">Niet meer mijn apparaat</button></div>'
-    : '<p class="note">Geef het een bijnaam: dan herken je het terug' + (lan ? ' en valt het niet meer op als nieuw.' : ' en zie je bij Bekend waar het het laatst gezien is.') + '</p><div class="ap-acts"><button class="mini" onclick="apdKnown(true)">Dit is mijn apparaat</button></div>');
+    : known ? '<p class="note">' + t('Bijnaam: <b>{naam}</b>.', { naam: esc(d.nick) }) + ' ' + t(lan ? 'Het valt niet meer op als nieuw.' : 'Je ziet bij Bekend waar het het laatst was.') + '</p><div class="ap-acts"><button class="mini" onclick="apdKnown(true)">Bijnaam wijzigen</button><button class="mini" onclick="apdKnown(false)">Niet meer mijn apparaat</button></div>'
+    : '<p class="note">' + t(lan ? 'Geef het een bijnaam: dan herken je het terug en valt het niet meer op als nieuw.' : 'Geef het een bijnaam: dan herken je het terug en zie je bij Bekend waar het het laatst gezien is.') + '</p><div class="ap-acts"><button class="mini" onclick="apdKnown(true)">Dit is mijn apparaat</button></div>');
 }
 function apdKnown(on){
   const d = apdData() || {};
@@ -470,16 +470,16 @@ function apsRender(){
   [['aps-bg', s.bg], ['aps-tr', s.trackers !== false], ['aps-hist', s.hist !== false], ['aps-away', !!s.away]].forEach(([id, on]) => { const b = $('#' + id); b.classList.toggle('on', !!on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
   [['aps-every', s.every || 30], ['aps-keep', s.keep || 30]].forEach(([id, v]) => document.querySelectorAll('#' + id + ' [role=radio]').forEach(b => { const on = +b.dataset.v === +v; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }));
   const sdk = P.sdk || 0;
-  $('#aps-bg-how').innerHTML = esc('Elke ronde zoekt de app ongeveer 10 seconden (Android plant dat in; als de telefoon slaapt of de batterijbesparing aan staat, schuift het op). ') +
-    esc(sdk >= 26 || !sdk ? 'Daarnaast helpt Android zuinig mee tussen de rondes door; voor een waarschuwing zijn er wel een paar rondes onderweg nodig (bij elk half uur ongeveer een uur reizen). ' : '') +
-    esc('Er draait geen dienst met een vaste melding. Met het scherm uit ziet de app alleen trackers en je gekoppelde apparaten. Wifi zoekt Android op de achtergrond nauwelijks (1 keer per half uur); de app gebruikt dan wat de telefoon al vond.') +
+  $('#aps-bg-how').innerHTML = esc(t('Elke ronde zoekt de app ongeveer 10 seconden (Android plant dat in; als de telefoon slaapt of de batterijbesparing aan staat, schuift het op). ')) +
+    esc(sdk >= 26 || !sdk ? t('Daarnaast helpt Android zuinig mee tussen de rondes door; voor een waarschuwing zijn er wel een paar rondes onderweg nodig (bij elk half uur ongeveer een uur reizen). ') : '') +
+    esc(t('Er draait geen dienst met een vaste melding. Met het scherm uit ziet de app alleen trackers en je gekoppelde apparaten. Wifi zoekt Android op de achtergrond nauwelijks (1 keer per half uur); de app gebruikt dan wat de telefoon al vond.')) +
     (s.bg && !P.bg ? '<br><b class="note warn">Sta locatie "altijd" toe, anders laat Android de app op de achtergrond niet zoeken.</b> <button class="mini" onclick="Android.apPerm(\'bgloc\')">Toestaan</button>' : '');
   $('#aps-home-st').textContent = s.home ? (s.homeSsid ? t('Thuis is ingesteld (en je wifi "{wifi}").', { wifi: s.homeSsid }) : t('Thuis is ingesteld.')) + ' ' + t('Binnen ~{afstand} daarvan telt als thuis.', { afstand: fmtMeters(300) })
     : s.homeRegio ? (s.homeSsid ? t('Thuis uit Regio en taal (en je wifi "{wifi}").', { wifi: s.homeSsid }) : t('Thuis uit Regio en taal.')) + ' ' + t('Binnen ~{afstand} daarvan telt als thuis. Met "Hier is thuis" kies je een eigen plek voor Apparaten.', { afstand: fmtMeters(300) })
     : s.homeSsid ? t('Thuis = verbonden met je wifi "{wifi}".', { wifi: s.homeSsid }) : t('Nog niet ingesteld: alles telt als elders. Je kunt thuis ook instellen bij Instellingen → Regio en taal.');
   $('#aps-home-x').style.display = s.home || s.homeSsid ? '' : 'none';
   const row = (name, why, ok, kind) => '<div class="ap-perm-row"><span>' + esc(name) + '<small>' + esc(why) + '</small></span>' + (ok ? apBadge('✓ toegestaan', 'ok') : '<button class="mini" onclick="Android.apPerm(\'' + kind + '\')">Toestaan</button>') + '</div>';
-  $('#aps-perms').innerHTML = row('Apparaten in de buurt en locatie', 'Bluetooth en wifi in de buurt zien' + (sdk && sdk < 31 ? ' (Android vraagt hiervoor locatie)' : ''), P.bt && P.wifi, 'nearby') +
+  $('#aps-perms').innerHTML = row(t('Apparaten in de buurt en locatie'), t('Bluetooth en wifi in de buurt zien') + (sdk && sdk < 31 ? ' ' + t('(Android vraagt hiervoor locatie)') : ''), P.bt && P.wifi, 'nearby') +
     (sdk >= 29 || !sdk ? row('Locatie altijd', 'Alleen als je op de achtergrond zoekt', P.bg, 'bgloc') : '') +
     row('Meldingen', 'Voor de waarschuwing als een tracker met je meereist', P.notif, 'notif');
 }
@@ -502,7 +502,7 @@ function apsSetVal(k, v){
 function apsTg(k){ const s = apLoad().set, cur = k === 'trackers' || k === 'hist' ? s[k] !== false : !!s[k]; apsSetVal(k, !cur); }
 function apsSet(k, v){
   const s = apLoad().set;
-  if (k === 'keep' && v < (s.keep || 30)) { askConfirm('Korter bewaren?', 'Wat ouder is dan ' + (v === 7 ? 'een week' : v + ' dagen') + ', wordt meteen gewist.', 'Korter bewaren', () => apsSetVal(k, v)); return; }
+  if (k === 'keep' && v < (s.keep || 30)) { askConfirm(t('Korter bewaren?'), v === 7 ? t('Wat ouder is dan een week, wordt meteen gewist.') : t('Wat ouder is dan {n} dagen, wordt meteen gewist.', { n: v }), t('Korter bewaren'), () => apsSetVal(k, v)); return; }
   apsSetVal(k, v);
 }
 function apsHome(clear){

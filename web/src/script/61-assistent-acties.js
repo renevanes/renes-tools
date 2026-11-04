@@ -15,8 +15,8 @@ function aiDataFor(q){
   const r = rdJson(Android.aiData(q), null);
   if (!r || !r.topic) return null;
   const label = r.label || r.topic;
-  if (r.solo) return { text: 'In een losse app kijk ik niet in je ' + label + ': die opent zonder app-slot. Vraag het in Tools zelf.' };
-  if (r.off) return { text: 'Daarvoor mag ik nog niet in **' + label + '** kijken. Dat zet je zelf aan bij Lokale AI → Gegevens; daarna kan ik het je vertellen. Alles blijft op je telefoon.', set: { open: ['ai.bron.' + r.topic] } };
+  if (r.solo) return { text: t('In een losse app kijk ik niet in je {wat}: die opent zonder app-slot. Vraag het in Tools zelf.', { wat: t(label) }) };
+  if (r.off) return { text: t('Daarvoor mag ik nog niet in **{wat}** kijken. Dat zet je zelf aan bij Lokale AI → Gegevens; daarna kan ik het je vertellen. Alles blijft op je telefoon.', { wat: t(label) }), set: { open: ['ai.bron.' + r.topic] } };
   if (r.text) return { text: r.text, src: [{ kind: r.topic, id: '', title: r.title || label }] };
   return null; // het taalmodel antwoordt, met de feiten erbij (LocalAi)
 }

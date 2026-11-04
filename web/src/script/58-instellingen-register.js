@@ -50,7 +50,7 @@ const SET_REG = [
     get: () => thCfg().mode, set: v => { thSetMode(v); setIf('settings', enterSettings); return ''; } },
   { id: 'weergave.donker', scr: 'setlook', label: 'Donker thema', desc: 'Aan: de app is altijd donker. Uit: altijd licht. Automatisch, of zoals je telefoon, kies je bij Thema.', syn: 'donker dark mode nachtmodus nacht zwart avond thema', phr: ['dark mode', 'nachtmodus', 'donker thema', 'donkere modus'],
     // Zoals de app er nu uitziet (ook automatisch of via de telefoon); aan = altijd Donker, uit = altijd Licht
-    note: v => { const m = thCfg().mode; return m === 'light' || m === 'dark' ? '' : 'Het thema stond op ' + thModeName(m).replace(/ \(.*\)$/, '') + '; daarna is het altijd ' + (v === 'aan' ? 'donker' : 'licht') + '.'; },
+    note: v => { const m = thCfg().mode; return m === 'light' || m === 'dark' ? '' : t(v === 'aan' ? 'Het thema stond op {thema}; daarna is het altijd donker.' : 'Het thema stond op {thema}; daarna is het altijd licht.', { thema: thModeName(m).replace(/ \(.*\)$/, '') }); },
     get: () => setB(uiDark()), set: v => { thSetMode(setOnV(v) ? 'dark' : 'light'); return ''; } },
   { id: 'weergave.donkervanaf', scr: 'setlook', ctl: '#st-th-dark', type: 'tijd', label: 'Donker vanaf (thema op tijd)', desc: 'Hoe laat de app donker wordt bij Automatisch op tijd. Zet het thema ook op Automatisch op tijd.', syn: 'donker vanaf avond nacht tijd automatisch thema dark mode nachtmodus',
     note: () => thCfg().mode !== 'time' ? 'Het thema gaat daarmee ook op Automatisch op tijd.' : '',
@@ -148,7 +148,7 @@ const SET_REG = [
   { id: 'apparaten.buitenhuis', scr: 'apset', ctl: '#aps-away', label: 'Apparaten: alleen buiten huis bijhouden', desc: 'Thuis niets bijhouden (ook de apparaten van je buren niet).', syn: 'apparaten thuis buiten huis buren bijhouden geschiedenis',
     get: () => setB(!!setAp().away), set: v => apsSetVal('away', setOnV(v)) },
   { id: 'apparaten.bewaren', scr: 'apset', ctl: '#aps-keep', type: 'keuze', vals: [['7', '1 week'], ['30', '30 dagen'], ['90', '90 dagen']], label: 'Apparaten: geschiedenis bewaren', desc: 'Hoe lang de geschiedenis (vaak in de buurt) bewaard blijft; daarna wordt het vanzelf gewist.', syn: 'apparaten bewaren geschiedenis wissen dagen week',
-    get: () => String(setAp().keep || 30), set: v => apsSetVal('keep', +v), warn: v => +v < +(setAp().keep || 30) ? 'Wat ouder is dan ' + (v === '7' ? 'een week' : v + ' dagen') + ', wordt dan gewist.' : '' },
+    get: () => String(setAp().keep || 30), set: v => apsSetVal('keep', +v), warn: v => +v < +(setAp().keep || 30) ? (v === '7' ? t('Wat ouder is dan een week, wordt dan gewist.') : t('Wat ouder is dan {n} dagen, wordt dan gewist.', { n: v })) : '' },
   { id: 'apparaten.toon', scr: 'apdev', ctl: '#apd-tone', need: /apparat|zoek|bluetooth|tracker|warmer|kouder|piep/, label: 'Apparaten zoeken: toon', desc: 'Bij zoeken (warmer/kouder) een piep die sneller gaat naarmate je dichterbij komt.', syn: 'apparaten zoeken toon piep geluid warmer kouder',
     get: () => setB(store.get('apTone', false)), set: v => { store.set('apTone', setOnV(v)); setIf('apdev', apdToggles); return ''; } },
   { id: 'apparaten.trillen', scr: 'apdev', ctl: '#apd-vib', need: /apparat|zoek|bluetooth|tracker|warmer|kouder/, label: 'Apparaten zoeken: trillen', desc: 'Bij zoeken (warmer/kouder) een tik als het warmer wordt.', syn: 'apparaten zoeken trillen tik warmer',
@@ -277,7 +277,7 @@ const SET_REG = [
   { id: 'slaap.geluiden', scr: 'sleep', ctl: '#sl-noise', label: 'Slaappraat: ook snurken en andere geluiden bewaren', desc: 'Uit: van wat geen praten blijkt, blijft alleen het tijdstip.', syn: 'slaappraat snurken geluiden bewaren',
     get: () => setB(setSl().keepNoise !== false), set: v => { slLoad(); if (((slSt.set || {}).keepNoise !== false) !== setOnV(v)) slSwitch('keepNoise'); return ''; } },
   { id: 'slaap.bewaren', scr: 'sleep', ctl: '#sl-keep', type: 'keuze', vals: [['7', '1 week'], ['14', '2 weken'], ['30', '30 dagen']], label: 'Slaappraat: nachten bewaren', desc: 'Hoe lang nachten bewaard blijven; daarna worden ze vanzelf gewist.', syn: 'slaappraat bewaren nachten wissen dagen weken',
-    get: () => String(setSl().keep || 14), set: v => { slSet('keep', v); return ''; }, warn: v => +v < +(setSl().keep || 14) ? 'Nachten ouder dan ' + (v === '7' ? 'een week' : '2 weken') + ' worden dan gewist.' : '' },
+    get: () => String(setSl().keep || 14), set: v => { slSet('keep', v); return ''; }, warn: v => +v < +(setSl().keep || 14) ? t(v === '7' ? 'Nachten ouder dan een week worden dan gewist.' : 'Nachten ouder dan 2 weken worden dan gewist.') : '' },
   /* ---------- Lokale AI (de assistent) ---------- */
   { id: 'ai.model', scr: 'aisetmodel', type: 'keuze', vals: () => (setAi().models || []).filter(m => !m.embed && m.state === 'ready').map(m => [m.id, m.label]), vname: v => (aiModel(v) || {}).label || v, label: 'Taalmodel van de assistent', desc: 'Welk gedownload taalmodel de assistent gebruikt (groter = slimmer maar trager).', syn: 'taalmodel model qwen klein groot assistent',
     get: () => setAi().chat || '', set: v => { aiUse(v); return ''; } },
@@ -345,7 +345,7 @@ const SET_GEN = [
     weak: SET_SRC_PRIV.includes(s[0]) ? (v => v === 'aan') : null, safe: SET_SRC_PRIV.includes(s[0]) ? 'privacy' : '', why: 'Of de assistent in berichten van anderen of in privé-gegevens mag kijken, zet je zelf aan bij Gegevens.',
     get: () => { setAi(); return setB(aiSrcOn(s[0])); }, set: v => { setAi(); if (aiSrcOn(s[0]) !== setOnV(v)) aiSrcToggle(s[0]); return ''; } })) },
   { cover: '#bk-parts input[type=checkbox]', gen: () => Object.keys(BK_PARTS).map(k => ({ id: 'backup.deel.' + k, scr: 'backup', ctl: '#bk-parts input[data-p="' + k + '"]', label: 'Mee in Alles back-uppen: ' + BK_PARTS[k], desc: 'Of dit meegaat met Alles back-uppen.',
-    warn: v => v === 'uit' ? BK_PARTS[k] + ' gaat dan niet meer mee in de backup.' : '',
+    warn: v => v === 'uit' ? t('{wat} gaat dan niet meer mee in de backup.', { wat: t(BK_PARTS[k]) }) : '',
     // Meldingsgeschiedenis staat standaard uit: berichten van anderen (ook inlogcodes), soms onversleuteld in de backup-map
     weak: k === 'notifications' ? (v => v === 'aan') : null, safe: k === 'notifications' ? 'privacy' : '', why: 'De meldingsgeschiedenis (met berichten van anderen) zet je zelf aan in de backup.', syn: 'backup mee onderdeel ' + BK_PARTS[k],
     get: () => { const p = setBk().parts || {}; return setB(p[k] === true || (k !== 'notifications' && p[k] !== false)); }, set: v => { Android.backupSetPart(k, setOnV(v)); setIf('backup', enterBackup); return ''; } })) },

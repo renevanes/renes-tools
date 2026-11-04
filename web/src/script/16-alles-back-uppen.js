@@ -16,7 +16,7 @@ function bkPrivNoLonger(priv){
   // Met de assistent erbij staat er al "en" in de naam: dan met komma's ("…, en Slaappraat,")
   const wie = (ns.length === 1 ? ns[0] : ai ? ns.slice(0, -1).join(', ') + ', en ' + ns[ns.length - 1] + ',' : ns.slice(0, -1).join(', ') + ' en ' + ns[ns.length - 1]).replace(/^./, c => c.toUpperCase());
   const mv = priv.length > 1 || ai;
-  return wie + (mv ? ' gaan' : ' gaat') + ' dan niet meer mee, want ' + (mv ? 'die zijn' : 'dat is') + ' privé. Wil je ' + (mv ? 'ze' : 'het') + ' toch onversleuteld meenemen, vink ' + (mv ? 'ze' : 'het') + ' dan opnieuw aan.';
+  return wie + (mv ? ' gaan' : ' gaat') + ' dan niet meer mee, want ' + (mv ? 'die zijn' : 'dat is') + ' privé. Wil je ' + (mv ? 'ze' : 'het') + ' toch onversleuteld meenemen, vink ' + (mv ? 'ze' : 'het') + ' dan opnieuw aan.'; // taal-vast: de Nederlandse zin; het Engels staat hierboven in t()
 }
 let bkPoll = null, bkBusy = false;
 function bkState(full){ try { return JSON.parse(Android.backupState(!!full)); } catch(e){ return {}; } }
@@ -112,7 +112,7 @@ function bkPrivSet(el){
   const k = el.dataset.p;
   if (el.checked && !bkState(false).encrypted) {
     el.checked = false; // pas aan na bevestigen
-    askConfirm('Onversleuteld meenemen?', BK_PRIV_ZIN[k] + '. Versleutelen staat uit, dus dit komt als leesbaar bestand in je backup-map. Beter: zet eerst Versleutelen aan (onderaan dit scherm).', 'Toch meenemen',
+    askConfirm(t('Onversleuteld meenemen?'), t('{wat}. Versleutelen staat uit, dus dit komt als leesbaar bestand in je backup-map. Beter: zet eerst Versleutelen aan (onderaan dit scherm).', { wat: t(BK_PRIV_ZIN[k]) }), t('Toch meenemen'),
       () => { Android.backupSetPart('plain:' + k, true); Android.backupSetPart(k, true); bkPrivRender(bkState(true)); }); // toestemming alleen hier
     return;
   }

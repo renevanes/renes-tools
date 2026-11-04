@@ -45,7 +45,7 @@ function txLoad(){
 function txOpenIdx(i){
   const r = txRecs[i]; if (!r) return;
   if (r.done) { txOpen(r.id); return; }
-  askConfirm('Gesprek uitschrijven?', (r.name ? r.name + ' · ' : '') + fmtMs(r.duration) + '. Dit duurt even en gaat door als je de app verlaat.', 'Uitschrijven', () => txStart([r.path]));
+  askConfirm(t('Gesprek uitschrijven?'), t('{gesprek}. Dit duurt even en gaat door als je de app verlaat.', { gesprek: (r.name ? r.name + ' · ' : '') + fmtMs(r.duration) }), t('Uitschrijven'), () => txStart([r.path]));
 }
 function txStart(paths){
   const e = Android.txStart(JSON.stringify(paths));

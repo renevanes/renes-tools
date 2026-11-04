@@ -6,6 +6,7 @@
  * assistent dan ook in het Engels (de vertalingen uit web/src/taal/en.json, zie setIdx en setValFor).
  * Alleen hele zinnen die precies zo'n opdracht zijn, worden omgezet (anders null: gewoon de assistent).
  * Nederlands blijft altijd werken. Getest in tests/ui/ai-engels.test.js (ook zinnen die géén opdracht zijn). */
+/* taal-vast-begin: hier worden Engelse zinnen omgezet naar de Nederlandse opdrachten die de assistent kent */
 const AI_EN_NUM = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20, thirty: 30, forty: 40, 'forty-five': 45, sixty: 60, ninety: 90 };
 /* Engelse namen van tools die niet letterlijk in TOOLS staan */
 const AI_EN_TOOL = { settings: 'instellingen', 'the settings': 'instellingen', assistant: 'assistent', home: 'startscherm', 'home screen': 'startscherm', 'radio alarm': 'radiowekker', 'screen time': 'gebruik', 'sleep talk': 'slaappraat', banking: 'bankzaken', invoices: 'facturen', notes: 'notities', contacts: 'contacten', calls: 'oproepen', devices: 'apparaten', usage: 'gebruik' };
@@ -94,5 +95,6 @@ function aiEn(q){
   if ((m = /^what (?:can i (?:set|change|adjust)|settings are there) (?:in|for) (.+)$/.exec(s))) return 'wat kan ik instellen bij ' + aiEnName(m[1]);
   return null;
 }
+/* taal-vast-eind */
 /* De vraag zoals de opdrachten en instellingen hem lezen: in het Engels eerst omzetten (alleen als de app Engels is) */
 function aiCmdQ(q){ if (!TAAL.on) return q; const nl = aiEn(q); return nl || q; }

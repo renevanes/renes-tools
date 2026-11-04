@@ -44,7 +44,7 @@ function aiTalkWatch(){
   if (!aiTk) return;
   const p = rdJson(Android.aiTalkPoll(), {});
   if (p.call) aiTalkStop('Gesprek gestopt: er is een telefoongesprek');
-  else if (p.conflict) aiTalkStop('Gesprek gestopt: ' + p.conflict.charAt(0).toLowerCase() + p.conflict.slice(1));
+  else if (p.conflict) aiTalkStop(t('Gesprek gestopt: {reden}', { reden: t(p.conflict).charAt(0).toLowerCase() + t(p.conflict).slice(1) }));
 }
 function aiTalkSt(st, hint){
   if (!aiTk) return;

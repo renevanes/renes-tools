@@ -30,11 +30,13 @@ function setPath(scr){
 }
 
 /* ---------- zoeken in het register ---------- */
+/* taal-vast-begin: woorden die de assistent overslaat bij het zoeken (geen tekst in beeld) */
 const SET_STOP = new Set(('de het een en of in op aan uit af bij van voor met naar te is zijn was wat waar hoe kan ik je jij u mijn me mij m\'n zet zetten schakel schakelen staat staan stel ' +
   'stellen instellen instelling instellingen app tools graag even wil wilt kun kunt kunnen moet dat dit die er om ook nog niet geen wel welke wanneer waarom vind vinden zit zitten doe doet dan als ' +
   'alles allemaal heb hebt heeft wordt worden aub alsjeblieft svp please nu iets ding knop optie mogelijk ' +
   // Engels (alleen als de app Engels is komen deze woorden voor)
   'the my your to of for on off turn switch set setting settings change show can could would you is are be it this that and or with in at by app please').split(' '));
+/* taal-vast-eind */
 function setWords(s){
   return norm2(s).replace(/['’`]/g, '').replace(/([a-z])-([a-z])/g, '$1$2').replace(/[^a-z0-9]+/g, ' ').split(' ').filter(w => w.length > 1 && !SET_STOP.has(w));
 }
@@ -101,6 +103,7 @@ function setIntent(q){
   if (/\b(herinner|notitie|noteer|agenda)\w*/.test(s) && !/\binstelling/.test(s)) return null; // dat zijn acties
   let m;
   if (/\b(wat|welke)\b.*\b(veranderd|gewijzigd|aangepast)\b/.test(s) && /\b(ik|je|jij|instelling|instellingen|heb|hebt)\b/.test(s) && !/\btekst\b/.test(s)) return { kind: 'log' };
+  /* taal-vast-begin: Nederlandse zinsvormen die de assistent herkent (Engels wordt eerst omgezet, 59b) */
   if ((m = new RegExp('^' + SET_PRE + 'wat (?:kan|kun) (?:ik|je) (?:allemaal |zoal )?(?:instellen|aanpassen|veranderen|regelen) (?:bij|in|voor|aan|van) (.+)$').exec(s)) ||
       (m = /^welke instellingen (?:heeft|hebben|zijn er (?:bij|voor|in)|zitten er in|horen bij) (.+)$/.exec(s)) || (m = /^(?:de )?instellingen (?:van|voor|bij) (.+)$/.exec(s))) return { kind: 'lijst', x: m[1] };
   // "maak het automatisch donker vanaf 21 uur": het thema op tijd
@@ -120,6 +123,7 @@ function setIntent(q){
   if ((m = new RegExp('^' + SET_PRE + 'reken (?:in|met)\\s+(?:de |het )?(.+)$').exec(s))) { const r = setRgUse('', m[1], ['regio.valuta']); if (r) return r; }
   // "begin de week op zondag"
   if ((m = new RegExp('^' + SET_PRE + '(?:begin|start|laat) (?:de|mijn) week (?:op|met|beginnen op|beginnen met) (\\w+)$').exec(s))) { const r = setRgUse('week', m[1]); if (r) return r; }
+  /* taal-vast-eind */
   if ((m = /^(valuta|standaardvaluta|munteenheid|munt|afstand|temperatuur|tijdnotatie|tijdsnotatie|datumnotatie|snelheid|decimaalteken|taal)\s+(?:op |naar |in )?(.+)$/.exec(s))) { const r = setRgUse(m[1], m[2]); if (r) return r; }
   if (SET_Q.test(s)) return { kind: 'vraag', x: s };
   return null;
@@ -257,7 +261,7 @@ function setHandle(q){
       const e = ctop.e;
       if (!setCanChange(e) || setSafe(e, 'aan') && setSafe(e, 'uit')) return Object.assign({ local: true }, setPropose(e, ''));
       if (setType(e) === 'keuze') return { local: true, text: (setNow(e) ? t('{naam} staat nu op {waarde}.', { naam: setB0(e.label), waarde: setNow(e) }) : setB0(e.label) + '.') + ' ' + t('Kies een van deze:'), set: { choose: e.id, open: [e.id] } };
-      if (setType(e) === 'tijd') return { local: true, text: TAAL.on ? t('Welke tijd wil je voor {naam}? Zeg bijvoorbeeld "{opdracht}".', { naam: setB0(e.label), opdracht: 'set ' + t(e.label).charAt(0).toLowerCase() + t(e.label).slice(1) + ' to 07:30' }) : 'Welke tijd wil je voor ' + setB0(e.label) + '? Zeg bijvoorbeeld "zet ' + e.label.charAt(0).toLowerCase() + e.label.slice(1) + ' op 07:30".', set: { open: [e.id] } };
+      if (setType(e) === 'tijd') return { local: true, text: TAAL.on ? t('Welke tijd wil je voor {naam}? Zeg bijvoorbeeld "{opdracht}".', { naam: setB0(e.label), opdracht: 'set ' + t(e.label).charAt(0).toLowerCase() + t(e.label).slice(1) + ' to 07:30' }) : 'Welke tijd wil je voor ' + setB0(e.label) + '? Zeg bijvoorbeeld "zet ' + e.label.charAt(0).toLowerCase() + e.label.slice(1) + ' op 07:30".', set: { open: [e.id] } }; // taal-vast: het Nederlandse voorbeeld; het Engels staat ervoor in t()
     }
     // Geen instelling van de app: zonder taalmodel eerlijk zeggen; met taalmodel gewoon antwoorden, met de opdracht
     // nooit te zeggen dat er iets aan- of uitgezet is (de assistent kan zelf niets bedienen)

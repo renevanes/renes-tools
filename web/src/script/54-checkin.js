@@ -63,8 +63,8 @@ function ciStatus(q){
   const c = q.cur, nxt = q.next ? 'Volgende melding: ' + ciShort(new Date(q.next)) + ' ' + ciTime(q.next) : '';
   if (c && c.status === 'answered') { const a = c.answers[c.answers.length - 1]; return ['✓ ' + ciKeyLabel(c.key).replace(/^./, x => x.toUpperCase()) + ': ' + ciAnsText(a) + (c.answers.length > 1 ? ' (' + c.answers.length + '×)' : ''), 'ok']; }
   if (!q.on) return [q.tpl ? 'Voorstel: staat uit. Zet hem aan als je hem wilt gebruiken.' : 'Staat uit: geen meldingen', 'warn'];
-  if (c && c.status === 'open') return ['Nog niet ingevuld (' + ciKeyLabel(c.key) + ')', ''];
-  if (c && c.status === 'upcoming') return ['Vandaag om ' + ciTime(c.at) + (c.quiet ? ' (stil: geen melding)' : '') + ' · je kunt nu al antwoorden', ''];
+  if (c && c.status === 'open') return [t('Nog niet ingevuld ({wanneer})', { wanneer: ciKeyLabel(c.key) }), ''];
+  if (c && c.status === 'upcoming') return [t('Vandaag om {tijd}', { tijd: ciTime(c.at) }) + (c.quiet ? ' ' + t('(stil: geen melding)') : '') + ' · ' + t('je kunt nu al antwoorden'), ''];
   return [nxt || 'Geen melding gepland', ''];
 }
 function ciOptBtns(q, key, sel, big){
@@ -86,7 +86,7 @@ function ciCard(q){
     const a = c.answers[c.answers.length - 1];
     acts.push('<button class="linkish" data-q="' + esc(q.id) + '" data-k="' + esc(c.key) + '" data-a="' + esc(a.id) + '" onclick="ciAsk(this.dataset.q, this.dataset.k, {aid: this.dataset.a})" aria-label="' + esc(q.text + ': ' + (ciHasExtras(q) ? 'aanvullen of wijzigen' : 'wijzigen')) + '">' + (ciHasExtras(q) ? 'Aanvullen of wijzigen' : 'Wijzigen') + '</button>');
   }
-  if (!q.archived && q.backfill !== false && q.missed7 > 0) acts.push('<button class="linkish" data-q="' + esc(q.id) + '" onclick="ciOpen(this.dataset.q)" aria-label="' + esc(q.text + ': achteraf invullen') + '">' + q.missed7 + '× gemist deze week · achteraf invullen</button>');
+  if (!q.archived && q.backfill !== false && q.missed7 > 0) acts.push('<button class="linkish" data-q="' + esc(q.id) + '" onclick="ciOpen(this.dataset.q)" aria-label="' + esc(q.text + ': ' + t('achteraf invullen')) + '">' + t('{n}× gemist deze week · achteraf invullen', { n: q.missed7 }) + '</button>');
   if (q.archived) acts.push('<button class="mini" data-q="' + esc(q.id) + '" onclick="ciOpen(this.dataset.q)" aria-label="' + esc(q.text + ': terugkijken') + '">Terugkijken</button>', '<button class="mini" data-q="' + esc(q.id) + '" onclick="ciArchive(this.dataset.q, false)" aria-label="' + esc(q.text + ': terugzetten') + '">Terugzetten</button>');
   if (acts.length) h += '<div class="ci-acts">' + acts.join('') + '</div>';
   return h + '</div>';
@@ -111,9 +111,9 @@ function ciTileText(st){
   const qs = (st.questions || []).filter(ciActive);
   if (!qs.length) return 'Even kort je score bijhouden';
   const open = qs.filter(q => q.cur && q.cur.status === 'open').length;
-  if (open) return 'Nog ' + open + (open === 1 ? ' vraag' : ' vragen') + ' voor vandaag';
+  if (open) return tn(open, 'Nog {n} vraag voor vandaag', 'Nog {n} vragen voor vandaag');
   const later = qs.filter(q => q.cur && q.cur.status === 'upcoming' && !q.cur.quiet).map(q => q.cur.at).sort((a, b) => a - b)[0];
-  if (later) return 'Straks om ' + ciTime(later);
+  if (later) return t('Straks om {tijd}', { tijd: ciTime(later) });
   return '✓ Alles ingevuld';
 }
 function refreshCheckinTile(){ const el = $('#tile-checkin-sub'); if (!el || typeof Android.checkinState !== 'function') return; el.textContent = ciTileText(ciLoad()); }
@@ -131,7 +131,7 @@ function ciSend(req, done){
   const r = rdJson(Android.checkinAnswer(JSON.stringify(req)), {});
   if (r.need === 'replace') {
     const q = ciQ(req.q), o = ciOpts(q)[req.o] || {};
-    askConfirm('Antwoord vervangen?', 'Er staat al: ' + r.old + '. Vervangen door ' + ciOptText(o) + '?', 'Vervangen', () => ciSend(Object.assign({}, req, { replace: true }), done));
+    askConfirm(t('Antwoord vervangen?'), t('Er staat al: {oud}. Vervangen door {nieuw}?', { oud: r.old, nieuw: ciOptText(o) }), t('Vervangen'), () => ciSend(Object.assign({}, req, { replace: true }), done));
     return;
   }
   if (r.error) { toast(r.error); return; }
@@ -170,8 +170,8 @@ function ciAnsRender(){
   if (ex) {
     if (q.labels && (q.labelList || []).length) x += '<div class="chips sm" role="group" aria-label="Labels">' + q.labelList.map(l => { const on = ciA.labels.includes(l);
       return '<button class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '" data-l="' + esc(l) + '" onclick="ciAnsLabel(this.dataset.l)">' + esc(l) + '</button>'; }).join('') + '</div>';
-    if (q.note || q.voice) x += '<div class="ci-notebar"><textarea class="ci-in" id="ci-ans-note" rows="2" maxlength="2000" placeholder="Notitie (mag leeg)" aria-label="Notitie bij ' + esc(q.text) + '"' + (q.note ? '' : ' readonly') + '>' + esc(ciA.note) + '</textarea>' +
-      (q.voice ? '<button class="iconbtn" onclick="ciAnsVoice()" aria-label="Notitie inspreken bij ' + esc(q.text) + '">' + uiIcon('mic') + '</button>' : '') + '</div>';
+    if (q.note || q.voice) x += '<div class="ci-notebar"><textarea class="ci-in" id="ci-ans-note" rows="2" maxlength="2000" placeholder="Notitie (mag leeg)" aria-label="' + esc(t('Notitie bij {vraag}', { vraag: q.text })) + '"' + (q.note ? '' : ' readonly') + '>' + esc(ciA.note) + '</textarea>' +
+      (q.voice ? '<button class="iconbtn" onclick="ciAnsVoice()" aria-label="' + esc(t('Notitie inspreken bij {vraag}', { vraag: q.text })) + '">' + uiIcon('mic') + '</button>' : '') + '</div>';
   }
   const box = $('#ci-ans-x');
   if (box._h !== x) { const keep = document.activeElement && document.activeElement.id === 'ci-ans-note'; box.innerHTML = x; box._h = x; if (keep) { const tt = $('#ci-ans-note'); if (tt) tt.focus(); } }
@@ -248,7 +248,7 @@ function ciSaveQ(q, msg){
 function ciSetOn(id, on){
   const q = ciQ(id); if (!q) return;
   if (on && ciSt.notifOk === false) Android.permRequest('notif'); // Android 13+: eerst toestemming voor meldingen
-  ciSaveQ(Object.assign({}, q, { on }), on ? '✓ Staat aan: ' + ciRhythmText(q).replace(/^./, x => x.toLowerCase()) : 'Staat uit: geen meldingen meer');
+  ciSaveQ(Object.assign({}, q, { on }), on ? t('✓ Staat aan: {wanneer}', { wanneer: ciRhythmText(q).replace(/^./, x => x.toLowerCase()) }) : t('Staat uit: geen meldingen meer'));
 }
 function ciArchive(id, on){
   const q = ciQ(id); if (!q) return;
@@ -275,8 +275,8 @@ function ciDelete(id){
   const q = ciQ(id); if (!q) return;
   const n = q.total || 0;
   const del = () => { const e = Android.checkinDelete(id); if (e) { toast(e); return; } toast('Verwijderd'); if (current === 'checkinq' || current === 'checkined') show('checkin'); ciAfter(); };
-  if (q.archived) askConfirm('Vraag verwijderen?', 'De vraag en ' + (n === 1 ? 'het ene antwoord' : 'alle ' + n + ' antwoorden') + ' gaan weg. Dat kan niet ongedaan worden.', 'Verwijderen', del);
-  else askChoice('Vraag verwijderen?', 'De vraag en ' + (n === 1 ? 'het ene antwoord' : 'alle ' + n + ' antwoorden') + ' gaan weg; dat kan niet ongedaan worden. Wil je de geschiedenis houden, kies dan Archiveren (tik ernaast om niets te doen).', 'Verwijderen', 'Archiveren', del, () => ciArchive(id, true));
+  if (q.archived) askConfirm(t('Vraag verwijderen?'), tn(n, 'De vraag en het ene antwoord gaan weg. Dat kan niet ongedaan worden.', 'De vraag en alle {n} antwoorden gaan weg. Dat kan niet ongedaan worden.'), t('Verwijderen'), del);
+  else askChoice(t('Vraag verwijderen?'), tn(n, 'De vraag en het ene antwoord gaan weg; dat kan niet ongedaan worden. Wil je de geschiedenis houden, kies dan Archiveren (tik ernaast om niets te doen).', 'De vraag en alle {n} antwoorden gaan weg; dat kan niet ongedaan worden. Wil je de geschiedenis houden, kies dan Archiveren (tik ernaast om niets te doen).'), t('Verwijderen'), t('Archiveren'), del, () => ciArchive(id, true));
 }
 function ciPreview(id){
   const e = Android.checkinPreview(id);

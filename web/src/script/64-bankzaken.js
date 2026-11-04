@@ -351,7 +351,7 @@ function bkOverzicht(van, tot){
       const was = vorig.cats.get(c), w = was ? -was.som : 0, nu = -x.som;
       return '<button class="bk-bar" onclick="bkNaarCat(' + jsq(c) + ')"><div class="bk-bar-kop"><span>' + esc(c) + '</span><b>' + esc(bkEuro(nu)) + '</b></div>'
         + '<div class="bk-spoor" role="presentation"><div class="bk-vul" style="width:' + Math.max(2, Math.round(nu / max * 100)) + '%"></div></div>'
-        + '<small>' + Math.round(nu / Math.max(1, tt.uit) * 100) + '% van je uitgaven · ' + x.n + '×' + (w ? ' · ervoor ' + esc(bkEuro(w)) : '') + '</small></button>';
+        + '<small>' + esc(t('{pct}% van je uitgaven', { pct: Math.round(nu / Math.max(1, tt.uit) * 100) }) + ' · ' + x.n + '×' + (w ? ' · ' + t('ervoor {bedrag}', { bedrag: bkEuro(w) }) : '')) + '</small></button>';
     }).join('') + '</div>');
   }
   const inCats = [...tt.cats.entries()].filter(([, x]) => x.soort === 'in' && x.som > 0).sort((a, b) => b[1].som - a[1].som);
@@ -361,7 +361,7 @@ function bkOverzicht(van, tot){
   if (vast.length) {
     const som = actief.reduce((s, v) => s + v.perMaand, 0);
     h += bkKaart('Vaste lasten en abonnementen', '<p class="note" style="margin-top:0">Samen ongeveer <b>' + esc(bkEuro(som)) + '</b> per maand (' + actief.length + ' terugkerende betalingen).</p>'
-      + vast.slice(0, 25).map(v => '<div class="bk-rij"><span class="bk-naam">' + esc(v.naam) + '<small>' + esc(v.cat) + ' · ' + esc(v.soort) + ' · ' + (v.gestopt ? 'mogelijk gestopt (laatst ' + esc(bkDatum(v.laatst)) + ')' : 'volgende rond ' + esc(fmtDate(v.volgende, { day: 'numeric', month: 'short' }))) + '</small></span><b' + (v.gestopt ? ' class="bk-neutraal"' : '') + '>' + esc(bkEuro(v.bedrag)) + '</b></div>').join(''));
+      + vast.slice(0, 25).map(v => '<div class="bk-rij"><span class="bk-naam">' + esc(v.naam) + '<small>' + esc(t(v.cat) + ' · ' + t(v.soort) + ' · ' + (v.gestopt ? t('mogelijk gestopt (laatst {datum})', { datum: bkDatum(v.laatst) }) : t('volgende rond {datum}', { datum: fmtDate(v.volgende, { day: 'numeric', month: 'short' }) }))) + '</small></span><b' + (v.gestopt ? ' class="bk-neutraal"' : '') + '>' + esc(bkEuro(v.bedrag)) + '</b></div>').join(''));
   }
   // Grootste ontvangers
   const tp = bkTegenpartijen(lijst).slice(0, 10);
@@ -503,7 +503,7 @@ window.onBankImport = function(r){
   const fs = r.bestanden || [];
   let nieuw = 0, dubbel = 0; const fout = [];
   for (const f of fs) { if (f.ok && f.sum) { nieuw += f.sum.nieuw || 0; dubbel += f.sum.dubbel || 0; } else fout.push(f.naam + ': ' + (f.fout || 'niet gelukt')); }
-  const tekst = nieuw + ' nieuwe boekingen' + (dubbel ? ', ' + dubbel + ' stonden er al' : '') + (r.gewist ? '. ' + r.gewist + (r.gewist === 1 ? ' bestand' : ' bestanden') + ' van de telefoon verwijderd' : '') + (fout.length ? '.\n\nNiet gelukt:\n' + fout.join('\n') : '.');
+  const tekst = t('{n} nieuwe boekingen', { n: nieuw }) + (dubbel ? ', ' + t('{n} stonden er al', { n: dubbel }) : '') + (r.gewist ? '. ' + tn(r.gewist, '{n} bestand van de telefoon verwijderd', '{n} bestanden van de telefoon verwijderd') : '') + (fout.length ? '.\n\n' + t('Niet gelukt:') + '\n' + fout.join('\n') : '.');
   bk.venster = true;
   askConfirm('Afschrift geïmporteerd', tekst, 'OK', () => {});
 };
@@ -521,14 +521,14 @@ function bkKoppel(id){
 }
 function bkKoppelKlaar(u){
   let r; try { r = JSON.parse(u); } catch (e) { return; }
-  if (r.wacht) { toast('Opgehaald bij ' + (r.bank || 'de bank') + '. Ontgrendel Bankzaken om het af te ronden.'); return; }
+  if (r.wacht) { toast(r.bank ? t('Opgehaald bij {bank}. Ontgrendel Bankzaken om het af te ronden.', { bank: r.bank }) : t('Opgehaald bij de bank. Ontgrendel Bankzaken om het af te ronden.')); return; }
   const f = (r.bestanden || [])[0];
   if (f && f.ok && f.sum) toast((r.bank || t('Bank')) + ': ' + t('{n} nieuwe boekingen', { n: f.sum.nieuw }) + (f.sum.dubbel ? ' ' + t('({n} stonden er al)', { n: f.sum.dubbel }) : ''));
 }
 function bkAutoLijst(){
   let banken = []; try { banken = JSON.parse(Android.bankBanken()); } catch (e) { }
   const auto = banken.filter(b => b.robot);
-  const h = auto.map(b => '<div class="bk-bank"><span><b>' + esc(b.naam) + '</b><small>Inloggen met de ' + esc(b.appNaam || 'app van je bank') + '</small></span><button class="mini" style="float:none" onclick="bkKoppel(' + jsq(b.id) + ')">Ophalen</button></div>').join('');
+  const h = auto.map(b => '<div class="bk-bank"><span><b>' + esc(b.naam) + '</b><small>' + esc(b.appNaam ? t('Inloggen met de {app}', { app: b.appNaam }) : t('Inloggen met de app van je bank')) + '</small></span><button class="mini" style="float:none" onclick="bkKoppel(' + jsq(b.id) + ')">Ophalen</button></div>').join('');
   document.querySelectorAll('#s-bank .bk-auto-lijst').forEach(e => { e.innerHTML = h; });
   const u = $('#bk-uitleg');
   if (u) u.innerHTML = banken.map(b => '<div class="bk-res"><b>' + esc(b.naam) + '</b><br>' + esc(b.uitleg) + '</div>').join('');
@@ -548,7 +548,7 @@ function bkBeheer(){
   $('#bk-imports').innerHTML = s.imports.length ? '<details class="rinfo"><summary>Eerdere imports (' + s.imports.length + ')</summary>' + s.imports.slice().reverse().slice(0, 30).map(i => '<div class="bk-res">' + esc(fmtDate(i.t, { day: 'numeric', month: 'short', year: 'numeric' })) + ' · ' + esc(i.bank || i.format) + ' · ' + esc(i.van ? bkDatum(i.van) + ' t/m ' + bkDatum(i.tot) : '') + ' · ' + (i.nieuw || 0) + ' nieuw</div>').join('') + '</details>' : '';
   const st = bk.st || {};
   const veilig = [
-    'Versleuteld met AES-256-GCM; de sleutel ' + (st.hardware ? 'zit in de beveiligde hardware van deze telefoon' : 'zit in de beveiligde sleutelopslag van Android') + ' en kan er niet uit.',
+    t(st.hardware ? 'Versleuteld met AES-256-GCM; de sleutel zit in de beveiligde hardware van deze telefoon en kan er niet uit.' : 'Versleuteld met AES-256-GCM; de sleutel zit in de beveiligde sleutelopslag van Android en kan er niet uit.'),
     st.ontgrendeling ? 'De telefoon zelf geeft de sleutel alleen vrij tot 15 minuten na je vingerafdruk of pincode.' : 'Openen alleen na je vingerafdruk of pincode (deze telefoon koppelt de sleutel niet aan de ontgrendeling zelf).',
     'Gaat op slot na 5 minuten niets doen en zodra je de app verlaat; dan is alles ook uit het geheugen.',
     'Geen schermafdrukken of schermopnames, en niet zichtbaar in "recente apps".',

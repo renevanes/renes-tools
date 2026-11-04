@@ -77,7 +77,7 @@ function gbChart(data, period){
 function gbBadge(b){
   const fail = b.fails ? ' <span class="gb-badge gb-fail">na ' + b.fails + '× mis</span>' : '';
   if (b.how === 'pincode') return '<span class="gb-badge gb-pin">met pincode</span>' + fail;
-  if (b.how === 'mislukt') return '<span class="gb-badge gb-fail">mislukt ×' + (b.fails || 1) + '</span>';
+  if (b.how === 'mislukt') return '<span class="gb-badge gb-fail">' + t('mislukt ×{n}', { n: b.fails || 1 }) + '</span>';
   if (b.how === 'onbekend') return '<span class="gb-badge">ontgrendeld (manier onbekend)</span>' + fail;
   return '<span class="gb-badge">anders</span>' + fail;
 }
@@ -219,7 +219,7 @@ function gbRenderPhotoTab(){
   const box = $('#gb-fotos-list');
   if (!ph.length) { slHtml(box, '<div class="card"><p class="note">Nog geen foto\'s. Zet bij Instellingen "Foto bij ontgrendelen" of "Foto bij een mislukte poging" aan, of maak een proefopname.</p></div>'); return; }
   slHtml(box, '<div class="gb-grid" role="list">' + ph.map(p => '<div role="listitem"><button class="gb-tile" data-id="' + esc(p.id) + '" onclick="gbShowPhoto(this.dataset.id)" aria-label="' + esc(gbPhotoLabel(p.reason) + ', ' + gbDay(p.t) + ' ' + gbTime(p.t)) + '"><span class="gb-tile-img"></span><small><b>' + esc(gbPhotoLabel(p.reason)) + '</b>' + esc(gbDay(p.t) + ' ' + gbTime(p.t)) + '</small></button></div>').join('') + '</div>' +
-    ((o.photos || []).length > ph.length ? '<p class="note">De nieuwste ' + ph.length + ' van ' + o.photos.length + ' foto\'s.</p>' : ''));
+    ((o.photos || []).length > ph.length ? '<p class="note">' + t('De nieuwste {n} van {totaal} foto\'s.', { n: ph.length, totaal: o.photos.length }) + '</p>' : ''));
   // Miniaturen één voor één ontsleutelen (het scherm blijft vlot)
   const tiles = Array.from(box.querySelectorAll('.gb-tile')), gen = ++gbPhotoGen;
   const next = () => { const tt = tiles.shift(); if (!tt || gen !== gbPhotoGen || !tt.isConnected || current !== 'gebruik' || gbTabV !== 'fotos') return; const url = Android.gebruikPhoto(tt.dataset.id); const sp = tt.querySelector('.gb-tile-img'); if (url && sp) { const im = document.createElement('img'); im.alt = ''; im.decoding = 'async'; im.src = url; sp.appendChild(im); } setTimeout(next, 0); };

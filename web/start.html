@@ -654,7 +654,7 @@ function renderDrawer(){
       .sort((a, b) => (norm(b.n).startsWith(q) ? 1 : 0) - (norm(a.n).startsWith(q) ? 1 : 0));
     html = '<div class=grid>' + hits.map(a => appHtml(a.k, 'drawer')).join('') + '</div>';
     html += searchMore($('#q').value.trim(), q);
-    html += '<button class=websearch onclick="Android.webSearch($(\'#q\').value.trim())"><span class="ui-icon" data-icon="search" aria-hidden="true"></span><span>Zoek op internet naar “' + esc($('#q').value.trim()) + '”</span></button>';
+    html += '<button class=websearch onclick="Android.webSearch($(\'#q\').value.trim())"><span class="ui-icon" data-icon="search" aria-hidden="true"></span><span>' + esc(t('Zoek op internet naar “{q}”', { q: $('#q').value.trim() })) + '</span></button>';
     if (!hits.length) html = '<p class=empty>Geen app gevonden</p>' + html;
   } else {
     const folders = NATIVE ? [] : Object.keys(cfg.folders).filter(f => exists('f:' + f)).sort((a, b) => a.localeCompare(b, 'nl'));
@@ -909,19 +909,19 @@ window.onWeather = function(w){
   const el = $('#weather');
   if (!cfg.show.weather) { el.style.display = 'none'; return; }
   el.style.display = 'flex';
-  if (w.noPlace) { el.innerHTML = '<span class=wi><span class="ui-icon" data-icon="sun" aria-hidden="true"></span></span><span class=wd><b>Weer</b>Tik om je plaats te kiezen' + (w.locPerm ? '' : ' of locatie toe te staan') + '</span>'; return; }
+  if (w.noPlace) { el.innerHTML = '<span class=wi><span class="ui-icon" data-icon="sun" aria-hidden="true"></span></span><span class=wd><b>' + t('Weer') + '</b>' + t(w.locPerm ? 'Tik om je plaats te kiezen' : 'Tik om je plaats te kiezen of locatie toe te staan') + '</span>'; return; }
   if (w.error && w.temp == null) { el.innerHTML = '<span class=wi><span class="ui-icon" data-icon="temperature" aria-hidden="true"></span></span><span class=wd><b>Weer</b>' + esc(w.error) + '</span>'; return; }
   const [ic, txt] = wmo(w.code, w.day);
   const days = (w.days || []).slice(1, 4).map(d => '<span>' + fmtDate(d.date + 'T12:00', {weekday: 'short'}) + '<b>' + skinGlyph(wmo(d.code)[0]) + '</b>' + fmtTemp(d.max) + '/' + fmtTemp(d.min) + '</span>').join('');
   const today = (w.days || [])[0];
   el.innerHTML = '<span class=wi>' + skinGlyph(ic) + '</span><span class=wt>' + fmtTemp(w.temp) + '</span><span class=wd><b>' + esc(txt) + (w.place ? ' · ' + esc(w.place) : '') + '</b>' +
-    (today ? fmtTemp(today.max) + ' / ' + fmtTemp(today.min) : '') + (w.rainSoon >= 50 ? ' · ' + skinGlyph('☔')+' '+w.rainSoon + '% kans op regen' : '') +
+    (today ? fmtTemp(today.max) + ' / ' + fmtTemp(today.min) : '') + (w.rainSoon >= 50 ? ' · ' + skinGlyph('☔') + ' ' + t('{pct}% kans op regen', { pct: w.rainSoon }) : '') +
     '<span class=wdays>' + days + '</span></span>';
 };
 function weatherTap(){ if (wx && wx.noPlace) askPlace(); else Android.weather(true); }
 function askPlace(){
   ask('Plaats voor het weer', Android.placeName(), v => { v = v.trim(); if (!v) { Android.setPlace('', 0, 0); Android.weather(true); renderLook(); return; } Android.cities(v); toast('Zoeken…'); },
-    '<p style="margin:0 0 8px;font-size:13px;color:var(--muted)">Leeg laten = de locatie van je telefoon gebruiken' + (Android.hasPerm('location') ? '' : ' (<a href="#" onclick="Android.locationPermission();return false" style="color:var(--acc)">toestaan</a>)') + '.</p>', 'Bijv. Rotterdam');
+    '<p style="margin:0 0 8px;font-size:13px;color:var(--muted)">' + t('Leeg laten = de locatie van je telefoon gebruiken') + (Android.hasPerm('location') ? '' : ' (<a href="#" onclick="Android.locationPermission();return false" style="color:var(--acc)">' + t('toestaan') + '</a>)') + '.</p>', t('Bijv. Rotterdam'));
 }
 window.onCities = function(l){
   if (l.error || !l.length) { toast(l.error || 'Geen plaats gevonden'); return; }
@@ -958,30 +958,30 @@ function renderTools(){
   const raw = Android.tools();
   if (raw === renderTools.last && el.style.display === 'block' && !renderTools.force) return;
   renderTools.last = raw; renderTools.force = false;
-  const t = J(raw, {});
-  const r = t.radio || {}, st = r.status || 'stopped', s = r.station || t.radioLast;
+  const ts = J(raw, {});
+  const r = ts.radio || {}, st = r.status || 'stopped', s = r.station || ts.radioLast;
   const playing = st === 'playing' || st === 'connecting';
   let h = '<h3>Tools <button class=more onclick="Android.openTool(\'\')">Openen ›</button></h3>';
   if (s) h += '<div class=radio><button class=rn style="text-align:left" onclick="Android.openTool(\'radio\')"><b>' + esc(s.name) + '</b><small>' +
-      esc(st === 'connecting' ? 'Verbinden…' : st === 'paused' ? 'Gepauzeerd' : st === 'playing' ? (r.shift && r.shift.behind > 8 ? 'achter live' : (r.title || 'Live')) : 'Tik ▶ om te luisteren') + '</small></button>' +
+      esc(st === 'connecting' ? t('Verbinden…') : st === 'paused' ? t('Gepauzeerd') : st === 'playing' ? (r.shift && r.shift.behind > 8 ? t('achter live') : (r.title || 'Live')) : t('Tik ▶ om te luisteren')) + '</small></button>' +
     (r.shift && st !== 'stopped' ? '<button class=rb onclick="radioDo(\'rew\')" aria-label="30 seconden terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>' : '') +
     '<button class="rb main" onclick="radioDo(\'' + (playing ? 'pause' : st === 'paused' ? 'resume' : 'play') + '\')" aria-label="' + (playing ? 'Pauze' : 'Afspelen') + '">' + skinGlyph(playing ? '❚❚' : '▶') + '</button>' +
     (st !== 'stopped' ? '<button class=rb onclick="radioDo(\'stop\')" aria-label="Stoppen" data-icon="stop"></button>' : '') + '</div>';
   const rows = [];
-  const bk = t.backup || {}, l = bk.last;
-  if (bk.busy) rows.push(['💾', 'Backup is bezig…', 'backup', '']);
+  const bk = ts.backup || {}, l = bk.last;
+  if (bk.busy) rows.push(['💾', t('Backup is bezig…'), 'backup', '']);
   else if (l && l.t) { const failed = Object.keys(l).filter(k => l[k] && l[k].ok === false).length, old = Date.now() - l.t > 3 * 864e5;
-    rows.push(['💾', 'Backup: ' + fmtD(l.t) + (failed ? ' · ' + failed + ' mislukt' : old ? ' · al even geleden' : ' ✓'), 'backup', failed ? 'b' : old ? 'w' : '']); }
+    rows.push(['💾', t('Backup: {wanneer}', { wanneer: fmtD(l.t) }) + (failed ? ' · ' + t('{n} mislukt', { n: failed }) : old ? ' · ' + t('al even geleden') : ' ✓'), 'backup', failed ? 'b' : old ? 'w' : '']); }
   const end = new Date(); end.setHours(23, 59, 59);
-  const rem = Object.values(t.reminders || {}).filter(x => x >= Date.now() && x <= end.getTime()).sort();
-  if (rem.length) rows.push(['🔔', rem.length + (rem.length === 1 ? ' herinnering' : ' herinneringen') + ' vandaag, eerst om ' + fmtTime(rem[0], {hour: '2-digit', minute: '2-digit'}), 'notes', '']);
-  const bd = t.birthdays || [];
+  const rem = Object.values(ts.reminders || {}).filter(x => x >= Date.now() && x <= end.getTime()).sort();
+  if (rem.length) rows.push(['🔔', tn(rem.length, '{n} herinnering vandaag, eerst om {tijd}', '{n} herinneringen vandaag, eerst om {tijd}', { tijd: fmtTime(rem[0], {hour: '2-digit', minute: '2-digit'}) }), 'notes', '']);
+  const bd = ts.birthdays || [];
   if (bd.length) {
     const today = bd.filter(b => b.days === 0), soon = bd.filter(b => b.days > 0);
-    if (today.length) rows.push(['🎂', 'Vandaag jarig: ' + today.map(b => b.name + (b.age ? ' (' + b.age + ')' : '')).join(', '), 'contacts', '']);
-    if (soon.length) rows.push(['🎈', soon.slice(0, 3).map(b => b.name + ' ' + (b.days === 1 ? 'morgen' : 'over ' + b.days + ' dagen')).join(', '), 'contacts', '']);
+    if (today.length) rows.push(['🎂', t('Vandaag jarig: {wie}', { wie: today.map(b => b.name + (b.age ? ' (' + b.age + ')' : '')).join(', ') }), 'contacts', '']);
+    if (soon.length) rows.push(['🎈', soon.slice(0, 3).map(b => b.name + ' ' + (b.days === 1 ? t('morgen') : t('over {n} dagen', { n: b.days }))).join(', '), 'contacts', '']);
   }
-  const rp = t.redial || {};
+  const rp = ts.redial || {};
   if (rp.plan && rp.next > Date.now() && rp.next - Date.now() < 2 * 864e5) rows.push(['📞', 'Auto redial: ' + (rp.plan.name || rp.plan.number) + ' · ' + fmtDT(rp.next, {weekday: 'short', hour: '2-digit', minute: '2-digit'}), 'redial', '']);
   h += rows.map(x => '<button class=trow data-t="' + x[2] + '" onclick="Android.openTool(this.dataset.t)"><span>' + skinGlyph(x[0]) + '</span><span class="' + x[3] + '">' + esc(x[1]) + '</span></button>').join('');
   h += '<div class=tchips>' + cfg.tools.filter(k => TOOLS[k]).map(k => '<button class=tchip data-t="' + k + '" onclick="Android.openTool(this.dataset.t)"><span>' + skinGlyph(TOOLS[k][0]) + '</span>' + TOOLS[k][1] + '</button>').join('') + '</div>';
@@ -998,7 +998,7 @@ function renderNotes(){
   el.style.display = l.length ? 'block' : 'none';
   el.innerHTML = l.map(n => '<button class="glass nc" data-id="' + esc(n.id) + '" onclick="noteClick(this)"><b><span class=nc-title>' + esc(n.title) + '</span>' +
     '<small>' + (n.total ? (n.open ? n.open + ' open' : 'alles afgestreept ✓') : '') + '</small></b>' +
-    (n.items.length ? '<ul>' + n.items.map(t => '<li>' + esc(t) + '</li>').join('') + (n.open > n.items.length ? '<li style="color:var(--muted)">en nog ' + (n.open - n.items.length) + '…</li>' : '') + '</ul>'
+    (n.items.length ? '<ul>' + n.items.map(x => '<li>' + esc(x) + '</li>').join('') + (n.open > n.items.length ? '<li style="color:var(--muted)">' + t('en nog {n}…', { n: n.open - n.items.length }) + '</li>' : '') + '</ul>'
       : n.text ? '<p>' + esc(n.text) + '</p>' : '') + '</button>').join('');
 }
 /* Lang indrukken op een vastgezette notitie: openen of van het startscherm halen. */
@@ -1037,7 +1037,7 @@ function renderPick(){
   const q = norm($('#pk-q').value.trim());
   let h = '';
   if (pk.mode !== 'drawer') {
-    h += '<div class=pkhd>Gekozen (' + pk.sel.length + (pk.max ? ' van max. ' + pk.max : '') + ') · in deze volgorde</div>';
+    h += '<div class=pkhd>' + (pk.max ? t('Gekozen ({n} van max. {max}) · in deze volgorde', { n: pk.sel.length, max: pk.max }) : t('Gekozen ({n}) · in deze volgorde', { n: pk.sel.length })) + '</div>';
     h += pk.sel.map((k, i) => '<div class=pk>' + pkIcon(k) + '<span class=nm>' + esc(pkName(k)) + '</span>' +
       '<button class=mini2 data-i="' + i + '" data-d="-1" onclick="pkMove(this)"' + (i ? '' : ' disabled') + ' aria-label="Naar voren">↑</button>' +
       '<button class=mini2 data-i="' + i + '" data-d="1" onclick="pkMove(this)"' + (i < pk.sel.length - 1 ? '' : ' disabled') + ' aria-label="Naar achteren">↓</button>' +
@@ -1047,7 +1047,7 @@ function renderPick(){
   } else {
     h += '<div class=sw style="padding:10px 4px"><span>Verborgen apps blokkeren<small style="display:block;font-size:12px;color:var(--muted)">Dan staan ze ook niet op het startscherm of in het dock en zijn ze vanuit de skin niet te starten. Wijzigen vraagt je vingerafdruk.</small></span>' +
       '<button class="tg' + (pk.lock ? ' on' : '') + '" role="switch" aria-checked="' + pk.lock + '" aria-label="Verborgen apps blokkeren" onclick="pk.lock=!pk.lock;renderPick()"></button></div>';
-    h += '<div class=pkhd>' + pk.sel.length + ' van ' + apps.length + ' zichtbaar · vinkje weg = ' + (pk.lock ? 'geblokkeerd' : 'verborgen') + '</div>';
+    h += '<div class=pkhd>' + t(pk.lock ? '{n} van {totaal} zichtbaar · vinkje weg = geblokkeerd' : '{n} van {totaal} zichtbaar · vinkje weg = verborgen', { n: pk.sel.length, totaal: apps.length }) + '</div>';
   }
   const list = (pk.mode === 'pinned' && !NATIVE ? Object.keys(cfg.folders).filter(f => exists('f:' + f)).map(f => ({k: 'f:' + f, n: '📁 ' + f})) : []).concat(apps)
     .filter(a => !q || norm(a.n).includes(q));
@@ -1061,7 +1061,7 @@ function renderPick(){
 function pkToggle(k){
   const i = pk.sel.indexOf(k);
   if (i >= 0) pk.sel.splice(i, 1);
-  else { if (pk.max && pk.sel.length >= pk.max) { toast('Het dock heeft plaats voor ' + pk.max + ' apps'); return; } pk.sel.push(k); }
+  else { if (pk.max && pk.sel.length >= pk.max) { toast(t('Het dock heeft plaats voor {n} apps', { n: pk.max })); return; } pk.sel.push(k); }
   Android.vibrate(8); renderPick();
 }
 function pkMove(b){ const i = +b.dataset.i, j = i + +b.dataset.d; if (j < 0 || j >= pk.sel.length) return; const x = pk.sel[i]; pk.sel[i] = pk.sel[j]; pk.sel[j] = x; renderPick(); }

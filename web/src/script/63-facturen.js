@@ -51,15 +51,15 @@ function faPlanTekst(l){
 /** Stand van deze periode: {soort: ok|mis|wacht|bezig|uit|nieuw|pw, tekst}. */
 function faPeriode(l){
   const tt = l.toestand || {};
-  if (faSt.bezig === l.id) return { soort: 'bezig', tekst: faSt.voortgang || 'Bezig…' };
-  if (!l.heeftWachtwoord && l.gebruiker) return { soort: 'pw', tekst: 'Geen wachtwoord: vul het in of kijk mee om zelf in te loggen' };
-  if (l.schema === 'uit') return tt.lastOk ? { soort: 'ok', tekst: '✓ Laatst opgehaald ' + faMoment(tt.lastOk) } : { soort: 'uit', tekst: 'Alleen met de hand' };
+  if (faSt.bezig === l.id) return { soort: 'bezig', tekst: t(faSt.voortgang || 'Bezig…') };
+  if (!l.heeftWachtwoord && l.gebruiker) return { soort: 'pw', tekst: t('Geen wachtwoord: vul het in of kijk mee om zelf in te loggen') };
+  if (l.schema === 'uit') return tt.lastOk ? { soort: 'ok', tekst: t('✓ Laatst opgehaald {wanneer}', { wanneer: faMoment(tt.lastOk) }) } : { soort: 'uit', tekst: t('Alleen met de hand') };
   // De laatste poging mislukte (ook als het eerder deze periode wel lukte): dat eerst laten zien
-  if (tt.lastTry && !tt.ok && tt.lastTry > (tt.lastOk || 0)) return { soort: 'mis', tekst: '✗ Mislukt ' + faMoment(tt.lastTry) + ': ' + (tt.msg || '') + (l.vorige && tt.lastOk >= l.vorige ? ' (deze periode was al opgehaald)' : ' (na ' + (l.opnieuw || 3) + ' uur opnieuw)') };
-  if (l.vorige && tt.lastOk >= l.vorige) return { soort: 'ok', tekst: '✓ Opgehaald ' + faMoment(tt.lastOk) + ' · ' + (tt.nieuw ? tt.nieuw + (tt.nieuw === 1 ? ' nieuwe factuur' : ' nieuwe facturen') : 'niets nieuws') };
-  if (l.vorige && tt.lastTry >= l.vorige && !tt.ok) return { soort: 'mis', tekst: '✗ Mislukt ' + faMoment(tt.lastTry) + ': ' + (tt.msg || '') + ' (na ' + (l.opnieuw || 3) + ' uur opnieuw)' };
-  if (l.vorige && (tt.lastOk || tt.lastTry || l.aantal)) return { soort: 'wacht', tekst: '⏳ Gepland ' + faMoment(l.vorige) + ': nog niet gelukt, de app probeert het zodra het kan' };
-  return { soort: 'nieuw', tekst: 'Nog niet opgehaald' };
+  if (tt.lastTry && !tt.ok && tt.lastTry > (tt.lastOk || 0)) return { soort: 'mis', tekst: t('✗ Mislukt {wanneer}: {fout}', { wanneer: faMoment(tt.lastTry), fout: t(tt.msg || '') }) + ' ' + (l.vorige && tt.lastOk >= l.vorige ? t('(deze periode was al opgehaald)') : t('(na {n} uur opnieuw)', { n: l.opnieuw || 3 })) };
+  if (l.vorige && tt.lastOk >= l.vorige) return { soort: 'ok', tekst: t('✓ Opgehaald {wanneer}', { wanneer: faMoment(tt.lastOk) }) + ' · ' + (tt.nieuw ? tn(tt.nieuw, '{n} nieuwe factuur', '{n} nieuwe facturen') : t('niets nieuws')) };
+  if (l.vorige && tt.lastTry >= l.vorige && !tt.ok) return { soort: 'mis', tekst: t('✗ Mislukt {wanneer}: {fout}', { wanneer: faMoment(tt.lastTry), fout: t(tt.msg || '') }) + ' ' + t('(na {n} uur opnieuw)', { n: l.opnieuw || 3 }) };
+  if (l.vorige && (tt.lastOk || tt.lastTry || l.aantal)) return { soort: 'wacht', tekst: t('⏳ Gepland {wanneer}: nog niet gelukt, de app probeert het zodra het kan', { wanneer: faMoment(l.vorige) }) };
+  return { soort: 'nieuw', tekst: t('Nog niet opgehaald') };
 }
 function faStatus(l){ return faPeriode(l).tekst; }
 function faRender(geenLaad){
@@ -67,7 +67,7 @@ function faRender(geenLaad){
   faBezig();
   $('#fa-lijst').innerHTML = faSt.leveranciers.map(l => {
     const p = faPeriode(l), fout = p.soort === 'mis' || p.soort === 'pw';
-    const volgende = l.schema !== 'uit' && l.volgende ? 'Volgende keer: ' + faMoment(l.volgende) : 'Vanzelf: ' + faPlanTekst(l);
+    const volgende = l.schema !== 'uit' && l.volgende ? t('Volgende keer: {wanneer}', { wanneer: faMoment(l.volgende) }) : t('Vanzelf: {wanneer}', { wanneer: faPlanTekst(l) });
     return '<div class="srow"><button class="sbtn" data-id="' + esc(l.id) + '" onclick="faOpen(this.dataset.id)"><span class="vpic" aria-hidden="true">' + uiIcon(l.soort === 'mail' ? 'mail' : 'document') + '</span>' +
       '<span class="stxt"><b>' + esc(l.naam) + '</b><small' + (fout ? ' class="bad"' : '') + '>' + esc(p.tekst) + '</small><small>' + esc(volgende + ' · ' + faPlanTekst(l)) + '</small></span></button></div>';
   }).join('') || '<p class="note" style="padding:14px">Nog geen leveranciers. Tik op <b>Leverancier toevoegen</b>.</p>';
@@ -110,18 +110,18 @@ function faSamenvatting(){
   const ecAan = !!(ec.url && ec.heeftWachtwoord);
   const plekken = [lok && lok !== '!' ? 'telefoon' : '', faSt.map ? 'backup-map' : '', gd.rechtDrive ? 'Drive' : '', ecAan ? 'Eigen Cloud' : ''].filter(Boolean);
   const zet = (id, tt) => { const e = $('#' + id); if (e) e.textContent = tt; };
-  zet('fa-sum-overz', faSt.leveranciers.length ? 'De laatste 12 maanden per leverancier' : 'Nog geen leveranciers');
-  zet('fa-sum-opslag', plekken.length ? 'Ingesteld: ' + plekken.join(', ') : 'Nog niets ingesteld (alleen in de app)');
-  zet('fa-sum-kopp', [gd.gekoppeld ? 'Google' : '', ecAan ? 'Eigen Cloud' : '', (faSt.smtp || {}).host ? 'mailserver' : ''].filter(Boolean).join(', ') || 'Nog niets gekoppeld');
-  zet('fa-sum-lok', lok === '!' ? 'Geen toegang meer: kies hem opnieuw' : lok || 'Nog geen map gekozen');
-  zet('fa-sum-backup', faSt.map ? 'Map Facturen in je backup-map' : 'Nog geen backup-map gekozen');
-  zet('fa-sum-drive', gd.rechtDrive ? 'Gekoppeld' + (gd.gebruiker ? ' · ' + gd.gebruiker : '') : gd.gekoppeld ? 'Google gekoppeld, maar zonder Drive' : 'Niet gekoppeld');
-  zet('fa-sum-ec', ecAan ? 'Gekoppeld · ' + ec.url.replace(/^https:\/\//, '') : 'Niet gekoppeld');
-  zet('fa-sum-ec2', ecAan ? 'Gekoppeld · ' + ec.url.replace(/^https:\/\//, '') : 'Niet gekoppeld');
+  zet('fa-sum-overz', t(faSt.leveranciers.length ? 'De laatste 12 maanden per leverancier' : 'Nog geen leveranciers'));
+  zet('fa-sum-opslag', plekken.length ? t('Ingesteld: {wat}', { wat: plekken.map(x => t(x)).join(', ') }) : t('Nog niets ingesteld (alleen in de app)'));
+  zet('fa-sum-kopp', [gd.gekoppeld ? 'Google' : '', ecAan ? 'Eigen Cloud' : '', (faSt.smtp || {}).host ? t('mailserver') : ''].filter(Boolean).join(', ') || t('Nog niets gekoppeld'));
+  zet('fa-sum-lok', lok === '!' ? t('Geen toegang meer: kies hem opnieuw') : lok || t('Nog geen map gekozen'));
+  zet('fa-sum-backup', t(faSt.map ? 'Map Facturen in je backup-map' : 'Nog geen backup-map gekozen'));
+  zet('fa-sum-drive', gd.rechtDrive ? t('Gekoppeld') + (gd.gebruiker ? ' · ' + gd.gebruiker : '') : t(gd.gekoppeld ? 'Google gekoppeld, maar zonder Drive' : 'Niet gekoppeld'));
+  zet('fa-sum-ec', ecAan ? t('Gekoppeld') + ' · ' + ec.url.replace(/^https:\/\//, '') : t('Niet gekoppeld'));
+  zet('fa-sum-ec2', ecAan ? t('Gekoppeld') + ' · ' + ec.url.replace(/^https:\/\//, '') : t('Niet gekoppeld'));
   const sm = faSt.smtp || {};
-  zet('fa-sum-smtp', sm.host ? 'Ingesteld · ' + sm.host : 'Niet ingesteld');
-  zet('fa-sum-dos', faSt.dossier ? faSt.dossier + (faSt.dossier === 1 ? ' factuur' : ' facturen') + ' met alle gegevens' : 'Nog leeg');
-  zet('fa-sum-aanl', faSt.ontvangers ? faSt.ontvangers + (faSt.ontvangers === 1 ? ' ontvanger' : ' ontvangers') : 'Nog geen ontvanger (bijv. je boekhouder)');
+  zet('fa-sum-smtp', sm.host ? t('Ingesteld') + ' · ' + sm.host : t('Niet ingesteld'));
+  zet('fa-sum-dos', faSt.dossier ? tn(faSt.dossier, '{n} factuur met alle gegevens', '{n} facturen met alle gegevens') : t('Nog leeg'));
+  zet('fa-sum-aanl', faSt.ontvangers ? tn(faSt.ontvangers, '{n} ontvanger', '{n} ontvangers') : t('Nog geen ontvanger (bijv. je boekhouder)'));
   zet('fa-sum-google', gd.gekoppeld ? [gd.rechtGmail ? 'Gmail' : '', gd.rechtDrive ? 'Drive' : '', gd.rechtGmailSend ? 'versturen' : ''].filter(Boolean).join(', ') + (gd.gebruiker ? ' · ' + gd.gebruiker : '') : 'Niet gekoppeld');
 }
 /* Overzicht: deze maand per leverancier, en per maand wat er binnenkwam */
@@ -336,7 +336,7 @@ function faGdKoppel(){
   const rechten = [$('#fa-gd-r-gmail').checked ? 'gmail' : '', $('#fa-gd-r-drive').checked ? 'drive' : '', $('#fa-gd-r-send').checked ? 'gmailsend' : ''].filter(Boolean).join(',');
   if (!rechten) { $('#fa-gd-msg').textContent = 'Vink aan waarvoor Tools Google mag gebruiken (Gmail en/of Drive).'; return; }
   const zonder = [!rechten.includes('drive') && faSt.leveranciers.some(l => l.drive) ? 'Drive (leveranciers bewaren daar)' : '', !/\bgmail\b/.test(rechten) && faSt.leveranciers.some(l => l.soort === 'mail') ? 'Gmail (leveranciers zoeken daar)' : '', !rechten.includes('gmailsend') && (faSt.drive || {}).rechtGmailSend ? 'Versturen met Gmail (aan je boekhouder)' : ''].filter(Boolean);
-  if (zonder.length && !faGdKoppel._ok) { askConfirm('Minder rechten?', 'Zonder ' + zonder.join(' en ') + ' werken die leveranciers niet meer tot je het weer aanzet.', 'Toch koppelen', () => { faGdKoppel._ok = true; try { faGdKoppel(); } finally { faGdKoppel._ok = false; } }); return; }
+  if (zonder.length && !faGdKoppel._ok) { askConfirm(t('Minder rechten?'), t('Zonder {wat} werken die leveranciers niet meer tot je het weer aanzet.', { wat: zonder.map(x => t(x)).join(t(' en ')) }), t('Toch koppelen'), () => { faGdKoppel._ok = true; try { faGdKoppel(); } finally { faGdKoppel._ok = false; } }); return; }
   const e = Android.facturenDriveKoppel(id, geheim, rechten);
   $('#fa-gd-geheim').value = '';
   if (e) { $('#fa-gd-msg').textContent = e; return; }
@@ -369,9 +369,9 @@ function fdLaad(){ faDos = rdJson(Android.facturenDossier(), { items: [], ontvan
 /** Stand van het aanleveren van één factuur: {soort: ok|mis|open|geen, tekst}. */
 function fdAanl(s){
   const v = Object.entries(s.verzonden || {}), ok = v.filter(([, x]) => x.ok), mis = v.filter(([, x]) => !x.ok && !x.opnieuw);
-  if (mis.length) return { soort: 'mis', tekst: '✗ Niet aangeleverd aan ' + mis.map(([id, x]) => x.naam || id).join(', ') };
-  if (ok.length) return { soort: 'ok', tekst: '✓ Aangeleverd aan ' + ok.map(([id, x]) => (x.naam || id) + ' (' + faDatum(x.t) + ')').join(', ') };
-  return { soort: (faDos.ontvangers || []).length ? 'open' : 'geen', tekst: (faDos.ontvangers || []).length ? 'Nog niet aangeleverd' : '' };
+  if (mis.length) return { soort: 'mis', tekst: t('✗ Niet aangeleverd aan {wie}', { wie: mis.map(([id, x]) => x.naam || id).join(', ') }) };
+  if (ok.length) return { soort: 'ok', tekst: t('✓ Aangeleverd aan {wie}', { wie: ok.map(([id, x]) => (x.naam || id) + ' (' + faDatum(x.t) + ')').join(', ') }) };
+  return { soort: (faDos.ontvangers || []).length ? 'open' : 'geen', tekst: (faDos.ontvangers || []).length ? t('Nog niet aangeleverd') : '' };
 }
 /* Het overzicht: een tabel met kolommen naar keuze, sorteren op elke kolom en groeperen met subtotalen */
 const FD_DAG = d => d ? fmtDate(d + 'T12:00', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
@@ -541,14 +541,14 @@ function fsToon(sha){
   $('#fs-cat').value = m.categorie || ''; $('#fs-notitie').value = m.notitie || ''; $('#fs-msg').textContent = '';
   $('#fs-cats').innerHTML = [...new Set((faDos.items || []).map(x => (x.meta || {}).categorie).filter(Boolean))].map(c => '<option value="' + esc(c) + '">').join('');
   $('#fs-plekken').innerHTML = Object.entries(s.plekken || {}).map(([k, x]) => {
-    const waar = x.pad ? x.pad.replace(/^\/data\/(user\/0|data)\/[^/]+\/files\//, '') : x.aan ? 'mail aan ' + x.aan : x.id ? 'bestand ' + x.id.slice(0, 10) + '…' : '';
-    return '<div class="bkres"><b>' + esc(FA_PLEK[k] || k) + '</b><span style="overflow-wrap:anywhere">' + (x.weg ? 'weg (leverancier verwijderd)' : esc([waar, faDatum(x.t)].filter(Boolean).join(' · '))) +
+    const waar = x.pad ? x.pad.replace(/^\/data\/(user\/0|data)\/[^/]+\/files\//, '') : x.aan ? t('mail aan {adres}', { adres: x.aan }) : x.id ? t('bestand {id}…', { id: x.id.slice(0, 10) }) : '';
+    return '<div class="bkres"><b>' + esc(FA_PLEK[k] || k) + '</b><span style="overflow-wrap:anywhere">' + (x.weg ? t('weg (leverancier verwijderd)') : esc([waar, faDatum(x.t)].filter(Boolean).join(' · '))) +
       (x.link ? ' <button class="linkish" data-u="' + esc(x.link) + '" onclick="Android.openUrl(this.dataset.u)">Openen</button>' : '') + '</span></div>';
   }).join('') || '<p class="note">Onbekend</p>';
   const ontv = faDos.ontvangers || [];
   $('#fs-aan').innerHTML = ontv.map(o => {
     const x = (s.verzonden || {})[o.id];
-    const st = !x ? 'Nog niet' : x.ok ? '✓ ' + faDatum(x.t) + (x.aan ? ' aan ' + x.aan : '') : x.opnieuw ? 'Gaat opnieuw' : '✗ ' + (x.fout || 'mislukt') + ' (' + faDatum(x.t) + ')' + ((x.pogingen || 0) >= 5 ? '; gestopt na ' + x.pogingen + ' pogingen' : '');
+    const st = !x ? t('Nog niet') : x.ok ? '✓ ' + faDatum(x.t) + (x.aan ? ' ' + t('aan {adres}', { adres: x.aan }) : '') : x.opnieuw ? t('Gaat opnieuw') : '✗ ' + t(x.fout || 'mislukt') + ' (' + faDatum(x.t) + ')' + ((x.pogingen || 0) >= 5 ? '; ' + t('gestopt na {n} pogingen', { n: x.pogingen }) : '');
     return '<div class="bkres"><b>' + esc(o.naam) + '</b><span' + (x && !x.ok && !x.opnieuw ? ' class="bad"' : x && x.ok ? ' class="good"' : '') + '>' + esc(st) +
       (x && (x.ok || (x.pogingen || 0) >= 5) ? ' <button class="linkish" data-o="' + esc(o.id) + '" onclick="fsOpnieuw(this.dataset.o)">Opnieuw</button>' : '') + '</span></div>';
   }).join('') || '<p class="note">Nog geen ontvanger. <button class="linkish" onclick="faNaar(\'facaanl\')">Ontvanger toevoegen</button></p>';
@@ -563,7 +563,7 @@ function fsBewaar(){
 }
 function fsOpnieuw(ontv){
   const o = (faDos.ontvangers || []).find(x => x.id === ontv);
-  askConfirm('Opnieuw aanleveren?', 'Deze factuur gaat nog een keer naar ' + (o ? o.naam : ontv) + ': de volgende keer vanzelf, of nu met Aanleveren → Nu versturen.', 'Opnieuw', () => {
+  askConfirm(t('Opnieuw aanleveren?'), t('Deze factuur gaat nog een keer naar {naam}: de volgende keer vanzelf, of nu met Aanleveren → Nu versturen.', { naam: o ? o.naam : ontv }), t('Opnieuw'), () => {
     const e = Android.facturenDossierOpnieuw(fsSha, ontv); if (e) { toast(e); return; } fdLaad(); fsToon(fsSha); toast('✓ Gaat opnieuw');
   });
 }
@@ -642,7 +642,7 @@ function foKanaal(){ const k = $('#fo-kanaal').value; document.querySelectorAll(
 function foVia(){
   const v = foSt.via.find(x => x.id === $('#fo-via').value) || {};
   const doel = v.id === 'smtp' ? 'facsmtp' : v.id === 'gmail' ? 'facgoogle' : 'facec';
-  $('#fo-via-msg').innerHTML = v.mist ? esc(v.mist) + ' <button class="linkish" onclick="faNaar(\'' + doel + '\')">Nu instellen</button>' : v.van ? 'Wordt verstuurd vanaf ' + esc(v.van) + '.' : '';
+  $('#fo-via-msg').innerHTML = v.mist ? esc(v.mist) + ' <button class="linkish" onclick="faNaar(\'' + doel + '\')">Nu instellen</button>' : v.van ? esc(t('Wordt verstuurd vanaf {adres}.', { adres: v.van })) : '';
   $('#fo-via-msg').classList.toggle('bad', !!v.mist);
 }
 function foPlan(){
@@ -652,8 +652,8 @@ function foPlan(){
   $('#fo-tijdrij').style.display = s === 'uit' || s === 'direct' ? 'none' : 'flex';
   $('#fo-opnrij').style.display = s === 'uit' ? 'none' : 'flex';
   const o = { schema: s, dag: Number($('#fo-dag').value) || 1, weekdag: Number($('#fo-wd').value) || 1, tijd: $('#fo-tijd').value || '09:00' };
-  $('#fo-plan').textContent = s === 'uit' ? 'Alleen als je zelf op Nu versturen tikt.' : s === 'direct' ? 'Zodra er nieuwe facturen zijn opgehaald, gaan ze binnen een paar minuten weg.'
-    : 'Vanzelf ' + faPlanTekst(o) + ', met alles wat sinds de vorige keer is binnengekomen. Eerstvolgende keer: ' + faMoment(faVolgende(o, Date.now())) + '.';
+  $('#fo-plan').textContent = s === 'uit' ? t('Alleen als je zelf op Nu versturen tikt.') : s === 'direct' ? t('Zodra er nieuwe facturen zijn opgehaald, gaan ze binnen een paar minuten weg.')
+    : t('Vanzelf {wanneer}, met alles wat sinds de vorige keer is binnengekomen. Eerstvolgende keer: {volgende}.', { wanneer: faPlanTekst(o), volgende: faMoment(faVolgende(o, Date.now())) });
 }
 function foBewaar(){
   const o = {

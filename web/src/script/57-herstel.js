@@ -38,7 +38,7 @@ window.onHerstelScan = function(r){
   if (!l.length) {
     const p = r.plain || {}, any = p.notes || p.settings || p.contacts;
     $('#hs-list').innerHTML = '<p class="note" id="hs-none">Geen versleutelde backup gevonden in deze map. Alles terugzetten (met je wachtwoorden, VPN en sleutels) kan alleen uit een versleutelde backup.</p>' +
-      (any ? '<p class="note" id="hs-plain">Er staan wel gewone onderdelen in deze map (' + [p.notes ? 'notities' : '', p.settings ? 'instellingen' : '', p.contacts ? 'contacten' : ''].filter(Boolean).join(', ') + '). Die kun je los terugzetten; ze worden toegevoegd aan wat er staat. Wachtwoorden en sleutels staan daar nooit in.</p>' +
+      (any ? '<p class="note" id="hs-plain">' + esc(t('Er staan wel gewone onderdelen in deze map ({wat}). Die kun je los terugzetten; ze worden toegevoegd aan wat er staat. Wachtwoorden en sleutels staan daar nooit in.', { wat: [p.notes ? 'notities' : '', p.settings ? 'instellingen' : '', p.contacts ? 'contacten' : ''].filter(Boolean).map(x => t(x)).join(', ') })) + '</p>' +
         '<button class="big ghost" id="hs-plain-btn" onclick="hsPlain()">Losse onderdelen terugzetten</button>' : '');
     return;
   }
@@ -54,7 +54,7 @@ function hsBusyStep(){ hsStep('hs-bezig'); $('#hs-bezig-t').textContent = 'Bezig
 let hsPwOld = '';
 function hsAskPw(again){
   hsStep('hs-kies');
-  askPassword(again ? 'Verkeerd wachtwoord' : 'Wachtwoord', (again ? 'Dat wachtwoord past niet bij deze backup. Probeer het nog eens.' : 'Het wachtwoord van je backup (' + hsWhen(hsName) + ').'), 'Openen', pw => {
+  askPassword(again ? 'Verkeerd wachtwoord' : 'Wachtwoord', (again ? 'Dat wachtwoord past niet bij deze backup. Probeer het nog eens.' : t('Het wachtwoord van je backup ({wanneer}).', { wanneer: hsWhen(hsName) })), 'Openen', pw => {
     if (!pw) return;
     hsPwOld = pw; hsBusyStep(); Android.herstelOpen(hsName, pw);
   });
@@ -78,7 +78,7 @@ window.onHerstelOpened = function(r){
     (r.app ? '<div class=bkres><b>Gemaakt met</b><span>Tools ' + esc(r.app) + '</span></div>' : '') +
     '<div class=bkres><b>Inhoud</b><span>' + esc(parts.join(', ') || 'instellingen') + ' · ' + fmtB(r.bytes || 0) + '</span></div>' +
     '<div class=bkres><b>Gecontroleerd</b><span class=good>✓ compleet en onbeschadigd</span></div>' +
-    ((r.missing || []).length ? '<p class="note warn" id="hs-missing">Niet in deze backup: ' + esc(r.missing.join('; ')) + '.</p>' : '');
+    ((r.missing || []).length ? '<p class="note warn" id="hs-missing">' + esc(t('Niet in deze backup: {wat}.', { wat: r.missing.map(x => t(x)).join('; ') })) + '</p>' : '');
   hsWarn = hsManual || !!r.warn;
   hsMissing = r.missing || [];
   $('#hs-warn').style.display = hsWarn ? '' : 'none';

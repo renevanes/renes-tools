@@ -78,7 +78,7 @@ function ciqCells(q){
   const cell = (key, label, small, ans, ss, aria, rem) => {
     const vs = ans.map(a => +a.v), avg = ciAvg(vs);
     const state = ans.length ? ciLevel(ciNorm(q, avg)) : status(ss);
-    let txt = ans.length === 1 ? ciAnsText(ans[0]) : ans.length ? ans.length + ' antwoorden, gemiddeld ' + ciNum(avg) + ' (' + ciOptText(ciNearest(q, avg)) + ')' : word[state];
+    let txt = ans.length === 1 ? ciAnsText(ans[0]) : ans.length ? t('{n} antwoorden, gemiddeld {gem} ({antwoord})', { n: ans.length, gem: ciNum(avg), antwoord: ciOptText(ciNearest(q, avg)) }) : t(word[state]);
     const mark = ans.length === 1 ? (ans[0].e || ans[0].l || '') : ans.length > 1 ? ans.length + '×' : state === 'miss' ? '–' : '';
     return { key, label, small: small != null ? small : mark, state, aria: aria + ': ' + txt, ans, ss, rem };
   };
@@ -115,7 +115,7 @@ function ciqRenderCal(q){
   const { cells, wide } = ciqCells(q);
   const head = wide ? '' : (typeof weekDays === 'function' ? weekDays() : [1, 2, 3, 4, 5, 6, 0]).map(g => '<div class="ci-dh" aria-hidden="true">' + CI_DOW[(g + 6) % 7 + 1] + '</div>').join('');
   const html = '<div class="ci-cal' + (wide ? ' wide' : '') + '" id="ciq-grid">' + head + cells.map(c => c ? '<button class="ci-d ' + c.state + (c.today ? ' today' : '') + (c.key === ciqSelKey ? ' sel' : '') + '" data-k="' + esc(c.key) + '" onclick="ciqPick(this.dataset.k)" aria-label="' + esc(c.aria) + '"' + (c.key === ciqSelKey ? ' aria-current="date"' : '') + '><span aria-hidden="true">' + esc(c.label) + '</span>' + (c.small ? '<small aria-hidden="true">' + esc(c.small) + '</small>' : '') + (c.rem.length ? '<i class="ci-rm" aria-hidden="true"></i>' : '') + '</button>' : '<span aria-hidden="true"></span>').join('') + '</div>';
-  slHtml($('#ciq-cal'), cells.filter(Boolean).length ? html : '<p class="note">Geen periodes in deze ' + (yearly ? 'tijd' : 'maand') + '.</p>');
+  slHtml($('#ciq-cal'), cells.filter(Boolean).length ? html : '<p class="note">' + t(yearly ? 'Geen periodes in deze tijd.' : 'Geen periodes in deze maand.') + '</p>');
   const [lo, hi] = ciRange(q), ol = ciNearest(q, lo), oh = ciNearest(q, hi);
   $('#ciq-legend').innerHTML = '<span><i class="l1"></i>' + esc(ciOptText(ol) || 'laag') + '</span><span><i class="l4"></i>' + esc(ciOptText(oh) || 'hoog') + '</span><span><i class="miss"></i>gemist</span><span><i class="quiet"></i>stil</span>' + (cells.some(c => c && c.rem.length) ? '<span><i class="rm"></i>opmerking</span>' : '');
   const s = ciqHist.summary || {};
@@ -141,12 +141,12 @@ function ciDur(min){ min = Math.round(min); return min < 60 ? min + ' min' : Mat
 function ciDayInfo(day, info){
   const x = ((info || {}).days || {})[day] || {}, out = [];
   if (x.sleep) out.push(['moon', 'Nacht ervoor (Slaappraat): luisterde ' + ciDur(x.sleep.min) + (x.sleep.heard ? ' · ' + x.sleep.heard + '× iets gehoord' + (x.sleep.talk ? ', waarvan ' + x.sleep.talk + '× gepraat' : '') : ' · niets gehoord')]);
-  if ((info || {}).cal) out.push(['calendar', x.cal ? 'Agenda: ' + (x.cal.n ? x.cal.n + (x.cal.n === 1 ? ' afspraak' : ' afspraken') + (x.cal.busy ? ', ' + ciDur(x.cal.busy) + ' bezet' : '') : 'geen afspraken met een tijd') + (x.cal.allDay ? ' (+' + x.cal.allDay + ' hele dag)' : '') : 'Agenda: niets gepland']);
+  if ((info || {}).cal) out.push(['calendar', x.cal ? t('Agenda: {wat}', { wat: (x.cal.n ? tn(x.cal.n, '{n} afspraak', '{n} afspraken') + (x.cal.busy ? ', ' + t('{duur} bezet', { duur: ciDur(x.cal.busy) }) : '') : t('geen afspraken met een tijd')) + (x.cal.allDay ? ' ' + t('(+{n} hele dag)', { n: x.cal.allDay }) : '') }) : t('Agenda: niets gepland')]);
   return out;
 }
 /** Een opmerking in de dag: tekst, wanneer, en Wijzigen/Wissen. */
 function ciRemHtml(r){
-  return '<div class="ci-rem"><p class="ci-note">' + (r.voice ? uiIcon('mic') + ' ' : '') + esc(r.text) + '</p><small class="note">' + esc('opmerking van ' + ciWhen(r.t) + (r.edited ? ' · gewijzigd ' + ciWhen(r.edited) : '')) + '</small>' +
+  return '<div class="ci-rem"><p class="ci-note">' + (r.voice ? uiIcon('mic') + ' ' : '') + esc(r.text) + '</p><small class="note">' + esc(t('opmerking van {wanneer}', { wanneer: ciWhen(r.t) }) + (r.edited ? ' · ' + t('gewijzigd {wanneer}', { wanneer: ciWhen(r.edited) }) : '')) + '</small>' +
     '<div class="ci-acts"><button class="mini" data-r="' + esc(r.id) + '" onclick="ciRemOpen(\'\', this.dataset.r)" aria-label="' + esc('Opmerking wijzigen, ' + ciKeyLabel(r.p)) + '">Wijzigen</button>' +
     '<button class="mini" data-r="' + esc(r.id) + '" onclick="ciqRemDel(this.dataset.r)" aria-label="' + esc('Opmerking wissen, ' + ciKeyLabel(r.p)) + '">Wissen</button></div></div>';
 }
@@ -310,8 +310,8 @@ function ciChartSvg(q, pts, title){
   });
   if (!isNaN(avg)) s += '<line class="ci-avg" x1="' + L + '" x2="' + W + '" y1="' + y(avg).toFixed(1) + '" y2="' + y(avg).toFixed(1) + '"/>';
   if (tr) { const yy = v => T + (1 - Math.max(0, Math.min(1, v))) * (H - T - B), xx = i => L + 2 + i * bw + bw / 2; s += '<line class="ci-tr" x1="' + xx(tr.x0).toFixed(1) + '" x2="' + xx(tr.x1).toFixed(1) + '" y1="' + yy(tr.a + tr.b * tr.x0).toFixed(1) + '" y2="' + yy(tr.a + tr.b * tr.x1).toFixed(1) + '"/>'; }
-  const nr = pts.filter(p => p.r).length, rtxt = nr ? ' ' + nr + (nr === 1 ? ' periode' : ' periodes') + ' met een opmerking (stip bovenaan).' : '';
-  const desc = (got.length ? 'Gemiddeld ' + ciNum(avg) + ' (' + ciOptText(ciNearest(q, avg)) + ') op een schaal van ' + ciNum(lo) + ' tot ' + ciNum(hi) + ', ' + got.length + (got.length === 1 ? ' antwoord' : ' keer ingevuld') + '; trend: ' + ciTrendText(tr) + '.' : 'Nog geen antwoorden in deze periode.') + rtxt;
+  const nr = pts.filter(p => p.r).length, rtxt = nr ? ' ' + tn(nr, '{n} periode met een opmerking (stip bovenaan).', '{n} periodes met een opmerking (stip bovenaan).') : '';
+  const desc = (got.length ? t('Gemiddeld {gem} ({antwoord}) op een schaal van {van} tot {tot}, {aantal}; trend: {trend}.', { gem: ciNum(avg), antwoord: ciOptText(ciNearest(q, avg)), van: ciNum(lo), tot: ciNum(hi), aantal: tn(got.length, '{n} antwoord', '{n} keer ingevuld'), trend: t(ciTrendText(tr)) }) : t('Nog geen antwoorden in deze periode.')) + rtxt;
   return '<p class="ci-big-txt">' + esc(desc) + '</p>' + (got.length ? '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(title + '. ' + desc) + '">' + s + '</svg>' +
     '<p class="note"><span class="ci-key"><i style="background:var(--qc)"></i>antwoord</span><span class="ci-key"><i style="border-top:2px dashed var(--ink)"></i>gemiddeld</span>' + (tr ? '<span class="ci-key"><i style="background:var(--warn)"></i>trend</span>' : '') + (nr ? '<span class="ci-key"><i style="background:var(--ink);width:6px;height:6px;border-radius:50%"></i>opmerking</span>' : '') + '</p>' +
     '<details><summary>Als tabel</summary><table class="ci-tbl"><thead><tr><th scope="col">Periode</th><th scope="col">Antwoord</th></tr></thead><tbody>' +
@@ -325,7 +325,7 @@ function ciqRenderChart(q){
   document.querySelectorAll('#ciq-view button').forEach(b => { const on = b.dataset.v === ciqViewV, hide = (b.dataset.v === 'week' && !CI_DAYRHYTHM(q.rhythm)) || (b.dataset.v === 'month' && q.rhythm === 'monthly');
     b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); b.style.display = hide ? 'none' : ''; });
   const pts = ciqPoints(q), [from] = ciqSpan(q), a = ciDate(from);
-  const title = ciqViewV === 'week' ? 'De afgelopen 7 dagen' : ciqViewV === 'year' ? 'Per maand in ' + (ciqMonthAt || new Date()).getFullYear() : 'Per dag in ' + CI_MON[a.getMonth()] + ' ' + a.getFullYear();
+  const title = ciqViewV === 'week' ? t('De afgelopen 7 dagen') : ciqViewV === 'year' ? t('Per maand in {jaar}', { jaar: (ciqMonthAt || new Date()).getFullYear() }) : t('Per dag in {maand}', { maand: t(CI_MON[a.getMonth()]) + ' ' + a.getFullYear() });
   slHtml($('#ciq-chart'), '<div class="ci-chart" data-c="' + esc(q.color || 'primary') + '"><p class="note" style="margin:6px 2px 4px">' + esc(title) + '</p>' + ciChartSvg(q, pts, title) + '</div>');
 }
 
@@ -333,13 +333,13 @@ function ciqRenderChart(q){
 function ciqRenderSum(q){
   const s = (ciqHist || {}).summary || {}, opts = ciOpts(q), counts = s.counts || [], [from, , yearly] = ciqSpan(q), a = ciDate(from), now = new Date();
   const thisOne = yearly ? a.getFullYear() === now.getFullYear() : a.getFullYear() === now.getFullYear() && a.getMonth() === now.getMonth();
-  const when = yearly ? (thisOne ? 'Dit jaar' : 'In ' + a.getFullYear()) : thisOne ? 'Deze maand' : 'In ' + CI_MON[a.getMonth()] + ' ' + a.getFullYear();
+  const when = yearly ? (thisOne ? t('Dit jaar') : t('In {wanneer}', { wanneer: a.getFullYear() })) : thisOne ? t('Deze maand') : t('In {wanneer}', { wanneer: t(CI_MON[a.getMonth()]) + ' ' + a.getFullYear() });
   const order = opts.map((o, i) => i).reverse(), max = Math.max(1, ...counts);
   const parts = order.filter(i => counts[i]).map(i => counts[i] + '× ' + (opts[i].emoji || opts[i].label));
-  let h = '<p class="ci-big-txt">' + esc(parts.length ? when + ' ' + parts.join(', ') : when + ' nog niets ingevuld') + '</p>';
+  let h = '<p class="ci-big-txt">' + esc(parts.length ? when + ' ' + parts.join(', ') : t('{wanneer} nog niets ingevuld', { wanneer: when })) + '</p>';
   h += order.map(i => '<div class="ci-cnt" data-c="' + esc(q.color || 'primary') + '"><span>' + esc(ciOptText(opts[i])) + '</span><span class="b" aria-hidden="true"><i style="width:' + Math.round((counts[i] || 0) / max * 100) + '%"></i></span><b>' + (counts[i] || 0) + '×</b></div>').join('');
   const unit = { daily: ['dag', 'dagen'], workdays: ['werkdag', 'werkdagen'], weekdays: ['dag', 'dagen'], weekly: ['week', 'weken'], monthly: ['maand', 'maanden'], multi: ['keer', 'keer'] }[q.rhythm] || ['keer', 'keer'];
-  h += '<p class="note">' + esc((s.answered || 0) + ' ingevuld, ' + (s.missed || 0) + ' gemist' + (s.avg != null ? ' · gemiddeld ' + ciNum(s.avg) + ' (' + ciOptText(ciNearest(q, s.avg)) + ')' : '')) + '</p>';
+  h += '<p class="note">' + esc(t('{ingevuld} ingevuld, {gemist} gemist', { ingevuld: s.answered || 0, gemist: s.missed || 0 }) + (s.avg != null ? ' · ' + t('gemiddeld {gem} ({antwoord})', { gem: ciNum(s.avg), antwoord: ciOptText(ciNearest(q, s.avg)) }) : '')) + '</p>';
   h += '<p class="ci-st ok">' + esc('Reeks: ' + (s.streak || 0) + ' ' + ((s.streak || 0) === 1 ? unit[0] : unit[1]) + ' achter elkaar ingevuld') + '</p>';
   slHtml($('#ciq-sum'), h);
 }
@@ -367,8 +367,8 @@ function cicRange(v){ cicRangeV = v; document.querySelectorAll('#cic-range butto
 function ciDayValues(q, h){ const by = ciByDay(h), out = {}; Object.keys(by).forEach(d => { const vs = by[d].map(a => +a.v); if (vs.length) { const v = ciAvg(vs); out[d] = [v, ciNorm(q, v)]; } }); return out; }
 /** Twee groepen dagen naast elkaar; te weinig dagen = eerlijk zeggen. */
 function cicGroups(q, ga, gb, la, lb){
-  const show = (g, l) => '<div><small>' + esc(l) + '</small>' + (g.length >= 3 ? '<b>' + esc(ciNum(ciAvg(g)) + ' ' + (ciNearest(q, ciAvg(g)).emoji || '')) + '</b><small>gemiddeld, ' + g.length + ' dagen</small>' : '<b>–</b><small>te weinig dagen (' + g.length + ')</small>') + '</div>';
-  return '<div class="ci-grp">' + show(ga, la) + show(gb, lb) + '</div>' + (ga.length >= 3 && gb.length >= 3 ? '<p class="note">Verschil: ' + esc(ciNum(Math.abs(ciAvg(ga) - ciAvg(gb)))) + ' punt op een schaal van ' + esc(ciNum(ciRange(q)[0])) + ' tot ' + esc(ciNum(ciRange(q)[1])) + '. Bij weinig dagen kan dat ook toeval zijn.</p>' : '');
+  const show = (g, l) => '<div><small>' + esc(l) + '</small>' + (g.length >= 3 ? '<b>' + esc(ciNum(ciAvg(g)) + ' ' + (ciNearest(q, ciAvg(g)).emoji || '')) + '</b><small>' + t('gemiddeld, {n} dagen', { n: g.length }) + '</small>' : '<b>–</b><small>' + t('te weinig dagen ({n})', { n: g.length }) + '</small>') + '</div>';
+  return '<div class="ci-grp">' + show(ga, la) + show(gb, lb) + '</div>' + (ga.length >= 3 && gb.length >= 3 ? '<p class="note">' + esc(t('Verschil: {n} punt op een schaal van {van} tot {tot}. Bij weinig dagen kan dat ook toeval zijn.', { n: ciNum(Math.abs(ciAvg(ga) - ciAvg(gb))), van: ciNum(ciRange(q)[0]), tot: ciNum(ciRange(q)[1]) })) + '</p>' : '');
 }
 function cicRender(){
   const out = $('#cic-out'), qa = ciQ($('#cic-a').value);
@@ -388,26 +388,26 @@ function cicRender(){
       if (bv === '__sleep') { if (x.sleep) (x.sleep.min < 420 ? ga : gb).push(A[d][0]); }
       else (((x.cal || {}).busy || 0) >= 240 ? ga : gb).push(A[d][0]); });
     if (bv === '__sleep') {
-      h += '<h2>' + esc(an) + ' en je slaap</h2><p class="ci-big-txt">' + esc(ga.length + gb.length ? 'Op ' + (ga.length + gb.length) + ' dagen is er een antwoord én een nacht van Slaappraat.' : 'Nog geen dagen met een antwoord én een nacht van Slaappraat.') + '</p>' +
+      h += '<h2>' + esc(t('{vraag} en je slaap', { vraag: an })) + '</h2><p class="ci-big-txt">' + esc(ga.length + gb.length ? t('Op {n} dagen is er een antwoord én een nacht van Slaappraat.', { n: ga.length + gb.length }) : t('Nog geen dagen met een antwoord én een nacht van Slaappraat.')) + '</p>' +
         cicGroups(qa, ga, gb, 'Na een korte nacht (Slaappraat luisterde minder dan 7 uur)', 'Na een langere nacht (7 uur of meer)') +
         '<p class="note">Slaappraat meet hoe lang hij luisterde, niet hoe goed je sliep. Hij bewaart nachten 1 tot 4 weken.</p>';
     } else {
-      h += '<h2>' + esc(an) + ' en je agenda</h2><p class="ci-big-txt">' + esc(Object.keys(A).length + ' dagen met een antwoord.') + '</p>' + cicGroups(qa, ga, gb, 'Drukke dagen (4 uur of meer in je agenda)', 'Rustigere dagen (minder dan 4 uur)');
+      h += '<h2>' + esc(t('{vraag} en je agenda', { vraag: an })) + '</h2><p class="ci-big-txt">' + esc(t('{n} dagen met een antwoord.', { n: Object.keys(A).length })) + '</p>' + cicGroups(qa, ga, gb, 'Drukke dagen (4 uur of meer in je agenda)', 'Rustigere dagen (minder dan 4 uur)');
     }
   } else {
     const qb = ciQ(bv); if (!qb) { out.innerHTML = ''; return; }
     const B = ciDayValues(qb, ciHistory(qb.id, F, T)), both = Object.keys(A).filter(d => B[d]).sort();
-    h += '<h2>' + esc(an) + ' en ' + esc(qb.text) + '</h2><p class="ci-big-txt">' + esc(both.length ? 'Op ' + both.length + ' dagen allebei ingevuld.' : 'Nog geen dagen waarop je allebei invulde.') + '</p>';
+    h += '<h2>' + esc(t('{a} en {b}', { a: an, b: qb.text })) + '</h2><p class="ci-big-txt">' + esc(both.length ? t('Op {n} dagen allebei ingevuld.', { n: both.length }) : t('Nog geen dagen waarop je allebei invulde.')) + '</p>';
     if (both.length) {
       const W = 320, H = 120, x = i => 6 + i * (W - 12) / Math.max(1, both.length - 1), y = v => 8 + (1 - v) * (H - 24);
       const line = (M, cls) => '<polyline class="' + cls + '" points="' + both.map((d, i) => x(i).toFixed(1) + ',' + y(M[d][1]).toFixed(1)).join(' ') + '"/>';
-      const desc = an + ' en ' + qb.text + ' per dag, allebei van laag naar hoog op hun eigen schaal.';
+      const desc = t('{a} en {b} per dag, allebei van laag naar hoog op hun eigen schaal.', { a: an, b: qb.text });
       h += '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(desc) + '"><line class="ci-gl" x1="0" x2="' + W + '" y1="' + y(1) + '" y2="' + y(1) + '"/><line class="ci-gl" x1="0" x2="' + W + '" y1="' + y(0) + '" y2="' + y(0) + '"/>' + line(A, 'ci-la') + line(B, 'ci-lb') + '</svg>' +
         '<p class="note"><span class="ci-key"><i style="background:var(--qc)"></i>' + esc(an) + '</span><span class="ci-key"><i style="background:var(--ci-orange)"></i>' + esc(qb.text) + '</span></p>' +
         '<details><summary>Als tabel</summary><table class="ci-tbl"><thead><tr><th scope="col">Dag</th><th scope="col">' + esc(an) + '</th><th scope="col">' + esc(qb.text) + '</th></tr></thead><tbody>' +
         both.map(d => '<tr><td>' + esc(ciShort(ciDate(d))) + '</td><td>' + esc(ciOptText(ciNearest(qa, A[d][0]))) + '</td><td>' + esc(ciOptText(ciNearest(qb, B[d][0]))) + '</td></tr>').join('') + '</tbody></table></details>';
       const hi = both.filter(d => A[d][1] >= .5).map(d => B[d][0]), lo = both.filter(d => A[d][1] < .5).map(d => B[d][0]);
-      h += '<p class="note" style="margin-top:10px">' + esc(qb.text) + ', gemiddeld:</p>' + cicGroups(qb, hi, lo, t('Op dagen dat "{antwoord}" in de bovenste helft zat', { antwoord: an }), t('Op de andere dagen'));
+      h += '<p class="note" style="margin-top:10px">' + esc(t('{vraag}, gemiddeld:', { vraag: qb.text })) + '</p>' + cicGroups(qb, hi, lo, t('Op dagen dat "{antwoord}" in de bovenste helft zat', { antwoord: an }), t('Op de andere dagen'));
     }
   }
   out.innerHTML = h + '<p class="note">Dit laat alleen zien wat samen voorkomt, niet wat de oorzaak is.</p></div>';

@@ -61,13 +61,15 @@ function looksDutch(s){
   const t = norm(s);
   if (!hasLetters(t) || t.length < 2) return false;
   if (/^[\w$.#\-\[\]=:>*\s,"']+$/.test(t) && !/\s/.test(t) && !/^[A-Z][a-zë]+$/.test(t)) return false; // id, selector, sleutel
-  if (/^(https?:|file:|content:|data:|blob:|\.|#|\/)/.test(t)) return false;
+  if (/^(https?:|file:|content:|data:|blob:|\.|#|\/)/.test(t) && !/\s\p{L}{2,}\s/u.test(t)) return false;
   if (/^[a-z][a-zA-Z0-9_]*$/.test(t)) return false; // naam in code
   if (/[{};]\s*$|=>|\bfunction\b|\(\)/.test(t)) return false;
   const words = t.toLowerCase().match(/\p{L}+/gu) || [];
   if (words.some(w => NL_WORDS.has(w))) return true;
   return /^[A-ZÉ][a-zéëïöü]+/.test(t) || /\s/.test(t);
 }
+/* Duidelijk Nederlandse woorden (voor de bewaker op aan elkaar geplakte tekst) */
+const DUTCHY = /(^|[^\p{L}])(de|het|een|niet|voor|met|naar|wordt|kies|tik|nog|geen|deze|dit|van|je|bij|uit|aan|als|ook|alleen|op|is|zijn|om|tot|en|dag|dagen|uur|minuten|keer|staat|klaar|gestopt|vrij|versie|gemiddeld|vraagt|leert|meteen|antwoord|antwoorden|gesprek|niets|stem|modellen|gaat|weg|gewist|bewaard|opgeslagen|mislukt|gelukt|lukt|lukte|bezig|nieuwe?|vandaag|gisteren|morgen|wachten|ingesteld|gekoppeld|verbonden|opnieuw|terug)(?![\p{L}])/iu;
 const SINKS = { toast: [0], undoToast: [0], askConfirm: [0, 1, 2], askInput: [0, 1, 3], askChoice: [0, 1, 2, 3], openSheet: [0, 1], t: [0], tn: [1, 2] };
 /* De argumenten van een aanroep (bovenste niveau), met begin en eind in de bron */
 function callArgs(src, open){
@@ -102,8 +104,9 @@ function jsFiles(){
   return fs.readdirSync(path.join(SRC, 'script')).filter(f => f.endsWith('.js') && f !== '01-testbrug.js').map(f => ['web/src/script/' + f, rd(path.join(SRC, 'script', f))]);
 }
 function startScript(){
-  const s = rd(path.join(ROOT, 'web', 'start.html')), m = [...s.matchAll(/<script>([\s\S]*?)<\/script>/g)];
-  return m.map(x => x[1]).join('\n');
+  // Alleen de scripts, met de rest als lege regels: dan kloppen de regelnummers met start.html
+  const s = rd(path.join(ROOT, 'web', 'start.html'));
+  return s.replace(/([\s\S]*?)(<script>[\s\S]*?<\/script>|$)/g, (m, out, scr) => out.replace(/[^\n]/g, '') + (scr ? ' '.repeat(8) + scr.slice(8, -9) + ' '.repeat(9) : ''));
 }
 /* Sleutels uit JavaScript: { key → [plek] }, en de bewaker: [plek, reden] */
 function jsScan(){
@@ -120,12 +123,12 @@ function jsScan(){
       if (/function\s+$/.test(src.slice(Math.max(0, m.index - 12), m.index + m[1].length))) continue; // de definitie zelf
       const tok = toks.find(x => x.at <= m.index && x.end > m.index); if (tok) continue; // in een tekenreeks
       const args = callArgs(src, open), line = lineOf(src, m.index), where = name + ':' + line;
-      for (const ai of SINKS[fn]) {
+      for (const ai of (name === 'web/start.html' && fn === 'openSheet' ? [1] : SINKS[fn])) {
         const a = args[ai]; if (!a) continue;
         const raw = src.slice(a[0], a[1]).trim();
         const lits = toks.filter(x => x.at >= a[0] && x.end <= a[1]);
         if (!lits.length) continue;
-        if (/^(['"])(?:[^\\]|\\.)*?\1$/.test(raw) || (/^`[^`]*`$/.test(raw) && !lits[0].tpl)) { add(lits[0].s, where); continue; }
+        if (/^(['"])(?:(?!\1)[^\\\n]|\\.)*\1$/.test(raw) || (/^`[^`]*`$/.test(raw) && !lits[0].tpl)) { add(lits[0].s, where); continue; }
         // Keuze tussen vaste teksten (a ? 'x' : 'y'): elke tekst is een sleutel
         const bare = raw.replace(/(['"])(?:[^\\\n]|\\.)*?\1/g, 'S');
         if (!/\+/.test(bare) && !/`/.test(raw)) { lits.forEach(x => { if (looksDutch(x.s) && !/^\s*t\(/.test(raw)) add(x.s, where); }); if (fn === 't' || fn === 'tn') continue; }
@@ -150,14 +153,45 @@ function jsScan(){
         if (dutch.length) guard.push([where, m[1] + ' plakt tekst aan elkaar zonder t(): ' + dutch.map(x => JSON.stringify(x.s)).join(' + ')]);
       } else lits.forEach(x => { if (looksDutch(x.s) && !inT(src, x.at)) add(x.s, where); });
     }
+    // 2b. Elke andere Nederlandse tekst die met + aan iets vastgeplakt wordt (in HTML, een variabele, een aria-label …),
+    //     zonder t(): de observer kan die niet vertalen, want de tekst en het ingevulde stuk komen in één tekstknoop.
+    //     Wat aan een tag grenst ('<b>' + naam + '</b> gaat weg' → losse knopen) is wel goed.
+    const seenLine = new Set();
+    for (const tk of toks) {
+      if (tk.tpl || inT(src, tk.at)) continue;
+      const before = /\+\s*$/.test(src.slice(Math.max(0, tk.at - 4), tk.at)), after = /^\s*\+/.test(src.slice(tk.end, tk.end + 4));
+      if (!before && !after) continue;
+      const frags = [];
+      if (before) { const lead = tk.s.split(/[<"]/)[0]; if (!/(uiIcon|icon|Icon|svg\w*)\([^()]*\)\s*\+\s*$/.test(src.slice(Math.max(0, tk.at - 60), tk.at))) frags.push(lead); }
+      if (after) { const m2 = /(?:aria-label|title|placeholder|alt)="([^"]*)$/.exec(tk.s); frags.push(m2 ? m2[1] : /[>"]/.test(tk.s) ? tk.s.slice(Math.max(tk.s.lastIndexOf('>'), tk.s.lastIndexOf('"')) + 1) : tk.s); }
+      const bad = frags.filter(f => /\p{L}{3}/u.test(f) && looksDutch(f) && DUTCHY.test(f));
+      if (!bad.length) continue;
+      const line = lineOf(src, tk.at), where = name + ':' + line;
+      if (seenLine.has(where) || guard.some(g => g[0] === where)) continue;
+      seenLine.add(where); guard.push([where, 'tekst aan elkaar geplakt zonder t(): ' + bad.map(x => JSON.stringify(x)).join(' + ')]);
+    }
     // 3. HTML-stukjes in tekenreeksen
     for (const tk of toks) for (const b of htmlBits(tk.s)) if (!inT(src, tk.at)) add(b, name + ':' + lineOf(src, tk.at));
+    // Uitzonderingen in de bron zelf: een regel met "taal-vast: reden" in een opmerking, of alles tussen
+    // "taal-vast-begin: reden" en "taal-vast-eind" (bijv. Nederlandse zinsdelen die de assistent zelf ontleedt)
+    const vast = vastLines(src);
+    for (let i = guard.length - 1; i >= 0; i--) { const g = guard[i][0]; if (g.startsWith(name + ':') && vast.has(+g.slice(name.length + 1))) guard.splice(i, 1); }
     // 3b. t( of tn( in een functie met een eigen variabele t of tn: dan roept hij die aan, niet de vertaling
     for (const sh of shadowed(src, toks)) guard.push([name + ':' + sh.line, sh.why]);
     // 4. Losse teksten die op Nederlands lijken (alleen ter info: --lijst --los)
     for (const tk of toks) if (!tk.tpl && looksDutch(tk.s) && !/<[a-z\/]/i.test(tk.s)) add(tk.s, name + ':' + lineOf(src, tk.at), loose);
   }
   return { keys, guard, loose, strs };
+}
+/* Regels die bewust vast Nederlands zijn (zie hierboven); een opmerking zonder reden telt niet */
+function vastLines(src){
+  const out = new Set(), lines = src.split('\n'); let open = false;
+  lines.forEach((l, i) => {
+    if (/taal-vast-begin:\s*\S/.test(l)) open = true;
+    if (open || /taal-vast:\s*\S/.test(l)) out.add(i + 1);
+    if (/taal-vast-eind/.test(l)) open = false;
+  });
+  return out;
 }
 /* Aanroepen van t( / tn( binnen een functie (vanaf de laatste regel die in kolom 0 begint) waarin t of tn zelf een
  * naam is (const t = …, (t) =>, function (a, t)); benadering, maar vangt de gewone gevallen */

@@ -16,9 +16,9 @@ function mdLoad(){ mdSt = rdJson(Android.modelsState(), {}); return mdSt; }
 function mdGB(b){ b = Math.max(0, +b || 0); return b >= 1e9 ? fmtNum(b / 1e9, 1) + ' GB' : fmtNum(Math.max(1, Math.round(b / 1e6))) + ' MB'; } // zoals Hugging Face (1000 per stap)
 /** "vandaag gebruikt", "3 dagen geleden gebruikt" … Zuiver. */
 function mdAgo(tt, now){
-  if (!tt) return 'nog niet gebruikt';
+  if (!tt) return t('nog niet gebruikt');
   const d = Math.floor(((now || Date.now()) - tt) / 86400000);
-  return d <= 0 ? 'vandaag gebruikt' : d === 1 ? 'gisteren gebruikt' : d < 31 ? d + ' dagen geleden gebruikt' : 'meer dan een maand niet gebruikt';
+  return d <= 0 ? t('vandaag gebruikt') : d === 1 ? t('gisteren gebruikt') : d < 31 ? t('{n} dagen geleden gebruikt', { n: d }) : t('meer dan een maand niet gebruikt');
 }
 function mdBusy(m){ return ['running', 'queued', 'paused', 'verifying', 'failed'].includes(m.state); }
 function mdModels(){ return mdSt.models || []; }
@@ -92,17 +92,17 @@ function mdRender(){
   // Opslag
   const used = +s.used || 0, free = +s.free || 0, share = used + free > 0 ? used / (used + free) * 100 : 0;
   $('#md-sum').innerHTML = '<h2><span class="ui-icon" data-icon="folder" aria-hidden="true"></span>Opslag</h2>' +
-    '<div class="md-bar" role="img" aria-label="' + esc('Modellen ' + mdGB(used) + ', vrij ' + mdGB(free)) + '"><i style="width:' + share.toFixed(1) + '%"></i></div>' +
-    '<p class="md-line"><b>' + (used ? 'Modellen: ' + mdGB(used) : 'Nog geen modellen') + '</b><span>' + (free > 0 ? 'Vrij op je telefoon: ' + mdGB(free) : '') + '</span></p>' +
-    (s.leftovers >= 1e6 ? '<div class="sw"><span>Resten van oude en halve downloads<small>' + esc(mdGB(s.leftovers)) + ' die geen bruikbaar model zijn</small></span><button class="mini" onclick="mdClean()">Opruimen</button></div>' : '');
+    '<div class="md-bar" role="img" aria-label="' + esc(t('Modellen {gebruikt}, vrij {vrij}', { gebruikt: mdGB(used), vrij: mdGB(free) })) + '"><i style="width:' + share.toFixed(1) + '%"></i></div>' +
+    '<p class="md-line"><b>' + (used ? t('Modellen: {grootte}', { grootte: mdGB(used) }) : t('Nog geen modellen')) + '</b><span>' + (free > 0 ? t('Vrij op je telefoon: {grootte}', { grootte: mdGB(free) }) : '') + '</span></p>' +
+    (s.leftovers >= 1e6 ? '<div class="sw"><span>Resten van oude en halve downloads<small>' + esc(t('{grootte} die geen bruikbaar model zijn', { grootte: mdGB(s.leftovers) })) + '</small></span><button class="mini" onclick="mdClean()">Opruimen</button></div>' : '');
   slHtml($('#md-cats'), MD_CATS.map(cat => mdCatCard(cat)).join(''));
   const w = $('#md-wifi'); w.classList.toggle('on', !!s.wifiOnly); w.setAttribute('aria-checked', s.wifiOnly ? 'true' : 'false');
 }
 /** Kort: is deze soort klaar voor gebruik? Zuiver. [tekst, ok] */
 function mdCatStatus(kind, all, tts){
-  if (kind === 'tts') return !tts || !tts.state || tts.state === 'checking' ? ['Controleren…', false] : tts.state === 'ok' ? ['✓ Nederlandse stem' + (tts.engine ? ' (' + tts.engine + ')' : ''), true] : tts.state === 'nodutch' ? ['Geen Nederlandse stem', false] : tts.state === 'slow' ? ['De voorleesfunctie reageert niet', false] : ['Geen voorleesfunctie op je telefoon', false];
+  if (kind === 'tts') return !tts || !tts.state || tts.state === 'checking' ? ['Controleren…', false] : tts.state === 'ok' ? [t('✓ Nederlandse stem') + (tts.engine ? ' (' + tts.engine + ')' : ''), true] : tts.state === 'nodutch' ? ['Geen Nederlandse stem', false] : tts.state === 'slow' ? ['De voorleesfunctie reageert niet', false] : ['Geen voorleesfunctie op je telefoon', false];
   const ms = all.filter(m => m.kind === kind), use = ms.find(m => m.inUse) || ms.find(m => m.state === 'ready');
-  if (use) return ['✓ In gebruik: ' + mdLineName(use) + ' · ' + use.version, true];
+  if (use) return [t('✓ In gebruik: {model}', { model: mdLineName(use) + ' · ' + use.version }), true];
   if (ms.some(m => mdBusy(m) && m.state !== 'failed')) return ['Bezig met downloaden', false];
   if (ms.some(m => m.state === 'failed')) return ['Downloaden mislukt', false];
   return [kind === 'zoek' ? 'Niet gedownload (niet nodig)' : 'Nog niet gedownload', false];
@@ -114,12 +114,12 @@ function mdCatCard(cat){
   if (cat.kind === 'tts') return '<section class="card md-cat" data-kind="tts" aria-label="' + esc(cat.title) + '">' + head + mdTtsBody(mdSt.tts || {}) + '</section>';
   const lines = mdLines(mdModels(), cat.kind), eng = (mdSt.engines || {})[cat.kind];
   // Het model (dat je downloadt) en de motor die het draait (zit in de app en gaat mee met app-updates)
-  const engine = eng ? '<p class="note md-engine">' + esc('Motor: ' + eng + ' (zit in de app, wordt bijgewerkt met de app)') + '</p>' : '';
+  const engine = eng ? '<p class="note md-engine">' + esc(t('Motor: {motor} (zit in de app, wordt bijgewerkt met de app)', { motor: eng })) + '</p>' : '';
   return '<section class="card md-cat" data-kind="' + cat.kind + '" aria-label="' + esc(cat.title) + '">' + head + '<div role="list">' + lines.map(l => mdLineHtml(l)).join('') + '</div>' + engine + '</section>';
 }
 function mdTtsBody(tt){
   if (tt.state === 'ok') return '<div class="md-acts">' + mdBtn('Stem en snelheid', 'Android.ttsSettings()', false, 'Stem en snelheid van het voorlezen instellen') + '</div>';
-  if (tt.state === 'nodutch') return '<p class="note">Er is wel een voorleesfunctie' + (tt.engine ? ' (' + esc(tt.engine) + ')' : '') + ', maar zonder Nederlandse stem. Voeg er een toe; daarna kijkt de app vanzelf opnieuw.</p><div class="md-acts">' + mdBtn('Nederlandse stem toevoegen', 'Android.ttsInstall()', true) + mdBtn('Instellingen', 'Android.ttsSettings()', false, 'Instellingen van het voorlezen') + mdBtn('Opnieuw kijken', 'mdTtsCheck()', false, 'Opnieuw kijken of er een Nederlandse stem is') + '</div>';
+  if (tt.state === 'nodutch') return '<p class="note">' + esc(t('Er is wel een voorleesfunctie{motor}, maar zonder Nederlandse stem. Voeg er een toe; daarna kijkt de app vanzelf opnieuw.', { motor: tt.engine ? ' (' + tt.engine + ')' : '' })) + '</p><div class="md-acts">' + mdBtn('Nederlandse stem toevoegen', 'Android.ttsInstall()', true) + mdBtn('Instellingen', 'Android.ttsSettings()', false, 'Instellingen van het voorlezen') + mdBtn('Opnieuw kijken', 'mdTtsCheck()', false, 'Opnieuw kijken of er een Nederlandse stem is') + '</div>';
   if (tt.state === 'noengine' || tt.state === 'slow') return '<p class="note">' + (tt.state === 'slow' ? 'De voorleesfunctie van je telefoon antwoordde niet op tijd. Probeer het zo opnieuw.' : 'Installeer bijvoorbeeld Spraakservices van Google uit de Play Store en kies daar een Nederlandse stem.') + '</p><div class="md-acts">' + mdBtn('Instellingen', 'Android.ttsSettings()', false, 'Instellingen van het voorlezen') + mdBtn('Opnieuw kijken', 'mdTtsCheck()', false, 'Opnieuw kijken of er een voorleesfunctie is') + '</div>';
   return '';
 }
@@ -129,31 +129,31 @@ function mdTtsCheck(){ Android.ttsCheck(); mdSt.tts = { state: 'checking' }; mdR
 function mdLineHtml(chain){
   const newest = chain[0], have = chain.filter(m => m.state === 'ready'), busyAll = chain.filter(mdBusy), busy = busyAll[0], main = have[0];
   const newestBusy = mdBusy(newest);
-  const ram = newest.ram > 0 && mdSt.ram > 0 && mdSt.ram < newest.ram ? ' · je telefoon heeft ±' + Math.round(mdSt.ram / 1e9) + ' GB werkgeheugen; dit model kan traag zijn' : '';
+  const ram = newest.ram > 0 && mdSt.ram > 0 && mdSt.ram < newest.ram ? ' · ' + t('je telefoon heeft ±{gb} GB werkgeheugen; dit model kan traag zijn', { gb: Math.round(mdSt.ram / 1e9) }) : '';
   const name = '<b>' + esc(mdLineName(newest)) + '</b>';
   let rows = '';
   if (main) {
     const isNew = main === newest;
     rows += '<div class="md-ver">' +
-      '<div class="aimt">' + name + '<small>' + esc('Je hebt versie: ' + main.version + (chain.length > 1 ? (isNew ? ' · nieuwste versie' : ' · oudere versie') : '') + ' · ' + mdGB(main.size)) + '</small>' +
+      '<div class="aimt">' + name + '<small>' + esc(t('Je hebt versie: {versie}', { versie: main.version }) + (chain.length > 1 ? ' · ' + t(isNew ? 'nieuwste versie' : 'oudere versie') : '') + ' · ' + mdGB(main.size)) + '</small>' +
       '<small>' + esc(mdAgo(main.last)) + '</small></div>' +
       '<div class="aimb">' + (main.inUse ? '<span class="aisel">In gebruik</span>' : main.kind === 'zoek' ? '' : mdBtn('Gebruiken', 'mdUse(' + jsq(main.key) + ')', false, mdLineName(main) + ' gebruiken')) +
       mdBtn('Verwijderen', 'mdDel(' + jsq(main.key) + ')', false, mdLineName(main) + ' ' + main.version + ' verwijderen') + '</div></div>';
     // Een nieuwere versie die je nog niet hebt
-    if (!isNew && !newestBusy && newest.state !== 'ready') rows += '<div class="md-newer">' + uiIcon('star') + '<span><b>' + esc('Nieuwere versie: ' + newest.version) + '</b> · ' + esc(mdGB(newest.size)) + (newest.news ? '<small>' + esc(newest.news) + '</small>' : '') + '</span>' +
-      mdBtn('Bijwerken', 'mdDl(' + jsq(newest.key) + ')', true, mdLineName(newest) + ' bijwerken naar ' + newest.version) + '</div>';
+    if (!isNew && !newestBusy && newest.state !== 'ready') rows += '<div class="md-newer">' + uiIcon('star') + '<span><b>' + esc(t('Nieuwere versie: {versie}', { versie: newest.version })) + '</b> · ' + esc(mdGB(newest.size)) + (newest.news ? '<small>' + esc(newest.news) + '</small>' : '') + '</span>' +
+      mdBtn('Bijwerken', 'mdDl(' + jsq(newest.key) + ')', true, t('{model} bijwerken naar {versie}', { model: mdLineName(newest), versie: newest.version })) + '</div>';
     // Oudere versies die er ook nog staan
-    have.slice(1).forEach(o => { rows += '<div class="md-old"><span>' + esc('Ook nog op je telefoon: ' + o.version + ' (oudere versie, ' + mdGB(o.size) + ')') + (o.inUse ? ' · in gebruik' : '') + '</span>' +
+    have.slice(1).forEach(o => { rows += '<div class="md-old"><span>' + esc(t('Ook nog op je telefoon: {versie} (oudere versie, {grootte})', { versie: o.version, grootte: mdGB(o.size) })) + (o.inUse ? ' · ' + t('in gebruik') : '') + '</span>' +
       mdBtn('Verwijderen', 'mdDel(' + jsq(o.key) + ')', false, mdLineName(o) + ' ' + o.version + ' verwijderen') + '</div>'; });
   }
   busyAll.forEach((b, i) => { rows += mdBusyHtml(b, !main && i === 0 ? name : '', b !== newest ? newest : null); });
   // Alleen een oudere versie onderbroken of mislukt en de nieuwste nog niet: de nieuwste aanbieden
-  if (!main && busy && !newestBusy) rows += '<div class="md-newer">' + uiIcon('star') + '<span><b>' + esc('Nieuwere versie: ' + newest.version) + '</b> · ' + esc(mdGB(newest.size)) + '<small>' + esc('Download liever deze; de oudere kun je stoppen.' + (newest.news ? ' ' + newest.news : '')) + '</small></span>' +
+  if (!main && busy && !newestBusy) rows += '<div class="md-newer">' + uiIcon('star') + '<span><b>' + esc(t('Nieuwere versie: {versie}', { versie: newest.version })) + '</b> · ' + esc(mdGB(newest.size)) + '<small>' + esc(t('Download liever deze; de oudere kun je stoppen.') + (newest.news ? ' ' + newest.news : '')) + '</small></span>' +
     mdBtn('Downloaden', 'mdDl(' + jsq(newest.key) + ')', true, mdLineName(newest) + ' ' + newest.version + ' downloaden') + '</div>';
   if (!main && !busy) {
     const need = newest.kind === 'spraak' ? newest.size : 2 * newest.size + 200 * 1048576, fits = !(mdSt.free > 0) || mdSt.free >= need;
     const can = newest.kind === 'spraak' || mdSt.supported !== false;
-    rows += '<div class="md-ver"><div class="aimt">' + name + '<small>' + esc('Nog niet op je telefoon · ' + (chain.length > 1 ? 'nieuwste versie: ' : 'versie: ') + newest.version + ' · ' + mdGB(newest.size) + ram + (fits ? '' : ' · past nu niet (' + mdGB(mdSt.free) + ' vrij)')) + '</small></div>' +
+    rows += '<div class="md-ver"><div class="aimt">' + name + '<small>' + esc(t('Nog niet op je telefoon') + ' · ' + t(chain.length > 1 ? 'nieuwste versie: {versie}' : 'versie: {versie}', { versie: newest.version }) + ' · ' + mdGB(newest.size) + ram + (fits ? '' : ' · ' + t('past nu niet ({grootte} vrij)', { grootte: mdGB(mdSt.free) }))) + '</small></div>' +
       '<div class="aimb">' + (can ? mdBtn('Downloaden', 'mdDl(' + jsq(newest.key) + ')', true, mdLineName(newest) + ' downloaden') : '') + '</div></div>';
   }
   return '<div class="md-linebox" role="listitem" data-line="' + esc(newest.key) + '">' + rows + '</div>';
@@ -162,7 +162,7 @@ function mdBusyHtml(m, name, newer){
   const hint = newer && m.state !== 'running' && m.state !== 'verifying' ? 'Oudere versie: die gaat niet verder. Stop hem en download de nieuwste.' : mdHint(m, mdSt), stopB = mdBtn('Stoppen', 'mdStop(' + jsq(m.key) + ')', false, mdLineName(m) + ': downloaden stoppen');
   let b = '';
   if (m.kind === 'spraak') b = ''; // het spraakmodel stopt bij Gesprekken uitschrijven
-  else if (m.state === 'failed') b = (newer ? '' : mdBtn('Opnieuw', 'mdDl(' + jsq(m.key) + ')', true, mdLineName(m) + ' opnieuw downloaden')) + mdBtn('Weghalen', 'mdStop(' + jsq(m.key) + ')', false, mdLineName(m) + ' weghalen');
+  else if (m.state === 'failed') b = (newer ? '' : mdBtn('Opnieuw', 'mdDl(' + jsq(m.key) + ')', true, t('{model} opnieuw downloaden', { model: mdLineName(m) }))) + mdBtn('Weghalen', 'mdStop(' + jsq(m.key) + ')', false, t('{model} weghalen', { model: mdLineName(m) }));
   else if (newer) b = stopB; // een oudere versie: niet verder, wel stoppen
   else if (m.state === 'verifying') b = '';
   else if (m.state === 'paused' && !m.waiting) b = mdBtn('Verder', 'mdDl(' + jsq(m.key) + ')', true, mdLineName(m) + ': verder downloaden') + stopB;
@@ -180,13 +180,13 @@ function mdDl(key){
   const go = () => {
     const e = m.kind === 'spraak' ? Android.txDownload(m.id) : Android.aiDownload(m.id);
     if (e) { toast(e); return; }
-    toast('↓ ' + mdLineName(m) + ' wordt gedownload; de voortgang staat ook in de meldingenbalk');
+    toast(t('↓ {model} wordt gedownload; de voortgang staat ook in de meldingenbalk', { model: mdLineName(m) }));
     mdRefresh(); if (current !== 'models' && typeof aiRefresh === 'function') aiRefresh();
   };
   // Niet op wifi terwijl Alleen via wifi aan staat: eerst vragen (anders wacht hij op wifi)
   if (m.kind !== 'spraak' && mdSt.wifiOnly && mdSt.metered) {
-    askChoice('Niet op wifi', mdLineName(m) + ' is ' + mdGB(m.size - (m.bytes || 0)) + '. Nu via mobiel internet downloaden (Alleen via wifi gaat dan uit), of wachten? Dan gaat hij verder zodra je de app op wifi opent.', 'Nu via mobiel internet', 'Wachten op wifi',
-      () => { mdSetWifi(false); go(); setTimeout(() => toast('Alleen via wifi staat nu uit; ' + mdLineName(m) + ' wordt gedownload'), 50); }, go);
+    askChoice(t('Niet op wifi'), t('{model} is {grootte}. Nu via mobiel internet downloaden (Alleen via wifi gaat dan uit), of wachten? Dan gaat hij verder zodra je de app op wifi opent.', { model: mdLineName(m), grootte: mdGB(m.size - (m.bytes || 0)) }), t('Nu via mobiel internet'), t('Wachten op wifi'),
+      () => { mdSetWifi(false); go(); setTimeout(() => toast(t('Alleen via wifi staat nu uit; {model} wordt gedownload', { model: mdLineName(m) })), 50); }, go);
     return;
   }
   go();
@@ -195,14 +195,14 @@ function mdStop(key){
   mdLoad();
   const m = mdFind(key);
   const go = () => { Android.aiDelete(m.id); mdRefresh(); if (current !== 'models' && typeof aiRefresh === 'function') aiRefresh(); toast('Gestopt'); };
-  if ((m.bytes || 0) > 100e6) askConfirm('Downloaden stoppen?', 'Wat al binnen is (' + mdGB(m.bytes) + ') gaat weg. Je kunt het later opnieuw downloaden.', 'Stoppen', go);
+  if ((m.bytes || 0) > 100e6) askConfirm(t('Downloaden stoppen?'), t('Wat al binnen is ({grootte}) gaat weg. Je kunt het later opnieuw downloaden.', { grootte: mdGB(m.bytes) }), t('Stoppen'), go);
   else go();
 }
 function mdUse(key){
   const m = mdFind(key);
   if (m.kind === 'spraak') { Android.txSetModel(m.id); toast(t('Spraak naar tekst gebruikt nu: {naam}', { naam: mdLineName(m) })); }
   else {
-    Android.aiUse(m.id); toast('De assistent gebruikt nu: ' + mdLineName(m) + ' (' + m.version + ')');
+    Android.aiUse(m.id); toast(t('De assistent gebruikt nu: {model} ({versie})', { model: mdLineName(m), versie: m.version }));
     // Een nieuwere versie in gebruik genomen: de oude mag weg (vragen, niet vanzelf)
     const old = m.replaces && mdFind('ai:' + m.replaces);
     if (old && old.state === 'ready') setTimeout(() => askConfirm(t('{naam} verwijderen?', { naam: old.version }), t('Je gebruikt nu {nieuw}. De oudere versie ({grootte}) is niet meer nodig.', { nieuw: m.version, grootte: mdGB(old.size) }), 'Verwijderen', () => { Android.aiDelete(old.id); mdRefresh(); toast(t('{naam} verwijderd', { naam: old.version })); }), 400);
@@ -213,8 +213,8 @@ function mdUse(key){
 function mdDelText(m, all){
   const others = all.filter(x => x.key !== m.key && x.kind === m.kind && x.state === 'ready');
   if (m.kind === 'zoek') return 'Slim zoeken werkt dan niet meer en de zoekindex gaat ook weg; de assistent zoekt dan niet in je gegevens.';
-  if (m.kind === 'ai') return !others.length ? 'De assistent werkt dan pas weer als je een taalmodel downloadt.' : m.inUse ? 'De assistent gebruikt dan ' + mdLineName(others[0]) + ' (' + others[0].version + ').' : 'Je kunt het later opnieuw downloaden.';
-  return !others.length ? 'Gesprekken uitschrijven, spraaknotities en Slaappraat schrijven dan pas weer uit als je een spraakmodel downloadt. Wat al uitgeschreven is, blijft.' : m.inUse ? 'Spraak naar tekst gebruikt dan ' + mdLineName(others[0]) + '.' : 'Je kunt het later opnieuw downloaden.';
+  if (m.kind === 'ai') return !others.length ? 'De assistent werkt dan pas weer als je een taalmodel downloadt.' : m.inUse ? t('De assistent gebruikt dan {model} ({versie}).', { model: mdLineName(others[0]), versie: others[0].version }) : t('Je kunt het later opnieuw downloaden.');
+  return !others.length ? 'Gesprekken uitschrijven, spraaknotities en Slaappraat schrijven dan pas weer uit als je een spraakmodel downloadt. Wat al uitgeschreven is, blijft.' : m.inUse ? t('Spraak naar tekst gebruikt dan {model}.', { model: mdLineName(others[0]) }) : t('Je kunt het later opnieuw downloaden.');
 }
 function mdDel(key){
   mdLoad();
@@ -233,7 +233,7 @@ function mdWifi(){ const on = !mdSt.wifiOnly; mdSetWifi(on); mdRender(); toast(o
 /** Korte samenvatting voor Instellingen. */
 function mdSummary(s){
   const have = (s.models || []).filter(m => m.state === 'ready'), busy = (s.models || []).filter(m => ['running', 'queued', 'paused', 'verifying'].includes(m.state));
-  return (have.length ? have.length + (have.length === 1 ? ' model' : ' modellen') + ' · ' + mdGB(s.used) : 'Nog geen modellen') + (busy.length ? ' · ' + busy.length + ' aan het downloaden' : '');
+  return (have.length ? tn(have.length, '{n} model', '{n} modellen') + ' · ' + mdGB(s.used) : t('Nog geen modellen')) + (busy.length ? ' · ' + t('{n} aan het downloaden', { n: busy.length }) : '');
 }
 /* Oude naam (Taalmodel-scherm, oudere knoppen): verder downloaden */
 function mdViaApp(id){ mdDl('ai:' + id); }

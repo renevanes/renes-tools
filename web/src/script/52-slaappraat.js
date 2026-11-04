@@ -29,7 +29,7 @@ function slNightName(ms){
   if (d.getHours() < 12) a.setDate(a.getDate() - 1);
   const b = new Date(a); b.setDate(b.getDate() + 1);
   const f = x => fmtDate(x, { weekday: 'short', day: 'numeric' });
-  return 'Nacht van ' + f(a) + ' op ' + f(b) + ' ' + fmtDate(b, { month: 'short' });
+  return t('Nacht van {van} op {op}', { van: f(a), op: f(b) + ' ' + fmtDate(b, { month: 'short' }) });
 }
 function slDur(ms){ const m = Math.round(ms / 60000); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' u ' + (m % 60) + ' min'; }
 
@@ -38,11 +38,11 @@ function slRender(){
   if (!st) return;
   if (s.phase === 'luistert' && (s.live || {}).fin) {
     // Net gestopt: de microfoon is dicht, het meteen uitschrijven stopt (kan even duren)
-    slHtml(st, '<div class="sl-live"><b>Afronden</b>…</div><p class="note">' + esc(s.heard ? s.heard + ' keer iets gehoord' : 'Niets gehoord') + '</p>' + slLiveHtml(s));
+    slHtml(st, '<div class="sl-live"><b>Afronden</b>…</div><p class="note">' + esc(s.heard ? tn(s.heard, '{n} keer iets gehoord', '{n} keer iets gehoord') : t('Niets gehoord')) + '</p>' + slLiveHtml(s));
     btn.textContent = 'Stoppen'; btn.classList.add('ghost'); meter.style.display = 'none';
   } else if (s.phase === 'luistert') {
     slHtml(st, '<div class="sl-live"><span class="sl-dot" aria-hidden="true"></span><b>Luistert</b> sinds ' + esc(slTime(s.since)) + '</div><p class="note">' +
-      esc((s.heard ? s.heard + ' keer iets gehoord' : 'Nog niets gehoord') + (s.stopAt ? ' · stopt om ' + slTime(s.stopAt) : '')) + '</p>' + slLiveHtml(s));
+      esc((s.heard ? tn(s.heard, '{n} keer iets gehoord', '{n} keer iets gehoord') : t('Nog niets gehoord')) + (s.stopAt ? ' · ' + t('stopt om {tijd}', { tijd: slTime(s.stopAt) }) : '')) + '</p>' + slLiveHtml(s));
     btn.textContent = 'Stoppen'; btn.classList.add('ghost');
     meter.style.display = '';
     // Meter: -70 dB (stil) … -20 dB (hard)
@@ -52,15 +52,15 @@ function slRender(){
   } else if (s.phase === 'proef') {
     const left = Math.ceil((s.probeLeft || 0) / 1000);
     // Het aftellen staat buiten de voorleesregio (anders leest TalkBack elke seconde voor); de uitkomst wel
-    slHtml(st, '<span class="sr-only">Proef van 30 seconden loopt</span><div aria-hidden="true"><div class="sl-live"><span class="sl-dot"></span><b>Proef</b>: praat eens zoals je in je slaap zou doen · nog ' + left + ' s</div>' +
-      '<p class="note sl-probe' + (s.hearing ? ' on' : '') + '">' + (s.hearing ? 'Hoort nu iets' : 'Stil') + ' · ' + (s.probeHits || 0) + ' keer opgepikt</p></div>');
+    slHtml(st, '<span class="sr-only">Proef van 30 seconden loopt</span><div aria-hidden="true"><div class="sl-live"><span class="sl-dot"></span><b>' + t('Proef') + '</b>' + esc(t(': praat eens zoals je in je slaap zou doen · nog {n} s', { n: left })) + '</div>' +
+      '<p class="note sl-probe' + (s.hearing ? ' on' : '') + '">' + t(s.hearing ? 'Hoort nu iets' : 'Stil') + ' · ' + tn(s.probeHits || 0, '{n} keer opgepikt', '{n} keer opgepikt') + '</p></div>');
     btn.textContent = 'Stoppen'; btn.classList.add('ghost');
     meter.style.display = '';
     const pct = v => Math.max(0, Math.min(100, (v + 70) * 2));
     $('#sl-meter-bar').style.width = pct(s.level) + '%';
     $('#sl-meter-floor').style.left = pct(s.floor) + '%';
   } else if (s.phase === 'uitschrijven') {
-    slHtml(st, '<div class="sl-live"><b>Uitschrijven</b>… ' + (s.txDone || 0) + ' van ' + (s.txTotal || 0) + '</div><p class="note">Op je telefoon, met het spraakmodel van Gesprekken uitschrijven. Tik je op luisteren, dan stopt dit; de rest kun je later bij de nacht uitschrijven.</p>');
+    slHtml(st, '<div class="sl-live"><b>' + t('Uitschrijven') + '</b>' + esc(t('… {klaar} van {totaal}', { klaar: s.txDone || 0, totaal: s.txTotal || 0 })) + '</div><p class="note">Op je telefoon, met het spraakmodel van Gesprekken uitschrijven. Tik je op luisteren, dan stopt dit; de rest kun je later bij de nacht uitschrijven.</p>');
     btn.textContent = 'Opnieuw beginnen met luisteren'; btn.classList.remove('ghost'); meter.style.display = 'none';
   } else {
     slHtml(st, s.message ? '<p class="note sl-msg">' + esc(s.message) + '</p>' : '');
@@ -108,7 +108,7 @@ function slRender(){
   slHtml($('#sl-nights'), ns.map((n, i) => {
     const live = n.id === s.night && s.phase, l = s.live || {}, lt = live && s.phase === 'luistert' && (l.talk || l.noise);
     const first = live && s.phase === 'luistert' ? l.text || '' : n.first;
-    const sum = (live ? (s.phase === 'luistert' ? 'Bezig…' + (lt ? ' · ' + slLiveLine(l) : '') : 'Uitschrijven…') : (n.talk ? n.talk + ' keer gepraat' : n.open ? n.open + ' keer iets gehoord' : 'Niets gezegd') + (n.noise ? ' · ' + n.noise + (n.noise === 1 ? ' geluid' : ' geluiden') : '') + (n.end ? ' · ' + slDur(n.end - n.start) : '')) +
+    const sum = (live ? (s.phase === 'luistert' ? t('Bezig…') + (lt ? ' · ' + slLiveLine(l) : '') : t('Uitschrijven…')) : (n.talk ? tn(n.talk, '{n} keer gepraat', '{n} keer gepraat') : n.open ? tn(n.open, '{n} keer iets gehoord', '{n} keer iets gehoord') : t('Niets gezegd')) + (n.noise ? ' · ' + tn(n.noise, '{n} geluid', '{n} geluiden') : '') + (n.end ? ' · ' + slDur(n.end - n.start) : '')) +
       (n.bytes > 65536 ? ' · ' + fmtB(n.bytes) : '');
     return '<button class="strow" onclick="slOpen(' + i + ')"><span class="stic">' + uiIcon('moon') + '</span><span class="sttxt"><b>' + esc(slNightName(n.start)) + '</b><small>' + esc(sum) + '</small>' +
       (first ? '<small class="sl-first">"' + esc(first) + '"</small>' : '') + '</span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>';
@@ -117,14 +117,14 @@ function slRender(){
 
 /* Meteen uitschrijven terwijl hij luistert: wat er al uitgeschreven is, het laatste wat je zei, en waarom het wacht */
 function slDirectOn(s){ const set = s.set || {}; return set.transcribe !== false && set.direct !== false && !!s.model; }
-function slLiveLine(l){ return (l.talk ? l.talk + ' keer gepraat' : 'Nog niets gezegd') + (l.noise ? ' · ' + l.noise + (l.noise === 1 ? ' geluid' : ' geluiden') : ''); }
+function slLiveLine(l){ return (l.talk ? tn(l.talk, '{n} keer gepraat', '{n} keer gepraat') : t('Nog niets gezegd')) + (l.noise ? ' · ' + tn(l.noise, '{n} geluid', '{n} geluiden') : ''); }
 function slLiveHtml(s){
   if (!slDirectOn(s)) return '';
   const l = s.live || {};
   if (!l.talk && !l.noise && !l.open && !l.wait) return '';
-  return '<p class="note sl-livetx">' + esc(slLiveLine(l) + (l.open ? ' · ' + l.open + ' nog uit te schrijven' : '') + (l.busy ? ' · bezig…' : '')) + '</p>' +
+  return '<p class="note sl-livetx">' + esc(slLiveLine(l) + (l.open ? ' · ' + t('{n} nog uit te schrijven', { n: l.open }) : '') + (l.busy ? ' · ' + t('bezig…') : '')) + '</p>' +
     (l.text ? '<p class="sl-first sl-lasttx">' + esc(slTime(l.at)) + ': "' + esc(l.text) + '"</p>' : '') +
-    (l.wait ? '<p class="note sl-wait">Meteen uitschrijven wacht: ' + esc(l.wait) + '. Wat overblijft wordt na het luisteren uitgeschreven.</p>' : '');
+    (l.wait ? '<p class="note sl-wait">' + esc(t('Meteen uitschrijven wacht: {reden}. Wat overblijft wordt na het luisteren uitgeschreven.', { reden: t(l.wait) })) + '</p>' : '');
 }
 
 /* Accuverbruik per uur van een nacht zonder lader, of -1 (zoals SleepTalk.batPerHour) */
@@ -169,17 +169,17 @@ function slnFilter(v){ slFilterV = v; slnRender(); }
 function slnRender(){
   const n = slNightCur;
   if (!n) { slHtml($('#sln-list'), '<p class="note">Deze nacht is er niet meer.</p>'); $('#sln-sum').textContent = ''; slHtml($('#sln-tx'), ''); return; }
-  $('#sln-title').textContent = slNightName(n.start).replace('Nacht van ', '');
+  $('#sln-title').textContent = slNightName(n.start).replace(/^(Nacht van|Night of) /, '');
   const clips = n.clips || [], live = (slSt.phase === 'luistert' || slSt.phase === 'uitschrijven') && slSt.night === n.id;
   const talk = clips.filter(k => k.done && k.kind === 'praten'), open = clips.filter(k => !k.done);
   const noise = clips.filter(k => k.done && k.kind === 'geluid').length;
-  $('#sln-sum').textContent = slTime(n.start) + ' – ' + (n.end ? slTime(n.end) : 'nu') + (n.reason && n.end ? ' · ' + n.reason : '') + ' · ' +
-    (talk.length ? talk.length + ' keer gepraat' : 'niets gezegd') + (noise ? ' · ' + noise + ' keer geluid' : '') +
-    (n.batStart >= 0 && n.batEnd >= 0 && n.end ? ' · accu ' + n.batStart + '% → ' + n.batEnd + '%' + (n.charged ? ' (aan de lader)' : '') : '');
+  $('#sln-sum').textContent = slTime(n.start) + ' – ' + (n.end ? slTime(n.end) : t('nu')) + (n.reason && n.end ? ' · ' + t(n.reason) : '') + ' · ' +
+    (talk.length ? tn(talk.length, '{n} keer gepraat', '{n} keer gepraat') : t('niets gezegd')) + (noise ? ' · ' + tn(noise, '{n} keer geluid', '{n} keer geluid') : '') +
+    (n.batStart >= 0 && n.batEnd >= 0 && n.end ? ' · ' + t('accu {van}% → {tot}%', { van: n.batStart, tot: n.batEnd }) + (n.charged ? ' ' + t('(aan de lader)') : '') : '');
   // Nog uit te schrijven
   const canTx = open.some(k => k.audio) && !live;
-  slHtml($('#sln-tx'), live ? '<p class="note">' + (slSt.phase === 'luistert' ? (slDirectOn(slSt) ? 'Luistert nog. Wat je zegt, verschijnt hier zodra het uitgeschreven is.' : 'Luistert nog. ') : 'Wordt nu uitgeschreven: ' + (slSt.txDone || 0) + ' van ' + (slSt.txTotal || 0) + '. ') + '</p>'
-    : canTx ? '<div class="card sl-txcard"><p class="note">' + open.length + (open.length === 1 ? ' stukje is' : ' stukjes zijn') + ' nog niet uitgeschreven.</p>' +
+  slHtml($('#sln-tx'), live ? '<p class="note">' + (slSt.phase === 'luistert' ? t(slDirectOn(slSt) ? 'Luistert nog. Wat je zegt, verschijnt hier zodra het uitgeschreven is.' : 'Luistert nog.') : t('Wordt nu uitgeschreven: {klaar} van {totaal}.', { klaar: slSt.txDone || 0, totaal: slSt.txTotal || 0 })) + '</p>'
+    : canTx ? '<div class="card sl-txcard"><p class="note">' + tn(open.length, '{n} stukje is nog niet uitgeschreven.', '{n} stukjes zijn nog niet uitgeschreven.') + '</p>' +
       (slSt.model ? '<button class="mini on" onclick="slnTranscribe()">Nu uitschrijven</button>' : '<button class="mini" onclick="jumpTo(\'transcripts\')">Spraakmodel downloaden</button>') + '</div>' : '');
   document.querySelectorAll('#sln-filter button').forEach(b => { const x = b.dataset.v === slFilterV; b.classList.toggle('on', x); b.setAttribute('aria-checked', x ? 'true' : 'false'); });
   const list = slFilterV === 'alles' ? clips : clips.filter(k => !k.done || k.kind === 'praten');
@@ -211,7 +211,7 @@ function slnPlay(clip){
 }
 function slnDel(clip){
   const k = ((slNightCur || {}).clips || []).find(x => x.id === clip); if (!k) return;
-  askConfirm('Dit stukje wissen?', slTime(k.t) + (k.text ? ': "' + k.text.slice(0, 80) + '"' : '') + '. Het geluid en de tekst gaan weg.', 'Wissen', () => {
+  askConfirm(t('Dit stukje wissen?'), t('{stukje}. Het geluid en de tekst gaan weg.', { stukje: slTime(k.t) + (k.text ? ': "' + k.text.slice(0, 80) + '"' : '') }), t('Wissen'), () => {
     if (slPlaying === clip) slPlaying = '';
     Android.sleepDeleteClip(slNightId, clip); slnLoad(slNightId); toast('Gewist');
   });
@@ -232,7 +232,7 @@ function slnMenu(){
     notesGet().push({ id: uid(), title: 'Slaappraat: ' + slNightName(n.start).replace('Nacht van ', ''), text, items: [], updated: Date.now() }); notesSaveNow();
     toast('Bewaard bij Notities');
   }]);
-  if (!(slSt.phase && slSt.night === n.id)) acts.push(['Deze nacht wissen', () => askConfirm('Deze nacht wissen?', 'Alle stukjes van ' + slNightName(n.start).toLowerCase() + ' gaan weg.', 'Wissen', () => {
+  if (!(slSt.phase && slSt.night === n.id)) acts.push(['Deze nacht wissen', () => askConfirm(t('Deze nacht wissen?'), t('Alle stukjes van {nacht} gaan weg.', { nacht: slNightName(n.start).toLowerCase() }), t('Wissen'), () => {
     Android.sleepStopPlay(); slPlaying = ''; Android.sleepDeleteNight(n.id); toast('Nacht gewist'); goBack();
   })]);
   openSheet(slNightName(n.start), '', acts);
@@ -242,7 +242,7 @@ function slnMenu(){
 const SL_MBH = { aac: 14.4, wav: 115 }; // MB per uur geluid (AAC 32 kbit/s, WAV 16 kHz mono)
 function slWhenShort(set){
   const w = set.directWhen || 'accu';
-  return w === 'lader' ? 'alleen aan de lader.' : w === 'altijd' ? 'ook zonder lader (tot hij stopt bij ' + (set.stopBat || 15) + '% accu).' : 'aan de lader altijd, zonder lader vanaf ' + (set.directBat || 40) + '% accu.';
+  return w === 'lader' ? t('alleen aan de lader.') : w === 'altijd' ? t('ook zonder lader (tot hij stopt bij {pct}% accu).', { pct: set.stopBat || 15 }) : t('aan de lader altijd, zonder lader vanaf {pct}% accu.', { pct: set.directBat || 40 });
 }
 function slChips(id, v){ document.querySelectorAll('#' + id + ' button').forEach(b => { const x = b.dataset.v === String(v); b.classList.toggle('on', x); b.setAttribute('aria-checked', x ? 'true' : 'false'); }); }
 function enterSleepSet(){ slLoad(); slsRender(); }
