@@ -290,6 +290,7 @@ function aiCmdDo(i){
     }
     case 'open': {
       if (!AI_CMD_TOOLS.includes(a.tool) || !document.getElementById('s-' + a.tool)) { fail('Die tool ken ik niet'); return; }
+      if (playWeg(a.tool)) { fail('Die tool zit niet in de Play-versie'); return; }
       if (!go()) return;
       a.st = 'gedaan'; a.done = (a.name || a.tool) + ' geopend'; a.doneNote = ''; aiCmdRedraw(i); aiSaveChat(aiChat);
       jumpTo(a.tool); return;

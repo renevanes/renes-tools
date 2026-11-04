@@ -492,10 +492,9 @@ public class MainActivity extends Activity {
         js("onResumeApp", "");
         try { GebruikLive.start(getApplicationContext()); } catch (Throwable ignored) { }
         if (isSolo()) return; // updates regelt de gewone app
-        if (Updater.viaPlay(this)) return; // de Play-versie krijgt updates via Google Play
-        // Automatisch op updates controleren, hooguit eens per 30 minuten.
+        // Automatisch op updates controleren, hooguit eens per 30 minuten (de Play-versie krijgt ze via Google Play).
         long last = Updater.prefs(this).getLong("lastCheck", 0);
-        if (System.currentTimeMillis() - last > 30 * 60 * 1000L) checkUpdates(false);
+        if (!Updater.viaPlay(this) && System.currentTimeMillis() - last > 30 * 60 * 1000L) checkUpdates(false);
         // Een onderbroken download van een AI-model vanzelf laten verdergaan (als het netwerk nu mag)
         final Context appCtx = getApplicationContext();
         new Thread(() -> { try { LocalAi.resumeDownloads(appCtx); } catch (Throwable ignored) { } }, "ai-resume").start();
@@ -1863,7 +1862,7 @@ public class MainActivity extends Activity {
                 p.put(perm("nearby", "Apparaten in de buurt", "Apparaten (Bluetooth en wifi)", ApparatenScan.btPerm(ctx)));
                 if (Build.VERSION.SDK_INT >= 33) p.put(perm("notif", "Meldingen", "Voortgang en bediening", has(Manifest.permission.POST_NOTIFICATIONS)));
                 p.put(perm("files", "Alle bestanden", "WhatsApp backup, Gesprekken", hasFilesAccess(ctx)));
-                if (Build.VERSION.SDK_INT >= 26) p.put(perm("install", "Updates installeren", "Nieuwe app-versies", ctx.getPackageManager().canRequestPackageInstalls()));
+                if (Build.VERSION.SDK_INT >= 26 && !Updater.viaPlay(ctx)) p.put(perm("install", "Updates installeren", "Nieuwe app-versies", ctx.getPackageManager().canRequestPackageInstalls()));
                 o.put("perms", p);
                 return o.toString();
             } catch (Exception e) { return "{}"; }
