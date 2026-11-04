@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.137",
-  "versionCode": 138,
-  "nativeLevel": 124,
+  "versionName": "1.138",
+  "versionCode": 139,
+  "nativeLevel": 125,
   "web": "index.html",
-  "webSha256": "c8da0e75c1b4094b5ea207e3c565eba61eab037eeffcfb3dfd47f8e9470b2c49",
+  "webSha256": "9c658ff96736150c20f7211004f5a5023ee42443af0e6bd784aab6ac3c1a78e0",
   "start": "start.html",
   "startSha256": "0ea90522dcf4d73fe5b0b6a7486ed095bcce9c93ee25b9ef370a77ac24c147f0",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "ab2a8659b169ac73b5d7bdd9621dc60b0e1e66ba48c826d9126eceb30aea22f0",
+  "apkSha256": "090d156e7c9e29d1e71ef2b31aa19ff255273da56da4f8e48b01b4fd61404c14",
   "changelog": [
+    {
+      "version": "1.138",
+      "date": "2026-11-04",
+      "changes": [
+        "Voorbereiding op een mogelijke Google Play-versie; voor jou verandert er niets aan wat de app doet"
+      ]
+    },
     {
       "version": "1.137",
       "date": "2026-11-04",
@@ -1206,5 +1213,5 @@
       ]
     }
   ],
-  "webSig2": "OJJDRjExbrSnCL/gBQmk1sWsMdzdNTHzhCfhSQopWmLoOnevobfOzOuZnnT7kiK15WVVNDMVtV7YZi2vEURrt8cqa+TNvg3GNJLvM+Dsx2vnpRx/FXULmf9Y+HH5oHx3G2dzvJDrDBtbjNHHA0/QmG5tmF2SjgTcGEO6o2+fwL9/htUq8azYDChuJM3TODAJn3yseRhFmQqwSf21YvojIOgPrfoIcivpAnrD+vX9QSf/a2nrf5wO9RlcZny7cxIVk31hlnz4rextEzYnnMRUy8Ef1WDpm57ozWQVA1fE9DamXYljf/ykpsF5zw0l/FNXUlz001McDbkZSv8pEN0i4WvfpzqFwY1zB8170/ZJ7w0a5phwbOPRQimrNPVUudxmdiLhVEnkcngCg4fHs8uzvlwTb3VZw3hjO0vJPVvAhQR9YEwJgi0mApDcGsb5JzUGKMmJJ6Tra48WzSlsWYWLePIATcdr5/Mx/cTvxz9VpzYGCXOFLxl7YHge8bobyOcu"
+  "webSig2": "nepl9JJuLNH8kDKCrF48stbzoxkpeieQh0zPKODEr4fyqyw1kxodez+mDhy4xWWB1x7OZxYuwmOYQe5XhjgCbSbJM4UhsvkDoKXdEFCsmnoMqUMp/1jm5UQbujH4OpVSdQqIijkCioMTuoBEEmPq9eLZu3cupiEvkQAqCrvqVg8ApHafJi7lLHN76ww1xDI45hi4KVRz+IN0pavopsLBO5RigEAYyGT0zGalyVacxTji7jxs8pmcsjGJ0hmsUvNKvj7O+YGbP+Tc1AueyKRdht5R6DSyi1x8muKdmCC23hkwey0kFk2s4NeunZlkftpTDWB0QywxD7vz5BbYRzpQ3VHoWif8zRfm6R11zIgY2YqCLBUD90TZUcxtUFuVyOcGUQbc/Gt6ge4I02PmzLYDOvuEBqTDq4cZcxiLc4IlNLmXZNnaM90J81kgFVO2/z3P/meQdgqkx8pkGsMaJpX68bRvJEo7jmtN21FfAZ8p5lmREN4uSSxGQKkvbNDnHP9b"
 }
