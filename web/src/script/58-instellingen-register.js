@@ -50,7 +50,7 @@ const SET_REG = [
     get: () => thCfg().mode, set: v => { thSetMode(v); setIf('settings', enterSettings); return ''; } },
   { id: 'weergave.donker', scr: 'setlook', label: 'Donker thema', desc: 'Aan: de app is altijd donker. Uit: altijd licht. Automatisch, of zoals je telefoon, kies je bij Thema.', syn: 'donker dark mode nachtmodus nacht zwart avond thema', phr: ['dark mode', 'nachtmodus', 'donker thema', 'donkere modus'],
     // Zoals de app er nu uitziet (ook automatisch of via de telefoon); aan = altijd Donker, uit = altijd Licht
-    note: v => { const m = thCfg().mode; return m === 'light' || m === 'dark' ? '' : t(v === 'aan' ? 'Het thema stond op {thema}; daarna is het altijd donker.' : 'Het thema stond op {thema}; daarna is het altijd licht.', { thema: thModeName(m).replace(/ \(.*\)$/, '') }); },
+    note: v => { const m = thCfg().mode; return m === 'light' || m === 'dark' ? '' : t(v === 'aan' ? 'Het thema stond op {thema}; daarna is het altijd donker.' : 'Het thema stond op {thema}; daarna is het altijd licht.', { thema: t(thModeName(m)).replace(/ \(.*\)$/, '') }); },
     get: () => setB(uiDark()), set: v => { thSetMode(setOnV(v) ? 'dark' : 'light'); return ''; } },
   { id: 'weergave.donkervanaf', scr: 'setlook', ctl: '#st-th-dark', type: 'tijd', label: 'Donker vanaf (thema op tijd)', desc: 'Hoe laat de app donker wordt bij Automatisch op tijd. Zet het thema ook op Automatisch op tijd.', syn: 'donker vanaf avond nacht tijd automatisch thema dark mode nachtmodus',
     note: () => thCfg().mode !== 'time' ? 'Het thema gaat daarmee ook op Automatisch op tijd.' : '',
@@ -66,7 +66,7 @@ const SET_REG = [
     get: () => setB(thCfg().amoled), set: v => { thSave({ amoled: setOnV(v) }); return ''; } },
   /* ---------- Instellingen → Regio en taal ---------- */
   { id: 'regio.taal', scr: 'setregio', ctl: '#rg-lang', type: 'keuze', vals: () => RG_LANGS.map(l => [l.id, l.name]), label: 'Taal van de app', desc: 'De taal van de hele app: schermen, meldingen, widgets en de assistent (ook spraak). Nederlands of Engels; de app volgt niet de taal van je telefoon.',
-    syn: 'taal nederlands engels language english dutch', alias: { nederlands: 'nl', dutch: 'nl', engels: 'en', english: 'en', 'het engels': 'en', 'het nederlands': 'nl' }, need: /\b(taal|language|nederlands|engels|english|dutch)\b/, get: () => rgCfg().lang, set: v => { rgSet('lang', v); return ''; } },
+    syn: 'taal nederlands engels language english dutch', phr: ['zet de taal op', 'taal van de app', 'app in het'], alias: { nederlands: 'nl', dutch: 'nl', engels: 'en', english: 'en', 'het engels': 'en', 'het nederlands': 'nl' }, need: /\b(taal|language|nederlands|engels|english|dutch)\b/, get: () => rgCfg().lang, set: v => { rgSet('lang', v); return ''; } },
   { id: 'regio.klok', scr: 'setregio', ctl: '#rg-clock', type: 'keuze', vals: RG_CLOCK, label: 'Tijdnotatie (24- of 12-uurs klok)', desc: 'Hoe de app tijden schrijft: 14:05 (24-uurs) of 2:05 p.m. (12-uurs), ook in meldingen en widgets.',
     // Alleen met "uurs", "am/pm" of "klok(notatie)": "zet de tijd op 12 uur" of "zet de klok op 12 uur" is geen notatie (dat is een wekker of tijdstip)
     syn: 'tijdnotatie tijdsnotatie klokweergave uurs notatie am pm 12-uurs 24-uurs', phr: ['12-uurs', '24-uurs', '12 uurs', '24 uurs', 'am pm', 'am/pm', 'tijdnotatie', 'tijdsnotatie', 'klokweergave'],

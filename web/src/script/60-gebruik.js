@@ -46,7 +46,7 @@ function gbRenderOverview(){
   if (!apps.length) { slHtml($('#gb-apps'), '<p class="note">' + (longP ? 'Per app zie je bij Vandaag of Week; hier gaat het om de totale schermtijd per dag of week.' : 'Nog niets te zien voor deze periode.') + '</p>'); return; }
   gbImgs = [];
   slHtml($('#gb-apps'), apps.map(a =>
-    '<div class="gb-app">' + gbIcon(a) + '<div class="gb-app-t"><b>' + esc(a.name || a.pkg) + '</b><small>' + (a.opens || 0) + '× geopend</small></div><span class="gb-app-d">' + gbDur(a.ms) + '</span></div>'
+    '<div class="gb-app">' + gbIcon(a) + '<div class="gb-app-t"><b>' + esc(a.name || a.pkg) + '</b><small>' + t('{n}× geopend', { n: a.opens || 0 }) + '</small></div><span class="gb-app-d">' + gbDur(a.ms) + '</span></div>'
   ).join(''));
   gbPaint('#gb-apps');
 }
@@ -75,7 +75,7 @@ function gbChart(data, period){
 }
 
 function gbBadge(b){
-  const fail = b.fails ? ' <span class="gb-badge gb-fail">na ' + b.fails + '× mis</span>' : '';
+  const fail = b.fails ? ' <span class="gb-badge gb-fail">' + t('na {n}× mis', { n: b.fails }) + '</span>' : '';
   if (b.how === 'pincode') return '<span class="gb-badge gb-pin">met pincode</span>' + fail;
   if (b.how === 'mislukt') return '<span class="gb-badge gb-fail">' + t('mislukt ×{n}', { n: b.fails || 1 }) + '</span>';
   if (b.how === 'onbekend') return '<span class="gb-badge">ontgrendeld (manier onbekend)</span>' + fail;
@@ -103,7 +103,7 @@ function gbRenderFuncs(){
   if (!evs.length) { slHtml($('#gb-funcs'), hint + '<div class="card"><p class="note">Nog niets vastgelegd. Camera, microfoon en verbindingen worden alleen gezien zolang een onderdeel van de app leeft (Android staat niet meer toe).</p></div>'); return; }
   slHtml($('#gb-funcs'), hint + '<div class="card">' + evs.map(e => {
     const f = GB_FUNC[e.kind] || [e.kind, '•'];
-    return '<div class="gb-func"><span class="gb-func-i" aria-hidden="true">' + f[1] + '</span><div class="gb-func-t"><b>' + esc(f[0]) + '</b>' + (e.name ? '<small>waarschijnlijk via ' + esc(e.name) + '</small>' : '') + '</div><span class="gb-func-w">' + gbDay(e.t) + ' ' + gbTime(e.t) + '</span></div>';
+    return '<div class="gb-func"><span class="gb-func-i" aria-hidden="true">' + f[1] + '</span><div class="gb-func-t"><b>' + esc(f[0]) + '</b>' + (e.name ? '<small>' + esc(t('waarschijnlijk via {app}', { app: e.name })) + '</small>' : '') + '</div><span class="gb-func-w">' + gbDay(e.t) + ' ' + gbTime(e.t) + '</span></div>';
   }).join('') + '</div>');
 }
 

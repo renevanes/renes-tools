@@ -318,7 +318,7 @@ function setMsgHtml(m, i){
   }
   let h = '';
   (s.items || []).forEach((x, k) => { h += setItemHtml(x, i, k); });
-  if (s.pick && s.pick.length) h += '<div class="aiact" role="group" aria-label="Welke instelling bedoel je?"><b>' + uiIcon('settings') + 'Welke bedoel je?</b><div class="aiactb">' +
+  if (s.pick && s.pick.length) h += '<div class="aiact" role="group" aria-label="Welke instelling bedoel je?"><b>' + uiIcon('settings') + t('Welke bedoel je?') + '</b><div class="aiactb">' +
     s.pick.map((p, k) => { const e = setEntry(p.id); return e ? '<button class="mini" onclick="setPick(' + i + ',' + k + ')">' + esc(t(e.label) + (p.v ? ': ' + setName(e, p.v) : '')) + '</button>' : ''; }).join('') + '</div></div>';
   if (s.choose && !(s.items || []).length) { const e = setEntry(s.choose); if (e) { const cur = setGet(e);
     h += '<div class="aiact" role="group" aria-label="' + esc(t('Kies: {naam}', { naam: t(e.label) })) + '"><b>' + uiIcon('settings') + esc(t(e.label)) + '</b><div class="aiactb">' +
@@ -339,12 +339,12 @@ function setItemHtml(x, i, k){
   if (x.st === 'gedaan') return '<div class="aiact done" role="status">' + uiIcon('check') + '<span>' + esc(t(e.label)) + ': <b>' + esc(to) + '</b>' + (from ? '<small>' + t('Was: {waarde}', { waarde: esc(from) }) + '</small>' : '') + '</span>' +
     '<button class="linkish" onclick="setUndo(' + i + ',' + k + ')" aria-label="' + esc(t('Ongedaan maken: {naam}', { naam: t(e.label) })) + '">' + t('Ongedaan maken') + '</button>' + open + '</div>';
   if (x.st === 'terug') return '<div class="aiact done" role="status">' + uiIcon('refresh') + '<span>' + t('Teruggezet: {naam} weer op <b>{waarde}</b>', { naam: esc(t(e.label)), waarde: esc(from) }) + '</span>' + open + '</div>';
-  if (x.st === 'nee') return '<div class="aiact no">' + uiIcon('settings') + '<span><s>' + esc(e.label + ' naar ' + to) + '</s> <small>(niet veranderd)</small></span><button class="linkish" onclick="setAgain(' + i + ',' + k + ')">Toch voorstellen</button></div>';
+  if (x.st === 'nee') return '<div class="aiact no">' + uiIcon('settings') + '<span><s>' + esc(t('{wat} naar {waarde}', { wat: t(e.label), waarde: to })) + '</s> <small>' + t('(niet veranderd)') + '</small></span><button class="linkish" onclick="setAgain(' + i + ',' + k + ')">Toch voorstellen</button></div>';
   if (x.st === 'fout') return '<div class="aiact no" role="status">' + uiIcon('alert') + '<span>' + esc(t(e.label)) + ': ' + esc(t(x.err || 'aanpassen lukte niet')) + '</span>' + open + '</div>';
   const warn = e.warn ? e.warn(x.to) : '', note = e.note ? e.note(x.to) : '';
   return '<div class="aiact setcard" role="group" aria-label="' + esc(t('Voorstel: {naam} aanpassen', { naam: t(e.label) })) + '"><b>' + uiIcon('settings') + t('Instelling aanpassen?') + '</b>' +
     '<div class="aiactt">' + esc(t(e.label)) + '<small>' + esc(setWhere(e)) + '</small></div>' +
-    '<div class="setft">' + (from ? '<span>Van <s>' + esc(from) + '</s></span>' : '') + '<span>' + (from ? 'naar' : 'Naar') + ' <b>' + esc(to) + '</b></span></div>' +
+    '<div class="setft">' + (from ? '<span>' + t('Van') + ' <s>' + esc(from) + '</s></span>' : '') + '<span>' + t(from ? 'naar' : 'Naar') + ' <b>' + esc(to) + '</b></span></div>' +
     (note ? '<p class="note setwarn setinfo">' + uiIcon('info') + esc(note) + '</p>' : '') +
     (warn ? '<p class="note setwarn">' + uiIcon('alert') + esc(warn) + '</p>' : '') +
     '<div class="aiactb"><button class="mini on" onclick="setDo(' + i + ',' + k + ')" aria-label="' + esc(t('Toepassen: {naam} naar {waarde}', { naam: t(e.label), waarde: to })) + '">' + t('Toepassen') + '</button>' +

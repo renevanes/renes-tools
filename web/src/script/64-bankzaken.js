@@ -320,7 +320,7 @@ function bkVerschil(nu, was, goedAlsLager){
   if (!was) return '<span>—</span>';
   const p = Math.round((nu - was) / Math.abs(was) * 100);
   const goed = goedAlsLager ? p <= 0 : p >= 0;
-  return '<span class="' + (p === 0 ? 'bk-neutraal' : goed ? 'bk-plus' : 'bk-min') + '">' + (p > 0 ? '+' : p < 0 ? '−' : '') + Math.abs(p) + '% t.o.v. ervoor</span>';
+  return '<span class="' + (p === 0 ? 'bk-neutraal' : goed ? 'bk-plus' : 'bk-min') + '">' + t('{pct}% t.o.v. ervoor', { pct: (p > 0 ? '+' : p < 0 ? '−' : '') + Math.abs(p) }) + '</span>';
 }
 function bkOverzicht(van, tot){
   const lijst = bkSelectie(van, tot), tt = bkTotalen(lijst);
@@ -360,7 +360,7 @@ function bkOverzicht(van, tot){
   const vast = bkTerugkerend(), actief = vast.filter(v => !v.gestopt);
   if (vast.length) {
     const som = actief.reduce((s, v) => s + v.perMaand, 0);
-    h += bkKaart('Vaste lasten en abonnementen', '<p class="note" style="margin-top:0">Samen ongeveer <b>' + esc(bkEuro(som)) + '</b> per maand (' + actief.length + ' terugkerende betalingen).</p>'
+    h += bkKaart('Vaste lasten en abonnementen', '<p class="note" style="margin-top:0">' + t('Samen ongeveer <b>{bedrag}</b> per maand ({n} terugkerende betalingen).', { bedrag: esc(bkEuro(som)), n: actief.length }) + '</p>'
       + vast.slice(0, 25).map(v => '<div class="bk-rij"><span class="bk-naam">' + esc(v.naam) + '<small>' + esc(t(v.cat) + ' · ' + t(v.soort) + ' · ' + (v.gestopt ? t('mogelijk gestopt (laatst {datum})', { datum: bkDatum(v.laatst) }) : t('volgende rond {datum}', { datum: fmtDate(v.volgende, { day: 'numeric', month: 'short' }) }))) + '</small></span><b' + (v.gestopt ? ' class="bk-neutraal"' : '') + '>' + esc(bkEuro(v.bedrag)) + '</b></div>').join(''));
   }
   // Grootste ontvangers
@@ -543,9 +543,9 @@ function bkBeheer(){
   $('#bk-regels').innerHTML = s.rules.length ? s.rules.map((g, i) => '<div class="bk-rij"><span class="bk-naam">“' + esc(g.p) + '”<small>' + (g.t === '+' ? 'bijschrijvingen' : g.t === '-' ? 'afschrijvingen' : 'alles') + ' → ' + esc(g.cat) + '</small></span><button class="mini" style="float:none" onclick="bkRegelWeg(' + i + ')" aria-label="Regel verwijderen">Weg</button></div>').join('') : '<p class="note" style="margin:0">Nog geen eigen regels.</p>';
   $('#bk-budgetten').innerHTML = Object.entries(s.budget).filter(([, v]) => v > 0).map(([c, v]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>per maand</small></span><b>' + esc(bkEuroKort(v)) + '</b><button class="mini" style="float:none" onclick="bkBudgetWeg(' + jsq(c) + ')">Weg</button></div>').join('');
   const acc = [...new Set(s.tx.map(tt => tt.acc))].sort();
-  $('#bk-rekeningen').innerHTML = acc.map(a => '<div class="bk-rij"><span class="bk-naam">' + esc(bkRekNaam(a)) + '<small>' + esc(a) + ' · geïmporteerd</small></span><button class="mini" style="float:none" onclick="bkRekHernoem(' + jsq(a) + ')">Naam</button></div>').join('')
-    + s.eigen.map((e, i) => '<div class="bk-rij"><span class="bk-naam">' + esc(e.naam || e.iban) + '<small>' + esc(e.iban) + ' · zelf toegevoegd</small></span><button class="mini" style="float:none" onclick="bkEigenWeg(' + i + ')">Weg</button></div>').join('');
-  $('#bk-imports').innerHTML = s.imports.length ? '<details class="rinfo"><summary>Eerdere imports (' + s.imports.length + ')</summary>' + s.imports.slice().reverse().slice(0, 30).map(i => '<div class="bk-res">' + esc(fmtDate(i.t, { day: 'numeric', month: 'short', year: 'numeric' })) + ' · ' + esc(i.bank || i.format) + ' · ' + esc(i.van ? bkDatum(i.van) + ' t/m ' + bkDatum(i.tot) : '') + ' · ' + (i.nieuw || 0) + ' nieuw</div>').join('') + '</details>' : '';
+  $('#bk-rekeningen').innerHTML = acc.map(a => '<div class="bk-rij"><span class="bk-naam">' + esc(bkRekNaam(a)) + '<small>' + esc(a + ' · ' + t('geïmporteerd')) + '</small></span><button class="mini" style="float:none" onclick="bkRekHernoem(' + jsq(a) + ')">Naam</button></div>').join('')
+    + s.eigen.map((e, i) => '<div class="bk-rij"><span class="bk-naam">' + esc(e.naam || e.iban) + '<small>' + esc(e.iban + ' · ' + t('zelf toegevoegd')) + '</small></span><button class="mini" style="float:none" onclick="bkEigenWeg(' + i + ')">Weg</button></div>').join('');
+  $('#bk-imports').innerHTML = s.imports.length ? '<details class="rinfo"><summary>' + t('Eerdere imports ({n})', { n: s.imports.length }) + '</summary>' + s.imports.slice().reverse().slice(0, 30).map(i => '<div class="bk-res">' + esc(fmtDate(i.t, { day: 'numeric', month: 'short', year: 'numeric' })) + ' · ' + esc(i.bank || i.format) + ' · ' + esc(i.van ? bkDatum(i.van) + ' t/m ' + bkDatum(i.tot) : '') + ' · ' + (i.nieuw || 0) + ' nieuw</div>').join('') + '</details>' : '';
   const st = bk.st || {};
   const veilig = [
     t(st.hardware ? 'Versleuteld met AES-256-GCM; de sleutel zit in de beveiligde hardware van deze telefoon en kan er niet uit.' : 'Versleuteld met AES-256-GCM; de sleutel zit in de beveiligde sleutelopslag van Android en kan er niet uit.'),

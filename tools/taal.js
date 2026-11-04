@@ -96,6 +96,8 @@ function htmlBits(s){
   if (!/<[a-z\/!]/i.test(s)) return out;
   const re = />([^<>]*)</g; let m;
   while ((m = re.exec(s))) { re.lastIndex = m.index + 1; const v = norm(m[1]); if (hasLetters(v) && !/\$\{…\}/.test(v)) out.push(v); }
+  // Tekst aan het begin of eind van zo'n stukje ('Welke bedoel je?</b>', '<b>Let op:</b> hij doet het'): een eigen tekstknoop
+  for (const v of [s.split('<')[0], s.slice(s.lastIndexOf('>') + 1)].map(norm)) if (hasLetters(v) && !/\$\{…\}/.test(v) && !/["=]/.test(v) && looksDutch(v)) out.push(v);
   const ra = /\b(?:placeholder|aria-label|title|alt)="([^"]*)"/g;
   while ((m = ra.exec(s))) { const v = norm(m[1]); if (hasLetters(v) && !/\$\{…\}/.test(v)) out.push(v); }
   return out;
