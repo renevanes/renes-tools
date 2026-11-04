@@ -17,3 +17,5 @@ tools/whisper-out/
 tools/build-arm64-*/
 tools/build-x86_64/
 __pycache__/
+build-play/
+*.aab
