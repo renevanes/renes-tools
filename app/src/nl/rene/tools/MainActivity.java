@@ -74,6 +74,7 @@ public class MainActivity extends Activity {
     /** Google koppelen met een account op de telefoon: eerst kiezen, dan vraagt Android toestemming. */
     void kiesGoogleAccount(String rechten) {
         googleRechten = rechten;
+        Facturen.prefs(this).edit().putString("gdRechtenKeuze", rechten).apply(); // ook als Android de app intussen stopt
         try { startActivityForResult(FacturenGoogleToestel.kiesIntent(), REQ_GOOGLE_ACC); }
         catch (Exception e) { js("onFacturenDrive", "{\"error\":\"Accounts kiezen lukt niet op deze telefoon\"}"); }
     }

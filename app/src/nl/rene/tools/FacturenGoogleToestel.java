@@ -28,6 +28,8 @@ final class FacturenGoogleToestel {
 
     static String account(Context c) { return Facturen.prefs(c).getString("gdAccount", ""); }
     static boolean actief(Context c) { return !account(c).isEmpty(); }
+    /** Gekoppeld én het account is op deze telefoon te zien (anders laat het scherm zien dat het opnieuw moet). */
+    static boolean werkt(Context c) { return actief(c) && opToestel(c, account(c)); }
 
     /** Het soort sleutel voor AccountManager: "oauth2:" + de scopes (gescheiden door spaties). */
     static String soort(String scopes) { return "oauth2:" + scopes.trim(); }
@@ -36,9 +38,13 @@ final class FacturenGoogleToestel {
     static String token(Context c) throws Exception {
         String acc = account(c), scopes = Facturen.prefs(c).getString("gdScopes", "");
         if (acc.isEmpty() || scopes.isEmpty()) throw new Exception("Koppel Google (opnieuw) in Facturen → Koppelingen");
+        if (!opToestel(c, acc)) throw new Exception("Het Google-account " + acc + " staat niet (meer) op deze telefoon voor Tools: kies je account opnieuw (Facturen → Koppelingen → Google)");
         String t;
         try { t = AccountManager.get(c).blockingGetAuthToken(new Account(acc, TYPE), soort(scopes), true); }
         catch (android.accounts.AuthenticatorException e) { throw new Exception("Google weigert de app: " + uitleg(e)); }
+        catch (android.accounts.OperationCanceledException e) { throw new Exception("Google gaf geen toegang (geannuleerd): kies je account opnieuw in Facturen → Koppelingen → Google"); }
+        catch (java.io.IOException e) { throw new Exception("Google is niet bereikbaar: controleer de internetverbinding"); }
+        catch (IllegalArgumentException | SecurityException e) { throw new Exception("Kies je Google-account opnieuw (Facturen → Koppelingen → Google)"); }
         if (t == null || t.isEmpty()) throw new Exception("Google vraagt (opnieuw) toestemming: open Facturen → Koppelingen → Google en kies je account nog een keer");
         return t;
     }
@@ -46,6 +52,15 @@ final class FacturenGoogleToestel {
     /** Een verlopen sleutel bij Android weggooien (dan geeft de volgende keer een nieuwe). */
     static void vergeet(Context c, String token) {
         try { if (token != null) AccountManager.get(c).invalidateAuthToken(TYPE, token); } catch (Throwable ignored) { }
+    }
+
+    /** Kan Tools dit account (nog) zien? Weggehaald, of een nieuwe telefoon na terugzetten: niet. */
+    static boolean opToestel(Context c, String acc) {
+        if (Build.VERSION.SDK_INT < 26) return true; // vóór Android 8 ziet een app accounts alleen met GET_ACCOUNTS: niet controleren
+        try {
+            for (Account a : AccountManager.get(c).getAccountsByType(TYPE)) if (a.name.equalsIgnoreCase(acc)) return true;
+            return false;
+        } catch (Throwable e) { return true; } // weten we het niet, dan laat token() het zeggen
     }
 
     static void ontkoppel(Context c) {
@@ -67,8 +82,10 @@ final class FacturenGoogleToestel {
     /** Toestemming vragen (Android toont zelf het venster) en de koppeling bewaren. Antwoord via done(fout, naam). */
     static void koppel(Activity a, String naam, String rechten, Spotify.Done done) {
         final Context app = a.getApplicationContext();
+        if (rechten == null || rechten.isEmpty()) rechten = Facturen.prefs(app).getString("gdRechtenKeuze", "gmail,drive");
         final String scopes = FacturenDrive.scopes(rechten);
         try {
+            Lock.internalNav = true; // het toestemmingsvenster van Google is geen "weggaan" (anders gaat de app op slot)
             AccountManager.get(a).getAuthToken(new Account(naam, TYPE), soort(scopes), null, a, f -> {
                 String fout = null;
                 try {
@@ -78,7 +95,9 @@ final class FacturenGoogleToestel {
                     else {
                         FacturenDrive.vergeetSleutel();
                         Facturen.prefs(app).edit().putString("gdAccount", naam).putString("gdGebruiker", naam).putString("gdScopes", scopes).remove("gdMappen").apply();
+                        String oud = Facturen.geheim(app, "gd_refresh");
                         Facturen.geheim(app).edit().remove("gd_refresh").apply(); // de browser-koppeling (als die er was) is niet meer nodig
+                        if (oud != null) FacturenDrive.intrekken(oud);
                     }
                 } catch (android.accounts.OperationCanceledException e) { fout = "Geannuleerd";
                 } catch (Throwable e) { fout = "Google weigert de app: " + uitleg(e); }

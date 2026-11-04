@@ -56,7 +56,7 @@ public class FacturenBridge extends GebruikBridge {
                     .put("drive", new JSONObject().put("gekoppeld", FacturenDrive.gekoppeld(ctx))
                             .put("rechtDrive", FacturenDrive.heeftRecht(ctx, "drive")).put("rechtGmail", FacturenDrive.heeftRecht(ctx, "gmail")).put("rechtGmailSend", FacturenDrive.heeftRecht(ctx, "gmailsend")).put("gebruiker", p.getString("gdGebruiker", ""))
                             .put("clientId", p.getString("gdClientId", "")).put("heeftGeheim", Facturen.heeftGeheim(ctx, "gd_secret"))
-                            .put("viaToestel", FacturenGoogleToestel.actief(ctx)))
+                            .put("viaToestel", FacturenGoogleToestel.actief(ctx)).put("accountWeg", FacturenGoogleToestel.actief(ctx) && !FacturenGoogleToestel.werkt(ctx)))
                     .put("smtp", new JSONObject().put("host", p.getString("smtpHost", "")).put("poort", p.getInt("smtpPoort", 587))
                             .put("beveiliging", p.getString("smtpBeveiliging", "starttls")).put("gebruiker", p.getString("smtpGebruiker", ""))
                             .put("van", p.getString("smtpVan", "")).put("naam", p.getString("smtpNaam", "")).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "smtp")))

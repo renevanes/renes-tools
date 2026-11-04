@@ -101,7 +101,8 @@ function faRender(geenLaad){
   const gd = faSt.drive || {};
   $('#fa-gd-setup').style.display = gd.gekoppeld ? 'none' : 'block';
   $('#fa-gd-aan').style.display = gd.gekoppeld ? 'block' : 'none';
-  $('#fa-gd-stand').textContent = gd.gekoppeld ? 'Gekoppeld' + (gd.gebruiker ? ' met ' + gd.gebruiker : '') + (gd.viaToestel ? ' (het Google-account op deze telefoon).' : ' (via de browser).') : '';
+  $('#fa-gd-stand').textContent = gd.gekoppeld ? 'Gekoppeld' + (gd.gebruiker ? ' met ' + gd.gebruiker : '') + (gd.viaToestel ? ' (het Google-account op deze telefoon).' : ' (via de browser).') + (gd.accountWeg ? ' Dit account staat niet (meer) op deze telefoon voor Tools: tik op Rechten aanpassen en kies je account opnieuw.' : '') : '';
+  $('#fa-gd-stand').classList.toggle('bad', !!gd.accountWeg);
   if (!$('#fa-gd-sha1').textContent) { const k = rdJson(Android.facturenAppSleutel(), {}); $('#fa-gd-pakket').textContent = k.pakket || 'nl.rene.tools'; $('#fa-gd-sha1').textContent = k.sha1 || '(niet te lezen)'; }
   $('#fa-gd-rechten').textContent = gd.gekoppeld ? 'Gmail: ' + (gd.rechtGmail ? '✓ facturen zoeken (alleen lezen)' : '– geen toegang') + ' · Drive: ' + (gd.rechtDrive ? '✓ bewaren in de map Facturen' : '– geen toegang') + ' · Versturen: ' + (gd.rechtGmailSend ? '✓ aan je boekhouder' : '– nee') + '. Tools ziet in Drive alleen zijn eigen mappen.' : '';
   if (gd.gekoppeld) { $('#fa-gd-r-gmail').checked = !!gd.rechtGmail || $('#fa-gd-r-gmail').checked; $('#fa-gd-r-drive').checked = !!gd.rechtDrive; $('#fa-gd-r-send').checked = !!gd.rechtGmailSend || $('#fa-gd-r-send').checked; }

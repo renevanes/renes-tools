@@ -37,7 +37,7 @@ final class FacturenDrive {
     static boolean gekoppeld(Context c) { return Facturen.heeftGeheim(c, "gd_refresh") || FacturenGoogleToestel.actief(c); }
 
     /** Na een nieuwe koppeling: de oude toegangssleutel niet meer gebruiken. */
-    static void vergeetSleutel() { synchronized (TOKEN_LOCK) { access = null; accessTot = 0; } }
+    static void vergeetSleutel() { access = null; accessTot = 0; } // zonder slot: wordt op de hoofdthread aangeroepen
 
     /** Welke rechten de Google-koppeling heeft gekregen: "drive" (opslaan in Drive) en/of "gmail" (facturen zoeken, alleen lezen). */
     static boolean heeftRecht(Context c, String recht) {
@@ -67,7 +67,7 @@ final class FacturenDrive {
     }
 
     private static final Object TOKEN_LOCK = new Object();
-    private static String access; private static long accessTot;
+    private static volatile String access; private static volatile long accessTot;
 
     static boolean geldigeClientId(String id) { return id != null && id.trim().matches("[0-9]+-[a-z0-9]+\\.apps\\.googleusercontent\\.com"); }
 
@@ -120,6 +120,7 @@ final class FacturenDrive {
                     if (over == null) over = new JSONObject().put("user", new JSONObject().put("emailAddress", p.optString("emailAddress")));
                 }
                 synchronized (TOKEN_LOCK) {
+                    FacturenGoogleToestel.ontkoppel(app); // de browser-koppeling vervangt die met het account op de telefoon
                     Facturen.zetGeheim(app, "gd_secret", sec);
                     Facturen.zetGeheim(app, "gd_refresh", refresh);
                     prefs(app).edit().putString("gdClientId", cid).putString("gdScopes", gekregen).remove("gdMappen").apply();
@@ -157,7 +158,12 @@ final class FacturenDrive {
             Facturen.geheim(c).edit().remove("gd_refresh").apply();
             prefs(c).edit().remove("gdGebruiker").remove("gdMappen").remove("gdScopes").apply();
         }
-        if (refresh != null) new Thread(() -> {
+        if (refresh != null) intrekken(refresh);
+    }
+
+    /** Een refresh-token bij Google intrekken (op de achtergrond). */
+    static void intrekken(final String refresh) {
+        new Thread(() -> {
             try {
                 HttpURLConnection h = (HttpURLConnection) new URL("https://oauth2.googleapis.com/revoke?token=" + enc(refresh)).openConnection();
                 h.setConnectTimeout(15_000); h.setReadTimeout(15_000); h.setRequestMethod("POST"); h.setDoOutput(true);
