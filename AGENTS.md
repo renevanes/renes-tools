@@ -55,7 +55,10 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `Regio.isToday` (Java), nooit `toDateString`, `new Date(j, m, d)`, `setHours`, `Calendar.getInstance()` of
   `TimeZone.getDefault()`. Tijden uit de opslag ("07:30": wekkers, check-in, planningen, thema) zijn wandklok in de
   app-zone: plannen met `rgFromLocal`/`rgNextAt` of `Regio.toMillis`/`Regio.nextAt` (een tijd die door de zomertijd niet
-  bestaat schuift mee: 02:30 wordt 03:30). Invoervelden: vooraf invullen met `rgLocalIn`/`rgHm`, lezen met
+  bestaat schuift mee: 02:30 wordt 03:30; een tijd die bij de wintertijd twee keer bestaat is de eerste keer, overal:
+  interface, `Regio`, `Checkin.at`, `Facturen.gepland`). WebView (Intl) en Android (Java) hebben elk een eigen
+  tijdzonedatabase die los bijgewerkt wordt: een zone telt alleen als beide hem kennen (`rgTzOk` vraagt `regioTzOk`), en
+  de interface geeft Java en de skin de zone die hij echt gebruikt (`rgTzState().sel`). Invoervelden: vooraf invullen met `rgLocalIn`/`rgHm`, lezen met
   `rgFromLocalIn`/`rgFromLocal`. Datum-alleen-waarden ('2026-11-03') verschuiven nooit: `fmtDate('2026-11-03')`.
   Bewust telefoontijd: bestandsnamen en logboek, de nachtelijke taken (backups, uitschrijven), schermtijd (Gebruik) en wat
   buiten de app gebeurt (Klok-app, agenda-app: hetzelfde moment). Een andere zone zet alle wekkers opnieuw (`regioSet`).

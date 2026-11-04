@@ -136,7 +136,7 @@ const TZ_JS_BAD = [[/\.toDateString\(\)/, 'toDateString (gebruik rgDayKey, rgIsT
 }
 const TZ_JAVA_OK = [
   ['AiBridge.java', 'min = Regio.minuteOfDay(java.util.TimeZone.getDefault(), at)', 'de Klok-app rekent in telefoontijd: hetzelfde moment, omgerekend'],
-  ['AiBridge.java', 'phone = java.util.TimeZone.getDefault()', 'een hele dag in de agenda-app (telefoontijd): dezelfde datum'],
+  ['AiBridge.java', 'Regio.allDayFor(Regio.zone(ctx), java.util.TimeZone.getDefault(), b0, e0)', 'een hele dag in de agenda-app (telefoontijd): dezelfde datum'],
   ['AllBackupJob.java', 'Calendar c = Calendar.getInstance();', 'nachtelijke backup om 03:30: de echte nacht van de telefoon (geen tijd die Rene instelt)'],
   ['WaBackupJob.java', 'Calendar c = Calendar.getInstance();', 'nachtelijke backup om 03:00: de echte nacht van de telefoon'],
   ['TranscribeJob.java', 'int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);', 'uitschrijven alleen \'s nachts: de echte nacht van de telefoon'],

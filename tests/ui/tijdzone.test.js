@@ -265,6 +265,45 @@ const path = require('path');
     await ctx.close();
   }
 
+  // 13. De lijst: alle zones (ook UTC+12 tot +14), snel genoeg, rustig voor de schermlezer, en smal (360 px)
+  {
+    const { ctx, pg } = await page('light', 'America/Argentina/Buenos_Aires');
+    await pg.setViewportSize({ width: 360, height: 780 });
+    await pg.clock.install({ time: new Date(NOW) });
+    await pg.goto(url); await pg.waitForTimeout(300);
+    await pg.evaluate(() => rgTzOpen()); await pg.waitForTimeout(150);
+    const l = await pg.evaluate(() => { const z = [...document.querySelectorAll('#rgz-list .sbtn')].map(b => b.dataset.z); return { n: z.length, auck: z.includes('Pacific/Auckland'), kiri: z.includes('Pacific/Kiritimati'), fiji: z.includes('Pacific/Fiji'), last: z[z.length - 1] }; });
+    ok(l.auck && l.kiri && l.fiji && l.last === 'Pacific/Kiritimati', 'ongefilterde lijst: ook Auckland, Fiji en Kiritimati (UTC+14) helemaal onderaan (' + l.n + ' zones)');
+    const a = await pg.evaluate(async () => {
+      let muts = 0; new MutationObserver(m => { muts += m.length; }).observe($('#rgz-now'), { childList: true, characterData: true, subtree: true });
+      const t0 = performance.now();
+      for (const q of ['n', 'ne', 'new', 'new ', 'new y', 'new yo', '']) { $('#rgz-q').value = q; rgzRender(); }
+      const per = (performance.now() - t0) / 7;
+      await new Promise(r => setTimeout(r, 0));
+      const b = document.querySelector('#rgz-list .sbtn[aria-pressed=true] b'), hid = b && b.querySelector('[aria-hidden=true]');
+      const first = document.querySelector('#rgz-list .sbtn b');
+      return { muts, per, check: !!hid && hid.textContent.trim() === '✓', wrap: first.scrollWidth <= first.clientWidth + 1 && first.getBoundingClientRect().height > parseFloat(getComputedStyle(first).fontSize) * 1.6, w: document.documentElement.scrollWidth };
+    });
+    ok(a.muts === 0, 'zoeken schrijft "Nu: …" (aria-live) niet steeds opnieuw (' + a.muts + ' keer)');
+    ok(a.check, 'het vinkje bij de gekozen zone is verborgen voor de schermlezer (aria-pressed zegt het al)');
+    ok(a.wrap && a.w <= 360, '360 px: "Volg de telefoon (America/Argentina/Buenos_Aires)" breekt af in plaats van weg te vallen');
+    ok(a.per < 400, 'een toets in het zoekveld: ' + Math.round(a.per) + ' ms (ruim onder 400 ms)');
+    // 20.000 tijdstippen in een eigen zone: per uur onthouden, niet per minuut opnieuw rekenen
+    const p = await pg.evaluate(() => {
+      rgSave({ tz: 'America/New_York' });
+      const base = Date.parse('2026-01-01T00:00:00Z'), t0 = performance.now(); let x = '';
+      for (let i = 0; i < 20000; i++) x = rgDayKey(base + i * 37 * 6e4);
+      const ms = performance.now() - t0;
+      // Precies rond de wissel (1 november 2026, 06:00 UTC): het uur met de wissel per minuut
+      const at = [Date.parse('2026-11-01T05:59:00Z'), Date.parse('2026-11-01T06:00:00Z'), Date.parse('2026-11-01T06:30:00Z')].map(t => rgHm(t)).join(',');
+      rgSave({ tz: '' });
+      return { ms, x, at };
+    });
+    ok(p.ms < 1500 && p.x === '2027-05-29', '20.000 keer rgDayKey in New York: ' + Math.round(p.ms) + ' ms (grens 1500 ms)');
+    ok(p.at === '01:59,01:00,01:30', 'rond de wissel naar wintertijd klopt het per minuut: ' + p.at);
+    await ctx.close();
+  }
+
   // 12. Donker, en de opmaak in beide
   for (const scheme of ['light', 'dark']) {
     const { ctx, pg } = await page(scheme);
