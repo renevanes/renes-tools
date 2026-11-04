@@ -112,7 +112,7 @@ public class FacturenJob extends JobService {
             if (lev.optBoolean("wifi") && betaald) continue; // wacht op wifi (de dagelijkse controle haalt het in)
             JSONObject t = Facturen.toestand(c, lev.optString("id"));
             boolean verder = t.optBoolean("mailMeer") && nu - t.optLong("lastTry") >= 3_600_000L; // mail: nog meer op te halen
-            if (verder || Facturen.aanDeBeurt(lev, t.optLong("lastOk"), t.optLong("lastTry"), nu, java.util.TimeZone.getDefault())) out.add(lev.optString("id"));
+            if (verder || Facturen.inhalen(lev, t, nu, java.util.TimeZone.getDefault()) || Facturen.aanDeBeurt(lev, t.optLong("lastOk"), t.optLong("lastTry"), nu, java.util.TimeZone.getDefault())) out.add(lev.optString("id"));
         }
         return out;
     }

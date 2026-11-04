@@ -21,17 +21,18 @@ public class FacturenBridge extends GebruikBridge {
     @JavascriptInterface public String facturenState() {
         try {
             JSONArray l = Facturen.leveranciers(ctx);
-            JSONObject all = Facturen.toestand(ctx);
+            JSONObject all = Facturen.toestand(ctx), dossier = FacturenDossier.alle(ctx);
             JSONArray out = new JSONArray();
             if (l != null) for (int i = 0; i < l.length(); i++) {
                 JSONObject o = new JSONObject(l.getJSONObject(i).toString());
                 String id = o.optString("id");
                 JSONObject t = all.optJSONObject(id);
                 if (t == null) t = new JSONObject();
-                // Per maand: hoeveel facturen er binnenkwamen (voor het overzicht)
-                JSONObject maanden = new JSONObject(), vw = t.optJSONObject("verwerkt");
+                // Per maand: hoeveel facturen, op factuurdatum (bijlagen tellen niet apart); zonder dossier op de dag van ophalen
+                JSONObject vw = t.optJSONObject("verwerkt");
+                JSONObject maanden = FacturenDossier.maanden(dossier, id);
                 java.text.SimpleDateFormat ym = new java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US);
-                if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) {
+                if (maanden.length() == 0 && vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) {
                     JSONObject r = vw.optJSONObject(it.next());
                     if (r == null || r.optLong("t") == 0 || r.optBoolean("buiten")) continue; // buiten de periode: niet binnengekomen
                     String m = ym.format(new java.util.Date(r.optLong("t")));
@@ -42,7 +43,8 @@ public class FacturenBridge extends GebruikBridge {
                 long volgende = Facturen.gepland(o, nu, true, java.util.TimeZone.getDefault()), vorige = Facturen.gepland(o, nu, false, java.util.TimeZone.getDefault());
                 o.put("maanden", maanden).put("volgende", volgende == Long.MAX_VALUE ? 0 : volgende).put("vorige", vorige == Long.MIN_VALUE ? 0 : vorige);
                 o.put("toestand", t).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "lev_" + id))
-                        .put("aantal", Facturen.bestanden(ctx, id).length());
+                        .put("aantal", Facturen.bestanden(ctx, id).length()).put("facturen", FacturenDossier.aantalVan(dossier, id))
+                        .put("heelPeriode", Facturen.heelPeriode(o, t, nu, java.util.TimeZone.getDefault()));
                 out.put(o);
             }
             SharedPreferences p = Facturen.prefs(ctx);

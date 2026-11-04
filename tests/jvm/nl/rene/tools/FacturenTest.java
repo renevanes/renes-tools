@@ -197,6 +197,48 @@ public class FacturenTest {
         // ---------- evaluateJavascript-uitkomst ----------
         check(FacturenRun.str("\"{\\\"a\\\":1}\"").equals("{\"a\":1}") && FacturenRun.str("null").isEmpty() && FacturenRun.str(null).isEmpty() && FacturenRun.str("12").equals("12"), "uitkomst van de robot lezen");
 
+        // ---------- hele periode inhalen ----------
+        {
+            java.util.TimeZone tz = java.util.TimeZone.getTimeZone("Europe/Amsterdam");
+            long nuP = 1793000000000L; // nov 2026
+            JSONObject levJaar = new JSONObject().put("periode", new JSONObject().put("soort", "jaar"));
+            long jan = Facturen.vanaf(levJaar, nuP, tz);
+            check(Facturen.heelPeriode(levJaar, new JSONObject(), nuP, tz), "eerste keer: hele periode");
+            check(Facturen.heelPeriode(levJaar, new JSONObject().put("lastOk", nuP - 86_400_000L), nuP, tz), "al eens opgehaald maar nooit de hele periode (oude versie): hele periode inhalen");
+            check(!Facturen.heelPeriode(levJaar, new JSONObject().put("lastOk", nuP - 86_400_000L).put("gedekt", jan), nuP, tz), "hele periode al gedekt: alleen het nieuwe");
+            long juni = jan + 150L * 86_400_000L;
+            check(Facturen.heelPeriode(levJaar, new JSONObject().put("lastOk", nuP - 86_400_000L).put("gedekt", juni), nuP, tz), "gedekt vanaf juni, periode vanaf januari: inhalen");
+            JSONObject levAlles = new JSONObject().put("periode", new JSONObject().put("soort", "alles"));
+            check(Facturen.heelPeriode(levAlles, new JSONObject().put("lastOk", 1).put("gedekt", jan), nuP, tz) && !Facturen.heelPeriode(levAlles, new JSONObject().put("lastOk", 1).put("gedekt", 0), nuP, tz), "periode alles: inhalen tot alles gedekt is");
+            JSONObject t = new JSONObject().put("lastOk", nuP - 86_400_000L).put("lastTry", nuP - 3_600_000L);
+            check(!Facturen.inhalen(levJaar.put("opnieuw", 3), t, nuP, tz) && Facturen.inhalen(levJaar, t.put("lastTry", nuP - 4 * 3_600_000L), nuP, tz), "inhalen hooguit om de paar uur");
+            check(!Facturen.inhalen(new JSONObject(levJaar.toString()).put("schema", "uit"), t, nuP, tz), "met de hand: niet vanzelf inhalen");
+        }
+
+        // ---------- documenten per factuur en overzicht per maand ----------
+        {
+            JSONObject items = new JSONObject();
+            items.put("a", new JSONObject().put("sha", "a").put("leverancier", "kpn").put("opgehaald", 1_790_000_000_000L).put("bron", new JSONObject().put("soort", "website"))
+                    .put("meta", new JSONObject().put("nummer", "7001").put("datum", "2026-01-05").put("bedrag", "40,00")));
+            items.put("b", new JSONObject().put("sha", "b").put("leverancier", "kpn").put("opgehaald", 1_790_000_000_000L).put("bron", new JSONObject().put("soort", "website"))
+                    .put("meta", new JSONObject().put("nummer", "7001").put("datum", "2026-01-05").put("bedrag", "12,00")));
+            items.put("c", new JSONObject().put("sha", "c").put("leverancier", "kpn").put("opgehaald", 1_790_000_000_000L).put("bron", new JSONObject().put("soort", "website"))
+                    .put("meta", new JSONObject().put("nummer", "7002").put("datum", "2026-02-05").put("bedrag", "40,00")));
+            items.put("m1", new JSONObject().put("sha", "m1").put("leverancier", "gm").put("opgehaald", 1_790_000_000_000L).put("bron", new JSONObject().put("mailId", "x1").put("afzender", "K"))
+                    .put("meta", new JSONObject().put("nummer", "55").put("datum", "2026-03-10").put("bedrag", "9,95")));
+            items.put("m2", new JSONObject().put("sha", "m2").put("leverancier", "gm").put("opgehaald", 1_790_000_000_000L).put("bron", new JSONObject().put("mailId", "x1").put("afzender", "K")).put("meta", new JSONObject()));
+            items.put("m3", new JSONObject().put("sha", "m3").put("leverancier", "gm").put("opgehaald", 1_790_000_000_000L).put("bron", new JSONObject().put("mailId", "x2").put("afzender", "K").put("maildatum", 1_775_000_000_000L)).put("meta", new JSONObject()));
+            java.util.Map<String, String> g = FacturenDossier.groepen(items);
+            check(g.get("a").equals(g.get("b")) && !g.get("a").equals(g.get("c")), "zelfde nummer = één factuur (ook als de specificatie een ander bedrag noemt)");
+            check(g.get("m1").equals(g.get("m2")) && !g.get("m3").equals(g.get("m1")), "bijlage zonder nummer uit dezelfde mail hoort bij de factuur");
+            check(FacturenDossier.aantalVan(items, "kpn") == 2 && FacturenDossier.aantalVan(items, "gm") == 2, "aantal facturen, niet documenten");
+            check(FacturenDossier.aantal(items, Arrays.asList("a", "b", "m2")) == 2, "nieuwe documenten tellen als facturen");
+            JSONObject mk = FacturenDossier.maanden(items, "kpn");
+            check(mk.optInt("2026-01") == 1 && mk.optInt("2026-02") == 1 && mk.length() == 2, "overzicht per maand op factuurdatum: " + mk);
+            JSONObject mg = FacturenDossier.maanden(items, "gm");
+            check(mg.optInt("2026-03") == 1 && mg.length() == 2, "mail zonder herkende datum: datum van de mail: " + mg);
+        }
+
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
     }
 }

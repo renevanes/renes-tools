@@ -1093,6 +1093,7 @@ body.talk-on #s-ai main{padding-bottom:200px}
 
 /* Facturen: overzicht per maand */
 .fa-tab{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}.fa-tab th,.fa-tab td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.fa-tab thead th{color:var(--muted);font-weight:600}.fa-tab .good{color:var(--ok)}.fa-tab .bad{color:var(--bad)}
+.fs-doc{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}.fs-doc:first-child{border-top:0}.fs-doc-n{flex:1;min-width:0}.fs-doc-n small{display:block;color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}.fs-dit .fs-doc-n b{color:var(--primary)}
 #fa-maand-lijst .good{color:var(--ok)}#fa-maand-lijst .bad{color:var(--bad)}
 .fd-tab{margin-top:0}.fd-tab th{padding:0}.fd-tab th button{all:unset;box-sizing:border-box;display:block;width:100%;padding:10px 8px;cursor:pointer;color:var(--muted);font-weight:600}
 .fd-tab th button:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}.fd-tab th[aria-sort] button{color:var(--ink)}

@@ -111,7 +111,8 @@ final class FacturenRun {
         this.domein = Facturen.domein(lev.optString("startUrl"));
         JSONObject tt = Facturen.toestand(this.c, this.id), vw = tt.optJSONObject("verwerkt");
         if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) bekend.add(it.next());
-        this.vervolg = tt.optLong("lastOk") > 0;
+        // Vervolg (stoppen na een rij bekende facturen) alleen als de hele periode al eens is opgehaald
+        this.vervolg = !Facturen.heelPeriode(lev, tt, System.currentTimeMillis(), java.util.TimeZone.getDefault());
     }
 
     /** Starten (op de hoofdthread). Geeft "" of de reden waarom het niet kan. */
@@ -144,7 +145,9 @@ final class FacturenRun {
             try {
                 JSONObject m = lev.optJSONObject("mail") == null ? new JSONObject() : lev.optJSONObject("mail");
                 JSONObject tt = Facturen.toestand(c, id);
-                long sinds = FacturenMail.sinds(lev, tt.optLong("lastOk"), tt.optLong("mailSinds"), System.currentTimeMillis(), java.util.TimeZone.getDefault());
+                long nuM = System.currentTimeMillis();
+                boolean heel = Facturen.heelPeriode(lev, tt, nuM, java.util.TimeZone.getDefault());
+                long sinds = FacturenMail.sinds(lev, heel ? 0 : tt.optLong("lastOk"), tt.optLong("mailSinds"), nuM, java.util.TimeZone.getDefault());
                 java.util.List<Facturen.Pdf> l = FacturenMail.bron(m.optString("bron", "gmail")).haal(c, lev, sinds, stop, t -> voortgang = t);
                 synchronized (pdfs) { for (Facturen.Pdf p : l) if (!pdfs.containsKey(p.sha)) pdfs.put(p.sha, p); }
                 r = new JSONObject().put("ok", true);
@@ -542,7 +545,12 @@ final class FacturenRun {
                 long nu = System.currentTimeMillis();
                 JSONObject t = new JSONObject().put("lastTry", nu).put("ok", uit.optBoolean("ok")).put("msg", uit.optString("msg"))
                         .put("inlogNodig", uit.optBoolean("inlogNodig")).put("bezigSinds", 0);
-                if (uit.optBoolean("ok")) t.put("lastOk", nu).put("nieuw", uit.optInt("nieuw"));
+                if (uit.optBoolean("ok")) {
+                    t.put("lastOk", nu).put("nieuw", uit.optInt("nieuw"));
+                    // De hele periode is nu opgehaald (bij mail pas als er niets meer klaarstaat)
+                    boolean mailMeer = mail && Facturen.toestand(c, id).optBoolean("mailMeer");
+                    if (uit.optBoolean("heel") && !mailMeer) t.put("gedekt", uit.optLong("vanaf"));
+                }
                 Facturen.werkBij(c, id, t);
                 Facturen.logRun(c, id, new JSONObject().put("t", nu).put("ok", uit.optBoolean("ok")).put("msg", uit.optString("msg"))
                         .put("nieuw", uit.optInt("nieuw")).put("namen", uit.optJSONArray("namen") == null ? new JSONArray() : uit.optJSONArray("namen"))

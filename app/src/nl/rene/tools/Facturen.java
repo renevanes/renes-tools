@@ -262,6 +262,23 @@ final class Facturen {
         }
     }
 
+    /**
+     * Moet deze keer de hele periode opgehaald worden? De eerste keer, of als de periode eerder begint dan wat al eens
+     * helemaal is opgehaald ("gedekt"; bijv. na het ruimer zetten van de periode, of bij leveranciers van vóór de periode-keuze).
+     * Daarna alleen wat sinds de vorige keer is binnengekomen. Zuiver (getest).
+     */
+    static boolean heelPeriode(JSONObject lev, JSONObject t, long nu, java.util.TimeZone tz) {
+        if (t == null || t.optLong("lastOk") <= 0 || !t.has("gedekt")) return true;
+        long v = vanaf(lev, nu, tz), g = t.optLong("gedekt");
+        return v < g - 86_400_000L; // ook "alles" (0) terwijl er maar een deel gedekt is
+    }
+
+    /** Aan de beurt omdat de periode nog niet helemaal is opgehaald (hooguit om de "opnieuw" uur proberen). */
+    static boolean inhalen(JSONObject lev, JSONObject t, long nu, java.util.TimeZone tz) {
+        if ("uit".equals(lev.optString("schema", "maand")) || !heelPeriode(lev, t, nu, tz)) return false;
+        return nu - t.optLong("lastTry") >= lev.optInt("opnieuw", 3) * 3_600_000L;
+    }
+
     /** Een unieke id (bij twee keer dezelfde leverancier: -2, -3 …). */
     static String uniekId(String basis, Set<String> bezet) {
         String id = veiligId(basis);
@@ -560,7 +577,12 @@ final class Facturen {
         if (verwerkt == null) verwerkt = new JSONObject();
         JSONArray namen = new JSONArray(), fouten = new JSONArray();
         int nieuw = 0, buiten = 0;
-        long grens = grens(lev, t.optLong("lastOk"), System.currentTimeMillis(), java.util.TimeZone.getDefault());
+        long nu0 = System.currentTimeMillis();
+        boolean heel = heelPeriode(lev, t, nu0, java.util.TimeZone.getDefault());
+        // De hele periode: wat eerder buiten de (toen kleinere) periode viel, opnieuw bekijken
+        if (heel) for (Iterator<String> it = verwerkt.keys(); it.hasNext(); ) { JSONObject r = verwerkt.optJSONObject(it.next()); if (r != null && r.optBoolean("buiten")) it.remove(); }
+        long grens = grens(lev, heel ? 0 : t.optLong("lastOk"), nu0, java.util.TimeZone.getDefault());
+        java.util.List<String> nieuweSha = new java.util.ArrayList<>();
         File d = pdfDir(c, id);
         if (!d.isDirectory() && !d.mkdirs()) throw new Exception("Opslagmap maken lukt niet");
         // Al eerder: alleen opnieuw afleveren wat toen mislukte (backup-map of Eigen Cloud)
@@ -597,10 +619,14 @@ final class Facturen {
             verwerkt.put(p.sha, rec);
             if (eigenNaam) namenGehad.add(p.naam);
             namen.put(naam);
+            nieuweSha.add(p.sha);
             nieuw++;
             werkBij(c, id, new JSONObject().put("verwerkt", verwerkt)); // na elke factuur: bij een onderbreking niet dubbel
         }
-        return new JSONObject().put("nieuw", nieuw).put("gevonden", pdfs.size()).put("buiten", buiten).put("namen", namen).put("fouten", fouten);
+        // Tellen in facturen, niet in documenten: bijlagen en specificaties horen bij hun factuur
+        int facturen = nieuw == 0 ? 0 : FacturenDossier.aantal(FacturenDossier.alle(c), nieuweSha);
+        return new JSONObject().put("nieuw", facturen).put("documenten", nieuw).put("gevonden", pdfs.size()).put("buiten", buiten).put("namen", namen).put("fouten", fouten)
+                .put("heel", heel).put("vanaf", vanaf(lev, nu0, java.util.TimeZone.getDefault()));
     }
 
     /** Naar elke gekozen plek die nog niet gelukt is (backup-map, map op de telefoon, Google Drive, Eigen Cloud). Geeft true als er iets bij kwam. */

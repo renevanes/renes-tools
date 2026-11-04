@@ -56,6 +56,7 @@ function faPeriode(l){
   if (l.schema === 'uit') return t.lastOk ? { soort: 'ok', tekst: '✓ Laatst opgehaald ' + faMoment(t.lastOk) } : { soort: 'uit', tekst: 'Alleen met de hand' };
   // De laatste poging mislukte (ook als het eerder deze periode wel lukte): dat eerst laten zien
   if (t.lastTry && !t.ok && t.lastTry > (t.lastOk || 0)) return { soort: 'mis', tekst: '✗ Mislukt ' + faMoment(t.lastTry) + ': ' + (t.msg || '') + (l.vorige && t.lastOk >= l.vorige ? ' (deze periode was al opgehaald)' : ' (na ' + (l.opnieuw || 3) + ' uur opnieuw)') };
+  if (l.heelPeriode && t.lastOk) return { soort: 'wacht', tekst: '⏳ Haalt nog de hele periode op (' + faPeriodeTekst(l) + '); dat gebeurt vanzelf, of tik op Nu ophalen' };
   if (l.vorige && t.lastOk >= l.vorige) return { soort: 'ok', tekst: '✓ Opgehaald ' + faMoment(t.lastOk) + ' · ' + (t.nieuw ? t.nieuw + (t.nieuw === 1 ? ' nieuwe factuur' : ' nieuwe facturen') : 'niets nieuws') };
   if (l.vorige && t.lastTry >= l.vorige && !t.ok) return { soort: 'mis', tekst: '✗ Mislukt ' + faMoment(t.lastTry) + ': ' + (t.msg || '') + ' (na ' + (l.opnieuw || 3) + ' uur opnieuw)' };
   if (l.vorige && (t.lastOk || t.lastTry || l.aantal)) return { soort: 'wacht', tekst: '⏳ Gepland ' + faMoment(l.vorige) + ': nog niet gelukt, de app probeert het zodra het kan' };
@@ -166,7 +167,7 @@ function faOpen(id){
   const acts = [
     ['Nu ophalen', () => faNu(id, false)],
     ...(l.soort === 'mail' ? [] : [['Ophalen en meekijken', () => faNu(id, true)]]),
-    ['Facturen bekijken' + (l.aantal ? ' (' + l.aantal + ')' : ''), () => faBekijk(l)],
+    ['Facturen bekijken' + (l.facturen ? ' (' + l.facturen + (l.aantal > l.facturen ? ', met bijlagen ' + l.aantal + ' documenten' : '') + ')' : l.aantal ? ' (' + l.aantal + ')' : ''), () => faBekijk(l)],
     ['Geschiedenis', () => faGeschiedenis(l)],
     ['Alles van de periode opnieuw ophalen', () => askConfirm('Alles opnieuw ophalen?', 'De app haalt alle facturen van de gekozen periode (' + faPeriodeTekst(l) + ') nog een keer op. Wat al binnen is, komt er niet dubbel in.', 'Ophalen', () => { const e = Android.facturenOpnieuw(id); if (e) { toast(e); return; } faNu(id, false); })],
     ['Instellingen', () => flOpen(l)],
@@ -188,7 +189,7 @@ window.onFacturenKlaar = function(r){
 function faBekijk(l){
   const lijst = rdJson(Android.facturenLijst(l.id), []);
   if (!lijst.length) { toast('Nog geen facturen in de app'); return; }
-  openSheet(l.naam, lijst.length + (lijst.length === 1 ? ' factuur' : ' facturen'), lijst.slice(0, 40).map(f => [f.naam + ' · ' + faDatum(f.t), () => Android.facturenOpen(l.id, f.naam)]));
+ openSheet(l.naam, lijst.length + (lijst.length === 1 ? ' document' : ' documenten') + (l.facturen && l.facturen < lijst.length ? ' (' + l.facturen + (l.facturen === 1 ? ' factuur' : ' facturen') + ' met bijlagen)' : ''), lijst.slice(0, 40).map(f => [f.naam + ' · ' + faDatum(f.t), () => Android.facturenOpen(l.id, f.naam)]));
 }
 function faNieuw(){
   const s = faSt.sjablonen || [];
@@ -479,7 +480,7 @@ window.onFacturenHerkend = function(r){
 /** Alle velden die als kolom kunnen: id, naam, waarde (om te sorteren), tekst (in de tabel), num = bedrag (rechts, met totaal). */
 const FD_VELDEN = [
   { id: 'datum', naam: 'Factuurdatum', w: s => fdDatum(s), t: s => (s.meta || {}).datum ? FD_DAG(s.meta.datum) : s.opgehaald ? FD_DAG(fdDatum(s)) + ' *' : '' },
-  { id: 'lev', naam: 'Leverancier', w: s => (s.leverancierNaam || '').toLowerCase(), t: s => (s.leverancierNaam || '') + (s._docs && s._docs.length > 1 ? ' (' + s._docs.length + ' documenten)' : '') },
+  { id: 'lev', naam: 'Leverancier', w: s => (s.leverancierNaam || '').toLowerCase(), t: s => (s.leverancierNaam || '') + (s._docs ? fdDocsTekst(s._docs.length) : '') },
   { id: 'bedrag', naam: 'Bedrag', num: true, w: s => fdGetal((s.meta || {}).bedrag), t: s => FD_EUR(fdGetal((s.meta || {}).bedrag)) },
   { id: 'btw', naam: 'Btw', num: true, w: s => fdGetal((s.meta || {}).btw), t: s => FD_EUR(fdGetal((s.meta || {}).btw)) },
   { id: 'nummer', naam: 'Factuurnummer', w: s => (s.meta || {}).nummer || '', t: s => (s.meta || {}).nummer || '' },
@@ -521,27 +522,36 @@ function fdGroep(s, g){
   return ['', ''];
 }
 /**
+ * Welke documenten bij één factuur horen (zelfde regels als FacturenDossier.groepen in de app): zelfde leverancier
+ * (bij mail: afzender) en factuurnummer; een document zonder nummer uit dezelfde mail als een factuur met nummer hoort
+ * daarbij (bijlage, specificatie, voorwaarden); zonder nummer in één mail samen ook. Geeft sha → sleutel.
+ */
+function fdGroepen(items){
+  const uit = new Map(), perMail = new Map(), nr = s => String((s.meta || {}).nummer || '').trim().toLowerCase(), mid = s => (s.bron || {}).mailId || '';
+  const l = items.slice().sort((a, b) => a.sha < b.sha ? -1 : a.sha > b.sha ? 1 : 0);
+  for (const s of l) { if (!nr(s)) continue; const g = 'n|' + s.leverancier + '|' + ((s.bron || {}).afzender || '') + '|' + nr(s); uit.set(s.sha, g); if (mid(s) && !perMail.has(s.leverancier + '|' + mid(s))) perMail.set(s.leverancier + '|' + mid(s), g); }
+  for (const s of l) { if (uit.has(s.sha)) continue; uit.set(s.sha, mid(s) ? (perMail.get(s.leverancier + '|' + mid(s)) || 'm|' + s.leverancier + '|' + mid(s)) : 's|' + s.sha); }
+  return uit;
+}
+/** Het hoofddocument van een factuur: met bedrag en datum, anders met bedrag, anders het eerste. */
+function fdHoofd(docs){ return docs.find(d => (d.meta || {}).bedrag && (d.meta || {}).datum) || docs.find(d => (d.meta || {}).bedrag) || docs[0]; }
+/**
  * Dezelfde factuur in meer documenten (bijv. de factuur en de specificatie, of twee keer gedownload): één regel per
- * leverancier + factuurnummer, met de gegevens van het document waarin het bedrag staat, aangevuld uit de andere.
+ * factuur, met de gegevens van het hoofddocument (waarin het bedrag staat), aangevuld uit de andere.
  */
 function fdSamen(items){
-  const m = new Map(), uit = [];
-  for (const s of items) {
-    // Zelfde leverancier (bij mail: zelfde afzender) en factuurnummer, en datum en bedrag spreken elkaar niet tegen
-    const me = s.meta || {}, n = me.nummer, k = n ? s.leverancier + '|' + ((s.bron || {}).afzender || '') + '|' + n : '';
-    const p = k && m.get(k), pm = p ? p._docs[0].meta || {} : {};
-    if (p && (!me.datum || !pm.datum || me.datum === pm.datum) && (!me.bedrag || !p._docs.some(d => (d.meta || {}).bedrag) || p._docs.some(d => (d.meta || {}).bedrag === me.bedrag))) { p._docs.push(s); continue; }
-    const c = { ...s, _docs: [s] };
-    if (k && !p) m.set(k, c);
-    uit.push(c);
-  }
+  const g = fdGroepen(items), m = new Map(), uit = [];
+  for (const s of items) { const k = g.get(s.sha); const p = m.get(k); if (p) { p._docs.push(s); continue; } const c = { ...s, _docs: [s] }; m.set(k, c); uit.push(c); }
   for (const c of uit) if (c._docs.length > 1) {
-    const best = c._docs.find(d => (d.meta || {}).bedrag) || c._docs[0], meta = { ...(best.meta || {}) };
+    const best = fdHoofd(c._docs), meta = { ...(best.meta || {}) };
     for (const d of c._docs) for (const [k, v] of Object.entries(d.meta || {})) if (!meta[k] && v) meta[k] = v;
+    c._docs = [best].concat(c._docs.filter(d => d !== best)); // hoofddocument eerst
     Object.assign(c, best, { meta, _docs: c._docs });
   }
   return uit;
 }
+/** "1 factuur + 2 bijlagen" voor een samengevoegde regel. */
+function fdDocsTekst(n){ return n > 1 ? ' (+ ' + (n - 1) + (n === 2 ? ' bijlage' : ' bijlagen') + ')' : ''; }
 function fdRender(laad){
   if (laad || !faDos) fdLaad();
   const docs = faDos.items || [], items = fdSamen(docs), inst = fdInst();
@@ -579,7 +589,7 @@ function fdRender(laad){
   lijst = lijst.slice().sort((x, y) => { if (inst.groep) { const gx = fdGroep(x, inst.groep)[0], gy = fdGroep(y, inst.groep)[0]; if (gx !== gy) return (inst.groep === 'maand' || inst.groep === 'kwartaal') ? (gx < gy ? 1 : -1) : (gx < gy ? -1 : 1); } return vgl(x, y) || (y.opgehaald || 0) - (x.opgehaald || 0); });
   const som = l => l.reduce((t, s) => t + (fdGetal((s.meta || {}).bedrag) || 0), 0);
   const totaal = som(lijst);
-  $('#fd-tel').textContent = items.length ? lijst.length + ' van ' + items.length + (items.length === 1 ? ' factuur' : ' facturen') + (docs.length > items.length ? ' (' + docs.length + ' documenten)' : '') + (totaal ? ' · samen ' + FD_EUR(totaal) : '') : '';
+  $('#fd-tel').textContent = items.length ? lijst.length + ' van ' + items.length + (items.length === 1 ? ' factuur' : ' facturen') + (docs.length > items.length ? ' (' + docs.length + ' documenten: facturen met hun bijlagen)' : '') + (totaal ? ' · samen ' + FD_EUR(totaal) : '') : '';
   if (!lijst.length) { $('#fd-lijst').innerHTML = '<p class="note" style="padding:14px">' + (items.length ? 'Niets gevonden.' : 'Nog geen facturen in het dossier. Ze komen er vanzelf in zodra er facturen zijn opgehaald.') + '</p>'; $('#fd-csv').disabled = !items.length; return; }
   const kop = '<thead><tr>' + kol.map(v => '<th scope="col" class="' + (v.num ? 'num' : '') + '"' + (v.id === sv.id ? ' aria-sort="' + (inst.af ? 'descending' : 'ascending') + '"' : '') + '><button data-k="' + v.id + '" onclick="fdSorteer(this.dataset.k)">' + esc(v.naam) + (v.id === sv.id ? '<span aria-hidden="true">' + (inst.af ? ' ↓' : ' ↑') + '</span>' : '') + '</button></th>').join('') + '</tr></thead>';
   const cel = (v, s) => '<td class="' + [v.num ? 'num' : '', v.lang ? 'lang' : '', v.id === 'aan' && fdAanl(s).soort === 'ok' ? 'good' : '', v.id === 'aan' && fdAanl(s).soort === 'mis' ? 'bad' : '', v.id === 'verval' && /⚠/.test(v.t(s)) ? 'bad' : ''].filter(Boolean).join(' ') + '">' + esc(v.t(s)) + '</td>';
@@ -616,9 +626,21 @@ function fsToon(sha){
     rij('Grootte', s.grootte ? fmtSize(s.grootte) : '') +
     (b.soort === 'mail' ? rij('Uit de mail van', b.afzender) + rij('Onderwerp', b.onderwerp) + rij('Mail ontvangen', b.maildatum ? faDatum(b.maildatum) : '') : rij('Website', b.site) + rij('Pagina', b.pagina)) +
     rij('Controlegetal (SHA-256)', (s.sha || '').slice(0, 16) + '…');
-  // Andere documenten van dezelfde factuur (zelfde leverancier en factuurnummer)
-  const nr = (s.meta || {}).nummer, ook = nr ? (faDos.items || []).filter(x => x.sha !== sha && x.leverancier === s.leverancier && (x.meta || {}).nummer === nr) : [];
-  if (ook.length) $('#fs-info').insertAdjacentHTML('beforeend', '<div class="bkres"><b>Hoort bij dezelfde factuur</b><span>' + ook.map(x => '<button class="linkish" data-sha="' + esc(x.sha) + '" onclick="fsToon(this.dataset.sha)">' + esc(x.naam || '') + '</button>').join('<br>') + '</span></div>');
+  // Alle documenten van deze factuur (factuur en bijlagen), elk met een eigen knop om te openen
+  const alle = faDos.items || [], gr = fdGroepen(alle), sleutel = gr.get(sha);
+  const docs = alle.filter(x => gr.get(x.sha) === sleutel), hoofd = fdHoofd(docs);
+  const geord = [hoofd].concat(docs.filter(x => x !== hoofd));
+  fsDocs = geord;
+  $('#fs-docs').hidden = geord.length < 2;
+  $('#fs-docs-h').textContent = 'Documenten van deze factuur (' + geord.length + ')';
+  $('#fs-docs-l').innerHTML = geord.map((x, i) => {
+    const kan = !!((x.plekken || {}).app && !(x.plekken || {}).app.weg), dit = x.sha === sha;
+    return '<div class="fs-doc' + (dit ? ' fs-dit' : '') + '"><span class="fs-doc-n"><b>' + (i === 0 ? 'Factuur' : 'Bijlage ' + i) + (dit ? ' · getoond' : '') + '</b><small>' + esc(x.naam || '') + '</small></span>'
+      + '<button class="mini" style="float:none" data-i="' + i + '" onclick="fsOpenDoc(+this.dataset.i)"' + (kan ? '' : ' disabled') + ' aria-label="' + esc((i === 0 ? 'Factuur' : 'Bijlage ' + i) + ' openen: ' + (x.naam || '')) + '">Openen</button>'
+      + (dit ? '' : '<button class="mini" style="float:none" data-sha="' + esc(x.sha) + '" onclick="fsToon(this.dataset.sha)" aria-label="Gegevens van ' + esc(x.naam || '') + '">Gegevens</button>') + '</div>';
+  }).join('');
+  const rol = geord.length < 2 ? '' : hoofd.sha === sha ? 'factuur' : 'bijlage';
+  $('#fs-open').textContent = geord.length < 2 ? 'Openen' : rol === 'factuur' ? 'Factuur openen' : 'Deze bijlage openen';
   $('#fs-tekst-d').open = false; $('#fs-tekst').textContent = '';
   const app = (s.plekken || {}).app;
   $('#fs-open').disabled = !(app && !app.weg);
@@ -645,6 +667,8 @@ function fsTekst(){
   $('#fs-tekst').textContent = r.error ? r.error : (r.tekst || '').trim() || '(geen tekst gevonden: misschien is de PDF een afbeelding)';
 }
 function fsOpen(){ const s = (faDos.items || []).find(x => x.sha === fsSha); if (s) Android.facturenOpen(s.leverancier, s.naam); }
+let fsDocs = [];
+function fsOpenDoc(i){ const s = fsDocs[i]; if (s) Android.facturenOpen(s.leverancier, s.naam); }
 function fsBewaar(){
   const e = Android.facturenDossierMeta(fsSha, JSON.stringify({ nummer: $('#fs-nummer').value.trim(), datum: $('#fs-datum').value, bedrag: $('#fs-bedrag').value.trim(), btw: $('#fs-btw').value.trim(), vervaldatum: $('#fs-verval').value, betaald: $('#fs-betaald').value, categorie: $('#fs-cat').value.trim(), notitie: $('#fs-notitie').value.trim() }));
   $('#fs-msg').textContent = e || '';

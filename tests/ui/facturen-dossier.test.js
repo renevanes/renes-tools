@@ -97,9 +97,16 @@ const { chromium } = require('playwright');
     // Dezelfde factuur in twee documenten (factuur en specificatie): één regel, bedrag uit het document dat het heeft
     await pg.evaluate(() => { const f = Android._fa; f.dos.spec = { ...f.dos.oud1, sha: 'spec', naam: 'KPN specificatie.pdf', meta: { nummer: f.dos.oud1.meta.nummer = '7001', datum: '2026-08-05', bron: 'herkend', versie: 3 } }; f.dos.oud1.meta.nummer = '7001'; fdRender(true); });
     await pg.waitForTimeout(60);
-    ok((await tekst('#fd-lijst')).includes('(2 documenten)') && (await tekst('#fd-tel')).includes('(5 documenten)'), 'dubbele factuur samengevoegd');
+    ok((await tekst('#fd-lijst')).includes('(+ 1 bijlage)') && (await tekst('#fd-tel')).includes('(5 documenten'), 'dubbele factuur samengevoegd: één factuur met een bijlage');
+    await pg.evaluate(() => fsToon('spec')); await pg.waitForTimeout(100);
+    ok(await pg.isVisible('#fs-docs') && (await tekst('#fs-docs')).includes('Documenten van deze factuur (2)') && (await tekst('#fs-docs')).includes('Factuur') && (await tekst('#fs-docs')).includes('Bijlage 1 · getoond') && (await tekst('#fs-docs')).includes('KPN specificatie.pdf'), 'detail: alle documenten, factuur eerst, welke getoond');
+    ok((await tekst('#fs-open')) === 'Deze bijlage openen', 'knop zegt wat hij opent');
+    await pg.click('#fs-docs-l .fs-doc:first-child button:has-text("Openen")'); await pg.waitForTimeout(80);
+    ok(await pg.evaluate(() => { const c = Android._fa.calls.filter(c => c[0] === 'open').pop(); return c && c[2] === Android._fa.dos.oud1.naam; }), 'de factuur zelf openen vanuit de lijst');
     await pg.evaluate(() => fsToon('oud1')); await pg.waitForTimeout(100);
-    ok((await tekst('#fs-info')).includes('Hoort bij dezelfde factuur') && (await tekst('#fs-info')).includes('KPN specificatie.pdf'), 'detail: ander document van dezelfde factuur');
+    ok((await tekst('#fs-open')) === 'Factuur openen' && (await tekst('#fs-docs')).includes('Factuur · getoond'), 'hoofddocument: factuur openen');
+    // Bijlage zonder nummer uit dezelfde mail hoort bij de factuur
+    ok(await pg.evaluate(() => { const g = fdGroepen([{ sha: 'a', leverancier: 'x', bron: { mailId: 'm1', afzender: 'K' }, meta: { nummer: '9', bedrag: '10,00' } }, { sha: 'b', leverancier: 'x', bron: { mailId: 'm1', afzender: 'K' }, meta: {} }, { sha: 'c', leverancier: 'x', bron: { mailId: 'm2' }, meta: {} }]); return g.get('a') === g.get('b') && g.get('c') !== g.get('a'); }), 'bijlage uit dezelfde mail hoort bij de factuur, andere mail niet');
     await pg.click('#fs-tekst-d summary'); await pg.waitForTimeout(80);
     ok((await tekst('#fs-tekst')).includes('Factuurnummer 7001'), 'tekst uit de PDF te bekijken');
     await pg.evaluate(() => { goBack(); const f = Android._fa; delete f.dos.oud1; delete f.dos.oud2; delete f.dos.spec; fdRender(true); }); await pg.waitForTimeout(60);
