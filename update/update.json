@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.140",
-  "versionCode": 141,
-  "nativeLevel": 127,
+  "versionName": "1.141",
+  "versionCode": 142,
+  "nativeLevel": 128,
   "web": "index.html",
-  "webSha256": "d40451f3fa7a13b4b075d550eb3ce5138e32bff14890bc8d7f0b5b3ea7da0fdf",
+  "webSha256": "886871044dcb2e50145af25d17f27ceaecec8fb0a58fdebbbba23c20130c4a66",
   "start": "start.html",
   "startSha256": "ca013c1e7d37c86b7299e7346900a6c0386581a676a519a1f40356316b7ea994",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "0a99ff0276a2c5b2cfd2a1beb9b8b1f50af69679c504bf21e47a458c4dcb5621",
+  "apkSha256": "1b5a4b0637725021be8b927cd7d67d0700d2da74e48caa604a2ef77c00159138",
   "changelog": [
+    {
+      "version": "1.141",
+      "date": "2026-11-04",
+      "changes": [
+        "Google Play-basis voorbereid met Notities, PDF, Radio en Podcasts, eigen rechten en automatische bundelcontroles.",
+        "Privacybeleid is nu vanuit Instellingen en Info te openen."
+      ]
+    },
     {
       "version": "1.140",
       "date": "2026-11-04",
@@ -1234,5 +1242,5 @@
       ]
     }
   ],
-  "webSig2": "gBQ9L/aSG0QGmTrVJj5VGspRftG5RccdCxNaHG2NZ/r9yyDKT+xcpMhMr2ItjshcnvOZuPp0+xs7+KHIdBX9JIL2M7j5n0b/e8T1fQRlgwbKFQ1CDRIYHIww1O0AQQryv/YmX+VfDUogF0X/INVqfHtZw5qWXyVHGhj5OvujqGIWV8LPEGNy0wAEBLqAd+xNRmbgk1jlp23GDdD/n+IY6E+Xnvr6PiOmNtVHYX7nNAzbH5qoXdct30nO0dCM6Ik/kzySiTVulon2ndt44mpITxsFALwV7dSQb89XOQ7nat22j1JG7zjev5SEAul3PCbtSjqkkFfHrKLG6er93ExCCm3uACaIL8X+WXQTkJNUIQtvGlmub4c3WiSG2JBFJsV0w8SvXSdoOUqDEEEGTUzbAdmWu7gs1xORfeOLg7KQtRPqfb7wDxlWULF8FUIfp3TaiNkBqDpx1xALBezImDygh4q6T4L0xquYwjeK8JeHHs1RX7rGgY3bzNSMgP8zU2++"
+  "webSig2": "MHrXjHWNUerqxiDmIblS0OYI39uOOB0Hs5GrotaHf0Fa9Rdt7y+Lchtgt2iAiFB/v6ISJ7QdPq1MXXF7Ib1xmaqN8gpQmX/IHcFdLJalSHAqAa0s8wuBVvkB999vWTVZnNYnWci9wKPu4LLMmzgg7c44jToNcS4C3wsc07WET2W+tLqWQaPEQPeLrtYup89FMEqPVAOvaf2py9sOXsloorvky9rEGVeXq0K2WNPI5cx7Tvt1Z2pWJ952YKr2eMyFtjXIEp61Dnzwn1LlVouY39FS3V/fOeYsLjux/A11BcQWQe/TufpdlTxVIYqQcR//ivf48MaN/8xru38RZFF/MIiBvAfeCBbk3xCVrNtGkwcclm4ljDRrtsx/ILFsDJUN4H7a92/GAQcXp3c4ZJLKK7BQhuLFEdlod4GI8a3BsxUIxh5cwGnU2Lh1p4j60VVJfUyIXsf1XzDrp9bNxgzpkywwZg7lFnhrn5LSCH2JbdPg+FJNXCSeHk6LbUitMYyZ"
 }

@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.141",
+    "date": "2026-11-04",
+    "changes": [
+      "Google Play-basis voorbereid met Notities, PDF, Radio en Podcasts, eigen rechten en automatische bundelcontroles.",
+      "Privacybeleid is nu vanuit Instellingen en Info te openen."
+    ]
+  },
+  {
     "version": "1.140",
     "date": "2026-11-04",
     "changes": [
