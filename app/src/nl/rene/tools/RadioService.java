@@ -848,17 +848,19 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
     private Notification notif() {
         String name = "Radio";
         try { name = new JSONObject(station).optString("name", "Radio"); } catch (Exception ignored) { }
-        String text = "connecting".equals(status) ? "Verbinden…" : "error".equals(status) ? (error == null ? "Fout" : error)
-                : "paused".equals(status) ? (ts != null ? "Gepauzeerd · gaat straks verder waar je was" : "Gepauzeerd")
-                : "interrupted".equals(status) ? "Onderbroken, gaat zo verder"
-                : ts != null && shiftBehind > LIVE_LAG + 2 ? behindText(shiftBehind) + " achter live" // de ICY-titel is die van live: niet tonen
+        // Vaste tekst hier al in de taal van de app; zender en titel zijn gegevens (Taal.keep hieronder)
+        String text = "connecting".equals(status) ? Taal.t(this, "Verbinden…") : "error".equals(status) ? (error == null ? Taal.t(this, "Fout") : Taal.tx(this, error))
+                : "paused".equals(status) ? Taal.t(this, ts != null ? "Gepauzeerd · gaat straks verder waar je was" : "Gepauzeerd")
+                : "interrupted".equals(status) ? Taal.t(this, "Onderbroken, gaat zo verder")
+                : ts != null && shiftBehind > LIVE_LAG + 2 ? Taal.t(this, "{tijd} achter live", "tijd", behindText(shiftBehind)) // de ICY-titel is die van live: niet tonen
                 : (title.isEmpty() ? "Live" : title);
-        if (alarm) text = "⏰ Wekker · " + text;
-        if (sleepAt > 0) text += " · stopt om " + Regio.time(this, sleepAt);
+        if (alarm) text = Taal.t(this, "⏰ Wekker") + " · " + text;
+        if (sleepAt > 0) text += " · " + Taal.t(this, "stopt om {tijd}", "tijd", Regio.time(this, sleepAt));
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         boolean playing = "playing".equals(status) || "connecting".equals(status) || "interrupted".equals(status);
         boolean shift = ts != null && shiftOn && !alarm && !"error".equals(status);
         Intent open = new Intent(this, MainActivity.class).putExtra("open", "radio").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        Taal.keep(b, Notification.EXTRA_TITLE, Notification.EXTRA_TEXT);
         b.setSmallIcon(R.drawable.ic_radio).setContentTitle(name).setContentText(text)
                 .setContentIntent(PendingIntent.getActivity(this, 22, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT))
                 .setDeleteIntent(action(STOP, 33))

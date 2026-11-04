@@ -666,13 +666,14 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
 
     private Notification notif() {
         String title = optEp("title"), podTitle = optPod("title");
-        String text = "connecting".equals(status) ? "Laden…" : "error".equals(status) ? (error == null ? "Fout" : error)
-                : "ended".equals(status) ? "Afgelopen" : podTitle;
-        if (sleepAt > 0) text += " · stopt om " + Regio.time(this, sleepAt);
-        else if (sleepEnd) text += " · stopt na deze aflevering";
+        String text = "connecting".equals(status) ? Taal.t(this, "Laden…") : "error".equals(status) ? (error == null ? Taal.t(this, "Fout") : Taal.tx(this, error))
+                : "ended".equals(status) ? Taal.t(this, "Afgelopen") : podTitle;
+        if (sleepAt > 0) text += " · " + Taal.t(this, "stopt om {tijd}", "tijd", Regio.time(this, sleepAt));
+        else if (sleepEnd) text += " · " + Taal.t(this, "stopt na deze aflevering");
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         boolean playing = "playing".equals(status) || "connecting".equals(status);
         Intent open = new Intent(this, MainActivity.class).putExtra("open", "podcasts").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        Taal.keep(b, Notification.EXTRA_TITLE, Notification.EXTRA_TEXT); // titels zijn gegevens; de vaste tekst staat er al vertaald in
         b.setSmallIcon(R.drawable.ic_podcast).setContentTitle(title.isEmpty() ? "Podcast" : title).setContentText(text)
                 .setContentIntent(PendingIntent.getActivity(this, 45, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT))
                 .setDeleteIntent(action(STOP, null, 46))

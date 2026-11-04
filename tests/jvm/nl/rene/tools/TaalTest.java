@@ -41,7 +41,7 @@ public class TaalTest {
         List<Object[]> ps = Taal.patterns(d);
         eq(Taal.tx(d, ps, "Opgeslagen"), "Saved", "tx: precies een sleutel");
         eq(Taal.tx(d, ps, "Poging 2 van 5"), "Attempt 2 of 5", "tx: sleutel met plaatshouders");
-        eq(Taal.tx(d, ps, "Auto redial: Thuis"), "Auto redial: Home", "tx: ingevuld deel dat zelf een sleutel is, ook vertaald");
+        eq(Taal.tx(d, ps, "Auto redial: Thuis"), "Auto redial: Thuis", "tx: het ingevulde deel (gegevens van Rene) blijft zoals het is");
         eq(Taal.tx(d, ps, "Iets anders"), "Iets anders", "tx: niets gevonden → zoals het was");
         eq(Taal.tx(d, ps, ""), "", "tx: leeg");
         check(ps.stream().noneMatch(p -> ((Integer) p[3]) < 4), "patronen zonder vaste tekst doen niet mee");

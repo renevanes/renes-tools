@@ -195,6 +195,6 @@ final class Car {
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
         b.setSmallIcon(R.drawable.ic_notif).setContentTitle("Rit opnemen?").setContentText("Android liet het niet vanzelf starten. Tik om de rit op te nemen.")
                 .setAutoCancel(true).setContentIntent(PendingIntent.getActivity(c, 4801, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
-        NotifCenter.post(c, 4801, Taal.n(c, b.build()));
+        NotifCenter.post(c, 4801, b.build());
     }
 }

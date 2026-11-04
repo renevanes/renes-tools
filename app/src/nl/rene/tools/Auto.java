@@ -366,16 +366,17 @@ final class Auto {
         JSONObject app = r.optJSONObject("app");
         String appName = app == null ? "" : app.optString("n");
         String text = r.optString("msg").trim();
-        if (text.isEmpty()) text = why + (appName.isEmpty() ? "" : ". Tik op Starten om " + appName + " te openen.");
+        // De naam van de app en het eigen bericht zijn van Rene: de vaste zin hier al vertalen en de tekst niet meer laten vertalen
+        if (text.isEmpty()) text = Taal.tx(c, why) + (appName.isEmpty() ? "" : ". " + Taal.t(c, "Tik op Starten om {app} te openen.", "app", appName));
         if (extra != null) text = extra;
         PendingIntent go = runIntent(c, id, true, notifId(id) * 2);
         Intent no = new Intent(c, AutoReceiver.Priv.class).setAction(ACTION_DISMISS).putExtra("nid", notifId(id));
         PendingIntent dismiss = PendingIntent.getBroadcast(c, notifId(id) * 2 + 1, no, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        Notification.Builder b = builder(c).setContentTitle(r.optString("name"))
+        Notification.Builder b = Taal.keep(builder(c), Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT).setContentTitle(r.optString("name"))
                 .setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                 .setContentIntent(go)
-                .addAction(new Notification.Action.Builder(null, "Starten", go).build())
-                .addAction(new Notification.Action.Builder(null, "Niet nu", dismiss).build());
+                .addAction(new Notification.Action.Builder(null, Taal.t(c, "Starten"), go).build())
+                .addAction(new Notification.Action.Builder(null, Taal.t(c, "Niet nu"), dismiss).build());
         if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(60 * 60_000L);
         post(c, notifId(id), b.build());
     }
@@ -385,11 +386,12 @@ final class Auto {
         String text = r.optString("msg").trim();
         if (text.isEmpty()) text = why;
         JSONObject app = r.optJSONObject("app");
-        Notification.Builder b = builder(c).setContentTitle(r.optString("name")).setContentText(text)
-                .setStyle(new Notification.BigTextStyle().bigText(text));
+        // Naam van de regel, het eigen bericht en de naam van de app zijn van Rene: niet vertalen
+        Notification.Builder b = Taal.keep(builder(c), Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT, "actions").setContentTitle(r.optString("name")).setContentText(r.optString("msg").trim().isEmpty() ? Taal.tx(c, text) : text)
+                .setStyle(new Notification.BigTextStyle().bigText(r.optString("msg").trim().isEmpty() ? Taal.tx(c, text) : text));
         if (app != null && !app.optString("p").isEmpty()) {
             PendingIntent open = runIntent(c, id, false, notifId(id) * 2);
-            b.setContentIntent(open).addAction(new Notification.Action.Builder(null, app.optString("n", "Openen"), open).build());
+            b.setContentIntent(open).addAction(new Notification.Action.Builder(null, app.has("n") ? app.optString("n") : Taal.t(c, "Openen"), open).build());
         }
         if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(2 * 60 * 60_000L);
         post(c, notifId(id), b.build());
@@ -398,7 +400,7 @@ final class Auto {
     /** Uitkomst van automatisch tikken (AutoA11y). */
     static void result(Context c, JSONObject r, boolean ok, String msg) {
         log(c, r, msg);
-        Notification.Builder b = builder(c).setContentTitle(r.optString("name") + (ok ? " ✓" : ": niet gelukt"))
+        Notification.Builder b = Taal.keep(builder(c), Notification.EXTRA_TITLE).setContentTitle(ok ? r.optString("name") + " ✓" : Taal.t(c, "{naam}: niet gelukt", "naam", r.optString("name")))
                 .setContentText(msg).setStyle(new Notification.BigTextStyle().bigText(msg));
         if (!ok) b.setContentIntent(runIntent(c, r.optString("id"), false, notifId(r.optString("id")) * 2));
         if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(ok ? 10 * 60_000L : 2 * 60 * 60_000L);

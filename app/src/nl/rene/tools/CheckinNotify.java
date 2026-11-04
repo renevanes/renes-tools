@@ -221,7 +221,7 @@ final class CheckinNotify {
                 b.addAction(ab.build());
             }
             if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(Math.max(60_000L, s.end - now));
-            NotifCenter.post(c, notifId(q), Taal.n(c, b.build()));
+            NotifCenter.post(c, notifId(q), b.build());
         } catch (Throwable e) { App.log(c, "CHECKIN", "melding maken: " + e); }
     }
 
@@ -275,7 +275,7 @@ final class CheckinNotify {
             Notification.Builder b = builder(c).setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(text)
                     .setOnlyAlertOnce(true).setAutoCancel(true).setTimeoutAfter(ok ? 4000 : 8000).setContentIntent(open(c, q, key))
                     .setVisibility(Notification.VISIBILITY_PRIVATE);
-            NotifCenter.post(c, notifId(q), Taal.n(c, b.build()));
+            NotifCenter.post(c, notifId(q), b.build());
             replaced = true;
         } catch (Throwable ignored) { }
         if (replaced) forget(c, qid); else dismiss(c, qid, null);

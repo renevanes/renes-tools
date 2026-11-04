@@ -195,15 +195,16 @@ final class Reminders {
                 .setData(android.net.Uri.fromParts("note", rid, null));
         PendingIntent pi = PendingIntent.getActivity(c, 6000 + (rid.hashCode() & 0xffff), open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
-        String sub = nxt > 0 ? "Volgende keer: " + Regio.fmt(c, "EEE d MMM HH:mm", nxt) : "Herinnering uit je notities";
-        b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title.isEmpty() ? "Herinnering" : title)
+        String sub = nxt > 0 ? Taal.t(c, "Volgende keer: {wanneer}", "wanneer", Regio.fmt(c, "EEE d MMM HH:mm", nxt)) : Taal.t(c, "Herinnering uit je notities");
+        Taal.keep(b, Notification.EXTRA_TITLE, Notification.EXTRA_TEXT); // de tekst van de herinnering is van Rene; sub staat al vertaald
+        b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title.isEmpty() ? Taal.t(c, "Herinnering") : title)
                 .setContentText(sub).setAutoCancel(true).setContentIntent(pi)
                 .setCategory(Notification.CATEGORY_REMINDER)
                 .addAction(new Notification.Action.Builder(null, "Over 10 min", action(c, ACTION_SNOOZE, rid, note, title, 10)).build())
                 .addAction(new Notification.Action.Builder(null, "Over 1 uur", action(c, ACTION_SNOOZE, rid, note, title, 60)).build())
                 .addAction(new Notification.Action.Builder(null, "Klaar", action(c, ACTION_DONE, rid, note, title, 0)).build());
         if (Build.VERSION.SDK_INT < 26) b.setPriority(Notification.PRIORITY_HIGH).setDefaults(Notification.DEFAULT_ALL);
-        NotifCenter.post(c, notifId(rid), Taal.n(c, b.build()));
+        NotifCenter.post(c, notifId(rid), b.build());
     }
 
     static PendingIntent action(Context c, String act, String rid, String note, String title, int minutes) {

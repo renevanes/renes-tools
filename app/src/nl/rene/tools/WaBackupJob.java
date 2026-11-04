@@ -69,8 +69,8 @@ public class WaBackupJob extends JobService {
         android.app.Notification.Builder b = Build.VERSION.SDK_INT >= 26
                 ? new android.app.Notification.Builder(c, NotifCenter.ch(c, WaBackupService.CHANNEL)) : new android.app.Notification.Builder(c);
         NotifCenter.post(c, WaBackupService.DONE_ID,
-                Taal.n(c, b.setSmallIcon(R.drawable.ic_backup).setContentTitle("Automatische WhatsApp-backup: probleem")
-                        .setContentText(st.message).setAutoCancel(true).setContentIntent(WaBackupService.open(c)).build()));
+                b.setSmallIcon(R.drawable.ic_backup).setContentTitle("Automatische WhatsApp-backup: probleem")
+                        .setContentText(st.message).setAutoCancel(true).setContentIntent(WaBackupService.open(c)).build());
     }
 
     /** Zorgt dat er een automatische backup gepland staat, zonder een lopende te onderbreken. */

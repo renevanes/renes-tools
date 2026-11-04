@@ -859,9 +859,9 @@ final class Facturen {
             Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
             Intent i = new Intent(c, MainActivity.class).putExtra("open", open).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             int nr = 4400 + (Math.abs(id.hashCode()) % 90);
-            NotifCenter.post(c, nr, Taal.n(c, b.setSmallIcon(R.drawable.ic_backup).setContentTitle(titel).setContentText(tekst)
+            NotifCenter.post(c, nr, b.setSmallIcon(R.drawable.ic_backup).setContentTitle(titel).setContentText(tekst)
                     .setStyle(new Notification.BigTextStyle().bigText(tekst)).setAutoCancel(true)
-                    .setContentIntent(PendingIntent.getActivity(c, nr, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT)).build()));
+                    .setContentIntent(PendingIntent.getActivity(c, nr, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT)).build());
         } catch (Throwable ignored) { }
     }
 

@@ -377,7 +377,7 @@ public class ApparatenJob extends JobService {
             Intent ig = new Intent(c, Ontvanger.class).setAction(ACTION_IGNORE).putExtra("id", id).putExtra("tok", App.token(c))
                     .setData(Uri.fromParts("apparaten", "negeren/" + id, null));
             b.addAction(new Notification.Action.Builder(null, "Negeren", PendingIntent.getBroadcast(c, REQ_ACT + n, ig, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT)).build());
-            NotifCenter.post(c, notifId(id), Taal.n(c, b.build()));
+            NotifCenter.post(c, notifId(id), b.build());
             return true;
         } catch (Throwable e) { App.log(c, "APPARATEN", "melding: " + e); return false; }
     }

@@ -477,9 +477,9 @@ final class FacturenAanlever {
             Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, Facturen.CHANNEL)) : new Notification.Builder(c);
             Intent i = new Intent(c, MainActivity.class).putExtra("open", "facturen").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             int nr = 4490 + (Math.abs(ontv.optString("id").hashCode()) % 9);
-            NotifCenter.post(c, nr, Taal.n(c, b.setSmallIcon(R.drawable.ic_backup).setContentTitle(titel).setContentText(tekst)
+            NotifCenter.post(c, nr, b.setSmallIcon(R.drawable.ic_backup).setContentTitle(titel).setContentText(tekst)
                     .setStyle(new Notification.BigTextStyle().bigText(tekst)).setAutoCancel(true)
-                    .setContentIntent(PendingIntent.getActivity(c, nr, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT)).build()));
+                    .setContentIntent(PendingIntent.getActivity(c, nr, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT)).build());
         } catch (Throwable ignored) { }
     }
 

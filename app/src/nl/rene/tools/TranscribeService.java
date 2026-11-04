@@ -45,7 +45,7 @@ public class TranscribeService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         createChannel(this);
-        Notification n = notif("Gesprekken uitschrijven", "Bezig…", -1);
+        Notification n = notif(Taal.t(this, "Gesprekken uitschrijven"), Taal.t(this, "Bezig…"), -1);
         if (!Fg.start(this, NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC, 29)) {
             // Android staat het nu niet toe (bijv. de dagelijkse limiet voor achtergrondwerk). Loopt er al werk, dan gewoon doorgaan.
             boolean running; synchronized (queue) { running = worker != null; }
@@ -162,7 +162,7 @@ public class TranscribeService extends Service {
         String text = "download".equals(phase) ? "Spraakmodel downloaden" : "decode".equals(phase) ? "Opname voorbereiden" : "Uitschrijven";
         if (left > 0) text += " · nog " + left + " in de wachtrij";
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,
-                Taal.n(this, notif(file == null ? "Gesprekken uitschrijven" : file, text, pct)));
+                Taal.n(this, notif(file == null ? Taal.t(this, "Gesprekken uitschrijven") : file, Taal.tx(this, text), pct)));
     }
 
     private static String msg(Throwable e) {
@@ -172,16 +172,17 @@ public class TranscribeService extends Service {
 
     private void finished(int done, int failed, String err, boolean stopped) {
         if (stopped || (done == 0 && failed == 0)) return;
-        String title = failed == 0 ? done + (done == 1 ? " gesprek uitgeschreven" : " gesprekken uitgeschreven")
-                : "Uitschrijven: " + failed + " mislukt";
+        String title = failed == 0 ? Taal.tn(this, done, "{n} gesprek uitgeschreven", "{n} gesprekken uitgeschreven")
+                : Taal.t(this, "Uitschrijven: {n} mislukt", "n", failed);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         NotifCenter.post(this, DONE_ID,
-                Taal.n(this, b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(err == null ? "Tik om te bekijken" : err)
-                        .setAutoCancel(true).setContentIntent(open(this)).build()));
+                b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(err == null ? Taal.t(this, "Tik om te bekijken") : err)
+                        .setAutoCancel(true).setContentIntent(open(this)).build());
     }
 
     private Notification notif(String title, String text, int pct) {
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
+        Taal.keep(b, Notification.EXTRA_TITLE, Notification.EXTRA_TEXT); // titel kan een bestandsnaam zijn; de vaste tekst is al vertaald
         b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(text).setOngoing(true)
                 .setOnlyAlertOnce(true).setContentIntent(open(this));
         if (pct >= 0) b.setProgress(100, pct, false); else b.setProgress(0, 0, true);

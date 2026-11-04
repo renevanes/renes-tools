@@ -105,7 +105,7 @@ final class NotifCenter {
                 // belangrijkheid blijft zoals jij hem in Android hebt gezet
                 if (nm.getNotificationChannel(k[0]) != null) continue;
                 NotificationChannel ch = new NotificationChannel(k[0], Taal.tx(c, k[1]), Integer.parseInt(k[3]));
-                ch.setDescription(k[2]);
+                ch.setDescription(Taal.tx(c, k[2]));
                 nm.createNotificationChannel(ch);
             }
         } catch (Exception ignored) { }

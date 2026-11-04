@@ -161,9 +161,10 @@ final class Taal {
             List<NotificationChannel> list = nm.getNotificationChannels();
             for (NotificationChannel ch : list) {
                 String was = String.valueOf(ch.getName()), now = switchName(c, was);
-                if (now.equals(was)) continue;
+                String dWas = ch.getDescription(), dNow = dWas == null ? null : switchName(c, dWas);
+                if (now.equals(was) && (dWas == null || dNow.equals(dWas))) continue;
                 NotificationChannel n = new NotificationChannel(ch.getId(), now, ch.getImportance());
-                if (ch.getDescription() != null) n.setDescription(switchName(c, ch.getDescription()));
+                if (dNow != null) n.setDescription(dNow);
                 if (ch.getGroup() != null) n.setGroup(ch.getGroup());
                 nm.createNotificationChannel(n);
             }
@@ -211,22 +212,42 @@ final class Taal {
                 if (!m.matches()) continue;
                 @SuppressWarnings("unchecked") List<String> names = (List<String>) p[1];
                 Object[] kv = new Object[names.size() * 2];
-                for (int i = 0; i < names.size(); i++) { kv[2 * i] = names.get(i); kv[2 * i + 1] = txPart(d, m.group(i + 1)); }
+                // Het ingevulde deel is meestal iets van Rene (een naam, een bestand, de tekst van een herinnering): zoals het is
+                for (int i = 0; i < names.size(); i++) { kv[2 * i] = names.get(i); kv[2 * i + 1] = m.group(i + 1); }
                 return fill((String) p[2], kv);
             }
         }
         return s;
     }
 
-    /** Een ingevuld deel ("Thuis", "3 onderdelen") ook vertalen als het zelf een sleutel is. */
-    private static String txPart(Map<String, Object> d, String v) { Object e = d.get(norm(v)); return e instanceof String ? (String) e : v; }
+
+    /** Uitkomsten van tx onthouden (dezelfde voortgangsmelding komt vaak terug): niet steeds alle patronen proberen. */
+    private static final TxCache TX_CACHE = new TxCache();
+    static final class TxCache extends java.util.LinkedHashMap<String, String> {
+        TxCache() { super(64, 0.75f, true); }
+        @Override protected boolean removeEldestEntry(Map.Entry<String, String> e) { return size() > 300; }
+        synchronized String hit(String k) { return super.get(k); }
+        synchronized void keep(String k, String v) { super.put(k, v); }
+    }
 
     static String tx(Context c, CharSequence s) {
         if (s == null || !en(c)) return s == null ? null : s.toString();
+        String k = s.toString(), hit = TX_CACHE.hit(k);
+        if (hit != null) return hit;
         Map<String, Object> d = dict(c);
         List<Object[]> ps = pats;
         if (ps == null) pats = ps = patterns(d);
-        return tx(d, ps, s.toString());
+        String r = tx(d, ps, k);
+        TX_CACHE.keep(k, r);
+        return r;
+    }
+
+    /** Extra in een melding: deze velden zijn gegevens van Rene (tekst van een herinnering, bestandsnaam, zender, titel)
+     *  en worden niet vertaald. Gebruik: Taal.keep(builder, Notification.EXTRA_TEXT, …) vóór build(). */
+    static final String KEEP = "nl.rene.tools.taal.keep";
+    static android.app.Notification.Builder keep(android.app.Notification.Builder b, String... fields) {
+        try { b.getExtras().putStringArray(KEEP, fields); } catch (Throwable ignored) { }
+        return b;
     }
 
     /** Een melding in de taal van de app: titel, tekst, lange tekst en knoppen (één plek vlak voor notify). */
@@ -234,13 +255,15 @@ final class Taal {
         if (n == null || !en(c)) return n;
         try {
             android.os.Bundle x = n.extras;
+            String[] keep = x == null ? null : x.getStringArray(KEEP);
+            java.util.Set<String> vast = new java.util.HashSet<>(keep == null ? java.util.Collections.<String>emptyList() : java.util.Arrays.asList(keep));
             if (x != null) for (String k : new String[]{android.app.Notification.EXTRA_TITLE, android.app.Notification.EXTRA_TEXT, android.app.Notification.EXTRA_BIG_TEXT,
                     android.app.Notification.EXTRA_SUB_TEXT, android.app.Notification.EXTRA_INFO_TEXT, android.app.Notification.EXTRA_SUMMARY_TEXT}) {
                 CharSequence v = x.getCharSequence(k);
-                if (v != null && !(v instanceof android.text.Spanned)) x.putCharSequence(k, tx(c, v));
+                if (v != null && !vast.contains(k) && !(v instanceof android.text.Spanned)) x.putCharSequence(k, tx(c, v));
             }
-            if (n.tickerText != null) n.tickerText = tx(c, n.tickerText);
-            if (n.actions != null) for (android.app.Notification.Action a : n.actions) if (a != null && a.title != null) a.title = tx(c, a.title);
+            if (n.tickerText != null && vast.isEmpty()) n.tickerText = tx(c, n.tickerText);
+            if (n.actions != null && !vast.contains("actions")) for (android.app.Notification.Action a : n.actions) if (a != null && a.title != null) a.title = tx(c, a.title);
             if (n.publicVersion != null && n.publicVersion != n) n(c, n.publicVersion);
         } catch (Throwable t) { App.log(c, "TAAL", String.valueOf(t)); }
         return n;
@@ -256,7 +279,7 @@ final class Taal {
     }
 
     static void describe(Context c, android.widget.RemoteViews v, int[] ids, String[] nl) {
-        if (!en(c) || Build.VERSION.SDK_INT < 15) return;
+        if (!en(c)) return;
         for (int i = 0; i < ids.length && i < nl.length; i++) v.setContentDescription(ids[i], t(c, nl[i]));
     }
 

@@ -128,14 +128,15 @@ public class AutoActions extends JobService {
             if (open < 15) b.append("☐ ").append(it.optString("text")).append('\n');
             open++;
         }
-        if (open > 15) b.append("en nog ").append(open - 15).append("…");
-        String text = b.length() > 0 ? b.toString().trim() : (n.optString("text").isEmpty() ? "Alles afgestreept ✓" : n.optString("text"));
+        if (open > 15) b.append(Taal.t(c, "en nog {n}…", "n", open - 15));
+        String text = b.length() > 0 ? b.toString().trim() : (n.optString("text").isEmpty() ? Taal.t(c, "Alles afgestreept ✓") : n.optString("text"));
         Auto.channel(c);
         Intent openNote = new Intent(c, MainActivity.class).putExtra("open", "note:" + n.optString("id"))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP).setData(android.net.Uri.fromParts("autonote", n.optString("id"), null));
         Notification.Builder nb = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, Auto.CHANNEL)) : new Notification.Builder(c);
-        String title = n.optString("title").isEmpty() ? "Notitie" : n.optString("title");
-        nb.setSmallIcon(R.drawable.ic_notif).setContentTitle(title + (open > 0 ? " · " + open + " open" : ""))
+        String title = n.optString("title").isEmpty() ? Taal.t(c, "Notitie") : n.optString("title");
+        Taal.keep(nb, Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT); // titel en items van de notitie zijn van Rene
+        nb.setSmallIcon(R.drawable.ic_notif).setContentTitle(title + (open > 0 ? " · " + Taal.t(c, "{n} open", "n", open) : ""))
                 .setContentText(text.split("\n")[0]).setStyle(new Notification.BigTextStyle().bigText(text))
                 .setAutoCancel(true).setContentIntent(PendingIntent.getActivity(c, Auto.notifId(r.optString("id")) * 2, openNote, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
         if (Build.VERSION.SDK_INT >= 26) nb.setTimeoutAfter(3 * 60 * 60_000L);
