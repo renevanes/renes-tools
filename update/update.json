@@ -1,15 +1,28 @@
 {
   "app": "Tools",
-  "versionName": "1.136",
-  "versionCode": 137,
-  "nativeLevel": 123,
+  "versionName": "1.137",
+  "versionCode": 138,
+  "nativeLevel": 124,
   "web": "index.html",
-  "webSha256": "91be9182f700bd86a87f9ac8ad8e1089543106c704906fd4cc0238d456da47ef",
+  "webSha256": "c8da0e75c1b4094b5ea207e3c565eba61eab037eeffcfb3dfd47f8e9470b2c49",
   "start": "start.html",
   "startSha256": "0ea90522dcf4d73fe5b0b6a7486ed095bcce9c93ee25b9ef370a77ac24c147f0",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "a9da5b02bd8ddaee71d048fdfcbfcdcf7fc8f71dcd210e33378f573d06ed40ea",
+  "apkSha256": "ab2a8659b169ac73b5d7bdd9621dc60b0e1e66ba48c826d9126eceb30aea22f0",
   "changelog": [
+    {
+      "version": "1.137",
+      "date": "2026-11-04",
+      "changes": [
+        "Bankzaken: meerdere rekeningen, privé en zakelijk. Bij een nieuwe rekening vraagt de app of hij privé of zakelijk is; je kunt kijken naar alles, alleen privé, alleen zakelijk of één rekening",
+        "Bankzaken zakelijk: omzet, kosten, resultaat en marge, met zakelijke categorieën (software, inkoop, advies en administratie, btw en loonheffing en meer); geld van zakelijk naar privé telt als privé-opname, niet als kosten",
+        "Facturen: kies per leverancier welke facturen: dit jaar (standaard), de laatste 3, 6, 12 of 24 maanden, vanaf een datum of alles; de app klikt op \"Toon meer\" om oudere facturen te laden en haalt er tot 50 per keer op (in te stellen tot 200)",
+        "Facturen: \"Alles van de periode opnieuw ophalen\" bij een leverancier haalt ook de oudere facturen alsnog op (zonder dubbele)",
+        "Facturen: dossier kiest nu ook een maand (bijv. januari) of een jaar; dezelfde factuur in meer documenten staat op één regel",
+        "Facturen: factuurnummer, datum en bedrag beter herkend (ook in tabellen en met de waarde op de volgende regel); nooit meer een stukje van de bestandsnaam als factuurnummer; de tekst uit de PDF is te bekijken bij de factuur",
+        "Facturen: Google koppelen kan nu met het Google-account dat al op je telefoon staat (geen browser of geheime sleutel nodig); het scherm Google toont de pakketnaam en SHA-1 die je in je Google-project invult"
+      ]
+    },
     {
       "version": "1.136",
       "date": "2026-11-04",
@@ -1193,5 +1206,5 @@
       ]
     }
   ],
-  "webSig2": "ZMJulgE6cVK3hcAxDKmumWxybPL+8yUcIh+rUSop1p5lB076OWHH2t5MaRAS5OOqKKFkQbziffSxUY44nlXpTrA/r1Bo4RDul9tbF+tPngfO8eFXeZ3SPBM2EHuGSVGuG4GvMcPo9DOZeDB/t2neCflrKZVzjXUy8JFvTbNFAKpEKIKuN+gNJkKsOoUiEYcSST7ngBjONiPb8x/HU2BbiMWe23i9gpZA20L5rYn3N1sc4dU5or4drqLPAsSn/mt2wgpZdGeqJAttixk0E1DrRsbMOb+tpNllrTNNkWLXos6zXRhyq3+8EZAcbBWQfraH53ryLiZMQDfpVBd8FxikBsxHrFETZ5Ye+/bnT6xZCRzc+8IMfQzvm3ljg3ns6eLJ5eRCBmuHmbDW7whaxdnvpDT6oHouTL2raKQLDuENggQn6t2gAJcKD5vUKDxfJl69uZ5H9FZouIl65mpGmJswjjL6ZKBNbA3Rx8TAAZug89Yh44BH6Yxw2xEEa2YejthE"
+  "webSig2": "OJJDRjExbrSnCL/gBQmk1sWsMdzdNTHzhCfhSQopWmLoOnevobfOzOuZnnT7kiK15WVVNDMVtV7YZi2vEURrt8cqa+TNvg3GNJLvM+Dsx2vnpRx/FXULmf9Y+HH5oHx3G2dzvJDrDBtbjNHHA0/QmG5tmF2SjgTcGEO6o2+fwL9/htUq8azYDChuJM3TODAJn3yseRhFmQqwSf21YvojIOgPrfoIcivpAnrD+vX9QSf/a2nrf5wO9RlcZny7cxIVk31hlnz4rextEzYnnMRUy8Ef1WDpm57ozWQVA1fE9DamXYljf/ykpsF5zw0l/FNXUlz001McDbkZSv8pEN0i4WvfpzqFwY1zB8170/ZJ7w0a5phwbOPRQimrNPVUudxmdiLhVEnkcngCg4fHs8uzvlwTb3VZw3hjO0vJPVvAhQR9YEwJgi0mApDcGsb5JzUGKMmJJ6Tra48WzSlsWYWLePIATcdr5/Mx/cTvxz9VpzYGCXOFLxl7YHge8bobyOcu"
 }
