@@ -63,7 +63,7 @@ function looksDutch(s){
   if (/^[\w$.#\-\[\]=:>*\s,"']+$/.test(t) && !/\s/.test(t) && !/^[A-Z][a-zë]+$/.test(t)) return false; // id, selector, sleutel
   if (/^(https?:|file:|content:|data:|blob:|\.|#|\/)/.test(t) && !/\s\p{L}{2,}\s/u.test(t)) return false;
   if (/^[a-z][a-zA-Z0-9_]*$/.test(t)) return false; // naam in code
-  if (/[{};]\s*$|=>|\bfunction\b|\(\)/.test(t)) return false;
+  if (/[{};]\s*$|=>|\bfunction\b|\(\)/.test(t.replace(/\{\w+\}/g, 'x'))) return false;
   const words = t.toLowerCase().match(/\p{L}+/gu) || [];
   if (words.some(w => NL_WORDS.has(w))) return true;
   return /^[A-ZÉ][a-zéëïöü]+/.test(t) || /\s/.test(t);
