@@ -91,18 +91,19 @@ function gsSnip(text, ql){
   return hl(text.length > 160 ? text.slice(0, 160) + '…' : text, ql);
 }
 function gsItem(kind, x, ql){
-  const gi = (title, sub, act) => '<button class=gi data-k="' + kind + '" data-x="' + esc(JSON.stringify(act)) + '" onclick="gsOpen(this)"><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</button>';
+  // Gevonden gegevens niet vertalen (translate="no"); alleen treffers in de app zelf (ui) wel
+  const gi = (title, sub, act, ui) => '<button class=gi data-k="' + kind + '" data-x="' + esc(JSON.stringify(act)) + '" onclick="gsOpen(this)"><b' + (ui ? '' : ' translate="no"') + '>' + title + '</b>' + (sub ? '<small' + (ui ? '' : ' translate="no"') + '>' + sub + '</small>' : '') + '</button>';
   switch (kind) {
     case 'notes': return gi(hl(x.title, ql), x.snip && x.snip !== x.title ? gsSnip(x.snip, ql) : '', {id: x.id});
-    case 'contacts': return gi(hl(x.n || '(zonder naam)', ql), esc(x.sub || ''), {k: x.k, id: x.id});
+    case 'contacts': return gi(x.n ? hl(x.n, ql) : esc(t('(zonder naam)')), esc(x.sub || ''), {k: x.k, id: x.id});
     case 'sms': return gi(esc(x.name || x.address || '') + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', gsSnip(x.text, ql), {thread: x.thread, name: x.name || ''});
     case 'wa': return gi(esc(x.chatName || '') + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.sender && !x.me ? esc(x.sender) + ': ' : '') + gsSnip(x.text || x.label, ql), {chat: x.chat, name: x.chatName || ''});
-    case 'calls': return gi(hl(x.name || x.number || 'Onbekend', ql), esc((x.label || '') + ' · ' + fmtD(x.date) + (x.number && x.number !== x.name ? ' · ' + x.number : '')), {ck: x.ck || '', cid: x.cid || '', number: x.number || ''});
+    case 'calls': return gi(x.name || x.number ? hl(x.name || x.number, ql) : esc(t('Onbekend')), esc(t(x.label || '') + ' · ' + fmtD(x.date) + (x.number && x.number !== x.name ? ' · ' + x.number : '')), {ck: x.ck || '', cid: x.cid || '', number: x.number || ''});
     case 'tx': return gi(esc(x.name) + ' <small style="display:inline">· ' + esc(fmtD(x.mtime)) + '</small>', gsSnip(x.text, ql), {id: x.id, from: x.from});
     case 'music': return gi(hl(x.title || '', ql), hl(x.artist || '', ql) + ' · ' + esc(fmtD(x.t)), {t: x.t});
     case 'sleep': return gi(esc(typeof slNightName === 'function' ? slNightName(x.t) : fmtD(x.t)) + ' <small style="display:inline">· ' + esc(fmtTime(x.t, { hour: '2-digit', minute: '2-digit' })) + '</small>', gsSnip(x.text, ql), {night: x.night, clip: x.clip});
     case 'checkin': return gi(esc(x.title) + ' <small style="display:inline">· ' + esc(typeof ciKeyLabel === 'function' ? ciKeyLabel(x.p) : fmtD(x.t)) + '</small>', gsSnip(x.text, ql), {q: x.q, p: x.p});
-    case 'app': return gi(hl(x.title, ql), esc(x.sub), {i: x.i});
+    case 'app': return gi(hl(t(x.title), ql), esc(t(x.sub)), {i: x.i}, true);
     case 'history': return gi(esc(x.app) + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.title ? esc(x.title) + ': ' : '') + gsSnip(x.text, ql), {});
   }
   return '';

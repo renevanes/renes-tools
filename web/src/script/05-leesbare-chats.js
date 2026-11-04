@@ -59,8 +59,8 @@ function loadChatList(){
   const el = $('#chat-list');
   el.innerHTML = (data.chats || []).map(c =>
     '<button onclick="openChat(' + c.id + ',' + jsq(c.name) + ',' + (c.group?1:0) + ')">' +
-    '<span class=r1><b>' + esc(c.name) + '</b><time>' + esc(fmtD(c.last)) + '</time></span>' +
-    '<span class=r2>' + (c.group ? '👥 ' : '') + esc(c.lastText || '') + ' · ' + c.n + '</span></button>').join('');
+    '<span class=r1><b translate="no">' + esc(c.name) + '</b><time>' + esc(fmtD(c.last)) + '</time></span>' +
+    '<span class=r2 translate="no">' + (c.group ? '👥 ' : '') + esc(c.lastText || '') + ' · ' + c.n + '</span></button>').join('');
   if (!(data.chats || []).length) el.innerHTML = '<p class=note style="padding:14px">Geen chats gevonden.</p>';
 }
 function openChat(id, name, group){

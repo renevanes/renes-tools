@@ -223,7 +223,7 @@ function plRenderQueue(m, force){
     $('#pl-qclear').style.display = 'none';
     const cur = m.station && m.station.url;
     box.innerHTML = rdFavs.map((s, i) => '<div class="pl-qrow' + (s.url === cur ? ' cur' : '') + '"><button class="pl-qb" onclick="plFavPlay(' + i + ')"' + (s.url === cur ? ' aria-current="true"' : '') + '>' + rdLogo(s) +
-      '<span class="pltxt"><b>' + esc(s.name) + '</b><small>' + (s.url === cur ? 'Speelt nu' : esc((s.tags || '').split(',').filter(Boolean).slice(0, 2).join(', '))) + '</small></span></button></div>').join('') ||
+      '<span class="pltxt"><b translate="no">' + esc(s.name) + '</b><small>' + (s.url === cur ? 'Speelt nu' : esc((s.tags || '').split(',').filter(Boolean).slice(0, 2).join(', '))) + '</small></span></button></div>').join('') ||
       '<p class="pl-empty">Tik op ☆ om zenders bij je favorieten te zetten; dan wissel je hier en met vegen op het logo snel tussen je zenders.</p>';
   }
 }

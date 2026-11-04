@@ -46,7 +46,7 @@ function gbRenderOverview(){
   if (!apps.length) { slHtml($('#gb-apps'), '<p class="note">' + (longP ? 'Per app zie je bij Vandaag of Week; hier gaat het om de totale schermtijd per dag of week.' : 'Nog niets te zien voor deze periode.') + '</p>'); return; }
   gbImgs = [];
   slHtml($('#gb-apps'), apps.map(a =>
-    '<div class="gb-app">' + gbIcon(a) + '<div class="gb-app-t"><b>' + esc(a.name || a.pkg) + '</b><small>' + t('{n}× geopend', { n: a.opens || 0 }) + '</small></div><span class="gb-app-d">' + gbDur(a.ms) + '</span></div>'
+    '<div class="gb-app">' + gbIcon(a) + '<div class="gb-app-t"><b translate="no">' + esc(a.name || a.pkg) + '</b><small>' + t('{n}× geopend', { n: a.opens || 0 }) + '</small></div><span class="gb-app-d">' + gbDur(a.ms) + '</span></div>'
   ).join(''));
   gbPaint('#gb-apps');
 }
@@ -116,7 +116,7 @@ function gbRenderNotifs(){
   } else perm.style.display = 'none';
   const apps = o.apps || [];
   gbImgs = [];
-  slHtml($('#gb-notifs'), apps.length ? apps.map(a => '<div class="gb-app">' + gbIcon(a) + '<div class="gb-app-t"><b>' + esc(a.name || a.pkg) + '</b></div><span class="gb-app-d">' + (a.n || 0) + '</span></div>').join('') : '<p class="note">Geen meldingen in deze periode.</p>');
+  slHtml($('#gb-notifs'), apps.length ? apps.map(a => '<div class="gb-app">' + gbIcon(a) + '<div class="gb-app-t"><b translate="no">' + esc(a.name || a.pkg) + '</b></div><span class="gb-app-d">' + (a.n || 0) + '</span></div>').join('') : '<p class="note">Geen meldingen in deze periode.</p>');
   gbPaint('#gb-notifs');
   const charge = o.charge || [], reboots = o.reboots || [];
   let h = '';

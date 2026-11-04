@@ -147,7 +147,7 @@ function apBtRow(d){
   if (d.tracker && d.tracker.warn) b += apBadge('tracker', 'bad');
   if (d.rotating && !d.name) b += apBadge('wisselend adres');
   return '<div role="listitem"><button class="ap-row" data-k="' + esc(d.key) + '" onclick="apOpenBt(this.dataset.k)">' + apIcon(d.type, d.tracker && d.tracker.warn) +
-    '<span class="tx"><b>' + esc(apDevTitle(d)) + '</b><small>' + esc(sub.filter(Boolean).join(' · ')) + '</small>' + (b ? '<span>' + b + '</span>' : '') + '</span>' + (d.near !== false ? apBars(d.avg) : '') + '</button></div>';
+    '<span class="tx"><b translate="no">' + esc(apDevTitle(d)) + '</b><small>' + esc(sub.filter(Boolean).join(' · ')) + '</small>' + (b ? '<span>' + b + '</span>' : '') + '</span>' + (d.near !== false ? apBars(d.avg) : '') + '</button></div>';
 }
 function apBtRender(){
   const d = apBtData || {}, list = (d.devices || []).slice().sort(apSortDevs), st = $('#ap-bt-st');
@@ -192,7 +192,7 @@ function apWifiLoad(busy){
     if (g.some(x => x.connected)) b += apBadge('Verbonden', 'ok');
     if (g.some(x => x.unsafe)) b += apBadge(n.sec === 'wep' ? 'onveilig (WEP)' : 'onveilig: open', 'bad');
     if (g.length > 1) b += apBadge(t('{n} toegangspunten', { n: g.length }));
-    return '<div class="ap-row static" role="listitem">' + apIcon('router') + '<span class="tx"><b>' + esc(name) + '</b><small>' + esc(sub.join(' · ')) + ' · ' + n.rssi + ' dBm</small>' + (b ? '<span>' + b + '</span>' : '') + '</span>' + apBars(n.rssi) + '</div>';
+    return '<div class="ap-row static" role="listitem">' + apIcon('router') + '<span class="tx"><b translate="no">' + esc(name) + '</b><small>' + esc(sub.join(' · ')) + ' · ' + n.rssi + ' dBm</small>' + (b ? '<span>' + b + '</span>' : '') + '</span>' + apBars(n.rssi) + '</div>';
   }).join('');
   apCrowdRender();
 }
@@ -254,7 +254,7 @@ function apLanRender(){
     if (x.known) b += apBadge('Mijn apparaat', 'ok');
     if (x.gateway) b += apBadge('router');
     const svc = (x.services || []).concat((x.ports || []).map(p => p.label)).filter((v, i, a) => a.indexOf(v) === i).slice(0, 4);
-    return '<div role="listitem"><button class="ap-row" data-k="' + esc(x.key) + '" onclick="apOpenLan(this.dataset.k)">' + apIcon(x.self ? 'telefoon' : x.kind) + '<span class="tx"><b>' + esc(apLanTitle(x) || x.ip) + '</b><small>' + esc(sub.join(' · ')) + '</small>' +
+    return '<div role="listitem"><button class="ap-row" data-k="' + esc(x.key) + '" onclick="apOpenLan(this.dataset.k)">' + apIcon(x.self ? 'telefoon' : x.kind) + '<span class="tx"><b translate="no">' + esc(apLanTitle(x) || x.ip) + '</b><small>' + esc(sub.join(' · ')) + '</small>' +
       (svc.length ? '<small>' + esc(svc.join(', ')) + '</small>' : '') + (b ? '<span>' + b + '</span>' : '') + '</span></button></div>';
   }).join('');
   $('#ap-lan-foot').textContent = t('Alleen je eigen netwerk{eigen}, hooguit 254 adressen, alleen via wifi en niets naar internet. De app kijkt alleen wat apparaten zelf aankondigen en welke gangbare diensten openstaan; hij logt nergens in.', { eigen: d.own ? ' (' + d.own + ')' : '' }) +

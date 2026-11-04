@@ -124,7 +124,7 @@ function loadCalls(){
   callsShown = d.calls || [];
   el.innerHTML = callsShown.map((c, i) =>
     '<button class="' + esc(c.kind) + '" onclick="callsPick(' + i + ')">' +
-    '<span class=r1><b>' + (c.fav ? '★ ' : '') + esc(c.name) + '</b><time>' + esc(fmtCallSpan(c)) + '</time></span>' +
+    '<span class=r1><b translate="no">' + (c.fav ? '★ ' : '') + esc(c.name) + '</b><time>' + esc(fmtCallSpan(c)) + '</time></span>' +
     '<span class=r2><span class=k>' + esc(c.label) + '</span>' + (c.ck || !c.number ? '' : '<span class=unk>onbekend</span> ') + (c.number && c.number !== c.name ? esc(c.number) + ' · ' : '') + esc(fmtCallDur(c.duration)) + '</span></button>').join('');
   if (!callsShown.length) el.innerHTML = '<p class=note style="padding:14px">' + (d.filtered ? 'Geen oproepen met deze filters. <a href="#" onclick="callsClearFilters();return false">Filters wissen</a>' : 'Geen oproepen gevonden.') + '</p>';
 }

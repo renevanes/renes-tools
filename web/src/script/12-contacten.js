@@ -27,8 +27,8 @@ function ctLoad(){
     (d.version ? ' · ' + t('versie {n} van {wanneer}', { n: d.version, wanneer: fmtD(d.versionT) }) : '');
   const list = d.contacts || [];
   el.innerHTML = list.slice(0, 600).map(c =>
-    '<button data-k="' + esc(c.k) + '" data-id="' + esc(c.id) + '" onclick="ctOpen(this.dataset.k, this.dataset.id)"><span class=r1><b>' + (c.fav ? '★ ' : '') + esc(c.n || '(zonder naam)') + '</b>' +
-    (c.u ? '<time>' + esc(fmtD(c.u)) + '</time>' : '') + '</span><span class=r2>' + esc(c.sub || '') + '</span></button>').join('')
+    '<button data-k="' + esc(c.k) + '" data-id="' + esc(c.id) + '" onclick="ctOpen(this.dataset.k, this.dataset.id)"><span class=r1><b translate="no">' + (c.fav ? '★ ' : '') + (c.n ? esc(c.n) : t('(zonder naam)')) + '</b>' +
+    (c.u ? '<time>' + esc(fmtD(c.u)) + '</time>' : '') + '</span><span class=r2 translate="no">' + esc(c.sub || '') + '</span></button>').join('')
     || '<p class=note style="padding:14px">Geen contacten gevonden.</p>';
   if (list.length > 600) el.innerHTML += '<p class=note style="padding:10px 2px 4px">' + t('Nog {n} contacten; zoek om ze te vinden.', { n: list.length - 600 }) + '</p>';
 }
@@ -38,10 +38,10 @@ function ctRenderDetail(){
   const d = ctJson(Android.contactsDetail(ctCur, String(ctCurId)));
   if (d.error) { toast(d.error); show('contacts'); return; }
   ctDetail = d; ctCur = d.k; ctCurId = String(d.id);
-  $('#ctd-title').textContent = d.n || 'Contact';
+  $('#ctd-title').textContent = d.n || t('Contact');
   const f = d.f || {};
   $('#ctd-fields').innerHTML = Object.keys(f).filter(k => k !== 'Naam').map(k =>
-    '<dt>' + esc(k) + '</dt><dd>' + esc(f[k]).replace(/\n/g, '<br>') + '</dd>').join('') +
+    '<dt>' + esc(t(k)) + '</dt><dd translate="no">' + esc(f[k]).replace(/\n/g, '<br>') + '</dd>').join('') +
     (d.u ? '<dt>Laatst gewijzigd</dt><dd>' + esc(fmtFull(d.u)) + '</dd>' : '');
   ctRenderCalls(d);
   const h = d.history || [];
@@ -69,8 +69,8 @@ function ctRenderCalls(d){
 function fmtFull(tt){ return fmtDT(tt, {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
 function ctChanges(d){
   return '<ul class=chg>' + (d || []).map(c => '<li><span>' + esc(c[0]) + '</span>' +
-    (c[1] ? '<del>' + esc(c[1]).replace(/\n/g, '<br>') + '</del>' : '') +
-    (c[2] ? '<ins>' + esc(c[2]).replace(/\n/g, '<br>') + '</ins>' : '') + '</li>').join('') + '</ul>';
+    (c[1] ? '<del translate="no">' + esc(c[1]).replace(/\n/g, '<br>') + '</del>' : '') +
+    (c[2] ? '<ins translate="no">' + esc(c[2]).replace(/\n/g, '<br>') + '</ins>' : '') + '</li>').join('') + '</ul>';
 }
 function ctEdit(){ if (ctDetail) Android.contactsEdit(ctCur, String(ctDetail.id)); }
 function enterVersions(){

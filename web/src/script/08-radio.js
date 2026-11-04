@@ -13,7 +13,7 @@ function rdRow(s, list, i){
   const cur = rdIsCur(s);
   const tags = (s.tags || '').split(',').filter(Boolean).slice(0, 3).join(', ');
   return '<div class="srow' + (cur ? ' playing' : '') + '"><button class=sbtn onclick="rdPlay(\'' + list + '\',' + i + ')">' + rdLogo(s) +
-    '<span class=stxt><b>' + esc(s.name) + '</b><small>' + esc(tags || (s.codec ? s.codec + (s.bitrate ? ' ' + s.bitrate + ' kbps' : '') : '')) + '</small></span>' +
+    '<span class=stxt><b translate="no">' + esc(s.name) + '</b><small>' + esc(tags || (s.codec ? s.codec + (s.bitrate ? ' ' + s.bitrate + ' kbps' : '') : '')) + '</small></span>' +
     (cur ? '<span class=eq><i></i><i></i><i></i></span>' : '') + '</button>' +
     '<button class=star onclick="rdFav(\'' + list + '\',' + i + ')" aria-label="' + (rdIsFav(s) ? t('{naam} uit favorieten', { naam: esc(s.name) }) : t('{naam} bij favorieten', { naam: esc(s.name) })) + '" aria-pressed="' + rdIsFav(s) + '">' + (rdIsFav(s) ? '★' : '☆') + '</button></div>';
 }
@@ -32,7 +32,7 @@ function rdFavMenu(i){
 function rdFavTile(s, i){
   const cur = rdIsCur(s);
   return '<div class="rdfav' + (cur ? ' playing' : '') + '"><button class="rdfavb" onclick="rdPlay(\'f\',' + i + ')" aria-label="' + (cur ? t('{naam}, speelt nu', { naam: esc(s.name) }) : t('{naam} afspelen', { naam: esc(s.name) })) + '">' +
-    rdLogo(s) + '<b>' + (cur ? '<span class=eq aria-hidden="true"><i></i><i></i><i></i></span>' : '') + esc(s.name) + '</b></button>' +
+    rdLogo(s) + '<b translate="no">' + (cur ? '<span class=eq aria-hidden="true"><i></i><i></i><i></i></span>' : '') + esc(s.name) + '</b></button>' +
     '<button class="rdfavm" onclick="rdFavMenu(' + i + ')" aria-label="' + t('Meer over {naam}', { naam: esc(s.name) }) + '">⋯</button></div>';
 }
 function rdIsCur(s){ return !!(rdState.station && (rdState.station.id ? rdState.station.id === s.id : rdState.station.url === s.url) && rdState.status !== 'stopped'); }

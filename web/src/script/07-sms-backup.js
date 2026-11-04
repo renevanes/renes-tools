@@ -29,8 +29,8 @@ function loadSmsList(){
   const el = $('#sms-list');
   el.innerHTML = (d.conversations || []).map(cv =>
     '<button onclick="openSms(' + cv.thread + ',' + jsq(cv.name) + ')">' +
-    '<span class=r1><b>' + esc(cv.name) + '</b><time>' + esc(fmtD(cv.last)) + '</time></span>' +
-    '<span class=r2>' + esc(cv.lastText || '') + ' · ' + cv.count + '</span></button>').join('');
+    '<span class=r1><b translate="no">' + esc(cv.name) + '</b><time>' + esc(fmtD(cv.last)) + '</time></span>' +
+    '<span class=r2 translate="no">' + esc(cv.lastText || '') + ' · ' + cv.count + '</span></button>').join('');
   if (!(d.conversations || []).length) el.innerHTML = '<p class=note style="padding:14px">Geen sms-berichten gevonden.</p>';
 }
 let smsChatCur = null;

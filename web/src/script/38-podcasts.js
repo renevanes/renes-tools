@@ -133,7 +133,7 @@ function pcRenderCont(){
   $('#pc-cont').innerHTML = pcCont.map((r, i) => {
     const e = r.ep, d = (+e.pd || (+e.dur || 0) * 1000), p = +e.pos || 0, pct = d > 0 ? Math.min(100, p / d * 100) : 0;
     return '<div class="pcep" role="listitem"><button class="pcepb" onclick="pcContPlay(' + i + ')">' + pcArt(e.image || (r.pod && r.pod.image)) +
-      '<span class="pctxt"><b>' + esc(e.title) + '</b><small>' + esc((r.pod && r.pod.title) || '') + (d > 0 ? ' · ' + t('nog {duur}', { duur: esc(fmtMin((d - p) / 6e4)) }) : '') + '</small>' +
+      '<span class="pctxt"><b translate="no">' + esc(e.title) + '</b><small translate="no">' + esc((r.pod && r.pod.title) || '') + (d > 0 ? ' · ' + t('nog {duur}', { duur: esc(fmtMin((d - p) / 6e4)) }) : '') + '</small>' +
       '<span class="pcprog"><i style="width:' + pct.toFixed(1) + '%"></i></span></span></button>' +
       '<button class="pcmore" onclick="pcContMenu(' + i + ')" aria-label="' + t('Meer over {titel}', { titel: esc(e.title) }) + '">⋯</button></div>';
   }).join('');
@@ -266,7 +266,7 @@ function pcListShow(){
 }
 function pcRowList(list, kind){
   return list.map((p, i) => '<div class="srow"><button class="sbtn" onclick="pdOpenFrom(\'' + kind + '\',' + i + ')">' + pcArt(p.image) +
-    '<span class="stxt"><b>' + esc(p.title) + '</b><small>' + esc([p.author, p.genre].filter(Boolean).join(' · ')) + '</small></span></button></div>').join('');
+    '<span class="stxt"><b translate="no">' + esc(p.title) + '</b><small>' + esc([p.author, p.genre].filter(Boolean).join(' · ')) + '</small></span></button></div>').join('');
 }
 function pdOpenFrom(kind, i){ pcTabUser = true; const p = (kind === 't' ? pcTop : pcRes) || []; if (p[i]) pdOpen(p[i]); }
 function pcShowTop(){
@@ -427,7 +427,7 @@ function pdRowHtml(e, i, cur){
   const d = +e.pd || (+e.dur || 0) * 1000, p = +e.pos || 0;
   const info = pdRowInfo(e);
   return '<div class="pcep' + (e.done ? ' done' : '') + (isCur ? ' cur' : '') + '" role="listitem" data-i="' + i + '"><button class="pcepb" onclick="pdPlay(' + i + ')">' +
-    '<span class="pctxt"><b>' + esc(e.title) + '</b><small>' + esc(info) + '</small>' +
+    '<span class="pctxt"><b translate="no">' + esc(e.title) + '</b><small>' + esc(info) + '</small>' +
     (p > 0 && d > 0 && !e.done ? '<span class="pcprog"><i style="width:' + Math.min(100, p / d * 100).toFixed(1) + '%"></i></span>' : '') + '</span>' +
     '<span class="pcplayi" aria-hidden="true">' + uiIcon(isCur && pcActive() ? 'pause' : 'play') + '</span></button>' +
     '<button class="pcmore" onclick="pdEpMenu(' + i + ')" aria-label="' + t('Meer over {titel}', { titel: esc(e.title) }) + '">⋯</button></div>';
@@ -477,7 +477,7 @@ function pdResumeShow(){
   const isCur = !!(pcSt.ep && pcSt.ep.key === e.key);
   const d = +e.pd || (+e.dur || 0) * 1000, p = +e.pos || 0, left = d > 0 && p > 0 ? t('nog {duur}', { duur: fmtMin((d - p) / 6e4) }) : '';
   const html = '<div class="pcep resume"><button class="pcepb" onclick="pdResumePlay()">' +
-    '<span class="pctxt"><span class="pclab">' + t(isCur && pcActive() ? 'Speelt nu' : 'Verder luisteren') + (left ? ' · ' + esc(left) : '') + '</span><b>' + esc(e.title) + '</b>' +
+    '<span class="pctxt"><span class="pclab">' + t(isCur && pcActive() ? 'Speelt nu' : 'Verder luisteren') + (left ? ' · ' + esc(left) : '') + '</span><b translate="no">' + esc(e.title) + '</b>' +
     (p > 0 && d > 0 ? '<span class="pcprog"><i style="width:' + Math.min(100, p / d * 100).toFixed(1) + '%"></i></span>' : '') + '</span>' +
     '<span class="pcplayi" aria-hidden="true">' + uiIcon(isCur && pcActive() ? 'pause' : 'play') + '</span></button>' +
     '<button class="pcmore" onclick="pdResumeMenu()" aria-label="' + t('Meer over {titel}', { titel: esc(e.title) }) + '">⋯</button></div>';

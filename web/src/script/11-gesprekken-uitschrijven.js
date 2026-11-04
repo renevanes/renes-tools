@@ -36,7 +36,7 @@ function txLoad(){
   $('#tx-all').textContent = todo.length ? t('Alles uitschrijven ({n})', { n: todo.length }) : t('Alles uitgeschreven');
   $('#tx-all').disabled = !todo.length;
   el.innerHTML = txRecs.map((r, i) =>
-    '<button onclick="txOpenIdx(' + i + ')"><span class=r1><b>' + esc(r.name || r.file) + '</b><time>' + esc(fmtD(r.mtime)) + '</time></span>' +
+    '<button onclick="txOpenIdx(' + i + ')"><span class=r1><b translate="no">' + esc(r.name || r.file) + '</b><time>' + esc(fmtD(r.mtime)) + '</time></span>' +
     '<span class=r2>' + (r.kind ? esc(TXKIND[r.kind] || '') + ' · ' : '') + (r.duration ? fmtMs(r.duration) + ' · ' : '') +
     (r.done ? (r.gone ? 'opname verwijderd · ' : '') + '<b class=ok>uitgeschreven</b>' + (r.preview ? ' — ' + esc(r.preview) : '') : 'nog niet uitgeschreven') +
     '</span></button>').join('') ||
@@ -91,8 +91,8 @@ function txSearchDo(){
     const d = txJson(Android.txSearch(q));
     const ql = q.toLowerCase();
     box.innerHTML = '<div class="clist card">' + ((d.results || []).map(x =>
-      '<button data-id="' + esc(x.id) + '" data-ms="' + (+x.from || 0) + '" onclick="txOpen(this.dataset.id, +this.dataset.ms)"><span class=r1><b>' + esc(x.name) + '</b><time>' + esc(fmtD(x.mtime)) + ' · ' + fmtMs(x.from) + '</time></span>' +
-      '<span class=r2 style="white-space:normal">' + hl(x.text, ql) + '</span></button>').join('') ||
+      '<button data-id="' + esc(x.id) + '" data-ms="' + (+x.from || 0) + '" onclick="txOpen(this.dataset.id, +this.dataset.ms)"><span class=r1><b translate="no">' + esc(x.name) + '</b><time>' + esc(fmtD(x.mtime)) + ' · ' + fmtMs(x.from) + '</time></span>' +
+      '<span class=r2 translate="no" style="white-space:normal">' + hl(x.text, ql) + '</span></button>').join('') ||
       '<p class=note style="padding:14px">Niets gevonden.</p>') + '</div>';
   }, 300);
 }

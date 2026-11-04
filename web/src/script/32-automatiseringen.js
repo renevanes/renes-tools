@@ -73,7 +73,7 @@ function auRender(){
   const list = $('#au-list');
   list.innerHTML = auState.rules.map(r => {
     const last = auState.last && auState.last[r.id];
-    return '<div class="card aurule' + (r.on === false ? ' off' : '') + '"><button class="aumain" onclick="autoEdit(' + jsq(r.id) + ')"><b>' + esc(r.name || 'Zonder naam') + '</b>' +
+    return '<div class="card aurule' + (r.on === false ? ' off' : '') + '"><button class="aumain" onclick="autoEdit(' + jsq(r.id) + ')"><b translate="no">' + (r.name ? esc(r.name) : t('Zonder naam')) + '</b>' +
       '<small>' + esc(auSummary(r)) + '</small>' + (last ? '<small class="aulast">' + esc(t('Laatst: {wanneer}', { wanneer: auWhen(last) })) + '</small>' : '') + '</button>' +
       '<button class="tg' + (r.on === false ? '' : ' on') + '" aria-label="' + t('{naam} aan', { naam: esc(r.name) }) + '" onclick="auToggle(' + jsq(r.id) + ', this)"></button></div>';
   }).join('');
@@ -179,9 +179,9 @@ function aeRender(){
       const devs = (bt.devices || []).slice().sort((a, b) => (b.car - a.car) || a.n.localeCompare(b.n));
       // gekozen apparaten die niet (meer) gekoppeld zijn toch tonen
       (r.bt || []).forEach((a, i) => { if (!devs.some(d => d.a === a)) devs.unshift({ a, n: (r.btNames || [])[i] || a, car: true }); });
-      $('#ae-bt').innerHTML = devs.map(d => '<button data-a="' + esc(d.a) + '" class="' + ((r.bt || []).includes(d.a) ? 'on' : '') + '">' + (d.car ? '🚗 ' : '') + esc(d.n) + '</button>').join('');
-      $('#ae-bt').querySelectorAll('button').forEach(b => b.onclick = () => aeToggleBt(b.dataset.a, b.textContent.replace(/^🚗 /, '')));
-      $('#ae-btnote').textContent = devs.length ? 'Kies de Bluetooth van je auto (koppel hem eerst in de Bluetooth-instellingen van je telefoon).' : 'Geen gekoppelde apparaten. Koppel eerst je telefoon met de auto.';
+      $('#ae-bt').innerHTML = devs.map(d => '<button translate="no" data-a="' + esc(d.a) + '" data-n="' + esc(d.n) + '" class="' + ((r.bt || []).includes(d.a) ? 'on' : '') + '">' + (d.car ? '🚗 ' : '') + esc(d.n) + '</button>').join('');
+      $('#ae-bt').querySelectorAll('button').forEach(b => b.onclick = () => aeToggleBt(b.dataset.a, b.dataset.n) /* naam uit de gegevens, niet uit het scherm */);
+      $('#ae-btnote').textContent = t(devs.length ? 'Kies de Bluetooth van je auto (koppel hem eerst in de Bluetooth-instellingen van je telefoon).' : 'Geen gekoppelde apparaten. Koppel eerst je telefoon met de auto.');
     }
   }
 

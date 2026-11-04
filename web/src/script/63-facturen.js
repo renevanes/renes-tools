@@ -73,7 +73,7 @@ function faRender(geenLaad){
     const p = faPeriode(l), fout = p.soort === 'mis' || p.soort === 'pw';
     const volgende = l.schema !== 'uit' && l.volgende ? t('Volgende keer: {wanneer}', { wanneer: faMoment(l.volgende) }) : t('Vanzelf: {wanneer}', { wanneer: faPlanTekst(l) });
     return '<div class="srow"><button class="sbtn" data-id="' + esc(l.id) + '" onclick="faOpen(this.dataset.id)"><span class="vpic" aria-hidden="true">' + uiIcon(l.soort === 'mail' ? 'mail' : 'document') + '</span>' +
-      '<span class="stxt"><b>' + esc(l.naam) + '</b><small' + (fout ? ' class="bad"' : '') + '>' + esc(p.tekst) + '</small><small>' + esc(volgende + ' · ' + faPlanTekst(l)) + '</small></span></button></div>';
+      '<span class="stxt"><b translate="no">' + esc(l.naam) + '</b><small' + (fout ? ' class="bad"' : '') + '>' + esc(p.tekst) + '</small><small>' + esc(volgende + ' · ' + faPlanTekst(l)) + '</small></span></button></div>';
   }).join('') || '<p class="note" style="padding:14px">Nog geen leveranciers. Tik op <b>Leverancier toevoegen</b>.</p>';
   $('#fa-nieuw').disabled = !!faSt.onleesbaar;
   faMaandRender();

@@ -159,11 +159,11 @@ function renderNotes(){
       sub = hits.length ? hits.slice(0, 4).map(i => (i.done ? '✓ ' : '') + hl(i.text, q)).join(' · ')
           : inText ? hl(flat.slice(Math.max(0, flat.toLowerCase().indexOf(q) - 20)), q) : '';
     } else {
-      sub = items.length ? esc(items.filter(i => !i.done).slice(0, 5).map(i => i.text).join(' · ') || 'Alles afgestreept') : esc(flat.slice(0, 80));
+      sub = items.length ? esc(items.filter(i => !i.done).slice(0, 5).map(i => i.text).join(' · ') || t('Alles afgestreept')) : esc(flat.slice(0, 80));
     }
     const rem = noteRems[n.id];
     const count=childCounts.get(n.id)||0,expanded=notesExpanded.has(n.id),depth=q||notesScope==='children'?0:Math.min(r.depth,3);
-    rows.push('<div class="notes-tree-row" style="padding-left:'+depth*14+'px"><button class="nrow" data-note-id="'+esc(n.id)+'" onclick="openNote(' + jsq(n.id) + ')"><span class="note-overview-avatar" aria-hidden="true">'+uiIcon(items.length?'notes':'document')+'</span><span class="note-row-content"><span class=r1><b>' + (rem ? '<span class=nrem>'+uiIcon('bell')+'</span> ' : '') + hl(title, q) + '</b><small>' +
+    rows.push('<div class="notes-tree-row" style="padding-left:'+depth*14+'px"><button class="nrow" data-note-id="'+esc(n.id)+'" onclick="openNote(' + jsq(n.id) + ')"><span class="note-overview-avatar" aria-hidden="true">'+uiIcon(items.length?'notes':'document')+'</span><span class="note-row-content"><span class=r1><b translate="no">' + (rem ? '<span class=nrem>'+uiIcon('bell')+'</span> ' : '') + hl(title, q) + '</b><small>' +
       (items.length ? (items.length - open) + '/' + items.length + ' ✓' : esc(fmtD(n.updated||0))) + '</small></span>' +
       (parent?'<span class=note-parent-label>'+t('↳ Onder {titel}', { titel: esc(parent.title||t('Zonder titel')) })+'</span>':'')+'<span class=r2 translate="no">' + (sub || t('Open deze notitie')) + '</span></span></button>'+
       (count&&notesScope==='all'&&!q?'<button class="note-tree-toggle '+(expanded?'expanded':'')+'" data-expand-id="'+esc(n.id)+'" aria-label="'+t('Sublijsten van {titel}', { titel: esc(title) })+'" aria-expanded="'+expanded+'" onclick="notesExpand('+jsq(n.id)+')">'+uiIcon('chevron-right')+'<small>'+count+'</small></button>':'')+'</div>');

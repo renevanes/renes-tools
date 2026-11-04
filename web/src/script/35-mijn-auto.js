@@ -41,8 +41,8 @@ function carRender(){
   // instellingen
   let devs = []; try { const d = JSON.parse(Android.autoBt()); devs = d.devices || []; carSt.btErr = d.error; } catch(e){}
   const sel = $('#car-dev');
-  sel.innerHTML = '<option value="">' + t('— Geen —') + '</option>' + devs.sort((a, b) => (b.car ? 1 : 0) - (a.car ? 1 : 0)).map(d => '<option value="' + esc(d.a) + '"' + (d.a === carSt.addr ? ' selected' : '') + '>' + esc(d.n) + (d.car ? ' 🚗' : '') + '</option>').join('');
-  if (carSt.addr && !devs.some(d => d.a === carSt.addr)) sel.insertAdjacentHTML('beforeend', '<option value="' + esc(carSt.addr) + '" selected>' + esc(carSt.name || carSt.addr) + '</option>');
+  sel.innerHTML = '<option value="">' + t('— Geen —') + '</option>' + devs.sort((a, b) => (b.car ? 1 : 0) - (a.car ? 1 : 0)).map(d => '<option translate="no" value="' + esc(d.a) + '" data-n="' + esc(d.n) + '"' + (d.a === carSt.addr ? ' selected' : '') + '>' + esc(d.n) + (d.car ? ' 🚗' : '') + '</option>').join('');
+  if (carSt.addr && !devs.some(d => d.a === carSt.addr)) sel.insertAdjacentHTML('beforeend', '<option translate="no" value="' + esc(carSt.addr) + '" data-n="' + esc(carSt.name || '') + '" selected>' + esc(carSt.name || carSt.addr) + '</option>');
   $('#car-trips-on').classList.toggle('on', !!carSt.trips);
   $('#car-def').value = carSt.defType || 'prive';
   const perm = $('#car-perm'); const need = [];
@@ -73,7 +73,7 @@ function carParkNow(){ toast('Locatie bepalen…'); Android.carParkNow(); }
 function carLeft(){ Android.carLeft(); enterCar(); }
 function carSave(){
   const sel = $('#car-dev'), opt = sel.options[sel.selectedIndex];
-  Android.carSet(sel.value, opt && sel.value ? opt.textContent.replace(' 🚗', '') : '', $('#car-trips-on').classList.contains('on'), $('#car-def').value);
+  Android.carSet(sel.value, opt && sel.value ? (opt.dataset.n || '') : '' /* de naam uit de gegevens, niet uit het (misschien vertaalde) scherm */, $('#car-trips-on').classList.contains('on'), $('#car-def').value);
   enterCar();
 }
 function carTripToggle(){ if (carSt.tripActive) Android.carTripStop(); else Android.carTripStart(); setTimeout(enterCar, 600); }

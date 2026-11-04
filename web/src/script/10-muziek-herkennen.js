@@ -56,8 +56,8 @@ function muRenderHistory(){
   const q = ($('#mu-search').value || '').trim().toLowerCase();
   const l = muHist.filter(r => !q || (r.title + ' ' + r.artist + ' ' + (r.album || '')).toLowerCase().includes(q));
   $('#mu-hist').innerHTML = l.map(r =>
-    '<button data-t="' + (+r.t || 0) + '" onclick="muOpen(+this.dataset.t)"><span class=r1><b>' + esc(r.title) + '</b><time>' + esc(fmtD(r.t)) + '</time></span>' +
-    '<span class=r2>' + esc(r.artist) + ((r.source || '').startsWith('radio:') ? ' · ' + esc(r.source.slice(6)) : '') + '</span></button>').join('') ||
+    '<button data-t="' + (+r.t || 0) + '" onclick="muOpen(+this.dataset.t)"><span class=r1><b translate="no">' + esc(r.title) + '</b><time>' + esc(fmtD(r.t)) + '</time></span>' +
+    '<span class=r2 translate="no">' + esc(r.artist) + ((r.source || '').startsWith('radio:') ? ' · ' + esc(r.source.slice(6)) : '') + '</span></button>').join('') ||
     '<p class=note style="padding:14px">' + (q ? 'Niets gevonden.' : 'Herkende nummers verschijnen hier.') + '</p>';
 }
 function muOpen(tt){

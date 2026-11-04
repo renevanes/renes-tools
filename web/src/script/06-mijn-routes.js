@@ -137,7 +137,7 @@ function loadTrack(){
   if (d.error) { toast(d.error); goBack(); return; }
   const st = d.stats || {};
   tdLine = d.line || [];
-  $('#td-title').textContent = d.title || 'Route';
+  $('#td-title').textContent = d.title || t('Route');
   $('#td-path').setAttribute('d', d.path || '');
   $('#td-dist').textContent = fmtKm(st.distance||0);
   $('#td-time').textContent = fmtDur(st.totalMs||0);
