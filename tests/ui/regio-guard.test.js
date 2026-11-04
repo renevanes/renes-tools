@@ -65,7 +65,7 @@ for (const f of Object.keys(JS_FILES_OK)) ok(fs.existsSync(path.join(root, f)), 
 const JAVA_FILES_OK = { 'Regio.java': 'de helper zelf' };
 // Regels die bewust vast blijven: [bestand, stukje tekst, reden]
 const JAVA_OK = [
-  ['LocalAi.java', 'new java.text.SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL"))', 'datum in de vaste tekst voor het taalmodel'],
+  ['LocalAi.java', 'new java.text.SimpleDateFormat("EEEE d MMMM yyyy", en ? Locale.UK : new Locale("nl", "NL"))', 'datum in de vaste tekst voor het taalmodel (Engels als de app Engels is)'],
   ['SmartSearch.java', 'new java.text.SimpleDateFormat("d MMM yyyy HH:mm", new java.util.Locale("nl", "NL"))', 'datums in de zoekindex voor het taalmodel'],
   ['SmartSearch.java', 'new java.text.SimpleDateFormat("EEEE d MMMM", new java.util.Locale("nl", "NL"))', 'nachten in de zoekindex voor het taalmodel'],
   ['AiData.java', "m.group(1).replace('.', ',')", 'plek in tekst voor het taalmodel'],

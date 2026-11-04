@@ -49,7 +49,7 @@ const path = require('path');
     const prev0 = await pg.textContent('#rg-prev');
     ok(/^(maan|dins|woens|donder|vrij|zater|zon)dag \d{1,2}-\d{1,2}-\d{4} · \d{2}:\d{2} · € 1\.234,56 · 12,5 km · 18 °C$/.test(prev0), 'voorbeeld bovenaan: ' + prev0);
     ok(await pg.evaluate(() => ['rg-lang', 'rg-clock', 'rg-date', 'rg-week', 'rg-place', 'rg-dist', 'rg-temp', 'rg-size', 'rg-speed', 'rg-cur', 'rg-dec', 'rg-grp'].every(id => document.getElementById(id).options.length > 0)), 'alle keuzelijsten gevuld');
-    ok(await pg.evaluate(() => $('#rg-lang').options.length === 1 && $('#rg-lang').options[0].text === 'Nederlands' && /\(volgt de telefoon\)$/.test($('#rg-tz').textContent) && !document.querySelector('select#rg-tz') && !$('#rg-vol') && $('#rg-cur').options.length >= 10 && /Standaardvaluta/.test($('label[for=rg-cur]').textContent.replace(/\u00ad/g, ''))), 'taal: alleen Nederlands; tijdzone alleen ter info (volgt de telefoon); geen inhoud; Standaardvaluta');
+    ok(await pg.evaluate(() => $('#rg-lang').options.length === 2 && $('#rg-lang').options[0].text === 'Nederlands' && $('#rg-lang').options[1].text === 'English' && /\(volgt de telefoon\)$/.test($('#rg-tz').textContent) && !document.querySelector('select#rg-tz') && !$('#rg-vol') && $('#rg-cur').options.length >= 10 && /Standaardvaluta/.test($('label[for=rg-cur]').textContent.replace(/\u00ad/g, ''))), 'taal: Nederlands en English; tijdzone alleen ter info (volgt de telefoon); geen inhoud; Standaardvaluta');
     await pg.evaluate(() => { window._rc = 0; addEventListener('regiochange', () => window._rc++); });
 
     // 3. Elke keuze
