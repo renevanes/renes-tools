@@ -72,8 +72,11 @@ final class FacturenRun {
     boolean geladen, codeBezig, handmatig, naarGeladen, klaarGemeld;
     int pwPogingen, userPogingen, codePogingen, inlogKlikken, stil, menuPogingen, zoekPogingen, terug;
     long codeSinds, wachtTot, knopSinds, afrondenSinds;
-    int knopIndex, vangstenVoor, meerKlikken;
+    int knopIndex, vangstenVoor, meerKlikken, meerVorige = -1, bekendOpRij;
     boolean meerKlaar;
+    /** Facturen die al eerder zijn opgehaald (SHA-256) en of dit een vervolg is (niet de eerste keer of "opnieuw"). */
+    final Set<String> bekend = new java.util.HashSet<>();
+    boolean vervolg;
     JSONArray knoppen;
     String lijstUrl;
     /** Geheim van deze run: alleen de robot (in een afgesloten functie) kent het; andere scripts en iframes niet. */
@@ -105,6 +108,9 @@ final class FacturenRun {
         this.klaar = k;
         this.maxDuur = zichtbaar ? 15 * 60_000L : 9 * 60_000L;
         this.domein = Facturen.domein(lev.optString("startUrl"));
+        JSONObject tt = Facturen.toestand(this.c, this.id), vw = tt.optJSONObject("verwerkt");
+        if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) bekend.add(it.next());
+        this.vervolg = tt.optLong("lastOk") > 0;
     }
 
     /** Starten (op de hoofdthread). Geeft "" of de reden waarom het niet kan. */
@@ -338,14 +344,21 @@ final class FacturenRun {
     }
 
     private void zoek() {
-        // Eerst zoveel mogelijk facturen op de pagina laten zien ("Toon meer"), hooguit 15 keer
+        // Eerst zoveel mogelijk facturen op de pagina laten zien ("Toon meer"), hooguit 15 keer; stoppen als er niets bijkomt
         if (!meerKlaar && !lev.optString("meer", Facturen.MEER).isEmpty() && meerKlikken < 15) {
-            js("__fr.meer(" + JSONObject.quote(lev.optString("meer", Facturen.MEER)) + ")", r -> {
+            js("__fr.tel(" + JSONObject.quote(lev.optString("knoppen")) + ")", rt -> {
                 if (fase != ZOEK) return;
-                if (str(r).isEmpty()) { meerKlaar = true; verder(300); return; }
-                meerKlikken++;
-                voortgang = "Meer facturen laden (" + meerKlikken + ")…";
-                verder(2500);
+                int n = 0;
+                try { n = Integer.parseInt(str(rt).trim()); } catch (Exception ignored) { }
+                if (meerVorige >= 0 && n <= meerVorige) { meerKlaar = true; verder(300); return; } // de vorige klik gaf niets extra
+                meerVorige = n;
+                js("__fr.meer(" + JSONObject.quote(lev.optString("meer", Facturen.MEER)) + ")", r -> {
+                    if (fase != ZOEK) return;
+                    if (str(r).isEmpty()) { meerKlaar = true; verder(300); return; }
+                    meerKlikken++;
+                    voortgang = "Meer facturen laden (" + meerKlikken + ")…";
+                    verder(2500);
+                });
             });
             return;
         }
@@ -355,7 +368,7 @@ final class FacturenRun {
                 JSONArray l = new JSONArray(str(r).isEmpty() ? "[]" : str(r));
                 if (l.length() == 0) {
                     if (++zoekPogingen >= 6) { einde(fout("Geen downloadknoppen gevonden op de facturenpagina. Pas bij Geavanceerd het patroon voor downloadknoppen aan.", false)); return; }
-                    voortgang = "Facturen zoeken…"; meerKlaar = false; meerKlikken = Math.max(meerKlikken, 12); // nog een paar keer "meer" proberen
+                    voortgang = "Facturen zoeken…";
                     verder(2500); return;
                 }
                 knoppen = l; knopIndex = 0; lijstUrl = wv.getUrl(); knopSinds = 0;
@@ -373,12 +386,15 @@ final class FacturenRun {
             knopSinds = 0; knopIndex++;
         }
         if (knopIndex >= knoppen.length()) { fase = AFRONDEN; afrondenSinds = nu; verder(500); return; }
-        // Weggeklikt naar een andere pagina? Eerst terug naar de lijst.
+        // Vervolg (niet de eerste keer): na 5 al bekende facturen op rij zijn de rest oudere die er al zijn
+        if (vervolg && bekendOpRij >= 5 && bezig.get() == 0) { voortgang = "Alle nieuwe facturen zijn binnen"; fase = AFRONDEN; afrondenSinds = nu; verder(300); return; }
+        // Weggeklikt naar een andere pagina? Eerst terug naar de lijst (en weer "meer" uitklappen).
         String nuUrl = wv.getUrl();
         if (lijstUrl != null && nuUrl != null && !nuUrl.equals(lijstUrl) && terug < 10) {
             terug++;
             if (wv.canGoBack()) wv.goBack(); else wv.loadUrl(lijstUrl);
-            h.postDelayed(() -> js("__fr.knoppen(" + JSONObject.quote(lev.optString("knoppen")) + "," + lev.optInt("max", 50) + ")", r -> verder(300)), 4000);
+            final int uitklappen = meerKlikken;
+            h.postDelayed(() -> klapUit(uitklappen, () -> js("__fr.knoppen(" + JSONObject.quote(lev.optString("knoppen")) + "," + lev.optInt("max", 50) + ")", r -> verder(300))), 4000);
             return;
         }
         JSONObject k = knoppen.optJSONObject(knopIndex);
@@ -388,6 +404,15 @@ final class FacturenRun {
         vangstenVoor = vangsten.get(); knopSinds = nu;
         js("__fr.klik(" + (k == null ? -1 : k.optInt("i")) + ")", null);
         verder(800);
+    }
+
+    /** Na het teruggaan naar de lijst: weer zo vaak op "meer" klikken als de eerste keer, zodat de knoppen kloppen. */
+    private void klapUit(int n, Runnable daarna) {
+        if (n <= 0 || fase == KLAAR) { daarna.run(); return; }
+        js("__fr.meer(" + JSONObject.quote(lev.optString("meer", Facturen.MEER)) + ")", r -> {
+            if (str(r).isEmpty()) { daarna.run(); return; }
+            h.postDelayed(() -> klapUit(n - 1, daarna), 2500);
+        });
     }
 
     private void afronden() {
@@ -469,6 +494,7 @@ final class FacturenRun {
             String sha = Facturen.sha(b);
             synchronized (pdfs) {
                 if (!pdfs.containsKey(sha)) {
+                    if (bekend.contains(sha)) bekendOpRij++; else bekendOpRij = 0;
                     JSONObject bron = new JSONObject().put("site", domein).put("url", url == null ? "" : url.replaceAll("[?#].*$", "")).put("pagina", paginaUrl == null ? "" : paginaUrl.replaceAll("[?#].*$", ""));
                     pdfs.put(sha, new Facturen.Pdf(b, Facturen.bestandsnaam(naam, url, lev.optString("naam"), sha), sha, null, bron));
                 }

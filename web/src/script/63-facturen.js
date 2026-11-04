@@ -168,7 +168,7 @@ function faOpen(id){
     ['Alles van de periode opnieuw ophalen', () => askConfirm('Alles opnieuw ophalen?', 'De app haalt alle facturen van de gekozen periode (' + faPeriodeTekst(l) + ') nog een keer op. Wat al binnen is, komt er niet dubbel in.', 'Ophalen', () => { const e = Android.facturenOpnieuw(id); if (e) { toast(e); return; } faNu(id, false); })],
     ['Instellingen', () => flOpen(l)],
     ['Verwijderen…', () => askConfirm(l.naam + ' verwijderen?', 'De instellingen en de facturen in de app gaan weg. Kopieën in je backup-map en in Eigen Cloud blijven staan.', 'Verwijderen', () => { const e = Android.facturenVerwijder(id); if (e) toast(e); faRender(); })]];
-  openSheet(l.naam, busy ? 'Er wordt nu opgehaald: even wachten' : faStatus(l), busy ? acts.filter(a => !/^(Nu ophalen|Ophalen en meekijken)/.test(a[0])) : acts);
+  openSheet(l.naam, busy ? 'Er wordt nu opgehaald: even wachten' : faStatus(l), busy ? acts.filter(a => !/^(Nu ophalen|Ophalen en meekijken|Alles van de periode)/.test(a[0])) : acts);
 }
 function faNu(id, meekijken){
   const e = Android.facturenNu(id, !!meekijken);
@@ -393,6 +393,13 @@ const FA_PLEK = { app: 'In de app', lok: 'Map op je telefoon', map: 'Backup-map'
 function fdLaad(){ faDos = rdJson(Android.facturenDossier(), { items: [], ontvangers: [] }); return faDos; }
 /** Stand van het aanleveren van één factuur: {soort: ok|mis|open|geen, tekst}. */
 function fdAanl(s){
+  if (s._docs && s._docs.length > 1) { // samengevoegd: het slechtste van alle documenten
+    const l = s._docs.map(d => fdAanl1(d));
+    return l.find(a => a.soort === 'mis') || l.find(a => a.soort === 'open') || l[0];
+  }
+  return fdAanl1(s);
+}
+function fdAanl1(s){
   const v = Object.entries(s.verzonden || {}), ok = v.filter(([, x]) => x.ok), mis = v.filter(([, x]) => !x.ok && !x.opnieuw);
   if (mis.length) return { soort: 'mis', tekst: '✗ Niet aangeleverd aan ' + mis.map(([id, x]) => x.naam || id).join(', ') };
   if (ok.length) return { soort: 'ok', tekst: '✓ Aangeleverd aan ' + ok.map(([id, x]) => (x.naam || id) + ' (' + faDatum(x.t) + ')').join(', ') };
@@ -504,10 +511,12 @@ function fdGroep(s, g){
 function fdSamen(items){
   const m = new Map(), uit = [];
   for (const s of items) {
-    const n = (s.meta || {}).nummer, k = n ? s.leverancier + '|' + n : '';
-    if (k && m.has(k)) { m.get(k)._docs.push(s); continue; }
+    // Zelfde leverancier (bij mail: zelfde afzender) en factuurnummer, en datum en bedrag spreken elkaar niet tegen
+    const me = s.meta || {}, n = me.nummer, k = n ? s.leverancier + '|' + ((s.bron || {}).afzender || '') + '|' + n : '';
+    const p = k && m.get(k), pm = p ? p._docs[0].meta || {} : {};
+    if (p && (!me.datum || !pm.datum || me.datum === pm.datum) && (!me.bedrag || !p._docs.some(d => (d.meta || {}).bedrag) || p._docs.some(d => (d.meta || {}).bedrag === me.bedrag))) { p._docs.push(s); continue; }
     const c = { ...s, _docs: [s] };
-    if (k) m.set(k, c);
+    if (k && !p) m.set(k, c);
     uit.push(c);
   }
   for (const c of uit) if (c._docs.length > 1) {
@@ -526,7 +535,7 @@ function fdRender(laad){
   $('#fd-vantot').style.display = inst.periode === 'zelf' ? 'flex' : 'none';
   // Maand of jaar kiezen: standaard deze maand / dit jaar; de jaren waarin facturen staan
   const jaren = [...new Set(docs.map(s => fdDatum(s).slice(0, 4)).filter(Boolean).concat([String(new Date().getFullYear())]))].sort().reverse();
-  if ($('#fd-jaar').options.length !== jaren.length) $('#fd-jaar').innerHTML = jaren.map(y => '<option value="' + y + '">' + y + '</option>').join('');
+  if ([...$('#fd-jaar').options].map(o => o.value).join() !== jaren.join()) $('#fd-jaar').innerHTML = jaren.map(y => '<option value="' + y + '">' + y + '</option>').join('');
   $('#fd-mndrij').style.display = inst.periode === 'mnd' || inst.periode === 'kjaar' ? 'flex' : 'none';
   $('#fd-mnd').style.display = inst.periode === 'mnd' ? '' : 'none'; $('#fd-jaar').style.display = inst.periode === 'kjaar' ? '' : 'none';
   $('#fd-mnd-l').textContent = inst.periode === 'kjaar' ? 'Jaar' : 'Maand';

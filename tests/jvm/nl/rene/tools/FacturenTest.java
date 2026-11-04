@@ -58,6 +58,9 @@ public class FacturenTest {
         try { Facturen.periode(new JSONObject().put("soort", "vanaf").put("vanaf", "gisteren")); } catch (Exception e) { slechtePeriode = true; }
         check(slechtePeriode && fout(new JSONObject(lijst.getJSONObject(0).toString()).put("periode", new JSONObject().put("soort", "ooit"))).contains("periode"), "ongeldige periode geweigerd");
         check(FacturenMail.sinds(kpn, 0, 0, nov4, ams) == jan1 && FacturenMail.sinds(kpn, nov4 - 86_400_000L, 0, nov4, ams) == nov4 - 3 * 86_400_000L, "mail: de eerste keer vanaf de periode, daarna sinds de vorige keer");
+        cal.clear(); cal.set(2026, 0, 5, 9, 0); long jan5 = cal.getTimeInMillis(); cal.clear(); cal.set(2025, 11, 5, 9, 0); long dec5 = cal.getTimeInMillis();
+        check(FacturenMail.sinds(kpn, dec5, 0, jan5, ams) == dec5 - 2 * 86_400_000L, "jaarwisseling (mail): ook de mails van eind december");
+        check(Facturen.grens(kpn, dec5, jan5, ams) == dec5 - 45 * 86_400_000L && Facturen.grens(kpn, 0, jan5, ams) < jan5 && Facturen.grens(kpn, 0, nov4, ams) == jan1, "jaarwisseling (website): facturen van december blijven; de eerste keer vanaf 1 januari");
         check(Facturen.normaal(new JSONObject(lijst.getJSONObject(0).toString()).put("max", 500)).getInt("max") == 200 && kpn.optString("meer").contains("toon meer"), "hooguit 200; standaard op Toon meer klikken");
         JSONObject metPw = Facturen.normaal(new JSONObject(lijst.getJSONObject(0).toString()).put("wachtwoord", "geheim123").put("code", new JSONObject().put("bron", "sms").put("wachtwoord", "x")));
         check(!metPw.toString().contains("geheim123") && !metPw.has("wachtwoord"), "wachtwoord komt nooit in de instellingen (alleen versleuteld apart)");

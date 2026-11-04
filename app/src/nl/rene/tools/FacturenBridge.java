@@ -33,7 +33,7 @@ public class FacturenBridge extends GebruikBridge {
                 java.text.SimpleDateFormat ym = new java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US);
                 if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) {
                     JSONObject r = vw.optJSONObject(it.next());
-                    if (r == null || r.optLong("t") == 0) continue;
+                    if (r == null || r.optLong("t") == 0 || r.optBoolean("buiten")) continue; // buiten de periode: niet binnengekomen
                     String m = ym.format(new java.util.Date(r.optLong("t")));
                     maanden.put(m, maanden.optInt(m) + 1);
                 }
@@ -113,6 +113,7 @@ public class FacturenBridge extends GebruikBridge {
     @JavascriptInterface public String facturenOpnieuw(String id) {
         try {
             if (Facturen.leverancier(ctx, id) == null) return "Leverancier niet gevonden";
+            if (FacturenRun.LOPEND.get() != null) return "Er worden al facturen opgehaald; probeer het straks nog een keer";
             synchronized (Facturen.LOCK) {
                 JSONObject t = Facturen.toestand(ctx, id), vw = t.optJSONObject("verwerkt");
                 if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) { JSONObject r = vw.optJSONObject(it.next()); if (r != null && r.optBoolean("buiten")) it.remove(); }
@@ -250,7 +251,7 @@ public class FacturenBridge extends GebruikBridge {
             java.io.File f = s == null ? null : FacturenAanlever.bestand(ctx, s);
             if (f == null) return "{\"error\":\"De factuur staat niet (meer) in de app\"}";
             return new JSONObject().put("tekst", FacturenDossier.tekst(f)).toString();
-        } catch (Exception e) { return err(e, "Lezen lukt niet"); }
+        } catch (Throwable e) { return "{\"error\":\"Lezen lukt niet\"}"; }
     }
 
     /** Factuurgegevens aanpassen: {nummer, datum, bedrag, btw, categorie, notitie}. Geeft "" of een fout. */

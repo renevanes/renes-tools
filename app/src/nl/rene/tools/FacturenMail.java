@@ -88,7 +88,7 @@ final class FacturenMail {
     /** Met de periode van de leverancier (dit jaar, laatste maanden, vanaf, alles): de eerste keer vanaf het begin daarvan. */
     static long sinds(JSONObject lev, long lastOk, long verder, long nu, java.util.TimeZone tz) {
         if (verder > 0) return verder - 1000L;
-        if (lastOk > 0) return Math.max(lastOk - 2 * 86_400_000L, Facturen.vanaf(lev, nu, tz));
+        if (lastOk > 0) return lastOk - 2 * 86_400_000L; // daarna: sinds de vorige keer (ook over de jaarwisseling heen)
         return Facturen.vanaf(lev, nu, tz);
     }
 

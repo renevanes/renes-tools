@@ -88,7 +88,7 @@ final class FacturenDossier {
                     .put("plekken", new JSONObject().put("app", new JSONObject().put("pad", f.getAbsolutePath()).put("t", System.currentTimeMillis())))
                     .put("verzonden", new JSONObject());
             // Factuurgegevens uit de tekst van de PDF (Android 15+), anders uit de bestandsnaam
-            JSONObject meta = herken(tekst(f) + "\n" + p.naam);
+            JSONObject meta = herken(tekst(f) + "\n" + naamZonderSha(p.naam));
             meta.put("bron", meta.length() > 0 ? "herkend" : "");
             if (PdfDoc.canText()) meta.put("versie", HERKEN_VERSIE);
             s.put("meta", meta);
@@ -186,7 +186,7 @@ final class FacturenDossier {
             for (Iterator<String> j = vw.keys(); j.hasNext(); ) {
                 String sha = j.next();
                 JSONObject r = vw.optJSONObject(sha);
-                if (r == null) continue;
+                if (r == null || r.optBoolean("buiten")) continue; // buiten de periode: niet bewaard
                 File f = new File(Facturen.pdfDir(c, id), r.optString("n"));
                 JSONObject plekken = new JSONObject();
                 if (f.isFile()) plekken.put("app", new JSONObject().put("pad", f.getAbsolutePath()).put("t", r.optLong("t")));
@@ -252,7 +252,7 @@ final class FacturenDossier {
             JSONObject s = e.getValue();
             File f = FacturenAanlever.bestand(c, s);
             String tekst = f == null ? "" : tekst(f);
-            nieuw.put(e.getKey(), herken(tekst + "\n" + s.optString("origineel") + "\n" + s.optString("naam")));
+            nieuw.put(e.getKey(), herken(tekst + "\n" + naamZonderSha(s.optString("origineel")) + "\n" + naamZonderSha(s.optString("naam"))));
         }
         int beter = 0;
         synchronized (Facturen.LOCK) {
@@ -280,16 +280,16 @@ final class FacturenDossier {
         String v = n.trim();
         if (v.length() < 4 || v.length() > 30 || v.toLowerCase(Locale.ROOT).endsWith(".pdf")) return false;
         if (v.replaceAll("\\D", "").length() < 4) return false;
-        if (v.matches("\\d{1,2}[-/.]\\d{1,2}[-/.]\\d{2,4}|\\d{4}-\\d{2}-\\d{2}")) return false;
+        if (v.matches("\\d{1,2}[-/.]\\d{1,2}[-/.]\\d{2,4}|\\d{4}-\\d{2}-\\d{2}|(19|20)\\d{2}[-_.](0[1-9]|1[0-2])")) return false; // datum of jaar-maand
         if (v.matches("[0-9a-f]{8}") && v.matches(".*[a-f].*")) return false; // de eerste 8 tekens van de SHA-256 in onze bestandsnamen
         return !v.matches("(?i)(NL)?\\d{2}[A-Z]{4}\\d{10}"); // geen IBAN
     }
 
     // Namen van velden zoals ze op facturen staan (ook in een kopregel van een tabel, met de waarden op de regel eronder)
-    private static final String L_NUMMER = "factuur ?nummer|factuur ?nr\\.?|factuurnr|nota ?nummer|nota ?nr\\.?|invoice (?:number|no\\.?)|invoice ?#|rekening ?nummer|documentnummer";
+    private static final String L_NUMMER = "factuur ?nummer|factuur ?nr\\.?|factuurnr|nota ?nummer|nota ?nr\\.?|invoice (?:number|no\\.?)|invoice ?#|documentnummer";
     private static final String L_DATUM = "factuurdatum|factuur datum|notadatum|documentdatum|datum factuur|invoice date|rechnungsdatum|datum";
     private static final String L_VERVAL = "uiterste betaaldatum|uiterlijk betalen(?: op| voor)?|vervaldatum|betaaldatum|due date|payment due";
-    private static final String L_ANDERS = "klant ?nummer|klantnr\\.?|debiteur ?nummer|debiteurnr\\.?|contract ?nummer|referentie|periode|betalingskenmerk|btw[- ]?nummer|kvk[- ]?nummer|pagina";
+    private static final String L_ANDERS = "leverdatum|subtotaal|totaal excl\\.?(?: btw)?|totaal btw|btw|klant ?nummer|klantnr\\.?|debiteur ?nummer|debiteurnr\\.?|contract ?nummer|referentie|periode|betalingskenmerk|btw[- ]?nummer|kvk[- ]?nummer|pagina";
     private static final String L_BEDRAG = "totaal te betalen|te betalen|totaalbedrag|totaal incl\\.?(?: btw)?|factuurbedrag|totaal";
     private static final String DATUMWAARDE = "\\d{1,2}[-/.]\\d{1,2}[-/.]\\d{2,4}|\\d{1,2} " + "(?:jan(?:uari)?|feb(?:ruari)?|mrt|maart|apr(?:il)?|mei|jun(?:i)?|jul(?:i)?|aug(?:ustus)?|sep(?:t(?:ember)?)?|okt(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\.? \\d{4}|\\d{4}-\\d{2}-\\d{2}";
     private static final String BEDRAGWAARDE = "(?:€|eur)?\\s?-?\\d{1,3}(?:\\.\\d{3})*,\\d{2}(?![\\d])|(?:€|eur)?\\s?-?\\d+\\.\\d{2}(?![\\d.])";
@@ -300,7 +300,7 @@ final class FacturenDossier {
      */
     private static void kopregels(String t, JSONObject m) throws Exception {
         String[] regels = t.split("\\r?\\n");
-        Pattern lab = Pattern.compile("(?i)(" + L_VERVAL + ")|(" + L_NUMMER + ")|(" + L_DATUM + ")|(" + L_BEDRAG + ")|(" + L_ANDERS + ")");
+        Pattern lab = Pattern.compile("(?i)(?<![a-z])(?:(" + L_VERVAL + ")|(" + L_NUMMER + ")|(" + L_DATUM + ")|(" + L_BEDRAG + ")|(" + L_ANDERS + "))(?![a-z])");
         Pattern waarde = Pattern.compile("(?i)(" + DATUMWAARDE + ")|(" + BEDRAGWAARDE + ")|([A-Z0-9][A-Z0-9./-]*)");
         for (int i = 0; i + 1 < regels.length; i++) {
             java.util.List<String> soorten = new java.util.ArrayList<>();
@@ -327,42 +327,52 @@ final class FacturenDossier {
         }
     }
 
+    /** Onze eigen bestandsnaam zonder het stukje controlegetal ("… f59e6964.pdf"), zodat dat nooit als nummer telt. */
+    static String naamZonderSha(String n) { return n == null ? "" : n.replaceAll("(?i)\\s[0-9a-f]{8}(\\.pdf)$", "$1"); }
+
     /** Factuurnummer, -datum, totaalbedrag, btw en uiterste betaaldatum uit de tekst van een factuur (of de bestandsnaam). */
     static JSONObject herken(String tekst) {
         JSONObject m = new JSONObject();
         if (tekst == null) return m;
         String t = tekst.replace('\u00a0', ' ').replace('\t', ' ');
         try {
-            // Factuurnummer: naam en waarde op dezelfde regel, of de waarde op de regel eronder
-            Matcher x = Pattern.compile("(?i)(?:" + L_NUMMER + ")[\\s:#.]{1,6}(?:\\n\\s*)?([A-Z0-9][A-Z0-9./-]{2,30})").matcher(t);
-            while (x.find()) { String n = x.group(1).replaceAll("[./-]+$", ""); if (geldigNummer(n)) { m.put("nummer", n); break; } }
+            kopregels(t, m); // eerst tabellen (kopregel met de waarden eronder): daar hoort elke waarde bij zijn eigen kolom
+            // Naam en waarde op dezelfde regel, of een naam alleen op zijn regel met de waarde eronder
+            String los = "(?:[ :#.]{1,6}|[ :#.]*\\n\\s*)";
+            Matcher x = Pattern.compile("(?im)(?:(?<![a-z])(?:" + L_NUMMER + ")[ :#.]{1,6}|^[ ]*(?:" + L_NUMMER + ")[ :#.]*\\n\\s*)([A-Z0-9][A-Z0-9./-]{2,30})").matcher(t);
+            while (!m.has("nummer") && x.find()) { String n = x.group(1).replaceAll("[./-]+$", ""); if (geldigNummer(n)) m.put("nummer", n); }
             if (!m.has("nummer")) { // alleen "Factuur 123456" (niet in onze eigen bestandsnaam met controlegetal)
                 x = Pattern.compile("(?i)\\bfactuur[\\s:#.]{1,4}([A-Z]{0,4}\\d[A-Z0-9/-]{3,29})\\b").matcher(t);
                 while (x.find()) { String n = x.group(1).replaceAll("[./-]+$", ""); if (geldigNummer(n)) { m.put("nummer", n); break; } }
             }
-            String d = null;
-            String w = "[\\s:]{1,6}(?:\\n\\s*)?(" + DATUMWAARDE + "|\\d{1,2}[-/. ](?:" + MAAND + ")[-/. ]\\d{2,4})";
-            x = Pattern.compile("(?i)(?:factuurdatum|factuur datum|notadatum|documentdatum|datum factuur|invoice date|rechnungsdatum)" + w).matcher(t);
-            if (x.find()) d = datum(x.group(1));
+            String d = m.has("datum") ? m.optString("datum") : null;
+            String wv = "(" + DATUMWAARDE + "|\\d{1,2}[-/. ](?:" + MAAND + ")[-/. ]\\d{2,4})";
+            String sterk = "factuurdatum|factuur datum|notadatum|documentdatum|datum factuur|invoice date|rechnungsdatum";
+            if (d == null) { x = Pattern.compile("(?im)(?:(?<![a-z])(?:" + sterk + ")[ :]{1,6}|^[ ]*(?:" + sterk + ")[ :]*\\n\\s*)" + wv).matcher(t); if (x.find()) d = datum(x.group(1)); }
             if (d == null) {
-                x = Pattern.compile("(?i)(?<![a-z])(?<!due |payment |verval |uiterste |betaal |betalings)(?:datum|date)" + w).matcher(t);
+                x = Pattern.compile("(?im)(?:(?<![a-z])(?<!due |payment |verval |uiterste |betaal |betalings|lever )(?:datum|date)[ :]{1,6}|^[ ]*(?:datum|date)[ :]*\\n\\s*)" + wv).matcher(t);
                 if (x.find()) d = datum(x.group(1));
             }
             if (d != null) m.put("datum", d);
-            x = Pattern.compile("(?iu)(?:uiterste betaaldatum|uiterlijk betalen(?: op| voor)?|te betalen (?:voor|v\\u00f3\\u00f3r|uiterlijk)|vervaldatum|betaaldatum|due date|payment due)" + w).matcher(t);
-            if (x.find()) { String v = datum(x.group(1)); if (v != null) m.put("vervaldatum", v); }
-            // Bedrag: de laatste "totaal" (ook met de waarde op de volgende regel); nooit een stukje van een datum
-            x = Pattern.compile("(?i)(?:totaal ?(?:te betalen|bedrag|incl\\.?(?: btw)?|factuurbedrag)?|te betalen|totaalbedrag|factuurbedrag|amount due|total(?: due| amount)?)(?![a-z])[^\\d€\\n]{0,30}(?:\\n[^\\d€\\n]{0,10})?(?:€|eur|euro)?\\s*(-?\\d{1,3}(?:[.\\s]\\d{3})*,\\d{2}|-?\\d+[.,]\\d{2})(?![\\d]|[.,]\\d)").matcher(t);
+            String verval = "uiterste betaaldatum|uiterlijk betalen(?: op| voor)?|te betalen (?:voor|v\\u00f3\\u00f3r|uiterlijk)|vervaldatum|betaaldatum|due date|payment due";
+            x = Pattern.compile("(?imu)(?:(?<![a-z])(?:" + verval + ")[ :]{1,6}|^[ ]*(?:" + verval + ")[ :]*\\n\\s*)" + wv).matcher(t);
+            if (!m.has("vervaldatum") && x.find()) { String v = datum(x.group(1)); if (v != null) m.put("vervaldatum", v); }
+            // Bedrag: eerst wat "te betalen" / "totaal incl." heet, dan een gewoon "totaal" (niet excl. btw of totaal btw),
+            // dan "bedrag"; telkens de laatste (meestal het eindbedrag); nooit een stukje van een datum
+            String getal = "(?:€|eur|euro)?\\s*(-?\\d{1,3}(?:[.\\s]\\d{3})*,\\d{2}|-?\\d+[.,]\\d{2})(?![\\d]|[.,]\\d)";
+            String[] soorten = {
+                    "(?<![a-z])(?:totaal te betalen|te betalen|totaalbedrag|totaal incl\\.?(?: btw)?|totaal inclusief(?: btw)?|factuurbedrag|amount due|total due|total amount)(?![a-z])",
+                    "(?<![a-z])(?:totaal|total)(?![a-z])(?!\\s*(?:excl|exclusief|btw|vat|ex\\b))",
+                    "(?<![a-z])bedrag(?![a-z])"};
             String best = null;
-            while (x.find()) best = x.group(1);
-            if (best == null) { // anders: "Bedrag" (zonder totaal)
-                x = Pattern.compile("(?i)(?<![a-z])bedrag(?![a-z])[^\\d€\\n]{0,25}(?:€|eur)?\\s*(-?\\d{1,3}(?:[.\\s]\\d{3})*,\\d{2}|-?\\d+[.,]\\d{2})(?![\\d]|[.,]\\d)").matcher(t);
+            for (String sk : soorten) {
+                if (m.has("bedrag") || best != null) break;
+                x = Pattern.compile("(?i)" + sk + "[^\\d€\\n]{0,30}(?:\\n[^\\d€\\n]{0,10})?" + getal).matcher(t);
                 while (x.find()) best = x.group(1);
             }
-            if (best != null) { String b = bedrag(best); if (b != null) m.put("bedrag", b); }
-            x = Pattern.compile("(?i)(?:btw|vat|omzetbelasting)(?:\\s*\\d{1,2}(?:[.,]\\d)?\\s*%)?[^\\d€\\n]{0,15}(?:€|eur)?\\s*(\\d{1,3}(?:[.\\s]\\d{3})*,\\d{2}|\\d+\\.\\d{2})(?![\\d]|[.,]\\d)").matcher(t);
-            if (x.find()) { String b = bedrag(x.group(1)); if (b != null) m.put("btw", b); }
-            kopregels(t, m); // tabellen: wat nog ontbreekt
+            if (best != null) { String bd = bedrag(best); if (bd != null) m.put("bedrag", bd); }
+            x = Pattern.compile("(?i)(?<![a-z])(?<!excl\\. |incl\\. |excl |incl |exclusief |inclusief )(?:totaal )?(?:btw|vat|omzetbelasting)(?![a-z-])(?:\\s*\\d{1,2}(?:[.,]\\d)?\\s*%)?[^\\d€\\n]{0,15}(?:€|eur)?\\s*(\\d{1,3}(?:[.\\s]\\d{3})*,\\d{2}|\\d+\\.\\d{2})(?![\\d]|[.,]\\d)").matcher(t);
+            if (!m.has("btw") && x.find()) { String bd = bedrag(x.group(1)); if (bd != null) m.put("btw", bd); }
             // Als laatste: een datum in de bestandsnaam (2026-10)
             if (!m.has("datum")) { x = Pattern.compile("\\b(20\\d{2})[-_.](0[1-9]|1[0-2])(?:[-_.](0[1-9]|[12]\\d|3[01]))?\\b").matcher(t); if (x.find()) m.put("datum", x.group(1) + "-" + x.group(2) + "-" + (x.group(3) == null ? "01" : x.group(3))); }
         } catch (Exception ignored) { }

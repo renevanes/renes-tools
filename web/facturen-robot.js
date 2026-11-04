@@ -191,6 +191,8 @@
       });
       return JSON.stringify(uit);
     },
+    /** Hoeveel downloadknoppen er nu op de pagina staan (om te zien of "meer" iets opleverde). */
+    tel(patroon){ return String(JSON.parse(this.knoppen(patroon, 100000)).length); },
     /** "Toon meer"-knop (laadt meer facturen op dezelfde pagina): klikken en de tekst teruggeven, of ''. Geen links naar een andere pagina. */
     meer(patroon){
       const re = new RegExp(patroon, 'i');

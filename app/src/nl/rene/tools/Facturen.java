@@ -532,16 +532,26 @@ final class Facturen {
         Pdf(byte[] d, String n, String s, String sub, JSONObject bron) { data = d; naam = n; sha = s; this.sub = sub == null || sub.trim().isEmpty() ? null : veiligeNaam(sub).replace('.', '_').trim(); this.bron = bron; }
     }
 
-    /** Nieuwe facturen bewaren en afleveren; geeft {nieuw, gevonden, namen, fouten} terug. */
-    /** Staat de factuurdatum (herkend uit de PDF of de naam) vóór de gekozen periode? Onbekende datum: nee (dan bewaren). */
-    static boolean voorPeriode(JSONObject lev, File f, String naam) {
-        long v = vanaf(lev, System.currentTimeMillis(), java.util.TimeZone.getDefault());
-        if (v <= 0) return false;
-        String d = FacturenDossier.herken(FacturenDossier.tekst(f) + "\n" + naam).optString("datum");
+    /**
+     * Vanaf welke factuurdatum bewaren: de periode bij de eerste keer (of na "opnieuw"); daarna ook wat sinds de vorige
+     * keer is binnengekomen (anders valt bij de jaarwisseling een factuur van eind december weg). 0 = alles.
+     */
+    static long grens(JSONObject lev, long lastOk, long nu, java.util.TimeZone tz) {
+        long v = vanaf(lev, nu, tz);
+        if (v <= 0 || lastOk <= 0) return v;
+        return Math.min(v, lastOk - 45 * 86_400_000L);
+    }
+
+    /** Staat de factuurdatum (herkend uit de PDF of de naam) vóór de grens? Onbekende datum: nee (dan bewaren). */
+    static boolean voorPeriode(long grens, File f, String naam) {
+        if (grens <= 0) return false;
+        String d = FacturenDossier.herken(FacturenDossier.tekst(f) + "\n" + FacturenDossier.naamZonderSha(naam)).optString("datum");
         if (d.isEmpty()) return false;
         java.text.SimpleDateFormat iso = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
-        return d.compareTo(iso.format(new java.util.Date(v))) < 0;
+        return d.compareTo(iso.format(new java.util.Date(grens))) < 0;
     }
+
+    /** Nieuwe facturen bewaren en afleveren; geeft {nieuw, gevonden, namen, fouten} terug. */
 
     static JSONObject verwerk(Context c, JSONObject lev, java.util.Collection<Pdf> pdfs) throws Exception {
         String id = lev.getString("id");
@@ -550,6 +560,7 @@ final class Facturen {
         if (verwerkt == null) verwerkt = new JSONObject();
         JSONArray namen = new JSONArray(), fouten = new JSONArray();
         int nieuw = 0, buiten = 0;
+        long grens = grens(lev, t.optLong("lastOk"), System.currentTimeMillis(), java.util.TimeZone.getDefault());
         File d = pdfDir(c, id);
         if (!d.isDirectory() && !d.mkdirs()) throw new Exception("Opslagmap maken lukt niet");
         // Al eerder: alleen opnieuw afleveren wat toen mislukte (backup-map of Eigen Cloud)
@@ -571,7 +582,7 @@ final class Facturen {
             File f = new File(d, naam);
             for (int n = 2; f.exists(); n++) { naam = p.naam.replaceAll("\\.pdf$", "") + " (" + n + ").pdf"; f = new File(d, naam); }
             try (FileOutputStream o = new FileOutputStream(f)) { o.write(p.data); o.getFD().sync(); }
-            if (!"mail".equals(lev.optString("soort")) && voorPeriode(lev, f, p.naam)) { // van vóór de gekozen periode: niet bewaren
+            if (!"mail".equals(lev.optString("soort")) && voorPeriode(grens, f, p.naam)) { // van vóór de gekozen periode: niet bewaren
                 f.delete();
                 verwerkt.put(p.sha, new JSONObject().put("n", "").put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis()).put("buiten", true));
                 if (eigenNaam) namenGehad.add(p.naam);
