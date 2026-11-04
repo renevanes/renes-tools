@@ -1,0 +1,19 @@
+Rene's Tools bundelt handige hulpmiddelen in één app, zonder advertenties en zonder dat je gegevens ongevraagd de telefoon verlaten.
+
+Wat zit erin
+• Notities met checklists en zoeken, ook als widget
+• PDF's bekijken en ordenen
+• Nederlandse radio en podcasts
+• Muziekherkenning (met een eigen AudD-sleutel)
+• Mijn routes: wandel- en fietsroutes opnemen met een OpenStreetMap-kaart
+• Een lokale assistent en slim zoeken in je notities, volledig op de telefoon (offline AI, na het downloaden van een model)
+• Backups van je contacten, met wijzigingsgeschiedenis
+• VPN met WireGuard en OpenVPN, voor je eigen server of je VPN-aanbieder
+• Een eigen startscherm met weer en snelkoppelingen
+
+Privacy
+• Je gegevens blijven op je telefoon, tenzij je zelf een plek kiest (bijvoorbeeld je eigen cloud of Google Drive).
+• Geen advertenties en geen tracking door derden.
+
+Vrije software
+De broncode staat openbaar op GitHub (renevanes/renes-tools) onder de GPL-3.0-licentie. Iedereen kan meekijken en bijdragen.
