@@ -16,19 +16,34 @@ verspreid en bijgewerkt.
 
 | # | Stap | Raakt de huidige app? | Status |
 |---|---|---|---|
-| 1 | Overzicht van alle toestemmingen en wat Play ervan vindt (hieronder + `.github/scripts/play-toestemmingen.py`) | nee | klaar |
+| 1 | Overzicht van alle toestemmingen en wat Play ervan vindt (hieronder, `play/indeling.json`, `.github/scripts/play-toestemmingen.py`) | nee | klaar |
 | 2 | Overzicht van diensten buiten de telefoon (basis voor privacybeleid en Data safety-formulier) | nee | klaar |
 | 3 | Winkelteksten in `fastlane/metadata/android/nl-NL/` (werkt voor Play én F-Droid) | nee | concept |
-| 4 | Privacybeleid op een vaste webpagina (GitHub Pages) | nee | nog doen |
-| 5 | Bouwvariant `VARIANT=play` in `build.sh`: eigen applicationId, eigen manifest met alleen toegestane toestemmingen, zonder updater | nee, zolang de standaard `github` blijft | nog doen |
-| 6 | `.aab` maken (aapt2 `--proto-format` + bundletool) en een aparte uploadsleutel | nee | nog doen |
-| 7 | In de interface tools verbergen die niet in de variant zitten | nee, alleen in de Play-variant | nog doen |
+| 4 | Proefbouw `./build-play.sh`: eigen pakket `nl.rene.tools.play`, eigen manifest zonder wat Play niet toestaat, `.aab` | nee (los script, `build.sh` blijft gelijk) | klaar |
+| 5 | Privacybeleid op een vaste webpagina (GitHub Pages) | nee | nog doen |
+| 6 | Uploadsleutel maken en als geheim bewaren (Rene; Google ondertekent de winkelversie zelf) | nee | nog doen |
+| 7 | In de Play-versie de updater uitzetten en tools verbergen waarvan de toestemming ontbreekt | geen gedrag, wel een nieuwe APK (code in `app/` en `web/`) | eerst overleggen |
 | 8 | Uitleg vóór gevoelige toestemmingen ("prominent disclosure") | ja, ook in de GitHub-versie (verbetering) | eerst overleggen |
+
+## Proefbouw (`./build-play.sh`)
+
+Maakt `build-play/Renes-Tools-play-vX.Y.aab` uit dezelfde bron, zonder iets aan de gewone bouw, `update/` of de
+telefoon te veranderen:
+- manifest uit `play/manifest.py`: zonder de toestemmingen die in `play/indeling.json` op `niet` of `streng` staan,
+  zonder de toegankelijkheidsdiensten en het apparaatbeheer, `SCHEDULE_EXACT_ALARM` zonder `maxSdkVersion`;
+- pakketnaam `nl.rene.tools.play` en providers `nl.rene.tools.play.*`, zodat hij naast de GitHub-versie kan staan
+  (de providernamen worden alleen in een kopie van de Java-bron vervangen);
+- `.aab` via aapt2 `--proto-format` en bundletool (vaste versie en SHA-256), gecontroleerd met `bundletool validate`;
+- ondertekend met de uploadsleutel als `PLAY_KS` en `PLAY_KS_PASS_FILE` gezet zijn, anders niet ondertekend.
+
+Nog niet geschikt voor de winkel: de updater zit er nog in en tools waarvan de toestemming weg is, staan nog in de
+interface (stap 7). De proefbouw draait niet in CI; hij is alleen hier gecontroleerd (pakketnaam, toestemmingen en
+providers in een universele APK uit de bundel), niet op een telefoon.
 
 ## 1. Toestemmingen
 
 Eerste inschatting van het Play-beleid (november 2026); de Play Console heeft het laatste woord.
-`python3 .github/scripts/play-toestemmingen.py` vergelijkt deze indeling met `app/AndroidManifest.xml` en meldt
+De indeling staat in `play/indeling.json`. `python3 .github/scripts/play-toestemmingen.py` vergelijkt die met `app/AndroidManifest.xml` en meldt
 toestemmingen die nog niet zijn ingedeeld. Het script draait niet in de tests en houdt niemand tegen.
 
 - **ok** — gewone toestemming, of een runtime-toestemming die met uitleg aan de gebruiker mag.
