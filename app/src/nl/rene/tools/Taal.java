@@ -104,7 +104,7 @@ final class Taal {
 
     /** Het woordenboek uit JSON: tekst → vertaling (String) of {enkelvoud, meervoud} (String[2]). */
     static Map<String, Object> parse(String json) {
-        Map<String, Object> m = new HashMap<>();
+        Map<String, Object> m = new java.util.LinkedHashMap<>(); // volgorde van en.json (gesorteerd): terugzoeken is dan altijd hetzelfde
         try {
             JSONObject o = new JSONObject(json);
             for (Iterator<String> it = o.keys(); it.hasNext(); ) {
@@ -136,7 +136,8 @@ final class Taal {
 
     /** Engels → Nederlands (alleen gewone teksten), voor het terugzetten van namen die Android bewaart. */
     static Map<String, String> reverse(Map<String, Object> d) {
-        Map<String, String> r = new HashMap<>();
+        // Meerdere Nederlandse teksten met dezelfde vertaling: de eerste in de (gesorteerde) volgorde, altijd dezelfde
+        Map<String, String> r = new java.util.LinkedHashMap<>();
         for (Map.Entry<String, Object> e : d.entrySet()) if (e.getValue() instanceof String && !r.containsKey(e.getValue())) r.put((String) e.getValue(), e.getKey());
         return r;
     }
@@ -160,9 +161,12 @@ final class Taal {
             if (nm == null) return;
             List<NotificationChannel> list = nm.getNotificationChannels();
             for (NotificationChannel ch : list) {
-                String was = String.valueOf(ch.getName()), now = switchName(c, was);
-                String dWas = ch.getDescription(), dNow = dWas == null ? null : switchName(c, dWas);
-                if (now.equals(was) && (dWas == null || dNow.equals(dWas))) continue;
+                // Een bekende soort: naam en uitleg rechtstreeks uit NotifCenter.KINDS (Nederlands) en vertaald; anders terugzoeken
+                String[] kind = null;
+                for (String[] k : NotifCenter.KINDS) if (k[0].equals(ch.getId())) kind = k;
+                String was = String.valueOf(ch.getName()), now = kind != null ? t(c, kind[1]) : switchName(c, was);
+                String dWas = ch.getDescription(), dNow = kind != null ? t(c, kind[2]) : dWas == null ? null : switchName(c, dWas);
+                if (now.equals(was) && (dNow == null || dNow.equals(dWas))) continue;
                 NotificationChannel n = new NotificationChannel(ch.getId(), now, ch.getImportance());
                 if (dNow != null) n.setDescription(dNow);
                 if (ch.getGroup() != null) n.setGroup(ch.getGroup());

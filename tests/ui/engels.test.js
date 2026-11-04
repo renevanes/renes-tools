@@ -150,8 +150,12 @@ const toegestaan = s => TOEGESTAAN.some(([x]) => s.includes(x));
     await pg.screenshot({ path: path.join(__dirname, 'shots', 'engels-licht.png') });
 
     // ---------- Terug naar Nederlands: precies dezelfde tekst ----------
+    await naar(pg, 'aiset'); await naar(pg, 'models');
+    const engelsVerborgen = await pg.evaluate(() => [$('#ai-sum-priv').textContent, $('#ai-sum-mem').textContent]);
     await naar(pg, 'setregio');
     await pg.selectOption('#rg-lang', 'nl'); await pg.waitForTimeout(150);
+    const verborgen = await pg.evaluate(() => [$('#ai-sum-priv').textContent, $('#ai-sum-mem').textContent, [...document.querySelectorAll('#s-models [aria-label]')].map(x => x.getAttribute('aria-label')).filter(x => /\b(Download|Delete|Use|Progress)\b/.test(x))]);
+    ok(engelsVerborgen[0] === 'Everything stays on your phone' && verborgen[0] === 'Alles blijft op je telefoon' && /^Nog niets · vraagt eerst$|ding/.test(verborgen[1]) && !verborgen[2].length, 'verborgen schermen (nog niet opnieuw getekend) ook terug in het Nederlands: ' + JSON.stringify(verborgen));
     ok(await pg.evaluate(() => document.documentElement.lang === 'nl' && !TAAL.on && !TAAL.obs && JSON.parse(Android._regioCfg || '{}').lang === 'nl'), 'terug naar Nederlands: lang="nl", observer weg, Java weet het');
     const diff = [];
     for (const id of PROEF) { await naar(pg, id); const na = await tekstVan(pg, id); if (na !== voor[id]) { let i = 0; while (i < na.length && na[i] === voor[id][i]) i++; diff.push(id + ': "' + voor[id].slice(Math.max(0, i - 20), i + 40) + '" ≠ "' + na.slice(Math.max(0, i - 20), i + 40) + '"'); } }

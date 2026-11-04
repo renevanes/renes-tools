@@ -38,7 +38,16 @@ function taalLookup(s, v){
 }
 function t(s, v){
   if (s == null) return '';
-  if (TAAL.on) { const r = taalLookup(s, v); if (r !== undefined) return taalFill(r, v); }
+  if (TAAL.on) {
+    const r = taalLookup(s, v);
+    if (r !== undefined) {
+      // Onthouden welk Nederlands bij deze Engelse tekst hoort: dan kan terug naar Nederlands precies (ook ingevuld)
+      const en = taalFill(r, v), m = TAAL.src || (TAAL.src = new Map());
+      if (m.size > 5000) m.clear();
+      m.set(taalNorm(en), taalFill(s, v));
+      return en;
+    }
+  }
   return taalFill(s, v);
 }
 /* Enkelvoud of meervoud: tn(3, 'Eén bestand', '{n} bestanden') → "3 bestanden" / "3 files" */
@@ -146,8 +155,14 @@ function taalRestore(root){
   for (let n = tw.currentNode; n; n = tw.nextNode()) els.push(n);
   let rev = null;
   const terug = s => {
+    // Eerst wat t() zelf onthield (precies, ook ingevulde teksten); anders het woordenboek omgekeerd, in de vaste
+    // (gesorteerde) volgorde van en.json: bij twee Nederlandse teksten met dezelfde vertaling altijd de eerste
     if (!rev) { rev = new Map(); for (const [k, v] of taalDict()) if (typeof v === 'string' && !/\{\w+\}/.test(k) && !rev.has(v)) rev.set(v, k); }
-    const k = taalNorm(s); const nl = k && rev.get(k); if (!nl) return undefined;
+    const een = k => k && ((TAAL.src && TAAL.src.get(k)) || rev.get(k));
+    const k = taalNorm(s); let nl = een(k);
+    // Aan elkaar gezette stukken ("Nothing yet · asks first"): elk stuk apart, alleen als ze allemaal bekend zijn
+    if (!nl && / · /.test(k)) { const ds = k.split(' · ').map(x => een(x) || (/\p{L}{2}/u.test(x) ? null : x)); if (ds.every(x => x != null)) nl = ds.join(' · '); }
+    if (!nl) return undefined;
     const lead = /^\s*/.exec(s)[0], trail = /\s*$/.exec(s)[0];
     return lead + nl + (trail.length < s.length - lead.length ? trail : '');
   };
@@ -160,6 +175,7 @@ function taalRestore(root){
     if (n.__tNlH !== undefined && n.innerHTML === n.__tEnH) n.innerHTML = n.__tNlH;
     delete n.__tNlH; delete n.__tEnH;
     if (n.__tNlA) { for (const a in n.__tNlA) if (n.getAttribute(a) === n.__tEnA[a]) n.setAttribute(a, n.__tNlA[a]); delete n.__tNlA; delete n.__tEnA; }
+    else if (!n.closest('[translate="no"]')) for (const a of TAAL_ATTRS) { const v = n.getAttribute(a); if (v && /\p{L}/u.test(v)) { const r = terug(v); if (r !== undefined) n.setAttribute(a, r); } }
     if (n.__tNlV !== undefined) { n.value = n.__tNlV; delete n.__tNlV; }
   }
 }

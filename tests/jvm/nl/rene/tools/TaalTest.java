@@ -79,6 +79,9 @@ public class TaalTest {
         check("nl".equals(Regio.parse("").lang), "standaard Nederlands (de app volgt de taal van de telefoon niet)");
         check("en".equals(Regio.parse("{\"lang\":\"en\"}").lang), "Engels bewaard in de regio-instellingen");
 
+        // Terugzoeken (Engels → Nederlands) is altijd hetzelfde, ook als twee teksten dezelfde vertaling hebben
+        Map<String, String> rv = Taal.reverse(Taal.parse("{\"Bewaren\": \"Save\", \"Opslaan\": \"Save\", \"Stil\": \"Silent\"}"));
+        eq(rv.get("Save"), "Bewaren", "terugzoeken: de eerste in de volgorde van en.json");
         // T() is alleen een markering
         eq(Taal.T("Bellen"), "Bellen", "Taal.T geeft de tekst terug");
 
