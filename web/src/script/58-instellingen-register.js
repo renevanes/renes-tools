@@ -285,7 +285,7 @@ const SET_REG = [
     get: () => setAiCfg('style'), set: v => { aicSet('style', v); return ''; } },
   { id: 'ai.creative', scr: 'aisetanswer', ctl: '#aic-creative', type: 'keuze', vals: [['precies', 'Precies'], ['normaal', 'Gebalanceerd'], ['creatief', 'Creatief']], label: 'Creativiteit van de antwoorden', desc: 'Precies voor samenvatten en vertalen, creatief voor ideeën en verhalen.', syn: 'creativiteit creatief precies antwoorden assistent',
     get: () => setAiCfg('creative'), set: v => { aicSet('creative', v); return ''; } },
-  { id: 'ai.lang', scr: 'aisetanswer', ctl: '#aic-lang', type: 'keuze', vals: [['nl', 'Nederlands'], ['en', 'Engels'], ['auto', 'Zelfde taal als de vraag']], label: 'Taal van de antwoorden', desc: 'In welke taal de assistent antwoordt.', syn: 'taal antwoorden engels nederlands assistent',
+  { id: 'ai.lang', scr: 'aisetanswer', ctl: '#aic-lang', type: 'keuze', vals: [['app', 'Volg de app-taal'], ['nl', 'Nederlands'], ['en', 'Engels'], ['auto', 'Zelfde taal als de vraag']], label: 'Taal van de antwoorden', desc: 'In welke taal de assistent antwoordt.', syn: 'taal antwoorden engels nederlands assistent',
     get: () => setAiCfg('lang'), set: v => { aicSet('lang', v); return ''; } },
   { id: 'ai.history', scr: 'aisetanswer', ctl: '#aic-history', type: 'keuze', vals: [['8', 'Kort (8 berichten)'], ['24', 'Normaal (24 berichten)'], ['48', 'Lang (48 berichten)']], label: 'Gesprek onthouden', desc: 'Hoeveel berichten van het gesprek de assistent meeneemt.', syn: 'gesprek onthouden berichten geschiedenis context assistent',
     get: () => setAiCfg('history'), set: v => { aicSet('history', v); return ''; } },

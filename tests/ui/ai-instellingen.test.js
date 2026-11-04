@@ -49,7 +49,7 @@ const { chromium } = require('playwright');
     // Herstellen
     await pg.evaluate(() => show('aiset')); await pg.waitForTimeout(120);
     await pg.click('#s-aiset button:has-text("Standaardinstellingen herstellen")'); await pg.click('#modal-ok'); await pg.waitForTimeout(150);
-    ok(await pg.evaluate(() => !Android._ai.cfg) && (await pg.textContent('#ai-sum-answer')) === 'Normaal · Gebalanceerd · Nederlands' && (await pg.textContent('#ai-sum-pers')) === 'Nog niets ingevuld', 'standaard hersteld');
+    ok(await pg.evaluate(() => !Android._ai.cfg) && (await pg.textContent('#ai-sum-answer')) === 'Normaal · Gebalanceerd · Volg de app-taal' && (await pg.textContent('#ai-sum-pers')) === 'Nog niets ingevuld', 'standaard hersteld');
     // Elk onderwerp: eigen scherm, terug = overzicht
     for (const [t, scr] of [['Taalmodel', 'aisetmodel'], ['Spraak', 'aisetvoice'], ['Gegevens', 'aisetdata'], ['Slim zoeken', 'aisetsearch'], ['Privacy', 'aisetpriv']]) {
       await pg.click('#s-aiset .strow:has-text("' + t + '")'); await pg.waitForTimeout(100);

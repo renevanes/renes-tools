@@ -214,9 +214,11 @@ final class AiMemory {
     }
 
     /** Het stuk voor de vaste instructie. */
-    static String section(List<String> mem) {
+    static String section(List<String> mem) { return section(mem, false); }
+    /** en = de opdracht aan het model in het Engels (app in het Engels). */
+    static String section(List<String> mem, boolean en) {
         if (mem == null || mem.isEmpty()) return "";
-        StringBuilder s = new StringBuilder("Wat je over de gebruiker onthouden hebt (uit eerdere gesprekken; de gebruiker kan dit zien en aanpassen bij Geheugen). Gebruik het alleen als het bij de vraag past:\n");
+        StringBuilder s = new StringBuilder(en ? "What you remember about the user (from earlier conversations; the user can see and change this under Memory). Only use it when it fits the question:\n" : "Wat je over de gebruiker onthouden hebt (uit eerdere gesprekken; de gebruiker kan dit zien en aanpassen bij Geheugen). Gebruik het alleen als het bij de vraag past:\n");
         for (String m : mem) s.append("- ").append(m).append('\n');
         return s.toString().trim();
     }

@@ -799,7 +799,7 @@ function aiSetOn(){ return current === 'aiset' || AI_SUBS.includes(current); }
 const AIC_NOTE = {
   style: { kort: 'Een paar zinnen, alleen het belangrijkste. Ook het snelst.', normaal: 'Duidelijk en beknopt, met opsommingen waar dat helpt.', uitgebreid: 'Grondig, met uitleg en voorbeelden. Duurt langer.' },
   creative: { precies: 'Feitelijk en voorspelbaar: goed voor samenvatten en vertalen.', normaal: 'Een goede balans voor de meeste vragen.', creatief: 'Meer variatie: goed voor ideeën, verhalen en teksten.' },
-  lang: { nl: 'Altijd Nederlands, tenzij je om een andere taal vraagt.', en: 'Altijd Engels.', auto: 'In de taal waarin je de vraag stelt.' },
+  lang: { app: 'In de taal van de app (Instellingen → Regio en taal).', nl: 'Altijd Nederlands, tenzij je om een andere taal vraagt.', en: 'Altijd Engels.', auto: 'In de taal waarin je de vraag stelt.' },
   history: { '8': 'De laatste 8 berichten: sneller, maar vergeet eerder.', '24': 'De laatste 24 berichten.', '48': 'De laatste 48 berichten (past niet altijd: dan valt het begin weg).' },
   power: { zuinig: '2 processorkernen: trager, maar koeler en zuiniger met de accu.', normaal: 'Tot 4 kernen: een goede balans.', max: 'Tot 6 kernen: het snelst, maar warmer en meer accugebruik.' },
   learn: { vragen: 'Na een antwoord stelt de assistent voor wat hij zou willen onthouden; jij kiest Onthouden of Nee.', vanzelf: 'Hij onthoudt het meteen, en laat bij het antwoord zien wat (met Ongedaan maken).', uit: 'Hij leert niets uit je gesprekken. "Onthoud dat …" werkt wel.' },
@@ -807,7 +807,7 @@ const AIC_NOTE = {
   talkSilence: { '1000': 'Snel: hij antwoordt na 1 seconde stilte (soms valt hij je in de rede).', '1300': 'Na 1,3 seconde stilte: een goede balans.', '1600': 'Na 1,6 seconde stilte: tijd om even na te denken.', '2200': 'Na 2,2 seconden stilte: rustig, voor lange zinnen met pauzes.' }
 };
 const AIC_LABEL = { style: { kort: 'Kort', normaal: 'Normaal', uitgebreid: 'Uitgebreid' }, creative: { precies: 'Precies', normaal: 'Gebalanceerd', creatief: 'Creatief' },
-  lang: { nl: 'Nederlands', en: 'Engels', auto: 'Zelfde taal als de vraag' }, power: { zuinig: 'Zuinig', normaal: 'Normaal', max: 'Maximaal' } };
+  lang: { app: 'Volg de app-taal', nl: 'Nederlands', en: 'Engels', auto: 'Zelfde taal als de vraag' }, power: { zuinig: 'Zuinig', normaal: 'Normaal', max: 'Maximaal' } };
 function aicCfg(){ return aiSt.cfg || {}; }
 function aicRender(){
   const c = aicCfg();

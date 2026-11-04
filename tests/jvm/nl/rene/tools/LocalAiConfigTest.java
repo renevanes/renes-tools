@@ -8,7 +8,7 @@ public class LocalAiConfigTest {
     public static void main(String[] a) {
         check("kort".equals(LocalAi.cfgValid("style", "kort")) && LocalAi.cfgValid("style", "lang") == null, "lengte: alleen bekende waarden");
         check(LocalAi.cfgValid("onbekend", "x") == null && LocalAi.cfgValid("power", "max") != null && LocalAi.cfgValid("idle", "15") != null, "onbekende instelling geweigerd");
-        check("normaal".equals(LocalAi.cfgDefault("style")) && "nl".equals(LocalAi.cfgDefault("lang")) && "24".equals(LocalAi.cfgDefault("history")) && "4".equals(LocalAi.cfgDefault("idle")), "standaardwaarden");
+        check("normaal".equals(LocalAi.cfgDefault("style")) && "app".equals(LocalAi.cfgDefault("lang")) && "24".equals(LocalAi.cfgDefault("history")) && "4".equals(LocalAi.cfgDefault("idle")), "standaardwaarden");
         check("normaal".equals(LocalAi.cfg(null, "creative")), "zonder telefoon: de standaard");
         check("a\nb".equals(LocalAi.cleanText("  a\u0000\nb\u001b  ", 100)), "tekst: stuurtekens weg, witruimte rondom weg, regels blijven");
         String lang = new String(new char[3000]).replace('\0', 'x');

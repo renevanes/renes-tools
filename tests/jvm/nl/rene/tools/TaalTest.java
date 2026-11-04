@@ -64,6 +64,15 @@ public class TaalTest {
         check(sys.startsWith("You are the offline assistant") && sys.contains("Always answer in English") && sys.contains("short") && sys.contains("Today is Wednesday 4 November 2026") && sys.contains("I live in Rotterdam"), "Engelse systeemtekst: " + sys.substring(0, 60) + "…");
         check(LocalAi.buildSystemEn("x", "", "auto", "", "", null, "").contains("same language as the question"), "taal 'auto': antwoord in de taal van de vraag");
         check(!LocalAi.buildSystem("x", "", "nl", "", "").contains("English"), "Nederlandse systeemtekst blijft Nederlands");
+        // Taal van de antwoorden: standaard de taal van de app; Nederlands of Engels gekozen = dat
+        check("app".equals(LocalAi.cfgDefault("lang")), "standaard: volg de app-taal");
+        check(LocalAi.buildSystemEn("x", "", "app", "", "", null, "").contains("Always answer in English"), "app Engels + volg de app: Engels");
+        check(LocalAi.buildSystemEn("x", "", "nl", "", "", null, "").contains("Always answer in Dutch"), "app Engels + Nederlands gekozen: Nederlands");
+        check(LocalAi.buildSystem("x", "", "app", "", "").contains("Antwoord in het Nederlands"), "app Nederlands + volg de app: Nederlands");
+        check(LocalAi.buildSystem("x", "", "en", "", "").contains("Antwoord altijd in het Engels"), "app Nederlands + Engels gekozen: Engels");
+        String se = LocalAi.buildSystemEn("x", "", "app", "", "", Arrays.asList("Woont in Rotterdam"), LocalAi.memNote("houdt van jazz", null, false, false, true));
+        check(se.contains("What you remember about the user") && se.contains("- Woont in Rotterdam") && se.contains("It is now in your memory: \"houdt van jazz\"") && !se.contains("Wat je over de gebruiker"), "Engelse opdracht: geheugen en memNote in het Engels");
+        check(LocalAi.memNote("x", null, false, false).startsWith("De gebruiker"), "memNote standaard Nederlands");
 
         // Regio: Engels als taalkeuze
         check(Arrays.stream(Regio.LANGS).anyMatch(l -> "en".equals(l[0]) && "English".equals(l[1])), "Regio.LANGS heeft English");

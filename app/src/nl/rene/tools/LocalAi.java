@@ -171,7 +171,7 @@ final class LocalAi {
     static final String[][] CFG = {
             {"style", "normaal", "kort", "uitgebreid"},
             {"creative", "normaal", "precies", "creatief"},
-            {"lang", "nl", "en", "auto"},
+            {"lang", "app", "nl", "en", "auto"},   // app = de taal van de app (Regio en taal)
             {"history", "24", "8", "48"},
             {"power", "normaal", "zuinig", "max"},
             {"idle", "4", "1", "15"},
@@ -271,6 +271,7 @@ final class LocalAi {
     static String buildSystemEn(String today, String style, String lang, String about, String instr, List<String> mem, String note) {
         StringBuilder s = new StringBuilder("You are the offline assistant in the app Tools. You run entirely on the user's phone, without internet. ");
         if ("auto".equals(lang)) s.append("Answer in the same language as the question. ");
+        else if ("nl".equals(lang)) s.append("Always answer in Dutch (Nederlands), even if the question is in another language. ");
         else s.append("Always answer in English, unless the user asks for another language. ");
         if ("kort".equals(style)) s.append("Keep your answers short and to the point: a few sentences, only what matters most. ");
         else if ("uitgebreid".equals(style)) s.append("Give detailed, thorough answers with explanations, examples and a clear structure. ");
@@ -278,7 +279,7 @@ final class LocalAi {
         s.append("You have no internet and no up-to-date information: say so honestly when needed, and never make up facts. Today is ").append(today).append('.');
         if (about != null && !about.isEmpty()) s.append("\n\nAbout the user (filled in by the user):\n").append(about);
         if (instr != null && !instr.isEmpty()) s.append("\n\nHow the user wants you to answer:\n").append(instr);
-        String ms = AiMemory.section(mem);
+        String ms = AiMemory.section(mem, true);
         if (!ms.isEmpty()) s.append("\n\n").append(ms);
         if (note != null && !note.isEmpty()) s.append("\n\n").append(note);
         return s.toString();
@@ -671,7 +672,18 @@ final class LocalAi {
     }
 
     /** Wat er met het geheugen gebeurde, voor het model (zodat het dat kort bevestigt). Zuiver (getest). */
-    static String memNote(String remembered, String forgot, boolean forgetTried, boolean memOff) {
+    static String memNote(String remembered, String forgot, boolean forgetTried, boolean memOff) { return memNote(remembered, forgot, forgetTried, memOff, false); }
+    /** Zoals hierboven; en = de app staat in het Engels (dan ook de opdracht aan het model in het Engels). Puur. */
+    static String memNote(String remembered, String forgot, boolean forgetTried, boolean memOff, boolean en) {
+        if (en) {
+            if (memOff && (remembered != null || forgetTried))
+                return "The user asked you to remember or forget something, but memory is turned off (Local AI → Memory). Nothing has changed; say so briefly.";
+            if (remembered != null) return "The user just asked you to remember something. It is now in your memory: \"" + remembered + "\". Confirm this briefly.";
+            if (forgetTried) return forgot != null && !forgot.isEmpty()
+                    ? "The user asked you to forget something. This is no longer in your memory: \"" + forgot + "\". Confirm this briefly."
+                    : "The user asked you to forget something, but there was nothing about it in your memory. Say so briefly.";
+            return "";
+        }
         if (memOff && (remembered != null || forgetTried))
             return "De gebruiker vroeg iets te onthouden of te vergeten, maar het geheugen staat uit (Lokale AI → Geheugen). Er is niets veranderd; zeg dat kort.";
         if (remembered != null) return "De gebruiker vroeg je net iets te onthouden. Dat staat nu in je geheugen: \"" + remembered + "\". Bevestig dat kort.";
@@ -820,25 +832,27 @@ final class LocalAi {
             // Wat er met het geheugen gebeurde, voor het model: achter de vraag (niet in de vaste instructie, dan kan de
             // motor het begin van het gesprek gewoon hergebruiken)
             String note = "";
+            final boolean en = Taal.en(c);
             if (remember != null) {
-                if (!memOn) note = memNote(remember, null, false, true);
+                if (!memOn) note = memNote(remember, null, false, true, en);
                 else if (AiMemory.secretWord(remember)) {
-                    sink.memory(ev(job, true).put("error", "Wachtwoorden, codes en rekeningnummers onthoud ik niet. Bewaar die versleuteld in de Kluis."));
-                    note = "De gebruiker vroeg je een wachtwoord, code of rekeningnummer te onthouden. Dat doe je niet (het geheugen is niet versleuteld): zeg dat kort en raad de Kluis in de app aan, waar het versleuteld staat.";
+                    sink.memory(ev(job, true).put("error", Taal.t(c, "Wachtwoorden, codes en rekeningnummers onthoud ik niet. Bewaar die versleuteld in de Kluis.")));
+                    note = en ? "The user asked you to remember a password, code or account number. You don't do that (memory is not encrypted): say so briefly and recommend the Vault in the app, where it is stored encrypted."
+                            : "De gebruiker vroeg je een wachtwoord, code of rekeningnummer te onthouden. Dat doe je niet (het geheugen is niet versleuteld): zeg dat kort en raad de Kluis in de app aan, waar het versleuteld staat.";
                 } else {
                     JSONObject r = AiMemory.add(c, remember, "gevraagd", chatId, chatTitle);
-                    if (r.has("error")) { sink.memory(ev(job, true).put("error", r.optString("error"))); note = "De gebruiker vroeg je iets te onthouden, maar het geheugen is vol. Zeg dat kort: bij Lokale AI → Geheugen kan iets weg."; }
-                    else { if (!r.optBoolean("dup")) rememberedId = r.optString("id"); sink.memory(ev(job, true).put("saved", new JSONArray().put(r)).put("explicit", true)); note = memNote(r.optString("text"), null, false, false); }
+                    if (r.has("error")) { sink.memory(ev(job, true).put("error", Taal.tx(c, r.optString("error")))); note = en ? "The user asked you to remember something, but memory is full. Say so briefly: something can be removed under Local AI → Memory." : "De gebruiker vroeg je iets te onthouden, maar het geheugen is vol. Zeg dat kort: bij Lokale AI → Geheugen kan iets weg."; }
+                    else { if (!r.optBoolean("dup")) rememberedId = r.optString("id"); sink.memory(ev(job, true).put("saved", new JSONArray().put(r)).put("explicit", true)); note = memNote(r.optString("text"), null, false, false, en); }
                 }
             }
             if (forgetWhat != null) {
-                if (!memOn) note = memNote(null, null, true, true);
+                if (!memOn) note = memNote(null, null, true, true, en);
                 else {
                     JSONObject f = AiMemory.forget(c, forgetWhat);
                     JSONObject e = ev(job, true).put("forgot", f == null ? "" : f.optString("text"));
                     if (f != null) e.put("forgotItem", f);
                     sink.memory(e);
-                    note = memNote(null, f == null ? "" : f.optString("text"), true, false);
+                    note = memNote(null, f == null ? "" : f.optString("text"), true, false, en);
                 }
             }
             // Per gesprek steeds dezelfde herinneringen (vast vanaf de eerste vraag): dan blijft de vaste instructie

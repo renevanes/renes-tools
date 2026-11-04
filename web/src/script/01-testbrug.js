@@ -558,7 +558,7 @@ if (!window.Android) window.Android = (function(){
     aiCalendarAdd(j){ if (this._calErr) return this._calErr; this._cal = JSON.parse(j); return ''; },
     aiCancel(){ const A = this._ai; if (A.timer) { clearTimeout(A.timer); A.timer = null; setTimeout(() => { A.busy = false; onAiDone({ done: true, cancelled: true }); }, 20); } },
     aiCopy(t){ this._copied = t; }, aiShare(t){ this._shared = t; },
-    _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'nl', history: '24', power: 'normaal', idle: '4', mem: 'aan', learn: 'vragen', talkSilence: '1300', about: '', instr: '' },
+    _aiCfgDef: { style: 'normaal', creative: 'normaal', lang: 'app', history: '24', power: 'normaal', idle: '4', mem: 'aan', learn: 'vragen', talkSilence: '1300', about: '', instr: '' },
     aiCleanOld(){ const n = this._ai.orphans || 0; this._ai.orphans = 0; return String(n); },
     aiMemList(){ return JSON.stringify(this._ai.mem.slice().sort((a, b) => b.u - a.u)); },
     aiMemAdd(text, src, chat, title){ const A = this._ai, t = String(text || '').trim(); if (!t) return JSON.stringify({ error: 'Er staat niets om te onthouden' });
@@ -567,7 +567,7 @@ if (!window.Android) window.Android = (function(){
       const m = { id: 'm' + (++A.seq), text: x, src: src || '', chat: chat || '', title: title || '', t: Date.now(), u: Date.now() + A.seq }; A.mem.push(m); return JSON.stringify({ id: m.id, text: m.text }); },
     aiMemEdit(id, text){ const m = this._ai.mem.find(x => x.id === id); if (!m) return 'Niet gevonden'; if (!String(text).trim()) return 'Er staat niets'; m.text = String(text).trim(); m.u = Date.now() + (++this._ai.seq); return ''; },
     aiMemDelete(id){ this._ai.mem = id === '*' ? [] : this._ai.mem.filter(m => m.id !== id); },
-    aiConfigSet(n, v){ const A = this._ai, ok = { style: ['normaal', 'kort', 'uitgebreid'], creative: ['normaal', 'precies', 'creatief'], lang: ['nl', 'en', 'auto'], history: ['24', '8', '48'], power: ['normaal', 'zuinig', 'max'], idle: ['4', '1', '15'], mem: ['aan', 'uit'], learn: ['vragen', 'vanzelf', 'uit'], talkSilence: ['1300', '1000', '1600', '2200'] };
+    aiConfigSet(n, v){ const A = this._ai, ok = { style: ['normaal', 'kort', 'uitgebreid'], creative: ['normaal', 'precies', 'creatief'], lang: ['app', 'nl', 'en', 'auto'], history: ['24', '8', '48'], power: ['normaal', 'zuinig', 'max'], idle: ['4', '1', '15'], mem: ['aan', 'uit'], learn: ['vragen', 'vanzelf', 'uit'], talkSilence: ['1300', '1000', '1600', '2200'] };
       if (n === 'about' || n === 'instr') { A.cfg = Object.assign({}, this._aiCfgDef, A.cfg, { [n]: String(v).slice(0, 1000).trim() }); return ''; }
       if (!ok[n] || !ok[n].includes(v)) return 'Ongeldige instelling'; A.cfg = Object.assign({}, this._aiCfgDef, A.cfg, { [n]: v }); return ''; },
     aiConfigReset(){ this._ai.cfg = null; },
