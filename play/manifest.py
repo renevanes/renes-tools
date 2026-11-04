@@ -5,7 +5,7 @@
 - laat onderdelen weg waarvan android:permission in 'onderdelen_weg' staat;
 - haalt maxSdkVersion weg bij SCHEDULE_EXACT_ALARM (de vervanger van USE_EXACT_ALARM);
 - geeft de content providers een eigen naam (nl.rene.tools.X -> <pakket>.X), zodat de Play-versie naast de
-  GitHub-versie op één telefoon kan staan.
+  GitHub-versie op één telefoon kan staan (taakgroepen ook).
 Gebruik: play/manifest.py <uit-manifest> <pakketnaam>   (drukt de hernoemde authorities af, één per regel: oud nieuw)
 """
 import json
@@ -52,7 +52,11 @@ def main(uit, pakket):
         return 'android:authorities="%s"' % nieuw
     m = re.sub(r'android:authorities="([^"]+)"', auth, m)
 
+    # taakgroepen ook een eigen naam, anders kan een scherm in de taak van de GitHub-versie belanden
+    m = re.sub(r'android:taskAffinity="nl\.rene\.tools\.([^"]+)"', lambda t: 'android:taskAffinity="%s.%s"' % (pakket, t.group(1)), m)
+
     over = sorted(weg_perm & set(re.findall(r'android\.permission\.([A-Z_]+)', m)))
+    over += sorted(p for p in weg_onderdeel if p in m)
     if over:
         sys.exit('Nog in het Play-manifest: ' + ', '.join(over))
     Path(uit).write_text(m, encoding='utf-8')

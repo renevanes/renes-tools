@@ -31,14 +31,16 @@ Maakt `build-play/Renes-Tools-play-vX.Y.aab` uit dezelfde bron, zonder iets aan 
 telefoon te veranderen:
 - manifest uit `play/manifest.py`: zonder de toestemmingen die in `play/indeling.json` op `niet` of `streng` staan,
   zonder de toegankelijkheidsdiensten en het apparaatbeheer, `SCHEDULE_EXACT_ALARM` zonder `maxSdkVersion`;
-- pakketnaam `nl.rene.tools.play` en providers `nl.rene.tools.play.*`, zodat hij naast de GitHub-versie kan staan
+- pakketnaam `nl.rene.tools.play`, providers en taakgroepen `nl.rene.tools.play.*`, zodat hij naast de GitHub-versie kan staan
   (de providernamen worden alleen in een kopie van de Java-bron vervangen);
 - `.aab` via aapt2 `--proto-format` en bundletool (vaste versie en SHA-256), gecontroleerd met `bundletool validate`;
+  native bibliotheken worden op de telefoon uitgepakt, want de lokale AI en het uitschrijven starten ze als programma;
 - ondertekend met de uploadsleutel als `PLAY_KS` en `PLAY_KS_PASS_FILE` gezet zijn, anders niet ondertekend.
 
-Nog niet geschikt voor de winkel: de updater zit er nog in en tools waarvan de toestemming weg is, staan nog in de
+Nog niet geschikt voor de winkel: de updater (APK én interface vanaf GitHub `update/`) zit er nog in en tools waarvan de toestemming weg is, staan nog in de
 interface (stap 7). De proefbouw draait niet in CI; hij is alleen hier gecontroleerd (pakketnaam, toestemmingen en
-providers in een universele APK uit de bundel), niet op een telefoon.
+providers in een universele APK, `extractNativeLibs` in de gesplitste APK's), niet op een telefoon. De bestanden
+in `res/xml/` van de weggelaten onderdelen gaan nog mee; onschuldig, eventueel later weglaten.
 
 ## 1. Toestemmingen
 

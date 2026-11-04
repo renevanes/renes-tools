@@ -94,7 +94,9 @@ run java -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 --release --min-api 24 --l
 mkdir -p $B/module/lib && cp -r app/lib/. $B/module/lib/ && find $B/module/lib -type f ! -name '*.so' -delete
 (cd $B/module && zip -q -r ../base.zip .)
 OUT=$B/Renes-Tools-play-v$VERSION_NAME.aab
-run java -jar "$BUNDLETOOL" build-bundle --modules=$B/base.zip --output="$OUT" || { echo "bundletool mislukt"; exit 1; }
+# De app start whisper/llama als programma uit nativeLibraryDir: die moeten dus uitgepakt worden (extractNativeLibs)
+echo '{"optimizations":{"uncompressNativeLibraries":{"enabled":false}}}' > $B/bundle-config.json
+run java -jar "$BUNDLETOOL" build-bundle --modules=$B/base.zip --config=$B/bundle-config.json --output="$OUT" || { echo "bundletool mislukt"; exit 1; }
 java -jar "$BUNDLETOOL" validate --bundle="$OUT" > $B/validate.log 2>&1 || { grep -v JAVA_TOOL_OPTIONS $B/validate.log; echo "bundel ongeldig"; exit 1; }
 
 # 7. Ondertekenen met de uploadsleutel (alleen als die is opgegeven)
