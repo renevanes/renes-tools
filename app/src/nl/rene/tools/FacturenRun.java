@@ -226,6 +226,18 @@ final class FacturenRun {
         } catch (Throwable e) { einde(fout("Onverwachte fout: " + Facturen.kort(e), false)); }
     }
 
+    /**
+     * Vlak voor het invullen: staat de WebView (niet wat de pagina zelf zegt) nog op een eigen domein van de leverancier,
+     * met https? Zo niet, dan niets invullen (een pagina kan zich anders voordoen, en de sms-code komt soms minuten later).
+     */
+    private boolean hierVeilig() {
+        String u = null;
+        try { u = wv == null ? null : wv.getUrl(); } catch (Throwable ignored) { }
+        if (Facturen.eigenSite(u, domeinen)) return true;
+        handmatigOf("De pagina staat niet (meer) op " + android.text.TextUtils.join(" of ", domeinen) + " (" + Facturen.host(u == null ? "" : u) + "): daar vult de app niets in");
+        return false;
+    }
+
     private void inlog(JSONObject st) {
         long nu = System.currentTimeMillis();
         boolean veld = st.optBoolean("pw") || st.optBoolean("user") || st.optBoolean("code");
@@ -253,6 +265,7 @@ final class FacturenRun {
                         codeBezig = false; codePogingen++; codeSinds = System.currentTimeMillis();
                         if (fase == KLAAR) return;
                         voortgang = "Code invullen…";
+                        if (!hierVeilig()) return;
                         js("__fr.vul('code'," + JSONObject.quote(cd) + "," + cfgJs + ")", r -> js("__fr.verstuur('code'," + cfgJs + ")", null));
                         wachtTot = System.currentTimeMillis() + 5000;
                     });
@@ -268,6 +281,7 @@ final class FacturenRun {
             if (handmatig) return;
             if (wachtwoord == null || wachtwoord.isEmpty()) { handmatigOf("Er is geen wachtwoord ingevuld"); return; }
             if (pwPogingen >= 2) { einde(fout(fout.isEmpty() ? "Inloggen lukt niet: controleer je gebruikersnaam en wachtwoord, of kijk mee wat de website vraagt" : "De website zegt: " + fout, true)); return; }
+            if (!hierVeilig()) return;
             if (user && st.optBoolean("userLeeg") && !gebruiker.isEmpty()) js("__fr.vul('gebruiker'," + JSONObject.quote(gebruiker) + "," + cfgJs + ")", null);
             js("__fr.vul('wachtwoord'," + JSONObject.quote(wachtwoord) + "," + cfgJs + ")", r -> js("__fr.verstuur('wachtwoord'," + cfgJs + ")", null));
             codeSinds = nu; pwPogingen++;
@@ -280,6 +294,7 @@ final class FacturenRun {
             if (handmatig) return;
             if (gebruiker.isEmpty()) { handmatigOf("Er is geen gebruikersnaam ingevuld"); return; }
             if (userPogingen >= 3) { einde(fout(fout.isEmpty() ? "De website accepteert de gebruikersnaam niet" : "De website zegt: " + fout, true)); return; }
+            if (!hierVeilig()) return;
             if (st.optBoolean("userLeeg")) js("__fr.vul('gebruiker'," + JSONObject.quote(gebruiker) + "," + cfgJs + ")", r -> js("__fr.verstuur('gebruiker'," + cfgJs + ")", null));
             else js("__fr.verstuur('gebruiker'," + cfgJs + ")", null);
             userPogingen++;
