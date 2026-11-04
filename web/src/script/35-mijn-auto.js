@@ -1,35 +1,35 @@
 /* ---------- Mijn auto: parkeerplek, parkeerlogboek, ritten ---------- */
 let carSt = {}, carMap = null, carMarker = null, carMonth = '';
-const carMonthOf = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }; // lokale maand (zoals de export)
+const carMonthOf = tt => { const d = new Date(tt); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }; // lokale maand (zoals de export)
 const carFmtKm = m => fmtDist(m, 1); // "12,5 km" of in mijlen (Regio en taal); de export voor de belasting blijft in km
 function carLoad(){ try { carSt = JSON.parse(Android.carState()) || {}; } catch(e){ carSt = {}; } }
 function enterCar(){ carLoad(); carRender(); }
 window.onCarChanged = function(r){ if (r === 'noloc') toast('Je locatie was niet te bepalen; plek bewaard zonder kaart'); else toast('Plek bewaard'); if (current === 'car') enterCar(); };
-window.onCarExport = function(r){ toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' ritten geëxporteerd naar Ritten/' : r); };
+window.onCarExport = function(r){ toast(r.startsWith('ok:') ? t('✓ {n} ritten geëxporteerd naar Ritten/', { n: r.slice(3) }) : r); };
 function carRender(){
   const p = carSt.park;
   const st = $('#car-park-state');
   if (p) {
     st.textContent = (p.how === 'hand' ? 'Bewaard op ' : 'Geparkeerd op ') + fmtDT(p.t, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) +
-      (p.lat == null ? ' (zonder locatie)' : p.acc > 50 ? ' · ongeveer (± ' + p.acc + ' m)' : '');
+      (p.lat == null ? ' ' + t('(zonder locatie)') : p.acc > 50 ? ' · ' + t('ongeveer (± {n} m)', { n: p.acc }) : '');
   } else st.textContent = carSt.addr ? 'Nog geen plek bewaard. Zodra je de auto uitzet, verschijnt hier waar hij staat.' : 'Kies hieronder de Bluetooth van je auto, of tik op "Hier staat hij".';
   $('#car-nav').style.display = p && p.lat != null ? 'block' : 'none';
   $('#car-left').style.display = p ? 'block' : 'none';
   carShowMap(p);
   // ritten
   const trips = carSt.tripList || [];
-  const months = [...new Set(trips.map(t => carMonthOf(t.start)))];
+  const months = [...new Set(trips.map(trip => carMonthOf(trip.start)))];
   if (!carMonth || !months.includes(carMonth)) carMonth = months[0] || carMonthOf(Date.now());
   $('#car-months').innerHTML = months.slice(0, 12).map(m => '<button class="chip' + (m === carMonth ? ' on' : '') + '" data-m="' + m + '" onclick="carMonth=this.dataset.m;carRender()">' +
     esc(fmtDate(m + '-15', { month: 'short', year: 'numeric' })) + '</button>').join('');
-  const inMonth = trips.filter(t => carMonthOf(t.start) === carMonth);
-  const zak = inMonth.filter(t => t.type === 'zakelijk').reduce((a, t) => a + t.m, 0), pri = inMonth.filter(t => t.type !== 'zakelijk').reduce((a, t) => a + t.m, 0);
-  $('#car-trip-state').textContent = carSt.tripActive ? '● Rit wordt opgenomen…' : inMonth.length ? inMonth.length + ' ritten · zakelijk ' + carFmtKm(zak) + ' · privé ' + carFmtKm(pri) :
+  const inMonth = trips.filter(trip => carMonthOf(trip.start) === carMonth);
+  const zak = inMonth.filter(trip => trip.type === 'zakelijk').reduce((a, trip) => a + trip.m, 0), pri = inMonth.filter(trip => trip.type !== 'zakelijk').reduce((a, trip) => a + trip.m, 0);
+  $('#car-trip-state').textContent = carSt.tripActive ? '● Rit wordt opgenomen…' : inMonth.length ? t('{n} ritten · zakelijk {zakelijk} · privé {prive}', { n: inMonth.length, zakelijk: carFmtKm(zak), prive: carFmtKm(pri) }) :
     (carSt.trips ? 'Nog geen ritten deze maand.' : 'Zet "Ritten vanzelf opnemen" aan, of neem een rit met de hand op.');
-  $('#car-trips').innerHTML = inMonth.map(t => '<button class="trip" data-id="' + esc(t.id) + '" onclick="carTripMenu(this.dataset.id)"><span><b>' +
-    esc(fmtDT(t.start, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + '</b><small>' +
-    carFmtKm(t.m) + ' · ' + Math.round((t.end - t.start) / 60000) + ' min' + (t.note ? ' · ' + esc(t.note) : '') + '</small></span><span class="ttype' + (t.type === 'zakelijk' ? ' zak' : '') + '">' +
-    (t.type === 'zakelijk' ? 'Zakelijk' : 'Privé') + '</span></button>').join('');
+  $('#car-trips').innerHTML = inMonth.map(trip => '<button class="trip" data-id="' + esc(trip.id) + '" onclick="carTripMenu(this.dataset.id)"><span><b>' +
+    esc(fmtDT(trip.start, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + '</b><small>' +
+    carFmtKm(trip.m) + ' · ' + Math.round((trip.end - trip.start) / 60000) + ' min' + (trip.note ? ' · ' + esc(trip.note) : '') + '</small></span><span class="ttype' + (trip.type === 'zakelijk' ? ' zak' : '') + '">' +
+    (trip.type === 'zakelijk' ? 'Zakelijk' : 'Privé') + '</span></button>').join('');
   $('#car-trip-btn').textContent = carSt.tripActive ? 'Rit stoppen en opslaan' : 'Rit nu opnemen';
   $('#car-export').disabled = !inMonth.length;
   // logboek
@@ -41,7 +41,7 @@ function carRender(){
   // instellingen
   let devs = []; try { const d = JSON.parse(Android.autoBt()); devs = d.devices || []; carSt.btErr = d.error; } catch(e){}
   const sel = $('#car-dev');
-  sel.innerHTML = '<option value="">— Geen —</option>' + devs.sort((a, b) => (b.car ? 1 : 0) - (a.car ? 1 : 0)).map(d => '<option value="' + esc(d.a) + '"' + (d.a === carSt.addr ? ' selected' : '') + '>' + esc(d.n) + (d.car ? ' 🚗' : '') + '</option>').join('');
+  sel.innerHTML = '<option value="">' + t('— Geen —') + '</option>' + devs.sort((a, b) => (b.car ? 1 : 0) - (a.car ? 1 : 0)).map(d => '<option value="' + esc(d.a) + '"' + (d.a === carSt.addr ? ' selected' : '') + '>' + esc(d.n) + (d.car ? ' 🚗' : '') + '</option>').join('');
   if (carSt.addr && !devs.some(d => d.a === carSt.addr)) sel.insertAdjacentHTML('beforeend', '<option value="' + esc(carSt.addr) + '" selected>' + esc(carSt.name || carSt.addr) + '</option>');
   $('#car-trips-on').classList.toggle('on', !!carSt.trips);
   $('#car-def').value = carSt.defType || 'prive';
@@ -51,7 +51,7 @@ function carRender(){
   else if (!carSt.bgLoc && carSt.addr) need.push(['Locatie ook op de achtergrond (anders geen plek als de app dicht is)', "Android.autoPerm('bgloc')"]);
   if (carSt.trips && !carSt.battery) need.push(['Batterij-uitzondering (anders kan een rit niet vanzelf starten)', 'Android.batterySettings()']);
   perm.style.display = need.length ? 'block' : 'none';
-  perm.innerHTML = need.map(n => '<div style="margin:4px 0">⚠️ ' + esc(n[0]) + ' · <a href="#" onclick="' + n[1] + ';return false">Toestaan</a></div>').join('');
+  perm.innerHTML = need.map(n => '<div style="margin:4px 0">⚠️ ' + esc(t(n[0])) + ' · <a href="#" onclick="' + n[1] + ';return false">' + t('Toestaan') + '</a></div>').join('');
 }
 function carShowMap(p){
   const el = $('#car-map');
@@ -79,10 +79,10 @@ function carSave(){
 function carTripToggle(){ if (carSt.tripActive) Android.carTripStop(); else Android.carTripStart(); setTimeout(enterCar, 600); }
 function carExport(){ if (!plainOk('Het rittenoverzicht', carExport)) return; if (!carSt.dest) { toast('Kies eerst een backup-map (Instellingen)'); return; } Android.carExport(carMonth); }
 function carTripMenu(id){
-  const t = (carSt.tripList || []).find(x => x.id === id); if (!t) return;
-  openSheet(fmtDT(t.start, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }), carFmtKm(t.m), [
-    [t.type === 'zakelijk' ? 'Maak privé' : 'Maak zakelijk', () => { Android.carTripSet(id, t.type === 'zakelijk' ? 'prive' : 'zakelijk', null); enterCar(); }],
-    ['Omschrijving…', () => askInput('Omschrijving', 'Bijv. klant of reden van de rit.', t.note || '', 'Opslaan', v => { Android.carTripSet(id, null, v.trim()); enterCar(); })],
-    ['Route bekijken', () => { if (t.route && typeof openTrack === 'function') jumpTo('track', () => openTrack(t.route)); else toast('Route niet gevonden'); }],
+  const tt = (carSt.tripList || []).find(x => x.id === id); if (!tt) return;
+  openSheet(fmtDT(tt.start, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }), carFmtKm(tt.m), [
+    [tt.type === 'zakelijk' ? 'Maak privé' : 'Maak zakelijk', () => { Android.carTripSet(id, tt.type === 'zakelijk' ? 'prive' : 'zakelijk', null); enterCar(); }],
+    ['Omschrijving…', () => askInput('Omschrijving', 'Bijv. klant of reden van de rit.', tt.note || '', 'Opslaan', v => { Android.carTripSet(id, null, v.trim()); enterCar(); })],
+    ['Route bekijken', () => { if (tt.route && typeof openTrack === 'function') jumpTo('track', () => openTrack(tt.route)); else toast('Route niet gevonden'); }],
     ['Rit verwijderen', () => askConfirm('Rit verwijderen?', 'De route zelf blijft in Mijn routes.', 'Verwijderen', () => { Android.carTripDelete(id); enterCar(); })]]);
 }

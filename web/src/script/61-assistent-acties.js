@@ -92,9 +92,9 @@ function aiCmdFor(q){
     case 'wekker': {
       if (a.radio && !(typeof SOLO !== 'undefined' && SOLO)) return aiCmdRadioAlarm(a.min, a.need === 'tijd');
       a.radioOk = !!aiStations().length && !(typeof SOLO !== 'undefined' && SOLO);
-      let t = a.min >= 0 ? 'Ik kan een wekker om **' + aiHmT(a.min) + '** zetten in je Klok-app; die gaat zeker af, ook als Tools dicht is.' : 'Hoe laat moet de wekker gaan? Kies het hieronder.';
-      if (a.radioOk) t += ' Liever wakker worden met de radio? Kies dan **Met de radio** (de Radiowekker van Tools).';
-      return { text: t, cmd: a };
+      let tt = a.min >= 0 ? 'Ik kan een wekker om **' + aiHmT(a.min) + '** zetten in je Klok-app; die gaat zeker af, ook als Tools dicht is.' : 'Hoe laat moet de wekker gaan? Kies het hieronder.';
+      if (a.radioOk) tt += ' Liever wakker worden met de radio? Kies dan **Met de radio** (de Radiowekker van Tools).';
+      return { text: tt, cmd: a };
     }
     case 'radio': {
       const st = rdJson(Android.radioState(), {}), playing = st.status === 'playing' || st.status === 'connecting';
@@ -117,10 +117,10 @@ function aiCmdFor(q){
       return { text: a.stop ? 'Zal ik Slaappraat stoppen?' : 'Zal ik Slaappraat starten? Hij luistert dan tot je hem stopt' + ((st.set || {}).stopAt ? ' (of tot ' + st.set.stopAt + ')' : '') + '; alles blijft op je telefoon.', cmd: a };
     }
     case 'open': {
-      const t = (TOOLS[a.tool] || [])[0] || ({ settings: 'Instellingen', ralarm: 'Radiowekker', aiset: 'Lokale AI', home: 'Startscherm' })[a.tool];
-      if (!t || !document.getElementById('s-' + a.tool)) return null;
-      a.name = t;
-      return { text: 'Zal ik **' + t + '** openen?', cmd: a };
+      const tt = (TOOLS[a.tool] || [])[0] || ({ settings: 'Instellingen', ralarm: 'Radiowekker', aiset: 'Lokale AI', home: 'Startscherm' })[a.tool];
+      if (!tt || !document.getElementById('s-' + a.tool)) return null;
+      a.name = tt;
+      return { text: 'Zal ik **' + tt + '** openen?', cmd: a };
     }
     case 'sms': case 'wa': return aiCmdMsg(a);
   }
@@ -145,10 +145,10 @@ function aiCmdMsg(a){
   }
   if (!a.toName) a.toName = a.to || a.number || '';
   const app = a.type === 'wa' ? 'WhatsApp' : 'Berichten';
-  let t = 'Ik kan ' + (a.type === 'wa' ? 'een WhatsApp-bericht' : 'een sms') + (a.toName ? ' aan **' + a.toName + '**' : '') + ' klaarzetten in ' + app + '. Versturen doe je daar zelf.';
-  if (a.noPerm) t += ' Om ' + a.to + ' in je contacten op te zoeken, heb ik toegang tot je contacten nodig; of vul hieronder een nummer in.';
-  else if (!a.number && a.to) t += ' Ik vind ' + a.to + ' niet in je contacten' + (a.type === 'wa' ? ': vul een nummer in, of kies de chat straks zelf in WhatsApp.' : ': vul hieronder een nummer in.');
-  return { text: t, cmd: a };
+  let tt = 'Ik kan ' + (a.type === 'wa' ? 'een WhatsApp-bericht' : 'een sms') + (a.toName ? ' aan **' + a.toName + '**' : '') + ' klaarzetten in ' + app + '. Versturen doe je daar zelf.';
+  if (a.noPerm) tt += ' Om ' + a.to + ' in je contacten op te zoeken, heb ik toegang tot je contacten nodig; of vul hieronder een nummer in.';
+  else if (!a.number && a.to) tt += ' Ik vind ' + a.to + ' niet in je contacten' + (a.type === 'wa' ? ': vul een nummer in, of kies de chat straks zelf in WhatsApp.' : ': vul hieronder een nummer in.');
+  return { text: tt, cmd: a };
 }
 
 /* ---------- de kaart ---------- */
@@ -247,7 +247,7 @@ function aiCmdDo(i){
     }
     case 'wekker': {
       let min = a.min;
-      if (min < 0) { const t = /^(\d{2}):(\d{2})$/.exec(a.pickTime || '07:00'); min = t ? +t[1] * 60 + +t[2] : -1; }
+      if (min < 0) { const tt = /^(\d{2}):(\d{2})$/.exec(a.pickTime || '07:00'); min = tt ? +tt[1] * 60 + +tt[2] : -1; }
       if (!(min >= 0 && min < 1440)) { fail('Kies een tijd'); return; }
       if (!go()) return;
       const e = Android.aiDo(JSON.stringify({ type: 'wekker', min, label: a.label || '' })); if (e) { fail(e); return; }
@@ -296,9 +296,9 @@ function aiCmdDo(i){
     }
     case 'sms': case 'wa': {
       const text = String(a.text || '').trim();
-      if (!text && a.type === 'sms') { fail('Vul eerst de tekst in'); const t = $('#aicmd-tx-' + i); if (t) t.focus(); return; }
+      if (!text && a.type === 'sms') { fail('Vul eerst de tekst in'); const tt = $('#aicmd-tx-' + i); if (tt) tt.focus(); return; }
       const nr = String(a.number || '').trim();
-      if (!nr && a.type === 'sms') { fail('Vul eerst een telefoonnummer in'); const t = $('#aicmd-nr-' + i); if (t) t.focus(); return; }
+      if (!nr && a.type === 'sms') { fail('Vul eerst een telefoonnummer in'); const tt = $('#aicmd-nr-' + i); if (tt) tt.focus(); return; }
       if (nr && !/^\+?[0-9 ()./-]{4,30}$/.test(nr)) { fail('Dat is geen geldig telefoonnummer'); return; }
       if (!go()) return;
       const e = Android.aiDo(JSON.stringify({ type: a.type, number: nr, text })); if (e) { fail(e); return; }

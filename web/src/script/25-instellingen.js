@@ -3,7 +3,7 @@
 const ST_SUBS = ['setnotif', 'setlook', 'setregio', 'setskin', 'setlock', 'setsolo', 'setperm', 'setbackup', 'setmusic', 'setcrash'];
 const stOn = () => current === 'settings' || ST_SUBS.includes(current);
 function stJson(s){ try { return JSON.parse(s); } catch(e){ return {}; } }
-function stSum(id, t){ const e = $('#st-sum-' + id); if (e) e.textContent = t; }
+function stSum(id, tt){ const e = $('#st-sum-' + id); if (e) e.textContent = tt; }
 /* De regel onder elk onderwerp in het overzicht */
 function stSummaries(i){
   const lk = i.lock || {};
@@ -128,9 +128,9 @@ function stStatRender(){
 }
 function stStatOn(on){ Android.statOn(on); stStatRender(); toast(on ? 'Statistieken staan aan' : 'Statistieken staan uit; de tellingen zijn gewist'); }
 function stStatSave(){
-  const t = $('#st-stat-token'), e = Android.statDest($('#st-stat-repo').value.trim(), t.value.trim());
+  const tt = $('#st-stat-token'), e = Android.statDest($('#st-stat-repo').value.trim(), tt.value.trim());
   if (e) { toast(e); return; }
-  t.value = ''; stStatRender(); toast($('#st-stat-repo').value.trim() ? 'Bestemming bewaard' : 'Bestemming verwijderd');
+  tt.value = ''; stStatRender(); toast($('#st-stat-repo').value.trim() ? 'Bestemming bewaard' : 'Bestemming verwijderd');
 }
 function stStatSend(){ const b = $('#st-stat-send'); b.disabled = true; b.textContent = 'Versturen…'; Android.statSend(); }
 window.onStatSent = function(e){ const b = $('#st-stat-send'); if (b) b.textContent = 'Nu versturen'; toast(e || 'Verstuurd ✓'); if (current === 'setcrash') stStatRender(); };

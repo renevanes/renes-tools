@@ -3,10 +3,10 @@ let vpSt = {}, vpTun = [], vpTimer = null, vpBusy = false;
 
 function enterVpn(){ vpRender(); clearInterval(vpTimer); vpTimer = setInterval(() => { if (current === 'vpn' && !appPaused) vpRender(true); else if (current !== 'vpn') { clearInterval(vpTimer); vpTimer = null; } }, 1500); }
 
-function vpAgo(t){
-  if (!t) return 'nog niet';
-  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
-  return s < 60 ? s + ' s geleden' : s < 3600 ? Math.round(s / 60) + ' min geleden' : fmtTime(t, { hour: '2-digit', minute: '2-digit' });
+function vpAgo(tt){
+  if (!tt) return 'nog niet';
+  const s = Math.max(0, Math.round((Date.now() - tt) / 1000));
+  return s < 60 ? s + ' s geleden' : s < 3600 ? Math.round(s / 60) + ' min geleden' : fmtTime(tt, { hour: '2-digit', minute: '2-digit' });
 }
 function vpSize(b){ return fmtSize(b, { bytes: true, mb: 1, gb: 2 }); }
 const VP_REASON = { app: '', tegel: 'via de tegel', snelkoppeling: 'via de snelkoppeling', wifi: 'vanzelf: onbekende wifi', mobiel: 'vanzelf: mobiel internet', auto: 'door Automatiseren', altijd: 'Altijd-aan VPN van Android', melding: 'via de melding' };
@@ -18,7 +18,7 @@ function vpRender(light){
   $('#vp-intro').style.display = has ? 'none' : 'block';
   ['#vp-main', '#vp-listwrap', '#vp-autocard', '#vp-quick', '#vp-kill'].forEach(s => $(s).style.display = has ? 'block' : 'none');
   if (!has) return;
-  const act = vpTun.find(t => t.id === (on ? st.id : st.active)) || vpTun[0];
+  const act = vpTun.find(tt => tt.id === (on ? st.id : st.active)) || vpTun[0];
   const connected = on && st.status === 'connected';
   $('#vp-dot').className = 'vpdot' + (connected ? ' on' : on ? ' busy' : '');
   $('#vp-title').textContent = on ? (connected ? 'Verbonden' : 'Verbinden…') + ' · ' + (st.name || act.name) : 'VPN uit';
@@ -40,10 +40,10 @@ function vpRender(light){
   $('#vp-err').textContent = st.error || '';
   if (light) return;
   // tunnels
-  $('#vp-list').innerHTML = vpTun.map(t => {
-    const cur = t.id === (on ? st.id : st.active);
-    return '<div class="srow"><button class="sbtn" data-id="' + esc(t.id) + '" onclick="vpTunMenu(this.dataset.id)"><span class="vpic' + (cur ? ' cur' : '') + '" aria-hidden="true">' + uiIcon(cur ? 'check' : 'shield') + '</span>' +
-      '<span class="stxt"><b>' + esc(t.name) + (cur ? '<span class="sr-only"> (standaard)</span>' : '') + '</b><small>' + esc(vpTunSub(t)) + '</small></span>' +
+  $('#vp-list').innerHTML = vpTun.map(tt => {
+    const cur = tt.id === (on ? st.id : st.active);
+    return '<div class="srow"><button class="sbtn" data-id="' + esc(tt.id) + '" onclick="vpTunMenu(this.dataset.id)"><span class="vpic' + (cur ? ' cur' : '') + '" aria-hidden="true">' + uiIcon(cur ? 'check' : 'shield') + '</span>' +
+      '<span class="stxt"><b>' + esc(tt.name) + (cur ? '<span class="sr-only"> (standaard)</span>' : '') + '</b><small>' + esc(vpTunSub(tt)) + '</small></span>' +
       '<span class="vpmore" aria-hidden="true">⋯</span></button></div>';
   }).join('');
   // vanzelf
@@ -71,11 +71,11 @@ function vpRender(light){
 }
 window.onVpnChanged = function(msg){ vpBusy = false; if (msg) toast(msg); if (current === 'vpn') vpRender(); if (current === 'home') refreshVpnTile(); };
 
-const vpKind = t => t.type === 'ovpn' ? 'OpenVPN' : 'WireGuard';
-function vpTunSub(t){
-  const fb = (t.fallback || []).map(id => (vpTun.find(x => x.id === id) || {}).name).filter(Boolean);
-  const where = t.type === 'ovpn' ? (t.summary || t.endpoint || '') : (t.endpoint || '') + (t.full ? ' · al je verkeer' : ' · alleen ' + (t.allowed || []).slice(0, 2).join(', '));
-  return vpKind(t) + ' · ' + where + (fb.length ? ' · ↪ reserve: ' + fb.join(', ') : '');
+const vpKind = tt => tt.type === 'ovpn' ? 'OpenVPN' : 'WireGuard';
+function vpTunSub(tt){
+  const fb = (tt.fallback || []).map(id => (vpTun.find(x => x.id === id) || {}).name).filter(Boolean);
+  const where = tt.type === 'ovpn' ? (tt.summary || tt.endpoint || '') : (tt.endpoint || '') + (tt.full ? ' · al je verkeer' : ' · alleen ' + (tt.allowed || []).slice(0, 2).join(', '));
+  return vpKind(tt) + ' · ' + where + (fb.length ? ' · ↪ reserve: ' + fb.join(', ') : '');
 }
 function vpToggle(){
   if (vpBusy) return;
@@ -93,21 +93,21 @@ function vpToggle(){
 }
 
 function vpTunMenu(id){
-  const t = vpTun.find(x => x.id === id); if (!t) return;
+  const tt = vpTun.find(x => x.id === id); if (!tt) return;
   const on = vpSt.on && vpSt.id === id;
   const acts = [];
   if (!on) acts.push(['▶ Deze tunnel aanzetten', () => { Android.vpnSetActive(id); vpSt.active = id; vpToggleTo(id); }]);
   if (!on && vpSt.active !== id) acts.push(['✓ Als standaard (tegel, snelkoppeling, vanzelf)', () => { Android.vpnSetActive(id); vpRender(); }]);
   acts.push(['✎ Bewerken', () => veOpen(id)]);
   if (vpTun.length > 1) acts.push(['↪ Reserve bij blokkade…', () => vpFallbackMenu(id)]);
-  if (t.pub) acts.push(['Mijn publieke sleutel kopiëren', () => { Android.vpnCopy(t.pub); toast('Gekopieerd: ' + t.pub.slice(0, 12) + '…'); }]);
-  acts.push(['Verwijderen', () => askConfirm('Tunnel verwijderen?', '"' + t.name + '" en zijn sleutels verdwijnen van deze telefoon. Op de server verandert niets.', 'Verwijderen', () => { Android.vpnDelete(id); vpRender(); })]);
-  openSheet(t.name, (t.endpoint || '') + ((t.addr || []).length ? ' · ' + t.addr.join(', ') : ''), acts);
+  if (tt.pub) acts.push(['Mijn publieke sleutel kopiëren', () => { Android.vpnCopy(tt.pub); toast('Gekopieerd: ' + tt.pub.slice(0, 12) + '…'); }]);
+  acts.push(['Verwijderen', () => askConfirm('Tunnel verwijderen?', '"' + tt.name + '" en zijn sleutels verdwijnen van deze telefoon. Op de server verandert niets.', 'Verwijderen', () => { Android.vpnDelete(id); vpRender(); })]);
+  openSheet(tt.name, (tt.endpoint || '') + ((tt.addr || []).length ? ' · ' + tt.addr.join(', ') : ''), acts);
 }
 /* Reserve-tunnels: lukt verbinden niet (bijv. UDP geblokkeerd), dan vanzelf de volgende */
 function vpFallbackMenu(id){
-  const t = vpTun.find(x => x.id === id); if (!t) return;
-  const fb = (t.fallback || []).filter(x => vpTun.some(y => y.id === x));
+  const tt = vpTun.find(x => x.id === id); if (!tt) return;
+  const fb = (tt.fallback || []).filter(x => vpTun.some(y => y.id === x));
   const set = l => { Android.vpnSetFallback(id, JSON.stringify(l)); vpTun = rdJson(Android.vpnTunnels(), []); vpRender(); vpFallbackMenu(id); };
   const acts = [];
   vpTun.filter(x => x.id !== id).forEach(x => {
@@ -115,7 +115,7 @@ function vpFallbackMenu(id){
     acts.push(i >= 0 ? ['✓ ' + (i + 1) + '. ' + x.name + ' (' + vpKind(x) + ') — weghalen', () => set(fb.filter(y => y !== x.id))]
                      : fb.length >= 4 ? ['Hooguit 4 reserves', () => {}] : ['＋ ' + x.name + ' (' + vpKind(x) + ') als reserve', () => set(fb.concat([x.id]))]);
   });
-  openSheet('Reserve voor ' + t.name, fb.length ? 'Eerst ' + t.name + ', lukt dat niet binnen een paar seconden, dan ' + fb.map(x => (vpTun.find(y => y.id === x) || {}).name).join(', dan ') + '. Op een nieuw netwerk weer eerst ' + t.name + '.' : 'Kies wat er gebruikt wordt als ' + t.name + ' geblokkeerd is (bijv. in een hotel of op kantoor).', acts);
+  openSheet('Reserve voor ' + tt.name, fb.length ? 'Eerst ' + tt.name + ', lukt dat niet binnen een paar seconden, dan ' + fb.map(x => (vpTun.find(y => y.id === x) || {}).name).join(', dan ') + '. Op een nieuw netwerk weer eerst ' + tt.name + '.' : 'Kies wat er gebruikt wordt als ' + tt.name + ' geblokkeerd is (bijv. in een hotel of op kantoor).', acts);
 }
 /* Na het toevoegen: de andere soort als reserve voorstellen */
 function vpSuggestFallback(newId){
@@ -194,8 +194,8 @@ window.onVpnImage = function(r){
 };
 function vpNew(){
   const k = rdJson(Android.vpnNewKey(), {});
-  const t = '[Interface]\nPrivateKey = ' + k.priv + '\nAddress = 10.0.0.2/32\nDNS = 1.1.1.1\n\n[Peer]\nPublicKey = \nAllowedIPs = 0.0.0.0/0, ::/0\nEndpoint = \nPersistentKeepalive = 25\n';
-  veOpen('', t, '', true);
+  const tt = '[Interface]\nPrivateKey = ' + k.priv + '\nAddress = 10.0.0.2/32\nDNS = 1.1.1.1\n\n[Peer]\nPublicKey = \nAllowedIPs = 0.0.0.0/0, ::/0\nEndpoint = \nPersistentKeepalive = 25\n';
+  veOpen('', tt, '', true);
 }
 
 /* QR-code scannen met de camera (jsQR; beelden gaan nergens heen) */
@@ -217,7 +217,7 @@ function vpScanStart(){
   box.classList.add('on'); $('#vp-scanmsg').textContent = 'Camera starten…';
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('#vp-scanmsg').textContent = 'De camera is hier niet beschikbaar. Gebruik "QR-code uit een afbeelding".'; return; }
   navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }).then(stream => {
-    if (!box.classList.contains('on')) { stream.getTracks().forEach(t => t.stop()); return; }
+    if (!box.classList.contains('on')) { stream.getTracks().forEach(tt => tt.stop()); return; }
     vpStream = stream; v.srcObject = stream; v.play().catch(() => {});
     $('#vp-scanmsg').textContent = 'Richt de camera op de QR-code';
     const c = document.createElement('canvas'), x = c.getContext('2d', { willReadFrequently: true });
@@ -236,7 +236,7 @@ function vpScanStart(){
 }
 function vpScanClose(){
   clearInterval(vpScanTimer); vpScanTimer = null;
-  if (vpStream) { vpStream.getTracks().forEach(t => t.stop()); vpStream = null; }
+  if (vpStream) { vpStream.getTracks().forEach(tt => tt.stop()); vpStream = null; }
   const v = $('#vp-video'); v.srcObject = null;
   $('#vp-scan').classList.remove('on');
   Android.vpnCameraDone();
@@ -251,7 +251,7 @@ function veOpen(id, text, name, isNew){
     const r = rdJson(Android.vpnConfig(id), {});
     if (r.error) { toast(r.error); return; }
     text = r.text; veCfgUser = r.user || ''; veHasPass = !!r.hasPass;
-    name = (vpTun.find(t => t.id === id) || {}).name || '';
+    name = (vpTun.find(tt => tt.id === id) || {}).name || '';
   }
   show('vpnedit');
   $('#ve-h').textContent = id ? 'Tunnel bewerken' : 'Nieuwe tunnel';

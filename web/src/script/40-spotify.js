@@ -1,6 +1,6 @@
 /* ---------- Spotify-backup ---------- */
 let spSt = {}, spPl = [], spGone = [], spPollT = null;
-function spDate(t){ return t ? fmtDT(t, { day: 'numeric', month: 'short', year: new Date(t).getFullYear() === new Date().getFullYear() ? undefined : 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; }
+function spDate(tt){ return tt ? fmtDT(tt, { day: 'numeric', month: 'short', year: new Date(tt).getFullYear() === new Date().getFullYear() ? undefined : 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; }
 function enterSpotify(){ spRender(); if (!spPollT) spPollT = setInterval(() => { if (current !== 'spotify') { clearInterval(spPollT); spPollT = null; return; } spState(); }, 1000); }
 function spState(){
   const prev = spSt.busy;
@@ -66,8 +66,8 @@ function spLibOpen(kind){
 }
 function spLibShow(k, gone){
   const r = rdJson(Android.spotifyLibList(k.kind, !!gone), { total: 0, items: [] });
-  const when = t => t ? ' · ' + String(t).slice(0, 10) : '';
-  askConfirm(k.name + (gone ? ' · verdwenen' : ''), r.items.map((t, n) => (n + 1) + '. ' + t.n + (t.a ? ' – ' + t.a : '') + (k.kind === 'recent' ? when(t.p || t.t) : '')).join('\n') + (r.total > r.items.length ? '\n…' : '') || 'Leeg', 'Sluiten', () => {});
+  const when = tt => tt ? ' · ' + String(tt).slice(0, 10) : '';
+  askConfirm(k.name + (gone ? ' · verdwenen' : ''), r.items.map((tt, n) => (n + 1) + '. ' + tt.n + (tt.a ? ' – ' + tt.a : '') + (k.kind === 'recent' ? when(tt.p || tt.t) : '')).join('\n') + (r.total > r.items.length ? '\n…' : '') || 'Leeg', 'Sluiten', () => {});
 }
 function spLibRestore(k, mode){
   if (spSt.busy) { toast('Even wachten: er loopt nog iets'); return; }
@@ -127,7 +127,7 @@ function spVersion(p, v, kind){
   const tr = rdJson(Android.spotifyTracks(p.id, v.snap), { total: 0, items: [] });
   const acts = [['Terugzetten als nieuwe playlist', () => spRestore(p, v, 'new')]];
   if (kind === 'o') acts.push(['De huidige playlist precies zo terugzetten…', () => askConfirm('Playlist overschrijven?', '"' + p.name + '" in Spotify krijgt weer precies de ' + tr.total + ' nummers van ' + spDate(v.t) + '. Wat er daarna bij kwam, gaat eruit.', 'Overschrijven', () => spRestore(p, v, 'replace'))]);
-  acts.push(['Nummers bekijken', () => askConfirm(p.name + ' · ' + spDate(v.t), tr.items.map((t, n) => (n + 1) + '. ' + t.n + (t.a ? ' – ' + t.a : '') + (t.l ? ' (lokaal bestand)' : '')).join('\n') + (tr.total > tr.items.length ? '\n…' : '') || 'Leeg', 'Sluiten', () => {})]);
+  acts.push(['Nummers bekijken', () => askConfirm(p.name + ' · ' + spDate(v.t), tr.items.map((tt, n) => (n + 1) + '. ' + tt.n + (tt.a ? ' – ' + tt.a : '') + (tt.l ? ' (lokaal bestand)' : '')).join('\n') + (tr.total > tr.items.length ? '\n…' : '') || 'Leeg', 'Sluiten', () => {})]);
   openSheet(p.name, spDate(v.t) + ' · ' + tr.total + ' nummers', acts);
 }
 function spRestore(p, v, mode){

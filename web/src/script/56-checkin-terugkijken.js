@@ -25,7 +25,7 @@ function ciRemByDay(h){
   return m;
 }
 /** "31 okt 18:49". Zuiver. */
-function ciWhen(t){ const d = new Date(t); return d.getDate() + ' ' + CI_MON[d.getMonth()].slice(0, 3) + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '') + ' ' + ciTime(t); }
+function ciWhen(tt){ const d = new Date(tt); return d.getDate() + ' ' + CI_MON[d.getMonth()].slice(0, 3) + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '') + ' ' + ciTime(tt); }
 function ciRemCount(n){ return n === 1 ? 'met een opmerking' : 'met ' + n + ' opmerkingen'; }
 /** Trend: kleinste kwadraten over de punten [x, y]; geeft de verandering over het hele bereik (y is 0..1). Zuiver. */
 function ciTrend(pts){
@@ -36,7 +36,7 @@ function ciTrend(pts){
   const b = sxy / sxx, a = my - b * mx, x0 = Math.min(...pts.map(p => p[0])), x1 = Math.max(...pts.map(p => p[0]));
   return { a, b, change: b * (x1 - x0), x0, x1, n };
 }
-function ciTrendText(t){ if (!t) return 'te weinig antwoorden voor een trend'; return t.change > .1 ? 'stijgend' : t.change < -.1 ? 'dalend' : 'vrij gelijk'; }
+function ciTrendText(tt){ if (!tt) return 'te weinig antwoorden voor een trend'; return tt.change > .1 ? 'stijgend' : tt.change < -.1 ? 'dalend' : 'vrij gelijk'; }
 
 function enterCheckinQ(){
   ciLoad();
@@ -125,7 +125,7 @@ function ciqRenderCal(q){
   if (g && !g._swipe) {
     g._swipe = true; let sx = 0, sy = 0;
     g.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
-    g.addEventListener('touchend', e => { const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy; if (Math.abs(dx) > 60 && Math.abs(dy) < 40) ciqStep(dx < 0 ? 1 : -1); });
+    g.addEventListener('touchend', e => { const tt = e.changedTouches[0], dx = tt.clientX - sx, dy = tt.clientY - sy; if (Math.abs(dx) > 60 && Math.abs(dy) < 40) ciqStep(dx < 0 ? 1 : -1); });
   }
 }
 function ciqStep(dir){
@@ -192,7 +192,7 @@ function ciqRenderDay(q){
   });
   if (real) h += c.rem.filter(r => !keys.has(r.p)).map(ciRemHtml).join(''); // opmerkingen bij een periode die niet meer bij het ritme hoort
   if (CI_DAYRHYTHM(q.rhythm)) {
-    ciDayInfo(c.key, ciqDaysInfo).forEach(([ic, t]) => { h += '<p class="ci-info">' + uiIcon(ic) + '<span>' + esc(t) + '</span></p>'; });
+    ciDayInfo(c.key, ciqDaysInfo).forEach(([ic, tt]) => { h += '<p class="ci-info">' + uiIcon(ic) + '<span>' + esc(tt) + '</span></p>'; });
     if (ciqDaysInfo && !ciqDaysInfo.cal) h += '<p class="ci-info">' + uiIcon('calendar') + '<span>Je agenda erbij zien? <button class="linkish" onclick="Android.permRequest(\'calendar\')">Toegang geven (alleen lezen)</button></span></p>';
   }
   box.innerHTML = h;
@@ -223,7 +223,7 @@ function ciRemOpen(key, rid){
   if (d && d.q === ciR.q && d.key === ciR.key && d.id === ciR.id) { $('#ci-rem-text').value = d.text; ciR.voice = d.voice; ciRemDraft = null; toast('Je opmerking staat er weer; nog niet bewaard'); }
   else $('#ci-rem-text').value = ciR.text0;
   $('#ci-rem').classList.add('on');
-  setTimeout(() => { const t = $('#ci-rem-text'); if (t && ciR) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 60);
+  setTimeout(() => { const tt = $('#ci-rem-text'); if (tt && ciR) { tt.focus(); tt.setSelectionRange(tt.value.length, tt.value.length); } }, 60);
 }
 function ciRemDirty(){ return !!ciR && $('#ci-rem-text').value.trim() !== ciR.text0.trim(); }
 function ciRemSave(){
@@ -259,8 +259,8 @@ function ciRemVoice(){
   if (!ciR) return;
   voiceOpen(null, { title: 'Opmerking inspreken', models: true, done: text => {
     if (!ciR || !text) return;
-    const t = $('#ci-rem-text'); t.value = (t.value.trim() ? t.value.trim() + ' ' : '') + text; ciR.voice = true;
-    setTimeout(() => t.focus(), 0);
+    const tt = $('#ci-rem-text'); tt.value = (tt.value.trim() ? tt.value.trim() + ' ' : '') + text; ciR.voice = true;
+    setTimeout(() => tt.focus(), 0);
   } });
 }
 function ciqRemDel(rid){

@@ -32,7 +32,7 @@ function updStep(r){
   }
 }
 /** Voor een schermlezer: alleen de fase (zonder procenten), ook als dezelfde tekst nog eens komt. */
-function updSay(t){ const l = $('#upd-live'); if (!l) return; l.textContent = ''; setTimeout(() => { l.textContent = t; }, 60); }
+function updSay(tt){ const l = $('#upd-live'); if (!l) return; l.textContent = ''; setTimeout(() => { l.textContent = tt; }, 60); }
 /** Balken bijwerken: text, pct (-1 = bezig zonder percentage, null = geen balk), knop (null = verbergen). */
 function updShow(text, pct, btn){
   ['', '2'].forEach(n => {

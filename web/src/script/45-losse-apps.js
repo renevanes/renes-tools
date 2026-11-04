@@ -65,10 +65,10 @@ if (SOLO) {
 /* ---------- Instellen: welke tools als losse app ---------- */
 function soloAllowedList(){ try { return JSON.parse(Android.soloList()); } catch(e){ return []; } }
 function soloMake(tool, after){
-  const t = TOOLS[tool]; if (!t) return;
-  const pin = () => { const e = Android.soloPin(tool, t[0], t[1], t[2]); toast(e || 'Bevestig op je startscherm om ' + t[0] + ' als losse app toe te voegen'); };
+  const tt = TOOLS[tool]; if (!tt) return;
+  const pin = () => { const e = Android.soloPin(tool, tt[0], tt[1], tt[2]); toast(e || 'Bevestig op je startscherm om ' + tt[0] + ' als losse app toe te voegen'); };
   if (soloAllowedList().includes(tool)) { pin(); return; }
-  askConfirm('Losse app: ' + t[0], t[0] + ' komt als eigen app op je startscherm. Die opent zonder vingerafdruk of app-code: iedereen die je telefoon heeft, kan erin. Andere tools zijn vanuit die losse app niet te zien.\n\nUitzetten kan altijd bij Instellingen → Losse apps.', 'Losse app maken', () => {
+  askConfirm('Losse app: ' + tt[0], tt[0] + ' komt als eigen app op je startscherm. Die opent zonder vingerafdruk of app-code: iedereen die je telefoon heeft, kan erin. Andere tools zijn vanuit die losse app niet te zien.\n\nUitzetten kan altijd bij Instellingen → Losse apps.', 'Losse app maken', () => {
     Android.soloSet(tool, true); pin(); if (after) after();
   });
 }
@@ -76,15 +76,15 @@ function stSoloRender(){
   const box = $('#st-solo-list'); if (!box) return;
   const on = soloAllowedList();
   box.innerHTML = SOLO_TOOLS.filter(k => TOOLS[k]).map(k => {
-    const t = TOOLS[k], is = on.includes(k);
-    return '<div class="sw"><span>' + esc(t[0]) + (is ? '<small><button class="linkish" onclick="soloMake(\'' + k + '\')">Op startscherm zetten</button></small>' : '') +
-      '</span><button class="tg' + (is ? ' on' : '') + '" role="switch" aria-checked="' + is + '" aria-label="' + esc(t[0]) + ' als losse app" onclick="stSoloToggle(\'' + k + '\', this)"></button></div>';
+    const tt = TOOLS[k], is = on.includes(k);
+    return '<div class="sw"><span>' + esc(tt[0]) + (is ? '<small><button class="linkish" onclick="soloMake(\'' + k + '\')">Op startscherm zetten</button></small>' : '') +
+      '</span><button class="tg' + (is ? ' on' : '') + '" role="switch" aria-checked="' + is + '" aria-label="' + esc(tt[0]) + ' als losse app" onclick="stSoloToggle(\'' + k + '\', this)"></button></div>';
   }).join('');
 }
 function stSoloToggle(tool, btn){
-  const t = TOOLS[tool]; if (!t) return;
-  if (btn.classList.contains('on')) { Android.soloSet(tool, false); toast(t[0] + ': losse app uit'); stSoloRender(); return; }
-  askConfirm('Losse app: ' + t[0], t[0] + ' mag dan als eigen app op je startscherm. Die opent zonder vingerafdruk of app-code: iedereen die je telefoon heeft, kan erin.', 'Aanzetten', () => {
-    Android.soloSet(tool, true); stSoloRender(); toast(t[0] + ': losse app aan');
+  const tt = TOOLS[tool]; if (!tt) return;
+  if (btn.classList.contains('on')) { Android.soloSet(tool, false); toast(tt[0] + ': losse app uit'); stSoloRender(); return; }
+  askConfirm('Losse app: ' + tt[0], tt[0] + ' mag dan als eigen app op je startscherm. Die opent zonder vingerafdruk of app-code: iedereen die je telefoon heeft, kan erin.', 'Aanzetten', () => {
+    Android.soloSet(tool, true); stSoloRender(); toast(tt[0] + ': losse app aan');
   });
 }

@@ -84,12 +84,12 @@ function auRender(){
   $('#au-log').innerHTML = log.map(l => '<li><span class="t">' + esc(auWhen(l.t)) + '</span><span><b>' + esc(l.name || '') + '</b> ' + esc(l.what || '') + '</span></li>').join('');
 }
 
-function auWhen(t){
-  const d = new Date(t), now = new Date();
+function auWhen(ms){
+  const d = new Date(ms), now = new Date();
   const time = fmtTime(d, { hour: '2-digit', minute: '2-digit' });
-  if (d.toDateString() === now.toDateString()) return 'vandaag ' + time;
+  if (d.toDateString() === now.toDateString()) return t('vandaag {tijd}', { tijd: time });
   const y = new Date(now); y.setDate(now.getDate() - 1);
-  if (d.toDateString() === y.toDateString()) return 'gisteren ' + time;
+  if (d.toDateString() === y.toDateString()) return t('gisteren {tijd}', { tijd: time });
   return fmtDate(d, { day: 'numeric', month: 'short' }) + ' ' + time;
 }
 
@@ -155,7 +155,7 @@ function aeRender(){
   $('#ae-radiobox').style.display = act === 'radio' ? 'block' : 'none';
   $('#ae-redialbox').style.display = act === 'redial' ? 'block' : 'none';
   $('#ae-vpnbox').style.display = act === 'vpn_on' ? 'block' : 'none';
-  if (act === 'vpn_on') { const ts = rdJson(Android.vpnTunnels(), []); $('#ae-vpn').innerHTML = '<option value="">' + t(ts.length ? 'Kies een tunnel…' : 'Stel eerst een tunnel in bij VPN') + '</option>' + ts.map(t => '<option value="' + esc(t.id) + '"' + (r.vpn && r.vpn.id === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>').join(''); }
+  if (act === 'vpn_on') { const ts = rdJson(Android.vpnTunnels(), []); $('#ae-vpn').innerHTML = '<option value="">' + t(ts.length ? 'Kies een tunnel…' : 'Stel eerst een tunnel in bij VPN') + '</option>' + ts.map(tt => '<option value="' + esc(tt.id) + '"' + (r.vpn && r.vpn.id === tt.id ? ' selected' : '') + '>' + esc(tt.name) + '</option>').join(''); }
   if (act === 'note') { const ns = (notesGet() || []).filter(n => !n.deleted); $('#ae-note').innerHTML = '<option value="">' + t('Kies een notitie…') + '</option>' + ns.map(n => '<option value="' + esc(n.id) + '"' + (r.note && r.note.id === n.id ? ' selected' : '') + ' translate="no">' + esc(n.title || t('Zonder titel')) + '</option>').join(''); }
   if (act === 'radio') { const fs = rdJson(Android.radioFavorites(), []); $('#ae-radio').innerHTML = '<option value="">' + t('Kies een zender (uit je favorieten)…') + '</option>' + fs.map((f, i) => '<option value="' + i + '"' + (r.radio && r.radio.url === f.url ? ' selected' : '') + '>' + esc(f.name) + '</option>').join(''); }
   if (act === 'redial') $('#ae-number').value = r.number || '';
@@ -233,7 +233,7 @@ function aeRender(){
 }
 
 function aeSetNote(id){ const n = (notesGet() || []).find(x => x.id === id); aeRule.note = n ? { id: n.id, title: n.title || 'Notitie' } : null; }
-function aeSetVpn(id){ const t = rdJson(Android.vpnTunnels(), []).find(x => x.id === id); aeRule.vpn = t ? { id: t.id, name: t.name } : null; }
+function aeSetVpn(id){ const tt = rdJson(Android.vpnTunnels(), []).find(x => x.id === id); aeRule.vpn = tt ? { id: tt.id, name: tt.name } : null; }
 function aeSetRadio(i){ const fs = rdJson(Android.radioFavorites(), []); const f = fs[+i]; aeRule.radio = f && i !== '' ? f : null; }
 function aeStepLabel(s){
   if (s.t === 'wait') return t('Wachten {n} s', { n: fmtNum(Math.round((s.ms || 1000) / 100) / 10) });

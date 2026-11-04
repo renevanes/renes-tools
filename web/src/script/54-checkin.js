@@ -14,7 +14,7 @@ function ciOpts(q){ return (q && q.options) || []; }
 function ciPad(n){ return String(n).padStart(2, '0'); }
 function ciDayKey(d){ return d.getFullYear() + '-' + ciPad(d.getMonth() + 1) + '-' + ciPad(d.getDate()); }
 function ciDate(key){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(key || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3], 12) : null; }
-function ciTime(t){ return fmtTime(t, { hour: '2-digit', minute: '2-digit' }); }
+function ciTime(tt){ return fmtTime(tt, { hour: '2-digit', minute: '2-digit' }); }
 function ciShort(d){ return CI_DOW[(d.getDay() + 6) % 7 + 1] + ' ' + d.getDate() + ' ' + CI_MON[d.getMonth()].slice(0, 3); }
 /** Eerste dag (maandag) van een ISO-week "2026-W44". Zuiver. */
 function ciWeekStart(key){
@@ -35,7 +35,7 @@ function ciKeyLabel(key, now){
 /** Hoe vaak, in woorden: "Elke dag om 21:00", "Werkdagen om 17:30" … Zuiver. */
 function ciRhythmText(q){
   const hm = x => typeof fmtHm === 'function' ? fmtHm(x) : x; // 12- of 24-uurs (Regio en taal)
-  const t = (q.times || []).slice().sort().map(hm), at = ' om ' + (t[0] || '');
+  const tt = (q.times || []).slice().sort().map(hm), at = ' om ' + (tt[0] || '');
   const days = (q.days || []).slice().sort();
   const dayList = days.length === 7 ? 'Elke dag' : days.join() === '1,2,3,4,5' ? 'Werkdagen' : 'Op ' + days.map(d => CI_DOW[d]).join(', ');
   let s;
@@ -45,7 +45,7 @@ function ciRhythmText(q){
     case 'weekdays': s = dayList + at; break;
     case 'weekly': s = 'Elke ' + CI_DOW_L[q.wday || 5] + at; break;
     case 'monthly': s = 'Elke maand op de ' + (q.dom || 1) + 'e' + ((q.dom || 1) > 28 ? ' (of de laatste dag)' : '') + at; break;
-    case 'multi': s = dayList + ' om ' + (t.length > 1 ? t.slice(0, -1).join(', ') + ' en ' + t[t.length - 1] : t[0] || ''); break;
+    case 'multi': s = dayList + ' om ' + (tt.length > 1 ? tt.slice(0, -1).join(', ') + ' en ' + tt[tt.length - 1] : tt[0] || ''); break;
     default: s = '';
   }
   if (q.quietWeekend) s += ' · stil in het weekend';
@@ -174,11 +174,11 @@ function ciAnsRender(){
       (q.voice ? '<button class="iconbtn" onclick="ciAnsVoice()" aria-label="Notitie inspreken bij ' + esc(q.text) + '">' + uiIcon('mic') + '</button>' : '') + '</div>';
   }
   const box = $('#ci-ans-x');
-  if (box._h !== x) { const keep = document.activeElement && document.activeElement.id === 'ci-ans-note'; box.innerHTML = x; box._h = x; if (keep) { const t = $('#ci-ans-note'); if (t) t.focus(); } }
+  if (box._h !== x) { const keep = document.activeElement && document.activeElement.id === 'ci-ans-note'; box.innerHTML = x; box._h = x; if (keep) { const tt = $('#ci-ans-note'); if (tt) tt.focus(); } }
   $('#ci-ans-done').style.display = ciA.aid ? '' : 'none';
   $('#ci-ans-cancel').textContent = ciA.aid ? 'Sluiten' : 'Annuleren';
 }
-function ciAnsNoteNow(){ const t = $('#ci-ans-note'); return t ? t.value : ciA.note; }
+function ciAnsNoteNow(){ const tt = $('#ci-ans-note'); return tt ? tt.value : ciA.note; }
 function ciAnsPick(i){
   const q = ciQ(ciA.q); if (!q) return;
   if (ciA.aid) { // ander antwoord gekozen: dat antwoord aanpassen
@@ -233,7 +233,7 @@ function ciAnsVoice(){
   voiceOpen(null, { title: 'Notitie inspreken', models: true, done: text => {
     if (!ciA) return;
     ciA.note = (ciA.note ? ciA.note.trim() + ' ' : '') + text; ciA.voice = true;
-    const t = $('#ci-ans-note'); if (t) t.value = ciA.note;
+    const tt = $('#ci-ans-note'); if (tt) tt.value = ciA.note;
     if (ciA.aid) { const r = rdJson(Android.checkinAnswer(JSON.stringify({ q: ciA.q, id: ciA.aid, note: ciA.note, voice: true })), {}); if (!r.error) { toast('✓ Notitie bewaard'); ciA.voice = false; ciAfter(); } }
   } });
 }

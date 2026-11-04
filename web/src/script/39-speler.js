@@ -15,7 +15,7 @@ const PL_IC = {
   star: on => '<svg viewBox="0 0 24 24" width="26" height="26" fill="' + (on ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>'
 };
 
-function plSetText(el, t){ t = t == null ? '' : String(t); if (el.textContent !== t) el.textContent = t; }
+function plSetText(el, tt){ tt = tt == null ? '' : String(tt); if (el.textContent !== tt) el.textContent = tt; }
 function plSetHtml(el, h){ if (el._h !== h) { el._h = h; el.innerHTML = h; } }
 
 /* Wat er nu in de speler hoort: wat net gestart is (even), anders wat de app zegt, anders wat er is. */

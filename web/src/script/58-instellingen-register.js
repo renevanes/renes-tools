@@ -15,7 +15,7 @@ const SET_ZOOM = [['0', 'Zoals de telefoon'], ['90', 'Kleiner'], ['100', 'Normaa
 const SET_LOCKT = [['0', 'Meteen'], ['30000', '30 seconden'], ['60000', '1 minuut'], ['300000', '5 minuten'], ['900000', '15 minuten'], ['3600000', '1 uur']];
 const SET_RANGE = () => RANGE.map(v => [String(v), v < 60 ? v + ' seconden' : v === 60 ? '1 minuut' : fmtNum(v / 60, { maximumFractionDigits: 2 }) + ' minuten']);
 /* Korte, vaste id uit een willekeurige tekst (een id van een automatisering kan van alles bevatten) */
-function setHash(t){ let h = 5381; const s = String(t); for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36) + '-' + s.length.toString(36); }
+function setHash(tt){ let h = 5381; const s = String(tt); for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h.toString(36) + '-' + s.length.toString(36); }
 /* Herinnering op bedtijd: net als op het scherm eerst toestemming voor meldingen */
 function setSlNotif(on){ slLoad(); if (on && slSt.notifOk === false) { Android.permRequest('notif'); return 'Sta eerst meldingen toe voor de app en probeer het dan opnieuw'; } return ''; }
 function setSl(){ return (rdJson(Android.sleepState(), {}) || {}).set || {}; }

@@ -15,12 +15,12 @@ function bkAiRender(){
 
 /** De cijfers voor de AI: totalen, vergelijking, categorieën, tegenpartijen, maanden, vaste lasten, grootste uitgaven. */
 function bkFeiten(vraag){
-  const [van, tot, label] = bkPeriodeVan(), lijst = bkSelectie(van, tot), t = bkTotalen(lijst);
+  const [van, tot, label] = bkPeriodeVan(), lijst = bkSelectie(van, tot), tt = bkTotalen(lijst);
   const [pv, pt] = bkVorige(van, tot), v = bkTotalen(bkSelectie(pv, pt));
   const e = c => bkEuro(c);
   const r = [];
   r.push('Periode: ' + label + ' (' + van + ' t/m ' + tot + ')' + (bkRekening() !== 'alle' ? ', alleen rekening ' + bkRekNaam(bkRekening()) : ', alle rekeningen') + '. Vandaag: ' + bkVandaag() + '.');
-  r.push('Inkomsten ' + e(t.in) + ', uitgaven ' + e(t.uit) + ', gespaard/belegd ' + e(t.sparen) + ', over ' + bkEuro(t.netto, true) + ' (' + t.n + ' boekingen).');
+  r.push('Inkomsten ' + e(tt.in) + ', uitgaven ' + e(tt.uit) + ', gespaard/belegd ' + e(tt.sparen) + ', over ' + bkEuro(tt.netto, true) + ' (' + tt.n + ' boekingen).');
   r.push('Vorige periode (' + pv + ' t/m ' + pt + '): inkomsten ' + e(v.in) + ', uitgaven ' + e(v.uit) + ', gespaard ' + e(v.sparen) + '.');
   const cats = [...t.cats.entries()].filter(([, x]) => x.soort === 'uit').sort((a, b) => a[1].som - b[1].som).slice(0, 16);
   if (cats.length) r.push('Uitgaven per categorie (nu | vorige periode):\n' + cats.map(([c, x]) => '- ' + c + ': ' + e(-x.som) + ' (' + x.n + '×) | ' + e(v.cats.get(c) ? -v.cats.get(c).som : 0)).join('\n'));
@@ -70,9 +70,9 @@ function bkAiStart(mode, inhoud){
   bk.aiBezig = true; bkAiRender();
 }
 window.onBankAiStatus = function(s){ if (bk.aiDoel === 'categorie') { $('#bk-ai-cat-uit').textContent = s || 'Bezig…'; return; } const e = $('#bk-ai-status'); if (e) e.textContent = s || ''; };
-window.onBankAiToken = function(t){
+window.onBankAiToken = function(tt){
   if (!bk.store) return;
-  bk.aiTekst += String(t || '');
+  bk.aiTekst += String(tt || '');
   if (bk.aiDoel === 'categorie') { $('#bk-ai-cat-uit').textContent = 'Bezig… (' + bk.aiTekst.split('\n').length + ' regels)'; return; }
   $('#bk-ai-uit').textContent = bkSchoon(bk.aiTekst); // altijd als tekst, nooit als HTML
 };
@@ -100,10 +100,10 @@ function bkAiCategoriseren(){
   const ai = (bk.st && bk.st.ai) || {};
   if (!ai.kan || !ai.klaar) { toast('Download eerst een taalmodel (Instellingen → Taalmodel)'); return; }
   const groep = new Map();
-  for (const t of bk.store.tx) {
-    const c = bkCat(t); if (c !== 'Overig' && c !== 'Overige inkomsten') continue;
-    const k = bkSleutel(t); if (!k || k === '?' || k.length < 2) continue;
-    const x = groep.get(k) || { k, naam: t.cp || t.ci, n: 0, som: 0, plus: 0 }; x.n++; x.som += t.a; if (t.a > 0) x.plus++; groep.set(k, x);
+  for (const tt of bk.store.tx) {
+    const c = bkCat(tt); if (c !== 'Overig' && c !== 'Overige inkomsten') continue;
+    const k = bkSleutel(tt); if (!k || k === '?' || k.length < 2) continue;
+    const x = groep.get(k) || { k, naam: tt.cp || tt.ci, n: 0, som: 0, plus: 0 }; x.n++; x.som += tt.a; if (tt.a > 0) x.plus++; groep.set(k, x);
   }
   const lijst = [...groep.values()].sort((a, b) => b.n - a.n || a.som - b.som).slice(0, 30);
   if (!lijst.length) { toast('Er is niets meer in te delen'); return; }
@@ -144,9 +144,9 @@ function bkVoorstellenOvernemen(){
     if (!k) return;
     const c = sel ? sel.value : k.c;
     if (!bkAlleCats().includes(c)) return;
-    const t = k.x.plus > k.x.n / 2 ? '+' : '-';
-    bk.store.rules = bk.store.rules.filter(g => !(g.p === k.x.k && g.t === t));
-    bk.store.rules.push({ p: k.x.k, cat: c, t });
+    const tt = k.x.plus > k.x.n / 2 ? '+' : '-';
+    bk.store.rules = bk.store.rules.filter(g => !(g.p === k.x.k && g.t === tt));
+    bk.store.rules.push({ p: k.x.k, cat: c, t: tt });
     n++;
   });
   bk.voorstellen = null;

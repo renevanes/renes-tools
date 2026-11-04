@@ -147,34 +147,34 @@ function aiRenderMain(){
   aiSendBtn();
 }
 const AI_SET_SUGG = ['Hoeveel schermtijd vandaag?', 'Zet een timer van 10 minuten', 'Wat kan ik instellen bij de assistent?', 'Waar vind ik de tekstgrootte?', 'Zet de nachtelijke backup aan'];
-function aiSetSugg(i){ const t = $('#ai-in'); t.value = AI_SET_SUGG[i] || ''; aiGrow(); t.focus(); }
+function aiSetSugg(i){ const tt = $('#ai-in'); tt.value = AI_SET_SUGG[i] || ''; aiGrow(); tt.focus(); }
 function aiSugg(i){
   const s = AI_SUGG[i]; if (!s) return;
   if (s[3] === 'gesprek') { aiTalkStart(); return; }
   if (s[2] && !aiSt.notes) aiToggleNotes();
-  const t = $('#ai-in'); t.value = s[1]; aiGrow(); t.focus(); t.setSelectionRange(t.value.length, t.value.length);
+  const tt = $('#ai-in'); tt.value = s[1]; aiGrow(); tt.focus(); tt.setSelectionRange(tt.value.length, tt.value.length);
 }
 function aiToggleNotes(){ aiSt.notes = !aiSt.notes; Android.aiPref('notes', aiSt.notes); aiRenderMain(); toast(aiSt.notes ? 'De assistent zoekt eerst in je gegevens (' + aiSrcNames() + ')' : 'Zonder je gegevens'); }
 /* Tabbalk weg tijdens het typen (zie stijl.css: ai-typing); pas 0,4 s na het typen terug */
 (function(){
-  const t = document.getElementById('ai-in'); if (!t) return; let tm = null;
-  t.addEventListener('focus', () => { clearTimeout(tm); document.body.classList.add('ai-typing'); });
-  t.addEventListener('blur', () => { clearTimeout(tm); tm = setTimeout(() => { if (document.activeElement !== t) document.body.classList.remove('ai-typing'); }, 400); });
+  const tt = document.getElementById('ai-in'); if (!tt) return; let tm = null;
+  tt.addEventListener('focus', () => { clearTimeout(tm); document.body.classList.add('ai-typing'); });
+  tt.addEventListener('blur', () => { clearTimeout(tm); tm = setTimeout(() => { if (document.activeElement !== tt) document.body.classList.remove('ai-typing'); }, 400); });
   // Toetsenbord dicht met Terug (het vak houdt de focus): tabbalk weer terug; tik je er weer in, dan weer weg
   const vv = window.visualViewport; if (!vv) return;
   let full = vv.height, w = vv.width;
   vv.addEventListener('resize', () => {
     if (Math.abs(vv.width - w) > 1) { w = vv.width; full = vv.height; } // gedraaid: opnieuw meten
     full = Math.max(full, vv.height);
-    if (document.activeElement !== t) return;
+    if (document.activeElement !== tt) return;
     const kb = vv.height < full - 120;
     clearTimeout(tm);
     if (kb) document.body.classList.add('ai-typing');
     else tm = setTimeout(() => document.body.classList.remove('ai-typing'), 150);
   });
-  t.addEventListener('pointerdown', () => { if (document.activeElement === t) document.body.classList.add('ai-typing'); });
+  tt.addEventListener('pointerdown', () => { if (document.activeElement === tt) document.body.classList.add('ai-typing'); });
 })();
-function aiGrow(){ const t = $('#ai-in'); if (!t.value.trim()) aiFromVoice = false; t.style.height = 'auto'; t.style.height = Math.min(160, t.scrollHeight) + 'px'; aiSendBtn(); }
+function aiGrow(){ const tt = $('#ai-in'); if (!tt.value.trim()) aiFromVoice = false; tt.style.height = 'auto'; tt.style.height = Math.min(160, tt.scrollHeight) + 'px'; aiSendBtn(); }
 function aiKey(e){ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); aiSendOrStop(); } }
 function aiSendBtn(){
   const b = $('#ai-send'); if (!b) return;
@@ -256,16 +256,16 @@ function aiAsk(opt){
   if (e) { aiCur.c = e; aiCur.err = true; aiCur = null; aiGen = null; aiBusy = false; aiStatus(''); aiRenderMsgs(); aiSendBtn(); }
 }
 const AI_BUSY = 'De assistent is nog bezig'; // zelfde melding als AiBridge.BUSY
-function aiStatus(t){ const s = $('#ai-status'); if (!s) return; s.textContent = t || ''; s.style.display = t && aiGen === aiChat ? '' : 'none'; }
+function aiStatus(tt){ const s = $('#ai-status'); if (!s) return; s.textContent = tt || ''; s.style.display = tt && aiGen === aiChat ? '' : 'none'; }
 const aiShown = () => aiGen && aiGen === aiChat && current === 'ai';
-window.onAiStatus = function(t){ aiStatus(t); };
+window.onAiStatus = function(tt){ aiStatus(tt); };
 /* Er werd om een actie gevraagd: de actieregel ([[herinnering: …]]) tijdens het schrijven niet laten zien */
 window.onAiActWanted = function(){ if (aiCur) aiCur.actOk = true; };
 window.onAiSources = function(items){ if (aiCur) { aiCur.src = items; if (aiShown()) aiRenderLast(); } };
-window.onAiToken = function(t){
+window.onAiToken = function(tt){
   if (!aiCur) return;
   if (!aiCur.c) aiStatus('');
-  aiCur.c += t; if (aiShown()) aiRenderLast();
+  aiCur.c += tt; if (aiShown()) aiRenderLast();
   if (typeof aiTalkOn === 'function' && aiTalkOn()) aiTalkToken(aiCur);
 };
 /* Klaar (of gestopt, of fout): het gesprek waarin geantwoord werd bewaren, ook als je intussen een ander opende */
@@ -307,12 +307,12 @@ const aiTurns = {};    // turn → { chat, m }: bij welk antwoord een late geheu
 window.onAiMemory = function(o){
   o = o || {};
   // Vóór het antwoord (onthoud/vergeet): bij het antwoord dat nu geschreven wordt; daarna: bij het antwoord van die vraag
-  let t = null;
-  if (o.pre && aiCur) { aiCur.turn = o.turn; t = { chat: aiGen, m: aiCur }; }
-  else if (o.turn && aiTurns[o.turn]) t = aiTurns[o.turn];
-  else if (aiCur && aiCur.turn && aiCur.turn === o.turn) t = { chat: aiGen, m: aiCur };
-  if (!t || !t.m || !t.chat || t.chat.discard) return;
-  const mm = t.m.mem = Object.assign({}, t.m.mem);
+  let tt = null;
+  if (o.pre && aiCur) { aiCur.turn = o.turn; tt = { chat: aiGen, m: aiCur }; }
+  else if (o.turn && aiTurns[o.turn]) tt = aiTurns[o.turn];
+  else if (aiCur && aiCur.turn && aiCur.turn === o.turn) tt = { chat: aiGen, m: aiCur };
+  if (!tt || !tt.m || !tt.chat || tt.chat.discard) return;
+  const mm = tt.m.mem = Object.assign({}, tt.m.mem);
   if (o.thinking) mm.thinking = true;
   else {
     if (o.saved || o.ask || o.none || o.error || o.stopped) delete mm.thinking;
@@ -326,8 +326,8 @@ window.onAiMemory = function(o){
     const say = o.saved ? 'Onthouden: ' + o.saved.map(x => x.text).join(' ') : o.ask ? 'De assistent stelt voor iets te onthouden: ' + o.ask.join(' ') : o.forgot ? 'Vergeten: ' + o.forgot : o.error || '';
     if (say && typeof aiVSay === 'function') aiVSay(say);
   }
-  if (t.m !== aiCur) aiSaveChat(t.chat);
-  if (aiChat === t.chat && current === 'ai') { const i = aiChat.msgs.indexOf(t.m), el = $('#ai-msgs .aimsg[data-i="' + i + '"]'); if (el) el.outerHTML = aiMsgHtml(t.m, i); }
+  if (tt.m !== aiCur) aiSaveChat(tt.chat);
+  if (aiChat === tt.chat && current === 'ai') { const i = aiChat.msgs.indexOf(tt.m), el = $('#ai-msgs .aimsg[data-i="' + i + '"]'); if (el) el.outerHTML = aiMsgHtml(tt.m, i); }
   if (current === 'aisetmem') aimRender();
 };
 function aiMemHtml(m, i){
@@ -355,9 +355,9 @@ function aiSwap(el, html){
   el.replaceWith(nu);
   if (!had) return;
   const same = [...nu.querySelectorAll('button, input, [tabindex]')].find(x => (x.getAttribute('onclick') || '') + '|' + (x.id || '') === key);
-  const t = same || nu.querySelector('.aiact button, .aiact input, button, [tabindex]') || nu;
-  if (t === nu && !nu.hasAttribute('tabindex')) nu.setAttribute('tabindex', '-1');
-  t.focus({ preventScroll: true });
+  const tt = same || nu.querySelector('.aiact button, .aiact input, button, [tabindex]') || nu;
+  if (tt === nu && !nu.hasAttribute('tabindex')) nu.setAttribute('tabindex', '-1');
+  tt.focus({ preventScroll: true });
 }
 function aiMemAccept(i, k){
   const m = aiMemMsg(i), x = m && m.mem && m.mem.ask && m.mem.ask[k]; if (!x) return;
@@ -394,7 +394,7 @@ function aiSaveChat(chat){
 function aiMd(s){
   const lines = esc(String(s || '')).split('\n'), out = [];
   let list = null;
-  const inline = t => t.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>');
+  const inline = tt => tt.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>');
   const close = () => { if (list) { out.push('</' + list + '>'); list = null; } };
   for (const raw of lines) {
     const l = raw.trimEnd();
@@ -517,11 +517,11 @@ function aiMenu(){
 
 /* Een bewaard gesprek openen: is het nog in het geheugen (er kan nog een geheugenmelding voor komen), dan dat object */
 function aiChatObj(full){
-  const t = Object.values(aiTurns).find(x => x.chat && x.chat.id === full.id && !x.chat.discard);
-  return t ? t.chat : { id: full.id, title: full.title, msgs: full.msgs || [] };
+  const tt = Object.values(aiTurns).find(x => x.chat && x.chat.id === full.id && !x.chat.discard);
+  return tt ? tt.chat : { id: full.id, title: full.title, msgs: full.msgs || [] };
 }
 /* Verwijderd gesprek: late geheugenmeldingen mogen het niet opnieuw bewaren */
-function aiDiscardTurns(id){ Object.keys(aiTurns).forEach(k => { const t = aiTurns[k]; if (id === '*' || (t.chat && t.chat.id === id)) { if (t.chat) t.chat.discard = true; delete aiTurns[k]; } }); if (aiChat && (id === '*' || aiChat.id === id)) aiChat.discard = true; }
+function aiDiscardTurns(id){ Object.keys(aiTurns).forEach(k => { const tt = aiTurns[k]; if (id === '*' || (tt.chat && tt.chat.id === id)) { if (tt.chat) tt.chat.discard = true; delete aiTurns[k]; } }); if (aiChat && (id === '*' || aiChat.id === id)) aiChat.discard = true; }
 /* ---------- eerdere gesprekken ---------- */
 let aicList = [];
 function enterAiChats(){
@@ -575,8 +575,8 @@ window.onAiIndex = function(o){
   // Voortgang: alleen de regel bijwerken (de rest blijft staan, ook de focus van TalkBack)
   if (o.busy && aiIdx.busy && aiSetOn() && ($('#ais-ix-sub') || $('#aid-ix-sub'))) {
     aiIdx = { busy: true, done: o.done, total: o.total };
-    const t = 'Bijwerken… ' + o.done + ' van ' + o.total + ' nieuwe stukken (gaat door op de achtergrond)';
-    ['#ais-ix-sub', '#aid-ix-sub'].forEach(id => { const e = $(id); if (e) e.textContent = t; });
+    const tt = 'Bijwerken… ' + o.done + ' van ' + o.total + ' nieuwe stukken (gaat door op de achtergrond)';
+    ['#ais-ix-sub', '#aid-ix-sub'].forEach(id => { const e = $(id); if (e) e.textContent = tt; });
     return;
   }
   if (o.busy) aiIdx = { busy: true, done: o.done, total: o.total };
@@ -656,16 +656,16 @@ function aiSearchHtml(ql){
 let aiRec = false, aiRecT = null, aiVoiceBusy = false, aiVoiceDlT = null, aiVoiceChat = null;
 let aiVPre = '', aiVIgnore = false, aiVLv = [], aiVPart = '', aiVLive = false;
 const AI_WAVE = 28; // aantal staafjes in de golf
-function aiVState(t){ const e = $('#ai-vstate'); if (!e) return; e.textContent = t || ''; e.style.display = t ? '' : 'none'; }
+function aiVState(tt){ const e = $('#ai-vstate'); if (!e) return; e.textContent = tt || ''; e.style.display = tt ? '' : 'none'; }
 /* Voor TalkBack alleen de overgangen (niet elke halve seconde de tijd) */
-function aiVSay(t){ const e = $('#ai-vsay'); if (e) e.textContent = t; }
+function aiVSay(tt){ const e = $('#ai-vsay'); if (e) e.textContent = tt; }
 function aiMicUi(){
   const b = $('#ai-mic'); if (!b) return;
   b.classList.toggle('rec', aiRec); b.classList.toggle('busy', aiVoiceBusy);
   b.setAttribute('aria-disabled', aiVoiceBusy ? 'true' : 'false'); // niet disabled: dan raakt de focus kwijt
   b.innerHTML = uiIcon(aiRec ? 'check' : 'mic');
   b.setAttribute('aria-label', aiRec ? 'Stoppen met inspreken' : aiVoiceBusy ? 'Bezig met uitschrijven' : 'Inspreken');
-  const t = $('#ai-in'); t.disabled = aiRec || aiVoiceBusy; t.classList.toggle('ailive', aiRec || aiVoiceBusy);
+  const tt = $('#ai-in'); tt.disabled = aiRec || aiVoiceBusy; tt.classList.toggle('ailive', aiRec || aiVoiceBusy);
   const bar = $('#ai-vbar'); if (bar) bar.style.display = aiRec || aiVoiceBusy ? '' : 'none';
   const c = $('#ai-comp'); if (c) { c.classList.toggle('listening', aiRec || aiVoiceBusy); c.classList.toggle('rec', aiRec); }
   const w = $('#ai-wave'); if (w) w.classList.toggle('busy', aiVoiceBusy);
@@ -679,7 +679,7 @@ function aiWaveDraw(){
   [...w.children].forEach((b, i) => { b.style.transform = 'scaleY(' + Math.max(0.08, Math.min(1, lv[i])).toFixed(2) + ')'; });
 }
 /* De tussentekst in het invoerveld (achter wat er al stond) */
-function aiVText(part){ const t = $('#ai-in'); t.value = (aiVPre ? aiVPre + ' ' : '') + (part || ''); t.style.height = 'auto'; t.style.height = Math.min(160, t.scrollHeight) + 'px'; t.scrollTop = t.scrollHeight; }
+function aiVText(part){ const tt = $('#ai-in'); tt.value = (aiVPre ? aiVPre + ' ' : '') + (part || ''); tt.style.height = 'auto'; tt.style.height = Math.min(160, tt.scrollHeight) + 'px'; tt.scrollTop = tt.scrollHeight; }
 function aiMic(){
   if (aiVoiceBusy) { toast('Even wachten: de vraag wordt uitgeschreven'); return; }
   if (aiRec) { aiRecStop(); return; }
@@ -724,33 +724,33 @@ function aiVoiceCancelBtn(){
   Android.aiVoiceCancel();
   clearInterval(aiRecT); aiRec = false; aiVoiceBusy = false; aiVIgnore = busy; aiVState('');
   aiVText(''); aiVPart = ''; aiMicUi();
-  const t = $('#ai-in'); t.value = aiVPre; aiGrow(); t.focus();
+  const tt = $('#ai-in'); tt.value = aiVPre; aiGrow(); tt.focus();
   aiVSay('Inspreken geannuleerd'); toast('Geannuleerd');
 }
 window.onAiVoice = function(r){
   r = r || {};
   if (aiVIgnore || r.cancelled) { aiVIgnore = false; if (aiVoiceBusy) { aiVoiceBusy = false; aiVState(''); aiMicUi(); } return; } // geannuleerd
   clearInterval(aiRecT); aiRec = false; aiVoiceBusy = false; aiVState(''); aiMicUi();
-  const t = $('#ai-in');
-  if (r.error) { t.value = aiVPre; aiGrow(); toast(r.error); aiVSay(r.error); return; }
-  const text = String(r.text || '').trim(); if (!text) { t.value = aiVPre; aiGrow(); return; }
-  t.value = (aiVPre ? aiVPre + ' ' : '') + text; aiGrow();
+  const tt = $('#ai-in');
+  if (r.error) { tt.value = aiVPre; aiGrow(); toast(r.error); aiVSay(r.error); return; }
+  const text = String(r.text || '').trim(); if (!text) { tt.value = aiVPre; aiGrow(); return; }
+  tt.value = (aiVPre ? aiVPre + ' ' : '') + text; aiGrow();
   aiFromVoice = true; // ook als je hem eerst nakijkt: het antwoord mag dan voorgelezen worden
   if (r.note) toast(r.note); // vanzelf gestopt (bijv. de microfoon viel weg): dit is wat er was
   aiVSay('Herkend: ' + text);
   // Alleen meteen versturen als dat aan staat, in hetzelfde gesprek, op dit scherm, als er niets loopt; anders staat het in het invoerveld
   const same = aiVoiceChat === aiChat && current === 'ai';
   if (aiSt.voiceSend === true && same && !aiBusy) aiSendOrStop();
-  else if (current === 'ai') { t.focus(); try { t.setSelectionRange(t.value.length, t.value.length); } catch (e) { } }
+  else if (current === 'ai') { tt.focus(); try { tt.setSelectionRange(tt.value.length, tt.value.length); } catch (e) { } }
 };
 /* Weg van het scherm (of ander gesprek) tijdens het inspreken: de opname stopt en wordt weggegooid */
 function aiVoiceAbort(){
   if (!aiRec) return;
   Android.aiVoiceCancel(); clearInterval(aiRecT); aiRec = false; aiVState(''); aiVText(''); aiVPart = ''; aiMicUi();
-  const t = $('#ai-in'); if (t) { t.value = aiVPre; aiGrow(); }
+  const tt = $('#ai-in'); if (tt) { tt.value = aiVPre; aiGrow(); }
 }
 // De app ging naar de achtergrond: Android stopt de opname daar zelf (MainActivity.onPause)
-(function(){ const previous = window.onPauseApp; window.onPauseApp = function(){ if (previous) previous(); if (typeof aiRec !== 'undefined' && aiRec) { clearInterval(aiRecT); aiRec = false; aiVState(''); aiVText(''); aiVPart = ''; aiMicUi(); const t = $('#ai-in'); if (t) { t.value = aiVPre; aiGrow(); } }
+(function(){ const previous = window.onPauseApp; window.onPauseApp = function(){ if (previous) previous(); if (typeof aiRec !== 'undefined' && aiRec) { clearInterval(aiRecT); aiRec = false; aiVState(''); aiVText(''); aiVPart = ''; aiMicUi(); const tt = $('#ai-in'); if (tt) { tt.value = aiVPre; aiGrow(); } }
   if (aiSpk) { aiSpk = null; aiSpkUi(); } }; })(); // het voorlezen stopt Android zelf (MainActivity.onPause)
 function aiNeedVoiceModel(){
   askConfirm('Spraakmodel nodig', 'Om in te spreken is een klein spraakmodel nodig (57 MB, eenmalig downloaden). Het draait op je telefoon; er gaat niets naar internet.', 'Downloaden', aiVoiceDownload);
@@ -816,7 +816,7 @@ function aicRender(){
   if (a && !aicDirtyOn) { a.value = c.about || ''; i.value = c.instr || ''; }
   aicCount();
   // Regels in het overzicht
-  const sum = (id, t) => { const e = $('#ai-sum-' + id); if (e) e.textContent = t; };
+  const sum = (id, tt) => { const e = $('#ai-sum-' + id); if (e) e.textContent = tt; };
   const ready = (aiSt.models || []).filter(m => !m.embed && m.state === 'ready');
   const chat = (aiSt.models || []).find(m => m.id === aiSt.chat);
   const nieuw = (aiSt.models || []).some(m => m.replaces && aiReady(m.replaces) && m.state !== 'ready');
@@ -933,8 +933,8 @@ const AI_ACT = {
   agenda: { icon: 'calendar', label: 'In je agenda zetten', btn: 'Agenda openen', done: 'Naar je agenda gestuurd' }
 };
 function aiActLabel(a){ return (AI_ACT[a.type] || AI_ACT.notitie).label; }
-function aiActFmt(t, allDay){
-  const d = new Date(t);
+function aiActFmt(tt, allDay){
+  const d = new Date(tt);
   return allDay ? fmtDate(d, { weekday: 'short', day: 'numeric', month: 'short' }) + ' (hele dag)'
     : fmtDT(d, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }

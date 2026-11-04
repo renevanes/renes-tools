@@ -12,7 +12,7 @@ const TH_PLACES = [['auto', 'Mijn locatie (anders de standaardplaats)'], ['home'
 const TH_DEF = { mode: 'system', amoled: false, dark: '20:00', light: '07:00', off: 0, place: 'auto' };
 
 /* ---------- puur rekenwerk (getest in tests/ui/thema-reken.test.js) ---------- */
-function thMin(t){ const m = /^(\d{1,2}):(\d{2})$/.exec(String(t == null ? '' : t)); return m && +m[1] < 24 && +m[2] < 60 ? +m[1] * 60 + +m[2] : -1; }
+function thMin(tt){ const m = /^(\d{1,2}):(\d{2})$/.exec(String(tt == null ? '' : tt)); return m && +m[1] < 24 && +m[2] < 60 ? +m[1] * 60 + +m[2] : -1; }
 /* Is minuut min (van de dag) donker, met donker vanaf darkFrom en licht vanaf lightFrom? Ook over middernacht heen. */
 function thInWindow(min, darkFrom, lightFrom){
   if (darkFrom === lightFrom) return false;
@@ -39,7 +39,7 @@ function thSun(y, m, d, lat, lon){
   const base = Date.UTC(y, m, d);
   return { rise: base + (typeof r1 === 'number' ? r1 : r0) * 6e4, set: base + (typeof s1 === 'number' ? s1 : s0) * 6e4 };
 }
-function thDay(t, k){ const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + k); }
+function thDay(tt, k){ const d = new Date(tt); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + k); }
 /* Wissels [tijdstip, donker] van dag `from` tot en met `to` (0 = vandaag), op volgorde */
 function thTrans(c, now, loc, from, to){
   const out = [];
@@ -155,7 +155,7 @@ function thNative(c, now, loc, dark){
   const o = { mode: c.mode, amoled: c.amoled };
   if (c.mode === 'time') o.win = [thMin(c.dark), thMin(c.light)];
   if (c.mode === 'sun' && loc) {
-    const tr = thTrans(c, now, loc, -1, 31), mod = t => { const d = new Date(t); return d.getHours() * 60 + d.getMinutes(); };
+    const tr = thTrans(c, now, loc, -1, 31), mod = tt => { const d = new Date(tt); return d.getHours() * 60 + d.getMinutes(); };
     o.sched = tr.map(x => [Math.round(x[0]), x[1] ? 1 : 0]);
     o.end = thDay(now, 32).getTime();
     // Daarna (app lang niet open geweest): het venster van de laatste dag ([0, 1440] = de hele dag donker)
@@ -200,7 +200,7 @@ function thRender(cfg){
   $('#st-th-sun').hidden = c.mode !== 'sun';
   if (c.mode === 'sun') $('#st-th-sunnote').textContent = thSunNote(c);
   const a = $('#st-amoled'); a.classList.toggle('on', c.amoled); a.setAttribute('aria-checked', c.amoled ? 'true' : 'false');
-  const st = $('#st-th-now'), t = thStatus(); if (st.textContent !== t) st.textContent = t;
+  const st = $('#st-th-now'), tt = thStatus(); if (st.textContent !== tt) st.textContent = tt;
 }
 function thSave(patch){ store.set('theme', thClean(Object.assign(thCfg(), patch))); thApply(); if (current !== 'setlook') thRender(); }
 function thSetMode(v){ thSave({ mode: v }); toast('Thema: ' + thModeName(thCfg().mode).replace(/ \(.*\)$/, '').toLowerCase()); }

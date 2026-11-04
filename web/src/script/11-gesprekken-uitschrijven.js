@@ -76,8 +76,8 @@ function txPollOnce(){
     enterTranscripts();
   }
   txLastRunning = !!s.running;
-  const t = $('#tile-tx-sub');
-  if (t) t.textContent = s.running ? 'Bezig met uitschrijven…' : 'Opnames omzetten naar tekst';
+  const tt = $('#tile-tx-sub');
+  if (tt) tt.textContent = s.running ? 'Bezig met uitschrijven…' : 'Opnames omzetten naar tekst';
   $('#tile-tr').classList.toggle('live', !!s.running);
 }
 function txSearchDo(){
@@ -97,21 +97,21 @@ function txSearchDo(){
   }, 300);
 }
 function txOpen(id, ms){
-  const t = txJson(Android.txGet(id));
-  if (t.error) { toast(t.error); return; }
-  txCur = id; txT = t;
-  $('#txd-title').textContent = t.name || t.file;
-  const when = t.callDate || t.mtime;
+  const tt = txJson(Android.txGet(id));
+  if (tt.error) { toast(tt.error); return; }
+  txCur = id; txT = tt;
+  $('#txd-title').textContent = tt.name || tt.file;
+  const when = tt.callDate || tt.mtime;
   $('#txd-sub').textContent = fmtDT(when, {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}) +
-    ' · ' + fmtMs(t.duration) + (t.kind ? ' · ' + (TXKIND[t.kind] || '') : '') + (t.number && t.number !== t.name ? ' · ' + t.number : '');
-  $('#txd-segs').innerHTML = (t.segments || []).map((s, i) =>
+    ' · ' + fmtMs(tt.duration) + (tt.kind ? ' · ' + (TXKIND[tt.kind] || '') : '') + (tt.number && tt.number !== tt.name ? ' · ' + tt.number : '');
+  $('#txd-segs').innerHTML = (tt.segments || []).map((s, i) =>
     '<p class=seg id="seg' + i + '" data-ms="' + (+s.from || 0) + '" onclick="txSegTap(this)"><time>' + fmtMs(s.from) + '</time>' + esc(s.text) + '</p>').join('') ||
     '<p class=note>Er is geen spraak herkend in deze opname.</p>' +
     '<p class=note>Speel de opname af om te controleren of de stemmen hoorbaar zijn. Is de opname stil? Android kan de microfoon tijdens bellen dempen. Gebruik dan de opnamefunctie van je telefoon-app; uitschrijven kan ontbrekende stemmen niet terughalen.</p>' +
     '<p class=note>Hoor je wel spraak? Kies bij Gesprekken uitschrijven het model Nauwkeurig en de juiste taal en probeer het opnieuw. Bij stilte of ruis kan het spraakmodel tekst verzinnen.</p>';
   txSelEnd();
   show('txd');
-  if (ms != null) { const i = (t.segments || []).findIndex(s => s.from >= ms); const el = $('#seg' + Math.max(0, i)); if (el) { el.classList.add('now'); el.scrollIntoView({block:'center'}); } }
+  if (ms != null) { const i = (tt.segments || []).findIndex(s => s.from >= ms); const el = $('#seg' + Math.max(0, i)); if (el) { el.classList.add('now'); el.scrollIntoView({block:'center'}); } }
 }
 function txSeek(ms){ const e = Android.txPlay(txCur, String(ms)); if (e) toast(e); else txWatch(); }
 function txToggle(){

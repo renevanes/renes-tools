@@ -20,7 +20,7 @@ const GS_SYN = {meldingen: 'notificaties melding geluid trillen stil dempen uitz
 let gsIndex = null;
 function gsBuildIndex(){
   gsIndex = [];
-  const fold = t => norm2(t);
+  const fold = tt => norm2(tt);
   // Detailschermen (één notitie, chat, route …) hebben iets nodig om te tonen: die niet los openen
   const DETAIL = ['note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'podlijst', 'sleepnight', 'checkined', 'checkinq', 'apdev'];
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {

@@ -14,11 +14,11 @@ function pdfRenderDef(){
   const d = rdJson(typeof Android.pdfDefaultState === 'function' ? Android.pdfDefaultState() : '', {});
   const box = $('#pdf-def');
   if (d.state === 'ours') { box.innerHTML = '<p class="note">✓ PDF\'s openen standaard in Tools, ook uit Gmail, WhatsApp en Bestanden.</p>'; return; }
-  box.innerHTML = '<p class="note">' + (d.state === 'other' && d.app ? 'PDF\'s openen nu in <b>' + esc(d.app) + '</b>. ' : '') +
-    'Wil je dat PDF\'s altijd hier openen? Tik op de knop, kies <b>Tools</b> en dan <b>Altijd</b>.</p>' +
+  box.innerHTML = '<p class="note">' + (d.state === 'other' && d.app ? t('PDF\'s openen nu in <b>{app}</b>.', { app: esc(d.app) }) + ' ' : '') +
+    t('Wil je dat PDF\'s altijd hier openen? Tik op de knop, kies <b>Tools</b> en dan <b>Altijd</b>.') + '</p>' +
     '<button class="big ghost" id="pdf-def-btn" onclick="Android.pdfMakeDefault()">Als standaard PDF-app instellen</button>';
 }
-function pdfSetBusy(t){ pdfBusy = !!t; $('#pdf-busy').textContent = t || ''; document.querySelectorAll('#s-pdf main button').forEach(b => b.disabled = pdfBusy); pdfEditControls(); }
+function pdfSetBusy(tt){ pdfBusy = !!tt; $('#pdf-busy').textContent = tt || ''; document.querySelectorAll('#s-pdf main button').forEach(b => b.disabled = pdfBusy); pdfEditControls(); }
 window.onPdf = function(r){
   if (!r) return;
   // Een gekozen bestand (plaatjes of PDF) beëindigt geen lopende klus; al het andere wel
@@ -30,11 +30,11 @@ window.onPdf = function(r){
   if (r.kind === 'done') {
     pdfImgs = rdJson(Android.pdfImages(), []);
     const n = (r.made || []).length;
-    toast(n === 1 ? '✓ PDF gemaakt' : '✓ ' + n + ' PDF\'s gemaakt');
+    toast(n === 1 ? t('✓ PDF gemaakt') : t('✓ {n} PDF\'s gemaakt', { n }));
     if (r.lossless === false) setTimeout(() => toast('Deze PDF kon niet direct gesplitst worden; de pagina\'s zijn als afbeelding overgenomen'), 2800);
   }
   if (r.kind === 'saved') toast('✓ Opgeslagen');
-  if (r.kind === 'savedAll') toast('✓ ' + r.count + ' opgeslagen in de map PDF');
+  if (r.kind === 'savedAll') toast(t('✓ {n} opgeslagen in de map PDF', { n: r.count }));
   // Niet wegspringen als je intussen ergens anders bent: het resultaat staat klaar op het PDF-scherm
   if (current === 'pdf') pdfRender();
 };
@@ -47,11 +47,11 @@ function pdfRender(){
     '</small></span><span aria-hidden="true">›</span></button>').join('');
   // plaatjes
   $('#pdf-img-opts').style.display = pdfImgs.length ? 'block' : 'none';
-  $('#pdf-imgs').innerHTML = pdfImgs.map((m, k) => '<div class="pdfimg"><img src="' + esc(m.thumb) + '" alt="Plaatje ' + (k + 1) + '"><span class="pnum">' + (k + 1) + '</span>' +
-    '<div class="pbtns">' + (k > 0 ? '<button onclick="pdfImgMove(' + k + ',-1)" aria-label="Plaatje ' + (k + 1) + ' naar voren">◀</button>' : '') +
-    '<button onclick="pdfImgDel(' + k + ')" aria-label="Plaatje ' + (k + 1) + ' weghalen">✕</button>' +
-    (k < pdfImgs.length - 1 ? '<button onclick="pdfImgMove(' + k + ',1)" aria-label="Plaatje ' + (k + 1) + ' naar achteren">▶</button>' : '') + '</div></div>').join('');
-  $('#pdf-img-make').textContent = pdfImgs.length ? 'PDF maken (' + pdfImgs.length + (pdfImgs.length === 1 ? ' pagina)' : ' pagina\'s)') : 'PDF maken';
+  $('#pdf-imgs').innerHTML = pdfImgs.map((m, k) => '<div class="pdfimg"><img src="' + esc(m.thumb) + '" alt="' + t('Plaatje {n}', { n: k + 1 }) + '"><span class="pnum">' + (k + 1) + '</span>' +
+    '<div class="pbtns">' + (k > 0 ? '<button onclick="pdfImgMove(' + k + ',-1)" aria-label="' + t('Plaatje {n} naar voren', { n: k + 1 }) + '">◀</button>' : '') +
+    '<button onclick="pdfImgDel(' + k + ')" aria-label="' + t('Plaatje {n} weghalen', { n: k + 1 }) + '">✕</button>' +
+    (k < pdfImgs.length - 1 ? '<button onclick="pdfImgMove(' + k + ',1)" aria-label="' + t('Plaatje {n} naar achteren', { n: k + 1 }) + '">▶</button>' : '') + '</div></div>').join('');
+  $('#pdf-img-make').textContent = pdfImgs.length ? tn(pdfImgs.length, 'PDF maken ({n} pagina)', 'PDF maken ({n} pagina\'s)') : t('PDF maken');
   // splitsen
   const has = pdfIn && pdfIn.pages > 0;
   $('#pdf-split').style.display = has ? 'block' : 'none';
@@ -60,7 +60,7 @@ function pdfRender(){
     const box = $('#pdf-pages');
     if (box.dataset.for !== String(pdfInGen)) {
       box.dataset.for = String(pdfInGen);
-      box.innerHTML = Array.from({ length: Math.min(pdfIn.pages, 300) }, (_, i) => '<button class="ppage" data-i="' + i + '" onclick="pdfTogglePage(' + i + ')" aria-pressed="false" aria-label="Pagina ' + (i + 1) + '"><img alt=""><span>' + (i + 1) + '</span></button>').join('');
+      box.innerHTML = Array.from({ length: Math.min(pdfIn.pages, 300) }, (_, i) => '<button class="ppage" data-i="' + i + '" onclick="pdfTogglePage(' + i + ')" aria-pressed="false" aria-label="' + t('Pagina {n}', { n: i + 1 }) + '"><img alt=""><span>' + (i + 1) + '</span></button>').join('');
       pdfLoadThumbs(0);
     }
     box.querySelectorAll('.ppage').forEach(b => { const on = pdfSel.has(+b.dataset.i); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
@@ -120,15 +120,15 @@ function pdfDoSplit(mode){
   if (pdfBusy) return;
   const r = $('#pdf-range').value.trim();
   if (mode !== 'each' && !r) { toast('Kies pagina\'s: tik erop of typ bijv. 1-3, 5'); return; }
-  if (mode === 'each' && pdfIn.pages > 50) { askConfirm(pdfIn.pages + ' PDF\'s maken?', 'Elke pagina wordt een eigen bestand.', 'Maken', () => { pdfSetBusy('Splitsen…'); Android.pdfSplit(mode, ''); }); return; }
+  if (mode === 'each' && pdfIn.pages > 50) { askConfirm(t('{n} PDF\'s maken?', { n: pdfIn.pages }), 'Elke pagina wordt een eigen bestand.', 'Maken', () => { pdfSetBusy('Splitsen…'); Android.pdfSplit(mode, ''); }); return; }
   pdfSetBusy('Splitsen…');
   Android.pdfSplit(mode, r);
 }
 function pdfFromText(){
-  const t = $('#pdf-text').value;
-  if (!t.trim()) { toast('Plak eerst tekst'); return; }
+  const tt = $('#pdf-text').value;
+  if (!tt.trim()) { toast('Plak eerst tekst'); return; }
   pdfSetBusy('PDF maken…');
-  Android.pdfFromText($('#pdf-text-title').value.trim(), t);
+  Android.pdfFromText($('#pdf-text-title').value.trim(), tt);
   $('#pdf-text').value = ''; $('#pdf-text-title').value = '';
 }
 function pdfOutMenu(name){

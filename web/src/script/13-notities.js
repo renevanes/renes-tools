@@ -124,10 +124,10 @@ window.onNotesMaybeChanged = function(){
 };
 document.addEventListener('visibilitychange', () => { if (!document.hidden) window.onNotesMaybeChanged(); });
 function hl(text, q){
-  const t = esc(text); if (!q) return t;
+  const tt = esc(text); if (!q) return tt;
   const low = text.toLowerCase();
-  if (low.length !== text.length) return t; // bijv. "İ" wordt bij kleine letters 2 tekens: dan klopt de plek niet
-  const i = low.indexOf(q); if (i < 0) return t;
+  if (low.length !== text.length) return tt; // bijv. "İ" wordt bij kleine letters 2 tekens: dan klopt de plek niet
+  const i = low.indexOf(q); if (i < 0) return tt;
   return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
 }
 function enterNotes(){ loadRems(); renderNotes(); refreshNotesTile(); }
@@ -252,18 +252,18 @@ function noteSetRepeat(v){
   touch(n); noteRepeatShow(); toast(v ? 'Dit lijstje herhaalt' : 'Herhalen staat uit');
 }
 function addItem(){
-  const inp = $('#note-add'), t = inp.value.trim(); if (!t) { inp.focus(); return; }
+  const inp = $('#note-add'), tt = inp.value.trim(); if (!tt) { inp.focus(); return; }
   const n = noteById(noteCur); if (!n) return;
   if(noteAddParent!==null){
     const parent=noteAddParent;
     if(!noteSplitCommit(n.id,m=>{
       if(!m.items.some(i=>i.id===parent))return 'Het bovenliggende item is verwijderd. Kies Hoofdlijst om verder te gaan.';
-      t.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(text=>m.items.push({id:uid(),text,done:false,parentId:parent}));
+      tt.split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(text=>m.items.push({id:uid(),text,done:false,parentId:parent}));
     }))return;
     inp.value='';renderItems();inp.focus();return;
   }
   // Meerdere regels plakken = meerdere items
-  t.split(/\n+/).map(x => x.trim()).filter(Boolean).forEach(x => n.items.push({ id: uid(), text: x, done: false }));
+  tt.split(/\n+/).map(x => x.trim()).filter(Boolean).forEach(x => n.items.push({ id: uid(), text: x, done: false }));
   inp.value = ''; touch(n); renderItems(); inp.focus();
 }
 function toggleItem(id){

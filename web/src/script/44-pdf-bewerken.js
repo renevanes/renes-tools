@@ -45,7 +45,7 @@ window.onPdfEditPreview = function(r){
   $('#pdf-edit-preview').src = r.preview;
   $('#pdf-edit-paper').style.aspectRatio = r.width + '/' + r.height;
   $('#pdf-edit-paper').style.visibility = '';
-  $('#pdf-edit-status').textContent = 'Pagina ' + (r.page + 1) + '. Voeg tekst of een handtekening toe.';
+  $('#pdf-edit-status').textContent = t('Pagina {n}. Voeg tekst of een handtekening toe.', { n: r.page + 1 });
   pdfEditDraw(); pdfEditControls();
 };
 function pdfEditPage(delta){ pdfEditGo(pdfEd.page + 1 + delta); }

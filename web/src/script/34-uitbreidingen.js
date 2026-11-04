@@ -20,17 +20,17 @@ function txSelEnd(){
 }
 function txToNote(asList){
   if (!once('txnote')) return;
-  const t = txT || {}; const segs = t.segments || [];
+  const tr = txT || {}; const segs = tr.segments || [];
   let picked = Array.from(document.querySelectorAll('#txd-segs .seg.sel')).map(el => segs[+el.id.slice(3)]).filter(Boolean);
   if (!picked.length) picked = segs;
   if (!picked.length) { toast('Er is geen tekst om te bewaren'); return; }
-  const when = fmtDate(t.callDate || t.mtime || Date.now(), { day: 'numeric', month: 'short' });
-  const n = { id: uid(), title: ('Gesprek' + (t.name ? ' met ' + t.name : '') + ' · ' + when).slice(0, 80), text: '', items: [], updated: Date.now(), tx: txCur };
+  const when = fmtDate(tr.callDate || tr.mtime || Date.now(), { day: 'numeric', month: 'short' });
+  const n = { id: uid(), title: ((tr.name ? t('Gesprek met {naam}', { naam: tr.name }) : t('Gesprek')) + ' · ' + when).slice(0, 80), text: '', items: [], updated: Date.now(), tx: txCur };
   if (asList) picked.forEach(s => n.items.push({ id: uid(), text: s.text.trim(), done: false }));
   else n.text = picked.map(s => s.text.trim()).join('\n');
   notesGet().push(n); notesSaveNow();
   txSelEnd();
-  undoToast('Notitie "' + n.title + '" gemaakt', () => { notes = notesGet().filter(x => x.id !== n.id); notesSaveNow(); });
+  undoToast(t('Notitie "{titel}" gemaakt', { titel: n.title }), () => { notes = notesGet().filter(x => x.id !== n.id); notesSaveNow(); });
 }
 
 /* Spraaknotitie: inspreken → op de telefoon uitschrijven → notitie (of items/tekst erbij in de open notitie). */
@@ -57,7 +57,7 @@ function voiceToggle(){
   if (e === 'model') { $('#voice-state').innerHTML = 'Download eerst een spraakmodel bij <a href="#" onclick="voiceClose();jumpTo(\'transcripts\');return false">Gesprekken uitschrijven</a>.'; return; }
   if (e) { $('#voice-state').textContent = e; return; }
   b.classList.add('rec'); Android.vibrate(15);
-  const tick = () => { const ms = Android.voiceElapsed(); $('#voice-state').textContent = '● Luisteren… ' + Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0') + ' · tik om te stoppen'; };
+  const tick = () => { const ms = Android.voiceElapsed(); $('#voice-state').textContent = t('● Luisteren… {tijd} · tik om te stoppen', { tijd: Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0') }); };
   tick(); voiceTmr = setInterval(tick, 500);
 }
 window.onVoiceNote = function(r){
@@ -83,8 +83,8 @@ window.onVoiceNote = function(r){
 function rdClipMenu(){
   const max = ((rdState.shift || {}).clip) || 0;
   if (max < 10) { toast('Er is nog te weinig opgenomen'); return; }
-  const opts = [5, 15, 30, 60].filter(m => m * 60 <= max + 59).map(m => ['Laatste ' + m + ' minuten', () => rdClip(m * 60)]);
-  if (!opts.length || max < 5 * 60) opts.unshift(['Alles wat er is (' + Math.max(1, Math.round(max / 60)) + ' min)', () => rdClip(max)]);
+  const opts = [5, 15, 30, 60].filter(m => m * 60 <= max + 59).map(m => [t('Laatste {n} minuten', { n: m }), () => rdClip(m * 60)]);
+  if (!opts.length || max < 5 * 60) opts.unshift([t('Alles wat er is ({n} min)', { n: Math.max(1, Math.round(max / 60)) }), () => rdClip(max)]);
   openSheet('Fragment bewaren', 'Komt in de map Radio in je backup-map. Alleen voor eigen gebruik.', opts);
 }
 function rdClip(sec){ toast('Bezig met bewaren…'); Android.radioSaveClip(Math.round(sec)); }
@@ -113,9 +113,9 @@ function klRender(){
   shown.sort(sort==='name'?name:sort==='category'?(a,b)=>(a.category||'').localeCompare(b.category||'','nl')||name(a,b):(a,b)=>(b.t||0)-(a.t||0));
   $('#kl-empty').style.display=shown.length?'none':'block';
   $('#kl-empty').textContent=docs.length?'Geen documenten bij deze zoekopdracht of filters.':'Nog leeg. Voeg een document, foto of PDF toe.';
-  $('#kl-count').textContent=shown.length+' van '+docs.length+(docs.length===1?' document':' documenten');
+  $('#kl-count').textContent=tn(docs.length, '{k} van {n} document', '{k} van {n} documenten', { k: shown.length });
   const ic=m=>uiIcon(/pdf/.test(m)?'document':/^image/.test(m)?'image':'folder');
-  $('#kl-list').innerHTML=shown.map(x=>'<button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span><b>'+ic(x.mime||'')+' '+esc(x.name)+'</b><small>'+(x.favorite?'★ Favoriet · ':'')+esc(x.category||'Zonder categorie')+' · '+esc(fmtB(x.size||0))+' · '+esc(fmtDate(x.t, {day:'numeric',month:'short',year:'numeric'}))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+'</span><span aria-hidden="true">›</span></button>').join('');
+  $('#kl-list').innerHTML=shown.map(x=>'<button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span><b>'+ic(x.mime||'')+' '+esc(x.name)+'</b><small>'+(x.favorite?t('★ Favoriet')+' · ':'')+esc(x.category||t('Zonder categorie'))+' · '+esc(fmtB(x.size||0))+' · '+esc(fmtDate(x.t, {day:'numeric',month:'short',year:'numeric'}))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+'</span><span aria-hidden="true">›</span></button>').join('');
   klRender.docs=docs;
 }
 function klUnlock(){ $('#kl-msg').textContent = ''; Android.kluisUnlock(); }
@@ -129,5 +129,5 @@ function klMenu(id){
     ['Categorie en toelichting', () => klOrganizeOpen(id)],
     [x.favorite?'Uit favorieten halen':'Als favoriet markeren', () => klFavorite(id)],
     ['Naam wijzigen', () => askInput('Naam', '', x.name, 'Opslaan', v => { const e = Android.kluisRename(id, v); if (e) toast(e); klRender(); })],
-    ['Verwijderen', () => askConfirm('Uit de kluis verwijderen?', '"' + x.name + '" wordt definitief gewist.', 'Verwijderen', () => { const e = Android.kluisDelete(id); toast(e || 'Verwijderd'); klRender(); })]]);
+    ['Verwijderen', () => askConfirm('Uit de kluis verwijderen?', t('"{naam}" wordt definitief gewist.', { naam: x.name }), 'Verwijderen', () => { const e = Android.kluisDelete(id); toast(e || 'Verwijderd'); klRender(); })]]);
 }

@@ -72,7 +72,7 @@ function cedRender(){
   $('#ced-dom-w').style.display = q.rhythm === 'monthly' ? '' : 'none';
   $('#ced-dom').innerHTML = Array.from({ length: 31 }, (_, i) => '<option value="' + (i + 1) + '"' + (i + 1 === q.dom ? ' selected' : '') + '>' + (i + 1) + 'e</option>').join('');
   const multi = q.rhythm === 'multi', ts = multi ? q.times : q.times.slice(0, 1);
-  $('#ced-times').innerHTML = ts.map((t, i) => '<div class="ci-timerow"><label for="ced-t' + i + '">' + (multi ? 'Tijd ' + (i + 1) : 'Om') + '</label><input type="time" class="sl-time" id="ced-t' + i + '" value="' + esc(t) + '">' +
+  $('#ced-times').innerHTML = ts.map((tt, i) => '<div class="ci-timerow"><label for="ced-t' + i + '">' + (multi ? 'Tijd ' + (i + 1) : 'Om') + '</label><input type="time" class="sl-time" id="ced-t' + i + '" value="' + esc(tt) + '">' +
     (multi && ts.length > 1 ? '<button class="iconbtn" data-i="' + i + '" onclick="cedTimeDel(+this.dataset.i)" aria-label="Tijd ' + (i + 1) + ' weghalen">' + uiIcon('close') + '</button>' : '') + '</div>').join('');
   $('#ced-time-add').style.display = multi && ts.length < 8 ? '' : 'none';
   $('#ced-until').value = q.until || '23:59';
@@ -103,7 +103,7 @@ function cedOptAdd(){ cedSync(); if (cedQ.options.length >= 7) return; const max
 function cedOptDel(i){ cedSync(); if (cedQ.options.length <= 2) return; cedQ.options.splice(i, 1); cedRender(); }
 function cedRhythm(v){
   cedSync(); cedQ.rhythm = v;
-  if (v === 'multi' && cedQ.times.length < 2) { const t = cedQ.times[0] || '09:00'; cedQ.times = t === '21:00' ? ['09:00', '21:00'] : [t, '21:00'].sort(); }
+  if (v === 'multi' && cedQ.times.length < 2) { const tt = cedQ.times[0] || '09:00'; cedQ.times = tt === '21:00' ? ['09:00', '21:00'] : [tt, '21:00'].sort(); }
   if (v === 'weekdays' && cedQ.days.length === 7) cedQ.days = [1, 2, 3, 4, 5];
   cedRender();
 }
@@ -111,10 +111,10 @@ function cedDay(d){ cedSync(); cedQ.days = cedQ.days.includes(d) ? cedQ.days.fil
 /** Een tijd erbij: een paar uur na de laatste, en altijd een die er nog niet staat. Zuiver op de lijst. */
 function cedNextTime(times){
   const last = times[times.length - 1] || '12:00', h0 = +last.slice(0, 2), used = new Set(times);
-  for (let d = 3; d < 27; d++) { const t = String((h0 + d) % 24).padStart(2, '0') + last.slice(2); if (!used.has(t)) return t; }
+  for (let d = 3; d < 27; d++) { const tt = String((h0 + d) % 24).padStart(2, '0') + last.slice(2); if (!used.has(tt)) return tt; }
   return null;
 }
-function cedTimeAdd(){ cedSync(); if (cedQ.times.length >= 8) return; const t = cedNextTime(cedQ.times); if (!t) return; cedQ.times.push(t); cedQ.times.sort(); cedRender(); }
+function cedTimeAdd(){ cedSync(); if (cedQ.times.length >= 8) return; const tt = cedNextTime(cedQ.times); if (!tt) return; cedQ.times.push(tt); cedQ.times.sort(); cedRender(); }
 function cedTimeDel(i){ cedSync(); if (cedQ.times.length <= 1) return; cedQ.times.splice(i, 1); cedRender(); }
 function cedPauseClear(){ cedSync(); cedQ.pauseUntil = ''; cedRender(); }
 function cedLabelAdd(){

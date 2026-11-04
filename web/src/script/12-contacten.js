@@ -66,7 +66,7 @@ function ctRenderCalls(d){
       '<span class=r2>' + (c.number ? esc(c.number) : '') + (c.duration ? ' · ' + fmtCallDur(c.duration) : '') + '</span></div>').join('') + '</div>' +
     '<button class="big ghost" style="margin-top:10px" onclick="callsForPerson(ctDetail.n || \'Contact\', ctCallNums)">' + t('Alle {n} oproepen bekijken', { n: r.count }) + '</button>';
 }
-function fmtFull(t){ return fmtDT(t, {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
+function fmtFull(tt){ return fmtDT(tt, {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
 function ctChanges(d){
   return '<ul class=chg>' + (d || []).map(c => '<li><span>' + esc(c[0]) + '</span>' +
     (c[1] ? '<del>' + esc(c[1]).replace(/\n/g, '<br>') + '</del>' : '') +

@@ -41,7 +41,7 @@ const BK_REGELS = [
   ['geldautomaat|geldmaat|\\bgea\\b|opname|\\bcash\\b|\\batm\\b', 'Contant geld', '-'],
   ['betaalpakket|basispakket|kosten (betaal)?rekening|bankkosten|transactiekosten|creditcard|pakketkosten|rente debet|debetrente|kosten gebruik|ing oranje pakket|rabo .*pakket', 'Bankkosten', '-'],
   ['bol\\.com|coolblue|amazon|mediamarkt|\\baction\\b|\\bhema\\b|blokker|zeeman|ikea|gamma|praxis|karwei|hornbach|intratuin|leen bakker|kwantum|xenos|s[øo]strene|bijenkorf|wehkamp|aliexpress|temu|shein|marktplaats|vinted|decathlon|alternate|megekko|lucardi|\\bbruna\\b|\\bako\\b|readshop|boekhandel|\\bapple store|webshop|winkel', 'Winkelen', '-']
-].map(([p, c, t]) => [new RegExp(p, 'i'), c, t]);
+].map(([p, c, tt]) => [new RegExp(p, 'i'), c, tt]);
 
 let bk = { st: null, store: null, tab: 'overzicht', lijstN: 100, catCache: new Map(), eigen: new Set(), aiBezig: false, aiDoel: '', aiTekst: '', voorstellen: null, aanraak: 0, tmr: null };
 
@@ -58,28 +58,28 @@ function bkCatSoort(c){ const x = BK_CATS.find(k => k[0] === c); if (x) return x
 function bkAlleCats(){ return BK_CATS.map(c => c[0]).concat(((bk.store && bk.store.cats) || []).map(c => c.naam)); }
 /** Naam zonder winkelnummers e.d., om dezelfde winkel samen te nemen. */
 function bkNorm(s){ return String(s || '').toLowerCase().replace(/\b(nr|pas)\s*\d+\b/g, '').replace(/[0-9]{2,}/g, '').replace(/[^a-zÀ-ɏ&+ ]+/g, ' ').replace(/\s+/g, ' ').trim(); }
-function bkSleutel(t){ return bkNorm(t.cp || t.ci) || '?'; }
+function bkSleutel(tt){ return bkNorm(tt.cp || tt.ci) || '?'; }
 
 /** De categorie van een boeking: zelf gekozen > eigen rekening > eigen regel > ingebouwde regel > overig. */
-function bkCat(t){
-  const c = bk.catCache.get(t.id); if (c) return c;
+function bkCat(tt){
+  const c = bk.catCache.get(tt.id); if (c) return c;
   let r = '';
-  if (t.c) r = t.c;
-  else if (t.ci && t.ci !== t.acc && bk.eigen.has(t.ci)) r = 'Eigen rekeningen';
+  if (tt.c) r = tt.c;
+  else if (tt.ci && tt.ci !== tt.acc && bk.eigen.has(tt.ci)) r = 'Eigen rekeningen';
   else {
-    const tekst = ((t.cp || '') + ' ' + (t.ds || '')).toLowerCase(), norm = bkNorm(tekst);
-    for (const g of (bk.store.rules || [])) if (g.p && (tekst.includes(g.p) || norm.includes(g.p)) && (!g.t || (g.t === '+') === (t.a > 0))) { r = g.cat; break; }
-    if (!r) for (const [re, cat, teken] of BK_REGELS) if ((!teken || (teken === '+') === (t.a > 0)) && re.test(tekst)) { r = cat; break; }
-    if (!r) r = t.a > 0 ? 'Overige inkomsten' : 'Overig';
+    const tekst = ((tt.cp || '') + ' ' + (tt.ds || '')).toLowerCase(), norm = bkNorm(tekst);
+    for (const g of (bk.store.rules || [])) if (g.p && (tekst.includes(g.p) || norm.includes(g.p)) && (!g.t || (g.t === '+') === (tt.a > 0))) { r = g.cat; break; }
+    if (!r) for (const [re, cat, teken] of BK_REGELS) if ((!teken || (teken === '+') === (tt.a > 0)) && re.test(tekst)) { r = cat; break; }
+    if (!r) r = tt.a > 0 ? 'Overige inkomsten' : 'Overig';
   }
-  bk.catCache.set(t.id, r);
+  bk.catCache.set(tt.id, r);
   return r;
 }
 function bkHerbereken(){
   bk.catCache.clear();
   bk.eigen = new Set();
   if (!bk.store) return;
-  for (const t of bk.store.tx) if (t.acc && t.acc !== 'onbekend') bk.eigen.add(t.acc);
+  for (const tt of bk.store.tx) if (tt.acc && tt.acc !== 'onbekend') bk.eigen.add(tt.acc);
   for (const e of (bk.store.eigen || [])) bk.eigen.add(e.iban);
 }
 
@@ -96,7 +96,7 @@ function bkPeriodeVan(){
   if (p === 'y1') return [(y - 1) + '-01-01', (y - 1) + '-12-31', 'Vorig jaar'];
   if (p === 'eigen') { const a = $('#bk-van').value || '1990-01-01', b = $('#bk-tot').value || v; return a <= b ? [a, b, 'Gekozen periode'] : [b, a, 'Gekozen periode']; }
   const tx = bk.store ? bk.store.tx : [];
-  let lo = v, hi = '1990-01-01'; for (const t of tx) { if (t.d < lo) lo = t.d; if (t.d > hi) hi = t.d; }
+  let lo = v, hi = '1990-01-01'; for (const tt of tx) { if (tt.d < lo) lo = tt.d; if (tt.d > hi) hi = tt.d; }
   return [lo, hi < lo ? lo : hi, 'Alles'];
 }
 /** De periode ervoor, even lang (voor de vergelijking). */
@@ -115,48 +115,48 @@ function bkVorige(van, tot){
 function bkRekening(){ const s = $('#bk-rek'); return s && s.value ? s.value : 'alle'; }
 function bkSelectie(van, tot){
   const r = bkRekening();
-  return bk.store.tx.filter(t => t.d >= van && t.d <= tot && (r === 'alle' || t.acc === r));
+  return bk.store.tx.filter(tt => tt.d >= van && tt.d <= tot && (r === 'alle' || tt.acc === r));
 }
 
 // ---------- rekenen ----------
 function bkTotalen(lijst){
   const o = { in: 0, uit: 0, sparen: 0, cats: new Map(), n: 0 };
-  for (const t of lijst) {
-    const c = bkCat(t), s = bkCatSoort(c);
+  for (const tt of lijst) {
+    const c = bkCat(tt), s = bkCatSoort(c);
     if (s === 'neutraal') continue;
     o.n++;
-    const x = o.cats.get(c) || { som: 0, n: 0, soort: s }; x.som += t.a; x.n++; o.cats.set(c, x);
-    if (s === 'in') o.in += t.a; else if (s === 'sparen') o.sparen -= t.a; else o.uit -= t.a;
+    const x = o.cats.get(c) || { som: 0, n: 0, soort: s }; x.som += tt.a; x.n++; o.cats.set(c, x);
+    if (s === 'in') o.in += tt.a; else if (s === 'sparen') o.sparen -= tt.a; else o.uit -= tt.a;
   }
   o.netto = o.in - o.uit - o.sparen;
   return o;
 }
 function bkPerMaand(lijst){
   const m = new Map();
-  for (const t of lijst) {
-    const s = bkCatSoort(bkCat(t)); if (s === 'neutraal') continue;
-    const k = t.d.slice(0, 7), x = m.get(k) || { in: 0, uit: 0, sparen: 0 };
-    if (s === 'in') x.in += t.a; else if (s === 'sparen') x.sparen -= t.a; else x.uit -= t.a;
+  for (const tt of lijst) {
+    const s = bkCatSoort(bkCat(tt)); if (s === 'neutraal') continue;
+    const k = tt.d.slice(0, 7), x = m.get(k) || { in: 0, uit: 0, sparen: 0 };
+    if (s === 'in') x.in += tt.a; else if (s === 'sparen') x.sparen -= tt.a; else x.uit -= tt.a;
     m.set(k, x);
   }
   return [...m.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1);
 }
 function bkTegenpartijen(lijst){
   const m = new Map();
-  for (const t of lijst) {
-    if (t.a >= 0 || bkCatSoort(bkCat(t)) !== 'uit') continue;
-    const k = bkSleutel(t), x = m.get(k) || { naam: t.cp || t.ci, som: 0, n: 0, cat: bkCat(t) };
-    x.som -= t.a; x.n++; m.set(k, x);
+  for (const tt of lijst) {
+    if (tt.a >= 0 || bkCatSoort(bkCat(tt)) !== 'uit') continue;
+    const k = bkSleutel(tt), x = m.get(k) || { naam: tt.cp || tt.ci, som: 0, n: 0, cat: bkCat(tt) };
+    x.som -= tt.a; x.n++; m.set(k, x);
   }
   return [...m.values()].sort((a, b) => b.som - a.som);
 }
 /** Vaste lasten en abonnementen: dezelfde tegenpartij, regelmatig (week/maand/kwartaal/jaar), ongeveer hetzelfde bedrag. */
 function bkTerugkerend(){
   const groep = new Map(), r = bkRekening();
-  for (const t of bk.store.tx) {
-    if (t.a >= 0 || (r !== 'alle' && t.acc !== r)) continue;
-    const s = bkCatSoort(bkCat(t)); if (s === 'neutraal') continue;
-    const k = bkSleutel(t); if (!groep.has(k)) groep.set(k, []); groep.get(k).push(t);
+  for (const tt of bk.store.tx) {
+    if (tt.a >= 0 || (r !== 'alle' && tt.acc !== r)) continue;
+    const s = bkCatSoort(bkCat(tt)); if (s === 'neutraal') continue;
+    const k = bkSleutel(tt); if (!groep.has(k)) groep.set(k, []); groep.get(k).push(tt);
   }
   const uit = [], vandaag = new Date(bkVandaag() + 'T12:00:00');
   const med = a => { const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
@@ -167,7 +167,7 @@ function bkTerugkerend(){
     const iv = med(d);
     const soort = iv >= 6 && iv <= 8 ? ['wekelijks', 52 / 12] : iv >= 25 && iv <= 35 ? ['maandelijks', 1] : iv >= 85 && iv <= 95 ? ['per kwartaal', 1 / 3] : iv >= 350 && iv <= 380 ? ['jaarlijks', 1 / 12] : null;
     if (!soort) continue;
-    const bedragen = l.map(t => -t.a), m = med(bedragen);
+    const bedragen = l.map(tt => -tt.a), m = med(bedragen);
     if (bedragen.filter(b => Math.abs(b - m) <= m * 0.15 + 100).length / bedragen.length < 0.6) continue;
     const laatst = l[l.length - 1], volgende = new Date(new Date(laatst.d + 'T12:00:00').getTime() + iv * 864e5);
     const gestopt = vandaag - new Date(laatst.d + 'T12:00:00') > iv * 1.6 * 864e5;
@@ -178,14 +178,14 @@ function bkTerugkerend(){
 function bkSaldoReeks(van, tot){
   // Laatste bekende saldo per rekening per dag; samen opgeteld (alleen rekeningen met saldo in het afschrift)
   const r = bkRekening(), per = new Map();
-  for (const t of bk.store.tx) { if (t.b == null || (r !== 'alle' && t.acc !== r)) continue; if (!per.has(t.acc)) per.set(t.acc, []); per.get(t.acc).push(t); }
+  for (const tt of bk.store.tx) { if (tt.b == null || (r !== 'alle' && tt.acc !== r)) continue; if (!per.has(tt.acc)) per.set(tt.acc, []); per.get(tt.acc).push(tt); }
   if (!per.size) return [];
   const dagen = new Set();
-  for (const [, l] of per) { l.sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0); for (const t of l) if (t.d >= van && t.d <= tot) dagen.add(t.d); }
+  for (const [, l] of per) { l.sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0); for (const tt of l) if (tt.d >= van && tt.d <= tot) dagen.add(tt.d); }
   const reeks = [];
   for (const d of [...dagen].sort()) {
     let som = 0, ok = false;
-    for (const [, l] of per) { let s = null; for (const t of l) { if (t.d <= d) s = t.b; else break; } if (s != null) { som += s; ok = true; } }
+    for (const [, l] of per) { let s = null; for (const tt of l) { if (tt.d <= d) s = tt.b; else break; } if (s != null) { som += s; ok = true; } }
     if (ok) reeks.push([d, som]);
   }
   return reeks;
@@ -243,7 +243,7 @@ function bkVergeet(){
   for (const id of ['#bk-rek', '#bk-cat']) { const e = $(id); if (e) e.replaceChildren(); }
   for (const id of ['#bk-lijst-telling', '#bk-periode-txt', '#bk-ai-status', '#bk-zonder', '#bk-tijd', '#bk-uitleg']) { const e = $(id); if (e) e.textContent = ''; }
   // Een open menu of venster met gegevens van een boeking dicht en leeg
-  if (bk.venster) { bk.venster = false; try { closeSheet(); } catch (e) { } try { if ($('#modal.on')) closeModal(null); } catch (e) { } const s = $('#sheet-sub'); if (s) s.textContent = ''; const t = $('#sheet-title'); if (t) t.textContent = ''; }
+  if (bk.venster) { bk.venster = false; try { closeSheet(); } catch (e) { } try { if ($('#modal.on')) closeModal(null); } catch (e) { } const s = $('#sheet-sub'); if (s) s.textContent = ''; const tt = $('#sheet-title'); if (tt) tt.textContent = ''; }
   const zoek = $('#bk-zoek'); if (zoek) zoek.value = '';
   const ai = $('#bk-ai-in'); if (ai) ai.value = '';
   const k = $('#bk-ai-uit-kaart'); if (k) k.hidden = true;
@@ -280,18 +280,18 @@ function bkVerlaat(){ if (bk.aiBezig) { try { Android.bankAiCancel(); } catch (e
 (function(){ const prev = window.onPauseApp; window.onPauseApp = function(){ if (prev) prev(); if (bk.store) { bkVergeet(); $('#bk-dicht').hidden = false; $('#bk-los').hidden = true; } }; })();
 
 // ---------- tabs en filters ----------
-function bkTab(t){
-  bk.tab = t;
-  document.querySelectorAll('#s-bank .pctabs [role=tab]').forEach(b => { const on = b.dataset.tab === t; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
-  for (const p of ['overzicht', 'boekingen', 'ai', 'beheer']) $('#bk-p-' + p).hidden = p !== t;
-  $('#bk-filters').hidden = t === 'beheer';
+function bkTab(tt){
+  bk.tab = tt;
+  document.querySelectorAll('#s-bank .pctabs [role=tab]').forEach(b => { const on = b.dataset.tab === tt; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
+  for (const p of ['overzicht', 'boekingen', 'ai', 'beheer']) $('#bk-p-' + p).hidden = p !== tt;
+  $('#bk-filters').hidden = tt === 'beheer';
   bkRender();
 }
 function bkPeriode(){ $('#bk-eigen').hidden = $('#bk-periode').value !== 'eigen'; bk.lijstN = 100; bkRender(); }
 function bkRekeningen(){
-  const s = $('#bk-rek'), was = s.value, acc = [...new Set(bk.store.tx.map(t => t.acc))].sort();
+  const s = $('#bk-rek'), was = s.value, acc = [...new Set(bk.store.tx.map(tt => tt.acc))].sort();
   s.replaceChildren();
-  const opt = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; s.appendChild(o); };
+  const opt = (v, tt) => { const o = document.createElement('option'); o.value = v; o.textContent = tt; s.appendChild(o); };
   opt('alle', 'Alle rekeningen');
   for (const a of acc) opt(a, bkRekNaam(a));
   s.value = acc.includes(was) ? was : 'alle';
@@ -307,7 +307,7 @@ function bkRender(){
   if (bk.tab === 'beheer') { bkBeheer(); return; }
   if (leeg) { $('#bk-overzicht').replaceChildren(); $('#bk-lijst').replaceChildren(); $('#bk-periode-txt').textContent = ''; return; }
   const [van, tot, label] = bkPeriodeVan();
-  let laatste = ''; for (const t of bk.store.tx) if (t.d > laatste) laatste = t.d;
+  let laatste = ''; for (const tt of bk.store.tx) if (tt.d > laatste) laatste = tt.d;
   $('#bk-periode-txt').textContent = label + ': ' + bkDatum(van) + ' t/m ' + bkDatum(tot) + (laatste ? ' · nieuwste boeking ' + bkDatum(laatste) : '');
   if (bk.tab === 'overzicht') bkOverzicht(van, tot);
   if (bk.tab === 'boekingen') { bkCatSelect(); bkLijstRender(); }
@@ -323,13 +323,13 @@ function bkVerschil(nu, was, goedAlsLager){
   return '<span class="' + (p === 0 ? 'bk-neutraal' : goed ? 'bk-plus' : 'bk-min') + '">' + (p > 0 ? '+' : p < 0 ? '−' : '') + Math.abs(p) + '% t.o.v. ervoor</span>';
 }
 function bkOverzicht(van, tot){
-  const lijst = bkSelectie(van, tot), t = bkTotalen(lijst);
+  const lijst = bkSelectie(van, tot), tt = bkTotalen(lijst);
   const [pv, pt] = bkVorige(van, tot), vorig = bkTotalen(bkSelectie(pv, pt));
   let h = '<div class="bk-kpis">'
-    + '<div class="bk-kpi"><small>Inkomsten</small><b class="bk-plus">' + esc(bkEuro(t.in)) + '</b>' + bkVerschil(t.in, vorig.in, false) + '</div>'
-    + '<div class="bk-kpi"><small>Uitgaven</small><b>' + esc(bkEuro(t.uit)) + '</b>' + bkVerschil(t.uit, vorig.uit, true) + '</div>'
-    + '<div class="bk-kpi"><small>Over</small><b class="' + (t.netto >= 0 ? 'bk-plus' : 'bk-min') + '">' + esc(bkEuro(t.netto, true)) + '</b><span>' + (t.in > 0 ? 'Spaarquote ' + Math.round((t.in - t.uit) / t.in * 100) + '%' : '') + '</span></div>'
-    + '<div class="bk-kpi"><small>Gespaard en belegd</small><b>' + esc(bkEuro(t.sparen)) + '</b><span>' + t.n + ' boekingen</span></div></div>';
+    + '<div class="bk-kpi"><small>Inkomsten</small><b class="bk-plus">' + esc(bkEuro(tt.in)) + '</b>' + bkVerschil(tt.in, vorig.in, false) + '</div>'
+    + '<div class="bk-kpi"><small>Uitgaven</small><b>' + esc(bkEuro(tt.uit)) + '</b>' + bkVerschil(tt.uit, vorig.uit, true) + '</div>'
+    + '<div class="bk-kpi"><small>Over</small><b class="' + (tt.netto >= 0 ? 'bk-plus' : 'bk-min') + '">' + esc(bkEuro(tt.netto, true)) + '</b><span>' + (tt.in > 0 ? 'Spaarquote ' + Math.round((tt.in - tt.uit) / tt.in * 100) + '%' : '') + '</span></div>'
+    + '<div class="bk-kpi"><small>Gespaard en belegd</small><b>' + esc(bkEuro(tt.sparen)) + '</b><span>' + tt.n + ' boekingen</span></div></div>';
   // Budgetten (deze maand)
   const budgets = Object.entries(bk.store.budget || {}).filter(([, v]) => v > 0);
   if (budgets.length) {
@@ -351,7 +351,7 @@ function bkOverzicht(van, tot){
       const was = vorig.cats.get(c), w = was ? -was.som : 0, nu = -x.som;
       return '<button class="bk-bar" onclick="bkNaarCat(' + jsq(c) + ')"><div class="bk-bar-kop"><span>' + esc(c) + '</span><b>' + esc(bkEuro(nu)) + '</b></div>'
         + '<div class="bk-spoor" role="presentation"><div class="bk-vul" style="width:' + Math.max(2, Math.round(nu / max * 100)) + '%"></div></div>'
-        + '<small>' + Math.round(nu / Math.max(1, t.uit) * 100) + '% van je uitgaven · ' + x.n + '×' + (w ? ' · ervoor ' + esc(bkEuro(w)) : '') + '</small></button>';
+        + '<small>' + Math.round(nu / Math.max(1, tt.uit) * 100) + '% van je uitgaven · ' + x.n + '×' + (w ? ' · ervoor ' + esc(bkEuro(w)) : '') + '</small></button>';
     }).join('') + '</div>');
   }
   const inCats = [...t.cats.entries()].filter(([, x]) => x.soort === 'in' && x.som > 0).sort((a, b) => b[1].som - a[1].som);
@@ -412,7 +412,7 @@ function bkNaarCat(c){ bkTab('boekingen'); bkCatSelect(); $('#bk-cat').value = c
 function bkCatSelect(){
   const s = $('#bk-cat'), was = s.value;
   s.replaceChildren();
-  const opt = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; s.appendChild(o); };
+  const opt = (v, tt) => { const o = document.createElement('option'); o.value = v; o.textContent = tt; s.appendChild(o); };
   opt('', 'Alle categorieën'); opt('*zonder', 'Zonder categorie (overig)');
   for (const c of bkAlleCats()) opt(c, c);
   s.value = [...s.options].some(o => o.value === was) ? was : '';
@@ -420,12 +420,12 @@ function bkCatSelect(){
 function bkGefilterd(){
   const [van, tot] = bkPeriodeVan(), q = $('#bk-zoek').value.trim().toLowerCase(), cat = $('#bk-cat').value, sort = $('#bk-sort').value;
   const qBedrag = /^[-−€\s\d.,\u202f]+$/.test(q) ? parseNum(q) : null; // een bedrag zoeken, volgens Regio en taal
-  let l = bkSelectie(van, tot).filter(t => {
-    const c = bkCat(t);
+  let l = bkSelectie(van, tot).filter(tt => {
+    const c = bkCat(tt);
     if (cat === '*zonder' ? !(c === 'Overig' || c === 'Overige inkomsten') : cat && c !== cat) return false;
     if (!q) return true;
-    if (qBedrag != null && Math.abs(Math.abs(t.a) / 100 - Math.abs(qBedrag)) < 0.005) return true;
-    return ((t.cp || '') + ' ' + (t.ds || '') + ' ' + (t.ci || '') + ' ' + c + ' ' + (t.n || '')).toLowerCase().includes(q);
+    if (qBedrag != null && Math.abs(Math.abs(tt.a) / 100 - Math.abs(qBedrag)) < 0.005) return true;
+    return ((tt.cp || '') + ' ' + (tt.ds || '') + ' ' + (tt.ci || '') + ' ' + c + ' ' + (tt.n || '')).toLowerCase().includes(q);
   });
   l.sort(sort === 'oud' ? (a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0 : sort === 'hoog' ? (a, b) => a.a - b.a : sort === 'bij' ? (a, b) => b.a - a.a : (a, b) => a.d > b.d ? -1 : a.d < b.d ? 1 : 0);
   return l;
@@ -433,56 +433,56 @@ function bkGefilterd(){
 function bkLijstRender(){
   if (!bk.store) return;
   const l = bkGefilterd(), toon = l.slice(0, bk.lijstN);
-  let som = 0; for (const t of l) som += t.a;
+  let som = 0; for (const tt of l) som += tt.a;
   $('#bk-lijst-telling').textContent = l.length + (l.length === 1 ? ' boeking' : ' boekingen') + ' · samen ' + bkEuro(som, true);
   let h = '', dag = '';
   const opDag = $('#bk-sort').value === 'nieuw' || $('#bk-sort').value === 'oud';
-  for (const t of toon) {
-    if (opDag && t.d !== dag) { dag = t.d; h += '<div class="bk-dag">' + esc(bkDatum(t.d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) + '</div>'; }
-    h += '<button class="bk-tx" onclick="bkTx(' + jsq(t.id) + ')"><span class="bk-naam"><b>' + esc(t.cp || t.ci || 'Onbekend') + '</b><small>' + esc(bkCat(t)) + (opDag ? '' : ' · ' + esc(bkDatum(t.d))) + (t.n ? ' · ' + esc(t.n) : t.ds ? ' · ' + esc(t.ds) : '') + '</small></span><span class="bk-bedrag ' + (t.a > 0 ? 'bk-plus' : '') + '">' + esc(bkEuro(t.a, true)) + '</span></button>';
+  for (const tt of toon) {
+    if (opDag && tt.d !== dag) { dag = tt.d; h += '<div class="bk-dag">' + esc(bkDatum(tt.d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) + '</div>'; }
+    h += '<button class="bk-tx" onclick="bkTx(' + jsq(tt.id) + ')"><span class="bk-naam"><b>' + esc(tt.cp || tt.ci || 'Onbekend') + '</b><small>' + esc(bkCat(tt)) + (opDag ? '' : ' · ' + esc(bkDatum(tt.d))) + (tt.n ? ' · ' + esc(tt.n) : tt.ds ? ' · ' + esc(tt.ds) : '') + '</small></span><span class="bk-bedrag ' + (tt.a > 0 ? 'bk-plus' : '') + '">' + esc(bkEuro(tt.a, true)) + '</span></button>';
   }
   $('#bk-lijst').innerHTML = h || '<p class="note" style="margin:8px 0">Geen boekingen gevonden.</p>';
   $('#bk-meer').hidden = l.length <= bk.lijstN;
 }
 function bkMeer(){ bk.lijstN += 200; bkLijstRender(); }
-function bkVind(id){ return bk.store && bk.store.tx.find(t => t.id === id); }
+function bkVind(id){ return bk.store && bk.store.tx.find(tt => tt.id === id); }
 function bkTx(id){
-  const t = bkVind(id); if (!t) return;
-  const regels = [bkDatum(t.d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }), bkEuro(t.a, true) + ' · ' + bkCat(t)];
-  if (t.ci) regels.push('Tegenrekening ' + t.ci);
-  if (t.ds) regels.push(t.ds.slice(0, 300));
-  if (t.ty) regels.push(t.ty);
-  regels.push('Rekening ' + bkRekNaam(t.acc) + (t.src ? ' · ' + t.src : ''));
-  if (t.n) regels.push('Notitie: ' + t.n);
+  const tt = bkVind(id); if (!tt) return;
+  const regels = [bkDatum(tt.d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }), bkEuro(tt.a, true) + ' · ' + bkCat(tt)];
+  if (tt.ci) regels.push('Tegenrekening ' + tt.ci);
+  if (tt.ds) regels.push(tt.ds.slice(0, 300));
+  if (tt.ty) regels.push(tt.ty);
+  regels.push('Rekening ' + bkRekNaam(tt.acc) + (tt.src ? ' · ' + tt.src : ''));
+  if (tt.n) regels.push('Notitie: ' + tt.n);
   bk.venster = true;
-  openSheet(t.cp || t.ci || 'Boeking', regels.join('\n'), [
+  openSheet(tt.cp || tt.ci || 'Boeking', regels.join('\n'), [
     ['Categorie wijzigen', () => bkKiesCat(id, false), 'edit'],
-    ['Altijd zo indelen: ' + (bkSleutel(t).slice(0, 30) || 'deze naam'), () => bkKiesCat(id, true), 'repeat'],
-    [t.n ? 'Notitie wijzigen' : 'Notitie toevoegen', () => askInput('Notitie', 'Alleen voor jezelf, versleuteld bewaard.', t.n || '', 'Bewaren', v => { t.n = String(v || '').slice(0, 200); if (!t.n) delete t.n; bkSave(); bkRender(); }), 'notes'],
-    ['Andere boekingen van deze naam', () => { bkTab('boekingen'); $('#bk-cat').value = ''; $('#bk-zoek').value = (t.cp || t.ci || '').slice(0, 40); bkLijstRender(); }, 'search']
+    ['Altijd zo indelen: ' + (bkSleutel(tt).slice(0, 30) || 'deze naam'), () => bkKiesCat(id, true), 'repeat'],
+    [tt.n ? 'Notitie wijzigen' : 'Notitie toevoegen', () => askInput('Notitie', 'Alleen voor jezelf, versleuteld bewaard.', tt.n || '', 'Bewaren', v => { tt.n = String(v || '').slice(0, 200); if (!tt.n) delete tt.n; bkSave(); bkRender(); }), 'notes'],
+    ['Andere boekingen van deze naam', () => { bkTab('boekingen'); $('#bk-cat').value = ''; $('#bk-zoek').value = (tt.cp || tt.ci || '').slice(0, 40); bkLijstRender(); }, 'search']
   ]);
 }
 function bkKiesCat(id, regel){
-  const t = bkVind(id); if (!t) return;
-  const cats = bkAlleCats().filter(c => bkCatSoort(c) === 'neutraal' || (t.a > 0 ? true : bkCatSoort(c) !== 'in'));
+  const tt = bkVind(id); if (!tt) return;
+  const cats = bkAlleCats().filter(c => bkCatSoort(c) === 'neutraal' || (tt.a > 0 ? true : bkCatSoort(c) !== 'in'));
   const acts = cats.map(c => [c, () => {
     if (regel) {
-      const p = bkSleutel(t);
+      const p = bkSleutel(tt);
       if (!p || p === '?') { toast('Deze boeking heeft geen naam om een regel op te maken'); return; }
-      bk.store.rules = bk.store.rules.filter(g => !(g.p === p && (g.t || '') === (t.a > 0 ? '+' : '-')));
-      bk.store.rules.unshift({ p, cat: c, t: t.a > 0 ? '+' : '-' });
-      delete t.c;
-    } else t.c = c;
+      bk.store.rules = bk.store.rules.filter(g => !(g.p === p && (g.t || '') === (tt.a > 0 ? '+' : '-')));
+      bk.store.rules.unshift({ p, cat: c, t: tt.a > 0 ? '+' : '-' });
+      delete tt.c;
+    } else tt.c = c;
     bkHerbereken();
-    if (bkSave()) toast(regel ? 'Regel bewaard: “' + p0(t) + '” → ' + c : 'Categorie gewijzigd');
+    if (bkSave()) toast(regel ? 'Regel bewaard: “' + p0(tt) + '” → ' + c : 'Categorie gewijzigd');
     bkRender();
   }]);
-  acts.push(['Nieuwe categorie…', () => bkNieuweCat(c => { if (regel) { bk.store.rules.unshift({ p: bkSleutel(t), cat: c, t: t.a > 0 ? '+' : '-' }); } else t.c = c; bkHerbereken(); bkSave(); bkRender(); }), 'plus']);
-  if (t.c && !regel) acts.push(['Automatisch laten indelen', () => { delete t.c; bkHerbereken(); bkSave(); bkRender(); }, 'refresh']);
+  acts.push(['Nieuwe categorie…', () => bkNieuweCat(c => { if (regel) { bk.store.rules.unshift({ p: bkSleutel(tt), cat: c, t: tt.a > 0 ? '+' : '-' }); } else tt.c = c; bkHerbereken(); bkSave(); bkRender(); }), 'plus']);
+  if (tt.c && !regel) acts.push(['Automatisch laten indelen', () => { delete tt.c; bkHerbereken(); bkSave(); bkRender(); }, 'refresh']);
   bk.venster = true;
-  openSheet(regel ? 'Altijd indelen als…' : 'Categorie', regel ? 'Voor alles met “' + p0(t) + '” in de naam of omschrijving' : '', acts);
+  openSheet(regel ? 'Altijd indelen als…' : 'Categorie', regel ? 'Voor alles met “' + p0(tt) + '” in de naam of omschrijving' : '', acts);
 }
-const p0 = t => bkSleutel(t).slice(0, 40);
+const p0 = tt => bkSleutel(tt).slice(0, 40);
 function bkNieuweCat(klaar){
   askInput('Nieuwe categorie', 'Een eigen categorie voor uitgaven.', '', 'Toevoegen', v => {
     const n = String(v || '').trim().slice(0, 40);
@@ -511,7 +511,7 @@ function bkKoppel(id){
   const tx = bk.store ? bk.store.tx : [];
   const code = id === 'rabobank' ? 'RABO' : '';
   let laatst = '';
-  for (const t of tx) if ((code && t.acc.slice(4, 8) === code) || t.src === 'Rabobank') { if (t.d > laatst) laatst = t.d; }
+  for (const tt of tx) if ((code && tt.acc.slice(4, 8) === code) || tt.src === 'Rabobank') { if (tt.d > laatst) laatst = tt.d; }
   let van;
   const d = new Date((laatst || bkVandaag()) + 'T12:00:00');
   if (laatst) d.setDate(d.getDate() - 5); else d.setMonth(d.getMonth() - 13);
@@ -537,12 +537,12 @@ function bkAutoLijst(){
 // ---------- beheer ----------
 function bkBeheer(){
   const s = bk.store;
-  const zonder = s.tx.filter(t => { const c = bkCat(t); return c === 'Overig' || c === 'Overige inkomsten'; });
+  const zonder = s.tx.filter(tt => { const c = bkCat(tt); return c === 'Overig' || c === 'Overige inkomsten'; });
   $('#bk-zonder').textContent = zonder.length ? zonder.length + ' boekingen staan nog bij Overig. De lokale AI kan voorstellen maken voor de namen die het vaakst voorkomen; jij kiest wat je overneemt.' : 'Alle boekingen zijn ingedeeld.';
   $('#bk-ai-cat').hidden = !zonder.length;
   $('#bk-regels').innerHTML = s.rules.length ? s.rules.map((g, i) => '<div class="bk-rij"><span class="bk-naam">“' + esc(g.p) + '”<small>' + (g.t === '+' ? 'bijschrijvingen' : g.t === '-' ? 'afschrijvingen' : 'alles') + ' → ' + esc(g.cat) + '</small></span><button class="mini" style="float:none" onclick="bkRegelWeg(' + i + ')" aria-label="Regel verwijderen">Weg</button></div>').join('') : '<p class="note" style="margin:0">Nog geen eigen regels.</p>';
   $('#bk-budgetten').innerHTML = Object.entries(s.budget).filter(([, v]) => v > 0).map(([c, v]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>per maand</small></span><b>' + esc(bkEuroKort(v)) + '</b><button class="mini" style="float:none" onclick="bkBudgetWeg(' + jsq(c) + ')">Weg</button></div>').join('');
-  const acc = [...new Set(s.tx.map(t => t.acc))].sort();
+  const acc = [...new Set(s.tx.map(tt => tt.acc))].sort();
   $('#bk-rekeningen').innerHTML = acc.map(a => '<div class="bk-rij"><span class="bk-naam">' + esc(bkRekNaam(a)) + '<small>' + esc(a) + ' · geïmporteerd</small></span><button class="mini" style="float:none" onclick="bkRekHernoem(' + jsq(a) + ')">Naam</button></div>').join('')
     + s.eigen.map((e, i) => '<div class="bk-rij"><span class="bk-naam">' + esc(e.naam || e.iban) + '<small>' + esc(e.iban) + ' · zelf toegevoegd</small></span><button class="mini" style="float:none" onclick="bkEigenWeg(' + i + ')">Weg</button></div>').join('');
   $('#bk-imports').innerHTML = s.imports.length ? '<details class="rinfo"><summary>Eerdere imports (' + s.imports.length + ')</summary>' + s.imports.slice().reverse().slice(0, 30).map(i => '<div class="bk-res">' + esc(fmtDate(i.t, { day: 'numeric', month: 'short', year: 'numeric' })) + ' · ' + esc(i.bank || i.format) + ' · ' + esc(i.van ? bkDatum(i.van) + ' t/m ' + bkDatum(i.tot) : '') + ' · ' + (i.nieuw || 0) + ' nieuw</div>').join('') + '</details>' : '';

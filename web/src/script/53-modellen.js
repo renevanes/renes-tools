@@ -15,9 +15,9 @@ const MD_CATS = [
 function mdLoad(){ mdSt = rdJson(Android.modelsState(), {}); return mdSt; }
 function mdGB(b){ b = Math.max(0, +b || 0); return b >= 1e9 ? fmtNum(b / 1e9, 1) + ' GB' : fmtNum(Math.max(1, Math.round(b / 1e6))) + ' MB'; } // zoals Hugging Face (1000 per stap)
 /** "vandaag gebruikt", "3 dagen geleden gebruikt" … Zuiver. */
-function mdAgo(t, now){
-  if (!t) return 'nog niet gebruikt';
-  const d = Math.floor(((now || Date.now()) - t) / 86400000);
+function mdAgo(tt, now){
+  if (!tt) return 'nog niet gebruikt';
+  const d = Math.floor(((now || Date.now()) - tt) / 86400000);
   return d <= 0 ? 'vandaag gebruikt' : d === 1 ? 'gisteren gebruikt' : d < 31 ? d + ' dagen geleden gebruikt' : 'meer dan een maand niet gebruikt';
 }
 function mdBusy(m){ return ['running', 'queued', 'paused', 'verifying', 'failed'].includes(m.state); }
@@ -73,8 +73,8 @@ function enterModels(){
 /** Terug in de app (ook na de instellingen van de stem): opnieuw kijken, en straks nog eens (een download kan net verder gaan). */
 function mdResumed(){
   mdLoad();
-  const t = mdSt.tts || {};
-  if (t.state !== 'ok' && t.state !== 'checking' && typeof Android.ttsCheck === 'function') Android.ttsCheck();
+  const tt = mdSt.tts || {};
+  if (tt.state !== 'ok' && tt.state !== 'checking' && typeof Android.ttsCheck === 'function') Android.ttsCheck();
   mdRefresh();
   setTimeout(() => { if (current === 'models') mdRefresh(); }, 800);
 }
@@ -117,10 +117,10 @@ function mdCatCard(cat){
   const engine = eng ? '<p class="note md-engine">' + esc('Motor: ' + eng + ' (zit in de app, wordt bijgewerkt met de app)') + '</p>' : '';
   return '<section class="card md-cat" data-kind="' + cat.kind + '" aria-label="' + esc(cat.title) + '">' + head + '<div role="list">' + lines.map(l => mdLineHtml(l)).join('') + '</div>' + engine + '</section>';
 }
-function mdTtsBody(t){
-  if (t.state === 'ok') return '<div class="md-acts">' + mdBtn('Stem en snelheid', 'Android.ttsSettings()', false, 'Stem en snelheid van het voorlezen instellen') + '</div>';
-  if (t.state === 'nodutch') return '<p class="note">Er is wel een voorleesfunctie' + (t.engine ? ' (' + esc(t.engine) + ')' : '') + ', maar zonder Nederlandse stem. Voeg er een toe; daarna kijkt de app vanzelf opnieuw.</p><div class="md-acts">' + mdBtn('Nederlandse stem toevoegen', 'Android.ttsInstall()', true) + mdBtn('Instellingen', 'Android.ttsSettings()', false, 'Instellingen van het voorlezen') + mdBtn('Opnieuw kijken', 'mdTtsCheck()', false, 'Opnieuw kijken of er een Nederlandse stem is') + '</div>';
-  if (t.state === 'noengine' || t.state === 'slow') return '<p class="note">' + (t.state === 'slow' ? 'De voorleesfunctie van je telefoon antwoordde niet op tijd. Probeer het zo opnieuw.' : 'Installeer bijvoorbeeld Spraakservices van Google uit de Play Store en kies daar een Nederlandse stem.') + '</p><div class="md-acts">' + mdBtn('Instellingen', 'Android.ttsSettings()', false, 'Instellingen van het voorlezen') + mdBtn('Opnieuw kijken', 'mdTtsCheck()', false, 'Opnieuw kijken of er een voorleesfunctie is') + '</div>';
+function mdTtsBody(tt){
+  if (tt.state === 'ok') return '<div class="md-acts">' + mdBtn('Stem en snelheid', 'Android.ttsSettings()', false, 'Stem en snelheid van het voorlezen instellen') + '</div>';
+  if (tt.state === 'nodutch') return '<p class="note">Er is wel een voorleesfunctie' + (tt.engine ? ' (' + esc(tt.engine) + ')' : '') + ', maar zonder Nederlandse stem. Voeg er een toe; daarna kijkt de app vanzelf opnieuw.</p><div class="md-acts">' + mdBtn('Nederlandse stem toevoegen', 'Android.ttsInstall()', true) + mdBtn('Instellingen', 'Android.ttsSettings()', false, 'Instellingen van het voorlezen') + mdBtn('Opnieuw kijken', 'mdTtsCheck()', false, 'Opnieuw kijken of er een Nederlandse stem is') + '</div>';
+  if (tt.state === 'noengine' || tt.state === 'slow') return '<p class="note">' + (tt.state === 'slow' ? 'De voorleesfunctie van je telefoon antwoordde niet op tijd. Probeer het zo opnieuw.' : 'Installeer bijvoorbeeld Spraakservices van Google uit de Play Store en kies daar een Nederlandse stem.') + '</p><div class="md-acts">' + mdBtn('Instellingen', 'Android.ttsSettings()', false, 'Instellingen van het voorlezen') + mdBtn('Opnieuw kijken', 'mdTtsCheck()', false, 'Opnieuw kijken of er een voorleesfunctie is') + '</div>';
   return '';
 }
 function mdTtsCheck(){ Android.ttsCheck(); mdSt.tts = { state: 'checking' }; mdRender(); clearTimeout(mdPollT); mdPollT = setTimeout(mdRefresh, 1500); }

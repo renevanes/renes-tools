@@ -1,7 +1,7 @@
 /* ---------- Uiterlijk: kleuren uit je achtergrond (Material You), meeschuivende kop, tabbalk ---------- */
-function hexMix(a, b, t){ // t = aandeel van b
+function hexMix(a, b, tt){ // t = aandeel van b
   const x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16);
-  return '#' + [16, 8, 0].map(s => { const p = (x >> s) & 255, q = (y >> s) & 255; return Math.round(p + (q - p) * t).toString(16).padStart(2, '0'); }).join('');
+  return '#' + [16, 8, 0].map(s => { const p = (x >> s) & 255, q = (y >> s) & 255; return Math.round(p + (q - p) * tt).toString(16).padStart(2, '0'); }).join('');
 }
 /* Android geeft per kleur tinten van 0 (wit) tot 1000 (zwart); hier de rollen van Material 3 */
 function dynTokens(p){
@@ -18,7 +18,7 @@ function dynPalette(){
   let p; try { const j = Android.themeColors(); if (!j) return null; p = JSON.parse(j); } catch(e){ return null; }
   const ok = h => typeof h === 'string' && /^#[0-9a-f]{6}$/i.test(h);
   for (const k of ['accent1', 'accent2', 'neutral1', 'neutral2'])
-    for (const t of [0, 10, 50, 100, 200, 400, 500, 600, 700, 800, 900, 1000]) if (!p[k] || !ok(p[k][t])) return null;
+    for (const tt of [0, 10, 50, 100, 200, 400, 500, 600, 700, 800, 900, 1000]) if (!p[k] || !ok(p[k][tt])) return null;
   return p;
 }
 function applyTheme(){
@@ -26,7 +26,7 @@ function applyTheme(){
   const p = dynPalette();
   const decl = o => Object.entries(o).map(([k, v]) => '--' + k + ':' + v).join(';');
   let css = '';
-  if (p) { const t = dynTokens(p); css = ':root{' + decl(t.light) + '}@media (prefers-color-scheme: dark){:root{' + decl(t.dark) + '}}'; }
+  if (p) { const tt = dynTokens(p); css = ':root{' + decl(tt.light) + '}@media (prefers-color-scheme: dark){:root{' + decl(tt.dark) + '}}'; }
   let st = document.getElementById('dyn-theme');
   if (!st) { st = document.createElement('style'); st.id = 'dyn-theme'; document.head.appendChild(st); }
   if (st.textContent !== css) { st.textContent = css; thCssNow(); bars.last = null; } // nieuwe regels: thema meteen vastzetten
@@ -79,12 +79,12 @@ function tabsFit(){
   });
 }
 addEventListener('resize', () => { if (document.body.classList.contains('tabs-on')) tabsFit(); });
-function tabGo(t){
-  if (t === current && t === 'ai') { scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }); return; } // het gesprek: naar het nieuwste
-  if (t === current) { scrollTo({ top: 0, behavior: 'smooth' }); if (t === 'search') $('#gs-q').focus(); return; }
+function tabGo(tt){
+  if (tt === current && tt === 'ai') { scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }); return; } // het gesprek: naar het nieuwste
+  if (tt === current) { scrollTo({ top: 0, behavior: 'smooth' }); if (tt === 'search') $('#gs-q').focus(); return; }
   jumpStack.length = 0;
-  show(t);
-  if (t === 'search' && !$('#gs-q').value) setTimeout(() => $('#gs-q').focus(), 60);
+  show(tt);
+  if (tt === 'search' && !$('#gs-q').value) setTimeout(() => $('#gs-q').focus(), 60);
 }
 
 uiInitHeaders();

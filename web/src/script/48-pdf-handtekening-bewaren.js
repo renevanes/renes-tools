@@ -84,6 +84,6 @@ function pdfKeepUnlocked(result){
 window.onPdfStored=function(r){
   if(!pdfKeepPending)return;pdfKeepPending=null;pdfSetBusy('');
   const ok=!!(r&&r.ok);
-  $('#pdf-keep-status').textContent=ok?'Bewaard in je documentenkluis: '+r.name:(r&&r.error||'Bewaren lukt niet');
+  $('#pdf-keep-status').textContent=ok?t('Bewaard in je documentenkluis: {naam}', { naam: r.name }):t(r&&r.error||'Bewaren lukt niet');
   toast(ok?'PDF bewaard in documentenkluis':r&&r.error||'Bewaren lukt niet');
 };

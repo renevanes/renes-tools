@@ -60,7 +60,7 @@ function pcRenderDl(){
   wrap.style.display = pcDl.length ? 'block' : 'none';
   $('#pc-dl-empty').style.display = pcDl.length ? 'none' : '';
   $('#pc-tab-dl-n').textContent = pcDl.length ? String(pcDl.length) : '';
-  $('#pc-tab-dl').setAttribute('aria-label', 'Downloads' + (pcDl.length ? ', ' + pcDl.length : ''));
+  $('#pc-tab-dl').setAttribute('aria-label', t('Downloads') + (pcDl.length ? ', ' + pcDl.length : ''));
   const done = pcDl.filter(d => d.state === 'done'), bytes = done.reduce((a, d) => a + (+d.bytes || 0), 0);
   $('#pc-dl-sum').textContent = done.length ? done.length + (done.length === 1 ? ' aflevering' : ' afleveringen') + ' · ' + fmtB(bytes) : pcDl.some(pcDlBusy) ? 'Bezig met downloaden' : 'Downloaden mislukt';
   // Zelfde rijen als net (alleen voortgang anders): tekst en balk bijwerken, de lijst niet opnieuw opbouwen
@@ -79,7 +79,7 @@ function pcRenderDl(){
     return '<div class="pcep"><button class="pcepb" onclick="pcDlPlay(' + i + ')">' + pcArt(e.image || p.image) +
       '<span class="pctxt"><b>' + esc(e.title || 'Aflevering') + '</b><small>' + esc(pcDlLine(d)) + '</small>' +
       (pcDlBar(d) ? '<span class="pcprog"><i style="width:' + Math.min(100, d.bytes / d.total * 100).toFixed(1) + '%"></i></span>' : '') + '</span></button>' +
-      '<button class="pcmore" onclick="pcDlMenu(' + i + ')" aria-label="Meer over ' + esc(e.title || 'aflevering') + '">⋯</button></div>';
+      '<button class="pcmore" onclick="pcDlMenu(' + i + ')" aria-label="' + t('Meer over {titel}', { titel: esc(e.title || t('aflevering')) }) + '">⋯</button></div>';
   }).join('');
 }
 function pcDlPlay(i){ const d = pcDl[i]; if (d) pcPlayEp(d.ep, d.pod, false); }
@@ -92,8 +92,8 @@ function pcDlMenu(i){
 function pcDlSettings(){
   const pr = rdJson(Android.podDlPrefs(), {});
   openSheet('Downloads', 'Voor offline luisteren', [
-    [(pr.wifiOnly ? '✓ ' : '') + 'Alleen via wifi downloaden', () => { Android.podDlPref('wifiOnly', !pr.wifiOnly); toast(!pr.wifiOnly ? 'Downloaden alleen via wifi' : 'Downloaden ook via mobiel internet'); }],
-    [(pr.autoDelete ? '✓ ' : '') + 'Beluisterde afleveringen vanzelf verwijderen', () => { Android.podDlPref('autoDelete', !pr.autoDelete); toast(!pr.autoDelete ? 'Beluisterd: download gaat vanzelf weg' : 'Downloads blijven staan'); }],
+    [(pr.wifiOnly ? '✓ ' : '') + t('Alleen via wifi downloaden'), () => { Android.podDlPref('wifiOnly', !pr.wifiOnly); toast(!pr.wifiOnly ? 'Downloaden alleen via wifi' : 'Downloaden ook via mobiel internet'); }],
+    [(pr.autoDelete ? '✓ ' : '') + t('Beluisterde afleveringen vanzelf verwijderen'), () => { Android.podDlPref('autoDelete', !pr.autoDelete); toast(!pr.autoDelete ? 'Beluisterd: download gaat vanzelf weg' : 'Downloads blijven staan'); }],
     ['Alle downloads verwijderen…', () => askConfirm('Alle downloads verwijderen?', 'De afleveringen blijven gewoon te beluisteren via internet. Podcasts met "nieuwe afleveringen downloaden" halen de nieuwste later opnieuw op.', 'Verwijderen', () => { Android.podDlClear(); pcDlRefresh(); toast('Downloads verwijderd'); })]
   ]);
 }
@@ -105,7 +105,7 @@ function pdDlRow(subscribed){
   b.hidden = !subscribed;
   const on = !!subscribed && pdDlOn();
   b.setAttribute('aria-checked', on ? 'true' : 'false');
-  b.innerHTML = uiIcon(on ? 'check' : 'download') + '<span class="lang">Vanzelf downloaden</span><span class="kort">Downloaden</span>';
+  b.innerHTML = uiIcon(on ? 'check' : 'download') + '<span class="lang">' + t('Vanzelf downloaden') + '</span><span class="kort">' + t('Downloaden') + '</span>';
 }
 function pdDlToggle(){
   if (!pdPod) return;
@@ -114,5 +114,5 @@ function pdDlToggle(){
   if (e) { toast(e); return; }
   pdDlRow(true);
   const pr = rdJson(Android.podDlPrefs(), {});
-  toast(on ? '↓ De nieuwste 3 die je nog niet beluisterde, worden gedownload' + (pr.wifiOnly ? ' (via wifi)' : '') : 'Niet meer vanzelf downloaden');
+  toast(on ? t(pr.wifiOnly ? '↓ De nieuwste 3 die je nog niet beluisterde, worden gedownload (via wifi)' : '↓ De nieuwste 3 die je nog niet beluisterde, worden gedownload') : t('Niet meer vanzelf downloaden'));
 }

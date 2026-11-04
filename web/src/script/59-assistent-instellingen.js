@@ -21,7 +21,7 @@ function setGet(e){ if (!e || !e.get || e.safe === 'geheim') return ''; try { co
 function setName(e, v){ if (v === '' || v == null) return ''; if (setType(e) === 'tijd' && typeof fmtHm === 'function') return fmtHm(v); const x = setVals(e).find(p => p[0] === v); return x ? (setType(e) === 'aan' ? x[1].toLowerCase() : x[1]) : e.vname ? String(e.vname(v)) : String(v); }
 /* Mag de assistent dit naar deze waarde zetten? Gevoelig = nee (alleen uitleg en Openen) */
 function setSafe(e, v){ return !!e.safe && (e.safe === 'geheim' || !e.weak || !!e.weak(v)); }
-function setCanChange(e){ const t = setType(e); return (t === 'aan' || t === 'keuze' || t === 'tijd') && typeof e.set === 'function' && e.safe !== 'geheim'; }
+function setCanChange(e){ const tt = setType(e); return (tt === 'aan' || tt === 'keuze' || tt === 'tijd') && typeof e.set === 'function' && e.safe !== 'geheim'; }
 /* Waar het staat: de koppen van de schermen, van boven naar beneden */
 function setPath(scr){
   const out = []; let n = scr, g = 0;
@@ -129,12 +129,12 @@ function setRgUse(word, raw, only){
 }
 /* De waarde uit de vraag, zoals de app hem kent; null als hij niet bij deze instelling past */
 function setValFor(e, raw){
-  const t = setType(e), r = norm2(raw || '').replace(/^(?:de|het|een|stand|op)\s+/, '').replace(/\s+(?:stand|zetten|uur)$/, '').trim();
+  const tt = setType(e), r = norm2(raw || '').replace(/^(?:de|het|een|stand|op)\s+/, '').replace(/\s+(?:stand|zetten|uur)$/, '').trim();
   if (!r) return null;
   const vals = setVals(e);
-  if (t === 'aan') return SET_ON.test(r) ? 'aan' : SET_OFF.test(r) ? 'uit' : null;
-  if (t === 'tijd') return setTime(r);
-  if (t !== 'keuze') return null;
+  if (tt === 'aan') return SET_ON.test(r) ? 'aan' : SET_OFF.test(r) ? 'uit' : null;
+  if (tt === 'tijd') return setTime(r);
+  if (tt !== 'keuze') return null;
   if (e.alias && e.alias[r]) return e.alias[r];
   const nm = x => norm2(x).replace(/[×x]$/, '').replace(',', '.').trim(), rr = nm(r);
   // noNum: een kaal getal is geen waarde ("zet de klok op 12 uur" is een tijdstip, geen 12-uurs klok)
@@ -177,9 +177,9 @@ function setPropose(e, v){
 function setLookup(e, kind){
   const now = setNow(e), where = setWhere(e), secret = e.safe === 'geheim';
   const val = secret ? ' Wat erin staat, lees ik niet voor.' : now ? ' Staat nu: ' + now + '.' : '';
-  const t = kind === 'stand' ? (secret ? setB0(e.label) + ' vind je bij ' + where + '.' + val : now ? setB0(e.label) + ' staat op ' + now + '. Je vindt het bij ' + where + '.' : setB0(e.label) + ' vind je bij ' + where + '.')
+  const tt = kind === 'stand' ? (secret ? setB0(e.label) + ' vind je bij ' + where + '.' + val : now ? setB0(e.label) + ' staat op ' + now + '. Je vindt het bij ' + where + '.' : setB0(e.label) + ' vind je bij ' + where + '.')
     : setB0(e.label) + ' vind je bij ' + where + '.' + val;
-  return { text: t + (e.desc ? ' ' + e.desc : ''), set: { open: [e.id] } };
+  return { text: tt + (e.desc ? ' ' + e.desc : ''), set: { open: [e.id] } };
 }
 function setNotFound(x){ return { text: 'Ik vond geen instelling die past bij "' + String(x).slice(0, 60) + '". Probeer het met andere woorden, of kijk bij Instellingen.', set: { open: ['__instellingen'] } }; }
 /* Wat de assistent aan het taalmodel meegeeft over deze instellingen */
@@ -194,9 +194,9 @@ function setList(x){
   const all = setAll(), scrs = [...new Set(all.map(e => e.scr))];
   const qs = setWords(x);
   // Het best passende scherm (de kop, of een scherm daarboven: "Assistent" geeft ook Lokale AI en de rest)
-  const titles = {}; scrs.forEach(sc => setPath(sc).split(' → ').forEach(t => { titles[t] = true; }));
+  const titles = {}; scrs.forEach(sc => setPath(sc).split(' → ').forEach(tt => { titles[tt] = true; }));
   let best = null, bs = 0;
-  Object.keys(titles).forEach(t => { const ws = setWords(t); let sc = 0; qs.forEach(q => { sc += ws.reduce((m, f) => Math.max(m, setWm(q, f)), 0); }); if (sc > bs) { bs = sc; best = t; } });
+  Object.keys(titles).forEach(tt => { const ws = setWords(tt); let sc = 0; qs.forEach(q => { sc += ws.reduce((m, f) => Math.max(m, setWm(q, f)), 0); }); if (sc > bs) { bs = sc; best = tt; } });
   let list = best && bs >= 0.7 ? all.filter(e => setPath(e.scr).split(' → ').includes(best)) : [];
   if (!list.length) list = setFind(x, all).filter(h => h.s >= SET_MIN).slice(0, 8).map(h => h.e);
   if (!list.length) return setNotFound(x);
@@ -397,10 +397,10 @@ function setOpen(id){
   if (!e.ctl) return;
   setTimeout(() => {
     const el = document.querySelector('#s-' + e.scr + ' ' + e.ctl.split(',')[0].trim()) || document.querySelector(e.ctl.split(',')[0].trim());
-    const t = el && (el.closest('.sw, .setrow, .aicfg, label.chk, .row, .card') || el);
-    if (!t || !t.offsetParent) return;
-    t.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    t.classList.add('setflash'); setTimeout(() => t.classList.remove('setflash'), 1800);
+    const tt = el && (el.closest('.sw, .setrow, .aicfg, label.chk, .row, .card') || el);
+    if (!tt || !tt.offsetParent) return;
+    tt.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    tt.classList.add('setflash'); setTimeout(() => tt.classList.remove('setflash'), 1800);
   }, 150);
 }
 

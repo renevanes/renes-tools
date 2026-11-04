@@ -1,10 +1,10 @@
 /* ---------- Notities: herinneringen en delen ---------- */
 let noteRems = {};
 function loadRems(){ try { noteRems = JSON.parse(Android.noteReminders()) || {}; } catch(e){ noteRems = {}; } }
-function localIso(t){ const d = new Date(t - new Date(t).getTimezoneOffset() * 6e4); return d.toISOString().slice(0, 16); }
+function localIso(tt){ const d = new Date(tt - new Date(tt).getTimezoneOffset() * 6e4); return d.toISOString().slice(0, 16); }
 const REM_REP = { day: 'elke dag', weekdays: 'werkdagen', week: 'elke week', month: 'elke maand' };
 function noteRemList(id){
-  if (typeof Android.noteRemindList !== 'function') { const t = noteRems[id]; return t ? [{ id, t, rep: '' }] : []; }
+  if (typeof Android.noteRemindList !== 'function') { const tt = noteRems[id]; return tt ? [{ id, t: tt, rep: '' }] : []; }
   try { return JSON.parse(Android.noteRemindList(id)) || []; } catch(e){ return []; }
 }
 function noteRemShow(){
@@ -19,7 +19,7 @@ function noteRemShow(){
 function noteDelOneRem(rid){ if (typeof Android.noteRemindDel === 'function') Android.noteRemindDel(rid); else Android.noteRemind(rid, '', '0'); noteRemShow(); }
 /* Tegen dubbel tikken: dezelfde actie binnen een seconde telt één keer */
 const onceRecent = {};
-function once(key, ms){ const t = Date.now(); if (onceRecent[key] && t - onceRecent[key] < (ms || 1000)) return false; onceRecent[key] = t; return true; }
+function once(key, ms){ const tt = Date.now(); if (onceRecent[key] && tt - onceRecent[key] < (ms || 1000)) return false; onceRecent[key] = tt; return true; }
 function noteSetRem(){
   const n = noteById(noteCur); if (!n) return;
   const v = $('#note-rem').value; if (!v) { toast('Kies een datum en tijd'); return; }
@@ -83,7 +83,7 @@ function noteFromShare(){
   if (listy) {
     const stack=[];
     rawLines.forEach(line=>{
-      const indent=/^\s*/.exec(line)[0].replace(/\t/g,'  ').length;
+      const indent=/^\s*/.exec(line)[0].replace(/\tt/g,'  ').length;
       while(stack.length&&stack[stack.length-1].indent>=indent)stack.pop();
       const parsed=noteSplitPrefix(line,false),item={id:uid(),text:parsed.text,done:parsed.done};
       if(stack.length)item.parentId=stack[stack.length-1].id;

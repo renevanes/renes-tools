@@ -19,7 +19,7 @@ function loadHistory(){
   $('#history-export').disabled = historyExportBusy || !data.dest || !data.total;
   $('#history-clear').disabled = !data.total;
   const rows = data.rows || [];
-  $('#history-count').textContent = (data.count || 0) + ' van ' + (data.total || 0) + ' meldingen' + (data.count > rows.length ? ' · nieuwste ' + rows.length + ' getoond' : '');
+  $('#history-count').textContent = t('{n} van {totaal} meldingen', { n: data.count || 0, totaal: data.total || 0 }) + (data.count > rows.length ? ' · ' + t('nieuwste {n} getoond', { n: rows.length }) : '');
   $('#history-more').style.display = data.count > rows.length ? 'block' : 'none';
   $('#history-list').innerHTML = rows.map(r => '<article class="card history-entry"><small>' + esc(r.app || r.package) + ' · ' + esc(fmtDT(r.time)) + '</small><h2>' + esc(r.title || 'Melding') + '</h2><p style="white-space:pre-wrap;overflow-wrap:anywhere">' + esc(r.text || '') + '</p></article>').join('') || '<p class="note">' + ($('#history-search').value ? 'Geen meldingen gevonden.' : 'Nog geen meldingen bewaard. Schakel bewaren in en geef meldingentoegang om te beginnen.') + '</p>';
 }

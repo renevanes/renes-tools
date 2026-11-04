@@ -6,8 +6,8 @@ function gbSet(){ return gbState().set || {}; }
 function gbSaveOne(k, v){ try { Android.gebruikSave(JSON.stringify({ [k]: v })); } catch (e) {} }
 
 function gbDur(ms){ ms = Math.max(0, ms || 0); const m = Math.round(ms / 60000); if (m < 1) return Math.round(ms / 1000) + ' s'; return m < 60 ? m + ' min' : Math.floor(m / 60) + ' u' + (m % 60 ? ' ' + (m % 60) + ' min' : ''); }
-function gbTime(t){ try { return fmtTime(t, { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
-function gbDay(t){ try { return fmtDate(t, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return ''; } }
+function gbTime(tt){ try { return fmtTime(tt, { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+function gbDay(tt){ try { return fmtDate(tt, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return ''; } }
 const GB_FUNC = { camera: ['camera', '📷'], mic: ['microfoon', '🎙'], loc: ['locatie', '📍'], bt: ['Bluetooth', '🔵'], wifi: ['wifi', '📶'], data: ['mobiele data', '📡'] };
 
 function enterGebruik(){
@@ -222,7 +222,7 @@ function gbRenderPhotoTab(){
     ((o.photos || []).length > ph.length ? '<p class="note">De nieuwste ' + ph.length + ' van ' + o.photos.length + ' foto\'s.</p>' : ''));
   // Miniaturen één voor één ontsleutelen (het scherm blijft vlot)
   const tiles = Array.from(box.querySelectorAll('.gb-tile')), gen = ++gbPhotoGen;
-  const next = () => { const t = tiles.shift(); if (!t || gen !== gbPhotoGen || !t.isConnected || current !== 'gebruik' || gbTabV !== 'fotos') return; const url = Android.gebruikPhoto(t.dataset.id); const sp = t.querySelector('.gb-tile-img'); if (url && sp) { const im = document.createElement('img'); im.alt = ''; im.decoding = 'async'; im.src = url; sp.appendChild(im); } setTimeout(next, 0); };
+  const next = () => { const tt = tiles.shift(); if (!tt || gen !== gbPhotoGen || !tt.isConnected || current !== 'gebruik' || gbTabV !== 'fotos') return; const url = Android.gebruikPhoto(tt.dataset.id); const sp = tt.querySelector('.gb-tile-img'); if (url && sp) { const im = document.createElement('img'); im.alt = ''; im.decoding = 'async'; im.src = url; sp.appendChild(im); } setTimeout(next, 0); };
   setTimeout(next, 0);
 }
 

@@ -20,7 +20,7 @@ function aiTalkOn(){ return !!aiTk; }
 function aiTalkCan(){ return typeof Android.aiTalkListen === 'function'; }
 function aiTalkCfg(){ const c = aiSt.cfg || {}; return { silence: +c.talkSilence || 1300, speak: aiSt.talkSpeak !== false, auto: aiSt.talkAuto !== false, barge: aiSt.talkBarge !== false }; }
 /* Is het een "stop"? (de laatste leestekens tellen niet) */
-function aiTalkIsStop(t){ return AI_TALK_STOP.test(String(t || '').toLowerCase().replace(/[.,!?…"']+/g, ' ').replace(/\s+/g, ' ').trim()); }
+function aiTalkIsStop(tt){ return AI_TALK_STOP.test(String(tt || '').toLowerCase().replace(/[.,!?…"']+/g, ' ').replace(/\s+/g, ' ').trim()); }
 function aiTalkPlain(s){ return aiNoActLine(String(s || '')).replace(/\s*\[\d+\]/g, '').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/[*_`#>]/g, '').replace(/^\s*[-•]\s+/gm, '').replace(/\n{2,}/g, '\n').trim(); }
 
 function aiTalkStart(){
@@ -61,7 +61,7 @@ function aiTalkSt(st, hint){
     : st === 'luistert' ? 'Zeg "stop" of "klaar" om te stoppen.' : '');
   if (st === 'bevestig') requestAnimationFrame(() => scrollTo(0, document.documentElement.scrollHeight));
 }
-function aiTalkHint(t){ const h = $('#ai-talk-hint'); if (h) h.textContent = t || ''; }
+function aiTalkHint(tt){ const h = $('#ai-talk-hint'); if (h) h.textContent = tt || ''; }
 function aiTalkLevel(lv){ const o = $('#ai-talk-orb'); if (o) o.style.setProperty('--lv', Math.max(0, Math.min(1, +lv || 0)).toFixed(2)); }
 /* De grote knop: wat hij doet hangt af van de stand */
 function aiTalkMain(){
@@ -127,10 +127,10 @@ function aiTalkAsk(text){
   $('#ai-talk-ai').textContent = '';
   aiTk.wait = 'antwoord'; aiTk.gen = false; aiTk.q = []; aiTk.said = 0; aiTk.card = false; aiTk.pend = '';
   aiTalkSt('denkt');
-  const t = $('#ai-in'); t.value = text; aiGrow(); aiFromVoice = true; aiSentAt = 0;
+  const tt = $('#ai-in'); tt.value = text; aiGrow(); aiFromVoice = true; aiSentAt = 0;
   aiSendOrStop();
   // Geweigerd (er liep nog een antwoord): straks opnieuw
-  if (aiTk && aiTk.wait === 'antwoord' && $('#ai-in').value.trim() === text) { aiTk.pend = text; t.value = ''; aiGrow(); }
+  if (aiTk && aiTk.wait === 'antwoord' && $('#ai-in').value.trim() === text) { aiTk.pend = text; tt.value = ''; aiGrow(); }
 }
 
 /* ---------- antwoorden en voorlezen ---------- */
@@ -233,12 +233,12 @@ function aiTalkInterrupt(byVoice){
 /* ---------- stoppen ---------- */
 function aiTalkStop(msg){
   if (!aiTk) return;
-  const t = aiTk; aiTk = null;
-  clearInterval(t.lvT); clearInterval(t.pollT); if (t.bargeT) clearInterval(t.bargeT);
+  const tt = aiTk; aiTk = null;
+  clearInterval(tt.lvT); clearInterval(tt.pollT); if (tt.bargeT) clearInterval(tt.bargeT);
   Android.aiBargeStop();
   if (Android.aiVoiceState() !== 'idle') Android.aiVoiceCancel();
-  if (t.spk) Android.aiSpeakStop();
-  if (t.wait === 'antwoord' && aiBusy) Android.aiCancel();
+  if (tt.spk) Android.aiSpeakStop();
+  if (tt.wait === 'antwoord' && aiBusy) Android.aiCancel();
   Android.aiTalkScreen(false);
   document.body.classList.remove('talk-on');
   const o = $('#ai-talk'); if (o) { o.hidden = true; o.classList.remove('mini'); }

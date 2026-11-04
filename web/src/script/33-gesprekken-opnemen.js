@@ -32,7 +32,7 @@ function loadRecorder(){
   recorderLastMessage = state.message || '';
   $('#recorder-folder').style.display = state.dest ? 'none' : 'block';
   recorderRows = state.rows || [];
-  $('#recorder-count').textContent = (state.total || 0) + ' opnames' + (state.total > recorderRows.length ? ' · nieuwste ' + recorderRows.length + ' getoond' : '');
+  $('#recorder-count').textContent = t('{n} opnames', { n: state.total || 0 }) + (state.total > recorderRows.length ? ' · ' + t('nieuwste {n} getoond', { n: recorderRows.length }) : '');
   const html = recorderRows.map((r, i) => '<article style="border-top:1px solid var(--line);padding:14px 0"><h3>' + esc(fmtDT(r.date)) + '</h3><p class="note">' + esc(fmtMs(r.duration)) + ' · ' + esc(fmtB(r.size)) + '</p><div class="row" style="flex-wrap:wrap">' +
     '<button class="mini" data-action="play" data-i="' + i + '"' + (state.busy ? ' disabled' : '') + '>Afspelen</button>' +
     '<button class="mini" data-action="share" data-i="' + i + '">Delen</button>' +

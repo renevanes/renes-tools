@@ -79,8 +79,8 @@ function slRender(){
   $('#sl-rem-n').textContent = ro ? 'Elke avond rond ' + set.remindAt + ' een melding om Slaappraat aan te zetten' : 'Een melding om Slaappraat aan te zetten';
   // Instellingen
   const on = !!set.stopAt;
-  const t = $('#sl-stop'); if (document.activeElement !== t) t.value = set.stopAt || '07:30';
-  t.disabled = !on; $('#sl-stoprow').style.display = on ? '' : 'none';
+  const tt = $('#sl-stop'); if (document.activeElement !== tt) tt.value = set.stopAt || '07:30';
+  tt.disabled = !on; $('#sl-stoprow').style.display = on ? '' : 'none';
   const so = $('#sl-stop-on'); so.classList.toggle('on', on); so.setAttribute('aria-checked', on ? 'true' : 'false');
   $('#sl-stop-n').textContent = on ? "'s Ochtends om deze tijd" : 'Uit: luistert tot je stopt (hooguit 13 uur)';
   [['sl-sens', String(set.sens || 2)], ['sl-keep', String(set.keep || 14)]].forEach(([id, v]) => document.querySelectorAll('#' + id + ' button').forEach(b => { const x = b.dataset.v === v; b.classList.toggle('on', x); b.setAttribute('aria-checked', x ? 'true' : 'false'); }));
@@ -192,7 +192,7 @@ function slnRender(){
       '<button class="iconbtn" onclick="slnDel(\'' + esc(k.id) + '\')" aria-label="Wissen ' + esc(slTime(k.t)) + '">' + uiIcon('trash') + '</button></div>';
   }).join('') || '<p class="note">' + (clips.length ? 'Geen gepraat, alleen geluiden. Kies Alles om ze te zien.' : live ? 'Nog niets gehoord.' : 'Niets gehoord deze nacht.') + '</p>');
   // Vanuit Zoeken: naar het gevonden stukje
-  if (/^t:/.test(slFocusClip)) { const t = +slFocusClip.slice(2), k = clips.find(x => x.t === t); slFocusClip = k ? k.id : ''; }
+  if (/^t:/.test(slFocusClip)) { const tt = +slFocusClip.slice(2), k = clips.find(x => x.t === tt); slFocusClip = k ? k.id : ''; }
   if (slFocusClip) { const el = document.querySelector('#sln-list [data-clip="' + slFocusClip + '"]'); slFocusClip = ''; if (el) setTimeout(() => { el.scrollIntoView({ block: 'center' }); el.classList.add('gsflash'); setTimeout(() => el.classList.remove('gsflash'), 1600); }, 80); }
 }
 /* Waarom het geluid van een stukje niet bewaard is (zie Meer instellingen → Opslag) */

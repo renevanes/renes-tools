@@ -15,9 +15,9 @@ function enterMusic(){
 function stopMuPoll(){ if (muPoll) { clearInterval(muPoll); muPoll = null; } }
 window.onMusicChanged = function(){ if (current !== 'music') return; if (Android.musicHasMic()) muToggle(); else toast('Zonder microfoon kan alleen herkennen vanaf de radio. Toegang geven kan bij de app-instellingen.'); };
 function muSaveToken(){
-  const t = $('#mu-token').value.trim();
-  if (t.length < 10) { toast('Dat lijkt geen geldige sleutel'); return; }
-  Android.musicSetToken(t); $('#mu-token').value = ''; enterMusic();
+  const tt = $('#mu-token').value.trim();
+  if (tt.length < 10) { toast('Dat lijkt geen geldige sleutel'); return; }
+  Android.musicSetToken(tt); $('#mu-token').value = ''; enterMusic();
 }
 function muChangeToken(){ askInput('AudD-sleutel', t('Huidige sleutel: {sleutel}', { sleutel: Android.musicTokenHint() || t('geen') }), '', 'Opslaan', v => { if (v.trim()) { Android.musicSetToken(v); enterMusic(); } }); }
 function muToggle(){
@@ -60,8 +60,8 @@ function muRenderHistory(){
     '<span class=r2>' + esc(r.artist) + ((r.source || '').startsWith('radio:') ? ' · ' + esc(r.source.slice(6)) : '') + '</span></button>').join('') ||
     '<p class=note style="padding:14px">' + (q ? 'Niets gevonden.' : 'Herkende nummers verschijnen hier.') + '</p>';
 }
-function muOpen(t){
-  const r = muHist.find(x => x.t === t); if (!r) return;
+function muOpen(tt){
+  const r = muHist.find(x => x.t === tt); if (!r) return;
   openSheet(r.title, r.artist + ' · ' + fmtD(r.t), [
     ['Tonen', () => { $('#mu-result').innerHTML = muCard(r); window.scrollTo({ top: 0, behavior: 'smooth' }); }],
     ['Zoeken op YouTube', () => Android.openUrl('https://music.youtube.com/search?q=' + encodeURIComponent(r.artist + ' ' + r.title))],

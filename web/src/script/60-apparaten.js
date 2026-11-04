@@ -14,21 +14,21 @@ Object.assign(BACK, { apparaten: 'home', apdev: 'apparaten', apset: 'apparaten' 
 
 function apLoad(){ apSt = rdJson(Android.apState(), {}) || {}; apSt.set = apSt.set || {}; apSt.perms = apSt.perms || {}; return apSt; }
 function setAp(){ return apLoad().set; }
-function apType(t){ return AP_TYPES[t] || AP_TYPES.apparaat; }
-function apIcon(t, tr){ return '<span class="ic' + (tr ? ' tr' : '') + '" aria-hidden="true">' + uiIcon(apType(t)[1]) + '</span>'; }
+function apType(tt){ return AP_TYPES[tt] || AP_TYPES.apparaat; }
+function apIcon(tt, tr){ return '<span class="ic' + (tr ? ' tr' : '') + '" aria-hidden="true">' + uiIcon(apType(tt)[1]) + '</span>'; }
 /* Afstand in woorden: altijd "ongeveer" */
 function apDist(m){ if (m == null || m < 0) return ''; return m < 1 ? 'dichtbij (minder dan ' + fmtMeters(1) + ')' : 'ongeveer ' + (m < 10 ? fmtMeters(Math.round(m * 2) / 2, 1) : fmtMeters(m)); }
 function apBars(rssi){ const n = rssi >= -60 ? 4 : rssi >= -70 ? 3 : rssi >= -80 ? 2 : 1; return '<span class="sig" role="img" aria-label="Signaal ' + n + ' van 4">' + [1, 2, 3, 4].map(i => '<i' + (i <= n ? ' class="on"' : '') + '></i>').join('') + '</span>'; }
-function apBadge(t, cls){ return '<span class="ap-badge' + (cls ? ' ' + cls : '') + '">' + esc(t) + '</span>'; }
-function apAgo(t){
-  if (!t) return '';
-  const s = Math.max(0, (Date.now() - t) / 1000), d = new Date(t);
+function apBadge(tt, cls){ return '<span class="ap-badge' + (cls ? ' ' + cls : '') + '">' + esc(tt) + '</span>'; }
+function apAgo(tt){
+  if (!tt) return '';
+  const s = Math.max(0, (Date.now() - tt) / 1000), d = new Date(tt);
   if (s < 90) return 'net';
   if (s < 3600) return Math.round(s / 60) + ' min geleden';
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const hm = fmtTime(d, { hour: '2-digit', minute: '2-digit' });
-  if (t >= today.getTime()) return 'vandaag ' + hm;
-  if (t >= today.getTime() - 86400000) return 'gisteren ' + hm;
+  if (tt >= today.getTime()) return 'vandaag ' + hm;
+  if (tt >= today.getTime() - 86400000) return 'gisteren ' + hm;
   return fmtDate(d, { day: 'numeric', month: 'short' }) + ' ' + hm;
 }
 /* Plek uit de geschiedenis: "thuis", of een vakje van ~1 km */
@@ -73,18 +73,18 @@ function apOpenFrom(n){
 }
 
 /* ---------- tabs ---------- */
-function apTab(t, again){
-  if (!['bt', 'wifi', 'lan', 'tr', 'known'].includes(t)) t = 'bt';
-  if (apTabNow !== t || again) apStopPoll();
-  apTabNow = t; store.set('apTab', t);
-  document.querySelectorAll('#ap-tabs [role=tab]').forEach(b => { const on = b.dataset.p === t; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; if (on && b.scrollIntoView) try { b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { } });
-  ['bt', 'wifi', 'lan', 'tr', 'known'].forEach(p => { $('#ap-p-' + p).hidden = p !== t; });
-  apPermCard(t);
-  if (t === 'bt') { apBtRender(); if (apSt.perms.bt && apSt.perms.btOn) apBtPoll(); }
-  if (t === 'wifi') apWifiLoad();
-  if (t === 'lan') apLanPoll();
-  if (t === 'tr') apTrRender();
-  if (t === 'known') apKnownRender();
+function apTab(tt, again){
+  if (!['bt', 'wifi', 'lan', 'tr', 'known'].includes(tt)) tt = 'bt';
+  if (apTabNow !== tt || again) apStopPoll();
+  apTabNow = tt; store.set('apTab', tt);
+  document.querySelectorAll('#ap-tabs [role=tab]').forEach(b => { const on = b.dataset.p === tt; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; if (on && b.scrollIntoView) try { b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { } });
+  ['bt', 'wifi', 'lan', 'tr', 'known'].forEach(p => { $('#ap-p-' + p).hidden = p !== tt; });
+  apPermCard(tt);
+  if (tt === 'bt') { apBtRender(); if (apSt.perms.bt && apSt.perms.btOn) apBtPoll(); }
+  if (tt === 'wifi') apWifiLoad();
+  if (tt === 'lan') apLanPoll();
+  if (tt === 'tr') apTrRender();
+  if (tt === 'known') apKnownRender();
 }
 /* Pijltjestoetsen in de tabrij (toegankelijkheid) */
 document.addEventListener('keydown', e => {
@@ -94,16 +94,16 @@ document.addEventListener('keydown', e => {
 });
 
 /* Uitleg en knop als er iets ontbreekt (in context, met de reden) */
-function apPermCard(t){
+function apPermCard(tt){
   const c = $('#ap-perm'), P = apSt.perms; let h = '';
-  const nearby = '<p>Om ' + (t === 'wifi' ? 'wifi-netwerken' : 'Bluetooth-apparaten') + ' in de buurt te zien, heeft de app de toestemming <b>Apparaten in de buurt</b> en <b>Locatie</b> nodig' +
+  const nearby = '<p>Om ' + (tt === 'wifi' ? 'wifi-netwerken' : 'Bluetooth-apparaten') + ' in de buurt te zien, heeft de app de toestemming <b>Apparaten in de buurt</b> en <b>Locatie</b> nodig' +
     (P.loc && !P.fine ? '. Kies bij locatie <b>Precies</b>: met alleen "geschatte locatie" geeft Android geen apparaten door' : ' (kies <b>Precies</b>)') +
     '. Android vraagt locatie omdat je hieruit je plek kunt afleiden; de app gebruikt die alleen grof, voor trackers en "vaak in de buurt". Er gaat niets naar internet.</p><button class="big" onclick="Android.apPerm(\'nearby\')">Toestaan</button>';
-  if ((t === 'bt' || t === 'tr') && P.btHw === false) h = '<p>Deze telefoon heeft geen Bluetooth.</p>';
-  else if ((t === 'bt' || t === 'tr') && !P.bt) h = nearby;
-  else if ((t === 'bt' || t === 'tr') && !P.btOn) h = '<p>Bluetooth staat uit. Zet het aan om apparaten in de buurt te zien.</p><button class="big" onclick="Android.apOpenSettings(\'bt\')">Bluetooth aanzetten</button>';
-  else if (t === 'wifi' && !P.wifi) h = nearby;
-  else if ((t === 'bt' || t === 'wifi' || t === 'tr') && P.locOn === false) h = '<p>Locatie staat uit op je telefoon. Dan geeft Android geen ' + (t === 'wifi' ? 'wifi-netwerken' : 'Bluetooth-apparaten') + ' door.</p><button class="big" onclick="Android.apOpenSettings(\'loc\')">Locatie aanzetten</button>';
+  if ((tt === 'bt' || tt === 'tr') && P.btHw === false) h = '<p>Deze telefoon heeft geen Bluetooth.</p>';
+  else if ((tt === 'bt' || tt === 'tr') && !P.bt) h = nearby;
+  else if ((tt === 'bt' || tt === 'tr') && !P.btOn) h = '<p>Bluetooth staat uit. Zet het aan om apparaten in de buurt te zien.</p><button class="big" onclick="Android.apOpenSettings(\'bt\')">Bluetooth aanzetten</button>';
+  else if (tt === 'wifi' && !P.wifi) h = nearby;
+  else if ((tt === 'bt' || tt === 'wifi' || tt === 'tr') && P.locOn === false) h = '<p>Locatie staat uit op je telefoon. Dan geeft Android geen ' + (tt === 'wifi' ? 'wifi-netwerken' : 'Bluetooth-apparaten') + ' door.</p><button class="big" onclick="Android.apOpenSettings(\'loc\')">Locatie aanzetten</button>';
   c.innerHTML = h; c.style.display = h ? '' : 'none';
 }
 
@@ -131,9 +131,9 @@ function apDevTitle(d){
   if (d.nick) return d.nick;
   if (d.tracker) return d.tracker.label;
   if (d.name) return d.name;
-  const t = apType(d.type)[0];
-  const mt = d.maker && d.type === 'apparaat' ? d.maker + '-apparaat' : d.maker && !t.includes(d.maker) ? d.maker + ' (' + t.toLowerCase() + ')' : t;
-  return d.n > 1 ? d.n + '× ' + mt : (d.maker && d.type === 'apparaat' ? d.maker + '-apparaat' : t);
+  const tt = apType(d.type)[0];
+  const mt = d.maker && d.type === 'apparaat' ? d.maker + '-apparaat' : d.maker && !tt.includes(d.maker) ? d.maker + ' (' + tt.toLowerCase() + ')' : tt;
+  return d.n > 1 ? d.n + '× ' + mt : (d.maker && d.type === 'apparaat' ? d.maker + '-apparaat' : tt);
 }
 function apBtRow(d){
   const sub = [];
@@ -267,7 +267,7 @@ function apTrLoad(){ apTrData = rdJson(Android.apTrackers(), {}) || {}; return a
 /* Bewaarde trackers plus wat er nu in de buurt is (uit de Bluetooth-scan), samengevoegd op adres */
 function apTrList(){
   const out = {}, now = ((apBtData || {}).devices || []).filter(d => d.tracker);
-  ((apTrData || {}).list || []).forEach(t => { out[t.key] = Object.assign({}, t); });
+  ((apTrData || {}).list || []).forEach(tt => { out[tt.key] = Object.assign({}, tt); });
   now.forEach(d => { const k = d.key.startsWith('a:') ? d.key : 'a:' + d.addr; out[k] = Object.assign(out[k] || { key: k, id: d.addr, label: d.tracker.label, kind: d.tracker.kind, places: 0, minutes: 0 }, { near: true, dist: d.dist, avg: d.avg, warn: d.tracker.warn, nick: d.nick, known: d.known }); });
   return Object.values(out).sort((a, b) => (b.follows ? 1 : 0) - (a.follows ? 1 : 0) || (b.near ? 1 : 0) - (a.near ? 1 : 0) || (b.last || 0) - (a.last || 0));
 }
@@ -282,20 +282,20 @@ function apTrRender(fromPoll){
   else h = '<h2>' + uiIcon('shield') + 'Aan</h2><p class="note">De app let op de achtergrond op onbekende trackers die met je meereizen' + ((apTrData || {}).passive ? ' (Android helpt zuinig mee tussen de rondes door). Een waarschuwing komt na ongeveer twee rondes onderweg: kies een kortere tijd tussen de rondes voor een snellere waarschuwing' : '') + '.</p>';
   box.innerHTML = h;
   const l = apTrList();
-  $('#ap-tr-list').innerHTML = l.length ? l.map(t => {
+  $('#ap-tr-list').innerHTML = l.length ? l.map(tt => {
     const sub = [];
-    if (t.status === 'mine' || t.known) sub.push('van jou');
-    else if (t.status === 'ignored') sub.push('genegeerd');
-    else if (t.follows) sub.push('reist mee: ' + t.places + ' plekken, ' + t.minutes + ' minuten');
-    else if (t.places) sub.push('gezien op ' + t.places + (t.places === 1 ? ' plek' : ' plekken'));
-    if (t.near) sub.push('nu in de buurt, ' + apDist(t.dist)); else if (t.last) sub.push('laatst ' + apAgo(t.last));
-    if (t.warn === false) sub.push('de eigenaar is in de buurt');
-    const b = t.follows && !t.status ? apBadge('let op', 'bad') : '';
-    return '<div role="listitem"><button class="ap-row" data-k="' + esc(t.key) + '" onclick="apOpenTr(this.dataset.k)">' + apIcon('tracker', t.follows && !t.status) + '<span class="tx"><b>' + esc(t.nick || t.label || 'Tracker') + '</b><small>' + esc(sub.join(' · ')) + '</small>' + (b ? '<span>' + b + '</span>' : '') + '</span>' + (t.near ? apBars(t.avg) : '') + '</button></div>';
+    if (tt.status === 'mine' || tt.known) sub.push('van jou');
+    else if (tt.status === 'ignored') sub.push('genegeerd');
+    else if (tt.follows) sub.push('reist mee: ' + tt.places + ' plekken, ' + tt.minutes + ' minuten');
+    else if (tt.places) sub.push('gezien op ' + tt.places + (tt.places === 1 ? ' plek' : ' plekken'));
+    if (tt.near) sub.push('nu in de buurt, ' + apDist(tt.dist)); else if (tt.last) sub.push('laatst ' + apAgo(tt.last));
+    if (tt.warn === false) sub.push('de eigenaar is in de buurt');
+    const b = tt.follows && !tt.status ? apBadge('let op', 'bad') : '';
+    return '<div role="listitem"><button class="ap-row" data-k="' + esc(tt.key) + '" onclick="apOpenTr(this.dataset.k)">' + apIcon('tracker', tt.follows && !tt.status) + '<span class="tx"><b>' + esc(tt.nick || tt.label || 'Tracker') + '</b><small>' + esc(sub.join(' · ')) + '</small>' + (b ? '<span>' + b + '</span>' : '') + '</span>' + (tt.near ? apBars(tt.avg) : '') + '</button></div>';
   }).join('') : '<p class="ap-empty">Geen trackers gezien.</p>';
 }
 function apTrScan(){ const e = Android.apBtStart(false); if (e === 'perm') { Android.apPerm('nearby'); return; } if (e === 'uit') { toast('Bluetooth staat uit'); return; } if (e) { toast(e); return; } apBtPoll(); }
-function apOpenTr(key){ const t = apTrList().find(x => x.key === key); apDev = { src: 'tr', key, id: key.slice(2), d: t || null }; show('apdev'); }
+function apOpenTr(key){ const tt = apTrList().find(x => x.key === key); apDev = { src: 'tr', key, id: key.slice(2), d: tt || null }; show('apdev'); }
 
 /* ---------- bekend en vaak in de buurt ---------- */
 function apKnownRender(){
@@ -440,11 +440,11 @@ function apdFindPoll(){
     ring.style.setProperty('--p', f.meter); m.setAttribute('aria-valuenow', f.meter); apFindLevel = f.meter;
     $('#apd-val').textContent = f.dist < 1 ? '< ' + fmtMeters(1) : '± ' + (f.dist < 10 ? fmtMeters(Math.round(f.dist * 2) / 2, 1) : fmtMeters(f.dist));
     $('#apd-unit').textContent = 'ongeveer · ' + Math.round(f.avg) + ' dBm';
-    const t = f.trend;
-    tr.textContent = f.meter >= 85 ? 'Heel dichtbij!' : t > 0 ? 'Warmer ↑' : t < 0 ? 'Kouder ↓' : 'Gelijk';
-    tr.className = 'ap-trend' + (t > 0 || f.meter >= 85 ? ' up' : t < 0 ? ' down' : '');
-    if (t > 0 && apLastTrend <= 0 && store.get('apVib', true)) Android.vibrate(30);
-    apLastTrend = t;
+    const tt = f.trend;
+    tr.textContent = f.meter >= 85 ? 'Heel dichtbij!' : tt > 0 ? 'Warmer ↑' : tt < 0 ? 'Kouder ↓' : 'Gelijk';
+    tr.className = 'ap-trend' + (tt > 0 || f.meter >= 85 ? ' up' : tt < 0 ? ' down' : '');
+    if (tt > 0 && apLastTrend <= 0 && store.get('apVib', true)) Android.vibrate(30);
+    apLastTrend = tt;
     apSpark.push(f.meter); if (apSpark.length > 75) apSpark.shift();
   }
   if (apSpark.length > 1) $('#apd-spark-p').setAttribute('d', apSpark.map((v, i) => (i ? 'L' : 'M') + Math.round(i * 300 / 74) + ' ' + Math.round(58 - v * .56)).join(' '));

@@ -39,14 +39,14 @@ function rdIsCur(s){ return !!(rdState.station && (rdState.station.id ? rdState.
 
 /* Twee tabbladen: Favorieten en Zenders */
 let rdTab = 'favs', rdTabUser = false;
-function rdSetTab(t, byUser){
-  if (t !== 'favs' && t !== 'all') t = 'favs';
+function rdSetTab(tt, byUser){
+  if (tt !== 'favs' && tt !== 'all') tt = 'favs';
   if (byUser) rdTabUser = true;
-  const changed = rdTab !== t; rdTab = t;
-  document.querySelectorAll('#s-radio .pctabs [role=tab]').forEach(b => { const on = b.dataset.tab === t; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
-  $('#rd-p-favs').hidden = t !== 'favs'; $('#rd-p-all').hidden = t !== 'all';
+  const changed = rdTab !== tt; rdTab = tt;
+  document.querySelectorAll('#s-radio .pctabs [role=tab]').forEach(b => { const on = b.dataset.tab === tt; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; });
+  $('#rd-p-favs').hidden = tt !== 'favs'; $('#rd-p-all').hidden = tt !== 'all';
   const a = document.activeElement;
-  if (a && a.closest && a.closest('#s-radio [role=tabpanel][hidden]')) $('#rd-tab-' + t).focus({ preventScroll: true });
+  if (a && a.closest && a.closest('#s-radio [role=tabpanel][hidden]')) $('#rd-tab-' + tt).focus({ preventScroll: true });
   if (changed && byUser && scrollY > 0) scrollTo(0, 0);
 }
 document.querySelector('#s-radio .pctabs').addEventListener('keydown', e => {
@@ -152,8 +152,8 @@ function rdPollOnce(noRender){
   const prev = sig(rdState), lprev = lsig(rdState);
   rdState = rdJson(Android.radioState(), {});
   if (sig(rdState) !== prev) { rdShowNow(); if (current === 'radio' && lsig(rdState) !== lprev) rdRender(); }
-  const t = $('#tile-radio-sub');
-  if (t) t.textContent = rdState.station && rdState.status === 'playing' ? '▶ ' + rdState.station.name + (rdState.title ? ' · ' + rdState.title : '') : 'Nederlandse zenders luisteren';
+  const tt = $('#tile-radio-sub');
+  if (tt) tt.textContent = rdState.station && rdState.status === 'playing' ? '▶ ' + rdState.station.name + (rdState.title ? ' · ' + rdState.title : '') : 'Nederlandse zenders luisteren';
   const tile = $('#tile-radio'); if (tile) tile.classList.toggle('live', rdState.status === 'playing');
   if (noRender !== true && typeof plRender === 'function') plRender();
 }
@@ -168,12 +168,12 @@ function rdShowNow(){
   $('#rd-ts').checked = Android.radioTimeshift();
 }
 /** Het huidige nummer (of programma) zoals de zender het meestuurt. */
-function rdShowSong(t, inf){
+function rdShowSong(tt, inf){
   const box = $('#rd-song');
-  if (!t) { box.style.display = 'none'; return; }
+  if (!tt) { box.style.display = 'none'; return; }
   box.style.display = 'block';
-  const q = encodeURIComponent(t);
-  box.innerHTML = (inf.song ? '<b>' + esc(inf.song) + '</b><span>' + esc(inf.artist) + '</span>' : '<b>' + esc(t) + '</b><span>Nu op ' + esc((rdState.station || {}).name || 'de radio') + '</span>') +
+  const q = encodeURIComponent(tt);
+  box.innerHTML = (inf.song ? '<b>' + esc(inf.song) + '</b><span>' + esc(inf.artist) + '</span>' : '<b>' + esc(tt) + '</b><span>Nu op ' + esc((rdState.station || {}).name || 'de radio') + '</span>') +
     '<div class=lnk><button class=mini onclick="rdSaveSong()" aria-label="Nummer bewaren in Herkende muziek">★ Bewaar</button>' +
     '<button class=mini data-u="https://music.youtube.com/search?q=' + q + '" onclick="Android.openUrl(this.dataset.u)">YouTube</button>' +
     '<button class=mini data-u="https://open.spotify.com/search/' + q + '" onclick="Android.openUrl(this.dataset.u)">Spotify</button>' +
@@ -198,14 +198,14 @@ function rdShowRecent(l){
     fmtTime(x.t, {hour:'2-digit', minute:'2-digit'}) + '</time><span>' + esc(x.title) + '</span></li>').join('');
 }
 /* Nummer van de radio bewaren in Herkende muziek (zonder AudD). "Artiest - Titel" wordt gesplitst. */
-function rdSplit(t, inf){
+function rdSplit(tt, inf){
   if (inf && inf.song) return [inf.artist || '', inf.song];
-  const m = String(t || '').split(/\s+[-–]\s+/);
-  return m.length >= 2 ? [m[0], m.slice(1).join(' - ')] : ['', String(t || '')];
+  const m = String(tt || '').split(/\s+[-–]\s+/);
+  return m.length >= 2 ? [m[0], m.slice(1).join(' - ')] : ['', String(tt || '')];
 }
-function rdSaveSong(t, inf){
-  if (t === undefined) { t = rdState.title; inf = rdState.info || {}; }
-  const [artist, title] = rdSplit(t, inf);
+function rdSaveSong(tt, inf){
+  if (tt === undefined) { tt = rdState.title; inf = rdState.info || {}; }
+  const [artist, title] = rdSplit(tt, inf);
   if (typeof Android.musicSaveFromRadio !== 'function') return;
   const e = Android.musicSaveFromRadio(artist, title, (rdState.station || {}).name || '');
   toast(e === 'dubbel' ? 'Staat al in Herkende muziek' : e ? e : '★ Bewaard in Herkende muziek');

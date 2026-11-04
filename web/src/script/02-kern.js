@@ -49,7 +49,7 @@ function undoToast(text, undo){
   clearTimeout(u._h); u._h = setTimeout(() => u.classList.remove('on'), 5000);
   $('#undo-b').onclick = () => { clearTimeout(u._h); u.classList.remove('on'); undo(); };
 }
-function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2600); }
+function toast(m){ const tt=$('#toast'); tt.textContent=m; tt.classList.add('on'); clearTimeout(tt._h); tt._h=setTimeout(()=>tt.classList.remove('on'),2600); }
 
 /* Eigen dialogen in plaats van de systeem-popups van de WebView. */
 let _modalCb = null;
@@ -151,7 +151,7 @@ function show(name){
   if (name==='bank') enterBank(); else if (current_prev==='bank' && typeof bkVerlaat === 'function') bkVerlaat();
   if (name==='vpn') enterVpn();
   if (name==='loc') enterLoc();
-  if (current_prev==='vpnedit' && name!=='vpnedit') { const t = $('#ve-text'); if (t) t.value = ''; } // privésleutel niet laten staan
+  if (current_prev==='vpnedit' && name!=='vpnedit') { const tt = $('#ve-text'); if (tt) tt.value = ''; } // privésleutel niet laten staan
   if (current_prev==='vpn' && name!=='vpn' && typeof vpScanOpen === 'function' && vpScanOpen()) vpScanClose();
   if (name==='kluis') enterKluis(); else if (current_prev === 'kluis' && typeof Android.kluisClose === 'function') Android.kluisClose();
   if (name==='history') enterHistory(); else stopHistoryPoll();

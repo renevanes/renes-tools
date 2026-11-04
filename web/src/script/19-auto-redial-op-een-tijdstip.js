@@ -18,12 +18,12 @@ function rpRender(){
   rpRenderDays();
 }
 function rpSave(){
-  const n = $('#num').value.trim(), t = ($('#rp-time').value || '').split(':');
-  if (t.length < 2) { toast('Kies een tijd'); return; }
+  const n = $('#num').value.trim(), tt = ($('#rp-time').value || '').split(':');
+  if (tt.length < 2) { toast('Kies een tijd'); return; }
   const p = renderPerms();
   if (!p.call || !p.phoneState) { toast('Geef eerst toestemming'); askPerms(); return; }
   const iv = store.get('interval', 10), rnd = iv === -1, rmin = store.get('rmin', 10), rmax = store.get('rmax', 60);
-  const err = Android.redialPlanSet(JSON.stringify({ number: n, name: nameFor, hour: +t[0], minute: +t[1], days: rpDays,
+  const err = Android.redialPlanSet(JSON.stringify({ number: n, name: nameFor, hour: +tt[0], minute: +tt[1], days: rpDays,
     attempts: store.get('attempts', 10), interval: rnd ? rmin : iv, randomMin: rnd ? rmin : 0, randomMax: rnd ? rmax : 0,
     stopWhenAnswered: store.get('t-stop', true), speaker: store.get('t-spk', false) }));
   if (err) { toast(err); return; }

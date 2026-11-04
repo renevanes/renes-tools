@@ -43,7 +43,7 @@ function rgRender(){
   // Duizendtallen: niet hetzelfde teken als de decimalen
   rgOpts('#rg-grp', RG_GRP.filter(x => x[0] !== c.dec)).value = c.grp;
   // Elk deel blijft heel (geen "€" aan het eind van een regel)
-  const t = rgPreview(); if ($('#rg-prev').textContent !== t) $('#rg-prev').innerHTML = rgPreviewParts(Date.now()).map(x => '<span class="rg-part">' + esc(x) + '</span>').join(' · ');
+  const tt = rgPreview(); if ($('#rg-prev').textContent !== tt) $('#rg-prev').innerHTML = rgPreviewParts(Date.now()).map(x => '<span class="rg-part">' + esc(x) + '</span>').join(' · ');
   $('#rg-num-prev').textContent = 'Voorbeeld: ' + fmtNum(1234567.89, 2) + ' · ' + fmtMoney(-1234.5) + ' · ' + fmtNum(0.5, 1) + ' · ' + fmtSize(1.5 * 1073741824) + ' · ' + fmtSpeed(100, 0);
 }
 function rgSet(k, v){
