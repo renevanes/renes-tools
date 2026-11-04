@@ -10,7 +10,9 @@ Android-app "Tools" van Rene van Es (Rotterdam). De interface is een WebView (HT
 native kant is Java in `app/src/nl/rene/tools/`. Er is geen Gradle: `build.sh` bouwt met aapt2/d8 en ondertekent.
 Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json`, interface en APK).
 
-- **Taal**: alles wat Rene ziet (teksten in de app, wijzigingsregels, berichten aan Rene) is **Nederlands**.
+- **Taal**: wijzigingsregels en berichten aan Rene zijn **Nederlands**. De app zelf kan Nederlands (standaard) of Engels
+  (Instellingen → Regio en taal → Taal; de app volgt de taal van de telefoon bewust niet). Nederlands is de brontekst in de
+  code; Engels komt uit één woordenboek, `web/src/taal/en.json` (zie "Teksten en vertalingen" hieronder).
 - **Gebruik nergens het woord n-e-p** (Engels: fake), niet in de app, de code, de tests of wijzigingsregels. Zeg bijv. "Locatie kiezen", "testbrug".
 
 ## Indeling
@@ -50,7 +52,23 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   werk staan alleen in Java (`regio.xml`, niet in localStorage/webstore en niet in de Android-backup). Getallen uit een
   invoerveld: `parseNum()`, vooraf invullen met `fmtNumIn()`.
   Datum-alleen-waarden en daglogica (vandaag) volgen de telefoon; er is geen eigen tijdzone.
-  Tekst voor het taalmodel blijft vast nl-NL (niet via de helpers).
+  Tekst voor het taalmodel blijft vast nl-NL (niet via de helpers). In het Engels geeft `regioLocale()` en-GB, met je eigen scheidingstekens.
+- **Teksten en vertalingen** (Engels): schrijf elke tekst in het Nederlands en
+  - in JavaScript in `t('…')`, met plaatshouders `t('{n} berichten gewist', { n })` en meervoud
+    `tn(n, 'Eén bericht', '{n} berichten')`; nooit aan elkaar plakken (`'Klaar: ' + x` → `t('Klaar: {wat}', { wat: x })`),
+    ook niet in HTML-stukjes of aria-labels. Vaste tekst in de schermen (HTML) vertaalt de observer in `02-taal.js` vanzelf;
+    gegevens van Rene of anderen (notities, berichten, namen) in een element met `translate="no"`.
+  - in Java `Taal.t(ctx, "…")` / `Taal.tn(ctx, n, "…", "…")`; vaste lijsten die later vertaald worden met `Taal.T("…")`
+    markeren. Meldingen gaan via `Taal.n(ctx, notification)`, widgets via `Taal.text`, toasts via `Taal.tx`.
+  - zet de Engelse vertaling in `web/src/taal/en.json` (gesorteerd, één regel per tekst; een waarde mag ook
+    `["één", "meer"]` zijn). `node tools/taal.js` toont wat ontbreekt (`--ontbrekend` als JSON) en de bewaker;
+    `tests/ui/taal-dekking.test.js` faalt op een ontbrekende vertaling of op aan elkaar geplakt Nederlands. Moet iets bewust
+    vast Nederlands blijven (tekst voor het taalmodel, zinnen die de assistent ontleedt): `// taal-vast: reden` op die regel,
+    of `/* taal-vast-begin: reden */ … /* taal-vast-eind */`. `tests/ui/engels.test.js` loopt alle schermen in het Engels na.
+  - nooit het woord n-e-p, ook niet in het Engels ("fake"): zeg "test bridge", "Choose location".
+  - niet vertaald: wijzigingsregels ("Wat is er nieuw" zegt "(in Dutch)"), namen van Android (app- en widgetnamen in het
+    manifest), en gegevens. De assistent begrijpt Engels via `59b-assistent-engels.js` (Engelse zin → de Nederlandse
+    opdracht), antwoordt in het Engels (`LocalAi.buildSystemEn`), spreekt Engels (`AiSpeech`) en schrijft Engels uit (whisper "en").
 - **Interface**: gebruik de kleurrollen uit `stijl.css` (nooit vaste kleuren als `#fff` op `--primary`: in donker is
   `--primary` licht). Elk scherm heeft `<div class="hdr">` met terugknop en `<h1>`; detailschermen `class="hdr sm"`.
 
@@ -175,7 +193,8 @@ Playwright, Node of Java van de CI.
    testen onder qemu-aarch64); llama.cpp met `tools/llm-build.sh` (TAG en COMMIT erin, daarna `./tools/llm/test.sh`);
    de rest en het tempo volgens de tabel hierboven.
    **AI-modellen:** een beter model overnemen = een nieuw `Model` met een eigen id in `LocalAi.java`, met vaste commit,
-   grootte en SHA-256 (uit de LFS-gegevens van Hugging Face) en `.replaces("oud-id", "waarom beter")`. Nooit het bestand
+   grootte en SHA-256 (uit de LFS-gegevens van Hugging Face) en `.replaces("oud-id", Taal.T("waarom beter"))` (naam, uitleg en
+   "waarom beter" in `Taal.T(…)` en in `en.json`). Nooit het bestand
    van een bestaand id wijzigen. De app meldt het nieuwe model dan bij de assistent en bij Taalmodel; Rene kiest zelf
    of hij het downloadt, en het oude kan daarna weg (oude bestanden ruimt Taalmodel → Opruimen op). Alleen bij een
    duidelijke verbetering (beter Nederlands, sneller, kleiner), en vraag Rene eerst: een model is 1–3 GB.
