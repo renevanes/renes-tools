@@ -199,7 +199,8 @@ function aiSendOrStop(){
   $('#ai-in').value = ''; aiGrow();
   // Een duidelijke opdracht (timer, wekker, radio, bericht …) of een feitenvraag over je eigen gegevens: de app zelf,
   // met een kaart om te bevestigen (61-assistent-acties.js). Alleen je eigen vraag, nooit tekst van anderen of van het model.
-  // In het Engels: eerst omzetten naar de Nederlandse vorm die de opdrachten kennen (59b-assistent-engels.js)
+  // In het Engels: eerst omzetten naar de Nederlandse vorm die de opdrachten kennen (59b-assistent-engels.js).
+  // Die omgezette zin is alleen voor de app zelf: het taalmodel krijgt altijd de vraag zoals je hem stelde (aiChat.msgs).
   const qc = typeof aiCmdQ === 'function' ? aiCmdQ(q) : q;
   const c = typeof aiCmdFor === 'function' ? aiCmdFor(qc) : null;
   if (c) { aiLocalAnswer(c, v); return; }
@@ -831,7 +832,7 @@ function aicRender(){
   const v = typeof Android.aiVoiceInfo === 'function' ? rdJson(Android.aiVoiceInfo(), {}) : {};
   sum('voice', t(v.model ? 'Spraakmodel klaar' : 'Nog geen spraakmodel') + (v.send === true ? ' · ' + t('meteen versturen') : '') + (aiSt.speakVoice ? ' · ' + t('antwoord voorlezen') : '') + ' · ' + t('gesprek: {s} s stilte', { s: fmtNum((+c.talkSilence || 1300) / 1000, { maximumFractionDigits: 3 }) }));
   const zoek = (aiSt.models || []).find(m => m.id === 'zoek') || {};
-  sum('search', zoek.state === 'ready' ? (aiSt.index && aiSt.index.items ? t('{n} bronnen in de zoekindex', { n: aiSt.index.items }) : t('Klaar')) : t('Nog niet gedownload'));
+  sum('search', zoek.state === 'ready' ? (aiSt.index && aiSt.index.items ? t('{n} bronnen in de zoekindex', { n: aiSt.index.items }) : tc('status', 'Klaar')) : t('Nog niet gedownload'));
   const n = AI_SRC.filter(s => aiSrcOn(s[0])).length;
   sum('data', n ? AI_SRC.filter(s => aiSrcOn(s[0])).map(s => t(s[1])).join(', ') : t('Niets aangezet'));
   sum('perf', t(AIC_LABEL.power[c.power] || 'Normaal') + ' · ' + t('vrijgeven na {n} min', { n: c.idle || 4 }) + (aiSt.wifiOnly ? ' · ' + t('alleen via wifi') : ''));

@@ -611,7 +611,7 @@ if (!window.Android) window.Android = (function(){
       if ((m = /^speel de podcast (.+)$/i.exec(s))) return J({ type: 'podcast', q: m[1] });
       if (/^(?:start|zet) slaappraat(?: aan)?$/.test(l)) return J({ type: 'slaap' });
       if (/^(?:stop|zet) slaappraat(?: uit)?$/.test(l)) return J({ type: 'slaap', stop: true });
-      const T = { apparaten: 'apparaten', gebruik: 'gebruik', slaappraat: 'sleep', notities: 'notes', radio: 'radio' };
+      const T = { apparaten: 'apparaten', gebruik: 'gebruik', slaappraat: 'sleep', notities: 'notes', radio: 'radio', podcasts: 'podcasts', podcast: 'podcasts', instellingen: 'settings', radiowekker: 'ralarm', startscherm: 'home' }; // zoals AiCommands.TOOLS
       if ((m = /^open (.+)$/.exec(l)) && T[m[1]]) return J({ type: 'open', tool: T[m[1]] });
       if ((m = /^stuur een sms naar ([^:]+?)(?::| dat) (.+)$/i.exec(s))) { const nr = /^[0-9 +-]{6,}$/.test(m[1]) ? m[1].replace(/[ -]/g, '') : ''; return J(Object.assign({ type: 'sms', text: / dat /.test(s) ? m[2].charAt(0).toUpperCase() + m[2].slice(1) : m[2] }, nr ? { number: nr } : { to: m[1] })); }
       // Met alleen een naam ("app Jos dat …", "vertel Jos dat …"): alleen als die in je contacten staat (zoals AiCommands.Known)

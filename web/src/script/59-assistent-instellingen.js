@@ -91,6 +91,9 @@ function setWmStrict(q, f){ const m = setWm(q, f); return m >= 0.9 || (m > 0 && 
 function setLabelHit(e, x){ const w = setIdx(e); return setWords(x).some(q => !SET_TOOLW.has(q) && w.l.some(f => !SET_TOOLW.has(f) && setWm(q, f) >= 0.9)); }
 /* Woorden waaraan je ziet dat de vraag over de app gaat */
 const SET_APPW = /\b(instelling\w*|instellen|app|tools|scherm|schakelaar|knop|assistent)\b/;
+/* Meldingen van andere apps (in het Engels wordt de zin eerst omgezet, zie 59b) */
+const SET_NOTIFW = /\b(meldingen|melding|notificaties|notificatie|notifications?|alerts?)\b/;
+const SET_OTHER_APP = /\b(whatsapp|signal|telegram|instagram|facebook|messenger|gmail|outlook|teams|slack|twitter|tiktok|snapchat|linkedin|youtube|discord|buienradar|nu\.?nl)\b/;
 const SET_MIN = 2.4; // minstens één woord uit de naam, of een paar zoekwoorden
 
 /* ---------- wat wordt er gevraagd ---------- */
@@ -231,6 +234,9 @@ function setLogText(){
 function setHandle(q){
   const it = setIntent(q);
   if (!it) return null;
+  // Meldingen van een andere app ("zet meldingen voor WhatsApp aan"): dat is niet de schakelaar van Tools zelf.
+  // Geen kaart; met taalmodel gewoon antwoorden (zonder te zeggen dat er iets aangezet is).
+  if (SET_NOTIFW.test(norm2(q)) && SET_OTHER_APP.test(norm2(q)) && !/\bback-?ups?\b/.test(norm2(q))) return it.kind === 'cmd' && aiChatReady() ? { noDo: true } : null;
   if (setSolo()) return { local: true, text: t('In een losse app kan ik de instellingen van Tools niet bekijken of aanpassen. Open daarvoor Tools zelf.') };
   const model = aiChatReady();
   if (it.kind === 'log') return Object.assign({ local: true }, setLogText());

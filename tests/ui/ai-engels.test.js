@@ -18,7 +18,7 @@ const { chromium } = require('playwright');
       await pg.waitForFunction(() => !aiBusy, null, { timeout: 8000 }).catch(() => {});
       const a0 = await pg.evaluate(() => Android._ai.asked || 0);
       await pg.fill('#ai-in', q); await pg.click('#ai-send'); await pg.waitForTimeout(300);
-      return pg.evaluate(([last, a0]) => ({ txt: ((($(last) || {}).innerText) || '').replace(/\s+/g, ' '), card: !!document.querySelector(last + ' .cmdcard'), set: !!document.querySelector(last + ' .setcard'), llm: (Android._ai.asked || 0) > a0 }), [last, a0]);
+      return pg.evaluate(([last, a0]) => ({ txt: ((($(last) || {}).innerText) || '').replace(/\s+/g, ' '), card: !!document.querySelector(last + ' .cmdcard'), set: !!document.querySelector(last + ' .setcard'), llm: (Android._ai.asked || 0) > a0, sent: (((Android._ai.last || {}).messages || []).slice(-1)[0] || {}).content, noDo: !!(Android._ai.last || {}).noDo }), [last, a0]);
     };
     const done = () => pg.evaluate(() => (Android._aiDone || []).slice());
     ok(await pg.evaluate(() => appLang() === 'en' && TAAL.on), scheme + ': de app is Engels');
@@ -42,6 +42,10 @@ const { chromium } = require('playwright');
     ok(r.card && /NPO Radio 2/.test(r.txt) && /Play the radio\?/.test(r.txt), 'radio: "play radio 2" → NPO Radio 2');
     r = await ask('open notes');
     ok(r.card && /Notes/.test(r.txt) && /Open\?/.test(r.txt), 'openen: "open notes"');
+    for (const [q, naam] of [['open settings', 'Settings'], ['open podcasts', 'Podcasts'], ['go to the settings', 'Settings']]) {
+      r = await ask(q);
+      ok(r.card && !r.llm && new RegExp('Shall I open ' + naam).test(r.txt), 'openen: "' + q + '" → ' + naam + ' (zonder taalmodel)');
+    }
     // Instellingen
     await pg.evaluate(() => { store.set('theme', Object.assign({}, thCfg(), { mode: 'light' })); thApply(true); });
     r = await ask('turn on dark mode');
@@ -60,6 +64,13 @@ const { chromium } = require('playwright');
     ok(!r.set && !r.card && !r.llm && /Text size/.test(r.txt) && /Settings → Layout/.test(r.txt), 'opzoeken: "where can I find the text size" → waar het staat, zonder taalmodel');
     r = await ask('is the nightly backup on');
     ok(!r.llm && /every night is set to off/.test(r.txt), 'vraag naar een stand: "is the nightly backup on"');
+    r = await ask('turn off the nightly backup');
+    ok(!r.llm && /Back up everything every night/.test(r.txt), '"turn off the nightly backup" → Elke nacht alles back-uppen: ' + r.txt.slice(0, 80));
+    // Meldingen van een andere app: niet de schakelaar van Tools; het taalmodel (dat niets mag beweren), geen kaart
+    for (const q of ['enable notifications for WhatsApp', 'turn on whatsapp notifications', 'turn off notifications from Instagram']) {
+      r = await ask(q);
+      ok(!r.card && !r.set && r.llm && r.noDo && !/App notifications/.test(r.txt), 'meldingen van een andere app: "' + q + '" → taalmodel, geen kaart');
+    }
     // Nederlands werkt nog steeds
     r = await ask('zet een timer van 5 minuten');
     ok(r.card && /Timer for 5 min/.test(r.txt), 'een Nederlandse opdracht werkt ook (antwoord in het Engels)');
@@ -67,7 +78,7 @@ const { chromium } = require('playwright');
     // Geen opdracht: gewoon het taalmodel, geen kaart
     for (const q of ['turn on the lights', 'turn off the stove', 'play a game with me', 'play some music', 'open the door', 'set the table for dinner', 'set my mind at ease', 'what is the capital of France', 'where is Amsterdam']) {
       r = await ask(q);
-      ok(!r.card && !r.set && r.llm, 'geen opdracht: "' + q + '" → taalmodel, geen kaart');
+      ok(!r.card && !r.set && r.llm && r.sent === q, 'geen opdracht: "' + q + '" → taalmodel (de Engelse vraag zoals hij is), geen kaart' + (r.sent === q ? '' : ': ' + r.sent));
     }
     const n0 = (await done()).length;
     ok(n0 === 2 && await pg.evaluate(() => rgCfg().lang === 'en'), 'daarbij is niets gedaan');
@@ -81,6 +92,12 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => aiCmdQ('use miles') === 'use miles' && aiCmdQ('switch to English') === 'switch to English'), 'Nederlandse app: Engelse zinnen worden niet omgezet');
     r = await ask('play a game with me');
     ok(!r.card && !r.set && r.llm, 'Nederlandse app: "play a game with me" → taalmodel');
+    r = await ask('open instellingen');
+    ok(r.card && !r.llm && /Zal ik Instellingen openen/.test(r.txt), 'Nederlands: "open instellingen" → kaart');
+    r = await ask('zet meldingen voor WhatsApp aan');
+    ok(!r.card && !r.set && r.llm && r.noDo, 'Nederlands: "zet meldingen voor WhatsApp aan" → taalmodel, geen kaart');
+    r = await ask('zet de nachtelijke backup uit');
+    ok(!r.llm && /Elke nacht alles back-uppen/.test(r.txt), 'Nederlands: "zet de nachtelijke backup uit"');
     r = await ask('zet de taal op Engels');
     ok(r.set && /Taal van de app/.test(r.txt) && /English/.test(r.txt), '"zet de taal op Engels" → Taal van de app');
     await pg.click(setc + ' .mini.on'); await pg.waitForTimeout(250);

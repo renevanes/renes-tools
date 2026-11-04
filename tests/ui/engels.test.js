@@ -75,7 +75,7 @@ const toegestaan = s => TOEGESTAAN.some(([x]) => s.includes(x));
       notes = null;
     });
     // Nederlands vooraf vastleggen (een steekproef, om straks te vergelijken)
-    const PROEF = ['home', 'settings', 'setregio', 'notes', 'backup', 'wa', 'sms', 'calls', 'aiset', 'checkin', 'apparaten', 'gebruik', 'sleep', 'facturen', 'auto', 'vpn', 'podcasts'].filter(x => ids.includes(x));
+    const PROEF = ['home', 'settings', 'setregio', 'notes', 'backup', 'wa', 'sms', 'calls', 'aiset', 'checkin', 'apparaten', 'gebruik', 'sleep', 'facturen', 'auto', 'vpn', 'podcasts', 'facopslag'].filter(x => ids.includes(x));
     const voor = {};
     for (const id of PROEF) { await naar(pg, id); voor[id] = await tekstVan(pg, id); }
 
@@ -144,6 +144,8 @@ const toegestaan = s => TOEGESTAAN.some(([x]) => s.includes(x));
     ok(await pg.evaluate(() => tn(1, '{n} bericht', '{n} berichten') === '1 message' && tn(2, '{n} bericht', '{n} berichten') === '2 messages' && t('{n} keer iets gehoord', { n: 1 }) === 'Heard something once' && t('{n} keer iets gehoord', { n: 4 }) === 'Heard something 4 times' && t('Iets dat niet bestaat {x}', { x: 1 }) === 'Iets dat niet bestaat 1'), 'meervoud en plaatshouders (ook ["één", "meer"] in het woordenboek), zonder vertaling de brontekst');
     ok(await pg.evaluate(() => { const d = document.createElement('p'); d.innerHTML = 'Tik op <b>Opslaan</b>.'; document.body.append(d); return new Promise(r => setTimeout(() => { const x = d.textContent; d.remove(); r(x); }, 50)); }) !== 'Tik op Opslaan.', 'tekst die later met innerHTML verschijnt, wordt ook vertaald');
     ok(await pg.evaluate(() => { const d = document.createElement('p'); d.setAttribute('translate', 'no'); d.textContent = 'Opgeslagen'; document.body.append(d); return new Promise(r => setTimeout(() => { const x = d.textContent; d.remove(); r(x); }, 50)); }) === 'Opgeslagen', 'gegevens met translate="no" blijven zoals ze zijn');
+    // Hetzelfde woord, per plek een andere vertaling: tc('status', 'Klaar') en data-taal="plek" ("Opslaan" = Storage)
+    ok(await pg.evaluate(() => tc('status', 'Klaar') === 'Ready' && t('Klaar') === 'Done' && tc('nergens', 'Klaar') === 'Done' && $('#s-facopslag h1').textContent === 'Storage' && t('Opslaan') === 'Save'), 'woord per plek: Klaar → Ready/Done, Opslaan → Storage/Save');
     // Wat is er nieuw: in het Nederlands, met de melding erbij
     await pg.evaluate(() => show('info')); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => /\(in Dutch\)/.test($('#log').textContent) && !!$('#log ul[translate="no"]')), 'Versie en updates: wijzigingen blijven Nederlands, met "(in Dutch)"');

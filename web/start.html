@@ -423,6 +423,15 @@ function t(s, v){
 }
 /* Enkelvoud of meervoud: tn(3, 'Eén bestand', '{n} bestanden') → "3 bestanden" / "3 files" */
 function tn(n, one, many, v){ return t(+n === 1 ? one : many, Object.assign({ n: n }, v)); }
+/* Een woord dat in het Engels per plek iets anders is ("Klaar": Done of Ready): tc('status', 'Klaar') zoekt eerst
+   "Klaar @status" in het woordenboek, anders gewoon "Klaar". In HTML: data-taal="status" op het element zelf. */
+function tc(c, s, v){
+  const r = TAAL.on && s != null ? taalLookup(taalNorm(s) + ' @' + c, v) : undefined;
+  if (r === undefined) return t(s, v);
+  const en = taalFill(r, v), m = TAAL.src || (TAAL.src = new Map());
+  m.set(taalNorm(en), taalFill(s, v));
+  return en;
+}
 /* Tekst in de taal van de app, voor de assistent en Java: 'nl' of 'en' */
 function appLang(){ return TAAL.on ? 'en' : 'nl'; }
 
@@ -449,7 +458,7 @@ function taalSkip(el){ return el.nodeType === 1 && (TAAL_SKIP.has(el.tagName) ||
 function taalKeys(root){
   const out = [];
   const walk = n => {
-    if (n.nodeType === 3) { const k = taalNorm(n.data); if (/\p{L}/u.test(k)) out.push(['tekst', k]); return; }
+    if (n.nodeType === 3) { const k = taalNorm(n.data); if (/\p{L}/u.test(k)) out.push(['tekst', k + taalCtx(n)]); return; }
     if (n.nodeType !== 1) return;
     const ta = n.tagName === 'TEXTAREA' && n.getAttribute('translate') !== 'no'; // wel de placeholder, niet de inhoud
     if (taalSkip(n) && !ta) return;
@@ -466,9 +475,11 @@ function taalKeys(root){
 function taalText(n){
   const d = n.data; if (d === n.__tEn || !/\p{L}/u.test(d)) return;
   const p = n.parentNode; if (!p || (p.nodeType === 1 && (taalSkip(p) || p.closest('[translate="no"]')))) return;
-  const r = taalLookup(d); if (r === undefined) return;
+  const c = taalCtx(n), r = (c && taalLookup(d.trim() + c)) || taalLookup(d); if (r === undefined) return;
   n.__tNl = d; n.__tEn = r; n.data = r;
 }
+/* De plek van een tekst (data-taal op het element eromheen), als " @plek" achter de sleutel */
+function taalCtx(n){ const p = n.parentNode, c = p && p.nodeType === 1 && p.getAttribute('data-taal'); return c ? ' @' + c : ''; }
 function taalAttr(el, a){
   const v = el.getAttribute(a); if (!v || (el.__tEnA && el.__tEnA[a] === v)) return;
   const r = taalLookup(v); if (r === undefined) return;

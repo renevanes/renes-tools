@@ -90,7 +90,7 @@ function nlOnly(){
 const DUTCHY = { test: f => (String(f).replace(/<[^>]*>|\$\{…\}/g, ' ').toLowerCase().match(/\p{L}{2,}/gu) || []).some(w => nlOnly().has(w)) };
 /* Het woord n-e-p (wens van Rene) en de Engelse vertaling ervan, zonder het hier zelf uit te schrijven */
 const VERBODEN = new RegExp('\\b(n[e3]p|f' + 'ake)\\b', 'i');
-const SINKS = { toast: [0], undoToast: [0], askConfirm: [0, 1, 2], askInput: [0, 1, 3], askChoice: [0, 1, 2, 3], openSheet: [0, 1], t: [0], tn: [1, 2] };
+const SINKS = { toast: [0], undoToast: [0], askConfirm: [0, 1, 2], askInput: [0, 1, 3], askChoice: [0, 1, 2, 3], openSheet: [0, 1], t: [0], tn: [1, 2], tc: [1] };
 /* De argumenten van een aanroep (bovenste niveau), met begin en eind in de bron */
 function callArgs(src, open){
   const args = []; let d = 0, start = open + 1, i = open + 1, q = null;
@@ -172,7 +172,7 @@ function jsScan(only){
     const toks = jsTokens(src), byAt = new Map(toks.map(t => [t.at, t]));
     for (const tk of toks) if (!tk.tpl) strs.add(norm(tk.s));
     // 1. aanroepen van t, tn en de meldingen
-    const re = /(^|[^\w$.])(toast|undoToast|askConfirm|askInput|askChoice|openSheet|tn|t)\s*\(/g; let m;
+    const re = /(^|[^\w$.])(toast|undoToast|askConfirm|askInput|askChoice|openSheet|tn|tc|t)\s*\(/g; let m;
     while ((m = re.exec(src))) {
       const fn = m[2], open = m.index + m[0].length - 1;
       if (/function\s+$/.test(src.slice(Math.max(0, m.index - 12), m.index + m[1].length))) continue; // de definitie zelf
@@ -183,6 +183,11 @@ function jsScan(only){
         const raw = src.slice(a[0], a[1]).trim();
         const lits = toks.filter(x => x.at >= a[0] && x.end <= a[1]);
         if (!lits.length) continue;
+        if (fn === 'tc') { // tc('plek', 'tekst'): de sleutel is "tekst @plek"
+          const c = args[0] && toks.find(x => x.at >= args[0][0] && x.end <= args[0][1]);
+          if (c && raw.startsWith(lits[0].q)) add(lits[0].s + ' @' + c.s, where);
+          continue;
+        }
         if (/^(['"])(?:(?!\1)[^\\\n]|\\.)*\1$/.test(raw) || (/^`[^`]*`$/.test(raw) && !lits[0].tpl)) { add(lits[0].s, where); continue; }
         // Keuze tussen vaste teksten (a ? 'x' : 'y'): elke tekst is een sleutel
         const bare = raw.replace(/(['"])(?:[^\\\n]|\\.)*?\1/g, 'S');

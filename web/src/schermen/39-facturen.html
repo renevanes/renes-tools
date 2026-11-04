@@ -23,7 +23,7 @@
       <button class="strow" onclick="faNaar('facdos')"><span class="stic"><span class="ui-icon" data-icon="clipboard" aria-hidden="true"></span></span><span class="sttxt"><b>Dossier</b><small id="fa-sum-dos"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="faNaar('facaanl')"><span class="stic"><span class="ui-icon" data-icon="upload" aria-hidden="true"></span></span><span class="sttxt"><b>Aanleveren aan je boekhouder</b><small id="fa-sum-aanl"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="faNaar('facoverz')"><span class="stic"><span class="ui-icon" data-icon="calendar" aria-hidden="true"></span></span><span class="sttxt"><b>Overzicht per maand</b><small id="fa-sum-overz"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
-      <button class="strow" onclick="faNaar('facopslag')"><span class="stic"><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span><span class="sttxt"><b>Opslaan</b><small id="fa-sum-opslag"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="faNaar('facopslag')"><span class="stic"><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span><span class="sttxt"><b data-taal="plek">Opslaan</b><small id="fa-sum-opslag"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="faNaar('fackopp')"><span class="stic"><span class="ui-icon" data-icon="plug" aria-hidden="true"></span></span><span class="sttxt"><b>Koppelingen</b><small id="fa-sum-kopp"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
   </main>
@@ -44,7 +44,7 @@
 <section class="screen" id="s-facopslag">
   <div class="hdr sm">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1">Opslaan</h1>
+    <h1 tabindex="-1" data-taal="plek">Opslaan</h1>
   </div>
   <main>
     <p class="note" style="margin:0 2px 12px">Hier stel je de plekken in. Per leverancier kies je daarna welke hij gebruikt (Instellingen → Opslaan). Een kopie blijft altijd in de app.</p>
@@ -174,7 +174,7 @@
   </div>
   <main>
     <div class="gb-seg fl-tabs" role="tablist" aria-label="Onderdelen">
-      <button role="tab" data-tab="inlog" onclick="flTab('inlog')">Inloggen</button><button role="tab" data-tab="zoek" onclick="flTab('zoek')">Zoeken</button><button role="tab" data-tab="plan" onclick="flTab('plan')">Planning</button><button role="tab" data-tab="opslag" onclick="flTab('opslag')">Opslaan</button><button role="tab" data-tab="adv" onclick="flTab('adv')">Meer</button>
+      <button role="tab" data-tab="inlog" onclick="flTab('inlog')">Inloggen</button><button role="tab" data-tab="zoek" onclick="flTab('zoek')">Zoeken</button><button role="tab" data-tab="plan" onclick="flTab('plan')">Planning</button><button role="tab" data-tab="opslag" onclick="flTab('opslag')" data-taal="plek">Opslaan</button><button role="tab" data-tab="adv" onclick="flTab('adv')">Meer</button>
     </div>
     <div class="card">
       <p class="note" style="margin-top:0" id="fl-tip"></p>

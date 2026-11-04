@@ -120,7 +120,7 @@ function aiCmdFor(q){
     case 'open': {
       const tt = (TOOLS[a.tool] || [])[0] || ({ settings: 'Instellingen', ralarm: 'Radiowekker', aiset: 'Lokale AI', home: 'Startscherm' })[a.tool];
       if (!tt || !document.getElementById('s-' + a.tool)) return null;
-      a.name = t(tt);
+      a.name = tt; // in de brontaal: aiCmdWhat vertaalt
       return { text: t('Zal ik **{naam}** openen?', { naam: t(tt) }), cmd: a };
     }
     case 'sms': case 'wa': return aiCmdMsg(a);

@@ -57,9 +57,20 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   - in JavaScript in `t('…')`, met plaatshouders `t('{n} berichten gewist', { n })` en meervoud
     `tn(n, 'Eén bericht', '{n} berichten')`; nooit aan elkaar plakken (`'Klaar: ' + x` → `t('Klaar: {wat}', { wat: x })`),
     ook niet in HTML-stukjes of aria-labels. Vaste tekst in de schermen (HTML) vertaalt de observer in `02-taal.js` vanzelf;
-    gegevens van Rene of anderen (notities, berichten, namen) in een element met `translate="no"`.
+    gegevens van Rene of anderen (notities, berichten, namen, titels, bestandsnamen) in een element met `translate="no"`
+    (`engels.test.js` zet daarvoor gegevens die precies een vertaalde tekst zijn, zoals een contact "Instellingen", en
+    controleert dat ze Nederlands blijven). Namen die je later weer uit het scherm leest: uit de gegevens halen, niet uit de DOM.
+  - let op: de observer vertaalt een "eenheid" (een element met alleen tekst en opmaak als `<b>`, `<br>`, `<small>`) in één
+    keer via `innerHTML`. Wat daarbinnen staat, wordt dan opnieuw gemaakt: event-listeners, verwijzingen naar die
+    kinderen en ingevulde invoervelden gaan verloren. Zet zo'n element dus niet met de hand vast in een eenheid, maar
+    bouw het met `t()` of geef de knoppen een eigen element buiten de tekst (of `translate="no"` als het gegevens zijn).
+  - één Nederlands woord met per plek een andere Engelse betekenis ("Klaar": Done of Ready, "Opslaan": Save of Storage):
+    `tc('status', 'Klaar')` in JavaScript, `data-taal="plek"` op het element in HTML; in `en.json` staat dan
+    `"Klaar @status": "Ready"` naast `"Klaar": "Done"`.
   - in Java `Taal.t(ctx, "…")` / `Taal.tn(ctx, n, "…", "…")`; vaste lijsten die later vertaald worden met `Taal.T("…")`
     markeren. Meldingen gaan via `Taal.n(ctx, notification)`, widgets via `Taal.text`, toasts via `Taal.tx`.
+    Liever vertalen bij het maken (`Taal.t` met plaatshouders) en gegevens in de melding (titel, zender, bestand)
+    met `Taal.keep(builder, Notification.EXTRA_TEXT, …)` markeren, zodat `Taal.n` ze niet alsnog vertaalt.
   - zet de Engelse vertaling in `web/src/taal/en.json` (gesorteerd, één regel per tekst; een waarde mag ook
     `["één", "meer"]` zijn). `node tools/taal.js` toont wat ontbreekt (`--ontbrekend` als JSON) en de bewaker;
     `tests/ui/taal-dekking.test.js` faalt op een ontbrekende vertaling of op aan elkaar geplakt Nederlands. Moet iets bewust
