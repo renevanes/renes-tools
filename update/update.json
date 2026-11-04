@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.135",
-  "versionCode": 136,
-  "nativeLevel": 122,
+  "versionName": "1.136",
+  "versionCode": 137,
+  "nativeLevel": 123,
   "web": "index.html",
-  "webSha256": "38dc6ed0f29d8b76972c3affb6207127d5a5b7ff0f020954e7a515dd8c03e9de",
+  "webSha256": "91be9182f700bd86a87f9ac8ad8e1089543106c704906fd4cc0238d456da47ef",
   "start": "start.html",
   "startSha256": "0ea90522dcf4d73fe5b0b6a7486ed095bcce9c93ee25b9ef370a77ac24c147f0",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "fe949616950c1fee9d64fdcc017c835e8a4cd34ffae9408e08c7ba9374ee340a",
+  "apkSha256": "a9da5b02bd8ddaee71d048fdfcbfcdcf7fc8f71dcd210e33378f573d06ed40ea",
   "changelog": [
+    {
+      "version": "1.136",
+      "date": "2026-11-04",
+      "changes": [
+        "Facturen: Ziggo Zakelijk logt nu ook in via vodafone.nl (VodafoneZiggo); per leverancier kun je andere domeinen toevoegen (Instellingen → Meer)",
+        "Facturen: extra beveiliging: gegevens worden alleen ingevuld op de eigen website(s) van de leverancier, ook vlak voordat de code wordt ingevuld; IP-adressen en gedeelde webhosting tellen nooit als domein van een leverancier; Android-autofill ziet de wachtwoorden bij het ophalen op de achtergrond niet"
+      ]
+    },
     {
       "version": "1.135",
       "date": "2026-11-04",
@@ -1185,5 +1193,5 @@
       ]
     }
   ],
-  "webSig2": "SiMrC4OUd1DePDaOL2EnHBVgpbpZ8gCbItxTPIwtFO6JoJW4YBTw0uisw8E17+vu5bQT8cFGM4MOI0qFH8sHXq6l72850AMsKM2c2nPA1Yh0htS1wAbel+py7VSpFVp9q8X4Q9BprFGU81ljrsbkC9FMufKZcZedV2zDc/OsUmVAaww/m+QIqtRnj+LFlieq9Z2HH42zitig1rqRfel3KbOopLp800BG0KrYduKChHgH9SudPrwwbXiMJC8H2+LNKAwiBltkYAZmxq9QuaQLyrHAURYW7XEouT15P61OhWz1vH1YpgVNUu/Y+bQdvIq/Nd3daj4NPc9kYIs1QtgRX50zTqiJmfGqCfLNGrc+xs33/XoQC24lhOkiVE4h4NmKUsUi1BpBEVQJ59SNIEDLDGRaiSJnCSS48XLuQLPY6QonVFm8l9xESBnagHSdnzfxJfA+TLB3AV8XGtjdIi8qOb5XEq1THD5z0TKmwkOX2VRXfw1sk+IoLyZn3O+OIK5B"
+  "webSig2": "ZMJulgE6cVK3hcAxDKmumWxybPL+8yUcIh+rUSop1p5lB076OWHH2t5MaRAS5OOqKKFkQbziffSxUY44nlXpTrA/r1Bo4RDul9tbF+tPngfO8eFXeZ3SPBM2EHuGSVGuG4GvMcPo9DOZeDB/t2neCflrKZVzjXUy8JFvTbNFAKpEKIKuN+gNJkKsOoUiEYcSST7ngBjONiPb8x/HU2BbiMWe23i9gpZA20L5rYn3N1sc4dU5or4drqLPAsSn/mt2wgpZdGeqJAttixk0E1DrRsbMOb+tpNllrTNNkWLXos6zXRhyq3+8EZAcbBWQfraH53ryLiZMQDfpVBd8FxikBsxHrFETZ5Ye+/bnT6xZCRzc+8IMfQzvm3ljg3ns6eLJ5eRCBmuHmbDW7whaxdnvpDT6oHouTL2raKQLDuENggQn6t2gAJcKD5vUKDxfJl69uZ5H9FZouIl65mpGmJswjjL6ZKBNbA3Rx8TAAZug89Yh44BH6Yxw2xEEa2YejthE"
 }
