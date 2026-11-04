@@ -269,7 +269,7 @@ achtergrond (`FacturenJob`, onzichtbare WebView) of terwijl Rene meekijkt (`Fact
 - **Grenzen:** alleen https; alleen echte PDF's (`%PDF`) tellen; wachtwoorden versleuteld (`facturen_geheim`, niet in backups);
   de inlogcode alleen uit sms van de ingestelde afzender of uit Rene's eigen Eigen Cloud; afleveren alleen naar plekken
   die hij zelf kiest: zijn backup-map, een zelf gekozen map op de telefoon, zijn eigen Google Drive (`FacturenDrive`, eigen
-  Google-project, alleen de rechten `drive.file`; Gmail `gmail.readonly` en, als Rene het aanvinkt, `gmail.send`) en zijn eigen Eigen Cloud (`/api/mail/send` naar zichzelf).
+  Google-project (koppelen met het Google-account op de telefoon via `FacturenGoogleToestel`/AccountManager en een Android-client met pakketnaam en SHA-1, of via de browser met een desktop-client), alleen de rechten `drive.file`; Gmail `gmail.readonly` en, als Rene het aanvinkt, `gmail.send`) en zijn eigen Eigen Cloud (`/api/mail/send` naar zichzelf).
   Aanleveren gaat alleen naar de ontvangers die Rene zelf instelt (zijn accountant of boekhouder). Geen andere
   bestemmingen toevoegen zonder Rene. Nieuwe bestemming = ook in `Facturen.aflever` (met opnieuw proberen bij een fout).
 
@@ -289,6 +289,10 @@ Rene's inkomsten en uitgaven. **Niets mag de telefoon verlaten** (wens van Rene)
   "Transacties downloaden"; het bestand gaat in het geheugen rechtstreeks naar `Bank.importeer`. Na afloop cookies en
   websitegegevens van de bank weg. Eerste bank: Rabobank. Nieuwe bank = een blok met `robot: true`, `domeinen`, `apps`
   en de patronen; test met `tests/ui/bank-robot.test.js`. Geen PSD2-tussendiensten of andere partijen zonder Rene.
+- **Rekeningen privé/zakelijk:** `store.rek[iban] = {naam, soort}` (zelf toegevoegde in `store.eigen`); een nieuwe rekening
+  krijgt een vraag privé of zakelijk. Categorieën hebben een groep (`BK_CATS`: '' beide, 'p' privé, 'z' zakelijk); zakelijk
+  eerst `BK_ZREGELS`, daarna de algemene regels omgezet met `BK_ZMAP`. Geld tussen privé en zakelijk (`BK_TUSSEN`) telt niet
+  mee als beide kanten in beeld zijn (`bkSoort`). Eigen regels hebben `s` (soort) zodat dezelfde winkel privé en zakelijk anders kan.
 - **Lokale AI:** `LocalAi.privateChat` (geen geheugen, leren, acties of opgeslagen gesprek) via `bankAi`; de interface
   stuurt alleen een samenvatting met cijfers. Antwoorden altijd als tekst tonen (`textContent`), nooit als HTML.
 

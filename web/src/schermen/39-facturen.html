@@ -103,23 +103,38 @@
       <button class="big" onclick="$('#fa-gd-setup').style.display='block';$('#fa-gd-setup').scrollIntoView({behavior:'smooth'})">Rechten aanpassen</button>
       <button class="big ghost" style="margin-top:8px" onclick="askConfirm('Google ontkoppelen?', 'Facturen die al in Drive staan, blijven daar staan. Leveranciers die Gmail gebruiken, stoppen tot je weer koppelt.', 'Ontkoppelen', () => { Android.facturenDriveLos(); faRender(); })">Ontkoppelen</button>
     </div>
-    <div class="card" id="fa-gd-setup">
+    <div id="fa-gd-setup">
+    <div class="card">
       <h2>Waarvoor mag Tools Google gebruiken?</h2>
       <label class="chk"><input type="checkbox" id="fa-gd-r-gmail" checked> Gmail: facturen zoeken (alleen lezen)</label>
       <label class="chk"><input type="checkbox" id="fa-gd-r-drive" checked> Drive: facturen bewaren (alleen eigen mappen)</label>
       <label class="chk"><input type="checkbox" id="fa-gd-r-send"> Gmail: facturen versturen aan je boekhouder (geen lezen)</label>
-      <p class="note">Eenmalig: Google geeft alleen toegang via een eigen (gratis) Google-project.</p>
+    </div>
+    <div class="card">
+      <h2>Met het Google-account op deze telefoon</h2>
+      <p class="note" style="margin-top:0">Aanbevolen: geen browser en geen geheime sleutel; Android geeft Tools toegang met het account dat al op je telefoon staat. Eenmalig in een eigen (gratis) Google-project:</p>
       <ol class="spsteps">
         <li>Open de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/projectcreate');return false">Google Cloud Console</a> en maak een project (naam bijv. "Tools").</li>
         <li>Zet de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/apis/library/gmail.googleapis.com');return false">Gmail API</a> en/of de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/apis/library/drive.googleapis.com');return false">Google Drive API</a> aan (<b>Inschakelen</b>).</li>
-        <li>Ga naar <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/auth/overview');return false">Google Auth Platform</a>, tik op <b>Aan de slag</b>, vul een app-naam en je mailadres in en kies <b>Extern</b>.</li>
-        <li>Bij <b>Doelgroep</b>: tik op <b>App publiceren</b> (In productie). Anders vervalt de koppeling na 7 dagen.</li>
+        <li>Ga naar <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/auth/overview');return false">Google Auth Platform</a>, tik op <b>Aan de slag</b>, vul een app-naam en je mailadres in en kies <b>Extern</b>. Bij <b>Doelgroep</b>: <b>App publiceren</b>.</li>
+        <li>Bij <b>Clients</b>: <b>Client maken</b>, type <b>Android</b>. Vul in:</li>
+      </ol>
+      <div class="bkres"><b>Pakketnaam</b><span id="fa-gd-pakket" style="overflow-wrap:anywhere;user-select:all">nl.rene.tools</span></div>
+      <div class="bkres"><b>SHA-1</b><span id="fa-gd-sha1" style="overflow-wrap:anywhere;user-select:all;font-family:monospace;font-size:13px"></span></div>
+      <button class="big ghost" style="margin-top:8px" onclick="Android.aiCopy($('#fa-gd-sha1').textContent);toast('SHA-1 gekopieerd')">SHA-1 kopiëren</button>
+      <button class="big" style="margin-top:8px" id="fa-gd-toestel" onclick="faGdToestel()">Google-account kiezen</button>
+      <p class="note">Android vraagt daarna één keer of Tools de aangevinkte rechten mag gebruiken. Zegt Google dat de app niet geverifieerd is: het is je eigen app, tik op <b>Doorgaan</b>.</p>
+    </div>
+    <details class="card rinfo" id="fa-gd-browser">
+      <summary><b>Of: inloggen via de browser</b> (met Client ID en Client secret)</summary>
+      <ol class="spsteps">
+        <li>Doe stap 1 tot en met 3 hierboven.</li>
         <li>Bij <b>Clients</b>: <b>Client maken</b>, type <b>Desktop-app</b>. Kopieer de Client ID en het Client secret hieronder.</li>
       </ol>
       <input class="aein" id="fa-gd-id" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Client ID (…apps.googleusercontent.com)" aria-label="Client ID">
       <input class="aein" id="fa-gd-geheim" type="password" autocomplete="off" style="margin-top:8px" placeholder="Client secret" aria-label="Client secret">
       <button class="big" style="margin-top:10px" id="fa-gd-knop" onclick="faGdKoppel()">Koppelen met Google</button>
-      <p class="note">Google zegt daarna mogelijk "Google heeft deze app niet geverifieerd": het is je eigen app, tik op <b>Doorgaan</b> en vink de gevraagde rechten aan.</p>
+    </details>
     </div>
     <p class="note bad" id="fa-gd-msg" role="status" aria-live="polite"></p>
   </main>
@@ -203,8 +218,6 @@
         <input class="aein" id="fl-m-afz" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="bijv. kpn.com, ziggo.nl">
         <div class="flabel" style="margin-top:8px"><label for="fl-m-neg">Afzenders overslaan</label></div>
         <input class="aein" id="fl-m-neg" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="bijv. nieuwsbrief@winkel.nl">
-        <div class="row setrow"><label for="fl-m-dagen" style="flex:1">De eerste keer terugkijken</label>
-          <select class="sel" id="fl-m-dagen"><option value="30">1 maand</option><option value="90">3 maanden</option><option value="180">6 maanden</option><option value="365">1 jaar</option><option value="730">2 jaar</option></select></div>
         <label class="chk"><input type="checkbox" id="fl-m-per"> Per afzender een eigen map</label>
         <details class="rinfo" style="margin-top:6px"><summary>Meer zoekopties</summary>
           <div class="flabel" style="margin-top:8px"><label for="fl-m-extra">Extra Gmail-zoekopdracht</label></div>
@@ -217,6 +230,14 @@
     </div>
 
     <div class="fl-paneel" data-tab="plan" role="tabpanel">
+      <div class="card">
+        <h2>Welke facturen</h2>
+        <div class="row setrow"><label for="fl-periode" style="flex:1">Ophalen</label>
+          <select class="sel" id="fl-periode" onchange="flPeriode()"><option value="jaar">Dit jaar (vanaf 1 januari)</option><option value="m3">Laatste 3 maanden</option><option value="m6">Laatste 6 maanden</option><option value="m12">Laatste 12 maanden</option><option value="m24">Laatste 2 jaar</option><option value="vanaf">Vanaf een datum…</option><option value="alles">Alles wat er is</option></select></div>
+        <div class="row setrow" id="fl-vanafrij" style="display:none"><label for="fl-vanaf" style="flex:1">Vanaf</label><input class="sel" id="fl-vanaf" type="date" onchange="flPeriode()"></div>
+        <div class="row setrow"><label for="fl-max" style="flex:1">Hooguit per keer</label><input class="sel" id="fl-max" type="number" min="1" max="200" inputmode="numeric" style="width:90px"></div>
+        <p class="note" id="fl-periode-uitleg" role="status" aria-live="polite"></p>
+      </div>
       <div class="card">
         <h2>Wanneer</h2>
         <div class="row setrow"><label for="fl-schema" style="flex:1">Vanzelf ophalen</label>
@@ -261,8 +282,8 @@
         <input class="aein" id="fl-menu" autocomplete="off" autocapitalize="off" spellcheck="false">
         <div class="flabel" style="margin-top:8px"><label for="fl-knoppen">Herkennen van downloadknoppen</label></div>
         <input class="aein" id="fl-knoppen" autocomplete="off" autocapitalize="off" spellcheck="false">
-        <div class="flabel" style="margin-top:8px"><label for="fl-max">Hooguit zoveel facturen per keer</label></div>
-        <input class="aein" id="fl-max" type="number" min="1" max="50" inputmode="numeric">
+        <div class="flabel" style="margin-top:8px"><label for="fl-meer">Knop voor meer facturen <small>(bijv. "Toon meer"; leeg = niet klikken)</small></label></div>
+        <input class="aein" id="fl-meer" autocomplete="off" autocapitalize="off" spellcheck="false">
         <div class="flabel" style="margin-top:8px"><label for="fl-pat">Patroon van de code <small>(leeg = vanzelf)</small></label></div>
         <input class="aein" id="fl-pat" autocomplete="off" autocapitalize="off" spellcheck="false">
         <p class="note">Velden aanwijzen (alleen als de app ze niet zelf vindt; een CSS-selector, bijv. <code>#username</code>):</p>
@@ -294,7 +315,10 @@
       <select class="sel" id="fd-filter" style="flex:1;min-width:0" onchange="fdRender()" aria-label="Filter"><option value="">Alle facturen</option><option value="open">Nog niet aangeleverd</option><option value="mis">Aanleveren mislukt</option><option value="tebetalen">Betaaldatum nog niet verstreken</option><option value="telaat">Over de betaaldatum</option></select>
     </div>
     <div class="row" style="gap:8px;margin:8px 0 0">
-      <select class="sel" id="fd-periode" style="flex:1;min-width:0" onchange="fdPeriode()" aria-label="Periode"><option value="">Alle data</option><option value="maand">Deze maand</option><option value="vmaand">Vorige maand</option><option value="kwartaal">Dit kwartaal</option><option value="vkwartaal">Vorig kwartaal</option><option value="jaar">Dit jaar</option><option value="vjaar">Vorig jaar</option><option value="zelf">Kies zelf…</option></select>
+      <select class="sel" id="fd-periode" style="flex:1;min-width:0" onchange="fdPeriode()" aria-label="Periode"><option value="">Alle data</option><option value="maand">Deze maand</option><option value="vmaand">Vorige maand</option><option value="kwartaal">Dit kwartaal</option><option value="vkwartaal">Vorig kwartaal</option><option value="jaar">Dit jaar</option><option value="vjaar">Vorig jaar</option><option value="mnd">Kies een maand…</option><option value="kjaar">Kies een jaar…</option><option value="zelf">Kies van–tot…</option></select>
+    </div>
+    <div class="row" id="fd-mndrij" style="gap:8px;margin:8px 0 0;display:none">
+      <div style="flex:1;min-width:0"><div class="flabel"><label for="fd-mnd" id="fd-mnd-l">Maand</label></div><input class="aein" id="fd-mnd" type="month" onchange="fdPeriode()"><select class="sel" id="fd-jaar" style="width:100%;display:none" onchange="fdPeriode()" aria-labelledby="fd-mnd-l"></select></div>
     </div>
     <div class="row" id="fd-vantot" style="gap:8px;margin:8px 0 0;display:none">
       <div style="flex:1;min-width:0"><div class="flabel"><label for="fd-van">Van</label></div><input class="aein" id="fd-van" type="date" onchange="fdPeriode()"></div>
@@ -325,7 +349,11 @@
   </div>
   <main>
     <div class="card"><div id="fs-info"></div>
-      <button class="big" style="margin-top:8px" id="fs-open" onclick="fsOpen()">Openen</button></div>
+      <button class="big" style="margin-top:8px" id="fs-open" onclick="fsOpen()">Openen</button>
+      <details class="rinfo" id="fs-tekst-d" style="margin-top:8px" ontoggle="if(this.open)fsTekst()"><summary>Tekst uit de PDF (om de herkenning te controleren)</summary>
+        <pre id="fs-tekst" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:320px;overflow:auto;margin:8px 0"></pre>
+        <button class="big ghost" onclick="Android.aiCopy($('#fs-tekst').textContent);toast('Gekopieerd')">Kopiëren</button>
+      </details></div>
     <div class="card">
       <h2>Factuurgegevens</h2>
       <p class="note" style="margin-top:0" id="fs-bron"></p>

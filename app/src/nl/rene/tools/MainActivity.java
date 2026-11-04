@@ -67,6 +67,17 @@ public class MainActivity extends Activity {
     private static final int REQ_AUTO = 26;
     static final int REQ_KLUIS = 27;
     static final int REQ_FACT_TREE = 46;
+    static final int REQ_GOOGLE_ACC = 49;
+    /** Welke rechten (gmail, drive, gmailsend) bij het kiezen van het Google-account op de telefoon. */
+    String googleRechten = "";
+
+    /** Google koppelen met een account op de telefoon: eerst kiezen, dan vraagt Android toestemming. */
+    void kiesGoogleAccount(String rechten) {
+        googleRechten = rechten;
+        Facturen.prefs(this).edit().putString("gdRechtenKeuze", rechten).apply(); // ook als Android de app intussen stopt
+        try { startActivityForResult(FacturenGoogleToestel.kiesIntent(), REQ_GOOGLE_ACC); }
+        catch (Exception e) { js("onFacturenDrive", "{\"error\":\"Accounts kiezen lukt niet op deze telefoon\"}"); }
+    }
     static final int REQ_PDF_IMG = 28, REQ_PDF_FILE = 29, REQ_PDF_SAVE = 30, REQ_PDF_DOC = 31, REQ_PDF_VIEW = 32;
     volatile String pdfSaveName = null;
     volatile String importKind = null;
@@ -664,6 +675,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == REQ_GOOGLE_ACC) {
+            String naam = res == RESULT_OK && data != null ? data.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME) : null;
+            if (naam == null || naam.isEmpty()) { js("onFacturenDrive", "{\"error\":\"Geen account gekozen\"}"); return; }
+            FacturenGoogleToestel.koppel(this, naam, googleRechten, (err, wie) -> {
+                try { js("onFacturenDrive", (err != null ? new org.json.JSONObject().put("error", err) : new org.json.JSONObject().put("naam", wie)).toString()); } catch (Exception ignored) { }
+            });
+            return;
+        }
         if (req == REQ_FACT_TREE) {
             String fout = "";
             if (res == RESULT_OK && data != null && data.getData() != null) {

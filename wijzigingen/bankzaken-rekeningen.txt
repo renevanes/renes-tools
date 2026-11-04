@@ -1,0 +1,2 @@
+Bankzaken: meerdere rekeningen, privé en zakelijk. Bij een nieuwe rekening vraagt de app of hij privé of zakelijk is; je kunt kijken naar alles, alleen privé, alleen zakelijk of één rekening
+Bankzaken zakelijk: omzet, kosten, resultaat en marge, met zakelijke categorieën (software, inkoop, advies en administratie, btw en loonheffing en meer); geld van zakelijk naar privé telt als privé-opname, niet als kosten

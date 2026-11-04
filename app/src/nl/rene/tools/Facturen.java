@@ -179,8 +179,10 @@ final class Facturen {
         o.put("menu", patroon(in, "menu", "facturen|factuur", "De tekst naar de facturen"));
         String knoppen = patroon(in, "knoppen", "download|\\bpdf\\b|\\.pdf", "Het patroon voor downloadknoppen");
         o.put("knoppen", knoppen.isEmpty() ? "download|\\bpdf\\b|\\.pdf" : knoppen);
-        int max = in.optInt("max", 12);
-        o.put("max", Math.max(1, Math.min(50, max)));
+        int max = in.optInt("max", 50);
+        o.put("max", Math.max(1, Math.min(200, max)));
+        o.put("meer", patroon(in, "meer", MEER, "Het patroon voor \"meer facturen tonen\""));
+        o.put("periode", periode(in.optJSONObject("periode")));
         JSONObject ci = in.optJSONObject("code");
         if (ci == null) ci = new JSONObject();
         JSONObject co = new JSONObject();
@@ -217,6 +219,47 @@ final class Facturen {
         }
         o.put("velden", vo);
         return o;
+    }
+
+    /** Knoppen die meer facturen op dezelfde pagina laten zien (geen "volgende pagina": dan raakt de lijst weg). */
+    static final String MEER = "toon meer|meer tonen|meer facturen|meer laden|laad meer|oudere facturen|alle facturen|bekijk meer|show more|load more";
+    static final String[] PERIODE = {"jaar", "maanden", "vanaf", "alles"};
+
+    /** Welke facturen: {soort: jaar (dit jaar, vanaf 1 januari; standaard) | maanden (de laatste n) | vanaf (datum) | alles}. */
+    static JSONObject periode(JSONObject in) throws Exception {
+        JSONObject p = new JSONObject();
+        String soort = in == null ? "jaar" : in.optString("soort", "jaar");
+        if (!in(soort, PERIODE)) throw new Exception("Kies welke facturen (periode)");
+        p.put("soort", soort);
+        if ("maanden".equals(soort)) p.put("maanden", Math.max(1, Math.min(120, in.optInt("maanden", 12))));
+        if ("vanaf".equals(soort)) {
+            String d = in.optString("vanaf", "");
+            if (!d.matches("(19|20)\\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])")) throw new Exception("Vul de datum in vanaf wanneer facturen opgehaald worden");
+            p.put("vanaf", d);
+        }
+        return p;
+    }
+
+    /**
+     * Vanaf welk moment facturen tellen (ms; 0 = alles). Zonder keuze: dit jaar (vanaf 1 januari).
+     */
+    static long vanaf(JSONObject lev, long nu, java.util.TimeZone tz) {
+        JSONObject p = lev.optJSONObject("periode");
+        String soort = p == null ? "jaar" : p.optString("soort", "jaar");
+        java.util.Calendar c = java.util.Calendar.getInstance(tz);
+        c.setTimeInMillis(nu);
+        c.set(java.util.Calendar.HOUR_OF_DAY, 0); c.set(java.util.Calendar.MINUTE, 0); c.set(java.util.Calendar.SECOND, 0); c.set(java.util.Calendar.MILLISECOND, 0);
+        switch (soort) {
+            case "alles": return 0;
+            case "maanden": c.add(java.util.Calendar.MONTH, -p.optInt("maanden", 12)); return c.getTimeInMillis();
+            case "vanaf": {
+                String d = p.optString("vanaf", "");
+                if (!d.matches("\\d{4}-\\d{2}-\\d{2}")) return 0;
+                c.set(Integer.parseInt(d.substring(0, 4)), Integer.parseInt(d.substring(5, 7)) - 1, Integer.parseInt(d.substring(8, 10)));
+                return c.getTimeInMillis();
+            }
+            default: c.set(java.util.Calendar.DAY_OF_YEAR, 1); return c.getTimeInMillis();
+        }
     }
 
     /** Een unieke id (bij twee keer dezelfde leverancier: -2, -3 …). */
@@ -489,20 +532,41 @@ final class Facturen {
         Pdf(byte[] d, String n, String s, String sub, JSONObject bron) { data = d; naam = n; sha = s; this.sub = sub == null || sub.trim().isEmpty() ? null : veiligeNaam(sub).replace('.', '_').trim(); this.bron = bron; }
     }
 
+    /**
+     * Vanaf welke factuurdatum bewaren: de periode bij de eerste keer (of na "opnieuw"); daarna ook wat sinds de vorige
+     * keer is binnengekomen (anders valt bij de jaarwisseling een factuur van eind december weg). 0 = alles.
+     */
+    static long grens(JSONObject lev, long lastOk, long nu, java.util.TimeZone tz) {
+        long v = vanaf(lev, nu, tz);
+        if (v <= 0 || lastOk <= 0) return v;
+        return Math.min(v, lastOk - 45 * 86_400_000L);
+    }
+
+    /** Staat de factuurdatum (herkend uit de PDF of de naam) vóór de grens? Onbekende datum: nee (dan bewaren). */
+    static boolean voorPeriode(long grens, File f, String naam) {
+        if (grens <= 0) return false;
+        String d = FacturenDossier.herken(FacturenDossier.tekst(f) + "\n" + naam).optString("datum");
+        if (d.isEmpty()) return false;
+        java.text.SimpleDateFormat iso = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        return d.compareTo(iso.format(new java.util.Date(grens))) < 0;
+    }
+
     /** Nieuwe facturen bewaren en afleveren; geeft {nieuw, gevonden, namen, fouten} terug. */
+
     static JSONObject verwerk(Context c, JSONObject lev, java.util.Collection<Pdf> pdfs) throws Exception {
         String id = lev.getString("id");
         JSONObject t = toestand(c, id);
         JSONObject verwerkt = t.optJSONObject("verwerkt");
         if (verwerkt == null) verwerkt = new JSONObject();
         JSONArray namen = new JSONArray(), fouten = new JSONArray();
-        int nieuw = 0;
+        int nieuw = 0, buiten = 0;
+        long grens = grens(lev, t.optLong("lastOk"), System.currentTimeMillis(), java.util.TimeZone.getDefault());
         File d = pdfDir(c, id);
         if (!d.isDirectory() && !d.mkdirs()) throw new Exception("Opslagmap maken lukt niet");
         // Al eerder: alleen opnieuw afleveren wat toen mislukte (backup-map of Eigen Cloud)
         for (Pdf p : pdfs) {
             JSONObject rec = verwerkt.optJSONObject(p.sha);
-            if (rec == null) continue;
+            if (rec == null || rec.optBoolean("buiten")) continue;
             File f = new File(d, rec.optString("n"));
             if (!f.isFile()) continue;
             if (aflever(c, lev, rec.optString("n"), f, p, rec, fouten)) werkBij(c, id, new JSONObject().put("verwerkt", verwerkt));
@@ -518,6 +582,14 @@ final class Facturen {
             File f = new File(d, naam);
             for (int n = 2; f.exists(); n++) { naam = p.naam.replaceAll("\\.pdf$", "") + " (" + n + ").pdf"; f = new File(d, naam); }
             try (FileOutputStream o = new FileOutputStream(f)) { o.write(p.data); o.getFD().sync(); }
+            if (!"mail".equals(lev.optString("soort")) && voorPeriode(grens, f, FacturenDossier.naamZonderSha(p.naam, p.sha))) { // van vóór de gekozen periode: niet bewaren
+                f.delete();
+                verwerkt.put(p.sha, new JSONObject().put("n", "").put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis()).put("buiten", true));
+                if (eigenNaam) namenGehad.add(p.naam);
+                buiten++;
+                werkBij(c, id, new JSONObject().put("verwerkt", verwerkt));
+                continue;
+            }
             FacturenDossier.nieuw(c, lev, p, naam, f);
             JSONObject rec = new JSONObject().put("n", naam).put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis());
             if (p.sub != null) rec.put("s", p.sub);
@@ -528,7 +600,7 @@ final class Facturen {
             nieuw++;
             werkBij(c, id, new JSONObject().put("verwerkt", verwerkt)); // na elke factuur: bij een onderbreking niet dubbel
         }
-        return new JSONObject().put("nieuw", nieuw).put("gevonden", pdfs.size()).put("namen", namen).put("fouten", fouten);
+        return new JSONObject().put("nieuw", nieuw).put("gevonden", pdfs.size()).put("buiten", buiten).put("namen", namen).put("fouten", fouten);
     }
 
     /** Naar elke gekozen plek die nog niet gelukt is (backup-map, map op de telefoon, Google Drive, Eigen Cloud). Geeft true als er iets bij kwam. */

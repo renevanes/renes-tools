@@ -4,15 +4,25 @@
  * Alle tekst uit afschriften (namen, omschrijvingen) is van buiten: altijd met esc() tonen, nooit als HTML. */
 
 // ---------- categorieën ----------
-// soort: uit (uitgave), in (inkomsten), sparen (apart, telt niet als uitgave), neutraal (eigen rekeningen)
+// soort: uit (uitgave), in (inkomsten), sparen (apart, telt niet als uitgave), neutraal (eigen rekeningen),
+// tussen (privé-opname of inbreng op een zakelijke rekening: geen omzet of kosten). Privé is geld van/naar je eigen bedrijf
+// inkomsten (naar je bedrijf = negatief), zodat heen en terug tegen elkaar wegvalt. Groep: '' beide, 'p' alleen privé, 'z' alleen zakelijk.
 const BK_CATS = [
-  ['Boodschappen', 'uit'], ['Uit eten & drinken', 'uit'], ['Wonen', 'uit'], ['Energie & water', 'uit'], ['Telefoon & internet', 'uit'],
-  ['Verzekeringen', 'uit'], ['Zorg', 'uit'], ['Vervoer', 'uit'], ['Abonnementen', 'uit'], ['Winkelen', 'uit'], ['Kleding', 'uit'],
-  ['Persoonlijke verzorging', 'uit'], ['Vrije tijd & sport', 'uit'], ['Reizen & vakantie', 'uit'], ['Belastingen & overheid', 'uit'],
-  ['Kinderen & onderwijs', 'uit'], ['Huisdieren', 'uit'], ['Giften & goede doelen', 'uit'], ['Contant geld', 'uit'], ['Bankkosten', 'uit'],
-  ['Overig', 'uit'],
-  ['Salaris', 'in'], ['Toeslagen & uitkeringen', 'in'], ['Terugbetalingen', 'in'], ['Rente & dividend', 'in'], ['Overige inkomsten', 'in'],
-  ['Sparen & beleggen', 'sparen'], ['Eigen rekeningen', 'neutraal']];
+  ['Boodschappen', 'uit', 'p'], ['Uit eten & drinken', 'uit', 'p'], ['Wonen', 'uit', 'p'], ['Energie & water', 'uit', ''], ['Telefoon & internet', 'uit', ''],
+  ['Verzekeringen', 'uit', ''], ['Zorg', 'uit', 'p'], ['Vervoer', 'uit', 'p'], ['Abonnementen', 'uit', 'p'], ['Winkelen', 'uit', 'p'], ['Kleding', 'uit', 'p'],
+  ['Persoonlijke verzorging', 'uit', 'p'], ['Vrije tijd & sport', 'uit', 'p'], ['Reizen & vakantie', 'uit', 'p'], ['Belastingen & overheid', 'uit', ''],
+  ['Kinderen & onderwijs', 'uit', 'p'], ['Huisdieren', 'uit', 'p'], ['Giften & goede doelen', 'uit', ''], ['Contant geld', 'uit', ''], ['Bankkosten', 'uit', ''],
+  ['Overig', 'uit', 'p'],
+  ['Inkoop & materiaal', 'uit', 'z'], ['Software & abonnementen', 'uit', 'z'], ['Kantoor & huisvesting', 'uit', 'z'], ['Personeel & lonen', 'uit', 'z'],
+  ['Marketing & advertenties', 'uit', 'z'], ['Reis- en autokosten', 'uit', 'z'], ['Representatie', 'uit', 'z'], ['Advies & administratie', 'uit', 'z'],
+  ['Btw & loonheffing', 'uit', 'z'], ['Overige zakelijke kosten', 'uit', 'z'],
+  ['Salaris', 'in', 'p'], ['Toeslagen & uitkeringen', 'in', 'p'], ['Terugbetalingen', 'in', ''], ['Rente & dividend', 'in', ''], ['Overige inkomsten', 'in', 'p'],
+  ['Omzet', 'in', 'z'], ['Overige zakelijke inkomsten', 'in', 'z'],
+  ['Uit eigen bedrijf', 'in', 'p'], ['Naar eigen bedrijf', 'in', 'p'], ['Privé-opnamen', 'tussen', 'z'], ['Inbreng privé', 'tussen', 'z'],
+  ['Sparen & beleggen', 'sparen', ''], ['Eigen rekeningen', 'neutraal', '']];
+/** Geld tussen een privé- en een zakelijke rekening van jezelf (telt niet mee als beide in beeld zijn). */
+const BK_TUSSEN = new Set(['Uit eigen bedrijf', 'Naar eigen bedrijf', 'Privé-opnamen', 'Inbreng privé']);
+const BK_OVERIG = new Set(['Overig', 'Overige inkomsten', 'Overige zakelijke kosten', 'Overige zakelijke inkomsten']);
 
 // [patroon, categorie, teken] — teken '+' alleen bijschrijvingen, '-' alleen afschrijvingen, '' allebei. Volgorde telt.
 const BK_REGELS = [
@@ -43,7 +53,22 @@ const BK_REGELS = [
   ['bol\\.com|coolblue|amazon|mediamarkt|\\baction\\b|\\bhema\\b|blokker|zeeman|ikea|gamma|praxis|karwei|hornbach|intratuin|leen bakker|kwantum|xenos|s[øo]strene|bijenkorf|wehkamp|aliexpress|temu|shein|marktplaats|vinted|decathlon|alternate|megekko|lucardi|\\bbruna\\b|\\bako\\b|readshop|boekhandel|\\bapple store|webshop|winkel', 'Winkelen', '-']
 ].map(([p, c, tt]) => [new RegExp(p, 'i'), c, tt]);
 
-let bk = { st: null, store: null, tab: 'overzicht', lijstN: 100, catCache: new Map(), eigen: new Set(), aiBezig: false, aiDoel: '', aiTekst: '', voorstellen: null, aanraak: 0, tmr: null };
+// Zakelijke rekeningen: eerst deze regels, dan de algemene (met BK_ZMAP omgezet naar een zakelijke categorie).
+const BK_ZREGELS = [
+  ['belastingdienst.*(omzetbelasting|\\bbtw\\b|loonheffing)|omzetbelasting|loonheffing|loonbelasting|btw[- ]?aangifte|aangifte btw', 'Btw & loonheffing', ''],
+  ['google ads|adwords|meta ads|facebook ads|facebk|linkedin ads|tiktok ads|advertent|drukwerk|vistaprint|helloprint|drukland|reclame', 'Marketing & advertenties', '-'],
+  ['\\baws\\b|amazon web services|google (workspace|cloud|\\*gsuite)|microsoft|azure|github|gitlab|atlassian|\\bjira\\b|slack|notion|figma|adobe|openai|anthropic|anysphere|cursor\\.(sh|com)|vercel|netlify|hetzner|transip|versio|strato|mijndomein|one\\.com|digitalocean|cloudflare|moneybird|e-boekhouden|exact online|snelstart|twinfield|jortt|zoho|hubspot|mailchimp|canva|dropbox|zoom\\.us|zoom video|1password|bitwarden|jetbrains|\\bsaas\\b|softwarelicentie|hosting|domeinnaam', 'Software & abonnementen', '-'],
+  ['\\bkvk\\b|kamer van koophandel|accountant|administratiekantoor|boekhoud|belastingadvi|advocaat|jurist|notaris|adviesbureau|\\badvies\\b', 'Advies & administratie', '-'],
+  ['nettoloon|salaris|\\bloon\\b|nmbrs|loket\\.nl|payroll|pensioenfonds|arbodienst', 'Personeel & lonen', '-'],
+  ['kantoorruimte|bedrijfsruimte|huur kantoor|\\bregus\\b|\\bspaces\\b (bv|b\\.v|nederland)|flexplek|werkplek|coworking|kantoorartikelen|staples|viking|office centre|bedrijfspand', 'Kantoor & huisvesting', '-'],
+  ['bouwmaat|\\bhubo\\b|technische unie|rexel|conrad electronic|reichelt|makro|sligro|hanos|bidfood|inkoop|groothandel|leverancier', 'Inkoop & materiaal', '-']
+].map(([p, c, tt]) => [new RegExp(p, 'i'), c, tt]);
+const BK_ZMAP = { 'Uit eten & drinken': 'Representatie', 'Vervoer': 'Reis- en autokosten', 'Reizen & vakantie': 'Reis- en autokosten', 'Abonnementen': 'Software & abonnementen',
+  'Winkelen': 'Inkoop & materiaal', 'Wonen': 'Kantoor & huisvesting', 'Salaris': 'Omzet', 'Toeslagen & uitkeringen': 'Overige zakelijke inkomsten', 'Overige inkomsten': 'Overige zakelijke inkomsten',
+  'Boodschappen': 'Overige zakelijke kosten', 'Zorg': 'Overige zakelijke kosten', 'Kleding': 'Overige zakelijke kosten', 'Persoonlijke verzorging': 'Overige zakelijke kosten',
+  'Vrije tijd & sport': 'Overige zakelijke kosten', 'Kinderen & onderwijs': 'Overige zakelijke kosten', 'Huisdieren': 'Overige zakelijke kosten', 'Overig': 'Overige zakelijke kosten' };
+
+let bk = { geimporteerd: new Set(), st: null, store: null, tab: 'overzicht', lijstN: 100, catCache: new Map(), eigen: new Set(), aiBezig: false, aiDoel: '', aiTekst: '', voorstellen: null, aanraak: 0, tmr: null };
 
 const bkVandaag = () => window.BK_VANDAAG || (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
 function bkEuro(c, teken){
@@ -55,7 +80,45 @@ const BK_MAANDEN = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep
 const bkMaandNaam = ym => t(BK_MAANDEN[Number(ym.slice(5, 7)) - 1]) + ' ' + ym.slice(2, 4);
 
 function bkCatSoort(c){ const x = BK_CATS.find(k => k[0] === c); if (x) return x[1]; const e = ((bk.store && bk.store.cats) || []).find(k => k.naam === c); return e ? e.soort : 'uit'; }
+function bkCatGroep(c){ const x = BK_CATS.find(k => k[0] === c); return x ? x[2] : ''; }
 function bkAlleCats(){ return BK_CATS.map(c => c[0]).concat(((bk.store && bk.store.cats) || []).map(c => c.naam)); }
+/** Categorieën die bij een privé- ('prive') of zakelijke ('zakelijk') rekening horen; leeg = alle. */
+function bkCatsVoor(soort){ const g = soort === 'zakelijk' ? 'z' : soort === 'prive' ? 'p' : ''; return bkAlleCats().filter(c => !g || !bkCatGroep(c) || bkCatGroep(c) === g); }
+
+// ---------- rekeningen: privé en zakelijk ----------
+/** Gegevens van een eigen rekening: { naam, soort: 'prive' | 'zakelijk' }; zelf toegevoegde rekeningen staan in store.eigen. */
+function bkRekInfo(a){
+  const s = bk.store; if (!s) return {};
+  const e = (s.eigen || []).find(x => x.iban === a), r = s.rek && s.rek[a];
+  return Object.assign({}, e || {}, r || {});
+}
+function bkRekSoort(a){ return bkRekInfo(a).soort === 'zakelijk' ? 'zakelijk' : 'prive'; }
+function bkRekZet(a, veld, waarde){
+  const e = (bk.store.eigen || []).find(x => x.iban === a);
+  if (e) e[veld] = waarde;
+  if (!e || bk.store.tx.some(tt => tt.acc === a)) (bk.store.rek[a] = bk.store.rek[a] || {})[veld] = waarde; // geïmporteerd: altijd in rek
+}
+/** De rekeningen van je afschriften en de zelf toegevoegde, met soort. */
+function bkAlleRek(){
+  const acc = [...new Set(bk.store.tx.map(tt => tt.acc))].sort();
+  return acc.map(a => ({ iban: a, eigen: false })).concat((bk.store.eigen || []).filter(e => !acc.includes(e.iban)).map(e => ({ iban: e.iban, eigen: true })));
+}
+/** Hoort deze rekening bij wat je nu bekijkt (Alle, Privé, Zakelijk of één rekening)? */
+function bkInZicht(a){ const r = bkRekening(); return r === 'alle' || (r === 'prive' || r === 'zakelijk' ? bkRekSoort(a) === r : a === r); }
+/** Wat je bekijkt: 'prive', 'zakelijk' of '' (gemengd). */
+function bkZichtSoort(){
+  const r = bkRekening();
+  if (r === 'prive' || r === 'zakelijk') return r;
+  if (r !== 'alle') return bkRekSoort(r);
+  const soorten = new Set(bk.store.tx.map(tt => bkRekSoort(tt.acc)));
+  return soorten.size === 1 ? [...soorten][0] : '';
+}
+/** De soort van een boeking voor de totalen: geld tussen privé en zakelijk telt niet als beide kanten in beeld zijn. */
+function bkSoort(tt){
+  const c = bkCat(tt), s = bkCatSoort(c);
+  if (BK_TUSSEN.has(c) && tt.ci && bk.geimporteerd.has(tt.ci) && bkInZicht(tt.ci)) return 'neutraal'; // de andere kant staat ook in beeld
+  return s;
+}
 /** Naam zonder winkelnummers e.d., om dezelfde winkel samen te nemen. */
 function bkNorm(s){ return String(s || '').toLowerCase().replace(/\b(nr|pas)\s*\d+\b/g, '').replace(/[0-9]{2,}/g, '').replace(/[^a-zÀ-ɏ&+ ]+/g, ' ').replace(/\s+/g, ' ').trim(); }
 function bkSleutel(tt){ return bkNorm(tt.cp || tt.ci) || '?'; }
@@ -64,22 +127,27 @@ function bkSleutel(tt){ return bkNorm(tt.cp || tt.ci) || '?'; }
 function bkCat(tt){
   const c = bk.catCache.get(tt.id); if (c) return c;
   let r = '';
+  const soort = bkRekSoort(tt.acc), zak = soort === 'zakelijk', past = (teken) => !teken || (teken === '+') === (tt.a > 0);
   if (tt.c) r = tt.c;
-  else if (tt.ci && tt.ci !== tt.acc && bk.eigen.has(tt.ci)) r = 'Eigen rekeningen';
-  else {
+  else if (tt.ci && tt.ci !== tt.acc && bk.eigen.has(tt.ci)) {
+    // Naar of van een eigen rekening: binnen privé of binnen zakelijk = eigen rekeningen; ertussen = privé-opname/inbreng
+    const ander = bkRekSoort(tt.ci);
+    r = ander === soort ? 'Eigen rekeningen' : zak ? (tt.a < 0 ? 'Privé-opnamen' : 'Inbreng privé') : (tt.a > 0 ? 'Uit eigen bedrijf' : 'Naar eigen bedrijf');
+  } else {
     const tekst = ((tt.cp || '') + ' ' + (tt.ds || '')).toLowerCase(), norm = bkNorm(tekst);
-    for (const g of (bk.store.rules || [])) if (g.p && (tekst.includes(g.p) || norm.includes(g.p)) && (!g.t || (g.t === '+') === (tt.a > 0))) { r = g.cat; break; }
-    if (!r) for (const [re, cat, teken] of BK_REGELS) if ((!teken || (teken === '+') === (tt.a > 0)) && re.test(tekst)) { r = cat; break; }
-    if (!r) r = tt.a > 0 ? 'Overige inkomsten' : 'Overig';
+    for (const g of (bk.store.rules || [])) if (g.p && (!g.s || g.s === soort) && (tekst.includes(g.p) || norm.includes(g.p)) && past(g.t)) { r = zak && !g.s ? (BK_ZMAP[g.cat] || g.cat) : g.cat; break; }
+    if (!r && zak) for (const [re, cat, teken] of BK_ZREGELS) if (past(teken) && re.test(tekst)) { r = cat; break; }
+    if (!r) for (const [re, cat, teken] of BK_REGELS) if (past(teken) && re.test(tekst)) { r = zak ? (BK_ZMAP[cat] || cat) : cat; break; }
+    if (!r) r = tt.a > 0 ? (zak ? 'Omzet' : 'Overige inkomsten') : (zak ? 'Overige zakelijke kosten' : 'Overig');
   }
   bk.catCache.set(tt.id, r);
   return r;
 }
 function bkHerbereken(){
   bk.catCache.clear();
-  bk.eigen = new Set();
+  bk.eigen = new Set(); bk.geimporteerd = new Set();
   if (!bk.store) return;
-  for (const tt of bk.store.tx) if (tt.acc && tt.acc !== 'onbekend') bk.eigen.add(tt.acc);
+  for (const tt of bk.store.tx) if (tt.acc && tt.acc !== 'onbekend') { bk.eigen.add(tt.acc); bk.geimporteerd.add(tt.acc); }
   for (const e of (bk.store.eigen || [])) bk.eigen.add(e.iban);
 }
 
@@ -114,18 +182,18 @@ function bkVorige(van, tot){
 }
 function bkRekening(){ const s = $('#bk-rek'); return s && s.value ? s.value : 'alle'; }
 function bkSelectie(van, tot){
-  const r = bkRekening();
-  return bk.store.tx.filter(tt => tt.d >= van && tt.d <= tot && (r === 'alle' || tt.acc === r));
+  return bk.store.tx.filter(tt => tt.d >= van && tt.d <= tot && bkInZicht(tt.acc));
 }
 
 // ---------- rekenen ----------
 function bkTotalen(lijst){
-  const o = { in: 0, uit: 0, sparen: 0, cats: new Map(), n: 0 };
+  const o = { in: 0, uit: 0, sparen: 0, naarPrive: 0, inbreng: 0, cats: new Map(), n: 0 };
   for (const tt of lijst) {
-    const c = bkCat(tt), s = bkCatSoort(c);
+    const c = bkCat(tt), s = bkSoort(tt);
     if (s === 'neutraal') continue;
     o.n++;
     const x = o.cats.get(c) || { som: 0, n: 0, soort: s }; x.som += tt.a; x.n++; o.cats.set(c, x);
+    if (s === 'tussen') { if (tt.a < 0) o.naarPrive -= tt.a; else o.inbreng += tt.a; continue; }
     if (s === 'in') o.in += tt.a; else if (s === 'sparen') o.sparen -= tt.a; else o.uit -= tt.a;
   }
   o.netto = o.in - o.uit - o.sparen;
@@ -134,7 +202,7 @@ function bkTotalen(lijst){
 function bkPerMaand(lijst){
   const m = new Map();
   for (const tt of lijst) {
-    const s = bkCatSoort(bkCat(tt)); if (s === 'neutraal') continue;
+    const s = bkSoort(tt); if (s === 'neutraal' || s === 'tussen') continue;
     const k = tt.d.slice(0, 7), x = m.get(k) || { in: 0, uit: 0, sparen: 0 };
     if (s === 'in') x.in += tt.a; else if (s === 'sparen') x.sparen -= tt.a; else x.uit -= tt.a;
     m.set(k, x);
@@ -144,7 +212,7 @@ function bkPerMaand(lijst){
 function bkTegenpartijen(lijst){
   const m = new Map();
   for (const tt of lijst) {
-    if (tt.a >= 0 || bkCatSoort(bkCat(tt)) !== 'uit') continue;
+    if (tt.a >= 0 || bkSoort(tt) !== 'uit') continue;
     const k = bkSleutel(tt), x = m.get(k) || { naam: tt.cp || tt.ci, som: 0, n: 0, cat: bkCat(tt) };
     x.som -= tt.a; x.n++; m.set(k, x);
   }
@@ -152,11 +220,11 @@ function bkTegenpartijen(lijst){
 }
 /** Vaste lasten en abonnementen: dezelfde tegenpartij, regelmatig (week/maand/kwartaal/jaar), ongeveer hetzelfde bedrag. */
 function bkTerugkerend(){
-  const groep = new Map(), r = bkRekening();
+  const groep = new Map();
   for (const tt of bk.store.tx) {
-    if (tt.a >= 0 || (r !== 'alle' && tt.acc !== r)) continue;
-    const s = bkCatSoort(bkCat(tt)); if (s === 'neutraal') continue;
-    const k = bkSleutel(tt); if (!groep.has(k)) groep.set(k, []); groep.get(k).push(tt);
+    if (tt.a >= 0 || !bkInZicht(tt.acc)) continue;
+    const s = bkSoort(tt); if (s === 'neutraal' || s === 'tussen') continue;
+    const k = bkRekSoort(tt.acc) + '|' + bkSleutel(tt); if (!groep.has(k)) groep.set(k, []); groep.get(k).push(tt);
   }
   const uit = [], vandaag = new Date(bkVandaag() + 'T12:00:00');
   const med = a => { const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
@@ -177,8 +245,8 @@ function bkTerugkerend(){
 }
 function bkSaldoReeks(van, tot){
   // Laatste bekende saldo per rekening per dag; samen opgeteld (alleen rekeningen met saldo in het afschrift)
-  const r = bkRekening(), per = new Map();
-  for (const tt of bk.store.tx) { if (tt.b == null || (r !== 'alle' && tt.acc !== r)) continue; if (!per.has(tt.acc)) per.set(tt.acc, []); per.get(tt.acc).push(tt); }
+  const per = new Map();
+  for (const tt of bk.store.tx) { if (tt.b == null || !bkInZicht(tt.acc)) continue; if (!per.has(tt.acc)) per.set(tt.acc, []); per.get(tt.acc).push(tt); }
   if (!per.size) return [];
   const dagen = new Set();
   for (const [, l] of per) { l.sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0); for (const tt of l) if (tt.d >= van && tt.d <= tot) dagen.add(tt.d); }
@@ -227,11 +295,14 @@ function bkLaad(){
   bk.store = d.store || { v: 1, tx: [], imports: [] };
   for (const k of ['tx', 'imports', 'rules', 'cats', 'eigen']) if (!Array.isArray(bk.store[k])) bk.store[k] = [];
   if (!bk.store.budget || typeof bk.store.budget !== 'object') bk.store.budget = {};
-  if (!bk.store.namen || typeof bk.store.namen !== 'object') bk.store.namen = {};
+  if (!bk.store.rek || typeof bk.store.rek !== 'object') bk.store.rek = {};
+  // Oude opslag: alleen namen per rekening
+  if (bk.store.namen && typeof bk.store.namen === 'object') { for (const [a, n] of Object.entries(bk.store.namen)) { (bk.store.rek[a] = bk.store.rek[a] || {}).naam = n; } delete bk.store.namen; }
   bkHerbereken();
   bkRekeningen();
   bkTijdBewaken();
   bkRender();
+  bkNieuweRekeningen();
   // Automatisch opgehaald terwijl het scherm weg was
   let u = ''; try { u = Android.bankKoppelUitkomst(); } catch (e) { }
   if (u) bkKoppelKlaar(u);
@@ -291,13 +362,35 @@ function bkPeriode(){ $('#bk-eigen').hidden = $('#bk-periode').value !== 'eigen'
 function bkRekeningen(){
   const s = $('#bk-rek'), was = s.value, acc = [...new Set(bk.store.tx.map(tt => tt.acc))].sort();
   s.replaceChildren();
-  const opt = (v, tt) => { const o = document.createElement('option'); o.value = v; o.textContent = tt; s.appendChild(o); };
+  const opt = (v, tt, ouder) => { const o = document.createElement('option'); o.value = v; o.textContent = tt; (ouder || s).appendChild(o); };
+  const prive = acc.filter(a => bkRekSoort(a) === 'prive'), zak = acc.filter(a => bkRekSoort(a) === 'zakelijk');
   opt('alle', 'Alle rekeningen');
-  for (const a of acc) opt(a, bkRekNaam(a));
-  s.value = acc.includes(was) ? was : 'alle';
+  if (prive.length && zak.length) { opt('prive', t('Alles privé ({n})', { n: prive.length })); opt('zakelijk', t('Alles zakelijk ({n})', { n: zak.length })); }
+  for (const [label, l] of [['Privé', prive], ['Zakelijk', zak]]) {
+    if (!l.length || acc.length < 2) continue;
+    const g = document.createElement('optgroup'); g.label = label; s.appendChild(g);
+    for (const a of l) opt(a, bkRekNaam(a), g);
+  }
+  s.value = [...s.options].some(o => o.value === was) ? was : 'alle';
   $('#bk-rek-rij').hidden = acc.length < 2;
 }
-function bkRekNaam(a){ const n = bk.store && bk.store.namen[a]; return (n ? n + ' · ' : '') + (a === 'onbekend' ? 'Rekening onbekend' : a.length > 8 ? a.slice(0, 4) + ' … ' + a.slice(-4) : a); }
+function bkRekNaam(a){ const n = bk.store && bkRekInfo(a).naam; return (n ? n + ' · ' : '') + (a === 'onbekend' ? 'Rekening onbekend' : a.length > 8 ? a.slice(0, 4) + ' … ' + a.slice(-4) : a); }
+/** Naam van wat je bekijkt, voor kopjes en de AI. */
+function bkZichtNaam(){ const r = bkRekening(); return r === 'alle' ? 'alle rekeningen' : r === 'prive' ? 'alle privérekeningen' : r === 'zakelijk' ? 'alle zakelijke rekeningen' : 'rekening ' + bkRekNaam(r) + ' (' + (bkRekSoort(r) === 'zakelijk' ? 'zakelijk' : 'privé') + ')'; }
+
+/** Nieuwe rekening in een afschrift: vragen of hij privé of zakelijk is (één voor één). */
+function bkNieuweRekeningen(){
+  if (!bk.store || bk.stilLaden || $('#modal.on')) return;
+  const a = [...new Set(bk.store.tx.map(tt => tt.acc))].sort().find(x => x !== 'onbekend' && !bkRekInfo(x).soort);
+  if (!a) return;
+  bk.venster = true;
+  const kies = soort => {
+    bkRekZet(a, 'soort', soort); bkHerbereken();
+    if (!bkSave() && bk.store) { bkRekZet(a, 'soort', soort); bkHerbereken(); bkSave(); } // na een tussentijdse import: keuze opnieuw zetten
+    bkRekeningen(); bkRender(); setTimeout(bkNieuweRekeningen, 50);
+  };
+  askChoice(t('Privé of zakelijk?'), t('Rekening {naam} staat nieuw in je afschriften. Is dit een privérekening of een zakelijke rekening? Je kunt dit later wijzigen bij Beheer → Mijn rekeningen.', { naam: bkRekNaam(a) }), t('Privé'), t('Zakelijk'), () => kies('prive'), () => kies('zakelijk'));
+}
 
 function bkRender(){
   if (!bk.store) return;
@@ -325,11 +418,30 @@ function bkVerschil(nu, was, goedAlsLager){
 function bkOverzicht(van, tot){
   const lijst = bkSelectie(van, tot), tt = bkTotalen(lijst);
   const [pv, pt] = bkVorige(van, tot), vorig = bkTotalen(bkSelectie(pv, pt));
+  const zak = bkZichtSoort() === 'zakelijk', over = zak ? tt.in - tt.uit : tt.netto;
   let h = '<div class="bk-kpis">'
-    + '<div class="bk-kpi"><small>Inkomsten</small><b class="bk-plus">' + esc(bkEuro(tt.in)) + '</b>' + bkVerschil(tt.in, vorig.in, false) + '</div>'
-    + '<div class="bk-kpi"><small>Uitgaven</small><b>' + esc(bkEuro(tt.uit)) + '</b>' + bkVerschil(tt.uit, vorig.uit, true) + '</div>'
-    + '<div class="bk-kpi"><small>Over</small><b class="' + (tt.netto >= 0 ? 'bk-plus' : 'bk-min') + '">' + esc(bkEuro(tt.netto, true)) + '</b><span>' + (tt.in > 0 ? 'Spaarquote ' + Math.round((tt.in - tt.uit) / tt.in * 100) + '%' : '') + '</span></div>'
-    + '<div class="bk-kpi"><small>Gespaard en belegd</small><b>' + esc(bkEuro(tt.sparen)) + '</b><span>' + tt.n + ' boekingen</span></div></div>';
+    + '<div class="bk-kpi"><small>' + (zak ? 'Omzet en inkomsten' : 'Inkomsten') + '</small><b class="bk-plus">' + esc(bkEuro(tt.in)) + '</b>' + bkVerschil(tt.in, vorig.in, false) + '</div>'
+    + '<div class="bk-kpi"><small>' + (zak ? 'Kosten' : 'Uitgaven') + '</small><b>' + esc(bkEuro(tt.uit)) + '</b>' + bkVerschil(tt.uit, vorig.uit, true) + '</div>'
+    + '<div class="bk-kpi"><small>' + (zak ? 'Resultaat' : 'Over') + '</small><b class="' + (over >= 0 ? 'bk-plus' : 'bk-min') + '">' + esc(bkEuro(over, true)) + '</b><span>' + (tt.in > 0 ? t(zak ? 'Marge {pct}%' : 'Spaarquote {pct}%', { pct: Math.round((tt.in - tt.uit) / tt.in * 100) }) : '') + '</span></div>'
+    + (zak ? '<div class="bk-kpi"><small>Naar privé</small><b>' + esc(bkEuro(tt.naarPrive)) + '</b><span>' + (tt.inbreng ? 'ingebracht ' + esc(bkEuro(tt.inbreng)) : tt.n + ' boekingen') + '</span></div></div>'
+      : '<div class="bk-kpi"><small>Gespaard en belegd</small><b>' + esc(bkEuro(tt.sparen)) + '</b><span>' + tt.n + ' boekingen</span></div></div>');
+  // Alle rekeningen met privé én zakelijk: per soort en per rekening apart
+  if (bkRekening() === 'alle' && bkZichtSoort() === '') {
+    const rij = (naam, x, sub, klik) => '<' + (klik ? 'button class="bk-tx" onclick="' + klik + '"' : 'div class="bk-rij"') + '><span class="bk-naam"><b>' + esc(naam) + '</b><small>' + esc(sub) + '</small></span><span class="bk-bedrag ' + (x >= 0 ? 'bk-plus' : 'bk-min') + '">' + esc(bkEuro(x, true)) + '</span></' + (klik ? 'button' : 'div') + '>';
+    let r = '';
+    for (const soort of ['prive', 'zakelijk']) {
+      const deel = lijst.filter(x => bkRekSoort(x.acc) === soort);
+      // Binnen één soort telt geld naar de andere soort wél mee (privé-opname, uit eigen bedrijf)
+      let inn = 0, uit = 0; for (const x of deel) { const so = bkCatSoort(bkCat(x)); if (so === 'neutraal' || so === 'sparen' || so === 'tussen') continue; if (so === 'in') inn += x.a; else uit -= x.a; }
+      if (!deel.length) continue;
+      r += rij(soort === 'prive' ? 'Privé' : 'Zakelijk', inn - uit, (soort === 'prive' ? 'inkomsten ' : 'omzet ') + bkEuro(inn) + ' · ' + (soort === 'prive' ? 'uitgaven ' : 'kosten ') + bkEuro(uit), 'bkZicht(' + jsq(soort) + ')');
+    }
+    h += bkKaart('Privé en zakelijk', r + '<p class="note" style="margin-bottom:0">Geld tussen je privé- en zakelijke rekeningen telt in de totalen hierboven niet mee. Per soort: bij Privé telt het als inkomsten uit je eigen bedrijf (geld naar je bedrijf gaat ervan af), bij Zakelijk als privé-opname of inbreng (geen omzet of kosten). Tik voor het overzicht van één soort.</p>');
+  }
+  if (tt.naarPrive || tt.inbreng) {
+    const tc = [...tt.cats.entries()].filter(([, x]) => x.soort === 'tussen');
+    if (tc.length && !zak) h += bkKaart('Tussen privé en zakelijk', tc.map(([c, x]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>' + t('{n}× · telt niet als uitgave', { n: x.n }) + '</small></span><b>' + esc(bkEuro(x.som, true)) + '</b></div>').join(''));
+  }
   // Budgetten (deze maand)
   const budgets = Object.entries(bk.store.budget || {}).filter(([, v]) => v > 0);
   if (budgets.length) {
@@ -347,15 +459,15 @@ function bkOverzicht(van, tot){
   const uitCats = [...tt.cats.entries()].filter(([, x]) => x.soort === 'uit' && -x.som > 0).sort((a, b) => a[1].som - b[1].som);
   if (uitCats.length) {
     const max = -uitCats[0][1].som;
-    h += bkKaart('Uitgaven per categorie', '<div class="bk-bars">' + uitCats.map(([c, x]) => {
+    h += bkKaart(zak ? 'Kosten per categorie' : 'Uitgaven per categorie', '<div class="bk-bars">' + uitCats.map(([c, x]) => {
       const was = vorig.cats.get(c), w = was ? -was.som : 0, nu = -x.som;
       return '<button class="bk-bar" onclick="bkNaarCat(' + jsq(c) + ')"><div class="bk-bar-kop"><span>' + esc(c) + '</span><b>' + esc(bkEuro(nu)) + '</b></div>'
         + '<div class="bk-spoor" role="presentation"><div class="bk-vul" style="width:' + Math.max(2, Math.round(nu / max * 100)) + '%"></div></div>'
-        + '<small>' + esc(t('{pct}% van je uitgaven', { pct: Math.round(nu / Math.max(1, tt.uit) * 100) }) + ' · ' + x.n + '×' + (w ? ' · ' + t('ervoor {bedrag}', { bedrag: bkEuro(w) }) : '')) + '</small></button>';
+        + '<small>' + esc(t(zak ? '{pct}% van de kosten' : '{pct}% van je uitgaven', { pct: Math.round(nu / Math.max(1, tt.uit) * 100) }) + ' · ' + x.n + '×' + (w ? ' · ' + t('ervoor {bedrag}', { bedrag: bkEuro(w) }) : '')) + '</small></button>';
     }).join('') + '</div>');
   }
-  const inCats = [...tt.cats.entries()].filter(([, x]) => x.soort === 'in' && x.som > 0).sort((a, b) => b[1].som - a[1].som);
-  if (inCats.length) h += bkKaart('Inkomsten', inCats.map(([c, x]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>' + x.n + ' bijschrijvingen</small></span><b class="bk-plus">' + esc(bkEuro(x.som)) + '</b></div>').join(''));
+  const inCats = [...tt.cats.entries()].filter(([, x]) => x.soort === 'in' && x.som !== 0).sort((a, b) => b[1].som - a[1].som);
+  if (inCats.length) h += bkKaart(zak ? 'Omzet en inkomsten' : 'Inkomsten', inCats.map(([c, x]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>' + x.n + (x.som < 0 ? ' overboekingen' : ' bijschrijvingen') + '</small></span><b class="' + (x.som < 0 ? 'bk-min' : 'bk-plus') + '">' + esc(bkEuro(x.som, x.som < 0)) + '</b></div>').join(''));
   // Vaste lasten
   const vast = bkTerugkerend(), actief = vast.filter(v => !v.gestopt);
   if (vast.length) {
@@ -367,14 +479,14 @@ function bkOverzicht(van, tot){
   const tp = bkTegenpartijen(lijst).slice(0, 10);
   if (tp.length) h += bkKaart('Waar gaat het meeste heen', tp.map(x => '<div class="bk-rij"><span class="bk-naam">' + esc(x.naam) + '<small>' + esc(x.cat) + ' · ' + x.n + '×</small></span><b>' + esc(bkEuro(x.som)) + '</b></div>').join(''));
   // Grootste uitgaven
-  const groot = lijst.filter(x => x.a < 0 && bkCatSoort(bkCat(x)) === 'uit').sort((a, b) => a.a - b.a).slice(0, 8);
+  const groot = lijst.filter(x => x.a < 0 && bkSoort(x) === 'uit').sort((a, b) => a.a - b.a).slice(0, 8);
   if (groot.length) h += bkKaart('Grootste uitgaven', groot.map(x => '<button class="bk-tx" onclick="bkTx(' + jsq(x.id) + ')"><span class="bk-naam"><b>' + esc(x.cp || x.ci || 'Onbekend') + '</b><small>' + esc(bkDatum(x.d)) + ' · ' + esc(bkCat(x)) + '</small></span><span class="bk-bedrag">' + esc(bkEuro(x.a)) + '</span></button>').join(''));
   // Saldo
   const reeks = bkSaldoReeks(van, tot);
   if (reeks.length > 1) h += bkKaart('Saldo', bkLijnGrafiek(reeks) + '<p class="note" style="margin-bottom:0">Laatste saldo: <b>' + esc(bkEuro(reeks[reeks.length - 1][1])) + '</b> op ' + esc(bkDatum(reeks[reeks.length - 1][0])) + '.</p>');
   // Per dag van de week
   const wd = [0, 0, 0, 0, 0, 0, 0];
-  for (const x of lijst) if (x.a < 0 && bkCatSoort(bkCat(x)) === 'uit') wd[(new Date(x.d + 'T12:00:00').getDay() + 6) % 7] -= x.a;
+  for (const x of lijst) if (x.a < 0 && bkSoort(x) === 'uit') wd[(new Date(x.d + 'T12:00:00').getDay() + 6) % 7] -= x.a;
   if (wd.some(v => v > 0)) {
     const mx = Math.max(...wd), dn = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
     h += bkKaart('Uitgaven per dag van de week', '<div class="bk-bars">' + wd.map((v, i) => '<div class="bk-bar" style="cursor:default"><div class="bk-bar-kop"><span>' + dn[i] + '</span><b>' + esc(bkEuroKort(v)) + '</b></div><div class="bk-spoor" role="presentation"><div class="bk-vul" style="width:' + Math.round(v / mx * 100) + '%"></div></div></div>').join('') + '</div>');
@@ -414,7 +526,9 @@ function bkCatSelect(){
   s.replaceChildren();
   const opt = (v, tt) => { const o = document.createElement('option'); o.value = v; o.textContent = tt; s.appendChild(o); };
   opt('', 'Alle categorieën'); opt('*zonder', 'Zonder categorie (overig)');
-  for (const c of bkAlleCats()) opt(c, c);
+  const [van, tot] = bkPeriodeVan(), cats = bkCatsVoor(bkZichtSoort());
+  for (const tt of bkSelectie(van, tot)) { const c = bkCat(tt); if (!cats.includes(c)) cats.push(c); } // ook wat er echt in staat
+  for (const c of cats) opt(c, c);
   s.value = [...s.options].some(o => o.value === was) ? was : '';
 }
 function bkGefilterd(){
@@ -422,7 +536,7 @@ function bkGefilterd(){
   const qBedrag = /^[-−€\s\d.,\u202f]+$/.test(q) ? parseNum(q) : null; // een bedrag zoeken, volgens Regio en taal
   let l = bkSelectie(van, tot).filter(tt => {
     const c = bkCat(tt);
-    if (cat === '*zonder' ? !(c === 'Overig' || c === 'Overige inkomsten') : cat && c !== cat) return false;
+    if (cat === '*zonder' ? !BK_OVERIG.has(c) : cat && c !== cat) return false;
     if (!q) return true;
     if (qBedrag != null && Math.abs(Math.abs(tt.a) / 100 - Math.abs(qBedrag)) < 0.005) return true;
     return ((tt.cp || '') + ' ' + (tt.ds || '') + ' ' + (tt.ci || '') + ' ' + c + ' ' + (tt.n || '')).toLowerCase().includes(q);
@@ -449,11 +563,11 @@ function bkVind(id){ return bk.store && bk.store.tx.find(tt => tt.id === id); }
 function bkTx(id){
   const tt = bkVind(id); if (!tt) return;
   const regels = [bkDatum(tt.d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }), bkEuro(tt.a, true) + ' · ' + bkCat(tt)];
-  if (tt.ci) regels.push('Tegenrekening ' + tt.ci);
+  if (tt.ci) regels.push(t('Tegenrekening {iban}', { iban: tt.ci }));
   if (tt.ds) regels.push(tt.ds.slice(0, 300));
   if (tt.ty) regels.push(tt.ty);
-  regels.push('Rekening ' + bkRekNaam(tt.acc) + (tt.src ? ' · ' + tt.src : ''));
-  if (tt.n) regels.push('Notitie: ' + tt.n);
+  regels.push(t('Rekening {naam}', { naam: bkRekNaam(tt.acc) }) + (tt.src ? ' · ' + tt.src : ''));
+  if (tt.n) regels.push(t('Notitie: {tekst}', { tekst: tt.n }));
   bk.venster = true;
   openSheet(tt.cp || tt.ci || 'Boeking', regels.join('\n'), [
     ['Categorie wijzigen', () => bkKiesCat(id, false), 'edit'],
@@ -464,30 +578,31 @@ function bkTx(id){
 }
 function bkKiesCat(id, regel){
   const tt = bkVind(id); if (!tt) return;
-  const cats = bkAlleCats().filter(c => bkCatSoort(c) === 'neutraal' || (tt.a > 0 ? true : bkCatSoort(c) !== 'in'));
+  const soortRek = bkRekSoort(tt.acc);
+  const cats = bkCatsVoor(soortRek).filter(c => bkCatSoort(c) === 'neutraal' || (tt.a > 0 ? true : bkCatSoort(c) !== 'in'));
   const acts = cats.map(c => [c, () => {
     if (regel) {
       const p = bkSleutel(tt);
       if (!p || p === '?') { toast('Deze boeking heeft geen naam om een regel op te maken'); return; }
-      bk.store.rules = bk.store.rules.filter(g => !(g.p === p && (g.t || '') === (tt.a > 0 ? '+' : '-')));
-      bk.store.rules.unshift({ p, cat: c, t: tt.a > 0 ? '+' : '-' });
+      bk.store.rules = bk.store.rules.filter(g => !(g.p === p && (g.t || '') === (tt.a > 0 ? '+' : '-') && (g.s || '') === soortRek));
+      bk.store.rules.unshift({ p, cat: c, t: tt.a > 0 ? '+' : '-', s: soortRek });
       delete tt.c;
     } else tt.c = c;
     bkHerbereken();
     if (bkSave()) toast(regel ? t('Regel bewaard: “{tekst}” → {categorie}', { tekst: p0(tt), categorie: t(c) }) : t('Categorie gewijzigd'));
     bkRender();
   }]);
-  acts.push(['Nieuwe categorie…', () => bkNieuweCat(c => { if (regel) { bk.store.rules.unshift({ p: bkSleutel(tt), cat: c, t: tt.a > 0 ? '+' : '-' }); } else tt.c = c; bkHerbereken(); bkSave(); bkRender(); }), 'plus']);
+  acts.push(['Nieuwe categorie…', () => bkNieuweCat(c => { if (regel) { bk.store.rules.unshift({ p: bkSleutel(tt), cat: c, t: tt.a > 0 ? '+' : '-', s: soortRek }); } else tt.c = c; bkHerbereken(); bkSave(); bkRender(); }), 'plus']);
   if (tt.c && !regel) acts.push(['Automatisch laten indelen', () => { delete tt.c; bkHerbereken(); bkSave(); bkRender(); }, 'refresh']);
   bk.venster = true;
-  openSheet(regel ? 'Altijd indelen als…' : 'Categorie', regel ? t('Voor alles met “{tekst}” in de naam of omschrijving', { tekst: p0(tt) }) : '', acts);
+  openSheet(regel ? 'Altijd indelen als…' : 'Categorie', regel ? t(soortRek === 'zakelijk' ? 'Voor alles met “{tekst}” in de naam of omschrijving, op je zakelijke rekeningen' : 'Voor alles met “{tekst}” in de naam of omschrijving, op je privérekeningen', { tekst: p0(tt) }) : '', acts);
 }
 const p0 = tt => bkSleutel(tt).slice(0, 40);
 function bkNieuweCat(klaar){
   askInput('Nieuwe categorie', 'Een eigen categorie voor uitgaven.', '', 'Toevoegen', v => {
     const n = String(v || '').trim().slice(0, 40);
     if (!n) return;
-    if (!bkAlleCats().includes(n)) bk.store.cats.push({ naam: n, soort: 'uit' });
+    if (!bkAlleCats().includes(n)) bk.store.cats.push({ naam: n, soort: 'uit' }); // eigen categorie: voor privé en zakelijk
     klaar(n);
   });
 }
@@ -499,13 +614,13 @@ window.onBankImport = function(r){
   if (typeof r === 'string') { try { r = JSON.parse(r); } catch (e) { return; } }
   if (r.error) { toast(r.error); if (/op slot|Ontgrendel/i.test(r.error) && current === 'bank') bkToestand(); return; }
   if (current !== 'bank' || !bkToestand()) return;
-  bkLaad();
+  bk.stilLaden = true; bkLaad(); bk.stilLaden = false;
   const fs = r.bestanden || [];
   let nieuw = 0, dubbel = 0; const fout = [];
   for (const f of fs) { if (f.ok && f.sum) { nieuw += f.sum.nieuw || 0; dubbel += f.sum.dubbel || 0; } else fout.push(f.naam + ': ' + (f.fout || 'niet gelukt')); }
   const tekst = t('{n} nieuwe boekingen', { n: nieuw }) + (dubbel ? ', ' + t('{n} stonden er al', { n: dubbel }) : '') + (r.gewist ? '. ' + tn(r.gewist, '{n} bestand van de telefoon verwijderd', '{n} bestanden van de telefoon verwijderd') : '') + (fout.length ? '.\n\n' + t('Niet gelukt:') + '\n' + fout.join('\n') : '.');
   bk.venster = true;
-  askConfirm('Afschrift geïmporteerd', tekst, 'OK', () => {});
+  askConfirm('Afschrift geïmporteerd', tekst, 'OK', () => setTimeout(bkNieuweRekeningen, 50), () => setTimeout(bkNieuweRekeningen, 50));
 };
 function bkKoppel(id){
   const tx = bk.store ? bk.store.tx : [];
@@ -537,15 +652,13 @@ function bkAutoLijst(){
 // ---------- beheer ----------
 function bkBeheer(){
   const s = bk.store;
-  const zonder = s.tx.filter(tt => { const c = bkCat(tt); return c === 'Overig' || c === 'Overige inkomsten'; });
+  const zonder = s.tx.filter(tt => BK_OVERIG.has(bkCat(tt)));
   $('#bk-zonder').textContent = zonder.length ? t('{n} boekingen staan nog bij Overig. De lokale AI kan voorstellen maken voor de namen die het vaakst voorkomen; jij kiest wat je overneemt.', { n: zonder.length }) : t('Alle boekingen zijn ingedeeld.');
   $('#bk-ai-cat').hidden = !zonder.length;
-  $('#bk-regels').innerHTML = s.rules.length ? s.rules.map((g, i) => '<div class="bk-rij"><span class="bk-naam">“' + esc(g.p) + '”<small>' + (g.t === '+' ? 'bijschrijvingen' : g.t === '-' ? 'afschrijvingen' : 'alles') + ' → ' + esc(g.cat) + '</small></span><button class="mini" style="float:none" onclick="bkRegelWeg(' + i + ')" aria-label="Regel verwijderen">Weg</button></div>').join('') : '<p class="note" style="margin:0">Nog geen eigen regels.</p>';
+  $('#bk-regels').innerHTML = s.rules.length ? s.rules.map((g, i) => '<div class="bk-rij"><span class="bk-naam">“' + esc(g.p) + '”<small>' + (g.t === '+' ? 'bijschrijvingen' : g.t === '-' ? 'afschrijvingen' : 'alles') + ' → ' + esc(g.cat) + (g.s ? ' · ' + (g.s === 'zakelijk' ? 'zakelijk' : 'privé') : '') + '</small></span><button class="mini" style="float:none" onclick="bkRegelWeg(' + i + ')" aria-label="Regel verwijderen">Weg</button></div>').join('') : '<p class="note" style="margin:0">Nog geen eigen regels.</p>';
   $('#bk-budgetten').innerHTML = Object.entries(s.budget).filter(([, v]) => v > 0).map(([c, v]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>per maand</small></span><b>' + esc(bkEuroKort(v)) + '</b><button class="mini" style="float:none" onclick="bkBudgetWeg(' + jsq(c) + ')">Weg</button></div>').join('');
-  const acc = [...new Set(s.tx.map(tt => tt.acc))].sort();
-  $('#bk-rekeningen').innerHTML = acc.map(a => '<div class="bk-rij"><span class="bk-naam">' + esc(bkRekNaam(a)) + '<small>' + esc(a + ' · ' + t('geïmporteerd')) + '</small></span><button class="mini" style="float:none" onclick="bkRekHernoem(' + jsq(a) + ')">Naam</button></div>').join('')
-    + s.eigen.map((e, i) => '<div class="bk-rij"><span class="bk-naam">' + esc(e.naam || e.iban) + '<small>' + esc(e.iban + ' · ' + t('zelf toegevoegd')) + '</small></span><button class="mini" style="float:none" onclick="bkEigenWeg(' + i + ')">Weg</button></div>').join('');
-  $('#bk-imports').innerHTML = s.imports.length ? '<details class="rinfo"><summary>' + t('Eerdere imports ({n})', { n: s.imports.length }) + '</summary>' + s.imports.slice().reverse().slice(0, 30).map(i => '<div class="bk-res">' + esc(fmtDate(i.t, { day: 'numeric', month: 'short', year: 'numeric' })) + ' · ' + esc(i.bank || i.format) + ' · ' + esc(i.van ? bkDatum(i.van) + ' t/m ' + bkDatum(i.tot) : '') + ' · ' + (i.nieuw || 0) + ' nieuw</div>').join('') + '</details>' : '';
+  $('#bk-rekeningen').innerHTML = bkAlleRek().map(r => '<div class="bk-rij"><span class="bk-naam">' + esc(bkRekNaam(r.iban)) + '<small>' + esc(r.iban + ' · ' + t(bkRekSoort(r.iban) === 'zakelijk' ? 'zakelijk' : 'privé') + (bkRekInfo(r.iban).soort ? '' : ' ' + t('(nog niet gekozen)')) + ' · ' + t(r.eigen ? 'zelf toegevoegd' : 'geïmporteerd')) + '</small></span><button class="mini" style="float:none" onclick="bkRekMenu(' + jsq(r.iban) + ')">Wijzigen</button></div>').join('');
+  $('#bk-imports').innerHTML = s.imports.length ? '<details class="rinfo"><summary>' + t('Eerdere imports ({n})', { n: s.imports.length }) + '</summary>' + s.imports.slice().reverse().slice(0, 30).map(i => '<div class="bk-res">' + esc(fmtDate(i.t, { day: 'numeric', month: 'short', year: 'numeric' })) + ' · ' + esc(i.bank || i.format) + ' · ' + esc(i.van ? t('{van} t/m {tot}', { van: bkDatum(i.van), tot: bkDatum(i.tot) }) : '') + ' · ' + t('{n} nieuw', { n: i.nieuw || 0 }) + '</div>').join('') + '</details>' : '';
   const st = bk.st || {};
   const veilig = [
     t(st.hardware ? 'Versleuteld met AES-256-GCM; de sleutel zit in de beveiligde hardware van deze telefoon en kan er niet uit.' : 'Versleuteld met AES-256-GCM; de sleutel zit in de beveiligde sleutelopslag van Android en kan er niet uit.'),
@@ -568,16 +681,32 @@ function bkBudgetNieuw(){
     bk.store.budget[c] = n; bkSave(); bkRender();
   })]));
 }
-function bkRekHernoem(a){ askInput('Naam van de rekening', a, bk.store.namen[a] || '', 'Bewaren', v => { const n = String(v || '').trim().slice(0, 40); if (n) bk.store.namen[a] = n; else delete bk.store.namen[a]; bkSave(); bkRekeningen(); bkRender(); }); }
+function bkRekHernoem(a){ askInput('Naam van de rekening', a, bkRekInfo(a).naam || '', 'Bewaren', v => { const n = String(v || '').trim().slice(0, 40); bkRekZet(a, 'naam', n); bkSave(); bkRekeningen(); bkRender(); }); }
+function bkRekSoortZet(a, soort){ bkRekZet(a, 'soort', soort); bkHerbereken(); bkRekeningen(); if (bkSave()) toast(t(soort === 'zakelijk' ? '{naam} is nu zakelijk' : '{naam} is nu privé', { naam: bkRekNaam(a) })); bkRender(); }
+function bkRekMenu(a){
+  const soort = bkRekSoort(a), eigen = (bk.store.eigen || []).findIndex(e => e.iban === a);
+  const acts = [['Naam wijzigen', () => bkRekHernoem(a), 'edit'],
+    [(soort === 'prive' ? '✓ ' : '') + 'Privérekening', () => bkRekSoortZet(a, 'prive')],
+    [(soort === 'zakelijk' ? '✓ ' : '') + 'Zakelijke rekening', () => bkRekSoortZet(a, 'zakelijk')]];
+  if (eigen >= 0) acts.push(['Weghalen', () => bkEigenWeg(eigen), 'trash']);
+  bk.venster = true;
+  openSheet(bkRekNaam(a), a, acts);
+}
 function bkEigenNieuw(){
-  askInput('Eigen rekening', 'IBAN van je eigen rekening (bijv. een spaarrekening).', '', 'Toevoegen', v => {
+  askInput('Eigen rekening', 'IBAN van je eigen rekening (bijv. een spaarrekening of een zakelijke rekening die je niet importeert).', '', 'Toevoegen', v => {
     const iban = String(v || '').replace(/\s+/g, '').toUpperCase();
     if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(iban)) { toast('Dat lijkt geen IBAN'); return; }
-    if (!bk.store.eigen.some(e => e.iban === iban)) bk.store.eigen.push({ iban, naam: '' });
-    bkHerbereken(); bkSave(); bkRender();
+    const kies = soort => {
+      if (!bk.store.eigen.some(e => e.iban === iban) && !bk.store.tx.some(tt => tt.acc === iban)) bk.store.eigen.push({ iban, naam: '', soort });
+      else bkRekZet(iban, 'soort', soort);
+      bkHerbereken(); bkRekeningen(); bkSave(); bkRender();
+    };
+    setTimeout(() => askChoice(t('Privé of zakelijk?'), t('Is {iban} een privérekening of een zakelijke rekening?', { iban: iban }), t('Privé'), t('Zakelijk'), () => kies('prive'), () => kies('zakelijk')), 50);
   });
 }
-function bkEigenWeg(i){ bk.store.eigen.splice(i, 1); bkHerbereken(); bkSave(); bkRender(); }
+function bkEigenWeg(i){ bk.store.eigen.splice(i, 1); bkHerbereken(); bkRekeningen(); bkSave(); bkRender(); }
+/** Vanuit het overzicht naar alleen privé of alleen zakelijk. */
+function bkZicht(soort){ const s = $('#bk-rek'); if ([...s.options].some(o => o.value === soort)) { s.value = soort; bk.lijstN = 100; bkRender(); scrollTo(0, 0); } }
 function bkWis(){
   askConfirm('Alle bankgegevens wissen?', 'Alle afschriften, regels, budgetten en de sleutel worden van deze telefoon verwijderd. Dit kan niet ongedaan worden gemaakt.', 'Wissen', () => {
     if (!bk.st || !bk.st.open) { toast('Ontgrendel eerst; daarna kun je wissen'); return; }
