@@ -33,6 +33,10 @@ final class Updater {
 
     private Updater() { }
 
+    /** De Play-versie (eigen pakketnaam, zie docs/play-store.md) krijgt updates via Google Play, nooit via GitHub. */
+    static boolean viaPlay(Context c) { return isPlayPackage(c.getPackageName()); }
+    static boolean isPlayPackage(String pkg) { return pkg != null && pkg.endsWith(".play"); }
+
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE); }
 
     /** Voortgang voor het scherm: fase (download, controle, klaarzetten), bytes binnen en totaal (0 = onbekend). */
@@ -151,6 +155,10 @@ final class Updater {
     /** Met voortgang (p) van het downloaden van een nieuwe interface. */
     static JSONObject check(Context c, Progress p) {
         JSONObject r = new JSONObject();
+        if (viaPlay(c)) {
+            try { r.put("state", "play"); } catch (Exception ignored) { }
+            return r;
+        }
         if (!CHECK_BUSY.compareAndSet(false, true)) {
             try { r.put("state", "busy"); } catch (Exception ignored) { }
             return r;
@@ -254,6 +262,7 @@ final class Updater {
 
     /** Downloadt de nieuwe APK en start de installatie. Geeft null of een foutmelding terug ("busy": al bezig). */
     static String downloadAndInstall(Context c, Progress pr) {
+        if (viaPlay(c)) return "Updates komen via Google Play";
         if (!APK_BUSY.compareAndSet(false, true)) return "busy";
         File apk = null;
         try {

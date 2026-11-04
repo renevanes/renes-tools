@@ -68,6 +68,7 @@ function installUpdate(){
   Android.installUpdate();
 }
 window.onUpdateStatus = function(r){
+  if (r.state === 'play') { updReset(); return; } // Play-versie: updates via Google Play
   if (r.state === 'web') {
     if (updReady !== r.versionName) updReloadingVersion = '';
     updReady = r.versionName;

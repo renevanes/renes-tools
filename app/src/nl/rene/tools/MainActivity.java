@@ -492,6 +492,7 @@ public class MainActivity extends Activity {
         js("onResumeApp", "");
         try { GebruikLive.start(getApplicationContext()); } catch (Throwable ignored) { }
         if (isSolo()) return; // updates regelt de gewone app
+        if (Updater.viaPlay(this)) return; // de Play-versie krijgt updates via Google Play
         // Automatisch op updates controleren, hooguit eens per 30 minuten.
         long last = Updater.prefs(this).getLong("lastCheck", 0);
         if (System.currentTimeMillis() - last > 30 * 60 * 1000L) checkUpdates(false);
@@ -859,6 +860,7 @@ public class MainActivity extends Activity {
                 o.put("webCode", Updater.webCode(ctx));
                 o.put("android", Build.VERSION.RELEASE);
                 o.put("sdk", Build.VERSION.SDK_INT);
+                o.put("play", Updater.viaPlay(ctx));
                 return o.toString();
             } catch (Exception e) { return "{}"; }
         }
