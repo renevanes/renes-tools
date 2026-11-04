@@ -637,7 +637,7 @@ document.addEventListener('error', e => {
 function appHtml(k, where){
   if (k.startsWith('f:')) {
     const f = k.slice(2), l = (hasF(f) ? cfg.folders[f] : []).filter(x => byKey[x]);
-    return '<button class="app fold" data-k="' + esc(k) + '" data-w="' + where + '" aria-label="Map ' + esc(f) + '"><span class=fi>' + l.slice(0, 4).map(x => icon(x, 64)).join('') + '</span><span class=lb>' + esc(f) + '</span></button>';
+    return '<button class="app fold" data-k="' + esc(k) + '" data-w="' + where + '" aria-label="' + esc(t('Map {naam}', { naam: f })) + '"><span class=fi>' + l.slice(0, 4).map(x => icon(x, 64)).join('') + '</span><span class=lb>' + esc(f) + '</span></button>';
   }
   const a = byKey[k]; if (!a) return '';
   return '<button class=app data-k="' + esc(k) + '" data-w="' + where + '" aria-label="' + esc(a.n) + '">' + icon(k) + '<span class=lb>' + esc(a.n) + '</span></button>';
@@ -1100,7 +1100,7 @@ function seg(id, opts, cur, fn){ $(id).innerHTML = opts.map(([v, l]) => '<button
   $(id).querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); renderLook(); }); }
 function renderLook(){
   seg('#l-theme', [['auto', 'Zoals Tools'], ['light', 'Licht'], ['dark', 'Donker']], cfg.theme, v => { cfg.theme = v; save(); applyLook(); });
-  $('#l-acc').innerHTML = ACCENTS.map(c => '<button class="sw2' + (c === cfg.accent ? ' on' : '') + '" data-c="' + c + '" style="background:' + c + '" aria-label="Kleur ' + c + '"></button>').join('');
+  $('#l-acc').innerHTML = ACCENTS.map(c => '<button class="sw2' + (c === cfg.accent ? ' on' : '') + '" data-c="' + c + '" style="background:' + c + '" aria-label="' + t('Kleur {kleur}', { kleur: c }) + '"></button>').join('');
   $('#l-acc').querySelectorAll('button').forEach(b => b.onclick = () => { cfg.accent = b.dataset.c; save(); applyLook(); renderLook(); });
   $('#l-bg').innerHTML = Object.keys(BGS).map(k => '<button data-b="' + k + '"' + (k === cfg.bg ? ' class=on' : '') + ' style="background:' + (BGS[k][1] || 'linear-gradient(135deg,#94a3b8,#475569)') + '">' + BGS[k][0] + '</button>').join('');
   $('#l-bg').querySelectorAll('button').forEach(b => b.onclick = () => { cfg.bg = b.dataset.b; save(); applyLook(); renderLook(); });
@@ -1118,7 +1118,7 @@ function renderLook(){
   $('#l-kind-btn').textContent = MODE === 'legacy' ? 'Launcher met pagina\'s en widgets gebruiken' : 'Klassieke skin gebruiken (zonder pagina\'s)';
   $('#l-widgets').style.display = NATIVE ? 'block' : 'none';
   $('#l-kind').style.display = typeof Android.setClassic === 'function' ? 'block' : 'none';
-  $('#l-n-drawer').textContent = apps.filter(a => !cfg.hidden.includes(a.k)).length + ' ' + t('van') + ' ' + apps.length + (cfg.lockHidden ? ' · ' + t('🔒 rest geblokkeerd') : '');
+  $('#l-n-drawer').textContent = t('{n} van {totaal}', { n: apps.filter(a => !cfg.hidden.includes(a.k)).length, totaal: apps.length }) + (cfg.lockHidden ? ' · ' + t('🔒 rest geblokkeerd') : '');
   seg('#l-sort', [['az', 'A–Z'], ['used', 'Meest gebruikt'], ['new', 'Nieuwste eerst']], cfg.sort, v => { cfg.sort = v; save(); renderDrawer(); });
   seg('#l-clk', [['big', 'Groot'], ['medium', 'Middel'], ['small', 'Klein'], ['off', 'Uit']], cfg.clock.size, v => { cfg.clock.size = v; save(); applyLook(); });
   seg('#l-rad', [['round', 'Rond'], ['soft', 'Zacht'], ['square', 'Hoekig']], cfg.rad, v => { cfg.rad = v; save(); applyLook(); });
