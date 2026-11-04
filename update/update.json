@@ -1,15 +1,28 @@
 {
   "app": "Tools",
-  "versionName": "1.139",
-  "versionCode": 140,
-  "nativeLevel": 126,
+  "versionName": "1.140",
+  "versionCode": 141,
+  "nativeLevel": 127,
   "web": "index.html",
-  "webSha256": "358c97ff83184afe8278878d14f66407ae38b798f0543fd944a2ddd835392936",
+  "webSha256": "d40451f3fa7a13b4b075d550eb3ce5138e32bff14890bc8d7f0b5b3ea7da0fdf",
   "start": "start.html",
-  "startSha256": "b6e3560addeca820f210459552f1e4bfd58a5a940abab743d86721fc4c759c30",
+  "startSha256": "ca013c1e7d37c86b7299e7346900a6c0386581a676a519a1f40356316b7ea994",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "d828704163052799dc9e8dabbd90a4f4574a3ff4c1b2c6a63e91ffc10cd24b8a",
+  "apkSha256": "0a99ff0276a2c5b2cfd2a1beb9b8b1f50af69679c504bf21e47a458c4dcb5621",
   "changelog": [
+    {
+      "version": "1.140",
+      "date": "2026-11-04",
+      "changes": [
+        "Nieuw: Engels als taal (Instellingen → Regio en taal → Taal); de hele app, meldingen, widgets en de assistent (ook spraak) werken dan in het Engels.",
+        "De assistent begrijpt in het Engels ook opdrachten als \"set a timer for 10 minutes\", \"turn on dark mode\" of \"switch to Dutch\"; Nederlands blijft standaard en de app volgt niet de taal van je telefoon.",
+        "Facturen: een factuur met meerdere documenten (factuur, specificatie, bijlagen) toont nu alle documenten onder elkaar, met bij elk een knop Openen; de knop bovenaan zegt of hij de factuur of een bijlage opent",
+        "Facturen: het overzicht per maand telt op factuurdatum (niet meer op de dag van downloaden) en telt facturen, geen losse bijlagen",
+        "Facturen: bijlagen en specificaties tellen niet meer als aparte factuur, ook niet in \"nieuwe facturen\" en in de meldingen",
+        "Facturen: is de hele periode (standaard vanaf 1 januari) nog niet opgehaald, bijvoorbeeld bij leveranciers die al eerder bestonden, dan haalt de app die vanzelf alsnog op; de status laat zien dat dat nog loopt",
+        "Facturen: oude facturen die alsnog worden opgehaald gaan niet vanzelf naar je accountant of boekhouder; dat kan per factuur met de hand vanuit het dossier"
+      ]
+    },
     {
       "version": "1.139",
       "date": "2026-11-04",
@@ -1221,5 +1234,5 @@
       ]
     }
   ],
-  "webSig2": "F0PF6ygjmnk1Dv8Z7a/TqKt6iUrGr6rqOitfzOI6m1nVAvQCmF0t61VEyjr8qfZ9t/igHD5CvmAsjlbGUz40dYUO+qdkJVQa+s4f+PoAmm/uW0eXT5gHC4sgjQ4D6Ve0G1n1JJJecmCyS94jsd2WuvSY/tIWrwWS0wpVq7yQdX8MgGZmMs8AV1bPRufaRrfYVPO7HsL2tpCnSwv6HmV5wGVtWFvpQQ90OpYWpobYhNiIokWAPDVmrGoSgKSBWr1GPBIkWSlXH18prG4wZBH/HKDQJnxikHjEgeCq+mB6HpzJghyVWePjJgQVlGhPBRp4db61Ab5HI/JxxX6Z5jI//JmfT0zxSPWgkG9w+l6saqcfPTh75VZIS+MCFZ1MZ2O8/c8tZCvEFdzXCj9RZpooVv3clw4e3z+s5+3ic3hJ5JTmnHBCZ7qzCXnBV2J8zXsICJwEW+/nrG6kwGwMjXhSyLlRE1iVNTZuuBFNdXCD5ZH0kP0bfOAYlQRyehFCn3yn"
+  "webSig2": "gBQ9L/aSG0QGmTrVJj5VGspRftG5RccdCxNaHG2NZ/r9yyDKT+xcpMhMr2ItjshcnvOZuPp0+xs7+KHIdBX9JIL2M7j5n0b/e8T1fQRlgwbKFQ1CDRIYHIww1O0AQQryv/YmX+VfDUogF0X/INVqfHtZw5qWXyVHGhj5OvujqGIWV8LPEGNy0wAEBLqAd+xNRmbgk1jlp23GDdD/n+IY6E+Xnvr6PiOmNtVHYX7nNAzbH5qoXdct30nO0dCM6Ik/kzySiTVulon2ndt44mpITxsFALwV7dSQb89XOQ7nat22j1JG7zjev5SEAul3PCbtSjqkkFfHrKLG6er93ExCCm3uACaIL8X+WXQTkJNUIQtvGlmub4c3WiSG2JBFJsV0w8SvXSdoOUqDEEEGTUzbAdmWu7gs1xORfeOLg7KQtRPqfb7wDxlWULF8FUIfp3TaiNkBqDpx1xALBezImDygh4q6T4L0xquYwjeK8JeHHs1RX7rGgY3bzNSMgP8zU2++"
 }

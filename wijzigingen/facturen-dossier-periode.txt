@@ -1,5 +1,0 @@
-Facturen: een factuur met meerdere documenten (factuur, specificatie, bijlagen) toont nu alle documenten onder elkaar, met bij elk een knop Openen; de knop bovenaan zegt of hij de factuur of een bijlage opent
-Facturen: het overzicht per maand telt op factuurdatum (niet meer op de dag van downloaden) en telt facturen, geen losse bijlagen
-Facturen: bijlagen en specificaties tellen niet meer als aparte factuur, ook niet in "nieuwe facturen" en in de meldingen
-Facturen: is de hele periode (standaard vanaf 1 januari) nog niet opgehaald, bijvoorbeeld bij leveranciers die al eerder bestonden, dan haalt de app die vanzelf alsnog op; de status laat zien dat dat nog loopt
-Facturen: oude facturen die alsnog worden opgehaald gaan niet vanzelf naar je accountant of boekhouder; dat kan per factuur met de hand vanuit het dossier
