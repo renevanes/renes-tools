@@ -25,14 +25,16 @@ function gsBuildIndex(){
   const DETAIL = ['note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'podlijst', 'sleepnight', 'checkined', 'checkinq', 'apdev'];
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);
+    if (typeof playWeg === 'function' && playWeg(scr)) return;
     if (scr === 'home' || scr === 'search' || DETAIL.includes(scr)) return;
     const h1 = sec.querySelector('.hdr h1'), screen = h1 ? h1.textContent.trim() : scr;
     const own = {scr, el: null, title: screen, sub: BACK[scr] === 'settings' ? 'Instellingen' : 'Openen', key: fold(screen + ' ' + scr + ' ' + Object.keys(GS_SYN).filter(k => fold(screen).includes(k)).map(k => GS_SYN[k]).join(' '))};
     gsIndex.push(own);
     sec.querySelectorAll('.card').forEach(card => {
+      if (card.classList.contains('play-weg')) return;
       const h = card.querySelector('h2, h3'); if (!h) return;
       const head = h.textContent.trim(); if (!head) return;
-      const labels = [...card.querySelectorAll('label, .setrow > span, button.big, button.ghost, .chk')].map(e => e.textContent.trim()).filter(Boolean).slice(0, 12);
+      const labels = [...card.querySelectorAll('label, .setrow > span, button.big, button.ghost, .chk')].filter(e => !e.closest('.play-weg')).map(e => e.textContent.trim()).filter(Boolean).slice(0, 12);
       const syn = Object.keys(GS_SYN).filter(k => fold(head).includes(k)).map(k => GS_SYN[k]).join(' ');
       // Kaart met dezelfde naam als het scherm (bijv. een instellingenscherm): één treffer, het scherm zelf
       if (head === screen) { own.key += ' ' + fold(labels.join(' ') + ' ' + syn); return; }
@@ -48,6 +50,7 @@ function gsApp(q){
   return {items: hits.slice(0, 6).map(h => ({i: h.i, title: h.x.title, sub: h.x.sub})), total: Math.min(hits.length, 6)};
 }
 function gsHistory(q){
+  if (typeof isPlay === 'function' && isPlay()) return null;
   if (typeof Android.historyListBy !== 'function') return null;
   let d; try { d = JSON.parse(Android.historyListBy(q, '', 4)); } catch(e){ return null; }
   if (!d || !d.rows || !d.count) return null;
@@ -62,9 +65,10 @@ function gsInput(){
   $('#gs-hint').style.display = on ? 'none' : '';
   if (!on) { if (gsQ) Android.searchAll(''); gsQ = ''; gsData = {}; return; }
   // Vorige treffers blijven (gedimd) staan tot de nieuwe binnen zijn: geen verspringende pagina.
-  const prev = gsData; gsQ = q; gsData = { app: gsApp(q), notes: gsNotes(q), history: gsHistory(q), pending: true, stale: {} };
+  const prev = gsData; gsQ = q; gsData = { app: gsApp(q), notes: gsNotes(q), history: gsHistory(q), pending: !isPlay(), stale: {} };
   for (const k of Object.keys(GS)) if (!['notes', 'app', 'history'].includes(k) && prev[k]) gsData.stale[k] = prev[k];
   gsRender();
+  if (isPlay()) return;
   gsTmr = setTimeout(() => { gsId = Android.searchAll(q); }, 300);
   if (typeof aiSearchSoon === 'function') aiSearchSoon(q); // op betekenis (als het zoekmodel er is)
 }
@@ -117,7 +121,7 @@ function gsRender(){
       (g.total > g.items.length ? '<button class=more data-k="' + k + '" onclick="gsMore(this.dataset.k)">' + t('Alle {n} ›', { n: tot }) + '</button>' : '') + '</h3>' +
       g.items.map(x => gsItem(k, x, ql)).join('') + '</div>';
   }).join('');
-  const ai = typeof aiSearchHtml === 'function' ? aiSearchHtml(ql) : '';
+  const ai = !isPlay() && typeof aiSearchHtml === 'function' ? aiSearchHtml(ql) : '';
   $('#gs-res').innerHTML = (ai + html) || '<p class=gs-empty>' + (gsData.pending ? t('Zoeken…') : t('Niets gevonden voor "{q}"', { q: esc(gsQ) })) + '</p>';
   if (html && gsData.pending) $('#gs-res').innerHTML += '<p class=gs-empty style="padding:8px 0">Verder zoeken…</p>';
 }

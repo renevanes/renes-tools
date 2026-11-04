@@ -235,6 +235,7 @@ final class SettingsBackup {
     }
 
     static int apply(Context c, String text) throws Exception {
+        if (Updater.viaPlay(c)) throw new Exception(PlayPolicy.unavailable(c));
         Plan pl = plan(c, new JSONObject(text.trim()));
         if (pl.newRules.length() > 0) {
             JSONArray all = Auto.rules(c);

@@ -59,7 +59,7 @@ document.querySelector('#s-radio .pctabs').addEventListener('keydown', e => {
 function rdMenu(){
   openSheet('Radio', '', [
     ['Radiowekker', () => show('ralarm')],
-    ['Herkende muziek', () => jumpTo('music')]
+    ...(!isPlay() ? [['Herkende muziek', () => jumpTo('music')]] : [])
   ]);
 }
 /* Radiowekker in één regel */
@@ -174,7 +174,7 @@ function rdShowSong(tt, inf){
   box.style.display = 'block';
   const q = encodeURIComponent(tt);
   box.innerHTML = (inf.song ? '<b>' + esc(inf.song) + '</b><span>' + esc(inf.artist) + '</span>' : '<b>' + esc(tt) + '</b><span>' + esc(t('Nu op {zender}', { zender: (rdState.station || {}).name || t('de radio') })) + '</span>') +
-    '<div class=lnk><button class=mini onclick="rdSaveSong()" aria-label="Nummer bewaren in Herkende muziek">★ Bewaar</button>' +
+    '<div class=lnk>' + (!isPlay() ? '<button class=mini onclick="rdSaveSong()" aria-label="Nummer bewaren in Herkende muziek">★ Bewaar</button>' : '') +
     '<button class=mini data-u="https://music.youtube.com/search?q=' + q + '" onclick="Android.openUrl(this.dataset.u)">YouTube</button>' +
     '<button class=mini data-u="https://open.spotify.com/search/' + q + '" onclick="Android.openUrl(this.dataset.u)">Spotify</button>' +
     (inf.streamUrl && /^https?:\/\//i.test(inf.streamUrl) ? '<button class=mini data-u="' + esc(inf.streamUrl) + '" onclick="Android.openUrl(this.dataset.u)">Meer info</button>' : '') + '</div>';
@@ -213,7 +213,7 @@ function rdSaveSong(tt, inf){
 function rdRecentTap(song){
   const q = encodeURIComponent(song);
   openSheet(song, (rdState.station || {}).name ? t('Eerder gedraaid op {zender}', { zender: rdState.station.name }) : t('Eerder gedraaid op de radio'), [
-    ['★ Bewaren in Herkende muziek', () => rdSaveSong(song, null)],
+    ...(!isPlay() ? [['★ Bewaren in Herkende muziek', () => rdSaveSong(song, null)]] : []),
     ['Zoeken op YouTube', () => Android.openUrl('https://music.youtube.com/search?q=' + q)],
     ['Zoeken op Spotify', () => Android.openUrl('https://open.spotify.com/search/' + q)],
   ]);

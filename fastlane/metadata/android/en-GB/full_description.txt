@@ -1,0 +1,15 @@
+Rene's Tools for Google Play brings notes, PDF, radio and podcasts together.
+
+• Write notes and checklists with nested lists, search and reminders.
+• Add note widgets and export notes to a folder you choose.
+• Open and share PDF documents using the Android file picker.
+• Find radio stations and listen with lock-screen media controls.
+• Find public podcasts, subscribe, download episodes and resume playback.
+• Optionally use a radio alarm, floating player or cast to your own device.
+• Choose Dutch or English, light or dark mode.
+
+No ads, no Tools account and no analytics SDK. Notes stay on your device; radio and podcasts connect to external services and publishers. You choose what to share or export. Android may create a limited system backup according to your device settings.
+
+This Google Play edition does not include phone call recording, VPN or an AI assistant. Online media requires internet access. Notifications, exact alarms and the floating player use the relevant optional permissions.
+
+Free software under GPL-3.0-or-later: https://github.com/renevanes/renes-tools

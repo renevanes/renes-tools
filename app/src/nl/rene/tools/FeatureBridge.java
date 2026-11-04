@@ -380,6 +380,7 @@ public class FeatureBridge {
             catch (Exception e) { return e.getMessage()==null?"Ordenen lukt niet":e.getMessage(); }
         }
         @JavascriptInterface public void kluisSavePdf(String name,String category) {
+            if (!PlayPolicy.allows(ctx, "kluis")) { a.js("onPdfStored", PdfTools.err(new Exception(PlayPolicy.unavailable(ctx)))); return; }
             new Thread(()->{
                 String result;
                 try { if (!a.kluisOk()) throw new Exception("De kluis is weer op slot. Ontgrendel opnieuw om het document te bewaren.");

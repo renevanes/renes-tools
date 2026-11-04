@@ -1,8 +1,8 @@
 // Play-versie: tools zonder toestemming uit beeld, geen eigen updates. De gewone versie blijft ongewijzigd.
 const { chromium } = require('playwright');
 const assert = (ok, what) => { if (!ok) throw new Error('mislukt: ' + what); console.log('✓ ' + what); };
-const WEG = ['redial', 'sms', 'calls', 'recorder'];
-const TEGEL = { redial: 'tile-redial', sms: 'tile-sms', calls: 'tile-calls', recorder: 'tile-recorder' };
+const WEG = ['redial', 'sms', 'calls', 'recorder', 'vpn', 'ai', 'tracks', 'gebruik', 'auto', 'contacts', 'sleep', 'bank'];
+const TEGEL = Object.fromEntries(WEG.map(t => [t, 'tile-' + t]));
 (async () => {
   const b = await chromium.launch();
   const errs = [];
@@ -38,6 +38,26 @@ const TEGEL = { redial: 'tile-redial', sms: 'tile-sms', calls: 'tile-calls', rec
     assert((await zichtbaar('chk-btn')) === !play, naam + ': knop "Controleren op updates" ' + (play ? 'weg' : 'er'));
     assert(!!(await pg.$('#play-upd')) === play, naam + ': uitleg over Google Play ' + (play ? 'er' : 'niet'));
     if (play) {
+      for (const tool of ['notes', 'pdf', 'radio', 'podcasts']) {
+        await pg.evaluate(n => show(n), tool);
+        assert(await pg.evaluate(() => current) === tool, 'Play: ' + tool + ' bereikbaar');
+      }
+      assert(!await pg.$eval('[onclick="voiceOpen(null)"]', e => e.checkVisibility()), 'Play biedt geen microfoon zonder recht aan');
+      await pg.evaluate(() => { show('notes'); Android._wa.info.dest = false; notesBackup(); });
+      assert(await pg.evaluate(() => Android._wa.info.dest), 'Play: exportmap direct bij notities kiezen');
+      await pg.evaluate(() => { show('pdf'); pdfOutMenu('test.pdf'); });
+      assert(!await pg.locator('#sheet').innerText().then(t => t.includes('Bewaren in documentenkluis')), 'Play: PDF-menu zonder verborgen kluis');
+      await pg.evaluate(() => closeSheet());
+      await pg.evaluate(() => show('setregio'));
+      assert(!await pg.$eval('#rg-home-btn', e => e.checkVisibility()), 'Play: geen onbereikbare plaatskeuze');
+      await pg.evaluate(() => { gsIndex = null; gsBuildIndex(); });
+      assert(await pg.evaluate(() => !gsIndex.some(x => playWeg(x.scr))), 'Play: zoekindex bevat alleen bereikbare functies');
+      for (const name of ['vpn', 'ai', 'auto', 'podspotify', 'herstel', 'onbekend']) {
+        await pg.evaluate(n => { show('home'); show(n); }, name);
+        assert(await pg.evaluate(() => current) === 'home', 'Play: directe route geweigerd ' + name);
+      }
+      await pg.evaluate(() => { Android.openUrl = u => { window.testPrivacy = u; }; openPrivacy(); });
+      assert((await pg.evaluate(() => window.testPrivacy)).endsWith('/privacybeleid-play.md'), 'Play: eigen privacybeleid');
       await pg.evaluate(() => onUpdateStatus({ state: 'play', kind: 'web', manual: true })); await pg.waitForTimeout(80);
       assert(!(await zichtbaar('upd-banner2')), naam + ': geen updatebalk na "updates via Play"');
     }

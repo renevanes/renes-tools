@@ -293,6 +293,7 @@ final class LocalAi {
 
     /** Downloaden: altijd door de app zelf (hervat waar hij was, voortgang in de meldingenbalk). */
     static String download(Context c, Model m) {
+        if (!PlayPolicy.allows(c, "ai")) return PlayPolicy.unavailable(c);
         // Een nieuwe download (niet "verder"): een oud stuk dat nergens meer bij hoort niet hergebruiken
         if (!prefs(c).getBoolean("own_" + m.id, false) && prefs(c).getLong("dl_" + m.id, -1) < 0 && !VERIFYING.containsKey(m.id)) partFile(c, m).delete();
         return downloadApp(c, m);
@@ -304,6 +305,7 @@ final class LocalAi {
      * proberen niet helpt (zoals een verkeerd bestand op de server).
      */
     static synchronized void resumeDownloads(Context c) {
+        if (!PlayPolicy.allows(c, "ai")) return;
         try {
             if (ModelDownloadService.netBlocked(c) != null || !ModelDownloadService.online(c)) return;
             DownloadManager mgr = dm(c);
@@ -344,6 +346,7 @@ final class LocalAi {
      * daarna toch het hele bestand). Ook voor "Verder" na een onderbreking.
      */
     static synchronized String downloadApp(Context c, Model m) {
+        if (!PlayPolicy.allows(c, "ai")) return PlayPolicy.unavailable(c);
         if (ready(c, m)) return "";
         if (VERIFYING.containsKey(m.id) || ModelDownloadService.RUN.containsKey(m.id) || ModelDownloadService.QUEUED.contains(m.id)) return "";
         long free;

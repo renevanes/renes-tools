@@ -1,19 +1,15 @@
-Rene's Tools bundelt handige hulpmiddelen in één app, zonder advertenties en zonder dat je gegevens ongevraagd de telefoon verlaten.
+Rene's Tools voor Google Play bundelt notities, PDF, radio en podcasts in één app.
 
-Wat zit erin
-• Notities met checklists en zoeken, ook als widget
-• PDF's bekijken en ordenen
-• Nederlandse radio en podcasts
-• Muziekherkenning (met een eigen AudD-sleutel)
-• Mijn routes: wandel- en fietsroutes opnemen met een OpenStreetMap-kaart
-• Een lokale assistent en slim zoeken in je notities, volledig op de telefoon (offline AI, na het downloaden van een model)
-• Backups van je contacten, met wijzigingsgeschiedenis
-• VPN met WireGuard en OpenVPN, voor je eigen server of je VPN-aanbieder
-• Een eigen startscherm met weer en snelkoppelingen
+• Maak notities en lijstjes met sublijsten, zoeken en herinneringen.
+• Zet notities als widget op je startscherm en exporteer naar een zelfgekozen map.
+• Open en deel PDF-documenten via de Android-bestandskiezer.
+• Zoek radiozenders en luister met bediening op het vergrendelscherm.
+• Zoek openbare podcasts, abonneer je, download afleveringen en luister verder waar je bleef.
+• Gebruik optioneel een radiowekker, zwevende speler of cast naar je eigen apparaat.
+• Kies Nederlands of Engels, licht of donker.
 
-Privacy
-• Je gegevens blijven op je telefoon, tenzij je zelf een plek kiest (bijvoorbeeld je eigen cloud of Google Drive).
-• Geen advertenties en geen tracking door derden.
+Geen advertenties, geen account bij Tools en geen analyse-SDK. Notities staan lokaal; radio en podcasts verbinden met externe diensten en uitgevers. Je kiest zelf wat je deelt of exporteert. Android kan een beperkte systeemback-up maken volgens je telefooninstellingen.
 
-Vrije software
-De broncode staat openbaar op GitHub (renevanes/renes-tools) onder de GPL-3.0-licentie. Iedereen kan meekijken en bijdragen.
+Deze Google Play-basis bevat geen telefoonopname, VPN of AI-assistent. Internet is nodig voor online media. Meldingen, precieze wekkers en de zwevende speler vragen alleen de bijbehorende optionele toestemming.
+
+Vrije software onder GPL-3.0-or-later: https://github.com/renevanes/renes-tools

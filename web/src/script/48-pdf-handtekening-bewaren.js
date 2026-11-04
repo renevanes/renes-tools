@@ -67,6 +67,7 @@ function pdfSignatureDelete(){
   });
 }
 function pdfKeep(name){
+  if (isPlay()) { toast(t('Deze tool zit niet in de Play-versie')); return; }
   if(pdfKeepPending||pdfBusy)return;
   askInput('Bewaren in documentenkluis','Categorie (mag leeg). De PDF blijft ook onder Gemaakt staan.','PDF','Bewaren',category=>{
     if(category.trim().length>60){toast('Kies een categorie van maximaal 60 tekens');return;}

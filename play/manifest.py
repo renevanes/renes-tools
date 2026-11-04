@@ -1,67 +1,52 @@
 #!/usr/bin/env python3
-"""Maakt het manifest voor de Play-proefbouw uit app/AndroidManifest.xml (dat zelf niet verandert).
-
-- laat toestemmingen weg die in play/indeling.json op 'niet' of 'streng' staan;
-- laat onderdelen weg waarvan android:permission in 'onderdelen_weg' staat;
-- haalt maxSdkVersion weg bij SCHEDULE_EXACT_ALARM (de vervanger van USE_EXACT_ALARM);
-- geeft de content providers een eigen naam (nl.rene.tools.X -> <pakket>.X), zodat de Play-versie naast de
-  GitHub-versie op één telefoon kan staan (taakgroepen ook).
-Gebruik: play/manifest.py <uit-manifest> <pakketnaam>   (drukt de hernoemde authorities af, één per regel: oud nieuw)
-"""
-import json
+"""Genereert het Play-manifest uit de expliciete lijst van rechten en onderdelen in basis.json."""
 import re
 import sys
-from pathlib import Path
+import xml.etree.ElementTree as ET
+from config import ROOT, profile
 
-ROOT = Path(__file__).resolve().parents[1]
-WEG_STATUS = {'niet', 'streng'}
-
-
-def blokken(tekst, tag):
-    """Hele <tag ...>...</tag> of <tag .../> elementen (niet genest binnen dezelfde tag)."""
-    return re.finditer(r'<%s\b(?:[^>]*/>|.*?</%s>)' % (tag, tag), tekst, re.S)
+ANDROID = 'http://schemas.android.com/apk/res/android'
+ET.register_namespace('android', ANDROID)
+ET.register_namespace('tools', 'http://schemas.android.com/tools')
+A = '{' + ANDROID + '}'
 
 
 def main(uit, pakket):
-    ind = json.loads((ROOT / 'play' / 'indeling.json').read_text(encoding='utf-8'))
-    weg_perm = {p for p, s in ind['toestemmingen'].items() if s in WEG_STATUS}
-    weg_onderdeel = {k for k in ind['onderdelen_weg'] if not k.startswith('_')}
-    m = (ROOT / 'app' / 'AndroidManifest.xml').read_text(encoding='utf-8')
-
-    def perm_regel(mt):
-        naam = re.search(r'android:name="android\.permission\.([A-Z_]+)"', mt.group(0))
-        if naam and naam.group(1) in weg_perm:
-            return ''
-        if naam and naam.group(1) == 'SCHEDULE_EXACT_ALARM':
-            return re.sub(r'\s+android:maxSdkVersion="\d+"', '', mt.group(0))
-        return mt.group(0)
-    m = re.sub(r'[ \t]*<uses-permission\b[^>]*/>[ \t]*\n?', perm_regel, m)
-
-    for tag in ('service', 'receiver'):
-        for b in list(blokken(m, tag)):
-            p = re.search(r'android:permission="([^"]+)"', b.group(0))
-            if p and p.group(1) in weg_onderdeel:
-                m = m.replace(b.group(0), '')
-
-    hernoemd = []
-    def auth(mt):
-        oud = mt.group(1)
-        nieuw = pakket + oud[len('nl.rene.tools'):] if oud.startswith('nl.rene.tools.') else oud
-        if nieuw != oud:
-            hernoemd.append((oud, nieuw))
-        return 'android:authorities="%s"' % nieuw
-    m = re.sub(r'android:authorities="([^"]+)"', auth, m)
-
-    # taakgroepen ook een eigen naam, anders kan een scherm in de taak van de GitHub-versie belanden
-    m = re.sub(r'android:taskAffinity="nl\.rene\.tools\.([^"]+)"', lambda t: 'android:taskAffinity="%s.%s"' % (pakket, t.group(1)), m)
-
-    over = sorted(weg_perm & set(re.findall(r'android\.permission\.([A-Z_]+)', m)))
-    over += sorted(p for p in weg_onderdeel if p in m)
-    if over:
-        sys.exit('Nog in het Play-manifest: ' + ', '.join(over))
-    Path(uit).write_text(m, encoding='utf-8')
-    for oud, nieuw in hernoemd:
-        print(oud, nieuw)
+    if not re.fullmatch(r'[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+\.play', pakket):
+        raise ValueError('De Play-pakketnaam moet op .play eindigen')
+    p = profile()
+    tree = ET.parse(ROOT / 'app/AndroidManifest.xml')
+    root = tree.getroot()
+    for item in list(root):
+        if item.tag.startswith('uses-permission'):
+            if item.get(A + 'name') not in p['toestemmingen']:
+                root.remove(item)
+            elif item.get(A + 'name') == 'android.permission.SCHEDULE_EXACT_ALARM':
+                item.attrib.pop(A + 'maxSdkVersion', None)
+    queries = root.find('queries')
+    if queries is not None:
+        for query in list(queries):
+            data = query.find('data')
+            if data is None or data.get(A + 'mimeType') != 'application/pdf':
+                queries.remove(query)
+    app = root.find('application')
+    for item in list(app):
+        if item.tag in ('service', 'receiver', 'activity', 'activity-alias', 'provider'):
+            if item.get(A + 'name') not in p['onderdelen']:
+                app.remove(item)
+                continue
+            affinity = item.get(A + 'taskAffinity', '')
+            if affinity.startswith('nl.rene.tools.'):
+                item.set(A + 'taskAffinity', pakket + affinity[len('nl.rene.tools'):])
+            authority = item.get(A + 'authorities', '')
+            if authority.startswith('nl.rene.tools.'):
+                nieuw = pakket + authority[len('nl.rene.tools'):]
+                item.set(A + 'authorities', nieuw)
+                print(authority, nieuw)
+    app.set(A + 'fullBackupContent', '@xml/play_backup_rules')
+    app.set(A + 'dataExtractionRules', '@xml/play_data_rules')
+    ET.indent(tree, space='    ')
+    tree.write(uit, encoding='utf-8', xml_declaration=True)
 
 
 if __name__ == '__main__':

@@ -195,8 +195,8 @@ adb logcat -c 2>/dev/null || true
 stap 1-start ja -n "$PKG/$LAUNCHER" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
 [ -n "$HOME_ACT" ] && stap 2-home ja -n "$PKG/$HOME_ACT"
 # Een paar andere schermen die van buitenaf te openen zijn
-stap 3-pdf-zonder-bestand ja -n "$PKG/.PdfViewActivity" -a android.intent.action.VIEW
-stap 4-delen-pdf ja -n "$PKG/.PdfShareActivity" -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "Rooktest"
+stap 3-pdf-zonder-bestand ja -n "$PKG/${LAUNCHER%.*}.PdfViewActivity" -a android.intent.action.VIEW
+stap 4-delen-pdf ja -n "$PKG/${LAUNCHER%.*}.PdfShareActivity" -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "Rooktest"
 # Tot slot terug naar het gewone startscherm van Tools: draait de app nog?
 stap 5-terug ja -n "$PKG/$LAUNCHER" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
 

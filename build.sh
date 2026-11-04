@@ -63,6 +63,7 @@ final class Version {
 JAVA
 
 # 3. Resources en manifest
+python3 play/config.py $B/gen/PlayFeatures.java
 $AAPT2 compile --dir app/res -o $B/res.zip
 $AAPT2 link -I $ANDROID_JAR --manifest app/AndroidManifest.xml -A $B/assets \
   --version-code $VERSION_CODE --version-name $VERSION_NAME \

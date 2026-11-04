@@ -56,6 +56,7 @@ public class GebruikShot extends Activity {
 
     /** Start een opname (vanaf de achtergrond, bijv. uit GebruikStore.onUnlock / GebruikAdmin). */
     static void capture(Context c, String reason) {
+        if (!PlayPolicy.allows(c, "unlockPhoto")) return;
         try {
             Intent i = new Intent(c, GebruikShot.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION);
             i.putExtra("reason", reason);
@@ -67,6 +68,7 @@ public class GebruikShot extends Activity {
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        if (!PlayPolicy.allows(this, "unlockPhoto")) { finish(); return; }
         reason = getIntent() != null && getIntent().getStringExtra("reason") != null ? getIntent().getStringExtra("reason") : "ontgrendeld";
         if (Build.VERSION.SDK_INT >= 27) setShowWhenLocked(true);
         else getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);

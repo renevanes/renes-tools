@@ -2,7 +2,8 @@
 """Overzicht: welke toestemmingen uit app/AndroidManifest.xml mogen in een Google Play-versie?
 
 Alleen ter voorbereiding (zie docs/play-store.md). Verandert niets en draait niet in de tests.
-De indeling zelf staat in play/indeling.json (ook gebruikt door build-play.sh).
+De beleidsindeling staat in play/indeling.json. De Play-bouw gebruikt de beperktere allowlist
+in play/basis.json; play/check.py controleert die tegen de werkelijk gebouwde bundel.
 Gebruik: python3 .github/scripts/play-toestemmingen.py
 Afsluitcode 1 als er toestemmingen in het manifest staan die nog niet zijn ingedeeld.
 """

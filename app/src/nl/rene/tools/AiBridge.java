@@ -88,6 +88,7 @@ public class AiBridge extends SleepBridge {
     /** Een vraag stellen: json = {messages:[{role, content}], notes:bool}. Geeft "" of een melding (BUSY: er loopt al een
      *  antwoord); de rest komt via onAi…. */
     @JavascriptInterface public String aiChat(String json) {
+        if (!PlayPolicy.allows(ctx, "ai")) return PlayPolicy.unavailable(ctx);
         final JSONObject req;
         try { req = new JSONObject(json); req.put("solo", a.isSolo()); } catch (Exception e) { return "Ongeldige vraag"; }
         // Twee keer snel op versturen: de tweede vraag wordt geweigerd (er loopt al een antwoord), niet nog eens beantwoord
@@ -163,6 +164,7 @@ public class AiBridge extends SleepBridge {
 
     /** De opdracht in je eigen vraag, of "". */
     @JavascriptInterface public String aiCmd(String q) {
+        if (!PlayPolicy.allows(ctx, "ai")) return "{\"type\":\"none\"}";
         try {
             // "app Jos dat …" is alleen een opdracht als Jos in je contacten staat (anders: "vertel eens dat verhaal")
             AiCommands.Cmd c = AiCommands.parse(q, name -> { try { JSONArray r = contactsNamed(name); return r != null && r.length() > 0; } catch (Throwable t) { return false; } });
@@ -206,6 +208,7 @@ public class AiBridge extends SleepBridge {
      *  WhatsApp-bericht klaarzetten (de app opent met de tekst; versturen doe je zelf). Alles opnieuw nagekeken.
      *  json = {type: timer|wekker|klok|sms|wa, …}. Geeft "" of een melding. */
     @JavascriptInterface public String aiDo(String json) {
+        if (!PlayPolicy.allows(ctx, "ai")) return PlayPolicy.unavailable(ctx);
         final android.content.Intent[] tries;
         String none;
         try {

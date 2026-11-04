@@ -223,6 +223,7 @@ final class Statistiek {
      *  verstuurd, zodat App.log nooit op het netwerk wacht. Lukt het niet, dan gaat dezelfde inhoud de volgende keer
      *  opnieuw onder dezelfde naam (een 422 = die staat er al: dan was het toch aangekomen). */
     static String send(Context c) {
+        if (!PlayPolicy.allows(c, "statistiek")) return PlayPolicy.unavailable(c);
         if (!SENDING.compareAndSet(false, true)) return "Er wordt al verstuurd";
         try {
             SharedPreferences p = prefs(c);

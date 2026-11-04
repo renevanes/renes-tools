@@ -1,128 +1,45 @@
-# Voorbereiding op een Google Play-versie
+# Google Play — basisversie publiceren
 
-Status: **voorbereiding**. Er is nog geen Play-versie en er verandert niets aan de app zoals hij nu via GitHub wordt
-verspreid en bijgewerkt.
+De eerste uitvoering bevat **Notities, PDF, Radio en Podcasts**, pakket `nl.rene.tools.play`. De volledige GitHub-app blijft apart beschikbaar. `play/basis.json` is de expliciete lijst van functies, Android-onderdelen en rechten. Nieuwe functies moeten bewust aan die lijst worden toegevoegd en opnieuw beoordeeld. Uitgesloten: sms/oproeplogboek, telefoonopname, toegankelijkheidsdiensten, apparaatbeheer, stille foto's, locatie, brede bestandstoegang, VPN, AI en de eigen updater.
 
-## Uitgangspunt
+## Bouwen en controleren
 
-- **De GitHub-versie blijft precies zoals hij is**: alle tools, alle toestemmingen en de eigen updater
-  (`update/` op main, binnen ±15 minuten op de telefoon). Die manier van bijwerken bevalt goed en blijft de hoofdroute.
-- Een eventuele Play-versie is een **tweede, aparte uitvoering** van dezelfde broncode, met een eigen naam in de
-  winkel en een eigen applicationId (bijv. `nl.rene.tools.play`). Beide kunnen naast elkaar op één telefoon staan.
-- In die Play-versie zitten alleen de tools die door de Play-beoordeling komen, en daar regelt Google Play de updates.
-  Dat moet: Play-apps mogen zichzelf niet buiten Play om bijwerken.
+```sh
+TOOLS=/pad/naar/toolchain ./build-play.sh
+python3 -m unittest discover -s play -p 'test_*.py'
+```
 
-## Stappen
+De bouw controleert de SHA-256 van bundletool 1.18.3, valideert de AAB en controleert het werkelijke bundelmanifest en de inhoud. Onverwachte rechten, componenten, verkeerde provider-namen of native bestanden laten de bouw falen. De basis bevat geen native bibliotheken; de oude whisper/llama-ABI-bestanden gaan niet mee. Java-bron en providernamen worden in een aparte bouwmap verwerkt. `build.sh` bouwt de volledige versie.
 
-| # | Stap | Raakt de huidige app? | Status |
-|---|---|---|---|
-| 1 | Overzicht van alle toestemmingen en wat Play ervan vindt (hieronder, `play/indeling.json`, `.github/scripts/play-toestemmingen.py`) | nee | klaar |
-| 2 | Overzicht van diensten buiten de telefoon (basis voor privacybeleid en Data safety-formulier) | nee | klaar |
-| 3 | Winkelteksten in `fastlane/metadata/android/nl-NL/` (werkt voor Play én F-Droid) | nee | concept |
-| 4 | Proefbouw `./build-play.sh`: eigen pakket `nl.rene.tools.play`, eigen manifest zonder wat Play niet toestaat, `.aab` | nee (los script, `build.sh` blijft gelijk) | klaar |
-| 5 | Privacybeleid: `docs/privacybeleid.md` (Nederlands, met Engelse samenvatting); in de Play Console de vaste link naar dit bestand op GitHub, of naar GitHub Pages als Rene dat aanzet | nee | klaar (concept) |
-| 6 | Uploadsleutel maken en als geheim bewaren (Rene; Google ondertekent de winkelversie zelf) | nee | nog doen |
-| 7 | In de Play-versie de updater uitzetten en tools verbergen waarvan de toestemming ontbreekt (`66-play-versie.js`, `Updater.viaPlay`) | nee: alleen actief bij pakket `*.play`; wel een nieuwe APK | klaar |
-| 8 | Uitleg vóór gevoelige toestemmingen ("prominent disclosure") | ja, ook in de GitHub-versie (verbetering) | eerst overleggen |
+Workflow **Play-controle** bouwt met een tijdelijke CI-sleutel, installeert de volledige en de Play-app naast elkaar en doet een rooktest op API 24 en 36. De CI-AAB is uitsluitend een testartifact, geen productiebundel. Lokale interface- en Java-tests controleren ook de begrenzing van teruggezette instellingen en verborgen schermen.
 
-## Proefbouw (`./build-play.sh`)
+Voor een echte upload gebruik je een afzonderlijke uploadsleutel, aangemaakt en veilig bewaard door de accounteigenaar:
 
-Maakt `build-play/Renes-Tools-play-vX.Y.aab` uit dezelfde bron, zonder iets aan de gewone bouw, `update/` of de
-telefoon te veranderen:
-- manifest uit `play/manifest.py`: zonder de toestemmingen die in `play/indeling.json` op `niet` of `streng` staan,
-  zonder de toegankelijkheidsdiensten en het apparaatbeheer, `SCHEDULE_EXACT_ALARM` zonder `maxSdkVersion`;
-- pakketnaam `nl.rene.tools.play`, providers en taakgroepen `nl.rene.tools.play.*`, zodat hij naast de GitHub-versie kan staan
-  (de providernamen worden alleen in een kopie van de Java-bron vervangen);
-- `.aab` via aapt2 `--proto-format` en bundletool (vaste versie en SHA-256), gecontroleerd met `bundletool validate`;
-  native bibliotheken worden op de telefoon uitgepakt, want de lokale AI en het uitschrijven starten ze als programma;
-- ondertekend met de uploadsleutel als `PLAY_KS` en `PLAY_KS_PASS_FILE` gezet zijn, anders niet ondertekend.
+```sh
+PLAY_KS=/veilige/plek/upload.p12 \
+PLAY_KS_PASS_FILE=/veilige/plek/wachtwoord \
+PLAY_KS_ALIAS=upload ./build-play.sh
+```
 
-De app herkent de Play-versie aan de pakketnaam (`Updater.viaPlay`: eindigt op `.play`). Dan:
-- geen eigen updates: geen controle bij het openen, `Updater.check` en `downloadAndInstall` doen niets, en bij Versie
-  en updates staat "Updates van deze versie komen via Google Play";
-- `web/src/script/66-play-versie.js` (vóór `29-start.js`) verbergt de tools in `PLAY_WEG` (Auto redial, SMS-backup,
-  Oproepen, Gesprekken opnemen) en weigert ze en hun subschermen te openen (`show`, ook bij het starten via een
-  snelkoppeling, widget, melding of losse app); ze verdwijnen uit Overal zoeken, de instellingen-zoeker, de losse apps
-  en de keuzes bij het app-icoon, en de assistent zegt dat ze er niet in zitten. Bij Gebruik verdwijnen
-  apparaatbeheer en de stille foto's bij ontgrendelen; bij Toestemmingen de regel "Updates installeren".
-- Nog over (alleen in de Play-versie, cosmetisch): ze staan nog in Startscherm aanpassen en in de Telefoon-skin
-  (openen wordt daar ook geweigerd), het overzicht op het startscherm kan een regel Auto redial tonen, en een groep
-  met alleen verborgen tegels houdt zijn kop.
-Tests: `PlayVersieTest` (Java) en `tests/ui/play-versie.test.js` (gewone versie ongewijzigd, Play-versie zonder deze delen).
-Nieuwe tool die een toestemming uit de lijst `niet`/`streng` nodig heeft? Zet hem in `PLAY_WEG`.
+De bouw verifieert de JAR-handtekening. Bewaar sleutel en wachtwoord buiten de repository en gebruik Play App Signing. Kies de definitieve pakketnaam vóór de eerste upload; `PLAY_PAKKET` moet op `.play` eindigen. De versiecode komt uit VERSION en moet bij iedere Play-upload hoger zijn. VERSION wordt door de bestaande publicatieworkflow beheerd. Gebruik nooit de tijdelijke CI-sleutel als productie-identiteit.
 
-Nog niet geschikt voor de winkel: uploadsleutel (stap 6) en uitleg vóór gevoelige
-toestemmingen (stap 8). De proefbouw draait niet in CI; hij is alleen hier gecontroleerd (pakketnaam, toestemmingen en
-providers in een universele APK, `extractNativeLibs` in de gesplitste APK's), niet op een telefoon. De bestanden
-in `res/xml/` van de weggelaten onderdelen gaan nog mee; onschuldig, eventueel later weglaten.
+## Console — nog door de accounteigenaar uit te voeren
 
-## 1. Toestemmingen
+1. Ontwikkelaarsaccount aanmaken/verifiëren; definitieve naam, supportcontact en landen kiezen. Verifieer de eventuele organisatiegegevens. VPN is bewust uitgesteld; die vraagt aanvullende beleidscontrole en een organisatieaccount.
+2. App maken, Play App Signing instellen en de definitieve uploadcertificaatvingerafdruk vastleggen. Eerst intern testen; upload alleen een zelf gecontroleerde, met de echte uploadsleutel ondertekende AAB.
+3. Winkelteksten uit `fastlane/metadata/android/{nl-NL,en-GB}` gebruiken. Voeg echte screenshots van de Play-build, icoon 512×512 en feature graphic 1024×500 toe. CI-schermafdrukken zijn technische controle, geen definitief winkelmateriaal.
+4. Privacy-URL: https://github.com/renevanes/renes-tools/blob/main/docs/privacybeleid-play.md . Open de openbare pagina en de link in de app vóór inzending. Gebruik de [Data safety-werkstaat](play-data-safety.md); beantwoord de actuele Console-vragen tegen de werkelijk ingediende versie.
+5. Geen advertenties; toegang tot de app vereist geen login. Vul doelgroep en IARC-contentclassificatie eerlijk in (openbare radio/podcastinhoud komt van externe uitgevers). Geef de app niet zonder beoordeling op als specifiek kinderproduct.
+6. Declareer foreground-service **mediaPlayback** voor radio/podcasts/cast. Maak een demonstratievideo van door de gebruiker gestart afspelen, achtergrondmelding, pauzeren en stoppen. Onderbouw eventueel de overlay voor de optionele zwevende speler. Geen verklaringen voor VPN, toegankelijkheid, all-files of achtergrondlocatie nodig voor deze basis.
+7. Test fysieke telefoons: installeren naast de volledige versie, bestanden openen/delen, exportmap kiezen, podcasts downloaden/afspelen, widgets, meldingen geweigerd/toegestaan, alarmrecht geweigerd/toegestaan, reboot vóór/na ontgrendeling en herstel van een Android-back-up. De emulatorrooktest bewijst deze hele matrix niet.
+8. Bij een nieuw persoonlijk account kan een gesloten test met minstens 12 testers gedurende 14 aaneengesloten dagen verplicht zijn voordat productietoegang kan worden aangevraagd. Controleer wat de Console voor dit account vraagt. Verwerk het pre-launch report vóór uitrol.
 
-Eerste inschatting van het Play-beleid (november 2026); de Play Console heeft het laatste woord.
-De indeling staat in `play/indeling.json`. `python3 .github/scripts/play-toestemmingen.py` vergelijkt die met `app/AndroidManifest.xml` en meldt
-toestemmingen die nog niet zijn ingedeeld. Het script draait niet in de tests en houdt niemand tegen.
+## Instructies voor de reviewer
 
-- **ok** — gewone toestemming, of een runtime-toestemming die met uitleg aan de gebruiker mag.
-- **verklaring** — mag, maar vraagt een formulier in de Play Console (vaak met een video) en een duidelijke reden die
-  bij de hoofdfunctie van de app past.
-- **streng** — alleen voor een smalle groep apps; voor een verzamel-app als Tools vrijwel kansloos.
-- **niet** — mag niet in een Play-app.
+Geen account, wachtwoord of gekoppelde telefoon nodig. Open Notities en maak een lijst; kies bij Backup maken een map en tik opnieuw op Backup maken. Open een PDF via de systeembestandskiezer. Zoek een radiozender en speel af; sluit de app en stop via de mediamelding. Zoek een podcast, abonneer en speel een aflevering. Internet is nodig voor openbare radio en podcasts. Meldingen, overlay en precieze wekkers zijn optioneel en worden alleen voor de bijbehorende functie gebruikt.
 
-| Toestemming | Play | Gebruikt door |
-|---|---|---|
-| READ_SMS | streng | Sms-backup, zoeken, lokale assistent, facturen |
-| READ_CALL_LOG | streng | Belgeschiedenis(-backup), Auto redial, opnames uitschrijven, zoeken |
-| REQUEST_INSTALL_PACKAGES | niet | eigen updater |
-| USE_EXACT_ALARM | niet (alleen wekker- en agenda-apps) | radiowekker, herinneringen, automatiseringen op tijd |
-| BIND_DEVICE_ADMIN | niet | Gebruik: mislukte ontgrendelingen bijhouden |
-| BIND_ACCESSIBILITY_SERVICE (gespreksopname) | niet | gespreksopname (`CallRecordingAccess`) |
-| BIND_ACCESSIBILITY_SERVICE (automatiseringen) | verklaring, risicovol | Automatiseringen (`AutoA11y`) |
-| ACCESS_BACKGROUND_LOCATION | verklaring + video | Automatiseringen, Apparaten |
-| MANAGE_EXTERNAL_STORAGE | verklaring, streng | WhatsApp-backup en Gesprekken uitschrijven (mappen van andere apps lezen) |
-| SCHEDULE_EXACT_ALARM | verklaring | vervanger van USE_EXACT_ALARM; in een Play-manifest zonder `maxSdkVersion="32"` |
-| FOREGROUND_SERVICE_SPECIAL_USE | verklaring | Auto redial, VPN |
-| FOREGROUND_SERVICE_* (overige typen) | verklaring per type | radio, podcasts, opnemen, backups, locatie |
-| BIND_VPN_SERVICE | verklaring | VPN |
-| PACKAGE_USAGE_STATS | verklaring | schermtijd/gebruik |
-| BIND_NOTIFICATION_LISTENER_SERVICE | ok, gevoelig | meldingsgeschiedenis |
-| SYSTEM_ALERT_WINDOW | ok, gevoelig | zwevende vensters; Gebruik (ontgrendelfoto) |
-| CAMERA (onzichtbare foto bij mislukte ontgrendeling) | niet | Gebruik (`GebruikShot`) |
-| REQUEST_IGNORE_BATTERY_OPTIMIZATIONS | verklaring | taken op de achtergrond |
-| ACCESS_MOCK_LOCATION | ok | Locatie kiezen (gekozen in ontwikkelaarsopties) |
-| overige (internet, contacten, agenda, microfoon, camera, locatie, bluetooth, meldingen, …) | ok | diverse tools |
+## Uitgestelde uitbreidingen
 
-Gevolg voor een Play-variant: sms-backup, belgeschiedenis, Auto redial, gespreksopname, de ontgrendelfoto van Gebruik
-en de updater blijven alleen in de GitHub-versie. Automatiseringen via toegankelijkheid, WhatsApp-backup en Gesprekken
-uitschrijven zijn onzeker.
+AI vereist onder meer een werkende meldfunctie in de app met een echte verwerkingsbestemming en aanvullende controles; er is geen meldserver verzonnen of aan statistieken gekoppeld. VPN vereist account- en VpnService-verklaringen. Locatie, contacten en achtergrondhulpmiddelen krijgen pas een eigen profiel na beoordeling van hun noodzaak, uitleg en herstelgedrag. Play laat opnemen van telefoongesprekken via Accessibility niet toe.
 
-## 2. Diensten buiten de telefoon
-
-Voor het privacybeleid en het Data safety-formulier. Bijna alles gebeurt pas als de gebruiker een tool gebruikt of
-instelt. Uitzonderingen: de updatecontrole (vanzelf, ongeveer elk half uur als de app open is) en het weer op het
-startscherm (laatst bekende locatie).
-
-| Dienst | Waarvoor | Wat gaat erheen |
-|---|---|---|
-| GitHub (raw.githubusercontent.com, api.github.com) | updates; statistieken voor verbeteringen | updates: niets persoonlijks; statistiek: tellingen, telefoonmodel en Android-versie, alleen naar de eigen privé-repository |
-| AudD (api.audd.io) | muziekherkenning | kort geluidsfragment, eigen API-sleutel |
-| Spotify (accounts/api.spotify.com) | Spotify-backup en afspeellijsten | inloggen via Spotify; gegevens komen naar de telefoon, afspeellijsten kunnen worden aangepast |
-| Google (accounts, oauth2, gmail, googleapis, drive) | facturen in Gmail, opslaan in Google Drive, facturen mailen | inloggen via Google; facturen naar eigen Drive; mail naar zelf ingestelde ontvangers |
-| Eigen mailserver (SMTP) | facturen aanleveren | facturen naar zelf ingestelde ontvangers |
-| KPN Zakelijk, Ziggo, Rabobank | facturen en transacties ophalen | inloggen op eigen account; gegevens blijven op de telefoon |
-| OpenStreetMap (tile.openstreetmap.org) | kaarten | kaarttegels van het getoonde gebied |
-| Open-Meteo (api/geocoding-api.open-meteo.com) | weer op het startscherm | coördinaten of plaatsnaam |
-| Apple (itunes.apple.com, rss.applemarketingtools.com) | podcasts zoeken, top 40 | zoekterm |
-| Podcastfeeds en hun servers | afleveringen en afbeeldingen | niets persoonlijks (elke host mogelijk) |
-| radio-browser.info | radiozenders zoeken | zoekterm, telling bij afspelen |
-| Hugging Face (huggingface.co) | AI- en spraakmodellen downloaden | niets persoonlijks |
-| Radiostreams en zenderlogo's (o.a. icecast.omroep.nl) | radio | niets persoonlijks (elke host mogelijk) |
-| Eigen cloud / eigen VPN-server | opslag, VPN | wat de gebruiker zelf instelt |
-
-Bijhouden: komt er een dienst bij, zet hem dan in deze tabel én in `docs/privacybeleid.md`.
-
-## 3. Winkelteksten
-
-`fastlane/metadata/android/nl-NL/` (titel max. 30 tekens, korte beschrijving max. 80, lange max. 4000). Dit is de
-indeling die zowel Play-hulpmiddelen (fastlane) als F-Droid lezen. De lange beschrijving noemt alleen tools die naar
-verwachting in een Play-versie mogen; pas hem aan zodra die keuze vaststaat. Schermafdrukken komen later in
-`images/phoneScreenshots/`.
+Beleidsbronnen (controle 4 november 2026): [targetSdk](https://support.google.com/googleplay/android-developer/answer/11926878), [gebruikersgegevens](https://support.google.com/googleplay/android-developer/answer/10144311), [Data safety](https://support.google.com/googleplay/android-developer/answer/10787469), [FGS](https://support.google.com/googleplay/android-developer/answer/13392821), [AI](https://support.google.com/googleplay/android-developer/answer/13985936), [toegankelijkheid](https://support.google.com/googleplay/android-developer/answer/16558241), [testvereisten](https://support.google.com/googleplay/android-developer/answer/14151465). Goedkeuring door Google en accountverificatie kunnen niet vanuit de repository worden afgerond.

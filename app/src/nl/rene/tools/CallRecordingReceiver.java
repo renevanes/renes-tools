@@ -10,6 +10,7 @@ import android.telephony.TelephonyManager;
 /** Het systeem meldt mobiele oproepen; VoIP-apps worden niet gevolgd. */
 public final class CallRecordingReceiver extends BroadcastReceiver {
     @Override public void onReceive(Context c, Intent intent) {
+        if (!PlayPolicy.allows(c, "recorder")) return;
         if (intent == null) return;
         SharedPreferences prefs = CallRecordings.prefs(c);
         if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {

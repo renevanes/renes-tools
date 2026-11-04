@@ -63,12 +63,12 @@ final class GebruikStore {
     // ---------- instellingen ----------
 
     // Bijhouden staat standaard UIT: pas als Rene het zelf aanzet (startkaart in Gebruik) houdt de app iets bij.
-    static boolean collecting(Context c) { return prefs(c).getBoolean("collect", false); }
+    static boolean collecting(Context c) { return PlayPolicy.allows(c, "gebruik") && prefs(c).getBoolean("collect", false); }
     static int keepDays(Context c) { return prefs(c).getInt("keep", KEEP_DEFAULT); }
     static int detailDays(Context c) { return prefs(c).getInt("detail", DETAIL_DEFAULT); }
-    static boolean photoFail(Context c) { return prefs(c).getBoolean("photoFail", false); }
+    static boolean photoFail(Context c) { return PlayPolicy.allows(c, "unlockPhoto") && prefs(c).getBoolean("photoFail", false); }
     /** Foto bij ontgrendelen: "uit", "elke" (elke ontgrendeling) of "pincode" (alleen met het pincode-signaal). */
-    static String photoUnlockMode(Context c) { String m = prefs(c).getString("punlock", "uit"); return "elke".equals(m) || "pincode".equals(m) ? m : "uit"; }
+    static String photoUnlockMode(Context c) { if (!PlayPolicy.allows(c, "unlockPhoto")) return "uit"; String m = prefs(c).getString("punlock", "uit"); return "elke".equals(m) || "pincode".equals(m) ? m : "uit"; }
     static int photoAfter(Context c) { return prefs(c).getInt("photoAfter", PHOTO_AFTER_DEFAULT); }
     static int photoKeepDays(Context c) { return prefs(c).getInt("photoKeep", PHOTO_KEEP_DEFAULT); }
 

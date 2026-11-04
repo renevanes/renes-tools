@@ -196,20 +196,23 @@ public class MainActivity extends Activity {
         synchronized (ALL) { ALL.add(this); }
         // Een terugzetten dat halverwege stopte (ook als de app vóór het ontgrendelen startte): eerst afmaken of terugdraaien
         if (!isSolo()) AppBackup.recoverIfNeeded(getApplicationContext());
-        RedialService.createChannel(this);
-        WaBackupService.createChannel(this);
-        WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
-        Care.ensureScheduled(this);
-        NotifCenter.ensureAll(this);        // alle soorten meldingen met nette namen in Android         // dagelijks onderhoud: backup-controle (maandelijks) en batterij (wekelijks)
-        AllBackupJob.ensureScheduled(this);
+        PlayPolicy.sanitizePreferences(getApplicationContext());
+        if (!Updater.viaPlay(this)) {
+            RedialService.createChannel(this);
+            WaBackupService.createChannel(this);
+            WaBackupJob.ensureScheduled(this); // houdt de nachtelijke backup gepland
+            Care.ensureScheduled(this);
+            NotifCenter.ensureAll(this);        // alle soorten meldingen met nette namen in Android         // dagelijks onderhoud: backup-controle (maandelijks) en batterij (wekelijks)
+            AllBackupJob.ensureScheduled(this);
+            TranscribeJob.ensureScheduled(this);
+            ApparatenJob.ensure(getApplicationContext(), false); // Apparaten op de achtergrond (alleen als dat aan staat)
+            // Automatiseringen: plekken opnieuw instellen als Android ze kwijt kan zijn (bijv. na geforceerd stoppen op Oppo)
+            if (System.currentTimeMillis() - Auto.prefs(this).getLong("armedAt", 0) > 6 * 3600_000L) Auto.armPlaces(this, true);
+        }
         PodcastDownloads.warm(this);
-        PodcastDownloadJob.schedule(this); // vanzelf downloaden van podcasts (alleen als je dat ergens aanzette)
-        TranscribeJob.ensureScheduled(this);
-        ApparatenJob.ensure(getApplicationContext(), false); // Apparaten op de achtergrond (alleen als dat aan staat)
-        // Automatiseringen: plekken opnieuw instellen als Android ze kwijt kan zijn (bijv. na geforceerd stoppen op Oppo)
-        if (System.currentTimeMillis() - Auto.prefs(this).getLong("armedAt", 0) > 6 * 3600_000L) Auto.armPlaces(this, true);
+        PodcastDownloadJob.schedule(this);
         // Net teruggezet na een herinstallatie: alles opnieuw inplannen en de modellen weer downloaden
-        if (!isSolo()) {
+        if (!isSolo() && !Updater.viaPlay(this)) {
             final Context app = getApplicationContext();
             new Thread(() -> { try { Herstel.afterRestart(app); Herstel.resumeModels(app); } catch (Throwable t) { App.log(app, "HERSTEL", "na start: " + t); } }, "herstel-start").start();
         }
@@ -623,6 +626,7 @@ public class MainActivity extends Activity {
     private boolean granted(String p) { return checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED; }
 
     void requestRedialPermissions() {
+        if (!PlayPolicy.allows(this, "redial")) return;
         java.util.ArrayList<String> l = new java.util.ArrayList<>();
         l.add(Manifest.permission.CALL_PHONE);
         l.add(Manifest.permission.READ_PHONE_STATE);
@@ -879,6 +883,7 @@ public class MainActivity extends Activity {
                 o.put("android", Build.VERSION.RELEASE);
                 o.put("sdk", Build.VERSION.SDK_INT);
                 o.put("play", Updater.viaPlay(ctx));
+                o.put("playTools", new JSONArray(java.util.Arrays.asList(PlayFeatures.TOOLS)));
                 return o.toString();
             } catch (Exception e) { return "{}"; }
         }
@@ -949,6 +954,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String redialStart2(String number, String name, int attempts, int interval,
                                                         int randomMin, int randomMax,
                                                         boolean stopWhenAnswered, boolean speaker) {
+            if (!PlayPolicy.allows(ctx, "redial")) return PlayPolicy.unavailable(ctx);
             if (number == null || number.replaceAll("[^0-9]", "").length() < 3) return "Vul een geldig telefoonnummer in";
             if (ctx.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED)
                 return "Geef eerst toestemming om te bellen";
@@ -1612,6 +1618,7 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public String recorderSetAuto(boolean on) { return AutoCallRecording.setEnabled(ctx, on); }
         @JavascriptInterface public void recorderStart() {
+            if (!PlayPolicy.allows(ctx, "recorder")) { a.js("onRecorderMessage", JSONObject.quote(PlayPolicy.unavailable(ctx))); return; }
             a.h.post(() -> {
                 if (!a.hasWindowFocus()) { a.js("onRecorderMessage", JSONObject.quote("Start de opname vanuit het geopende opnamescherm")); return; }
                 if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED ||
@@ -1882,6 +1889,11 @@ public class MainActivity extends Activity {
                 if (Build.VERSION.SDK_INT >= 33) p.put(perm("notif", Taal.T("Meldingen"), Taal.T("Voortgang en bediening"), has(Manifest.permission.POST_NOTIFICATIONS)));
                 p.put(perm("files", Taal.T("Alle bestanden"), Taal.T("WhatsApp backup, Gesprekken"), hasFilesAccess(ctx)));
                 if (Build.VERSION.SDK_INT >= 26 && !Updater.viaPlay(ctx)) p.put(perm("install", Taal.T("Updates installeren"), Taal.T("Nieuwe app-versies"), ctx.getPackageManager().canRequestPackageInstalls()));
+                if (Updater.viaPlay(ctx)) {
+                    JSONArray filtered = new JSONArray();
+                    for (int i = 0; i < p.length(); i++) if ("notif".equals(p.getJSONObject(i).optString("id"))) filtered.put(p.getJSONObject(i));
+                    p = filtered;
+                }
                 o.put("perms", p);
                 return o.toString();
             } catch (Exception e) { return "{}"; }
@@ -1892,6 +1904,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void permRequest(String id) {
+            if (Updater.viaPlay(ctx) && !"notif".equals(id)) return;
             a.h.post(() -> {
                 String[] p = null;
                 switch (id == null ? "" : id) {
@@ -2143,6 +2156,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public int searchAll(String q) {
             final int id = Search.latest.incrementAndGet();
             final String query = q == null ? "" : q;
+            if (Updater.viaPlay(ctx)) return id;
             Search.pool.execute(() -> Search.run(ctx, query, id, r -> a.js("onSearchAll", r.toString())));
             return id;
         }
@@ -2559,6 +2573,7 @@ public class MainActivity extends Activity {
 
         /** Nu uitvoeren (zonder trigger en voorwaarden), om te testen. */
         @JavascriptInterface public String autoTest(String id) {
+            if (!PlayPolicy.allows(ctx, "auto")) return PlayPolicy.unavailable(ctx);
             JSONObject r = Auto.rule(ctx, id);
             if (r == null) return "Sla de automatisering eerst op";
             if (!Auto.notifOk(ctx) && !"auto".equals(r.optString("mode"))) return "Geef eerst toestemming voor meldingen";

@@ -124,6 +124,9 @@ public final class CallRecorderService extends Service {
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
         lastStartId = startId;
         boolean fg = goForeground(); // altijd eerst, ook als we zo meteen stoppen
+        if (!PlayPolicy.allows(this, "recorder")) {
+            recording = false; busy = false; autoSession = 0; quit(); return START_NOT_STICKY;
+        }
         if (intent == null) { if (recorder == null) quit(); return START_NOT_STICKY; }
         if ("stop".equals(intent.getAction())) { if (recorder != null) finish(null); else quit(); return START_NOT_STICKY; }
         if (recorder != null) return START_NOT_STICKY;

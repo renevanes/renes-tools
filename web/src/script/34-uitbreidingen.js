@@ -37,6 +37,7 @@ function txToNote(asList){
 let voiceFor = null, voiceTmr = null, voiceOpt = null;
 /* opt (bijv. Check-in): {title, done(tekst), models: zonder spraakmodel naar Modellen verwijzen} */
 function voiceOpen(noteId, opt){
+  if (isPlay()) { toast(t('Deze tool zit niet in de Play-versie')); return; }
   voiceFor = noteId; voiceOpt = opt || null;
   $('#voice-t').textContent = voiceOpt && voiceOpt.title ? voiceOpt.title : noteId ? 'Inspreken in deze notitie' : 'Spraaknotitie';
   $('#voice-state').textContent = 'Tik op de microfoon en praat. Tik nog eens als je klaar bent.';

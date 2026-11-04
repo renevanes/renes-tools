@@ -31,6 +31,7 @@ function renderNight(){
 }
 function renderDash(){
   renderNotePins();
+  if (isPlay()) { $('#home-night').style.display = 'none'; $('#home-dash').style.display = 'none'; return; }
   renderNight();
   const box = $('#home-dash'); if (!box) return;
   if (homeCfg().dash === false) { box.style.display = 'none'; return; }

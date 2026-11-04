@@ -320,6 +320,7 @@ function leaveNote(){
   notesSaveNow(); noteCur = null;
 }
 function notesBackup(){
+  if (isPlay() && !JSON.parse(Android.settingsInfo()).dest) { Android.waPickFolder(); toast(t('Kies een map en tik daarna opnieuw op Backup maken')); return; }
   if (!plainOk('De notities', notesBackup)) return;
   if (!notesSaveNow()) return;
   const r = Android.notesExport();

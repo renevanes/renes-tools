@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# PROEFBOUW van een Google Play-versie (.aab). Raakt de gewone app niet: build.sh, app/, web/ en update/ blijven
-# zoals ze zijn; alles gebeurt in build-play/. Zie docs/play-store.md voor wat er nog moet voordat dit naar de winkel kan.
+# Bouwt de Google Play-basis (.aab) in build-play/; de gewone APK en update/ worden niet gewijzigd.
+# Zonder uploadsleutel is dit een proefbouw. Zie docs/play-store.md voor de Console-stappen.
 #
 # Gebruik: ./build-play.sh
 #   Zonder sleutel: een niet-ondertekende .aab (goed om te controleren, niet om te uploaden).
@@ -28,6 +28,7 @@ if [ ! -f "$BUNDLETOOL" ]; then
   mv "$BUNDLETOOL.tmp" "$BUNDLETOOL"
 fi
 
+echo "$BUNDLETOOL_SHA256  $BUNDLETOOL" | sha256sum -c --quiet - || { echo "bundletool: controlegetal klopt niet"; exit 1; }
 # shellcheck source=/dev/null
 source VERSION
 B=build-play
@@ -37,6 +38,7 @@ run() { local log=$B/step.log; "$@" > $log 2>&1; local c=$?; grep -v JAVA_TOOL_O
 
 # 1. Manifest voor Play (zonder toestemmingen en onderdelen die Play niet toestaat; eigen namen voor providers)
 python3 play/manifest.py $B/AndroidManifest.xml "$PAKKET" > $B/authorities.txt
+python3 play/config.py $B/gen/PlayFeatures.java
 
 # 2. Java-bron (kopie) met de nieuwe providernamen
 cp -r app/src/. $B/src/
@@ -54,7 +56,8 @@ s = open('web/index.html', encoding='utf-8').read()
 s = s.replace('__VERSION_NAME__', name).replace('__VERSION_CODE__', code).replace('__CHANGELOG__', log)
 open(b + '/assets/index.html', 'w', encoding='utf-8').write(s)
 PY
-mkdir -p $B/assets/vendor $B/assets/licenties
+mkdir -p $B/assets/vendor $B/assets/licenties $B/assets/taal
+cp web/src/taal/en.json $B/assets/taal/
 cp web/vendor/leaflet.js web/vendor/leaflet.css web/vendor/jsQR.js $B/assets/vendor/
 cp web/ontsleutelen.html web/start.html web/neutraal.html $B/assets/
 cp web/facturen-robot.js web/facturen-leveranciers.json web/bank-robot.js web/bank-banken.json $B/assets/
@@ -91,18 +94,24 @@ run java -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 --release --min-api 24 --l
 
 # 6. Module samenstellen: manifest/, dex/, res/, assets/, lib/, resources.pb
 (cd $B/module && unzip -q ../base-proto.apk && mkdir -p manifest dex && mv AndroidManifest.xml manifest/ && cp ../dex/classes.dex dex/)
-mkdir -p $B/module/lib && cp -r app/lib/. $B/module/lib/ && find $B/module/lib -type f ! -name '*.so' -delete
+if python3 -c 'import sys; sys.path.insert(0,"play"); from config import profile; sys.exit(0 if profile()["native"] else 1)'; then
+  mkdir -p $B/module/lib
+  cp -r app/lib/arm64-v8a $B/module/lib/
+  find $B/module/lib -type f ! -name '*.so' -delete
+fi
 (cd $B/module && zip -q -r ../base.zip .)
 OUT=$B/Renes-Tools-play-v$VERSION_NAME.aab
 # De app start whisper/llama als programma uit nativeLibraryDir: die moeten dus uitgepakt worden (extractNativeLibs)
 echo '{"optimizations":{"uncompressNativeLibraries":{"enabled":false}}}' > $B/bundle-config.json
 run java -jar "$BUNDLETOOL" build-bundle --modules=$B/base.zip --config=$B/bundle-config.json --output="$OUT" || { echo "bundletool mislukt"; exit 1; }
 java -jar "$BUNDLETOOL" validate --bundle="$OUT" > $B/validate.log 2>&1 || { grep -v JAVA_TOOL_OPTIONS $B/validate.log; echo "bundel ongeldig"; exit 1; }
+python3 play/check.py "$OUT" "$BUNDLETOOL" "$PAKKET"
 
 # 7. Ondertekenen met de uploadsleutel (alleen als die is opgegeven)
 if [ -n "${PLAY_KS:-}" ]; then
   run jarsigner -keystore "$PLAY_KS" -storetype PKCS12 -storepass:file "${PLAY_KS_PASS_FILE:?PLAY_KS_PASS_FILE ontbreekt}" \
     -sigalg SHA256withRSA -digestalg SHA-256 "$OUT" "${PLAY_KS_ALIAS:-upload}" || { echo "ondertekenen mislukt"; exit 1; }
+  run jarsigner -verify "$OUT" || { echo "handtekeningcontrole mislukt"; exit 1; }
   echo "OK: $OUT (ondertekend met de uploadsleutel), pakket $PAKKET, versie $VERSION_NAME ($VERSION_CODE)"
 else
   echo "OK: $OUT (niet ondertekend: proefbouw), pakket $PAKKET, versie $VERSION_NAME ($VERSION_CODE)"

@@ -16,7 +16,7 @@ final class AutoCallRecording {
     private static final int NOTICE = 4702;
     private static final String CHANNEL = "auto-call-recording";
     private AutoCallRecording() { }
-    static boolean enabled(Context c) { return CallRecordings.prefs(c).getBoolean("auto", false); }
+    static boolean enabled(Context c) { return PlayPolicy.allows(c, "recorder") && CallRecordings.prefs(c).getBoolean("auto", false); }
     private static boolean permissionsReady(Context c) {
         return c.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED &&
                 c.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED &&
@@ -35,6 +35,7 @@ final class AutoCallRecording {
         } catch (Exception e) { return ""; }
     }
     static synchronized String setEnabled(Context c, boolean on) {
+        if (on && !PlayPolicy.allows(c, "recorder")) return PlayPolicy.unavailable(c);
         if (on && !permissionsReady(c)) return "Geef eerst microfoon- en telefoontoegang en schakel meldingen in";
         if (on && !AutoRecordingPolicy.canShareMicrophone(Build.VERSION.SDK_INT, CallRecordingAccess.ready())) return "Schakel eerst de hulp bij gespreksopname in om de microfoon tijdens bellen te kunnen gebruiken";
         if (on && enabled(c)) return "";

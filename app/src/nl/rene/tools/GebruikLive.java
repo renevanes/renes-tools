@@ -44,6 +44,7 @@ final class GebruikLive {
     private static BroadcastReceiver recv;
 
     static synchronized void start(Context c0) {
+        if (!PlayPolicy.allows(c0, "gebruik")) return;
         if (on) return;
         final Context c = c0.getApplicationContext();
         if (!GebruikStore.collecting(c)) return; // opt-in: niets tot Rene het aanzet

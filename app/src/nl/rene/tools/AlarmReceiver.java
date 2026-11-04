@@ -21,6 +21,9 @@ public class AlarmReceiver extends BroadcastReceiver {
         if (Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(a)) { RadioAlarm.armLocked(c); return; }
         if (RadioAlarm.ACTION_LOCKED.equals(a)) { RadioAlarm.fireLocked(c); return; }
         if (!App.unlocked(c)) return;
+        PlayPolicy.sanitizePreferences(c);
+        if (Updater.viaPlay(c) && (RedialPlan.ACTION.equals(a) || SleepReminder.ACTION.equals(a)
+                || CheckinNotify.ACTION.equals(a) || CheckinNotify.ACTION_ANSWER.equals(a))) return;
         if (ACTION_SENTINEL.equals(a)) { setSentinel(c); return; }
         if (RadioAlarm.ACTION.equals(a)) RadioAlarm.fire(c, false);
         else if (RadioAlarm.ACTION_SNOOZE.equals(a)) RadioAlarm.fire(c, true);
@@ -59,16 +62,18 @@ public class AlarmReceiver extends BroadcastReceiver {
         RadioAlarm.schedule(c);
         RadioAlarm.rearmSnooze(c);
         Reminders.rearm(c);
-        RedialPlan.arm(c);
-        SleepReminder.arm(c);
-        CheckinNotify.arm(c);
-        TranscribeJob.ensureScheduled(c);
+        if (!Updater.viaPlay(c)) {
+            RedialPlan.arm(c);
+            SleepReminder.arm(c);
+            CheckinNotify.arm(c);
+            TranscribeJob.ensureScheduled(c);
+            Auto.armPlaces(c, true);
+            AutoActions.armTimes(c);
+            AutoActions.armCharge(c);
+            Vpn.armAuto(c);
+            MockLoc.cleanupIfStale(c); // na een update of herstart geen gekozen plek laten hangen
+        }
         RadioWidget.refresh(c);
-        Auto.armPlaces(c, true);
-        AutoActions.armTimes(c);
-        AutoActions.armCharge(c);
-        Vpn.armAuto(c);
-        MockLoc.cleanupIfStale(c); // na een update of herstart geen gekozen plek laten hangen
         setSentinel(c);
     }
 
@@ -78,11 +83,13 @@ public class AlarmReceiver extends BroadcastReceiver {
      */
     static synchronized void rearmTimes(Context c) {
         RadioAlarm.schedule(c);
-        RedialPlan.arm(c);
-        SleepReminder.arm(c);
-        CheckinNotify.arm(c);
-        AutoActions.armTimes(c);
-        FacturenJob.schedule(c);
+        if (!Updater.viaPlay(c)) {
+            RedialPlan.arm(c);
+            SleepReminder.arm(c);
+            CheckinNotify.arm(c);
+            AutoActions.armTimes(c);
+            FacturenJob.schedule(c);
+        }
         RadioWidget.refresh(c);
     }
 
@@ -103,6 +110,7 @@ public class AlarmReceiver extends BroadcastReceiver {
     static void ensureArmed(Context c) {
         try {
             if (!App.unlocked(c)) return;
+            PlayPolicy.sanitizePreferences(c);
             synchronized (AlarmReceiver.class) {
                 if (sentinel(c, PendingIntent.FLAG_NO_CREATE) != null) return; // (ook als BOOT_COMPLETED het net deed)
                 App.log(c, "ALARM", "wekkers waren weg (geforceerd gestopt of herstart): opnieuw gezet");

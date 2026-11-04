@@ -61,6 +61,7 @@ public class App extends Application {
         new Thread(() -> { try { VoiceNote.cleanTemp(c, -1, true); } catch (Throwable ignored) { } }, "spraak-opruimen").start();
         // Een terugzetten dat halverwege stopte (app omgevallen): eerst afmaken of terugdraaien, vóór iets anders de gegevens leest
         if (unlocked(c)) { try { AppBackup.recover(c); } catch (Throwable ignored) { } }
+        if (unlocked(c)) PlayPolicy.sanitizePreferences(c);
         // Na geforceerd stoppen zijn alle wekkers weg: bij de eerstvolgende start terugzetten
         new Thread(() -> AlarmReceiver.ensureArmed(c), "rearm").start();
         // Ontsleuteld Slaappraat-geluid van een afgebroken terugzetten niet in de cache laten staan

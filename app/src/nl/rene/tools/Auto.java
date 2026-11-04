@@ -61,6 +61,7 @@ final class Auto {
     static String save(Context c, String json) {
         try {
             JSONObject o = new JSONObject(json);
+            if (!PlayPolicy.allowsRule(c.getPackageName(), o)) return PlayPolicy.unavailable(c);
             String trig = o.optString("trig");
             if (o.optString("name").trim().isEmpty()) return "Geef de automatisering een naam";
             boolean bt = trig.startsWith("bt_"), geo = "arrive".equals(trig) || "leave".equals(trig);
@@ -291,6 +292,7 @@ final class Auto {
 
     /** Uitvoeren; test = via "Nu testen" in de app. */
     static void run(Context c, JSONObject r, String why, boolean test) {
+        if (!PlayPolicy.allowsRule(c.getPackageName(), r)) return;
         String mode = r.optString("mode", "ask");
         if (AutoActions.internal(r)) {
             // Eigen acties (radio, route, notitie, backup, redial): geen app of toegankelijkheid nodig

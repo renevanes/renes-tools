@@ -89,6 +89,7 @@ public class RedialService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         lastStartId = startId;
+        if (!PlayPolicy.allows(this, "redial")) { goForeground(); stopForeground(STOP_FOREGROUND_REMOVE); stopSelfResult(startId); return START_NOT_STICKY; }
         String a = intent != null ? intent.getAction() : null;
         if (ACTION_START.equals(a)) {
             number = intent.getStringExtra("number");

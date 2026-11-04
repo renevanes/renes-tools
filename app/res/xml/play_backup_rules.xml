@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <include domain="file" path="notes.json" />
+    <include domain="sharedpref" path="radio.xml" />
+    <include domain="sharedpref" path="podcast.xml" />
+    <include domain="sharedpref" path="alarm.xml" />
+    <include domain="sharedpref" path="reminders.xml" />
+    <include domain="file" path="podcasts/abonnementen.json" />
+    <include domain="file" path="podcasts/voortgang.json" />
+    <include domain="file" path="podcasts/verder.json" />
+    <include domain="file" path="podcasts/hierna.json" />
+</full-backup-content>

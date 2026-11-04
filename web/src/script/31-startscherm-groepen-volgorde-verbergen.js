@@ -28,7 +28,7 @@ function renderHome(){
   box.innerHTML = '';
   box.classList.toggle('compact', !!c.compact);
   const mk = (name, tools) => {
-    const vis = tools.filter(tk => !c.hidden.includes(tk)); if (!vis.length) return;
+    const vis = tools.filter(tk => !c.hidden.includes(tk) && !playWeg(tk)); if (!vis.length) return;
     const g = document.createElement('div'); g.className = 'hgroup';
     if (name) { const h = document.createElement('h3'); h.textContent = name; g.appendChild(h); }
     const grid = document.createElement('div'); grid.className = 'tiles'+(vis.length===1?' single':'');
@@ -47,6 +47,7 @@ function renderHome(){
 function heName(tk){ return t((TOOLS[tk] || [tk])[0]); }
 function heGroupOf(c, tk){ return c.groups.findIndex(g => g.tools.includes(tk)); }
 function heRow(c, tk, fav){
+  if (playWeg(tk)) return '';
   const nm = heName(tk), off = c.hidden.includes(tk), on = c.fav.includes(tk);
   return '<div class="herow' + (off ? ' off' : '') + '" role="listitem" data-t="' + tk + '">' +
     '<span class="hedrag" aria-hidden="true" title="Slepen">⠿</span>' +
@@ -138,7 +139,7 @@ function heMoveSheet(tk){
 /** "Tool toevoegen" onder een groep: een tool uit een andere groep hierheen halen (blijft open voor nog een). */
 function heAddTo(gi){
   const c = homeCfg(), g = c.groups[gi]; if (!g) return;
-  const others = [].concat(...c.groups.map((x, i) => i === gi ? [] : x.tools.map(tk => [tk, x.name])));
+  const others = [].concat(...c.groups.map((x, i) => i === gi ? [] : x.tools.filter(tk => !playWeg(tk)).map(tk => [tk, x.name])));
   if (!others.length) { toast('Alle tools staan al in deze groep'); return; }
   openSheet(t('Toevoegen aan {groep}', { groep: t(g.name) }), 'Tik op een tool om hem hierheen te halen', [['Klaar', () => {}, 'check']].concat(others.map(([tk, from]) => [t('{naam} (uit {groep})', { naam: heName(tk), groep: t(from) }), () => { const d = homeCfg(); if (heMoveToIn(d, tk, gi)) { heSaveEdit(d, t('{naam} toegevoegd aan {groep}', { naam: heName(tk), groep: t(g.name) })); setTimeout(() => { if (current === 'homeedit' && !$('#sheet').classList.contains('on')) heAddTo(gi); }, 250); } }, 'plus'])));
 }

@@ -136,7 +136,7 @@ function pdfOutMenu(name){
     ['Bekijken', () => Android.pdfOpen(name)],
     ['Delen (bijv. mailen of WhatsApp)', () => Android.pdfShare(JSON.stringify([name]))],
     ['Opslaan als…', () => Android.pdfSave(name)],
-    ['Bewaren in documentenkluis', () => pdfKeep(name)],
+    ...(!isPlay() ? [['Bewaren in documentenkluis', () => pdfKeep(name)]] : []),
     ['Weghalen', () => { Android.pdfDelete(name); pdfRender(); }]]);
 }
 function pdfNames(){ return rdJson(Android.pdfOutputs(), []).map(o => o.name); }

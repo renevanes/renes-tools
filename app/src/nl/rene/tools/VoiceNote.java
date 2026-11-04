@@ -36,6 +36,7 @@ final class VoiceNote {
     static volatile String state = "idle"; // idle, recording, working
 
     static synchronized String start(Context c, Done onAutoStop) {
+        if (!PlayPolicy.allows(c, "ai")) return PlayPolicy.unavailable(c);
         if (rec != null) return "";
         if ("working".equals(state)) return "Even wachten: de vorige spraaknotitie wordt nog uitgeschreven";
         if (!Transcribe.supported()) return "Uitschrijven werkt niet op deze telefoon";
@@ -203,6 +204,7 @@ final class VoiceNote {
 
     /** Zoals start, maar live (niveau en tussentekst). Valt terug op start als AudioRecord niet lukt. */
     static synchronized String startLive(Context c, Done onAutoStop) {
+        if (!PlayPolicy.allows(c, "ai")) return PlayPolicy.unavailable(c);
         if (rec != null || liveOn) return "";
         if ("working".equals(state)) return "Even wachten: de vorige spraaknotitie wordt nog uitgeschreven";
         // Net geannuleerd: eerst het vorige inspreken helemaal afsluiten (de opruimer zou anders de nieuwe opname loslaten)

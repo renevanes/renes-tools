@@ -54,7 +54,7 @@ function pcMenu(){
   const acts = [];
   if (pcSubs.length) acts.push(['↻ Alle podcasts bijwerken', () => pcRefresh()]);
   acts.push(['Instellingen voor downloaden', () => pcDlSettings()]);
-  acts.push(['Uit Spotify overnemen', () => pspOpen()]);
+  if (!isPlay()) acts.push(['Uit Spotify overnemen', () => pspOpen()]);
   openSheet('Podcasts', '', acts);
 }
 function enterPodcasts(){

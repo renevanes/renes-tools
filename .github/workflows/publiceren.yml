@@ -37,8 +37,15 @@ jobs:
     with:
       source_sha: ${{ github.sha }}
 
+  playcontrole:
+    uses: ./.github/workflows/play-controle.yml
+    permissions:
+      contents: read
+    with:
+      source_sha: ${{ github.sha }}
+
   publiceren:
-    needs: telefoontest
+    needs: [telefoontest, playcontrole]
     runs-on: ubuntu-24.04  # vast: een nieuwe Ubuntu mag de publicatie niet ineens stukmaken
     timeout-minutes: 60
     environment: publiceren

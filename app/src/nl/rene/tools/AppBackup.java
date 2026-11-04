@@ -994,7 +994,10 @@ final class AppBackup {
                 if (v == null || !valid(v)) continue;
                 boolean special = "webstore".equals(f) && ("restoreAll".equals(k) || "pending".equals(k) || "replace".equals(k));
                 if (!special && !AppData.keepPref(f, k) && !("spotify".equals(f) && "refresh".equals(k))) continue;
+                if (!PlayPolicy.keepPreference(c.getPackageName(), f, k)) continue;
                 Object x = v.opt("v");
+                if ("auto".equals(f) && "rules".equals(k) && "s".equals(v.optString("t")))
+                    x = PlayPolicy.sanitizeRules(c.getPackageName(), String.valueOf(x));
                 switch (v.optString("t")) {
                     case "b": e.putBoolean(k, (Boolean) x); break;
                     case "i": e.putInt(k, ((Number) x).intValue()); break;
