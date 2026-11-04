@@ -105,6 +105,106 @@ final class FacturenDossier {
         } catch (Throwable ignored) { }
     }
 
+    // ---------- welke documenten horen bij één factuur ----------
+
+    static String nummer(JSONObject s) { JSONObject m = s.optJSONObject("meta"); return m == null ? "" : m.optString("nummer", "").trim().toLowerCase(Locale.ROOT); }
+    static String mailId(JSONObject s) { JSONObject b = s.optJSONObject("bron"); return b == null ? "" : b.optString("mailId", ""); }
+    /** jjjj-mm van de herkende factuurdatum, of "". */
+    static String maand(JSONObject s) { JSONObject m = s.optJSONObject("meta"); String d = m == null ? "" : m.optString("datum", ""); return d.matches("\\d{4}-\\d{2}-\\d{2}") ? d.substring(0, 7) : ""; }
+
+    /**
+     * Per document (sha) de sleutel van de factuur waar het bij hoort. Zelfde leverancier (bij mail: afzender) en
+     * factuurnummer = één factuur (factuur, specificatie, twee keer gedownload). Een document zonder nummer uit dezelfde
+     * mail als een factuur met nummer (bijv. algemene voorwaarden of een bijlage) hoort bij die factuur; documenten zonder
+     * nummer in één mail samen ook. Zelfde regels als fdSamen in 63-facturen.js. Zuiver (getest).
+     */
+    static java.util.Map<String, String> groepen(JSONObject items) {
+        java.util.Map<String, String> uit = new java.util.HashMap<>(), perMail = new java.util.HashMap<>();
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        for (Iterator<String> it = items.keys(); it.hasNext(); ) keys.add(it.next());
+        java.util.Collections.sort(keys); // vaste volgorde
+        // Zelfde nummer maar een andere maand (bijv. een klantnummer dat als factuurnummer is herkend): aparte facturen.
+        // Een document met nummer maar zonder datum hoort bij de eerste factuur met dat nummer.
+        java.util.Map<String, String> eersteMetNr = new java.util.HashMap<>();
+        for (int ronde = 0; ronde < 2; ronde++) for (String k : keys) {
+            JSONObject s = items.optJSONObject(k); if (s == null) continue;
+            String nr = nummer(s), mid = mailId(s), mnd = maand(s);
+            if (nr.isEmpty() || (ronde == 0) == mnd.isEmpty()) continue; // eerst de documenten met datum
+            JSONObject b = s.optJSONObject("bron");
+            String basis = "n|" + s.optString("leverancier") + "|" + (b == null ? "" : b.optString("afzender", "")) + "|" + nr;
+            String g = !mnd.isEmpty() ? basis + "|" + mnd : eersteMetNr.containsKey(basis) ? eersteMetNr.get(basis) : basis;
+            if (!eersteMetNr.containsKey(basis)) eersteMetNr.put(basis, g);
+            uit.put(k, g);
+            if (!mid.isEmpty() && !perMail.containsKey(s.optString("leverancier") + "|" + mid)) perMail.put(s.optString("leverancier") + "|" + mid, g);
+        }
+        for (String k : keys) {
+            JSONObject s = items.optJSONObject(k); if (s == null || uit.containsKey(k)) continue;
+            String mid = mailId(s), lev = s.optString("leverancier");
+            if (!mid.isEmpty()) { String g = perMail.get(lev + "|" + mid); uit.put(k, g != null ? g : "m|" + lev + "|" + mid); }
+            else uit.put(k, "s|" + k);
+        }
+        return uit;
+    }
+
+    /** Hoeveel facturen deze documenten samen zijn. */
+    static int aantal(JSONObject items, java.util.Collection<String> shas) {
+        java.util.Map<String, String> g = groepen(items);
+        java.util.Set<String> s = new java.util.HashSet<>();
+        for (String sha : shas) s.add(g.containsKey(sha) ? g.get(sha) : "s|" + sha);
+        return s.size();
+    }
+
+    /** Hoeveel nieuwe facturen: documenten die bij een factuur horen die er al was (een extra bijlage) tellen niet. */
+    static int aantalNieuw(JSONObject items, java.util.Collection<String> nieuw) {
+        java.util.Map<String, String> g = groepen(items);
+        java.util.Set<String> oud = new java.util.HashSet<>(), s = new java.util.HashSet<>();
+        for (Iterator<String> it = items.keys(); it.hasNext(); ) { String k = it.next(); if (!nieuw.contains(k) && g.containsKey(k)) oud.add(g.get(k)); }
+        for (String sha : nieuw) { String k = g.containsKey(sha) ? g.get(sha) : "s|" + sha; if (!oud.contains(k)) s.add(k); }
+        return s.size();
+    }
+
+    /** Hoeveel facturen (niet documenten) er van deze leverancier zijn. */
+    static int aantalVan(JSONObject items, String lev) {
+        java.util.List<String> l = new java.util.ArrayList<>();
+        for (Iterator<String> it = items.keys(); it.hasNext(); ) { String k = it.next(); JSONObject s = items.optJSONObject(k); if (s != null && lev.equals(s.optString("leverancier"))) l.add(k); }
+        return l.isEmpty() ? 0 : aantal(items, l);
+    }
+
+    /** De datum van een document voor het overzicht: factuurdatum, anders de datum van de mail, anders de dag van ophalen. */
+    static String dag(JSONObject s) {
+        JSONObject m = s.optJSONObject("meta");
+        String d = m == null ? "" : m.optString("datum", "");
+        if (d.matches("\\d{4}-\\d{2}-\\d{2}")) return d;
+        JSONObject b = s.optJSONObject("bron");
+        long t = b != null && b.optLong("maildatum") > 0 ? b.optLong("maildatum") : s.optLong("opgehaald");
+        return t <= 0 ? "" : new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new java.util.Date(t));
+    }
+
+    /**
+     * Per maand (jjjj-mm) hoeveel facturen van deze leverancier, op factuurdatum. Per factuur telt het document met een
+     * bedrag (de factuur zelf), anders het oudste herkende. Zuiver (getest).
+     */
+    static JSONObject maanden(JSONObject items, String lev) {
+        JSONObject uit = new JSONObject();
+        try {
+            java.util.Map<String, String> g = groepen(items);
+            java.util.Map<String, String> maandVan = new java.util.HashMap<>(), metBedrag = new java.util.HashMap<>();
+            for (Iterator<String> it = items.keys(); it.hasNext(); ) {
+                String k = it.next(); JSONObject s = items.optJSONObject(k);
+                if (s == null || !lev.equals(s.optString("leverancier"))) continue;
+                String d = dag(s); if (d.length() < 7) continue;
+                String key = g.containsKey(k) ? g.get(k) : "s|" + k, m = d.substring(0, 7);
+                JSONObject meta = s.optJSONObject("meta");
+                boolean bedrag = meta != null && !meta.optString("bedrag", "").isEmpty() && !meta.optString("datum", "").isEmpty();
+                if (bedrag) { if (!metBedrag.containsKey(key) || m.compareTo(metBedrag.get(key)) < 0) metBedrag.put(key, m); }
+                else if (!maandVan.containsKey(key) || m.compareTo(maandVan.get(key)) < 0) maandVan.put(key, m);
+            }
+            maandVan.putAll(metBedrag);
+            for (String m : maandVan.values()) uit.put(m, uit.optInt(m) + 1);
+        } catch (Exception ignored) { }
+        return uit;
+    }
+
     /** Waar een factuur staat (map, lok, gd, ec): {pad of id, link, t}. */
     static void plek(Context c, String sha, String plek, JSONObject info) {
         try { info.put("t", System.currentTimeMillis()); werkBij(c, sha, new JSONObject().put("plekken", new JSONObject().put(plek, info))); } catch (Exception ignored) { }

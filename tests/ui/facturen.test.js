@@ -167,7 +167,7 @@ const { chromium } = require('playwright');
     ok(plan.schema === 'maand' && plan.dag === 31 && plan.tijd === '06:30' && plan.weekdag === 5 && plan.opnieuw === 6 && plan.wifi === true && plan.meldNieuw === false && plan.meldFout === true, 'planning bewaard: ' + JSON.stringify([plan.dag, plan.tijd, plan.opnieuw, plan.wifi]));
     ok((await pg.textContent('#fa-lijst')).includes('Volgende keer:') && (await pg.textContent('#fa-lijst')).includes('laatste dag om 06:30'), 'lijst: volgende keer en planning');
     // Inzicht: deze maand, overzicht per maand (eigen scherm), geschiedenis
-    ok(await pg.isVisible('#fa-maand') && (await pg.textContent('#fa-maand')).includes('2 facturen binnen'), 'deze maand: 2 facturen binnen');
+    ok(await pg.isVisible('#fa-maand') && (await pg.textContent('#fa-maand')).includes('2 facturen van deze maand'), 'deze maand: 2 facturen van deze maand');
     await pg.screenshot({ path: __dirname + '/shots/facturen-' + scheme + '.png', fullPage: true });
     await pg.click('#s-facturen .strow:has-text("Overzicht per maand")'); await pg.waitForTimeout(150);
     ok(await scherm() === 'facoverz' && await pg.$$eval('#fa-overzicht-lijst tbody tr', r => r.length) === 12 && (await pg.textContent('#fa-overzicht-lijst tbody tr')).includes('✓ 2'), 'overzicht: 12 maanden, deze maand ✓ 2');
