@@ -231,7 +231,7 @@ public class FacturenTest {
             items.put("m1", new JSONObject().put("sha", "m1").put("leverancier", "gm").put("opgehaald", 1_790_000_000_000L).put("bron", new JSONObject().put("mailId", "x1").put("afzender", "K"))
                     .put("meta", new JSONObject().put("nummer", "55").put("datum", "2026-03-10").put("bedrag", "9,95")));
             items.put("m2", new JSONObject().put("sha", "m2").put("leverancier", "gm").put("opgehaald", 1_790_000_000_000L).put("bron", new JSONObject().put("mailId", "x1").put("afzender", "K")).put("meta", new JSONObject()));
-            items.put("m3", new JSONObject().put("sha", "m3").put("leverancier", "gm").put("opgehaald", 1_790_000_000_000L).put("bron", new JSONObject().put("mailId", "x2").put("afzender", "K").put("maildatum", 1_775_000_000_000L)).put("meta", new JSONObject()));
+            items.put("m3", new JSONObject().put("sha", "m3").put("leverancier", "gm").put("opgehaald", 1_790_000_000_000L).put("bron", new JSONObject().put("mailId", "x2").put("afzender", "K").put("maildatum", 1_776_000_000_000L)).put("meta", new JSONObject()));
             java.util.Map<String, String> g = FacturenDossier.groepen(items);
             check(g.get("a").equals(g.get("b")) && !g.get("a").equals(g.get("c")), "zelfde nummer = één factuur (ook als de specificatie een ander bedrag noemt)");
             check(g.get("m1").equals(g.get("m2")) && !g.get("m3").equals(g.get("m1")), "bijlage zonder nummer uit dezelfde mail hoort bij de factuur");
@@ -247,7 +247,7 @@ public class FacturenTest {
             JSONObject mk = FacturenDossier.maanden(items, "kpn");
             check(mk.optInt("2026-01") == 1 && mk.optInt("2026-02") == 1 && mk.length() == 2, "overzicht per maand op factuurdatum: " + mk);
             JSONObject mg = FacturenDossier.maanden(items, "gm");
-            check(mg.optInt("2026-03") == 1 && mg.length() == 2, "mail zonder herkende datum: datum van de mail: " + mg);
+            check(mg.optInt("2026-03") == 1 && mg.optInt("2026-04") == 1 && mg.length() == 2, "mail zonder herkende datum: datum van de mail: " + mg);
         }
 
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
