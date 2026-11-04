@@ -68,13 +68,13 @@ function aiDel(id, stop){
   const m = aiModel(id);
   const go = () => { Android.aiDelete(id); aiRefresh(); };
   if (stop) { go(); return; }
-  askConfirm(m.label + ' verwijderen?', 'Het model (' + aiStateTxt(m).replace('✓ Klaar · ', '') + ') gaat van je telefoon. Je kunt het later opnieuw downloaden.', 'Verwijderen', go);
+  askConfirm(t('{naam} verwijderen?', { naam: t(m.label) }), t('Het model ({wat}) gaat van je telefoon. Je kunt het later opnieuw downloaden.', { wat: aiStateTxt(m).replace(t('✓ Klaar · '), '').replace('✓ Klaar · ', '') }), 'Verwijderen', go);
 }
 function aiUse(id){
-  Android.aiUse(id); aiRefresh(); toast('De assistent gebruikt nu: ' + aiModel(id).label);
+  Android.aiUse(id); aiRefresh(); toast(t('De assistent gebruikt nu: {naam}', { naam: t(aiModel(id).label) }));
   // Een nieuwer model in gebruik genomen: het oude mag weg (vragen, niet vanzelf)
   const m = aiModel(id), old = m.replaces && aiModel(m.replaces);
-  if (old && old.state === 'ready') setTimeout(() => askConfirm(old.label + ' verwijderen?', 'Je gebruikt nu ' + m.label + '. Het oude model (' + aiStateTxt(old).replace('✓ Klaar · ', '') + ') kan weg om ruimte te maken.', 'Verwijderen', () => { Android.aiDelete(old.id); aiRefresh(); toast(old.label + ' verwijderd'); }), 400);
+  if (old && old.state === 'ready') setTimeout(() => askConfirm(t('{naam} verwijderen?', { naam: t(old.label) }), t('Je gebruikt nu {naam}. Het oude model ({wat}) kan weg om ruimte te maken.', { naam: t(m.label), wat: aiStateTxt(old).replace(t('✓ Klaar · '), '').replace('✓ Klaar · ', '') }), 'Verwijderen', () => { Android.aiDelete(old.id); aiRefresh(); toast(t('{naam} verwijderd', { naam: t(old.label) })); }), 400);
 }
 /* Taalmodellen om te tonen: een model dat door een nieuwer vervangen is alleen als je het al hebt (of downloadt) */
 function aiReplaced(id){ return (aiSt.models || []).some(x => x.replaces === id); }
@@ -100,7 +100,7 @@ function aiOldHtml(){
   if (b < 1e6) return '';
   return '<div class="sw"><span>Oude modelbestanden<small>' + esc(fmtNum(b / 1e9, 1) + ' GB van modellen die de app niet meer gebruikt') + '</small></span><button class="mini" onclick="aiCleanOld()">Opruimen</button></div>';
 }
-function aiCleanOld(){ const n = +Android.aiCleanOld() || 0; aiRefresh(); toast(n ? fmtNum(n / 1e9, 1) + ' GB vrijgemaakt' : 'Niets op te ruimen'); }
+function aiCleanOld(){ const n = +Android.aiCleanOld() || 0; aiRefresh(); toast(n ? t('{n} GB vrijgemaakt', { n: fmtNum(n / 1e9, 1) }) : t('Niets op te ruimen')); }
 /* Alles bijwerken wat modellen toont; blijven kijken zolang er gedownload of gecontroleerd wordt */
 function aiRefresh(){
   aiLoad();
@@ -154,7 +154,7 @@ function aiSugg(i){
   if (s[2] && !aiSt.notes) aiToggleNotes();
   const tt = $('#ai-in'); tt.value = s[1]; aiGrow(); tt.focus(); tt.setSelectionRange(tt.value.length, tt.value.length);
 }
-function aiToggleNotes(){ aiSt.notes = !aiSt.notes; Android.aiPref('notes', aiSt.notes); aiRenderMain(); toast(aiSt.notes ? 'De assistent zoekt eerst in je gegevens (' + aiSrcNames() + ')' : 'Zonder je gegevens'); }
+function aiToggleNotes(){ aiSt.notes = !aiSt.notes; Android.aiPref('notes', aiSt.notes); aiRenderMain(); toast(aiSt.notes ? t('De assistent zoekt eerst in je gegevens ({wat})', { wat: aiSrcNames() }) : t('Zonder je gegevens')); }
 /* Tabbalk weg tijdens het typen (zie stijl.css: ai-typing); pas 0,4 s na het typen terug */
 (function(){
   const tt = document.getElementById('ai-in'); if (!tt) return; let tm = null;
@@ -197,12 +197,14 @@ function aiSendOrStop(){
   $('#ai-in').value = ''; aiGrow();
   // Een duidelijke opdracht (timer, wekker, radio, bericht …) of een feitenvraag over je eigen gegevens: de app zelf,
   // met een kaart om te bevestigen (61-assistent-acties.js). Alleen je eigen vraag, nooit tekst van anderen of van het model.
-  const c = typeof aiCmdFor === 'function' ? aiCmdFor(q) : null;
+  // In het Engels: eerst omzetten naar de Nederlandse vorm die de opdrachten kennen (59b-assistent-engels.js)
+  const qc = typeof aiCmdQ === 'function' ? aiCmdQ(q) : q;
+  const c = typeof aiCmdFor === 'function' ? aiCmdFor(qc) : null;
   if (c) { aiLocalAnswer(c, v); return; }
-  const d = typeof aiDataFor === 'function' ? aiDataFor(q) : null;
+  const d = typeof aiDataFor === 'function' ? aiDataFor(qc) : null;
   if (d) { aiLocalAnswer(d, v); return; }
   // Een vraag over de instellingen van de app: soms zonder taalmodel (opdracht, opzoeken), soms met de instellingen erbij
-  const h = typeof setHandle === 'function' ? setHandle(q) : null;
+  const h = typeof setHandle === 'function' ? setHandle(qc) : null;
   if (h && h.local) { aiLocalAnswer(h, v); return; }
   if (!aiChatReady()) { aiLocalAnswer({ text: 'Daarvoor is een taalmodel nodig: download er hierboven een (eenmalig). Opdrachten zoals "zet een timer van 10 minuten", vragen als "hoeveel schermtijd vandaag" en vragen over de instellingen van de app, zoals "zet de nachtelijke backup aan", kan ik ook zonder.' }, v); return; }
   if (aiAsk(h) === 'bezig') { aiChat.msgs.pop(); $('#ai-in').value = q; aiFromVoice = v; aiGrow(); aiRenderMsgs(); }
@@ -609,9 +611,10 @@ function aiSrcToggle(k){
   if (on && aiReady('zoek') && !facts) aiIdx = { busy: true, done: 0, total: 0 };
   aiRenderData(); aicRender();
   const one = k === 'wa' || k === 'sleep' || k === 'checkin' || k === 'gebruik';
-  if (facts) { toast(on ? s[1] + (one ? ' doet' : ' doen') + ' mee: de assistent kan nu vragen daarover beantwoorden' : s[1] + (one ? ' doet' : ' doen') + ' niet meer mee'); return; }
-  toast(on ? s[1] + (one ? ' doet' : ' doen') + ' mee' + (aiReady('zoek') ? ': wordt op de achtergrond aan de zoekindex toegevoegd' : '')
-    : s[1] + (one ? ' doet niet meer mee en gaat' : ' doen niet meer mee en gaan') + ' uit de zoekindex');
+  const wat = t(s[1]);
+  if (facts) { toast(on ? t('{wat} doet mee: de assistent kan nu vragen daarover beantwoorden', { wat }) : t('{wat} doet niet meer mee', { wat })); return; }
+  toast(on ? (aiReady('zoek') ? t('{wat} doet mee: wordt op de achtergrond aan de zoekindex toegevoegd', { wat }) : t('{wat} doet mee', { wat }))
+    : t('{wat} doet niet meer mee en gaat uit de zoekindex', { wat }));
 }
 /* Na "Toestemming geven": de lijst bijwerken (en de index haalt het er vanzelf bij) */
 (function(){

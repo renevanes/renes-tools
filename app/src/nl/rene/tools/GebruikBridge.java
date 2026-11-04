@@ -65,7 +65,7 @@ public class GebruikBridge extends LocBridge {
     @JavascriptInterface public void gebruikOpenAccess() {
         a.h.post(() -> {
             try { a.startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
-            catch (Exception e) { try { a.startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)); } catch (Exception x) { Toast.makeText(a, "Open Instellingen → Toegang tot gebruik", Toast.LENGTH_LONG).show(); } }
+            catch (Exception e) { try { a.startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)); } catch (Exception x) { Toast.makeText(a, Taal.tx(a, "Open Instellingen → Toegang tot gebruik"), Toast.LENGTH_LONG).show(); } }
         });
     }
 
@@ -73,7 +73,7 @@ public class GebruikBridge extends LocBridge {
     @JavascriptInterface public void gebruikOpenOverlay() {
         a.h.post(() -> {
             try { a.startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + ctx.getPackageName()))); }
-            catch (Exception e) { Toast.makeText(a, "Open Instellingen → Boven andere apps tonen", Toast.LENGTH_LONG).show(); }
+            catch (Exception e) { Toast.makeText(a, Taal.tx(a, "Open Instellingen → Boven andere apps tonen"), Toast.LENGTH_LONG).show(); }
         });
     }
 
@@ -92,7 +92,7 @@ public class GebruikBridge extends LocBridge {
                     if (dpm != null) dpm.removeActiveAdmin(GebruikStore.admin(ctx));
                     a.js("onGebruik", "\"admin\"");
                 }
-            } catch (Exception e) { Toast.makeText(a, "Dat lukt niet", Toast.LENGTH_SHORT).show(); }
+            } catch (Exception e) { Toast.makeText(a, Taal.tx(a, "Dat lukt niet"), Toast.LENGTH_SHORT).show(); }
         });
     }
 

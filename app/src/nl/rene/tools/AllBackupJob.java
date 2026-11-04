@@ -62,10 +62,10 @@ public class AllBackupJob extends JobService {
         android.content.Intent open = new android.content.Intent(c, MainActivity.class).putExtra("open", "backup")
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
         NotifCenter.post(c, 4204,
-                b.setSmallIcon(R.drawable.ic_backup).setContentTitle("Nachtelijke backup: " + failed + (failed == 1 ? " onderdeel" : " onderdelen") + " mislukt")
+                Taal.n(c, b.setSmallIcon(R.drawable.ic_backup).setContentTitle("Nachtelijke backup: " + failed + (failed == 1 ? " onderdeel" : " onderdelen") + " mislukt")
                         .setContentText(first == null ? "" : first).setAutoCancel(true)
                         .setContentIntent(android.app.PendingIntent.getActivity(c, 24, open,
-                                android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT)).build());
+                                android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT)).build()));
     }
 
     /**

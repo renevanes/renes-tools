@@ -166,7 +166,7 @@ public class ModelDownloadService extends Service {
         if (m == null) return;
         String blocked = netBlocked(this);
         if (blocked != null) {
-            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, notif("AI-model: " + m.label, blocked, -1));
+            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, Taal.n(this, notif("AI-model: " + m.label, blocked, -1)));
             blocked = waitForNet(id);
             if (STOP.remove(id)) return;
             if (blocked != null) { LocalAi.ownFailed(this, id, blocked); return; }
@@ -183,7 +183,7 @@ public class ModelDownloadService extends Service {
                 netAt[0] = now; net[0] = netBlocked(this);
                 // Mag het netwerk niet meer (wifi weg, nu mobiel internet): even wachten of wifi terugkomt
                 if (net[0] != null) {
-                    ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, notif("AI-model: " + m.label, net[0], -1));
+                    ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, Taal.n(this, notif("AI-model: " + m.label, net[0], -1)));
                     net[0] = waitForNet(id);
                     netAt[0] = System.currentTimeMillis();
                 }
@@ -200,7 +200,7 @@ public class ModelDownloadService extends Service {
                     lastNotif = now;
                     int pct = total > 0 ? (int) (done * 100 / total) : -1;
                     ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,
-                            notif("AI-model: " + m.label, (pct >= 0 ? pct + "% · " : "") + Regio.gbDecimal(this, done) + " van " + Regio.gbDecimal(this, total), pct));
+                            Taal.n(this, notif("AI-model: " + m.label, (pct >= 0 ? pct + "% · " : "") + Regio.gbDecimal(this, done) + " van " + Regio.gbDecimal(this, total), pct)));
                 }
             }, stopNow);
             RUN.remove(id);
@@ -269,7 +269,7 @@ public class ModelDownloadService extends Service {
 
     static void createChannel(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "Modellen downloaden", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(c, "Modellen downloaden"), NotificationManager.IMPORTANCE_LOW);
         ch.setDescription("Voortgang als de app zelf een AI-model downloadt");
         ((NotificationManager) c.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(ch);
     }

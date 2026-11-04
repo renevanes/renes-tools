@@ -13,8 +13,6 @@
  * In het Nederlands doet dit niets: het woordenboek wordt niet eens gelezen.
  * tests/ui/taal-dekking.test.js controleert dat elke tekst een Engelse vertaling heeft (zie AGENTS.md). */
 var TAAL = { on: false, d: null, obs: null, busy: false };
-/* Hoe een sleutel eruitziet: witruimte samengevoegd, zonder zachte afbreekstreepjes, zonder spaties aan de randen */
-function taalNorm(s){ return String(s).replace(/­/g, '').replace(/[ \t\r\n]+/g, ' ').trim(); }
 function taalDict(){
   if (!TAAL.d) {
     let d = {};
@@ -24,6 +22,9 @@ function taalDict(){
   return TAAL.d;
 }
 function taalId(){ try { return rgCfg().lang === 'en' ? 'en' : 'nl'; } catch (e) { return 'nl'; } }
+/* taal-kern: begin — dit blok staat letterlijk ook in web/start.html (de Telefoon-skin); taal-dekking.test.js vergelijkt ze */
+/* Hoe een sleutel eruitziet: witruimte samengevoegd, zonder zachte afbreekstreepjes, zonder spaties aan de randen */
+function taalNorm(s){ return String(s).replace(/\u00ad/g, '').replace(/[ \t\r\n]+/g, ' ').trim(); }
 /* Vul {naam} in (alleen namen die in v staan) */
 function taalFill(s, v){ return v ? String(s).replace(/\{(\w+)\}/g, (m, k) => Object.prototype.hasOwnProperty.call(v, k) && v[k] != null ? String(v[k]) : m) : s; }
 /* De vertaling van een sleutel, of undefined; houdt de witruimte aan de randen van de oorspronkelijke tekst vast */
@@ -130,6 +131,7 @@ function taalObserve(recs){
   finally { TAAL.busy = false; taalObs().takeRecords(); }
 }
 function taalObs(){ return TAAL.obs || (TAAL.obs = new MutationObserver(taalObserve)); }
+/* taal-kern: eind */
 /* Alles terug naar de Nederlandse brontekst (wat nog vertaald in beeld staat) */
 function taalRestore(root){
   const tw = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);

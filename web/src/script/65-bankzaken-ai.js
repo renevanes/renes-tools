@@ -73,7 +73,7 @@ window.onBankAiStatus = function(s){ if (bk.aiDoel === 'categorie') { $('#bk-ai-
 window.onBankAiToken = function(tt){
   if (!bk.store) return;
   bk.aiTekst += String(tt || '');
-  if (bk.aiDoel === 'categorie') { $('#bk-ai-cat-uit').textContent = 'Bezig… (' + bk.aiTekst.split('\n').length + ' regels)'; return; }
+  if (bk.aiDoel === 'categorie') { $('#bk-ai-cat-uit').textContent = t('Bezig… ({n} regels)', { n: bk.aiTekst.split('\n').length }); return; }
   $('#bk-ai-uit').textContent = bkSchoon(bk.aiTekst); // altijd als tekst, nooit als HTML
 };
 window.onBankAiDone = function(info){

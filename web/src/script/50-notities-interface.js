@@ -22,7 +22,7 @@ function noteUiSummaries(){
   const r=n.repeat,option=$('#note-repeat').selectedOptions[0];
   $('#note-repeat-summary').textContent=r&&r.every?(option?option.textContent:'Herhalen staat aan'):'Niet herhalen';
   const count=$('#note-rem-list').children.length;
-  $('#note-rem-summary').textContent=count?count+(count===1?' herinnering ingesteld':' herinneringen ingesteld'):'Nog geen herinneringen';
+  $('#note-rem-summary').textContent=count?tn(count,'{n} herinnering ingesteld','{n} herinneringen ingesteld'):t('Nog geen herinneringen');
   $('#note-pin-summary').textContent=$('#note-pin-app').checked?'Vastgezet op het app-startscherm':'Snel openen vanaf je startscherm';
 }
 function notesFilter(scope){

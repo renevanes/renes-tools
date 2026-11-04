@@ -95,7 +95,7 @@ public class FacturenBridge extends GebruikBridge {
         if (meekijken && !"mail".equals(lev.optString("soort"))) { // facturen uit de mail: niets om naar te kijken
             a.h.post(() -> {
                 try { a.startActivity(new Intent(a, FacturenActivity.class).putExtra("id", id)); }
-                catch (Exception e) { Toast.makeText(a, "Openen lukt niet", Toast.LENGTH_SHORT).show(); }
+                catch (Exception e) { Toast.makeText(a, Taal.tx(a, "Openen lukt niet"), Toast.LENGTH_SHORT).show(); }
             });
             return "";
         }
@@ -126,8 +126,8 @@ public class FacturenBridge extends GebruikBridge {
                 byte[] b = new byte[32768]; int n; while ((n = in.read(b)) != -1) o.write(b, 0, n);
             }
             Intent v = new Intent(ctx, PdfViewActivity.class).setData(PdfProvider.uri(kopie)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            a.h.post(() -> { try { a.startActivity(v); } catch (Exception e) { Toast.makeText(a, "Openen lukt niet", Toast.LENGTH_SHORT).show(); } });
-        } catch (Exception e) { a.h.post(() -> Toast.makeText(a, "Factuur niet gevonden", Toast.LENGTH_SHORT).show()); }
+            a.h.post(() -> { try { a.startActivity(v); } catch (Exception e) { Toast.makeText(a, Taal.tx(a, "Openen lukt niet"), Toast.LENGTH_SHORT).show(); } });
+        } catch (Exception e) { a.h.post(() -> Toast.makeText(a, Taal.tx(a, "Factuur niet gevonden"), Toast.LENGTH_SHORT).show()); }
     }
 
     /** Eigen Cloud koppelen: {url, gebruiker, adres, wachtwoord (leeg = ongewijzigd)}. Geeft "" of een fout. */

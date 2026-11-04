@@ -92,7 +92,7 @@ public final class CallRecorderService extends Service {
         if (isFg) return true;
         try {
             if (Build.VERSION.SDK_INT >= 26) {
-                NotificationChannel channel = new NotificationChannel(CHANNEL, "Gespreksopname", NotificationManager.IMPORTANCE_LOW);
+                NotificationChannel channel = new NotificationChannel(CHANNEL, Taal.t(this, "Gespreksopname"), NotificationManager.IMPORTANCE_LOW);
                 channel.setDescription("Zichtbare melding zolang de microfoonopname loopt, met een stopknop");
                 getSystemService(NotificationManager.class).createNotificationChannel(channel);
             }
@@ -104,8 +104,8 @@ public final class CallRecorderService extends Service {
             Notification n = builder.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Microfoonopname actief")
                     .setContentText("Tools neemt geluid via de microfoon op").setOngoing(true).setOnlyAlertOnce(true)
                     .setWhen(System.currentTimeMillis()).setUsesChronometer(true).setContentIntent(content).addAction(android.R.drawable.ic_media_pause, "Stoppen en opslaan", stop).build();
-            if (Build.VERSION.SDK_INT >= 30) startForeground(NOTIFICATION, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
-            else startForeground(NOTIFICATION, n);
+            if (Build.VERSION.SDK_INT >= 30) startForeground(NOTIFICATION, Taal.n(this, n), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+            else startForeground(NOTIFICATION, Taal.n(this, n));
             isFg = true;
             return true;
         } catch (Exception e) {

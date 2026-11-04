@@ -145,7 +145,10 @@ final class AiSettings {
     }
 
     /** Wat het model achter de vraag meekrijgt. */
-    static String prompt(List<Entry> entries) {
+    static String prompt(List<Entry> entries) { return prompt(entries, false); }
+
+    /** en = de app staat in het Engels: dan ook het antwoord in het Engels. */
+    static String prompt(List<Entry> entries, boolean en) {
         StringBuilder s = new StringBuilder("Als de vraag over de app Tools gaat, horen deze instellingen van de app er misschien bij; gebruik dan alleen deze gegevens en verzin geen andere instellingen, schermen of waarden. Gaat de vraag niet over de app, negeer deze lijst dan en beantwoord de vraag gewoon.\n");
         int i = 1;
         boolean change = false;
@@ -168,7 +171,7 @@ final class AiSettings {
             if (!e.desc.isEmpty()) s.append(" · ").append(clean(e.desc, 220));
             s.append('\n');
         }
-        s.append("Antwoord kort in het Nederlands en zeg waar de gebruiker het vindt.");
+        s.append(en ? "Antwoord kort in het Engels (English) en zeg waar de gebruiker het vindt." : "Antwoord kort in het Nederlands en zeg waar de gebruiker het vindt.");
         if (change) s.append(" Vraagt de gebruiker iets te veranderen, zeg dan in één korte zin wat je voorstelt (de gebruiker bevestigt het zelf met een knop, dus zeg niet dat het al gedaan is) en eindig je antwoord met één regel per wijziging, precies zo:\n")
                 .append("[[instelling: id = waarde]]\n")
                 .append("Gebruik alleen een id en een waarde uit de lijst. Wil de gebruiker niets veranderen, zet dan geen regel.");

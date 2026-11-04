@@ -18,7 +18,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const SRC = path.join(ROOT, 'web', 'src');
 const rd = p => fs.readFileSync(p, 'utf8');
-const norm = s => String(s).replace(/­/g, '').replace(/[ \t\r\n]+/g, ' ').trim();
+const norm = s => String(s).replace(/\u00ad/g, '').replace(/[ \t\r\n]+/g, ' ').trim();
 const hasLetters = s => /\p{L}{2}/u.test(s);
 
 /* ---------- JavaScript: letterlijke tekenreeksen met hun plek en buren ---------- */

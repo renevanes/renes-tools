@@ -16,7 +16,7 @@ function noteListLocation(){
   const row=noteListTree(notesGet()).find(r=>r.n.id===n.id),parent=row&&row.parent!==null?noteById(row.parent):null;
   const location=$('#note-list-location');location.replaceChildren();
   if(parent){
-    const b=document.createElement('button');b.textContent='↰ '+(parent.title||'Zonder titel');b.onclick=()=>{if(notesSaveNow())openNote(parent.id);};
+    const b=document.createElement('button');b.textContent='↰ '+(parent.title||t('Zonder titel'));b.onclick=()=>{if(notesSaveNow())openNote(parent.id);};
     b.setAttribute('aria-label',t('Bovenliggende lijst: {titel}', { titel: parent.title||t('Zonder titel') }));location.appendChild(b);
   }else location.textContent='Losse lijst';
   $('#note-list-swap').hidden=!parent;
@@ -24,7 +24,7 @@ function noteListLocation(){
   $('#note-child-list').replaceChildren();
   for(const r of children){
     const b=document.createElement('button');b.className='note-child';b.dataset.noteId=r.n.id;
-    const title=document.createElement('strong');title.textContent='▤ '+(r.n.title||'Zonder titel');
+    const title=document.createElement('strong');title.textContent='▤ '+(r.n.title||t('Zonder titel'));
     const sub=document.createElement('small'),items=r.n.items||[];
     sub.textContent=items.length?t('{n} van {totaal} items open', { n: items.filter(i=>!i.done).length, totaal: items.length }):t('Open deze lijst');
     b.append(title,sub);b.onclick=()=>{if(notesSaveNow())openNote(r.n.id);};$('#note-child-list').appendChild(b);
@@ -89,7 +89,7 @@ function noteMoveChoices(){
     const b=document.createElement('button');b.className='note-move-choice';b.dataset.target=c.id===null?'':c.id;
     b.setAttribute('aria-pressed',String(s.selected===c.id));b.disabled=c.current;
     const title=document.createElement('strong');title.textContent=(s.selected===c.id?'✓ ':'')+c.title;
-    const sub=document.createElement('small');sub.textContent=c.current?'Huidige plek':('› '.repeat(Math.min(c.depth||0,4))+c.sub);
+    const sub=document.createElement('small');sub.textContent=c.current?t('Huidige plek'):('› '.repeat(Math.min(c.depth||0,4))+c.sub);
     b.append(title,sub);b.onclick=()=>{
       s.selected=c.id;
       if(s.kind==='attach'){const source=noteById(c.id);if(source)s.parents.set(c.id,source.parentNoteId||null);}

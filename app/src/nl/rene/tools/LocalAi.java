@@ -267,6 +267,23 @@ final class LocalAi {
         return s.toString();
     }
 
+    /** Zoals buildSystem, maar in het Engels: als de app in het Engels staat (Regio en taal). Puur (getest in TaalTest). */
+    static String buildSystemEn(String today, String style, String lang, String about, String instr, List<String> mem, String note) {
+        StringBuilder s = new StringBuilder("You are the offline assistant in the app Tools. You run entirely on the user's phone, without internet. ");
+        if ("auto".equals(lang)) s.append("Answer in the same language as the question. ");
+        else s.append("Always answer in English, unless the user asks for another language. ");
+        if ("kort".equals(style)) s.append("Keep your answers short and to the point: a few sentences, only what matters most. ");
+        else if ("uitgebreid".equals(style)) s.append("Give detailed, thorough answers with explanations, examples and a clear structure. ");
+        else s.append("Be clear, helpful and concise; use bullet points when that helps. ");
+        s.append("You have no internet and no up-to-date information: say so honestly when needed, and never make up facts. Today is ").append(today).append('.');
+        if (about != null && !about.isEmpty()) s.append("\n\nAbout the user (filled in by the user):\n").append(about);
+        if (instr != null && !instr.isEmpty()) s.append("\n\nHow the user wants you to answer:\n").append(instr);
+        String ms = AiMemory.section(mem);
+        if (!ms.isEmpty()) s.append("\n\n").append(ms);
+        if (note != null && !note.isEmpty()) s.append("\n\n").append(note);
+        return s.toString();
+    }
+
     static boolean wifiOnly(Context c) { return prefs(c).getBoolean("wifiOnly", true); }
 
     // ---------- downloaden (Android DownloadManager: gaat door op de achtergrond en hervat zelf) ----------
@@ -645,8 +662,11 @@ final class LocalAi {
     }
 
     static String systemPrompt(Context c, int ctx, List<String> mem, String note) {
-        String today = new java.text.SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL")).format(new java.util.Date());
+        boolean en = Taal.en(c);
+        String today = new java.text.SimpleDateFormat("EEEE d MMMM yyyy", en ? Locale.UK : new Locale("nl", "NL")).format(new java.util.Date());
         String[] p = persFit(cfg(c, "about"), cfg(c, "instr"), ctx);
+        // App in het Engels (Regio en taal): de opdracht aan het model en de antwoorden in het Engels
+        if (en) return buildSystemEn(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1], mem, note);
         return buildSystem(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1], mem, note);
     }
 
@@ -899,7 +919,7 @@ final class LocalAi {
             // Achter de vraag, niet in de vaste instructie: die blijft zo gelijk en de motor hoeft het gesprek niet opnieuw in te lezen
             final String questionF = question;
             if (actWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiActions.prompt(System.currentTimeMillis(), java.util.TimeZone.getDefault()) + ")");
-            if (setWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiSettings.prompt(setOffer) + ")");
+            if (setWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiSettings.prompt(setOffer, Taal.en(c)) + ")");
             else if (req.optBoolean("noDo") && remember == null && forgetWhat == null && !hasAtt && !actWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiSettings.NO_DO + ")");
             final boolean willLearn = learnWanted;
             // Antwoordlengte; met een bijlage hooguit 700 woordjes (ook bij doorvragen) en de bijlage zelf passend gemaakt:

@@ -268,7 +268,7 @@ function bkTijdBewaken(){
     let s; try { s = JSON.parse(Android.bankState()); } catch (e) { s = { open: false }; }
     if (!s.open) { bkToestand(); toast('Bankzaken is op slot gegaan'); return; }
     const min = Math.ceil(s.left / 60000);
-    $('#bk-tijd').textContent = 'Gaat op slot over ' + min + (min === 1 ? ' minuut' : ' minuten') + ' zonder gebruik, en zodra je de app verlaat.';
+    $('#bk-tijd').textContent = tn(min, 'Gaat op slot over {n} minuut zonder gebruik, en zodra je de app verlaat.', 'Gaat op slot over {n} minuten zonder gebruik, en zodra je de app verlaat.');
   }, 10000);
 }
 document.addEventListener('pointerdown', ev => {
@@ -308,7 +308,7 @@ function bkRender(){
   if (leeg) { $('#bk-overzicht').replaceChildren(); $('#bk-lijst').replaceChildren(); $('#bk-periode-txt').textContent = ''; return; }
   const [van, tot, label] = bkPeriodeVan();
   let laatste = ''; for (const tt of bk.store.tx) if (tt.d > laatste) laatste = tt.d;
-  $('#bk-periode-txt').textContent = label + ': ' + bkDatum(van) + ' t/m ' + bkDatum(tot) + (laatste ? ' · nieuwste boeking ' + bkDatum(laatste) : '');
+  $('#bk-periode-txt').textContent = t(label) + ': ' + t('{van} t/m {tot}', { van: bkDatum(van), tot: bkDatum(tot) }) + (laatste ? ' · ' + t('nieuwste boeking {datum}', { datum: bkDatum(laatste) }) : '');
   if (bk.tab === 'overzicht') bkOverzicht(van, tot);
   if (bk.tab === 'boekingen') { bkCatSelect(); bkLijstRender(); }
   if (bk.tab === 'ai') bkAiRender();
@@ -434,7 +434,7 @@ function bkLijstRender(){
   if (!bk.store) return;
   const l = bkGefilterd(), toon = l.slice(0, bk.lijstN);
   let som = 0; for (const tt of l) som += tt.a;
-  $('#bk-lijst-telling').textContent = l.length + (l.length === 1 ? ' boeking' : ' boekingen') + ' · samen ' + bkEuro(som, true);
+  $('#bk-lijst-telling').textContent = tn(l.length, '{n} boeking', '{n} boekingen') + ' · ' + t('samen {bedrag}', { bedrag: bkEuro(som, true) });
   let h = '', dag = '';
   const opDag = $('#bk-sort').value === 'nieuw' || $('#bk-sort').value === 'oud';
   for (const tt of toon) {
@@ -474,13 +474,13 @@ function bkKiesCat(id, regel){
       delete tt.c;
     } else tt.c = c;
     bkHerbereken();
-    if (bkSave()) toast(regel ? 'Regel bewaard: “' + p0(tt) + '” → ' + c : 'Categorie gewijzigd');
+    if (bkSave()) toast(regel ? t('Regel bewaard: “{tekst}” → {categorie}', { tekst: p0(tt), categorie: t(c) }) : t('Categorie gewijzigd'));
     bkRender();
   }]);
   acts.push(['Nieuwe categorie…', () => bkNieuweCat(c => { if (regel) { bk.store.rules.unshift({ p: bkSleutel(tt), cat: c, t: tt.a > 0 ? '+' : '-' }); } else tt.c = c; bkHerbereken(); bkSave(); bkRender(); }), 'plus']);
   if (tt.c && !regel) acts.push(['Automatisch laten indelen', () => { delete tt.c; bkHerbereken(); bkSave(); bkRender(); }, 'refresh']);
   bk.venster = true;
-  openSheet(regel ? 'Altijd indelen als…' : 'Categorie', regel ? 'Voor alles met “' + p0(tt) + '” in de naam of omschrijving' : '', acts);
+  openSheet(regel ? 'Altijd indelen als…' : 'Categorie', regel ? t('Voor alles met “{tekst}” in de naam of omschrijving', { tekst: p0(tt) }) : '', acts);
 }
 const p0 = tt => bkSleutel(tt).slice(0, 40);
 function bkNieuweCat(klaar){
@@ -523,7 +523,7 @@ function bkKoppelKlaar(u){
   let r; try { r = JSON.parse(u); } catch (e) { return; }
   if (r.wacht) { toast('Opgehaald bij ' + (r.bank || 'de bank') + '. Ontgrendel Bankzaken om het af te ronden.'); return; }
   const f = (r.bestanden || [])[0];
-  if (f && f.ok && f.sum) toast((r.bank || 'Bank') + ': ' + f.sum.nieuw + ' nieuwe boekingen' + (f.sum.dubbel ? ' (' + f.sum.dubbel + ' stonden er al)' : ''));
+  if (f && f.ok && f.sum) toast((r.bank || t('Bank')) + ': ' + t('{n} nieuwe boekingen', { n: f.sum.nieuw }) + (f.sum.dubbel ? ' ' + t('({n} stonden er al)', { n: f.sum.dubbel }) : ''));
 }
 function bkAutoLijst(){
   let banken = []; try { banken = JSON.parse(Android.bankBanken()); } catch (e) { }
@@ -538,7 +538,7 @@ function bkAutoLijst(){
 function bkBeheer(){
   const s = bk.store;
   const zonder = s.tx.filter(tt => { const c = bkCat(tt); return c === 'Overig' || c === 'Overige inkomsten'; });
-  $('#bk-zonder').textContent = zonder.length ? zonder.length + ' boekingen staan nog bij Overig. De lokale AI kan voorstellen maken voor de namen die het vaakst voorkomen; jij kiest wat je overneemt.' : 'Alle boekingen zijn ingedeeld.';
+  $('#bk-zonder').textContent = zonder.length ? t('{n} boekingen staan nog bij Overig. De lokale AI kan voorstellen maken voor de namen die het vaakst voorkomen; jij kiest wat je overneemt.', { n: zonder.length }) : t('Alle boekingen zijn ingedeeld.');
   $('#bk-ai-cat').hidden = !zonder.length;
   $('#bk-regels').innerHTML = s.rules.length ? s.rules.map((g, i) => '<div class="bk-rij"><span class="bk-naam">“' + esc(g.p) + '”<small>' + (g.t === '+' ? 'bijschrijvingen' : g.t === '-' ? 'afschrijvingen' : 'alles') + ' → ' + esc(g.cat) + '</small></span><button class="mini" style="float:none" onclick="bkRegelWeg(' + i + ')" aria-label="Regel verwijderen">Weg</button></div>').join('') : '<p class="note" style="margin:0">Nog geen eigen regels.</p>';
   $('#bk-budgetten').innerHTML = Object.entries(s.budget).filter(([, v]) => v > 0).map(([c, v]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>per maand</small></span><b>' + esc(bkEuroKort(v)) + '</b><button class="mini" style="float:none" onclick="bkBudgetWeg(' + jsq(c) + ')">Weg</button></div>').join('');
@@ -562,7 +562,7 @@ function bkRegelWeg(i){ bk.store.rules.splice(i, 1); bkHerbereken(); bkSave(); b
 function bkBudgetWeg(c){ delete bk.store.budget[c]; bkSave(); bkRender(); }
 function bkBudgetNieuw(){
   const cats = bkAlleCats().filter(c => bkCatSoort(c) === 'uit');
-  openSheet('Budget voor…', '', cats.map(c => [c, () => askInput('Budget ' + c, 'Bedrag per maand in euro.', bk.store.budget[c] ? fmtNumIn(bk.store.budget[c] / 100, 2) : '', 'Bewaren', v => {
+  openSheet('Budget voor…', '', cats.map(c => [t(c), () => askInput(t('Budget {categorie}', { categorie: t(c) }), 'Bedrag per maand in euro.', bk.store.budget[c] ? fmtNumIn(bk.store.budget[c] / 100, 2) : '', 'Bewaren', v => {
     const p = parseNum(v), n = p == null ? NaN : Math.round(p * 100); // "12,50", "12.50" en "1.250" (Regio en taal)
     if (!(n > 0) || n > 1e10) { toast('Vul een bedrag in'); return; }
     bk.store.budget[c] = n; bkSave(); bkRender();

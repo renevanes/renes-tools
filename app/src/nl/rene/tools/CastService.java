@@ -121,14 +121,14 @@ public class CastService extends Service {
         createChannel(this);
         try {
             Notification n = notif(Cast.now());
-            if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
-            else startForeground(NOTIF_ID, n);
+            if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIF_ID, Taal.n(this, n), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            else startForeground(NOTIF_ID, Taal.n(this, n));
         } catch (Exception ignored) { }
     }
 
     static void createChannel(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "Casten", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(c, "Casten"), NotificationManager.IMPORTANCE_LOW);
         ch.setShowBadge(false);
         ((NotificationManager) c.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(ch);
     }
@@ -182,7 +182,7 @@ public class CastService extends Service {
         }
         session.setPlaybackState(pb.build());
         if (n.volume >= 0) volume.setCurrentVolume((int) Math.round(n.volume * 20));
-        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, notif(n));
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, Taal.n(this, notif(n)));
         final String url = n.art;
         if (url != null && !url.equals(artFor)) {
             artFor = url;

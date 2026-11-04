@@ -43,6 +43,7 @@ final class AiSpeech {
 
     static final String NO_ENGINE = "Je telefoon heeft geen voorleesfunctie (tekst-naar-spraak). Installeer bijvoorbeeld Spraakservices van Google uit de Play Store.";
     static final String BUSY_AUDIO = "Voorlezen kan nu niet: er is iets anders bezig met geluid (bijvoorbeeld een gesprek).";
+    static final String NO_ENGLISH = "Er is geen Engelse stem op je telefoon. Voeg er een toe bij Instellingen → Systeem → Talen → Tekst-naar-spraak (bijvoorbeeld bij Spraakservices van Google).";
     static final String NO_DUTCH = "Er is geen Nederlandse stem op je telefoon. Voeg er een toe bij Instellingen → Systeem → Talen → Tekst-naar-spraak (bijvoorbeeld bij Spraakservices van Google).";
 
     // ---------- zuiver (getest in AiActionsTest) ----------
@@ -132,12 +133,14 @@ final class AiSpeech {
                 initing = false;
                 String pid = pendId;
                 if (status != TextToSpeech.SUCCESS) { pendText = null; release(); send("error", pid, NO_ENGINE); return; }
+                // De stem in de taal van de app (Regio en taal): Nederlands, of Engels (Brits, anders Amerikaans)
+                boolean en = Taal.en(app);
                 Locale nl = null;
-                for (Locale l : new Locale[]{new Locale("nl", "NL"), new Locale("nl", "BE"), new Locale("nl")}) {
+                for (Locale l : en ? new Locale[]{Locale.UK, Locale.US, new Locale("en")} : new Locale[]{new Locale("nl", "NL"), new Locale("nl", "BE"), new Locale("nl")}) {
                     int r = tts.isLanguageAvailable(l);
                     if (r >= TextToSpeech.LANG_AVAILABLE) { nl = l; break; }
                 }
-                if (nl == null || tts.setLanguage(nl) < TextToSpeech.LANG_AVAILABLE) { pendText = null; release(); send("error", pid, NO_DUTCH); return; }
+                if (nl == null || tts.setLanguage(nl) < TextToSpeech.LANG_AVAILABLE) { pendText = null; release(); send("error", pid, en ? NO_ENGLISH : NO_DUTCH); return; }
                 tts.setOnUtteranceProgressListener(new Progress());
                 tts.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANT).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
                 ready = true;

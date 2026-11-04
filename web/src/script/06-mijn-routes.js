@@ -58,7 +58,7 @@ function trackPollOnce(){
   } else if (saving) {
     try {
       const j = JSON.parse(just), st = j.stats || {};
-      $('#tr-save-sum').textContent = (j.interrupted ? 'Android stopte de opname onderweg; dit is wat er tot dan is opgenomen. ' : '') + fmtKm(st.distance||0) + ' ' + distUnit() + ' · ' + fmtDur(st.totalMs||0) + ' · ' + j.points + ' punten';
+      $('#tr-save-sum').textContent = (j.interrupted ? t('Android stopte de opname onderweg; dit is wat er tot dan is opgenomen.') + ' ' : '') + fmtKm(st.distance||0) + ' ' + distUnit() + ' · ' + fmtDur(st.totalMs||0) + ' · ' + t('{n} punten', { n: j.points });
       if (!$('#tr-name').value) $('#tr-name').value = defaultName();
     } catch(e){}
   }
@@ -202,6 +202,6 @@ function refreshTrackTile(s){
   const live = !!s.running;
   const tile = $('#tile-tracks'); if (tile) tile.classList.toggle('live', live);
   const sub = $('#tile-tracks-sub');
-  if (sub) sub.textContent = live ? (s.paused ? 'Opname gepauzeerd' : 'Bezig: ' + fmtKm(s.distance||0) + ' ' + distUnit()) : 'Leg je route vast met gps';
+  if (sub) sub.textContent = live ? (s.paused ? t('Opname gepauzeerd') : t('Bezig: {wat}', { wat: fmtKm(s.distance||0) + ' ' + distUnit() })) : t('Leg je route vast met gps');
 }
 

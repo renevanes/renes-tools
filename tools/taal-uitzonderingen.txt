@@ -1,0 +1,3 @@
+# Regels waar de bewaker van tools/taal.js (tests/ui/taal-dekking.test.js) tekst ziet die aan elkaar geplakt wordt
+# zonder t(), maar waar dat zo hoort. Eén regel per plek: "bestand:regel — reden". Verschuift de regel, pas hem dan aan.
+web/src/script/63-facturen.js:101 — "Gmail:" en "Drive:" zijn namen van diensten; de rest staat in t()

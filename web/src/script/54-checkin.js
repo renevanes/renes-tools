@@ -122,7 +122,7 @@ function refreshCheckinTile(){ const el = $('#tile-checkin-sub'); if (!el || typ
 function ciPick(qid, key, i){
   const q = ciQ(qid); if (!q) return;
   ciSend({ q: qid, p: key, o: i }, r => {
-    toast('✓ Bewaard: ' + ciOptText(ciOpts(q)[i] || {}) + (r.late ? ' (achteraf)' : ''));
+    toast(t('✓ Bewaard: {wat}', { wat: ciOptText(ciOpts(q)[i] || {}) }) + (r.late ? ' ' + t('(achteraf)') : ''));
     ciAfter();
   });
 }
@@ -154,7 +154,7 @@ function ciAsk(qid, key, opt){
     if (a) { ciA.sel = a.o; ciA.note = a.note || ''; ciA.labels = (a.labels || []).slice(); ciA.late = !!a.late; }
   }
   $('#ci-ans-t').textContent = (q.emoji ? q.emoji + ' ' : '') + q.text;
-  $('#ci-ans-p').textContent = ciKeyLabel(ciA.key).replace(/^./, x => x.toUpperCase()) + (ciA.late ? ' · achteraf' : '');
+  $('#ci-ans-p').textContent = ciKeyLabel(ciA.key).replace(/^./, x => x.toUpperCase()) + (ciA.late ? ' · ' + t('achteraf') : '');
   $('#ci-ans').dataset.c = q.color || 'primary';
   ciAnsRender();
   $('#ci-ans').classList.add('on');
@@ -190,7 +190,7 @@ function ciAnsPick(i){
   ciSend({ q: ciA.q, p: ciA.key, o: i, note: ciA.note, labels: ciA.labels, voice: ciA.voice }, r => {
     ciA.aid = r.id; ciA.sel = i;
     ciAfter();
-    if (!ciHasExtras(q)) { ciAnsClose(); toast('✓ Bewaard: ' + ciOptText(ciOpts(q)[i] || {}) + (r.late ? ' (achteraf)' : '')); return; }
+    if (!ciHasExtras(q)) { ciAnsClose(); toast(t('✓ Bewaard: {wat}', { wat: ciOptText(ciOpts(q)[i] || {}) }) + (r.late ? ' ' + t('(achteraf)') : '')); return; }
     ciAnsRender();
   });
 }

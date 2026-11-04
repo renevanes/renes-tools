@@ -226,7 +226,7 @@ final class Player {
     /** Korte melding buiten de app (bijv. na een knop op de widget). */
     static void toast(Context c, String msg) {
         final Context app = c.getApplicationContext();
-        MAIN.post(() -> { try { android.widget.Toast.makeText(app, msg, android.widget.Toast.LENGTH_SHORT).show(); } catch (Exception ignored) { } });
+        MAIN.post(() -> { try { android.widget.Toast.makeText(app, Taal.tx(app, msg), android.widget.Toast.LENGTH_SHORT).show(); } catch (Exception ignored) { } });
     }
 
     // ---------- bijwerken ----------

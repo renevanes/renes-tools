@@ -28,7 +28,7 @@ public class NoteAddActivity extends Activity {
         super.onCreate(b);
         noteId = getIntent() == null ? null : getIntent().getStringExtra(NoteWidget.EXTRA_NOTE);
         JSONObject n = noteId == null ? null : Notes.note(this, noteId);
-        if (n == null) { Toast.makeText(this, "Deze notitie bestaat niet meer", Toast.LENGTH_SHORT).show(); finish(); return; }
+        if (n == null) { Toast.makeText(this, Taal.tx(this, "Deze notitie bestaat niet meer"), Toast.LENGTH_SHORT).show(); finish(); return; }
         float dp = getResources().getDisplayMetrics().density;
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -66,8 +66,8 @@ public class NoteAddActivity extends Activity {
         if (items.isEmpty()) { finish(); return; }
         if (Notes.addItems(this, noteId, items)) {
             MainActivity.jsAll("onNotesMaybeChanged", "");
-            Toast.makeText(this, items.size() == 1 ? "Toegevoegd" : items.size() + " items toegevoegd", Toast.LENGTH_SHORT).show();
-        } else Toast.makeText(this, "Toevoegen lukt niet", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, Taal.tx(this, items.size() == 1 ? "Toegevoegd" : items.size() + " items toegevoegd"), Toast.LENGTH_SHORT).show();
+        } else Toast.makeText(this, Taal.tx(this, "Toevoegen lukt niet"), Toast.LENGTH_SHORT).show();
         if (close) finish();
     }
 }

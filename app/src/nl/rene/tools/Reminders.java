@@ -189,7 +189,7 @@ final class Reminders {
     static void show(Context c, String rid, String note, String title, long nxt) {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
-            if (nm.getNotificationChannel(CHANNEL) == null) nm.createNotificationChannel(new NotificationChannel(CHANNEL, "Herinneringen", NotificationManager.IMPORTANCE_HIGH));
+            if (nm.getNotificationChannel(CHANNEL) == null) nm.createNotificationChannel(new NotificationChannel(CHANNEL, Taal.t(c, "Herinneringen"), NotificationManager.IMPORTANCE_HIGH));
         }
         Intent open = new Intent(c, MainActivity.class).putExtra("open", "note:" + note).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 .setData(android.net.Uri.fromParts("note", rid, null));
@@ -203,7 +203,7 @@ final class Reminders {
                 .addAction(new Notification.Action.Builder(null, "Over 1 uur", action(c, ACTION_SNOOZE, rid, note, title, 60)).build())
                 .addAction(new Notification.Action.Builder(null, "Klaar", action(c, ACTION_DONE, rid, note, title, 0)).build());
         if (Build.VERSION.SDK_INT < 26) b.setPriority(Notification.PRIORITY_HIGH).setDefaults(Notification.DEFAULT_ALL);
-        NotifCenter.post(c, notifId(rid), b.build());
+        NotifCenter.post(c, notifId(rid), Taal.n(c, b.build()));
     }
 
     static PendingIntent action(Context c, String act, String rid, String note, String title, int minutes) {

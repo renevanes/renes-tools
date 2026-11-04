@@ -94,9 +94,9 @@ public class NoteWidget extends AppWidgetProvider {
         int imm = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
         if (n == null) {
             // Nog niets gekozen, of de notitie is verwijderd: tik om (opnieuw) te kiezen
-            v.setTextViewText(R.id.w_ntitle, noteId == null ? "Lijstje kiezen" : "Notitie bestaat niet meer");
-            v.setTextViewText(R.id.w_ncount, "");
-            v.setTextViewText(R.id.w_nempty, "Tik om een notitie te kiezen");
+            Taal.text(c, v, R.id.w_ntitle, noteId == null ? "Lijstje kiezen" : "Notitie bestaat niet meer");
+            Taal.text(c, v, R.id.w_ncount, "");
+            Taal.text(c, v, R.id.w_nempty, "Tik om een notitie te kiezen");
             Intent cfg = new Intent(c, NoteWidgetConfig.class).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             cfg.setData(Uri.parse("renestools://notewidget/" + id));
@@ -114,12 +114,12 @@ public class NoteWidget extends AppWidgetProvider {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK).setData(Uri.parse("renestools://noteadd/" + id));
         v.setOnClickPendingIntent(R.id.w_nadd, PendingIntent.getActivity(c, 8500 + id, add, imm));
         String title = n.optString("title").trim();
-        v.setTextViewText(R.id.w_ntitle, title.isEmpty() ? "Notitie" : title);
+        Taal.text(c, v, R.id.w_ntitle, title.isEmpty() ? "Notitie" : title);
         JSONArray items = n.optJSONArray("items");
         int open = 0, total = items == null ? 0 : items.length();
         if (items != null) for (int j = 0; j < items.length(); j++) { JSONObject it = items.optJSONObject(j); if (it != null && !it.optBoolean("done")) open++; }
-        v.setTextViewText(R.id.w_ncount, total == 0 ? "" : open + " open");
-        v.setTextViewText(R.id.w_nempty, total == 0 ? "Nog geen items. Tik op de titel om toe te voegen." : "Alles afgestreept ✓");
+        Taal.text(c, v, R.id.w_ncount, total == 0 ? "" : open + " open");
+        Taal.text(c, v, R.id.w_nempty, total == 0 ? "Nog geen items. Tik op de titel om toe te voegen." : "Alles afgestreept ✓");
 
         // Titel: de notitie openen in de app (het app-slot geldt daar gewoon)
         Intent openNote = new Intent(c, MainActivity.class).putExtra("open", "note:" + noteId)

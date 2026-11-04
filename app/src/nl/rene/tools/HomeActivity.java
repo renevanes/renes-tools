@@ -493,7 +493,7 @@ public class HomeActivity extends Activity {
         }
     }
 
-    void toast(String m) { h.post(() -> Toast.makeText(this, m, Toast.LENGTH_LONG).show()); }
+    void toast(String m) { h.post(() -> Toast.makeText(this, Taal.tx(this, m), Toast.LENGTH_LONG).show()); }
 
     void vibrate(int ms) {
         try {
@@ -639,6 +639,9 @@ public class HomeActivity extends Activity {
         @JavascriptInterface public boolean isNight() { return Thema.dark(a); }
         /** Regio en taal voor de skin: alleen de notaties (klok, datum, temperatuur, getallen), geen plekken. */
         @JavascriptInterface public String regio() { return Regio.skinJson(ctx); }
+
+        /** Taal van de app: het woordenboek (JSON) als de app Engels is, anders "" (zie Taal en web/start.html). */
+        @JavascriptInterface public String taal() { return Taal.json(ctx); }
         /** Terug zonder iets te sluiten: als dit (nog) niet het startscherm van de telefoon is, gewoon dicht. */
         @JavascriptInterface public void backUnhandled() {
             a.h.post(() -> {

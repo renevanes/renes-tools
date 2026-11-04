@@ -115,9 +115,9 @@ public class TracksService extends Service implements LocationListener {
         Notification n = buildNotif();
         try {
             if (Build.VERSION.SDK_INT >= 34 && hasPerm)
-                startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
+                startForeground(NOTIF_ID, Taal.n(this, n), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
             else
-                startForeground(NOTIF_ID, n);
+                startForeground(NOTIF_ID, Taal.n(this, n));
         } catch (Exception e) {
             running = false;
             Tracks.prefs(this).edit().putString("error", "Starten van de opname lukt niet").remove("trip").apply();
@@ -315,7 +315,7 @@ public class TracksService extends Service implements LocationListener {
     // ---------- melding ----------
 
     private void updateNotif() {
-        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, buildNotif());
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, Taal.n(this, buildNotif()));
     }
 
     private String notifText() {
@@ -352,7 +352,7 @@ public class TracksService extends Service implements LocationListener {
 
     static void createChannel(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "Route opnemen", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(c, "Route opnemen"), NotificationManager.IMPORTANCE_LOW);
         ch.setDescription("Toont de voortgang tijdens het opnemen van een route");
         ((NotificationManager) c.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(ch);
     }

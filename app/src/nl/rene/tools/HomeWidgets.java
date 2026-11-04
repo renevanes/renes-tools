@@ -105,8 +105,8 @@ public final class HomeWidgets {
         @Override
         RemoteViews build(Context c, boolean force) {
             RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_rows);
-            v.setTextViewText(R.id.w_title, "📅 Agenda");
-            v.setTextViewText(R.id.w_sub, Regio.fmt(c, "EEE d MMM", System.currentTimeMillis()));
+            Taal.text(c, v, R.id.w_title, "📅 Agenda");
+            Taal.text(c, v, R.id.w_sub, Regio.fmt(c, "EEE d MMM", System.currentTimeMillis()));
             Intent cal = new Intent(Intent.ACTION_VIEW, android.provider.CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build())
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             v.setOnClickPendingIntent(R.id.w_head, PendingIntent.getActivity(c, 7100, cal, IMM));
@@ -116,10 +116,10 @@ public final class HomeWidgets {
                 JSONObject o = new JSONObject(Launcher.calendarJson(c));
                 if (Lock.active(c)) {
                     // Met app-slot geen afspraken op het startscherm (net als bij het overzicht)
-                    lines.add("🔒 App-slot staat aan: tik om je agenda te openen");
+                    lines.add(Taal.t(c, "🔒 App-slot staat aan: tik om je agenda te openen"));
                     taps.add(PendingIntent.getActivity(c, 7102, cal, IMM));
                 } else if (!o.optBoolean("perm")) {
-                    lines.add("Tik om Tools toegang tot je agenda te geven");
+                    lines.add(Taal.t(c, "Tik om Tools toegang tot je agenda te geven"));
                     Intent s = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", c.getPackageName(), null)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     taps.add(PendingIntent.getActivity(c, 7101, s, IMM));
                 } else {
@@ -138,9 +138,9 @@ public final class HomeWidgets {
                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         taps.add(PendingIntent.getActivity(c, 7110 + lines.size(), open, IMM));
                     }
-                    if (lines.isEmpty()) { lines.add("Geen afspraken de komende dagen"); taps.add(null); }
+                    if (lines.isEmpty()) { lines.add(Taal.t(c, "Geen afspraken de komende dagen")); taps.add(null); }
                 }
-            } catch (Exception e) { lines.add("Agenda niet te lezen"); taps.add(null); }
+            } catch (Exception e) { lines.add(Taal.t(c, "Agenda niet te lezen")); taps.add(null); }
             rows(v, lines, taps);
             return v;
         }
@@ -191,24 +191,24 @@ public final class HomeWidgets {
                 if (f) lastForce = System.currentTimeMillis();
                 JSONObject w = new JSONObject(Launcher.weatherJson(c, f));
                 if (w.optBoolean("noPlace")) {
-                    v.setTextViewText(R.id.w_wt, ""); v.setTextViewText(R.id.w_wd, "Weer");
-                    v.setTextViewText(R.id.w_ws, "Kies een plaats in Tools (skin: tik op het weer)");
-                    v.setTextViewText(R.id.w_wdays, "");
+                    Taal.text(c, v, R.id.w_wt, ""); Taal.text(c, v, R.id.w_wd, "Weer");
+                    Taal.text(c, v, R.id.w_ws, "Kies een plaats in Tools (skin: tik op het weer)");
+                    Taal.text(c, v, R.id.w_wdays, "");
                     return v;
                 }
                 if (w.has("error") && !w.has("temp")) {
-                    v.setTextViewText(R.id.w_wd, "Weer"); v.setTextViewText(R.id.w_ws, w.optString("error") + " · tik om opnieuw te proberen");
+                    Taal.text(c, v, R.id.w_wd, "Weer"); Taal.text(c, v, R.id.w_ws, w.optString("error") + " · tik om opnieuw te proberen");
                     return v;
                 }
                 String[] now = wmo(w.optInt("code"), w.optBoolean("day", true));
-                v.setTextViewText(R.id.w_wi, now[0]);
-                v.setTextViewText(R.id.w_wt, deg(c, w.opt("temp")));
+                Taal.text(c, v, R.id.w_wi, now[0]);
+                Taal.text(c, v, R.id.w_wt, deg(c, w.opt("temp")));
                 String place = w.optString("place");
-                v.setTextViewText(R.id.w_wd, now[1] + (place.isEmpty() ? "" : " · " + place));
+                Taal.text(c, v, R.id.w_wd, now[1] + (place.isEmpty() ? "" : " · " + place));
                 JSONArray days = w.optJSONArray("days");
                 JSONObject today = days == null ? null : days.optJSONObject(0);
                 int rain = w.optInt("rainSoon", -1);
-                v.setTextViewText(R.id.w_ws, (today == null ? "" : deg(c, today.opt("max")) + " / " + deg(c, today.opt("min")))
+                Taal.text(c, v, R.id.w_ws, (today == null ? "" : deg(c, today.opt("max")) + " / " + deg(c, today.opt("min")))
                         + (rain >= 30 ? "  ·  ☔ " + rain + "% kans op regen" : rain >= 0 ? "  ·  droog de komende uren" : ""));
                 StringBuilder sb = new StringBuilder();
                 if (days != null) for (int i = 1; i < Math.min(4, days.length()); i++) {
@@ -220,8 +220,8 @@ public final class HomeWidgets {
                     if (sb.length() > 0) sb.append("    ");
                     sb.append(wd).append(' ').append(wmo(d.optInt("code"), true)[0]).append(' ').append(deg(c, d.opt("max"))).append('/').append(deg(c, d.opt("min")));
                 }
-                v.setTextViewText(R.id.w_wdays, sb.toString());
-            } catch (Exception e) { v.setTextViewText(R.id.w_ws, "Weer niet op te halen"); }
+                Taal.text(c, v, R.id.w_wdays, sb.toString());
+            } catch (Exception e) { Taal.text(c, v, R.id.w_ws, "Weer niet op te halen"); }
             return v;
         }
     }
@@ -234,8 +234,8 @@ public final class HomeWidgets {
         @Override
         RemoteViews build(Context c, boolean force) {
             RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_rows);
-            v.setTextViewText(R.id.w_title, "🧰 Tools");
-            v.setTextViewText(R.id.w_sub, "");
+            Taal.text(c, v, R.id.w_title, "🧰 Tools");
+            Taal.text(c, v, R.id.w_sub, "");
             Intent app = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             v.setOnClickPendingIntent(R.id.w_head, PendingIntent.getActivity(c, 7300, app, IMM));
             List<String> lines = new ArrayList<>();
@@ -245,14 +245,14 @@ public final class HomeWidgets {
                 SimpleDateFormat when = Regio.df(c, "EEE d MMM HH:mm"), hm = Regio.df(c, "HH:mm");
                 JSONObject bk = t.optJSONObject("backup");
                 JSONObject last = bk == null ? null : bk.optJSONObject("last");
-                if (bk != null && bk.optBoolean("busy")) lines.add("💾  Backup is bezig…");
+                if (bk != null && bk.optBoolean("busy")) lines.add("💾  " + Taal.t(c, "Backup is bezig…"));
                 else if (last != null && last.optLong("t") > 0) {
                     int failed = 0;
                     java.util.Iterator<String> it = last.keys();
                     while (it.hasNext()) { JSONObject r = last.optJSONObject(it.next()); if (r != null && r.has("ok") && !r.optBoolean("ok")) failed++; }
                     boolean old = System.currentTimeMillis() - last.optLong("t") > 3 * 86_400_000L;
-                    lines.add("💾  Backup: " + when.format(new Date(last.optLong("t"))) + (failed > 0 ? " · " + failed + " mislukt" : old ? " · al even geleden" : " ✓"));
-                } else lines.add("💾  Nog geen backup gemaakt");
+                    lines.add("💾  " + Taal.t(c, "Backup: {wanneer}", "wanneer", when.format(new Date(last.optLong("t")))) + (failed > 0 ? " · " + Taal.t(c, "{n} mislukt", "n", failed) : old ? " · " + Taal.t(c, "al even geleden") : " ✓"));
+                } else lines.add("💾  " + Taal.t(c, "Nog geen backup gemaakt"));
                 taps.add(openTool(c, "backup", 7301));
 
                 JSONObject rem = t.optJSONObject("reminders");
@@ -261,12 +261,12 @@ public final class HomeWidgets {
                     Calendar end = Calendar.getInstance(); end.set(Calendar.HOUR_OF_DAY, 23); end.set(Calendar.MINUTE, 59);
                     java.util.Iterator<String> it = rem.keys();
                     while (it.hasNext()) { long x = rem.optLong(it.next()); if (x >= System.currentTimeMillis() && x <= end.getTimeInMillis()) { n++; first = Math.min(first, x); } }
-                    if (n > 0) { lines.add("🔔  " + n + (n == 1 ? " herinnering" : " herinneringen") + " vandaag, eerst om " + hm.format(new Date(first))); taps.add(openTool(c, "notes", 7302)); }
+                    if (n > 0) { lines.add("🔔  " + Taal.tn(c, n, "{n} herinnering vandaag, eerst om {tijd}", "{n} herinneringen vandaag, eerst om {tijd}", "tijd", hm.format(new Date(first)))); taps.add(openTool(c, "notes", 7302)); }
                 }
                 JSONObject rp = t.optJSONObject("redial");
                 if (rp != null && rp.optJSONObject("plan") != null && rp.optLong("next") > System.currentTimeMillis()) {
                     JSONObject p = rp.getJSONObject("plan");
-                    lines.add("📞  Auto redial: " + (p.optString("name").isEmpty() ? p.optString("number") : p.optString("name")) + " · " + when.format(new Date(rp.optLong("next"))));
+                    lines.add("📞  " + Taal.t(c, "Auto redial:") + " " + (p.optString("name").isEmpty() ? p.optString("number") : p.optString("name")) + " · " + when.format(new Date(rp.optLong("next"))));
                     taps.add(openTool(c, "redial", 7303));
                 }
                 JSONObject r = t.optJSONObject("radio");
@@ -274,11 +274,11 @@ public final class HomeWidgets {
                 JSONObject station = r == null ? null : r.optJSONObject("station");
                 if (station == null) station = t.optJSONObject("radioLast");
                 if (station != null && lines.size() < ROWS.length) {
-                    lines.add("📻  " + station.optString("name") + " · " + ("playing".equals(st) ? (r.optString("title").isEmpty() ? "speelt" : r.optString("title"))
+                    lines.add("📻  " + station.optString("name") + " · " + ("playing".equals(st) ? (r.optString("title").isEmpty() ? Taal.t(c, "speelt") : r.optString("title"))
                             : "paused".equals(st) ? "gepauzeerd" : "tik om te openen"));
                     taps.add(openTool(c, "radio", 7304));
                 }
-            } catch (Exception e) { lines.add("Overzicht niet te lezen"); taps.add(null); }
+            } catch (Exception e) { lines.add(Taal.t(c, "Overzicht niet te lezen")); taps.add(null); }
             rows(v, lines, taps);
             return v;
         }
@@ -336,18 +336,18 @@ public final class HomeWidgets {
             RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_park);
             JSONObject r = parkRule(c);
             if (r == null) {
-                v.setTextViewText(R.id.w_ptitle, "Parkeren");
-                v.setTextViewText(R.id.w_pstate, "Maak eerst een automatisering met je parkeerapp");
+                Taal.text(c, v, R.id.w_ptitle, "Parkeren");
+                Taal.text(c, v, R.id.w_pstate, "Maak eerst een automatisering met je parkeerapp");
                 v.setViewVisibility(R.id.w_pstart, android.view.View.GONE);
                 v.setViewVisibility(R.id.w_popen, android.view.View.GONE);
                 v.setOnClickPendingIntent(R.id.w_root, openTool(c, "auto", 7400));
                 return v;
             }
             JSONObject app = r.optJSONObject("app");
-            v.setTextViewText(R.id.w_ptitle, app == null ? "Parkeren" : app.optString("n", "Parkeren"));
+            Taal.text(c, v, R.id.w_ptitle, app == null ? "Parkeren" : app.optString("n", "Parkeren"));
             long start = Auto.prefs(c).getLong("parkStart", 0);
             boolean running = start > 0 && System.currentTimeMillis() - start < 24 * 3_600_000L;
-            v.setTextViewText(R.id.w_pstate, running ? "Gestart om " + Regio.time(c, start) + " · tik als je klaar bent"
+            Taal.text(c, v, R.id.w_pstate, running ? "Gestart om " + Regio.time(c, start) + " · tik als je klaar bent"
                     : "Niet gestart (" + r.optString("name") + ")");
             v.setViewVisibility(R.id.w_pstart, running ? android.view.View.GONE : android.view.View.VISIBLE);
             v.setViewVisibility(R.id.w_popen, android.view.View.VISIBLE);

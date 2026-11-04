@@ -6,7 +6,7 @@ function txSegTap(el){
   if (!txSel) { txSeek(+el.dataset.ms); return; }
   el.classList.toggle('sel'); el.setAttribute('aria-pressed', el.classList.contains('sel') ? 'true' : 'false');
   const n = document.querySelectorAll('#txd-segs .seg.sel').length;
-  $('#txd-selinfo').textContent = n ? n + (n === 1 ? ' zin gekozen' : ' zinnen gekozen') : 'Tik op de zinnen die je wilt bewaren (of kies niets voor het hele gesprek).';
+  $('#txd-selinfo').textContent = n ? tn(n, '{n} zin gekozen', '{n} zinnen gekozen') : t('Tik op de zinnen die je wilt bewaren (of kies niets voor het hele gesprek).');
 }
 function txSelStart(){
   txSel = true; $('#txd-tonote').style.display = 'none'; $('#txd-selbar').style.display = 'block'; if ($('#txd-sum')) $('#txd-sum').style.display = 'none';

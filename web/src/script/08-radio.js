@@ -128,7 +128,7 @@ function rdRender(){
   const re = rdGenreOf(rdGenre);
   const all = re ? rdStations.filter(s => re.test(String(s.tags || '').toLowerCase())) : rdStations;
   rdShown = all.slice(0, rdListN);
-  $('#rd-list-label').textContent = (q ? 'Zoekresultaten' : 'Populair in Nederland') + (rdGenre ? ' · ' + rdGenre : '') + (all.length > rdShown.length ? ' (' + all.length + ')' : '');
+  $('#rd-list-label').textContent = t(q ? 'Zoekresultaten' : 'Populair in Nederland') + (rdGenre ? ' · ' + rdGenre : '') + (all.length > rdShown.length ? ' (' + all.length + ')' : '');
   $('#rd-list').innerHTML = rdShown.map((s, i) => rdRow(s, 's', i)).join('') ||
     '<p class=note style="padding:14px">' + (q ? 'Geen zender gevonden.' : rdStations.length ? 'Geen zenders in dit genre.' : 'Zenders laden…') + '</p>';
   $('#rd-list-more').hidden = all.length <= rdShown.length;
@@ -153,7 +153,7 @@ function rdPollOnce(noRender){
   rdState = rdJson(Android.radioState(), {});
   if (sig(rdState) !== prev) { rdShowNow(); if (current === 'radio' && lsig(rdState) !== lprev) rdRender(); }
   const tt = $('#tile-radio-sub');
-  if (tt) tt.textContent = rdState.station && rdState.status === 'playing' ? '▶ ' + rdState.station.name + (rdState.title ? ' · ' + rdState.title : '') : 'Nederlandse zenders luisteren';
+  if (tt) tt.textContent = rdState.station && rdState.status === 'playing' ? '▶ ' + rdState.station.name + (rdState.title ? ' · ' + rdState.title : '') : t('Nederlandse zenders luisteren');
   const tile = $('#tile-radio'); if (tile) tile.classList.toggle('live', rdState.status === 'playing');
   if (noRender !== true && typeof plRender === 'function') plRender();
 }

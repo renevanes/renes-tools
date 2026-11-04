@@ -56,7 +56,7 @@ function pdfRender(){
   const has = pdfIn && pdfIn.pages > 0;
   $('#pdf-split').style.display = has ? 'block' : 'none';
   if (has) {
-    $('#pdf-split-info').textContent = pdfIn.name + ' · ' + pdfIn.pages + (pdfIn.pages === 1 ? ' pagina' : ' pagina\'s') + (pdfIn.lossless === false ? ' · wordt als afbeelding overgenomen' : '');
+    $('#pdf-split-info').textContent = pdfIn.name + ' · ' + tn(pdfIn.pages, '{n} pagina', '{n} pagina\'s') + (pdfIn.lossless === false ? ' · ' + t('wordt als afbeelding overgenomen') : '');
     const box = $('#pdf-pages');
     if (box.dataset.for !== String(pdfInGen)) {
       box.dataset.for = String(pdfInGen);

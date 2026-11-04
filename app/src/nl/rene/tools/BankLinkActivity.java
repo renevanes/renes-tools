@@ -77,7 +77,7 @@ public class BankLinkActivity extends Activity {
         String id = getIntent().getStringExtra("bank");
         bank = id == null ? null : BankLink.bank(BankLink.banken(this), id);
         if (bank == null || !bank.optBoolean("robot")) { Bank.linking = false; finish(); return; }
-        if (!Bank.isOpen()) { Bank.linking = false; Toast.makeText(this, "Ontgrendel Bankzaken eerst", Toast.LENGTH_LONG).show(); finish(); return; }
+        if (!Bank.isOpen()) { Bank.linking = false; Toast.makeText(this, Taal.tx(this, "Ontgrendel Bankzaken eerst"), Toast.LENGTH_LONG).show(); finish(); return; }
         Bank.linking = true;
         start = System.currentTimeMillis();
         try {
@@ -164,7 +164,7 @@ public class BankLinkActivity extends Activity {
     void openApp(String pkg) {
         if (!BankLink.appToegestaan(pkg, bank)) return;
         try { Intent i = getPackageManager().getLaunchIntentForPackage(pkg); if (i != null) { appGeopend = System.currentTimeMillis(); startActivity(i); } }
-        catch (Throwable t) { Toast.makeText(this, "Openen lukt niet", Toast.LENGTH_SHORT).show(); }
+        catch (Throwable t) { Toast.makeText(this, Taal.tx(this, "Openen lukt niet"), Toast.LENGTH_SHORT).show(); }
     }
 
     void zet(String s) { h.post(() -> { if (status != null) status.setText(s); }); }

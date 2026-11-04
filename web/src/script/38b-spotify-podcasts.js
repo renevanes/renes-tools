@@ -29,7 +29,7 @@ function pspOptions(row){return '<option value="">'+t('Kies een openbare versie'
 function pspRender(){
  const linked=!!rdJson(Android.spotifyState(),{}).linked,busy=pspBusy(),existing=pspExisting();
  $('#psp-live').disabled=!linked||busy;$('#psp-backup').disabled=busy;$('#psp-link').hidden=linked&&!pspRelink;
- $('#psp-source').textContent=pspLoaded?(pspSource==='backup'?'Lijst uit je Spotify-backup':'Huidige Spotify-lijst')+(pspAt?' · '+fmtDT(pspAt):''):'Je kunt ook een eerder bewaarde Spotify-backup gebruiken.';
+ $('#psp-source').textContent=pspLoaded?t(pspSource==='backup'?'Lijst uit je Spotify-backup':'Huidige Spotify-lijst')+(pspAt?' · '+fmtDT(pspAt):''):t('Je kunt ook een eerder bewaarde Spotify-backup gebruiken.');
  $('#psp-work').hidden=!pspLoaded||!pspRows.length;
  const pending=pspRows.filter(r=>!r.searched&&!r.choice).length;
  $('#psp-find').disabled=busy||!pending;$('#psp-find').textContent=pending?t('Openbare versies zoeken ({n})',{n:pending}):t('Openbare versies gezocht');

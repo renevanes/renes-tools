@@ -72,7 +72,7 @@ function txPollOnce(){
     const r = $('#tx-result');
     if (s.error || s.failed) { r.textContent = (s.done ? s.done + ' gelukt, ' : '') + (s.failed || 1) + ' mislukt: ' + (s.error || ''); r.className = 'result on error'; }
     else if (s.stopped) { r.textContent = 'Gestopt'; r.className = 'result on other'; }
-    else { r.textContent = s.done ? '✓ ' + s.done + (s.done === 1 ? ' gesprek' : ' gesprekken') + ' uitgeschreven' : '✓ Spraakmodel klaar'; r.className = 'result on answered'; }
+    else { r.textContent = s.done ? tn(s.done, '✓ {n} gesprek uitgeschreven', '✓ {n} gesprekken uitgeschreven') : t('✓ Spraakmodel klaar'); r.className = 'result on answered'; }
     enterTranscripts();
   }
   txLastRunning = !!s.running;

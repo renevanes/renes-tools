@@ -389,7 +389,122 @@ if (MODE === 'overlay') document.addEventListener('pointerdown', () => {
 }, true);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const J = (s, d) => { try { return JSON.parse(s); } catch(e) { return d; } };
-function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); }
+/* Taal (Instellingen → Regio en taal → Taal): staat de app in het Engels, dan geeft Java het woordenboek (Android.taal) */
+var TAAL = { on: false, d: null, obs: null, busy: false }, TAAL_JSON = '';
+try { TAAL_JSON = typeof Android.taal === 'function' ? String(Android.taal() || '') : ''; } catch (e) { TAAL_JSON = ''; }
+function taalDict(){ if (!TAAL.d) { let d = {}; try { if (TAAL_JSON) d = JSON.parse(TAAL_JSON) || {}; } catch (e) { d = {}; } TAAL.d = new Map(Object.entries(d)); } return TAAL.d; }
+/* taal-kern: begin — dit blok staat letterlijk ook in web/start.html (de Telefoon-skin); taal-dekking.test.js vergelijkt ze */
+/* Hoe een sleutel eruitziet: witruimte samengevoegd, zonder zachte afbreekstreepjes, zonder spaties aan de randen */
+function taalNorm(s){ return String(s).replace(/\u00ad/g, '').replace(/[ \t\r\n]+/g, ' ').trim(); }
+/* Vul {naam} in (alleen namen die in v staan) */
+function taalFill(s, v){ return v ? String(s).replace(/\{(\w+)\}/g, (m, k) => Object.prototype.hasOwnProperty.call(v, k) && v[k] != null ? String(v[k]) : m) : s; }
+/* De vertaling van een sleutel, of undefined; houdt de witruimte aan de randen van de oorspronkelijke tekst vast */
+function taalLookup(s, v){
+  const raw = String(s), k = taalNorm(raw); if (!k) return undefined;
+  let e = taalDict().get(k);
+  if (e == null) return undefined;
+  if (Array.isArray(e)) e = e[v && +v.n === 1 ? 0 : 1];
+  const lead = /^\s*/.exec(raw)[0], trail = /\s*$/.exec(raw)[0];
+  return lead + e + (trail.length < raw.length - lead.length ? trail : '');
+}
+function t(s, v){
+  if (s == null) return '';
+  if (TAAL.on) { const r = taalLookup(s, v); if (r !== undefined) return taalFill(r, v); }
+  return taalFill(s, v);
+}
+/* Enkelvoud of meervoud: tn(3, 'Eén bestand', '{n} bestanden') → "3 bestanden" / "3 files" */
+function tn(n, one, many, v){ return t(+n === 1 ? one : many, Object.assign({ n: n }, v)); }
+/* Tekst in de taal van de app, voor de assistent en Java: 'nl' of 'en' */
+function appLang(){ return TAAL.on ? 'en' : 'nl'; }
+
+/* ---------- de schermen vertalen ---------- */
+const TAAL_ATTRS = ['placeholder', 'aria-label', 'title', 'alt'];
+const TAAL_INLINE = new Set(['BUTTON', 'B', 'I', 'EM', 'STRONG', 'SMALL', 'U', 'BR', 'CODE', 'KBD', 'SUP', 'SUB', 'A', 'SPAN', 'MARK', 'S', 'Q', 'ABBR', 'WBR']);
+const TAAL_SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'NOSCRIPT', 'SVG', 'svg', 'CODE', 'PRE']);
+/* Element dat als geheel vertaald wordt: eigen tekst én opmaak met tekst, alleen opmaak-elementen, niets met een id */
+function taalUnit(el){
+  if (!el.firstElementChild || !el.firstChild) return false;
+  let text = false, inl = false;
+  for (let c = el.firstChild; c; c = c.nextSibling) {
+    if (c.nodeType === 3) { if (/\S/.test(c.data)) text = true; }
+    else if (c.nodeType === 1) { if (!taalInl(c)) return false; if (/\S/.test(c.textContent)) inl = true; }
+  }
+  if (!text || !inl) return false;
+  for (const d of el.querySelectorAll('*')) if (!taalInl(d) || d.hasAttribute('translate')) return false;
+  return true;
+}
+/* Opmaak zonder id; eenheden die Regio en taal zelf invult (rg-u-…) wisselen, die horen er niet bij */
+function taalInl(e){ return TAAL_INLINE.has(e.tagName) && !e.id && !/\brg-u-/.test(e.className || ''); }
+function taalSkip(el){ return el.nodeType === 1 && (TAAL_SKIP.has(el.tagName) || el.getAttribute('translate') === 'no' || el.isContentEditable); }
+/* Alle sleutels van een stuk pagina (ook gebruikt door de dekkingstest): [soort, sleutel] */
+function taalKeys(root){
+  const out = [];
+  const walk = n => {
+    if (n.nodeType === 3) { const k = taalNorm(n.data); if (/\p{L}/u.test(k)) out.push(['tekst', k]); return; }
+    if (n.nodeType !== 1 || taalSkip(n)) return;
+    for (const a of TAAL_ATTRS) { const v = n.getAttribute(a); if (v && /\p{L}/u.test(v)) out.push(['attr', taalNorm(v)]); }
+    if (n.tagName === 'INPUT' && /^(button|submit)$/i.test(n.type) && n.value) out.push(['attr', taalNorm(n.value)]);
+    if (taalUnit(n)) { out.push(['html', taalNorm(n.innerHTML)]); return; }
+    for (let c = n.firstChild; c; c = c.nextSibling) walk(c);
+  };
+  walk(root);
+  return out;
+}
+/* Eén tekstknoop: de Nederlandse tekst onthouden (voor terug naar Nederlands) en de vertaling zetten */
+function taalText(n){
+  const d = n.data; if (d === n.__tEn || !/\p{L}/u.test(d)) return;
+  const p = n.parentNode; if (!p || (p.nodeType === 1 && (taalSkip(p) || p.closest('[translate="no"]')))) return;
+  const r = taalLookup(d); if (r === undefined) return;
+  n.__tNl = d; n.__tEn = r; n.data = r;
+}
+function taalAttr(el, a){
+  const v = el.getAttribute(a); if (!v || (el.__tEnA && el.__tEnA[a] === v)) return;
+  const r = taalLookup(v); if (r === undefined) return;
+  (el.__tNlA = el.__tNlA || {})[a] = v; (el.__tEnA = el.__tEnA || {})[a] = r;
+  el.setAttribute(a, r);
+}
+function taalWalk(root){
+  if (root.nodeType === 3) { taalText(root); return; }
+  if (root.nodeType !== 1 && root.nodeType !== 11) return;
+  if (root.nodeType === 1 && (taalSkip(root) || root.closest('[translate="no"]'))) return;
+  const walk = n => {
+    if (n.nodeType === 3) { taalText(n); return; }
+    if (n.nodeType !== 1 && n.nodeType !== 11) return;
+    if (n.nodeType === 1) {
+      if (taalSkip(n)) return;
+      for (const a of TAAL_ATTRS) if (n.hasAttribute(a)) taalAttr(n, a);
+      if (n.tagName === 'INPUT' && /^(button|submit)$/i.test(n.type) && n.value) { const r = taalLookup(n.value); if (r !== undefined) { n.__tNlV = n.value; n.value = r; } }
+      if (n.__tEnH !== undefined && n.innerHTML === n.__tEnH) return;
+      if (taalUnit(n)) {
+        const r = taalLookup(n.innerHTML);
+        if (r !== undefined) { n.__tNlH = n.innerHTML; n.innerHTML = r; n.__tEnH = n.innerHTML; return; }
+      }
+    }
+    for (let c = n.firstChild; c; c = c.nextSibling) walk(c);
+  };
+  walk(root);
+}
+function taalObserve(recs){
+  if (TAAL.busy) return;
+  TAAL.busy = true;
+  try {
+    const seen = new Set();
+    for (const r of recs) {
+      if (r.type === 'characterData') { taalText(r.target); continue; }
+      if (r.type === 'attributes') { if (r.target.nodeType === 1) taalAttr(r.target, r.attributeName); continue; }
+      // Nieuwe knopen: het ouder-element opnieuw bekijken (een geheel met opmaak kan net compleet zijn geworden)
+      const p = r.target;
+      if (!p || p.nodeType !== 1 || seen.has(p) || !p.isConnected) continue;
+      if (taalUnit(p)) { seen.add(p); taalWalk(p); }
+      else r.addedNodes.forEach(n => { if (n.isConnected) taalWalk(n); });
+    }
+  } catch (e) { }
+  finally { TAAL.busy = false; taalObs().takeRecords(); }
+}
+function taalObs(){ return TAAL.obs || (TAAL.obs = new MutationObserver(taalObserve)); }
+/* taal-kern: eind */
+if (TAAL_JSON) { TAAL.on = true; document.documentElement.lang = 'en'; const go = () => { TAAL.busy = true; try { taalWalk(document.body); } finally { TAAL.busy = false; } taalObs().observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: TAAL_ATTRS }); }; if (document.body) go(); else addEventListener('DOMContentLoaded', go); }
+function toast(m){ const el = $('#toast'); el.textContent = t(m); el.classList.add('on'); clearTimeout(toast.tm); toast.tm = setTimeout(() => el.classList.remove('on'), 2400); }
 window.addEventListener('error', e => { try { Android.logJs((e.message || 'fout') + ' :' + (e.lineno || 0)); } catch(x){} });
 
 /* ---------- instellingen (indeling en look) ---------- */
@@ -657,11 +772,11 @@ function appSheet(k, where){
     } else if (!cfg.dock.includes(k)) { if (cfg.dock.length < 6) acts.push(['In het dock (onderbalk)', () => { cfg.dock.push(k); saveAll(); }]); }
     else acts.push(['Uit het dock', () => { cfg.dock = cfg.dock.filter(x => x !== k); saveAll(); }]);
     if (where !== 'folder' && !NATIVE) acts.push(['In een map…', () => askFolder(k)]);
-    acts.push(['Verbergen', () => { cfg.hidden.push(k); cfg.pinned = cfg.pinned.filter(x => x !== k); cfg.dock = cfg.dock.filter(x => x !== k); for (const f of Object.keys(cfg.folders)) cfg.folders[f] = cfg.folders[f].filter(x => x !== k); dropEmptyFolders(); if (openF) closeFolder(); saveAll(); toast(name + ' is verborgen (terug te zetten via Look aanpassen)'); }]);
+    acts.push(['Verbergen', () => { cfg.hidden.push(k); cfg.pinned = cfg.pinned.filter(x => x !== k); cfg.dock = cfg.dock.filter(x => x !== k); for (const f of Object.keys(cfg.folders)) cfg.folders[f] = cfg.folders[f].filter(x => x !== k); dropEmptyFolders(); if (openF) closeFolder(); saveAll(); toast(t('{naam} is verborgen (terug te zetten via Look aanpassen)', { naam: name })); }]);
     acts.push(['App-info', () => Android.appInfo(k)]);
     if (a && !a.sys) acts.push(['Verwijderen…', () => Android.uninstall(k)]);
   } else {
-    acts.push(['Map hernoemen…', () => ask('Map hernoemen', k.slice(2), v => { v = v.trim(); if (badName(v)) { toast('Kies een andere naam'); return; } if (hasF(v)) { toast('Er is al een map ' + v); return; } cfg.folders[v] = cfg.folders[k.slice(2)]; delete cfg.folders[k.slice(2)]; cfg.pinned = cfg.pinned.map(x => x === k ? 'f:' + v : x); saveAll(); })]);
+    acts.push(['Map hernoemen…', () => ask('Map hernoemen', k.slice(2), v => { v = v.trim(); if (badName(v)) { toast('Kies een andere naam'); return; } if (hasF(v)) { toast(t('Er is al een map {naam}', { naam: v })); return; } cfg.folders[v] = cfg.folders[k.slice(2)]; delete cfg.folders[k.slice(2)]; cfg.pinned = cfg.pinned.map(x => x === k ? 'f:' + v : x); saveAll(); })]);
     acts.push(['Map opheffen (apps blijven)', () => { delete cfg.folders[k.slice(2)]; cfg.pinned = cfg.pinned.filter(x => x !== k); saveAll(); }]);
   }
   openSheet(isF ? '<span class=ib><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span>' : icon(k, 96), name, acts);
@@ -705,7 +820,7 @@ function askFolder(k){
     cfg.folders[v].push(k);
     cfg.pinned = cfg.pinned.filter(x => x !== k);
     dropEmptyFolders();
-    saveAll(); toast('In map ' + v);
+    saveAll(); toast(t('In map {naam}', { naam: v }));
   }, names.length ? '<div class=seg style="margin-bottom:12px">' + names.map(n => '<button data-n="' + esc(n) + '" onclick="$(\'#askin\').value=this.dataset.n">' + esc(n) + '</button>').join('') + '</div>' : '', 'Naam van een nieuwe of bestaande map');
 }
 let askCb = null;
@@ -810,7 +925,7 @@ function askPlace(){
 }
 window.onCities = function(l){
   if (l.error || !l.length) { toast(l.error || 'Geen plaats gevonden'); return; }
-  openSheet('<span class=ib><span class="ui-icon" data-icon="pin" aria-hidden="true"></span></span>', 'Welke plaats?', l.map(c => [c.name + ' — ' + c.sub, () => { Android.setPlace(c.name, c.lat, c.lon); Android.weather(true); renderLook(); toast('Weer voor ' + c.name); }]));
+  openSheet('<span class=ib><span class="ui-icon" data-icon="pin" aria-hidden="true"></span></span>', 'Welke plaats?', l.map(c => [c.name + ' — ' + c.sub, () => { Android.setPlace(c.name, c.lat, c.lon); Android.weather(true); renderLook(); toast(t('Weer voor {plaats}', { plaats: c.name })); }]));
 };
 window.onLocationPerm = function(){ Android.weather(true); };
 
@@ -1003,7 +1118,7 @@ function renderLook(){
   $('#l-kind-btn').textContent = MODE === 'legacy' ? 'Launcher met pagina\'s en widgets gebruiken' : 'Klassieke skin gebruiken (zonder pagina\'s)';
   $('#l-widgets').style.display = NATIVE ? 'block' : 'none';
   $('#l-kind').style.display = typeof Android.setClassic === 'function' ? 'block' : 'none';
-  $('#l-n-drawer').textContent = apps.filter(a => !cfg.hidden.includes(a.k)).length + ' van ' + apps.length + (cfg.lockHidden ? ' · 🔒 rest geblokkeerd' : '');
+  $('#l-n-drawer').textContent = apps.filter(a => !cfg.hidden.includes(a.k)).length + ' ' + t('van') + ' ' + apps.length + (cfg.lockHidden ? ' · ' + t('🔒 rest geblokkeerd') : '');
   seg('#l-sort', [['az', 'A–Z'], ['used', 'Meest gebruikt'], ['new', 'Nieuwste eerst']], cfg.sort, v => { cfg.sort = v; save(); renderDrawer(); });
   seg('#l-clk', [['big', 'Groot'], ['medium', 'Middel'], ['small', 'Klein'], ['off', 'Uit']], cfg.clock.size, v => { cfg.clock.size = v; save(); applyLook(); });
   seg('#l-rad', [['round', 'Rond'], ['soft', 'Zacht'], ['square', 'Hoekig']], cfg.rad, v => { cfg.rad = v; save(); applyLook(); });

@@ -110,7 +110,7 @@ public class BankBridge extends FacturenBridge {
                     .putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"text/*", "application/xml", "application/octet-stream", "application/vnd.ms-excel", "application/csv"});
             Bank.picking = true; Bank.pickingAt = System.currentTimeMillis();
             try { a.startActivityForResult(i, REQ_BANK); }
-            catch (ActivityNotFoundException e) { Bank.picking = false; Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+            catch (ActivityNotFoundException e) { Bank.picking = false; Toast.makeText(a, Taal.tx(a, "Bestandskiezer niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
         });
     }
 
@@ -187,7 +187,7 @@ public class BankBridge extends FacturenBridge {
         Bank.linking = true; // al vóór het openen: anders gaat Bankzaken op slot zodra dit scherm uit beeld gaat
         a.h.post(() -> {
             try { a.startActivityForResult(new Intent(a, BankLinkActivity.class).putExtra("bank", b.optString("id")).putExtra("van", v), 48); }
-            catch (Throwable t) { Bank.linking = false; Toast.makeText(a, "Openen lukt niet", Toast.LENGTH_SHORT).show(); }
+            catch (Throwable t) { Bank.linking = false; Toast.makeText(a, Taal.tx(a, "Openen lukt niet"), Toast.LENGTH_SHORT).show(); }
         });
         return "";
     }

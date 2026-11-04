@@ -58,7 +58,7 @@ final class SleepReminder {
             if (!SleepService.running() && !SleepTalk.remindAt(c).isEmpty() && !NotifCenter.muted(c)) {
                 NotificationManager nm = c.getSystemService(NotificationManager.class);
                 if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
-                    NotificationChannel ch = new NotificationChannel(CHANNEL, "Slaappraat: bedtijd", NotificationManager.IMPORTANCE_DEFAULT);
+                    NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(c, "Slaappraat: bedtijd"), NotificationManager.IMPORTANCE_DEFAULT);
                     ch.setDescription("Een herinnering op bedtijd om Slaappraat aan te zetten");
                     nm.createNotificationChannel(ch);
                 }
@@ -69,7 +69,7 @@ final class SleepReminder {
                 b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Slaappraat aanzetten?")
                         .setContentText("Tik hier en dan op Begin met luisteren. Welterusten!").setAutoCancel(true).setContentIntent(content);
                 if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(3 * 3_600_000L);
-                nm.notify(NOTIFICATION, b.build());
+                nm.notify(NOTIFICATION, Taal.n(c, b.build()));
             }
         } catch (Throwable e) { App.log(c, "SLAAP", "herinnering: " + e); }
         arm(c);

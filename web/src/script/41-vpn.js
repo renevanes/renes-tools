@@ -21,7 +21,7 @@ function vpRender(light){
   const act = vpTun.find(tt => tt.id === (on ? st.id : st.active)) || vpTun[0];
   const connected = on && st.status === 'connected';
   $('#vp-dot').className = 'vpdot' + (connected ? ' on' : on ? ' busy' : '');
-  $('#vp-title').textContent = on ? (connected ? 'Verbonden' : 'Verbinden…') + ' · ' + (st.name || act.name) : 'VPN uit';
+  $('#vp-title').textContent = on ? t(connected ? 'Verbonden' : 'Verbinden…') + ' · ' + (st.name || act.name) : t('VPN uit');
   const viaReserve = on && st.activeId && st.activeId !== st.id;
   let sub = on ? [viaReserve ? t('via reserve: {naam}', { naam: st.activeName }) : '', st.kind || '', t(VP_REASON[st.reason] || '')].filter(Boolean).join(' · ') : (act ? t('Tunnel: {naam}', { naam: act.name }) : '');
   if (on && !connected && st.error) sub = t(st.error) + ' · ' + t('probeert het opnieuw');

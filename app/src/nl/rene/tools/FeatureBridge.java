@@ -59,8 +59,11 @@ public class FeatureBridge {
     /** Na een andere keuze: widgets opnieuw, en bij een andere plek het weer opnieuw ophalen. */
     private void regioChanged(Regio.Cfg before) {
         Regio.Cfg after = Regio.cfg(ctx);
+        boolean taal = !before.lang.equals(after.lang);
         new Thread(() -> {
             try {
+                // Andere taal: namen van meldingskanalen, snelkoppelingen en alle widgets in de nieuwe taal
+                if (taal) { Taal.channels(ctx); RadioWidget.refresh(ctx); NoteWidget.refresh(ctx); MusicWidget.refresh(ctx); }
                 if (!java.util.Arrays.equals(Regio.place(before), Regio.place(after)) || !java.util.Arrays.equals(before.home(), after.home()))
                     Launcher.prefs(ctx).edit().remove("weather").apply();
                 for (Class<?> w : new Class<?>[]{HomeWidgets.Agenda.class, HomeWidgets.Weather.class, HomeWidgets.Overview.class, HomeWidgets.Park.class}) HomeWidgets.refresh(ctx, w);
@@ -75,7 +78,7 @@ public class FeatureBridge {
             Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(type);
             if (mimes != null) i.putExtra(Intent.EXTRA_MIME_TYPES, mimes);
             if (multi) i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-            try { a.startActivityForResult(i, req); } catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+            try { a.startActivityForResult(i, req); } catch (ActivityNotFoundException e) { Toast.makeText(a, Taal.tx(a, "Bestandskiezer niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
         });
     }
 
@@ -189,7 +192,7 @@ public class FeatureBridge {
         try {
             File f = PdfTools.output(ctx, name);
             Intent v = new Intent(ctx, PdfViewActivity.class).setData(PdfProvider.uri(f));
-            a.h.post(() -> { try { a.startActivity(v); } catch (Exception e) { Toast.makeText(a, "Openen lukt niet", Toast.LENGTH_SHORT).show(); } });
+            a.h.post(() -> { try { a.startActivity(v); } catch (Exception e) { Toast.makeText(a, Taal.tx(a, "Openen lukt niet"), Toast.LENGTH_SHORT).show(); } });
         } catch (Exception ignored) { }
     }
     /** Een PDF van de telefoon kiezen om te bekijken. */
@@ -206,7 +209,7 @@ public class FeatureBridge {
             JSONObject s = PdfViewActivity.defaultState(a);
             if ("other".equals(s.optString("state"))) PdfViewActivity.defaultDialog(a);
             else if ("none".equals(s.optString("state"))) PdfViewActivity.askAndroid(a);
-            else Toast.makeText(a, "PDF's openen al in Tools", Toast.LENGTH_SHORT).show();
+            else Toast.makeText(a, Taal.tx(a, "PDF's openen al in Tools"), Toast.LENGTH_SHORT).show();
         });
     }
     @JavascriptInterface public void pdfShare(String names) {
@@ -221,7 +224,7 @@ public class FeatureBridge {
             android.content.ClipData cd = android.content.ClipData.newRawUri("", us.get(0));
             for (int i = 1; i < us.size(); i++) cd.addItem(new android.content.ClipData.Item(us.get(i)));
             s.setClipData(cd);
-            a.h.post(() -> { try { a.startActivity(Intent.createChooser(s, "PDF delen")); } catch (Exception e) { Toast.makeText(a, "Delen lukt niet", Toast.LENGTH_SHORT).show(); } });
+            a.h.post(() -> { try { a.startActivity(Intent.createChooser(s, "PDF delen")); } catch (Exception e) { Toast.makeText(a, Taal.tx(a, "Delen lukt niet"), Toast.LENGTH_SHORT).show(); } });
         } catch (Exception ignored) { }
     }
     /** Opslaan als: de gebruiker kiest waar (bijv. Downloads). */
@@ -231,7 +234,7 @@ public class FeatureBridge {
         ctx.getSharedPreferences("pdf", Context.MODE_PRIVATE).edit().putString("saveName", name).apply(); // na herstarten van de app nog bekend
         a.h.post(() -> {
             Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/pdf").putExtra(Intent.EXTRA_TITLE, name);
-            try { a.startActivityForResult(i, MainActivity.REQ_PDF_SAVE); } catch (ActivityNotFoundException e) { Toast.makeText(a, "Opslaan niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+            try { a.startActivityForResult(i, MainActivity.REQ_PDF_SAVE); } catch (ActivityNotFoundException e) { Toast.makeText(a, Taal.tx(a, "Opslaan niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
         });
     }
     /** Alles in de map PDF van de backup-map. */
@@ -332,7 +335,7 @@ public class FeatureBridge {
             if (!a.kluisOk()) { a.js("onKluisChanged", JSONObject.quote("De kluis is weer op slot")); return; }
             a.h.post(() -> {
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
-                try { a.startActivityForResult(i, MainActivity.REQ_KLUIS); } catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+                try { a.startActivityForResult(i, MainActivity.REQ_KLUIS); } catch (ActivityNotFoundException e) { Toast.makeText(a, Taal.tx(a, "Bestandskiezer niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
             });
         }
         @JavascriptInterface public void kluisView(String id) {

@@ -32,7 +32,7 @@ function enterBackup(){
   try { bkCheckRender(JSON.parse(Android.backupCheckLast())); } catch(e){}
   const st = bkState(true);
   $('#bk-nodest').style.display = st.dest ? 'none' : 'block';
-  $('#bk-dest').textContent = st.dest ? 'Naar: ' + (st.destName || 'je backup-map') : '';
+  $('#bk-dest').textContent = st.dest ? t('Naar: {map}', { map: st.destName || t('je backup-map') }) : '';
   $('#bk-parts').innerHTML = Object.keys(BK_PARTS).map(k => '<label class=chk><input type=checkbox data-p="' + k + '"' + (((st.parts || {})[k] === true || (k !== 'notifications' && (st.parts || {})[k] !== false)) ? ' checked' : '') +
     ' onchange="Android.backupSetPart(this.dataset.p, this.checked)"> ' + BK_PARTS[k] + '</label>' +
     (k === 'app' ? '<div class=bk-sub><p class="note' + (st.encrypted ? '' : ' warn') + '" id=bk-app-note>' + bkAppNote(st.encrypted) + '</p></div>' : '')).join('');
@@ -71,7 +71,7 @@ function bkRenderLast(st){
   const l = st.last;
   bkBusy = !!st.busy;
   $('#bk-run').disabled = bkBusy || !st.dest;
-  $('#bk-run').textContent = bkBusy ? 'Bezig: ' + (BK_LABEL[st.current] || '…') : 'Nu alles back-uppen';
+  $('#bk-run').textContent = bkBusy ? t('Bezig: {wat}', { wat: t(BK_LABEL[st.current] || '…') }) : t('Nu alles back-uppen');
   if (!l || !l.t) { $('#bk-last').textContent = 'Nog niet gemaakt'; $('#bk-parts-res').innerHTML = ''; return; }
   $('#bk-last').textContent = (l.auto ? 'Automatisch, ' : '') + fmtDT(l.t, {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
   $('#bk-parts-res').innerHTML = Object.keys(BK_LABEL).filter(k => l[k]).map(k => { const r = l[k];
@@ -80,7 +80,7 @@ function bkRenderLast(st){
     (l.archive ? '<div class=bkres><b>'+uiIcon('lock')+' Versleuteld</b><span class=good>' + esc(l.archive) + '</span></div>' : '') +
     (l.rotated ? '<div class=bkres><b>' + t('Opgeruimd') + '</b><span>' + t('{n} oude bestanden ({grootte})', { n: l.rotated.count, grootte: fmtB(l.rotated.bytes) }) + '</span></div>' : '');
 }
-function bkPollOnce(){ const st = bkState(); if (st.busy !== bkBusy || st.busy) bkRenderLast(st); const tt = $('#tile-backup-sub'); if (tt) tt.textContent = st.busy ? 'Bezig met back-uppen…' : (st.last && st.last.t ? 'Laatst: ' + fmtD(st.last.t) : 'Alles in één keer bewaren'); }
+function bkPollOnce(){ const st = bkState(); if (st.busy !== bkBusy || st.busy) bkRenderLast(st); const tt = $('#tile-backup-sub'); if (tt) tt.textContent = st.busy ? t('Bezig met back-uppen…') : (st.last && st.last.t ? t('Laatst: {wat}', { wat: fmtD(st.last.t) }) : t('Alles in één keer bewaren')); }
 function bkRun(){ const e = Android.backupStart($('#bk-wa').checked); if (e) toast(e); setTimeout(bkPollOnce, 200); }
 window.onBackupDone = function(r){
   const failed = Object.keys(r || {}).filter(k => r[k] && r[k].ok === false).length;

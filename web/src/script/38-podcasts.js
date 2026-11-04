@@ -237,7 +237,7 @@ function pcRenderSubs(){
   $('#pc-subs').innerHTML = pcSubs.map(pcSubTile).join('');
   if (current === 'podlijst' && pcxKind === 'subs') pcxRender();
   const n = pcSubs.reduce((a, s) => a + (+s.fresh || 0), 0), el = $('#tile-podcasts-sub');
-  if (el) el.textContent = n ? n + (n === 1 ? ' nieuwe aflevering' : ' nieuwe afleveringen') : 'Zoeken, volgen en luisteren';
+  if (el) el.textContent = n ? tn(n, '{n} nieuwe aflevering', '{n} nieuwe afleveringen') : t('Zoeken, volgen en luisteren');
 }
 function pcSubTile(s, i){
   return '<div class="pcsubw" role="listitem"><button class="pcsub" onclick="pdOpenSub(' + i + ')" aria-label="' + esc(s.title) + (s.fresh ? ', ' + t('{n} nieuw', { n: s.fresh }) : '') + '">' +
@@ -253,7 +253,7 @@ window.onPodRefreshed = function(r){
 function refreshPodTile(){
   const el = $('#tile-podcasts-sub'); if (!el) return;
   const n = rdJson(Android.podSubs(), []).reduce((a, s) => a + (+s.fresh || 0), 0);
-  el.textContent = n ? n + (n === 1 ? ' nieuwe aflevering' : ' nieuwe afleveringen') : 'Zoeken, volgen en luisteren';
+  el.textContent = n ? tn(n, '{n} nieuwe aflevering', '{n} nieuwe afleveringen') : t('Zoeken, volgen en luisteren');
 }
 
 /* Zoeken en populair: 10 tegelijk */

@@ -7,7 +7,7 @@
  * Een telefoongesprek, Slaappraat, een gespreksopname of muziek herkennen gaat altijd voor. Het scherm blijft aan zolang
  * het gesprek loopt. Er gaat niets van de telefoon af. */
 let aiTk = null;
-const AI_TALK_STOP = /^(?:stop|stoppen|klaar|ik ben klaar|dat was het|dat was het wel|dat is alles|einde|hou op|houd op|ophouden|gesprek stoppen|stop het gesprek)$/i;
+const AI_TALK_STOP = /^(?:stop|stoppen|klaar|ik ben klaar|dat was het|dat was het wel|dat is alles|einde|hou op|houd op|ophouden|gesprek stoppen|stop het gesprek|done|i'm done|i am done|that's all|that is all|that's it|end|stop talking|stop the conversation|goodbye|bye)$/i; // ook Engels (als de app Engels is, verstaat de assistent Engels)
 const AI_TALK_ST = {
   luistert: ['Ik luister…', 'Klaar met praten'],
   denkt: ['Even denken…', ''],

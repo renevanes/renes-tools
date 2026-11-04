@@ -37,18 +37,18 @@ public class PdfShareActivity extends Activity {
         // Alleen bestanden die de andere app zelf mocht doorgeven (Android geeft dan leesrecht mee). Zonder dat
         // leesrecht zou Tools met zijn eigen rechten iets lezen wat de andere app niet mag zien.
         if (!uris.isEmpty() && !PdfTools.grantedBySender(i, uris)) {
-            Toast.makeText(this, "Dit bestand kan niet gebruikt worden", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, Taal.tx(this, "Dit bestand kan niet gebruikt worden"), Toast.LENGTH_LONG).show();
             finish();
             return;
         }
         if (uris.isEmpty() && (text == null || text.trim().isEmpty()) && (html == null || html.trim().isEmpty())) {
-            Toast.makeText(this, "Niets om een PDF van te maken", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, Taal.tx(this, "Niets om een PDF van te maken"), Toast.LENGTH_LONG).show();
             finish();
             return;
         }
         final String fText = text, fSubject = subject, fHtml = html, fType = type;
         // Kopiëren mag niet op de hoofdthread (kan groot zijn); daarna het PDF-scherm openen
-        Toast.makeText(this, "Bezig…", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, Taal.tx(this, "Bezig…"), Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             String r;
             try { r = PdfShare.take(getApplicationContext(), uris, fType, fSubject, fText, fHtml); }

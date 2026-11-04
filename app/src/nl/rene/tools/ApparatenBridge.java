@@ -135,7 +135,7 @@ public class ApparatenBridge extends FeatureBridge {
             if (sp.getBoolean(key, false) && !a.shouldShowRequestPermissionRationale(missing)) {
                 String what = "bgloc".equals(kind) ? "Locatie: altijd toestaan" : "notif".equals(kind) ? "Meldingen aan"
                         : Build.VERSION.SDK_INT >= 31 ? "Apparaten in de buurt aan, en Locatie: precies" : "Locatie: precies";
-                android.widget.Toast.makeText(a, "Android vraagt het niet meer. Zet bij Toestemmingen: " + what, android.widget.Toast.LENGTH_LONG).show();
+                android.widget.Toast.makeText(a, Taal.tx(a, "Android vraagt het niet meer. Zet bij Toestemmingen: " + what), android.widget.Toast.LENGTH_LONG).show();
                 a.openAppSettings();
                 return;
             }

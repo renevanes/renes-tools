@@ -71,7 +71,7 @@ function enterSettings(){
   $('#st-perms').innerHTML = (i.perms || []).map(p =>
     '<div class="row setrow"><span style="flex:1"><b>' + esc(t(p.name)) + '</b><small class=note style="display:block;margin:0">' + esc(t(p.used)) + '</small></span>' +
     (p.ok ? '<span class=permok>✓ Aan</span>' : '<button class="mini" style="float:none" data-p="' + esc(p.id) + '" onclick="Android.permRequest(this.dataset.p)">Toestaan</button>') + '</div>').join('');
-  $('#st-crash').textContent = i.crashes ? i.crashes + (i.crashes === 1 ? ' fout' : ' fouten') + ' vastgelegd.' : 'Er zijn geen fouten vastgelegd. ✓';
+  $('#st-crash').textContent = i.crashes ? tn(i.crashes, '{n} fout vastgelegd.', '{n} fouten vastgelegd.') : t('Er zijn geen fouten vastgelegd. ✓');
   stStatRender();
   stSummaries(i);
 }

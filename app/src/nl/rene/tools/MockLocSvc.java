@@ -61,7 +61,7 @@ public class MockLocSvc extends Service {
 
     private boolean startFg() {
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel ch = new NotificationChannel(CHANNEL, "Locatie kiezen", NotificationManager.IMPORTANCE_LOW);
+            NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(this, "Locatie kiezen"), NotificationManager.IMPORTANCE_LOW);
             ch.setShowBadge(false);
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
         }

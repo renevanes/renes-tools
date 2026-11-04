@@ -488,7 +488,7 @@ final class Vpn {
                 .setContentText(consent ? "Android vraagt eerst toestemming. Tik om te openen." : "Tik om de VPN aan te zetten.")
                 .setContentIntent(tap).setAutoCancel(true);
         if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(30 * 60_000L);
-        try { c.getSystemService(android.app.NotificationManager.class).notify(NOTIF_ASK, b.build()); } catch (Exception ignored) { }
+        try { c.getSystemService(android.app.NotificationManager.class).notify(NOTIF_ASK, Taal.n(c, b.build())); } catch (Exception ignored) { }
     }
 
     static void cancelAsk(Context c) {

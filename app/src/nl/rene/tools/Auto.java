@@ -337,7 +337,7 @@ final class Auto {
 
     static void channel(Context c) {
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel ch = new NotificationChannel(CHANNEL, "Automatiseringen", NotificationManager.IMPORTANCE_HIGH);
+            NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(c, "Automatiseringen"), NotificationManager.IMPORTANCE_HIGH);
             ch.setDescription("Vragen en meldingen van je automatiseringen, zoals parkeren starten");
             ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).createNotificationChannel(ch);
         }
@@ -407,7 +407,7 @@ final class Auto {
 
     static void post(Context c, int nid, Notification n) {
         if (!notifOk(c) || NotifCenter.muted(c)) return;
-        try { ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(nid, n); } catch (Exception ignored) { }
+        try { ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(nid, Taal.n(c, n)); } catch (Exception ignored) { }
     }
 
     static void cancel(Context c, int nid) {

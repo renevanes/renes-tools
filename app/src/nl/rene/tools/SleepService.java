@@ -463,7 +463,7 @@ public final class SleepService extends Service {
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (quiet) quietChannel(this);
             else {
-                NotificationChannel ch = new NotificationChannel(CHANNEL, "Slaappraat", NotificationManager.IMPORTANCE_LOW);
+                NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(this, "Slaappraat"), NotificationManager.IMPORTANCE_LOW);
                 ch.setDescription("Zichtbaar zolang Slaappraat luistert of uitschrijft, met een stopknop; 's ochtends wat er gehoord is");
                 ch.setShowBadge(false);
                 nm.createNotificationChannel(ch);
@@ -498,7 +498,7 @@ public final class SleepService extends Service {
         try {
             NotificationManager nm = c.getSystemService(NotificationManager.class);
             if (nm.getNotificationChannel(CHANNEL_QUIET) != null) return;
-            NotificationChannel ch = new NotificationChannel(CHANNEL_QUIET, "Slaappraat (onopvallend)", NotificationManager.IMPORTANCE_MIN);
+            NotificationChannel ch = new NotificationChannel(CHANNEL_QUIET, Taal.t(c, "Slaappraat (onopvallend)"), NotificationManager.IMPORTANCE_MIN);
             ch.setDescription(QUIET_INFO);
             ch.setSound(null, null); ch.enableVibration(false); ch.enableLights(false); ch.setShowBadge(false);
             ch.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
@@ -518,7 +518,7 @@ public final class SleepService extends Service {
 
     private void notifyNow() {
         if (destroyed || phase.isEmpty()) return; // nooit een melding van een ronde die al voorbij is
-        try { getSystemService(NotificationManager.class).notify(NOTIFICATION, build()); } catch (Throwable ignored) { }
+        try { getSystemService(NotificationManager.class).notify(NOTIFICATION, Taal.n(this, build())); } catch (Throwable ignored) { }
     }
 
     /** Na afloop: een rustige melding met wat er gehoord is (alleen als er iets was). */
@@ -531,7 +531,7 @@ public final class SleepService extends Service {
             Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, ch) : new Notification.Builder(this);
             Notification nn = b.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Slaappraat")
                     .setContentText(heard + " keer iets gehoord vannacht. Tik om te kijken.").setAutoCancel(true).setContentIntent(content).build();
-            getSystemService(NotificationManager.class).notify(NOTIFICATION + 1, nn);
+            getSystemService(NotificationManager.class).notify(NOTIFICATION + 1, Taal.n(this, nn));
         } catch (Throwable ignored) { }
     }
 

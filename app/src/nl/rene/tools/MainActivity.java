@@ -372,7 +372,7 @@ public class MainActivity extends Activity {
                     if (r.equals(Vpn.NEED_CONSENT)) {
                         vpnPending = "";
                         try { startActivityForResult(android.net.VpnService.prepare(this), VpnBridge.REQ_VPN); } catch (Exception ignored) { }
-                    } else if (r.isEmpty()) Toast.makeText(this, wasOn ? "VPN uit" : "VPN gaat aan…", Toast.LENGTH_SHORT).show();
+                    } else if (r.isEmpty()) Toast.makeText(this, Taal.tx(this, wasOn ? "VPN uit" : "VPN gaat aan…"), Toast.LENGTH_SHORT).show();
                 }
                 i.removeExtra("play");
                 return;
@@ -517,7 +517,7 @@ public class MainActivity extends Activity {
         if (android.os.Build.VERSION.SDK_INT >= 26)
             i.putExtra(DocumentsContract.EXTRA_INITIAL_URI, DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Documents"));
         try { startActivityForResult(i, REQ_FACT_TREE); }
-        catch (ActivityNotFoundException e) { Toast.makeText(this, "Mappenkiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+        catch (ActivityNotFoundException e) { Toast.makeText(this, Taal.tx(this, "Mappenkiezer niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
     }
 
     /** Roept window[fn](arg) aan in de pagina als die functie bestaat. */
@@ -658,7 +658,7 @@ public class MainActivity extends Activity {
     void pickContact() {
         Intent i = new Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
         try { startActivityForResult(i, REQ_CONTACT); }
-        catch (ActivityNotFoundException e) { Toast.makeText(this, "Geen contacten-app gevonden", Toast.LENGTH_SHORT).show(); }
+        catch (ActivityNotFoundException e) { Toast.makeText(this, Taal.tx(this, "Geen contacten-app gevonden"), Toast.LENGTH_SHORT).show(); }
     }
 
     @Override
@@ -684,7 +684,7 @@ public class MainActivity extends Activity {
                 String tid = "";
                 try { tid = DocumentsContract.getTreeDocumentId(t); } catch (Exception ignored) { }
                 if (tid.startsWith("primary:Android/media/com.whatsapp")) {
-                    Toast.makeText(this, "Kies een map buiten de WhatsApp-map", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, Taal.tx(this, "Kies een map buiten de WhatsApp-map"), Toast.LENGTH_LONG).show();
                     js(herstel ? "onHerstelFolder" : "onWaChanged", "");
                     return;
                 }
@@ -694,7 +694,7 @@ public class MainActivity extends Activity {
                     WaBackup.prefs(this).edit().putString("dest", t.toString()).apply();
                     AllBackupJob.ensureScheduled(this); // elke nacht (standaard aan) kan nu echt lopen
                 } catch (Exception e) {
-                    Toast.makeText(this, "Deze map kan niet worden gebruikt", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, Taal.tx(this, "Deze map kan niet worden gebruikt"), Toast.LENGTH_LONG).show();
                 }
             }
             js(herstel ? "onHerstelFolder" : "onWaChanged", "");
@@ -780,9 +780,9 @@ public class MainActivity extends Activity {
                     File base = "primary".equals(vol) ? android.os.Environment.getExternalStorageDirectory() : new File("/storage/" + vol);
                     File dir = rel.isEmpty() ? base : new File(base, rel);
                     if (dir.isDirectory()) Transcribe.prefs(this).edit().putString("folder", dir.getAbsolutePath()).apply();
-                    else Toast.makeText(this, "Deze map kan niet worden gebruikt", Toast.LENGTH_LONG).show();
+                    else Toast.makeText(this, Taal.tx(this, "Deze map kan niet worden gebruikt"), Toast.LENGTH_LONG).show();
                 } catch (Exception e) {
-                    Toast.makeText(this, "Deze map kan niet worden gebruikt", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, Taal.tx(this, "Deze map kan niet worden gebruikt"), Toast.LENGTH_LONG).show();
                 }
             }
             js("onTrChanged", "");
@@ -799,7 +799,7 @@ public class MainActivity extends Activity {
                 js("onContactPicked", o.toString());
             }
         } catch (Exception e) {
-            Toast.makeText(this, "Contact lezen lukt niet", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, Taal.tx(this, "Contact lezen lukt niet"), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -826,7 +826,7 @@ public class MainActivity extends Activity {
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
         try { startActivityForResult(i, REQ_TREE); }
-        catch (ActivityNotFoundException e) { Toast.makeText(this, "Mappenkiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+        catch (ActivityNotFoundException e) { Toast.makeText(this, Taal.tx(this, "Mappenkiezer niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
     }
 
     void openAppSettings() {
@@ -922,7 +922,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void toast(String m) {
-            a.h.post(() -> Toast.makeText(ctx, m, Toast.LENGTH_SHORT).show());
+            a.h.post(() -> Toast.makeText(ctx, Taal.tx(ctx, m), Toast.LENGTH_SHORT).show());
         }
 
         /** Zoals redialStart, maar met willekeurige wachttijd tussen randomMin en randomMax seconden (0 = vast). */
@@ -1202,7 +1202,7 @@ public class MainActivity extends Activity {
                 try {
                     a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 } catch (Exception e) {
-                    Toast.makeText(ctx, "Geen app gevonden om dit te openen", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, Taal.tx(ctx, "Geen app gevonden om dit te openen"), Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -1258,7 +1258,7 @@ public class MainActivity extends Activity {
                             .putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     a.startActivity(Intent.createChooser(i, "Route delen"));
                 } catch (Exception e) {
-                    Toast.makeText(ctx, "Delen lukt niet: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(ctx, Taal.tx(ctx, "Delen lukt niet: " + e.getMessage()), Toast.LENGTH_LONG).show();
                 }
             });
             return "";
@@ -1549,7 +1549,7 @@ public class MainActivity extends Activity {
                     i.putExtra(android.provider.ContactsContract.Intents.Insert.PHONE, number);
                     a.startActivity(i);
                 } catch (Exception e) {
-                    Toast.makeText(a, "Contacten-app openen lukt niet", Toast.LENGTH_LONG).show();
+                    Toast.makeText(a, Taal.tx(a, "Contacten-app openen lukt niet"), Toast.LENGTH_LONG).show();
                 }
             });
         }
@@ -1568,7 +1568,7 @@ public class MainActivity extends Activity {
                     }
                     a.startActivity(i);
                 } catch (Exception e) {
-                    Toast.makeText(a, "Contacten-app openen lukt niet", Toast.LENGTH_LONG).show();
+                    Toast.makeText(a, Taal.tx(a, "Contacten-app openen lukt niet"), Toast.LENGTH_LONG).show();
                 }
             });
         }
@@ -1720,7 +1720,7 @@ public class MainActivity extends Activity {
             a.h.post(() -> {
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
                 try { a.startActivityForResult(i, REQ_RECTREE); }
-                catch (ActivityNotFoundException e) { Toast.makeText(a, "Mappenkiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+                catch (ActivityNotFoundException e) { Toast.makeText(a, Taal.tx(a, "Mappenkiezer niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
             });
         }
 
@@ -1907,7 +1907,7 @@ public class MainActivity extends Activity {
                         .putExtra(Intent.EXTRA_SUBJECT, "Foutrapport Tools " + Version.NAME)
                         .putExtra(Intent.EXTRA_TEXT, App.report(ctx));
                 try { a.startActivity(Intent.createChooser(i, "Foutrapport delen")); }
-                catch (Exception e) { Toast.makeText(a, "Delen lukt niet", Toast.LENGTH_SHORT).show(); }
+                catch (Exception e) { Toast.makeText(a, Taal.tx(a, "Delen lukt niet"), Toast.LENGTH_SHORT).show(); }
             });
         }
 
@@ -1917,8 +1917,8 @@ public class MainActivity extends Activity {
                 try {
                     android.content.ClipboardManager cm = (android.content.ClipboardManager) a.getSystemService(Context.CLIPBOARD_SERVICE);
                     cm.setPrimaryClip(android.content.ClipData.newPlainText("Foutrapport Tools", App.report(ctx)));
-                    if (Build.VERSION.SDK_INT < 33) Toast.makeText(a, "Foutrapport gekopieerd", Toast.LENGTH_SHORT).show(); // nieuwere Android meldt het zelf
-                } catch (Exception e) { Toast.makeText(a, "Kopiëren lukt niet", Toast.LENGTH_SHORT).show(); }
+                    if (Build.VERSION.SDK_INT < 33) Toast.makeText(a, Taal.tx(a, "Foutrapport gekopieerd"), Toast.LENGTH_SHORT).show(); // nieuwere Android meldt het zelf
+                } catch (Exception e) { Toast.makeText(a, Taal.tx(a, "Kopiëren lukt niet"), Toast.LENGTH_SHORT).show(); }
             });
         }
 
@@ -2176,7 +2176,7 @@ public class MainActivity extends Activity {
             a.h.post(() -> {
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
                 try { a.startActivityForResult(i, REQ_IMPORT); }
-                catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+                catch (ActivityNotFoundException e) { Toast.makeText(a, Taal.tx(a, "Bestandskiezer niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
             });
         }
 
@@ -2247,7 +2247,7 @@ public class MainActivity extends Activity {
                 i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                         | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
                 try { a.startActivityForResult(i, REQ_HERSTEL_TREE); }
-                catch (ActivityNotFoundException e) { Toast.makeText(a, "Mappenkiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+                catch (ActivityNotFoundException e) { Toast.makeText(a, Taal.tx(a, "Mappenkiezer niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
             });
         }
 
@@ -2372,7 +2372,7 @@ public class MainActivity extends Activity {
                 else if ("route".equals(kind)) i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/gpx+xml", "application/xml", "text/xml", "application/octet-stream"});
                 else i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/json", "application/octet-stream", "text/plain"});
                 try { a.startActivityForResult(i, REQ_IMPORT); }
-                catch (ActivityNotFoundException e) { Toast.makeText(a, "Bestandskiezer niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+                catch (ActivityNotFoundException e) { Toast.makeText(a, Taal.tx(a, "Bestandskiezer niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
             });
         }
 
@@ -2445,7 +2445,7 @@ public class MainActivity extends Activity {
                 Intent i = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text);
                 if (title != null && !title.isEmpty()) i.putExtra(Intent.EXTRA_SUBJECT, title);
                 try { a.startActivity(Intent.createChooser(i, "Notitie delen")); }
-                catch (Exception e) { Toast.makeText(a, "Delen lukt niet", Toast.LENGTH_SHORT).show(); }
+                catch (Exception e) { Toast.makeText(a, Taal.tx(a, "Delen lukt niet"), Toast.LENGTH_SHORT).show(); }
             });
         }
 

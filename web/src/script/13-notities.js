@@ -294,7 +294,7 @@ function clearDone(){
   if (!k) return;
   const before = n.items.slice();
   n.items = n.items.filter(i => !i.done); touch(n); renderItems();
-  undoToast(k + (k === 1 ? ' afgestreept item' : ' afgestreepte items') + ' verwijderd', () => { const m = noteById(n.id); if (!m) return; m.items = before.concat(m.items.filter(i => !before.some(b => b.id === i.id))); touch(m); if (noteCur === m.id) renderItems(); });
+  undoToast(tn(k, '{n} afgestreept item verwijderd', '{n} afgestreepte items verwijderd'), () => { const m = noteById(n.id); if (!m) return; m.items = before.concat(m.items.filter(i => !before.some(b => b.id === i.id))); touch(m); if (noteCur === m.id) renderItems(); });
 }
 function deleteNote(){
   const n = noteById(noteCur); if (!n) return;
@@ -328,6 +328,6 @@ function notesBackup(){
 function refreshNotesTile(){
   const sub = $('#tile-notes-sub'); if (!sub) return;
   const l = notesGet(); const open = l.reduce((a, n) => a + (n.items||[]).filter(i => !i.done).length, 0);
-  sub.textContent = l.length ? l.length + (l.length === 1 ? ' notitie' : ' notities') + (open ? ' · ' + open + ' open' : '') : 'Lijstjes maken en afstrepen';
+  sub.textContent = l.length ? tn(l.length, '{n} notitie', '{n} notities') + (open ? ' · ' + t('{n} open', { n: open }) : '') : t('Lijstjes maken en afstrepen');
 }
 

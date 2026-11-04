@@ -477,7 +477,8 @@ final class Transcribe {
         cmd.add(bin.getPath());
         cmd.add("-m"); cmd.add(modelFile(c, m).getPath());
         cmd.add("-f"); cmd.add(wav.getPath());
-        cmd.add("-l"); cmd.add(prefs(c).getString("lang", "nl"));
+        // Ingesproken (assistent, spraaknotities): in de taal van de app; gesprekken: de taal die bij Gesprekken uitschrijven gekozen is
+        cmd.add("-l"); cmd.add(voice && Taal.en(c) ? "en" : prefs(c).getString("lang", "nl"));
         cmd.add("-t"); cmd.add(String.valueOf(threads));
         cmd.add("-pp");
         cmd.add("-oj");

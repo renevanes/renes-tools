@@ -45,7 +45,7 @@ window.onSecure = function(err){
 };
 function bkEncOff(){
   const p = bkState(true).parts || {}, priv = ['ai', 'sleep', 'checkin'].filter(k => p[k] === true);
-  askConfirm('Versleutelen uitzetten?', 'Nieuwe backups worden weer gewone, leesbare bestanden. Bestaande versleutelde backups blijven staan en houden hun wachtwoord.' +
+  askConfirm('Versleutelen uitzetten?', t('Nieuwe backups worden weer gewone, leesbare bestanden. Bestaande versleutelde backups blijven staan en houden hun wachtwoord.') +
     (priv.length ? '\n\n' + bkPrivNoLonger(priv) : ''), 'Uitzetten', () => {
     Android.backupEncryptOff(); // zet ook de privé-onderdelen uit
     bkRenderSecure(bkState(true)); toast(t(priv.length ? 'Versleutelen staat uit; privé-onderdelen gaan niet meer mee' : 'Versleutelen staat uit'));
@@ -89,7 +89,7 @@ window.onArchive = function(r){
   acts.push(['Uitpakken naar de backup-map', () => askConfirm('Uitpakken?', 'De bestanden komen onversleuteld in de map Uitgepakt in je backup-map. Haal ze weg als je ze niet meer nodig hebt.', 'Uitpakken', () => { toast('Bezig met uitpakken…'); Android.archiveUnpack(); }, () => Android.archiveClose())]);
   acts.push(['Sluiten', () => Android.archiveClose()]);
   // Dicht zonder keuze (terug of ernaast tikken): de sleutel meteen vergeten
-  openSheet('🔒 ' + (r.name || 'Backup'), t('{n} bestanden · {grootte}', { n: (r.files || []).length, grootte: fmtB(r.bytes || 0) }), acts, () => Android.archiveClose());
+  openSheet('🔒 ' + (r.name || t('Backup')), t('{n} bestanden · {grootte}', { n: (r.files || []).length, grootte: fmtB(r.bytes || 0) }), acts, () => Android.archiveClose());
 };
 window.onArchiveUnpacked = function(r){ toast(r.startsWith('ok:') ? t('✓ {n} bestanden uitgepakt naar Uitgepakt/', { n: r.slice(3) }) : r); };
 

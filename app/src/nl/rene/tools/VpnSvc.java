@@ -81,7 +81,7 @@ public class VpnSvc extends VpnService {
 
     static void createChannel(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
-        NotificationChannel ch = new NotificationChannel(Vpn.CHANNEL, "VPN", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(Vpn.CHANNEL, Taal.t(c, "VPN"), NotificationManager.IMPORTANCE_LOW);
         ch.setShowBadge(false);
         ch.setDescription("Of de VPN aan staat, en een vraag als hij vanzelf aan moet maar Android dat niet toeliet");
         c.getSystemService(NotificationManager.class).createNotificationChannel(ch);
@@ -342,7 +342,7 @@ public class VpnSvc extends VpnService {
     private void updateNotif() {
         if (inst != this || "off".equals(status)) return;
         lastNotif = System.currentTimeMillis();
-        try { getSystemService(NotificationManager.class).notify(NOTIF_ID, notif()); } catch (Exception ignored) { }
+        try { getSystemService(NotificationManager.class).notify(NOTIF_ID, Taal.n(this, notif())); } catch (Exception ignored) { }
     }
 
     private Notification notif() {

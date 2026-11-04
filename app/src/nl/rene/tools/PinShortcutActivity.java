@@ -35,7 +35,7 @@ public class PinShortcutActivity extends Activity {
         boolean nativeHome = !lp.getBoolean("classic", false) && lp.getInt("bootFails", 0) < 2;
         HomeActivity cur = HomeActivity.inst;
         if (cur != null) nativeHome = cur.desk != null;
-        if (!nativeHome) { Toast.makeText(this, "Snelkoppelingen kunnen alleen op de launcher met pagina's (niet in de klassieke skin)", Toast.LENGTH_LONG).show(); return false; }
+        if (!nativeHome) { Toast.makeText(this, Taal.tx(this, "Snelkoppelingen kunnen alleen op de launcher met pagina's (niet in de klassieke skin)"), Toast.LENGTH_LONG).show(); return false; }
         ShortcutInfo s = req.getShortcutInfo();
         if (s == null) return false;
         if (getPackageName().equals(s.getPackage())) { place(req, s); return false; }
@@ -60,6 +60,6 @@ public class PinShortcutActivity extends Activity {
         LauncherShortcuts.enqueue(this, s.getPackage(), s.getId(), LauncherShortcuts.label(s));
         HomeActivity a = HomeActivity.inst;
         if (a != null && a.desk != null) a.h.post(() -> { if (a.desk != null) a.desk.takePinned(); });
-        Toast.makeText(this, "Op het startscherm gezet: " + LauncherShortcuts.label(s), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, Taal.tx(this, "Op het startscherm gezet: " + LauncherShortcuts.label(s)), Toast.LENGTH_SHORT).show();
     }
 }

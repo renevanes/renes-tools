@@ -73,7 +73,7 @@ public class FacturenActivity extends Activity {
         setContentView(root);
 
         String err = FacturenRun.begin(this, id, wv, r -> h.post(() -> afgelopen(r)));
-        if (!err.isEmpty()) { Toast.makeText(this, err, Toast.LENGTH_LONG).show(); finish(); return; }
+        if (!err.isEmpty()) { Toast.makeText(this, Taal.tx(this, err), Toast.LENGTH_LONG).show(); finish(); return; }
         run = FacturenRun.LOPEND.get();
         h.post(this::bijwerken);
     }

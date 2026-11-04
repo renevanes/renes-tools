@@ -32,7 +32,7 @@ public class NoteWidgetConfig extends Activity {
         if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) { finish(); return; }
         if (Lock.wouldLock(this) && Lock.hasCode(this)) {
             // Met een app-code geen lijstjes tonen na de pincode van de telefoon: eerst de app ontgrendelen
-            android.widget.Toast.makeText(this, "Ontgrendel eerst Tools met je app-code en plaats het widget daarna", android.widget.Toast.LENGTH_LONG).show();
+            android.widget.Toast.makeText(this, Taal.tx(this, "Ontgrendel eerst Tools met je app-code en plaats het widget daarna"), android.widget.Toast.LENGTH_LONG).show();
             finish();
             return;
         }

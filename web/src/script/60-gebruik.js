@@ -162,7 +162,7 @@ function enterGebruikSet(){
   // Eerlijke status + knoppen om te repareren wat ontbreekt
   const proef = s.lastShot === 'bezig' ? ' Bezig met de proefopname…' : (s.lastShot && s.lastShot.indexOf('mislukt') === 0 ? ' Laatste proef: ' + s.lastShot.slice(9) : (s.lastShot && s.lastShot.indexOf('ok|') === 0 ? ' Laatste proef: gelukt.' : ''));
   const st = $('#gb-photo-status');
-  st.textContent = (caps.works ? 'Werkt op deze telefoon. ' : 'Werkt mogelijk niet. ') + (caps.why || '') + proef;
+  st.textContent = t(caps.works ? 'Werkt op deze telefoon.' : 'Werkt mogelijk niet.') + ' ' + t(caps.why || '') + proef;
   st.classList.toggle('bad', !caps.works);
   const fix = [];
   if (!caps.camera) fix.push(['Cameratoestemming geven', "Android.permRequest('camera')"]);
@@ -202,7 +202,7 @@ function gbTestShot(){
   const poll = () => {
     const ls = gbState().lastShot || '';
     if (ls.indexOf('ok|') === 0) { $('#gb-test-res').textContent = 'Gelukt: de foto staat bij Gebruik → Foto\'s.'; toast('Proefopname gelukt'); if (current === 'gebruikset') enterGebruikSet(); return; }
-    if (ls.indexOf('mislukt') === 0) { $('#gb-test-res').textContent = 'Mislukt: ' + (/time-?out/i.test(ls) ? 'de camera reageerde niet op tijd' : ls.slice(9)); if (current === 'gebruikset') enterGebruikSet(); return; }
+    if (ls.indexOf('mislukt') === 0) { $('#gb-test-res').textContent = t('Mislukt: {fout}', { fout: /time-?out/i.test(ls) ? t('de camera reageerde niet op tijd') : t(ls.slice(9)) }); if (current === 'gebruikset') enterGebruikSet(); return; }
     if (Date.now() - t0 > 12000) { $('#gb-test-res').textContent = 'Geen uitkomst: de camera reageerde niet. Probeer het opnieuw.'; return; }
     gbShotPoll = setTimeout(poll, 600);
   };
@@ -229,7 +229,7 @@ function gbRenderPhotoTab(){
 function gbRenderPhotos(){
   const o = rdJson(Android.gebruikPhotos(), {}) || {}, ph = o.photos || [];
   $('#gb-photos-clear').style.display = ph.length ? '' : 'none';
-  $('#gb-photos-open').textContent = ph.length ? 'Foto\'s bekijken (' + ph.length + ')' : 'Foto\'s bekijken';
+  $('#gb-photos-open').textContent = ph.length ? t('Foto\'s bekijken ({n})', { n: ph.length }) : t('Foto\'s bekijken');
   // De laatste drie als snelle link; alles staat bij Gebruik → Foto's
   slHtml($('#gb-photos'), ph.length ? '<div class="gb-photos">' + ph.slice(0, 3).map(p => '<button class="gb-thumb" data-id="' + esc(p.id) + '" onclick="gbShowPhoto(this.dataset.id)"><span class="ui-icon" data-icon="camera" aria-hidden="true"></span>' + esc(gbDay(p.t) + ' ' + gbTime(p.t) + ' · ' + gbPhotoLabel(p.reason)) + '</button>').join('') + '</div>' : '');
 }

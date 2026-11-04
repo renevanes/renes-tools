@@ -411,6 +411,6 @@ window.onAutoChanged = function(){
 function refreshAutoTile(){
   const el = $('#tile-auto-sub'); if (!el || !Android.autoState) return;
   const n = (rdJson(Android.autoState(), {}).rules || []).filter(r => r.on !== false).length;
-  el.textContent = n ? n + (n === 1 ? ' automatisering aan' : ' automatiseringen aan') : 'Bijv. parkeren starten bij aankomst';
+  el.textContent = n ? tn(n, '{n} automatisering aan', '{n} automatiseringen aan') : t('Bijv. parkeren starten bij aankomst');
 }
 refreshAutoTile();

@@ -18,7 +18,7 @@ function setEntry(id){ return setAll().find(e => e.id === id) || null; }
 function setType(e){ return e.type || 'aan'; }
 function setVals(e){ let v = e.vals; if (typeof v === 'function') { try { v = v(); } catch (x) { v = []; } } return v || (setType(e) === 'aan' ? SET_AU : []); }
 function setGet(e){ if (!e || !e.get || e.safe === 'geheim') return ''; try { const v = e.get(); return v == null ? '' : String(v); } catch (x) { return ''; } }
-function setName(e, v){ if (v === '' || v == null) return ''; if (setType(e) === 'tijd' && typeof fmtHm === 'function') return fmtHm(v); const x = setVals(e).find(p => p[0] === v); return x ? (setType(e) === 'aan' ? x[1].toLowerCase() : x[1]) : e.vname ? String(e.vname(v)) : String(v); }
+function setName(e, v){ if (v === '' || v == null) return ''; if (setType(e) === 'tijd' && typeof fmtHm === 'function') return fmtHm(v); const x = setVals(e).find(p => p[0] === v); return x ? (setType(e) === 'aan' ? t(x[1]).toLowerCase() : t(x[1])) : e.vname ? t(String(e.vname(v))) : String(v); }
 /* Mag de assistent dit naar deze waarde zetten? Gevoelig = nee (alleen uitleg en Openen) */
 function setSafe(e, v){ return !!e.safe && (e.safe === 'geheim' || !e.weak || !!e.weak(v)); }
 function setCanChange(e){ const tt = setType(e); return (tt === 'aan' || tt === 'keuze' || tt === 'tijd') && typeof e.set === 'function' && e.safe !== 'geheim'; }
@@ -32,7 +32,9 @@ function setPath(scr){
 /* ---------- zoeken in het register ---------- */
 const SET_STOP = new Set(('de het een en of in op aan uit af bij van voor met naar te is zijn was wat waar hoe kan ik je jij u mijn me mij m\'n zet zetten schakel schakelen staat staan stel ' +
   'stellen instellen instelling instellingen app tools graag even wil wilt kun kunt kunnen moet dat dit die er om ook nog niet geen wel welke wanneer waarom vind vinden zit zitten doe doet dan als ' +
-  'alles allemaal heb hebt heeft wordt worden aub alsjeblieft svp please nu iets ding knop optie mogelijk').split(' '));
+  'alles allemaal heb hebt heeft wordt worden aub alsjeblieft svp please nu iets ding knop optie mogelijk ' +
+  // Engels (alleen als de app Engels is komen deze woorden voor)
+  'the my your to of for on off turn switch set setting settings change show can could would you is are be it this that and or with in at by app please').split(' '));
 function setWords(s){
   return norm2(s).replace(/['’`]/g, '').replace(/([a-z])-([a-z])/g, '$1$2').replace(/[^a-z0-9]+/g, ' ').split(' ').filter(w => w.length > 1 && !SET_STOP.has(w));
 }
@@ -49,7 +51,11 @@ function setWm(q, f){
   return 0;
 }
 function setIdx(e){
-  if (!e._w) { const nd = SET_NEED.find(x => e.id.startsWith(x[0])); e._w = { l: setWords(e.label), s: setWords(e.syn || ''), p: setWords(setPath(e.scr)), d: setWords(e.desc || ''), n: norm2(e.label), need: e.need || (nd && nd[1]) }; }
+  // In het Engels ook de Engelse naam, zoekwoorden en uitleg (uit het woordenboek); opnieuw na een andere taal
+  if (!e._w || e._w.en !== TAAL.on) {
+    const nd = SET_NEED.find(x => e.id.startsWith(x[0])), en = s => TAAL.on && s ? ' ' + t(s) : '';
+    e._w = { en: TAAL.on, l: setWords(e.label + en(e.label)), s: setWords((e.syn || '') + (TAAL.on ? ' ' + (e.synEn || '') : '')), p: setWords(setPath(e.scr)), d: setWords((e.desc || '') + en(e.desc)), n: norm2(e.label), ne: TAAL.on ? norm2(t(e.label)) : '', need: e.need || (nd && nd[1]), needEn: e.needEn || (nd && nd[2]) };
+  }
   return e._w;
 }
 function setScore(e, qs, raw, full){
@@ -57,9 +63,9 @@ function setScore(e, qs, raw, full){
   let s = 0;
   qs.forEach(q => { s += Math.max(3 * best(q, w.l), 2 * best(q, w.s), 1.2 * best(q, w.p), 0.6 * best(q, w.d)); });
   const nq = norm2(raw || ''), nf = norm2(full || raw || '');
-  if (w.n.length > 4 && nq.includes(w.n)) s += 2;
+  if ((w.n.length > 4 && nq.includes(w.n)) || (w.ne.length > 4 && nq.includes(w.ne))) s += 2;
   if (setPhr(e, nf)) s += 3;
-  if (w.need && !w.need.test(nq)) s *= 0.6; // een instelling van een andere tool dan genoemd
+  if (w.need && !w.need.test(nq) && !(w.needEn && w.needEn.test(nq))) s *= 0.6; // een instelling van een andere tool dan genoemd
   return s;
 }
 function setFind(text, list, full){
@@ -138,7 +144,10 @@ function setValFor(e, raw){
   if (e.alias && e.alias[r]) return e.alias[r];
   const nm = x => norm2(x).replace(/[×x]$/, '').replace(',', '.').trim(), rr = nm(r);
   // noNum: een kaal getal is geen waarde ("zet de klok op 12 uur" is een tijdstip, geen 12-uurs klok)
-  let v = vals.find(x => (!e.noNum && nm(x[0]) === rr) || nm(x[1]) === rr);
+  // In het Engels ook de Engelse naam van een waarde ("Large", "Miles (mi)", "Automatic by time")
+  const en = x => TAAL.on ? nm(t(x[1])) : '';
+  let v = vals.find(x => (!e.noNum && nm(x[0]) === rr) || nm(x[1]) === rr || en(x) === rr);
+  if (!v && TAAL.on && rr.length >= 3) v = vals.find(x => en(x).startsWith(rr) || en(x).split(' ')[0] === rr || en(x).replace(/ \(.*\)$/, '') === rr);
   if (!v && SET_OFF.test(r)) v = vals.find(x => /^(uit|off)$/.test(nm(x[0])) || nm(x[1]) === 'uit');
   if (!v && rr.length >= 3) v = vals.find(x => nm(x[1]).startsWith(rr) || nm(x[1]).split(' ')[0] === rr);
   if (!v && !e.noNum && /^\d+([.]\d+)?$/.test(rr)) v = vals.find(x => parseFloat(nm(x[0])) === parseFloat(rr) || parseFloat(nm(x[1])) === parseFloat(rr));
@@ -157,7 +166,7 @@ function setTime(r){
 }
 
 /* ---------- antwoorden ---------- */
-const setB0 = s => '**' + s + '**';
+const setB0 = s => '**' + t(s) + '**';
 function setNow(e){ const v = setGet(e); return v ? setName(e, v) : ''; }
 function setWhere(e){ return setPath(e.scr) || 'Instellingen'; }
 /* Een wijziging voorstellen (of uitleggen waarom niet) */
@@ -165,23 +174,24 @@ function setPropose(e, v){
   const where = setWhere(e);
   if (setSafe(e, v) || !setCanChange(e)) {
     const now = setNow(e);
-    return { text: setB0(e.label) + (now ? ' staat nu op ' + now + '.' : '.') + ' Dit pas ik niet voor je aan' + (e.why ? ': ' + e.why.charAt(0).toLowerCase() + e.why.slice(1) : '.') + ' Je vindt het bij ' + where + '.', set: { open: [e.id] } };
+    return { text: (now ? t('{naam} staat nu op {waarde}.', { naam: setB0(e.label), waarde: now }) : setB0(e.label) + '.') + ' ' + (e.why ? t('Dit pas ik niet voor je aan: {reden}', { reden: t(e.why).charAt(0).toLowerCase() + t(e.why).slice(1) }) : t('Dit pas ik niet voor je aan.')) + ' ' + t('Je vindt het bij {waar}.', { waar: where }), set: { open: [e.id] } };
   }
   const na = e.avail ? e.avail() : '';
-  if (na) return { text: 'Dat kan nu niet: ' + na.charAt(0).toLowerCase() + na.slice(1) + '. ' + setB0(e.label) + ' vind je bij ' + where + '.', set: { open: [e.id] } };
+  if (na) return { text: t('Dat kan nu niet: {reden}.', { reden: t(na).charAt(0).toLowerCase() + t(na).slice(1) }) + ' ' + t('{naam} vind je bij {waar}.', { naam: setB0(e.label), waar: where }), set: { open: [e.id] } };
   const cur = setGet(e);
-  if (cur === v) return { text: setB0(e.label) + ' staat al op ' + setName(e, v) + '. Je vindt het bij ' + where + '.', set: { open: [e.id] } };
-  return { text: 'Ik kan ' + setB0(e.label) + ' voor je aanpassen' + (cur ? ': van ' + setName(e, cur) + ' naar ' + setName(e, v) : ' naar ' + setName(e, v)) + '. Bevestig hieronder met Toepassen.',
+  if (cur === v) return { text: t('{naam} staat al op {waarde}.', { naam: setB0(e.label), waarde: setName(e, v) }) + ' ' + t('Je vindt het bij {waar}.', { waar: where }), set: { open: [e.id] } };
+  return { text: (cur ? t('Ik kan {naam} voor je aanpassen: van {van} naar {naar}.', { naam: setB0(e.label), van: setName(e, cur), naar: setName(e, v) }) : t('Ik kan {naam} voor je aanpassen naar {naar}.', { naam: setB0(e.label), naar: setName(e, v) })) + ' ' + t('Bevestig hieronder met Toepassen.'),
     set: { items: [{ id: e.id, from: cur, to: v, st: 'voorgesteld' }] } };
 }
 function setLookup(e, kind){
   const now = setNow(e), where = setWhere(e), secret = e.safe === 'geheim';
-  const val = secret ? ' Wat erin staat, lees ik niet voor.' : now ? ' Staat nu: ' + now + '.' : '';
-  const tt = kind === 'stand' ? (secret ? setB0(e.label) + ' vind je bij ' + where + '.' + val : now ? setB0(e.label) + ' staat op ' + now + '. Je vindt het bij ' + where + '.' : setB0(e.label) + ' vind je bij ' + where + '.')
-    : setB0(e.label) + ' vind je bij ' + where + '.' + val;
-  return { text: tt + (e.desc ? ' ' + e.desc : ''), set: { open: [e.id] } };
+  const val = secret ? ' ' + t('Wat erin staat, lees ik niet voor.') : now ? ' ' + t('Staat nu: {waarde}.', { waarde: now }) : '';
+  const vind = t('{naam} vind je bij {waar}.', { naam: setB0(e.label), waar: where });
+  const tt = kind === 'stand' ? (secret ? vind + val : now ? t('{naam} staat op {waarde}.', { naam: setB0(e.label), waarde: now }) + ' ' + t('Je vindt het bij {waar}.', { waar: where }) : vind)
+    : vind + val;
+  return { text: tt + (e.desc ? ' ' + t(e.desc) : ''), set: { open: [e.id] } };
 }
-function setNotFound(x){ return { text: 'Ik vond geen instelling die past bij "' + String(x).slice(0, 60) + '". Probeer het met andere woorden, of kijk bij Instellingen.', set: { open: ['__instellingen'] } }; }
+function setNotFound(x){ return { text: t('Ik vond geen instelling die past bij "{x}". Probeer het met andere woorden, of kijk bij Instellingen.', { x: String(x).slice(0, 60) }), set: { open: ['__instellingen'] } }; }
 /* Wat de assistent aan het taalmodel meegeeft over deze instellingen */
 function setOffer(list){
   // Geen geheimen en geen namen van buiten (zenders, Bluetooth) naar het model; en alleen waarden die de assistent mag voorstellen
@@ -200,15 +210,16 @@ function setList(x){
   let list = best && bs >= 0.7 ? all.filter(e => setPath(e.scr).split(' → ').includes(best)) : [];
   if (!list.length) list = setFind(x, all).filter(h => h.s >= SET_MIN).slice(0, 8).map(h => h.e);
   if (!list.length) return setNotFound(x);
-  const rows = list.slice(0, 24).map(e => '- ' + e.label + (e.safe === 'geheim' ? '' : setNow(e) ? ': ' + setNow(e) : ''));
+  const rows = list.slice(0, 24).map(e => '- ' + t(e.label) + (e.safe === 'geheim' ? '' : setNow(e) ? ': ' + setNow(e) : ''));
   const ex = list.find(e => setCanChange(e) && !e.safe && setType(e) === 'aan');
-  return { text: (best && bs >= 0.7 ? 'Bij ' + setB0(best) + ' kun je instellen:' : 'Deze instellingen horen erbij:') + '\n' + rows.join('\n') + (list.length > 24 ? '\n- … en nog ' + (list.length - 24) + ' meer' : '') +
-    '\n\n' + (ex ? 'Zeg bijvoorbeeld "zet ' + ex.label.charAt(0).toLowerCase() + ex.label.slice(1) + ' ' + (setGet(ex) === 'aan' ? 'uit' : 'aan') + '", of tik op Openen.' : 'Tik op Openen om ernaartoe te gaan.'), set: { open: [list[0].id] } };
+  const exL = ex ? t(ex.label).charAt(0).toLowerCase() + t(ex.label).slice(1) : '';
+  return { text: (best && bs >= 0.7 ? t('Bij {scherm} kun je instellen:', { scherm: setB0(best) }) : t('Deze instellingen horen erbij:')) + '\n' + rows.join('\n') + (list.length > 24 ? '\n- ' + t('… en nog {n} meer', { n: list.length - 24 }) : '') +
+    '\n\n' + (ex ? (TAAL.on ? t('Zeg bijvoorbeeld "{opdracht}", of tik op Openen.', { opdracht: 'turn ' + (setGet(ex) === 'aan' ? 'off ' : 'on ') + exL }) : 'Zeg bijvoorbeeld "zet ' + exL + ' ' + (setGet(ex) === 'aan' ? 'uit' : 'aan') + '", of tik op Openen.') : t('Tik op Openen om ernaartoe te gaan.')), set: { open: [list[0].id] } };
 }
 function setLogText(){
   const log = setLogGet();
-  if (!log.length) return { text: 'Ik heb nog geen instellingen voor je aangepast.' };
-  return { text: 'Dit heb ik voor je aangepast (nieuwste eerst):', set: { log: log.slice(0, 10).map(x => x.n) } };
+  if (!log.length) return { text: t('Ik heb nog geen instellingen voor je aangepast.') };
+  return { text: t('Dit heb ik voor je aangepast (nieuwste eerst):'), set: { log: log.slice(0, 10).map(x => x.n) } };
 }
 
 /* Een vraag over de app? Geeft null (gewoon de assistent), {local, text, set} (antwoord zonder taalmodel) of
@@ -216,7 +227,7 @@ function setLogText(){
 function setHandle(q){
   const it = setIntent(q);
   if (!it) return null;
-  if (setSolo()) return { local: true, text: 'In een losse app kan ik de instellingen van Tools niet bekijken of aanpassen. Open daarvoor Tools zelf.' };
+  if (setSolo()) return { local: true, text: t('In een losse app kan ik de instellingen van Tools niet bekijken of aanpassen. Open daarvoor Tools zelf.') };
   const model = aiChatReady();
   if (it.kind === 'log') return Object.assign({ local: true }, setLogText());
   if (it.kind === 'lijst') return Object.assign({ local: true }, setList(it.x));
@@ -236,7 +247,7 @@ function setHandle(q){
     const valid = ch.slice(0, 8).filter(h => h.s >= SET_MIN && setValFor(h.e, raw) !== null);
     if (valid.length && valid[0].s >= ctop.s * 0.6) {
       if (valid[1] && valid[1].s >= valid[0].s * 0.85) {
-        return { local: true, text: 'Welke instelling bedoel je?', set: { pick: valid.slice(0, 3).map(h => ({ id: h.e.id, v: setValFor(h.e, raw) })) } };
+        return { local: true, text: t('Welke instelling bedoel je?'), set: { pick: valid.slice(0, 3).map(h => ({ id: h.e.id, v: setValFor(h.e, raw) })) } };
       }
       const e = valid[0].e;
       return Object.assign({ local: true }, setPropose(e, setValFor(e, raw)));
@@ -245,8 +256,8 @@ function setHandle(q){
     if (ctop && ctop.s >= SET_MIN && short && !ctop.e.id.startsWith('regio.')) {
       const e = ctop.e;
       if (!setCanChange(e) || setSafe(e, 'aan') && setSafe(e, 'uit')) return Object.assign({ local: true }, setPropose(e, ''));
-      if (setType(e) === 'keuze') return { local: true, text: setB0(e.label) + (setNow(e) ? ' staat nu op ' + setNow(e) + '.' : '.') + ' Kies een van deze:', set: { choose: e.id, open: [e.id] } };
-      if (setType(e) === 'tijd') return { local: true, text: 'Welke tijd wil je voor ' + setB0(e.label) + '? Zeg bijvoorbeeld "zet ' + e.label.charAt(0).toLowerCase() + e.label.slice(1) + ' op 07:30".', set: { open: [e.id] } };
+      if (setType(e) === 'keuze') return { local: true, text: (setNow(e) ? t('{naam} staat nu op {waarde}.', { naam: setB0(e.label), waarde: setNow(e) }) : setB0(e.label) + '.') + ' ' + t('Kies een van deze:'), set: { choose: e.id, open: [e.id] } };
+      if (setType(e) === 'tijd') return { local: true, text: TAAL.on ? t('Welke tijd wil je voor {naam}? Zeg bijvoorbeeld "{opdracht}".', { naam: setB0(e.label), opdracht: 'set ' + t(e.label).charAt(0).toLowerCase() + t(e.label).slice(1) + ' to 07:30' }) : 'Welke tijd wil je voor ' + setB0(e.label) + '? Zeg bijvoorbeeld "zet ' + e.label.charAt(0).toLowerCase() + e.label.slice(1) + ' op 07:30".', set: { open: [e.id] } };
     }
     // Geen instelling van de app: zonder taalmodel eerlijk zeggen; met taalmodel gewoon antwoorden, met de opdracht
     // nooit te zeggen dat er iets aan- of uitgezet is (de assistent kan zelf niets bedienen)
@@ -258,7 +269,7 @@ function setHandle(q){
     if (clear) return Object.assign({ local: true }, setLookup(top.e, it.kind));
     const some = hits.filter(h => h.s >= SET_MIN * 0.6).slice(0, 4).map(h => h.e);
     if (some.length && model) return { settings: setOffer(some), set: { open: some.slice(0, 3).map(e => e.id), offer: some.map(e => e.id) } };
-    if (some.length) return { local: true, text: 'Bedoel je een van deze? Tik op Openen om ernaartoe te gaan.', set: { open: some.slice(0, 3).map(e => e.id) } };
+    if (some.length) return { local: true, text: t('Bedoel je een van deze? Tik op Openen om ernaartoe te gaan.'), set: { open: some.slice(0, 3).map(e => e.id) } };
     return model ? null : Object.assign({ local: true }, setNotFound(it.x));
   }
   // Uitleg ("hoe …", "wat doet …"): met het taalmodel als dat er is. Alleen als de vraag echt over de app gaat:
@@ -269,7 +280,7 @@ function setHandle(q){
   if (!some.length) return null;
   if (model) return { settings: setOffer(some), set: { open: some.slice(0, 3).map(e => e.id), offer: some.map(e => e.id) } };
   if (clear) return Object.assign({ local: true }, setLookup(top.e, 'waar'));
-  return { local: true, text: 'Bedoel je een van deze? Tik op Openen om ernaartoe te gaan.', set: { open: some.slice(0, 3).map(e => e.id) } };
+  return { local: true, text: t('Bedoel je een van deze? Tik op Openen om ernaartoe te gaan.'), set: { open: some.slice(0, 3).map(e => e.id) } };
 }
 /* Opnieuw antwoorden: zelfde instellingen als de vraag erom vroeg */
 function setOfferFor(q){ const h = setHandle(q); return h && (h.settings || h.noDo) ? h : null; }
@@ -298,42 +309,42 @@ function setMsgHtml(m, i){
   const s = m && m.set; if (!s) return '';
   if (setSolo()) {
     const st = { voorgesteld: 'voorgesteld, niet toegepast', gedaan: 'aangepast', terug: 'teruggezet', nee: 'niet veranderd', fout: 'niet gelukt' };
-    const rows = (s.items || []).map(x => { const e = setEntry(x.id); return e ? '<li>' + esc(e.label + ': ' + setName(e, x.to) + ' (' + (st[x.st] || '') + ')') + '</li>' : ''; }).join('');
+    const rows = (s.items || []).map(x => { const e = setEntry(x.id); return e ? '<li>' + esc(t(e.label) + ': ' + setName(e, x.to) + ' (' + t(st[x.st] || '') + ')') + '</li>' : ''; }).join('');
     return '<div class="aiact no" role="status">' + uiIcon('lock') + '<span>' + (rows ? '<ul style="margin:0;padding-left:18px">' + rows + '</ul>' : '') + '<small>Instellingen bekijk en verander je in Tools zelf, niet in een losse app.</small></span></div>';
   }
   let h = '';
   (s.items || []).forEach((x, k) => { h += setItemHtml(x, i, k); });
   if (s.pick && s.pick.length) h += '<div class="aiact" role="group" aria-label="Welke instelling bedoel je?"><b>' + uiIcon('settings') + 'Welke bedoel je?</b><div class="aiactb">' +
-    s.pick.map((p, k) => { const e = setEntry(p.id); return e ? '<button class="mini" onclick="setPick(' + i + ',' + k + ')">' + esc(e.label + (p.v ? ': ' + setName(e, p.v) : '')) + '</button>' : ''; }).join('') + '</div></div>';
+    s.pick.map((p, k) => { const e = setEntry(p.id); return e ? '<button class="mini" onclick="setPick(' + i + ',' + k + ')">' + esc(t(e.label) + (p.v ? ': ' + setName(e, p.v) : '')) + '</button>' : ''; }).join('') + '</div></div>';
   if (s.choose && !(s.items || []).length) { const e = setEntry(s.choose); if (e) { const cur = setGet(e);
-    h += '<div class="aiact" role="group" aria-label="' + esc('Kies: ' + e.label) + '"><b>' + uiIcon('settings') + esc(e.label) + '</b><div class="aiactb">' +
+    h += '<div class="aiact" role="group" aria-label="' + esc(t('Kies: {naam}', { naam: t(e.label) })) + '"><b>' + uiIcon('settings') + esc(t(e.label)) + '</b><div class="aiactb">' +
       setVals(e).filter(x => x[0] !== cur).map(x => '<button class="mini" onclick="setChoose(' + i + ',' + jsq(x[0]) + ')">' + esc(x[1]) + '</button>').join('') + '</div></div>'; } }
   if (s.log) { const log = setLogGet();
     h += '<div class="aiact setlog" role="list">' + s.log.map(n => { const x = log.find(y => y.n === n); if (!x) return '';
-      return '<div class="setlogrow" role="listitem"><span>' + (x.undone ? '<s>' : '') + esc(x.label) + ': ' + esc(x.fromN || x.from) + ' → <b>' + esc(x.toN || x.to) + '</b>' + (x.undone ? '</s> <small>(teruggezet)</small>' : '') + '<small>' + esc(fmtD(x.t)) + '</small></span>' +
+      return '<div class="setlogrow" role="listitem"><span>' + (x.undone ? '<s>' : '') + esc(t(x.label)) + ': ' + esc(t(x.fromN || x.from)) + ' → <b>' + esc(t(x.toN || x.to)) + '</b>' + (x.undone ? '</s> <small>' + t('(teruggezet)') + '</small>' : '') + '<small>' + esc(fmtD(x.t)) + '</small></span>' +
         (x.undone ? '' : '<button class="linkish" onclick="setLogUndo(' + n + ',' + i + ')" aria-label="' + esc('Ongedaan maken: ' + x.label) + '">Ongedaan maken</button>') + '</div>'; }).join('') + '</div>'; }
   if (s.open && s.open.length) h += '<div class="aisrc setopen">' + s.open.map(id => {
     if (id === '__instellingen') return '<button class="aichip sm" onclick="jumpTo(\'settings\')">' + uiIcon('settings') + 'Instellingen openen</button>';
-    const e = setEntry(id); return e ? '<button class="aichip sm" onclick="setOpen(' + jsq(id) + ')" aria-label="' + esc('Openen: ' + e.label) + '">' + uiIcon('external') + esc(e.label) + '</button>' : ''; }).join('') + '</div>';
+    const e = setEntry(id); return e ? '<button class="aichip sm" onclick="setOpen(' + jsq(id) + ')" aria-label="' + esc(t('Openen: {naam}', { naam: t(e.label) })) + '">' + uiIcon('external') + esc(t(e.label)) + '</button>' : ''; }).join('') + '</div>';
   return h;
 }
 function setItemHtml(x, i, k){
   const e = setEntry(x.id); if (!e) return '';
   const from = x.from === '' || x.from == null ? '' : setName(e, x.from), to = setName(e, x.to);
   const open = '<button class="linkish" onclick="setOpen(' + jsq(e.id) + ')">Openen</button>';
-  if (x.st === 'gedaan') return '<div class="aiact done" role="status">' + uiIcon('check') + '<span>' + esc(e.label) + ': <b>' + esc(to) + '</b>' + (from ? '<small>Was: ' + esc(from) + '</small>' : '') + '</span>' +
-    '<button class="linkish" onclick="setUndo(' + i + ',' + k + ')" aria-label="' + esc('Ongedaan maken: ' + e.label) + '">Ongedaan maken</button>' + open + '</div>';
-  if (x.st === 'terug') return '<div class="aiact done" role="status">' + uiIcon('refresh') + '<span>Teruggezet: ' + esc(e.label) + ' weer op <b>' + esc(from) + '</b></span>' + open + '</div>';
+  if (x.st === 'gedaan') return '<div class="aiact done" role="status">' + uiIcon('check') + '<span>' + esc(t(e.label)) + ': <b>' + esc(to) + '</b>' + (from ? '<small>' + t('Was: {waarde}', { waarde: esc(from) }) + '</small>' : '') + '</span>' +
+    '<button class="linkish" onclick="setUndo(' + i + ',' + k + ')" aria-label="' + esc(t('Ongedaan maken: {naam}', { naam: t(e.label) })) + '">' + t('Ongedaan maken') + '</button>' + open + '</div>';
+  if (x.st === 'terug') return '<div class="aiact done" role="status">' + uiIcon('refresh') + '<span>' + t('Teruggezet: {naam} weer op <b>{waarde}</b>', { naam: esc(t(e.label)), waarde: esc(from) }) + '</span>' + open + '</div>';
   if (x.st === 'nee') return '<div class="aiact no">' + uiIcon('settings') + '<span><s>' + esc(e.label + ' naar ' + to) + '</s> <small>(niet veranderd)</small></span><button class="linkish" onclick="setAgain(' + i + ',' + k + ')">Toch voorstellen</button></div>';
-  if (x.st === 'fout') return '<div class="aiact no" role="status">' + uiIcon('alert') + '<span>' + esc(e.label) + ': ' + esc(x.err || 'aanpassen lukte niet') + '</span>' + open + '</div>';
+  if (x.st === 'fout') return '<div class="aiact no" role="status">' + uiIcon('alert') + '<span>' + esc(t(e.label)) + ': ' + esc(t(x.err || 'aanpassen lukte niet')) + '</span>' + open + '</div>';
   const warn = e.warn ? e.warn(x.to) : '', note = e.note ? e.note(x.to) : '';
-  return '<div class="aiact setcard" role="group" aria-label="' + esc('Voorstel: ' + e.label + ' aanpassen') + '"><b>' + uiIcon('settings') + 'Instelling aanpassen?</b>' +
-    '<div class="aiactt">' + esc(e.label) + '<small>' + esc(setWhere(e)) + '</small></div>' +
+  return '<div class="aiact setcard" role="group" aria-label="' + esc(t('Voorstel: {naam} aanpassen', { naam: t(e.label) })) + '"><b>' + uiIcon('settings') + t('Instelling aanpassen?') + '</b>' +
+    '<div class="aiactt">' + esc(t(e.label)) + '<small>' + esc(setWhere(e)) + '</small></div>' +
     '<div class="setft">' + (from ? '<span>Van <s>' + esc(from) + '</s></span>' : '') + '<span>' + (from ? 'naar' : 'Naar') + ' <b>' + esc(to) + '</b></span></div>' +
     (note ? '<p class="note setwarn setinfo">' + uiIcon('info') + esc(note) + '</p>' : '') +
     (warn ? '<p class="note setwarn">' + uiIcon('alert') + esc(warn) + '</p>' : '') +
-    '<div class="aiactb"><button class="mini on" onclick="setDo(' + i + ',' + k + ')" aria-label="' + esc('Toepassen: ' + e.label + ' naar ' + to) + '">Toepassen</button>' +
-    '<button class="mini" onclick="setNo(' + i + ',' + k + ')" aria-label="' + esc('Annuleren: ' + e.label) + '">Annuleren</button>' + open + '</div></div>';
+    '<div class="aiactb"><button class="mini on" onclick="setDo(' + i + ',' + k + ')" aria-label="' + esc(t('Toepassen: {naam} naar {waarde}', { naam: t(e.label), waarde: to })) + '">' + t('Toepassen') + '</button>' +
+    '<button class="mini" onclick="setNo(' + i + ',' + k + ')" aria-label="' + esc(t('Annuleren: {naam}', { naam: t(e.label) })) + '">' + t('Annuleren') + '</button>' + open + '</div></div>';
 }
 function setItem(i, k){ const m = aiChat && aiChat.msgs[i], x = m && m.set && m.set.items && m.set.items[k]; return x ? { m, x } : null; }
 /* Is de wijziging (nog) toegestaan? "" = ja */
@@ -349,15 +360,15 @@ function setDo(i, k){ if (setSoloNo()) return;
   const x = it.x, e = setEntry(x.id), why = setCheck(e, x.to);
   if (why) { x.st = 'fout'; x.err = why; aiMemAfter(i); toast(why); return; }
   const before = setGet(e);
-  if (before === x.to) { x.st = 'gedaan'; aiMemAfter(i); toast(e.label + ' stond al op ' + setName(e, x.to)); return; }
+  if (before === x.to) { x.st = 'gedaan'; aiMemAfter(i); toast(t('{naam} stond al op {waarde}', { naam: t(e.label), waarde: setName(e, x.to) })); return; }
   let err = '';
   try { err = e.set(x.to) || ''; } catch (er) { err = 'Aanpassen lukte niet'; }
   const after = setGet(e);
   if (!err && e.get && after !== x.to) err = 'Aanpassen lukte niet; kijk op het scherm (Openen)';
-  if (err) { x.st = 'fout'; x.err = err; aiMemAfter(i); toast(err); aiVSay(err); return; }
+  if (err) { x.st = 'fout'; x.err = err; aiMemAfter(i); toast(t(err)); aiVSay(t(err)); return; }
   x.from = before; x.st = 'gedaan'; x.log = setLogAdd(e, before, x.to);
   aiMemAfter(i);
-  const msg = 'Aangepast: ' + e.label + ' staat nu op ' + setName(e, x.to);
+  const msg = t('Aangepast: {naam} staat nu op {waarde}', { naam: t(e.label), waarde: setName(e, x.to) });
   toast(msg); aiVSay(msg);
 }
 function setNo(i, k){ if (setSoloNo()) return; const it = setItem(i, k); if (!it || it.x.st !== 'voorgesteld') return; it.x.st = 'nee'; aiMemAfter(i); }
@@ -366,7 +377,7 @@ function setAgain(i, k){ if (setSoloNo()) return; const it = setItem(i, k); if (
 function setBack(id, from, to){
   const e = setEntry(id); if (!e) return 'Deze instelling bestaat niet meer';
   const cur = setGet(e);
-  if (cur !== to) return 'Intussen staat ' + e.label + ' op ' + setName(e, cur) + '; niets teruggezet';
+  if (cur !== to) return t('Intussen staat {naam} op {waarde}; niets teruggezet', { naam: t(e.label), waarde: setName(e, cur) });
   let err = ''; try { err = e.set(from) || ''; } catch (er) { err = 'Terugzetten lukte niet'; }
   if (!err && e.get && setGet(e) !== from) err = 'Terugzetten lukte niet; kijk op het scherm (Openen)';
   return err;
@@ -376,7 +387,7 @@ function setUndo(i, k){ if (setSoloNo()) return;
   const x = it.x, err = setBack(x.id, x.from, x.to);
   if (err) { toast(err); return; }
   x.st = 'terug'; setLogUndone(x.log);
-  aiMemAfter(i); const e = setEntry(x.id); toast('Teruggezet: ' + e.label + ' weer op ' + setName(e, x.from)); aiVSay('Teruggezet');
+  aiMemAfter(i); const e = setEntry(x.id); toast(t('Teruggezet: {naam} weer op {waarde}', { naam: t(e.label), waarde: setName(e, x.from) })); aiVSay(t('Teruggezet'));
 }
 function setPick(i, k){ if (setSoloNo()) return;
   const m = aiChat && aiChat.msgs[i], p = m && m.set && m.set.pick && m.set.pick[k]; if (!p) return;
@@ -421,5 +432,5 @@ function setLogUndo(n, i){ if (setSoloNo()) return;
   // Ook de kaart bij het oorspronkelijke voorstel bijwerken (als dat in dit gesprek staat)
   (aiChat ? aiChat.msgs : []).forEach(m => (m.set && m.set.items || []).forEach(y => { if (y.log === n && y.st === 'gedaan') y.st = 'terug'; }));
   aiSaveChat(aiChat); aiRenderMsgs();
-  toast('Teruggezet: ' + x.label + ' weer op ' + (x.fromN || x.from)); aiVSay('Teruggezet');
+  toast(t('Teruggezet: {naam} weer op {waarde}', { naam: t(x.label), waarde: t(x.fromN || x.from) })); aiVSay(t('Teruggezet'));
 }

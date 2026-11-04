@@ -127,7 +127,7 @@ function heToolMenu(tk, fav){
     if (i < flat.length - 1) acts.push(['Omlaag', () => heMove(tk, 1), 'down']);
     acts.push([off ? 'Tonen op het startscherm' : 'Verbergen van het startscherm', () => heToggle(tk, off), 'eye']);
   }
-  openSheet(heName(tk), gi >= 0 ? 'In ' + c.groups[gi].name + (off ? ' · verborgen' : '') : '', acts);
+  openSheet(heName(tk), gi >= 0 ? t('In {groep}', { groep: t(c.groups[gi].name) }) + (off ? ' · ' + t('verborgen') : '') : '', acts);
 }
 /** Kies de groep waar de tool heen moet (met "Nieuwe groep…"). */
 function heMoveSheet(tk){

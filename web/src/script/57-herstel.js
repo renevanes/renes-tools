@@ -33,7 +33,7 @@ window.onHerstelScan = function(r){
   hsStep('hs-kies');
   if (r.error) { $('#hs-map').textContent = r.error; $('#hs-list').innerHTML = ''; $('#hs-next').style.display = 'none'; return; }
   const l = r.archives || [];
-  $('#hs-map').textContent = 'In ' + (r.destName || 'je backup-map') + ' → Versleuteld: ' + (l.length ? l.length + (l.length === 1 ? ' backup' : ' backups') : 'geen versleutelde backups') + '.';
+  $('#hs-map').textContent = t('In {map} → Versleuteld: {wat}.', { map: r.destName || t('je backup-map'), wat: l.length ? tn(l.length, '{n} backup', '{n} backups') : t('geen versleutelde backups') });
   $('#hs-next').style.display = l.length ? '' : 'none';
   if (!l.length) {
     const p = r.plain || {}, any = p.notes || p.settings || p.contacts;
@@ -64,7 +64,7 @@ window.onHerstelProgress = function(s){
   if (!(total > 0)) return;
   $('#hs-prog').value = Math.min(100, Math.round(done * 100 / total));
   $('#hs-bezig-t').textContent = step === 2 ? 'Stap 2 van 2: kluis en Slaappraat ophalen…' : 'Stap 1: controleren…';
-  $('#hs-bezig-s').textContent = (step === 2 ? 'Wat al bij Kluis en Slaappraat in de backup stond: ' : 'Gecontroleerd: ') + fmtB(done) + ' van ' + fmtB(total) + '. Er verandert nog niets.';
+  $('#hs-bezig-s').textContent = t(step === 2 ? 'Wat al bij Kluis en Slaappraat in de backup stond: {a} van {b}. Er verandert nog niets.' : 'Gecontroleerd: {a} van {b}. Er verandert nog niets.', { a: fmtB(done), b: fmtB(total) });
 };
 window.onHerstelOpened = function(r){
   // Intussen weggegaan: niets klaar laten staan (en de sleutel vergeten)
@@ -89,9 +89,9 @@ function hsBackToList(){ Android.herstelCancel(); hsStaged = false; hsPwOld = ''
 function hsOld(){ const pw = hsPwOld; hsPwOld = ''; toast('Bezig met openen…'); Android.herstelOldArchive(hsName, pw); }
 function hsApply(){
   const go = () => { hsStaged = false; hsStep('hs-bezig'); $('#hs-bezig-t').textContent = 'Bezig met terugzetten…'; $('#hs-bezig-s').textContent = 'Even geduld; daarna start de app opnieuw.'; $('#hs-prog').removeAttribute('value'); Android.herstelApply(); };
-  if (hsWarn) askConfirm('Alles vervangen?', 'Alles wat er nu in Tools op deze telefoon staat (notities, instellingen, opnames, kluis …) wordt vervangen door wat in de backup van ' + hsWhen(hsName) + ' staat. Dit kan niet ongedaan worden gemaakt.' +
-    '\n\nOok het wachtwoord van je backups wordt dat van deze backup, en je backup-map wordt de map die je net koos.' +
-    (hsMissing.length ? '\n\nNiet in deze backup (blijft zoals het nu is of komt niet terug): ' + hsMissing.join('; ') + '.' : ''), 'Vervangen', go);
+  if (hsWarn) askConfirm('Alles vervangen?', t('Alles wat er nu in Tools op deze telefoon staat (notities, instellingen, opnames, kluis …) wordt vervangen door wat in de backup van {wanneer} staat. Dit kan niet ongedaan worden gemaakt.', { wanneer: hsWhen(hsName) }) +
+    '\n\n' + t('Ook het wachtwoord van je backups wordt dat van deze backup, en je backup-map wordt de map die je net koos.') +
+    (hsMissing.length ? '\n\n' + t('Niet in deze backup (blijft zoals het nu is of komt niet terug): {wat}.', { wat: hsMissing.map(x => t(x)).join('; ') }) : ''), 'Vervangen', go);
   else go();
 }
 window.onHerstelDone = function(err){
@@ -108,13 +108,13 @@ function hsList(){
   hsStep('hs-lijst');
   let r; try { r = JSON.parse(Android.herstelChecklist()); } catch(e){ r = {items: []}; }
   const it = r.items || [], todo = it.filter(i => !i.ok && !i.info).length;
-  $('#hs-lijst-t').textContent = todo ? 'Android zet een paar dingen niet terug. Sta ze hieronder opnieuw toe (' + todo + ' te doen); wat al in orde is, staat er met een vinkje bij.' : 'Alles staat weer goed. ✓';
+  $('#hs-lijst-t').textContent = todo ? t('Android zet een paar dingen niet terug. Sta ze hieronder opnieuw toe ({n} te doen); wat al in orde is, staat er met een vinkje bij.', { n: todo }) : t('Alles staat weer goed. ✓');
   $('#hs-items').innerHTML = it.map(i => '<div class="row setrow" data-id="' + esc(i.id) + '"><span style="flex:1"><b>' + esc(i.name) + '</b><small class=note style="display:block;margin:0">' + esc(i.used) + '</small></span>' +
     (i.info ? '' : i.ok ? '<span class=permok>✓ Aan</span>' : '<button class="mini" style="float:none" data-p="' + esc(i.id) + '" onclick="hsFix(this.dataset.p)">' + (HS_FIX_LABEL[i.id] || 'Toestaan') + '</button>') + '</div>').join('');
   const m = r.models || {}, names = m.names || [];
   $('#hs-models').style.display = names.length ? '' : 'none';
-  if (names.length) $('#hs-models-t').textContent = 'Deze modellen worden opnieuw gedownload (' + fmtB(m.bytes || 0) + '): ' + names.join(', ') + '. ' +
-    (m.err ? m.err + '.' : m.wait ? m.wait + '; daarna gaat het vanzelf.' : 'Dat gaat vanzelf, met de voortgang in de meldingenbalk.');
+  if (names.length) $('#hs-models-t').textContent = t('Deze modellen worden opnieuw gedownload ({grootte}): {namen}.', { grootte: fmtB(m.bytes || 0), namen: names.map(x => t(x)).join(', ') }) + ' ' +
+    (m.err ? t(m.err) + '.' : m.wait ? t('{wat}; daarna gaat het vanzelf.', { wat: t(m.wait) }) : t('Dat gaat vanzelf, met de voortgang in de meldingenbalk.'));
 }
 function hsFix(id){
   if (id === 'bio') { show('setlock'); return; }

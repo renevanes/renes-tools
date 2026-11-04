@@ -55,7 +55,7 @@ function cedRender(){
   $('#ced-color').innerHTML = CED_COLORS.map(([v, l]) => '<button role="radio" data-c="' + v + '" aria-checked="' + (v === q.color) + '" aria-label="' + l + '" onclick="cedSet(\'color\', \'' + v + '\')"></button>').join('');
   cedRadios('#ced-scale', CED_SCALES, q.scale, 'cedScale');
   const n = q.options.length;
-  $('#ced-scale-n').textContent = n <= 3 ? 'Met ' + n + ' antwoorden tik je je antwoord meteen in de melding (één tik).' : 'Met ' + n + ' antwoorden opent de melding een klein scherm met grote knoppen (twee tikken).';
+  $('#ced-scale-n').textContent = n <= 3 ? t('Met {n} antwoorden tik je je antwoord meteen in de melding (één tik).', { n }) : t('Met {n} antwoorden opent de melding een klein scherm met grote knoppen (twee tikken).', { n });
   $('#ced-opts').innerHTML = q.options.map((o, i) => '<div class="ci-optrow" role="listitem">' +
     '<input class="ci-in oe" value="' + esc(o.emoji) + '" maxlength="16" aria-label="Emoji van antwoord ' + (i + 1) + '" autocomplete="off">' +
     '<input class="ci-in ol" value="' + esc(o.label) + '" maxlength="40" aria-label="Naam van antwoord ' + (i + 1) + '" autocomplete="off">' +
@@ -138,7 +138,7 @@ function cedSave(){
   cedQ = null; cedSnap = '';
   ciLoad();
   const saved = ciQ(r.id);
-  toast(cedNew ? '✓ Vraag bewaard' + (saved && saved.on ? ': ' + ciRhythmText(saved).replace(/^./, x => x.toLowerCase()) : '') : '✓ Bewaard');
+  toast(cedNew ? t('✓ Vraag bewaard') + (saved && saved.on ? ': ' + ciRhythmText(saved).replace(/^./, x => x.toLowerCase()) : '') : t('✓ Bewaard'));
   goBack();
   ciAfter();
 }

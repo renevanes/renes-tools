@@ -78,7 +78,7 @@ final class NotifCenter {
         try {
             NotificationManager nm = c.getSystemService(NotificationManager.class);
             if (nm.getNotificationChannel(QUIET) == null) {
-                NotificationChannel q = new NotificationChannel(QUIET, "Stil (alle meldingen uit in de app)", NotificationManager.IMPORTANCE_MIN);
+                NotificationChannel q = new NotificationChannel(QUIET, Taal.t(c, "Stil (alle meldingen uit in de app)"), NotificationManager.IMPORTANCE_MIN);
                 q.setDescription("Alleen voor wat Android verplicht toont terwijl iets draait, zoals de radio");
                 q.setSound(null, null); q.enableVibration(false); q.enableLights(false); q.setShowBadge(false);
                 q.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
@@ -91,7 +91,7 @@ final class NotifCenter {
     /** Losse melding plaatsen, tenzij alles uit staat. */
     static void post(Context c, int id, Notification n) {
         if (muted(c)) return;
-        try { ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(id, n); } catch (Exception ignored) { }
+        try { ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(id, Taal.n(c, n)); } catch (Exception ignored) { }
     }
 
     /** Alle soorten aanmaken (met nette namen en uitleg), zodat ze allemaal in Android te zien en in te stellen zijn. */
@@ -104,7 +104,7 @@ final class NotifCenter {
                 // Alleen aanmaken wat er nog niet is: de diensten zelf houden naam en uitleg bij, en de
                 // belangrijkheid blijft zoals jij hem in Android hebt gezet
                 if (nm.getNotificationChannel(k[0]) != null) continue;
-                NotificationChannel ch = new NotificationChannel(k[0], k[1], Integer.parseInt(k[3]));
+                NotificationChannel ch = new NotificationChannel(k[0], Taal.tx(c, k[1]), Integer.parseInt(k[3]));
                 ch.setDescription(k[2]);
                 nm.createNotificationChannel(ch);
             }

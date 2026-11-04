@@ -200,12 +200,12 @@ function mdStop(key){
 }
 function mdUse(key){
   const m = mdFind(key);
-  if (m.kind === 'spraak') { Android.txSetModel(m.id); toast('Spraak naar tekst gebruikt nu: ' + mdLineName(m)); }
+  if (m.kind === 'spraak') { Android.txSetModel(m.id); toast(t('Spraak naar tekst gebruikt nu: {naam}', { naam: mdLineName(m) })); }
   else {
     Android.aiUse(m.id); toast('De assistent gebruikt nu: ' + mdLineName(m) + ' (' + m.version + ')');
     // Een nieuwere versie in gebruik genomen: de oude mag weg (vragen, niet vanzelf)
     const old = m.replaces && mdFind('ai:' + m.replaces);
-    if (old && old.state === 'ready') setTimeout(() => askConfirm(old.version + ' verwijderen?', 'Je gebruikt nu ' + m.version + '. De oudere versie (' + mdGB(old.size) + ') is niet meer nodig.', 'Verwijderen', () => { Android.aiDelete(old.id); mdRefresh(); toast(old.version + ' verwijderd'); }), 400);
+    if (old && old.state === 'ready') setTimeout(() => askConfirm(t('{naam} verwijderen?', { naam: old.version }), t('Je gebruikt nu {nieuw}. De oudere versie ({grootte}) is niet meer nodig.', { nieuw: m.version, grootte: mdGB(old.size) }), 'Verwijderen', () => { Android.aiDelete(old.id); mdRefresh(); toast(t('{naam} verwijderd', { naam: old.version })); }), 400);
   }
   mdRefresh();
 }
@@ -220,14 +220,14 @@ function mdDel(key){
   mdLoad();
   const m = mdFind(key);
   if (m.kind === 'spraak' && mdSt.txBusy) { toast('Er wordt nu uitgeschreven; wacht tot dat klaar is'); return; }
-  askConfirm(mdLineName(m) + ' (' + m.version + ') verwijderen?', mdGB(m.size) + ' komt vrij. ' + mdDelText(m, mdModels()), 'Verwijderen', () => {
+  askConfirm(t('{naam} verwijderen?', { naam: mdLineName(m) + ' (' + m.version + ')' }), t('{grootte} komt vrij.', { grootte: mdGB(m.size) }) + ' ' + mdDelText(m, mdModels()), 'Verwijderen', () => {
     if (m.kind === 'spraak') { Android.txDeleteModel(m.id); if (m.inUse) { const o = mdModels().find(x => x.kind === 'spraak' && x.state === 'ready' && x.key !== m.key); if (o) Android.txSetModel(o.id); } }
     else Android.aiDelete(m.id);
     toast(mdLineName(m) + ' verwijderd');
     mdRefresh();
   });
 }
-function mdClean(){ const n = +Android.modelsClean() || 0; mdRefresh(); toast(n ? mdGB(n) + ' vrijgemaakt' : 'Niets op te ruimen'); }
+function mdClean(){ const n = +Android.modelsClean() || 0; mdRefresh(); toast(n ? t('{grootte} vrijgemaakt', { grootte: mdGB(n) }) : t('Niets op te ruimen')); }
 function mdSetWifi(on){ Android.aiPref('wifiOnly', on); if (typeof aiSt === 'object') aiSt.wifiOnly = on; mdSt.wifiOnly = on; }
 function mdWifi(){ const on = !mdSt.wifiOnly; mdSetWifi(on); mdRender(); toast(on ? 'Modellen alleen via wifi downloaden' : 'Modellen ook via mobiel internet downloaden'); }
 /** Korte samenvatting voor Instellingen. */

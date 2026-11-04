@@ -429,11 +429,11 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         if (l.page >= 0) { view.goToPage(l.page); return; }
         final Uri u = Uri.parse(l.uri);
         String s = u.getScheme() == null ? "" : u.getScheme().toLowerCase(java.util.Locale.ROOT);
-        if (!s.equals("http") && !s.equals("https") && !s.equals("mailto") && !s.equals("tel")) { Toast.makeText(this, "Deze link kan niet geopend worden", Toast.LENGTH_SHORT).show(); return; }
+        if (!s.equals("http") && !s.equals("https") && !s.equals("mailto") && !s.equals("tel")) { Toast.makeText(this, Taal.tx(this, "Deze link kan niet geopend worden"), Toast.LENGTH_SHORT).show(); return; }
         // Eerst laten zien waar de link heen gaat: een PDF kan een misleidende tekst over een link hebben
         String shown = l.uri.length() > 300 ? l.uri.substring(0, 300) + "…" : l.uri;
         new AlertDialog.Builder(this).setTitle("Link openen?").setMessage(shown)
-                .setPositiveButton("Openen", (d, w) -> { try { startActivity(new Intent(Intent.ACTION_VIEW, u).addCategory(Intent.CATEGORY_BROWSABLE)); } catch (Exception e) { Toast.makeText(this, "Geen app voor deze link", Toast.LENGTH_SHORT).show(); } })
+                .setPositiveButton("Openen", (d, w) -> { try { startActivity(new Intent(Intent.ACTION_VIEW, u).addCategory(Intent.CATEGORY_BROWSABLE)); } catch (Exception e) { Toast.makeText(this, Taal.tx(this, "Geen app voor deze link"), Toast.LENGTH_SHORT).show(); } })
                 .setNegativeButton("Annuleren", null).show();
     }
 
@@ -546,7 +546,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
             }
             ui.post(() -> {
                 if (g != searchGen) return;
-                if (matches.isEmpty()) { qCount.setText("0"); Toast.makeText(this, "Niet gevonden (een gescande PDF heeft geen tekst)", Toast.LENGTH_SHORT).show(); return; }
+                if (matches.isEmpty()) { qCount.setText("0"); Toast.makeText(this, Taal.tx(this, "Niet gevonden (een gescande PDF heeft geen tekst)"), Toast.LENGTH_SHORT).show(); return; }
                 if (cur < 0) { cur = 0; view.showMatch(0); view.setMatches(matches, 0); }
                 qCount.setText((cur + 1) + " / " + matches.size());
             });
@@ -609,10 +609,10 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         new Thread(() -> {
             final String t = d.text(p);
             ui.post(() -> {
-                if (t.isEmpty()) { Toast.makeText(this, "Op deze pagina staat geen tekst (misschien een scan)", Toast.LENGTH_SHORT).show(); return; }
+                if (t.isEmpty()) { Toast.makeText(this, Taal.tx(this, "Op deze pagina staat geen tekst (misschien een scan)"), Toast.LENGTH_SHORT).show(); return; }
                 ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                 if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("PDF pagina " + (p + 1), t));
-                if (Build.VERSION.SDK_INT < 33) Toast.makeText(this, "Tekst van pagina " + (p + 1) + " gekopieerd", Toast.LENGTH_SHORT).show();
+                if (Build.VERSION.SDK_INT < 33) Toast.makeText(this, Taal.tx(this, "Tekst van pagina " + (p + 1) + " gekopieerd"), Toast.LENGTH_SHORT).show();
             });
         }, "pdf-text").start();
     }
@@ -634,7 +634,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         if (u == null) return;
         Intent s = new Intent(Intent.ACTION_SEND).setType("application/pdf").putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         s.setClipData(ClipData.newRawUri("", u));
-        try { startActivity(Intent.createChooser(s, "PDF delen")); } catch (Exception e) { Toast.makeText(this, "Delen lukt niet", Toast.LENGTH_SHORT).show(); }
+        try { startActivity(Intent.createChooser(s, "PDF delen")); } catch (Exception e) { Toast.makeText(this, Taal.tx(this, "Delen lukt niet"), Toast.LENGTH_SHORT).show(); }
     }
 
     private void openWith() {
@@ -644,13 +644,13 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         v.setClipData(ClipData.newRawUri("", u));
         Intent ch = Intent.createChooser(v, "Openen met");
         ch.putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, new ComponentName[]{new ComponentName(this, PdfViewActivity.class)});
-        try { startActivity(ch); } catch (Exception e) { Toast.makeText(this, "Geen andere app voor PDF's", Toast.LENGTH_SHORT).show(); }
+        try { startActivity(ch); } catch (Exception e) { Toast.makeText(this, Taal.tx(this, "Geen andere app voor PDF's"), Toast.LENGTH_SHORT).show(); }
     }
 
     private void saveAs() {
         if (file == null) return;
         Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/pdf").putExtra(Intent.EXTRA_TITLE, name + ".pdf");
-        try { startActivityForResult(i, REQ_SAVE); } catch (Exception e) { Toast.makeText(this, "Opslaan niet beschikbaar", Toast.LENGTH_SHORT).show(); }
+        try { startActivityForResult(i, REQ_SAVE); } catch (Exception e) { Toast.makeText(this, Taal.tx(this, "Opslaan niet beschikbaar"), Toast.LENGTH_SHORT).show(); }
     }
 
     @Override protected void onActivityResult(int req, int res, Intent data) {
@@ -666,7 +666,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                 byte[] b = new byte[1 << 16]; int n; while ((n = in.read(b)) > 0) o.write(b, 0, n);
             } catch (Exception e) { r = "Opslaan lukt niet"; }
             final String rr = r;
-            ui.post(() -> Toast.makeText(app, rr, Toast.LENGTH_SHORT).show());
+            ui.post(() -> Toast.makeText(app, Taal.tx(app, rr), Toast.LENGTH_SHORT).show());
         }, "pdf-save").start();
     }
 
@@ -676,7 +676,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         if (pm == null) return;
         shareUri();
         try { pm.print(name, new PrintAdapter(file, name, doc.count), new PrintAttributes.Builder().build()); }
-        catch (Exception e) { Toast.makeText(this, "Afdrukken lukt niet", Toast.LENGTH_SHORT).show(); }
+        catch (Exception e) { Toast.makeText(this, Taal.tx(this, "Afdrukken lukt niet"), Toast.LENGTH_SHORT).show(); }
     }
 
     /** Geeft de PDF zoals hij is aan de afdrukservice. */
@@ -709,7 +709,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         if (file == null) return;
         final File f = file; final String nm = name;
         final Context app = getApplicationContext();
-        Toast.makeText(this, "Bezig…", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, Taal.tx(this, "Bezig…"), Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             String r;
             try {
@@ -769,13 +769,13 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
             Intent i = new Intent(Intent.ACTION_VIEW).setDataAndType(u, "application/pdf").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
             i.setClipData(ClipData.newRawUri("", u));
             c.startActivity(i);
-        } catch (Exception e) { Toast.makeText(c, "Lukt niet: " + e.getMessage(), Toast.LENGTH_LONG).show(); }
+        } catch (Exception e) { Toast.makeText(c, Taal.tx(c, "Lukt niet: " + e.getMessage()), Toast.LENGTH_LONG).show(); }
     }
 
     /** De instellingen van de app die nu PDF's opent (daar: Standaard openen → Standaardinstellingen wissen). */
     static void openAppSettings(Context c, String pkg) {
         try { c.startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
-        catch (Exception e) { Toast.makeText(c, "Instellingen niet te openen", Toast.LENGTH_SHORT).show(); }
+        catch (Exception e) { Toast.makeText(c, Taal.tx(c, "Instellingen niet te openen"), Toast.LENGTH_SHORT).show(); }
     }
 
     static void defaultDialog(Activity a) {

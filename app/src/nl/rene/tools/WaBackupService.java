@@ -101,7 +101,7 @@ public class WaBackupService extends Service {
                     : "export".equals(s.phase) ? "Chats leesbaar maken: " + s.filesDone + " van " + s.filesTotal
                     : "Bestanden zoeken…";
         }
-        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, build(t, max, prog, ind, restore));
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, Taal.n(this, build(t, max, prog, ind, restore)));
     }
 
     private void done(WaBackup.Status st, boolean restore) {
@@ -113,9 +113,9 @@ public class WaBackupService extends Service {
         String title = restore ? "Terugzetten" : "readable".equals(st.mode) ? "Leesbare chats" : "WhatsApp backup";
         title += "ok".equals(st.result) ? " klaar" : "partial".equals(st.result) ? " klaar met fouten" :
                 "cancelled".equals(st.result) ? " gestopt" : " mislukt";
-        if (!NotifCenter.muted(this)) nm.notify(DONE_ID, b.setSmallIcon(R.drawable.ic_backup).setContentTitle(title)
+        if (!NotifCenter.muted(this)) nm.notify(DONE_ID, Taal.n(this, b.setSmallIcon(R.drawable.ic_backup).setContentTitle(title)
                 .setContentText(st.message + (st.bytesDone > 0 ? " (" + fmt(st.bytesDone) + ")" : ""))
-                .setAutoCancel(true).setContentIntent(open(this)).build());
+                .setAutoCancel(true).setContentIntent(open(this)).build()));
         stopSelf();
     }
 
@@ -150,7 +150,7 @@ public class WaBackupService extends Service {
 
     static void createChannel(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "WhatsApp backup", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(c, "WhatsApp backup"), NotificationManager.IMPORTANCE_LOW);
         ch.setDescription("Voortgang en resultaat van de WhatsApp-backup");
         ((NotificationManager) c.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(ch);
     }

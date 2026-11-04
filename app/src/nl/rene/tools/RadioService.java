@@ -414,8 +414,8 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
         createChannel(this);
         try {
             Notification n = notif();
-            if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
-            else startForeground(NOTIF_ID, n);
+            if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIF_ID, Taal.n(this, n), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            else startForeground(NOTIF_ID, Taal.n(this, n));
             foreground = true;
         } catch (Exception e) {
             // Android staat een voorgrondservice nu niet toe (bijv. vanaf de achtergrond).
@@ -835,7 +835,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
                 .setActions(shiftOn ? ACTIONS : ACTIONS & ~(PlaybackState.ACTION_REWIND | PlaybackState.ACTION_FAST_FORWARD))
                 .setState(st, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1f).build());
         if (!"stopped".equals(status))
-            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, notif());
+            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, Taal.n(this, notif()));
         Player.changed(this);
     }
 
@@ -875,7 +875,7 @@ public class RadioService extends MediaBrowserService implements AudioManager.On
 
     static void createChannel(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "Radio", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(c, "Radio"), NotificationManager.IMPORTANCE_LOW);
         ch.setShowBadge(false);
         ((NotificationManager) c.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(ch);
     }

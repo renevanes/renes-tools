@@ -153,7 +153,7 @@ function apBtRender(){
   const d = apBtData || {}, list = (d.devices || []).slice().sort(apSortDevs), st = $('#ap-bt-st');
   $('#ap-bt-go').innerHTML = uiIcon('search') + (d.scanning ? 'Zoeken…' : list.length ? 'Opnieuw zoeken' : 'Zoeken');
   $('#ap-bt-go').disabled = !!d.scanning;
-  st.textContent = d.err ? d.err : d.scanning ? 'Zoeken naar Bluetooth-apparaten… (' + list.length + ' gevonden)' : apBtData ? list.length + (list.length === 1 ? ' apparaat' : ' apparaten') + ' in de buurt' : 'Tik op Zoeken om te kijken welke Bluetooth-apparaten er in de buurt zijn.';
+  st.textContent = d.err ? t(d.err) : d.scanning ? t('Zoeken naar Bluetooth-apparaten… ({n} gevonden)', { n: list.length }) : apBtData ? tn(list.length, '{n} apparaat in de buurt', '{n} apparaten in de buurt') : t('Tik op Zoeken om te kijken welke Bluetooth-apparaten er in de buurt zijn.');
   $('#ap-bt-list').innerHTML = list.map(apBtRow).join('');
   const p = d.paired || [];
   $('#ap-bt-paired').innerHTML = p.length ? '<h2 class="ap-h">Gekoppeld, nu niet in de buurt</h2><div role="list" aria-label="Gekoppelde apparaten">' + p.map(apBtRow).join('') + '</div>' : '';
@@ -171,14 +171,14 @@ function apWifiGo(){
   if (r.error === 'uit') { $('#ap-wifi-st').innerHTML = 'Wifi staat uit. <button class="linkish" onclick="Android.apOpenSettings(\'wifi\')">Wifi aanzetten</button>'; return; }
   if (r.error) { $('#ap-wifi-st').textContent = r.error; return; }
   if (r.started) { $('#ap-wifi-st').textContent = 'Zoeken naar wifi-netwerken…'; let n = 0; const tick = () => { apWifiLoad(true); if (++n < 6 && current === 'apparaten' && apTabNow === 'wifi') apPollT = setTimeout(tick, 1000); else apWifiLoad(); }; apStopPoll(); apPollT = setTimeout(tick, 1000); }
-  else $('#ap-wifi-st').textContent = 'Android laat nog ' + (r.wait || 30) + ' seconden niet opnieuw zoeken (4 keer per 2 minuten). Dit zijn de laatst gevonden netwerken.';
+  else $('#ap-wifi-st').textContent = t('Android laat nog {n} seconden niet opnieuw zoeken (4 keer per 2 minuten). Dit zijn de laatst gevonden netwerken.', { n: r.wait || 30 });
 }
 function apWifiLoad(busy){
   apWifiData = rdJson(Android.apWifi(), {}) || {};
   const d = apWifiData;
   if (d.error === 'perm') { $('#ap-wifi-list').innerHTML = ''; $('#ap-crowd-card').style.display = 'none'; $('#ap-wifi-st').textContent = ''; return; }
   const nets = d.networks || [];
-  if (!busy) $('#ap-wifi-st').textContent = nets.length ? nets.length + ' toegangspunten' + (d.newest >= 0 ? ', laatst gezocht ' + (d.newest < 60 ? 'net' : Math.round(d.newest / 60) + ' min geleden') : '') : 'Nog geen netwerken. Tik op Opnieuw zoeken.';
+  if (!busy) $('#ap-wifi-st').textContent = nets.length ? t('{n} toegangspunten', { n: nets.length }) + (d.newest >= 0 ? ', ' + (d.newest < 60 ? t('laatst gezocht net') : t('laatst gezocht {n} min geleden', { n: Math.round(d.newest / 60) })) : '') : t('Nog geen netwerken. Tik op Opnieuw zoeken.');
   // Per netwerknaam samen (een router met 2,4 en 5 GHz, of meerdere toegangspunten)
   const by = {};
   nets.forEach(n => { const k = n.ssid || '\u0000' + n.bssid; (by[k] = by[k] || []).push(n); });
@@ -222,7 +222,7 @@ function apLanStartNow(ok){
   const e = Android.apLanStart(!!ok);
   if (e === 'vraag') {
     const d = rdJson(Android.apLan(), {}) || {};
-    askConfirm('Dit netwerk onderzoeken?', (d.cur ? '"' + d.cur + '" ' : 'Dit netwerk ') + 'is niet je wifi thuis en is nog nooit onderzocht. Kijk alleen rond op een netwerk dat van jou is, of waar je toestemming voor hebt (dus niet zomaar in een hotel of op je werk).', 'Onderzoeken', () => apLanStartNow(true));
+    askConfirm('Dit netwerk onderzoeken?', t('{netwerk} is niet je wifi thuis en is nog nooit onderzocht. Kijk alleen rond op een netwerk dat van jou is, of waar je toestemming voor hebt (dus niet zomaar in een hotel of op je werk).', { netwerk: d.cur ? '"' + d.cur + '"' : t('Dit netwerk') }), 'Onderzoeken', () => apLanStartNow(true));
     return;
   }
   const msg = { wifi: 'Je bent niet met wifi verbonden. Dit zoekt alleen op je eigen wifi, nooit via mobiele data.', prive: 'Dit netwerk heeft geen gewoon thuisadres; daar zoekt de app niet.', bezig: 'Er wordt al gezocht.' }[e];
@@ -244,7 +244,7 @@ function apLanRender(){
   const prog = $('#ap-lan-prog'), pct = d.total ? Math.min(100, Math.round(d.done * 100 / d.total)) : 0;
   prog.style.display = d.busy ? '' : 'none'; $('#ap-lan-bar').style.width = pct + '%'; prog.setAttribute('aria-valuenow', pct);
   const nNew = list.filter(x => x.nieuw).length;
-  $('#ap-lan-st').textContent = d.busy ? (d.phase || 'Zoeken') + '… ' + Math.max(0, list.length - 1) + ' gevonden' : d.error ? d.error
+  $('#ap-lan-st').textContent = d.busy ? t(d.phase || 'Zoeken') + '… ' + t('{n} gevonden', { n: Math.max(0, list.length - 1) }) : d.error ? t(d.error)
     : d.at ? Math.max(0, list.length - 1) + ' apparaten op ' + (d.net || 'je wifi') + (nNew ? ', waarvan ' + nNew + ' nieuw' : '') : d.wifi === false ? 'Je bent niet met wifi verbonden.' : 'Tik op Zoeken om te zien wat er op je wifi zit' + (d.net ? ' (' + d.net + ')' : '') + '.';
   $('#ap-lan-list').innerHTML = list.map(x => {
     const sub = [x.self ? 'deze telefoon' : apType(x.kind)[0]];
@@ -257,7 +257,7 @@ function apLanRender(){
     return '<div role="listitem"><button class="ap-row" data-k="' + esc(x.key) + '" onclick="apOpenLan(this.dataset.k)">' + apIcon(x.self ? 'telefoon' : x.kind) + '<span class="tx"><b>' + esc(apLanTitle(x) || x.ip) + '</b><small>' + esc(sub.join(' · ')) + '</small>' +
       (svc.length ? '<small>' + esc(svc.join(', ')) + '</small>' : '') + (b ? '<span>' + b + '</span>' : '') + '</span></button></div>';
   }).join('');
-  $('#ap-lan-foot').textContent = 'Alleen je eigen netwerk' + (d.own ? ' (' + d.own + ')' : '') + ', hooguit 254 adressen, alleen via wifi en niets naar internet. De app kijkt alleen wat apparaten zelf aankondigen en welke gangbare diensten openstaan; hij logt nergens in.' +
+  $('#ap-lan-foot').textContent = t('Alleen je eigen netwerk{eigen}, hooguit 254 adressen, alleen via wifi en niets naar internet. De app kijkt alleen wat apparaten zelf aankondigen en welke gangbare diensten openstaan; hij logt nergens in.', { eigen: d.own ? ' (' + d.own + ')' : '' }) +
     (d.macHidden ? ' Het MAC-adres (en daarmee de maker) houdt Android vanaf versie 10 verborgen; de maker komt dan uit wat het apparaat zelf zegt.' : '') + ' Nieuw = de eerste keer gezien op dit netwerk (de eerste keer zoeken is de basis).';
 }
 function apOpenLan(key){ const d = ((apLanData || {}).devices || []).find(x => x.key === key); apDev = { src: 'lan', key, d: d || null }; show('apdev'); }
@@ -314,7 +314,7 @@ function apKnownRender(){
   const empty = s.hist === false ? 'Bijhouden staat uit (instellingen).' : 'Nog niets: een apparaat telt als het op minstens 2 dagen gezien is.';
   $('#ap-oft-home').innerHTML = (h.home || []).length ? h.home.map(x => row(x)).join('') : '<p class="ap-empty">' + esc(s.away && s.hist !== false ? 'Thuis wordt niets bijgehouden (alleen buiten huis).' : empty) + '</p>';
   $('#ap-oft-away').innerHTML = (h.away || []).length ? h.away.map(x => row(x)).join('') : '<p class="ap-empty">' + esc(empty) + '</p>';
-  $('#ap-hist-foot').textContent = (s.home ? '' : 'Kies bij de instellingen waar thuis is, dan wordt thuis en elders uit elkaar gehouden. ') + 'Bewaard: ' + (h.count || 0) + ' apparaten, ' + (h.keep || s.keep || 30) + ' dagen. Alleen apparaten met een vaste naam of een vast adres zijn terug te herkennen; telefoons die van adres wisselen meestal niet. Alles blijft op je telefoon.';
+  $('#ap-hist-foot').textContent = (s.home ? '' : t('Kies bij de instellingen waar thuis is, dan wordt thuis en elders uit elkaar gehouden.') + ' ') + t('Bewaard: {n} apparaten, {dagen} dagen. Alleen apparaten met een vaste naam of een vast adres zijn terug te herkennen; telefoons die van adres wisselen meestal niet. Alles blijft op je telefoon.', { n: h.count || 0, dagen: h.keep || s.keep || 30 });
 }
 function apOpenHist(key){
   const h = apHistData || {}, d = (h.mine || []).concat(h.home || [], h.away || []).find(x => x.key === key);
@@ -386,7 +386,7 @@ function apdKnown(on){
     v = String(v || '').trim(); if (!v) return;
     const e = Android.apKnown(apDev.key, v.slice(0, 40), (apDev.src === 'lan' ? d.kind : d.type) || '', d.name || d.label || '');
     if (e) { toast(e); edit(v, e); return; }
-    toast('Bewaard als ' + v); apdRefresh();
+    toast(t('Bewaard als {naam}', { naam: v })); apdRefresh();
   });
   edit(def, '');
 }
@@ -395,8 +395,8 @@ function apdTr(st){
   // Tile houdt zijn adres; de andere trackers krijgen ongeveer dagelijks een nieuw adres (en zijn dan niet meer te herkennen)
   const rot = kind !== 'tile';
   Android.apTrackerSet(apDev.id || apDev.key.slice(2), st);
-  toast(st === 'mine' ? 'Bewaard als jouw tracker.' + (rot ? ' Krijgt hij een nieuw adres (ongeveer elke dag), dan kan er opnieuw een waarschuwing komen.' : '')
-    : st === 'ignored' ? 'Deze tracker wordt genegeerd' + (rot ? ' (tot hij een nieuw adres krijgt, ongeveer elke dag)' : '') : 'Je krijgt weer een waarschuwing');
+  toast(st === 'mine' ? t('Bewaard als jouw tracker.') + (rot ? ' ' + t('Krijgt hij een nieuw adres (ongeveer elke dag), dan kan er opnieuw een waarschuwing komen.') : '')
+    : st === 'ignored' ? t(rot ? 'Deze tracker wordt genegeerd (tot hij een nieuw adres krijgt, ongeveer elke dag)' : 'Deze tracker wordt genegeerd') : t('Je krijgt weer een waarschuwing'));
   apdRefresh();
 }
 /* Na een wijziging: de bron opnieuw ophalen en het detail opnieuw tekenen */
@@ -433,13 +433,13 @@ function apdFindPoll(){
   const ring = $('#apd-ring'), m = $('#apd-meter'), tr = $('#apd-trend');
   if (!f.found || f.ago > 8000) {
     ring.style.setProperty('--p', 0); $('#apd-val').textContent = '–';
-    $('#apd-unit').textContent = f.found ? 'Even niet gezien (' + Math.round(f.ago / 1000) + ' s)' : 'Nog niet gevonden';
+    $('#apd-unit').textContent = f.found ? t('Even niet gezien ({n} s)', { n: Math.round(f.ago / 1000) }) : t('Nog niet gevonden');
     tr.textContent = f.found ? 'Kouder: hij is uit beeld. Loop terug.' : 'Zoeken… loop langzaam rond.'; tr.className = 'ap-trend' + (f.found ? ' down' : '');
     m.setAttribute('aria-valuenow', 0); apFindLevel = 0;
   } else {
     ring.style.setProperty('--p', f.meter); m.setAttribute('aria-valuenow', f.meter); apFindLevel = f.meter;
     $('#apd-val').textContent = f.dist < 1 ? '< ' + fmtMeters(1) : '± ' + (f.dist < 10 ? fmtMeters(Math.round(f.dist * 2) / 2, 1) : fmtMeters(f.dist));
-    $('#apd-unit').textContent = 'ongeveer · ' + Math.round(f.avg) + ' dBm';
+    $('#apd-unit').textContent = t('ongeveer') + ' · ' + Math.round(f.avg) + ' dBm';
     const tt = f.trend;
     tr.textContent = f.meter >= 85 ? 'Heel dichtbij!' : tt > 0 ? 'Warmer ↑' : tt < 0 ? 'Kouder ↓' : 'Gelijk';
     tr.className = 'ap-trend' + (tt > 0 || f.meter >= 85 ? ' up' : tt < 0 ? ' down' : '');
@@ -474,9 +474,9 @@ function apsRender(){
     esc(sdk >= 26 || !sdk ? 'Daarnaast helpt Android zuinig mee tussen de rondes door; voor een waarschuwing zijn er wel een paar rondes onderweg nodig (bij elk half uur ongeveer een uur reizen). ' : '') +
     esc('Er draait geen dienst met een vaste melding. Met het scherm uit ziet de app alleen trackers en je gekoppelde apparaten. Wifi zoekt Android op de achtergrond nauwelijks (1 keer per half uur); de app gebruikt dan wat de telefoon al vond.') +
     (s.bg && !P.bg ? '<br><b class="note warn">Sta locatie "altijd" toe, anders laat Android de app op de achtergrond niet zoeken.</b> <button class="mini" onclick="Android.apPerm(\'bgloc\')">Toestaan</button>' : '');
-  $('#aps-home-st').textContent = s.home ? 'Thuis is ingesteld' + (s.homeSsid ? ' (en je wifi "' + s.homeSsid + '")' : '') + '. Binnen ~' + fmtMeters(300) + ' daarvan telt als thuis.'
-    : s.homeRegio ? 'Thuis uit Regio en taal' + (s.homeSsid ? ' (en je wifi "' + s.homeSsid + '")' : '') + '. Binnen ~' + fmtMeters(300) + ' daarvan telt als thuis. Met "Hier is thuis" kies je een eigen plek voor Apparaten.'
-    : s.homeSsid ? 'Thuis = verbonden met je wifi "' + s.homeSsid + '".' : 'Nog niet ingesteld: alles telt als elders. Je kunt thuis ook instellen bij Instellingen → Regio en taal.';
+  $('#aps-home-st').textContent = s.home ? (s.homeSsid ? t('Thuis is ingesteld (en je wifi "{wifi}").', { wifi: s.homeSsid }) : t('Thuis is ingesteld.')) + ' ' + t('Binnen ~{afstand} daarvan telt als thuis.', { afstand: fmtMeters(300) })
+    : s.homeRegio ? (s.homeSsid ? t('Thuis uit Regio en taal (en je wifi "{wifi}").', { wifi: s.homeSsid }) : t('Thuis uit Regio en taal.')) + ' ' + t('Binnen ~{afstand} daarvan telt als thuis. Met "Hier is thuis" kies je een eigen plek voor Apparaten.', { afstand: fmtMeters(300) })
+    : s.homeSsid ? t('Thuis = verbonden met je wifi "{wifi}".', { wifi: s.homeSsid }) : t('Nog niet ingesteld: alles telt als elders. Je kunt thuis ook instellen bij Instellingen → Regio en taal.');
   $('#aps-home-x').style.display = s.home || s.homeSsid ? '' : 'none';
   const row = (name, why, ok, kind) => '<div class="ap-perm-row"><span>' + esc(name) + '<small>' + esc(why) + '</small></span>' + (ok ? apBadge('✓ toegestaan', 'ok') : '<button class="mini" onclick="Android.apPerm(\'' + kind + '\')">Toestaan</button>') + '</div>';
   $('#aps-perms').innerHTML = row('Apparaten in de buurt en locatie', 'Bluetooth en wifi in de buurt zien' + (sdk && sdk < 31 ? ' (Android vraagt hiervoor locatie)' : ''), P.bt && P.wifi, 'nearby') +

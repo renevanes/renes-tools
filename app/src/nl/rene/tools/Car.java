@@ -189,12 +189,12 @@ final class Car {
     static void notifyTap(Context c) {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationManager nm = c.getSystemService(NotificationManager.class);
-            if (nm.getNotificationChannel(CHANNEL) == null) nm.createNotificationChannel(new NotificationChannel(CHANNEL, "Mijn auto", NotificationManager.IMPORTANCE_DEFAULT));
+            if (nm.getNotificationChannel(CHANNEL) == null) nm.createNotificationChannel(new NotificationChannel(CHANNEL, Taal.t(c, "Mijn auto"), NotificationManager.IMPORTANCE_DEFAULT));
         }
         Intent open = new Intent(c, MainActivity.class).putExtra("open", "car").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
         b.setSmallIcon(R.drawable.ic_notif).setContentTitle("Rit opnemen?").setContentText("Android liet het niet vanzelf starten. Tik om de rit op te nemen.")
                 .setAutoCancel(true).setContentIntent(PendingIntent.getActivity(c, 4801, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
-        NotifCenter.post(c, 4801, b.build());
+        NotifCenter.post(c, 4801, Taal.n(c, b.build()));
     }
 }

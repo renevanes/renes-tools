@@ -138,7 +138,7 @@ final class RadioAlarm {
         if (Build.VERSION.SDK_INT < 26) b.setSound(tone, android.media.AudioManager.STREAM_ALARM).setPriority(android.app.Notification.PRIORITY_MAX);
         android.app.Notification n = b.build();
         n.flags |= android.app.Notification.FLAG_INSISTENT; // blijft klinken tot wegvegen
-        try { nm.notify(NOTIF_LOCKED, n); } catch (Exception ignored) { }
+        try { nm.notify(NOTIF_LOCKED, Taal.n(c, n)); } catch (Exception ignored) { }
         if (dp(c).getInt("days", 31) != 0) armLocked(c); // nog steeds niet ontgrendeld morgen? Dan ook dan weer (niet bij eenmalig)
         else dp(c).edit().putBoolean("on", false).apply();
     }

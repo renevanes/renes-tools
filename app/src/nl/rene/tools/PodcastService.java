@@ -614,8 +614,8 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         createChannel(this);
         try {
             Notification n = notif();
-            if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
-            else startForeground(NOTIF_ID, n);
+            if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIF_ID, Taal.n(this, n), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            else startForeground(NOTIF_ID, Taal.n(this, n));
             foreground = true;
         } catch (Exception e) { foreground = false; }
     }
@@ -647,7 +647,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
         if (sleepAt > 0) pb.addCustomAction(new PlaybackState.CustomAction.Builder(SLEEP_ADD, "+10 min slaaptimer", R.drawable.ic_bedtime).build());
         pb.addCustomAction(new PlaybackState.CustomAction.Builder(STOP, "Stoppen", R.drawable.ic_stop).build());
         session.setPlaybackState(pb.build());
-        if (!"stopped".equals(status)) ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, notif());
+        if (!"stopped".equals(status)) ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID, Taal.n(this, notif()));
     }
 
     private PendingIntent action(String a, String x, int code) {
@@ -701,7 +701,7 @@ public class PodcastService extends Service implements AudioManager.OnAudioFocus
 
     static void createChannel(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "Podcasts", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(c, "Podcasts"), NotificationManager.IMPORTANCE_LOW);
         ch.setShowBadge(false);
         ((NotificationManager) c.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(ch);
     }

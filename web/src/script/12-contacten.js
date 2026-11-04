@@ -88,7 +88,7 @@ function cvRender(){
   const d = ctJson(Android.contactsVersion(String(cvCur)));
   if (d.error) { toast(d.error); return; }
   $('#cvd-title').textContent = t('Versie {n}', { n: d.v });
-  $('#cvd-sum').textContent = fmtFull(d.t) + ' · ' + d.count + ' contacten' + (d.first ? ' · eerste versie' : '');
+  $('#cvd-sum').textContent = fmtFull(d.t) + ' · ' + t('{n} contacten', { n: d.count }) + (d.first ? ' · ' + t('eerste versie') : '');
   $('#cvd-export').style.display = d.full ? 'block' : 'none';
   const groups = [['-', 'Verwijderd'], ['~', 'Gewijzigd'], ['+', 'Nieuw']];
   $('#cvd-list').innerHTML = groups.map(([k, label]) => {

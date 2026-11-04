@@ -14,8 +14,8 @@ final class Fg {
     /** type = ServiceInfo.FOREGROUND_SERVICE_TYPE_*, of 0. Geeft false als Android het niet toestaat. */
     static boolean start(Service s, int id, Notification n, int type, int minSdkForType) {
         try {
-            if (type != 0 && Build.VERSION.SDK_INT >= minSdkForType) s.startForeground(id, n, type);
-            else s.startForeground(id, n);
+            if (type != 0 && Build.VERSION.SDK_INT >= minSdkForType) s.startForeground(id, Taal.n(s, n), type);
+            else s.startForeground(id, Taal.n(s, n));
             return true;
         } catch (Exception e) {
             App.log(s, "APP", "voorgronddienst geweigerd: " + s.getClass().getSimpleName() + " (" + e.getClass().getSimpleName() + ")");

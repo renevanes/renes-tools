@@ -10,7 +10,7 @@ function carRender(){
   const p = carSt.park;
   const st = $('#car-park-state');
   if (p) {
-    st.textContent = (p.how === 'hand' ? 'Bewaard op ' : 'Geparkeerd op ') + fmtDT(p.t, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) +
+    st.textContent = t(p.how === 'hand' ? 'Bewaard op' : 'Geparkeerd op') + ' ' + fmtDT(p.t, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) +
       (p.lat == null ? ' ' + t('(zonder locatie)') : p.acc > 50 ? ' · ' + t('ongeveer (± {n} m)', { n: p.acc }) : '');
   } else st.textContent = carSt.addr ? 'Nog geen plek bewaard. Zodra je de auto uitzet, verschijnt hier waar hij staat.' : 'Kies hieronder de Bluetooth van je auto, of tik op "Hier staat hij".';
   $('#car-nav').style.display = p && p.lat != null ? 'block' : 'none';

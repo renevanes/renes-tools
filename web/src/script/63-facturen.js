@@ -34,7 +34,7 @@ function faPoll(){
 function faBezig(){
   const l = faSt.leveranciers.find(x => x.id === faSt.bezig);
   $('#fa-bezig').style.display = faSt.bezig ? 'block' : 'none';
-  $('#fa-bezig-txt').textContent = faSt.bezig ? (l ? l.naam + ': ' : '') + (faSt.voortgang || 'Bezig…') : '';
+  $('#fa-bezig-txt').textContent = faSt.bezig ? (l ? l.naam + ': ' : '') + t(faSt.voortgang || 'Bezig…') : '';
 }
 const FA_WD = ['', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
 function faMoment(tt){ return tt ? fmtDT(tt, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''; }
@@ -42,11 +42,11 @@ function faMaandSleutel(tt){ const d = new Date(tt); return d.getFullYear() + '-
 function faMaandNaam(k){ const [y, m] = k.split('-').map(Number); return fmtDate(new Date(y, m - 1, 15, 12), 'maand'); }
 /** Wanneer vanzelf, in gewone woorden: "elke maand op de 5e om 08:00". */
 function faPlanTekst(l){
-  if (l.schema === 'uit') return 'alleen met de hand';
-  const tijd = fmtHm(l.tijd || '08:00');
-  if (l.schema === 'maand') return 'elke maand op ' + ((l.dag || 5) >= 31 ? 'de laatste dag' : 'de ' + (l.dag || 5) + 'e' + ((l.dag || 5) > 28 ? ' (of de laatste dag)' : '')) + ' om ' + tijd;
-  if (l.schema === 'week') return 'elke ' + FA_WD[l.weekdag || 1] + ' om ' + tijd;
-  return 'elke dag om ' + tijd;
+  if (l.schema === 'uit') return t('alleen met de hand');
+  const tijd = fmtHm(l.tijd || '08:00'), dag = l.dag || 5;
+  if (l.schema === 'maand') return dag >= 31 ? t('elke maand op de laatste dag om {tijd}', { tijd }) : dag > 28 ? t('elke maand op de {n}e (of de laatste dag) om {tijd}', { n: dag, tijd }) : t('elke maand op de {n}e om {tijd}', { n: dag, tijd });
+  if (l.schema === 'week') return t('elke {dag} om {tijd}', { dag: t(FA_WD[l.weekdag || 1]), tijd });
+  return t('elke dag om {tijd}', { tijd });
 }
 /** Stand van deze periode: {soort: ok|mis|wacht|bezig|uit|nieuw|pw, tekst}. */
 function faPeriode(l){
@@ -82,23 +82,23 @@ function faRender(geenLaad){
   $('#fm-host').value = sm.host || ''; $('#fm-poort').value = sm.poort || 587; $('#fm-bev').value = sm.beveiliging === 'ssl' ? 'ssl' : 'starttls';
   $('#fm-user').value = sm.gebruiker || ''; $('#fm-van').value = sm.van || ''; $('#fm-naam').value = sm.naam || '';
   $('#fm-pw').value = ''; $('#fm-pw').placeholder = sm.heeftWachtwoord ? 'Ongewijzigd' : '';
-  $('#fm-stand').textContent = sm.host ? 'Ingesteld: ' + sm.host + ':' + (sm.poort || 587) + ', afzender ' + (sm.van || '?') + '.' : 'Niet ingesteld. Met je eigen mailserver (SMTP) kan Tools facturen versturen aan je boekhouder vanaf je eigen adres.';
+  $('#fm-stand').textContent = sm.host ? t('Ingesteld: {server}, afzender {van}.', { server: sm.host + ':' + (sm.poort || 587), van: sm.van || '?' }) : t('Niet ingesteld. Met je eigen mailserver (SMTP) kan Tools facturen versturen aan je boekhouder vanaf je eigen adres.');
   $('#fm-los').style.display = sm.host ? 'block' : 'none';
   if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#s-facec .card input, #s-facgoogle .card input')) return; // niet overschrijven tijdens typen
   $('#fa-ec-url').value = ec.url || ''; $('#fa-ec-user').value = ec.gebruiker || ''; $('#fa-ec-adres').value = ec.adres || '';
   $('#fa-ec-pw').value = ''; $('#fa-ec-pw').placeholder = ec.heeftWachtwoord ? 'Ongewijzigd' : '';
-  $('#fa-ec-stand').textContent = ec.url && ec.heeftWachtwoord ? 'Gekoppeld met ' + ec.url.replace(/^https:\/\//, '') + '. Facturen gaan als mail met de PDF naar ' + (ec.adres || ec.gebruiker) + '.'
+  $('#fa-ec-stand').textContent = ec.url && ec.heeftWachtwoord ? t('Gekoppeld met {server}. Facturen gaan als mail met de PDF naar {adres}.', { server: ec.url.replace(/^https:\/\//, ''), adres: ec.adres || ec.gebruiker })
     : 'Niet gekoppeld. Koppel Eigen Cloud om facturen in je eigen mail te krijgen, of om de inlogcode uit je mail te lezen.';
   const lok = faSt.lokaal || '';
-  $('#fa-lok-stand').textContent = lok === '!' ? 'Tools kan niet meer bij de gekozen map. Kies hem opnieuw.' : lok ? 'Facturen komen in ' + lok + ', per leverancier een eigen map.' : 'Nog geen map gekozen. Kies bijvoorbeeld Documenten; per leverancier komt er een eigen map in.';
+  $('#fa-lok-stand').textContent = lok === '!' ? t('Tools kan niet meer bij de gekozen map. Kies hem opnieuw.') : lok ? t('Facturen komen in {map}, per leverancier een eigen map.', { map: lok }) : t('Nog geen map gekozen. Kies bijvoorbeeld Documenten; per leverancier komt er een eigen map in.');
   $('#fa-lok-stand').classList.toggle('bad', lok === '!');
   $('#fa-lok-kies').textContent = lok ? 'Andere map kiezen' : 'Map kiezen';
   $('#fa-lok-los').style.display = lok ? 'block' : 'none';
   const gd = faSt.drive || {};
   $('#fa-gd-setup').style.display = gd.gekoppeld ? 'none' : 'block';
   $('#fa-gd-aan').style.display = gd.gekoppeld ? 'block' : 'none';
-  $('#fa-gd-stand').textContent = gd.gekoppeld ? 'Gekoppeld' + (gd.gebruiker ? ' met ' + gd.gebruiker : '') + '.' : '';
-  $('#fa-gd-rechten').textContent = gd.gekoppeld ? 'Gmail: ' + (gd.rechtGmail ? '✓ facturen zoeken (alleen lezen)' : '– geen toegang') + ' · Drive: ' + (gd.rechtDrive ? '✓ bewaren in de map Facturen' : '– geen toegang') + ' · Versturen: ' + (gd.rechtGmailSend ? '✓ aan je boekhouder' : '– nee') + '. Tools ziet in Drive alleen zijn eigen mappen.' : '';
+  $('#fa-gd-stand').textContent = gd.gekoppeld ? (gd.gebruiker ? t('Gekoppeld met {naam}.', { naam: gd.gebruiker }) : t('Gekoppeld.')) : '';
+  $('#fa-gd-rechten').textContent = gd.gekoppeld ? 'Gmail: ' + t(gd.rechtGmail ? '✓ facturen zoeken (alleen lezen)' : '– geen toegang') + ' · Drive: ' + t(gd.rechtDrive ? '✓ bewaren in de map Facturen' : '– geen toegang') + ' · ' + t('Versturen:') + ' ' + t(gd.rechtGmailSend ? '✓ aan je boekhouder' : '– nee') + '. ' + t('Tools ziet in Drive alleen zijn eigen mappen.') : '';
   if (gd.gekoppeld) { $('#fa-gd-r-gmail').checked = !!gd.rechtGmail || $('#fa-gd-r-gmail').checked; $('#fa-gd-r-drive').checked = !!gd.rechtDrive; $('#fa-gd-r-send').checked = !!gd.rechtGmailSend || $('#fa-gd-r-send').checked; }
   $('#fa-gd-knop').textContent = gd.gekoppeld ? 'Opnieuw koppelen met deze rechten' : 'Koppelen met Google';
   if (!gd.gekoppeld && gd.clientId && !$('#fa-gd-id').value) $('#fa-gd-id').value = gd.clientId;
@@ -129,7 +129,7 @@ function faMaandRender(){
   const l = faSt.leveranciers, nu = Date.now(), dezeMaand = faMaandSleutel(nu);
   $('#fa-maand').style.display = l.length ? 'block' : 'none';
   if (!l.length) { $('#fa-overzicht-lijst').innerHTML = '<p class="note">Nog geen leveranciers.</p>'; return; }
-  $('#fa-maand-h').textContent = 'Deze maand · ' + faMaandNaam(dezeMaand);
+  $('#fa-maand-h').textContent = t('Deze maand') + ' · ' + faMaandNaam(dezeMaand);
   $('#fa-maand-lijst').innerHTML = l.map(x => {
     const n = (x.maanden || {})[dezeMaand] || 0, p = faPeriode(x);
     const binnen = n ? '✓ ' + n + (n === 1 ? ' factuur binnen' : ' facturen binnen') : p.soort === 'mis' ? '✗ Nog niet: mislukt' : x.schema !== 'uit' && x.volgende && faMaandSleutel(x.volgende) === dezeMaand && !(x.vorige && faMaandSleutel(x.vorige) === dezeMaand) ? 'Gepland ' + faMoment(x.volgende) : x.schema === 'uit' ? 'Alleen met de hand' : 'Nog niets binnen';
@@ -151,7 +151,7 @@ function faMaandRender(){
 function faGeschiedenis(l){
   const log = (l.toestand || {}).log || [];
   if (!log.length) { toast('Nog geen geschiedenis'); return; }
-  askConfirm('Geschiedenis · ' + l.naam, log.map(r => (r.ok ? '✓ ' : '✗ ') + faMoment(r.t) + (r.auto ? ' (vanzelf)' : ' (met de hand)') + '\n   ' + (r.msg || '') + ((r.namen || []).length ? '\n   ' + r.namen.join(', ') : '')).join('\n'), 'Sluiten', () => {});
+  askConfirm(t('Geschiedenis') + ' · ' + l.naam, log.map(r => (r.ok ? '✓ ' : '✗ ') + faMoment(r.t) + ' ' + t(r.auto ? '(vanzelf)' : '(met de hand)') + '\n   ' + t(r.msg || '') + ((r.namen || []).length ? '\n   ' + r.namen.join(', ') : '')).join('\n'), 'Sluiten', () => {});
 }
 function faOpen(id){
   const l = faSt.leveranciers.find(x => x.id === id); if (!l) return;
@@ -162,7 +162,7 @@ function faOpen(id){
     ['Facturen bekijken' + (l.aantal ? ' (' + l.aantal + ')' : ''), () => faBekijk(l)],
     ['Geschiedenis', () => faGeschiedenis(l)],
     ['Instellingen', () => flOpen(l)],
-    ['Verwijderen…', () => askConfirm(l.naam + ' verwijderen?', 'De instellingen en de facturen in de app gaan weg. Kopieën in je backup-map en in Eigen Cloud blijven staan.', 'Verwijderen', () => { const e = Android.facturenVerwijder(id); if (e) toast(e); faRender(); })]];
+    ['Verwijderen…', () => askConfirm(t('{naam} verwijderen?', { naam: l.naam }), 'De instellingen en de facturen in de app gaan weg. Kopieën in je backup-map en in Eigen Cloud blijven staan.', 'Verwijderen', () => { const e = Android.facturenVerwijder(id); if (e) toast(e); faRender(); })]];
   openSheet(l.naam, busy ? 'Er wordt nu opgehaald: even wachten' : faStatus(l), busy ? acts.filter(a => !/^(Nu ophalen|Ophalen en meekijken)/.test(a[0])) : acts);
 }
 function faNu(id, meekijken){
@@ -173,8 +173,8 @@ function faNu(id, meekijken){
 window.onFacturenKlaar = function(r){
   if (!r.ok && r.koppelNodig) { toast(r.msg || 'Koppeling nodig'); setTimeout(() => askConfirm('Koppeling nodig', r.msg || '', 'Naar Google', () => faNaar('facgoogle')), 600); if (FA_SCHERMEN.includes(current)) faRender(); return; }
   toast((r.ok ? '✓ ' : '') + (r.naam ? r.naam + ': ' : '') + (r.msg || ''));
-  if (r.ok && (r.fouten || []).length) setTimeout(() => toast('Niet alles afgeleverd: ' + r.fouten[0]), 2800);
-  if (!r.ok && r.inlogNodig) setTimeout(() => askConfirm('Inloggen nodig', (r.msg || '') + '\n\nKijk één keer mee: dan log je zelf in en gaat de app daarna verder.', 'Meekijken', () => faNu(r.id, true)), 600);
+  if (r.ok && (r.fouten || []).length) setTimeout(() => toast(t('Niet alles afgeleverd: {fout}', { fout: t(r.fouten[0]) })), 2800);
+  if (!r.ok && r.inlogNodig) setTimeout(() => askConfirm('Inloggen nodig', t(r.msg || '') + '\n\n' + t('Kijk één keer mee: dan log je zelf in en gaat de app daarna verder.'), 'Meekijken', () => faNu(r.id, true)), 600);
   if (FA_SCHERMEN.includes(current)) faRender();
 };
 function faBekijk(l){
@@ -190,7 +190,7 @@ function faNieuw(){
 function flOpen(l, nieuw){
   faEdit = JSON.parse(JSON.stringify(l)); faEdit._nieuw = !!nieuw;
   const c = l.code || {}, v = l.velden || {};
-  $('#fl-h').textContent = nieuw ? (l.naam ? l.naam + ' toevoegen' : 'Leverancier toevoegen') : l.naam;
+  $('#fl-h').textContent = nieuw ? (l.naam ? t('{naam} toevoegen', { naam: l.naam }) : t('Leverancier toevoegen')) : l.naam;
   $('#fl-tip').textContent = l.tip || ((faSt.sjablonen || []).find(s => s.sjabloon === l.sjabloon) || {}).tip || '';
   $('#fl-tip').style.display = $('#fl-tip').textContent ? 'block' : 'none';
   $('#fl-naam').value = l.naam || ''; $('#fl-start').value = l.startUrl || ''; $('#fl-user').value = l.gebruiker || '';
@@ -239,7 +239,7 @@ function faZoekvraag(m){
 function flZoek(){
   const gd = faSt.drive || {};
   $('#fl-m-kopp').style.display = gd.rechtGmail ? 'none' : 'block';
-  $('#fl-m-vraag').textContent = 'Zoekt in Gmail op: ' + faZoekvraag({ woorden: $('#fl-m-woorden').value, afzenders: $('#fl-m-afz').value, negeer: $('#fl-m-neg').value, extra: $('#fl-m-extra').value }) + ' (en alleen nieuwe mails sinds de vorige keer).';
+  $('#fl-m-vraag').textContent = t('Zoekt in Gmail op: {vraag} (en alleen nieuwe mails sinds de vorige keer).', { vraag: faZoekvraag({ woorden: $('#fl-m-woorden').value, afzenders: $('#fl-m-afz').value, negeer: $('#fl-m-neg').value, extra: $('#fl-m-extra').value }) });
 }
 function flOpslag(){
   const mail = faEdit && faEdit.soort === 'mail', per = mail && $('#fl-m-per').checked;
@@ -249,7 +249,7 @@ function flOpslag(){
   if ($('#fl-map').checked && !faSt.map) mis.push('kies een backup-map');
   if ($('#fl-gd').checked && !gd.rechtDrive) mis.push('koppel Google met Drive');
   if ($('#fl-ec').checked && !(ec.url && ec.heeftWachtwoord)) mis.push('koppel Eigen Cloud');
-  $('#fl-opslag-msg').textContent = mis.length ? 'Nog te doen bij Facturen → Opslaan: ' + mis.join(', ') + '.' : '';
+  $('#fl-opslag-msg').textContent = mis.length ? t('Nog te doen bij Facturen → Opslaan: {wat}.', { wat: mis.map(x => t(x)).join(', ') }) : '';
   $('#fl-opslag-msg').classList.toggle('bad', mis.length > 0);
 }
 /** Volgende keer volgens de keuzes op het scherm (zelfde regels als Facturen.gepland in de app). */
@@ -271,8 +271,8 @@ function flPlan(){
   $('#fl-wifirij').style.display = s === 'uit' ? 'none' : 'flex';
   const o = { schema: s, dag: Number($('#fl-dag').value) || 5, weekdag: Number($('#fl-wd').value) || 1, tijd: $('#fl-tijd').value || '08:00' };
   const opn = Number($('#fl-opnieuw').value) || 3;
-  $('#fl-plan').textContent = s === 'uit' ? 'Alleen als je zelf op Nu ophalen tikt.' : 'Vanzelf ' + faPlanTekst(o) + '. Eerstvolgende keer: ' + faMoment(faVolgende(o, Date.now())) +
-    '. Staat de telefoon dan uit of zonder ' + ($('#fl-wifi').checked ? 'wifi' : 'internet') + ', dan haalt de app het zo snel mogelijk daarna in; lukt het niet, dan na ' + opn + (opn === 1 ? ' uur' : ' uur') + ' opnieuw.';
+  $('#fl-plan').textContent = s === 'uit' ? t('Alleen als je zelf op Nu ophalen tikt.') : t('Vanzelf {wanneer}. Eerstvolgende keer: {volgende}.', { wanneer: faPlanTekst(o), volgende: faMoment(faVolgende(o, Date.now())) }) + ' ' +
+    t($('#fl-wifi').checked ? 'Staat de telefoon dan uit of zonder wifi, dan haalt de app het zo snel mogelijk daarna in; lukt het niet, dan na {n} uur opnieuw.' : 'Staat de telefoon dan uit of zonder internet, dan haalt de app het zo snel mogelijk daarna in; lukt het niet, dan na {n} uur opnieuw.', { n: opn });
 }
 function flBron(){
   const b = $('#fl-bron').value;
@@ -293,7 +293,7 @@ function flBewaar(){
   };
   for (const [p, wat] of [[o.menu, 'De tekst van de link naar de facturen'], [o.knoppen, 'Het herkennen van downloadknoppen']]) {
     if (o.soort === 'mail') break;
-    try { new RegExp(p, 'i'); } catch (e) { $('#fl-msg').textContent = wat + ' is geen geldig zoekpatroon.'; flTab('adv'); return; }
+    try { new RegExp(p, 'i'); } catch (e) { $('#fl-msg').textContent = t('{wat} is geen geldig zoekpatroon.', { wat: t(wat) }); flTab('adv'); return; }
   }
   const fout = (tt, tab) => { $('#fl-msg').textContent = tt; flTab(tab); };
   if (o.lokaal && !faSt.lokaal) return fout('Kies eerst een map op je telefoon (Facturen → Opslaan), of zet "In een map op je telefoon" uit.', 'opslag');
@@ -332,7 +332,7 @@ function faGdKoppel(){
   const id = $('#fa-gd-id').value.trim(), geheim = $('#fa-gd-geheim').value.trim();
   if (!/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(id)) { $('#fa-gd-msg').textContent = 'Een Client ID van Google eindigt op .apps.googleusercontent.com. Kopieer hem uit je Google-project.'; return; }
   const gd = faSt.drive || {};
-  if (!geheim && (!gd.heeftGeheim || id !== gd.clientId)) { $('#fa-gd-msg').textContent = 'Vul ook het Client secret in' + (gd.heeftGeheim ? ' (nieuwe Client ID = ook een nieuw secret).' : '.'); return; }
+  if (!geheim && (!gd.heeftGeheim || id !== gd.clientId)) { $('#fa-gd-msg').textContent = t(gd.heeftGeheim ? 'Vul ook het Client secret in (nieuwe Client ID = ook een nieuw secret).' : 'Vul ook het Client secret in.'); return; }
   const rechten = [$('#fa-gd-r-gmail').checked ? 'gmail' : '', $('#fa-gd-r-drive').checked ? 'drive' : '', $('#fa-gd-r-send').checked ? 'gmailsend' : ''].filter(Boolean).join(',');
   if (!rechten) { $('#fa-gd-msg').textContent = 'Vink aan waarvoor Tools Google mag gebruiken (Gmail en/of Drive).'; return; }
   const zonder = [!rechten.includes('drive') && faSt.leveranciers.some(l => l.drive) ? 'Drive (leveranciers bewaren daar)' : '', !/\bgmail\b/.test(rechten) && faSt.leveranciers.some(l => l.soort === 'mail') ? 'Gmail (leveranciers zoeken daar)' : '', !rechten.includes('gmailsend') && (faSt.drive || {}).rechtGmailSend ? 'Versturen met Gmail (aan je boekhouder)' : ''].filter(Boolean);
@@ -344,7 +344,7 @@ function faGdKoppel(){
 }
 window.onFacturenDrive = function(r){
   if (r.error) { $('#fa-gd-msg').textContent = r.error; toast(r.error); }
-  else toast('✓ Google gekoppeld' + (r.naam ? ' (' + r.naam + ')' : ''));
+  else toast(t('✓ Google gekoppeld') + (r.naam ? ' (' + r.naam + ')' : ''));
   if (FA_SCHERMEN.includes(current)) faRender();
   if (current === 'faclev') { flZoek(); flOpslag(); }
 };
@@ -413,13 +413,13 @@ function fdLees(){
     return;
   }
   if (!mist) return;
-  $('#fd-lees').style.display = 'block'; $('#fd-lees').textContent = 'Gegevens uit ' + mist + (mist === 1 ? ' factuur' : ' facturen') + ' lezen…';
+  $('#fd-lees').style.display = 'block'; $('#fd-lees').textContent = tn(mist, 'Gegevens uit {n} factuur lezen…', 'Gegevens uit {n} facturen lezen…');
   Android.facturenDossierHerken();
 }
 window.onFacturenHerkend = function(r){
   const e = $('#fd-lees');
-  if (r.error) { e.textContent = 'Lezen lukt niet: ' + r.error; return; }
-  e.textContent = r.aantal ? '✓ Bij ' + r.aantal + (r.aantal === 1 ? ' factuur' : ' facturen') + ' gegevens gevonden. Controleer ze even.' : 'Geen extra gegevens gevonden in de facturen. Tik op een factuur om ze zelf in te vullen.';
+  if (r.error) { e.textContent = t('Lezen lukt niet: {fout}', { fout: t(r.error) }); return; }
+  e.textContent = r.aantal ? tn(r.aantal, '✓ Bij {n} factuur gegevens gevonden. Controleer ze even.', '✓ Bij {n} facturen gegevens gevonden. Controleer ze even.') : t('Geen extra gegevens gevonden in de facturen. Tik op een factuur om ze zelf in te vullen.');
   setTimeout(() => { if (e.textContent.startsWith('✓')) e.style.display = 'none'; }, 6000);
   if (current === 'facdos') fdRender(true);
   else if (current === 'facstuk') { fdLaad(); if (!document.activeElement || !document.activeElement.closest('#s-facstuk')) fsToon(fsSha); }
@@ -497,7 +497,7 @@ function fdRender(laad){
   lijst = lijst.slice().sort((x, y) => { if (inst.groep) { const gx = fdGroep(x, inst.groep)[0], gy = fdGroep(y, inst.groep)[0]; if (gx !== gy) return (inst.groep === 'maand' || inst.groep === 'kwartaal') ? (gx < gy ? 1 : -1) : (gx < gy ? -1 : 1); } return vgl(x, y) || (y.opgehaald || 0) - (x.opgehaald || 0); });
   const som = l => l.reduce((tt, s) => tt + (fdGetal((s.meta || {}).bedrag) || 0), 0);
   const totaal = som(lijst);
-  $('#fd-tel').textContent = items.length ? lijst.length + ' van ' + items.length + (items.length === 1 ? ' factuur' : ' facturen') + (totaal ? ' · samen ' + FD_EUR(totaal) : '') : '';
+  $('#fd-tel').textContent = items.length ? tn(items.length, '{k} van {n} factuur', '{k} van {n} facturen', { k: lijst.length }) + (totaal ? ' · ' + t('samen {bedrag}', { bedrag: FD_EUR(totaal) }) : '') : '';
   if (!lijst.length) { $('#fd-lijst').innerHTML = '<p class="note" style="padding:14px">' + (items.length ? 'Niets gevonden.' : 'Nog geen facturen in het dossier. Ze komen er vanzelf in zodra er facturen zijn opgehaald.') + '</p>'; $('#fd-csv').disabled = !items.length; return; }
   const kop = '<thead><tr>' + kol.map(v => '<th scope="col" class="' + (v.num ? 'num' : '') + '"' + (v.id === sv.id ? ' aria-sort="' + (inst.af ? 'descending' : 'ascending') + '"' : '') + '><button data-k="' + v.id + '" onclick="fdSorteer(this.dataset.k)">' + esc(v.naam) + (v.id === sv.id ? '<span aria-hidden="true">' + (inst.af ? ' ↓' : ' ↑') + '</span>' : '') + '</button></th>').join('') + '</tr></thead>';
   const cel = (v, s) => '<td class="' + [v.num ? 'num' : '', v.lang ? 'lang' : '', v.id === 'aan' && fdAanl(s).soort === 'ok' ? 'good' : '', v.id === 'aan' && fdAanl(s).soort === 'mis' ? 'bad' : '', v.id === 'verval' && /⚠/.test(v.t(s)) ? 'bad' : ''].filter(Boolean).join(' ') + '">' + esc(v.t(s)) + '</td>';
@@ -520,7 +520,7 @@ function fdRender(laad){
 function fdCsv(){ $('#fd-csv-msg').textContent = 'Exporteren…'; $('#fd-csv').disabled = true; Android.facturenDossierCsv(); }
 window.onFacturenCsv = function(r){
   $('#fd-csv').disabled = false;
-  $('#fd-csv-msg').textContent = r.error ? r.error : '✓ Opgeslagen in ' + r.waar;
+  $('#fd-csv-msg').textContent = r.error ? t(r.error) : t('✓ Opgeslagen in {waar}', { waar: r.waar });
   $('#fd-csv-msg').classList.toggle('bad', !!r.error);
 };
 function fsToon(sha){
@@ -571,26 +571,26 @@ function fsOpnieuw(ontv){
 /* ---------- Aanleveren aan de accountant of boekhouder ---------- */
 let foSt = { lijst: [], kanalen: [], via: [], log: [] }, foEdit = null;
 function foLaad(){ foSt = rdJson(Android.facturenOntvangers(), { lijst: [], kanalen: [], via: [], log: [] }); return foSt; }
-function foPlanTekst(o){ return o.schema === 'direct' ? 'direct na het ophalen' : faPlanTekst(o); }
+function foPlanTekst(o){ return o.schema === 'direct' ? t('direct na het ophalen') : faPlanTekst(o); }
 function foRender(laad){
   if (laad !== false) foLaad();
   $('#fo-bezig').style.display = foSt.bezig ? 'block' : 'none';
-  $('#fo-bezig-txt').textContent = foSt.voortgang || 'Versturen…';
+  $('#fo-bezig-txt').textContent = t(foSt.voortgang || 'Versturen…');
   $('#fo-lijst').innerHTML = foSt.lijst.map(o => {
     const tt = o.toestand || {}, via = (foSt.via.find(v => v.id === o.via) || {}).naam || o.via;
-    const st = o.mist ? '✗ ' + o.mist : tt.lastTry && !tt.ok ? '✗ ' + faMoment(tt.lastTry) + ': ' + (tt.msg || 'mislukt') : tt.lastOk ? '✓ Laatst ' + faMoment(tt.lastOk) + ': ' + (tt.msg || '') : 'Nog niets verstuurd';
-    const wanneer = !o.actief ? 'Uit' : (o.open ? o.open + (o.open === 1 ? ' factuur klaar' : ' facturen klaar') : 'Niets open') + ' · ' + foPlanTekst(o) + (o.volgende ? ' (volgende keer ' + faMoment(o.volgende) + ')' : '');
+    const st = o.mist ? '✗ ' + t(o.mist) : tt.lastTry && !tt.ok ? '✗ ' + faMoment(tt.lastTry) + ': ' + t(tt.msg || 'mislukt') : tt.lastOk ? t('✓ Laatst {wanneer}: {wat}', { wanneer: faMoment(tt.lastOk), wat: t(tt.msg || '') }) : t('Nog niets verstuurd');
+    const wanneer = !o.actief ? t('Uit') : (o.open ? tn(o.open, '{n} factuur klaar', '{n} facturen klaar') : t('Niets open')) + ' · ' + foPlanTekst(o) + (o.volgende ? ' ' + t('(volgende keer {wanneer})', { wanneer: faMoment(o.volgende) }) : '');
     return '<div class="srow"><button class="sbtn" data-id="' + esc(o.id) + '" onclick="foOpen(this.dataset.id)"><span class="vpic" aria-hidden="true">' + uiIcon('mail') + '</span>' +
       '<span class="stxt"><b>' + esc(o.naam) + '</b><small>' + esc((o.aan || '') + ' · via ' + via) + '</small><small' + (st.startsWith('✗') ? ' class="bad"' : '') + '>' + esc(st) + '</small><small>' + esc(wanneer) + '</small></span></button></div>';
   }).join('') || '<p class="note" style="padding:14px">Nog geen ontvanger. Tik op <b>Ontvanger toevoegen</b> en vul het mailadres van je accountant of boekhouder in.</p>';
 }
 function foOpen(id){
   const o = foSt.lijst.find(x => x.id === id); if (!o) return;
-  openSheet(o.naam, (o.open ? o.open + (o.open === 1 ? ' factuur staat klaar' : ' facturen staan klaar') : 'Alles is al aangeleverd') + ' · ' + foPlanTekst(o), [
+  openSheet(o.naam, (o.open ? tn(o.open, '{n} factuur staat klaar', '{n} facturen staan klaar') : t('Alles is al aangeleverd')) + ' · ' + foPlanTekst(o), [
     ['Nu versturen' + (o.open ? ' (' + o.open + ')' : ''), () => foNu(id, false)],
     ['Proef naar mezelf', () => foNu(id, true)],
     ['Instellingen', () => foForm(o)],
-    ['Verwijderen…', () => askConfirm(o.naam + ' verwijderen?', 'Wat al verstuurd is, blijft in het dossier staan.', 'Verwijderen', () => { const e = Android.facturenOntvangerWeg(id); if (e) toast(e); foRender(); faLaad(); faSamenvatting(); })]]);
+    ['Verwijderen…', () => askConfirm(t('{naam} verwijderen?', { naam: o.naam }), 'Wat al verstuurd is, blijft in het dossier staan.', 'Verwijderen', () => { const e = Android.facturenOntvangerWeg(id); if (e) toast(e); foRender(); faLaad(); faSamenvatting(); })]]);
 }
 function foNu(id, proef){
   const o = foSt.lijst.find(x => x.id === id);
@@ -610,7 +610,7 @@ function foLog(){
   foLaad();
   const log = foSt.log || [];
   if (!log.length) { toast('Nog niets verstuurd'); return; }
-  askConfirm('Logboek aanleveren', log.slice(0, 60).map(r => (r.ok ? '✓ ' : '✗ ') + faMoment(r.t) + ' · ' + (r.naam || '') + (r.proef ? ' (proef)' : r.auto ? ' (vanzelf)' : ' (met de hand)') + '\n   ' + (r.msg || '') + ((r.namen || []).length ? '\n   ' + r.namen.join(', ') : '')).join('\n'), 'Sluiten', () => {});
+  askConfirm('Logboek aanleveren', log.slice(0, 60).map(r => (r.ok ? '✓ ' : '✗ ') + faMoment(r.t) + ' · ' + (r.naam || '') + ' ' + t(r.proef ? '(proef)' : r.auto ? '(vanzelf)' : '(met de hand)') + '\n   ' + t(r.msg || '') + ((r.namen || []).length ? '\n   ' + r.namen.join(', ') : '')).join('\n'), 'Sluiten', () => {});
 }
 function foNieuw(){ foForm({ naam: '', kanaal: 'email', via: (foSt.via.find(v => !v.mist) || foSt.via[0] || {}).id || 'eigencloud', actief: true, schema: 'maand', dag: 1, weekdag: 1, tijd: '09:00', opnieuw: 3, bundel: 'samen', maxMb: 15, meldFout: true, leveranciers: [] }, true); }
 function foForm(o, nieuw){

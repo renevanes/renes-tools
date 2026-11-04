@@ -162,7 +162,7 @@ public class TranscribeService extends Service {
         String text = "download".equals(phase) ? "Spraakmodel downloaden" : "decode".equals(phase) ? "Opname voorbereiden" : "Uitschrijven";
         if (left > 0) text += " · nog " + left + " in de wachtrij";
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,
-                notif(file == null ? "Gesprekken uitschrijven" : file, text, pct));
+                Taal.n(this, notif(file == null ? "Gesprekken uitschrijven" : file, text, pct)));
     }
 
     private static String msg(Throwable e) {
@@ -176,8 +176,8 @@ public class TranscribeService extends Service {
                 : "Uitschrijven: " + failed + " mislukt";
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, NotifCenter.ch(this, CHANNEL)) : new Notification.Builder(this);
         NotifCenter.post(this, DONE_ID,
-                b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(err == null ? "Tik om te bekijken" : err)
-                        .setAutoCancel(true).setContentIntent(open(this)).build());
+                Taal.n(this, b.setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(err == null ? "Tik om te bekijken" : err)
+                        .setAutoCancel(true).setContentIntent(open(this)).build()));
     }
 
     private Notification notif(String title, String text, int pct) {
@@ -195,7 +195,7 @@ public class TranscribeService extends Service {
 
     static void createChannel(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "Gesprekken uitschrijven", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(c, "Gesprekken uitschrijven"), NotificationManager.IMPORTANCE_LOW);
         ((NotificationManager) c.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(ch);
     }
 

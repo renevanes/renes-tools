@@ -78,6 +78,9 @@ public class RadioWidget extends AppWidgetProvider {
         RemoteViews v = new RemoteViews(c.getPackageName(), layout);
         boolean radio = n == null || Player.RADIO.equals(n.src);
         boolean large = layout == R.layout.widget_player_l, small = layout == R.layout.widget_player_s;
+        // Vaste knopnamen voor TalkBack in de taal van de app (de layout heeft ze in het Nederlands)
+        Taal.describe(c, v, large ? new int[]{R.id.w_art, R.id.w_back, R.id.w_prev, R.id.w_pp, R.id.w_next, R.id.w_fwd} : small ? new int[]{R.id.w_art, R.id.w_pp, R.id.w_next} : new int[]{R.id.w_art, R.id.w_prev, R.id.w_pp, R.id.w_next},
+                large ? new String[]{"Speler openen", "Terug", "Vorige", "Afspelen of pauzeren", "Volgende", "Vooruit"} : small ? new String[]{"Speler openen", "Afspelen of pauzeren", "Volgende"} : new String[]{"Speler openen", "Vorige", "Afspelen of pauzeren", "Volgende"});
         if (Build.VERSION.SDK_INT >= 31) {
             v.setInt(R.id.w_root, "setBackgroundResource", R.drawable.widget_player_bg);
             v.setColorStateList(R.id.w_root, "setBackgroundTintList", android.content.res.ColorStateList.valueOf(0xFF000000 | color));
@@ -85,9 +88,9 @@ public class RadioWidget extends AppWidgetProvider {
         if (art != null) v.setImageViewBitmap(R.id.w_art, art);
         else v.setImageViewResource(R.id.w_art, radio ? R.drawable.ic_radio : R.drawable.ic_podcast);
         String title = n == null ? "Speler" : n.title, sub = n == null ? "Tik om radio of een podcast te kiezen" : n.sub;
-        if (!small) { v.setTextViewText(R.id.w_title, title); v.setTextViewText(R.id.w_sub, sub); }
+        if (!small) { Taal.text(c, v, R.id.w_title, title); Taal.text(c, v, R.id.w_sub, sub); }
         if (large) {
-            v.setTextViewText(R.id.w_kind, n == null ? "Speler" : radio ? "Radio" : "Podcast");
+            Taal.text(c, v, R.id.w_kind, n == null ? "Speler" : radio ? "Radio" : "Podcast");
             int p = n != null && !radio && n.dur > 0 ? (int) Math.min(1000, n.pos * 1000 / n.dur) : 0;
             v.setProgressBar(R.id.w_prog, 1000, p, false);
             v.setViewVisibility(R.id.w_prog, n != null && !radio && n.dur > 0 ? android.view.View.VISIBLE : android.view.View.INVISIBLE);

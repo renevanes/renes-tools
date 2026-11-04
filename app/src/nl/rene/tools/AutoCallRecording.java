@@ -56,13 +56,13 @@ final class AutoCallRecording {
         if (!sessionActive(c, session)) return;
         CallRecordings.prefs(c).edit().putString("message", message).apply();
         NotificationManager manager = c.getSystemService(NotificationManager.class);
-        if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(new NotificationChannel(CHANNEL, "Automatische gespreksopname", NotificationManager.IMPORTANCE_DEFAULT));
+        if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(new NotificationChannel(CHANNEL, Taal.t(c, "Automatische gespreksopname"), NotificationManager.IMPORTANCE_DEFAULT));
         Intent open = new Intent(c, MainActivity.class).putExtra("open", "recorder").addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pending = PendingIntent.getActivity(c, NOTICE, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder builder = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, CHANNEL) : new Notification.Builder(c);
         try {
-            manager.notify(NOTICE, builder.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Automatische opname niet gestart")
-                    .setContentText("Open Tools om de opname handmatig te starten").setContentIntent(pending).setAutoCancel(true).build());
+            manager.notify(NOTICE, Taal.n(c, builder.setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Automatische opname niet gestart")
+                    .setContentText("Open Tools om de opname handmatig te starten").setContentIntent(pending).setAutoCancel(true).build()));
         } catch (SecurityException ignored) { }
     }
 }

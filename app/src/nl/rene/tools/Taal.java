@@ -100,7 +100,7 @@ final class Taal {
     }
 
     /** Zoals de sleutels in en.json: witruimte samengevoegd, zonder zachte afbreekstreepjes, zonder randspaties. */
-    static String norm(String s) { return WS.matcher(s.replace("­", "")).replaceAll(" ").trim(); }
+    static String norm(String s) { return WS.matcher(s.replace("\u00ad", "")).replaceAll(" ").trim(); }
 
     /** Het woordenboek uit JSON: tekst → vertaling (String) of {enkelvoud, meervoud} (String[2]). */
     static Map<String, Object> parse(String json) {
@@ -170,10 +170,107 @@ final class Taal {
         } catch (Throwable t) { App.log(c, "TAAL", String.valueOf(t)); }
     }
 
-    /** Alle sleutels (voor tests). */
-    static int size(Context c) { return dict(c).size(); }
+    // ---------------------------------------------------------------- tekst die al in elkaar gezet is
 
-    static Map<String, Object> forTest(Map<String, Object> d) { en = d; back = null; return d; }
+    private static volatile List<Object[]> pats;
 
-    static HashMap<String, Object> copy(Map<String, Object> d) { return new HashMap<>(d); }
+    /** Sleutels met plaatshouders als patroon: "Auto redial: {wie}" → ^Auto redial: (.+?)$ (langste vaste tekst eerst). */
+    static List<Object[]> patterns(Map<String, Object> d) {
+        List<Object[]> out = new java.util.ArrayList<>();
+        for (Map.Entry<String, Object> e : d.entrySet()) {
+            String k = e.getKey();
+            if (k.indexOf('{') < 0 || !(e.getValue() instanceof String)) continue;
+            Matcher m = PH.matcher(k);
+            StringBuilder re = new StringBuilder("^");
+            List<String> names = new java.util.ArrayList<>();
+            int at = 0, lit = 0;
+            while (m.find()) {
+                re.append(Pattern.quote(k.substring(at, m.start()))).append("(.+?)");
+                lit += m.start() - at;
+                names.add(m.group(1));
+                at = m.end();
+            }
+            re.append(Pattern.quote(k.substring(at))).append("$");
+            lit += k.length() - at;
+            if (lit < 4) continue; // alleen plaatshouders: past op alles
+            try { out.add(new Object[]{Pattern.compile(re.toString(), Pattern.DOTALL), names, e.getValue(), lit}); } catch (Exception ignored) { }
+        }
+        java.util.Collections.sort(out, (a, b) -> (Integer) b[3] - (Integer) a[3]);
+        return out;
+    }
+
+    /** Vertaal een tekst zoals Rene hem ziet: precies een sleutel, of een sleutel met plaatshouders (puur, getest). */
+    static String tx(Map<String, Object> d, List<Object[]> ps, String s) {
+        if (s == null || s.isEmpty()) return s;
+        String k = norm(s);
+        Object e = d.get(k);
+        if (e instanceof String) return tr(d, true, s);
+        if (ps != null && k.length() < 2000) {
+            for (Object[] p : ps) {
+                Matcher m = ((Pattern) p[0]).matcher(k);
+                if (!m.matches()) continue;
+                @SuppressWarnings("unchecked") List<String> names = (List<String>) p[1];
+                Object[] kv = new Object[names.size() * 2];
+                for (int i = 0; i < names.size(); i++) { kv[2 * i] = names.get(i); kv[2 * i + 1] = txPart(d, m.group(i + 1)); }
+                return fill((String) p[2], kv);
+            }
+        }
+        return s;
+    }
+
+    /** Een ingevuld deel ("Thuis", "3 onderdelen") ook vertalen als het zelf een sleutel is. */
+    private static String txPart(Map<String, Object> d, String v) { Object e = d.get(norm(v)); return e instanceof String ? (String) e : v; }
+
+    static String tx(Context c, CharSequence s) {
+        if (s == null || !en(c)) return s == null ? null : s.toString();
+        Map<String, Object> d = dict(c);
+        List<Object[]> ps = pats;
+        if (ps == null) pats = ps = patterns(d);
+        return tx(d, ps, s.toString());
+    }
+
+    /** Een melding in de taal van de app: titel, tekst, lange tekst en knoppen (één plek vlak voor notify). */
+    static android.app.Notification n(Context c, android.app.Notification n) {
+        if (n == null || !en(c)) return n;
+        try {
+            android.os.Bundle x = n.extras;
+            if (x != null) for (String k : new String[]{android.app.Notification.EXTRA_TITLE, android.app.Notification.EXTRA_TEXT, android.app.Notification.EXTRA_BIG_TEXT,
+                    android.app.Notification.EXTRA_SUB_TEXT, android.app.Notification.EXTRA_INFO_TEXT, android.app.Notification.EXTRA_SUMMARY_TEXT}) {
+                CharSequence v = x.getCharSequence(k);
+                if (v != null && !(v instanceof android.text.Spanned)) x.putCharSequence(k, tx(c, v));
+            }
+            if (n.tickerText != null) n.tickerText = tx(c, n.tickerText);
+            if (n.actions != null) for (android.app.Notification.Action a : n.actions) if (a != null && a.title != null) a.title = tx(c, a.title);
+            if (n.publicVersion != null && n.publicVersion != n) n(c, n.publicVersion);
+        } catch (Throwable t) { App.log(c, "TAAL", String.valueOf(t)); }
+        return n;
+    }
+
+    /** Tekst in een widget in de taal van de app. */
+    static void text(Context c, android.widget.RemoteViews v, int id, CharSequence s) { v.setTextViewText(id, tx(c, s)); }
+
+    /** Vaste teksten uit een widget-layout (die Android zelf in het Nederlands toont): alleen in het Engels zetten. */
+    static void layout(Context c, android.widget.RemoteViews v, int[] ids, String[] nl) {
+        if (!en(c)) return;
+        for (int i = 0; i < ids.length && i < nl.length; i++) v.setTextViewText(ids[i], t(c, nl[i]));
+    }
+
+    static void describe(Context c, android.widget.RemoteViews v, int[] ids, String[] nl) {
+        if (!en(c) || Build.VERSION.SDK_INT < 15) return;
+        for (int i = 0; i < ids.length && i < nl.length; i++) v.setContentDescription(ids[i], t(c, nl[i]));
+    }
+
+    /** Het hele woordenboek als JSON voor de Telefoon-skin (alleen in het Engels; anders ""). */
+    static String json(Context c) {
+        if (!en(c)) return "";
+        try (InputStream in = c.getAssets().open(ASSET)) {
+            ByteArrayOutputStream o = new ByteArrayOutputStream();
+            byte[] b = new byte[65536];
+            for (int n; (n = in.read(b)) > 0; ) o.write(b, 0, n);
+            return new String(o.toByteArray(), StandardCharsets.UTF_8);
+        } catch (Throwable t) { return ""; }
+    }
+
+    /** Voor tests: een eigen woordenboek. */
+    static Map<String, Object> forTest(Map<String, Object> d) { en = d; back = null; pats = null; return d; }
 }

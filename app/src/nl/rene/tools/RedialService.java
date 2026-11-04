@@ -270,7 +270,7 @@ public class RedialService extends Service {
         stopForeground(true);
         if (was && !"stopped".equals(res)) {
             NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            if (!NotifCenter.muted(this)) nm.notify(DONE_NOTIF_ID, buildDone(msg));
+            if (!NotifCenter.muted(this)) nm.notify(DONE_NOTIF_ID, Taal.n(this, buildDone(msg)));
         }
         stopSelfResult(lastStartId); // een start die net binnenkwam niet afbreken
     }
@@ -353,7 +353,7 @@ public class RedialService extends Service {
         } catch (Exception ignored) { }
         if (running) {
             NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            nm.notify(NOTIF_ID, buildNotification(notifText(), "waiting".equals(phase)));
+            nm.notify(NOTIF_ID, Taal.n(this, buildNotification(notifText(), "waiting".equals(phase))));
         }
     }
 
@@ -409,7 +409,7 @@ public class RedialService extends Service {
 
     static void createChannel(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "Auto redial", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, Taal.t(c, "Auto redial"), NotificationManager.IMPORTANCE_LOW);
         ch.setDescription("Voortgang van Auto redial");
         ((NotificationManager) c.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(ch);
     }

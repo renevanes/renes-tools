@@ -127,5 +127,5 @@ setTimeout(function(){ // na het laden van alle scripts (Automatiseren definieer
 function refreshLocTile(){
   const el = $('#tile-loc-sub'); if (!el) return;
   const st = rdJson(Android.locState(), {});
-  el.textContent = st.on ? '' + (st.name || lcFmt(st.lat, st.lng)) : 'Zelf je locatie bepalen';
+  el.textContent = st.on ? String(st.name || lcFmt(st.lat, st.lng)) : t('Zelf je locatie bepalen');
 }
