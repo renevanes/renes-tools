@@ -184,12 +184,12 @@ final class CheckinStore {
     static JSONArray defaultOptions(String scale) throws Exception {
         String[][] o;
         switch (scale) {
-            case "buttons2": o = new String[][]{{"👎", "Niet goed", "1"}, {"👍", "Goed", "2"}}; break;
-            case "buttons3": o = new String[][]{{"😕", "Slecht", "1"}, {"😐", "Gaat wel", "2"}, {"🙂", "Goed", "3"}}; break;
-            case "smileys5": o = new String[][]{{"😞", "Heel slecht", "1"}, {"🙁", "Slecht", "2"}, {"😐", "Gaat wel", "3"}, {"🙂", "Goed", "4"}, {"😄", "Heel goed", "5"}}; break;
-            case "yesno": o = new String[][]{{"✗", "Nee", "0"}, {"✓", "Ja", "1"}}; break;
+            case "buttons2": o = new String[][]{{"👎", Taal.T("Niet goed"), "1"}, {"👍", Taal.T("Goed"), "2"}}; break;
+            case "buttons3": o = new String[][]{{"😕", Taal.T("Slecht"), "1"}, {"😐", Taal.T("Gaat wel"), "2"}, {"🙂", Taal.T("Goed"), "3"}}; break;
+            case "smileys5": o = new String[][]{{"😞", Taal.T("Heel slecht"), "1"}, {"🙁", Taal.T("Slecht"), "2"}, {"😐", Taal.T("Gaat wel"), "3"}, {"🙂", Taal.T("Goed"), "4"}, {"😄", Taal.T("Heel goed"), "5"}}; break;
+            case "yesno": o = new String[][]{{"✗", Taal.T("Nee"), "0"}, {"✓", Taal.T("Ja"), "1"}}; break;
             case "score10": { o = new String[10][]; for (int i = 0; i < 10; i++) o[i] = new String[]{"", String.valueOf(i + 1), String.valueOf(i + 1)}; break; }
-            default: o = new String[][]{{"", "Keuze 1", "1"}, {"", "Keuze 2", "2"}, {"", "Keuze 3", "3"}};
+            default: o = new String[][]{{"", Taal.T("Keuze 1"), "1"}, {"", Taal.T("Keuze 2"), "2"}, {"", Taal.T("Keuze 3"), "3"}};
         }
         JSONArray a = new JSONArray();
         for (String[] x : o) a.put(new JSONObject().put("emoji", x[0]).put("label", x[1]).put("value", Double.parseDouble(x[2])));
@@ -216,12 +216,13 @@ final class CheckinStore {
             JSONArray qs = db.optJSONArray("questions");
             if (qs.length() == 0) {
                 long now = System.currentTimeMillis();
-                JSONObject a = template("voel", "Hoe voel je je?", "🙂", "blue", "smileys5", "daily", "21:00", new String[]{"slecht geslapen", "moe", "druk", "ontspannen", "gesport"});
-                JSONObject b = template("werk", "Hoe was je werk?", "💼", "green", "buttons3", "workdays", "17:30", new String[]{"druk", "rustig", "veel overleg", "thuisgewerkt"});
+                JSONObject a = template("voel", Taal.T("Hoe voel je je?"), "🙂", "blue", "smileys5", "daily", "21:00", new String[]{Taal.T("slecht geslapen"), Taal.T("moe"), Taal.T("druk"), Taal.T("ontspannen"), Taal.T("gesport")});
+                JSONObject b = template("werk", Taal.T("Hoe was je werk?"), "💼", "green", "buttons3", "workdays", "17:30", new String[]{Taal.T("druk"), Taal.T("rustig"), Taal.T("veel overleg"), Taal.T("thuisgewerkt")});
                 b.put("voice", false);
                 int n = db.optInt("next", 1);
                 a.put("n", n++).put("created", now).put("updated", now);
                 b.put("n", n++).put("created", now).put("updated", now);
+                inTaal(c, a); inTaal(c, b);
                 qs.put(a).put(b);
                 db.put("next", n);
             }
@@ -229,6 +230,15 @@ final class CheckinStore {
             saveQ(c);
             return true;
         } catch (Exception e) { App.log(c, "CHECKIN", "voorstellen: " + e); return false; }
+    }
+
+    /** Een voorstel in de taal van de app (Engels): vraag, labels en antwoorden. Wat Rene later typt, blijft zoals het is. */
+    private static void inTaal(Context c, JSONObject q) throws Exception {
+        if (!Taal.en(c)) return;
+        q.put("text", Taal.t(c, q.optString("text")));
+        JSONArray ls = q.optJSONArray("labelList"), o = q.optJSONArray("options");
+        if (ls != null) for (int i = 0; i < ls.length(); i++) ls.put(i, Taal.t(c, ls.optString(i)));
+        if (o != null) for (int i = 0; i < o.length(); i++) { JSONObject x = o.optJSONObject(i); if (x != null) x.put("label", Taal.t(c, x.optString("label"))); }
     }
 
     // ---------- een vraag opschonen ----------

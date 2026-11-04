@@ -16,7 +16,9 @@ const AI_SUGG = [
   ['Wat staat er in mijn notities over…', '', true],
   ['Iets in de app instellen', 'Wat kan ik instellen bij ']
 ];
-function aiLoad(){ aiSt = rdJson(Android.aiState(), {}); return aiSt; }
+/* Namen en uitleg van modellen komen uit Java (Taal.T): hier in de taal van de app */
+function aiModelsTaal(list){ (list || []).forEach(m => { if (m && !m._t) { ['label', 'desc', 'news'].forEach(k => { if (m[k]) m[k] = t(m[k]); }); m._t = 1; } }); return list; }
+function aiLoad(){ aiSt = rdJson(Android.aiState(), {}); aiModelsTaal(aiSt.models); return aiSt; }
 function aiModel(id){ return (aiSt.models || []).find(m => m.id === id) || {}; }
 function aiReady(id){ return aiModel(id).state === 'ready'; }
 function aiChatReady(){ return (aiSt.models || []).some(m => !m.embed && m.state === 'ready'); }

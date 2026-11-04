@@ -37,7 +37,7 @@ function stNotifRender(){
     : off ? 'Meldingen staan uit voor deze app: je mist herinneringen, de radiowekker en backup-meldingen.' : '✓ Meldingen staan aan.';
   $('#st-notif-ask').style.display = off && !muted ? 'block' : 'none';
   $('#st-notif-list').style.opacity = muted ? '.45' : '';
-  $('#st-notif-list').innerHTML = (s.kinds || []).map(k => '<button class=nkind data-id="' + esc(k.id) + '" onclick="Android.notifOpen(this.dataset.id)"><span><b>' + esc(k.name) + '</b><small>' + esc(k.desc) + '</small></span>' +
+  $('#st-notif-list').innerHTML = (s.kinds || []).map(k => '<button class=nkind data-id="' + esc(k.id) + '" onclick="Android.notifOpen(this.dataset.id)"><span><b>' + esc(t(k.name)) + '</b><small>' + esc(t(k.desc)) + '</small></span>' +
     '<span class="nst' + (off || !k.on ? ' off' : '') + '">' + t(off ? 'Uit' : NLEVEL[k.level] || 'Aan') + '</span><span aria-hidden=true>›</span></button>').join('');
 }
 function stNotifMute(on){

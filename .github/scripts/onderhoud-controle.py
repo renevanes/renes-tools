@@ -85,9 +85,9 @@ AAPT2 = ("setup-tools.sh", r"aaptjs3@(\d+\.\d+\.\d+)")
 PLATFORM = ("setup-tools.sh", r"sparse-checkout set android-(\d+)")
 TARGET = ("build.sh", r"--target-sdk-version (\d+)")
 ZIG = ("tools/whisper-build.sh", r'ZIG_VERSION="(\d+\.\d+\.\d+)"')
-# De AI-modellen: new Model("id", "label", "desc", "repo", "commit", "bestand", …)
+# De AI-modellen: new Model("id", Taal.T("label"), Taal.T("desc"), "repo", "commit", "bestand", …) (Taal.T mag ook ontbreken)
 MODELLEN = ("app/src/nl/rene/tools/LocalAi.java",
-            r'new Model\("(\w+)",\s*"[^"]*",\s*"[^"]*",\s*"([^"]+)",\s*"([0-9a-f]{40})",\s*"([^"]+\.gguf)"')
+            r'new Model\("(\w+)",\s*(?:Taal\.T\()?"[^"]*"\)?,\s*(?:Taal\.T\()?"[^"]*"\)?,\s*"([^"]+)",\s*"([0-9a-f]{40})",\s*"([^"]+\.gguf)"')
 ALLE = {"Leaflet": LEAFLET, "jsQR": JSQR, "Playwright": PLAYWRIGHT, "whisper.cpp": WHISPER,
         "llama.cpp": LLAMA, "build-tools": BUILDTOOLS, "aapt2": AAPT2, "android-platform": PLATFORM,
         "targetSdk": TARGET, "zig": ZIG, "zig (llm)": ("tools/llm-build.sh", ZIG[1])}

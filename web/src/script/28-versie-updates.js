@@ -7,7 +7,7 @@ function renderInfo(){
   $('#i-android').textContent = v.android;
   let log = CHANGELOG;
   try { const m = JSON.parse(Android.lastManifest()); if (m && m.changelog && m.versionCode >= VERSION_CODE) log = m.changelog; } catch(e){}
-  $('#log').innerHTML = log.map(e => '<h3>' + t('Versie {n}', { n: esc(e.version) }) + ' <small>' + esc(e.date||'') + '</small></h3><ul>' + e.changes.map(c=>'<li>'+esc(c)+'</li>').join('') + '</ul>').join('');
+  $('#log').innerHTML = (TAAL.on ? '<p class="note">' + t('(in het Nederlands)') + '</p>' : '') + log.map(e => '<h3>' + t('Versie {n}', { n: esc(e.version) }) + ' <small>' + esc(e.date||'') + '</small></h3><ul translate="no">' + e.changes.map(c=>'<li>'+esc(c)+'</li>').join('') + '</ul>').join('');
 }
 function checkUpdates(){ $('#chk-btn').textContent = 'Bezig met controleren…'; Android.checkUpdates(); }
 

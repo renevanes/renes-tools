@@ -61,8 +61,8 @@ final class Transcribe {
 
     static final Model[] MODELS = {
             // Controlegetallen van Hugging Face (LFS-oid = SHA-256); een ander bestand wordt nooit gebruikt
-            new Model("base", "ggml-base-q5_1.bin", "Snel (57 MB)", 59_707_625L, "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898"),
-            new Model("small", "ggml-small-q5_1.bin", "Nauwkeurig (181 MB)", 190_085_487L, "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb"),
+            new Model("base", "ggml-base-q5_1.bin", Taal.T("Snel (57 MB)"), 59_707_625L, "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898"),
+            new Model("small", "ggml-small-q5_1.bin", Taal.T("Nauwkeurig (181 MB)"), 190_085_487L, "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb"),
     };
 
     static Model model(String id) { for (Model m : MODELS) if (m.id.equals(id)) return m; return null; }

@@ -12,7 +12,7 @@ const MD_CATS = [
   { kind: 'tts', title: 'Voorlezen (tekst naar spraak)', icon: 'volume', what: 'De assistent leest antwoorden voor met de stem van je telefoon.',
     need: 'Hiervoor downloadt de app niets: Android levert de stem.' }
 ];
-function mdLoad(){ mdSt = rdJson(Android.modelsState(), {}); return mdSt; }
+function mdLoad(){ mdSt = rdJson(Android.modelsState(), {}); aiModelsTaal(mdSt.models); return mdSt; }
 function mdGB(b){ b = Math.max(0, +b || 0); return b >= 1e9 ? fmtNum(b / 1e9, 1) + ' GB' : fmtNum(Math.max(1, Math.round(b / 1e6))) + ' MB'; } // zoals Hugging Face (1000 per stap)
 /** "vandaag gebruikt", "3 dagen geleden gebruikt" … Zuiver. */
 function mdAgo(tt, now){
