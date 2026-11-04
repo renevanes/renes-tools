@@ -28,4 +28,4 @@ Lees [CONTRIBUTING.md](CONTRIBUTING.md) voor installatie en tests en [AGENTS.md]
 
 Publicatie volgt pas na de Android-rooktest op API 24, 35 en 36. De ondertekeningsstap controleert dat de gepubliceerde bron overeenkomt met de geteste commit.
 
-Zie ook het [contract van opslag en de interfacebrug](docs/brug-en-opslag.md).
+Zie ook het [contract van opslag en de interfacebrug](docs/brug-en-opslag.md) en de [voorbereiding op een Google Play-versie](docs/play-store.md).
