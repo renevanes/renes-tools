@@ -22,9 +22,9 @@ function bkFeiten(vraag){
   r.push('Periode: ' + label + ' (' + van + ' t/m ' + tot + ')' + (bkRekening() !== 'alle' ? ', alleen rekening ' + bkRekNaam(bkRekening()) : ', alle rekeningen') + '. Vandaag: ' + bkVandaag() + '.');
   r.push('Inkomsten ' + e(tt.in) + ', uitgaven ' + e(tt.uit) + ', gespaard/belegd ' + e(tt.sparen) + ', over ' + bkEuro(tt.netto, true) + ' (' + tt.n + ' boekingen).');
   r.push('Vorige periode (' + pv + ' t/m ' + pt + '): inkomsten ' + e(v.in) + ', uitgaven ' + e(v.uit) + ', gespaard ' + e(v.sparen) + '.');
-  const cats = [...t.cats.entries()].filter(([, x]) => x.soort === 'uit').sort((a, b) => a[1].som - b[1].som).slice(0, 16);
+  const cats = [...tt.cats.entries()].filter(([, x]) => x.soort === 'uit').sort((a, b) => a[1].som - b[1].som).slice(0, 16);
   if (cats.length) r.push('Uitgaven per categorie (nu | vorige periode):\n' + cats.map(([c, x]) => '- ' + c + ': ' + e(-x.som) + ' (' + x.n + '×) | ' + e(v.cats.get(c) ? -v.cats.get(c).som : 0)).join('\n'));
-  const inc = [...t.cats.entries()].filter(([, x]) => x.soort === 'in' && x.som > 0);
+  const inc = [...tt.cats.entries()].filter(([, x]) => x.soort === 'in' && x.som > 0);
   if (inc.length) r.push('Inkomsten per categorie:\n' + inc.map(([c, x]) => '- ' + c + ': ' + e(x.som)).join('\n'));
   const tp = bkTegenpartijen(lijst).slice(0, 12);
   if (tp.length) r.push('Grootste ontvangers:\n' + tp.map(x => '- ' + bkKort(x.naam) + ' (' + x.cat + '): ' + e(x.som) + ', ' + x.n + '×').join('\n'));

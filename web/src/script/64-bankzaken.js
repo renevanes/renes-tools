@@ -344,7 +344,7 @@ function bkOverzicht(van, tot){
   const pm = bkPerMaand(lijst);
   if (pm.length > 1) h += bkKaart('Per maand', bkMaandGrafiek(pm.slice(-12)));
   // Uitgaven per categorie
-  const uitCats = [...t.cats.entries()].filter(([, x]) => x.soort === 'uit' && -x.som > 0).sort((a, b) => a[1].som - b[1].som);
+  const uitCats = [...tt.cats.entries()].filter(([, x]) => x.soort === 'uit' && -x.som > 0).sort((a, b) => a[1].som - b[1].som);
   if (uitCats.length) {
     const max = -uitCats[0][1].som;
     h += bkKaart('Uitgaven per categorie', '<div class="bk-bars">' + uitCats.map(([c, x]) => {
@@ -354,7 +354,7 @@ function bkOverzicht(van, tot){
         + '<small>' + Math.round(nu / Math.max(1, tt.uit) * 100) + '% van je uitgaven · ' + x.n + '×' + (w ? ' · ervoor ' + esc(bkEuro(w)) : '') + '</small></button>';
     }).join('') + '</div>');
   }
-  const inCats = [...t.cats.entries()].filter(([, x]) => x.soort === 'in' && x.som > 0).sort((a, b) => b[1].som - a[1].som);
+  const inCats = [...tt.cats.entries()].filter(([, x]) => x.soort === 'in' && x.som > 0).sort((a, b) => b[1].som - a[1].som);
   if (inCats.length) h += bkKaart('Inkomsten', inCats.map(([c, x]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>' + x.n + ' bijschrijvingen</small></span><b class="bk-plus">' + esc(bkEuro(x.som)) + '</b></div>').join(''));
   // Vaste lasten
   const vast = bkTerugkerend(), actief = vast.filter(v => !v.gestopt);
