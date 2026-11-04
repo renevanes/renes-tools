@@ -108,7 +108,8 @@ function aiCmdFor(q){
       const r = aiFindEp(a.q, a.newest);
       if (!r) return { text: a.q ? t('Ik vind geen podcast "{q}" bij wat je volgt of aan het luisteren bent. Volg hem eerst bij Podcasts.', { q: a.q }) : t('Je bent nog niets aan het luisteren. Kies een aflevering bij Podcasts.'), cmd: { type: 'open', tool: 'podcasts', name: 'Podcasts', st: 'voorgesteld' } };
       a.ep = r.ep; a.pod = r.pod || {};
-      return { text: t(r.cont && +r.ep.pos > 0 ? 'Zal ik **{titel}** verder afspelen?' : 'Zal ik **{titel}** afspelen?', { titel: r.ep.title + (a.pod.title ? ' · ' + a.pod.title : '') }), cmd: a };
+      const vv = { titel: r.ep.title, podcast: a.pod.title || '' }, verder = r.cont && +r.ep.pos > 0;
+      return { text: a.pod.title ? t(verder ? 'Zal ik **{titel}** van {podcast} verder afspelen?' : 'Zal ik **{titel}** van {podcast} afspelen?', vv) : t(verder ? 'Zal ik **{titel}** verder afspelen?' : 'Zal ik **{titel}** afspelen?', vv), cmd: a };
     }
     case 'slaap': {
       const st = rdJson(Android.sleepState(), {}), on = st.phase === 'luistert' || st.phase === 'proef';
@@ -172,9 +173,9 @@ function aiCmdHtml(m, i){
   if (a.st === 'gedaan') {
     const undo = a.undo ? '<button class="linkish" onclick="aiCmdUndo(' + i + ')" aria-label="' + esc(t('Ongedaan maken: {naam}', { naam: aiCmdWhat(a) })) + '">' + t('Ongedaan maken') + '</button>' : '';
     const clock = a.type === 'timer' || a.type === 'wekker' ? '<button class="linkish" onclick="aiCmdClock(' + i + ')">Klok openen</button>' : '';
-    return '<div class="aiact done cmdcard" role="status">' + uiIcon('check') + '<span>' + esc(t(a.done || 'Gedaan')) + '<small>' + esc(t(a.doneNote || '')) + '</small></span>' + undo + clock + '</div>';
+    return '<div class="aiact done cmdcard" role="status">' + uiIcon('check') + '<span>' + esc(aiDoneTxt(a)) + '<small>' + esc(t(a.doneNote || '')) + '</small></span>' + undo + clock + '</div>';
   }
-  if (a.st === 'terug') return '<div class="aiact done cmdcard" role="status">' + uiIcon('refresh') + '<span>' + esc(t(a.back || 'Teruggezet')) + '</span></div>';
+  if (a.st === 'terug') return '<div class="aiact done cmdcard" role="status">' + uiIcon('refresh') + '<span>' + esc(t(a.back || 'Teruggezet', a.backV)) + '</span></div>';
   if (a.st === 'nee') return '<div class="aiact no cmdcard">' + uiIcon(k.icon) + '<span><s>' + esc(aiCmdWhat(a)) + '</s> <small>(niet gedaan)</small></span><button class="linkish" onclick="aiCmdAgain(' + i + ')">Toch voorstellen</button></div>';
   let title = k.title;
   if (a.type === 'slaap' && a.stop) title = 'Slaappraat stoppen?';
@@ -243,7 +244,7 @@ function aiCmdDo(i){
       if (!(secs >= 1 && secs <= 86400)) { fail('Kies tussen 1 en 1440 minuten'); return; }
       if (!go()) return;
       const e = Android.aiDo(JSON.stringify({ type: 'timer', secs, label: a.label || '' })); if (e) { fail(e); return; }
-      a.secs = secs; a.done = t('Timer van {duur} gezet', { duur: aiDur(secs) }); a.doneNote = 'In je Klok-app; stoppen doe je daar.'; break;
+      a.secs = secs; a.done = 'Timer van {duur} gezet'; a.doneV = { duur: aiDur(secs) }; a.doneNote = 'In je Klok-app; stoppen doe je daar.'; break;
     }
     case 'wekker': {
       let min = a.min;
@@ -251,7 +252,7 @@ function aiCmdDo(i){
       if (!(min >= 0 && min < 1440)) { fail('Kies een tijd'); return; }
       if (!go()) return;
       const e = Android.aiDo(JSON.stringify({ type: 'wekker', min, label: a.label || '' })); if (e) { fail(e); return; }
-      a.min = min; a.done = t('Wekker om {tijd} gezet', { tijd: aiHmT(min) }); a.doneNote = 'In je Klok-app; uitzetten of een andere dag kiezen doe je daar.'; break;
+      a.min = min; a.done = 'Wekker om {tijd} gezet'; a.doneV = { tijd: aiHmT(min) }; a.doneNote = 'In je Klok-app; uitzetten of een andere dag kiezen doe je daar.'; break;
     }
     case 'radio': {
       if (!go()) return;
@@ -262,7 +263,7 @@ function aiCmdDo(i){
         if (!s) { fail('Die zender staat niet meer bij je zenders'); return; }
         Android.radioPlay(JSON.stringify(s)); rdState = { status: 'connecting', station: s, title: '' };
         if (typeof plHintSrc === 'function') try { plHintSrc('radio'); } catch (x) { }
-        a.undo = was && was.url !== s.url ? { play: was } : { stop: true }; a.done = t('{naam} speelt', { naam: s.name }); a.doneNote = '';
+        a.undo = was && was.url !== s.url ? { play: was } : { stop: true }; a.done = '{naam} speelt'; a.doneV = { naam: s.name }; a.doneNote = '';
       }
       break;
     }
@@ -272,7 +273,7 @@ function aiCmdDo(i){
       if (!go()) return;
       const before = rdJson(Android.podState(), {}).status;
       pcPlayEp(r.ep, r.pod || a.pod, false);
-      a.undo = { podStop: true, was: before }; a.done = t('Speelt: {titel}', { titel: r.ep.title }); a.doneNote = (r.pod && r.pod.title) || ''; break;
+      a.undo = { podStop: true, was: before }; a.done = 'Speelt: {titel}'; a.doneV = { titel: r.ep.title }; a.doneNote = (r.pod && r.pod.title) || ''; break;
     }
     case 'slaap': {
       if (!go()) return;
@@ -292,7 +293,7 @@ function aiCmdDo(i){
       if (!AI_CMD_TOOLS.includes(a.tool) || !document.getElementById('s-' + a.tool)) { fail('Die tool ken ik niet'); return; }
       if (playWeg(a.tool)) { fail('Die tool zit niet in de Play-versie'); return; }
       if (!go()) return;
-      a.st = 'gedaan'; a.done = t('{naam} geopend', { naam: t(a.name || a.tool) }); a.doneNote = ''; aiCmdRedraw(i); aiSaveChat(aiChat);
+      a.st = 'gedaan'; a.done = '{naam} geopend'; a.doneV = { naam: a.name || a.tool }; a.doneT = ['naam']; a.doneNote = ''; aiCmdRedraw(i); aiSaveChat(aiChat);
       jumpTo(a.tool); return;
     }
     case 'sms': case 'wa': {
@@ -303,21 +304,28 @@ function aiCmdDo(i){
       if (nr && !/^\+?[0-9 ()./-]{4,30}$/.test(nr)) { fail('Dat is geen geldig telefoonnummer'); return; }
       if (!go()) return;
       const e = Android.aiDo(JSON.stringify({ type: a.type, number: nr, text })); if (e) { fail(e); return; }
-      a.done = a.toName ? t(a.type === 'wa' ? 'Klaargezet in WhatsApp voor {naam}' : 'Klaargezet in Berichten voor {naam}', { naam: a.toName }) : t(a.type === 'wa' ? 'Klaargezet in WhatsApp' : 'Klaargezet in Berichten');
+      a.done = a.toName ? (a.type === 'wa' ? 'Klaargezet in WhatsApp voor {naam}' : 'Klaargezet in Berichten voor {naam}') : (a.type === 'wa' ? 'Klaargezet in WhatsApp' : 'Klaargezet in Berichten'); a.doneV = { naam: a.toName || '' };
       a.doneNote = 'Verstuurd is het nog niet: dat doe je daar zelf.'; a.undo = null; break;
     }
   }
   a.st = 'gedaan';
   aiCmdRedraw(i); aiSaveChat(aiChat);
-  toast(a.done); aiVSay(a.done);
+  toast(aiDoneTxt(a)); aiVSay(aiDoneTxt(a));
 }
 function aiCmdUndo(i){
   const m = aiCmdMsgAt(i), a = m && m.cmd; if (!a || a.st !== 'gedaan' || !a.undo) return;
   const u = a.undo;
-  if (u.play) { Android.radioPlay(JSON.stringify(u.play)); a.back = t('Teruggezet: {zender} speelt weer', { zender: u.play.name }); }
+  if (u.play) { Android.radioPlay(JSON.stringify(u.play)); a.back = 'Teruggezet: {zender} speelt weer'; a.backV = { zender: u.play.name }; }
   else if (u.stop) { Android.radioStop(); a.back = 'Radio weer uit'; }
   else if (u.podStop) { Android.podPause(); a.back = 'Podcast gepauzeerd'; }
   else if (u.sleepStop) { Android.sleepStop(); a.back = 'Slaappraat weer gestopt'; }
   else if (u.sleepStart) { const e = Android.sleepStart(); if (e) { toast(e === 'mic' || e === 'notif' ? 'Opnieuw starten lukte niet; doe het bij Slaappraat' : e); return; } a.back = 'Slaappraat luistert weer'; }
-  a.st = 'terug'; aiMemAfter(i); aiSaveChat(aiChat); toast(a.back); aiVSay(a.back);
+  a.st = 'terug'; aiMemAfter(i); aiSaveChat(aiChat); toast(t(a.back, a.backV)); aiVSay(t(a.back, a.backV));
+}
+/* Wat er gedaan is, in de taal van nu: in het gesprek staat de Nederlandse bron (a.done + a.doneV), zodat het meegaat als
+ * je later van taal wisselt; namen in a.doneT (bijv. de naam van een tool) ook vertaald */
+function aiDoneTxt(a){
+  const v = Object.assign({}, a.doneV);
+  (a.doneT || []).forEach(k => { if (v[k] != null) v[k] = t(v[k]); });
+  return t(a.done || 'Gedaan', v);
 }
