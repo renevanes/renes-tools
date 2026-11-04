@@ -42,10 +42,25 @@ public class FacturenAanleverTest {
         JSONObject dd = FacturenDossier.herken("Due date: 19-10-2026\nInvoice date: 05-10-2026");
         check("2026-10-05".equals(dd.optString("datum")) && "2026-10-19".equals(dd.optString("vervaldatum")), "Engels: due date is niet de factuurdatum");
         check("2026-03-02".equals(FacturenDossier.herken("Notadatum 2 maart 2026").optString("datum")) && "2026-03-02".equals(FacturenDossier.herken("Datum: 02-03-2026").optString("datum")), "notadatum en losse datum");
+        // ---------- herkennen in echte opmaak: tabellen, waarde op de volgende regel, eigen bestandsnaam ----------
+        JSONObject kpn = FacturenDossier.herken("KPN B.V.\nKlantnummer Factuurnummer Factuurdatum Vervaldatum\n1234567 70012345678 05-10-2026 19-10-2026\n"
+                + "Omschrijving Bedrag\nAbonnement 33,23\nBtw 21% 6,98\nTotaal te betalen\n€ 40,21\n\nKPN Zakelijk Factuur f59e6964.pdf");
+        check("70012345678".equals(kpn.optString("nummer")), "KPN-tabel: factuurnummer uit de kolom (niet de bestandsnaam) " + kpn.optString("nummer"));
+        check("2026-10-05".equals(kpn.optString("datum")) && "2026-10-19".equals(kpn.optString("vervaldatum")), "KPN-tabel: factuurdatum en vervaldatum per kolom");
+        check("40,21".equals(kpn.optString("bedrag")) && "6,98".equals(kpn.optString("btw")), "totaal op de regel eronder");
+        check(!FacturenDossier.herken("KPN Zakelijk Factuur f59e6964.pdf").has("nummer"), "nooit het controlegetal uit onze bestandsnaam als factuurnummer");
+        check(!FacturenDossier.geldigNummer("f59e6964") && !FacturenDossier.geldigNummer("2f851ff5.pdf") && !FacturenDossier.geldigNummer("05-10-2026") && FacturenDossier.geldigNummer("320229454732") && FacturenDossier.geldigNummer("INV-2026-0042"), "geldig factuurnummer");
+        JSONObject zg = FacturenDossier.herken("Ziggo Zakelijk\nFactuurnummer:\n320229454732\nFactuurdatum: 10 okt. 2026\nTe betalen voor 15 oktober 2026\nTotaal bedrag € 86,99");
+        check("320229454732".equals(zg.optString("nummer")) && "2026-10-10".equals(zg.optString("datum")) && "2026-10-15".equals(zg.optString("vervaldatum")) && "86,99".equals(zg.optString("bedrag")), "waarde op de volgende regel, maand met punt " + zg);
+        check(!"15,10".equals(FacturenDossier.herken("Te betalen 15.10.2026").optString("bedrag")), "een datum met punten is geen bedrag");
+        JSONObject oudFout = new JSONObject().put("nummer", "f59e6964.pdf").put("datum", "2026-10-05").put("bron", "herkend").put("versie", 2).put("categorie", "telefoon");
+        JSONObject vernieuwd = FacturenDossier.aanvullen(oudFout, new JSONObject().put("bedrag", "40,21"));
+        check(!vernieuwd.has("nummer") && "2026-10-05".equals(vernieuwd.optString("datum")) && "40,21".equals(vernieuwd.optString("bedrag")) && "telefoon".equals(vernieuwd.optString("categorie")), "opnieuw lezen: fout nummer weg, rest blijft");
+        check(FacturenDossier.opnieuwLezen(new JSONObject().put("meta", oudFout)), "oudere herkenning wordt opnieuw gelezen");
         JSONObject leeg = new JSONObject().put("meta", new JSONObject().put("bron", ""));
         check(FacturenDossier.opnieuwLezen(leeg) && !FacturenDossier.opnieuwLezen(new JSONObject().put("meta", new JSONObject().put("bron", "zelf"))), "ontbrekende gegevens opnieuw lezen, met de hand ingevuld niet");
         JSONObject aan = FacturenDossier.aanvullen(new JSONObject().put("nummer", "F1").put("bron", "herkend"), new JSONObject().put("nummer", "F2").put("bedrag", "10,00"));
-        check("F1".equals(aan.optString("nummer")) && "10,00".equals(aan.optString("bedrag")) && aan.optInt("versie") == FacturenDossier.HERKEN_VERSIE && !FacturenDossier.opnieuwLezen(new JSONObject().put("meta", aan)), "aanvullen zonder te overschrijven, daarna niet opnieuw");
+        check("F2".equals(aan.optString("nummer")) && "10,00".equals(aan.optString("bedrag")) && aan.optInt("versie") == FacturenDossier.HERKEN_VERSIE && !FacturenDossier.opnieuwLezen(new JSONObject().put("meta", aan)), "nieuwe herkenning gaat voor, daarna niet opnieuw");
         check("2026-11-30".equals(FacturenDossier.herken("Te betalen voor 30 november 2026").optString("vervaldatum")), "te betalen voor …");
         check(FacturenDossier.herken("geen gegevens hier").length() == 0, "niets herkend: leeg");
         check("1234,56".equals(FacturenDossier.bedrag("1.234,56")) && "1234,56".equals(FacturenDossier.bedrag("1,234.56")) && "12,50".equals(FacturenDossier.bedrag("12,5")) && FacturenDossier.bedrag("veel") == null, "bedragen");

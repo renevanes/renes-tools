@@ -191,6 +191,19 @@
       });
       return JSON.stringify(uit);
     },
+    /** "Toon meer"-knop (laadt meer facturen op dezelfde pagina): klikken en de tekst teruggeven, of ''. Geen links naar een andere pagina. */
+    meer(patroon){
+      const re = new RegExp(patroon, 'i');
+      const el = alle('button, [role="button"], a').filter(e => {
+        if (!zichtbaar(e) || e.disabled || e.getAttribute('aria-disabled') === 'true' || !re.test(tekstVan(e))) return false;
+        if (e.tagName === 'A') { const h = e.getAttribute('href') || ''; if (h && !h.startsWith('#') && !/^javascript:/i.test(h)) return false; }
+        return true;
+      })[0];
+      if (!el) return '';
+      try { el.scrollIntoView({ block: 'center' }); } catch (x) { }
+      el.click();
+      return tekstVan(el).slice(0, 80) || 'meer';
+    },
     /** Een inlogknop of -link op een startpagina zonder velden (dan eerst daarop klikken). */
     inlogKnop(){
       const el = inlogEl();

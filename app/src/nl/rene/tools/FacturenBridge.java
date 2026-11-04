@@ -106,6 +106,22 @@ public class FacturenBridge extends GebruikBridge {
         return "";
     }
 
+    /**
+     * Alles van de gekozen periode (opnieuw) ophalen: de app begint weer bij het begin van de periode (mail: vanaf die datum;
+     * website: ook de facturen die eerder buiten de periode vielen). Wat al binnen is, komt niet dubbel.
+     */
+    @JavascriptInterface public String facturenOpnieuw(String id) {
+        try {
+            if (Facturen.leverancier(ctx, id) == null) return "Leverancier niet gevonden";
+            synchronized (Facturen.LOCK) {
+                JSONObject t = Facturen.toestand(ctx, id), vw = t.optJSONObject("verwerkt");
+                if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) { JSONObject r = vw.optJSONObject(it.next()); if (r != null && r.optBoolean("buiten")) it.remove(); }
+                Facturen.werkBij(ctx, id, new JSONObject().put("lastOk", 0).put("mailSinds", 0).put("mailMeer", false).put("verwerkt", vw == null ? new JSONObject() : vw));
+            }
+            return "";
+        } catch (Exception e) { return e.getMessage() == null ? "Lukt niet" : e.getMessage(); }
+    }
+
     @JavascriptInterface public void facturenStop() { FacturenRun r = FacturenRun.LOPEND.get(); if (r != null) r.stoppen(); }
 
     /** Facturen in de app van één leverancier: [{naam, t, grootte}]. */
@@ -224,6 +240,17 @@ public class FacturenBridge extends GebruikBridge {
             HERKEN.set(false);
             try { a.js("onFacturenHerkend", r); } catch (Throwable ignored) { }
         }, "facturen-herken").start();
+    }
+
+    /** De tekst uit de PDF van een factuur (om de herkenning te controleren): {tekst} of {error}. Blijft op de telefoon. */
+    @JavascriptInterface public String facturenDossierTekst(String sha) {
+        try {
+            if (!PdfDoc.canText()) return "{\"error\":\"Tekst uit een PDF lezen kan pas vanaf Android 15\"}";
+            JSONObject s = FacturenDossier.alle(ctx).optJSONObject(sha == null ? "" : sha);
+            java.io.File f = s == null ? null : FacturenAanlever.bestand(ctx, s);
+            if (f == null) return "{\"error\":\"De factuur staat niet (meer) in de app\"}";
+            return new JSONObject().put("tekst", FacturenDossier.tekst(f)).toString();
+        } catch (Exception e) { return err(e, "Lezen lukt niet"); }
     }
 
     /** Factuurgegevens aanpassen: {nummer, datum, bedrag, btw, categorie, notitie}. Geeft "" of een fout. */

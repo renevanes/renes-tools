@@ -85,6 +85,13 @@ final class FacturenMail {
         return nu - mail.optInt("dagen", 90) * 86_400_000L;
     }
 
+    /** Met de periode van de leverancier (dit jaar, laatste maanden, vanaf, alles): de eerste keer vanaf het begin daarvan. */
+    static long sinds(JSONObject lev, long lastOk, long verder, long nu, java.util.TimeZone tz) {
+        if (verder > 0) return verder - 1000L;
+        if (lastOk > 0) return Math.max(lastOk - 2 * 86_400_000L, Facturen.vanaf(lev, nu, tz));
+        return Facturen.vanaf(lev, nu, tz);
+    }
+
     /** "KPN Zakelijk <noreply@kpn.com>" → "KPN Zakelijk"; zonder naam het domein ("kpn.com"). */
     static String afzenderNaam(String van) {
         if (van == null) return "Onbekend";

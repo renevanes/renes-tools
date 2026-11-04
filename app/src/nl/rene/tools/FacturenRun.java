@@ -72,7 +72,8 @@ final class FacturenRun {
     boolean geladen, codeBezig, handmatig, naarGeladen, klaarGemeld;
     int pwPogingen, userPogingen, codePogingen, inlogKlikken, stil, menuPogingen, zoekPogingen, terug;
     long codeSinds, wachtTot, knopSinds, afrondenSinds;
-    int knopIndex, vangstenVoor;
+    int knopIndex, vangstenVoor, meerKlikken;
+    boolean meerKlaar;
     JSONArray knoppen;
     String lijstUrl;
     /** Geheim van deze run: alleen de robot (in een afgesloten functie) kent het; andere scripts en iframes niet. */
@@ -136,7 +137,7 @@ final class FacturenRun {
             try {
                 JSONObject m = lev.optJSONObject("mail") == null ? new JSONObject() : lev.optJSONObject("mail");
                 JSONObject tt = Facturen.toestand(c, id);
-                long sinds = FacturenMail.sinds(m, tt.optLong("lastOk"), tt.optLong("mailSinds"), System.currentTimeMillis());
+                long sinds = FacturenMail.sinds(lev, tt.optLong("lastOk"), tt.optLong("mailSinds"), System.currentTimeMillis(), java.util.TimeZone.getDefault());
                 java.util.List<Facturen.Pdf> l = FacturenMail.bron(m.optString("bron", "gmail")).haal(c, lev, sinds, stop, t -> voortgang = t);
                 synchronized (pdfs) { for (Facturen.Pdf p : l) if (!pdfs.containsKey(p.sha)) pdfs.put(p.sha, p); }
                 r = new JSONObject().put("ok", true);
@@ -337,13 +338,24 @@ final class FacturenRun {
     }
 
     private void zoek() {
-        js("__fr.knoppen(" + JSONObject.quote(lev.optString("knoppen")) + "," + lev.optInt("max", 12) + ")", r -> {
+        // Eerst zoveel mogelijk facturen op de pagina laten zien ("Toon meer"), hooguit 15 keer
+        if (!meerKlaar && !lev.optString("meer", Facturen.MEER).isEmpty() && meerKlikken < 15) {
+            js("__fr.meer(" + JSONObject.quote(lev.optString("meer", Facturen.MEER)) + ")", r -> {
+                if (fase != ZOEK) return;
+                if (str(r).isEmpty()) { meerKlaar = true; verder(300); return; }
+                meerKlikken++;
+                voortgang = "Meer facturen laden (" + meerKlikken + ")…";
+                verder(2500);
+            });
+            return;
+        }
+        js("__fr.knoppen(" + JSONObject.quote(lev.optString("knoppen")) + "," + lev.optInt("max", 50) + ")", r -> {
             if (fase != ZOEK) return;
             try {
                 JSONArray l = new JSONArray(str(r).isEmpty() ? "[]" : str(r));
                 if (l.length() == 0) {
                     if (++zoekPogingen >= 6) { einde(fout("Geen downloadknoppen gevonden op de facturenpagina. Pas bij Geavanceerd het patroon voor downloadknoppen aan.", false)); return; }
-                    voortgang = "Facturen zoeken…";
+                    voortgang = "Facturen zoeken…"; meerKlaar = false; meerKlikken = Math.max(meerKlikken, 12); // nog een paar keer "meer" proberen
                     verder(2500); return;
                 }
                 knoppen = l; knopIndex = 0; lijstUrl = wv.getUrl(); knopSinds = 0;
@@ -366,7 +378,7 @@ final class FacturenRun {
         if (lijstUrl != null && nuUrl != null && !nuUrl.equals(lijstUrl) && terug < 10) {
             terug++;
             if (wv.canGoBack()) wv.goBack(); else wv.loadUrl(lijstUrl);
-            h.postDelayed(() -> js("__fr.knoppen(" + JSONObject.quote(lev.optString("knoppen")) + "," + lev.optInt("max", 12) + ")", r -> verder(300)), 4000);
+            h.postDelayed(() -> js("__fr.knoppen(" + JSONObject.quote(lev.optString("knoppen")) + "," + lev.optInt("max", 50) + ")", r -> verder(300)), 4000);
             return;
         }
         JSONObject k = knoppen.optJSONObject(knopIndex);

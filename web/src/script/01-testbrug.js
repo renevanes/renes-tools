@@ -730,6 +730,7 @@ if (!window.Android) window.Android = (function(){
           if (!f.dos[sha]) f.dos[sha] = { sha, naam: p.naam, origineel: p.naam, grootte: p.grootte, leverancier: id, leverancierNaam: l.naam, opgehaald: now - i * 1000, bron: { soort: l.soort || 'website', site: 'kpn.com' },
             plekken: { app: { pad: '/data/user/0/nl.rene.tools/files/facturen/pdf/' + id + '/' + p.naam, t: now } }, verzonden: {}, meta: { nummer: '80012345' + i, datum: i ? '2026-09-05' : '2026-10-05', bedrag: i ? '45,10' : '48,37', btw: '', vervaldatum: i ? '2026-09-19' : '2099-10-19', bron: 'herkend' } }; }); }
         onFacturenKlaar(r); }, 1200); return ''; },
+    facturenOpnieuw(id){ const f = this._fa; f.calls.push(['opnieuw', id]); if (!f.lev.some(l => l.id === id)) return 'Leverancier niet gevonden'; f.toestand[id] = { ...(f.toestand[id] || {}), lastOk: 0 }; return ''; },
     facturenStop(){ this._fa.calls.push(['stop']); },
     facturenKiesMap(){ this._fa.calls.push(['kiesmap']); setTimeout(() => { this._fa.lokaal = 'Documents/Facturen'; onFacturenMap(''); }, 150); },
     facturenMapLos(){ this._fa.lokaal = ''; },
@@ -743,6 +744,7 @@ if (!window.Android) window.Android = (function(){
       f.ec = { url: o.url.replace(/\/+$/, ''), gebruiker: o.gebruiker, adres: o.adres || '', heeftWachtwoord: f.ec.heeftWachtwoord || !!o.wachtwoord }; return ''; },
     /* Dossier en aanleveren (nagebootst); _foFout = foutmelding bij versturen */
     facturenDossier(){ const f = this._fa; return JSON.stringify({ items: Object.values(f.dos || {}).sort((a, b) => b.opgehaald - a.opgehaald), ontvangers: (f.ontv || []).map(o => ({ id: o.id, naam: o.naam })), pdfTekst: this._faGeenTekst ? false : true, teLezen: this._faGeenTekst ? 0 : Object.values(f.dos || {}).filter(s => (s.meta || {}).bron !== 'zelf' && ((s.meta || {}).versie || 0) < 2 && ['nummer', 'datum', 'bedrag', 'vervaldatum'].some(k => !(s.meta || {})[k])).length, bezigMetLezen: false }); },
+    facturenDossierTekst(sha){ const s = (this._fa.dos || {})[sha]; return JSON.stringify(s ? { tekst: 'Factuurnummer ' + ((s.meta || {}).nummer || '') + '\nTotaal te betalen € ' + ((s.meta || {}).bedrag || '') } : { error: 'De factuur staat niet (meer) in de app' }); },
     facturenDossierHerken(){ const f = this._fa; f.calls.push(['herken']); setTimeout(() => { let n = 0; Object.values(f.dos || {}).forEach(s => { const m = s.meta || {}; if (m.bron !== 'zelf' && !m.bedrag && s._pdf) { s.meta = { ...m, ...s._pdf, bron: 'herkend', versie: 2 }; n++; } else if (m.bron !== 'zelf') s.meta = { ...m, versie: 2 }; }); onFacturenHerkend({ aantal: n, pdfTekst: true }); }, 150); },
     facturenDossierMeta(sha, json){ const s = (this._fa.dos || {})[sha], m = JSON.parse(json); if (!s) return 'Factuur niet gevonden in het dossier';
       if ([m.datum, m.vervaldatum, m.betaald].some(d => d && !/^\d{4}-\d{2}-\d{2}$/.test(d))) return 'Datum als JJJJ-MM-DD, bijv. 2026-10-05'; if (m.bedrag && !/^-?\d+([.,]\d{1,2})?$/.test(m.bedrag.replace(/\./g, ''))) return 'Bedrag als 123,45';

@@ -77,6 +77,12 @@ const { chromium } = require('playwright');
     ok(await pg.isVisible('#fd-van') && await pg.isVisible('#fd-tot'), 'eigen periode: van en tot');
     await pg.fill('#fd-van', '2026-10-01'); await pg.fill('#fd-tot', '2026-10-31'); await pg.dispatchEvent('#fd-tot', 'change'); await pg.waitForTimeout(80);
     ok((await pg.$$('#fd-lijst tr.fd-rij')).length === 1 && (await tekst('#fd-lijst')).includes('5 okt 2026'), 'alleen oktober');
+    await pg.selectOption('#fd-periode', 'mnd'); await pg.waitForTimeout(60);
+    ok(await pg.isVisible('#fd-mnd') && !(await pg.isVisible('#fd-van')), 'een maand kiezen');
+    await pg.fill('#fd-mnd', '2026-09'); await pg.dispatchEvent('#fd-mnd', 'change'); await pg.waitForTimeout(80);
+    ok((await pg.$$('#fd-lijst tr.fd-rij')).length === 1 && (await tekst('#fd-lijst')).includes('5 sep 2026'), 'alleen september');
+    await pg.selectOption('#fd-periode', 'kjaar'); await pg.waitForTimeout(60);
+    ok(await pg.isVisible('#fd-jaar') && (await pg.$$('#fd-lijst tr.fd-rij')).length === 2, 'een jaar kiezen (2026)');
     await pg.selectOption('#fd-periode', ''); await pg.waitForTimeout(60);
     ok((await pg.$$('#fd-lijst tr.fd-rij')).length === 2 && !(await pg.isVisible('#fd-van')), 'weer alle data');
     // Eerder opgehaalde facturen zonder gegevens: worden bij het openen uit de PDF gelezen
@@ -88,7 +94,15 @@ const { chromium } = require('playwright');
     ok((await tekst('#fd-lees')).includes('Bij 1 factuur'), 'melding: gegevens gevonden');
     ok((await tekst('#fd-lijst')).includes('5 aug 2026') && (await tekst('#fd-lijst')).includes('€ 40,00'), 'gelezen datum en bedrag in de tabel');
     ok((await tekst('#fd-lijst')).includes('20 jul 2026 *') && (await tekst('#fd-lijst')).includes('dag van ophalen'), 'onbekende factuurdatum: dag van ophalen met *');
-    await pg.evaluate(() => { const f = Android._fa; delete f.dos.oud1; delete f.dos.oud2; fdRender(true); }); await pg.waitForTimeout(60);
+    // Dezelfde factuur in twee documenten (factuur en specificatie): één regel, bedrag uit het document dat het heeft
+    await pg.evaluate(() => { const f = Android._fa; f.dos.spec = { ...f.dos.oud1, sha: 'spec', naam: 'KPN specificatie.pdf', meta: { nummer: f.dos.oud1.meta.nummer = '7001', datum: '2026-08-05', bron: 'herkend', versie: 3 } }; f.dos.oud1.meta.nummer = '7001'; fdRender(true); });
+    await pg.waitForTimeout(60);
+    ok((await tekst('#fd-lijst')).includes('(2 documenten)') && (await tekst('#fd-tel')).includes('(5 documenten)'), 'dubbele factuur samengevoegd');
+    await pg.evaluate(() => fsToon('oud1')); await pg.waitForTimeout(100);
+    ok((await tekst('#fs-info')).includes('Hoort bij dezelfde factuur') && (await tekst('#fs-info')).includes('KPN specificatie.pdf'), 'detail: ander document van dezelfde factuur');
+    await pg.click('#fs-tekst-d summary'); await pg.waitForTimeout(80);
+    ok((await tekst('#fs-tekst')).includes('Factuurnummer 7001'), 'tekst uit de PDF te bekijken');
+    await pg.evaluate(() => { goBack(); const f = Android._fa; delete f.dos.oud1; delete f.dos.oud2; delete f.dos.spec; fdRender(true); }); await pg.waitForTimeout(60);
     await pg.click('#fd-csv'); await pg.waitForTimeout(250);
     ok((await tekst('#fd-csv-msg')).includes('Kies eerst'), 'CSV zonder map: zegt wat te doen');
     // Aanleveren: ontvanger toevoegen (Eigen Cloud nog niet gekoppeld)
