@@ -28,7 +28,7 @@ function noteAddReset(){noteAddParent=null;noteAddTargetShow();}
 function noteAddTargetShow(){
   const n=noteById(noteCur),it=n&&(n.items||[]).find(i=>i.id===noteAddParent);
   $('#note-add-target').hidden=noteAddParent===null;
-  $('#note-add-target-text').textContent=it?'Subitem van: '+it.text:'Het bovenliggende item is verwijderd';
+  $('#note-add-target-text').textContent=it?t('Subitem van: {item}', { item: it.text }):t('Het bovenliggende item is verwijderd');
   $('#note-add').placeholder=noteAddParent===null?'Nieuw item…':'Nieuw subitem…';
 }
 function noteSubAdd(id){
@@ -40,7 +40,7 @@ function noteItemMenu(id){
   const rows=noteTree(n.items||[]),row=rows.find(r=>r.it.id===id);if(!row)return;
   const siblings=rows.filter(r=>r.parent===row.parent),at=siblings.indexOf(row);
   const acts=[['Subitem toevoegen',()=>noteSubAdd(id)],['Verplaatsen naar…',()=>noteMoveOpen('item',id)]];
-  if(at>0)acts.push(['Inspringen onder '+siblings[at-1].it.text,()=>noteReparent(n.id,id,siblings[at-1].it.id)]);
+  if(at>0)acts.push([t('Inspringen onder {item}', { item: siblings[at-1].it.text }),()=>noteReparent(n.id,id,siblings[at-1].it.id)]);
   if(row.parent!==null){const parent=rows.find(r=>r.it.id===row.parent);acts.push(['Een niveau terug',()=>noteReparent(n.id,id,parent.parent)]);}
   acts.push(['Item verwijderen',()=>{if(noteCur===n.id)delItem(id);}]);
   openSheet(row.it.text,'Elk subitem heeft een eigen vinkje. Bij verwijderen blijven de subitems staan.',acts);

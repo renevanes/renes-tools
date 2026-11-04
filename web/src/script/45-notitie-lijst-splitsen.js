@@ -66,9 +66,9 @@ function noteSplitPreview(){
   const box = $('#note-split-preview'); box.replaceChildren();
   r.items.forEach(i=>{const li=document.createElement('li');li.textContent=(i.done?'☑ ':'☐ ')+i.text;box.appendChild(li);});
   const count = r.items.length;
-  $('#note-split-status').textContent = r.error || (count < 2 ? 'Er zijn minstens twee items nodig. Kies een andere scheiding of voeg meer tekst toe.' : count+' losse items. Controleer het voorbeeld voordat je ze maakt.');
+  $('#note-split-status').textContent = r.error || (count < 2 ? t('Er zijn minstens twee items nodig. Kies een andere scheiding of voeg meer tekst toe.') : t('{n} losse items. Controleer het voorbeeld voordat je ze maakt.', { n: count }));
   $('#note-split-apply').disabled = !!r.error || count < 2;
-  $('#note-split-apply').textContent = count>1 ? count+' items maken' : 'Items maken';
+  $('#note-split-apply').textContent = count>1 ? t('{n} items maken', { n: count }) : t('Items maken');
 }
 /* Alleen een geslaagde compare-and-save vervangt het model. Na ieder conflict opnieuw valideren. */
 function noteSplitCommit(id,change,invalid){
@@ -91,7 +91,7 @@ function noteSplitCommit(id,change,invalid){
       if(fresh&&current==='note'&&noteCur===id){renderItems();$('#note-text').value=fresh.text||'';$('#note-title').value=fresh.title||'';}
       continue;
     }
-    if(r.err||!r.ok){toast('Opslaan mislukt: '+(r.err||'Probeer het opnieuw'));return false;}
+    if(r.err||!r.ok){toast(t('Opslaan mislukt: {fout}', { fout: t(r.err||'Probeer het opnieuw') }));return false;}
     notes=next;notesVer=r.ver||notesVerNow();notesBase=notesCopy(next);return true;
   }
   toast('De notitie verandert steeds. Controleer de lijst en probeer opnieuw.');return false;
@@ -141,5 +141,5 @@ function noteSplitApply(){
       if(noteSplit){$('#note-split-text').value=sourceText;noteSplit.paste=sourceText;$('#note-split-source').value='paste';noteSplitSource();$('#note-split-separator').value=separator;noteSplitPreview();}
     }
   };
-  undoToast(added.length+' losse items gemaakt',undo);
+  undoToast(t('{n} losse items gemaakt', { n: added.length }),undo);
 }

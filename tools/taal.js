@@ -174,7 +174,19 @@ function shadowed(src, toks){
   return out;
 }
 /* Staat deze tekenreeks direct in t( of tn( ? */
-function inT(src, at){ const before = src.slice(Math.max(0, at - 40), at); return /(^|[^\w$.])(t|tn)\(\s*$/.test(before) || /(^|[^\w$.])tn\([^()]*,\s*$/.test(before); }
+function inT(src, at){
+  // Binnenste aanroep waarin de tekenreeks staat (haakjes terugtellen, tekenreeksen overslaan): t( of tn( ?
+  let d = 0, q = null;
+  for (let i = at - 1, n = 0; i >= 0 && n < 4000; i--, n++) {
+    const c = src[i];
+    if (q) { if (c === q && src[i - 1] !== '\\') q = null; continue; }
+    if (c === '\'' || c === '"' || c === '`') { q = c; continue; }
+    if (c === ')' || c === ']' || c === '}') d++;
+    else if (c === '(' || c === '[' || c === '{') { if (d === 0) { if (c !== '(') return false; return /(^|[^\w$.])(t|tn)\s*$/.test(src.slice(Math.max(0, i - 4), i)); } d--; }
+    else if (c === ';' && d === 0) return false;
+  }
+  return false;
+}
 
 /* ---------- Java: Taal.t(ctx, "…") en Taal.tn(ctx, n, "…", "…") ---------- */
 function javaScan(){

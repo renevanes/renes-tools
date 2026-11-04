@@ -25,23 +25,23 @@ window.onSpotifyPodcasts=function(r){
  pspSource=r.source;pspAt=r.at;pspLoaded=true;pspMessage(pspRows.length?'Lijst opgehaald. Zoek de openbare versies en controleer je selectie.':'Je Spotify-lijst bevat geen gevolgde podcasts.');pspRender();
 };
 function pspExisting(){return new Set(rdJson(Android.podSubs(),[]).map(p=>pspFeed(p.feed)).filter(Boolean));}
-function pspOptions(row){return '<option value="">Kies een openbare versie</option>'+row.candidates.map((p,i)=>'<option value="'+i+'"'+(row.choice&&row.choice.feed===p.feed?' selected':'')+'>'+esc(p.title+(p.author?' — '+p.author:''))+'</option>').join('');}
+function pspOptions(row){return '<option value="">'+t('Kies een openbare versie')+'</option>'+row.candidates.map((p,i)=>'<option value="'+i+'"'+(row.choice&&row.choice.feed===p.feed?' selected':'')+'>'+esc(p.title+(p.author?' — '+p.author:''))+'</option>').join('');}
 function pspRender(){
  const linked=!!rdJson(Android.spotifyState(),{}).linked,busy=pspBusy(),existing=pspExisting();
  $('#psp-live').disabled=!linked||busy;$('#psp-backup').disabled=busy;$('#psp-link').hidden=linked&&!pspRelink;
  $('#psp-source').textContent=pspLoaded?(pspSource==='backup'?'Lijst uit je Spotify-backup':'Huidige Spotify-lijst')+(pspAt?' · '+fmtDT(pspAt):''):'Je kunt ook een eerder bewaarde Spotify-backup gebruiken.';
  $('#psp-work').hidden=!pspLoaded||!pspRows.length;
  const pending=pspRows.filter(r=>!r.searched&&!r.choice).length;
- $('#psp-find').disabled=busy||!pending;$('#psp-find').textContent=pending?'Openbare versies zoeken ('+pending+')':'Openbare versies gezocht';
+ $('#psp-find').disabled=busy||!pending;$('#psp-find').textContent=pending?t('Openbare versies zoeken ({n})',{n:pending}):t('Openbare versies gezocht');
  $('#psp-pause').hidden=!pspRunning;$('#psp-pause').disabled=pspAdding;
- $('#psp-progress').textContent=pspActive?'Zoeken: '+pspRows[pspActive.index].title:pspRunning?'Volgende podcast zoeken…':pspLoaded?pspRows.filter(r=>r.searched).length+' van '+pspRows.length+' podcasts gecontroleerd':'';
+ $('#psp-progress').textContent=pspActive?t('Zoeken: {titel}',{titel:pspRows[pspActive.index].title}):pspRunning?t('Volgende podcast zoeken…'):pspLoaded?t('{n} van {totaal} podcasts gecontroleerd',{n:pspRows.filter(r=>r.searched).length,totaal:pspRows.length}):'';
  const opened=new Set([...document.querySelectorAll('#psp-list details[open]')].map(e=>e.dataset.id));
  const active=document.activeElement,focus=active&&active.closest('#psp-list')?{id:active.id,start:active.selectionStart,end:active.selectionEnd}:null;
  $('#psp-list').innerHTML=pspRows.map((r,i)=>{
   const has=r.choice&&existing.has(r.choice.feed),matched=!!r.choice;
   const state=has?'Al in Mijn podcasts':matched?r.choice.title+(r.choice.author?' · '+r.choice.author:''):r.error||(!r.searched?'Nog geen openbare versie gezocht':r.candidates.length?'Kies de juiste openbare versie':'Geen openbare versie gevonden');
-  return '<article class="psp-row" data-index="'+i+'"><label class="psp-title"><input type="checkbox" id="psp-pick-'+i+'" data-pick="'+i+'" onchange="pspPick('+i+',this.checked)"'+(matched&&r.selected&&!has?' checked':'')+(!matched||has||pspAdding||pspReading?' disabled':'')+' aria-label="'+esc(r.title)+' overnemen"><span><b>'+esc(r.title)+'</b><small>'+esc(r.author)+'</small></span></label><p class="psp-state'+(matched?' ready':'')+'">'+esc(state)+'</p>'+
-  '<details data-id="'+r.id+'"'+(opened.has(r.id)?' open':'')+'><summary id="psp-details-'+i+'">'+(matched?'Koppeling controleren':'Versie kiezen of zoeken')+'</summary><label>Openbare versie<select class="sel" id="psp-version-'+i+'" aria-label="Openbare versie voor '+esc(r.title)+'" onchange="pspChoose('+i+',this.value)"'+(pspAdding||pspReading?' disabled':'')+'>'+pspOptions(r)+'</select></label><label for="psp-q-'+i+'">Zoek op titel of maker</label><div class="psp-lookup"><input class="search" type="search" id="psp-q-'+i+'" value="'+esc(r.query)+'" oninput="pspRows['+i+'].query=this.value" maxlength="300"><button class="mini" onclick="pspSearchOne('+i+')"'+(busy?' disabled':'')+'>Zoeken</button></div><button class="linkish" onclick="pspSpotify('+i+')">Bekijken op Spotify</button></details></article>';
+  return '<article class="psp-row" data-index="'+i+'"><label class="psp-title"><input type="checkbox" id="psp-pick-'+i+'" data-pick="'+i+'" onchange="pspPick('+i+',this.checked)"'+(matched&&r.selected&&!has?' checked':'')+(!matched||has||pspAdding||pspReading?' disabled':'')+' aria-label="'+t('{titel} overnemen',{titel:esc(r.title)})+'"><span><b>'+esc(r.title)+'</b><small>'+esc(r.author)+'</small></span></label><p class="psp-state'+(matched?' ready':'')+'">'+esc(state)+'</p>'+
+  '<details data-id="'+r.id+'"'+(opened.has(r.id)?' open':'')+'><summary id="psp-details-'+i+'">'+t(matched?'Koppeling controleren':'Versie kiezen of zoeken')+'</summary><label>'+t('Openbare versie')+'<select class="sel" id="psp-version-'+i+'" aria-label="'+t('Openbare versie voor {titel}',{titel:esc(r.title)})+'" onchange="pspChoose('+i+',this.value)"'+(pspAdding||pspReading?' disabled':'')+'>'+pspOptions(r)+'</select></label><label for="psp-q-'+i+'">Zoek op titel of maker</label><div class="psp-lookup"><input class="search" type="search" id="psp-q-'+i+'" value="'+esc(r.query)+'" oninput="pspRows['+i+'].query=this.value" maxlength="300"><button class="mini" onclick="pspSearchOne('+i+')"'+(busy?' disabled':'')+'>Zoeken</button></div><button class="linkish" onclick="pspSpotify('+i+')">Bekijken op Spotify</button></details></article>';
  }).join('');
  pspFilter();pspCount();
  if(focus&&focus.id){const e=document.getElementById(focus.id);if(e&&!e.disabled){e.focus({preventScroll:true});if(focus.start!=null&&e.setSelectionRange)e.setSelectionRange(focus.start,focus.end);}}
@@ -49,7 +49,7 @@ function pspRender(){
 function pspFilter(){const q=pspNorm($('#psp-filter').value);document.querySelectorAll('#psp-list .psp-row').forEach(e=>{const r=pspRows[+e.dataset.index];e.hidden=!!q&&!pspNorm(r.title+' '+r.author).includes(q);});}
 function pspCount(){
  const existing=pspExisting(),n=new Set(pspRows.filter(r=>r.choice&&r.selected&&!existing.has(r.choice.feed)).map(r=>r.choice.feed)).size;
- $('#psp-count').textContent=n+' geselecteerd';$('#psp-add').textContent=pspAdding?'Overnemen…':'Overnemen'+(n?' ('+n+')':'');$('#psp-add').disabled=!n||pspBusy();
+ $('#psp-count').textContent=t('{n} geselecteerd',{n});$('#psp-add').textContent=pspAdding?t('Overnemen…'):t('Overnemen')+(n?' ('+n+')':'');$('#psp-add').disabled=!n||pspBusy();
 }
 function pspPick(i,on){if(pspAdding||pspReading)return;const r=pspRows[i];if(r&&r.choice){r.selected=!!on;r.revision++;}pspCount();}
 function pspSelect(on){if(pspAdding||pspReading)return;pspRows.forEach(r=>{r.selected=!!r.choice&&on;r.revision++;});pspRender();}
@@ -88,6 +88,6 @@ function pspImport(){
    if(error)errors.push(r.title+': '+error);else confirmed.add(r.choice.feed);setTimeout(next,0);return;}
   const saved=store.get('spotifyPodcastFeeds',{})||{};pspRows.forEach(r=>{if(r.choice&&confirmed.has(r.choice.feed))saved[r.id]=pcSlimPod(r.choice);});store.set('spotifyPodcastFeeds',saved);
   pspAdding=false;pspRender();pcRenderSubs();refreshPodTile();
-  pspMessage(confirmed.size+' '+(confirmed.size===1?'podcast toegevoegd':'podcasts toegevoegd')+' aan Mijn podcasts.'+(errors.length?' '+errors.length+' niet opgeslagen. '+errors[0]:' Je kunt ze daar openen en afspelen.'),!!errors.length);
+  pspMessage(tn(confirmed.size,'{n} podcast toegevoegd aan Mijn podcasts.','{n} podcasts toegevoegd aan Mijn podcasts.')+(errors.length?' '+t('{n} niet opgeslagen.',{n:errors.length})+' '+t(errors[0]):' '+t('Je kunt ze daar openen en afspelen.')),!!errors.length);
  };setTimeout(next,0);
 }

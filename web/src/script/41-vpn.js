@@ -4,9 +4,9 @@ let vpSt = {}, vpTun = [], vpTimer = null, vpBusy = false;
 function enterVpn(){ vpRender(); clearInterval(vpTimer); vpTimer = setInterval(() => { if (current === 'vpn' && !appPaused) vpRender(true); else if (current !== 'vpn') { clearInterval(vpTimer); vpTimer = null; } }, 1500); }
 
 function vpAgo(tt){
-  if (!tt) return 'nog niet';
+  if (!tt) return t('nog niet');
   const s = Math.max(0, Math.round((Date.now() - tt) / 1000));
-  return s < 60 ? s + ' s geleden' : s < 3600 ? Math.round(s / 60) + ' min geleden' : fmtTime(tt, { hour: '2-digit', minute: '2-digit' });
+  return s < 60 ? t('{n} s geleden', { n: s }) : s < 3600 ? t('{n} min geleden', { n: Math.round(s / 60) }) : fmtTime(tt, { hour: '2-digit', minute: '2-digit' });
 }
 function vpSize(b){ return fmtSize(b, { bytes: true, mb: 1, gb: 2 }); }
 const VP_REASON = { app: '', tegel: 'via de tegel', snelkoppeling: 'via de snelkoppeling', wifi: 'vanzelf: onbekende wifi', mobiel: 'vanzelf: mobiel internet', auto: 'door Automatiseren', altijd: 'Altijd-aan VPN van Android', melding: 'via de melding' };
@@ -23,8 +23,8 @@ function vpRender(light){
   $('#vp-dot').className = 'vpdot' + (connected ? ' on' : on ? ' busy' : '');
   $('#vp-title').textContent = on ? (connected ? 'Verbonden' : 'Verbinden…') + ' · ' + (st.name || act.name) : 'VPN uit';
   const viaReserve = on && st.activeId && st.activeId !== st.id;
-  let sub = on ? [viaReserve ? 'via reserve: ' + st.activeName : '', st.kind || '', VP_REASON[st.reason] || ''].filter(Boolean).join(' · ') : (act ? 'Tunnel: ' + act.name : '');
-  if (on && !connected && st.error) sub = st.error + ' · probeert het opnieuw';
+  let sub = on ? [viaReserve ? t('via reserve: {naam}', { naam: st.activeName }) : '', st.kind || '', t(VP_REASON[st.reason] || '')].filter(Boolean).join(' · ') : (act ? t('Tunnel: {naam}', { naam: act.name }) : '');
+  if (on && !connected && st.error) sub = t(st.error) + ' · ' + t('probeert het opnieuw');
   $('#vp-sub').textContent = sub;
   const tb = $('#vp-toggle');
   tb.textContent = vpBusy ? 'Even geduld…' : on ? 'Uitzetten' : 'Aanzetten';
@@ -50,9 +50,9 @@ function vpRender(light){
   const a = st.auto || {};
   $('#vp-a-wifi').checked = !!a.wifi; $('#vp-a-home').checked = a.home !== false; $('#vp-a-mobile').checked = !!a.mobile;
   const tr = a.trusted || [];
-  $('#vp-trusted').innerHTML = tr.length ? tr.map(s => '<div class="row vptr"><span style="flex:1">📶 ' + esc(s) + '</span><button class="mini" style="float:none" data-s="' + esc(s) + '" onclick="vpUntrust(this.dataset.s)" aria-label="' + esc(s) + ' niet meer vertrouwen">✕</button></div>').join('')
+  $('#vp-trusted').innerHTML = tr.length ? tr.map(s => '<div class="row vptr"><span style="flex:1">📶 ' + esc(s) + '</span><button class="mini" style="float:none" data-s="' + esc(s) + '" onclick="vpUntrust(this.dataset.s)" aria-label="' + t('{naam} niet meer vertrouwen', { naam: esc(s) }) + '">✕</button></div>').join('')
     : '<p class="note" style="margin:0">Nog geen. Voeg je wifi thuis en op je werk toe.</p>';
-  $('#vp-trust').textContent = st.ssid ? '＋ "' + st.ssid + '" vertrouwen' : '＋ Deze wifi vertrouwen';
+  $('#vp-trust').textContent = st.ssid ? t('＋ "{naam}" vertrouwen', { naam: st.ssid }) : t('＋ Deze wifi vertrouwen');
   $('#vp-trust').style.display = st.ssid && !tr.includes(st.ssid) ? 'block' : 'none';
   const ln = $('#vp-locnote');
   const needBg = (a.wifi || a.mobile) && !st.bgLocOk;
@@ -61,8 +61,8 @@ function vpRender(light){
     ln.textContent = 'Locatie staat uit op je telefoon: dan weet Android niet op welke wifi je zit, en telt elke wifi als onbekend. Zet locatie aan in de snelle instellingen.';
   } else if (!st.locOk || needBg) {
     ln.style.display = 'block';
-    ln.innerHTML = (!st.locOk ? 'Om te zien op welke wifi je zit, heeft Android toestemming voor je locatie nodig.' : 'Om dat ook te zien als de app dicht is: locatie <b>Altijd toestaan</b>.') +
-      ' <a href="#" onclick="Android.autoPerm(\'' + (st.locOk ? 'bgloc' : 'loc') + '\');return false">Toestaan</a>';
+    ln.innerHTML = t(!st.locOk ? 'Om te zien op welke wifi je zit, heeft Android toestemming voor je locatie nodig.' : 'Om dat ook te zien als de app dicht is: locatie <b>Altijd toestaan</b>.') +
+      ' <a href="#" onclick="Android.autoPerm(\'' + (st.locOk ? 'bgloc' : 'loc') + '\');return false">' + t('Toestaan') + '</a>';
   } else ln.style.display = 'none';
   // kill switch
   const ks = $('#vp-killstate');
@@ -74,8 +74,8 @@ window.onVpnChanged = function(msg){ vpBusy = false; if (msg) toast(msg); if (cu
 const vpKind = tt => tt.type === 'ovpn' ? 'OpenVPN' : 'WireGuard';
 function vpTunSub(tt){
   const fb = (tt.fallback || []).map(id => (vpTun.find(x => x.id === id) || {}).name).filter(Boolean);
-  const where = tt.type === 'ovpn' ? (tt.summary || tt.endpoint || '') : (tt.endpoint || '') + (tt.full ? ' · al je verkeer' : ' · alleen ' + (tt.allowed || []).slice(0, 2).join(', '));
-  return vpKind(tt) + ' · ' + where + (fb.length ? ' · ↪ reserve: ' + fb.join(', ') : '');
+  const where = tt.type === 'ovpn' ? (tt.summary || tt.endpoint || '') : (tt.endpoint || '') + (tt.full ? ' · ' + t('al je verkeer') : ' · ' + t('alleen {wat}', { wat: (tt.allowed || []).slice(0, 2).join(', ') }));
+  return vpKind(tt) + ' · ' + where + (fb.length ? ' · ' + t('↪ reserve: {namen}', { namen: fb.join(', ') }) : '');
 }
 function vpToggle(){
   if (vpBusy) return;
@@ -101,7 +101,7 @@ function vpTunMenu(id){
   acts.push(['✎ Bewerken', () => veOpen(id)]);
   if (vpTun.length > 1) acts.push(['↪ Reserve bij blokkade…', () => vpFallbackMenu(id)]);
   if (tt.pub) acts.push(['Mijn publieke sleutel kopiëren', () => { Android.vpnCopy(tt.pub); toast('Gekopieerd: ' + tt.pub.slice(0, 12) + '…'); }]);
-  acts.push(['Verwijderen', () => askConfirm('Tunnel verwijderen?', '"' + tt.name + '" en zijn sleutels verdwijnen van deze telefoon. Op de server verandert niets.', 'Verwijderen', () => { Android.vpnDelete(id); vpRender(); })]);
+  acts.push(['Verwijderen', () => askConfirm('Tunnel verwijderen?', t('"{naam}" en zijn sleutels verdwijnen van deze telefoon. Op de server verandert niets.', { naam: tt.name }), 'Verwijderen', () => { Android.vpnDelete(id); vpRender(); })]);
   openSheet(tt.name, (tt.endpoint || '') + ((tt.addr || []).length ? ' · ' + tt.addr.join(', ') : ''), acts);
 }
 /* Reserve-tunnels: lukt verbinden niet (bijv. UDP geblokkeerd), dan vanzelf de volgende */
@@ -112,10 +112,10 @@ function vpFallbackMenu(id){
   const acts = [];
   vpTun.filter(x => x.id !== id).forEach(x => {
     const i = fb.indexOf(x.id);
-    acts.push(i >= 0 ? ['✓ ' + (i + 1) + '. ' + x.name + ' (' + vpKind(x) + ') — weghalen', () => set(fb.filter(y => y !== x.id))]
-                     : fb.length >= 4 ? ['Hooguit 4 reserves', () => {}] : ['＋ ' + x.name + ' (' + vpKind(x) + ') als reserve', () => set(fb.concat([x.id]))]);
+    acts.push(i >= 0 ? [t('✓ {n}. {naam} ({soort}) — weghalen', { n: i + 1, naam: x.name, soort: vpKind(x) }), () => set(fb.filter(y => y !== x.id))]
+                     : fb.length >= 4 ? [t('Hooguit 4 reserves'), () => {}] : [t('＋ {naam} ({soort}) als reserve', { naam: x.name, soort: vpKind(x) }), () => set(fb.concat([x.id]))]);
   });
-  openSheet('Reserve voor ' + tt.name, fb.length ? 'Eerst ' + tt.name + ', lukt dat niet binnen een paar seconden, dan ' + fb.map(x => (vpTun.find(y => y.id === x) || {}).name).join(', dan ') + '. Op een nieuw netwerk weer eerst ' + tt.name + '.' : 'Kies wat er gebruikt wordt als ' + tt.name + ' geblokkeerd is (bijv. in een hotel of op kantoor).', acts);
+  openSheet(t('Reserve voor {naam}', { naam: tt.name }), fb.length ? t('Eerst {naam}, lukt dat niet binnen een paar seconden, dan {reserves}. Op een nieuw netwerk weer eerst {naam}.', { naam: tt.name, reserves: fb.map(x => (vpTun.find(y => y.id === x) || {}).name).join(t(', dan ')) }) : t('Kies wat er gebruikt wordt als {naam} geblokkeerd is (bijv. in een hotel of op kantoor).', { naam: tt.name }), acts);
 }
 /* Na het toevoegen: de andere soort als reserve voorstellen */
 function vpSuggestFallback(newId){
@@ -124,9 +124,9 @@ function vpSuggestFallback(newId){
   const other = vpTun.find(x => x.id !== newId && (x.type === 'ovpn') !== isOv && !(x.fallback || []).length && !vpTun.some(y => (y.fallback || []).includes(x.id)));
   if (!other) return;
   const first = isOv ? other : n, second = isOv ? n : other;
-  setTimeout(() => askConfirm('Reserve instellen?', 'Werkt "' + first.name + '" (WireGuard) ergens niet, bijvoorbeeld omdat een hotel of kantoor het blokkeert? Dan vanzelf "' + second.name + '" (OpenVPN) gebruiken. "' + first.name + '" wordt dan je standaard-tunnel.', 'Ja, als reserve', () => {
+  setTimeout(() => askConfirm('Reserve instellen?', t('Werkt "{eerste}" (WireGuard) ergens niet, bijvoorbeeld omdat een hotel of kantoor het blokkeert? Dan vanzelf "{tweede}" (OpenVPN) gebruiken. "{eerste}" wordt dan je standaard-tunnel.', { eerste: first.name, tweede: second.name }), 'Ja, als reserve', () => {
     Android.vpnSetFallback(first.id, JSON.stringify([second.id])); Android.vpnSetActive(first.id);
-    vpTun = rdJson(Android.vpnTunnels(), []); vpRender(); toast('↪ ' + second.name + ' is de reserve van ' + first.name);
+    vpTun = rdJson(Android.vpnTunnels(), []); vpRender(); toast(t('↪ {tweede} is de reserve van {eerste}', { eerste: first.name, tweede: second.name }));
   }), 400);
 }
 function vpToggleTo(id){
@@ -153,7 +153,7 @@ function vpAutoSet(){
 }
 function vpTrustCurrent(){
   const s = Android.vpnTrustCurrent();
-  if (s) toast('📶 ' + s + ' is vertrouwd'); else toast('Wifi-naam onbekend: sta locatie toe');
+  if (s) toast(t('📶 {naam} is vertrouwd', { naam: s })); else toast('Wifi-naam onbekend: sta locatie toe');
   vpRender();
 }
 function vpUntrust(s){
@@ -274,10 +274,10 @@ function veCheck(){
   c.className = 'note';
   $('#ve-authbox').style.display = s.type === 'ovpn' && s.auth ? 'block' : 'none';
   if (s.type === 'ovpn') {
-    c.textContent = '✓ Klopt · OpenVPN · ' + (s.summary || s.endpoint) + (s.auth ? ' · inloggen met gebruikersnaam en wachtwoord' : ' · met certificaat') + ((s.warnings || []).length ? ' · let op: ' + s.warnings.join('; ') : '');
+    c.textContent = t('✓ Klopt') + ' · OpenVPN · ' + (s.summary || s.endpoint) + ' · ' + t(s.auth ? 'inloggen met gebruikersnaam en wachtwoord' : 'met certificaat') + ((s.warnings || []).length ? ' · ' + t('let op: {wat}', { wat: s.warnings.map(x => t(x)).join('; ') }) : '');
     return true;
   }
-  c.textContent = '✓ Klopt · WireGuard · server ' + (s.endpoint || '?') + ' · ' + (s.full ? 'al je verkeer via de VPN' : 'alleen ' + (s.allowed || []).join(', ')) + (s.dns && s.dns.length ? ' · DNS ' + s.dns.join(', ') : ' · let op: geen DNS ingesteld');
+  c.textContent = t('✓ Klopt') + ' · WireGuard · ' + t('server {adres}', { adres: s.endpoint || '?' }) + ' · ' + (s.full ? t('al je verkeer via de VPN') : t('alleen {wat}', { wat: (s.allowed || []).join(', ') })) + (s.dns && s.dns.length ? ' · DNS ' + s.dns.join(', ') : ' · ' + t('let op: geen DNS ingesteld'));
   return true;
 }
 function vePubCopy(){ const p = $('#ve-pub').textContent; if (p) { Android.vpnCopy(p); toast('Publieke sleutel gekopieerd'); } }
@@ -297,7 +297,7 @@ function veSave(){
 function refreshVpnTile(){
   const el = $('#tile-vpn-sub'); if (!el) return;
   const st = rdJson(Android.vpnState(), {});
-  el.textContent = st.on ? (st.status === 'connected' ? 'Aan · ' + (st.name || '') : 'Verbinden…') : 'WireGuard, uit';
+  el.textContent = st.on ? (st.status === 'connected' ? t('Aan') + ' · ' + (st.name || '') : t('Verbinden…')) : t('WireGuard, uit');
 }
 // App naar de achtergrond: camera los (anders staat het beeld stil bij terugkomen)
 (function(){ const previous = window.onPauseApp; window.onPauseApp = function(){ if (previous) previous(); if (vpScanOpen()) vpScanClose(); }; })();

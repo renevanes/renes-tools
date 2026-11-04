@@ -1,7 +1,7 @@
 /* ---------- Scherm Instellingen → Regio en taal (de functies zelf staan in 02-regio.js) ---------- */
 function rgOpts(sel, list){
   const el = $(sel); if (!el) return null;
-  const key = list.map(x => x[0]).join('|');
+  const key = list.map(x => x[0] + '=' + x[1]).join('|');
   if (el.dataset.k !== key) { el.innerHTML = list.map(x => '<option value="' + esc(x[0]) + '">' + esc(x[1]) + '</option>').join(''); el.dataset.k = key; }
   return el;
 }
@@ -9,7 +9,7 @@ function rgOpts(sel, list){
 function rgPhoneTz(){ try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } }
 function rgPlaceList(){
   const c = rgCfg();
-  return [['auto', 'Mijn locatie'], ['home', 'Thuis' + (c.home ? '' : ' (nog niet ingesteld)')], ['work', 'Werk' + (c.work ? '' : ' (nog niet ingesteld)')]].concat(RG_CITIES.map(x => [x[0], x[1]]));
+  return [['auto', t('Mijn locatie')], ['home', c.home ? t('Thuis') : t('Thuis (nog niet ingesteld)')], ['work', c.work ? t('Werk') : t('Werk (nog niet ingesteld)')]].concat(RG_CITIES.map(x => [x[0], t(x[1])]));
 }
 function rgName(list, v){ const x = list.find(p => p[0] === String(v)); return x ? x[1] : String(v); }
 /* "dinsdag 3-11-2026 · 14:05 · € 1.234,56 · 12,5 km · 18 °C" */
@@ -20,31 +20,32 @@ function rgPreview(){
 function rgPreviewParts(n){ return [fmtDate(n, 'wdl') + ' ' + fmtDate(n), fmtTime(n), fmtMoney(1234.56), fmtDist(12500), fmtTemp(18)]; }
 function rgSummary(){
   const c = rgCfg();
-  return rgLang().name + ' · ' + (c.clock === '12' ? '12 uur' : '24 uur') + ' · ' + fmtDate(Date.now()) + ' · ' + distUnit() + ' · ' + rgCurInfo(c.cur).sym;
+  return rgLang().name + ' · ' + t(c.clock === '12' ? '12 uur' : '24 uur') + ' · ' + fmtDate(Date.now()) + ' · ' + distUnit() + ' · ' + rgCurInfo(c.cur).sym;
 }
-function rgSpotText(p){ return p ? (p.addr || fmtNum(p.lat, 5) + '; ' + fmtNum(p.lon, 5)) : 'Nog niet ingesteld'; }
+function rgSpotText(p){ return p ? (p.addr || fmtNum(p.lat, 5) + '; ' + fmtNum(p.lon, 5)) : t('Nog niet ingesteld'); }
 function rgRender(){
   if (!$('#rg-prev')) return;
   const c = rgCfg();
   rgOpts('#rg-lang', RG_LANGS.map(l => [l.id, l.name])).value = c.lang;
-  rgOpts('#rg-clock', RG_CLOCK).value = c.clock;
+  const tl = l => l.map(x => [x[0], t(x[1])]);
+  rgOpts('#rg-clock', tl(RG_CLOCK)).value = c.clock;
   rgOpts('#rg-date', RG_DATE).value = c.date;
-  rgOpts('#rg-week', RG_WEEK).value = String(c.week);
+  rgOpts('#rg-week', tl(RG_WEEK)).value = String(c.week);
   const ptz = rgPhoneTz();
-  $('#rg-tz').textContent = (ptz ? ptz.replace(/_/g, ' ') + ' ' : '') + '(volgt de telefoon)';
+  $('#rg-tz').textContent = (ptz ? ptz.replace(/_/g, ' ') + ' ' : '') + t('(volgt de telefoon)');
   rgOpts('#rg-place', rgPlaceList()).value = c.place;
-  ['home', 'work'].forEach(w => { const p = c[w]; $('#rg-' + w + '-sub').textContent = p ? (p.name && p.name !== rgSpotName(w) ? p.name + ' · ' : '') + rgSpotText(p) : 'Nog niet ingesteld'; $('#rg-' + w + '-btn').textContent = p ? 'Wijzigen' : 'Kiezen'; });
-  rgOpts('#rg-dist', RG_DIST).value = c.dist;
+  ['home', 'work'].forEach(w => { const p = c[w]; $('#rg-' + w + '-sub').textContent = p ? (p.name && p.name !== rgSpotName(w) ? p.name + ' · ' : '') + rgSpotText(p) : t('Nog niet ingesteld'); $('#rg-' + w + '-btn').textContent = p ? t('Wijzigen') : t('Kiezen'); });
+  rgOpts('#rg-dist', tl(RG_DIST)).value = c.dist;
   rgOpts('#rg-temp', RG_TEMP).value = c.temp;
   rgOpts('#rg-size', RG_SIZE).value = c.size;
-  rgOpts('#rg-speed', RG_SPEED).value = c.speed;
-  rgOpts('#rg-cur', RG_CUR).value = c.cur;
-  rgOpts('#rg-dec', RG_DEC).value = c.dec;
+  rgOpts('#rg-speed', tl(RG_SPEED)).value = c.speed;
+  rgOpts('#rg-cur', tl(RG_CUR)).value = c.cur;
+  rgOpts('#rg-dec', tl(RG_DEC)).value = c.dec;
   // Duizendtallen: niet hetzelfde teken als de decimalen
-  rgOpts('#rg-grp', RG_GRP.filter(x => x[0] !== c.dec)).value = c.grp;
+  rgOpts('#rg-grp', tl(RG_GRP.filter(x => x[0] !== c.dec))).value = c.grp;
   // Elk deel blijft heel (geen "€" aan het eind van een regel)
   const tt = rgPreview(); if ($('#rg-prev').textContent !== tt) $('#rg-prev').innerHTML = rgPreviewParts(Date.now()).map(x => '<span class="rg-part">' + esc(x) + '</span>').join(' · ');
-  $('#rg-num-prev').textContent = 'Voorbeeld: ' + fmtNum(1234567.89, 2) + ' · ' + fmtMoney(-1234.5) + ' · ' + fmtNum(0.5, 1) + ' · ' + fmtSize(1.5 * 1073741824) + ' · ' + fmtSpeed(100, 0);
+  $('#rg-num-prev').textContent = t('Voorbeeld:') + ' ' + fmtNum(1234567.89, 2) + ' · ' + fmtMoney(-1234.5) + ' · ' + fmtNum(0.5, 1) + ' · ' + fmtSize(1.5 * 1073741824) + ' · ' + fmtSpeed(100, 0);
 }
 function rgSet(k, v){
   rgSave({ [k]: v });
@@ -71,7 +72,7 @@ function rgPlek(w){
 }
 function rgpRender(){
   $('#rgp-title').textContent = rgSpotName(rgpW);
-  $('#rgp-now').textContent = rgpDraft ? 'Gekozen: ' + rgSpotText(rgpDraft) : 'Nog geen plek gekozen. Zoek een adres, tik coördinaten in of gebruik je huidige locatie.';
+  $('#rgp-now').textContent = rgpDraft ? t('Gekozen: {plek}', { plek: rgSpotText(rgpDraft) }) : t('Nog geen plek gekozen. Zoek een adres, tik coördinaten in of gebruik je huidige locatie.');
   $('#rgp-clear').disabled = !rgCfg()[rgpW];
 }
 /* "51.92, 4.48" of "51,92 4,48" */
@@ -92,20 +93,20 @@ function rgpSearch(){
 function rgpPick(i){ const p = rgpRes[i]; if (!p) return; rgpDraft = { lat: p.lat, lon: p.lng != null ? p.lng : p.lon, addr: p.name || '' }; $('#rgp-results').innerHTML = ''; rgpRender(); }
 function rgpHere(){
   if (typeof Android.autoHere !== 'function') return;
-  rgpHereWait = true; const b = $('#rgp-here'); b.disabled = true; b.lastChild.textContent = ' Locatie bepalen…';
+  rgpHereWait = true; const b = $('#rgp-here'); b.disabled = true; b.lastChild.textContent = ' ' + t('Locatie bepalen…');
   Android.autoHere();
 }
 function rgpSave(){
   if (!rgpDraft) { toast('Kies eerst een plek'); return; }
   const name = $('#rgp-name').value.trim().slice(0, 60) || rgSpotName(rgpW);
   rgSave({ [rgpW]: Object.assign({}, rgpDraft, { name }) });
-  toast(rgSpotName(rgpW) + ' bewaard');
+  toast(t('{naam} bewaard', { naam: rgSpotName(rgpW) }));
   goBack();
 }
 function rgpClear(){
-  askConfirm(rgSpotName(rgpW) + ' wissen?', 'De app gebruikt dan weer je locatie of de standaardplaats.', 'Wissen', () => {
+  askConfirm(t('{naam} wissen?', { naam: rgSpotName(rgpW) }), 'De app gebruikt dan weer je locatie of de standaardplaats.', 'Wissen', () => {
     const patch = { [rgpW]: null }; if (rgCfg().place === rgpW) patch.place = 'auto';
-    rgSave(patch); toast(rgSpotName(rgpW) + ' gewist'); goBack();
+    rgSave(patch); toast(t('{naam} gewist', { naam: rgSpotName(rgpW) })); goBack();
   });
 }
 setTimeout(function(){ // na het laden van alle scripts: Locatie kiezen en Automatiseren gebruiken dezelfde antwoorden
@@ -124,11 +125,11 @@ setTimeout(function(){ // na het laden van alle scripts: Locatie kiezen en Autom
   const prevH = window.onAutoHere;
   window.onAutoHere = function(r){
     if (rgpHereWait) {
-      rgpHereWait = false; const b = $('#rgp-here'); b.disabled = false; b.lastChild.textContent = ' Mijn huidige locatie';
+      rgpHereWait = false; const b = $('#rgp-here'); b.disabled = false; b.lastChild.textContent = ' ' + t('Mijn huidige locatie');
       if (current === 'setregioplek') {
         if (!r || r.error) { if (r && r.error === 'perm') Android.autoPerm('loc'); else toast(r && r.error || 'Geen locatie gevonden'); return; }
         rgpDraft = { lat: r.lat, lon: r.lng, addr: '' }; rgpRender();
-        if (r.acc > 100) toast('Let op: de locatie is onnauwkeurig (' + fmtMeters(r.acc) + ')');
+        if (r.acc > 100) toast(t('Let op: de locatie is onnauwkeurig ({n})', { n: fmtMeters(r.acc) }));
         return;
       }
     }

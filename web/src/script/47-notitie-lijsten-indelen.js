@@ -17,7 +17,7 @@ function noteListLocation(){
   const location=$('#note-list-location');location.replaceChildren();
   if(parent){
     const b=document.createElement('button');b.textContent='↰ '+(parent.title||'Zonder titel');b.onclick=()=>{if(notesSaveNow())openNote(parent.id);};
-    b.setAttribute('aria-label','Bovenliggende lijst: '+(parent.title||'Zonder titel'));location.appendChild(b);
+    b.setAttribute('aria-label',t('Bovenliggende lijst: {titel}', { titel: parent.title||t('Zonder titel') }));location.appendChild(b);
   }else location.textContent='Losse lijst';
   $('#note-list-swap').hidden=!parent;
   const children=noteListTree(notesGet()).filter(r=>r.parent===n.id);
@@ -26,7 +26,7 @@ function noteListLocation(){
     const b=document.createElement('button');b.className='note-child';b.dataset.noteId=r.n.id;
     const title=document.createElement('strong');title.textContent='▤ '+(r.n.title||'Zonder titel');
     const sub=document.createElement('small'),items=r.n.items||[];
-    sub.textContent=items.length?items.filter(i=>!i.done).length+' van '+items.length+' items open':'Open deze lijst';
+    sub.textContent=items.length?t('{n} van {totaal} items open', { n: items.filter(i=>!i.done).length, totaal: items.length }):t('Open deze lijst');
     b.append(title,sub);b.onclick=()=>{if(notesSaveNow())openNote(r.n.id);};$('#note-child-list').appendChild(b);
   }
   $('#note-child-empty').hidden=children.length>0;
@@ -82,7 +82,7 @@ function noteMoveChoices(){
   }else{
     const all=notesGet();
     choices=noteListTree(all).filter(r=>s.kind==='attach'?noteListCanMove(all,r.n.id,s.noteId):noteListCanMove(all,s.noteId,r.n.id))
-      .map(r=>({id:r.n.id,title:r.n.title||'Zonder titel',depth:r.depth,sub:s.kind==='attach'?'Onder '+(n.title||'Zonder titel'):'Bovenliggende lijst',current:s.kind==='attach'?r.n.parentNoteId===s.noteId:r.n.id===n.parentNoteId}));
+      .map(r=>({id:r.n.id,title:r.n.title||t('Zonder titel'),depth:r.depth,sub:s.kind==='attach'?t('Onder {titel}', { titel: n.title||t('Zonder titel') }):t('Bovenliggende lijst'),current:s.kind==='attach'?r.n.parentNoteId===s.noteId:r.n.id===n.parentNoteId}));
     if(s.kind==='move')choices.unshift({id:null,title:'Als losse lijst',sub:'Direct in het overzicht',current:!n.parentNoteId});
   }
   for(const c of choices.filter(c=>c.id===null||c.title.toLowerCase().includes(q))){
@@ -100,7 +100,8 @@ function noteMoveChoices(){
   if(!box.children.length){const p=document.createElement('p');p.className='note';p.textContent=q?'Geen passende bestemming gevonden.':'Er is nog geen andere lijst beschikbaar.';box.appendChild(p);}
   const selected=choices.find(c=>c.id===s.selected&&!c.current),apply=$('#note-move-apply');apply.disabled=!selected;
   const item=(n.items||[]).find(i=>i.id===s.itemId);
-  $('#note-move-status').textContent=selected?(s.kind==='attach'?selected.title+' komt onder '+(n.title||'Zonder titel')+'.':s.kind==='item'?(item?item.text:'Item')+(selected.id===null?' komt in de hoofdlijst.':' komt onder '+selected.title+'.'):(n.title||'Zonder titel')+(selected.id===null?' wordt een losse lijst.':' komt onder '+selected.title+'.')):'Kies een bestemming. Je kunt deze wijziging daarna ongedaan maken.';
+  const nt=n.title||t('Zonder titel');
+  $('#note-move-status').textContent=selected?(s.kind==='attach'?t('{a} komt onder {b}.',{a:selected.title,b:nt}):s.kind==='item'?(selected.id===null?t('{a} komt in de hoofdlijst.',{a:item?item.text:t('Item')}):t('{a} komt onder {b}.',{a:item?item.text:t('Item'),b:selected.title})):(selected.id===null?t('{a} wordt een losse lijst.',{a:nt}):t('{a} komt onder {b}.',{a:nt,b:selected.title}))):t('Kies een bestemming. Je kunt deze wijziging daarna ongedaan maken.');
   if(focusedChoice!==undefined){const b=[...box.querySelectorAll('button')].find(b=>b.dataset.target===focusedChoice);if(b)b.focus({preventScroll:true});}
 }
 document.addEventListener('keydown',e=>{
@@ -141,7 +142,7 @@ function noteMoveApply(){
 function noteListSwap(){
   const child=noteById(noteCur),parent=child&&noteById(child.parentNoteId);if(!parent)return;
   const id=child.id,pid=parent.id,grand=parent.parentNoteId||null;
-  askConfirm('Lijsten omwisselen?', '“'+(child.title||'Zonder titel')+'” komt op de plek van “'+(parent.title||'Zonder titel')+'”. Die lijst komt eronder te hangen. De inhoud van beide lijsten blijft bewaard.', 'Omwisselen',()=>{
+  askConfirm('Lijsten omwisselen?', t('“{sub}” komt op de plek van “{ouder}”. Die lijst komt eronder te hangen. De inhoud van beide lijsten blijft bewaard.', { sub: child.title||t('Zonder titel'), ouder: parent.title||t('Zonder titel') }), 'Omwisselen',()=>{
     if(!noteSplitCommit(id,(n,all)=>{
       const p=all.find(x=>x.id===pid);
       if(!p||n.parentNoteId!==pid||(p.parentNoteId||null)!==grand)return 'De indeling is intussen veranderd. Kies opnieuw.';

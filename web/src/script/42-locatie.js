@@ -20,7 +20,7 @@ function lcRender(){
   $('#lc-go').disabled = !lcPt;
   $('#lc-go').textContent = st.on ? 'Naar deze plek' : 'Hier zetten';
   const row = (p, kind, i) => '<div class="srow"><button class="sbtn" onclick="lcPickSaved(\'' + kind + '\',' + i + ')"><span class="vpic" aria-hidden="true">' + uiIcon(kind === 'p' ? 'star' : 'clock') + '</span><span class="stxt"><b>' + esc(p.name || lcFmt(p.lat, p.lng)) + '</b><small>' + esc(lcFmt(p.lat, p.lng)) + '</small></span></button>' +
-    (kind === 'p' ? '<button class="mini" style="float:none;margin-right:6px" onclick="lcDelPlace(' + i + ')" aria-label="' + esc(p.name) + ' verwijderen">✕</button>' : '') + '</div>';
+    (kind === 'p' ? '<button class="mini" style="float:none;margin-right:6px" onclick="lcDelPlace(' + i + ')" aria-label="' + t('{naam} verwijderen', { naam: esc(p.name) }) + '">✕</button>' : '') + '</div>';
   const pl = st.places || [], rc = st.recent || [];
   $('#lc-placeswrap').style.display = pl.length ? 'block' : 'none';
   $('#lc-places').innerHTML = pl.map((p, i) => row(p, 'p', i)).join('');
@@ -61,7 +61,7 @@ function lcGo(){
   if (r === 'mock') { toast('Kies eerst Tools als app voor de locatie (zie Eenmalig instellen)'); lcRender(); $('#lc-setup').scrollIntoView({ behavior: 'smooth' }); return; }
   if (r) { toast(r); return; }
   const where = lcName || lcFmt(lcPt.lat, lcPt.lng);
-  setTimeout(() => { lcRender(); if (lcSt.on) toast('Je telefoon staat nu op ' + where); else if (lcSt.error) toast(lcSt.error); }, 600);
+  setTimeout(() => { lcRender(); if (lcSt.on) toast(t('Je telefoon staat nu op {waar}', { waar: where })); else if (lcSt.error) toast(t(lcSt.error)); }, 600);
 }
 function lcStop(){ Android.locStop(); toast('Weer je echte locatie'); setTimeout(lcRender, 300); }
 
@@ -70,7 +70,7 @@ function lcPickSaved(kind, i){
   lcSet(p.lat, p.lng, p.name, true);
   openSheet(p.name || lcFmt(p.lat, p.lng), lcFmt(p.lat, p.lng), [['Hier zetten', lcGo], ['Alleen op de kaart tonen', () => {}]]);
 }
-function lcDelPlace(i){ const p = (lcSt.places || [])[i]; if (!p) return; askConfirm('Plek verwijderen?', '"' + p.name + '" verdwijnt uit je bewaarde plekken.', 'Verwijderen', () => { Android.locDelete(i); lcRender(); }); }
+function lcDelPlace(i){ const p = (lcSt.places || [])[i]; if (!p) return; askConfirm('Plek verwijderen?', t('"{naam}" verdwijnt uit je bewaarde plekken.', { naam: p.name }), 'Verwijderen', () => { Android.locDelete(i); lcRender(); }); }
 function lcSavePlace(){
   if (!lcPt) { toast('Kies eerst een plek op de kaart'); return; }
   askInput('Plek bewaren', 'Naam (bijv. Kantoor)', lcName, 'Bewaren', v => { const e = Android.locSave(v, lcPt.lat, lcPt.lng); if (e) toast(e); else { lcName = v.trim(); toast('Bewaard'); lcRender(); } });

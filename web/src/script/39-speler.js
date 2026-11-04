@@ -59,7 +59,7 @@ function plModel(){
   if (src === 'radio') {
     const s = rdState, st = s.station || {}, inf = s.info || {}, status = s.status || 'stopped';
     const song = status === 'playing' ? (inf.song || s.title || '') : '';
-    const sub = status === 'connecting' ? 'Verbinden…' : status === 'paused' ? 'Gepauzeerd · ' + (st.name || '') : status === 'error' ? (s.error || 'Zender niet te bereiken')
+    const sub = status === 'connecting' ? t('Verbinden…') : status === 'paused' ? t('Gepauzeerd') + ' · ' + (st.name || '') : status === 'error' ? t(s.error || 'Zender niet te bereiken')
       : song ? [inf.song ? inf.artist : '', st.name].filter(Boolean).join(' · ') : (inf.desc || inf.genre || 'Live');
     const ini = String(st.name || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '♪';
     return { src, status, playing: status === 'playing' || status === 'connecting', key: st.url, title: song || st.name || 'Radio', sub,
@@ -116,7 +116,7 @@ function plRender(){
   plSetHtml($('#plbar-next'), PL_IC.next);
   plSetHtml($('#plbar-x'), PL_IC.close);
   $('#plbar-next').setAttribute('aria-label', m.src === 'radio' ? 'Volgende zender' : 'Volgende aflevering');
-  $('#plbar-open').setAttribute('aria-label', 'Speler openen: ' + m.title + (m.sub ? ', ' + m.sub : ''));
+  $('#plbar-open').setAttribute('aria-label', t('Speler openen: {titel}', { titel: m.title + (m.sub ? ', ' + m.sub : '') }));
   const pct = m.src === 'podcast' && m.dur > 0 ? Math.min(100, m.pos / m.dur * 100) : 0;
   $('#plbar-prog').style.width = pct.toFixed(2) + '%';
   $('#plbar-prog').parentNode.style.visibility = m.src === 'podcast' ? 'visible' : 'hidden'; // radio: live, geen voortgang
@@ -126,7 +126,7 @@ function plRender(){
   plSetText($('#pl-kind'), m.src === 'podcast' ? 'Podcast' : 'Radio');
   plSetText($('#pl-from'), m.from);
   plSetArt($('#pl-art'), m);
-  $('#pl-cover').setAttribute('aria-label', 'Hoes van ' + m.title + '. Veeg naar links voor ' + (m.src === 'radio' ? 'de volgende zender' : 'de volgende aflevering') + ', naar rechts voor de vorige.');
+  $('#pl-cover').setAttribute('aria-label', t(m.src === 'radio' ? 'Hoes van {titel}. Veeg naar links voor de volgende zender, naar rechts voor de vorige.' : 'Hoes van {titel}. Veeg naar links voor de volgende aflevering, naar rechts voor de vorige.', { titel: m.title }));
   plSetText($('#pl-title'), m.title);
   plSetText($('#pl-sub'), m.sub);
   $('#pl-sub').classList.toggle('bad', m.status === 'error');
@@ -179,7 +179,7 @@ function plRender(){
 
   // Waar het speelt
   $('#pl-castbar').style.display = m.cast ? '' : 'none';
-  if (m.cast) plSetText($('#pl-castbar'), 'Speelt op ' + m.cast);
+  if (m.cast) plSetText($('#pl-castbar'), t('Speelt op {apparaat}', { apparaat: m.cast }));
   plSetText($('#pl-out'), m.cast ? m.cast : 'Deze telefoon');$('#pl-out').dataset.icon=m.cast?'cast':'volume';
   $('#pl-out').classList.toggle('on', !!m.cast);
   $('#pl-volwrap').style.display = m.cast && m.volume >= 0 ? '' : 'none';
@@ -189,9 +189,9 @@ function plRender(){
   plSetText($('#pl-speed'), pcSpeedTxt(m.speed));
   $('#pl-golive').style.display = sh && !atLive ? '' : 'none';
   const sl = $('#pl-sleep');
-  const slTxt = m.sleepAt ? '⏾ nog ' + fmtMin((m.sleepAt - Date.now()) / 6e4) : m.sleepEnd ? '⏾ na deze aflevering' : '⏾ Slaaptimer';
+  const slTxt = m.sleepAt ? t('⏾ nog {duur}', { duur: fmtMin((m.sleepAt - Date.now()) / 6e4) }) : t(m.sleepEnd ? '⏾ na deze aflevering' : '⏾ Slaaptimer');
   plSetText(sl, slTxt); sl.classList.toggle('on', !!(m.sleepAt || m.sleepEnd));
-  plSetHtml($('#pl-sleepinfo'), m.sleepAt ? 'Stopt om ' + fmtTime(m.sleepAt, { hour: '2-digit', minute: '2-digit' }) + ' · <a href="#" onclick="plSleepOff();return false">uitzetten</a>'
+  plSetHtml($('#pl-sleepinfo'), m.sleepAt ? t('Stopt om {tijd} · <a href="#" onclick="plSleepOff();return false">uitzetten</a>', { tijd: fmtTime(m.sleepAt, { hour: '2-digit', minute: '2-digit' }) })
     : m.sleepEnd ? 'Stopt aan het einde van deze aflevering · <a href="#" onclick="plSleepOff();return false">uitzetten</a>' : '');
 
   // Extra's
@@ -216,7 +216,7 @@ function plRenderQueue(m, force){
       const e = r.ep || {}, p = r.pod || {};
       return '<div class="pl-qrow"><button class="pl-qb" onclick="plQueuePlay(' + i + ')">' + pcArt(e.image || p.image) +
         '<span class="pltxt"><b>' + esc(e.title || 'Aflevering') + '</b><small>' + esc(p.title || '') + (e.dur ? ' · ' + esc(fmtMin(e.dur / 60)) : '') + '</small></span></button>' +
-        '<button class="pl-ic" onclick="plQueueMenu(' + i + ')" aria-label="Meer over ' + esc(e.title || 'aflevering') + '"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button></div>';
+        '<button class="pl-ic" onclick="plQueueMenu(' + i + ')" aria-label="' + t('Meer over {titel}', { titel: esc(e.title || t('aflevering')) }) + '"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button></div>';
     }).join('') || '<p class="pl-empty">Nog niets. Kies bij een aflevering ⋯ → <b>Als volgende afspelen</b> of <b>Toevoegen aan Hierna</b>. Zonder Hierna gaat ⏭ naar de volgende aflevering van deze podcast.</p>';
   } else {
     plSetText($('#pl-qtitle'), 'Je zenders');
@@ -242,7 +242,7 @@ function plQueueMenu(i){
   acts.push(['Uit Hierna halen', () => { Android.podQueueRemove(r.ep.key); plQueueSig = ''; plRender(); }]);
   openSheet(r.ep.title || 'Aflevering', (r.pod && r.pod.title) || '', acts);
 }
-function plQueueClear(){ askConfirm('Hierna wissen?', 'Alle ' + plQueue.length + ' afleveringen gaan uit Hierna (niet uit de podcast).', 'Wissen', () => { Android.podQueueClear(); plQueueSig = ''; plRender(); }); }
+function plQueueClear(){ askConfirm('Hierna wissen?', t('Alle {n} afleveringen gaan uit Hierna (niet uit de podcast).', { n: plQueue.length }), 'Wissen', () => { Android.podQueueClear(); plQueueSig = ''; plRender(); }); }
 function plFavPlay(i){ const s = rdFavs[i]; if (!s) return; Android.radioPlay(JSON.stringify(s)); rdState = { status: 'connecting', station: s, title: '' }; plHintSrc('radio'); plRender(); }
 /* Vanuit een afleveringsmenu */
 function plAddToQueue(ep, pod, next){
@@ -300,8 +300,8 @@ function plDismiss(){
   // Focus alleen verplaatsen als die op de balk stond (anders geen toetsenbord dichtklappen)
   if (inBar) setTimeout(() => { const h = document.querySelector('.screen.on h1'); if (h) h.focus({ preventScroll: true }); }, 50);
   const where = m.src === 'podcast' ? 'Podcasts → Verder luisteren' : 'Radio';
-  if (cast) { toast('Gestopt op ' + cast); return; }
-  if (!wasPlaying || (!pod && !station)) { toast('Speler gesloten · staat klaar bij ' + where); return; }
+  if (cast) { toast(t('Gestopt op {apparaat}', { apparaat: cast })); return; }
+  if (!wasPlaying || (!pod && !station)) { toast(t('Speler gesloten · staat klaar bij {waar}', { waar: t(where) })); return; }
   undoToast(pod ? 'Speler gesloten · je plek is bewaard' : 'Speler gesloten', () => {
     if (plModel()) { toast('Er speelt al iets anders'); return; } // intussen iets anders gestart: dat niet vervangen
     if (pod) pcPlayEp(pod.ep, pod.pod, false); // de app weet zelf waar je was
@@ -356,7 +356,7 @@ function plCastTo(i){
   const d = plCastDevs[i]; if (!d) return;
   const e = Android.castStart(d.id);
   if (e) { toast(e); return; }
-  toast('Verbinden met ' + d.name + '…');
+  toast(t('Verbinden met {naam}…', { naam: d.name }));
   setTimeout(plTick, 500); setTimeout(plTick, 2000);
 }
 
