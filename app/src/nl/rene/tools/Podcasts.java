@@ -50,6 +50,8 @@ final class Podcasts {
 
     /** Eén schrijf-thread voor de podcastbestanden (niet op de hoofdthread, en nooit twee tegelijk). */
     static final java.util.concurrent.ExecutorService IO = java.util.concurrent.Executors.newSingleThreadExecutor(r -> new Thread(r, "podcast-io"));
+    /** Alvast inlezen (alleen lezen) op een eigen draad: houdt het schrijven van voortgang op IO niet op. */
+    static final java.util.concurrent.ExecutorService WARM = java.util.concurrent.Executors.newSingleThreadExecutor(r -> { Thread t = new Thread(r, "podcast-warm"); t.setPriority(Thread.MIN_PRIORITY); return t; });
     /** Eén slot per feed (een bijwerkronde en het openen van dezelfde podcast mogen niet door elkaar schrijven). */
     static final java.util.concurrent.ConcurrentHashMap<String, Object> FEED_LOCKS = new java.util.concurrent.ConcurrentHashMap<>();
     static final java.util.concurrent.atomic.AtomicBoolean REFRESHING = new java.util.concurrent.atomic.AtomicBoolean();
@@ -265,7 +267,12 @@ final class Podcasts {
         JSONArray a = subs(c), out = new JSONArray();
         for (int i = 0; i < a.length(); i++) if (!id.equals(a.optJSONObject(i).optString("id"))) out.put(a.get(i));
         saveSubs(c, out);
+        forgetFetched(id);
     }
+
+    /** Niet meer gevolgd: wat fetch over deze feed onthield, hoeft niet in het geheugen te blijven. */
+    static void forgetFetched(String id) { if (id != null) { WRITTEN.remove(id); FETCHED.remove(id); } }
+    static boolean remembersFetch(String id) { return WRITTEN.containsKey(id) || FETCHED.containsKey(id); }
 
     /** Na ophalen: titel, plaatje en nieuwste aflevering van het abonnement bijwerken. */
     static synchronized void updateSub(Context c, JSONObject pod, JSONArray items) throws Exception {
@@ -396,7 +403,7 @@ final class Podcasts {
         if (now - warmedAt < 60_000L) return;
         warmedAt = now;
         final Context app = c.getApplicationContext();
-        IO.execute(() -> {
+        WARM.execute(() -> {
             try { for (PodcastLatest.Sub s : latestSubs(app)) latestOf(app, s.id); }
             catch (Throwable t) { App.log(app, "PODCAST", "alvast inlezen: " + t.getMessage()); }
         });

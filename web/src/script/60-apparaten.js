@@ -215,15 +215,16 @@ function apCrowdRender(){
 /* ---------- op mijn wifi ---------- */
 function apLanGo(){
   if (apLanData && apLanData.busy) { Android.apLanStop(); toast('Stoppen…'); return; }
-  const d = rdJson(Android.apLan(), {}) || {};
-  if (d.wifi && !d.trusted) {
-    askConfirm('Dit netwerk onderzoeken?', (d.cur ? '"' + d.cur + '" ' : 'Dit netwerk ') + 'is niet je wifi thuis en is nog nooit onderzocht. Kijk alleen rond op een netwerk dat van jou is, of waar je toestemming voor hebt (dus niet zomaar in een hotel of op je werk).', 'Onderzoeken', apLanStartNow);
+  apLanStartNow(false);
+}
+/* ok = bevestigd. Java vraagt zelf om bevestiging ("vraag") bij een netwerk dat niet je wifi thuis is en nog nooit onderzocht. */
+function apLanStartNow(ok){
+  const e = Android.apLanStart(!!ok);
+  if (e === 'vraag') {
+    const d = rdJson(Android.apLan(), {}) || {};
+    askConfirm('Dit netwerk onderzoeken?', (d.cur ? '"' + d.cur + '" ' : 'Dit netwerk ') + 'is niet je wifi thuis en is nog nooit onderzocht. Kijk alleen rond op een netwerk dat van jou is, of waar je toestemming voor hebt (dus niet zomaar in een hotel of op je werk).', 'Onderzoeken', () => apLanStartNow(true));
     return;
   }
-  apLanStartNow();
-}
-function apLanStartNow(){
-  const e = Android.apLanStart();
   const msg = { wifi: 'Je bent niet met wifi verbonden. Dit zoekt alleen op je eigen wifi, nooit via mobiele data.', prive: 'Dit netwerk heeft geen gewoon thuisadres; daar zoekt de app niet.', bezig: 'Er wordt al gezocht.' }[e];
   if (e) { $('#ap-lan-st').textContent = msg || e; return; }
   apLanPoll();

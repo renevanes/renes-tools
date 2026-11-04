@@ -113,6 +113,19 @@ public class PodcastLatestTest {
         check(!c.has("pq"), "niet meer gevolgd: uit het geheugen");
         f2.delete(); dir.delete();
 
+        // Ontvolgen: wat fetch over de feed onthield (WRITTEN/FETCHED) gaat uit het geheugen
+        for (String n : new String[] { "WRITTEN", "FETCHED" }) {
+            java.lang.reflect.Field fl = Podcasts.class.getDeclaredField(n); fl.setAccessible(true);
+            @SuppressWarnings("unchecked") java.util.Map<String, Object> mp = (java.util.Map<String, Object>) fl.get(null);
+            mp.put("pweg", n.equals("WRITTEN") ? (Object) new Object[] { "x", 1L, 2L } : (Object) 5L);
+            mp.put("pblijft", n.equals("WRITTEN") ? (Object) new Object[] { "y", 1L, 2L } : (Object) 6L);
+        }
+        check(Podcasts.remembersFetch("pweg"), "fetch onthoudt de feed");
+        Podcasts.forgetFetched("pweg");
+        check(!Podcasts.remembersFetch("pweg") && Podcasts.remembersFetch("pblijft"), "ontvolgd: alleen die feed vergeten");
+        Podcasts.forgetFetched(null);
+        Podcasts.forgetFetched("pblijft");
+
         if (fails > 0) { System.out.println(fails + " fout(en)"); System.exit(1); }
         System.out.println("alles goed");
     }
