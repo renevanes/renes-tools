@@ -63,6 +63,34 @@ public class RegioTest {
         check(Regio.minuteOfDay(ny, utc("2026-11-04T02:30:00Z")) == 21 * 60 + 30, "minuut van de dag in de zone");
         check(Calls.sameDay(utc("2026-11-04T02:00:00Z"), utc("2026-11-04T04:30:00Z"), ny) && !Calls.sameDay(utc("2026-11-04T04:00:00Z"), utc("2026-11-04T05:30:00Z"), ny),
                 "Oproepen-export: dezelfde dag in de zone");
+        // Een hele dag voor de agenda-app (telefoontijd): dezelfde datum, ook op een dag van 23 of 25 uur
+        long[] d1 = Regio.allDayFor(ny, ams, utc("2026-03-29T04:00:00Z"), utc("2026-03-30T04:00:00Z"));
+        check(d1[0] == utc("2026-03-28T23:00:00Z") && d1[1] == utc("2026-03-29T22:00:00Z") && d1[1] - d1[0] == 23 * 3_600_000L, "hele dag 29 maart 2026 (Amsterdam, 23 uur)");
+        long[] d2 = Regio.allDayFor(ny, ams, utc("2026-10-25T04:00:00Z"), utc("2026-10-26T04:00:00Z"));
+        check(d2[0] == utc("2026-10-24T22:00:00Z") && d2[1] == utc("2026-10-25T23:00:00Z") && d2[1] - d2[0] == 25 * 3_600_000L, "hele dag 25 oktober 2026 (Amsterdam, 25 uur)");
+        long[] d3 = Regio.allDayFor(ki, ams, utc("2026-11-03T10:00:00Z"), utc("2026-11-05T10:00:00Z"));
+        check(d3[0] == utc("2026-11-03T23:00:00Z") && d3[1] == utc("2026-11-05T23:00:00Z"), "twee hele dagen vanuit Kiritimati: 4 en 5 november in de agenda");
+        long[] d4 = Regio.allDayFor(ams, ams, utc("2026-03-28T23:00:00Z"), 0);
+        check(d4[1] - d4[0] == 23 * 3_600_000L, "zonder einde: één dag");
+        // Herinneringen naar een andere zone: dezelfde wandklok
+        long now = utc("2026-11-04T06:00:00Z"); // 07:00 Amsterdam
+        long daily = utc("2026-11-04T07:00:00Z"); // 08:00 Amsterdam
+        check(Reminders.rezoneTime(daily, "day", 4, ams, ny, now) == utc("2026-11-04T13:00:00Z"), "elke dag 08:00 Amsterdam → 08:00 New York (niet 02:00)");
+        check(Reminders.rezoneTime(daily, "", 4, ams, ny, now) == utc("2026-11-04T13:00:00Z"), "eenmalig 08:00 → 08:00 New York");
+        check(Reminders.rezoneTime(utc("2026-11-04T07:30:00Z"), "", 4, ams, TimeZone.getTimeZone("Asia/Tokyo"), now) == utc("2026-11-04T07:30:00Z"),
+                "eenmalig, in de nieuwe zone al voorbij: het oude moment blijft");
+        check(Reminders.rezoneTime(utc("2026-11-04T07:30:00Z"), "day", 4, ams, TimeZone.getTimeZone("Asia/Tokyo"), now) == utc("2026-11-04T23:30:00Z"),
+                "elke dag 08:30, in Tokio al voorbij: morgen 08:30 Tokio");
+        check(Reminders.rezoneTime(daily, "day", 4, ams, ams, now) == daily, "zelfde zone: niets");
+        // Wintertijd: het uur dat twee keer bestaat is overal de eerste keer (Checkin, Facturen, Regio, de interface)
+        Calendar oct = Checkin.day("2026-10-25", ams);
+        check(Checkin.at(oct, 2 * 60 + 30) == utc("2026-10-25T00:30:00Z") && Checkin.at(Checkin.day("2027-03-28", ams), 2 * 60 + 30) == utc("2027-03-28T01:30:00Z"),
+                "check-in 02:30: wintertijd de eerste keer, zomertijd 03:30");
+        try {
+            org.json.JSONObject lev = new org.json.JSONObject().put("schema", "dag").put("tijd", "02:30");
+            check(Facturen.gepland(lev, utc("2026-10-24T20:00:00Z"), true, ams) == utc("2026-10-25T00:30:00Z"), "facturen 02:30 op de dag van de wintertijd: de eerste keer");
+            check(Facturen.gepland(lev, utc("2027-03-27T20:00:00Z"), true, ams) == utc("2027-03-28T01:30:00Z"), "facturen 02:30 op de dag van de zomertijd: 03:30");
+        } catch (Exception e) { check(false, "facturen: " + e); }
         // Met dezelfde regels als de interface (02-regio.js): overal waar het moment geldig is, geeft heen en terug hetzelfde
         String[] zones = {"America/New_York", "Europe/Amsterdam", "Pacific/Kiritimati", "Pacific/Pago_Pago", "Australia/Lord_Howe", "Asia/Kathmandu"};
         int wrong = 0;

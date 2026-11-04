@@ -84,14 +84,12 @@ final class Checkin {
         return k;
     }
 
-    /** Het tijdstip "min" op die dag (rond een zomertijd-sprong schuift Android het een uur op, zoals een wekker). */
+    /**
+     * Het tijdstip "min" op die dag, via Regio (zoals de rest van de app en de interface): bij de wintertijd de eerste
+     * keer, bij een zomertijd-sprong schuift het mee (02:30 wordt 03:30, zoals een wekker).
+     */
     static long at(Calendar day, int min) {
-        Calendar k = (Calendar) day.clone();
-        k.set(Calendar.HOUR_OF_DAY, min / 60);
-        k.set(Calendar.MINUTE, min % 60);
-        k.set(Calendar.SECOND, 0);
-        k.set(Calendar.MILLISECOND, 0);
-        return k.getTimeInMillis();
+        return Regio.toMillis(day.getTimeZone(), day.get(Calendar.YEAR), day.get(Calendar.MONTH) + 1, day.get(Calendar.DAY_OF_MONTH), min / 60, min % 60, 0);
     }
 
     // ---------- de regels ----------

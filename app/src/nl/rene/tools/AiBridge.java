@@ -325,9 +325,8 @@ public class AiBridge extends SleepBridge {
         if (b0 <= 0) return "Kies eerst een datum";
         if (o.optBoolean("allDay")) {
             // Een hele dag is een datum: dezelfde datum als in de app-zone, maar zoals de agenda-app (telefoontijd) hem leest
-            java.util.TimeZone app = Regio.zone(ctx), phone = java.util.TimeZone.getDefault();
-            b0 = Regio.toMillis(phone, Regio.dayKey(app, b0), "00:00");
-            if (e0 > 0) e0 = Regio.toMillis(phone, Regio.dayKey(app, e0 - 1), "00:00") + 86_400_000L;
+            long[] d = Regio.allDayFor(Regio.zone(ctx), java.util.TimeZone.getDefault(), b0, e0);
+            b0 = d[0]; e0 = d[1];
         }
         final long begin = b0, end = e0;
         final String[] res = {"De agenda openen lukte niet"};

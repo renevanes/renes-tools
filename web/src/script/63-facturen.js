@@ -287,7 +287,9 @@ function flPeriodeWaarde(){
 function flPeriode(){
   const p = flPeriodeWaarde(), mail = faEdit && faEdit.soort === 'mail';
   $('#fl-vanafrij').style.display = p.soort === 'vanaf' ? 'flex' : 'none';
-  const vanaf = p.soort === 'jaar' ? fmtDate(new Date(new Date().getFullYear(), 0, 1)) : p.soort === 'maanden' ? fmtDate(new Date(new Date().getFullYear(), new Date().getMonth() - p.maanden, new Date().getDate())) : p.soort === 'vanaf' && p.vanaf ? fmtDate(new Date(p.vanaf + 'T12:00')) : '';
+  // Kalenderdatums vanaf vandaag in de app-zone (zoals Facturen.grens met Regio.zone); als datum getoond, verschuift niet
+  const nu = rgParts(), mk = (y, m, d) => { const x = new Date(Date.UTC(y, m, d)); return rgKey(x.getUTCFullYear(), x.getUTCMonth() + 1, Math.min(d, new Date(Date.UTC(y, m + 1, 0)).getUTCDate())); };
+  const vanaf = p.soort === 'jaar' ? fmtDate(nu.y + '-01-01') : p.soort === 'maanden' ? fmtDate(mk(nu.y, nu.m - 1 - p.maanden, nu.d)) : p.soort === 'vanaf' && p.vanaf ? fmtDate(p.vanaf.slice(0, 10)) : '';
   $('#fl-periode-uitleg').textContent = (p.soort === 'alles' ? 'Alle facturen die ' + (mail ? 'in je mail staan' : 'de website laat zien') : vanaf ? 'Facturen vanaf ' + vanaf : 'Kies een datum') + '. '
     + (mail ? 'De eerste keer zoekt de app vanaf dat moment; daarna alleen nieuwe mails.' : 'De app klikt op "Toon meer" om oudere facturen te laden en bewaart alleen facturen vanaf dat moment (op de factuurdatum).')
     + ' Wil je na een wijziging ook de oudere facturen alsnog? Kies dan bij de leverancier "Alles van de periode opnieuw ophalen".';

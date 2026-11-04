@@ -150,6 +150,7 @@ const TZ_JAVA_OK = [
   ['RadioAlarm.java', 'return next(TimeZone.getDefault(), hour, minute, days, now);', 'variant zonder zone voor de oude tests; de app geeft Regio.zone mee'],
   ['RadioAlarm.java', 'TimeZone.getTimeZone(tz) : TimeZone.getDefault()', 'noodwekker vóór ontgrendelen: de gespiegelde app-zone, anders de telefoon'],
   ['Reminders.java', 'return dayOfMonth(t, java.util.TimeZone.getDefault());', 'variant zonder zone voor de oude tests'],
+  ['Facturen.java', 'return voorPeriode(grens, f, naam, java.util.TimeZone.getDefault());', 'variant zonder zone; het ophalen geeft Regio.zone mee'],
   ['Reminders.java', 'return next(t, rep, after, dom, java.util.TimeZone.getDefault());', 'variant zonder zone voor de oude tests; de app geeft Regio.zone mee'],
 ];
 {

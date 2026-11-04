@@ -21,13 +21,19 @@ const RG_TZ_NL = { 'Europe/London': 'Londen', 'Europe/Paris': 'Parijs', 'Europe/
   'Europe/Belgrade': 'Belgrado', 'Europe/Zurich': 'Zürich', 'Europe/Kiev': 'Kyiv', 'Europe/Kyiv': 'Kyiv', 'Asia/Tokyo': 'Tokio', 'Asia/Jerusalem': 'Jeruzalem', 'Africa/Cairo': 'Caïro',
   'Asia/Calcutta': 'Kolkata', 'Asia/Kolkata': 'Kolkata', 'Asia/Katmandu': 'Kathmandu', 'Asia/Saigon': 'Ho Chi Minhstad', 'Asia/Ho_Chi_Minh': 'Ho Chi Minhstad', 'America/Mexico_City': 'Mexico-Stad',
   'America/Sao_Paulo': 'São Paulo', 'America/Curacao': 'Curaçao', 'Atlantic/Canary': 'Canarische Eilanden', 'Atlantic/Azores': 'Azoren', 'Asia/Hong_Kong': 'Hongkong', 'Asia/Seoul': 'Seoel',
-  'America/Havana': 'Havana', 'Asia/Baghdad': 'Bagdad', 'Asia/Tehran': 'Teheran', 'Asia/Riyadh': 'Riyad', 'Africa/Algiers': 'Algiers', 'Europe/Luxembourg': 'Luxemburg', 'UTC': 'UTC (wereldtijd)' };
+  'America/Havana': 'Havana', 'Asia/Baghdad': 'Bagdad', 'Asia/Tehran': 'Teheran', 'Asia/Riyadh': 'Riyad', 'Africa/Algiers': 'Algiers', 'Europe/Luxembourg': 'Luxemburg',
+  'Europe/Berlin': 'Berlijn', 'Europe/Budapest': 'Boedapest', 'Europe/Bratislava': 'Bratislava', 'Europe/Vilnius': 'Vilnius', 'Europe/Tallinn': 'Tallinn', 'Europe/Riga': 'Riga',
+  'Asia/Shanghai': 'Peking', 'Asia/Beirut': 'Beiroet', 'UTC': 'UTC (wereldtijd)' };
 /* Landen en andere woorden om op te zoeken (en voor de assistent: "Londense tijd", "Japanse tijd") */
 const RG_TZ_WORDS = { 'Europe/Amsterdam': 'nederland nederlandse holland hollandse amsterdamse rotterdam', 'Europe/London': 'engeland engelse brits britse verenigd koninkrijk londense uk',
-  'Europe/Dublin': 'ierland ierse', 'Europe/Paris': 'frankrijk franse parijse', 'Europe/Berlin': 'duitsland duitse', 'Europe/Brussels': 'belgie belgische brusselse',
+  'Europe/Dublin': 'ierland ierse', 'Europe/Paris': 'frankrijk franse parijse', 'Europe/Berlin': 'duitsland duitse berlijnse munchen frankfurt hamburg keulen', 'Europe/Brussels': 'belgie belgische brusselse antwerpen gent',
+  'Europe/Budapest': 'hongarije hongaarse', 'Europe/Prague': 'tsjechie tsjechische', 'Europe/Vienna': 'oostenrijk oostenrijkse', 'Europe/Copenhagen': 'denemarken deense',
+  'Europe/Stockholm': 'zweden zweedse', 'Europe/Oslo': 'noorwegen noorse', 'Europe/Helsinki': 'finland finse', 'Africa/Johannesburg': 'kaapstad zuid-afrika zuid-afrikaanse',
+  'America/Aruba': 'arubaanse', 'America/Kralendijk': 'bonaire', 'America/Lower_Princes': 'sint maarten', 'America/Chicago': 'chicago', 'Asia/Singapore': 'singaporese',
+  'Asia/Seoul': 'korea koreaanse', 'Asia/Ho_Chi_Minh': 'vietnam vietnamese', 'Asia/Saigon': 'vietnam vietnamese', 'Pacific/Auckland': 'nieuw-zeeland',
   'Europe/Madrid': 'spanje spaanse', 'Europe/Rome': 'italie italiaanse', 'Europe/Lisbon': 'portugal portugese', 'Europe/Athens': 'griekenland griekse', 'Europe/Istanbul': 'turkije turkse',
   'Europe/Moscow': 'rusland russische', 'Europe/Warsaw': 'polen poolse', 'Europe/Zurich': 'zwitserland zwitserse', 'Africa/Casablanca': 'marokko marokkaanse', 'Asia/Tokyo': 'japan japanse',
-  'Asia/Shanghai': 'china chinese peking', 'Asia/Kolkata': 'india indiase', 'Asia/Calcutta': 'india indiase', 'Asia/Bangkok': 'thailand thaise', 'Asia/Jakarta': 'indonesie indonesische',
+  'Asia/Shanghai': 'china chinese shanghai beijing', 'Asia/Kolkata': 'india indiase', 'Asia/Calcutta': 'india indiase', 'Asia/Bangkok': 'thailand thaise', 'Asia/Jakarta': 'indonesie indonesische',
   'Asia/Dubai': 'emiraten', 'Australia/Sydney': 'australie australische', 'America/New_York': 'amerikaanse oostkust new yorkse', 'America/Los_Angeles': 'californie westkust',
   'America/Paramaribo': 'suriname surinaamse', 'America/Curacao': 'antillen antilliaanse', 'America/Sao_Paulo': 'brazilie braziliaanse', 'America/Toronto': 'canada canadese',
   'America/Mexico_City': 'mexico mexicaanse', 'UTC': 'utc gmt wereldtijd' };
@@ -53,10 +59,10 @@ function rgTzCity(z){
 function rgTzOffLabel(z, t){
   let o = 0;
   try { const ms = t == null ? Date.now() : t, s = Math.floor(ms / 1000) * 1000, p = rgPartsIn(s, z); o = Math.round((Date.UTC(p.y, p.m - 1, p.d, p.hh, p.mm, p.ss) - s) / 6e4); } catch (e) { return ''; }
-  if (!o) return 'UTC';
-  const a = Math.abs(o), h = Math.floor(a / 60), m = a % 60;
-  return 'UTC' + (o < 0 ? '−' : '+') + h + (m ? ':' + String(m).padStart(2, '0') : '');
+  return rgTzOffMin(o);
 }
+/* "UTC−5" uit een verschil in minuten */
+function rgTzOffMin(o){ if (!o) return 'UTC'; const a = Math.abs(o), h = Math.floor(a / 60), m = a % 60; return 'UTC' + (o < 0 ? '−' : '+') + h + (m ? ':' + String(m).padStart(2, '0') : ''); }
 /* "New York (UTC−5)" */
 function rgTzName(z, t){ const off = rgTzOffLabel(z, t); return rgTzCity(z) + (off && off !== rgTzCity(z) && z !== 'UTC' ? ' (' + off + ')' : ''); }
 /* De zone bij een naam uit een zin ("New York", "Londen", "japanse"); '' als er geen (of meer dan één) past */
@@ -64,7 +70,14 @@ function rgTzFind(q){
   const n = norm2(String(q || '')).replace(/[^a-z0-9 /_-]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(de |het )/, '').replace(/ (tijd|tijdzone)$/, '');
   if (!n) return '';
   const all = rgTzList(), cityN = z => norm2(rgTzCity(z)), engN = z => norm2(String(z).split('/').pop().replace(/_/g, ' '));
-  let hit = all.filter(z => z.toLowerCase() === n || cityN(z) === n || engN(z) === n);
+  // Een zone-id ("asia/kolkata"): ook een andere naam voor een zone uit de lijst, als de telefoon hem kent
+  if (n.includes('/')) {
+    const ex = all.find(z => z.toLowerCase() === n.replace(/ /g, '_'));
+    if (ex) return ex;
+    const cand = n.replace(/ /g, '_').split('/').map(p => p.replace(/(^|[_-])([a-z])/g, (m, a, b) => a + b.toUpperCase())).join('/');
+    return rgTzOk(cand) ? cand : '';
+  }
+  let hit = all.filter(z => cityN(z) === n || engN(z) === n);
   if (!hit.length) hit = all.filter(z => (' ' + norm2(RG_TZ_WORDS[z] || '') + ' ').includes(' ' + n + ' '));
   // "londense" → Londen, "new yorkse" → New York
   if (!hit.length && /se$/.test(n)) { const b = n.replace(/se$/, ''); hit = all.filter(z => cityN(z) === b || engN(z) === b || cityN(z) === b + 'n'); }
@@ -85,16 +98,20 @@ function rgTzOpen(){ $('#rgz-q').value = ''; show('setregiotz'); }
 function rgzRender(){
   const list = $('#rgz-list'); if (!list) return;
   const st = rgTzState(), now = Date.now(), q = norm2($('#rgz-q').value || '').trim();
-  $('#rgz-now').textContent = 'Nu: ' + (st.sel ? rgTzName(st.sel) : 'volgt de telefoon (' + rgTzName(st.phone) + ')') + ', ' + fmtDate(now, 'wdm') + ' ' + fmtTime(now) + '.';
-  const bad = rgTzBadText(); $('#rgz-bad').hidden = !bad; $('#rgz-bad').textContent = bad;
-  const row = (v, title, sub, on) => '<div class="srow"><button class="sbtn' + (on ? ' on' : '') + '" data-z="' + esc(v) + '" aria-pressed="' + (on ? 'true' : 'false') + '" onclick="rgzPick(this.dataset.z)"><span class="stxt"><b>' + esc(title) + (on ? ' ✓' : '') + '</b><small>' + esc(sub) + '</small></span></button></div>';
-  const fit = z => !q || (norm2(rgTzCity(z)) + ' ' + norm2(z.replace(/_/g, ' ')) + ' ' + norm2(RG_TZ_WORDS[z] || '') + ' ' + rgTzOffLabel(z, now).toLowerCase()).includes(q);
-  const zs = rgTzList().filter(fit).map(z => [z, rgTzOffLabel(z, now)]);
-  const offMin = l => { const m = /^UTC(?:([+−])(\d+)(?::(\d+))?)?$/.exec(l); return !m || !m[1] ? 0 : (m[1] === '+' ? 1 : -1) * (+m[2] * 60 + +(m[3] || 0)); };
-  zs.sort((a, b) => offMin(a[1]) - offMin(b[1]) || rgTzCity(a[0]).localeCompare(rgTzCity(b[0])));
-  const tm = z => fmtTime(now, { hour: '2-digit', minute: '2-digit', timeZone: z });
-  let h = !q || /volg|telefoon/.test(q) ? row('', 'Volg de telefoon (' + st.phone + ')', 'Nu ' + tm(st.phone) + ' · de standaard', !st.sel) : '';
-  h += zs.slice(0, 400).map(([z, off]) => row(z, rgTzCity(z) + (z === 'UTC' ? '' : ' (' + off + ')'), 'Nu ' + tm(z) + ' · ' + z.replace(/_/g, ' '), st.sel === z)).join('');
+  // Alleen bij een andere zone of minuut opnieuw schrijven (aria-live: niet bij elke toets voorlezen)
+  const nowT = 'Nu: ' + (st.sel ? rgTzName(st.sel) : 'volgt de telefoon (' + rgTzName(st.phone) + ')') + ', ' + fmtDate(now, 'wdm') + ' ' + fmtTime(now) + '.';
+  if ($('#rgz-now').textContent !== nowT) $('#rgz-now').textContent = nowT;
+  const bad = rgTzBadText(); $('#rgz-bad').hidden = !bad; if ($('#rgz-bad').textContent !== bad) $('#rgz-bad').textContent = bad;
+  const row = (v, title, sub, on) => '<div class="srow"><button class="sbtn' + (on ? ' on' : '') + '" data-z="' + esc(v) + '" aria-pressed="' + (on ? 'true' : 'false') + '" onclick="rgzPick(this.dataset.z)"><span class="stxt"><b>' + esc(title) + (on ? '<span aria-hidden="true"> ✓</span>' : '') + '</b><small>' + esc(sub) + '</small></span></button></div>';
+  // Per zone één keer de onderdelen van nu (verschil met UTC en de tijd daar), zonder een eigen opmaak per zone
+  const s0 = Math.floor(now / 1000) * 1000, info = z => { const p = rgPartsIn(s0, z), o = Math.round((Date.UTC(p.y, p.m - 1, p.d, p.hh, p.mm, p.ss) - s0) / 6e4);
+    return { z, o, off: rgTzOffMin(o), tm: fmtHm(String(p.hh).padStart(2, '0') + ':' + String(p.mm).padStart(2, '0')) }; };
+  const fit = x => !q || (norm2(rgTzCity(x.z)) + ' ' + norm2(x.z.replace(/_/g, ' ')) + ' ' + norm2(RG_TZ_WORDS[x.z] || '') + ' ' + x.off.toLowerCase()).includes(q);
+  const zs = rgTzList().map(info).filter(fit);
+  zs.sort((a, b) => a.o - b.o || rgTzCity(a.z).localeCompare(rgTzCity(b.z)));
+  let h = !q || /volg|telefoon/.test(q) ? row('', 'Volg de telefoon (' + st.phone + ')', 'Nu ' + info(st.phone).tm + ' · de standaard', !st.sel) : '';
+  // Alle zones (ook UTC+12 tot +14 onderaan: Auckland, Fiji, Tonga, Kiritimati)
+  h += zs.map(x => row(x.z, rgTzCity(x.z) + (x.z === 'UTC' ? '' : ' (' + x.off + ')'), 'Nu ' + x.tm + ' · ' + x.z.replace(/_/g, ' '), st.sel === x.z)).join('');
   list.innerHTML = h || '<p class="note">Geen tijdzone gevonden. Zoek op een stad, zoals New York of Tokio.</p>';
 }
 function rgzPick(z){

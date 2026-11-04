@@ -89,13 +89,16 @@ const RG_TZ_RE = /^[A-Za-z][A-Za-z0-9_+\-\/]{0,63}$/;
 const rgTzC = new Map();
 let rgTzSt = null;
 function rgPhoneTz(){ try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (e) { return 'UTC'; } }
-/* Kent deze telefoon de zone (precies zo geschreven, hoofdletters tellen)? Java moet hem ook kennen (meldingen, wekkers). */
+/* Kent deze telefoon de zone? De WebView moet hem kennen (ook een andere naam voor dezelfde zone, zoals Asia/Kolkata voor
+ * Asia/Calcutta) en Java precies zo geschreven (Regio.tzOk: hoofdletters tellen). Zonder Java (tests): alleen geen
+ * andere hoofdletters dan de WebView. WebView en Android hebben elk een eigen tijdzonedatabase; wat één van beide niet
+ * kent, telt niet: dan volgt de app (JS, Java en de skin samen) de telefoon. */
 function rgTzOk(id){
   if (typeof id !== 'string' || !RG_TZ_RE.test(id)) return false;
   if (rgTzC.has(id)) return rgTzC.get(id);
-  let ok = false;
-  try { ok = new Intl.DateTimeFormat('en-US', { timeZone: id }).resolvedOptions().timeZone === id; } catch (e) { ok = false; }
-  if (ok) { try { if (typeof Android !== 'undefined' && typeof Android.regioTzOk === 'function') ok = !!Android.regioTzOk(id); } catch (e) { } }
+  let ok = false, java = null;
+  try { if (typeof Android !== 'undefined' && typeof Android.regioTzOk === 'function') java = !!Android.regioTzOk(id); } catch (e) { java = null; }
+  try { const r = new Intl.DateTimeFormat('en-US', { timeZone: id }).resolvedOptions().timeZone; ok = java !== null ? java : r === id || r.toLowerCase() !== id.toLowerCase(); } catch (e) { ok = false; }
   if (rgTzC.size > 500) rgTzC.clear();
   rgTzC.set(id, ok);
   return ok;
@@ -115,24 +118,31 @@ function rgTzOwn(){ return rgTzState().own; }
 const rgPartF = new Map(), RG_WDN = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 function rgPartsIn(ms, zone){
   let f = rgPartF.get(zone);
-  if (!f) { f = new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', weekday: 'short', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }); if (rgPartF.size > 50) rgPartF.clear(); rgPartF.set(zone, f); }
+  if (!f) { f = new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', weekday: 'short', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }); if (rgPartF.size > 1200) rgPartF.clear(); rgPartF.set(zone, f); }
   const p = {}; f.formatToParts(new Date(ms)).forEach(x => { p[x.type] = x.value; });
   return { y: +p.year, m: +p.month, d: +p.day, hh: +p.hour % 24, mm: +p.minute, ss: +p.second, wd: RG_WDN[p.weekday] };
 }
-/* Verschil met UTC (ms) in de app-zone op tijdstip ms */
+/* Verschil met UTC (ms) in zone z op tijdstip ms, rechtstreeks uit Intl */
+function rgOffIn(ms, z){ const s = Math.floor(ms / 1000) * 1000, p = rgPartsIn(s, z); return Date.UTC(p.y, p.m - 1, p.d, p.hh, p.mm, p.ss) - s; }
+/* Verschil met UTC (ms) in de app-zone op tijdstip ms. Per uur onthouden: is het verschil aan het begin en het eind van
+ * het uur gelijk, dan geldt het voor het hele uur; anders (een wissel van zomer-/wintertijd in dat uur) per minuut. */
 const rgOffC = new Map();
 function rgOff(ms){
   const st = rgTzState();
   if (!st.own) return -new Date(ms).getTimezoneOffset() * 6e4;
-  const k = st.zone + '|' + Math.floor(ms / 6e4);
+  const h = Math.floor(ms / 36e5), k = st.zone + '|' + h;
   let o = rgOffC.get(k);
   if (o === undefined) {
-    const s = Math.floor(ms / 1000) * 1000, p = rgPartsIn(s, st.zone);
-    o = Date.UTC(p.y, p.m - 1, p.d, p.hh, p.mm, p.ss) - s;
-    if (rgOffC.size > 4000) rgOffC.clear();
+    const a = rgOffIn(h * 36e5, st.zone), b = rgOffIn(h * 36e5 + 36e5 - 1, st.zone);
+    o = a === b ? a : null;
+    if (rgOffC.size > 20000) rgOffC.clear();
     rgOffC.set(k, o);
   }
-  return o;
+  if (o !== null) return o;
+  const km = st.zone + '|m' + Math.floor(ms / 6e4);
+  let m = rgOffC.get(km);
+  if (m === undefined) { m = rgOffIn(ms, st.zone); rgOffC.set(km, m); }
+  return m;
 }
 /* { y, m (1–12), d, hh, mm, ss, wd (0 = zondag) } van tijdstip t in de app-zone (zonder t: nu) */
 function rgParts(t){
@@ -203,7 +213,7 @@ function rgTzReset(){ rgTzSt = null; rgOffC.clear(); }
 const rgFmtC = new Map();
 function rgDtf(o){
   const k = JSON.stringify(o); let f = rgFmtC.get(k);
-  if (!f) { f = new Intl.DateTimeFormat(regioLocale(), o); if (rgFmtC.size > 300) rgFmtC.clear(); rgFmtC.set(k, f); }
+  if (!f) { f = new Intl.DateTimeFormat(regioLocale(), o); if (rgFmtC.size > 1200) rgFmtC.clear(); rgFmtC.set(k, f); }
   return f;
 }
 const rgP2 = n => String(n).padStart(2, '0');
@@ -388,7 +398,8 @@ function rgReload(){ rgC = null; rgSp = null; rgFmtC.clear(); rgNumC.clear(); rg
 /* Java krijgt dezelfde keuze (zonder thuis en werk, die heeft Java zelf), voor meldingen, widgets en de Telefoon-skin */
 function rgNative(){
   if (typeof Android === 'undefined' || typeof Android.regioSet !== 'function') return;
-  const c = Object.assign({}, rgCfg(), { locale: regioLocale() }); delete c.home; delete c.work;
+  // De zone die de app echt gebruikt ('' = de telefoon), zodat JS, Java en de Telefoon-skin altijd hetzelfde doen
+  const c = Object.assign({}, rgCfg(), { locale: regioLocale(), tz: rgTzState().sel }); delete c.home; delete c.work;
   const j = JSON.stringify(c);
   if (j === rgNative.last) return;
   rgNative.last = j;

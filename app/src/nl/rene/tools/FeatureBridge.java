@@ -67,9 +67,11 @@ public class FeatureBridge {
                 if (!java.util.Arrays.equals(Regio.place(before), Regio.place(after)) || !java.util.Arrays.equals(before.home(), after.home()))
                     Launcher.prefs(ctx).edit().remove("weather").apply();
                 // Andere tijdzone: alle wekkers, herinneringen en planningen opnieuw (de tijden zijn wandklok in de app-zone)
-                if (!Regio.zone(before).getID().equals(Regio.zone(after).getID())) {
+                java.util.TimeZone from = Regio.zone(before), to = Regio.zone(after);
+                if (!from.getID().equals(to.getID())) {
                     RedialPlan.rezone(ctx);
-                    AlarmReceiver.rearmAll(ctx);
+                    Reminders.rezone(ctx, from, to);
+                    AlarmReceiver.rearmTimes(ctx);
                     App.log(ctx, "REGIO", "tijdzone: wekkers en planningen opnieuw gezet");
                 }
                 for (Class<?> w : new Class<?>[]{HomeWidgets.Agenda.class, HomeWidgets.Weather.class, HomeWidgets.Overview.class, HomeWidgets.Park.class}) HomeWidgets.refresh(ctx, w);

@@ -745,7 +745,7 @@ function skRg(){
   let o = {}; try { if (typeof Android.regio === 'function') o = JSON.parse(Android.regio() || '{}') || {}; } catch(e){ o = {}; }
   // Tijdzone: de app-zone (leeg = de telefoon); alleen als de WebView hem precies zo kent
   let tz = typeof o.tz === 'string' && /^[A-Za-z][A-Za-z0-9_+\-\/]{0,63}$/.test(o.tz) ? o.tz : '';
-  try { if (tz && new Intl.DateTimeFormat('en-US', {timeZone: tz}).resolvedOptions().timeZone !== tz) tz = ''; } catch(e){ tz = ''; }
+  try { if (tz) new Intl.DateTimeFormat('en-US', {timeZone: tz}); } catch(e){ tz = ''; } // Java gaf hem door (Regio.tzOk); ook een andere naam voor dezelfde zone mag
   skRgC = {loc: 'nl-NL', h12: o.clock === '12', date: o.date === 'iso' || o.date === 'dmon' ? o.date : 'dmy', f: o.temp === 'f', dec: o.dec === '.' ? '.' : ',', grp: typeof o.grp === 'string' && o.grp.length <= 1 ? o.grp : '.', tz};
   if (skRgC.grp === skRgC.dec) skRgC.grp = skRgC.dec === ',' ? '.' : ',';
   skRgT = Date.now(); return skRgC;

@@ -214,8 +214,19 @@ const path = require('path');
       const a = { zone: rgZone(), own: rgTzOwn(), tz: rgCfg().tz, bad: $('#rg-tz-bad').hidden ? '' : $('#rg-tz-bad').textContent, row: $('#rg-tz').textContent };
       Android._tzNo = ['Asia/Katmandu', 'Asia/Kathmandu'];
       a.java = [rgTzOk('Asia/Kathmandu'), rgTzOk('america/new_york'), rgTzOk('Europe/Nowhere'), rgTzOk('Europe/Paris'), rgTzList().includes('Asia/Kathmandu')];
+      a.javaTz = JSON.parse(Android._regioCfg || '{}').tz;
+      // Een zone die Java kent maar de WebView niet: de app (JS, Java en de skin) volgt samen de telefoon
+      Android._tzYes = ['Pluto/Basis']; rgSave({ tz: 'Pluto/Basis' });
+      a.split = [rgTzOk('Pluto/Basis'), rgZone(), JSON.parse(Android._regioCfg || '{}').tz, rgCfg().tz];
+      // Een andere naam voor een zone (Asia/Kolkata, in Chrome Asia/Calcutta): gewoon te gebruiken
+      rgSave({ tz: 'Asia/Kolkata' });
+      a.alias = [rgTzOk('Asia/Kolkata'), rgZone(), rgTzOwn(), JSON.parse(Android._regioCfg || '{}').tz, fmtTime(Date.now()), rgTzFind('asia/kolkata'), rgTzFind('kolkata') !== ''];
+      rgSave({ tz: '' });
       return a;
     });
+    ok(r.javaTz === '', 'onbekende zone: Java krijgt ook "volg de telefoon" (' + JSON.stringify(r.javaTz) + ')');
+    ok(r.split.join('|') === 'false|Europe/Amsterdam||Pluto/Basis', 'zone die alleen Java kent: JS, Java en skin volgen samen de telefoon (' + r.split.join(' · ') + ')');
+    ok(r.alias.join('|') === 'true|Asia/Kolkata|true|Asia/Kolkata|08:00|Asia/Kolkata|true', 'andere naam voor een zone (Asia/Kolkata) werkt: ' + r.alias.join(' · '));
     ok(r.zone === 'Europe/Amsterdam' && !r.own && r.tz === 'Mars/Olympus' && r.row === 'Volg de telefoon (Europe/Amsterdam)', 'onbekende zone: de app volgt de telefoon');
     ok(r.bad === 'De gekozen tijdzone (Mars/Olympus) kent deze telefoon niet. De app volgt nu de telefoon (Europe/Amsterdam).', 'en zegt dat op het scherm: ' + r.bad);
     ok(r.java.join() === 'false,false,false,true,false', 'alleen zones die de WebView én Java precies zo kennen (hoofdletters tellen): ' + r.java.join());
@@ -229,19 +240,25 @@ const path = require('path');
     await pg.goto(url); await pg.waitForTimeout(300);
     const r = await pg.evaluate(() => {
       const one = q => { const h = setHandle(q), it = h && h.set && h.set.items && h.set.items[0]; return it ? it.id + '=' + it.to : h && /staat al op/.test(h.text || '') ? 'al ' + h.set.open[0] : h && h.local ? 'tekst' : ''; };
-      const ja = ['zet de tijdzone op New York', 'zet de tijdzone op new york', 'gebruik Londense tijd', 'gebruik de tijd van Tokio', 'stel de tijdzone in op Kiritimati', 'zet de tijdzone op America/Los_Angeles'].map(q => q + ' → ' + one(q));
-      const ask = setHandle('hoe laat is het in New York'), ask2 = setHandle('Wat is de tijd in Tokio?');
-      const nee = ['hoe laat is het in New York', 'wat is de tijd in Tokio', 'hoe laat is het', 'gebruik de telefoon', 'zet de tijd op 12 uur', 'zet de wekker op 7 uur', 'gebruik de radio', 'zet de tijdzone op de maan'].map(q => q + ' → ' + one(q));
+      const ja = ['zet de tijdzone op New York', 'zet de tijdzone op new york', 'gebruik Londense tijd', 'gebruik de tijd van Tokio', 'stel de tijdzone in op Kiritimati', 'zet de tijdzone op America/Los_Angeles',
+        'tijdzone Londen', 'tijdzone naar Tokio', 'zet de zone op Londen', 'zet de tijd op Londen', 'zet de tijdzone op Asia/Kolkata', 'neem de tijdzone van Tokio', 'zet de tijdzone op Berlijn',
+        'gebruik de tijd van Boedapest', 'tijdzone Kaapstad', 'zet de tijdzone op Peking'].map(q => q + ' → ' + one(q));
+      const ask = setHandle('hoe laat is het in New York'), ask2 = setHandle('Wat is de tijd in Tokio?'), ask3 = setHandle('wat is het tijdsverschil met Tokio'), ask4 = setHandle('hoe laat is het op Curaçao'), ask5 = setHandle('Hoe laat is het op Curacao?');
+      const nee = ['hoe laat is het in New York', 'wat is de tijd in Tokio', 'hoe laat is het', 'gebruik de telefoon', 'zet de tijd op 12 uur', 'zet de wekker op 7 uur', 'gebruik de radio', 'zet de tijdzone op de maan',
+        'neem de tijd van Regina', 'neem de tijd van Jos', 'wat is het tijdsverschil met Tokio', 'hoe laat is het op Curaçao', 'zet de tijd op morgen', 'tijdzone', 'hoe laat is het in de keuken'].map(q => q + ' → ' + one(q));
       const tzAfter = rgCfg().tz;
       setEntry('regio.tijdzone').set('Asia/Tokyo');
       const set = [rgCfg().tz, setGet(setEntry('regio.tijdzone')), setName(setEntry('regio.tijdzone'), 'Asia/Tokyo')];
-      const back = ['volg de telefoon', 'zet de tijdzone op de telefoon', 'laat de tijdzone de telefoon volgen'].map(q => q + ' → ' + one(q));
+      const back = ['volg de telefoon', 'zet de tijdzone op de telefoon', 'laat de tijdzone de telefoon volgen', 'volg de tijd van de telefoon'].map(q => q + ' → ' + one(q));
       setEntry('regio.tijdzone').set('telefoon');
-      return { ja, nee, ask: ask && ask.text, ask2: ask2 && ask2.text, askSet: !!(ask && ask.set && ask.set.items), tzAfter, set, back, end: rgCfg().tz };
+      return { ja, nee, ask: ask && ask.text, ask2: ask2 && ask2.text, ask3: ask3 && ask3.text, ask4: ask4 && ask4.text, ask5: ask5 && ask5.text, askSet: !!(ask && ask.set && ask.set.items), tzAfter, set, back, end: rgCfg().tz };
     });
-    const want = ['regio.tijdzone=America/New_York', 'regio.tijdzone=America/New_York', 'regio.tijdzone=Europe/London', 'regio.tijdzone=Asia/Tokyo', 'regio.tijdzone=Pacific/Kiritimati', 'regio.tijdzone=America/Los_Angeles'];
+    const want = ['regio.tijdzone=America/New_York', 'regio.tijdzone=America/New_York', 'regio.tijdzone=Europe/London', 'regio.tijdzone=Asia/Tokyo', 'regio.tijdzone=Pacific/Kiritimati', 'regio.tijdzone=America/Los_Angeles',
+      'regio.tijdzone=Europe/London', 'regio.tijdzone=Asia/Tokyo', 'regio.tijdzone=Europe/London', 'regio.tijdzone=Europe/London', 'regio.tijdzone=Asia/Kolkata', 'regio.tijdzone=Asia/Tokyo', 'regio.tijdzone=Europe/Berlin',
+      'regio.tijdzone=Europe/Budapest', 'regio.tijdzone=Africa/Johannesburg', 'regio.tijdzone=Asia/Shanghai'];
     r.ja.forEach((x, i) => ok(x.endsWith('→ ' + want[i]), 'assistent: ' + x));
-    ok(/^In New York is het nu 21:30 \(dinsdag 3 november, UTC−5\)\./.test(r.ask) && !r.askSet && /^In Tokio is het nu 11:30 \(woensdag 4 november, UTC\+9\)/.test(r.ask2), 'een vraag naar de tijd ergens anders: alleen een antwoord (' + r.ask + ')');
+    ok(/^In New York is het nu 21:30, 6 uur eerder dan hier \(dinsdag 3 november, UTC−5\)\./.test(r.ask) && !r.askSet && /^In Tokio is het nu 11:30, 8 uur later dan hier \(woensdag 4 november, UTC\+9\)/.test(r.ask2), 'een vraag naar de tijd ergens anders: alleen een antwoord (' + r.ask + ')');
+    ok(/^In Tokio is het nu 11:30, 8 uur later dan hier/.test(r.ask3) && /^In Curaçao is het nu 22:30, 5 uur eerder dan hier/.test(r.ask4) && r.ask5 === r.ask4, 'tijdsverschil en Curaçao: ' + r.ask3 + ' / ' + r.ask4);
     ok(r.nee.every(x => !/regio\.tijdzone=/.test(x)) && r.tzAfter === '', 'geen valse treffers (de tijdzone blijft zoals hij was): ' + r.nee.join(' | '));
     ok(r.set.join('|') === 'Asia/Tokyo|Asia/Tokyo|Tokio (UTC+9)', 'register: zetten via dezelfde functie als het scherm (' + r.set.join(' · ') + ')');
     ok(r.back.every(x => x.endsWith('→ regio.tijdzone=telefoon')) && r.end === '', 'terug: ' + r.back.join(' | '));

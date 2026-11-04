@@ -405,6 +405,16 @@ final class Regio {
         return 0;
     }
 
+    /**
+     * Een hele dag (begin en eind in de app-zone) voor de agenda-app, die in telefoontijd rekent: dezelfde datums, van
+     * middernacht tot middernacht in telefoontijd (ook op een dag van 23 of 25 uur). end = het begin van de dag erna.
+     */
+    static long[] allDayFor(TimeZone app, TimeZone phone, long begin, long end) {
+        long b = toMillis(phone, dayKey(app, begin), "00:00");
+        long e = end > begin ? toMillis(phone, dayAdd(dayKey(app, end - 1), 1), "00:00") : toMillis(phone, dayAdd(dayKey(app, begin), 1), "00:00");
+        return new long[]{b, e};
+    }
+
     /** Minuut van de dag (0–1439) van t in zone tz. */
     static int minuteOfDay(TimeZone tz, long t) { Calendar k = cal(tz, t); return k.get(Calendar.HOUR_OF_DAY) * 60 + k.get(Calendar.MINUTE); }
 

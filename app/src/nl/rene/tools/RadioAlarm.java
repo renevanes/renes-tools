@@ -72,7 +72,7 @@ final class RadioAlarm {
         try {
             dp(c).edit().putBoolean("on", p.getBoolean("on", false) && p.getString("station", null) != null)
                     .putInt("hour", p.getInt("hour", 7)).putInt("minute", p.getInt("minute", 0)).putInt("days", p.getInt("days", 31))
-                    .putString("tz", Regio.zone(c).getID()).apply(); // de app-zone (Regio en taal is vóór ontgrendelen onleesbaar)
+                    .putString("tz", Regio.followsPhone(Regio.cfg(c)) ? "" : Regio.zone(c).getID()).apply(); // de app-zone, "" = de telefoon (Regio en taal is vóór ontgrendelen onleesbaar)
         } catch (Exception ignored) { }
     }
 

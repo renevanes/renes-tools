@@ -172,6 +172,36 @@ final class Reminders {
         return cal.getTimeInMillis();
     }
 
+    /**
+     * Een andere tijdzone (Regio en taal): een herinnering blijft op dezelfde wandklok, nu in de nieuwe zone (08:00 blijft
+     * 08:00), net als wekkers en andere tijden die je instelt. Herhalend: daarna het eerstvolgende moment. Eenmalig en in
+     * de nieuwe zone al voorbij: het oude moment blijft (anders zou hij meteen afgaan of verloren gaan). Zuiver (getest).
+     */
+    static long rezoneTime(long t, String rep, int dom, java.util.TimeZone from, java.util.TimeZone to, long now) {
+        if (t <= 0 || from.getID().equals(to.getID())) return t;
+        Calendar k = Calendar.getInstance(from);
+        k.setTimeInMillis(t);
+        long n = Regio.toMillis(to, k.get(Calendar.YEAR), k.get(Calendar.MONTH) + 1, k.get(Calendar.DAY_OF_MONTH), k.get(Calendar.HOUR_OF_DAY), k.get(Calendar.MINUTE), k.get(Calendar.SECOND));
+        if (n > now) return n;
+        if (rep == null || rep.isEmpty()) return t;
+        long x = next(n, rep, now, dom, to);
+        return x > 0 ? x : t;
+    }
+
+    /** Alle herinneringen naar de nieuwe tijdzone (zie rezoneTime) en opnieuw plannen. */
+    static void rezone(Context c, java.util.TimeZone from, java.util.TimeZone to) {
+        long now = System.currentTimeMillis();
+        for (Map.Entry<String, ?> e : prefs(c).getAll().entrySet()) {
+            try {
+                JSONObject r = get(c, e.getKey());
+                if (r == null) continue;
+                long t = r.optLong("t"), n = rezoneTime(t, r.optString("rep"), r.optInt("dom", 0), from, to, now);
+                if (n != t) prefs(c).edit().putString(e.getKey(), r.put("t", n).toString()).apply();
+            } catch (Exception ex) { App.log(c, "ALARM", "herinnering naar andere tijdzone: " + ex); }
+        }
+        rearm(c);
+    }
+
     /** Na herstarten van de telefoon alles opnieuw plannen (gemiste meteen melden). */
     static void rearm(Context c) {
         for (Map.Entry<String, ?> e : prefs(c).getAll().entrySet()) {
