@@ -645,7 +645,9 @@ final class LocalAi {
     }
 
     static String systemPrompt(Context c, int ctx, List<String> mem, String note) {
-        String today = new java.text.SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL")).format(new java.util.Date());
+        java.text.SimpleDateFormat todayF = new java.text.SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL"));
+        todayF.setTimeZone(Regio.zone(c)); // vandaag in de app-zone (Regio en taal); de notatie blijft vast nl-NL
+        String today = todayF.format(new java.util.Date());
         String[] p = persFit(cfg(c, "about"), cfg(c, "instr"), ctx);
         return buildSystem(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1], mem, note);
     }

@@ -475,6 +475,7 @@ final class SleepTalk {
             if (a == null) continue;
             List<String> lines = new ArrayList<>(); List<Long> times = new ArrayList<>();
             java.text.SimpleDateFormat hm = new java.text.SimpleDateFormat("HH:mm", Locale.ROOT);
+            hm.setTimeZone(Regio.zone(c)); // tijden in de app-zone
             for (int i = 0; i < a.length(); i++) {
                 JSONObject k = a.optJSONObject(i);
                 if (k == null || !"praten".equals(k.optString("kind")) || k.optString("text").isEmpty()) continue;

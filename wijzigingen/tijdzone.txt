@@ -1,0 +1,2 @@
+Nieuw: Instellingen → Regio en taal → Tijdzone: kies een andere tijdzone (zoeken op stad of land, met de tijd daar nu); de hele app (klok, "vandaag", wekkers, herinneringen, check-in, widgets, Telefoon-skin en invoervelden) rekent dan in die zone. Standaard volgt de app de telefoon.
+De assistent kan de tijdzone voor je aanpassen ("zet de tijdzone op New York", "gebruik Londense tijd", "volg de telefoon") en zegt hoe laat het ergens anders is ("hoe laat is het in Tokio?") zonder iets te veranderen.
