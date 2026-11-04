@@ -73,7 +73,7 @@ function bkRenderLast(st){
   $('#bk-run').disabled = bkBusy || !st.dest;
   $('#bk-run').textContent = bkBusy ? t('Bezig: {wat}', { wat: t(BK_LABEL[st.current] || '…') }) : t('Nu alles back-uppen');
   if (!l || !l.t) { $('#bk-last').textContent = 'Nog niet gemaakt'; $('#bk-parts-res').innerHTML = ''; return; }
-  $('#bk-last').textContent = (l.auto ? 'Automatisch, ' : '') + fmtDT(l.t, {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
+  $('#bk-last').textContent = (l.auto ? t('Automatisch') + ', ' : '') + fmtDT(l.t, {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
   $('#bk-parts-res').innerHTML = Object.keys(BK_LABEL).filter(k => l[k]).map(k => { const r = l[k];
     return '<div class=bkres><b>' + BK_LABEL[k] + '</b>' + (r.ok ? '<span class=good>✓ ' + (r.msg ? esc(r.msg) : fmtNum(r.count)) + '</span>' : '<span class=bad>✗ ' + esc(r.msg || 'mislukt') + '</span>') + '</div>'; }).join('') +
     (l.all ? '<div class=bkres><span class=bad>' + esc(l.all.msg || '') + '</span></div>' : '') +

@@ -86,7 +86,7 @@ function smsPollOnce(){
     $('#sms-recovery').style.display='none';
     const pct = s.total ? 100 * s.done / s.total : 0;
     $('#sms-bar').style.width = pct.toFixed(0) + '%';
-    $('#sms-run-count').textContent = (s.done||0) + ' van ' + (s.total||0) + ' berichten';
+    $('#sms-run-count').textContent = t('{n} van {totaal} berichten', { n: s.done || 0, totaal: s.total || 0 });
   } else if (s.ok !== undefined && !smsLastDone) {
     smsLastDone = true;
     const r = $('#sms-result');

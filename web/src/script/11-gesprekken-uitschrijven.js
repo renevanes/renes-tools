@@ -70,7 +70,7 @@ function txPollOnce(){
   } else if (txLastRunning) {
     txLastRunning = false;
     const r = $('#tx-result');
-    if (s.error || s.failed) { r.textContent = (s.done ? s.done + ' gelukt, ' : '') + (s.failed || 1) + ' mislukt: ' + (s.error || ''); r.className = 'result on error'; }
+    if (s.error || s.failed) { r.textContent = (s.done ? t('{n} gelukt', { n: s.done }) + ', ' : '') + t('{n} mislukt: {fout}', { n: s.failed || 1, fout: t(s.error || '') }); r.className = 'result on error'; }
     else if (s.stopped) { r.textContent = 'Gestopt'; r.className = 'result on other'; }
     else { r.textContent = s.done ? tn(s.done, '✓ {n} gesprek uitgeschreven', '✓ {n} gesprekken uitgeschreven') : t('✓ Spraakmodel klaar'); r.className = 'result on answered'; }
     enterTranscripts();

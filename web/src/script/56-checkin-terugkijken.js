@@ -26,7 +26,7 @@ function ciRemByDay(h){
 }
 /** "31 okt 18:49". Zuiver. */
 function ciWhen(tt){ const d = new Date(tt); return d.getDate() + ' ' + CI_MON[d.getMonth()].slice(0, 3) + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '') + ' ' + ciTime(tt); }
-function ciRemCount(n){ return n === 1 ? 'met een opmerking' : 'met ' + n + ' opmerkingen'; }
+function ciRemCount(n){ return tn(n, 'met een opmerking', 'met {n} opmerkingen'); }
 /** Trend: kleinste kwadraten over de punten [x, y]; geeft de verandering over het hele bereik (y is 0..1). Zuiver. */
 function ciTrend(pts){
   if (pts.length < 3) return null;
@@ -140,14 +140,14 @@ function ciDur(min){ min = Math.round(min); return min < 60 ? min + ' min' : Mat
 /** Slaap en agenda van een dag in woorden. */
 function ciDayInfo(day, info){
   const x = ((info || {}).days || {})[day] || {}, out = [];
-  if (x.sleep) out.push(['moon', 'Nacht ervoor (Slaappraat): luisterde ' + ciDur(x.sleep.min) + (x.sleep.heard ? ' · ' + x.sleep.heard + '× iets gehoord' + (x.sleep.talk ? ', waarvan ' + x.sleep.talk + '× gepraat' : '') : ' · niets gehoord')]);
+  if (x.sleep) out.push(['moon', t('Nacht ervoor (Slaappraat): luisterde {duur}', { duur: ciDur(x.sleep.min) }) + ' · ' + (x.sleep.heard ? t('{n}× iets gehoord', { n: x.sleep.heard }) + (x.sleep.talk ? ', ' + t('waarvan {n}× gepraat', { n: x.sleep.talk }) : '') : t('niets gehoord'))]);
   if ((info || {}).cal) out.push(['calendar', x.cal ? t('Agenda: {wat}', { wat: (x.cal.n ? tn(x.cal.n, '{n} afspraak', '{n} afspraken') + (x.cal.busy ? ', ' + t('{duur} bezet', { duur: ciDur(x.cal.busy) }) : '') : t('geen afspraken met een tijd')) + (x.cal.allDay ? ' ' + t('(+{n} hele dag)', { n: x.cal.allDay }) : '') }) : t('Agenda: niets gepland')]);
   return out;
 }
 /** Een opmerking in de dag: tekst, wanneer, en Wijzigen/Wissen. */
 function ciRemHtml(r){
   return '<div class="ci-rem"><p class="ci-note">' + (r.voice ? uiIcon('mic') + ' ' : '') + esc(r.text) + '</p><small class="note">' + esc(t('opmerking van {wanneer}', { wanneer: ciWhen(r.t) }) + (r.edited ? ' · ' + t('gewijzigd {wanneer}', { wanneer: ciWhen(r.edited) }) : '')) + '</small>' +
-    '<div class="ci-acts"><button class="mini" data-r="' + esc(r.id) + '" onclick="ciRemOpen(\'\', this.dataset.r)" aria-label="' + esc('Opmerking wijzigen, ' + ciKeyLabel(r.p)) + '">Wijzigen</button>' +
+    '<div class="ci-acts"><button class="mini" data-r="' + esc(r.id) + '" onclick="ciRemOpen(\'\', this.dataset.r)" aria-label="' + esc(t('Opmerking wijzigen, {wanneer}', { wanneer: ciKeyLabel(r.p) })) + '">Wijzigen</button>' +
     '<button class="mini" data-r="' + esc(r.id) + '" onclick="ciqRemDel(this.dataset.r)" aria-label="' + esc(t('Opmerking wissen, {wanneer}', { wanneer: ciKeyLabel(r.p) })) + '">Wissen</button></div></div>';
 }
 function ciqRenderDay(q){
@@ -167,11 +167,11 @@ function ciqRenderDay(q){
     if (q.rhythm === 'multi' && s.at) h += '<p class="ci-st"><b>' + esc(ciTime(s.at)) + '</b> · ' + esc(ans.length ? 'ingevuld' : { open: 'nog open', missed: 'gemist', quiet: 'stil', upcoming: 'komt nog', before: 'van vóór de vraag' }[s.status] || '') + '</p>';
     ans.forEach((a, i) => {
       const ed = canEdit(a) && !q.archived, rb = ansBtn(a, i);
-      h += '<div class="ci-ans"><b>' + esc(ciAnsText(a)) + '</b> <small class="note">' + esc((a.late ? 'achteraf ingevuld' : a.src === 'notif' ? 'uit de melding' : 'ingevuld') + ' om ' + ciShort(new Date(a.t)) + ' ' + ciTime(a.t)) + '</small>' +
+      h += '<div class="ci-ans"><b>' + esc(ciAnsText(a)) + '</b> <small class="note">' + esc(t(a.late ? 'achteraf ingevuld om {wanneer}' : a.src === 'notif' ? 'uit de melding om {wanneer}' : 'ingevuld om {wanneer}', { wanneer: ciShort(new Date(a.t)) + ' ' + ciTime(a.t) })) + '</small>' +
         ((a.labels || []).length ? '<div class="ci-tags">' + a.labels.map(l => '<span>' + esc(l) + '</span>').join('') + '</div>' : '') +
         (a.note ? '<p class="ci-note">' + (a.voice ? uiIcon('mic') + ' ' : '') + esc(a.note) + '</p>' : '') +
-        (ed || rb ? '<div class="ci-acts">' : '') + (ed ? '<button class="mini" data-k="' + esc(s.key) + '" data-a="' + esc(a.id) + '" onclick="ciqEdit(this.dataset.k, this.dataset.a)" aria-label="' + esc('Wijzigen: ' + ciAnsText(a) + ', ' + ciKeyLabel(s.key)) + '">Wijzigen</button>' +
-          '<button class="mini" data-a="' + esc(a.id) + '" onclick="ciqDelAns(this.dataset.a)" aria-label="' + esc('Wissen: ' + ciAnsText(a) + ', ' + ciKeyLabel(s.key)) + '">Wissen</button>' : '') +
+        (ed || rb ? '<div class="ci-acts">' : '') + (ed ? '<button class="mini" data-k="' + esc(s.key) + '" data-a="' + esc(a.id) + '" onclick="ciqEdit(this.dataset.k, this.dataset.a)" aria-label="' + esc(t('Wijzigen: {wat}, {wanneer}', { wat: ciAnsText(a), wanneer: ciKeyLabel(s.key) })) + '">Wijzigen</button>' +
+          '<button class="mini" data-a="' + esc(a.id) + '" onclick="ciqDelAns(this.dataset.a)" aria-label="' + esc(t('Wissen: {wat}, {wanneer}', { wat: ciAnsText(a), wanneer: ciKeyLabel(s.key) })) + '">Wissen</button>' : '') +
         (rb ? '<button class="mini" data-k="' + esc(a.p) + '" onclick="ciRemOpen(this.dataset.k)" aria-label="' + esc(t('Opmerking toevoegen: {wat}, {wanneer}', { wat: ciAnsText(a), wanneer: ciKeyLabel(a.p) })) + '">' + uiIcon('edit') + 'Opmerking</button>' : '') + (ed || rb ? '</div>' : '') + '</div>';
     });
     h += rem.map(ciRemHtml).join('');
@@ -315,7 +315,7 @@ function ciChartSvg(q, pts, title){
   return '<p class="ci-big-txt">' + esc(desc) + '</p>' + (got.length ? '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(title + '. ' + desc) + '">' + s + '</svg>' +
     '<p class="note"><span class="ci-key"><i style="background:var(--qc)"></i>antwoord</span><span class="ci-key"><i style="border-top:2px dashed var(--ink)"></i>gemiddeld</span>' + (tr ? '<span class="ci-key"><i style="background:var(--warn)"></i>trend</span>' : '') + (nr ? '<span class="ci-key"><i style="background:var(--ink);width:6px;height:6px;border-radius:50%"></i>opmerking</span>' : '') + '</p>' +
     '<details><summary>Als tabel</summary><table class="ci-tbl"><thead><tr><th scope="col">Periode</th><th scope="col">Antwoord</th></tr></thead><tbody>' +
-    pts.filter(p => p.v != null || p.r).map(p => '<tr><td>' + esc(p.long) + '</td><td>' + esc((p.v == null ? 'geen antwoord' : (p.n > 1 ? 'gem. ' + ciNum(p.v) + ' ' : '') + ciOptText(ciNearest(q, p.v))) + (p.r ? ' · ' + (p.r === 1 ? 'opmerking' : p.r + ' opmerkingen') : '')) + '</td></tr>').join('') + '</tbody></table></details>' : '');
+    pts.filter(p => p.v != null || p.r).map(p => '<tr><td>' + esc(p.long) + '</td><td>' + esc((p.v == null ? t('geen antwoord') : (p.n > 1 ? t('gem. {n}', { n: ciNum(p.v) }) + ' ' : '') + ciOptText(ciNearest(q, p.v))) + (p.r ? ' · ' + tn(p.r, 'opmerking', '{n} opmerkingen') : '')) + '</td></tr>').join('') + '</tbody></table></details>' : '');
 }
 function ciqRenderChart(q){
   ciqViewV = store.get('ciView', ciqViewV);

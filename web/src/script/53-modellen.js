@@ -41,13 +41,13 @@ function mdLines(all, kind){
 
 /** De stand van een download in één regel. Zuiver. */
 function mdStateTxt(m){
-  const part = m.total > 0 ? Math.floor(m.bytes / m.total * 100) + '% · ' + mdGB(m.bytes) + ' van ' + mdGB(m.total) : '';
+  const part = m.total > 0 ? Math.floor(m.bytes / m.total * 100) + '% · ' + t('{a} van {b}', { a: mdGB(m.bytes), b: mdGB(m.total) }) : '';
   switch (m.state) {
-    case 'running': return 'Downloaden: ' + (part || 'bezig');
+    case 'running': return t('Downloaden: {stand}', { stand: part || t('bezig') });
     case 'queued': return 'Wacht op zijn beurt';
     case 'paused': return (m.reason || 'Onderbroken') + (part ? ' · ' + part : '');
-    case 'verifying': return 'Controleren… ' + (m.pct || 0) + '%';
-    case 'failed': return 'Mislukt: ' + (m.reason || 'onbekende fout');
+    case 'verifying': return t('Controleren… {pct}%', { pct: m.pct || 0 });
+    case 'failed': return t('Mislukt: {reden}', { reden: t(m.reason || 'onbekende fout') });
   }
   return '';
 }
@@ -137,39 +137,39 @@ function mdLineHtml(chain){
     rows += '<div class="md-ver">' +
       '<div class="aimt">' + name + '<small>' + esc(t('Je hebt versie: {versie}', { versie: main.version }) + (chain.length > 1 ? ' · ' + t(isNew ? 'nieuwste versie' : 'oudere versie') : '') + ' · ' + mdGB(main.size)) + '</small>' +
       '<small>' + esc(mdAgo(main.last)) + '</small></div>' +
-      '<div class="aimb">' + (main.inUse ? '<span class="aisel">In gebruik</span>' : main.kind === 'zoek' ? '' : mdBtn('Gebruiken', 'mdUse(' + jsq(main.key) + ')', false, mdLineName(main) + ' gebruiken')) +
-      mdBtn('Verwijderen', 'mdDel(' + jsq(main.key) + ')', false, mdLineName(main) + ' ' + main.version + ' verwijderen') + '</div></div>';
+      '<div class="aimb">' + (main.inUse ? '<span class="aisel">In gebruik</span>' : main.kind === 'zoek' ? '' : mdBtn('Gebruiken', 'mdUse(' + jsq(main.key) + ')', false, t('{model} gebruiken', { model: mdLineName(main) }))) +
+      mdBtn('Verwijderen', 'mdDel(' + jsq(main.key) + ')', false, t('{model} verwijderen', { model: mdLineName(main) + ' ' + main.version })) + '</div></div>';
     // Een nieuwere versie die je nog niet hebt
     if (!isNew && !newestBusy && newest.state !== 'ready') rows += '<div class="md-newer">' + uiIcon('star') + '<span><b>' + esc(t('Nieuwere versie: {versie}', { versie: newest.version })) + '</b> · ' + esc(mdGB(newest.size)) + (newest.news ? '<small>' + esc(newest.news) + '</small>' : '') + '</span>' +
       mdBtn('Bijwerken', 'mdDl(' + jsq(newest.key) + ')', true, t('{model} bijwerken naar {versie}', { model: mdLineName(newest), versie: newest.version })) + '</div>';
     // Oudere versies die er ook nog staan
     have.slice(1).forEach(o => { rows += '<div class="md-old"><span>' + esc(t('Ook nog op je telefoon: {versie} (oudere versie, {grootte})', { versie: o.version, grootte: mdGB(o.size) })) + (o.inUse ? ' · ' + t('in gebruik') : '') + '</span>' +
-      mdBtn('Verwijderen', 'mdDel(' + jsq(o.key) + ')', false, mdLineName(o) + ' ' + o.version + ' verwijderen') + '</div>'; });
+      mdBtn('Verwijderen', 'mdDel(' + jsq(o.key) + ')', false, t('{model} verwijderen', { model: mdLineName(o) + ' ' + o.version })) + '</div>'; });
   }
   busyAll.forEach((b, i) => { rows += mdBusyHtml(b, !main && i === 0 ? name : '', b !== newest ? newest : null); });
   // Alleen een oudere versie onderbroken of mislukt en de nieuwste nog niet: de nieuwste aanbieden
   if (!main && busy && !newestBusy) rows += '<div class="md-newer">' + uiIcon('star') + '<span><b>' + esc(t('Nieuwere versie: {versie}', { versie: newest.version })) + '</b> · ' + esc(mdGB(newest.size)) + '<small>' + esc(t('Download liever deze; de oudere kun je stoppen.') + (newest.news ? ' ' + newest.news : '')) + '</small></span>' +
-    mdBtn('Downloaden', 'mdDl(' + jsq(newest.key) + ')', true, mdLineName(newest) + ' ' + newest.version + ' downloaden') + '</div>';
+    mdBtn('Downloaden', 'mdDl(' + jsq(newest.key) + ')', true, t('{model} downloaden', { model: mdLineName(newest) + ' ' + newest.version })) + '</div>';
   if (!main && !busy) {
     const need = newest.kind === 'spraak' ? newest.size : 2 * newest.size + 200 * 1048576, fits = !(mdSt.free > 0) || mdSt.free >= need;
     const can = newest.kind === 'spraak' || mdSt.supported !== false;
     rows += '<div class="md-ver"><div class="aimt">' + name + '<small>' + esc(t('Nog niet op je telefoon') + ' · ' + t(chain.length > 1 ? 'nieuwste versie: {versie}' : 'versie: {versie}', { versie: newest.version }) + ' · ' + mdGB(newest.size) + ram + (fits ? '' : ' · ' + t('past nu niet ({grootte} vrij)', { grootte: mdGB(mdSt.free) }))) + '</small></div>' +
-      '<div class="aimb">' + (can ? mdBtn('Downloaden', 'mdDl(' + jsq(newest.key) + ')', true, mdLineName(newest) + ' downloaden') : '') + '</div></div>';
+      '<div class="aimb">' + (can ? mdBtn('Downloaden', 'mdDl(' + jsq(newest.key) + ')', true, t('{model} downloaden', { model: mdLineName(newest) })) : '') + '</div></div>';
   }
   return '<div class="md-linebox" role="listitem" data-line="' + esc(newest.key) + '">' + rows + '</div>';
 }
 function mdBusyHtml(m, name, newer){
-  const hint = newer && m.state !== 'running' && m.state !== 'verifying' ? 'Oudere versie: die gaat niet verder. Stop hem en download de nieuwste.' : mdHint(m, mdSt), stopB = mdBtn('Stoppen', 'mdStop(' + jsq(m.key) + ')', false, mdLineName(m) + ': downloaden stoppen');
+  const hint = newer && m.state !== 'running' && m.state !== 'verifying' ? 'Oudere versie: die gaat niet verder. Stop hem en download de nieuwste.' : mdHint(m, mdSt), stopB = mdBtn('Stoppen', 'mdStop(' + jsq(m.key) + ')', false, t('{model}: downloaden stoppen', { model: mdLineName(m) }));
   let b = '';
   if (m.kind === 'spraak') b = ''; // het spraakmodel stopt bij Gesprekken uitschrijven
   else if (m.state === 'failed') b = (newer ? '' : mdBtn('Opnieuw', 'mdDl(' + jsq(m.key) + ')', true, t('{model} opnieuw downloaden', { model: mdLineName(m) }))) + mdBtn('Weghalen', 'mdStop(' + jsq(m.key) + ')', false, t('{model} weghalen', { model: mdLineName(m) }));
   else if (newer) b = stopB; // een oudere versie: niet verder, wel stoppen
   else if (m.state === 'verifying') b = '';
-  else if (m.state === 'paused' && !m.waiting) b = mdBtn('Verder', 'mdDl(' + jsq(m.key) + ')', true, mdLineName(m) + ': verder downloaden') + stopB;
+  else if (m.state === 'paused' && !m.waiting) b = mdBtn('Verder', 'mdDl(' + jsq(m.key) + ')', true, t('{model}: verder downloaden', { model: mdLineName(m) })) + stopB;
   else b = stopB;
   return '<div class="md-busy" data-key="' + esc(m.key) + '"><div class="aimt">' + (name || '') + '<small>' + esc(m.version + (newer ? ' (oudere versie)' : '')) + '</small>' +
     '<small class="aims"><span aria-hidden="true">' + (m.state === 'failed' ? '⚠ ' : m.state === 'running' || m.state === 'queued' ? '↓ ' : '') + '</span>' + esc(mdStateTxt(m)) + '</small>' +
-    '<span class="pcprog" role="progressbar" aria-label="' + esc('Voortgang ' + mdLineName(m)) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.floor(mdPct(m)) + '"><i style="width:' + mdPct(m).toFixed(1) + '%"></i></span>' +
+    '<span class="pcprog" role="progressbar" aria-label="' + esc(t('Voortgang {model}', { model: mdLineName(m) })) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.floor(mdPct(m)) + '"><i style="width:' + mdPct(m).toFixed(1) + '%"></i></span>' +
     (hint ? '<small class="md-hint">' + esc(hint) + '</small>' : '') + '</div>' + (b ? '<div class="md-acts">' + b + '</div>' : '') + '</div>';
 }
 
@@ -223,7 +223,7 @@ function mdDel(key){
   askConfirm(t('{naam} verwijderen?', { naam: mdLineName(m) + ' (' + m.version + ')' }), t('{grootte} komt vrij.', { grootte: mdGB(m.size) }) + ' ' + mdDelText(m, mdModels()), 'Verwijderen', () => {
     if (m.kind === 'spraak') { Android.txDeleteModel(m.id); if (m.inUse) { const o = mdModels().find(x => x.kind === 'spraak' && x.state === 'ready' && x.key !== m.key); if (o) Android.txSetModel(o.id); } }
     else Android.aiDelete(m.id);
-    toast(mdLineName(m) + ' verwijderd');
+    toast(t('{model} verwijderd', { model: mdLineName(m) }));
     mdRefresh();
   });
 }

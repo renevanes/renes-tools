@@ -374,9 +374,9 @@ function bkRekeningen(){
   s.value = [...s.options].some(o => o.value === was) ? was : 'alle';
   $('#bk-rek-rij').hidden = acc.length < 2;
 }
-function bkRekNaam(a){ const n = bk.store && bkRekInfo(a).naam; return (n ? n + ' · ' : '') + (a === 'onbekend' ? 'Rekening onbekend' : a.length > 8 ? a.slice(0, 4) + ' … ' + a.slice(-4) : a); }
+function bkRekNaam(a){ const n = bk.store && bkRekInfo(a).naam; return (n ? n + ' · ' : '') + (a === 'onbekend' ? t('Rekening onbekend') : a.length > 8 ? a.slice(0, 4) + ' … ' + a.slice(-4) : a); }
 /** Naam van wat je bekijkt, voor kopjes en de AI. */
-function bkZichtNaam(){ const r = bkRekening(); return r === 'alle' ? 'alle rekeningen' : r === 'prive' ? 'alle privérekeningen' : r === 'zakelijk' ? 'alle zakelijke rekeningen' : 'rekening ' + bkRekNaam(r) + ' (' + (bkRekSoort(r) === 'zakelijk' ? 'zakelijk' : 'privé') + ')'; }
+function bkZichtNaam(){ const r = bkRekening(); return r === 'alle' ? t('alle rekeningen') : r === 'prive' ? t('alle privérekeningen') : r === 'zakelijk' ? t('alle zakelijke rekeningen') : t('rekening {naam} ({soort})', { naam: bkRekNaam(r), soort: t(bkRekSoort(r) === 'zakelijk' ? 'zakelijk' : 'privé') }); }
 
 /** Nieuwe rekening in een afschrift: vragen of hij privé of zakelijk is (één voor één). */
 function bkNieuweRekeningen(){
@@ -423,18 +423,18 @@ function bkOverzicht(van, tot){
     + '<div class="bk-kpi"><small>' + (zak ? 'Omzet en inkomsten' : 'Inkomsten') + '</small><b class="bk-plus">' + esc(bkEuro(tt.in)) + '</b>' + bkVerschil(tt.in, vorig.in, false) + '</div>'
     + '<div class="bk-kpi"><small>' + (zak ? 'Kosten' : 'Uitgaven') + '</small><b>' + esc(bkEuro(tt.uit)) + '</b>' + bkVerschil(tt.uit, vorig.uit, true) + '</div>'
     + '<div class="bk-kpi"><small>' + (zak ? 'Resultaat' : 'Over') + '</small><b class="' + (over >= 0 ? 'bk-plus' : 'bk-min') + '">' + esc(bkEuro(over, true)) + '</b><span>' + (tt.in > 0 ? t(zak ? 'Marge {pct}%' : 'Spaarquote {pct}%', { pct: Math.round((tt.in - tt.uit) / tt.in * 100) }) : '') + '</span></div>'
-    + (zak ? '<div class="bk-kpi"><small>Naar privé</small><b>' + esc(bkEuro(tt.naarPrive)) + '</b><span>' + (tt.inbreng ? 'ingebracht ' + esc(bkEuro(tt.inbreng)) : tt.n + ' boekingen') + '</span></div></div>'
-      : '<div class="bk-kpi"><small>Gespaard en belegd</small><b>' + esc(bkEuro(tt.sparen)) + '</b><span>' + tt.n + ' boekingen</span></div></div>');
+    + (zak ? '<div class="bk-kpi"><small>Naar privé</small><b>' + esc(bkEuro(tt.naarPrive)) + '</b><span>' + esc(tt.inbreng ? t('ingebracht {bedrag}', { bedrag: bkEuro(tt.inbreng) }) : t('{n} boekingen', { n: tt.n })) + '</span></div></div>'
+      : '<div class="bk-kpi"><small>Gespaard en belegd</small><b>' + esc(bkEuro(tt.sparen)) + '</b><span>' + t('{n} boekingen', { n: tt.n }) + '</span></div></div>');
   // Alle rekeningen met privé én zakelijk: per soort en per rekening apart
   if (bkRekening() === 'alle' && bkZichtSoort() === '') {
-    const rij = (naam, x, sub, klik) => '<' + (klik ? 'button class="bk-tx" onclick="' + klik + '"' : 'div class="bk-rij"') + '><span class="bk-naam"><b>' + esc(naam) + '</b><small>' + esc(sub) + '</small></span><span class="bk-bedrag ' + (x >= 0 ? 'bk-plus' : 'bk-min') + '">' + esc(bkEuro(x, true)) + '</span></' + (klik ? 'button' : 'div') + '>';
+    const rij = (naam, x, sub, klik) => '<' + (klik ? 'button class="bk-tx" onclick="' + klik + '"' : 'div class="bk-rij"') + '><span class="bk-naam"><b translate="no">' + esc(naam) + '</b><small>' + esc(sub) + '</small></span><span class="bk-bedrag ' + (x >= 0 ? 'bk-plus' : 'bk-min') + '">' + esc(bkEuro(x, true)) + '</span></' + (klik ? 'button' : 'div') + '>';
     let r = '';
     for (const soort of ['prive', 'zakelijk']) {
       const deel = lijst.filter(x => bkRekSoort(x.acc) === soort);
       // Binnen één soort telt geld naar de andere soort wél mee (privé-opname, uit eigen bedrijf)
       let inn = 0, uit = 0; for (const x of deel) { const so = bkCatSoort(bkCat(x)); if (so === 'neutraal' || so === 'sparen' || so === 'tussen') continue; if (so === 'in') inn += x.a; else uit -= x.a; }
       if (!deel.length) continue;
-      r += rij(soort === 'prive' ? 'Privé' : 'Zakelijk', inn - uit, (soort === 'prive' ? 'inkomsten ' : 'omzet ') + bkEuro(inn) + ' · ' + (soort === 'prive' ? 'uitgaven ' : 'kosten ') + bkEuro(uit), 'bkZicht(' + jsq(soort) + ')');
+      r += rij(t(soort === 'prive' ? 'Privé' : 'Zakelijk'), inn - uit, t(soort === 'prive' ? 'inkomsten {in} · uitgaven {uit}' : 'omzet {in} · kosten {uit}', { in: bkEuro(inn), uit: bkEuro(uit) }), 'bkZicht(' + jsq(soort) + ')');
     }
     h += bkKaart('Privé en zakelijk', r + '<p class="note" style="margin-bottom:0">Geld tussen je privé- en zakelijke rekeningen telt in de totalen hierboven niet mee. Per soort: bij Privé telt het als inkomsten uit je eigen bedrijf (geld naar je bedrijf gaat ervan af), bij Zakelijk als privé-opname of inbreng (geen omzet of kosten). Tik voor het overzicht van één soort.</p>');
   }
@@ -448,8 +448,8 @@ function bkOverzicht(van, tot){
     const v = bkVandaag(), mt = bkTotalen(bkSelectie(v.slice(0, 7) + '-01', v));
     h += bkKaart('Budget deze maand', '<div class="bk-bars">' + budgets.map(([c, b]) => {
       const x = mt.cats.get(c), uit = x ? -x.som : 0, p = Math.min(100, Math.round(uit / b * 100));
-      return '<button class="bk-bar" onclick="bkNaarCat(' + jsq(c) + ')"><div class="bk-bar-kop"><span>' + esc(c) + '</span><b>' + esc(bkEuroKort(uit)) + ' van ' + esc(bkEuroKort(b)) + '</b></div>'
-        + '<div class="bk-spoor" role="presentation"><div class="bk-vul' + (uit > b ? ' over' : '') + '" style="width:' + p + '%"></div></div><small>' + (uit > b ? esc(bkEuroKort(uit - b)) + ' te veel' : esc(bkEuroKort(b - uit)) + ' over') + '</small></button>';
+      return '<button class="bk-bar" onclick="bkNaarCat(' + jsq(c) + ')"><div class="bk-bar-kop"><span>' + esc(c) + '</span><b>' + esc(t('{a} van {b}', { a: bkEuroKort(uit), b: bkEuroKort(b) })) + '</b></div>'
+        + '<div class="bk-spoor" role="presentation"><div class="bk-vul' + (uit > b ? ' over' : '') + '" style="width:' + p + '%"></div></div><small>' + esc(uit > b ? t('{bedrag} te veel', { bedrag: bkEuroKort(uit - b) }) : t('{bedrag} over', { bedrag: bkEuroKort(b - uit) })) + '</small></button>';
     }).join('') + '</div>');
   }
   // Per maand
@@ -467,7 +467,7 @@ function bkOverzicht(van, tot){
     }).join('') + '</div>');
   }
   const inCats = [...tt.cats.entries()].filter(([, x]) => x.soort === 'in' && x.som !== 0).sort((a, b) => b[1].som - a[1].som);
-  if (inCats.length) h += bkKaart(zak ? 'Omzet en inkomsten' : 'Inkomsten', inCats.map(([c, x]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>' + x.n + (x.som < 0 ? ' overboekingen' : ' bijschrijvingen') + '</small></span><b class="' + (x.som < 0 ? 'bk-min' : 'bk-plus') + '">' + esc(bkEuro(x.som, x.som < 0)) + '</b></div>').join(''));
+  if (inCats.length) h += bkKaart(zak ? 'Omzet en inkomsten' : 'Inkomsten', inCats.map(([c, x]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>' + t(x.som < 0 ? '{n} overboekingen' : '{n} bijschrijvingen', { n: x.n }) + '</small></span><b class="' + (x.som < 0 ? 'bk-min' : 'bk-plus') + '">' + esc(bkEuro(x.som, x.som < 0)) + '</b></div>').join(''));
   // Vaste lasten
   const vast = bkTerugkerend(), actief = vast.filter(v => !v.gestopt);
   if (vast.length) {
@@ -483,7 +483,7 @@ function bkOverzicht(van, tot){
   if (groot.length) h += bkKaart('Grootste uitgaven', groot.map(x => '<button class="bk-tx" onclick="bkTx(' + jsq(x.id) + ')"><span class="bk-naam"><b>' + esc(x.cp || x.ci || 'Onbekend') + '</b><small>' + esc(bkDatum(x.d)) + ' · ' + esc(bkCat(x)) + '</small></span><span class="bk-bedrag">' + esc(bkEuro(x.a)) + '</span></button>').join(''));
   // Saldo
   const reeks = bkSaldoReeks(van, tot);
-  if (reeks.length > 1) h += bkKaart('Saldo', bkLijnGrafiek(reeks) + '<p class="note" style="margin-bottom:0">Laatste saldo: <b>' + esc(bkEuro(reeks[reeks.length - 1][1])) + '</b> op ' + esc(bkDatum(reeks[reeks.length - 1][0])) + '.</p>');
+  if (reeks.length > 1) h += bkKaart('Saldo', bkLijnGrafiek(reeks) + '<p class="note" style="margin-bottom:0">' + t('Laatste saldo: <b>{bedrag}</b> op {datum}.', { bedrag: esc(bkEuro(reeks[reeks.length - 1][1])), datum: esc(bkDatum(reeks[reeks.length - 1][0])) }) + '</p>');
   // Per dag van de week
   const wd = [0, 0, 0, 0, 0, 0, 0];
   for (const x of lijst) if (x.a < 0 && bkSoort(x) === 'uit') wd[(new Date(x.d + 'T12:00:00').getDay() + 6) % 7] -= x.a;
@@ -500,8 +500,8 @@ function bkMaandGrafiek(pm){
   let s = '<svg class="bk-grafiek" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Inkomsten en uitgaven per maand">';
   pm.forEach(([m, x], i) => {
     const x0 = L + i * bw, w = Math.max(3, bw / 2 - 3), hi = (H - B - 6) * x.in / max, hu = (H - B - 6) * x.uit / max;
-    s += '<rect x="' + (x0 + 2).toFixed(1) + '" y="' + (H - B - hi).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + hi.toFixed(1) + '" rx="2" fill="var(--ok)"><title>' + esc(bkMaandNaam(m) + ' inkomsten ' + bkEuro(x.in)) + '</title></rect>';
-    s += '<rect x="' + (x0 + 2 + w + 1).toFixed(1) + '" y="' + (H - B - hu).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + hu.toFixed(1) + '" rx="2" fill="var(--bad)"><title>' + esc(bkMaandNaam(m) + ' uitgaven ' + bkEuro(x.uit)) + '</title></rect>';
+    s += '<rect x="' + (x0 + 2).toFixed(1) + '" y="' + (H - B - hi).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + hi.toFixed(1) + '" rx="2" fill="var(--ok)"><title>' + esc(t('{maand} inkomsten {bedrag}', { maand: bkMaandNaam(m), bedrag: bkEuro(x.in) })) + '</title></rect>';
+    s += '<rect x="' + (x0 + 2 + w + 1).toFixed(1) + '" y="' + (H - B - hu).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + hu.toFixed(1) + '" rx="2" fill="var(--bad)"><title>' + esc(t('{maand} uitgaven {bedrag}', { maand: bkMaandNaam(m), bedrag: bkEuro(x.uit) })) + '</title></rect>';
     if (n <= 12) s += '<text x="' + (x0 + bw / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle">' + esc(t(BK_MAANDEN[Number(m.slice(5, 7)) - 1])) + '</text>';
   });
   s += '</svg>';
@@ -553,7 +553,7 @@ function bkLijstRender(){
   const opDag = $('#bk-sort').value === 'nieuw' || $('#bk-sort').value === 'oud';
   for (const tt of toon) {
     if (opDag && tt.d !== dag) { dag = tt.d; h += '<div class="bk-dag">' + esc(bkDatum(tt.d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) + '</div>'; }
-    h += '<button class="bk-tx" onclick="bkTx(' + jsq(tt.id) + ')"><span class="bk-naam"><b>' + esc(tt.cp || tt.ci || 'Onbekend') + '</b><small>' + esc(bkCat(tt)) + (opDag ? '' : ' · ' + esc(bkDatum(tt.d))) + (tt.n ? ' · ' + esc(tt.n) : tt.ds ? ' · ' + esc(tt.ds) : '') + '</small></span><span class="bk-bedrag ' + (tt.a > 0 ? 'bk-plus' : '') + '">' + esc(bkEuro(tt.a, true)) + '</span></button>';
+    h += '<button class="bk-tx" onclick="bkTx(' + jsq(tt.id) + ')"><span class="bk-naam"><b translate="no">' + esc(tt.cp || tt.ci || t('Onbekend')) + '</b><small>' + esc(t(bkCat(tt))) + (opDag ? '' : ' · ' + esc(bkDatum(tt.d))) + (tt.n ? ' · ' + esc(tt.n) : tt.ds ? ' · ' + esc(tt.ds) : '') + '</small></span><span class="bk-bedrag ' + (tt.a > 0 ? 'bk-plus' : '') + '">' + esc(bkEuro(tt.a, true)) + '</span></button>';
   }
   $('#bk-lijst').innerHTML = h || '<p class="note" style="margin:8px 0">Geen boekingen gevonden.</p>';
   $('#bk-meer').hidden = l.length <= bk.lijstN;
@@ -571,7 +571,7 @@ function bkTx(id){
   bk.venster = true;
   openSheet(tt.cp || tt.ci || 'Boeking', regels.join('\n'), [
     ['Categorie wijzigen', () => bkKiesCat(id, false), 'edit'],
-    ['Altijd zo indelen: ' + (bkSleutel(tt).slice(0, 30) || 'deze naam'), () => bkKiesCat(id, true), 'repeat'],
+    [t('Altijd zo indelen: {naam}', { naam: bkSleutel(tt).slice(0, 30) || t('deze naam') }), () => bkKiesCat(id, true), 'repeat'],
     [tt.n ? 'Notitie wijzigen' : 'Notitie toevoegen', () => askInput('Notitie', 'Alleen voor jezelf, versleuteld bewaard.', tt.n || '', 'Bewaren', v => { tt.n = String(v || '').slice(0, 200); if (!tt.n) delete tt.n; bkSave(); bkRender(); }), 'notes'],
     ['Andere boekingen van deze naam', () => { bkTab('boekingen'); $('#bk-cat').value = ''; $('#bk-zoek').value = (tt.cp || tt.ci || '').slice(0, 40); bkLijstRender(); }, 'search']
   ]);
@@ -617,7 +617,7 @@ window.onBankImport = function(r){
   bk.stilLaden = true; bkLaad(); bk.stilLaden = false;
   const fs = r.bestanden || [];
   let nieuw = 0, dubbel = 0; const fout = [];
-  for (const f of fs) { if (f.ok && f.sum) { nieuw += f.sum.nieuw || 0; dubbel += f.sum.dubbel || 0; } else fout.push(f.naam + ': ' + (f.fout || 'niet gelukt')); }
+  for (const f of fs) { if (f.ok && f.sum) { nieuw += f.sum.nieuw || 0; dubbel += f.sum.dubbel || 0; } else fout.push(f.naam + ': ' + t(f.fout || 'niet gelukt')); }
   const tekst = t('{n} nieuwe boekingen', { n: nieuw }) + (dubbel ? ', ' + t('{n} stonden er al', { n: dubbel }) : '') + (r.gewist ? '. ' + tn(r.gewist, '{n} bestand van de telefoon verwijderd', '{n} bestanden van de telefoon verwijderd') : '') + (fout.length ? '.\n\n' + t('Niet gelukt:') + '\n' + fout.join('\n') : '.');
   bk.venster = true;
   askConfirm('Afschrift geïmporteerd', tekst, 'OK', () => setTimeout(bkNieuweRekeningen, 50), () => setTimeout(bkNieuweRekeningen, 50));
@@ -655,7 +655,7 @@ function bkBeheer(){
   const zonder = s.tx.filter(tt => BK_OVERIG.has(bkCat(tt)));
   $('#bk-zonder').textContent = zonder.length ? t('{n} boekingen staan nog bij Overig. De lokale AI kan voorstellen maken voor de namen die het vaakst voorkomen; jij kiest wat je overneemt.', { n: zonder.length }) : t('Alle boekingen zijn ingedeeld.');
   $('#bk-ai-cat').hidden = !zonder.length;
-  $('#bk-regels').innerHTML = s.rules.length ? s.rules.map((g, i) => '<div class="bk-rij"><span class="bk-naam">“' + esc(g.p) + '”<small>' + (g.t === '+' ? 'bijschrijvingen' : g.t === '-' ? 'afschrijvingen' : 'alles') + ' → ' + esc(g.cat) + (g.s ? ' · ' + (g.s === 'zakelijk' ? 'zakelijk' : 'privé') : '') + '</small></span><button class="mini" style="float:none" onclick="bkRegelWeg(' + i + ')" aria-label="Regel verwijderen">Weg</button></div>').join('') : '<p class="note" style="margin:0">Nog geen eigen regels.</p>';
+  $('#bk-regels').innerHTML = s.rules.length ? s.rules.map((g, i) => '<div class="bk-rij"><span class="bk-naam">“' + esc(g.p) + '”<small>' + esc(t(g.t === '+' ? 'bijschrijvingen' : g.t === '-' ? 'afschrijvingen' : 'alles') + ' → ' + t(g.cat) + (g.s ? ' · ' + t(g.s === 'zakelijk' ? 'zakelijk' : 'privé') : '')) + '</small></span><button class="mini" style="float:none" onclick="bkRegelWeg(' + i + ')" aria-label="Regel verwijderen">Weg</button></div>').join('') : '<p class="note" style="margin:0">Nog geen eigen regels.</p>';
   $('#bk-budgetten').innerHTML = Object.entries(s.budget).filter(([, v]) => v > 0).map(([c, v]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>per maand</small></span><b>' + esc(bkEuroKort(v)) + '</b><button class="mini" style="float:none" onclick="bkBudgetWeg(' + jsq(c) + ')">Weg</button></div>').join('');
   $('#bk-rekeningen').innerHTML = bkAlleRek().map(r => '<div class="bk-rij"><span class="bk-naam">' + esc(bkRekNaam(r.iban)) + '<small>' + esc(r.iban + ' · ' + t(bkRekSoort(r.iban) === 'zakelijk' ? 'zakelijk' : 'privé') + (bkRekInfo(r.iban).soort ? '' : ' ' + t('(nog niet gekozen)')) + ' · ' + t(r.eigen ? 'zelf toegevoegd' : 'geïmporteerd')) + '</small></span><button class="mini" style="float:none" onclick="bkRekMenu(' + jsq(r.iban) + ')">Wijzigen</button></div>').join('');
   $('#bk-imports').innerHTML = s.imports.length ? '<details class="rinfo"><summary>' + t('Eerdere imports ({n})', { n: s.imports.length }) + '</summary>' + s.imports.slice().reverse().slice(0, 30).map(i => '<div class="bk-res">' + esc(fmtDate(i.t, { day: 'numeric', month: 'short', year: 'numeric' })) + ' · ' + esc(i.bank || i.format) + ' · ' + esc(i.van ? t('{van} t/m {tot}', { van: bkDatum(i.van), tot: bkDatum(i.tot) }) : '') + ' · ' + t('{n} nieuw', { n: i.nieuw || 0 }) + '</div>').join('') + '</details>' : '';
@@ -686,8 +686,8 @@ function bkRekSoortZet(a, soort){ bkRekZet(a, 'soort', soort); bkHerbereken(); b
 function bkRekMenu(a){
   const soort = bkRekSoort(a), eigen = (bk.store.eigen || []).findIndex(e => e.iban === a);
   const acts = [['Naam wijzigen', () => bkRekHernoem(a), 'edit'],
-    [(soort === 'prive' ? '✓ ' : '') + 'Privérekening', () => bkRekSoortZet(a, 'prive')],
-    [(soort === 'zakelijk' ? '✓ ' : '') + 'Zakelijke rekening', () => bkRekSoortZet(a, 'zakelijk')]];
+    [(soort === 'prive' ? '✓ ' : '') + t('Privérekening'), () => bkRekSoortZet(a, 'prive')],
+    [(soort === 'zakelijk' ? '✓ ' : '') + t('Zakelijke rekening'), () => bkRekSoortZet(a, 'zakelijk')]];
   if (eigen >= 0) acts.push(['Weghalen', () => bkEigenWeg(eigen), 'trash']);
   bk.venster = true;
   openSheet(bkRekNaam(a), a, acts);

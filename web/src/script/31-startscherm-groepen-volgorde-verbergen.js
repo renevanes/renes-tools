@@ -132,7 +132,7 @@ function heToolMenu(tk, fav){
 /** Kies de groep waar de tool heen moet (met "Nieuwe groep…"). */
 function heMoveSheet(tk){
   const c = homeCfg(), gi = heGroupOf(c, tk);
-  openSheet(heName(tk) + ' verplaatsen', 'Naar welke groep?', c.groups.map((g, i) => [g.name + (i === gi ? ' (nu)' : ''), () => { if (i !== gi) heMoveTo(tk, i); }, i === gi ? 'check' : 'folder'])
+  openSheet(t('{naam} verplaatsen', { naam: heName(tk) }), t('Naar welke groep?'), c.groups.map((g, i) => [t(g.name) + (i === gi ? ' ' + t('(nu)') : ''), () => { if (i !== gi) heMoveTo(tk, i); }, i === gi ? 'check' : 'folder'])
     .concat([['Nieuwe groep…', () => askInput('Nieuwe groep', 'Naam van de groep', '', 'Maken', v => { v = v.trim(); if (!v) return; const d = homeCfg(); d.groups.push({ name: v.slice(0, 40), tools: [] }); heMoveToIn(d, tk, d.groups.length - 1); heSaveEdit(d, t('{naam} staat nu in {groep}', { naam: heName(tk), groep: v.slice(0, 40) })); }), 'plus']]));
 }
 /** "Tool toevoegen" onder een groep: een tool uit een andere groep hierheen halen (blijft open voor nog een). */

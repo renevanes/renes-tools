@@ -69,7 +69,25 @@ function looksDutch(s){
   return /^[A-ZÉ][a-zéëïöü]+/.test(t) || /\s/.test(t);
 }
 /* Duidelijk Nederlandse woorden (voor de bewaker op aan elkaar geplakte tekst) */
-const DUTCHY = /(^|[^\p{L}])(de|het|een|niet|voor|met|naar|wordt|kies|tik|nog|geen|deze|dit|van|je|bij|uit|aan|als|ook|alleen|op|is|zijn|om|tot|en|dag|dagen|uur|minuten|keer|staat|klaar|gestopt|vrij|versie|gemiddeld|vraagt|leert|meteen|antwoord|antwoorden|gesprek|niets|stem|modellen|gaat|weg|gewist|bewaard|opgeslagen|mislukt|gelukt|lukt|lukte|bezig|nieuwe?|vandaag|gisteren|morgen|wachten|ingesteld|gekoppeld|verbonden|opnieuw|terug|door|resultaten|bestanden|berichten|nummers|stuks|gevonden|geleden|over|gebruikt|ingevuld|gemist|afspraken?|meldingen|minuut|seconden?|weken|maanden|bekijken|verwijderen|wissen|openen|toevoegen|zoeken|alle|elke|mijn|werd|kon|kan|moet|mag)(?![\p{L}])/iu;
+/* Woorden die alleen Nederlands zijn: alle woorden uit de sleutels van en.json, min alle woorden uit de Engelse
+ * vertalingen (en een paar woorden die in code en namen ook gewoon voorkomen). Zo groeit de bewaker mee met de app. */
+let NL_ONLY = null;
+function nlOnly(){
+  if (NL_ONLY) return NL_ONLY;
+  const d = readDict(), nl = new Set(), en = new Set();
+  const words = s => String(s).replace(/<[^>]*>|\{\w+\}/g, ' ').toLowerCase().match(/\p{L}{2,}/gu) || [];
+  // Een woord telt als Engels als het in een vertaling staat maar niet in de Nederlandse sleutel ervan (mapnamen en namen
+  // als "Oproepen backup" of "Rene van Es" worden gewoon overgenomen en tellen dus niet)
+  const vaak = new Map();
+  for (const [k, v] of Object.entries(d)) { const kw = new Set(words(k)); kw.forEach(w => nl.add(w)); (Array.isArray(v) ? v : [v]).forEach(x => new Set(words(x)).forEach(w => { if (!kw.has(w)) en.add(w); vaak.set(w, (vaak.get(w) || 0) + 1); })); }
+  for (const [w, n] of vaak) if (n >= 3) en.add(w); // vaak in vertalingen (eenheden, namen): geen Nederlands
+  for (const w of 'id ok ms px na'.split(' ')) en.add(w);
+  NL_ONLY = new Set([...nl].filter(w => !en.has(w)));
+  // Korte Nederlandse woorden die ook in Engelse namen staan ("Rene van Es"): toch Nederlands
+  for (const w of 'van de het een en op te om aan bij tot met voor naar niet nog geen je'.split(' ')) NL_ONLY.add(w);
+  return NL_ONLY;
+}
+const DUTCHY = { test: f => (String(f).replace(/<[^>]*>|\$\{…\}/g, ' ').toLowerCase().match(/\p{L}{2,}/gu) || []).some(w => nlOnly().has(w)) };
 /* Het woord n-e-p (wens van Rene) en de Engelse vertaling ervan, zonder het hier zelf uit te schrijven */
 const VERBODEN = new RegExp('\\b(n[e3]p|f' + 'ake)\\b', 'i');
 const SINKS = { toast: [0], undoToast: [0], askConfirm: [0, 1, 2], askInput: [0, 1, 3], askChoice: [0, 1, 2, 3], openSheet: [0, 1], t: [0], tn: [1, 2] };
@@ -92,6 +110,39 @@ function junk(k){
   const bare = k.replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ');
   return !hasLetters(bare) || /=["']|\bon[a-z]+=|\bAndroid\.\w+\(/.test(bare);
 }
+/* Staat de tekenreeks in een keuze of standaard (?:, ||) tussen haakjes die aan + vastzitten? [ervoor, erna] */
+function plusGroup(src, tk, byAt){
+  const prev = src.slice(Math.max(0, tk.at - 6), tk.at), next = src.slice(tk.end, tk.end + 6);
+  if (!/(\?|:|\|\||&&)\s*$/.test(prev) && !/^\s*(\?|:|\|\|)/.test(next)) return [false, false];
+  // naar het open-haakje van deze groep
+  let d = 0, i = tk.at - 1, q = null;
+  for (let n = 0; i >= 0 && n < 600; i--, n++) {
+    const c = src[i];
+    if (q) { if (c === q && src[i - 1] !== '\\') q = null; continue; }
+    if (c === '\'' || c === '"' || c === '`') { q = c; continue; }
+    if (c === ')' || c === ']' || c === '}') d++;
+    else if (c === '(' || c === '[' || c === '{') { if (!d) break; d--; }
+    else if (!d && (c === ';' || c === ',')) return [false, false];
+  }
+  if (i < 0 || src[i] !== '(') return [false, false];
+  if (/[\w$]\s*$/.test(src.slice(Math.max(0, i - 30), i))) return [false, false]; // een aanroep f(…), geen groep
+  let j = i + 1; d = 0; q = null;
+  for (; j < src.length; j++) {
+    const c = src[j];
+    if (q) { if (c === '\\') { j++; continue; } if (c === q) q = null; continue; }
+    if (c === '\'' || c === '"' || c === '`') { q = c; continue; }
+    if (c === '(' || c === '[' || c === '{') d++;
+    else if (c === ')' || c === ']' || c === '}') { if (!d) break; d--; }
+  }
+  const pb = /\+\s*$/.test(src.slice(Math.max(0, i - 4), i)), pa = /^\s*\+/.test(src.slice(j + 1, j + 5));
+  // Tussen een tag en een tag ('<p>' + (a ? 'x' : 'y') + '</p>') of in een heel attribuut: een eigen tekstknoop
+  const litVoor = () => { let k = i - 1; while (k >= 0 && /[\s+]/.test(src[k])) k--; const tk2 = byAtEnd(byAt, k + 1); return tk2 ? tk2.s : null; };
+  const litNa = () => { let k = j + 1; while (k < src.length && /[\s+]/.test(src[k])) k++; const tk2 = byAt.get(k); return tk2 ? tk2.s : null; };
+  const lv = pb ? litVoor() : '>', ln = pa ? litNa() : '<';
+  if (lv != null && ln != null && (/>\s*$|="$/.test(lv) || lv === '') && (/^\s*</.test(ln) || /^"/.test(ln) || ln === '')) return [false, false];
+  return [pb, pa];
+}
+function byAtEnd(byAt, end){ if (!byAt._end) { byAt._end = new Map(); for (const tk of byAt.values()) byAt._end.set(tk.end, tk); } return byAt._end.get(end); }
 /* Teksten tussen > en < in één letterlijke tekenreeks, en attributen met tekst */
 function htmlBits(s){
   const out = [];
@@ -162,13 +213,27 @@ function jsScan(only){
     //     Wat aan een tag grenst ('<b>' + naam + '</b> gaat weg' → losse knopen) is wel goed.
     const seenLine = new Set();
     for (const tk of toks) {
-      if (tk.tpl || inT(src, tk.at)) continue;
-      const before = /\+\s*$/.test(src.slice(Math.max(0, tk.at - 4), tk.at)), after = /^\s*\+/.test(src.slice(tk.end, tk.end + 4));
+      if (inT(src, tk.at)) continue;
+      if (tk.tpl) { // `…${x}…` met Nederlands in een melding of in HTML/tekst die in beeld komt
+        const pre = src.slice(Math.max(0, tk.at - 80), tk.at);
+        if (/(toast|undoToast|askConfirm|askInput|askChoice|openSheet)\s*\([^()]*$|\.(innerHTML|textContent|innerText)\s*\+?=\s*[^;]*$/.test(pre) && /\$\{…\}/.test(tk.s) && looksDutch(tk.s.replace(/\$\{…\}/g, ' ')) && DUTCHY.test(tk.s)) {
+          const where = name + ':' + lineOf(src, tk.at); if (!guard.some(g => g[0] === where)) guard.push([where, 'Nederlands in een sjabloon (`…${}…`) zonder t()']);
+        }
+        continue;
+      }
+      // Vergelijkingen en namen in code ('gesprek' === x, 'auto.regel.' + id, 'bk-vul'): geen tekst voor Rene
+      if (/(===?|!==?)\s*$/.test(src.slice(Math.max(0, tk.at - 5), tk.at)) || /^\s*(===?|!==?)/.test(src.slice(tk.end, tk.end + 5))) continue;
+      if (!/\s/.test(tk.s.trim()) && /^[a-z][\w.-]*[.-]?$/.test(tk.s.trim()) && /[.-]|^[a-z]+$/.test(tk.s.trim()) && !/\s/.test(tk.s)) { if (/[.-]/.test(tk.s) || /\[\s*\d\s*\]\s*(===?|!==?)|(===?|!==?)/.test(src.slice(Math.max(0, tk.at - 25), tk.at))) continue; }
+      let before = /\+\s*$/.test(src.slice(Math.max(0, tk.at - 12), tk.at)), after = /^\s*\+/.test(src.slice(tk.end, tk.end + 12));
+      // Ook een keuze (a ? ' tool' : ' tools') of een standaard (x || 'niets') binnen haakjes die zelf aan + vastzitten
+      if (!before && !after) { const g = plusGroup(src, tk, byAt); before = g[0]; after = g[1]; }
       if (!before && !after) continue;
       const frags = [];
-      if (before) { const lead = tk.s.split(/[<"]/)[0]; if (!/(uiIcon|icon|Icon|svg\w*)\([^()]*\)\s*\+\s*$/.test(src.slice(Math.max(0, tk.at - 60), tk.at))) frags.push(lead); }
+      if (before) { let lead = tk.s.split(/[<"]/)[0]; if (lead.includes('>')) lead = ''; // na een '>' begint een nieuwe tekstknoop
+        if (!/(uiIcon|icon|Icon|svg\w*)\([^()]*\)\s*\+\s*$/.test(src.slice(Math.max(0, tk.at - 60), tk.at))) frags.push(lead); }
+      if (after && /\b[\w-]+="[^"]*$/.test(tk.s) && !/\b(?:aria-label|title|placeholder|alt)="[^"]*$/.test(tk.s)) after = false; // midden in class="…" of een ander attribuut
       if (after) { const m2 = /(?:aria-label|title|placeholder|alt)="([^"]*)$/.exec(tk.s); frags.push(m2 ? m2[1] : /[>"]/.test(tk.s) ? tk.s.slice(Math.max(tk.s.lastIndexOf('>'), tk.s.lastIndexOf('"')) + 1) : tk.s); }
-      const bad = frags.filter(f => /\p{L}{2}/u.test(f) && looksDutch(f) && DUTCHY.test(f));
+      const bad = frags.filter(f => /\p{L}{2}/u.test(f) && !/[=(){};]|=>/.test(f) && !/^\s*(#|https?:|[\w.-]+\/|[\w-]+:$)/.test(f) && DUTCHY.test(f));
       if (!bad.length) continue;
       const line = lineOf(src, tk.at), where = name + ':' + line;
       if (seenLine.has(where) || guard.some(g => g[0] === where)) continue;

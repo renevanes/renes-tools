@@ -128,7 +128,7 @@ function spVersion(p, v, kind){
   const acts = [['Terugzetten als nieuwe playlist', () => spRestore(p, v, 'new')]];
   if (kind === 'o') acts.push(['De huidige playlist precies zo terugzetten…', () => askConfirm('Playlist overschrijven?', t('"{naam}" in Spotify krijgt weer precies de {n} nummers van {wanneer}. Wat er daarna bij kwam, gaat eruit.', { naam: p.name, n: tr.total, wanneer: spDate(v.t) }), 'Overschrijven', () => spRestore(p, v, 'replace'))]);
   acts.push(['Nummers bekijken', () => askConfirm(p.name + ' · ' + spDate(v.t), tr.items.map((tt, n) => (n + 1) + '. ' + tt.n + (tt.a ? ' – ' + tt.a : '') + (tt.l ? ' ' + t('(lokaal bestand)') : '')).join('\n') + (tr.total > tr.items.length ? '\n…' : '') || t('Leeg'), 'Sluiten', () => {})]);
-  openSheet(p.name, spDate(v.t) + ' · ' + tr.total + ' nummers', acts);
+  openSheet(p.name, spDate(v.t) + ' · ' + t('{n} nummers', { n: tr.total }), acts);
 }
 function spRestore(p, v, mode){
   if (spSt.busy) { toast('Even wachten: er loopt nog iets'); return; }

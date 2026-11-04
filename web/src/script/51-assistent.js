@@ -31,9 +31,9 @@ function aiStateTxt(m){
     case 'ready': return t('✓ Klaar · {grootte}', { grootte: gb(m.size) });
     case 'running': return '↓ ' + (m.total > 0 ? t('{pct}% van {totaal}', { pct: Math.floor(m.bytes / m.total * 100), totaal: gb(m.total) }) : t('Bezig'));
     case 'queued': return '↓ In de wachtrij';
-    case 'paused': return '↓ ' + (m.reason || 'Gepauzeerd') + (m.total > 0 ? ' · ' + Math.floor(m.bytes / m.total * 100) + '%' : '');
-    case 'verifying': return 'Controleren… ' + (m.pct || 0) + '%';
-    case 'failed': return '⚠ ' + (m.reason || 'Mislukt');
+    case 'paused': return '↓ ' + t(m.reason || 'Gepauzeerd') + (m.total > 0 ? ' · ' + Math.floor(m.bytes / m.total * 100) + '%' : '');
+    case 'verifying': return t('Controleren… {pct}%', { pct: m.pct || 0 });
+    case 'failed': return '⚠ ' + t(m.reason || 'Mislukt');
   }
   return gb(m.size);
 }
@@ -145,7 +145,7 @@ function aiRenderMain(){
   n.style.display = aiReady('zoek') && !SOLO ? '' : 'none'; // losse app (zonder app-slot): niet zoeken in je gegevens
   n.classList.toggle('on', !!aiSt.notes); n.setAttribute('aria-checked', aiSt.notes ? 'true' : 'false');
   $('#ai-sugg').innerHTML = '<p class="note aisugh">Wat ik kan: vragen beantwoorden, je eigen gegevens bekijken (alleen wat je aanzet), en dingen voor je klaarzetten, altijd pas na jouw tik. Alles blijft op je telefoon.</p>' +
-    AI_SUGG.filter(s => (!s[2] || aiReady('zoek') && !SOLO) && (s[3] !== 'gesprek' || aiTalkCan())).map(s => '<button class="chip' + (s[3] ? ' new' : '') + '" onclick="aiSugg(' + AI_SUGG.indexOf(s) + ')">' + (s[3] === 'gesprek' ? uiIcon('mic') : '') + esc(s[0]) + '</button>').join('');
+    AI_SUGG.filter(s => (!s[2] || aiReady('zoek') && !SOLO) && (s[3] !== 'gesprek' || aiTalkCan())).map(s => '<button class="chip' + (s[3] ? ' new' : '') + '" onclick="aiSugg(' + AI_SUGG.indexOf(s) + ')">' + (s[3] === 'gesprek' ? uiIcon('mic') : '') + esc(t(s[0])) + '</button>').join('');
   aiSendBtn();
 }
 const AI_SET_SUGG = ['Hoeveel schermtijd vandaag?', 'Zet een timer van 10 minuten', 'Wat kan ik instellen bij de assistent?', 'Waar vind ik de tekstgrootte?', 'Zet de nachtelijke backup aan'];
@@ -218,7 +218,7 @@ function aiLocalAnswer(h, v){
   aiChat.msgs.push(m);
   aiSaveChat(aiChat); aiRenderMsgs(); aiSendBtn();
   if (typeof aiTalkOn === 'function' && aiTalkOn()) { aiTalkLocal(m); return; } // gesprek: voorlezen (dan niet ook nog de schermlezer) en weer luisteren
-  aiVSay(String(m.c).replace(/\*\*/g, '') + (aiCardOpen(m) ? ' Bevestig met de knop onder het antwoord.' : ''));
+  aiVSay(String(m.c).replace(/\*\*/g, '') + (aiCardOpen(m) ? ' ' + t('Bevestig met de knop onder het antwoord.') : ''));
   if (v && aiSt.speakVoice && m.c) setTimeout(() => { if (current === 'ai' && !document.hidden) aiSpeakStart(m, aiChat); }, 0);
 }
 const AI_OTHERS = ['sms', 'wa', 'calls', 'contacts', 'tx'];
@@ -325,7 +325,7 @@ window.onAiMemory = function(o){
     if (o.updated) (mm.saved || []).forEach(x => { if (x.id === o.updated.id) x.text = o.updated.text; });
     if (o.forgot != null) { mm.forgot = o.forgot || ''; if (o.forgotItem) mm.forgotItem = o.forgotItem; }
     if (o.error) mm.err = o.error;
-    if (o.saved && !o.explicit) toast('Onthouden: ' + o.saved.map(x => x.text).join(' '));
+    if (o.saved && !o.explicit) toast(t('Onthouden: {tekst}', { tekst: o.saved.map(x => x.text).join(' ') }));
     // Voor TalkBack: wat er met het geheugen gebeurde
     const say = o.saved ? t('Onthouden: {tekst}', { tekst: o.saved.map(x => x.text).join(' ') }) : o.ask ? t('De assistent stelt voor iets te onthouden: {tekst}', { tekst: o.ask.join(' ') }) : o.forgot ? t('Vergeten: {tekst}', { tekst: o.forgot }) : o.error || '';
     if (say && typeof aiVSay === 'function') aiVSay(say);
@@ -511,9 +511,9 @@ function aiMenu(){
   const acts = [];
   if (aiChatReady() || (aiChat && aiChat.msgs.length)) acts.push(['＋ Nieuw gesprek', () => aiNew()]);
   acts.push(['Eerdere gesprekken', () => show('aichats')]);
-  if (aiChat && aiChat.msgs.length) acts.push(['Dit gesprek delen', () => Android.aiShare(aiChat.msgs.map(m => (m.r === 'user' ? 'Ik: ' : 'Assistent: ') + m.c).join('\n\n'))]);
+  if (aiChat && aiChat.msgs.length) acts.push(['Dit gesprek delen', () => Android.aiShare(aiChat.msgs.map(m => t(m.r === 'user' ? 'Ik: {tekst}' : 'Assistent: {tekst}', { tekst: m.c })).join('\n\n'))]);
   const cf = aiSt.cfg || {};
-  acts.push(['Antwoorden: ' + [(AIC_LABEL.style[cf.style] || 'Normaal').toLowerCase(), (AIC_LABEL.creative[cf.creative] || 'Gebalanceerd').toLowerCase()].join(', ') + '…', () => jumpTo('aisetanswer')]);
+  acts.push([t('Antwoorden: {stijl}…', { stijl: [t(AIC_LABEL.style[cf.style] || 'Normaal').toLowerCase(), t(AIC_LABEL.creative[cf.creative] || 'Gebalanceerd').toLowerCase()].join(', ') }), () => jumpTo('aisetanswer')]);
   acts.push(['Geheugen (' + (aiSt.memCount || 0) + ')', () => jumpTo('aisetmem')]);
   acts.push(['Instellingen', () => show('aiset')]);
   openSheet('Assistent', aiSt.chat ? 'Model: ' + aiModel(aiSt.chat).label : '', acts);
@@ -530,7 +530,7 @@ function aiDiscardTurns(id){ Object.keys(aiTurns).forEach(k => { const tt = aiTu
 let aicList = [];
 function enterAiChats(){
   aicList = rdJson(Android.aiChats(), []);
-  $('#aic-list').innerHTML = aicList.map((c, i) => '<div class="pcep"><button class="pcepb" onclick="aicOpen(' + i + ')"><span class="pctxt"><b>' + esc(c.title || 'Gesprek') + '</b><small>' + esc(fmtD(c.t) + ' · ' + c.n + (c.n === 1 ? ' bericht' : ' berichten')) + '</small></span></button>' +
+  $('#aic-list').innerHTML = aicList.map((c, i) => '<div class="pcep"><button class="pcepb" onclick="aicOpen(' + i + ')"><span class="pctxt"><b translate="no">' + esc(c.title || t('Gesprek')) + '</b><small>' + esc(fmtD(c.t) + ' · ' + tn(c.n, '{n} bericht', '{n} berichten')) + '</small></span></button>' +
     '<button class="pcmore" onclick="aicMenu(' + i + ')" aria-label="' + esc(t('Meer over {titel}', { titel: c.title || t('gesprek') })) + '">⋯</button></div>').join('') || '<p class="note" style="padding:14px">Nog geen gesprekken.</p>';
 }
 function aicOpen(i){
@@ -599,7 +599,7 @@ function aiRenderData(){
     const need = !ok ? (k === 'wa' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'wa\')">Maak eerst je chats leesbaar</button>'
       : k === 'gebruik' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'gebruik\')">Zet eerst Gebruik bijhouden aan</button>'
       : '<button class="linkish" style="display:inline;padding:0" onclick="Android.permRequest(\'' + AI_PERM[k] + '\')">Toestemming geven</button>') : '';
-    return '<div class="sw"><span>' + uiIcon(s[2]) + ' ' + esc(s[1]) + '<small id="aid-d-' + k + '">' + esc(s[3]) + (on && !ok ? ' Staat aan, maar de app mag er nog niet bij.' : '') + '</small>' + (on && !ok ? '<small>' + need + '</small>' : '') + '</span>' +
+    return '<div class="sw"><span>' + uiIcon(s[2]) + ' ' + esc(s[1]) + '<small id="aid-d-' + k + '">' + esc(t(s[3]) + (on && !ok ? ' ' + t('Staat aan, maar de app mag er nog niet bij.') : '')) + '</small>' + (on && !ok ? '<small>' + need + '</small>' : '') + '</span>' +
       '<button class="tg' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + esc(s[1]) + '" aria-describedby="aid-d-' + k + '" onclick="aiSrcToggle(\'' + k + '\')"></button></div>';
   }).join('');
   $('#aid-index').innerHTML = zoek && aiSt.index ? aiIndexHtml('aid-ix-sub') : '';
@@ -713,7 +713,7 @@ function aiMic(){
     if (typeof o.partial === 'string' && o.partial !== aiVPart) { aiVPart = o.partial; aiVText(aiVPart); }
     const ms = +o.ms || 0, tm = Math.floor(ms / 60000) + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0');
     const te = $('#ai-vtime'); if (te) te.textContent = tm;
-    if (n % 5 === 1) aiVState('● Luisteren… ' + tm + (aiVPart ? '' : ' · praat maar'));
+    if (n % 5 === 1) aiVState(t('● Luisteren… {tijd}', { tijd: tm }) + (aiVPart ? '' : ' · ' + t('praat maar')));
   };
   tick(); clearInterval(aiRecT); aiRecT = setInterval(tick, 100);
 }
@@ -742,7 +742,7 @@ window.onAiVoice = function(r){
   tt.value = (aiVPre ? aiVPre + ' ' : '') + text; aiGrow();
   aiFromVoice = true; // ook als je hem eerst nakijkt: het antwoord mag dan voorgelezen worden
   if (r.note) toast(r.note); // vanzelf gestopt (bijv. de microfoon viel weg): dit is wat er was
-  aiVSay('Herkend: ' + text);
+  aiVSay(t('Herkend: {tekst}', { tekst: text }));
   // Alleen meteen versturen als dat aan staat, in hetzelfde gesprek, op dit scherm, als er niets loopt; anders staat het in het invoerveld
   const same = aiVoiceChat === aiChat && current === 'ai';
   if (aiSt.voiceSend === true && same && !aiBusy) aiSendOrStop();
@@ -768,7 +768,7 @@ function aiVoiceDownload(){
   const poll = () => {
     const s = rdJson(Android.txStatus(), {});
     if (aiSetOn()) aisRenderVoice(s);
-    if (s.running) { if (current === 'ai') aiVState('↓ Spraakmodel downloaden… ' + (s.pct || 0) + '%'); aiVoiceDlT = setTimeout(poll, 800); return; }
+    if (s.running) { if (current === 'ai') aiVState(t('↓ Spraakmodel downloaden… {pct}%', { pct: s.pct || 0 })); aiVoiceDlT = setTimeout(poll, 800); return; }
     aiVState('');
     const v = rdJson(Android.aiVoiceInfo(), {});
     toast(v.model ? '✓ Spraakmodel klaar: tik op de microfoon en praat' : 'Het spraakmodel downloaden lukte niet');
@@ -854,7 +854,7 @@ function aicSet(name, v){
   if (name === 'power' && aiBusy) toast('Geldt vanaf de volgende keer dat het model laadt');
 }
 let aicDirtyOn = false;
-function aicCount(){ const a = $('#aic-about'), i = $('#aic-instr'), n = $('#aic-count'); if (n && a) n.textContent = (a.value.length + i.value.length) + ' tekens'; }
+function aicCount(){ const a = $('#aic-about'), i = $('#aic-instr'), n = $('#aic-count'); if (n && a) n.textContent = t('{n} tekens', { n: a.value.length + i.value.length }); }
 function aicDirty(){ aicDirtyOn = true; $('#aic-save').disabled = false; aicCount(); }
 function aicSaveText(msg){
   const a = $('#aic-about').value, i = $('#aic-instr').value;
@@ -880,14 +880,14 @@ function aimRender(){
   const qi = $('#aim-q'); qi.style.display = aimList.length > 8 ? '' : 'none';
   const q = aimList.length > 8 ? norm2(qi.value.trim()) : '';
   const list = q ? aimList.filter(m => norm2(m.text).includes(q)) : aimList;
-  $('#aim-n').textContent = aimList.length ? aimList.length + (aimList.length === 1 ? ' ding' : ' dingen') + (q ? ' · ' + list.length + ' gevonden' : '') : '';
+  $('#aim-n').textContent = aimList.length ? tn(aimList.length, '{n} ding', '{n} dingen') + (q ? ' · ' + t('{n} gevonden', { n: list.length }) : '') : '';
   box.innerHTML = list.map(m => {
     const i = aimList.indexOf(m);
     const from = AIM_SRC[m.src] || 'onthouden';
     const chat = m.chat ? '<button class="linkish" style="display:inline;padding:0" onclick="aimOpenChat(' + i + ')">' + esc(m.title ? '"' + m.title + '"' : 'het gesprek') + '</button>' : (m.title ? esc('"' + m.title + '"') : '');
     return '<div class="aimemitem" role="listitem"><div class="aimt"><span>' + esc(m.text) + '</span><small>' + esc(fmtD(m.u || m.t) + ' · ' + from) + (chat ? ' · ' + chat : '') + '</small></div>' +
-      '<button class="iconbtn" onclick="aimEdit(' + i + ')" aria-label="Aanpassen: ' + esc(m.text) + '">' + uiIcon('edit') + '</button>' +
-      '<button class="iconbtn" onclick="aimDel(' + i + ')" aria-label="Vergeten: ' + esc(m.text) + '">' + uiIcon('trash') + '</button></div>';
+      '<button class="iconbtn" onclick="aimEdit(' + i + ')" aria-label="' + esc(t('Aanpassen: {tekst}', { tekst: m.text })) + '">' + uiIcon('edit') + '</button>' +
+      '<button class="iconbtn" onclick="aimDel(' + i + ')" aria-label="' + esc(t('Vergeten: {tekst}', { tekst: m.text })) + '">' + uiIcon('trash') + '</button></div>';
   }).join('') || '<p class="note">' + (q ? 'Niets gevonden.' : 'De assistent weet nog niets over je. Vertel iets over jezelf in een gesprek, zeg "onthoud dat …", of voeg hieronder zelf iets toe.') + '</p>';
   $('#aim-clear').style.display = aimList.length ? '' : 'none';
 }
@@ -910,7 +910,7 @@ function aimEdit(i){
 function aimDel(i){
   const m = aimList[i]; if (!m) return;
   Android.aiMemDelete(m.id); aiLoad(); aimRender(); aicRender();
-  undoToast('Vergeten: ' + m.text, () => { Android.aiMemAdd(m.text, m.src === 'zelf' ? 'zelf' : 'geleerd', m.chat || '', m.title || ''); aiLoad(); aimRender(); aicRender(); });
+  undoToast(t('Vergeten: {tekst}', { tekst: m.text }), () => { Android.aiMemAdd(m.text, m.src === 'zelf' ? 'zelf' : 'geleerd', m.chat || '', m.title || ''); aiLoad(); aimRender(); aicRender(); });
 }
 function aimClear(){
   askConfirm(t('Alles vergeten?'), tn(aimList.length, 'De assistent vergeet alles wat hier staat ({n} ding). Je gesprekken blijven.', 'De assistent vergeet alles wat hier staat ({n} dingen). Je gesprekken blijven.'), t('Alles vergeten'), () => {
@@ -954,7 +954,7 @@ function aiActHtml(m, i){
   const a = m.act; if (!a || !a.type) return '';
   const k = AI_ACT[a.type] || AI_ACT.notitie;
   const when = a.type === 'notitie' ? '' : a.at ? aiActFmt(a.at) : a.allDay && a.day ? aiActFmt(a.day, true) : '';
-  if (a.st === 'gedaan') return '<div class="aiact done" role="status">' + uiIcon('check') + '<span>' + esc(k.done) + (when ? ' voor ' + esc(when) : '') + ': <b>' + esc(a.title) + '</b>' +
+  if (a.st === 'gedaan') return '<div class="aiact done" role="status">' + uiIcon('check') + '<span>' + esc(t(k.done)) + (when ? ' ' + esc(t('voor {wanneer}', { wanneer: when })) : '') + ': <b translate="no">' + esc(a.title) + '</b>' +
     (a.type === 'agenda' ? '<small>Bewaar de afspraak in je agenda-app.</small>' : '') + '</span>' + (a.note ? '<button class="linkish" onclick="aiActOpen(' + i + ')">Openen</button>' : '') + '</div>';
   if (a.st === 'afgewezen') return '<div class="aiact no">' + uiIcon(k.icon) + '<span><s>' + esc(a.title) + '</s> <small>(niet gedaan)</small></span><button class="linkish" onclick="aiActUndoNo(' + i + ')">Toch voorstellen</button></div>';
   // Een voorstel van eerder (bijv. een heropend gesprek) waarvan het moment al voorbij is: opnieuw kiezen
@@ -964,7 +964,7 @@ function aiActHtml(m, i){
   }
   const pick = a.type !== 'notitie' && (a.need || a.edit);
   const why = a.need === 'tijd' ? 'Kies nog een tijd' : a.need === 'datum' ? 'Kies wanneer' : 'Wanneer';
-  return '<div class="aiact" role="group" aria-label="Voorstel: ' + esc(k.label) + '"><b>' + uiIcon(k.icon) + esc(k.label) + '?</b>' +
+  return '<div class="aiact" role="group" aria-label="' + esc(t('Voorstel: {wat}', { wat: t(k.label) })) + '"><b>' + uiIcon(k.icon) + esc(t('{wat}?', { wat: t(k.label) })) + '</b>' +
     (a.remFail ? '<p class="note" role="status" style="margin:0">De notitie is gemaakt, maar de herinnering zetten lukte niet. Probeer het nog eens.</p>' : '') +
     '<div class="aiactt">' + esc(a.title) + (a.text ? '<small>' + esc(a.text.length > 240 ? a.text.slice(0, 240) + '…' : a.text) + '</small>' : '') + '</div>' +
     (pick ? '<label class="aiactw"><span>' + why + '</span><input type="datetime-local" id="aiact-t-' + i + '" value="' + esc(aiActPickVal(a)) + '" oninput="aiActPick(' + i + ', this.value)"></label>'
@@ -1014,7 +1014,7 @@ function aiActDo(i){
   }
   a.st = 'gedaan'; a.need = ''; delete a.pick; delete a.edit; delete a.remFail;
   aiMemAfter(i);
-  const k = AI_ACT[a.type] || AI_ACT.notitie, msg = k.done + (a.type === 'notitie' ? '' : ' voor ' + aiActFmt(a.at || a.day, !a.at));
+  const k = AI_ACT[a.type] || AI_ACT.notitie, msg = t(k.done) + (a.type === 'notitie' ? '' : ' ' + t('voor {wanneer}', { wanneer: aiActFmt(a.at || a.day, !a.at) }));
   toast(a.type === 'agenda' ? 'Je agenda-app is geopend: bewaar het daar' : msg); aiVSay(msg + ': ' + a.title);
 }
 function aiActOpen(i){
@@ -1027,7 +1027,7 @@ function aiActOpen(i){
 let aiSpk = null, aiSpkSeq = 0; // { id, m, chat, on }: welk antwoord nu voorgelezen wordt
 function aiSpkBtn(m, i){
   const on = aiSpk && aiSpk.m === m;
-  return '<button class="linkish aispk" data-i="' + i + '" onclick="aiSpeakMsg(' + i + ')" aria-label="' + (on ? 'Stoppen met voorlezen' : 'Dit antwoord voorlezen') + '">' + uiIcon(on ? 'stop' : 'volume-high') + (on ? ' Stoppen' : ' Voorlezen') + '</button>';
+  return '<button class="linkish aispk" data-i="' + i + '" onclick="aiSpeakMsg(' + i + ')" aria-label="' + t(on ? 'Stoppen met voorlezen' : 'Dit antwoord voorlezen') + '">' + uiIcon(on ? 'stop' : 'volume-high') + ' ' + t(on ? 'Stoppen' : 'Voorlezen') + '</button>';
 }
 function aiSpeakMsg(i){ const m = aiChat && aiChat.msgs[i]; if (m && m.c) aiSpeakStart(m, aiChat); }
 function aiSpeakStart(m, chat){
@@ -1102,7 +1102,7 @@ function aiSumLines(msgs, who){
     // Tekst voor het taalmodel: vast nl-NL (niet volgens Regio en taal), zodat het model altijd hetzelfde leest
     const d = new Date(m.t), dd = d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     if (dd !== day) { out.push('— ' + dd + ' —'); day = dd; }
-    out.push(d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + ' ' + (m.me ? 'Ik' : who(m)) + ': ' + text);
+    out.push(d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + ' ' + (m.me ? t('Ik') : who(m)) + ': ' + text); // tijd vast nl-NL: tekst voor het taalmodel
   }
   return out;
 }

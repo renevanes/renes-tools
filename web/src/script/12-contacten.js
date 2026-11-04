@@ -46,7 +46,7 @@ function ctRenderDetail(){
   ctRenderCalls(d);
   const h = d.history || [];
   $('#ctd-hist').innerHTML = h.length ? h.map(x =>
-    '<div class=hist><b>' + ({'+': 'Toegevoegd', '-': 'Verwijderd', '~': 'Gewijzigd'}[x.kind] || '') + '</b> <small>versie ' + x.v + ' · ' + esc(fmtFull(x.t)) + '</small>' +
+    '<div class=hist><b>' + t({'+': 'Toegevoegd', '-': 'Verwijderd', '~': 'Gewijzigd'}[x.kind] || '') + '</b> <small>' + t('versie {n}', { n: x.v }) + ' · ' + esc(fmtFull(x.t)) + '</small>' +
     (x.kind === '~' ? ctChanges(x.d) : '') + '</div>').join('')
     : '<p class=note style="margin:0">Nog geen wijzigingen sinds de eerste versie.</p>';
 }

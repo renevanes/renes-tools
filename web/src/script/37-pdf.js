@@ -24,7 +24,7 @@ window.onPdf = function(r){
   // Een gekozen bestand (plaatjes of PDF) beëindigt geen lopende klus; al het andere wel
   if (r.error || (r.kind !== 'images' && r.kind !== 'pdf')) pdfSetBusy('');
   if (r.error) { toast(r.error); if (current === 'pdf') pdfRender(); return; }
-  if (r.kind === 'images') { pdfImgs = rdJson(Android.pdfImages(), []); toast(r.count + (r.count === 1 ? ' plaatje' : ' plaatjes') + ' toegevoegd' + (r.warn ? ' · ' + r.warn : '')); }
+  if (r.kind === 'images') { pdfImgs = rdJson(Android.pdfImages(), []); toast(tn(r.count, '{n} plaatje toegevoegd', '{n} plaatjes toegevoegd') + (r.warn ? ' · ' + t(r.warn) : '')); }
   if (r.kind === 'pdf') { pdfIn = r; pdfInGen++; pdfSel = new Set(); $('#pdf-range').value = ''; pdfEditSource(); }
   if (r.kind === 'edited') { pdfEditSaved(r); toast('✓ Bewerkte PDF-kopie gemaakt. Kies onder Gemaakt waar je hem opslaat of deelt.'); }
   if (r.kind === 'done') {

@@ -1,7 +1,7 @@
 let klEditId=null;
 function klOrganizeOpen(id){
   klRender();const d=(klRender.docs||[]).find(d=>d.id===id);if(!d)return;
-  klEditId=id;$('#kl-edit-title').textContent='Ordenen: '+d.name;
+  klEditId=id;$('#kl-edit-title').textContent=t('Ordenen: {naam}',{naam:d.name});
   $('#kl-edit-category').value=d.category||'';$('#kl-edit-note').value=d.note||'';$('#kl-edit-favorite').checked=!!d.favorite;
   $('#kl-edit-status').textContent='';$('#kl-edit').hidden=false;$('#kl-edit').scrollIntoView({block:'center'});$('#kl-edit-category').focus();
 }

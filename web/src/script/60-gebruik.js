@@ -160,7 +160,7 @@ function enterGebruikSet(){
   $('#gb-access-note').textContent = s.access ? 'Toegang tot gebruik staat aan.' : 'Nog niet gegeven: zonder deze toegang ziet Gebruik geen schermtijd.';
   $('#gb-a11y-note').textContent = s.a11y ? 'De toegankelijkheidsdienst staat aan: "met pincode" wordt herkend.' : 'De toegankelijkheidsdienst staat uit: ontgrendelingen heten dan "onbekend", en "foto alleen met pincode" werkt niet. Zet hem aan bij Automatiseringen.';
   // Eerlijke status + knoppen om te repareren wat ontbreekt
-  const proef = s.lastShot === 'bezig' ? ' Bezig met de proefopname…' : (s.lastShot && s.lastShot.indexOf('mislukt') === 0 ? ' Laatste proef: ' + s.lastShot.slice(9) : (s.lastShot && s.lastShot.indexOf('ok|') === 0 ? ' Laatste proef: gelukt.' : ''));
+  const proef = s.lastShot === 'bezig' ? ' ' + t('Bezig met de proefopname…') : (s.lastShot && s.lastShot.indexOf('mislukt') === 0 ? ' ' + t('Laatste proef: {uitkomst}', { uitkomst: t(s.lastShot.slice(9)) }) : (s.lastShot && s.lastShot.indexOf('ok|') === 0 ? ' ' + t('Laatste proef: gelukt.') : ''));
   const st = $('#gb-photo-status');
   st.textContent = t(caps.works ? 'Werkt op deze telefoon.' : 'Werkt mogelijk niet.') + ' ' + t(caps.why || '') + proef;
   st.classList.toggle('bad', !caps.works);

@@ -45,7 +45,7 @@ window.onHerstelScan = function(r){
   const rec = r.recommended || l[0].name;
   $('#hs-list').innerHTML = l.map((a, i) => '<label class=chk><input type=radio name=hs-arc value="' + esc(a.name) + '"' + (a.name === rec ? ' checked' : '') + '> ' +
     esc(hsWhen(a.name)) + ' <small class=note style="display:inline;margin:0">· ' + fmtB(a.size || 0) + (a.deels ? ' · onvolledig (gestopt halverwege)' : '') +
-    (a.app ? ' · met alle appgegevens' : '') + (a.name === rec ? ' · voorgesteld' : '') + '</small></label>').join('');
+    (a.app ? ' · ' + t('met alle appgegevens') : '') + (a.name === rec ? ' · ' + t('voorgesteld') : '') + '</small></label>').join('');
 };
 function hsPlain(){ hsManual = false; show('backup'); setTimeout(() => { const b = document.querySelector('#s-backup button[onclick*="restorePick(\'notes\')"]'); if (b) b.scrollIntoView({block: 'center'}); }, 50); }
 function hsSelected(){ const r = document.querySelector('input[name=hs-arc]:checked'); return r ? r.value : ''; }
@@ -73,7 +73,7 @@ window.onHerstelOpened = function(r){
   if (r.error) { if (r.wrongPw) { hsAskPw(true); return; } hsPwOld = ''; hsStep('hs-kies'); toast(r.error); return; }
   if (r.old) { hsStep('hs-oud'); return; }
   hsPwOld = ''; hsStaged = true;
-  const parts = [r.files ? fmtNum(r.files) + ' bestanden' : '', r.kluis ? r.kluis + (r.kluis === 1 ? ' kluisdocument' : ' kluisdocumenten') : '', r.history ? 'meldingsgeschiedenis' : ''].filter(Boolean);
+  const parts = [r.files ? t('{n} bestanden', { n: fmtNum(r.files) }) : '', r.kluis ? tn(r.kluis, '{n} kluisdocument', '{n} kluisdocumenten') : '', r.history ? t('meldingsgeschiedenis') : ''].filter(Boolean);
   $('#hs-sum').innerHTML = '<div class=bkres><b>Backup</b><span>' + esc(hsWhen(r.name || hsName)) + '</span></div>' +
     (r.app ? '<div class=bkres><b>Gemaakt met</b><span>Tools ' + esc(r.app) + '</span></div>' : '') +
     '<div class=bkres><b>Inhoud</b><span>' + esc(parts.join(', ') || 'instellingen') + ' · ' + fmtB(r.bytes || 0) + '</span></div>' +

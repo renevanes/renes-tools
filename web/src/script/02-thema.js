@@ -203,7 +203,7 @@ function thRender(cfg){
   const st = $('#st-th-now'), tt = thStatus(); if (st.textContent !== tt) st.textContent = tt;
 }
 function thSave(patch){ store.set('theme', thClean(Object.assign(thCfg(), patch))); thApply(); if (current !== 'setlook') thRender(); }
-function thSetMode(v){ thSave({ mode: v }); toast('Thema: ' + thModeName(thCfg().mode).replace(/ \(.*\)$/, '').toLowerCase()); }
+function thSetMode(v){ thSave({ mode: v }); toast(t('Thema: {thema}', { thema: t(thModeName(thCfg().mode)).replace(/ \(.*\)$/, '').toLowerCase() })); }
 function thSetVal(k, v){
   if ((k === 'dark' || k === 'light') && thMin(v) < 0) { thRender(); return; }
   thSave({ [k]: k === 'off' ? +v : k === 'amoled' ? !!v : v });
@@ -212,7 +212,7 @@ function thSetVal(k, v){
 function thQuick(){
   const prev = thCfg().mode, to = uiDark() ? 'light' : 'dark';
   thSave({ mode: to });
-  undoToast('Thema: ' + (to === 'dark' ? 'donker' : 'licht'), () => thSave({ mode: prev }));
+  undoToast(t('Thema: {thema}', { thema: t(to === 'dark' ? 'donker' : 'licht') }), () => thSave({ mode: prev }));
 }
 function thQuickIcon(){
   const b = document.getElementById('st-th-quick'); if (!b || !thState) return;

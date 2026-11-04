@@ -140,7 +140,7 @@ function faMaandRender(){
   $('#fa-maand-h').textContent = t('Deze maand') + ' · ' + faMaandNaam(dezeMaand);
   $('#fa-maand-lijst').innerHTML = l.map(x => {
     const n = (x.maanden || {})[dezeMaand] || 0, p = faPeriode(x);
-    const binnen = n ? '✓ ' + n + (n === 1 ? ' factuur binnen' : ' facturen binnen') : p.soort === 'mis' ? '✗ Nog niet: mislukt' : x.schema !== 'uit' && x.volgende && faMaandSleutel(x.volgende) === dezeMaand && !(x.vorige && faMaandSleutel(x.vorige) === dezeMaand) ? 'Gepland ' + faMoment(x.volgende) : x.schema === 'uit' ? 'Alleen met de hand' : 'Nog niets binnen';
+    const binnen = n ? '✓ ' + tn(n, '{n} factuur binnen', '{n} facturen binnen') : p.soort === 'mis' ? t('✗ Nog niet: mislukt') : x.schema !== 'uit' && x.volgende && faMaandSleutel(x.volgende) === dezeMaand && !(x.vorige && faMaandSleutel(x.vorige) === dezeMaand) ? t('Gepland {wanneer}', { wanneer: faMoment(x.volgende) }) : t(x.schema === 'uit' ? 'Alleen met de hand' : 'Nog niets binnen');
     return '<div class="bkres"><b>' + esc(x.naam) + '</b><span class="' + (n ? 'good' : p.soort === 'mis' ? 'bad' : '') + '">' + esc(binnen) + '</span></div>';
   }).join('');
   // Laatste 12 maanden; ✓ = facturen binnen, ✗ = alleen mislukte pogingen, – = niets
@@ -189,11 +189,11 @@ window.onFacturenKlaar = function(r){
 function faBekijk(l){
   const lijst = rdJson(Android.facturenLijst(l.id), []);
   if (!lijst.length) { toast('Nog geen facturen in de app'); return; }
-  openSheet(l.naam, lijst.length + (lijst.length === 1 ? ' factuur' : ' facturen'), lijst.slice(0, 40).map(f => [f.naam + ' · ' + faDatum(f.t), () => Android.facturenOpen(l.id, f.naam)]));
+  openSheet(l.naam, tn(lijst.length, '{n} factuur', '{n} facturen'), lijst.slice(0, 40).map(f => [f.naam + ' · ' + faDatum(f.t), () => Android.facturenOpen(l.id, f.naam)]));
 }
 function faNieuw(){
   const s = faSt.sjablonen || [];
-  openSheet('Leverancier toevoegen', 'Kies een sjabloon; alles is daarna aan te passen', s.map(x => [(x.naam || 'Andere website') + (x.omschrijving ? ' · ' + x.omschrijving : ''), () => flOpen(Object.assign({ soort: 'website' }, x, { id: '' }), true)]));
+  openSheet('Leverancier toevoegen', 'Kies een sjabloon; alles is daarna aan te passen', s.map(x => [(x.naam || t('Andere website')) + (x.omschrijving ? ' · ' + t(x.omschrijving) : ''), () => flOpen(Object.assign({ soort: 'website' }, x, { id: '' }), true)]));
 }
 /* Instellingen van één leverancier */
 function flOpen(l, nieuw){
@@ -590,7 +590,7 @@ function fdRender(laad){
   const delen = [];
   for (const s of lijst) { const g = inst.groep ? fdGroep(s, inst.groep) : ['', '']; if (!groep || g[0] !== groep.k) { groep = { k: g[0], naam: g[1], l: [] }; delen.push(groep); } groep.l.push(s); }
   for (const g of delen) {
-    if (inst.groep) body += '<tr class="fd-groep"><td colspan="' + kol.length + '">' + esc(g.naam + ' · ' + g.l.length + (g.l.length === 1 ? ' factuur' : ' facturen') + (som(g.l) ? ' · ' + FD_EUR(som(g.l)) : '')) + '</td></tr>';
+    if (inst.groep) body += '<tr class="fd-groep"><td colspan="' + kol.length + '">' + esc(g.naam + ' · ' + tn(g.l.length, '{n} factuur', '{n} facturen') + (som(g.l) ? ' · ' + FD_EUR(som(g.l)) : '')) + '</td></tr>';
     const nog = 500 - (body.match(/class="fd-rij"/g) || []).length;
     if (nog <= 0) break;
     body += g.l.slice(0, nog).map(rij).join('');
@@ -678,7 +678,7 @@ function foRender(laad){
 function foOpen(id){
   const o = foSt.lijst.find(x => x.id === id); if (!o) return;
   openSheet(o.naam, (o.open ? tn(o.open, '{n} factuur staat klaar', '{n} facturen staan klaar') : t('Alles is al aangeleverd')) + ' · ' + foPlanTekst(o), [
-    ['Nu versturen' + (o.open ? ' (' + o.open + ')' : ''), () => foNu(id, false)],
+    [t('Nu versturen') + (o.open ? ' (' + o.open + ')' : ''), () => foNu(id, false)],
     ['Proef naar mezelf', () => foNu(id, true)],
     ['Instellingen', () => foForm(o)],
     ['Verwijderen…', () => askConfirm(t('{naam} verwijderen?', { naam: o.naam }), 'Wat al verstuurd is, blijft in het dossier staan.', 'Verwijderen', () => { const e = Android.facturenOntvangerWeg(id); if (e) toast(e); foRender(); faLaad(); faSamenvatting(); })]]);

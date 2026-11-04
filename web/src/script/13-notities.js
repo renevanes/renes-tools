@@ -196,7 +196,7 @@ function renderItems(){
   $('#note-open').innerHTML = rows.filter(r => !r.groupDone).map(row).join('');
   $('#note-done').innerHTML = rows.filter(r => r.groupDone).map(row).join('');
   $('#note-donehdr').style.display = done.length ? 'flex' : 'none';
-  $('#note-donecount').textContent = done.length + ' afgestreept';
+  $('#note-donecount').textContent = t('{n} afgestreept', { n: done.length });
   noteAddTargetShow();noteListLocation();
   const count=(n.items||[]).length,completed=done.length;
   $('#note-progress').textContent=count?t('{klaar} van {n} items klaar', { klaar: completed, n: count }):t('Nog geen items');

@@ -167,7 +167,7 @@ function bkVoorstellenOvernemen(){
   });
   bk.voorstellen = null;
   bkHerbereken();
-  if (bkSave()) toast(n + (n === 1 ? ' regel' : ' regels') + ' toegevoegd');
+  if (bkSave()) toast(tn(n, '{n} regel toegevoegd', '{n} regels toegevoegd'));
   $('#bk-ai-cat-uit').replaceChildren();
   bkRender();
 }

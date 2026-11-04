@@ -100,7 +100,7 @@ function vpTunMenu(id){
   if (!on && vpSt.active !== id) acts.push(['✓ Als standaard (tegel, snelkoppeling, vanzelf)', () => { Android.vpnSetActive(id); vpRender(); }]);
   acts.push(['✎ Bewerken', () => veOpen(id)]);
   if (vpTun.length > 1) acts.push(['↪ Reserve bij blokkade…', () => vpFallbackMenu(id)]);
-  if (tt.pub) acts.push(['Mijn publieke sleutel kopiëren', () => { Android.vpnCopy(tt.pub); toast('Gekopieerd: ' + tt.pub.slice(0, 12) + '…'); }]);
+  if (tt.pub) acts.push(['Mijn publieke sleutel kopiëren', () => { Android.vpnCopy(tt.pub); toast(t('Gekopieerd: {tekst}…', { tekst: tt.pub.slice(0, 12) })); }]);
   acts.push(['Verwijderen', () => askConfirm('Tunnel verwijderen?', t('"{naam}" en zijn sleutels verdwijnen van deze telefoon. Op de server verandert niets.', { naam: tt.name }), 'Verwijderen', () => { Android.vpnDelete(id); vpRender(); })]);
   openSheet(tt.name, (tt.endpoint || '') + ((tt.addr || []).length ? ' · ' + tt.addr.join(', ') : ''), acts);
 }
@@ -277,7 +277,7 @@ function veCheck(){
     c.textContent = t('✓ Klopt') + ' · OpenVPN · ' + (s.summary || s.endpoint) + ' · ' + t(s.auth ? 'inloggen met gebruikersnaam en wachtwoord' : 'met certificaat') + ((s.warnings || []).length ? ' · ' + t('let op: {wat}', { wat: s.warnings.map(x => t(x)).join('; ') }) : '');
     return true;
   }
-  c.textContent = t('✓ Klopt') + ' · WireGuard · ' + t('server {adres}', { adres: s.endpoint || '?' }) + ' · ' + (s.full ? t('al je verkeer via de VPN') : t('alleen {wat}', { wat: (s.allowed || []).join(', ') })) + (s.dns && s.dns.length ? ' · DNS ' + s.dns.join(', ') : ' · ' + t('let op: geen DNS ingesteld'));
+  c.textContent = t('✓ Klopt') + ' · WireGuard · ' + t('server {adres}', { adres: s.endpoint || '?' }) + ' · ' + (s.full ? t('al je verkeer via de VPN') : t('alleen {wat}', { wat: (s.allowed || []).join(', ') })) + (s.dns && s.dns.length ? ' · DNS ' /* taal-vast: afkorting */ + s.dns.join(', ') : ' · ' + t('let op: geen DNS ingesteld'));
   return true;
 }
 function vePubCopy(){ const p = $('#ve-pub').textContent; if (p) { Android.vpnCopy(p); toast('Publieke sleutel gekopieerd'); } }

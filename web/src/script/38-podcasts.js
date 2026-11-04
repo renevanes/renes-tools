@@ -91,7 +91,7 @@ function pcPlayPause(){
 function pcSkip(s){ Android.podSkip(s); pcSt.pos = Math.max(0, (+pcSt.pos || 0) + s * 1000); plRender(); }
 function pcSpeedMenu(){
   const opts = [0.8, 1, 1.1, 1.25, 1.5, 1.75, 2];
-  openSheet('Afspeelsnelheid', 'Nu ' + pcSpeedTxt(pcSt.speed), opts.map(v => [pcSpeedTxt(v) + (v === 1 ? ' (normaal)' : ''), () => { Android.podSpeed(String(v)); pcSt.speed = v; plRender(); }]));
+  openSheet(t('Afspeelsnelheid'), t('Nu {snelheid}', { snelheid: pcSpeedTxt(pcSt.speed) }), opts.map(v => [pcSpeedTxt(v) + (v === 1 ? ' ' + t('(normaal)') : ''), () => { Android.podSpeed(String(v)); pcSt.speed = v; plRender(); }]));
 }
 function pcNowMenu(){
   const st = pcSt; if (!st.ep) return;
@@ -161,7 +161,7 @@ const PC_NEW_N = 3, PC_NEW_MAX = 20;
 function pcNewAll(){ pcxOpen('new'); }
 function pcNewInfo(r){
   const e = r.ep, d = +e.pd || (+e.dur || 0) * 1000, p = +e.pos || 0, dl = pcDlMap[e.key];
-  return [pcDate(e.date), e.dur ? fmtMin(e.dur / 60) : '', p > 0 && d > 0 ? 'nog ' + fmtMin((d - p) / 6e4) : '', dl && dl.state === 'done' ? '✓ Offline' : ''].filter(Boolean).join(' · ');
+  return [pcDate(e.date), e.dur ? fmtMin(e.dur / 60) : '', p > 0 && d > 0 ? t('nog {duur}', { duur: fmtMin((d - p) / 6e4) }) : '', dl && dl.state === 'done' ? '✓ Offline' : ''].filter(Boolean).join(' · ');
 }
 function pcRenderNew(){
   const wrap = $('#pc-new-wrap'); if (!wrap) return;
@@ -338,7 +338,7 @@ function pdSubBtn(on){
 /* "64 afleveringen · nieuwste vandaag" */
 function pdMeta(){
   const l = (pdFeed && pdFeed.items) || [];
-  $('#pd-meta').textContent = l.length ? [l.length + (l.length === 1 ? ' aflevering' : ' afleveringen'), l[0].date ? 'nieuwste ' + pcDate(l[0].date) : ''].filter(Boolean).join(' · ') : '';
+  $('#pd-meta').textContent = l.length ? [tn(l.length, '{n} aflevering', '{n} afleveringen'), l[0].date ? t('nieuwste {datum}', { datum: pcDate(l[0].date) }) : ''].filter(Boolean).join(' · ') : '';
 }
 window.onPodFeed = function(r){
   if (!pdPod || r.feedUrl !== pdPod.feed) return;
@@ -475,9 +475,9 @@ function pdResumeShow(){
   const e = pdRes;
   if (!e || (pdSyncCur(e, pcSt.ep && pcSt.ep.key) && e.done)) { el.hidden = true; el.innerHTML = ''; pdResHtml = ''; return; }
   const isCur = !!(pcSt.ep && pcSt.ep.key === e.key);
-  const d = +e.pd || (+e.dur || 0) * 1000, p = +e.pos || 0, left = d > 0 && p > 0 ? 'nog ' + fmtMin((d - p) / 6e4) : '';
+  const d = +e.pd || (+e.dur || 0) * 1000, p = +e.pos || 0, left = d > 0 && p > 0 ? t('nog {duur}', { duur: fmtMin((d - p) / 6e4) }) : '';
   const html = '<div class="pcep resume"><button class="pcepb" onclick="pdResumePlay()">' +
-    '<span class="pctxt"><span class="pclab">' + (isCur && pcActive() ? 'Speelt nu' : 'Verder luisteren') + (left ? ' · ' + esc(left) : '') + '</span><b>' + esc(e.title) + '</b>' +
+    '<span class="pctxt"><span class="pclab">' + t(isCur && pcActive() ? 'Speelt nu' : 'Verder luisteren') + (left ? ' · ' + esc(left) : '') + '</span><b>' + esc(e.title) + '</b>' +
     (p > 0 && d > 0 ? '<span class="pcprog"><i style="width:' + Math.min(100, p / d * 100).toFixed(1) + '%"></i></span>' : '') + '</span>' +
     '<span class="pcplayi" aria-hidden="true">' + uiIcon(isCur && pcActive() ? 'pause' : 'play') + '</span></button>' +
     '<button class="pcmore" onclick="pdResumeMenu()" aria-label="' + t('Meer over {titel}', { titel: esc(e.title) }) + '">⋯</button></div>';

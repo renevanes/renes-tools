@@ -303,7 +303,7 @@ function aiCmdDo(i){
       if (nr && !/^\+?[0-9 ()./-]{4,30}$/.test(nr)) { fail('Dat is geen geldig telefoonnummer'); return; }
       if (!go()) return;
       const e = Android.aiDo(JSON.stringify({ type: a.type, number: nr, text })); if (e) { fail(e); return; }
-      a.done = (a.type === 'wa' ? 'Klaargezet in WhatsApp' : 'Klaargezet in Berichten') + (a.toName ? ' voor ' + a.toName : '');
+      a.done = a.toName ? t(a.type === 'wa' ? 'Klaargezet in WhatsApp voor {naam}' : 'Klaargezet in Berichten voor {naam}', { naam: a.toName }) : t(a.type === 'wa' ? 'Klaargezet in WhatsApp' : 'Klaargezet in Berichten');
       a.doneNote = 'Verstuurd is het nog niet: dat doe je daar zelf.'; a.undo = null; break;
     }
   }
@@ -314,7 +314,7 @@ function aiCmdDo(i){
 function aiCmdUndo(i){
   const m = aiCmdMsgAt(i), a = m && m.cmd; if (!a || a.st !== 'gedaan' || !a.undo) return;
   const u = a.undo;
-  if (u.play) { Android.radioPlay(JSON.stringify(u.play)); a.back = 'Teruggezet: ' + u.play.name + ' speelt weer'; }
+  if (u.play) { Android.radioPlay(JSON.stringify(u.play)); a.back = t('Teruggezet: {zender} speelt weer', { zender: u.play.name }); }
   else if (u.stop) { Android.radioStop(); a.back = 'Radio weer uit'; }
   else if (u.podStop) { Android.podPause(); a.back = 'Podcast gepauzeerd'; }
   else if (u.sleepStop) { Android.sleepStop(); a.back = 'Slaappraat weer gestopt'; }

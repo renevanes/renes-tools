@@ -74,7 +74,7 @@ function auRender(){
   list.innerHTML = auState.rules.map(r => {
     const last = auState.last && auState.last[r.id];
     return '<div class="card aurule' + (r.on === false ? ' off' : '') + '"><button class="aumain" onclick="autoEdit(' + jsq(r.id) + ')"><b>' + esc(r.name || 'Zonder naam') + '</b>' +
-      '<small>' + esc(auSummary(r)) + '</small>' + (last ? '<small class="aulast">Laatst: ' + esc(auWhen(last)) + '</small>' : '') + '</button>' +
+      '<small>' + esc(auSummary(r)) + '</small>' + (last ? '<small class="aulast">' + esc(t('Laatst: {wanneer}', { wanneer: auWhen(last) })) + '</small>' : '') + '</button>' +
       '<button class="tg' + (r.on === false ? '' : ' on') + '" aria-label="' + t('{naam} aan', { naam: esc(r.name) }) + '" onclick="auToggle(' + jsq(r.id) + ', this)"></button></div>';
   }).join('');
   $('#au-empty').style.display = auState.rules.length ? 'none' : 'block';

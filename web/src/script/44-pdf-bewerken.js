@@ -22,10 +22,10 @@ function pdfEditSource(){
 function pdfEditOpen(){
   if (pdfBusy || !pdfIn.revision) return;
   if (pdfIn.lossless === false) { toast('Deze PDF kan niet veilig bewerkt worden. Bewaar hem eerst opnieuw als PDF.'); return; }
-  if (!pdfEd.revision) { pdfEd.revision = pdfIn.revision; pdfEd.page = 0; $('#pdf-edit-name').value = pdfIn.name + ' bewerkt'; }
+  if (!pdfEd.revision) { pdfEd.revision = pdfIn.revision; pdfEd.page = 0; $('#pdf-edit-name').value = t('{naam} bewerkt', { naam: pdfIn.name }); }
   $('#pdf-edit-work').style.display = '';
   $('#pdf-edit-document').textContent = pdfIn.name;
-  $('#pdf-edit-page').max = pdfIn.pages; $('#pdf-edit-count').textContent = 'van ' + pdfIn.pages;
+  $('#pdf-edit-page').max = pdfIn.pages; $('#pdf-edit-count').textContent = t('van {n}', { n: pdfIn.pages });
   pdfEditLoad();
 }
 function pdfEditLoad(){

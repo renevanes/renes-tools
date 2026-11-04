@@ -17,7 +17,7 @@ function setAp(){ return apLoad().set; }
 function apType(tt){ return AP_TYPES[tt] || AP_TYPES.apparaat; }
 function apIcon(tt, tr){ return '<span class="ic' + (tr ? ' tr' : '') + '" aria-hidden="true">' + uiIcon(apType(tt)[1]) + '</span>'; }
 /* Afstand in woorden: altijd "ongeveer" */
-function apDist(m){ if (m == null || m < 0) return ''; return m < 1 ? 'dichtbij (minder dan ' + fmtMeters(1) + ')' : 'ongeveer ' + (m < 10 ? fmtMeters(Math.round(m * 2) / 2, 1) : fmtMeters(m)); }
+function apDist(m){ if (m == null || m < 0) return ''; return m < 1 ? t('dichtbij (minder dan {afstand})', { afstand: fmtMeters(1) }) : t('ongeveer {afstand}', { afstand: m < 10 ? fmtMeters(Math.round(m * 2) / 2, 1) : fmtMeters(m) }); }
 function apBars(rssi){ const n = rssi >= -60 ? 4 : rssi >= -70 ? 3 : rssi >= -80 ? 2 : 1; return '<span class="sig" role="img" aria-label="' + t('Signaal {n} van 4', { n: n }) + '">' + [1, 2, 3, 4].map(i => '<i' + (i <= n ? ' class="on"' : '') + '></i>').join('') + '</span>'; }
 function apBadge(tt, cls){ return '<span class="ap-badge' + (cls ? ' ' + cls : '') + '">' + esc(tt) + '</span>'; }
 function apAgo(tt){
@@ -131,9 +131,9 @@ function apDevTitle(d){
   if (d.nick) return d.nick;
   if (d.tracker) return d.tracker.label;
   if (d.name) return d.name;
-  const tt = apType(d.type)[0];
-  const mt = d.maker && d.type === 'apparaat' ? d.maker + '-apparaat' : d.maker && !tt.includes(d.maker) ? d.maker + ' (' + tt.toLowerCase() + ')' : tt;
-  return d.n > 1 ? d.n + '× ' + mt : (d.maker && d.type === 'apparaat' ? d.maker + '-apparaat' : tt);
+  const tt = t(apType(d.type)[0]), mk = d.maker && d.type === 'apparaat' ? t('{maker}-apparaat', { maker: d.maker }) : '';
+  const mt = mk || (d.maker && !tt.includes(d.maker) ? d.maker + ' (' + tt.toLowerCase() + ')' : tt);
+  return d.n > 1 ? d.n + '× ' + mt : (mk || tt);
 }
 function apBtRow(d){
   const sub = [];
@@ -151,7 +151,7 @@ function apBtRow(d){
 }
 function apBtRender(){
   const d = apBtData || {}, list = (d.devices || []).slice().sort(apSortDevs), st = $('#ap-bt-st');
-  $('#ap-bt-go').innerHTML = uiIcon('search') + (d.scanning ? 'Zoeken…' : list.length ? 'Opnieuw zoeken' : 'Zoeken');
+  $('#ap-bt-go').innerHTML = uiIcon('search') + t(d.scanning ? 'Zoeken…' : list.length ? 'Opnieuw zoeken' : 'Zoeken');
   $('#ap-bt-go').disabled = !!d.scanning;
   st.textContent = d.err ? t(d.err) : d.scanning ? t('Zoeken naar Bluetooth-apparaten… ({n} gevonden)', { n: list.length }) : apBtData ? tn(list.length, '{n} apparaat in de buurt', '{n} apparaten in de buurt') : t('Tik op Zoeken om te kijken welke Bluetooth-apparaten er in de buurt zijn.');
   $('#ap-bt-list').innerHTML = list.map(apBtRow).join('');
@@ -186,12 +186,12 @@ function apWifiLoad(busy){
   $('#ap-wifi-list').innerHTML = groups.map(g => {
     const n = g[0], name = n.ssid || 'Verborgen netwerk', bands = [...new Set(g.map(x => x.band))].join(' en ');
     const sec = { open: 'Open (geen wachtwoord)', wep: 'WEP', wpa: 'WPA', wpa2: 'WPA2', wpa3: 'WPA3', owe: 'Open, wel versleuteld (OWE)', zakelijk: 'Zakelijk (WPA2/3-Enterprise)' }[n.sec] || n.sec;
-    const sub = ['kanaal ' + g.map(x => x.ch).filter((v, i, a) => a.indexOf(v) === i).join(', '), bands, n.width + ' MHz', sec];
+    const sub = [t('kanaal {n}', { n: g.map(x => x.ch).filter((v, i, a) => a.indexOf(v) === i).join(', ') }), bands, n.width + ' MHz', t(sec)];
     if (n.maker) sub.push(n.maker);
     let b = '';
     if (g.some(x => x.connected)) b += apBadge('Verbonden', 'ok');
     if (g.some(x => x.unsafe)) b += apBadge(n.sec === 'wep' ? 'onveilig (WEP)' : 'onveilig: open', 'bad');
-    if (g.length > 1) b += apBadge(g.length + ' toegangspunten');
+    if (g.length > 1) b += apBadge(t('{n} toegangspunten', { n: g.length }));
     return '<div class="ap-row static" role="listitem">' + apIcon('router') + '<span class="tx"><b>' + esc(name) + '</b><small>' + esc(sub.join(' · ')) + ' · ' + n.rssi + ' dBm</small>' + (b ? '<span>' + b + '</span>' : '') + '</span>' + apBars(n.rssi) + '</div>';
   }).join('');
   apCrowdRender();
@@ -240,7 +240,7 @@ function apLanTitle(d){ return d.nick || d.name || d.model || apType(d.kind)[0];
 function apLanRender(){
   const d = apLanData || {}, list = (d.devices || []).slice().sort((a, b) => (b.self - a.self) || (b.gateway - a.gateway) || (b.nieuw - a.nieuw) || apIpNum(a.ip) - apIpNum(b.ip));
   const go = $('#ap-lan-go');
-  go.innerHTML = d.busy ? uiIcon('stop') + 'Stoppen' : uiIcon('search') + (list.length ? 'Opnieuw zoeken' : 'Zoeken op mijn wifi');
+  go.innerHTML = d.busy ? uiIcon('stop') + t('Stoppen') : uiIcon('search') + t(list.length ? 'Opnieuw zoeken' : 'Zoeken op mijn wifi');
   const prog = $('#ap-lan-prog'), pct = d.total ? Math.min(100, Math.round(d.done * 100 / d.total)) : 0;
   prog.style.display = d.busy ? '' : 'none'; $('#ap-lan-bar').style.width = pct + '%'; prog.setAttribute('aria-valuenow', pct);
   const nNew = list.filter(x => x.nieuw).length;
@@ -305,9 +305,9 @@ function apKnownRender(){
     const sub = [];
     if (mine && x.nick && x.name) sub.push(x.name);
     if (x.type && x.type !== 'apparaat') sub.push(apType(x.type)[0]);
-    if (x.last) sub.push('laatst gezien ' + apAgo(x.last) + (x.place ? ', ' + apPlace(x.place) : ''));
+    if (x.last) sub.push(t('laatst gezien {wanneer}', { wanneer: apAgo(x.last) }) + (x.place ? ', ' + apPlace(x.place) : ''));
     else if (mine) sub.push('nog niet gezien');
-    if (!mine && x.days) sub.push('op ' + x.days + (x.days === 1 ? ' dag' : ' dagen'));
+    if (!mine && x.days) sub.push(tn(x.days, 'op {n} dag', 'op {n} dagen'));
     return '<div role="listitem"><button class="ap-row" data-k="' + esc(x.key) + '" onclick="apOpenHist(this.dataset.k)">' + apIcon(x.type) + '<span class="tx"><b>' + esc(x.nick || x.name || apType(x.type)[0]) + '</b><small>' + esc(sub.join(' · ')) + '</small></span></button></div>';
   };
   $('#ap-mine').innerHTML = (h.mine || []).length ? h.mine.map(x => row(x, true)).join('') : '<p class="ap-empty">Nog geen eigen apparaten. Open een apparaat en kies "Dit is mijn apparaat".</p>';
@@ -355,19 +355,19 @@ function apdRender(){
   apdToggles();
   $('#apd-go').textContent = apFinding ? 'Stoppen' : 'Zoeken';
   // Gegevens
-  const kv = (a, b) => b == null || b === '' ? '' : '<div class="kv"><span>' + esc(a) + '</span><span>' + esc(b) + '</span></div>';
+  const kv = (a, b) => b == null || b === '' ? '' : '<div class="kv"><span>' + esc(t(a)) + '</span><span translate="no">' + esc(b) + '</span></div>';
   let info = '<h2>Gegevens</h2>';
   if (lan) {
     info += kv('Soort', d.self ? 'Deze telefoon' : apType(d.kind)[0]) + kv('Naam', d.name) + kv('Model', d.model) + kv('Maker', d.maker || 'niet bekend') + kv('IP-adres', d.ip) + kv('MAC-adres', d.mac) +
       kv('Diensten', (d.services || []).join(', ')) + kv('Open poorten', (d.ports || []).map(p => p.p + ' (' + p.label + ')').join(', ')) + kv('Eerst gezien', d.first ? apAgo(d.first) : '');
     if (!d.stable) info += '<p class="note">Dit apparaat zegt niet hoe het heet: het wordt herkend aan zijn IP-adres, en dat kan veranderen.</p>';
   } else if (apDev.src === 'tr') {
-    info += kv('Soort', d.label) + kv('Adres', apDev.id) + kv('Eerst gezien', d.first ? apAgo(d.first) : '') + kv('Laatst gezien', d.near ? 'nu, ' + apDist(d.dist) : d.last ? apAgo(d.last) : '');
+    info += kv('Soort', d.label) + kv('Adres', apDev.id) + kv('Eerst gezien', d.first ? apAgo(d.first) : '') + kv('Laatst gezien', d.near ? t('nu, {afstand}', { afstand: apDist(d.dist) }) : d.last ? apAgo(d.last) : '');
     info += '<p class="note">Trackers uit de buurt van hun eigenaar houden hun adres tot een dag; daarna krijgen ze een nieuw adres en staan ze hier opnieuw.</p>';
   } else {
-    info += kv('Soort', apType(d.type)[0]) + kv('Naam', d.name) + kv('Maker', d.maker) + kv('Adres', d.n > 1 ? d.n + ' adressen' : d.addr) + kv('Signaal', d.rssi != null && d.near !== false ? d.rssi + ' dBm' : '') +
+    info += kv('Soort', apType(d.type)[0]) + kv('Naam', d.name) + kv('Maker', d.maker) + kv('Adres', d.n > 1 ? t('{n} adressen', { n: d.n }) : d.addr) + kv('Signaal', d.rssi != null && d.near !== false ? d.rssi + ' dBm' : '') +
       kv('Afstand', d.near !== false && d.dist != null ? apDist(d.dist) : '') + kv('Bluetooth', [d.ble ? 'Bluetooth LE' : '', d.classic ? 'klassiek' : ''].filter(Boolean).join(' en ')) + kv('Gekoppeld', d.bonded ? 'ja' : '') +
-      (apDev.src === 'hist' ? kv('Laatst gezien', d.last ? apAgo(d.last) + (d.place ? ', ' + apPlace(d.place) : '') : 'nog niet') + kv('Gezien op', d.days ? d.days + (d.days === 1 ? ' dag' : ' dagen') : '') : '');
+      (apDev.src === 'hist' ? kv('Laatst gezien', d.last ? apAgo(d.last) + (d.place ? ', ' + apPlace(d.place) : '') : t('nog niet')) + kv('Gezien op', d.days ? tn(d.days, '{n} dag', '{n} dagen') : '') : '');
     if (d.rotating) info += '<p class="note">' + t('Dit apparaat wisselt van adres (dat doen telefoons, horloges en oortjes om niet gevolgd te kunnen worden).') + ' ' + t(d.name ? 'Het wordt herkend aan zijn naam.' : 'Zonder naam is het niet terug te herkennen.') + '</p>';
   }
   $('#apd-info').innerHTML = info;

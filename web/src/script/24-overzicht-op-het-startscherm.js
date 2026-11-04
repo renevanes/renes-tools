@@ -63,7 +63,7 @@ function renderDash(){
   try {
     const st = JSON.parse(Android.selfTestLast());
     const bad = (st.items || []).filter(i => i.status === 'fail').length;
-    if (bad) rows.push(['shield', 'Zelftest: ' + bad + ' probleem' + (bad > 1 ? 'en' : ''), 'selftest', 'badc']);
+    if (bad) rows.push(['shield', tn(bad, 'Zelftest: {n} probleem', 'Zelftest: {n} problemen'), 'selftest', 'badc']);
   } catch(e){}
   box.style.display = rows.length ? 'block' : 'none';
   box.innerHTML = rows.map(r => '<button data-t="' + r[2] + '" onclick="jumpTo(this.dataset.t)"><span class=di>' + uiIcon(r[0]) + '</span><span class="dt ' + r[3] + '">' + esc(r[1]) + '</span><span aria-hidden=true>›</span></button>').join('');

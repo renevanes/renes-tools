@@ -117,8 +117,7 @@ function loadCalls(){
     '<div><b>' + (d.in||0) + '</b><small>inkomend<br>' + fmtHours(d.secIn||0) + '</small></div>' +
     '<div><b>' + (d.out||0) + '</b><small>uitgaand<br>' + fmtHours(d.secOut||0) + '</small></div>' +
     '<div><b>' + (d.missed||0) + '</b><small>gemist<br>&nbsp;</small></div>';
-  $('#calls-sum-note').textContent = fmtNum(d.count || 0) + (d.filtered ? ' van ' + fmtNum(d.total||0) : '') +
-    ' oproepen' + (d.people ? ' · ' + d.people + (d.people === 1 ? ' persoon' : ' personen') : '') +
+  $('#calls-sum-note').textContent = (d.filtered ? t('{n} van {totaal} oproepen', { n: fmtNum(d.count || 0), totaal: fmtNum(d.total || 0) }) : t('{n} oproepen', { n: fmtNum(d.count || 0) })) + (d.people ? ' · ' + tn(d.people, '{n} persoon', '{n} personen') : '') +
     (d.count ? ' · ' + fmtDayT(d.first) + (d.first !== d.last ? ' – ' + fmtDayT(d.last) : '') : '');
   $('#calls-export-sel').style.display = d.filtered && d.count ? 'block' : 'none';
   $('#calls-export-sel').textContent = t('Alleen deze selectie exporteren ({n})', { n: fmtNum(d.count||0) });
@@ -138,7 +137,7 @@ function callsPick(i){
   else acts.push(['Toevoegen aan contacten', () => Android.contactsAddNumber(c.number)]);
   if (!callsF.person) acts.push([t('Alle oproepen met {naam}', { naam: c.ck ? c.name : c.number }), () => { callsF.person = { name: c.ck ? c.name : c.number, numbers: [c.number] }; callsSyncUi(); loadCalls(); window.scrollTo(0, 0); }]);
   acts.push(['Opnieuw bellen met Auto redial', () => { jumpTo('redial'); $('#num').value = c.number; nameFor = c.ck ? c.name : ''; $('#pname').textContent = nameFor; }]);
-  openSheet(c.name, (c.number !== c.name ? c.number + ' · ' : '') + c.label + ' · ' + fmtFullCall(c.date) + (c.duration ? ' tot ' + fmtCallEnd(c) + ' · ' + fmtCallDur(c.duration) : ''), acts);
+  openSheet(c.name, (c.number !== c.name ? c.number + ' · ' : '') + c.label + ' · ' + fmtFullCall(c.date) + (c.duration ? ' ' + t('tot {tijd}', { tijd: fmtCallEnd(c) }) + ' · ' + fmtCallDur(c.duration) : ''), acts);
 }
 function fmtFullCall(tt){ return fmtDT(tt, {weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
 function callsExport(sel){

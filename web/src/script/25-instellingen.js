@@ -13,7 +13,7 @@ function stSummaries(i){
   stSum('skin', Android.homeIsDefault() ? '✓ Tools is je startscherm' : 'Tools als startscherm gebruiken');
   stSum('lock', lk.on && !(lk.secure || lk.code) ? 'Aan, maar werkt nog niet: stel een vergrendeling of app-code in' : lk.on ? t('Aan') + (lk.code ? ' · ' + t('eigen app-code') : '') : 'Uit');
   const so = typeof soloAllowedList === 'function' ? soloAllowedList().length : 0;
-  stSum('solo', so ? so + (so === 1 ? ' tool als losse app' : ' tools als losse app') : 'Geen');
+  stSum('solo', so ? tn(so, '{n} tool als losse app', '{n} tools als losse app') : t('Geen'));
   const ps = i.perms || [], miss = ps.filter(p => !p.ok).length;
   stSum('perm', !ps.length ? '' : miss ? t('{n} van {totaal} nog niet toegestaan', { n: miss, totaal: ps.length }) : '✓ Alles toegestaan');
   stSum('backup', i.dest ? (i.destName || 'Gekozen') : 'Nog niet gekozen');
@@ -22,7 +22,7 @@ function stSummaries(i){
     stSum('ai', m.length ? m.map(x => x.label).join(' · ') : 'Nog geen model gedownload'); }
   if (typeof Android.modelsState === 'function') stSum('models', mdSummary(rdJson(Android.modelsState(), {})));
   stSum('music', i.audd ? 'AudD-sleutel ingesteld' : 'Nog geen AudD-sleutel');
-  stSum('crash', i.crashes ? i.crashes + (i.crashes === 1 ? ' fout vastgelegd' : ' fouten vastgelegd') : '✓ Geen fouten');
+  stSum('crash', i.crashes ? tn(i.crashes, '{n} fout vastgelegd', '{n} fouten vastgelegd') : t('✓ Geen fouten'));
   stSum('self', 'Controleer of alles werkt');
   stSum('info', 'Wat is er nieuw en updates');
 }
@@ -85,7 +85,7 @@ window.onHomeRole = function(){ if (stOn()) { stHomeRender(); stSum('skin', Andr
 window.onSettingsChanged = function(msg){ if (msg) toast(msg); if (stOn()) enterSettings(); };
 function stLockToggle(){
   const lk = stJson(Android.lockState());
-  if (!lk.secure && lk.code) { stAskCode('App-slot ' + (lk.on ? 'uitzetten' : 'aanzetten'), 'Bevestig met je app-code', c => Android.lockSetCode(!lk.on, c)); return; }
+  if (!lk.secure && lk.code) { stAskCode(t(lk.on ? 'App-slot uitzetten' : 'App-slot aanzetten'), t('Bevestig met je app-code'), c => Android.lockSetCode(!lk.on, c)); return; }
   if (!lk.secure && !lk.on) { toast('Stel eerst een eigen app-code in (hieronder) of een schermvergrendeling op je telefoon'); return; }
   Android.lockSet(!lk.on);
 }

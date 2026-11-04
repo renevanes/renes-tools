@@ -218,7 +218,7 @@ function setList(x){
   const ex = list.find(e => setCanChange(e) && !e.safe && setType(e) === 'aan');
   const exL = ex ? t(ex.label).charAt(0).toLowerCase() + t(ex.label).slice(1) : '';
   return { text: (best && bs >= 0.7 ? t('Bij {scherm} kun je instellen:', { scherm: setB0(best) }) : t('Deze instellingen horen erbij:')) + '\n' + rows.join('\n') + (list.length > 24 ? '\n- ' + t('… en nog {n} meer', { n: list.length - 24 }) : '') +
-    '\n\n' + (ex ? (TAAL.on ? t('Zeg bijvoorbeeld "{opdracht}", of tik op Openen.', { opdracht: 'turn ' + (setGet(ex) === 'aan' ? 'off ' : 'on ') + exL }) : 'Zeg bijvoorbeeld "zet ' + exL + ' ' + (setGet(ex) === 'aan' ? 'uit' : 'aan') + '", of tik op Openen.') : t('Tik op Openen om ernaartoe te gaan.')), set: { open: [list[0].id] } };
+    '\n\n' + (ex ? (TAAL.on ? t('Zeg bijvoorbeeld "{opdracht}", of tik op Openen.', { opdracht: 'turn ' + (setGet(ex) === 'aan' ? 'off ' : 'on ') + exL }) : 'Zeg bijvoorbeeld "zet ' + exL + ' ' + (setGet(ex) === 'aan' ? 'uit' : 'aan') + '", of tik op Openen.') : t('Tik op Openen om ernaartoe te gaan.')), set: { open: [list[0].id] } }; // taal-vast: de Nederlandse tak; Engels staat ervoor in t()
 }
 function setLogText(){
   const log = setLogGet();
@@ -326,7 +326,7 @@ function setMsgHtml(m, i){
   if (s.log) { const log = setLogGet();
     h += '<div class="aiact setlog" role="list">' + s.log.map(n => { const x = log.find(y => y.n === n); if (!x) return '';
       return '<div class="setlogrow" role="listitem"><span>' + (x.undone ? '<s>' : '') + esc(t(x.label)) + ': ' + esc(t(x.fromN || x.from)) + ' → <b>' + esc(t(x.toN || x.to)) + '</b>' + (x.undone ? '</s> <small>' + t('(teruggezet)') + '</small>' : '') + '<small>' + esc(fmtD(x.t)) + '</small></span>' +
-        (x.undone ? '' : '<button class="linkish" onclick="setLogUndo(' + n + ',' + i + ')" aria-label="' + esc('Ongedaan maken: ' + x.label) + '">Ongedaan maken</button>') + '</div>'; }).join('') + '</div>'; }
+        (x.undone ? '' : '<button class="linkish" onclick="setLogUndo(' + n + ',' + i + ')" aria-label="' + esc(t('Ongedaan maken: {wat}', { wat: t(x.label) })) + '">Ongedaan maken</button>') + '</div>'; }).join('') + '</div>'; }
   if (s.open && s.open.length) h += '<div class="aisrc setopen">' + s.open.map(id => {
     if (id === '__instellingen') return '<button class="aichip sm" onclick="jumpTo(\'settings\')">' + uiIcon('settings') + 'Instellingen openen</button>';
     const e = setEntry(id); return e ? '<button class="aichip sm" onclick="setOpen(' + jsq(id) + ')" aria-label="' + esc(t('Openen: {naam}', { naam: t(e.label) })) + '">' + uiIcon('external') + esc(t(e.label)) + '</button>' : ''; }).join('') + '</div>';

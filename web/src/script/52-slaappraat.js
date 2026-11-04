@@ -41,7 +41,7 @@ function slRender(){
     slHtml(st, '<div class="sl-live"><b>Afronden</b>…</div><p class="note">' + esc(s.heard ? tn(s.heard, '{n} keer iets gehoord', '{n} keer iets gehoord') : t('Niets gehoord')) + '</p>' + slLiveHtml(s));
     btn.textContent = 'Stoppen'; btn.classList.add('ghost'); meter.style.display = 'none';
   } else if (s.phase === 'luistert') {
-    slHtml(st, '<div class="sl-live"><span class="sl-dot" aria-hidden="true"></span><b>Luistert</b> sinds ' + esc(slTime(s.since)) + '</div><p class="note">' +
+    slHtml(st, '<div class="sl-live"><span class="sl-dot" aria-hidden="true"></span>' + t('<b>Luistert</b> sinds {tijd}', { tijd: esc(slTime(s.since)) }) + '</div><p class="note">' +
       esc((s.heard ? tn(s.heard, '{n} keer iets gehoord', '{n} keer iets gehoord') : t('Nog niets gehoord')) + (s.stopAt ? ' · ' + t('stopt om {tijd}', { tijd: slTime(s.stopAt) }) : '')) + '</p>' + slLiveHtml(s));
     btn.textContent = 'Stoppen'; btn.classList.add('ghost');
     meter.style.display = '';
@@ -186,7 +186,7 @@ function slnRender(){
   slHtml($('#sln-list'), list.map(k => {
     const kind = !k.done ? (k.audio ? 'Nog niet uitgeschreven' : k.nobk ? 'Niet uitgeschreven (geluid zat niet in de backup)' : slNotKept(k))
       : [k.kind === 'praten' ? '' : k.kind === 'onleesbaar' ? 'Kon dit stukje niet lezen' : 'Geluid (geen woorden)', !k.audio && k.why === 'plaats' ? 'Geluid weggedaan om plaats te maken (maximum van de nacht bereikt)' : ''].filter(Boolean).join(' · ');
-    const play = k.audio ? '<button class="iconbtn" onclick="slnPlay(\'' + esc(k.id) + '\')" aria-label="' + (slPlaying === k.id ? 'Stoppen' : 'Afspelen') + ' ' + esc(slTime(k.t)) + '">' + uiIcon(slPlaying === k.id ? 'stop' : 'play') + '</button>' : '';
+    const play = k.audio ? '<button class="iconbtn" onclick="slnPlay(\'' + esc(k.id) + '\')" aria-label="' + esc(t(slPlaying === k.id ? 'Stoppen {tijd}' : 'Afspelen {tijd}', { tijd: slTime(k.t) })) + '">' + uiIcon(slPlaying === k.id ? 'stop' : 'play') + '</button>' : '';
     return '<div class="sl-clip' + (k.kind === 'praten' ? ' talk' : '') + '" role="listitem" data-clip="' + esc(k.id) + '"><div class="sl-ct"><b>' + esc(slTime(k.t)) + '</b><small>' + esc(Math.max(1, Math.round(k.dur)) + ' s') + '</small></div>' +
       '<div class="sl-cx">' + (k.text ? '<p>' + esc(k.text) + '</p>' : '') + (kind ? '<small>' + esc(kind) + '</small>' : '') + '</div>' + play +
       '<button class="iconbtn" onclick="slnDel(\'' + esc(k.id) + '\')" aria-label="' + esc(t('Wissen {tijd}', { tijd: slTime(k.t) })) + '">' + uiIcon('trash') + '</button></div>';
@@ -229,7 +229,7 @@ function slnMenu(){
   const acts = [];
   if (talk.length) acts.push(['Als notitie bewaren', () => {
     const text = talk.map(k => slTime(k.t) + ' — ' + k.text).join('\n');
-    notesGet().push({ id: uid(), title: 'Slaappraat: ' + slNightName(n.start).replace('Nacht van ', ''), text, items: [], updated: Date.now() }); notesSaveNow();
+    notesGet().push({ id: uid(), title: t('Slaappraat: {nacht}', { nacht: slNightName(n.start).replace(/^(Nacht van|Night of) /, '') }), text, items: [], updated: Date.now() }); notesSaveNow();
     toast('Bewaard bij Notities');
   }]);
   if (!(slSt.phase && slSt.night === n.id)) acts.push(['Deze nacht wissen', () => askConfirm(t('Deze nacht wissen?'), t('Alle stukjes van {nacht} gaan weg.', { nacht: slNightName(n.start).toLowerCase() }), t('Wissen'), () => {

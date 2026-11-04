@@ -14,5 +14,5 @@ function whatsNew(){
   $('#modal-cancel').style.display = 'none';
   return true;
 }
-window.addEventListener('error', e => { try { Android.logJs((e.message || 'fout') + ' @' + (e.filename || '').split('/').pop() + ':' + (e.lineno || 0)); } catch(x){} });
+window.addEventListener('error', e => { try { Android.logJs((e.message || 'fout') /* taal-vast: logregel, niet in beeld */ + ' @' + (e.filename || '').split('/').pop() + ':' + (e.lineno || 0)); } catch(x){} });
 

@@ -72,7 +72,7 @@ function cedRender(){
   $('#ced-dom-w').style.display = q.rhythm === 'monthly' ? '' : 'none';
   $('#ced-dom').innerHTML = Array.from({ length: 31 }, (_, i) => '<option value="' + (i + 1) + '"' + (i + 1 === q.dom ? ' selected' : '') + '>' + (i + 1) + 'e</option>').join('');
   const multi = q.rhythm === 'multi', ts = multi ? q.times : q.times.slice(0, 1);
-  $('#ced-times').innerHTML = ts.map((tt, i) => '<div class="ci-timerow"><label for="ced-t' + i + '">' + (multi ? 'Tijd ' + (i + 1) : 'Om') + '</label><input type="time" class="sl-time" id="ced-t' + i + '" value="' + esc(tt) + '">' +
+  $('#ced-times').innerHTML = ts.map((tt, i) => '<div class="ci-timerow"><label for="ced-t' + i + '">' + (multi ? t('Tijd {n}', { n: i + 1 }) : t('Om')) + '</label><input type="time" class="sl-time" id="ced-t' + i + '" value="' + esc(tt) + '">' +
     (multi && ts.length > 1 ? '<button class="iconbtn" data-i="' + i + '" onclick="cedTimeDel(+this.dataset.i)" aria-label="' + t('Tijd {n} weghalen', { n: i + 1 }) + '">' + uiIcon('close') + '</button>' : '') + '</div>').join('');
   $('#ced-time-add').style.display = multi && ts.length < 8 ? '' : 'none';
   $('#ced-until').value = q.until || '23:59';
@@ -99,7 +99,7 @@ function cedScale(v){
   if (v !== 'custom' || cedQ.options.length > 7) cedQ.options = cedDefaults(v);
   cedRender();
 }
-function cedOptAdd(){ cedSync(); if (cedQ.options.length >= 7) return; const max = Math.max(0, ...cedQ.options.map(o => +o.value || 0)); cedQ.options.push({ emoji: '', label: 'Keuze ' + (cedQ.options.length + 1), value: max + 1 }); cedRender(); }
+function cedOptAdd(){ cedSync(); if (cedQ.options.length >= 7) return; const max = Math.max(0, ...cedQ.options.map(o => +o.value || 0)); cedQ.options.push({ emoji: '', label: t('Keuze {n}', { n: cedQ.options.length + 1 }), value: max + 1 }); cedRender(); }
 function cedOptDel(i){ cedSync(); if (cedQ.options.length <= 2) return; cedQ.options.splice(i, 1); cedRender(); }
 function cedRhythm(v){
   cedSync(); cedQ.rhythm = v;

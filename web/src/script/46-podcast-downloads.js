@@ -11,10 +11,10 @@ function pcDlBusy(d){ return d && (d.state === 'running' || d.state === 'queued'
 function pcDlTxt(d){
   if (!d) return '';
   if (d.state === 'done') return '✓ Offline';
-  if (d.state === 'failed') return '⚠ ' + (d.reason || 'Downloaden mislukt');
-  if (d.state === 'paused') return '↓ ' + (d.reason || 'Gepauzeerd');
+  if (d.state === 'failed') return '⚠ ' + t(d.reason || 'Downloaden mislukt');
+  if (d.state === 'paused') return '↓ ' + t(d.reason || 'Gepauzeerd');
   if (d.state === 'queued') return '↓ In de wachtrij';
-  return '↓ ' + (d.total > 0 ? Math.min(99, Math.floor(d.bytes / d.total * 100)) + '%' : 'Bezig');
+  return '↓ ' + (d.total > 0 ? Math.min(99, Math.floor(d.bytes / d.total * 100)) + '%' : t('Bezig'));
 }
 /* Menu-keuzes voor een aflevering (in elk afleveringmenu) */
 function pcDlActs(ep, pod){
