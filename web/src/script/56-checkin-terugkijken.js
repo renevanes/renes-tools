@@ -148,7 +148,7 @@ function ciDayInfo(day, info){
 function ciRemHtml(r){
   return '<div class="ci-rem"><p class="ci-note">' + (r.voice ? uiIcon('mic') + ' ' : '') + esc(r.text) + '</p><small class="note">' + esc(t('opmerking van {wanneer}', { wanneer: ciWhen(r.t) }) + (r.edited ? ' · ' + t('gewijzigd {wanneer}', { wanneer: ciWhen(r.edited) }) : '')) + '</small>' +
     '<div class="ci-acts"><button class="mini" data-r="' + esc(r.id) + '" onclick="ciRemOpen(\'\', this.dataset.r)" aria-label="' + esc('Opmerking wijzigen, ' + ciKeyLabel(r.p)) + '">Wijzigen</button>' +
-    '<button class="mini" data-r="' + esc(r.id) + '" onclick="ciqRemDel(this.dataset.r)" aria-label="' + esc('Opmerking wissen, ' + ciKeyLabel(r.p)) + '">Wissen</button></div></div>';
+    '<button class="mini" data-r="' + esc(r.id) + '" onclick="ciqRemDel(this.dataset.r)" aria-label="' + esc(t('Opmerking wissen, {wanneer}', { wanneer: ciKeyLabel(r.p) })) + '">Wissen</button></div></div>';
 }
 function ciqRenderDay(q){
   const box = $('#ciq-day');
@@ -172,12 +172,12 @@ function ciqRenderDay(q){
         (a.note ? '<p class="ci-note">' + (a.voice ? uiIcon('mic') + ' ' : '') + esc(a.note) + '</p>' : '') +
         (ed || rb ? '<div class="ci-acts">' : '') + (ed ? '<button class="mini" data-k="' + esc(s.key) + '" data-a="' + esc(a.id) + '" onclick="ciqEdit(this.dataset.k, this.dataset.a)" aria-label="' + esc('Wijzigen: ' + ciAnsText(a) + ', ' + ciKeyLabel(s.key)) + '">Wijzigen</button>' +
           '<button class="mini" data-a="' + esc(a.id) + '" onclick="ciqDelAns(this.dataset.a)" aria-label="' + esc('Wissen: ' + ciAnsText(a) + ', ' + ciKeyLabel(s.key)) + '">Wissen</button>' : '') +
-        (rb ? '<button class="mini" data-k="' + esc(a.p) + '" onclick="ciRemOpen(this.dataset.k)" aria-label="' + esc('Opmerking toevoegen: ' + ciAnsText(a) + ', ' + ciKeyLabel(a.p)) + '">' + uiIcon('edit') + 'Opmerking</button>' : '') + (ed || rb ? '</div>' : '') + '</div>';
+        (rb ? '<button class="mini" data-k="' + esc(a.p) + '" onclick="ciRemOpen(this.dataset.k)" aria-label="' + esc(t('Opmerking toevoegen: {wat}, {wanneer}', { wat: ciAnsText(a), wanneer: ciKeyLabel(a.p) })) + '">' + uiIcon('edit') + 'Opmerking</button>' : '') + (ed || rb ? '</div>' : '') + '</div>';
     });
     h += rem.map(ciRemHtml).join('');
     // Begonnen: de dag (week, maand) is er; bij meerdere keren per dag het moment zelf (of je vulde het al in)
     const begun = !!s.at && ciKeyDay(s.key) <= today && (s.key.length !== 16 || s.at <= now || ans.length > 0), addRem = real && begun && ans.length !== 1;
-    const remBtn = addRem ? '<button class="mini" data-k="' + esc(s.key) + '" onclick="ciRemOpen(this.dataset.k)" aria-label="' + esc('Opmerking toevoegen: ' + q.text + ', ' + ciKeyLabel(s.key)) + '">' + uiIcon('edit') + 'Opmerking toevoegen</button>' : '';
+    const remBtn = addRem ? '<button class="mini" data-k="' + esc(s.key) + '" onclick="ciRemOpen(this.dataset.k)" aria-label="' + esc(t('Opmerking toevoegen: {wat}, {wanneer}', { wat: q.text, wanneer: ciKeyLabel(s.key) })) + '">' + uiIcon('edit') + 'Opmerking toevoegen</button>' : '';
     let act = '', off = '';
     if (!q.archived) {
       const one = q.perPeriod !== 'many', past = s.status === 'missed' || s.status === 'before' || (s.status === 'answered' && s.end && s.end <= now), todayUp = s.status === 'upcoming' && ciDayKey(new Date(s.at)) === today;
@@ -340,7 +340,7 @@ function ciqRenderSum(q){
   h += order.map(i => '<div class="ci-cnt" data-c="' + esc(q.color || 'primary') + '"><span>' + esc(ciOptText(opts[i])) + '</span><span class="b" aria-hidden="true"><i style="width:' + Math.round((counts[i] || 0) / max * 100) + '%"></i></span><b>' + (counts[i] || 0) + '×</b></div>').join('');
   const unit = { daily: ['dag', 'dagen'], workdays: ['werkdag', 'werkdagen'], weekdays: ['dag', 'dagen'], weekly: ['week', 'weken'], monthly: ['maand', 'maanden'], multi: ['keer', 'keer'] }[q.rhythm] || ['keer', 'keer'];
   h += '<p class="note">' + esc(t('{ingevuld} ingevuld, {gemist} gemist', { ingevuld: s.answered || 0, gemist: s.missed || 0 }) + (s.avg != null ? ' · ' + t('gemiddeld {gem} ({antwoord})', { gem: ciNum(s.avg), antwoord: ciOptText(ciNearest(q, s.avg)) }) : '')) + '</p>';
-  h += '<p class="ci-st ok">' + esc('Reeks: ' + (s.streak || 0) + ' ' + ((s.streak || 0) === 1 ? unit[0] : unit[1]) + ' achter elkaar ingevuld') + '</p>';
+  h += '<p class="ci-st ok">' + esc(t('Reeks: {n} {eenheid} achter elkaar ingevuld', { n: s.streak || 0, eenheid: t((s.streak || 0) === 1 ? unit[0] : unit[1]) })) + '</p>';
   slHtml($('#ciq-sum'), h);
 }
 

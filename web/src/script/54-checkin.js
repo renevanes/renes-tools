@@ -76,18 +76,18 @@ function ciOptBtns(q, key, sel, big){
 function ciCard(q){
   const [st, cls] = ciStatus(q), c = q.cur;
   let h = '<div class="card ci-card" data-c="' + esc(q.color || 'primary') + '" data-q="' + esc(q.id) + '"><div class="ci-head"><span class="ci-em" aria-hidden="true">' + esc(q.emoji || '•') + '</span>' +
-    '<button class="ci-tt" data-q="' + esc(q.id) + '" onclick="ciOpen(this.dataset.q)" aria-label="' + esc(q.text + ': terugkijken') + '"><b>' + esc(q.text) + (q.tpl && !q.on ? '<span class="ci-badge">Voorstel</span>' : '') + '</b><small>' + esc(ciRhythmText(q)) + '</small></button>' +
-    '<button class="iconbtn" data-q="' + esc(q.id) + '" onclick="ciMenu(this.dataset.q)" aria-label="' + esc(q.text + ': meer') + '">' + uiIcon('more') + '</button></div>' +
+    '<button class="ci-tt" data-q="' + esc(q.id) + '" onclick="ciOpen(this.dataset.q)" aria-label="' + esc(q.text + ': ' + t('terugkijken')) + '"><b>' + esc(q.text) + (q.tpl && !q.on ? '<span class="ci-badge">Voorstel</span>' : '') + '</b><small>' + esc(ciRhythmText(q)) + '</small></button>' +
+    '<button class="iconbtn" data-q="' + esc(q.id) + '" onclick="ciMenu(this.dataset.q)" aria-label="' + esc(q.text + ': ' + t('meer')) + '">' + uiIcon('more') + '</button></div>' +
     '<p class="ci-st ' + cls + '">' + esc(st) + '</p>';
   if (!q.archived && ciDue(q)) h += ciOptBtns(q, c.key, -1, false);
   const acts = [];
-  if (!q.archived && !q.on) acts.push('<button class="mini on" data-q="' + esc(q.id) + '" onclick="ciSetOn(this.dataset.q, true)" aria-label="' + esc(q.text + ': aanzetten') + '">Aanzetten</button>', '<button class="mini" data-q="' + esc(q.id) + '" onclick="ciEdit(this.dataset.q)" aria-label="' + esc(q.text + ': bewerken') + '">Bewerken</button>');
+  if (!q.archived && !q.on) acts.push('<button class="mini on" data-q="' + esc(q.id) + '" onclick="ciSetOn(this.dataset.q, true)" aria-label="' + esc(q.text + ': ' + t('aanzetten')) + '">Aanzetten</button>', '<button class="mini" data-q="' + esc(q.id) + '" onclick="ciEdit(this.dataset.q)" aria-label="' + esc(q.text + ': ' + t('bewerken')) + '">Bewerken</button>');
   if (c && c.status === 'answered' && c.answers.length && (q.editable !== false || Date.now() - c.answers[c.answers.length - 1].t < 15 * 60000)) {
     const a = c.answers[c.answers.length - 1];
     acts.push('<button class="linkish" data-q="' + esc(q.id) + '" data-k="' + esc(c.key) + '" data-a="' + esc(a.id) + '" onclick="ciAsk(this.dataset.q, this.dataset.k, {aid: this.dataset.a})" aria-label="' + esc(q.text + ': ' + (ciHasExtras(q) ? 'aanvullen of wijzigen' : 'wijzigen')) + '">' + (ciHasExtras(q) ? 'Aanvullen of wijzigen' : 'Wijzigen') + '</button>');
   }
   if (!q.archived && q.backfill !== false && q.missed7 > 0) acts.push('<button class="linkish" data-q="' + esc(q.id) + '" onclick="ciOpen(this.dataset.q)" aria-label="' + esc(q.text + ': ' + t('achteraf invullen')) + '">' + t('{n}× gemist deze week · achteraf invullen', { n: q.missed7 }) + '</button>');
-  if (q.archived) acts.push('<button class="mini" data-q="' + esc(q.id) + '" onclick="ciOpen(this.dataset.q)" aria-label="' + esc(q.text + ': terugkijken') + '">Terugkijken</button>', '<button class="mini" data-q="' + esc(q.id) + '" onclick="ciArchive(this.dataset.q, false)" aria-label="' + esc(q.text + ': terugzetten') + '">Terugzetten</button>');
+  if (q.archived) acts.push('<button class="mini" data-q="' + esc(q.id) + '" onclick="ciOpen(this.dataset.q)" aria-label="' + esc(q.text + ': ' + t('terugkijken')) + '">Terugkijken</button>', '<button class="mini" data-q="' + esc(q.id) + '" onclick="ciArchive(this.dataset.q, false)" aria-label="' + esc(q.text + ': ' + t('terugzetten')) + '">Terugzetten</button>');
   if (acts.length) h += '<div class="ci-acts">' + acts.join('') + '</div>';
   return h + '</div>';
 }

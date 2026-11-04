@@ -92,7 +92,7 @@ function renderMsgs(msgs){
   for (const m of msgs) {
     const d = new Date(m.t), dd = fmtDate(d, {weekday:'long', day:'numeric', month:'long', year:'numeric'});
     if (dd !== lastDay) { out += '<div class=dsep>' + esc(dd) + '</div>'; lastDay = dd; }
-    out += '<div class="bub' + (m.me ? ' me' : '') + '">';
+    out += '<div translate="no" class="bub' + (m.me ? ' me' : '') + '">';
     // Afzender tonen in groepen; ook als de groep via zoeken is geopend (dan is de afzender een ander dan de chatnaam)
     if (!m.me && m.sender && (chatGroup || m.sender !== $('#chat-title').textContent)) out += '<span class=snd>' + esc(m.sender) + '</span>';
     if (m.media && m.mime && m.mime.indexOf('image/') === 0 && m.type !== 20)
@@ -116,8 +116,8 @@ function chatSearch(q){
     cl.style.display = 'none';
     if (msgs.error) { sr.innerHTML = '<p class=note>' + esc(msgs.error) + '</p>'; return; }
     if (!msgs.length) { sr.innerHTML = '<p class=note style="text-align:center">' + t('Niets gevonden voor "{q}"', { q: esc(q) }) + '</p>'; return; }
-    sr.innerHTML = '<p class=note>' + msgs.length + ' resultaten</p><div class="msgs">' + msgs.map(m => {
-      return '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openChat(' + m.chat + ',' + jsq(m.chatName||'') + ')">' +
+    sr.innerHTML = '<p class=note>' + tn(msgs.length, '{n} resultaat', '{n} resultaten') + '</p><div class="msgs">' + msgs.map(m => {
+      return '<div translate="no" class="bub' + (m.me ? ' me' : '') + '" onclick="openChat(' + m.chat + ',' + jsq(m.chatName||'') + ')">' +
         '<span class=snd>' + esc(m.chatName || '') + (m.sender && !m.me ? ' · ' + esc(m.sender) : '') + '</span>' +
         esc(m.text || m.label || '') + '<span class=tm>' + fmtD(m.t) + '</span></div>';
     }).join('') + '</div>';

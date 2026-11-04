@@ -47,7 +47,7 @@ function smsRenderMsgs(msgs){
   for (const m of msgs) {
     const d = new Date(m.t), dd = fmtDate(d, {weekday:'long', day:'numeric', month:'long', year:'numeric'});
     if (dd !== lastDay) { out += '<div class=dsep>' + esc(dd) + '</div>'; lastDay = dd; }
-    out += '<div class="bub' + (m.me ? ' me' : '') + '">' + esc(m.text || '') +
+    out += '<div translate="no" class="bub' + (m.me ? ' me' : '') + '">' + esc(m.text || '') +
       '<span class=tm>' + fmtTime(d, {hour:'2-digit', minute:'2-digit'}) + '</span></div>';
   }
   return out || '<p class=note>Geen berichten.</p>';
@@ -61,8 +61,8 @@ function smsSearchDo(q){
     cl.style.display = 'none';
     if (msgs.error) { sr.innerHTML = '<p class=note>' + esc(msgs.error) + '</p>'; return; }
     if (!msgs.length) { sr.innerHTML = '<p class=note style="text-align:center">Niets gevonden</p>'; return; }
-    sr.innerHTML = '<p class=note>' + msgs.length + ' resultaten</p><div class="msgs">' + msgs.map(m =>
-      '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openSms(' + m.thread + ',' + jsq(m.name||'') + ')">' +
+    sr.innerHTML = '<p class=note>' + tn(msgs.length, '{n} resultaat', '{n} resultaten') + '</p><div class="msgs">' + msgs.map(m =>
+      '<div translate="no" class="bub' + (m.me ? ' me' : '') + '" onclick="openSms(' + m.thread + ',' + jsq(m.name||'') + ')">' +
       '<span class=snd>' + esc(m.name || '') + '</span>' + esc(m.text || '') +
       '<span class=tm>' + fmtD(m.t) + '</span></div>').join('') + '</div>';
   }, 250);

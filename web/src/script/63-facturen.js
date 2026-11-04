@@ -159,7 +159,7 @@ function faOpen(id){
   const acts = [
     ['Nu ophalen', () => faNu(id, false)],
     ...(l.soort === 'mail' ? [] : [['Ophalen en meekijken', () => faNu(id, true)]]),
-    ['Facturen bekijken' + (l.aantal ? ' (' + l.aantal + ')' : ''), () => faBekijk(l)],
+    [t('Facturen bekijken') + (l.aantal ? ' (' + l.aantal + ')' : ''), () => faBekijk(l)],
     ['Geschiedenis', () => faGeschiedenis(l)],
     ['Instellingen', () => flOpen(l)],
     ['Verwijderen…', () => askConfirm(t('{naam} verwijderen?', { naam: l.naam }), 'De instellingen en de facturen in de app gaan weg. Kopieën in je backup-map en in Eigen Cloud blijven staan.', 'Verwijderen', () => { const e = Android.facturenVerwijder(id); if (e) toast(e); faRender(); })]];

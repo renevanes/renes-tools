@@ -20,14 +20,14 @@ public class AutoRunActivity extends Activity {
         if (id != null) Auto.cancel(this, Auto.notifId(id));
         AutoA11y.clearPending(); // niet nog een keer na het ontgrendelen
         if (r != null && AutoActions.internal(r)) {
-            if (doRun) { boolean ok = AutoActions.run(this, r); Auto.log(this, r, (ok ? "Gestart vanuit de melding: " : "Starten lukte niet: ") + AutoActions.label(r)); }
+            if (doRun) { boolean ok = AutoActions.run(this, r); Auto.log(this, r, ok ? Taal.t(this, "Gestart vanuit de melding: {wat}", "wat", AutoActions.label(r)) : Taal.t(this, "Starten lukte niet: {wat}", "wat", AutoActions.label(r))); }
             finish();
             return;
         }
         if (r != null) {
             boolean hasSteps = r.optJSONArray("steps") != null && r.optJSONArray("steps").length() > 0;
             if (doRun && hasSteps && AutoA11y.ready()) {
-                Auto.log(this, r, "Gestart vanuit de melding");
+                Auto.log(this, r, Taal.t(this, "Gestart vanuit de melding"));
                 HomeWidgets.parkMark(this, r);
                 AutoA11y.run(this, r);
             } else {

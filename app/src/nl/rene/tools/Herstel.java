@@ -442,11 +442,11 @@ final class Herstel {
         JSONArray miss = new JSONArray();
         String blocked = blocked(c);
         if (blocked != null) miss.put(blocked);
-        if (!dest) miss.put("Kies een backup-map");
-        if (!enc) miss.put("Zet Versleutelen aan (wachtwoord)");
-        if (!part) miss.put("Vink Alle appgegevens aan");
-        if (!auto) miss.put("Zet Elke nacht alles back-uppen aan");
-        if (last == 0) miss.put("Nog geen complete backup gemaakt");
+        if (!dest) miss.put(Taal.T("Kies een backup-map"));
+        if (!enc) miss.put(Taal.T("Zet Versleutelen aan (wachtwoord)"));
+        if (!part) miss.put(Taal.T("Vink Alle appgegevens aan"));
+        if (!auto) miss.put(Taal.T("Zet Elke nacht alles back-uppen aan"));
+        if (last == 0) miss.put(Taal.T("Nog geen complete backup gemaakt"));
         // Hint bij de grootte: elke nacht komt er een volledig archief bij; opruimen kiest Rene zelf
         String lastRes = AllBackup.prefs(c).getString("last", null);
         boolean stopped = false;

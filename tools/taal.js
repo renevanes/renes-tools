@@ -69,7 +69,7 @@ function looksDutch(s){
   return /^[A-ZÉ][a-zéëïöü]+/.test(t) || /\s/.test(t);
 }
 /* Duidelijk Nederlandse woorden (voor de bewaker op aan elkaar geplakte tekst) */
-const DUTCHY = /(^|[^\p{L}])(de|het|een|niet|voor|met|naar|wordt|kies|tik|nog|geen|deze|dit|van|je|bij|uit|aan|als|ook|alleen|op|is|zijn|om|tot|en|dag|dagen|uur|minuten|keer|staat|klaar|gestopt|vrij|versie|gemiddeld|vraagt|leert|meteen|antwoord|antwoorden|gesprek|niets|stem|modellen|gaat|weg|gewist|bewaard|opgeslagen|mislukt|gelukt|lukt|lukte|bezig|nieuwe?|vandaag|gisteren|morgen|wachten|ingesteld|gekoppeld|verbonden|opnieuw|terug)(?![\p{L}])/iu;
+const DUTCHY = /(^|[^\p{L}])(de|het|een|niet|voor|met|naar|wordt|kies|tik|nog|geen|deze|dit|van|je|bij|uit|aan|als|ook|alleen|op|is|zijn|om|tot|en|dag|dagen|uur|minuten|keer|staat|klaar|gestopt|vrij|versie|gemiddeld|vraagt|leert|meteen|antwoord|antwoorden|gesprek|niets|stem|modellen|gaat|weg|gewist|bewaard|opgeslagen|mislukt|gelukt|lukt|lukte|bezig|nieuwe?|vandaag|gisteren|morgen|wachten|ingesteld|gekoppeld|verbonden|opnieuw|terug|door|resultaten|bestanden|berichten|nummers|stuks|gevonden|geleden|over|gebruikt|ingevuld|gemist|afspraken?|meldingen|minuut|seconden?|weken|maanden|bekijken|verwijderen|wissen|openen|toevoegen|zoeken|alle|elke|mijn|werd|kon|kan|moet|mag)(?![\p{L}])/iu;
 const SINKS = { toast: [0], undoToast: [0], askConfirm: [0, 1, 2], askInput: [0, 1, 3], askChoice: [0, 1, 2, 3], openSheet: [0, 1], t: [0], tn: [1, 2] };
 /* De argumenten van een aanroep (bovenste niveau), met begin en eind in de bron */
 function callArgs(src, open){

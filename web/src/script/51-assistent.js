@@ -54,7 +54,7 @@ function aiModelCard(m, opts){
   const prev = m.replaces ? aiModel(m.replaces) : {};
   const newer = prev.id && aiListed(prev) ? '<small class="ainew">' + uiIcon('star') + esc((aiModel(m.replaces).label ? t('Nieuw, vervangt {model}', { model: aiModel(m.replaces).label }) : t('Nieuw')) + (m.news ? ': ' + m.news : '')) + '</small>' : '';
   const by = (aiSt.models || []).find(x => x.replaces === m.id && x.state === 'ready');
-  const old = by && m.state === 'ready' ? '<small class="ainew">Vervangen door ' + esc(by.label) + (aiSt.chat === by.id ? '; dit model kun je verwijderen' : '') + '</small>' : '';
+  const old = by && m.state === 'ready' ? '<small class="ainew">' + esc(t(aiSt.chat === by.id ? 'Vervangen door {model}; dit model kun je verwijderen' : 'Vervangen door {model}', { model: by.label })) + '</small>' : '';
   return '<div class="aimodel' + (chosen ? ' on' : '') + '" data-id="' + m.id + '"><div class="aimt"><b>' + esc(m.label) + '</b><small>' + esc(m.desc) + '</small>' +
     '<small class="aims">' + esc(aiStateTxt(m)) + (big && m.state !== 'ready' ? ' · ' + t('let op: je telefoon heeft {gb} GB geheugen', { gb: fmtNum(aiSt.ram / 1e9, 0) }) : '') + '</small>' + newer + old +
     (busy ? '<span class="pcprog"><i style="width:' + Math.min(100, pct).toFixed(1) + '%"></i></span>' : '') + '</div>' +
@@ -447,12 +447,12 @@ function aiSrcHtml(src){
   if (!src || !src.length) return '';
   return '<div class="aisrc">' + src.map((h, i) => {
     // Feiten uit een tool (Gebruik, Slaappraat …): de knop opent die tool
-    if (h && !h.id && AI_DATA_TOOL[h.kind]) return '<button class="aichip sm" onclick="jumpTo(\'' + AI_DATA_TOOL[h.kind] + '\')" aria-label="' + esc('Bron: ' + h.title + ', openen') + '">' + uiIcon(aiKindIcon(h.kind)) + esc(h.title) + '</button>';
+    if (h && !h.id && AI_DATA_TOOL[h.kind]) return '<button class="aichip sm" onclick="jumpTo(\'' + AI_DATA_TOOL[h.kind] + '\')" aria-label="' + esc(t('Bron: {titel}, openen', { titel: h.title })) + '">' + uiIcon(aiKindIcon(h.kind)) + esc(h.title) + '</button>';
     const g = aiHitGs(h); return '<button class="aichip sm" onclick="gsOpen(this)" data-k="' + esc(g[0]) + '" data-x="' + esc(JSON.stringify(g[1])) + '">[' + (i + 1) + '] ' + uiIcon(aiKindIcon(h.kind)) + esc(h.title) + '</button>'; }).join('') + '</div>';
 }
 function aiMsgHtml(m, i){
   if (!m) return '';
-  if (m.r === 'user') return '<div class="aimsg me" data-i="' + i + '"><div class="aib">' + esc(m.c).replace(/\n/g, '<br>') + (m.att ? '<small class="aiatt">' + uiIcon(m.att.kind === 'tx' ? 'mic' : 'message') + esc(aiAttInfo(m.att)) + '</small>' : '') + '</div></div>';
+  if (m.r === 'user') return '<div class="aimsg me" data-i="' + i + '"><div class="aib" translate="no">' + esc(m.c).replace(/\n/g, '<br>') + (m.att ? '<small class="aiatt">' + uiIcon(m.att.kind === 'tx' ? 'mic' : 'message') + esc(aiAttInfo(m.att)) + '</small>' : '') + '</div></div>';
   const live = m === aiCur;
   const shown = live && m.actOk ? aiNoActLine(m.c) : m.c; // tijdens het schrijven: de actieregel niet laten zien
   return '<div class="aimsg' + (m.err ? ' err' : '') + '" data-i="' + i + '"><div class="aib">' + (shown ? aiMd(shown) : (live ? '<span class="aidots" aria-label="Bezig"><i></i><i></i><i></i></span>' : '')) +
@@ -531,7 +531,7 @@ let aicList = [];
 function enterAiChats(){
   aicList = rdJson(Android.aiChats(), []);
   $('#aic-list').innerHTML = aicList.map((c, i) => '<div class="pcep"><button class="pcepb" onclick="aicOpen(' + i + ')"><span class="pctxt"><b>' + esc(c.title || 'Gesprek') + '</b><small>' + esc(fmtD(c.t) + ' · ' + c.n + (c.n === 1 ? ' bericht' : ' berichten')) + '</small></span></button>' +
-    '<button class="pcmore" onclick="aicMenu(' + i + ')" aria-label="Meer over ' + esc(c.title || 'gesprek') + '">⋯</button></div>').join('') || '<p class="note" style="padding:14px">Nog geen gesprekken.</p>';
+    '<button class="pcmore" onclick="aicMenu(' + i + ')" aria-label="' + esc(t('Meer over {titel}', { titel: c.title || t('gesprek') })) + '">⋯</button></div>').join('') || '<p class="note" style="padding:14px">Nog geen gesprekken.</p>';
 }
 function aicOpen(i){
   const c = aicList[i]; if (!c) return;

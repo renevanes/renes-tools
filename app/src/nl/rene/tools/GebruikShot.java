@@ -186,10 +186,10 @@ public class GebruikShot extends Activity {
             try { front = frontCamera((CameraManager) c.getSystemService(Context.CAMERA_SERVICE)) != null; } catch (Throwable ignored) { }
             o.put("camera", cam).put("overlay", overlay).put("front", front);
             String why = "";
-            if (!front) why = "Geen voorcamera gevonden.";
-            else if (!cam) why = "Geef de app cameratoestemming.";
-            else if (!overlay) why = "Zet \"Boven andere apps tonen\" aan, zodat de opname ook vanaf het vergrendelscherm mag starten.";
-            else why = "Android laat kort het camera-stipje zien" + (Build.VERSION.SDK_INT >= 34 ? "; op Android 14+ beperkt Android de camera vanaf de achtergrond soms." : ".") + " Test met Proefopname.";
+            if (!front) why = Taal.t(c, "Geen voorcamera gevonden.");
+            else if (!cam) why = Taal.t(c, "Geef de app cameratoestemming.");
+            else if (!overlay) why = Taal.t(c, "Zet \"Boven andere apps tonen\" aan, zodat de opname ook vanaf het vergrendelscherm mag starten.");
+            else why = Build.VERSION.SDK_INT >= 34 ? Taal.t(c, "Android laat kort het camera-stipje zien; op Android 14+ beperkt Android de camera vanaf de achtergrond soms. Test met Proefopname.") : Taal.t(c, "Android laat kort het camera-stipje zien. Test met Proefopname.");
             o.put("works", front && cam && overlay).put("why", why);
         } catch (Exception ignored) { }
         return o;

@@ -58,7 +58,7 @@ function bkVraag(vraag){
   const q = String(vraag || $('#bk-ai-in').value || '').trim().slice(0, 600);
   if (!q) { $('#bk-ai-in').focus(); return; }
   if (vraag) $('#bk-ai-in').value = q;
-  bkAiStart('vraag', 'Mijn vraag: ' + q + '\n\nMijn cijfers:\n' + bkFeiten(q));
+  bkAiStart('vraag', 'Mijn vraag: ' + q + '\n\nMijn cijfers:\n' + bkFeiten(q)); // taal-vast: tekst voor het taalmodel
 }
 function bkSamenvatting(){
   if (bk.aiBezig || !bk.store) return;

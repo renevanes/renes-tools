@@ -35,7 +35,7 @@ function carRender(){
   // logboek
   const log = carSt.log || [];
   $('#car-log').innerHTML = log.length ? log.slice(0, 30).map(l => '<div class="clog"><span>' + esc(fmtDT(l.t, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) +
-    (l.end ? ' – ' + esc(fmtTime(l.end, { hour: '2-digit', minute: '2-digit' })) : ' · staat er nog') + '</span>' +
+    (l.end ? ' – ' + esc(fmtTime(l.end, { hour: '2-digit', minute: '2-digit' })) : ' · ' + t('staat er nog')) + '</span>' +
     (l.lat != null ? '<button class="mini" data-u="geo:' + l.lat + ',' + l.lon + '?q=' + l.lat + ',' + l.lon + '" onclick="Android.openUrl(this.dataset.u)">Kaart</button>' : '') + '</div>').join('') :
     '<p class="note" style="margin:0">Nog niets geparkeerd.</p>';
   // instellingen
