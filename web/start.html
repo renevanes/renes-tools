@@ -884,16 +884,30 @@ let skRgC = null, skRgT = 0;
 function skRg(){
   if (skRgC && Date.now() - skRgT < 60000) return skRgC;
   let o = {}; try { if (typeof Android.regio === 'function') o = JSON.parse(Android.regio() || '{}') || {}; } catch(e){ o = {}; }
-  skRgC = {loc: o.lang === 'en' || (typeof TAAL !== 'undefined' && TAAL.on) ? 'en-GB' : 'nl-NL', h12: o.clock === '12', date: o.date === 'iso' || o.date === 'dmon' ? o.date : 'dmy', f: o.temp === 'f', dec: o.dec === '.' ? '.' : ',', grp: typeof o.grp === 'string' && o.grp.length <= 1 ? o.grp : '.'};
+  // Tijdzone: de app-zone (leeg = de telefoon); alleen als de WebView hem precies zo kent
+  let tz = typeof o.tz === 'string' && /^[A-Za-z][A-Za-z0-9_+\-\/]{0,63}$/.test(o.tz) ? o.tz : '';
+  try { if (tz) new Intl.DateTimeFormat('en-US', {timeZone: tz}); } catch(e){ tz = ''; } // Java gaf hem door (Regio.tzOk); ook een andere naam voor dezelfde zone mag
+  skRgC = {loc: o.lang === 'en' || (typeof TAAL !== 'undefined' && TAAL.on) ? 'en-GB' : 'nl-NL', h12: o.clock === '12', date: o.date === 'iso' || o.date === 'dmon' ? o.date : 'dmy', f: o.temp === 'f', dec: o.dec === '.' ? '.' : ',', grp: typeof o.grp === 'string' && o.grp.length <= 1 ? o.grp : '.', tz};
   if (skRgC.grp === skRgC.dec) skRgC.grp = skRgC.dec === ',' ? '.' : ',';
   skRgT = Date.now(); return skRgC;
 }
+/* "2026-11-03" van tijdstip t in de app-zone; skDayAdd rekent met kalenderdatums */
+function skDayKey(t){
+  const c = skRg(), d = new Date(t), p2 = n => String(n).padStart(2, '0');
+  if (!c.tz) return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+  const p = {}; new Intl.DateTimeFormat('en-US', {timeZone: c.tz, year: 'numeric', month: 'numeric', day: 'numeric'}).formatToParts(d).forEach(x => { p[x.type] = x.value; });
+  return p.year + '-' + p2(+p.month) + '-' + p2(+p.day);
+}
+function skDayAdd(k, n){ const d = new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10) + n)); return d.toISOString().slice(0, 10); }
 function skFmt(t, o){
-  const d = t instanceof Date ? t : new Date(t), c = skRg(), x = Object.assign({}, o);
+  // Een datum zonder tijd ('2026-11-03T12:00') is een kalenderdatum: die verschuift nooit
+  const dm = typeof t === 'string' ? /^(\d{4})-(\d{2})-(\d{2})(?:T12:00(?::00)?)?$/.exec(t) : null;
+  const d = dm ? new Date(Date.UTC(+dm[1], +dm[2] - 1, +dm[3], 12)) : t instanceof Date ? t : new Date(t), c = skRg(), x = Object.assign({}, o);
   if (isNaN(d.getTime())) return '';
+  if (!x.timeZone && (dm || c.tz)) x.timeZone = dm ? 'UTC' : c.tz;
   if (x.hour) { if (c.h12) { x.hour12 = true; if (x.hour === '2-digit') x.hour = 'numeric'; } else x.hourCycle = 'h23'; }
   if (x.day && x.month && x.year && !x.weekday) {
-    if (c.date === 'iso') return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    if (c.date === 'iso') return dm ? dm[1] + '-' + dm[2] + '-' + dm[3] : skDayKey(d);
     if (c.date === 'dmon' && (x.month === 'numeric' || x.month === '2-digit')) x.month = 'short';
   }
   return new Intl.DateTimeFormat(c.loc, x).format(d);
@@ -901,6 +915,7 @@ function skFmt(t, o){
 /* De klok: bij 12 uur "a.m."/"p.m." klein erachter (en nooit op een tweede regel) */
 function skClock(d){
   const c = skRg(), x = c.h12 ? {hour: 'numeric', minute: '2-digit', hour12: true} : {hour: '2-digit', minute: '2-digit', hourCycle: 'h23'};
+  if (c.tz) x.timeZone = c.tz;
   return new Intl.DateTimeFormat(c.loc, x).formatToParts(d).map(p => p.type === 'dayPeriod' ? '<small class=ampm>' + esc(p.value) + '</small>' : p.type === 'literal' && /^\s+$/.test(p.value) && c.h12 ? '' : esc(p.value)).join('');
 }
 /* Getal met het decimaalteken en de duizendtallen van de app */
@@ -963,8 +978,8 @@ function renderCal(){
   el.style.display = 'block';
   if (!c.perm) { el.innerHTML = '<h3>Agenda</h3><button class="big2 ghost" onclick="Android.calendarPermission()">Afspraken tonen (toestemming geven)</button>'; return; }
   const ev = (c.events || []).slice(0, 4);
-  const day = ms => { const d = new Date(ms), n = new Date(), m = new Date(Date.now() + 864e5);
-    return d.toDateString() === n.toDateString() ? '' : d.toDateString() === m.toDateString() ? t('morgen') + ' ' : fmtDate(d, {weekday: 'short'}) + ' '; };
+  const day = ms => { const k = skDayKey(ms), n = skDayKey(Date.now()); // vandaag in de app-zone
+    return k === n ? '' : k === skDayAdd(n, 1) ? t('morgen') + ' ' : fmtDate(ms, {weekday: 'short'}) + ' '; };
   el.innerHTML = '<h3>Agenda <button class=more onclick="Android.openEvent(\'0\')">Openen ›</button></h3>' + (ev.map(e =>
     '<button class=ev data-id="' + e.id + '" onclick="Android.openEvent(this.dataset.id)"><i style="background:' + esc(e.color || '') + '"></i><span class=et>' +
     (e.allDay ? (day(e.begin) || t('vandaag')) + '<br>' + t('hele dag') : day(e.begin) + fmtTime(e.begin, {hour: '2-digit', minute: '2-digit'})) +
@@ -975,8 +990,8 @@ window.onCalendarPerm = renderCal;
 /* ---------- Tools ---------- */
 const TOOLS = {radio: ['📻', 'Radio'], notes: ['📝', 'Notities'], music: ['🎵', 'Muziek'], redial: ['📞', 'Redial'], backup: ['💾', 'Backup'], contacts: ['👤', 'Contacten'],
   calls: ['📒', 'Oproepen'], transcripts: ['🎙️', 'Gesprekken'], wa: ['🟢', 'WhatsApp'], sms: ['💬', "Sms'jes"], tracks: ['🗺️', 'Routes'], ai: ['✨', 'Assistent'], settings: ['⚙️', 'Instellingen']};
-function fmtD(ms){ const d = new Date(ms), n = new Date(); const hm = fmtTime(d, {hour: '2-digit', minute: '2-digit'});
-  if (d.toDateString() === n.toDateString()) return t('vandaag {tijd}', { tijd: hm }); if (new Date(ms + 864e5).toDateString() === n.toDateString()) return t('gisteren {tijd}', { tijd: hm });
+function fmtD(ms){ const d = new Date(ms), k = skDayKey(ms), n = skDayKey(Date.now()); const hm = fmtTime(d, {hour: '2-digit', minute: '2-digit'});
+  if (k === n) return t('vandaag {tijd}', { tijd: hm }); if (k === skDayAdd(n, -1)) return t('gisteren {tijd}', { tijd: hm });
   return fmtDate(d, {day: 'numeric', month: 'short'}); }
 function renderTools(){
   const el = $('#tools');
@@ -998,8 +1013,8 @@ function renderTools(){
   if (bk.busy) rows.push(['💾', t('Backup is bezig…'), 'backup', '']);
   else if (l && l.t) { const failed = Object.keys(l).filter(k => l[k] && l[k].ok === false).length, old = Date.now() - l.t > 3 * 864e5;
     rows.push(['💾', t('Backup: {wanneer}', { wanneer: fmtD(l.t) }) + (failed ? ' · ' + t('{n} mislukt', { n: failed }) : old ? ' · ' + t('al even geleden') : ' ✓'), 'backup', failed ? 'b' : old ? 'w' : '']); }
-  const end = new Date(); end.setHours(23, 59, 59);
-  const rem = Object.values(ts.reminders || {}).filter(x => x >= Date.now() && x <= end.getTime()).sort();
+  const today = skDayKey(Date.now()); // herinneringen van vandaag (in de app-zone)
+  const rem = Object.values(ts.reminders || {}).filter(x => x >= Date.now() && skDayKey(x) === today).sort();
   if (rem.length) rows.push(['🔔', tn(rem.length, '{n} herinnering vandaag, eerst om {tijd}', '{n} herinneringen vandaag, eerst om {tijd}', { tijd: fmtTime(rem[0], {hour: '2-digit', minute: '2-digit'}) }), 'notes', '']);
   const bd = ts.birthdays || [];
   if (bd.length) {

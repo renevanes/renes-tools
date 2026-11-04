@@ -64,6 +64,8 @@ const { chromium } = require('playwright');
     ok(!r.set && !r.card && !r.llm && /Text size/.test(r.txt) && /Settings → Layout/.test(r.txt), 'opzoeken: "where can I find the text size" → waar het staat, zonder taalmodel');
     r = await ask('is the nightly backup on');
     ok(!r.llm && /every night is set to off/.test(r.txt), 'vraag naar een stand: "is the nightly backup on"');
+    r = await ask('what time is it in Tokyo?');
+    ok(!r.llm && /^In Tokyo it is now \d/.test(r.txt) && /(later|earlier) than here|the same time as here/.test(r.txt) && !/ uur | is het nu /.test(r.txt), '"what time is it in Tokyo" → de app zelf, in het Engels: ' + r.txt.slice(0, 90));
     r = await ask('turn off the nightly backup');
     ok(!r.llm && /Back up everything every night/.test(r.txt), '"turn off the nightly backup" → Elke nacht alles back-uppen: ' + r.txt.slice(0, 80));
     // Meldingen van een andere app: niet de schakelaar van Tools; het taalmodel (dat niets mag beweren), geen kaart

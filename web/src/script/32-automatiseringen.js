@@ -85,11 +85,10 @@ function auRender(){
 }
 
 function auWhen(ms){
-  const d = new Date(ms), now = new Date();
+  const d = new Date(ms);
   const time = fmtTime(d, { hour: '2-digit', minute: '2-digit' });
-  if (d.toDateString() === now.toDateString()) return t('vandaag {tijd}', { tijd: time });
-  const y = new Date(now); y.setDate(now.getDate() - 1);
-  if (d.toDateString() === y.toDateString()) return t('gisteren {tijd}', { tijd: time });
+  if (rgIsToday(d)) return t('vandaag {tijd}', { tijd: time });
+  if (rgIsYesterday(d)) return t('gisteren {tijd}', { tijd: time });
   return fmtDate(d, { day: 'numeric', month: 'short' }) + ' ' + time;
 }
 

@@ -30,6 +30,16 @@ final class RedialPlan {
         return PendingIntent.getBroadcast(c, 6000, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
+    /** Een andere tijdzone (Regio en taal): een eenmalig plan opnieuw op dezelfde wandklok in de nieuwe app-zone. */
+    static void rezone(Context c) {
+        try {
+            JSONObject p = plan(c);
+            if (p == null || p.optInt("days") != 0 || p.optLong("at") <= System.currentTimeMillis()) return;
+            p.put("at", RadioAlarm.next(Regio.zone(c), p.optInt("hour"), p.optInt("minute"), 0, System.currentTimeMillis()));
+            prefs(c).edit().putString("plan", p.toString()).apply();
+        } catch (Throwable t) { App.log(c, "REDIAL", "tijdzone: " + t); }
+    }
+
     /** Plan opslaan: {number, name, hour, minute, days (bitmasker ma=1 … zo=64, 0 = eenmalig), attempts, interval, randomMin, randomMax, stopWhenAnswered, speaker}. */
     static String set(Context c, String json) {
         try {
@@ -41,7 +51,7 @@ final class RedialPlan {
                 return "Geef eerst toestemming om te bellen";
             int h = o.optInt("hour", -1), m = o.optInt("minute", -1);
             if (h < 0 || h > 23 || m < 0 || m > 59) return "Kies een tijd";
-            if (o.optInt("days") == 0) o.put("at", RadioAlarm.next(h, m, 0, System.currentTimeMillis()));
+            if (o.optInt("days") == 0) o.put("at", RadioAlarm.next(Regio.zone(c), h, m, 0, System.currentTimeMillis()));
             else o.remove("at");
             prefs(c).edit().putString("plan", o.toString()).remove("missed").apply();
             arm(c);
@@ -86,7 +96,7 @@ final class RedialPlan {
                 if (now - t < 10 * 60 * 1000L) t = now + 2000;
                 else { prefs(c).edit().remove("plan").remove("next").putString("last", "Gemist (telefoon stond uit) " + stamp(c)).apply(); am.cancel(op(c)); return; }
             }
-        } else t = RadioAlarm.next(p.optInt("hour"), p.optInt("minute"), p.optInt("days"), now);
+        } else t = RadioAlarm.next(Regio.zone(c), p.optInt("hour"), p.optInt("minute"), p.optInt("days"), now);
         prefs(c).edit().putLong("next", t).apply();
         try {
             if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, t, op(c));

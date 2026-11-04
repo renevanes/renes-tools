@@ -426,7 +426,7 @@ final class CheckinStore {
         JSONObject q = qLive(c, req.optString("q"));
         if (q == null) return err("Deze vraag bestaat niet meer");
         if (q.optBoolean("archived")) return err("Deze vraag is gearchiveerd");
-        TimeZone tz = TimeZone.getDefault();
+        TimeZone tz = Regio.zone(c);
         String note = q.optBoolean("note") || q.optBoolean("voice") ? cleanNote(req.optString("note")) : "";
         JSONArray labels = q.optBoolean("labels") ? cleanLabels(q, req.optJSONArray("labels")) : new JSONArray();
         String aid = req.optString("id");
@@ -525,7 +525,7 @@ final class CheckinStore {
         JSONObject q = qLive(c, qid);
         Set<String> keys = new HashSet<>();
         for (int i = 0; i < answers.length(); i++) { JSONObject a = answers.optJSONObject(i); if (a != null && qid.equals(a.optString("q"))) keys.add(a.optString("p")); }
-        JSONObject r = remarkApply(remarks, q, keys, req, now, TimeZone.getDefault());
+        JSONObject r = remarkApply(remarks, q, keys, req, now, Regio.zone(c));
         if (r.optBoolean("ok")) saveR(c);
         return r;
     }
@@ -617,7 +617,7 @@ final class CheckinStore {
     /** Alles voor het hoofdscherm en de tegel. */
     static synchronized JSONObject state(Context c, long now) throws Exception {
         boolean first = seedOnce(c);
-        TimeZone tz = TimeZone.getDefault();
+        TimeZone tz = Regio.zone(c);
         JSONArray out = new JSONArray(), qs = questions(c);
         for (int i = 0; i < qs.length(); i++) {
             JSONObject q = new JSONObject(qs.getJSONObject(i).toString());
@@ -652,7 +652,7 @@ final class CheckinStore {
     static synchronized JSONObject history(Context c, String qid, String from, String to, long now) throws Exception {
         JSONObject q = question(c, qid);
         if (q == null) return err("Deze vraag bestaat niet meer");
-        TimeZone tz = TimeZone.getDefault();
+        TimeZone tz = Regio.zone(c);
         Calendar f = Checkin.day(from, tz), t = Checkin.day(to, tz);
         if (f == null || t == null || !t.after(f)) return err("Ongeldige periode");
         Checkin.Rule r = rule(q);
@@ -710,7 +710,7 @@ final class CheckinStore {
      * of gepraat) en, als je toestemming gaf, je agenda (aantal afspraken, uren bezet). Alleen lezen, op de telefoon.
      */
     static JSONObject days(Context c, String from, String to) throws Exception {
-        TimeZone tz = TimeZone.getDefault();
+        TimeZone tz = Regio.zone(c);
         Calendar f = Checkin.day(from, tz), t = Checkin.day(to, tz);
         JSONObject days = new JSONObject();
         boolean cal = calendarOk(c);
@@ -1064,7 +1064,7 @@ final class CheckinStore {
                     .put("o", a.optInt("o")).put("v", a.optDouble("v", 0)).put("l", cleanText(a.optString("l"), 40)).put("e", cleanText(a.optString("e"), 16))
                     .put("note", cleanNote(a.optString("note"))).put("labels", labels).put("late", a.optBoolean("late")).put("src", "backup"));
         }
-        JSONObject rp = remarkPlan(remarks, known, inR, System.currentTimeMillis(), TimeZone.getDefault());
+        JSONObject rp = remarkPlan(remarks, known, inR, System.currentTimeMillis(), Regio.zone(c));
         JSONArray freshR = rp.getJSONArray("fresh");
         pendingQ = freshQ; pendingA = freshA; pendingR = freshR;
         return new JSONObject().put("kind", "checkin").put("qTotal", inQ.length()).put("qFresh", freshQ.length()).put("qDup", qDup)
@@ -1116,7 +1116,7 @@ final class CheckinStore {
             n++;
         }
         saveA(c);
-        JSONObject rp = remarkPlan(remarks, have, inR, System.currentTimeMillis(), TimeZone.getDefault()); // nogmaals: intussen kan er iets bijgekomen zijn
+        JSONObject rp = remarkPlan(remarks, have, inR, System.currentTimeMillis(), Regio.zone(c)); // nogmaals: intussen kan er iets bijgekomen zijn
         JSONArray fr = rp.getJSONArray("fresh");
         int before = remarks.length();
         for (int i = 0; i < fr.length() && remarks.length() < MAX_REMARKS; i++) { remarks.put(fr.get(i)); n++; }

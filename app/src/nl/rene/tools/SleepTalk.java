@@ -12,7 +12,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
@@ -100,14 +99,14 @@ final class SleepTalk {
     /** Wanneer stoppen: de eerstvolgende keer dat het "HH:mm" is na het starten (de volgende ochtend). 0 = niet. */
     static long stopTime(long startMs, String hhmm, java.util.TimeZone tz) {
         if (hhmm == null || !hhmm.matches("([01]\\d|2[0-3]):[0-5]\\d")) return 0;
-        Calendar k = Calendar.getInstance(tz);
-        k.setTimeInMillis(startMs);
-        k.set(Calendar.HOUR_OF_DAY, Integer.parseInt(hhmm.substring(0, 2)));
-        k.set(Calendar.MINUTE, Integer.parseInt(hhmm.substring(3)));
-        k.set(Calendar.SECOND, 0); k.set(Calendar.MILLISECOND, 0);
-        // Minstens een kwartier na het starten (anders stopt het meteen als je om 07:20 start met stop om 07:30)
-        while (k.getTimeInMillis() <= startMs + 15 * 60_000L) k.add(Calendar.DAY_OF_MONTH, 1);
-        return k.getTimeInMillis();
+        // Wandklok in de app-zone (tz = Regio.zone); minstens een kwartier na het starten (anders stopt het meteen als je
+        // om 07:20 start met stop om 07:30)
+        String day = Regio.dayKey(tz, startMs);
+        for (int i = 0; i < 4; i++, day = Regio.dayAdd(day, 1)) {
+            long t = Regio.toMillis(tz, day, hhmm);
+            if (t > startMs + 15 * 60_000L) return t;
+        }
+        return 0;
     }
 
     private static final String[] JUNK = {"ondertitel", "bedankt voor het kijken", "bedankt voor het luisteren", "tot de volgende keer", "amara.org",
@@ -476,6 +475,7 @@ final class SleepTalk {
             if (a == null) continue;
             List<String> lines = new ArrayList<>(); List<Long> times = new ArrayList<>();
             java.text.SimpleDateFormat hm = new java.text.SimpleDateFormat("HH:mm", Locale.ROOT);
+            hm.setTimeZone(Regio.zone(c)); // tijden in de app-zone
             for (int i = 0; i < a.length(); i++) {
                 JSONObject k = a.optJSONObject(i);
                 if (k == null || !"praten".equals(k.optString("kind")) || k.optString("text").isEmpty()) continue;

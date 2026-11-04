@@ -175,6 +175,7 @@ function jsScan(only){
     const re = /(^|[^\w$.])(toast|undoToast|askConfirm|askInput|askChoice|openSheet|tn|tc|t)\s*\(/g; let m;
     while ((m = re.exec(src))) {
       const fn = m[2], open = m.index + m[0].length - 1;
+      re.lastIndex = open; // ook een t() direct binnen deze aanroep: toast(t('…'))
       if (/function\s+$/.test(src.slice(Math.max(0, m.index - 12), m.index + m[1].length))) continue; // de definitie zelf
       const tok = toks.find(x => x.at <= m.index && x.end > m.index); if (tok) continue; // in een tekenreeks
       const args = callArgs(src, open), line = lineOf(src, m.index), where = name + ':' + line;

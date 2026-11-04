@@ -1,6 +1,6 @@
 /* ---------- Spotify-backup ---------- */
 let spSt = {}, spPl = [], spGone = [], spPollT = null;
-function spDate(tt){ return tt ? fmtDT(tt, { day: 'numeric', month: 'short', year: new Date(tt).getFullYear() === new Date().getFullYear() ? undefined : 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; }
+function spDate(ms){ return ms ? fmtDT(ms, { day: 'numeric', month: 'short', year: rgParts(ms).y === rgParts().y ? undefined : 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; }
 function enterSpotify(){ spRender(); if (!spPollT) spPollT = setInterval(() => { if (current !== 'spotify') { clearInterval(spPollT); spPollT = null; return; } spState(); }, 1000); }
 function spState(){
   const prev = spSt.busy;

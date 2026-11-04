@@ -144,7 +144,7 @@ final class FacturenRun {
             try {
                 JSONObject m = lev.optJSONObject("mail") == null ? new JSONObject() : lev.optJSONObject("mail");
                 JSONObject tt = Facturen.toestand(c, id);
-                long sinds = FacturenMail.sinds(lev, tt.optLong("lastOk"), tt.optLong("mailSinds"), System.currentTimeMillis(), java.util.TimeZone.getDefault());
+                long sinds = FacturenMail.sinds(lev, tt.optLong("lastOk"), tt.optLong("mailSinds"), System.currentTimeMillis(), Regio.zone(c));
                 java.util.List<Facturen.Pdf> l = FacturenMail.bron(m.optString("bron", "gmail")).haal(c, lev, sinds, stop, t -> voortgang = t);
                 synchronized (pdfs) { for (Facturen.Pdf p : l) if (!pdfs.containsKey(p.sha)) pdfs.put(p.sha, p); }
                 r = new JSONObject().put("ok", true);

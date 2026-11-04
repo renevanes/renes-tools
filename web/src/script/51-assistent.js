@@ -948,7 +948,7 @@ function aiActFmt(tt, allDay){
 function aiActPickVal(a){
   if (a.pick) return a.pick;
   if (a.at) return localIso(a.at);
-  if (a.day) { const d = new Date(a.day), sug = a.sug >= 0 ? a.sug : 540; d.setHours(Math.floor(sug / 60), sug % 60, 0, 0); if (d.getTime() > Date.now()) return localIso(d.getTime()); }
+  if (a.day) { const sug = a.sug >= 0 ? a.sug : 540, t = rgFromLocal(rgDayKey(a.day), String(Math.floor(sug / 60)).padStart(2, '0') + ':' + String(sug % 60).padStart(2, '0')); if (t > Date.now()) return localIso(t); }
   return localIso(Math.ceil((Date.now() + 36e5) / 3e5) * 3e5);
 }
 function aiActHtml(m, i){
@@ -960,7 +960,7 @@ function aiActHtml(m, i){
   if (a.st === 'afgewezen') return '<div class="aiact no">' + uiIcon(k.icon) + '<span><s>' + esc(a.title) + '</s> <small>(niet gedaan)</small></span><button class="linkish" onclick="aiActUndoNo(' + i + ')">Toch voorstellen</button></div>';
   // Een voorstel van eerder (bijv. een heropend gesprek) waarvan het moment al voorbij is: opnieuw kiezen
   if (a.st === 'voorgesteld' && a.type !== 'notitie' && !a.need) {
-    const end = a.at ? a.at : a.allDay && a.day ? new Date(a.day).setDate(new Date(a.day).getDate() + 1) : 0;
+    const end = a.at ? a.at : a.allDay && a.day ? rgEndOfDay(a.day) : 0;
     if (end && end <= Date.now()) { a.need = 'datum'; a.at = 0; a.day = 0; a.allDay = false; }
   }
   const pick = a.type !== 'notitie' && (a.need || a.edit);
@@ -986,11 +986,11 @@ function aiActDo(i){
   const m = aiActMsg(i), a = m && m.act; if (!a || a.st !== 'voorgesteld') return;
   let at = a.at || 0, allDay = !!a.allDay && !a.edit && !a.need;
   const inp = $('#aiact-t-' + i);
-  if (inp) { if (!inp.value) { toast('Kies een datum en tijd'); inp.focus(); return; } at = new Date(inp.value).getTime(); allDay = false; }
+  if (inp) { if (!inp.value) { toast('Kies een datum en tijd'); inp.focus(); return; } at = rgFromLocalIn(inp.value); allDay = false; }
   if (a.type !== 'notitie' && !allDay && !(at > Date.now())) { toast('Kies een moment in de toekomst'); if (inp) inp.focus(); return; }
   if (!once('aiact' + (aiChat.id || '') + i)) return; // dubbel tikken: één keer
   if (a.type === 'agenda') {
-    const begin = allDay ? a.day : at, end = allDay ? new Date(new Date(a.day).setDate(new Date(a.day).getDate() + 1)).getTime() : at + 36e5;
+    const begin = allDay ? a.day : at, end = allDay ? rgEndOfDay(a.day) : at + 36e5;
     const e = Android.aiCalendarAdd(JSON.stringify({ title: a.title, text: a.text || '', begin, end, allDay }));
     if (e) { toast(e); return; }
     a.at = allDay ? 0 : at; a.allDay = allDay;

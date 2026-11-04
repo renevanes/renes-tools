@@ -4,10 +4,10 @@ const WA_CATS = [['chats','Chats','backup van al je berichten'],['images',"Foto'
 const WA_ALL = ['chats','images','video','voice','audio','documents','stickers','other'];
 let waPoll = null, waInfoC = {}, waSizesC = null, waSel = new Set(), waLastKey = '', waWasRunning = false;
 function fmtB(b){ return fmtSize(b); } // opslag: Regio en taal (1024 of 1000 per stap)
-function fmtD(ms){ const d = new Date(ms), n = new Date(), y = new Date(Date.now()-864e5);
+function fmtD(ms){ const d = new Date(ms);
   const hm = fmtTime(d, {hour:'2-digit', minute:'2-digit'});
-  if (d.toDateString() === n.toDateString()) return t('vandaag {tijd}', { tijd: hm });
-  if (d.toDateString() === y.toDateString()) return t('gisteren {tijd}', { tijd: hm });
+  if (rgIsToday(d)) return t('vandaag {tijd}', { tijd: hm });
+  if (rgIsYesterday(d)) return t('gisteren {tijd}', { tijd: hm });
   return fmtDate(d, {day:'numeric', month:'short'}) + ' ' + hm; }
 function waInfo(){ try { return JSON.parse(Android.waInfo()); } catch(e){ return {}; } }
 function enterWa(){ renderWa(true); stopWaPoll(); waPoll = setInterval(waPollOnce, 700); waPollOnce(); }

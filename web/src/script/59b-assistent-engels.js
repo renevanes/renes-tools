@@ -71,6 +71,9 @@ function aiEn(q){
   if (/^(?:stop|turn off) sleep talk$/.test(s)) return 'stop slaappraat';
   // Openen
   if ((m = /^(?:open|go to|show(?: me)?|take me to|launch) (?:the |my )?(.+?)(?: screen| tool| app)?$/.exec(s)) && !/\b(that|this|it)\b/.test(m[1])) return 'open ' + aiEnName(m[1]);
+  // De tijd ergens anders (alleen antwoorden): "what time is it in Tokyo", "time difference with New York"
+  if ((m = /^(?:what time is it|what's the time|what is the time)(?: now| right now)? in (.+?)(?: now| right now)?$/.exec(s))) return 'hoe laat is het in ' + it(m[1]);
+  if ((m = /^(?:what(?:'s| is) the )?time difference (?:with|to|between here and) (.+)$/.exec(s))) return 'tijdsverschil met ' + it(m[1]);
   // Je eigen gegevens (Gebruik, Slaappraat …): "what's my screen time today", "how long was i on my phone yesterday"
   if ((m = /^(?:what(?:'s| is| was) |how much |show (?:me )?)?(?:my )?screen ?time(?: (today|yesterday|this week|last week))?$/.exec(s))) return 'hoeveel schermtijd ' + ({ today: 'vandaag', yesterday: 'gisteren', 'this week': 'deze week', 'last week': 'vorige week' }[m[1] || 'today']);
   if ((m = /^how (?:long|much time) (?:was i|have i been|did i spend) on my phone(?: (today|yesterday|this week))?$/.exec(s))) return 'hoeveel schermtijd ' + ({ today: 'vandaag', yesterday: 'gisteren', 'this week': 'deze week' }[m[1] || 'today']);

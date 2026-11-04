@@ -1,6 +1,6 @@
 /* ---------- Mijn auto: parkeerplek, parkeerlogboek, ritten ---------- */
 let carSt = {}, carMap = null, carMarker = null, carMonth = '';
-const carMonthOf = tt => { const d = new Date(tt); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }; // lokale maand (zoals de export)
+const carMonthOf = ms => rgMonthKey(ms); // maand in de app-zone (zoals de export, Car.exportMonth)
 const carFmtKm = m => fmtDist(m, 1); // "12,5 km" of in mijlen (Regio en taal); de export voor de belasting blijft in km
 function carLoad(){ try { carSt = JSON.parse(Android.carState()) || {}; } catch(e){ carSt = {}; } }
 function enterCar(){ carLoad(); carRender(); }

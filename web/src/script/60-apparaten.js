@@ -25,10 +25,9 @@ function apAgo(tt){
   const s = Math.max(0, (Date.now() - tt) / 1000), d = new Date(tt);
   if (s < 90) return t('net');
   if (s < 3600) return t('{n} min geleden', { n: Math.round(s / 60) });
-  const today = new Date(); today.setHours(0, 0, 0, 0);
   const hm = fmtTime(d, { hour: '2-digit', minute: '2-digit' });
-  if (tt >= today.getTime()) return t('vandaag {tijd}', { tijd: hm });
-  if (tt >= today.getTime() - 86400000) return t('gisteren {tijd}', { tijd: hm });
+  if (rgIsToday(tt) || tt > Date.now()) return t('vandaag {tijd}', { tijd: hm });
+  if (rgIsYesterday(tt)) return t('gisteren {tijd}', { tijd: hm });
   return fmtDate(d, { day: 'numeric', month: 'short' }) + ' ' + hm;
 }
 /* Plek uit de geschiedenis: "thuis", of een vakje van ~1 km */

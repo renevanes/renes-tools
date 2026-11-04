@@ -45,6 +45,9 @@ public class FeatureBridge {
         regioChanged(before);
     }
 
+    /** Kent deze telefoon de tijdzone precies zo (Regio.tzOk)? De interface biedt alleen zones aan die Java ook kent. */
+    @JavascriptInterface public boolean regioTzOk(String id) { return Regio.tzOk(id); }
+
     /** Thuis en werk ({home, work}): alleen hier bewaard (regio.xml, niet in de Android-backup). */
     @JavascriptInterface public String regioSpots() { return Regio.spots(ctx); }
 
@@ -66,6 +69,14 @@ public class FeatureBridge {
                 if (taal) { Taal.channels(ctx); RadioWidget.refresh(ctx); NoteWidget.refresh(ctx); MusicWidget.refresh(ctx); }
                 if (!java.util.Arrays.equals(Regio.place(before), Regio.place(after)) || !java.util.Arrays.equals(before.home(), after.home()))
                     Launcher.prefs(ctx).edit().remove("weather").apply();
+                // Andere tijdzone: alle wekkers, herinneringen en planningen opnieuw (de tijden zijn wandklok in de app-zone)
+                java.util.TimeZone from = Regio.zone(before), to = Regio.zone(after);
+                if (!from.getID().equals(to.getID())) {
+                    RedialPlan.rezone(ctx);
+                    Reminders.rezone(ctx, from, to);
+                    AlarmReceiver.rearmTimes(ctx);
+                    App.log(ctx, "REGIO", "tijdzone: wekkers en planningen opnieuw gezet");
+                }
                 for (Class<?> w : new Class<?>[]{HomeWidgets.Agenda.class, HomeWidgets.Weather.class, HomeWidgets.Overview.class, HomeWidgets.Park.class}) HomeWidgets.refresh(ctx, w);
             } catch (Throwable t) { App.log(ctx, "REGIO", String.valueOf(t)); }
         }, "regio").start();

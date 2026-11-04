@@ -37,9 +37,9 @@ function faBezig(){
   $('#fa-bezig-txt').textContent = faSt.bezig ? (l ? l.naam + ': ' : '') + t(faSt.voortgang || 'Bezig…') : '';
 }
 const FA_WD = ['', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
-function faMoment(tt){ return tt ? fmtDT(tt, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''; }
-function faMaandSleutel(tt){ const d = new Date(tt); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
-function faMaandNaam(k){ const [y, m] = k.split('-').map(Number); return fmtDate(new Date(y, m - 1, 15, 12), 'maand'); }
+function faMoment(ms){ return ms ? fmtDT(ms, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''; }
+function faMaandSleutel(ms){ return rgMonthKey(ms); } // maand in de app-zone
+function faMaandNaam(k){ return fmtDate(k + '-15', 'maand'); }
 /** Wanneer vanzelf, in gewone woorden: "elke maand op de 5e om 08:00". */
 function faPlanTekst(l){
   if (l.schema === 'uit') return t('alleen met de hand');
@@ -144,8 +144,8 @@ function faMaandRender(){
     return '<div class="bkres"><b>' + esc(x.naam) + '</b><span class="' + (n ? 'good' : p.soort === 'mis' ? 'bad' : '') + '">' + esc(binnen) + '</span></div>';
   }).join('');
   // Laatste 12 maanden; ✓ = facturen binnen, ✗ = alleen mislukte pogingen, – = niets
-  const maanden = []; const d = new Date(nu); d.setDate(1);
-  for (let i = 0; i < 12; i++) { maanden.push(faMaandSleutel(d.getTime())); d.setMonth(d.getMonth() - 1); }
+  const maanden = []; let mk = faMaandSleutel(nu) + '-01';
+  for (let i = 0; i < 12; i++) { maanden.push(mk.slice(0, 7)); mk = rgDayAdd(mk, -1).slice(0, 7) + '-01'; }
   const cel = (x, m) => {
     const n = (x.maanden || {})[m] || 0;
     if (n) return '<td class="good">✓ ' + n + '</td>';
@@ -268,12 +268,15 @@ function flOpslag(){
 /** Volgende keer volgens de keuzes op het scherm (zelfde regels als Facturen.gepland in de app). */
 function faVolgende(o, nu){
   if (o.schema === 'uit') return 0;
-  const [h, mi] = (o.tijd || '08:00').split(':').map(Number), c = new Date(nu); c.setSeconds(0, 0); c.setHours(h, mi);
-  const zet = () => { const max = new Date(c.getFullYear(), c.getMonth() + 1, 0).getDate(); c.setDate(Math.min(o.dag, max)); };
-  if (o.schema === 'maand') { c.setDate(1); zet(); while (c.getTime() <= nu) { c.setDate(1); c.setMonth(c.getMonth() + 1); zet(); } }
-  else if (o.schema === 'week') { const wd = (c.getDay() + 6) % 7 + 1; c.setDate(c.getDate() + (o.weekdag - wd)); while (c.getTime() <= nu) c.setDate(c.getDate() + 7); }
-  else while (c.getTime() <= nu) c.setDate(c.getDate() + 1);
-  return c.getTime();
+  // De tijd geldt in de app-zone (zoals Facturen.gepland met Regio.zone)
+  const m0 = /^(\d{1,2}):(\d{2})$/.exec(o.tijd || ''), hm = m0 ? m0[1].padStart(2, '0') + ':' + m0[2] : '08:00', k0 = rgDayKey(nu), at = k => rgFromLocal(k, hm);
+  if (o.schema === 'maand') {
+    let y = +k0.slice(0, 4), m = +k0.slice(5, 7);
+    for (let i = 0; i < 14; i++) { const last = new Date(Date.UTC(y, m, 0)).getUTCDate(), t = at(rgKey(y, m, Math.min(+o.dag || 1, last))); if (t > nu) return t; if (++m > 12) { m = 1; y++; } }
+    return 0;
+  }
+  for (let i = 0; i < 15; i++) { const k = rgDayAdd(k0, i); if ((o.schema !== 'week' || (rgWeekday(k) + 6) % 7 + 1 === +o.weekdag) && at(k) > nu) return at(k); }
+  return 0;
 }
 /** Welke facturen: de keuze op het scherm als {soort, maanden, vanaf} (zelfde als Facturen.periode in de app). */
 function flPeriodeWaarde(){
@@ -285,7 +288,9 @@ function flPeriodeWaarde(){
 function flPeriode(){
   const p = flPeriodeWaarde(), mail = faEdit && faEdit.soort === 'mail';
   $('#fl-vanafrij').style.display = p.soort === 'vanaf' ? 'flex' : 'none';
-  const vanaf = p.soort === 'jaar' ? fmtDate(new Date(new Date().getFullYear(), 0, 1)) : p.soort === 'maanden' ? fmtDate(new Date(new Date().getFullYear(), new Date().getMonth() - p.maanden, new Date().getDate())) : p.soort === 'vanaf' && p.vanaf ? fmtDate(new Date(p.vanaf + 'T12:00')) : '';
+  // Kalenderdatums vanaf vandaag in de app-zone (zoals Facturen.grens met Regio.zone); als datum getoond, verschuift niet
+  const nu = rgParts(), mk = (y, m, d) => { const x = new Date(Date.UTC(y, m, d)); return rgKey(x.getUTCFullYear(), x.getUTCMonth() + 1, Math.min(d, new Date(Date.UTC(y, m + 1, 0)).getUTCDate())); };
+  const vanaf = p.soort === 'jaar' ? fmtDate(nu.y + '-01-01') : p.soort === 'maanden' ? fmtDate(mk(nu.y, nu.m - 1 - p.maanden, nu.d)) : p.soort === 'vanaf' && p.vanaf ? fmtDate(p.vanaf.slice(0, 10)) : '';
   $('#fl-periode-uitleg').textContent = (p.soort === 'alles' ? t(mail ? 'Alle facturen die in je mail staan' : 'Alle facturen die de website laat zien') : vanaf ? t('Facturen vanaf {datum}', { datum: vanaf }) : t('Kies een datum')) + '. '
     + t(mail ? 'De eerste keer zoekt de app vanaf dat moment; daarna alleen nieuwe mails.' : 'De app klikt op "Toon meer" om oudere facturen te laden en bewaart alleen facturen vanaf dat moment (op de factuurdatum).')
     + ' ' + t('Wil je na een wijziging ook de oudere facturen alsnog? Kies dan bij de leverancier "Alles van de periode opnieuw ophalen".');
@@ -427,13 +432,13 @@ const FD_DAG = d => d ? fmtDate(d + 'T12:00', { day: 'numeric', month: 'short', 
 const FD_EUR = v => v === '' || v == null || isNaN(v) ? '' : fmtMoney(Number(v), 'EUR', { minusIn: true }); // facturen zijn in euro; negatief zoals altijd: "€ -12,50"
 /** "1.234,56", "1234,56", "12.50", "1,234.56" → getal (zelfde regels als FacturenDossier.bedrag). */
 const fdGetal = x => { let s = String(x || '').replace(/[€\s]|eur/gi, ''); if (/^-?\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s)) s = s.replace(/\./g, ''); else if (/^-?\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(s)) s = s.replace(/,/g, ''); const v = parseFloat(s.replace(',', '.')); return isNaN(v) ? '' : v; };
-const fdVandaag = () => new Date().toLocaleDateString('sv-SE');
+const fdVandaag = () => rgToday();
 /** De datum van een factuur: de factuurdatum, of (onbekend) de dag waarop hij is opgehaald. JJJJ-MM-DD. */
-const fdDatum = s => (s.meta || {}).datum || (s.opgehaald ? new Date(s.opgehaald).toLocaleDateString('sv-SE') : '');
+const fdDatum = s => (s.meta || {}).datum || (s.opgehaald ? rgDayKey(s.opgehaald) : '');
 /** Van en tot (JJJJ-MM-DD, tot en met) bij een periode; leeg = geen grens. */
 function fdVanTot(p, van, tot, nu){
-  const d = nu ? new Date(nu) : new Date(), y = d.getFullYear(), m = d.getMonth(), q = Math.floor(m / 3);
-  const dag = (yy, mm, dd) => new Date(yy, mm, dd).toLocaleDateString('sv-SE');
+  const d = rgParts(nu || Date.now()), y = d.y, m = d.m - 1, q = Math.floor(m / 3); // vandaag in de app-zone
+  const dag = (yy, mm, dd) => { const x = new Date(Date.UTC(yy, mm, dd)); return rgKey(x.getUTCFullYear(), x.getUTCMonth() + 1, x.getUTCDate()); };
   if (p === 'maand') return [dag(y, m, 1), dag(y, m + 1, 0)];
   if (p === 'vmaand') return [dag(y, m - 1, 1), dag(y, m, 0)];
   if (p === 'kwartaal') return [dag(y, q * 3, 1), dag(y, q * 3 + 3, 0)];

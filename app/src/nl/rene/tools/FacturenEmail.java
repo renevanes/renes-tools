@@ -109,7 +109,7 @@ final class FacturenEmail implements FacturenAanlever.Kanaal {
     @Override public String stuur(Context c, JSONObject ontv, FacturenAanlever.Zending z, boolean proef) throws Exception {
         Verzender v = VERZENDERS.get(ontv.optString("via"));
         if (v == null) throw new Exception("Kies waarmee de mail verstuurd wordt");
-        Bericht b = bericht(ontv, z.stukken, v.van(c), proef, System.currentTimeMillis(), java.util.TimeZone.getDefault());
+        Bericht b = bericht(ontv, z.stukken, v.van(c), proef, System.currentTimeMillis(), Regio.zone(c));
         for (int i = 0; i < z.bestanden.size(); i++) {
             File f = z.bestanden.get(i);
             byte[] data;

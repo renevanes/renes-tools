@@ -39,16 +39,23 @@ function thSun(y, m, d, lat, lon){
   const base = Date.UTC(y, m, d);
   return { rise: base + (typeof r1 === 'number' ? r1 : r0) * 6e4, set: base + (typeof s1 === 'number' ? s1 : s0) * 6e4 };
 }
-function thDay(tt, k){ const d = new Date(tt); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + k); }
-/* Wissels [tijdstip, donker] van dag `from` tot en met `to` (0 = vandaag), op volgorde */
+/* Dagen en tijden in de app-zone (rgDayKey, rgDayAdd, rgFromLocal uit 02-regio.js). Zonder 02-regio.js (de rekentest
+ * thema-reken.test.js draait dit deel los): de tijdzone van de telefoon. */
+const thP2 = n => String(n).padStart(2, '0');
+function thKey(t){ if (typeof rgDayKey === 'function') return rgDayKey(t); const d = new Date(t); return d.getFullYear() + '-' + thP2(d.getMonth() + 1) + '-' + thP2(d.getDate()); }
+function thAdd(k, n){ if (typeof rgDayAdd === 'function') return rgDayAdd(k, n); const d = new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10) + n)); return d.getUTCFullYear() + '-' + thP2(d.getUTCMonth() + 1) + '-' + thP2(d.getUTCDate()); }
+function thAt(k, hm){ if (typeof rgFromLocal === 'function') return rgFromLocal(k, hm); return new Date(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10), +hm.slice(0, 2), +hm.slice(3, 5)).getTime(); }
+/* Begin (00:00) van dag k na die van t, in de app-zone (Regio en taal) */
+function thDay(t, k){ return new Date(thAt(thAdd(thKey(t), k), '00:00')); }
+/* Wissels [tijdstip, donker] van dag `from` tot en met `to` (0 = vandaag), op volgorde; de tijden gelden in de app-zone */
 function thTrans(c, now, loc, from, to){
-  const out = [];
+  const out = [], k0 = thKey(now);
   for (let k = from; k <= to; k++) {
-    const d = thDay(now, k), y = d.getFullYear(), m = d.getMonth(), dd = d.getDate();
+    const key = thAdd(k0, k), y = +key.slice(0, 4), m = +key.slice(5, 7) - 1, dd = +key.slice(8, 10), d = new Date(thAt(key, '00:00'));
     if (c.mode === 'time') {
       const df = thMin(c.dark), lf = thMin(c.light);
       if (df < 0 || lf < 0 || df === lf) continue;
-      out.push([new Date(y, m, dd, 0, lf).getTime(), false], [new Date(y, m, dd, 0, df).getTime(), true]);
+      out.push([thAt(key, c.light), false], [thAt(key, c.dark), true]);
     } else if (c.mode === 'sun' && loc) {
       const s = thSun(y, m, dd, loc.lat, loc.lon), off = (+c.off || 0) * 6e4;
       if (s.polar) { out.push([d.getTime(), s.polar === 'night']); continue; }
@@ -149,13 +156,13 @@ function thAmoled(on){
 function thNative(c, now, loc, dark){
   if (typeof Android === 'undefined' || typeof Android.themeSet !== 'function') return;
   // Ook bij elke wissel opnieuw: dan zet Java meteen de achtergrond (en de afdeklaag van het app-slot) in de nieuwe kleur
-  const key = JSON.stringify([c, loc && [loc.lat, loc.lon], new Date(now).toDateString(), !!dark]);
+  const key = JSON.stringify([c, loc && [loc.lat, loc.lon], rgDayKey(now), rgZone(), !!dark]);
   if (key === thNative.key) return;
   thNative.key = key;
   const o = { mode: c.mode, amoled: c.amoled };
   if (c.mode === 'time') o.win = [thMin(c.dark), thMin(c.light)];
   if (c.mode === 'sun' && loc) {
-    const tr = thTrans(c, now, loc, -1, 31), mod = tt => { const d = new Date(tt); return d.getHours() * 60 + d.getMinutes(); };
+    const tr = thTrans(c, now, loc, -1, 31), mod = ms => rgMinOfDay(ms);
     o.sched = tr.map(x => [Math.round(x[0]), x[1] ? 1 : 0]);
     o.end = thDay(now, 32).getTime();
     // Daarna (app lang niet open geweest): het venster van de laatste dag ([0, 1440] = de hele dag donker)
@@ -182,7 +189,7 @@ function thStatus(){
   return s.mode === 'sun' ? t('Nu: {nu} (de zon gaat hier nu niet op of onder)', { nu: now }) : t('Nu: {nu}', { nu: now });
 }
 function thSunNote(c){
-  const loc = thLoc(c), d = new Date(), s = thSun(d.getFullYear(), d.getMonth(), d.getDate(), loc.lat, loc.lon);
+  const loc = thLoc(c), d = rgParts(Date.now()), s = thSun(d.y, d.m - 1, d.d, loc.lat, loc.lon);
   const where = loc.where ? loc.where : loc.own ? t('op je laatst bekende locatie') : (c.place === 'auto' || c.place === 'home' || c.place === 'work' ? t('in {plaats} (je locatie is niet bekend)', { plaats: t(loc.name) }) : t('in {plaats}', { plaats: t(loc.name) }));
   const sun = s.polar ? t(s.polar === 'night' ? 'Vandaag komt de zon niet op {waar}' : 'Vandaag gaat de zon niet onder {waar}', { waar: where }) : t('Vandaag zon op {op}, onder {onder} {waar}', { op: thHm(s.rise), onder: thHm(s.set), waar: where });
   return t('{zon}. Berekend op de telefoon, zonder internet.', { zon: sun });

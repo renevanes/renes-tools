@@ -17,7 +17,6 @@ import android.os.Build;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.Calendar;
 
 /**
  * Eigen acties en extra triggers voor Automatiseringen.
@@ -152,17 +151,17 @@ public class AutoActions extends JobService {
     }
 
     /** Eerstvolgende moment voor een tijd-regel na 'after' (0 als geen geldige tijd). */
-    static long nextTime(JSONObject r, long after) { return nextTime(AutoLogic.minutes(r.optString("at")), r.optInt("days", 0), after); }
+    static long nextTime(JSONObject r, long after, java.util.TimeZone tz) { return nextTime(AutoLogic.minutes(r.optString("at")), r.optInt("days", 0), after, tz); }
 
-    static long nextTime(int m, int days, long after) {
+    static long nextTime(int m, int days, long after) { return nextTime(m, days, after, java.util.TimeZone.getDefault()); }
+
+    /** De tijd is wandklok in de app-zone (tz = Regio.zone). */
+    static long nextTime(int m, int days, long after, java.util.TimeZone tz) {
         if (m < 0) return 0;
-        Calendar cal = Calendar.getInstance();
-        cal.setTimeInMillis(after);
-        cal.set(Calendar.HOUR_OF_DAY, m / 60); cal.set(Calendar.MINUTE, m % 60); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0);
-        for (int i = 0; i < 9; i++) {
-            if (cal.getTimeInMillis() > after && AutoLogic.dayOk(days, cal.get(Calendar.DAY_OF_WEEK))) return cal.getTimeInMillis();
-            cal.add(Calendar.DAY_OF_MONTH, 1);
-            cal.set(Calendar.HOUR_OF_DAY, m / 60); cal.set(Calendar.MINUTE, m % 60);
+        String day = Regio.dayKey(tz, after);
+        for (int i = 0; i < 9; i++, day = Regio.dayAdd(day, 1)) {
+            long t = Regio.toMillis(tz, day, (m / 60 < 10 ? "0" : "") + (m / 60) + ":" + (m % 60 < 10 ? "0" : "") + (m % 60));
+            if (t > after && AutoLogic.dayOk(days, Regio.weekday(day))) return t;
         }
         return 0;
     }
@@ -177,7 +176,7 @@ public class AutoActions extends JobService {
         for (int i = 0; i < rules.length(); i++) {
             JSONObject r = rules.optJSONObject(i);
             if (r == null || !"time".equals(r.optString("trig")) || !r.optBoolean("on", true)) continue;
-            long t = nextTime(r, System.currentTimeMillis());
+            long t = nextTime(r, System.currentTimeMillis(), Regio.zone(c));
             if (t == 0) continue;
             String id = r.optString("id");
             now.add(id);
@@ -237,7 +236,7 @@ public class AutoActions extends JobService {
                 JSONArray a = Auto.rules(c);
                 for (int i = 0; i < a.length(); i++) {
                     JSONObject r = a.optJSONObject(i);
-                    if (r != null && r.optBoolean("on", true) && "charge_on".equals(r.optString("trig")) && Auto.timeOk(r)) Auto.fire(c, r, "Aan de lader");
+                    if (r != null && r.optBoolean("on", true) && "charge_on".equals(r.optString("trig")) && Auto.timeOk(c, r)) Auto.fire(c, r, "Aan de lader");
                 }
                 scheduleUnplugWatch(c); // pas na loskoppelen weer opnieuw
                 return false;

@@ -148,6 +148,9 @@ final class Car {
         android.net.Uri tree = WaBackup.destUri(c);
         if (tree == null) throw new Exception("Kies eerst een backup-map");
         SimpleDateFormat ym = new SimpleDateFormat("yyyy-MM", Locale.US), d = new SimpleDateFormat("dd-MM-yyyy", Locale.US), hm = new SimpleDateFormat("HH:mm", Locale.US);
+        // Maand, datum en tijden in de app-zone (Regio en taal), net als het scherm Mijn auto
+        java.util.TimeZone tz = Regio.zone(c);
+        ym.setTimeZone(tz); d.setTimeZone(tz); hm.setTimeZone(tz);
         JSONArray l = arr(c, "trips");
         StringBuilder b = new StringBuilder("﻿Datum;Vertrek;Aankomst;Kilometers;Soort;Omschrijving\r\n");
         int n = 0; double zak = 0, pri = 0;

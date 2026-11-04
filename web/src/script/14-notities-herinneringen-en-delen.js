@@ -1,7 +1,8 @@
 /* ---------- Notities: herinneringen en delen ---------- */
 let noteRems = {};
 function loadRems(){ try { noteRems = JSON.parse(Android.noteReminders()) || {}; } catch(e){ noteRems = {}; } }
-function localIso(tt){ const d = new Date(tt - new Date(tt).getTimezoneOffset() * 6e4); return d.toISOString().slice(0, 16); }
+/* Voor <input type=datetime-local>: datum en tijd in de app-zone (Regio en taal), en terug met rgFromLocalIn */
+function localIso(ms){ return rgLocalIn(ms); }
 const REM_REP = { day: 'elke dag', weekdays: 'werkdagen', week: 'elke week', month: 'elke maand' };
 function noteRemList(id){
   if (typeof Android.noteRemindList !== 'function') { const tt = noteRems[id]; return tt ? [{ id, t: tt, rep: '' }] : []; }
@@ -24,7 +25,7 @@ function noteSetRem(){
   const n = noteById(noteCur); if (!n) return;
   const v = $('#note-rem').value; if (!v) { toast('Kies een datum en tijd'); return; }
   if (!once('rem' + n.id + v + $('#note-rem-rep').value)) return; // dubbel tikken: één herinnering
-  const when = new Date(v).getTime();
+  const when = rgFromLocalIn(v); // wat je intikt, geldt in de app-zone
   if (!(when > Date.now())) { toast('Kies een moment in de toekomst'); return; }
   notesSaveNow();
   const rep = $('#note-rem-rep').value;
