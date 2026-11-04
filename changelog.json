@@ -1,5 +1,25 @@
 [
   {
+    "version": "1.138",
+    "date": "2026-11-04",
+    "changes": [
+      "Voorbereiding op een mogelijke Google Play-versie; voor jou verandert er niets aan wat de app doet"
+    ]
+  },
+  {
+    "version": "1.137",
+    "date": "2026-11-04",
+    "changes": [
+      "Bankzaken: meerdere rekeningen, privé en zakelijk. Bij een nieuwe rekening vraagt de app of hij privé of zakelijk is; je kunt kijken naar alles, alleen privé, alleen zakelijk of één rekening",
+      "Bankzaken zakelijk: omzet, kosten, resultaat en marge, met zakelijke categorieën (software, inkoop, advies en administratie, btw en loonheffing en meer); geld van zakelijk naar privé telt als privé-opname, niet als kosten",
+      "Facturen: kies per leverancier welke facturen: dit jaar (standaard), de laatste 3, 6, 12 of 24 maanden, vanaf een datum of alles; de app klikt op \"Toon meer\" om oudere facturen te laden en haalt er tot 50 per keer op (in te stellen tot 200)",
+      "Facturen: \"Alles van de periode opnieuw ophalen\" bij een leverancier haalt ook de oudere facturen alsnog op (zonder dubbele)",
+      "Facturen: dossier kiest nu ook een maand (bijv. januari) of een jaar; dezelfde factuur in meer documenten staat op één regel",
+      "Facturen: factuurnummer, datum en bedrag beter herkend (ook in tabellen en met de waarde op de volgende regel); nooit meer een stukje van de bestandsnaam als factuurnummer; de tekst uit de PDF is te bekijken bij de factuur",
+      "Facturen: Google koppelen kan nu met het Google-account dat al op je telefoon staat (geen browser of geheime sleutel nodig); het scherm Google toont de pakketnaam en SHA-1 die je in je Google-project invult"
+    ]
+  },
+  {
     "version": "1.136",
     "date": "2026-11-04",
     "changes": [

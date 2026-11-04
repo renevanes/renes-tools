@@ -245,7 +245,7 @@ setTimeout(renderDash, 50);
 
 // Snelle keuzes bij lang indrukken van het app-icoon: eerst je favorieten, aangevuld met de standaard
 function setDynamicShortcuts(){
-  const list = homeCfg().fav.concat(['player', 'radio', 'podcasts', 'notes', 'redial']).filter((k, i, a) => TOOLS[k] && k !== 'skin' && a.indexOf(k) === i).slice(0, 4);
+  const list = homeCfg().fav.concat(['player', 'radio', 'podcasts', 'notes', 'redial']).filter((k, i, a) => TOOLS[k] && k !== 'skin' && !playWeg(k) && a.indexOf(k) === i).slice(0, 4);
   Android.shortcutsDynamic(JSON.stringify(list.map(k => [k, t(TOOLS[k][0]), TOOLS[k][1], TOOLS[k][2]])));
 }
 addEventListener('taalchange', () => { try { setDynamicShortcuts(); } catch (e) { } });
