@@ -336,7 +336,7 @@ final class Herstel {
         o.put("nearby", ApparatenScan.btPerm(c));
         if (Build.VERSION.SDK_INT >= 33) o.put("notif", has(c, Manifest.permission.POST_NOTIFICATIONS));
         o.put("files", MainActivity.hasFilesAccess(c));
-        if (Build.VERSION.SDK_INT >= 26) o.put("install", c.getPackageManager().canRequestPackageInstalls());
+        if (Build.VERSION.SDK_INT >= 26 && !Updater.viaPlay(c)) o.put("install", c.getPackageManager().canRequestPackageInstalls());
         PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
         o.put("battery", pm != null && pm.isIgnoringBatteryOptimizations(c.getPackageName()));
         if (Build.VERSION.SDK_INT >= 31) { AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE); o.put("exact", am != null && am.canScheduleExactAlarms()); }

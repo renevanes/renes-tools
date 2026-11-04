@@ -22,7 +22,7 @@ verspreid en bijgewerkt.
 | 4 | Proefbouw `./build-play.sh`: eigen pakket `nl.rene.tools.play`, eigen manifest zonder wat Play niet toestaat, `.aab` | nee (los script, `build.sh` blijft gelijk) | klaar |
 | 5 | Privacybeleid op een vaste webpagina (GitHub Pages) | nee | nog doen |
 | 6 | Uploadsleutel maken en als geheim bewaren (Rene; Google ondertekent de winkelversie zelf) | nee | nog doen |
-| 7 | In de Play-versie de updater uitzetten en tools verbergen waarvan de toestemming ontbreekt | geen gedrag, wel een nieuwe APK (code in `app/` en `web/`) | eerst overleggen |
+| 7 | In de Play-versie de updater uitzetten en tools verbergen waarvan de toestemming ontbreekt (`66-play-versie.js`, `Updater.viaPlay`) | nee: alleen actief bij pakket `*.play`; wel een nieuwe APK | klaar |
 | 8 | Uitleg vóór gevoelige toestemmingen ("prominent disclosure") | ja, ook in de GitHub-versie (verbetering) | eerst overleggen |
 
 ## Proefbouw (`./build-play.sh`)
@@ -37,8 +37,22 @@ telefoon te veranderen:
   native bibliotheken worden op de telefoon uitgepakt, want de lokale AI en het uitschrijven starten ze als programma;
 - ondertekend met de uploadsleutel als `PLAY_KS` en `PLAY_KS_PASS_FILE` gezet zijn, anders niet ondertekend.
 
-Nog niet geschikt voor de winkel: de updater (APK én interface vanaf GitHub `update/`) zit er nog in en tools waarvan de toestemming weg is, staan nog in de
-interface (stap 7). De proefbouw draait niet in CI; hij is alleen hier gecontroleerd (pakketnaam, toestemmingen en
+De app herkent de Play-versie aan de pakketnaam (`Updater.viaPlay`: eindigt op `.play`). Dan:
+- geen eigen updates: geen controle bij het openen, `Updater.check` en `downloadAndInstall` doen niets, en bij Versie
+  en updates staat "Updates van deze versie komen via Google Play";
+- `web/src/script/66-play-versie.js` (vóór `29-start.js`) verbergt de tools in `PLAY_WEG` (Auto redial, SMS-backup,
+  Oproepen, Gesprekken opnemen) en weigert ze en hun subschermen te openen (`show`, ook bij het starten via een
+  snelkoppeling, widget, melding of losse app); ze verdwijnen uit Overal zoeken, de instellingen-zoeker, de losse apps
+  en de keuzes bij het app-icoon, en de assistent zegt dat ze er niet in zitten. Bij Gebruik verdwijnen
+  apparaatbeheer en de stille foto's bij ontgrendelen; bij Toestemmingen de regel "Updates installeren".
+- Nog over (alleen in de Play-versie, cosmetisch): ze staan nog in Startscherm aanpassen en in de Telefoon-skin
+  (openen wordt daar ook geweigerd), het overzicht op het startscherm kan een regel Auto redial tonen, en een groep
+  met alleen verborgen tegels houdt zijn kop.
+Tests: `PlayVersieTest` (Java) en `tests/ui/play-versie.test.js` (gewone versie ongewijzigd, Play-versie zonder deze delen).
+Nieuwe tool die een toestemming uit de lijst `niet`/`streng` nodig heeft? Zet hem in `PLAY_WEG`.
+
+Nog niet geschikt voor de winkel: privacybeleid (stap 5), uploadsleutel (stap 6) en uitleg vóór gevoelige
+toestemmingen (stap 8). De proefbouw draait niet in CI; hij is alleen hier gecontroleerd (pakketnaam, toestemmingen en
 providers in een universele APK, `extractNativeLibs` in de gesplitste APK's), niet op een telefoon. De bestanden
 in `res/xml/` van de weggelaten onderdelen gaan nog mee; onschuldig, eventueel later weglaten.
 
