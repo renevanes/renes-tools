@@ -289,6 +289,10 @@ Rene's inkomsten en uitgaven. **Niets mag de telefoon verlaten** (wens van Rene)
   "Transacties downloaden"; het bestand gaat in het geheugen rechtstreeks naar `Bank.importeer`. Na afloop cookies en
   websitegegevens van de bank weg. Eerste bank: Rabobank. Nieuwe bank = een blok met `robot: true`, `domeinen`, `apps`
   en de patronen; test met `tests/ui/bank-robot.test.js`. Geen PSD2-tussendiensten of andere partijen zonder Rene.
+- **Rekeningen privé/zakelijk:** `store.rek[iban] = {naam, soort}` (zelf toegevoegde in `store.eigen`); een nieuwe rekening
+  krijgt een vraag privé of zakelijk. Categorieën hebben een groep (`BK_CATS`: '' beide, 'p' privé, 'z' zakelijk); zakelijk
+  eerst `BK_ZREGELS`, daarna de algemene regels omgezet met `BK_ZMAP`. Geld tussen privé en zakelijk (`BK_TUSSEN`) telt niet
+  mee als beide kanten in beeld zijn (`bkSoort`). Eigen regels hebben `s` (soort) zodat dezelfde winkel privé en zakelijk anders kan.
 - **Lokale AI:** `LocalAi.privateChat` (geen geheugen, leren, acties of opgeslagen gesprek) via `bankAi`; de interface
   stuurt alleen een samenvatting met cijfers. Antwoorden altijd als tekst tonen (`textContent`), nooit als HTML.
 

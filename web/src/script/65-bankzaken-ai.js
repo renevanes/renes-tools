@@ -19,8 +19,15 @@ function bkFeiten(vraag){
   const [pv, pt] = bkVorige(van, tot), v = bkTotalen(bkSelectie(pv, pt));
   const e = c => bkEuro(c);
   const r = [];
-  r.push('Periode: ' + label + ' (' + van + ' t/m ' + tot + ')' + (bkRekening() !== 'alle' ? ', alleen rekening ' + bkRekNaam(bkRekening()) : ', alle rekeningen') + '. Vandaag: ' + bkVandaag() + '.');
-  r.push('Inkomsten ' + e(t.in) + ', uitgaven ' + e(t.uit) + ', gespaard/belegd ' + e(t.sparen) + ', over ' + bkEuro(t.netto, true) + ' (' + t.n + ' boekingen).');
+  r.push('Periode: ' + label + ' (' + van + ' t/m ' + tot + ')' + ', ' + bkZichtNaam() + (bkZichtSoort() === 'zakelijk' ? ' (zakelijk: inkomsten = omzet, uitgaven = kosten)' : '') + '. Vandaag: ' + bkVandaag() + '.');
+  if (bkZichtSoort() === 'zakelijk') r.push('Omzet en inkomsten ' + e(t.in) + ', kosten ' + e(t.uit) + ', resultaat ' + bkEuro(t.in - t.uit, true) + ', naar privé opgenomen ' + e(t.naarPrive) + (t.inbreng ? ', privé ingebracht ' + e(t.inbreng) : '') + ' (' + t.n + ' boekingen).');
+  else r.push('Inkomsten ' + e(t.in) + ', uitgaven ' + e(t.uit) + ', gespaard/belegd ' + e(t.sparen) + ', over ' + bkEuro(t.netto, true) + ' (' + t.n + ' boekingen).' + (t.naarPrive || t.inbreng ? ' Tussen privé en zakelijk (geen uitgave of inkomsten): ' + e(t.naarPrive + t.inbreng) + '.' : ''));
+  if (bkRekening() === 'alle' && bkZichtSoort() === '') {
+    for (const soort of ['prive', 'zakelijk']) {
+      let inn = 0, uit = 0; for (const x of lijst) { if (bkRekSoort(x.acc) !== soort) continue; const so = bkCatSoort(bkCat(x)); if (so === 'in') inn += x.a; else if (so === 'uit') uit -= x.a; }
+      r.push((soort === 'prive' ? 'Alleen privé: inkomsten ' : 'Alleen zakelijk: omzet ') + e(inn) + ', ' + (soort === 'prive' ? 'uitgaven ' : 'kosten ') + e(uit) + '.');
+    }
+  }
   r.push('Vorige periode (' + pv + ' t/m ' + pt + '): inkomsten ' + e(v.in) + ', uitgaven ' + e(v.uit) + ', gespaard ' + e(v.sparen) + '.');
   const cats = [...t.cats.entries()].filter(([, x]) => x.soort === 'uit').sort((a, b) => a[1].som - b[1].som).slice(0, 16);
   if (cats.length) r.push('Uitgaven per categorie (nu | vorige periode):\n' + cats.map(([c, x]) => '- ' + c + ': ' + e(-x.som) + ' (' + x.n + '×) | ' + e(v.cats.get(c) ? -v.cats.get(c).som : 0)).join('\n'));
@@ -32,7 +39,7 @@ function bkFeiten(vraag){
   if (pm.length > 1) r.push('Per maand (inkomsten / uitgaven / gespaard):\n' + pm.map(([m, x]) => '- ' + m + ': ' + e(x.in) + ' / ' + e(x.uit) + ' / ' + e(x.sparen)).join('\n'));
   const vast = bkTerugkerend().slice(0, 15);
   if (vast.length) r.push('Terugkerende betalingen (vaste lasten, abonnementen):\n' + vast.map(x => '- ' + bkKort(x.naam) + ' (' + x.cat + '): ' + e(x.bedrag) + ' ' + x.soort + (x.gestopt ? ', mogelijk gestopt, laatst ' + x.laatst : '')).join('\n'));
-  const groot = lijst.filter(x => x.a < 0 && bkCatSoort(bkCat(x)) === 'uit').sort((a, b) => a.a - b.a).slice(0, 8);
+  const groot = lijst.filter(x => x.a < 0 && bkSoort(x) === 'uit').sort((a, b) => a.a - b.a).slice(0, 8);
   if (groot.length) r.push('Grootste uitgaven:\n' + groot.map(x => '- ' + x.d + ' ' + bkKort(x.cp || x.ci) + ' (' + bkCat(x) + '): ' + e(x.a)).join('\n'));
   // Gaat de vraag over een bepaalde winkel, naam of categorie: die boekingen erbij
   if (vraag) {
@@ -101,38 +108,43 @@ function bkAiCategoriseren(){
   if (!ai.kan || !ai.klaar) { toast('Download eerst een taalmodel (Instellingen → Taalmodel)'); return; }
   const groep = new Map();
   for (const t of bk.store.tx) {
-    const c = bkCat(t); if (c !== 'Overig' && c !== 'Overige inkomsten') continue;
+    if (!BK_OVERIG.has(bkCat(t))) continue;
     const k = bkSleutel(t); if (!k || k === '?' || k.length < 2) continue;
-    const x = groep.get(k) || { k, naam: t.cp || t.ci, n: 0, som: 0, plus: 0 }; x.n++; x.som += t.a; if (t.a > 0) x.plus++; groep.set(k, x);
+    const soort = bkRekSoort(t.acc), g = soort + '|' + k; // dezelfde winkel kan privé en zakelijk anders horen
+    const x = groep.get(g) || { k, soort, naam: t.cp || t.ci, n: 0, som: 0, plus: 0 }; x.n++; x.som += t.a; if (t.a > 0) x.plus++; groep.set(g, x);
   }
   const lijst = [...groep.values()].sort((a, b) => b.n - a.n || a.som - b.som).slice(0, 30);
   if (!lijst.length) { toast('Er is niets meer in te delen'); return; }
   bk.voorstellen = { lijst, keuze: [] };
-  const cats = bkAlleCats().filter(c => c !== 'Eigen rekeningen');
-  const inhoud = 'Categorieën: ' + cats.join(', ') + '\n\nNamen:\n' + lijst.map((x, i) => (i + 1) + ': ' + bkKort(x.naam) + ' (' + x.n + '×, ' + (x.plus > x.n / 2 ? 'bijschrijving' : 'afschrijving') + ', gemiddeld ' + bkEuro(Math.round(x.som / x.n)) + ')').join('\n');
+  const zak = lijst.some(x => x.soort === 'zakelijk'), prive = lijst.some(x => x.soort === 'prive');
+  const catTekst = soort => bkAiCats(soort).join(', ');
+  const inhoud = (prive ? 'Categorieën voor privé: ' + catTekst('prive') + '\n' : '') + (zak ? 'Categorieën voor zakelijk: ' + catTekst('zakelijk') + '\n' : '')
+    + '\nNamen:\n' + lijst.map((x, i) => (i + 1) + ': ' + bkKort(x.naam) + ' (' + (x.soort === 'zakelijk' ? 'zakelijk, ' : zak ? 'privé, ' : '') + x.n + '×, ' + (x.plus > x.n / 2 ? 'bijschrijving' : 'afschrijving') + ', gemiddeld ' + bkEuro(Math.round(x.som / x.n)) + ')').join('\n');
   bk.aiTekst = ''; bk.aiDoel = 'categorie';
   $('#bk-ai-cat-uit').textContent = 'Bezig…';
   const r = Android.bankAi(JSON.stringify({ mode: 'categorie', messages: [{ role: 'user', content: inhoud }] }));
   if (r) { $('#bk-ai-cat-uit').textContent = r; return; }
   bk.aiBezig = true; bkAiRender();
 }
-/** Het antwoord ("3: Boodschappen") lezen; alleen bestaande categorieën tellen. Jij kiest wat je overneemt. */
+/** Categorieën die de AI mag voorstellen voor een privé- of zakelijke naam (geen overig, eigen rekeningen of geld tussen privé en zakelijk). */
+function bkAiCats(soort){ return bkCatsVoor(soort).filter(c => c !== 'Eigen rekeningen' && !BK_TUSSEN.has(c)); }
+/** Het antwoord ("3: Boodschappen") lezen; alleen bestaande categorieën van de juiste soort tellen. Jij kiest wat je overneemt. */
 function bkVoorstellen(tekst){
   const v = bk.voorstellen; if (!v) return;
-  const cats = bkAlleCats().filter(c => c !== 'Eigen rekeningen'), lower = new Map(cats.map(c => [c.toLowerCase(), c]));
+  const lower = new Map(bkAlleCats().map(c => [c.toLowerCase(), c]));
   const keuze = [];
   for (const regel of bkSchoon(tekst).split('\n')) {
     const m = regel.match(/^\s*(\d{1,2})\s*[:.)\-–]\s*(.+?)\s*$/);
     if (!m) continue;
     const x = v.lijst[Number(m[1]) - 1], c = lower.get(m[2].replace(/[.*"“”]/g, '').trim().toLowerCase());
-    if (x && c && c !== 'Overig' && c !== 'Overige inkomsten' && !keuze.some(k => k.x === x)) keuze.push({ x, c });
+    if (x && c && !BK_OVERIG.has(c) && bkAiCats(x.soort).includes(c) && !keuze.some(k => k.x === x)) keuze.push({ x, c });
   }
   v.keuze = keuze;
   const box = $('#bk-ai-cat-uit');
   if (!keuze.length) { box.textContent = 'De AI kwam niet met bruikbare voorstellen. Probeer het nog eens of deel zelf in vanuit een boeking.'; return; }
   box.innerHTML = '<p class="note">Kies per naam of je het voorstel overneemt. Er komt dan een regel bij (te zien en te verwijderen onder Mijn regels).</p>'
-    + keuze.map((k, i) => '<label class="bk-voorstel"><input type="checkbox" checked data-i="' + i + '"><span>' + esc(bkKort(k.x.naam)) + ' <small class="note">(' + k.x.n + '×)</small></span><select class="sel" data-i="' + i + '" aria-label="Categorie voor ' + esc(bkKort(k.x.naam)) + '">'
-      + cats.map(c => '<option' + (c === k.c ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select></label>').join('')
+    + keuze.map((k, i) => '<label class="bk-voorstel"><input type="checkbox" checked data-i="' + i + '"><span>' + esc(bkKort(k.x.naam)) + ' <small class="note">(' + (k.x.soort === 'zakelijk' ? 'zakelijk, ' : '') + k.x.n + '×)</small></span><select class="sel" data-i="' + i + '" aria-label="Categorie voor ' + esc(bkKort(k.x.naam)) + '">'
+      + bkAiCats(k.x.soort).map(c => '<option' + (c === k.c ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select></label>').join('')
     + '<button class="big" style="margin-top:10px" onclick="bkVoorstellenOvernemen()">Overnemen</button>';
 }
 function bkVoorstellenOvernemen(){
@@ -143,10 +155,10 @@ function bkVoorstellenOvernemen(){
     const i = Number(cb.dataset.i), k = v.keuze[i], sel = document.querySelector('#bk-ai-cat-uit select[data-i="' + i + '"]');
     if (!k) return;
     const c = sel ? sel.value : k.c;
-    if (!bkAlleCats().includes(c)) return;
+    if (!bkAiCats(k.x.soort).includes(c)) return;
     const t = k.x.plus > k.x.n / 2 ? '+' : '-';
-    bk.store.rules = bk.store.rules.filter(g => !(g.p === k.x.k && g.t === t));
-    bk.store.rules.push({ p: k.x.k, cat: c, t });
+    bk.store.rules = bk.store.rules.filter(g => !(g.p === k.x.k && g.t === t && (g.s || '') === k.x.soort));
+    bk.store.rules.push({ p: k.x.k, cat: c, t, s: k.x.soort });
     n++;
   });
   bk.voorstellen = null;
