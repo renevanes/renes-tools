@@ -183,7 +183,7 @@ final class Regio {
     static String skinJson(Context ctx) {
         Cfg c = cfg(ctx);
         try {
-            return new JSONObject().put("clock", c.clock).put("date", c.date).put("temp", c.temp).put("dec", String.valueOf(c.dec)).put("grp", c.grp).toString();
+            return new JSONObject().put("lang", c.lang).put("clock", c.clock).put("date", c.date).put("temp", c.temp).put("dec", String.valueOf(c.dec)).put("grp", c.grp).toString();
         } catch (Exception e) {
             return "{}";
         }

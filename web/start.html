@@ -347,7 +347,7 @@ if (!window.Android) window.Android = (function(){
       {title: 'Tandarts', begin: n + 2 * 36e5, end: n + 3 * 36e5, allDay: false, loc: 'Coolsingel 1', id: 1, color: '#e11d48'},
       {title: 'Overleg met team', begin: n + 26 * 36e5, end: n + 27 * 36e5, allDay: false, loc: '', id: 2, color: '#2563eb'},
       {title: 'Verjaardag Jos', begin: n + 50 * 36e5, end: n + 74 * 36e5, allDay: true, loc: '', id: 3, color: '#16a34a'}]}); },
-    calendarPermission(){}, openEvent(id){ this._ev = id; }, nextAlarm(){ return Date.now() + 15 * 36e5; }, openClock(){ this._clock = true; },
+    calendarPermission(){}, openEvent(id){ this._ev = id; }, nextAlarm(){ return Date.now() + 15 * 36e5; }, taal(){ try { return localStorage.getItem('skinTestTaal') || ''; } catch (e) { return ''; } }, regio(){ try { return localStorage.getItem('skinTestRegio') || '{}'; } catch (e) { return '{}'; } }, openClock(){ this._clock = true; },
     weather(){ setTimeout(() => onWeather({t: Date.now(), temp: 14.6, code: 3, day: true, wind: 18, rainSoon: 60, place: 'Rotterdam',
       days: [{date: '2026-10-04', code: 3, max: 16, min: 9, rain: 60}, {date: '2026-10-05', code: 61, max: 14, min: 8, rain: 80}, {date: '2026-10-06', code: 1, max: 17, min: 7, rain: 10}, {date: '2026-10-07', code: 2, max: 18, min: 10, rain: 20}]}), 50); },
     cities(q){ setTimeout(() => onCities([{name: 'Rotterdam', sub: 'Zuid-Holland, Nederland', lat: 51.92, lon: 4.48}, {name: 'Rotterdam', sub: 'New York, Verenigde Staten', lat: 42.8, lon: -73.9}]), 50); },
@@ -859,12 +859,12 @@ function closeDrawer(){ document.body.classList.remove('drawer-on'); $('#q').val
 $('#hint').onclick = () => openDrawer();
 
 /* ---------- Regio en taal (zoals de app die doorgaf, zie web/src/script/02-regio.js en Regio.java) ----------
- * Een klein deel van de functies van de app: tijd, datum en temperatuur. Zonder keuze: zoals altijd (nl-NL, 24 uur, °C). */
+ * Een klein deel van de functies van de app: tijd, datum en temperatuur. Zonder keuze: zoals altijd (nl-NL, 24 uur, °C); in het Engels en-GB. */
 let skRgC = null, skRgT = 0;
 function skRg(){
   if (skRgC && Date.now() - skRgT < 60000) return skRgC;
   let o = {}; try { if (typeof Android.regio === 'function') o = JSON.parse(Android.regio() || '{}') || {}; } catch(e){ o = {}; }
-  skRgC = {loc: 'nl-NL', h12: o.clock === '12', date: o.date === 'iso' || o.date === 'dmon' ? o.date : 'dmy', f: o.temp === 'f', dec: o.dec === '.' ? '.' : ',', grp: typeof o.grp === 'string' && o.grp.length <= 1 ? o.grp : '.'};
+  skRgC = {loc: o.lang === 'en' || (typeof TAAL !== 'undefined' && TAAL.on) ? 'en-GB' : 'nl-NL', h12: o.clock === '12', date: o.date === 'iso' || o.date === 'dmon' ? o.date : 'dmy', f: o.temp === 'f', dec: o.dec === '.' ? '.' : ',', grp: typeof o.grp === 'string' && o.grp.length <= 1 ? o.grp : '.'};
   if (skRgC.grp === skRgC.dec) skRgC.grp = skRgC.dec === ',' ? '.' : ',';
   skRgT = Date.now(); return skRgC;
 }
@@ -920,7 +920,7 @@ window.onWeather = function(w){
   const [ic, txt] = wmo(w.code, w.day);
   const days = (w.days || []).slice(1, 4).map(d => '<span>' + fmtDate(d.date + 'T12:00', {weekday: 'short'}) + '<b>' + skinGlyph(wmo(d.code)[0]) + '</b>' + fmtTemp(d.max) + '/' + fmtTemp(d.min) + '</span>').join('');
   const today = (w.days || [])[0];
-  el.innerHTML = '<span class=wi>' + skinGlyph(ic) + '</span><span class=wt>' + fmtTemp(w.temp) + '</span><span class=wd><b>' + esc(txt) + (w.place ? ' · ' + esc(w.place) : '') + '</b>' +
+  el.innerHTML = '<span class=wi>' + skinGlyph(ic) + '</span><span class=wt>' + fmtTemp(w.temp) + '</span><span class=wd><b>' + esc(t(txt)) + (w.place ? ' · ' + esc(w.place) : '') + '</b>' +
     (today ? fmtTemp(today.max) + ' / ' + fmtTemp(today.min) : '') + (w.rainSoon >= 50 ? ' · ' + skinGlyph('☔') + ' ' + t('{pct}% kans op regen', { pct: w.rainSoon }) : '') +
     '<span class=wdays>' + days + '</span></span>';
 };
@@ -943,11 +943,11 @@ function renderCal(){
   el.style.display = 'block';
   if (!c.perm) { el.innerHTML = '<h3>Agenda</h3><button class="big2 ghost" onclick="Android.calendarPermission()">Afspraken tonen (toestemming geven)</button>'; return; }
   const ev = (c.events || []).slice(0, 4);
-  const day = t => { const d = new Date(t), n = new Date(), m = new Date(Date.now() + 864e5);
-    return d.toDateString() === n.toDateString() ? '' : d.toDateString() === m.toDateString() ? 'morgen ' : fmtDate(d, {weekday: 'short'}) + ' '; };
+  const day = ms => { const d = new Date(ms), n = new Date(), m = new Date(Date.now() + 864e5);
+    return d.toDateString() === n.toDateString() ? '' : d.toDateString() === m.toDateString() ? t('morgen') + ' ' : fmtDate(d, {weekday: 'short'}) + ' '; };
   el.innerHTML = '<h3>Agenda <button class=more onclick="Android.openEvent(\'0\')">Openen ›</button></h3>' + (ev.map(e =>
     '<button class=ev data-id="' + e.id + '" onclick="Android.openEvent(this.dataset.id)"><i style="background:' + esc(e.color || '') + '"></i><span class=et>' +
-    (e.allDay ? (day(e.begin) || 'vandaag') + '<br>hele dag' : day(e.begin) + fmtTime(e.begin, {hour: '2-digit', minute: '2-digit'})) +
+    (e.allDay ? (day(e.begin) || t('vandaag')) + '<br>' + t('hele dag') : day(e.begin) + fmtTime(e.begin, {hour: '2-digit', minute: '2-digit'})) +
     '</span><div translate="no"><b>' + esc(e.title) + '</b>' + (e.loc ? '<small>' + esc(e.loc) + '</small>' : '') + '</div></button>').join('') || '<p style="margin:0;color:var(--muted);font-size:14px">Geen afspraken de komende week</p>');
 }
 window.onCalendarPerm = renderCal;

@@ -19,6 +19,11 @@ const TOEGESTAAN = [
   ['Hoe voel je je?', 'vraag van Check-in uit de testbrug (gegevens van Rene)'],
   ['Hoe was je werk?', 'vraag van Check-in uit de testbrug (gegevens van Rene)'],
   ['Rene van Es', 'naam'],
+  // Gegevens uit de testbrug die de echte app in de taal van de app krijgt (Java, Taal.t); de testbrug geeft ze Nederlands
+  ['Spraakmodel snel', 'testbrug (Java: Taal.t "Spraakmodel {naam}")'],
+  ['Spraakmodel nauwkeurig', 'testbrug (Java: Taal.t "Spraakmodel {naam}")'],
+  ['Spraak naar tekst · whisper', 'testbrug (Java: Taal.t)'],
+  ['Boven andere apps tonen', 'testbrug (Java GebruikShot: Taal.t)'],
 ];
 const toegestaan = s => TOEGESTAAN.some(([x]) => s.includes(x));
 
@@ -61,6 +66,14 @@ const toegestaan = s => TOEGESTAAN.some(([x]) => s.includes(x));
     const ids = await pg.evaluate(() => [...document.querySelectorAll('section.screen')].map(s => s.id.slice(2)).filter(id => id !== 'info'));
     ok(ids.length > 60, ids.length + ' schermen');
     ok(await pg.evaluate(() => document.documentElement.lang === 'nl' && !TAAL.on && !TAAL.d && !TAAL.obs), 'standaard Nederlands: geen woordenboek gelezen, geen observer (kost niets)');
+    // Wachters: gegevens die toevallig precies een tekst uit het woordenboek zijn, moeten in het Engels blijven zoals ze zijn
+    await pg.evaluate(() => {
+      Android._ct.perm = true; Android._ct.list.push({ k: 'kw', n: 'Instellingen', id: 99, u: Date.now() - 6e4, f: { Naam: 'Instellingen', Telefoon: '06 99999999 (mobiel)' } });
+      Android._sms.perm = true; Android._sms.contacts = true; if (!Android._sms.convs) Android._smsDemo();
+      Android._sms.convs.unshift({ thread: 99, name: 'Opslaan', count: 1, last: Date.now(), lastText: 'Opslaan' }); Android._sms.msgs[99] = [{ id: 1, me: false, t: Date.now(), text: 'Opslaan', type: 1 }];
+      const ns = JSON.parse(Android._notes); ns[0].items.push({ id: 'iw', text: 'Opslaan', done: false }); ns.push({ id: 'nw', title: 'Instellingen', text: '', updated: Date.now(), items: [] }); Android._notes = JSON.stringify(ns);
+      notes = null;
+    });
     // Nederlands vooraf vastleggen (een steekproef, om straks te vergelijken)
     const PROEF = ['home', 'settings', 'setregio', 'notes', 'backup', 'wa', 'sms', 'calls', 'aiset', 'checkin', 'apparaten', 'gebruik', 'sleep', 'facturen', 'auto', 'vpn', 'podcasts'].filter(x => ids.includes(x));
     const voor = {};
@@ -104,6 +117,18 @@ const toegestaan = s => TOEGESTAAN.some(([x]) => s.includes(x));
     const misBad = mis.filter(x => !toegestaan(x));
     ok(!misBad.length, 'elke t() op die schermen heeft een vertaling' + (misBad.length ? ': ' + JSON.stringify(misBad.slice(0, 20)) : ''));
     ok(!Object.keys(breed).length, 'niets valt buiten een 360 px breed scherm' + (Object.keys(breed).length ? ': ' + JSON.stringify(breed) : ''));
+
+    // De wachters zijn Nederlands gebleven
+    const wacht = {};
+    await naar(pg, 'contacts'); await pg.waitForTimeout(150);
+    wacht.contact = await pg.evaluate(() => [...document.querySelectorAll('#s-contacts b')].some(b => b.textContent.trim() === 'Instellingen'));
+    await naar(pg, 'sms'); await pg.waitForTimeout(150);
+    wacht.sms = await pg.evaluate(() => [...document.querySelectorAll('#sms-list b')].some(b => b.textContent.trim() === 'Opslaan') && ![...document.querySelectorAll('#sms-list b')].some(b => b.textContent.trim() === 'Save'));
+    await pg.evaluate(() => openSms(99, 'Opslaan')); await pg.waitForTimeout(200);
+    wacht.smstitel = await pg.evaluate(() => $('#sms-title').textContent === 'Opslaan' && [...document.querySelectorAll('#s-smschat .bub')].some(b => /Opslaan/.test(b.textContent)));
+    await naar(pg, 'notes'); await pg.waitForTimeout(150);
+    wacht.notitie = await pg.evaluate(() => [...document.querySelectorAll('#s-notes b')].some(b => /Instellingen/.test(b.textContent)) && ![...document.querySelectorAll('#s-notes b')].some(b => /^Settings$/.test(b.textContent.trim())));
+    ok(wacht.contact && wacht.sms && wacht.smstitel && wacht.notitie, 'gegevens worden niet vertaald: contact "Instellingen", sms "Opslaan", notitie "Instellingen" blijven zo (' + JSON.stringify(wacht) + ')');
 
     // Kop, tabbalk, melding en venster
     await naar(pg, 'settings');
