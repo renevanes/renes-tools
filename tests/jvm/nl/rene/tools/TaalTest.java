@@ -54,7 +54,7 @@ public class TaalTest {
         eq(Taal.tr(en, true, "Stil (alle meldingen uit in de app)"), (String) en.get("Stil (alle meldingen uit in de app)"), "kanaalnaam uit Java staat erin");
         check(en.get("Stil (alle meldingen uit in de app)") != null, "meldingskanaal 'Stil' vertaald");
         boolean schoon = true;
-        for (Object v : en.values()) for (String s : v instanceof String[] ? (String[]) v : new String[]{(String) v}) if (s.toLowerCase().matches("(?s).*\\b(fake|n" + "ep)\\b.*")) schoon = false;
+        for (Object v : en.values()) for (String s : v instanceof String[] ? (String[]) v : new String[]{(String) v}) if (s.toLowerCase().matches("(?s).*\\b(f" + "ake|n" + "ep)\\b.*")) schoon = false;
         check(schoon, "geen verboden woord in de vertalingen");
         List<Object[]> eps = Taal.patterns(en);
         check(eps.size() > 300, "patronen uit het echte woordenboek: " + eps.size());

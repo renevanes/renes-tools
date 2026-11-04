@@ -70,6 +70,8 @@ function looksDutch(s){
 }
 /* Duidelijk Nederlandse woorden (voor de bewaker op aan elkaar geplakte tekst) */
 const DUTCHY = /(^|[^\p{L}])(de|het|een|niet|voor|met|naar|wordt|kies|tik|nog|geen|deze|dit|van|je|bij|uit|aan|als|ook|alleen|op|is|zijn|om|tot|en|dag|dagen|uur|minuten|keer|staat|klaar|gestopt|vrij|versie|gemiddeld|vraagt|leert|meteen|antwoord|antwoorden|gesprek|niets|stem|modellen|gaat|weg|gewist|bewaard|opgeslagen|mislukt|gelukt|lukt|lukte|bezig|nieuwe?|vandaag|gisteren|morgen|wachten|ingesteld|gekoppeld|verbonden|opnieuw|terug|door|resultaten|bestanden|berichten|nummers|stuks|gevonden|geleden|over|gebruikt|ingevuld|gemist|afspraken?|meldingen|minuut|seconden?|weken|maanden|bekijken|verwijderen|wissen|openen|toevoegen|zoeken|alle|elke|mijn|werd|kon|kan|moet|mag)(?![\p{L}])/iu;
+/* Het woord n-e-p (wens van Rene) en de Engelse vertaling ervan, zonder het hier zelf uit te schrijven */
+const VERBODEN = new RegExp('\\b(n[e3]p|f' + 'ake)\\b', 'i');
 const SINKS = { toast: [0], undoToast: [0], askConfirm: [0, 1, 2], askInput: [0, 1, 3], askChoice: [0, 1, 2, 3], openSheet: [0, 1], t: [0], tn: [1, 2] };
 /* De argumenten van een aanroep (bovenste niveau), met begin en eind in de bron */
 function callArgs(src, open){
@@ -306,7 +308,7 @@ async function check(){
       if (ph(k) !== ph(e) && !(Array.isArray(v) && ph(k).replace('{n}', '') === ph(e).replace('{n}', ''))) errs.push('plaatshouders verschillen: ' + JSON.stringify(k) + ' → ' + JSON.stringify(e));
       const tags = s => (s.match(/<\/?[a-z]+/gi) || []).map(x => x.toLowerCase()).sort().join();
       if (tags(k) !== tags(e)) errs.push('HTML-opmaak verschilt: ' + JSON.stringify(k) + ' → ' + JSON.stringify(e));
-      if (/\bn[e3]p\b/i.test(e) || /\bfake\b/i.test(e)) errs.push('verboden woord in vertaling: ' + JSON.stringify(e));
+      if (VERBODEN.test(e)) errs.push('verboden woord in vertaling: ' + JSON.stringify(e));
       if (keys.has(norm(e)) && norm(e) !== k && dict[norm(e)] !== e) errs.push('vertaling is zelf een andere Nederlandse sleutel (heen en weer): ' + JSON.stringify(k) + ' → ' + JSON.stringify(e));
     }
   }

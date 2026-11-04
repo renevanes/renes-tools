@@ -65,7 +65,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
     `tests/ui/taal-dekking.test.js` faalt op een ontbrekende vertaling of op aan elkaar geplakt Nederlands. Moet iets bewust
     vast Nederlands blijven (tekst voor het taalmodel, zinnen die de assistent ontleedt): `// taal-vast: reden` op die regel,
     of `/* taal-vast-begin: reden */ … /* taal-vast-eind */`. `tests/ui/engels.test.js` loopt alle schermen in het Engels na.
-  - nooit het woord n-e-p, ook niet in het Engels ("fake"): zeg "test bridge", "Choose location".
+  - nooit het woord n-e-p, ook niet de Engelse vertaling ervan: zeg "test bridge", "Choose location".
   - niet vertaald: wijzigingsregels ("Wat is er nieuw" zegt "(in Dutch)"), namen van Android (app- en widgetnamen in het
     manifest), en gegevens. De assistent begrijpt Engels via `59b-assistent-engels.js` (Engelse zin → de Nederlandse
     opdracht), antwoordt in het Engels (`LocalAi.buildSystemEn`), spreekt Engels (`AiSpeech`) en schrijft Engels uit (whisper "en").
