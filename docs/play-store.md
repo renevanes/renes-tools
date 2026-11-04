@@ -42,41 +42,49 @@ toestemmingen die nog niet zijn ingedeeld. Het script draait niet in de tests en
 | READ_SMS | streng | Sms-backup, zoeken, lokale assistent, facturen |
 | READ_CALL_LOG | streng | Belgeschiedenis(-backup), Auto redial, opnames uitschrijven, zoeken |
 | REQUEST_INSTALL_PACKAGES | niet | eigen updater |
-| USE_EXACT_ALARM | niet (alleen wekker- en agenda-apps) | herinneringen; SCHEDULE_EXACT_ALARM blijft mogelijk |
-| BIND_DEVICE_ADMIN | niet aanbevolen | apparaatbeheer (verouderd voor gewone apps) |
-| BIND_ACCESSIBILITY_SERVICE | verklaring, risicovol | automatiseringen, gespreksopname |
-| ACCESS_BACKGROUND_LOCATION | verklaring + video | Mijn routes, apparaten, automatiseringen |
-| MANAGE_EXTERNAL_STORAGE | verklaring | backups naar een vrij gekozen map |
-| SCHEDULE_EXACT_ALARM | verklaring | wekker, herinneringen |
-| FOREGROUND_SERVICE_SPECIAL_USE | verklaring | Auto redial |
+| USE_EXACT_ALARM | niet (alleen wekker- en agenda-apps) | radiowekker, herinneringen, automatiseringen op tijd |
+| BIND_DEVICE_ADMIN | niet | Gebruik: mislukte ontgrendelingen bijhouden |
+| BIND_ACCESSIBILITY_SERVICE (gespreksopname) | niet | gespreksopname (`CallRecordingAccess`) |
+| BIND_ACCESSIBILITY_SERVICE (automatiseringen) | verklaring, risicovol | Automatiseringen (`AutoA11y`) |
+| ACCESS_BACKGROUND_LOCATION | verklaring + video | Automatiseringen, Apparaten |
+| MANAGE_EXTERNAL_STORAGE | verklaring, streng | WhatsApp-backup en Gesprekken uitschrijven (mappen van andere apps lezen) |
+| SCHEDULE_EXACT_ALARM | verklaring | vervanger van USE_EXACT_ALARM; in een Play-manifest zonder `maxSdkVersion="32"` |
+| FOREGROUND_SERVICE_SPECIAL_USE | verklaring | Auto redial, VPN |
 | FOREGROUND_SERVICE_* (overige typen) | verklaring per type | radio, podcasts, opnemen, backups, locatie |
 | BIND_VPN_SERVICE | verklaring | VPN |
 | PACKAGE_USAGE_STATS | verklaring | schermtijd/gebruik |
 | BIND_NOTIFICATION_LISTENER_SERVICE | ok, gevoelig | meldingsgeschiedenis |
-| SYSTEM_ALERT_WINDOW | ok, gevoelig | zwevende vensters |
+| SYSTEM_ALERT_WINDOW | ok, gevoelig | zwevende vensters; Gebruik (ontgrendelfoto) |
+| CAMERA (onzichtbare foto bij mislukte ontgrendeling) | niet | Gebruik (`GebruikShot`) |
 | REQUEST_IGNORE_BATTERY_OPTIMIZATIONS | verklaring | taken op de achtergrond |
 | ACCESS_MOCK_LOCATION | ok | Locatie kiezen (gekozen in ontwikkelaarsopties) |
 | overige (internet, contacten, agenda, microfoon, camera, locatie, bluetooth, meldingen, …) | ok | diverse tools |
 
-Gevolg voor een Play-variant: sms-backup, belgeschiedenis, Auto redial, de updater en (waarschijnlijk)
-automatiseringen via toegankelijkheid blijven alleen in de GitHub-versie.
+Gevolg voor een Play-variant: sms-backup, belgeschiedenis, Auto redial, gespreksopname, de ontgrendelfoto van Gebruik
+en de updater blijven alleen in de GitHub-versie. Automatiseringen via toegankelijkheid, WhatsApp-backup en Gesprekken
+uitschrijven zijn onzeker.
 
 ## 2. Diensten buiten de telefoon
 
-Voor het privacybeleid en het Data safety-formulier. Alles gebeurt alleen na een keuze van de gebruiker.
+Voor het privacybeleid en het Data safety-formulier. Bijna alles gebeurt pas als de gebruiker een tool gebruikt of
+instelt. Uitzonderingen: de updatecontrole (vanzelf, ongeveer elk half uur als de app open is) en het weer op het
+startscherm (laatst bekende locatie).
 
 | Dienst | Waarvoor | Wat gaat erheen |
 |---|---|---|
-| GitHub (raw.githubusercontent.com, api.github.com) | updates; Statistieken voor verbeteringen | niets persoonlijks; statistiek alleen tellingen naar de eigen privé-repository |
+| GitHub (raw.githubusercontent.com, api.github.com) | updates; statistieken voor verbeteringen | updates: niets persoonlijks; statistiek: tellingen, telefoonmodel en Android-versie, alleen naar de eigen privé-repository |
 | AudD (api.audd.io) | muziekherkenning | kort geluidsfragment, eigen API-sleutel |
-| Spotify (accounts/api.spotify.com) | Spotify-backup | inloggen via Spotify; gegevens komen naar de telefoon |
-| Google (accounts, oauth2, gmail, googleapis, drive) | facturen in Gmail, opslaan in Google Drive | inloggen via Google; facturen naar eigen Drive |
+| Spotify (accounts/api.spotify.com) | Spotify-backup en afspeellijsten | inloggen via Spotify; gegevens komen naar de telefoon, afspeellijsten kunnen worden aangepast |
+| Google (accounts, oauth2, gmail, googleapis, drive) | facturen in Gmail, opslaan in Google Drive, facturen mailen | inloggen via Google; facturen naar eigen Drive; mail naar zelf ingestelde ontvangers |
+| Eigen mailserver (SMTP) | facturen aanleveren | facturen naar zelf ingestelde ontvangers |
 | KPN Zakelijk, Ziggo, Rabobank | facturen en transacties ophalen | inloggen op eigen account; gegevens blijven op de telefoon |
-| OpenStreetMap (tile.openstreetmap.org) | kaarten | kaartvakjes van het getoonde gebied |
+| OpenStreetMap (tile.openstreetmap.org) | kaarten | kaarttegels van het getoonde gebied |
 | Open-Meteo (api/geocoding-api.open-meteo.com) | weer op het startscherm | coördinaten of plaatsnaam |
-| Apple (itunes.apple.com) | podcasts zoeken | zoekterm |
-| Hugging Face (huggingface.co) | AI-modellen downloaden | niets persoonlijks |
-| Radiostreams (o.a. icecast.omroep.nl) | radio | niets persoonlijks |
+| Apple (itunes.apple.com, rss.applemarketingtools.com) | podcasts zoeken, top 40 | zoekterm |
+| Podcastfeeds en hun servers | afleveringen en afbeeldingen | niets persoonlijks (elke host mogelijk) |
+| radio-browser.info | radiozenders zoeken | zoekterm, telling bij afspelen |
+| Hugging Face (huggingface.co) | AI- en spraakmodellen downloaden | niets persoonlijks |
+| Radiostreams en zenderlogo's (o.a. icecast.omroep.nl) | radio | niets persoonlijks (elke host mogelijk) |
 | Eigen cloud / eigen VPN-server | opslag, VPN | wat de gebruiker zelf instelt |
 
 Bijhouden: komt er een dienst bij, zet hem dan in deze tabel.

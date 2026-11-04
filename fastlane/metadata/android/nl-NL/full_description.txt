@@ -4,9 +4,9 @@ Wat zit erin
 • Notities met checklists en zoeken, ook als widget
 • PDF's bekijken en ordenen
 • Nederlandse radio en podcasts
-• Muziekherkenning
+• Muziekherkenning (met een eigen AudD-sleutel)
 • Mijn routes: wandel- en fietsroutes opnemen met een OpenStreetMap-kaart
-• Een lokale assistent en slim zoeken in je notities, volledig op de telefoon (offline AI)
+• Een lokale assistent en slim zoeken in je notities, volledig op de telefoon (offline AI, na het downloaden van een model)
 • Backups van je contacten, met wijzigingsgeschiedenis
 • VPN met WireGuard en OpenVPN, voor je eigen server of je VPN-aanbieder
 • Een eigen startscherm met weer en snelkoppelingen

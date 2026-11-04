@@ -17,7 +17,9 @@ INDELING = {
     'REQUEST_INSTALL_PACKAGES': 'niet',
     'USE_EXACT_ALARM': 'niet',
     'BIND_DEVICE_ADMIN': 'niet',
-    'BIND_ACCESSIBILITY_SERVICE': 'verklaring',
+    'BIND_ACCESSIBILITY_SERVICE': 'verklaring',  # gespreksopname via toegankelijkheid: niet
+    # CAMERA en SYSTEM_ALERT_WINDOW: ok, maar niet voor de onzichtbare ontgrendelfoto van Gebruik
+    # MANAGE_EXTERNAL_STORAGE: streng (mappen van andere apps lezen)
     'ACCESS_BACKGROUND_LOCATION': 'verklaring',
     'MANAGE_EXTERNAL_STORAGE': 'verklaring',
     'SCHEDULE_EXACT_ALARM': 'verklaring',
