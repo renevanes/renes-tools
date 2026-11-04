@@ -170,7 +170,7 @@ final class Launcher {
                     long begin = cur.getLong(1), end = cur.getLong(2);
                     boolean allDay = cur.getInt(3) == 1;
                     if (allDay) { // hele-dag-afspraken staan in UTC: naar middernacht hier
-                        java.util.TimeZone tz = java.util.TimeZone.getDefault();
+                        java.util.TimeZone tz = Regio.zone(c);
                         begin -= tz.getOffset(begin);
                         end -= tz.getOffset(end);
                     }

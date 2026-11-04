@@ -152,7 +152,7 @@ public class AiBridge extends SleepBridge {
             if (a.isSolo()) return AiData.factual(topic, q) ? o.put("solo", true).toString() : "";
             if (!LocalAi.srcOn(ctx, topic)) return AiData.factual(topic, q) ? o.put("off", true).toString() : "";
             long now = System.currentTimeMillis();
-            AiData.Answer an = AiData.answer(topic, q, AiData.facts(ctx, topic, now), now, java.util.TimeZone.getDefault());
+            AiData.Answer an = AiData.answer(topic, q, AiData.facts(ctx, topic, now), now, Regio.zone(ctx));
             if (an == null) return o.toString();
             return o.put("text", an.text).put("title", an.title).toString();
         } catch (Throwable t) { return ""; }

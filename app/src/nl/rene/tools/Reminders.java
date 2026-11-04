@@ -67,7 +67,7 @@ final class Reminders {
 
     static void put(Context c, String rid, String note, String title, long t, String rep) {
         JSONObject old = get(c, rid);
-        int dom = old != null && old.optInt("dom", 0) > 0 && rep != null && !rep.isEmpty() ? old.optInt("dom") : dayOfMonth(t);
+        int dom = old != null && old.optInt("dom", 0) > 0 && rep != null && !rep.isEmpty() ? old.optInt("dom") : dayOfMonth(t, Regio.zone(c));
         try {
             prefs(c).edit().putString(rid, new JSONObject().put("t", t).put("title", title == null ? "" : title)
                     .put("note", note).put("rep", rep == null ? "" : rep).put("dom", dom).toString()).apply();
@@ -136,14 +136,21 @@ final class Reminders {
     /** Hoeveel herinneringen er vandaag nog komen (voor het overzicht). */
     static int count(Context c) { return prefs(c).getAll().size(); }
 
-    static int dayOfMonth(long t) { Calendar c = Calendar.getInstance(); c.setTimeInMillis(t); return c.get(Calendar.DAY_OF_MONTH); }
+    static int dayOfMonth(long t) { return dayOfMonth(t, java.util.TimeZone.getDefault()); }
+
+    static int dayOfMonth(long t, java.util.TimeZone tz) { Calendar c = Calendar.getInstance(tz); c.setTimeInMillis(t); return c.get(Calendar.DAY_OF_MONTH); }
 
     static long next(long t, String rep, long after) { return next(t, rep, after, 0); }
 
-    /** Volgende keer voor een herhaling, na 'after'. dom = gewenste dag van de maand (31 → laatste dag in korte maanden). */
-    static long next(long t, String rep, long after, int dom) {
+    static long next(long t, String rep, long after, int dom) { return next(t, rep, after, dom, java.util.TimeZone.getDefault()); }
+
+    /**
+     * Volgende keer voor een herhaling, na 'after'. dom = gewenste dag van de maand (31 → laatste dag in korte maanden).
+     * tz = de app-zone (Regio.zone): dezelfde wandklok, ook over zomer- en wintertijd heen.
+     */
+    static long next(long t, String rep, long after, int dom, java.util.TimeZone tz) {
         if (rep == null || rep.isEmpty()) return 0;
-        Calendar cal = Calendar.getInstance();
+        Calendar cal = Calendar.getInstance(tz);
         cal.setTimeInMillis(t);
         for (int guard = 0; guard < 2000 && cal.getTimeInMillis() <= after; guard++) {
             switch (rep) {
@@ -152,7 +159,7 @@ final class Reminders {
                 case "month":
                     cal.set(Calendar.DAY_OF_MONTH, 1);
                     cal.add(Calendar.MONTH, 1);
-                    int want = dom > 0 ? dom : dayOfMonth(t);
+                    int want = dom > 0 ? dom : dayOfMonth(t, tz);
                     cal.set(Calendar.DAY_OF_MONTH, Math.min(want, cal.getActualMaximum(Calendar.DAY_OF_MONTH)));
                     break;
                 case "weekdays":
@@ -181,7 +188,7 @@ final class Reminders {
         JSONObject r = get(c, rid);
         if (r == null) return;
         String title = r.optString("title"), note = noteOf(rid, r), rep = r.optString("rep");
-        long nxt = next(r.optLong("t"), rep, System.currentTimeMillis(), r.optInt("dom", 0));
+        long nxt = next(r.optLong("t"), rep, System.currentTimeMillis(), r.optInt("dom", 0), Regio.zone(c));
         if (nxt > 0) put(c, rid, note, title, nxt, rep); else prefs(c).edit().remove(rid).apply();
         show(c, rid, note, title, nxt);
     }

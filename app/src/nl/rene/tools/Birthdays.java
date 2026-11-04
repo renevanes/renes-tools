@@ -20,13 +20,16 @@ final class Birthdays {
     private Birthdays() { }
 
     private static volatile String cache;
-    private static volatile long cacheAt, cacheDay;
+    private static volatile long cacheAt;
+    private static volatile String cacheDay = "";
 
     /** Wie er de komende 'days' dagen jarig is: [{name, lookup, days, age}] (age 0 = onbekend jaar). Een uur in het geheugen. */
     static String upcoming(Context c, int days) {
         long now = System.currentTimeMillis();
-        long day = now / 86_400_000L;
-        if (cache != null && now - cacheAt < 60 * 60_000L && cacheDay == day) return cache;
+        // "Vandaag" in de app-zone (Regio en taal)
+        java.util.TimeZone tz = Regio.zone(c);
+        String day = tz.getID() + " " + Regio.dayKey(tz, now);
+        if (cache != null && now - cacheAt < 60 * 60_000L && cacheDay.equals(day)) return cache;
         JSONArray out = new JSONArray();
         if (c.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) return out.toString();
         List<JSONObject> l = new ArrayList<>();
@@ -39,9 +42,10 @@ final class Birthdays {
                 String name = cur.getString(0), date = cur.getString(1), key = cur.getString(2);
                 int[] ymd = parse(date);
                 if (name == null || ymd == null || !seen.add(name + "|" + date)) continue;
-                int d = daysUntil(ymd[1], ymd[2], Calendar.getInstance());
+                Calendar today = Regio.cal(tz, now);
+                int d = daysUntil(ymd[1], ymd[2], today);
                 if (d < 0 || d > days) continue;
-                int age = ymd[0] > 0 ? Calendar.getInstance().get(Calendar.YEAR) + (d > 0 && passedThisYear(ymd[1], ymd[2]) ? 1 : 0) - ymd[0] : 0;
+                int age = ymd[0] > 0 ? today.get(Calendar.YEAR) + (d > 0 && passedThisYear(ymd[1], ymd[2], today) ? 1 : 0) - ymd[0] : 0;
                 l.add(new JSONObject().put("name", name).put("lookup", key == null ? "" : key).put("days", d).put("age", age > 0 && age < 130 ? age : 0));
             }
         } catch (Exception ignored) { }
@@ -65,8 +69,7 @@ final class Birthdays {
         } catch (Exception e) { return null; }
     }
 
-    static boolean passedThisYear(int m, int d) {
-        Calendar now = Calendar.getInstance();
+    static boolean passedThisYear(int m, int d, Calendar now) {
         int cm = now.get(Calendar.MONTH) + 1, cd = now.get(Calendar.DAY_OF_MONTH);
         return m < cm || (m == cm && d < cd);
     }

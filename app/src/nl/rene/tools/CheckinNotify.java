@@ -65,7 +65,7 @@ final class CheckinNotify {
             AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
             if (am == null) return;
             long now = System.currentTimeMillis(), from = last(c, now), t = 0;
-            TimeZone tz = TimeZone.getDefault();
+            TimeZone tz = Regio.zone(c);
             JSONArray qs = CheckinStore.questions(c);
             for (int i = 0; i < qs.length(); i++) {
                 JSONObject q = qs.optJSONObject(i);
@@ -94,7 +94,7 @@ final class CheckinNotify {
     private static void due(Context c, long now) throws Exception {
         SharedPreferences p = prefs(c);
         long from = last(c, now);
-        TimeZone tz = TimeZone.getDefault();
+        TimeZone tz = Regio.zone(c);
         JSONObject done = obj(p.getString("done", "{}")), posted = obj(p.getString("posted", "{}"));
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
         // Te laat: de melding weg (op Android 8+ gebeurt dat ook vanzelf)
@@ -127,7 +127,7 @@ final class CheckinNotify {
     static synchronized void changed(Context c, String qid) {
         try {
             long now = System.currentTimeMillis();
-            TimeZone tz = TimeZone.getDefault();
+            TimeZone tz = Regio.zone(c);
             JSONObject q = qid == null ? null : CheckinStore.question(c, qid);
             SharedPreferences p = prefs(c);
             JSONObject done = obj(p.getString("done", "{}")), posted = obj(p.getString("posted", "{}"));
@@ -232,7 +232,7 @@ final class CheckinNotify {
         if (NotifCenter.muted(c)) return "Alle meldingen van de app staan uit (Instellingen → Meldingen)";
         if (!NotifCenter.permissionOk(c)) return "notif";
         long now = System.currentTimeMillis();
-        Checkin.Slot s = Checkin.current(CheckinStore.rule(q), now, TimeZone.getDefault());
+        Checkin.Slot s = Checkin.current(CheckinStore.rule(q), now, Regio.zone(c));
         if (s == null) return "Er is nu geen periode om te beantwoorden";
         post(c, q, s, now);
         try {

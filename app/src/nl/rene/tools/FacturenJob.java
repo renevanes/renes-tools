@@ -74,7 +74,7 @@ public class FacturenJob extends JobService {
 
     /** Alleen bij de eerste mislukte poging van een periode een melding (niet bij elke nieuwe poging). */
     static boolean eersteFout(Context c, JSONObject lev) {
-        long g = Facturen.gepland(lev, System.currentTimeMillis(), false, java.util.TimeZone.getDefault());
+        long g = Facturen.gepland(lev, System.currentTimeMillis(), false, Regio.zone(c));
         JSONArray log = Facturen.toestand(c, lev.optString("id")).optJSONArray("log");
         int fouten = 0;
         for (int i = 0; log != null && i < log.length(); i++) { JSONObject r = log.optJSONObject(i); if (r != null && !r.optBoolean("ok") && r.optLong("t") >= g) fouten++; }
@@ -112,7 +112,7 @@ public class FacturenJob extends JobService {
             if (lev.optBoolean("wifi") && betaald) continue; // wacht op wifi (de dagelijkse controle haalt het in)
             JSONObject t = Facturen.toestand(c, lev.optString("id"));
             boolean verder = t.optBoolean("mailMeer") && nu - t.optLong("lastTry") >= 3_600_000L; // mail: nog meer op te halen
-            if (verder || Facturen.aanDeBeurt(lev, t.optLong("lastOk"), t.optLong("lastTry"), nu, java.util.TimeZone.getDefault())) out.add(lev.optString("id"));
+            if (verder || Facturen.aanDeBeurt(lev, t.optLong("lastOk"), t.optLong("lastTry"), nu, Regio.zone(c))) out.add(lev.optString("id"));
         }
         return out;
     }
@@ -129,7 +129,7 @@ public class FacturenJob extends JobService {
      */
     static long[] volgende(Context c, long nu) {
         long any = Long.MAX_VALUE, wifi = Long.MAX_VALUE;
-        java.util.TimeZone tz = java.util.TimeZone.getDefault();
+        java.util.TimeZone tz = Regio.zone(c);
         JSONArray l = Facturen.lijst(c);
         for (int i = 0; i < l.length(); i++) {
             JSONObject lev = l.optJSONObject(i);

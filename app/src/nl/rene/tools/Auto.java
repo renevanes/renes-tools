@@ -213,7 +213,7 @@ final class Auto {
             JSONArray bt = r.optJSONArray("bt");
             boolean match = false;
             if (bt != null) for (int k = 0; k < bt.length(); k++) if (bt.optString(k).equalsIgnoreCase(addr)) match = true;
-            if (match && timeOk(r)) hits.add(r);
+            if (match && timeOk(c, r)) hits.add(r);
         }
         if (hits.isEmpty()) { done.run(); return; }
         boolean needLoc = false;
@@ -261,14 +261,15 @@ final class Auto {
         String trig = r.optString("trig");
         if (entering && !"arrive".equals(trig)) return;
         if (!entering && !"leave".equals(trig)) return;
-        if (!timeOk(r)) return;
+        if (!timeOk(c, r)) return;
         JSONObject p = r.optJSONObject("place");
         String where = p == null ? "de plek" : p.optString("name", "de plek");
         fire(c, r, (entering ? "Aangekomen bij " : "Weg van ") + where);
     }
 
-    static boolean timeOk(JSONObject r) {
-        Calendar cal = Calendar.getInstance();
+    /** Dagen en het tijdvenster (van–tot) gelden in de app-zone (Regio.zone). */
+    static boolean timeOk(Context c, JSONObject r) {
+        Calendar cal = Regio.cal(c, System.currentTimeMillis());
         return AutoLogic.dayOk(r.optInt("days", 0), cal.get(Calendar.DAY_OF_WEEK))
                 && AutoLogic.timeOk(r.optString("from"), r.optString("to"), cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE));
     }

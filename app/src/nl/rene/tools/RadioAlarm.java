@@ -9,7 +9,7 @@ import android.os.Build;
 
 import org.json.JSONObject;
 
-import java.util.Calendar;
+import java.util.TimeZone;
 
 /**
  * Radiowekker: op een tijdstip (eenmalig of op gekozen dagen) start de radio met de gekozen zender,
@@ -28,25 +28,11 @@ final class RadioAlarm {
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("alarm", Context.MODE_PRIVATE); }
 
-    /** days: bit 0 = maandag ... bit 6 = zondag; 0 = eenmalig. */
-    static long next(int hour, int minute, int days, long now) {
-        Calendar c = Calendar.getInstance();
-        c.setTimeInMillis(now);
-        c.set(Calendar.HOUR_OF_DAY, hour);
-        c.set(Calendar.MINUTE, minute);
-        c.set(Calendar.SECOND, 0);
-        c.set(Calendar.MILLISECOND, 0);
-        for (int i = 0; i < 8; i++) {
-            if (c.getTimeInMillis() > now) {
-                int dow = (c.get(Calendar.DAY_OF_WEEK) + 5) % 7; // maandag = 0
-                if (days == 0 || (days & (1 << dow)) != 0) return c.getTimeInMillis();
-            }
-            c.add(Calendar.DAY_OF_MONTH, 1);
-            c.set(Calendar.HOUR_OF_DAY, hour); // zomer-/wintertijd: uur opnieuw zetten
-            c.set(Calendar.MINUTE, minute);
-        }
-        return 0;
-    }
+    /** days: bit 0 = maandag ... bit 6 = zondag; 0 = eenmalig. In de tijdzone van de telefoon (zie de variant met zone). */
+    static long next(int hour, int minute, int days, long now) { return next(TimeZone.getDefault(), hour, minute, days, now); }
+
+    /** De tijd is wandklok in de app-zone (Regio.zone): de wekker van 07:00 gaat om 07:00 in die zone af. */
+    static long next(TimeZone tz, int hour, int minute, int days, long now) { return Regio.nextAt(tz, hour, minute, days, now); }
 
     static PendingIntent operation(Context c) { return operation(c, false); }
 
@@ -85,7 +71,8 @@ final class RadioAlarm {
     private static void mirror(Context c, SharedPreferences p) {
         try {
             dp(c).edit().putBoolean("on", p.getBoolean("on", false) && p.getString("station", null) != null)
-                    .putInt("hour", p.getInt("hour", 7)).putInt("minute", p.getInt("minute", 0)).putInt("days", p.getInt("days", 31)).apply();
+                    .putInt("hour", p.getInt("hour", 7)).putInt("minute", p.getInt("minute", 0)).putInt("days", p.getInt("days", 31))
+                    .putString("tz", Regio.zone(c).getID()).apply(); // de app-zone (Regio en taal is vóór ontgrendelen onleesbaar)
         } catch (Exception ignored) { }
     }
 
@@ -97,7 +84,8 @@ final class RadioAlarm {
     static void armLocked(Context c) {
         SharedPreferences d = dp(c);
         if (!d.getBoolean("on", false)) return;
-        long t = next(d.getInt("hour", 7), d.getInt("minute", 0), d.getInt("days", 31), System.currentTimeMillis());
+        String tz = d.getString("tz", "");
+        long t = next(Regio.tzOk(tz) ? TimeZone.getTimeZone(tz) : TimeZone.getDefault(), d.getInt("hour", 7), d.getInt("minute", 0), d.getInt("days", 31), System.currentTimeMillis());
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         if (t <= 0 || am == null) return;
         try {
@@ -153,7 +141,7 @@ final class RadioAlarm {
             p.edit().remove("nextAt").apply();
             return;
         }
-        long t = next(p.getInt("hour", 7), p.getInt("minute", 0), p.getInt("days", 31), System.currentTimeMillis());
+        long t = next(Regio.zone(c), p.getInt("hour", 7), p.getInt("minute", 0), p.getInt("days", 31), System.currentTimeMillis());
         if (t > 0) setAt(c, t);
     }
 

@@ -104,7 +104,7 @@ final class Notes {
     /**
      * Wanneer een terugkerend lijstje weer "leeg" moet (alle vinkjes weg), na het vorige moment {@code last}.
      * every: day | week (n = 1 maandag … 7 zondag) | month (n = dag van de maand; korte maanden: de laatste dag).
-     * Altijd om 0:00 in de tijdzone van de telefoon. Puur rekenwerk, zodat het op een gewone JVM te testen is.
+     * Altijd om 0:00 in de app-zone (Regio.zone). Puur rekenwerk, zodat het op een gewone JVM te testen is.
      */
     static long nextReset(String every, int n, long last, java.util.TimeZone tz) {
         java.util.Calendar c = java.util.Calendar.getInstance(tz);
@@ -139,7 +139,7 @@ final class Notes {
                 if (r == null || r.optString("every").isEmpty()) continue;
                 long last = r.optLong("last", now);
                 if (!r.has("last")) { r.put("last", now); changed = true; continue; }
-                if (now < nextReset(r.optString("every"), r.optInt("n", 1), last, java.util.TimeZone.getDefault())) continue;
+                if (now < nextReset(r.optString("every"), r.optInt("n", 1), last, Regio.zone(c))) continue;
                 JSONArray items = n.optJSONArray("items");
                 if (items != null) for (int j = 0; j < items.length(); j++) { JSONObject it = items.optJSONObject(j); if (it != null) it.put("done", false); }
                 r.put("last", now);
