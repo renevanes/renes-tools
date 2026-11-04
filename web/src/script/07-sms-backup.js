@@ -9,8 +9,8 @@ function enterSms(){
   $('#sms-perm-btn').textContent = store.get('smsAsked', false) && !i.perm ? 'Instellingen openen' : 'Toegang geven';
   $('#sms-home').style.display = i.perm ? 'block' : 'none';
   $('#sms-contacts').style.display = (i.perm && !i.contacts) ? 'block' : 'none';
-  $('#sms-count-note').textContent = i.total ? fmtNum(i.total) + ' berichten op deze telefoon' +
-    (i.lastExport ? ' · laatste export ' + fmtD(i.lastExport) : '') : '';
+  $('#sms-count-note').textContent = i.total ? t('{n} berichten op deze telefoon', { n: fmtNum(i.total) }) +
+    (i.lastExport ? ' · ' + t('laatste export {wanneer}', { wanneer: fmtD(i.lastExport) }) : '') : '';
   $('#sms-dest-name').textContent=i.dest?(i.destName||'Gekozen backup-map'):'Nog niet gekozen';
   $('#sms-search').value = ''; $('#sms-results').innerHTML = '';
   if (i.perm) loadSmsList();
@@ -90,7 +90,7 @@ function smsPollOnce(){
   } else if (s.ok !== undefined && !smsLastDone) {
     smsLastDone = true;
     const r = $('#sms-result');
-    r.innerHTML = s.ok ? uiIcon('check')+' '+esc(s.count)+' berichten geëxporteerd naar de map SMS backup' : '<strong>Exporteren niet gelukt</strong><p style="margin:6px 0 0">'+esc(smsErrorText(s.error))+'</p>';
+    r.innerHTML = s.ok ? uiIcon('check')+' '+t('{n} berichten geëxporteerd naar de map SMS backup', { n: esc(s.count) }) : '<strong>' + t('Exporteren niet gelukt') + '</strong><p style="margin:6px 0 0">'+esc(smsErrorText(s.error))+'</p>';
     r.className = 'result on ' + (s.ok ? 'answered' : 'error');
     $('#sms-recovery').style.display=s.ok?'none':'flex';
     enterSms();
@@ -98,9 +98,9 @@ function smsPollOnce(){
   refreshSmsTile(s);
 }
 function refreshSmsTile(s){
-  const t = $('#tile-sms'); if (!t) return;
-  t.classList.toggle('live', !!(s && s.running));
+  const tile = $('#tile-sms'); if (!tile) return;
+  tile.classList.toggle('live', !!(s && s.running));
   const sub = $('#tile-sms-sub');
-  if (sub) { const i = smsInfoC(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je sms-berichten'); }
+  if (sub) { const i = smsInfoC(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? t('Laatste export: {wanneer}', { wanneer: fmtD(i.lastExport) }) : t('Bewaar je sms-berichten')); }
 }
 

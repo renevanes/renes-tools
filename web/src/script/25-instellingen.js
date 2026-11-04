@@ -8,14 +8,14 @@ function stSum(id, t){ const e = $('#st-sum-' + id); if (e) e.textContent = t; }
 function stSummaries(i){
   const lk = i.lock || {};
   if (typeof Android.notifState === 'function') { const n = stJson(Android.notifState()); stSum('notif', n.muted ? 'Alle meldingen uit' : !n.allowed ? 'Uit voor deze app' : 'Aan'); }
-  const z = $('#st-zoom'); stSum('look', 'Thema: ' + thModeName(thCfg().mode).replace(/ \(.*\)$/, '').toLowerCase() + (z && z.selectedIndex >= 0 ? ' · tekst: ' + z.options[z.selectedIndex].text.toLowerCase() : '') + ($('#st-dyn').classList.contains('on') ? ' · kleuren uit je achtergrond' : ''));
+  const z = $('#st-zoom'); stSum('look', t('Thema: {thema}', { thema: t(thModeName(thCfg().mode)).replace(/ \(.*\)$/, '').toLowerCase() }) + (z && z.selectedIndex >= 0 ? ' · ' + t('tekst: {grootte}', { grootte: z.options[z.selectedIndex].text.toLowerCase() }) : '') + ($('#st-dyn').classList.contains('on') ? ' · ' + t('kleuren uit je achtergrond') : ''));
   if (typeof rgSummary === 'function') stSum('regio', rgSummary());
   stSum('skin', Android.homeIsDefault() ? '✓ Tools is je startscherm' : 'Tools als startscherm gebruiken');
-  stSum('lock', lk.on && !(lk.secure || lk.code) ? 'Aan, maar werkt nog niet: stel een vergrendeling of app-code in' : lk.on ? 'Aan' + (lk.code ? ' · eigen app-code' : '') : 'Uit');
+  stSum('lock', lk.on && !(lk.secure || lk.code) ? 'Aan, maar werkt nog niet: stel een vergrendeling of app-code in' : lk.on ? t('Aan') + (lk.code ? ' · ' + t('eigen app-code') : '') : 'Uit');
   const so = typeof soloAllowedList === 'function' ? soloAllowedList().length : 0;
   stSum('solo', so ? so + (so === 1 ? ' tool als losse app' : ' tools als losse app') : 'Geen');
   const ps = i.perms || [], miss = ps.filter(p => !p.ok).length;
-  stSum('perm', !ps.length ? '' : miss ? miss + ' van ' + ps.length + ' nog niet toegestaan' : '✓ Alles toegestaan');
+  stSum('perm', !ps.length ? '' : miss ? t('{n} van {totaal} nog niet toegestaan', { n: miss, totaal: ps.length }) : '✓ Alles toegestaan');
   stSum('backup', i.dest ? (i.destName || 'Gekozen') : 'Nog niet gekozen');
   // AI alleen in het overzicht (vraagt wat meer werk)
   if (current === 'settings' && typeof Android.aiState === 'function') { const a = stJson(Android.aiState()), m = (a.models || []).filter(x => x.state === 'ready');
@@ -38,7 +38,7 @@ function stNotifRender(){
   $('#st-notif-ask').style.display = off && !muted ? 'block' : 'none';
   $('#st-notif-list').style.opacity = muted ? '.45' : '';
   $('#st-notif-list').innerHTML = (s.kinds || []).map(k => '<button class=nkind data-id="' + esc(k.id) + '" onclick="Android.notifOpen(this.dataset.id)"><span><b>' + esc(k.name) + '</b><small>' + esc(k.desc) + '</small></span>' +
-    '<span class="nst' + (off || !k.on ? ' off' : '') + '">' + (off ? 'Uit' : NLEVEL[k.level] || 'Aan') + '</span><span aria-hidden=true>›</span></button>').join('');
+    '<span class="nst' + (off || !k.on ? ' off' : '') + '">' + t(off ? 'Uit' : NLEVEL[k.level] || 'Aan') + '</span><span aria-hidden=true>›</span></button>').join('');
 }
 function stNotifMute(on){
   if (typeof Android.notifMute !== 'function') return;
@@ -66,10 +66,10 @@ function enterSettings(){
   $('#st-code-btn').textContent = lk.code ? 'Wijzigen' : 'Instellen';
   $('#st-code-more').style.display = lk.code ? 'block' : 'none';
   $('#st-decoy').checked = !!lk.decoy; $('#st-codebio').checked = !!lk.codeBio;
-  $('#st-dest').textContent = i.dest ? 'Huidige map: ' + (i.destName || 'gekozen') : 'Nog niet gekozen';
-  $('#st-audd').textContent = i.audd ? 'Sleutel ingesteld (' + i.audd + ')' : 'Nog geen sleutel ingesteld';
+  $('#st-dest').textContent = i.dest ? t('Huidige map: {map}', { map: i.destName || t('gekozen') }) : t('Nog niet gekozen');
+  $('#st-audd').textContent = i.audd ? t('Sleutel ingesteld ({sleutel})', { sleutel: i.audd }) : t('Nog geen sleutel ingesteld');
   $('#st-perms').innerHTML = (i.perms || []).map(p =>
-    '<div class="row setrow"><span style="flex:1"><b>' + esc(p.name) + '</b><small class=note style="display:block;margin:0">' + esc(p.used) + '</small></span>' +
+    '<div class="row setrow"><span style="flex:1"><b>' + esc(t(p.name)) + '</b><small class=note style="display:block;margin:0">' + esc(t(p.used)) + '</small></span>' +
     (p.ok ? '<span class=permok>✓ Aan</span>' : '<button class="mini" style="float:none" data-p="' + esc(p.id) + '" onclick="Android.permRequest(this.dataset.p)">Toestaan</button>') + '</div>').join('');
   $('#st-crash').textContent = i.crashes ? i.crashes + (i.crashes === 1 ? ' fout' : ' fouten') + ' vastgelegd.' : 'Er zijn geen fouten vastgelegd. ✓';
   stStatRender();
@@ -109,7 +109,7 @@ function stCodeSet(){
 function stCodeClear(){
   const lk = stJson(Android.lockState());
   const msg = lk.secure ? 'Daarna ontgrendel je weer met de vergrendeling van je telefoon.' : 'Je telefoon heeft geen schermvergrendeling: dan staat het app-slot ook uit.';
-  askConfirm('App-code verwijderen?', msg + ' De neutrale versie werkt dan niet meer.', 'Verwijderen', () => {
+  askConfirm('App-code verwijderen?', t(msg) + ' ' + t('De neutrale versie werkt dan niet meer.'), 'Verwijderen', () => {
     if (!lk.secure) stAskCode('Huidige app-code', 'Bevestig met je huidige code', old => Android.lockCodeClear(old));
     else Android.lockCodeClear('');
   });
@@ -122,7 +122,7 @@ function stStatRender(){
   const r = $('#st-stat-repo'); if (document.activeElement !== r) r.value = s.repo || '';
   $('#st-stat-token').placeholder = s.token ? 'Sleutel is ingesteld (leeg laten = houden)' : 'Fine-grained GitHub-sleutel (github_pat_…)';
   $('#st-stat-sub').textContent = !on ? 'Uit: er wordt niets geteld of verstuurd' : !(s.repo && s.token) ? 'Aan, maar nog geen bestemming: er gaat niets weg' :
-    s.lastResult && s.lastResult !== 'ok' ? 'Laatste poging: ' + s.lastResult : s.lastSent ? 'Laatst verstuurd: ' + fmtD(s.lastSent) : 'Wordt deze week voor het eerst verstuurd';
+    s.lastResult && s.lastResult !== 'ok' ? t('Laatste poging: {uitkomst}', { uitkomst: t(s.lastResult) }) : s.lastSent ? t('Laatst verstuurd: {wanneer}', { wanneer: fmtD(s.lastSent) }) : t('Wordt deze week voor het eerst verstuurd');
   $('#st-stat-send').disabled = !(on && s.repo && s.token);
   $('#st-stat-preview').textContent = Android.statPreview();
 }

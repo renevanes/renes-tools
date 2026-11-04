@@ -3,16 +3,16 @@ let rpDays = 0;
 document.querySelectorAll('#rp-days button').forEach(b => b.addEventListener('click', () => { rpDays ^= (1 << +b.dataset.d); rpRenderDays(); }));
 function rpRenderDays(){ document.querySelectorAll('#rp-days button').forEach(b => b.classList.toggle('on', !!(rpDays & (1 << +b.dataset.d)))); }
 const RP_DAYN = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
-function rpDaysText(d){ if (!d) return 'eenmalig'; if (d === 127) return 'elke dag'; if (d === 31) return 'werkdagen'; return RP_DAYN.filter((x, i) => d & (1 << i)).join(', '); }
+function rpDaysText(d){ if (!d) return t('eenmalig'); if (d === 127) return t('elke dag'); if (d === 31) return t('werkdagen'); return RP_DAYN.filter((x, i) => d & (1 << i)).map(x => t(x)).join(', '); }
 function rpRender(){
   const st = rdJson(Android.redialPlanState(), {});
   const p = st.plan;
   if (p) {
     $('#rp-time').value = String(p.hour).padStart(2, '0') + ':' + String(p.minute).padStart(2, '0'); rpDays = p.days || 0;
-    $('#rp-state').innerHTML = '📅 <b>' + esc(p.name || p.number) + '</b> wordt gebeld ' + esc(rpDaysText(p.days)) + ' om ' + esc(fmtHm($('#rp-time').value)) +
-      (st.next ? '. Volgende keer: ' + esc(fmtDT(st.next, {weekday:'long', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) : '') + '.';
-  } else $('#rp-state').textContent = 'Laat Auto redial vanzelf beginnen, bijvoorbeeld om 08:00 de huisarts. Met het nummer en de instellingen hierboven.' + (st.last ? ' Laatst: ' + st.last + '.' : '');
-  $('#rp-save').textContent = p ? 'Planning bijwerken' : 'Inplannen';
+    $('#rp-state').innerHTML = '📅 ' + t('<b>{naam}</b> wordt gebeld {dagen} om {tijd}', { naam: esc(p.name || p.number), dagen: esc(rpDaysText(p.days)), tijd: esc(fmtHm($('#rp-time').value)) }) +
+      (st.next ? '. ' + t('Volgende keer: {wanneer}', { wanneer: esc(fmtDT(st.next, {weekday:'long', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) }) : '') + '.';
+  } else $('#rp-state').textContent = t('Laat Auto redial vanzelf beginnen, bijvoorbeeld om 08:00 de huisarts. Met het nummer en de instellingen hierboven.') + (st.last ? ' ' + t('Laatst: {wat}.', { wat: t(st.last) }) : '');
+  $('#rp-save').textContent = p ? t('Planning bijwerken') : t('Inplannen');
   $('#rp-clear').style.display = p ? 'block' : 'none';
   $('#rp-exact').style.display = p && st.exact === false ? 'block' : 'none';
   rpRenderDays();

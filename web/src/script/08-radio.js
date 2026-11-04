@@ -15,7 +15,7 @@ function rdRow(s, list, i){
   return '<div class="srow' + (cur ? ' playing' : '') + '"><button class=sbtn onclick="rdPlay(\'' + list + '\',' + i + ')">' + rdLogo(s) +
     '<span class=stxt><b>' + esc(s.name) + '</b><small>' + esc(tags || (s.codec ? s.codec + (s.bitrate ? ' ' + s.bitrate + ' kbps' : '') : '')) + '</small></span>' +
     (cur ? '<span class=eq><i></i><i></i><i></i></span>' : '') + '</button>' +
-    '<button class=star onclick="rdFav(\'' + list + '\',' + i + ')" aria-label="' + (rdIsFav(s) ? esc(s.name) + ' uit favorieten' : esc(s.name) + ' bij favorieten') + '" aria-pressed="' + rdIsFav(s) + '">' + (rdIsFav(s) ? '★' : '☆') + '</button></div>';
+    '<button class=star onclick="rdFav(\'' + list + '\',' + i + ')" aria-label="' + (rdIsFav(s) ? t('{naam} uit favorieten', { naam: esc(s.name) }) : t('{naam} bij favorieten', { naam: esc(s.name) })) + '" aria-pressed="' + rdIsFav(s) + '">' + (rdIsFav(s) ? '★' : '☆') + '</button></div>';
 }
 /* Eén favoriet: afspelen, verplaatsen (ook de volgorde in de auto en in de widget), weghalen. */
 function rdFavMenu(i){
@@ -24,16 +24,16 @@ function rdFavMenu(i){
   const acts = [['Afspelen', () => rdPlay('f', i)]];
   if (i > 0) acts.push(['⤒ Bovenaan', () => mv(0)], ['↑ Eén naar voren', () => mv(i - 1)]);
   if (i < n - 1) acts.push(['↓ Eén naar achteren', () => mv(i + 1)], ['⤓ Achteraan', () => mv(n - 1)]);
-  acts.push(['Op startscherm', () => { const e = Android.shortcutPinStation(JSON.stringify(s)); toast(e || 'Bevestig op je startscherm om ' + s.name + ' toe te voegen'); }]);
+  acts.push(['Op startscherm', () => { const e = Android.shortcutPinStation(JSON.stringify(s)); toast(e || t('Bevestig op je startscherm om {naam} toe te voegen', { naam: s.name })); }]);
   acts.push(['☆ Uit favorieten', () => rdFav('f', i)]);
-  openSheet(s.name, 'Plek ' + (i + 1) + ' van ' + n + ' · ook de volgorde in de auto', acts);
+  openSheet(s.name, t('Plek {n} van {totaal} · ook de volgorde in de auto', { n: i + 1, totaal: n }), acts);
 }
 /* Favoriet als voorkeuzetoets: tikken = afspelen */
 function rdFavTile(s, i){
   const cur = rdIsCur(s);
-  return '<div class="rdfav' + (cur ? ' playing' : '') + '"><button class="rdfavb" onclick="rdPlay(\'f\',' + i + ')" aria-label="' + esc(s.name) + (cur ? ', speelt nu' : ' afspelen') + '">' +
+  return '<div class="rdfav' + (cur ? ' playing' : '') + '"><button class="rdfavb" onclick="rdPlay(\'f\',' + i + ')" aria-label="' + (cur ? t('{naam}, speelt nu', { naam: esc(s.name) }) : t('{naam} afspelen', { naam: esc(s.name) })) + '">' +
     rdLogo(s) + '<b>' + (cur ? '<span class=eq aria-hidden="true"><i></i><i></i><i></i></span>' : '') + esc(s.name) + '</b></button>' +
-    '<button class="rdfavm" onclick="rdFavMenu(' + i + ')" aria-label="Meer over ' + esc(s.name) + '">⋯</button></div>';
+    '<button class="rdfavm" onclick="rdFavMenu(' + i + ')" aria-label="' + t('Meer over {naam}', { naam: esc(s.name) }) + '">⋯</button></div>';
 }
 function rdIsCur(s){ return !!(rdState.station && (rdState.station.id ? rdState.station.id === s.id : rdState.station.url === s.url) && rdState.status !== 'stopped'); }
 
@@ -66,7 +66,7 @@ function rdMenu(){
 function rdAlarmSub(){
   const el = $('#rd-alarm-sub'); if (!el) return;
   const a = rdJson(Android.alarmState(), {});
-  el.textContent = a.on ? 'Aan · ' + fmtHm(String(a.hour != null ? a.hour : 7).padStart(2, '0') + ':' + String(a.minute || 0).padStart(2, '0')) + (a.station && a.station.name ? ' · ' + a.station.name : '') : 'Uit';
+  el.textContent = a.on ? t('Aan') + ' · ' + fmtHm(String(a.hour != null ? a.hour : 7).padStart(2, '0') + ':' + String(a.minute || 0).padStart(2, '0')) + (a.station && a.station.name ? ' · ' + a.station.name : '') : t('Uit');
 }
 
 /* Genres: vaste groepen die op de tags van radio-browser passen (alleen als er minstens 2 zenders in zitten) */
@@ -122,7 +122,7 @@ function rdRender(){
   $('#rd-favs-empty').style.display = rdFavs.length ? 'none' : '';
   $('#rd-favs').innerHTML = rdFavs.map((s, i) => rdFavTile(s, i)).join('');
   $('#rd-tab-favs-n').textContent = rdFavs.length ? String(rdFavs.length) : '';
-  $('#rd-tab-favs').setAttribute('aria-label', 'Favorieten' + (rdFavs.length ? ', ' + rdFavs.length : ''));
+  $('#rd-tab-favs').setAttribute('aria-label', t('Favorieten') + (rdFavs.length ? ', ' + rdFavs.length : ''));
   const q = $('#rd-search').value.trim();
   rdRenderGenres();
   const re = rdGenreOf(rdGenre);
@@ -141,8 +141,8 @@ function rdSearchDo(){
 }
 function rdGet(list, i){ return list === 'f' ? rdFavs[i] : rdShown[i]; }
 function rdPlay(list, i){ const s = rdGet(list, i); if (!s) return; Android.radioPlay(JSON.stringify(s)); rdState = { status: 'connecting', station: s, title: '' }; plHintSrc('radio'); rdShowNow(); rdRender(); plRender(); }
-function rdFav(list, i){ const s = rdGet(list, i); if (!s) return; const on = Android.radioToggleFav(JSON.stringify(s)); toast(on ? '★ ' + s.name + ' toegevoegd aan favorieten' : s.name + ' uit favorieten gehaald'); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); plRender(); }
-function rdFavNow(){ const s = rdState.station || rdState.last; if (!s) return; const on = Android.radioToggleFav(JSON.stringify(s)); toast(on ? '★ ' + s.name + ' bij je favorieten' : s.name + ' uit favorieten'); rdFavs = rdJson(Android.radioFavorites(), []); if (current === 'radio') rdRender(); plRender(); }
+function rdFav(list, i){ const s = rdGet(list, i); if (!s) return; const on = Android.radioToggleFav(JSON.stringify(s)); toast(on ? t('★ {naam} toegevoegd aan favorieten', { naam: s.name }) : t('{naam} uit favorieten gehaald', { naam: s.name })); rdFavs = rdJson(Android.radioFavorites(), []); rdRender(); plRender(); }
+function rdFavNow(){ const s = rdState.station || rdState.last; if (!s) return; const on = Android.radioToggleFav(JSON.stringify(s)); toast(on ? t('★ {naam} bij je favorieten', { naam: s.name }) : t('{naam} uit favorieten', { naam: s.name })); rdFavs = rdJson(Android.radioFavorites(), []); if (current === 'radio') rdRender(); plRender(); }
 function rdPlayPause(){ if (rdState.status === 'playing' || rdState.status === 'connecting') Android.radioPause(); else Android.radioResume(); setTimeout(rdPollOnce, 200); }
 /** noRender: de speler wordt zo toch getekend (plTick) */
 function rdPollOnce(noRender){
@@ -193,7 +193,7 @@ function rdShowInfo(s, inf){
 }
 function rdShowRecent(l){
   $('#rd-recent-wrap').style.display = l.length ? 'block' : 'none';
-  $('#rd-recent-sum').textContent = 'Eerder gedraaid (' + l.length + ')';
+  $('#rd-recent-sum').textContent = t('Eerder gedraaid ({n})', { n: l.length });
   $('#rd-recent').innerHTML = l.map(x => '<li data-t="' + esc(x.title) + '" onclick="rdRecentTap(this.dataset.t)"><time>' +
     fmtTime(x.t, {hour:'2-digit', minute:'2-digit'}) + '</time><span>' + esc(x.title) + '</span></li>').join('');
 }
@@ -210,10 +210,10 @@ function rdSaveSong(t, inf){
   const e = Android.musicSaveFromRadio(artist, title, (rdState.station || {}).name || '');
   toast(e === 'dubbel' ? 'Staat al in Herkende muziek' : e ? e : '★ Bewaard in Herkende muziek');
 }
-function rdRecentTap(t){
-  const q = encodeURIComponent(t);
-  openSheet(t, 'Eerder gedraaid op ' + ((rdState.station || {}).name || 'de radio'), [
-    ['★ Bewaren in Herkende muziek', () => rdSaveSong(t, null)],
+function rdRecentTap(song){
+  const q = encodeURIComponent(song);
+  openSheet(song, (rdState.station || {}).name ? t('Eerder gedraaid op {zender}', { zender: rdState.station.name }) : t('Eerder gedraaid op de radio'), [
+    ['★ Bewaren in Herkende muziek', () => rdSaveSong(song, null)],
     ['Zoeken op YouTube', () => Android.openUrl('https://music.youtube.com/search?q=' + q)],
     ['Zoeken op Spotify', () => Android.openUrl('https://open.spotify.com/search/' + q)],
   ]);
@@ -221,7 +221,7 @@ function rdRecentTap(t){
 function rdPinStation(){
   const s = rdState.station || rdState.last; if (!s) return;
   const e = Android.shortcutPinStation(JSON.stringify(s));
-  toast(e || 'Bevestig op je startscherm om ' + s.name + ' toe te voegen');
+  toast(e || t('Bevestig op je startscherm om {naam} toe te voegen', { naam: s.name }));
 }
 function rdRecognize(){
   const e = Android.musicStartRadio();

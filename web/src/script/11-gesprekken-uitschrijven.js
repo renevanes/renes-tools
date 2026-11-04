@@ -10,7 +10,7 @@ function enterTranscripts(){
   $('#tx-files').style.display = i.supported && !i.files ? 'block' : 'none';
   $('#tx-calls').style.display = i.files && !i.calls ? 'block' : 'none';
   $('#tx-lang').value = i.lang || 'nl';
-  $('#tx-folder-note').innerHTML = i.folder ? 'Extra map: <b>' + esc(i.folder) + '</b> · <a href="#" onclick="Android.txClearFolder();enterTranscripts();return false">weghalen</a>' : '';
+  $('#tx-folder-note').innerHTML = i.folder ? t('Extra map: <b>{map}</b> · <a href="#" onclick="Android.txClearFolder();enterTranscripts();return false">weghalen</a>', { map: esc(i.folder) }) : '';
   $('#tx-models').innerHTML = (i.models || []).map(m =>
     '<div class="row mrow"><label style="flex:1"><input type=radio name=trm value="' + esc(m.id) + '"' + (i.model === m.id ? ' checked' : '') +
     (m.installed ? '' : ' disabled') + ' onchange="Android.txSetModel(this.value)"> ' + esc(m.label) + '</label>' +
@@ -33,7 +33,7 @@ function txLoad(){
   if (d.error) { el.innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
   txRecs = d.recordings || [];
   const todo = txRecs.filter(r => !r.done && !r.gone);
-  $('#tx-all').textContent = todo.length ? 'Alles uitschrijven (' + todo.length + ')' : 'Alles uitgeschreven';
+  $('#tx-all').textContent = todo.length ? t('Alles uitschrijven ({n})', { n: todo.length }) : t('Alles uitgeschreven');
   $('#tx-all').disabled = !todo.length;
   el.innerHTML = txRecs.map((r, i) =>
     '<button onclick="txOpenIdx(' + i + ')"><span class=r1><b>' + esc(r.name || r.file) + '</b><time>' + esc(fmtD(r.mtime)) + '</time></span>' +
@@ -56,7 +56,7 @@ function txStartAll(){
   const todo = txRecs.filter(r => !r.done && !r.gone);
   if (!todo.length) return;
   const total = todo.reduce((a, r) => a + (r.duration || 0), 0);
-  askConfirm(todo.length + ' gesprekken uitschrijven?', 'Samen ' + fmtMs(total) + ' aan opnames. Dit kan een tijd duren; het gaat door als je de app verlaat. Laat de telefoon liefst aan de lader.', 'Starten', () => txStart(todo.map(r => r.path)));
+  askConfirm(tn(todo.length, '{n} gesprek uitschrijven?', '{n} gesprekken uitschrijven?'), t('Samen {duur} aan opnames. Dit kan een tijd duren; het gaat door als je de app verlaat. Laat de telefoon liefst aan de lader.', { duur: fmtMs(total) }), 'Starten', () => txStart(todo.map(r => r.path)));
 }
 function txPollOnce(){
   const s = txJson(Android.txStatus());
@@ -66,7 +66,7 @@ function txPollOnce(){
     $('#tx-run-title').textContent = s.phase === 'download' ? 'Spraakmodel downloaden' : s.phase === 'decode' ? 'Opname voorbereiden' : 'Uitschrijven';
     $('#tx-run-file').textContent = s.file || '';
     $('#tx-bar').style.width = (s.pct || 0) + '%';
-    $('#tx-run-sub').textContent = (s.pct || 0) + '%' + (s.left ? ' · nog ' + s.left + ' in de wachtrij' : '');
+    $('#tx-run-sub').textContent = (s.pct || 0) + '%' + (s.left ? ' · ' + t('nog {n} in de wachtrij', { n: s.left }) : '');
   } else if (txLastRunning) {
     txLastRunning = false;
     const r = $('#tx-result');
@@ -137,7 +137,7 @@ function leaveTrd(){ if (txPlayPoll) { clearInterval(txPlayPoll); txPlayPoll = n
 function txExport(id){
   if (!plainOk(id ? 'Het transcript' : 'Elk transcript', () => txExport(id))) return;
   const r = Android.txExport(id || '');
-  toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + (r.slice(3) === '1' ? ' transcript' : ' transcripten') + ' opgeslagen in de map Gesprekken' : r);
+  toast(r.startsWith('ok:') ? tn(+r.slice(3), '✓ {n} transcript opgeslagen in de map Gesprekken', '✓ {n} transcripten opgeslagen in de map Gesprekken') : r);
 }
 function txDel(){
   askConfirm('Transcript verwijderen?', 'De opname zelf blijft staan; je kunt hem later opnieuw uitschrijven.', 'Verwijderen', () => { Android.txDelete(txCur); show('transcripts'); });

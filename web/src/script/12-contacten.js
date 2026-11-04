@@ -10,7 +10,7 @@ function enterContacts(){
   $('#ct-fab').style.display = i.perm ? 'block' : 'none';
   if (!i.perm) return;
   const sn = ctJson(Android.contactsSnapshot());
-  if (sn.error) toast(sn.error); else if (sn.v > 1) toast('Wijzigingen vastgelegd als versie ' + sn.v);
+  if (sn.error) toast(sn.error); else if (sn.v > 1) toast(t('Wijzigingen vastgelegd als versie {n}', { n: sn.v }));
   ctLoad();
 }
 window.onContactsChanged = function(){ if (current === 'contacts') enterContacts(); };
@@ -23,14 +23,14 @@ function ctLoad(){
   const d = ctJson(Android.contactsList($('#ct-search').value.trim()));
   const el = $('#ct-list');
   if (d.error) { el.innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
-  $('#ct-ver').textContent = fmtNum(d.total || 0) + ' contacten' +
-    (d.version ? ' · versie ' + d.version + ' van ' + fmtD(d.versionT) : '');
+  $('#ct-ver').textContent = t('{n} contacten', { n: fmtNum(d.total || 0) }) +
+    (d.version ? ' · ' + t('versie {n} van {wanneer}', { n: d.version, wanneer: fmtD(d.versionT) }) : '');
   const list = d.contacts || [];
   el.innerHTML = list.slice(0, 600).map(c =>
     '<button data-k="' + esc(c.k) + '" data-id="' + esc(c.id) + '" onclick="ctOpen(this.dataset.k, this.dataset.id)"><span class=r1><b>' + (c.fav ? '★ ' : '') + esc(c.n || '(zonder naam)') + '</b>' +
     (c.u ? '<time>' + esc(fmtD(c.u)) + '</time>' : '') + '</span><span class=r2>' + esc(c.sub || '') + '</span></button>').join('')
     || '<p class=note style="padding:14px">Geen contacten gevonden.</p>';
-  if (list.length > 600) el.innerHTML += '<p class=note style="padding:10px 2px 4px">Nog ' + (list.length - 600) + ' contacten; zoek om ze te vinden.</p>';
+  if (list.length > 600) el.innerHTML += '<p class=note style="padding:10px 2px 4px">' + t('Nog {n} contacten; zoek om ze te vinden.', { n: list.length - 600 }) + '</p>';
 }
 let ctDetail = null;
 function ctOpen(k, id){ ctCur = k; ctCurId = id || ''; show('contact'); ctRenderDetail(); }
@@ -60,11 +60,11 @@ function ctRenderCalls(d){
   box.style.display = 'block';
   if (!r.count) { $('#ctd-calls-body').innerHTML = '<p class=note style="margin:0">Geen oproepen met dit contact in de oproepgeschiedenis.</p>'; return; }
   $('#ctd-calls-body').innerHTML =
-    '<p class=note style="margin-top:0">' + r.count + ' oproepen · ' + (r.in||0) + ' inkomend, ' + (r.out||0) + ' uitgaand, ' + (r.missed||0) + ' gemist · samen ' + fmtHours((r.secIn||0) + (r.secOut||0)) + '</p>' +
+    '<p class=note style="margin-top:0">' + t('{n} oproepen · {in} inkomend, {uit} uitgaand, {gemist} gemist · samen {duur}', { n: r.count, in: r.in || 0, uit: r.out || 0, gemist: r.missed || 0, duur: fmtHours((r.secIn||0) + (r.secOut||0)) }) + '</p>' +
     '<div class="clist calls">' + (r.calls || []).slice(0, 5).map(c =>
       '<div class="crow ' + esc(c.kind) + '"><span class=r1><b><span class=k>' + esc(c.label) + '</span></b><time>' + esc(fmtCallSpan(c)) + '</time></span>' +
       '<span class=r2>' + (c.number ? esc(c.number) : '') + (c.duration ? ' · ' + fmtCallDur(c.duration) : '') + '</span></div>').join('') + '</div>' +
-    '<button class="big ghost" style="margin-top:10px" onclick="callsForPerson(ctDetail.n || \'Contact\', ctCallNums)">Alle ' + r.count + ' oproepen bekijken</button>';
+    '<button class="big ghost" style="margin-top:10px" onclick="callsForPerson(ctDetail.n || \'Contact\', ctCallNums)">' + t('Alle {n} oproepen bekijken', { n: r.count }) + '</button>';
 }
 function fmtFull(t){ return fmtDT(t, {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
 function ctChanges(d){
@@ -78,22 +78,22 @@ function enterVersions(){
   const el = $('#cv-list');
   if (d.error) { el.innerHTML = '<p class=note style="padding:14px">' + esc(d.error) + '</p>'; return; }
   el.innerHTML = (d.versions || []).map(v =>
-    '<button onclick="cvOpen(' + v.v + ')"><span class=r1><b>Versie ' + v.v + '</b><time>' + esc(fmtFull(v.t)) + '</time></span>' +
-    '<span class=r2>' + v.count + ' contacten · ' + (v.first ? 'eerste versie' :
-      [v.added ? '+' + v.added + ' nieuw' : '', v.changed ? '~' + v.changed + ' gewijzigd' : '', v.removed ? '−' + v.removed + ' verwijderd' : ''].filter(Boolean).join(' · ')) +
+    '<button onclick="cvOpen(' + v.v + ')"><span class=r1><b>' + t('Versie {n}', { n: v.v }) + '</b><time>' + esc(fmtFull(v.t)) + '</time></span>' +
+    '<span class=r2>' + t('{n} contacten', { n: v.count }) + ' · ' + (v.first ? t('eerste versie') :
+      [v.added ? t('+{n} nieuw', { n: v.added }) : '', v.changed ? t('~{n} gewijzigd', { n: v.changed }) : '', v.removed ? t('−{n} verwijderd', { n: v.removed }) : ''].filter(Boolean).join(' · ')) +
     '</span></button>').join('') || '<p class=note style="padding:14px">Nog geen versies.</p>';
 }
 function cvOpen(v){ cvCur = v; show('cversion'); cvRender(); }
 function cvRender(){
   const d = ctJson(Android.contactsVersion(String(cvCur)));
   if (d.error) { toast(d.error); return; }
-  $('#cvd-title').textContent = 'Versie ' + d.v;
+  $('#cvd-title').textContent = t('Versie {n}', { n: d.v });
   $('#cvd-sum').textContent = fmtFull(d.t) + ' · ' + d.count + ' contacten' + (d.first ? ' · eerste versie' : '');
   $('#cvd-export').style.display = d.full ? 'block' : 'none';
   const groups = [['-', 'Verwijderd'], ['~', 'Gewijzigd'], ['+', 'Nieuw']];
   $('#cvd-list').innerHTML = groups.map(([k, label]) => {
     const l = (d.changes || []).filter(x => x.kind === k); if (!l.length) return '';
-    return '<div class=card><h2>' + label + ' (' + l.length + ')</h2>' + l.map(x =>
+    return '<div class=card><h2>' + t(label) + ' (' + l.length + ')</h2>' + l.map(x =>
       '<div class=hist><b>' + esc(x.n || '(zonder naam)') + '</b>' +
       (k === '-' ? (x.restored ? ' <button class="mini" disabled>Teruggezet</button>'
         : ' <button class="mini" data-k="' + esc(x.k) + '" onclick="cvRestore(this.dataset.k, this)">Terugzetten</button>') : '') +
@@ -105,13 +105,13 @@ function cvRestore(k, btn){
   if (!i.write) { toast('Geef eerst toestemming om contacten te wijzigen'); Android.contactsRequestPermission(); return; }
   askConfirm('Contact terugzetten?', 'Het contact wordt opnieuw aangemaakt op deze telefoon, met de gegevens van vóór het verwijderen.', 'Terugzetten', () => {
     const r = Android.contactsRestore(String(cvCur), k);
-    if (r.startsWith('ok:')) { toast('✓ ' + r.slice(3) + ' is teruggezet'); btn.disabled = true; btn.textContent = 'Teruggezet'; }
+    if (r.startsWith('ok:')) { toast(t('✓ {naam} is teruggezet', { naam: r.slice(3) })); btn.disabled = true; btn.textContent = t('Teruggezet'); }
     else toast(r);
   });
 }
 function ctExport(v){
   if (!plainOk('De contactenlijst', () => ctExport(v))) return;
   const r = Android.contactsExport(String(v || 0));
-  toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' contacten opgeslagen in de map Contacten backup' : r);
+  toast(r.startsWith('ok:') ? t('✓ {n} contacten opgeslagen in de map Contacten backup', { n: r.slice(3) }) : r);
 }
 

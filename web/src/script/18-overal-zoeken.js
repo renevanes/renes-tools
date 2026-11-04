@@ -91,19 +91,19 @@ function gsSnip(text, ql){
   return hl(text.length > 160 ? text.slice(0, 160) + '…' : text, ql);
 }
 function gsItem(kind, x, ql){
-  const t = (title, sub, act) => '<button class=gi data-k="' + kind + '" data-x="' + esc(JSON.stringify(act)) + '" onclick="gsOpen(this)"><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</button>';
+  const gi = (title, sub, act) => '<button class=gi data-k="' + kind + '" data-x="' + esc(JSON.stringify(act)) + '" onclick="gsOpen(this)"><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</button>';
   switch (kind) {
-    case 'notes': return t(hl(x.title, ql), x.snip && x.snip !== x.title ? gsSnip(x.snip, ql) : '', {id: x.id});
-    case 'contacts': return t(hl(x.n || '(zonder naam)', ql), esc(x.sub || ''), {k: x.k, id: x.id});
-    case 'sms': return t(esc(x.name || x.address || '') + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', gsSnip(x.text, ql), {thread: x.thread, name: x.name || ''});
-    case 'wa': return t(esc(x.chatName || '') + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.sender && !x.me ? esc(x.sender) + ': ' : '') + gsSnip(x.text || x.label, ql), {chat: x.chat, name: x.chatName || ''});
-    case 'calls': return t(hl(x.name || x.number || 'Onbekend', ql), esc((x.label || '') + ' · ' + fmtD(x.date) + (x.number && x.number !== x.name ? ' · ' + x.number : '')), {ck: x.ck || '', cid: x.cid || '', number: x.number || ''});
-    case 'tx': return t(esc(x.name) + ' <small style="display:inline">· ' + esc(fmtD(x.mtime)) + '</small>', gsSnip(x.text, ql), {id: x.id, from: x.from});
-    case 'music': return t(hl(x.title || '', ql), hl(x.artist || '', ql) + ' · ' + esc(fmtD(x.t)), {t: x.t});
-    case 'sleep': return t(esc(typeof slNightName === 'function' ? slNightName(x.t) : fmtD(x.t)) + ' <small style="display:inline">· ' + esc(fmtTime(x.t, { hour: '2-digit', minute: '2-digit' })) + '</small>', gsSnip(x.text, ql), {night: x.night, clip: x.clip});
-    case 'checkin': return t(esc(x.title) + ' <small style="display:inline">· ' + esc(typeof ciKeyLabel === 'function' ? ciKeyLabel(x.p) : fmtD(x.t)) + '</small>', gsSnip(x.text, ql), {q: x.q, p: x.p});
-    case 'app': return t(hl(x.title, ql), esc(x.sub), {i: x.i});
-    case 'history': return t(esc(x.app) + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.title ? esc(x.title) + ': ' : '') + gsSnip(x.text, ql), {});
+    case 'notes': return gi(hl(x.title, ql), x.snip && x.snip !== x.title ? gsSnip(x.snip, ql) : '', {id: x.id});
+    case 'contacts': return gi(hl(x.n || '(zonder naam)', ql), esc(x.sub || ''), {k: x.k, id: x.id});
+    case 'sms': return gi(esc(x.name || x.address || '') + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', gsSnip(x.text, ql), {thread: x.thread, name: x.name || ''});
+    case 'wa': return gi(esc(x.chatName || '') + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.sender && !x.me ? esc(x.sender) + ': ' : '') + gsSnip(x.text || x.label, ql), {chat: x.chat, name: x.chatName || ''});
+    case 'calls': return gi(hl(x.name || x.number || 'Onbekend', ql), esc((x.label || '') + ' · ' + fmtD(x.date) + (x.number && x.number !== x.name ? ' · ' + x.number : '')), {ck: x.ck || '', cid: x.cid || '', number: x.number || ''});
+    case 'tx': return gi(esc(x.name) + ' <small style="display:inline">· ' + esc(fmtD(x.mtime)) + '</small>', gsSnip(x.text, ql), {id: x.id, from: x.from});
+    case 'music': return gi(hl(x.title || '', ql), hl(x.artist || '', ql) + ' · ' + esc(fmtD(x.t)), {t: x.t});
+    case 'sleep': return gi(esc(typeof slNightName === 'function' ? slNightName(x.t) : fmtD(x.t)) + ' <small style="display:inline">· ' + esc(fmtTime(x.t, { hour: '2-digit', minute: '2-digit' })) + '</small>', gsSnip(x.text, ql), {night: x.night, clip: x.clip});
+    case 'checkin': return gi(esc(x.title) + ' <small style="display:inline">· ' + esc(typeof ciKeyLabel === 'function' ? ciKeyLabel(x.p) : fmtD(x.t)) + '</small>', gsSnip(x.text, ql), {q: x.q, p: x.p});
+    case 'app': return gi(hl(x.title, ql), esc(x.sub), {i: x.i});
+    case 'history': return gi(esc(x.app) + ' <small style="display:inline">· ' + esc(fmtD(x.t)) + '</small>', (x.title ? esc(x.title) + ': ' : '') + gsSnip(x.text, ql), {});
   }
   return '';
 }
@@ -113,11 +113,11 @@ function gsRender(){
   const html = Object.keys(GS).filter(k => (gsData[k] || st[k]) && (gsData[k] || st[k]).total).map(k => {
     const g = gsData[k] || st[k], d = GS[k], tot = g.total + (g.capped ? '+' : '');
     return '<div class="card gsg' + (gsData[k] ? '' : ' stale') + '"><h3>'+uiToolIcon(k) + d[1] + ' <span class=n>' + tot + '</span>' +
-      (g.total > g.items.length ? '<button class=more data-k="' + k + '" onclick="gsMore(this.dataset.k)">Alle ' + tot + ' ›</button>' : '') + '</h3>' +
+      (g.total > g.items.length ? '<button class=more data-k="' + k + '" onclick="gsMore(this.dataset.k)">' + t('Alle {n} ›', { n: tot }) + '</button>' : '') + '</h3>' +
       g.items.map(x => gsItem(k, x, ql)).join('') + '</div>';
   }).join('');
   const ai = typeof aiSearchHtml === 'function' ? aiSearchHtml(ql) : '';
-  $('#gs-res').innerHTML = (ai + html) || '<p class=gs-empty>' + (gsData.pending ? 'Zoeken…' : 'Niets gevonden voor "' + esc(gsQ) + '"') + '</p>';
+  $('#gs-res').innerHTML = (ai + html) || '<p class=gs-empty>' + (gsData.pending ? t('Zoeken…') : t('Niets gevonden voor "{q}"', { q: esc(gsQ) })) + '</p>';
   if (html && gsData.pending) $('#gs-res').innerHTML += '<p class=gs-empty style="padding:8px 0">Verder zoeken…</p>';
 }
 function gsMore(k){

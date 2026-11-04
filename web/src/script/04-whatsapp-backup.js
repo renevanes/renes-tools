@@ -30,14 +30,14 @@ function renderWa(rescan){
   let nx = '';
   if (i.auto) {
     if (!i.filesAccess || !i.dest) nx = 'Automatisch staat aan, maar er ontbreekt nog toegang of een backup-map.';
-    else if (i.nextAuto && i.nextAuto > Date.now() + 60000) nx = 'Volgende automatische backup: ' + fmtD(i.nextAuto).replace(/ 0?3:00$/, ' na 03:00') + (i.autoCharging !== false ? ', als de telefoon aan de lader ligt.' : '.');
-    else nx = 'De volgende automatische backup start zo snel mogelijk' + (i.autoCharging !== false ? ' als de telefoon aan de lader ligt.' : '.');
+    else if (i.nextAuto && i.nextAuto > Date.now() + 60000) nx = t(i.autoCharging !== false ? 'Volgende automatische backup: {wanneer}, als de telefoon aan de lader ligt.' : 'Volgende automatische backup: {wanneer}.', { wanneer: fmtD(i.nextAuto).replace(/ 0?3:00$/, ' ' + t('na 03:00')) });
+    else nx = t(i.autoCharging !== false ? 'De volgende automatische backup start zo snel mogelijk als de telefoon aan de lader ligt.' : 'De volgende automatische backup start zo snel mogelijk.');
   }
   $('#wa-next').textContent = nx;
   const h = (i.history || []).slice(0, 5);
   $('#wa-hist-card').style.display = h.length ? 'block' : 'none';
   const ML = {all:'Alles', selection:'Selectie', auto:'Automatisch', restore:'Terugzetten', readable:'Leesbaar maken'};
-  $('#wa-hist').innerHTML = h.map(x => '<div class="hist"><b>' + esc(ML[x.mode] || x.mode) + '</b> · ' + esc(fmtD(x.finishedAt)) +
+  $('#wa-hist').innerHTML = h.map(x => '<div class="hist"><b>' + esc(t(ML[x.mode] || x.mode)) + '</b> · ' + esc(fmtD(x.finishedAt)) +
     '<small>' + (x.result === 'ok' ? '✓ ' : x.result === 'error' ? '✗ ' : '') + esc(x.message || '') + (x.bytesDone > 0 ? ' · ' + fmtB(x.bytesDone) : '') + '</small></div>').join('');
   renderWaCats();
   renderReadable();
@@ -54,7 +54,7 @@ function renderWaCats(){
     b.onclick = () => { waSel.has(k) ? waSel.delete(k) : waSel.add(k); Android.vibrate(10); waSave(); renderWaCats(); };
     el.appendChild(b);
   });
-  $('#wa-all-size').textContent = 'Chats en alle media, zonder statussen' + (waSizesC ? ' · ' + fmtB(all) + ' in ' + fmtNum(allF) + ' bestanden' : '');
+  $('#wa-all-size').textContent = t('Chats en alle media, zonder statussen') + (waSizesC ? ' · ' + t('{grootte} in {n} bestanden', { grootte: fmtB(all), n: fmtNum(allF) }) : '');
 }
 function waSave(){
   const sel = WA_CATS.map(c=>c[0]).filter(k=>waSel.has(k)).join(',');
@@ -87,13 +87,13 @@ function waPollOnce(){
     $('#wa-run-phase').textContent = ph;
     const pct = s.phase === 'copy' && s.bytesTotal > 0 ? 100 * s.bytesDone / s.bytesTotal : 0;
     $('#wa-bar').style.width = pct.toFixed(1) + '%';
-    $('#wa-run-count').textContent = s.phase === 'copy' ? fmtNum(s.filesDone||0) + ' van ' + fmtNum(s.filesTotal||0) + ' bestanden · ' + fmtB(s.bytesDone||0) + ' van ' + fmtB(s.bytesTotal||0) : '';
+    $('#wa-run-count').textContent = s.phase === 'copy' ? t('{n} van {totaal} bestanden · {grootte} van {totaalgrootte}', { n: fmtNum(s.filesDone||0), totaal: fmtNum(s.filesTotal||0), grootte: fmtB(s.bytesDone||0), totaalgrootte: fmtB(s.bytesTotal||0) }) : '';
     $('#wa-run-cur').textContent = s.current || '';
   } else if (s.phase === 'done' && s.finishedAt) {
     const key = s.finishedAt + s.result;
     const r = $('#wa-result');
     const T = {ok:'✓ Klaar: ', partial:'Klaar met fouten: ', cancelled:'', error:'Mislukt: '};
-    r.textContent = (T[s.result] || '') + (s.message || '') + (s.bytesDone > 0 ? ' (' + fmtB(s.bytesDone) + ')' : '');
+    r.textContent = t(T[s.result] || '') + t(s.message || '') + (s.bytesDone > 0 ? ' (' + fmtB(s.bytesDone) + ')' : '');
     r.className = 'result on ' + (s.result === 'ok' ? 'answered' : s.result === 'error' ? 'error' : 'other');
     if (waLastKey && waLastKey !== key) Android.vibrate(60);
     waLastKey = key;
@@ -104,8 +104,8 @@ function refreshWaTile(s){
   if (!s) { try { s = JSON.parse(Android.waStatus()); } catch(e){ return; } }
   $('#tile-wa').classList.toggle('live', !!s.running);
   let sub = 'Chats en media veilig bewaren';
-  if (s.running) sub = s.mode === 'restore' ? 'Bezig met terugzetten' : 'Bezig met backup' + (s.phase === 'copy' && s.bytesTotal ? ' · ' + Math.round(100*s.bytesDone/s.bytesTotal) + '%' : '');
-  else { const i = cached('waInfo', 30000, waInfo); if (i.lastOk) sub = 'Laatste backup: ' + fmtD(i.lastOk); }
+  if (s.running) sub = s.mode === 'restore' ? t('Bezig met terugzetten') : t('Bezig met backup') + (s.phase === 'copy' && s.bytesTotal ? ' · ' + Math.round(100*s.bytesDone/s.bytesTotal) + '%' : '');
+  else { const i = cached('waInfo', 30000, waInfo); if (i.lastOk) sub = t('Laatste backup: {wanneer}', { wanneer: fmtD(i.lastOk) }); }
   $('#tile-wa-sub').textContent = sub;
 }
 

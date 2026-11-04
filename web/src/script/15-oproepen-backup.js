@@ -72,9 +72,9 @@ function callsSyncUi(){
   // Actieve filters als chips om snel weg te halen
   const chips = [];
   const lab = (id, v) => { const b = document.querySelector('#' + id + ' button[data-v="' + v + '"]'); return b ? b.textContent : v; };
-  if (callsF.person) chips.push(['person', 'Met: ' + callsF.person.name]);
+  if (callsF.person) chips.push(['person', t('Met: {naam}', { naam: callsF.person.name })]);
   if (callsF.period !== 'all') chips.push(['period', callsF.period === 'custom'
-      ? (callsF.from ? fmtDay(callsF.from) : '…') + ' – ' + (callsF.to ? fmtDay(callsF.to) : 'nu') : lab('cf-period', callsF.period)]);
+      ? (callsF.from ? fmtDay(callsF.from) : '…') + ' – ' + (callsF.to ? fmtDay(callsF.to) : t('nu')) : lab('cf-period', callsF.period)]);
   if (callsF.who !== 'all') chips.push(['who', lab('cf-who', callsF.who)]);
   if (callsF.dur !== 'all') chips.push(['dur', lab('cf-dur', callsF.dur)]);
   $('#calls-active').innerHTML = chips.map(c => '<button data-k="' + c[0] + '" onclick="callsDropFilter(this.dataset.k)">' + esc(c[1]) + ' <span aria-hidden=true>×</span></button>').join('');
@@ -121,7 +121,7 @@ function loadCalls(){
     ' oproepen' + (d.people ? ' · ' + d.people + (d.people === 1 ? ' persoon' : ' personen') : '') +
     (d.count ? ' · ' + fmtDayT(d.first) + (d.first !== d.last ? ' – ' + fmtDayT(d.last) : '') : '');
   $('#calls-export-sel').style.display = d.filtered && d.count ? 'block' : 'none';
-  $('#calls-export-sel').textContent = 'Alleen deze selectie exporteren (' + fmtNum(d.count||0) + ')';
+  $('#calls-export-sel').textContent = t('Alleen deze selectie exporteren ({n})', { n: fmtNum(d.count||0) });
   callsShown = d.calls || [];
   el.innerHTML = callsShown.map((c, i) =>
     '<button class="' + esc(c.kind) + '" onclick="callsPick(' + i + ')">' +
@@ -136,7 +136,7 @@ function callsPick(i){
   const acts = [];
   if (c.ck) acts.push(['Contact bekijken', () => jumpTo('contact', () => ctOpen(c.ck, String(c.cid)))]);
   else acts.push(['Toevoegen aan contacten', () => Android.contactsAddNumber(c.number)]);
-  if (!callsF.person) acts.push(['Alle oproepen met ' + (c.ck ? c.name : c.number), () => { callsF.person = { name: c.ck ? c.name : c.number, numbers: [c.number] }; callsSyncUi(); loadCalls(); window.scrollTo(0, 0); }]);
+  if (!callsF.person) acts.push([t('Alle oproepen met {naam}', { naam: c.ck ? c.name : c.number }), () => { callsF.person = { name: c.ck ? c.name : c.number, numbers: [c.number] }; callsSyncUi(); loadCalls(); window.scrollTo(0, 0); }]);
   acts.push(['Opnieuw bellen met Auto redial', () => { jumpTo('redial'); $('#num').value = c.number; nameFor = c.ck ? c.name : ''; $('#pname').textContent = nameFor; }]);
   openSheet(c.name, (c.number !== c.name ? c.number + ' · ' : '') + c.label + ' · ' + fmtFullCall(c.date) + (c.duration ? ' tot ' + fmtCallEnd(c) + ' · ' + fmtCallDur(c.duration) : ''), acts);
 }
@@ -168,7 +168,7 @@ function callsPollOnce(){
   } else if (s.ok !== undefined && !callsLastDone) {
     callsLastDone = true;
     const r = $('#calls-result');
-    r.textContent = s.ok ? '✓ ' + s.count + ' oproepen geëxporteerd naar de map Oproepen backup' : 'Mislukt: ' + (s.error || '');
+    r.textContent = s.ok ? t('✓ {n} oproepen geëxporteerd naar de map Oproepen backup', { n: s.count }) : t('Mislukt: {fout}', { fout: t(s.error || '') });
     r.className = 'result on ' + (s.ok ? 'answered' : 'error');
     refreshCallsTile(s, true);
   }
@@ -176,12 +176,12 @@ function callsPollOnce(){
 }
 let callsTileRunning = null;
 function refreshCallsTile(s, force){
-  const t = $('#tile-calls'); if (!t) return;
+  const tile = $('#tile-calls'); if (!tile) return;
   const run = !!(s && s.running);
   if (!force && callsTileRunning === run && s) return;
   callsTileRunning = run;
-  t.classList.toggle('live', run);
+  tile.classList.toggle('live', run);
   const sub = $('#tile-calls-sub');
-  if (sub) { const i = run ? {} : callsInfo(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? 'Laatste export: ' + fmtD(i.lastExport) : 'Bewaar je belgeschiedenis'); }
+  if (sub) { const i = run ? {} : callsInfo(); sub.textContent = (s && s.running) ? 'Bezig met exporteren…' : (i.lastExport ? t('Laatste export: {wanneer}', { wanneer: fmtD(i.lastExport) }) : t('Bewaar je belgeschiedenis')); }
 }
 

@@ -145,10 +145,33 @@ function jsScan(){
     }
     // 3. HTML-stukjes in tekenreeksen
     for (const tk of toks) for (const b of htmlBits(tk.s)) if (!inT(src, tk.at)) add(b, name + ':' + lineOf(src, tk.at));
+    // 3b. t( of tn( in een functie met een eigen variabele t of tn: dan roept hij die aan, niet de vertaling
+    for (const sh of shadowed(src, toks)) guard.push([name + ':' + sh.line, sh.why]);
     // 4. Losse teksten die op Nederlands lijken (alleen ter info: --lijst --los)
     for (const tk of toks) if (!tk.tpl && looksDutch(tk.s) && !/<[a-z\/]/i.test(tk.s)) add(tk.s, name + ':' + lineOf(src, tk.at), loose);
   }
   return { keys, guard, loose };
+}
+/* Aanroepen van t( / tn( binnen een functie (vanaf de laatste regel die in kolom 0 begint) waarin t of tn zelf een
+ * naam is (const t = …, (t) =>, function (a, t)); benadering, maar vangt de gewone gevallen */
+function shadowed(src, toks){
+  const out = [], inStr = at => toks.some(x => x.at <= at && x.end > at);
+  const blank = src.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
+  const lines = blank.split('\n'); let start = 0, offs = [0];
+  for (let i = 0; i < lines.length; i++) offs.push(offs[i] + lines[i].length + 1);
+  const decl = n => new RegExp('(\\b(const|let|var)\\s+(?:[^;=\\n]*?[,{\\[]\\s*)?' + n + '\\b(?=\\s*[=,;}\\]])|[(,]\\s*' + n + '\\s*(?=[,)=])|(?:^|[^\\w$.])' + n + '\\s*=>|\\bfor\\s*\\(\\s*(const|let|var)\\s+' + n + '\\b)');
+  const dT = decl('t'), dN = decl('tn');
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\S/.test(lines[i]) && !/^[}\])]/.test(lines[i])) start = i;
+    const re = /(^|[^\w$.])(tn|t)\(/g; let m;
+    while ((m = re.exec(lines[i]))) {
+      const at = offs[i] + m.index + m[1].length; if (inStr(at)) continue;
+      if (/function\s+$/.test(lines[i].slice(0, m.index + m[1].length))) continue;
+      const body = blank.slice(offs[start], at).replace(/(['"`])(?:[^\\\n]|\\.)*?\1/g, 'S');
+      if ((m[2] === 't' ? dT : dN).test(body)) out.push({ line: i + 1, why: m[2] + '() wordt aangeroepen in een functie met een eigen variabele ' + m[2] + ': hernoem die variabele' });
+    }
+  }
+  return out;
 }
 /* Staat deze tekenreeks direct in t( of tn( ? */
 function inT(src, at){ const before = src.slice(Math.max(0, at - 40), at); return /(^|[^\w$.])(t|tn)\(\s*$/.test(before) || /(^|[^\w$.])tn\([^()]*,\s*$/.test(before); }
@@ -251,8 +274,8 @@ if (require.main === module) {
   (async () => {
     const a = process.argv.slice(2);
     if (a.includes('--lijst') || a.includes('--ontbrekend') || a.includes('--los') || a.includes('--bewaker')) {
+      if (a.includes('--bewaker')) { for (const [w, why] of jsScan().guard) console.log(w + ': ' + why); return; }
       const { all, js } = await scan(), dict = readDict();
-      if (a.includes('--bewaker')) { for (const [w, why] of js.guard) console.log(w + ': ' + why); return; }
       const src = a.includes('--los') ? js.loose : all;
       const out = {};
       for (const [k, w] of src) if (!(a.includes('--ontbrekend') || a.includes('--los')) || !(k in dict)) out[k] = [...new Set(w)].slice(0, 4);

@@ -92,23 +92,23 @@ function pollOnce(){
   $('#setup').style.display = run ? 'none' : 'block';
   if (run) {
     $('#run-att').textContent = s.attempt || 1;
-    $('#run-of').textContent = s.maxAttempts ? 'van ' + s.maxAttempts : 'pogingen';
-    let ph = s.message || PHASE[s.phase] || '';
+    $('#run-of').textContent = s.maxAttempts ? t('van {n}', { n: s.maxAttempts }) : t('pogingen');
+    let ph = t(s.message || PHASE[s.phase] || '');
     let frac = 0;
     if (s.phase === 'waiting') {
       const left = Math.max(0, Math.ceil((s.nextAt - s.now)/1000));
-      ph = (s.message ? s.message + ' · ' : '') + 'opnieuw over ' + left + ' s';
+      ph = (s.message ? t(s.message) + ' · ' : '') + t('opnieuw over {n} s', { n: left });
       frac = 1 - Math.min(1, (s.nextAt - s.now) / ((s.wait || s.interval)*1000));
     } else if (s.phase === 'incall' || s.phase === 'dialing') frac = 1;
     $('#run-phase').textContent = ph;
-    $('#run-who').textContent = (s.name ? s.name + ' · ' + s.number : s.number) + (s.randomMin ? ' · wachttijd ' + s.randomMin + '–' + s.randomMax + ' s' : '');
+    $('#run-who').textContent = (s.name ? s.name + ' · ' + s.number : s.number) + (s.randomMin ? ' · ' + t('wachttijd {van}–{tot} s', { van: s.randomMin, tot: s.randomMax }) : '');
     $('#ring-arc').style.strokeDashoffset = 414.7 * (1 - frac);
     $('#ring-arc').style.stroke = s.phase === 'waiting' ? 'var(--brand-2)' : 'var(--ok)';
     $('#now-btn').style.visibility = s.phase === 'waiting' ? 'visible' : 'hidden';
   } else if (s.phase === 'done' && s.result && s.result !== 'stopped') {
     const key = s.result + s.message + s.attempt;
     const r = $('#result');
-    r.textContent = (s.result === 'answered' ? '✓ ' : '') + s.message + (s.number ? ' — ' + (s.name || s.number) : '');
+    r.textContent = (s.result === 'answered' ? '✓ ' : '') + t(s.message) + (s.number ? ' — ' + (s.name || s.number) : '');
     r.className = 'result on ' + (s.result === 'answered' ? 'answered' : s.result === 'error' ? 'error' : 'other');
     if (lastResultShown && lastResultShown !== key) Android.vibrate(60);
     lastResultShown = key;
@@ -118,6 +118,6 @@ function pollOnce(){
 function refreshTile(s){
   if (!s) { try { s = JSON.parse(Android.redialStatus()); } catch(e){ return; } }
   $('#tile-redial').classList.toggle('live', !!s.running);
-  $('#tile-redial-sub').textContent = s.running ? 'Bezig: poging ' + (s.attempt||1) + (s.maxAttempts ? ' van ' + s.maxAttempts : '') : 'Blijft bellen tot er wordt opgenomen';
+  $('#tile-redial-sub').textContent = s.running ? (s.maxAttempts ? t('Bezig: poging {n} van {max}', { n: s.attempt || 1, max: s.maxAttempts }) : t('Bezig: poging {n}', { n: s.attempt || 1 })) : t('Blijft bellen tot er wordt opgenomen');
 }
 

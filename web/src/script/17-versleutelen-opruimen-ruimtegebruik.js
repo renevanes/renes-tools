@@ -8,14 +8,14 @@ function askPassword(title, text, okLabel, onOk){
 let plainAllowed = false;
 function plainOk(what, retry){
   if (plainAllowed || !bkState(false).encrypted) return true;
-  askConfirm('Onversleuteld opslaan?', what + ' komt als gewoon, leesbaar bestand in je backup-map, ook al staat versleutelen aan. Versleuteld bewaren gaat via Alles back-uppen.', 'Toch opslaan',
+  askConfirm('Onversleuteld opslaan?', t('{wat} komt als gewoon, leesbaar bestand in je backup-map, ook al staat versleutelen aan. Versleuteld bewaren gaat via Alles back-uppen.', { wat: t(what) }), 'Toch opslaan',
     () => { plainAllowed = true; try { retry(); } finally { plainAllowed = false; } });
   return false;
 }
 function bkRenderSecure(st){
   const on = !!st.encrypted;
   $('#bk-enc-state').textContent = st.encBroken ? 'Het wachtwoord moet opnieuw worden ingesteld (bijv. na overzetten naar een andere telefoon). Tot dan mislukken de backups.'
-    : on ? 'Aan sinds ' + (st.encSince ? fmtDayT(st.encSince) : 'onbekend') + '. Nieuwe backups worden versleuteld.' : 'Uit: backups zijn gewone, leesbare bestanden.';
+    : on ? t('Aan sinds {wanneer}. Nieuwe backups worden versleuteld.', { wanneer: st.encSince ? fmtDayT(st.encSince) : t('onbekend') }) : t('Uit: backups zijn gewone, leesbare bestanden.');
   $('#bk-enc-state').className = 'note' + (st.encBroken ? ' bad' : '');
   $('#bk-enc-btn').textContent = on ? 'Wachtwoord wijzigen' : 'Wachtwoord instellen';
   $('#bk-enc-off').style.display = on ? 'block' : 'none';
@@ -29,7 +29,7 @@ let bkEncBusy = false;
 function bkEncSet(){
   if (bkEncBusy) return;
   const wasOn = !!bkState(true).encrypted;
-  askPassword(wasOn ? 'Nieuw wachtwoord' : 'Wachtwoord kiezen', 'Minstens 8 tekens. Schrijf het ergens veilig op: zonder wachtwoord is de backup niet meer te openen.' + (wasOn ? ' Oudere backups blijven met het oude wachtwoord.' : ''), 'Verder', pw => {
+  askPassword(wasOn ? 'Nieuw wachtwoord' : 'Wachtwoord kiezen', t('Minstens 8 tekens. Schrijf het ergens veilig op: zonder wachtwoord is de backup niet meer te openen.') + (wasOn ? ' ' + t('Oudere backups blijven met het oude wachtwoord.') : ''), 'Verder', pw => {
     if ((pw || '').length < 8) { toast('Kies een wachtwoord van minstens 8 tekens'); return; }
     setTimeout(() => askPassword('Nog een keer', 'Typ het wachtwoord nog een keer ter controle.', 'Instellen', pw2 => {
       if (pw2 !== pw) { toast('De wachtwoorden zijn niet gelijk'); return; }
@@ -48,7 +48,7 @@ function bkEncOff(){
   askConfirm('Versleutelen uitzetten?', 'Nieuwe backups worden weer gewone, leesbare bestanden. Bestaande versleutelde backups blijven staan en houden hun wachtwoord.' +
     (priv.length ? '\n\n' + bkPrivNoLonger(priv) : ''), 'Uitzetten', () => {
     Android.backupEncryptOff(); // zet ook de privé-onderdelen uit
-    bkRenderSecure(bkState(true)); toast('Versleutelen staat uit' + (priv.length ? '; privé-onderdelen gaan niet meer mee' : ''));
+    bkRenderSecure(bkState(true)); toast(t(priv.length ? 'Versleutelen staat uit; privé-onderdelen gaan niet meer mee' : 'Versleutelen staat uit'));
   });
 }
 function bkRotate(){ toast('Bezig met tellen…'); Android.backupRotate(true); }
@@ -56,8 +56,8 @@ window.onRotate = function(r){
   if (r.error) { toast(r.error); return; }
   if (r.dry) {
     if (!r.count) { toast('Er is niets op te ruimen'); return; }
-    askConfirm(r.count + ' oude bestanden verwijderen?', 'Samen ' + fmtB(r.bytes) + '. Alles van de laatste 14 dagen en de nieuwste van elke maand blijven staan.', 'Verwijderen', () => Android.backupRotate(false));
-  } else { toast('✓ ' + r.count + ' oude bestanden verwijderd (' + fmtB(r.bytes) + ')'); }
+    askConfirm(t('{n} oude bestanden verwijderen?', { n: r.count }), t('Samen {grootte}. Alles van de laatste 14 dagen en de nieuwste van elke maand blijven staan.', { grootte: fmtB(r.bytes) }), 'Verwijderen', () => Android.backupRotate(false));
+  } else { toast(t('✓ {n} oude bestanden verwijderd ({grootte})', { n: r.count, grootte: fmtB(r.bytes) })); }
 };
 function bkSpace(){ $('#bk-space-btn').disabled = true; $('#bk-space-btn').textContent = 'Bezig met tellen…'; Android.backupSpace(); }
 window.onSpace = function(r){
@@ -68,7 +68,7 @@ window.onSpace = function(r){
 function bkRenderSpace(r){
   const d = (r.dirs || []).slice().sort((a, b) => b.bytes - a.bytes);
   $('#bk-space').innerHTML = d.map(x => '<div class=spc><span>' + esc(x.name) + ' <small>' + fmtNum(x.files) + ' bestanden</small></span><span>' + fmtB(x.bytes) + '</span></div>').join('') +
-    '<div class="spc tot"><span>Totaal</span><span>' + fmtB(r.total || 0) + '</span></div><p class=note>Berekend ' + fmtD(r.t) + '</p>';
+    '<div class="spc tot"><span>' + t('Totaal') + '</span><span>' + fmtB(r.total || 0) + '</span></div><p class=note>' + t('Berekend {wanneer}', { wanneer: fmtD(r.t) }) + '</p>';
   $('#bk-space-btn').textContent = 'Opnieuw berekenen';
 }
 /* versleutelde backup openen */
@@ -89,7 +89,7 @@ window.onArchive = function(r){
   acts.push(['Uitpakken naar de backup-map', () => askConfirm('Uitpakken?', 'De bestanden komen onversleuteld in de map Uitgepakt in je backup-map. Haal ze weg als je ze niet meer nodig hebt.', 'Uitpakken', () => { toast('Bezig met uitpakken…'); Android.archiveUnpack(); }, () => Android.archiveClose())]);
   acts.push(['Sluiten', () => Android.archiveClose()]);
   // Dicht zonder keuze (terug of ernaast tikken): de sleutel meteen vergeten
-  openSheet('🔒 ' + (r.name || 'Backup'), (r.files || []).length + ' bestanden · ' + fmtB(r.bytes || 0), acts, () => Android.archiveClose());
+  openSheet('🔒 ' + (r.name || 'Backup'), t('{n} bestanden · {grootte}', { n: (r.files || []).length, grootte: fmtB(r.bytes || 0) }), acts, () => Android.archiveClose());
 };
-window.onArchiveUnpacked = function(r){ toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' bestanden uitgepakt naar Uitgepakt/' : r); };
+window.onArchiveUnpacked = function(r){ toast(r.startsWith('ok:') ? t('✓ {n} bestanden uitgepakt naar Uitgepakt/', { n: r.slice(3) }) : r); };
 

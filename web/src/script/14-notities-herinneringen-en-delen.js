@@ -13,7 +13,7 @@ function noteRemShow(){
   $('#note-rem').value = localIso(Date.now() + 36e5);
   $('#note-rem-del').style.display = l.length > 1 ? 'block' : 'none';
   $('#note-rem-list').innerHTML = l.map(r => '<div class="remrow"><span>'+uiIcon('bell')+' ' + esc(fmtDT(r.t, {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) +
-    (r.rep ? ' <small>· ' + esc(REM_REP[r.rep] || '') + '</small>' : '') + '</span><button class="mini" data-id="' + esc(r.id) + '" onclick="noteDelOneRem(this.dataset.id)" aria-label="Herinnering weghalen">Weghalen</button></div>').join('');
+    (r.rep ? ' <small>· ' + esc(t(REM_REP[r.rep] || '')) + '</small>' : '') + '</span><button class="mini" data-id="' + esc(r.id) + '" onclick="noteDelOneRem(this.dataset.id)" aria-label="Herinnering weghalen">Weghalen</button></div>').join('');
   noteUiSummaries();
 }
 function noteDelOneRem(rid){ if (typeof Android.noteRemindDel === 'function') Android.noteRemindDel(rid); else Android.noteRemind(rid, '', '0'); noteRemShow(); }
@@ -24,14 +24,14 @@ function noteSetRem(){
   const n = noteById(noteCur); if (!n) return;
   const v = $('#note-rem').value; if (!v) { toast('Kies een datum en tijd'); return; }
   if (!once('rem' + n.id + v + $('#note-rem-rep').value)) return; // dubbel tikken: één herinnering
-  const t = new Date(v).getTime();
-  if (!(t > Date.now())) { toast('Kies een moment in de toekomst'); return; }
+  const when = new Date(v).getTime();
+  if (!(when > Date.now())) { toast('Kies een moment in de toekomst'); return; }
   notesSaveNow();
   const rep = $('#note-rem-rep').value;
-  if (typeof Android.noteRemindAdd === 'function') Android.noteRemindAdd(n.id, n.title || 'Notitie', String(t), rep);
-  else Android.noteRemind(n.id, n.title || 'Notitie', String(t));
+  if (typeof Android.noteRemindAdd === 'function') Android.noteRemindAdd(n.id, n.title || 'Notitie', String(when), rep);
+  else Android.noteRemind(n.id, n.title || 'Notitie', String(when));
   $('#note-rem-rep').value = '';
-  noteRemShow(); toast('Herinnering gezet' + (rep ? ' (' + REM_REP[rep] + ')' : ''));
+  noteRemShow(); toast(t('Herinnering gezet') + (rep ? ' (' + t(REM_REP[rep]) + ')' : ''));
 }
 /* ---------- Snelkoppelingen naar één notitie ---------- */
 function notePins(where){ try { return JSON.parse(Android.notePins(where)) || []; } catch(e){ return []; } }
@@ -54,7 +54,7 @@ function notePinPhone(){
     toast(on ? 'Staat op je telefoon-skin' : 'Van de telefoon-skin gehaald'); return;
   }
   const e = Android.shortcutPinNote(n.id, n.title || 'Notitie');
-  toast(e || 'Bevestig op je startscherm om ' + (n.title || 'deze notitie') + ' toe te voegen');
+  toast(e || t('Bevestig op je startscherm om {naam} toe te voegen', { naam: n.title || t('deze notitie') }));
 }
 function noteDelRem(){ askConfirm('Alle herinneringen weghalen?', '', 'Weghalen', () => { if (typeof Android.noteRemindClear === 'function') Android.noteRemindClear(noteCur); else Android.noteRemind(noteCur, '', '0'); noteRemShow(); }); }
 function noteShareNow(){

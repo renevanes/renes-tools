@@ -90,7 +90,7 @@ function notesSaveNow(){
         else if (current === 'notes') renderNotes();
         continue;
       }
-      if (r.err) { notesSaveState('Opslaan mislukt: ' + r.err); toast('Opslaan mislukt: ' + r.err); return false; }
+      if (r.err) { notesSaveState(t('Opslaan mislukt: {fout}', { fout: t(r.err) })); toast(t('Opslaan mislukt: {fout}', { fout: t(r.err) })); return false; }
       notesVer = r.ver || notesVerNow(); notesBase = notesCopy(notes); notesDirty = false;
       notesSaveState('');
       return true;
@@ -100,7 +100,7 @@ function notesSaveNow(){
     return false;
   }
   const err = Android.notesSave(JSON.stringify(notesGet()));
-  if (err) { notesSaveState('Opslaan mislukt: ' + err); toast('Opslaan mislukt: ' + err); return false; }
+  if (err) { notesSaveState(t('Opslaan mislukt: {fout}', { fout: t(err) })); toast(t('Opslaan mislukt: {fout}', { fout: t(err) })); return false; }
   notesVer = notesVerNow(); notesBase = notesCopy(notes); notesDirty = false; notesSaveState(''); return true;
 }
 /* Buiten de app veranderd (bijv. afgestreept in de widget op het startscherm): opnieuw inlezen, zodat de app
@@ -165,8 +165,8 @@ function renderNotes(){
     const count=childCounts.get(n.id)||0,expanded=notesExpanded.has(n.id),depth=q||notesScope==='children'?0:Math.min(r.depth,3);
     rows.push('<div class="notes-tree-row" style="padding-left:'+depth*14+'px"><button class="nrow" data-note-id="'+esc(n.id)+'" onclick="openNote(' + jsq(n.id) + ')"><span class="note-overview-avatar" aria-hidden="true">'+uiIcon(items.length?'notes':'document')+'</span><span class="note-row-content"><span class=r1><b>' + (rem ? '<span class=nrem>'+uiIcon('bell')+'</span> ' : '') + hl(title, q) + '</b><small>' +
       (items.length ? (items.length - open) + '/' + items.length + ' ✓' : esc(fmtD(n.updated||0))) + '</small></span>' +
-      (parent?'<span class=note-parent-label>↳ Onder '+esc(parent.title||'Zonder titel')+'</span>':'')+'<span class=r2>' + (sub || 'Open deze notitie') + '</span></span></button>'+
-      (count&&notesScope==='all'&&!q?'<button class="note-tree-toggle '+(expanded?'expanded':'')+'" data-expand-id="'+esc(n.id)+'" aria-label="Sublijsten van '+esc(title)+'" aria-expanded="'+expanded+'" onclick="notesExpand('+jsq(n.id)+')">'+uiIcon('chevron-right')+'<small>'+count+'</small></button>':'')+'</div>');
+      (parent?'<span class=note-parent-label>'+t('↳ Onder {titel}', { titel: esc(parent.title||t('Zonder titel')) })+'</span>':'')+'<span class=r2 translate="no">' + (sub || t('Open deze notitie')) + '</span></span></button>'+
+      (count&&notesScope==='all'&&!q?'<button class="note-tree-toggle '+(expanded?'expanded':'')+'" data-expand-id="'+esc(n.id)+'" aria-label="'+t('Sublijsten van {titel}', { titel: esc(title) })+'" aria-expanded="'+expanded+'" onclick="notesExpand('+jsq(n.id)+')">'+uiIcon('chevron-right')+'<small>'+count+'</small></button>':'')+'</div>');
   }
   $('#notes-list').innerHTML = rows.join('') || '<p class=note style="padding:14px">' +
     (q ? 'Niets gevonden.' : notesScope==='children'?'Nog geen sublijsten. Open een lijst om er een toe te voegen.':'Nog geen notities. Tik op + om een lijstje te maken.') + '</p>';
@@ -190,8 +190,8 @@ function renderItems(){
   const n = noteById(noteCur); if (!n) return;
   const rows = noteTree(n.items || []);
   const row = r => { const it=r.it; return '<li data-id="' + esc(it.id) + '" data-parent="' + esc(r.parent||'') + '" data-depth="'+r.depth+'" style="padding-left:'+Math.min(r.depth,3)*12+'px" class="' + (it.done ? 'done' : '') + '">' + (r.groupDone ? '' : '<span class=drag aria-hidden="true">⋮⋮</span>') + '<input type=checkbox ' + (it.done ? 'checked' : '') +
-    ' onchange="toggleItem(' + jsq(it.id) + ')" aria-label="Afstrepen: '+esc(it.text)+'"><input class=it value="' + esc(it.text) +
-    '" aria-label="'+(r.depth?'Subitem, niveau '+r.depth:'Item')+'" oninput="typeItem(' + jsq(it.id) + ', this.value)" onchange="editItem(' + jsq(it.id) + ', this.value)"><button class="del item-menu" onclick="noteItemMenu(' + jsq(it.id) + ')" aria-label="Opties voor '+esc(it.text)+'">⋯</button></li>'; };
+    ' onchange="toggleItem(' + jsq(it.id) + ')" aria-label="'+t('Afstrepen: {item}', { item: esc(it.text) })+'"><input class=it value="' + esc(it.text) +
+    '" aria-label="'+(r.depth?t('Subitem, niveau {n}', { n: r.depth }):t('Item'))+'" oninput="typeItem(' + jsq(it.id) + ', this.value)" onchange="editItem(' + jsq(it.id) + ', this.value)"><button class="del item-menu" onclick="noteItemMenu(' + jsq(it.id) + ')" aria-label="'+t('Opties voor {item}', { item: esc(it.text) })+'">⋯</button></li>'; };
   const done = rows.filter(r => r.it.done);
   $('#note-open').innerHTML = rows.filter(r => !r.groupDone).map(row).join('');
   $('#note-done').innerHTML = rows.filter(r => r.groupDone).map(row).join('');
@@ -199,7 +199,7 @@ function renderItems(){
   $('#note-donecount').textContent = done.length + ' afgestreept';
   noteAddTargetShow();noteListLocation();
   const count=(n.items||[]).length,completed=done.length;
-  $('#note-progress').textContent=count?completed+' van '+count+' items klaar':'Nog geen items';
+  $('#note-progress').textContent=count?t('{klaar} van {n} items klaar', { klaar: completed, n: count }):t('Nog geen items');
   $('#note-progress-bar').max=count||1;$('#note-progress-bar').value=completed;
   $('#note-empty').hidden=count>0;$('#note-item-move').disabled=count===0;
 }
@@ -244,7 +244,7 @@ function noteRepeatShow(){
   const sel = $('#note-repeat'); sel.value = v; if (sel.value !== v) sel.value = '';
   noteUiSummaries();
   $('#note-repeat-info').textContent = !v ? 'Voor een vast lijstje, zoals de weekboodschappen: op het gekozen moment gaan alle vinkjes weer weg.'
-    : 'Alle vinkjes gaan weg ' + (r.every === 'day' ? 'elke nacht' : r.every === 'week' ? 'elke ' + DAYS_NL[r.n] + ' om middernacht' : 'op de ' + r.n + 'e van elke maand') + '. De items zelf blijven staan.';
+    : t('Alle vinkjes gaan weg {wanneer}. De items zelf blijven staan.', { wanneer: r.every === 'day' ? t('elke nacht') : r.every === 'week' ? t('elke {dag} om middernacht', { dag: t(DAYS_NL[r.n]) }) : t('op de {n}e van elke maand', { n: r.n }) });
 }
 function noteSetRepeat(v){
   const n = noteById(noteCur); if (!n) return;
@@ -286,7 +286,7 @@ function delItem(id){
   const at = n.items.findIndex(i => i.id === id); if (at < 0) return;
   const it = n.items[at];
   n.items = n.items.filter(i => i.id !== id); touch(n); renderItems();
-  undoToast('"' + (it.text || 'Item') + '" verwijderd', () => { const m = noteById(n.id); if (!m || m.items.some(i => i.id === it.id)) return; m.items.splice(Math.min(at, m.items.length), 0, it); touch(m); if (noteCur === m.id) renderItems(); });
+  undoToast(t('"{item}" verwijderd', { item: it.text || t('Item') }), () => { const m = noteById(n.id); if (!m || m.items.some(i => i.id === it.id)) return; m.items.splice(Math.min(at, m.items.length), 0, it); touch(m); if (noteCur === m.id) renderItems(); });
 }
 function clearDone(){
   const n = noteById(noteCur); if (!n) return;
@@ -299,7 +299,7 @@ function clearDone(){
 function deleteNote(){
   const n = noteById(noteCur); if (!n) return;
   const childCount=notesGet().filter(x=>x.parentNoteId===n.id).length;
-  askConfirm('Notitie verwijderen?', '"' + (n.title || 'Zonder titel') + '" wordt definitief verwijderd.'+(childCount?' De sublijsten blijven bewaard.':''), 'Verwijderen', () => {
+  askConfirm('Notitie verwijderen?', t('"{titel}" wordt definitief verwijderd.', { titel: n.title || t('Zonder titel') })+(childCount?' '+t('De sublijsten blijven bewaard.'):''), 'Verwijderen', () => {
     const id=n.id;
     if(!noteSplitCommit(id,(m,all)=>{
       for(const child of all.filter(x=>x.parentNoteId===id)){
@@ -323,7 +323,7 @@ function notesBackup(){
   if (!plainOk('De notities', notesBackup)) return;
   if (!notesSaveNow()) return;
   const r = Android.notesExport();
-  toast(r.startsWith('ok:') ? '✓ ' + r.slice(3) + ' notities in de map Notities gezet' : r);
+  toast(r.startsWith('ok:') ? t('✓ {n} notities in de map Notities gezet', { n: r.slice(3) }) : r);
 }
 function refreshNotesTile(){
   const sub = $('#tile-notes-sub'); if (!sub) return;

@@ -15,12 +15,12 @@ window.onSelfTest = function(items){
   if (!items || !items.length) { toast('De zelftest is mislukt; deel het foutrapport'); return; }
   sfRender(items, Date.now()); renderDash();
   const bad = items.filter(i => i.status === 'fail').length, warn = items.filter(i => i.status === 'warn').length;
-  toast(bad ? bad + ' probleem' + (bad > 1 ? 'en' : '') + ' gevonden' : warn ? 'Werkt, met ' + warn + ' aandachtspunt' + (warn > 1 ? 'en' : '') : '✓ Alles werkt');
+  toast(bad ? tn(bad, '{n} probleem gevonden', '{n} problemen gevonden') : warn ? tn(warn, 'Werkt, met {n} aandachtspunt', 'Werkt, met {n} aandachtspunten') : '✓ Alles werkt');
 };
-function sfRender(items, t){
+function sfRender(items, when){
   $('#sf-res-card').style.display = 'block';
-  $('#sf-when').textContent = t ? 'Laatste test: ' + fmtD(t) : '';
-  $('#sf-res').innerHTML = (items || []).map((x, i) => '<div class="sfrow sf-'+esc(x.status)+'"><span class=ico aria-hidden="true">' + uiIcon(SF_ICON[x.status] || 'info') + '</span><div style="flex:1"><span class=sr-only>'+esc(SF_STATUS[x.status]||'Onbekende status')+': </span><b>' + esc(x.name) + '</b><small>' + esc(x.detail) + '</small>' +
-    (x.fix && SF_FIX[x.fix] && x.status !== 'ok' ? '<button class=mini data-f="' + esc(x.fix) + '" onclick="SF_FIX[this.dataset.f][1]()">' + SF_FIX[x.fix][0] + '</button>' : '') + '</div></div>').join('');
+  $('#sf-when').textContent = when ? t('Laatste test: {wanneer}', { wanneer: fmtD(when) }) : '';
+  $('#sf-res').innerHTML = (items || []).map((x, i) => '<div class="sfrow sf-'+esc(x.status)+'"><span class=ico aria-hidden="true">' + uiIcon(SF_ICON[x.status] || 'info') + '</span><div style="flex:1"><span class=sr-only>'+esc(t(SF_STATUS[x.status]||'Onbekende status'))+': </span><b>' + esc(x.name) + '</b><small>' + esc(t(x.detail)) + '</small>' +
+    (x.fix && SF_FIX[x.fix] && x.status !== 'ok' ? '<button class=mini data-f="' + esc(x.fix) + '" onclick="SF_FIX[this.dataset.f][1]()">' + t(SF_FIX[x.fix][0]) + '</button>' : '') + '</div></div>').join('');
 }
 

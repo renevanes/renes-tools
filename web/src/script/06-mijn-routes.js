@@ -50,7 +50,7 @@ function trackPollOnce(){
     $('#tr-pts').textContent = s.points || 0;
     $('#tr-wait').style.display = (s.points > 0) ? 'none' : 'block';
     $('#tr-wait').textContent = (s.acc != null && s.acc > 30)
-      ? 'Gps nog niet nauwkeurig genoeg (± ' + Math.round(s.acc) + ' m). Buiten met vrij zicht gaat het sneller.'
+      ? t('Gps nog niet nauwkeurig genoeg (± {n} m). Buiten met vrij zicht gaat het sneller.', { n: Math.round(s.acc) })
       : 'Wachten op gps-signaal…';
     if (s.error) { $('#tr-wait').style.display = 'block'; $('#tr-wait').textContent = s.error; }
     $('#tr-map-path').setAttribute('d', s.path || '');

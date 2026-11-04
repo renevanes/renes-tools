@@ -89,7 +89,7 @@ function thLoc(c){
   const p = TH_PLACES.find(x => x[0] === c.place && x.length > 2);
   if (p) return { lat: p[2], lon: p[3], name: p[1], own: false };
   const sp = (c.place === 'home' || c.place === 'work') && typeof rgPlace === 'function' ? rgPlace(c.place) : null;
-  if (sp) return { lat: sp.lat, lon: sp.lon, name: sp.name, own: false, where: sp.name === 'Thuis' ? 'thuis' : sp.name === 'Werk' ? 'op je werk' : 'bij ' + sp.name };
+  if (sp) return { lat: sp.lat, lon: sp.lon, name: sp.name, own: false, where: sp.name === 'Thuis' || sp.name === rgSpotName('home') ? t('thuis') : sp.name === 'Werk' || sp.name === rgSpotName('work') ? t('op je werk') : t('bij {naam}', { naam: sp.name }) };
   if (!thLocC || Date.now() - thLocC.t > 30 * 6e4) {
     let v = ''; try { if (typeof Android !== 'undefined' && typeof Android.themeLocation === 'function') v = String(Android.themeLocation() || ''); } catch (e) { }
     const m = /^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/.exec(v);
@@ -167,24 +167,25 @@ function thNative(c, now, loc, dark){
 }
 
 /* ---------- scherm Weergave ---------- */
-function thHm(t){ return fmtTime(t); }
-function thWhen(t){
-  const k = Math.round((thDay(t, 0) - thDay(Date.now(), 0)) / 864e5);
-  return (k === 0 ? 'om ' : k === 1 ? 'morgen om ' : 'over ' + k + ' dagen om ') + thHm(t);
+function thHm(ms){ return fmtTime(ms); }
+function thWhen(ms){
+  const k = Math.round((thDay(ms, 0) - thDay(Date.now(), 0)) / 864e5), tijd = thHm(ms);
+  return k === 0 ? t('om {tijd}', { tijd }) : k === 1 ? t('morgen om {tijd}', { tijd }) : t('over {n} dagen om {tijd}', { n: k, tijd });
 }
 function thModeName(v){ const x = TH_MODES.find(m => m[0] === v); return x ? x[1] : v; }
 /* "Nu: licht · wordt donker om 19:42" */
 function thStatus(){
-  const s = thState || thApply(true), now = s.dark ? 'donker' : 'licht';
-  if (s.mode === 'system') return 'Nu: ' + now + ', zoals je telefoon';
-  if (s.mode === 'light' || s.mode === 'dark') return 'Nu: ' + now + ' (altijd)';
-  return 'Nu: ' + now + (s.next ? ' · wordt ' + (s.dark ? 'licht ' : 'donker ') + thWhen(s.next) : s.mode === 'sun' ? ' (de zon gaat hier nu niet op of onder)' : '');
+  const s = thState || thApply(true), now = s.dark ? t('donker') : t('licht');
+  if (s.mode === 'system') return t('Nu: {nu}, zoals je telefoon', { nu: now });
+  if (s.mode === 'light' || s.mode === 'dark') return t('Nu: {nu} (altijd)', { nu: now });
+  if (s.next) return t(s.dark ? 'Nu: {nu} · wordt licht {wanneer}' : 'Nu: {nu} · wordt donker {wanneer}', { nu: now, wanneer: thWhen(s.next) });
+  return s.mode === 'sun' ? t('Nu: {nu} (de zon gaat hier nu niet op of onder)', { nu: now }) : t('Nu: {nu}', { nu: now });
 }
 function thSunNote(c){
   const loc = thLoc(c), d = new Date(), s = thSun(d.getFullYear(), d.getMonth(), d.getDate(), loc.lat, loc.lon);
-  const where = loc.where || (loc.own ? 'op je laatst bekende locatie' : 'in ' + loc.name + (c.place === 'auto' || c.place === 'home' || c.place === 'work' ? ' (je locatie is niet bekend)' : ''));
-  const sun = s.polar ? (s.polar === 'night' ? 'Vandaag komt de zon niet op ' : 'Vandaag gaat de zon niet onder ') + where : 'Vandaag zon op ' + thHm(s.rise) + ', onder ' + thHm(s.set) + ' ' + where;
-  return sun + '. Berekend op de telefoon, zonder internet.';
+  const where = loc.where ? loc.where : loc.own ? t('op je laatst bekende locatie') : (c.place === 'auto' || c.place === 'home' || c.place === 'work' ? t('in {plaats} (je locatie is niet bekend)', { plaats: t(loc.name) }) : t('in {plaats}', { plaats: t(loc.name) }));
+  const sun = s.polar ? t(s.polar === 'night' ? 'Vandaag komt de zon niet op {waar}' : 'Vandaag gaat de zon niet onder {waar}', { waar: where }) : t('Vandaag zon op {op}, onder {onder} {waar}', { op: thHm(s.rise), onder: thHm(s.set), waar: where });
+  return t('{zon}. Berekend op de telefoon, zonder internet.', { zon: sun });
 }
 function thRender(cfg){
   const sel = $('#st-theme'); if (!sel) return;

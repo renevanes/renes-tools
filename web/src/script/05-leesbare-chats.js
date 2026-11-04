@@ -7,14 +7,14 @@ function renderReadable(){
   $('#rd-auto').classList.toggle('on', r.auto !== false);
   let f = '';
   if (r.hasKey) {
-    f = r.dbFrom ? 'Chats bijgewerkt uit de backup van ' + fmtD(r.dbFrom) + '.' : '';
-    if (!r.dest) f += (f ? ' ' : '') + 'Kies bovenaan een backup-map om ook HTML-bestanden te krijgen.';
+    f = r.dbFrom ? t('Chats bijgewerkt uit de backup van {wanneer}.', { wanneer: fmtD(r.dbFrom) }) : '';
+    if (!r.dest) f += (f ? ' ' : '') + t('Kies bovenaan een backup-map om ook HTML-bestanden te krijgen.');
   }
   $('#rd-from').textContent = f;
 }
 function rdSaveKey(){
   const k = $('#rd-key').value.replace(/[^0-9a-fA-F]/g, '');
-  if (k.length !== 64) { toast('De sleutel moet 64 tekens hebben; je hebt er ' + k.length); return; }
+  if (k.length !== 64) { toast(t('De sleutel moet 64 tekens hebben; je hebt er {n}', { n: k.length })); return; }
   if (!JSON.parse(Android.waInfo()).filesAccess) { toast('Geef eerst toegang tot bestanden'); return; }
   if (rdKeyBusy) return; // de controle loopt al
   rdKeyBusy = true; document.querySelectorAll('#rd-setup button').forEach(b => b.disabled = true);
@@ -27,7 +27,7 @@ window.onWaKeyResult = function(r){
   rdKeyBusy = false; document.querySelectorAll('#rd-setup button').forEach(b => b.disabled = false);
   if (r.ok) {
     $('#rd-key').value = '';
-    toast(r.chats + ' chats gevonden ✓');
+    toast(t('{n} chats gevonden ✓', { n: r.chats }));
     renderReadable();
     if (current === 'wa') show('chats'); // niet wegspringen als je intussen ergens anders bent
   } else {
@@ -115,7 +115,7 @@ function chatSearch(q){
     let msgs; try { msgs = JSON.parse(Android.waSearch(q.trim())); } catch(e){ return; }
     cl.style.display = 'none';
     if (msgs.error) { sr.innerHTML = '<p class=note>' + esc(msgs.error) + '</p>'; return; }
-    if (!msgs.length) { sr.innerHTML = '<p class=note style="text-align:center">Niets gevonden voor "' + esc(q) + '"</p>'; return; }
+    if (!msgs.length) { sr.innerHTML = '<p class=note style="text-align:center">' + t('Niets gevonden voor "{q}"', { q: esc(q) }) + '</p>'; return; }
     sr.innerHTML = '<p class=note>' + msgs.length + ' resultaten</p><div class="msgs">' + msgs.map(m => {
       return '<div class="bub' + (m.me ? ' me' : '') + '" onclick="openChat(' + m.chat + ',' + jsq(m.chatName||'') + ')">' +
         '<span class=snd>' + esc(m.chatName || '') + (m.sender && !m.me ? ' · ' + esc(m.sender) : '') + '</span>' +

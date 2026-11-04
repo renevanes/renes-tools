@@ -6,9 +6,9 @@ function enterMusic(){
   $('#mu-main').style.display = st.hasToken ? 'block' : 'none';
   muHist = rdJson(Android.musicHistory(), []);
   muRenderHistory();
-  $('#mu-foot').innerHTML = (st.used ? st.used + (st.used === 1 ? ' herkenning' : ' herkenningen') + ' gedaan via deze app (AudD: 300 gratis). ' : '') +
-    'Alleen een fragment van 10 seconden gaat naar AudD. Op je telefoon wordt alleen het resultaat bewaard, niet de opname. ' +
-    '<a href="#" onclick="muChangeToken();return false">Sleutel wijzigen</a>';
+  $('#mu-foot').innerHTML = (st.used ? tn(st.used, '{n} herkenning gedaan via deze app (AudD: 300 gratis).', '{n} herkenningen gedaan via deze app (AudD: 300 gratis).') + ' ' : '') +
+    t('Alleen een fragment van 10 seconden gaat naar AudD. Op je telefoon wordt alleen het resultaat bewaard, niet de opname.') + ' ' +
+    '<a href="#" onclick="muChangeToken();return false">' + t('Sleutel wijzigen') + '</a>';
   muLastAt = 0;
   muPollOnce(); stopMuPoll(); muPoll = setInterval(muPollOnce, 300);
 }
@@ -19,7 +19,7 @@ function muSaveToken(){
   if (t.length < 10) { toast('Dat lijkt geen geldige sleutel'); return; }
   Android.musicSetToken(t); $('#mu-token').value = ''; enterMusic();
 }
-function muChangeToken(){ askInput('AudD-sleutel', 'Huidige sleutel: ' + (Android.musicTokenHint() || 'geen'), '', 'Opslaan', v => { if (v.trim()) { Android.musicSetToken(v); enterMusic(); } }); }
+function muChangeToken(){ askInput('AudD-sleutel', t('Huidige sleutel: {sleutel}', { sleutel: Android.musicTokenHint() || t('geen') }), '', 'Opslaan', v => { if (v.trim()) { Android.musicSetToken(v); enterMusic(); } }); }
 function muToggle(){
   const st = rdJson(Android.musicState(), {});
   if (st.state === 'recording' || st.state === 'sending') { Android.musicCancel(); muPollOnce(); return; }

@@ -200,7 +200,7 @@ function fmtTemp(c, kort){
   const v = fmtNum(Math.round(tempVal(c)));
   return kort ? v + '°' : v + ' ' + tempUnit();
 }
-function speedUnit(){ return rgCfg().speed === 'mph' ? 'mph' : 'km/u'; }
+function speedUnit(){ return rgCfg().speed === 'mph' ? 'mph' : t('km/u'); }
 /* Snelheid (in km/u) als getal of met eenheid */
 function speedVal(kmh, digits){ return fmtNum((+kmh || 0) / (rgCfg().speed === 'mph' ? RG_MI / 1000 : 1), digits == null ? 1 : digits); }
 function fmtSpeed(kmh, digits){ return speedVal(kmh, digits) + ' ' + speedUnit(); }
@@ -218,7 +218,7 @@ function fmtSize(b, o){
 function fmtMB(b, digits){ const k = rgCfg().size === '1000' ? 1000 : 1024; return rgSz(Math.max(0, +b || 0) / (k * k), digits == null ? 1 : digits) + ' MB'; }
 
 /* ---------- locatie ---------- */
-function rgSpotName(which){ return which === 'home' ? 'Thuis' : which === 'work' ? 'Werk' : ''; }
+function rgSpotName(which){ return which === 'home' ? t('Thuis') : which === 'work' ? t('Werk') : ''; }
 /* Thuis, werk of de standaardplaats: { name, lat, lon, addr } of null (niet ingesteld / "Mijn locatie") */
 function rgPlace(which){
   const c = rgCfg(), w = which || c.place;
@@ -279,8 +279,8 @@ function rgWeekChips(root){
 }
 /* Vaste eenheden in de schermen (class rg-u-dist, rg-u-speed, rg-u-temp) */
 function rgUnits(){
-  const set = (cls, t) => document.querySelectorAll('.' + cls).forEach(e => { if (e.textContent !== t) e.textContent = t; });
-  set('rg-u-dist', distUnit()); set('rg-u-distl', rgCfg().dist === 'mi' ? 'mijl' : 'kilometer'); set('rg-u-speed', speedUnit()); set('rg-u-temp', tempUnit());
+  const set = (cls, v) => document.querySelectorAll('.' + cls).forEach(e => { if (e.textContent !== v) e.textContent = v; });
+  set('rg-u-dist', distUnit()); set('rg-u-distl', rgCfg().dist === 'mi' ? t('mijl') : t('kilometer')); set('rg-u-speed', speedUnit()); set('rg-u-temp', tempUnit());
 }
 rgNative();
 addEventListener('DOMContentLoaded', () => { rgWeekChips(); rgUnits(); });
