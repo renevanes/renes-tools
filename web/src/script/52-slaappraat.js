@@ -25,9 +25,8 @@ window.onSleep = function(o){
 function slTime(ms){ return ms ? fmtTime(ms, { hour: '2-digit', minute: '2-digit' }) : ''; }
 /* "Nacht van do 23 op vr 24 okt" (gestart voor 12 uur 's middags: die nacht zelf) */
 function slNightName(ms){
-  const d = new Date(ms), a = new Date(ms);
-  if (d.getHours() < 12) a.setDate(a.getDate() - 1);
-  const b = new Date(a); b.setDate(b.getDate() + 1);
+  // De dag in de app-zone; als kalenderdatum getoond (verschuift niet)
+  const day = rgDayKey(ms), a = rgParts(ms).hh < 12 ? rgDayAdd(day, -1) : day, b = rgDayAdd(a, 1);
   const f = x => fmtDate(x, { weekday: 'short', day: 'numeric' });
   return 'Nacht van ' + f(a) + ' op ' + f(b) + ' ' + fmtDate(b, { month: 'short' });
 }

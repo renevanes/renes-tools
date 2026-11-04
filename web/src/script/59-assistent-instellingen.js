@@ -108,6 +108,13 @@ function setIntent(q){
   if ((m = new RegExp('^' + SET_PRE + '(.+?)\\s+(?:op|naar)\\s+(.+?)\\s+(?:zetten|instellen|veranderen|wijzigen)$').exec(s))) return { kind: 'cmd', x: m[1], raw: m[2] };
   if ((m = /^waar (?:vind|zie|zet|stel|verander|regel|kan|zit|staat|staan|zitten|pas) (?:ik |je |jij )?(.+?)(?: (?:vinden|instellen|aanzetten|uitzetten|aanpassen|veranderen|zien|in|aan|uit))*$/.exec(s))) return { kind: 'waar', x: m[1] };
   if ((m = /^(?:wat|hoe) (?:staat|staan) (.+?) (?:op|ingesteld)$/.exec(s)) || (m = /^(?:staat|staan|is) (.+?) (?:aan|uit|ingeschakeld|uitgeschakeld|ingesteld)$/.exec(s))) return { kind: 'stand', x: m[1] };
+  // Tijdzone: "gebruik Londense tijd", "gebruik de tijd van New York", "volg de telefoon" (alleen als de zone bestaat)
+  if ((m = new RegExp('^' + SET_PRE + '(?:gebruik|neem|hanteer) (?:de )?(?:tijd|tijdzone) (?:van|in) (.+)$').exec(s)) ||
+      (m = new RegExp('^' + SET_PRE + '(?:gebruik|neem|hanteer) (?:de |het )?(.+?) ?(?:tijd|tijdzone)$').exec(s)) ||
+      (m = new RegExp('^' + SET_PRE + 'volg (?:weer )?(de telefoon)(?: weer)?$').exec(s)) || // ("gebruik de telefoon" is geen instelling)
+      (m = new RegExp('^' + SET_PRE + '(?:laat )?(?:de )?tijdzone (?:de telefoon volgen|volgt de telefoon|terug naar (?:die van )?de telefoon)$').exec(s))) {
+    const v = setTzVal(m[1] || 'telefoon'); if (v) return { kind: 'cmd', x: 'tijdzone', raw: m[1] || 'telefoon', id: 'regio.tijdzone', sure: true };
+  }
   // Regio en taal: "gebruik mijlen", "toon temperaturen in fahrenheit", "valuta dollar" (alleen als de waarde past)
   if ((m = new RegExp('^' + SET_PRE + '(?:gebruik|(?:toon|schrijf|laat) (?:(?:alles|de|het|mijn) )?(?:\\w+ )?(?:zien )?in)\\s+(?:de |het |alleen )?(.+)$').exec(s))) { const r = setRgUse('', m[1]); if (r) return r; }
   // "reken in dollars": alleen munten
@@ -135,6 +142,7 @@ function setValFor(e, raw){
   if (t === 'aan') return SET_ON.test(r) ? 'aan' : SET_OFF.test(r) ? 'uit' : null;
   if (t === 'tijd') return setTime(r);
   if (t !== 'keuze') return null;
+  if (e.valFor) { const v = e.valFor(r); return v == null ? null : v; } // eigen herkenning (zoals de tijdzone)
   if (e.alias && e.alias[r]) return e.alias[r];
   const nm = x => norm2(x).replace(/[×x]$/, '').replace(',', '.').trim(), rr = nm(r);
   // noNum: een kaal getal is geen waarde ("zet de klok op 12 uur" is een tijdstip, geen 12-uurs klok)
@@ -213,7 +221,18 @@ function setLogText(){
 
 /* Een vraag over de app? Geeft null (gewoon de assistent), {local, text, set} (antwoord zonder taalmodel) of
    {settings, set} (taalmodel, met deze instellingen) */
+/* "Hoe laat is het in New York?" of "wat is de tijd in Tokio": alleen antwoorden, niets aanpassen */
+function setTzAsk(q){
+  const s = norm2(q).replace(/[?!.]+\s*$/, '').replace(/\s+/g, ' ').trim();
+  const m = /^(?:hoe laat is het|wat is de tijd|welke tijd is het|hoe laat is het nu|wat is de tijd nu|wat is het tijdsverschil met) (?:nu |op dit moment )?(?:in|met) (.+?)(?: nu| op dit moment)?$/.exec(s);
+  if (!m) return null;
+  const z = rgTzFind(m[1]);
+  if (!z) return null;
+  const now = Date.now(), at = fmtTime(now, { hour: '2-digit', minute: '2-digit', timeZone: z }), day = fmtDate(now, { weekday: 'long', day: 'numeric', month: 'long', timeZone: z });
+  return { local: true, text: 'In ' + rgTzCity(z) + ' is het nu ' + at + ' (' + day + ', ' + rgTzOffLabel(z, now) + '). Je eigen tijdzone verandert daar niet door; die kies je bij Instellingen → Regio en taal → Tijdzone.', set: { open: ['regio.tijdzone'] } };
+}
 function setHandle(q){
+  const tzA = setTzAsk(q); if (tzA) return tzA;
   const it = setIntent(q);
   if (!it) return null;
   if (setSolo()) return { local: true, text: 'In een losse app kan ik de instellingen van Tools niet bekijken of aanpassen. Open daarvoor Tools zelf.' };

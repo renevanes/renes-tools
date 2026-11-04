@@ -340,7 +340,7 @@
         <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-verval">Uiterste betaaldatum</label></div><input class="aein" id="fs-verval" type="date"></div>
         <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-betaald">Betaald op</label></div><input class="aein" id="fs-betaald" type="date"></div>
       </div>
-      <button class="linkish" style="margin-top:4px" onclick="$('#fs-betaald').value=new Date().toLocaleDateString('sv-SE');fsBewaar()">Vandaag betaald (bewaren)</button>
+      <button class="linkish" style="margin-top:4px" onclick="$('#fs-betaald').value=rgToday();fsBewaar()">Vandaag betaald (bewaren)</button>
       <div class="flabel" style="margin-top:8px"><label for="fs-cat">Categorie</label></div>
       <input class="aein" id="fs-cat" maxlength="80" autocomplete="off" placeholder="bijv. telefoon, kantoor" list="fs-cats">
       <datalist id="fs-cats"></datalist>

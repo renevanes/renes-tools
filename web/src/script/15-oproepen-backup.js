@@ -7,15 +7,16 @@ function fmtCallDur(s){ if (!s) return ''; const h = Math.floor(s/3600), m = Mat
   return h ? h + ':' + String(m).padStart(2,'0') + ':' + String(x).padStart(2,'0') : m + ':' + String(x).padStart(2,'0'); }
 /** Eindtijd = begintijd + duur. Op een andere dag (na middernacht) met de dag erbij. */
 function hms(d){ return fmtTime(d, {hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
-function fmtCallEnd(c){ if (!c.duration) return ''; const s = new Date(c.date), e = new Date(c.date + c.duration * 1000);
-  return s.toDateString() === e.toDateString() ? hms(e) : fmtDate(e, {weekday:'short'}) + ' ' + hms(e); }
+function fmtCallEnd(c){ if (!c.duration) return ''; const e = new Date(c.date + c.duration * 1000);
+  return rgDayKey(c.date) === rgDayKey(e) ? hms(e) : fmtDate(e, {weekday:'short'}) + ' ' + hms(e); }
 /** Begin (op de seconde) en, als er gesproken is, eind. */
-function fmtCallSpan(c){ const d = new Date(c.date), n = new Date(), y = new Date(Date.now() - 864e5);
-  const day = d.toDateString() === n.toDateString() ? 'vandaag' : d.toDateString() === y.toDateString() ? 'gisteren'
-    : fmtDate(d, {day:'numeric', month:'short', year: d.getFullYear() === n.getFullYear() ? undefined : 'numeric'});
+function fmtCallSpan(c){ const d = new Date(c.date);
+  const day = rgIsToday(d) ? 'vandaag' : rgIsYesterday(d) ? 'gisteren'
+    : fmtDate(d, {day:'numeric', month:'short', year: rgParts(d).y === rgParts().y ? undefined : 'numeric'});
   return day + ' ' + hms(d) + (c.duration ? '–' + fmtCallEnd(c) : ''); }
 function fmtHours(s){ const h = Math.floor(s/3600), m = Math.round(s%3600/60); return h ? h + ' u ' + m + ' m' : m + ' min'; }
-function dayStart(d){ const x = new Date(d); x.setHours(0,0,0,0); return x.getTime(); }
+/* Begin van de dag in de app-zone; een datum 'jjjj-mm-dd' (uit een invoerveld) geldt ook in de app-zone */
+function dayStart(d){ return typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d) ? rgFromLocal(d.slice(0, 10), '00:00') : rgStartOfDay(d); }
 /** Filter als JSON voor de app (periode omgerekend naar tijden). */
 function callsFilterJson(){
   const f = { kind: callsF.kind, q: $('#calls-search').value.trim(), who: callsF.who };
@@ -26,10 +27,10 @@ function callsFilterJson(){
     case 'yesterday': f.from = daysAgo(1); f.to = today; break;
     case '7': f.from = daysAgo(6); break;
     case '30': f.from = daysAgo(29); break;
-    case 'year': f.from = new Date(new Date().getFullYear(), 0, 1).getTime(); break;
+    case 'year': f.from = rgFromLocal(rgParts().y + '-01-01', '00:00'); break;
     case 'custom':
-      if (callsF.from) f.from = dayStart(callsF.from + 'T00:00');
-      if (callsF.to) f.to = dayStart(callsF.to + 'T00:00') + 864e5;
+      if (callsF.from) f.from = dayStart(callsF.from);
+      if (callsF.to) f.to = rgFromLocal(rgDayAdd(callsF.to, 1), '00:00'); // tot het begin van de dag erna (ook bij zomer-/wintertijd)
       break;
   }
   if (callsF.dur === '0') f.maxDur = 0; else if (callsF.dur !== 'all') f.minDur = +callsF.dur;
@@ -79,10 +80,10 @@ function callsSyncUi(){
   if (callsF.dur !== 'all') chips.push(['dur', lab('cf-dur', callsF.dur)]);
   $('#calls-active').innerHTML = chips.map(c => '<button data-k="' + c[0] + '" onclick="callsDropFilter(this.dataset.k)">' + esc(c[1]) + ' <span aria-hidden=true>×</span></button>').join('');
 }
-/** Begin van de dag, n dagen geleden (lokale tijd). */
-function daysAgo(n){ const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return d.getTime(); }
-/** Lokale datum als jjjj-mm-dd (toISOString geeft de UTC-datum: tussen 0 en 2 uur 's nachts een dag te vroeg). */
-function isoDay(t){ const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+/** Begin van de dag, n dagen geleden (in de app-zone). */
+function daysAgo(n){ return rgFromLocal(rgDayAdd(rgToday(), -n), '00:00'); }
+/** Datum als jjjj-mm-dd in de app-zone (toISOString geeft de UTC-datum: tussen 0 en 2 uur 's nachts een dag te vroeg). */
+function isoDay(t){ return rgDayKey(t); }
 function fmtDay(iso){ return fmtDate(iso + 'T12:00', {day:'numeric', month:'short', year:'numeric'}); }
 function callsSetKind(f){ callsF.kind = f; callsSyncUi(); loadCalls(); }
 function callsToggleFilters(){ const p = $('#calls-fpanel'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; }

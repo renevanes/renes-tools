@@ -226,6 +226,9 @@ public class AiBridge extends SleepBridge {
                 case "wekker": {
                     int min = o.optInt("min", -1);
                     if (!AiCommands.validClock(min)) return "Kies een geldige tijd";
+                    // De tijd geldt in de app-zone; de Klok-app rekent in telefoontijd: hetzelfde moment, omgerekend
+                    long at = Regio.nextAt(Regio.zone(ctx), min / 60, min % 60, 0, System.currentTimeMillis());
+                    if (at > 0) min = Regio.minuteOfDay(java.util.TimeZone.getDefault(), at);
                     android.content.Intent i = new android.content.Intent(android.provider.AlarmClock.ACTION_SET_ALARM)
                             .putExtra(android.provider.AlarmClock.EXTRA_HOUR, min / 60).putExtra(android.provider.AlarmClock.EXTRA_MINUTES, min % 60)
                             .putExtra(android.provider.AlarmClock.EXTRA_SKIP_UI, false);
@@ -318,8 +321,15 @@ public class AiBridge extends SleepBridge {
     @JavascriptInterface public String aiCalendarAdd(String json) {
         final JSONObject o;
         try { o = new JSONObject(json); } catch (Exception e) { return "Ongeldige afspraak"; }
-        final long begin = o.optLong("begin"), end = o.optLong("end");
-        if (begin <= 0) return "Kies eerst een datum";
+        long b0 = o.optLong("begin"), e0 = o.optLong("end");
+        if (b0 <= 0) return "Kies eerst een datum";
+        if (o.optBoolean("allDay")) {
+            // Een hele dag is een datum: dezelfde datum als in de app-zone, maar zoals de agenda-app (telefoontijd) hem leest
+            java.util.TimeZone app = Regio.zone(ctx), phone = java.util.TimeZone.getDefault();
+            b0 = Regio.toMillis(phone, Regio.dayKey(app, b0), "00:00");
+            if (e0 > 0) e0 = Regio.toMillis(phone, Regio.dayKey(app, e0 - 1), "00:00") + 86_400_000L;
+        }
+        final long begin = b0, end = e0;
         final String[] res = {"De agenda openen lukte niet"};
         final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
         a.h.post(() -> {

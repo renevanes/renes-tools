@@ -13,19 +13,19 @@ function ciHistory(id, from, to){ return rdJson(Android.checkinHistory(id, from,
 /** Antwoorden per dag (yyyy-MM-dd van het moment van de periode; "extra" op de dag van hun periode). Zuiver. */
 function ciByDay(h){
   const m = {};
-  (h.slots || []).forEach(s => { const d = ciDayKey(new Date(s.at)); (m[d] = m[d] || []).push(...(s.answers || [])); });
-  (h.extra || []).forEach(a => { const d = /^\d{4}-\d{2}-\d{2}/.test(a.p) ? a.p.slice(0, 10) : ciDayKey(new Date(a.t)); (m[d] = m[d] || []).push(a); });
+  (h.slots || []).forEach(s => { const d = rgDayKey(s.at); (m[d] = m[d] || []).push(...(s.answers || [])); });
+  (h.extra || []).forEach(a => { const d = /^\d{4}-\d{2}-\d{2}/.test(a.p) ? a.p.slice(0, 10) : rgDayKey(a.t); (m[d] = m[d] || []).push(a); });
   return m;
 }
 /** Opmerkingen per dag (zoals ciByDay; de opmerkingen die niet bij een periode horen op de dag van hun periode). Zuiver. */
 function ciRemByDay(h){
   const m = {};
-  (h.slots || []).forEach(s => { if ((s.remarks || []).length) { const d = ciDayKey(new Date(s.at)); (m[d] = m[d] || []).push(...s.remarks); } });
+  (h.slots || []).forEach(s => { if ((s.remarks || []).length) { const d = rgDayKey(s.at); (m[d] = m[d] || []).push(...s.remarks); } });
   (h.remarksExtra || []).forEach(r => { const d = ciKeyDay(r.p); (m[d] = m[d] || []).push(r); });
   return m;
 }
 /** "31 okt 18:49". Zuiver. */
-function ciWhen(t){ const d = new Date(t); return d.getDate() + ' ' + CI_MON[d.getMonth()].slice(0, 3) + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '') + ' ' + ciTime(t); }
+function ciWhen(t){ const d = rgParts(t); return d.d + ' ' + CI_MON[d.m - 1].slice(0, 3) + (d.y !== rgParts().y ? ' ' + d.y : '') + ' ' + ciTime(t); }
 function ciRemCount(n){ return n === 1 ? 'met een opmerking' : 'met ' + n + ' opmerkingen'; }
 /** Trend: kleinste kwadraten over de punten [x, y]; geeft de verandering over het hele bereik (y is 0..1). Zuiver. */
 function ciTrend(pts){
@@ -41,7 +41,7 @@ function ciTrendText(t){ if (!t) return 'te weinig antwoorden voor een trend'; r
 function enterCheckinQ(){
   ciLoad();
   const q = ciQ(ciqId); if (!q) { show('checkin'); return; }
-  if (!ciqMonthAt) { const n = new Date(); ciqMonthAt = new Date(n.getFullYear(), q.rhythm === 'monthly' ? 0 : n.getMonth(), 1, 12); ciqSelKey = ''; }
+  if (!ciqMonthAt) { const n = ciToday(); ciqMonthAt = new Date(n.getFullYear(), q.rhythm === 'monthly' ? 0 : n.getMonth(), 1, 12); ciqSelKey = ''; }
   ciqLoad();
 }
 /** Het bereik van de kalender: een maand, of een jaar bij "elke maand". */
@@ -72,7 +72,7 @@ function ciqRender(){
   ciqRenderSum(q);
 }
 function ciqCells(q){
-  const h = ciqHist, today = ciDayKey(new Date()), [from, , yearly] = ciqSpan(q);
+  const h = ciqHist, today = rgToday(), [from, , yearly] = ciqSpan(q);
   const status = ss => ss.some(s => s.status === 'open') ? 'open' : ss.some(s => s.status === 'missed') ? 'miss' : ss.length && ss.every(s => s.status === 'quiet') ? 'quiet' : ss.some(s => s.status === 'upcoming') ? 'up' : 'none';
   const word = { open: 'nog open', miss: 'gemist', quiet: 'stil (telt niet)', up: 'komt nog', none: 'geen vraag' };
   const cell = (key, label, small, ans, ss, aria, rem) => {
@@ -84,7 +84,7 @@ function ciqCells(q){
   };
   if (CI_DAYRHYTHM(q.rhythm)) {
     const by = ciByDay(h), rby = ciRemByDay(h), slotsBy = {};
-    (h.slots || []).forEach(s => { const d = ciDayKey(new Date(s.at)); (slotsBy[d] = slotsBy[d] || []).push(s); });
+    (h.slots || []).forEach(s => { const d = rgDayKey(s.at); (slotsBy[d] = slotsBy[d] || []).push(s); });
     const a = ciDate(from), cells = [], lead = typeof weekLead === 'function' ? weekLead(a) : (a.getDay() + 6) % 7; // eerste dag van de week: Regio en taal
     for (let i = 0; i < lead; i++) cells.push(null);
     for (let d = new Date(a); d.getMonth() === a.getMonth(); d.setDate(d.getDate() + 1)) {
@@ -107,7 +107,7 @@ function ciqCells(q){
 }
 function ciRemAria(cells){ cells.forEach(c => { if (c && c.rem.length) c.aria += ', ' + ciRemCount(c.rem.length); }); }
 function ciqRenderCal(q){
-  const [from, , yearly] = ciqSpan(q), a = ciDate(from), now = new Date();
+  const [from, , yearly] = ciqSpan(q), a = ciDate(from), now = ciToday();
   $('#ciq-month').textContent = yearly ? String(a.getFullYear()) : CI_MON[a.getMonth()].replace(/^./, x => x.toUpperCase()) + ' ' + a.getFullYear();
   const isNow = yearly ? a.getFullYear() >= now.getFullYear() : a.getFullYear() * 12 + a.getMonth() >= now.getFullYear() * 12 + now.getMonth();
   $('#ciq-next').disabled = isNow;
@@ -131,7 +131,7 @@ function ciqRenderCal(q){
 function ciqStep(dir){
   const q = ciQ(ciqId); if (!q) return;
   const a = ciqMonthAt, yearly = q.rhythm === 'monthly';
-  const n = yearly ? new Date(a.getFullYear() + dir, 0, 1, 12) : new Date(a.getFullYear(), a.getMonth() + dir, 1, 12), now = new Date();
+  const n = yearly ? new Date(a.getFullYear() + dir, 0, 1, 12) : new Date(a.getFullYear(), a.getMonth() + dir, 1, 12), now = ciToday();
   if (dir > 0 && (yearly ? n.getFullYear() > now.getFullYear() : n > new Date(now.getFullYear(), now.getMonth(), 1, 12))) return;
   ciqMonthAt = n; ciqSelKey = ''; ciqLoad();
 }
@@ -156,7 +156,7 @@ function ciqRenderDay(q){
   const c = ciqCells(q).cells.find(x => x && x.key === ciqSelKey);
   if (!c) { box.style.display = 'none'; return; }
   box.style.display = '';
-  const now = Date.now(), today = ciDayKey(new Date()), canEdit = a => q.editable !== false || now - a.t < 15 * 60000;
+  const now = Date.now(), today = rgToday(), canEdit = a => q.editable !== false || now - a.t < 15 * 60000;
   let h = '<h2>' + esc(ciKeyLabel(c.key).replace(/^./, x => x.toUpperCase())) + '</h2>';
   const real = c.ss.length > 0, ss = real ? c.ss : [{ key: c.key, status: c.ans.length ? 'answered' : 'none', answers: c.ans }];
   const keys = new Set(ss.map(s => s.key));
@@ -180,7 +180,7 @@ function ciqRenderDay(q){
     const remBtn = addRem ? '<button class="mini" data-k="' + esc(s.key) + '" onclick="ciRemOpen(this.dataset.k)" aria-label="' + esc('Opmerking toevoegen: ' + q.text + ', ' + ciKeyLabel(s.key)) + '">' + uiIcon('edit') + 'Opmerking toevoegen</button>' : '';
     let act = '', off = '';
     if (!q.archived) {
-      const one = q.perPeriod !== 'many', past = s.status === 'missed' || s.status === 'before' || (s.status === 'answered' && s.end && s.end <= now), todayUp = s.status === 'upcoming' && ciDayKey(new Date(s.at)) === today;
+      const one = q.perPeriod !== 'many', past = s.status === 'missed' || s.status === 'before' || (s.status === 'answered' && s.end && s.end <= now), todayUp = s.status === 'upcoming' && rgDayKey(s.at) === today;
       if ((s.status === 'open' || todayUp) && !ans.length) act = 'Invullen';
       else if (s.status === 'open' && !one) act = 'Nog een antwoord';
       else if (past && q.backfill !== false && (!ans.length || !one)) act = ans.length ? 'Nog een antwoord (achteraf)' : 'Achteraf invullen';
@@ -271,7 +271,7 @@ function ciqRemDel(rid){
 function ciqView(v){ ciqViewV = v; store.set('ciView', v); const q = ciQ(ciqId); if (q) ciqRenderChart(q); }
 /** Punten voor de grafiek: [{label, long, v (gemiddelde) of null}]. */
 function ciqPoints(q){
-  const now = new Date(), view = ciqViewV;
+  const now = ciToday(), view = ciqViewV;
   if (view === 'year') {
     const y = (ciqMonthAt || now).getFullYear(), h = ciHistory(q.id, y + '-01-01', (y + 1) + '-01-01'), by = ciByDay(h), rby = ciRemByDay(h);
     ciqChartHist = h;
@@ -325,13 +325,13 @@ function ciqRenderChart(q){
   document.querySelectorAll('#ciq-view button').forEach(b => { const on = b.dataset.v === ciqViewV, hide = (b.dataset.v === 'week' && !CI_DAYRHYTHM(q.rhythm)) || (b.dataset.v === 'month' && q.rhythm === 'monthly');
     b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); b.style.display = hide ? 'none' : ''; });
   const pts = ciqPoints(q), [from] = ciqSpan(q), a = ciDate(from);
-  const title = ciqViewV === 'week' ? 'De afgelopen 7 dagen' : ciqViewV === 'year' ? 'Per maand in ' + (ciqMonthAt || new Date()).getFullYear() : 'Per dag in ' + CI_MON[a.getMonth()] + ' ' + a.getFullYear();
+  const title = ciqViewV === 'week' ? 'De afgelopen 7 dagen' : ciqViewV === 'year' ? 'Per maand in ' + (ciqMonthAt || ciToday()).getFullYear() : 'Per dag in ' + CI_MON[a.getMonth()] + ' ' + a.getFullYear();
   slHtml($('#ciq-chart'), '<div class="ci-chart" data-c="' + esc(q.color || 'primary') + '"><p class="note" style="margin:6px 2px 4px">' + esc(title) + '</p>' + ciChartSvg(q, pts, title) + '</div>');
 }
 
 /* ---------- samenvatting ---------- */
 function ciqRenderSum(q){
-  const s = (ciqHist || {}).summary || {}, opts = ciOpts(q), counts = s.counts || [], [from, , yearly] = ciqSpan(q), a = ciDate(from), now = new Date();
+  const s = (ciqHist || {}).summary || {}, opts = ciOpts(q), counts = s.counts || [], [from, , yearly] = ciqSpan(q), a = ciDate(from), now = ciToday();
   const thisOne = yearly ? a.getFullYear() === now.getFullYear() : a.getFullYear() === now.getFullYear() && a.getMonth() === now.getMonth();
   const when = yearly ? (thisOne ? 'Dit jaar' : 'In ' + a.getFullYear()) : thisOne ? 'Deze maand' : 'In ' + CI_MON[a.getMonth()] + ' ' + a.getFullYear();
   const order = opts.map((o, i) => i).reverse(), max = Math.max(1, ...counts);
@@ -374,7 +374,7 @@ function cicRender(){
   const out = $('#cic-out'), qa = ciQ($('#cic-a').value);
   if ($('#cic-b').options.length && [...$('#cic-b').options].some(o => o.value === $('#cic-a').value)) cicFillB($('#cic-b').value);
   if (!qa) { out.innerHTML = '<div class="card"><p class="note" style="margin:0">Maak eerst een vraag en vul hem een paar keer in.</p></div>'; return; }
-  const bv = $('#cic-b').value, now = new Date(), to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12), from = new Date(to); from.setDate(from.getDate() - cicRangeV);
+  const bv = $('#cic-b').value, now = ciToday(), to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12), from = new Date(to); from.setDate(from.getDate() - cicRangeV);
   const F = ciDayKey(from), T = ciDayKey(to), A = ciDayValues(qa, ciHistory(qa.id, F, T)), an = qa.text;
   let h = '<div class="card ci-chart" data-c="' + esc(qa.color || 'primary') + '">';
   if (bv === '__sleep' || bv === '__cal') {
@@ -418,7 +418,7 @@ function ciKeyDay(key){ if (/^\d{4}-W\d{2}$/.test(key)) return ciDayKey(ciWeekSt
 function ciFromHit(x){
   ciLoad();
   const q = ciQ(x.q); if (!q) { jumpTo('checkin'); return; }
-  const d = ciDate(x.p ? ciKeyDay(x.p) : x.month ? x.month + '-01' : '') || new Date();
+  const d = ciDate(x.p ? ciKeyDay(x.p) : x.month ? x.month + '-01' : '') || ciToday();
   ciqId = q.id;
   ciqMonthAt = new Date(d.getFullYear(), q.rhythm === 'monthly' ? 0 : d.getMonth(), 1, 12);
   ciqSelKey = x.p ? (CI_DAYRHYTHM(q.rhythm) ? x.p.slice(0, 10) : x.p) : '';

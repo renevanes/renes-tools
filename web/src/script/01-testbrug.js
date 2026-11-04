@@ -954,7 +954,7 @@ if (!window.Android) window.Android = (function(){
     restoreApply(){ const k=this._restoreKind; this._restoreApplied=k; setTimeout(()=>onRestoreDone(k==='sleep'?'ok:3':k==='ai'?'ok:5':k==='checkin'?'ok:35':'ok:9'),100); return ''; },
     _al:{on:false,hour:7,minute:0,days:31,station:null,nextAt:0},
     alarmState(){ return JSON.stringify(Object.assign({exact:true},this._al)); },
-    alarmSet(on,h,m,d,st){ const a=this._al; Object.assign(a,{on,hour:h,minute:m,days:d}); if(st) a.station=JSON.parse(st); if(on&&!a.station) return 'Kies een zender'; a.nextAt=on?Date.now()+8*36e5:0; return ''; },
+    alarmSet(on,h,m,d,st){ const a=this._al; Object.assign(a,{on,hour:h,minute:m,days:d}); if(st) a.station=JSON.parse(st); if(on&&!a.station) return 'Kies een zender'; a.nextAt=on?(typeof rgNextAt==='function'?rgNextAt(String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'),Date.now(),wd=>!d||!!(d&(1<<((wd+6)%7)))):Date.now()+8*36e5):0; return ''; }, // zoals RadioAlarm.next: wandklok in de app-zone
     alarmTest(){ return this._al.station?'':'Kies eerst een zender'; }, alarmExactSettings(){},
     _rem:{}, _rems:[], noteRemind(id,t,time){ if(+time>0) this._rem[id]=+time; else delete this._rem[id]; }, noteReminders(){ const o = {...this._rem}; this._rems.forEach(r => { if (!o[r.note] || o[r.note] > r.t) o[r.note] = r.t; }); return JSON.stringify(o); },
     noteRemindAdd(note,title,time,rep){ if (this._remFail) return ''; const id = note + '~' + (this._rems.length + 2); this._rems.push({id, note, t: +time, rep}); return id; },

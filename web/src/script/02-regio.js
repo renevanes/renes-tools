@@ -412,6 +412,8 @@ rgNative();
 addEventListener('DOMContentLoaded', () => { rgWeekChips(); rgUnits(); });
 addEventListener('regiochange', () => {
   rgWeekChips(); rgUnits();
+  // Andere tijdzone: het thema "op tijd" of met de zon opnieuw (wissels in de app-zone)
+  try { if (typeof thApply === 'function') thApply(); } catch (e) { }
   // Wat nu in beeld is opnieuw tekenen (andere schermen tekenen zich bij het openen)
   try { if (typeof current !== 'undefined' && current === 'home' && typeof renderDash === 'function') renderDash(); } catch (e) { }
 });

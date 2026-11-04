@@ -45,7 +45,7 @@ const BK_REGELS = [
 
 let bk = { st: null, store: null, tab: 'overzicht', lijstN: 100, catCache: new Map(), eigen: new Set(), aiBezig: false, aiDoel: '', aiTekst: '', voorstellen: null, aanraak: 0, tmr: null };
 
-const bkVandaag = () => window.BK_VANDAAG || (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
+const bkVandaag = () => window.BK_VANDAAG || rgToday(); // vandaag in de app-zone (Regio en taal)
 function bkEuro(c, teken){
   return fmtMoney(c / 100, 'EUR', { sign: !!teken }); // de rekeningen zijn in euro; tekens volgens Regio en taal
 }
