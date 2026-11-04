@@ -369,7 +369,7 @@ const SET_EXCLUDE = [
   ['#fa-gd-r-gmail, #fa-gd-r-drive, #fa-gd-r-send', 'Rechten voor de Google-koppeling van Facturen; die kies je bij het koppelen'],
   ['#s-facontv select, #s-facontv input', 'Hoort bij één ontvanger (boekhouder) van Facturen; je stelt het in en bewaart het op het scherm van die ontvanger'],
   ['#s-facdos select, #s-facdos input, #fm-bev', 'Filters in het dossier van Facturen en de beveiliging van de eigen mailserver (bewaard met Bewaren)'],
-  ['#fl-m-bron, #fl-m-dagen, #fl-m-per, #fl-bron, #fl-schema, #fl-dag, #fl-wd, #fl-tijd, #fl-opnieuw, #fl-wifi, #fl-meldnieuw, #fl-meldfout, #fl-map, #fl-lok, #fl-gd, #fl-ec', 'Hoort bij één leverancier van Facturen; je stelt het in en bewaart het op het scherm van die leverancier'],
+  ['#fl-m-bron, #fl-m-per, #fl-periode, #fl-vanaf, #fl-max, #fl-bron, #fl-schema, #fl-dag, #fl-wd, #fl-tijd, #fl-opnieuw, #fl-wifi, #fl-meldnieuw, #fl-meldfout, #fl-map, #fl-lok, #fl-gd, #fl-ec', 'Hoort bij één leverancier van Facturen; je stelt het in en bewaart het op het scherm van die leverancier'],
   ['#rd-genres', 'Een filter in de zenderlijst, geen instelling'],
   ['#note-split-source, #note-split-separator, #note-split-keep', 'Keuzes van het venster Lijst splitsen, voor één keer'],
   ['#note-repeat, #note-rem-rep, #note-pin-app', 'Hoort bij één notitie of herinnering'],

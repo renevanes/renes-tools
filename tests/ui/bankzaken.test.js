@@ -39,7 +39,11 @@ const { chromium } = require('playwright');
     await pg.click('#bk-leeg button.big'); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => JSON.stringify(Android._bank.calls.find(c => c[0] === 'import'))) === '["import",true]', 'importeren: bronbestand verwijderen staat standaard aan');
     ok(await pg.isVisible('#modal.on') && (await tekst('#modal')).includes('nieuwe boekingen') && (await tekst('#modal')).includes('foto.jpg'), 'uitkomst met nieuwe boekingen en wat niet lukte');
-    await pg.click('#modal button:has-text("OK")'); await pg.waitForTimeout(100);
+    await pg.click('#modal button:has-text("OK")'); await pg.waitForTimeout(200);
+    // Nieuwe rekening: privé of zakelijk?
+    ok(await pg.isVisible('#modal.on') && (await tekst('#modal')).includes('Privé of zakelijk') && (await tekst('#modal')).includes('NL20'), 'vraagt bij een nieuwe rekening of hij privé of zakelijk is');
+    await pg.click('#modal-ok'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._bank.data.rek['NL20INGB0001234567'].soort === 'prive') && !(await pg.isVisible('#modal.on')), 'privé bewaard');
 
     // Overzicht laatste 3 maanden
     await pg.selectOption('#bk-periode', 'm3'); await pg.waitForTimeout(150);
@@ -78,7 +82,7 @@ const { chromium } = require('playwright');
     await pg.click('#bk-tab-beheer'); await pg.waitForTimeout(150);
     ok((await tekst('#bk-zonder')).includes('staan nog bij Overig'), 'aantal zonder categorie');
     await pg.click('#bk-ai-cat'); await pg.waitForTimeout(300);
-    ok(await pg.evaluate(() => Android._bank.ai[3].mode === 'categorie' && Android._bank.ai[3].messages[0].content.includes('Categorieën: Boodschappen')), 'categorieën-vraag met de lijst');
+    ok(await pg.evaluate(() => Android._bank.ai[3].mode === 'categorie' && Android._bank.ai[3].messages[0].content.includes('Categorieën voor privé: Boodschappen') && !Android._bank.ai[3].messages[0].content.includes('voor zakelijk')), 'categorieën-vraag met de lijst');
     ok(await pg.$$eval('#bk-ai-cat-uit .bk-voorstel', l => l.length) === 1 && await pg.$('#bk-ai-cat-uit img') === null, 'één bruikbaar voorstel (onbekende categorie genegeerd), naam als tekst');
     await pg.click('#bk-ai-cat-uit button.big'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Android._bank.data.rules.length === 1 && Android._bank.data.rules[0].cat === 'Persoonlijke verzorging'), 'voorstel overgenomen als regel');
@@ -105,6 +109,60 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => JSON.stringify(bkVorige('2026-09-01', '2026-11-03'))) === '["2026-06-01","2026-08-03"]', 'vorige periode: zelfde stuk maanden ervoor');
     ok(await pg.evaluate(() => JSON.stringify(bkVorige('2026-03-01', '2026-03-31'))) === '["2026-02-01","2026-02-28"]', 'vorige maand afgekapt op de maandlengte');
     ok(await pg.evaluate(() => JSON.stringify(bkVorige('2026-10-10', '2026-10-19'))) === '["2026-09-30","2026-10-09"]', 'andere periode: even lang ervoor');
+
+    // Meerdere rekeningen: een zakelijke rekening erbij, met geld van zakelijk naar privé
+    await pg.evaluate(() => { const d = Android._bank.data, z = 'NL99RABO0123456789', p = 'NL20INGB0001234567';
+      const add = o => d.tx.push(Object.assign({ acc: z, ci: '', ds: '', ty: '', src: 'Rabobank', in: 1 }, o));
+      add({ id: 'z1', d: '2026-10-10', a: 500000, cp: 'Klant B.V.', ds: 'Factuur 2026-014' });
+      add({ id: 'z2', d: '2026-10-11', a: -12000, cp: 'Amazon Web Services EMEA', ds: 'AWS' });
+      add({ id: 'z3', d: '2026-10-12', a: -4500, cp: 'Restaurant De Kade', ds: '' });
+      add({ id: 'z4', d: '2026-10-28', a: -200000, cp: 'R van Es', ci: p, ds: 'Opname' });
+      d.tx.push({ id: 'p9', acc: p, d: '2026-10-28', a: 200000, cp: 'Mijn Bedrijf', ci: z, ds: 'Opname', ty: '', src: 'ING', in: 1 });
+      d.rev += 1; bkTab('overzicht'); bkLaad(); });
+    await pg.waitForTimeout(150);
+    ok(await pg.isVisible('#modal.on') && (await tekst('#modal')).includes('NL99'), 'vraagt naar de nieuwe zakelijke rekening');
+    await pg.click('#modal-cancel'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._bank.data.rek['NL99RABO0123456789'].soort === 'zakelijk'), 'zakelijk bewaard');
+    ok(await pg.$$eval('#bk-rek option', l => ['alle', 'prive', 'zakelijk', 'NL20INGB0001234567', 'NL99RABO0123456789'].every(v => l.some(o => o.value === v))) && await pg.isVisible('#bk-rek'), 'kiezen: alle, privé, zakelijk of één rekening');
+    const tot = await pg.evaluate(() => { const o = {}; for (const x of ['alle', 'prive', 'zakelijk']) { $('#bk-rek').value = x; const [a, b] = bkPeriodeVan(); o[x] = bkTotalen(bkSelectie(a, b)); } $('#bk-rek').value = 'alle'; return o; });
+    ok(tot.zakelijk.in === 500000 && tot.zakelijk.uit === 16500 && tot.zakelijk.naarPrive === 200000, 'zakelijk: omzet, kosten en privé-opname apart: ' + JSON.stringify(tot.zakelijk));
+    ok(tot.prive.in === tot.alle.in - 500000 + 200000 && tot.alle.uit === tot.prive.uit + 16500 && tot.alle.naarPrive === 0, 'privé: uit eigen bedrijf telt als inkomsten; samen telt het geld ertussen niet mee');
+    await pg.selectOption('#bk-rek', 'alle'); await pg.waitForTimeout(150);
+    ok((await tekst('#bk-overzicht')).includes('Privé en zakelijk'), 'alle rekeningen: privé en zakelijk apart');
+    await pg.selectOption('#bk-rek', 'zakelijk'); await pg.waitForTimeout(150);
+    const zo = await tekst('#bk-overzicht');
+    ok(zo.includes('Kosten') && zo.includes('Resultaat') && zo.includes('Naar privé') && zo.includes('Software & abonnementen') && zo.includes('Representatie') && !zo.includes('Boodschappen'), 'zakelijk overzicht: kosten, resultaat, zakelijke categorieën');
+    ok(await pg.evaluate(() => bkFeiten('').includes('Omzet en inkomsten € 5.000,00') && bkFeiten('').includes('zakelijk')), 'de AI krijgt zakelijke cijfers');
+    await pg.selectOption('#bk-rek', 'prive'); await pg.waitForTimeout(150);
+    ok((await tekst('#bk-overzicht')).includes('Uit eigen bedrijf') && !(await tekst('#bk-overzicht')).includes('Software & abonnementen'), 'privé overzicht: uit eigen bedrijf, geen zakelijke kosten');
+    // Categorie kiezen op een zakelijke boeking: zakelijke categorieën
+    await pg.selectOption('#bk-rek', 'zakelijk'); await pg.click('#bk-tab-boekingen'); await pg.fill('#bk-zoek', 'klant'); await pg.waitForTimeout(150);
+    await pg.click('#bk-lijst .bk-tx'); await pg.click('#sheet button:has-text("Categorie wijzigen")'); await pg.waitForTimeout(150);
+    ok((await tekst('#sheet')).includes('Omzet') && !(await tekst('#sheet')).includes('Boodschappen'), 'zakelijke boeking: zakelijke categorieën om uit te kiezen');
+    await pg.evaluate(() => closeSheet());
+    // Zelf toegevoegde zakelijke rekening die later ook geïmporteerd wordt: geen eindeloze vraag; zonder import telt geld uit je bedrijf mee
+    const extra = await pg.evaluate(() => { const d = Android._bank.data, k = 'NL77KNAB0123456789', p = 'NL20INGB0001234567';
+      d.eigen = (d.eigen || []).concat([{ iban: k, naam: 'BV', soort: 'zakelijk' }]);
+      d.tx.push({ id: 'k1', acc: p, d: '2026-10-29', a: 150000, cp: 'Mijn BV', ci: k, ds: 'Dividend', ty: '', src: 'ING', in: 1 });
+      d.tx.push({ id: 'k2', acc: 'NL99RABO0123456789', d: '2026-10-29', a: 121000, cp: 'Klant Twee', ci: '', ds: 'Factuur 15 incl. btw', ty: '', src: 'Rabobank', in: 1 });
+      d.rev += 1; bkLaad();
+      $('#bk-rek').value = 'alle'; const [a, b] = bkPeriodeVan(); const tt = bkTotalen(bkSelectie(a, b));
+      return { modal: !!document.querySelector('#modal.on'), cat1: bkCat(d.tx.find(t => t.id === 'k1')), cat2: bkCat(d.tx.find(t => t.id === 'k2')), soort: bkSoort(d.tx.find(t => t.id === 'k1')), inn: tt.in }; });
+    await pg.waitForTimeout(200);
+    ok(!extra.modal && !(await pg.isVisible('#modal.on')), 'rekening met soort in "eigen": geen vraag meer');
+    ok(extra.cat1 === 'Uit eigen bedrijf' && extra.soort === 'in', 'geld van een zelf toegevoegde (niet geïmporteerde) zakelijke rekening telt als inkomsten: ' + JSON.stringify(extra));
+    ok(extra.cat2 === 'Omzet', 'betaling van een klant "incl. btw" is omzet, geen btw: ' + extra.cat2);
+    await pg.click('#bk-tab-overzicht'); await pg.waitForTimeout(100);
+
+    // Beheer: soort wijzigen
+    await pg.click('#bk-tab-beheer'); await pg.waitForTimeout(100);
+    ok((await tekst('#bk-rekeningen')).includes('zakelijk') && (await tekst('#bk-rekeningen')).includes('privé'), 'Mijn rekeningen toont privé en zakelijk');
+    await pg.click('#bk-rekeningen .bk-rij:has-text("NL99") button'); await pg.waitForTimeout(100);
+    await pg.click('#sheet button:has-text("Privérekening")'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Android._bank.data.rek['NL99RABO0123456789'].soort === 'prive'), 'soort te wijzigen');
+    await pg.click('#bk-rekeningen .bk-rij:has-text("NL99") button'); await pg.click('#sheet button:has-text("Zakelijke rekening")'); await pg.waitForTimeout(150);
+    await pg.click('#bk-tab-boekingen'); await pg.selectOption('#bk-rek', 'alle'); await pg.fill('#bk-zoek', 'restaurant'); await pg.waitForTimeout(150);
+
     // Open boeking-menu en dan app uit beeld: menu dicht en leeg
     await pg.click('#bk-lijst .bk-tx'); await pg.waitForTimeout(150);
 

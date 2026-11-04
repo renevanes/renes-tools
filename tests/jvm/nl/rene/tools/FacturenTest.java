@@ -42,6 +42,26 @@ public class FacturenTest {
         check(ziggo != null && Facturen.eigenSite("https://www.ziggo.nl/mijn-ziggo/facturen/factuur.pdf", Facturen.domein(ziggo.getString("startUrl"))), "Ziggo: downloads van ziggo.nl horen bij de leverancier");
         check(fi != null && Facturen.domein(fi.getString("startUrl")).equals("ziggo.nl"), "Ziggo Factuurinzicht: domein ziggo.nl");
         check(ziggo != null && "vodafone.nl, vodafoneziggo.nl".equals(ziggo.optString("domeinen")), "Ziggo: inloggen via vodafone.nl hoort erbij");
+        // ---------- welke facturen: periode ----------
+        java.util.TimeZone ams = java.util.TimeZone.getTimeZone("Europe/Amsterdam");
+        java.util.Calendar cal = java.util.Calendar.getInstance(ams); cal.clear(); cal.set(2026, 10, 4, 13, 0); long nov4 = cal.getTimeInMillis();
+        cal.clear(); cal.set(2026, 0, 1, 0, 0); long jan1 = cal.getTimeInMillis();
+        check(kpn.getJSONObject("periode").getString("soort").equals("jaar") && kpn.getInt("max") == 50, "standaard: dit jaar, hooguit 50 per keer");
+        check(Facturen.vanaf(kpn, nov4, ams) == jan1, "dit jaar = vanaf 1 januari");
+        check(Facturen.vanaf(new JSONObject(), nov4, ams) == jan1, "zonder keuze (oudere leverancier): ook dit jaar");
+        cal.clear(); cal.set(2026, 4, 4, 0, 0);
+        check(Facturen.vanaf(new JSONObject().put("periode", new JSONObject().put("soort", "maanden").put("maanden", 6)), nov4, ams) == cal.getTimeInMillis(), "laatste 6 maanden");
+        cal.clear(); cal.set(2025, 2, 15, 0, 0);
+        check(Facturen.vanaf(new JSONObject().put("periode", Facturen.periode(new JSONObject().put("soort", "vanaf").put("vanaf", "2025-03-15"))), nov4, ams) == cal.getTimeInMillis(), "vanaf een datum");
+        check(Facturen.vanaf(new JSONObject().put("periode", new JSONObject().put("soort", "alles")), nov4, ams) == 0, "alles");
+        boolean slechtePeriode = false;
+        try { Facturen.periode(new JSONObject().put("soort", "vanaf").put("vanaf", "gisteren")); } catch (Exception e) { slechtePeriode = true; }
+        check(slechtePeriode && fout(new JSONObject(lijst.getJSONObject(0).toString()).put("periode", new JSONObject().put("soort", "ooit"))).contains("periode"), "ongeldige periode geweigerd");
+        check(FacturenMail.sinds(kpn, 0, 0, nov4, ams) == jan1 && FacturenMail.sinds(kpn, nov4 - 86_400_000L, 0, nov4, ams) == nov4 - 3 * 86_400_000L, "mail: de eerste keer vanaf de periode, daarna sinds de vorige keer");
+        cal.clear(); cal.set(2026, 0, 5, 9, 0); long jan5 = cal.getTimeInMillis(); cal.clear(); cal.set(2025, 11, 5, 9, 0); long dec5 = cal.getTimeInMillis();
+        check(FacturenMail.sinds(kpn, dec5, 0, jan5, ams) == dec5 - 2 * 86_400_000L, "jaarwisseling (mail): ook de mails van eind december");
+        check(Facturen.grens(kpn, dec5, jan5, ams) == dec5 - 45 * 86_400_000L && Facturen.grens(kpn, 0, jan5, ams) < jan5 && Facturen.grens(kpn, 0, nov4, ams) == jan1, "jaarwisseling (website): facturen van december blijven; de eerste keer vanaf 1 januari");
+        check(Facturen.normaal(new JSONObject(lijst.getJSONObject(0).toString()).put("max", 500)).getInt("max") == 200 && kpn.optString("meer").contains("toon meer"), "hooguit 200; standaard op Toon meer klikken");
         JSONObject metPw = Facturen.normaal(new JSONObject(lijst.getJSONObject(0).toString()).put("wachtwoord", "geheim123").put("code", new JSONObject().put("bron", "sms").put("wachtwoord", "x")));
         check(!metPw.toString().contains("geheim123") && !metPw.has("wachtwoord"), "wachtwoord komt nooit in de instellingen (alleen versleuteld apart)");
         String[] zd = Facturen.domeinen(null, ziggo);
@@ -73,7 +93,7 @@ public class FacturenTest {
         check(fout(new JSONObject(basis.toString()).put("code", new JSONObject().put("bron", "telepathie"))).contains("bron"), "onbekende codebron geweigerd");
         check(fout(new JSONObject(basis.toString()).put("velden", new JSONObject().put("knop", "button{color:red}"))).contains("veldaanwijzing"), "rare veldaanwijzing geweigerd");
         JSONObject n = Facturen.normaal(new JSONObject(basis.toString()).put("max", 500).put("submap", "a/b:c").put("id", "Mijn Ziggo!!"));
-        check(n.getInt("max") == 50, "hooguit 50 per keer");
+        check(n.getInt("max") == 200, "hooguit 200 per keer");
         check(n.getString("submap").equals("a_b_c"), "mapnaam veilig: " + n.getString("submap"));
         check(n.getString("id").equals("mijn-ziggo"), "id veilig: " + n.getString("id"));
         check(Facturen.normaal(new JSONObject(basis.toString()).put("knoppen", "")).getString("knoppen").contains("download"), "leeg patroon: standaard");
@@ -148,7 +168,7 @@ public class FacturenTest {
         check(FacturenDrive.scopes("gmail").equals(FacturenGmail.SCOPE) && FacturenDrive.scopes("drive,gmail").equals(FacturenDrive.SCOPE + " " + FacturenGmail.SCOPE) && FacturenDrive.scopes(null).equals(FacturenDrive.SCOPE), "Google-rechten → scopes");
 
         // ---------- planning: vast moment ----------
-        java.util.TimeZone ams = java.util.TimeZone.getTimeZone("Europe/Amsterdam");
+        ams = java.util.TimeZone.getTimeZone("Europe/Amsterdam");
         java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm"); f.setTimeZone(ams);
         long nu = f.parse("2026-11-02 19:30").getTime();
         JSONObject m5 = Facturen.normaal(new JSONObject(basis.toString()).put("schema", "maand").put("dag", 5).put("tijd", "08:00"));
