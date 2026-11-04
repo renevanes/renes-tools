@@ -203,7 +203,7 @@ function apCrowdRender(){
   const mine = (d.networks || []).find(n => n.connected);
   $('#ap-crowd').innerHTML = bands.map(band => {
     const chs = Object.keys(cr[band]).map(Number).sort((a, b) => a - b), max = Math.max(1, ...chs.map(c => cr[band][c]));
-    const bars = chs.map(c => { const v = cr[band][c], cls = band === '2,4 GHz' && c === d.best24 ? 'best' : v >= max * .75 && v > .5 ? 'hot' : ''; return '<div class="' + cls + '" title="Kanaal ' + c + '"><i style="height:' + Math.max(3, Math.round(v / max * 100)) + '%"></i></div>'; }).join('');
+    const bars = chs.map(c => { const v = cr[band][c], cls = band === '2,4 GHz' && c === d.best24 ? 'best' : v >= max * .75 && v > .5 ? 'hot' : ''; return '<div class="' + cls + '" title="' + t('Kanaal {n}', { n: c }) + '"><i style="height:' + Math.max(3, Math.round(v / max * 100)) + '%"></i></div>'; }).join('');
     return '<div class="ap-crowd"><div class="band">' + esc(band) + '</div><div class="ap-bars" role="img" aria-label="Drukte per kanaal op ' + esc(band) + ': ' + chs.map(c => 'kanaal ' + c + ' ' + fmtNum(cr[band][c], { maximumFractionDigits: 3 })).join(', ') + '">' + bars + '</div><div class="ap-lbls" aria-hidden="true">' + chs.map(c => '<span>' + c + '</span>').join('') + '</div></div>';
   }).join('');
   let tip = '';

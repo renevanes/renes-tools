@@ -131,7 +131,7 @@ function bkVoorstellen(tekst){
   const box = $('#bk-ai-cat-uit');
   if (!keuze.length) { box.textContent = 'De AI kwam niet met bruikbare voorstellen. Probeer het nog eens of deel zelf in vanuit een boeking.'; return; }
   box.innerHTML = '<p class="note">Kies per naam of je het voorstel overneemt. Er komt dan een regel bij (te zien en te verwijderen onder Mijn regels).</p>'
-    + keuze.map((k, i) => '<label class="bk-voorstel"><input type="checkbox" checked data-i="' + i + '"><span>' + esc(bkKort(k.x.naam)) + ' <small class="note">(' + k.x.n + '×)</small></span><select class="sel" data-i="' + i + '" aria-label="Categorie voor ' + esc(bkKort(k.x.naam)) + '">'
+    + keuze.map((k, i) => '<label class="bk-voorstel"><input type="checkbox" checked data-i="' + i + '"><span>' + esc(bkKort(k.x.naam)) + ' <small class="note">(' + k.x.n + '×)</small></span><select class="sel" data-i="' + i + '" aria-label="' + esc(t('Categorie voor {naam}', { naam: bkKort(k.x.naam) })) + '">'
       + cats.map(c => '<option' + (c === k.c ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select></label>').join('')
     + '<button class="big" style="margin-top:10px" onclick="bkVoorstellenOvernemen()">Overnemen</button>';
 }

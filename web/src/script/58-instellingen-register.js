@@ -200,7 +200,7 @@ const SET_REG = [
     note: () => { const a = rdJson(Android.alarmState(), {}); if (!a.on) return 'De wekker staat nu uit; zet hem daarna aan bij Radiowekker.'; const z = setAlarmStation(); return z ? 'Zender: ' + z : ''; },
     get: () => { const a = rdJson(Android.alarmState(), {}); return String(a.hour != null ? a.hour : 7).padStart(2, '0') + ':' + String(a.minute || 0).padStart(2, '0'); }, set: v => setAlarm(() => { $('#al-time').value = v; }) },
   { id: 'wekker.dagen', scr: 'ralarm', ctl: '#al-days', type: 'openen', label: 'Dagen van de radiowekker', desc: 'Op welke dagen de wekker afgaat (geen dag = eenmalig).', syn: 'wekker dagen weekend werkdagen',
-    get: () => { const d = rdJson(Android.alarmState(), {}).days; const n = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'].filter((x, i) => (d != null ? d : 31) & (1 << i)); return n.length ? n.join(', ') : 'eenmalig'; } },
+    get: () => { const d = rdJson(Android.alarmState(), {}).days; const n = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'].filter((x, i) => (d != null ? d : 31) & (1 << i)).map(x => t(x)); return n.length ? n.join(', ') : t('eenmalig'); } },
   { id: 'wekker.zender', scr: 'ralarm', ctl: '#al-station', type: 'openen', label: 'Zender van de radiowekker', desc: 'Met welke zender je wakker wordt.', syn: 'wekker zender station radio',
     get: () => { const s = rdJson(Android.alarmState(), {}).station; return s && s.name ? s.name : 'nog geen'; } },
   /* ---------- Gesprekken uitschrijven, opnemen, meldingsgeschiedenis ---------- */

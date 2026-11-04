@@ -82,6 +82,12 @@ function callArgs(src, open){
   }
   return args;
 }
+/* Geen tekst voor Rene: stukjes HTML-attributen ('" onclick="…', '" alt="">'), alleen opmaak of entiteiten, code */
+function junk(k){
+  if (/^["'][\s\],)>;]|^[)\]]/.test(k)) return true;
+  const bare = k.replace(/<[^>]*>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ');
+  return !hasLetters(bare) || /=["']|\bon[a-z]+=|\bAndroid\.\w+\(/.test(bare);
+}
 /* Teksten tussen > en < in één letterlijke tekenreeks, en attributen met tekst */
 function htmlBits(s){
   const out = [];
@@ -101,11 +107,12 @@ function startScript(){
 }
 /* Sleutels uit JavaScript: { key → [plek] }, en de bewaker: [plek, reden] */
 function jsScan(){
-  const keys = new Map(), guard = [], loose = new Map();
-  const add = (k, where, map) => { k = norm(k); if (!k || !hasLetters(k)) return; const m = map || keys; if (!m.has(k)) m.set(k, []); m.get(k).push(where); };
+  const keys = new Map(), guard = [], loose = new Map(), strs = new Set();
+  const add = (k, where, map) => { k = norm(k); if (!k || junk(k)) return; const m = map || keys; if (!m.has(k)) m.set(k, []); m.get(k).push(where); };
   const files = jsFiles().concat([['web/start.html', startScript()]]);
   for (const [name, src] of files) {
     const toks = jsTokens(src), byAt = new Map(toks.map(t => [t.at, t]));
+    for (const tk of toks) if (!tk.tpl) strs.add(norm(tk.s));
     // 1. aanroepen van t, tn en de meldingen
     const re = /(^|[^\w$.])(toast|undoToast|askConfirm|askInput|askChoice|openSheet|tn|t)\s*\(/g; let m;
     while ((m = re.exec(src))) {
@@ -150,7 +157,7 @@ function jsScan(){
     // 4. Losse teksten die op Nederlands lijken (alleen ter info: --lijst --los)
     for (const tk of toks) if (!tk.tpl && looksDutch(tk.s) && !/<[a-z\/]/i.test(tk.s)) add(tk.s, name + ':' + lineOf(src, tk.at), loose);
   }
-  return { keys, guard, loose };
+  return { keys, guard, loose, strs };
 }
 /* Aanroepen van t( / tn( binnen een functie (vanaf de laatste regel die in kolom 0 begint) waarin t of tn zelf een
  * naam is (const t = …, (t) =>, function (a, t)); benadering, maar vangt de gewone gevallen */
@@ -273,12 +280,11 @@ async function check(){
   const allowed = w => allow.find(a => a.where === w);
   for (const [where, why] of js.guard) { if (!allowed(where)) errs.push(where + ': ' + why); }
   for (const a of allow) { if (!a.why) errs.push('uitzondering zonder reden: ' + a.where); if (!js.guard.some(([w]) => w === a.where)) warns.push('uitzondering is niet meer nodig: ' + a.where); }
-  const unused = [...keys].filter(k => !all.has(k) && !USED_ELSEWHERE(k, js.loose));
+  const unused = [...keys].filter(k => !all.has(k) && !js.loose.has(k) && !js.strs.has(k));
   for (const k of unused) warns.push('ongebruikte vertaling: ' + JSON.stringify(k));
   return { errs, warns, total: all.size, translated: all.size - missing.length, dict: keys.size, unused: unused.length, guard: js.guard.length };
 }
-/* Een vertaling kan ook gebruikt worden voor tekst die de observer vertaalt (bijv. uit Java of een vaste lijst) */
-function USED_ELSEWHERE(k, loose){ return loose.has(k); }
+/* Ongebruikt = nergens als tekst te vinden; een losse tekenreeks ('januari' in een lijst die met t() vertaald wordt) telt als gebruikt */
 
 module.exports = { scan, check, jsScan, javaScan, htmlScan, norm, looksDutch, jsTokens, readDict };
 

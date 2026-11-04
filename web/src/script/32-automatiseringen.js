@@ -22,8 +22,8 @@ function enterAuto(){
 }
 
 function auDaysLabel(m){
-  if (!m || m === 127) return ''; if (m === 31) return 'werkdagen'; if (m === 96) return 'weekend';
-  return AU_DAYS.filter((d, i) => m & (1 << i)).join(', ');
+  if (!m || m === 127) return ''; if (m === 31) return t('werkdagen'); if (m === 96) return t('weekend');
+  return AU_DAYS.filter((d, i) => m & (1 << i)).map(d => t(d)).join(', ');
 }
 function auSummary(r){
   const p = r.place || {}, parts = [];

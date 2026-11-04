@@ -15,7 +15,7 @@ function ciPad(n){ return String(n).padStart(2, '0'); }
 function ciDayKey(d){ return d.getFullYear() + '-' + ciPad(d.getMonth() + 1) + '-' + ciPad(d.getDate()); }
 function ciDate(key){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(key || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3], 12) : null; }
 function ciTime(tt){ return fmtTime(tt, { hour: '2-digit', minute: '2-digit' }); }
-function ciShort(d){ return CI_DOW[(d.getDay() + 6) % 7 + 1] + ' ' + d.getDate() + ' ' + CI_MON[d.getMonth()].slice(0, 3); }
+function ciShort(d){ return t(CI_DOW[(d.getDay() + 6) % 7 + 1]) + ' ' + d.getDate() + ' ' + t(CI_MON[d.getMonth()]).slice(0, 3); }
 /** Eerste dag (maandag) van een ISO-week "2026-W44". Zuiver. */
 function ciWeekStart(key){
   const m = /^(\d{4})-W(\d{2})$/.exec(key || ''); if (!m) return null;
@@ -25,31 +25,31 @@ function ciWeekStart(key){
 /** De periode in woorden: "vandaag", "donderdag 29 oktober", "week 44 (26 okt – 1 nov)", "oktober 2026", "vandaag 21:00". Zuiver. */
 function ciKeyLabel(key, now){
   now = now || new Date();
-  if (/^\d{4}-W\d{2}$/.test(key)) { const a = ciWeekStart(key), b = new Date(a); b.setDate(b.getDate() + 6); return 'week ' + (+key.slice(6)) + ' (' + a.getDate() + ' ' + CI_MON[a.getMonth()].slice(0, 3) + ' – ' + b.getDate() + ' ' + CI_MON[b.getMonth()].slice(0, 3) + ')'; }
-  if (/^\d{4}-\d{2}$/.test(key)) return CI_MON[+key.slice(5) - 1] + ' ' + key.slice(0, 4);
+  if (/^\d{4}-W\d{2}$/.test(key)) { const a = ciWeekStart(key), b = new Date(a); b.setDate(b.getDate() + 6); return t('week {n}', { n: +key.slice(6) }) + ' (' + a.getDate() + ' ' + t(CI_MON[a.getMonth()]).slice(0, 3) + ' – ' + b.getDate() + ' ' + t(CI_MON[b.getMonth()]).slice(0, 3) + ')'; }
+  if (/^\d{4}-\d{2}$/.test(key)) return t(CI_MON[+key.slice(5) - 1]) + ' ' + key.slice(0, 4);
   const d = ciDate(key); if (!d) return key;
   const today = ciDayKey(now), y = new Date(now); y.setDate(y.getDate() - 1);
-  const day = key.slice(0, 10) === today ? 'vandaag' : key.slice(0, 10) === ciDayKey(y) ? 'gisteren' : CI_DOW_L[(d.getDay() + 6) % 7 + 1] + ' ' + d.getDate() + ' ' + CI_MON[d.getMonth()] + (d.getFullYear() !== now.getFullYear() ? ' ' + d.getFullYear() : '');
+  const day = key.slice(0, 10) === today ? t('vandaag') : key.slice(0, 10) === ciDayKey(y) ? t('gisteren') : t(CI_DOW_L[(d.getDay() + 6) % 7 + 1]) + ' ' + d.getDate() + ' ' + t(CI_MON[d.getMonth()]) + (d.getFullYear() !== now.getFullYear() ? ' ' + d.getFullYear() : '');
   return key.length === 16 ? day + ' ' + key.slice(11) : day;
 }
 /** Hoe vaak, in woorden: "Elke dag om 21:00", "Werkdagen om 17:30" … Zuiver. */
 function ciRhythmText(q){
   const hm = x => typeof fmtHm === 'function' ? fmtHm(x) : x; // 12- of 24-uurs (Regio en taal)
-  const tt = (q.times || []).slice().sort().map(hm), at = ' om ' + (tt[0] || '');
+  const tt = (q.times || []).slice().sort().map(hm), at = ' ' + t('om {tijd}', { tijd: tt[0] || '' });
   const days = (q.days || []).slice().sort();
-  const dayList = days.length === 7 ? 'Elke dag' : days.join() === '1,2,3,4,5' ? 'Werkdagen' : 'Op ' + days.map(d => CI_DOW[d]).join(', ');
+  const dayList = days.length === 7 ? t('Elke dag') : days.join() === '1,2,3,4,5' ? t('Werkdagen') : t('Op {dagen}', { dagen: days.map(d => t(CI_DOW[d])).join(', ') });
   let s;
   switch (q.rhythm) {
-    case 'daily': s = 'Elke dag' + at; break;
-    case 'workdays': s = 'Werkdagen' + at; break;
+    case 'daily': s = t('Elke dag') + at; break;
+    case 'workdays': s = t('Werkdagen') + at; break;
     case 'weekdays': s = dayList + at; break;
-    case 'weekly': s = 'Elke ' + CI_DOW_L[q.wday || 5] + at; break;
-    case 'monthly': s = 'Elke maand op de ' + (q.dom || 1) + 'e' + ((q.dom || 1) > 28 ? ' (of de laatste dag)' : '') + at; break;
-    case 'multi': s = dayList + ' om ' + (tt.length > 1 ? tt.slice(0, -1).join(', ') + ' en ' + tt[tt.length - 1] : tt[0] || ''); break;
+    case 'weekly': s = t('Elke {dag}', { dag: t(CI_DOW_L[q.wday || 5]) }) + at; break;
+    case 'monthly': s = t('Elke maand op de {n}e', { n: q.dom || 1 }) + ((q.dom || 1) > 28 ? ' ' + t('(of de laatste dag)') : '') + at; break;
+    case 'multi': s = dayList + ' ' + t('om {tijd}', { tijd: tt.length > 1 ? t('{a} en {b}', { a: tt.slice(0, -1).join(', '), b: tt[tt.length - 1] }) : tt[0] || '' }); break;
     default: s = '';
   }
-  if (q.quietWeekend) s += ' · stil in het weekend';
-  if (q.pauseUntil && q.pauseUntil >= ciDayKey(new Date())) { const p = ciDate(q.pauseUntil); s += ' · pauze t/m ' + ciShort(p); }
+  if (q.quietWeekend) s += ' · ' + t('stil in het weekend');
+  if (q.pauseUntil && q.pauseUntil >= ciDayKey(new Date())) { const p = ciDate(q.pauseUntil); s += ' · ' + t('pauze t/m {datum}', { datum: ciShort(p) }); }
   return s;
 }
 function ciAnsText(a){ return ((a.e || '') + ' ' + (a.l || '')).trim(); }

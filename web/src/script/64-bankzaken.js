@@ -52,7 +52,7 @@ function bkEuro(c, teken){
 const bkEuroKort = c => fmtMoney(c / 100, 'EUR', { round: true, minus: '' });
 const bkDatum = (d, opt) => fmtDate(d + 'T12:00:00', opt || { day: 'numeric', month: 'short', year: 'numeric' });
 const BK_MAANDEN = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-const bkMaandNaam = ym => BK_MAANDEN[Number(ym.slice(5, 7)) - 1] + ' ' + ym.slice(2, 4);
+const bkMaandNaam = ym => t(BK_MAANDEN[Number(ym.slice(5, 7)) - 1]) + ' ' + ym.slice(2, 4);
 
 function bkCatSoort(c){ const x = BK_CATS.find(k => k[0] === c); if (x) return x[1]; const e = ((bk.store && bk.store.cats) || []).find(k => k.naam === c); return e ? e.soort : 'uit'; }
 function bkAlleCats(){ return BK_CATS.map(c => c[0]).concat(((bk.store && bk.store.cats) || []).map(c => c.naam)); }
@@ -390,7 +390,7 @@ function bkMaandGrafiek(pm){
     const x0 = L + i * bw, w = Math.max(3, bw / 2 - 3), hi = (H - B - 6) * x.in / max, hu = (H - B - 6) * x.uit / max;
     s += '<rect x="' + (x0 + 2).toFixed(1) + '" y="' + (H - B - hi).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + hi.toFixed(1) + '" rx="2" fill="var(--ok)"><title>' + esc(bkMaandNaam(m) + ' inkomsten ' + bkEuro(x.in)) + '</title></rect>';
     s += '<rect x="' + (x0 + 2 + w + 1).toFixed(1) + '" y="' + (H - B - hu).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + hu.toFixed(1) + '" rx="2" fill="var(--bad)"><title>' + esc(bkMaandNaam(m) + ' uitgaven ' + bkEuro(x.uit)) + '</title></rect>';
-    if (n <= 12) s += '<text x="' + (x0 + bw / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle">' + esc(BK_MAANDEN[Number(m.slice(5, 7)) - 1]) + '</text>';
+    if (n <= 12) s += '<text x="' + (x0 + bw / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle">' + esc(t(BK_MAANDEN[Number(m.slice(5, 7)) - 1])) + '</text>';
   });
   s += '</svg>';
   const tabel = pm.map(([m, x]) => '<div class="bk-rij"><span class="bk-naam">' + esc(bkMaandNaam(m)) + '</span><b class="bk-plus">' + esc(bkEuroKort(x.in)) + '</b><b>' + esc(bkEuroKort(x.uit)) + '</b><b class="' + (x.in - x.uit - x.sparen >= 0 ? 'bk-plus' : 'bk-min') + '">' + esc((x.in - x.uit - x.sparen < 0 ? '−' : '') + bkEuroKort(x.in - x.uit - x.sparen)) + '</b></div>').join('');
@@ -402,9 +402,9 @@ function bkLijnGrafiek(reeks){
   const t0 = new Date(reeks[0][0]).getTime(), t1 = Math.max(t0 + 1, new Date(reeks[reeks.length - 1][0]).getTime());
   const pt = r => [(P + (new Date(r[0]).getTime() - t0) / (t1 - t0) * (W - 2 * P)).toFixed(1), (P + (1 - (r[1] - lo) / span) * (H - 2 * P - 14)).toFixed(1)];
   const d = reeks.map((r, i) => (i ? 'L' : 'M') + pt(r).join(' ')).join(' ');
-  return '<svg class="bk-grafiek" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Saldoverloop van ' + esc(bkEuro(vals[0])) + ' naar ' + esc(bkEuro(vals[vals.length - 1])) + '">'
+  return '<svg class="bk-grafiek" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(t('Saldoverloop van {van} naar {naar}', { van: bkEuro(vals[0]), naar: bkEuro(vals[vals.length - 1]) })) + '">'
     + '<path d="' + d + '" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round"/>'
-    + '<text x="' + P + '" y="' + (H - 2) + '">' + esc(bkEuroKort(lo)) + '</text><text x="' + (W - P) + '" y="' + (H - 2) + '" text-anchor="end">hoogst ' + esc(bkEuroKort(hi)) + '</text></svg>';
+    + '<text x="' + P + '" y="' + (H - 2) + '">' + esc(bkEuroKort(lo)) + '</text><text x="' + (W - P) + '" y="' + (H - 2) + '" text-anchor="end">' + esc(t('hoogst {bedrag}', { bedrag: bkEuroKort(hi) })) + '</text></svg>';
 }
 function bkNaarCat(c){ bkTab('boekingen'); bkCatSelect(); $('#bk-cat').value = c; bkLijstRender(); }
 

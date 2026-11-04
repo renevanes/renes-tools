@@ -51,29 +51,29 @@ function cedRender(){
   $('#s-checkined').dataset.c = q.color || 'primary';
   if ($('#ced-text').value !== q.text) $('#ced-text').value = q.text;
   if ($('#ced-emoji').value !== q.emoji) $('#ced-emoji').value = q.emoji;
-  $('#ced-emsug').innerHTML = CED_EMOJI.map(e => '<button class="' + (e === q.emoji ? 'on' : '') + '" aria-pressed="' + (e === q.emoji) + '" data-e="' + e + '" onclick="cedEmoji(this.dataset.e)" aria-label="Emoji ' + e + '">' + e + '</button>').join('');
+  $('#ced-emsug').innerHTML = CED_EMOJI.map(e => '<button class="' + (e === q.emoji ? 'on' : '') + '" aria-pressed="' + (e === q.emoji) + '" data-e="' + e + '" onclick="cedEmoji(this.dataset.e)" aria-label="' + t('Emoji {e}', { e: e }) + '">' + e + '</button>').join('');
   $('#ced-color').innerHTML = CED_COLORS.map(([v, l]) => '<button role="radio" data-c="' + v + '" aria-checked="' + (v === q.color) + '" aria-label="' + l + '" onclick="cedSet(\'color\', \'' + v + '\')"></button>').join('');
   cedRadios('#ced-scale', CED_SCALES, q.scale, 'cedScale');
   const n = q.options.length;
   $('#ced-scale-n').textContent = n <= 3 ? t('Met {n} antwoorden tik je je antwoord meteen in de melding (één tik).', { n }) : t('Met {n} antwoorden opent de melding een klein scherm met grote knoppen (twee tikken).', { n });
   $('#ced-opts').innerHTML = q.options.map((o, i) => '<div class="ci-optrow" role="listitem">' +
-    '<input class="ci-in oe" value="' + esc(o.emoji) + '" maxlength="16" aria-label="Emoji van antwoord ' + (i + 1) + '" autocomplete="off">' +
-    '<input class="ci-in ol" value="' + esc(o.label) + '" maxlength="40" aria-label="Naam van antwoord ' + (i + 1) + '" autocomplete="off">' +
-    '<input class="ci-in ov" type="text" inputmode="decimal" value="' + esc(fmtNumIn(o.value)) + '" aria-label="Waarde van antwoord ' + (i + 1) + '" autocomplete="off">' +
-    (q.scale === 'custom' && n > 2 ? '<button class="iconbtn" data-i="' + i + '" onclick="cedOptDel(+this.dataset.i)" aria-label="Antwoord ' + (i + 1) + ' weghalen">' + uiIcon('close') + '</button>' : '') + '</div>').join('');
+    '<input class="ci-in oe" value="' + esc(o.emoji) + '" maxlength="16" aria-label="' + t('Emoji van antwoord {n}', { n: i + 1 }) + '" autocomplete="off">' +
+    '<input class="ci-in ol" value="' + esc(o.label) + '" maxlength="40" aria-label="' + t('Naam van antwoord {n}', { n: i + 1 }) + '" autocomplete="off">' +
+    '<input class="ci-in ov" type="text" inputmode="decimal" value="' + esc(fmtNumIn(o.value)) + '" aria-label="' + t('Waarde van antwoord {n}', { n: i + 1 }) + '" autocomplete="off">' +
+    (q.scale === 'custom' && n > 2 ? '<button class="iconbtn" data-i="' + i + '" onclick="cedOptDel(+this.dataset.i)" aria-label="' + t('Antwoord {n} weghalen', { n: i + 1 }) + '">' + uiIcon('close') + '</button>' : '') + '</div>').join('');
   $('#ced-opt-add').style.display = q.scale === 'custom' && n < 7 ? '' : 'none';
   cedRadios('#ced-rhythm', CED_RHYTHMS, q.rhythm, 'cedRhythm');
   const showDays = q.rhythm === 'weekdays' || q.rhythm === 'multi';
   $('#ced-days-w').style.display = showDays ? '' : 'none';
   $('#ced-days').innerHTML = (typeof weekDays === 'function' ? weekDays().map(g => (g + 6) % 7 + 1) : [1, 2, 3, 4, 5, 6, 7]).map(d => { const on = q.days.includes(d); return '<button class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '" data-d="' + d + '" onclick="cedDay(+this.dataset.d)" aria-label="' + CI_DOW_L[d] + '">' + CI_DOW[d] + '</button>'; }).join('');
   $('#ced-wday-w').style.display = q.rhythm === 'weekly' ? '' : 'none';
-  $('#ced-wday').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(d => '<option value="' + d + '"' + (d === q.wday ? ' selected' : '') + '>' + CI_DOW_L[d] + '</option>').join('');
+  $('#ced-wday').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(d => '<option value="' + d + '"' + (d === q.wday ? ' selected' : '') + '>' + t(CI_DOW_L[d]) + '</option>').join('');
   $('#ced-wday').onchange = () => { cedSync(); cedRender(); };
   $('#ced-dom-w').style.display = q.rhythm === 'monthly' ? '' : 'none';
   $('#ced-dom').innerHTML = Array.from({ length: 31 }, (_, i) => '<option value="' + (i + 1) + '"' + (i + 1 === q.dom ? ' selected' : '') + '>' + (i + 1) + 'e</option>').join('');
   const multi = q.rhythm === 'multi', ts = multi ? q.times : q.times.slice(0, 1);
   $('#ced-times').innerHTML = ts.map((tt, i) => '<div class="ci-timerow"><label for="ced-t' + i + '">' + (multi ? 'Tijd ' + (i + 1) : 'Om') + '</label><input type="time" class="sl-time" id="ced-t' + i + '" value="' + esc(tt) + '">' +
-    (multi && ts.length > 1 ? '<button class="iconbtn" data-i="' + i + '" onclick="cedTimeDel(+this.dataset.i)" aria-label="Tijd ' + (i + 1) + ' weghalen">' + uiIcon('close') + '</button>' : '') + '</div>').join('');
+    (multi && ts.length > 1 ? '<button class="iconbtn" data-i="' + i + '" onclick="cedTimeDel(+this.dataset.i)" aria-label="' + t('Tijd {n} weghalen', { n: i + 1 }) + '">' + uiIcon('close') + '</button>' : '') + '</div>').join('');
   $('#ced-time-add').style.display = multi && ts.length < 8 ? '' : 'none';
   $('#ced-until').value = q.until || '23:59';
   cedSwitch('#ced-wk', q.quietWeekend);
@@ -87,7 +87,7 @@ function cedRender(){
   cedSwitch('#ced-ed', q.editable); cedSwitch('#ced-bf', q.backfill);
   cedSwitch('#ced-note', q.note); cedSwitch('#ced-voice', q.voice); cedSwitch('#ced-lab', q.labels); cedSwitch('#ced-on', q.on);
   $('#ced-labels-w').style.display = q.labels ? '' : 'none';
-  $('#ced-labels').innerHTML = q.labelList.map((l, i) => '<span class="ci-lchip" role="listitem"><button class="on" data-i="' + i + '" onclick="cedLabelDel(+this.dataset.i)" aria-label="Label ' + esc(l) + ' weghalen">' + esc(l) + ' ×</button></span>').join('') || '<p class="note" style="margin:0">Nog geen labels.</p>';
+  $('#ced-labels').innerHTML = q.labelList.map((l, i) => '<span class="ci-lchip" role="listitem"><button class="on" data-i="' + i + '" onclick="cedLabelDel(+this.dataset.i)" aria-label="' + esc(t('Label {naam} weghalen', { naam: l })) + '">' + esc(l) + ' ×</button></span>').join('') || '<p class="note" style="margin:0">Nog geen labels.</p>';
 }
 function cedSet(k, v){ cedSync(); cedQ[k] = v; cedRender(); }
 function cedTg(k){ cedSync(); cedQ[k] = !cedQ[k]; cedRender(); }

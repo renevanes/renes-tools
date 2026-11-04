@@ -66,12 +66,12 @@ function gbChart(data, period){
     bars += '<rect class="gb-bar" x="' + (i * bw + bw * 0.12).toFixed(1) + '" y="' + (H - B - h).toFixed(1) + '" width="' + (bw * 0.76).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2"/>';
   }
   const lab = (i, txt) => { labs += '<text class="gb-lab" x="' + (i * bw + bw / 2).toFixed(1) + '" y="' + (H - 5) + '">' + txt + '</text>'; };
-  let aria = 'per uur';
-  if (period === 'week') { const now = new Date(); aria = 'per dag'; for (let i = 0; i < n; i++) { const d = new Date(now.getTime() - (n - 1 - i) * 86400000); lab(i, ['zo','ma','di','wo','do','vr','za'][d.getDay()]); } }
-  else if (period === 'maand') { aria = 'per dag'; const now = new Date(); for (let i = 0; i < n; i += 7) { const d = new Date(now.getTime() - (n - 1 - i) * 86400000); lab(i, d.getDate() + '/' + (d.getMonth() + 1)); } }
-  else if (period === 'jaar') { aria = 'per week'; for (let i = 0; i < n; i += 8) lab(i, (n - i) + 'w'); }
+  let aria = t('per uur');
+  if (period === 'week') { const now = new Date(); aria = t('per dag'); for (let i = 0; i < n; i++) { const d = new Date(now.getTime() - (n - 1 - i) * 86400000); lab(i, fmtDate(d, { weekday: 'short' })); } }
+  else if (period === 'maand') { aria = t('per dag'); const now = new Date(); for (let i = 0; i < n; i += 7) { const d = new Date(now.getTime() - (n - 1 - i) * 86400000); lab(i, d.getDate() + '/' + (d.getMonth() + 1)); } }
+  else if (period === 'jaar') { aria = t('per week'); for (let i = 0; i < n; i += 8) lab(i, (n - i) + 'w'); }
   else { for (let i = 0; i < n; i += 6) lab(i, i); }
-  return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Schermtijd ' + aria + '">' + bars + labs + '</svg>';
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + t('Schermtijd {tekst}', { tekst: aria }) + '">' + bars + labs + '</svg>';
 }
 
 function gbBadge(b){

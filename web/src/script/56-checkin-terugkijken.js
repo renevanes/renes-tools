@@ -108,7 +108,7 @@ function ciqCells(q){
 function ciRemAria(cells){ cells.forEach(c => { if (c && c.rem.length) c.aria += ', ' + ciRemCount(c.rem.length); }); }
 function ciqRenderCal(q){
   const [from, , yearly] = ciqSpan(q), a = ciDate(from), now = new Date();
-  $('#ciq-month').textContent = yearly ? String(a.getFullYear()) : CI_MON[a.getMonth()].replace(/^./, x => x.toUpperCase()) + ' ' + a.getFullYear();
+  $('#ciq-month').textContent = yearly ? String(a.getFullYear()) : t(CI_MON[a.getMonth()]).replace(/^./, x => x.toUpperCase()) + ' ' + a.getFullYear();
   const isNow = yearly ? a.getFullYear() >= now.getFullYear() : a.getFullYear() * 12 + a.getMonth() >= now.getFullYear() * 12 + now.getMonth();
   $('#ciq-next').disabled = isNow;
   $('#ciq-prev').setAttribute('aria-label', yearly ? 'Vorig jaar' : 'Vorige maand'); $('#ciq-next').setAttribute('aria-label', yearly ? 'Volgend jaar' : 'Volgende maand');
@@ -407,7 +407,7 @@ function cicRender(){
         '<details><summary>Als tabel</summary><table class="ci-tbl"><thead><tr><th scope="col">Dag</th><th scope="col">' + esc(an) + '</th><th scope="col">' + esc(qb.text) + '</th></tr></thead><tbody>' +
         both.map(d => '<tr><td>' + esc(ciShort(ciDate(d))) + '</td><td>' + esc(ciOptText(ciNearest(qa, A[d][0]))) + '</td><td>' + esc(ciOptText(ciNearest(qb, B[d][0]))) + '</td></tr>').join('') + '</tbody></table></details>';
       const hi = both.filter(d => A[d][1] >= .5).map(d => B[d][0]), lo = both.filter(d => A[d][1] < .5).map(d => B[d][0]);
-      h += '<p class="note" style="margin-top:10px">' + esc(qb.text) + ', gemiddeld:</p>' + cicGroups(qb, hi, lo, 'Op dagen dat "' + an + '" in de bovenste helft zat', 'Op de andere dagen');
+      h += '<p class="note" style="margin-top:10px">' + esc(qb.text) + ', gemiddeld:</p>' + cicGroups(qb, hi, lo, t('Op dagen dat "{antwoord}" in de bovenste helft zat', { antwoord: an }), t('Op de andere dagen'));
     }
   }
   out.innerHTML = h + '<p class="note">Dit laat alleen zien wat samen voorkomt, niet wat de oorzaak is.</p></div>';
