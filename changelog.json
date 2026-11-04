@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.135",
+    "date": "2026-11-04",
+    "changes": [
+      "Apparaten: ook de app zelf vraagt nu eerst om bevestiging voordat hij een onbekend wifi-netwerk onderzoekt (niet alleen het scherm), en weg navigeren van Apparaten start geen onnodig bijwerken meer.",
+      "Podcasts: alvast inlezen van nieuwe afleveringen houdt het opslaan van je luistervoortgang niet meer op, en een podcast ontvolgen ruimt ook het geheugen op."
+    ]
+  },
+  {
     "version": "1.134",
     "date": "2026-11-03",
     "changes": [
