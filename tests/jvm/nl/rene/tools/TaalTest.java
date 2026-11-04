@@ -60,7 +60,7 @@ public class TaalTest {
         check(eps.size() > 300, "patronen uit het echte woordenboek: " + eps.size());
 
         // De assistent in het Engels: systeemtekst
-        String sys = LocalAi.buildSystemEn("Wednesday 4 November 2026", "kort", "nl", "I live in Rotterdam", "", Arrays.asList(), "");
+        String sys = LocalAi.buildSystemEn("Wednesday 4 November 2026", "kort", "app", "I live in Rotterdam", "", Arrays.asList(), "");
         check(sys.startsWith("You are the offline assistant") && sys.contains("Always answer in English") && sys.contains("short") && sys.contains("Today is Wednesday 4 November 2026") && sys.contains("I live in Rotterdam"), "Engelse systeemtekst: " + sys.substring(0, 60) + "…");
         check(LocalAi.buildSystemEn("x", "", "auto", "", "", null, "").contains("same language as the question"), "taal 'auto': antwoord in de taal van de vraag");
         check(!LocalAi.buildSystem("x", "", "nl", "", "").contains("English"), "Nederlandse systeemtekst blijft Nederlands");
