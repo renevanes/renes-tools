@@ -103,7 +103,7 @@ function lastSpeed(s){ // afgeleide snelheid uit afstandsverschil
   if (_spd.t && now > _spd.t) { const dv = (s.distance - _spd.d) / ((now - _spd.t)/1000); _spd.v = dv >= 0 && dv < 50 ? dv : _spd.v; }
   _spd.t = now; _spd.d = s.distance; return _spd.v;
 }
-function defaultName(){ const d = new Date(); const h = d.getHours();
+function defaultName(){ const d = new Date(); const h = rgParts(d).hh;
   const tod = h < 6 ? 'Nacht' : h < 12 ? 'Ochtend' : h < 18 ? 'Middag' : 'Avond';
   return tod + 'route ' + fmtDate(d, {day:'numeric', month:'short'}); }
 /* " · thuis → werk" als de route bij Thuis of Werk (Regio en taal) begint of eindigt; line = [[lat, lon], …] */

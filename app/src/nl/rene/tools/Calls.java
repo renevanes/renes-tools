@@ -261,11 +261,10 @@ final class Calls {
     /** Eindtijd: begintijd plus gespreksduur. */
     static long end(Call k) { return k.date + k.duration * 1000L; }
 
-    static boolean sameDay(long a, long b) {
-        java.util.Calendar x = java.util.Calendar.getInstance(), y = java.util.Calendar.getInstance();
-        x.setTimeInMillis(a); y.setTimeInMillis(b);
-        return x.get(java.util.Calendar.YEAR) == y.get(java.util.Calendar.YEAR) && x.get(java.util.Calendar.DAY_OF_YEAR) == y.get(java.util.Calendar.DAY_OF_YEAR);
-    }
+    static boolean sameDay(long a, long b) { return sameDay(a, b, java.util.TimeZone.getDefault()); }
+
+    /** Dezelfde dag in zone tz (de leesbare export: de app-zone, net als Regio.df). */
+    static boolean sameDay(long a, long b, java.util.TimeZone tz) { return Regio.dayKey(tz, a).equals(Regio.dayKey(tz, b)); }
 
     static String csv(String s) {
         if (s == null) return "";
@@ -341,7 +340,7 @@ final class Calls {
                 Call k = all.get(i);
                 String kd = kind(k.type);
                 String num = k.presentation == 1 && k.number != null && !names.get(i).equals(k.number) ? "<small>" + Sms.esc(k.number) + "</small>" : "";
-                w.write("<tr class=" + kd + "><td>" + Sms.esc(full.format(new Date(k.date))) + (k.duration > 0 ? " – " + Sms.esc((sameDay(k.date, end(k)) ? hm : dayHm).format(new Date(end(k)))) : "") + "</td><td>" + Sms.esc(label(k.type))
+                w.write("<tr class=" + kd + "><td>" + Sms.esc(full.format(new Date(k.date))) + (k.duration > 0 ? " – " + Sms.esc((sameDay(k.date, end(k), hm.getTimeZone()) ? hm : dayHm).format(new Date(end(k)))) : "") + "</td><td>" + Sms.esc(label(k.type))
                         + "</td><td>" + Sms.esc(names.get(i)) + num + "</td><td>" + dur(k.duration) + "</td></tr>");
                 if ((++step % 200) == 0) p.step(step, total);
             }

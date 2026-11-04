@@ -51,8 +51,8 @@ function renderDash(){
     if (a.on && a.nextAt) rows.push(['clock', 'Wekker: ' + fmtDT(a.nextAt, {weekday:'short', hour:'2-digit', minute:'2-digit'}) + (a.station ? ' · ' + a.station.name : ''), 'ralarm', '']);
   } catch(e){}
   try {
-    const r = JSON.parse(Android.noteReminders()), end = new Date(); end.setHours(23, 59, 59, 999);
-    const today = Object.values(r).filter(t => t >= Date.now() && t <= end.getTime()).sort();
+    const r = JSON.parse(Android.noteReminders()), end = rgEndOfDay(Date.now()); // einde van vandaag in de app-zone
+    const today = Object.values(r).filter(t => t >= Date.now() && t < end).sort();
     if (today.length) rows.push(['bell', today.length + (today.length === 1 ? ' herinnering' : ' herinneringen') + ' vandaag, eerst om ' + fmtTime(today[0], {hour:'2-digit', minute:'2-digit'}), 'notes', '']);
   } catch(e){}
   try {

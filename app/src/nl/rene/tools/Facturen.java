@@ -337,6 +337,11 @@ final class Facturen {
     // ================= planning: vast moment per dag, week of maand =================
 
     /** Het geplande moment op of vóór nu (volgende = false) of erna (true). Long.MAX_VALUE bij "uit". */
+    /** De wandklok uur:min op de kalenderdag van c, in zone tz (Regio: de eerste keer bij de wintertijd, mee met de sprong bij de zomertijd). */
+    private static long op(java.util.TimeZone tz, java.util.Calendar c, int uur, int min) {
+        return Regio.toMillis(tz, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH) + 1, c.get(java.util.Calendar.DAY_OF_MONTH), uur, min, 0);
+    }
+
     static long gepland(JSONObject lev, long nu, boolean volgende, java.util.TimeZone tz) {
         String schema = lev.optString("schema", "maand");
         if ("uit".equals(schema)) return volgende ? Long.MAX_VALUE : Long.MIN_VALUE;
@@ -344,17 +349,17 @@ final class Facturen {
         int uur = Integer.parseInt(hm[0]), min = Integer.parseInt(hm[1]);
         java.util.Calendar c = java.util.Calendar.getInstance(tz);
         c.setTimeInMillis(nu);
-        c.set(java.util.Calendar.SECOND, 0); c.set(java.util.Calendar.MILLISECOND, 0);
-        c.set(java.util.Calendar.HOUR_OF_DAY, uur); c.set(java.util.Calendar.MINUTE, min);
+        // c rekent alleen met de kalenderdag (12:00); het moment zelf via Regio.toMillis (zomer-/wintertijd zoals overal)
+        c.set(java.util.Calendar.HOUR_OF_DAY, 12); c.set(java.util.Calendar.MINUTE, 0); c.set(java.util.Calendar.SECOND, 0); c.set(java.util.Calendar.MILLISECOND, 0);
         int veld;
         if ("maand".equals(schema)) {
             // Dag 29–31 in een kortere maand: de laatste dag. Per maand opnieuw bepalen.
             int dag = lev.optInt("dag", 5);
             c.set(java.util.Calendar.DAY_OF_MONTH, 1);
             c.set(java.util.Calendar.DAY_OF_MONTH, Math.min(dag, c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)));
-            if (volgende) { while (c.getTimeInMillis() <= nu) { c.set(java.util.Calendar.DAY_OF_MONTH, 1); c.add(java.util.Calendar.MONTH, 1); c.set(java.util.Calendar.DAY_OF_MONTH, Math.min(dag, c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH))); } }
-            else { while (c.getTimeInMillis() > nu) { c.set(java.util.Calendar.DAY_OF_MONTH, 1); c.add(java.util.Calendar.MONTH, -1); c.set(java.util.Calendar.DAY_OF_MONTH, Math.min(dag, c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH))); } }
-            return c.getTimeInMillis();
+            if (volgende) { while (op(tz, c, uur, min) <= nu) { c.set(java.util.Calendar.DAY_OF_MONTH, 1); c.add(java.util.Calendar.MONTH, 1); c.set(java.util.Calendar.DAY_OF_MONTH, Math.min(dag, c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH))); } }
+            else { while (op(tz, c, uur, min) > nu) { c.set(java.util.Calendar.DAY_OF_MONTH, 1); c.add(java.util.Calendar.MONTH, -1); c.set(java.util.Calendar.DAY_OF_MONTH, Math.min(dag, c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH))); } }
+            return op(tz, c, uur, min);
         }
         else if ("week".equals(schema)) {
             int wd = lev.optInt("weekdag", 1); // 1 = maandag … 7 = zondag
@@ -363,9 +368,9 @@ final class Facturen {
             veld = java.util.Calendar.WEEK_OF_YEAR;
         } else veld = java.util.Calendar.DAY_OF_MONTH;
         // c is nu het moment in deze periode; schuif naar de juiste kant van "nu"
-        if (volgende) { while (c.getTimeInMillis() <= nu) c.add(veld, 1); }
-        else { while (c.getTimeInMillis() > nu) c.add(veld, -1); }
-        return c.getTimeInMillis();
+        if (volgende) { while (op(tz, c, uur, min) <= nu) c.add(veld, 1); }
+        else { while (op(tz, c, uur, min) > nu) c.add(veld, -1); }
+        return op(tz, c, uur, min);
     }
 
     /**
@@ -562,12 +567,14 @@ final class Facturen {
     }
 
     /** Staat de factuurdatum (herkend uit de PDF of de naam) vóór de grens? Onbekende datum: nee (dan bewaren). */
-    static boolean voorPeriode(long grens, File f, String naam) {
+    static boolean voorPeriode(long grens, File f, String naam) { return voorPeriode(grens, f, naam, java.util.TimeZone.getDefault()); }
+
+    /** tz = de zone waarin de grens berekend is (Regio.zone): de grensdatum in die zone. */
+    static boolean voorPeriode(long grens, File f, String naam, java.util.TimeZone tz) {
         if (grens <= 0) return false;
         String d = FacturenDossier.herken(FacturenDossier.tekst(f) + "\n" + naam).optString("datum");
         if (d.isEmpty()) return false;
-        java.text.SimpleDateFormat iso = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
-        return d.compareTo(iso.format(new java.util.Date(grens))) < 0;
+        return d.compareTo(Regio.dayKey(tz, grens)) < 0;
     }
 
     /** Nieuwe facturen bewaren en afleveren; geeft {nieuw, gevonden, namen, fouten} terug. */
@@ -580,10 +587,10 @@ final class Facturen {
         JSONArray namen = new JSONArray(), fouten = new JSONArray();
         int nieuw = 0, buiten = 0;
         long nu0 = System.currentTimeMillis();
-        boolean heel = heelPeriode(lev, t, nu0, java.util.TimeZone.getDefault());
+        boolean heel = heelPeriode(lev, t, nu0, Regio.zone(c));
         // De hele periode: wat eerder buiten de (toen kleinere) periode viel, opnieuw bekijken
         if (heel) for (Iterator<String> it = verwerkt.keys(); it.hasNext(); ) { JSONObject r = verwerkt.optJSONObject(it.next()); if (r != null && r.optBoolean("buiten")) it.remove(); }
-        long grens = grens(lev, t.optLong("lastOk"), nu0, java.util.TimeZone.getDefault()); // met de marge over de jaarwisseling, ook bij inhalen
+        long grens = grens(lev, t.optLong("lastOk"), nu0, Regio.zone(c)); // met de marge over de jaarwisseling, ook bij inhalen
         java.util.List<String> nieuweSha = new java.util.ArrayList<>();
         File d = pdfDir(c, id);
         if (!d.isDirectory() && !d.mkdirs()) throw new Exception("Opslagmap maken lukt niet");
@@ -606,7 +613,7 @@ final class Facturen {
             File f = new File(d, naam);
             for (int n = 2; f.exists(); n++) { naam = p.naam.replaceAll("\\.pdf$", "") + " (" + n + ").pdf"; f = new File(d, naam); }
             try (FileOutputStream o = new FileOutputStream(f)) { o.write(p.data); o.getFD().sync(); }
-            if (!"mail".equals(lev.optString("soort")) && voorPeriode(grens, f, FacturenDossier.naamZonderSha(p.naam, p.sha))) { // van vóór de gekozen periode: niet bewaren
+            if (!"mail".equals(lev.optString("soort")) && voorPeriode(grens, f, FacturenDossier.naamZonderSha(p.naam, p.sha), Regio.zone(c))) { // van vóór de gekozen periode: niet bewaren
                 f.delete();
                 verwerkt.put(p.sha, new JSONObject().put("n", "").put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis()).put("buiten", true));
                 if (eigenNaam) namenGehad.add(p.naam);
@@ -628,7 +635,7 @@ final class Facturen {
         // Tellen in facturen, niet in documenten: bijlagen en specificaties horen bij hun factuur
         int facturen = nieuw == 0 ? 0 : FacturenDossier.aantalNieuw(FacturenDossier.alle(c), nieuweSha);
         return new JSONObject().put("nieuw", facturen).put("documenten", nieuw).put("gevonden", pdfs.size()).put("buiten", buiten).put("namen", namen).put("fouten", fouten)
-                .put("heel", heel).put("vanaf", vanaf(lev, nu0, java.util.TimeZone.getDefault()));
+                .put("heel", heel).put("vanaf", vanaf(lev, nu0, Regio.zone(c)));
     }
 
     /** Naar elke gekozen plek die nog niet gelukt is (backup-map, map op de telefoon, Google Drive, Eigen Cloud). Geeft true als er iets bij kwam. */

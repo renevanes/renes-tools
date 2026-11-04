@@ -676,7 +676,7 @@ final class AiData {
 
     static JSONObject facts(Context c, String topic, long now) {
         try {
-            TimeZone tz = TimeZone.getDefault();
+            TimeZone tz = Regio.zone(c);
             switch (topic) {
                 case "gebruik": {
                     long today = Gebruik.dayStart(now, tz), week = Gebruik.dayStartAfter(now, -6, tz);

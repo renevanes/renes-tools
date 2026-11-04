@@ -210,7 +210,7 @@ final class SettingsBackup {
                         String rep = r.optString("rep");
                         if (t < now) {
                             if (rep.isEmpty()) continue;
-                            r.put("t", Reminders.next(t, rep, now, r.optInt("dom", 0)));
+                            r.put("t", Reminders.next(t, rep, now, r.optInt("dom", 0), Regio.zone(c)));
                             v = new JSONObject().put("t", "s").put("v", r.toString());
                         }
                     } catch (Exception e) { continue; }

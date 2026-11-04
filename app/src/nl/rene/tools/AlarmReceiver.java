@@ -72,6 +72,20 @@ public class AlarmReceiver extends BroadcastReceiver {
         setSentinel(c);
     }
 
+    /**
+     * Na een andere tijdzone (Regio en taal): alles wat op een tijd staat opnieuw plannen. Niet de plekken van
+     * automatiseringen (Auto.armPlaces wist dan of je binnen of buiten bent).
+     */
+    static synchronized void rearmTimes(Context c) {
+        RadioAlarm.schedule(c);
+        RedialPlan.arm(c);
+        SleepReminder.arm(c);
+        CheckinNotify.arm(c);
+        AutoActions.armTimes(c);
+        FacturenJob.schedule(c);
+        RadioWidget.refresh(c);
+    }
+
     private static PendingIntent sentinel(Context c, int flags) {
         return PendingIntent.getBroadcast(c, 77, new Intent(c, AlarmReceiver.class).setAction(ACTION_SENTINEL), PendingIntent.FLAG_IMMUTABLE | flags);
     }

@@ -645,7 +645,9 @@ final class LocalAi {
     }
 
     static String systemPrompt(Context c, int ctx, List<String> mem, String note) {
-        String today = new java.text.SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL")).format(new java.util.Date());
+        java.text.SimpleDateFormat todayF = new java.text.SimpleDateFormat("EEEE d MMMM yyyy", new Locale("nl", "NL"));
+        todayF.setTimeZone(Regio.zone(c)); // vandaag in de app-zone (Regio en taal); de notatie blijft vast nl-NL
+        String today = todayF.format(new java.util.Date());
         String[] p = persFit(cfg(c, "about"), cfg(c, "instr"), ctx);
         return buildSystem(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1], mem, note);
     }
@@ -887,7 +889,7 @@ final class LocalAi {
             String dataTopic = req.optBoolean("solo") || hasAtt || remember != null || forgetWhat != null || setWanted || actWanted ? "" : AiData.topic(question, srcOn(c, "apparaten") ? AiData.nicks(c) : null);
             if (!dataTopic.isEmpty() && srcOn(c, dataTopic)) {
                 long nowD = System.currentTimeMillis();
-                String facts = AiData.context(dataTopic, AiData.facts(c, dataTopic, nowD), nowD, java.util.TimeZone.getDefault());
+                String facts = AiData.context(dataTopic, AiData.facts(c, dataTopic, nowD), nowD, Regio.zone(c));
                 if (!facts.isEmpty()) {
                     last.put("content", last.optString("content") + "\n\n" + facts);
                     learnWanted = false; // feiten uit de app zijn geen dingen om over je te onthouden
@@ -898,7 +900,7 @@ final class LocalAi {
             if (!note.isEmpty()) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + note + ")");
             // Achter de vraag, niet in de vaste instructie: die blijft zo gelijk en de motor hoeft het gesprek niet opnieuw in te lezen
             final String questionF = question;
-            if (actWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiActions.prompt(System.currentTimeMillis(), java.util.TimeZone.getDefault()) + ")");
+            if (actWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiActions.prompt(System.currentTimeMillis(), Regio.zone(c)) + ")");
             if (setWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiSettings.prompt(setOffer) + ")");
             else if (req.optBoolean("noDo") && remember == null && forgetWhat == null && !hasAtt && !actWanted) last.put("content", last.optString("content") + "\n\n(Bericht van de app: " + AiSettings.NO_DO + ")");
             final boolean willLearn = learnWanted;
@@ -942,7 +944,7 @@ final class LocalAi {
                             String clean = actWanted ? AiActions.strip(full) : full;
                             if (setWanted) clean = AiSettings.strip(clean);
                             if (!clean.equals(full)) o.put("clean", clean);
-                            AiActions.Act act = actWanted && ok[0] ? AiActions.parse(full, questionF, System.currentTimeMillis(), java.util.TimeZone.getDefault()) : null;
+                            AiActions.Act act = actWanted && ok[0] ? AiActions.parse(full, questionF, System.currentTimeMillis(), Regio.zone(c)) : null;
                             if (act != null) o.put("action", actJson(act));
                             // Voorgestelde wijzigingen: alleen van meegestuurde instellingen; de interface vraagt bevestiging
                             if (setWanted && ok[0]) {

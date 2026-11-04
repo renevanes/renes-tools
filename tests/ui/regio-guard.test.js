@@ -19,8 +19,6 @@ const JS_FILES_OK = {
 };
 // Regels die bewust zo blijven: [bestand, stukje tekst, reden]
 const JS_LINES_OK = [
-  ['web/src/script/63-facturen.js', "toLocaleDateString('sv-SE')", 'ISO-datum (jjjj-mm-dd) voor opslag en invoervelden'],
-  ['web/src/schermen/39-facturen.html', "toLocaleDateString('sv-SE')", 'ISO-datum in een invoerveld (type=date)'],
   ['web/src/script/51-assistent.js', "d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })", 'aiSumLines: tekst voor het taalmodel blijft vast nl-NL'],
   ['web/src/script/51-assistent.js', "d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + ' ' + (m.me", 'aiSumLines: tekst voor het taalmodel blijft vast nl-NL'],
 ];
@@ -92,6 +90,81 @@ ok(!jbad.length, 'Java: geen vaste notaties voor Rene buiten Regio' + (jbad.leng
 // De uitzonderingen moeten nog nodig zijn (anders weghalen)
 for (const [f, part] of JS_LINES_OK) ok(rd(f).includes(part), 'uitzondering nog nodig: ' + f + ' (' + part + ')');
 for (const [f, part] of JAVA_OK) ok(rd(jdir + '/' + f).includes(part), 'uitzondering nog nodig: ' + f + ' (' + part.slice(0, 50) + ')');
+
+// ---------- tijdzone: daglogica en tijden via de app-zone ----------
+// "Vandaag", per dag/week/maand, invoervelden en tijden uit de opslag rekenen in de app-zone (Regio en taal → Tijdzone):
+// rgDayKey, rgIsToday, rgFromLocal, rgNextAt … (02-regio.js) en Regio.zone, Regio.cal, Regio.toMillis (Java). Deze test
+// faalt op een NIEUWE toDateString, new Date(j, m, d …), setHours, getHours/getMinutes (interface) of
+// Calendar.getInstance() / TimeZone.getDefault() (Java) buiten de helpers. Bewust zo: hieronder, per regel met de reden.
+const TZ_JS_OK = [
+  ['web/src/script/02-thema.js', 'return new Date(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10), +hm.slice(0, 2), +hm.slice(3, 5)).getTime();', 'alleen zonder 02-regio.js (de losse rekentest van het thema)'],
+  ['web/src/script/54-checkin.js', 'return m ? new Date(+m[1], +m[2] - 1, +m[3], 12) : null;', 'ciDate: een kalenderdatum om mee te rekenen (12:00, niet om te tonen)'],
+  ['web/src/script/54-checkin.js', 'const j = new Date(+m[1], 0, 4, 12)', 'ciWeekStart: ISO-week, kalenderrekenen'],
+  ['web/src/script/56-checkin-terugkijken.js', 'ciqMonthAt = new Date(n.getFullYear(), q.rhythm', 'maand of jaar van vandaag (ciToday, al in de app-zone): kalenderrekenen'],
+  ['web/src/script/56-checkin-terugkijken.js', 'const b = yearly ? new Date(a.getFullYear() + 1, 0, 1, 12)', 'eind van de maand of het jaar: kalenderrekenen'],
+  ['web/src/script/56-checkin-terugkijken.js', 'const n = yearly ? new Date(a.getFullYear() + dir, 0, 1, 12)', 'vorige/volgende maand: kalenderrekenen'],
+  ['web/src/script/56-checkin-terugkijken.js', 'n > new Date(now.getFullYear(), now.getMonth(), 1, 12)', 'niet voorbij deze maand (now = ciToday): kalenderrekenen'],
+  ['web/src/script/56-checkin-terugkijken.js', 'const b = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12)', 'de afgelopen 7 dagen vanaf ciToday: kalenderrekenen'],
+  ['web/src/script/56-checkin-terugkijken.js', 'to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12)', 'vergelijken over n dagen vanaf ciToday: kalenderrekenen'],
+  ['web/src/script/56-checkin-terugkijken.js', 'ciqMonthAt = new Date(d.getFullYear(), q.rhythm', 'naar de maand van een kalenderdatum'],
+  ['web/src/script/57-herstel.js', 'const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);', 'de naam van een backup staat in telefoontijd (Secure.java): dat moment, getoond in de app-zone'],
+  ['web/src/script/61-assistent-acties.js', "hm = String(p.getHours()).padStart(2, '0') + ':' + String(p.getMinutes()).padStart(2, '0');", 'de Klok-app rekent in telefoontijd: zo staat de wekker daar'],
+  ['web/src/script/64-bankzaken.js', 'const d = new Date(Number(s.slice(0, 4)), Number(s.slice(5, 7)), 0);', 'laatste dag van een maand (datum-alleen-waarden van de bank)'],
+  ['web/src/script/64-bankzaken.js', 'const x = new Date(d.getFullYear(), d.getMonth() - m, 1, 12);', 'maanden terug vanaf een bankdatum: kalenderrekenen'],
+];
+const TZ_JS_FILES_OK = {
+  'web/src/script/02-regio.js': 'de helpers zelf', 'web/src/script/01-testbrug.js': 'testbrug, niet in de app',
+  'web/src/script/60-gebruik.js': 'schermtijd: Java telt per dag in telefoontijd (GebruikStore), de grafiek volgt dat',
+};
+// new Date(…) met meer dan één argument (j, m, d …): rekent in telefoontijd
+const tzMulti = l => { let i = -1; while ((i = l.indexOf('new Date(', i + 1)) >= 0) { let d = 0, n = 0; for (let j = i + 9; j < l.length; j++) { const c = l[j]; if ('([{'.includes(c)) d++; else if (')]}'.includes(c)) { if (!d) break; d--; } else if (c === ',' && !d) n++; } if (n) return true; } return false; };
+const TZ_JS_BAD = [[/\.toDateString\(\)/, 'toDateString (gebruik rgDayKey, rgIsToday of rgIsYesterday)'], [/\.setHours\(/, 'setHours (gebruik rgFromLocal, rgStartOfDay of rgNextAt)'],
+  [/\.get(Hours|Minutes)\(\)/, 'getHours/getMinutes (gebruik rgParts, rgHm of rgMinOfDay)'], [{ test: tzMulti }, 'new Date(j, m, d …) (gebruik rgFromLocal, of rgCalDate voor kalenderrekenen)']];
+{
+  const tb = [], used = new Set();
+  for (const f of jsFiles.concat(['web/start.html'])) {
+    if (TZ_JS_FILES_OK[f] || f === 'web/neutraal.html') continue;
+    let lines = rd(f).split('\n');
+    if (f === 'web/start.html') { const a = lines.findIndex(l => l.includes('/* ---------- Regio en taal')), b = lines.findIndex(l => l.includes('/* ---------- klok, wekker')); lines = lines.map((l, i) => i >= a && i < b ? '' : l); }
+    lines.forEach((line, i) => {
+      const l = strip(line);
+      for (const [re, why] of TZ_JS_BAD) if (re.test(l)) { const ok = TZ_JS_OK.find(([af, part]) => af === f && l.includes(part)); if (ok) used.add(ok); else tb.push(f + ':' + (i + 1) + ' ' + why + ': ' + l.trim().slice(0, 120)); }
+    });
+  }
+  ok(!tb.length, 'tijdzone (interface): daglogica en tijden via de app-zone' + (tb.length ? ':\n  ' + tb.join('\n  ') : ''));
+  for (const x of TZ_JS_OK) ok(used.has(x), 'tijdzone-uitzondering nog nodig: ' + x[0] + ' (' + x[1].slice(0, 50) + ')');
+}
+const TZ_JAVA_OK = [
+  ['AiBridge.java', 'min = Regio.minuteOfDay(java.util.TimeZone.getDefault(), at)', 'de Klok-app rekent in telefoontijd: hetzelfde moment, omgerekend'],
+  ['AiBridge.java', 'Regio.allDayFor(Regio.zone(ctx), java.util.TimeZone.getDefault(), b0, e0)', 'een hele dag in de agenda-app (telefoontijd): dezelfde datum'],
+  ['AllBackupJob.java', 'Calendar c = Calendar.getInstance();', 'nachtelijke backup om 03:30: de echte nacht van de telefoon (geen tijd die Rene instelt)'],
+  ['WaBackupJob.java', 'Calendar c = Calendar.getInstance();', 'nachtelijke backup om 03:00: de echte nacht van de telefoon'],
+  ['TranscribeJob.java', 'int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);', 'uitschrijven alleen \'s nachts: de echte nacht van de telefoon'],
+  ['TranscribeJob.java', 'Calendar cal = Calendar.getInstance();', 'uitschrijven vanaf 01:00: de echte nacht van de telefoon'],
+  ['Rotate.java', 'Calendar c = Calendar.getInstance();', 'bestandsnamen van backups staan in telefoontijd (machinaal)'],
+  ['Rotate.java', 'Calendar cut = Calendar.getInstance();', 'opruimen van oude backups: telefoontijd, net als de bestandsnamen'],
+  ['GebruikStore.java', 'static TimeZone tz() { return TimeZone.getDefault(); }', 'schermtijd wordt per dag in telefoontijd opgeteld en zo bewaard'],
+  ['Apparaten.java', 'Calendar.getInstance(tz == null ? TimeZone.getDefault() : tz)', 'zonder zone (alleen in tests): de telefoon'],
+  ['AutoActions.java', 'return nextTime(m, days, after, java.util.TimeZone.getDefault());', 'variant zonder zone voor de oude tests; de app geeft Regio.zone mee'],
+  ['Calls.java', 'return sameDay(a, b, java.util.TimeZone.getDefault());', 'variant zonder zone voor de oude tests; de export geeft de zone van Regio.df mee'],
+  ['RadioAlarm.java', 'return next(TimeZone.getDefault(), hour, minute, days, now);', 'variant zonder zone voor de oude tests; de app geeft Regio.zone mee'],
+  ['RadioAlarm.java', 'TimeZone.getTimeZone(tz) : TimeZone.getDefault()', 'noodwekker vóór ontgrendelen: de gespiegelde app-zone, anders de telefoon'],
+  ['Reminders.java', 'return dayOfMonth(t, java.util.TimeZone.getDefault());', 'variant zonder zone voor de oude tests'],
+  ['Facturen.java', 'return voorPeriode(grens, f, naam, java.util.TimeZone.getDefault());', 'variant zonder zone; het ophalen geeft Regio.zone mee'],
+  ['Reminders.java', 'return next(t, rep, after, dom, java.util.TimeZone.getDefault());', 'variant zonder zone voor de oude tests; de app geeft Regio.zone mee'],
+];
+{
+  const jb = [], used = new Set();
+  for (const f of fs.readdirSync(path.join(root, jdir)).filter(f => f.endsWith('.java') && f !== 'Regio.java')) {
+    rd(jdir + '/' + f).split('\n').forEach((line, i) => {
+      if (!/Calendar\.getInstance\(\s*\)|TimeZone\.getDefault\(\)/.test(line.replace(/\/\/.*$/, ''))) return;
+      const ok = TZ_JAVA_OK.find(([af, part]) => af === f && line.includes(part));
+      if (ok) used.add(ok); else jb.push(f + ':' + (i + 1) + ': ' + line.trim().slice(0, 120));
+    });
+  }
+  ok(!jb.length, 'tijdzone (Java): Calendar en TimeZone via Regio.zone / Regio.cal' + (jb.length ? ':\n  ' + jb.join('\n  ') : ''));
+  for (const x of TZ_JAVA_OK) ok(used.has(x), 'tijdzone-uitzondering nog nodig: ' + x[0] + ' (' + x[1].slice(0, 50) + ')');
+}
 
 // De helpers zitten vóór de schermen in de volgorde (thema en kern gebruiken ze al bij het laden)
 {

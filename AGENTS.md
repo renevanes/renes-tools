@@ -49,7 +49,20 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   (met een lijst uitzonderingen en de reden). Thuis, werk en de standaardplaats: `rgPlace()` / `Regio.home()`; thuis en
   werk staan alleen in Java (`regio.xml`, niet in localStorage/webstore en niet in de Android-backup). Getallen uit een
   invoerveld: `parseNum()`, vooraf invullen met `fmtNumIn()`.
-  Datum-alleen-waarden en daglogica (vandaag) volgen de telefoon; er is geen eigen tijdzone.
+  **Tijdzone:** standaard volgt de app de telefoon; kiest Rene een zone (Regio en taal → Tijdzone), dan rekent de hele
+  app in die zone, de app-zone. Daglogica (vandaag, gisteren, per dag/week/maand) volgt de app-zone: `rgDayKey`, `rgToday`,
+  `rgIsToday`, `rgIsYesterday`, `rgStartOfDay`, `rgParts` (interface) en `Regio.zone`, `Regio.cal`, `Regio.dayKey`,
+  `Regio.isToday` (Java), nooit `toDateString`, `new Date(j, m, d)`, `setHours`, `Calendar.getInstance()` of
+  `TimeZone.getDefault()`. Tijden uit de opslag ("07:30": wekkers, check-in, planningen, thema) zijn wandklok in de
+  app-zone: plannen met `rgFromLocal`/`rgNextAt` of `Regio.toMillis`/`Regio.nextAt` (een tijd die door de zomertijd niet
+  bestaat schuift mee: 02:30 wordt 03:30; een tijd die bij de wintertijd twee keer bestaat is de eerste keer, overal:
+  interface, `Regio`, `Checkin.at`, `Facturen.gepland`). WebView (Intl) en Android (Java) hebben elk een eigen
+  tijdzonedatabase die los bijgewerkt wordt: een zone telt alleen als beide hem kennen (`rgTzOk` vraagt `regioTzOk`), en
+  de interface geeft Java en de skin de zone die hij echt gebruikt (`rgTzState().sel`). Invoervelden: vooraf invullen met `rgLocalIn`/`rgHm`, lezen met
+  `rgFromLocalIn`/`rgFromLocal`. Datum-alleen-waarden ('2026-11-03') verschuiven nooit: `fmtDate('2026-11-03')`.
+  Bewust telefoontijd: bestandsnamen en logboek, de nachtelijke taken (backups, uitschrijven), schermtijd (Gebruik) en wat
+  buiten de app gebeurt (Klok-app, agenda-app: hetzelfde moment). Een andere zone zet alle wekkers opnieuw (`regioSet`).
+  `regio-guard.test.js` bewaakt ook dit (met een lijst uitzonderingen per regel en de reden).
   Tekst voor het taalmodel blijft vast nl-NL (niet via de helpers).
 - **Interface**: gebruik de kleurrollen uit `stijl.css` (nooit vaste kleuren als `#fff` op `--primary`: in donker is
   `--primary` licht). Elk scherm heeft `<div class="hdr">` met terugknop en `<h1>`; detailschermen `class="hdr sm"`.

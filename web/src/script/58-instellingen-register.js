@@ -31,6 +31,19 @@ function setAlarmStation(){ try { enterAlarm(); const st = alStations[+$('#al-st
 function setAlarm(fn){ enterAlarm(); fn(); return alSave() ? '' : 'De wekker opslaan lukte niet'; }
 function setRedial(){ setIf('redial', () => { chips($('#c-att'), ATT, 'attempts', 10); chips($('#c-int'), INT, 'interval', 10); renderRange(); $('#t-stop').classList.toggle('on', store.get('t-stop', true)); $('#t-spk').classList.toggle('on', store.get('t-spk', false)); }); }
 
+/* De keuzes voor de tijdzone (een minuut onthouden: de lijst is lang) */
+function setTzVals(){
+  const n = Date.now();
+  if (!setTzVals.c || n - setTzVals.at > 6e4) { setTzVals.c = [['telefoon', 'Volg de telefoon (' + rgPhoneTz() + ')']].concat(rgTzList().map(z => [z, rgTzName(z)])); setTzVals.at = n; }
+  return setTzVals.c;
+}
+/* "de telefoon", "new york", "londense", "America/New_York" → de waarde; null als het geen tijdzone is */
+function setTzVal(r){
+  const t = norm2(r || '').replace(/^(?:de|het)\s+/, '').trim();
+  if (/^(?:(?:tijd|tijdzone) van de |de )?telefoon(?:tijd)?$|^(?:volg(?:t|en)? )?(?:de )?telefoon$|^zoals de telefoon$|^telefoontijd$/.test(t)) return 'telefoon';
+  return rgTzFind(t) || null;
+}
+
 const SET_REG = [
   /* ---------- Instellingen → Meldingen en Weergave ---------- */
   // Op het scherm heet de schakelaar "Alle meldingen uit"; hier andersom (aan = meldingen aan), zodat "zet meldingen uit" klopt
@@ -80,6 +93,11 @@ const SET_REG = [
     get: () => rgCfg().date, set: v => { rgSet('date', v); return ''; } },
   { id: 'regio.week', scr: 'setregio', ctl: '#rg-week', type: 'keuze', vals: RG_WEEK, label: 'Eerste dag van de week', desc: 'Met welke dag de week begint in kalenders en bij het kiezen van dagen.',
     syn: 'week eerste dag begint maandag zondag zaterdag kalender', need: /\b(week|weken|kalender)\b/, get: () => String(rgCfg().week), set: v => { rgSet('week', +v); return ''; } },
+  // Tijdzone: "zet de tijdzone op New York", "gebruik Londense tijd", "volg de telefoon". Een vraag als "hoe laat is
+  // het in New York" verandert niets (die beantwoordt setHandle zelf).
+  { id: 'regio.tijdzone', scr: 'setregio', ctl: '#rg-tz-btn', type: 'keuze', vals: () => setTzVals(), label: 'Tijdzone', desc: 'Volg de telefoon, of kies een tijdzone: dan rekent de hele app daarin (de klok, vandaag, wekkers, herinneringen, check-in, widgets en invoervelden).',
+    syn: 'tijdzone tijdzones zone wereldtijd utc gmt zomertijd', need: /\b(tijdzone\w*|zone|tijd)\b/, valFor: r => setTzVal(r),
+    get: () => rgTzState().sel || 'telefoon', set: v => { if (v !== 'telefoon' && !rgTzOk(v)) return 'Deze tijdzone kent de telefoon niet'; rgSet('tz', v === 'telefoon' ? '' : v); setIf('setregiotz', rgzRender); return ''; } },
   { id: 'regio.thuis', scr: 'setregio', ctl: '#rg-home-btn', type: 'openen', label: 'Thuis (adres)', desc: 'Je thuisadres voor Apparaten, routes, het weer en het thema met de zon (als je locatie niet bekend is). Kies het met je huidige locatie, een adres of coördinaten.',
     syn: 'thuis huis thuisadres adres woonplaats locatie' },
   { id: 'regio.werk', scr: 'setregio', ctl: '#rg-work-btn', type: 'openen', label: 'Werk (adres)', desc: 'Het adres van je werk, voor Mijn routes en als standaardplaats.', syn: 'werk werkadres kantoor adres locatie' },

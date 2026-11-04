@@ -203,8 +203,15 @@ function aiCmdHtml(m, i){
 }
 /* De Klok-app kiest altijd de eerstvolgende keer op die tijd: zeg het als dat niet de dag is die je noemde */
 function aiCmdAlarmNote(a){
+  // Een eigen tijdzone (Regio en taal): de Klok-app rekent in telefoontijd, dus daar staat hetzelfde moment anders
+  const tz = a.min >= 0 && rgTzOwn() ? (() => { const t = rgNextAt(String(Math.floor(a.min / 60)).padStart(2, '0') + ':' + String(a.min % 60).padStart(2, '0'), Date.now());
+    const p = new Date(t), hm = String(p.getHours()).padStart(2, '0') + ':' + String(p.getMinutes()).padStart(2, '0'); // telefoontijd: zo staat hij in de Klok-app
+    return ' De Klok-app rekent met de tijd van de telefoon: daar staat hij op ' + fmtHm(hm) + '.'; })() : '';
+  return (aiCmdAlarmDay(a) + tz).trim();
+}
+function aiCmdAlarmDay(a){
   if (!a.day || a.min < 0) return '';
-  if (a.day === 'morgen') { const d = new Date(), now = d.getHours() * 60 + d.getMinutes(); return a.min > now ? 'Let op: de Klok-app zet hem op de eerstvolgende ' + aiHmT(a.min) + ', en dat is vandaag. Voor morgen pas je dat daar aan.' : ''; }
+  if (a.day === 'morgen') { const now = rgMinOfDay(Date.now()); return a.min > now ? 'Let op: de Klok-app zet hem op de eerstvolgende ' + aiHmT(a.min) + ', en dat is vandaag. Voor morgen pas je dat daar aan.' : ''; }
   return 'De dag (' + a.day + ') kies je daarna zelf in de Klok-app; die zet hem op de eerstvolgende ' + aiHmT(a.min) + '.';
 }
 function aiCmdMsgAt(i){ const m = aiChat && aiChat.msgs[i]; return m && m.cmd ? m : null; }

@@ -113,7 +113,9 @@
         <select class="sel" id="rg-date" onchange="rgSet('date', this.value)"></select></div>
       <div class="row setrow"><label for="rg-week" style="flex:1">Eerste dag van de week</label>
         <select class="sel" id="rg-week" onchange="rgSet('week', +this.value)"></select></div>
-      <div class="row setrow"><span style="flex:1">Tijdzone</span><span class="rg-val" id="rg-tz"></span></div>
+      <div class="row setrow"><span style="flex:1;min-width:0"><b>Tijdzone</b><small class="note rg-spot" id="rg-tz"></small></span>
+        <button class="big ghost rg-btn" id="rg-tz-btn" onclick="rgTzOpen()">Kiezen</button></div>
+      <p class="note bad" id="rg-tz-bad" hidden style="margin:0 2px 6px"></p>
     </div>
     <div class="card" id="rg-loc-card">
       <h2>Locatie</h2>
@@ -141,6 +143,23 @@
       <p class="note" id="rg-num-prev" aria-live="polite" style="margin-bottom:0"></p>
     </div>
     <button class="big ghost" id="rg-reset" style="margin:4px 0 16px" onclick="rgReset()">Terug naar de standaard</button>
+  </main>
+</section>
+
+<section class="screen" id="s-setregiotz">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
+    <h1 tabindex="-1">Tijdzone</h1>
+  </div>
+  <main>
+    <div class="card">
+      <p class="note" id="rgz-now" style="margin-top:0" aria-live="polite"></p>
+      <p class="note bad" id="rgz-bad" hidden></p>
+      <p class="note">Kies je een tijdzone, dan rekent de hele app daarin: de klok, "vandaag", wekkers, herinneringen, check-in, widgets en de invoervelden. Tijden die je instelt (zoals een wekker om 07:00) gelden dan in die zone.</p>
+      <div class="flabel"><label for="rgz-q">Zoeken</label></div>
+      <input class="search" id="rgz-q" type="search" autocomplete="off" placeholder="Bijv. New York, Londen of Tokio" style="margin:0 0 8px" oninput="rgzRender()">
+      <div class="stations rgz-list" id="rgz-list"></div>
+    </div>
   </main>
 </section>
 

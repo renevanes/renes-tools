@@ -134,7 +134,7 @@ public final class SleepService extends Service {
         try { night = SleepTalk.begin(this, t0, SleepTalk.sens(this), params, bat[0], charged); } catch (Exception e) { message = "Opslaan lukt niet"; return false; }
         since = t0; heard = 0; levelDb = -90; floorDb = -90; inCall = false;
         liveTalk = 0; liveNoise = 0; liveOpen = 0; liveText = ""; liveAt = 0; directWait = ""; directBusy = false; finishing = false;
-        stopAt = SleepTalk.stopTime(since, SleepTalk.stopAt(this), java.util.TimeZone.getDefault());
+        stopAt = SleepTalk.stopTime(since, SleepTalk.stopAt(this), Regio.zone(this));
         phase = "luistert";
         SleepReminder.dismiss(this);
         SleepTalk.cleanup(this, night);

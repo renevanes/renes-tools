@@ -38,7 +38,7 @@ const path = require('path');
     ok(!r.out.length, 'datum, tijd en getallen precies zoals toLocaleString(\'nl-NL\')' + (r.out.length ? ': ' + r.out.join(' | ') : ''));
     ok(r.euro === '€ 1.234,56' && r.min === '− € 5,05' && r.plus === '+ € 19,99' && r.kort === '€ 12.346' && r.fd === '€ 1.234,50', 'bedragen zoals altijd: ' + [r.euro, r.min, r.plus, r.kort, r.fd].join(' · '));
     ok(r.km === '12,35' && r.car === '23,4 km' && r.size.join('|') === '1 kB|5 MB|2,5 GB|1023 kB|1023 MB|1023 B|1023 kB|1500,0 MB' && r.temp === '18 °C' && r.hm === '07:30' && r.week === '1,2,3,4,5,6,0', 'eenheden zoals altijd: ' + [r.km, r.car, r.size.join(' / '), r.temp, r.hm].join(' · '));
-    ok(r.cfg.lang === 'nl' && r.cfg.clock === '24' && r.cfg.cur === 'EUR' && r.cfg.dist === 'km' && !('tz' in r.cfg) && !('vol' in r.cfg), 'standaard: Nederlands, 24 uur, euro, km (geen eigen tijdzone)');
+    ok(r.cfg.lang === 'nl' && r.cfg.clock === '24' && r.cfg.cur === 'EUR' && r.cfg.dist === 'km' && r.cfg.tz === '' && !('vol' in r.cfg), 'standaard: Nederlands, 24 uur, euro, km, tijdzone van de telefoon');
     ok(r.fdmin === '€ -12,50' && r.zero.join('|') === '€ 0,00|€ 0,00|€ 0', 'negatief bij Facturen zoals altijd (' + r.fdmin + '), afgerond nul zonder minteken (' + r.zero.join(' / ') + ')');
 
     // 2. Het scherm
@@ -49,7 +49,7 @@ const path = require('path');
     const prev0 = await pg.textContent('#rg-prev');
     ok(/^(maan|dins|woens|donder|vrij|zater|zon)dag \d{1,2}-\d{1,2}-\d{4} · \d{2}:\d{2} · € 1\.234,56 · 12,5 km · 18 °C$/.test(prev0), 'voorbeeld bovenaan: ' + prev0);
     ok(await pg.evaluate(() => ['rg-lang', 'rg-clock', 'rg-date', 'rg-week', 'rg-place', 'rg-dist', 'rg-temp', 'rg-size', 'rg-speed', 'rg-cur', 'rg-dec', 'rg-grp'].every(id => document.getElementById(id).options.length > 0)), 'alle keuzelijsten gevuld');
-    ok(await pg.evaluate(() => $('#rg-lang').options.length === 1 && $('#rg-lang').options[0].text === 'Nederlands' && /\(volgt de telefoon\)$/.test($('#rg-tz').textContent) && !document.querySelector('select#rg-tz') && !$('#rg-vol') && $('#rg-cur').options.length >= 10 && /Standaardvaluta/.test($('label[for=rg-cur]').textContent.replace(/\u00ad/g, ''))), 'taal: alleen Nederlands; tijdzone alleen ter info (volgt de telefoon); geen inhoud; Standaardvaluta');
+    ok(await pg.evaluate(() => $('#rg-lang').options.length === 1 && $('#rg-lang').options[0].text === 'Nederlands' && $('#rg-tz').textContent === 'Volg de telefoon (Europe/Amsterdam)' && $('#rg-tz-btn').textContent === 'Kiezen' && !$('#rg-vol') && $('#rg-cur').options.length >= 10 && /Standaardvaluta/.test($('label[for=rg-cur]').textContent.replace(/\u00ad/g, ''))), 'taal: alleen Nederlands; tijdzone: volg de telefoon (Europe/Amsterdam), met Kiezen; geen inhoud; Standaardvaluta');
     await pg.evaluate(() => { window._rc = 0; addEventListener('regiochange', () => window._rc++); });
 
     // 3. Elke keuze
@@ -73,7 +73,7 @@ const path = require('path');
     ok(/1\u202f234\u202f567\.89/.test(await pg.textContent('#rg-num-prev')), 'spatie voor duizendtallen: ' + await pg.textContent('#rg-num-prev'));
     const st = await pg.evaluate(() => ({ ev: window._rc, java: JSON.parse(Android._regioCfg || '{}'), saved: store.get('regio', null) }));
     ok(st.ev >= 10, 'gebeurtenis regiochange bij elke wijziging (' + st.ev + ')');
-    ok(st.java.clock === '12' && st.java.dist === 'mi' && st.java.locale === 'nl-NL' && !('tz' in st.java), 'doorgegeven aan Java (meldingen, widgets, skin)');
+    ok(st.java.clock === '12' && st.java.dist === 'mi' && st.java.locale === 'nl-NL' && st.java.tz === '', 'doorgegeven aan Java (meldingen, widgets, skin), tijdzone: de telefoon');
     ok(st.saved && st.saved.cur === 'USD' && st.saved.grp === ' ', 'bewaard bij de interface-instellingen (gaat mee in backups)');
 
     // 4. Schermen volgen de keuze
@@ -150,7 +150,7 @@ const path = require('path');
     const { ctx, pg } = await page('light');
     await pg.goto(url); await pg.waitForTimeout(200);
     const r = await pg.evaluate(() => [rgClean({ clock: 'x', date: 'nee', tz: 'Mars/Olympus', dec: ',', grp: ',', cur: 'XXX', home: { lat: 51, lon: 4 }, place: 'maan', week: 3 }), rgClean('kapot')]);
-    ok(r[0].clock === '24' && r[0].date === 'dmy' && !('tz' in r[0]) && r[0].grp === '.' && r[0].cur === 'EUR' && !('home' in r[0]) && r[0].place === 'auto' && r[0].week === 1, 'onbekende waarden: de standaard (en geen thuis in de opslag)');
+    ok(r[0].clock === '24' && r[0].date === 'dmy' && r[0].tz === 'Mars/Olympus' && r[0].grp === '.' && r[0].cur === 'EUR' && !('home' in r[0]) && r[0].place === 'auto' && r[0].week === 1, 'onbekende waarden: de standaard (en geen thuis in de opslag); een onbekende tijdzone blijft bewaard (de app volgt dan de telefoon)');
     // Getallen uit invoervelden (Bankzaken-budget, Automatiseren, Check-in)
     const pn = await pg.evaluate(() => { const a = ['12,50', '12.50', '1.250', '1.234,56', '1,234.56', '€ 1 234', '-3,5', 'abc', '', '1.2.3'].map(parseNum); rgSave({ dec: '.' }); const b = ['12.50', '12,50', '1,250', '1.250'].map(parseNum); const inp = [fmtNumIn(12.5, 2), fmtNumIn(1250, 2)]; rgSave({ dec: ',', grp: '.' }); return { a, b, inp, inp2: [fmtNumIn(12.5, 2), fmtNumIn(1250, 2)] }; });
     ok(JSON.stringify(pn.a) === JSON.stringify([12.5, 12.5, 1250, 1234.56, 1234.56, 1234, -3.5, null, null, 123]) && JSON.stringify(pn.b) === JSON.stringify([12.5, 12.5, 1250, 1.25]), 'bedragen inlezen: ' + JSON.stringify(pn));

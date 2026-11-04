@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.138",
-  "versionCode": 139,
-  "nativeLevel": 125,
+  "versionName": "1.139",
+  "versionCode": 140,
+  "nativeLevel": 126,
   "web": "index.html",
-  "webSha256": "9c658ff96736150c20f7211004f5a5023ee42443af0e6bd784aab6ac3c1a78e0",
+  "webSha256": "358c97ff83184afe8278878d14f66407ae38b798f0543fd944a2ddd835392936",
   "start": "start.html",
-  "startSha256": "0ea90522dcf4d73fe5b0b6a7486ed095bcce9c93ee25b9ef370a77ac24c147f0",
+  "startSha256": "b6e3560addeca820f210459552f1e4bfd58a5a940abab743d86721fc4c759c30",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "090d156e7c9e29d1e71ef2b31aa19ff255273da56da4f8e48b01b4fd61404c14",
+  "apkSha256": "d828704163052799dc9e8dabbd90a4f4574a3ff4c1b2c6a63e91ffc10cd24b8a",
   "changelog": [
+    {
+      "version": "1.139",
+      "date": "2026-11-04",
+      "changes": [
+        "Nieuw: Instellingen → Regio en taal → Tijdzone: kies een andere tijdzone (zoeken op stad of land, met de tijd daar nu); de hele app (klok, \"vandaag\", wekkers, herinneringen, check-in, widgets, Telefoon-skin en invoervelden) rekent dan in die zone. Standaard volgt de app de telefoon.",
+        "De assistent kan de tijdzone voor je aanpassen (\"zet de tijdzone op New York\", \"gebruik Londense tijd\", \"volg de telefoon\") en zegt hoe laat het ergens anders is (\"hoe laat is het in Tokio?\") zonder iets te veranderen."
+      ]
+    },
     {
       "version": "1.138",
       "date": "2026-11-04",
@@ -1213,5 +1221,5 @@
       ]
     }
   ],
-  "webSig2": "nepl9JJuLNH8kDKCrF48stbzoxkpeieQh0zPKODEr4fyqyw1kxodez+mDhy4xWWB1x7OZxYuwmOYQe5XhjgCbSbJM4UhsvkDoKXdEFCsmnoMqUMp/1jm5UQbujH4OpVSdQqIijkCioMTuoBEEmPq9eLZu3cupiEvkQAqCrvqVg8ApHafJi7lLHN76ww1xDI45hi4KVRz+IN0pavopsLBO5RigEAYyGT0zGalyVacxTji7jxs8pmcsjGJ0hmsUvNKvj7O+YGbP+Tc1AueyKRdht5R6DSyi1x8muKdmCC23hkwey0kFk2s4NeunZlkftpTDWB0QywxD7vz5BbYRzpQ3VHoWif8zRfm6R11zIgY2YqCLBUD90TZUcxtUFuVyOcGUQbc/Gt6ge4I02PmzLYDOvuEBqTDq4cZcxiLc4IlNLmXZNnaM90J81kgFVO2/z3P/meQdgqkx8pkGsMaJpX68bRvJEo7jmtN21FfAZ8p5lmREN4uSSxGQKkvbNDnHP9b"
+  "webSig2": "F0PF6ygjmnk1Dv8Z7a/TqKt6iUrGr6rqOitfzOI6m1nVAvQCmF0t61VEyjr8qfZ9t/igHD5CvmAsjlbGUz40dYUO+qdkJVQa+s4f+PoAmm/uW0eXT5gHC4sgjQ4D6Ve0G1n1JJJecmCyS94jsd2WuvSY/tIWrwWS0wpVq7yQdX8MgGZmMs8AV1bPRufaRrfYVPO7HsL2tpCnSwv6HmV5wGVtWFvpQQ90OpYWpobYhNiIokWAPDVmrGoSgKSBWr1GPBIkWSlXH18prG4wZBH/HKDQJnxikHjEgeCq+mB6HpzJghyVWePjJgQVlGhPBRp4db61Ab5HI/JxxX6Z5jI//JmfT0zxSPWgkG9w+l6saqcfPTh75VZIS+MCFZ1MZ2O8/c8tZCvEFdzXCj9RZpooVv3clw4e3z+s5+3ic3hJ5JTmnHBCZ7qzCXnBV2J8zXsICJwEW+/nrG6kwGwMjXhSyLlRE1iVNTZuuBFNdXCD5ZH0kP0bfOAYlQRyehFCn3yn"
 }

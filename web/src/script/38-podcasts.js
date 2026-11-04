@@ -12,12 +12,11 @@ function fmtClock(ms){
 function fmtMin(m){ m = Math.max(0, Math.round(m)); return m >= 60 ? Math.floor(m / 60) + ' u' + (m % 60 ? ' ' + (m % 60) + ' min' : '') : m + ' min'; }
 function pcDate(t){
   if (!t) return '';
-  const d = new Date(t), now = new Date(), day = 864e5;
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  if (t >= start) return 'vandaag';
-  if (t >= start - day) return 'gisteren';
-  if (t >= start - 6 * day) return fmtDate(d, { weekday: 'long' });
-  return fmtDate(d, d.getFullYear() === now.getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+  const d = new Date(t), ago = rgDayDiff(rgDayKey(t), rgToday()); // dagen geleden, in de app-zone
+  if (ago <= 0) return 'vandaag';
+  if (ago === 1) return 'gisteren';
+  if (ago <= 6) return fmtDate(d, { weekday: 'long' });
+  return fmtDate(d, rgParts(d).y === rgParts().y ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
 }
 /* Hoesje: alleen https (de app laadt niets onveiligs); anders een 🎧 */
 function pcImg(u){ u = String(u || ''); if (u.startsWith('http://')) u = 'https://' + u.slice(7); return /^https:\/\//.test(u) ? u : ''; }
@@ -541,8 +540,8 @@ function sleepOpen(target){
     : st.sleepEnd ? 'Stopt nu aan het einde van deze aflevering.' : (slTarget === 'pod' ? 'Stop de podcast na…' : 'Stop de radio na…');
   $('#sl-add').style.display = st.sleepAt ? 'flex' : 'none';
   $('#sl-off').textContent = active ? 'Uitzetten' : 'Annuleren';
-  const d = new Date(Date.now() + 60 * 6e4);
-  $('#sl-time').value = String(d.getHours()).padStart(2, '0') + ':' + String(Math.floor(d.getMinutes() / 5) * 5).padStart(2, '0');
+  const d = rgParts(Date.now() + 60 * 6e4); // over een uur, in de app-zone
+  $('#sl-time').value = String(d.hh).padStart(2, '0') + ':' + String(Math.floor(d.mm / 5) * 5).padStart(2, '0');
   sleepShow();
   $('#sleepdlg').classList.add('on');
 }
@@ -568,8 +567,8 @@ function sleepEnd(){ if (slTarget !== 'pod') return; sleepClose(); if (sleepAppl
 function sleepAt(){
   const v = /^(\d{1,2}):(\d{2})$/.exec($('#sl-time').value || '');
   if (!v) { toast('Kies een tijd'); return; }
-  const t = new Date(); t.setHours(+v[1], +v[2], 0, 0);
-  if (t.getTime() <= Date.now()) t.setDate(t.getDate() + 1);
+  // Wandklok in de app-zone: de eerstvolgende keer dat het die tijd is
+  const t = new Date(rgNextAt(v[1].padStart(2, '0') + ':' + v[2], Date.now()));
   const m = Math.max(1, Math.ceil((t.getTime() - Date.now()) / 6e4));
   sleepClose();
   if (sleepApply(m)) toast('⏾ Stopt om ' + fmtTime(t, { hour: '2-digit', minute: '2-digit' }));

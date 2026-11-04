@@ -166,7 +166,7 @@ final class ApparatenStore {
     static synchronized void histRecord(Context c, List<Seen> seen, long now, String place) {
         if (seen.isEmpty()) return;
         Map<String, Apparaten.Hist> m = histLoad(c);
-        TimeZone tz = TimeZone.getDefault();
+        TimeZone tz = Regio.zone(c);
         for (Seen s : seen) {
             if (!Apparaten.stableKey(s.key)) continue;
             Apparaten.Hist h = m.get(s.key);
@@ -184,7 +184,7 @@ final class ApparatenStore {
     static synchronized void histPrune(Context c) {
         trackersPruneNow(c);
         Map<String, Apparaten.Hist> m = histLoad(c);
-        Apparaten.prune(m, System.currentTimeMillis(), keep(c), TimeZone.getDefault());
+        Apparaten.prune(m, System.currentTimeMillis(), keep(c), Regio.zone(c));
         if (!m.isEmpty() || JsonFileStore.exists(new File(dir(c), "geschiedenis.json"))) histSave(c, m);
     }
 
@@ -198,7 +198,7 @@ final class ApparatenStore {
         JSONObject o = new JSONObject();
         try {
             Map<String, Apparaten.Hist> m = histLoad(c);
-            Apparaten.prune(m, System.currentTimeMillis(), keep(c), TimeZone.getDefault());
+            Apparaten.prune(m, System.currentTimeMillis(), keep(c), Regio.zone(c));
             JSONObject k = known(c);
             JSONArray home = new JSONArray(), away = new JSONArray(), mine = new JSONArray();
             for (Apparaten.Hist h : Apparaten.often(m.values(), false, 2)) if (!k.has(h.key) && home.length() < 40) home.put(histJson(h));

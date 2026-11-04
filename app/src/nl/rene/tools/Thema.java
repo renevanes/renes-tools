@@ -76,7 +76,7 @@ final class Thema {
     }
 
     static boolean dark(Context c) {
-        Calendar k = Calendar.getInstance();
+        Calendar k = Regio.cal(c, System.currentTimeMillis()); // "Automatisch op tijd" in de app-zone
         return dark(get(c), System.currentTimeMillis(), k.get(Calendar.HOUR_OF_DAY) * 60 + k.get(Calendar.MINUTE), HomeActivity.night(c));
     }
 

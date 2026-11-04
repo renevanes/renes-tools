@@ -5,8 +5,10 @@ import android.content.Context;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,7 +18,10 @@ import java.util.regex.Pattern;
  * meldingen, widgets, de Telefoon-skin en leesbare exports precies hetzelfde schrijven als de schermen.
  * Thuis en werk staan alleen hier (sleutel "spots" in regio.xml): niet in de interface-opslag, zodat ze nooit in de
  * Android-backup komen (regio.xml is daar uitgesloten); wel in "Alle appgegevens" (versleuteld, zie AppData).
- * Tijdzone: altijd die van de telefoon. Tekst voor het taalmodel blijft vast nl-NL (niet via deze klasse).
+ * Tijdzone: standaard die van de telefoon; kiest Rene een tijdzone, dan rekent de hele app daarin (de app-zone, zone()):
+ * tijden in meldingen en widgets, "vandaag", en tijden uit de opslag ("07:30" is wandklok in de app-zone: wekkers,
+ * check-in, herinneringen en planningen rekenen het moment met toMillis/nextAt). Een onbekende zone: de telefoon.
+ * Tekst voor het taalmodel blijft vast nl-NL (niet via deze klasse).
  * De standaard is hoe de app het altijd deed: Nederlands, 24 uur, 3-11-2026, euro, km, °C, 1024 per stap.
  * Alles hieronder dat een Cfg krijgt is puur (getest in RegioTest); de varianten met een Context lezen de keuze.
  */
@@ -38,12 +43,20 @@ final class Regio {
     /** Een gecontroleerde keuze; na het maken verandert hij niet meer. */
     static final class Cfg {
         final String lang, clock, date, place, dist, temp, speed, cur, grp, homeName, workName;
+        /** Gekozen tijdzone ("" = volg de telefoon); kan onbekend zijn op deze telefoon (dan geldt de telefoon, zie zone). */
+        final String tz;
         final int week, size;
         final char dec;
         private final double[] home, work;
 
         Cfg(String lang, String clock, String date, String place, int week, String dist, String temp, String speed, int size,
             String cur, char dec, String grp, double[] home, String homeName, double[] work, String workName) {
+            this(lang, clock, date, "", place, week, dist, temp, speed, size, cur, dec, grp, home, homeName, work, workName);
+        }
+
+        Cfg(String lang, String clock, String date, String tz, String place, int week, String dist, String temp, String speed, int size,
+            String cur, char dec, String grp, double[] home, String homeName, double[] work, String workName) {
+            this.tz = tz == null ? "" : tz;
             this.lang = lang; this.clock = clock; this.date = date; this.place = place; this.week = week; this.dist = dist;
             this.temp = temp; this.speed = speed; this.size = size; this.cur = cur; this.dec = dec; this.grp = grp;
             this.home = home == null ? null : home.clone(); this.homeName = homeName;
@@ -75,7 +88,7 @@ final class Regio {
 
     /** Uit JSON (zoals de interface hem bewaart) en thuis/werk; onbekende of kapotte waarden worden de standaard. */
     static Cfg parse(String json, String spots) {
-        String lang = "nl", clock = "24", date = "dmy", place = "auto", dist = "km", temp = "c", speed = "kmh", cur = "EUR", grp = ".";
+        String lang = "nl", clock = "24", date = "dmy", place = "auto", dist = "km", temp = "c", speed = "kmh", cur = "EUR", grp = ".", tz = "";
         int week = 1, size = 1024;
         char dec = ',';
         if (json != null && !json.isEmpty() && json.length() <= MAX) {
@@ -99,8 +112,10 @@ final class Regio {
                 if (grp.equals(String.valueOf(dec))) grp = dec == ',' ? "." : ",";
                 v = o.optString("place", "auto");
                 place = v.matches("[a-z\\-]{1,20}") ? v : "auto";
+                v = o.optString("tz", "");
+                tz = TZ_RE.matcher(v).matches() ? v : "";
             } catch (Exception e) {
-                lang = "nl"; clock = "24"; date = "dmy"; place = "auto"; dist = "km"; temp = "c"; speed = "kmh"; cur = "EUR"; grp = ".";
+                lang = "nl"; clock = "24"; date = "dmy"; place = "auto"; dist = "km"; temp = "c"; speed = "kmh"; cur = "EUR"; grp = "."; tz = "";
                 week = 1; size = 1024; dec = ',';
             }
         }
@@ -114,7 +129,7 @@ final class Regio {
                 if (work != null) wn = cut(s.getJSONObject("work").optString("name", ""), 60);
             } catch (Exception ignored) { home = null; work = null; }
         }
-        return new Cfg(lang, clock, date, place, week, dist, temp, speed, size, cur, dec, grp, home, hn, work, wn);
+        return new Cfg(lang, clock, date, tz, place, week, dist, temp, speed, size, cur, dec, grp, home, hn, work, wn);
     }
 
     private static double[] spot(JSONObject p) {
@@ -130,7 +145,7 @@ final class Regio {
         try { new JSONObject(json); } catch (Exception e) { return null; }
         Cfg c = parse(json, "");
         try {
-            return new JSONObject().put("lang", c.lang).put("clock", c.clock).put("date", c.date).put("week", c.week).put("place", c.place)
+            return new JSONObject().put("lang", c.lang).put("clock", c.clock).put("date", c.date).put("week", c.week).put("tz", c.tz).put("place", c.place)
                     .put("dist", c.dist).put("temp", c.temp).put("speed", c.speed).put("size", String.valueOf(c.size))
                     .put("cur", c.cur).put("dec", String.valueOf(c.dec)).put("grp", c.grp).toString();
         } catch (Exception e) {
@@ -183,7 +198,8 @@ final class Regio {
     static String skinJson(Context ctx) {
         Cfg c = cfg(ctx);
         try {
-            return new JSONObject().put("clock", c.clock).put("date", c.date).put("temp", c.temp).put("dec", String.valueOf(c.dec)).put("grp", c.grp).toString();
+            return new JSONObject().put("clock", c.clock).put("date", c.date).put("temp", c.temp).put("dec", String.valueOf(c.dec)).put("grp", c.grp)
+                    .put("tz", tzOk(c.tz) ? c.tz : "").toString();
         } catch (Exception e) {
             return "{}";
         }
@@ -227,7 +243,12 @@ final class Regio {
         return out;
     }
 
-    static SimpleDateFormat df(Cfg c, String p) { return new SimpleDateFormat(pattern(c, p), c.locale()); }
+    /** In de app-zone (zie zone). */
+    static SimpleDateFormat df(Cfg c, String p) {
+        SimpleDateFormat f = new SimpleDateFormat(pattern(c, p), c.locale());
+        f.setTimeZone(zone(c));
+        return f;
+    }
 
     /** Voor wat Rene leest (meldingen, widgets, leesbare exports); niet voor bestandsnamen of opslag. */
     static SimpleDateFormat df(Context ctx, String p) { return df(cfg(ctx), p); }
@@ -236,6 +257,166 @@ final class Regio {
 
     /** "14:05" of "2:05 p.m." */
     static String time(Context ctx, long t) { return fmt(ctx, "HH:mm", t); }
+
+    // ---------------------------------------------------------------- tijdzone (de app-zone)
+
+    static final Pattern TZ_RE = Pattern.compile("[A-Za-z][A-Za-z0-9_+\\-/]{0,63}");
+
+    /** Onthouden: TimeZone.getTimeZone is niet goedkoop. Eén onveranderlijk paar (id, zone); de zone zelf wordt gekloond. */
+    private static final class Zone {
+        final String id; final TimeZone tz; final boolean ok;
+        Zone(String id, TimeZone tz, boolean ok) { this.id = id; this.tz = tz; this.ok = ok; }
+    }
+    private static volatile Zone lastZone = new Zone("\u0000", null, false);
+
+    /** Kent deze telefoon de zone precies zo (hoofdletters tellen, geen GMT voor onbekend)? Zoals rgTzOk in 02-regio.js. */
+    static boolean tzOk(String id) {
+        if (id == null || !TZ_RE.matcher(id).matches()) return false;
+        Zone z = lastZone;
+        if (z.id.equals(id)) return z.ok;
+        TimeZone t = TimeZone.getTimeZone(id);
+        boolean ok = t != null && id.equals(t.getID());
+        lastZone = new Zone(id, ok ? t : null, ok);
+        return ok;
+    }
+
+    /** De app-zone: de gekozen zone als de telefoon die kent, anders die van de telefoon. Een eigen kopie. */
+    static TimeZone zone(Cfg c) {
+        if (c != null && !c.tz.isEmpty() && tzOk(c.tz)) {
+            Zone z = lastZone;
+            if (z.id.equals(c.tz) && z.tz != null) return (TimeZone) z.tz.clone();
+            return TimeZone.getTimeZone(c.tz);
+        }
+        return TimeZone.getDefault();
+    }
+
+    static TimeZone zone(Context ctx) { return zone(cfg(ctx)); }
+
+    /** Volgt de app de telefoon (geen eigen, bekende zone gekozen)? */
+    static boolean followsPhone(Cfg c) { return c.tz.isEmpty() || !tzOk(c.tz); }
+
+    /** Een Calendar in de app-zone op tijdstip t. */
+    static Calendar cal(TimeZone tz, long t) {
+        Calendar k = Calendar.getInstance(tz);
+        k.setTimeInMillis(t);
+        return k;
+    }
+
+    static Calendar cal(Context ctx, long t) { return cal(zone(ctx), t); }
+
+    private static String two(int n) { return n < 10 ? "0" + n : String.valueOf(n); }
+
+    /** "2026-11-03": de dag van tijdstip t in zone tz. */
+    static String dayKey(TimeZone tz, long t) {
+        Calendar k = cal(tz, t);
+        return k.get(Calendar.YEAR) + "-" + two(k.get(Calendar.MONTH) + 1) + "-" + two(k.get(Calendar.DAY_OF_MONTH));
+    }
+
+    static String dayKey(Context ctx, long t) { return dayKey(zone(ctx), t); }
+
+    /** Valt t op dezelfde dag als now (in zone tz)? */
+    static boolean isToday(TimeZone tz, long t, long now) { return dayKey(tz, t).equals(dayKey(tz, now)); }
+
+    static boolean isToday(Context ctx, long t) { TimeZone z = zone(ctx); return isToday(z, t, System.currentTimeMillis()); }
+
+    /** Kalenderrekenen: "2026-11-03" plus n dagen (zonder tijdzone); null als het geen datum is. */
+    static String dayAdd(String key, int n) {
+        int[] d = ymd(key);
+        if (d == null) return null;
+        Calendar k = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.ROOT);
+        k.clear();
+        k.set(d[0], d[1] - 1, d[2], 12, 0, 0);
+        k.add(Calendar.DAY_OF_MONTH, n);
+        return k.get(Calendar.YEAR) + "-" + two(k.get(Calendar.MONTH) + 1) + "-" + two(k.get(Calendar.DAY_OF_MONTH));
+    }
+
+    /** Weekdag van een datum als Calendar.DAY_OF_WEEK (1 = zondag). */
+    static int weekday(String key) {
+        int[] d = ymd(key);
+        if (d == null) return 0;
+        Calendar k = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.ROOT);
+        k.clear();
+        k.set(d[0], d[1] - 1, d[2], 12, 0, 0);
+        return k.get(Calendar.DAY_OF_WEEK);
+    }
+
+    private static final Pattern YMD = Pattern.compile("(\\d{4})-(\\d{2})-(\\d{2})");
+    private static final Pattern HM = Pattern.compile("(\\d{1,2}):(\\d{2})(?::(\\d{2}))?");
+
+    private static int[] ymd(String key) {
+        if (key == null) return null;
+        Matcher m = YMD.matcher(key);
+        if (!m.matches()) return null;
+        int y = Integer.parseInt(m.group(1)), mo = Integer.parseInt(m.group(2)), d = Integer.parseInt(m.group(3));
+        return mo < 1 || mo > 12 || d < 1 || d > 31 ? null : new int[]{y, mo, d};
+    }
+
+    /**
+     * Wandklok (ms alsof het UTC is) → tijdstip in zone tz. Bestaat de tijd twee keer (de klok gaat terug), dan de eerste;
+     * bestaat hij niet (de klok springt vooruit), dan schuift hij mee met de sprong: 02:30 wordt 03:30, zoals een wekker
+     * en Checkin. Precies zoals rgWallToMs in 02-regio.js.
+     */
+    static long wallToMillis(TimeZone tz, long w) {
+        int oa = tz.getOffset(w - 86_400_000L), ob = tz.getOffset(w + 86_400_000L);
+        long ta = w - oa, tb = w - ob;
+        boolean va = tz.getOffset(ta) == oa, vb = tz.getOffset(tb) == ob;
+        if (va && vb) return Math.min(ta, tb);
+        if (vb && !va) return tb;
+        return ta; // geldig, of in het gat: met de tijd van vóór de sprong (komt na de sprong uit)
+    }
+
+    /** "2026-11-03" en "07:30" (wandklok in zone tz) → tijdstip in ms; -1 als het niet klopt. */
+    static long toMillis(TimeZone tz, String date, String hm) {
+        int[] d = ymd(date);
+        Matcher m = HM.matcher(hm == null || hm.isEmpty() ? "00:00" : hm);
+        if (d == null || !m.matches()) return -1;
+        int h = Integer.parseInt(m.group(1)), mi = Integer.parseInt(m.group(2)), s = m.group(3) == null ? 0 : Integer.parseInt(m.group(3));
+        if (h > 23 || mi > 59 || s > 59) return -1;
+        return toMillis(tz, d[0], d[1], d[2], h, mi, s);
+    }
+
+    /** Jaar, maand (1–12), dag, uur, minuut, seconde (wandklok in zone tz) → tijdstip in ms. */
+    static long toMillis(TimeZone tz, int y, int mo, int d, int h, int mi, int s) {
+        Calendar u = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.ROOT);
+        u.clear();
+        u.set(y, mo - 1, d, h, mi, s);
+        return wallToMillis(tz, u.getTimeInMillis());
+    }
+
+    static long toMillis(Context ctx, String date, String hm) { return toMillis(zone(ctx), date, hm); }
+
+    /** Begin van de dag (00:00 in zone tz) waarin t valt. */
+    static long startOfDay(TimeZone tz, long t) { return toMillis(tz, dayKey(tz, t), "00:00"); }
+
+    /**
+     * Eerstvolgend tijdstip na `after` waarop het in zone tz hour:minute is. days: bit 0 = maandag … bit 6 = zondag;
+     * 0 = elke dag. 0 als er binnen 8 dagen niets is. (Zoals rgNextAt in 02-regio.js.)
+     */
+    static long nextAt(TimeZone tz, int hour, int minute, int days, long after) {
+        if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return 0;
+        String k0 = dayKey(tz, after);
+        for (int i = 0; i < 9; i++) {
+            String k = dayAdd(k0, i);
+            long t = toMillis(tz, k, two(hour) + ":" + two(minute));
+            if (t <= after) continue;
+            int dow = (weekday(k) + 5) % 7; // maandag = 0
+            if (days == 0 || (days & (1 << dow)) != 0) return t;
+        }
+        return 0;
+    }
+
+    /**
+     * Een hele dag (begin en eind in de app-zone) voor de agenda-app, die in telefoontijd rekent: dezelfde datums, van
+     * middernacht tot middernacht in telefoontijd (ook op een dag van 23 of 25 uur). end = het begin van de dag erna.
+     */
+    static long[] allDayFor(TimeZone app, TimeZone phone, long begin, long end) {
+        long b = toMillis(phone, dayKey(app, begin), "00:00");
+        long e = end > begin ? toMillis(phone, dayAdd(dayKey(app, end - 1), 1), "00:00") : toMillis(phone, dayAdd(dayKey(app, begin), 1), "00:00");
+        return new long[]{b, e};
+    }
+
+    /** Minuut van de dag (0–1439) van t in zone tz. */
+    static int minuteOfDay(TimeZone tz, long t) { Calendar k = cal(tz, t); return k.get(Calendar.HOUR_OF_DAY) * 60 + k.get(Calendar.MINUTE); }
 
     // ---------------------------------------------------------------- getallen
 

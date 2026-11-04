@@ -14,7 +14,6 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -124,15 +123,14 @@ public final class HomeWidgets {
                     taps.add(PendingIntent.getActivity(c, 7101, s, IMM));
                 } else {
                     JSONArray ev = o.optJSONArray("events");
-                    Calendar today = Calendar.getInstance();
+                    java.util.TimeZone tz = Regio.zone(c); // vandaag in de app-zone
                     SimpleDateFormat time = Regio.df(c, "HH:mm"), day = Regio.df(c, "EEE");
                     if (ev != null) for (int i = 0; i < ev.length() && lines.size() < ROWS.length; i++) {
                         JSONObject e = ev.optJSONObject(i);
                         if (e == null || e.optLong("end") < System.currentTimeMillis()) continue;
-                        Calendar b = Calendar.getInstance();
-                        b.setTimeInMillis(e.optLong("begin"));
-                        boolean isToday = b.get(Calendar.YEAR) == today.get(Calendar.YEAR) && b.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR);
-                        String when = (isToday ? "" : day.format(b.getTime()) + " ") + (e.optBoolean("allDay") ? "hele dag" : time.format(b.getTime()));
+                        Date b = new Date(e.optLong("begin"));
+                        boolean isToday = Regio.isToday(tz, b.getTime(), System.currentTimeMillis());
+                        String when = (isToday ? "" : day.format(b) + " ") + (e.optBoolean("allDay") ? "hele dag" : time.format(b));
                         lines.add(when + "  ·  " + e.optString("title"));
                         Intent open = new Intent(Intent.ACTION_VIEW, android.content.ContentUris.withAppendedId(android.provider.CalendarContract.Events.CONTENT_URI, e.optLong("id")))
                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -215,7 +213,12 @@ public final class HomeWidgets {
                     JSONObject d = days.optJSONObject(i);
                     if (d == null) continue;
                     String wd;
-                    try { wd = Regio.df(c, "EEE").format(new SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(d.optString("date"))); }
+                    try {
+                        // Een kalenderdatum: lezen en schrijven in dezelfde zone, dan verschuift hij nooit
+                        SimpleDateFormat out = Regio.df(c, "EEE"), in = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+                        in.setTimeZone(out.getTimeZone());
+                        wd = out.format(in.parse(d.optString("date")));
+                    }
                     catch (Exception e) { continue; }
                     if (sb.length() > 0) sb.append("    ");
                     sb.append(wd).append(' ').append(wmo(d.optInt("code"), true)[0]).append(' ').append(deg(c, d.opt("max"))).append('/').append(deg(c, d.opt("min")));
@@ -258,9 +261,10 @@ public final class HomeWidgets {
                 JSONObject rem = t.optJSONObject("reminders");
                 if (rem != null) {
                     long first = Long.MAX_VALUE; int n = 0;
-                    Calendar end = Calendar.getInstance(); end.set(Calendar.HOUR_OF_DAY, 23); end.set(Calendar.MINUTE, 59);
+                    java.util.TimeZone tz = Regio.zone(c);
+                    long end = Regio.toMillis(tz, Regio.dayAdd(Regio.dayKey(tz, System.currentTimeMillis()), 1), "00:00"); // einde van vandaag in de app-zone
                     java.util.Iterator<String> it = rem.keys();
-                    while (it.hasNext()) { long x = rem.optLong(it.next()); if (x >= System.currentTimeMillis() && x <= end.getTimeInMillis()) { n++; first = Math.min(first, x); } }
+                    while (it.hasNext()) { long x = rem.optLong(it.next()); if (x >= System.currentTimeMillis() && x < end) { n++; first = Math.min(first, x); } }
                     if (n > 0) { lines.add("🔔  " + n + (n == 1 ? " herinnering" : " herinneringen") + " vandaag, eerst om " + hm.format(new Date(first))); taps.add(openTool(c, "notes", 7302)); }
                 }
                 JSONObject rp = t.optJSONObject("redial");

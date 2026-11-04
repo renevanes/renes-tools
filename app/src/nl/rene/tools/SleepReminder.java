@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import java.util.Calendar;
 import java.util.TimeZone;
 
 /**
@@ -28,13 +27,13 @@ final class SleepReminder {
     /** De eerstvolgende keer dat het "HH:mm" is, na nu (0 = uit). Zuiver (getest). */
     static long next(long now, String hhmm, TimeZone tz) {
         if (hhmm == null || !hhmm.matches("([01]\\d|2[0-3]):[0-5]\\d")) return 0;
-        Calendar k = Calendar.getInstance(tz);
-        k.setTimeInMillis(now);
-        k.set(Calendar.HOUR_OF_DAY, Integer.parseInt(hhmm.substring(0, 2)));
-        k.set(Calendar.MINUTE, Integer.parseInt(hhmm.substring(3)));
-        k.set(Calendar.SECOND, 0); k.set(Calendar.MILLISECOND, 0);
-        while (k.getTimeInMillis() <= now + 30_000L) k.add(Calendar.DAY_OF_MONTH, 1);
-        return k.getTimeInMillis();
+        // Wandklok in de app-zone (tz = Regio.zone)
+        String day = Regio.dayKey(tz, now);
+        for (int i = 0; i < 4; i++, day = Regio.dayAdd(day, 1)) {
+            long t = Regio.toMillis(tz, day, hhmm);
+            if (t > now + 30_000L) return t;
+        }
+        return 0;
     }
 
     private static PendingIntent op(Context c) {
@@ -46,7 +45,7 @@ final class SleepReminder {
         try {
             AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
             if (am == null) return;
-            long t = next(System.currentTimeMillis(), SleepTalk.remindAt(c), TimeZone.getDefault());
+            long t = next(System.currentTimeMillis(), SleepTalk.remindAt(c), Regio.zone(c));
             if (t == 0) { am.cancel(op(c)); return; }
             // Binnen een kwartier na de gekozen tijd: zuinig (Android mag het combineren met andere wekkers)
             am.setWindow(AlarmManager.RTC_WAKEUP, t, 15 * 60_000L, op(c));

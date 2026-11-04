@@ -112,7 +112,7 @@ final class FacturenRun {
         JSONObject tt = Facturen.toestand(this.c, this.id), vw = tt.optJSONObject("verwerkt");
         if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) bekend.add(it.next());
         // Vervolg (stoppen na een rij bekende facturen) alleen als de hele periode al eens is opgehaald
-        this.vervolg = !Facturen.heelPeriode(lev, tt, System.currentTimeMillis(), java.util.TimeZone.getDefault());
+        this.vervolg = !Facturen.heelPeriode(lev, tt, System.currentTimeMillis(), Regio.zone(this.c));
     }
 
     /** Starten (op de hoofdthread). Geeft "" of de reden waarom het niet kan. */
@@ -146,9 +146,9 @@ final class FacturenRun {
                 JSONObject m = lev.optJSONObject("mail") == null ? new JSONObject() : lev.optJSONObject("mail");
                 JSONObject tt = Facturen.toestand(c, id);
                 long nuM = System.currentTimeMillis();
-                boolean heel = Facturen.heelPeriode(lev, tt, nuM, java.util.TimeZone.getDefault());
-                long sinds = heel ? FacturenMail.sindsHeel(lev, tt.optLong("lastOk"), tt.optLong("mailSinds"), nuM, java.util.TimeZone.getDefault())
-                        : FacturenMail.sinds(lev, tt.optLong("lastOk"), tt.optLong("mailSinds"), nuM, java.util.TimeZone.getDefault());
+                boolean heel = Facturen.heelPeriode(lev, tt, nuM, Regio.zone(c));
+                long sinds = heel ? FacturenMail.sindsHeel(lev, tt.optLong("lastOk"), tt.optLong("mailSinds"), nuM, Regio.zone(c))
+                        : FacturenMail.sinds(lev, tt.optLong("lastOk"), tt.optLong("mailSinds"), nuM, Regio.zone(c));
                 java.util.List<Facturen.Pdf> l = FacturenMail.bron(m.optString("bron", "gmail")).haal(c, lev, sinds, stop, t -> voortgang = t);
                 if (klaarGemeld) { // te laat (de tijd was om): deze mails zijn niet bewaard, dus de volgende keer opnieuw vanaf hetzelfde punt
                     Facturen.werkBij(c, id, new JSONObject().put("mailSinds", tt.optLong("mailSinds")).put("mailMeer", tt.optBoolean("mailMeer")));

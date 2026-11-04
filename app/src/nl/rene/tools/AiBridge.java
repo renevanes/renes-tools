@@ -152,7 +152,7 @@ public class AiBridge extends SleepBridge {
             if (a.isSolo()) return AiData.factual(topic, q) ? o.put("solo", true).toString() : "";
             if (!LocalAi.srcOn(ctx, topic)) return AiData.factual(topic, q) ? o.put("off", true).toString() : "";
             long now = System.currentTimeMillis();
-            AiData.Answer an = AiData.answer(topic, q, AiData.facts(ctx, topic, now), now, java.util.TimeZone.getDefault());
+            AiData.Answer an = AiData.answer(topic, q, AiData.facts(ctx, topic, now), now, Regio.zone(ctx));
             if (an == null) return o.toString();
             return o.put("text", an.text).put("title", an.title).toString();
         } catch (Throwable t) { return ""; }
@@ -226,6 +226,9 @@ public class AiBridge extends SleepBridge {
                 case "wekker": {
                     int min = o.optInt("min", -1);
                     if (!AiCommands.validClock(min)) return "Kies een geldige tijd";
+                    // De tijd geldt in de app-zone; de Klok-app rekent in telefoontijd: hetzelfde moment, omgerekend
+                    long at = Regio.nextAt(Regio.zone(ctx), min / 60, min % 60, 0, System.currentTimeMillis());
+                    if (at > 0) min = Regio.minuteOfDay(java.util.TimeZone.getDefault(), at);
                     android.content.Intent i = new android.content.Intent(android.provider.AlarmClock.ACTION_SET_ALARM)
                             .putExtra(android.provider.AlarmClock.EXTRA_HOUR, min / 60).putExtra(android.provider.AlarmClock.EXTRA_MINUTES, min % 60)
                             .putExtra(android.provider.AlarmClock.EXTRA_SKIP_UI, false);
@@ -318,8 +321,14 @@ public class AiBridge extends SleepBridge {
     @JavascriptInterface public String aiCalendarAdd(String json) {
         final JSONObject o;
         try { o = new JSONObject(json); } catch (Exception e) { return "Ongeldige afspraak"; }
-        final long begin = o.optLong("begin"), end = o.optLong("end");
-        if (begin <= 0) return "Kies eerst een datum";
+        long b0 = o.optLong("begin"), e0 = o.optLong("end");
+        if (b0 <= 0) return "Kies eerst een datum";
+        if (o.optBoolean("allDay")) {
+            // Een hele dag is een datum: dezelfde datum als in de app-zone, maar zoals de agenda-app (telefoontijd) hem leest
+            long[] d = Regio.allDayFor(Regio.zone(ctx), java.util.TimeZone.getDefault(), b0, e0);
+            b0 = d[0]; e0 = d[1];
+        }
+        final long begin = b0, end = e0;
         final String[] res = {"De agenda openen lukte niet"};
         final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
         a.h.post(() -> {

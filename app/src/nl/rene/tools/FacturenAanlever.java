@@ -438,7 +438,7 @@ final class FacturenAanlever {
     static List<String> aanDeBeurt(Context c, long nu) {
         List<String> out = new ArrayList<>();
         JSONArray l = lijst(c);
-        java.util.TimeZone tz = java.util.TimeZone.getDefault();
+        java.util.TimeZone tz = Regio.zone(c);
         for (int i = 0; i < l.length(); i++) {
             JSONObject o = l.optJSONObject(i);
             if (o == null || !o.optBoolean("actief", true) || "uit".equals(o.optString("schema"))) continue;
@@ -451,7 +451,7 @@ final class FacturenAanlever {
     static long volgende(Context c, long nu) {
         long m = Long.MAX_VALUE;
         JSONArray l = lijst(c);
-        java.util.TimeZone tz = java.util.TimeZone.getDefault();
+        java.util.TimeZone tz = Regio.zone(c);
         for (int i = 0; i < l.length(); i++) {
             JSONObject o = l.optJSONObject(i);
             if (o == null || !o.optBoolean("actief", true) || "uit".equals(o.optString("schema"))) continue;
@@ -509,7 +509,7 @@ final class FacturenAanlever {
         for (int i = 0; i < l.length(); i++) {
             JSONObject o = new JSONObject(l.getJSONObject(i).toString());
             List<JSONObject> open = openStukken(c, o);
-            long v = gepland(o, nu, true, java.util.TimeZone.getDefault());
+            long v = gepland(o, nu, true, Regio.zone(c));
             Kanaal k = KANALEN.get(o.optString("kanaal"));
             o.put("toestand", toestand(c, o.optString("id"))).put("open", open.size()).put("volgende", v == Long.MAX_VALUE ? 0 : v)
                     .put("mist", k == null ? "Onbekend kanaal" : k.klaar(c, o));

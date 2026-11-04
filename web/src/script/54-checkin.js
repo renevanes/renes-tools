@@ -10,9 +10,12 @@ function ciLoad(){ ciSt = rdJson(Android.checkinState(), {}); return ciSt; }
 function ciQ(id){ return (ciSt.questions || []).find(q => q.id === id); }
 function ciActive(q){ return !!(q && q.on && !q.archived); }
 function ciOpts(q){ return (q && q.options) || []; }
-/* Datums: altijd van de telefoon zelf (lokale tijd), als "yyyy-MM-dd" */
+/* Datums als "yyyy-MM-dd". Een tijdstip (antwoord, slot) hoort bij een dag in de app-zone: rgDayKey(t). ciDayKey en
+ * ciDate rekenen met kalenderdatums (Date van 12:00 telefoontijd, nooit om te tonen); vandaag is ciToday(). */
 function ciPad(n){ return String(n).padStart(2, '0'); }
-function ciDayKey(d){ return d.getFullYear() + '-' + ciPad(d.getMonth() + 1) + '-' + ciPad(d.getDate()); }
+function ciDayKey(d){ return rgCalKey(d); }
+/* Vandaag (in de app-zone) als kalenderdatum */
+function ciToday(){ return rgCalDate(rgToday()); }
 function ciDate(key){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(key || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3], 12) : null; }
 function ciTime(t){ return fmtTime(t, { hour: '2-digit', minute: '2-digit' }); }
 function ciShort(d){ return CI_DOW[(d.getDay() + 6) % 7 + 1] + ' ' + d.getDate() + ' ' + CI_MON[d.getMonth()].slice(0, 3); }
@@ -24,12 +27,11 @@ function ciWeekStart(key){
 }
 /** De periode in woorden: "vandaag", "donderdag 29 oktober", "week 44 (26 okt – 1 nov)", "oktober 2026", "vandaag 21:00". Zuiver. */
 function ciKeyLabel(key, now){
-  now = now || new Date();
+  const today = now ? rgDayKey(now) : rgToday(), yr = +today.slice(0, 4); // vandaag in de app-zone
   if (/^\d{4}-W\d{2}$/.test(key)) { const a = ciWeekStart(key), b = new Date(a); b.setDate(b.getDate() + 6); return 'week ' + (+key.slice(6)) + ' (' + a.getDate() + ' ' + CI_MON[a.getMonth()].slice(0, 3) + ' – ' + b.getDate() + ' ' + CI_MON[b.getMonth()].slice(0, 3) + ')'; }
   if (/^\d{4}-\d{2}$/.test(key)) return CI_MON[+key.slice(5) - 1] + ' ' + key.slice(0, 4);
   const d = ciDate(key); if (!d) return key;
-  const today = ciDayKey(now), y = new Date(now); y.setDate(y.getDate() - 1);
-  const day = key.slice(0, 10) === today ? 'vandaag' : key.slice(0, 10) === ciDayKey(y) ? 'gisteren' : CI_DOW_L[(d.getDay() + 6) % 7 + 1] + ' ' + d.getDate() + ' ' + CI_MON[d.getMonth()] + (d.getFullYear() !== now.getFullYear() ? ' ' + d.getFullYear() : '');
+  const day = key.slice(0, 10) === today ? 'vandaag' : key.slice(0, 10) === rgDayAdd(today, -1) ? 'gisteren' : CI_DOW_L[(d.getDay() + 6) % 7 + 1] + ' ' + d.getDate() + ' ' + CI_MON[d.getMonth()] + (d.getFullYear() !== yr ? ' ' + d.getFullYear() : '');
   return key.length === 16 ? day + ' ' + key.slice(11) : day;
 }
 /** Hoe vaak, in woorden: "Elke dag om 21:00", "Werkdagen om 17:30" … Zuiver. */
@@ -49,7 +51,7 @@ function ciRhythmText(q){
     default: s = '';
   }
   if (q.quietWeekend) s += ' · stil in het weekend';
-  if (q.pauseUntil && q.pauseUntil >= ciDayKey(new Date())) { const p = ciDate(q.pauseUntil); s += ' · pauze t/m ' + ciShort(p); }
+  if (q.pauseUntil && q.pauseUntil >= rgToday()) { const p = ciDate(q.pauseUntil); s += ' · pauze t/m ' + ciShort(p); }
   return s;
 }
 function ciAnsText(a){ return ((a.e || '') + ' ' + (a.l || '')).trim(); }

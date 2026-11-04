@@ -70,7 +70,7 @@ const BK_ZMAP = { 'Uit eten & drinken': 'Representatie', 'Vervoer': 'Reis- en au
 
 let bk = { geimporteerd: new Set(), st: null, store: null, tab: 'overzicht', lijstN: 100, catCache: new Map(), eigen: new Set(), aiBezig: false, aiDoel: '', aiTekst: '', voorstellen: null, aanraak: 0, tmr: null };
 
-const bkVandaag = () => window.BK_VANDAAG || (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
+const bkVandaag = () => window.BK_VANDAAG || rgToday(); // vandaag in de app-zone (Regio en taal)
 function bkEuro(c, teken){
   return fmtMoney(c / 100, 'EUR', { sign: !!teken }); // de rekeningen zijn in euro; tekens volgens Regio en taal
 }
@@ -237,7 +237,7 @@ function bkTerugkerend(){
     if (!soort) continue;
     const bedragen = l.map(t => -t.a), m = med(bedragen);
     if (bedragen.filter(b => Math.abs(b - m) <= m * 0.15 + 100).length / bedragen.length < 0.6) continue;
-    const laatst = l[l.length - 1], volgende = new Date(new Date(laatst.d + 'T12:00:00').getTime() + iv * 864e5);
+    const laatst = l[l.length - 1], volgende = rgDayAdd(laatst.d, Math.round(iv)); // een kalenderdatum ('JJJJ-MM-DD'): fmtDate verschuift hem niet
     const gestopt = vandaag - new Date(laatst.d + 'T12:00:00') > iv * 1.6 * 864e5;
     uit.push({ naam: laatst.cp || laatst.ci, cat: bkCat(laatst), soort: soort[0], bedrag: m, perMaand: Math.round(m * soort[1]), laatst: laatst.d, volgende, gestopt, n: l.length });
   }
