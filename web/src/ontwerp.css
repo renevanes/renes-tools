@@ -128,3 +128,13 @@ input[type=tel],textarea.key,.ntext{border-radius:8px;border-color:var(--outline
 @media (min-width:720px){main{padding-top:24px}.hrow{padding-left:max(16px,calc((100vw - 680px)/2));padding-right:max(16px,calc((100vw - 680px)/2))}.hdr:not(.sm)>h1{max-width:680px;margin:0 auto;padding-left:16px}}
 @media (max-width:350px){.card{padding:14px}.tile{padding:12px;min-height:124px}.tile b{font-size:14px}.tile small{font-size:11px}.home-intro h2{font-size:23px}.notes-scopes{gap:5px}.notes-scopes button{padding:8px 10px}.note-section-tabs button{padding:9px 3px;font-size:12px}}
 @media (prefers-reduced-motion:reduce){body,.screen.on,.tile,.big,.hrow{transition:none;animation:none}}
+/* Regio en taal */
+.rg-prev{margin:0;font-size:16px;font-weight:600;color:var(--ink);line-height:1.45;overflow-wrap:anywhere}
+.rg-btn{width:auto;padding:10px 18px;flex:none}
+.rg-spot{display:block;margin:2px 0 0;overflow-wrap:anywhere}
+#rgp-results .srow{margin-bottom:6px}
+#rgp-here{margin-top:4px}
+#s-setregio .setrow{flex-wrap:nowrap}#s-setregio .setrow>label{min-width:5.5em;overflow-wrap:anywhere;hyphens:manual}
+.rg-part{white-space:nowrap}#s-setregio .setrow.rg-hasnote{padding-bottom:4px}
+.rg-val{color:var(--muted);text-align:right;min-width:0;overflow-wrap:anywhere}
+#s-setregio .setrow>.sel{flex:0 1 auto;max-width:60%;min-width:0;text-overflow:ellipsis}

@@ -200,7 +200,7 @@ public class ModelDownloadService extends Service {
                     lastNotif = now;
                     int pct = total > 0 ? (int) (done * 100 / total) : -1;
                     ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIF_ID,
-                            notif("AI-model: " + m.label, (pct >= 0 ? pct + "% · " : "") + LocalAi.gb(done) + " van " + LocalAi.gb(total), pct));
+                            notif("AI-model: " + m.label, (pct >= 0 ? pct + "% · " : "") + Regio.gbDecimal(this, done) + " van " + Regio.gbDecimal(this, total), pct));
                 }
             }, stopNow);
             RUN.remove(id);

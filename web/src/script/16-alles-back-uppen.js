@@ -32,7 +32,7 @@ function enterBackup(){
     ' onchange="Android.backupSetPart(this.dataset.p, this.checked)"> ' + BK_PARTS[k] + '</label>' +
     (k === 'app' ? '<div class=bk-sub><p class="note' + (st.encrypted ? '' : ' warn') + '" id=bk-app-note>' + bkAppNote(st.encrypted) + '</p></div>' : '')).join('');
   $('#bk-auto').checked = !!st.auto; $('#bk-charging').checked = st.charging !== false;
-  $('#bk-next').textContent = st.auto && st.next ? 'Volgende backup: ' + new Date(st.next).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
+  $('#bk-next').textContent = st.auto && st.next ? 'Volgende backup: ' + fmtDT(st.next, {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
   bkRenderLast(st); bkRenderSecure(st); bkRenderHerstel(st);
   stopBkPoll(); bkPoll = setInterval(bkPollOnce, 1000);
 }
@@ -68,9 +68,9 @@ function bkRenderLast(st){
   $('#bk-run').disabled = bkBusy || !st.dest;
   $('#bk-run').textContent = bkBusy ? 'Bezig: ' + (BK_LABEL[st.current] || '…') : 'Nu alles back-uppen';
   if (!l || !l.t) { $('#bk-last').textContent = 'Nog niet gemaakt'; $('#bk-parts-res').innerHTML = ''; return; }
-  $('#bk-last').textContent = (l.auto ? 'Automatisch, ' : '') + new Date(l.t).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
+  $('#bk-last').textContent = (l.auto ? 'Automatisch, ' : '') + fmtDT(l.t, {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
   $('#bk-parts-res').innerHTML = Object.keys(BK_LABEL).filter(k => l[k]).map(k => { const r = l[k];
-    return '<div class=bkres><b>' + BK_LABEL[k] + '</b>' + (r.ok ? '<span class=good>✓ ' + (r.msg ? esc(r.msg) : r.count.toLocaleString('nl-NL')) + '</span>' : '<span class=bad>✗ ' + esc(r.msg || 'mislukt') + '</span>') + '</div>'; }).join('') +
+    return '<div class=bkres><b>' + BK_LABEL[k] + '</b>' + (r.ok ? '<span class=good>✓ ' + (r.msg ? esc(r.msg) : fmtNum(r.count)) + '</span>' : '<span class=bad>✗ ' + esc(r.msg || 'mislukt') + '</span>') + '</div>'; }).join('') +
     (l.all ? '<div class=bkres><span class=bad>' + esc(l.all.msg || '') + '</span></div>' : '') +
     (l.archive ? '<div class=bkres><b>'+uiIcon('lock')+' Versleuteld</b><span class=good>' + esc(l.archive) + '</span></div>' : '') +
     (l.rotated ? '<div class=bkres><b>Opgeruimd</b><span>' + l.rotated.count + ' oude bestanden (' + fmtB(l.rotated.bytes) + ')</span></div>' : '');
@@ -82,7 +82,7 @@ window.onBackupDone = function(r){
   toast(failed ? 'Backup klaar, ' + failed + ' onderdeel mislukt' : '✓ Alles is back-upt');
   if (current === 'backup') bkRenderLast(bkState()); bkPollOnce();
 };
-function bkCount(v, one, more){ v = v || 0; return v.toLocaleString('nl-NL') + ' ' + (v === 1 ? one : more); }
+function bkCount(v, one, more){ v = v || 0; return fmtNum(v) + ' ' + (v === 1 ? one : more); }
 function bkPrivRender(st){
   const box = $('#bk-private'); if (!box || !st) return;
   const p = st.parts || {}, x = st.extra || {}, on = k => p[k] === true;
@@ -197,7 +197,7 @@ window.onRestoreDone = function(r){
     if (restoreKind === 'checkin' && typeof ciAfter === 'function') ciAfter();
     if (restoreKind === 'notes') { notes = null; notesBroken = false; refreshNotesTile(); }
     if (restoreKind === 'route' && current === 'tracks') enterTracks();
-    if (restoreKind === 'settings') { webStoreRestore(); if (typeof renderHome === 'function') try { renderHome(); } catch(e){} }
+    if (restoreKind === 'settings') { webStoreRestore(); if (typeof rgReload === 'function') rgReload(); if (typeof renderHome === 'function') try { renderHome(); } catch(e){} }
   } else toast(r);
 };
 

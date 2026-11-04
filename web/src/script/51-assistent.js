@@ -24,7 +24,7 @@ function aiBusyDl(){ return (aiSt.models || []).some(m => ['running', 'queued', 
 
 /* Status van een model in één regel */
 function aiStateTxt(m){
-  const gb = b => (b / 1e9).toFixed(1).replace('.', ',') + ' GB';
+  const gb = b => fmtNum(b / 1e9, 1) + ' GB'; // modelgroottes zoals Hugging Face ze noemt (1000 per stap)
   switch (m.state) {
     case 'ready': return '✓ Klaar · ' + gb(m.size);
     case 'running': return '↓ ' + (m.total > 0 ? Math.floor(m.bytes / m.total * 100) + '% van ' + gb(m.total) : 'Bezig');
@@ -54,7 +54,7 @@ function aiModelCard(m, opts){
   const by = (aiSt.models || []).find(x => x.replaces === m.id && x.state === 'ready');
   const old = by && m.state === 'ready' ? '<small class="ainew">Vervangen door ' + esc(by.label) + (aiSt.chat === by.id ? '; dit model kun je verwijderen' : '') + '</small>' : '';
   return '<div class="aimodel' + (chosen ? ' on' : '') + '" data-id="' + m.id + '"><div class="aimt"><b>' + esc(m.label) + '</b><small>' + esc(m.desc) + '</small>' +
-    '<small class="aims">' + esc(aiStateTxt(m)) + (big && m.state !== 'ready' ? ' · let op: je telefoon heeft ' + (aiSt.ram / 1e9).toFixed(0) + ' GB geheugen' : '') + '</small>' + newer + old +
+    '<small class="aims">' + esc(aiStateTxt(m)) + (big && m.state !== 'ready' ? ' · let op: je telefoon heeft ' + fmtNum(aiSt.ram / 1e9, 0) + ' GB geheugen' : '') + '</small>' + newer + old +
     (busy ? '<span class="pcprog"><i style="width:' + Math.min(100, pct).toFixed(1) + '%"></i></span>' : '') + '</div>' +
     '<div class="aimb">' + btn + (m.state === 'ready' && opts.del ? '<button class="mini" onclick="aiDel(\'' + m.id + '\')">Verwijderen</button>' : '') + '</div></div>';
 }
@@ -98,9 +98,9 @@ function aiNewLater(id){ let seen = []; try { seen = store.get('aiNewSeen') || [
 function aiOldHtml(){
   const b = aiSt.orphans || 0;
   if (b < 1e6) return '';
-  return '<div class="sw"><span>Oude modelbestanden<small>' + esc((b / 1e9).toFixed(1).replace('.', ',') + ' GB van modellen die de app niet meer gebruikt') + '</small></span><button class="mini" onclick="aiCleanOld()">Opruimen</button></div>';
+  return '<div class="sw"><span>Oude modelbestanden<small>' + esc(fmtNum(b / 1e9, 1) + ' GB van modellen die de app niet meer gebruikt') + '</small></span><button class="mini" onclick="aiCleanOld()">Opruimen</button></div>';
 }
-function aiCleanOld(){ const n = +Android.aiCleanOld() || 0; aiRefresh(); toast(n ? (n / 1e9).toFixed(1).replace('.', ',') + ' GB vrijgemaakt' : 'Niets op te ruimen'); }
+function aiCleanOld(){ const n = +Android.aiCleanOld() || 0; aiRefresh(); toast(n ? fmtNum(n / 1e9, 1) + ' GB vrijgemaakt' : 'Niets op te ruimen'); }
 /* Alles bijwerken wat modellen toont; blijven kijken zolang er gedownload of gecontroleerd wordt */
 function aiRefresh(){
   aiLoad();
@@ -824,7 +824,7 @@ function aicRender(){
   sum('answer', [AIC_LABEL.style[c.style], AIC_LABEL.creative[c.creative], AIC_LABEL.lang[c.lang]].filter(Boolean).join(' · '));
   sum('pers', c.about || c.instr ? [c.about ? 'Over mij' : '', c.instr ? 'eigen instructies' : ''].filter(Boolean).join(' en ') + ' ingevuld' : 'Nog niets ingevuld');
   const v = typeof Android.aiVoiceInfo === 'function' ? rdJson(Android.aiVoiceInfo(), {}) : {};
-  sum('voice', (v.model ? 'Spraakmodel klaar' : 'Nog geen spraakmodel') + (v.send === true ? ' · meteen versturen' : '') + (aiSt.speakVoice ? ' · antwoord voorlezen' : '') + ' · gesprek: ' + String((+c.talkSilence || 1300) / 1000).replace('.', ',') + ' s stilte');
+  sum('voice', (v.model ? 'Spraakmodel klaar' : 'Nog geen spraakmodel') + (v.send === true ? ' · meteen versturen' : '') + (aiSt.speakVoice ? ' · antwoord voorlezen' : '') + ' · gesprek: ' + fmtNum((+c.talkSilence || 1300) / 1000, { maximumFractionDigits: 3 }) + ' s stilte');
   const zoek = (aiSt.models || []).find(m => m.id === 'zoek') || {};
   sum('search', zoek.state === 'ready' ? (aiSt.index && aiSt.index.items ? aiSt.index.items + ' bronnen in de zoekindex' : 'Klaar') : 'Nog niet gedownload');
   const n = AI_SRC.filter(s => aiSrcOn(s[0])).length;
@@ -935,8 +935,8 @@ const AI_ACT = {
 function aiActLabel(a){ return (AI_ACT[a.type] || AI_ACT.notitie).label; }
 function aiActFmt(t, allDay){
   const d = new Date(t);
-  return allDay ? d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' }) + ' (hele dag)'
-    : d.toLocaleString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return allDay ? fmtDate(d, { weekday: 'short', day: 'numeric', month: 'short' }) + ' (hele dag)'
+    : fmtDT(d, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 /* Wat er in de tijdkiezer staat: wat je koos, het voorstel, of de dag met een tijd van het dagdeel (anders 9:00) */
 function aiActPickVal(a){
@@ -1093,6 +1093,7 @@ function aiSumLines(msgs, who){
   const out = []; let day = '';
   for (const m of msgs) {
     const text = String(m.text || m.label || '').replace(/\s+/g, ' ').trim(); if (!text) continue;
+    // Tekst voor het taalmodel: vast nl-NL (niet volgens Regio en taal), zodat het model altijd hetzelfde leest
     const d = new Date(m.t), dd = d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     if (dd !== day) { out.push('— ' + dd + ' —'); day = dd; }
     out.push(d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + ' ' + (m.me ? 'Ik' : who(m)) + ': ' + text);

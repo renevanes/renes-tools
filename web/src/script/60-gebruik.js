@@ -6,8 +6,8 @@ function gbSet(){ return gbState().set || {}; }
 function gbSaveOne(k, v){ try { Android.gebruikSave(JSON.stringify({ [k]: v })); } catch (e) {} }
 
 function gbDur(ms){ ms = Math.max(0, ms || 0); const m = Math.round(ms / 60000); if (m < 1) return Math.round(ms / 1000) + ' s'; return m < 60 ? m + ' min' : Math.floor(m / 60) + ' u' + (m % 60 ? ' ' + (m % 60) + ' min' : ''); }
-function gbTime(t){ try { return new Date(t).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
-function gbDay(t){ try { return new Date(t).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return ''; } }
+function gbTime(t){ try { return fmtTime(t, { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+function gbDay(t){ try { return fmtDate(t, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return ''; } }
 const GB_FUNC = { camera: ['camera', '📷'], mic: ['microfoon', '🎙'], loc: ['locatie', '📍'], bt: ['Bluetooth', '🔵'], wifi: ['wifi', '📶'], data: ['mobiele data', '📡'] };
 
 function enterGebruik(){

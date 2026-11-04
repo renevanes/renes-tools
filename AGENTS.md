@@ -41,6 +41,16 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   versleutelde archief (.rtb, wachtwoord van de backup); bij terugzetten worden ze opnieuw versleuteld met de sleutel van
   de nieuwe installatie. Nieuw instellingenbestand of nieuwe map in `getFilesDir()`? Deel die in bij `AppData`
   (mee of bewust niet); `AppDataTest` controleert dat.
+- **Regio en taal**: datums, tijden, getallen, bedragen en eenheden die Rene ziet, altijd via de helpers in
+  `web/src/script/02-regio.js` (`fmtDate`, `fmtTime`, `fmtDT`, `fmtHm`, `fmtNum`, `fmtMoney`, `fmtDist`, `fmtTemp`, `fmtSize`, …) of
+  `Regio.java` (`Regio.df`, `Regio.fmt`, `Regio.num`, `Regio.dist`, `Regio.deg`, `Regio.size`), nooit zelf met
+  `toLocaleString('nl-NL')`, `toFixed().replace('.', ',')` of `SimpleDateFormat` met Nederlands. Machinale notaties (ISO voor
+  opslag, bestandsnamen, parameters, tekst voor het taalmodel) blijven vast. `tests/ui/regio-guard.test.js` bewaakt dat
+  (met een lijst uitzonderingen en de reden). Thuis, werk en de standaardplaats: `rgPlace()` / `Regio.home()`; thuis en
+  werk staan alleen in Java (`regio.xml`, niet in localStorage/webstore en niet in de Android-backup). Getallen uit een
+  invoerveld: `parseNum()`, vooraf invullen met `fmtNumIn()`.
+  Datum-alleen-waarden en daglogica (vandaag) volgen de telefoon; er is geen eigen tijdzone.
+  Tekst voor het taalmodel blijft vast nl-NL (niet via de helpers).
 - **Interface**: gebruik de kleurrollen uit `stijl.css` (nooit vaste kleuren als `#fff` op `--primary`: in donker is
   `--primary` licht). Elk scherm heeft `<div class="hdr">` met terugknop en `<h1>`; detailschermen `class="hdr sm"`.
 

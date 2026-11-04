@@ -119,12 +119,16 @@ final class ApparatenLan {
 
     // ---------- starten en stoppen ----------
 
-    /** Zoeken starten. "" of: "wifi" (geen wifi), "prive" (geen thuisnetwerk), "bezig". */
-    static String start(Context c) {
+    /**
+     * Zoeken starten. ok = Rene heeft bevestigd dat hij hier mag rondkijken. "" of: "wifi" (geen wifi),
+     * "prive" (geen thuisnetwerk), "vraag" (onbekend netwerk en niet bevestigd), "bezig".
+     */
+    static String start(Context c, boolean ok) {
         final Context ac = c.getApplicationContext();
         Net n = wifi(ac);
         if (n == null) return "wifi";
         if (!Apparaten.privateIp(n.ip)) return "prive";
+        if (!ok && !trusted(ac, n, ApparatenStore.network(ac))) return "vraag";
         final Scan sc = new Scan(n);
         synchronized (L) {
             if (busy) return "bezig";
@@ -496,6 +500,12 @@ final class ApparatenLan {
         }
     }
 
+    /** Vertrouwd: je wifi thuis, of een netwerk dat je al eens liet onderzoeken. Anders (hotel, werk) eerst vragen. */
+    static boolean trusted(Context c, Net w, JSONObject nets) {
+        return trusted(w.ssid, ApparatenStore.prefs(c).getString("homeSsid", ""), nets.has(netId(w)));
+    }
+    static boolean trusted(String ssid, String home, boolean seen) { return seen || (ssid != null && !ssid.isEmpty() && ssid.equals(home)); }
+
     /** Stand en de lijst voor de interface. */
     static JSONObject json(Context c) {
         JSONObject o = new JSONObject();
@@ -529,9 +539,7 @@ final class ApparatenLan {
                     .put("net", netName).put("at", at).put("macHidden", Build.VERSION.SDK_INT >= 29);
             Net w = wifi(c);
             o.put("wifi", w != null).put("own", w == null ? "" : Apparaten.ipStr(w.ip) + "/" + Apparaten.effPrefix(w.prefix));
-            // Vertrouwd: je wifi thuis, of een netwerk dat je al eens liet onderzoeken. Anders (hotel, werk) eerst vragen.
-            String home = ApparatenStore.prefs(c).getString("homeSsid", "");
-            o.put("trusted", w != null && ((!w.ssid.isEmpty() && w.ssid.equals(home)) || nets.has(netId(w))));
+            o.put("trusted", w != null && trusted(c, w, nets));
             o.put("cur", w == null ? "" : w.ssid);
         } catch (Throwable e) { App.log(c, "APPARATEN", "netwerk lijst: " + e); }
         return o;

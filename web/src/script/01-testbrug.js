@@ -26,7 +26,7 @@ if (!window.Android) window.Android = (function(){
       steps.forEach((s, i) => setTimeout(() => { if (s) { this._updLog.push(s); onUpdateStatus(s); } if (i === steps.length - 1) this._upd = false; }, (this._updMs || 60) * (i + 1)));
     }, permissions:()=>JSON.stringify({call:true,phoneState:true,callLog:true,notifications:true}),
     requestPermissions(){}, openAppSettings(){}, pickContact(){ onContactPicked({number:'010 123 4567', name:'Huisarts'}); },
-    setBars(t, b, l){ this._bars = [t, b, l]; }, themeColors(){ return this._theme ? JSON.stringify(this._theme) : ''; }, themeSet(j){ this._themeCfg = j; }, themeLocation(){ return this._themeLoc || ''; }, themeDark(){ return !!this._themeDark; }, vibrate(){}, toast(m){ toast(m); }, pendingOpen:()=>'',
+    setBars(t, b, l){ this._bars = [t, b, l]; }, themeColors(){ return this._theme ? JSON.stringify(this._theme) : ''; }, themeSet(j){ this._themeCfg = j; }, regioSet(j){ this._regioCfg = j; }, regioSpots(){ return this._regioSpots || '{}'; }, regioSpotsSet(j){ this._regioSpots = j; return true; }, themeLocation(){ return this._themeLoc || ''; }, themeDark(){ return !!this._themeDark; }, vibrate(){}, toast(m){ toast(m); }, pendingOpen:()=>'',
     redialStart(n,name,a,i){ st={running:true,number:n,name,attempt:1,maxAttempts:a,interval:i,phase:'dialing',message:'Bellen…'}; t0=Date.now(); timer=setInterval(tick,300); return ''; },
     redialStart2(n,name,a,i,rmin,rmax){ const r=this.redialStart(n,name,a,rmin?rmin:i); st.randomMin=rmin; st.randomMax=rmax; return r; },
     redialStop(){ clearInterval(timer); st={...st,running:false,phase:'done',result:'stopped',message:'Gestopt'}; },
@@ -420,7 +420,7 @@ if (!window.Android) window.Android = (function(){
       { key: 'a:C2:7E:01:02:03:04', addr: 'C2:7E:01:02:03:04', name: '', type: 'tracker', maker: 'Apple', rssi: -66, avg: -66, dist: 2.5, ago: 1, bonded: false, ble: true, classic: false, rotating: false, n: 1, stable: true, near: true,
         tracker: { kind: 'airtag', label: 'AirTag', sep: true, warn: true } } ]; },
     _apKnow(d){ const k = this._ap.known[d.key]; return Object.assign({}, d, { nick: k ? k.nick : '', known: !!k }); },
-    apState(){ return JSON.stringify({ set: this._ap.set, perms: this._ap.perms, muted: false }); },
+    apState(){ let rh = false; try { rh = !!(JSON.parse(this._regioSpots || '{}') || {}).home; } catch (e) { } return JSON.stringify({ set: Object.assign({}, this._ap.set, { homeRegio: !this._ap.set.home && rh }), perms: this._ap.perms, muted: false }); },
     apSet(j){ const o = JSON.parse(j); Object.keys(o).forEach(k => { if (['bg', 'every', 'trackers', 'hist', 'keep', 'away'].includes(k)) this._ap.set[k] = o[k]; }); return ''; },
     apBtStart(classic){ const P = this._ap.perms; if (!P.bt) return 'perm'; if (!P.btOn) return 'uit'; this._ap.scanning = true; this._ap.bt = this._apDevs(); setTimeout(() => { this._ap.scanning = false; }, 400); return ''; },
     apBt(){ return JSON.stringify({ devices: (this._ap.bt || []).map(d => this._apKnow(d)), scanning: this._ap.scanning, err: '',
@@ -438,7 +438,7 @@ if (!window.Android) window.Android = (function(){
       return JSON.stringify({ networks: [n('Thuis', '3c:a6:2f:11:22:33', -45, 2437, 6, '2,4 GHz', 20, 'wpa2', { connected: true, maker: 'AVM (FRITZ!Box)' }), n('Thuis', '3c:a6:2f:11:22:34', -52, 5180, 36, '5 GHz', 80, 'wpa3', { maker: 'AVM (FRITZ!Box)' }),
         n('Ziggo-Gast', '26:11:22:33:44:55', -68, 2412, 1, '2,4 GHz', 20, 'open', { local: true }), n('Buren', 'a0:40:a0:01:02:03', -74, 2412, 1, '2,4 GHz', 40, 'wpa2', { maker: 'Netgear' }), n('Oud', '00:11:22:33:44:55', -86, 2462, 11, '2,4 GHz', 20, 'wep'), n('', '12:34:56:78:9a:bc', -80, 5500, 100, '5 GHz', 40, 'wpa2')],
         crowd: { '2,4 GHz': { 1: 1.6, 2: 1.3, 3: 1.1, 4: 0.9, 5: 0.8, 6: 0.9, 7: 0.6, 8: 0.4, 9: 0.3, 10: 0.15, 11: 0.07, 12: 0.04, 13: 0.03 }, '5 GHz': { 36: 0.8, 100: 0.33 } }, best24: 11, newest: 4, wifiOn: true }); },
-    apLanStart(){ if (this._ap.noWifi) return 'wifi'; if (this._ap.lanBusy) return 'bezig'; this._ap.lanBusy = true; this._ap.nets[this._ap.ssid || 'Thuis'] = true; setTimeout(() => { this._ap.lanBusy = false; this._ap.lanDone = true; }, 700); return ''; },
+    apLanStart(ok){ const A = this._ap, cur = A.ssid || 'Thuis'; if (A.noWifi) return 'wifi'; if (!ok && !A.nets[cur] && A.set.homeSsid !== cur) return 'vraag'; if (A.lanBusy) return 'bezig'; A.lanBusy = true; setTimeout(() => { if (!A.lanBusy) return; A.lanBusy = false; A.lanDone = true; A.nets[cur] = true; }, 700); return ''; }, // net als Java: pas onthouden als de ronde klaar is
     apLanStop(){ this._ap.lanBusy = false; },
     apLan(){ const A = this._ap, done = A.lanDone || A.lanBusy, k = key => A.known[key];
       const d = (key, ip, name, kind, extra) => Object.assign({ key, ip, name, model: '', maker: '', kind, services: [], ports: [], gateway: false, self: false, mac: '', nieuw: false, first: Date.now() - 86400000 * 20, nick: k(key) ? k(key).nick : '', known: !!k(key), stable: !key.startsWith('l:i:') }, extra || {});

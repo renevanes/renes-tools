@@ -66,7 +66,7 @@ function rdMenu(){
 function rdAlarmSub(){
   const el = $('#rd-alarm-sub'); if (!el) return;
   const a = rdJson(Android.alarmState(), {});
-  el.textContent = a.on ? 'Aan · ' + String(a.hour != null ? a.hour : 7).padStart(2, '0') + ':' + String(a.minute || 0).padStart(2, '0') + (a.station && a.station.name ? ' · ' + a.station.name : '') : 'Uit';
+  el.textContent = a.on ? 'Aan · ' + fmtHm(String(a.hour != null ? a.hour : 7).padStart(2, '0') + ':' + String(a.minute || 0).padStart(2, '0')) + (a.station && a.station.name ? ' · ' + a.station.name : '') : 'Uit';
 }
 
 /* Genres: vaste groepen die op de tags van radio-browser passen (alleen als er minstens 2 zenders in zitten) */
@@ -195,7 +195,7 @@ function rdShowRecent(l){
   $('#rd-recent-wrap').style.display = l.length ? 'block' : 'none';
   $('#rd-recent-sum').textContent = 'Eerder gedraaid (' + l.length + ')';
   $('#rd-recent').innerHTML = l.map(x => '<li data-t="' + esc(x.title) + '" onclick="rdRecentTap(this.dataset.t)"><time>' +
-    new Date(x.t).toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) + '</time><span>' + esc(x.title) + '</span></li>').join('');
+    fmtTime(x.t, {hour:'2-digit', minute:'2-digit'}) + '</time><span>' + esc(x.title) + '</span></li>').join('');
 }
 /* Nummer van de radio bewaren in Herkende muziek (zonder AudD). "Artiest - Titel" wordt gesplitst. */
 function rdSplit(t, inf){

@@ -22,14 +22,14 @@ window.onSleep = function(o){
   if (current === 'sleepnight' && slNightId) slnLoad(slNightId);
 };
 
-function slTime(ms){ return ms ? new Date(ms).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) : ''; }
+function slTime(ms){ return ms ? fmtTime(ms, { hour: '2-digit', minute: '2-digit' }) : ''; }
 /* "Nacht van do 23 op vr 24 okt" (gestart voor 12 uur 's middags: die nacht zelf) */
 function slNightName(ms){
   const d = new Date(ms), a = new Date(ms);
   if (d.getHours() < 12) a.setDate(a.getDate() - 1);
   const b = new Date(a); b.setDate(b.getDate() + 1);
-  const f = x => x.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric' });
-  return 'Nacht van ' + f(a) + ' op ' + f(b) + ' ' + b.toLocaleDateString('nl-NL', { month: 'short' });
+  const f = x => fmtDate(x, { weekday: 'short', day: 'numeric' });
+  return 'Nacht van ' + f(a) + ' op ' + f(b) + ' ' + fmtDate(b, { month: 'short' });
 }
 function slDur(ms){ const m = Math.round(ms / 60000); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' u ' + (m % 60) + ' min'; }
 
@@ -69,7 +69,7 @@ function slRender(){
   $('#sl-probe').style.display = s.phase ? 'none' : '';
   // Accu: gemiddeld per uur in nachten zonder lader
   const bh = (s.nights || []).map(n => slBatPerHour(n)).filter(v => v >= 0);
-  $('#sl-bat').textContent = bh.length ? 'Zonder lader kostte Slaappraat gemiddeld ' + (bh.reduce((a, b) => a + b, 0) / bh.length).toFixed(1).replace('.', ',') + '% accu per uur (' + bh.length + (bh.length === 1 ? ' nacht' : ' nachten') + ').' : '';
+  $('#sl-bat').textContent = bh.length ? 'Zonder lader kostte Slaappraat gemiddeld ' + fmtNum(bh.reduce((a, b) => a + b, 0) / bh.length, 1) + '% accu per uur (' + bh.length + (bh.length === 1 ? ' nacht' : ' nachten') + ').' : '';
   $('#sl-bat').style.display = bh.length ? '' : 'none';
   $('#sl-stopbat').textContent = String(set.stopBat || 15);
   const ro = !!set.remindAt, rt = $('#sl-rem');

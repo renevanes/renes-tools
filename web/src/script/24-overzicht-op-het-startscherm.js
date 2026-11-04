@@ -18,7 +18,7 @@ function renderNight(){
   if (typeof Android.overnight !== 'function') { box.style.display = 'none'; return; }
   let o = {}; try { o = JSON.parse(Android.overnight()); } catch(e){}
   const rows = [];
-  const hm = t => new Date(t).toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'});
+  const hm = t => fmtTime(t, {hour: '2-digit', minute: '2-digit'});
   if (o.backup) rows.push(['backup', 'Backup om ' + hm(o.backup.t) + (o.backup.failed ? ': ' + o.backup.failed + ' onderdeel mislukt' : ' ✓'), 'backup', o.backup.failed ? 'badc' : '']);
   for (const m of (o.missed || [])) rows.push(['phone', 'Gemist: ' + m.who + ' om ' + hm(m.t), 'calls', 'warnc']);
   for (const a of (o.auto || [])) rows.push(['automation', (a.name ? a.name + ': ' : '') + a.what + ' (' + hm(a.t) + ')', 'auto', '']);
@@ -48,16 +48,16 @@ function renderDash(){
   } catch(e){}
   try {
     const a = JSON.parse(Android.alarmState());
-    if (a.on && a.nextAt) rows.push(['clock', 'Wekker: ' + new Date(a.nextAt).toLocaleString('nl-NL', {weekday:'short', hour:'2-digit', minute:'2-digit'}) + (a.station ? ' · ' + a.station.name : ''), 'ralarm', '']);
+    if (a.on && a.nextAt) rows.push(['clock', 'Wekker: ' + fmtDT(a.nextAt, {weekday:'short', hour:'2-digit', minute:'2-digit'}) + (a.station ? ' · ' + a.station.name : ''), 'ralarm', '']);
   } catch(e){}
   try {
     const r = JSON.parse(Android.noteReminders()), end = new Date(); end.setHours(23, 59, 59, 999);
     const today = Object.values(r).filter(t => t >= Date.now() && t <= end.getTime()).sort();
-    if (today.length) rows.push(['bell', today.length + (today.length === 1 ? ' herinnering' : ' herinneringen') + ' vandaag, eerst om ' + new Date(today[0]).toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}), 'notes', '']);
+    if (today.length) rows.push(['bell', today.length + (today.length === 1 ? ' herinnering' : ' herinneringen') + ' vandaag, eerst om ' + fmtTime(today[0], {hour:'2-digit', minute:'2-digit'}), 'notes', '']);
   } catch(e){}
   try {
     const rp = JSON.parse(Android.redialPlanState());
-    if (rp.plan && rp.next > Date.now() && rp.next - Date.now() < 7 * 864e5) rows.push(['phone', 'Auto redial: ' + (rp.plan.name || rp.plan.number) + ' · ' + new Date(rp.next).toLocaleString('nl-NL', {weekday:'short', hour:'2-digit', minute:'2-digit'}), 'redial', '']);
+    if (rp.plan && rp.next > Date.now() && rp.next - Date.now() < 7 * 864e5) rows.push(['phone', 'Auto redial: ' + (rp.plan.name || rp.plan.number) + ' · ' + fmtDT(rp.next, {weekday:'short', hour:'2-digit', minute:'2-digit'}), 'redial', '']);
   } catch(e){}
   if (rdState && rdState.status === 'playing' && rdState.station) rows.push(['radio', rdState.station.name + (rdState.title ? ' · ' + rdState.title : ''), 'radio', '']);
   try {

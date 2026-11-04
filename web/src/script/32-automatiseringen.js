@@ -86,11 +86,11 @@ function auRender(){
 
 function auWhen(t){
   const d = new Date(t), now = new Date();
-  const time = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  const time = fmtTime(d, { hour: '2-digit', minute: '2-digit' });
   if (d.toDateString() === now.toDateString()) return 'vandaag ' + time;
   const y = new Date(now); y.setDate(now.getDate() - 1);
   if (d.toDateString() === y.toDateString()) return 'gisteren ' + time;
-  return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }) + ' ' + time;
+  return fmtDate(d, { day: 'numeric', month: 'short' }) + ' ' + time;
 }
 
 function auFix(k){
@@ -272,7 +272,7 @@ function aeAddWait(){ (aeRule.steps = aeRule.steps || []).push({ t: 'wait', ms: 
 function aeEditStep(i){
   const s = aeRule.steps[i]; if (!s) return;
   if (s.t === 'wait') {
-    askInput('Wachten', 'Aantal seconden', String((s.ms || 1000) / 1000), 'OK', v => { const n = parseFloat(String(v).replace(',', '.')); if (n > 0) { s.ms = Math.round(Math.min(30, n) * 1000); aeRender(); } });
+    askInput('Wachten', 'Aantal seconden', fmtNumIn((s.ms || 1000) / 1000), 'OK', v => { const n = parseNum(v); if (n > 0) { s.ms = Math.round(Math.min(30, n) * 1000); aeRender(); } });
   } else if (s.t === 'tap') {
     askInput('Tik op tekst', 'De tekst op de knop', s.text || s.desc || '', 'OK', v => { v = v.trim(); if (!v) return; s.text = v.slice(0, 60); delete s.desc; aeRender(); });
   }
@@ -293,7 +293,7 @@ function aeMapInit(){
     aeMap.invalidateSize();
     if (aeMap._ruleId !== aeRule.id) {
       aeMap._ruleId = aeRule.id;
-      if (p.lat != null) aeMap.setView([p.lat, p.lng], 16); else aeMap.setView([51.92, 4.48], 11);
+      if (p.lat != null) aeMap.setView([p.lat, p.lng], 16); else { const dp = rgPlace() || rgPlace('home'); aeMap.setView(dp ? [dp.lat, dp.lon] : [51.92, 4.48], 11); } // standaardplaats (Regio en taal), anders Rotterdam
     }
     aeMapDraw();
   } catch (e) { $('#ae-map').style.display = 'none'; }

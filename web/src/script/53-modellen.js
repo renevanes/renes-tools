@@ -13,7 +13,7 @@ const MD_CATS = [
     need: 'Hiervoor downloadt de app niets: Android levert de stem.' }
 ];
 function mdLoad(){ mdSt = rdJson(Android.modelsState(), {}); return mdSt; }
-function mdGB(b){ b = Math.max(0, +b || 0); return b >= 1e9 ? (b / 1e9).toFixed(1).replace('.', ',') + ' GB' : Math.max(1, Math.round(b / 1e6)) + ' MB'; }
+function mdGB(b){ b = Math.max(0, +b || 0); return b >= 1e9 ? fmtNum(b / 1e9, 1) + ' GB' : fmtNum(Math.max(1, Math.round(b / 1e6))) + ' MB'; } // zoals Hugging Face (1000 per stap)
 /** "vandaag gebruikt", "3 dagen geleden gebruikt" … Zuiver. */
 function mdAgo(t, now){
   if (!t) return 'nog niet gebruikt';

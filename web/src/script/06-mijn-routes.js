@@ -1,9 +1,9 @@
 /* ---------- Mijn routes ---------- */
 let trackPoll = null;
-const fmtKm = m => (m/1000).toFixed(2).replace('.', ',');
+const fmtKm = m => distVal(m, 2); // km of mijl (Regio en taal)
 const fmtDur = ms => { const s = Math.floor(ms/1000), h = Math.floor(s/3600), m = Math.floor(s%3600/60), ss = s%60;
   return h > 0 ? h + ':' + String(m).padStart(2,'0') + ':' + String(ss).padStart(2,'0') : m + ':' + String(ss).padStart(2,'0'); };
-const kmh = ms => (ms*3.6).toFixed(1).replace('.', ',');
+const kmh = ms => speedVal(ms*3.6, 1); // km/u of mph
 
 function enterTracks(){
   const perm = Android.trackHasPermission();
@@ -44,8 +44,8 @@ function trackPollOnce(){
     $('#tr-dist').textContent = fmtKm(s.distance || 0);
     $('#tr-time').textContent = fmtDur((s.now || Date.now()) - s.startT);
     $('#tr-speed').textContent = s.paused ? '–' : kmh(lastSpeed(s));
-    $('#tr-avg').textContent = s.movingMs ? kmh((s.distance||0)/(s.movingMs/1000)) : '0,0';
-    $('#tr-ele').textContent = s.ele != null ? Math.round(s.ele) + ' m' : '–';
+    $('#tr-avg').textContent = s.movingMs ? kmh((s.distance||0)/(s.movingMs/1000)) : speedVal(0, 1);
+    $('#tr-ele').textContent = s.ele != null ? fmtMeters(s.ele) : '–';
     $('#tr-acc').textContent = s.acc != null ? '± ' + Math.round(s.acc) : '–';
     $('#tr-pts').textContent = s.points || 0;
     $('#tr-wait').style.display = (s.points > 0) ? 'none' : 'block';
@@ -58,7 +58,7 @@ function trackPollOnce(){
   } else if (saving) {
     try {
       const j = JSON.parse(just), st = j.stats || {};
-      $('#tr-save-sum').textContent = (j.interrupted ? 'Android stopte de opname onderweg; dit is wat er tot dan is opgenomen. ' : '') + fmtKm(st.distance||0) + ' km · ' + fmtDur(st.totalMs||0) + ' · ' + j.points + ' punten';
+      $('#tr-save-sum').textContent = (j.interrupted ? 'Android stopte de opname onderweg; dit is wat er tot dan is opgenomen. ' : '') + fmtKm(st.distance||0) + ' ' + distUnit() + ' · ' + fmtDur(st.totalMs||0) + ' · ' + j.points + ' punten';
       if (!$('#tr-name').value) $('#tr-name').value = defaultName();
     } catch(e){}
   }
@@ -105,7 +105,15 @@ function lastSpeed(s){ // afgeleide snelheid uit afstandsverschil
 }
 function defaultName(){ const d = new Date(); const h = d.getHours();
   const tod = h < 6 ? 'Nacht' : h < 12 ? 'Ochtend' : h < 18 ? 'Middag' : 'Avond';
-  return tod + 'route ' + d.toLocaleDateString('nl-NL', {day:'numeric', month:'short'}); }
+  return tod + 'route ' + fmtDate(d, {day:'numeric', month:'short'}); }
+/* " · thuis → werk" als de route bij Thuis of Werk (Regio en taal) begint of eindigt; line = [[lat, lon], …] */
+function trEnds(line){
+  if (!line || line.length < 2 || typeof rgNear !== 'function') return '';
+  const pt = x => ({ lat: x[0], lon: x[1] }), a = rgNear(pt(line[0])), b = rgNear(pt(line[line.length - 1]));
+  if (!a && !b) return '';
+  const lc = n => n === 'Thuis' || n === 'Werk' ? n.toLowerCase() : n; // eigen namen houden hun hoofdletters
+  return ' · ' + (a ? lc(a) : 'onderweg') + ' → ' + (b ? lc(b) : 'onderweg');
+}
 function trSave(){ const err = Android.trackSave($('#tr-name').value.trim()); if (err) { toast(err); return; } $('#tr-name').value=''; toast('Route opgeslagen ✓'); loadTrackList(); trackPollOnce(); }
 function trDiscard(){ askConfirm('Opname weggooien?', 'De opgenomen punten gaan verloren.', 'Weggooien', () => { Android.trackDiscard(); $('#tr-name').value=''; trackPollOnce(); }); }
 
@@ -118,7 +126,7 @@ function loadTrackList(){
     return '<button onclick="openTrack(' + jsq(r.id) + ')">' +
       '<svg class=mini viewBox="0 0 300 160" preserveAspectRatio="xMidYMid meet"><path d="' + (r.path||'') + '"></path></svg>' +
       '<span class=info><b>' + esc(r.title || 'Route') + '</b>' +
-      '<small>' + fmtKm(st.distance||0) + ' km · ' + fmtDur(st.totalMs||0) + ' · ' + fmtD(r.t) + '</small></span></button>';
+      '<small>' + fmtKm(st.distance||0) + ' ' + distUnit() + ' · ' + fmtDur(st.totalMs||0) + ' · ' + fmtD(r.t) + '</small></span></button>';
   }).join('');
 }
 
@@ -135,8 +143,8 @@ function loadTrack(){
   $('#td-time').textContent = fmtDur(st.totalMs||0);
   $('#td-avg').textContent = st.avgSpeed != null ? kmh(st.avgSpeed) : '–';
   $('#td-max').textContent = st.maxSpeed != null ? kmh(st.maxSpeed) : '–';
-  $('#td-gain').textContent = st.eleGain != null ? Math.round(st.eleGain) + ' m' : '–';
-  $('#td-when').textContent = new Date(d.t).toLocaleDateString('nl-NL', {day:'numeric', month:'short'});
+  $('#td-gain').textContent = st.eleGain != null ? fmtMeters(st.eleGain) : '–';
+  $('#td-when').textContent = fmtDate(d.t, {day:'numeric', month:'short'}) + trEnds(tdLine);
   drawEle(d.ele || []);
   drawMap(tdLine);
 }
@@ -194,6 +202,6 @@ function refreshTrackTile(s){
   const live = !!s.running;
   const tile = $('#tile-tracks'); if (tile) tile.classList.toggle('live', live);
   const sub = $('#tile-tracks-sub');
-  if (sub) sub.textContent = live ? (s.paused ? 'Opname gepauzeerd' : 'Bezig: ' + fmtKm(s.distance||0) + ' km') : 'Leg je route vast met gps';
+  if (sub) sub.textContent = live ? (s.paused ? 'Opname gepauzeerd' : 'Bezig: ' + fmtKm(s.distance||0) + ' ' + distUnit()) : 'Leg je route vast met gps';
 }
 

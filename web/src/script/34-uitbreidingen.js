@@ -24,7 +24,7 @@ function txToNote(asList){
   let picked = Array.from(document.querySelectorAll('#txd-segs .seg.sel')).map(el => segs[+el.id.slice(3)]).filter(Boolean);
   if (!picked.length) picked = segs;
   if (!picked.length) { toast('Er is geen tekst om te bewaren'); return; }
-  const when = new Date(t.callDate || t.mtime || Date.now()).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+  const when = fmtDate(t.callDate || t.mtime || Date.now(), { day: 'numeric', month: 'short' });
   const n = { id: uid(), title: ('Gesprek' + (t.name ? ' met ' + t.name : '') + ' · ' + when).slice(0, 80), text: '', items: [], updated: Date.now(), tx: txCur };
   if (asList) picked.forEach(s => n.items.push({ id: uid(), text: s.text.trim(), done: false }));
   else n.text = picked.map(s => s.text.trim()).join('\n');
@@ -115,7 +115,7 @@ function klRender(){
   $('#kl-empty').textContent=docs.length?'Geen documenten bij deze zoekopdracht of filters.':'Nog leeg. Voeg een document, foto of PDF toe.';
   $('#kl-count').textContent=shown.length+' van '+docs.length+(docs.length===1?' document':' documenten');
   const ic=m=>uiIcon(/pdf/.test(m)?'document':/^image/.test(m)?'image':'folder');
-  $('#kl-list').innerHTML=shown.map(x=>'<button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span><b>'+ic(x.mime||'')+' '+esc(x.name)+'</b><small>'+(x.favorite?'★ Favoriet · ':'')+esc(x.category||'Zonder categorie')+' · '+esc(fmtB(x.size||0))+' · '+esc(new Date(x.t).toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+'</span><span aria-hidden="true">›</span></button>').join('');
+  $('#kl-list').innerHTML=shown.map(x=>'<button class="trip" data-id="'+esc(x.id)+'" onclick="klMenu(this.dataset.id)"><span><b>'+ic(x.mime||'')+' '+esc(x.name)+'</b><small>'+(x.favorite?'★ Favoriet · ':'')+esc(x.category||'Zonder categorie')+' · '+esc(fmtB(x.size||0))+' · '+esc(fmtDate(x.t, {day:'numeric',month:'short',year:'numeric'}))+'</small>'+(x.note?'<small class="kl-doc-note">'+esc(x.note)+'</small>':'')+'</span><span aria-hidden="true">›</span></button>').join('');
   klRender.docs=docs;
 }
 function klUnlock(){ $('#kl-msg').textContent = ''; Android.kluisUnlock(); }

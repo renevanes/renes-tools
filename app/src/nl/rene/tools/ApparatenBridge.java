@@ -66,7 +66,7 @@ public class ApparatenBridge extends FeatureBridge {
 
     // ----- op mijn wifi -----
 
-    @JavascriptInterface public String apLanStart() { return ApparatenLan.start(ctx); }
+    @JavascriptInterface public String apLanStart(boolean ok) { return ApparatenLan.start(ctx, ok); }
     @JavascriptInterface public void apLanStop() { ApparatenLan.stop(); }
     @JavascriptInterface public String apLan() { return json(ApparatenLan.json(ctx)); }
 

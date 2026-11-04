@@ -7,7 +7,7 @@ function hsWhen(name){
   const m = /^backup-(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})/.exec(name || '');
   if (!m) return name || '';
   const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
-  return d.toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'});
+  return fmtDT(d, {weekday:'short', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'});
 }
 function enterHerstel(){
   const s = hsState();
@@ -73,7 +73,7 @@ window.onHerstelOpened = function(r){
   if (r.error) { if (r.wrongPw) { hsAskPw(true); return; } hsPwOld = ''; hsStep('hs-kies'); toast(r.error); return; }
   if (r.old) { hsStep('hs-oud'); return; }
   hsPwOld = ''; hsStaged = true;
-  const parts = [r.files ? r.files.toLocaleString('nl-NL') + ' bestanden' : '', r.kluis ? r.kluis + (r.kluis === 1 ? ' kluisdocument' : ' kluisdocumenten') : '', r.history ? 'meldingsgeschiedenis' : ''].filter(Boolean);
+  const parts = [r.files ? fmtNum(r.files) + ' bestanden' : '', r.kluis ? r.kluis + (r.kluis === 1 ? ' kluisdocument' : ' kluisdocumenten') : '', r.history ? 'meldingsgeschiedenis' : ''].filter(Boolean);
   $('#hs-sum').innerHTML = '<div class=bkres><b>Backup</b><span>' + esc(hsWhen(r.name || hsName)) + '</span></div>' +
     (r.app ? '<div class=bkres><b>Gemaakt met</b><span>Tools ' + esc(r.app) + '</span></div>' : '') +
     '<div class=bkres><b>Inhoud</b><span>' + esc(parts.join(', ') || 'instellingen') + ' · ' + fmtB(r.bytes || 0) + '</span></div>' +

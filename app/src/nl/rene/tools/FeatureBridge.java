@@ -35,6 +35,39 @@ public class FeatureBridge {
     /** Laatst bekende plek, grof ("51.92,4.48"), of "" zonder toestemming; voor zonsopkomst en -ondergang. */
     @JavascriptInterface public String themeLocation() { return Thema.lastLocation(ctx); }
 
+    // ----- Regio en taal -----
+
+    /** De interface geeft de keuze van Regio en taal door (zie Regio): meldingen, widgets en de skin schrijven dan hetzelfde. */
+    @JavascriptInterface public void regioSet(String json) {
+        Regio.Cfg before = Regio.cfg(ctx);
+        String was = Regio.json(ctx);
+        if (!Regio.save(ctx, json) || Regio.json(ctx).equals(was)) return;
+        regioChanged(before);
+    }
+
+    /** Thuis en werk ({home, work}): alleen hier bewaard (regio.xml, niet in de Android-backup). */
+    @JavascriptInterface public String regioSpots() { return Regio.spots(ctx); }
+
+    @JavascriptInterface public boolean regioSpotsSet(String json) {
+        Regio.Cfg before = Regio.cfg(ctx);
+        String was = Regio.spots(ctx);
+        if (!Regio.saveSpots(ctx, json)) return false;
+        if (!Regio.spots(ctx).equals(was)) regioChanged(before);
+        return true;
+    }
+
+    /** Na een andere keuze: widgets opnieuw, en bij een andere plek het weer opnieuw ophalen. */
+    private void regioChanged(Regio.Cfg before) {
+        Regio.Cfg after = Regio.cfg(ctx);
+        new Thread(() -> {
+            try {
+                if (!java.util.Arrays.equals(Regio.place(before), Regio.place(after)) || !java.util.Arrays.equals(before.home(), after.home()))
+                    Launcher.prefs(ctx).edit().remove("weather").apply();
+                for (Class<?> w : new Class<?>[]{HomeWidgets.Agenda.class, HomeWidgets.Weather.class, HomeWidgets.Overview.class, HomeWidgets.Park.class}) HomeWidgets.refresh(ctx, w);
+            } catch (Throwable t) { App.log(ctx, "REGIO", String.valueOf(t)); }
+        }, "regio").start();
+    }
+
     // ----- PDF -----
 
     private void pick(String type, String[] mimes, boolean multi, int req) {

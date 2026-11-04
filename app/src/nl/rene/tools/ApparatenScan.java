@@ -264,18 +264,23 @@ final class ApparatenScan {
         } catch (Throwable e) { App.log(c, "APPARATEN", "klassiek starten: " + e); }
     }
 
-    /** Alles stoppen (scherm weg, of de tijd is om). Wat gevonden is, blijft zichtbaar. */
+    /**
+     * Alles stoppen (scherm weg, of de tijd is om). Wat gevonden is, blijft zichtbaar. Liep er niets (weg van een
+     * ander scherm), dan ook niets bijwerken: geen extra draad bij elke navigatie.
+     */
     static void stop(Context c) {
         H.removeCallbacks(TICK);
         BluetoothAdapter ad = c == null ? null : adapter(c);
+        boolean was;
         synchronized (L) {
+            was = until != 0 || bleOn || classicOn;
             until = 0; findKey = "";
             try { if (bleOn && ad != null && ad.getBluetoothLeScanner() != null && cb != null) ad.getBluetoothLeScanner().stopScan(cb); } catch (Throwable ignored) { }
             try { if (classicOn && ad != null) ad.cancelDiscovery(); } catch (Throwable ignored) { }
             try { if (rx != null && app != null) app.unregisterReceiver(rx); } catch (Throwable ignored) { }
             rx = null; bleOn = false; classicOn = false; cb = null;
         }
-        if (c != null) flush(c);
+        if (c != null && was) flush(c);
     }
 
     /** Niet meer zoeken naar één apparaat (alleen de lijst-scan loopt dan nog tot zijn tijd om is). */

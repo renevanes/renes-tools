@@ -110,7 +110,7 @@ final class Car {
         prefs(c).edit().remove("tripStart").apply();
         if (s == null || s.points < 2 || s.distance < 200) { Tracks.liveFile(c).delete(); return; } // even de auto aangezet, niet gereden
         try {
-            String title = "Rit " + new SimpleDateFormat("d MMM HH:mm", new Locale("nl", "NL")).format(new Date(startT));
+            String title = "Rit " + Regio.fmt(c, "d MMM HH:mm", startT);
             File route = Tracks.finalize(c, startT, title);
             JSONObject trip = new JSONObject().put("id", Long.toString(startT, 36)).put("start", startT)
                     .put("end", s.endT > 0 ? s.endT : System.currentTimeMillis()).put("m", Math.round(s.distance))

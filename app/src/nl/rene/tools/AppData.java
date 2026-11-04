@@ -62,7 +62,7 @@ final class AppData {
     static final List<String> PREFS_KEEP = Collections.unmodifiableList(Arrays.asList(
             "allbackup", "alarm", "apparaten", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "gebruik", "launcher",
             "localai", "lock", "mockloc", "models", "music", "notepins", "notification_history", "notifcenter", "pdf",
-            "pdfview", "pinned_shortcuts", "player", "podcast", "podcast_dl", "radio", "redial", "redialplan", "reminders",
+            "pdfview", "pinned_shortcuts", "player", "podcast", "podcast_dl", "radio", "redial", "redialplan", "regio", "reminders",
             "sleeptalk", "sms", "solo", "spotify", "tracks", "transcribe", "txdur", "txmeta", "ui", "vpn", "wabackup",
             "webstore", "workspace"));
 

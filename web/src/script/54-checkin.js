@@ -14,7 +14,7 @@ function ciOpts(q){ return (q && q.options) || []; }
 function ciPad(n){ return String(n).padStart(2, '0'); }
 function ciDayKey(d){ return d.getFullYear() + '-' + ciPad(d.getMonth() + 1) + '-' + ciPad(d.getDate()); }
 function ciDate(key){ const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(key || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3], 12) : null; }
-function ciTime(t){ return new Date(t).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }); }
+function ciTime(t){ return fmtTime(t, { hour: '2-digit', minute: '2-digit' }); }
 function ciShort(d){ return CI_DOW[(d.getDay() + 6) % 7 + 1] + ' ' + d.getDate() + ' ' + CI_MON[d.getMonth()].slice(0, 3); }
 /** Eerste dag (maandag) van een ISO-week "2026-W44". Zuiver. */
 function ciWeekStart(key){
@@ -34,7 +34,8 @@ function ciKeyLabel(key, now){
 }
 /** Hoe vaak, in woorden: "Elke dag om 21:00", "Werkdagen om 17:30" … Zuiver. */
 function ciRhythmText(q){
-  const t = (q.times || []).slice().sort(), at = ' om ' + (t[0] || '');
+  const hm = x => typeof fmtHm === 'function' ? fmtHm(x) : x; // 12- of 24-uurs (Regio en taal)
+  const t = (q.times || []).slice().sort().map(hm), at = ' om ' + (t[0] || '');
   const days = (q.days || []).slice().sort();
   const dayList = days.length === 7 ? 'Elke dag' : days.join() === '1,2,3,4,5' ? 'Werkdagen' : 'Op ' + days.map(d => CI_DOW[d]).join(', ');
   let s;

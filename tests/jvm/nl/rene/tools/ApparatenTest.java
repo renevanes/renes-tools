@@ -216,6 +216,12 @@ public class ApparatenTest {
         Apparaten.prune(many, now, 30, AMS);
         check(many.size() == Apparaten.HIST_MAX && many.containsKey("n:0|1") && !many.containsKey("n:" + (Apparaten.HIST_MAX + 19) + "|1"), "hooguit " + Apparaten.HIST_MAX + " apparaten: de oudste vallen eraf");
 
+        // Op mijn wifi: Java vraagt zelf om bevestiging op een onbekend netwerk (niet alleen de interface)
+        check(ApparatenLan.trusted("Thuis", "Thuis", false), "je wifi thuis: vertrouwd");
+        check(ApparatenLan.trusted("Hotel", "Thuis", true), "al eens onderzocht: vertrouwd");
+        check(!ApparatenLan.trusted("Hotel Gast", "Thuis", false), "onbekend netwerk: eerst vragen");
+        check(!ApparatenLan.trusted("", "", false) && !ApparatenLan.trusted(null, "", false), "zonder naam en zonder thuis-wifi: eerst vragen");
+
         System.out.println(fails == 0 ? "Alles goed" : fails + " mislukt");
         if (fails > 0) System.exit(1);
     }

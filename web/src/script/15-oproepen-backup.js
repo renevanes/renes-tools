@@ -6,13 +6,13 @@ function callsInfo(){ try { return JSON.parse(Android.callsInfo()); } catch(e){ 
 function fmtCallDur(s){ if (!s) return ''; const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
   return h ? h + ':' + String(m).padStart(2,'0') + ':' + String(x).padStart(2,'0') : m + ':' + String(x).padStart(2,'0'); }
 /** Eindtijd = begintijd + duur. Op een andere dag (na middernacht) met de dag erbij. */
-function hms(d){ return d.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
+function hms(d){ return fmtTime(d, {hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
 function fmtCallEnd(c){ if (!c.duration) return ''; const s = new Date(c.date), e = new Date(c.date + c.duration * 1000);
-  return s.toDateString() === e.toDateString() ? hms(e) : e.toLocaleDateString('nl-NL', {weekday:'short'}) + ' ' + hms(e); }
+  return s.toDateString() === e.toDateString() ? hms(e) : fmtDate(e, {weekday:'short'}) + ' ' + hms(e); }
 /** Begin (op de seconde) en, als er gesproken is, eind. */
 function fmtCallSpan(c){ const d = new Date(c.date), n = new Date(), y = new Date(Date.now() - 864e5);
   const day = d.toDateString() === n.toDateString() ? 'vandaag' : d.toDateString() === y.toDateString() ? 'gisteren'
-    : d.toLocaleDateString('nl-NL', {day:'numeric', month:'short', year: d.getFullYear() === n.getFullYear() ? undefined : 'numeric'});
+    : fmtDate(d, {day:'numeric', month:'short', year: d.getFullYear() === n.getFullYear() ? undefined : 'numeric'});
   return day + ' ' + hms(d) + (c.duration ? '–' + fmtCallEnd(c) : ''); }
 function fmtHours(s){ const h = Math.floor(s/3600), m = Math.round(s%3600/60); return h ? h + ' u ' + m + ' m' : m + ' min'; }
 function dayStart(d){ const x = new Date(d); x.setHours(0,0,0,0); return x.getTime(); }
@@ -83,7 +83,7 @@ function callsSyncUi(){
 function daysAgo(n){ const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return d.getTime(); }
 /** Lokale datum als jjjj-mm-dd (toISOString geeft de UTC-datum: tussen 0 en 2 uur 's nachts een dag te vroeg). */
 function isoDay(t){ const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
-function fmtDay(iso){ return new Date(iso + 'T12:00').toLocaleDateString('nl-NL', {day:'numeric', month:'short', year:'numeric'}); }
+function fmtDay(iso){ return fmtDate(iso + 'T12:00', {day:'numeric', month:'short', year:'numeric'}); }
 function callsSetKind(f){ callsF.kind = f; callsSyncUi(); loadCalls(); }
 function callsToggleFilters(){ const p = $('#calls-fpanel'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; }
 function callsPickChip(group, v){
@@ -117,11 +117,11 @@ function loadCalls(){
     '<div><b>' + (d.in||0) + '</b><small>inkomend<br>' + fmtHours(d.secIn||0) + '</small></div>' +
     '<div><b>' + (d.out||0) + '</b><small>uitgaand<br>' + fmtHours(d.secOut||0) + '</small></div>' +
     '<div><b>' + (d.missed||0) + '</b><small>gemist<br>&nbsp;</small></div>';
-  $('#calls-sum-note').textContent = (d.count || 0).toLocaleString('nl-NL') + (d.filtered ? ' van ' + (d.total||0).toLocaleString('nl-NL') : '') +
+  $('#calls-sum-note').textContent = fmtNum(d.count || 0) + (d.filtered ? ' van ' + fmtNum(d.total||0) : '') +
     ' oproepen' + (d.people ? ' · ' + d.people + (d.people === 1 ? ' persoon' : ' personen') : '') +
     (d.count ? ' · ' + fmtDayT(d.first) + (d.first !== d.last ? ' – ' + fmtDayT(d.last) : '') : '');
   $('#calls-export-sel').style.display = d.filtered && d.count ? 'block' : 'none';
-  $('#calls-export-sel').textContent = 'Alleen deze selectie exporteren (' + (d.count||0).toLocaleString('nl-NL') + ')';
+  $('#calls-export-sel').textContent = 'Alleen deze selectie exporteren (' + fmtNum(d.count||0) + ')';
   callsShown = d.calls || [];
   el.innerHTML = callsShown.map((c, i) =>
     '<button class="' + esc(c.kind) + '" onclick="callsPick(' + i + ')">' +
@@ -129,7 +129,7 @@ function loadCalls(){
     '<span class=r2><span class=k>' + esc(c.label) + '</span>' + (c.ck || !c.number ? '' : '<span class=unk>onbekend</span> ') + (c.number && c.number !== c.name ? esc(c.number) + ' · ' : '') + esc(fmtCallDur(c.duration)) + '</span></button>').join('');
   if (!callsShown.length) el.innerHTML = '<p class=note style="padding:14px">' + (d.filtered ? 'Geen oproepen met deze filters. <a href="#" onclick="callsClearFilters();return false">Filters wissen</a>' : 'Geen oproepen gevonden.') + '</p>';
 }
-function fmtDayT(t){ return new Date(t).toLocaleDateString('nl-NL', {day:'numeric', month:'short', year:'numeric'}); }
+function fmtDayT(t){ return fmtDate(t, {day:'numeric', month:'short', year:'numeric'}); }
 function callsPick(i){
   const c = callsShown[i]; if (!c) return;
   if (!c.number) { toast('Afgeschermd nummer'); return; }
@@ -140,7 +140,7 @@ function callsPick(i){
   acts.push(['Opnieuw bellen met Auto redial', () => { jumpTo('redial'); $('#num').value = c.number; nameFor = c.ck ? c.name : ''; $('#pname').textContent = nameFor; }]);
   openSheet(c.name, (c.number !== c.name ? c.number + ' · ' : '') + c.label + ' · ' + fmtFullCall(c.date) + (c.duration ? ' tot ' + fmtCallEnd(c) + ' · ' + fmtCallDur(c.duration) : ''), acts);
 }
-function fmtFullCall(t){ return new Date(t).toLocaleString('nl-NL', {weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
+function fmtFullCall(t){ return fmtDT(t, {weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
 function callsExport(sel){
   if (!plainOk('De oproepenlijst', () => callsExport(sel))) return;
   const err = Android.callsExport(sel ? callsFilterJson() : '');

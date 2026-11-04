@@ -47,12 +47,10 @@ let bk = { st: null, store: null, tab: 'overzicht', lijstN: 100, catCache: new M
 
 const bkVandaag = () => window.BK_VANDAAG || (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
 function bkEuro(c, teken){
-  const v = Math.abs(c) / 100;
-  const s = '€ ' + v.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return (teken && c > 0 ? '+ ' : '') + (c < 0 ? '− ' : '') + s;
+  return fmtMoney(c / 100, 'EUR', { sign: !!teken }); // de rekeningen zijn in euro; tekens volgens Regio en taal
 }
-const bkEuroKort = c => '€ ' + Math.round(Math.abs(c) / 100).toLocaleString('nl-NL');
-const bkDatum = (d, opt) => new Date(d + 'T12:00:00').toLocaleDateString('nl-NL', opt || { day: 'numeric', month: 'short', year: 'numeric' });
+const bkEuroKort = c => fmtMoney(c / 100, 'EUR', { round: true, minus: '' });
+const bkDatum = (d, opt) => fmtDate(d + 'T12:00:00', opt || { day: 'numeric', month: 'short', year: 'numeric' });
 const BK_MAANDEN = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 const bkMaandNaam = ym => BK_MAANDEN[Number(ym.slice(5, 7)) - 1] + ' ' + ym.slice(2, 4);
 
@@ -363,7 +361,7 @@ function bkOverzicht(van, tot){
   if (vast.length) {
     const som = actief.reduce((s, v) => s + v.perMaand, 0);
     h += bkKaart('Vaste lasten en abonnementen', '<p class="note" style="margin-top:0">Samen ongeveer <b>' + esc(bkEuro(som)) + '</b> per maand (' + actief.length + ' terugkerende betalingen).</p>'
-      + vast.slice(0, 25).map(v => '<div class="bk-rij"><span class="bk-naam">' + esc(v.naam) + '<small>' + esc(v.cat) + ' · ' + esc(v.soort) + ' · ' + (v.gestopt ? 'mogelijk gestopt (laatst ' + esc(bkDatum(v.laatst)) + ')' : 'volgende rond ' + esc(v.volgende.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }))) + '</small></span><b' + (v.gestopt ? ' class="bk-neutraal"' : '') + '>' + esc(bkEuro(v.bedrag)) + '</b></div>').join(''));
+      + vast.slice(0, 25).map(v => '<div class="bk-rij"><span class="bk-naam">' + esc(v.naam) + '<small>' + esc(v.cat) + ' · ' + esc(v.soort) + ' · ' + (v.gestopt ? 'mogelijk gestopt (laatst ' + esc(bkDatum(v.laatst)) + ')' : 'volgende rond ' + esc(fmtDate(v.volgende, { day: 'numeric', month: 'short' }))) + '</small></span><b' + (v.gestopt ? ' class="bk-neutraal"' : '') + '>' + esc(bkEuro(v.bedrag)) + '</b></div>').join(''));
   }
   // Grootste ontvangers
   const tp = bkTegenpartijen(lijst).slice(0, 10);
@@ -421,12 +419,12 @@ function bkCatSelect(){
 }
 function bkGefilterd(){
   const [van, tot] = bkPeriodeVan(), q = $('#bk-zoek').value.trim().toLowerCase(), cat = $('#bk-cat').value, sort = $('#bk-sort').value;
-  const qBedrag = q.replace(/[€\s]/g, '').replace(',', '.');
+  const qBedrag = /^[-−€\s\d.,\u202f]+$/.test(q) ? parseNum(q) : null; // een bedrag zoeken, volgens Regio en taal
   let l = bkSelectie(van, tot).filter(t => {
     const c = bkCat(t);
     if (cat === '*zonder' ? !(c === 'Overig' || c === 'Overige inkomsten') : cat && c !== cat) return false;
     if (!q) return true;
-    if (/^\d+(\.\d{1,2})?$/.test(qBedrag) && Math.abs(Math.abs(t.a) / 100 - Number(qBedrag)) < 0.005) return true;
+    if (qBedrag != null && Math.abs(Math.abs(t.a) / 100 - Math.abs(qBedrag)) < 0.005) return true;
     return ((t.cp || '') + ' ' + (t.ds || '') + ' ' + (t.ci || '') + ' ' + c + ' ' + (t.n || '')).toLowerCase().includes(q);
   });
   l.sort(sort === 'oud' ? (a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0 : sort === 'hoog' ? (a, b) => a.a - b.a : sort === 'bij' ? (a, b) => b.a - a.a : (a, b) => a.d > b.d ? -1 : a.d < b.d ? 1 : 0);
@@ -547,7 +545,7 @@ function bkBeheer(){
   const acc = [...new Set(s.tx.map(t => t.acc))].sort();
   $('#bk-rekeningen').innerHTML = acc.map(a => '<div class="bk-rij"><span class="bk-naam">' + esc(bkRekNaam(a)) + '<small>' + esc(a) + ' · geïmporteerd</small></span><button class="mini" style="float:none" onclick="bkRekHernoem(' + jsq(a) + ')">Naam</button></div>').join('')
     + s.eigen.map((e, i) => '<div class="bk-rij"><span class="bk-naam">' + esc(e.naam || e.iban) + '<small>' + esc(e.iban) + ' · zelf toegevoegd</small></span><button class="mini" style="float:none" onclick="bkEigenWeg(' + i + ')">Weg</button></div>').join('');
-  $('#bk-imports').innerHTML = s.imports.length ? '<details class="rinfo"><summary>Eerdere imports (' + s.imports.length + ')</summary>' + s.imports.slice().reverse().slice(0, 30).map(i => '<div class="bk-res">' + esc(new Date(i.t).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })) + ' · ' + esc(i.bank || i.format) + ' · ' + esc(i.van ? bkDatum(i.van) + ' t/m ' + bkDatum(i.tot) : '') + ' · ' + (i.nieuw || 0) + ' nieuw</div>').join('') + '</details>' : '';
+  $('#bk-imports').innerHTML = s.imports.length ? '<details class="rinfo"><summary>Eerdere imports (' + s.imports.length + ')</summary>' + s.imports.slice().reverse().slice(0, 30).map(i => '<div class="bk-res">' + esc(fmtDate(i.t, { day: 'numeric', month: 'short', year: 'numeric' })) + ' · ' + esc(i.bank || i.format) + ' · ' + esc(i.van ? bkDatum(i.van) + ' t/m ' + bkDatum(i.tot) : '') + ' · ' + (i.nieuw || 0) + ' nieuw</div>').join('') + '</details>' : '';
   const st = bk.st || {};
   const veilig = [
     'Versleuteld met AES-256-GCM; de sleutel ' + (st.hardware ? 'zit in de beveiligde hardware van deze telefoon' : 'zit in de beveiligde sleutelopslag van Android') + ' en kan er niet uit.',
@@ -564,8 +562,8 @@ function bkRegelWeg(i){ bk.store.rules.splice(i, 1); bkHerbereken(); bkSave(); b
 function bkBudgetWeg(c){ delete bk.store.budget[c]; bkSave(); bkRender(); }
 function bkBudgetNieuw(){
   const cats = bkAlleCats().filter(c => bkCatSoort(c) === 'uit');
-  openSheet('Budget voor…', '', cats.map(c => [c, () => askInput('Budget ' + c, 'Bedrag per maand in euro.', bk.store.budget[c] ? String(bk.store.budget[c] / 100) : '', 'Bewaren', v => {
-    const n = Math.round(Number(String(v || '').replace(/[€\s.]/g, '').replace(',', '.')) * 100);
+  openSheet('Budget voor…', '', cats.map(c => [c, () => askInput('Budget ' + c, 'Bedrag per maand in euro.', bk.store.budget[c] ? fmtNumIn(bk.store.budget[c] / 100, 2) : '', 'Bewaren', v => {
+    const p = parseNum(v), n = p == null ? NaN : Math.round(p * 100); // "12,50", "12.50" en "1.250" (Regio en taal)
     if (!(n > 0) || n > 1e10) { toast('Vul een bedrag in'); return; }
     bk.store.budget[c] = n; bkSave(); bkRender();
   })]));

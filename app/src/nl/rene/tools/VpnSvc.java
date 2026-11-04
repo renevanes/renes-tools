@@ -363,11 +363,10 @@ public class VpnSvc extends VpnService {
         return b.build();
     }
 
-    static String size(long b) {
+    /** Opslag zoals Regio en taal het wil (1024 of 1000 per stap, decimaalteken). */
+    String size(long b) {
         if (b < 1024) return b + " B";
-        if (b < 1024 * 1024) return (b / 1024) + " kB";
-        if (b < 1024L * 1024 * 1024) return String.format(java.util.Locale.ROOT, "%.1f MB", b / 1048576.0).replace('.', ',');
-        return String.format(java.util.Locale.ROOT, "%.2f GB", b / 1073741824.0).replace('.', ',');
+        return Regio.size(this, b, 1, 2);
     }
 
     // ---------- stoppen ----------

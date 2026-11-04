@@ -191,7 +191,7 @@ function plRender(){
   const sl = $('#pl-sleep');
   const slTxt = m.sleepAt ? '⏾ nog ' + fmtMin((m.sleepAt - Date.now()) / 6e4) : m.sleepEnd ? '⏾ na deze aflevering' : '⏾ Slaaptimer';
   plSetText(sl, slTxt); sl.classList.toggle('on', !!(m.sleepAt || m.sleepEnd));
-  plSetHtml($('#pl-sleepinfo'), m.sleepAt ? 'Stopt om ' + new Date(m.sleepAt).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + ' · <a href="#" onclick="plSleepOff();return false">uitzetten</a>'
+  plSetHtml($('#pl-sleepinfo'), m.sleepAt ? 'Stopt om ' + fmtTime(m.sleepAt, { hour: '2-digit', minute: '2-digit' }) + ' · <a href="#" onclick="plSleepOff();return false">uitzetten</a>'
     : m.sleepEnd ? 'Stopt aan het einde van deze aflevering · <a href="#" onclick="plSleepOff();return false">uitzetten</a>' : '');
 
   // Extra's

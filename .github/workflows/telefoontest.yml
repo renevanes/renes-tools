@@ -28,7 +28,7 @@ jobs:
   telefoon:
     name: Telefoontest (API ${{ matrix.api }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 70   # ruimte voor één herkansing van de emulator
     strategy:
       fail-fast: false
       matrix:
@@ -82,6 +82,38 @@ jobs:
 
       # De action voert elke regel van "script" apart uit met sh; daarom één regel die het testscript aanroept.
       - name: App starten in de emulator
+        id: emulator
+        continue-on-error: true   # zie de herkansing hieronder
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          ram-size: 3072M
+          disk-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash tests/telefoon/rooktest.sh "$(ls Renes-Tools-v*.apk | head -1)" build/telefoon/api-${{ matrix.api }}
+
+      # Herkansing alleen als de emulator nooit opstartte (bijv. "Premature EOF" bij het downloaden): dan is
+      # rooktest.sh niet begonnen en bestaat de uitvoermap niet. Is de app wel getest en faalde die, dan geen herkansing.
+      - name: Herkansing nodig?
+        id: herkansing
+        if: steps.emulator.outcome == 'failure'
+        env:
+          UIT: build/telefoon/api-${{ matrix.api }}
+        run: |
+          if [ -d "$UIT" ]; then
+            echo "::error title=Telefoontest::De app is in de emulator getest en faalde; geen herkansing."
+            exit 1
+          fi
+          echo "::warning title=Telefoontest::De emulator startte niet (downloaden of opstarten mislukt); nog één poging."
+          echo "nodig=1" >> "$GITHUB_OUTPUT"
+          pkill -f qemu-system || true   # een half opgestarte emulator mag de poort niet bezet houden
+          sleep 30
+
+      - name: App starten in de emulator (herkansing)
+        if: steps.herkansing.outputs.nodig == '1'
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api }}

@@ -332,7 +332,7 @@ final class LocalAi {
         try { free = new StatFs(c.getFilesDir().getPath()).getAvailableBytes(); } catch (Throwable t) { free = Long.MAX_VALUE; }
         File part = partFile(c, m);
         long need = 2 * m.size - Math.min(part.length(), m.size) + 200L * 1024 * 1024;
-        if (free < need) return "Te weinig opslag: nodig " + gb(need) + ", vrij " + gb(free);
+        if (free < need) return "Te weinig opslag: nodig " + Regio.gbDecimal(c, need) + ", vrij " + Regio.gbDecimal(c, free);
         long id = prefs(c).getLong("dl_" + m.id, -1);
         DownloadManager mgr = dm(c);
         if (id >= 0 && mgr != null) {
@@ -381,7 +381,6 @@ final class LocalAi {
         MainActivity.jsAll("onAiModels", "");
     }
 
-    static String gb(long b) { return String.format(Locale.ROOT, "%.1f GB", b / 1e9).replace('.', ','); }
 
     /** Weg: lopende download stoppen, motor stoppen, bestanden weg (de zoekindex ruimt de AI-thread op). */
     static void delete(final Context c, final Model m) {

@@ -15,7 +15,7 @@ function checkUpdates(){ $('#chk-btn').textContent = 'Bezig met controleren…';
 let updAvail = '', updKind = '', updPhase = '', updDog = null, updDogMs = 90000;
 let updReady = '', updReloadingVersion = '';
 const UPD_BUSY = ['start', 'download', 'check', 'install', 'committed']; // dan geen tweede keer starten
-function updMB(b){ return (Math.max(0, b) / 1048576).toFixed(1).replace('.', ',') + ' MB'; }
+function updMB(b){ return fmtMB(b, 1); }
 /** Tekst en percentage (-1 = onbekend) bij een stap. Zuiver. */
 function updStep(r){
   const pct = r.total > 0 ? Math.min(100, Math.floor(r.done / r.total * 100)) : -1;

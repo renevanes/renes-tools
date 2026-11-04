@@ -9,7 +9,7 @@ function enterSms(){
   $('#sms-perm-btn').textContent = store.get('smsAsked', false) && !i.perm ? 'Instellingen openen' : 'Toegang geven';
   $('#sms-home').style.display = i.perm ? 'block' : 'none';
   $('#sms-contacts').style.display = (i.perm && !i.contacts) ? 'block' : 'none';
-  $('#sms-count-note').textContent = i.total ? i.total.toLocaleString('nl-NL') + ' berichten op deze telefoon' +
+  $('#sms-count-note').textContent = i.total ? fmtNum(i.total) + ' berichten op deze telefoon' +
     (i.lastExport ? ' · laatste export ' + fmtD(i.lastExport) : '') : '';
   $('#sms-dest-name').textContent=i.dest?(i.destName||'Gekozen backup-map'):'Nog niet gekozen';
   $('#sms-search').value = ''; $('#sms-results').innerHTML = '';
@@ -45,10 +45,10 @@ function loadSmsMsgs(){
 function smsRenderMsgs(msgs){
   let out = '', lastDay = '';
   for (const m of msgs) {
-    const d = new Date(m.t), dd = d.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    const d = new Date(m.t), dd = fmtDate(d, {weekday:'long', day:'numeric', month:'long', year:'numeric'});
     if (dd !== lastDay) { out += '<div class=dsep>' + esc(dd) + '</div>'; lastDay = dd; }
     out += '<div class="bub' + (m.me ? ' me' : '') + '">' + esc(m.text || '') +
-      '<span class=tm>' + d.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) + '</span></div>';
+      '<span class=tm>' + fmtTime(d, {hour:'2-digit', minute:'2-digit'}) + '</span></div>';
   }
   return out || '<p class=note>Geen berichten.</p>';
 }

@@ -9,8 +9,8 @@ function rpRender(){
   const p = st.plan;
   if (p) {
     $('#rp-time').value = String(p.hour).padStart(2, '0') + ':' + String(p.minute).padStart(2, '0'); rpDays = p.days || 0;
-    $('#rp-state').innerHTML = '📅 <b>' + esc(p.name || p.number) + '</b> wordt gebeld ' + esc(rpDaysText(p.days)) + ' om ' + esc($('#rp-time').value) +
-      (st.next ? '. Volgende keer: ' + esc(new Date(st.next).toLocaleString('nl-NL', {weekday:'long', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) : '') + '.';
+    $('#rp-state').innerHTML = '📅 <b>' + esc(p.name || p.number) + '</b> wordt gebeld ' + esc(rpDaysText(p.days)) + ' om ' + esc(fmtHm($('#rp-time').value)) +
+      (st.next ? '. Volgende keer: ' + esc(fmtDT(st.next, {weekday:'long', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) : '') + '.';
   } else $('#rp-state').textContent = 'Laat Auto redial vanzelf beginnen, bijvoorbeeld om 08:00 de huisarts. Met het nummer en de instellingen hierboven.' + (st.last ? ' Laatst: ' + st.last + '.' : '');
   $('#rp-save').textContent = p ? 'Planning bijwerken' : 'Inplannen';
   $('#rp-clear').style.display = p ? 'block' : 'none';

@@ -155,9 +155,6 @@ public class WaBackupService extends Service {
         ((NotificationManager) c.getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(ch);
     }
 
-    static String fmt(long b) {
-        if (b < 1024 * 1024) return Math.max(1, b / 1024) + " kB";
-        if (b < 1024L * 1024 * 1024) return String.format(java.util.Locale.GERMANY, "%.1f MB", b / 1048576.0);
-        return String.format(java.util.Locale.GERMANY, "%.2f GB", b / 1073741824.0);
-    }
+    /** Opslag zoals Regio en taal het wil (1024 of 1000 per stap, decimaalteken). */
+    String fmt(long b) { return Regio.size(this, b, 1, 2); }
 }

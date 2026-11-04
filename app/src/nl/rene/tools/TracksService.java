@@ -240,7 +240,7 @@ public class TracksService extends Service implements LocationListener {
             if (autoSaveReq) {
                 // Gestopt door een automatisering: vanzelf opslaan
                 autoSaveReq = false;
-                if (s.points >= 2) Tracks.finalize(this, startT, "Route " + new java.text.SimpleDateFormat("d MMM HH:mm", new java.util.Locale("nl", "NL")).format(new java.util.Date(startT)));
+                if (s.points >= 2) Tracks.finalize(this, startT, "Route " + Regio.fmt(this, "d MMM HH:mm", startT));
                 else Tracks.liveFile(this).delete();
                 stopForeground(true); stopSelf();
                 return;
@@ -319,7 +319,7 @@ public class TracksService extends Service implements LocationListener {
     }
 
     private String notifText() {
-        String txt = paused ? "Gepauzeerd" : String.format(java.util.Locale.GERMANY, "%.2f km", distance / 1000.0);
+        String txt = paused ? "Gepauzeerd" : Regio.dist(this, distance, 2);
         long el = (System.currentTimeMillis() - startT) / 1000;
         return txt + " · " + (el / 60) + " min";
     }

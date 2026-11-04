@@ -18,7 +18,7 @@ function setEntry(id){ return setAll().find(e => e.id === id) || null; }
 function setType(e){ return e.type || 'aan'; }
 function setVals(e){ let v = e.vals; if (typeof v === 'function') { try { v = v(); } catch (x) { v = []; } } return v || (setType(e) === 'aan' ? SET_AU : []); }
 function setGet(e){ if (!e || !e.get || e.safe === 'geheim') return ''; try { const v = e.get(); return v == null ? '' : String(v); } catch (x) { return ''; } }
-function setName(e, v){ if (v === '' || v == null) return ''; const x = setVals(e).find(p => p[0] === v); return x ? (setType(e) === 'aan' ? x[1].toLowerCase() : x[1]) : e.vname ? String(e.vname(v)) : String(v); }
+function setName(e, v){ if (v === '' || v == null) return ''; if (setType(e) === 'tijd' && typeof fmtHm === 'function') return fmtHm(v); const x = setVals(e).find(p => p[0] === v); return x ? (setType(e) === 'aan' ? x[1].toLowerCase() : x[1]) : e.vname ? String(e.vname(v)) : String(v); }
 /* Mag de assistent dit naar deze waarde zetten? Gevoelig = nee (alleen uitleg en Openen) */
 function setSafe(e, v){ return !!e.safe && (e.safe === 'geheim' || !e.weak || !!e.weak(v)); }
 function setCanChange(e){ const t = setType(e); return (t === 'aan' || t === 'keuze' || t === 'tijd') && typeof e.set === 'function' && e.safe !== 'geheim'; }
@@ -108,8 +108,24 @@ function setIntent(q){
   if ((m = new RegExp('^' + SET_PRE + '(.+?)\\s+(?:op|naar)\\s+(.+?)\\s+(?:zetten|instellen|veranderen|wijzigen)$').exec(s))) return { kind: 'cmd', x: m[1], raw: m[2] };
   if ((m = /^waar (?:vind|zie|zet|stel|verander|regel|kan|zit|staat|staan|zitten|pas) (?:ik |je |jij )?(.+?)(?: (?:vinden|instellen|aanzetten|uitzetten|aanpassen|veranderen|zien|in|aan|uit))*$/.exec(s))) return { kind: 'waar', x: m[1] };
   if ((m = /^(?:wat|hoe) (?:staat|staan) (.+?) (?:op|ingesteld)$/.exec(s)) || (m = /^(?:staat|staan|is) (.+?) (?:aan|uit|ingeschakeld|uitgeschakeld|ingesteld)$/.exec(s))) return { kind: 'stand', x: m[1] };
+  // Regio en taal: "gebruik mijlen", "toon temperaturen in fahrenheit", "valuta dollar" (alleen als de waarde past)
+  if ((m = new RegExp('^' + SET_PRE + '(?:gebruik|(?:toon|schrijf|laat) (?:(?:alles|de|het|mijn) )?(?:\\w+ )?(?:zien )?in)\\s+(?:de |het |alleen )?(.+)$').exec(s))) { const r = setRgUse('', m[1]); if (r) return r; }
+  // "reken in dollars": alleen munten
+  if ((m = new RegExp('^' + SET_PRE + 'reken (?:in|met)\\s+(?:de |het )?(.+)$').exec(s))) { const r = setRgUse('', m[1], ['regio.valuta']); if (r) return r; }
+  // "begin de week op zondag"
+  if ((m = new RegExp('^' + SET_PRE + '(?:begin|start|laat) (?:de|mijn) week (?:op|met|beginnen op|beginnen met) (\\w+)$').exec(s))) { const r = setRgUse('week', m[1]); if (r) return r; }
+  if ((m = /^(valuta|standaardvaluta|munteenheid|munt|afstand|temperatuur|tijdnotatie|tijdsnotatie|datumnotatie|snelheid|decimaalteken|taal)\s+(?:op |naar |in )?(.+)$/.exec(s))) { const r = setRgUse(m[1], m[2]); if (r) return r; }
   if (SET_Q.test(s)) return { kind: 'vraag', x: s };
   return null;
+}
+/* Een waarde van Regio en taal ("mijlen", "dollar", "12-uurs"): welke instelling past erbij? word = het genoemde onderwerp */
+function setRgUse(word, raw, only){
+  // Zonder onderwerp alleen eenheden, klok en valuta ("gebruik de telefoon" of "gebruik thuis" is geen instelling)
+  const RG_USE = only || ['regio.klok', 'regio.afstand', 'regio.temperatuur', 'regio.snelheid', 'regio.valuta'];
+  const list = SET_REG.filter(e => e.id.startsWith('regio.') && setCanChange(e) && (word || RG_USE.includes(e.id)));
+  const pick = word ? setFind(word, list).filter(h => h.s >= SET_MIN).map(h => h.e) : list;
+  const e = pick.find(x => setValFor(x, raw) !== null);
+  return e ? { kind: 'cmd', x: e.label, raw, id: e.id, sure: true } : null;
 }
 /* De waarde uit de vraag, zoals de app hem kent; null als hij niet bij deze instelling past */
 function setValFor(e, raw){
@@ -121,10 +137,11 @@ function setValFor(e, raw){
   if (t !== 'keuze') return null;
   if (e.alias && e.alias[r]) return e.alias[r];
   const nm = x => norm2(x).replace(/[×x]$/, '').replace(',', '.').trim(), rr = nm(r);
-  let v = vals.find(x => nm(x[0]) === rr || nm(x[1]) === rr);
+  // noNum: een kaal getal is geen waarde ("zet de klok op 12 uur" is een tijdstip, geen 12-uurs klok)
+  let v = vals.find(x => (!e.noNum && nm(x[0]) === rr) || nm(x[1]) === rr);
   if (!v && SET_OFF.test(r)) v = vals.find(x => /^(uit|off)$/.test(nm(x[0])) || nm(x[1]) === 'uit');
   if (!v && rr.length >= 3) v = vals.find(x => nm(x[1]).startsWith(rr) || nm(x[1]).split(' ')[0] === rr);
-  if (!v && /^\d+([.]\d+)?$/.test(rr)) v = vals.find(x => parseFloat(nm(x[0])) === parseFloat(rr) || parseFloat(nm(x[1])) === parseFloat(rr));
+  if (!v && !e.noNum && /^\d+([.]\d+)?$/.test(rr)) v = vals.find(x => parseFloat(nm(x[0])) === parseFloat(rr) || parseFloat(nm(x[1])) === parseFloat(rr));
   return v ? v[0] : null;
 }
 /* "7:30", "07.30", "7 uur", "half 8" → "07:30" */
@@ -206,6 +223,7 @@ function setHandle(q){
   const hits = setFind(it.x, null, q);
   const top = hits[0], second = hits[1];
   const clear = top && top.s >= SET_MIN && (!second || second.s < top.s * 0.8);
+  if (it.kind === 'cmd' && it.id) { const e = setEntry(it.id); if (e) return Object.assign({ local: true }, setPropose(e, setValFor(e, it.raw))); }
   if (it.kind === 'cmd') {
     const raw = it.raw;
     // Een tekst-opdracht ("Zet dit op een rijtje: …", "Stel een mail op naar Jos …") is geen instelling: gewoon de assistent
@@ -223,7 +241,8 @@ function setHandle(q){
       const e = valid[0].e;
       return Object.assign({ local: true }, setPropose(e, setValFor(e, raw)));
     }
-    if (ctop && ctop.s >= SET_MIN && short) {
+    // Regio en taal: nooit "Kies een van deze" ("zet de temperatuur op 20 graden" of "zet de datum op morgen" is geen notatie)
+    if (ctop && ctop.s >= SET_MIN && short && !ctop.e.id.startsWith('regio.')) {
       const e = ctop.e;
       if (!setCanChange(e) || setSafe(e, 'aan') && setSafe(e, 'uit')) return Object.assign({ local: true }, setPropose(e, ''));
       if (setType(e) === 'keuze') return { local: true, text: setB0(e.label) + (setNow(e) ? ' staat nu op ' + setNow(e) + '.' : '.') + ' Kies een van deze:', set: { choose: e.id, open: [e.id] } };

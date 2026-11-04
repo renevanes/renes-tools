@@ -1,7 +1,7 @@
 /* ---------- Check-in: terugkijken (kalender, grafiek, samenvatting) en vergelijken ---------- */
 let ciqId = '', ciqMonthAt = null, ciqViewV = 'month', ciqSelKey = '', ciqHist = null, ciqDaysInfo = null, ciqChartHist = null;
 const CI_DAYRHYTHM = r => r === 'daily' || r === 'workdays' || r === 'weekdays' || r === 'multi';
-function ciNum(v, d){ return (Math.round(v * Math.pow(10, d == null ? 1 : d)) / Math.pow(10, d == null ? 1 : d)).toString().replace('.', ','); }
+function ciNum(v, d){ return fmtNum(Math.round(v * Math.pow(10, d == null ? 1 : d)) / Math.pow(10, d == null ? 1 : d), { maximumFractionDigits: d == null ? 1 : d, useGrouping: false }); }
 function ciRange(q){ const v = ciOpts(q).map(o => +o.value); return v.length ? [Math.min(...v), Math.max(...v)] : [0, 1]; }
 /** 0..1 op de schaal van de vraag (hoger = beter). Zuiver. */
 function ciNorm(q, v){ const [lo, hi] = ciRange(q); return hi > lo ? Math.max(0, Math.min(1, (v - lo) / (hi - lo))) : 1; }
@@ -85,7 +85,7 @@ function ciqCells(q){
   if (CI_DAYRHYTHM(q.rhythm)) {
     const by = ciByDay(h), rby = ciRemByDay(h), slotsBy = {};
     (h.slots || []).forEach(s => { const d = ciDayKey(new Date(s.at)); (slotsBy[d] = slotsBy[d] || []).push(s); });
-    const a = ciDate(from), cells = [], lead = (a.getDay() + 6) % 7;
+    const a = ciDate(from), cells = [], lead = typeof weekLead === 'function' ? weekLead(a) : (a.getDay() + 6) % 7; // eerste dag van de week: Regio en taal
     for (let i = 0; i < lead; i++) cells.push(null);
     for (let d = new Date(a); d.getMonth() === a.getMonth(); d.setDate(d.getDate() + 1)) {
       const k = ciDayKey(d), c = cell(k, String(d.getDate()), null, by[k] || [], slotsBy[k] || [], CI_DOW_L[(d.getDay() + 6) % 7 + 1] + ' ' + d.getDate() + ' ' + CI_MON[d.getMonth()], rby[k] || []);
@@ -113,7 +113,7 @@ function ciqRenderCal(q){
   $('#ciq-next').disabled = isNow;
   $('#ciq-prev').setAttribute('aria-label', yearly ? 'Vorig jaar' : 'Vorige maand'); $('#ciq-next').setAttribute('aria-label', yearly ? 'Volgend jaar' : 'Volgende maand');
   const { cells, wide } = ciqCells(q);
-  const head = wide ? '' : CI_DOW.slice(1).map(d => '<div class="ci-dh" aria-hidden="true">' + d + '</div>').join('');
+  const head = wide ? '' : (typeof weekDays === 'function' ? weekDays() : [1, 2, 3, 4, 5, 6, 0]).map(g => '<div class="ci-dh" aria-hidden="true">' + CI_DOW[(g + 6) % 7 + 1] + '</div>').join('');
   const html = '<div class="ci-cal' + (wide ? ' wide' : '') + '" id="ciq-grid">' + head + cells.map(c => c ? '<button class="ci-d ' + c.state + (c.today ? ' today' : '') + (c.key === ciqSelKey ? ' sel' : '') + '" data-k="' + esc(c.key) + '" onclick="ciqPick(this.dataset.k)" aria-label="' + esc(c.aria) + '"' + (c.key === ciqSelKey ? ' aria-current="date"' : '') + '><span aria-hidden="true">' + esc(c.label) + '</span>' + (c.small ? '<small aria-hidden="true">' + esc(c.small) + '</small>' : '') + (c.rem.length ? '<i class="ci-rm" aria-hidden="true"></i>' : '') + '</button>' : '<span aria-hidden="true"></span>').join('') + '</div>';
   slHtml($('#ciq-cal'), cells.filter(Boolean).length ? html : '<p class="note">Geen periodes in deze ' + (yearly ? 'tijd' : 'maand') + '.</p>');
   const [lo, hi] = ciRange(q), ol = ciNearest(q, lo), oh = ciNearest(q, hi);

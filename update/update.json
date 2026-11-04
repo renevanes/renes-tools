@@ -1,15 +1,41 @@
 {
   "app": "Tools",
-  "versionName": "1.132",
-  "versionCode": 133,
-  "nativeLevel": 119,
+  "versionName": "1.135",
+  "versionCode": 136,
+  "nativeLevel": 122,
   "web": "index.html",
-  "webSha256": "b1271f9eeb22da90209d5278d0a3029deeb57f447408aa5348ecdf1962044353",
+  "webSha256": "38dc6ed0f29d8b76972c3affb6207127d5a5b7ff0f020954e7a515dd8c03e9de",
   "start": "start.html",
-  "startSha256": "3e61eccf00f293897a73b9276c011d30cccf1d04e394908d3611523957faf03f",
+  "startSha256": "0ea90522dcf4d73fe5b0b6a7486ed095bcce9c93ee25b9ef370a77ac24c147f0",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "ddd00ec9044ac230d9872d85c2bb0e9f2cb6cf5c15a1a791a1449e44db8d7056",
+  "apkSha256": "fe949616950c1fee9d64fdcc017c835e8a4cd34ffae9408e08c7ba9374ee340a",
   "changelog": [
+    {
+      "version": "1.135",
+      "date": "2026-11-04",
+      "changes": [
+        "Apparaten: ook de app zelf vraagt nu eerst om bevestiging voordat hij een onbekend wifi-netwerk onderzoekt (niet alleen het scherm), en weg navigeren van Apparaten start geen onnodig bijwerken meer.",
+        "Podcasts: alvast inlezen van nieuwe afleveringen houdt het opslaan van je luistervoortgang niet meer op, en een podcast ontvolgen ruimt ook het geheugen op."
+      ]
+    },
+    {
+      "version": "1.134",
+      "date": "2026-11-03",
+      "changes": [
+        "Nieuw: Instellingen → Regio en taal: kies tijdnotatie (24- of 12-uurs), datumnotatie en eerste dag van de week, je thuis- en werkadres en een standaardplaats, eenheden (km of mijl, °C of °F, opslag, snelheid) en getallen (komma of punt, duizendtallen) en een standaardvaluta, met een voorbeeld. De hele app gebruikt ze, ook meldingen, widgets en de Telefoon-skin. Standaard blijft alles zoals het was.",
+        "Thuis uit Regio en taal gebruiken ook Apparaten, Mijn routes (thuis → werk), het weer en het thema met de zon als je locatie niet bekend is. Thuis en werk blijven op je telefoon (niet in de Google-backup).",
+        "De assistent kan het voor je aanpassen, bijvoorbeeld \"gebruik 12-uurs klok\", \"gebruik mijlen\" of \"valuta dollar\" (je bevestigt het eerst).",
+        "Bankzaken: een budget als \"12.50\" wordt nu € 12,50 (niet meer € 1250)."
+      ]
+    },
+    {
+      "version": "1.133",
+      "date": "2026-11-03",
+      "changes": [
+        "Thema bij Instellingen → Weergave: Systeem, Licht, Donker, of automatisch donker op een vaste tijd (standaard 20:00–07:00) of van zonsondergang tot zonsopkomst (berekend op de telefoon, zonder internet), met Zwart (AMOLED) en een snelle knop in Instellingen.",
+        "De Telefoon-skin volgt het thema van Tools (\"Zoals Tools\"), en de app start meteen in de goede kleur: geen witte flits meer in het donker."
+      ]
+    },
     {
       "version": "1.132",
       "date": "2026-11-03",
@@ -1159,5 +1185,5 @@
       ]
     }
   ],
-  "webSig2": "m3HpDq/OK+e1hfRtZEzp1EyfQBuC5e/LKi7jfzotBy8GZOvdDYMQ4seuz33Dxo3VhHVrVEHRhGUdZcj2yueYYd6ux51Tz1D/K9rCsUSRoEI+G4gOiBnqQ78A7sEeImAXvJOjtIXpB99NHvCU/lcBCa6l9TVGrWRXv6LXNjVK3gTwNf3ar1ZFbN7qj8vuYUj0Xff3oHQFPVg/1k2JLkylUbJne7+9JnwcUaBxGbRH62WtSKAdlIQEdyUn6Dx4NxLq6y4XYsDoNTj1pQkxkAncG3dX4Ul/4aaeC0kKX297zpiWso9LyWHiAXggegQV6xTu4LPE+rgrUjVCNyYUl5gJL6YI0cSuLbBMZXs5VAIbeCk4q/IKl424nPD7TPqFM2mvXjumUrR0oTARiQo7OAhkTyTXbzF1ujxzmPYWiVjDVkwSA7gBpkBrlWjdmL3JilxS3UnddFKLYDSk01yTILL2fKwOolpTvAPkP2UdW70DyxBZhJ1HEBZQrBLpqmWPD/ra"
+  "webSig2": "SiMrC4OUd1DePDaOL2EnHBVgpbpZ8gCbItxTPIwtFO6JoJW4YBTw0uisw8E17+vu5bQT8cFGM4MOI0qFH8sHXq6l72850AMsKM2c2nPA1Yh0htS1wAbel+py7VSpFVp9q8X4Q9BprFGU81ljrsbkC9FMufKZcZedV2zDc/OsUmVAaww/m+QIqtRnj+LFlieq9Z2HH42zitig1rqRfel3KbOopLp800BG0KrYduKChHgH9SudPrwwbXiMJC8H2+LNKAwiBltkYAZmxq9QuaQLyrHAURYW7XEouT15P61OhWz1vH1YpgVNUu/Y+bQdvIq/Nd3daj4NPc9kYIs1QtgRX50zTqiJmfGqCfLNGrc+xs33/XoQC24lhOkiVE4h4NmKUsUi1BpBEVQJ59SNIEDLDGRaiSJnCSS48XLuQLPY6QonVFm8l9xESBnagHSdnzfxJfA+TLB3AV8XGtjdIi8qOb5XEq1THD5z0TKmwkOX2VRXfw1sk+IoLyZn3O+OIK5B"
 }
