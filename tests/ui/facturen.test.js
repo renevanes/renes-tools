@@ -83,6 +83,8 @@ const { chromium } = require('playwright');
     // Google: rechten kiezen (Gmail en Drive)
     await pg.click('#s-fackopp .strow:has-text("Google")'); await pg.waitForTimeout(150);
     ok(await scherm() === 'facgoogle' && await pg.isChecked('#fa-gd-r-gmail') && await pg.isChecked('#fa-gd-r-drive'), 'Google: Gmail en Drive aangevinkt');
+    ok((await pg.textContent('#fa-gd-sha1')).includes(':') && await pg.isVisible('#fa-gd-toestel') && !(await pg.isVisible('#fa-gd-id')), 'aanbevolen: account op de telefoon, met pakketnaam en SHA-1; browser ingeklapt');
+    await pg.click('#fa-gd-browser summary'); await pg.waitForTimeout(60);
     await pg.fill('#fa-gd-id', 'iets-anders'); await pg.click('#fa-gd-knop'); await pg.waitForTimeout(100);
     ok((await pg.textContent('#fa-gd-msg')).includes('googleusercontent'), 'Client ID van Google gecontroleerd');
     await pg.fill('#fa-gd-id', '1234567890-abc123.apps.googleusercontent.com');

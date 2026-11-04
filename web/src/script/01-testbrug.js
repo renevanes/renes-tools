@@ -736,6 +736,9 @@ if (!window.Android) window.Android = (function(){
     facturenMapLos(){ this._fa.lokaal = ''; },
     facturenDriveKoppel(id, geheim, rechten){ const f = this._fa; f.calls.push(['drive', id, geheim, rechten]); if (!rechten) return 'Kies waarvoor Tools Google mag gebruiken (Drive en/of Gmail)'; if (!/googleusercontent\.com$/.test(id)) return 'Dat lijkt geen Client ID van Google (eindigt op .apps.googleusercontent.com)';
       setTimeout(() => { f.drive = { gekoppeld: true, gebruiker: 'rene@gmail.com', clientId: id, heeftGeheim: true, rechtDrive: rechten.includes('drive'), rechtGmail: /\bgmail\b/.test(rechten), rechtGmailSend: rechten.includes('gmailsend') }; onFacturenDrive({ naam: 'rene@gmail.com' }); }, 200); return ''; },
+    facturenGoogleToestel(rechten){ const f = this._fa; f.calls.push(['toestel', rechten]); if (!rechten) return 'Kies waarvoor Tools Google mag gebruiken (Drive en/of Gmail)';
+      setTimeout(() => { f.drive = { gekoppeld: true, viaToestel: true, gebruiker: 'rene@gmail.com', clientId: '', heeftGeheim: false, rechtDrive: rechten.includes('drive'), rechtGmail: /\bgmail\b/.test(rechten), rechtGmailSend: rechten.includes('gmailsend') }; onFacturenDrive({ naam: 'rene@gmail.com' }); }, 200); return ''; },
+    facturenAppSleutel(){ return JSON.stringify({ pakket: 'nl.rene.tools', sha1: 'AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01' }); },
     facturenDriveLos(){ const f = this._fa; f.drive = { ...(f.drive || {}), gekoppeld: false, gebruiker: '', rechtDrive: false, rechtGmail: false }; },
     facturenLijst(id){ return JSON.stringify(this._fa.pdf[id] || []); },
     facturenOpen(id, naam){ this._fa.calls.push(['open', id, naam]); },

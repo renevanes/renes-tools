@@ -59,10 +59,13 @@ public class FacturenAanleverTest {
         JSONObject t2 = FacturenDossier.herken("Datum Factuurnummer\n05-10-2026 F12345");
         check("F12345".equals(t2.optString("nummer")) && "2026-10-05".equals(t2.optString("datum")), "tabel: Datum en Factuurnummer apart " + t2);
         check("70012345678".equals(FacturenDossier.herken("Rekeningnummer 12.34.56.789\nFactuurnummer 70012345678").optString("nummer")), "rekeningnummer is geen factuurnummer");
-        check(!FacturenDossier.herken("Factuur 2026-10.pdf").has("nummer") && !FacturenDossier.herken(FacturenDossier.naamZonderSha("KPN Zakelijk Factuur 12345678.pdf")).has("nummer"), "geen jaar-maand of controlegetal als nummer");
+        check(!FacturenDossier.herken("Factuur 2026-10.pdf").has("nummer") && !FacturenDossier.herken(FacturenDossier.naamZonderSha("KPN Zakelijk Factuur 12345678.pdf", "12345678abcdef")).has("nummer"), "geen jaar-maand of controlegetal als nummer");
         JSONObject t3 = FacturenDossier.herken("Totaal excl. btw € 33,23\nBtw 21% € 6,98\nTotaal incl. btw € 40,21\nTotaal btw € 6,98");
         check("40,21".equals(t3.optString("bedrag")) && "6,98".equals(t3.optString("btw")), "bedrag incl. btw en het btw-bedrag " + t3);
         check("40,21".equals(FacturenDossier.herken("Totaal te betalen € 40,21\nTotaal btw € 6,98").optString("bedrag")), "te betalen gaat voor totaal btw");
+        check("Factuur 70012345.pdf".equals(FacturenDossier.naamZonderSha("Factuur 70012345.pdf", "abcdef0123")) && "70012345".equals(FacturenDossier.herken("Factuur 70012345.pdf").optString("nummer")), "een echt nummer in de bestandsnaam blijft");
+        JSONObject t4 = FacturenDossier.herken("Totaal excl. btw Btw Totaal\n€ 33,23 € 6,98 € 40,21");
+        check("40,21".equals(t4.optString("bedrag")), "tabel: totaal excl. btw is niet het bedrag " + t4);
         JSONObject oudFout = new JSONObject().put("nummer", "f59e6964.pdf").put("datum", "2026-10-05").put("bron", "herkend").put("versie", 2).put("categorie", "telefoon");
         JSONObject vernieuwd = FacturenDossier.aanvullen(oudFout, new JSONObject().put("bedrag", "40,21"));
         check(!vernieuwd.has("nummer") && "2026-10-05".equals(vernieuwd.optString("datum")) && "40,21".equals(vernieuwd.optString("bedrag")) && "telefoon".equals(vernieuwd.optString("categorie")), "opnieuw lezen: fout nummer weg, rest blijft");

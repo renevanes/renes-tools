@@ -103,23 +103,38 @@
       <button class="big" onclick="$('#fa-gd-setup').style.display='block';$('#fa-gd-setup').scrollIntoView({behavior:'smooth'})">Rechten aanpassen</button>
       <button class="big ghost" style="margin-top:8px" onclick="askConfirm('Google ontkoppelen?', 'Facturen die al in Drive staan, blijven daar staan. Leveranciers die Gmail gebruiken, stoppen tot je weer koppelt.', 'Ontkoppelen', () => { Android.facturenDriveLos(); faRender(); })">Ontkoppelen</button>
     </div>
-    <div class="card" id="fa-gd-setup">
+    <div id="fa-gd-setup">
+    <div class="card">
       <h2>Waarvoor mag Tools Google gebruiken?</h2>
       <label class="chk"><input type="checkbox" id="fa-gd-r-gmail" checked> Gmail: facturen zoeken (alleen lezen)</label>
       <label class="chk"><input type="checkbox" id="fa-gd-r-drive" checked> Drive: facturen bewaren (alleen eigen mappen)</label>
       <label class="chk"><input type="checkbox" id="fa-gd-r-send"> Gmail: facturen versturen aan je boekhouder (geen lezen)</label>
-      <p class="note">Eenmalig: Google geeft alleen toegang via een eigen (gratis) Google-project.</p>
+    </div>
+    <div class="card">
+      <h2>Met het Google-account op deze telefoon</h2>
+      <p class="note" style="margin-top:0">Aanbevolen: geen browser en geen geheime sleutel; Android geeft Tools toegang met het account dat al op je telefoon staat. Eenmalig in een eigen (gratis) Google-project:</p>
       <ol class="spsteps">
         <li>Open de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/projectcreate');return false">Google Cloud Console</a> en maak een project (naam bijv. "Tools").</li>
         <li>Zet de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/apis/library/gmail.googleapis.com');return false">Gmail API</a> en/of de <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/apis/library/drive.googleapis.com');return false">Google Drive API</a> aan (<b>Inschakelen</b>).</li>
-        <li>Ga naar <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/auth/overview');return false">Google Auth Platform</a>, tik op <b>Aan de slag</b>, vul een app-naam en je mailadres in en kies <b>Extern</b>.</li>
-        <li>Bij <b>Doelgroep</b>: tik op <b>App publiceren</b> (In productie). Anders vervalt de koppeling na 7 dagen.</li>
+        <li>Ga naar <a href="#" onclick="Android.openUrl('https://console.cloud.google.com/auth/overview');return false">Google Auth Platform</a>, tik op <b>Aan de slag</b>, vul een app-naam en je mailadres in en kies <b>Extern</b>. Bij <b>Doelgroep</b>: <b>App publiceren</b>.</li>
+        <li>Bij <b>Clients</b>: <b>Client maken</b>, type <b>Android</b>. Vul in:</li>
+      </ol>
+      <div class="bkres"><b>Pakketnaam</b><span id="fa-gd-pakket" style="overflow-wrap:anywhere;user-select:all">nl.rene.tools</span></div>
+      <div class="bkres"><b>SHA-1</b><span id="fa-gd-sha1" style="overflow-wrap:anywhere;user-select:all;font-family:monospace;font-size:13px"></span></div>
+      <button class="big ghost" style="margin-top:8px" onclick="Android.aiCopy($('#fa-gd-sha1').textContent);toast('SHA-1 gekopieerd')">SHA-1 kopiëren</button>
+      <button class="big" style="margin-top:8px" id="fa-gd-toestel" onclick="faGdToestel()">Google-account kiezen</button>
+      <p class="note">Android vraagt daarna één keer of Tools de aangevinkte rechten mag gebruiken. Zegt Google dat de app niet geverifieerd is: het is je eigen app, tik op <b>Doorgaan</b>.</p>
+    </div>
+    <details class="card rinfo" id="fa-gd-browser">
+      <summary><b>Of: inloggen via de browser</b> (met Client ID en Client secret)</summary>
+      <ol class="spsteps">
+        <li>Doe stap 1 tot en met 3 hierboven.</li>
         <li>Bij <b>Clients</b>: <b>Client maken</b>, type <b>Desktop-app</b>. Kopieer de Client ID en het Client secret hieronder.</li>
       </ol>
       <input class="aein" id="fa-gd-id" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Client ID (…apps.googleusercontent.com)" aria-label="Client ID">
       <input class="aein" id="fa-gd-geheim" type="password" autocomplete="off" style="margin-top:8px" placeholder="Client secret" aria-label="Client secret">
       <button class="big" style="margin-top:10px" id="fa-gd-knop" onclick="faGdKoppel()">Koppelen met Google</button>
-      <p class="note">Google zegt daarna mogelijk "Google heeft deze app niet geverifieerd": het is je eigen app, tik op <b>Doorgaan</b> en vink de gevraagde rechten aan.</p>
+    </details>
     </div>
     <p class="note bad" id="fa-gd-msg" role="status" aria-live="polite"></p>
   </main>

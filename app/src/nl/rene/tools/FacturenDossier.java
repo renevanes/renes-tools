@@ -88,7 +88,7 @@ final class FacturenDossier {
                     .put("plekken", new JSONObject().put("app", new JSONObject().put("pad", f.getAbsolutePath()).put("t", System.currentTimeMillis())))
                     .put("verzonden", new JSONObject());
             // Factuurgegevens uit de tekst van de PDF (Android 15+), anders uit de bestandsnaam
-            JSONObject meta = herken(tekst(f) + "\n" + naamZonderSha(p.naam));
+            JSONObject meta = herken(tekst(f) + "\n" + naamZonderSha(p.naam, p.sha));
             meta.put("bron", meta.length() > 0 ? "herkend" : "");
             if (PdfDoc.canText()) meta.put("versie", HERKEN_VERSIE);
             s.put("meta", meta);
@@ -252,7 +252,7 @@ final class FacturenDossier {
             JSONObject s = e.getValue();
             File f = FacturenAanlever.bestand(c, s);
             String tekst = f == null ? "" : tekst(f);
-            nieuw.put(e.getKey(), herken(tekst + "\n" + naamZonderSha(s.optString("origineel")) + "\n" + naamZonderSha(s.optString("naam"))));
+            nieuw.put(e.getKey(), herken(tekst + "\n" + naamZonderSha(s.optString("origineel"), s.optString("sha")) + "\n" + naamZonderSha(s.optString("naam"), s.optString("sha"))));
         }
         int beter = 0;
         synchronized (Facturen.LOCK) {
@@ -300,14 +300,14 @@ final class FacturenDossier {
      */
     private static void kopregels(String t, JSONObject m) throws Exception {
         String[] regels = t.split("\\r?\\n");
-        Pattern lab = Pattern.compile("(?i)(?<![a-z])(?:(" + L_VERVAL + ")|(" + L_NUMMER + ")|(" + L_DATUM + ")|(" + L_BEDRAG + ")|(" + L_ANDERS + "))(?![a-z])");
+        Pattern lab = Pattern.compile("(?i)(?<![a-z])(?:(" + L_VERVAL + ")|(" + L_NUMMER + ")|(" + L_DATUM + ")|(" + L_ANDERS + ")|(" + L_BEDRAG + "))(?![a-z])");
         Pattern waarde = Pattern.compile("(?i)(" + DATUMWAARDE + ")|(" + BEDRAGWAARDE + ")|([A-Z0-9][A-Z0-9./-]*)");
         for (int i = 0; i + 1 < regels.length; i++) {
             java.util.List<String> soorten = new java.util.ArrayList<>();
             Matcher x = lab.matcher(regels[i]);
             int eind = 0;
             while (x.find()) {
-                soorten.add(x.group(1) != null ? "vervaldatum" : x.group(2) != null ? "nummer" : x.group(3) != null ? "datum" : x.group(4) != null ? "bedrag" : "");
+                soorten.add(x.group(1) != null ? "vervaldatum" : x.group(2) != null ? "nummer" : x.group(3) != null ? "datum" : x.group(5) != null ? "bedrag" : "");
                 eind = x.end();
             }
             if (soorten.size() < 2 || regels[i].substring(eind).matches(".*\\d.*")) continue; // geen kopregel (er staan al waarden in)
@@ -328,7 +328,11 @@ final class FacturenDossier {
     }
 
     /** Onze eigen bestandsnaam zonder het stukje controlegetal ("… f59e6964.pdf"), zodat dat nooit als nummer telt. */
-    static String naamZonderSha(String n) { return n == null ? "" : n.replaceAll("(?i)\\s[0-9a-f]{8}(\\.pdf)$", "$1"); }
+    static String naamZonderSha(String n, String sha) {
+        if (n == null) return "";
+        if (sha == null || sha.length() < 8) return n;
+        return n.replace(" " + sha.substring(0, 8) + ".pdf", ".pdf");
+    }
 
     /** Factuurnummer, -datum, totaalbedrag, btw en uiterste betaaldatum uit de tekst van een factuur (of de bestandsnaam). */
     static JSONObject herken(String tekst) {
@@ -338,7 +342,6 @@ final class FacturenDossier {
         try {
             kopregels(t, m); // eerst tabellen (kopregel met de waarden eronder): daar hoort elke waarde bij zijn eigen kolom
             // Naam en waarde op dezelfde regel, of een naam alleen op zijn regel met de waarde eronder
-            String los = "(?:[ :#.]{1,6}|[ :#.]*\\n\\s*)";
             Matcher x = Pattern.compile("(?im)(?:(?<![a-z])(?:" + L_NUMMER + ")[ :#.]{1,6}|^[ ]*(?:" + L_NUMMER + ")[ :#.]*\\n\\s*)([A-Z0-9][A-Z0-9./-]{2,30})").matcher(t);
             while (!m.has("nummer") && x.find()) { String n = x.group(1).replaceAll("[./-]+$", ""); if (geldigNummer(n)) m.put("nummer", n); }
             if (!m.has("nummer")) { // alleen "Factuur 123456" (niet in onze eigen bestandsnaam met controlegetal)

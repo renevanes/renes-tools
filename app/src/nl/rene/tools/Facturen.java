@@ -545,7 +545,7 @@ final class Facturen {
     /** Staat de factuurdatum (herkend uit de PDF of de naam) vóór de grens? Onbekende datum: nee (dan bewaren). */
     static boolean voorPeriode(long grens, File f, String naam) {
         if (grens <= 0) return false;
-        String d = FacturenDossier.herken(FacturenDossier.tekst(f) + "\n" + FacturenDossier.naamZonderSha(naam)).optString("datum");
+        String d = FacturenDossier.herken(FacturenDossier.tekst(f) + "\n" + naam).optString("datum");
         if (d.isEmpty()) return false;
         java.text.SimpleDateFormat iso = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
         return d.compareTo(iso.format(new java.util.Date(grens))) < 0;
@@ -582,7 +582,7 @@ final class Facturen {
             File f = new File(d, naam);
             for (int n = 2; f.exists(); n++) { naam = p.naam.replaceAll("\\.pdf$", "") + " (" + n + ").pdf"; f = new File(d, naam); }
             try (FileOutputStream o = new FileOutputStream(f)) { o.write(p.data); o.getFD().sync(); }
-            if (!"mail".equals(lev.optString("soort")) && voorPeriode(grens, f, p.naam)) { // van vóór de gekozen periode: niet bewaren
+            if (!"mail".equals(lev.optString("soort")) && voorPeriode(grens, f, FacturenDossier.naamZonderSha(p.naam, p.sha))) { // van vóór de gekozen periode: niet bewaren
                 f.delete();
                 verwerkt.put(p.sha, new JSONObject().put("n", "").put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis()).put("buiten", true));
                 if (eigenNaam) namenGehad.add(p.naam);

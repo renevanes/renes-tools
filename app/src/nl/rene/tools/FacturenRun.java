@@ -72,7 +72,8 @@ final class FacturenRun {
     boolean geladen, codeBezig, handmatig, naarGeladen, klaarGemeld;
     int pwPogingen, userPogingen, codePogingen, inlogKlikken, stil, menuPogingen, zoekPogingen, terug;
     long codeSinds, wachtTot, knopSinds, afrondenSinds;
-    int knopIndex, vangstenVoor, meerKlikken, meerVorige = -1, bekendOpRij;
+    int knopIndex, vangstenVoor, meerKlikken, meerVorige = -1;
+    volatile int bekendOpRij;
     boolean meerKlaar;
     /** Facturen die al eerder zijn opgehaald (SHA-256) en of dit een vervolg is (niet de eerste keer of "opnieuw"). */
     final Set<String> bekend = new java.util.HashSet<>();

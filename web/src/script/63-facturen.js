@@ -101,10 +101,12 @@ function faRender(geenLaad){
   const gd = faSt.drive || {};
   $('#fa-gd-setup').style.display = gd.gekoppeld ? 'none' : 'block';
   $('#fa-gd-aan').style.display = gd.gekoppeld ? 'block' : 'none';
-  $('#fa-gd-stand').textContent = gd.gekoppeld ? 'Gekoppeld' + (gd.gebruiker ? ' met ' + gd.gebruiker : '') + '.' : '';
+  $('#fa-gd-stand').textContent = gd.gekoppeld ? 'Gekoppeld' + (gd.gebruiker ? ' met ' + gd.gebruiker : '') + (gd.viaToestel ? ' (het Google-account op deze telefoon).' : ' (via de browser).') : '';
+  if (!$('#fa-gd-sha1').textContent) { const k = rdJson(Android.facturenAppSleutel(), {}); $('#fa-gd-pakket').textContent = k.pakket || 'nl.rene.tools'; $('#fa-gd-sha1').textContent = k.sha1 || '(niet te lezen)'; }
   $('#fa-gd-rechten').textContent = gd.gekoppeld ? 'Gmail: ' + (gd.rechtGmail ? '✓ facturen zoeken (alleen lezen)' : '– geen toegang') + ' · Drive: ' + (gd.rechtDrive ? '✓ bewaren in de map Facturen' : '– geen toegang') + ' · Versturen: ' + (gd.rechtGmailSend ? '✓ aan je boekhouder' : '– nee') + '. Tools ziet in Drive alleen zijn eigen mappen.' : '';
   if (gd.gekoppeld) { $('#fa-gd-r-gmail').checked = !!gd.rechtGmail || $('#fa-gd-r-gmail').checked; $('#fa-gd-r-drive').checked = !!gd.rechtDrive; $('#fa-gd-r-send').checked = !!gd.rechtGmailSend || $('#fa-gd-r-send').checked; }
   $('#fa-gd-knop').textContent = gd.gekoppeld ? 'Opnieuw koppelen met deze rechten' : 'Koppelen met Google';
+  $('#fa-gd-toestel').textContent = gd.gekoppeld && gd.viaToestel ? 'Opnieuw toestemming geven met deze rechten' : 'Google-account kiezen';
   if (!gd.gekoppeld && gd.clientId && !$('#fa-gd-id').value) $('#fa-gd-id').value = gd.clientId;
   $('#fa-gd-geheim').placeholder = gd.heeftGeheim ? 'Client secret (ongewijzigd)' : 'Client secret';
 }
@@ -352,6 +354,19 @@ window.onFacturenMap = function(fout){
   if (fout && fout !== 'geen') toast(fout); else if (!fout) toast('✓ Map gekozen');
   if (FA_SCHERMEN.includes(current)) faRender();
 };
+/** De aangevinkte rechten ("gmail,drive,gmailsend"), of '' met een melding. */
+function faGdRechten(){
+  const rechten = [$('#fa-gd-r-gmail').checked ? 'gmail' : '', $('#fa-gd-r-drive').checked ? 'drive' : '', $('#fa-gd-r-send').checked ? 'gmailsend' : ''].filter(Boolean).join(',');
+  if (!rechten) $('#fa-gd-msg').textContent = 'Vink aan waarvoor Tools Google mag gebruiken (Gmail en/of Drive).';
+  return rechten;
+}
+function faGdToestel(){
+  $('#fa-gd-msg').textContent = '';
+  const rechten = faGdRechten(); if (!rechten) return;
+  const e = Android.facturenGoogleToestel(rechten);
+  if (e) { $('#fa-gd-msg').textContent = e; return; }
+  toast('Kies je Google-account');
+}
 function faGdKoppel(){
   $('#fa-gd-msg').textContent = '';
   const id = $('#fa-gd-id').value.trim(), geheim = $('#fa-gd-geheim').value.trim();

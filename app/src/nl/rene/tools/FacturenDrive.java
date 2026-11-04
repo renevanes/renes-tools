@@ -34,7 +34,10 @@ final class FacturenDrive {
     static final String MAP_MIME = "application/vnd.google-apps.folder";
 
     static SharedPreferences prefs(Context c) { return Facturen.prefs(c); }
-    static boolean gekoppeld(Context c) { return Facturen.heeftGeheim(c, "gd_refresh"); }
+    static boolean gekoppeld(Context c) { return Facturen.heeftGeheim(c, "gd_refresh") || FacturenGoogleToestel.actief(c); }
+
+    /** Na een nieuwe koppeling: de oude toegangssleutel niet meer gebruiken. */
+    static void vergeetSleutel() { synchronized (TOKEN_LOCK) { access = null; accessTot = 0; } }
 
     /** Welke rechten de Google-koppeling heeft gekregen: "drive" (opslaan in Drive) en/of "gmail" (facturen zoeken, alleen lezen). */
     static boolean heeftRecht(Context c, String recht) {
@@ -148,6 +151,8 @@ final class FacturenDrive {
         final String refresh;
         synchronized (TOKEN_LOCK) {
             refresh = Facturen.geheim(c, "gd_refresh");
+            if (FacturenGoogleToestel.actief(c)) FacturenGoogleToestel.vergeet(c, access);
+            FacturenGoogleToestel.ontkoppel(c);
             access = null; accessTot = 0;
             Facturen.geheim(c).edit().remove("gd_refresh").apply();
             prefs(c).edit().remove("gdGebruiker").remove("gdMappen").remove("gdScopes").apply();
@@ -189,6 +194,11 @@ final class FacturenDrive {
     static String token(Context c) throws Exception {
         synchronized (TOKEN_LOCK) {
             if (access != null && System.currentTimeMillis() < accessTot) return access;
+            if (FacturenGoogleToestel.actief(c)) { // het Google-account op de telefoon: Android geeft de sleutel
+                access = FacturenGoogleToestel.token(c);
+                accessTot = System.currentTimeMillis() + 40 * 60_000L;
+                return access;
+            }
             String refresh = Facturen.geheim(c, "gd_refresh"), sec = Facturen.geheim(c, "gd_secret");
             if (refresh == null || sec == null) throw new Exception("Koppel Google Drive (opnieuw) in Facturen");
             JSONObject t = form("grant_type=refresh_token&refresh_token=" + enc(refresh) + "&client_id=" + enc(prefs(c).getString("gdClientId", "")) + "&client_secret=" + enc(sec));
@@ -248,7 +258,10 @@ final class FacturenDrive {
                     try (OutputStream o = h.getOutputStream()) { o.write(body); }
                 }
                 int code = h.getResponseCode();
-                if (code == 401 && poging == 0) { synchronized (TOKEN_LOCK) { accessTot = 0; } continue; }
+                if (code == 401 && poging == 0) {
+                    synchronized (TOKEN_LOCK) { if (FacturenGoogleToestel.actief(c)) FacturenGoogleToestel.vergeet(c, access); accessTot = 0; access = null; }
+                    continue;
+                }
                 InputStream in = code >= 400 ? h.getErrorStream() : h.getInputStream();
                 String t = in == null ? "" : new String(Facturen.lees(in, max), StandardCharsets.UTF_8);
                 JSONObject o = t.trim().startsWith("{") ? new JSONObject(t) : new JSONObject();

@@ -55,7 +55,8 @@ public class FacturenBridge extends GebruikBridge {
                     .put("lokaal", lokaalNaam())
                     .put("drive", new JSONObject().put("gekoppeld", FacturenDrive.gekoppeld(ctx))
                             .put("rechtDrive", FacturenDrive.heeftRecht(ctx, "drive")).put("rechtGmail", FacturenDrive.heeftRecht(ctx, "gmail")).put("rechtGmailSend", FacturenDrive.heeftRecht(ctx, "gmailsend")).put("gebruiker", p.getString("gdGebruiker", ""))
-                            .put("clientId", p.getString("gdClientId", "")).put("heeftGeheim", Facturen.heeftGeheim(ctx, "gd_secret")))
+                            .put("clientId", p.getString("gdClientId", "")).put("heeftGeheim", Facturen.heeftGeheim(ctx, "gd_secret"))
+                            .put("viaToestel", FacturenGoogleToestel.actief(ctx)))
                     .put("smtp", new JSONObject().put("host", p.getString("smtpHost", "")).put("poort", p.getInt("smtpPoort", 587))
                             .put("beveiliging", p.getString("smtpBeveiliging", "starttls")).put("gebruiker", p.getString("smtpGebruiker", ""))
                             .put("van", p.getString("smtpVan", "")).put("naam", p.getString("smtpNaam", "")).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "smtp")))
@@ -211,6 +212,19 @@ public class FacturenBridge extends GebruikBridge {
             a.h.post(() -> { try { a.startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE)); } catch (Exception e) { a.js("onFacturenDrive", "{\"error\":\"Geen browser gevonden\"}"); } });
             return "";
         } catch (Exception e) { return e.getMessage() == null ? "Koppelen lukt niet" : e.getMessage(); }
+    }
+
+    /** Google koppelen met het Google-account op deze telefoon (geen browser). Antwoord via onFacturenDrive({error|naam}). */
+    @JavascriptInterface public String facturenGoogleToestel(String rechten) {
+        if (rechten == null || (!rechten.contains("drive") && !rechten.contains("gmail"))) return "Kies waarvoor Tools Google mag gebruiken (Drive en/of Gmail)";
+        a.h.post(() -> a.kiesGoogleAccount(rechten));
+        return "";
+    }
+
+    /** Pakketnaam en SHA-1 van deze app, voor de Android-client in het Google-project: {pakket, sha1}. */
+    @JavascriptInterface public String facturenAppSleutel() {
+        try { return new JSONObject().put("pakket", ctx.getPackageName()).put("sha1", FacturenGoogleToestel.sha1(ctx)).toString(); }
+        catch (Exception e) { return "{}"; }
     }
 
     @JavascriptInterface public void facturenDriveLos() { FacturenDrive.ontkoppel(ctx); }

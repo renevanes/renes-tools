@@ -175,9 +175,9 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);
     await pg.click('#s-fackopp button:has-text("Google")'); await pg.waitForTimeout(150);
     ok(await pg.isVisible('#fa-gd-r-send') && !(await pg.isChecked('#fa-gd-r-send')), 'Google: versturen staat standaard uit');
-    await pg.check('#fa-gd-r-send'); await pg.fill('#fa-gd-id', '123-abc.apps.googleusercontent.com'); await pg.fill('#fa-gd-geheim', 's');
-    await pg.click('#fa-gd-knop'); await pg.waitForTimeout(350);
-    ok(await pg.evaluate(() => Android._fa.calls.some(c => c[0] === 'drive' && /gmailsend/.test(c[3]))), 'koppelen met het recht om te versturen');
+    await pg.check('#fa-gd-r-send'); await pg.click('#fa-gd-toestel'); await pg.waitForTimeout(350);
+    ok(await pg.evaluate(() => Android._fa.calls.some(c => c[0] === 'toestel' && /gmailsend/.test(c[1]))), 'koppelen met het Google-account op de telefoon, met het recht om te versturen');
+    ok((await pg.textContent('#fa-gd-stand')).includes('op deze telefoon'), 'stand: via het account op de telefoon');
     ok((await tekst('#fa-gd-rechten')).includes('✓ aan je boekhouder'), 'recht zichtbaar');
     // Terug tot het startscherm
     for (let i = 0; i < 8 && await scherm() !== 'home'; i++) { await pg.evaluate(() => goBack()); await pg.waitForTimeout(100); }
