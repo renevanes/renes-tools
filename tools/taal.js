@@ -109,10 +109,10 @@ function startScript(){
   return s.replace(/([\s\S]*?)(<script>[\s\S]*?<\/script>|$)/g, (m, out, scr) => out.replace(/[^\n]/g, '') + (scr ? ' '.repeat(8) + scr.slice(8, -9) + ' '.repeat(9) : ''));
 }
 /* Sleutels uit JavaScript: { key → [plek] }, en de bewaker: [plek, reden] */
-function jsScan(){
+function jsScan(only){
   const keys = new Map(), guard = [], loose = new Map(), strs = new Set();
   const add = (k, where, map) => { k = norm(k); if (!k || junk(k)) return; const m = map || keys; if (!m.has(k)) m.set(k, []); m.get(k).push(where); };
-  const files = jsFiles().concat([['web/start.html', startScript()]]);
+  const files = only || jsFiles().concat([['web/start.html', startScript()]]); // only: [[naam, bron]] (voor de test)
   for (const [name, src] of files) {
     const toks = jsTokens(src), byAt = new Map(toks.map(t => [t.at, t]));
     for (const tk of toks) if (!tk.tpl) strs.add(norm(tk.s));

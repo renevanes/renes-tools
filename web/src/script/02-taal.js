@@ -137,13 +137,26 @@ function taalObserve(recs){
 }
 function taalObs(){ return TAAL.obs || (TAAL.obs = new MutationObserver(taalObserve)); }
 /* taal-kern: eind */
-/* Alles terug naar de Nederlandse brontekst (wat nog vertaald in beeld staat) */
+/* Alles terug naar de Nederlandse brontekst (wat nog vertaald in beeld staat). Wat de observer vertaalde, weet zijn
+ * Nederlands nog; wat met t() al in het Engels getekend werd (op een scherm dat nu niet open is), zoeken we terug in het
+ * woordenboek (Engels → Nederlands, alleen hele teksten). Schermen tekenen zich bij het openen toch opnieuw. */
 function taalRestore(root){
   const tw = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
   const els = [];
   for (let n = tw.currentNode; n; n = tw.nextNode()) els.push(n);
+  let rev = null;
+  const terug = s => {
+    if (!rev) { rev = new Map(); for (const [k, v] of taalDict()) if (typeof v === 'string' && !/\{\w+\}/.test(k) && !rev.has(v)) rev.set(v, k); }
+    const k = taalNorm(s); const nl = k && rev.get(k); if (!nl) return undefined;
+    const lead = /^\s*/.exec(s)[0], trail = /\s*$/.exec(s)[0];
+    return lead + nl + (trail.length < s.length - lead.length ? trail : '');
+  };
   for (const n of els) {
-    if (n.nodeType === 3) { if (n.__tNl !== undefined && n.data === n.__tEn) n.data = n.__tNl; delete n.__tNl; delete n.__tEn; continue; }
+    if (n.nodeType === 3) {
+      if (n.__tNl !== undefined && n.data === n.__tEn) n.data = n.__tNl;
+      else if (n.__tNl === undefined && /\p{L}/u.test(n.data) && n.parentElement && !n.parentElement.closest('[translate="no"],script,style,textarea')) { const r = terug(n.data); if (r !== undefined) n.data = r; }
+      delete n.__tNl; delete n.__tEn; continue;
+    }
     if (n.__tNlH !== undefined && n.innerHTML === n.__tEnH) n.innerHTML = n.__tNlH;
     delete n.__tNlH; delete n.__tEnH;
     if (n.__tNlA) { for (const a in n.__tNlA) if (n.getAttribute(a) === n.__tEnA[a]) n.setAttribute(a, n.__tNlA[a]); delete n.__tNlA; delete n.__tEnA; }
