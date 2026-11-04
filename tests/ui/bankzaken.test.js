@@ -140,6 +140,20 @@ const { chromium } = require('playwright');
     await pg.click('#bk-lijst .bk-tx'); await pg.click('#sheet button:has-text("Categorie wijzigen")'); await pg.waitForTimeout(150);
     ok((await tekst('#sheet')).includes('Omzet') && !(await tekst('#sheet')).includes('Boodschappen'), 'zakelijke boeking: zakelijke categorieën om uit te kiezen');
     await pg.evaluate(() => closeSheet());
+    // Zelf toegevoegde zakelijke rekening die later ook geïmporteerd wordt: geen eindeloze vraag; zonder import telt geld uit je bedrijf mee
+    const extra = await pg.evaluate(() => { const d = Android._bank.data, k = 'NL77KNAB0123456789', p = 'NL20INGB0001234567';
+      d.eigen = (d.eigen || []).concat([{ iban: k, naam: 'BV', soort: 'zakelijk' }]);
+      d.tx.push({ id: 'k1', acc: p, d: '2026-10-29', a: 150000, cp: 'Mijn BV', ci: k, ds: 'Dividend', ty: '', src: 'ING', in: 1 });
+      d.tx.push({ id: 'k2', acc: 'NL99RABO0123456789', d: '2026-10-29', a: 121000, cp: 'Klant Twee', ci: '', ds: 'Factuur 15 incl. btw', ty: '', src: 'Rabobank', in: 1 });
+      d.rev += 1; bkLaad();
+      $('#bk-rek').value = 'alle'; const [a, b] = bkPeriodeVan(); const tt = bkTotalen(bkSelectie(a, b));
+      return { modal: !!document.querySelector('#modal.on'), cat1: bkCat(d.tx.find(t => t.id === 'k1')), cat2: bkCat(d.tx.find(t => t.id === 'k2')), soort: bkSoort(d.tx.find(t => t.id === 'k1')), inn: tt.in }; });
+    await pg.waitForTimeout(200);
+    ok(!extra.modal && !(await pg.isVisible('#modal.on')), 'rekening met soort in "eigen": geen vraag meer');
+    ok(extra.cat1 === 'Uit eigen bedrijf' && extra.soort === 'in', 'geld van een zelf toegevoegde (niet geïmporteerde) zakelijke rekening telt als inkomsten: ' + JSON.stringify(extra));
+    ok(extra.cat2 === 'Omzet', 'betaling van een klant "incl. btw" is omzet, geen btw: ' + extra.cat2);
+    await pg.click('#bk-tab-overzicht'); await pg.waitForTimeout(100);
+
     // Beheer: soort wijzigen
     await pg.click('#bk-tab-beheer'); await pg.waitForTimeout(100);
     ok((await tekst('#bk-rekeningen')).includes('zakelijk') && (await tekst('#bk-rekeningen')).includes('privé'), 'Mijn rekeningen toont privé en zakelijk');

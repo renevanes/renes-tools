@@ -5,7 +5,8 @@
 
 // ---------- categorieën ----------
 // soort: uit (uitgave), in (inkomsten), sparen (apart, telt niet als uitgave), neutraal (eigen rekeningen),
-// tussen (geld tussen privé en zakelijk: geen inkomsten of kosten). Groep: '' beide, 'p' alleen privé, 'z' alleen zakelijk.
+// tussen (privé-opname of inbreng op een zakelijke rekening: geen omzet of kosten). Privé is geld van/naar je eigen bedrijf
+// inkomsten (naar je bedrijf = negatief), zodat heen en terug tegen elkaar wegvalt. Groep: '' beide, 'p' alleen privé, 'z' alleen zakelijk.
 const BK_CATS = [
   ['Boodschappen', 'uit', 'p'], ['Uit eten & drinken', 'uit', 'p'], ['Wonen', 'uit', 'p'], ['Energie & water', 'uit', ''], ['Telefoon & internet', 'uit', ''],
   ['Verzekeringen', 'uit', ''], ['Zorg', 'uit', 'p'], ['Vervoer', 'uit', 'p'], ['Abonnementen', 'uit', 'p'], ['Winkelen', 'uit', 'p'], ['Kleding', 'uit', 'p'],
@@ -17,7 +18,7 @@ const BK_CATS = [
   ['Btw & loonheffing', 'uit', 'z'], ['Overige zakelijke kosten', 'uit', 'z'],
   ['Salaris', 'in', 'p'], ['Toeslagen & uitkeringen', 'in', 'p'], ['Terugbetalingen', 'in', ''], ['Rente & dividend', 'in', ''], ['Overige inkomsten', 'in', 'p'],
   ['Omzet', 'in', 'z'], ['Overige zakelijke inkomsten', 'in', 'z'],
-  ['Uit eigen bedrijf', 'in', 'p'], ['Naar eigen bedrijf', 'tussen', 'p'], ['Privé-opnamen', 'tussen', 'z'], ['Inbreng privé', 'tussen', 'z'],
+  ['Uit eigen bedrijf', 'in', 'p'], ['Naar eigen bedrijf', 'in', 'p'], ['Privé-opnamen', 'tussen', 'z'], ['Inbreng privé', 'tussen', 'z'],
   ['Sparen & beleggen', 'sparen', ''], ['Eigen rekeningen', 'neutraal', '']];
 /** Geld tussen een privé- en een zakelijke rekening van jezelf (telt niet mee als beide in beeld zijn). */
 const BK_TUSSEN = new Set(['Uit eigen bedrijf', 'Naar eigen bedrijf', 'Privé-opnamen', 'Inbreng privé']);
@@ -54,20 +55,20 @@ const BK_REGELS = [
 
 // Zakelijke rekeningen: eerst deze regels, dan de algemene (met BK_ZMAP omgezet naar een zakelijke categorie).
 const BK_ZREGELS = [
-  ['omzetbelasting|\\bbtw\\b|loonheffing|loonbelasting|\\bob\\b.*aangifte', 'Btw & loonheffing', ''],
+  ['belastingdienst.*(omzetbelasting|\\bbtw\\b|loonheffing)|omzetbelasting|loonheffing|loonbelasting|btw[- ]?aangifte|aangifte btw', 'Btw & loonheffing', ''],
   ['google ads|adwords|meta ads|facebook ads|facebk|linkedin ads|tiktok ads|advertent|drukwerk|vistaprint|helloprint|drukland|reclame', 'Marketing & advertenties', '-'],
-  ['\\baws\\b|amazon web services|google (workspace|cloud|\\*gsuite)|microsoft|azure|github|gitlab|atlassian|\\bjira\\b|slack|notion|figma|adobe|openai|anthropic|cursor|vercel|netlify|hetzner|transip|versio|strato|mijndomein|one\\.com|digitalocean|cloudflare|mollie|stripe|moneybird|e-boekhouden|exact online|snelstart|twinfield|jortt|zoho|hubspot|mailchimp|canva|dropbox|zoom|1password|bitwarden|jetbrains|software|saas|licentie|hosting|domeinnaam', 'Software & abonnementen', '-'],
+  ['\\baws\\b|amazon web services|google (workspace|cloud|\\*gsuite)|microsoft|azure|github|gitlab|atlassian|\\bjira\\b|slack|notion|figma|adobe|openai|anthropic|anysphere|cursor\\.(sh|com)|vercel|netlify|hetzner|transip|versio|strato|mijndomein|one\\.com|digitalocean|cloudflare|moneybird|e-boekhouden|exact online|snelstart|twinfield|jortt|zoho|hubspot|mailchimp|canva|dropbox|zoom\\.us|zoom video|1password|bitwarden|jetbrains|\\bsaas\\b|softwarelicentie|hosting|domeinnaam', 'Software & abonnementen', '-'],
   ['\\bkvk\\b|kamer van koophandel|accountant|administratiekantoor|boekhoud|belastingadvi|advocaat|jurist|notaris|adviesbureau|\\badvies\\b', 'Advies & administratie', '-'],
-  ['nettoloon|salaris|\\bloon\\b|nmbrs|loket\\.nl|payroll|pensioenfonds|arbodienst|personeel', 'Personeel & lonen', '-'],
-  ['kantoorruimte|bedrijfsruimte|huur kantoor|\\bregus\\b|spaces|flexplek|werkplek|coworking|kantoorartikelen|staples|viking|office centre|bedrijfspand', 'Kantoor & huisvesting', '-'],
-  ['bouwmaat|\\bhubo\\b|technische unie|rexel|conrad|reichelt|makro|sligro|hanos|bidfood|inkoop|groothandel|leverancier', 'Inkoop & materiaal', '-']
+  ['nettoloon|salaris|\\bloon\\b|nmbrs|loket\\.nl|payroll|pensioenfonds|arbodienst', 'Personeel & lonen', '-'],
+  ['kantoorruimte|bedrijfsruimte|huur kantoor|\\bregus\\b|\\bspaces\\b (bv|b\\.v|nederland)|flexplek|werkplek|coworking|kantoorartikelen|staples|viking|office centre|bedrijfspand', 'Kantoor & huisvesting', '-'],
+  ['bouwmaat|\\bhubo\\b|technische unie|rexel|conrad electronic|reichelt|makro|sligro|hanos|bidfood|inkoop|groothandel|leverancier', 'Inkoop & materiaal', '-']
 ].map(([p, c, t]) => [new RegExp(p, 'i'), c, t]);
 const BK_ZMAP = { 'Uit eten & drinken': 'Representatie', 'Vervoer': 'Reis- en autokosten', 'Reizen & vakantie': 'Reis- en autokosten', 'Abonnementen': 'Software & abonnementen',
   'Winkelen': 'Inkoop & materiaal', 'Wonen': 'Kantoor & huisvesting', 'Salaris': 'Omzet', 'Toeslagen & uitkeringen': 'Overige zakelijke inkomsten', 'Overige inkomsten': 'Overige zakelijke inkomsten',
   'Boodschappen': 'Overige zakelijke kosten', 'Zorg': 'Overige zakelijke kosten', 'Kleding': 'Overige zakelijke kosten', 'Persoonlijke verzorging': 'Overige zakelijke kosten',
   'Vrije tijd & sport': 'Overige zakelijke kosten', 'Kinderen & onderwijs': 'Overige zakelijke kosten', 'Huisdieren': 'Overige zakelijke kosten', 'Overig': 'Overige zakelijke kosten' };
 
-let bk = { st: null, store: null, tab: 'overzicht', lijstN: 100, catCache: new Map(), eigen: new Set(), aiBezig: false, aiDoel: '', aiTekst: '', voorstellen: null, aanraak: 0, tmr: null };
+let bk = { geimporteerd: new Set(), st: null, store: null, tab: 'overzicht', lijstN: 100, catCache: new Map(), eigen: new Set(), aiBezig: false, aiDoel: '', aiTekst: '', voorstellen: null, aanraak: 0, tmr: null };
 
 const bkVandaag = () => window.BK_VANDAAG || (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
 function bkEuro(c, teken){
@@ -88,15 +89,14 @@ function bkCatsVoor(soort){ const g = soort === 'zakelijk' ? 'z' : soort === 'pr
 /** Gegevens van een eigen rekening: { naam, soort: 'prive' | 'zakelijk' }; zelf toegevoegde rekeningen staan in store.eigen. */
 function bkRekInfo(a){
   const s = bk.store; if (!s) return {};
-  const r = s.rek && s.rek[a]; if (r) return r;
-  const e = (s.eigen || []).find(x => x.iban === a); return e || {};
+  const e = (s.eigen || []).find(x => x.iban === a), r = s.rek && s.rek[a];
+  return Object.assign({}, e || {}, r || {});
 }
 function bkRekSoort(a){ return bkRekInfo(a).soort === 'zakelijk' ? 'zakelijk' : 'prive'; }
 function bkRekZet(a, veld, waarde){
   const e = (bk.store.eigen || []).find(x => x.iban === a);
-  if (e) { e[veld] = waarde; return; }
-  const r = bk.store.rek[a] || (bk.store.rek[a] = {});
-  r[veld] = waarde;
+  if (e) e[veld] = waarde;
+  if (!e || bk.store.tx.some(t => t.acc === a)) (bk.store.rek[a] = bk.store.rek[a] || {})[veld] = waarde; // geïmporteerd: altijd in rek
 }
 /** De rekeningen van je afschriften en de zelf toegevoegde, met soort. */
 function bkAlleRek(){
@@ -116,7 +116,7 @@ function bkZichtSoort(){
 /** De soort van een boeking voor de totalen: geld tussen privé en zakelijk telt niet als beide kanten in beeld zijn. */
 function bkSoort(t){
   const c = bkCat(t), s = bkCatSoort(c);
-  if (BK_TUSSEN.has(c) && t.ci && bkInZicht(t.ci) && bk.eigen.has(t.ci)) return 'neutraal';
+  if (BK_TUSSEN.has(c) && t.ci && bk.geimporteerd.has(t.ci) && bkInZicht(t.ci)) return 'neutraal'; // de andere kant staat ook in beeld
   return s;
 }
 /** Naam zonder winkelnummers e.d., om dezelfde winkel samen te nemen. */
@@ -135,7 +135,7 @@ function bkCat(t){
     r = ander === soort ? 'Eigen rekeningen' : zak ? (t.a < 0 ? 'Privé-opnamen' : 'Inbreng privé') : (t.a > 0 ? 'Uit eigen bedrijf' : 'Naar eigen bedrijf');
   } else {
     const tekst = ((t.cp || '') + ' ' + (t.ds || '')).toLowerCase(), norm = bkNorm(tekst);
-    for (const g of (bk.store.rules || [])) if (g.p && (!g.s || g.s === soort) && (tekst.includes(g.p) || norm.includes(g.p)) && past(g.t)) { r = g.cat; break; }
+    for (const g of (bk.store.rules || [])) if (g.p && (!g.s || g.s === soort) && (tekst.includes(g.p) || norm.includes(g.p)) && past(g.t)) { r = zak && !g.s ? (BK_ZMAP[g.cat] || g.cat) : g.cat; break; }
     if (!r && zak) for (const [re, cat, teken] of BK_ZREGELS) if (past(teken) && re.test(tekst)) { r = cat; break; }
     if (!r) for (const [re, cat, teken] of BK_REGELS) if (past(teken) && re.test(tekst)) { r = zak ? (BK_ZMAP[cat] || cat) : cat; break; }
     if (!r) r = t.a > 0 ? (zak ? 'Omzet' : 'Overige inkomsten') : (zak ? 'Overige zakelijke kosten' : 'Overig');
@@ -145,9 +145,9 @@ function bkCat(t){
 }
 function bkHerbereken(){
   bk.catCache.clear();
-  bk.eigen = new Set();
+  bk.eigen = new Set(); bk.geimporteerd = new Set();
   if (!bk.store) return;
-  for (const t of bk.store.tx) if (t.acc && t.acc !== 'onbekend') bk.eigen.add(t.acc);
+  for (const t of bk.store.tx) if (t.acc && t.acc !== 'onbekend') { bk.eigen.add(t.acc); bk.geimporteerd.add(t.acc); }
   for (const e of (bk.store.eigen || [])) bk.eigen.add(e.iban);
 }
 
@@ -381,10 +381,14 @@ function bkZichtNaam(){ const r = bkRekening(); return r === 'alle' ? 'alle reke
 /** Nieuwe rekening in een afschrift: vragen of hij privé of zakelijk is (één voor één). */
 function bkNieuweRekeningen(){
   if (!bk.store || bk.stilLaden || $('#modal.on')) return;
-  const a = [...new Set(bk.store.tx.map(t => t.acc))].sort().find(x => x !== 'onbekend' && !(bk.store.rek[x] && bk.store.rek[x].soort));
+  const a = [...new Set(bk.store.tx.map(t => t.acc))].sort().find(x => x !== 'onbekend' && !bkRekInfo(x).soort);
   if (!a) return;
   bk.venster = true;
-  const kies = soort => { bkRekZet(a, 'soort', soort); bkHerbereken(); bkRekeningen(); if (bkSave()) bkRender(); setTimeout(bkNieuweRekeningen, 50); };
+  const kies = soort => {
+    bkRekZet(a, 'soort', soort); bkHerbereken();
+    if (!bkSave() && bk.store) { bkRekZet(a, 'soort', soort); bkHerbereken(); bkSave(); } // na een tussentijdse import: keuze opnieuw zetten
+    bkRekeningen(); bkRender(); setTimeout(bkNieuweRekeningen, 50);
+  };
   askChoice('Privé of zakelijk?', 'Rekening ' + bkRekNaam(a) + ' staat nieuw in je afschriften. Is dit een privérekening of een zakelijke rekening? Je kunt dit later wijzigen bij Beheer → Mijn rekeningen.', 'Privé', 'Zakelijk', () => kies('prive'), () => kies('zakelijk'));
 }
 
@@ -432,7 +436,7 @@ function bkOverzicht(van, tot){
       if (!deel.length) continue;
       r += rij(soort === 'prive' ? 'Privé' : 'Zakelijk', inn - uit, (soort === 'prive' ? 'inkomsten ' : 'omzet ') + bkEuro(inn) + ' · ' + (soort === 'prive' ? 'uitgaven ' : 'kosten ') + bkEuro(uit), 'bkZicht(' + jsq(soort) + ')');
     }
-    h += bkKaart('Privé en zakelijk', r + '<p class="note" style="margin-bottom:0">Geld tussen je privé- en zakelijke rekeningen telt in de totalen hierboven niet mee. Per soort: bij Privé is het inkomsten uit je eigen bedrijf, bij Zakelijk een privé-opname (geen kosten). Tik voor het overzicht van één soort.</p>');
+    h += bkKaart('Privé en zakelijk', r + '<p class="note" style="margin-bottom:0">Geld tussen je privé- en zakelijke rekeningen telt in de totalen hierboven niet mee. Per soort: bij Privé telt het als inkomsten uit je eigen bedrijf (geld naar je bedrijf gaat ervan af), bij Zakelijk als privé-opname of inbreng (geen omzet of kosten). Tik voor het overzicht van één soort.</p>');
   }
   if (t.naarPrive || t.inbreng) {
     const tc = [...t.cats.entries()].filter(([, x]) => x.soort === 'tussen');
@@ -462,8 +466,8 @@ function bkOverzicht(van, tot){
         + '<small>' + Math.round(nu / Math.max(1, t.uit) * 100) + '% van ' + (zak ? 'de kosten' : 'je uitgaven') + ' · ' + x.n + '×' + (w ? ' · ervoor ' + esc(bkEuro(w)) : '') + '</small></button>';
     }).join('') + '</div>');
   }
-  const inCats = [...t.cats.entries()].filter(([, x]) => x.soort === 'in' && x.som > 0).sort((a, b) => b[1].som - a[1].som);
-  if (inCats.length) h += bkKaart(zak ? 'Omzet en inkomsten' : 'Inkomsten', inCats.map(([c, x]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>' + x.n + ' bijschrijvingen</small></span><b class="bk-plus">' + esc(bkEuro(x.som)) + '</b></div>').join(''));
+  const inCats = [...t.cats.entries()].filter(([, x]) => x.soort === 'in' && x.som !== 0).sort((a, b) => b[1].som - a[1].som);
+  if (inCats.length) h += bkKaart(zak ? 'Omzet en inkomsten' : 'Inkomsten', inCats.map(([c, x]) => '<div class="bk-rij"><span class="bk-naam">' + esc(c) + '<small>' + x.n + (x.som < 0 ? ' overboekingen' : ' bijschrijvingen') + '</small></span><b class="' + (x.som < 0 ? 'bk-min' : 'bk-plus') + '">' + esc(bkEuro(x.som, x.som < 0)) + '</b></div>').join(''));
   // Vaste lasten
   const vast = bkTerugkerend(), actief = vast.filter(v => !v.gestopt);
   if (vast.length) {
@@ -522,7 +526,9 @@ function bkCatSelect(){
   s.replaceChildren();
   const opt = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; s.appendChild(o); };
   opt('', 'Alle categorieën'); opt('*zonder', 'Zonder categorie (overig)');
-  for (const c of bkCatsVoor(bkZichtSoort())) opt(c, c);
+  const [van, tot] = bkPeriodeVan(), cats = bkCatsVoor(bkZichtSoort());
+  for (const t of bkSelectie(van, tot)) { const c = bkCat(t); if (!cats.includes(c)) cats.push(c); } // ook wat er echt in staat
+  for (const c of cats) opt(c, c);
   s.value = [...s.options].some(o => o.value === was) ? was : '';
 }
 function bkGefilterd(){

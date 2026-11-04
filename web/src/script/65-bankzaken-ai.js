@@ -21,7 +21,7 @@ function bkFeiten(vraag){
   const r = [];
   r.push('Periode: ' + label + ' (' + van + ' t/m ' + tot + ')' + ', ' + bkZichtNaam() + (bkZichtSoort() === 'zakelijk' ? ' (zakelijk: inkomsten = omzet, uitgaven = kosten)' : '') + '. Vandaag: ' + bkVandaag() + '.');
   if (bkZichtSoort() === 'zakelijk') r.push('Omzet en inkomsten ' + e(t.in) + ', kosten ' + e(t.uit) + ', resultaat ' + bkEuro(t.in - t.uit, true) + ', naar privé opgenomen ' + e(t.naarPrive) + (t.inbreng ? ', privé ingebracht ' + e(t.inbreng) : '') + ' (' + t.n + ' boekingen).');
-  else r.push('Inkomsten ' + e(t.in) + ', uitgaven ' + e(t.uit) + ', gespaard/belegd ' + e(t.sparen) + ', over ' + bkEuro(t.netto, true) + ' (' + t.n + ' boekingen).' + (t.naarPrive || t.inbreng ? ' Tussen privé en zakelijk (geen uitgave of inkomsten): ' + e(t.naarPrive + t.inbreng) + '.' : ''));
+  else r.push('Inkomsten ' + e(t.in) + ', uitgaven ' + e(t.uit) + ', gespaard/belegd ' + e(t.sparen) + ', over ' + bkEuro(t.netto, true) + ' (' + t.n + ' boekingen).');
   if (bkRekening() === 'alle' && bkZichtSoort() === '') {
     for (const soort of ['prive', 'zakelijk']) {
       let inn = 0, uit = 0; for (const x of lijst) { if (bkRekSoort(x.acc) !== soort) continue; const so = bkCatSoort(bkCat(x)); if (so === 'in') inn += x.a; else if (so === 'uit') uit -= x.a; }
@@ -158,7 +158,7 @@ function bkVoorstellenOvernemen(){
     if (!bkAiCats(k.x.soort).includes(c)) return;
     const t = k.x.plus > k.x.n / 2 ? '+' : '-';
     bk.store.rules = bk.store.rules.filter(g => !(g.p === k.x.k && g.t === t && (g.s || '') === k.x.soort));
-    bk.store.rules.push({ p: k.x.k, cat: c, t, s: k.x.soort });
+    bk.store.rules.unshift({ p: k.x.k, cat: c, t, s: k.x.soort }); // vóór oudere regels, net als bij zelf indelen
     n++;
   });
   bk.voorstellen = null;
