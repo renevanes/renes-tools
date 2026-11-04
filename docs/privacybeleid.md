@@ -130,7 +130,8 @@ alle wijzigingen is te zien op GitHub.
 
 ## Contact
 
-Vragen over privacy: open een [issue op GitHub](https://github.com/renevanes/renes-tools/issues). Een
+Vragen over privacy: mail naar [contact@esape.nl](mailto:contact@esape.nl) of open een
+[issue op GitHub](https://github.com/renevanes/renes-tools/issues). Een
 beveiligingsprobleem meld je privé via [Report a vulnerability](https://github.com/renevanes/renes-tools/security/advisories/new).
 Heb je een klacht over hoe met persoonsgegevens wordt omgegaan, dan kun je ook terecht bij de
 [Autoriteit Persoonsgegevens](https://autoriteitpersoonsgegevens.nl).
@@ -151,5 +152,5 @@ location to Open-Meteo), resuming model downloads and, in the GitHub version, up
 statistics (counts, crash type and location in the code, app version, device make/model, Android version, random
 install id) go only to your own private GitHub repository. The assistant and transcription run on the device. Android's
 Google backup may include notes, music history, parking/trips, saved places and settings, but never passwords, keys or
-bank data. Uninstalling removes the app's data from the phone. Questions: open an issue on
+bank data. Uninstalling removes the app's data from the phone. Questions: contact@esape.nl or an issue on
 [GitHub](https://github.com/renevanes/renes-tools/issues).
