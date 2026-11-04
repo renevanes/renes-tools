@@ -7,7 +7,7 @@ function renderInfo(){
   $('#i-android').textContent = v.android;
   let log = CHANGELOG;
   try { const m = JSON.parse(Android.lastManifest()); if (m && m.changelog && m.versionCode >= VERSION_CODE) log = m.changelog; } catch(e){}
-  $('#log').innerHTML = log.map(e => '<h3>Versie ' + esc(e.version) + ' <small>' + esc(e.date||'') + '</small></h3><ul>' + e.changes.map(c=>'<li>'+esc(c)+'</li>').join('') + '</ul>').join('');
+  $('#log').innerHTML = log.map(e => '<h3>' + t('Versie {n}', { n: esc(e.version) }) + ' <small>' + esc(e.date||'') + '</small></h3><ul>' + e.changes.map(c=>'<li>'+esc(c)+'</li>').join('') + '</ul>').join('');
 }
 function checkUpdates(){ $('#chk-btn').textContent = 'Bezig met controleren…'; Android.checkUpdates(); }
 
@@ -19,11 +19,11 @@ function updMB(b){ return fmtMB(b, 1); }
 /** Tekst en percentage (-1 = onbekend) bij een stap. Zuiver. */
 function updStep(r){
   const pct = r.total > 0 ? Math.min(100, Math.floor(r.done / r.total * 100)) : -1;
-  const size = pct >= 0 ? ' ' + pct + '% (' + updMB(r.done) + ' van ' + updMB(r.total) + ')' : r.done > 0 ? ' ' + updMB(r.done) : '';
+  const size = pct >= 0 ? ' ' + pct + '% (' + t('{a} van {b}', { a: updMB(r.done), b: updMB(r.total) }) + ')' : r.done > 0 ? ' ' + updMB(r.done) : '';
   switch (r.phase) {
     case 'start': return ['Nieuwe versie ophalen…', -1];
-    case 'download': return [(r.kind === 'apk' ? 'Downloaden…' : 'Interface bijwerken…') + size, pct];
-    case 'download2': return ['Startscherm bijwerken…' + size, pct];
+    case 'download': return [t(r.kind === 'apk' ? 'Downloaden…' : 'Interface bijwerken…') + size, pct];
+    case 'download2': return [t('Startscherm bijwerken…') + size, pct];
     case 'check': return ['Controleren of de download klopt…', -1];
     case 'install': return ['Klaarzetten voor installatie…', -1];
     case 'committed': return ['Installeren… de app start zo opnieuw', -1];
@@ -51,8 +51,8 @@ function updShow(text, pct, btn){
   });
 }
 function updAvailShow(){
-  if (updAvail) updShow('Nieuwe versie ' + updAvail + ' is beschikbaar', null, ['Installeren', false]);
-  else if (updReady) updShow('Interface ' + updReady + ' staat klaar; bewaar eerst je werk', null, ['Toepassen', false]);
+  if (updAvail) updShow(t('Nieuwe versie {n} is beschikbaar', { n: updAvail }), null, ['Installeren', false]);
+  else if (updReady) updShow(t('Interface {n} staat klaar; bewaar eerst je werk', { n: updReady }), null, ['Toepassen', false]);
   else ['', '2'].forEach(n => { const b = $('#upd-banner' + n); if (b) b.classList.remove('on'); });
 }
 /** Klaar of mislukt: terug naar "beschikbaar" (of niets). */
@@ -94,7 +94,7 @@ window.onUpdateStatus = function(r){
   if (r.kind === 'web' && updKind === 'apk') {
     if (r.state === 'apk') updAvail = r.versionName;
     if ($('#chk-btn')) $('#chk-btn').textContent = 'Controleren op updates';
-    if (r.state === 'uptodate' && r.manual) toast('Je hebt de nieuwste versie (' + ver().webName + ') ✓');
+    if (r.state === 'uptodate' && r.manual) toast(t('Je hebt de nieuwste versie ({n}) ✓', { n: ver().webName }));
     else if (r.state === 'error' && r.manual) toast(r.error);
     return;
   }
@@ -114,7 +114,7 @@ window.onUpdateStatus = function(r){
   const wasKind = updKind;
   if (r.state === 'apk') updAvail = r.versionName;
   updReset();
-  if (r.state === 'uptodate' && r.manual) toast('Je hebt de nieuwste versie (' + ver().webName + ') ✓');
+  if (r.state === 'uptodate' && r.manual) toast(t('Je hebt de nieuwste versie ({n}) ✓', { n: ver().webName }));
   else if (r.state === 'needs-permission') toast('Sta "Installeren van onbekende apps" toe en tik daarna nog eens op Installeren');
   else if (r.state === 'error' && (r.manual || wasKind || r.kind === 'apk' || String(r.error).indexOf('nstall') >= 0 || String(r.error).indexOf('pdate') >= 0)) toast(r.error);
 };

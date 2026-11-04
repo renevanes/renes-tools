@@ -15,14 +15,14 @@ const TOOLS = {
 const TILE_TOOL = { 'tile-car': 'car', 'tile-pdf': 'pdf', 'tile-kluis': 'kluis', 'tile-recorder': 'recorder', 'tile-history': 'history', 'tile-redial': 'redial', 'tile-wa': 'wa', 'tile-tracks': 'tracks', 'tile-sms': 'sms', 'tile-calls': 'calls',
   'tile-notes': 'notes', 'tile-contacts': 'contacts', 'tile-tr': 'transcripts', 'tile-radio': 'radio', 'tile-podcasts': 'podcasts', 'tile-spotify': 'spotify', 'tile-vpn': 'vpn', 'tile-loc': 'loc', 'tile-music': 'music', 'tile-ai': 'ai', 'tile-backup': 'backup', 'tile-skin': 'skin', 'tile-auto': 'auto', 'tile-sleep': 'sleep', 'tile-checkin': 'checkin', 'tile-apparaten': 'apparaten', 'tile-gebruik': 'gebruik', 'tile-facturen': 'facturen', 'tile-bank': 'bank' };
 function pinTool(tool){
-  const t = TOOLS[tool]; if (!t) return;
-  const e = tool === 'player' ? Android.shortcutPinPlayer() : Android.shortcutPin(tool, t[0], t[1], t[2]);
-  toast(e || 'Bevestig op je startscherm om ' + t[0] + ' toe te voegen');
+  const tl = TOOLS[tool]; if (!tl) return;
+  const e = tool === 'player' ? Android.shortcutPinPlayer() : Android.shortcutPin(tool, t(tl[0]), tl[1], tl[2]);
+  toast(e || t('Bevestig op je startscherm om {naam} toe te voegen', { naam: t(tl[0]) }));
 }
 function toolMenu(tool){
-  const t = TOOLS[tool]; if (!t) return;
+  const tl = TOOLS[tool]; if (!tl) return;
   const fav = isFav(tool);
-  openSheet(t[0], fav ? '★ Favoriet' : '', [
+  openSheet(t(tl[0]), fav ? '★ Favoriet' : '', [
     ['Openen', () => tool === 'skin' ? Android.homeOpen() : show(tool)],
     [fav ? '☆ Uit favorieten' : '★ Favoriet (bovenaan)', () => toggleFav(tool)],
     ['Naar een andere groep…', () => heMoveSheet(tool)],

@@ -16,7 +16,7 @@ function enterAuto(){
   if (d && d.left && d.rule) {
     store.set('autoDraft', null);
     if (Date.now() - (d.t || 0) < 24 * 3600e3)
-      askChoice('Verder met bewerken?', 'Je was "' + (d.rule.name || 'een automatisering') + '" aan het aanpassen en dat is nog niet bewaard.', 'Verder', 'Weggooien',
+      askChoice('Verder met bewerken?', t('Je was "{naam}" aan het aanpassen en dat is nog niet bewaard.', { naam: d.rule.name || t('een automatisering') }), 'Verder', 'Weggooien',
         () => { aeRule = d.rule; aeIsNew = !!d.isNew; aeSnap = null; show('autoed'); }, () => {});
   }
 }
@@ -61,7 +61,7 @@ function auRender(){
   let h = '';
   if (!bad.length && auState.rules.length) h = '<div class="auok">✓ Alles staat klaar</div>';
   else {
-    h = '<h2>Klaarzetten</h2>' + rows.map(r => '<div class="auperm"><span><b>' + esc(r[1]) + '</b><small>' + esc(r[2]) + '</small></span>' +
+    h = '<h2>Klaarzetten</h2>' + rows.map(r => '<div class="auperm"><span><b>' + esc(t(r[1])) + '</b><small>' + esc(t(r[2])) + '</small></span>' +
       (r[3] ? '<span class="aucheck" aria-label="In orde">✓</span>' : '<button class="aubtn" onclick="auFix(' + jsq(r[0]) + ')">Toestaan</button>') + '</div>').join('');
     if (rows.some(r => r[0] === 'a11y' && !r[3]))
       h += '<p class="note" style="margin-top:8px">Bij Toegankelijkheid: kies <i>Tools: knoppen indrukken</i> en zet hem aan. Is hij grijs of staat er <i>Beperkte instelling</i>? Open dan <a href="#" onclick="Android.openAppSettings();return false">App-info</a> → ⋮ (rechtsboven) → <i>Beperkte instellingen toestaan</i>, en probeer opnieuw.</p>';
@@ -75,7 +75,7 @@ function auRender(){
     const last = auState.last && auState.last[r.id];
     return '<div class="card aurule' + (r.on === false ? ' off' : '') + '"><button class="aumain" onclick="autoEdit(' + jsq(r.id) + ')"><b>' + esc(r.name || 'Zonder naam') + '</b>' +
       '<small>' + esc(auSummary(r)) + '</small>' + (last ? '<small class="aulast">Laatst: ' + esc(auWhen(last)) + '</small>' : '') + '</button>' +
-      '<button class="tg' + (r.on === false ? '' : ' on') + '" aria-label="' + esc(r.name) + ' aan" onclick="auToggle(' + jsq(r.id) + ', this)"></button></div>';
+      '<button class="tg' + (r.on === false ? '' : ' on') + '" aria-label="' + t('{naam} aan', { naam: esc(r.name) }) + '" onclick="auToggle(' + jsq(r.id) + ', this)"></button></div>';
   }).join('');
   $('#au-empty').style.display = auState.rules.length ? 'none' : 'block';
 
@@ -155,9 +155,9 @@ function aeRender(){
   $('#ae-radiobox').style.display = act === 'radio' ? 'block' : 'none';
   $('#ae-redialbox').style.display = act === 'redial' ? 'block' : 'none';
   $('#ae-vpnbox').style.display = act === 'vpn_on' ? 'block' : 'none';
-  if (act === 'vpn_on') { const ts = rdJson(Android.vpnTunnels(), []); $('#ae-vpn').innerHTML = '<option value="">' + (ts.length ? 'Kies een tunnel…' : 'Stel eerst een tunnel in bij VPN') + '</option>' + ts.map(t => '<option value="' + esc(t.id) + '"' + (r.vpn && r.vpn.id === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>').join(''); }
-  if (act === 'note') { const ns = (notesGet() || []).filter(n => !n.deleted); $('#ae-note').innerHTML = '<option value="">Kies een notitie…</option>' + ns.map(n => '<option value="' + esc(n.id) + '"' + (r.note && r.note.id === n.id ? ' selected' : '') + '>' + esc(n.title || 'Zonder titel') + '</option>').join(''); }
-  if (act === 'radio') { const fs = rdJson(Android.radioFavorites(), []); $('#ae-radio').innerHTML = '<option value="">Kies een zender (uit je favorieten)…</option>' + fs.map((f, i) => '<option value="' + i + '"' + (r.radio && r.radio.url === f.url ? ' selected' : '') + '>' + esc(f.name) + '</option>').join(''); }
+  if (act === 'vpn_on') { const ts = rdJson(Android.vpnTunnels(), []); $('#ae-vpn').innerHTML = '<option value="">' + t(ts.length ? 'Kies een tunnel…' : 'Stel eerst een tunnel in bij VPN') + '</option>' + ts.map(t => '<option value="' + esc(t.id) + '"' + (r.vpn && r.vpn.id === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>').join(''); }
+  if (act === 'note') { const ns = (notesGet() || []).filter(n => !n.deleted); $('#ae-note').innerHTML = '<option value="">' + t('Kies een notitie…') + '</option>' + ns.map(n => '<option value="' + esc(n.id) + '"' + (r.note && r.note.id === n.id ? ' selected' : '') + ' translate="no">' + esc(n.title || t('Zonder titel')) + '</option>').join(''); }
+  if (act === 'radio') { const fs = rdJson(Android.radioFavorites(), []); $('#ae-radio').innerHTML = '<option value="">' + t('Kies een zender (uit je favorieten)…') + '</option>' + fs.map((f, i) => '<option value="' + i + '"' + (r.radio && r.radio.url === f.url ? ' selected' : '') + '>' + esc(f.name) + '</option>').join(''); }
   if (act === 'redial') $('#ae-number').value = r.number || '';
   document.querySelector('#ae-mode [data-v="auto"] small').textContent = internal ? 'Meteen doen, zonder te vragen' : 'App openen en de knoppen indrukken, zonder te vragen';
   document.querySelector('#ae-mode [data-v="auto"] b').textContent = internal ? 'Meteen doen' : 'Volledig automatisch';
@@ -195,7 +195,7 @@ function aeRender(){
     const p = aePlace();
     $('#ae-pname').value = p.name || '';
     document.querySelectorAll('#ae-radius button').forEach(b => b.classList.toggle('on', +b.dataset.r === (p.r || 200)));
-    $('#ae-pinfo').textContent = p.lat != null ? 'Gekozen: ' + p.lat.toFixed(5) + ', ' + p.lng.toFixed(5) + ' (tik op de kaart om te verplaatsen)' : 'Tik op de kaart om de plek te kiezen, of gebruik je plek van nu.';
+    $('#ae-pinfo').textContent = p.lat != null ? t('Gekozen: {plek} (tik op de kaart om te verplaatsen)', { plek: p.lat.toFixed(5) + ', ' + p.lng.toFixed(5) }) : t('Tik op de kaart om de plek te kiezen, of gebruik je plek van nu.');
     setTimeout(aeMapInit, 30);
   }
 
@@ -207,7 +207,7 @@ function aeRender(){
   aeRadio('#ae-mode', r.mode);
   const apps = aeLoadApps(), cur = r.app && r.app.p;
   let opts = (r.mode === 'notify' ? '<option value="">Geen (alleen tekst)</option>' : '<option value="">Kies een app…</option>');
-  if (cur && !apps.some(a => a.p === cur)) opts += '<option value="' + esc(cur) + '">' + esc(r.app.n || cur) + ' (niet gevonden)</option>';
+  if (cur && !apps.some(a => a.p === cur)) opts += '<option value="' + esc(cur) + '">' + t('{app} (niet gevonden)', { app: esc(r.app.n || cur) }) + '</option>';
   const park = apps.filter(a => a.park), rest = apps.filter(a => !a.park);
   const o = a => '<option value="' + esc(a.p) + '"' + (a.p === cur ? ' selected' : '') + '>' + esc(a.n) + '</option>';
   if (park.length) opts += '<optgroup label="Parkeren">' + park.map(o).join('') + '</optgroup><optgroup label="Alle apps">' + rest.map(o).join('') + '</optgroup>';
@@ -236,9 +236,9 @@ function aeSetNote(id){ const n = (notesGet() || []).find(x => x.id === id); aeR
 function aeSetVpn(id){ const t = rdJson(Android.vpnTunnels(), []).find(x => x.id === id); aeRule.vpn = t ? { id: t.id, name: t.name } : null; }
 function aeSetRadio(i){ const fs = rdJson(Android.radioFavorites(), []); const f = fs[+i]; aeRule.radio = f && i !== '' ? f : null; }
 function aeStepLabel(s){
-  if (s.t === 'wait') return 'Wachten ' + Math.round((s.ms || 1000) / 100) / 10 + ' s';
-  if (s.t === 'xy') return 'Tik op het scherm (' + Math.round(s.x * 100) + '%, ' + Math.round(s.y * 100) + '%)';
-  return 'Tik op "' + (s.text || s.desc || (s.id || '').replace(/.*\//, '')) + '"';
+  if (s.t === 'wait') return t('Wachten {n} s', { n: fmtNum(Math.round((s.ms || 1000) / 100) / 10) });
+  if (s.t === 'xy') return t('Tik op het scherm ({x}%, {y}%)', { x: Math.round(s.x * 100), y: Math.round(s.y * 100) });
+  return t('Tik op "{tekst}"', { tekst: s.text || s.desc || (s.id || '').replace(/.*\//, '') });
 }
 
 function aeToggleBt(a, n){
@@ -323,7 +323,7 @@ window.onAutoHere = function(r){
   const p = aePlace(); p.lat = Math.round(r.lat * 1e6) / 1e6; p.lng = Math.round(r.lng * 1e6) / 1e6;
   aeRender();
   if (aeMap) { aeMap.setView([p.lat, p.lng], 16); aeMapDraw(); }
-  if (r.acc > 100) toast('Let op: de locatie is onnauwkeurig (' + r.acc + ' m). Verschuif de plek eventueel op de kaart.');
+  if (r.acc > 100) toast(t('Let op: de locatie is onnauwkeurig ({n} m). Verschuif de plek eventueel op de kaart.', { n: r.acc }));
 };
 
 function aeCheck(){
@@ -365,7 +365,7 @@ function aeTest(){
   });
 }
 function aeDelete(){
-  askConfirm('Verwijderen?', '"' + (aeRule.name || 'Deze automatisering') + '" wordt verwijderd.', 'Verwijderen', () => { Android.autoDelete(aeRule.id); aeRule = null; show('auto'); toast('Verwijderd'); });
+  askConfirm('Verwijderen?', t('"{naam}" wordt verwijderd.', { naam: aeRule.name || t('Deze automatisering') }), 'Verwijderen', () => { Android.autoDelete(aeRule.id); aeRule = null; show('auto'); toast('Verwijderd'); });
 }
 
 /* Opnemen: Tools gaat naar de app; na "Klaar" komt hij terug met de stappen (openTool('auto-rec')). */
@@ -375,7 +375,7 @@ function aeRecord(){
     askConfirm('Eerst toegankelijkheid aanzetten', 'Om je tikken op te nemen en later na te doen, moet "Tools: knoppen indrukken" aan staan bij Toegankelijkheid. Kom daarna terug en tik opnieuw op Opnemen.', 'Naar instellingen', () => { store.set('autoDraft', { rule: aeRule, isNew: aeIsNew, t: Date.now() }); Android.autoA11ySettings(); });
     return;
   }
-  askConfirm('Opnemen', aeRule.app.n + ' gaat open. Doe precies wat je anders ook doet (bijv. Start parkeren → Bevestigen) en tik daarna bovenin op Klaar. Werkt een knop niet? Gebruik "Kies knop" in de balk.', 'Starten', () => {
+  askConfirm('Opnemen', t('{app} gaat open. Doe precies wat je anders ook doet (bijv. Start parkeren → Bevestigen) en tik daarna bovenin op Klaar. Werkt een knop niet? Gebruik "Kies knop" in de balk.', { app: aeRule.app.n }), 'Starten', () => {
     store.set('autoDraft', { rule: aeRule, isNew: aeIsNew, t: Date.now() });
     const e = Android.autoRecord(aeRule.app.p);
     if (e) toast(e);
@@ -387,7 +387,7 @@ function autoRecBack(){
   store.set('autoDraft', null);
   if (!aeRule) { show('auto'); return; }
   if (rec && Array.isArray(rec.steps)) {
-    if (rec.steps.length) { aeRule.steps = rec.steps; toast('✓ ' + rec.steps.length + (rec.steps.length === 1 ? ' knop' : ' knoppen') + ' opgenomen. Vergeet niet op te slaan.'); }
+    if (rec.steps.length) { aeRule.steps = rec.steps; toast(tn(rec.steps.length, '✓ {n} knop opgenomen. Vergeet niet op te slaan.', '✓ {n} knoppen opgenomen. Vergeet niet op te slaan.')); }
     else toast('Er is geen knop opgenomen. Probeer "Kies knop" in de balk, of voeg een tekst toe.');
   }
   show('autoed');

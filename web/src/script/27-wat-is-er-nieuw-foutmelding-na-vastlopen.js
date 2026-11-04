@@ -8,9 +8,9 @@ function whatsNew(){
   const items = CHANGELOG.slice(0, n);
   if (!items.length) return false;
   openModal('Wat is er nieuw', '', null, 'Fijn!', () => {});
-  const t = $('#modal-text');
-  t.style.display = 'block';
-  t.innerHTML = items.map(e => '<b>Versie ' + esc(e.version) + '</b><span class=wn>' + e.changes.map(c => '• ' + esc(c)).join('<br>') + '</span>').join('');
+  const tx = $('#modal-text');
+  tx.style.display = 'block';
+  tx.innerHTML = (TAAL.on ? '<span class=wn>' + t('(in het Nederlands)') + '</span>' : '') + items.map(e => '<b>' + t('Versie {n}', { n: esc(e.version) }) + '</b><span class=wn>' + e.changes.map(c => '• ' + esc(c)).join('<br>') + '</span>').join('');
   $('#modal-cancel').style.display = 'none';
   return true;
 }
