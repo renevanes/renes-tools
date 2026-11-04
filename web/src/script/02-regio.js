@@ -11,8 +11,8 @@
  * Tijdzone: de app volgt altijd de telefoon. Datum-alleen-waarden en daglogica ("vandaag") volgen ook de telefoon.
  * Tekst voor het taalmodel blijft vast nl-NL (zie de bewaker). */
 
-/* Talen: een register, zodat er later talen bij kunnen. Er is nu alleen Nederlands (nog geen vertalingen). */
-const RG_LANGS = [{ id: 'nl', name: 'Nederlands', locale: 'nl-NL' }];
+/* Talen: een register (de vertalingen staan in web/src/taal/<id>.json, zie 02-taal.js). Elke taal heet zoals in die taal zelf. */
+const RG_LANGS = [{ id: 'nl', name: 'Nederlands', locale: 'nl-NL' }, { id: 'en', name: 'English', locale: 'en-GB' }];
 const RG_CLOCK = [['24', '24-uurs (14:05)'], ['12', '12-uurs (2:05 p.m.)']];
 const RG_DATE = [['dmy', '31-10-2026'], ['dmon', '31 okt 2026'], ['iso', '2026-10-31']];
 const RG_WEEK = [['1', 'Maandag'], ['0', 'Zondag'], ['6', 'Zaterdag']];

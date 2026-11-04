@@ -6,6 +6,7 @@ De interface is één pagina voor de WebView, maar wordt bewerkt in losse onderd
   web/src/schermen/NN-*.html   één bestand per scherm
   web/src/vensters.html        meldingen, keuzemenu, dialogen, vergrendelscherm
   web/src/script/NN-*.js       de code, per tool (00-begin en 29-start horen bij elkaar)
+  web/src/taal/en.json         Engelse vertalingen (Nederlands → Engels), als <script type="application/json" id="taal-en">
 Gebruik: tools/web-samenvoegen.py [--zonder-testbrug] [uitvoerbestand]   (standaard web/index.html)
   --zonder-testbrug   zonder script/01-testbrug.js (de nagebootste Android-brug is alleen voor tests in de browser)
 """
@@ -30,7 +31,17 @@ extra = sorted(on_disk - set(parts))
 if missing: sys.exit('Ontbreekt in web/src: ' + ', '.join(missing))
 if extra: sys.exit('Staat niet in web/src/volgorde.txt: ' + ', '.join(extra))
 use = [p for p in parts if not (no_mock and p == 'script/01-testbrug.js')]
-html = ''.join(open(os.path.join(src, p), encoding='utf-8', newline='').read() for p in use)
+def part(p):
+    t = open(os.path.join(src, p), encoding='utf-8', newline='').read()
+    if p.endswith('.json'):
+        # Woordenboek (taal/en.json): als gegevens in de pagina, pas gelezen als die taal gekozen is (02-taal.js).
+        # Een "<" (bijv. "</script>" of "<!--") mag het script-blok niet afsluiten: in JSON-tekst is "\u003c" hetzelfde.
+        import json as _j
+        _j.loads(t)  # kapotte JSON = bouwfout, niet pas op de telefoon
+        tid = 'taal-' + os.path.splitext(os.path.basename(p))[0]
+        return '<script type="application/json" id="%s">' % tid + t.replace('<', '\\u003c') + '</script>\n'
+    return t
+html = ''.join(part(p) for p in use)
 tmp = out + '.tmp'
 open(tmp, 'w', encoding='utf-8', newline='').write(html)
 os.replace(tmp, out)

@@ -50,12 +50,14 @@ schermen/39-facturen.html
 schermen/40-bankzaken.html
 speler.html
 vensters.html
+taal/en.json
 script/00-begin.js
 script/00-iconen.js
 script/01-testbrug.js
 script/02-kern.js
 script/02-dialogen.js
 script/02-regio.js
+script/02-taal.js
 script/02-thema.js
 script/03-auto-redial.js
 script/04-whatsapp-backup.js

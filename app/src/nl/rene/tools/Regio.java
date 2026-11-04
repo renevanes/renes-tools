@@ -32,8 +32,8 @@ final class Regio {
     /** Smalle vaste spatie voor duizendtallen (breekt een getal nooit af). */
     static final String NNBSP = " ";
 
-    /** Talen: een register, zodat er later talen bij kunnen. Nu alleen Nederlands. */
-    static final String[][] LANGS = {{"nl", "Nederlands", "nl", "NL"}};
+    /** Talen: een register (zelfde als RG_LANGS in 02-regio.js); vertalingen in assets/taal/<id>.json (zie Taal). */
+    static final String[][] LANGS = {{"nl", "Nederlands", "nl", "NL"}, {"en", "English", "en", "GB"}};
 
     /** Een gecontroleerde keuze; na het maken verandert hij niet meer. */
     static final class Cfg {

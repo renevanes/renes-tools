@@ -39,6 +39,9 @@ cp web/ontsleutelen.html $B/assets/
 cp web/start.html $B/assets/
 cp web/facturen-robot.js web/facturen-leveranciers.json web/bank-robot.js web/bank-banken.json $B/assets/
 cp web/neutraal.html $B/assets/
+# Woordenboek voor de Engelse taal (ook in de interface zelf; Java leest het hier: Taal.java)
+mkdir -p $B/assets/taal
+cp web/src/taal/en.json $B/assets/taal/
 # Licenties: van de app zelf (GPL-3.0) en van de meegeleverde onderdelen van anderen
 mkdir -p $B/assets/licenties
 cp LICENSE $B/assets/licenties/GPL-3.0.txt
