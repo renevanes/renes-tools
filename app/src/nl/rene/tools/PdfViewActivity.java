@@ -595,6 +595,28 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         pm.show();
     }
 
+    /** Geopend vanuit de app (niet vanuit een andere app): dan geldt het app-slot ook hier. */
+    static final String EXTRA_IN_APP = "nl.rene.tools.inApp";
+    /** De viewer ging uit beeld naar buiten de app (niet terug naar de app). */
+    private boolean weg;
+
+    @Override protected void onStart() {
+        super.onStart();
+        // Vanuit de app geopend en intussen te lang weg geweest (naar huis, andere app)? Dan terug naar de app, die op slot gaat.
+        // (niet bij het openen zelf: dan is de app net nog bezig met overschakelen en telt dat niet als terugkomen)
+        boolean terug = weg; weg = false;
+        if (terug && Lock.active(this) && Lock.onShown(this)) {
+            try { startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)); } catch (Exception ignored) { }
+            finish();
+        }
+    }
+
+    @Override protected void onStop() {
+        // Weg uit de viewer naar buiten de app (niet terug naar de app): dat telt als weggaan, voor het app-slot
+        if (getIntent() != null && getIntent().getBooleanExtra(EXTRA_IN_APP, false) && !isFinishing() && !isChangingConfigurations()) { Lock.onHidden(); weg = true; }
+        super.onStop();
+    }
+
     @Override protected void onResume() {
         super.onResume();
         if (file != null && file.getParentFile() != null) file.getParentFile().setLastModified(System.currentTimeMillis()); // nog in gebruik: niet opruimen

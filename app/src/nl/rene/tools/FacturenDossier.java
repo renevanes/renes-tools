@@ -250,13 +250,101 @@ final class FacturenDossier {
             m.put(k, b);
         }
         m.put("bron", "zelf");
+        String lev = in.optString("leverancierNaam", "").trim();
+        if (lev.length() > 80) throw new Exception("De naam van de leverancier is te lang");
         synchronized (Facturen.LOCK) {
             JSONObject all = alle(c);
             JSONObject s = all.optJSONObject(sha);
             if (s == null) throw new Exception("Factuur niet gevonden in het dossier");
             s.put("meta", m);
+            if (!lev.isEmpty()) s.put("leverancierNaam", lev);
             bewaar(c, all);
         }
+    }
+
+    /** Leverancier-id voor facturen die Rene zelf toevoegt (zonder leverancier in Facturen). */
+    static final String HANDMATIG = "handmatig";
+
+    /**
+     * Een PDF zelf aan het dossier toevoegen (bijv. een factuur die je per post of los kreeg): in de app bewaren en de
+     * gegevens herkennen. levId = een bestaande leverancier, anders levNaam (eigen naam). Geeft de SHA-256.
+     */
+    static String voegToe(Context c, byte[] data, String bestandsnaam, String levId, String levNaam) throws Exception {
+        if (data == null || !Facturen.isPdf(data)) throw new Exception("Dit is geen PDF");
+        JSONObject lev = levId == null || levId.isEmpty() ? null : Facturen.leverancier(c, levId);
+        String naamLev = lev != null ? lev.optString("naam") : levNaam == null ? "" : levNaam.trim();
+        if (naamLev.isEmpty()) throw new Exception("Kies of vul de leverancier in");
+        if (naamLev.length() > 80) throw new Exception("De naam van de leverancier is te lang");
+        String sha = Facturen.sha(data);
+        synchronized (Facturen.LOCK) { if (alle(c).has(sha)) throw new Exception("Deze factuur staat al in het dossier"); }
+        String id = lev != null ? lev.optString("id") : HANDMATIG;
+        File d = Facturen.pdfDir(c, id);
+        if (!d.isDirectory() && !d.mkdirs()) throw new Exception("Opslagmap maken lukt niet");
+        String naam = Facturen.veiligeNaam(bestandsnaam == null || bestandsnaam.trim().isEmpty() ? naamLev + " " + sha.substring(0, 8) : bestandsnaam.trim());
+        if (!naam.toLowerCase(Locale.ROOT).endsWith(".pdf")) naam += ".pdf";
+        File f = new File(d, naam);
+        for (int n = 2; f.exists(); n++) { f = new File(d, naam.replaceAll("(?i)\\.pdf$", "") + " (" + n + ").pdf"); }
+        try (java.io.FileOutputStream o = new java.io.FileOutputStream(f)) { o.write(data); o.getFD().sync(); }
+        JSONObject l = lev != null ? lev : new JSONObject().put("id", HANDMATIG).put("naam", naamLev).put("soort", "hand");
+        Facturen.Pdf p = new Facturen.Pdf(data, f.getName(), sha, null, new JSONObject().put("toegevoegd", true));
+        nieuw(c, l, p, f.getName(), f);
+        if (lev == null) werkBij(c, sha, new JSONObject().put("leverancierNaam", naamLev));
+        synchronized (Facturen.LOCK) { if (!alle(c).has(sha)) { f.delete(); throw new Exception("Toevoegen aan het dossier lukt niet"); } }
+        return sha;
+    }
+
+    /**
+     * Een factuur uit het dossier en uit de app weghalen (kopieën in je backup-map, Drive of mail blijven staan).
+     * opnieuw = de app mag hem de volgende keer weer ophalen; anders onthoudt de leverancier dat hij hem al had.
+     */
+    static void verwijder(Context c, String sha, boolean opnieuw) throws Exception {
+        synchronized (Facturen.LOCK) {
+            JSONObject all = alle(c), s = all.optJSONObject(sha);
+            if (s == null) throw new Exception("Factuur niet gevonden in het dossier");
+            File f = FacturenAanlever.bestand(c, s);
+            if (f != null && !f.delete() && f.exists()) throw new Exception("Het bestand weghalen lukt niet");
+            all.remove(sha);
+            bewaar(c, all);
+            String lev = s.optString("leverancier");
+            if (opnieuw && !lev.isEmpty() && !HANDMATIG.equals(lev)) {
+                JSONObject t = Facturen.toestand(c, lev), vw = t.optJSONObject("verwerkt");
+                if (vw != null && vw.has(sha)) { vw.remove(sha); Facturen.werkBij(c, lev, new JSONObject().put("verwerkt", vw)); }
+            }
+        }
+    }
+
+    /**
+     * Alles opnieuw (ontwikkelen): het hele dossier leeg, de facturen in de app weg, bij elke leverancier vergeten wat al
+     * was opgehaald (de volgende keer begint hij weer bij het begin van de periode) en het aanleveren vergeten. Kopieën in
+     * je backup-map, op Drive en in de mail blijven staan; instellingen (leveranciers, ontvangers, koppelingen) ook.
+     */
+    static int reset(Context c) throws Exception {
+        if (FacturenRun.LOPEND.get() != null) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
+        if (FacturenAanlever.BEZIG.get()) throw new Exception("Er wordt nu aangeleverd; probeer het straks nog een keer");
+        int n;
+        synchronized (Facturen.LOCK) {
+            n = alle(c).length();
+            JSONArray l = Facturen.lijst(c);
+            for (int i = 0; i < l.length(); i++) {
+                String id = l.getJSONObject(i).optString("id");
+                Facturen.werkBij(c, id, new JSONObject().put("verwerkt", new JSONObject()).put("lastOk", 0).put("lastTry", 0)
+                        .put("mailSinds", 0).put("mailMeer", false).put("log", new JSONArray()).put("nieuw", 0).put("msg", "").put("ok", true));
+            }
+            File pdf = new File(Facturen.dir(c), "pdf");
+            File[] mappen = pdf.listFiles();
+            if (mappen != null) for (File m : mappen) {
+                File[] fs = m.listFiles();
+                if (fs != null) for (File f : fs) f.delete();
+                m.delete();
+            }
+            JsonFileStore.delete(file(c));
+            bewaar(c, new JSONObject());
+            JSONObject a = FacturenAanlever.data(c);
+            a.put("toestand", new JSONObject()).put("log", new JSONArray());
+            FacturenAanlever.bewaarData(c, a);
+        }
+        App.log(c, "FACTUREN", "dossier leeggemaakt");
+        return n;
     }
 
     /** De facturen in de app van deze leverancier zijn weg (leverancier verwijderd): in het dossier noteren. */

@@ -336,8 +336,14 @@
     <p class="note" id="fd-lees" style="margin:0 2px 8px;display:none" role="status" aria-live="polite"></p>
     <p class="note" id="fd-tel" style="margin:0 2px 8px" role="status" aria-live="polite"></p>
     <div class="card" style="padding:0;overflow:hidden"><div id="fd-lijst" style="overflow-x:auto"></div></div>
-    <button class="big ghost" id="fd-csv" onclick="fdCsv()">Exporteren als CSV (voor Excel)</button>
+    <button class="big" id="fd-nieuw" onclick="fdToevoegen()">Factuur toevoegen</button>
+    <button class="big ghost" style="margin-top:8px" id="fd-csv" onclick="fdCsv()">Exporteren als CSV (voor Excel)</button>
     <p class="note" id="fd-csv-msg" role="status" aria-live="polite"></p>
+    <details class="card rinfo" id="fd-ontw" style="margin-top:12px">
+      <summary><b>Ontwikkelen</b></summary>
+      <p class="note">Het hele dossier leegmaken: alle facturen in de app weg, en bij elke leverancier en ontvanger vergeten wat al gedaan is (de volgende keer begint alles opnieuw). Kopieën in je backup-map, op Drive en in je mail blijven staan, en je instellingen ook.</p>
+      <button class="big ghost bad" id="fd-reset" onclick="fdReset()">Dossier leegmaken</button>
+    </details>
   </main>
 </section>
 
@@ -358,7 +364,9 @@
     <div class="card">
       <h2>Factuurgegevens</h2>
       <p class="note" style="margin-top:0" id="fs-bron"></p>
-      <div class="flabel"><label for="fs-nummer">Factuurnummer</label></div>
+      <div class="flabel"><label for="fs-lev">Leverancier</label></div>
+      <input class="aein" id="fs-lev" maxlength="80" autocomplete="off">
+      <div class="flabel" style="margin-top:8px"><label for="fs-nummer">Factuurnummer</label></div>
       <input class="aein" id="fs-nummer" maxlength="80" autocomplete="off">
       <div class="row" style="gap:8px;margin-top:8px">
         <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-datum">Factuurdatum</label></div><input class="aein" id="fs-datum" type="date"></div>
@@ -377,6 +385,7 @@
       <textarea class="aein" id="fs-notitie" rows="3" maxlength="1000" style="resize:vertical"></textarea>
       <p class="note bad" id="fs-msg" role="status" aria-live="polite"></p>
       <button class="big" onclick="fsBewaar()">Bewaren</button>
+      <button class="big ghost bad" style="margin-top:8px" id="fs-weg" onclick="fsWeg()">Verwijderen…</button>
     </div>
     <div class="card"><h2>Waar hij staat</h2><div id="fs-plekken"></div></div>
     <div class="card"><h2>Aangeleverd</h2><div id="fs-aan"></div></div>

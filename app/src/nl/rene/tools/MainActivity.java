@@ -68,6 +68,17 @@ public class MainActivity extends Activity {
     static final int REQ_KLUIS = 27;
     static final int REQ_FACT_TREE = 46;
     static final int REQ_GOOGLE_ACC = 49;
+    static final int REQ_FACT_PDF = 50;
+    /** Bij "Factuur toevoegen": voor welke leverancier (id of eigen naam). */
+    String factLevId = "", factLevNaam = "";
+
+    /** Een PDF kiezen om zelf aan het dossier van Facturen toe te voegen. */
+    void kiesFactuurPdf(String levId, String levNaam) {
+        factLevId = levId == null ? "" : levId; factLevNaam = levNaam == null ? "" : levNaam;
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/pdf");
+        try { startActivityForResult(i, REQ_FACT_PDF); }
+        catch (ActivityNotFoundException e) { js("onFacturenToegevoegd", "{\"error\":\"Bestanden kiezen lukt niet op deze telefoon\"}"); }
+    }
     /** Welke rechten (gmail, drive, gmailsend) bij het kiezen van het Google-account op de telefoon. */
     String googleRechten = "";
 
@@ -453,7 +464,10 @@ public class MainActivity extends Activity {
     public void startActivityForResult(Intent intent, int requestCode, android.os.Bundle options) {
         boolean external = intent != null && Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null
                 && ("http".equals(intent.getData().getScheme()) || "https".equals(intent.getData().getScheme()));
-        if (!external && requestCode >= 0 && !isSolo()) Lock.internalNav = true; // startActivity (andere app, delen) heeft -1: dat is weggaan
+        // Een eigen scherm van de app (bijv. de PDF-viewer) is ook "binnen de app", ook met startActivity (-1)
+        boolean eigen = intent != null && intent.getComponent() != null && getPackageName().equals(intent.getComponent().getPackageName());
+        if (eigen && PdfViewActivity.class.getName().equals(intent.getComponent().getClassName())) intent.putExtra(PdfViewActivity.EXTRA_IN_APP, true);
+        if (!external && (requestCode >= 0 || eigen) && !isSolo()) Lock.internalNav = true; // startActivity naar een andere app (delen) heeft -1: dat is weggaan
         super.startActivityForResult(intent, requestCode, options);
     }
 
@@ -679,6 +693,25 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == REQ_FACT_PDF) {
+            final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
+            if (u == null) { js("onFacturenToegevoegd", "{\"error\":\"\"}"); return; }
+            final String levId = factLevId, levNaam = factLevNaam;
+            new Thread(() -> {
+                String r;
+                try {
+                    String naam = "";
+                    try (android.database.Cursor cu = getContentResolver().query(u, new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+                        if (cu != null && cu.moveToFirst()) naam = cu.getString(0);
+                    } catch (Exception ignored) { }
+                    byte[] b;
+                    try (java.io.InputStream in = getContentResolver().openInputStream(u)) { b = Facturen.lees(in, Facturen.MAX_PDF); }
+                    r = new org.json.JSONObject().put("sha", FacturenDossier.voegToe(this, b, naam, levId, levNaam)).toString();
+                } catch (Throwable e) { r = "{\"error\":" + org.json.JSONObject.quote(Facturen.kort(e)) + "}"; }
+                js("onFacturenToegevoegd", r);
+            }, "facturen-toevoegen").start();
+            return;
+        }
         if (req == REQ_GOOGLE_ACC) {
             String naam = res == RESULT_OK && data != null ? data.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME) : null;
             if (naam == null || naam.isEmpty()) { js("onFacturenDrive", "{\"error\":\"Geen account gekozen\"}"); return; }
