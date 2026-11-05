@@ -716,13 +716,20 @@ function fdAllesWeg(){
   const n = ((faDos || {}).items || []).length;
   askConfirm(t('Alles weghalen?'), tn(n, 'Eén factuur gaat uit de app, en ook uit je backup-map, de map op je telefoon en Google Drive. Dit kan niet ongedaan worden.', '{n} facturen gaan uit de app, en ook uit je backup-map, de map op je telefoon en Google Drive. Dit kan niet ongedaan worden.'), t('Weghalen'), () =>
     askConfirm(t('Echt alles weghalen?'), t('Weet je het zeker? De PDF\'s zijn daarna nergens meer, behalve in mail die al verstuurd is.'), t('Ja, alles weghalen'), () => {
-      toast(t('Bezig met weghalen…'));
+      const k = $('#fd-alles'); k.disabled = true; $('#fd-alles-msg').textContent = t('Bezig met weghalen…');
       Android.facturenDossierAllesWeg();
     }));
 }
 window.onFacturenAllesWeg = function(r){
-  if (r.error) { toast(r.error); return; }
-  toast(r.mislukt ? tn(r.mislukt, '✓ Dossier leeg; één kopie kon niet weg', '✓ Dossier leeg; {n} kopieën konden niet weg') : t('✓ Alles weggehaald'));
+  const k = $('#fd-alles'), m = $('#fd-alles-msg');
+  if (k) k.disabled = false;
+  if (r.error) { if (m) m.textContent = r.error; toast(r.error); return; }
+  let tekst;
+  if (!r.leeg) tekst = tn(r.mislukt, 'Eén kopie kon niet weg (geen verbinding, Google niet gekoppeld of geen toegang meer tot de map). Het dossier is nog niet leeggemaakt: probeer het opnieuw, of kies Dossier leegmaken.', '{n} kopieën konden niet weg (geen verbinding, Google niet gekoppeld of geen toegang meer tot de map). Het dossier is nog niet leeggemaakt: probeer het opnieuw, of kies Dossier leegmaken.');
+  else if (r.nietGevonden) tekst = tn(r.nietGevonden, '✓ Alles weggehaald. Eén kopie was er al niet meer (of de app kan er niet meer bij).', '✓ Alles weggehaald. {n} kopieën waren er al niet meer (of de app kan er niet meer bij).');
+  else tekst = t('✓ Alles weggehaald');
+  if (m) m.textContent = tekst;
+  toast(r.leeg ? t('✓ Alles weggehaald') : t('Niet alles kon weg'));
   fdLaad(); faLaad(); faSamenvatting(); fdRender();
 };
 function fsTekst(){

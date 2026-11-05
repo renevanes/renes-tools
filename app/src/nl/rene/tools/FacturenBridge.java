@@ -293,7 +293,8 @@ public class FacturenBridge extends GebruikBridge {
 
     /** Het hele dossier leegmaken (opnieuw beginnen). Geeft {aantal} of {error}. */
     @JavascriptInterface public String facturenDossierReset() {
-        try { int n = FacturenDossier.reset(ctx); a.h.post(() -> { try { FacturenJob.schedule(ctx); } catch (Throwable ignored) { } }); return new JSONObject().put("aantal", n).toString(); }
+        try { if (FacturenDossier.WEGHALEN.get()) throw new Exception("Er wordt al weggehaald; even wachten");
+            int n = FacturenDossier.reset(ctx); a.h.post(() -> { try { FacturenJob.schedule(ctx); } catch (Throwable ignored) { } }); return new JSONObject().put("aantal", n).toString(); }
         catch (Exception e) { return err(e, "Leegmaken lukt niet"); }
     }
 

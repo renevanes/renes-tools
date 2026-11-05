@@ -317,6 +317,7 @@ final class FacturenAanlever {
     static JSONObject stuurNu(Context c, String id, boolean proef, boolean auto) {
         JSONObject r = new JSONObject();
         if (!BEZIG.compareAndSet(false, true)) { try { r.put("bezig", true); } catch (Exception ignored) { } return zet(r, false, "Er wordt al aangeleverd; even wachten"); }
+        if (FacturenDossier.WEGHALEN.get()) { BEZIG.set(false); return zet(r, false, "Het dossier wordt nu leeggemaakt; probeer het straks nog een keer"); }
         try {
             JSONObject ontv = ontvanger(c, id);
             if (ontv == null) return zet(r, false, "Ontvanger niet gevonden");

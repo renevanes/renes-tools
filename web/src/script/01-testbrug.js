@@ -755,7 +755,9 @@ if (!window.Android) window.Android = (function(){
       onFacturenToegevoegd({ sha }); }, 120); },
     facturenDossierWeg(sha, opnieuw){ const f = this._fa; if (!(f.dos || {})[sha]) return 'Factuur niet gevonden in het dossier'; f.calls.push(['weg', sha, !!opnieuw]); delete f.dos[sha]; return ''; },
     facturenDossierAllesWeg(){ const f = this._fa; setTimeout(() => { if (f.bezig) { onFacturenAllesWeg({ error: 'Er worden nu facturen opgehaald; probeer het straks nog een keer' }); return; }
-      const n = Object.keys(f.dos || {}).length; f.dos = {}; f.pdf = {}; f.calls.push(['allesWeg']); onFacturenAllesWeg({ aantal: n, weg: n, mislukt: 0, mail: 0 }); }, 120); },
+      const n = Object.keys(f.dos || {}).length; f.calls.push(['allesWeg']);
+      if (f.wegMislukt) { onFacturenAllesWeg({ weg: 0, mislukt: f.wegMislukt, nietGevonden: 0, leeg: false }); return; }
+      f.dos = {}; f.pdf = {}; onFacturenAllesWeg({ aantal: n, weg: n, mislukt: 0, nietGevonden: 0, leeg: true }); }, 120); },
     facturenDossierReset(){ const f = this._fa; if (f.bezig) return JSON.stringify({ error: 'Er worden nu facturen opgehaald; probeer het straks nog een keer' }); const n = Object.keys(f.dos || {}).length; f.dos = {}; f.pdf = {}; f.calls.push(['reset']); return JSON.stringify({ aantal: n }); },
     facturenDossierTekst(sha){ const s = (this._fa.dos || {})[sha]; return JSON.stringify(s ? { tekst: 'Factuurnummer ' + ((s.meta || {}).nummer || '') + '\nTotaal te betalen € ' + ((s.meta || {}).bedrag || '') } : { error: 'De factuur staat niet (meer) in de app' }); },
     facturenDossierHerken(){ const f = this._fa; f.calls.push(['herken']); setTimeout(() => { let n = 0; Object.values(f.dos || {}).forEach(s => { const m = s.meta || {}; if (m.bron !== 'zelf' && !m.bedrag && s._pdf) { s.meta = { ...m, ...s._pdf, bron: 'herkend', versie: 2 }; n++; } else if (m.bron !== 'zelf') s.meta = { ...m, versie: 2 }; }); onFacturenHerkend({ aantal: n, pdfTekst: true }); }, 150); },

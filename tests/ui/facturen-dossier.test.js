@@ -213,6 +213,14 @@ const { chromium } = require('playwright');
     // Alles weghalen, ook de PDF's (met weer twee vragen)
     await pg.evaluate(() => { const f = Android._fa; f.dos = f.dos || {}; f.dos['a'.repeat(64)] = { sha: 'a'.repeat(64), naam: 'x.pdf', leverancier: 'kpn', leverancierNaam: 'KPN', opgehaald: Date.now(), bron: { soort: 'website' }, plekken: {}, verzonden: {}, meta: {} }; });
     await pg.evaluate(() => { fdLaad(); fdRender(); }); await pg.waitForTimeout(60);
+    // eerst lukt een kopie niet: het dossier blijft staan
+    await pg.evaluate(() => { Android._fa.wegMislukt = 1; });
+    await pg.click('#fd-alles'); await pg.waitForTimeout(120);
+    await pg.click('#modal button:has-text("Weghalen")'); await pg.waitForTimeout(150);
+    await pg.click('#modal button:has-text("Ja, alles weghalen")'); await pg.waitForTimeout(400);
+    ok((await tekst('#fd-alles-msg')).includes('nog niet leeggemaakt') && Object.keys(await pg.evaluate(() => Android._fa.dos)).length === 1, 'mislukte kopie: dossier blijft staan');
+    ok(!(await pg.isDisabled('#fd-alles')), 'knop weer te gebruiken');
+    await pg.evaluate(() => { Android._fa.wegMislukt = 0; });
     await pg.click('#fd-alles'); await pg.waitForTimeout(120);
     ok((await tekst('#modal')).includes('Google Drive'), 'alles weghalen: waarschuwing noemt de kopieën');
     await pg.click('#modal button:has-text("Weghalen")'); await pg.waitForTimeout(150);
@@ -220,6 +228,7 @@ const { chromium } = require('playwright');
     await pg.click('#modal button:has-text("Ja, alles weghalen")'); await pg.waitForTimeout(400);
     ok(await pg.evaluate(() => Android._fa.calls.some(c => c[0] === 'allesWeg') && Object.keys(Android._fa.dos).length === 0), 'alles weggehaald');
     ok((await tekst('#fd-lijst')).includes('Nog geen facturen'), 'lijst leeg na alles weghalen');
+    ok((await tekst('#fd-alles-msg')).includes('Alles weggehaald'), 'melding alles weggehaald');
     // Terug tot het startscherm
     for (let i = 0; i < 12 && await scherm() !== 'home'; i++) { await pg.evaluate(() => goBack()); await pg.waitForTimeout(100); }
     ok(await scherm() === 'home', 'terug naar het startscherm');

@@ -205,6 +205,25 @@ public class FacturenAanleverTest {
         smtp(true);
 
         System.out.println(fails == 0 ? "alles goed" : fails + " mislukt");
+        // ---------- alles weghalen: welke kopieën ----------
+        JSONObject al = new JSONObject()
+                .put("a1", new JSONObject().put("plekken", new JSONObject()
+                        .put("app", new JSONObject().put("pad", "/data/x.pdf"))
+                        .put("map", new JSONObject().put("uri", "content://tree/doc/a1"))
+                        .put("lok", new JSONObject().put("uri", ""))
+                        .put("gd", new JSONObject().put("id", "1AbC_dEf-GhIjKlMn"))
+                        .put("ec", new JSONObject().put("aan", "rene@example.nl"))))
+                .put("b2", new JSONObject().put("plekken", new JSONObject()
+                        .put("map", new JSONObject().put("uri", "content://tree/doc/a1")) // zelfde bestand als a1
+                        .put("lok", new JSONObject().put("uri", "file:///sdcard/x.pdf"))
+                        .put("gd", new JSONObject().put("id", "../../etc"))))
+                .put("c3", new JSONObject());
+        JSONArray dl = FacturenDossier.doelen(al);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < dl.length(); i++) sb.append(dl.getJSONObject(i).optString("plek")).append(':').append(dl.getJSONObject(i).optString("sha")).append(' ');
+        check(dl.length() == 2, "alles weghalen: twee kopieën (" + sb.toString().trim() + ")");
+        check(sb.indexOf("map:a1") >= 0 && sb.indexOf("gd:a1") >= 0, "backup-map en Drive, niet de app of de mail");
+        check(sb.indexOf(":b2") < 0, "zelfde bestand één keer, geen file://-pad of vreemd Drive-id");
         System.exit(fails == 0 ? 0 : 1);
     }
 

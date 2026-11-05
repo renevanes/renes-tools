@@ -347,44 +347,103 @@ final class FacturenDossier {
         }
     }
 
+    /** Bezig met alles weghalen: dan start er geen ophalen of aanleveren (die controleren dit na hun eigen vlag). */
+    static final java.util.concurrent.atomic.AtomicBoolean WEGHALEN = new java.util.concurrent.atomic.AtomicBoolean(false);
+
     /**
-     * Alles opnieuw (ontwikkelen): het hele dossier leeg, de facturen in de app weg, bij elke leverancier vergeten wat al
-     * was opgehaald (de volgende keer begint hij weer bij het begin van de periode) en het aanleveren vergeten. Kopieën in
-     * je backup-map, op Drive en in de mail blijven staan; instellingen (leveranciers, ontvangers, koppelingen) ook.
+     * Welke kopieën de app zelf zette en die bij "alles weghalen" weg moeten: per plek (map = backup-map, lok = map op de
+     * telefoon, gd = Google Drive) {sha, plek, uri of id}. Elk bestand één keer (twee facturen kunnen naar hetzelfde
+     * bestand wijzen); alleen content://-uri's en geldige Drive-id's. In de app zelf en mail (ec) tellen niet. Zuiver (getest).
      */
-    /**
-     * Echt alles weg: eerst de opgeslagen kopieën (backup-map, map op de telefoon, Google Drive; alleen de bestanden die
-     * de app zelf daar zette en in het dossier staan), daarna het dossier leeg zoals bij reset. Mail die al verstuurd is
-     * (Eigen Cloud, aanleveren) kan niet terug. Geeft {aantal, weg, mislukt, mail}. Netwerk: niet op de hoofdthread.
-     */
-    static JSONObject allesWeg(Context c) throws Exception {
-        if (FacturenRun.LOPEND.get() != null) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
-        if (FacturenAanlever.BEZIG.get()) throw new Exception("Er wordt nu aangeleverd; probeer het straks nog een keer");
-        JSONObject alles;
-        synchronized (Facturen.LOCK) { alles = new JSONObject(alle(c).toString()); }
-        int weg = 0, mislukt = 0, mail = 0;
+    static JSONArray doelen(JSONObject alles) throws Exception {
+        JSONArray uit = new JSONArray();
+        java.util.HashSet<String> gehad = new java.util.HashSet<>();
         for (Iterator<String> it = alles.keys(); it.hasNext(); ) {
-            JSONObject s = alles.optJSONObject(it.next()), pl = s == null ? null : s.optJSONObject("plekken");
+            String sha = it.next();
+            JSONObject s = alles.optJSONObject(sha), pl = s == null ? null : s.optJSONObject("plekken");
             if (pl == null) continue;
             for (String k : new String[]{"map", "lok"}) {
                 JSONObject p = pl.optJSONObject(k); String u = p == null ? "" : p.optString("uri", "");
-                if (u.isEmpty()) continue;
-                try {
-                    if (android.provider.DocumentsContract.deleteDocument(c.getContentResolver(), android.net.Uri.parse(u))) weg++; else mislukt++;
-                } catch (java.io.FileNotFoundException e) { /* al weg */ } catch (Exception e) { mislukt++; }
+                if (!u.startsWith("content://") || !gehad.add(u)) continue;
+                uit.put(new JSONObject().put("sha", sha).put("plek", k).put("uri", u));
             }
             JSONObject gd = pl.optJSONObject("gd"); String id = gd == null ? "" : gd.optString("id", "");
-            if (!id.isEmpty()) {
-                try { FacturenDrive.verwijder(c, id); weg++; }
-                catch (Exception e) { if (String.valueOf(e.getMessage()).contains("niet (meer) gevonden")) { /* al weg */ } else mislukt++; }
-            }
-            if (pl.optJSONObject("ec") != null) mail++;
+            if (FacturenDrive.geldigId(id) && gehad.add("gd:" + id)) uit.put(new JSONObject().put("sha", sha).put("plek", "gd").put("id", id));
         }
-        int n = reset(c);
-        App.log(c, "FACTUREN", "alles weggehaald");
-        return new JSONObject().put("aantal", n).put("weg", weg).put("mislukt", mislukt).put("mail", mail);
+        return uit;
     }
 
+    /** Bestaat dit document (nog)? Op Android 9 en ouder geeft deleteDocument bij een verdwenen bestand alleen false. */
+    private static boolean bestaat(Context c, android.net.Uri u) {
+        try (android.database.Cursor cu = c.getContentResolver().query(u, new String[]{android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID}, null, null, null)) {
+            return cu != null && cu.moveToFirst();
+        } catch (IllegalArgumentException e) { return false; }
+        catch (Exception e) { // de provider meldt "niet gevonden" soms verpakt; anders (geen toegang meer) telt het als niet gelukt
+            String m = e + " " + e.getCause();
+            return !(m.contains("FileNotFound") || m.toLowerCase(Locale.ROOT).contains("not found"));
+        }
+    }
+
+    /**
+     * Echt alles weg: eerst de opgeslagen kopieën (backup-map, map op de telefoon, Google Drive; alleen de bestanden die
+     * de app zelf daar zette en in het dossier staan), daarna het dossier leeg zoals bij reset. Lukt een kopie niet (geen
+     * verbinding, Google niet gekoppeld, geen toegang meer tot de map), dan blijft het dossier staan zodat je het opnieuw
+     * kunt proberen; wat wel weg is, gaat uit het dossier. Mail die al verstuurd is (Eigen Cloud, aanleveren) kan niet
+     * terug. Geeft {aantal, weg, mislukt, nietGevonden, leeg}. Netwerk: niet op de hoofdthread.
+     */
+    static JSONObject allesWeg(Context c) throws Exception {
+        if (!WEGHALEN.compareAndSet(false, true)) throw new Exception("Er wordt al weggehaald; even wachten");
+        try {
+            if (FacturenRun.LOPEND.get() != null) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
+            if (FacturenAanlever.BEZIG.get()) throw new Exception("Er wordt nu aangeleverd; probeer het straks nog een keer");
+            JSONArray d;
+            synchronized (Facturen.LOCK) { d = doelen(alle(c)); }
+            int weg = 0, mislukt = 0, niet = 0;
+            JSONArray klaar = new JSONArray(); // {sha, plek} die weg zijn (of er al niet meer waren)
+            for (int i = 0; i < d.length(); i++) {
+                JSONObject x = d.getJSONObject(i);
+                boolean ok;
+                if (x.has("uri")) {
+                    android.net.Uri u = android.net.Uri.parse(x.getString("uri"));
+                    if (!bestaat(c, u)) { niet++; ok = true; }
+                    else {
+                        try { ok = android.provider.DocumentsContract.deleteDocument(c.getContentResolver(), u); }
+                        catch (java.io.FileNotFoundException e) { ok = true; niet++; klaar.put(x); continue; }
+                        catch (Exception e) { ok = false; }
+                        if (ok) weg++; else mislukt++;
+                    }
+                } else {
+                    try { FacturenDrive.verwijder(c, x.getString("id")); ok = true; weg++; }
+                    catch (Exception e) {
+                        // 404: al weg, of gemaakt met een ander Google-project (dan kan de app er niet meer bij)
+                        ok = String.valueOf(e.getMessage()).contains("niet (meer) gevonden");
+                        if (ok) niet++; else mislukt++;
+                    }
+                }
+                if (ok) klaar.put(x);
+            }
+            if (mislukt > 0) { // wat weg is uit het dossier halen, de rest laten staan om het opnieuw te proberen
+                synchronized (Facturen.LOCK) {
+                    JSONObject all = alle(c);
+                    for (int i = 0; i < klaar.length(); i++) {
+                        JSONObject x = klaar.getJSONObject(i), s = all.optJSONObject(x.optString("sha")), pl = s == null ? null : s.optJSONObject("plekken");
+                        if (pl != null) pl.remove(x.optString("plek"));
+                    }
+                    bewaar(c, all);
+                }
+                return new JSONObject().put("weg", weg).put("mislukt", mislukt).put("nietGevonden", niet).put("leeg", false);
+            }
+            int n = reset(c);
+            App.log(c, "FACTUREN", "alles weggehaald");
+            return new JSONObject().put("aantal", n).put("weg", weg).put("mislukt", 0).put("nietGevonden", niet).put("leeg", true);
+        } finally { WEGHALEN.set(false); }
+    }
+
+    /**
+     * Opnieuw beginnen: het hele dossier leeg, de facturen in de app weg, bij elke leverancier vergeten wat al
+     * was opgehaald (de volgende keer begint hij weer bij het begin van de periode) en het aanleveren vergeten. Kopieën in
+     * je backup-map, op Drive en in de mail blijven staan; instellingen (leveranciers, ontvangers, koppelingen) ook.
+     */
     static int reset(Context c) throws Exception {
         int n;
         synchronized (Facturen.LOCK) {

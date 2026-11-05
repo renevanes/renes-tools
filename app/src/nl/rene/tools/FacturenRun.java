@@ -122,6 +122,7 @@ final class FacturenRun {
             if (lev == null) return "Leverancier niet gevonden";
             FacturenRun r = new FacturenRun(c, lev, Facturen.geheim(c, "lev_" + id), zicht, k);
             if (!LOPEND.compareAndSet(null, r)) { if (r.eigenWv && r.wv != null) r.wv.destroy(); return "Er worden al facturen opgehaald"; }
+            if (FacturenDossier.WEGHALEN.get()) { LOPEND.compareAndSet(r, null); if (r.eigenWv && r.wv != null) r.wv.destroy(); return "Het dossier wordt nu leeggemaakt; probeer het straks nog een keer"; }
             try { r.start(); } catch (Throwable e) { LOPEND.compareAndSet(r, null); throw e; }
             Facturen.werkBij(c, id, new JSONObject().put("bezigSinds", r.start));
             return "";
