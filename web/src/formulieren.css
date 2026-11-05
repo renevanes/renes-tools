@@ -14,3 +14,5 @@
 .pff-hulp .chk{align-items:flex-start;gap:8px;overflow-wrap:anywhere}
 .pff-hulp .chk span{display:block}
 .pff-hulp .chk small{display:block;color:var(--muted)}
+#pff-hulp-bronnen .row{flex-wrap:wrap;overflow-wrap:anywhere}
+#pff-hulp-bronnen .row>span{min-width:0;max-width:100%}
