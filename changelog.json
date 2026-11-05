@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.145",
+    "date": "2026-11-05",
+    "changes": [
+      "Nieuw: Stamgegevens, een lokale versleutelde kluis voor personen, organisaties, adressen en gekoppelde identiteitsdocumentgegevens, beveiligd met toestelontgrendeling.",
+      "Neem zelf gekozen velden over in formulieren of gebruik een centrale ontvanger bij ID-kopieën; identiteitsgegevens vragen extra bevestiging.",
+      "Activiteitenlogboek toont wanneer gegevens zijn bekeken, gewijzigd of overgenomen. De kluis vergrendelt automatisch en blijft buiten back-ups, zoekindex, assistent en statistieken."
+    ]
+  },
+  {
     "version": "1.144",
     "date": "2026-11-05",
     "changes": [
