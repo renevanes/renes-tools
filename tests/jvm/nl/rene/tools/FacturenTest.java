@@ -201,19 +201,29 @@ public class FacturenTest {
         {
             java.util.TimeZone tz = java.util.TimeZone.getTimeZone("Europe/Amsterdam");
             long nuP = 1793000000000L; // nov 2026
-            JSONObject levJaar = new JSONObject().put("periode", new JSONObject().put("soort", "jaar"));
+            JSONObject levJaar = new JSONObject().put("soort", "mail").put("periode", new JSONObject().put("soort", "jaar"));
             long jan = Facturen.vanaf(levJaar, nuP, tz);
             check(Facturen.heelPeriode(levJaar, new JSONObject(), nuP, tz), "eerste keer: hele periode");
             check(Facturen.heelPeriode(levJaar, new JSONObject().put("lastOk", nuP - 86_400_000L), nuP, tz), "al eens opgehaald maar nooit de hele periode (oude versie): hele periode inhalen");
             check(!Facturen.heelPeriode(levJaar, new JSONObject().put("lastOk", nuP - 86_400_000L).put("gedekt", jan), nuP, tz), "hele periode al gedekt: alleen het nieuwe");
             long juni = jan + 150L * 86_400_000L;
             check(Facturen.heelPeriode(levJaar, new JSONObject().put("lastOk", nuP - 86_400_000L).put("gedekt", juni), nuP, tz), "gedekt vanaf juni, periode vanaf januari: inhalen");
-            JSONObject levAlles = new JSONObject().put("periode", new JSONObject().put("soort", "alles"));
+            JSONObject levAlles = new JSONObject().put("soort", "mail").put("periode", new JSONObject().put("soort", "alles"));
             check(Facturen.heelPeriode(levAlles, new JSONObject().put("lastOk", 1).put("gedekt", jan), nuP, tz) && !Facturen.heelPeriode(levAlles, new JSONObject().put("lastOk", 1).put("gedekt", 0), nuP, tz), "periode alles: inhalen tot alles gedekt is");
             JSONObject t = new JSONObject().put("lastOk", nuP - 86_400_000L).put("lastTry", nuP - 3_600_000L);
             check(!Facturen.inhalen(levJaar.put("opnieuw", 3), t, nuP, tz) && Facturen.inhalen(levJaar, t.put("lastTry", nuP - 4 * 3_600_000L), nuP, tz), "inhalen hooguit om de paar uur");
             check(!Facturen.inhalen(new JSONObject(levJaar.toString()).put("schema", "uit"), t, nuP, tz), "met de hand: niet vanzelf inhalen");
             check(!Facturen.heelPeriode(levJaar, new JSONObject().put("lastOk", 1).put("heelPogingen", 3), nuP, tz), "drie keer niet gelukt: niet meer vanzelf inhalen");
+            JSONObject website = new JSONObject(levJaar.toString()).put("soort", "website");
+            JSONObject oud = new JSONObject().put("lastOk", nuP - 86_400_000L).put("gedekt", jan).put("heelPogingen", 3);
+            check(Facturen.heelPeriode(website, oud, nuP, tz), "oude website-dekking opnieuw controleren, ook na drie oude mislukte pogingen");
+            oud.put("lijstPogingVersie", Facturen.LIJST_VERSIE).put("heelPogingen", 0);
+            check(Facturen.heelPeriode(website, oud, nuP, tz), "onvolledig ophalen bevestigt oude dekking niet");
+            oud.put("lijstVersie", Facturen.LIJST_VERSIE);
+            check(!Facturen.heelPeriode(website, oud, nuP, tz), "na bewezen lijstcontrole is de website-periode gedekt");
+            check(Facturen.heelPeriode(new JSONObject(website.toString()).put("periode", new JSONObject().put("soort", "alles")), oud, nuP, tz), "ruimere periode blijft opnieuw opgehaald worden");
+            oud.put("lijstVersie", 0).put("heelPogingen", 3);
+            check(!Facturen.heelPeriode(website, oud, nuP, tz), "na drie nieuwe herstelpogingen kan Rene handmatig opnieuw proberen");
             JSONObject levM = new JSONObject().put("periode", new JSONObject().put("soort", "jaar"));
             long lo = nuP - 330L * 86_400_000L; // vorige keer eind vorig jaar
             check(FacturenMail.sindsHeel(levM, lo, 0, nuP, tz) == lo - 2 * 86_400_000L && FacturenMail.sindsHeel(levM, 0, 0, nuP, tz) == Facturen.vanaf(levM, nuP, tz), "inhalen houdt de marge over de jaarwisseling");
