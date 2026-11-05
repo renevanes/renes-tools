@@ -73,6 +73,8 @@ const toegestaan = s => TOEGESTAAN.some(([x]) => s.includes(x));
       Android._sms.convs.unshift({ thread: 99, name: 'Opslaan', count: 1, last: Date.now(), lastText: 'Opslaan' }); Android._sms.msgs[99] = [{ id: 1, me: false, t: Date.now(), text: 'Opslaan', type: 1 }];
       const ns = JSON.parse(Android._notes); ns[0].items.push({ id: 'iw', text: 'Opslaan', done: false }); ns.push({ id: 'nw', title: 'Instellingen', text: '', updated: Date.now(), items: [] }); Android._notes = JSON.stringify(ns);
       notes = null;
+      // Recent gebruikt uit: het rondlopen langs alle schermen zou het startscherm anders veranderen (in het Engels: home-groepen.test.js)
+      const hc = homeCfg(); hc.recent = false; store.set('home', hc); renderHome();
     });
     // Nederlands vooraf vastleggen (een steekproef, om straks te vergelijken)
     const PROEF = ['home', 'settings', 'setregio', 'notes', 'backup', 'wa', 'sms', 'calls', 'aiset', 'checkin', 'apparaten', 'gebruik', 'sleep', 'facturen', 'auto', 'vpn', 'podcasts', 'facopslag'].filter(x => ids.includes(x));
