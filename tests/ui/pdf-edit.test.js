@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
   for(const scheme of ['light','dark']){
     const p=await b.newPage({viewport:{width:390,height:844},colorScheme:scheme});const errors=[];p.on('pageerror',e=>errors.push(e.message));
     await p.goto('file://'+require('path').join(__dirname,'ui','index.html'));
-    await p.evaluate(()=>openTool('pdf'));await p.click('#pdf-edit-pick');
+    await p.evaluate(()=>openTool('pdf'));await p.click('#pdf-t-edit');assert.equal(await p.evaluate(()=>current),'pdfedit');await p.click('#pdf-edit-pick');
     await p.waitForFunction(()=>pdfEd.revision&&!pdfEd.loading&&pdfEd.meta[0]);
     assert.equal(await p.isDisabled('#pdf-edit-save'),true);
     await p.fill('#pdf-edit-text','René <akkoord> €\nRotterdam');await p.click('#pdf-edit-add-text');
@@ -45,6 +45,9 @@ const assert = require('node:assert/strict');
     assert.equal(result.name,'Contract ondertekend');
     require('fs').writeFileSync(__dirname+'/shots/pdf-edit-layers-'+scheme+'.json',JSON.stringify(result));
     assert.match(await p.textContent('#pdf-out'),/Contract ondertekend.pdf/);
+    assert.match(await p.textContent('.pdfres[data-scr="pdfedit"]'),/Contract ondertekend.pdf/,'net gemaakt staat in de bewerker');
+    assert.match(await p.textContent('#pdf-recent'),/Contract ondertekend.pdf/,'en bovenaan het overzicht');
+    assert.equal(await p.textContent('#pdf-edit-pick'),'Andere PDF kiezen');
     assert.equal(await p.isDisabled('#pdf-edit-save'),true,'geen ongewijzigde dubbele export');
     // Een mislukte export houdt de bewerkingen vast; een oud preview-resultaat overschrijft de huidige pagina niet.
     await p.getByRole('button',{name:'Datum plaatsen',exact:true}).click();
@@ -52,6 +55,10 @@ const assert = require('node:assert/strict');
     await p.click('#pdf-edit-save');await p.waitForFunction(()=>!pdfBusy);
     assert.equal(await p.evaluate(()=>pdfEd.items.length),4);
     assert.equal(await p.isDisabled('#pdf-edit-save'),false,'opnieuw proberen mogelijk');
+    // Terug naar het overzicht en weer terug: het werk blijft staan.
+    await p.evaluate(()=>goBack());assert.equal(await p.evaluate(()=>current),'pdf');
+    assert.match(await p.textContent('#pdf-t-edit-d'),/Niet bewaarde toevoegingen/,'tegel meldt niet bewaard werk');
+    await p.click('#pdf-t-edit');assert.equal(await p.evaluate(()=>pdfEd.items.length),4);assert.equal(await p.isVisible('#pdf-edit-work'),true);
     // Annuleren van documentvervanging behoudt het werk.
     await p.click('#pdf-edit-pick');await p.getByRole('button',{name:'Annuleren',exact:true}).click();
     assert.equal(await p.evaluate(()=>pdfEd.items.length),4);

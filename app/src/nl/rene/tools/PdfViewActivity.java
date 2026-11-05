@@ -584,10 +584,10 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                 case 3: view.setDark(!view.isDark()); getSharedPreferences("pdfview", MODE_PRIVATE).edit().putBoolean("dark", view.isDark()).apply(); break;
                 case 4: saveAs(); break;
                 case 5: print(); break;
-                case 6: toTools(); break;
+                case 6: toTools(false); break;
                 case 7: openWith(); break;
                 case 8: defaultDialog(this); break;
-                case 9: toTools(); break;
+                case 9: toTools(true); break;
                 default: return false;
             }
             return true;
@@ -751,8 +751,8 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         }
     }
 
-    /** Naar het PDF-scherm om pagina's eruit te halen of te splitsen. */
-    private void toTools() {
+    /** Naar het PDF-scherm: pagina's eruit halen of splitsen, of (edit) tekst en een handtekening toevoegen. */
+    private void toTools(boolean edit) {
         if (file == null) return;
         final File f = file; final String nm = name;
         final Context app = getApplicationContext();
@@ -763,7 +763,7 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
                 File tmp = new File(PdfTools.dir(app, "pdf-in"), "kopie.pdf");
                 try (InputStream in = new FileInputStream(f); OutputStream o = new FileOutputStream(tmp)) { byte[] b = new byte[1 << 16]; int n; while ((n = in.read(b)) > 0) o.write(b, 0, n); }
                 JSONObject j = new JSONObject(PdfTools.openPdfFile(app, tmp, nm));
-                if (!j.has("error")) j.put("kind", "pdf");
+                if (!j.has("error")) j.put("kind", "pdf").put("to", edit ? "edit" : "split"); // welk PDF-scherm (37-pdf.js, pdfTarget)
                 r = j.toString();
             } catch (Throwable e) { r = PdfTools.err(e); }
             final String res = r;

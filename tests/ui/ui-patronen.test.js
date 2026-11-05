@@ -11,12 +11,12 @@ const BACK_D = 'M15 18l-6-6 6-6'; // de SVG-chevron van de terugknop
 // Detailschermen (geopend vanuit een ander scherm): kleine kop
 const DETAIL = ['cversions', 'cversion', 'vpnedit', 'autoed', 'chats', 'ralarm', 'herstel', 'chat', 'smschat', 'track', 'txd', 'contact', 'note',
   'podcast', 'podlijst', 'podspotify', 'models', 'carset', 'gebruikset', 'gebruikontgr', 'apset', 'apdev', 'aiset', 'aisetvoice', 'aisetdata', 'aichats',
-  'sleepset', 'sleepnight', 'checkined', 'checkinq', 'checkincmp', 'setnotif', 'setlook', 'setregio', 'setcrash', 'facstuk', 'facgoogle', 'idcopy', 'formulieren'];
+  'sleepset', 'sleepnight', 'checkined', 'checkinq', 'checkincmp', 'setnotif', 'setlook', 'setregio', 'setcrash', 'facstuk', 'facgoogle', 'idcopy', 'formulieren',
+  'pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade'];
 // Meer dan één gevulde hoofdknop: bewust (met de reden)
 const MEER_PRIMAIR = {
   wa: 'ronde 2 (Alles back-uppen/WhatsApp herindelen)',
-  backup: 'ronde 2 (Alles back-uppen/WhatsApp herindelen)',
-  pdf: 'PDF wordt op een eigen branch opnieuw ingedeeld (claude/pdf-indeling); weg zodra die op main staat'
+  backup: 'ronde 2 (Alles back-uppen/WhatsApp herindelen)'
 };
 
 (async () => {

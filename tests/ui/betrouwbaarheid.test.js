@@ -136,7 +136,7 @@ const path = require('node:path');
 
     // Gewone PDF-flow: opgeslagen tekst mag in het invoerveld blijven zonder de update te blokkeren.
     await page.evaluate(() => { pdfEd.revision = ''; pdfEd.items = []; pdfEd.saved = '[]'; pdfEd.selected = -1; openTool('pdf'); });
-    await page.click('#pdf-edit-pick');
+    await page.click('#pdf-t-edit'); await page.click('#pdf-edit-pick');
     await page.waitForFunction(() => pdfEd.revision && !pdfEd.loading && pdfEd.meta[0]);
     await page.fill('#pdf-edit-text', 'Opgeslagen tekst'); await page.click('#pdf-edit-add-text');
     await page.click('#pdf-edit-save'); await page.waitForFunction(() => !pdfBusy && !pdfEditDirty());

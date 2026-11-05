@@ -1,48 +1,64 @@
-<section class="screen" id="s-pdf">
+<!-- ============ PDF ============
+     Een overzicht (PDF openen, recent gemaakt, tegels per taak, Meer) en per taak een eigen scherm (geen lange pagina).
+     Alle PDF-schermen hebben class="pdfscr"; terug gaat naar het overzicht (BACK in 02-kern.js). -->
+<section class="screen pdfscr" id="s-pdf">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">PDF</h1>
   </div>
   <main>
-    <div class="card"><h2>ID-kopie anonimiseren</h2><p class="note">Scherm gegevens op een foto of PDF af en zet ontvanger, doel en datum in een watermerk.</p><button class="big" onclick="show('idcopy')">ID-kopie afschermen</button></div>
-    <div class="card">
-      <h2>Formulieren invullen</h2>
-      <p class="note">Vul een formulier stap voor stap in en maak een ingevulde PDF. Begin met toestemming voor reizen met een minderjarig kind.</p>
-      <button class="big" onclick="show('formulieren')">Formulieren invullen</button>
-    </div>
-    <div class="card">
-      <h2>Belangrijke documenten</h2>
-      <p class="note">Bewaar PDF’s en andere documenten blijvend in je versleutelde kluis. Orden ze op categorie en vind je favorieten snel terug.</p>
-      <button class="big ghost" onclick="show('kluis')">Documentenkluis openen</button>
-      <p class="note" id="pdf-keep-status" role="status" aria-live="polite"></p>
-    </div>
-    <div class="card" id="pdf-view-card">
-      <h2><span class="ui-icon" data-icon="document" aria-hidden="true"></span>PDF bekijken</h2>
-      <p class="note" style="margin-top:0">Lezen in de eigen viewer: zoomen, zoeken, naar een pagina springen, donker lezen en afdrukken.</p>
-      <button class="big" onclick="Android.pdfViewPick()">PDF openen</button>
-      <div id="pdf-def" aria-live="polite"></div>
+    <div class="card pdfopen" id="pdf-view-card">
+      <h2 class="sr-only">PDF bekijken</h2>
+      <button class="big" id="pdf-view-open" onclick="Android.pdfViewPick()"><span class="ui-icon" data-icon="document" aria-hidden="true"></span>PDF openen</button>
+      <p class="note">Lezen, zoeken en afdrukken in de app.</p>
     </div>
 
+    <div class="card" id="pdf-recent-card" style="display:none">
+      <h2>Recent gemaakt</h2>
+      <div id="pdf-recent"></div>
+      <button class="linkish" id="pdf-recent-all" onclick="show('pdfmade')">Alles tonen</button>
+      <p class="note pdfkeep" id="pdf-keep-status" role="status" aria-live="polite"></p>
+    </div>
+
+    <div class="flabel stgl" role="heading" aria-level="2">Maken en bewerken</div>
+    <div class="tiles pdftiles" id="pdf-tiles">
+      <button class="tile" id="pdf-t-edit" onclick="show('pdfedit')" aria-describedby="pdf-t-edit-d"><span class="ic"><span class="ui-icon" data-icon="sign" aria-hidden="true"></span></span><b>Bewerken en ondertekenen</b><small id="pdf-t-edit-d" aria-hidden="true">Tekst en handtekening</small></button>
+      <button class="tile" id="pdf-t-img" onclick="show('pdfimg')" aria-describedby="pdf-t-img-d"><span class="ic"><span class="ui-icon" data-icon="image" aria-hidden="true"></span></span><b>Plaatjes naar PDF</b><small id="pdf-t-img-d" aria-hidden="true">Foto's of scans</small></button>
+      <button class="tile" id="pdf-t-split" onclick="show('pdfsplit')" aria-describedby="pdf-t-split-d"><span class="ic"><span class="ui-icon" data-icon="scissors" aria-hidden="true"></span></span><b>Splitsen</b><small id="pdf-t-split-d" aria-hidden="true">Pagina's eruit halen</small></button>
+      <button class="tile" id="pdf-t-text" onclick="show('pdftext')" aria-describedby="pdf-t-text-d"><span class="ic"><span class="ui-icon" data-icon="mail" aria-hidden="true"></span></span><b>Tekst naar PDF</b><small id="pdf-t-text-d" aria-hidden="true">Tekst of e-mail</small></button>
+      <button class="tile" id="pdf-t-forms" onclick="show('formulieren')" aria-describedby="pdf-t-forms-d"><span class="ic"><span class="ui-icon" data-icon="clipboard" aria-hidden="true"></span></span><b>Formulieren invullen</b><small id="pdf-t-forms-d" aria-hidden="true">Stap voor stap</small></button>
+      <button class="tile" id="pdf-t-id" onclick="show('idcopy')" aria-describedby="pdf-t-id-d"><span class="ic"><span class="ui-icon" data-icon="shield" aria-hidden="true"></span></span><b>ID-kopie afschermen</b><small id="pdf-t-id-d" aria-hidden="true">Met watermerk</small></button>
+    </div>
+
+    <div class="flabel stgl" role="heading" aria-level="2">Meer</div>
+    <div class="card stlist">
+      <button class="strow" id="pdf-kluis-row" onclick="jumpTo('kluis')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Documentenkluis</b><small class="pdfwrap">Versleuteld bewaren</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" id="pdf-def-btn" onclick="Android.pdfMakeDefault()"><span class="stic"><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></span><span class="sttxt"><b>Standaard PDF-app</b><small id="pdf-def" class="pdfwrap"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+    <p class="note pdfbusy" id="pdf-busy" role="status" aria-live="polite"></p>
+  </main>
+</section>
+
+<!-- Bewerken en ondertekenen: de bewerker en de bewaarde handtekening -->
+<section class="screen pdfscr" id="s-pdfedit">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Bewerken en ondertekenen</h1>
+  </div>
+  <main>
     <div class="card" id="pdf-edit-card">
-      <h2><span class="ui-icon" data-icon="sign" aria-hidden="true"></span>PDF bewerken en ondertekenen</h2>
-      <p class="note">Plaats tekst, een datum of een getekende handtekening op je PDF. Je maakt een nieuwe kopie; het oorspronkelijke bestand blijft behouden.</p>
-      <button class="big ghost" id="pdf-edit-pick" onclick="pdfEditChoose()">PDF voor bewerking kiezen</button>
-      <button class="big ghost" id="pdf-edit-open" style="display:none;margin-top:8px" onclick="pdfEditOpen()">Gekozen PDF bewerken</button>
-      <div class="pdf-signature-library">
-        <h3>Mijn handtekening</h3>
-        <canvas id="pdf-signature-preview" width="600" height="180" hidden aria-label="Voorbeeld van je bewaarde handtekening"></canvas>
-        <p class="note" id="pdf-signature-status" role="status" aria-live="polite"></p>
-        <div class="row" style="flex-wrap:wrap"><button class="mini" id="pdf-signature-use" onclick="pdfSignatureUse()">Bewaarde handtekening plaatsen</button><button class="mini" id="pdf-signature-delete" onclick="pdfSignatureDelete()">Bewaarde handtekening verwijderen</button></div>
-      </div>
+      <p class="note pdfintro">Zet tekst, een datum of je handtekening op een kopie. Het origineel blijft zoals het is.</p>
+      <button class="big" id="pdf-edit-pick" onclick="pdfEditChoose()">PDF kiezen</button>
+      <button class="big" id="pdf-edit-open" style="display:none;margin-top:8px" onclick="pdfEditOpen()">Gekozen PDF bewerken</button>
       <div id="pdf-edit-work" style="display:none">
-        <p id="pdf-edit-document" class="note"></p>
+        <p id="pdf-edit-document" class="note" translate="no"></p>
         <div class="row">
           <button class="mini" id="pdf-edit-prev" onclick="pdfEditPage(-1)" aria-label="Vorige pagina" data-icon="chevron-left"></button>
           <label for="pdf-edit-page">Pagina</label><input class="search" type="number" id="pdf-edit-page" min="1" value="1" onchange="pdfEditGo(this.value)" style="width:80px">
           <span id="pdf-edit-count"></span>
           <button class="mini" id="pdf-edit-next" onclick="pdfEditPage(1)" aria-label="Volgende pagina" data-icon="play"></button>
         </div>
-        <p class="note">Sleep een toevoeging naar de juiste plek. Met de pijltjestoetsen kun je de geselecteerde toevoeging verschuiven.</p>
+        <p class="note">Sleep een toevoeging naar de juiste plek, of verschuif haar met de pijltjestoetsen.</p>
         <div id="pdf-edit-paper" class="pdfeditpaper" tabindex="0" role="group" aria-label="PDF-pagina met toevoegingen">
           <img id="pdf-edit-preview" alt="Voorbeeld van de PDF-pagina" draggable="false">
           <canvas id="pdf-edit-layer" aria-label="Tekst en handtekeningen op deze pagina"></canvas>
@@ -59,9 +75,10 @@
           <button class="mini" onclick="pdfEditDate()">Datum plaatsen</button>
           <button class="mini" onclick="pdfEditSelect(-1)">Nieuwe toevoeging</button>
           <button class="mini" onclick="pdfEditSignShow()">Handtekening tekenen</button>
+          <button class="mini" id="pdf-signature-use" onclick="pdfSignatureUse()">Bewaarde handtekening plaatsen</button>
         </div>
         <div id="pdf-edit-sign-box" style="display:none;margin-top:12px">
-          <p class="note">Teken hieronder met je vinger of muis. Kies Handtekening bewaren om haar ook bij volgende PDF’s te kunnen gebruiken.</p>
+          <p class="note">Teken met je vinger of muis. Met Handtekening bewaren kun je haar later opnieuw gebruiken.</p>
           <canvas id="pdf-edit-sign" width="900" height="300" tabindex="0" aria-label="Teken hier je handtekening"></canvas>
           <div class="row" style="flex-wrap:wrap"><button class="mini" id="pdf-signature-save" onclick="pdfSignatureSaveDraw()">Handtekening bewaren</button><button class="mini" onclick="pdfEditSignClear()">Tekening wissen</button><button class="mini" onclick="pdfEditSignAdd()">Handtekening plaatsen</button><button class="mini" onclick="pdfEditSignHide()">Annuleren</button></div>
         </div>
@@ -69,28 +86,35 @@
         <input type="range" id="pdf-edit-width" min="10" max="90" value="45" aria-label="Breedte van de toevoeging" onchange="pdfEditWidth(this.value)">
         <div id="pdf-edit-items" class="pdfedititems" aria-label="Toevoegingen op deze pagina"></div>
         <div class="row" style="flex-wrap:wrap;margin-top:8px"><button class="mini" id="pdf-edit-remove" onclick="pdfEditRemove()">Selectie verwijderen</button><button class="mini" id="pdf-edit-undo" onclick="pdfEditUndo()">Ongedaan maken</button><button class="mini" onclick="pdfEditDiscard()">Alle toevoegingen wissen</button></div>
-        <p class="note">Dit is een zichtbare handtekening, geen digitale certificaatondertekening. Bestaande certificaatondertekeningen kunnen door een wijziging ongeldig worden. Je toevoegingen worden vast in de nieuwe kopie geplaatst. Pagina’s met annotaties of formuliervelden moet je eerst via Afdrukken → Opslaan als PDF als vlakke kopie bewaren.</p>
         <label class="f" for="pdf-edit-name">Naam van de nieuwe kopie</label><input class="search" id="pdf-edit-name" maxlength="60">
         <button class="big" id="pdf-edit-save" onclick="pdfEditSave()" style="margin-top:8px">Bewerkte kopie maken</button>
-        <p class="note">De nieuwe kopie staat onder Gemaakt. Kies daar Bewaren in documentenkluis, Opslaan als… of Delen. Werkbestanden worden na een week opgeruimd.</p>
+        <p class="note">Heeft de PDF annotaties of formuliervelden? Bewaar hem dan eerst via Afdrukken → Opslaan als PDF als vlakke kopie.</p>
+        <details class="help in"><summary data-icon="info">Over deze handtekening</summary><div class="help-body"><p>Dit is een zichtbare handtekening, geen digitale certificaatondertekening. Bestaande certificaatondertekeningen kunnen door een wijziging ongeldig worden. Je toevoegingen worden vast in de nieuwe kopie geplaatst.</p></div></details>
       </div>
+      <div class="pdfres" data-scr="pdfedit"></div>
     </div>
-
-    <div class="card" id="pdf-out-card" style="display:none">
-      <h2>Gemaakt</h2>
-      <div id="pdf-out"></div>
-      <div class="row" style="margin-top:8px">
-        <button class="big ghost" style="flex:1" id="pdf-share-all" onclick="pdfShareAll()">Alles delen</button>
-        <button class="big ghost" style="flex:1" onclick="pdfSaveAll()">Alles in backup-map</button>
-      </div>
-      <p class="note">Tik op een bestand om het te openen, te delen of op te slaan (bijv. in Downloads). Na een week worden ze hier opgeruimd.</p>
+    <div class="card pdf-signature-library" id="pdf-sig-card">
+      <h2>Mijn handtekening</h2>
+      <canvas id="pdf-signature-preview" width="600" height="180" hidden aria-label="Voorbeeld van je bewaarde handtekening"></canvas>
+      <p class="note" id="pdf-signature-status" role="status" aria-live="polite"></p>
+      <div class="row" id="pdf-signature-acts" style="flex-wrap:wrap"><button class="mini" id="pdf-signature-delete" onclick="pdfSignatureDelete()">Bewaarde handtekening verwijderen</button></div>
     </div>
+    <p class="note pdfbusy" role="status" aria-live="polite"></p>
+    <p class="note pdfkeep" role="status" aria-live="polite"></p>
+  </main>
+</section>
 
+<!-- Plaatjes naar PDF -->
+<section class="screen pdfscr" id="s-pdfimg">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Plaatjes naar PDF</h1>
+  </div>
+  <main>
     <div class="card">
-      <h2><span class="ui-icon" data-icon="image" aria-hidden="true"></span>Plaatjes naar PDF</h2>
-      <p class="note" style="margin-top:0">Foto's of scans samen in één PDF, in de volgorde die je kiest.</p>
+      <p class="note pdfintro">Foto's of scans samen in één PDF, in de volgorde die je kiest.</p>
       <div id="pdf-imgs" class="pdfimgs"></div>
-      <button class="big ghost" onclick="Android.pdfPickImages()">＋ Plaatjes kiezen</button>
+      <button class="big" id="pdf-img-pick" onclick="Android.pdfPickImages()">＋ Plaatjes kiezen</button>
       <div id="pdf-img-opts" style="display:none">
         <div class="aeopts" id="pdf-size" role="radiogroup" aria-label="Paginaformaat" style="margin-top:10px">
           <button data-v="a4" role="radio" class="on" aria-checked="true"><span class="ui-icon" data-icon="document" aria-hidden="true"></span><b>A4</b><small>Elk plaatje op een A4-pagina, met een witte rand</small></button>
@@ -103,32 +127,79 @@
           <button class="big ghost" style="flex:none;width:auto;padding:0 16px" onclick="pdfClearImages()">Leegmaken</button>
         </div>
       </div>
+      <div class="pdfres" data-scr="pdfimg"></div>
     </div>
+    <p class="note pdfbusy" role="status" aria-live="polite"></p>
+    <p class="note pdfkeep" role="status" aria-live="polite"></p>
+  </main>
+</section>
 
+<!-- PDF splitsen -->
+<section class="screen pdfscr" id="s-pdfsplit">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">PDF splitsen</h1>
+  </div>
+  <main>
     <div class="card">
-      <h2><span class="ui-icon" data-icon="scissors" aria-hidden="true"></span>PDF splitsen</h2>
-      <p class="note" style="margin-top:0">Losse pagina's of delen uit een PDF halen. Tekst en opmaak blijven zoals ze zijn.</p>
-      <button class="big ghost" onclick="pdfChooseSource()">PDF kiezen</button>
+      <p class="note pdfintro">Losse pagina's of delen uit een PDF halen. Tekst en opmaak blijven zoals ze zijn.</p>
+      <button class="big" id="pdf-split-pick" onclick="pdfChooseSource()">PDF kiezen</button>
       <div id="pdf-split" style="display:none">
-        <p id="pdf-split-info" class="note"></p>
+        <p id="pdf-split-info" class="note" translate="no"></p>
+        <button class="big ghost" id="pdf-split-edit" style="margin-bottom:10px" onclick="pdfSplitEdit()">Deze PDF bewerken en ondertekenen</button>
         <div id="pdf-pages" class="pdfpages" aria-label="Pagina's (tik om te kiezen)"></div>
         <label class="f" for="pdf-range">Pagina's</label>
         <input class="search" id="pdf-range" placeholder="Bijv. 1-3, 5" oninput="pdfRangeTyped()" inputmode="numeric">
-        <button class="big" onclick="pdfDoSplit('pick')">Gekozen pagina's als één PDF</button>
-        <button class="big ghost" style="margin-top:8px" onclick="pdfDoSplit('parts')">Elk deel apart (bijv. 1-3, 4-6)</button>
-        <button class="big ghost" style="margin-top:8px" onclick="pdfDoSplit('each')">Elke pagina een eigen PDF</button>
+        <button class="big" id="pdf-split-pick-one" onclick="pdfDoSplit('pick')">Gekozen pagina's als één PDF</button>
+        <button class="big ghost" id="pdf-split-parts" style="margin-top:8px" onclick="pdfDoSplit('parts')">Elk deel apart (bijv. 1-3, 4-6)</button>
+        <button class="big ghost" id="pdf-split-each" style="margin-top:8px" onclick="pdfDoSplit('each')">Elke pagina een eigen PDF</button>
       </div>
+      <div class="pdfres" data-scr="pdfsplit"></div>
     </div>
+    <p class="note pdfbusy" role="status" aria-live="polite"></p>
+    <p class="note pdfkeep" role="status" aria-live="polite"></p>
+  </main>
+</section>
 
+<!-- Tekst of e-mail naar PDF -->
+<section class="screen pdfscr" id="s-pdftext">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Tekst naar PDF</h1>
+  </div>
+  <main>
     <div class="card">
-      <h2><span class="ui-icon" data-icon="mail" aria-hidden="true"></span>Tekst of e-mail naar PDF</h2>
-      <p class="note" style="margin-top:0">In je mailapp of een andere app: kies <b>Delen</b> → <b>PDF maken</b>. Of kies hier een e-mailbestand (.eml) of tekstbestand, of plak tekst.</p>
-      <button class="big ghost" onclick="Android.pdfPickDoc()">E-mail of tekstbestand kiezen</button>
+      <p class="note pdfintro">Plak tekst, of kies een e-mail (.eml) of tekstbestand.</p>
       <label class="f" for="pdf-text-title">Titel</label>
       <input class="search" id="pdf-text-title" placeholder="Bijv. Bevestiging reservering">
-      <textarea id="pdf-text" class="search" rows="5" placeholder="Plak hier de tekst…" style="resize:vertical;font:inherit"></textarea>
-      <button class="big" onclick="pdfFromText()">Tekst als PDF</button>
+      <textarea id="pdf-text" class="search" rows="5" placeholder="Plak hier de tekst…" style="resize:vertical;font:inherit" aria-label="Tekst"></textarea>
+      <button class="big" id="pdf-text-make" onclick="pdfFromText()">Tekst als PDF</button>
+      <button class="big ghost" id="pdf-doc-pick" style="margin-top:8px" onclick="pdfPickDoc()">E-mail of tekstbestand kiezen</button>
+      <p class="note">Vanuit je mailapp: kies <b>Delen</b> → <b>PDF maken</b>.</p>
+      <div class="pdfres" data-scr="pdftext"></div>
     </div>
-    <p class="note" id="pdf-busy" role="status" aria-live="polite"></p>
+    <p class="note pdfbusy" role="status" aria-live="polite"></p>
+    <p class="note pdfkeep" role="status" aria-live="polite"></p>
+  </main>
+</section>
+
+<!-- Alles wat gemaakt is (een week bewaard) -->
+<section class="screen pdfscr" id="s-pdfmade">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" data-taal="pdfmade">Gemaakt</h1>
+  </div>
+  <main>
+    <div class="card" id="pdf-out-card">
+      <p class="note" id="pdf-out-empty" style="margin-top:0">Nog niets gemaakt.</p>
+      <div id="pdf-out"></div>
+      <div class="row" id="pdf-out-acts" style="margin-top:8px">
+        <button class="big ghost" style="flex:1" id="pdf-share-all" onclick="pdfShareAll()">Alles delen</button>
+        <button class="big ghost" style="flex:1" id="pdf-save-all" onclick="pdfSaveAll()">Alles in backup-map</button>
+      </div>
+      <p class="note">Tik op een bestand om het te openen, te delen of op te slaan. Na een week worden ze hier opgeruimd.</p>
+    </div>
+    <p class="note pdfbusy" role="status" aria-live="polite"></p>
+    <p class="note pdfkeep" role="status" aria-live="polite"></p>
   </main>
 </section>
