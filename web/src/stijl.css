@@ -1141,3 +1141,10 @@ body.talk-on #s-ai main{padding-bottom:200px}
 .cm-event { padding:12px 0; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
 .cm-event small { display:block; color:var(--muted); }
 .cm-lock-note { padding:16px; border:1px solid var(--outline); border-radius:12px; background:var(--card); }
+
+/* Stamgegevens: kaartfoto's blijven binnen het beveiligde scherm. */
+.cmi-actions{flex-wrap:wrap;gap:8px}.cmi-actions .big{flex:1;min-width:130px}
+.cmi-sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.cmi-photo-paper{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.cmi-photo-paper img{display:block;max-width:100%;height:auto}.cmi-photo-paper.zoom img{max-width:none;width:auto}
+#cmi-shared p{overflow-wrap:anywhere}#cm-fields textarea{resize:vertical}

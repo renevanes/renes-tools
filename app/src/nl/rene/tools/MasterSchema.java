@@ -9,14 +9,16 @@ import java.util.Set;
 /** Centrale velddefinities en expliciete contracten: consumenten krijgen alleen passende, gekozen velden. */
 final class MasterSchema {
     private MasterSchema(){ }
-    static final String[] PERSON={"naam","voornamen","initialen","geboortedatum","geboorteplaats","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email"};
+    static final String[] PERSON={"naam","voornamen","roepnaam","initialen","geboortedatum","geboorteplaats","nationaliteit","bsn","adres","postcode","plaats","land","telefoon","email","context"};
     static final String[] ORGANISATION={"naam","registratienummer","adres","postcode","plaats","land","telefoon","email"};
     static final String[] ADDRESS={"naam","adres","postcode","plaats","land","telefoon"};
-    static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats"};
+    static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats","uitgifteland","afgegevenDoor"};
     static final String[] TRIP={"van","tot","alleen","tweedeBegeleider","tweedeGever","accommodatie","postcode","plaats","land","telefoon","reisgegevens"};
+    static final String[] PROFILE={"persoon","delen","context"};
+    static final String[] RELATION={"vanPersoon","naarPersoon","relatie","toelichting","delen"};
     static boolean sensitive(String key){return "bsn".equals(key)||"document".equals(key)||"geldig".equals(key)||"afgifte".equals(key);}
     static String[] fields(String type)throws Exception{
-        if("persoon".equals(type))return PERSON;if("organisatie".equals(type))return ORGANISATION;if("adres".equals(type))return ADDRESS;if("identiteit".equals(type))return IDENTITY;if("reis".equals(type))return TRIP;
+        if("persoon".equals(type))return PERSON;if("organisatie".equals(type))return ORGANISATION;if("adres".equals(type))return ADDRESS;if("identiteit".equals(type))return IDENTITY;if("reis".equals(type))return TRIP;if("profiel".equals(type))return PROFILE;if("relatie".equals(type))return RELATION;
         throw new MasterError(Taal.T("Onbekend soort stamgegeven"));
     }
     static boolean validDate(String value){
@@ -33,12 +35,16 @@ final class MasterSchema {
             String s=((String)value).trim();if(s.length()>240||s.matches("(?s).*[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f].*"))throw new MasterError(Taal.T("Een gegevensveld is te lang of ongeldig"));
             s=s.replace('\n',' ').replace('\r',' ');
             if(("geboortedatum".equals(k)||"geldig".equals(k)||"afgifte".equals(k)||"van".equals(k)||"tot".equals(k))&&!s.isEmpty()&&!validDate(s))throw new MasterError(Taal.T("Vul een geldige datum in"));
-            if(Arrays.asList("alleen","tweedeBegeleider","tweedeGever").contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
+            if(Arrays.asList("alleen","tweedeBegeleider","tweedeGever","delen").contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
             if("bsn".equals(k)&&!s.isEmpty()&&!s.matches("[0-9]{8,9}"))throw new MasterError(Taal.T("Vul een geldig BSN in"));
-            if("persoon".equals(k)&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+            if(Arrays.asList("persoon","vanPersoon","naarPersoon").contains(k)&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+            if("relatie".equals(k)&&!s.isEmpty()&&!MasterIdentity.RELATIONS.contains(s))throw new MasterError(Taal.T("Kies een geldige relatie"));
             if(!s.isEmpty())out.put(k,s);
         }
-        if("identiteit".equals(type)&&out.optString("persoon").isEmpty())throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+        if(("identiteit".equals(type)||"profiel".equals(type))&&out.optString("persoon").isEmpty())throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+        if("relatie".equals(type)&&(out.optString("vanPersoon").isEmpty()||out.optString("naarPersoon").isEmpty()||out.optString("relatie").isEmpty()))throw new MasterError(Taal.T("Kies beide personen en hun relatie"));
+        if("relatie".equals(type)&&out.getString("vanPersoon").equals(out.getString("naarPersoon")))throw new MasterError(Taal.T("Een relatie hoort bij twee verschillende personen"));
+        if("identiteit".equals(type)&&out.has("afgifte")&&out.has("geldig")&&out.getString("afgifte").compareTo(out.getString("geldig"))>0)throw new MasterError(Taal.T("De afgiftedatum moet voor de vervaldatum liggen"));
         if("reis".equals(type)&&out.has("van")&&out.has("tot")&&out.getString("van").compareTo(out.getString("tot"))>0)throw new MasterError(Taal.T("De laatste reisdag moet op of na de eerste reisdag vallen."));
         return new JSONObject().put("type",type).put("label",label).put("fields",out);
     }

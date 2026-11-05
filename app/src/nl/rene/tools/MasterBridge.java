@@ -55,10 +55,12 @@ public class MasterBridge extends BankBridge {
                                 token=a.masterSession.open();
                             }
                             MasterStore.unlock(ctx,key,a.masterSession,token);a.masterSession.require(token);MasterKeys.markReady();
+                            MasterStore.refreshContext(ctx,key,a.masterSession,token);
                         }
                         a.masterSession.require(token);if(!a.masterForeground||auth!=a.masterAuthSerial.get())throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
                         result.put("opened",true);a.h.post(a::scheduleMasterExpiry);
-                    }catch(Throwable e){a.masterSession.closeIf(token);try{result.put("error",why(e));}catch(Exception ignored){ }}
+                        JSONObject photo=a.masterPhotos.resume(MasterKeys.authenticated(ctx),a.masterSession,token);if(photo!=null)result.put("photo",photo);
+                    }catch(Throwable e){a.masterSession.closeIf(token);try{MasterAppContext.invalidate(ctx);}catch(Exception ignored){ }MainActivity.appIdentityChanged("{}");try{result.put("error",why(e));}catch(Exception ignored){ }}
                     reply(request,token,result);
                 },"master-unlock").start());
             });
@@ -81,9 +83,28 @@ public class MasterBridge extends BankBridge {
     @JavascriptInterface public void masterList(String token,String source,String role,String request){work(token,request,key->MasterStore.list(ctx,key,a.masterSession,token,source,role));}
     @JavascriptInterface public void masterRead(String token,String id,String source,String role,String request){work(token,request,key->MasterStore.read(ctx,key,a.masterSession,token,id,source,role));}
     @JavascriptInterface public void masterSave(String token,String json,String request){
-        work(token,request,key->{if(json==null||json.length()>20000)throw new MasterError(Taal.T("Ongeldige stamgegevens"));return MasterStore.save(ctx,key,a.masterSession,token,new JSONObject(json));});
+        work(token,request,key->{if(json==null||json.length()>20000)throw new MasterError(Taal.T("Ongeldige stamgegevens"));JSONObject saved=MasterStore.save(ctx,key,a.masterSession,token,new JSONObject(json));refreshIdentity(key,token,saved);return saved;});
     }
-    @JavascriptInterface public void masterDelete(String token,String id,long revision,String request){work(token,request,key->MasterStore.delete(ctx,key,a.masterSession,token,id,revision));}
+    void refreshIdentity(SecretKey key,String token,JSONObject result)throws Exception{
+        try{MasterStore.refreshContext(ctx,key,a.masterSession,token);}catch(Throwable e){result.put("contextError",Taal.T("Gegevens opgeslagen; de gedeelde app-context kon niet worden ververst"));}
+        MainActivity.appIdentityChanged(MasterAppContext.read(ctx).toString());
+    }
+    @JavascriptInterface public void masterDelete(String token,String id,long revision,String request){work(token,request,key->{JSONObject result=MasterStore.delete(ctx,key,a.masterSession,token,id,revision);refreshIdentity(key,token,result);return result;});}
+    @JavascriptInterface public void masterFormRelation(String token,String child,String companion,String role,String request){work(token,request,key->MasterStore.formRelation(ctx,key,a.masterSession,token,child,companion,role));}
+    @JavascriptInterface public String appIdentity(){return MasterAppContext.read(ctx).toString();}
+    @JavascriptInterface public void masterPhotoPick(String token,String id,long revision,String side,String request){
+        if(request==null||request.length()>100)return;
+        new Thread(()->{JSONObject result=new JSONObject();try{
+            if(!a.masterForeground)throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw"));
+            a.masterSession.require(token);SecretKey key=MasterKeys.authenticated(ctx);
+            MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,true);a.masterSession.require(token);
+            // De kiezer verlaat bewust de app en sluit de sessie. Geen nacontrole op die oude sessie.
+            a.masterPhotos.pick(token,id,revision,side,request);result.put("picking",true);
+        }catch(Throwable e){try{result.put("error",why(e)).put("locked",!a.masterSession.accepts(token));}catch(Exception ignored){ }}reply(request,token,result);},"master-photo-pick").start();
+    }
+    @JavascriptInterface public void masterPhotoRead(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,true));}
+    @JavascriptInterface public void masterPhotoDelete(String token,String id,long revision,String side,String request){work(token,request,key->MasterStore.photo(ctx,key,a.masterSession,token,id,revision,side,null,false));}
+    @JavascriptInterface public void masterPhotoCancel(){a.masterPhotos.cancel();}
     @JavascriptInterface public void masterUse(String token,String id,long revision,String source,String role,String fields,boolean consent,String request){
         work(token,request,key->{
             if(fields==null||fields.length()>1000)throw new MasterError(Taal.T("Kies welke velden je wilt overnemen"));

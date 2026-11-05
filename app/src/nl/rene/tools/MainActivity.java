@@ -99,6 +99,7 @@ public class MainActivity extends Activity {
     final java.util.concurrent.ConcurrentHashMap<String,String> masterGrants=new java.util.concurrent.ConcurrentHashMap<>();
     final MasterSession masterSession=new MasterSession();
     final PdfFormAi pdfFormAi=new PdfFormAi(this);
+    final MasterPhotos masterPhotos=new MasterPhotos(this);
     final java.util.concurrent.atomic.AtomicLong masterAuthSerial=new java.util.concurrent.atomic.AtomicLong(),masterSecurityGeneration=new java.util.concurrent.atomic.AtomicLong();
     volatile boolean masterForeground,masterAuthPending,masterWanted,masterScreen,masterCover,masterFormBound,masterIdBound;
     volatile String masterView="";
@@ -513,6 +514,7 @@ public class MainActivity extends Activity {
 
     void scheduleMasterExpiry(){h.removeCallbacks(masterExpiry);long left=masterSession.remaining();if(left>0)h.postDelayed(masterExpiry,left);}
     void suspendMaster(boolean explicit){
+        if(explicit)masterPhotos.cancel();
         pdfFormAi.cancel(null);
         synchronized(masterSession){masterSession.close();masterGrants.clear();if(explicit||!masterAuthPending)masterAuthSerial.incrementAndGet();}
         h.removeCallbacks(masterExpiry);
@@ -520,7 +522,8 @@ public class MainActivity extends Activity {
         synchronized(masterSecurityGeneration){generation=masterSecurityGeneration.incrementAndGet();if(masterScreen){masterCover=true;coverOn();}}
         js("onMasterLocked",Long.toString(generation));
     }
-    static void masterResetAll(boolean complete){synchronized(ALL){for(MainActivity a:ALL)a.h.post(()->{a.suspendMaster(true);if(complete)a.js("onMasterReset","");});}}
+    static void appIdentityChanged(String json){synchronized(ALL){for(MainActivity a:ALL)a.js("onAppIdentity",json);}}
+    static void masterResetAll(boolean complete){appIdentityChanged("{}");synchronized(ALL){for(MainActivity a:ALL)a.h.post(()->{a.suspendMaster(true);if(complete)a.js("onMasterReset","");});}}
     void masterSafeFrame(String view,long generation){if(web!=null&&generation==masterSecurityGeneration.get())web.postVisualStateCallback(generation,new MasterDrawn(this,view,generation,false));}
     void finishMasterScreen(long generation){
         synchronized(masterSecurityGeneration){if(isDestroyed()||generation!=masterSecurityGeneration.get()||masterWanted)return;}
@@ -764,6 +767,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if(req==MasterPhotos.REQUEST){masterPhotos.result(res,data);return;}
         if (req == REQ_FACT_PDF) {
             final Uri u = res == RESULT_OK && data != null ? data.getData() : null;
             if (u == null) { js("onFacturenToegevoegd", "{\"error\":\"\"}"); return; }

@@ -162,6 +162,38 @@ function faGeschiedenis(l){
   if (!log.length) { toast('Nog geen geschiedenis'); return; }
   askConfirm(t('Geschiedenis') + ' · ' + l.naam, log.map(r => (r.ok ? '✓ ' : '✗ ') + faMoment(r.t) + ' ' + t(r.auto ? '(vanzelf)' : '(met de hand)') + '\n   ' + t(r.msg || '') + ((r.namen || []).length ? '\n   ' + r.namen.join(', ') : '')).join('\n'), 'Sluiten', () => {});
 }
+/** Alleen vaste diagnosestappen en tellingen; geen namen, adressen, websitefouten of factuurinhoud in het deelbare rapport. */
+function faLogTekst(l){
+  const namen = {
+    START: t('Ophalen gestart'), INLOG: t('Inloggen'), FACTUREN: t('Facturenpagina zoeken'), LIJST: t('Factuurlijst geladen'),
+    MEER: t('Toon meer aangeklikt'), VOLGENDE: t('Volgende pagina aangeklikt'), WACHT: t('Wachten op facturen'), DOWNLOAD: t('Download gestart'),
+    HTTP: t('Antwoordcode van de website'), DOWNLOADFOUT: t('Download mislukt'), PDF: t('PDF ontvangen'), HERSTEL: t('Terug naar de factuurlijst'), VOLLEDIG: t('Alle factuurlijsten doorlopen'), LIMIET: t('Ingesteld maximum bereikt'),
+    LAADFOUT: t('Factuurlijst niet op tijd geladen'), HERHALING: t('De website herhaalt een factuurlijst'), GEWIJZIGD: t('Factuurlijst onverwacht gewijzigd'),
+    HERSTELFOUT: t('Teruggaan naar de factuurlijst mislukt'), OPSLAAN: t('Facturen bewaren'), KLAAR: t('Ophalen afgerond'), FOUT: t('Ophalen mislukt'), STOP: t('Gestopt')
+  };
+  const tt = l.toestand || {}, logs = [tt.diagnose, ...(tt.log || []).map(r => r.diagnose)].filter(Boolean);
+  const gehad = new Set(), blokken = [];
+  for (const d of logs) {
+    if (gehad.has(d.t)) continue; gehad.add(d.t);
+    const stappen = (d.stappen || []).filter(r => Object.prototype.hasOwnProperty.call(namen, r.stap));
+    if (!stappen.length) continue;
+    blokken.push(t('Ophaalpoging {wanneer} · app {versie} · APK {native}', { wanneer: faDatum(d.t), versie: d.versie, native: fmtNum(d.native) })
+      + '\n' + stappen.map(r => t('+{s} s · lijst {pagina} · {stap} · aantal {n}', { s: fmtNum(r.ms / 1000, 1), pagina: fmtNum(r.pagina), stap: namen[r.stap], n: fmtNum(r.aantal) })).join('\n')
+      + (d.weggelaten ? '\n' + t('{n} eerdere stappen weggelaten', { n: fmtNum(d.weggelaten) }) : ''));
+  }
+  return blokken.join('\n\n');
+}
+function faLog(id){
+  faLaad();
+  const l = faSt.leveranciers.find(x => x.id === id); if (!l) return;
+  const tekst = faLogTekst(l);
+  if (!tekst) { toast('Nog geen ophaallogboek; haal eerst facturen op'); return; }
+  openSheet('Logboek ophalen', l.naam, [
+    ['Bekijken', () => askConfirm('Logboek ophalen', tekst, 'Sluiten', () => {})],
+    ['Kopiëren', () => { Android.aiCopy(tekst); toast('Gekopieerd'); }],
+    ['Delen', () => Android.aiShare(tekst)]
+  ]);
+}
 function faOpen(id){
   const l = faSt.leveranciers.find(x => x.id === id); if (!l) return;
   const busy = !!faSt.bezig;
@@ -170,6 +202,7 @@ function faOpen(id){
     ...(l.soort === 'mail' ? [] : [['Ophalen en meekijken', () => faNu(id, true)]]),
     [l.facturen ? (l.aantal > l.facturen ? t('Facturen bekijken ({n}, met bijlagen {docs} documenten)', { n: l.facturen, docs: l.aantal }) : t('Facturen bekijken ({n})', { n: l.facturen })) : l.aantal ? t('Facturen bekijken ({n})', { n: l.aantal }) : t('Facturen bekijken'), () => faBekijk(l)],
     ['Geschiedenis', () => faGeschiedenis(l)],
+    ['Logboek ophalen', () => faLog(id)],
     ['Alles van de periode opnieuw ophalen', () => askConfirm(t('Alles opnieuw ophalen?'), t('De app haalt alle facturen van de gekozen periode ({periode}) nog een keer op. Wat al binnen is, komt er niet dubbel in.', { periode: faPeriodeTekst(l) }), t('Ophalen'), () => { const e = Android.facturenOpnieuw(id); if (e) { toast(e); return; } faNu(id, false); })],
     ['Instellingen', () => flOpen(l)],
     ['Verwijderen…', () => askConfirm(t('{naam} verwijderen?', { naam: l.naam }), 'De instellingen en de facturen in de app gaan weg. Kopieën in je backup-map en in Eigen Cloud blijven staan.', 'Verwijderen', () => { const e = Android.facturenVerwijder(id); if (e) toast(e); faRender(); })]];

@@ -61,7 +61,7 @@ final class FacturenRun {
     final ExecutorService net = Executors.newFixedThreadPool(2);
     final Map<String, Facturen.Pdf> pdfs = new LinkedHashMap<>();
     final Set<String> opgehaald = new java.util.HashSet<>();
-    final AtomicInteger bezig = new AtomicInteger(), vangsten = new AtomicInteger(), geenPdf = new AtomicInteger();
+    final AtomicInteger bezig = new AtomicInteger(), geenPdf = new AtomicInteger(), downloadFouten = new AtomicInteger();
     final long start = System.currentTimeMillis(), maxDuur;
     String ua = "";
     volatile String voortgang = "Starten…";
@@ -70,15 +70,14 @@ final class FacturenRun {
     /** Vanzelf gestart (achtergrondtaak) of met de hand. */
     volatile boolean klaarAuto;
     boolean geladen, codeBezig, handmatig, naarGeladen, klaarGemeld;
-    int pwPogingen, userPogingen, codePogingen, inlogKlikken, stil, menuPogingen, zoekPogingen, terug;
+    int pwPogingen, userPogingen, codePogingen, inlogKlikken, stil, menuPogingen, terug;
     long codeSinds, wachtTot, knopSinds, afrondenSinds;
-    int knopIndex, vangstenVoor, meerKlikken, meerVorige = -1;
-    volatile int bekendOpRij;
-    boolean meerKlaar;
-    /** Facturen die al eerder zijn opgehaald (SHA-256) en of dit een vervolg is (niet de eerste keer of "opnieuw"). */
-    final Set<String> bekend = new java.util.HashSet<>();
+    int logFase = -1;
+    final FacturenLijst lijst;
+    final FacturenLog spoor = new FacturenLog(start);
+    boolean wachtGelogd, lijstGestart;
+    /** Of de hele gekozen periode nog moet worden opgehaald. */
     boolean vervolg;
-    JSONArray knoppen;
     String lijstUrl;
     /** Geheim van deze run: alleen de robot (in een afgesloten functie) kent het; andere scripts en iframes niet. */
     final String sleutel = java.util.UUID.randomUUID().toString().replace("-", "");
@@ -108,10 +107,10 @@ final class FacturenRun {
         this.wv = mail ? null : zicht != null ? zicht : new WebView(this.c); // mail: geen website, geen WebView
         this.klaar = k;
         this.maxDuur = zichtbaar ? 15 * 60_000L : 9 * 60_000L;
+        this.lijst = new FacturenLijst(lev.optInt("max", 50), start);
         this.domein = Facturen.domein(lev.optString("startUrl"));
-        JSONObject tt = Facturen.toestand(this.c, this.id), vw = tt.optJSONObject("verwerkt");
-        if (vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) bekend.add(it.next());
-        // Vervolg (stoppen na een rij bekende facturen) alleen als de hele periode al eens is opgehaald
+        JSONObject tt = Facturen.toestand(this.c, this.id);
+        // Een oude website-run kon ten onrechte als volledig zijn opgeslagen: de eerste keer opnieuw controleren.
         this.vervolg = !Facturen.heelPeriode(lev, tt, System.currentTimeMillis(), Regio.zone(this.c));
     }
 
@@ -168,6 +167,10 @@ final class FacturenRun {
 
     @SuppressLint("SetJavaScriptEnabled")
     private void start() {
+        log(FacturenLog.Stap.START, 0);
+        if (!mail && Facturen.toestand(c, id).optInt("lijstPogingVersie") < Facturen.LIJST_VERSIE) {
+            try { Facturen.werkBij(c, id, new JSONObject().put("lijstPogingVersie", Facturen.LIJST_VERSIE).put("heelPogingen", 0)); } catch (Exception ignored) { }
+        }
         if (mail) { startMail(); return; }
         WebSettings s = wv.getSettings();
         s.setJavaScriptEnabled(true);
@@ -213,6 +216,11 @@ final class FacturenRun {
             long nu = System.currentTimeMillis();
             if (stop.get()) { einde(fout("Gestopt", false)); return; }
             paginaUrl = wv.getUrl() == null ? "" : wv.getUrl();
+            if (logFase != fase) {
+                logFase = fase;
+                if (fase == INLOG) log(FacturenLog.Stap.INLOG, 0);
+                if (fase == NAAR) log(FacturenLog.Stap.FACTUREN, 0);
+            }
             if (nu - start > maxDuur) { einde(fout(fase <= INLOG ? "Inloggen duurde te lang" : "Het ophalen duurde te lang", fase <= INLOG)); return; }
             if (fase == DOWNLOAD) { volgendeKnop(); return; }
             if (fase == AFRONDEN) { afronden(); return; }
@@ -353,74 +361,88 @@ final class FacturenRun {
     }
 
     private void zoek() {
-        // Eerst zoveel mogelijk facturen op de pagina laten zien ("Toon meer"), hooguit 15 keer; stoppen als er niets bijkomt
-        if (!meerKlaar && !lev.optString("meer", Facturen.MEER).isEmpty() && meerKlikken < 15) {
-            js("__fr.tel(" + JSONObject.quote(lev.optString("knoppen")) + ")", rt -> {
-                if (fase != ZOEK) return;
-                int n = 0;
-                try { n = Integer.parseInt(str(rt).trim()); } catch (Exception ignored) { }
-                if (meerVorige >= 0 && n <= meerVorige) { meerKlaar = true; verder(300); return; } // de vorige klik gaf niets extra
-                meerVorige = n;
-                js("__fr.meer(" + JSONObject.quote(lev.optString("meer", Facturen.MEER)) + ")", r -> {
-                    if (fase != ZOEK) return;
-                    if (str(r).isEmpty()) { meerKlaar = true; verder(300); return; }
-                    meerKlikken++;
-                    voortgang = "Meer facturen laden (" + meerKlikken + ")…";
-                    verder(2500);
-                });
-            });
-            return;
-        }
-        js("__fr.knoppen(" + JSONObject.quote(lev.optString("knoppen")) + "," + lev.optInt("max", 50) + ")", r -> {
+        if (!lijstGestart) { lijstGestart = true; lijst.wacht(System.currentTimeMillis()); }
+        js("__fr.lijst(" + lijstArgs() + ")", r -> {
             if (fase != ZOEK) return;
             try {
-                JSONArray l = new JSONArray(str(r).isEmpty() ? "[]" : str(r));
-                if (l.length() == 0) {
-                    if (++zoekPogingen >= 6) { einde(fout("Geen downloadknoppen gevonden op de facturenpagina. Pas bij Geavanceerd het patroon voor downloadknoppen aan.", false)); return; }
-                    voortgang = "Facturen zoeken…";
-                    verder(2500); return;
+                JSONObject s = new JSONObject(r.isEmpty() ? "{}" : r);
+                FacturenLijst.Stap stap = lijst.bekijk(s, System.currentTimeMillis());
+                if (stap == FacturenLijst.Stap.WACHT) {
+                    if (!wachtGelogd) { log(FacturenLog.Stap.WACHT, s.optJSONArray("knoppen") == null ? 0 : s.optJSONArray("knoppen").length()); wachtGelogd = true; }
+                    voortgang = "Wachten tot de facturen geladen zijn…";
+                    verder(1000); return;
                 }
-                knoppen = l; knopIndex = 0; lijstUrl = wv.getUrl(); knopSinds = 0;
-                fase = DOWNLOAD;
-                voortgang = l.length() + (l.length() == 1 ? " factuur gevonden" : " facturen gevonden") + ", ophalen…";
-                verder(200);
+                wachtGelogd = false;
+                if (stap == FacturenLijst.Stap.FOUT) { lijstFout(); return; }
+                if (stap == FacturenLijst.Stap.KLAAR) {
+                    log(FacturenLog.Stap.VOLLEDIG, lijst.aantal);
+                    fase = AFRONDEN; afrondenSinds = System.currentTimeMillis(); verder(300); return;
+                }
+                if (stap == FacturenLijst.Stap.MEER || stap == FacturenLijst.Stap.VOLGENDE) {
+                    String soort = stap == FacturenLijst.Stap.MEER ? "meer" : "volgende";
+                    js("__fr.verderLijst(" + lijstArgs() + "," + JSONObject.quote(s.optString("kenmerk")) + "," + JSONObject.quote(soort) + ")", v -> {
+                        if (fase != ZOEK) return;
+                        if (!"ok".equals(v)) { lijst.fout = "gewijzigd"; lijstFout(); return; }
+                        log(stap == FacturenLijst.Stap.MEER ? FacturenLog.Stap.MEER : FacturenLog.Stap.VOLGENDE, lijst.aantal);
+                        lijst.geklikt(stap, s.optString("kenmerk"), System.currentTimeMillis());
+                        if (!lijst.herstellen) lijst.volgendeLijst();
+                        verder(1000);
+                    });
+                    return;
+                }
+                lijstUrl = wv.getUrl(); knopSinds = 0;
+                log(FacturenLog.Stap.LIJST, lijst.knoppen.length());
+                fase = DOWNLOAD; verder(200);
             } catch (Throwable e) { einde(fout("Onverwachte fout: " + Facturen.kort(e), false)); }
         });
+    }
+
+    private String lijstArgs() { return JSONObject.quote(lev.optString("knoppen")) + "," + JSONObject.quote(lev.optString("meer", Facturen.MEER)); }
+
+    private void lijstFout() {
+        FacturenLog.Stap stap;
+        String msg;
+        switch (lijst.fout) {
+            case "limiet": stap = FacturenLog.Stap.LIMIET; msg = "Er zijn meer facturen dan het ingestelde maximum. Verhoog het maximum bij de leverancier en haal de periode opnieuw op."; break;
+            case "herhalen": stap = FacturenLog.Stap.HERHALING; msg = "De website blijft dezelfde factuurlijsten tonen. De periode is nog niet volledig opgehaald."; break;
+            case "herstel": stap = FacturenLog.Stap.HERSTELFOUT; msg = "Teruggaan naar dezelfde factuurlijst lukte niet. De periode is nog niet volledig opgehaald."; break;
+            case "gewijzigd": stap = FacturenLog.Stap.GEWIJZIGD; msg = "De factuurlijst veranderde tijdens het ophalen. De periode is nog niet volledig opgehaald."; break;
+            default: stap = FacturenLog.Stap.LAADFOUT; msg = "De website heeft binnen 30 seconden geen factuurlijst geladen. De periode is nog niet volledig opgehaald."; break;
+        }
+        log(stap, lijst.aantal); einde(fout(msg, false));
     }
 
     private void volgendeKnop() {
         long nu = System.currentTimeMillis();
         if (knopSinds > 0) { // wacht op wat de vorige klik opleverde
-            if (vangsten.get() == vangstenVoor && nu - knopSinds < 12_000) { verder(500); return; }
-            knopSinds = 0; knopIndex++;
+            if (!lijst.ontvangen() && (bezig.get() > 0 || nu - knopSinds < 30_000)) { verder(500); return; }
+            if (!lijst.ontvangen()) downloadFout();
+            knopSinds = 0; lijst.index++;
         }
-        if (knopIndex >= knoppen.length()) { fase = AFRONDEN; afrondenSinds = nu; verder(500); return; }
-        // Vervolg (niet de eerste keer): na 5 al bekende facturen op rij zijn de rest oudere die er al zijn
-        if (vervolg && bekendOpRij >= 5 && bezig.get() == 0) { voortgang = "Alle nieuwe facturen zijn binnen"; fase = AFRONDEN; afrondenSinds = nu; verder(300); return; }
-        // Weggeklikt naar een andere pagina? Eerst terug naar de lijst (en weer "meer" uitklappen).
+        // Eerst terug naar de juiste lijst, ook na de laatste knop van een pagina.
         String nuUrl = wv.getUrl();
-        if (lijstUrl != null && nuUrl != null && !nuUrl.equals(lijstUrl) && terug < 10) {
-            terug++;
+        if (lijstUrl != null && nuUrl != null && !nuUrl.equals(lijstUrl)) {
+            if (++terug > 50) { lijst.fout = "herstel"; lijstFout(); return; }
             if (wv.canGoBack()) wv.goBack(); else wv.loadUrl(lijstUrl);
-            final int uitklappen = meerKlikken;
-            h.postDelayed(() -> klapUit(uitklappen, () -> js("__fr.knoppen(" + JSONObject.quote(lev.optString("knoppen")) + "," + lev.optInt("max", 50) + ")", r -> verder(300))), 4000);
+            log(FacturenLog.Stap.HERSTEL, lijst.index);
+            lijst.herstel(nu); fase = ZOEK; wachtTot = nu + 3000; verder(1000);
             return;
         }
-        JSONObject k = knoppen.optJSONObject(knopIndex);
-        voortgang = "Factuur " + (knopIndex + 1) + " van " + knoppen.length() + " ophalen…";
+        if (bezig.get() > 0) { verder(500); return; }
+        if (lijst.index >= lijst.knoppen.length()) {
+            lijst.paginaKlaar(nu); fase = ZOEK; verder(300); return;
+        }
+        if (!lijst.beginKnop()) { lijstFout(); return; }
+        JSONObject k = lijst.knoppen.optJSONObject(lijst.index);
+        voortgang = Taal.t(c, "Factuur {n} ophalen…", "n", lijst.aantal);
+        log(FacturenLog.Stap.DOWNLOAD, lijst.aantal);
         String href = k == null ? "" : k.optString("href", "");
-        if (!href.isEmpty()) { if (Facturen.eigenSite(href, domeinen)) haal(href, null, lijstUrl); knopIndex++; verder(300); return; } // links naar andere websites: niet
-        vangstenVoor = vangsten.get(); knopSinds = nu;
-        js("__fr.klik(" + (k == null ? -1 : k.optInt("i")) + ")", null);
-        verder(800);
-    }
-
-    /** Na het teruggaan naar de lijst: weer zo vaak op "meer" klikken als de eerste keer, zodat de knoppen kloppen. */
-    private void klapUit(int n, Runnable daarna) {
-        if (n <= 0 || fase == KLAAR) { daarna.run(); return; }
-        js("__fr.meer(" + JSONObject.quote(lev.optString("meer", Facturen.MEER)) + ")", r -> {
-            if (str(r).isEmpty()) { daarna.run(); return; }
-            h.postDelayed(() -> klapUit(n - 1, daarna), 2500);
+        if (!href.isEmpty()) { if (Facturen.eigenSite(href, domeinen)) haal(href, null, lijstUrl); else downloadFouten.incrementAndGet(); lijst.index++; verder(300); return; }
+        knopSinds = nu;
+        js("__fr.klik(" + (k == null ? -1 : k.optInt("i")) + "," + JSONObject.quote(k == null ? "" : k.optString("sleutel")) + "," + lijst.downloadToken + ")", v -> {
+            if (fase != DOWNLOAD) return;
+            if (!"ok".equals(v)) { lijst.fout = "gewijzigd"; lijstFout(); return; }
+            verder(800);
         });
     }
 
@@ -430,6 +452,7 @@ final class FacturenRun {
         try {
             if (pdfs.isEmpty()) r = fout(geenPdf.get() > 0 ? "Op de downloadknoppen kwam geen PDF terug (wel een webpagina). Pas bij Geavanceerd het patroon of de facturenpagina aan."
                     : "Op de downloadknoppen kwam geen PDF terug", false);
+            else if (downloadFouten.get() > 0 || geenPdf.get() > 0 || bezig.get() > 0) r = fout("Niet alle downloadknoppen leverden een PDF op. De periode is nog niet volledig opgehaald.", false);
             else r.put("ok", true);
         } catch (Exception ignored) { }
         einde(r);
@@ -439,76 +462,111 @@ final class FacturenRun {
 
     void opDownload(String url, String cd) {
         if (url == null) return;
-        vangsten.incrementAndGet();
-        if (url.startsWith("blob:")) { js("__fr.blob(" + JSONObject.quote(url) + "," + JSONObject.quote(Facturen.naamUitDisposition(cd)) + ")", null); return; }
-        if (url.startsWith("data:")) { opData(url, Facturen.naamUitDisposition(cd)); return; }
-        haal(url, cd, wv.getUrl());
+        if (url.startsWith("blob:") || url.startsWith("data:")) { js("__fr.blob(" + JSONObject.quote(url) + "," + JSONObject.quote(Facturen.naamUitDisposition(cd)) + ")", null); return; }
+        final String ref = wv.getUrl();
+        js("__fr.downloadToken(" + JSONObject.quote(url) + ")", r -> {
+            if (fase == KLAAR) return;
+            try { haal(url, cd, ref, Integer.parseInt(r)); } catch (Exception ignored) { downloadFout(); }
+        });
     }
 
-    void opData(String dataUrl, String naam) {
+    void opData(String dataUrl, String naam, int token) {
+        if (klaarGemeld) return;
         try {
             int i = dataUrl.indexOf(',');
-            if (i < 0 || dataUrl.length() > 21_000_000 || !dataUrl.substring(0, i).contains(";base64")) return;
+            if (i < 0 || dataUrl.length() > 21_000_000 || !dataUrl.substring(0, i).contains(";base64")) { downloadFout(); return; }
             byte[] b = android.util.Base64.decode(dataUrl.substring(i + 1), android.util.Base64.DEFAULT);
-            neem(b, naam, null);
-        } catch (Throwable ignored) { }
+            if (!neem(b, naam, null)) { geenPdf.incrementAndGet(); downloadFout(); }
+        } catch (Throwable ignored) { downloadFout(); }
+        finally { lijst.resultaat(token); } // alleen het resultaat van de bijbehorende knop kan die knop afronden
     }
 
+    private void downloadFout() { if (!klaarGemeld) log(FacturenLog.Stap.DOWNLOADFOUT, downloadFouten.incrementAndGet()); }
+
     void haal(String url, String cd, String referer) {
-        if (url == null || !url.matches("(?i)https://.*")) return; // alleen https
+        haal(url, cd, referer, lijst.downloadToken);
+    }
+
+    private void haal(String url, String cd, String referer, int token) {
+        if (url == null || !url.matches("(?i)https://.*")) { downloadFout(); return; }
         synchronized (opgehaald) { if (!opgehaald.add(url)) return; }
         bezig.incrementAndGet();
         final String ref = referer;
         net.execute(() -> {
-            try { haalNu(url, cd, ref); } catch (Throwable ignored) { } finally { bezig.decrementAndGet(); }
+            try { if (!haalPdf(url, cd, ref, ua, new WebBron(this))) downloadFout(); }
+            catch (Throwable ignored) { downloadFout(); }
+            finally { lijst.resultaat(token); bezig.decrementAndGet(); }
         });
     }
 
-    private void haalNu(String url, String cd, String referer) throws Exception {
-        CookieManager cm = CookieManager.getInstance();
+    interface DownloadBron {
+        HttpURLConnection open(String url) throws Exception;
+        String cookie(String url);
+        void zetCookie(String url, String waarde);
+        boolean neem(byte[] data, String naam, String url);
+        void status(int code);
+    }
+
+    static final class WebBron implements DownloadBron {
+        final FacturenRun r;
+        final CookieManager cm = CookieManager.getInstance();
+        WebBron(FacturenRun r) { this.r = r; }
+        public HttpURLConnection open(String u) throws Exception { return (HttpURLConnection) new URL(u).openConnection(); }
+        public String cookie(String u) { return cm.getCookie(u); }
+        public void zetCookie(String u, String waarde) { cm.setCookie(u, waarde); }
+        public boolean neem(byte[] b, String naam, String u) {
+            boolean ok = r.neem(b, naam, u);
+            if (!ok) r.geenPdf.incrementAndGet();
+            return ok;
+        }
+        public void status(int code) { r.log(FacturenLog.Stap.HTTP, code); }
+    }
+
+    /** Elk pad geeft alleen true terug nadat PDF-bytes zijn aangenomen; ook HTTP-fouten en redirectlussen tellen mee. */
+    static boolean haalPdf(String url, String cd, String referer, String ua, DownloadBron bron) throws Exception {
         String u = url;
         for (int hop = 0; hop < 6; hop++) {
-            HttpURLConnection h = (HttpURLConnection) new URL(u).openConnection();
+            if (!u.matches("(?i)https://.*")) return false;
+            HttpURLConnection h = bron.open(u);
             try {
                 h.setInstanceFollowRedirects(false);
                 h.setConnectTimeout(20_000); h.setReadTimeout(60_000);
                 h.setRequestProperty("User-Agent", ua);
                 h.setRequestProperty("Accept", "application/pdf,*/*");
-                String ck = cm.getCookie(u);
+                String ck = bron.cookie(u);
                 if (ck != null) h.setRequestProperty("Cookie", ck);
                 if (referer != null && Facturen.host(referer).equals(Facturen.host(u))) h.setRequestProperty("Referer", referer);
                 int code = h.getResponseCode();
+                bron.status(code);
                 List<String> zet = h.getHeaderFields().get("Set-Cookie");
-                if (zet != null) for (String z : zet) cm.setCookie(u, z);
+                if (zet != null) for (String z : zet) bron.zetCookie(u, z);
                 if (code >= 300 && code < 400 && h.getHeaderField("Location") != null) {
                     u = new URL(new URL(u), h.getHeaderField("Location")).toString();
-                    if (!u.matches("(?i)https://.*")) return;
                     continue;
                 }
-                if (code >= 400) return;
+                if (code < 200 || code >= 300) return false;
                 byte[] b;
                 try (InputStream in = h.getInputStream()) { b = Facturen.lees(in, Facturen.MAX_PDF); }
                 String naam = Facturen.naamUitDisposition(h.getHeaderField("Content-Disposition"));
                 if (naam.isEmpty()) naam = Facturen.naamUitDisposition(cd);
-                if (!neem(b, naam, u)) geenPdf.incrementAndGet();
-                return;
+                return bron.neem(b, naam, u);
             } finally { h.disconnect(); }
         }
+        return false;
     }
 
     /** Een binnengekomen bestand: alleen echte PDF's tellen. */
     boolean neem(byte[] b, String naam, String url) {
-        if (!Facturen.isPdf(b)) return false;
+        if (klaarGemeld || !Facturen.isPdf(b)) return false;
         try {
             String sha = Facturen.sha(b);
             synchronized (pdfs) {
                 if (!pdfs.containsKey(sha)) {
-                    if (bekend.contains(sha)) bekendOpRij++; else bekendOpRij = 0;
                     JSONObject bron = new JSONObject().put("site", domein).put("url", url == null ? "" : url.replaceAll("[?#].*$", "")).put("pagina", paginaUrl == null ? "" : paginaUrl.replaceAll("[?#].*$", ""));
                     pdfs.put(sha, new Facturen.Pdf(b, Facturen.bestandsnaam(naam, url, lev.optString("naam"), sha), sha, null, bron));
                 }
             }
-            vangsten.incrementAndGet();
+            log(FacturenLog.Stap.PDF, pdfs.size());
             return true;
         } catch (Exception e) { return false; }
     }
@@ -525,6 +583,7 @@ final class FacturenRun {
     void einde(JSONObject r) {
         if (klaarGemeld) return;
         klaarGemeld = true;
+        log(r.optBoolean("ok") ? FacturenLog.Stap.OPSLAAN : "Gestopt".equals(r.optString("msg")) ? FacturenLog.Stap.STOP : FacturenLog.Stap.FOUT, lijst.aantal);
         fase = KLAAR;
         stop.set(true);
         h.removeCallbacksAndMessages(null);
@@ -560,16 +619,21 @@ final class FacturenRun {
                     t.put("lastOk", nu).put("nieuw", uit.optInt("nieuw"));
                     // De hele periode is nu opgehaald (bij mail pas als er niets meer klaarstaat)
                     boolean mailMeer = mail && Facturen.toestand(c, id).optBoolean("mailMeer");
-                    if (uit.optBoolean("heel") && !mailMeer) t.put("gedekt", uit.optLong("vanaf")).put("heelPogingen", 0);
+                    if (uit.optBoolean("heel") && !mailMeer && (mail || this.lijst.volledig)) {
+                        t.put("gedekt", uit.optLong("vanaf")).put("heelPogingen", 0);
+                        if (!mail) t.put("lijstVersie", Facturen.LIJST_VERSIE);
+                    }
                 } else if (!vervolg) {
                     t.put("heelPogingen", Facturen.toestand(c, id).optInt("heelPogingen") + 1); // de hele periode lukte niet
                 }
                 Facturen.werkBij(c, id, t);
+                log(uit.optBoolean("ok") ? FacturenLog.Stap.KLAAR : FacturenLog.Stap.FOUT, uit.optInt("nieuw"));
                 Facturen.logRun(c, id, new JSONObject().put("t", nu).put("ok", uit.optBoolean("ok")).put("msg", uit.optString("msg"))
                         .put("nieuw", uit.optInt("nieuw")).put("namen", uit.optJSONArray("namen") == null ? new JSONArray() : uit.optJSONArray("namen"))
-                        .put("auto", !zichtbaar && klaarAuto));
+                        .put("auto", !zichtbaar && klaarAuto).put("diagnose", spoor.json()));
                 if (!uit.optBoolean("ok")) App.log(c, "FACTUREN", lev.optString("naam") + ": " + uit.optString("msg"));
             } catch (Throwable e) {
+                log(FacturenLog.Stap.FOUT, 0);
                 try { uit = fout("Bewaren mislukt: " + Facturen.kort(e), false).put("id", id).put("naam", lev.optString("naam")); } catch (Exception ignored) { }
                 Facturen.werkBij(c, id, uit);
             } finally {
@@ -587,10 +651,16 @@ final class FacturenRun {
 
     // ================= hulp =================
 
+    private void log(FacturenLog.Stap stap, int aantal) {
+        spoor.voeg(stap, System.currentTimeMillis(), lijst.pad.size(), aantal);
+        try { Facturen.werkBij(c, id, new JSONObject().put("diagnose", spoor.json())); } catch (Exception ignored) { }
+    }
+
     private void js(String expr, android.webkit.ValueCallback<String> cb) {
         if (wv == null || (fase == KLAAR && cb != null)) return;
         try {
-            wv.evaluateJavascript(robot(c).replace("__SLEUTEL__", sleutel) + "\n;" + expr, v -> { if (cb != null) cb.onReceiveValue(str(v)); });
+            wv.evaluateJavascript(robot(c).replace("__SLEUTEL__", sleutel).replace("__DOWNLOAD_TOKEN__", String.valueOf(lijst.downloadToken)) + "\n;" + expr,
+                    v -> { if (cb != null) cb.onReceiveValue(str(v)); });
         } catch (Throwable e) { if (cb != null) cb.onReceiveValue(""); }
     }
 
@@ -657,10 +727,10 @@ final class FacturenRun {
     static final class Brug {
         final FacturenRun r;
         Brug(FacturenRun r) { this.r = r; }
-        @JavascriptInterface public void blob(String sleutel, String dataUrl, String naam) {
+        @JavascriptInterface public void blob(String sleutel, String dataUrl, String naam, int token) {
             if (r.fase < ZOEK || r.fase == KLAAR || dataUrl == null) return; // alleen tijdens het ophalen
             if (!r.sleutel.equals(sleutel) || !Facturen.eigenSite(r.paginaUrl, r.domeinen)) return; // alleen van onze robot, op de eigen website
-            r.opData(dataUrl, naam == null ? "" : naam);
+            r.opData(dataUrl, naam == null ? "" : naam, token);
         }
     }
 }
