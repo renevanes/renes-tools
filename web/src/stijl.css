@@ -908,6 +908,23 @@ body.has-plbar .aicomp{bottom:calc(84px + env(safe-area-inset-bottom))}
 .sl-probe{margin:0}.sl-probe.on{color:var(--primary);font-weight:600}
 #sl-probe{margin:0}
 .sl-clip.gsflash{box-shadow:0 0 0 3px var(--chip-on);transition:box-shadow .3s}
+/* Slaappraat-instellingen: keuzelijst met uitleg eronder, en Geavanceerd ingeklapt */
+.sl-opt{padding:10px 0 12px;border-top:1px solid var(--line)}.sl-opt:first-of-type{border-top:0;padding-top:2px}
+.sl-optrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sl-optrow>label{flex:1;min-width:0;color:var(--ink);font-size:15px;overflow-wrap:anywhere}
+.sl-optrow>.sel{flex:0 1 auto;max-width:58%;min-width:0;text-overflow:ellipsis}
+.sl-optrow.wide{flex-direction:column;align-items:stretch;gap:8px}.sl-optrow.wide>.sel{max-width:none;width:100%}
+.sl-opt>.hint{margin:6px 0 0}
+details.sl-adv{margin:4px 0 16px}
+details.sl-adv>summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:56px;padding:12px 18px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);color:var(--ink);cursor:pointer}
+details.sl-adv>summary::-webkit-details-marker{display:none}
+details.sl-adv>summary:active{background:var(--hi)}
+.sl-advt{flex:1;min-width:0}.sl-advh{display:block;font-size:15px;font-weight:650}.sl-advt small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.sl-advchev{flex:none;width:20px;height:20px;color:var(--muted);transition:transform .15s}
+details.sl-adv[open]>summary{margin-bottom:16px}details.sl-adv[open] .sl-advchev{transform:rotate(180deg)}
+.sl-hintbar{width:100%;text-align:left;margin:0 0 16px;cursor:pointer;color:inherit;font:inherit}
+#sls-reset{margin:0}
+#sl-quietrow{flex-direction:column;align-items:flex-start;gap:6px}#sl-quietrow .mini{margin:0}
 /* ---------- Check-in ---------- */
 /* Kleuren per vraag: een rol per kleur, met een eigen tint in donker (net als --primary) */
 :root{--ci-blue:#1E5AA8;--ci-blue-on:#FFFFFF;--ci-green:#2E7D32;--ci-green-on:#FFFFFF;--ci-orange:#A65300;--ci-orange-on:#FFFFFF;

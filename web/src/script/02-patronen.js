@@ -36,6 +36,8 @@ function uiHtml(el, html){
 /* Uitklappers: de schermlezer hoort "ingeklapt"/"uitgeklapt" (aria-expanded op de summary). */
 function uiHelpSync(d){ const s = d && d.querySelector(':scope > summary'); if (s) s.setAttribute('aria-expanded', d.open ? 'true' : 'false'); }
 document.addEventListener('toggle', e => { const d = e.target; if (d && d.tagName === 'DETAILS' && d.matches('.help, .setup')) uiHelpSync(d); }, true);
+/** Ingeklapte blokken (<details>, bijv. Geavanceerd) rond el openklappen, zodat zoeken en de assistent het kunnen aanwijzen. */
+function uiOpenTo(el){ for (let d = el && el.closest('details'); d; d = d.parentElement && d.parentElement.closest('details')) if (!d.open) { d.open = true; uiHelpSync(d); } }
 /** Knoppen in de kop: schuifjes (instellingen van de tool) krijgen hun pictogram en openen hun scherm. */
 function uiPatterns(root){
   (root || document).querySelectorAll('button.hset[data-to]').forEach(b => {
