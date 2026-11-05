@@ -1,2 +1,0 @@
-PDF: nieuwe indeling met tegels per taak in plaats van één lange lijst; recente PDF's bovenaan, elke taak (bewerken en ondertekenen, plaatjes, splitsen, tekst) op een eigen scherm.
-PDF-viewer: "Tekst of handtekening toevoegen" opent nu meteen de bewerker (met de nieuwe APK).
