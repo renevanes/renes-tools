@@ -28,6 +28,12 @@ public final class MasterIdentityTest {
         check(MasterSchema.permitted("formulieren","kind","profiel").isEmpty()&&MasterSchema.permitted("formulieren","kind","relatie").isEmpty(),"geen volledig profiel of relatie als formulierbron");
         JSONObject request=PdfFormAssist.request(new JSONObject().put("fields",new JSONArray().put(PdfFormAssistTest.field("begeleider1-relatie","text","begeleider1","relatie"))).put("sources",new JSONArray().put(new JSONObject().put("id","relation").put("label","Vastgelegde relatie").put("role","begeleider1").put("type","relatiecontext").put("fields",new JSONObject().put("relatie","ouder")))).put("text","").toString());
         check(PdfFormAssist.resolve(request,"{\"velden\":[{\"id\":\"begeleider1-relatie\",\"bron\":\"relation\",\"sleutel\":\"relatie\"}]}").getJSONObject(0).getString("value").equals("ouder"),"lokale AI gebruikt gecontroleerde relatiebron");
+        JSONArray family=new JSONArray();String longNote=new String(new char[240]).replace('\0','x');
+        for(int i=0;i<8;i++)family.put(new JSONObject().put("id","uuid-"+i).put("name","Gezinslid "+i).put("callname","Gezinslid "+i).put("relations",new JSONArray().put("kind")).put("context",longNote).put("detail",longNote));
+        JSONObject large=new JSONObject().put("self",new JSONObject().put("name","Ada").put("context",longNote)).put("context",longNote).put("people",family);
+        String familyPrompt=MasterIdentity.prompt(large,1200);JSONObject data=new JSONObject(familyPrompt.substring(familyPrompt.indexOf('{')));
+        check(data.getJSONArray("people").length()==8,"alle gezinsnamen en relaties krijgen voorrang op lange context");check(data.toString().length()<=1200&&!data.toString().contains("uuid-"),"begrensde AI-context zonder onnodige identifiers");
+        String small=MasterIdentity.prompt(large,350);JSONObject limited=new JSONObject(small.substring(small.indexOf('{')));check(limited.getJSONArray("people").length()+limited.getInt("more")==8,"onvolledige gezinslijst expliciet aangeduid");
         System.out.println("Profiel, delen, gerichte relaties en veilige AI-context gecontroleerd");
     }
 }
