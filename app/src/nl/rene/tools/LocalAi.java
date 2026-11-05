@@ -667,14 +667,18 @@ final class LocalAi {
     }
 
     static String systemPrompt(Context c, int ctx, List<String> mem, String note) {
+        return systemPrompt(c,ctx,mem,note,MasterAppContext.read(c));
+    }
+    static String systemPrompt(Context c, int ctx, List<String> mem, String note,JSONObject appIdentity) {
         boolean en = Taal.en(c);
         java.text.SimpleDateFormat todayF = new java.text.SimpleDateFormat("EEEE d MMMM yyyy", en ? Locale.UK : new Locale("nl", "NL"));
         todayF.setTimeZone(Regio.zone(c)); // vandaag in de app-zone (Regio en taal); in de taal van de opdracht
         String today = todayF.format(new java.util.Date());
         String[] p = persFit(cfg(c, "about"), cfg(c, "instr"), ctx);
+        String identity="";try{identity=MasterIdentity.prompt(appIdentity,Math.min(1800,Math.max(400,ctx/3)));}catch(Exception ignored){ }
         // App in het Engels (Regio en taal): de opdracht aan het model en de antwoorden in het Engels
-        if (en) return buildSystemEn(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1], mem, note);
-        return buildSystem(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1], mem, note);
+        if (en) return buildSystemEn(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1], mem, note)+identity;
+        return buildSystem(today, cfg(c, "style"), cfg(c, "lang"), p[0], p[1], mem, note)+identity;
     }
 
     /** Wat er met het geheugen gebeurde, voor het model (zodat het dat kort bevestigt). Zuiver (getest). */
@@ -869,7 +873,8 @@ final class LocalAi {
             // Per gesprek steeds dezelfde herinneringen (vast vanaf de eerste vraag): dan blijft de vaste instructie
             // gelijk en hoeft de motor het gesprek niet opnieuw in te lezen. Wat intussen weg is, gaat er wel uit.
             List<String> mem = memOn ? memFor(chatId, AiMemory.pairs(c), AiMemory.limit(m.ctx)) : null;
-            String sys = systemPrompt(c, m.ctx, mem, "");
+            JSONObject appIdentity=MasterAppContext.read(c);
+            String sys = systemPrompt(c, m.ctx, mem, "",appIdentity);
             final int memUsed = mem == null ? 0 : mem.size();
             // Acties (notitie, herinnering, agenda): alleen als de vraag erom lijkt te vragen; nooit bij "onthoud …" (dat is
             // het geheugen) of bij een samenvatting van een gesprek. Ze gebeuren pas als je onder het antwoord op de knop tikt.
@@ -883,6 +888,7 @@ final class LocalAi {
             final boolean setWanted = setOffer != null && !setOffer.isEmpty();
             // Niet leren bij een actie ("herinner me …" is geen feit over jou) of als er berichten van anderen in het gesprek staan
             boolean learnWanted = learnAllowed(memOn, req.optBoolean("noLearn"), hasAtt, actWanted || setWanted, remember, forgetWhat, cfg(c, "learn"), question);
+            if(appIdentity.has("self"))learnWanted=false; // dezelfde contextsnapshot als in de prompt, niet nogmaals als AI-geheugen leren
             JSONArray msgs = new JSONArray().put(new JSONObject().put("role", "system").put("content", sys));
             int from = Math.max(0, in.length() - historyFor(cfg(c, "history")));
             int attAt = -1;

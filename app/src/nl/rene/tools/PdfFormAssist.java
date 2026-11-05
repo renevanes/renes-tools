@@ -40,7 +40,7 @@ final class PdfFormAssist {
         for(int i=0;i<sources.length();i++){
             JSONObject s=sources.getJSONObject(i);String id=s.getString("id"),label=s.getString("label"),role=s.getString("role"),type=s.getString("type");
             if(!id.matches("[a-zA-Z0-9-]{1,80}")||!ids.add(id)||label.length()>120)throw invalid();
-            Set<String> allowed=MasterSchema.permitted("formulieren",role,type);JSONObject values=s.getJSONObject("fields"),out=new JSONObject();Iterator<String> keys=values.keys();int count=0;
+            MasterSchema.context("formulieren",role);Set<String> allowed="relatiecontext".equals(type)&&role.startsWith("begeleider")?new HashSet<>(Arrays.asList("relatie")):MasterSchema.permitted("formulieren",role,type);JSONObject values=s.getJSONObject("fields"),out=new JSONObject();Iterator<String> keys=values.keys();int count=0;
             while(keys.hasNext()){
                 String key=keys.next();Object value=values.get(key);if(++count>30||!allowed.contains(key)||!(value instanceof String)||((String)value).length()>240)throw invalid();
                 if(!((String)value).trim().isEmpty())out.put(key,((String)value).trim());

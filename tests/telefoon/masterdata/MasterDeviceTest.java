@@ -29,6 +29,7 @@ public final class MasterDeviceTest extends Instrumentation {
         private final File files;
         Isolated(Context base,File files){super(base);this.files=files;}
         @Override public File getFilesDir(){return files;}
+        @Override public File getNoBackupFilesDir(){File dir=new File(files,"nobackup");dir.mkdirs();return dir;}
     }
     interface Checked {void run()throws Exception;}
     static void check(boolean ok,String reason){if(!ok)throw new AssertionError(reason);}
@@ -62,6 +63,34 @@ public final class MasterDeviceTest extends Instrumentation {
             complete.invoke(ctor.newInstance(activity,"old-private-view",8L,false),0L);check(screen.getBoolean(activity),"wrong view cannot release protection");
         }catch(Throwable e){problem[0]=e;}finally{activity.finish();}});if(problem[0]!=null)throw new Exception(problem[0]);
     }
+    void photoAndProfileChecks(JSONObject identity,String docId,String me)throws Exception {
+        android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(1800,1000,android.graphics.Bitmap.Config.ARGB_8888);bitmap.eraseColor(android.graphics.Color.BLUE);
+        java.io.ByteArrayOutputStream original=new java.io.ByteArrayOutputStream();bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,original);bitmap.recycle();
+        String image=(String)call(type("MasterPhotos"),null,"normalize",new Class<?>[]{java.io.InputStream.class},new java.io.ByteArrayInputStream(original.toByteArray()));
+        byte[] jpeg=android.util.Base64.decode(image.substring(image.indexOf(',')+1),android.util.Base64.DEFAULT);check(jpeg.length<=256000,"bounded reencoded image");
+        android.graphics.BitmapFactory.Options bounds=new android.graphics.BitmapFactory.Options();bounds.inJustDecodeBounds=true;android.graphics.BitmapFactory.decodeByteArray(jpeg,0,jpeg.length,bounds);check(bounds.outWidth<=1600&&bounds.outHeight<=1600,"bounded image dimensions");
+        Class<?>[] sig={String.class,long.class,String.class,String.class,boolean.class};
+        operation("photo",sig,docId,1L,"front",image,false);operation("photo",sig,docId,2L,"back",image,false);
+        JSONObject read=operation("read",new Class<?>[]{String.class,String.class,String.class},docId,"masterdata","").getJSONObject("record");check(read.getJSONObject("images").getBoolean("front")&&read.getJSONObject("images").getBoolean("back")&&!read.toString().contains("base64"),"editor receives presence flags only");
+        JSONObject consumer=operation("read",new Class<?>[]{String.class,String.class,String.class},docId,"formulieren","kind").getJSONObject("record");check(!consumer.has("images")&&!consumer.toString().contains("base64"),"consumer receives no image data");
+        identity.put("revision",3).put("images",new JSONObject().put("front","INJECTED"));identity.getJSONObject("fields").put("afgegevenDoor","Testgemeente");save(identity);
+        check(operation("photo",sig,docId,4L,"front",null,true).getString("image").equals(image),"text saves preserve native photos and ignore incoming image fields");
+        rejected(()->operation("photo",sig,docId,1L,"front",null,false));
+        Class<?> commit=type("MasterStore$Commit");Object cancel=java.lang.reflect.Proxy.newProxyInstance(commit.getClassLoader(),new Class<?>[]{commit},(proxy,m,args)->{throw new Exception("cancelled");});
+        rejected(()->operation("photo",new Class<?>[]{String.class,long.class,String.class,String.class,boolean.class,commit},docId,4L,"front",null,false,cancel));check(operation("photo",sig,docId,4L,"front",null,true).getString("image").equals(image),"cancelled import transaction rolls back");
+        operation("photo",sig,docId,4L,"back",null,false);check(operation("photo",sig,docId,5L,"back",null,true).getString("image").isEmpty(),"delete side");
+        check(!new String(read(dbFile),"ISO-8859-1").contains(image.substring(0,80)),"photos encrypted at rest");
+        JSONObject child=new JSONObject().put("type","persoon").put("label","Testkind").put("fields",new JSONObject().put("naam","Testkind"));String kid=save(child).getJSONObject("record").getString("id");
+        JSONObject relation=new JSONObject().put("type","relatie").put("label","Testrelatie").put("fields",new JSONObject().put("vanPersoon",me).put("naarPersoon",kid).put("relatie","kind").put("delen","ja"));save(relation);
+        check(operation("formRelation",new Class<?>[]{String.class,String.class,String.class},kid,me,"begeleider1").getString("relation").equals("ouder"),"form uses explicitly stored reverse relationship");
+        JSONObject profile=new JSONObject().put("type","profiel").put("label","Testprofiel").put("fields",new JSONObject().put("persoon",me).put("delen","ja"));JSONObject saved=save(profile).getJSONObject("record");profile.put("id",saved.getString("id")).put("revision",1);
+        operation("refreshContext",new Class<?>[]{});Class<?> cache=type("MasterAppContext");JSONObject shared=(JSONObject)call(cache,null,"read",new Class<?>[]{Context.class},context);check(shared.has("self")&&shared.getJSONArray("people").length()==1&&!shared.toString().contains("123456782")&&!shared.toString().contains("DOC123456"),"limited profile context");
+        File cacheFile=new File(context.getNoBackupFilesDir(),"app-identiteit.bin");check(cacheFile.isFile()&&!new String(read(cacheFile),"ISO-8859-1").contains("SecretTestPerson"),"shared context is encrypted outside backups");
+        rejected(()->save(new JSONObject().put("type","profiel").put("label","Duplicaat").put("fields",profile.getJSONObject("fields"))));
+        profile.getJSONObject("fields").put("delen","nee");save(profile);check(!((JSONObject)call(cache,null,"read",new Class<?>[]{Context.class},context)).has("self"),"sharing revoked before save completes");
+        operation("refreshContext",new Class<?>[]{});check(!cacheFile.exists(),"revoked cache remains absent after refresh");
+        call(cache,null,"reset",new Class<?>[]{Context.class},context);
+    }
     void runChecks()throws Exception {
         store=type("MasterStore");sessionType=type("MasterSession");keys=type("MasterKeys");
         // Stop op een installatie met echte centrale gegevens; uitsluitend geisoleerde testopslag.
@@ -79,7 +108,8 @@ public final class MasterDeviceTest extends Instrumentation {
         rejected(()->operation("use",new Class<?>[]{String.class,long.class,String.class,String.class,JSONArray.class,boolean.class},id,1L,"formulieren","kind",new JSONArray().put("bsn"),false));
         operation("use",new Class<?>[]{String.class,long.class,String.class,String.class,JSONArray.class,boolean.class},id,1L,"formulieren","kind",new JSONArray().put("bsn"),true);
         save(person);rejected(()->save(person)); // stale revision cannot overwrite or append an audit event
-        JSONObject identity=new JSONObject().put("type","identiteit").put("label","Test document").put("fields",new JSONObject().put("persoon",id).put("document","DOC123456").put("geldig","2030-06-30"));save(identity);
+        JSONObject identity=new JSONObject().put("type","identiteit").put("label","Test document").put("fields",new JSONObject().put("persoon",id).put("document","DOC123456").put("geldig","2030-06-30"));JSONObject docSaved=save(identity).getJSONObject("record");String docId=docSaved.getString("id");identity.put("id",docId).put("revision",1);
+        photoAndProfileChecks(identity,docId,id);
         rejected(()->operation("delete",new Class<?>[]{String.class,long.class},id,2L));
         JSONObject audit=operation("audit",new Class<?>[]{long.class},0L);check(!audit.getJSONArray("events").toString().contains("123456782"),"audit has field names without field values");
         // Transaction rollback when the session is withdrawn during work.
