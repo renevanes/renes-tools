@@ -1,25 +1,82 @@
-/* ---------- Startscherm: groepen, volgorde, verbergen ---------- */
-const HOME_DEFAULT = { grouped: true, compact: false, hidden: [], groups: [
-  { name: 'Telefoon', tools: ['skin'] },
+/* ---------- Startscherm: groepen, volgorde, verbergen ----------
+ * Indeling 2 (v: 2): "Handig" verdeeld over Documenten & geld, Dag & gezondheid, Onderweg en Slim; de groep
+ * Telefoon (alleen de skin) is weg. Een nieuwe tool hoort in HOME_DEFAULT; homeCfg zet hem bij Rene in die groep. */
+const HOME_LAYOUT = 2;
+const HOME_OLD_HANDIG = ['ai', 'notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'loc', 'auto', 'sleep', 'checkin', 'apparaten', 'facturen', 'bank', 'masterdata', 'gebruik'];
+const HOME_DEFAULT = { v: HOME_LAYOUT, grouped: true, compact: false, hidden: [], groups: [
   { name: 'Bellen & contacten', tools: ['redial', 'calls', 'contacts', 'recorder', 'transcripts'] },
   { name: 'Berichten & backup', tools: ['backup', 'wa', 'sms', 'history'] },
   { name: 'Muziek & radio', tools: ['radio', 'podcasts', 'spotify', 'music'] },
-  { name: 'Handig', tools: ['ai', 'notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'loc', 'auto', 'sleep', 'checkin', 'apparaten', 'facturen', 'bank', 'masterdata'] } ] };
+  { name: 'Documenten & geld', tools: ['pdf', 'kluis', 'facturen', 'bank', 'masterdata'] },
+  { name: 'Dag & gezondheid', tools: ['checkin', 'sleep', 'gebruik'] },
+  { name: 'Onderweg', tools: ['tracks', 'car', 'loc', 'vpn'] },
+  { name: 'Slim', tools: ['ai', 'notes', 'auto', 'apparaten', 'skin'] } ] };
+/* De oude standaardindeling (indeling 1, tot en met versie 1.149), met per groep de lijsten die de app ooit als standaard
+ * had (uit de geschiedenis van dit bestand). Gebruik stond er nooit in en kwam vanzelf achteraan in Handig. */
+const HOME_OLD = [
+  { name: 'Bellen & contacten', tools: ['redial', 'calls', 'contacts', 'recorder', 'transcripts'], was: [['redial', 'calls', 'contacts', 'transcripts']] },
+  { name: 'Berichten & backup', tools: ['backup', 'wa', 'sms', 'history'], was: [['backup', 'wa', 'sms']] },
+  { name: 'Muziek & radio', tools: ['radio', 'podcasts', 'spotify', 'music'], was: [['radio', 'music'], ['radio', 'podcasts', 'music']] },
+  { name: 'Handig', tools: HOME_OLD_HANDIG,
+    was: [['notes', 'tracks'], ['notes', 'tracks', 'auto'], ['notes', 'tracks', 'car', 'auto'], ['notes', 'tracks', 'car', 'kluis', 'auto'], ['notes', 'pdf', 'tracks', 'car', 'kluis', 'auto'],
+      ['notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'auto'], ['notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'loc', 'auto']].concat([9, 10, 11, 12, 13, 14, 15].map(n => HOME_OLD_HANDIG.slice(0, n))) } ];
 const TOOL_TILE = {}; Object.keys(TILE_TOOL).forEach(id => TOOL_TILE[TILE_TOOL[id]] = id);
-function homeCfg(){
-  let c = store.get('home', null);
-  if (!c || !Array.isArray(c.groups)) c = JSON.parse(JSON.stringify(HOME_DEFAULT));
-  c.hidden = Array.isArray(c.hidden) ? c.hidden : [];
-  c.fav = Array.isArray(c.fav) ? c.fav.filter((tk, i, a) => TOOL_TILE[tk] && a.indexOf(tk) === i) : []; // favorieten: bovenaan
-  // Onbekende tools weghalen, nieuwe tools (uit een update) toevoegen aan de laatste groep
-  const known = Object.keys(TOOL_TILE), seen = new Set();
-  c.groups.forEach(g => { g.tools = (g.tools || []).filter(tk => known.includes(tk) && !seen.has(tk) && seen.add(tk)); });
+const homeCopy = o => JSON.parse(JSON.stringify(o));
+/** Is deze bewaarde indeling (nog) de oude standaard? Dan heeft Rene groepen, volgorde en verborgen tools nooit aangepast.
+ * Wat de oude homeCfg zelf deed telt niet als aanpassing: de groep Telefoon die er vanzelf bovenaan bij kwam, en per groep
+ * een standaardlijst van toen met daarachter de tools die er later vanzelf bij kwamen (in de volgorde van de tegels of van
+ * de standaard). Bij twijfel: niet de oude standaard (dan blijft alles zoals het is; Standaard herstellen kan altijd). */
+function homeIsOld(s, known){
+  if (!s || !Array.isArray(s.groups) || (s.v || 1) >= HOME_LAYOUT) return false;
+  const kn = tk => known.includes(tk);
+  if ((Array.isArray(s.hidden) ? s.hidden : []).some(kn)) return false;
+  let gs = s.groups.map(g => ({ name: g && g.name, tools: (g && Array.isArray(g.tools) ? g.tools : []).filter(kn) }));
+  if (gs.length && gs[0].name === 'Telefoon' && gs[0].tools.every(tk => tk === 'skin')) gs = gs.slice(1);
+  if (gs.length !== HOME_OLD.length || gs.some((g, i) => g.name !== HOME_OLD[i].name)) return false;
+  const tiles = Object.values(TILE_TOOL);
+  return gs.every((g, i) => {
+    const o = HOME_OLD[i];
+    return [o.tools].concat(o.was).some(h => {
+      h = h.filter(kn);
+      if (g.tools.length < h.length || h.some((tk, j) => g.tools[j] !== tk)) return false;
+      const extra = g.tools.slice(h.length), sorted = order => extra.every((tk, j) => !j || order.indexOf(extra[j - 1]) < order.indexOf(tk));
+      return extra.every(tk => o.tools.includes(tk)) && (sorted(o.tools) || sorted(tiles));
+    });
+  });
+}
+/** Zuiver: bewaarde indeling (of null) → indeling om te tonen. known = alle tools (in de volgorde van de tegels).
+ *  - niets bewaard of nog de oude standaard → de nieuwe standaard (favorieten, compact, groepen aan/uit en Overzicht/Recent blijven);
+ *  - zelf aangepast → precies zo gelaten; onbekende tools gaan weg en een nieuwe tool komt in zijn standaardgroep:
+ *    de groep met dezelfde naam, anders de groep waar de meeste tools uit die standaardgroep staan, anders een nieuwe groep
+ *    met die naam (nooit zomaar in de laatste groep). */
+function homeMigrate(s, known){
+  let c;
+  if (!s || !Array.isArray(s.groups)) c = homeCopy(HOME_DEFAULT);
+  else if (homeIsOld(s, known)) c = Object.assign(homeCopy(s), { groups: homeCopy(HOME_DEFAULT.groups), hidden: [] });
+  else c = homeCopy(s);
+  c.v = HOME_LAYOUT;
+  c.hidden = Array.isArray(c.hidden) ? c.hidden.filter(tk => known.includes(tk)) : [];
+  c.fav = Array.isArray(c.fav) ? c.fav.filter((tk, i, a) => known.includes(tk) && a.indexOf(tk) === i) : []; // favorieten: bovenaan
+  const seen = new Set();
+  c.groups = c.groups.filter(g => g && typeof g === 'object').map(g => ({ name: String(g.name == null ? '' : g.name), tools: (Array.isArray(g.tools) ? g.tools : []).filter(tk => known.includes(tk) && !seen.has(tk) && seen.add(tk)) }));
   if (!c.groups.length) c.groups.push({ name: 'Tools', tools: [] });
-  // Telefoon-skin (nieuw): bovenaan, in een eigen groep
-  if (!seen.has('skin')) { c.groups.unshift({ name: 'Telefoon', tools: ['skin'] }); seen.add('skin'); }
-  known.forEach(tk => { if (!seen.has(tk)) { const d = HOME_DEFAULT.groups.find(g => g.tools.includes(tk)); const g = d && c.groups.find(x => x.name === d.name) || c.groups[c.groups.length - 1]; g.tools.push(tk); } });
+  // Ontbrekende (nieuwe) tools in de volgorde van de standaardindeling, zodat ze ook onderling goed staan
+  const flat = [].concat(...HOME_DEFAULT.groups.map(g => g.tools)), at = tk => { const i = flat.indexOf(tk); return i < 0 ? flat.length : i; };
+  known.slice().sort((a, b) => at(a) - at(b)).forEach(tk => {
+    if (seen.has(tk)) return;
+    seen.add(tk);
+    const d = HOME_DEFAULT.groups.find(g => g.tools.includes(tk));
+    let g = d && c.groups.find(x => x.name === d.name);
+    if (!g && d) {
+      const score = x => x.tools.filter(o => d.tools.includes(o)).length, best = Math.max(...c.groups.map(score));
+      g = best > 0 ? c.groups.find(x => score(x) === best) : null;
+      if (!g) { g = { name: d.name, tools: [] }; c.groups.push(g); }
+    }
+    (g || c.groups[c.groups.length - 1]).tools.push(tk);
+  });
   return c;
 }
+function homeCfg(){ return homeMigrate(store.get('home', null), Object.keys(TOOL_TILE)); }
 function homeSave(c){ store.set('home', c); renderHome(); renderDash(); }
 function renderHome(){
   const c = homeCfg(), box = $('#home-groups'), pool = $('#tile-pool');
@@ -40,7 +97,41 @@ function renderHome(){
   if (c.grouped) { if (fav.length) mk('★ Favorieten', fav); c.groups.forEach(g => mk(g.name, g.tools.filter(notFav))); }
   else mk('', fav.concat([].concat(...c.groups.map(g => g.tools)).filter(notFav)));
   pool.style.display = 'none';
+  renderRecent();
 }
+/* ---------- Recent gebruikt: de laatste vier tools die Rene opende ----------
+ * Alleen welke tool (bijv. "pdf"), geen tijden of wat erin gebeurde; in de interface-instellingen (localStorage, gaat mee
+ * met de interface-instellingen in Alles back-uppen). Uit in Startscherm aanpassen = niets meer bijhouden en de lijst wissen. */
+const HOME_RECENT_MAX = 4;
+function homeRecentList(){ const r = store.get('homeRecent', []); return Array.isArray(r) ? r.filter((tk, i, a) => TOOL_TILE[tk] && tk !== 'skin' && a.indexOf(tk) === i).slice(0, HOME_RECENT_MAX) : []; }
+/** Zuiver: tk vooraan, zonder dubbele, hooguit max. */
+function homeRecentPush(list, tk, max){ return [tk].concat(list.filter(x => x !== tk)).slice(0, max); }
+function homeRecentAdd(tk){
+  if (!TOOL_TILE[tk] || tk === 'skin' || homeCfg().recent === false) return;
+  const r = homeRecentList(); if (r[0] === tk) return;
+  store.set('homeRecent', homeRecentPush(r, tk, HOME_RECENT_MAX));
+}
+function renderRecent(){
+  const box = $('#home-recent'), list = $('#home-recent-list'); if (!box || !list) return;
+  const c = homeCfg(), r = c.recent === false ? [] : homeRecentList().filter(tk => !c.hidden.includes(tk) && !playWeg(tk));
+  box.hidden = !r.length;
+  const key = r.join() + '|' + taalId();
+  if (list.dataset.k === key) return;
+  list.dataset.k = key;
+  list.innerHTML = r.map(tk => '<button class="hrtool" data-t="' + tk + '" onclick="show(this.dataset.t)"><span class="ic">' + uiToolIcon(tk) + '</span><b>' + esc(t(TOOLS[tk][0])) + '</b></button>').join('');
+}
+function heRecent(on){ const c = homeCfg(); c.recent = !!on; if (!on) store.set('homeRecent', []); homeSave(c); if (current === 'homeedit') enterHomeEdit(); }
+// Elk scherm van een tool dat echt open gaat (ook via zoeken, een snelkoppeling of de assistent) telt als gebruikt
+(function(){
+  const inner = show;
+  show = function(name){
+    const r = inner.apply(this, arguments);
+    try { if (current === name) { if (name === 'home') renderRecent(); else homeRecentAdd(name); } } catch (e) { }
+    return r;
+  };
+  try { if (current !== 'home') homeRecentAdd(current); } catch (e) { } // al geopend bij het starten (snelkoppeling, widget)
+})();
+addEventListener('taalchange', () => { try { renderRecent(); } catch (e) { } });
 /* ---------- Startscherm aanpassen ----------
  * Groepen in een eigen volgorde (pijlen bij de groep), tools slepen (ook naar een andere groep), of via ⋯:
  * naar een groep, omhoog/omlaag, verbergen. "Tool toevoegen" onder een groep haalt een tool uit een andere groep. */
@@ -57,7 +148,7 @@ function heRow(c, tk, fav){
 }
 function enterHomeEdit(){
   const c = homeCfg();
-  ['grouped', 'compact', 'dash'].forEach(k => { const on = k === 'dash' ? c.dash !== false : !!c[k], b = $('#he-' + k); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+  ['grouped', 'compact', 'dash', 'recent'].forEach(k => { const on = k === 'dash' || k === 'recent' ? c[k] !== false : !!c[k], b = $('#he-' + k); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
   $('#he-fav').innerHTML = '<h2>★ Favorieten</h2>' + (c.fav.length ? '<div class="helist" data-fav="1" role="list" aria-label="Favorieten">' + c.fav.map(tk => heRow(c, tk, true)).join('') + '</div>'
     : '<p class=note style="margin:0">Tik op ☆ bij een tool (hieronder, of houd de tegel ingedrukt) om hem bovenaan te zetten.</p>');
   const n = c.groups.length;
@@ -168,7 +259,7 @@ function heDelGroup(gi){
   if (!g.tools.length) { go(); return; }
   askConfirm(t('Groep {naam} weghalen?', { naam: t(g.name) }), tn(g.tools.length, 'De {n} tool gaat naar {groep}.', 'De {n} tools gaan naar {groep}.', { groep: t(c.groups[to].name) }), 'Weghalen', go);
 }
-function heReset(){ askConfirm('Standaard herstellen?', 'Groepen, volgorde en verborgen tools gaan terug naar de standaardindeling. Je favorieten blijven.', 'Herstellen', () => { const fav = homeCfg().fav; store.set('home', Object.assign(JSON.parse(JSON.stringify(HOME_DEFAULT)), { fav: fav })); renderHome(); renderDash(); setDynamicShortcuts(); enterHomeEdit(); }); }
+function heReset(){ askConfirm('Standaard herstellen?', 'Groepen, volgorde en verborgen tools gaan terug naar de standaardindeling. Je favorieten blijven.', 'Herstellen', () => { const was = homeCfg(); store.set('home', Object.assign(homeCopy(HOME_DEFAULT), { fav: was.fav, recent: was.recent })); /* je keuze voor Recent gebruikt blijft ook */ renderHome(); renderDash(); setDynamicShortcuts(); enterHomeEdit(); }); }
 
 /* ---------- slepen (aan ⠿): binnen de favorieten, of tussen alle groepen ---------- */
 (function(){

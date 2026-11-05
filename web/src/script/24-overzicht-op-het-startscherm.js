@@ -15,7 +15,7 @@ function renderNotePins(){
 /* "Sinds gisteravond": wat er gebeurde terwijl je sliep (gemiste oproepen, backup, automatiseringen, batterij). */
 function renderNight(){
   const box = $('#home-night'); if (!box) return;
-  if (typeof Android.overnight !== 'function') { box.style.display = 'none'; return; }
+  if (typeof Android.overnight !== 'function') { box.style.display = 'none'; homeOvSync(); return; }
   let o = {}; try { o = JSON.parse(Android.overnight()); } catch(e){}
   const rows = [];
   const hm = ms => fmtTime(ms, {hour: '2-digit', minute: '2-digit'});
@@ -24,17 +24,25 @@ function renderNight(){
   for (const a of (o.auto || [])) rows.push(['automation', (a.name ? a.name + ': ' : '') + t(a.what) + ' (' + hm(a.t) + ')', 'auto', '']);
   if (o.battery) rows.push(['battery', t('Android beperkt de app: {wat}', { wat: t(o.battery) }), 'selftest', 'badc']);
   if (o.checkBad) rows.push(['shield', t('Backup-controle: {wat}', { wat: t(o.checkBad) }), 'backup', 'badc']);
-  if (!rows.length) { box.style.display = 'none'; return; }
+  if (!rows.length) { box.style.display = 'none'; homeOvSync(); return; }
   box.style.display = 'block';
-  box.innerHTML = '<div style="display:flex;align-items:center;padding:8px 0 2px"><b style="flex:1">Sinds gisteravond</b><button style="width:auto;border:0;padding:4px 8px;color:var(--chip-on);font-weight:600" onclick="Android.overnightSeen();renderNight()">Gezien</button></div>' +
+  box.innerHTML = '<div class="ovhead"><b>Sinds gisteravond</b><button onclick="Android.overnightSeen();renderNight()">Gezien</button></div>' +
     rows.map(r => '<button data-t="' + r[2] + '" onclick="jumpTo(this.dataset.t)"><span class=di>' + uiIcon(r[0]) + '</span><span class="dt ' + r[3] + '">' + esc(r[1]) + '</span><span aria-hidden=true>›</span></button>').join('');
+  homeOvSync();
+}
+/* Sinds gisteravond en het overzicht staan samen in één kaart; die kaart alleen als er iets in staat. */
+function homeOvSync(){
+  const ov = $('#home-ov'); if (!ov) return;
+  ov.hidden = ![...ov.children].some(x => x.style.display !== 'none' && !x.hidden);
+  ov.classList.toggle('both', [...ov.children].every(x => x.style.display !== 'none' && !x.hidden));
 }
 function renderDash(){
   renderNotePins();
-  if (isPlay()) { $('#home-night').style.display = 'none'; $('#home-dash').style.display = 'none'; return; }
+  if (typeof renderRecent === 'function') renderRecent();
+  if (isPlay()) { $('#home-night').style.display = 'none'; $('#home-dash').style.display = 'none'; homeOvSync(); return; }
   renderNight();
   const box = $('#home-dash'); if (!box) return;
-  if (homeCfg().dash === false) { box.style.display = 'none'; return; }
+  if (homeCfg().dash === false) { box.style.display = 'none'; homeOvSync(); return; }
   const rows = [];
   try { const tile = $('#tile-skin-sub'); if (tile) tile.textContent = Android.homeIsDefault() ? 'Actief als startscherm' : 'Je telefoon in een nieuw jasje'; } catch(e){}
   try {
@@ -67,6 +75,7 @@ function renderDash(){
     if (bad) rows.push(['shield', tn(bad, 'Zelftest: {n} probleem', 'Zelftest: {n} problemen'), 'selftest', 'badc']);
   } catch(e){}
   box.style.display = rows.length ? 'block' : 'none';
+  homeOvSync();
   box.innerHTML = rows.map(r => '<button data-t="' + r[2] + '" onclick="jumpTo(this.dataset.t)"><span class=di>' + uiIcon(r[0]) + '</span><span class="dt ' + r[3] + '">' + esc(r[1]) + '</span><span aria-hidden=true>›</span></button>').join('');
 }
 

@@ -11,7 +11,7 @@ const { chromium } = require('playwright');
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(300);
     const tag = ' (' + scheme + ')';
     ok(await pg.isVisible('#tile-apparaten') && (await pg.textContent('#tile-apparaten')).includes('Apparaten'), 'tegel op het startscherm' + tag);
-    ok(await pg.evaluate(() => homeCfg().groups.find(g => g.name === 'Handig').tools.includes('apparaten') && TOOLS.apparaten[0] === 'Apparaten'), 'in de groep Handig en als snelkoppeling');
+    ok(await pg.evaluate(() => homeCfg().groups.find(g => g.name === 'Slim').tools.includes('apparaten') && TOOLS.apparaten[0] === 'Apparaten'), 'in de groep Slim en als snelkoppeling');
 
     // ---------- toestemming in context ----------
     await pg.evaluate(() => { Android._ap.perms.bt = false; Android._ap.perms.wifi = false; store.set('apTab', 'bt'); apTabNow = 'bt'; });

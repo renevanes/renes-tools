@@ -1,10 +1,8 @@
 <!-- ============ HOME ============ -->
 <section class="screen on" id="s-home">
-  <div class="hdr home sm"><button class="hsearch" onclick="tabGo('search')" aria-label="Overal zoeken"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Zoek overal</span></button>
+  <div class="hdr home sm"><button class="hhello" id="cmi-home" onclick="show('masterdata')" hidden><span id="cmi-home-name" translate="no"></span><span aria-hidden="true">›</span></button><button class="hsearch" onclick="tabGo('search')" aria-label="Overal zoeken"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Zoek overal</span></button>
     <h1 tabindex="-1">Tools</h1></div>
   <main>
-    <div class="home-intro"><h2>Overzicht</h2><p>Je tools, bestanden en recente activiteit.</p></div>
-    <button class="trip" id="cmi-home" onclick="show('masterdata')" hidden><span id="cmi-home-name" translate="no"></span><span aria-hidden="true">›</span></button>
     <div class="banner" id="upd-banner"><div class="upd-body"><div id="upd-text">Nieuwe versie beschikbaar</div><div class="upd-prog" id="upd-prog" role="progressbar" aria-label="Voortgang van de update" aria-valuemin="0" aria-valuemax="100" hidden><i></i></div></div><button id="upd-btn" onclick="installUpdate()">Installeren</button></div>
     <div class="tiles" id="tile-pool">
       <button class="tile" id="tile-redial" onclick="show('redial')">
@@ -157,8 +155,8 @@
         <small id="tile-backup-sub">Alles in één keer bewaren</small>
       </button>
     </div>
-    <div class="card dash" id="home-night" style="display:none"></div>
-    <div class="card dash" id="home-dash" style="display:none"></div>
+    <div class="card dash" id="home-ov" hidden><div id="home-night" style="display:none"></div><div id="home-dash" style="display:none"></div></div>
+    <div class="hgroup hrecent" id="home-recent" hidden><h3>Recent gebruikt</h3><div class="hrlist" id="home-recent-list"></div></div>
     <div class="hgroup" id="home-notes" style="display:none"><h3>Notities</h3><div class="tiles" id="home-notes-tiles"></div></div>
     <div class="hgroups" id="home-groups"></div>
     <p class="note" id="home-tip" style="text-align:center;margin:14px 8px 0">Tip: houd een tegel ingedrukt om er een snelkoppeling op je startscherm van te maken.</p>
