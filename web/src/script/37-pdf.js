@@ -92,8 +92,8 @@ function pdfShareOne(name){ Android.pdfShare(JSON.stringify([name])); }
 /* Tegels: een korte hint, of wat er klaarstaat */
 function pdfTileHints(){
   const dirty = typeof pdfEditDirty === 'function' && pdfEditDirty();
-  $('#pdf-t-edit-d').textContent = dirty ? t('Niet bewaarde toevoegingen') : t('Tekst, datum, handtekening');
-  $('#pdf-t-img-d').textContent = pdfImgs.length ? tn(pdfImgs.length, '{n} plaatje klaar', '{n} plaatjes klaar') : t('Foto\'s of scans samen');
+  $('#pdf-t-edit-d').textContent = dirty ? t('Niet bewaarde toevoegingen') : t('Tekst en handtekening');
+  $('#pdf-t-img-d').textContent = pdfImgs.length ? tn(pdfImgs.length, '{n} plaatje klaar', '{n} plaatjes klaar') : t('Foto\'s of scans');
 }
 function pdfRender(){
   // gemaakt: de laatste drie op het overzicht, alles op het scherm Gemaakt

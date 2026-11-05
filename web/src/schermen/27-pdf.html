@@ -22,17 +22,17 @@
 
     <div class="flabel stgl" role="heading" aria-level="2">Maken en bewerken</div>
     <div class="tiles pdftiles" id="pdf-tiles">
-      <button class="tile" id="pdf-t-edit" onclick="show('pdfedit')" aria-describedby="pdf-t-edit-d"><span class="ic"><span class="ui-icon" data-icon="sign" aria-hidden="true"></span></span><b>Bewerken en ondertekenen</b><small id="pdf-t-edit-d" aria-hidden="true">Tekst, datum, handtekening</small></button>
-      <button class="tile" id="pdf-t-img" onclick="show('pdfimg')" aria-describedby="pdf-t-img-d"><span class="ic"><span class="ui-icon" data-icon="image" aria-hidden="true"></span></span><b>Plaatjes naar PDF</b><small id="pdf-t-img-d" aria-hidden="true">Foto's of scans samen</small></button>
+      <button class="tile" id="pdf-t-edit" onclick="show('pdfedit')" aria-describedby="pdf-t-edit-d"><span class="ic"><span class="ui-icon" data-icon="sign" aria-hidden="true"></span></span><b>Bewerken en ondertekenen</b><small id="pdf-t-edit-d" aria-hidden="true">Tekst en handtekening</small></button>
+      <button class="tile" id="pdf-t-img" onclick="show('pdfimg')" aria-describedby="pdf-t-img-d"><span class="ic"><span class="ui-icon" data-icon="image" aria-hidden="true"></span></span><b>Plaatjes naar PDF</b><small id="pdf-t-img-d" aria-hidden="true">Foto's of scans</small></button>
       <button class="tile" id="pdf-t-split" onclick="show('pdfsplit')" aria-describedby="pdf-t-split-d"><span class="ic"><span class="ui-icon" data-icon="scissors" aria-hidden="true"></span></span><b>Splitsen</b><small id="pdf-t-split-d" aria-hidden="true">Pagina's eruit halen</small></button>
       <button class="tile" id="pdf-t-text" onclick="show('pdftext')" aria-describedby="pdf-t-text-d"><span class="ic"><span class="ui-icon" data-icon="mail" aria-hidden="true"></span></span><b>Tekst naar PDF</b><small id="pdf-t-text-d" aria-hidden="true">Tekst of e-mail</small></button>
-      <button class="tile" id="pdf-t-forms" onclick="show('formulieren')" aria-describedby="pdf-t-forms-d"><span class="ic"><span class="ui-icon" data-icon="clipboard" aria-hidden="true"></span></span><b>Formulieren invullen</b><small id="pdf-t-forms-d" aria-hidden="true">Stap voor stap invullen</small></button>
-      <button class="tile" id="pdf-t-id" onclick="show('idcopy')" aria-describedby="pdf-t-id-d"><span class="ic"><span class="ui-icon" data-icon="shield" aria-hidden="true"></span></span><b>ID-kopie afschermen</b><small id="pdf-t-id-d" aria-hidden="true">Afschermen met watermerk</small></button>
+      <button class="tile" id="pdf-t-forms" onclick="show('formulieren')" aria-describedby="pdf-t-forms-d"><span class="ic"><span class="ui-icon" data-icon="clipboard" aria-hidden="true"></span></span><b>Formulieren invullen</b><small id="pdf-t-forms-d" aria-hidden="true">Stap voor stap</small></button>
+      <button class="tile" id="pdf-t-id" onclick="show('idcopy')" aria-describedby="pdf-t-id-d"><span class="ic"><span class="ui-icon" data-icon="shield" aria-hidden="true"></span></span><b>ID-kopie afschermen</b><small id="pdf-t-id-d" aria-hidden="true">Met watermerk</small></button>
     </div>
 
     <div class="flabel stgl" role="heading" aria-level="2">Meer</div>
     <div class="card stlist">
-      <button class="strow" id="pdf-kluis-row" onclick="jumpTo('kluis')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Documentenkluis</b><small class="pdfwrap">Belangrijke documenten versleuteld bewaren</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" id="pdf-kluis-row" onclick="jumpTo('kluis')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Documentenkluis</b><small class="pdfwrap">Versleuteld bewaren</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" id="pdf-def-btn" onclick="Android.pdfMakeDefault()"><span class="stic"><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></span><span class="sttxt"><b>Standaard PDF-app</b><small id="pdf-def" class="pdfwrap"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
     <p class="note pdfbusy" id="pdf-busy" role="status" aria-live="polite"></p>
