@@ -41,3 +41,6 @@ done
 adb shell pm path nl.rene.tools | grep -q package:
 adb shell pm path nl.rene.tools.play | grep -q package:
 echo 'Play-herstelcontrole: geslaagd'
+
+bash tests/telefoon/idcopy-test.sh nl.rene.tools.play
+bash tests/telefoon/idcopy-test.sh nl.rene.tools

@@ -79,6 +79,12 @@ public class MainActivity extends Activity {
         catch (Exception e) { js("onFacturenDrive", "{\"error\":\"Accounts kiezen lukt niet op deze telefoon\"}"); }
     }
     static final int REQ_PDF_IMG = 28, REQ_PDF_FILE = 29, REQ_PDF_SAVE = 30, REQ_PDF_DOC = 31, REQ_PDF_VIEW = 32;
+    static final int REQ_ID_COPY = 65;
+    volatile IdCopy idCopy = new IdCopy();
+    volatile IdCopy idPickStore;
+    volatile String idSession = "", idPickSession = "";
+    final java.util.concurrent.atomic.AtomicLong idSecurityGeneration = new java.util.concurrent.atomic.AtomicLong();
+    volatile boolean idScreen;
     volatile String pdfSaveName = null;
     volatile String importKind = null;
     String pendingShare = null;
@@ -196,6 +202,7 @@ public class MainActivity extends Activity {
         synchronized (ALL) { ALL.add(this); }
         // Een terugzetten dat halverwege stopte (ook als de app vóór het ontgrendelen startte): eerst afmaken of terugdraaien
         if (!isSolo()) AppBackup.recoverIfNeeded(getApplicationContext());
+        IdCopy.cleanStale(getApplicationContext());
         PlayPolicy.sanitizePreferences(getApplicationContext());
         if (!Updater.viaPlay(this)) {
             RedialService.createChannel(this);
@@ -445,6 +452,8 @@ public class MainActivity extends Activity {
         if (live == this) live = null;
         synchronized (ALL) { ALL.remove(this); }
         if (isFinishing() && !isSolo()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
+        final IdCopy closingId = idCopy;
+        new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
         super.onDestroy();
     }
 
@@ -475,13 +484,34 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** Met app-slot: inhoud niet tonen in "recente apps". */
+    /** Houd de bescherming vast totdat de verborgen ID-pagina ook uit het getekende frame verdwenen is. */
+    void finishIdScreen(long generation) {
+        synchronized (idSecurityGeneration) {
+            if (isDestroyed() || generation != idSecurityGeneration.get()) return;
+            if (web == null) { if (idSession.isEmpty()) { idScreen = false; applySecure(); bankPrive(bankScreen); } return; }
+        }
+        web.postVisualStateCallback(System.nanoTime(), new IdHidden(this, generation));
+    }
+
+    static final class IdHidden extends WebView.VisualStateCallback {
+        final java.lang.ref.WeakReference<MainActivity> owner;
+        final long generation;
+        IdHidden(MainActivity a, long generation) { owner = new java.lang.ref.WeakReference<>(a); this.generation = generation; }
+        @Override public void onComplete(long request) {
+            MainActivity a = owner.get();
+            if (a != null) synchronized (a.idSecurityGeneration) {
+                if (!a.isDestroyed() && a.idSession.isEmpty() && a.idSecurityGeneration.get() == generation) { a.idScreen = false; a.applySecure(); a.bankPrive(a.bankScreen); }
+            }
+        }
+    }
+
+    /** Met app-slot of een gevoelige pagina: inhoud niet tonen in recente apps of schermafdrukken. */
     void applySecure() {
         // losse app: zonder slot, dus ook zichtbaar in "recente apps"; behalve de losse kluis (documentnamen)
         boolean on = isSolo() ? isSoloKluis() : Lock.enabled(this);
         // Bankzaken in beeld: ook geen schermafdrukken of schermopnames (FLAG_SECURE), op elke Android-versie
-        boolean block = bankScreen || (Build.VERSION.SDK_INT < 33 && on);
-        if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on && !bankScreen);
+        boolean block = bankScreen || idScreen || (Build.VERSION.SDK_INT < 33 && on);
+        if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on && !bankScreen && !idScreen);
         if (block) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
         else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
     }
@@ -756,6 +786,23 @@ public class MainActivity extends Activity {
         if (req == REQ_PDF_VIEW) {
             if (res != RESULT_OK || data == null || data.getData() == null) return;
             try { startActivity(new Intent(this, PdfViewActivity.class).setData(data.getData()).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)); } catch (Exception ignored) { }
+            return;
+        }
+        if (req == REQ_ID_COPY) {
+            final IdCopy store = idPickStore; final String session = idPickSession; idPickStore = null;
+            if (store == null || store != idCopy || !idScreen) return;
+            final java.util.ArrayList<Uri> uris = new java.util.ArrayList<>();
+            if (res == RESULT_OK && data != null) {
+                if (data.getClipData() != null) for (int i = 0; i < data.getClipData().getItemCount() && i <= IdCopy.MAX_PAGES; i++) uris.add(data.getClipData().getItemAt(i).getUri());
+                else if (data.getData() != null) uris.add(data.getData());
+            }
+            new Thread(() -> {
+                String result;
+                try { result = store.add(getApplicationContext(), uris).put("session", session).toString(); }
+                catch (Throwable e) { result = PdfTools.err(e); }
+                try { result = new org.json.JSONObject(result).put("session", session).toString(); } catch (Exception ignored) { }
+                if (store == idCopy && idScreen) js("onIdCopyPicked", result);
+            }, "id-copy-pick").start();
             return;
         }
         if (req == REQ_PDF_IMG || req == REQ_PDF_FILE || req == REQ_PDF_SAVE || req == REQ_PDF_DOC) {

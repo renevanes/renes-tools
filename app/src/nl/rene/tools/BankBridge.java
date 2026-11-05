@@ -97,7 +97,7 @@ public class BankBridge extends FacturenBridge {
     /** Op het scherm van Bankzaken: geen schermafdrukken, schermopnames of voorbeeld in "recente apps". */
     @JavascriptInterface public void bankSecure(boolean on) {
         a.bankScreen = on;
-        a.h.post(() -> { a.applySecure(); a.bankPrive(on); });
+        a.h.post(() -> { a.applySecure(); a.bankPrive(a.bankScreen || a.idScreen); });
     }
 
     /** Afschriften kiezen (meerdere tegelijk). wis = de gekozen bestanden na het inlezen verwijderen. Antwoord via onBankImport. */

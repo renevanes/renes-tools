@@ -1,0 +1,1 @@
+Bij PDF kun je nu een ID-kopie anonimiseren: gegevens zwart maken, ontvanger/doel/datum als watermerk toevoegen en een nieuwe kopie bekijken, opslaan of delen. Verwerking gebeurt op de telefoon; tijdelijke bronnen worden gewist.

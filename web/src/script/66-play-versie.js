@@ -10,7 +10,7 @@ function isPlay(){ return PLAY; }
 /** Alleen bekende schermen van de behouden functies; nieuwe subschermen worden bewust beoordeeld. */
 function playWeg(name){
   if (!PLAY) return false;
-  const children = {note: 'notes', ralarm: 'radio', podcast: 'podcasts', podlijst: 'podcasts'};
+  const children = {idcopy: 'pdf', note: 'notes', ralarm: 'radio', podcast: 'podcasts', podlijst: 'podcasts'};
   return !PLAY_NAV.has(name) && !PLAY_TOOLS.has(name) && !PLAY_TOOLS.has(children[name]);
 }
 function openPrivacy(){ Android.openUrl('https://github.com/renevanes/renes-tools/blob/main/docs/' + (PLAY ? 'privacybeleid-play.md' : 'privacybeleid.md')); }

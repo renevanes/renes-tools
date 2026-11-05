@@ -1,0 +1,42 @@
+<section class="screen" id="s-idcopy">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug" data-icon="chevron-left"></button><h1 tabindex="-1">ID-kopie anonimiseren</h1></div>
+  <main>
+    <div class="card">
+      <p class="note">Scherm af wat de ontvanger niet nodig heeft, zoals BSN, documentnummer, handtekening of pasfoto. Controleer ook de achterkant en de machineleesbare strook. De app herkent deze velden niet automatisch.</p>
+      <button class="big" id="id-pick" onclick="idCopyChoose()">Foto of PDF kiezen</button>
+      <p class="note">Maximaal vier pagina's. Alles wordt op je telefoon verwerkt. Bij teruggaan wordt het werkbestand gewist; je oorspronkelijke bestand blijft behouden.</p>
+      <p class="note" id="id-status" role="status" aria-live="polite"></p>
+    </div>
+    <div id="id-work" hidden>
+      <div class="card">
+        <h2>Afschermen</h2>
+        <div class="row"><button class="mini" id="id-prev" onclick="idCopyPage(-1)" aria-label="Vorige pagina" data-icon="chevron-left"></button><span id="id-page"></span><button class="mini" id="id-next" onclick="idCopyPage(1)" aria-label="Volgende pagina" data-icon="play"></button><button class="mini" id="id-turn" onclick="idCopyTurn()">Draaien</button></div>
+        <p class="note">Sleep een rechthoek over gegevens om ze zwart te maken. Vergroot het voorbeeld voor kleine tekst.</p>
+        <label class="f" for="id-zoom">Voorbeeld vergroten</label><input id="id-zoom" type="range" min="100" max="300" step="25" value="100" oninput="idCopyZoom(this.value)">
+        <label class="chk"><input type="checkbox" id="id-pan" onchange="idCopyPan()">Voorbeeld verschuiven in plaats van afschermen</label>
+        <div id="id-scroll" class="idcopyscroll"><div id="id-paper" class="idcopypaper"><img id="id-image" alt="Gekozen pagina van je ID-kopie" draggable="false"><canvas id="id-layer" aria-label="Sleep over de gegevens die je wilt afschermen"></canvas></div></div>
+        <p class="note" id="id-masks" aria-live="polite"></p>
+        <button class="mini" id="id-undo" onclick="idCopyUndo()">Laatste vlak verwijderen</button>
+        <details><summary>Vlak invoeren zonder te tekenen</summary><div class="row" style="flex-wrap:wrap">
+          <label>Links (%)<input class="search" id="id-x" inputmode="decimal" value="10"></label><label>Boven (%)<input class="search" id="id-y" inputmode="decimal" value="10"></label>
+          <label>Breedte (%)<input class="search" id="id-w" inputmode="decimal" value="40"></label><label>Hoogte (%)<input class="search" id="id-h" inputmode="decimal" value="10"></label>
+        </div><button class="mini" id="id-add" onclick="idCopyManual()">Afschermvlak toevoegen</button></details>
+        <label class="chk"><input type="checkbox" id="id-checked" onchange="idCopyChecked(this.checked)">Deze pagina is gecontroleerd, ook de randen en de machineleesbare strook</label>
+      </div>
+      <div class="card">
+        <h2>Watermerk</h2>
+        <label class="f" for="id-recipient">Voor welke ontvanger?</label><input class="search" id="id-recipient" maxlength="80" placeholder="Bijv. verhuurder of werkgever" oninput="idCopyWatermarkChanged()">
+        <label class="f" for="id-purpose">Waarvoor mag deze kopie worden gebruikt?</label><input class="search" id="id-purpose" maxlength="80" placeholder="Bijv. controle van de huurovereenkomst" oninput="idCopyWatermarkChanged()">
+        <label class="f" for="id-date">Datum op de kopie</label><input class="search" type="date" id="id-date" onchange="idCopyWatermarkChanged()">
+        <p class="note">Het watermerk wordt in de afbeelding geplaatst. De zwarte vlakken vervangen de afgeschermde pixels. De nieuwe PDF bevat geen oorspronkelijke tekstlaag of fotometadata.</p>
+        <button class="big" id="id-save" onclick="idCopySave()">Afgeschermde kopie maken</button>
+        <p class="note">Bekijk de nieuwe kopie voordat je die deelt. Zichtbare gegevens blijven leesbaar; je bepaalt zelf wat je afschermt.</p>
+      </div>
+    </div>
+    <div class="card" id="id-result" hidden>
+      <h2>Afgeschermde kopie</h2><p id="id-result-name" translate="no"></p>
+      <p class="note">Het tijdelijke bronbestand is gewist. De afgeschermde kopie staat ook bij PDF → Gemaakt.</p>
+      <button class="big" onclick="idCopyOpen()">Kopie bekijken</button><div class="row"><button class="big ghost" onclick="idCopyExport()">Opslaan als…</button><button class="big ghost" onclick="idCopyShare()">Kopie delen</button></div>
+    </div>
+  </main>
+</section>

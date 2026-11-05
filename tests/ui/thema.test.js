@@ -128,7 +128,7 @@ const LIGHT = '#F4F5F6', DARK = '#111619';
     ok(/in Rotterdam \(je locatie is niet bekend\)/.test(await pg.textContent('#st-th-sunnote')) && /zonder internet/.test(await pg.textContent('#st-th-sunnote')), 'zonder locatie: Rotterdam (' + await pg.textContent('#st-th-sunnote') + ')');
     ok(await bg(pg) === LIGHT && /wordt donker om 17:1\d/.test(await pg.textContent('#st-th-now')), '16:50: ' + await pg.textContent('#st-th-now'));
     const sch = JSON.parse(await pg.evaluate(() => Android._themeCfg));
-    ok(sch.mode === 'sun' && sch.sched.length >= 60 && sch.end > Date.now() + 30 * 864e5 && sch.win.length === 2, 'Java krijgt een rooster voor ruim vier weken');
+    ok(sch.mode === 'sun' && sch.sched.length >= 60 && sch.end > (await pg.evaluate(() => Date.now())) + 30 * 864e5 && sch.win.length === 2, 'Java krijgt een rooster voor ruim vier weken');
     await pg.selectOption('#st-th-off', '-30'); await pg.waitForTimeout(100);
     ok(await bg(pg) === DARK, 'half uur eerder donker: om 16:50 al donker');
     await pg.selectOption('#st-th-loc', 'groningen'); await pg.waitForTimeout(100);

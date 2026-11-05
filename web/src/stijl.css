@@ -1103,3 +1103,11 @@ body.talk-on #s-ai main{padding-bottom:200px}
 .fd-kol{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
 .fl-tabs{display:flex;width:100%;margin:0 0 12px}.fl-tabs button{flex:1;padding:6px 4px;min-width:0}
 .fl-paneel{display:none}.fl-paneel.on{display:block}
+
+/* Tijdelijke ID-kopie: verplaatsen en afschermen werken ook bij een vergroot voorbeeld. */
+.idcopyscroll { overflow:auto; max-height:65vh; border:1px solid var(--outline); border-radius:12px; padding:4px; margin:10px 0; }
+.idcopypaper { position:relative; width:100%; line-height:0; background:var(--card); }
+.idcopypaper img { display:block; width:100%; height:auto; user-select:none; }
+.idcopypaper canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; }
+#s-idcopy details .search { width:100%; }
+#s-idcopy details label { width:calc(50% - 8px); }

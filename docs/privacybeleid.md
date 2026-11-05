@@ -154,3 +154,9 @@ install id) go only to your own private GitHub repository. The assistant and tra
 Google backup may include notes, music history, parking/trips, saved places and settings, but never passwords, keys or
 bank data. Uninstalling removes the app's data from the phone. Questions: contact@esape.nl or an issue on
 [GitHub](https://github.com/renevanes/renes-tools/issues).
+
+## ID-kopie afschermen / Redacting ID copies
+
+De functie bij PDF verwerkt zelf gekozen foto's en PDF's uitsluitend op het toestel. Tijdelijke bronnen staan in privé-cache buiten back-ups en worden bij export of verlaten gewist; fouten worden gemeld en opnieuw geprobeerd. Een nieuwe kopie bevat alleen opnieuw getekende afbeeldingen met de gekozen zwarte vlakken en het watermerk, zonder oorspronkelijke PDF-tekstlaag of EXIF. Alleen zelf gekozen zichtbare gegevens blijven behouden; opslaan en delen vraagt een eigen actie. Er gaat geen ID-inhoud naar statistieken of een server. [Uitleg](id-kopie.md).
+
+The PDF tool processes selected ID photos and PDFs on your device. Temporary sources are kept in private cache outside backups and removed after export or leaving the screen; failures are reported and retried. New copies contain only newly rendered images with your redactions and watermark, without original PDF text layers or EXIF. Information you leave visible remains readable. Saving or sharing requires your action. No ID content is sent to statistics or a server.

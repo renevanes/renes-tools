@@ -34,6 +34,7 @@ schermen/23-gesprekken-opnemen.html
 schermen/24-mijn-auto.html
 schermen/25-kluis.html
 schermen/27-pdf.html
+schermen/27a-id-kopie.html
 schermen/28-podcasts.html
 schermen/29-spotify.html
 schermen/30-vpn.html
@@ -96,6 +97,7 @@ script/34-uitbreidingen.js
 script/35-mijn-auto.js
 script/37-pdf.js
 script/44-pdf-bewerken.js
+script/67-id-kopie.js
 script/48-pdf-handtekening-bewaren.js
 script/49-documenten-ordenen.js
 script/38-podcasts.js
