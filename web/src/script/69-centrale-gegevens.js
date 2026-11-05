@@ -1,5 +1,5 @@
 /* Stamgegevens: uitsluitend vluchtig schermgeheugen; opslag, toegang en audit blijven native. */
-const cm={token:'',seq:0,pending:new Map(),records:[],edit:null,dirty:false,events:[],before:0,picker:null,view:'',generation:0,privateReady:false,unlocking:false,resetting:false,mutating:false,editorEpoch:0};
+const cm={token:'',seq:0,pending:new Map(),records:[],recordsReady:false,edit:null,dirty:false,events:[],before:0,picker:null,view:'',generation:0,privateReady:false,unlocking:false,resetting:false,mutating:false,editorEpoch:0};
 // taal-vast: veldnamen worden bij het tekenen met t() vertaald
 const CM_TYPES={persoon:'Persoon',organisatie:'Organisatie',adres:'Adres',identiteit:'Identiteitsdocument',reis:'Reis',relatie:'Relatie',profiel:'App-profiel'};
 // taal-vast: veldnamen worden bij het tekenen met t() vertaald
@@ -38,7 +38,7 @@ function cmRenderState(){
 function enterMasterdata(){cmClearCentral();cmPrivacy(true);cmNote(t('Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.'));}
 function cmLeave(){cmClearCentral();Android.masterLock();cmPrivacy(false);}
 function cmClearCentral(){
-  cm.records=[];cm.events=[];cm.edit=null;cm.dirty=false;cm.before=0;cm.editorEpoch++;cmBusy(false);
+  cm.records=[];cm.recordsReady=false;cm.events=[];cm.edit=null;cm.dirty=false;cm.before=0;cm.editorEpoch++;cmBusy(false);
   ['cm-list','cm-fields','cm-audit','cm-pick-list','cm-pick-fields'].forEach(id=>$('#'+id).replaceChildren());
   ['cm-label','cm-search','cm-log-search','cm-pick-search','cm-reset-word'].forEach(id=>$('#'+id).value='');
   $('#cm-show-secret').checked=false;$('#cm-editor').hidden=true;$('#cm-reset').disabled=true;
@@ -67,8 +67,8 @@ function cmLock(){Android.masterLock();cmLockedUI();}
 function cmTouch(){if(cmOpen())Android.masterTouch(cm.token);}
 function cmDirty(){cm.dirty=true;cmTouch();}
 function cmListOpen(){
-  if(!cmOpen()||cm.mutating)return;cm.editorEpoch++;$('#cm-list-card').hidden=false;$('#cm-audit-card').hidden=true;$('#cm-editor').hidden=true;
-  cmRequest('masterList',['masterdata',''],r=>{cm.records=r.records;cmRenderList();cmiAfterList();});
+  if(!cmOpen()||cm.mutating)return;cm.recordsReady=false;document.querySelectorAll('#cm-list-card button').forEach(b=>b.disabled=true);cm.editorEpoch++;$('#cm-list-card').hidden=false;$('#cm-audit-card').hidden=true;$('#cm-editor').hidden=true;
+  cmRequest('masterList',['masterdata',''],r=>{cm.records=r.records;cm.recordsReady=true;cmRenderList();document.querySelectorAll('#cm-list-card button').forEach(b=>b.disabled=false);cmiAfterList();});
 }
 function cmRenderList(){
   const box=$('#cm-list');box.replaceChildren();if(!cmOpen())return;const q=$('#cm-search').value.toLowerCase();
@@ -77,7 +77,7 @@ function cmRenderList(){
     row.append(b,cmEl('small',t(CM_TYPES[r.type])));box.append(row);
   });if(!box.children.length)box.append(cmEl('p',t('Nog geen passende stamgegevens.'),'note'));
 }
-function cmNew(){if(!cmOpen()||cm.mutating)return;cm.editorEpoch++;cm.edit={type:'persoon',label:'',fields:{},revision:0};cmEditor();}
+function cmNew(){if(!cmOpen()||cm.mutating||!cm.recordsReady)return;cm.editorEpoch++;cm.edit={type:'persoon',label:'',fields:{},revision:0};cmEditor();}
 function cmEdit(id){if(cm.mutating)return;const epoch=++cm.editorEpoch;cmRequest('masterRead',[id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;cm.edit=r.record;cmEditor();});}
 function cmType(type){if(!cm.edit||cm.edit.id)return;cm.edit.type=type;cm.edit.fields=cmiDefaults(type);cm.dirty=true;cmEditorFields();}
 function cmEditor(){
@@ -172,7 +172,7 @@ function cmNavigation(name){if(cm.picker)cmClosePicker();if(current==='masterdat
 const cmFmInit=fmInit;fmInit=function(id){cmFmInit(id);fm.masterSensitive=false;Android.masterReleaseForm();};
 const cmIdReset=idCopyReset;idCopyReset=function(secure=true){idc.masterSensitive=false;cmIdReset(secure);};
 const cmFmRender=fmRender;fmRender=function(){if(fm.masterSensitive&&!cmState().open){cmLockedUI();return;}cmFmRender();const s=fmSecties()[fm.step];$('#cm-form-pick').hidden=!s||!s.fields.some(f=>/^(kind|begeleider[12]|gever[12])-/.test(f.id)||f.id==='accommodatie');$('#cm-form-pick').disabled=fm.busy;};
-const cmOnPrivacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){cmOnPrivacy(r);if(cm.picker&&cmOpen())cmPickerLoad();};
+const cmOnPrivacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){cmOnPrivacy(r);if(cm.picker&&cmOpen())cmPickerLoad();else if(current==='masterdata'&&cmOpen())cmListOpen();};
 $('#cm-picker').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cmClosePicker();}if(e.key==='Tab'){const nodes=[...$('#cm-picker').querySelectorAll('button,input,select,[tabindex="0"]')].filter(n=>!n.disabled&&n.getClientRects().length);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
 document.addEventListener('input',e=>{if(e.target.closest('#s-masterdata,#cm-picker')||fm.masterSensitive&&e.target.closest('#s-formulieren')||idc.masterSensitive&&e.target.closest('#s-idcopy'))cmTouch();});
 window.addEventListener('pagehide',()=>{Android.masterLock();cmLockedUI();});

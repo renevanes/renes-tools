@@ -22,8 +22,8 @@ function cmiSharedRender(){
   for(const p of people){const row=cmData(cmEl('p',t('{naam}: {relaties}',{naam:p.name,relaties:(p.relations||[]).map(cmiRelationName).join(', ')})));box.append(row);for(const text of [p.detail,p.context])if(text)box.append(cmData(cmEl('p',text,'note')));}
   $('#cmi-ai-summary').textContent=t('Profiel: {naam}. Gedeelde personen: {n}.',{naam:self.name,n:fmtNum(people.length)});
 }
-function cmiNew(type){cmNew();if(!cm.edit||cm.edit.id)return;cm.edit.type=type;cm.edit.fields=cmiDefaults(type);if(type==='profiel')cm.edit.label=t('Mijn app-profiel');cmEditor();}
-function cmiProfile(){if(!cmOpen()||cm.mutating)return;const r=cm.records.find(r=>r.type==='profiel');if(r)cmEdit(r.id);else cmiNew('profiel');}
+function cmiNew(type){if(!cmOpen()||cm.mutating||!cm.recordsReady)return;cmNew();if(!cm.edit||cm.edit.id)return;cm.edit.type=type;cm.edit.fields=cmiDefaults(type);if(type==='profiel')cm.edit.label=t('Mijn app-profiel');cmEditor();}
+function cmiProfile(){if(!cmOpen()||cm.mutating||!cm.recordsReady)return;const r=cm.records.find(r=>r.type==='profiel');if(r)cmEdit(r.id);else cmiNew('profiel');}
 function cmiSelf(){
   if(!cmOpen()||!cm.edit?.id||cm.dirty||cm.mutating){cmNote(t('Sla je wijzigingen eerst op.'));return;}
   const id=cm.edit.id,profile=cm.records.find(r=>r.type==='profiel');
@@ -88,7 +88,7 @@ function cmiFormRelationsLoad(){
       if(r.relation&&child===fmh.sources.find(s=>s.id===child.id)&&person===fmh.sources.find(s=>s.id===person.id)){
         // taal-vast: waarden voor het Nederlandse overheidsformulier blijven Nederlands
         const value=CMI_RELATIONS[r.relation]?.toLowerCase();
-        if(value){fmHelpDiscard();fmh.sources.push({id:'bron-'+(++fmh.seq),type:'relatiecontext',role:person.role,label:t('Relatie tussen {kind} en {persoon}',{kind:child.label,persoon:person.label}),fields:{relatie:value},child:child.id,companion:person.id});}
+        if(value){fmHelpDiscard();fmh.sources.push({id:'bron-'+(++fmh.seq),type:'relatiecontext',role:person.role,label:t('Relatie tot gekozen kind'),fields:{relatie:value},child:child.id,companion:person.id});}
       }fmHelpRender();
     },false,()=>{if(epoch!==cmiFormRelations.epoch)return;cmiFormRelations.pending.delete(key);cmiFormRelations.asked.delete(key);fmHelpControls();});
   }
