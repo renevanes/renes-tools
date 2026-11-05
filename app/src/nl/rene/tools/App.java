@@ -56,6 +56,7 @@ public class App extends Application {
             if (prev != null) prev.uncaughtException(t, e);
             else { android.os.Process.killProcess(android.os.Process.myPid()); System.exit(10); }
         });
+        if (unlocked(c)) { try { IdCopy.cleanStale(c); } catch (Throwable ignored) { } }
         registerActivityLifecycleCallbacks(new Visible(c));
         // Werkbestanden met ingesproken tekst van een vorige keer (app gestopt tijdens inspreken of uitschrijven): weg
         new Thread(() -> { try { VoiceNote.cleanTemp(c, -1, true); } catch (Throwable ignored) { } }, "spraak-opruimen").start();

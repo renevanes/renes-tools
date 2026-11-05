@@ -29,3 +29,7 @@ Verwijder notities, downloads of abonnementen in de app, of wis de appgegevens v
 ## Contact en wijzigingen
 
 Vragen of een verzoek: [ondersteuning op GitHub](https://github.com/renevanes/renes-tools/issues). Plaats geen persoonlijke gegevens in een openbaar issue. Wijzigingen in dit beleid worden op deze pagina gepubliceerd. De broncode is openbaar onder GPL-3.0-or-later.
+
+## ID-kopie afschermen
+
+Bij PDF kun je zelf gekozen ID-foto's of PDF's lokaal afschermen en van een watermerk voorzien. De app herkent geen identiteitsgegevens en verstuurt de bron niet naar een server. Tijdelijke bronnen staan in privé-cache, buiten back-ups, en worden bij export of verlaten verwijderd. Bij een verwijderfout wordt de fout gemeld en opnieuw geprobeerd; na een onderbroken proces volgt opruimen bij de volgende start. Afgeschermde kopieën bevatten uitsluitend opnieuw getekende afbeeldingen en worden alleen op jouw verzoek opgeslagen of gedeeld. Zichtbaar gelaten gegevens blijven leesbaar. Zie de [gebruiksaanwijzing](id-kopie.md).

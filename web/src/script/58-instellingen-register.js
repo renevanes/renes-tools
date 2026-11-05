@@ -381,6 +381,7 @@ const SET_NEED = [['wa.leesbaar', /whatsapp|whats app|leesba|chats/], ['wa.', /w
 
 /* Schakelaars en keuzes die bewust niet in het register staan, met de reden */
 const SET_EXCLUDE = [
+  ['#s-idcopy input', 'Tijdelijke ID-afscherming en controle per pagina; deze keuzes maakt de gebruiker zelf, nooit de assistent'],
   ['#rp-time, #rp-days', 'Auto redial op een tijdstip hoort bij een nummer; dat plan je op het scherm (zie redial.planning)'],
   ['#wa-cats', 'De selectie van WhatsApp-mappen kies je op het scherm'],
   ['#bk-wa', 'Keuze voor één keer, bij Nu alles back-uppen'],
@@ -397,6 +398,7 @@ const SET_EXCLUDE = [
   ['#s-bank select, #s-bank input, #s-bank .chips', 'Filters en keuzes in Bankzaken (gegevens die versleuteld en alleen daar bewaard worden); de assistent komt bewust niet aan bankgegevens'],
   ['#history-apps', 'Filter in de meldingsgeschiedenis'],
   ['#s-pdf select, #s-pdf input, #s-pdf [role=radiogroup], #s-pdf .chips', 'Keuzes bij het maken of bewerken van één pdf'],
+  ['#s-formulieren select, #s-formulieren input', 'Persoonsgegevens en keuzes voor één PDF-formulier; geen instellingen voor de assistent'],
   ['#pd-dl, #pd-sort, #pd-hide', 'Hoort bij één podcast, of is een filter'],
   ['#s-podspotify input, #s-podspotify select', 'Keuzes bij het overzetten van podcasts, voor één keer'],
   ['#sln-filter', 'Filter bij één nacht van Slaappraat'],

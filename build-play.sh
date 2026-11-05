@@ -61,6 +61,8 @@ cp web/src/taal/en.json $B/assets/taal/
 cp web/vendor/leaflet.js web/vendor/leaflet.css web/vendor/jsQR.js $B/assets/vendor/
 cp web/ontsleutelen.html web/start.html web/neutraal.html $B/assets/
 cp web/facturen-robot.js web/facturen-leveranciers.json web/bank-robot.js web/bank-banken.json $B/assets/
+mkdir -p $B/assets/formulieren
+cp app/formulieren/*.pdf $B/assets/formulieren/
 cp LICENSE $B/assets/licenties/GPL-3.0.txt
 cp web/vendor/LEAFLET-LICENSE $B/assets/licenties/leaflet.txt
 cp web/vendor/JSQR-LICENSE $B/assets/licenties/jsqr.txt

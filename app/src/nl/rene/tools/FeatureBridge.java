@@ -82,6 +82,67 @@ public class FeatureBridge {
         }, "regio").start();
     }
 
+    // ----- ID-kopie: eigen tijdelijke bron, nooit via de gewone PDF-bewerklaag -----
+    @JavascriptInterface public void idCopyPick() {
+        if (!a.idScreen) return;
+        if (a.idPickStore != null) { a.js("onIdCopyPicked", "{\"cancelled\":true,\"session\":" + JSONObject.quote(a.idSession) + "}"); return; }
+        final IdCopy store = a.idCopy; final String session = a.idSession;
+        a.idPickStore = store; a.idPickSession = session;
+        a.h.post(() -> {
+            if (store != a.idCopy || !session.equals(a.idSession) || !a.idScreen) { if (a.idPickStore == store) a.idPickStore = null; return; }
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
+                    .putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "application/pdf"}).putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            try { a.startActivityForResult(i, MainActivity.REQ_ID_COPY); }
+            catch (Throwable e) {
+                if (a.idPickStore == store) a.idPickStore = null;
+                a.js("onIdCopyPicked", idAnswer("{\"error\":" + JSONObject.quote(Taal.T("Bestandskiezer niet beschikbaar")) + "}", session, ""));
+            }
+        });
+    }
+    @JavascriptInterface public void idCopySecure(boolean on, String session) {
+        final long generation;
+        synchronized (a.idSecurityGeneration) {
+            generation = a.idSecurityGeneration.incrementAndGet();
+            a.idSession = on && session != null ? session : "";
+            if (on) a.idScreen = true;
+        }
+        if (on) a.h.post(() -> { if (!a.isDestroyed()) { a.applySecure(); a.bankPrive(a.bankScreen || a.idScreen); } });
+        else a.h.post(() -> a.finishIdScreen(generation));
+    }
+    @JavascriptInterface public void idCopyClear() {
+        final IdCopy previous = a.idCopy; a.idCopy = new IdCopy();
+        new Thread(() -> { try {
+            if (!previous.clear()) a.js("onIdCopyCleanup", "{\"error\":" + JSONObject.quote(Taal.T("Werkbestand wissen lukt niet. Sluit dit scherm en probeer opnieuw.")) + "}");
+        } catch (Throwable ignored) { } }, "id-copy-clear").start();
+    }
+    private static String idAnswer(String json, String session, String revision) {
+        try { return new JSONObject(json).put("session", session).put("revision", revision).toString(); }
+        catch (Exception ignored) { return "{}"; }
+    }
+    @JavascriptInterface public void idCopyPreview(String revision, int page, int turn) {
+        final IdCopy store = a.idCopy; final String session = a.idSession;
+        if (!a.idScreen) return;
+        new Thread(() -> {
+            String result;
+            try { result = store.preview(revision, page, turn).toString(); }
+            catch (Throwable e) {
+                try { result = new JSONObject(PdfTools.err(e)).put("page", page).put("turn", turn).toString(); }
+                catch (Exception ignored) { result = "{}"; }
+            }
+            if (store == a.idCopy && a.idScreen) a.js("onIdCopyPreview", idAnswer(result, session, revision));
+        }, "id-copy-preview").start();
+    }
+    @JavascriptInterface public void idCopySave(String revision, String plan) {
+        final IdCopy store = a.idCopy; final String session = a.idSession;
+        if (!a.idScreen) return;
+        new Thread(() -> {
+            String result;
+            try { File f = store.save(ctx, revision, plan); result = new JSONObject().put("revision", revision).put("name", f.getName()).toString(); }
+            catch (Throwable e) { result = PdfTools.err(e); }
+            if (store == a.idCopy && a.idScreen) a.js("onIdCopySaved", idAnswer(result, session, revision));
+        }, "id-copy-save").start();
+    }
+
     // ----- PDF -----
 
     private void pick(String type, String[] mimes, boolean multi, int req) {
@@ -151,6 +212,24 @@ public class FeatureBridge {
             catch (Throwable e) { result = PdfTools.err(e); }
             a.js("onPdf", result);
         }, "pdf-edit-save").start();
+    }
+    @JavascriptInterface public void pdfFormPreview(String id, int page, String request) {
+        new Thread(() -> {
+            JSONObject result;
+            try { result = PdfFormulier.preview(ctx, id, page); }
+            catch (Throwable e) { result = new JSONObject(); try { result.put("error", Taal.t(ctx, "Het voorbeeld kan niet worden geladen. Ga een stap terug en probeer opnieuw.")); } catch (Exception ignored) { } }
+            try { result.put("id", id).put("page", page).put("request", request); } catch (Exception ignored) { }
+            a.js("onPdfFormPreview", result.toString());
+        }, "pdf-form-preview").start();
+    }
+    @JavascriptInterface public void pdfFormMake(String id, String layers, String name, String request) {
+        new Thread(() -> {
+            JSONObject result = new JSONObject();
+            try { result.put("name", PdfFormulier.make(ctx, id, layers, name).getName()); }
+            catch (Throwable e) { try { result.put("error", Taal.t(ctx, "De PDF kan niet worden gemaakt. Probeer opnieuw.")); } catch (Exception ignored) { } }
+            try { result.put("id", id).put("request", request); } catch (Exception ignored) { }
+            a.js("onPdfFormMade", result.toString());
+        }, "pdf-form-make").start();
     }
     /** mode: each (elke pagina apart), pick (gekozen pagina's samen), parts (elke groep in "1-3, 4-6" apart). */
     @JavascriptInterface public void pdfSplit(String mode, String ranges) {

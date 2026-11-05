@@ -10,9 +10,11 @@ document.addEventListener('input', e => {
 function uiCanReload(){
   if (current !== 'home' && current !== 'info') return false;
   if (document.querySelector('#modal.on, #sheet.on, #voice.on, #ci-ans.on, #ci-rem.on, #sleepdlg.on, #lockscr.on, #player.on')) return false;
+  if (typeof idCopyHasWork === 'function' && idCopyHasWork()) return false;
   if (typeof pdfEditDirty === 'function' && pdfEditDirty()) return false;
   if (typeof pdfEditPendingInput === 'function' && pdfEditPendingInput()) return false;
   if (typeof pdfBusy !== 'undefined' && pdfBusy) return false;
+  if (typeof fmDirty === 'function' && fmDirty()) return false;
   if (typeof pdfEd !== 'undefined' && (pdfEd.stroke || pdfEd.strokes.length)) return false;
   if (['#note-add', '#ai-in'].some(s => $(s) && $(s).value.trim())) return false;
   if (typeof aeDirty === 'function' && aeDirty()) return false;

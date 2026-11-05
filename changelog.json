@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.143",
+    "date": "2026-11-05",
+    "changes": [
+      "Bij PDF kun je nu een ID-kopie anonimiseren: gegevens zwart maken, ontvanger/doel/datum als watermerk toevoegen en een nieuwe kopie bekijken, opslaan of delen. Verwerking gebeurt op de telefoon; tijdelijke bronnen worden gewist."
+    ]
+  },
+  {
+    "version": "1.142",
+    "date": "2026-11-05",
+    "changes": [
+      "PDF → Formulieren invullen: vul toestemming voor reizen met een minderjarig kind stap voor stap in, controleer beide pagina’s en maak een PDF om te bewaren, af te drukken en te ondertekenen. Werkt zonder internet.",
+      "De formulierinvuller is herbruikbaar voor toekomstige formulieren."
+    ]
+  },
+  {
     "version": "1.141",
     "date": "2026-11-04",
     "changes": [
