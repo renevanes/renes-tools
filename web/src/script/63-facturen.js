@@ -698,7 +698,8 @@ function fsWeg(){
   const s = (faDos.items || []).find(x => x.sha === fsSha); if (!s) return;
   const doe = opnieuw => { const e = Android.facturenDossierWeg(fsSha, !!opnieuw); if (e) { toast(e); return; } toast(t('✓ Verwijderd')); fdLaad(); faLaad(); faSamenvatting(); goBack(); fdRender(); };
   const acts = [[t('Verwijderen'), () => doe(false)]];
-  if (s.leverancier && s.leverancier !== 'handmatig') acts.push([t('Verwijderen en de volgende keer opnieuw ophalen'), () => doe(true)]);
+  // Opnieuw ophalen werkt alleen bij een website (de mail zoekt alleen vanaf de vorige keer)
+  if (s.leverancier && s.leverancier !== 'handmatig' && (s.bron || {}).soort === 'website') acts.push([t('Verwijderen en de volgende keer opnieuw ophalen'), () => doe(true)]);
   openSheet(t('{naam} verwijderen?', { naam: s.naam || '' }), t('De factuur gaat uit het dossier en uit de app. Kopieën in je backup-map, op Drive en in je mail blijven staan.'), acts);
 }
 function fdReset(){

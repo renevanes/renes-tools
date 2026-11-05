@@ -80,7 +80,8 @@ final class FacturenDossier {
     static void nieuw(Context c, JSONObject lev, Facturen.Pdf p, String naam, File f) {
         try {
             JSONObject bron = p.bron == null ? new JSONObject() : new JSONObject(p.bron.toString());
-            bron.put("soort", lev.optString("soort", "website"));
+            if (!bron.optBoolean("toegevoegd")) bron.put("soort", lev.optString("soort", "website"));
+            else bron.put("soort", "hand");
             JSONObject s = new JSONObject()
                     .put("sha", p.sha).put("naam", naam).put("origineel", p.naam).put("grootte", p.data.length)
                     .put("leverancier", lev.optString("id")).put("leverancierNaam", lev.optString("naam"))
@@ -95,7 +96,12 @@ final class FacturenDossier {
             synchronized (Facturen.LOCK) {
                 JSONObject all = alle(c);
                 JSONObject oud = all.optJSONObject(p.sha);
-                if (oud == null) all.put(p.sha, s);
+                if (oud == null) { // eerder al aangeleverd (voor verwijderen of leegmaken)? Dan niet nog eens sturen
+                    JSONObject eerder = FacturenAanlever.data(c).optJSONObject("eerder");
+                    JSONObject v = eerder == null ? null : eerder.optJSONObject(p.sha);
+                    if (v != null) s.put("verzonden", new JSONObject(v.toString()));
+                    all.put(p.sha, s);
+                }
                 else { // opnieuw opgehaald (bijv. na het opnieuw toevoegen van de leverancier): de plek in de app klopt weer
                     if (oud.optJSONObject("plekken") == null) oud.put("plekken", new JSONObject());
                     oud.getJSONObject("plekken").put("app", s.getJSONObject("plekken").getJSONObject("app"));
@@ -262,6 +268,30 @@ final class FacturenDossier {
         }
     }
 
+    /**
+     * Onthoud per factuur (sha) bij welke ontvangers hij al is aangeleverd, ook als hij uit het dossier gaat: komt hij
+     * later terug (opnieuw opgehaald), dan gaat hij niet nog een keer naar de accountant. In aanleveren.json ("eerder").
+     */
+    static void onthoudVerzonden(Context c, JSONObject stukken) throws Exception {
+        synchronized (Facturen.LOCK) {
+            JSONObject a = FacturenAanlever.data(c), eerder = a.optJSONObject("eerder");
+            if (eerder == null) eerder = new JSONObject();
+            boolean iets = false;
+            for (java.util.Iterator<String> it = stukken.keys(); it.hasNext(); ) {
+                String sha = it.next();
+                JSONObject s = stukken.optJSONObject(sha), v = s == null ? null : s.optJSONObject("verzonden");
+                if (v == null) continue;
+                JSONObject ok = eerder.optJSONObject(sha) == null ? new JSONObject() : eerder.getJSONObject(sha);
+                for (java.util.Iterator<String> io = v.keys(); io.hasNext(); ) {
+                    String o = io.next(); JSONObject x = v.optJSONObject(o);
+                    if (x != null && x.optBoolean("ok")) { ok.put(o, x); iets = true; }
+                }
+                if (ok.length() > 0) eerder.put(sha, ok);
+            }
+            if (iets) { a.put("eerder", eerder); FacturenAanlever.bewaarData(c, a); }
+        }
+    }
+
     /** Leverancier-id voor facturen die Rene zelf toevoegt (zonder leverancier in Facturen). */
     static final String HANDMATIG = "handmatig";
 
@@ -276,6 +306,7 @@ final class FacturenDossier {
         if (naamLev.isEmpty()) throw new Exception("Kies of vul de leverancier in");
         if (naamLev.length() > 80) throw new Exception("De naam van de leverancier is te lang");
         String sha = Facturen.sha(data);
+        if (bestandsnaam != null && bestandsnaam.length() > 120) bestandsnaam = bestandsnaam.substring(0, 110) + ".pdf";
         synchronized (Facturen.LOCK) { if (alle(c).has(sha)) throw new Exception("Deze factuur staat al in het dossier"); }
         String id = lev != null ? lev.optString("id") : HANDMATIG;
         File d = Facturen.pdfDir(c, id);
@@ -301,6 +332,9 @@ final class FacturenDossier {
         synchronized (Facturen.LOCK) {
             JSONObject all = alle(c), s = all.optJSONObject(sha);
             if (s == null) throw new Exception("Factuur niet gevonden in het dossier");
+            FacturenRun r = FacturenRun.LOPEND.get();
+            if (r != null && r.id.equals(s.optString("leverancier"))) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
+            onthoudVerzonden(c, new JSONObject().put(sha, s));
             File f = FacturenAanlever.bestand(c, s);
             if (f != null && !f.delete() && f.exists()) throw new Exception("Het bestand weghalen lukt niet");
             all.remove(sha);
@@ -319,16 +353,19 @@ final class FacturenDossier {
      * je backup-map, op Drive en in de mail blijven staan; instellingen (leveranciers, ontvangers, koppelingen) ook.
      */
     static int reset(Context c) throws Exception {
-        if (FacturenRun.LOPEND.get() != null) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
-        if (FacturenAanlever.BEZIG.get()) throw new Exception("Er wordt nu aangeleverd; probeer het straks nog een keer");
         int n;
         synchronized (Facturen.LOCK) {
-            n = alle(c).length();
+            if (FacturenRun.LOPEND.get() != null) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
+            if (FacturenAanlever.BEZIG.get()) throw new Exception("Er wordt nu aangeleverd; probeer het straks nog een keer");
+            JSONObject alles = alle(c);
+            n = alles.length();
+            onthoudVerzonden(c, alles); // wat al bij de accountant is, gaat na opnieuw ophalen niet nog een keer
             JSONArray l = Facturen.lijst(c);
             for (int i = 0; i < l.length(); i++) {
                 String id = l.getJSONObject(i).optString("id");
                 Facturen.werkBij(c, id, new JSONObject().put("verwerkt", new JSONObject()).put("lastOk", 0).put("lastTry", 0)
-                        .put("mailSinds", 0).put("mailMeer", false).put("log", new JSONArray()).put("nieuw", 0).put("msg", "").put("ok", true));
+                        .put("mailSinds", 0).put("mailMeer", false).put("log", new JSONArray()).put("nieuw", 0).put("msg", "").put("ok", true)
+                        .put("heelPogingen", 0).put("gedekt", 0).put("mailFouten", 0));
             }
             File pdf = new File(Facturen.dir(c), "pdf");
             File[] mappen = pdf.listFiles();

@@ -473,10 +473,11 @@ public class MainActivity extends Activity {
     public void startActivityForResult(Intent intent, int requestCode, android.os.Bundle options) {
         boolean external = intent != null && Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null
                 && ("http".equals(intent.getData().getScheme()) || "https".equals(intent.getData().getScheme()));
-        // Een eigen scherm van de app (bijv. de PDF-viewer) is ook "binnen de app", ook met startActivity (-1)
-        boolean eigen = intent != null && intent.getComponent() != null && getPackageName().equals(intent.getComponent().getPackageName());
-        if (eigen && PdfViewActivity.class.getName().equals(intent.getComponent().getClassName())) intent.putExtra(PdfViewActivity.EXTRA_IN_APP, true);
-        if (!external && (requestCode >= 0 || eigen) && !isSolo()) Lock.internalNav = true; // startActivity naar een andere app (delen) heeft -1: dat is weggaan
+        // De eigen PDF-viewer is ook "binnen de app", ook met startActivity (-1); hij houdt het app-slot zelf bij
+        boolean viewer = !isSolo() && intent != null && intent.getComponent() != null && getPackageName().equals(intent.getComponent().getPackageName())
+                && PdfViewActivity.class.getName().equals(intent.getComponent().getClassName());
+        if (viewer) intent.putExtra(PdfViewActivity.EXTRA_IN_APP, PdfViewActivity.TOKEN);
+        if (!external && (requestCode >= 0 || viewer) && !isSolo()) Lock.internalNav = true; // startActivity naar een andere app (delen) heeft -1: dat is weggaan
         super.startActivityForResult(intent, requestCode, options);
     }
 
@@ -733,6 +734,7 @@ public class MainActivity extends Activity {
                     String naam = "";
                     try (android.database.Cursor cu = getContentResolver().query(u, new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
                         if (cu != null && cu.moveToFirst()) naam = cu.getString(0);
+                        if (naam == null) naam = "";
                     } catch (Exception ignored) { }
                     byte[] b;
                     try (java.io.InputStream in = getContentResolver().openInputStream(u)) { b = Facturen.lees(in, Facturen.MAX_PDF); }
