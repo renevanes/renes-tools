@@ -151,6 +151,17 @@ const regels = (van, tot) => Array.from({ length: tot - van + 1 }, (_, n) => `<t
     await detail.close();
     console.log('✓ verse robot op een factuurdetail bewaart het native downloadvolgnummer');
 
+    const vooraf = await b.newPage();
+    await vooraf.setContent('<button id="cache">Download PDF</button>');
+    await vooraf.evaluate(() => { window.__vooraf = []; window.FrBrug = { blob: (sleutel, data, naam, token) => window.__vooraf.push(token) }; });
+    await vooraf.evaluate(ROBOT + '\n;window.__u=URL.createObjectURL(new Blob(["%PDF-1.4\\nvooraf"],{type:"application/pdf"}));document.getElementById("cache").onclick=()=>{const a=document.createElement("a");a.href=window.__u;a.download="F.pdf";a.click()};__fr.knoppen("download",50);');
+    await vooraf.waitForFunction(() => window.__vooraf.length === 1);
+    await vooraf.evaluate('__fr.klik(0, "", 1)');
+    await vooraf.waitForFunction(() => window.__vooraf.length === 2);
+    assert.deepEqual(await vooraf.evaluate(() => window.__vooraf), [0, 1]);
+    await vooraf.close();
+    console.log('✓ vooraf gemaakte PDF wordt bij de eerste klik aan die download gekoppeld');
+
     await pg.setContent(`<table><tbody>${regels(1, 2)}</tbody></table><button>Toon meer</button>`);
     s = await lijst();
     await pg.evaluate(extra => { document.querySelector('tbody').innerHTML = extra; }, regels(3, 4));

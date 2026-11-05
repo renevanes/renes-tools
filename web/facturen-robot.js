@@ -324,7 +324,7 @@
   const vang = (href, naam) => {
     if (!href) return;
     const key = adresKey(href);
-    if (!adresTokens.has(key)) adresTokens.set(key, actieveDownload);
+    if (!adresTokens.has(key) || adresTokens.get(key) === 0) adresTokens.set(key, actieveDownload);
     const token = adresTokens.get(key); // een late klik op een oude blob blijft van de oorspronkelijke download
     if (href.startsWith('blob:') && blobs.has(href)) geef(blobs.get(href), naam, token);
     else if (/^data:application\/(pdf|octet-stream)/i.test(href) && window.FrBrug && !adresGestuurd.has(token + ':' + key)) {
