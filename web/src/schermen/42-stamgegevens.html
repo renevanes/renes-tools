@@ -17,7 +17,7 @@
       </div>
       <div class="card" id="cm-editor" hidden>
         <h2 id="cm-editor-title">Stamgegeven bewerken</h2>
-        <label class="f" for="cm-kind">Soort</label><select class="search" id="cm-kind" onchange="cmType(this.value)"><option value="persoon">Persoon</option><option value="organisatie">Organisatie</option><option value="adres">Adres</option><option value="identiteit">Identiteitsdocument</option></select>
+        <label class="f" for="cm-kind">Soort</label><select class="search" id="cm-kind" onchange="cmType(this.value)"><option value="persoon">Persoon</option><option value="organisatie">Organisatie</option><option value="adres">Adres</option><option value="identiteit">Identiteitsdocument</option><option value="reis">Reis</option></select>
         <label class="f" for="cm-label">Naam in het overzicht</label><input class="search" id="cm-label" maxlength="120" autocomplete="off" oninput="cmDirty()">
         <p class="note">Gebruik een herkenbare naam. Deze weergavenaam blijft bij activiteiten staan, ook nadat je het stamgegeven verwijdert.</p>
         <form id="cm-fields" autocomplete="off" novalidate onsubmit="event.preventDefault();cmSave()"></form>

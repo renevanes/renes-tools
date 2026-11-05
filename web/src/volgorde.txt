@@ -105,6 +105,7 @@ script/48-pdf-handtekening-bewaren.js
 script/67-formulier-reistoestemming.js
 script/68-formulieren.js
 script/69-centrale-gegevens.js
+script/70-formulieren-invulhulp.js
 script/49-documenten-ordenen.js
 script/38-podcasts.js
 script/46-podcast-downloads.js

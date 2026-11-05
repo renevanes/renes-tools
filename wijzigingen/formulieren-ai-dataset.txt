@@ -1,0 +1,2 @@
+Formulieren invullen: hergebruik zelf beheerde personen en reizen uit Stamgegevens. Kies bronvelden en controleer voorstellen voordat je ze overneemt.
+Lokale AI kan per formulierstap invulvoorstellen maken uit gekozen gegevens en je toelichting. Alles blijft op je telefoon; bestaande invoer wordt niet stilzwijgend overschreven.

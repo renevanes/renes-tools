@@ -13,9 +13,10 @@ final class MasterSchema {
     static final String[] ORGANISATION={"naam","registratienummer","adres","postcode","plaats","land","telefoon","email"};
     static final String[] ADDRESS={"naam","adres","postcode","plaats","land","telefoon"};
     static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats"};
+    static final String[] TRIP={"van","tot","alleen","tweedeBegeleider","tweedeGever","accommodatie","postcode","plaats","land","telefoon","reisgegevens"};
     static boolean sensitive(String key){return "bsn".equals(key)||"document".equals(key)||"geldig".equals(key)||"afgifte".equals(key);}
     static String[] fields(String type)throws Exception{
-        if("persoon".equals(type))return PERSON;if("organisatie".equals(type))return ORGANISATION;if("adres".equals(type))return ADDRESS;if("identiteit".equals(type))return IDENTITY;
+        if("persoon".equals(type))return PERSON;if("organisatie".equals(type))return ORGANISATION;if("adres".equals(type))return ADDRESS;if("identiteit".equals(type))return IDENTITY;if("reis".equals(type))return TRIP;
         throw new MasterError(Taal.T("Onbekend soort stamgegeven"));
     }
     static boolean validDate(String value){
@@ -31,12 +32,14 @@ final class MasterSchema {
             String k=it.next();Object value=raw.get(k);if(!known.contains(k)||!(value instanceof String))throw new MasterError(Taal.T("Onbekend of ongeldig gegevensveld"));
             String s=((String)value).trim();if(s.length()>240||s.matches("(?s).*[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f].*"))throw new MasterError(Taal.T("Een gegevensveld is te lang of ongeldig"));
             s=s.replace('\n',' ').replace('\r',' ');
-            if(("geboortedatum".equals(k)||"geldig".equals(k)||"afgifte".equals(k))&&!s.isEmpty()&&!validDate(s))throw new MasterError(Taal.T("Vul een geldige datum in"));
+            if(("geboortedatum".equals(k)||"geldig".equals(k)||"afgifte".equals(k)||"van".equals(k)||"tot".equals(k))&&!s.isEmpty()&&!validDate(s))throw new MasterError(Taal.T("Vul een geldige datum in"));
+            if(Arrays.asList("alleen","tweedeBegeleider","tweedeGever").contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
             if("bsn".equals(k)&&!s.isEmpty()&&!s.matches("[0-9]{8,9}"))throw new MasterError(Taal.T("Vul een geldig BSN in"));
             if("persoon".equals(k)&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
             if(!s.isEmpty())out.put(k,s);
         }
         if("identiteit".equals(type)&&out.optString("persoon").isEmpty())throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+        if("reis".equals(type)&&out.has("van")&&out.has("tot")&&out.getString("van").compareTo(out.getString("tot"))>0)throw new MasterError(Taal.T("De laatste reisdag moet op of na de eerste reisdag vallen."));
         return new JSONObject().put("type",type).put("label",label).put("fields",out);
     }
     static String source(String source)throws Exception{
@@ -46,12 +49,13 @@ final class MasterSchema {
     static void context(String source,String role)throws Exception{
         source(source);
         boolean ok="masterdata".equals(source)&&role.isEmpty()||"idcopy".equals(source)&&"ontvanger".equals(role)
-                ||"formulieren".equals(source)&&Arrays.asList("kind","begeleider1","begeleider2","gever1","gever2","bestemming").contains(role);
+                ||"formulieren".equals(source)&&Arrays.asList("kind","begeleider1","begeleider2","gever1","gever2","bestemming","reis").contains(role);
         if(!ok)throw new MasterError(Taal.T("Deze gegevens passen niet bij dit onderdeel"));
     }
     static Set<String> permitted(String source,String role,String type)throws Exception{
         context(source,role);Set<String> keys=new HashSet<>();
         if("masterdata".equals(source)){keys.addAll(Arrays.asList(fields(type)));return keys;}
+        if("formulieren".equals(source)&&"reis".equals(role)){if("reis".equals(type))keys.addAll(Arrays.asList(TRIP));return keys;}
         if("idcopy".equals(source)&&"ontvanger".equals(role)&&("persoon".equals(type)||"organisatie".equals(type))){keys.add("ontvanger");return keys;}
         if("formulieren".equals(source)&&Arrays.asList("kind","begeleider1","begeleider2","gever1","gever2","bestemming").contains(role)){
             if("persoon".equals(type)&&!"bestemming".equals(role))keys.addAll(Arrays.asList("naam","initialen","geboortedatum","geboorteplaats","nationaliteit","bsn"));

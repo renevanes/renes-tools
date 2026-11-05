@@ -16,6 +16,7 @@ function uiCanReload(){
   if (typeof pdfEditPendingInput === 'function' && pdfEditPendingInput()) return false;
   if (typeof pdfBusy !== 'undefined' && pdfBusy) return false;
   if (typeof fmDirty === 'function' && fmDirty()) return false;
+  if (typeof fmHelpDirty === 'function' && fmHelpDirty()) return false;
   if (typeof pdfEd !== 'undefined' && (pdfEd.stroke || pdfEd.strokes.length)) return false;
   if (['#note-add', '#ai-in'].some(s => $(s) && $(s).value.trim())) return false;
   if (typeof aeDirty === 'function' && aeDirty()) return false;

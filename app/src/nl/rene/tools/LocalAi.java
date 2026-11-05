@@ -559,9 +559,10 @@ final class LocalAi {
         private final java.util.concurrent.atomic.AtomicLong owner = new java.util.concurrent.atomic.AtomicLong();
         private final java.util.concurrent.atomic.AtomicLong seq = new java.util.concurrent.atomic.AtomicLong();
         /** Een nummer voor deze beurt, of 0 als er al een loopt. */
-        long enter() { long id = seq.incrementAndGet(); return owner.compareAndSet(0, id) ? id : 0; }
+        synchronized long enter() { long id = seq.incrementAndGet(); return owner.compareAndSet(0, id) ? id : 0; }
         /** Alleen de eigen beurt vrijgeven (een oude beurt mag een nieuwere niet vrijgeven). */
-        void leave(long id) { if (id != 0) owner.compareAndSet(id, 0); }
+        synchronized void leave(long id) { if (id != 0) owner.compareAndSet(id, 0); }
+        synchronized boolean owned(long id,Runnable action) { if(id==0||owner.get()!=id)return false;action.run();return true; }
         boolean busy() { return owner.get() != 0; }
     }
     private static final Gate GATE = new Gate();
@@ -754,16 +755,20 @@ final class LocalAi {
     /** Een losse vraag zonder geheugen, leren, acties, zoeken of opgeslagen gesprek (Bankzaken): niets van de vraag of het
      *  antwoord wordt bewaard. msgs = [{role, content}]. Geeft false als er al een antwoord loopt. */
     static boolean privateChat(final Context c, final String system, final JSONArray msgs, final int maxTok, final Sink sink) {
+        return privateChatJob(c,system,msgs,maxTok,sink,false)!=0;
+    }
+    static long privateChatJob(final Context c, final String system, final JSONArray msgs, final int maxTok, final Sink sink, final boolean completeInput) {
         final long job = GATE.enter();
-        if (job == 0) return false;
+        if (job == 0) return 0;
         cancel = false; cancelAt = 0;
         stopLearning();
-        try { AI.execute(() -> privateRun(c, system, msgs, maxTok, sink, job)); }
+        try { AI.execute(() -> privateRun(c, system, msgs, maxTok, sink, job, completeInput)); }
         catch (Throwable t) { GATE.leave(job); throw t; }
-        return true;
+        return job;
     }
+    static void cancelJob(long job) { GATE.owned(job,LocalAi::cancel); }
 
-    private static void privateRun(final Context c, final String system, final JSONArray in, final int maxTok, final Sink sink, final long job) {
+    private static void privateRun(final Context c, final String system, final JSONArray in, final int maxTok, final Sink sink, final long job, final boolean completeInput) {
         try {
             if (!supported()) throw new Exception("De lokale AI werkt alleen op telefoons met een 64-bits ARM-processor");
             Model m = chatModel(c);
@@ -777,7 +782,7 @@ final class LocalAi {
                 JSONObject x = in.getJSONObject(i);
                 String content = x.optString("content");
                 // Het laatste bericht (de vraag met de cijfers) passend maken voor het model; het begin (de vraag) blijft
-                if (i == in.length() - 1) { int budget = attBudget(m.ctx, max, other, in.length() + 1); if (content.length() > budget) content = content.substring(0, budget); }
+                if (i == in.length() - 1) { int budget = attBudget(m.ctx, max, other, in.length() + 1); if (content.length() > budget) { if(completeInput)throw new Exception(Taal.T("De brongegevens passen niet in het taalmodel. Kies minder velden of kort de toelichting in."));content = content.substring(0, budget); } }
                 else if (content.length() > 4000) content = content.substring(0, 4000);
                 msgs.put(new JSONObject().put("role", "assistant".equals(x.optString("role")) ? "assistant" : "user").put("content", content));
             }

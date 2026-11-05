@@ -4,6 +4,22 @@ In Tools: **PDF → Formulieren invullen**. Kies een formulier, vul de stappen i
 
 De invoer blijft uitsluitend in het geheugen. Er is geen netwerkverkeer voor invullen, voorbeeld of export. Alleen **Officiële bron openen** opent de website in de browser. Concepten gaan niet naar localStorage, backups, zoekindexen of statistieken. Een automatische interface-update wacht zolang er formulierinvoer is. **Formulier leegmaken** wist het concept; eerder gemaakte PDF’s blijven beschikbaar.
 
+## Vaste gegevens en lokale AI
+
+Beheer je personen, identiteitsdocumenten en reizen onder **Stamgegevens**. Een reis bevat de reisperiode, alleen reizen, eventuele tweede begeleider/toestemminggever, bestemming en reisgegevens. Dezelfde reis kun je voor meerdere kinderen gebruiken. Gegevens blijven in de bestaande versleutelde centrale opslag op dit toestel; ze gaan niet mee in backups.
+
+Open in een formulierstap **Invulhulp met vaste gegevens en lokale AI**. Kies de rol (bijvoorbeeld kind of reis), ontgrendel Stamgegevens en kies welke velden je wilt vrijgeven. BSN en documentgegevens zijn niet standaard aangevinkt. Een identiteitsdocument voor de invulhulp kies je nadat je de gekoppelde persoon voor dezelfde rol hebt gekozen. De selectie vult nog geen formulierwaarden in.
+
+- **Voorstel uit vaste gegevens** koppelt gekozen bronvelden via de formulierdefinitie, zonder taalmodel. Het toont alleen ondubbelzinnige waarden. Bestaande invoer staat standaard uitgevinkt.
+- **Voorstel met lokale AI** gebruikt diezelfde geselecteerde bronvelden en je optionele toelichting. Het gebruikt het al geïnstalleerde taalmodel via `LocalAi.privateChatJob`, zonder netwerk, zoeken, acties, leren of gespreksopslag. Zonder passend model kun je de vaste gegevens blijven gebruiken. Een model wordt niet automatisch gedownload.
+- Controleer de voorgestelde waarde en bron en kies **Gekozen voorstellen overnemen**. Je bestaande invoer vervang je alleen door het betreffende vakje aan te vinken. Een wijziging aan invoer, toelichting of bronselectie maakt oude voorstellen ongeldig.
+
+De native controle accepteert alleen verwijzingen naar passende, gekozen bronvelden of een letterlijk citaat uit de toelichting. De AI bepaalt geen nieuwe identiteitsnummers. Volledige numerieke datumcitaten worden gecontroleerd en naar ISO omgezet; relatieve of onvolledige datums worden niet afgeleid. Een te grote invoer wordt geweigerd in plaats van stil afgekapt. Antwoorden en veldwaarden worden als tekst getoond. Er wordt niets automatisch ondertekend of geëxporteerd.
+
+Invulhulp blijft gekoppeld aan de ontgrendelde stamgegevenssessie. Bij vergrendelen of verlaten van de app stoppen de lokale invulvraag en verdwijnen bronselecties, toelichting, voorstellen en overgenomen formulierinvoer. Het annuleren van een afgeronde invulvraag kan geen nieuw antwoord van de gewone assistent stoppen. Gemaakte PDF’s blijven buiten de centrale kluis staan, zoals bij handmatig overnemen uit Stamgegevens.
+
+Voor een nieuw formulier geef je per veld `sources: [{role, key}]` op. De invulhulp leest die bindings en gebruikt dezelfde bestaande rollen en vrijgavecontracten van `MasterSchema`. Bijvoorbeeld `kind-naam` gebruikt `{role: 'kind', key: 'naam'}`; een reisdatum gebruikt `{role: 'reis', key: 'van'}`. De hulpmodule bevat geen veld-id’s van het reistoestemmingsformulier. De modeluitvoer en bewijscontrole staan in `PdfFormAssist`; sessie en jobannulering in `PdfFormAi`.
+
 ## Opzet
 
 - `web/src/script/68-formulieren.js`: algemene invuller, validatie, voorwaardelijke stappen, samenvatting, tekenlagen en export. Geen formulierinhoud in de engine.

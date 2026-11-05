@@ -9,3 +9,8 @@
 #pff-samenvatting dl{margin:8px 0 16px}
 #pff-samenvatting dt{color:var(--muted);font-size:.85em;margin-top:6px}
 #pff-samenvatting dd{margin:0;color:var(--ink)}
+.pff-hulp{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:16px}
+.pff-hulp .search{width:100%;box-sizing:border-box;margin-bottom:8px}
+.pff-hulp .chk{align-items:flex-start;gap:8px;overflow-wrap:anywhere}
+.pff-hulp .chk span{display:block}
+.pff-hulp .chk small{display:block;color:var(--muted)}

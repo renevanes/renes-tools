@@ -105,6 +105,8 @@ public class MasterBridge extends BankBridge {
     }
     @JavascriptInterface public void masterAudit(String token,long before,String request){work(token,request,key->MasterStore.audit(ctx,key,a.masterSession,token,before));}
     @JavascriptInterface public void masterReleaseForm(){a.masterFormBound=false;}
+    @JavascriptInterface public String pdfFormAi(String token,String json,String request){return a.pdfFormAi.start(token,json,request);}
+    @JavascriptInterface public void pdfFormAiCancel(String request){a.pdfFormAi.cancel(request);}
     void resetError(String request){JSONObject r=new JSONObject();try{r.put("error",Taal.T("Wissen geannuleerd"));}catch(Exception ignored){}reply(request,"",r);}
     @JavascriptInterface public void masterReset(String confirmation,String request){
         if(!"WISSEN".equals(confirmation)){resetError(request);return;}

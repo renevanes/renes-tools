@@ -14,6 +14,27 @@
     <div class="card">
       <p class="note" id="pff-stap" role="status" aria-live="polite"></p>
       <h2 id="pff-titel" tabindex="-1"></h2>
+      <details id="pff-hulp" class="pff-hulp">
+        <summary>Invulhulp met vaste gegevens en lokale AI</summary>
+        <p class="note">Kies zelf beheerde personen of een reis uit Stamgegevens. Alleen de gekozen velden en je toelichting worden gebruikt. Controleer de voorstellen voordat je ze overneemt.</p>
+        <button class="mini" onclick="show('masterdata')">Personen en reizen beheren</button>
+        <label class="f" for="pff-hulp-rol">Gegevens kiezen voor</label>
+        <select class="search" id="pff-hulp-rol"></select>
+        <button class="big ghost" id="pff-hulp-kies" onclick="fmHelpPick()">Vaste gegevens kiezen</button>
+        <div id="pff-hulp-bronnen" translate="no"></div>
+        <label class="f" for="pff-hulp-tekst">Toelichting voor de lokale AI</label>
+        <textarea class="search" id="pff-hulp-tekst" maxlength="2000" rows="3" autocomplete="off" translate="no" placeholder="Bijvoorbeeld: de begeleider is de vader. Datum ondertekening: 12-07-2027."></textarea>
+        <p class="note">De AI werkt op je telefoon met je geïnstalleerde taalmodel. Je vraag en het antwoord worden niet als gesprek of AI-geheugen bewaard.</p>
+        <button class="mini" onclick="show('models')">Taalmodel kiezen</button>
+        <div class="row pff-navigatie">
+          <button class="big ghost" id="pff-hulp-vast" onclick="fmHelpFixed()">Voorstel uit vaste gegevens</button>
+          <button class="big" id="pff-hulp-ai" onclick="fmHelpAi()">Voorstel met lokale AI</button>
+          <button class="mini" id="pff-hulp-stop" onclick="fmHelpCancel()" hidden>Stoppen</button>
+        </div>
+        <p class="note" id="pff-hulp-status" role="status" aria-live="polite"></p>
+        <div id="pff-hulp-voorstellen" translate="no"></div>
+        <button class="big" id="pff-hulp-overnemen" onclick="fmHelpApply()" hidden>Gekozen voorstellen overnemen</button>
+      </details>
       <button class="big ghost" id="cm-form-pick" onclick="cmFormPick()" hidden>Overnemen uit stamgegevens</button>
       <form id="pff-velden" autocomplete="off" novalidate translate="no" onsubmit="event.preventDefault();fmVerder()"></form>
       <div id="pff-controle" hidden>

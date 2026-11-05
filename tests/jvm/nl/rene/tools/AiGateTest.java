@@ -21,6 +21,12 @@ public class AiGateTest {
         g.leave(0);
         check(g.busy(), "beurt 0 (geweigerd) geeft niets vrij");
         g.leave(two);
+        final java.util.concurrent.atomic.AtomicInteger cancelled=new java.util.concurrent.atomic.AtomicInteger();
+        long own=g.enter();
+        check(!g.owned(two,cancelled::incrementAndGet),"oude invulvraag kan een nieuwe AI-beurt niet stoppen");
+        check(g.owned(own,cancelled::incrementAndGet)&&cancelled.get()==1,"eigen invulvraag mag worden gestopt");
+        g.leave(own);
+        check(!g.owned(own,cancelled::incrementAndGet)&&cancelled.get()==1,"klaar antwoord stopt geen latere assistent");
 
         // Veel tikken tegelijk: precies één krijgt de beurt
         final LocalAi.Gate h = new LocalAi.Gate();

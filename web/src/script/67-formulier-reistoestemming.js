@@ -72,8 +72,12 @@ const FM_REIS_POS = {
 
 function fmReisVeld(id, label, type, required){
   const postcode = id==='gever1-postcode'||id==='gever2-postcode';
+  const match=/^(kind|begeleider[12]|gever[12])-(.+)$/.exec(id);
+  const key=id.startsWith('bestemming-')?id.slice(11):id;
+  const sources=match?[{role:match[1],key:match[2]}]:[{role:'reis',key}];
+  if(id==='accommodatie'||id==='land'||id.startsWith('bestemming-'))sources.push({role:'bestemming',key});
   return {id, label, type:type || 'text', required:!!required, pdf:FM_REIS_POS[id] || [], compact:postcode,
-    pattern:postcode?'[0-9]{4}\\s?[A-Za-z]{2}':undefined};
+    pattern:postcode?'[0-9]{4}\\s?[A-Za-z]{2}':undefined,sources};
 }
 function fmReisPersoon(prefix, gever){
   const v = (key,label,type,required) => fmReisVeld(prefix + '-' + key,label,type,required);
@@ -89,7 +93,7 @@ function fmReisPersoon(prefix, gever){
 }
 function fmReistoestemming(){
   const v = fmReisVeld;
-  const keuze = (id,label) => ({id,label,type:'select',value:'nee',options:[['nee',t('Nee')],['ja',t('Ja')]]});
+  const keuze = (id,label) => ({id,label,type:'select',value:'nee',options:[['nee',t('Nee')],['ja',t('Ja')]],sources:[{role:'reis',key:id}]});
   const begeleid = {alleen:'nee'}, tweeBegeleiders = {alleen:'nee',tweedeBegeleider:'ja'}, tweeGevers = {tweedeGever:'ja'};
   const alleen = keuze('alleen',t('Reist het kind alleen?'));
   alleen.pdf = [{page:0,x:207,y:290,w:8,h:9,choice:'ja'}, {page:0,x:239.5,y:290,w:8,h:9,choice:'nee'}];

@@ -98,6 +98,7 @@ public class MainActivity extends Activity {
     volatile boolean idScreen;
     final java.util.concurrent.ConcurrentHashMap<String,String> masterGrants=new java.util.concurrent.ConcurrentHashMap<>();
     final MasterSession masterSession=new MasterSession();
+    final PdfFormAi pdfFormAi=new PdfFormAi(this);
     final java.util.concurrent.atomic.AtomicLong masterAuthSerial=new java.util.concurrent.atomic.AtomicLong(),masterSecurityGeneration=new java.util.concurrent.atomic.AtomicLong();
     volatile boolean masterForeground,masterAuthPending,masterWanted,masterScreen,masterCover,masterFormBound,masterIdBound;
     volatile String masterView="";
@@ -512,6 +513,7 @@ public class MainActivity extends Activity {
 
     void scheduleMasterExpiry(){h.removeCallbacks(masterExpiry);long left=masterSession.remaining();if(left>0)h.postDelayed(masterExpiry,left);}
     void suspendMaster(boolean explicit){
+        pdfFormAi.cancel(null);
         synchronized(masterSession){masterSession.close();masterGrants.clear();if(explicit||!masterAuthPending)masterAuthSerial.incrementAndGet();}
         h.removeCallbacks(masterExpiry);
         long generation;
