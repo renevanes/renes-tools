@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.143",
+    "date": "2026-11-05",
+    "changes": [
+      "Bij PDF kun je nu een ID-kopie anonimiseren: gegevens zwart maken, ontvanger/doel/datum als watermerk toevoegen en een nieuwe kopie bekijken, opslaan of delen. Verwerking gebeurt op de telefoon; tijdelijke bronnen worden gewist."
+    ]
+  },
+  {
     "version": "1.142",
     "date": "2026-11-05",
     "changes": [

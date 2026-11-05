@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.142",
-  "versionCode": 143,
-  "nativeLevel": 129,
+  "versionName": "1.143",
+  "versionCode": 144,
+  "nativeLevel": 130,
   "web": "index.html",
-  "webSha256": "ca3ef49087b6c728af36b16d4f957b118f594c06147b05cf231b878c4053c9e6",
+  "webSha256": "7cf3c028eda2ccc2a980559af6592dc06c4eb980995903b8ea16637179651282",
   "start": "start.html",
   "startSha256": "ca013c1e7d37c86b7299e7346900a6c0386581a676a519a1f40356316b7ea994",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "ab9453c963ca182a1327e32f01e53b712ed7e3ad4575ce2afcdf56fa4d321575",
+  "apkSha256": "977cbbf7d030381df7b00d19820afb49eed158addb52d5d5087df62720014253",
   "changelog": [
+    {
+      "version": "1.143",
+      "date": "2026-11-05",
+      "changes": [
+        "Bij PDF kun je nu een ID-kopie anonimiseren: gegevens zwart maken, ontvanger/doel/datum als watermerk toevoegen en een nieuwe kopie bekijken, opslaan of delen. Verwerking gebeurt op de telefoon; tijdelijke bronnen worden gewist."
+      ]
+    },
     {
       "version": "1.142",
       "date": "2026-11-05",
@@ -1250,5 +1257,5 @@
       ]
     }
   ],
-  "webSig2": "Rg+p/mHsMy1hjxRC6/EAVRGXn9VuDHgr3AWxFQ8nMtqJK++QkcvJRDjsCypG0mFOfSHRk1IhAanO88z2I7gBP0TK2dixJBpV/JSaB7thHRBl+HCpIVrBGw5E7b3wMFZE27p3OMxqxd37X2rz3h66emzVGj+7eqjaV/eUy+OGbcc75gY+wkChJjaFNm5HXwtI/5zZeK4JTynMu5LwklK/Pa5KTWE+5GIWFVR9LKYVfXc3/jB/IRt2DGym7x40yxYJ5u1UijtRTxhtsHJEInNJ4SKWkgXjNOHijs+CBwUqt0w5MqMMs8dWzG69XI1i7G0Kos1rZUELBm+8SH6DNFCwkUMqFOADDtU8sXE6yANDi08SPgeaLOX3tofSvLfx59k3frwxl88TrxHOcEVJwcgk5YE1PiAZQL5unOvyVNscSLkU/3n+84NB5VujsoiXh1C8u0MOutuRByZn5sV7QW1nsMOXUiQi250cmuwhPBFH6yMGyVMMGDkN55y+dhAUTMJB"
+  "webSig2": "NdHfMmCOgGM6HW6247J5YTV48AP1wl4L62sZMTSM8oTXWU/4AQ0q5HX5wFecx3mBQvXUPavCvWt3Cboylj9HwIJ71VaZ/XgdgGq1r5hKgin6mNr8D0tK5bYqfPivYAOia/Sjz6ileukpMyYQ4wPez7/7pbxH5GM4b6UpZtxHmN2pIgPNBx2mG0fbF42VWnaidUmsRusyD8GxCPQDLKKdGsSa8zrzdMJn5FssZ5gGrwTCqi/uiFyGlF3tLhWQaqesXc2ROJcCWV6Di7yCEsIfWXZmuV+FoX/2fBEtwUh5Oddf+x1J9RGMBOYK+IVnDF0w/XjweGbMAU5RkD299l5imBpWQZVGca9mvmSKLIyzsRmPq8ByPcf+53JvTHtP+RC0iCVdSSHDvaO39aBQm8ECm2ECNBNbOWmcJ+2vVusb/Eu5WrZOO2t4nPdpQCQRKZq1khf+dOO35tw+Ds+D2A/Wj/Ot+XvhakEXHkBVSxyBYiMV84JrfZNm8kz+NheXBvVN"
 }
