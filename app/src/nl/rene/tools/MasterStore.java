@@ -99,6 +99,13 @@ final class MasterStore {
     }
     static JSONArray names(JSONObject fields){JSONArray a=new JSONArray();java.util.Iterator<String> it=fields.keys();while(it.hasNext())a.put(it.next());return a;}
     static JSONObject summary(JSONObject r)throws Exception{return new JSONObject().put("id",r.getString("id")).put("label",r.getString("label")).put("type",r.getString("type")).put("revision",r.getLong("revision")).put("person",r.getJSONObject("fields").optString("persoon"));}
+    static JSONArray records(SQLiteDatabase db,SecretKey key)throws Exception{JSONArray out=new JSONArray();try(Cursor c=db.rawQuery("SELECT id FROM records ORDER BY id",null)){while(c.moveToNext()){JSONObject r=record(db,key,c.getString(0));r.remove("images");out.put(r);}}return out;}
+    static void person(SQLiteDatabase db,SecretKey key,String id)throws Exception{if(!id.isEmpty()&&!"persoon".equals(record(db,key,id).getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));}
+    static JSONObject refreshContext(Context c,SecretKey key,MasterSession session,String token)throws Exception{
+        JSONObject[] app={new JSONObject()};transaction(c,key,session,token,(db,k,h)->{
+            app[0]=MasterIdentity.app(records(db,k));append(db,k,h,"app_context","masterdata","",null,null);return new JSONObject();
+        },()->MasterAppContext.publish(c,app[0]));return app[0];
+    }
 
     static JSONObject unlock(Context c,SecretKey key,MasterSession session,String token)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{append(db,k,h,"unlock","masterdata","",null,null);return new JSONObject().put("ok",true);});
@@ -119,7 +126,7 @@ final class MasterStore {
     static JSONObject read(Context c,SecretKey key,MasterSession session,String token,String id,String source,String role)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{
             MasterSchema.context(source,role);JSONObject r=record(db,k,id),f="masterdata".equals(source)?r.getJSONObject("fields"):MasterSchema.projection(r,source,role);
-            append(db,k,h,"view",source,role,r,names(f));JSONObject out=summary(r);out.put("fields",f);return new JSONObject().put("record",out);
+            append(db,k,h,"view",source,role,r,names(f));JSONObject out=summary(r);out.put("fields",f);if("masterdata".equals(source)&&r.has("images")){JSONObject images=r.getJSONObject("images");out.put("images",new JSONObject().put("front",images.has("front")).put("back",images.has("back")));}return new JSONObject().put("record",out);
         });
     }
     static JSONObject save(Context c,SecretKey key,MasterSession session,String token,JSONObject input)throws Exception{
@@ -128,11 +135,14 @@ final class MasterStore {
             boolean fresh=input.optString("id").isEmpty();JSONObject old=fresh?null:record(db,k,input.getString("id"));
             if(old!=null&&(old.getLong("revision")!=input.getLong("revision")||!old.getString("type").equals(clean.getString("type"))))throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
             if(fresh&&number(db,"SELECT COUNT(*) FROM records")>=2000)throw new MasterError(Taal.T("Maximaal 2000 stamgegevens"));
-            String person=clean.getJSONObject("fields").optString("persoon");
-            if(!person.isEmpty()&&!"persoon".equals(record(db,k,person).getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+            JSONObject fields=clean.getJSONObject("fields");
+            person(db,k,fields.optString("persoon"));person(db,k,fields.optString("vanPersoon"));person(db,k,fields.optString("naarPersoon"));
+            if(clean.getString("type").equals("profiel")&&fresh){JSONArray all=records(db,k);for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("type").equals("profiel"))throw new MasterError(Taal.T("Er mag maar één eigen app-profiel zijn"));}
             String id=fresh?java.util.UUID.randomUUID().toString():old.getString("id");long rev=fresh?1:old.getLong("revision")+1;
             JSONObject r=new JSONObject(clean.toString()).put("id",id).put("revision",rev).put("created",fresh?System.currentTimeMillis():old.getLong("created")).put("updated",System.currentTimeMillis());
+            if(old!=null&&old.has("images"))r.put("images",old.getJSONObject("images"));
             ContentValues values=new ContentValues();values.put("id",id);values.put("rev",rev);values.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+rev,bytes(r)));
+            MasterAppContext.invalidate(c);
             if(fresh)db.insertOrThrow("records",null,values);else db.update("records",values,"id=?",new String[]{id});
             JSONArray changed=new JSONArray();for(String field:MasterSchema.fields(r.getString("type")))if(old==null||!old.getJSONObject("fields").optString(field).equals(r.getJSONObject("fields").optString(field)))changed.put(field);
             if(old==null||!old.getString("label").equals(r.getString("label")))changed.put("label");
@@ -142,7 +152,8 @@ final class MasterStore {
     static JSONObject delete(Context c,SecretKey key,MasterSession session,String token,String id,long revision)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{
             JSONObject r=record(db,k,id);if(r.getLong("revision")!=revision)throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
-            try(Cursor cur=db.rawQuery("SELECT id FROM records",null)){while(cur.moveToNext())if(id.equals(record(db,k,cur.getString(0)).getJSONObject("fields").optString("persoon")))throw new MasterError(Taal.T("Verwijder of ontkoppel eerst de gekoppelde identiteitsdocumenten"));}
+            try(Cursor cur=db.rawQuery("SELECT id FROM records",null)){while(cur.moveToNext()){JSONObject f=record(db,k,cur.getString(0)).getJSONObject("fields");if(id.equals(f.optString("persoon"))||id.equals(f.optString("vanPersoon"))||id.equals(f.optString("naarPersoon")))throw new MasterError(Taal.T("Verwijder of ontkoppel eerst gekoppelde documenten, relaties of het app-profiel"));}}
+            MasterAppContext.invalidate(c);
             db.delete("records","id=?",new String[]{id});append(db,k,h,"delete","masterdata","",r,null);return new JSONObject().put("ok",true);
         });
     }
@@ -159,6 +170,30 @@ final class MasterStore {
         if(!"formulieren".equals(source)&&!"idcopy".equals(source))throw new MasterError(Taal.T("Dit onderdeel heeft geen toegang tot stamgegevens"));
         transaction(c,key,session,token,(db,k,h)->{append(db,k,h,action,source,"",null,null);return new JSONObject();},commit);
     }
+    static JSONObject photo(Context c,SecretKey key,MasterSession session,String token,String id,long revision,String side,String value,boolean read)throws Exception{
+        return photo(c,key,session,token,id,revision,side,value,read,()->{});
+    }
+    static JSONObject photo(Context c,SecretKey key,MasterSession session,String token,String id,long revision,String side,String value,boolean read,Commit commit)throws Exception{
+        if(!side.equals("front")&&!side.equals("back"))throw new MasterError(Taal.T("Kies de voorzijde of achterzijde"));
+        return transaction(c,key,session,token,(db,k,h)->{
+            JSONObject r=record(db,k,id);if(!r.getString("type").equals("identiteit"))throw new MasterError(Taal.T("Kaartfoto’s horen bij een identiteitsdocument"));
+            if(r.getLong("revision")!=revision)throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
+            JSONObject images=r.optJSONObject("images");if(images==null)images=new JSONObject();
+            if(read){append(db,k,h,"photo_view","masterdata","",r,new JSONArray().put(side));return new JSONObject().put("image",images.optString(side)).put("id",id).put("revision",revision).put("side",side);}
+            if(value==null)images.remove(side);else{if(!value.startsWith("data:image/jpeg;base64,")||value.length()>MasterPhotos.MAX_DATA)throw new MasterError(Taal.T("De kaartfoto is te groot"));images.put(side,value);}
+            long next=revision+1;r.put("images",images).put("revision",next).put("updated",System.currentTimeMillis());
+            ContentValues v=new ContentValues();v.put("rev",next);v.put("body",MasterCipher.encrypt(k,"record/"+id+"/"+next,bytes(r)));db.update("records",v,"id=?",new String[]{id});
+            append(db,k,h,value==null?"photo_delete":"photo_add","masterdata","",r,new JSONArray().put(side));return new JSONObject().put("id",id).put("revision",next);
+        },commit);
+    }
+    static JSONObject formRelation(Context c,SecretKey key,MasterSession session,String token,String child,String companion,String role)throws Exception{
+        MasterSchema.context("formulieren",role);if(!role.startsWith("begeleider"))throw new MasterError(Taal.T("Deze gegevens passen niet bij dit onderdeel"));
+        return transaction(c,key,session,token,(db,k,h)->{
+            person(db,k,child);person(db,k,companion);java.util.Set<String> matches=new java.util.LinkedHashSet<>();JSONArray all=records(db,k);
+            for(int i=0;i<all.length();i++){JSONObject r=all.getJSONObject(i);if(!r.getString("type").equals("relatie")||!r.getJSONObject("fields").optString("delen").equals("ja"))continue;String code=MasterIdentity.between(r,child,companion);if(!code.isEmpty()){matches.add(code);append(db,k,h,"relation_use","formulieren",role,r,new JSONArray().put("relatie"));}}
+            return new JSONObject().put("relation",matches.size()==1?matches.iterator().next():"");
+        });
+    }
     static JSONObject audit(Context c,SecretKey key,MasterSession session,String token,long before)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{
             if(before<=0)append(db,k,h,"audit","masterdata","",null,null);
@@ -174,6 +209,6 @@ final class MasterStore {
         });
     }
     static void reset(Context c)throws Exception{
-        synchronized(LOCK){MasterSession.invalidateAll();MasterKeys.remove();File dir=file(c).getParentFile();File[] files=dir.listFiles();boolean ok=true;if(files!=null)for(File f:files)if(!f.delete()&&f.exists())ok=false;if(dir.exists()&&!dir.delete())ok=false;if(!ok)throw new MasterError(Taal.T("Wissen is niet afgerond; probeer opnieuw"));}
+        synchronized(LOCK){MasterSession.invalidateAll();MasterAppContext.reset(c);MasterKeys.remove();File dir=file(c).getParentFile();File[] files=dir.listFiles();boolean ok=true;if(files!=null)for(File f:files)if(!f.delete()&&f.exists())ok=false;if(dir.exists()&&!dir.delete())ok=false;if(!ok)throw new MasterError(Taal.T("Wissen is niet afgerond; probeer opnieuw"));}
     }
 }

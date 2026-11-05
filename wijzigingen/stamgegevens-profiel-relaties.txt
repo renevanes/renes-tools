@@ -1,0 +1,3 @@
+Stamgegevens uitgebreid met één eigen app-profiel, roepnamen en relaties zoals kind, partner en noodcontact. Je kiest welke namen, relaties en toelichting de hele app en lokale AI mogen gebruiken.
+Identiteitskaarten, paspoorten en andere identiteitsdocumenten ondersteunen versleutelde voor- en achterkant, land en instantie van afgifte. Kaartfoto’s blijven buiten AI en gedeelde app-context.
+De formulierhulp kan een vastgelegde relatie tussen het gekozen kind en de gekozen begeleider als controleerbaar voorstel gebruiken.
