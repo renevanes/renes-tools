@@ -758,6 +758,7 @@ final class LocalAi {
         return privateChatJob(c,system,msgs,maxTok,sink,false)!=0;
     }
     static long privateChatJob(final Context c, final String system, final JSONArray msgs, final int maxTok, final Sink sink, final boolean completeInput) {
+        // De voorafcontrole is een schatting. Een strikte afnemer controleert ook trim/cut in de native done-info.
         final long job = GATE.enter();
         if (job == 0) return 0;
         cancel = false; cancelAt = 0;

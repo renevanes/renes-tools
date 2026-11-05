@@ -74,7 +74,7 @@ final class MasterSchema {
         if(allowed.contains("ontvanger")){
             String who=(fields.optString("voornamen")+" "+fields.optString("naam")).trim();out.put("ontvanger",who.isEmpty()?record.getString("label"):who);return out;
         }
-        for(String k:allowed){String value=("instelling".equals(k)||"accommodatie".equals(k))?fields.optString("naam"):fields.optString(k);if(!value.isEmpty())out.put(k,value);}
+        for(String k:allowed){boolean alias=!"reis".equals(record.getString("type"))&&("instelling".equals(k)||"accommodatie".equals(k));String value=fields.optString(alias?"naam":k);if(!value.isEmpty())out.put(k,value);}
         return out;
     }
     static JSONObject selected(JSONObject record,String source,String role,JSONArray wanted)throws Exception{

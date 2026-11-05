@@ -52,6 +52,7 @@ final class PdfFormAssist {
         return clean;
     }
     static MasterError invalid(){return new MasterError(Taal.T("De gekozen gegevens passen niet bij deze formulierstap."));}
+    static boolean complete(JSONObject info){return info.has("trim")&&info.has("cut")&&info.optInt("trim")==0&&info.optInt("cut")==0&&!info.optBoolean("full");}
     static JSONObject find(JSONArray list,String id)throws Exception {for(int i=0;i<list.length();i++){JSONObject o=list.getJSONObject(i);if(id.equals(o.optString("id")))return o;}return null;}
     static boolean bound(JSONObject field,JSONObject source,String key)throws Exception {
         JSONArray bs=field.getJSONArray("sources");for(int i=0;i<bs.length();i++){JSONObject b=bs.getJSONObject(i);if(b.getString("role").equals(source.getString("role"))&&b.getString("key").equals(key))return true;}return false;

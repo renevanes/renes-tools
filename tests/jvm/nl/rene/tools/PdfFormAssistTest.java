@@ -23,6 +23,11 @@ public final class PdfFormAssistTest {
     }
     public static void main(String[] args)throws Exception {
         JSONObject request=request();
+        check(PdfFormAssist.complete(new JSONObject().put("trim",0).put("cut",0)),"volledige native tokeninvoer");
+        check(!PdfFormAssist.complete(new JSONObject().put("trim",1).put("cut",0)),"native motor heeft invoer ingekort");
+        check(!PdfFormAssist.complete(new JSONObject().put("trim",0).put("cut",1)),"native motor heeft een bericht weggelaten");
+        check(!PdfFormAssist.complete(new JSONObject().put("trim",0).put("cut",0).put("full",true)),"volle native context geweigerd");
+        check(!PdfFormAssist.complete(new JSONObject()),"ontbrekende native budgetbevestiging geweigerd");
         JSONArray good=PdfFormAssist.resolve(request,"```json\n{\"velden\":[{\"id\":\"kind-naam\",\"bron\":\"bron-1\",\"sleutel\":\"naam\",\"waarde\":\"Verzonnen\"},{\"id\":\"van\",\"citaat\":\"12-07-2027\"}]}\n```");
         check(good.length()==2,"bron en letterlijk citaat gebruikt");
         check(good.getJSONObject(0).getString("value").equals("Zoë <voorbeeld>"),"alleen de werkelijke bronwaarde, nooit een modelwaarde");
@@ -35,9 +40,10 @@ public final class PdfFormAssistTest {
         rejects(()->PdfFormAssist.resolve(request,"geen JSON"));
         request.put("text","31-02-2027");check(PdfFormAssist.resolve(request,"{\"velden\":[{\"id\":\"van\",\"citaat\":\"31-02-2027\"}]}").length()==0,"onmogelijke datum niet overgenomen");
         JSONObject bad=request();bad.getJSONArray("sources").getJSONObject(0).getJSONObject("fields").put("email","niet-gekozen@example.org");rejects(()->PdfFormAssist.request(bad.toString()));
-        JSONObject trip=new JSONObject().put("type","reis").put("label","Herbruikbare reis").put("fields",new JSONObject().put("van","2027-07-12").put("tot","2027-07-30").put("alleen","nee").put("land","België"));
+        JSONObject trip=new JSONObject().put("type","reis").put("label","Herbruikbare reis").put("fields",new JSONObject().put("van","2027-07-12").put("tot","2027-07-30").put("alleen","nee").put("land","België").put("accommodatie","Familie"));
         check(MasterSchema.clean(trip).getJSONObject("fields").getString("land").equals("België"),"reis als vaste dataset");
         check(MasterSchema.projection(trip,"formulieren","reis").has("van"),"reisprojectie");
+        check(MasterSchema.projection(trip,"formulieren","reis").getString("accommodatie").equals("Familie"),"reis bewaart de eigen accommodatie en gebruikt geen naamsalias");
         check(MasterSchema.projection(trip,"formulieren","kind").length()==0,"reis geeft geen persoonsvelden vrij");
         trip.getJSONObject("fields").put("tot","2027-07-01");rejects(()->MasterSchema.clean(trip));trip.getJSONObject("fields").put("tot","2027-07-30").put("alleen","misschien");rejects(()->MasterSchema.clean(trip));
         System.out.println(checks+" controles: gekozen bronnen, bewijs, rollen, datums en herbruikbare reizen");

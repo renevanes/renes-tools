@@ -51,7 +51,7 @@ final class PdfFormAi {
             boolean full;synchronized(this){full=reply.length()+text.length()>PdfFormAssist.MAX_REPLY;if(!full)reply.append(text);}
             if(full){LocalAi.cancelJob(job);owner.finish(this,false,Taal.T("Het AI-antwoord is te lang. Gebruik minder gegevens."));}
         }
-        @Override public void done(JSONObject info){owner.finish(this,info.optBoolean("cancelled"),null);}
+        @Override public void done(JSONObject info){boolean cancelled=info.optBoolean("cancelled");owner.finish(this,cancelled,!cancelled&&!PdfFormAssist.complete(info)?Taal.T("De brongegevens passen niet in het taalmodel. Kies minder velden of kort de toelichting in."):null);}
         @Override public void error(String message){owner.finish(this,false,message);}
     }
 }
