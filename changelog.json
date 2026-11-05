@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.146",
+    "date": "2026-11-05",
+    "changes": [
+      "Facturen → Dossier: het blok heet nu \"Opnieuw beginnen\", met naast \"Dossier leegmaken\" ook \"Alles weghalen, ook de PDF's\" (ook uit je backup-map, de map op je telefoon en Google Drive)"
+    ]
+  },
+  {
     "version": "1.145",
     "date": "2026-11-05",
     "changes": [
