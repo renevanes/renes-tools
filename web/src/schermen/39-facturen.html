@@ -133,7 +133,7 @@
       </ol>
       <input class="aein" id="fa-gd-id" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Client ID (…apps.googleusercontent.com)" aria-label="Client ID">
       <input class="aein" id="fa-gd-geheim" type="password" autocomplete="off" style="margin-top:8px" placeholder="Client secret" aria-label="Client secret">
-      <button class="big" style="margin-top:10px" id="fa-gd-knop" onclick="faGdKoppel()">Koppelen met Google</button>
+      <button class="big tonal" style="margin-top:10px" id="fa-gd-knop" onclick="faGdKoppel()">Koppelen met Google</button>
     </details>
     </div>
     <p class="note bad" id="fa-gd-msg" role="status" aria-live="polite"></p>
@@ -360,7 +360,7 @@
   <main>
     <div class="card"><div id="fs-info"></div>
       <div id="fs-docs" hidden><h2 id="fs-docs-h" style="margin-top:12px">Documenten van deze factuur</h2><div id="fs-docs-l"></div></div>
-      <button class="big" style="margin-top:8px" id="fs-open" onclick="fsOpen()">Openen</button>
+      <button class="big tonal" style="margin-top:8px" id="fs-open" onclick="fsOpen()">Openen</button>
       <details class="rinfo" id="fs-tekst-d" style="margin-top:8px" ontoggle="if(this.open)fsTekst()"><summary>Tekst uit de PDF (om de herkenning te controleren)</summary>
         <pre id="fs-tekst" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:320px;overflow:auto;margin:8px 0"></pre>
         <button class="big ghost" onclick="Android.aiCopy($('#fs-tekst').textContent);toast('Gekopieerd')">Kopiëren</button>
@@ -372,14 +372,12 @@
       <input class="aein" id="fs-lev" maxlength="80" autocomplete="off">
       <div class="flabel" style="margin-top:8px"><label for="fs-nummer">Factuurnummer</label></div>
       <input class="aein" id="fs-nummer" maxlength="80" autocomplete="off">
-      <div class="row" style="gap:8px;margin-top:8px">
-        <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-datum">Factuurdatum</label></div><input class="aein" id="fs-datum" type="date"></div>
-        <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-bedrag">Bedrag (€)</label></div><input class="aein" id="fs-bedrag" inputmode="decimal" placeholder="123,45" autocomplete="off"></div>
-        <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-btw">Btw (€)</label></div><input class="aein" id="fs-btw" inputmode="decimal" placeholder="21,43" autocomplete="off"></div>
-      </div>
-      <div class="row" style="gap:8px;margin-top:8px">
-        <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-verval">Uiterste betaaldatum</label></div><input class="aein" id="fs-verval" type="date"></div>
-        <div style="flex:1;min-width:0"><div class="flabel"><label for="fs-betaald">Betaald op</label></div><input class="aein" id="fs-betaald" type="date"></div>
+      <div class="fs-grid">
+        <div><div class="flabel"><label for="fs-bedrag">Bedrag (€)</label></div><input class="aein" id="fs-bedrag" inputmode="decimal" placeholder="123,45" autocomplete="off"></div>
+        <div><div class="flabel"><label for="fs-btw">Btw (€)</label></div><input class="aein" id="fs-btw" inputmode="decimal" placeholder="21,43" autocomplete="off"></div>
+        <div><div class="flabel"><label for="fs-datum">Factuurdatum</label></div><input class="aein" id="fs-datum" type="date"></div>
+        <div><div class="flabel"><label for="fs-verval">Uiterste betaaldatum</label></div><input class="aein" id="fs-verval" type="date"></div>
+        <div><div class="flabel"><label for="fs-betaald">Betaald op</label></div><input class="aein" id="fs-betaald" type="date"></div>
       </div>
       <button class="linkish" style="margin-top:4px" onclick="$('#fs-betaald').value=rgToday();fsBewaar()">Vandaag betaald (bewaren)</button>
       <div class="flabel" style="margin-top:8px"><label for="fs-cat">Categorie</label></div>

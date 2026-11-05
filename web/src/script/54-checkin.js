@@ -83,7 +83,7 @@ function ciCard(q){
     '<p class="ci-st ' + cls + '">' + esc(st) + '</p>';
   if (!q.archived && ciDue(q)) h += ciOptBtns(q, c.key, -1, false);
   const acts = [];
-  if (!q.archived && !q.on) acts.push('<button class="mini on" data-q="' + esc(q.id) + '" onclick="ciSetOn(this.dataset.q, true)" aria-label="' + esc(q.text + ': ' + t('aanzetten')) + '">Aanzetten</button>', '<button class="mini" data-q="' + esc(q.id) + '" onclick="ciEdit(this.dataset.q)" aria-label="' + esc(q.text + ': ' + t('bewerken')) + '">Bewerken</button>');
+  if (!q.archived && !q.on) acts.push('<button class="mini tonal" data-q="' + esc(q.id) + '" onclick="ciSetOn(this.dataset.q, true)" aria-label="' + esc(q.text + ': ' + t('aanzetten')) + '">Aanzetten</button>', '<button class="mini" data-q="' + esc(q.id) + '" onclick="ciEdit(this.dataset.q)" aria-label="' + esc(q.text + ': ' + t('bewerken')) + '">Bewerken</button>');
   if (c && c.status === 'answered' && c.answers.length && (q.editable !== false || Date.now() - c.answers[c.answers.length - 1].t < 15 * 60000)) {
     const a = c.answers[c.answers.length - 1];
     acts.push('<button class="linkish" data-q="' + esc(q.id) + '" data-k="' + esc(c.key) + '" data-a="' + esc(a.id) + '" onclick="ciAsk(this.dataset.q, this.dataset.k, {aid: this.dataset.a})" aria-label="' + esc(q.text + ': ' + t(ciHasExtras(q) ? 'aanvullen of wijzigen' : 'wijzigen')) + '">' + (ciHasExtras(q) ? 'Aanvullen of wijzigen' : 'Wijzigen') + '</button>');
@@ -96,10 +96,10 @@ function ciCard(q){
 function enterCheckin(){ ciLoad(); ciRender(); }
 function ciRender(){
   const qs = ciSt.questions || [], live = qs.filter(q => !q.archived), arch = qs.filter(q => q.archived);
-  slHtml($('#ci-list'), live.map(ciCard).join('') || '<div class="card"><p class="note" style="margin:0">Nog geen vragen. Tik op Nieuwe vraag.</p></div>');
+  slHtml($('#ci-list'), live.map(ciCard).join('') || '<div class="card">' + uiEmpty('smile', t('Nog geen vragen. Tik op Nieuwe vraag.')) + '</div>');
   slHtml($('#ci-arch'), arch.length ? '<button class="ci-archh" aria-expanded="' + ciShowArch + '" onclick="ciShowArch=!ciShowArch;ciRender()">' + (ciShowArch ? '▾' : '▸') + ' Gearchiveerd (' + arch.length + ')</button>' + (ciShowArch ? arch.map(ciCard).join('') : '') : '');
   const pm = $('#ci-perm'), need = live.some(ciActive);
-  if (need && ciSt.notifOk === false) { pm.style.display = ''; slHtml(pm, '<p>Sta meldingen toe, anders komt de vraag niet op het moment dat je koos.</p><button class="big" onclick="Android.permRequest(\'notif\')">Meldingen toestaan</button>'); }
+  if (need && ciSt.notifOk === false) { pm.style.display = ''; slHtml(pm, '<p>Sta meldingen toe, anders komt de vraag niet op het moment dat je koos.</p><button class="big tonal" onclick="Android.permRequest(\'notif\')">Meldingen toestaan</button>'); }
   else if (need && ciSt.muted) { pm.style.display = ''; slHtml(pm, '<p>Alle meldingen van de app staan uit (Instellingen → Meldingen). Je kunt hier wel gewoon antwoorden.</p>'); }
   else pm.style.display = 'none';
 }

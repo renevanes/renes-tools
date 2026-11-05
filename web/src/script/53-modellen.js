@@ -63,7 +63,18 @@ function mdHint(m, net){
   return '';
 }
 /** Knop; aria = de naam voor een schermlezer (met het model erbij, want er staan er meer van op het scherm). */
-function mdBtn(label, act, on, aria){ return '<button class="mini' + (on ? ' on' : '') + '" onclick="' + act + '"' + (aria ? ' aria-label="' + esc(aria) + '"' : '') + '>' + label + '</button>'; }
+/* on: true = tonaal (een actie die ertoe doet), 'rec' = de ene gevulde hoofdknop van het scherm (het aanbevolen model). */
+function mdBtn(label, act, on, aria){ return '<button class="mini' + (on === 'rec' ? ' on fill' : on ? ' tonal' : '') + '" onclick="' + act + '"' + (aria ? ' aria-label="' + esc(aria) + '"' : '') + '>' + label + '</button>'; }
+/** Het aanbevolen model: de eerste lijn (klein en snel) van de eerste soort die je nodig hebt en nog niet hebt. Zuiver. */
+function mdRecKey(all){
+  for (const kind of ['ai', 'spraak']) {
+    const ms = all.filter(m => m.kind === kind);
+    if (!ms.length || ms.some(m => m.state === 'ready' || (mdBusy(m) && m.state !== 'failed'))) continue;
+    const l = mdLines(all, kind)[0]; if (l) return l[0].key;
+  }
+  return '';
+}
+let mdRec = '';
 function mdLeave(){ clearTimeout(mdPollT); }
 
 function enterModels(){
@@ -95,7 +106,8 @@ function mdRender(){
     '<div class="md-bar" role="img" aria-label="' + esc(t('Modellen {gebruikt}, vrij {vrij}', { gebruikt: mdGB(used), vrij: mdGB(free) })) + '"><i style="width:' + share.toFixed(1) + '%"></i></div>' +
     '<p class="md-line"><b>' + (used ? t('Modellen: {grootte}', { grootte: mdGB(used) }) : t('Nog geen modellen')) + '</b><span>' + (free > 0 ? t('Vrij op je telefoon: {grootte}', { grootte: mdGB(free) }) : '') + '</span></p>' +
     (s.leftovers >= 1e6 ? '<div class="sw"><span>Resten van oude en halve downloads<small>' + esc(t('{grootte} die geen bruikbaar model zijn', { grootte: mdGB(s.leftovers) })) + '</small></span><button class="mini" onclick="mdClean()">Opruimen</button></div>' : '');
-  slHtml($('#md-cats'), MD_CATS.map(cat => mdCatCard(cat)).join(''));
+  mdRec = mdRecKey(mdModels());
+  uiHtml($('#md-cats'), MD_CATS.map(cat => mdCatCard(cat)).join(''));
   const w = $('#md-wifi'); w.classList.toggle('on', !!s.wifiOnly); w.setAttribute('aria-checked', s.wifiOnly ? 'true' : 'false');
 }
 /** Kort: is deze soort klaar voor gebruik? Zuiver. [tekst, ok] */
@@ -110,12 +122,13 @@ function mdCatStatus(kind, all, tts){
 function mdCatCard(cat){
   const [st, ok] = mdCatStatus(cat.kind, mdModels(), mdSt.tts);
   const head = '<div class="md-cathead"><span class="md-caticon">' + uiIcon(cat.icon) + '</span><div><h2>' + esc(cat.title) + '</h2><small class="md-catst' + (ok ? ' ok' : '') + '">' + (st.startsWith('✓ ') ? '<span aria-hidden="true">✓ </span>' + esc(st.slice(2)) : esc(st)) + '</small></div></div>' +
-    '<p class="note md-what">' + esc(cat.what) + ' <span class="md-need">' + esc(cat.need) + '</span></p>';
-  if (cat.kind === 'tts') return '<section class="card md-cat" data-kind="tts" aria-label="' + esc(cat.title) + '">' + head + mdTtsBody(mdSt.tts || {}) + '</section>';
+    '';
+  // Waarvoor en of je hem nodig hebt: ingeklapt (Hoe werkt dit?), net als de motor
+  const help = eng => uiHelp(t('Waarvoor is dit?'), '<p class="md-what">' + esc(cat.what) + ' <span class="md-need">' + esc(cat.need) + '</span></p>' + (eng ? '<p class="md-engine">' + esc(t('Motor: {motor} (zit in de app, wordt bijgewerkt met de app)', { motor: eng })) + '</p>' : ''), true);
+  if (cat.kind === 'tts') return '<section class="card md-cat" data-kind="tts" aria-label="' + esc(cat.title) + '">' + head + mdTtsBody(mdSt.tts || {}) + help('') + '</section>';
   const lines = mdLines(mdModels(), cat.kind), eng = (mdSt.engines || {})[cat.kind];
   // Het model (dat je downloadt) en de motor die het draait (zit in de app en gaat mee met app-updates)
-  const engine = eng ? '<p class="note md-engine">' + esc(t('Motor: {motor} (zit in de app, wordt bijgewerkt met de app)', { motor: eng })) + '</p>' : '';
-  return '<section class="card md-cat" data-kind="' + cat.kind + '" aria-label="' + esc(cat.title) + '">' + head + '<div role="list">' + lines.map(l => mdLineHtml(l)).join('') + '</div>' + engine + '</section>';
+  return '<section class="card md-cat" data-kind="' + cat.kind + '" aria-label="' + esc(cat.title) + '">' + head + '<div role="list">' + lines.map(l => mdLineHtml(l)).join('') + '</div>' + help(eng) + '</section>';
 }
 function mdTtsBody(tt){
   if (tt.state === 'ok') return '<div class="md-acts">' + mdBtn('Stem en snelheid', 'Android.ttsSettings()', false, 'Stem en snelheid van het voorlezen instellen') + '</div>';
@@ -153,8 +166,8 @@ function mdLineHtml(chain){
   if (!main && !busy) {
     const need = newest.kind === 'spraak' ? newest.size : 2 * newest.size + 200 * 1048576, fits = !(mdSt.free > 0) || mdSt.free >= need;
     const can = newest.kind === 'spraak' || mdSt.supported !== false;
-    rows += '<div class="md-ver"><div class="aimt">' + name + '<small>' + esc(t('Nog niet op je telefoon') + ' · ' + t(chain.length > 1 ? 'nieuwste versie: {versie}' : 'versie: {versie}', { versie: newest.version }) + ' · ' + mdGB(newest.size) + ram + (fits ? '' : ' · ' + t('past nu niet ({grootte} vrij)', { grootte: mdGB(mdSt.free) }))) + '</small></div>' +
-      '<div class="aimb">' + (can ? mdBtn('Downloaden', 'mdDl(' + jsq(newest.key) + ')', true, t('{model} downloaden', { model: mdLineName(newest) })) : '') + '</div></div>';
+    rows += '<div class="md-ver"><div class="aimt">' + name + (newest.key === mdRec ? ' <span class="md-rec">' + esc(t('Aanbevolen')) + '</span>' : '') + '<small>' + esc(t('Nog niet op je telefoon') + ' · ' + t(chain.length > 1 ? 'nieuwste versie: {versie}' : 'versie: {versie}', { versie: newest.version }) + ' · ' + mdGB(newest.size) + ram + (fits ? '' : ' · ' + t('past nu niet ({grootte} vrij)', { grootte: mdGB(mdSt.free) }))) + '</small></div>' +
+      '<div class="aimb">' + (can ? mdBtn('Downloaden', 'mdDl(' + jsq(newest.key) + ')', newest.key === mdRec ? 'rec' : true, t('{model} downloaden', { model: mdLineName(newest) })) : '') + '</div></div>';
   }
   return '<div class="md-linebox" role="listitem" data-line="' + esc(newest.key) + '">' + rows + '</div>';
 }

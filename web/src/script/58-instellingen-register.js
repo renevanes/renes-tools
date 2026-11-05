@@ -21,7 +21,7 @@ function setSlNotif(on){ slLoad(); if (on && slSt.notifOk === false) { Android.p
 function setSl(){ return (rdJson(Android.sleepState(), {}) || {}).set || {}; }
 function setBk(){ return rdJson(Android.backupState(false), {}) || {}; }
 function setCar(){ carLoad(); return carSt || {}; }
-function setCarSave(o){ const c = setCar(); Android.carSet(c.addr || '', c.name || '', o.trips != null ? o.trips : !!c.trips, o.def || c.defType || 'prive'); setIf('car', enterCar); return ''; }
+function setCarSave(o){ const c = setCar(); Android.carSet(c.addr || '', c.name || '', o.trips != null ? o.trips : !!c.trips, o.def || c.defType || 'prive'); setIf(['car', 'carset'], enterCar); return ''; }
 function setVp(){ return rdJson(Android.vpnState(), {}) || {}; }
 function setVpAuto(k, on){ const s = setVp(), a = Object.assign({}, s.auto || {}, { [k]: on }); Android.vpnAuto(JSON.stringify(a)); setIf('vpn', vpRender); return ''; }
 function setAi(){ aiLoad(); return aiSt; }
@@ -234,11 +234,11 @@ const SET_REG = [
   { id: 'meldingen.geschiedenis', scr: 'history', ctl: '#history-enabled', weak: v => v === 'aan', safe: 'privacy', label: 'Meldingsgeschiedenis: nieuwe meldingen bewaren', desc: 'Meldingen van andere apps bewaren om later terug te lezen.', syn: 'meldingsgeschiedenis meldingen bewaren geschiedenis notificaties',
     why: 'Meldingen van andere apps bewaren zet je zelf aan.', get: () => setB(rdJson(Android.historyListBy('', '', 1), {}).enabled), set: v => { historyEnable(setOnV(v)); return ''; } },
   /* ---------- Mijn auto, Spotify, VPN, Locatie ---------- */
-  { id: 'auto.ritten', scr: 'car', ctl: '#car-trips-on', weak: v => v === 'aan', safe: 'privacy', why: 'Elke rit met je locatie vanzelf opnemen zet je zelf aan.', label: 'Ritten vanzelf opnemen', desc: 'Bluetooth van de auto aan = rit begint, uit = rit wordt opgeslagen.', syn: 'auto ritten rit kilometers registratie bluetooth',
+  { id: 'auto.ritten', scr: 'carset', ctl: '#car-trips-on', weak: v => v === 'aan', safe: 'privacy', why: 'Elke rit met je locatie vanzelf opnemen zet je zelf aan.', label: 'Ritten vanzelf opnemen', desc: 'Bluetooth van de auto aan = rit begint, uit = rit wordt opgeslagen.', syn: 'auto ritten rit kilometers registratie bluetooth',
     get: () => setB(!!setCar().trips), set: v => setCarSave({ trips: setOnV(v) }) },
-  { id: 'auto.rittype', scr: 'car', ctl: '#car-def', type: 'keuze', vals: [['prive', 'Privé'], ['zakelijk', 'Zakelijk']], label: 'Nieuwe ritten zijn privé of zakelijk', desc: 'Wat een nieuwe rit standaard is.', syn: 'auto ritten privé zakelijk standaard',
+  { id: 'auto.rittype', scr: 'carset', ctl: '#car-def', type: 'keuze', vals: [['prive', 'Privé'], ['zakelijk', 'Zakelijk']], label: 'Nieuwe ritten zijn privé of zakelijk', desc: 'Wat een nieuwe rit standaard is.', syn: 'auto ritten privé zakelijk standaard',
     get: () => setCar().defType || 'prive', set: v => setCarSave({ def: v }) },
-  { id: 'auto.bluetooth', scr: 'car', ctl: '#car-dev', type: 'openen', label: 'Bluetooth van de auto', desc: 'Aan welke Bluetooth de app je auto herkent (voor parkeren en ritten).', syn: 'auto bluetooth parkeren carkit', get: () => setCar().name || 'nog niet gekozen' },
+  { id: 'auto.bluetooth', scr: 'carset', ctl: '#car-dev', type: 'openen', label: 'Bluetooth van de auto', desc: 'Aan welke Bluetooth de app je auto herkent (voor parkeren en ritten).', syn: 'auto bluetooth parkeren carkit', get: () => setCar().name || 'nog niet gekozen' },
   { id: 'spotify.auto', scr: 'spotify', ctl: '#sp-auto', type: 'keuze', vals: [['day', 'Elke dag'], ['week', 'Elke week'], ['off', 'Uit']], label: 'Spotify vanzelf back-uppen', desc: 'Hoe vaak je playlists en bibliotheek vanzelf bewaard worden.', syn: 'spotify backup playlists automatisch',
     avail: () => rdJson(Android.spotifyState(), {}).linked ? '' : 'Koppel eerst Spotify', get: () => rdJson(Android.spotifyState(), {}).auto || 'day',
     set: v => { const s = $('#sp-auto'); if (s) s.value = v; Android.spotifyAuto(v); toast(v === 'off' ? 'Alleen nog met de hand' : 'Ingepland'); return ''; } },
@@ -335,21 +335,21 @@ const SET_REG = [
     get: () => setB(!!setAi().wifiOnly), set: v => { if (!!setAi().wifiOnly !== setOnV(v)) aisWifi(); setIf('models', () => { mdSt.wifiOnly = setOnV(v); mdRender(); }); return ''; } },
   /* ---------- Gebruik ---------- */
   { id: 'gebruik.aan', scr: 'gebruikset', ctl: '#gb-collect', label: 'Gebruik bijhouden', desc: 'Welke functies en apps gebruikt worden en wanneer, bijhouden op je telefoon.', syn: 'gebruik schermtijd bijhouden usage statistieken',
-    get: () => setB(gbSet().collect !== false), set: v => { gbSaveOne('collect', setOnV(v)); setIf('gebruikset', enterGebruikSet); return ''; } },
+    get: () => setB(gbSet().collect !== false), set: v => { gbSaveOne('collect', setOnV(v)); setIf(['gebruikset', 'gebruikontgr'], enterGebruikSet); return ''; } },
   { id: 'gebruik.bewaren', scr: 'gebruikset', ctl: '#gb-keep', type: 'keuze', vals: [['180', '6 maanden'], ['365', '1 jaar'], ['730', '2 jaar']], label: 'Gebruik: samenvatting per dag bewaren', desc: 'Hoe lang de samenvatting per dag (schermtijd, ontgrendelingen) bewaard blijft.', syn: 'gebruik bewaren bewaartermijn dagen jaar schermtijd',
-    get: () => String(gbSet().keep || 365), set: v => { gbSaveOne('keep', +v); setIf('gebruikset', enterGebruikSet); return ''; } },
+    get: () => String(gbSet().keep || 365), set: v => { gbSaveOne('keep', +v); setIf(['gebruikset', 'gebruikontgr'], enterGebruikSet); return ''; } },
   { id: 'gebruik.detail', scr: 'gebruikset', ctl: '#gb-detail', type: 'keuze', vals: [['30', '30 dagen'], ['60', '60 dagen'], ['90', '90 dagen']], label: 'Gebruik: gedetailleerde tijdlijn bewaren', desc: 'Hoe lang de tijdlijn met alle stapjes (per ontgrendeling, per app) bewaard blijft.', syn: 'gebruik tijdlijn detail bewaren dagen',
-    get: () => String(gbSet().detail || 60), set: v => { gbSaveOne('detail', +v); setIf('gebruikset', enterGebruikSet); return ''; } },
-  { id: 'gebruik.apparaatbeheer', scr: 'gebruikset', ctl: '#gb-admin', type: 'aan', safe: 'beveiliging', label: 'Gebruik: apparaatbeheer', desc: 'Apparaatbeheer om ontgrendelingen met pincode en mislukte pogingen te zien.', syn: 'gebruik apparaatbeheer device admin pincode ontgrendelen vergrendelscherm',
+    get: () => String(gbSet().detail || 60), set: v => { gbSaveOne('detail', +v); setIf(['gebruikset', 'gebruikontgr'], enterGebruikSet); return ''; } },
+  { id: 'gebruik.apparaatbeheer', scr: 'gebruikontgr', ctl: '#gb-admin', type: 'aan', safe: 'beveiliging', label: 'Gebruik: apparaatbeheer', desc: 'Apparaatbeheer om ontgrendelingen met pincode en mislukte pogingen te zien.', syn: 'gebruik apparaatbeheer device admin pincode ontgrendelen vergrendelscherm',
     why: 'Apparaatbeheer zet je zelf aan en uit, met de bevestiging van Android.', get: () => setB(gbState().admin) },
-  { id: 'gebruik.foto.mislukt', scr: 'gebruikset', ctl: '#gb-pfail', type: 'aan', safe: 'privacy', label: 'Gebruik: foto bij een mislukte poging', desc: 'Een stille foto met de voorcamera bij genoeg mislukte ontgrendelpogingen (blijft alleen in de app).', syn: 'gebruik foto voorcamera mislukte poging camera',
+  { id: 'gebruik.foto.mislukt', scr: 'gebruikontgr', ctl: '#gb-pfail', type: 'aan', safe: 'privacy', label: 'Gebruik: foto bij een mislukte poging', desc: 'Een stille foto met de voorcamera bij genoeg mislukte ontgrendelpogingen (blijft alleen in de app).', syn: 'gebruik foto voorcamera mislukte poging camera',
     why: 'Een foto bij het vergrendelscherm zet je zelf aan; ik pas dit niet aan.', get: () => setB(gbSet().photoFail) },
-  { id: 'gebruik.foto.ontgrendeld', scr: 'gebruikset', ctl: '#gb-punlock', type: 'keuze', vals: [['uit', 'Uit'], ['elke', 'Bij elke ontgrendeling'], ['pincode', 'Alleen met pincode']], safe: 'privacy', label: 'Gebruik: foto bij ontgrendelen', desc: 'Een stille foto met de voorcamera bij ontgrendelen: uit, bij elke ontgrendeling, of alleen met pincode (blijft alleen in de app).', syn: 'gebruik foto voorcamera ontgrendelen camera pincode',
+  { id: 'gebruik.foto.ontgrendeld', scr: 'gebruikontgr', ctl: '#gb-punlock', type: 'keuze', vals: [['uit', 'Uit'], ['elke', 'Bij elke ontgrendeling'], ['pincode', 'Alleen met pincode']], safe: 'privacy', label: 'Gebruik: foto bij ontgrendelen', desc: 'Een stille foto met de voorcamera bij ontgrendelen: uit, bij elke ontgrendeling, of alleen met pincode (blijft alleen in de app).', syn: 'gebruik foto voorcamera ontgrendelen camera pincode',
     why: 'Een foto bij het ontgrendelen zet je zelf aan; ik pas dit niet aan.', get: () => gbSet().punlock || 'uit' },
-  { id: 'gebruik.foto.na', scr: 'gebruikset', ctl: '#gb-pafter', type: 'keuze', vals: [['1', '1'], ['2', '2'], ['3', '3'], ['5', '5']], label: 'Gebruik: foto na dit aantal mislukte pogingen', desc: 'Na hoeveel mislukte pogingen achter elkaar er een foto gemaakt wordt.', syn: 'gebruik foto pogingen aantal mislukt',
-    get: () => String(gbSet().photoAfter || 3), set: v => { gbSaveOne('photoAfter', +v); setIf('gebruikset', enterGebruikSet); return ''; } },
-  { id: 'gebruik.foto.bewaren', scr: 'gebruikset', ctl: '#gb-pkeep', type: 'keuze', vals: [['7', '1 week'], ['30', '30 dagen'], ['90', '90 dagen']], label: 'Gebruik: foto\'s bewaren', desc: 'Hoe lang de foto\'s bij ontgrendelen bewaard blijven.', syn: 'gebruik foto bewaren dagen week',
-    get: () => String(gbSet().photoKeep || 30), set: v => { gbSaveOne('photoKeep', +v); setIf('gebruikset', enterGebruikSet); return ''; } }
+  { id: 'gebruik.foto.na', scr: 'gebruikontgr', ctl: '#gb-pafter', type: 'keuze', vals: [['1', '1'], ['2', '2'], ['3', '3'], ['5', '5']], label: 'Gebruik: foto na dit aantal mislukte pogingen', desc: 'Na hoeveel mislukte pogingen achter elkaar er een foto gemaakt wordt.', syn: 'gebruik foto pogingen aantal mislukt',
+    get: () => String(gbSet().photoAfter || 3), set: v => { gbSaveOne('photoAfter', +v); setIf(['gebruikset', 'gebruikontgr'], enterGebruikSet); return ''; } },
+  { id: 'gebruik.foto.bewaren', scr: 'gebruikontgr', ctl: '#gb-pkeep', type: 'keuze', vals: [['7', '1 week'], ['30', '30 dagen'], ['90', '90 dagen']], label: 'Gebruik: foto\'s bewaren', desc: 'Hoe lang de foto\'s bij ontgrendelen bewaard blijven.', syn: 'gebruik foto bewaren dagen week',
+    get: () => String(gbSet().photoKeep || 30), set: v => { gbSaveOne('photoKeep', +v); setIf(['gebruikset', 'gebruikontgr'], enterGebruikSet); return ''; } }
 ];
 
 const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin', 'gebruik', 'apparaten'];

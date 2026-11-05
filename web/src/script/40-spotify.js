@@ -12,7 +12,7 @@ function spState(){
 function spRender(){
   spState();
   const linked = !!spSt.linked;
-  $('#sp-setup').style.display = linked ? 'none' : 'block';
+  uiSetup('#sp-setup', linked);
   $('#sp-main').style.display = linked ? 'block' : 'none';
   if (!linked && spSt.clientId && !$('#sp-client').value) $('#sp-client').value = spSt.clientId;
   $('#sp-user').textContent = spSt.user ? t('Gekoppeld: {naam}', { naam: spSt.user }) : t('Gekoppeld met Spotify');

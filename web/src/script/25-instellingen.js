@@ -20,7 +20,6 @@ function stSummaries(i){
   // AI alleen in het overzicht (vraagt wat meer werk)
   if (current === 'settings' && typeof Android.aiState === 'function') { const a = stJson(Android.aiState()), m = (a.models || []).filter(x => x.state === 'ready');
     stSum('ai', m.length ? m.map(x => x.label).join(' · ') : 'Nog geen model gedownload'); }
-  if (typeof Android.modelsState === 'function') stSum('models', mdSummary(rdJson(Android.modelsState(), {})));
   stSum('music', i.audd ? 'AudD-sleutel ingesteld' : 'Nog geen AudD-sleutel');
   stSum('crash', i.crashes ? tn(i.crashes, '{n} fout vastgelegd', '{n} fouten vastgelegd') : t('✓ Geen fouten'));
   stSum('self', 'Controleer of alles werkt');

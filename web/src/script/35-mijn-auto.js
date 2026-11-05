@@ -12,8 +12,12 @@ function carRender(){
   if (p) {
     st.textContent = t(p.how === 'hand' ? 'Bewaard op' : 'Geparkeerd op') + ' ' + fmtDT(p.t, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) +
       (p.lat == null ? ' ' + t('(zonder locatie)') : p.acc > 50 ? ' · ' + t('ongeveer (± {n} m)', { n: p.acc }) : '');
-  } else st.textContent = carSt.addr ? 'Nog geen plek bewaard. Zodra je de auto uitzet, verschijnt hier waar hij staat.' : 'Kies hieronder de Bluetooth van je auto, of tik op "Hier staat hij".';
-  $('#car-nav').style.display = p && p.lat != null ? 'block' : 'none';
+  } else st.textContent = carSt.addr ? 'Nog geen plek bewaard. Zodra je de auto uitzet, verschijnt hier waar hij staat.' : 'Tik op "Hier staat hij", of kies de Bluetooth van je auto bij de instellingen (rechtsboven).';
+  // Eén gevulde hoofdknop: "Hier staat hij" zolang er geen plek is, daarna "Navigeer terug" (dan is Hier staat hij omlijnd)
+  const nav = !!(p && p.lat != null);
+  $('#car-nav').style.display = nav ? 'flex' : 'none';
+  $('#car-nav').classList.toggle('tonal', !nav);
+  $('#car-here').classList.toggle('ghost', nav);
   $('#car-left').style.display = p ? 'block' : 'none';
   carShowMap(p);
   // ritten
@@ -51,6 +55,8 @@ function carRender(){
   else if (!carSt.bgLoc && carSt.addr) need.push(['Locatie ook op de achtergrond (anders geen plek als de app dicht is)', "Android.autoPerm('bgloc')"]);
   if (carSt.trips && !carSt.battery) need.push(['Batterij-uitzondering (anders kan een rit niet vanzelf starten)', 'Android.batterySettings()']);
   perm.style.display = need.length ? 'block' : 'none';
+  $('#car-perm-hint').style.display = need.length && (carSt.addr || carSt.trips) ? 'flex' : 'none';
+  $('#car-trips-on').setAttribute('aria-checked', carSt.trips ? 'true' : 'false');
   perm.innerHTML = need.map(n => '<div style="margin:4px 0">⚠️ ' + esc(t(n[0])) + ' · <a href="#" onclick="' + n[1] + ';return false">' + t('Toestaan') + '</a></div>').join('');
 }
 function carShowMap(p){

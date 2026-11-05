@@ -57,7 +57,7 @@
     <div id="gb-fotos" class="gb-pane" style="display:none">
       <p class="note">De stille foto's met de voorcamera: bij een mislukte poging, bij ontgrendelen en je proefopnames. Ze staan versleuteld alleen hier, nooit in je galerij. Tik op een foto om hem groot te zien.</p>
       <div id="gb-fotos-list"></div>
-      <button class="big ghost" onclick="show('gebruikset')">Instellingen voor foto's</button>
+      <button class="big ghost" onclick="show('gebruikontgr')">Instellingen voor foto's</button>
     </div>
 
     <!-- Meldingen & opladen -->
@@ -97,9 +97,27 @@
       <button class="big ghost" onclick="Android.gebruikOpenAccess()">Toegang tot gebruik openen</button>
     </div>
 
+    <div class="card stlist">
+      <button class="strow" id="gb-ontgr-row" onclick="show('gebruikontgr')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Ontgrendelen</b><small id="gb-sum-ontgr">Pincode, apparaatbeheer en foto's</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+
+    <div class="card">
+      <h2>Alles wissen</h2>
+      <p class="note">Alle bijgehouden gebeurtenissen, samenvattingen en foto's van Gebruik verwijderen.</p>
+      <button class="big ghost danger" onclick="gbClearAll()">Alles van Gebruik wissen</button>
+    </div>
+  </main>
+</section>
+
+<section class="screen" id="s-gebruikontgr">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Ontgrendelen</h1>
+  </div>
+  <main>
     <div class="card">
       <h2>Manier van ontgrendelen (pincode)</h2>
-      <p class="note">Of je met pincode/patroon/wachtwoord ontgrendelde, ziet Gebruik via de toegankelijkheidsdienst (die herkent alleen dát het invoerscherm verscheen, nooit wat je typt). Zet die aan bij Automatiseringen. Apparaatbeheer laat daarnaast mislukte pogingen en "ontgrendeld na mislukt" zien; dat zet je zelf aan en uit. Zolang apparaatbeheer aanstaat, kan de app niet verwijderd worden; zet het eerst uit.</p>
+      <p class="hint">Gebruik ziet alleen dát het pincodescherm verscheen, nooit wat je typt. Zolang apparaatbeheer aanstaat, kan de app niet verwijderd worden.</p>
       <p class="note" id="gb-a11y-note"></p>
       <div class="sw"><span>Apparaatbeheer<small id="gb-admin-n">Voor mislukte pogingen en ontgrendeld-na-mislukt</small></span><button class="tg" id="gb-admin" role="switch" aria-checked="false" aria-label="Apparaatbeheer" aria-describedby="gb-admin-n" onclick="gbAdmin()"></button></div>
       <button class="big ghost" id="gb-admin-off" onclick="gbAdminOff()" style="display:none">Apparaatbeheer uitzetten</button>
@@ -107,7 +125,7 @@
 
     <div class="card">
       <h2>Foto bij ontgrendelen</h2>
-      <p class="note">Een stille foto met de voorcamera. Android laat daarbij kort het camera-stipje zien. De foto's staan versleuteld in de app, nooit in je galerij.</p>
+      <p class="hint">Een stille foto met de voorcamera; Android laat kort het camera-stipje zien. Versleuteld in de app, nooit in je galerij.</p>
       <p class="note bad" id="gb-photo-status"></p>
       <div id="gb-photo-fix"></div>
       <div class="sw"><span>Foto bij een mislukte poging<small id="gb-pfail-n">Bij genoeg mislukte pogingen (via apparaatbeheer)</small></span><button class="tg" id="gb-pfail" role="switch" aria-checked="false" aria-label="Foto bij een mislukte poging" aria-describedby="gb-pfail-n" onclick="gbPhotoTg('photoFail')"></button></div>
@@ -118,7 +136,6 @@
       <div class="chips sm" id="gb-pafter" role="radiogroup" aria-label="Na aantal mislukte pogingen"><button role="radio" data-v="1" onclick="gbPhotoAfter(1)">1</button><button role="radio" data-v="2" onclick="gbPhotoAfter(2)">2</button><button role="radio" aria-checked="true" data-v="3" onclick="gbPhotoAfter(3)">3</button><button role="radio" data-v="5" onclick="gbPhotoAfter(5)">5</button></div>
       <b class="gb-lbl">Foto's bewaren</b>
       <div class="chips sm" id="gb-pkeep" role="radiogroup" aria-label="Foto's bewaren"><button role="radio" data-v="7" onclick="gbPhotoKeep(7)">1 week</button><button role="radio" aria-checked="true" data-v="30" onclick="gbPhotoKeep(30)">30 dagen</button><button role="radio" data-v="90" onclick="gbPhotoKeep(90)">90 dagen</button></div>
-      <p class="note">De foto's staan alleen in de app, bij Gebruik → tabblad <b>Foto's</b> (versleuteld, nooit in je galerij, niet in de Google-backup; wel in "Alle appgegevens").</p>
       <button class="big ghost" id="gb-test" onclick="gbTestShot()">Proefopname</button>
       <p class="note" id="gb-test-res" role="status" aria-live="polite"></p>
       <button class="big ghost" id="gb-photos-open" onclick="gbOpenPhotos()">Foto's bekijken</button>
@@ -126,10 +143,10 @@
       <button class="big ghost" id="gb-photos-clear" onclick="gbClearPhotos()" style="display:none">Alle foto's wissen</button>
     </div>
 
-    <div class="card">
-      <h2>Alles wissen</h2>
-      <p class="note">Alle bijgehouden gebeurtenissen, samenvattingen en foto's van Gebruik verwijderen.</p>
-      <button class="big ghost danger" onclick="gbClearAll()">Alles van Gebruik wissen</button>
-    </div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Of je met pincode/patroon/wachtwoord ontgrendelde, ziet Gebruik via de toegankelijkheidsdienst (die herkent alleen dát het invoerscherm verscheen, nooit wat je typt). Zet die aan bij Automatiseringen.</p>
+      <p>Apparaatbeheer laat daarnaast mislukte pogingen en "ontgrendeld na mislukt" zien; dat zet je zelf aan en uit. Zolang apparaatbeheer aanstaat, kan de app niet verwijderd worden; zet het eerst uit.</p>
+      <p>De foto's staan alleen in de app, bij Gebruik → tabblad <b>Foto's</b> (versleuteld, nooit in je galerij, niet in de Google-backup; wel in "Alle appgegevens").</p>
+    </div></details>
   </main>
 </section>

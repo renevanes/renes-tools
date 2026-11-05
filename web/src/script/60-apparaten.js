@@ -97,12 +97,12 @@ function apPermCard(tt){
   const c = $('#ap-perm'), P = apSt.perms; let h = '';
   const nearby = '<p>' + t('Om {wat} in de buurt te zien, heeft de app de toestemming <b>Apparaten in de buurt</b> en <b>Locatie</b> nodig', { wat: t(tt === 'wifi' ? 'wifi-netwerken' : 'Bluetooth-apparaten') }) +
     t(P.loc && !P.fine ? '. Kies bij locatie <b>Precies</b>: met alleen "geschatte locatie" geeft Android geen apparaten door' : ' (kies <b>Precies</b>)') +
-    t('. Android vraagt locatie omdat je hieruit je plek kunt afleiden; de app gebruikt die alleen grof, voor trackers en "vaak in de buurt". Er gaat niets naar internet.') + '</p><button class="big" onclick="Android.apPerm(\'nearby\')">Toestaan</button>';
+    t('. Android vraagt locatie omdat je hieruit je plek kunt afleiden; de app gebruikt die alleen grof, voor trackers en "vaak in de buurt". Er gaat niets naar internet.') + '</p><button class="big tonal" onclick="Android.apPerm(\'nearby\')">Toestaan</button>';
   if ((tt === 'bt' || tt === 'tr') && P.btHw === false) h = '<p>Deze telefoon heeft geen Bluetooth.</p>';
   else if ((tt === 'bt' || tt === 'tr') && !P.bt) h = nearby;
-  else if ((tt === 'bt' || tt === 'tr') && !P.btOn) h = '<p>Bluetooth staat uit. Zet het aan om apparaten in de buurt te zien.</p><button class="big" onclick="Android.apOpenSettings(\'bt\')">Bluetooth aanzetten</button>';
+  else if ((tt === 'bt' || tt === 'tr') && !P.btOn) h = '<p>Bluetooth staat uit. Zet het aan om apparaten in de buurt te zien.</p><button class="big tonal" onclick="Android.apOpenSettings(\'bt\')">Bluetooth aanzetten</button>';
   else if (tt === 'wifi' && !P.wifi) h = nearby;
-  else if ((tt === 'bt' || tt === 'wifi' || tt === 'tr') && P.locOn === false) h = '<p>' + t('Locatie staat uit op je telefoon. Dan geeft Android geen {wat} door.', { wat: t(tt === 'wifi' ? 'wifi-netwerken' : 'Bluetooth-apparaten') }) + '</p><button class="big" onclick="Android.apOpenSettings(\'loc\')">Locatie aanzetten</button>';
+  else if ((tt === 'bt' || tt === 'wifi' || tt === 'tr') && P.locOn === false) h = '<p>' + t('Locatie staat uit op je telefoon. Dan geeft Android geen {wat} door.', { wat: t(tt === 'wifi' ? 'wifi-netwerken' : 'Bluetooth-apparaten') }) + '</p><button class="big tonal" onclick="Android.apOpenSettings(\'loc\')">Locatie aanzetten</button>';
   c.innerHTML = h; c.style.display = h ? '' : 'none';
 }
 
@@ -274,10 +274,10 @@ function apTrRender(fromPoll){
   if (!fromPoll) apTrLoad();
   const s = apSt.set, P = apSt.perms, box = $('#ap-tr-state');
   let h;
-  if (!s.bg) h = '<h2>Op de achtergrond staat uit</h2><p class="note">Nu let de app alleen op trackers terwijl je hier kijkt. Voor een waarschuwing als een onbekende tracker met je meereist, moet zoeken op de achtergrond aan staan.</p><button class="big" onclick="show(\'apset\')">Instellen</button>';
-  else if (!s.trackers) h = '<h2>Trackerwaarschuwing staat uit</h2><button class="big" onclick="apsSetVal(\'trackers\', true); apTrRender()">Aanzetten</button>';
-  else if (!P.bg) h = '<h2>Nog één toestemming</h2><p class="note">Sta locatie <b>altijd</b> toe, anders laat Android de app op de achtergrond niet zoeken.</p><button class="big" onclick="Android.apPerm(\'bgloc\')">Toestaan</button>';
-  else if (!P.notif || apSt.muted) h = '<h2>Meldingen staan uit</h2><p class="note">De app let op trackers, maar kan je niet waarschuwen.</p>' + (apSt.muted ? '' : '<button class="big" onclick="Android.apPerm(\'notif\')">Meldingen toestaan</button>');
+  if (!s.bg) h = '<h2>Op de achtergrond staat uit</h2><p class="note">Nu let de app alleen op trackers terwijl je hier kijkt. Voor een waarschuwing als een onbekende tracker met je meereist, moet zoeken op de achtergrond aan staan.</p><button class="big tonal" onclick="show(\'apset\')">Instellen</button>';
+  else if (!s.trackers) h = '<h2>Trackerwaarschuwing staat uit</h2><button class="big tonal" onclick="apsSetVal(\'trackers\', true); apTrRender()">Aanzetten</button>';
+  else if (!P.bg) h = '<h2>Nog één toestemming</h2><p class="note">Sta locatie <b>altijd</b> toe, anders laat Android de app op de achtergrond niet zoeken.</p><button class="big tonal" onclick="Android.apPerm(\'bgloc\')">Toestaan</button>';
+  else if (!P.notif || apSt.muted) h = '<h2>Meldingen staan uit</h2><p class="note">De app let op trackers, maar kan je niet waarschuwen.</p>' + (apSt.muted ? '' : '<button class="big tonal" onclick="Android.apPerm(\'notif\')">Meldingen toestaan</button>');
   else h = '<h2>' + uiIcon('shield') + 'Aan</h2><p class="note">' + t((apTrData || {}).passive ? 'De app let op de achtergrond op onbekende trackers die met je meereizen (Android helpt zuinig mee tussen de rondes door). Een waarschuwing komt na ongeveer twee rondes onderweg: kies een kortere tijd tussen de rondes voor een snellere waarschuwing.' : 'De app let op de achtergrond op onbekende trackers die met je meereizen.') + '</p>';
   box.innerHTML = h;
   const l = apTrList();
@@ -471,8 +471,8 @@ function apsRender(){
   const sdk = P.sdk || 0;
   $('#aps-bg-how').innerHTML = esc(t('Elke ronde zoekt de app ongeveer 10 seconden (Android plant dat in; als de telefoon slaapt of de batterijbesparing aan staat, schuift het op). ')) +
     esc(sdk >= 26 || !sdk ? t('Daarnaast helpt Android zuinig mee tussen de rondes door; voor een waarschuwing zijn er wel een paar rondes onderweg nodig (bij elk half uur ongeveer een uur reizen). ') : '') +
-    esc(t('Er draait geen dienst met een vaste melding. Met het scherm uit ziet de app alleen trackers en je gekoppelde apparaten. Wifi zoekt Android op de achtergrond nauwelijks (1 keer per half uur); de app gebruikt dan wat de telefoon al vond.')) +
-    (s.bg && !P.bg ? '<br><b class="note warn">Sta locatie "altijd" toe, anders laat Android de app op de achtergrond niet zoeken.</b> <button class="mini" onclick="Android.apPerm(\'bgloc\')">Toestaan</button>' : '');
+    esc(t('Er draait geen dienst met een vaste melding. Met het scherm uit ziet de app alleen trackers en je gekoppelde apparaten. Wifi zoekt Android op de achtergrond nauwelijks (1 keer per half uur); de app gebruikt dan wat de telefoon al vond.'));
+  $('#aps-bg-warn').innerHTML = (s.bg && !P.bg ? '<br><b class="note warn">Sta locatie "altijd" toe, anders laat Android de app op de achtergrond niet zoeken.</b> <button class="mini" onclick="Android.apPerm(\'bgloc\')">Toestaan</button>' : '');
   $('#aps-home-st').textContent = s.home ? (s.homeSsid ? t('Thuis is ingesteld (en je wifi "{wifi}").', { wifi: s.homeSsid }) : t('Thuis is ingesteld.')) + ' ' + t('Binnen ~{afstand} daarvan telt als thuis.', { afstand: fmtMeters(300) })
     : s.homeRegio ? (s.homeSsid ? t('Thuis uit Regio en taal (en je wifi "{wifi}").', { wifi: s.homeSsid }) : t('Thuis uit Regio en taal.')) + ' ' + t('Binnen ~{afstand} daarvan telt als thuis. Met "Hier is thuis" kies je een eigen plek voor Apparaten.', { afstand: fmtMeters(300) })
     : s.homeSsid ? t('Thuis = verbonden met je wifi "{wifi}".', { wifi: s.homeSsid }) : t('Nog niet ingesteld: alles telt als elders. Je kunt thuis ook instellen bij Instellingen → Regio en taal.');

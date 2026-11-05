@@ -21,6 +21,8 @@ function aiModelsTaal(list){ (list || []).forEach(m => { if (m && !m._t) { ['lab
 function aiLoad(){ aiSt = rdJson(Android.aiState(), {}); aiModelsTaal(aiSt.models); return aiSt; }
 function aiModel(id){ return (aiSt.models || []).find(m => m.id === id) || {}; }
 function aiReady(id){ return aiModel(id).state === 'ready'; }
+/** Het aanbevolen taalmodel (het eerste in de lijst) zolang er nog geen is: alleen dat krijgt een gevulde knop. */
+function aiRecId(){ if (aiChatReady()) return ''; const m = (aiSt.models || []).filter(x => !x.embed && aiListed(x) && x.state === 'none')[0]; return m ? m.id : ''; }
 function aiChatReady(){ return (aiSt.models || []).some(m => !m.embed && m.state === 'ready'); }
 function aiBusyDl(){ return (aiSt.models || []).some(m => ['running', 'queued', 'paused', 'verifying'].includes(m.state)); }
 
@@ -42,13 +44,13 @@ function aiModelCard(m, opts){
   const pct = m.state === 'running' || m.state === 'paused' ? (m.total > 0 ? m.bytes / m.total * 100 : 0) : m.state === 'verifying' ? (m.pct || 0) : 0;
   let btn = '';
   if (m.state === 'ready') btn = opts.chat ? (chosen ? '<span class="aisel">In gebruik</span>' : '<button class="mini" onclick="aiUse(\'' + m.id + '\')">Gebruiken</button>') : '';
-  else if (busy) btn = m.state === 'verifying' ? '' : (m.state === 'paused' && !m.waiting && !aiReplaced(m.id) ? '<button class="mini on" onclick="mdDl(\'ai:' + m.id + '\')">Verder</button>' : '') +
+  else if (busy) btn = m.state === 'verifying' ? '' : (m.state === 'paused' && !m.waiting && !aiReplaced(m.id) ? '<button class="mini tonal" onclick="mdDl(\'ai:' + m.id + '\')">Verder</button>' : '') +
     '<button class="mini" onclick="mdStop(\'ai:' + m.id + '\')">Stoppen</button>';
-  else if (m.state === 'failed' && !aiReplaced(m.id)) btn = '<button class="mini on" onclick="mdDl(\'ai:' + m.id + '\')">Opnieuw</button>' +
+  else if (m.state === 'failed' && !aiReplaced(m.id)) btn = '<button class="mini tonal" onclick="mdDl(\'ai:' + m.id + '\')">Opnieuw</button>' +
     '<button class="mini" onclick="mdStop(\'ai:' + m.id + '\')">Weghalen</button>';
   // Een vervangen model (bijv. mislukt downloaden) niet opnieuw aanbieden, alleen weghalen
   else if (aiReplaced(m.id)) btn = m.state === 'none' ? '' : '<button class="mini" onclick="aiDel(\'' + m.id + '\', true)">Verwijderen</button>';
-  else btn = '<button class="mini on" onclick="aiDl(\'' + m.id + '\')">Downloaden</button>';
+  else btn = '<button class="mini ' + (aiRecId() === m.id ? 'on fill' : 'tonal') + '" onclick="aiDl(\'' + m.id + '\')">Downloaden</button>';
   const big = m.ram > 0 && aiSt.ram > 0 && aiSt.ram < m.ram; // minder geheugen dan aangeraden
   // Nieuw (vervangt een ouder model), of vervangen door een nieuwer dat al klaar is
   const prev = m.replaces ? aiModel(m.replaces) : {};
@@ -419,13 +421,13 @@ const AI_SRC = [
   ['notes', 'Notities', 'notes', 'Al je notities en lijstjes.'],
   ['tx', 'Uitgeschreven gesprekken', 'mic', 'Wat je bij Gesprekken uitschrijven liet uitschrijven.'],
   ['sms', "Sms'jes", 'message', "De laatste 300 berichten van je 150 recentste sms-gesprekken."],
-  ['wa', 'WhatsApp', 'message', 'De laatste 300 berichten van je 100 recentste chats (alleen als je de chats leesbaar maakte).'],
-  ['calls', 'Oproepen', 'calls', 'Wie belde of gebeld werd, wanneer en hoe lang (de laatste 50 per persoon).'],
-  ['contacts', 'Contacten', 'user', 'Namen, nummers, e-mailadressen, adressen, verjaardagen en notities.'],
-  ['sleep', 'Slaappraat', 'moon', 'Wat je in je slaap zei (wat als praten is uitgeschreven), ook van de nacht die nog loopt als hij meteen uitschrijft (bijv. "Wat zei ik vannacht?").'],
-  ['checkin', 'Check-in', 'smile', 'Je antwoorden bij Check-in, met notities en labels: per maand samengevat, en hoe het deze week gaat vergeleken met de week ervoor (bijv. "Hoe gaat het met mijn stemming?").'],
-  ['gebruik', 'Gebruik', 'clock', 'Je schermtijd, ontgrendelingen en mislukte pogingen, vandaag en deze week, per app (bijv. "Hoeveel schermtijd vandaag?"). Nooit de foto\'s bij ontgrendelen, alleen hoeveel er zijn.'],
-  ['apparaten', 'Apparaten', 'nearby', 'Waar je eigen apparaten het laatst gezien zijn en wat er bij de laatste zoekronde in de buurt was (bijv. "Waar was mijn oortje het laatst?"). Van apparaten van anderen alleen hoeveel.']
+  ['wa', 'WhatsApp', 'message', 'De laatste 300 berichten van je 100 recentste chats (alleen als je de chats leesbaar maakte).', 'De laatste berichten van je recentste chats (als ze leesbaar zijn).'],
+  ['calls', 'Oproepen', 'calls', 'Wie belde of gebeld werd, wanneer en hoe lang (de laatste 50 per persoon).', 'Wie belde of gebeld werd, wanneer en hoe lang.'],
+  ['contacts', 'Contacten', 'user', 'Namen, nummers, e-mailadressen, adressen, verjaardagen en notities.', 'Namen, nummers, adressen, verjaardagen en notities.'],
+  ['sleep', 'Slaappraat', 'moon', 'Wat je in je slaap zei (wat als praten is uitgeschreven), ook van de nacht die nog loopt als hij meteen uitschrijft (bijv. "Wat zei ik vannacht?").', 'Wat je in je slaap zei (wat als praten is uitgeschreven).'],
+  ['checkin', 'Check-in', 'smile', 'Je antwoorden bij Check-in, met notities en labels: per maand samengevat, en hoe het deze week gaat vergeleken met de week ervoor (bijv. "Hoe gaat het met mijn stemming?").', 'Je antwoorden bij Check-in, per maand samengevat.'],
+  ['gebruik', 'Gebruik', 'clock', 'Je schermtijd, ontgrendelingen en mislukte pogingen, vandaag en deze week, per app (bijv. "Hoeveel schermtijd vandaag?"). Nooit de foto\'s bij ontgrendelen, alleen hoeveel er zijn.', 'Schermtijd en ontgrendelingen per app; nooit de foto\'s.'],
+  ['apparaten', 'Apparaten', 'nearby', 'Waar je eigen apparaten het laatst gezien zijn en wat er bij de laatste zoekronde in de buurt was (bijv. "Waar was mijn oortje het laatst?"). Van apparaten van anderen alleen hoeveel.', 'Waar je eigen apparaten het laatst waren; van anderen alleen hoeveel.']
 ];
 /* Bronnen die niet in de zoekindex gaan: de app rekent zelf de feiten uit (AiData) */
 const AI_SRC_FACTS = ['gebruik', 'apparaten'];
@@ -560,6 +562,8 @@ function aiRenderSet(){
   $('#ais-embed').innerHTML = ms.filter(m => m.embed).map(m => aiModelCard(m, { del: true })).join('');
   const w = $('#ais-wifi'); w.classList.toggle('on', !!aiSt.wifiOnly); w.setAttribute('aria-checked', aiSt.wifiOnly ? 'true' : 'false');
   aisRenderVoice(); aicRender(); aiRenderData();
+  // Modellen beheren (alleen nog hier, niet meer los bij Instellingen): korte stand in de rij
+  if (current === 'aiset' && typeof Android.modelsState === 'function' && typeof mdSummary === 'function') { const e = $('#ai-sum-models'); if (e) e.textContent = mdSummary(rdJson(Android.modelsState(), {})); }
   const ix = aiSt.index, box = $('#ais-index');
   if (!ix || !aiReady('zoek')) { box.innerHTML = ''; return; }
   const busy = ix.busy || aiIdx.busy;
@@ -600,10 +604,12 @@ function aiRenderData(){
     const need = !ok ? (k === 'wa' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'wa\')">Maak eerst je chats leesbaar</button>'
       : k === 'gebruik' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'gebruik\')">Zet eerst Gebruik bijhouden aan</button>'
       : '<button class="linkish" style="display:inline;padding:0" onclick="Android.permRequest(\'' + AI_PERM[k] + '\')">Toestemming geven</button>') : '';
-    return '<div class="sw"><span>' + uiIcon(s[2]) + ' ' + esc(s[1]) + '<small id="aid-d-' + k + '">' + esc(t(s[3]) + (on && !ok ? ' ' + t('Staat aan, maar de app mag er nog niet bij.') : '')) + '</small>' + (on && !ok ? '<small>' + need + '</small>' : '') + '</span>' +
+    return '<div class="sw"><span>' + uiIcon(s[2]) + ' ' + esc(s[1]) + '<small id="aid-d-' + k + '">' + esc(t(s[4] || s[3]) + (on && !ok ? ' ' + t('Staat aan, maar de app mag er nog niet bij.') : '')) + '</small>' + (on && !ok ? '<small>' + need + '</small>' : '') + '</span>' +
       '<button class="tg' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + esc(s[1]) + '" aria-describedby="aid-d-' + k + '" onclick="aiSrcToggle(\'' + k + '\')"></button></div>';
   }).join('');
   $('#aid-index').innerHTML = zoek && aiSt.index ? aiIndexHtml('aid-ix-sub') : '';
+  // Precies wat er per bron gelezen wordt (de korte regel staat bij de schakelaar): onder Wat precies?
+  uiHtml($('#aid-more'), AI_SRC.map(x => '<li><b>' + esc(t(x[1])) + '</b>: ' + esc(t(x[3])) + '</li>').join(''));
 }
 function aiSrcToggle(k){
   const on = !aiSrcOn(k), s = AI_SRC.find(x => x[0] === k);

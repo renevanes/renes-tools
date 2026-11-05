@@ -8,7 +8,7 @@ function lcFmt(lat, lng){ return (+lat).toFixed(5) + ', ' + (+lng).toFixed(5); }
 function lcRender(){
   lcSt = rdJson(Android.locState(), {});
   const st = lcSt;
-  $('#lc-setup').style.display = st.allowed ? 'none' : 'block';
+  uiSetup('#lc-setup', st.allowed);
   $('#lc-step-dev').style.display = st.dev ? 'none' : '';
   $('#lc-setup-state').textContent = st.allowed ? '' : st.dev ? 'Ontwikkelaarsopties staan aan. Nog: Tools kiezen als app voor de locatie.' : 'Ontwikkelaarsopties staan nog uit.';
   $('#lc-dot').className = 'vpdot' + (st.on ? ' on' : '');

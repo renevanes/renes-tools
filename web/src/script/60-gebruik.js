@@ -146,6 +146,8 @@ function gbShowPhoto(id){
 window.gbBack = function(){ if ($('#gb-light')) { gbCloseLight(); return true; } return false; };
 
 /* ---------- instellingen ---------- */
+/* Instellingen van Gebruik: het overzicht en het eigen scherm Ontgrendelen (manier en foto) */
+function gbSetOn(){ return current === 'gebruikset' || current === 'gebruikontgr'; }
 function enterGebruikSet(){
   const s = gbState(), set = s.set || {}, caps = s.photoCaps || {};
   gbTgEl('#gb-collect', set.collect !== false);
@@ -201,8 +203,8 @@ function gbTestShot(){
   const t0 = Date.now();
   const poll = () => {
     const ls = gbState().lastShot || '';
-    if (ls.indexOf('ok|') === 0) { $('#gb-test-res').textContent = 'Gelukt: de foto staat bij Gebruik → Foto\'s.'; toast('Proefopname gelukt'); if (current === 'gebruikset') enterGebruikSet(); return; }
-    if (ls.indexOf('mislukt') === 0) { $('#gb-test-res').textContent = t('Mislukt: {fout}', { fout: /time-?out/i.test(ls) ? t('de camera reageerde niet op tijd') : t(ls.slice(9)) }); if (current === 'gebruikset') enterGebruikSet(); return; }
+    if (ls.indexOf('ok|') === 0) { $('#gb-test-res').textContent = 'Gelukt: de foto staat bij Gebruik → Foto\'s.'; toast('Proefopname gelukt'); if (gbSetOn()) enterGebruikSet(); return; }
+    if (ls.indexOf('mislukt') === 0) { $('#gb-test-res').textContent = t('Mislukt: {fout}', { fout: /time-?out/i.test(ls) ? t('de camera reageerde niet op tijd') : t(ls.slice(9)) }); if (gbSetOn()) enterGebruikSet(); return; }
     if (Date.now() - t0 > 12000) { $('#gb-test-res').textContent = 'Geen uitkomst: de camera reageerde niet. Probeer het opnieuw.'; return; }
     gbShotPoll = setTimeout(poll, 600);
   };
@@ -235,13 +237,13 @@ function gbRenderPhotos(){
 }
 
 function gbClearPhotos(){ askConfirm('Foto\'s wissen?', 'Alle foto\'s van Gebruik verwijderen.', 'Wissen', () => { Android.gebruikClearPhotos(); gbRenderPhotos(); toast('Foto\'s gewist'); }); }
-function gbClearAll(){ askConfirm('Alles wissen?', 'Alle gebeurtenissen, samenvattingen en foto\'s van Gebruik verwijderen.', 'Wissen', () => { Android.gebruikClearAll(); toast('Alles van Gebruik gewist'); if (current === 'gebruikset') enterGebruikSet(); }); }
+function gbClearAll(){ askConfirm('Alles wissen?', 'Alle gebeurtenissen, samenvattingen en foto\'s van Gebruik verwijderen.', 'Wissen', () => { Android.gebruikClearAll(); toast('Alles van Gebruik gewist'); if (gbSetOn()) enterGebruikSet(); }); }
 
 // Na het geven van cameratoestemming: de proefopname waar je om vroeg alsnog maken
 (function(){ const prev = window.onSettingsChanged; window.onSettingsChanged = function(msg){ if (typeof prev === 'function') prev(msg);
-  if (current === 'gebruikset') { enterGebruikSet(); gbShotResume(); } }; })();
+  if (gbSetOn()) { enterGebruikSet(); gbShotResume(); } }; })();
 // Terug uit de app-instellingen (Android vroeg niets meer): ook dan verder of duidelijk zeggen wat er mis is
-(function(){ const prev = window.onResumeApp; window.onResumeApp = function(){ if (typeof prev === 'function') prev(); if (current === 'gebruikset') gbShotResume(); }; })();
+(function(){ const prev = window.onResumeApp; window.onResumeApp = function(){ if (typeof prev === 'function') prev(); if (gbSetOn()) gbShotResume(); }; })();
 function gbShotResume(){
   if (!gbShotWait) return;
   if ((gbState().photoCaps || {}).camera) { gbTestShot(); return; }
@@ -249,4 +251,4 @@ function gbShotResume(){
   $('#gb-test-res').textContent = 'Geen cameratoestemming gekregen. Tik nog eens op Proefopname; vraagt Android niets meer, dan opent de app-instellingen: zet daar Toestemmingen → Camera aan.';
 }
 
-window.onGebruik = function(){ if (current === 'gebruik') enterGebruik(); else if (current === 'gebruikset') enterGebruikSet(); };
+window.onGebruik = function(){ if (current === 'gebruik') enterGebruik(); else if (gbSetOn()) enterGebruikSet(); };

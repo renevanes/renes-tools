@@ -189,3 +189,21 @@ input.switch{-webkit-appearance:none;appearance:none;width:48px;height:28px;marg
   background:var(--hi) radial-gradient(circle at 13px 50%,var(--outline) 8px,transparent 9px) no-repeat;transition:background-color .15s}
 input.switch:checked{border-color:var(--primary);background:var(--primary) radial-gradient(circle at 33px 50%,var(--on-primary) 9px,transparent 10px) no-repeat}
 details.card.setup h3{font-size:15px;font-weight:650;margin:16px 0 6px}
+/* Modellen: één gevulde knop (aanbevolen), de rest tonaal */
+.aimb .mini.tonal,.md-acts .mini.tonal{background:var(--tonal);color:var(--on-tonal)}
+.md-newer .mini.tonal{background:var(--card);color:var(--ink)}
+.aimb .mini.fill,.md-acts .mini.fill{background:var(--primary);color:var(--on-primary)}
+.md-rec{display:inline-block;font-size:11.5px;font-weight:650;padding:1px 8px;border-radius:999px;background:var(--tonal);color:var(--on-tonal);vertical-align:1px}
+.md-cat details.help.in{margin-top:10px}
+/* Mijn auto */
+.car-tripacts>.big{flex:1 1 0;padding-left:10px;padding-right:10px}
+.car-permhint{cursor:pointer;color:inherit;font:inherit}
+.card.setup[hidden]{display:none}
+/* Kaarten (Leaflet): zoomknoppen groot genoeg om te tikken */
+.leaflet-touch .leaflet-bar a,.leaflet-bar a{width:44px;height:44px;line-height:44px;font-size:22px}
+.leaflet-touch .leaflet-control-zoom-in,.leaflet-touch .leaflet-control-zoom-out{font-size:22px}
+/* Factuur: datums krijgen een halve breedte (niet een derde: dan past "dd-mm-jjjj" niet) */
+.fs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.fs-grid .aein{width:100%;min-width:0}
+/* Dagen kiezen (Auto redial op een tijdstip, Radiowekker): zeven knoppen van minstens 44×44 */
+#al-days,#rp-days{display:grid;grid-template-columns:repeat(7,minmax(44px,1fr));gap:2px}
+#al-days button,#rp-days button{min-width:44px;min-height:44px;padding:6px 0;text-align:center;justify-content:center}

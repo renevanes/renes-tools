@@ -24,6 +24,13 @@ function uiSetup(el, done){
   if (el.tagName === 'DETAILS') { if (el._uiDone !== done) { el._uiDone = done; el.open = !done; uiHelpSync(el); } }
   else el.hidden = done;
 }
+/** innerHTML alleen als er iets veranderd is, en uitgeklapte "Hoe werkt dit?"-blokken blijven open (bijv. tijdens het pollen). */
+function uiHtml(el, html){
+  if (!el || el._h === html) return;
+  const open = [...el.querySelectorAll('details')].map(d => d.open);
+  el.innerHTML = html; el._h = html;
+  el.querySelectorAll('details').forEach((d, i) => { if (open[i]) d.open = true; uiHelpSync(d); });
+}
 /* Uitklappers: de schermlezer hoort "ingeklapt"/"uitgeklapt" (aria-expanded op de summary). */
 function uiHelpSync(d){ const s = d && d.querySelector(':scope > summary'); if (s) s.setAttribute('aria-expanded', d.open ? 'true' : 'false'); }
 document.addEventListener('toggle', e => { const d = e.target; if (d && d.tagName === 'DETAILS' && d.matches('.help, .setup')) uiHelpSync(d); }, true);
