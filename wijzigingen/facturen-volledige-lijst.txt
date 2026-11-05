@@ -1,2 +1,0 @@
-Facturen ophalen volgt nu Toon meer en vervolgpagina's, wacht op traag geladen facturen en controleert eerder onvolledig opgehaalde periodes opnieuw.
-Bij elke leverancier vind je Logboek ophalen: stappen, wachttijden, aantallen en stopredenen bekijken, kopiëren of delen voor het onderzoeken van problemen, zonder wachtwoorden, inlogcodes of factuurinhoud.
