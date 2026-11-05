@@ -205,5 +205,6 @@ details.card.setup h3{font-size:15px;font-weight:650;margin:16px 0 6px}
 /* Factuur: datums krijgen een halve breedte (niet een derde: dan past "dd-mm-jjjj" niet) */
 .fs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.fs-grid .aein{width:100%;min-width:0}
 /* Dagen kiezen (Auto redial op een tijdstip, Radiowekker): zeven knoppen van minstens 44×44 */
-#al-days,#rp-days{display:grid;grid-template-columns:repeat(7,minmax(44px,1fr));gap:2px}
+#al-days,#rp-days{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:2px}
 #al-days button,#rp-days button{min-width:44px;min-height:44px;padding:6px 0;text-align:center;justify-content:center}
+#aid-more .aid-d{display:block;margin-bottom:6px}

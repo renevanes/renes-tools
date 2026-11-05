@@ -609,7 +609,7 @@ function aiRenderData(){
   }).join('');
   $('#aid-index').innerHTML = zoek && aiSt.index ? aiIndexHtml('aid-ix-sub') : '';
   // Precies wat er per bron gelezen wordt (de korte regel staat bij de schakelaar): onder Wat precies?
-  uiHtml($('#aid-more'), AI_SRC.map(x => '<li><b>' + esc(t(x[1])) + '</b>: ' + esc(t(x[3])) + '</li>').join(''));
+  uiHtml($('#aid-more'), AI_SRC.map(x => '<li><b>' + esc(x[1]) + '</b><div class="aid-d" translate="no">' + esc(t(x[3])) + '</div></li>').join(''));
 }
 function aiSrcToggle(k){
   const on = !aiSrcOn(k), s = AI_SRC.find(x => x[0] === k);

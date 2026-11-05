@@ -164,6 +164,9 @@ const MEER_PRIMAIR = {
     ok(await pg.evaluate(() => [...document.querySelectorAll('#rp-days button')].every(b => { const r = b.getBoundingClientRect(); return !r.width || (r.width >= 44 && r.height >= 44); })), tag + ': Auto redial: dagknoppen minstens 44×44');
     await naar(pg, 'facstuk');
     ok(await pg.evaluate(() => document.querySelector('#fs-datum').getBoundingClientRect().width >= 140), tag + ': Factuur: factuurdatum breed genoeg (' + await pg.evaluate(() => Math.round(document.querySelector('#fs-datum').getBoundingClientRect().width)) + ' px)');
+    await naar(pg, 'loc'); await pg.waitForTimeout(250 * W);
+    const zoom = await pg.evaluate(() => [...document.querySelectorAll('#lc-map .leaflet-control-zoom a')].map(a => { const r = a.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
+    ok(zoom.length === 2 && zoom.every(([w, h]) => w >= 44 && h >= 44), tag + ': Locatie kiezen: zoomknoppen van de kaart minstens 44×44 (' + JSON.stringify(zoom) + ')');
     await naar(pg, 'car');
     ok(await pg.evaluate(() => { const b = document.querySelector('#car-export'), lh = parseFloat(getComputedStyle(b).lineHeight) || 21; return b.getBoundingClientRect().height < 2.5 * lh + 26; }), tag + ': Mijn auto: Maand exporteren past op hooguit twee regels');
     await pg.screenshot({ path: __dirname + '/shots/ui-patronen-' + scheme + (en ? '-en' : '') + '.png' });
