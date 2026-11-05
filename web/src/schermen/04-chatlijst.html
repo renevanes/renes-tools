@@ -1,17 +1,41 @@
-<!-- ============ CHATLIJST ============ -->
+<!-- ============ LEESBARE CHATS (chatlijst, met de sleutel als eenmalig instellen) ============ -->
 <section class="screen" id="s-chats">
   <div class="hdr sm">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1">Chats</h1>
+    <h1 tabindex="-1">Leesbare chats</h1>
   </div>
   <main>
-    <input class="search" id="chat-search" type="search" placeholder="Zoek in alle berichten…" oninput="chatSearch(this.value)">
-    <div class="card" id="chat-contacts" style="display:none">
-      <p style="margin:0 0 10px">Geef toegang tot je contacten om namen te tonen in plaats van telefoonnummers.</p>
-      <button class="big ghost" onclick="Android.waRequestContacts()">Contacten tonen</button>
+    <details class="card setup" id="rd-card" open>
+      <summary><span class="setup-h" role="heading" aria-level="2">Eenmalig instellen</span><small id="rd-state">Sleutel niet ingesteld</small></summary>
+      <div id="rd-setup">
+        <p class="note" style="margin-top:0">Hiermee maak je je chats leesbaar: in de app en als webpagina per chat in de backup-map. Daarvoor is de end-to-end versleutelde back-up van WhatsApp met een <b>sleutel van 64 cijfers</b> nodig.</p>
+        <details class="help in"><summary data-icon="info">Waar vind ik die sleutel?</summary><div class="help-body">
+          <p>Zet hem aan in <i>WhatsApp › Instellingen › Chats › Chatback-up › End-to-end versleutelde back-up</i> en kies <b>sleutel</b> in plaats van wachtwoord.</p>
+        </div></details>
+        <label class="f" for="rd-key">Jouw sleutel van 64 cijfers</label>
+        <textarea class="key" id="rd-key" rows="3" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="abcd 1234 …"></textarea>
+        <button class="big tonal" id="rd-perm" style="margin-top:10px;display:none" onclick="Android.waRequestFilesAccess()">Toegang tot bestanden geven</button>
+        <button class="big" id="rd-save" style="margin-top:10px" onclick="rdSaveKey()">Controleer sleutel en maak leesbaar</button>
+        <p class="note">De sleutel blijft alleen op je telefoon, in deze app. Bewaar hem ook zelf goed.</p>
+      </div>
+      <div id="rd-ready" style="display:none">
+        <div class="sw"><span>Automatisch bijwerken<small>Na elke backup de chats opnieuw leesbaar maken</small></span><button class="tg on" id="rd-auto" onclick="togUi(this); Android.waSetReadableAuto(this.classList.contains('on'))"></button></div>
+        <p class="note" style="margin-top:0">De webpagina's in de backup-map zijn niet versleuteld; staat versleutelen aan, dan worden ze alleen in de app bijgewerkt.</p>
+        <p class="note" id="rd-from"></p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="big ghost" style="flex:1" onclick="rdRefresh()">Nu bijwerken</button>
+          <button class="big ghost" style="flex:1" onclick="rdForget()">Sleutel wissen</button>
+        </div>
+      </div>
+    </details>
+    <div id="chat-body">
+      <input class="search" id="chat-search" type="search" placeholder="Zoek in alle berichten…" oninput="chatSearch(this.value)">
+      <div class="card" id="chat-contacts" style="display:none">
+        <p style="margin:0 0 10px">Geef toegang tot je contacten om namen te tonen in plaats van telefoonnummers.</p>
+        <button class="big ghost" onclick="Android.waRequestContacts()">Contacten tonen</button>
+      </div>
+      <div class="clist card" id="chat-list"></div>
+      <div id="search-results"></div>
     </div>
-    <div class="clist card" id="chat-list"></div>
-    <div id="search-results"></div>
   </main>
 </section>
-

@@ -19,14 +19,17 @@ function enterHerstel(){
   $('#hs-skip').textContent = s.pending ? 'Overslaan' : 'Annuleren';
 }
 /* Vanuit Alles back-uppen (kan ook op een telefoon met gegevens: dan eerst een duidelijke waarschuwing) */
-function herstelStart(){ hsManual = true; show('herstel'); }
+/* Vanuit Alles back-uppen → Terugzetten: terug brengt je daar weer (bij een nieuwe installatie blijft terug eerst vragen) */
+function herstelStart(){ hsManual = true; if (hsState().pending) show('herstel'); else jumpTo('herstel'); }
 function hsPick(){ Android.herstelPickFolder(); }
 function hsScanNow(){ hsStep('hs-bezig'); $('#hs-bezig-t').textContent = 'Backups zoeken…'; $('#hs-bezig-s').textContent = 'In je backup-map, map Versleuteld.'; $('#hs-prog').removeAttribute('value'); Android.herstelScan(); }
 window.onHerstelFolder = function(){ if (current === 'herstel') hsScanNow(); };
 function hsSkip(){
   const s = hsState();
   if (s.pending) { Android.herstelSkip(); toast('Overgeslagen. Terugzetten kan later bij Alles back-uppen.'); }
-  Android.herstelCancel(); hsManual = false; show('home');
+  const terug = !s.pending && hsManual && jumpStack.length && jumpStack[jumpStack.length - 1].to === 'herstel';
+  Android.herstelCancel(); hsManual = false;
+  if (terug) goBack(); else show('home');
 }
 window.onHerstelScan = function(r){
   hsScanRes = r || {};
@@ -47,7 +50,8 @@ window.onHerstelScan = function(r){
     esc(hsWhen(a.name)) + ' <small class=note style="display:inline;margin:0">· ' + fmtB(a.size || 0) + (a.deels ? ' · onvolledig (gestopt halverwege)' : '') +
     (a.app ? ' · ' + t('met alle appgegevens') : '') + (a.name === rec ? ' · ' + t('voorgesteld') : '') + '</small></label>').join('');
 };
-function hsPlain(){ hsManual = false; show('backup'); setTimeout(() => { const b = document.querySelector('#s-backup button[onclick*="restorePick(\'notes\')"]'); if (b) b.scrollIntoView({block: 'center'}); }, 50); }
+/* Losse onderdelen staan op één plek: Alles back-uppen → Terugzetten */
+function hsPlain(){ hsManual = false; jumpTo('bkrestore'); }
 function hsSelected(){ const r = document.querySelector('input[name=hs-arc]:checked'); return r ? r.value : ''; }
 function hsOpen(){ hsName = hsSelected(); if (!hsName) { toast('Kies een backup'); return; } hsBusyStep(); Android.herstelOpen(hsName, ''); }
 function hsBusyStep(){ hsStep('hs-bezig'); $('#hs-bezig-t').textContent = 'Bezig met controleren…'; $('#hs-bezig-s').textContent = 'De hele backup wordt gelezen en gecontroleerd. Er verandert nog niets.'; $('#hs-prog').value = 0; }
@@ -118,16 +122,16 @@ function hsList(){
 }
 function hsFix(id){
   if (id === 'bio') { show('setlock'); return; }
-  if (id === 'password') { show('backup'); return; }
+  if (id === 'password') { jumpTo('bkset'); return; }
   if (id === 'vpn') { show('vpn'); return; }
-  if (id === 'wa') { show('wa'); return; }
+  if (id === 'wa') { jumpTo('chats'); return; }
   Android.herstelFix(id);
 }
 function hsDone(){ Android.herstelChecklistDone(); hsManual = false; show('home'); toast('Welkom terug'); }
 /* Terug op het welkomscherm van een nieuwe installatie: vragen of je wilt overslaan (dan stoppen de backups niet meer) */
 function hsBack(){
   if ($('#hs-welkom').style.display === 'none' || !hsState().pending) return false;
-  askConfirm('Terugzetten overslaan?', 'Je kunt je gegevens later nog terugzetten bij Alles back-uppen → Alles terugzetten na herinstallatie. Tot je kiest, maakt de app geen backups.', 'Overslaan', hsSkip);
+  askConfirm('Terugzetten overslaan?', 'Je kunt je gegevens later nog terugzetten bij Alles back-uppen → Terugzetten. Tot je kiest, maakt de app geen backups.', 'Overslaan', hsSkip);
   return true;
 }
 /* Weg van dit scherm met een klaargezette backup: die meteen weggooien (en de sleutel vergeten) */

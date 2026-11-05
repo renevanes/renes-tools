@@ -21,7 +21,7 @@ function bkRenderSecure(st){
   $('#bk-enc-off').style.display = on ? 'block' : 'none';
   $('#bk-rotate').checked = !!st.rotate;
   if (st.parts) bkPrivRender(st); // de waarschuwing bij Privé hangt af van versleutelen
-  if (st.parts && current === 'backup' && $('#bk-app-note')) { const n = $('#bk-app-note'); n.className = 'note' + (on ? '' : ' warn'); n.innerHTML = bkAppNote(on); }
+  if (st.parts && bkOn() && $('#bk-app-note')) { const n = $('#bk-app-note'); n.className = 'note' + (on ? '' : ' warn'); n.innerHTML = bkAppNote(on); }
   if (st.herstel) bkRenderHerstel(st);
   if (st.space) bkRenderSpace(st.space);
 }
@@ -41,14 +41,14 @@ function bkEncSet(){
 window.onSecure = function(err){
   bkEncBusy = false; $('#bk-enc-btn').disabled = false;
   toast(err ? err : 'Versleutelen staat aan');
-  if (current === 'backup') bkRenderSecure(bkState(true));
+  if (bkOn()) { const st = bkState(true); bkRenderSecure(st); bkSums(st); }
 };
 function bkEncOff(){
   const p = bkState(true).parts || {}, priv = ['ai', 'sleep', 'checkin'].filter(k => p[k] === true);
   askConfirm('Versleutelen uitzetten?', t('Nieuwe backups worden weer gewone, leesbare bestanden. Bestaande versleutelde backups blijven staan en houden hun wachtwoord.') +
     (priv.length ? '\n\n' + bkPrivNoLonger(priv) : ''), 'Uitzetten', () => {
     Android.backupEncryptOff(); // zet ook de privé-onderdelen uit
-    bkRenderSecure(bkState(true)); toast(t(priv.length ? 'Versleutelen staat uit; privé-onderdelen gaan niet meer mee' : 'Versleutelen staat uit'));
+    const st = bkState(true); bkRenderSecure(st); bkSums(st); toast(t(priv.length ? 'Versleutelen staat uit; privé-onderdelen gaan niet meer mee' : 'Versleutelen staat uit'));
   });
 }
 function bkRotate(){ toast('Bezig met tellen…'); Android.backupRotate(true); }
