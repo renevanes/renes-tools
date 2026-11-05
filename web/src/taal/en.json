@@ -930,6 +930,7 @@
  "Alles terugzetten na herinstallatie": "Restore everything after reinstall",
  "Alles terugzetten na herinstallatie vervangt alles in Tools door wat in een versleutelde backup met Alle appgegevens staat (met je wachtwoorden, VPN en kluis). Daarna start de app opnieuw.": "Restore everything after reinstall replaces everything in Tools with what is in an encrypted backup with All app data (including your passwords, VPN and vault). The app then restarts.",
  "Alles terugzetten?": "Restore everything?",
+ "Alles tonen": "Show all",
  "Alles tonen ({n})": "Show all ({n})",
  "Alles uit deze backup staat er al": "Everything from this backup is already there",
  "Alles uit deze backup staat er al of past niet meer": "Everything from this backup is already there or no longer fits",
