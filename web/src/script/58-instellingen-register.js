@@ -398,6 +398,7 @@ const SET_EXCLUDE = [
   ['#s-bank select, #s-bank input, #s-bank .chips', 'Filters en keuzes in Bankzaken (gegevens die versleuteld en alleen daar bewaard worden); de assistent komt bewust niet aan bankgegevens'],
   ['#history-apps', 'Filter in de meldingsgeschiedenis'],
   ['#s-pdf select, #s-pdf input, #s-pdf [role=radiogroup], #s-pdf .chips', 'Keuzes bij het maken of bewerken van één pdf'],
+  ['#s-formulieren select, #s-formulieren input', 'Persoonsgegevens en keuzes voor één PDF-formulier; geen instellingen voor de assistent'],
   ['#pd-dl, #pd-sort, #pd-hide', 'Hoort bij één podcast, of is een filter'],
   ['#s-podspotify input, #s-podspotify select', 'Keuzes bij het overzetten van podcasts, voor één keer'],
   ['#sln-filter', 'Filter bij één nacht van Slaappraat'],

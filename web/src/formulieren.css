@@ -1,0 +1,11 @@
+.pff-navigatie{flex-wrap:wrap;align-items:center;gap:8px}
+.pff-navigatie>.big{flex:1;min-width:125px}
+.pff-navigatie [hidden],#s-formulieren [hidden]{display:none!important}
+.pff-papier{position:relative;background:white;margin:12px 0;overflow:hidden}
+.pff-papier img{display:block;width:100%;height:auto}
+.pff-papier canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#pff-velden .search{width:100%;box-sizing:border-box;margin-bottom:8px;min-width:0}
+#pff-samenvatting{overflow-wrap:anywhere}
+#pff-samenvatting dl{margin:8px 0 16px}
+#pff-samenvatting dt{color:var(--muted);font-size:.85em;margin-top:6px}
+#pff-samenvatting dd{margin:0;color:var(--ink)}

@@ -21,6 +21,8 @@
 - **Tekst of e-mail naar PDF**: in een andere app *Delen → PDF maken* (`PdfShareActivity`) voor tekst, een webpagina, een e-mail (`.eml`, `MailParse`) of plaatjes; of kies hier een bestand of plak tekst.
 - Gemaakte PDF's staan een week in de app (openen, delen, opslaan als, of alles naar de map `PDF/` in de backup-map). Bestanden van andere apps worden alleen gelezen als die app ze met leesrecht doorgeeft.
 
+Voor het invullen van officiële formulieren: zie [PDF-formulieren](formulieren.md). De eerste is toestemming voor reizen met een minderjarig kind, bereikbaar via PDF → Formulieren invullen.
+
 ## Mijn routes
 - GPS-routeopname (zoals het vroegere My Tracks) via een voorgrondservice met `LocationManager` (geen Google Play Services). Loopt door met het scherm uit; pauzeren/hervatten kan (`TracksService.java`).
 - Live afstand (haversine), tijd, snelheid, hoogte; de route wordt als SVG-pad getekend zonder kaarttegels. Statistiek en GPX-schrijven zitten in `Tracks.java` (pure Java, los getest).

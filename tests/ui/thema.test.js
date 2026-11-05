@@ -104,9 +104,11 @@ const LIGHT = '#F4F5F6', DARK = '#111619';
     await pg.fill('#st-th-dark', '21:30'); await pg.dispatchEvent('#st-th-dark', 'change'); await pg.waitForTimeout(100);
     ok(await bg(pg) === LIGHT && await pg.evaluate(() => thCfg().dark) === '21:30', 'donker vanaf 21:30: om 20:00 weer licht');
     ok((await tn()).dark === false && (await tn()).until === new Date('2026-11-03T21:30:00+01:00').getTime(), 'na een andere tijd: onthouden stand licht tot 21:30 (niet verouderd)');
-    await pg.clock.runFor(100 * 60000); await pg.waitForTimeout(100);
+    // De korte overgang hierboven doorloopt iedere timer. Grote sprongen controleren de eindstand,
+    // zonder ook iedere kloktik van de andere app-onderdelen urenlang af te spelen.
+    await pg.clock.fastForward(100 * 60000); await pg.waitForTimeout(100);
     ok(await bg(pg) === DARK, 'om 21:40 donker');
-    await pg.clock.runFor(10 * 3600000); await pg.waitForTimeout(100);
+    await pg.clock.fastForward(10 * 3600000); await pg.waitForTimeout(100);
     ok(await bg(pg) === LIGHT, 'de volgende ochtend om 07:40 weer licht (over middernacht)');
     // Minder beweging: geen overgang
     await pg.emulateMedia({ reducedMotion: 'reduce' });
@@ -128,7 +130,8 @@ const LIGHT = '#F4F5F6', DARK = '#111619';
     ok(/in Rotterdam \(je locatie is niet bekend\)/.test(await pg.textContent('#st-th-sunnote')) && /zonder internet/.test(await pg.textContent('#st-th-sunnote')), 'zonder locatie: Rotterdam (' + await pg.textContent('#st-th-sunnote') + ')');
     ok(await bg(pg) === LIGHT && /wordt donker om 17:1\d/.test(await pg.textContent('#st-th-now')), '16:50: ' + await pg.textContent('#st-th-now'));
     const sch = JSON.parse(await pg.evaluate(() => Android._themeCfg));
-    ok(sch.mode === 'sun' && sch.sched.length >= 60 && sch.end > (await pg.evaluate(() => Date.now())) + 30 * 864e5 && sch.win.length === 2, 'Java krijgt een rooster voor ruim vier weken');
+    const nu = await pg.evaluate(() => Date.now()); // dezelfde gesimuleerde klok als het rooster
+    ok(sch.mode === 'sun' && sch.sched.length >= 60 && sch.end > nu + 30 * 864e5 && sch.win.length === 2, 'Java krijgt een rooster voor ruim vier weken');
     await pg.selectOption('#st-th-off', '-30'); await pg.waitForTimeout(100);
     ok(await bg(pg) === DARK, 'half uur eerder donker: om 16:50 al donker');
     await pg.selectOption('#st-th-loc', 'groningen'); await pg.waitForTimeout(100);
