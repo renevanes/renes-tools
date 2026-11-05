@@ -33,3 +33,7 @@ Vragen of een verzoek: [ondersteuning op GitHub](https://github.com/renevanes/re
 ## ID-kopie afschermen
 
 Bij PDF kun je zelf gekozen ID-foto's of PDF's lokaal afschermen en van een watermerk voorzien. De app herkent geen identiteitsgegevens en verstuurt de bron niet naar een server. Tijdelijke bronnen staan in privé-cache, buiten back-ups, en worden bij export of verlaten verwijderd. Bij een verwijderfout wordt de fout gemeld en opnieuw geprobeerd; na een onderbroken proces volgt opruimen bij de volgende start. Afgeschermde kopieën bevatten uitsluitend opnieuw getekende afbeeldingen en worden alleen op jouw verzoek opgeslagen of gedeeld. Zichtbaar gelaten gegevens blijven leesbaar. Zie de [gebruiksaanwijzing](id-kopie.md).
+
+## Centrale stamgegevens
+
+Optioneel bewaar je personen, organisaties, adressen en identiteitsdocumentgegevens lokaal in een versleutelde kluis met toestelontgrendeling. Een lokaal versleuteld activiteitenlog bevat tijdstip, onderdeel, weergavenaam en veldnamen, zonder veldwaarden. Alleen expliciet geselecteerde gegevens gaan naar een ander onderdeel; identiteitsvelden vereisen extra bevestiging. Deze gegevens, sleutels en activiteiten zijn uitgesloten van back-ups, zoekindex, assistent en statistieken. Ze zijn bij sleutel- of toestelverlies niet herstelbaar. Tijdelijke exportwerkbestanden worden opgeruimd; zelf gemaakte of gedeelde documenten beheer je afzonderlijk. Je kunt centrale gegevens en activiteiten wissen na een nieuwe toestelbevestiging. Zie [Stamgegevens](stamgegevens.md) voor bewaargedrag en beveiligingsgrenzen.

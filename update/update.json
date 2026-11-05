@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.144",
-  "versionCode": 145,
-  "nativeLevel": 131,
+  "versionName": "1.145",
+  "versionCode": 146,
+  "nativeLevel": 132,
   "web": "index.html",
-  "webSha256": "ee7f3321fb4a0e31a8fa6627cbe910272740e1f58a30974d145ba2e3502c7a77",
+  "webSha256": "2dfd14b65518f826a6c64d1b391f899a16a436e3a90605c231f104837d517f3b",
   "start": "start.html",
   "startSha256": "ca013c1e7d37c86b7299e7346900a6c0386581a676a519a1f40356316b7ea994",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "8f6e21f1ddc54b5010e6196177ab48ba344d7a4fdfd2864bf5d6800c78365ce9",
+  "apkSha256": "1122f0af9346fc507daa03477f355d3f50dadbf375bf88faa7de9f53f7e08ac4",
   "changelog": [
+    {
+      "version": "1.145",
+      "date": "2026-11-05",
+      "changes": [
+        "Nieuw: Stamgegevens, een lokale versleutelde kluis voor personen, organisaties, adressen en gekoppelde identiteitsdocumentgegevens, beveiligd met toestelontgrendeling.",
+        "Neem zelf gekozen velden over in formulieren of gebruik een centrale ontvanger bij ID-kopieën; identiteitsgegevens vragen extra bevestiging.",
+        "Activiteitenlogboek toont wanneer gegevens zijn bekeken, gewijzigd of overgenomen. De kluis vergrendelt automatisch en blijft buiten back-ups, zoekindex, assistent en statistieken."
+      ]
+    },
     {
       "version": "1.144",
       "date": "2026-11-05",
@@ -1266,5 +1275,5 @@
       ]
     }
   ],
-  "webSig2": "mniuJd5s6x7x/ULo//ea+3suq6R8l5jYtF9sFsMZPlMolXU3WSy9wUtq/YjpXivagdGjNrsDZ2pul+iEzU2ZcRgWwukT3cEalMUdE4R5Z39JxVeyBr6X4GfRXdmQU36uzgvyVARPQJNL9vk0lPh7F6JVkRm1gP1rx7Cg1R9q/uuuCxxUJvGkH1R1bMTX+ny/hjkdUVY3PW6yTVlAclg7OUdmV4yTCTFBaxl/R4dZ06G5oN763b9LDyUvUeAFVfZB0/sAAMgeSyy/Yj/4LaS6ggXdAKHXFaq98N5Hg+/ZWXZpezrOfMOgWW2e/K/PGTLkCgMf7G8F2rfPWLRtlCl54SSTr4kojxeHKnOCZzY8m86pU0lRChtJ+fWsekmYDl+OKodYsOr+2zdSzwGXqBQkmvIuvbQRJ7+PHNmeATygR4JPwU1Yh7ts88bLMqLSsFmfACZkZVj/ylFJlyPa/e/SKljO1hO5i8RmnveDg4xUTnfuCXLNxywiuKJlCBW2eLDT"
+  "webSig2": "azs3z8xoL96885We527TdRbEkLgcn0UocdKzUBRh5r0SMY5NCII3F3MXFsiimvJyVF3bkLP7u3H0r5hHeSAyr8YDH5vAlHyub0+R+rkmggjY9f4TLO4jPAMpQ85t6RnbIhtME/I+FvxzachYZjTDfoP8gyeY2tnsrN5TcMcoAJdeODx2oQSd9GnYFuSfVjEgOD8u9dW9J/ERHGCJi64dgGL2BUdefDDQgUHll2efPV83GlEwwy5NGlnbLXqU/XuyDXnbvEzWoVh1IMmayVY4vvpGEqUZBycOhG2cowKxgJHIQVzsX3Wm1HvY+Lji24hbrRyhTZK3IKszkIr8+1ofTfgzpZWdY9fXA2NvW86tFknp0cH6Q8d99qyp+JrlV9HJx5HIhaT0EWLTW8SC+i4Yw8fPjdAbUM9WjXfws1I78Lcha8k0AUOFuHOJB3Y1wICVHqEh1INbOGdUxDkbSK8h43dOyx/aGeXRJQLT7jwPeJ7C3Pcb+IWpxcyXgM3r/nV1"
 }

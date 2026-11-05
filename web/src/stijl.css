@@ -1111,3 +1111,13 @@ body.talk-on #s-ai main{padding-bottom:200px}
 .idcopypaper canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; }
 #s-idcopy details .search { width:100%; }
 #s-idcopy details label { width:calc(50% - 8px); }
+
+/* Centrale stamgegevens en de beveiligde veldkiezer. */
+.cm-entry { width:100%; text-align:left; margin:6px 0; padding:12px; background:var(--card); color:var(--ink); border:1px solid var(--outline); border-radius:12px; }
+.cm-entry small { display:block; color:var(--muted); margin-top:4px; }
+#cm-picker { position:fixed; inset:0; z-index:1900; background:var(--bg); padding:16px; overflow:auto; }
+.cm-pick-box { max-width:680px; margin:auto; }
+#cm-picker[hidden] { display:none; }
+.cm-event { padding:12px 0; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
+.cm-event small { display:block; color:var(--muted); }
+.cm-lock-note { padding:16px; border:1px solid var(--outline); border-radius:12px; background:var(--card); }

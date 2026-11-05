@@ -82,5 +82,6 @@ jobs:
             build-play/*.aab
             build-play/telefoon/
             build-play/idcopy-test/**/result.txt
+            build-play/masterdata-test/**/result.txt
           retention-days: 14
           if-no-files-found: ignore

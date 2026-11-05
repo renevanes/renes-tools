@@ -25,6 +25,7 @@ function gsBuildIndex(){
   const DETAIL = ['note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'podlijst', 'sleepnight', 'checkined', 'checkinq', 'apdev'];
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);
+    if (['masterdata','formulieren','idcopy'].includes(scr)) return; // centrale gegevens en afgeleide concepten nooit indexeren
     if (typeof playWeg === 'function' && playWeg(scr)) return;
     if (scr === 'home' || scr === 'search' || DETAIL.includes(scr)) return;
     const h1 = sec.querySelector('.hdr h1'), screen = h1 ? h1.textContent.trim() : scr;

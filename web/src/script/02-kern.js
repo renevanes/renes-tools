@@ -106,6 +106,7 @@ function bars(){
 }
 
 function show(name){
+  if(typeof cmNavigation==='function')cmNavigation(name);
   // Weg uit een automatisering die nog niet bewaard is (bijv. via een melding of snelkoppeling): als concept bewaren
   if (current === 'autoed' && name !== 'autoed' && typeof aeDirty === 'function' && aeDirty()) {
     store.set('autoDraft', { rule: aeRule, isNew: aeIsNew, t: Date.now(), left: true });
@@ -149,6 +150,7 @@ function show(name){
   if (name!=='gebruik' && name!=='gebruikset' && typeof gbLeave === 'function') gbLeave();
   if (name==='pdf') enterPdf();
   if (name==='formulieren') enterFormulieren();
+  if (name==='masterdata') enterMasterdata();
   if (name==='spotify') enterSpotify();
   if (typeof FA_SCHERMEN !== 'undefined' && FA_SCHERMEN && FA_SCHERMEN.includes(name) && !FA_FORMS.includes(name)) enterFacturen();
   if (name==='bank') enterBank(); else if (current_prev==='bank' && typeof bkVerlaat === 'function') bkVerlaat();
@@ -182,10 +184,11 @@ function show(name){
   if (name==='home') { refreshTile(); refreshTrackTile(); refreshCallsTile(); refreshNotesTile(); rdPollOnce(); bkPollOnce(); renderDash(); refreshAutoTile(); refreshPodTile(); refreshVpnTile(); refreshLocTile(); refreshCheckinTile(); }
   if (name==='home' && typeof updTryReload === 'function') setTimeout(() => updTryReload(false), 0);
 }
-const BACK = {idcopy:'pdf', formulieren:'pdf', bank:'home', facturen:'home', faclev:'facturen', facoverz:'facturen', facopslag:'facturen', fackopp:'facturen', faclok:'facopslag', facgoogle:'fackopp', facec:'fackopp', facsmtp:'fackopp', facdos:'facturen', facstuk:'facdos', facaanl:'facturen', facontv:'facaanl', models:'settings', aisetmodel:'aiset', aisetmem:'aiset', aisetdata:'aiset', aisetanswer:'aiset', aisetpers:'aiset', aisetvoice:'aiset', aisetsearch:'aiset', aisetperf:'aiset', aisetpriv:'aiset', setnotif:'settings', setlook:'settings', setregio:'settings', setregioplek:'setregio', setregiotz:'setregio', setskin:'settings', setlock:'settings', setsolo:'settings', setperm:'settings', setbackup:'settings', setmusic:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', sleep:'home', sleepnight:'sleep', sleepset:'sleep', checkin:'home', checkined:'checkin', checkinq:'checkin', checkincmp:'checkin', gebruik:'home', gebruikset:'gebruik', car:'home', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', podlijst:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', herstel:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
+const BACK = {masterdata:'home',idcopy:'pdf', formulieren:'pdf', bank:'home', facturen:'home', faclev:'facturen', facoverz:'facturen', facopslag:'facturen', fackopp:'facturen', faclok:'facopslag', facgoogle:'fackopp', facec:'fackopp', facsmtp:'fackopp', facdos:'facturen', facstuk:'facdos', facaanl:'facturen', facontv:'facaanl', models:'settings', aisetmodel:'aiset', aisetmem:'aiset', aisetdata:'aiset', aisetanswer:'aiset', aisetpers:'aiset', aisetvoice:'aiset', aisetsearch:'aiset', aisetperf:'aiset', aisetpriv:'aiset', setnotif:'settings', setlook:'settings', setregio:'settings', setregioplek:'setregio', setregiotz:'setregio', setskin:'settings', setlock:'settings', setsolo:'settings', setperm:'settings', setbackup:'settings', setmusic:'settings', setcrash:'settings', ai:'home', aiset:'ai', aichats:'ai', search:'home', redial:'home', wa:'home', info:'home', chats:'wa', chat:'chats', tracks:'home', track:'tracks', sms:'home', smschat:'sms', calls:'home', history:'home', recorder:'home', sleep:'home', sleepnight:'sleep', sleepset:'sleep', checkin:'home', checkined:'checkin', checkinq:'checkin', checkincmp:'checkin', gebruik:'home', gebruikset:'gebruik', car:'home', kluis:'home', pdf:'home', podcasts:'home', podcast:'podcasts', podspotify:'podcasts', podlijst:'podcasts', spotify:'home', vpn:'home', vpnedit:'vpn', loc:'home', notes:'home', note:'notes', contacts:'home', contact:'contacts', cversions:'contacts', cversion:'cversions', transcripts:'home', txd:'transcripts', radio:'home', music:'home', settings:'home', backup:'home', herstel:'home', homeedit:'home', ralarm:'radio', selftest:'settings', auto:'home', autoed:'auto'};
 window.goBack = function(){
   // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
   if ($('#lockscr').classList.contains('on')) return false;
+  if(typeof cm!=='undefined'&&cm.picker){cmClosePicker();return true;}
   if ($('#modal').classList.contains('on')) { closeModal(null); return true; }
   if (typeof gbBack === 'function' && gbBack()) return true;
   if (typeof aiTalkBack === 'function' && aiTalkBack()) return true; // eerst het gesprek met de assistent stoppen

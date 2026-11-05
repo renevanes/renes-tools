@@ -25,6 +25,7 @@
       </div>
       <div class="card">
         <h2>Watermerk</h2>
+        <button class="mini" id="cm-id-pick" onclick="cmIdPick()">Ontvanger uit stamgegevens</button>
         <label class="f" for="id-recipient">Voor welke ontvanger?</label><input class="search" id="id-recipient" maxlength="80" placeholder="Bijv. verhuurder of werkgever" oninput="idCopyWatermarkChanged()">
         <label class="f" for="id-purpose">Waarvoor mag deze kopie worden gebruikt?</label><input class="search" id="id-purpose" maxlength="80" placeholder="Bijv. controle van de huurovereenkomst" oninput="idCopyWatermarkChanged()">
         <label class="f" for="id-date">Datum op de kopie</label><input class="search" type="date" id="id-date" onchange="idCopyWatermarkChanged()">

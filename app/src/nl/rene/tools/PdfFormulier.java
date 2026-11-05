@@ -38,6 +38,9 @@ final class PdfFormulier {
     }
 
     static File make(Context c, String id, String json, String name) throws Exception {
+        return make(c,id,json,name,false);
+    }
+    static File make(Context c,String id,String json,String name,boolean staged)throws Exception {
         if (json == null || json.length() > 12_000_000) throw new Exception("Te veel toevoegingen om tegelijk op te slaan");
         File template = template(c, id), part = null;
         try {
@@ -45,11 +48,12 @@ final class PdfFormulier {
             JSONArray layers = new JSONArray(json);
             if (layers.length() != pdf.pageCount()) throw new Exception("Het formulier is niet volledig");
             Map<Integer, PdfOverlay.Image> images = PdfEditor.layers(pdf, layers);
-            File out = PdfTools.outFile(c, PdfTools.base(name));
-            part = File.createTempFile("formulier-", ".part", out.getParentFile());
+            File out = staged ? null : PdfTools.outFile(c, PdfTools.base(name));
+            part = File.createTempFile("formulier-", ".part", staged ? MasterExport.directory(c) : out.getParentFile());
             try (java.io.OutputStream stream = new java.io.BufferedOutputStream(new FileOutputStream(part))) {
                 PdfOverlay.write(pdf, images, stream);
             }
+            if(staged){File ready=part;part=null;return ready;}
             if (!part.renameTo(out)) throw new Exception("De ingevulde PDF kan niet worden opgeslagen");
             return out;
         } finally { template.delete(); if (part != null) part.delete(); }

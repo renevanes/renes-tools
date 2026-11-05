@@ -138,6 +138,7 @@ final class AppData {
         m.put("web", "bijgewerkte interface: komt vanzelf weer binnen");
         m.put("wa", "leesbare kopie van de WhatsApp-backup: wordt opnieuw gemaakt uit de WhatsApp-backup");
         m.put("kluis", "gaat apart mee (ontsleuteld, versleuteld in het archief)");
+        m.put("masterdata", "stamgegevens en lokaal activiteitenlog: alleen versleuteld op dit toestel; sleutel is toestelgebonden");
         m.put("bank", "Bankzaken: blijft bewust alleen op deze telefoon (versleuteld met een sleutel die de telefoon niet uit kan)");
         m.put("crash.log", "foutlogboek van deze installatie");
         m.put("notes.json.tmp", "tijdelijk bestand");

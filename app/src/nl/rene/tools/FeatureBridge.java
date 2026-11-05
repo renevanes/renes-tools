@@ -106,11 +106,11 @@ public class FeatureBridge {
             a.idSession = on && session != null ? session : "";
             if (on) a.idScreen = true;
         }
-        if (on) a.h.post(() -> { if (!a.isDestroyed()) { a.applySecure(); a.bankPrive(a.bankScreen || a.idScreen); } });
+        if (on) a.h.post(() -> { if (!a.isDestroyed()) { a.applySecure(); a.bankPrive(a.bankScreen || a.idScreen || a.masterScreen); } });
         else a.h.post(() -> a.finishIdScreen(generation));
     }
     @JavascriptInterface public void idCopyClear() {
-        final IdCopy previous = a.idCopy; a.idCopy = new IdCopy();
+        final IdCopy previous = a.idCopy; a.idCopy = new IdCopy();a.masterIdBound=false;
         new Thread(() -> { try {
             if (!previous.clear()) a.js("onIdCopyCleanup", "{\"error\":" + JSONObject.quote(Taal.T("Werkbestand wissen lukt niet. Sluit dit scherm en probeer opnieuw.")) + "}");
         } catch (Throwable ignored) { } }, "id-copy-clear").start();
@@ -134,10 +134,11 @@ public class FeatureBridge {
     }
     @JavascriptInterface public void idCopySave(String revision, String plan) {
         final IdCopy store = a.idCopy; final String session = a.idSession;
+        final boolean masterBound=a.masterIdBound;final String masterToken=a.masterSession.consumerToken();
         if (!a.idScreen) return;
         new Thread(() -> {
             String result;
-            try { File f = store.save(ctx, revision, plan); result = new JSONObject().put("revision", revision).put("name", f.getName()).toString(); }
+            try { File f; if(masterBound){MasterExport.attempt(ctx,a.masterSession,masterToken,"idcopy");File staged=store.save(ctx,revision,plan,true);f=MasterExport.publish(ctx,a.masterSession,masterToken,"idcopy",staged,"ID-kopie afgeschermd");}else f=store.save(ctx,revision,plan); result = new JSONObject().put("revision", revision).put("name", f.getName()).toString(); }
             catch (Throwable e) { result = PdfTools.err(e); }
             if (store == a.idCopy && a.idScreen) a.js("onIdCopySaved", idAnswer(result, session, revision));
         }, "id-copy-save").start();
@@ -216,16 +217,17 @@ public class FeatureBridge {
     @JavascriptInterface public void pdfFormPreview(String id, int page, String request) {
         new Thread(() -> {
             JSONObject result;
-            try { result = PdfFormulier.preview(ctx, id, page); }
+            try { if(a.masterFormBound&&!a.masterSession.isOpen())throw new MasterError(Taal.T("Ontgrendel de stamgegevens opnieuw")); result = PdfFormulier.preview(ctx, id, page); }
             catch (Throwable e) { result = new JSONObject(); try { result.put("error", Taal.t(ctx, "Het voorbeeld kan niet worden geladen. Ga een stap terug en probeer opnieuw.")); } catch (Exception ignored) { } }
             try { result.put("id", id).put("page", page).put("request", request); } catch (Exception ignored) { }
             a.js("onPdfFormPreview", result.toString());
         }, "pdf-form-preview").start();
     }
     @JavascriptInterface public void pdfFormMake(String id, String layers, String name, String request) {
+        final boolean masterBound=a.masterFormBound;final String masterToken=a.masterSession.consumerToken();
         new Thread(() -> {
             JSONObject result = new JSONObject();
-            try { result.put("name", PdfFormulier.make(ctx, id, layers, name).getName()); }
+            try { File f;if(masterBound){MasterExport.attempt(ctx,a.masterSession,masterToken,"formulieren");File staged=PdfFormulier.make(ctx,id,layers,name,true);f=MasterExport.publish(ctx,a.masterSession,masterToken,"formulieren",staged,PdfTools.base(name));}else f=PdfFormulier.make(ctx,id,layers,name);result.put("name",f.getName()); }
             catch (Throwable e) { try { result.put("error", Taal.t(ctx, "De PDF kan niet worden gemaakt. Probeer opnieuw.")); } catch (Exception ignored) { } }
             try { result.put("id", id).put("request", request); } catch (Exception ignored) { }
             a.js("onPdfFormMade", result.toString());
