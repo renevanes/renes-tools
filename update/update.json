@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.141",
-  "versionCode": 142,
-  "nativeLevel": 128,
+  "versionName": "1.142",
+  "versionCode": 143,
+  "nativeLevel": 129,
   "web": "index.html",
-  "webSha256": "886871044dcb2e50145af25d17f27ceaecec8fb0a58fdebbbba23c20130c4a66",
+  "webSha256": "ca3ef49087b6c728af36b16d4f957b118f594c06147b05cf231b878c4053c9e6",
   "start": "start.html",
   "startSha256": "ca013c1e7d37c86b7299e7346900a6c0386581a676a519a1f40356316b7ea994",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1b5a4b0637725021be8b927cd7d67d0700d2da74e48caa604a2ef77c00159138",
+  "apkSha256": "ab9453c963ca182a1327e32f01e53b712ed7e3ad4575ce2afcdf56fa4d321575",
   "changelog": [
+    {
+      "version": "1.142",
+      "date": "2026-11-05",
+      "changes": [
+        "PDF → Formulieren invullen: vul toestemming voor reizen met een minderjarig kind stap voor stap in, controleer beide pagina’s en maak een PDF om te bewaren, af te drukken en te ondertekenen. Werkt zonder internet.",
+        "De formulierinvuller is herbruikbaar voor toekomstige formulieren."
+      ]
+    },
     {
       "version": "1.141",
       "date": "2026-11-04",
@@ -1242,5 +1250,5 @@
       ]
     }
   ],
-  "webSig2": "MHrXjHWNUerqxiDmIblS0OYI39uOOB0Hs5GrotaHf0Fa9Rdt7y+Lchtgt2iAiFB/v6ISJ7QdPq1MXXF7Ib1xmaqN8gpQmX/IHcFdLJalSHAqAa0s8wuBVvkB999vWTVZnNYnWci9wKPu4LLMmzgg7c44jToNcS4C3wsc07WET2W+tLqWQaPEQPeLrtYup89FMEqPVAOvaf2py9sOXsloorvky9rEGVeXq0K2WNPI5cx7Tvt1Z2pWJ952YKr2eMyFtjXIEp61Dnzwn1LlVouY39FS3V/fOeYsLjux/A11BcQWQe/TufpdlTxVIYqQcR//ivf48MaN/8xru38RZFF/MIiBvAfeCBbk3xCVrNtGkwcclm4ljDRrtsx/ILFsDJUN4H7a92/GAQcXp3c4ZJLKK7BQhuLFEdlod4GI8a3BsxUIxh5cwGnU2Lh1p4j60VVJfUyIXsf1XzDrp9bNxgzpkywwZg7lFnhrn5LSCH2JbdPg+FJNXCSeHk6LbUitMYyZ"
+  "webSig2": "Rg+p/mHsMy1hjxRC6/EAVRGXn9VuDHgr3AWxFQ8nMtqJK++QkcvJRDjsCypG0mFOfSHRk1IhAanO88z2I7gBP0TK2dixJBpV/JSaB7thHRBl+HCpIVrBGw5E7b3wMFZE27p3OMxqxd37X2rz3h66emzVGj+7eqjaV/eUy+OGbcc75gY+wkChJjaFNm5HXwtI/5zZeK4JTynMu5LwklK/Pa5KTWE+5GIWFVR9LKYVfXc3/jB/IRt2DGym7x40yxYJ5u1UijtRTxhtsHJEInNJ4SKWkgXjNOHijs+CBwUqt0w5MqMMs8dWzG69XI1i7G0Kos1rZUELBm+8SH6DNFCwkUMqFOADDtU8sXE6yANDi08SPgeaLOX3tofSvLfx59k3frwxl88TrxHOcEVJwcgk5YE1PiAZQL5unOvyVNscSLkU/3n+84NB5VujsoiXh1C8u0MOutuRByZn5sV7QW1nsMOXUiQi250cmuwhPBFH6yMGyVMMGDkN55y+dhAUTMJB"
 }
