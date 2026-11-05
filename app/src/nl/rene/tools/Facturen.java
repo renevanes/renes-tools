@@ -223,6 +223,7 @@ final class Facturen {
 
     /** Knoppen die meer facturen op dezelfde pagina laten zien (geen "volgende pagina": dan raakt de lijst weg). */
     static final String MEER = "toon meer|meer tonen|meer facturen|meer laden|laad meer|oudere facturen|alle facturen|bekijk meer|show more|load more";
+    static final int LIJST_VERSIE = 1; // pas vanaf deze lijstcontrole bewijst "gedekt" dat vervolgpagina's zijn bekeken
     static final String[] PERIODE = {"jaar", "maanden", "vanaf", "alles"};
 
     /** Welke facturen: {soort: jaar (dit jaar, vanaf 1 januari; standaard) | maanden (de laatste n) | vanaf (datum) | alles}. */
@@ -269,7 +270,9 @@ final class Facturen {
      */
     static boolean heelPeriode(JSONObject lev, JSONObject t, long nu, java.util.TimeZone tz) {
         if (t == null || t.optLong("lastOk") <= 0) return true;
-        if (t.optInt("heelPogingen") >= 3) return false; // drie keer niet gelukt (bijv. te lang): gewoon verder; "Alles opnieuw ophalen" probeert weer
+        boolean website = !"mail".equals(lev.optString("soort"));
+        if (t.optInt("heelPogingen") >= 3 && (!website || t.optInt("lijstPogingVersie") >= LIJST_VERSIE)) return false;
+        if (website && t.optInt("lijstVersie") < LIJST_VERSIE) return true; // oudere runs eenmalig herstellen, ook na oude mislukte pogingen
         if (!t.has("gedekt")) return true;
         long v = vanaf(lev, nu, tz), g = t.optLong("gedekt");
         return v < g - 86_400_000L; // ook "alles" (0) terwijl er maar een deel gedekt is
@@ -508,7 +511,11 @@ final class Facturen {
                 JSONObject t = all.optJSONObject(id);
                 if (t == null) t = new JSONObject();
                 JSONArray oud = t.optJSONArray("log"), nieuw = new JSONArray().put(regel);
-                for (int i = 0; oud != null && i < oud.length() && nieuw.length() < 40; i++) nieuw.put(oud.get(i));
+                for (int i = 0; oud != null && i < oud.length() && nieuw.length() < 40; i++) {
+                    JSONObject r = new JSONObject(oud.getJSONObject(i).toString());
+                    if (nieuw.length() >= 5) r.remove("diagnose"); // vijf gedetailleerde sporen, veertig korte uitslagen
+                    nieuw.put(r);
+                }
                 t.put("log", nieuw);
                 all.put(id, t);
                 bewaarToestand(c, all);
