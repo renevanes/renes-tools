@@ -104,7 +104,50 @@
     return alle('a, button, [role="button"], [role="link"]').filter(e => zichtbaar(e) && re.test(tekstVan(e)))[0] || null;
   }
   function uitlogt(){ return alle('a, button, [role="button"], [role="menuitem"]').some(e => /^(uitloggen|log ?uit|afmelden|log ?out|sign ?out)$/i.test(tekstVan(e))); }
-  function tekstVan(el){ return [el.innerText || el.value || '', el.getAttribute('aria-label') || '', el.getAttribute('title') || ''].join(' ').replace(/\s+/g, ' ').trim(); }
+  function tekstVan(el){
+    // Een knop in een webcomponent kan zijn tekst via een slot krijgen (o.a. KPN).
+    const slots = Array.from(el.querySelectorAll('slot')).map(s => s.assignedNodes({ flatten: true }).map(n => n.textContent || '').join(' ')).join(' ');
+    return [el.innerText || el.value || '', slots, el.getAttribute('aria-label') || '', el.getAttribute('title') || ''].join(' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function ouders(e){
+    const uit = [];
+    for (let n = e; n; n = n.parentElement || (n.getRootNode() && n.getRootNode().host)) uit.push(n);
+    return uit;
+  }
+  function beschikbaar(e){ return zichtbaar(e) && !ouders(e).some(n => n.matches('[aria-disabled="true"], [disabled]')); }
+  function meerEl(patroon){
+    if (!patroon) return null;
+    const re = new RegExp(patroon, 'i');
+    return alle('button, [role="button"], a').find(e => {
+      if (!beschikbaar(e) || !re.test(tekstVan(e))) return false;
+      if (e.tagName === 'A') { const h = e.getAttribute('href') || ''; if (h && !h.startsWith('#') && !/^javascript:/i.test(h)) return false; }
+      return true;
+    }) || null;
+  }
+  function volgendeEl(){
+    return alle('a, button, [role="button"], [role="link"]').find(e => {
+      if (!beschikbaar(e) || ouders(e).some(n => n.matches('form'))) return false;
+      const rel = (e.getAttribute('rel') || '').split(/\s+/).includes('next');
+      const nav = ouders(e).find(n => n.matches('mkz-pagination, .pagination, .paginator, [aria-label*="pagin" i], [aria-label*="paging" i]'));
+      if (!rel && !nav) return false; // nooit een willekeurige Volgende-knop (bijv. betalen of inloggen)
+      if (!rel && ![e.innerText || '', e.getAttribute('aria-label') || '', e.getAttribute('title') || '', tekstVan(e)]
+        .some(t => /^(volgende( pagina)?|next( page)?)$/i.test(t.trim()))) return false;
+      const h = e.getAttribute('href') || '';
+      if (h && !h.startsWith('#') && !/^javascript:/i.test(h)) {
+        try { const u = new URL(h, e.ownerDocument.baseURI); if (u.origin !== location.origin || !/^https?:$/.test(u.protocol)) return false; } catch (x) { return false; }
+      }
+      return true;
+    }) || null;
+  }
+  function knopSleutel(e){
+    const rij = ouders(e).find(n => n.matches('tr, [role="row"], li, article')) || e.parentElement || e;
+    const s = [e.getAttribute('href') || '', tekstVan(e), (rij.innerText || '').replace(/\s+/g, ' ').trim()].join('\n');
+    // Alleen een lokale herkenningscode; de rijtekst gaat nooit naar het logboek.
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+    return (h >>> 0).toString(16);
+  }
 
   function zet(el, v){
     el.focus();
@@ -177,30 +220,43 @@
       const re = new RegExp(patroon, 'i'), uit = [], gehad = new Set();
       alle('[data-fr]').forEach(e => e.removeAttribute('data-fr'));
       alle('a, button, [role="button"], [role="link"], [download]').forEach(e => {
-        if (!zichtbaar(e) || uit.length >= max) return;
+        if (!beschikbaar(e) || uit.length >= max) return;
         const href = e.tagName === 'A' ? (e.getAttribute('href') || '') : '';
-        const svg = Array.from(e.querySelectorAll('title, [aria-label]')).map(x => x.textContent || x.getAttribute('aria-label') || '').join(' ');
+        // KPN gebruikt ook tekstloze links met <kpn-icon name="kpn:ui:file-pdf">.
+        const svg = Array.from(e.querySelectorAll('title, [aria-label], [name], [icon], [data-icon], use'))
+          .map(x => [x.textContent || '', x.getAttribute('aria-label') || '', x.getAttribute('name') || '', x.getAttribute('icon') || '',
+            x.getAttribute('data-icon') || '', x.getAttribute('href') || '', x.getAttribute('xlink:href') || ''].join(' ')).join(' ');
         const t = [tekstVan(e), href, e.getAttribute('download') !== null ? 'download ' + (e.getAttribute('download') || '') : '', e.className && e.className.baseVal === undefined ? e.className : '', svg].join(' ');
         if (!re.test(t)) return;
         const sleutel = (e.href && /^https?:/i.test(e.href)) ? e.href : null;
         if (sleutel && gehad.has(sleutel)) return;
         if (sleutel) gehad.add(sleutel);
-        if (e.closest('[data-fr]') && e.closest('[data-fr]') !== e) return; // knop in een al gevonden knop
+        if (ouders(e).slice(1).some(n => n.hasAttribute('data-fr'))) return; // ook een knop in de shadow-root van een gevonden knop
         const i = uit.length; e.setAttribute('data-fr', String(i));
-        uit.push({ i, href: e.tagName === 'A' && /^https?:/i.test(e.href) && !e.getAttribute('href').startsWith('#') ? e.href : '', tekst: tekstVan(e).slice(0, 80) });
+        uit.push({ i, href: e.tagName === 'A' && /^https?:/i.test(e.href) && !e.getAttribute('href').startsWith('#') ? e.href : '', tekst: tekstVan(e).slice(0, 80), sleutel: knopSleutel(e) });
       });
       return JSON.stringify(uit);
     },
     /** Hoeveel downloadknoppen er nu op de pagina staan (om te zien of "meer" iets opleverde). */
     tel(patroon){ return String(JSON.parse(this.knoppen(patroon, 100000)).length); },
+    /** Een momentopname: inhoud herkennen, ook als een volgende pagina evenveel regels heeft. */
+    lijst(patroon, meer){
+      const knoppen = JSON.parse(this.knoppen(patroon, 1000));
+      return JSON.stringify({ knoppen, kenmerk: JSON.stringify(knoppen.map(k => k.sleutel)), meer: !!meerEl(meer), volgende: !!volgendeEl(),
+        bezig: alle('[aria-busy="true"], [role="progressbar"], mkz-spinner, kpn-spinner').some(zichtbaar) });
+    },
+    /** Pas na het downloaden verder; controleer vlak voor de klik of de lijst nog dezelfde is. */
+    verderLijst(patroon, meer, kenmerk, soort){
+      const s = JSON.parse(this.lijst(patroon, meer));
+      if (s.kenmerk !== kenmerk || s.bezig) return 'gewijzigd';
+      const e = soort === 'meer' ? meerEl(meer) : soort === 'volgende' ? volgendeEl() : null;
+      if (!e) return 'weg';
+      try { e.scrollIntoView({ block: 'center' }); } catch (x) { }
+      e.click(); return 'ok';
+    },
     /** "Toon meer"-knop (laadt meer facturen op dezelfde pagina): klikken en de tekst teruggeven, of ''. Geen links naar een andere pagina. */
     meer(patroon){
-      const re = new RegExp(patroon, 'i');
-      const el = alle('button, [role="button"], a').filter(e => {
-        if (!zichtbaar(e) || e.disabled || e.getAttribute('aria-disabled') === 'true' || !re.test(tekstVan(e))) return false;
-        if (e.tagName === 'A') { const h = e.getAttribute('href') || ''; if (h && !h.startsWith('#') && !/^javascript:/i.test(h)) return false; }
-        return true;
-      })[0];
+      const el = meerEl(patroon);
       if (!el) return '';
       try { el.scrollIntoView({ block: 'center' }); } catch (x) { }
       el.click();
@@ -215,10 +271,21 @@
     /** Staat er "uitloggen" op de pagina? Dan ben je ingelogd. */
     uitlog(){ return uitlogt(); },
     /** Een blob:-adres dat de pagina als download aanbood, alsnog doorgeven. */
-    blob(u, naam){ if (blobs.has(u)) geef(blobs.get(u), naam); else fetch(u).then(r => r.blob()).then(b => geef(b, naam)).catch(() => {}); return 'ok'; },
-    klik(i){
+    blob(u, naam){
+      const key = adresKey(u), token = adresTokens.has(key) ? adresTokens.get(key) : actieveDownload;
+      if (blobs.has(u)) geef(blobs.get(u), naam, token);
+      else if (!adresGestuurd.has(token + ':' + key)) {
+        adresGestuurd.add(token + ':' + key);
+        fetch(u).then(r => r.blob()).then(b => { blobs.set(u, b); geef(b, naam, token); }).catch(() => mislukt(token));
+      }
+      return 'ok';
+    },
+    downloadToken(u){ const key = adresKey(u); return adresTokens.has(key) ? adresTokens.get(key) : actieveDownload; },
+    klik(i, sleutel, token){
       const e = alle('[data-fr="' + i + '"]')[0];
       if (!e) return 'weg';
+      if (!beschikbaar(e) || (sleutel && knopSleutel(e) !== sleutel)) return 'gewijzigd';
+      actieveDownload = Number(token) || 0;
       try { e.scrollIntoView({ block: 'center' }); } catch (x) { }
       e.click();
       return 'ok';
@@ -226,23 +293,44 @@
   };
 
   // PDF's die de pagina zelf maakt (blob:/data:), zoals "Download" in moderne portalen: doorgeven aan de app.
-  const blobs = new Map();
-  const geef = (blob, naam) => {
-    if (!window.FrBrug || !blob || blob.size > 15 * 1024 * 1024) return;
+  let actieveDownload = Number('__DOWNLOAD_TOKEN__') || 0; // de app bewaart het volgnummer ook bij navigatie naar een detailpagina
+  const blobs = new Map(), blobTokens = new WeakMap(), blobNamen = new WeakMap(), adresTokens = new Map(), adresGestuurd = new Set();
+  const adresKey = u => {
+    if (!u.startsWith('data:')) return u;
+    let h = 2166136261;
+    for (let i = 0; i < u.length; i++) h = Math.imul(h ^ u.charCodeAt(i), 16777619);
+    return u.length + ':' + (h >>> 0);
+  };
+  const mislukt = token => { try { if (window.FrBrug) window.FrBrug.blob(SLEUTEL, '', '', token); } catch (e) { } };
+  const geef = (blob, naam, token = actieveDownload) => {
+    if (!window.FrBrug) return;
+    if (!blob || blob.size > 15 * 1024 * 1024) { mislukt(token); return; }
+    if (naam) blobNamen.set(blob, naam);
+    let tokens = blobTokens.get(blob);
+    if (!tokens) { tokens = new Set(); blobTokens.set(blob, tokens); }
+    if (tokens.has(token)) return;
+    tokens.add(token); // createObjectURL, de klik en de WebView mogen dezelfde PDF samen maar één keer aanbieden
     const r = new FileReader();
-    r.onload = () => { try { window.FrBrug.blob(SLEUTEL, String(r.result), naam || ''); } catch (e) { } };
+    r.onload = () => { try { window.FrBrug.blob(SLEUTEL, String(r.result), blobNamen.get(blob) || '', token); } catch (e) { } };
+    r.onerror = () => mislukt(token); r.onabort = () => mislukt(token);
     r.readAsDataURL(blob);
   };
   const orig = URL.createObjectURL;
   URL.createObjectURL = function(o){
     const u = orig.apply(this, arguments);
-    try { if (o instanceof Blob) { blobs.set(u, o); if (/pdf/i.test(o.type)) geef(o, ''); } } catch (e) { }
+    try { if (o instanceof Blob) { blobs.set(u, o); adresTokens.set(u, actieveDownload); if (/pdf/i.test(o.type)) geef(o, ''); } } catch (e) { }
     return u;
   };
   const vang = (href, naam) => {
     if (!href) return;
-    if (href.startsWith('blob:') && blobs.has(href)) geef(blobs.get(href), naam);
-    else if (/^data:application\/(pdf|octet-stream)/i.test(href) && window.FrBrug) { try { window.FrBrug.blob(SLEUTEL, href, naam || ''); } catch (e) { } }
+    const key = adresKey(href);
+    if (!adresTokens.has(key)) adresTokens.set(key, actieveDownload);
+    const token = adresTokens.get(key); // een late klik op een oude blob blijft van de oorspronkelijke download
+    if (href.startsWith('blob:') && blobs.has(href)) geef(blobs.get(href), naam, token);
+    else if (/^data:application\/(pdf|octet-stream)/i.test(href) && window.FrBrug && !adresGestuurd.has(token + ':' + key)) {
+      adresGestuurd.add(token + ':' + key);
+      try { window.FrBrug.blob(SLEUTEL, href, naam || '', token); } catch (e) { }
+    }
   };
   document.addEventListener('click', ev => {
     const a = ev.target && ev.target.closest && ev.target.closest('a[href]');
