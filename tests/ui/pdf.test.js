@@ -22,7 +22,7 @@ const assert = require('node:assert');
     await pg.click('#pdf-def-btn');
     assert.strictEqual((await P()).madeDefault, 1);
     await pg.evaluate(() => { Android._pdf.def = { state: 'other', app: '<b>Drive</b>' }; pdfRenderDef(); });
-    assert.match(await pg.textContent('#pdf-def'), /Nu <b>Drive<\/b>\./, 'appnaam als tekst');
+    assert.match(await pg.textContent('#pdf-def'), /PDF's openen nu in <b>Drive<\/b>\./, 'appnaam als tekst');
     assert.strictEqual(await pg.$$eval('#pdf-def b', x => x.length), 0);
     await pg.evaluate(() => { Android._pdf.def = { state: 'ours', app: "Tools" }; enterPdf(); });
     assert.match(await pg.textContent('#pdf-def'), /✓ PDF's openen standaard in Tools/);

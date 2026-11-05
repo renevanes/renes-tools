@@ -8,6 +8,7 @@
   </div>
   <main>
     <div class="card pdfopen" id="pdf-view-card">
+      <h2 class="sr-only">PDF bekijken</h2>
       <button class="big" id="pdf-view-open" onclick="Android.pdfViewPick()"><span class="ui-icon" data-icon="document" aria-hidden="true"></span>PDF openen</button>
       <p class="note">Lezen, zoeken en afdrukken in de app.</p>
     </div>
@@ -31,8 +32,8 @@
 
     <div class="flabel stgl" role="heading" aria-level="2">Meer</div>
     <div class="card stlist">
-      <button class="strow" id="pdf-kluis-row" onclick="jumpTo('kluis')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Documentenkluis</b><small>Belangrijke documenten versleuteld bewaren</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
-      <button class="strow" id="pdf-def-btn" onclick="Android.pdfMakeDefault()"><span class="stic"><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></span><span class="sttxt"><b>Standaard PDF-app</b><small id="pdf-def" class="pdfdef"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" id="pdf-kluis-row" onclick="jumpTo('kluis')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Documentenkluis</b><small class="pdfwrap">Belangrijke documenten versleuteld bewaren</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" id="pdf-def-btn" onclick="Android.pdfMakeDefault()"><span class="stic"><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></span><span class="sttxt"><b>Standaard PDF-app</b><small id="pdf-def" class="pdfwrap"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
     <p class="note pdfbusy" id="pdf-busy" role="status" aria-live="polite"></p>
   </main>
@@ -87,7 +88,8 @@
         <div class="row" style="flex-wrap:wrap;margin-top:8px"><button class="mini" id="pdf-edit-remove" onclick="pdfEditRemove()">Selectie verwijderen</button><button class="mini" id="pdf-edit-undo" onclick="pdfEditUndo()">Ongedaan maken</button><button class="mini" onclick="pdfEditDiscard()">Alle toevoegingen wissen</button></div>
         <label class="f" for="pdf-edit-name">Naam van de nieuwe kopie</label><input class="search" id="pdf-edit-name" maxlength="60">
         <button class="big" id="pdf-edit-save" onclick="pdfEditSave()" style="margin-top:8px">Bewerkte kopie maken</button>
-        <details class="rinfo"><summary>Over deze handtekening</summary><p class="note">Dit is een zichtbare handtekening, geen digitale certificaatondertekening. Bestaande certificaatondertekeningen kunnen door een wijziging ongeldig worden. Je toevoegingen worden vast in de nieuwe kopie geplaatst. Pagina’s met annotaties of formuliervelden moet je eerst via Afdrukken → Opslaan als PDF als vlakke kopie bewaren.</p></details>
+        <p class="note">Heeft de PDF annotaties of formuliervelden? Bewaar hem dan eerst via Afdrukken → Opslaan als PDF als vlakke kopie.</p>
+        <details class="rinfo"><summary>Over deze handtekening</summary><p class="note">Dit is een zichtbare handtekening, geen digitale certificaatondertekening. Bestaande certificaatondertekeningen kunnen door een wijziging ongeldig worden. Je toevoegingen worden vast in de nieuwe kopie geplaatst.</p></details>
       </div>
       <div class="pdfres" data-scr="pdfedit"></div>
     </div>
@@ -144,6 +146,7 @@
       <button class="big" id="pdf-split-pick" onclick="pdfChooseSource()">PDF kiezen</button>
       <div id="pdf-split" style="display:none">
         <p id="pdf-split-info" class="note" translate="no"></p>
+        <button class="big ghost" id="pdf-split-edit" style="margin-bottom:10px" onclick="pdfSplitEdit()">Deze PDF bewerken en ondertekenen</button>
         <div id="pdf-pages" class="pdfpages" aria-label="Pagina's (tik om te kiezen)"></div>
         <label class="f" for="pdf-range">Pagina's</label>
         <input class="search" id="pdf-range" placeholder="Bijv. 1-3, 5" oninput="pdfRangeTyped()" inputmode="numeric">
@@ -171,7 +174,7 @@
       <input class="search" id="pdf-text-title" placeholder="Bijv. Bevestiging reservering">
       <textarea id="pdf-text" class="search" rows="5" placeholder="Plak hier de tekst…" style="resize:vertical;font:inherit" aria-label="Tekst"></textarea>
       <button class="big" id="pdf-text-make" onclick="pdfFromText()">Tekst als PDF</button>
-      <button class="big ghost" id="pdf-doc-pick" style="margin-top:8px" onclick="Android.pdfPickDoc()">E-mail of tekstbestand kiezen</button>
+      <button class="big ghost" id="pdf-doc-pick" style="margin-top:8px" onclick="pdfPickDoc()">E-mail of tekstbestand kiezen</button>
       <p class="note">Vanuit je mailapp: kies <b>Delen</b> → <b>PDF maken</b>.</p>
       <div class="pdfres" data-scr="pdftext"></div>
     </div>
@@ -184,7 +187,7 @@
 <section class="screen pdfscr" id="s-pdfmade">
   <div class="hdr sm">
     <button class="back" onclick="goBack()" aria-label="Terug"><span class="ui-icon" data-icon="left" aria-hidden="true"></span></button>
-    <h1 tabindex="-1">Gemaakt</h1>
+    <h1 tabindex="-1" data-taal="pdfmade">Gemaakt</h1>
   </div>
   <main>
     <div class="card" id="pdf-out-card">

@@ -4,6 +4,7 @@ const PDF_SUBS = ['pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade'];
 function pdfScr(name){ return name === 'pdf' || PDF_SUBS.includes(name); }
 let pdfImgs = [], pdfSel = new Set(), pdfIn = {}, pdfBusy = false, pdfInGen = 0;
 let pdfLast = null; // {scr, names}: wat er net gemaakt is, getoond op het scherm waar het gemaakt werd
+let pdfJobScr = null; // het scherm waar de lopende klus (maken, splitsen, bewerken) gestart is
 function pdfTakePending(){
   const p = typeof Android.pdfPending === 'function' ? Android.pdfPending() : '';
   if (!p) return null;
@@ -25,11 +26,22 @@ function pdfShared(){ pdfOutside(pdfTakePending()); }
 function pdfResume(){ const r = pdfTakePending(); if (r) pdfOutside(r); else enterPdf(); }
 function pdfOutside(r){
   const to = pdfTarget(r);
+  // Java heeft de nieuwe PDF al geopend: niet bewaarde toevoegingen aan de vorige zijn niet meer op te slaan. Dat zeggen.
+  const lost = !!(r && r.kind === 'pdf' && pdfEd.revision && pdfEd.revision !== r.revision && pdfEditDirty()), old = pdfIn.name || '';
   show(to);
   if (!r) return;
   if (r.kind === 'pdf' && current === 'pdfedit') pdfEd.want = true; // meteen bewerken
+  pdfJobScr = current; // een resultaat van buiten hoort bij het scherm waar het landt
   onPdf(r); // ook als het scherm niet open mocht: dan staat het resultaat klaar
+  if (lost) pdfLostNotice(old);
 }
+function pdfLostNotice(name){
+  openModal(t('Andere PDF geopend'), t('De toevoegingen aan {naam} waren nog niet bewaard. Ze zijn vervangen door de PDF die je net hebt gedeeld.', { naam: name }), null, 'OK', () => {});
+  $('#modal-cancel').style.display = 'none';
+}
+/* Een gedeelde PDF landt op Splitsen: van daaruit ook bewerken */
+function pdfSplitEdit(){ if (pdfBusy || !pdfIn.revision) return; pdfEd.want = true; show('pdfedit'); pdfEditSource(); }
+function pdfPickDoc(){ pdfJobScr = current; Android.pdfPickDoc(); }
 function enterPdf(){
   const r = pdfTakePending();
   if (r) onPdf(r);
@@ -44,9 +56,9 @@ function pdfRenderDef(){
   const d = rdJson(typeof Android.pdfDefaultState === 'function' ? Android.pdfDefaultState() : '', {});
   const box = $('#pdf-def');
   if (d.state === 'ours') { box.textContent = t('✓ PDF\'s openen standaard in Tools'); return; }
-  box.textContent = d.state === 'other' && d.app ? t('Nu {app}. Tik, kies Tools en dan Altijd.', { app: d.app }) : t('Tik, kies Tools en dan Altijd.');
+  box.textContent = d.state === 'other' && d.app ? t('PDF\'s openen nu in {app}. Tik hier, kies Tools en dan Altijd.', { app: d.app }) : t('Tik hier, kies Tools en dan Altijd.');
 }
-function pdfSetBusy(tt){ pdfBusy = !!tt; document.querySelectorAll('.pdfbusy').forEach(e => { e.textContent = tt || ''; }); document.querySelectorAll('.pdfscr main button').forEach(b => b.disabled = pdfBusy); pdfEditControls(); }
+function pdfSetBusy(tt){ if (tt && !pdfBusy) pdfJobScr = current; pdfBusy = !!tt; document.querySelectorAll('.pdfbusy').forEach(e => { e.textContent = tt || ''; }); document.querySelectorAll('.pdfscr main button').forEach(b => b.disabled = pdfBusy); pdfEditControls(); }
 window.onPdf = function(r){
   if (!r) return;
   // Een gekozen bestand (plaatjes of PDF) beëindigt geen lopende klus; al het andere wel
@@ -54,7 +66,8 @@ window.onPdf = function(r){
   if (r.error) { toast(r.error); if (pdfScr(current)) pdfRender(); return; }
   if (r.kind === 'images') { pdfImgs = rdJson(Android.pdfImages(), []); toast(tn(r.count, '{n} plaatje toegevoegd', '{n} plaatjes toegevoegd') + (r.warn ? ' · ' + t(r.warn) : '')); }
   if (r.kind === 'pdf') { pdfIn = r; pdfInGen++; pdfSel = new Set(); $('#pdf-range').value = ''; pdfEditSource(); }
-  if ((r.kind === 'edited' || r.kind === 'done') && (r.made || []).length) pdfLast = { scr: current, names: r.made.slice() };
+  if ((r.kind === 'edited' || r.kind === 'done') && (r.made || []).length) pdfLast = { scr: pdfJobScr || current, names: r.made.slice() };
+  if (r.error || r.kind === 'edited' || r.kind === 'done') pdfJobScr = null;
   if (r.kind === 'edited') { pdfEditSaved(r); toast('✓ Bewerkte PDF-kopie gemaakt'); }
   if (r.kind === 'done') {
     pdfImgs = rdJson(Android.pdfImages(), []);

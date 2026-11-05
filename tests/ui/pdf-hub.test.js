@@ -28,6 +28,7 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
       const m = await pg.evaluate(() => ({ h: document.documentElement.scrollHeight, wide: document.documentElement.scrollWidth > innerWidth + 1 }));
       assert.ok(m.h < 1300, w + ' px: overzicht is ' + m.h + ' px hoog');
       assert.equal(m.wide, false, w + ' px: geen horizontaal schuiven');
+      assert.equal(await pg.$eval('#pdf-kluis-row small', e => e.scrollWidth <= e.clientWidth + 1), true, w + ' px: ondertitel van de kluis niet afgekapt');
       await pg.screenshot({ path: path.join(SHOTS, 'pdf-after-hub-' + w + '-' + scheme + '.png'), fullPage: true });
     }
     await pg.setViewportSize({ width: 390, height: 844 });
@@ -35,6 +36,8 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
     assert.equal(await pg.textContent('#pdf-recent-all'), 'Alles tonen (4)');
     assert.equal(await pg.getAttribute('#pdf-recent .trip b', 'translate'), 'no', 'bestandsnaam is gegeven');
     assert.match(await pg.textContent('#pdf-recent'), /vandaag/);
+    for (const sel of ['#pdf-recent-all', '#pdf-recent .pdfrec-share', '#pdf-t-split', '#pdf-def-btn'])
+      assert.ok((await pg.$eval(sel, e => e.getBoundingClientRect().height)) >= 44, sel + ': raakvlak van minstens 44 px');
 
     // Tegels: echte knoppen met een naam, in een logische volgorde; elke tegel opent zijn scherm en terug gaat terug
     const tiles = [['Bewerken en ondertekenen', 'pdfedit'], ['Plaatjes naar PDF', 'pdfimg'], ['Splitsen', 'pdfsplit'], ['Tekst naar PDF', 'pdftext'],
@@ -84,10 +87,24 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
     await pg.waitForTimeout(100);
     assert.equal(await cur(), 'pdfsplit');
     assert.match(await pg.textContent('#pdf-split-info'), /Huurcontract · 3 pagina's/);
+    // Vanaf Splitsen ook bewerken (gedeelde PDF, of de viewer van een oudere APK)
+    await pg.click('#pdf-split-edit');
+    await pg.waitForFunction(() => pdfEd.revision === 'r-split' && !pdfEd.loading && pdfEd.meta[0]);
+    assert.equal(await cur(), 'pdfedit');
+    assert.equal(await pg.textContent('#pdf-edit-document'), 'Huurcontract');
+    assert.equal(await pg.isVisible('#pdf-edit-work'), true);
+    // Komt er dan van buiten een andere PDF binnen terwijl er niet bewaarde toevoegingen zijn: zeggen dat ze weg zijn
+    await pg.fill('#pdf-edit-text', 'Getekend'); await pg.click('#pdf-edit-add-text');
+    assert.equal(await pg.evaluate(() => pdfEditDirty()), true);
     // Viewer "Tekst of handtekening toevoegen" → de bewerker, meteen open
     await pg.evaluate(() => { show('home'); Android._pdf.info = { name: 'Offerte', pages: 2, lossless: true, revision: 'r-edit' }; Android._pdf.pending = JSON.stringify({ kind: 'pdf', to: 'edit', ...Android._pdf.info }); openTool('pdf-share'); });
     await pg.waitForFunction(() => pdfEd.revision === 'r-edit' && !pdfEd.loading && pdfEd.meta[0]);
     assert.equal(await cur(), 'pdfedit');
+    assert.equal(await pg.isVisible('#modal'), true, 'melding over de verloren toevoegingen');
+    assert.match(await pg.textContent('#modal-text'), /Huurcontract waren nog niet bewaard/);
+    assert.equal(await pg.isVisible('#modal-cancel'), false, 'alleen OK: de vorige PDF is al vervangen');
+    await pg.click('#modal-ok');
+    assert.equal(await pg.evaluate(() => pdfEd.items.length), 0);
     assert.equal(await pg.isVisible('#pdf-edit-work'), true, 'bewerker staat open');
     assert.equal(await pg.textContent('#pdf-edit-document'), 'Offerte');
     // Een oudere APK zonder "to": gedeelde PDF naar Splitsen
@@ -112,9 +129,32 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
     await pg.evaluate(() => goBack()); assert.equal(await cur(), 'pdf');
     await pg.evaluate(() => goBack()); assert.equal(await cur(), 'home');
 
-    // Overal zoeken vindt de taakschermen
-    await pg.evaluate(() => { gsIndex = null; show('search'); }); await pg.fill('#gs-q', 'plaatjes naar pdf'); await pg.waitForTimeout(500);
-    assert.ok((await pg.$$eval('#gs-res .gi', x => x.map(e => e.innerText))).some(t => /Plaatjes naar PDF/.test(t)), 'zoeken vindt Plaatjes naar PDF');
+    // "Net gemaakt" hoort bij het scherm waar de klus begon, ook als je intussen verder gaat
+    await pg.evaluate(() => { pdfLast = null; show('pdf'); }); await pg.click('#pdf-t-img'); await pg.click('#pdf-img-pick'); await pg.waitForTimeout(100);
+    await pg.fill('#pdf-img-name', 'Kassabon');
+    await pg.click('#pdf-img-make'); await pg.evaluate(() => { goBack(); show('pdfsplit'); });
+    await pg.waitForFunction(() => !pdfBusy);
+    assert.match(await pg.textContent('.pdfres[data-scr="pdfimg"]'), /Kassabon\.pdf/, 'net gemaakt op Plaatjes');
+    assert.equal(await pg.textContent('.pdfres[data-scr="pdfsplit"]'), '', 'niet op Splitsen');
+    await pg.click('#pdf-split-edit'); await pg.waitForFunction(() => pdfEd.meta[0] && !pdfEd.loading);
+    await pg.fill('#pdf-edit-text', 'Akkoord'); await pg.click('#pdf-edit-add-text'); await pg.fill('#pdf-edit-name', 'Akkoord');
+    await pg.click('#pdf-edit-save'); await pg.evaluate(() => goBack());
+    assert.equal(await cur(), 'pdf');
+    await pg.waitForFunction(() => !pdfBusy);
+    assert.match(await pg.textContent('.pdfres[data-scr="pdfedit"]'), /Akkoord\.pdf/, 'net gemaakt in de bewerker');
+    assert.equal(await pg.getAttribute('#pdf-recent .trip', 'data-n'), 'Akkoord.pdf', 'en bovenaan het overzicht');
+    await pg.evaluate(() => show('home'));
+
+    // Overal zoeken vindt de taakschermen en de tegels (ook naar ID-kopie en Formulieren, zonder hun inhoud te indexeren)
+    const zoek = async q => { await pg.evaluate(() => { gsIndex = null; show('search'); }); await pg.fill('#gs-q', ''); await pg.fill('#gs-q', q); await pg.waitForTimeout(450); return pg.$$eval('#gs-res .gi', x => x.map(e => e.innerText)); };
+    for (const [q, want] of [['plaatjes naar pdf', /Plaatjes naar PDF/], ['paspoort', /ID-kopie afschermen/], ['formulier', /Formulieren invullen/], ['e-mail naar pdf', /Tekst naar PDF/], ['pdf bekijken', /PDF bekijken/]])
+      assert.ok((await zoek(q)).some(t => want.test(t)), 'zoeken naar "' + q + '" vindt ' + want);
+    await zoek('paspoort');
+    await pg.locator('#gs-res .gi', { hasText: 'ID-kopie afschermen' }).first().click(); await pg.waitForTimeout(150);
+    assert.equal(await cur(), 'idcopy', 'treffer opent de ID-kopie');
+    await pg.evaluate(() => goBack()); assert.equal(await cur(), 'search', 'terug naar zoeken');
+    assert.equal(await pg.$eval('#s-idcopy h1', e => e.textContent), 'ID-kopie afschermen', 'tegel en scherm zeggen hetzelfde');
+    await pg.evaluate(() => show('home'));
 
     if (scheme === 'light') for (const s of ['pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade']) {
       await pg.evaluate(s => show(s), s); await pg.waitForTimeout(100);
@@ -152,6 +192,9 @@ const SHOTS = process.env.PDF_SHOTS || path.join(__dirname, 'shots');
   await pg.evaluate(() => show('pdf'));
   assert.equal(await pg.textContent('#pdf-t-edit b'), 'Edit and sign');
   assert.match(await pg.textContent('#pdf-recent'), /today/);
+  await pg.evaluate(() => show('pdfmade')); assert.equal(await pg.textContent('#s-pdfmade h1'), 'Your PDFs');
+  await pg.evaluate(() => show('pdftext')); assert.equal(await pg.textContent('#s-pdftext b[translate="no"]'), 'PDF maken', 'naam in het deelmenu van Android blijft Nederlands');
+  await pg.evaluate(() => show('pdf'));
   await pg.screenshot({ path: path.join(SHOTS, 'pdf-after-hub-en.png'), fullPage: true });
   assert.deepEqual(errs, []);
   await pg.close();
