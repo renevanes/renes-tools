@@ -204,7 +204,6 @@ public class FacturenAanleverTest {
         smtp(false);
         smtp(true);
 
-        System.out.println(fails == 0 ? "alles goed" : fails + " mislukt");
         // ---------- alles weghalen: welke kopieën ----------
         JSONObject al = new JSONObject()
                 .put("a1", new JSONObject().put("plekken", new JSONObject()
@@ -224,6 +223,7 @@ public class FacturenAanleverTest {
         check(dl.length() == 2, "alles weghalen: twee kopieën (" + sb.toString().trim() + ")");
         check(sb.indexOf("map:a1") >= 0 && sb.indexOf("gd:a1") >= 0, "backup-map en Drive, niet de app of de mail");
         check(sb.indexOf(":b2") < 0, "zelfde bestand één keer, geen file://-pad of vreemd Drive-id");
+        System.out.println(fails == 0 ? "alles goed" : fails + " mislukt");
         System.exit(fails == 0 ? 0 : 1);
     }
 
