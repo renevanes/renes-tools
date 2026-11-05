@@ -34,7 +34,7 @@ public final class MasterDeviceTest extends Instrumentation {
     static void check(boolean ok,String reason){if(!ok)throw new AssertionError(reason);}
     static void rejected(Checked action)throws Exception{boolean denied=false;try{action.run();}catch(Exception expected){denied=true;}check(denied,"action must be refused");}
     @Override public void onCreate(Bundle args){super.onCreate(args);start();}
-    @Override public void onStart(){Bundle r=new Bundle();try{target=getTargetContext();runChecks();r.putString("masterdata","ok");finish(Activity.RESULT_OK,r);}catch(Throwable e){r.putString("masterdata","failed: "+e);finish(Activity.RESULT_CANCELED,r);}finally{if(root!=null)erase(root);}}
+    @Override public void onStart(){Bundle r=new Bundle();try{target=getTargetContext();runChecks();r.putString("masterdata","ok");finish(Activity.RESULT_OK,r);}catch(Throwable e){r.putString("masterdata","failed: "+android.util.Log.getStackTraceString(e));finish(Activity.RESULT_CANCELED,r);}finally{if(root!=null)erase(root);}}
     static void erase(File f){File[] children=f.listFiles();if(children!=null)for(File child:children)erase(child);f.delete();}
     Class<?> type(String name)throws Exception{return target.getClassLoader().loadClass("nl.rene.tools."+name);}
     Object call(Class<?> owner,Object instance,String name,Class<?>[] signature,Object... args)throws Exception{

@@ -33,7 +33,8 @@ final class MasterStore {
             session.require(token);File f=file(c);File parent=f.getParentFile();if(!parent.isDirectory()&&!parent.mkdirs())throw new MasterError(Taal.T("Stamgegevens opslaan lukt niet"));
             SQLiteDatabase db=SQLiteDatabase.openDatabase(f.getPath(),null,SQLiteDatabase.CREATE_IF_NECESSARY,new PreserveCorruption());
             try{
-                db.execSQL("PRAGMA secure_delete=ON");db.beginTransaction();
+                try(Cursor setting=db.rawQuery("PRAGMA secure_delete=ON",null)){if(!setting.moveToFirst()||setting.getInt(0)!=1)throw new MasterError(Taal.T("Stamgegevens opslaan lukt niet"));}
+                db.beginTransaction();
                 db.execSQL("CREATE TABLE IF NOT EXISTS records(id TEXT PRIMARY KEY,rev INTEGER NOT NULL,body BLOB NOT NULL)");
                 db.execSQL("CREATE TABLE IF NOT EXISTS events(seq INTEGER PRIMARY KEY,body BLOB NOT NULL)");
                 db.execSQL("CREATE TABLE IF NOT EXISTS control(id INTEGER PRIMARY KEY CHECK(id=1),body BLOB NOT NULL)");
