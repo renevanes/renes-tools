@@ -518,7 +518,7 @@ public class MainActivity extends Activity {
         synchronized(masterSecurityGeneration){generation=masterSecurityGeneration.incrementAndGet();if(masterScreen){masterCover=true;coverOn();}}
         js("onMasterLocked",Long.toString(generation));
     }
-    static void masterResetAll(){synchronized(ALL){for(MainActivity a:ALL)a.h.post(()->{a.suspendMaster(true);a.js("onMasterReset","");});}}
+    static void masterResetAll(boolean complete){synchronized(ALL){for(MainActivity a:ALL)a.h.post(()->{a.suspendMaster(true);if(complete)a.js("onMasterReset","");});}}
     void masterSafeFrame(String view,long generation){if(web!=null&&generation==masterSecurityGeneration.get())web.postVisualStateCallback(generation,new MasterDrawn(this,view,generation,false));}
     void finishMasterScreen(long generation){
         synchronized(masterSecurityGeneration){if(isDestroyed()||generation!=masterSecurityGeneration.get()||masterWanted)return;}

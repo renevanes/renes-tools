@@ -22,7 +22,14 @@ final class MasterExport {
             // De vrijgave is duurzaam gelogd vóór het bestand zichtbaar kan worden, ook bij processtop.
             MasterStore.consumerEvent(c,key,session,token,source,"export_release",()->{});
             MasterStore.consumerEvent(c,key,session,token,source,"export",()->{
-                do {output[0]=new File(PdfTools.outDir(c),PdfTools.base(name)+"-"+java.util.UUID.randomUUID().toString()+".pdf");hold[0]=new File(directory(c),output[0].getName()+".hold");}while(output[0].exists()||!hold[0].mkdir());
+                for(int attempt=0;;attempt++){
+                    if(attempt>=8)throw new MasterError(Taal.T("Stamgegevens opslaan lukt niet"));
+                    output[0]=new File(PdfTools.outDir(c),PdfTools.base(name)+"-"+java.util.UUID.randomUUID().toString()+".pdf");
+                    hold[0]=new File(directory(c),output[0].getName()+".hold");
+                    if(output[0].exists())continue;
+                    if(hold[0].mkdir())break;
+                    if(!hold[0].exists())throw new MasterError(Taal.T("Stamgegevens opslaan lukt niet"));
+                }
                 if(!staged.renameTo(output[0]))throw new MasterError(Taal.T("Stamgegevens opslaan lukt niet"));
             });
             return output[0];

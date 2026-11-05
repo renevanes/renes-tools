@@ -114,13 +114,12 @@ public class MasterBridge extends BankBridge {
             Lock.prompt(a,Taal.t(ctx,"Alle stamgegevens en activiteiten wissen"),(ok,message)->{
                 a.masterAuthPending=false;if(!ok){JSONObject r=new JSONObject();try{r.put("error",Taal.T("Wissen geannuleerd"));}catch(Exception ignored){ }reply(request,"",r);return;}
                 a.afterMasterAuth(()->new Thread(()->{
-                    JSONObject r=new JSONObject();
+                    JSONObject r=new JSONObject();boolean attempted=false,complete=false;
                     try{
                         MasterKeys.proveReset();
-                        synchronized(MasterStore.LOCK){synchronized(a.masterSession){if(dataset!=MasterSession.datasetEpoch()||!a.masterForeground||auth!=a.masterAuthSerial.get()||!view.equals(a.masterView))throw new MasterError(Taal.T("Wissen geannuleerd"));a.masterSession.close();MasterStore.reset(ctx);}}
-                        MainActivity.masterResetAll();
-                        r.put("reset",true);
-                    }catch(Throwable e){try{r.put("error",why(e));}catch(Exception ignored){ }}reply(request,"",r);
+                        synchronized(MasterStore.LOCK){synchronized(a.masterSession){if(dataset!=MasterSession.datasetEpoch()||!a.masterForeground||auth!=a.masterAuthSerial.get()||!view.equals(a.masterView))throw new MasterError(Taal.T("Wissen geannuleerd"));a.masterSession.close();attempted=true;MasterStore.reset(ctx);}}
+                        complete=true;r.put("reset",true);
+                    }catch(Throwable e){try{r.put("error",why(e));}catch(Exception ignored){ }}finally{if(attempted)MainActivity.masterResetAll(complete);}reply(request,"",r);
                 },"master-reset").start());
             });
         });

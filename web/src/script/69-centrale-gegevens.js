@@ -11,15 +11,15 @@ function cmOpen(){return !!cm.token&&cmState().open&&cm.privateReady;}
 function cmNote(message){$('#cm-status').textContent=message;$('#cm-pick-status').textContent=message;}
 function cmEl(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
 function cmData(e){e.setAttribute('translate','no');return e;}
-function cmRequest(method,args,done,publicRequest=false){
+function cmRequest(method,args,done,publicRequest=false,fail=null){
   const request='cm-'+(++cm.seq),token=cm.token;
-  cm.pending.set(request,{done,token,publicRequest,mutation:['masterSave','masterDelete'].includes(method)});
+  cm.pending.set(request,{done,token,publicRequest,fail,mutation:['masterSave','masterDelete'].includes(method)});
   Android[method](...(publicRequest?args:[token,...args]),request);
 }
 window.onMasterReply=function(r){
   if(!r)return;const p=cm.pending.get(r.request);if(!p)return;cm.pending.delete(r.request);
   if(!p.publicRequest&&(p.token!==cm.token||r.token!==cm.token))return;
-  if(r.error){if(p.mutation)cmBusy(false);if(r.locked)cmLockedUI();cmNote(t(r.error));if(p.publicRequest){cm.unlocking=false;cm.resetting=false;}return;}
+  if(r.error){if(p.fail)p.fail(r);if(p.mutation)cmBusy(false);if(r.locked)cmLockedUI();cmNote(t(r.error));if(p.publicRequest){cm.unlocking=false;cm.resetting=false;}return;}
   if(!p.publicRequest&&!cmOpen())return;
   p.done(r);
 };
@@ -107,7 +107,7 @@ function cmAuditOpen(){if(!cmOpen()||cm.mutating)return;cm.editorEpoch++;cm.even
 function cmAuditMore(){if(!cmOpen())return;cmRequest('masterAudit',[cm.before],r=>{cm.events.unshift(...r.events);cm.before=r.before;$('#cm-more').hidden=!r.more;cmRenderAudit();});}
 function cmRenderAudit(){
   const names={unlock:t('Ontgrendeld'),list:t('Overzicht bekeken'),view:t('Gegevens bekeken'),create:t('Toegevoegd'),update:t('Gewijzigd'),delete:t('Verwijderd'),use:t('Velden overgenomen'),audit:t('Logboek bekeken'),export_release:t('Bestand vrijgegeven'),export_attempt:t('Bestand maken gestart'),export:t('Bestand gemaakt')};
-  const roles={kind:t('Kind'),begeleider1:t('Begeleider 1'),begeleider2:t('Begeleider 2'),gever1:t('Toestemminggever 1'),gever2:t('Toestemminggever 2'),bestemming:t('Bestemming'),ontvanger:t('Ontvanger')};
+  const roles={kind:tc('formulier','Kind'),begeleider1:t('Begeleider 1'),begeleider2:t('Begeleider 2'),gever1:t('Toestemminggever 1'),gever2:t('Toestemminggever 2'),bestemming:t('Bestemming'),ontvanger:t('Ontvanger')};
   const source={masterdata:t('Stamgegevens'),formulieren:t('Formulieren invullen'),idcopy:t('ID-kopie anonimiseren')};
   const box=$('#cm-audit');box.replaceChildren();if(!cmOpen())return;const q=$('#cm-log-search').value.toLowerCase();
   [...cm.events].reverse().forEach(e=>{
@@ -123,11 +123,16 @@ function cmPick(source,role,mapping,apply){
   $('#cm-pick-search').value='';$('#cm-pick-list').replaceChildren();$('#cm-pick-fields').replaceChildren();$('#cm-sensitive-row').hidden=true;$('#cm-apply').disabled=true;
   $('#s-'+current).inert=true;cmPrivacy(true);$('#cm-pick-title').focus();
 }
-function cmPickerLoad(){if(!cm.picker||!cmOpen())return;cmRequest('masterList',[cm.picker.source,cm.picker.role],r=>{cm.records=r.records;cmRenderPicker();});}
+function cmPickerLoad(){if(!cm.picker||!cmOpen())return;const pick=cm.picker;cmRequest('masterList',[pick.source,pick.role],r=>{if(cm.picker!==pick)return;cm.records=r.records;cmRenderPicker();});}
 function cmRenderPicker(){
   const box=$('#cm-pick-list');box.replaceChildren();if(!cmOpen()||!cm.picker)return;const q=$('#cm-pick-search').value.toLowerCase();
-  cm.records.filter(r=>r.label.toLowerCase().includes(q)).forEach(r=>{const person=r.person&&cm.records.find(p=>p.id===r.person);const title=person?t('{document} · gekoppeld aan {persoon}',{document:r.label,persoon:person.label}):r.label;const b=cmData(cmEl('button',title,'big ghost'));b.onclick=()=>{const pick=cm.picker;cmRequest('masterRead',[r.id,pick.source,pick.role],out=>{if(cm.picker!==pick)return;pick.record=out.record;pick.fields=out.record.fields;cmPickerFields();});};box.append(b);});
+  cm.records.filter(r=>r.label.toLowerCase().includes(q)).forEach(r=>{const person=r.person&&cm.records.find(p=>p.id===r.person);const title=person?t('{document} · gekoppeld aan {persoon}',{document:r.label,persoon:person.label}):r.label;const b=cmData(cmEl('button',title,'big ghost'));b.onclick=()=>cmPickRead(r.id);box.append(b);});
   if(!box.children.length)box.append(cmEl('p',t('Nog geen passende stamgegevens. Voeg ze toe onder Stamgegevens.'),'note'));
+}
+function cmPickRead(id){
+  const pick=cm.picker;if(!pick||pick.applying)return;const epoch=(pick.readEpoch||0)+1;pick.readEpoch=epoch;pick.record=null;pick.fields={};
+  $('#cm-pick-fields').replaceChildren();$('#cm-apply').disabled=true;$('#cm-sensitive-row').hidden=true;
+  cmRequest('masterRead',[id,pick.source,pick.role],out=>{if(cm.picker!==pick||pick.readEpoch!==epoch)return;pick.record=out.record;pick.fields=out.record.fields;cmPickerFields();});
 }
 function cmPickerFields(){
   const box=$('#cm-pick-fields');box.replaceChildren();const pick=cm.picker;if(!pick)return;
@@ -139,13 +144,13 @@ function cmPickerFields(){
   }cmConsentReady();
 }
 function cmChosen(){return [...document.querySelectorAll('#cm-pick-fields input:checked')].map(e=>e.dataset.field);}
-function cmConsentReady(){const fields=cmChosen(),secret=fields.some(k=>CM_SECRET.has(k));$('#cm-sensitive-row').hidden=!secret;$('#cm-apply').disabled=!cmOpen()||!fields.length||(secret&&!$('#cm-sensitive').checked);}
+function cmConsentReady(){const fields=cmChosen(),secret=fields.some(k=>CM_SECRET.has(k));$('#cm-sensitive-row').hidden=!secret;$('#cm-apply').disabled=!cmOpen()||!!(cm.picker&&cm.picker.applying)||!fields.length||(secret&&!$('#cm-sensitive').checked);}
 function cmApply(){
   const pick=cm.picker;if(!pick||!pick.record||!cmOpen()||$('#cm-apply').disabled)return;
-  const record=pick.record;cmRequest('masterUse',[record.id,record.revision,pick.source,pick.role,JSON.stringify(cmChosen()),$('#cm-sensitive').checked],r=>{
+  const record=pick.record;pick.applying=true;$('#cm-apply').disabled=true;cmRequest('masterUse',[record.id,record.revision,pick.source,pick.role,JSON.stringify(cmChosen()),$('#cm-sensitive').checked],r=>{
     if(cm.picker!==pick||current!==pick.origin||!Android.masterApplied(cm.token,r.grant))return;
     pick.apply(r.fields);cmClosePicker();
-  });
+  },false,()=>{if(cm.picker===pick){pick.applying=false;cmConsentReady();}});
 }
 function cmClosePicker(){
   const pick=cm.picker;if(!pick)return;cm.picker=null;$('#cm-picker').hidden=true;$('#s-'+pick.origin).inert=false;
