@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.148",
-  "versionCode": 149,
-  "nativeLevel": 135,
+  "versionName": "1.149",
+  "versionCode": 150,
+  "nativeLevel": 136,
   "web": "index.html",
-  "webSha256": "0f7c424285a8bbf9ba0c3b489c317345dd9e412106fb34dfb4bf5bf582f8ffde",
+  "webSha256": "d56d1cc44cad0181d1fa971946a1e4acf06fc3a222b3fe438a8428214097998b",
   "start": "start.html",
   "startSha256": "ca013c1e7d37c86b7299e7346900a6c0386581a676a519a1f40356316b7ea994",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "73ecd3e9888cb15dd53e4e2c984538551a2232e4102e7bcdc04bd63a14c0e0f7",
+  "apkSha256": "18deb8d94ca1fde3523b191ddf16564e0ddf678a7bdecc3f4ecde85049518778",
   "changelog": [
+    {
+      "version": "1.149",
+      "date": "2026-11-05",
+      "changes": [
+        "PDF: nieuwe indeling met tegels per taak in plaats van één lange lijst; recente PDF's bovenaan, elke taak (bewerken en ondertekenen, plaatjes, splitsen, tekst) op een eigen scherm.",
+        "PDF-viewer: \"Tekst of handtekening toevoegen\" opent nu meteen de bewerker (met de nieuwe APK)."
+      ]
+    },
     {
       "version": "1.148",
       "date": "2026-11-05",
@@ -1301,5 +1309,5 @@
       ]
     }
   ],
-  "webSig2": "N3ec86P2F4g14exHVQSnezCEFzskCGbholnyKABY9QRR3Jd4Jxo5C89X7FuKasNqjyw/RUVFcWVRgoZpAu4plRRZvqDFqMkS9aqdmLrnlcc7cx9f+4jnPXy65RRrJDPn2Q1BN5VK86QNEGJ/0DTcyU5zyri2EsrtDl4qR+m4isvioJf0zvYqsBELgO/PpCwLmgbno5ZBZ6pOiiDwMAIPRFv3MZxEoWmCVrhgUIIxldzxtf6TUmWE7S1dcgpovQ4TnfmK099PigfMSDbaE5T6aPBkPzrBczwiU9RJaRsMaa7qGHisSkpzJtNjK45zXzfUoWmZ6WigopuATXp+YvEH6nFzzQzM7j9U8UbWa6IhhOkPD220Z60dMh9NcTnmzr4qIn0xaHmQOw2veCMmYgU73hRlPdw3t2mFc+0dJEYKpbDej6srjZGHiI93W1dg7bXy1UtHO7/mc4dPG0kRUdwlJ2ENexDNq8S0d3N702MeICBWOC6gVwiBv1xmo70dJWCL"
+  "webSig2": "U5fWrHWAd5ui2GvdH/e/avKFGc9Ke74a8OgnBcXyQ+jVWI69+RAWs0t+TbdgwpSo2V8HRXIYYURgXAVEbTgJoCbdkgdyUPPrN3p28stFIHOrWwu7yos2QqltFup6MbXfg7bpqKFIYV5s2bcDhMhMDpuxzHaKnHInUCn7Bza/3nKUyjenRIUm7xzvQxeoA/qmXwBvdKPiJaFU5Q2L3+dWGOdYmkA1S3RV7KWVaelVzkW0twI0msy89B39Ohp9PaQMqBAk9I2xTxdbSgLeciLm/yJyD3XUAIU9NTkwdUYsc2Icm0oXxe6k2qRmq31aB6JDU/MkCYP7yMM1tNRM0Oo/03snEPu2PGHa6eF8GJBNjObGNsOuH7Qhbh+fQRaQAHyMyAPudXyJs4zs1nI6F5iPBIEyZJ336qwNTtiD94yME7q4yfgFVfkniad1OPHnx/0Y2zi3wp7FZ7wkw8gI1Mb5BtYGEkT959y8qgKE8NkLIEHLOrtoB81XfLwTtg4hEewr"
 }
