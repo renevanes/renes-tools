@@ -39,6 +39,8 @@ cp web/ontsleutelen.html $B/assets/
 cp web/start.html $B/assets/
 cp web/facturen-robot.js web/facturen-leveranciers.json web/bank-robot.js web/bank-banken.json $B/assets/
 cp web/neutraal.html $B/assets/
+mkdir -p $B/assets/formulieren
+cp app/formulieren/*.pdf $B/assets/formulieren/
 # Woordenboek voor de Engelse taal (ook in de interface zelf; Java leest het hier: Taal.java)
 mkdir -p $B/assets/taal
 cp web/src/taal/en.json $B/assets/taal/

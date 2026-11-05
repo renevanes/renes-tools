@@ -6,6 +6,7 @@ ontwerp.css
 podcast-import.css
 apparaten.css
 bankzaken.css
+formulieren.css
 body-begin.html
 schermen/01-home.html
 schermen/02-auto-redial.html
@@ -48,6 +49,7 @@ schermen/38-apparaten.html
 schermen/38-gebruik.html
 schermen/39-facturen.html
 schermen/40-bankzaken.html
+schermen/41-formulieren.html
 speler.html
 vensters.html
 taal/en.json
@@ -97,6 +99,8 @@ script/35-mijn-auto.js
 script/37-pdf.js
 script/44-pdf-bewerken.js
 script/48-pdf-handtekening-bewaren.js
+script/67-formulier-reistoestemming.js
+script/68-formulieren.js
 script/49-documenten-ordenen.js
 script/38-podcasts.js
 script/46-podcast-downloads.js

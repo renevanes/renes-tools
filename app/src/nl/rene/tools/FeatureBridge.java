@@ -152,6 +152,24 @@ public class FeatureBridge {
             a.js("onPdf", result);
         }, "pdf-edit-save").start();
     }
+    @JavascriptInterface public void pdfFormPreview(String id, int page, String request) {
+        new Thread(() -> {
+            JSONObject result;
+            try { result = PdfFormulier.preview(ctx, id, page); }
+            catch (Throwable e) { result = new JSONObject(); try { result.put("error", Taal.t(ctx, "Het voorbeeld kan niet worden geladen. Ga een stap terug en probeer opnieuw.")); } catch (Exception ignored) { } }
+            try { result.put("id", id).put("page", page).put("request", request); } catch (Exception ignored) { }
+            a.js("onPdfFormPreview", result.toString());
+        }, "pdf-form-preview").start();
+    }
+    @JavascriptInterface public void pdfFormMake(String id, String layers, String name, String request) {
+        new Thread(() -> {
+            JSONObject result = new JSONObject();
+            try { result.put("name", PdfFormulier.make(ctx, id, layers, name).getName()); }
+            catch (Throwable e) { try { result.put("error", Taal.t(ctx, "De PDF kan niet worden gemaakt. Probeer opnieuw.")); } catch (Exception ignored) { } }
+            try { result.put("id", id).put("request", request); } catch (Exception ignored) { }
+            a.js("onPdfFormMade", result.toString());
+        }, "pdf-form-make").start();
+    }
     /** mode: each (elke pagina apart), pick (gekozen pagina's samen), parts (elke groep in "1-3, 4-6" apart). */
     @JavascriptInterface public void pdfSplit(String mode, String ranges) {
         new Thread(() -> {
