@@ -85,6 +85,16 @@ public class MainActivity extends Activity {
     volatile String idSession = "", idPickSession = "";
     final java.util.concurrent.atomic.AtomicLong idSecurityGeneration = new java.util.concurrent.atomic.AtomicLong();
     volatile boolean idScreen;
+    final java.util.concurrent.ConcurrentHashMap<String,String> masterGrants=new java.util.concurrent.ConcurrentHashMap<>();
+    final MasterSession masterSession=new MasterSession();
+    final java.util.concurrent.atomic.AtomicLong masterAuthSerial=new java.util.concurrent.atomic.AtomicLong(),masterSecurityGeneration=new java.util.concurrent.atomic.AtomicLong();
+    volatile boolean masterForeground,masterAuthPending,masterWanted,masterScreen,masterCover,masterFormBound,masterIdBound;
+    volatile String masterView="";
+    private Runnable masterAfterAuth;
+    void afterMasterAuth(Runnable task){long due=android.os.SystemClock.elapsedRealtime()+5000;masterAfterAuth=()->{if(android.os.SystemClock.elapsedRealtime()>due)masterAuthSerial.incrementAndGet();task.run();};if(masterForeground)h.post(this::runMasterAfterAuth);}
+    void runMasterAfterAuth(){Runnable task=masterAfterAuth;masterAfterAuth=null;if(task!=null)task.run();}
+    private final Runnable masterExpiry=()->{if(masterSession.isOpen())scheduleMasterExpiry();else suspendMaster(false);};
+
     volatile String pdfSaveName = null;
     volatile String importKind = null;
     String pendingShare = null;
@@ -153,9 +163,9 @@ public class MainActivity extends Activity {
      * de laag weghalen. Zo is er nooit een flits van de inhoud. Vangnet: na 1,5 s in elk geval weg.
      */
     void coverOff(boolean lock) {
-        if (cover == null || web == null) return;
+        if (cover == null || web == null || masterCover) return;
         final long seq = ++coverSeq;
-        Runnable off = () -> { if (seq == coverSeq && cover != null) cover.setVisibility(View.GONE); };
+        Runnable off = () -> { if (seq == coverSeq && cover != null && !masterCover) cover.setVisibility(View.GONE); };
         if (!lock) { cover.setVisibility(View.GONE); return; }
         web.evaluateJavascript("window.onLock&&window.onLock();true", v -> {
             if (web == null) return;
@@ -452,6 +462,7 @@ public class MainActivity extends Activity {
         if (live == this) live = null;
         synchronized (ALL) { ALL.remove(this); }
         if (isFinishing() && !isSolo()) Bridge.stopRecordingPlayback(this); // een opname niet zonder app laten doorspelen
+        masterSession.close();masterAfterAuth=null;masterAuthSerial.incrementAndGet();h.removeCallbacks(masterExpiry);
         final IdCopy closingId = idCopy;
         new Thread(() -> { try { closingId.clear(); } catch (Throwable ignored) { } }, "id-copy-close").start();
         super.onDestroy();
@@ -484,11 +495,38 @@ public class MainActivity extends Activity {
         }
     }
 
+    void scheduleMasterExpiry(){h.removeCallbacks(masterExpiry);long left=masterSession.remaining();if(left>0)h.postDelayed(masterExpiry,left);}
+    void suspendMaster(boolean explicit){
+        synchronized(masterSession){masterSession.close();masterGrants.clear();if(explicit||!masterAuthPending)masterAuthSerial.incrementAndGet();}
+        h.removeCallbacks(masterExpiry);
+        long generation;
+        synchronized(masterSecurityGeneration){generation=masterSecurityGeneration.incrementAndGet();if(masterScreen){masterCover=true;coverOn();}}
+        js("onMasterLocked",Long.toString(generation));
+    }
+    static void masterResetAll(){synchronized(ALL){for(MainActivity a:ALL)a.h.post(()->{a.suspendMaster(true);a.js("onMasterReset","");});}}
+    void masterSafeFrame(String view,long generation){if(web!=null&&generation==masterSecurityGeneration.get())web.postVisualStateCallback(generation,new MasterDrawn(this,view,generation,false));}
+    void finishMasterScreen(long generation){
+        synchronized(masterSecurityGeneration){if(isDestroyed()||generation!=masterSecurityGeneration.get()||masterWanted)return;}
+        if(web!=null)web.postVisualStateCallback(generation,new MasterDrawn(this,"",generation,true));
+    }
+    static final class MasterDrawn extends WebView.VisualStateCallback{
+        final java.lang.ref.WeakReference<MainActivity> owner;final String view;final long generation;final boolean hide;
+        MasterDrawn(MainActivity a,String view,long generation,boolean hide){owner=new java.lang.ref.WeakReference<>(a);this.view=view;this.generation=generation;this.hide=hide;}
+        @Override public void onComplete(long request){MainActivity a=owner.get();if(a==null||a.isDestroyed())return;
+            synchronized(a.masterSecurityGeneration){
+                if(generation!=a.masterSecurityGeneration.get())return;
+                if(hide){if(a.masterWanted)return;a.masterScreen=false;a.applySecure();a.bankPrive(a.bankScreen||a.idScreen);}
+                else{if(!view.equals(a.masterView))return;if(!a.masterWanted){a.masterScreen=false;a.applySecure();a.bankPrive(a.bankScreen||a.idScreen);}}
+                a.masterCover=false;a.coverOff(!a.isSolo()&&Lock.locked(a));
+            }
+        }
+    }
+
     /** Houd de bescherming vast totdat de verborgen ID-pagina ook uit het getekende frame verdwenen is. */
     void finishIdScreen(long generation) {
         synchronized (idSecurityGeneration) {
             if (isDestroyed() || generation != idSecurityGeneration.get()) return;
-            if (web == null) { if (idSession.isEmpty()) { idScreen = false; applySecure(); bankPrive(bankScreen); } return; }
+            if (web == null) { if (idSession.isEmpty()) { idScreen = false; applySecure(); bankPrive(bankScreen || masterScreen); } return; }
         }
         web.postVisualStateCallback(System.nanoTime(), new IdHidden(this, generation));
     }
@@ -500,7 +538,7 @@ public class MainActivity extends Activity {
         @Override public void onComplete(long request) {
             MainActivity a = owner.get();
             if (a != null) synchronized (a.idSecurityGeneration) {
-                if (!a.isDestroyed() && a.idSession.isEmpty() && a.idSecurityGeneration.get() == generation) { a.idScreen = false; a.applySecure(); a.bankPrive(a.bankScreen); }
+                if (!a.isDestroyed() && a.idSession.isEmpty() && a.idSecurityGeneration.get() == generation) { a.idScreen = false; a.applySecure(); a.bankPrive(a.bankScreen || a.masterScreen); }
             }
         }
     }
@@ -510,8 +548,8 @@ public class MainActivity extends Activity {
         // losse app: zonder slot, dus ook zichtbaar in "recente apps"; behalve de losse kluis (documentnamen)
         boolean on = isSolo() ? isSoloKluis() : Lock.enabled(this);
         // Bankzaken in beeld: ook geen schermafdrukken of schermopnames (FLAG_SECURE), op elke Android-versie
-        boolean block = bankScreen || idScreen || (Build.VERSION.SDK_INT < 33 && on);
-        if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on && !bankScreen && !idScreen);
+        boolean block = bankScreen || idScreen || masterScreen || (Build.VERSION.SDK_INT < 33 && on);
+        if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on && !bankScreen && !idScreen && !masterScreen);
         if (block) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
         else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
     }
@@ -519,7 +557,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        visible = false;
+        visible = false; masterForeground=false; suspendMaster(false);
         // Bankzaken gaat op slot zodra de app uit beeld gaat (niet tijdens bestanden kiezen of de vraag om te ontgrendelen)
         if (!Bank.kiest() && !Bank.linking && !Lock.authBusy && Bank.isOpen()) Bank.close();
         if ("recording".equals(VoiceNote.state)) VoiceNote.cancel(); // inspreken alleen met de app open
@@ -532,7 +570,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        visible = true;
+        visible = true; masterForeground=true;runMasterAfterAuth();
         js("onResumeApp", "");
         try { GebruikLive.start(getApplicationContext()); } catch (Throwable ignored) { }
         if (isSolo()) return; // updates regelt de gewone app
@@ -912,7 +950,7 @@ public class MainActivity extends Activity {
     // ---------- brug naar JavaScript ----------
 
     /** Alle functies voor de interface. Nieuwere onderdelen staan in FeatureBridge (eigen bestand). */
-    static final class Bridge extends BankBridge {
+    static final class Bridge extends MasterBridge {
         private final MainActivity a;
         private final Context ctx;
         static volatile boolean smsBusy = false;

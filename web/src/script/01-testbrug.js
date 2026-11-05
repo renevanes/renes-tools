@@ -11,7 +11,7 @@ if (!window.Android) window.Android = (function(){
     st.nextAt = t0 + (a-1)*per + per; st.now = Date.now();
   };
   return {
-    version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts']}),
+    version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata']}),
     lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400),
     reloadUi(){ if (window.prepareUiReload && window.prepareUiReload()) { this._uiReloads = (this._uiReloads || 0) + 1; document.body.inert = false; } },
     installUpdate(){
@@ -1067,6 +1067,25 @@ if (!window.Android) window.Android = (function(){
     gebruikClearPhotos(){ this._gb.photos=[]; },
     gebruikClearAll(){ this._gb.photos=[]; this._gb.lastShot=''; },
     // ---------- Bankzaken (testbrug: versleuteling en bank nagebootst) ----------
+    _cm:{open:false,token:'',generation:0,records:[],events:[],grants:new Map(),form:false,id:false},
+    masterState(){return JSON.stringify({open:this._cm.open,left:290000,data:!!this._cm.records.length,secure:true});},
+    masterView(on,view){this._cm.view=on?view:'';const generation=++this._cm.generation;if(on)setTimeout(()=>onMasterPrivacy({view,generation}),5);},
+    masterSafeFrame(view,generation){this._cm.frame={view,generation};},
+    masterUnlock(request){const m=this._cm;setTimeout(()=>{m.open=true;m.token='session-'+Date.now();this._cmEvent('unlock','masterdata');onMasterReply({request,token:m.token,opened:true});},30);},
+    masterLock(){this._cm.open=false;this._cm.grants.clear();const generation=++this._cm.generation;setTimeout(()=>onMasterLocked(generation),0);},
+    masterTouch(token){this._cm.touched=token;},
+    _cmEvent(action,source,record,fields,role){const m=this._cm;m.events.push({seq:m.events.length+1,t:Date.now(),action,source,role:role||'',id:record?.id||'',revision:record?.revision||0,label:record?.label||'',fields:fields||[]});},
+    _cmReply(token,request,fn){setTimeout(()=>{if(!this._cm.open||token!==this._cm.token){onMasterReply({token,request,error:'Ontgrendel de stamgegevens opnieuw',locked:true});return;}try{onMasterReply({...fn(),token,request});}catch(e){onMasterReply({error:e.message,token,request});}},this._cm.replyDelay||10);},
+    _cmProjection(r,source,role){if(source==='masterdata')return {...r.fields};if(source==='idcopy')return {ontvanger:[r.fields.voornamen,r.fields.naam].filter(Boolean).join(' ')||r.label};let out={};let keys=r.type==='identiteit'?['document','geldig']:r.type==='persoon'?['naam','voornamen','initialen','geboortedatum','geboorteplaats','nationaliteit','bsn','adres','postcode','plaats','telefoon']:['adres','postcode','plaats','land','telefoon'];for(const k of keys)if(r.fields[k])out[k]=r.fields[k];if(r.type==='organisatie')out[role==='bestemming'?'accommodatie':'instelling']=r.fields.naam;return out;},
+    masterList(token,source,role,request){this._cmReply(token,request,()=>{this._cmEvent('list',source,null,null,role);return {records:this._cm.records.filter(r=>source!=='idcopy'||['persoon','organisatie'].includes(r.type)).map(({fields,...r})=>r)};});},
+    masterRead(token,id,source,role,request){this._cmReply(token,request,()=>{const r=this._cm.records.find(r=>r.id===id);if(!r)throw Error('Deze stamgegevens bestaan niet meer');const fields=this._cmProjection(r,source,role);this._cmEvent('view',source,r,Object.keys(fields),role);return {record:{...r,fields}};});},
+    masterSave(token,json,request){this._cmReply(token,request,()=>{const r=JSON.parse(json);if(!r.label.trim())throw Error('Vul een naam voor het overzicht in');const old=this._cm.records.find(x=>x.id===r.id);if(old&&r.revision!==old.revision)throw Error('Deze gegevens zijn intussen gewijzigd; laad ze opnieuw');r.id=r.id||crypto.randomUUID();r.revision=(r.revision||0)+1;this._cm.records=this._cm.records.filter(x=>x.id!==r.id);this._cm.records.push(r);this._cmEvent(old?'update':'create','masterdata',r,Object.keys(r.fields));return {record:r};});},
+    masterDelete(token,id,revision,request){this._cmReply(token,request,()=>{const r=this._cm.records.find(r=>r.id===id);if(r.revision!==revision)throw Error('Deze gegevens zijn intussen gewijzigd; laad ze opnieuw');if(this._cm.records.some(x=>x.fields.persoon===id))throw Error('Verwijder of ontkoppel eerst de gekoppelde identiteitsdocumenten');this._cm.records=this._cm.records.filter(x=>x!==r);this._cmEvent('delete','masterdata',r);return {ok:true};});},
+    masterUse(token,id,revision,source,role,json,consent,request){this._cmReply(token,request,()=>{const r=this._cm.records.find(r=>r.id===id);if(r.revision!==revision)throw Error('Deze gegevens zijn intussen gewijzigd; laad ze opnieuw');const keys=JSON.parse(json),available=this._cmProjection(r,source,role),fields={};for(const k of keys){if(!Object.hasOwn(available,k))throw Error('Dit veld mag niet worden overgenomen');if(CM_SECRET.has(k)&&!consent)throw Error('Bevestig het overnemen van identiteitsgegevens');fields[k]=available[k];}this._cmEvent('use',source,r,keys,role);const grant=crypto.randomUUID();this._cm.grants.set(grant,source);return {record:r,fields,source,role,grant};});},
+    masterApplied(token,grant){const m=this._cm,source=m.grants.get(grant);m.grants.delete(grant);if(!m.open||token!==m.token||!source)return false;m[source==='idcopy'?'id':'form']=true;return true;},
+    masterReleaseForm(){this._cm.form=false;},
+    masterAudit(token,before,request){this._cmReply(token,request,()=>{if(!before)this._cmEvent('audit','masterdata');const end=before?before-1:this._cm.events.length,start=Math.max(1,end-99);return {events:this._cm.events.filter(e=>e.seq>=start&&e.seq<=end),before:start,more:start>1};});},
+    masterReset(confirmation,request){setTimeout(()=>{if(confirmation!=='WISSEN'){onMasterReply({request,error:'Wissen geannuleerd'});return;}this._cm.records=[];this._cm.events=[];this._cm.open=false;onMasterReset();onMasterReply({request,reset:true});},30);},
     _bank: { open: false, data: null, saves: 0, calls: [], ai: [], secure: false, uitkomst: '', aiKlaar: true, ontgrendelFout: '' },
     _bankVoorbeeld(){
       const tx = [], acc = 'NL20INGB0001234567', spaar = 'NL55INGB0009876543';

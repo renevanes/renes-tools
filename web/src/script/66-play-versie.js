@@ -4,7 +4,7 @@
 // In de gewone (GitHub-)versie doet dit script niets. Staat vóór 29-start.js, zodat ook openen bij het starten
 // (snelkoppeling, widget, melding, losse app) al langs de controle gaat.
 const PLAY = !!ver().play;
-const PLAY_TOOLS = new Set(ver().playTools || ['notes', 'pdf', 'radio', 'podcasts']);
+const PLAY_TOOLS = new Set(ver().playTools || ['notes', 'pdf', 'radio', 'podcasts', 'masterdata']);
 const PLAY_NAV = new Set(['home', 'search', 'settings', 'info', 'homeedit', 'setnotif', 'setlook', 'setregio', 'setregiotz', 'setlock', 'setsolo', 'setperm', 'player']);
 function isPlay(){ return PLAY; }
 /** Alleen bekende schermen van de behouden functies; nieuwe subschermen worden bewust beoordeeld. */

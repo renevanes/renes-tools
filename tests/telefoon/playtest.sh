@@ -44,3 +44,5 @@ echo 'Play-herstelcontrole: geslaagd'
 
 bash tests/telefoon/idcopy-test.sh nl.rene.tools.play
 bash tests/telefoon/idcopy-test.sh nl.rene.tools
+bash tests/telefoon/masterdata-test.sh nl.rene.tools.play
+bash tests/telefoon/masterdata-test.sh nl.rene.tools

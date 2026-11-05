@@ -8,6 +8,7 @@ document.addEventListener('input', e => {
   e.target.dataset.uiEdited = '1';
 });
 function uiCanReload(){
+  if(typeof cm!=='undefined'&&(cm.dirty||cm.picker))return false;
   if (current !== 'home' && current !== 'info') return false;
   if (document.querySelector('#modal.on, #sheet.on, #voice.on, #ci-ans.on, #ci-rem.on, #sleepdlg.on, #lockscr.on, #player.on')) return false;
   if (typeof idCopyHasWork === 'function' && idCopyHasWork()) return false;

@@ -1,6 +1,6 @@
 # Google Play — basisversie publiceren
 
-De eerste uitvoering bevat **Notities, PDF, Radio en Podcasts**, pakket `nl.rene.tools.play`. De volledige GitHub-app blijft apart beschikbaar. `play/basis.json` is de expliciete lijst van functies, Android-onderdelen en rechten. Nieuwe functies moeten bewust aan die lijst worden toegevoegd en opnieuw beoordeeld. Uitgesloten: sms/oproeplogboek, telefoonopname, toegankelijkheidsdiensten, apparaatbeheer, stille foto's, locatie, brede bestandstoegang, VPN, AI en de eigen updater.
+De eerste uitvoering bevat **Notities, PDF, Radio, Podcasts en Stamgegevens**, pakket `nl.rene.tools.play`. De volledige GitHub-app blijft apart beschikbaar. `play/basis.json` is de expliciete lijst van functies, Android-onderdelen en rechten. Nieuwe functies moeten bewust aan die lijst worden toegevoegd en opnieuw beoordeeld. Uitgesloten: sms/oproeplogboek, telefoonopname, toegankelijkheidsdiensten, apparaatbeheer, stille foto's, locatie, brede bestandstoegang, VPN, AI en de eigen updater.
 
 ## Bouwen en controleren
 
@@ -36,7 +36,7 @@ De bouw verifieert de JAR-handtekening. Bewaar sleutel en wachtwoord buiten de r
 
 ## Instructies voor de reviewer
 
-Geen account, wachtwoord of gekoppelde telefoon nodig. Open Notities en maak een lijst; kies bij Backup maken een map en tik opnieuw op Backup maken. Open een PDF via de systeembestandskiezer. Zoek een radiozender en speel af; sluit de app en stop via de mediamelding. Zoek een podcast, abonneer en speel een aflevering. Internet is nodig voor openbare radio en podcasts. Meldingen, overlay en precieze wekkers zijn optioneel en worden alleen voor de bijbehorende functie gebruikt.
+Geen account, wachtwoord of gekoppelde telefoon nodig. Open Notities en maak een lijst; kies bij Backup maken een map en tik opnieuw op Backup maken. Open een PDF via de systeembestandskiezer. Zoek een radiozender en speel af; sluit de app en stop via de mediamelding. Zoek een podcast, abonneer en speel een aflevering. Stamgegevens is optioneel: stel een Android-schermvergrendeling in en bevestig ontgrendelen om uitsluitend lokale testgegevens toe te voegen. Deze kluis en het activiteitenlog gaan niet mee in back-ups. Internet is nodig voor openbare radio en podcasts. Meldingen, overlay en precieze wekkers zijn optioneel en worden alleen voor de bijbehorende functie gebruikt.
 
 ## Uitgestelde uitbreidingen
 

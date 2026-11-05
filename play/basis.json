@@ -1,6 +1,6 @@
 {
   "naam": "basis",
-  "tools": ["notes", "pdf", "radio", "podcasts"],
+  "tools": ["notes", "pdf", "radio", "podcasts", "masterdata"],
   "native": false,
   "toestemmingen": [
     "android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE",

@@ -1,0 +1,46 @@
+<section class="screen" id="s-masterdata">
+  <div class="hdr"><button class="back" onclick="goBack()" aria-label="Terug" data-icon="chevron-left"></button><h1 tabindex="-1">Stamgegevens</h1></div>
+  <main>
+    <div class="card" id="cm-locked">
+      <h2>Je centrale gegevenskluis</h2>
+      <p class="note">Bewaar personen, organisaties, adressen en identiteitsdocumentgegevens op één beveiligde plek. Andere onderdelen krijgen alleen de velden die je zelf kiest.</p>
+      <p class="note">Gegevens en activiteiten staan versleuteld op dit toestel. Ze gaan niet mee in back-ups. Bij verlies van het toestel of de beveiligingssleutel zijn ze niet te herstellen.</p>
+      <button class="big" id="cm-unlock" onclick="cmUnlock()">Stamgegevens ontgrendelen</button>
+    </div>
+    <p class="note" id="cm-status" role="status" aria-live="polite"></p>
+    <div id="cm-open" hidden>
+      <p class="note">Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.</p>
+      <div class="card"><div class="row"><button class="big ghost" onclick="cmListOpen()">Gegevens</button><button class="big ghost" onclick="cmAuditOpen()">Activiteiten</button><button class="mini" onclick="cmLock()">Vergrendelen</button></div><p class="note">Vergrendelt bij verlaten van de app, na vijf minuten niets doen en uiterlijk na negen minuten. Schermafdrukken en automatisch invullen zijn afgeschermd.</p></div>
+      <div class="card" id="cm-list-card">
+        <label class="f" for="cm-search">Zoeken in stamgegevens</label><input class="search" id="cm-search" type="search" autocomplete="off" oninput="cmRenderList()">
+        <div id="cm-list" translate="no"></div><button class="big" onclick="cmNew()">Stamgegeven toevoegen</button>
+      </div>
+      <div class="card" id="cm-editor" hidden>
+        <h2 id="cm-editor-title">Stamgegeven bewerken</h2>
+        <label class="f" for="cm-kind">Soort</label><select class="search" id="cm-kind" onchange="cmType(this.value)"><option value="persoon">Persoon</option><option value="organisatie">Organisatie</option><option value="adres">Adres</option><option value="identiteit">Identiteitsdocument</option></select>
+        <label class="f" for="cm-label">Naam in het overzicht</label><input class="search" id="cm-label" maxlength="120" autocomplete="off" oninput="cmDirty()">
+        <p class="note">Gebruik een herkenbare naam. Deze weergavenaam blijft bij activiteiten staan, ook nadat je het stamgegeven verwijdert.</p>
+        <form id="cm-fields" autocomplete="off" novalidate onsubmit="event.preventDefault();cmSave()"></form>
+        <label class="chk"><input type="checkbox" id="cm-show-secret" onchange="cmShowSecret(this.checked)">Identiteitsgegevens tonen</label>
+        <div class="row"><button class="big" id="cm-save" onclick="cmSave()">Stamgegeven opslaan</button><button class="big ghost" onclick="cmCancelEdit()">Bewerken sluiten</button><button class="mini" id="cm-delete" onclick="cmDelete()">Stamgegeven verwijderen</button></div>
+      </div>
+      <div class="card" id="cm-audit-card" hidden>
+        <h2>Activiteitenlogboek</h2><p class="note">Je ziet wat wanneer is bekeken, gewijzigd of vrijgegeven aan een onderdeel. Het logboek bevat weergavenamen en veldnamen, geen kopieën van veldwaarden. Dit logboek gaat niet naar statistieken of een server.</p>
+        <label class="f" for="cm-log-search">Zoeken in geladen activiteiten</label><input class="search" id="cm-log-search" type="search" oninput="cmRenderAudit()"><div id="cm-audit" translate="no"></div><button class="big ghost" id="cm-more" onclick="cmAuditMore()">Oudere activiteiten laden</button>
+      </div>
+    </div>
+    <details class="card"><summary>Stamgegevens en logboek opnieuw beginnen</summary><p class="note">Dit wist alle centrale gegevens en activiteiten onherstelbaar. Open formulieren en ID-kopieën met overgenomen gegevens worden leeggemaakt. Zelf gemaakte of gedeelde bestanden blijven bestaan.</p><label class="f" for="cm-reset-word">Typ WISSEN om opnieuw te beginnen</label><input class="search" id="cm-reset-word" autocomplete="off" oninput="cmResetReady()"><button class="big ghost" id="cm-reset" disabled onclick="cmReset()">Alles wissen en opnieuw beginnen</button></details>
+  </main>
+</section>
+<div class="cm-picker" id="cm-picker" hidden role="dialog" aria-modal="true" aria-labelledby="cm-pick-title">
+  <div class="box cm-pick-box">
+    <h2 id="cm-pick-title" tabindex="-1">Stamgegevens overnemen</h2><p class="note" id="cm-pick-target"></p>
+    <p class="note">Je kiest zelf welke velden naar dit onderdeel gaan. Overgenomen gegevens zijn een momentopname. Een gemaakte PDF bevat die gegevens en valt buiten de centrale kluis.</p>
+    <p class="note">Bij vergrendelen worden open formulieren en ID-bewerkingen met overgenomen gegevens gewist, inclusief handmatig aangevulde invoer.</p>
+    <button class="big" id="cm-pick-unlock" onclick="cmUnlock()">Ontgrendelen om te kiezen</button>
+    <input class="search" id="cm-pick-search" type="search" placeholder="Zoek een naam" oninput="cmRenderPicker()" aria-label="Zoek in stamgegevens">
+    <div id="cm-pick-list" translate="no"></div><div id="cm-pick-fields"></div>
+    <label class="chk" id="cm-sensitive-row" hidden><input id="cm-sensitive" type="checkbox" onchange="cmConsentReady()">Ik wil deze identiteitsgegevens overnemen en heb de juiste persoon gecontroleerd</label>
+    <p class="note" id="cm-pick-status" role="status" aria-live="polite"></p><div class="row"><button class="big" id="cm-apply" disabled onclick="cmApply()">Gekozen velden overnemen</button><button class="big ghost" onclick="cmClosePicker()">Annuleren</button></div>
+  </div>
+</div>

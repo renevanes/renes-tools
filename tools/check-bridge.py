@@ -13,10 +13,10 @@ def read(p): return open(os.path.join(root, p), encoding='utf-8').read()
 def bridge(java):
     return set(re.findall(r'@JavascriptInterface\s+public\s+[\w<>\[\]]+\s+(\w+)\s*\(', read(java)))
 def calls(text):
-    return set(re.findall(r'\bAndroid\.(\w+)\s*\(', text))
+    return set(re.findall(r'\bAndroid\.(\w+)\s*\(', text)) | set(re.findall(r"\bcmRequest\('([A-Za-z]+)'", text))
 def optional(text):
     return set(re.findall(r"typeof\s+Android\.(\w+)\s*[!=]==?\s*'function'", text))
-main = bridge('app/src/nl/rene/tools/MainActivity.java') | bridge('app/src/nl/rene/tools/FeatureBridge.java') | bridge('app/src/nl/rene/tools/PodcastBridge.java') | bridge('app/src/nl/rene/tools/PlayerBridge.java') | bridge('app/src/nl/rene/tools/SpotifyBridge.java') | bridge('app/src/nl/rene/tools/VpnBridge.java') | bridge('app/src/nl/rene/tools/LocBridge.java') | bridge('app/src/nl/rene/tools/AiBridge.java') | bridge('app/src/nl/rene/tools/SleepBridge.java') | bridge('app/src/nl/rene/tools/CheckinBridge.java') | bridge('app/src/nl/rene/tools/ApparatenBridge.java') | bridge('app/src/nl/rene/tools/GebruikBridge.java') | bridge('app/src/nl/rene/tools/FacturenBridge.java') | bridge('app/src/nl/rene/tools/BankBridge.java')
+main = bridge('app/src/nl/rene/tools/MasterBridge.java') | bridge('app/src/nl/rene/tools/MainActivity.java') | bridge('app/src/nl/rene/tools/FeatureBridge.java') | bridge('app/src/nl/rene/tools/PodcastBridge.java') | bridge('app/src/nl/rene/tools/PlayerBridge.java') | bridge('app/src/nl/rene/tools/SpotifyBridge.java') | bridge('app/src/nl/rene/tools/VpnBridge.java') | bridge('app/src/nl/rene/tools/LocBridge.java') | bridge('app/src/nl/rene/tools/AiBridge.java') | bridge('app/src/nl/rene/tools/SleepBridge.java') | bridge('app/src/nl/rene/tools/CheckinBridge.java') | bridge('app/src/nl/rene/tools/ApparatenBridge.java') | bridge('app/src/nl/rene/tools/GebruikBridge.java') | bridge('app/src/nl/rene/tools/FacturenBridge.java') | bridge('app/src/nl/rene/tools/BankBridge.java')
 home = bridge('app/src/nl/rene/tools/HomeActivity.java')
 web = ''.join(read(os.path.relpath(p, root)) for p in sorted(glob.glob(os.path.join(root, 'web/src/script/*.js'))) if not p.endswith('01-testbrug.js'))
 web += ''.join(read(os.path.relpath(p, root)) for p in sorted(glob.glob(os.path.join(root, 'web/src/schermen/*.html'))))

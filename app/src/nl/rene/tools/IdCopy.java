@@ -61,6 +61,7 @@ final class IdCopy {
         CLEANED = true;
         File[] dirs = c.getCacheDir().listFiles();
         if (dirs != null) for (File d : dirs) if (d.isDirectory() && d.getName().startsWith("id-copy-")) { if (!erase(d)) synchronized (PENDING) { PENDING.add(d); } }
+        File stage=new File(c.getCacheDir(),"master-export");if(stage.isDirectory()&&!erase(stage))synchronized(PENDING){PENDING.add(stage);}
         File[] outputs = new File(c.getCacheDir(), "pdf-out").listFiles();
         if (outputs != null) for (File f : outputs) if (f.getName().startsWith("idcopy-") && f.getName().endsWith(".tmp") && !f.delete())
             synchronized (PENDING) { PENDING.add(f); }
@@ -133,6 +134,9 @@ final class IdCopy {
     }
 
     synchronized File save(Context c, String token, String json) throws Exception {
+        return save(c,token,json,false);
+    }
+    synchronized File save(Context c,String token,String json,boolean staged)throws Exception {
         check(token);
         if (json == null || json.length() > 40000) throw new Exception(Taal.T("Ongeldige afscherming"));
         JSONObject plan = new JSONObject(json); JSONArray entries = plan.getJSONArray("pages");
@@ -162,11 +166,12 @@ final class IdCopy {
                 output.add(PdfWriter.layout(bytes.toByteArray(), w, h, false, false, 0));
             } finally { b.recycle(); }
         }
-        File temporary = File.createTempFile("idcopy-", ".tmp", PdfTools.outDir(c));
+        File temporary = File.createTempFile("idcopy-", ".tmp", staged ? MasterExport.directory(c) : PdfTools.outDir(c));
         File out = null;
         try {
             try (FileOutputStream stream = new FileOutputStream(temporary)) { PdfWriter.write(stream, output, ""); }
             if (!clear()) throw new Exception(Taal.T("Werkbestand wissen lukt niet. Sluit dit scherm en probeer opnieuw."));
+            if(staged){File ready=temporary;temporary=null;return ready;}
             // Exclusieve reservering; alleen de geheel geschreven, afgeschermde PDF wordt gepubliceerd.
             do { out = new File(PdfTools.outDir(c), "ID-kopie afgeschermd-" + java.util.UUID.randomUUID().toString().substring(0, 8) + ".pdf"); } while (!out.createNewFile());
             if (!temporary.renameTo(out)) throw new Exception(Taal.T("Kopie opslaan lukt niet"));
@@ -174,7 +179,7 @@ final class IdCopy {
         } catch (Throwable e) {
             if (out != null) out.delete();
             throw e;
-        } finally { temporary.delete(); }
+        } finally { if(temporary!=null)temporary.delete(); }
     }
 
     private static void stamp(Bitmap b, String text) {
