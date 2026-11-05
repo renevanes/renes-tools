@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.146",
-  "versionCode": 147,
-  "nativeLevel": 133,
+  "versionName": "1.147",
+  "versionCode": 148,
+  "nativeLevel": 134,
   "web": "index.html",
-  "webSha256": "5145233642f3a661c06705c1ae746a0fc88d980cdeafde3430d6841b9be96cd5",
+  "webSha256": "2b2942483d7826417ddff17d0a90bd8a30543e0ef3f3c6492c057b5c93de4ccb",
   "start": "start.html",
   "startSha256": "ca013c1e7d37c86b7299e7346900a6c0386581a676a519a1f40356316b7ea994",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "ef49abfe4146cca85bf5d15707858459c6414d7e4c4ddfda0a7bb7f2a7b15c56",
+  "apkSha256": "6be3638935b88aa22fc2e49db23809323e995d17dc711b0f00861bde64900e0d",
   "changelog": [
+    {
+      "version": "1.147",
+      "date": "2026-11-05",
+      "changes": [
+        "Formulieren invullen: hergebruik zelf beheerde personen en reizen uit Stamgegevens. Kies bronvelden en controleer voorstellen voordat je ze overneemt.",
+        "Lokale AI kan per formulierstap invulvoorstellen maken uit gekozen gegevens en je toelichting. Alles blijft op je telefoon; bestaande invoer wordt niet stilzwijgend overschreven."
+      ]
+    },
     {
       "version": "1.146",
       "date": "2026-11-05",
@@ -1282,5 +1290,5 @@
       ]
     }
   ],
-  "webSig2": "IghhGInkYSkrVvlfl8cfpvAdrO0UKFbAYAhNN29+mSVHAALAmWMK/31dzOkHmKccWJBjIII5Tbg/0j8RJ8uFCpPyZs4QBuOgbSK0vDI7axdK2bhyj0pFjcFbHmmJZRJ4W5De2ehFt6ppaYJf3XMFA6K5TQNws2VAhmjMHMVWOfon3+Zm/+dQIN3tK7ZU7gxevZcR0QkMqLqdqEgcdKBGz24MLyKqfwACLyFABtEy5zKMIiv9pRkdJYor6324LaN7GfuJ7FnFBwz1gp+7684NR9TiqBI8yXpQMMdaZf4cnrJ4tZG5avPmhFZH5D1gggoP5BPVQJt/3DlUcKaI3NEi//7CIaXXRSYytJXWsgKg5U5cyewm9qQxcOl6pOknocfmnHShSmlo0Yqei8mcs9WutMKPDCvk7DkQBjIVFAhutJMIZmouj/ElUyBNOafb1VeXWqiWkI/pdw15aoAGJ/vK7Wgkhf+f0jmcqn48ZY4HvW69/BxifIjjII8FD93ODlCW"
+  "webSig2": "ejGzUxv3f8h6oEtUf9TxBTwK3mTp/xmFM348pItK1nefIYlsy2Z1XwvXPHhQRTok0GveZTH2oNGeEZRlzkZCA+us3yjodxX1YqL9wbXAzFUqLtr7JnUiPTPZCoW90zJZV3Tvf33klfSm2tc8XDlQgVKBhF4e7cvP3++Lkb9tKHIrd5/LcuYhxjE6yiQCpTEhVJYrc0V+/BYrxBfW7DHBo5CbzvOlBPMU8XfROqKrFK+BgQWvf+aJiyNcxfBkXs1gr50UNMEn10OJZuP2/8QNGlzr7gdNZANzowZUSK0EqH1fSC8tzDAR1QNtlFYwIHpvJuOHOg40QNCnl8eY2jbx3Gg1+stHk2h7eMpDarIMYa+X3RsbQDjgRbbeJJnacSlZB8dkHESrJmoFaQ7IQbkCZLk1lLERuBgC3t921J9FyyNJOI6arXiKtj/wHhs2dL5JxYZhhlPB+FfV9KQhFpxdxUTSZLVmjy7TVscO9sQIVcKaw01iMt7tey4B2weq4qrh"
 }
