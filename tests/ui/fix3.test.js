@@ -13,12 +13,13 @@ const { chromium } = require('playwright');
       await page.waitForFunction(() => typeof enterBackup === 'function');
 
       // Backup-onderdelen
-      await page.evaluate(() => show('backup'));
+      await page.evaluate(() => show('bkparts'));
       const parts = await page.$$eval('#bk-parts input[data-p]', x => x.map(e => e.dataset.p));
       assert.ok(parts.includes('settings') && parts.includes('routes'), 'nieuwe onderdelen ontbreken: ' + parts);
 
       // Instellingen terugzetten: vraag toont wat er bijkomt
-      await page.click('button:has-text("Instellingen, automatiseringen en zenders")');
+      await page.evaluate(() => show('bkrestore'));
+      await page.click('#bk-restore-list [data-k="settings"]');
       await page.waitForSelector('#modal.on');
       assert.match(await page.textContent('#modal-text'), /2 automatiseringen, 3 zenders, radiowekker/);
       await page.click('#modal-ok');

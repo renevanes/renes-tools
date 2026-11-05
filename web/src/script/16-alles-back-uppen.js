@@ -37,7 +37,7 @@ function bkCheckRender(r){
     (r.items || []).map(i => '<div class=bkres><b>' + esc(t(i.what)) + '</b><span class="' + (i.ok ? 'good' : 'bad') + '">' + (i.ok ? '✓ ' : '✗ ') + esc(t(i.msg)) + '</span></div>').join('');
 }
 function bkCheck(){ $('#bk-check-btn').disabled = true; $('#bk-check-btn').textContent = t('Bezig met controleren…'); Android.backupCheckRun(); }
-window.onBackupCheck = function(r){ const b = $('#bk-check-btn'); if (b) { b.disabled = false; b.textContent = t('Nu controleren'); } bkCheckRender(r); toast(r.ok ? '✓ Backup is in orde' : 'Backup-controle: er is iets mis'); };
+window.onBackupCheck = function(r){ const b = $('#bk-check-btn'); if (b) { b.disabled = false; b.textContent = t('Nu controleren'); } bkCheckRender(r); if (bkOn()) bkSums(); toast(r.ok ? '✓ Backup is in orde' : 'Backup-controle: er is iets mis'); };
 /* Tekent het overzicht én de eigen schermen (alles staat in de pagina; zo klopt de stand op de rijen altijd) */
 function enterBackup(){
   try { bkCheckRender(JSON.parse(Android.backupCheckLast())); } catch(e){}
@@ -56,7 +56,7 @@ function enterBackup(){
   stopBkPoll(); bkPoll = setInterval(bkPollOnce, 1000);
 }
 function bkPartOn(st, k){ const p = st.parts || {}; return p[k] === true || (k !== 'notifications' && !(k in BK_PRIV) && p[k] !== false); }
-/* De stand op de rijen van het overzicht (en bij Instellingen → Backup) */
+/* De stand op de rijen van het overzicht (en bij Instellingen → Backup-map) */
 function bkSetSumText(st){
   return [st.auto ? t(st.charging !== false ? 'Elke nacht, tijdens opladen' : 'Elke nacht') : t('Niet automatisch'),
     st.encBroken ? t('wachtwoord opnieuw instellen') : st.encrypted ? t('versleuteld') : t('niet versleuteld'),
@@ -66,7 +66,9 @@ function bkSums(st){
   st = st || bkState(true);
   const keys = Object.keys(BK_LABEL), on = keys.filter(k => bkPartOn(st, k)), priv = Object.keys(BK_PRIV).filter(k => bkPartOn(st, k));
   const p = $('#bk-sum-parts'); if (p) p.textContent = t('{n} van {totaal}', { n: on.length, totaal: keys.length }) + ' · ' + (priv.length ? t('privé: {n} aan', { n: priv.length }) : t('privé uit'));
-  const s = $('#bk-sum-set'); if (s) s.textContent = bkSetSumText(st);
+  // Mislukte maandelijkse controle (melding of startscherm opent het overzicht): op de rij, zodat je ziet waar het staat
+  let chk = {}; try { chk = JSON.parse(Android.backupCheckLast()) || {}; } catch(e){}
+  const s = $('#bk-sum-set'); if (s) s.textContent = bkSetSumText(st) + (chk.t && !chk.ok ? ' · ' + t('controle: er is iets mis') : '');
   const x = $('#st-sum-backup'); if (x) x.textContent = bkSetSumText(st);
 }
 function bkAppNote(on){ return on ? uiIcon('lock') + ' ' + t('Alles van de app, ook wachtwoorden, VPN, kluis, opnames en privé-onderdelen, zodat je na opnieuw installeren alles terug hebt. Modellen gaan niet mee (die worden opnieuw gedownload).') : t('Gaat alleen mee in een versleutelde backup: zet Versleutelen aan bij Automatisch en versleutelen.'); }

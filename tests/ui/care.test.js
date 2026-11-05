@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
     await pg.screenshot({ path: __dirname + '/shots/care-home-' + scheme + '.png' });
     await pg.click('#home-night button:has-text("Gezien")'); await pg.waitForTimeout(50);
     console.log('night card hidden after seen', !(await pg.isVisible('#home-night')));
-    await pg.evaluate(() => show('backup')); await pg.waitForTimeout(100);
+    await pg.evaluate(() => show('bkset')); await pg.waitForTimeout(100);
     await pg.click('#bk-check-btn'); await pg.waitForTimeout(200);
     console.log('check result', (await pg.textContent('#bk-check')).replace(/\s+/g, ' ').slice(0, 100));
     console.log('errors', errs); await pg.close();

@@ -1,0 +1,4 @@
+Alles back-uppen: overzichtelijker, met de status en één knop bovenaan; wat er meegaat, automatisch en versleutelen, en terugzetten als eigen schermen.
+WhatsApp backup: status en backup-map bovenaan met één knop; selectie, automatisch, leesbare chats en terugzetten (in vier stappen) als eigen schermen.
+Leesbare chats: de sleutel van 64 cijfers stel je nu één keer in op het scherm Leesbare chats zelf.
+Terugzetten staat op één plek (Alles back-uppen → Terugzetten), ook vanuit Gegevens terugzetten; Instellingen → Backup-map opent dezelfde backup-instellingen.

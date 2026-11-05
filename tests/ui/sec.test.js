@@ -7,6 +7,7 @@ const assert = require('node:assert/strict');
     const errs = []; pg.on('pageerror', e => errs.push(e.message));
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(400);
     await pg.evaluate(() => { Android._wa.info.dest = true; }); await pg.click('#tile-backup'); await pg.waitForTimeout(200);
+    await pg.click('#bk-row-set'); await pg.waitForTimeout(200);
     console.log('enc state', await pg.textContent('#bk-enc-state'), '| rotate', await pg.isChecked('#bk-rotate'));
     // wachtwoord: te kort, ongelijk, goed
     await pg.click('#bk-enc-btn'); await pg.waitForTimeout(100);
@@ -29,9 +30,11 @@ const assert = require('node:assert/strict');
     assert.equal(await pg.isVisible('#bk-enc-off'), true);
     await pg.click('#bk-rotate'); console.log('rotate on', await pg.evaluate(() => Android._sec.rotate));
     // backup met archief en opruimen
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
     await pg.click('#bk-run'); await pg.waitForTimeout(1600);
     console.log('last', await pg.$$eval('#bk-parts-res .bkres', x => x.slice(-2).map(e => e.innerText.replace(/\n/g, ' '))));
     // opruimen
+    await pg.click('#bk-row-set'); await pg.waitForTimeout(150);
     await pg.click('button:has-text("Nu opruimen")'); await pg.waitForTimeout(300);
     console.log('rotate dialog', await pg.textContent('#modal-title'), '|', await pg.textContent('#modal-text'));
     await pg.click('#modal-ok'); await pg.waitForTimeout(250);
@@ -40,7 +43,8 @@ const assert = require('node:assert/strict');
     await pg.click('#bk-space-btn'); await pg.waitForTimeout(400);
     console.log('space', await pg.$$eval('#bk-space .spc', x => x.map(e => e.innerText.replace(/\n/g, ' '))));
     // archief openen: vraagt wachtwoord, fout, goed
-    await pg.click('button:has-text("Versleutelde backup openen")'); await pg.waitForTimeout(400);
+    await pg.evaluate(() => show('bkrestore')); await pg.waitForTimeout(150);
+    await pg.click('#bk-arc-btn'); await pg.waitForTimeout(400);
     console.log('pw ask', await pg.textContent('#modal-title'), await pg.getAttribute('#modal-input', 'type'));
     await pg.fill('#modal-input', 'fout'); await pg.click('#modal-ok'); await pg.waitForTimeout(300);
     console.log('toast', await pg.textContent('#toast')); await pg.waitForTimeout(500);
@@ -57,6 +61,7 @@ const assert = require('node:assert/strict');
     await pg.click('#modal-cancel'); await pg.waitForTimeout(100);
     await pg.screenshot({ path: __dirname + '/shots/sec-' + scheme + '.png', fullPage: true });
     // uitzetten
+    await pg.evaluate(() => show('bkset')); await pg.waitForTimeout(150);
     await pg.click('#bk-enc-off'); await pg.waitForTimeout(100); await pg.click('#modal-ok'); await pg.waitForTimeout(150);
     console.log('off', await pg.textContent('#bk-enc-state'));
     assert.equal(await pg.evaluate(() => Android._sec.on), false);
