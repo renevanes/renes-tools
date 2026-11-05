@@ -10,6 +10,8 @@ Beheer je personen, identiteitsdocumenten en reizen onder **Stamgegevens**. Een 
 
 Open in een formulierstap **Invulhulp met vaste gegevens en lokale AI**. Kies de rol (bijvoorbeeld kind of reis), ontgrendel Stamgegevens en kies welke velden je wilt vrijgeven. BSN en documentgegevens zijn niet standaard aangevinkt. Een identiteitsdocument voor de invulhulp kies je nadat je de gekoppelde persoon voor dezelfde rol hebt gekozen. De selectie vult nog geen formulierwaarden in.
 
+Kies je personen als kind en begeleider, dan kan de hulp een gedeelde relatie tussen die personen uit Stamgegevens als bron voorstellen. Van jezelf naar je kind opgeslagen Kind wordt in dit formulier Ouder bij de begeleider. Tegenstrijdige of ontbrekende relaties blijven leeg. Er wordt geen gezag of toestemming afgeleid. Documentfoto’s en het volledige app-profiel gaan niet naar de formulier-AI.
+
 - **Voorstel uit vaste gegevens** koppelt gekozen bronvelden via de formulierdefinitie, zonder taalmodel. Het toont alleen ondubbelzinnige waarden. Bestaande invoer staat standaard uitgevinkt.
 - **Voorstel met lokale AI** gebruikt diezelfde geselecteerde bronvelden en je optionele toelichting. Het gebruikt het al geïnstalleerde taalmodel via `LocalAi.privateChatJob`, zonder netwerk, zoeken, acties, leren of gespreksopslag. Zonder passend model kun je de vaste gegevens blijven gebruiken. Een model wordt niet automatisch gedownload.
 - Controleer de voorgestelde waarde en bron en kies **Gekozen voorstellen overnemen**. Je bestaande invoer vervang je alleen door het betreffende vakje aan te vinken. Een wijziging aan invoer, toelichting of bronselectie maakt oude voorstellen ongeldig.
