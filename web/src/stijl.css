@@ -243,6 +243,8 @@ textarea.key:focus{outline:2px solid var(--primary);outline-offset:-1px;border-c
 .note-move-choice:disabled{opacity:.5}#sheet-acts #note-move-apply{background:var(--primary);color:var(--on-primary);text-align:center}#sheet-acts #note-move-apply:disabled{opacity:.45}
 .pdf-signature-library{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:16px}
 .pdf-signature-library h3{margin:0 0 8px}
+#pdf-signature-acts[hidden]{display:none}
+.card.pdf-signature-library{margin:0 0 12px;padding:18px;border:0}.card.pdf-signature-library .note{margin:0 2px 8px}
 #pdf-signature-preview{display:block;width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:12px}
 #pdf-signature-preview[hidden]{display:none}
 .pdf-signature-library .mini{float:none;white-space:normal;max-width:100%}
@@ -475,6 +477,24 @@ textarea.vpconf{font-size:13px;letter-spacing:0;line-height:1.45;resize:vertical
 .voicebtn.rec{background:#E5484D;color:#fff;animation:vpulse 1.2s infinite}
 @keyframes vpulse{0%{box-shadow:0 0 0 0 #E5484D88}100%{box-shadow:0 0 0 18px #E5484D00}}
 @media (prefers-reduced-motion: reduce){.voicebtn.rec{animation:none}}
+/* PDF-overzicht: tegels per taak (zelfde .tile als op het startscherm, maar compacter), recent gemaakt */
+.pdfopen{padding:14px}.pdfopen .note{margin-top:8px;text-align:center}
+.pdftiles{gap:10px;margin-bottom:4px}
+.pdftiles .tile{min-height:0;padding:12px 12px 12px 14px;gap:6px}
+.pdftiles .tile small{line-height:1.35}
+.pdftiles .tile:focus-visible,.pdfrec-share:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+.pdfdef.pdfdef{white-space:normal}
+.pdfrec{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--line)}
+.pdfrec .trip{flex:1;min-width:0;border-bottom:0}
+.trip b[translate=no]{overflow-wrap:anywhere}
+.pdfrec-share{width:48px;height:48px;flex:none;border-radius:24px;display:grid;place-items:center;background:none;color:var(--primary)}
+.pdfrec-share:active{background:color-mix(in srgb,var(--ink) 10%,transparent)}
+.pdfrec-share .ui-icon{width:22px;height:22px}
+#pdf-recent-all{margin-top:6px;min-height:40px}
+.pdfintro{margin:0 2px 12px}
+.pdfres:not(:empty){margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.pdfres-h{margin:0 0 4px;font-size:14px;color:var(--primary)}
+.pdfres .linkish{margin-top:6px;min-height:40px}
 .pdfimgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-bottom:10px}
 .pdfimg{position:relative;border-radius:10px;overflow:hidden;background:var(--chip);aspect-ratio:3/4;display:flex;align-items:center;justify-content:center}
 .pdfimg img{max-width:100%;max-height:100%}

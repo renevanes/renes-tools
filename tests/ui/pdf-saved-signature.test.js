@@ -4,8 +4,8 @@ const assert=require('node:assert/strict');
   const browser=await chromium.launch();
   for(const scheme of ['light','dark']){
     const p=await browser.newPage({viewport:{width:390,height:844},colorScheme:scheme});const errors=[];p.on('pageerror',e=>errors.push(e.message));
-    await p.goto('file://'+require('path').join(__dirname,'ui','index.html'));await p.evaluate(()=>show('pdf'));
-    assert.equal(await p.isDisabled('#pdf-signature-use'),true);
+    await p.goto('file://'+require('path').join(__dirname,'ui','index.html'));await p.evaluate(()=>show('pdfedit'));
+    assert.equal(await p.isDisabled('#pdf-signature-use'),true);assert.equal(await p.isVisible('#pdf-signature-delete'),false,'niets te verwijderen');
     await p.click('#pdf-edit-pick');await p.waitForFunction(()=>pdfEd.meta[0]&&!pdfEd.loading);
     const draw=async(offset=0)=>{
       await p.getByRole('button',{name:'Handtekening tekenen',exact:true}).click();

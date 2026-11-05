@@ -28,6 +28,7 @@ function pdfSignatureControls(){
   const live=pdfEd.revision&&pdfEd.meta[pdfEd.page]&&!pdfEd.loading&&!pdfBusy;
   $('#pdf-signature-use').disabled=!pdfSig.value||!live;
   $('#pdf-signature-delete').disabled=pdfBusy||!(pdfSig.value||pdfSig.error);
+  $('#pdf-signature-acts').hidden=!(pdfSig.value||pdfSig.error);
   $('#pdf-signature-save').disabled=pdfBusy;
 }
 function pdfSignatureRender(){
@@ -38,7 +39,7 @@ function pdfSignatureRender(){
     ctx.strokeStyle=s.color;ctx.lineWidth=Math.max(2,w*.008);ctx.lineCap=ctx.lineJoin='round';
     for(const path of s.paths){ctx.beginPath();path.forEach((p,i)=>{if(i)ctx.lineTo(x+p[0]*w,y+p[1]*h);else ctx.moveTo(x+p[0]*w,y+p[1]*h);});ctx.stroke();}
   }
-  $('#pdf-signature-status').textContent=pdfSig.error||(s?'Je handtekening is versleuteld bewaard op deze telefoon. Kies een PDF om haar opnieuw te plaatsen.':'Nog geen handtekening bewaard. Teken er een in de PDF-bewerker en kies Handtekening bewaren.');
+  $('#pdf-signature-status').textContent=pdfSig.error||(s?'Je handtekening is versleuteld bewaard op deze telefoon. Kies een PDF om haar opnieuw te plaatsen.':'Nog geen handtekening bewaard. Kies een PDF, teken je handtekening en kies Handtekening bewaren.');
   pdfSignatureControls();
 }
 function pdfSignatureSaveDraw(){
@@ -85,6 +86,7 @@ function pdfKeepUnlocked(result){
 window.onPdfStored=function(r){
   if(!pdfKeepPending)return;pdfKeepPending=null;pdfSetBusy('');
   const ok=!!(r&&r.ok);
-  $('#pdf-keep-status').textContent=ok?t('Bewaard in je documentenkluis: {naam}', { naam: r.name }):t(r&&r.error||'Bewaren lukt niet');
+  const msg=ok?t('Bewaard in je documentenkluis: {naam}', { naam: r.name }):t(r&&r.error||'Bewaren lukt niet');
+  document.querySelectorAll('.pdfkeep').forEach(e=>{e.textContent=msg;});
   toast(ok?'PDF bewaard in documentenkluis':r&&r.error||'Bewaren lukt niet');
 };
