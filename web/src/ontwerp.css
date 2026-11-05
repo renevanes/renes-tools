@@ -182,7 +182,7 @@ details.card.setup[open]>summary{margin-bottom:10px}
 /* Compacte balk bovenaan een lijst (bijv. "Bewaren staat uit" met een schakelaar) */
 .bar1{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 14px;margin-bottom:14px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
 .bar1.warn{background:color-mix(in srgb,var(--warn) 9%,var(--card));border-color:color-mix(in srgb,var(--warn) 35%,var(--line))}
-.bar1>span{flex:1;min-width:0;font-size:14px}.bar1>span small{display:block;color:var(--muted);font-size:12.5px}
+.bar1>span:not(.ui-icon){flex:1;min-width:0;font-size:14px}.bar1>span small{display:block;color:var(--muted);font-size:12.5px}
 .bar1 .chk{padding:0}
 /* Schakelaar als echt selectievakje (role="switch"), voor als het een <input> moet blijven */
 input.switch{-webkit-appearance:none;appearance:none;width:48px;height:28px;margin:0;flex:none;cursor:pointer;border-radius:14px;border:1px solid var(--outline);
@@ -208,3 +208,6 @@ details.card.setup h3{font-size:15px;font-weight:650;margin:16px 0 6px}
 #al-days,#rp-days{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:2px}
 #al-days button,#rp-days button{min-width:44px;min-height:44px;padding:6px 0;text-align:center;justify-content:center}
 #aid-more .aid-d{display:block;margin-bottom:6px}
+/* Stand die je moet kunnen zien (beveiliging): niet afkappen */
+#gb-sum-ontgr{white-space:normal;overflow:visible}
+details.card.setup>summary .setup-h{flex:1;min-width:0;font-size:15px;font-weight:650;color:var(--ink)}

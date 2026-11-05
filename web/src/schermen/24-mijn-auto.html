@@ -45,7 +45,7 @@
       <div id="car-perm" class="result on other" style="display:none"></div>
       <label class="f" for="car-dev">Bluetooth van de auto</label>
       <select class="sel" id="car-dev" onchange="carSave()"></select>
-      <div class="sw"><span>Ritten vanzelf opnemen<small>Bluetooth van de auto aan = rit begint, uit = rit wordt opgeslagen</small></span><button class="tg" id="car-trips-on" role="switch" aria-checked="false" aria-label="Ritten vanzelf opnemen" onclick="this.classList.toggle('on'); carSave()"></button></div>
+      <div class="sw"><span>Ritten vanzelf opnemen<small id="car-trips-n">Bluetooth van de auto aan = rit begint, uit = rit wordt opgeslagen; de route met kilometers blijft op je telefoon</small></span><button class="tg" id="car-trips-on" role="switch" aria-checked="false" aria-label="Ritten vanzelf opnemen" aria-describedby="car-trips-n" onclick="this.classList.toggle('on'); carSave()"></button></div>
       <label class="f" for="car-def">Nieuwe ritten zijn</label>
       <select class="sel" id="car-def" onchange="carSave()"><option value="prive">Privé</option><option value="zakelijk">Zakelijk</option></select>
     </div>

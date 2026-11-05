@@ -6,9 +6,10 @@
  *  - Lege lijst       uiEmpty('mic', t('Nog geen opnames.'), t('Start opname'), 'recorderStart()').
  *  - Eenmalig instellen  uiSetup('#rc-setup', klaar): een <div class="card setup"> gaat weg, een <details class="card setup"> klapt in. */
 
-/** "Hoe werkt dit?" als HTML (voor schermen die hun inhoud zelf opbouwen). body is al veilige HTML. */
-function uiHelp(summary, body, inCard){
-  return '<details class="help' + (inCard ? ' in' : '') + '"><summary data-icon="info" aria-expanded="false">' + esc(summary || t('Hoe werkt dit?')) + '</summary><div class="help-body">' + body + '</div></details>';
+/** "Hoe werkt dit?" als HTML (voor schermen die hun inhoud zelf opbouwen). body is al veilige HTML.
+ *  key (data-k): naam waarmee uiHtml() een uitgeklapt blok na opnieuw tekenen weer openzet. */
+function uiHelp(summary, body, inCard, key){
+  return '<details class="help' + (inCard ? ' in' : '') + '"' + (key ? ' data-k="' + esc(key) + '"' : '') + '><summary data-icon="info" aria-expanded="false">' + esc(summary || t('Hoe werkt dit?')) + '</summary><div class="help-body">' + body + '</div></details>';
 }
 /** Lege lijst: pictogram, één regel en hooguit één actie (act = JavaScript voor onclick, met jsq() voor waarden). */
 function uiEmpty(icon, text, label, act){
@@ -24,12 +25,13 @@ function uiSetup(el, done){
   if (el.tagName === 'DETAILS') { if (el._uiDone !== done) { el._uiDone = done; el.open = !done; uiHelpSync(el); } }
   else el.hidden = done;
 }
-/** innerHTML alleen als er iets veranderd is, en uitgeklapte "Hoe werkt dit?"-blokken blijven open (bijv. tijdens het pollen). */
+/** innerHTML alleen als er iets veranderd is, en uitgeklapte blokken met een data-k (uiHelp(…, key)) blijven open,
+ *  ook als er intussen een blok bij kwam of weg ging (bijv. tijdens het pollen). */
 function uiHtml(el, html){
   if (!el || el._h === html) return;
-  const open = [...el.querySelectorAll('details')].map(d => d.open);
+  const open = new Set([...el.querySelectorAll('details[data-k]')].filter(d => d.open).map(d => d.dataset.k));
   el.innerHTML = html; el._h = html;
-  el.querySelectorAll('details').forEach((d, i) => { if (open[i]) d.open = true; uiHelpSync(d); });
+  el.querySelectorAll('details').forEach(d => { if (d.dataset.k && open.has(d.dataset.k)) d.open = true; uiHelpSync(d); });
 }
 /* Uitklappers: de schermlezer hoort "ingeklapt"/"uitgeklapt" (aria-expanded op de summary). */
 function uiHelpSync(d){ const s = d && d.querySelector(':scope > summary'); if (s) s.setAttribute('aria-expanded', d.open ? 'true' : 'false'); }

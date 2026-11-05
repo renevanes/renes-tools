@@ -14,10 +14,9 @@ const DETAIL = ['cversions', 'cversion', 'vpnedit', 'autoed', 'chats', 'ralarm',
   'sleepset', 'sleepnight', 'checkined', 'checkinq', 'checkincmp', 'setnotif', 'setlook', 'setregio', 'setcrash', 'facstuk', 'facgoogle', 'idcopy', 'formulieren'];
 // Meer dan één gevulde hoofdknop: bewust (met de reden)
 const MEER_PRIMAIR = {
-  wa: 'WhatsApp backup wordt door een andere agent opnieuw ingedeeld',
-  backup: 'Alles back-uppen wordt door een andere agent opnieuw ingedeeld',
-  pdf: 'PDF wordt op een eigen branch opnieuw ingedeeld (claude/pdf-indeling)',
-  formulieren: 'hoort bij PDF (claude/pdf-indeling)'
+  wa: 'ronde 2 (Alles back-uppen/WhatsApp herindelen)',
+  backup: 'ronde 2 (Alles back-uppen/WhatsApp herindelen)',
+  pdf: 'PDF wordt op een eigen branch opnieuw ingedeeld (claude/pdf-indeling); weg zodra die op main staat'
 };
 
 (async () => {
@@ -94,10 +93,13 @@ const MEER_PRIMAIR = {
     ok(await pg.evaluate(() => document.querySelector('#recorder-setup').open) && await pg.isVisible('#recorder-auto'), tag + ': zelf opengeklapt blijft open (automatisch starten bereikbaar), ook na verversen');
 
     // ---------- Gemeten: korte schermen en de hoofdknop boven de vouw ----------
+    // Vaste wijzigingslijst (niet changelog.json: publish.sh zet daar vóór de tests de nieuwe versie in, met al zijn regels)
+    await pg.evaluate(() => { const log = []; for (let v = 40; v > 10; v--) log.push({ version: '1.' + v, date: '2026-11-05', changes: [1, 2, 3, 4, 5].map(i => 'Regel ' + i + ' van versie 1.' + v + ': een wijziging zoals Rene hem leest, ongeveer zo lang als een gewone regel.') });
+      Android._vastLog = log; Android.lastManifest = () => JSON.stringify({ versionCode: 1e9, changelog: log }); });
     await naar(pg, 'info');
     const infoH = await pg.evaluate(() => document.documentElement.scrollHeight);
-    ok(infoH < 3 * FOLD, tag + ': Versie en updates is ' + (infoH / FOLD).toFixed(1) + ' schermen (< 3)');
-    const nAll = await pg.evaluate(() => (CHANGELOG || []).length);
+    ok(infoH < 3 * FOLD, tag + ': Versie en updates is ' + (infoH / FOLD).toFixed(1) + ' schermen (< 3; 30 versies van 5 regels)');
+    const nAll = await pg.evaluate(() => Android._vastLog.length);
     ok(await pg.evaluate(() => document.querySelectorAll('#log h3').length) === Math.min(3, nAll), tag + ': de laatste 3 versies');
     await pg.click('#log-all'); await pg.waitForTimeout(80 * W);
     ok(await pg.evaluate(() => document.querySelectorAll('#log h3').length) === nAll && (await pg.getAttribute('#log-all', 'aria-expanded')) === 'true', tag + ': Alle versies: alle ' + nAll);
@@ -169,6 +171,24 @@ const MEER_PRIMAIR = {
     ok(zoom.length === 2 && zoom.every(([w, h]) => w >= 44 && h >= 44), tag + ': Locatie kiezen: zoomknoppen van de kaart minstens 44×44 (' + JSON.stringify(zoom) + ')');
     await naar(pg, 'car');
     ok(await pg.evaluate(() => { const b = document.querySelector('#car-export'), lh = parseFloat(getComputedStyle(b).lineHeight) || 21; return b.getBoundingClientRect().height < 2.5 * lh + 26; }), tag + ': Mijn auto: Maand exporteren past op hooguit twee regels');
+    // Ritten vanzelf opnemen zegt zichtbaar dat de route met kilometers bewaard wordt
+    await naar(pg, 'carset');
+    ok(/kilometers|kilometres/.test(await pg.textContent('#car-trips-n')) && await pg.isVisible('#car-trips-n'), tag + ': Mijn auto: ritten opnemen zegt dat de route met kilometers bewaard wordt');
+    // Gebruik → Ontgrendelen: de stand staat op de rij zelf (beveiliging), niet afgekapt
+    await pg.evaluate(() => { Android._gb.admin = false; Android._gb.set = Object.assign({}, Android._gb.set, { punlock: 'uit', photoFail: false }); });
+    await naar(pg, 'gebruikset');
+    const uit = await pg.textContent('#gb-sum-ontgr');
+    await pg.evaluate(() => { Android._gb.admin = true; Android._gb.set = Object.assign({}, Android._gb.set, { punlock: 'elke' }); enterGebruikSet(); });
+    const aan = await pg.textContent('#gb-sum-ontgr');
+    ok(/uit|off/i.test(uit) && /apparaatbeheer aan|device admin on/i.test(aan) && /elke ontgrendeling|every unlock/i.test(aan), tag + ': Ontgrendelen-rij toont de stand ("' + uit + '" / "' + aan + '")');
+    ok(await pg.evaluate(() => { const e = document.querySelector('#gb-sum-ontgr'); return e.scrollWidth <= e.clientWidth + 1 && getComputedStyle(e).whiteSpace === 'normal'; }), tag + ': Ontgrendelen-stand wordt niet afgekapt');
+    await pg.evaluate(() => { Android._gb.admin = false; Android._gb.set = Object.assign({}, Android._gb.set, { punlock: 'uit' }); });
+    // Balk "Er ontbreekt een toestemming" op 360 px: de tekst krijgt de ruimte, de pijl blijft klein
+    await pg.setViewportSize({ width: 360, height: FOLD });
+    await pg.evaluate(() => { Android._car.trips = true; }); await naar(pg, 'car');
+    const hint = await pg.evaluate(() => { const b = document.querySelector('#car-perm-hint'); if (!b || !b.getClientRects().length) return null; const c = b.querySelector('.stchev').getBoundingClientRect(), x = b.querySelector('span:not(.ui-icon)').getBoundingClientRect(); return { chev: Math.round(c.width), tekst: Math.round(x.width), breed: document.documentElement.scrollWidth > innerWidth + 1 }; });
+    ok(hint && hint.chev <= 24 && hint.tekst >= 220 && !hint.breed, tag + ': Mijn auto: toestemmingsbalk op 360 px (' + JSON.stringify(hint) + ')');
+    await pg.evaluate(() => { Android._car.trips = false; }); await pg.setViewportSize({ width: 390, height: FOLD });
     await pg.screenshot({ path: __dirname + '/shots/ui-patronen-' + scheme + (en ? '-en' : '') + '.png' });
     await ctx.close();
   }

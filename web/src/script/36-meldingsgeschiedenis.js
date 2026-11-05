@@ -44,11 +44,14 @@ function historyMenu(){
   acts.push(['Geschiedenis op deze telefoon wissen', historyClear, 'trash']);
   openSheet(t('Meldingsgeschiedenis'), d.total ? tn(d.total, 'Eén bewaarde melding', '{n} bewaarde meldingen') : t('Nog niets bewaard'), acts);
 }
+/* Backup-map kiezen hoort bij Instellingen: in een losse app niet (en dan mag die aanroep ook niet in historyExport
+   staan, anders haalt de losse app Exporteren uit het menu: soloSrcOk leest de broncode van de keuze). */
+function historyPickFolder(){ if (!SOLO) { Android.waPickFolder(); setTimeout(loadHistory, 500); } }
 function historyExport(){
   if (historyExportBusy) return;
   const d = historyData || {};
   if (!d.total) { toast('Er zijn nog geen meldingen om te exporteren'); return; }
-  if (!d.dest) { toast('Kies eerst een backup-map'); Android.waPickFolder(); setTimeout(loadHistory, 500); return; }
+  if (!d.dest) { toast('Kies eerst een backup-map'); historyPickFolder(); return; }
   if (!plainOk('De meldingsgeschiedenis (met bijv. inlogcodes)', historyExport)) return;
   const error = Android.historyExport();
   if (error) { $('#history-result').textContent = error; return; }

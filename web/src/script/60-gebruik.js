@@ -172,6 +172,20 @@ function enterGebruikSet(){
   if (!s.a11y) fix.push(['Toegankelijkheid aanzetten (voor "alleen met pincode")', "show('auto')"]);
   slHtml($('#gb-photo-fix'), fix.map(f => '<button class="big ghost" onclick="' + f[1] + '">' + esc(f[0]) + '</button>').join(''));
   gbRenderPhotos();
+  // De rij Ontgrendelen laat meteen zien wat er aan staat (beveiliging: zonder het scherm te openen)
+  const sum = $('#gb-sum-ontgr'); if (sum) sum.textContent = gbOntgrSum(s, set, typeof isPlay === 'function' && isPlay());
+}
+/** Korte stand van Ontgrendelen: apparaatbeheer en foto's (in de Play-versie alleen het herkennen van de pincode). Zuiver. */
+function gbOntgrSum(s, set, play){
+  if (play) return s.a11y ? t('Pincode herkennen staat aan') : t('Pincode herkennen staat uit');
+  const parts = [];
+  if (s.admin) parts.push(t('apparaatbeheer aan'));
+  const pu = set.punlock || 'uit';
+  if (pu === 'elke') parts.push(t('foto bij elke ontgrendeling')); else if (pu === 'pincode') parts.push(t('foto bij ontgrendelen met pincode'));
+  if (set.photoFail) parts.push(t('foto bij een mislukte poging'));
+  if (!parts.length) return t('Apparaatbeheer en foto\'s staan uit');
+  const x = parts.join(' · ');
+  return x.charAt(0).toUpperCase() + x.slice(1);
 }
 
 function gbChipSel(sel, v){ document.querySelectorAll(sel + ' button').forEach(b => { const on = String(b.dataset.v) === String(v); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }); }

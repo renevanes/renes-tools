@@ -109,17 +109,23 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   (in een kaart `class="help in"`; een eigen kop mag, bijv. "Waarvoor is dit?"). Vanuit JavaScript: `uiHelp(t('…'), html, inKaart)`.
   Eén regel uitleg blijft zichtbaar als `<p class="hint">`. **Niet verbergen** wat nodig is voor een veilige keuze
   (privacy, toestemmingen, wat er de telefoon verlaat, wat niet ongedaan kan): kort en zichtbaar houden, de details mogen in de help.
-  De summary krijgt vanzelf `aria-expanded`; met `uiHtml(el, html)` blijven uitgeklapte blokken open als een lijst opnieuw getekend wordt.
+  De summary krijgt vanzelf `aria-expanded`; met `uiHtml(el, html)` blijven uitgeklapte blokken met een sleutel
+  (`uiHelp(…, …, …, 'sleutel')`, `data-k`) open als een lijst opnieuw getekend wordt.
 - **Overzicht met rijen** (hub): statuskaart, één hoofdknop en rijen naar eigen schermen, met `.card.stlist` en
   `<button class="strow"><span class="stic">icoon</span><span class="sttxt"><b>Titel</b><small id="…">stand</small></span><span class="ui-icon stchev" data-icon="chevron-right"></span></button>`
-  zoals Instellingen, Lokale AI en Gebruik → Ontgrendelen. De `<small>` laat kort de stand zien.
+  zoals Instellingen, Lokale AI en Gebruik → Ontgrendelen. De `<small>` laat kort de stand zien (bij iets wat met
+  beveiliging of privacy te maken heeft altijd, en niet afgekapt).
+- **Overzicht met tegels**: een tool met een paar gelijkwaardige taken (zoals PDF: afschermen, invullen, openen, tekst
+  als PDF) toont die als `.tiles` met `<button class="tile">` (pictogram in `.ic`, `<b>` taak, `<small>` één regel uitleg),
+  zonder één gevulde hoofdknop; elke tegel opent een eigen taakscherm (hdr sm, in `DETAIL` van de test).
 - **Instellingen van een tool**: schuifjes rechts in de kop, naar een eigen scherm `<tool>set` (hdr sm, `BACK` terug naar de tool):
   `<button class="icon-btn hset" id="…" data-to="carset" aria-label="Instellingen van Mijn auto"></button>`
-  (pictogram en klik vult `uiPatterns()` in). Zo bij Gebruik, Apparaten en Mijn auto. Ontbreekt er iets waardoor de tool niet
+  (pictogram en klik vult `uiPatterns()` in; geen eigen onclick of inhoud). Zo bij Gebruik, Apparaten en Mijn auto. Ontbreekt er iets waardoor de tool niet
   werkt (een toestemming), laat dan op de tool zelf een korte balk zien die naar de instellingen gaat.
 - **Lege lijst**: `uiEmpty('mic', t('Nog geen opnames.'), t('Knoptekst'), 'actie()')`: pictogram, één regel en hooguit één (tonale) knop.
 - **Eenmalig instellen**: een kaart `class="card setup"` die weg gaat als het klaar is (`<div … hidden>`), of inklapt als er
-  ook later nog iets in staat (`<details class="card setup"><summary><h2>Eenmalig instellen</h2><small id="…">stand</small></summary>…</details>`).
+  ook later nog iets in staat (`<details class="card setup"><summary><span class="setup-h" role="heading" aria-level="2">Eenmalig instellen</span><small id="…">stand</small></summary>…</details>`;
+  geen `<h2>` in een summary).
   Bijwerken met `uiSetup(el, klaar)`; een `<details>` klapt alleen vanzelf als de stand verandert. Zo bij Locatie kiezen,
   Spotify en Gesprekken opnemen.
 - **Knoppen**: per scherm hooguit één gevulde hoofdknop (`.big`, of `.mini.on.fill` in een lijst); de rest `.big.tonal`
@@ -127,6 +133,8 @@ Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/sc
   de gevulde knop (Modellen, de assistent). Uitzonderingen staan met de reden in `MEER_PRIMAIR` in de test.
 - **Keuzelijsten**: `<select class="sel">` (of `class="search"` als zoekveld-breed); nooit een kale `<select>`.
 - **Menu ⋯ in de kop** voor acties die je zelden doet (exporteren, wissen): `openSheet(…)`, zoals Meldingsgeschiedenis.
+  Let op losse apps: `soloSrcOk` leest de broncode van elke menukeuze en haalt keuzes weg die naar een andere tool gaan
+  (ook `Android.waPickFolder`). Zet zo'n aanroep dus in een eigen hulpfunctie, niet in de actie zelf.
 - **Schakelaar**: `<button class="tg" role="switch" aria-checked>`; moet het een `<input>` blijven: `<input type="checkbox" class="switch" role="switch">`.
 - Tikvlakken minstens 44×44 px (ook dagknoppen, zoomknoppen van de kaart en rijen op de Telefoon-skin).
 

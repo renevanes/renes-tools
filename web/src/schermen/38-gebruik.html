@@ -3,7 +3,7 @@
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Gebruik</h1>
-    <button class="icon-btn hset" id="gb-set-btn" data-to="gebruikset" onclick="show('gebruikset')" aria-label="Instellingen"><span class="ui-icon" data-icon="settings" aria-hidden="true"></span></button>
+    <button class="icon-btn hset" id="gb-set-btn" data-to="gebruikset" aria-label="Instellingen van Gebruik"></button>
   </div>
   <main>
     <p class="note">Welke functies van je telefoon gebruikt worden en wanneer, wanneer je ontgrendelde en wat er daarna gebeurde. Alles blijft op je telefoon; er gaat niets naar buiten.</p>
@@ -57,7 +57,7 @@
     <div id="gb-fotos" class="gb-pane" style="display:none">
       <p class="note">De stille foto's met de voorcamera: bij een mislukte poging, bij ontgrendelen en je proefopnames. Ze staan versleuteld alleen hier, nooit in je galerij. Tik op een foto om hem groot te zien.</p>
       <div id="gb-fotos-list"></div>
-      <button class="big ghost" onclick="show('gebruikontgr')">Instellingen voor foto's</button>
+      <button class="big ghost" onclick="jumpTo('gebruikontgr')">Instellingen voor foto's</button>
     </div>
 
     <!-- Meldingen & opladen -->
@@ -98,7 +98,7 @@
     </div>
 
     <div class="card stlist">
-      <button class="strow" id="gb-ontgr-row" onclick="show('gebruikontgr')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Ontgrendelen</b><small id="gb-sum-ontgr">Pincode, apparaatbeheer en foto's</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" id="gb-ontgr-row" onclick="show('gebruikontgr')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Ontgrendelen</b><small id="gb-sum-ontgr"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
 
     <div class="card">
@@ -125,7 +125,7 @@
 
     <div class="card">
       <h2>Foto bij ontgrendelen</h2>
-      <p class="hint">Een stille foto met de voorcamera; Android laat kort het camera-stipje zien. Versleuteld in de app, nooit in je galerij.</p>
+      <p class="hint">Een stille foto met de voorcamera, versleuteld in de app en nooit in je galerij.</p>
       <p class="note bad" id="gb-photo-status"></p>
       <div id="gb-photo-fix"></div>
       <div class="sw"><span>Foto bij een mislukte poging<small id="gb-pfail-n">Bij genoeg mislukte pogingen (via apparaatbeheer)</small></span><button class="tg" id="gb-pfail" role="switch" aria-checked="false" aria-label="Foto bij een mislukte poging" aria-describedby="gb-pfail-n" onclick="gbPhotoTg('photoFail')"></button></div>

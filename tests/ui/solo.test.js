@@ -66,6 +66,19 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => current) === 'notes', 'terug naar de lijst');
     await pg.screenshot({ path: __dirname + '/shots/solo-notes-' + scheme + '.png' });
     await pg.close();
+
+    // 4. Losse app "Meldingsgeschiedenis": exporteren en wissen in het menu ⋯ blijven, backup-map kiezen (Instellingen) niet
+    pg = await b.newPage({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
+    pg.on('pageerror', e => errs.push(e.message));
+    await pg.addInitScript(() => { window.__testSolo = 'history'; });
+    await pg.goto(url); await pg.waitForTimeout(400);
+    ok(await pg.evaluate(() => current) === 'history', 'losse app Meldingsgeschiedenis opent de geschiedenis');
+    await pg.click('#history-menu'); await pg.waitForTimeout(100);
+    const hacts = await pg.$$eval('#sheet-acts button', x => x.map(e => e.textContent));
+    ok(hacts.includes('Geschiedenis exporteren') && hacts.includes('Geschiedenis op deze telefoon wissen') && !hacts.includes('Backup-map kiezen'), 'menu ⋯ in de losse app: exporteren en wissen, geen backup-map kiezen (' + hacts.join(' | ') + ')');
+    await pg.click('#sheet-acts button:has-text("Geschiedenis exporteren")'); await pg.waitForTimeout(100);
+    ok(await pg.evaluate(() => current) === 'history' && /backup-map/.test(await pg.textContent('#toast')), 'exporteren zonder backup-map: melding, en de losse app blijft bij de geschiedenis');
+    await pg.close();
   }
   await b.close();
   console.log('errors', errs);
