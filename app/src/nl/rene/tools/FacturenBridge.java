@@ -280,7 +280,18 @@ public class FacturenBridge extends GebruikBridge {
         catch (Exception e) { return e.getMessage() == null ? "Weghalen lukt niet" : e.getMessage(); }
     }
 
-    /** Het hele dossier leegmaken (ontwikkelen). Geeft {aantal} of {error}. */
+    /** Echt alles weghalen, ook de opgeslagen kopieën; antwoord via onFacturenAllesWeg({aantal, weg, mislukt, mail} of {error}). */
+    @JavascriptInterface public void facturenDossierAllesWeg() {
+        new Thread(() -> {
+            String r;
+            try { r = FacturenDossier.allesWeg(ctx).toString(); }
+            catch (Throwable e) { r = err(e instanceof Exception ? (Exception) e : new Exception(e), "Weghalen lukt niet"); }
+            a.h.post(() -> { try { FacturenJob.schedule(ctx); } catch (Throwable ignored) { } });
+            a.js("onFacturenAllesWeg", r);
+        }, "facturen-alles-weg").start();
+    }
+
+    /** Het hele dossier leegmaken (opnieuw beginnen). Geeft {aantal} of {error}. */
     @JavascriptInterface public String facturenDossierReset() {
         try { int n = FacturenDossier.reset(ctx); a.h.post(() -> { try { FacturenJob.schedule(ctx); } catch (Throwable ignored) { } }); return new JSONObject().put("aantal", n).toString(); }
         catch (Exception e) { return err(e, "Leegmaken lukt niet"); }

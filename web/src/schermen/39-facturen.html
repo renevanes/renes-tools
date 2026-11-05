@@ -340,9 +340,12 @@
     <button class="big ghost" style="margin-top:8px" id="fd-csv" onclick="fdCsv()">Exporteren als CSV (voor Excel)</button>
     <p class="note" id="fd-csv-msg" role="status" aria-live="polite"></p>
     <details class="card rinfo" id="fd-ontw" style="margin-top:12px">
-      <summary><b>Ontwikkelen</b></summary>
-      <p class="note">Het hele dossier leegmaken: alle facturen in de app weg, en elke leverancier vergeet wat al is opgehaald (de volgende keer begint die opnieuw). Wat al bij je accountant is aangeleverd, gaat niet nog een keer. Kopieën in je backup-map, op Drive en in je mail blijven staan, en je instellingen ook.</p>
+      <summary><b>Opnieuw beginnen</b></summary>
+      <p class="note">Dossier leegmaken: alle facturen in de app weg, en elke leverancier vergeet wat al is opgehaald (de volgende keer begint die opnieuw). Kopieën in je backup-map, op je telefoon en op Drive blijven staan.</p>
       <button class="big ghost bad" id="fd-reset" onclick="fdReset()">Dossier leegmaken</button>
+      <p class="note" style="margin-top:12px">Alles weghalen: hetzelfde, en ook de PDF's die de app in je backup-map, in de map op je telefoon en op Google Drive zette. Mail die al verstuurd is, kan niet terug.</p>
+      <button class="big ghost bad" id="fd-alles" onclick="fdAllesWeg()">Alles weghalen, ook de PDF's</button>
+      <p class="note">In beide gevallen blijven je instellingen staan (leveranciers, ontvangers, koppelingen), en wat al bij je accountant is aangeleverd, gaat niet nog een keer.</p>
     </details>
   </main>
 </section>

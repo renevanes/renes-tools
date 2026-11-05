@@ -712,6 +712,19 @@ function fdReset(){
       fdLaad(); faLaad(); faSamenvatting(); fdRender();
     }));
 }
+function fdAllesWeg(){
+  const n = ((faDos || {}).items || []).length;
+  askConfirm(t('Alles weghalen?'), tn(n, 'Eén factuur gaat uit de app, en ook uit je backup-map, de map op je telefoon en Google Drive. Dit kan niet ongedaan worden.', '{n} facturen gaan uit de app, en ook uit je backup-map, de map op je telefoon en Google Drive. Dit kan niet ongedaan worden.'), t('Weghalen'), () =>
+    askConfirm(t('Echt alles weghalen?'), t('Weet je het zeker? De PDF\'s zijn daarna nergens meer, behalve in mail die al verstuurd is.'), t('Ja, alles weghalen'), () => {
+      toast(t('Bezig met weghalen…'));
+      Android.facturenDossierAllesWeg();
+    }));
+}
+window.onFacturenAllesWeg = function(r){
+  if (r.error) { toast(r.error); return; }
+  toast(r.mislukt ? tn(r.mislukt, '✓ Dossier leeg; één kopie kon niet weg', '✓ Dossier leeg; {n} kopieën konden niet weg') : t('✓ Alles weggehaald'));
+  fdLaad(); faLaad(); faSamenvatting(); fdRender();
+};
 function fsTekst(){
   const r = rdJson(Android.facturenDossierTekst(fsSha), { error: 'Lezen lukt niet' });
   $('#fs-tekst').textContent = r.error ? r.error : (r.tekst || '').trim() || '(geen tekst gevonden: misschien is de PDF een afbeelding)';

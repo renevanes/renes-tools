@@ -209,6 +209,17 @@ const { chromium } = require('playwright');
     ok((await tekst('#modal')).includes('Weet je het zeker'), 'leegmaken: tweede vraag');
     await pg.click('#modal button:has-text("Ja, leegmaken")'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => Object.keys(Android._fa.dos).length) === 0 && (await tekst('#fd-lijst')).includes('Nog geen facturen'), 'dossier leeg');
+    ok((await tekst('#fd-ontw summary')).includes('Opnieuw beginnen'), 'kopje opnieuw beginnen');
+    // Alles weghalen, ook de PDF's (met weer twee vragen)
+    await pg.evaluate(() => { const f = Android._fa; f.dos = f.dos || {}; f.dos['a'.repeat(64)] = { sha: 'a'.repeat(64), naam: 'x.pdf', leverancier: 'kpn', leverancierNaam: 'KPN', opgehaald: Date.now(), bron: { soort: 'website' }, plekken: {}, verzonden: {}, meta: {} }; });
+    await pg.evaluate(() => { fdLaad(); fdRender(); }); await pg.waitForTimeout(60);
+    await pg.click('#fd-alles'); await pg.waitForTimeout(120);
+    ok((await tekst('#modal')).includes('Google Drive'), 'alles weghalen: waarschuwing noemt de kopieën');
+    await pg.click('#modal button:has-text("Weghalen")'); await pg.waitForTimeout(150);
+    ok((await tekst('#modal')).includes('Weet je het zeker'), 'alles weghalen: tweede vraag');
+    await pg.click('#modal button:has-text("Ja, alles weghalen")'); await pg.waitForTimeout(400);
+    ok(await pg.evaluate(() => Android._fa.calls.some(c => c[0] === 'allesWeg') && Object.keys(Android._fa.dos).length === 0), 'alles weggehaald');
+    ok((await tekst('#fd-lijst')).includes('Nog geen facturen'), 'lijst leeg na alles weghalen');
     // Terug tot het startscherm
     for (let i = 0; i < 12 && await scherm() !== 'home'; i++) { await pg.evaluate(() => goBack()); await pg.waitForTimeout(100); }
     ok(await scherm() === 'home', 'terug naar het startscherm');

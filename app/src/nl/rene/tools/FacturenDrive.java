@@ -283,6 +283,12 @@ final class FacturenDrive {
         }
     }
 
+    /** Een bestand dat de app zelf op Drive zette weghalen (recht drive.file: alleen eigen bestanden). */
+    static void verwijder(Context c, String id) throws Exception {
+        if (id == null || !id.matches("[A-Za-z0-9_-]{10,200}")) throw new Exception("Google Drive: ongeldig bestand");
+        stuur(c, "DELETE", "https://www.googleapis.com/drive/v3/files/" + id, null, null);
+    }
+
     // ---------- mappen en uploaden ----------
 
     static String q(String s) { return s.replace("\\", "\\\\").replace("'", "\\'"); }

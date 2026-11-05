@@ -352,6 +352,39 @@ final class FacturenDossier {
      * was opgehaald (de volgende keer begint hij weer bij het begin van de periode) en het aanleveren vergeten. Kopieën in
      * je backup-map, op Drive en in de mail blijven staan; instellingen (leveranciers, ontvangers, koppelingen) ook.
      */
+    /**
+     * Echt alles weg: eerst de opgeslagen kopieën (backup-map, map op de telefoon, Google Drive; alleen de bestanden die
+     * de app zelf daar zette en in het dossier staan), daarna het dossier leeg zoals bij reset. Mail die al verstuurd is
+     * (Eigen Cloud, aanleveren) kan niet terug. Geeft {aantal, weg, mislukt, mail}. Netwerk: niet op de hoofdthread.
+     */
+    static JSONObject allesWeg(Context c) throws Exception {
+        if (FacturenRun.LOPEND.get() != null) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
+        if (FacturenAanlever.BEZIG.get()) throw new Exception("Er wordt nu aangeleverd; probeer het straks nog een keer");
+        JSONObject alles;
+        synchronized (Facturen.LOCK) { alles = new JSONObject(alle(c).toString()); }
+        int weg = 0, mislukt = 0, mail = 0;
+        for (Iterator<String> it = alles.keys(); it.hasNext(); ) {
+            JSONObject s = alles.optJSONObject(it.next()), pl = s == null ? null : s.optJSONObject("plekken");
+            if (pl == null) continue;
+            for (String k : new String[]{"map", "lok"}) {
+                JSONObject p = pl.optJSONObject(k); String u = p == null ? "" : p.optString("uri", "");
+                if (u.isEmpty()) continue;
+                try {
+                    if (android.provider.DocumentsContract.deleteDocument(c.getContentResolver(), android.net.Uri.parse(u))) weg++; else mislukt++;
+                } catch (java.io.FileNotFoundException e) { /* al weg */ } catch (Exception e) { mislukt++; }
+            }
+            JSONObject gd = pl.optJSONObject("gd"); String id = gd == null ? "" : gd.optString("id", "");
+            if (!id.isEmpty()) {
+                try { FacturenDrive.verwijder(c, id); weg++; }
+                catch (Exception e) { if (String.valueOf(e.getMessage()).contains("niet (meer) gevonden")) { /* al weg */ } else mislukt++; }
+            }
+            if (pl.optJSONObject("ec") != null) mail++;
+        }
+        int n = reset(c);
+        App.log(c, "FACTUREN", "alles weggehaald");
+        return new JSONObject().put("aantal", n).put("weg", weg).put("mislukt", mislukt).put("mail", mail);
+    }
+
     static int reset(Context c) throws Exception {
         int n;
         synchronized (Facturen.LOCK) {
