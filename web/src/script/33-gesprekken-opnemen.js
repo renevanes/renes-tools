@@ -14,6 +14,11 @@ function loadRecorder(){
   $('#recorder-access-button').disabled = !!state.busy;
   $('#recorder-permissions').style.display = state.mic && state.notifications && state.phone ? 'none' : 'block';
   $('#recorder-permissions').disabled = !!state.busy;
+  // Eenmalig instellen: klapt in zodra toestemmingen en (waar nodig) de hulp bij gespreksopname er zijn
+  const setupDone = !!(state.mic && state.notifications && state.phone && (!state.callAccessRequired || state.callAccess));
+  uiSetup('#recorder-setup', setupDone);
+  const setupSt = setupDone ? (state.autoEnabled ? t('Klaar · automatisch starten aan') : t('Klaar · automatisch starten uit')) : t('Nog niet klaar');
+  if ($('#recorder-setup-st').textContent !== setupSt) $('#recorder-setup-st').textContent = setupSt;
   $('#recorder-phone').textContent = state.busy && !state.autoStop ? 'Automatisch stoppen is niet beschikbaar; stop deze opname zelf.' : state.phone ? 'Bij het einde van een mobiel telefoongesprek wordt de opname automatisch gestopt. Andere gesprekken stop je zelf.' : 'Zonder telefoontoegang moet je de opname zelf stoppen. Geef telefoontoegang als je automatisch stoppen wilt gebruiken.';
   const rBase = state.recording ? (state.automatic ? '● Automatische opname actief' : '● Opname actief') : state.busy || recorderStarting ? 'Opname starten…' : 'Er wordt niet opgenomen.';
   $('#recorder-state').textContent = state.recording ? rBase + ' · ' + fmtMs(state.elapsed) : rBase;
@@ -32,12 +37,13 @@ function loadRecorder(){
   recorderLastMessage = state.message || '';
   $('#recorder-folder').style.display = state.dest ? 'none' : 'block';
   recorderRows = state.rows || [];
+  $('#recorder-count').hidden = !state.total;
   $('#recorder-count').textContent = t('{n} opnames', { n: state.total || 0 }) + (state.total > recorderRows.length ? ' · ' + t('nieuwste {n} getoond', { n: recorderRows.length }) : '');
   const html = recorderRows.map((r, i) => '<article style="border-top:1px solid var(--line);padding:14px 0"><h3>' + esc(fmtDT(r.date)) + '</h3><p class="note">' + esc(fmtMs(r.duration)) + ' · ' + esc(fmtB(r.size)) + '</p><div class="row" style="flex-wrap:wrap">' +
     '<button class="mini" data-action="play" data-i="' + i + '"' + (state.busy ? ' disabled' : '') + '>Afspelen</button>' +
     '<button class="mini" data-action="share" data-i="' + i + '">Delen</button>' +
     '<button class="mini" data-action="export" data-i="' + i + '"' + (!state.dest ? ' disabled' : '') + '>Exporteren</button>' +
-    '<button class="mini" data-action="delete" data-i="' + i + '">Verwijderen</button></div></article>').join('') || '<p class="note">Nog geen opnames. Start en stop een opname om te beginnen.</p>';
+    '<button class="mini" data-action="delete" data-i="' + i + '">Verwijderen</button></div></article>').join('') || uiEmpty('mic', t('Nog geen opnames. Start en stop een opname om te beginnen.'));
   if (html !== recorderListHtml) { $('#recorder-list').innerHTML = html; recorderListHtml = html; }
 }
 function recorderSetAuto(on){ const error = Android.recorderSetAuto(on); $('#recorder-result').textContent = error || ''; loadRecorder(); }

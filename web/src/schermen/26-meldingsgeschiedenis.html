@@ -2,31 +2,26 @@
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Meldingsgeschiedenis</h1>
+    <button class="icon-btn" id="history-menu" onclick="historyMenu()" aria-label="Meer: exporteren en wissen"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
   </div>
   <main>
-    <div class="card">
-      <h2>Meldingen bewaren</h2>
-      <p class="note">Bewaar nieuwe meldingen op deze telefoon, ook nadat je ze wegveegt. Wat nu nog in je meldingenpaneel staat wordt ook bewaard; oudere meldingen geeft Android aan geen enkele app.</p>
-      <label class="chk"><input type="checkbox" id="history-enabled" onchange="historyEnable(this.checked)"> Nieuwe meldingen bewaren</label>
-      <p id="history-state" role="status" aria-live="polite"></p>
-      <button class="big ghost" id="history-permission" onclick="Android.historyRequestPermission();setTimeout(loadHistory,500)">Meldingentoegang instellen</button>
-      <p class="note">Is de schakelaar grijs of staat er <i>Beperkte instelling</i>? Open dan <a href="#" onclick="Android.openAppSettings();return false">App-info</a> → ⋮ (rechtsboven) → <i>Beperkte instellingen toestaan</i>, en probeer opnieuw.</p>
-      <p class="note">Android vraagt toegang tot meldingen van andere apps. Die kunnen persoonlijke berichten bevatten. De geschiedenis blijft lokaal (ook niet in de Google-backup van Android) tot je zelf een backup maakt. Je kunt opnemen hier uitzetten en toegang in Android intrekken. Bewaart maximaal 30 dagen en 10.000 meldingen; doorlopende meldingen, groepssamenvattingen en meldingen van Tools worden overgeslagen. Android kan gevoelige inhoud afschermen.</p>
+    <div class="bar1" id="history-bar">
+      <span><b id="history-state" role="status" aria-live="polite"></b><small id="history-bar-n">Meldingen van andere apps kunnen persoonlijke berichten bevatten; alles blijft op deze telefoon.</small></span>
+      <label class="chk"><input type="checkbox" class="switch" role="switch" id="history-enabled" onchange="historyEnable(this.checked)" aria-describedby="history-bar-n"><span class="sr-only">Nieuwe meldingen bewaren</span></label>
     </div>
-    <div class="card">
-      <h2>Backup</h2>
-      <button class="big ghost" id="history-folder" onclick="Android.waPickFolder()">Backup-map kiezen</button>
-      <button class="big" id="history-export" style="margin-top:8px" onclick="historyExport()">Geschiedenis exporteren</button>
-      <p class="note">Exporteert alle bewaarde meldingen als JSON en leesbare HTML naar ‘Meldingen backup’. Dit zijn leesbare bestanden. Voor een versleutelde backup: vink Meldingsgeschiedenis aan bij Alles back-uppen en schakel daar versleutelen in. Een export kan niet teruggezet worden als Android-meldingen.</p>
-      <p id="history-result" role="status" aria-live="polite"></p>
-    </div>
-    <label for="history-search">Zoeken in de geschiedenis</label>
+    <button class="big ghost" id="history-permission" style="margin:-4px 0 14px" onclick="Android.historyRequestPermission();setTimeout(loadHistory,500)">Meldingentoegang instellen</button>
+    <label for="history-search" class="sr-only">Zoeken in de geschiedenis</label>
     <input class="search" id="history-search" type="search" placeholder="Zoek op app, titel of tekst…" oninput="historySearch()">
-    <div class="chips sm" id="history-apps" role="group" aria-label="Filter op app" style="margin-top:10px"></div>
+    <div class="chips sm" id="history-apps" role="group" aria-label="Filter op app" style="margin-top:-4px"></div>
     <p class="note" id="history-count" aria-live="polite"></p>
     <div id="history-list"></div>
     <button class="big ghost" id="history-more" style="display:none;margin-bottom:12px" onclick="historyMore()">Oudere meldingen tonen</button>
-    <button class="big ghost" id="history-clear" onclick="historyClear()">Geschiedenis op deze telefoon wissen</button>
-    <p class="note">Bestaande backupbestanden blijven bewaard.</p>
+    <p id="history-result" role="status" aria-live="polite"></p>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Bewaar nieuwe meldingen op deze telefoon, ook nadat je ze wegveegt. Wat nu nog in je meldingenpaneel staat wordt ook bewaard; oudere meldingen geeft Android aan geen enkele app.</p>
+      <p>Android vraagt toegang tot meldingen van andere apps. Die kunnen persoonlijke berichten bevatten. De geschiedenis blijft lokaal (ook niet in de Google-backup van Android) tot je zelf een backup maakt. Je kunt opnemen hier uitzetten en toegang in Android intrekken. Bewaart maximaal 30 dagen en 10.000 meldingen; doorlopende meldingen, groepssamenvattingen en meldingen van Tools worden overgeslagen. Android kan gevoelige inhoud afschermen.</p>
+      <p>Is de schakelaar grijs of staat er <i>Beperkte instelling</i>? Open dan <a href="#" onclick="Android.openAppSettings();return false">App-info</a> → ⋮ (rechtsboven) → <i>Beperkte instellingen toestaan</i>, en probeer opnieuw.</p>
+      <p><b>Exporteren</b> (menu ⋯ rechtsboven) bewaart alle bewaarde meldingen als JSON en leesbare HTML in ‘Meldingen backup’ in je backup-map. Dit zijn leesbare bestanden. Voor een versleutelde backup: vink Meldingsgeschiedenis aan bij Alles back-uppen en schakel daar versleutelen in. Een export kan niet teruggezet worden als Android-meldingen. Wissen verwijdert alleen wat op deze telefoon staat; bestaande backupbestanden blijven bewaard.</p>
+    </div></details>
   </main>
 </section>

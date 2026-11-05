@@ -140,3 +140,52 @@ input[type=tel],textarea.key,.ntext{border-radius:8px;border-color:var(--outline
 .rg-part{white-space:nowrap}#s-setregio .setrow.rg-hasnote{padding-bottom:4px}
 .rg-val{color:var(--muted);text-align:right;min-width:0;overflow-wrap:anywhere}
 #s-setregio .setrow>.sel{flex:0 1 auto;max-width:60%;min-width:0;text-overflow:ellipsis}
+/* ---------- Interface-patronen (zie AGENTS.md, "Interface-patronen"; getest in tests/ui/ui-patronen.test.js) ---------- */
+/* 1. Hoe werkt dit?: lange uitleg ingeklapt. <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">…</div></details>
+      In een kaart: class="help in" (zonder eigen rand). */
+details.help{margin:4px 0 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
+details.help.in{margin:12px -2px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent}
+details.help>summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 16px;cursor:pointer;color:var(--primary);font-weight:600;font-size:14px;border-radius:inherit}
+details.help.in>summary{padding:10px 2px}
+details.help>summary::-webkit-details-marker{display:none}
+details.help>summary[data-icon]::before{margin:0;width:20px;height:20px}
+details.help>summary::after{content:"";margin-left:auto;width:20px;height:20px;flex:none;background:currentColor;transition:transform .15s;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m5%209%207%207%207-7%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m5%209%207%207%207-7%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+details.help[open]>summary::after{transform:rotate(180deg)}
+details.help>summary:active{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.help-body{padding:0 16px 14px;font-size:13.5px;line-height:1.55;color:var(--muted)}
+details.help.in .help-body{padding:0 2px 6px}
+.help-body p,.help-body ul{margin:0 0 8px}.help-body p:last-child,.help-body ul:last-child{margin-bottom:0}.help-body ul{padding-left:20px}
+.help-body b{color:var(--ink);font-weight:600}
+/* Eén regel uitleg die zichtbaar blijft (bij een instelling of bovenaan een kaart) */
+.hint{font-size:13px;line-height:1.45;color:var(--muted);margin:4px 0 10px}
+/* 3. Instellingen van een tool: schuifjes rechts in de kop, opent het scherm <tool>set. <button class="icon-btn hset" data-to="carset" aria-label="…"></button> */
+.hdr .hset{color:var(--ink)}
+/* 4. Lege lijst: pictogram, één regel, één actie. uiEmpty(icon, tekst, knop, actie) of <div class="empty">…</div> */
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:24px 16px}
+.empty>.ui-icon{width:36px;height:36px;color:var(--primary);opacity:.85}
+.empty>p{margin:0;font-size:14px;color:var(--muted);max-width:32em}
+.empty>.big{width:auto;min-width:60%;margin-top:6px}
+/* 5. Eenmalig instellen: kaart die weg gaat (div) of inklapt (details) als alles klaar is. uiSetup(el, klaar) */
+.card.setup{border-left:3px solid var(--warn)}
+.card.setup.done{border-left-color:var(--ok)}
+details.card.setup>summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:44px;cursor:pointer;margin:-4px 0}
+details.card.setup>summary::-webkit-details-marker{display:none}
+details.card.setup>summary h2{margin:0;flex:1;min-width:0}
+details.card.setup>summary small{color:var(--muted);font-size:13px;font-weight:500}
+details.card.setup.done>summary small{color:var(--ok)}
+details.card.setup[open]>summary{margin-bottom:10px}
+/* 8. Knoppen: één gevulde hoofdknop (.big) per scherm; de rest tonaal (.big.tonal) of omlijnd (.big.ghost) */
+.big.tonal{background:var(--tonal);color:var(--on-tonal);border-color:transparent}
+.mini.tonal{background:var(--tonal);color:var(--on-tonal)}
+/* Compacte balk bovenaan een lijst (bijv. "Bewaren staat uit" met een schakelaar) */
+.bar1{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 14px;margin-bottom:14px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
+.bar1.warn{background:color-mix(in srgb,var(--warn) 9%,var(--card));border-color:color-mix(in srgb,var(--warn) 35%,var(--line))}
+.bar1>span{flex:1;min-width:0;font-size:14px}.bar1>span small{display:block;color:var(--muted);font-size:12.5px}
+.bar1 .chk{padding:0}
+/* Schakelaar als echt selectievakje (role="switch"), voor als het een <input> moet blijven */
+input.switch{-webkit-appearance:none;appearance:none;width:48px;height:28px;margin:0;flex:none;cursor:pointer;border-radius:14px;border:1px solid var(--outline);
+  background:var(--hi) radial-gradient(circle at 13px 50%,var(--outline) 8px,transparent 9px) no-repeat;transition:background-color .15s}
+input.switch:checked{border-color:var(--primary);background:var(--primary) radial-gradient(circle at 33px 50%,var(--on-primary) 9px,transparent 10px) no-repeat}
+details.card.setup h3{font-size:15px;font-weight:650;margin:16px 0 6px}

@@ -177,7 +177,7 @@ function show(name){
   if (name==='music') enterMusic(); else stopMuPoll();
   if (current_prev==='txd' && name!=='txd') leaveTrd();
   if (name==='cversions') enterVersions();
-  if (name==='info') renderInfo();
+  if (name==='info') { if (current_prev !== 'info') infoAllOn = false; renderInfo(); }
   if (name==='auto') enterAuto();
   if (name==='autoed') enterAutoEd();
   if (typeof uiShown === 'function') uiShown(name);
