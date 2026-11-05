@@ -1,15 +1,26 @@
 {
   "app": "Tools",
-  "versionName": "1.147",
-  "versionCode": 148,
-  "nativeLevel": 134,
+  "versionName": "1.148",
+  "versionCode": 149,
+  "nativeLevel": 135,
   "web": "index.html",
-  "webSha256": "2b2942483d7826417ddff17d0a90bd8a30543e0ef3f3c6492c057b5c93de4ccb",
+  "webSha256": "0f7c424285a8bbf9ba0c3b489c317345dd9e412106fb34dfb4bf5bf582f8ffde",
   "start": "start.html",
   "startSha256": "ca013c1e7d37c86b7299e7346900a6c0386581a676a519a1f40356316b7ea994",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "6be3638935b88aa22fc2e49db23809323e995d17dc711b0f00861bde64900e0d",
+  "apkSha256": "73ecd3e9888cb15dd53e4e2c984538551a2232e4102e7bcdc04bd63a14c0e0f7",
   "changelog": [
+    {
+      "version": "1.148",
+      "date": "2026-11-05",
+      "changes": [
+        "Facturen ophalen volgt nu Toon meer en vervolgpagina's, wacht op traag geladen facturen en controleert eerder onvolledig opgehaalde periodes opnieuw.",
+        "Bij elke leverancier vind je Logboek ophalen: stappen, wachttijden, aantallen en stopredenen bekijken, kopiëren of delen voor het onderzoeken van problemen, zonder wachtwoorden, inlogcodes of factuurinhoud.",
+        "Stamgegevens uitgebreid met één eigen app-profiel, roepnamen en relaties zoals kind, partner en noodcontact. Je kiest welke namen, relaties en toelichting de hele app en lokale AI mogen gebruiken.",
+        "Identiteitskaarten, paspoorten en andere identiteitsdocumenten ondersteunen versleutelde voor- en achterkant, land en instantie van afgifte. Kaartfoto’s blijven buiten AI en gedeelde app-context.",
+        "De formulierhulp kan een vastgelegde relatie tussen het gekozen kind en de gekozen begeleider als controleerbaar voorstel gebruiken."
+      ]
+    },
     {
       "version": "1.147",
       "date": "2026-11-05",
@@ -1290,5 +1301,5 @@
       ]
     }
   ],
-  "webSig2": "ejGzUxv3f8h6oEtUf9TxBTwK3mTp/xmFM348pItK1nefIYlsy2Z1XwvXPHhQRTok0GveZTH2oNGeEZRlzkZCA+us3yjodxX1YqL9wbXAzFUqLtr7JnUiPTPZCoW90zJZV3Tvf33klfSm2tc8XDlQgVKBhF4e7cvP3++Lkb9tKHIrd5/LcuYhxjE6yiQCpTEhVJYrc0V+/BYrxBfW7DHBo5CbzvOlBPMU8XfROqKrFK+BgQWvf+aJiyNcxfBkXs1gr50UNMEn10OJZuP2/8QNGlzr7gdNZANzowZUSK0EqH1fSC8tzDAR1QNtlFYwIHpvJuOHOg40QNCnl8eY2jbx3Gg1+stHk2h7eMpDarIMYa+X3RsbQDjgRbbeJJnacSlZB8dkHESrJmoFaQ7IQbkCZLk1lLERuBgC3t921J9FyyNJOI6arXiKtj/wHhs2dL5JxYZhhlPB+FfV9KQhFpxdxUTSZLVmjy7TVscO9sQIVcKaw01iMt7tey4B2weq4qrh"
+  "webSig2": "N3ec86P2F4g14exHVQSnezCEFzskCGbholnyKABY9QRR3Jd4Jxo5C89X7FuKasNqjyw/RUVFcWVRgoZpAu4plRRZvqDFqMkS9aqdmLrnlcc7cx9f+4jnPXy65RRrJDPn2Q1BN5VK86QNEGJ/0DTcyU5zyri2EsrtDl4qR+m4isvioJf0zvYqsBELgO/PpCwLmgbno5ZBZ6pOiiDwMAIPRFv3MZxEoWmCVrhgUIIxldzxtf6TUmWE7S1dcgpovQ4TnfmK099PigfMSDbaE5T6aPBkPzrBczwiU9RJaRsMaa7qGHisSkpzJtNjK45zXzfUoWmZ6WigopuATXp+YvEH6nFzzQzM7j9U8UbWa6IhhOkPD220Z60dMh9NcTnmzr4qIn0xaHmQOw2veCMmYgU73hRlPdw3t2mFc+0dJEYKpbDej6srjZGHiI93W1dg7bXy1UtHO7/mc4dPG0kRUdwlJ2ENexDNq8S0d3N702MeICBWOC6gVwiBv1xmo70dJWCL"
 }

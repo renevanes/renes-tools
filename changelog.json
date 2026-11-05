@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.148",
+    "date": "2026-11-05",
+    "changes": [
+      "Facturen ophalen volgt nu Toon meer en vervolgpagina's, wacht op traag geladen facturen en controleert eerder onvolledig opgehaalde periodes opnieuw.",
+      "Bij elke leverancier vind je Logboek ophalen: stappen, wachttijden, aantallen en stopredenen bekijken, kopiëren of delen voor het onderzoeken van problemen, zonder wachtwoorden, inlogcodes of factuurinhoud.",
+      "Stamgegevens uitgebreid met één eigen app-profiel, roepnamen en relaties zoals kind, partner en noodcontact. Je kiest welke namen, relaties en toelichting de hele app en lokale AI mogen gebruiken.",
+      "Identiteitskaarten, paspoorten en andere identiteitsdocumenten ondersteunen versleutelde voor- en achterkant, land en instantie van afgifte. Kaartfoto’s blijven buiten AI en gedeelde app-context.",
+      "De formulierhulp kan een vastgelegde relatie tussen het gekozen kind en de gekozen begeleider als controleerbaar voorstel gebruiken."
+    ]
+  },
+  {
     "version": "1.147",
     "date": "2026-11-05",
     "changes": [
