@@ -1,0 +1,10 @@
+Overal dezelfde terugknop en "Hoe werkt dit?" in plaats van lange uitleg; één duidelijke hoofdknop per scherm.
+Versie en updates: alleen de laatste versies, de rest via Alle versies.
+Gesprekken opnemen: opnameknop bovenaan; eenmalig instellen (met automatisch starten) klapt in als alles klaar is.
+Meldingsgeschiedenis: zoeken en de lijst meteen bovenaan; exporteren en wissen in het menu ⋯.
+Modellen: per soort de stand en alleen het aanbevolen model als hoofdknop; te vinden bij Lokale AI.
+Mijn auto: "Hier staat hij" bovenaan, de instellingen achter de schuifjes rechtsboven.
+Gebruik: manier van ontgrendelen en foto bij ontgrendelen in een eigen scherm Ontgrendelen.
+Apparaten, Spraak, Gegevens en Slim zoeken: per instelling één korte regel, de rest onder "Hoe werkt dit?".
+Factuur: de factuurdatum past weer; dagknoppen en zoomknoppen van de kaart zijn groter.
+Telefoon-skin: de rij met tools laat zien dat je kunt schuiven, overal dezelfde pictogrammen.

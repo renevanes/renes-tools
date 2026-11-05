@@ -24,10 +24,12 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { show('aiset'); show('aisetmodel'); }); await pg.waitForTimeout(200);
     ok(!(await pg.isVisible('#ais-chat [data-id="groot"] button:has-text("Verder")')) && await pg.isVisible('#ais-chat [data-id="groot"] button:has-text("Stoppen")'), 'Taalmodel: oudere versie onderbroken: alleen Stoppen');
     ok(!(await pg.isVisible('#ais-chat button:has-text("Via de app")')), 'geen aparte keuze "via de app" meer');
-    // Via Instellingen
+    // Via Lokale AI (niet meer los bij Instellingen)
     await pg.evaluate(() => show('settings')); await pg.waitForTimeout(150);
-    ok((await txt('#st-sum-models')).includes('3 modellen'), 'samenvatting bij Instellingen (' + (await txt('#st-sum-models')) + ')');
-    await pg.click('button.strow:has-text("Modellen")'); await pg.waitForTimeout(300);
+    ok(!(await pg.isVisible('#s-settings button.strow:has-text("Modellen")')), 'Instellingen heeft geen eigen rij Modellen meer');
+    await pg.evaluate(() => show('aiset')); await pg.waitForTimeout(150);
+    ok((await txt('#ai-sum-models')).includes('3 modellen'), 'samenvatting bij Lokale AI (' + (await txt('#ai-sum-models')) + ')');
+    await pg.click('#s-aiset button.strow:has-text("Modellen beheren")'); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => current === 'models' && Android._md.calls.includes('aiResume')), 'scherm open, onderbroken downloads gaan vanzelf verder');
     // Soorten in een vaste volgorde, met uitleg en of je ze nodig hebt
     const kinds = await pg.$$eval('#md-cats .md-cat', x => x.map(e => e.dataset.kind));

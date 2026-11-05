@@ -63,14 +63,18 @@ const { chromium } = require('playwright');
       // Instellingen
       await pg.click('#gb-set-btn'); await pg.waitForTimeout(150);
       ok(await pg.evaluate(() => current === 'gebruikset'), tag + ': instellingenscherm');
-      ok(await pg.isVisible('#gb-collect') && await pg.isVisible('#gb-admin') && await pg.isVisible('#gb-pfail') && await pg.isVisible('#gb-punlock'), tag + ': schakelaars en keuzes aanwezig');
+      ok(await pg.isVisible('#gb-collect') && await pg.isVisible('#gb-keep'), tag + ': bijhouden en bewaren');
+      // Bewaartermijn
+      await pg.click('#gb-keep button[data-v="730"]'); await pg.waitForTimeout(80);
+      ok(await pg.evaluate(() => Android._gb.set.keep === 730), tag + ': samenvatting bewaren aangepast');
+      // Ontgrendelen (manier en foto) staat in een eigen scherm
+      await pg.click('#gb-ontgr-row'); await pg.waitForTimeout(150);
+      ok(await pg.evaluate(() => current === 'gebruikontgr'), tag + ': Ontgrendelen in een eigen scherm');
+      ok(await pg.isVisible('#gb-admin') && await pg.isVisible('#gb-pfail') && await pg.isVisible('#gb-punlock'), tag + ': schakelaars en keuzes aanwezig');
       ok((await pg.textContent('#gb-photo-status')).length > 0 && (await pg.textContent('#gb-a11y-note')).length > 0, tag + ': eerlijke status van foto en toegankelijkheid');
       // Foto bij ontgrendelen: 3-keuze
       await pg.click('#gb-punlock button[data-v=pincode]'); await pg.waitForTimeout(80);
       ok(await pg.evaluate(() => Android._gb.set.punlock === 'pincode'), tag + ': foto bij ontgrendelen op "alleen met pincode"');
-      // Bewaartermijn
-      await pg.click('#gb-keep button[data-v="730"]'); await pg.waitForTimeout(80);
-      ok(await pg.evaluate(() => Android._gb.set.keep === 730), tag + ': samenvatting bewaren aangepast');
       // Apparaatbeheer aan, dan uit met bevestiging
       await pg.click('#gb-admin'); await pg.waitForTimeout(120);
       ok(await pg.evaluate(() => Android._gb.admin === true) && await pg.isVisible('#gb-admin-off'), tag + ': apparaatbeheer aan + uitzet-knop');
@@ -106,11 +110,11 @@ const { chromium } = require('playwright');
       await pg.click('#gb-fotos-list .gb-tile'); await pg.waitForTimeout(80);
       ok(await pg.isVisible('#gb-light img'), tag + ': tik op miniatuur: groot');
       await pg.click('#gb-light .gb-light-x'); await pg.waitForTimeout(60);
-      await pg.evaluate(() => show('gebruikset')); await pg.waitForTimeout(150);
+      await pg.evaluate(() => show('gebruikontgr')); await pg.waitForTimeout(150);
       // Toestemmingen in Instellingen kent nu ook de camera
       await pg.evaluate(() => show('setperm')); await pg.waitForTimeout(150);
       ok((await pg.textContent('#s-setperm')).includes('Camera'), tag + ': Camera staat bij Toestemmingen');
-      await pg.evaluate(() => show('gebruikset')); await pg.waitForTimeout(150);
+      await pg.evaluate(() => show('gebruikontgr')); await pg.waitForTimeout(150);
       // Foto bekijken + sluiten met de knop
       await pg.click('#gb-photos .gb-thumb'); await pg.waitForTimeout(80);
       ok(await pg.isVisible('#gb-light img') && await pg.isVisible('#gb-light .gb-light-x'), tag + ': foto bekijken met sluitknop');

@@ -95,6 +95,40 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
     opdracht), antwoordt in het Engels (`LocalAi.buildSystemEn`), spreekt Engels (`AiSpeech`) en schrijft Engels uit (whisper "en").
 - **Interface**: gebruik de kleurrollen uit `stijl.css` (nooit vaste kleuren als `#fff` op `--primary`: in donker is
   `--primary` licht). Elk scherm heeft `<div class="hdr">` met terugknop en `<h1>`; detailschermen `class="hdr sm"`.
+  Bouw met de gedeelde onderdelen uit "Interface-patronen" hieronder.
+
+## Interface-patronen
+Gedeelde onderdelen (vormgeving in `web/src/ontwerp.css`, hulpjes in `web/src/script/02-patronen.js`), bewaakt door
+`tests/ui/ui-patronen.test.js`. Gebruik ze in plaats van iets nieuws, zodat de app overal hetzelfde werkt.
+- **Terugknop**: altijd de SVG-chevron
+  `<button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>`
+  (geen `ui-icon`-pijl of "‹"). Een scherm dat je vanuit een ander scherm opent (een item, een instellingenscherm) heeft
+  `class="hdr sm"`; zet het ook in de lijst `DETAIL` van de test. Nieuw scherm = ook in `BACK` (02-kern.js).
+- **Hoe werkt dit?**: uitleg van meer dan twee regels gaat ingeklapt:
+  `<details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>…</p></div></details>`
+  (in een kaart `class="help in"`; een eigen kop mag, bijv. "Waarvoor is dit?"). Vanuit JavaScript: `uiHelp(t('…'), html, inKaart)`.
+  Eén regel uitleg blijft zichtbaar als `<p class="hint">`. **Niet verbergen** wat nodig is voor een veilige keuze
+  (privacy, toestemmingen, wat er de telefoon verlaat, wat niet ongedaan kan): kort en zichtbaar houden, de details mogen in de help.
+  De summary krijgt vanzelf `aria-expanded`; met `uiHtml(el, html)` blijven uitgeklapte blokken open als een lijst opnieuw getekend wordt.
+- **Overzicht met rijen** (hub): statuskaart, één hoofdknop en rijen naar eigen schermen, met `.card.stlist` en
+  `<button class="strow"><span class="stic">icoon</span><span class="sttxt"><b>Titel</b><small id="…">stand</small></span><span class="ui-icon stchev" data-icon="chevron-right"></span></button>`
+  zoals Instellingen, Lokale AI en Gebruik → Ontgrendelen. De `<small>` laat kort de stand zien.
+- **Instellingen van een tool**: schuifjes rechts in de kop, naar een eigen scherm `<tool>set` (hdr sm, `BACK` terug naar de tool):
+  `<button class="icon-btn hset" id="…" data-to="carset" aria-label="Instellingen van Mijn auto"></button>`
+  (pictogram en klik vult `uiPatterns()` in). Zo bij Gebruik, Apparaten en Mijn auto. Ontbreekt er iets waardoor de tool niet
+  werkt (een toestemming), laat dan op de tool zelf een korte balk zien die naar de instellingen gaat.
+- **Lege lijst**: `uiEmpty('mic', t('Nog geen opnames.'), t('Knoptekst'), 'actie()')`: pictogram, één regel en hooguit één (tonale) knop.
+- **Eenmalig instellen**: een kaart `class="card setup"` die weg gaat als het klaar is (`<div … hidden>`), of inklapt als er
+  ook later nog iets in staat (`<details class="card setup"><summary><h2>Eenmalig instellen</h2><small id="…">stand</small></summary>…</details>`).
+  Bijwerken met `uiSetup(el, klaar)`; een `<details>` klapt alleen vanzelf als de stand verandert. Zo bij Locatie kiezen,
+  Spotify en Gesprekken opnemen.
+- **Knoppen**: per scherm hooguit één gevulde hoofdknop (`.big`, of `.mini.on.fill` in een lijst); de rest `.big.tonal`
+  (belangrijk, bijv. toestemming geven) of `.big.ghost` (omlijnd). Bij een lijst met keuzes krijgt alleen de aanbevolen keuze
+  de gevulde knop (Modellen, de assistent). Uitzonderingen staan met de reden in `MEER_PRIMAIR` in de test.
+- **Keuzelijsten**: `<select class="sel">` (of `class="search"` als zoekveld-breed); nooit een kale `<select>`.
+- **Menu ⋯ in de kop** voor acties die je zelden doet (exporteren, wissen): `openSheet(…)`, zoals Meldingsgeschiedenis.
+- **Schakelaar**: `<button class="tg" role="switch" aria-checked>`; moet het een `<input>` blijven: `<input type="checkbox" class="switch" role="switch">`.
+- Tikvlakken minstens 44×44 px (ook dagknoppen, zoomknoppen van de kaart en rijen op de Telefoon-skin).
 
 ## Bouwen en testen
 Eenmalig: `./setup-tools.sh` (Android-gereedschap in `$TOOLS`, standaard `/home/claude/toolchain`; zet `TOOLS` als je

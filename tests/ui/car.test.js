@@ -20,9 +20,16 @@ const { chromium } = require('playwright');
       await page.click('#car-trips .trip >> nth=1');
       await page.click('#sheet-acts button:has-text("Maak zakelijk")');
       assert.match(await page.textContent('#car-trip-state'), /zakelijk 31,5 km/);
+      // Instellingen: schuifjes rechtsboven
+      await page.click('#car-set-btn');
+      assert.equal(await page.evaluate(() => current), 'carset');
       await page.click('#car-trips-on');
       assert.equal(await page.evaluate(() => Android._car.trips), true);
+      assert.equal(await page.getAttribute('#car-trips-on', 'aria-checked'), 'true');
       assert.match(await page.textContent('#car-perm'), /Batterij-uitzondering/);
+      await page.evaluate(() => goBack());
+      assert.equal(await page.evaluate(() => current), 'car');
+      assert.equal(await page.isVisible('#car-perm-hint'), true, 'ontbrekende toestemming: melding op Mijn auto zelf');
       await page.click('#car-export');
       await page.waitForFunction(() => /2 ritten/.test(document.querySelector('#toast').textContent));
       await page.screenshot({ path: __dirname + '/shots/car-' + colorScheme + '.png', fullPage: true });

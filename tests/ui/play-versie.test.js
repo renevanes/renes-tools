@@ -62,7 +62,7 @@ const TEGEL = Object.fromEntries(WEG.map(t => [t, 'tile-' + t]));
       assert(!(await zichtbaar('upd-banner2')), naam + ': geen updatebalk na "updates via Play"');
     }
     // Gebruik: apparaatbeheer en stille foto's
-    await pg.evaluate(() => show('gebruikset')); await pg.waitForTimeout(150);
+    await pg.evaluate(() => show('gebruikontgr')); await pg.waitForTimeout(150);
     assert((await zichtbaar('gb-admin')) === !play, naam + ': apparaatbeheer ' + (play ? 'weg' : 'er'));
     assert((await zichtbaar('gb-test')) === !play, naam + ': foto bij ontgrendelen ' + (play ? 'weg' : 'er'));
     await pg.evaluate(() => show('gebruik')); await pg.waitForTimeout(150);
