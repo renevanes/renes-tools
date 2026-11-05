@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.145",
-  "versionCode": 146,
-  "nativeLevel": 132,
+  "versionName": "1.146",
+  "versionCode": 147,
+  "nativeLevel": 133,
   "web": "index.html",
-  "webSha256": "2dfd14b65518f826a6c64d1b391f899a16a436e3a90605c231f104837d517f3b",
+  "webSha256": "5145233642f3a661c06705c1ae746a0fc88d980cdeafde3430d6841b9be96cd5",
   "start": "start.html",
   "startSha256": "ca013c1e7d37c86b7299e7346900a6c0386581a676a519a1f40356316b7ea994",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1122f0af9346fc507daa03477f355d3f50dadbf375bf88faa7de9f53f7e08ac4",
+  "apkSha256": "ef49abfe4146cca85bf5d15707858459c6414d7e4c4ddfda0a7bb7f2a7b15c56",
   "changelog": [
+    {
+      "version": "1.146",
+      "date": "2026-11-05",
+      "changes": [
+        "Facturen → Dossier: het blok heet nu \"Opnieuw beginnen\", met naast \"Dossier leegmaken\" ook \"Alles weghalen, ook de PDF's\" (ook uit je backup-map, de map op je telefoon en Google Drive)"
+      ]
+    },
     {
       "version": "1.145",
       "date": "2026-11-05",
@@ -1275,5 +1282,5 @@
       ]
     }
   ],
-  "webSig2": "azs3z8xoL96885We527TdRbEkLgcn0UocdKzUBRh5r0SMY5NCII3F3MXFsiimvJyVF3bkLP7u3H0r5hHeSAyr8YDH5vAlHyub0+R+rkmggjY9f4TLO4jPAMpQ85t6RnbIhtME/I+FvxzachYZjTDfoP8gyeY2tnsrN5TcMcoAJdeODx2oQSd9GnYFuSfVjEgOD8u9dW9J/ERHGCJi64dgGL2BUdefDDQgUHll2efPV83GlEwwy5NGlnbLXqU/XuyDXnbvEzWoVh1IMmayVY4vvpGEqUZBycOhG2cowKxgJHIQVzsX3Wm1HvY+Lji24hbrRyhTZK3IKszkIr8+1ofTfgzpZWdY9fXA2NvW86tFknp0cH6Q8d99qyp+JrlV9HJx5HIhaT0EWLTW8SC+i4Yw8fPjdAbUM9WjXfws1I78Lcha8k0AUOFuHOJB3Y1wICVHqEh1INbOGdUxDkbSK8h43dOyx/aGeXRJQLT7jwPeJ7C3Pcb+IWpxcyXgM3r/nV1"
+  "webSig2": "IghhGInkYSkrVvlfl8cfpvAdrO0UKFbAYAhNN29+mSVHAALAmWMK/31dzOkHmKccWJBjIII5Tbg/0j8RJ8uFCpPyZs4QBuOgbSK0vDI7axdK2bhyj0pFjcFbHmmJZRJ4W5De2ehFt6ppaYJf3XMFA6K5TQNws2VAhmjMHMVWOfon3+Zm/+dQIN3tK7ZU7gxevZcR0QkMqLqdqEgcdKBGz24MLyKqfwACLyFABtEy5zKMIiv9pRkdJYor6324LaN7GfuJ7FnFBwz1gp+7684NR9TiqBI8yXpQMMdaZf4cnrJ4tZG5avPmhFZH5D1gggoP5BPVQJt/3DlUcKaI3NEi//7CIaXXRSYytJXWsgKg5U5cyewm9qQxcOl6pOknocfmnHShSmlo0Yqei8mcs9WutMKPDCvk7DkQBjIVFAhutJMIZmouj/ElUyBNOafb1VeXWqiWkI/pdw15aoAGJ/vK7Wgkhf+f0jmcqn48ZY4HvW69/BxifIjjII8FD93ODlCW"
 }
