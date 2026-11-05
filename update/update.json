@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.143",
-  "versionCode": 144,
-  "nativeLevel": 130,
+  "versionName": "1.144",
+  "versionCode": 145,
+  "nativeLevel": 131,
   "web": "index.html",
-  "webSha256": "7cf3c028eda2ccc2a980559af6592dc06c4eb980995903b8ea16637179651282",
+  "webSha256": "ee7f3321fb4a0e31a8fa6627cbe910272740e1f58a30974d145ba2e3502c7a77",
   "start": "start.html",
   "startSha256": "ca013c1e7d37c86b7299e7346900a6c0386581a676a519a1f40356316b7ea994",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "977cbbf7d030381df7b00d19820afb49eed158addb52d5d5087df62720014253",
+  "apkSha256": "8f6e21f1ddc54b5010e6196177ab48ba344d7a4fdfd2864bf5d6800c78365ce9",
   "changelog": [
+    {
+      "version": "1.144",
+      "date": "2026-11-05",
+      "changes": [
+        "Facturen: na het openen van een factuur (PDF) kom je terug in de app zonder opnieuw in te loggen; ga je vanuit de PDF naar buiten de app, dan geldt het app-slot gewoon",
+        "Facturen: in het dossier kun je zelf een factuur (PDF) toevoegen, de leverancier aanpassen en een factuur verwijderen (eventueel om hem opnieuw te laten ophalen)",
+        "Facturen: het hele dossier leegmaken (Dossier → Ontwikkelen), zodat alles opnieuw opgehaald wordt; kopieën in je backup-map, op Drive en in je mail blijven staan"
+      ]
+    },
     {
       "version": "1.143",
       "date": "2026-11-05",
@@ -1257,5 +1266,5 @@
       ]
     }
   ],
-  "webSig2": "NdHfMmCOgGM6HW6247J5YTV48AP1wl4L62sZMTSM8oTXWU/4AQ0q5HX5wFecx3mBQvXUPavCvWt3Cboylj9HwIJ71VaZ/XgdgGq1r5hKgin6mNr8D0tK5bYqfPivYAOia/Sjz6ileukpMyYQ4wPez7/7pbxH5GM4b6UpZtxHmN2pIgPNBx2mG0fbF42VWnaidUmsRusyD8GxCPQDLKKdGsSa8zrzdMJn5FssZ5gGrwTCqi/uiFyGlF3tLhWQaqesXc2ROJcCWV6Di7yCEsIfWXZmuV+FoX/2fBEtwUh5Oddf+x1J9RGMBOYK+IVnDF0w/XjweGbMAU5RkD299l5imBpWQZVGca9mvmSKLIyzsRmPq8ByPcf+53JvTHtP+RC0iCVdSSHDvaO39aBQm8ECm2ECNBNbOWmcJ+2vVusb/Eu5WrZOO2t4nPdpQCQRKZq1khf+dOO35tw+Ds+D2A/Wj/Ot+XvhakEXHkBVSxyBYiMV84JrfZNm8kz+NheXBvVN"
+  "webSig2": "mniuJd5s6x7x/ULo//ea+3suq6R8l5jYtF9sFsMZPlMolXU3WSy9wUtq/YjpXivagdGjNrsDZ2pul+iEzU2ZcRgWwukT3cEalMUdE4R5Z39JxVeyBr6X4GfRXdmQU36uzgvyVARPQJNL9vk0lPh7F6JVkRm1gP1rx7Cg1R9q/uuuCxxUJvGkH1R1bMTX+ny/hjkdUVY3PW6yTVlAclg7OUdmV4yTCTFBaxl/R4dZ06G5oN763b9LDyUvUeAFVfZB0/sAAMgeSyy/Yj/4LaS6ggXdAKHXFaq98N5Hg+/ZWXZpezrOfMOgWW2e/K/PGTLkCgMf7G8F2rfPWLRtlCl54SSTr4kojxeHKnOCZzY8m86pU0lRChtJ+fWsekmYDl+OKodYsOr+2zdSzwGXqBQkmvIuvbQRJ7+PHNmeATygR4JPwU1Yh7ts88bLMqLSsFmfACZkZVj/ylFJlyPa/e/SKljO1hO5i8RmnveDg4xUTnfuCXLNxywiuKJlCBW2eLDT"
 }

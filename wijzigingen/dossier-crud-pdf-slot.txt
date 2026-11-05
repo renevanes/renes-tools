@@ -1,3 +1,0 @@
-Facturen: na het openen van een factuur (PDF) kom je terug in de app zonder opnieuw in te loggen; ga je vanuit de PDF naar buiten de app, dan geldt het app-slot gewoon
-Facturen: in het dossier kun je zelf een factuur (PDF) toevoegen, de leverancier aanpassen en een factuur verwijderen (eventueel om hem opnieuw te laten ophalen)
-Facturen: het hele dossier leegmaken (Dossier → Ontwikkelen), zodat alles opnieuw opgehaald wordt; kopieën in je backup-map, op Drive en in je mail blijven staan
