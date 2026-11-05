@@ -595,6 +595,53 @@ public class PdfViewActivity extends Activity implements PdfView.Host {
         pm.show();
     }
 
+    /** Geopend vanuit de app (niet vanuit een andere app): dan geldt het app-slot ook hier. */
+    static final String EXTRA_IN_APP = "nl.rene.tools.inApp";
+    /** Willekeurig per proces en alleen in het geheugen: een andere app kan niet doen alsof hij de viewer vanuit de app opent. */
+    static final String TOKEN = Long.toHexString(new java.security.SecureRandom().nextLong()) + Long.toHexString(System.nanoTime());
+    /** De viewer ging uit beeld naar buiten de app (niet terug naar de app). */
+    private boolean weg;
+
+    /** 1 = vanuit de app geopend, 0 = van buiten, -1 = vanuit de app maar in een vorig proces (na opnieuw starten). */
+    private int bijApp() {
+        String t = getIntent() == null ? null : getIntent().getStringExtra(EXTRA_IN_APP);
+        return t == null ? 0 : TOKEN.equals(t) ? 1 : -1;
+    }
+
+    /** Terug naar de app, die dan het slotscherm toont. */
+    private void naarSlot() {
+        try { startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)); } catch (Exception ignored) { }
+        finish();
+    }
+
+    @Override protected void onStart() {
+        super.onStart();
+        int bij = bijApp();
+        boolean terug = weg; weg = false;
+        if (bij == 0 || !Lock.active(this)) return;
+        // Met app-slot ook hier niet zichtbaar in "recente apps" (net als de app zelf)
+        if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(false);
+        else getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+        // Na het opnieuw starten van de app (proces weg) is het slot dicht: eerst ontgrendelen in de app
+        if (bij < 0) { naarSlot(); return; }
+        // Intussen te lang weg geweest (naar huis, andere app)? Dan terug naar de app, die op slot gaat.
+        // (niet bij het openen zelf: dan is de app net nog bezig met overschakelen en telt dat niet als terugkomen)
+        if (terug ? Lock.onShown(this) : Lock.locked(this)) naarSlot();
+    }
+
+    @Override protected void onStop() {
+        // Weg uit de viewer naar buiten de app (niet terug naar de app): dat telt als weggaan, voor het app-slot.
+        // De app zelf is dan al uit beeld (zijn onStop zag "binnen de app"): nu pas telt het als weg.
+        if (bijApp() == 1 && !isFinishing() && !isChangingConfigurations()) {
+            Lock.internalNav = false;
+            Lock.onHidden();
+            weg = true;
+            MainActivity m = MainActivity.live;
+            if (m != null && Lock.active(this) && !Lock.busy()) { try { m.themeChanged(); m.coverOn(); } catch (Throwable ignored) { } }
+        }
+        super.onStop();
+    }
+
     @Override protected void onResume() {
         super.onResume();
         if (file != null && file.getParentFile() != null) file.getParentFile().setLastModified(System.currentTimeMillis()); // nog in gebruik: niet opruimen

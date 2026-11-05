@@ -662,6 +662,7 @@ function fsToon(sha){
   const app = (s.plekken || {}).app;
   $('#fs-open').disabled = !(app && !app.weg);
   $('#fs-bron').textContent = m.bron === 'zelf' ? 'Door jou ingevuld.' : m.bron === 'herkend' ? 'Herkend uit de factuur; controleer en pas aan waar nodig.' : 'Niet herkend: vul zelf in.';
+  $('#fs-lev').value = s.leverancierNaam || '';
   $('#fs-nummer').value = m.nummer || ''; $('#fs-datum').value = m.datum || ''; $('#fs-bedrag').value = m.bedrag || ''; $('#fs-btw').value = m.btw || ''; $('#fs-verval').value = m.vervaldatum || ''; $('#fs-betaald').value = m.betaald || '';
   $('#fs-cat').value = m.categorie || ''; $('#fs-notitie').value = m.notitie || ''; $('#fs-msg').textContent = '';
   $('#fs-cats').innerHTML = [...new Set((faDos.items || []).map(x => (x.meta || {}).categorie).filter(Boolean))].map(c => '<option value="' + esc(c) + '">').join('');
@@ -679,6 +680,38 @@ function fsToon(sha){
   }).join('') || '<p class="note">Nog geen ontvanger. <button class="linkish" onclick="faNaar(\'facaanl\')">Ontvanger toevoegen</button></p>';
   if (current !== 'facstuk') faNaar('facstuk');
 }
+/* Zelf toevoegen, verwijderen en (ontwikkelen) alles leegmaken */
+function fdToevoegen(){
+  const levs = faSt.leveranciers || [];
+  const kies = (id, naam) => { toast(t('Kies de PDF')); Android.facturenDossierToevoegen(id || '', naam || ''); };
+  openSheet(t('Factuur toevoegen'), t('Van welke leverancier is de factuur?'), levs.map(l => [l.naam, () => kies(l.id, '')]).concat([[t('Andere leverancier…'), () =>
+    askInput(t('Andere leverancier'), t('De naam van de leverancier'), '', t('PDF kiezen'), v => { if (String(v || '').trim()) kies('', String(v).trim()); else toast(t('Vul een naam in')); })]]));
+}
+window.onFacturenToegevoegd = function(r){
+  if (r.error === '') return; // geen bestand gekozen
+  if (r.error) { toast(r.error); return; }
+  toast(t('✓ Toegevoegd aan het dossier'));
+  fdLaad(); faLaad(); faSamenvatting();
+  if (FA_SCHERMEN.includes(current)) { fdRender(); fsToon(r.sha); }
+};
+function fsWeg(){
+  const s = (faDos.items || []).find(x => x.sha === fsSha); if (!s) return;
+  const doe = opnieuw => { const e = Android.facturenDossierWeg(fsSha, !!opnieuw); if (e) { toast(e); return; } toast(t('✓ Verwijderd')); fdLaad(); faLaad(); faSamenvatting(); goBack(); fdRender(); };
+  const acts = [[t('Verwijderen'), () => doe(false)]];
+  // Opnieuw ophalen werkt alleen bij een website (de mail zoekt alleen vanaf de vorige keer)
+  if (s.leverancier && s.leverancier !== 'handmatig' && (s.bron || {}).soort === 'website') acts.push([t('Verwijderen en de volgende keer opnieuw ophalen'), () => doe(true)]);
+  openSheet(t('{naam} verwijderen?', { naam: s.naam || '' }), t('De factuur gaat uit het dossier en uit de app. Kopieën in je backup-map, op Drive en in je mail blijven staan.'), acts);
+}
+function fdReset(){
+  const n = ((faDos || {}).items || []).length;
+  askConfirm(t('Dossier leegmaken?'), tn(n, 'Eén factuur gaat uit het dossier en uit de app, en elke leverancier begint de volgende keer opnieuw. Dit kan niet ongedaan worden.', '{n} facturen gaan uit het dossier en uit de app, en elke leverancier begint de volgende keer opnieuw. Dit kan niet ongedaan worden.'), t('Leegmaken'), () =>
+    askConfirm(t('Echt alles leegmaken?'), t('Weet je het zeker? Kopieën in je backup-map, op Drive en in je mail blijven staan.'), t('Ja, leegmaken'), () => {
+      const r = rdJson(Android.facturenDossierReset(), { error: t('Leegmaken lukt niet') });
+      if (r.error) { toast(r.error); return; }
+      toast(t('✓ Dossier leeg'));
+      fdLaad(); faLaad(); faSamenvatting(); fdRender();
+    }));
+}
 function fsTekst(){
   const r = rdJson(Android.facturenDossierTekst(fsSha), { error: 'Lezen lukt niet' });
   $('#fs-tekst').textContent = r.error ? r.error : (r.tekst || '').trim() || '(geen tekst gevonden: misschien is de PDF een afbeelding)';
@@ -687,7 +720,7 @@ function fsOpen(){ const s = (faDos.items || []).find(x => x.sha === fsSha); if 
 let fsDocs = [];
 function fsOpenDoc(i){ const s = fsDocs[i]; if (s) Android.facturenOpen(s.leverancier, s.naam); }
 function fsBewaar(){
-  const e = Android.facturenDossierMeta(fsSha, JSON.stringify({ nummer: $('#fs-nummer').value.trim(), datum: $('#fs-datum').value, bedrag: $('#fs-bedrag').value.trim(), btw: $('#fs-btw').value.trim(), vervaldatum: $('#fs-verval').value, betaald: $('#fs-betaald').value, categorie: $('#fs-cat').value.trim(), notitie: $('#fs-notitie').value.trim() }));
+  const e = Android.facturenDossierMeta(fsSha, JSON.stringify({ leverancierNaam: $('#fs-lev').value.trim(), nummer: $('#fs-nummer').value.trim(), datum: $('#fs-datum').value, bedrag: $('#fs-bedrag').value.trim(), btw: $('#fs-btw').value.trim(), vervaldatum: $('#fs-verval').value, betaald: $('#fs-betaald').value, categorie: $('#fs-cat').value.trim(), notitie: $('#fs-notitie').value.trim() }));
   $('#fs-msg').textContent = e || '';
   if (e) return;
   fdLaad(); toast('✓ Bewaard'); fsToon(fsSha);

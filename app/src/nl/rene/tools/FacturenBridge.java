@@ -271,6 +271,21 @@ public class FacturenBridge extends GebruikBridge {
         } catch (Throwable e) { return "{\"error\":\"Lezen lukt niet\"}"; }
     }
 
+    /** Zelf een PDF aan het dossier toevoegen: kiest een bestand; antwoord via onFacturenToegevoegd({sha} of {error}). */
+    @JavascriptInterface public void facturenDossierToevoegen(String levId, String levNaam) { a.h.post(() -> a.kiesFactuurPdf(levId, levNaam)); }
+
+    /** Een factuur uit het dossier weghalen (opnieuw = de leverancier mag hem weer ophalen). Geeft "" of een fout. */
+    @JavascriptInterface public String facturenDossierWeg(String sha, boolean opnieuw) {
+        try { FacturenDossier.verwijder(ctx, sha, opnieuw); return ""; }
+        catch (Exception e) { return e.getMessage() == null ? "Weghalen lukt niet" : e.getMessage(); }
+    }
+
+    /** Het hele dossier leegmaken (ontwikkelen). Geeft {aantal} of {error}. */
+    @JavascriptInterface public String facturenDossierReset() {
+        try { int n = FacturenDossier.reset(ctx); a.h.post(() -> { try { FacturenJob.schedule(ctx); } catch (Throwable ignored) { } }); return new JSONObject().put("aantal", n).toString(); }
+        catch (Exception e) { return err(e, "Leegmaken lukt niet"); }
+    }
+
     /** Factuurgegevens aanpassen: {nummer, datum, bedrag, btw, categorie, notitie}. Geeft "" of een fout. */
     @JavascriptInterface public String facturenDossierMeta(String sha, String json) {
         try { FacturenDossier.meta(ctx, sha, new JSONObject(json == null ? "{}" : json)); return ""; }

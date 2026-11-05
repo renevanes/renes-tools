@@ -186,8 +186,31 @@ const { chromium } = require('playwright');
     ok(await pg.evaluate(() => Android._fa.calls.some(c => c[0] === 'toestel' && /gmailsend/.test(c[1]))), 'koppelen met het Google-account op de telefoon, met het recht om te versturen');
     ok((await pg.textContent('#fa-gd-stand')).includes('op deze telefoon'), 'stand: via het account op de telefoon');
     ok((await tekst('#fa-gd-rechten')).includes('✓ aan je boekhouder'), 'recht zichtbaar');
+    // Dossier: zelf toevoegen, leverancier aanpassen, verwijderen en (ontwikkelen) leegmaken
+    await pg.evaluate(() => faNaar('facdos')); await pg.waitForTimeout(150);
+    await pg.click('#fd-nieuw'); await pg.waitForTimeout(120);
+    ok((await tekst('#sheet')).includes('KPN Zakelijk') && (await tekst('#sheet')).includes('Andere leverancier'), 'toevoegen: kies de leverancier');
+    await pg.click('#sheet button:has-text("Andere leverancier")'); await pg.waitForTimeout(120);
+    await pg.fill('#modal input', 'Gemeente Rotterdam'); await pg.click('#modal button:has-text("PDF kiezen")'); await pg.waitForTimeout(400);
+    ok(await scherm() === 'facstuk' && await pg.inputValue('#fs-lev') === 'Gemeente Rotterdam', 'toegevoegd en geopend');
+    ok(await pg.evaluate(() => Android._fa.calls.some(c => c[0] === 'toevoegen' && c[2] === 'Gemeente Rotterdam')), 'toevoegen met eigen leverancier');
+    await pg.fill('#fs-lev', 'Gemeente Rotterdam (belasting)'); await pg.click('#s-facstuk button:has-text("Bewaren")'); await pg.waitForTimeout(120);
+    ok(await pg.evaluate(() => Object.values(Android._fa.dos).some(s => s.leverancierNaam === 'Gemeente Rotterdam (belasting)')), 'leverancier aangepast');
+    await pg.click('#fs-weg'); await pg.waitForTimeout(120);
+    ok(!(await tekst('#sheet')).includes('opnieuw ophalen'), 'zelf toegevoegd: alleen gewoon verwijderen');
+    await pg.click('#sheet button:has-text("Verwijderen")'); await pg.waitForTimeout(150);
+    ok(await scherm() === 'facdos' && !(await tekst('#fd-lijst')).includes('Gemeente'), 'verwijderd');
+    const voor = await pg.evaluate(() => Object.keys(Android._fa.dos).length);
+    ok(voor > 0, 'nog facturen in het dossier');
+    await pg.click('#fd-ontw summary'); await pg.waitForTimeout(60);
+    await pg.click('#fd-reset'); await pg.waitForTimeout(120);
+    ok((await tekst('#modal')).includes('kan niet ongedaan'), 'leegmaken: waarschuwing');
+    await pg.click('#modal button:has-text("Leegmaken")'); await pg.waitForTimeout(150);
+    ok((await tekst('#modal')).includes('Weet je het zeker'), 'leegmaken: tweede vraag');
+    await pg.click('#modal button:has-text("Ja, leegmaken")'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => Object.keys(Android._fa.dos).length) === 0 && (await tekst('#fd-lijst')).includes('Nog geen facturen'), 'dossier leeg');
     // Terug tot het startscherm
-    for (let i = 0; i < 8 && await scherm() !== 'home'; i++) { await pg.evaluate(() => goBack()); await pg.waitForTimeout(100); }
+    for (let i = 0; i < 12 && await scherm() !== 'home'; i++) { await pg.evaluate(() => goBack()); await pg.waitForTimeout(100); }
     ok(await scherm() === 'home', 'terug naar het startscherm');
     console.log('errors', errs);
   }
