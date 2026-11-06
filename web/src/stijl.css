@@ -1144,6 +1144,7 @@ body.talk-on #s-ai main{padding-bottom:200px}
 .fa-ovz th[scope="row"]{position:sticky;left:0;z-index:1;background:var(--card);max-width:150px;overflow:hidden;text-overflow:ellipsis}.fa-ovz thead th:first-child{position:sticky;left:0;z-index:1;background:var(--card)}
 .fa-nieuw{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--tonal);color:var(--on-tonal);font-size:12px;font-weight:700;vertical-align:1px}
 .fa-rest{margin-top:6px}.fa-rest>summary{cursor:pointer;color:var(--muted);padding:10px 0;min-height:24px}
+#fa-uit-meer[hidden],#fs-onthoudrij[hidden]{display:none}
 .fd-tab{margin-top:0}.fd-tab th{padding:0}.fd-tab th button{all:unset;box-sizing:border-box;display:block;width:100%;padding:10px 8px;cursor:pointer;color:var(--muted);font-weight:600}
 .fd-tab th button:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}.fd-tab th[aria-sort] button{color:var(--ink)}
 .fd-tab td{padding:10px 8px}.fd-tab tbody tr.fd-rij{cursor:pointer}.fd-tab tbody tr.fd-rij:hover,.fd-tab tbody tr.fd-rij:focus-visible{background:var(--hi);outline:none}

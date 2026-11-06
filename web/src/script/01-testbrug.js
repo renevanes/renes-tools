@@ -716,7 +716,9 @@ if (!window.Android) window.Android = (function(){
     facturenBewaar(json){ const o = JSON.parse(json), f = this._fa; f.calls.push(['bewaar', JSON.parse(json)]);
       if (!o.naam) return JSON.stringify({ error: 'Geef de leverancier een naam' });
       if (o.soort !== 'mail' && o.soort !== 'uitmail' && !/^https:\/\//i.test(o.startUrl || '')) return JSON.stringify({ error: 'De inlogpagina moet beginnen met https://' });
-      if (o.herken && (o.herken.kvk || '').split(/[,\s]+/).some(x => x && !/^\d{8}$/.test(x))) return JSON.stringify({ error: 'Een KvK-nummer heeft 8 cijfers' });
+      if (o.herken) { const h = {}; Object.entries(o.herken).forEach(([k, v]) => { const a = (Array.isArray(v) ? v : String(v || '').split(/[,;\n]+/)).map(x => x.trim()).filter(Boolean)
+        .map(x => /^(btw|kvk|iban)$/.test(k) ? x.replace(/[\s.\-]/g, '').toUpperCase() : x.toLowerCase()); if (a.length) h[k] = a; }); o.herken = h; }
+      if (o.herken && (o.herken.kvk || []).some(x => !/^\d{8}$/.test(x))) return JSON.stringify({ error: 'Een KvK-nummer heeft 8 cijfers' });
       const pw = o.wachtwoord; delete o.wachtwoord;
       let id = o.id; if (!id) { id = o.naam.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); let n = 2, b = id; while (f.lev.some(l => l.id === id)) id = b + '-' + n++; }
       o.id = id; o.submap = o.submap || o.naam; const i = f.lev.findIndex(l => l.id === id); if (i >= 0) f.lev[i] = o; else f.lev.push(o);
