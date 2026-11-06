@@ -56,6 +56,11 @@ public class ToilettenTest {
         check(fout(new JSONObject(b.toString()).put("regels", new JSONArray().put(new JSONObject().put("veld", "x").put("patroon", "a").put("zet", "wissen")))).contains("Onbekende regel"), "onbekende regel");
         JSONObject ex = Toiletten.normaal(new JSONObject(b.toString()).put("extra", new JSONArray().put("rolstoel").put("raket")));
         check(ex.getJSONArray("extra").length() == 1, "alleen bekende vaste eigenschappen");
+        check(Toiletten.normaal(new JSONObject(b.toString()).put("naam", "Eigen")).getString("id").equals("eigen-bron"), "een bron heet nooit eigen (dat zijn je eigen plekken)");
+        JSONArray l2 = new JSONArray().put(new JSONObject().put("id", "mijn-gemeente")).put(new JSONObject().put("id", "mijn-gemeente-2"));
+        String lang = "a234567890123456789012345678901234567890";
+        check(Toiletten.vrijId(l2, "mijn-gemeente").equals("mijn-gemeente-3") && Toiletten.vrijId(l2, "ander").equals("ander")
+                && Toiletten.vrijId(new JSONArray().put(new JSONObject().put("id", lang)), lang).length() <= 40, "nieuwe bron met dezelfde naam: eigen id (hooguit 40 tekens)");
         JSONObject csvB = Toiletten.normaal(new JSONObject(b.toString()).put("soort", "csv"));
         check(csvB.getJSONObject("velden").getString("lat").contains("latitude"), "CSV: standaard kolommen voor de coördinaten");
         String ag = Toiletten.normaal(new JSONObject(b.toString()).put("soort", "arcgis").put("url", "https://gis.voorbeeld.nl/arcgis/rest/services/Toilet/MapServer/0")).getString("url");
@@ -154,6 +159,12 @@ public class ToilettenTest {
         check(k.equals("osm-nl:n1") && (w.getJSONObject("v").getInt("f") & Toiletten.BETAALD) == 0 && w.getJSONObject("was").getInt("f") == (Toiletten.TOILET | Toiletten.BETAALD), "bewerken: gratis wint van betaald, de bron blijft bewaard als 'was'");
         Toiletten.bewaarPlek(e, new JSONObject().put("k", "osm-nl:n1").put("s", "toilet").put("f", Toiletten.TOILET | Toiletten.BETAALD).put("n", "Markt"), new JSONObject(bronW.toString()).put("f", 99), 2000);
         check(!e.getJSONObject("wijzig").has("osm-nl:n1"), "bewerken terug naar wat de bron toen zei: bewerking weg");
+        JSONObject e2 = Toiletten.leegEigen(), bronNu = new JSONObject(bronW.toString()).put("n", "Markt (nieuw)");
+        Toiletten.bewaarPlek(e2, new JSONObject().put("k", "osm-nl:n1").put("s", "toilet").put("f", Toiletten.TOILET).put("n", "Mijn naam"), bronW, 1000);
+        Toiletten.bewaarPlek(e2, new JSONObject().put("k", "osm-nl:n1").put("s", "toilet").put("f", Toiletten.TOILET).put("n", "Mijn naam"), bronNu, 2000);
+        check(e2.getJSONObject("wijzig").getJSONObject("osm-nl:n1").getJSONObject("was").getString("n").equals("Markt"), "opnieuw bewerken: 'was' blijft wat de bron eerst zei");
+        Toiletten.bewaarPlek(e2, new JSONObject().put("k", "osm-nl:n1").put("s", "toilet").put("f", Toiletten.TOILET).put("n", "Mijn naam").put("houden", true), bronNu, 3000);
+        check(e2.getJSONObject("wijzig").getJSONObject("osm-nl:n1").getJSONObject("was").getString("n").equals("Markt (nieuw)"), "mijn versie houden: 'was' wordt wat de bron nu zegt (geen melding meer)");
         String eigenK = Toiletten.bewaarPlek(e, new JSONObject().put("s", "douche").put("f", 0).put("la", 52.1).put("lo", 4.3).put("n", "Strandpaviljoen"), null, 3000);
         JSONObject t = e.getJSONObject("toegevoegd").getJSONObject(eigenK);
         check(eigenK.matches("eigen:[0-9a-f]{12}") && (t.getInt("f") & Toiletten.DOUCHE) != 0 && t.getDouble("la") == 52.1, "toevoegen: eigen sleutel, douche als niets aangevinkt");

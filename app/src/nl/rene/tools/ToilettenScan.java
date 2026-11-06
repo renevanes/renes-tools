@@ -56,10 +56,10 @@ final class ToilettenScan {
     /** De momentopname van Tools (tools/toiletten/ophalen.py). */
     static List<ToilettenSamen.Plek> leesTools(String json) throws Exception {
         JSONObject o = new JSONObject(json);
-        if (o.optInt("formaat", 0) > Toiletten.FORMAAT) throw new Exception("Nieuwer formaat: werk de app bij");
+        if (o.optInt("formaat", 0) > Toiletten.FORMAAT) throw new Exception(Taal.T("Nieuwer formaat: werk de app bij"));
         JSONArray a = o.optJSONArray("plekken");
-        if (a == null) throw new Exception("Geen plekken in het bestand");
-        if (a.length() > MAX_PLEKKEN) throw new Exception("Te veel plekken");
+        if (a == null) throw new Exception(Taal.T("Geen plekken in het bestand"));
+        if (a.length() > MAX_PLEKKEN) throw new Exception(Taal.T("Te veel plekken"));
         List<ToilettenSamen.Plek> uit = new ArrayList<>();
         for (int i = 0; i < a.length(); i++) {
             JSONArray r = a.optJSONArray(i);
@@ -177,9 +177,9 @@ final class ToilettenScan {
             JSONObject o = new JSONObject(t);
             if (o.has("error")) throw new Exception("De bron geeft een fout: " + Toiletten.kort(o.optJSONObject("error") != null ? o.optJSONObject("error").optString("message") : o.optString("error"), 100));
             fs = o.optJSONArray("features");
-            if (fs == null) throw new Exception("Geen GeoJSON (er staat geen \"features\" in)");
+            if (fs == null) throw new Exception(Taal.T("Geen GeoJSON (er staat geen \"features\" in)"));
         }
-        if (fs.length() > MAX_PLEKKEN) throw new Exception("Te veel plekken");
+        if (fs.length() > MAX_PLEKKEN) throw new Exception(Taal.T("Te veel plekken"));
         JSONObject v = bron.optJSONObject("velden");
         for (int i = 0; i < fs.length(); i++) {
             JSONObject f = fs.optJSONObject(i);
@@ -194,7 +194,7 @@ final class ToilettenScan {
                 if (c == null) c = coordUit(props, v);
             }
             if (c == null) continue;
-            if (Math.abs(c[0]) > 90 || Math.abs(c[1]) > 180) throw new Exception("De coördinaten zijn niet in graden (vraag om WGS84, bij ArcGIS outSR=4326)");
+            if (Math.abs(c[0]) > 90 || Math.abs(c[1]) > 180) throw new Exception(Taal.T("De coördinaten zijn niet in graden (vraag om WGS84, bij ArcGIS outSR=4326)"));
             Object fid = f.opt("id");
             ToilettenSamen.Plek p = uitVelden(props, c[0], c[1], bron, fid == null || fid == JSONObject.NULL ? null : String.valueOf(fid));
             if (p != null) uit.add(p);
@@ -262,8 +262,8 @@ final class ToilettenScan {
 
     static List<ToilettenSamen.Plek> leesCsv(String tekst, JSONObject bron) throws Exception {
         List<List<String>> rijen = csv(tekst);
-        if (rijen.size() < 2) throw new Exception("Geen gegevens in de CSV");
-        if (rijen.size() > MAX_PLEKKEN + 1) throw new Exception("Te veel plekken");
+        if (rijen.size() < 2) throw new Exception(Taal.T("Geen gegevens in de CSV"));
+        if (rijen.size() > MAX_PLEKKEN + 1) throw new Exception(Taal.T("Te veel plekken"));
         List<String> kop = rijen.get(0);
         JSONObject v = bron.optJSONObject("velden");
         List<ToilettenSamen.Plek> uit = new ArrayList<>();
@@ -276,7 +276,7 @@ final class ToilettenScan {
             ToilettenSamen.Plek p = uitVelden(props, c[0], c[1], bron, "r" + r);
             if (p != null) uit.add(p);
         }
-        if (uit.isEmpty() && rijen.size() > 1) throw new Exception("Geen coördinaten gevonden: koppel de kolommen voor breedte- en lengtegraad");
+        if (uit.isEmpty() && rijen.size() > 1) throw new Exception(Taal.T("Geen coördinaten gevonden: koppel de kolommen voor breedte- en lengtegraad"));
         return uit;
     }
 
@@ -303,7 +303,7 @@ final class ToilettenScan {
 
     static void schrijfCache(File f, String datum, List<ToilettenSamen.Plek> lijst) throws Exception {
         File d = f.getParentFile();
-        if (!d.isDirectory() && !d.mkdirs()) throw new IOException("Opslagmap maken lukt niet");
+        if (!d.isDirectory() && !d.mkdirs()) throw new IOException(Taal.T("Opslagmap maken lukt niet"));
         File tmp = new File(f.getPath() + ".tmp");
         try {
             try (FileOutputStream out = new FileOutputStream(tmp); GZIPOutputStream gz = new GZIPOutputStream(out)) {
@@ -311,7 +311,7 @@ final class ToilettenScan {
                 gz.finish();
                 out.getFD().sync();
             }
-            if (!tmp.renameTo(f)) throw new IOException("Opslaan lukt niet; de vorige gegevens zijn bewaard");
+            if (!tmp.renameTo(f)) throw new IOException(Taal.T("Opslaan lukt niet; de vorige gegevens zijn bewaard"));
         } finally { //noinspection ResultOfMethodCallIgnored
             tmp.delete(); }
     }
@@ -332,7 +332,7 @@ final class ToilettenScan {
 
     static byte[] haal(String url, long max) throws Exception {
         URL u = new URL(url);
-        if (!"https".equalsIgnoreCase(u.getProtocol())) throw new Exception("Alleen https");
+        if (!"https".equalsIgnoreCase(u.getProtocol())) throw new Exception(Taal.T("Alleen https"));
         HttpURLConnection h = (HttpURLConnection) u.openConnection();
         try {
             h.setConnectTimeout(20_000);
@@ -341,11 +341,11 @@ final class ToilettenScan {
             h.setRequestProperty("User-Agent", UA);
             h.setRequestProperty("Accept", "application/json, application/geo+json, text/csv, */*");
             int code = h.getResponseCode();
-            if (!"https".equalsIgnoreCase(h.getURL().getProtocol())) throw new Exception("Alleen https");
-            if (code == 404) throw new Exception("Niet gevonden (404): klopt het adres nog?");
+            if (!"https".equalsIgnoreCase(h.getURL().getProtocol())) throw new Exception(Taal.T("Alleen https"));
+            if (code == 404) throw new Exception(Taal.T("Niet gevonden (404): klopt het adres nog?"));
             if (code != 200) throw new Exception("De bron antwoordt met " + code);
             long len = h.getContentLengthLong();
-            if (len > max) throw new Exception("Bestand te groot");
+            if (len > max) throw new Exception(Taal.T("Bestand te groot"));
             try (InputStream in = h.getInputStream()) { return Facturen.lees(in, max); }
         } finally { h.disconnect(); }
     }
@@ -378,14 +378,14 @@ final class ToilettenScan {
             String sha = "", datum = "";
             if (!bron.optString("metaUrl").isEmpty()) {
                 JSONObject meta = new JSONObject(new String(haal(bron.optString("metaUrl"), 200_000), StandardCharsets.UTF_8));
-                if (meta.optInt("formaat") > Toiletten.FORMAAT) throw new Exception("Nieuwer formaat: werk de app bij");
+                if (meta.optInt("formaat") > Toiletten.FORMAAT) throw new Exception(Taal.T("Nieuwer formaat: werk de app bij"));
                 sha = meta.optString("sha256").toLowerCase(Locale.ROOT);
                 datum = meta.optString("datum");
-                if (!sha.matches("[0-9a-f]{64}")) throw new Exception("meta.json zonder controlegetal");
+                if (!sha.matches("[0-9a-f]{64}")) throw new Exception(Taal.T("meta.json zonder controlegetal"));
                 if (sha.equals(vorigeSha) && cacheBestaat) return new Object[]{datum, sha, null};
             }
             byte[] b = haal(url, MAX);
-            if (!sha.isEmpty() && !sha.equals(Facturen.sha(b))) throw new Exception("Controle mislukt: het bestand klopt niet met meta.json (later opnieuw)");
+            if (!sha.isEmpty() && !sha.equals(Facturen.sha(b))) throw new Exception(Taal.T("Controle mislukt: het bestand klopt niet met meta.json (later opnieuw)"));
             String t = new String(gunzip(b), StandardCharsets.UTF_8);
             if (datum.isEmpty()) datum = new JSONObject(t).optString("datum");
             return new Object[]{datum, sha.isEmpty() ? Facturen.sha(b) : sha, leesTools(t)};
@@ -416,7 +416,7 @@ final class ToilettenScan {
                 t.put("lastOk", nu).put("fout", "").put("nieuw", 0).put("gewijzigd", 0).put("weg", 0).put("datum", uit[0]);
                 r.put("ok", true).put("ongewijzigd", true).put("aantal", t.optInt("aantal"));
             } else {
-                if (nieuw.isEmpty()) throw new Exception("Geen plekken gevonden in deze bron");
+                if (nieuw.isEmpty()) throw new Exception(Taal.T("Geen plekken gevonden in deze bron"));
                 int[] v = verschil(leesCache(cf), nieuw);
                 schrijfCache(cf, (String) uit[0], nieuw);
                 t.put("lastOk", nu).put("fout", "").put("aantal", nieuw.size()).put("nieuw", v[0]).put("gewijzigd", v[1]).put("weg", v[2])

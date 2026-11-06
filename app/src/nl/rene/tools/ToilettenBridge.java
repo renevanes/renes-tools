@@ -12,8 +12,9 @@ import java.util.List;
 public class ToilettenBridge extends MasterBridge {
     ToilettenBridge(MainActivity act) { super(act); }
 
-    private static String fout(Throwable e, String fb) {
-        try { return new JSONObject().put("error", e.getMessage() == null ? fb : e.getMessage()).toString(); } catch (Exception x) { return "{\"error\":\"" + fb + "\"}"; }
+    private String fout(Throwable e, String fb) {
+        String m = Taal.t(ctx, e.getMessage() == null ? fb : e.getMessage());
+        try { return new JSONObject().put("error", m).toString(); } catch (Exception x) { return "{\"error\":\"\"}"; }
     }
 
     private void plan() { a.h.post(() -> { try { ToilettenJob.schedule(ctx); } catch (Throwable ignored) { } }); }
@@ -53,7 +54,7 @@ public class ToilettenBridge extends MasterBridge {
             for (int i = 0; i < bs.length(); i++) if (Toiletten.cacheFile(ctx, bs.getJSONObject(i).getString("id")).isFile()) data = true;
             uit.put("gegevens", data);
             return uit.toString();
-        } catch (Throwable e) { return fout(e, "Lukt niet"); }
+        } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
     }
 
     /** De dichtstbijzijnde plekken (hooguit 25, binnen 50 km) die bij het filter passen. */
@@ -66,14 +67,14 @@ public class ToilettenBridge extends MasterBridge {
             JSONArray a = new JSONArray();
             for (ToilettenSamen.Treffer t : l) a.put(ToilettenSamen.kort(t.p, t.d));
             return new JSONObject().put("plekken", a).put("totaal", ToilettenSamen.aantal(ix)).toString();
-        } catch (Throwable e) { return fout(e, "Zoeken lukt niet"); }
+        } catch (Throwable e) { return fout(e, Taal.T("Zoeken lukt niet")); }
     }
 
     @JavascriptInterface public String wcPlek(String k) {
         try {
             ToilettenSamen.Index ix = ToilettenSamen.index(ctx);
             ToilettenSamen.Punt p = ix.opSleutel.get(k);
-            if (p == null) return fout(new Exception(Taal.t(ctx, "Deze plek staat er niet meer")), "Lukt niet");
+            if (p == null) return fout(new Exception(Taal.T("Deze plek staat er niet meer")), "");
             JSONObject o = ToilettenSamen.kort(p, -1).put("notitie", p.notitie);
             JSONObject bron = perId(Toiletten.bronnen(ctx));
             JSONArray bs = new JSONArray();
@@ -99,12 +100,7 @@ public class ToilettenBridge extends MasterBridge {
             JSONObject e = Toiletten.eigen(ctx);
             if (e != null && e.optJSONObject("afgewezen").has(k)) o.put("afwijzing", e.optJSONObject("afgewezen").optJSONObject(k));
             return o.toString();
-        } catch (Throwable e) { return fout(e, "Lukt niet"); }
-    }
-
-    @JavascriptInterface public String wcBronnen() {
-        try { return new JSONObject().put("bronnen", Toiletten.bronnen(ctx)).put("sjablonen", Toiletten.sjablonen(ctx)).toString(); }
-        catch (Throwable e) { return fout(e, "Lukt niet"); }
+        } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
     }
 
     @JavascriptInterface public String wcBronBewaar(String json) {
@@ -113,11 +109,11 @@ public class ToilettenBridge extends MasterBridge {
             ToilettenSamen.wis();
             plan();
             return b.toString();
-        } catch (Throwable e) { return fout(e, "Bewaren lukt niet"); }
+        } catch (Throwable e) { return fout(e, Taal.T("Bewaren lukt niet")); }
     }
 
     @JavascriptInterface public String wcBronWeg(String id) {
-        try { Toiletten.verwijderBron(ctx, id); plan(); return ""; } catch (Throwable e) { return fout(e, "Verwijderen lukt niet"); }
+        try { Toiletten.verwijderBron(ctx, id); plan(); return ""; } catch (Throwable e) { return fout(e, Taal.T("Verwijderen lukt niet")); }
     }
 
     /** Nu scannen (id leeg = alle bronnen die aan staan); resultaat via onWcScan. */
@@ -128,7 +124,7 @@ public class ToilettenBridge extends MasterBridge {
             try {
                 JSONArray l = ToilettenScan.scan(ctx, id == null ? "" : id, false);
                 r = l == null ? new JSONObject().put("bezig", true).toString() : new JSONObject().put("id", id == null ? "" : id).put("resultaat", l).toString();
-            } catch (Throwable e) { r = fout(e, "Scannen lukt niet"); }
+            } catch (Throwable e) { r = fout(e, Taal.T("Scannen lukt niet")); }
             a.js("onWcScan", r);
             plan();
         }, "toiletten-scan").start();
@@ -139,7 +135,7 @@ public class ToilettenBridge extends MasterBridge {
 
     private JSONObject eigenOfFout() throws Exception {
         JSONObject e = Toiletten.eigen(ctx);
-        if (e == null) throw new Exception(Taal.t(ctx, "Je eigen wijzigingen zijn niet leesbaar; er is niets overschreven"));
+        if (e == null) throw new Exception(Taal.T("Je eigen wijzigingen zijn niet leesbaar; er is niets overschreven"));
         return e;
     }
 
@@ -166,7 +162,7 @@ public class ToilettenBridge extends MasterBridge {
             }
             App.log(ctx, "TOILET", "eigen wijziging bewaard");
             return new JSONObject().put("k", k).toString();
-        } catch (Throwable e) { return fout(e, "Bewaren lukt niet"); }
+        } catch (Throwable e) { return fout(e, Taal.T("Bewaren lukt niet")); }
     }
 
     @JavascriptInterface public String wcAfwijzen(String k, String reden, String tekst) {
@@ -179,7 +175,7 @@ public class ToilettenBridge extends MasterBridge {
             }
             App.log(ctx, "TOILET", "plek afgewezen");
             return "";
-        } catch (Throwable e) { return fout(e, "Lukt niet"); }
+        } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
     }
 
     /** wat: wijzig (bewerking vergeten = de bron overnemen), afgewezen (terugzetten) of toegevoegd (eigen plek weghalen). */
@@ -193,7 +189,7 @@ public class ToilettenBridge extends MasterBridge {
                 Toiletten.bewaarEigen(ctx, e);
             }
             return "";
-        } catch (Throwable e) { return fout(e, "Lukt niet"); }
+        } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
     }
 
     @JavascriptInterface public String wcEigen() {
@@ -214,7 +210,7 @@ public class ToilettenBridge extends MasterBridge {
                 if (x != null) gd.put(new JSONObject(x.toString()).put("sleutel", s).put("url", ToilettenOsm.notitieUrl(x.optLong("id"))));
             }
             return new JSONObject().put("aangepast", aangepast).put("afgewezen", afgewezen).put("toegevoegd", toegevoegd).put("gedeeld", gd).toString();
-        } catch (Throwable e) { return fout(e, "Lukt niet"); }
+        } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
     }
 
     // ================= gemeenschap (OpenStreetMap-notities) =================
@@ -234,31 +230,31 @@ public class ToilettenBridge extends MasterBridge {
         String tekst;
         if ("afwijzing".equals(wat)) {
             JSONObject af = e.optJSONObject("afgewezen").optJSONObject(p != null && !p.wijzigSleutel.isEmpty() ? p.wijzigSleutel : k);
-            if (af == null) throw new Exception(Taal.t(ctx, "Wijs de plek eerst af"));
-            if (osm.isEmpty()) throw new Exception(Taal.t(ctx, "Deze plek staat niet in OpenStreetMap"));
+            if (af == null) throw new Exception(Taal.T("Wijs de plek eerst af"));
+            if (osm.isEmpty()) throw new Exception(Taal.T("Deze plek staat niet in OpenStreetMap"));
             la = af.optDouble("la"); lo = af.optDouble("lo");
             tekst = ToilettenOsm.tekst(wat, new JSONObject().put("s", af.optString("s")).put("f", p == null ? 0 : p.f), null, osm, af.optString("reden"), af.optString("tekst"));
         } else {
-            if (p == null) throw new Exception(Taal.t(ctx, "Deze plek staat er niet meer"));
+            if (p == null) throw new Exception(Taal.T("Deze plek staat er niet meer"));
             la = p.la; lo = p.lo;
             JSONObject nu = ToilettenSamen.waarden(p);
             if ("wijziging".equals(wat)) {
-                if (!"aangepast".equals(p.eigen)) throw new Exception(Taal.t(ctx, "Pas de plek eerst aan"));
+                if (!"aangepast".equals(p.eigen)) throw new Exception(Taal.T("Pas de plek eerst aan"));
                 if (osm.isEmpty()) wat = "toevoeging";
-            } else if (!"toegevoegd".equals(p.eigen)) throw new Exception(Taal.t(ctx, "Alleen je eigen plekken"));
+            } else if (!"toegevoegd".equals(p.eigen)) throw new Exception(Taal.T("Alleen je eigen plekken"));
             tekst = ToilettenOsm.tekst(wat, nu, p.uitBron, osm, "", p.notitie);
         }
         return new JSONObject().put("tekst", tekst).put("la", la).put("lo", lo).put("wat", wat).put("osm", osm);
     }
 
     @JavascriptInterface public String wcNotitie(String k, String wat) {
-        try { return notitie(k, wat).toString(); } catch (Throwable e) { return fout(e, "Lukt niet"); }
+        try { return notitie(k, wat).toString(); } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
     }
 
     /** Na bevestiging: de notitie maken (resultaat via onWcGedeeld). In een moderatiezone gaat de tekst naar het klembord. */
     @JavascriptInterface public String wcDoorgeven(String k, String wat) {
         final JSONObject n;
-        try { n = notitie(k, wat); } catch (Throwable e) { return fout(e, "Lukt niet"); }
+        try { n = notitie(k, wat); } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
         new Thread(() -> {
             String r;
             try {
@@ -273,13 +269,13 @@ public class ToilettenBridge extends MasterBridge {
                     });
                 }
                 r = o.put("k", k).toString();
-            } catch (Throwable e) { r = fout(e, "Doorgeven lukt niet"); }
+            } catch (Throwable e) { r = fout(e, Taal.T("Doorgeven lukt niet")); }
             a.js("onWcGedeeld", r);
         }, "toiletten-osm").start();
         return "";
     }
 
     @JavascriptInterface public String wcVergeet(String sleutel) {
-        try { ToilettenOsm.vergeet(ctx, sleutel); return ""; } catch (Throwable e) { return fout(e, "Lukt niet"); }
+        try { ToilettenOsm.vergeet(ctx, sleutel); return ""; } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
     }
 }

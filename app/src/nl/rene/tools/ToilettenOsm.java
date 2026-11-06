@@ -26,7 +26,7 @@ final class ToilettenOsm {
 
     /** Hier mag alleen iemand met een account een notitie maken: dan via de website. */
     static final class Zone extends Exception {
-        Zone() { super("Hier kan het alleen via de website van OpenStreetMap"); }
+        Zone() { super(Taal.T("Hier kan het alleen via de website van OpenStreetMap")); }
     }
 
     /* taal-vast-begin: de notitie gaat naar OpenStreetMap Nederland, altijd in het Nederlands */
@@ -146,7 +146,7 @@ final class ToilettenOsm {
     static long leesId(String json) throws Exception {
         JSONObject p = new JSONObject(json).optJSONObject("properties");
         long id = p == null ? 0 : p.optLong("id");
-        if (id <= 0) throw new Exception("Onverwacht antwoord van OpenStreetMap");
+        if (id <= 0) throw new Exception(Taal.T("Onverwacht antwoord van OpenStreetMap"));
         return id;
     }
 
@@ -172,7 +172,7 @@ final class ToilettenOsm {
             try (OutputStream o = h.getOutputStream()) { o.write(body); }
             int code = h.getResponseCode();
             if (code == 403) throw new Zone();
-            if (code == 429) throw new Exception("Even te veel notities: probeer het later");
+            if (code == 429) throw new Exception(Taal.T("Even te veel notities: probeer het later"));
             if (code != 200) throw new Exception("OpenStreetMap antwoordt met " + code);
             try (java.io.InputStream in = h.getInputStream()) { return leesId(new String(Facturen.lees(in, 200_000), StandardCharsets.UTF_8)); }
         } finally { h.disconnect(); }
@@ -213,7 +213,7 @@ final class ToilettenOsm {
 
     /** Notitie maken en bewaren. Geeft {ok, id, url}, of {zone: true, url} (dan via de website). */
     static JSONObject deel(Context c, String k, String wat, double la, double lo, String tekst) throws Exception {
-        if (!Facturen.in(wat, WAT)) throw new Exception("Onbekend");
+        if (!Facturen.in(wat, WAT)) throw new Exception(Taal.T("Onbekend"));
         long nu = System.currentTimeMillis();
         JSONObject g = gedeeld(c);
         if (vandaag(g, nu) >= MAX_PER_DAG) throw new Exception("Vandaag al " + MAX_PER_DAG + " keer doorgegeven: morgen weer");

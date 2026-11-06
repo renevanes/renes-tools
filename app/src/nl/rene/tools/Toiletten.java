@@ -96,33 +96,34 @@ final class Toiletten {
 
     /** Controleert een bron en vult ontbrekende keuzes aan. Fout = Nederlandse uitleg voor in de app. */
     static JSONObject normaal(JSONObject in) throws Exception {
-        if (in == null) throw new Exception("Geen instellingen");
+        if (in == null) throw new Exception(Taal.T("Geen instellingen"));
         JSONObject o = new JSONObject();
         String naam = tekst(in, "naam", 60, "");
-        if (naam.isEmpty()) throw new Exception("Geef de bron een naam");
+        if (naam.isEmpty()) throw new Exception(Taal.T("Geef de bron een naam"));
         o.put("naam", naam);
         String id = in.optString("id", "").trim();
-        o.put("id", Facturen.veiligId(id.isEmpty() ? naam : id));
+        id = Facturen.veiligId(id.isEmpty() ? naam : id);
+        o.put("id", id.equals("eigen") ? "eigen-bron" : id);
         o.put("sjabloon", Facturen.veiligId(in.optString("sjabloon", "eigen")));
         String soort = in.optString("soort", "geojson");
-        if (!Facturen.in(soort, BRON_SOORT)) throw new Exception("Onbekende soort bron");
+        if (!Facturen.in(soort, BRON_SOORT)) throw new Exception(Taal.T("Onbekende soort bron"));
         o.put("soort", soort);
         String url = adres(tekst(in, "url", 1000, ""), true, "het adres van de gegevens");
         o.put("url", "arcgis".equals(soort) ? arcgisUrl(url) : url);
         o.put("metaUrl", adres(tekst(in, "metaUrl", 1000, ""), false, "het adres van meta.json"));
         o.put("info", adres(tekst(in, "info", 1000, ""), false, "het adres met uitleg"));
         String lic = tekst(in, "licentie", MAX_TEKST, "");
-        if (lic.isEmpty()) throw new Exception("Vul de licentie of bronvermelding in (staat bij de gegevens)");
+        if (lic.isEmpty()) throw new Exception(Taal.T("Vul de licentie of bronvermelding in (staat bij de gegevens)"));
         o.put("licentie", lic);
         o.put("tip", tekst(in, "tip", 400, ""));
         o.put("aan", in.optBoolean("aan", true));
         String schema = in.optString("schema", "week");
-        if (!Facturen.in(schema, Facturen.SCHEMA)) throw new Exception("Onbekende keuze voor hoe vaak");
+        if (!Facturen.in(schema, Facturen.SCHEMA)) throw new Exception(Taal.T("Onbekende keuze voor hoe vaak"));
         o.put("schema", schema);
         o.put("dag", Math.max(1, Math.min(31, in.optInt("dag", 1))));
         o.put("weekdag", Math.max(1, Math.min(7, in.optInt("weekdag", 2))));
         String tijd = in.optString("tijd", "04:00").trim();
-        if (!tijd.matches("([01]?\\d|2[0-3]):[0-5]\\d")) throw new Exception("Vul een tijd in als 04:00");
+        if (!tijd.matches("([01]?\\d|2[0-3]):[0-5]\\d")) throw new Exception(Taal.T("Vul een tijd in als 04:00"));
         o.put("tijd", tijd.length() == 4 ? "0" + tijd : tijd);
         o.put("opnieuw", Math.max(1, Math.min(24, in.optInt("opnieuw", 6))));
         o.put("wifi", in.optBoolean("wifi", true));
@@ -136,14 +137,14 @@ final class Toiletten {
             vo.put("lat", vo.optString("lat", "lat|latitude|breedtegraad|y")).put("lon", vo.optString("lon", "lon|lng|longitude|lengtegraad|x"));
         o.put("velden", vo);
         String plek = in.optString("plek", "toilet");
-        if (!Facturen.in(plek, SOORTEN)) throw new Exception("Onbekende soort plek");
+        if (!Facturen.in(plek, SOORTEN)) throw new Exception(Taal.T("Onbekende soort plek"));
         o.put("plek", plek);
         JSONArray ei = in.optJSONArray("extra"), eo = new JSONArray();
         if (ei != null) for (int i = 0; i < ei.length(); i++) { String v = ei.optString(i); if (Facturen.in(v, EXTRA)) eo.put(v); }
         o.put("extra", eo);
         JSONArray ri = in.optJSONArray("regels"), ro = new JSONArray();
         if (ri != null) {
-            if (ri.length() > 20) throw new Exception("Hooguit 20 regels");
+            if (ri.length() > 20) throw new Exception(Taal.T("Hooguit 20 regels"));
             for (int i = 0; i < ri.length(); i++) {
                 JSONObject r = ri.optJSONObject(i);
                 if (r == null) continue;
@@ -199,7 +200,7 @@ final class Toiletten {
 
     private static void checkBronnen(String t) throws Exception {
         JSONArray a = new JSONObject(t).optJSONArray("bronnen");
-        if (a == null) throw new Exception("Geen lijst");
+        if (a == null) throw new Exception(Taal.T("Geen lijst"));
     }
 
     static void bewaarLijst(Context c, JSONArray lijst) throws Exception {
@@ -208,10 +209,22 @@ final class Toiletten {
         }
     }
 
+    /** Een id dat nog niet in de lijst staat (een nieuwe bron met dezelfde naam als een bestaande). */
+    static String vrijId(JSONArray l, String id) {
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        for (int i = 0; i < l.length(); i++) { JSONObject x = l.optJSONObject(i); if (x != null) ids.add(x.optString("id")); }
+        String v = id;
+        String basis = id.length() > 36 ? id.substring(0, 36) : id;
+        for (int n = 2; ids.contains(v); n++) v = basis + "-" + n;
+        return v;
+    }
+
     static JSONObject bewaarBron(Context c, JSONObject in) throws Exception {
+        boolean nieuwe = in.optString("id", "").trim().isEmpty();
         JSONObject b = normaal(in);
         synchronized (LOCK) {
             JSONArray oud = bronnen(c), nieuw = new JSONArray();
+            if (nieuwe) b.put("id", vrijId(oud, b.getString("id")));
             boolean gevonden = false;
             for (int i = 0; i < oud.length(); i++) {
                 JSONObject x = oud.getJSONObject(i);
@@ -273,7 +286,7 @@ final class Toiletten {
     static void checkEigen(String t) throws Exception {
         JSONObject o = new JSONObject(t);
         if (o.length() == 0) return;
-        for (String k : new String[]{"wijzig", "afgewezen", "toegevoegd"}) if (o.has(k) && o.optJSONObject(k) == null) throw new Exception("Onverwachte eigen laag");
+        for (String k : new String[]{"wijzig", "afgewezen", "toegevoegd"}) if (o.has(k) && o.optJSONObject(k) == null) throw new Exception(Taal.T("Onverwachte eigen laag"));
     }
 
     static JSONObject eigen(Context c) {
@@ -296,14 +309,14 @@ final class Toiletten {
 
     private static double coord(JSONObject in, String k, double min, double max) throws Exception {
         double v = in.optDouble(k, Double.NaN);
-        if (Double.isNaN(v) || v < min || v > max) throw new Exception("Onbekende plek op de kaart");
+        if (Double.isNaN(v) || v < min || v > max) throw new Exception(Taal.T("Onbekende plek op de kaart"));
         return Math.round(v * 1e6) / 1e6;
     }
 
     /** De waarden die Rene zelf invult: soort, eigenschappen, naam, openingstijden en een notitie. */
     static JSONObject waarden(JSONObject in) throws Exception {
         String s = in.optString("s", "toilet");
-        if (!Facturen.in(s, SOORTEN)) throw new Exception("Onbekende soort plek");
+        if (!Facturen.in(s, SOORTEN)) throw new Exception(Taal.T("Onbekende soort plek"));
         int f = in.optInt("f", TOILET) & ALLE_BITS & ~MEESTAL;
         if ((f & (TOILET | DOUCHE)) == 0) f |= "douche".equals(s) ? DOUCHE : TOILET;
         if ((f & GRATIS) != 0) f &= ~BETAALD;
@@ -334,7 +347,7 @@ final class Toiletten {
             if (k.isEmpty()) {
                 if (aantal(eigen) >= MAX_EIGEN) throw new Exception("Hooguit " + MAX_EIGEN + " eigen wijzigingen");
                 k = nieuwId();
-            } else if (!t.has(k)) throw new Exception("Deze plek bestaat niet meer");
+            } else if (!t.has(k)) throw new Exception(Taal.T("Deze plek bestaat niet meer"));
             JSONObject oud = t.optJSONObject(k);
             JSONObject o = new JSONObject(v.toString())
                     .put("la", in.has("la") || oud == null ? coord(in, "la", -90, 90) : oud.getDouble("la"))
@@ -343,13 +356,13 @@ final class Toiletten {
             t.put(k, o);
             return k;
         }
-        if (bron == null) throw new Exception("Deze plek staat niet meer in de bron");
-        if (!k.matches("[a-z0-9-]{1,40}:[^\\s]{1,80}")) throw new Exception("Onbekende plek");
+        if (bron == null) throw new Exception(Taal.T("Deze plek staat niet meer in de bron"));
+        if (!k.matches("[a-z0-9-]{1,40}:[^\\s]{1,80}")) throw new Exception(Taal.T("Onbekende plek"));
         JSONObject w = eigen.getJSONObject("wijzig");
         if (!w.has(k) && aantal(eigen) >= MAX_EIGEN) throw new Exception("Hooguit " + MAX_EIGEN + " eigen wijzigingen");
         JSONObject was = new JSONObject().put("s", bron.optString("s")).put("f", bron.optInt("f")).put("n", bron.optString("n")).put("u", bron.optString("u"));
         JSONObject oud = w.optJSONObject(k);
-        if (oud != null && oud.optJSONObject("was") != null) was = oud.getJSONObject("was");
+        if (oud != null && oud.optJSONObject("was") != null && !in.optBoolean("houden")) was = oud.getJSONObject("was");
         if (zelfde(v, was) && v.optString("notitie").isEmpty()) { w.remove(k); return k; }
         w.put(k, new JSONObject().put("la", bron.getDouble("la")).put("lo", bron.getDouble("lo")).put("s", bron.optString("s"))
                 .put("t", nu).put("v", v).put("was", was));
@@ -363,9 +376,9 @@ final class Toiletten {
     }
 
     static void afwijzen(JSONObject eigen, String k, String reden, String tekst, JSONObject plek, long nu) throws Exception {
-        if (!Facturen.in(reden, REDEN)) throw new Exception("Kies een reden");
-        if (k.startsWith("eigen:")) throw new Exception("Je eigen plek kun je weghalen");
-        if (plek == null) throw new Exception("Deze plek staat niet meer in de bron");
+        if (!Facturen.in(reden, REDEN)) throw new Exception(Taal.T("Kies een reden"));
+        if (k.startsWith("eigen:")) throw new Exception(Taal.T("Je eigen plek kun je weghalen"));
+        if (plek == null) throw new Exception(Taal.T("Deze plek staat niet meer in de bron"));
         JSONObject a = eigen.getJSONObject("afgewezen");
         if (!a.has(k) && aantal(eigen) >= MAX_EIGEN) throw new Exception("Hooguit " + MAX_EIGEN + " eigen wijzigingen");
         a.put(k, new JSONObject().put("la", plek.getDouble("la")).put("lo", plek.getDouble("lo")).put("s", plek.optString("s"))
