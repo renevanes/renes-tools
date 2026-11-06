@@ -64,7 +64,7 @@ function enterMasterdata(name='masterdata',prev=''){
   if(name==='masterdata'&&cmZone(prev)&&prev!=='masterdata'&&cmOpen())cmListLoad();
   if(name==='cmwis'){$('#cm-reset-word').value='';cmResetReady();}
 }
-function cmLeave(){if(typeof cmi!=='undefined')cmi.newType='';cmClearCentral();Android.masterLock();cmPrivacy(false);}
+function cmLeave(){if(typeof cmi!=='undefined'){cmi.newType='';cmi.reopen='';}cmClearCentral();Android.masterLock();cmPrivacy(false);}
 function cmClearCentral(){
   cm.records=[];cm.recordsReady=false;cm.events=[];cm.edit=null;cm.dirty=false;cm.before=0;cm.editorEpoch++;cm.back=null;cm.tab='';cm.filter='';cmBusy(false);
   ['cm-list','cm-filter','cm-tabs','cm-fields','cm-audit','cm-pick-list','cm-pick-fields'].forEach(id=>$('#'+id).replaceChildren());
@@ -171,7 +171,9 @@ function cmEditorFields(){
 }
 function cmShowSecret(show){CM_SECRET.forEach(key=>{const input=$('#cm-field-'+key);if(input)input.type=show?'text':'password';});cmTouch();}
 function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-edit-menu').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cmi-photos button,#cmi-person-actions button,#cmi-person-relations button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;}
-const CM_ERR_FIELD={'Vul een naam voor het overzicht in':'cm-label','Kies een gekoppelde persoon':'cm-field-persoon','Kies een geldige relatie':'cm-field-relatie','Een relatie hoort bij twee verschillende personen':'cm-field-naarPersoon','Kies een status die bij deze relatie past':'cm-field-status'};
+const CM_ERR_FIELD={'Vul een naam voor het overzicht in':'cm-label','Kies een gekoppelde persoon':'cm-field-persoon','Kies een geldige relatie':'cm-field-relatie','Een relatie hoort bij twee verschillende personen':'cm-field-naarPersoon','Kies een status die bij deze relatie past':'cm-field-status','Vul een geldig BSN in':'cm-field-bsn',
+  'Kies in de vaste gegevens het kind dat reist':'cm-field-kind','Kies in de vaste gegevens wie toestemming geeft':'cm-field-gever1','Kies in de vaste gegevens wie meereist, of kies dat het kind alleen reist':'cm-field-begeleider1',
+  'Kies twee verschillende begeleiders':'cm-field-begeleider2','Kies twee verschillende toestemmingsgevers':'cm-field-gever2','Kies voor welk formulier deze vaste gegevens zijn':'cm-field-formulier'};
 function cmShowField(id){const e=$('#'+id);if(!e)return;const box=e.closest('[data-cm-tab]');if(box&&box.classList.contains('cm-off'))cmTab(box.dataset.cmTab);e.focus();}
 function cmSave(){
   if(!cmOpen()||!cm.edit||cm.mutating)return;cm.edit.label=$('#cm-label').value;

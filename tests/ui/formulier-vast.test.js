@@ -30,6 +30,8 @@ for(const colorScheme of ['light','dark']){
   await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.edit&&cm.edit.type==='formulier');
   assert.equal(await p.isVisible('#cmi-form-note'),true);
   assert.equal(await p.evaluate(()=>cm.edit.fields.formulier),'reistoestemming');assert.equal(await p.locator('#cm-field-formulier').count(),0,'één soort formulier: geen keuze in beeld');
+  // Opslaan vanaf een ander tabblad terwijl er nog iets ontbreekt: terug naar het tabblad met het veld
+  await p.click('#cm-tab-toestemming');await p.click('#cm-save');await p.waitForFunction(()=>!cm.mutating&&cm.tab==='kind'&&['cm-field-kind','cm-label'].includes(document.activeElement.id));
   // Alleen personen in de persoonkeuze, alleen documenten van de gekozen persoon.
   assert.deepEqual(await p.$$eval('#cm-field-kind option',o=>o.map(x=>x.textContent)),['Kies een persoon','Zoë <b>','Mama','Papa']);
   await T.select('#cm-field-kind',{label:'Zoë <b>'});
