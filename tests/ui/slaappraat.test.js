@@ -86,9 +86,10 @@ const { chromium } = require('playwright');
     ok((await pg.textContent('#sl-tx-n')).includes('Gesprekken uitschrijven'), 'zonder spraakmodel: waar je het downloadt');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);
     ok(await pg.evaluate(() => current === 'sleep') && await pg.isVisible('#sl-model-hint') && (await pg.textContent('#sl-note')).includes('30 dagen'), 'terug: balk "nog geen spraakmodel", en de bewaartermijn staat in de regel over wat er bewaard wordt');
-    await pg.click('#sl-model-hint'); await pg.waitForTimeout(120);
-    ok(await pg.evaluate(() => current === 'sleepset'), 'balk opent de instellingen');
+    await pg.click('#sl-model-hint'); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => current === 'transcripts'), 'balk opent Gesprekken uitschrijven (spraakmodel downloaden)');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(80);
+    ok(await pg.evaluate(() => current === 'sleep'), 'terug: Slaappraat');
     // Proefronde: live zien wat hij oppikt, niets bewaren
     await pg.evaluate(() => { Android._sl.model = 'Snel (57 MB)'; Android._sl.mic = true; slLoad(); slRender(); });
     ok(!(await pg.isVisible('#sl-model-hint')), 'met spraakmodel: geen balk');
