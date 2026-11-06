@@ -13,11 +13,12 @@ for(const colorScheme of ['light','dark']){
  const person=async(label,naam)=>{await p.waitForFunction(()=>cm.recordsReady&&!cm.mutating);await p.evaluate(()=>cmNew());await p.waitForFunction(()=>current==='cmedit'&&cm.edit&&!cm.edit.id);await T.fill('#cm-label',label);await T.fill('#cm-field-naam',naam);await p.click('#cm-save');await p.waitForFunction(label=>!cm.mutating&&!cm.edit&&cm.recordsReady&&cm.records.some(r=>r.label===label),label);return p.evaluate(label=>cm.records.find(r=>r.label===label).id,label);};
  const open=async id=>{await p.evaluate(id=>cmEdit(id),id);await p.waitForFunction(id=>cm.edit?.id===id&&cm.recordsReady&&!cm.pending.size,id);await T.tab('#cmi-person-relations');};
  const list=()=>p.evaluate(()=>[...$('#cmi-person-relation-list').children].map(e=>e.textContent));
- const note=()=>p.evaluate(()=>$('#cm-status').textContent);
+ const note=()=>p.evaluate(()=>$('#cm-edit-status').textContent);
  const zin=()=>p.evaluate(()=>$('#cmi-relation-zin').hidden?'':$('#cmi-relation-zin').textContent);
  const options=id=>p.evaluate(id=>$('#'+id)?[...$('#'+id).options].map(o=>o.value):null,id);
  const add=async(code,naam)=>{await T.click(`button[onclick="cmiRelationNew('${code}')"]`);await p.waitForFunction(()=>cm.edit?.type==='relatie'&&!cm.edit.id);if(naam)await T.select('#cm-field-naarPersoon',naam);};
- const save=async()=>{const n=await p.evaluate(()=>cm.records.length);await p.click('#cm-save');await p.waitForFunction(n=>!cm.mutating&&!cm.edit&&cm.recordsReady&&cm.records.length>n,n);};
+ // Opslaan vanaf een persoon: daarna weer bij die persoon (eindtoestand afwachten, niet het korte moment ertussen)
+ const save=async()=>{const n=await p.evaluate(()=>cm.records.length);const from=await p.evaluate(()=>cm.back?.id);await p.click('#cm-save');await p.waitForFunction(([n,from])=>!cm.mutating&&cm.recordsReady&&cm.records.length>n&&current==='cmedit'&&cm.edit?.id===from&&!cm.pending.size,[n,from]);};
 
  // Eén persoon: de knoppen staan er, maar er is nog niemand om aan te koppelen
  const rene=await person('Rene','van Es');await open(rene);
@@ -65,7 +66,7 @@ for(const colorScheme of ['light','dark']){
  assert.equal(await options('cm-field-status'),null);
  await T.select('#cm-field-relatie','anders');assert.equal(await zin(),'Kees heeft een andere relatie met Rene.');assert.equal(await p.inputValue('#cm-label'),'Kees en Rene');
  await T.select('#cm-field-relatie','vriend');await p.evaluate(()=>{cm.edit.fields.status='gehuwd';});await p.click('#cm-save');
- await p.waitForFunction(()=>!cm.mutating&&$('#cm-status').textContent==='Kies een status die bij deze relatie past');assert.equal(await p.evaluate(()=>cm.edit?.type),'relatie','bewerking blijft open');
+ await p.waitForFunction(()=>!cm.mutating&&$('#cm-edit-status').textContent==='Kies een status die bij deze relatie past');assert.equal(await p.evaluate(()=>cm.edit?.type),'relatie','bewerking blijft open');
  await p.evaluate(()=>{delete cm.edit.fields.status;});await save();
  await open(sam);assert.deepEqual(await list(),['Sam is partner van Rene.']);
  await open(rene);assert.deepEqual(await list(),['Anna is kind van Rene.','Kees is vriend of vriendin van Rene.','Sam is partner van Rene.']);

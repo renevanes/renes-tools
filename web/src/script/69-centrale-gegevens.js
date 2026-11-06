@@ -23,10 +23,12 @@ const CM_TABS={persoon:[['naam','Naam',['naam','voornamen','roepnaam','initialen
 const CM_LABEL_TAB={relatie:'meer'};
 // taal-vast: filternamen worden bij het tekenen met t() vertaald
 const CM_FILTERS=[['persoon','Personen',['persoon']],['relatie','Relaties',['relatie']],['identiteit','Documenten',['identiteit']],['overig','Overig',['organisatie','adres','reis','profiel','formulier']]];
+const CM_NEW={persoon:'Persoon toevoegen',organisatie:'Organisatie toevoegen',adres:'Adres toevoegen',identiteit:'Identiteitsdocument toevoegen',reis:'Reis toevoegen',relatie:'Relatie toevoegen',profiel:'App-profiel toevoegen',formulier:'Vaste formuliergegevens toevoegen'};
 const CM_ICONS={persoon:'user',relatie:'share',identiteit:'document',organisatie:'shop',adres:'pin',reis:'route',profiel:'smile',formulier:'clipboard'};
 function cmState(){try{return JSON.parse(Android.masterState());}catch(_){return {open:false};}}
 function cmOpen(){return !!cm.token&&cmState().open&&cm.privateReady;}
-function cmNote(message){document.querySelectorAll('.cm-status,#cm-pick-status').forEach(e=>e.textContent=message);}
+const CM_NOTE={masterdata:'cm-status',cmedit:'cm-edit-status',cmlog:'cm-log-status',cmwis:'cm-wis-status'};
+function cmNote(message){for(const e of [CM_NOTE[current]&&$('#'+CM_NOTE[current]),$('#cm-pick-status')])if(e)e.textContent=message;}
 function cmEl(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
 function cmData(e){e.setAttribute('translate','no');return e;}
 function cmRequest(method,args,done,publicRequest=false,fail=null){
@@ -53,10 +55,11 @@ function cmRenderState(){
   const open=cmOpen();$('#cm-locked').hidden=open;$('#cm-open').hidden=!open;$('#cm-add').hidden=!open;$('#cm-lock-btn').hidden=!open;$('#cmi-profile-btn').hidden=!open;
   $('#cm-pick-unlock').hidden=open;$('#cm-pick-search').hidden=!open;
   // Op slot tijdens bewerken of het logboek: terug naar het overzicht (na een lopende schermwissel)
-  if(!open&&['cmedit','cmlog'].includes(current))setTimeout(()=>{if(['cmedit','cmlog'].includes(current)&&!cmOpen())show('masterdata');},0);
+  if(!open&&['cmedit','cmlog'].includes(current))setTimeout(()=>{if(['cmedit','cmlog'].includes(current)&&!cmOpen()){const note=$('#'+CM_NOTE[current]).textContent;show('masterdata');cmNote(note);}},0);
 }
 function enterMasterdata(name='masterdata',prev=''){
   if(!cmZone(prev)){cmClearCentral();cmPrivacy(true);cmNote(t('Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.'));}
+  if(cmZone(prev)&&name!=='cmedit')cm.editorEpoch++;
   if(['cmedit','cmlog'].includes(name)&&!cmOpen()){cmRenderState();return;}
   if(name==='masterdata'&&cmZone(prev)&&prev!=='masterdata'&&cmOpen())cmListLoad();
   if(name==='cmwis'){$('#cm-reset-word').value='';cmResetReady();}
@@ -80,6 +83,7 @@ function cmLockedUI(){
   if(cm.picker){cm.picker.record=null;cm.picker.fields={};}
   if(fm.masterSensitive){cmClearFormDOM();fm.busy=false;fm.exportToken='';fm.masterSensitive=false;fmInit(fm.id);if(current==='formulieren')fmRender();}
   if(idc.masterSensitive){idc.masterSensitive=false;idc.busy=false;idc.loading=false;idCopyReset(current==='idcopy');idCopyControls();}
+  if(cmZone(current)&&$('#modal').classList.contains('on'))closeModal(null);
   cmRenderState();cmNote(t('Stamgegevens zijn vergrendeld. Niet-bewaarde gegevens zijn gewist.'));
 }
 window.onMasterLocked=function(generation){cm.generation=generation;cmLockedUI();Android.masterSafeFrame(cm.view,generation);};
@@ -98,8 +102,8 @@ function cmListOpen(){
   cmListLoad();
 }
 function cmListLoad(after){
-  if(!cmOpen())return;cm.recordsReady=false;document.querySelectorAll('#cm-open button,#cm-add').forEach(b=>b.disabled=true);cm.editorEpoch++;
-  cmRequest('masterList',['masterdata',''],r=>{cm.records=r.records;cm.recordsReady=true;cmRenderList();document.querySelectorAll('#cm-open button,#cm-add').forEach(b=>b.disabled=false);if(after)after();else cmiAfterList();});
+  if(!cmOpen())return;cm.recordsReady=false;document.querySelectorAll('#cm-open button,#cm-add').forEach(b=>b.disabled=true);const epoch=++cm.editorEpoch;
+  cmRequest('masterList',['masterdata',''],r=>{cm.records=r.records;cm.recordsReady=true;cmRenderList();document.querySelectorAll('#cm-open button,#cm-add').forEach(b=>b.disabled=false);if(epoch!==cm.editorEpoch)return;if(after)after();else cmiAfterList();});
 }
 function cmRenderList(){
   const box=$('#cm-list'),chips=$('#cm-filter');box.replaceChildren();chips.replaceChildren();if(!cmOpen())return;const q=$('#cm-search').value.toLowerCase();
@@ -115,8 +119,8 @@ function cmRenderList(){
   if(!box.children.length){if(cm.records.length)box.append(cmEl('p',t('Nog geen passende stamgegevens.'),'note cm-leeg'));else box.innerHTML=uiEmpty('shield',t('Nog geen stamgegevens. Begin met jezelf: Toevoegen → Persoon.'));}
 }
 function cmNew(){if(!cmOpen()||cm.mutating||!cm.recordsReady)return;cm.editorEpoch++;cm.edit={type:'persoon',label:'',fields:{},revision:0};cmEditor();}
-function cmEdit(id,tab){if(cm.mutating)return;const epoch=++cm.editorEpoch;cmRequest('masterRead',[id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;cm.edit=r.record;cmEditor(tab);});}
-function cmEditorTitle(r){const h=$('#cm-editor-title');if(r&&r.id){h.textContent=r.label;h.setAttribute('translate','no');}else{h.removeAttribute('translate');h.textContent=r?t('{soort} toevoegen',{soort:t(CM_TYPES[r.type])}):t('Stamgegeven bewerken');}}
+function cmEdit(id,tab,back,note){if(cm.mutating)return;const epoch=++cm.editorEpoch;cmRequest('masterRead',[id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;cm.edit=r.record;cm.back=back||null;cmEditor(tab);if(note)cmNote(note);});}
+function cmEditorTitle(r){const h=$('#cm-editor-title');if(r&&r.id){h.textContent=r.label;h.setAttribute('translate','no');}else{h.removeAttribute('translate');h.textContent=r?t(CM_NEW[r.type]||'Stamgegeven toevoegen'):t('Stamgegeven bewerken');}}
 function cmEditor(tab){
   const r=cm.edit;$('#cm-editor').hidden=false;$('#cm-savebar').hidden=false;if(!cm.keepNote)$('#cm-edit-status').textContent='';cm.keepNote=false;$('#cm-edit-menu').hidden=!r.id;cmEditorTitle(r);
   $('#cm-label').value=r.label;$('#cm-show-secret').checked=false;cm.dirty=false;cm.tab=tab||'';cmTabsBuild();cmEditorFields();
@@ -167,17 +171,26 @@ function cmEditorFields(){
 }
 function cmShowSecret(show){CM_SECRET.forEach(key=>{const input=$('#cm-field-'+key);if(input)input.type=show?'text':'password';});cmTouch();}
 function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-edit-menu').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cmi-photos button,#cmi-person-actions button,#cmi-person-relations button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;}
-function cmSave(){if(!cmOpen()||!cm.edit||cm.mutating)return;cm.edit.label=$('#cm-label').value;if(!cm.edit.label.trim()&&$('#cm-label').closest('.cm-off'))cmTab($('#cm-label-box').dataset.cmTab);cmBusy(true);cmRequest('masterSave',[JSON.stringify(cm.edit)],r=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit();cmNote(r.contextError?t(r.contextError):t('Stamgegeven opgeslagen.'));appIdentityRefresh();});}
+const CM_ERR_FIELD={'Vul een naam voor het overzicht in':'cm-label','Kies een gekoppelde persoon':'cm-field-persoon','Kies een geldige relatie':'cm-field-relatie','Een relatie hoort bij twee verschillende personen':'cm-field-naarPersoon','Kies een status die bij deze relatie past':'cm-field-status'};
+function cmShowField(id){const e=$('#'+id);if(!e)return;const box=e.closest('[data-cm-tab]');if(box&&box.classList.contains('cm-off'))cmTab(box.dataset.cmTab);e.focus();}
+function cmSave(){
+  if(!cmOpen()||!cm.edit||cm.mutating)return;cm.edit.label=$('#cm-label').value;
+  if(cm.edit.type==='relatie'){const empty=['vanPersoon','naarPersoon','relatie'].find(k=>!cm.edit.fields[k]);if(empty){cmShowField('cm-field-'+empty);cmNote(t('Kies beide personen en hun relatie'));return;}}
+  cmBusy(true);cmRequest('masterSave',[JSON.stringify(cm.edit)],r=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit(true);cmNote(r.contextError?t(r.contextError):t('Stamgegeven opgeslagen.'));appIdentityRefresh();},false,r=>{cmBusy(false);if(cm.edit&&CM_ERR_FIELD[r.error])cmShowField(CM_ERR_FIELD[r.error]);});
+}
 function cmClearEdited(){document.querySelectorAll(CM_SCR.map(n=>'#s-'+n+' [data-ui-edited]').join(',')).forEach(e=>delete e.dataset.uiEdited);}
 /* Na opslaan, verwijderen of sluiten: terug naar de persoon waar je vandaan kwam (relatie), anders naar het overzicht. */
-function cmAfterEdit(){
-  const back=cm.back;cm.back=null;$('#cm-editor').hidden=true;$('#cm-savebar').hidden=true;$('#cm-fields').replaceChildren();$('#cm-label').value='';cmEditorTitle('');
-  if(back&&cmOpen()){cmListLoad(()=>{if(cm.records.some(r=>r.id===back.id)){cm.keepNote=true;cmEdit(back.id,back.tab);}else cmListOpen();});return;}
+function cmAfterEdit(saved){
+  const back=cm.back;cm.back=null;$('#cm-editor').hidden=true;$('#cm-savebar').hidden=true;$('#cm-fields').replaceChildren();$('#cm-label').value='';cmEditorTitle('');$('#cm-status').textContent='';
+  if(typeof cmiRelationsClear==='function'){cmiRelationsClear();cmiPhotoClear();}
+  if(back?.id&&cmOpen()){cmListLoad(()=>{if(cm.records.some(r=>r.id===back.id)){cm.keepNote=true;cmEdit(back.id,back.tab);}else cmListOpen();});return;}
+  // Vanuit Formulieren (Vaste gegevens) en zonder opslaan terug: meteen terug naar Formulieren
+  const jump=jumpStack[jumpStack.length-1];if(back?.jump&&!saved&&current==='cmedit'&&jump?.to==='masterdata'){jumpStack.pop();show(jump.from);return;}
   if(current==='cmedit')show('masterdata');else cmListOpen();
 }
 function cmEditBack(){if(!cm.mutating)cmCancelEdit();return true;}
 function cmCancelEdit(){if(cm.mutating)return;cm.editorEpoch++;const close=()=>{cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit();};if(cm.dirty){askConfirm('Bewerking sluiten?','Niet-bewaarde wijzigingen gaan verloren.','Sluiten',close);return;}close();}
-function cmDelete(){if(!cmOpen()||!cm.edit||!cm.edit.id||cm.mutating)return;const r=cm.edit;askConfirm('Stamgegeven verwijderen?','De gegevens worden verwijderd. De weergavenaam en activiteiten blijven in het logboek staan.','Verwijderen',()=>{if(cmOpen()&&!cm.mutating){cmBusy(true);cmRequest('masterDelete',[r.id,r.revision],()=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit();cmNote(t('Stamgegeven verwijderd.'));});}});}
+function cmDelete(){if(!cmOpen()||!cm.edit||!cm.edit.id||cm.mutating)return;const r=cm.edit;askConfirm('Stamgegeven verwijderen?','De gegevens worden verwijderd. De weergavenaam en activiteiten blijven in het logboek staan.','Verwijderen',()=>{if(cmOpen()&&!cm.mutating){cmBusy(true);cmRequest('masterDelete',[r.id,r.revision],()=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit(true);cmNote(t('Stamgegeven verwijderd.'));});}});}
 function cmEditMenu(){if(!cmOpen()||!cm.edit?.id||cm.mutating)return;openSheet(t(CM_TYPES[cm.edit.type]),'',[[t('Stamgegeven verwijderen'),cmDelete,'trash']]);}
 function cmMenu(){const acts=[];if(cmOpen())acts.push([t('Activiteiten'),cmAuditOpen,'clock']);acts.push([t('Opnieuw beginnen'),()=>show('cmwis'),'trash']);openSheet(t('Stamgegevens'),'',acts);}
 function cmAddMenu(){

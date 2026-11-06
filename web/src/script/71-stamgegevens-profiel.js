@@ -54,15 +54,15 @@ function cmiSharedRender(){
 function cmiNew(type){if(!cmOpen()||cm.mutating||!cm.recordsReady)return;cmNew();if(!cm.edit||cm.edit.id)return;cm.edit.type=type;cm.edit.fields=cmiDefaults(type);if(type==='profiel')cm.edit.label=t('Mijn app-profiel');cmEditor();}
 function cmiAfterListForm(){
   if(cmi.newType!=='formulier')return false;cmi.newType='';
-  const own=cm.records.filter(r=>r.type==='formulier');if(own.length===1)cmEdit(own[0].id);else{cmiNew('formulier');if(own.length)cmNote(t('Je hebt al vaste gegevens; dit zijn nieuwe, bijvoorbeeld voor een ander kind. Bestaande vind je in de lijst.'));}
+  const own=cm.records.filter(r=>r.type==='formulier');if(own.length===1)cmEdit(own[0].id,'',{jump:true});else{cmiNew('formulier');if(cm.edit&&!cm.edit.id)cm.back={jump:true};if(own.length)cmNote(t('Je hebt al vaste gegevens; dit zijn nieuwe, bijvoorbeeld voor een ander kind. Bestaande vind je in de lijst.'));}
   return true;
 }
 function cmiProfile(){if(!cmOpen()||cm.mutating||!cm.recordsReady)return;const r=cm.records.find(r=>r.type==='profiel');if(r)cmEdit(r.id);else cmiNew('profiel');}
 function cmiSelf(){
   if(!cmOpen()||!cm.edit?.id||cm.dirty||cm.mutating){cmNote(t('Sla je wijzigingen eerst op.'));return;}
-  const id=cm.edit.id,profile=cm.records.find(r=>r.type==='profiel');cm.back={id,tab:'relaties'};
-  if(profile){const epoch=++cm.editorEpoch;cmRequest('masterRead',[profile.id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;cm.edit=r.record;cm.edit.fields.persoon=id;cmEditor();cmDirty();});}
-  else{cmiNew('profiel');cm.edit.fields.persoon=id;cmEditor();cmDirty();}
+  const id=cm.edit.id,profile=cm.records.find(r=>r.type==='profiel');
+  if(profile){const epoch=++cm.editorEpoch;cmRequest('masterRead',[profile.id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;cm.edit=r.record;cm.edit.fields.persoon=id;cm.back={id,tab:'meer'};cmEditor();cmDirty();});}
+  else{cmiNew('profiel');cm.edit.fields.persoon=id;cm.back={id,tab:'meer'};cmEditor();cmDirty();}
 }
 function cmiRelation(){
   if(!cmOpen()||!cm.edit?.id||cm.dirty||cm.mutating){cmNote(t('Sla je wijzigingen eerst op.'));return;}
@@ -93,7 +93,7 @@ function cmiRelationSentence(){const zin=cm.edit?.type==='relatie'?cmiRelationTe
 function cmiPersonRelations(){
   const id=cm.edit.id,box=$('#cmi-person-relation-list');box.replaceChildren();
   const rels=cm.records.filter(r=>r.type==='relatie'&&(r.van===id||r.naar===id)).map(r=>({id:r.id,zin:cmiRelationText({vanPersoon:r.van,naarPersoon:r.naar,relatie:r.relatie},'zin')||r.label})).sort((a,b)=>a.zin.localeCompare(b.zin));
-  for(const r of rels){const b=cmData(cmEl('button',undefined,'strow')),ic=cmEl('span',undefined,'stic'),chev=cmEl('span',undefined,'ui-icon stchev');b.type='button';ic.innerHTML=uiIcon('share');chev.dataset.icon='chevron-right';chev.setAttribute('aria-hidden','true');b.append(ic,cmEl('span',r.zin,'sttxt'),chev);b.onclick=()=>{cm.back={id,tab:'relaties'};cmEdit(r.id);};box.append(b);}
+  for(const r of rels){const b=cmData(cmEl('button',undefined,'strow')),ic=cmEl('span',undefined,'stic'),chev=cmEl('span',undefined,'ui-icon stchev');b.type='button';ic.innerHTML=uiIcon('share');chev.dataset.icon='chevron-right';chev.setAttribute('aria-hidden','true');b.append(ic,cmEl('span',r.zin,'sttxt'),chev);b.onclick=()=>cmEdit(r.id,'',{id,tab:'relaties'});box.append(b);}
   if(!rels.length)box.append(cmEl('p',t('Nog geen relaties.'),'note'));
 }
 /* Vanuit een opgeslagen persoon: "Kind toevoegen" = de gekozen persoon is kind van deze persoon, enzovoort. */
@@ -122,7 +122,7 @@ function cmiPhotoCancel(){cmi.photoRequest='';$('#cmi-photo-pending').hidden=tru
 function cmiPhotoAfterUnlock(photo){
   if(!photo)return;cmiPhotoCancel();if(photo.error){cmNote(t(photo.error));return;}if(photo.saved)cmi.reopen=photo.id;
 }
-function cmiAfterList(){if(cmiAfterListForm())return;if(!cmi.reopen)return;const id=cmi.reopen;cmi.reopen='';cmEdit(id);}
+function cmiAfterList(){if(cmiAfterListForm())return;if(!cmi.reopen)return;const id=cmi.reopen;cmi.reopen='';cmEdit(id,'fotos',null,t('Kaartfoto opgeslagen.'));}
 function cmiPhotoShow(){
   if(!cmOpen()||!cm.edit?.id||cm.mutating)return;const record=cm.edit,epoch=++cmi.photoEpoch;cmi.show=true;$('#cmi-photo-show').hidden=true;
   const sides=['front','back'];

@@ -47,6 +47,9 @@ for(const colorScheme of ['light','dark']){
   // 2. Nieuwe reis: alleen reisdagen en bestemming. Na het verlaten van Stamgegevens is alles vergrendeld;
   // het venster vraagt direct om te ontgrendelen (vingerafdruk), zonder extra tik.
   assert.equal(await p.evaluate(()=>goBack()&&current),'formulieren','terug uit Stamgegevens gaat naar Formulieren');
+  // Nog eens Vaste gegevens openen en zonder wijzigen terug: in één keer terug in Formulieren
+  await p.click('#fmq-instellen');await p.click('#cm-unlock');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='formulier'&&!!cm.edit.id);
+  assert.equal(await p.evaluate(()=>goBack()&&current),'formulieren','terug vanuit het bewerkscherm meteen naar Formulieren');assert.equal(await p.evaluate(()=>!cm.token),true,'Stamgegevens verlaten vergrendelt');
   await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
   assert.equal(await p.evaluate(()=>$('#s-formulieren').inert),true,'scherm eronder niet bedienbaar');
   assert.equal(await p.evaluate(()=>getComputedStyle($('#fmq')).position),'fixed','venster over het hele scherm');

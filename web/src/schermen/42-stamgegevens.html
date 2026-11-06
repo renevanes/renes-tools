@@ -1,7 +1,7 @@
 <section class="screen" id="s-masterdata">
   <div class="hdr"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Stamgegevens</h1>
     <button class="icon-btn" id="cm-lock-btn" onclick="cmLock()" aria-label="Vergrendelen" hidden><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></button>
-    <button class="icon-btn" id="cm-menu" onclick="cmMenu()" aria-label="Meer: activiteiten en opnieuw beginnen"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button></div>
+    <button class="icon-btn" id="cm-menu" onclick="cmMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button></div>
   <main>
     <div class="card" id="cm-locked">
       <h2>Je centrale gegevenskluis</h2>
@@ -18,7 +18,7 @@
     </details>
     <div id="cm-open" hidden>
       <input class="search" id="cm-search" type="search" autocomplete="off" placeholder="Zoeken" aria-label="Zoeken in stamgegevens" oninput="cmRenderList()">
-      <div class="chips cm-filter" id="cm-filter" role="group" aria-label="Soort" hidden></div>
+      <div class="chips cm-filter" id="cm-filter" role="group" aria-label="Filter op soort" hidden></div>
       <div class="card stlist" id="cm-list-card"><div id="cm-list" translate="no"></div></div>
     </div>
   </main>

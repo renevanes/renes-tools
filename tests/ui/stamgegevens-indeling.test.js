@@ -52,7 +52,10 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  await p.click('#cm-add');await p.waitForSelector('#sheet.on');
  assert.deepEqual(await p.$$eval('#sheet-acts button',b=>b.map(x=>x.textContent)),en?['Person','Relationship','Identity document','Organisation','Address','Trip','Saved travel consent details']:['Persoon','Relatie','Identiteitsdocument','Organisatie','Adres','Reis','Vaste gegevens reistoestemming']);
  await p.click('#sheet-acts button:nth-child(2)');await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.type==='relatie'&&!cm.edit.id);
- assert.equal(await p.textContent('#cm-editor-title'),en?'Add Relationship':'Relatie toevoegen');
+ assert.equal(await p.textContent('#cm-editor-title'),en?'Add relationship':'Relatie toevoegen');
+ // Opslaan zonder personen: blijft op het tabblad Relatie, bij de lege keuze
+ await p.click('#cm-tab-meer');await p.click('#cm-save');assert.equal(await p.evaluate(()=>cm.tab+' '+document.activeElement.id),'relatie cm-field-vanPersoon');
+ assert.equal(await p.textContent('#cm-edit-status'),en?'Choose both people and their relationship':'Kies beide personen en hun relatie');assert.equal(await p.evaluate(()=>/personen|people/.test($('#cm-status').textContent)),false,'melding alleen op het bewerkscherm');
  assert.equal(await p.isVisible('#cm-edit-menu'),false,'nog niets te verwijderen');
  await p.evaluate(()=>goBack());await p.waitForFunction(()=>current==='masterdata');
 
@@ -82,6 +85,11 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  // Terug met niet-bewaarde wijziging: eerst vragen
  await p.fill('#cm-field-roepnaam','Reen');await p.evaluate(()=>goBack());await p.waitForSelector('#modal.on');assert.equal(await p.evaluate(()=>current),'cmedit','blijft staan tot je kiest');
  await p.evaluate(()=>closeModal(null));await p.waitForTimeout(60*W);assert.equal(await p.evaluate(()=>current+' '+cm.edit?.fields.roepnaam),'cmedit Reen','annuleren laat de wijziging staan');
+ // Laat leesantwoord na wisselen naar Opnieuw beginnen: blijft daar
+ await p.evaluate(()=>{cm.dirty=false;cmCancelEdit();});await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady);
+ await p.evaluate(id=>{Android._cm.replyDelay=150;cmEdit(id);show('cmwis');},rene);await p.waitForTimeout(300*W);assert.equal(await p.evaluate(()=>current+' '+!!cm.edit),'cmwis false','geen sprong terug naar bewerken');
+ await p.evaluate(()=>{Android._cm.replyDelay=10;goBack();});await p.waitForFunction(()=>current==='masterdata'&&cm.recordsReady);
+ await p.evaluate(id=>cmEdit(id),rene);await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.id&&!cm.pending.size);
  // Partner toevoegen vanaf de persoon: na opslaan terug bij de persoon, op Relaties
  await p.evaluate(()=>{cm.dirty=false;});await p.click('#cm-tab-relaties');await p.click(`button[onclick="cmiRelationNew('partner')"]`);await p.waitForFunction(()=>cm.edit?.type==='relatie'&&!cm.edit.id);
  await p.selectOption('#cm-field-naarPersoon',anna);await p.click('#cm-save');await p.waitForFunction(id=>current==='cmedit'&&cm.edit?.id===id&&cm.recordsReady,rene);
@@ -99,9 +107,12 @@ for(const [colorScheme,en] of [['light',false],['dark',false],['light',true]]){
  assert.equal(await p.evaluate(()=>cmOpen()),true,'slot blijft open binnen Stamgegevens');assert.equal(await p.locator('#cm-audit .cm-event').count()>0,true);
  assert.equal(await p.evaluate(()=>/123456782|DOC123/.test($('#cm-audit').textContent)),false);
  await p.evaluate(()=>goBack());await p.waitForFunction(()=>current==='masterdata'&&cmOpen());
- // Vergrendelen tijdens bewerken: terug naar het overzicht, niets meer in de schermen
- await p.evaluate(id=>cmEdit(id),rene);await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.id);
+ // Vergrendelen tijdens bewerken (met de vraag "Bewerking sluiten?" open): vraag weg, terug naar het overzicht, niets meer in de schermen
+ await p.evaluate(id=>cmEdit(id),rene);await p.waitForFunction(()=>current==='cmedit'&&cm.edit?.id&&!cm.pending.size);
+ await p.fill('#cm-field-roepnaam','Reen');await p.evaluate(()=>goBack());await p.waitForSelector('#modal.on');
  await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>current==='masterdata'&&!cm.token);
+ assert.equal(await p.evaluate(()=>$('#modal').classList.contains('on')),false,'vraag gesloten bij vergrendelen');
+ assert.equal(await p.textContent('#cm-status'),en?'Master data is locked. Unsaved data has been cleared.':'Stamgegevens zijn vergrendeld. Niet-bewaarde gegevens zijn gewist.');
  for(const s of ['#s-masterdata','#s-cmedit','#s-cmlog'])assert.equal(await p.evaluate(s=>/Rene|Anna|Paspoort|123456782|Gemeente/.test($(s).innerHTML),s),false,tag+': geen gegevens meer in '+s);
  // Een subscherm openen zonder ontgrendelen kan niet
  await p.evaluate(()=>show('cmedit'));await p.waitForFunction(()=>current==='masterdata');
