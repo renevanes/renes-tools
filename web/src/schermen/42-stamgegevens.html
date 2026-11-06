@@ -13,7 +13,7 @@
       <p class="note">Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.</p>
       <div class="card"><div class="row"><button class="big ghost" onclick="cmListOpen()">Gegevens</button><button class="big ghost" onclick="cmAuditOpen()">Activiteiten</button><button class="mini" onclick="cmLock()">Vergrendelen</button></div><p class="note">Vergrendelt bij verlaten van de app, na vijf minuten niets doen en uiterlijk na negen minuten. Schermafdrukken en automatisch invullen zijn afgeschermd.</p></div>
       <div class="card" id="cm-list-card">
-        <div class="row cmi-actions"><button class="big ghost" onclick="cmiProfile()">Mijn app-profiel</button><button class="big ghost" onclick="cmiNew('identiteit')">Identiteitskaart toevoegen</button><button class="big ghost" onclick="cmiNew('relatie')">Relatie toevoegen</button><button class="big ghost" onclick="cmiNew('formulier')">Vaste gegevens reistoestemming</button></div>
+        <div class="row cmi-actions"><button class="big ghost" onclick="cmiProfile()">Mijn app-profiel</button><button class="big ghost" onclick="cmiNew('identiteit')">Identiteitskaart toevoegen</button><button class="big ghost" onclick="cmiNew('relatie')">Relatie toevoegen</button><button class="big ghost" id="cmi-form-new" onclick="cmiNew('formulier')">Vaste gegevens reistoestemming</button></div>
         <label class="f" for="cm-search">Zoeken in stamgegevens</label><input class="search" id="cm-search" type="search" autocomplete="off" oninput="cmRenderList()">
         <div id="cm-list" translate="no"></div><button class="big" onclick="cmNew()">Stamgegeven toevoegen</button>
       </div>

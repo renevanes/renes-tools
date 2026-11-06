@@ -36,13 +36,17 @@ public class MasterTest {
         rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("gever1",dad),lookup));
         rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("gever1Instelling",mum),lookup));
         rejects(()->MasterFormProfile.validate(new JSONObject(fields.toString()).put("formulier","ander"),lookup));
+        JSONObject noGever=new JSONObject(fields.toString());noGever.remove("gever1");noGever.remove("gever1Instelling");rejects(()->MasterFormProfile.validate(noGever,lookup));
+        JSONObject noCompanion=new JSONObject(fields.toString());noCompanion.remove("begeleider1");noCompanion.remove("begeleider1Document");rejects(()->MasterFormProfile.validate(noCompanion,lookup));
+        noCompanion.put("alleen","ja");MasterFormProfile.validate(noCompanion,lookup);
         rejects(()->MasterSchema.clean(new JSONObject().put("type","formulier").put("label","x").put("fields",new JSONObject(fields.toString()).put("kind","Zoë"))));
         rejects(()->MasterSchema.clean(new JSONObject().put("type","formulier").put("label","x").put("fields",new JSONObject(fields.toString()).put("begeleider1Relatie","baas"))));
         check(MasterSchema.permitted("formulieren","vast","formulier").contains("formulier")&&MasterSchema.permitted("formulieren","vast","persoon").isEmpty(),"vaste gegevens kiezen geeft geen persoonsvelden");
         check(MasterSchema.permitted("formulieren","kind","formulier").isEmpty(),"vaste gegevens niet als bron voor een rol");
         JSONObject profile=rec(uid(9),"formulier","Reistoestemming Zoë",fields);java.util.List<String> log=new java.util.ArrayList<>();
         MasterFormProfile.Use use=(r,role,f)->log.add(role+":"+r.getString("label")+":"+f);
-        JSONObject out=MasterFormProfile.resolve(profile,lookup,all,false,use),v=out.getJSONObject("values");
+        MasterFormProfile.Relation rel2=(r,role)->log.add("relatie:"+role+":"+r.getString("label"));
+        JSONObject out=MasterFormProfile.resolve(profile,lookup,all,false,use,rel2),v=out.getJSONObject("values");
         check("Test".equals(v.getString("kind-naam"))&&"Zoë Anna".equals(v.getString("kind-voornamen"))&&"2015-02-03".equals(v.getString("kind-geboortedatum")),"kind uit stamgegevens");
         check(!v.has("kind-bsn")&&!v.has("kind-document")&&!v.has("begeleider1-document")&&out.getBoolean("omitted"),"zonder toestemming geen identiteitsgegevens");
         check(!v.has("kind-adres")&&!v.has("begeleider1-adres"),"alleen velden die bij de rol horen");
@@ -50,17 +54,17 @@ public class MasterTest {
         check("Straat 1".equals(v.getString("gever1-adres"))&&"Jeugdzorg BV".equals(v.getString("gever1-instelling"))&&!v.has("gever1-telefoon"),"toestemminggever met adres en instelling");
         check("ouder".equals(out.getJSONObject("relations").getString("begeleider1")),"relatie afgeleid uit gedeelde relatie");
         check("nee".equals(v.getString("tweedeBegeleider"))&&"nee".equals(v.getString("tweedeGever"))&&"nee".equals(v.getString("alleen")),"keuzes");
-        check(log.contains("vast:Reistoestemming Zoë:[\"formulier\"]")&&log.stream().noneMatch(x->x.startsWith("kind:Paspoort")),"logboek per gebruikt stamgegeven");
-        out=MasterFormProfile.resolve(profile,lookup,all,true,use);v=out.getJSONObject("values");
+        check(log.contains("vast:Reistoestemming Zoë:[\"formulier\"]")&&log.stream().noneMatch(x->x.startsWith("kind:Paspoort"))&&log.contains("relatie:begeleider1:Vader → Zoë"),"logboek per gebruikt stamgegeven");
+        out=MasterFormProfile.resolve(profile,lookup,all,true,use,rel2);v=out.getJSONObject("values");
         check("NX12345".equals(v.getString("kind-document"))&&"IA999".equals(v.getString("begeleider1-document"))&&!v.has("kind-bsn")&&!out.getBoolean("omitted"),"met toestemming documenten, BSN alleen als ingesteld");
         fields.put("bsnInvullen","ja").put("begeleider1Relatie","voogd");
-        out=MasterFormProfile.resolve(profile,lookup,all,true,use);
+        out=MasterFormProfile.resolve(profile,lookup,all,true,use,rel2);
         check("123456782".equals(out.getJSONObject("values").getString("kind-bsn"))&&"voogd".equals(out.getJSONObject("relations").getString("begeleider1")),"BSN en vaste relatie");
-        fields.put("alleen","ja");out=MasterFormProfile.resolve(profile,lookup,all,true,use);
+        fields.put("alleen","ja");out=MasterFormProfile.resolve(profile,lookup,all,true,use,rel2);
         check(!out.getJSONObject("values").has("begeleider1-naam")&&"ja".equals(out.getJSONObject("values").getString("alleen")),"alleen reizen: geen begeleiders");
-        fields.remove("gever1");rejects(()->MasterFormProfile.resolve(profile,lookup,all,true,use));
+        fields.remove("gever1");rejects(()->MasterFormProfile.resolve(profile,lookup,all,true,use,rel2));
         db.get(kid).getJSONObject("fields").put("naam","Nieuw");fields.put("gever1",mum);
-        check("Nieuw".equals(MasterFormProfile.resolve(profile,lookup,all,false,use).getJSONObject("values").getString("kind-naam")),"altijd de actuele stamgegevens");
+        check("Nieuw".equals(MasterFormProfile.resolve(profile,lookup,all,false,use,rel2).getJSONObject("values").getString("kind-naam")),"altijd de actuele stamgegevens");
     }
     public static void main(String[] args)throws Exception {
         KeyGenerator g=KeyGenerator.getInstance("AES");g.init(256);SecretKey key=g.generateKey();byte[] plain="Uitsluitend testgegevens 123456782".getBytes("UTF-8");

@@ -189,6 +189,7 @@ window.goBack = function(){
   // Eerst wat bovenop ligt: slotscherm (dan de app verlaten), dialoog, menu
   if ($('#lockscr').classList.contains('on')) return false;
   if(typeof cm!=='undefined'&&cm.picker){cmClosePicker();return true;}
+  if(typeof fmq!=='undefined'&&fmq.open){fmqClose();return true;}
   if ($('#modal').classList.contains('on')) { closeModal(null); return true; }
   if (typeof gbBack === 'function' && gbBack()) return true;
   if (typeof aiTalkBack === 'function' && aiTalkBack()) return true; // eerst het gesprek met de assistent stoppen

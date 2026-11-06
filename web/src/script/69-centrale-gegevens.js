@@ -38,7 +38,7 @@ function cmRenderState(){
   $('#cm-pick-unlock').hidden=open;$('#cm-pick-search').hidden=!open;
 }
 function enterMasterdata(){cmClearCentral();cmPrivacy(true);cmNote(t('Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.'));}
-function cmLeave(){cmClearCentral();Android.masterLock();cmPrivacy(false);}
+function cmLeave(){if(typeof cmi!=='undefined')cmi.newType='';cmClearCentral();Android.masterLock();cmPrivacy(false);}
 function cmClearCentral(){
   cm.records=[];cm.recordsReady=false;cm.events=[];cm.edit=null;cm.dirty=false;cm.before=0;cm.editorEpoch++;cmBusy(false);
   ['cm-list','cm-fields','cm-audit','cm-pick-list','cm-pick-fields'].forEach(id=>$('#'+id).replaceChildren());
@@ -114,7 +114,7 @@ function cmAuditOpen(){if(!cmOpen()||cm.mutating)return;cm.editorEpoch++;cm.even
 function cmAuditMore(){if(!cmOpen())return;cmRequest('masterAudit',[cm.before],r=>{cm.events.unshift(...r.events);cm.before=r.before;$('#cm-more').hidden=!r.more;cmRenderAudit();});}
 function cmRenderAudit(){
   const names={unlock:t('Ontgrendeld'),list:t('Overzicht bekeken'),view:t('Gegevens bekeken'),create:t('Toegevoegd'),update:t('Gewijzigd'),delete:t('Verwijderd'),use:t('Velden overgenomen'),audit:t('Logboek bekeken'),export_release:t('Bestand vrijgegeven'),export_attempt:t('Bestand maken gestart'),export:t('Bestand gemaakt'),app_context:t('App-context vernieuwd'),photo_view:t('Kaartfoto bekeken'),photo_add:t('Kaartfoto toegevoegd'),photo_delete:t('Kaartfoto verwijderd'),relation_use:t('Relatie voor formulier bekeken')};
-  const roles={reis:t('Reis'),kind:tc('formulier','Kind'),begeleider1:t('Begeleider 1'),begeleider2:t('Begeleider 2'),gever1:t('Toestemminggever 1'),gever2:t('Toestemminggever 2'),bestemming:t('Bestemming'),ontvanger:t('Ontvanger')};
+  const roles={reis:t('Reis'),kind:tc('formulier','Kind'),begeleider1:t('Begeleider 1'),begeleider2:t('Begeleider 2'),gever1:t('Toestemminggever 1'),gever2:t('Toestemminggever 2'),bestemming:t('Bestemming'),ontvanger:t('Ontvanger'),vast:t('Vaste formuliergegevens')};
   const source={masterdata:t('Stamgegevens'),formulieren:t('Formulieren invullen'),idcopy:t('ID-kopie afschermen')};
   const box=$('#cm-audit');box.replaceChildren();if(!cmOpen())return;const q=$('#cm-log-search').value.toLowerCase();
   [...cm.events].reverse().forEach(e=>{

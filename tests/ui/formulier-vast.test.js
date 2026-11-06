@@ -41,6 +41,7 @@ for(const colorScheme of ['light','dark']){
   // het venster vraagt direct om te ontgrendelen (vingerafdruk), zonder extra tik.
   await p.evaluate(()=>show('formulieren'));await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
   assert.equal(await p.evaluate(()=>$('#s-formulieren').inert),true,'scherm eronder niet bedienbaar');
+  assert.equal(await p.evaluate(()=>getComputedStyle($('#fmq')).position),'fixed','venster over het hele scherm');
   assert.equal(await p.isChecked('#fmq-id'),false,'identiteitsgegevens niet standaard');
   await p.click('#fmq-ga');assert.match(await p.textContent('#fmq-status'),/reisdag/);
   await p.fill('#fmq-van','2027-07-15');await p.fill('#fmq-tot','2027-07-01');await p.fill('#fmq-land','Frankrijk');await p.click('#fmq-ga');
@@ -50,7 +51,7 @@ for(const colorScheme of ['light','dark']){
   const v=await p.evaluate(()=>fm.values);
   assert.equal(v['kind-naam'],'Jansen');assert.equal(v['kind-voornamen'],'Zoë Anna');assert.equal(v['van'],'2027-07-15');assert.equal(v['tot'],'2027-07-30');
   assert.equal(v['land'],'Frankrijk');assert.equal(v['bestemming-plaats'],'Nice');assert.equal(v['begeleider1-naam'],'Jansen');assert.equal(v['begeleider1-initialen'],'R.');
-  assert.equal(v['begeleider1-relatie'],'Ouder','relatie uit stamgegevens');assert.equal(v['gever1-adres'],'Straat 1');assert.equal(v['gever1-instelling'],'Jeugdzorg BV');
+  assert.equal(v['begeleider1-relatie'],'ouder','relatie uit stamgegevens, in het Nederlands voor het overheidsformulier');assert.equal(v['gever1-adres'],'Straat 1');assert.equal(v['gever1-instelling'],'Jeugdzorg BV');
   assert.equal(v['kind-document'],'');assert.equal(v['kind-bsn'],'');assert.match(await p.textContent('#pff-melding'),/weggelaten/);
   assert.equal(await p.evaluate(()=>fm.masterSensitive&&Android._cm.form),true,'gebonden aan de ontgrendelde sessie');
   assert.equal(await p.inputValue('#pff-naam'),'Reistoestemming Zoë 2027-07-15');
@@ -67,7 +68,14 @@ for(const colorScheme of ['light','dark']){
   assert.equal(w['bestemming-plaats'],'','oude bestemming niet blijven staan');
   assert.equal(await p.evaluate(()=>Object.values(localStorage).join('').includes('NX12345')),false,'niets in lokale opslag');
   const log=await p.evaluate(()=>Android._cm.events.filter(e=>e.action==='use').map(e=>e.role+':'+e.label));
-  assert.ok(log.includes('vast:Reistoestemming Zoë <b>')&&log.includes('kind:Paspoort Zoë'),'gebruik in het logboek');
+  assert.ok(log.includes('vast:Reistoestemming Zoë <b>')&&log.includes('kind:Paspoort Zoë')&&log.includes('gever1:Instelling'),'gebruik in het logboek');
+  assert.ok(await p.evaluate(()=>Android._cm.events.some(e=>e.action==='relation_use'&&e.role==='begeleider1')),'gelezen relatie in het logboek');
+  // Een laat antwoord na sluiten wordt genegeerd (geen oude reis of oude toestemming).
+  await p.evaluate(()=>{fm.values.land='Behouden';});
+  await p.click('#fmq-start');await p.click('#modal-ok');await p.waitForFunction(()=>fmq.open&&fmq.records.length===1);
+  await p.evaluate(()=>{Android._cm.replyDelay=150;});await p.fill('#fmq-van','2027-09-01');await p.fill('#fmq-tot','2027-09-02');await p.fill('#fmq-land','Italië');await p.check('#fmq-id');await p.click('#fmq-ga');
+  assert.equal(await p.evaluate(()=>goBack()),true,'terugknop sluit eerst het venster');assert.equal(await p.evaluate(()=>fmq.open||current!=='formulieren'),false);
+  await p.waitForTimeout(400);assert.equal(await p.evaluate(()=>fm.values.land),'Behouden','laat antwoord vult niets in');await p.evaluate(()=>{Android._cm.replyDelay=10;});
   // Vergrendelen wist alles.
   await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!fm.masterSensitive&&!cm.token);
   assert.equal(await p.evaluate(()=>JSON.stringify(fm.values).includes('Jansen')),false);

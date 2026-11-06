@@ -171,7 +171,9 @@ final class MasterStore {
     static JSONObject formProfile(Context c,SecretKey key,MasterSession session,String token,String id,long revision,boolean consent)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{
             JSONObject r=record(db,k,id);if(revision!=r.getLong("revision"))throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
-            JSONObject out=MasterFormProfile.resolve(r,ref->record(db,k,ref),records(db,k),consent,(rec,role,fields)->append(db,k,h,"use","formulieren",role,rec,fields));
+            JSONObject out=MasterFormProfile.resolve(r,ref->record(db,k,ref),records(db,k),consent,
+                    (rec,role,fields)->append(db,k,h,"use","formulieren",role,rec,fields),
+                    (rec,role)->append(db,k,h,"relation_use","formulieren",role,rec,new JSONArray().put("relatie")));
             return out.put("record",summary(r));
         });
     }

@@ -24,6 +24,8 @@ final class MasterFormProfile {
     static final List<String> CHOICES=Arrays.asList("alleen","bsnInvullen");
     interface Lookup{JSONObject get(String id)throws Exception;}
     interface Use{void used(JSONObject record,String role,JSONArray fields)throws Exception;}
+    /** Logboek: een gelezen relatie heet net als bij MasterStore.formRelation "relation_use". */
+    interface Relation{void read(JSONObject record,String role)throws Exception;}
 
     /** Soort stamgegeven waar dit veld naar verwijst, of null als het geen verwijzing is. */
     static String reference(String key){
@@ -37,6 +39,7 @@ final class MasterFormProfile {
     /** Controle bij opslaan: verwijzingen bestaan, hebben de juiste soort en documenten horen bij de gekozen persoon. */
     static void validate(JSONObject fields,Lookup lookup)throws Exception{
         if(!FORMS.contains(fields.optString("formulier")))throw new MasterError(Taal.T("Kies voor welk formulier deze vaste gegevens zijn"));
+        required(fields);
         for(String key:FIELDS){
             String type=reference(key),id=fields.optString(key);if(type==null||id.isEmpty())continue;
             JSONObject target=lookup.get(id);
@@ -57,6 +60,12 @@ final class MasterFormProfile {
         }
     }
 
+    /** Zonder kind, toestemminggever en (als het kind niet alleen reist) begeleider kan het formulier niet worden ingevuld. */
+    static void required(JSONObject f)throws Exception{
+        if(f.optString("kind").isEmpty())throw new MasterError(Taal.T("Kies in de vaste gegevens het kind dat reist"));
+        if(f.optString("gever1").isEmpty())throw new MasterError(Taal.T("Kies in de vaste gegevens wie toestemming geeft"));
+        if(!"ja".equals(f.optString("alleen"))&&f.optString("begeleider1").isEmpty())throw new MasterError(Taal.T("Kies in de vaste gegevens wie meereist, of kies dat het kind alleen reist"));
+    }
     /** "Anna Maria" → "A.M." Alleen als de persoon zelf geen initialen heeft opgeslagen. */
     static String initials(String names){
         StringBuilder out=new StringBuilder();
@@ -74,14 +83,12 @@ final class MasterFormProfile {
      * geldig tot, BSN) komen alleen mee met expliciete toestemming bij dit gebruik; zonder die toestemming
      * blijven ze leeg en meldt het antwoord dat ze zijn weggelaten.
      */
-    static JSONObject resolve(JSONObject profile,Lookup lookup,JSONArray all,boolean consent,Use use)throws Exception{
+    static JSONObject resolve(JSONObject profile,Lookup lookup,JSONArray all,boolean consent,Use use,Relation relation)throws Exception{
         if(!"formulier".equals(profile.getString("type")))throw new MasterError(Taal.T("Kies vaste formuliergegevens"));
         JSONObject f=profile.getJSONObject("fields");
         if(!FORMS.contains(f.optString("formulier")))throw new MasterError(Taal.T("Kies voor welk formulier deze vaste gegevens zijn"));
         boolean alone="ja".equals(f.optString("alleen")),bsn="ja".equals(f.optString("bsnInvullen"));
-        if(f.optString("kind").isEmpty())throw new MasterError(Taal.T("Kies in de vaste gegevens het kind dat reist"));
-        if(f.optString("gever1").isEmpty())throw new MasterError(Taal.T("Kies in de vaste gegevens wie toestemming geeft"));
-        if(!alone&&f.optString("begeleider1").isEmpty())throw new MasterError(Taal.T("Kies in de vaste gegevens wie meereist, of kies dat het kind alleen reist"));
+        required(f);
         JSONObject values=new JSONObject(),relations=new JSONObject();boolean omitted=false;
         values.put("alleen",alone?"ja":"nee");
         values.put("tweedeBegeleider",!alone&&!f.optString("begeleider2").isEmpty()?"ja":"nee");
@@ -94,6 +101,8 @@ final class MasterFormProfile {
             JSONObject person=lookup.get(id);if(!"persoon".equals(person.getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
             JSONObject projected=MasterSchema.projection(person,"formulieren",role);
             if(projected.has("bsn")&&!(bsn&&consent)){projected.remove("bsn");if(bsn)omitted=true;}
+            // Bewuste uitzondering op de rolprojectie: begeleiders en toestemminggevers krijgen geen voornamen,
+            // wel initialen. Ontbreken die, dan worden ze hier uit de voornamen afgeleid; alleen de initialen gaan mee.
             if(!"kind".equals(role)&&!projected.has("initialen")){
                 String derived=initials(person.getJSONObject("fields").optString("voornamen"));if(!derived.isEmpty())projected.put("initialen",derived);
             }
@@ -116,13 +125,14 @@ final class MasterFormProfile {
             if(role.startsWith("begeleider")){
                 String code=f.optString(role+"Relatie");
                 if(code.isEmpty()){
-                    Set<String> found=new LinkedHashSet<>();JSONObject source=null;
+                    Set<String> found=new LinkedHashSet<>();
                     for(int i=0;i<all.length();i++){
                         JSONObject r=all.getJSONObject(i);
                         if(!"relatie".equals(r.getString("type"))||!"ja".equals(r.getJSONObject("fields").optString("delen")))continue;
-                        String c=MasterIdentity.between(r,child,id);if(!c.isEmpty()){found.add(c);source=r;}
+                        String c=MasterIdentity.between(r,child,id);if(!c.isEmpty()){found.add(c);relation.read(r,role);}
                     }
-                    if(found.size()==1){code=found.iterator().next();use.used(source,role,new JSONArray().put("relatie"));}
+                    // Tegenstrijdige relaties: leeg laten, nooit raden.
+                    if(found.size()==1)code=found.iterator().next();
                 }
                 if(!code.isEmpty())relations.put(role,code);
             }

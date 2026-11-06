@@ -1,12 +1,12 @@
 /* Snel invullen: vaste formuliergegevens uit Stamgegevens + per reis alleen reisdagen en bestemming.
  * De vaste gegevens worden native opgebouwd uit de actuele stamgegevens (MasterFormProfile); hier blijft
  * alles vluchtig, net als bij handmatig overnemen. Bij vergrendelen wordt de invoer gewist. */
-const fmq={open:false,records:[],busy:false,focus:null,ask:false};
+const fmq={open:false,records:[],busy:false,focus:null,ask:false,epoch:0};
 // Formulieren met vaste gegevens en welke reisvelden je per keer invult.
 const FM_VAST={reistoestemming:{van:'van',tot:'tot',land:'land',plaats:'bestemming-plaats',accommodatie:'accommodatie',postcode:'bestemming-postcode',telefoon:'bestemming-telefoon',reisgegevens:'reisgegevens'}};
 const FMQ_REIS=['van','tot','land','plaats','accommodatie','postcode','telefoon','reisgegevens'];
 function fmqNote(text){$('#fmq-status').textContent=text;}
-function fmqKaart(){const card=$('#fmq-kaart');if(!card)return;card.hidden=!FM_VAST[fm.id];$('#fmq-start').disabled=fm.busy;$('#fmq-instellen').disabled=fm.busy;}
+function fmqKaart(){const card=$('#fmq-kaart');if(!card)return;card.hidden=!FM_VAST[fm.id]||typeof Android.masterFormProfile!=='function';$('#fmq-start').disabled=fm.busy;$('#fmq-instellen').disabled=fm.busy;}
 function fmqRenderState(){
   if(!fmq.open)return;const open=cmOpen();
   $('#fmq-ontgrendel').hidden=open;$('#fmq-annuleer-dicht').hidden=open;$('#fmq-open').hidden=!open;
@@ -19,13 +19,13 @@ function fmqClearInput(){
 function fmqOpen(){
   if(fmq.open||fm.busy||cm.picker||!FM_VAST[fm.id])return;
   const open=()=>{
-    fmq.open=true;fmq.ask=true;fmq.focus=document.activeElement;fmqClearInput();
+    fmq.open=true;fmq.ask=true;fmq.epoch++;fmq.focus=document.activeElement;fmqClearInput();
     $('#fmq').hidden=false;$('#s-'+current).inert=true;fmqRenderState();cmPrivacy(true);$('#fmq-titel').focus();
   };
   if(fmDirty())askConfirm('Nieuwe reis invullen?','Je huidige invoer in dit formulier wordt vervangen. Een al gemaakte PDF blijft onder PDF → Gemaakt staan.','Doorgaan',open);else open();
 }
 function fmqClose(){
-  if(!fmq.open)return;fmq.open=false;fmq.busy=false;fmq.ask=false;fmqClearInput();$('#fmq').hidden=true;$('#s-formulieren').inert=false;
+  if(!fmq.open)return;fmq.open=false;fmq.busy=false;fmq.ask=false;fmq.epoch++;fmqClearInput();$('#fmq').hidden=true;$('#s-formulieren').inert=false;
   cmPrivacy(current==='formulieren'&&!!fm.masterSensitive);
   if(fmq.focus&&fmq.focus.isConnected)fmq.focus.focus();fmq.focus=null;
 }
@@ -51,25 +51,25 @@ function fmqGo(){
   if(!fmqGeldig())return;
   if(typeof Android.masterFormProfile!=='function'){fmqNote(t('Installeer de nieuwste APK om formulieren in te vullen.'));return;}
   const reis={};for(const key of FMQ_REIS)reis[key]=$('#fmq-'+key).value.trim();
-  const consent=$('#fmq-id').checked,id=fm.id;fmq.busy=true;$('#fmq-ga').disabled=true;fmqNote(t('Formulier invullen…'));
+  const consent=$('#fmq-id').checked,id=fm.id,epoch=fmq.epoch;fmq.busy=true;$('#fmq-ga').disabled=true;fmqNote(t('Formulier invullen…'));
   cmRequest('masterFormProfile',[record.id,record.revision,consent],r=>{
-    fmq.busy=false;$('#fmq-ga').disabled=false;if(!fmq.open||fm.id!==id||fm.busy)return;
+    if(epoch!==fmq.epoch)return;fmq.busy=false;$('#fmq-ga').disabled=false;if(!fmq.open||fm.id!==id||fm.busy){fmqNote('');return;}
     // Eerst het oude concept wissen (dat geeft ook de vorige binding vrij), daarna deze vrijgave binden.
     fmInit(id);
     if(!Android.masterApplied(cm.token,r.grant)){fmqNote(t('Ontgrendel de stamgegevens opnieuw'));return;}
     const known=new Set(fmDef().sections.flatMap(s=>s.fields.map(f=>f.id)));
     for(const [key,value] of Object.entries(r.values||{}))if(known.has(key)&&typeof value==='string')fm.values[key]=value;
-    for(const [role,code] of Object.entries(r.relations||{}))if(known.has(role+'-relatie'))fm.values[role+'-relatie']=cmiRelationName(code); // taal-vast: veld-id, geen tekst
+    for(const [role,code] of Object.entries(r.relations||{})){const value=CMI_RELATIONS[code]?.toLowerCase();if(value&&known.has(role+'-relatie'))fm.values[role+'-relatie']=value;} // taal-vast: veld-id en waarde voor het Nederlandse overheidsformulier
     for(const [key,target] of Object.entries(FM_VAST[id]))if(reis[key])fm.values[target]=reis[key];
     fm.masterSensitive=true;
     const kind=(fm.values['kind-voornamen']||'').split(/\s+/)[0];
-    $('#pff-naam').value=kind?t('Reistoestemming {naam} {datum}',{naam:kind,datum:reis.van}):fmDef().title+' '+reis.van;
+    $('#pff-naam').value=kind?t('Reistoestemming {naam} {datum}',{naam:kind,datum:reis.van}):t('{titel} {datum}',{titel:fmDef().title,datum:reis.van});
     fmqClose();fm.step=fmSecties().length;fmWijzig();fmRender();
     if(fmGeldig(true)){
       $('#pff-titel').focus();
       $('#pff-melding').textContent=r.omitted?t('Ingevuld. Documentnummers en BSN zijn weggelaten; vul ze zelf in of kies Nieuwe reis invullen opnieuw met het vinkje aan.'):t('Ingevuld met je vaste gegevens. Controleer beide pagina’s en maak de PDF.');
     }else $('#pff-melding').textContent=t('Ingevuld met je vaste gegevens, maar er ontbreekt nog iets: {melding}',{melding:$('#pff-melding').textContent});
-  },false,e=>{fmq.busy=false;$('#fmq-ga').disabled=!fmq.records.length;fmqNote(e&&e.error?t(e.error):'');});
+  },false,e=>{if(epoch!==fmq.epoch)return;fmq.busy=false;$('#fmq-ga').disabled=!fmq.records.length;fmqNote(e&&e.error?t(e.error):'');});
 }
 function fmqSetup(){
   if(fm.busy)return;fmqClose();cmi.newType='formulier';show('masterdata');

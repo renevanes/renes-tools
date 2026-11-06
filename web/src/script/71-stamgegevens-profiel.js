@@ -93,6 +93,8 @@ const cmiResume=window.onResumeApp;window.onResumeApp=function(){cmiResume();app
 const cmiDash=renderDash;renderDash=function(){cmiDash();appIdentityRefresh();};
 const cmiMasterReset=window.onMasterReset;window.onMasterReset=function(){cmiPhotoCancel();appIdentity={};cmiSharedRender();cmiMasterReset();};
 appIdentityRefresh();
+// Vaste formuliergegevens vragen de nieuwe APK (MasterFormProfile); anders de knop en soort verbergen.
+if(typeof Android.masterFormProfile!=='function'){$('#cmi-form-new').hidden=true;const o=$('#cm-kind option[value="formulier"]');if(o)o.remove();}
 
 /* Alleen relaties tussen expliciet gekozen formulierpersonen; nooit gezag of toestemming afleiden. */
 const cmiFormRelations={asked:new Set(),pending:new Set(),epoch:0};

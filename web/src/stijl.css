@@ -1135,9 +1135,12 @@ body.talk-on #s-ai main{padding-bottom:200px}
 /* Centrale stamgegevens en de beveiligde veldkiezer. */
 .cm-entry { width:100%; text-align:left; margin:6px 0; padding:12px; background:var(--card); color:var(--ink); border:1px solid var(--outline); border-radius:12px; }
 .cm-entry small { display:block; color:var(--muted); margin-top:4px; }
-#cm-picker { position:fixed; inset:0; z-index:1900; background:var(--bg); padding:16px; overflow:auto; }
+#cm-picker, #fmq { position:fixed; inset:0; z-index:1900; background:var(--bg); padding:16px; overflow:auto; }
 .cm-pick-box { max-width:680px; margin:auto; }
-#cm-picker[hidden] { display:none; }
+#cm-picker[hidden], #fmq[hidden] { display:none; }
+#fmq [hidden] { display:none !important; }
+#fmq .fmq-meer { margin:12px 0; }
+#fmq .fmq-meer summary { min-height:44px; display:flex; align-items:center; color:var(--primary); font-weight:600; cursor:pointer; }
 .cm-event { padding:12px 0; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
 .cm-event small { display:block; color:var(--muted); }
 .cm-lock-note { padding:16px; border:1px solid var(--outline); border-radius:12px; background:var(--card); }
