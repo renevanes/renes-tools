@@ -1163,12 +1163,10 @@ body.talk-on #s-ai main{padding-bottom:200px}
 #s-idcopy details label { width:calc(50% - 8px); }
 
 /* Centrale stamgegevens en de beveiligde veldkiezer. */
-.cm-entry { width:100%; text-align:left; margin:6px 0; padding:12px; background:var(--card); color:var(--ink); border:1px solid var(--outline); border-radius:12px; }
-.cm-entry small { display:block; color:var(--muted); margin-top:4px; }
 #cm-picker, #fmq { position:fixed; inset:0; z-index:1900; background:var(--bg); padding:16px; overflow:auto; }
 .cm-pick-box { max-width:680px; margin:auto; }
 #cm-picker[hidden], #fmq[hidden] { display:none; }
-#fmq [hidden], #cm-picker [hidden], #s-masterdata [hidden] { display:none !important; }
+#fmq [hidden], #cm-picker [hidden], #s-masterdata [hidden], #s-cmedit [hidden], #s-cmlog [hidden], #s-cmwis [hidden] { display:none !important; }
 #fmq .fmq-meer { margin:12px 0; }
 #fmq .fmq-meer summary { min-height:44px; display:flex; align-items:center; color:var(--primary); font-weight:600; cursor:pointer; }
 .cm-event { padding:12px 0; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
@@ -1178,6 +1176,33 @@ body.talk-on #s-ai main{padding-bottom:200px}
 /* Stamgegevens: kaartfoto's blijven binnen het beveiligde scherm. */
 .cmi-actions{flex-wrap:wrap;gap:8px}.cmi-actions .big{flex:1;min-width:130px}
 .cmi-sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.cmi-zin{margin:12px 0;padding:10px 14px;border-radius:12px;background:var(--tonal);color:var(--on-tonal)}.cmi-zin[hidden]{display:none}
+/* Stamgegevens op de telefoon: korte schermen. Overzicht met filter en Toevoegen-knop, bewerken met tabbladen en een vaste opslaanbalk. */
+#s-masterdata .cm-status:empty,#s-cmedit .cm-status:empty,#s-cmlog .cm-status:empty,#s-cmwis .cm-status:empty{display:none}
+details.cm-fold>summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;margin:-4px 0}
+details.cm-fold>summary::-webkit-details-marker{display:none}
+.cm-fold-h{flex:1;min-width:0;font-size:16px;font-weight:600}
+details.cm-fold>summary small{flex:0 1 auto;max-width:55%;color:var(--muted);font-size:13px;font-weight:500;text-align:right;overflow-wrap:anywhere}
+.cm-fold-chev{width:20px;height:20px;flex:none;color:var(--muted);transition:transform .15s}details.cm-fold[open] .cm-fold-chev{transform:rotate(180deg)}
+details.cm-fold[open]>summary{margin-bottom:8px}
+#cm-search{margin-bottom:10px}
+.cm-filter{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}.cm-filter::-webkit-scrollbar{display:none}
+.cm-filter button{flex:none;min-height:44px;white-space:nowrap}
+#cm-list .strow{border-top:1px solid var(--line)}#cm-list .strow:first-child{border-top:0}
+#cm-list .note,#cm-list .empty{margin:0;padding:16px}
+#s-masterdata main{padding-bottom:96px}
+.fab.cm-add{width:auto;min-width:150px;padding:0 20px;font-size:17px;font-weight:700}
+.cm-tabs{position:sticky;top:64px;z-index:12;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;background:var(--bg);padding:6px 0 10px}
+.cm-tabs::-webkit-scrollbar{display:none}
+.cm-tabs button{flex:1 0 auto;min-height:44px;padding:8px 4px;border-radius:16px;background:var(--hi);color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
+.cm-tabs button[aria-selected=true]{background:var(--primary);color:var(--on-primary)}
+.cm-off{display:none!important}
+#cm-editor-card>:first-child .f:first-child{margin-top:0}
+#cm-editor-card .search{margin-bottom:10px}#cm-editor-card .hint{margin-top:-4px}
+.cm-savebar{position:sticky;bottom:0;z-index:12;display:flex;gap:8px;margin:0 -16px -24px;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
+.cm-savebar[hidden]{display:none}.cm-savebar .big{flex:1;margin:0}
+#cmi-person-relation-list{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}#cmi-person-relation-list .note{margin:0;padding:14px 16px}
+#cmi-person-relation-list .strow{min-height:56px;padding:8px 12px}#cmi-person-relation-list .sttxt{font-size:15px}
 .cmi-photo-paper{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
 .cmi-photo-paper img{display:block;max-width:100%;height:auto}.cmi-photo-paper.zoom img{max-width:none;width:auto}
 #cmi-shared p{overflow-wrap:anywhere}#cm-fields textarea{resize:vertical}

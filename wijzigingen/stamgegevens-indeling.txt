@@ -1,0 +1,1 @@
+Stamgegevens: kortere schermen op de telefoon. Het overzicht heeft zoeken, een filter op soort en een knop Toevoegen; bewerken gaat op een eigen scherm met tabbladen (bij een persoon Naam, Geboorte, Contact, Relaties en Meer) en Opslaan staat altijd onderaan. Activiteiten en Opnieuw beginnen vind je onder ⋯ rechtsboven.

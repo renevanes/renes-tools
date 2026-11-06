@@ -99,6 +99,12 @@ final class MasterStore {
     }
     static JSONArray names(JSONObject fields){JSONArray a=new JSONArray();java.util.Iterator<String> it=fields.keys();while(it.hasNext())a.put(it.next());return a;}
     static JSONObject summary(JSONObject r)throws Exception{return new JSONObject().put("id",r.getString("id")).put("label",r.getString("label")).put("type",r.getString("type")).put("revision",r.getLong("revision")).put("person",r.getJSONObject("fields").optString("persoon"));}
+    /** Alleen in het overzicht van Stamgegevens zelf staat bij een relatie wie met wie en welke relatie; status en toelichting pas bij openen. */
+    static JSONObject listed(JSONObject r,String source)throws Exception{
+        JSONObject out=summary(r),f=r.getJSONObject("fields");
+        if("masterdata".equals(source)&&"relatie".equals(r.getString("type")))out.put("van",f.optString("vanPersoon")).put("naar",f.optString("naarPersoon")).put("relatie",f.optString("relatie"));
+        return out;
+    }
     static JSONArray records(SQLiteDatabase db,SecretKey key)throws Exception{JSONArray out=new JSONArray();try(Cursor c=db.rawQuery("SELECT id FROM records ORDER BY id",null)){while(c.moveToNext()){JSONObject r=record(db,key,c.getString(0));r.remove("images");out.put(r);}}return out;}
     static void person(SQLiteDatabase db,SecretKey key,String id)throws Exception{if(!id.isEmpty()&&!"persoon".equals(record(db,key,id).getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));}
     static JSONObject refreshContext(Context c,SecretKey key,MasterSession session,String token)throws Exception{
@@ -117,7 +123,7 @@ final class MasterStore {
                 while(cursor.moveToNext()){
                     JSONObject r=record(db,k,cursor.getString(0));
                     if(!"masterdata".equals(source))try{if(MasterSchema.permitted(source,role,r.getString("type")).isEmpty())continue;}catch(Exception denied){continue;}
-                    result.put(summary(r));
+                    result.put(listed(r,source));
                 }
             }
             append(db,k,h,"list",source,role,null,null);return new JSONObject().put("records",result);

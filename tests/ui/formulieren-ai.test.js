@@ -5,12 +5,12 @@ const path=require('path');
  const browser=await chromium.launch();
  for(const colorScheme of ['light','dark']){
   const p=await browser.newPage({viewport:{width:390,height:844},colorScheme}),errors=[];
-  p.on('pageerror',e=>errors.push(e.message));await p.goto('file://'+path.join(__dirname,'ui/index.html'));
+  p.on('pageerror',e=>errors.push(e.message));await p.goto('file://'+path.join(__dirname,'ui/index.html'));const T=require('./_stamtabs')(p);
   // De vaste dataset is de bestaande beveiligde centrale opslag, inclusief herbruikbare reizen.
   await p.evaluate(()=>show('masterdata'));await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen());
-  await p.click('button[onclick="cmNew()"]');await p.selectOption('#cm-kind','reis');
-  await p.fill('#cm-label','Zomerreis België');await p.fill('#cm-field-van','2027-07-12');await p.fill('#cm-field-tot','2027-07-30');
-  await p.fill('#cm-field-land','België');await p.fill('#cm-field-accommodatie','Familie');await p.selectOption('#cm-field-alleen','ja');
+  await p.waitForFunction(()=>cm.recordsReady);await p.evaluate(()=>cmiNew('reis'));
+  await T.fill('#cm-label','Zomerreis België');await T.fill('#cm-field-van','2027-07-12');await T.fill('#cm-field-tot','2027-07-30');
+  await T.fill('#cm-field-land','België');await T.fill('#cm-field-accommodatie','Familie');await T.select('#cm-field-alleen','ja');
   await p.click('#cm-save');await p.waitForFunction(()=>cm.records.length===1&&!cm.mutating);
   await p.evaluate(()=>{const person=crypto.randomUUID();Android._cm.records.push({id:person,type:'persoon',label:'Kind <b>Zoë</b>',revision:1,fields:{naam:'Voorbeeld',voornamen:'Zoë',geboortedatum:'2015-02-03',bsn:'123456782'}},{id:crypto.randomUUID(),type:'identiteit',label:'Paspoort Zoë',revision:1,fields:{persoon:person,document:'DOC123456',geldig:'2030-06-30'}});});
   // De invulhulp staat niet standaard in beeld: openen via het menu van een stap.

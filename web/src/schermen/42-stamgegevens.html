@@ -1,33 +1,51 @@
 <section class="screen" id="s-masterdata">
-  <div class="hdr"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Stamgegevens</h1></div>
+  <div class="hdr"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Stamgegevens</h1>
+    <button class="icon-btn" id="cm-lock-btn" onclick="cmLock()" aria-label="Vergrendelen" hidden><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></button>
+    <button class="icon-btn" id="cm-menu" onclick="cmMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button></div>
   <main>
     <div class="card" id="cm-locked">
       <h2>Je centrale gegevenskluis</h2>
       <p class="note">Bewaar personen, relaties, reizen en identiteitsdocumenten met voor- en achterkant op één beveiligde plek.</p>
       <p class="note">Gegevens en activiteiten staan versleuteld op dit toestel. Ze gaan niet mee in back-ups. Bij verlies van het toestel of de beveiligingssleutel zijn ze niet te herstellen.</p>
       <button class="big" id="cm-unlock" onclick="cmUnlock()">Stamgegevens ontgrendelen</button>
+      <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>Vergrendelt bij verlaten van de app, na vijf minuten niets doen en uiterlijk na negen minuten. Schermafdrukken en automatisch invullen zijn afgeschermd.</p><p>Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.</p><p>Wat je met de app en lokale AI deelt, kies je zelf bij Mijn app-profiel. Activiteiten (wat wanneer is bekeken of gewijzigd) en Opnieuw beginnen vind je onder ⋯ rechtsboven.</p></div></details>
     </div>
-    <p class="note" id="cm-status" role="status" aria-live="polite"></p>
+    <p class="note cm-status" id="cm-status" role="status" aria-live="polite"></p>
     <div class="card" id="cmi-photo-pending" hidden><p class="note">Een kaartfoto is gekozen. Ontgrendel Stamgegevens om de foto bij het document op te slaan. Je vorige bewerking is bij het verlaten van de app gewist.</p><button class="big" onclick="cmUnlock()">Ontgrendelen en kaartfoto opslaan</button><button class="mini" onclick="cmiPhotoCancel()">Foto annuleren</button></div>
+    <details class="card cm-fold" id="cmi-shared-card"><summary><span class="cm-fold-h" role="heading" aria-level="2">Gedeeld met app en lokale AI</span><small id="cmi-shared-stand" translate="no"></small><span class="ui-icon cm-fold-chev" data-icon="chevron-down" aria-hidden="true"></span></summary>
+      <p class="note">Dit is de beperkte context die de app en lokale AI mogen gebruiken, ook wanneer Stamgegevens is vergrendeld.</p><div id="cmi-shared" translate="no"></div>
+      <button class="big tonal" id="cmi-profile-btn" onclick="cmiProfile()" hidden>Mijn app-profiel</button>
+    </details>
     <div id="cm-open" hidden>
-      <p class="note">Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.</p>
-      <div class="card"><div class="row"><button class="big ghost" onclick="cmListOpen()">Gegevens</button><button class="big ghost" onclick="cmAuditOpen()">Activiteiten</button><button class="mini" onclick="cmLock()">Vergrendelen</button></div><p class="note">Vergrendelt bij verlaten van de app, na vijf minuten niets doen en uiterlijk na negen minuten. Schermafdrukken en automatisch invullen zijn afgeschermd.</p></div>
-      <div class="card" id="cm-list-card">
-        <div class="row cmi-actions"><button class="big ghost" onclick="cmiProfile()">Mijn app-profiel</button><button class="big ghost" onclick="cmiNew('identiteit')">Identiteitskaart toevoegen</button><button class="big ghost" onclick="cmiNew('relatie')">Relatie toevoegen</button><button class="big ghost" id="cmi-form-new" onclick="cmiNew('formulier')">Vaste gegevens reistoestemming</button></div>
-        <label class="f" for="cm-search">Zoeken in stamgegevens</label><input class="search" id="cm-search" type="search" autocomplete="off" oninput="cmRenderList()">
-        <div id="cm-list" translate="no"></div><button class="big" onclick="cmNew()">Stamgegeven toevoegen</button>
-      </div>
-      <div class="card" id="cm-editor" hidden>
-        <h2 id="cm-editor-title">Stamgegeven bewerken</h2>
-        <label class="f" for="cm-kind">Soort</label><select class="search" id="cm-kind" onchange="cmType(this.value)"><option value="persoon">Persoon</option><option value="organisatie">Organisatie</option><option value="adres">Adres</option><option value="identiteit">Identiteitsdocument</option><option value="reis">Reis</option><option value="relatie">Relatie</option><option value="profiel">App-profiel</option><option value="formulier">Vaste formuliergegevens</option></select>
-        <label class="f" for="cm-label">Naam in het overzicht</label><input class="search" id="cm-label" maxlength="120" autocomplete="off" oninput="cmDirty()">
-        <p class="note">Gebruik een herkenbare naam. Deze weergavenaam blijft bij activiteiten staan, ook nadat je het stamgegeven verwijdert.</p>
+      <input class="search" id="cm-search" type="search" autocomplete="off" placeholder="Zoeken" aria-label="Zoeken in stamgegevens" oninput="cmRenderList()">
+      <div class="chips cm-filter" id="cm-filter" role="group" aria-label="Filter op soort" hidden></div>
+      <div class="card stlist" id="cm-list-card"><div id="cm-list" translate="no"></div></div>
+    </div>
+  </main>
+  <button class="fab cm-add" id="cm-add" onclick="cmAddMenu()" aria-label="Stamgegeven toevoegen" hidden>+ Toevoegen</button>
+</section>
+<section class="screen" id="s-cmedit">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1" id="cm-editor-title">Stamgegeven bewerken</h1>
+    <button class="icon-btn" id="cm-edit-menu" onclick="cmEditMenu()" aria-label="Meer: stamgegeven verwijderen" hidden><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button></div>
+  <main>
+    <p class="note cm-status" id="cm-edit-status" role="status" aria-live="polite"></p>
+    <div id="cm-editor" hidden>
+      <div class="cm-tabs" id="cm-tabs" role="tablist" aria-label="Onderdelen" hidden></div>
+      <div class="card" id="cm-editor-card">
+        <div id="cm-label-box"><label class="f" for="cm-label">Naam in het overzicht</label><input class="search" id="cm-label" maxlength="120" autocomplete="off" oninput="cmDirty()">
+        <p class="hint">Blijft in het logboek staan, ook na verwijderen.</p></div>
         <form id="cm-fields" autocomplete="off" novalidate onsubmit="event.preventDefault();cmSave()"></form>
+        <label class="chk cm-off" id="cm-secret-row"><input type="checkbox" id="cm-show-secret" onchange="cmShowSecret(this.checked)">Identiteitsgegevens tonen</label>
         <p class="note" id="cmi-profile-note" hidden>Je kiest hier wie jij bent. Met app-context aan zijn jouw naam, gedeelde relaties en bewust ingevulde context ook buiten het slot van Stamgegevens beschikbaar voor de app en lokale AI. Documentvelden en kaartfoto’s worden niet gedeeld. Oude gesprekken en zelf opgeslagen AI-herinneringen blijven bestaan.</p>
-        <p class="note" id="cmi-form-note" hidden>Kies één keer wie er reist, wie meegaat en wie toestemming geeft. Namen, geboortegegevens, adressen en documentnummers komen bij het invullen steeds uit de actuele stamgegevens van die personen. Laat je de relatie op Automatisch staan, dan gebruikt het formulier je opgeslagen relaties. Per reis vul je onder PDF → Formulieren invullen alleen de reisdagen en de bestemming in.</p>
-        <p class="note" id="cmi-relation-note" hidden>De tweede persoon heeft de gekozen relatie met de eerste persoon. Bijvoorbeeld: van jezelf naar je kind kies je Kind. Een relatie is geen bewijs van gezag of toestemming.</p>
-        <div class="row cmi-actions" id="cmi-person-actions" hidden><button class="mini" onclick="cmiSelf()">Dit ben ik</button><button class="mini" onclick="cmiRelation()">Relatie met mij toevoegen</button></div>
-        <div id="cmi-photos" hidden>
+        <details class="help in" id="cmi-form-note" data-cm-tab="kind" hidden><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>Kies één keer wie er reist, wie meegaat en wie toestemming geeft. Namen, geboortegegevens, adressen en documentnummers komen bij het invullen steeds uit de actuele stamgegevens van die personen. Laat je de relatie op Automatisch staan, dan gebruikt het formulier je opgeslagen relaties. Per reis vul je onder PDF → Formulieren invullen alleen de reisdagen en de bestemming in.</p></div></details>
+        <p class="cmi-zin" id="cmi-relation-zin" data-cm-tab="relatie" translate="no" role="status" aria-live="polite" hidden></p>
+        <details class="help in" id="cmi-relation-note" data-cm-tab="relatie" hidden><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body"><p>De tweede persoon heeft de gekozen relatie met de eerste persoon. Bijvoorbeeld: van jezelf naar je kind kies je Kind. Een status zoals ouderlijk gezag vul je zelf in; de app leidt die nergens uit af en deelt hem niet met de app of lokale AI. Een relatie is geen bewijs van gezag of toestemming.</p></div></details>
+        <div id="cmi-person-relations" data-cm-tab="relaties" hidden>
+          <div id="cmi-person-relation-list" translate="no"></div>
+          <div class="row cmi-actions"><button class="mini" onclick="cmiRelationNew('kind')">Kind toevoegen</button><button class="mini" onclick="cmiRelationNew('ouder')">Ouder toevoegen</button><button class="mini" onclick="cmiRelationNew('partner')">Partner toevoegen</button><button class="mini" onclick="cmiRelationNew('')">Andere relatie toevoegen</button><button class="mini" onclick="cmiRelation()">Relatie met mij toevoegen</button></div>
+        </div>
+        <div id="cmi-person-actions" data-cm-tab="meer" hidden><p class="hint">Is dit jouw eigen gegeven? Dan wijs je jezelf aan voor de app en lokale AI.</p><div class="row cmi-actions"><button class="mini" onclick="cmiSelf()">Dit ben ik</button></div></div>
+        <div id="cmi-photos" data-cm-tab="fotos" hidden>
           <h3>Voor- en achterkant</h3><p class="note">Kies een afbeelding uit Foto’s of Bestanden. De kopie wordt verkleind, zonder fotometadata, en versleuteld bij deze persoon bewaard. Sla wijzigingen eerst op voordat je een kaartfoto kiest.</p>
           <button class="mini" id="cmi-photo-show" onclick="cmiPhotoShow()">Kaartfoto’s tonen</button>
           <div class="cmi-sides">
@@ -35,16 +53,25 @@
             <div><h4>Achterzijde</h4><p class="note" id="cmi-back-status"></p><div class="cmi-photo-paper" id="cmi-back-paper" hidden><img id="cmi-back-image" alt="Achterzijde van het identiteitsdocument"></div><div class="row cmi-actions"><button class="mini" onclick="cmiPhotoPick('back')">Achterzijde kiezen</button><button class="mini" id="cmi-back-delete" onclick="cmiPhotoDelete('back')">Achterzijde verwijderen</button><button class="mini" id="cmi-back-zoom" onclick="cmiPhotoZoom('back')" hidden>Achterzijde vergroten</button></div></div>
           </div>
         </div>
-        <label class="chk"><input type="checkbox" id="cm-show-secret" onchange="cmShowSecret(this.checked)">Identiteitsgegevens tonen</label>
-        <div class="row"><button class="big" id="cm-save" onclick="cmSave()">Stamgegeven opslaan</button><button class="big ghost" onclick="cmCancelEdit()">Bewerken sluiten</button><button class="mini" id="cm-delete" onclick="cmDelete()">Stamgegeven verwijderen</button></div>
-      </div>
-      <div class="card" id="cm-audit-card" hidden>
-        <h2>Activiteitenlogboek</h2><p class="note">Je ziet wat wanneer is bekeken, gewijzigd of vrijgegeven aan een onderdeel. Het logboek bevat weergavenamen en veldnamen, geen kopieën van veldwaarden. Dit logboek gaat niet naar statistieken of een server.</p>
-        <label class="f" for="cm-log-search">Zoeken in geladen activiteiten</label><input class="search" id="cm-log-search" type="search" oninput="cmRenderAudit()"><div id="cm-audit" translate="no"></div><button class="big ghost" id="cm-more" onclick="cmAuditMore()" hidden>Oudere activiteiten laden</button>
       </div>
     </div>
-    <div class="card" id="cmi-shared-card"><h2>Gedeeld app-profiel</h2><p class="note">Dit is de beperkte context die de app en lokale AI mogen gebruiken, ook wanneer Stamgegevens is vergrendeld.</p><div id="cmi-shared" translate="no"></div></div>
-    <details class="card"><summary>Stamgegevens en logboek opnieuw beginnen</summary><p class="note">Dit wist alle centrale gegevens en activiteiten onherstelbaar. Open formulieren en ID-kopieën met overgenomen gegevens worden leeggemaakt. Zelf gemaakte of gedeelde bestanden blijven bestaan.</p><label class="f" for="cm-reset-word">Typ WISSEN om opnieuw te beginnen</label><input class="search" id="cm-reset-word" autocomplete="off" oninput="cmResetReady()"><button class="big ghost" id="cm-reset" disabled onclick="cmReset()">Alles wissen en opnieuw beginnen</button></details>
+    <div class="cm-savebar" id="cm-savebar" hidden><button class="big" id="cm-save" onclick="cmSave()">Stamgegeven opslaan</button></div>
+  </main>
+</section>
+<section class="screen" id="s-cmlog">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Activiteiten</h1></div>
+  <main>
+    <p class="note">Je ziet wat wanneer is bekeken, gewijzigd of vrijgegeven aan een onderdeel. Het logboek bevat weergavenamen en veldnamen, geen kopieën van veldwaarden. Dit logboek gaat niet naar statistieken of een server.</p>
+    <p class="note cm-status" id="cm-log-status" role="status" aria-live="polite"></p>
+    <input class="search" id="cm-log-search" type="search" autocomplete="off" placeholder="Zoeken" aria-label="Zoeken in geladen activiteiten" oninput="cmRenderAudit()">
+    <div class="card"><div id="cm-audit" translate="no"></div><button class="big ghost" id="cm-more" onclick="cmAuditMore()" hidden>Oudere activiteiten laden</button></div>
+  </main>
+</section>
+<section class="screen" id="s-cmwis">
+  <div class="hdr sm"><button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 tabindex="-1">Opnieuw beginnen</h1></div>
+  <main>
+    <p class="note cm-status" id="cm-wis-status" role="status" aria-live="polite"></p>
+    <div class="card"><p class="note">Dit wist alle centrale gegevens en activiteiten onherstelbaar. Open formulieren en ID-kopieën met overgenomen gegevens worden leeggemaakt. Zelf gemaakte of gedeelde bestanden blijven bestaan.</p><label class="f" for="cm-reset-word">Typ WISSEN om opnieuw te beginnen</label><input class="search" id="cm-reset-word" autocomplete="off" oninput="cmResetReady()"><button class="big ghost" id="cm-reset" disabled onclick="cmReset()">Alles wissen en opnieuw beginnen</button></div>
   </main>
 </section>
 <div class="cm-picker" id="cm-picker" hidden role="dialog" aria-modal="true" aria-labelledby="cm-pick-title">

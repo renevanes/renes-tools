@@ -10,7 +10,14 @@ import java.util.Set;
 /** Eén gezaghebbend eigen profiel en expliciete relaties. Documentgegevens horen nooit in app-context. */
 final class MasterIdentity {
     private MasterIdentity(){ }
-    static final Set<String> RELATIONS=Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList("kind","zoon","dochter","ouder","vader","moeder","partner","broerzus","grootouder","kleinkind","familie","vriend","collega","noodcontact","voogd","pupil","pleegouder","pleegkind","stiefouder","stiefkind","anders")));
+    static final Set<String> RELATIONS=Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList("kind","zoon","dochter","ouder","vader","moeder","partner","expartner","broerzus","broer","zus",
+            "grootouder","opa","oma","kleinkind","kleinzoon","kleindochter","oomtante","neefnicht","schoonouder","schoonkind","zwagerschoonzus","familie",
+            "vriend","collega","buur","huisgenoot","noodcontact","voogd","pupil","pleegouder","pleegkind","stiefouder","stiefkind","anders")));
+    /** Vaste status van een relatie, alleen waar die past; blijft in de kluis (niet in de gedeelde app-context). */
+    static final Set<String> PARTNER_STATUS=Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList("gehuwd","geregistreerd","samenwonend","latrelatie")));
+    static final Set<String> GEZAG_STATUS=Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList("gezag","geengezag")));
+    static final Set<String> OUDER_KIND=Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList("kind","zoon","dochter","ouder","vader","moeder","stiefouder","stiefkind","pleegouder","pleegkind")));
+    static Set<String> statuses(String relation){return "partner".equals(relation)?PARTNER_STATUS:OUDER_KIND.contains(relation)?GEZAG_STATUS:Collections.<String>emptySet();}
     static JSONObject find(JSONArray records,String id)throws Exception {for(int i=0;i<records.length();i++){JSONObject r=records.getJSONObject(i);if(id.equals(r.getString("id")))return r;}return null;}
     static String name(JSONObject person)throws Exception {JSONObject f=person.getJSONObject("fields");String value=(f.optString("voornamen")+" "+f.optString("naam")).trim();return value.isEmpty()?person.getString("label"):value;}
     static String callname(JSONObject person)throws Exception {JSONObject f=person.getJSONObject("fields");String value=f.optString("roepnaam").trim();return value.isEmpty()?name(person):value;}
@@ -18,11 +25,14 @@ final class MasterIdentity {
         switch(relation){
             case "kind":case "zoon":case "dochter":return "ouder";
             case "ouder":case "vader":case "moeder":return "kind";
-            case "grootouder":return "kleinkind";case "kleinkind":return "grootouder";
+            case "broer":case "zus":return "broerzus";
+            case "grootouder":case "opa":case "oma":return "kleinkind";case "kleinkind":case "kleinzoon":case "kleindochter":return "grootouder";
+            case "oomtante":return "neefnicht"; // andersom niet: een neef of nicht kan ook een kind van een oom of tante zijn
+            case "schoonouder":return "schoonkind";case "schoonkind":return "schoonouder";
             case "voogd":return "pupil";case "pupil":return "voogd";
             case "pleegouder":return "pleegkind";case "pleegkind":return "pleegouder";
             case "stiefouder":return "stiefkind";case "stiefkind":return "stiefouder";
-            case "partner":case "broerzus":case "familie":case "vriend":case "collega":return relation;
+            case "partner":case "expartner":case "broerzus":case "zwagerschoonzus":case "familie":case "vriend":case "collega":case "buur":case "huisgenoot":return relation;
             default:return "";
         }
     }

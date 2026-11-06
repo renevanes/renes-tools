@@ -13,7 +13,7 @@ const DETAIL = ['cversions', 'cversion', 'vpnedit', 'autoed', 'chats', 'ralarm',
   'podcast', 'podlijst', 'podspotify', 'models', 'carset', 'gebruikset', 'gebruikontgr', 'apset', 'apdev', 'aiset', 'aisetvoice', 'aisetdata', 'aichats',
   'sleepset', 'sleepnight', 'checkined', 'checkinq', 'checkincmp', 'setnotif', 'setlook', 'setregio', 'setcrash', 'facstuk', 'facgoogle', 'idcopy', 'formulieren',
   'pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade', 'bkparts', 'bkset', 'bkrestore', 'wasel', 'waauto', 'warestore',
-  'wcplek', 'wcbewerk', 'wcdeel', 'wcset', 'wcbronnen', 'wcbron', 'wceigen', 'wcgedeeld'];
+  'wcplek', 'wcbewerk', 'wcdeel', 'wcset', 'wcbronnen', 'wcbron', 'wceigen', 'wcgedeeld', 'cmedit', 'cmlog', 'cmwis'];
 // Meer dan één gevulde hoofdknop: bewust (met de reden)
 const MEER_PRIMAIR = {
 };
