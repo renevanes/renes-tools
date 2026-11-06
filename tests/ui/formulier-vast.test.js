@@ -3,7 +3,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
 (async()=>{const b=await chromium.launch(),errors=[];
 for(const colorScheme of ['light','dark']){
   const p=await b.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));
-  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);
+  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);const T=require('./_stamtabs')(p);
   // Stamgegevens die er al zijn: kind, twee ouders, documenten, een relatie en een instelling.
   await p.evaluate(()=>{
     const id=n=>'00000000-0000-0000-0000-00000000000'+n,rec=(n,type,label,fields)=>({id:id(n),type,label,revision:1,fields});
@@ -29,16 +29,16 @@ for(const colorScheme of ['light','dark']){
   await p.click('#fmq-instellen');assert.equal(await p.evaluate(()=>current),'masterdata');
   await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.edit&&cm.edit.type==='formulier');
   assert.equal(await p.isVisible('#cmi-form-note'),true);
-  assert.equal(await p.inputValue('#cm-field-formulier'),'reistoestemming');
+  assert.equal(await p.evaluate(()=>cm.edit.fields.formulier),'reistoestemming');assert.equal(await p.locator('#cm-field-formulier').count(),0,'één soort formulier: geen keuze in beeld');
   // Alleen personen in de persoonkeuze, alleen documenten van de gekozen persoon.
   assert.deepEqual(await p.$$eval('#cm-field-kind option',o=>o.map(x=>x.textContent)),['Kies een persoon','Zoë <b>','Mama','Papa']);
-  await p.selectOption('#cm-field-kind',{label:'Zoë <b>'});
+  await T.select('#cm-field-kind',{label:'Zoë <b>'});
   assert.equal(await p.inputValue('#cm-field-kindDocument'),'00000000-0000-0000-0000-000000000004','enige document vanzelf gekozen');
   assert.equal(await p.inputValue('#cm-label'),'Reistoestemming Zoë <b>','naam vanzelf ingevuld');
   assert.deepEqual(await p.$$eval('#cm-field-kindDocument option',o=>o.map(x=>x.textContent)),['Kies een document','Paspoort Zoë']);
-  await p.selectOption('#cm-field-begeleider1',{label:'Papa'});assert.equal(await p.inputValue('#cm-field-begeleider1Document'),'00000000-0000-0000-0000-000000000005');
-  await p.selectOption('#cm-field-gever1',{label:'Mama'});assert.equal(await p.inputValue('#cm-field-gever1Document'),'','geen document voor mama');
-  await p.selectOption('#cm-field-gever1Instelling',{label:'Instelling'});
+  await T.select('#cm-field-begeleider1',{label:'Papa'});assert.equal(await p.inputValue('#cm-field-begeleider1Document'),'00000000-0000-0000-0000-000000000005');
+  await T.select('#cm-field-gever1',{label:'Mama'});assert.equal(await p.inputValue('#cm-field-gever1Document'),'','geen document voor mama');
+  await T.select('#cm-field-gever1Instelling',{label:'Instelling'});
   assert.equal(await p.locator('#cm-fields b').count(),0,'namen blijven tekst');
   await p.click('#cm-save');await p.waitForFunction(()=>$('#cm-editor').hidden&&Android._cm.records.some(r=>r.type==='formulier'));
   // Een gebruikt stamgegeven kun je niet zomaar verwijderen.
