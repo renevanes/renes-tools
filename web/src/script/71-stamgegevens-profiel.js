@@ -1,17 +1,29 @@
 /* Gedeelde identiteit is een expliciete, beperkte native momentopname. Geen opslag in webstore. */
 let appIdentity={};
-const cmi={photoRequest:'',photoEpoch:0,reopen:'',show:false};
-// taal-vast: vaste keuzelabels worden met t() vertaald
-const CMI_RELATIONS={kind:'Kind',zoon:'Zoon',dochter:'Dochter',ouder:'Ouder',vader:'Vader',moeder:'Moeder',partner:'Partner',broerzus:'Broer of zus',grootouder:'Grootouder',kleinkind:'Kleinkind',familie:'Familie',vriend:'Vriend of vriendin',collega:'Collega',noodcontact:'Noodcontact',voogd:'Voogd',pupil:'Pupil',pleegouder:'Pleegouder',pleegkind:'Pleegkind',stiefouder:'Stiefouder',stiefkind:'Stiefkind',anders:'Anders'};
+const cmi={photoRequest:'',photoEpoch:0,reopen:'',show:false,labelFor:null,autoLabel:''};
+// taal-vast: vaste keuzelabels worden met t() vertaald (ook de waarde voor het Nederlandse formulier, zie cmiFormRelationsLoad)
+const CMI_RELATIONS={kind:'Kind',zoon:'Zoon',dochter:'Dochter',ouder:'Ouder',vader:'Vader',moeder:'Moeder',partner:'Partner',expartner:'Ex-partner',broerzus:'Broer of zus',broer:'Broer',zus:'Zus',grootouder:'Grootouder',opa:'Opa',oma:'Oma',kleinkind:'Kleinkind',kleinzoon:'Kleinzoon',kleindochter:'Kleindochter',oomtante:'Oom of tante',neefnicht:'Neef of nicht',schoonouder:'Schoonouder',schoonkind:'Schoonkind',zwagerschoonzus:'Zwager of schoonzus',familie:'Familie',vriend:'Vriend of vriendin',collega:'Collega',buur:'Buurman of buurvrouw',huisgenoot:'Huisgenoot',noodcontact:'Noodcontact',voogd:'Voogd',pupil:'Pupil',pleegouder:'Pleegouder',pleegkind:'Pleegkind',stiefouder:'Stiefouder',stiefkind:'Stiefkind',anders:'Anders'};
+// taal-vast: groepsnamen worden met t() vertaald
+const CMI_RELATION_GROUPS=[['Gezin',['kind','zoon','dochter','ouder','vader','moeder','partner','expartner','broerzus','broer','zus']],['Familie en schoonfamilie',['grootouder','opa','oma','kleinkind','kleinzoon','kleindochter','oomtante','neefnicht','schoonouder','schoonkind','zwagerschoonzus','familie']],['Stief, pleeg en voogdij',['stiefouder','stiefkind','pleegouder','pleegkind','voogd','pupil']],['Anderen',['vriend','collega','buur','huisgenoot','noodcontact','anders']]];
+// Zelfde regels als MasterIdentity.statuses: alleen bij partner en bij ouder en kind
+const CMI_OUDER_KIND=['kind','zoon','dochter','ouder','vader','moeder','stiefouder','stiefkind','pleegouder','pleegkind'];
 function cmiRelationName(code){return code==='kind'?tc('formulier','Kind'):t(CMI_RELATIONS[code]||code);}
+function cmiRelationOptions(){return CMI_RELATION_GROUPS.flatMap(([group,codes])=>codes.map(v=>[v,cmiRelationName(v),t(group)]));}
+function cmiStatusChoices(relation){
+  if(relation==='partner')return [['',t('Niet ingevuld')],['gehuwd',t('Gehuwd')],['geregistreerd',t('Geregistreerd partnerschap')],['samenwonend',t('Samenwonend')],['latrelatie',t('Latrelatie (niet samenwonend)')]];
+  if(CMI_OUDER_KIND.includes(relation))return [['',t('Niet ingevuld')],['gezag',t('Ouder heeft ouderlijk gezag')],['geengezag',t('Ouder heeft geen ouderlijk gezag')]];
+  return null;
+}
+function cmiSkip(key){return cm.edit?.type==='relatie'&&key==='status'&&!cmiStatusChoices(cm.edit.fields.relatie);}
 function cmiChoices(key){
   if(cm.edit?.type==='formulier'){
     if(key==='formulier')return [['reistoestemming',t('Toestemming reizen met minderjarige')]];
     if(key==='alleen'||key==='bsnInvullen')return [['nee',t('Nee')],['ja',t('Ja')]];
-    if(/^begeleider[12]Relatie$/.test(key))return [['',t('Automatisch uit je relaties')],...Object.keys(CMI_RELATIONS).map(v=>[v,cmiRelationName(v)])];
+    if(/^begeleider[12]Relatie$/.test(key))return [['',t('Automatisch uit je relaties')],...cmiRelationOptions()];
   }
   if(['alleen','tweedeBegeleider','tweedeGever','delen'].includes(key))return [['',t('Niet ingevuld')],['ja',t('Ja')],['nee',t('Nee')]];
-  if(key==='relatie')return [['',t('Kies een relatie')],...Object.keys(CMI_RELATIONS).map(v=>[v,cmiRelationName(v)])];
+  if(key==='relatie')return [['',t('Kies een relatie')],...cmiRelationOptions()];
+  if(key==='status'&&cm.edit?.type==='relatie')return cmiStatusChoices(cm.edit.fields.relatie);
   if(key==='documentsoort')return [['',t('Niet ingevuld')],['identiteitskaart',t('Identiteitskaart')],['paspoort',t('Paspoort')],['rijbewijs',t('Rijbewijs')],['verblijfsdocument',t('Verblijfsdocument')],['anders',t('Anders')]];
   return null;
 }
@@ -55,8 +67,44 @@ function cmiRelation(){
   const other=cm.edit.id,profile=cm.records.find(r=>r.type==='profiel');if(!profile){cmNote(t('Wijs jezelf eerst aan bij Mijn app-profiel.'));return;}
   const epoch=++cm.editorEpoch;cmRequest('masterRead',[profile.id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;const me=r.record.fields.persoon;if(me===other){cmNote(t('Kies een andere persoon voor de relatie met jou.'));return;}cmiNew('relatie');cm.edit.fields={vanPersoon:me,naarPersoon:other,delen:'ja'};cmEditor();});
 }
+/* Relaties in gewone woorden: "{naar} is {relatie} van {van}". Namen zijn de weergavenamen uit het overzicht. */
+function cmiPersonName(id){const p=cm.records.find(r=>r.id===id&&r.type==='persoon');return p?p.label:'';}
+function cmiRelationText(f,soort){
+  const naam=cmiPersonName(f.naarPersoon),ander=cmiPersonName(f.vanPersoon);if(!naam||!ander||!f.relatie)return '';
+  const relatie=cmiRelationName(f.relatie).toLowerCase(),status=(cmiStatusChoices(f.relatie)||[]).find(c=>c[0]&&c[0]===f.status);
+  if(soort==='label')return (f.relatie==='anders'?t('{naam} en {ander}',{naam,ander}):t('{naam} ({relatie} van {ander})',{naam,relatie,ander})).slice(0,120);
+  if(f.relatie==='anders')return t('{naam} heeft een andere relatie met {ander}.',{naam,ander});
+  return status?t('{naam} is {relatie} van {ander} ({status}).',{naam,relatie,ander,status:status[1].toLowerCase()}):t('{naam} is {relatie} van {ander}.',{naam,relatie,ander});
+}
+function cmiRelationChange(key){
+  const f=cm.edit.fields;
+  if(key==='relatie'){
+    if(f.status&&!(cmiStatusChoices(f.relatie)||[]).some(c=>c[0]===f.status))delete f.status;
+    const focus=document.activeElement?.id;cmEditorFields();if(focus&&$('#'+focus))$('#'+focus).focus();
+  }
+  const label=$('#cm-label'),auto=cmiRelationText(f,'label');
+  if(auto&&(!label.value.trim()||label.value===cmi.autoLabel)){label.value=auto;cm.edit.label=auto;}
+  if(auto)cmi.autoLabel=auto;
+  cmiRelationSentence();
+}
+function cmiRelationSentence(){const zin=cm.edit?.type==='relatie'?cmiRelationText(cm.edit.fields,'zin'):'';$('#cmi-relation-zin').textContent=zin;$('#cmi-relation-zin').hidden=!zin;}
+function cmiPersonRelations(){
+  const id=cm.edit.id,box=$('#cmi-person-relation-list');box.replaceChildren();
+  const rels=cm.records.filter(r=>r.type==='relatie'&&(r.van===id||r.naar===id)).map(r=>({id:r.id,zin:cmiRelationText({vanPersoon:r.van,naarPersoon:r.naar,relatie:r.relatie},'zin')||r.label})).sort((a,b)=>a.zin.localeCompare(b.zin));
+  for(const r of rels){const b=cmData(cmEl('button',r.zin,'big ghost'));b.onclick=()=>cmEdit(r.id);box.append(b);}
+  if(!rels.length)box.append(cmEl('p',t('Nog geen relaties.'),'note'));
+}
+/* Vanuit een opgeslagen persoon: "Kind toevoegen" = de gekozen persoon is kind van deze persoon, enzovoort. */
+function cmiRelationNew(relatie){
+  if(!cmOpen()||!cm.edit?.id||cm.dirty||cm.mutating){cmNote(t('Sla je wijzigingen eerst op.'));return;}
+  const me=cm.edit.id;if(!cm.records.some(r=>r.type==='persoon'&&r.id!==me)){cmNote(t('Voeg eerst de andere persoon toe als stamgegeven (soort Persoon).'));return;}
+  cmiNew('relatie');if(!cm.edit||cm.edit.id)return;cm.edit.fields={vanPersoon:me,naarPersoon:'',relatie,delen:'ja'};cmEditor();$('#cm-field-naarPersoon').focus();
+}
 function cmiEditor(){
   const r=cm.edit;$('#cmi-profile-note').hidden=r.type!=='profiel';$('#cmi-form-note').hidden=r.type!=='formulier';$('#cmi-relation-note').hidden=r.type!=='relatie';$('#cmi-person-actions').hidden=r.type!=='persoon'||!r.id;
+  $('#cmi-person-relations').hidden=r.type!=='persoon'||!r.id;if(r.type==='persoon'&&r.id)cmiPersonRelations();
+  if(cmi.labelFor!==r){cmi.labelFor=r;cmi.autoLabel=r.type==='relatie'?cmiRelationText(r.fields,'label'):'';}
+  cmiRelationSentence();
   cmiPhotoClear();$('#cmi-photos').hidden=r.type!=='identiteit';
   if(r.type==='identiteit')for(const side of ['front','back']){$('#cmi-'+side+'-status').textContent=r.images?.[side]?t('Kaartfoto opgeslagen.'):t('Nog geen kaartfoto opgeslagen.');$('#cmi-'+side+'-delete').disabled=!r.images?.[side];}
   $('#cmi-photo-show').disabled=!r.images?.front&&!r.images?.back;

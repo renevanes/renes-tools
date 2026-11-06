@@ -25,8 +25,14 @@
         <form id="cm-fields" autocomplete="off" novalidate onsubmit="event.preventDefault();cmSave()"></form>
         <p class="note" id="cmi-profile-note" hidden>Je kiest hier wie jij bent. Met app-context aan zijn jouw naam, gedeelde relaties en bewust ingevulde context ook buiten het slot van Stamgegevens beschikbaar voor de app en lokale AI. Documentvelden en kaartfoto’s worden niet gedeeld. Oude gesprekken en zelf opgeslagen AI-herinneringen blijven bestaan.</p>
         <p class="note" id="cmi-form-note" hidden>Kies één keer wie er reist, wie meegaat en wie toestemming geeft. Namen, geboortegegevens, adressen en documentnummers komen bij het invullen steeds uit de actuele stamgegevens van die personen. Laat je de relatie op Automatisch staan, dan gebruikt het formulier je opgeslagen relaties. Per reis vul je onder PDF → Formulieren invullen alleen de reisdagen en de bestemming in.</p>
-        <p class="note" id="cmi-relation-note" hidden>De tweede persoon heeft de gekozen relatie met de eerste persoon. Bijvoorbeeld: van jezelf naar je kind kies je Kind. Een relatie is geen bewijs van gezag of toestemming.</p>
+        <p class="cmi-zin" id="cmi-relation-zin" translate="no" role="status" aria-live="polite" hidden></p>
+        <p class="note" id="cmi-relation-note" hidden>De tweede persoon heeft de gekozen relatie met de eerste persoon. Bijvoorbeeld: van jezelf naar je kind kies je Kind. Een status zoals ouderlijk gezag vul je zelf in; de app leidt die nergens uit af en deelt hem niet met de app of lokale AI. Een relatie is geen bewijs van gezag of toestemming.</p>
         <div class="row cmi-actions" id="cmi-person-actions" hidden><button class="mini" onclick="cmiSelf()">Dit ben ik</button><button class="mini" onclick="cmiRelation()">Relatie met mij toevoegen</button></div>
+        <div id="cmi-person-relations" hidden>
+          <h3>Relaties</h3>
+          <div id="cmi-person-relation-list" translate="no"></div>
+          <div class="row cmi-actions"><button class="mini" onclick="cmiRelationNew('kind')">Kind toevoegen</button><button class="mini" onclick="cmiRelationNew('ouder')">Ouder toevoegen</button><button class="mini" onclick="cmiRelationNew('partner')">Partner toevoegen</button><button class="mini" onclick="cmiRelationNew('')">Andere relatie toevoegen</button></div>
+        </div>
         <div id="cmi-photos" hidden>
           <h3>Voor- en achterkant</h3><p class="note">Kies een afbeelding uit Foto’s of Bestanden. De kopie wordt verkleind, zonder fotometadata, en versleuteld bij deze persoon bewaard. Sla wijzigingen eerst op voordat je een kaartfoto kiest.</p>
           <button class="mini" id="cmi-photo-show" onclick="cmiPhotoShow()">Kaartfoto’s tonen</button>

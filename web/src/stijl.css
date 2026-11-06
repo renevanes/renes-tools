@@ -1178,6 +1178,8 @@ body.talk-on #s-ai main{padding-bottom:200px}
 /* Stamgegevens: kaartfoto's blijven binnen het beveiligde scherm. */
 .cmi-actions{flex-wrap:wrap;gap:8px}.cmi-actions .big{flex:1;min-width:130px}
 .cmi-sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.cmi-zin{margin:12px 0;padding:10px 14px;border-radius:12px;background:var(--tonal);color:var(--on-tonal)}.cmi-zin[hidden]{display:none}
+#cmi-person-relation-list .big{margin:6px 0}
 .cmi-photo-paper{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
 .cmi-photo-paper img{display:block;max-width:100%;height:auto}.cmi-photo-paper.zoom img{max-width:none;width:auto}
 #cmi-shared p{overflow-wrap:anywhere}#cm-fields textarea{resize:vertical}
