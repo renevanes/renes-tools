@@ -1224,7 +1224,118 @@ if (!window.Android) window.Android = (function(){
       setTimeout(() => { onBankAiStatus(''); onBankAiToken(ant.slice(0, 10)); }, 60);
       setTimeout(() => { onBankAiToken(ant.slice(10)); onBankAiDone({}); }, 120);
       return ''; },
-    bankAiCancel(){ this._bank.calls.push(['aiStop']); }
+    bankAiCancel(){ this._bank.calls.push(['aiStop']); },
+    // Toiletten en douches: bronnen, scannen, zoeken dichtbij, de eigen laag en OpenStreetMap-notities
+    _wc: { ingesteld: false, calls: [], zone: false, scanFout: '', ophaalFout: '', t: 0,
+      sjablonen: [
+        { sjabloon: 'osm-nl', standaard: true, naam: 'OpenStreetMap Nederland', soort: 'tools', url: 'https://github.com/renevanes/renes-tools/releases/download/toiletten-gegevens/toiletten-nl.json.gz',
+          metaUrl: 'https://github.com/renevanes/renes-tools/releases/download/toiletten-gegevens/meta.json', info: 'https://www.openstreetmap.org/copyright', licentie: 'ODbL 1.0, © OpenStreetMap-bijdragers',
+          schema: 'week', weekdag: 3, dag: 1, tijd: '04:00', opnieuw: 6, wifi: true, aan: true, plek: 'toilet', velden: {}, regels: [], tip: 'Elke week een nieuwe momentopname van alle toiletten en douches in Nederland uit OpenStreetMap.' },
+        { sjabloon: 'den-haag-openbaar', naam: 'Den Haag: openbare toiletten', soort: 'geojson', url: 'https://den-haag-opendata.opendatasoft.com/api/explore/v2.1/catalog/datasets/openbaretoiletten/exports/geojson',
+          info: 'https://data.overheid.nl/dataset/openbaretoiletten', licentie: 'CC0 1.0, Gemeente Den Haag', schema: 'maand', weekdag: 2, dag: 1, tijd: '04:00', opnieuw: 6, wifi: true, aan: true, plek: 'toilet',
+          velden: { id: 'globalid', naam: 'omschrijving|adres', uren: 'openingstijden', rolstoel: 'rolstoel_toegankelijk' }, regels: [{ veld: 'alleen_mannen', patroon: '^ja$', zet: 'urinoir' }], tip: 'De openbare toiletten van de gemeente Den Haag.' },
+        { sjabloon: 'amsterdam', naam: 'Amsterdam: openbare toiletten', soort: 'geojson', aan: false, url: 'https://maps.amsterdam.nl/open_geodata/geojson_lnglat.php?KAARTLAAG=OPENBARE_TOILETTEN&THEMA=openbare_toiletten',
+          info: 'https://maps.amsterdam.nl/openbare_toiletten/', licentie: 'Gemeente Amsterdam, Maps Data (gebruiksvoorwaarden; geen open licentie vermeld)', schema: 'maand', weekdag: 2, dag: 1, tijd: '04:00', opnieuw: 6, wifi: true, plek: 'toilet',
+          velden: { naam: 'Omschrijving|Soort', uren: 'Openingstijden' }, regels: [], tip: 'Staat uit: de gemeente noemt bij deze gegevens geen open licentie.' }],
+      bronnen: null, toestand: {}, cache: {},
+      data: {
+        'osm-nl': [['n101', 51.92310, 4.48700, 'toilet', 1 | 8 | 32, 'Toilet Binnenrotte', 'Mo-Su 08:00-20:00'], ['n102', 51.92000, 4.47600, 'toilet', 1 | 8 | 512, '', ''],
+          ['n103', 51.92450, 4.47200, 'tank', 1 | 4 | 256, 'Shell Weena', '24/7'], ['n104', 51.91800, 4.48500, 'douche', 2 | 16, 'Douches Zwembad', ''],
+          ['w105', 51.92440, 4.46900, 'station', 1 | 16 | 32 | 128, 'Rotterdam Centraal', '24/7'], ['n106', 52.07900, 4.31100, 'toilet', 1 | 8, 'Toilet Plein', '']],
+        'den-haag-openbaar': [['g1', 52.07901, 4.31102, 'toilet', 1 | 8 | 32, 'Plein, Den Haag', 'ma-zo 7-23'], ['g2', 52.08000, 4.30000, 'toilet', 1 | 16, 'Kerkplein', '']] },
+      eigen: { wijzig: {}, afgewezen: {}, toegevoegd: {} }, eigenKapot: false, gedeeld: {} },
+    _wcBronnen(){ const W = this._wc; return W.bronnen || W.sjablonen.filter(s => s.standaard).map(s => Object.assign({}, s, { id: s.sjabloon })); },
+    _wcM(la1, lo1, la2, lo2){ const r = Math.PI / 180, a = Math.sin((la2 - la1) * r / 2) ** 2 + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin((lo2 - lo1) * r / 2) ** 2; return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(a))); },
+    _wcIndex(){
+      const W = this._wc, pt = [], op = {}, groep = (s, f) => (f & 1) ? 't' : 'd';
+      for (const b of this._wcBronnen()) { if (b.aan === false || !W.cache[b.id]) continue;
+        for (const [e, la, lo, s, f, n, u] of W.cache[b.id]) { const k = b.id + ':' + e;
+          const q = pt.find(p => !p.e && !p.b.includes(b.id) && groep(p.s, p.f) === groep(s, f) && this._wcM(la, lo, p.la, p.lo) <= 25);
+          if (q) { q.keys.push(k); q.b.push(b.id); q.f |= f & (1 | 2 | 32 | 128 | 1024); if (!(f & 4)) q.f &= ~4; if (!q.n) q.n = n; if (!q.u) q.u = u; op[k] = q; continue; }
+          const p = { k, la, lo, s, f, n, u, b: [b.id], keys: [k], notitie: '' }; pt.push(p); op[k] = p; } }
+      const af = [];
+      for (const [k, a] of Object.entries(W.eigen.afgewezen)) { const p = op[k]; if (p) p.af = true; af.push(Object.assign({}, a, { k, gevonden: !!p })); }
+      for (const [k, w] of Object.entries(W.eigen.wijzig)) { let p = op[k];
+        if (!p) { p = { k, la: w.la, lo: w.lo, s: w.s, f: w.v.f, n: '', u: '', b: [k.split(':')[0]], keys: [k], weg: true }; pt.push(p); op[k] = p; }
+        const nu = { s: p.s, f: p.f, n: p.n, u: p.u };
+        if (!p.weg && (nu.s !== w.was.s || (nu.f & ~4) !== (w.was.f & ~4) || nu.n !== w.was.n || nu.u !== w.was.u)) p.bronNu = nu;
+        p.uitBron = p.weg ? w.was : nu; Object.assign(p, { s: w.v.s, f: w.v.f, n: w.v.n, u: w.v.u, notitie: w.v.notitie || '', e: 'aangepast' }); }
+      for (const [k, t] of Object.entries(W.eigen.toegevoegd)) {
+        const b = pt.find(p => !p.e && !p.af && groep(p.s, p.f) === groep(t.s, t.f) && this._wcM(t.la, t.lo, p.la, p.lo) <= 25);
+        const p = { k, la: t.la, lo: t.lo, s: t.s, f: t.f, n: t.n, u: t.u, notitie: t.notitie || '', b: [], keys: [k], e: 'toegevoegd', ib: b ? b.k : '' }; pt.push(p); op[k] = p; }
+      return { pt, op, af };
+    },
+    _wcKort(p, d){ const o = { k: p.k, la: p.la, lo: p.lo, s: p.s, f: p.f, n: p.n, u: p.u, b: p.b.slice() }; if (d >= 0) o.d = Math.round(d);
+      if (p.e) o.e = p.e; if (p.bronNu) o.nu = true; if (p.ib) o.ib = p.ib; if (p.weg) o.weg = true; if (p.af) o.af = true; return o; },
+    _wcAantal(){ const e = this._wc.eigen; return { aangepast: Object.keys(e.wijzig).length, afgewezen: Object.keys(e.afgewezen).length, toegevoegd: Object.keys(e.toegevoegd).length, leesbaar: !this._wc.eigenKapot }; },
+    wcState(){ const W = this._wc; let laatste = 0;
+      const bronnen = this._wcBronnen().map(b => { const t = W.toestand[b.id] || {}; laatste = Math.max(laatste, t.lastOk || 0);
+        return Object.assign({}, b, { toestand: t, volgende: b.aan === false || b.schema === 'uit' ? 0 : Date.now() + 3 * 864e5 }); });
+      return JSON.stringify({ ingesteld: W.ingesteld, bezig: !!W.bezig, bronnen, laatste, sjablonen: W.sjablonen, eigen: this._wcAantal(),
+        gedeeld: { aantal: Object.keys(W.gedeeld).length, open: Object.values(W.gedeeld).filter(g => g.status === 'open').length }, gegevens: Object.keys(W.cache).length > 0 }); },
+    wcNear(lat, lon, filters){ this._wc.calls.push(['near', lat, lon]); const f = JSON.parse(filters || '{}'), ix = this._wcIndex();
+      const l = ix.pt.filter(p => !p.af && (f.meestal || !(p.f & 4)) && (!f.toilet || (p.f & 1)) && (!f.douche || (p.f & 2)) && (!f.gratis || (p.f & 8)) && (!f.rolstoel || (p.f & 32)))
+        .map(p => [p, this._wcM(lat, lon, p.la, p.lo)]).filter(([, d]) => d <= 50000).sort((a, b) => a[1] - b[1]).slice(0, f.max || 25);
+      return JSON.stringify({ plekken: l.map(([p, d]) => this._wcKort(p, d)), totaal: ix.pt.length }); },
+    wcPlek(k){ const W = this._wc, ix = this._wcIndex(), p = ix.op[k]; if (!p) return JSON.stringify({ error: 'Deze plek staat er niet meer' });
+      const per = {}; this._wcBronnen().forEach(b => per[b.id] = b); let osm = '';
+      const bronnen = p.keys.filter(x => !x.startsWith('eigen:')).map(x => { const id = x.split(':')[0], e = x.slice(id.length + 1), b = per[id] || {};
+        if (b.soort === 'tools' && !osm) osm = 'https://www.openstreetmap.org/' + ({ n: 'node', w: 'way', r: 'relation' }[e[0]]) + '/' + e.slice(1);
+        return { id, e, naam: b.naam || '', licentie: b.licentie || '', info: b.info || '' }; });
+      const o = Object.assign(this._wcKort(p, -1), { notitie: p.notitie || '', bronnen, osm, gedeeld: ['afwijzing', 'wijziging', 'toevoeging'].filter(w => W.gedeeld[k + '|' + w]).map(w => Object.assign({}, W.gedeeld[k + '|' + w], { sleutel: k + '|' + w, url: 'https://www.openstreetmap.org/note/' + W.gedeeld[k + '|' + w].id })) });
+      if (p.uitBron) o.uitBron = p.uitBron; if (p.bronNu) o.bronNu = p.bronNu; if (W.eigen.afgewezen[k]) o.afwijzing = W.eigen.afgewezen[k];
+      return JSON.stringify(o); },
+    wcBronBewaar(json){ const W = this._wc, b = JSON.parse(json);
+      if (!String(b.naam || '').trim()) return JSON.stringify({ error: 'Geef de bron een naam' });
+      if (!/^https:\/\/[^\s/?#@]+/i.test(b.url || '')) return JSON.stringify({ error: 'Het adres moet beginnen met https://' });
+      if (!String(b.licentie || '').trim()) return JSON.stringify({ error: 'Vul de licentie of bronvermelding in (staat bij de gegevens)' });
+      const l = this._wcBronnen().slice(); if (!b.id) { const v = b.sjabloon && b.sjabloon !== 'eigen' ? b.sjabloon : 'bron'; b.id = l.some(x => x.id === v) ? v + '-' + (++W.t) : v; }
+      const i = l.findIndex(x => x.id === b.id); const n = Object.assign({ schema: 'week', weekdag: 2, dag: 1, tijd: '04:00', opnieuw: 6, wifi: true, aan: true, plek: 'toilet', velden: {}, regels: [] }, i >= 0 ? l[i] : {}, b);
+      if (i >= 0) l[i] = n; else l.push(n); W.bronnen = l; W.ingesteld = true; W.calls.push(['bewaar', n.id]); return JSON.stringify(n); },
+    wcBronWeg(id){ const W = this._wc; W.bronnen = this._wcBronnen().filter(b => b.id !== id); delete W.toestand[id]; delete W.cache[id]; W.ingesteld = true; W.calls.push(['weg', id]); return ''; },
+    wcScan(id){ const W = this._wc; if (W.bezig) return 'Er loopt al een scan'; W.bezig = true; W.calls.push(['scan', id || '']);
+      if (!W.ingesteld) { W.bronnen = this._wcBronnen(); W.ingesteld = true; }
+      setTimeout(() => { const res = [];
+        for (const b of this._wcBronnen()) { if (id ? b.id !== id : b.aan === false) continue;
+          const t = W.toestand[b.id] = Object.assign({ log: [] }, W.toestand[b.id], { lastTry: Date.now() });
+          if (W.scanFout) { t.fout = W.scanFout; res.push({ id: b.id, ok: false, fout: W.scanFout }); t.log.unshift({ t: Date.now(), ok: false, fout: W.scanFout }); continue; }
+          const oud = W.cache[b.id] || [], nieuw = W.data[b.id] || [];
+          const r = { id: b.id, ok: true, aantal: nieuw.length, nieuw: nieuw.filter(p => !oud.some(o => o[0] === p[0])).length, gewijzigd: 0, weg: oud.filter(o => !nieuw.some(p => p[0] === o[0])).length };
+          W.cache[b.id] = nieuw.map(p => p.slice()); Object.assign(t, { lastOk: Date.now(), fout: '', aantal: r.aantal, nieuw: r.nieuw, gewijzigd: 0, weg: r.weg, datum: '2026-11-03' });
+          t.log.unshift({ t: Date.now(), ok: true, aantal: r.aantal, nieuw: r.nieuw, gewijzigd: 0, weg: r.weg }); t.log = t.log.slice(0, 10); res.push(r); }
+        W.bezig = false; onWcScan({ id: id || '', resultaat: res }); }, 120); return ''; },
+    wcBewaar(json){ const W = this._wc, i = JSON.parse(json); if (W.eigenKapot) return JSON.stringify({ error: 'Je eigen wijzigingen zijn niet leesbaar; er is niets overschreven' });
+      let f = (i.f || 1) & ~4; if (!(f & 3)) f |= i.s === 'douche' ? 2 : 1; if (f & 8) f &= ~16; if (f & 32) f &= ~64;
+      const v = { s: i.s || 'toilet', f, n: String(i.n || '').slice(0, 80), u: String(i.u || '').slice(0, 200), notitie: String(i.notitie || '').slice(0, 300) };
+      let k = i.k || ''; W.calls.push(['bewaarPlek', k, v]);
+      if (!k || k.startsWith('eigen:')) { if (!k) k = 'eigen:' + (++W.t).toString(16).padStart(12, '0'); const oud = W.eigen.toegevoegd[k] || {};
+        W.eigen.toegevoegd[k] = Object.assign(v, { la: i.la != null ? i.la : oud.la, lo: i.lo != null ? i.lo : oud.lo, t: Date.now() }); return JSON.stringify({ k }); }
+      const p = this._wcIndex().op[k]; if (!p) return JSON.stringify({ error: 'Deze plek staat niet meer in de bron' });
+      const was = (!i.houden && W.eigen.wijzig[k] && W.eigen.wijzig[k].was) || p.uitBron || { s: p.s, f: p.f, n: p.n, u: p.u };
+      if (v.s === was.s && (v.f & ~4) === (was.f & ~4) && v.n === was.n && v.u === was.u && !v.notitie) { delete W.eigen.wijzig[k]; return JSON.stringify({ k }); }
+      W.eigen.wijzig[k] = { la: p.la, lo: p.lo, s: was.s, t: Date.now(), v, was }; delete W.eigen.afgewezen[k]; return JSON.stringify({ k }); },
+    wcAfwijzen(k, reden, tekst){ const W = this._wc, p = this._wcIndex().op[k]; if (!['weg', 'dicht', 'prive', 'klanten', 'anders'].includes(reden)) return JSON.stringify({ error: 'Kies een reden' });
+      if (!p) return JSON.stringify({ error: 'Deze plek staat niet meer in de bron' }); W.calls.push(['afwijzen', k, reden]);
+      W.eigen.afgewezen[k] = { la: p.la, lo: p.lo, s: p.s, n: p.n, reden, tekst: String(tekst || '').slice(0, 300), t: Date.now() }; return ''; },
+    wcTerug(k, wat){ const o = this._wc.eigen[wat]; if (o) delete o[k]; this._wc.calls.push(['terug', k, wat]); return ''; },
+    wcEigen(){ const W = this._wc; if (W.eigenKapot) return JSON.stringify({ error: 'Je eigen wijzigingen zijn niet leesbaar; er is niets overschreven' }); const ix = this._wcIndex();
+      return JSON.stringify({ aangepast: ix.pt.filter(p => p.e === 'aangepast').map(p => Object.assign(this._wcKort(p, -1), { t: W.eigen.wijzig[p.k].t })),
+        toegevoegd: ix.pt.filter(p => p.e === 'toegevoegd').map(p => Object.assign(this._wcKort(p, -1), { t: W.eigen.toegevoegd[p.k].t })), afgewezen: ix.af,
+        gedeeld: Object.entries(W.gedeeld).map(([s, g]) => Object.assign({}, g, { sleutel: s, url: 'https://www.openstreetmap.org/note/' + g.id })) }); },
+    _wcNotitie(k, wat){ const W = this._wc, ix = this._wcIndex(), p = ix.op[k]; if (!p && wat !== 'afwijzing') return { error: 'Deze plek staat er niet meer' };
+      const osm = p && p.keys.some(x => x.startsWith('osm-nl:')) ? 'https://www.openstreetmap.org/node/' + p.keys.find(x => x.startsWith('osm-nl:')).slice(8) : '';
+      if (wat === 'afwijzing') { const a = W.eigen.afgewezen[k]; if (!a) return { error: 'Wijs de plek eerst af' }; if (!osm) return { error: 'Deze plek staat niet in OpenStreetMap' };
+        return { tekst: 'Deze plek klopt niet meer: ' + ({ weg: 'het toilet bestaat niet meer', dicht: 'het toilet is gesloten', prive: 'niet openbaar', klanten: 'alleen voor klanten', anders: 'anders' })[a.reden] + '.\n' + (a.tekst ? 'Toelichting: ' + a.tekst + '\n' : '') + 'Object: ' + osm + '\n\nDoorgegeven met de app Tools (https://github.com/renevanes/renes-tools).', la: a.la, lo: a.lo, wat, osm }; }
+      if (wat === 'wijziging' && p.e !== 'aangepast') return { error: 'Pas de plek eerst aan' };
+      if (wat === 'toevoeging' && p.e !== 'toegevoegd') return { error: 'Alleen je eigen plekken' };
+      if (wat === 'wijziging' && !osm) wat = 'toevoeging';
+      return { tekst: (wat === 'wijziging' ? 'Klopt niet meer: ' + (p.n || 'toilet') + '\nNu: ' : 'Hier is een toilet dat nog niet op de kaart staat.\n') + (p.n ? 'Naam: ' + p.n + '\n' : '') + (osm ? 'Object: ' + osm + '\n' : '') + '\nDoorgegeven met de app Tools (https://github.com/renevanes/renes-tools).', la: p.la, lo: p.lo, wat, osm }; },
+    wcNotitie(k, wat){ return JSON.stringify(this._wcNotitie(k, wat)); },
+    wcDoorgeven(k, wat){ const W = this._wc, n = this._wcNotitie(k, wat); if (n.error) return JSON.stringify(n); W.calls.push(['doorgeven', k, n.wat]);
+      setTimeout(() => { if (W.zone) { W.klembord = n.tekst; onWcGedeeld({ zone: true, url: 'https://www.openstreetmap.org/note/new#map=19/' + n.la + '/' + n.lo, k }); return; }
+        const id = 4000000 + (++W.t); W.gedeeld[k + '|' + n.wat] = { k, wat: n.wat, id, t: Date.now(), status: 'open', gecontroleerd: Date.now(), la: n.la, lo: n.lo };
+        onWcGedeeld({ ok: true, id, url: 'https://www.openstreetmap.org/note/' + id, k }); }, 80); return ''; },
+    wcVergeet(sleutel){ delete this._wc.gedeeld[sleutel]; return ''; }
   };
 })();
 

@@ -1,0 +1,252 @@
+<!-- ============ TOILETTEN EN DOUCHES ============ -->
+<section class="screen" id="s-wc">
+  <div class="hdr">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Toiletten en douches</h1>
+    <button class="icon-btn" id="wc-menu" onclick="wcMenu()" aria-label="Meer: plek toevoegen en bijwerken"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
+    <button class="icon-btn hset" id="wc-set-btn" data-to="wcset" aria-label="Instellingen van Toiletten en douches"></button>
+  </div>
+  <main>
+    <div class="card setup" id="wc-setup" hidden>
+      <h2>Eenmalig instellen</h2>
+      <p class="note" style="margin-top:0">Tools haalt één keer de lijst met openbare toiletten en douches in Nederland op uit OpenStreetMap (minder dan 1 MB). Daarna zoekt de app op je telefoon en werkt hij de lijst elke week vanzelf bij, via wifi.</p>
+      <button class="big tonal" id="wc-ophalen" onclick="wcOphalen()"><span class="ui-icon" data-icon="download" aria-hidden="true"></span>Gegevens ophalen</button>
+      <p class="note" id="wc-setup-st" role="status" aria-live="polite"></p>
+    </div>
+
+    <div class="card" id="wc-status">
+      <p class="note" id="wc-sub" role="status" aria-live="polite" style="margin-top:0"></p>
+      <button class="big" id="wc-hier" onclick="wcHier()"><span class="ui-icon" data-icon="pin" aria-hidden="true"></span><span id="wc-hier-t">Zoek bij mij</span></button>
+      <p class="hint" id="wc-privacy" style="margin-bottom:0">Je locatie blijft op je telefoon. Tools downloadt de bronnen in hun geheel, zonder je plek.</p>
+    </div>
+
+    <div class="chips wc-chips" id="wc-chips" role="group" aria-label="Wat zoek je?">
+      <button aria-pressed="false" data-f="toilet" onclick="wcFilter('toilet')">Toilet</button>
+      <button aria-pressed="false" data-f="douche" onclick="wcFilter('douche')">Douche</button>
+      <button aria-pressed="false" data-f="gratis" onclick="wcFilter('gratis')">Gratis</button>
+      <button aria-pressed="false" data-f="rolstoel" onclick="wcFilter('rolstoel')">Rolstoel</button>
+      <button aria-pressed="false" data-f="meestal" onclick="wcFilter('meestal')">Ook tankstations e.d. (meestal)</button>
+    </div>
+
+    <div id="wc-kaartwrap" hidden>
+      <div id="wc-map" class="lmap" role="application" aria-label="Kaart met toiletten en douches. Lang indrukken: plek toevoegen."></div>
+      <p class="hint" style="margin:0 4px 10px">Tik op de kaart om daar te zoeken; lang indrukken: plek toevoegen. De kaartbeelden komen van OpenStreetMap, die ziet welk stuk kaart je bekijkt.</p>
+    </div>
+
+    <div class="card stations" id="wc-list"></div>
+    <p class="note" id="wc-voet" style="margin:4px 4px 16px"></p>
+  </main>
+</section>
+
+<!-- Eén plek -->
+<section class="screen" id="s-wcplek">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="wcp-h1">Plek</h1>
+    <button class="icon-btn" id="wcp-menu" onclick="wcpMenu()" aria-label="Meer: aanpassen, afwijzen en doorgeven"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <div id="wcp-body"></div>
+  </main>
+</section>
+
+<!-- Plek aanpassen of toevoegen -->
+<section class="screen" id="s-wcbewerk">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="wcb-h1">Plek aanpassen</h1>
+  </div>
+  <main>
+    <p class="hint" id="wcb-uitleg">Je aanpassing blijft op je telefoon en gaat voor op wat de bron zegt, ook na het bijwerken.</p>
+    <div class="card">
+      <label class="f" for="wcb-s">Soort plek</label>
+      <select class="sel" id="wcb-s">
+        <option value="toilet">Openbaar toilet</option><option value="douche">Douche</option><option value="tank">Tankstation</option>
+        <option value="verzorg">Verzorgingsplaats</option><option value="rust">Parkeerplaats langs de weg</option><option value="camping">Camping</option>
+        <option value="haven">Jachthaven</option><option value="station">Station</option><option value="horeca">Restaurant of café</option>
+        <option value="winkel">Winkelcentrum</option><option value="biblio">Bibliotheek</option><option value="zorg">Ziekenhuis</option>
+        <option value="sport">Sportplek of zwembad</option><option value="strand">Strand</option><option value="overig">Anders</option>
+      </select>
+      <label class="f" for="wcb-n">Naam (mag leeg)</label>
+      <input class="aein" id="wcb-n" maxlength="80" autocomplete="off">
+      <label class="f" for="wcb-u">Openingstijden (mag leeg)</label>
+      <input class="aein" id="wcb-u" maxlength="120" autocomplete="off" placeholder="Mo-Fr 08:00-18:00">
+    </div>
+    <div class="card">
+      <h2>Wat is er?</h2>
+      <label class="chk"><input type="checkbox" id="wcb-toilet"> Toilet</label>
+      <label class="chk"><input type="checkbox" id="wcb-urinoir"> Alleen een urinoir</label>
+      <label class="chk"><input type="checkbox" id="wcb-douche"> Douche</label>
+      <label class="chk"><input type="checkbox" id="wcb-rolstoel"> Rolstoeltoegankelijk</label>
+      <label class="chk"><input type="checkbox" id="wcb-verschoon"> Verschoontafel</label>
+      <label class="chk"><input type="checkbox" id="wcb-altijd"> Altijd open</label>
+      <label class="f" for="wcb-geld">Betalen</label>
+      <select class="sel" id="wcb-geld"><option value="">Weet ik niet</option><option value="gratis">Gratis</option><option value="betaald">Betaald</option></select>
+      <label class="chk"><input type="checkbox" id="wcb-klanten"> Alleen voor klanten of gasten</label>
+    </div>
+    <div class="card">
+      <label class="f" for="wcb-notitie">Notitie voor jezelf (mag leeg)</label>
+      <textarea class="aein" id="wcb-notitie" rows="3" maxlength="300"></textarea>
+      <p class="note" id="wcb-plek" style="margin-bottom:0"></p>
+    </div>
+    <button class="big" id="wcb-bewaar" onclick="wcbBewaar()">Bewaren</button>
+  </main>
+</section>
+
+<!-- Doorgeven aan OpenStreetMap: eerst laten zien wat er precies gaat -->
+<section class="screen" id="s-wcdeel">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Doorgeven aan OpenStreetMap</h1>
+  </div>
+  <main>
+    <div class="card wc-let" id="wcd-let" role="note">
+      <b>Openbaar; OpenStreetMap ziet je IP-adres</b>
+      <p class="note" style="margin:4px 0 0">Dit wordt een openbare notitie op de kaart, zonder je naam. Vrijwilligers van OpenStreetMap lezen hem en passen de kaart aan; daarna komt het vanzelf in de lijst van iedereen.</p>
+    </div>
+    <div class="card">
+      <h2>Dit gaat er precies naartoe</h2>
+      <pre class="wc-tekst" id="wcd-tekst" translate="no"></pre>
+      <p class="note" id="wcd-plek" style="margin-bottom:0"></p>
+    </div>
+    <button class="big" id="wcd-ok" onclick="wcdDoorgeven()">Doorgeven</button>
+    <button class="big ghost" style="margin-top:8px" onclick="goBack()">Niet doorgeven</button>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Tools maakt een notitie met de tekst hierboven op de plek van het toilet. Je hebt geen account nodig. In sommige gebieden laat OpenStreetMap alleen notities via de website toe: dan zet Tools de tekst op het klembord en opent de website op die plek, zodat je hem kunt plakken.</p>
+      <p>Tools kijkt bij het bijwerken van de bronnen hooguit één keer per dag of de notitie is opgelost. Hooguit 20 notities per dag.</p>
+    </div></details>
+  </main>
+</section>
+
+<!-- Instellingen (hub) -->
+<section class="screen" id="s-wcset">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Toiletten: instellingen</h1>
+  </div>
+  <main>
+    <div class="card stlist">
+      <button class="strow" onclick="show('wcbronnen')"><span class="stic"><span class="ui-icon" data-icon="download" aria-hidden="true"></span></span><span class="sttxt"><b>Bronnen</b><small id="wcs-bronnen"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('wceigen')"><span class="stic"><span class="ui-icon" data-icon="edit" aria-hidden="true"></span></span><span class="sttxt"><b>Mijn wijzigingen</b><small id="wcs-eigen"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="show('wcgedeeld')"><span class="stic"><span class="ui-icon" data-icon="globe" aria-hidden="true"></span></span><span class="sttxt"><b>Gedeeld met de gemeenschap</b><small id="wcs-gedeeld"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+    <div class="card">
+      <div class="sw"><span>Kaart tonen<small>De kaartbeelden komen van OpenStreetMap, die ziet welk stuk kaart je bekijkt. Uit: alleen de lijst.</small></span><button class="tg" id="wcs-kaart" role="switch" aria-checked="false" aria-label="Kaart tonen" onclick="wcsKaart(this)"></button></div>
+    </div>
+  </main>
+</section>
+
+<!-- Bronnen -->
+<section class="screen" id="s-wcbronnen">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Bronnen</h1>
+  </div>
+  <main>
+    <p class="hint">Een bron is een lijst met toiletten en douches die Tools in zijn geheel downloadt en op de achtergrond bijwerkt. De eerste bron gaat voor als twee bronnen dezelfde plek hebben.</p>
+    <div class="card stations" id="wcbr-list"></div>
+    <button class="big tonal" id="wcbr-scan" onclick="wcScanAlles()"><span class="ui-icon" data-icon="refresh" aria-hidden="true"></span>Alles nu bijwerken</button>
+    <button class="big ghost" style="margin-top:8px" onclick="wcBronNieuw()"><span class="ui-icon" data-icon="plus" aria-hidden="true"></span>Bron toevoegen</button>
+    <p class="note" id="wcbr-st" role="status" aria-live="polite"></p>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Elke bron is een bestand op internet: de wekelijkse momentopname uit OpenStreetMap die Tools zelf maakt, of open gegevens van een gemeente (GeoJSON, een ArcGIS-laag of CSV). Tools haalt het hele bestand op en zoekt daarna op je telefoon: je plek gaat nooit naar de bron.</p>
+      <p>Lukt bijwerken niet, dan blijft de vorige versie staan. Wat je zelf aanpast of afwijst, blijft ook na het bijwerken.</p>
+    </div></details>
+  </main>
+</section>
+
+<!-- Eén bron -->
+<section class="screen" id="s-wcbron">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1" id="wcn-h1">Bron</h1>
+    <button class="icon-btn" id="wcn-menu" onclick="wcnMenu()" aria-label="Meer: verwijderen"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
+  </div>
+  <main>
+    <div class="card" id="wcn-sjabloonkaart" hidden>
+      <label class="f" for="wcn-sjabloon">Begin met</label>
+      <select class="sel" id="wcn-sjabloon" onchange="wcnSjabloon()"></select>
+      <p class="note" id="wcn-tip" translate="no" style="margin-bottom:0"></p>
+    </div>
+    <div class="card" id="wcn-stand"></div>
+    <div class="card">
+      <div class="sw"><span>Aan<small>Uit: de plekken van deze bron tellen niet mee</small></span><button class="tg" id="wcn-aan" role="switch" aria-checked="true" aria-label="Bron aan" onclick="togUi(this)"></button></div>
+      <label class="f" for="wcn-naam">Naam</label>
+      <input class="aein" id="wcn-naam" maxlength="60" autocomplete="off">
+      <label class="f" for="wcn-soort">Soort gegevens</label>
+      <select class="sel" id="wcn-soort" onchange="wcnSoort()"><option value="geojson">GeoJSON</option><option value="arcgis">ArcGIS-laag</option><option value="csv">CSV</option><option value="tools">Momentopname van Tools</option></select>
+      <label class="f" for="wcn-url">Adres van de gegevens</label>
+      <input class="aein" id="wcn-url" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://">
+      <div id="wcn-metarij"><label class="f" for="wcn-meta">Adres van meta.json</label>
+        <input class="aein" id="wcn-meta" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://"></div>
+      <label class="f" for="wcn-lic">Licentie of bronvermelding</label>
+      <input class="aein" id="wcn-lic" maxlength="120" autocomplete="off" placeholder="CC0 1.0, Gemeente …">
+      <label class="f" for="wcn-info">Adres met uitleg (mag leeg)</label>
+      <input class="aein" id="wcn-info" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://">
+    </div>
+    <div class="card" id="wcn-veldenkaart">
+      <h2>Wat betekent wat</h2>
+      <p class="hint" style="margin-top:0">De namen van de velden (of kolommen) in de gegevens. Meer namen kan met |, bijvoorbeeld <span translate="no">naam|omschrijving</span>.</p>
+      <label class="f" for="wcn-plek">Soort plek</label>
+      <select class="sel" id="wcn-plek">
+        <option value="toilet">Openbaar toilet</option><option value="douche">Douche</option><option value="tank">Tankstation</option>
+        <option value="verzorg">Verzorgingsplaats</option><option value="rust">Parkeerplaats langs de weg</option><option value="camping">Camping</option>
+        <option value="haven">Jachthaven</option><option value="station">Station</option><option value="horeca">Restaurant of café</option>
+        <option value="winkel">Winkelcentrum</option><option value="biblio">Bibliotheek</option><option value="zorg">Ziekenhuis</option>
+        <option value="sport">Sportplek of zwembad</option><option value="strand">Strand</option><option value="overig">Anders</option>
+      </select>
+      <div class="wc-velden" id="wcn-velden"></div>
+      <h2 style="margin-top:14px">Altijd</h2>
+      <label class="chk"><input type="checkbox" data-x="rolstoel"> Rolstoeltoegankelijk</label>
+      <label class="chk"><input type="checkbox" data-x="gratis"> Gratis</label>
+      <label class="chk"><input type="checkbox" data-x="verschoon"> Verschoontafel</label>
+      <label class="chk"><input type="checkbox" data-x="douche"> Douche</label>
+      <label class="chk"><input type="checkbox" data-x="klanten"> Alleen voor klanten</label>
+      <h2 style="margin-top:14px">Regels</h2>
+      <p class="hint" style="margin-top:0">Als een veld past bij een zoekpatroon, dan …</p>
+      <div id="wcn-regels"></div>
+      <button class="big ghost" onclick="wcnRegel()"><span class="ui-icon" data-icon="plus" aria-hidden="true"></span>Regel toevoegen</button>
+    </div>
+    <div class="card">
+      <h2>Wanneer bijwerken</h2>
+      <div class="row setrow"><label for="wcn-schema" style="flex:1">Vanzelf bijwerken</label>
+        <select class="sel" id="wcn-schema" onchange="wcnPlan()"><option value="maand">Elke maand</option><option value="week">Elke week</option><option value="dag">Elke dag</option><option value="uit">Uit</option></select></div>
+      <div class="row setrow" id="wcn-dagrij"><label for="wcn-dag" style="flex:1">Op dag van de maand</label>
+        <select class="sel" id="wcn-dag" onchange="wcnPlan()"></select></div>
+      <div class="row setrow" id="wcn-wdrij"><label for="wcn-wd" style="flex:1">Op</label>
+        <select class="sel" id="wcn-wd" onchange="wcnPlan()"><option value="1">maandag</option><option value="2">dinsdag</option><option value="3">woensdag</option><option value="4">donderdag</option><option value="5">vrijdag</option><option value="6">zaterdag</option><option value="7">zondag</option></select></div>
+      <div class="row setrow" id="wcn-tijdrij"><label for="wcn-tijd" style="flex:1">Om</label>
+        <input class="sel" id="wcn-tijd" type="time" value="04:00" onchange="wcnPlan()"></div>
+      <div class="row setrow" id="wcn-opnrij"><label for="wcn-opnieuw" style="flex:1">Na een fout opnieuw proberen</label>
+        <select class="sel" id="wcn-opnieuw" onchange="wcnPlan()"><option value="1">na 1 uur</option><option value="2">na 2 uur</option><option value="3">na 3 uur</option><option value="6">na 6 uur</option><option value="12">na 12 uur</option><option value="24">na 24 uur</option></select></div>
+      <label class="chk" id="wcn-wifirij"><input type="checkbox" id="wcn-wifi" onchange="wcnPlan()"> Vanzelf alleen via wifi</label>
+      <p class="note" id="wcn-plan" role="status" aria-live="polite"></p>
+    </div>
+    <button class="big" id="wcn-bewaar" onclick="wcnBewaar()">Bewaren</button>
+    <button class="big tonal" id="wcn-scan" style="margin-top:8px" onclick="wcnScan()"><span class="ui-icon" data-icon="refresh" aria-hidden="true"></span>Nu scannen</button>
+  </main>
+</section>
+
+<!-- Mijn wijzigingen -->
+<section class="screen" id="s-wceigen">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Mijn wijzigingen</h1>
+  </div>
+  <main>
+    <p class="hint">Wat je zelf aanpast, afwijst of toevoegt. Het blijft op je telefoon en gaat voor op de bronnen, ook na het bijwerken.</p>
+    <div id="wce-body"></div>
+  </main>
+</section>
+
+<!-- Gedeeld met de gemeenschap -->
+<section class="screen" id="s-wcgedeeld">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Gedeeld met de gemeenschap</h1>
+  </div>
+  <main>
+    <p class="hint">Notities die je aan OpenStreetMap hebt doorgegeven. Tools kijkt bij het bijwerken of ze zijn opgelost.</p>
+    <div id="wcg-body"></div>
+  </main>
+</section>

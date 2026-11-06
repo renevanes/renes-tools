@@ -1181,3 +1181,18 @@ body.talk-on #s-ai main{padding-bottom:200px}
 .cmi-photo-paper{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
 .cmi-photo-paper img{display:block;max-width:100%;height:auto}.cmi-photo-paper.zoom img{max-width:none;width:auto}
 #cmi-shared p{overflow-wrap:anywhere}#cm-fields textarea{resize:vertical}
+/* Toiletten en douches */
+.wc-chips button{min-height:44px}
+.stations .wc-d{flex:none;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums;margin-left:6px}
+.wc-kenm{margin:4px 0 12px;padding-left:20px;line-height:1.6}
+.wc-bronnen,.wc-log{margin:0;padding-left:20px;line-height:1.5}
+.wc-waarde{margin:0 0 10px;white-space:pre-wrap;overflow-wrap:anywhere}
+.wc-tekst{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:15px;line-height:1.5;margin:0 0 8px;padding:12px;border-radius:12px;background:var(--bg);color:var(--ink)}
+.card.wc-let{border:2px solid var(--warn)}
+.wc-mis{color:var(--bad)}
+.wc-eigen p{margin:0 0 8px}.wc-eigen .row{margin-top:4px}
+.wc-regel{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.wc-regel .icon-btn{justify-self:end;min-width:44px;min-height:44px}
+#wcg-body .icon-btn{min-width:44px;min-height:44px;flex:none}
+#wcn-menu[hidden],#wcp-menu[hidden]{display:none}
+#s-wceigen .srow .mini,#s-wcgedeeld .srow .mini,#s-wcplek .srow .mini{float:none;flex:none;margin-left:6px}

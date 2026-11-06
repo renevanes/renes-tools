@@ -9,7 +9,7 @@ const HOME_DEFAULT = { v: HOME_LAYOUT, grouped: true, compact: false, hidden: []
   { name: 'Muziek & radio', tools: ['radio', 'podcasts', 'spotify', 'music'] },
   { name: 'Documenten & geld', tools: ['pdf', 'kluis', 'facturen', 'bank', 'masterdata'] },
   { name: 'Dag & gezondheid', tools: ['checkin', 'sleep', 'gebruik'] },
-  { name: 'Onderweg', tools: ['tracks', 'car', 'loc', 'vpn'] },
+  { name: 'Onderweg', tools: ['tracks', 'car', 'wc', 'loc', 'vpn'] },
   { name: 'Slim', tools: ['ai', 'notes', 'auto', 'apparaten', 'skin'] } ] };
 /* De oude standaardindeling (indeling 1, tot en met versie 1.149), met per groep de lijsten die de app ooit als standaard
  * had (uit de geschiedenis van dit bestand). Gebruik stond er nooit in en kwam vanzelf achteraan in Handig.
