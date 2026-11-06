@@ -252,17 +252,22 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     await pg.evaluate(() => rgSave({ lang: 'nl' })); await pg.waitForTimeout(200);
     await pg.evaluate(() => show('home'));
 
-    // ---------- Recent: elke tool past, ook lange namen, 360 en 390 px, Nederlands en Engels; nooit midden in een woord ----------
-    for (const [w, taal] of [[360, 'nl'], [390, 'nl'], [360, 'en'], [390, 'en']]) {
+    // ---------- Recent: elke tool past, ook lange namen; nooit midden in een woord ----------
+    // Telefoons (360–412 px) krijgen twee kolommen met het pictogram naast de naam, pas vanaf 441 px vier. De controle op
+    // passen heeft 3 px speling voor andere lettertypen (CI); een echte overloop (een woord dat er niet in past) valt toch op.
+    for (const [w, taal] of [[360, 'nl'], [390, 'nl'], [412, 'nl'], [600, 'nl'], [360, 'en'], [390, 'en'], [412, 'en'], [600, 'en']]) {
       await pg.setViewportSize({ width: w, height: 844 }); await pg.evaluate(t => rgSave({ lang: t }), taal); await pg.waitForTimeout(200);
-      const mis = await pg.evaluate(async () => { const all = Object.keys(TOOL_TILE).filter(x => x !== 'skin'), bad = [];
+      const r = await pg.evaluate(async () => { const all = Object.keys(TOOL_TILE).filter(x => x !== 'skin'), bad = []; let cols = 0;
         for (let i = 0; i < all.length; i += 4) { store.set('homeRecent', all.slice(i, i + 4)); show('home'); await new Promise(r => setTimeout(r, 30));
-          document.querySelectorAll('#home-recent .hrtool').forEach(e => { const b = e.querySelector('b'); if (e.scrollWidth > e.clientWidth + 1 || b.scrollWidth > b.clientWidth + 1 || getComputedStyle(b).overflowWrap === 'anywhere') bad.push(e.dataset.t); }); }
-        return bad; });
-      ok(!mis.length, 'Recent ' + w + ' px, ' + taal + ': alle namen passen' + (mis.length ? ' (niet: ' + mis + ')' : ''));
+          cols = getComputedStyle($('#home-recent-list')).gridTemplateColumns.split(' ').length;
+          document.querySelectorAll('#home-recent .hrtool').forEach(e => { const b = e.querySelector('b'); if (e.scrollWidth > e.clientWidth + 3 || b.scrollWidth > b.clientWidth + 3 || getComputedStyle(b).overflowWrap === 'anywhere') bad.push(e.dataset.t); }); }
+        return { bad, cols }; });
+      ok(r.cols === (w <= 440 ? 2 : 4), 'Recent ' + w + ' px: ' + r.cols + ' kolommen');
+      ok(!r.bad.length, 'Recent ' + w + ' px, ' + taal + ': alle namen passen' + (r.bad.length ? ' (niet: ' + r.bad + ')' : ''));
     }
+    // De controle zelf: een naam die echt niet past, valt op
+    ok(await pg.evaluate(() => { store.set('homeRecent', ['pdf']); show('home'); const b = $('#home-recent .hrtool b'); b.textContent = 'Ditiseenheellangwoordzonderafbreekpuntendatnergenspast'; const e = b.closest('.hrtool'); const te = e.scrollWidth > e.clientWidth + 3 || b.scrollWidth > b.clientWidth + 3; $('#home-recent-list').dataset.k = ''; return te; }), 'controle ziet een echte overloop');
     await pg.evaluate(() => { rgSave({ lang: 'nl' }); store.set('homeRecent', ['masterdata', 'transcripts', 'history', 'auto']); show('home'); }); await pg.setViewportSize({ width: 360, height: 780 }); await pg.waitForTimeout(150);
-    ok(await pg.evaluate(() => getComputedStyle($('#home-recent-list')).gridTemplateColumns.split(' ').length === 2), '360 px: Recent in twee kolommen, pictogram naast de naam');
     await pg.screenshot({ path: __dirname + '/shots/home-groepen-recent-360-' + scheme + '.png' });
 
     // ---------- 360 px breed: geen tekst buiten beeld ----------
