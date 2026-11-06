@@ -18,8 +18,7 @@ for(const colorScheme of ['light','dark']){
   });
   // 0. Nog geen vaste gegevens: het venster biedt ook Zelf invullen.
   await p.evaluate(()=>{openTool('pdf');});await p.getByRole('button',{name:'Formulieren invullen',exact:true}).click();
-  await p.click('#fmq-start');if(await p.isVisible('#fmq-ontgrendel'))await p.click('#fmq-ontgrendel');
-  await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-geen').hidden);
+  await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-geen').hidden);
   await p.locator('#fmq-geen button',{hasText:'Zelf invullen'}).click();
   assert.equal(await p.evaluate(()=>!fmq.open&&fm.view+' '+fm.step),'stap 0','Zelf invullen opent de eerste stap');
   await p.evaluate(()=>{goBack();Android.masterLock();});await p.waitForFunction(()=>!cmOpen());
