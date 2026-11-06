@@ -184,7 +184,8 @@ Actions, of `gh api repos/renevanes/renes-tools/actions/runs`) en meld Rene de n
    Botst je werk met main, dan stopt het: los de merge op, test en publiceer opnieuw.
 5. **Kun je zelf niet pushen** (bijv. Codex in de cloud): open een pull request met je wijziging en een bestand in
    `wijzigingen/`, zonder `VERSION`, `changelog.json` of `update/` (de CI keurt dat af). Na het samenvoegen publiceert
-   de workflow het vanzelf.
+   de workflow het vanzelf. **Kun je wel pushen** (ook Cursor-agents in de cloud), dan is een pull request niet genoeg:
+   push het na geslaagde tests en review zelf naar main (vaste opdracht van Rene).
 6. **Bijdragen van buitenaf** (pull requests van anderen): de app heeft toegang tot sms, oproepen, contacten en
    locatie en werkt telefoons automatisch bij. Een agent voegt een pull request van iemand anders **nooit zelf**
    samen: alles wat op main komt, staat binnen ±15 minuten op Rene's telefoon. Rene beslist; bekijk zo'n wijziging wel kritisch op verborgen
