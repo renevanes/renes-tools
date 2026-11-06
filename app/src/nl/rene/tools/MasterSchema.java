@@ -18,7 +18,7 @@ final class MasterSchema {
     static final String[] RELATION={"vanPersoon","naarPersoon","relatie","toelichting","delen"};
     static boolean sensitive(String key){return "bsn".equals(key)||"document".equals(key)||"geldig".equals(key)||"afgifte".equals(key);}
     static String[] fields(String type)throws Exception{
-        if("persoon".equals(type))return PERSON;if("organisatie".equals(type))return ORGANISATION;if("adres".equals(type))return ADDRESS;if("identiteit".equals(type))return IDENTITY;if("reis".equals(type))return TRIP;if("profiel".equals(type))return PROFILE;if("relatie".equals(type))return RELATION;
+        if("persoon".equals(type))return PERSON;if("organisatie".equals(type))return ORGANISATION;if("adres".equals(type))return ADDRESS;if("identiteit".equals(type))return IDENTITY;if("reis".equals(type))return TRIP;if("profiel".equals(type))return PROFILE;if("relatie".equals(type))return RELATION;if("formulier".equals(type))return MasterFormProfile.FIELDS;
         throw new MasterError(Taal.T("Onbekend soort stamgegeven"));
     }
     static boolean validDate(String value){
@@ -38,13 +38,16 @@ final class MasterSchema {
             if(Arrays.asList("alleen","tweedeBegeleider","tweedeGever","delen").contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
             if("bsn".equals(k)&&!s.isEmpty()&&!s.matches("[0-9]{8,9}"))throw new MasterError(Taal.T("Vul een geldig BSN in"));
             if(Arrays.asList("persoon","vanPersoon","naarPersoon").contains(k)&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
-            if("relatie".equals(k)&&!s.isEmpty()&&!MasterIdentity.RELATIONS.contains(s))throw new MasterError(Taal.T("Kies een geldige relatie"));
+            if("formulier".equals(type)&&MasterFormProfile.reference(k)!=null&&!s.isEmpty()&&!s.matches("[a-f0-9-]{36}"))throw new MasterError(Taal.T("Ongeldige gegevensverwijzing"));
+            if("formulier".equals(type)&&MasterFormProfile.CHOICES.contains(k)&&!s.isEmpty()&&!s.equals("ja")&&!s.equals("nee"))throw new MasterError(Taal.T("Kies Ja of Nee"));
+            if(("relatie".equals(k)||"formulier".equals(type)&&MasterFormProfile.relationField(k))&&!s.isEmpty()&&!MasterIdentity.RELATIONS.contains(s))throw new MasterError(Taal.T("Kies een geldige relatie"));
             if(!s.isEmpty())out.put(k,s);
         }
         if(("identiteit".equals(type)||"profiel".equals(type))&&out.optString("persoon").isEmpty())throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
         if("relatie".equals(type)&&(out.optString("vanPersoon").isEmpty()||out.optString("naarPersoon").isEmpty()||out.optString("relatie").isEmpty()))throw new MasterError(Taal.T("Kies beide personen en hun relatie"));
         if("relatie".equals(type)&&out.getString("vanPersoon").equals(out.getString("naarPersoon")))throw new MasterError(Taal.T("Een relatie hoort bij twee verschillende personen"));
         if("identiteit".equals(type)&&out.has("afgifte")&&out.has("geldig")&&out.getString("afgifte").compareTo(out.getString("geldig"))>0)throw new MasterError(Taal.T("De afgiftedatum moet voor de vervaldatum liggen"));
+        if("formulier".equals(type)&&!MasterFormProfile.FORMS.contains(out.optString("formulier")))throw new MasterError(Taal.T("Kies voor welk formulier deze vaste gegevens zijn"));
         if("reis".equals(type)&&out.has("van")&&out.has("tot")&&out.getString("van").compareTo(out.getString("tot"))>0)throw new MasterError(Taal.T("De laatste reisdag moet op of na de eerste reisdag vallen."));
         return new JSONObject().put("type",type).put("label",label).put("fields",out);
     }
@@ -55,12 +58,14 @@ final class MasterSchema {
     static void context(String source,String role)throws Exception{
         source(source);
         boolean ok="masterdata".equals(source)&&role.isEmpty()||"idcopy".equals(source)&&"ontvanger".equals(role)
-                ||"formulieren".equals(source)&&Arrays.asList("kind","begeleider1","begeleider2","gever1","gever2","bestemming","reis").contains(role);
+                ||"formulieren".equals(source)&&Arrays.asList("kind","begeleider1","begeleider2","gever1","gever2","bestemming","reis","vast").contains(role);
         if(!ok)throw new MasterError(Taal.T("Deze gegevens passen niet bij dit onderdeel"));
     }
     static Set<String> permitted(String source,String role,String type)throws Exception{
         context(source,role);Set<String> keys=new HashSet<>();
         if("masterdata".equals(source)){keys.addAll(Arrays.asList(fields(type)));return keys;}
+        // Vaste formuliergegevens kiezen: alleen welk formulier; de inhoud wordt native opgebouwd (MasterFormProfile).
+        if("formulieren".equals(source)&&"vast".equals(role)){if("formulier".equals(type))keys.add("formulier");return keys;}
         if("formulieren".equals(source)&&"reis".equals(role)){if("reis".equals(type))keys.addAll(Arrays.asList(TRIP));return keys;}
         if("idcopy".equals(source)&&"ontvanger".equals(role)&&("persoon".equals(type)||"organisatie".equals(type))){keys.add("ontvanger");return keys;}
         if("formulieren".equals(source)&&Arrays.asList("kind","begeleider1","begeleider2","gever1","gever2","bestemming").contains(role)){

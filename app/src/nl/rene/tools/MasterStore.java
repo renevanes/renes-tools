@@ -137,6 +137,7 @@ final class MasterStore {
             if(fresh&&number(db,"SELECT COUNT(*) FROM records")>=2000)throw new MasterError(Taal.T("Maximaal 2000 stamgegevens"));
             JSONObject fields=clean.getJSONObject("fields");
             person(db,k,fields.optString("persoon"));person(db,k,fields.optString("vanPersoon"));person(db,k,fields.optString("naarPersoon"));
+            if("formulier".equals(clean.getString("type")))MasterFormProfile.validate(fields,ref->record(db,k,ref));
             if(clean.getString("type").equals("profiel")&&fresh){JSONArray all=records(db,k);for(int i=0;i<all.length();i++)if(all.getJSONObject(i).getString("type").equals("profiel"))throw new MasterError(Taal.T("Er mag maar één eigen app-profiel zijn"));}
             String id=fresh?java.util.UUID.randomUUID().toString():old.getString("id");long rev=fresh?1:old.getLong("revision")+1;
             JSONObject r=new JSONObject(clean.toString()).put("id",id).put("revision",rev).put("created",fresh?System.currentTimeMillis():old.getLong("created")).put("updated",System.currentTimeMillis());
@@ -152,7 +153,8 @@ final class MasterStore {
     static JSONObject delete(Context c,SecretKey key,MasterSession session,String token,String id,long revision)throws Exception{
         return transaction(c,key,session,token,(db,k,h)->{
             JSONObject r=record(db,k,id);if(r.getLong("revision")!=revision)throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
-            try(Cursor cur=db.rawQuery("SELECT id FROM records",null)){while(cur.moveToNext()){JSONObject f=record(db,k,cur.getString(0)).getJSONObject("fields");if(id.equals(f.optString("persoon"))||id.equals(f.optString("vanPersoon"))||id.equals(f.optString("naarPersoon")))throw new MasterError(Taal.T("Verwijder of ontkoppel eerst gekoppelde documenten, relaties of het app-profiel"));}}
+            try(Cursor cur=db.rawQuery("SELECT id FROM records",null)){while(cur.moveToNext()){JSONObject other=record(db,k,cur.getString(0)),f=other.getJSONObject("fields");if(id.equals(f.optString("persoon"))||id.equals(f.optString("vanPersoon"))||id.equals(f.optString("naarPersoon")))throw new MasterError(Taal.T("Verwijder of ontkoppel eerst gekoppelde documenten, relaties of het app-profiel"));
+                if("formulier".equals(other.getString("type")))for(String field:MasterFormProfile.FIELDS)if(MasterFormProfile.reference(field)!=null&&id.equals(f.optString(field)))throw new MasterError(Taal.T("Dit stamgegeven wordt gebruikt in vaste formuliergegevens; pas die eerst aan"));}}
             MasterAppContext.invalidate(c);
             db.delete("records","id=?",new String[]{id});append(db,k,h,"delete","masterdata","",r,null);return new JSONObject().put("ok",true);
         });
@@ -164,6 +166,13 @@ final class MasterStore {
             JSONObject projected=MasterSchema.selected(r,source,role,wanted);
             for(int i=0;i<wanted.length();i++)if(MasterSchema.sensitive(wanted.getString(i))&&!consent)throw new MasterError(Taal.T("Bevestig het overnemen van identiteitsgegevens"));
             append(db,k,h,"use",source,role,r,names(projected));return new JSONObject().put("fields",projected).put("source",source).put("role",role).put("record",summary(r));
+        });
+    }
+    static JSONObject formProfile(Context c,SecretKey key,MasterSession session,String token,String id,long revision,boolean consent)throws Exception{
+        return transaction(c,key,session,token,(db,k,h)->{
+            JSONObject r=record(db,k,id);if(revision!=r.getLong("revision"))throw new MasterError(Taal.T("Deze gegevens zijn intussen gewijzigd; laad ze opnieuw"));
+            JSONObject out=MasterFormProfile.resolve(r,ref->record(db,k,ref),records(db,k),consent,(rec,role,fields)->append(db,k,h,"use","formulieren",role,rec,fields));
+            return out.put("record",summary(r));
         });
     }
     static void consumerEvent(Context c,SecretKey key,MasterSession session,String token,String source,String action,Commit commit)throws Exception{

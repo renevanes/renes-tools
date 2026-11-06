@@ -4,6 +4,16 @@ In Tools: **PDF → Formulieren invullen**. Kies een formulier, vul de stappen i
 
 De invoer blijft uitsluitend in het geheugen. Er is geen netwerkverkeer voor invullen, voorbeeld of export. Alleen **Officiële bron openen** opent de website in de browser. Concepten gaan niet naar localStorage, backups, zoekindexen of statistieken. Een automatische interface-update wacht zolang er formulierinvoer is. **Formulier leegmaken** wist het concept; eerder gemaakte PDF’s blijven beschikbaar.
 
+## Snel invullen met vaste gegevens
+
+Voor de reistoestemming stel je één keer **vaste gegevens** in: wie er reist, wie meegaat en wie toestemming geeft. Daarna is het per reis: **PDF → Formulieren invullen → Nieuwe reis invullen**, ontgrendelen, de eerste en laatste reisdag en het land (eventueel plaats en meer) invullen en **Formulier invullen**. Je komt direct op de controlestap met het voorbeeld.
+
+- De vaste gegevens zijn een stamgegeven van de soort **Vaste formuliergegevens** (`formulier`), met alleen verwijzingen: het kind, begeleider(s), toestemminggever(s), hun reisdocumenten en eventueel een instelling, plus *reist alleen*, een vaste relatie (standaard automatisch uit je gedeelde relaties) en *BSN op het formulier*. Er worden geen namen of nummers gekopieerd: bij elke reis bouwt `MasterFormProfile.resolve` de waarden opnieuw op uit de actuele stamgegevens, met dezelfde rolprojecties (`MasterSchema.projection`) als het handmatig overnemen. Initialen worden afgeleid uit de voornamen als de persoon zelf geen initialen heeft.
+- Bij opslaan controleert `MasterFormProfile.validate` dat iedere verwijzing bestaat en de juiste soort heeft, dat een document bij de gekozen persoon hoort en dat rollen elkaar niet tegenspreken. Een stamgegeven dat in vaste gegevens wordt gebruikt, kun je pas verwijderen nadat je de vaste gegevens hebt aangepast.
+- Documentnummer, geldig tot en BSN gaan alleen mee als je dat bij die reis aanvinkt (niet standaard aan); BSN bovendien alleen als de vaste gegevens dat zeggen. Ieder gebruikt stamgegeven komt als "Velden overgenomen" in het logboek.
+- Het ingevulde formulier is een vluchtige momentopname zoals bij handmatig overnemen: gebonden aan de ontgrendelde sessie (`masterFormProfile` + `masterApplied`) en gewist bij vergrendelen. Datum en plaats van ondertekening blijven leeg.
+- Een nieuw formulier met vaste gegevens: zet het id in `MasterFormProfile.FORMS` en geef in `FM_VAST` (`72-formulier-vast.js`) aan welke reisvelden je per keer invult.
+
 ## Vaste gegevens en lokale AI
 
 Beheer je personen, identiteitsdocumenten en reizen onder **Stamgegevens**. Een reis bevat de reisperiode, alleen reizen, eventuele tweede begeleider/toestemminggever, bestemming en reisgegevens. Dezelfde reis kun je voor meerdere kinderen gebruiken. Gegevens blijven in de bestaande versleutelde centrale opslag op dit toestel; ze gaan niet mee in backups.

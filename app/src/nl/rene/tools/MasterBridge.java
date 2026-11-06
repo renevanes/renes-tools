@@ -115,6 +115,15 @@ public class MasterBridge extends BankBridge {
             return r;
         });
     }
+    /** Vaste formuliergegevens opbouwen uit de actuele stamgegevens; daarna net als masterUse via een eenmalige vrijgave binden. */
+    @JavascriptInterface public void masterFormProfile(String token,String id,long revision,boolean consent,String request){
+        work(token,request,key->{
+            JSONObject r=MasterStore.formProfile(ctx,key,a.masterSession,token,id,revision,consent);
+            String grant=java.util.UUID.randomUUID().toString();
+            synchronized(a.masterSession){a.masterSession.require(token);a.masterGrants.put(grant,token+"\nformulieren");}
+            return r.put("grant",grant);
+        });
+    }
     @JavascriptInterface public boolean masterApplied(String token,String grant){
         synchronized(a.masterSession){
             if(!a.masterForeground||!a.masterSession.accepts(token))return false;

@@ -1,0 +1,79 @@
+// Vaste formuliergegevens: één keer instellen in Stamgegevens, daarna per reis alleen reisdagen en bestemming.
+const {chromium}=require('playwright');const assert=require('node:assert/strict');const path=require('path');
+(async()=>{const b=await chromium.launch(),errors=[];
+for(const colorScheme of ['light','dark']){
+  const p=await b.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));
+  await p.goto('file://'+path.join(__dirname,'ui/index.html'));await p.waitForTimeout(300);
+  // Stamgegevens die er al zijn: kind, twee ouders, documenten, een relatie en een instelling.
+  await p.evaluate(()=>{
+    const id=n=>'00000000-0000-0000-0000-00000000000'+n,rec=(n,type,label,fields)=>({id:id(n),type,label,revision:1,fields});
+    Android._cm.records=[
+      rec(1,'persoon','Zoë <b>',{naam:'Jansen',voornamen:'Zoë Anna',geboortedatum:'2015-02-03',geboorteplaats:'Rotterdam',nationaliteit:'Nederlandse',bsn:'123456782'}),
+      rec(2,'persoon','Mama',{naam:'Jansen',voornamen:'Anna Maria',adres:'Straat 1',postcode:'3011 AA',plaats:'Rotterdam',telefoon:'0612345678',bsn:'111222333'}),
+      rec(3,'persoon','Papa',{naam:'Jansen',voornamen:'Rene',geboortedatum:'1980-01-01',adres:'Laan 2'}),
+      rec(4,'identiteit','Paspoort Zoë',{persoon:id(1),document:'NX12345',geldig:'2030-01-01'}),
+      rec(5,'identiteit','ID-kaart papa',{persoon:id(3),document:'IA999',geldig:'2031-01-01'}),
+      rec(6,'relatie','Papa – Zoë',{vanPersoon:id(3),naarPersoon:id(1),relatie:'dochter',delen:'ja'}),
+      rec(7,'organisatie','Instelling',{naam:'Jeugdzorg BV'})];
+  });
+  // 1. Eenmalig instellen vanuit Formulieren: naar Stamgegevens, nieuwe vaste gegevens.
+  await p.evaluate(()=>{openTool('pdf');});await p.getByRole('button',{name:'Formulieren invullen',exact:true}).click();
+  assert.equal(await p.isVisible('#fmq-kaart'),true,'kaart voor snel invullen');
+  await p.click('#fmq-instellen');assert.equal(await p.evaluate(()=>current),'masterdata');
+  await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.edit&&cm.edit.type==='formulier');
+  assert.equal(await p.isVisible('#cmi-form-note'),true);
+  assert.equal(await p.inputValue('#cm-field-formulier'),'reistoestemming');
+  // Alleen personen in de persoonkeuze, alleen documenten van de gekozen persoon.
+  assert.deepEqual(await p.$$eval('#cm-field-kind option',o=>o.map(x=>x.textContent)),['Kies een persoon','Zoë <b>','Mama','Papa']);
+  await p.selectOption('#cm-field-kind',{label:'Zoë <b>'});
+  assert.equal(await p.inputValue('#cm-field-kindDocument'),'00000000-0000-0000-0000-000000000004','enige document vanzelf gekozen');
+  assert.equal(await p.inputValue('#cm-label'),'Reistoestemming Zoë <b>','naam vanzelf ingevuld');
+  assert.deepEqual(await p.$$eval('#cm-field-kindDocument option',o=>o.map(x=>x.textContent)),['Kies een document','Paspoort Zoë']);
+  await p.selectOption('#cm-field-begeleider1',{label:'Papa'});assert.equal(await p.inputValue('#cm-field-begeleider1Document'),'00000000-0000-0000-0000-000000000005');
+  await p.selectOption('#cm-field-gever1',{label:'Mama'});assert.equal(await p.inputValue('#cm-field-gever1Document'),'','geen document voor mama');
+  await p.selectOption('#cm-field-gever1Instelling',{label:'Instelling'});
+  assert.equal(await p.locator('#cm-fields b').count(),0,'namen blijven tekst');
+  await p.click('#cm-save');await p.waitForFunction(()=>$('#cm-editor').hidden&&Android._cm.records.some(r=>r.type==='formulier'));
+  // Een gebruikt stamgegeven kun je niet zomaar verwijderen.
+  await p.evaluate(()=>{const r=Android._cm.records.find(r=>r.label==='Mama');cmRequest('masterDelete',[r.id,r.revision],()=>{});});
+  await p.waitForFunction(()=>$('#cm-status').textContent.includes('vaste formuliergegevens'));
+  // 2. Nieuwe reis: alleen reisdagen en bestemming. Na het verlaten van Stamgegevens is alles vergrendeld;
+  // het venster vraagt direct om te ontgrendelen (vingerafdruk), zonder extra tik.
+  await p.evaluate(()=>show('formulieren'));await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
+  assert.equal(await p.evaluate(()=>$('#s-formulieren').inert),true,'scherm eronder niet bedienbaar');
+  assert.equal(await p.isChecked('#fmq-id'),false,'identiteitsgegevens niet standaard');
+  await p.click('#fmq-ga');assert.match(await p.textContent('#fmq-status'),/reisdag/);
+  await p.fill('#fmq-van','2027-07-15');await p.fill('#fmq-tot','2027-07-01');await p.fill('#fmq-land','Frankrijk');await p.click('#fmq-ga');
+  assert.match(await p.textContent('#fmq-status'),/laatste reisdag/);
+  await p.fill('#fmq-tot','2027-07-30');await p.fill('#fmq-plaats','Nice');await p.click('#fmq-ga');
+  await p.waitForFunction(()=>!fmq.open&&fm.step===fmSecties().length);
+  const v=await p.evaluate(()=>fm.values);
+  assert.equal(v['kind-naam'],'Jansen');assert.equal(v['kind-voornamen'],'Zoë Anna');assert.equal(v['van'],'2027-07-15');assert.equal(v['tot'],'2027-07-30');
+  assert.equal(v['land'],'Frankrijk');assert.equal(v['bestemming-plaats'],'Nice');assert.equal(v['begeleider1-naam'],'Jansen');assert.equal(v['begeleider1-initialen'],'R.');
+  assert.equal(v['begeleider1-relatie'],'Ouder','relatie uit stamgegevens');assert.equal(v['gever1-adres'],'Straat 1');assert.equal(v['gever1-instelling'],'Jeugdzorg BV');
+  assert.equal(v['kind-document'],'');assert.equal(v['kind-bsn'],'');assert.match(await p.textContent('#pff-melding'),/weggelaten/);
+  assert.equal(await p.evaluate(()=>fm.masterSensitive&&Android._cm.form),true,'gebonden aan de ontgrendelde sessie');
+  assert.equal(await p.inputValue('#pff-naam'),'Reistoestemming Zoë 2027-07-15');
+  await p.waitForFunction(()=>!document.querySelector('#pff-maak').disabled);
+  assert.match(await p.textContent('#pff-samenvatting'),/Frankrijk/);
+  // Nog een keer, nu met documentgegevens: vervangt het formulier na bevestiging.
+  await p.click('#fmq-start');await p.waitForFunction(()=>$('#modal-ok').getClientRects().length>0);await p.click('#modal-ok');
+  await p.waitForFunction(()=>fmq.open&&fmq.records.length===1);
+  assert.equal(await p.inputValue('#fmq-land'),'','reisvelden beginnen leeg');
+  await p.fill('#fmq-van','2027-08-01');await p.fill('#fmq-tot','2027-08-10');await p.fill('#fmq-land','Spanje');await p.check('#fmq-id');await p.click('#fmq-ga');
+  await p.waitForFunction(()=>!fmq.open&&fm.values.land==='Spanje');
+  const w=await p.evaluate(()=>fm.values);
+  assert.equal(w['kind-document'],'NX12345');assert.equal(w['begeleider1-document'],'IA999');assert.equal(w['kind-bsn'],'','BSN alleen als ingesteld');
+  assert.equal(w['bestemming-plaats'],'','oude bestemming niet blijven staan');
+  assert.equal(await p.evaluate(()=>Object.values(localStorage).join('').includes('NX12345')),false,'niets in lokale opslag');
+  const log=await p.evaluate(()=>Android._cm.events.filter(e=>e.action==='use').map(e=>e.role+':'+e.label));
+  assert.ok(log.includes('vast:Reistoestemming Zoë <b>')&&log.includes('kind:Paspoort Zoë'),'gebruik in het logboek');
+  // Vergrendelen wist alles.
+  await p.evaluate(()=>Android.masterLock());await p.waitForFunction(()=>!fm.masterSensitive&&!cm.token);
+  assert.equal(await p.evaluate(()=>JSON.stringify(fm.values).includes('Jansen')),false);
+  // Na vergrendelen vraagt het venster vanzelf opnieuw om te ontgrendelen; Escape sluit het.
+  await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden);
+  await p.keyboard.press('Escape');assert.equal(await p.evaluate(()=>fmq.open||$('#s-formulieren').inert),false);
+  await p.close();
+}
+console.log('errors',errors);await b.close();assert.deepEqual(errors,[]);})().catch(e=>{console.error(e);process.exit(1);});

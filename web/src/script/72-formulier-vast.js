@@ -1,0 +1,86 @@
+/* Snel invullen: vaste formuliergegevens uit Stamgegevens + per reis alleen reisdagen en bestemming.
+ * De vaste gegevens worden native opgebouwd uit de actuele stamgegevens (MasterFormProfile); hier blijft
+ * alles vluchtig, net als bij handmatig overnemen. Bij vergrendelen wordt de invoer gewist. */
+const fmq={open:false,records:[],busy:false,focus:null,ask:false};
+// Formulieren met vaste gegevens en welke reisvelden je per keer invult.
+const FM_VAST={reistoestemming:{van:'van',tot:'tot',land:'land',plaats:'bestemming-plaats',accommodatie:'accommodatie',postcode:'bestemming-postcode',telefoon:'bestemming-telefoon',reisgegevens:'reisgegevens'}};
+const FMQ_REIS=['van','tot','land','plaats','accommodatie','postcode','telefoon','reisgegevens'];
+function fmqNote(text){$('#fmq-status').textContent=text;}
+function fmqKaart(){const card=$('#fmq-kaart');if(!card)return;card.hidden=!FM_VAST[fm.id];$('#fmq-start').disabled=fm.busy;$('#fmq-instellen').disabled=fm.busy;}
+function fmqRenderState(){
+  if(!fmq.open)return;const open=cmOpen();
+  $('#fmq-ontgrendel').hidden=open;$('#fmq-annuleer-dicht').hidden=open;$('#fmq-open').hidden=!open;
+}
+function fmqClearInput(){
+  fmq.records=[];$('#fmq-profiel').replaceChildren();$('#fmq-id').checked=false;$('#fmq-geen').hidden=true;fmqNote('');
+  for(const key of FMQ_REIS)$('#fmq-'+key).value='';$('#fmq .fmq-meer').open=false;
+  document.querySelectorAll('#fmq [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);
+}
+function fmqOpen(){
+  if(fmq.open||fm.busy||cm.picker||!FM_VAST[fm.id])return;
+  const open=()=>{
+    fmq.open=true;fmq.ask=true;fmq.focus=document.activeElement;fmqClearInput();
+    $('#fmq').hidden=false;$('#s-'+current).inert=true;fmqRenderState();cmPrivacy(true);$('#fmq-titel').focus();
+  };
+  if(fmDirty())askConfirm('Nieuwe reis invullen?','Je huidige invoer in dit formulier wordt vervangen. Een al gemaakte PDF blijft onder PDF → Gemaakt staan.','Doorgaan',open);else open();
+}
+function fmqClose(){
+  if(!fmq.open)return;fmq.open=false;fmq.busy=false;fmq.ask=false;fmqClearInput();$('#fmq').hidden=true;$('#s-formulieren').inert=false;
+  cmPrivacy(current==='formulieren'&&!!fm.masterSensitive);
+  if(fmq.focus&&fmq.focus.isConnected)fmq.focus.focus();fmq.focus=null;
+}
+function fmqLoad(){
+  if(!fmq.open||!cmOpen())return;fmqRenderState();
+  cmRequest('masterList',['formulieren','vast'],r=>{
+    if(!fmq.open)return;fmq.records=r.records.filter(x=>x.type==='formulier').sort((a,b)=>a.label.localeCompare(b.label));
+    const select=$('#fmq-profiel'),old=select.value;select.replaceChildren();
+    for(const rec of fmq.records){const o=cmData(cmEl('option',rec.label));o.value=rec.id;select.append(o);}
+    if(fmq.records.some(x=>x.id===old))select.value=old;
+    const none=!fmq.records.length;$('#fmq-geen').hidden=!none;select.hidden=none;$('label[for="fmq-profiel"]').hidden=none;$('#fmq-ga').disabled=none;
+    if(!$('#fmq-van').value)(none?$('#fmq-geen button'):$('#fmq-van')).focus();
+  });
+}
+function fmqGeldig(){
+  for(const key of ['van','tot','land']){const input=$('#fmq-'+key);if(!input.value.trim()){input.focus();input.reportValidity();fmqNote(t('Vul de eerste en laatste reisdag en het land in.'));return false;}}
+  if($('#fmq-van').value>$('#fmq-tot').value){$('#fmq-tot').focus();fmqNote(t('De laatste reisdag moet op of na de eerste reisdag vallen.'));return false;}
+  return true;
+}
+function fmqGo(){
+  if(!fmq.open||fmq.busy||!cmOpen())return;
+  const record=fmq.records.find(r=>r.id===$('#fmq-profiel').value);if(!record){fmqNote(t('Kies eerst vaste gegevens.'));return;}
+  if(!fmqGeldig())return;
+  if(typeof Android.masterFormProfile!=='function'){fmqNote(t('Installeer de nieuwste APK om formulieren in te vullen.'));return;}
+  const reis={};for(const key of FMQ_REIS)reis[key]=$('#fmq-'+key).value.trim();
+  const consent=$('#fmq-id').checked,id=fm.id;fmq.busy=true;$('#fmq-ga').disabled=true;fmqNote(t('Formulier invullen…'));
+  cmRequest('masterFormProfile',[record.id,record.revision,consent],r=>{
+    fmq.busy=false;$('#fmq-ga').disabled=false;if(!fmq.open||fm.id!==id||fm.busy)return;
+    // Eerst het oude concept wissen (dat geeft ook de vorige binding vrij), daarna deze vrijgave binden.
+    fmInit(id);
+    if(!Android.masterApplied(cm.token,r.grant)){fmqNote(t('Ontgrendel de stamgegevens opnieuw'));return;}
+    const known=new Set(fmDef().sections.flatMap(s=>s.fields.map(f=>f.id)));
+    for(const [key,value] of Object.entries(r.values||{}))if(known.has(key)&&typeof value==='string')fm.values[key]=value;
+    for(const [role,code] of Object.entries(r.relations||{}))if(known.has(role+'-relatie'))fm.values[role+'-relatie']=cmiRelationName(code);
+    for(const [key,target] of Object.entries(FM_VAST[id]))if(reis[key])fm.values[target]=reis[key];
+    fm.masterSensitive=true;
+    const kind=(fm.values['kind-voornamen']||'').split(/\s+/)[0];
+    $('#pff-naam').value=kind?t('Reistoestemming {naam} {datum}',{naam:kind,datum:reis.van}):fmDef().title+' '+reis.van;
+    fmqClose();fm.step=fmSecties().length;fmWijzig();fmRender();
+    if(fmGeldig(true)){
+      $('#pff-titel').focus();
+      $('#pff-melding').textContent=r.omitted?t('Ingevuld. Documentnummers en BSN zijn weggelaten; vul ze zelf in of kies Nieuwe reis invullen opnieuw met het vinkje aan.'):t('Ingevuld met je vaste gegevens. Controleer beide pagina’s en maak de PDF.');
+    }else $('#pff-melding').textContent=t('Ingevuld met je vaste gegevens, maar er ontbreekt nog iets: {melding}',{melding:$('#pff-melding').textContent});
+  },false,e=>{fmq.busy=false;$('#fmq-ga').disabled=!fmq.records.length;fmqNote(e&&e.error?t(e.error):'');});
+}
+function fmqSetup(){
+  if(fm.busy)return;fmqClose();cmi.newType='formulier';show('masterdata');
+}
+// Koppelingen met de bestaande stamgegevens- en formulierlogica.
+const fmqBaseRender=fmRender;fmRender=function(){fmqBaseRender();fmqKaart();};
+const fmqBaseLocked=cmLockedUI;cmLockedUI=function(){fmqBaseLocked();if(fmq.open){fmq.busy=false;fmqClearInput();fmqRenderState();}};
+const fmqBasePrivacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){fmqBasePrivacy(r);if(fmq.open&&r&&r.view===cm.view){fmqRenderState();if(cmOpen())fmqLoad();else if(fmq.ask&&cmState().secure)cmUnlock();fmq.ask=false;}};
+const fmqBaseNavigation=cmNavigation;cmNavigation=function(name){if(fmq.open&&name!==current)fmqClose();fmqBaseNavigation(name);};
+$('#fmq').addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();fmqClose();}
+  if(e.key==='Tab'){const nodes=[...$('#fmq').querySelectorAll('button,input,select,summary')].filter(n=>!n.disabled&&n.getClientRects().length);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
+});
+document.addEventListener('input',e=>{if(fmq.open&&e.target.closest('#fmq'))cmTouch();});

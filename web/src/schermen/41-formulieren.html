@@ -11,6 +11,18 @@
       <p class="note">Je invoer blijft alleen in het geheugen tot je de app sluit of het formulier leegmaakt. Een gemaakte PDF staat tijdelijk onder PDF → Gemaakt. Bewaar hem zelf via Opslaan als…</p>
       <button class="mini" id="pff-bron" onclick="fmBron()">Officiële bron openen</button>
     </div>
+    <div class="card" id="fmq-kaart" hidden>
+      <h2>Snel invullen met vaste gegevens</h2>
+      <p class="hint">Stel één keer in wie er reist, wie meegaat en wie toestemming geeft. Daarna vul je per reis alleen de reisdagen en de bestemming in.</p>
+      <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+        <p>De vaste gegevens staan als stamgegeven in je versleutelde Stamgegevens. Ze verwijzen naar de personen, reisdocumenten en relaties die je daar al hebt. Namen, geboortegegevens, adressen en documentnummers worden bij elke nieuwe reis opnieuw uit de actuele stamgegevens gehaald. Wijzig je bijvoorbeeld een paspoort, dan staat het nieuwe nummer de volgende keer vanzelf op het formulier.</p>
+        <p>Heb je meer kinderen, maak dan per kind vaste gegevens. De datum en plaats van ondertekening blijven leeg: die vult ieder zelf in bij het tekenen.</p>
+      </div></details>
+      <div class="row pff-navigatie">
+        <button class="big tonal" id="fmq-start" onclick="fmqOpen()">Nieuwe reis invullen</button>
+        <button class="big ghost" id="fmq-instellen" onclick="fmqSetup()">Vaste gegevens instellen</button>
+      </div>
+    </div>
     <div class="card">
       <p class="note" id="pff-stap" role="status" aria-live="polite"></p>
       <h2 id="pff-titel" tabindex="-1"></h2>
@@ -73,3 +85,44 @@
     </div>
   </main>
 </section>
+<div class="cm-picker" id="fmq" hidden role="dialog" aria-modal="true" aria-labelledby="fmq-titel">
+  <div class="box cm-pick-box">
+    <h2 id="fmq-titel" tabindex="-1">Nieuwe reis invullen</h2>
+    <p class="note">De vaste gegevens komen uit Stamgegevens. Het ingevulde formulier blijft alleen in het geheugen en wordt bij vergrendelen gewist.</p>
+    <button class="big" id="fmq-ontgrendel" onclick="cmUnlock()">Ontgrendelen</button>
+    <form id="fmq-open" hidden autocomplete="off" novalidate onsubmit="event.preventDefault();fmqGo()">
+      <label class="f" for="fmq-profiel">Vaste gegevens</label>
+      <select class="sel" id="fmq-profiel" translate="no"></select>
+      <div id="fmq-geen" hidden>
+        <p class="note">Je hebt nog geen vaste gegevens voor dit formulier.</p>
+        <button type="button" class="big ghost" onclick="fmqSetup()">Vaste gegevens instellen</button>
+      </div>
+      <label class="f" for="fmq-van">Eerste reisdag *</label>
+      <input class="search" id="fmq-van" type="date" required>
+      <label class="f" for="fmq-tot">Laatste reisdag *</label>
+      <input class="search" id="fmq-tot" type="date" required>
+      <label class="f" for="fmq-land">Land bestemming *</label>
+      <input class="search" id="fmq-land" maxlength="200" required translate="no">
+      <label class="f" for="fmq-plaats">Plaats bestemming</label>
+      <input class="search" id="fmq-plaats" maxlength="200" translate="no">
+      <details class="fmq-meer">
+        <summary>Meer over de bestemming (optioneel)</summary>
+        <label class="f" for="fmq-accommodatie">Naam familie of accommodatie</label>
+        <input class="search" id="fmq-accommodatie" maxlength="200" translate="no">
+        <label class="f" for="fmq-postcode">Postcode bestemming</label>
+        <input class="search" id="fmq-postcode" maxlength="200" translate="no">
+        <label class="f" for="fmq-telefoon">Telefoonnummer bestemming</label>
+        <input class="search" id="fmq-telefoon" type="tel" maxlength="200" translate="no">
+        <label class="f" for="fmq-reisgegevens">Reisgegevens (bijvoorbeeld vluchtnummer)</label>
+        <input class="search" id="fmq-reisgegevens" maxlength="200" translate="no">
+      </details>
+      <label class="chk"><input type="checkbox" id="fmq-id">Ook documentnummers, geldigheid en (als ingesteld) BSN invullen. Ik heb gecontroleerd dat dit de juiste personen zijn.</label>
+      <p class="note" id="fmq-status" role="status" aria-live="polite"></p>
+      <div class="row">
+        <button class="big" id="fmq-ga">Formulier invullen</button>
+        <button type="button" class="big ghost" onclick="fmqClose()">Annuleren</button>
+      </div>
+    </form>
+    <button class="big ghost" id="fmq-annuleer-dicht" onclick="fmqClose()">Annuleren</button>
+  </div>
+</div>

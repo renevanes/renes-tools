@@ -1,0 +1,132 @@
+package nl.rene.tools;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+/**
+ * Vaste formuliergegevens: een stamgegeven dat alleen naar andere stamgegevens verwijst (personen,
+ * identiteitsdocumenten, organisaties) plus een paar vaste keuzes. Bij gebruik wordt het opnieuw
+ * opgebouwd uit de actuele stamgegevens, via dezelfde rolprojecties als het handmatig overnemen.
+ * Zo hoeft iemand per reis alleen nog de reisdagen en de bestemming in te vullen.
+ */
+final class MasterFormProfile {
+    private MasterFormProfile(){ }
+    static final String[] FIELDS={"formulier","kind","kindDocument","alleen","begeleider1","begeleider1Document","begeleider1Relatie",
+            "begeleider2","begeleider2Document","begeleider2Relatie","gever1","gever1Document","gever1Instelling",
+            "gever2","gever2Document","gever2Instelling","bsnInvullen"};
+    static final Set<String> FORMS=Collections.unmodifiableSet(new LinkedHashSet<>(Collections.singletonList("reistoestemming")));
+    static final List<String> ROLES=Arrays.asList("kind","begeleider1","begeleider2","gever1","gever2");
+    static final List<String> CHOICES=Arrays.asList("alleen","bsnInvullen");
+    interface Lookup{JSONObject get(String id)throws Exception;}
+    interface Use{void used(JSONObject record,String role,JSONArray fields)throws Exception;}
+
+    /** Soort stamgegeven waar dit veld naar verwijst, of null als het geen verwijzing is. */
+    static String reference(String key){
+        if(ROLES.contains(key))return "persoon";
+        if(key.endsWith("Document")&&ROLES.contains(key.substring(0,key.length()-8)))return "identiteit";
+        if(key.endsWith("Instelling")&&key.startsWith("gever"))return "organisatie";
+        return null;
+    }
+    static boolean relationField(String key){return "begeleider1Relatie".equals(key)||"begeleider2Relatie".equals(key);}
+
+    /** Controle bij opslaan: verwijzingen bestaan, hebben de juiste soort en documenten horen bij de gekozen persoon. */
+    static void validate(JSONObject fields,Lookup lookup)throws Exception{
+        if(!FORMS.contains(fields.optString("formulier")))throw new MasterError(Taal.T("Kies voor welk formulier deze vaste gegevens zijn"));
+        for(String key:FIELDS){
+            String type=reference(key),id=fields.optString(key);if(type==null||id.isEmpty())continue;
+            JSONObject target=lookup.get(id);
+            if(!type.equals(target.getString("type")))throw new MasterError(Taal.T("Een gekozen stamgegeven heeft niet de juiste soort"));
+            if("identiteit".equals(type)){
+                String owner=fields.optString(key.substring(0,key.length()-8));
+                if(owner.isEmpty()||!owner.equals(target.getJSONObject("fields").optString("persoon")))throw new MasterError(Taal.T("Kies een reisdocument dat bij de gekozen persoon hoort"));
+            }
+        }
+        for(String key:new String[]{"begeleider1","begeleider2","gever1","gever2"}){
+            String id=fields.optString(key);if(id.isEmpty())continue;
+            if(id.equals(fields.optString("kind")))throw new MasterError(Taal.T("Het kind kan niet ook begeleider of toestemminggever zijn"));
+        }
+        if(!fields.optString("begeleider2").isEmpty()&&fields.optString("begeleider2").equals(fields.optString("begeleider1")))throw new MasterError(Taal.T("Kies twee verschillende begeleiders"));
+        if(!fields.optString("gever2").isEmpty()&&fields.optString("gever2").equals(fields.optString("gever1")))throw new MasterError(Taal.T("Kies twee verschillende toestemmingsgevers"));
+        for(String g:new String[]{"gever1","gever2"})for(String b:new String[]{"begeleider1","begeleider2"}){
+            String id=fields.optString(g);if(!id.isEmpty()&&id.equals(fields.optString(b)))throw new MasterError(Taal.T("Een toestemminggever reist niet mee; kies een andere begeleider"));
+        }
+    }
+
+    /** "Anna Maria" → "A.M." Alleen als de persoon zelf geen initialen heeft opgeslagen. */
+    static String initials(String names){
+        StringBuilder out=new StringBuilder();
+        for(String part:names.trim().split("\\s+")){if(part.isEmpty())continue;int c=part.codePointAt(0);if(Character.isLetter(c))out.appendCodePoint(Character.toUpperCase(c)).append('.');}
+        return out.toString();
+    }
+
+    static void put(JSONObject values,JSONArray used,String role,JSONObject projected)throws Exception{
+        java.util.Iterator<String> it=projected.keys();
+        while(it.hasNext()){String k=it.next();values.put(role+"-"+k,projected.getString(k));used.put(k);}
+    }
+
+    /**
+     * Bouwt de formulierwaarden opnieuw op uit de actuele stamgegevens. Identiteitsgegevens (documentnummer,
+     * geldig tot, BSN) komen alleen mee met expliciete toestemming bij dit gebruik; zonder die toestemming
+     * blijven ze leeg en meldt het antwoord dat ze zijn weggelaten.
+     */
+    static JSONObject resolve(JSONObject profile,Lookup lookup,JSONArray all,boolean consent,Use use)throws Exception{
+        if(!"formulier".equals(profile.getString("type")))throw new MasterError(Taal.T("Kies vaste formuliergegevens"));
+        JSONObject f=profile.getJSONObject("fields");
+        if(!FORMS.contains(f.optString("formulier")))throw new MasterError(Taal.T("Kies voor welk formulier deze vaste gegevens zijn"));
+        boolean alone="ja".equals(f.optString("alleen")),bsn="ja".equals(f.optString("bsnInvullen"));
+        if(f.optString("kind").isEmpty())throw new MasterError(Taal.T("Kies in de vaste gegevens het kind dat reist"));
+        if(f.optString("gever1").isEmpty())throw new MasterError(Taal.T("Kies in de vaste gegevens wie toestemming geeft"));
+        if(!alone&&f.optString("begeleider1").isEmpty())throw new MasterError(Taal.T("Kies in de vaste gegevens wie meereist, of kies dat het kind alleen reist"));
+        JSONObject values=new JSONObject(),relations=new JSONObject();boolean omitted=false;
+        values.put("alleen",alone?"ja":"nee");
+        values.put("tweedeBegeleider",!alone&&!f.optString("begeleider2").isEmpty()?"ja":"nee");
+        values.put("tweedeGever",f.optString("gever2").isEmpty()?"nee":"ja");
+        use.used(profile,"vast",new JSONArray().put("formulier"));
+        String child=f.getString("kind");
+        for(String role:ROLES){
+            if(alone&&role.startsWith("begeleider"))continue;
+            String id=f.optString(role);if(id.isEmpty())continue;
+            JSONObject person=lookup.get(id);if(!"persoon".equals(person.getString("type")))throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
+            JSONObject projected=MasterSchema.projection(person,"formulieren",role);
+            if(projected.has("bsn")&&!(bsn&&consent)){projected.remove("bsn");if(bsn)omitted=true;}
+            if(!"kind".equals(role)&&!projected.has("initialen")){
+                String derived=initials(person.getJSONObject("fields").optString("voornamen"));if(!derived.isEmpty())projected.put("initialen",derived);
+            }
+            JSONArray fields=new JSONArray();put(values,fields,role,projected);use.used(person,role,fields);
+            String doc=f.optString(role+"Document");
+            if(!doc.isEmpty()){
+                if(!consent)omitted=true;
+                else{
+                    JSONObject identity=lookup.get(doc);
+                    if(!"identiteit".equals(identity.getString("type"))||!id.equals(identity.getJSONObject("fields").optString("persoon")))throw new MasterError(Taal.T("Kies een reisdocument dat bij de gekozen persoon hoort"));
+                    JSONArray docFields=new JSONArray();put(values,docFields,role,MasterSchema.projection(identity,"formulieren",role));use.used(identity,role,docFields);
+                }
+            }
+            if(role.startsWith("gever")&&!f.optString(role+"Instelling").isEmpty()){
+                JSONObject org=lookup.get(f.getString(role+"Instelling"));
+                if(!"organisatie".equals(org.getString("type")))throw new MasterError(Taal.T("Een gekozen stamgegeven heeft niet de juiste soort"));
+                String name=MasterSchema.projection(org,"formulieren",role).optString("instelling");
+                if(!name.isEmpty()){values.put(role+"-instelling",name);use.used(org,role,new JSONArray().put("instelling"));}
+            }
+            if(role.startsWith("begeleider")){
+                String code=f.optString(role+"Relatie");
+                if(code.isEmpty()){
+                    Set<String> found=new LinkedHashSet<>();JSONObject source=null;
+                    for(int i=0;i<all.length();i++){
+                        JSONObject r=all.getJSONObject(i);
+                        if(!"relatie".equals(r.getString("type"))||!"ja".equals(r.getJSONObject("fields").optString("delen")))continue;
+                        String c=MasterIdentity.between(r,child,id);if(!c.isEmpty()){found.add(c);source=r;}
+                    }
+                    if(found.size()==1){code=found.iterator().next();use.used(source,role,new JSONArray().put("relatie"));}
+                }
+                if(!code.isEmpty())relations.put(role,code);
+            }
+        }
+        return new JSONObject().put("values",values).put("relations",relations).put("omitted",omitted);
+    }
+}
