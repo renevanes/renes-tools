@@ -216,8 +216,8 @@ final class FacturenAanlever {
             }
             if (!ja) return false;
         }
-        if (!zelf && overgeslagen.contains(stuk.optString("leverancier"))) return false;
         JSONObject v = stuk.optJSONObject("verzonden"), x = v == null ? null : v.optJSONObject(ontv.optString("id"));
+        if (!zelf && overgeslagen.contains(stuk.optString("leverancier")) && !(x != null && x.optBoolean("opnieuw"))) return false; // "Opnieuw aanleveren" in het dossier telt wel
         if (x != null) return !x.optBoolean("ok") && x.optInt("pogingen") < MAX_POGINGEN; // na 5 keer mislukt alleen nog via Opnieuw in het dossier // al eens geprobeerd (of "opnieuw aanleveren"): open tot het lukt
         if (stuk.optLong("opgehaald") < ontv.optLong("vanaf")) return false;
         // Oude facturen die later alsnog zijn opgehaald (de hele periode inhalen): niet vanzelf meesturen; dat kan met de hand

@@ -83,7 +83,12 @@ final class FacturenIndeling {
                     for (Iterator<String> it = all.keys(); it.hasNext(); ) { String k = it.next(); JSONObject s = all.optJSONObject(k); if (s != null && id.equals(s.optString("leverancier"))) shas.add(k); }
                     for (String sha : shas) { FacturenDossier.verwijder(c, sha, false); n++; } // niet opnieuw ophalen: de mailbron onthoudt ze
                 }
-                if (!aan) { JSONObject t = Facturen.toestand(c); n = terug(t, id); if (n > 0) Facturen.bewaarToestand(c, t); }
+                if (!aan) {
+                    java.util.Set<String> bronnen = new java.util.HashSet<>();
+                    JSONArray levs = leveranciers(c);
+                    for (int i = 0; i < levs.length(); i++) { JSONObject x = levs.optJSONObject(i); if (x != null && "mail".equals(x.optString("soort"))) bronnen.add(x.optString("id")); }
+                    JSONObject t = Facturen.toestand(c); n = terug(t, id, bronnen); if (n > 0) Facturen.bewaarToestand(c, t);
+                }
             }
             return n;
         } finally { BEZIG.set(false); }
@@ -91,12 +96,15 @@ final class FacturenIndeling {
 
     /**
      * Terugzetten: de mailbronnen vergeten wat ze van deze leverancier oversloegen en zoeken de volgende keer de hele
-     * periode af (wat al binnen is, komt niet dubbel). Weggehaalde facturen blijven weg. Zuiver (getest); geeft het aantal.
+     * periode af (wat al binnen is, komt niet dubbel). Weggehaalde facturen blijven weg. bronnen = de mailbronnen die er
+     * nu zijn (van een weggehaalde komt niets). Zuiver (getest); geeft het aantal.
      */
-    static int terug(JSONObject t, String id) throws Exception {
+    static int terug(JSONObject t, String id, java.util.Set<String> bronnen) throws Exception {
         int n = 0;
         for (Iterator<String> it = t.keys(); it.hasNext(); ) {
-            JSONObject tb = t.optJSONObject(it.next()), vw = tb == null ? null : tb.optJSONObject("verwerkt");
+            String bron = it.next();
+            if (!bronnen.contains(bron)) continue;
+            JSONObject tb = t.optJSONObject(bron), vw = tb == null ? null : tb.optJSONObject("verwerkt");
             if (vw == null) continue;
             int was = n;
             for (Iterator<String> j = vw.keys(); j.hasNext(); ) {
@@ -322,8 +330,9 @@ final class FacturenIndeling {
             List<JSONObject> todo = new ArrayList<>();
             for (Iterator<String> it = items.keys(); it.hasNext(); ) {
                 JSONObject s = items.optJSONObject(it.next()), b = s == null ? null : s.optJSONObject("bron");
-                if (s == null || b == null || b.optBoolean("toegevoegd") || b.optString("afzender").isEmpty()) continue; // zelf toegevoegd: geen afzender
-                if (bronnen.containsKey(s.optString("leverancier")) && s.optString("via").isEmpty()) todo.add(s);
+                if (s == null || !bronnen.containsKey(s.optString("leverancier")) || !s.optString("via").isEmpty()) continue;
+                if (b != null && (b.optBoolean("toegevoegd") || "hand".equals(b.optString("soort")))) continue; // zelf toegevoegd: niet uit de mail
+                todo.add(s);
             }
             java.util.Collections.sort(todo, (x, y) -> Long.compare(x.optLong("opgehaald"), y.optLong("opgehaald")));
             FacturenHerken.Kennis k = FacturenHerken.kennis(c);
@@ -332,17 +341,20 @@ final class FacturenIndeling {
             List<Object[]> stap = new ArrayList<>(); // {sha, bronId, kenmerken, doel}; per 25 weggeschreven
             int[] tel = {0, 0}; // ingedeeld, niet gelukt
             for (int i = 0; i < todo.size(); i++) {
-                JSONObject s0 = todo.get(i);
+                JSONObject s0 = todo.get(i), b0 = s0.optJSONObject("bron"), km = new JSONObject();
+                String sha = s0.optString("sha"), bronId = s0.optString("leverancier");
                 try {
-                    String bronId = s0.optString("leverancier");
                     File f = FacturenAanlever.bestand(c, s0);
-                    JSONObject km = FacturenHerken.kenmerken(s0.optJSONObject("bron"), f == null ? "" : FacturenDossier.tekst(f), k);
-                    String mailId = FacturenDossier.mailId(s0);
-                    JSONObject doel = Facturen.toewijzen(c, bronnen.get(bronId), km, k, perMail.get(mailId), nieuwe);
-                    if (!mailId.isEmpty()) perMail.put(mailId, doel);
-                    k.tel(km);
-                    stap.add(new Object[]{s0.optString("sha"), bronId, km, doel});
-                } catch (Throwable e) { tel[1]++; } // blijft bij de mailbron staan; met de hand te verplaatsen
+                    km = FacturenHerken.kenmerken(b0, f == null ? "" : FacturenDossier.tekst(f), k);
+                    if (b0 == null || b0.optString("afzender").isEmpty()) stap.add(new Object[]{sha, bronId, km, null}); // afzender onbekend: blijft bij de mailbron
+                    else {
+                        String mailId = FacturenDossier.mailId(s0);
+                        JSONObject doel = Facturen.toewijzen(c, bronnen.get(bronId), km, k, perMail.get(mailId), nieuwe);
+                        if (!mailId.isEmpty()) perMail.put(mailId, doel);
+                        k.tel(km);
+                        stap.add(new Object[]{sha, bronId, km, doel});
+                    }
+                } catch (Throwable e) { tel[1]++; stap.add(new Object[]{sha, bronId, km, null}); } // blijft bij de mailbron staan
                 if (stap.size() >= 25 || i == todo.size() - 1) { schrijf(c, stap, tel); stap.clear(); }
             }
             if (tel[1] > 0) App.log(c, "FACTUREN", "herindelen: " + tel[1] + " niet gelukt");
@@ -369,10 +381,10 @@ final class FacturenIndeling {
                     JSONObject km = (JSONObject) x[2], doel = (JSONObject) x[3], s = all.optJSONObject(sha);
                     if (s == null || !s.optString("via").isEmpty()) continue;
                     try {
-                        if (!bronId.equals(doel.optString("id"))) zetBij(c, all, t, sha, doel);
-                        s.put("via", bronId).put("kenmerken", km);
-                        n++;
+                        if (doel != null && !bronId.equals(doel.optString("id"))) zetBij(c, all, t, sha, doel);
+                        if (doel != null) n++;
                     } catch (Throwable e) { tel[1]++; }
+                    s.put("via", bronId).put("kenmerken", km); // ook als hij bij de mailbron blijft: dan is hij met de hand te verplaatsen
                 }
                 FacturenDossier.bewaar(c, all);
                 Facturen.bewaarToestand(c, t);

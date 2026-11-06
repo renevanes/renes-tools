@@ -137,6 +137,8 @@ public class FacturenAanleverTest {
         java.util.Set<String> over = new java.util.HashSet<>(Arrays.asList("eneco"));
         check(!FacturenAanlever.open(alleGmail, uitGmail, over) && !FacturenAanlever.open(ontv, uitGmail, over), "overgeslagen leverancier uit de mail: niet meer vanzelf mee (ook niet via de mailbron of 'alles')");
         check(FacturenAanlever.open(new JSONObject(ontv.toString()).put("leveranciers", new JSONArray().put("eneco")), uitGmail, over), "overgeslagen maar zelf aangevinkt: wel");
+        JSONObject uitGmailOpn = new JSONObject(uitGmail.toString()); uitGmailOpn.getJSONObject("verzonden").put(ontv.getString("id"), new JSONObject().put("ok", false).put("opnieuw", true));
+        check(FacturenAanlever.open(alleGmail, uitGmailOpn, over), "overgeslagen, maar in het dossier 'Opnieuw aanleveren' gekozen: wel");
 
         // ---------- zendingen ----------
         List<JSONObject> l = new ArrayList<>();

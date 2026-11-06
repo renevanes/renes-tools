@@ -207,10 +207,13 @@ public class FacturenHerkenTest {
                         .put("m1", new JSONObject().put("overgeslagen", true).put("l", "ziggo")).put("m2", new JSONObject().put("overgeslagen", true).put("l", "eneco"))
                         .put("m3", new JSONObject().put("n", "a.pdf").put("l", "ziggo"))))
                 .put("werk", new JSONObject().put("lastOk", 9).put("verwerkt", new JSONObject().put("m9", new JSONObject().put("overgeslagen", true).put("l", "eneco"))));
-        check(FacturenIndeling.terug(tz, "ziggo") == 1 && !tz.getJSONObject("gmail").getJSONObject("verwerkt").has("m1") && tz.getJSONObject("gmail").getJSONObject("verwerkt").has("m3")
+        java.util.Set<String> mbNu = new java.util.HashSet<>(Arrays.asList("gmail", "werk"));
+        check(FacturenIndeling.terug(tz, "eneco", new java.util.HashSet<>(Arrays.asList("gmail"))) == 1 && tz.getJSONObject("werk").getJSONObject("verwerkt").has("m9"), "terugzetten: niet bij een mailbron die er niet meer is");
+        tz.getJSONObject("gmail").put("lastOk", 5).put("mailMeer", true).getJSONObject("verwerkt").put("m2", new JSONObject().put("overgeslagen", true).put("l", "eneco"));
+        check(FacturenIndeling.terug(tz, "ziggo", mbNu) == 1 && !tz.getJSONObject("gmail").getJSONObject("verwerkt").has("m1") && tz.getJSONObject("gmail").getJSONObject("verwerkt").has("m3")
                 && tz.getJSONObject("gmail").getLong("lastOk") == 0 && !tz.getJSONObject("gmail").getBoolean("mailMeer") && tz.getJSONObject("werk").getLong("lastOk") == 9,
                 "terugzetten: alleen de overgeslagen mails van die leverancier opnieuw, en alleen die mailbron zoekt de hele periode af");
-        check(FacturenIndeling.terug(tz, "ziggo") == 0 && FacturenIndeling.terug(tz, "eneco") == 2, "terugzetten: per mailbron, niets dubbel");
+        check(FacturenIndeling.terug(tz, "ziggo", mbNu) == 0 && FacturenIndeling.terug(tz, "eneco", mbNu) == 2, "terugzetten: per mailbron, niets dubbel");
 
         // ---------- samenvoegen: keuzes bij Aanleveren ----------
         JSONArray ids = new JSONArray().put("a").put("van").put("naar");

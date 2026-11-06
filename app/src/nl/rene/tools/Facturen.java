@@ -502,6 +502,10 @@ final class Facturen {
                 nieuw.put(o);
             }
             JsonFileStore.write(levFile(c), new JSONObject().put("lijst", nieuw).toString(), Facturen::checkLijst);
+            if (!vervangen && !"mail".equals(o.optString("soort"))) { // alleen een mailbron die terugkomt, neemt zijn oude toestand weer op
+                JSONObject t = toestand(c);
+                if (t.remove(o.getString("id")) != null) bewaarToestand(c, t);
+            }
             if (wachtwoord != null && !wachtwoord.isEmpty()) zetGeheim(c, "lev_" + o.getString("id"), wachtwoord);
             return o.getString("id");
         }
