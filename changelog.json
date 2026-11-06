@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.151",
+    "date": "2026-11-06",
+    "changes": [
+      "Alles back-uppen: overzichtelijker, met de status en één knop bovenaan; wat er meegaat, automatisch en versleutelen, en terugzetten als eigen schermen.",
+      "WhatsApp backup: status en backup-map bovenaan met één knop; selectie, automatisch, leesbare chats en terugzetten (in vier stappen) als eigen schermen.",
+      "Leesbare chats: de sleutel van 64 cijfers stel je nu één keer in op het scherm Leesbare chats zelf.",
+      "Terugzetten staat op één plek (Alles back-uppen → Terugzetten), ook vanuit Gegevens terugzetten; Instellingen → Backup-map opent dezelfde backup-instellingen.",
+      "Tools-overzicht: \"Handig\" verdeeld over Documenten & geld, Dag & gezondheid, Onderweg en Slim; de Telefoon-skin staat nu bij Slim. Je eigen indeling blijft behouden; de vorige indeling kun je terugzetten bij Startscherm aanpassen.",
+      "Tools-overzicht: nieuwe rij \"Recent gebruikt\" met de laatste vier tools die je opende (uit te zetten bij Startscherm aanpassen).",
+      "Tools-overzicht: compacter bovenaan (één overzichtskaart, \"Hallo\" in de kopbalk) en lagere tegels, zodat je meer tools in één keer ziet.",
+      "Slaappraat: het hoofdscherm toont alleen beginnen, proberen en je nachten; alle instellingen staan nu achter het schuifjes-icoon rechtsboven, met de opname-afstelling (stukjes, opslag, accu, spraakmodel) ingeklapt onder Geavanceerd.",
+      "Slaappraat: keuzes als keuzelijst in plaats van rijen knopjes, en \"Goed om te weten\" ingeklapt; wat er bewaard wordt en waar staat in één regel onder de knoppen."
+    ]
+  },
+  {
     "version": "1.150",
     "date": "2026-11-06",
     "changes": [

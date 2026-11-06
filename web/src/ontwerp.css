@@ -73,7 +73,8 @@ input[type=tel],textarea.key,.ntext{border-radius:8px;border-color:var(--outline
 .hrtool{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:64px;padding:10px 4px 9px;background:var(--card);border:1px solid var(--line);border-radius:10px;text-align:center;color:var(--ink)}
 .hrtool .ic{display:grid;place-items:center;height:24px;color:var(--primary)}.hrtool .ic>.ui-icon{width:22px;height:22px}
 .hrtool b{font-size:12px;font-weight:600;line-height:1.25;overflow-wrap:normal;hyphens:manual}
-@media (max-width:380px){.hrlist{grid-template-columns:repeat(2,minmax(0,1fr))}.hrtool{flex-direction:row;justify-content:flex-start;gap:10px;min-height:52px;padding:8px 10px;text-align:left}.hrtool .ic{flex:none}}
+/* Recent: op telefoons (tot 440 px) twee kolommen met het pictogram naast de naam, zodat lange namen ook met andere lettertypen passen; vier kolommen pas op bredere schermen */
+@media (max-width:440px){.hrlist{grid-template-columns:repeat(2,minmax(0,1fr))}.hrtool{flex-direction:row;justify-content:flex-start;gap:10px;min-height:52px;padding:8px 10px;text-align:left}.hrtool .ic{flex:none}}
 .hrtool:active{background:var(--hi)}.hrtool:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
 .hgroups:not(.compact) .tiles:not(.single) .tile{min-height:0;display:grid;grid-template-columns:24px minmax(0,1fr);align-items:center;align-content:start;gap:7px 8px;padding:13px 10px 13px 12px}
 .hgroups:not(.compact) .tiles:not(.single) .tile .ic{width:24px;height:24px}.hgroups:not(.compact) .tiles:not(.single) .tile .ic>.ui-icon{width:23px;height:23px}

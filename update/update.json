@@ -1,15 +1,30 @@
 {
   "app": "Tools",
-  "versionName": "1.150",
-  "versionCode": 151,
+  "versionName": "1.151",
+  "versionCode": 152,
   "nativeLevel": 136,
   "web": "index.html",
-  "webSha256": "ef2daf37d7891eafdd0574c9fc14a57606805919b7669db66d1d0cae2b77bffc",
+  "webSha256": "a40349b364211e8c283dc1e3dd9b1995ce45ad8f47ce347db31a066864a53fb5",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1c6ecde724c6dd875988fc8ab8470b44d424d41e93d811c7344f1d90511b4356",
+  "apkSha256": "284fe5fd3c9660ea28538b33571c49e9e08d520c815cb4c1554b91ca01515809",
   "changelog": [
+    {
+      "version": "1.151",
+      "date": "2026-11-06",
+      "changes": [
+        "Alles back-uppen: overzichtelijker, met de status en één knop bovenaan; wat er meegaat, automatisch en versleutelen, en terugzetten als eigen schermen.",
+        "WhatsApp backup: status en backup-map bovenaan met één knop; selectie, automatisch, leesbare chats en terugzetten (in vier stappen) als eigen schermen.",
+        "Leesbare chats: de sleutel van 64 cijfers stel je nu één keer in op het scherm Leesbare chats zelf.",
+        "Terugzetten staat op één plek (Alles back-uppen → Terugzetten), ook vanuit Gegevens terugzetten; Instellingen → Backup-map opent dezelfde backup-instellingen.",
+        "Tools-overzicht: \"Handig\" verdeeld over Documenten & geld, Dag & gezondheid, Onderweg en Slim; de Telefoon-skin staat nu bij Slim. Je eigen indeling blijft behouden; de vorige indeling kun je terugzetten bij Startscherm aanpassen.",
+        "Tools-overzicht: nieuwe rij \"Recent gebruikt\" met de laatste vier tools die je opende (uit te zetten bij Startscherm aanpassen).",
+        "Tools-overzicht: compacter bovenaan (één overzichtskaart, \"Hallo\" in de kopbalk) en lagere tegels, zodat je meer tools in één keer ziet.",
+        "Slaappraat: het hoofdscherm toont alleen beginnen, proberen en je nachten; alle instellingen staan nu achter het schuifjes-icoon rechtsboven, met de opname-afstelling (stukjes, opslag, accu, spraakmodel) ingeklapt onder Geavanceerd.",
+        "Slaappraat: keuzes als keuzelijst in plaats van rijen knopjes, en \"Goed om te weten\" ingeklapt; wat er bewaard wordt en waar staat in één regel onder de knoppen."
+      ]
+    },
     {
       "version": "1.150",
       "date": "2026-11-06",
@@ -1325,5 +1340,5 @@
       ]
     }
   ],
-  "webSig2": "P6MnmWbkyi4iA0xxOvgE4FiZ3IPrCzLAqM4JfFF/YWipejJB/jVSzvGtSt6y6bBzhyWYar0+qNgG915ck+kICTcesejQb7YxB3Ip8PPwejD5qaQSIcw2HqQv+9xCNBfEFaL4bJt8nKW/pqKUr+VBPY13kGqeDS+xQGg2OeX3973x23pML4FVMB3p16O3RSlGRRMI2ZqvWIRhDntGGSrNWlQFQLax3TJm0snNZdNW5H0R3DvLsfK8PPv3IZbgnMBbAaaGqZt6foCYb7P3/dC1ruHll67kpE7Mw6QCe1y66VNII6vcwo5NEdFsfzNVGjhr/435+0Y5oP2BSYLfT5WjIxhUMETnOhSkrutIigkkZ6fxJVKETRUR4tBzb8KGb6uaavFvmi5s3S4T444POgFiB8xQjsw8VSBkY7fSc1YTYO3oNknyMLyn9876RpQk+iW5aUwMUszpDEWhCYP4XVy1IxO4hS3T+afsfSrr7SfentA/ansdLB/BL/R/2z0RjMyJ"
+  "webSig2": "lePtDEeMVEaj1JSmT5BRAXgUkL1l94FptLcjugrk5vPFbRbxC3rneiaie7PExR4il0CI+9K9f7D0ohgShfmrSZN+dhK8htL347uACWOCbww9b0T9AKs+5Cfj2HV5/qCftuoAmBYoUPMJ8DNML6kTlVcbkXFOjeqpq00vhdaYI+mWg0/ZQRR3qzh6SaNok5hQke7LjkBIlXO25+gtr6cxRiaowwzx9BPboN4rJi/BF8GGfMBYCnhcBLVpJ4mSHEiEg49BK0lCF1JD0rtjBGX6FJyptAzonwojHPhYFpjag4EQz39pS+NthJOHsJT5Xr2HJ+xCWj3QC8Vg9gcZwP5PtMIhRvvZtDfWiFDZmj5JX7e1QjSw7alo/3eSGUYm/yYxXHxlgVr4WQeeJOYFJ3cmROTtePodcfkmxBj8nLJv5pGrrgSd2FjnXcxIsflp30LERq7gGzMO8CCUPy86oyEoKL2MDSo6Vo4yaYor4+v+ZuHo+yE2NlPy7yizmfSmMmSz"
 }

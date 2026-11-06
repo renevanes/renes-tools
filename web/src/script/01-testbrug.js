@@ -252,7 +252,7 @@ if (!window.Android) window.Android = (function(){
     _sl: { phase: '', night: '', since: 0, stopAt: 0, heard: 0, level: -60, floor: -64, txDone: 0, txTotal: 0, message: '', mic: true, notif: true, model: 'Snel (57 MB)',
       set: { sens: 2, stopAt: '07:30', transcribe: true, direct: true, keepNoise: true, keep: 14, remindAt: '', quiet: true,
         directWhen: 'accu', directBat: 40, stopBat: 15, maxAudio: 8, minFree: 500, whenFull: 'geluid', clipMax: 60, hang: 1500, pre: 2, format: 'aac', txModel: '' },
-      // Zoals SleepTalk: de vaste keuzes van Meer instellingen (en de standaard, voor reset)
+      // Zoals SleepTalk: de vaste keuzes onder Geavanceerd (Slaappraat-instellingen) en de standaard, voor reset
       _slOk: { directWhen: ['altijd', 'lader', 'accu'], whenFull: ['stop', 'geluid', 'oudste'], format: ['aac', 'wav'], txModel: ['', 'base', 'small'], directBat: [20, 30, 40, 50, 60, 80], stopBat: [5, 10, 15, 20, 30],
         maxAudio: [1, 2, 4, 8, 0], minFree: [250, 500, 1000, 2000], clipMax: [30, 60, 120, 300], hang: [1000, 1500, 2000, 3000], pre: [1, 2, 3, 5] },
       _slDef: { directWhen: 'accu', directBat: 40, stopBat: 15, maxAudio: 8, minFree: 500, whenFull: 'geluid', clipMax: 60, hang: 1500, pre: 2, format: 'aac', txModel: '' },
@@ -938,7 +938,8 @@ if (!window.Android) window.Android = (function(){
     _bk:{busy:false,current:'',auto:null,charging:true,parts:{},last:null,sleepAudio:false,extra:{aiMem:12,aiChats:8,aiBytes:46000,nights:5,sleepText:21000,sleepAudio:84e6,ciQ:2,ciA:57,ciR:3,ciBytes:9000}},
     /* Elke nacht: zelf gekozen blijft; nooit gekozen = alleen met versleutelen en een backup-map (zoals AllBackup.auto) */
     _bkAuto(){ const b=this._bk; return b.auto==null ? (!!this._sec.on && !!this._wa.info.dest) : !!b.auto; },
-    backupState(f){ const b=this._bk, auto=this._bkAuto(); return JSON.stringify({busy:b.busy,current:b.current,auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:auto?Date.now()+5*36e5:0,parts:Object.assign({ai:false,sleep:false,checkin:false},b.parts),sleepAudio:b.sleepAudio,extra:b.extra,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,space:this._sec.space,herstel:this._herstelReady()}); },
+    // Zoals AllBackup.stateJson: zonder full alleen busy, current, encrypted en last (licht, voor het pollen)
+    backupState(f){ const b=this._bk, auto=this._bkAuto(); if(!f) return JSON.stringify(Object.assign({busy:b.busy,current:b.current,encrypted:this._sec.on}, b.last?{last:b.last}:{})); return JSON.stringify({busy:b.busy,current:b.current,auto,charging:b.charging,dest:this._wa.info.dest,destName:'USB-stick',next:auto?Date.now()+5*36e5:0,parts:Object.assign({ai:false,sleep:false,checkin:false},b.parts),sleepAudio:b.sleepAudio,extra:b.extra,last:b.last,encrypted:this._sec.on,encSince:this._sec.since,rotate:this._sec.rotate,space:this._sec.space,herstel:this._herstelReady()}); },
     /* Klaar voor herinstallatie (zoals Herstel.ready) */
     _herstelReady(){ const b=this._bk, h=this._hs, dest=!!this._wa.info.dest, enc=!!this._sec.on, auto=this._bkAuto(), part=b.parts.app!==false, last=b.appLast||0, miss=[];
       const blocked=h.state==='nieuw'?'Nog niet: zet eerst je gegevens terug (of kies Overslaan)':h.needPw&&!enc?'Stel eerst het wachtwoord van je backup opnieuw in (Versleutelen): na het terugzetten gaan backups alleen versleuteld verder':'';

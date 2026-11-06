@@ -601,7 +601,7 @@ function aiRenderData(){
   $('#aid-need').innerHTML = zoek ? '' : '<p class="note">' + esc(t('Voor zoeken in notities, gesprekken en berichten is het model voor slim zoeken nodig ({staat}).', { staat: t(((aiSt.models || []).find(m => m.id === 'zoek') || {}).state === 'running' ? 'wordt gedownload' : 'nog niet gedownload') })) + ' <button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'aisetsearch\')">Naar Slim zoeken</button> Vragen over Gebruik, Apparaten, wat je vannacht zei en je Check-in werken ook zonder.</p>';
   list.innerHTML = AI_SRC.map(s => {
     const k = s[0], on = aiSrcOn(k), ok = perm[k] !== false;
-    const need = !ok ? (k === 'wa' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'wa\')">Maak eerst je chats leesbaar</button>'
+    const need = !ok ? (k === 'wa' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'chats\')">Maak eerst je chats leesbaar</button>'
       : k === 'gebruik' ? '<button class="linkish" style="display:inline;padding:0" onclick="jumpTo(\'gebruik\')">Zet eerst Gebruik bijhouden aan</button>'
       : '<button class="linkish" style="display:inline;padding:0" onclick="Android.permRequest(\'' + AI_PERM[k] + '\')">Toestemming geven</button>') : '';
     return '<div class="sw"><span>' + uiIcon(s[2]) + ' ' + esc(s[1]) + '<small id="aid-d-' + k + '">' + esc(t(s[4] || s[3]) + (on && !ok ? ' ' + t('Staat aan, maar de app mag er nog niet bij.') : '')) + '</small>' + (on && !ok ? '<small>' + need + '</small>' : '') + '</span>' +

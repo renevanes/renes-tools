@@ -1,4 +1,4 @@
-<!-- ============ ALLES BACK-UPPEN ============ -->
+<!-- ============ ALLES BACK-UPPEN (overzicht: status, één hoofdknop, rijen naar eigen schermen) ============ -->
 <section class="screen" id="s-backup">
   <div class="hdr">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -7,50 +7,100 @@
   <main>
     <div class="card perm" id="bk-nodest" style="display:none">
       <p>Kies eerst een backup-map, bijvoorbeeld een USB-stick, SD-kaart of OneDrive.</p>
-      <button class="big" onclick="Android.waPickFolder()">Backup-map kiezen</button>
+      <button class="big tonal" onclick="bkPickFolder()">Backup-map kiezen</button>
     </div>
-    <div class="card" id="bk-herstel">
-      <h2>Klaar voor herinstallatie</h2>
-      <p class="note" style="margin-top:0" id="bk-herstel-st"></p>
+    <div class="card bkst" id="bk-herstel">
+      <div class="bkst-top">
+        <span class="stic"><span class="ui-icon" data-icon="backup" aria-hidden="true"></span></span>
+        <span class="sttxt"><b>Laatste backup</b><small id="bk-last">Nog niet gemaakt</small></span>
+      </div>
+      <p class="note" id="bk-herstel-st"></p>
       <div id="bk-herstel-list"></div>
-    </div>
-    <div class="card">
-      <h2>Laatste backup</h2>
-      <p class="note" style="margin-top:0" id="bk-last">Nog niet gemaakt</p>
       <div id="bk-parts-res"></div>
       <button class="big" id="bk-run" onclick="bkRun()">Nu alles back-uppen</button>
       <label class="chk"><input type="checkbox" id="bk-wa"> Ook WhatsApp (loopt apart, kan lang duren)</label>
       <p class="note" id="bk-dest"></p>
     </div>
+    <div class="card stlist" id="bk-rows">
+      <button class="strow" id="bk-row-parts" onclick="show('bkparts')"><span class="stic"><span class="ui-icon" data-icon="check" aria-hidden="true"></span></span><span class="sttxt"><b>Wat gaat er mee</b><small class="bk-sumwrap" id="bk-sum-parts"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" id="bk-row-set" onclick="show('bkset')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Automatisch en versleutelen</b><small class="bk-sumwrap" id="bk-sum-set"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" id="bk-row-restore" onclick="show('bkrestore')"><span class="stic"><span class="ui-icon" data-icon="download" aria-hidden="true"></span></span><span class="sttxt"><b>Terugzetten</b><small id="bk-sum-restore">Losse onderdelen of alles</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Alles back-uppen zet in één keer een kopie van je sms'jes, oproepen, contacten, notities, instellingen en meer in je backup-map. Met versleutelen wordt dat één versleuteld bestand; zonder versleutelen zijn het gewone, leesbare bestanden.</p>
+      <p><b>Compleet voor herinstallatie</b> betekent: een backup-map, versleutelen aan, Alle appgegevens mee, elke nacht vanzelf en minstens één complete backup. Dan kun je na opnieuw installeren alles terugzetten, ook je wachtwoorden, VPN en kluis.</p>
+      <p>WhatsApp heeft een eigen backup (WhatsApp backup); vink hierboven Ook WhatsApp aan om die meteen mee te laten lopen.</p>
+    </div></details>
+  </main>
+</section>
+
+<!-- ============ ALLES BACK-UPPEN → WAT GAAT ER MEE ============ -->
+<section class="screen" id="s-bkparts">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Wat gaat er mee</h1>
+  </div>
+  <main>
+    <p class="hint">Geldt voor Nu alles back-uppen en voor de nachtelijke backup.</p>
     <div class="card">
-      <h2>Wat gaat er mee</h2>
+      <h2>Onderdelen</h2>
       <div id="bk-parts"></div>
-      <p class="note bk-privh"><b>Privé</b> · staat standaard uit. Handig als je overstapt naar een nieuwe telefoon: de gewone Android-backup neemt dit bewust niet mee. Taalmodellen en de zoekindex gaan nooit mee (die download of maak je opnieuw).</p>
+    </div>
+    <div class="card bk-privcard">
+      <h2 class="bk-privh"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span> Privé</h2>
+      <p class="note" style="margin-top:0">Staat standaard uit. Zet het alleen aan als je het mee wilt nemen, liefst versleuteld.</p>
       <div id="bk-private"></div>
+      <details class="help in"><summary data-icon="info">Waarvoor is dit?</summary><div class="help-body">
+        <p>Handig als je overstapt naar een nieuwe telefoon: de gewone Android-backup neemt dit bewust niet mee.</p>
+        <p>Taalmodellen en de zoekindex gaan nooit mee (die download of maak je opnieuw).</p>
+      </div></details>
+    </div>
+  </main>
+</section>
+
+<!-- ============ ALLES BACK-UPPEN → AUTOMATISCH EN VERSLEUTELEN (ook Instellingen → Backup-map) ============ -->
+<section class="screen" id="s-bkset">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Automatisch en versleutelen</h1>
+  </div>
+  <main>
+    <p class="note warn" id="bk-set-busy" role="status" hidden>Er loopt nu een backup. Map, wachtwoord en opruimen kun je weer aanpassen als hij klaar is.</p>
+    <div class="card">
+      <h2>Backup-map</h2>
+      <p class="note" style="margin:0 0 10px" id="st-dest">Nog niet gekozen</p>
+      <button class="big ghost" id="bk-dest-btn" onclick="bkPickFolder()">Map kiezen</button>
+      <p class="hint">Hier zetten alle tools hun backups en exports neer, elk in een eigen submap.</p>
     </div>
     <div class="card">
       <h2>Automatisch</h2>
-      <label class="chk"><input type="checkbox" id="bk-auto" onchange="bkSaveAuto()"> Elke nacht alles back-uppen (na 03:30)</label>
-      <label class="chk"><input type="checkbox" id="bk-charging" onchange="bkSaveAuto()"> Alleen als de telefoon oplaadt</label>
+      <label class="sw"><span>Elke nacht alles back-uppen<small>Na 03:30</small></span><input type="checkbox" class="switch" role="switch" id="bk-auto" onchange="bkSaveAuto()"></label>
+      <label class="sw"><span>Alleen als de telefoon oplaadt</span><input type="checkbox" class="switch" role="switch" id="bk-charging" onchange="bkSaveAuto()"></label>
       <p class="note" id="bk-next"></p>
-      <p class="note">WhatsApp heeft een eigen nachtelijke backup (zie WhatsApp backup). Je krijgt alleen een melding als er iets misging.</p>
+      <p class="hint">Je krijgt alleen een melding als er iets misging. WhatsApp heeft een eigen nachtelijke backup (zie WhatsApp backup).</p>
     </div>
     <div class="card">
       <h2>Versleutelen</h2>
       <p class="note" style="margin-top:0" id="bk-enc-state"></p>
-      <button class="big ghost" id="bk-enc-btn" onclick="bkEncSet()">Wachtwoord instellen</button>
+      <p class="note warn" id="bk-enc-warn"><b>Wachtwoord vergeten = backup kwijt</b>; niemand kan hem dan nog openen. WhatsApp backup wordt niet versleuteld.</p>
+      <button class="big tonal" id="bk-enc-btn" onclick="bkEncSet()">Wachtwoord instellen</button>
       <button class="big ghost" id="bk-enc-off" style="margin-top:8px;display:none" onclick="bkEncOff()">Versleutelen uitzetten</button>
-      <p class="note">Met een wachtwoord gaan nieuwe backups in één versleuteld bestand (AES-256) in de map Versleuteld, in plaats van leesbare bestanden. Leesbare bestanden van eerdere backups blijven staan tot je ze zelf weghaalt; WhatsApp backup wordt niet versleuteld. Op de computer open je het met <b>ontsleutelen.html</b> in diezelfde map. <b>Wachtwoord vergeten = backup kwijt</b>; niemand kan hem dan nog openen.</p>
+      <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+        <p>Met een wachtwoord gaan nieuwe backups in één versleuteld bestand (AES-256) in de map Versleuteld, in plaats van leesbare bestanden.</p>
+        <p>Leesbare bestanden van eerdere backups blijven staan tot je ze zelf weghaalt. Op de computer open je de backup met <b>ontsleutelen.html</b> in diezelfde map.</p>
+      </div></details>
     </div>
     <div class="card">
       <h2>Oude backups opruimen</h2>
-      <label class="chk"><input type="checkbox" id="bk-rotate" onchange="Android.backupSetRotate(this.checked)"> Na elke gelukte backup opruimen</label>
-      <p class="note">Bewaart alles van de laatste 14 dagen en daarvoor de nieuwste per maand. Geldt voor de gedateerde sms-, oproepen- en contactbestanden en de versleutelde backups. De nieuwste blijft altijd staan.</p>
-      <button class="big ghost" onclick="bkRotate()">Nu opruimen</button>
+      <label class="sw"><span>Na elke gelukte backup opruimen<small>De laatste 14 dagen blijven, en daarvoor de nieuwste per maand</small></span><input type="checkbox" class="switch" role="switch" id="bk-rotate" onchange="Android.backupSetRotate(this.checked); bkSums()"></label>
+      <button class="big ghost" id="bk-rotate-btn" onclick="bkRotate()">Nu opruimen</button>
+      <details class="help in"><summary data-icon="info">Wat wordt er opgeruimd?</summary><div class="help-body">
+        <p>De gedateerde sms-, oproepen- en contactbestanden en de versleutelde backups. De nieuwste blijft altijd staan, en je ziet eerst hoeveel er weg gaat.</p>
+      </div></details>
     </div>
     <div class="card">
       <h2>Controle</h2>
-      <div id="bk-check"><p class="note" style="margin-top:0">Elke maand kijkt de app of je backup echt terug te lezen is: de backup-map, de laatste backup, en een proef met notities en contacten (of het versleutelde archief). Er wordt niets teruggezet.</p></div>
+      <div id="bk-check"><p class="note" style="margin-top:0">Elke maand kijkt de app of je backup echt terug te lezen is. Er wordt niets teruggezet.</p></div>
       <button class="big ghost" id="bk-check-btn" onclick="bkCheck()">Nu controleren</button>
     </div>
     <div class="card">
@@ -58,24 +108,31 @@
       <div id="bk-space"><p class="note" style="margin-top:0">Hoeveel ruimte elke map in je backup-map inneemt.</p></div>
       <button class="big ghost" id="bk-space-btn" onclick="bkSpace()">Berekenen</button>
     </div>
-    <div class="card">
-      <h2>Terugzetten</h2>
-      <button class="big ghost" onclick="Android.restorePick('contacts')">Contacten terugzetten (vCard)</button>
-      <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('notes')">Notities terugzetten</button>
-      <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('launcher')">Startscherm (skin) terugzetten</button>
-      <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('settings')">Instellingen, automatiseringen en zenders</button>
-      <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('transcripts')">Uitgeschreven gesprekken</button>
-      <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('music')">Herkende muziek</button>
-      <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('route')">Route (GPX)</button>
-      <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('ai')">Geheugen en gesprekken van de assistent</button>
-      <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('sleep')">Slaappraat</button>
-      <button class="big ghost" style="margin-top:8px" onclick="Android.restorePick('checkin')">Check-in</button>
-      <button class="big ghost" style="margin-top:8px" id="bk-herstel-btn" onclick="herstelStart()">Alles terugzetten na herinstallatie</button>
-      <p class="note">Alles terugzetten na herinstallatie vervangt alles in Tools door wat in een versleutelde backup met Alle appgegevens staat (met je wachtwoorden, VPN en kluis). Daarna start de app opnieuw.</p>
-      <p class="note">Het startscherm terugzetten vervangt de indeling van de skin (de huidige wordt eerst bewaard). Widgets en vastgezette snelkoppelingen kunnen niet mee terug.</p>
-      <button class="big ghost" style="margin-top:8px" onclick="Android.archivePick()">Versleutelde backup openen</button>
-      <p class="note">Je kiest het bestand in de backup-map (bijv. Contacten backup/…vcf, Notities/notities.json, Instellingen/instellingen.json, Gesprekken/transcripties.json, Muziek/herkende-nummers.json, Assistent/assistent.json, Slaappraat/slaappraat.json, Check-in/checkin.json of een route in Routes/; het geluid van Slaappraat komt dan uit de map Slaappraat in je backup-map). Er wordt alleen toegevoegd wat er nog niet is; er wordt niets overschreven of verwijderd. Sms'jes en oproepen zet je terug met de app "SMS Backup &amp; Restore"; WhatsApp via WhatsApp backup.</p>
-    </div>
   </main>
 </section>
 
+<!-- ============ ALLES BACK-UPPEN → TERUGZETTEN (ook vanuit Gegevens terugzetten) ============ -->
+<section class="screen" id="s-bkrestore">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Terugzetten</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2>Alles na herinstallatie</h2>
+      <p class="note warn" style="margin-top:0">Vervangt alles in Tools door wat in een versleutelde backup met Alle appgegevens staat (met je wachtwoorden, VPN en kluis). Daarna start de app opnieuw.</p>
+      <button class="big tonal" id="bk-herstel-btn" onclick="herstelStart()">Alle appgegevens terugzetten</button>
+    </div>
+    <div class="flabel stgl" role="heading" aria-level="2">Losse onderdelen</div>
+    <p class="hint">Er wordt alleen toegevoegd wat er nog niet is; er wordt niets overschreven of verwijderd, behalve bij het startscherm (de huidige indeling wordt eerst bewaard).</p>
+    <div class="card stlist" id="bk-restore-list"></div>
+    <div class="card stlist">
+      <button class="strow" id="bk-arc-btn" onclick="Android.archivePick()"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Versleutelde backup openen</b><small class="bk-sumwrap">Kies een onderdeel uit het archief, of pak het uit</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    </div>
+    <details class="help"><summary data-icon="info">Welk bestand kies ik?</summary><div class="help-body">
+      <p>Je kiest het bestand in de backup-map, bijv. Contacten backup/…vcf, Notities/notities.json, Instellingen/instellingen.json, Gesprekken/transcripties.json, Muziek/herkende-nummers.json, Assistent/assistent.json, Slaappraat/slaappraat.json, Check-in/checkin.json of een route in Routes/. Het geluid van Slaappraat komt dan uit de map Slaappraat in je backup-map.</p>
+      <p>Het startscherm terugzetten vervangt de indeling van de skin (de huidige wordt eerst bewaard). Widgets en vastgezette snelkoppelingen kunnen niet mee terug.</p>
+      <p>Sms'jes en oproepen zet je terug met de app "SMS Backup &amp; Restore"; WhatsApp via WhatsApp backup → Terugzetten.</p>
+    </div></details>
+  </main>
+</section>

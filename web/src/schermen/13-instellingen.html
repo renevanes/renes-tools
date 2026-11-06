@@ -23,7 +23,7 @@
     </div>
     <div class="flabel stgl" role="heading" aria-level="2">Gegevens en diensten</div>
     <div class="card stlist">
-      <button class="strow" onclick="show('setbackup')"><span class="stic"><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span><span class="sttxt"><b>Backup-map</b><small id="st-sum-backup"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" id="st-backup" onclick="jumpTo('bkset')"><span class="stic"><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span><span class="sttxt"><b>Backup-map</b><small class="bk-sumwrap" id="st-sum-backup"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="jumpTo('aiset')"><span class="stic"><span class="ui-icon" data-icon="sparkle" aria-hidden="true"></span></span><span class="sttxt"><b>Lokale AI</b><small id="st-sum-ai"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('setmusic')"><span class="stic"><span class="ui-icon" data-icon="music" aria-hidden="true"></span></span><span class="sttxt"><b>Muziek herkennen</b><small id="st-sum-music"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
@@ -258,21 +258,6 @@
       <h2>Toestemmingen</h2>
       <div id="st-perms"></div>
       <button class="big ghost" style="margin-top:10px" onclick="Android.openAppSettings()">App-instellingen van Android openen</button>
-    </div>
-  </main>
-</section>
-
-<section class="screen" id="s-setbackup">
-  <div class="hdr sm">
-    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <h1 tabindex="-1">Backup-map</h1>
-  </div>
-  <main>
-    <div class="card">
-      <h2>Backup-map</h2>
-      <p class="note" style="margin-top:0" id="st-dest">Nog niet gekozen</p>
-      <button class="big ghost" onclick="Android.waPickFolder()">Map kiezen</button>
-      <p class="note">Hier zetten alle tools hun backups en exports neer, elk in een eigen submap.</p>
     </div>
   </main>
 </section>

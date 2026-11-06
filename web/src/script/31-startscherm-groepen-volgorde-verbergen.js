@@ -166,7 +166,8 @@ function renderHomeRecent(){
   list.querySelectorAll('.hrtool').forEach(el => toolPress(el, el.dataset.t));
 }
 /* Lange namen in de smalle knoppen: alleen op een nette plek afbreken (zacht afbreekstreepje), nooit midden in een woord. */
-const HOME_SHY = { Meldingsgeschiedenis: 'Meldings\u00adgeschiedenis', Automatiseringen: 'Automati\u00adseringen', Stamgegevens: 'Stam\u00adgegevens' };
+// Alleen hier (niet in en.json): een zacht afbreekstreepje in de vertaling zelf zou ook in zoeken, voorlezen en vergelijken terechtkomen.
+const HOME_SHY = { Meldingsgeschiedenis: 'Meldings\u00adgeschiedenis', Automatiseringen: 'Automati\u00adseringen', Stamgegevens: 'Stam\u00adgegevens', Automations: 'Auto\u00admations' };
 function homeShy(s){ return String(s).split(' ').map(w => HOME_SHY[w] || w).join(' '); }
 function heRecent(on){ const c = homeCfg(); c.recent = !!on; if (!on) store.set('homeRecent', []); homeSave(c); if (current === 'homeedit') enterHomeEdit(); }
 // Elk scherm van een tool dat echt open gaat (ook via zoeken, een snelkoppeling of de assistent) telt als gebruikt

@@ -9,6 +9,7 @@ const { chromium } = require('playwright');
     await pg.goto('file://' + require('path').join(__dirname, 'ui', 'index.html')); await pg.waitForTimeout(400);
     await pg.evaluate(() => { Android._wa.info.dest = true; });
     await pg.click('#tile-backup'); await pg.waitForTimeout(200);
+    await pg.click('#bk-row-parts'); await pg.waitForTimeout(200);
     const priv = () => pg.evaluate(() => ({ ai: !!Android._bk.parts.ai, sleep: !!Android._bk.parts.sleep, audio: Android._bk.sleepAudio,
       aiBox: document.querySelector('#bk-private input[data-p="ai"]').checked, sleepBox: document.querySelector('#bk-private input[data-p="sleep"]').checked,
       radios: document.querySelectorAll('#bk-private input[type=radio]').length, warn: !!document.querySelector('#bk-priv-warn'), enc: !!document.querySelector('#bk-priv-enc') }));
@@ -39,6 +40,7 @@ const { chromium } = require('playwright');
     await pg.click('#bk-private input[data-p="ai"]'); await pg.waitForTimeout(100);
     console.log('zonder vraag aan', await pg.evaluate(() => Android._bk.parts.ai), 'dialoog open', await pg.isVisible('#modal-ok'));
     // Versleutelen uitzetten: de dialoog noemt de privé-onderdelen en zet ze uit; weer aanzetten vraagt opnieuw
+    await pg.evaluate(() => show('bkset')); await pg.waitForTimeout(150);
     await pg.click('#bk-enc-off'); await pg.waitForTimeout(150);
     const offText = await pg.textContent('#modal-text');
     console.log('uitzetten', offText.replace(/\n/g, ' / '));
@@ -47,6 +49,7 @@ const { chromium } = require('playwright');
     const p4 = await priv();
     console.log('na uitzetten', JSON.stringify(p4), await pg.textContent('#toast'));
     if (p4.ai || p4.sleep || p4.aiBox || p4.warn) throw new Error('privé-onderdelen horen uit te staan');
+    await pg.evaluate(() => show('bkparts')); await pg.waitForTimeout(150);
     for (const k of ['ai', 'sleep']) { await pg.click('#bk-private input[data-p="' + k + '"]'); await pg.waitForTimeout(150); console.log('opnieuw', k, await pg.textContent('#modal-title')); await pg.click('#modal-ok'); await pg.waitForTimeout(150); }
     console.log('weer onversleuteld', JSON.stringify(await priv()));
     console.log('toestemming', JSON.stringify(await pg.evaluate(() => Android._bk.plain)));
@@ -56,22 +59,23 @@ const { chromium } = require('playwright');
     console.log('één onderdeel', een.join(' | '));
     if (!/^Het geheugen en de gesprekken van de assistent gaan .* die zijn privé. Wil je ze/.test(een[0]) || !/^Slaappraat gaat .* dat is privé. Wil je het/.test(een[1])) throw new Error('enkelvoud/meervoud klopt niet');
     // Overzicht wegtikken: niets blijft klaarstaan (restoreCancel)
-    await pg.click('#s-backup button:has-text("Slaappraat")'); await pg.waitForTimeout(300);
+    await pg.evaluate(() => show('bkrestore')); await pg.waitForTimeout(150);
+    await pg.click('#bk-restore-list [data-k="sleep"]'); await pg.waitForTimeout(300);
     await pg.click('#modal-cancel'); await pg.waitForTimeout(150);
     console.log('geannuleerd', await pg.evaluate(() => Android._restoreCancelled));
     if (await pg.evaluate(() => Android._restoreCancelled) !== 1) throw new Error('restoreCancel niet aangeroepen');
     // Terugzetten: assistent
-    await pg.click('button:has-text("Geheugen en gesprekken van de assistent")'); await pg.waitForTimeout(300);
+    await pg.click('#bk-restore-list [data-k="ai"]'); await pg.waitForTimeout(300);
     console.log('assistent terugzetten', await pg.textContent('#modal-title'), '|', (await pg.textContent('#modal-text')).replace(/\n/g, ' / '));
     await pg.click('#modal-ok'); await pg.waitForTimeout(300);
     console.log('toast', await pg.textContent('#toast'));
     // Terugzetten: Slaappraat
-    await pg.click('#s-backup button:has-text("Slaappraat")'); await pg.waitForTimeout(300);
+    await pg.click('#bk-restore-list [data-k="sleep"]'); await pg.waitForTimeout(300);
     console.log('slaappraat terugzetten', await pg.textContent('#modal-title'), '|', (await pg.textContent('#modal-text')).replace(/\n/g, ' / '));
     await pg.click('#modal-ok'); await pg.waitForTimeout(300);
     console.log('toast', await pg.textContent('#toast'));
     // Uit een versleutelde backup
-    await pg.click('button:has-text("Versleutelde backup openen")'); await pg.waitForTimeout(300);
+    await pg.click('#bk-arc-btn'); await pg.waitForTimeout(300);
     await pg.fill('#modal-input', 'goedwachtwoord'); await pg.click('#modal-ok'); await pg.waitForTimeout(400);
     const acts = await pg.$$eval('#sheet-acts button', x => x.map(e => e.innerText.trim()).filter(Boolean));
     console.log('acties', JSON.stringify(acts));

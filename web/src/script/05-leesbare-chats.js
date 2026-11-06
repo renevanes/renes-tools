@@ -1,14 +1,21 @@
 /* ---------- Leesbare chats ---------- */
 function readInfo(){ try { return JSON.parse(Android.waReadInfo()); } catch(e){ return {}; } }
+/* De sleutel staat als eenmalig instellen op het scherm Leesbare chats; de rij op WhatsApp backup toont de stand */
 function renderReadable(){
-  const r = readInfo();
+  const r = readInfo(), i = waInfoC && 'filesAccess' in waInfoC ? waInfoC : waInfo();
   $('#rd-setup').style.display = r.hasKey ? 'none' : 'block';
   $('#rd-ready').style.display = r.hasKey ? 'block' : 'none';
   $('#rd-auto').classList.toggle('on', r.auto !== false);
+  $('#rd-perm').style.display = r.hasKey || i.filesAccess ? 'none' : '';
+  $('#chat-body').style.display = r.hasKey ? '' : 'none';
+  const st = t(r.hasKey ? 'Sleutel ingesteld' : 'Sleutel niet ingesteld');
+  $('#rd-state').textContent = st;
+  const sum = $('#wa-sum-rd'); if (sum) sum.textContent = st + (r.hasKey && r.auto !== false ? ' · ' + t('werkt vanzelf bij') : '');
+  uiSetup('#rd-card', !!r.hasKey);
   let f = '';
   if (r.hasKey) {
     f = r.dbFrom ? t('Chats bijgewerkt uit de backup van {wanneer}.', { wanneer: fmtD(r.dbFrom) }) : '';
-    if (!r.dest) f += (f ? ' ' : '') + t('Kies bovenaan een backup-map om ook HTML-bestanden te krijgen.');
+    if (!r.dest) f += (f ? ' ' : '') + t('Kies bij WhatsApp backup een backup-map om ook HTML-bestanden te krijgen.');
   }
   $('#rd-from').textContent = f;
 }
@@ -28,29 +35,51 @@ window.onWaKeyResult = function(r){
   if (r.ok) {
     $('#rd-key').value = '';
     toast(t('{n} chats gevonden ✓', { n: r.chats }));
-    renderReadable();
-    if (current === 'wa') show('chats'); // niet wegspringen als je intussen ergens anders bent
+    if (current === 'chats') enterChats(); else renderReadable(); // niet wegspringen als je intussen ergens anders bent
   } else {
     toast(r.error || 'De sleutel klopt niet');
   }
 };
 function rdForget(){
   askConfirm('Sleutel wissen?', 'Je sleutel en de ontsleutelde chats worden uit de app verwijderd. De HTML-bestanden in je backup-map blijven staan.', 'Wissen', () => {
-    Android.waForgetKey(); renderReadable(); toast('Sleutel gewist');
+    Android.waForgetKey(); if (current === 'chats') enterChats(); else renderReadable(); toast('Sleutel gewist');
   });
 }
 function rdRefresh(){
   if (!plainOk('Elke chat', rdRefresh)) return;
   const err = Android.waMakeReadable();
   if (err) { toast(err); return; }
-  toast('Chats bijwerken…'); setTimeout(waPollOnce, 200);
+  toast('Chats bijwerken…'); rdWatch();
+}
+/* Voortgang en uitkomst van leesbaar maken op het scherm Leesbare chats zelf (ook als het na een backup vanzelf loopt) */
+let rdRunPoll = null;
+function rdWatch(){ if (!rdRunPoll) rdRunPoll = setInterval(rdRunRender, 600); rdRunRender(); }
+function rdRunRender(){
+  let s; try { s = JSON.parse(Android.waStatus()); } catch(e){ return; }
+  const el = $('#rd-run'), btn = $('#rd-refresh'), run = !!s.running;
+  btn.disabled = run;
+  if (run && s.mode === 'readable') {
+    el.hidden = false; el.className = 'note';
+    el.textContent = s.phase === 'export' && s.filesTotal ? t('Bezig met leesbaar maken: {n} van {totaal}', { n: fmtNum(s.filesDone || 0), totaal: fmtNum(s.filesTotal) }) : t('Bezig met ontsleutelen…');
+    return;
+  }
+  if (run) return; // een gewone backup loopt: daarna kan het weer
+  clearInterval(rdRunPoll); rdRunPoll = null;
+  if (s.mode === 'readable' && s.phase === 'done' && el.dataset.at !== String(s.finishedAt)) {
+    el.dataset.at = String(s.finishedAt); el.hidden = false;
+    el.className = 'note' + (s.result === 'ok' ? ' good' : ' bad');
+    el.textContent = s.result === 'ok' ? t('✓ Klaar: {wat}', { wat: t(s.message || '') }) : t('Mislukt: {wat}', { wat: t(s.message || '') });
+    if (current === 'chats') enterChats();
+  }
 }
 
 let chatCur = null, chatOldest = 0, chatLoading = false, chatGroup = false;
 function enterChats(){
+  waInfoC = waInfo(); renderReadable(); // zonder sleutel staat de lijst verborgen (#chat-body) en is eenmalig instellen open
   const r = readInfo();
   $('#chat-contacts').style.display = r.contacts ? 'none' : 'block';
   $('#chat-search').value = ''; $('#search-results').innerHTML = '';
+  try { if (JSON.parse(Android.waStatus()).running) rdWatch(); else $('#rd-refresh').disabled = false; } catch(e){}
   loadChatList();
 }
 function loadChatList(){
