@@ -88,7 +88,7 @@ function fmRender(){
     if(meer.length){
       // Optionele velden ingeklapt; open als er al iets in staat of als je ze zelf opende.
       const key=fmMeerSleutel(sections[fm.step]),details=document.createElement('details'),summary=document.createElement('summary');
-      details.className='pff-meer';details.id='pff-meer';summary.textContent=t('Meer gegevens (optioneel)');
+      details.className='pff-meer';details.id='pff-meer';summary.dataset.icon='chevron-down';summary.textContent=t('Meer gegevens (optioneel)');
       details.open=key in fm.meer?fm.meer[key]:meer.some(f=>fm.values[f.id]);
       details.addEventListener('toggle',()=>{fm.meer[key]=details.open;});
       details.append(summary);meer.forEach(f=>details.append(...fmInvoer(f)));box.append(details);
