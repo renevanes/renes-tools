@@ -86,8 +86,10 @@ slot_take(){
     tip=$(slot_read); msg=$([ -n "$tip" ] && git log -1 --format=%s "$tip" || echo vrij)
     if [[ "$msg" == *"[$TOKEN]"* ]]; then SLOT_TIP=$tip; echo "Publicatieslot genomen"; return 0; fi # eigen push kwam toch aan
     since=$(sed -n 's/^bezet \([0-9]*\) .*/\1/p' <<<"$msg"); since=${since:-0}
-    if [[ "$msg" == vrij* ]] || [ $(( $(date +%s) - since )) -gt 5400 ]; then
-      [[ "$msg" == vrij* ]] || echo "Het slot staat al meer dan 1,5 uur bezet ($msg): overnemen"
+    # Een publicatie duurt 10-25 minuten en de workflow stopt na 60; een slot dat al 45 minuten bezet is,
+    # is achtergebleven (bijv. vrijgeven mislukt) en wordt overgenomen.
+    if [[ "$msg" == vrij* ]] || [ $(( $(date +%s) - since )) -gt 2700 ]; then
+      [[ "$msg" == vrij* ]] || echo "Het slot staat al meer dan 45 minuten bezet ($msg): overnemen"
       if slot_push "$tip" "bezet $(date -u +%s) door $WHO [$TOKEN]"; then echo "Publicatieslot genomen"; return 0; fi
       fails=$((fails+1))
       [ $fails -ge 10 ] && { echo "Kan het publicatieslot niet zetten (pushrechten of netwerk?)"; exit 1; }
@@ -97,7 +99,18 @@ slot_take(){
     fi
   done
 }
-slot_free(){ if [ -n "$SLOT_TIP" ] && slot_push "$SLOT_TIP" "vrij $(date -u +%s)"; then echo "Publicatieslot vrijgegeven"; fi; SLOT_TIP=""; }
+slot_free(){ # een paar keer proberen; alleen vrijgeven zolang het slot nog van ons is
+  [ -n "$SLOT_TIP" ] || return 0
+  local i tip
+  for i in 1 2 3 4 5; do
+    if slot_push "$SLOT_TIP" "vrij $(date -u +%s)"; then echo "Publicatieslot vrijgegeven"; SLOT_TIP=""; return 0; fi
+    tip=$(slot_read)
+    if [ -n "$tip" ] && [ "$tip" != "$SLOT_TIP" ]; then echo "Publicatieslot is intussen van een ander; niet vrijgegeven"; SLOT_TIP=""; return 0; fi
+    sleep $((i * 5))
+  done
+  echo "::warning::Publicatieslot vrijgeven mislukt; een volgende publicatie neemt het na 45 minuten over"
+  SLOT_TIP=""
+}
 cleanup(){ local rc=$?; [ -n "$DIRTY" ] && restore; slot_free || true; exit $rc; }
 trap cleanup EXIT
 slot_take
