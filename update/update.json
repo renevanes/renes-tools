@@ -1,15 +1,22 @@
 {
   "app": "Tools",
-  "versionName": "1.154",
-  "versionCode": 155,
+  "versionName": "1.155",
+  "versionCode": 156,
   "nativeLevel": 138,
   "web": "index.html",
-  "webSha256": "71e9cd593345a1d0468eb25f761a569acbfd65b322478d4c7cc37aed1b9fac76",
+  "webSha256": "aef348faf37b40257ade5647cda1c09b48376915ad6bca79938f231aa255dfb2",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "660b1e58bca6352079d3cb357054e217f73e1be9a04fb836c083b813154a96eb",
+  "apkSha256": "b6378d7737f604ac1fbdf0d28126c64f9fe53c800d4d4700ec4221df13227223",
   "changelog": [
+    {
+      "version": "1.155",
+      "date": "2026-11-06",
+      "changes": [
+        "Stamgegevens: \"Dit ben ik\" en \"Relatie met mij toevoegen\" staan alleen nog bij een opgeslagen persoon, en \"Oudere activiteiten laden\" alleen als er nog oudere activiteiten zijn."
+      ]
+    },
     {
       "version": "1.154",
       "date": "2026-11-06",
@@ -1369,5 +1376,5 @@
       ]
     }
   ],
-  "webSig2": "cvs5uIGNh7yX8K5FhGQ7EXGLmntfMRg2OvzctBys+4m6Oj+kdsCLYuoreSfhPB74gRNVRnJHtmh21OmFXd/M6cHUKZIGn2qU3mtfYKbNc/M2/hrjunPfG6HIwga+DVmqb6GPu4RACEV/c6StlXcrKVJkisKXM3Jh49kUTsJOl90Y/AjksF0Yv3HgbX6WGzLpZ+aDucl+h5DkTs8v6rAD3AaZC0nabwZ1NmMVi+D20AcmgVbuQrMg2zBzvPI/LdKlWnY/RzazoMAXvtM3ZxWa9YmqRWtcuqk0krTstN1seWrACS+0TYGIOAjEZKigXBCmK0DaVeIXvTNq6msNMnz+PypEsC480Mq5SNVDHQVM7VXJk3vJmxqkmHAddPPuUIhKGKnUjuaunITgNewGrinrR1vYn+4MSwx00tD5k607r8K/k8ljfTY+A3UCVJjmw8mCeA6LS2BD4aXJ+o0CyR5brCndQ8GPGmiA+CVSioakqxYni0gmm4PVvjNQ6f0ZB6Iw"
+  "webSig2": "RuGHeK1l8qLAi67rS8vI9A/h0hET1pGOtD6mSPdKZGXBqh+3eQS2LbgPuR5YNeNNNyP5bltAmdIjIWb39JtacViQp5+KhMHHSe31w6ea3Wyf3EE9YWIlWC04243xe8xzX41MfVsI+ppemjxHdwSYQf1qwpNubhSNwJzFgkIMmMQmnv5CY7ZJFVMViZ+3TPXQzpltdcRoEgFlZc6io6qlx53qunOy/8XohrjMW5FkblU8K4SOrFFJMmsSC59id7ulnD07VZmB6ovb11kFxghd5bS91kHieqPCg9VyGY7lnR12vBb6uTlpZLkzRIAIT0z+9hLmH9wJ5T8NjpCWpg1ubo2MWc9rbhiBo+4H5U595pytGjEmwumqN+s0VBUNm/XhOGxrT2EmYQufcede6m7v3EUMdeTPfrWS9FpgH+DfnjZakLUm1ovwFKWiKwi20u9Ld+djCNYt08tTbk1lbVTOkqhnisUpq2dfE7Lbfjhyzqw2pJDCzdwq5x+CmLKbwX65"
 }
