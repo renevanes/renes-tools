@@ -45,10 +45,40 @@ public class ToilettenOsmTest {
         check(fout, "onverwacht antwoord: fout");
         check(ToilettenOsm.notitieUrl(5).equals("https://www.openstreetmap.org/note/5"), "link naar de notitie");
 
+        check(ToilettenOsm.tekst("afwijzing", new JSONObject().put("s", "douche"), null, "", "dicht", "").startsWith("De douche hier is gesloten.")
+                && ToilettenOsm.deHet("camping").equals("De camping") && ToilettenOsm.deHet("station").equals("Het station") && ToilettenOsm.deHet("biblio").equals("De bibliotheek"), "goede lidwoorden (de douche, het station)");
+
+        // Wat er van Rene zelf meegaat: alleen wat hij op het scherm Doorgeven als opmerking invult, nooit zijn notitie
+        ToilettenSamen.Punt eigen = new ToilettenSamen.Punt();
+        eigen.k = "eigen:0123456789ab"; eigen.la = 52.1; eigen.lo = 4.3; eigen.s = "toilet"; eigen.f = T; eigen.n = "Kiosk"; eigen.u = "";
+        eigen.notitie = "sleutel bij de kiosk, code 1234"; eigen.eigen = "toegevoegd";
+        JSONObject n1 = ToilettenOsm.notitie(eigen, null, "", "toevoeging", "");
+        check(!n1.getString("tekst").contains("sleutel") && !n1.getString("tekst").contains("1234") && !n1.getString("tekst").contains("Opmerking"), "eigen notitie bij de plek gaat niet mee\n" + n1.getString("tekst"));
+        JSONObject n2 = ToilettenOsm.notitie(eigen, null, "", "toevoeging", "Achter de kerk");
+        check(n2.getString("tekst").contains("\nOpmerking: Achter de kerk") && n2.getDouble("la") == 52.1 && n2.getString("wat").equals("toevoeging"), "opmerking van het scherm Doorgeven gaat wel mee");
+        ToilettenSamen.Punt aangepast = new ToilettenSamen.Punt();
+        aangepast.k = "den-haag:g1"; aangepast.la = 52.07; aangepast.lo = 4.31; aangepast.s = "toilet"; aangepast.f = T | G; aangepast.n = "Plein"; aangepast.u = "";
+        aangepast.notitie = "prive"; aangepast.eigen = "aangepast"; aangepast.uitBron = new JSONObject().put("s", "toilet").put("f", T | B).put("n", "Plein").put("u", "");
+        check(ToilettenOsm.notitie(aangepast, null, "", "wijziging", "").getString("wat").equals("toevoeging"), "aanpassing van iets wat niet in OpenStreetMap staat: als nieuwe plek");
+        JSONObject n3 = ToilettenOsm.notitie(aangepast, null, "https://www.openstreetmap.org/node/7", "wijziging", "");
+        check(n3.getString("wat").equals("wijziging") && n3.getString("tekst").contains("gratis (stond: betaald)") && !n3.getString("tekst").contains("prive"), "wijziging zonder eigen notitie");
+        JSONObject afw = new JSONObject().put("la", 52.07).put("lo", 4.31).put("s", "toilet").put("reden", "dicht").put("tekst", "al maanden dicht");
+        JSONObject n4 = ToilettenOsm.notitie(aangepast, afw, "https://www.openstreetmap.org/node/7", "afwijzing", "");
+        check(!n4.getString("tekst").contains("al maanden") && n4.getString("voorstel").equals("al maanden dicht"), "afwijzing: toelichting alleen als voorstel voor het veld, niet vanzelf in de tekst");
+        check(err(() -> ToilettenOsm.notitie(aangepast, null, "x", "afwijzing", "")).contains("eerst af") && err(() -> ToilettenOsm.notitie(aangepast, null, "", "toevoeging", "")).contains("eigen plekken")
+                && err(() -> ToilettenOsm.notitie(null, null, "", "toevoeging", "")).contains("niet meer") && err(() -> ToilettenOsm.notitie(eigen, null, "", "iets", "")).contains("Onbekend"), "notitie alleen voor wat kan");
+
+        JSONObject g = new JSONObject().put("osm-nl:n1|afwijzing", new JSONObject().put("status", "open")).put("osm-nl:n2|afwijzing", new JSONObject().put("status", "closed"));
+        check(ToilettenOsm.open(g, "osm-nl:n1", "afwijzing") && !ToilettenOsm.open(g, "osm-nl:n2", "afwijzing") && !ToilettenOsm.open(g, "osm-nl:n1", "wijziging"), "wat nog open staat niet nog een keer doorgeven");
+
         String src = new String(Files.readAllBytes(Paths.get("app/src/nl/rene/tools/ToilettenOsm.java")), StandardCharsets.UTF_8);
         check(src.contains("\"https://api.openstreetmap.org/api/0.6/notes\"") && !src.contains("Authorization") && !src.contains("oauth"), "alleen de notities-API van OpenStreetMap, zonder account");
         String br = new String(Files.readAllBytes(Paths.get("app/src/nl/rene/tools/ToilettenBridge.java")), StandardCharsets.UTF_8);
-        check(br.contains("wcNotitie") && br.contains("wcDoorgeven"), "eerst de tekst laten zien (wcNotitie), dan pas versturen (wcDoorgeven)");
+        check(br.contains("wcNotitie") && br.contains("wcDoorgeven") && br.contains("equals(getoond)"), "eerst de tekst laten zien (wcNotitie), dan pas versturen (wcDoorgeven), en alleen precies die tekst");
+        check(!br.contains("ToilettenOsm.tekst("), "de brug maakt de tekst niet zelf (alleen via ToilettenOsm.notitie, hierboven getest)");
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
     }
+
+    interface Doe { Object doe() throws Exception; }
+    static String err(Doe d) { try { d.doe(); return ""; } catch (Exception e) { return e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(); } }
 }

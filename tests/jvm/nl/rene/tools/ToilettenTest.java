@@ -180,6 +180,52 @@ public class ToilettenTest {
         check(!Toiletten.terug(e, "x", "alles"), "onbekend terugzetten doet niets");
         check(err(() -> { Toiletten.checkEigen("{\"wijzig\":[]}"); return null; }).contains("Onverwacht"), "eigen laag in een vreemde vorm wordt niet gelezen");
 
+        // Een "meestal"-plek (tankstation) aanpassen: blijft "meestal", tenzij Rene aanvinkt dat er zeker een toilet is
+        int M = Toiletten.MEESTAL;
+        JSONObject tank = new JSONObject().put("s", "tank").put("f", Toiletten.TOILET | M | Toiletten.KLANTEN).put("n", "Shell").put("u", "").put("la", 52.0).put("lo", 4.0);
+        JSONObject e3 = Toiletten.leegEigen();
+        Toiletten.bewaarPlek(e3, new JSONObject().put("k", "osm-nl:n3").put("s", "tank").put("f", Toiletten.TOILET | Toiletten.KLANTEN).put("n", "Shell").put("notitie", "naast de shop"), tank, 1);
+        check((e3.getJSONObject("wijzig").getJSONObject("osm-nl:n3").getJSONObject("v").getInt("f") & M) != 0, "notitie bij een tankstation: blijft 'meestal een toilet'");
+        Toiletten.bewaarPlek(e3, new JSONObject().put("k", "osm-nl:n3").put("s", "tank").put("f", Toiletten.TOILET | Toiletten.KLANTEN).put("n", "Shell"), tank, 2);
+        check(!e3.getJSONObject("wijzig").has("osm-nl:n3"), "zonder notitie en verder gelijk: geen aanpassing meer");
+        Toiletten.bewaarPlek(e3, new JSONObject().put("k", "osm-nl:n3").put("s", "tank").put("f", Toiletten.TOILET | Toiletten.KLANTEN).put("n", "Shell").put("zeker", true), tank, 3);
+        check(e3.getJSONObject("wijzig").has("osm-nl:n3") && (e3.getJSONObject("wijzig").getJSONObject("osm-nl:n3").getJSONObject("v").getInt("f") & M) == 0, "zeker een toilet: niet meer 'meestal', en dat is een aanpassing");
+        Toiletten.bewaarPlek(e3, new JSONObject().put("k", "osm-nl:n4").put("s", "toilet").put("f", Toiletten.TOILET | M).put("n", "x"), bronW, 4);
+        check((e3.getJSONObject("wijzig").getJSONObject("osm-nl:n4").getJSONObject("v").getInt("f") & M) == 0, "'meestal' komt nooit uit wat Rene invult");
+
+        // Bronnen lezen: één bron die niet klopt valt weg, de rest blijft
+        JSONArray gemengd = new JSONArray().put(new JSONObject().put("naam", "Goed").put("url", "https://a.nl/x.geojson").put("licentie", "CC0"))
+                .put(new JSONObject().put("naam", "Kapot").put("url", "http://b.nl").put("licentie", "CC0"))
+                .put(new JSONObject().put("naam", "Ook goed").put("url", "https://c.nl/x.geojson").put("licentie", "CC0"));
+        check(Toiletten.leesLijst(gemengd).length() == 2 && Toiletten.leesLijst(null).length() == 0, "lezen: een kapotte bron valt weg, de andere blijven");
+        check(err(() -> Toiletten.checkLijst(gemengd)).contains("https://"), "bewaren: een kapotte bron wordt geweigerd");
+        check(err(() -> Toiletten.normaal(new JSONObject().put("naam", "x").put("url", "https://a.nl").put("licentie", "CC0").put("info", "ftp://a.nl"))).equals("Het adres met uitleg moet beginnen met https://")
+                && err(() -> Toiletten.normaal(new JSONObject().put("naam", "x").put("licentie", "CC0"))).equals("Vul het adres van de gegevens in"), "meldingen als hele zinnen (vertaalbaar)");
+
+        // Een zoekpatroon dat eindeloos kan duren, wordt niet bewaard (Android kan een zoekopdracht niet afbreken)
+        for (String p : new String[]{"(a+)+$", "(.*a){20}$", "(a|aa)*$", "(\\w+\\s?)*$", "((ab)*c)+", "a*b*c*d*", "(x+)*"})
+            check(Toiletten.riskant(p) && err(() -> Toiletten.normaal(new JSONObject().put("naam", "x").put("soort", "geojson").put("url", "https://a.nl").put("licentie", "CC0")
+                    .put("regels", new JSONArray().put(new JSONObject().put("veld", "naam").put("patroon", p).put("zet", "klanten"))))).contains("traag"), "riskant zoekpatroon geweigerd: " + p);
+        for (String p : new String[]{"^ja$", "^(heren|dames)$", "gratis|free", "\\d+[.,]\\d+", "(ja)?", "[(+*]+", "\\(a+\\)+", "^(a|b)c{2}$"})
+            check(!Toiletten.riskant(p), "gewoon zoekpatroon mag: " + p);
+        check(ToilettenScan.past("^ja$", "JA") && !ToilettenScan.past("^ja$", "nee"), "gewoon zoekpatroon werkt (hoofdletters maken niet uit)");
+
+        // Planning: eerste keer meteen, daarna het volgende moment; na een fout opnieuw na "opnieuw" uur; wifi apart
+        java.util.TimeZone tz = java.util.TimeZone.getTimeZone("Europe/Amsterdam");
+        long nu = 1_793_000_000_000L;
+        JSONObject dag = Toiletten.normaal(new JSONObject().put("id", "a").put("naam", "a").put("url", "https://a.nl").put("licentie", "CC0").put("schema", "dag").put("tijd", "04:00").put("wifi", false).put("opnieuw", 6));
+        JSONObject wifi = new JSONObject(dag.toString()).put("id", "b").put("wifi", true);
+        long[] v0 = ToilettenJob.volgende(new JSONArray().put(dag), new JSONObject(), nu, tz);
+        check(v0[0] == nu + 60_000L && v0[1] == Long.MAX_VALUE, "nog nooit gescand: over een minuut, met elk netwerk");
+        long[] v1 = ToilettenJob.volgende(new JSONArray().put(wifi), new JSONObject(), nu, tz);
+        check(v1[0] == Long.MAX_VALUE && v1[1] == nu + 60_000L, "alleen via wifi: in de wifi-planning");
+        long[] v2 = ToilettenJob.volgende(new JSONArray().put(dag), new JSONObject().put("a", new JSONObject().put("lastOk", nu).put("lastTry", nu)), nu, tz);
+        check(v2[0] == Facturen.gepland(dag, nu, true, tz) && v2[0] > nu, "net gelukt: het volgende moment (04:00 in de app-zone)");
+        long[] v3 = ToilettenJob.volgende(new JSONArray().put(dag), new JSONObject().put("a", new JSONObject().put("lastOk", nu - 3 * 86_400_000L).put("lastTry", nu - 3_600_000L)), nu, tz);
+        check(v3[0] == Math.min(Facturen.gepland(dag, nu, true, tz), nu + 5 * 3_600_000L), "mislukt een uur geleden: opnieuw na 6 uur (of eerder als het moment eerder is)");
+        long[] v4 = ToilettenJob.volgende(new JSONArray().put(new JSONObject(dag.toString()).put("aan", false)).put(new JSONObject(dag.toString()).put("id", "c").put("schema", "uit")), new JSONObject(), nu, tz);
+        check(v4[0] == Long.MAX_VALUE && v4[1] == Long.MAX_VALUE, "uit of zonder planning: niets gepland");
+
         check(new File("app/src/nl/rene/tools/ToilettenScan.java").exists(), "klaar");
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }
     }

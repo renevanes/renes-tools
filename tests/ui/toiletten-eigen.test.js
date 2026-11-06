@@ -55,6 +55,27 @@ const W = +process.env.UI_WACHT || 1;
     ok(/de bron geldt weer/.test(await toast()) && !/Door jou aangepast/.test(body) && /Toilet Markthal West/.test(await txt('#wcp-body h2')), 'Overnemen: de bron geldt weer');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(200 * W);
 
+    // ---------- een tankstation (meestal een toilet) aanpassen ----------
+    await pg.evaluate(() => wcOpen('osm-nl:n103')); await pg.waitForTimeout(200 * W);
+    await menu('Aanpassen');
+    ok(await vis('#wcb-zeker') && !(await pg.isChecked('#wcb-zeker')), 'meestal-plek: keuze "zeker een toilet" zichtbaar, uit');
+    await pg.fill('#wcb-notitie', 'Naast de shop'); await pg.click('#wcb-bewaar'); await pg.waitForTimeout(200 * W);
+    let bw = (await wc()).calls.filter(c => c[0] === 'bewaarPlek').pop();
+    ok(await cur() === 'wcplek' && bw[1] === 'osm-nl:n103' && (bw[2].f & 4) && /meestal een toilet, maar dat staat niet zeker/.test(await txt('#wcp-body')), 'notitie erbij: blijft "meestal"');
+    await menu('Aanpassen');
+    await pg.check('#wcb-zeker'); await pg.click('#wcb-bewaar'); await pg.waitForTimeout(200 * W);
+    bw = (await wc()).calls.filter(c => c[0] === 'bewaarPlek').pop();
+    ok(!(bw[2].f & 4) && !/staat niet zeker/.test(await txt('#wcp-body')), 'zeker een toilet: niet meer "meestal"');
+    await menu('Aanpassen');
+    ok(await pg.isChecked('#wcb-zeker'), 'opnieuw aanpassen: "zeker" staat nog aan');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(150 * W);
+    await menu('Mijn aanpassing vergeten');
+    ok(/staat niet zeker/.test(await txt('#wcp-body')), 'aanpassing vergeten: weer "meestal"');
+    await pg.evaluate(() => wcOpen('osm-nl:n102')); await pg.waitForTimeout(200 * W);
+    await menu('Aanpassen');
+    ok(!(await vis('#wcb-zeker')), 'gewoon toilet: geen keuze "zeker"');
+    await pg.evaluate(() => { goBack(); goBack(); }); await pg.waitForTimeout(200 * W);
+
     // ---------- afwijzen, ongedaan maken, opnieuw afwijzen ----------
     await open('Douches Zwembad');
     await menu('Klopt niet: afwijzen');
@@ -83,16 +104,30 @@ const W = +process.env.UI_WACHT || 1;
     ok(await cur() === 'wcdeel', 'scherm Doorgeven aan OpenStreetMap');
     ok(await vis('#wcd-let') && (await txt('#wcd-let b')) === 'Openbaar; OpenStreetMap ziet je IP-adres', 'waarschuwing zichtbaar: openbaar en IP-adres');
     const tekst = await txt('#wcd-tekst');
-    ok(/het toilet is gesloten/.test(tekst) && /Toelichting: Al maanden dicht/.test(tekst) && /Object: https:\/\/www\.openstreetmap\.org\/node\/104/.test(tekst), 'precieze tekst: ' + tekst.split('\n')[0]);
+    ok(/het toilet is gesloten/.test(tekst) && /Opmerking: Al maanden dicht/.test(tekst) && /Object: https:\/\/www\.openstreetmap\.org\/node\/104/.test(tekst), 'precieze tekst: ' + tekst.split('\n')[0]);
+    ok(await pg.inputValue('#wcd-opm') === 'Al maanden dicht', 'opmerking vooraf ingevuld met je toelichting, zichtbaar als openbaar');
+    await pg.fill('#wcd-opm', ''); await pg.waitForTimeout(80 * W);
+    ok(!/Al maanden/.test(await txt('#wcd-tekst')) && !/Opmerking/.test(await txt('#wcd-tekst')), 'opmerking leeg: hij gaat niet mee (tekst meteen bijgewerkt)');
+    await pg.fill('#wcd-opm', 'Bord hangt er nog'); await pg.waitForTimeout(80 * W);
+    ok(/Opmerking: Bord hangt er nog/.test(await txt('#wcd-tekst')), 'eigen opmerking in de tekst');
+    await pg.evaluate(() => { wcDeel.tekst = 'iets anders'; });
+    await pg.click('#wcd-ok'); await pg.waitForTimeout(250 * W);
+    ok(/intussen veranderd/.test(await toast()) && !(await wc()).calls.some(c => c[0] === 'doorgeven') && /Bord hangt er nog/.test(await txt('#wcd-tekst')) && await pg.evaluate(() => wcDeel.tekst === document.getElementById('wcd-tekst').textContent), 'andere tekst dan getoond: er gaat niets, je ziet de tekst opnieuw');
     ok(/^Op de kaart: 51[.,]918/.test(await txt('#wcd-plek')), 'plek van de notitie');
     ok(await pg.evaluate(() => getComputedStyle(document.getElementById('wcd-let')).borderTopWidth) === '2px', 'waarschuwing met kader');
     await pg.screenshot({ path: path.join(__dirname, 'shots', 'toiletten-deel-' + scheme + '.png'), fullPage: true });
     await pg.click('#s-wcdeel button:has-text("Niet doorgeven")'); await pg.waitForTimeout(150 * W);
     ok(await cur() === 'wcplek' && !(await wc()).calls.some(c => c[0] === 'doorgeven'), 'Niet doorgeven: er gaat niets weg');
     await menu('Doorgeven aan OpenStreetMap');
+    const getoond = await txt('#wcd-tekst');
     await pg.click('#wcd-ok'); await pg.waitForTimeout(250 * W);
     ok(await cur() === 'wcplek' && /Doorgegeven aan OpenStreetMap/.test(await toast()), 'doorgegeven');
+    ok((await wc()).calls.filter(c => c[0] === 'doorgeven').pop()[3] === getoond, 'precies de getoonde tekst gaat weg');
     ok(/Doorgegeven aan OpenStreetMap/.test(await txt('#wcp-body')) && /Klopt niet meer/.test(await txt('#wcp-body')) && /open/.test(await txt('#wcp-body')), 'de notitie staat bij de plek');
+    await pg.click('#wcp-menu'); await pg.waitForTimeout(100 * W);
+    ok(!(await pg.$$eval('#sheet-acts button', l => l.map(x => x.textContent))).some(x => /Doorgeven/.test(x)), 'staat open bij OpenStreetMap: niet nog een keer doorgeven');
+    await pg.evaluate(() => closeSheet()); await pg.waitForTimeout(100 * W);
+    ok(/al open/.test(await pg.evaluate(() => wcFout(Android.wcNotitie('osm-nl:n104', 'afwijzing', '')))), 'ook de brug weigert een tweede notitie');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(150 * W);
 
     // ---------- een plek toevoegen (lang indrukken op de kaart) ----------
@@ -101,7 +136,7 @@ const W = +process.env.UI_WACHT || 1;
     ok(/geef hem dan daarna door aan OpenStreetMap/.test(await txt('#wcb-uitleg')), 'uitleg: eerst alleen op je telefoon');
     await pg.uncheck('#wcb-toilet'); await pg.click('#wcb-bewaar'); await pg.waitForTimeout(100 * W);
     ok(await cur() === 'wcbewerk' && /Vink toilet/.test(await toast()), 'zonder toilet of douche: niet bewaard');
-    await pg.check('#wcb-toilet'); await pg.fill('#wcb-n', 'Toilet bij de bieb'); await pg.selectOption('#wcb-geld', 'gratis');
+    await pg.check('#wcb-toilet'); await pg.fill('#wcb-n', 'Toilet bij de bieb'); await pg.selectOption('#wcb-geld', 'gratis'); await pg.fill('#wcb-notitie', 'Code 4321');
     await pg.click('#wcb-bewaar'); await pg.waitForTimeout(200 * W);
     ok(await cur() === 'wcplek' && /Plek toegevoegd/.test(await toast()) && /Jouw eigen plek/.test(await txt('#wcp-body')) && /Door jou toegevoegd/.test(await txt('#wcp-body')), 'eigen plek toegevoegd');
     const k = await pg.evaluate(() => wcK);
@@ -118,6 +153,7 @@ const W = +process.env.UI_WACHT || 1;
     await open('Toilet bij de bieb');
     await menu('Doorgeven aan OpenStreetMap');
     ok(/Hier is een toilet dat nog niet op de kaart staat/.test(await txt('#wcd-tekst')) && /Naam: Toilet bij de bieb/.test(await txt('#wcd-tekst')), 'tekst voor een nieuwe plek');
+    ok(!/4321/.test(await txt('#wcd-tekst')) && await pg.inputValue('#wcd-opm') === '', 'je notitie voor jezelf gaat niet mee');
     await pg.click('#wcd-ok'); await pg.waitForTimeout(250 * W);
     const urls = await pg.evaluate(() => window._open);
     ok(/alleen via de website/.test(await toast()) && /^https:\/\/www\.openstreetmap\.org\/note\/new#map=19\/51\.921\/4\.481$/.test(urls[urls.length - 1]), 'moderatiezone: de website op die plek');
@@ -153,6 +189,18 @@ const W = +process.env.UI_WACHT || 1;
     await pg.click('#wcg-body .icon-btn'); await pg.waitForTimeout(100 * W);
     ok(/Nog niets doorgegeven/.test(await txt('#wcg-body')), 'uit de lijst gehaald');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(100 * W);
+
+    // Mijn wijzigingen vanuit ⋯ op het hoofdscherm: terug gaat naar het hoofdscherm
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(150 * W);
+    await pg.evaluate(() => wcMenu()); await pg.waitForTimeout(100 * W);
+    await pg.click('#sheet-acts button:has-text("Mijn wijzigingen")'); await pg.waitForTimeout(150 * W);
+    ok(await cur() === 'wceigen', 'via ⋯ naar Mijn wijzigingen');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(150 * W);
+    ok(await cur() === 'wc', 'terug: weer op Toiletten en douches');
+    await pg.click('#wc-set-btn'); await pg.waitForTimeout(150 * W);
+    await pg.click('#s-wcset .strow:has-text("Mijn wijzigingen")'); await pg.waitForTimeout(150 * W);
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(150 * W);
+    ok(await cur() === 'wcset', 'vanuit de instellingen: terug naar de instellingen');
 
     // ---------- eigen wijzigingen niet leesbaar: niets overschrijven ----------
     await pg.evaluate(() => { Android._wc.eigenKapot = true; wcState(); wcsRender(); });

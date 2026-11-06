@@ -14,17 +14,17 @@ public class ToilettenBridge extends MasterBridge {
 
     /** De bewaarde fouten van een scan in de taal van de app (bewaard blijven ze Nederlands). */
     private JSONObject vertaald(JSONObject t) throws Exception {
-        if (!t.optString("fout").isEmpty()) t.put("fout", Taal.t(ctx, t.getString("fout")));
+        if (!t.optString("fout").isEmpty()) t.put("fout", Taal.tx(ctx, t.getString("fout")));
         JSONArray log = t.optJSONArray("log");
         for (int i = 0; log != null && i < log.length(); i++) {
             JSONObject x = log.optJSONObject(i);
-            if (x != null && !x.optString("fout").isEmpty()) x.put("fout", Taal.t(ctx, x.getString("fout")));
+            if (x != null && !x.optString("fout").isEmpty()) x.put("fout", Taal.tx(ctx, x.getString("fout")));
         }
         return t;
     }
 
     private String fout(Throwable e, String fb) {
-        String m = Taal.t(ctx, e.getMessage() == null ? fb : e.getMessage());
+        String m = Taal.tx(ctx, e.getMessage() == null ? fb : e.getMessage());
         try { return new JSONObject().put("error", m).toString(); } catch (Exception x) { return "{\"error\":\"\"}"; }
     }
 
@@ -109,7 +109,8 @@ public class ToilettenBridge extends MasterBridge {
             for (String w : ToilettenOsm.WAT) { JSONObject x = g.optJSONObject(k + "|" + w); if (x != null) gd.put(new JSONObject(x.toString()).put("url", ToilettenOsm.notitieUrl(x.optLong("id"))).put("sleutel", k + "|" + w)); }
             o.put("gedeeld", gd);
             JSONObject e = Toiletten.eigen(ctx);
-            if (e != null && e.optJSONObject("afgewezen").has(k)) o.put("afwijzing", e.optJSONObject("afgewezen").optJSONObject(k));
+            String af = p.afSleutel.isEmpty() ? k : p.afSleutel;
+            if (e != null && e.optJSONObject("afgewezen").has(af)) o.put("afwijzing", e.optJSONObject("afgewezen").optJSONObject(af));
             return o.toString();
         } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
     }
@@ -124,6 +125,7 @@ public class ToilettenBridge extends MasterBridge {
     }
 
     @JavascriptInterface public String wcBronWeg(String id) {
+        if (ToilettenScan.BEZIG.get()) return fout(new Exception(Taal.T("Even wachten: er loopt een scan")), "");
         try { Toiletten.verwijderBron(ctx, id); plan(); return ""; } catch (Throwable e) { return fout(e, Taal.T("Verwijderen lukt niet")); }
     }
 
@@ -196,8 +198,10 @@ public class ToilettenBridge extends MasterBridge {
             synchronized (Toiletten.LOCK) {
                 JSONObject e = eigenOfFout();
                 ToilettenSamen.Punt p = ToilettenSamen.index(ctx).opSleutel.get(k);
-                String key = "wijzig".equals(wat) && p != null && !p.wijzigSleutel.isEmpty() ? p.wijzigSleutel : k;
-                if (!Toiletten.terug(e, key, wat)) return "";
+                String key = k;
+                if (p != null && "wijzig".equals(wat) && !p.wijzigSleutel.isEmpty()) key = p.wijzigSleutel;
+                if (p != null && "afgewezen".equals(wat) && !p.afSleutel.isEmpty()) key = p.afSleutel;
+                if (!Toiletten.terug(e, key, wat)) return fout(new Exception(Taal.T("Niets veranderd: dit stond er al niet meer")), "");
                 Toiletten.bewaarEigen(ctx, e);
             }
             return "";
@@ -227,46 +231,34 @@ public class ToilettenBridge extends MasterBridge {
 
     // ================= gemeenschap (OpenStreetMap-notities) =================
 
-    /** De notitie zoals hij naar OpenStreetMap gaat (Rene ziet hem eerst): {tekst, la, lo, wat} of {error}. */
-    private JSONObject notitie(String k, String wat) throws Exception {
+    /** De notitie zoals hij naar OpenStreetMap gaat (Rene ziet hem eerst); zie ToilettenOsm.notitie. */
+    private JSONObject notitie(String k, String wat, String opmerking) throws Exception {
         JSONObject e = eigenOfFout();
-        ToilettenSamen.Index ix = ToilettenSamen.index(ctx);
-        ToilettenSamen.Punt p = ix.opSleutel.get(k);
+        ToilettenSamen.Punt p = ToilettenSamen.index(ctx).opSleutel.get(k);
         JSONObject bron = perId(Toiletten.bronnen(ctx));
         String osm = "";
-        double la, lo;
         if (p != null) for (String key : p.keys) {
             JSONObject b = bron.optJSONObject(ToilettenSamen.bronVan(key));
             if (b != null && "tools".equals(b.optString("soort"))) { osm = ToilettenOsm.osmUrl(key.substring(key.indexOf(':') + 1)); if (!osm.isEmpty()) break; }
         }
-        String tekst;
-        if ("afwijzing".equals(wat)) {
-            JSONObject af = e.optJSONObject("afgewezen").optJSONObject(p != null && !p.wijzigSleutel.isEmpty() ? p.wijzigSleutel : k);
-            if (af == null) throw new Exception(Taal.T("Wijs de plek eerst af"));
-            if (osm.isEmpty()) throw new Exception(Taal.T("Deze plek staat niet in OpenStreetMap"));
-            la = af.optDouble("la"); lo = af.optDouble("lo");
-            tekst = ToilettenOsm.tekst(wat, new JSONObject().put("s", af.optString("s")).put("f", p == null ? 0 : p.f), null, osm, af.optString("reden"), af.optString("tekst"));
-        } else {
-            if (p == null) throw new Exception(Taal.T("Deze plek staat er niet meer"));
-            la = p.la; lo = p.lo;
-            JSONObject nu = ToilettenSamen.waarden(p);
-            if ("wijziging".equals(wat)) {
-                if (!"aangepast".equals(p.eigen)) throw new Exception(Taal.T("Pas de plek eerst aan"));
-                if (osm.isEmpty()) wat = "toevoeging";
-            } else if (!"toegevoegd".equals(p.eigen)) throw new Exception(Taal.T("Alleen je eigen plekken"));
-            tekst = ToilettenOsm.tekst(wat, nu, p.uitBron, osm, "", p.notitie);
-        }
-        return new JSONObject().put("tekst", tekst).put("la", la).put("lo", lo).put("wat", wat).put("osm", osm);
+        JSONObject af = e.optJSONObject("afgewezen").optJSONObject(p != null && !p.afSleutel.isEmpty() ? p.afSleutel : k);
+        JSONObject n = ToilettenOsm.notitie(p, "afwijzing".equals(wat) ? af : null, osm, wat, opmerking);
+        if (ToilettenOsm.open(ToilettenOsm.gedeeld(ctx), k, n.getString("wat"))) throw new Exception(Taal.T("Dit staat al open bij OpenStreetMap"));
+        return n;
     }
 
-    @JavascriptInterface public String wcNotitie(String k, String wat) {
-        try { return notitie(k, wat).toString(); } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
+    @JavascriptInterface public String wcNotitie(String k, String wat, String opmerking) {
+        try { return notitie(k, wat, opmerking).toString(); } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
     }
 
-    /** Na bevestiging: de notitie maken (resultaat via onWcGedeeld). In een moderatiezone gaat de tekst naar het klembord. */
-    @JavascriptInterface public String wcDoorgeven(String k, String wat) {
+    /**
+     * Na bevestiging: de notitie maken (resultaat via onWcGedeeld). getoond = de tekst die Rene zag; is de plek intussen
+     * veranderd, dan gaat er niets en ziet hij de nieuwe tekst eerst. In een moderatiezone gaat de tekst naar het klembord.
+     */
+    @JavascriptInterface public String wcDoorgeven(String k, String wat, String opmerking, String getoond) {
         final JSONObject n;
-        try { n = notitie(k, wat); } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
+        try { n = notitie(k, wat, opmerking); } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
+        if (!n.optString("tekst").equals(getoond)) return fout(new Exception(Taal.T("De tekst is intussen veranderd: bekijk hem opnieuw")), "");
         new Thread(() -> {
             String r;
             try {

@@ -1194,5 +1194,5 @@ body.talk-on #s-ai main{padding-bottom:200px}
 .wc-regel{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .wc-regel .icon-btn{justify-self:end;min-width:44px;min-height:44px}
 #wcg-body .icon-btn{min-width:44px;min-height:44px;flex:none}
-#wcn-menu[hidden],#wcp-menu[hidden]{display:none}
+#wcn-menu[hidden],#wcp-menu[hidden],#wcb-zeker-r[hidden]{display:none}
 #s-wceigen .srow .mini,#s-wcgedeeld .srow .mini,#s-wcplek .srow .mini{float:none;flex:none;margin-left:6px}

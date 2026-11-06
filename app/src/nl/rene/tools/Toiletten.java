@@ -16,8 +16,8 @@ import java.util.regex.Pattern;
  * Toiletten en douches: bronnen (instellingen), opslag en de eigen laag (bewerken, afwijzen, toevoegen).
  * Een bron is alleen een instelling (sjablonen in web/toiletten-bronnen.json); ToilettenScan haalt de gegevens op,
  * ToilettenSamen voegt ze samen en zoekt dichtbij. Je locatie gaat nooit mee: bronnen worden in hun geheel gedownload.
- * Opslag: toiletten/ (bronnen, toestand, eigen laag, gedeeld; gaat mee in "Alle appgegevens") en toiletten-cache/
- * (de gedownloade bronnen; niet in de backup, opnieuw op te halen).
+ * Opslag: toiletten/ (bronnen, toestand, eigen laag, gedeeld; gaat mee in "Alle appgegevens", niet in de Android-backup)
+ * en toiletten-cache/ (de gedownloade bronnen; nergens in een backup, opnieuw op te halen).
  */
 final class Toiletten {
     private Toiletten() { }
@@ -68,13 +68,14 @@ final class Toiletten {
 
     private static String tekst(JSONObject o, String k, int max, String def) throws Exception {
         String v = o.optString(k, def == null ? "" : def).trim();
-        if (v.length() > max) throw new Exception("Te lang: " + k);
+        if (v.length() > max) throw new Exception(Taal.T("Een van de velden is te lang"));
         return v;
     }
 
-    static String adres(String v, boolean nodig, String wat) throws Exception {
-        if (v.isEmpty()) { if (nodig) throw new Exception("Vul " + wat + " in"); return v; }
-        if (!v.matches("(?i)https://[^\\s/?#@]+(?:[/?#][^\\s]*)?")) throw new Exception(wat.substring(0, 1).toUpperCase(Locale.ROOT) + wat.substring(1) + " moet beginnen met https://");
+    /** leeg: de melding als het adres nodig is maar ontbreekt (leeg = mag ontbreken); geenHttps: als het niet met https:// begint. */
+    static String adres(String v, String leeg, String geenHttps) throws Exception {
+        if (v.isEmpty()) { if (!leeg.isEmpty()) throw new Exception(leeg); return v; }
+        if (!v.matches("(?i)https://[^\\s/?#@]+(?:[/?#][^\\s]*)?")) throw new Exception(geenHttps);
         return v;
     }
 
@@ -108,10 +109,10 @@ final class Toiletten {
         String soort = in.optString("soort", "geojson");
         if (!Facturen.in(soort, BRON_SOORT)) throw new Exception(Taal.T("Onbekende soort bron"));
         o.put("soort", soort);
-        String url = adres(tekst(in, "url", 1000, ""), true, "het adres van de gegevens");
+        String url = adres(tekst(in, "url", 1000, ""), Taal.T("Vul het adres van de gegevens in"), Taal.T("Het adres van de gegevens moet beginnen met https://"));
         o.put("url", "arcgis".equals(soort) ? arcgisUrl(url) : url);
-        o.put("metaUrl", adres(tekst(in, "metaUrl", 1000, ""), false, "het adres van meta.json"));
-        o.put("info", adres(tekst(in, "info", 1000, ""), false, "het adres met uitleg"));
+        o.put("metaUrl", adres(tekst(in, "metaUrl", 1000, ""), "", Taal.T("Het adres van meta.json moet beginnen met https://")));
+        o.put("info", adres(tekst(in, "info", 1000, ""), "", Taal.T("Het adres met uitleg moet beginnen met https://")));
         String lic = tekst(in, "licentie", MAX_TEKST, "");
         if (lic.isEmpty()) throw new Exception(Taal.T("Vul de licentie of bronvermelding in (staat bij de gegevens)"));
         o.put("licentie", lic);
@@ -150,13 +151,50 @@ final class Toiletten {
                 if (r == null) continue;
                 String veld = tekst(r, "veld", 80, ""), pat = tekst(r, "patroon", 100, ""), zet = r.optString("zet", "");
                 if (veld.isEmpty() || pat.isEmpty()) continue;
-                if (!Facturen.in(zet, ZET)) throw new Exception("Onbekende regel: " + zet);
-                try { Pattern.compile(pat); } catch (Exception e) { throw new Exception("Geen geldig zoekpatroon: " + pat); }
+                if (!Facturen.in(zet, ZET)) throw new Exception(Taal.T("Onbekende regel"));
+                try { Pattern.compile(pat); } catch (Exception e) { throw new Exception(Taal.fill(Taal.T("Geen geldig zoekpatroon: {patroon}"), "patroon", pat)); }
+                if (riskant(pat)) throw new Exception(Taal.T("Dit zoekpatroon kan heel traag worden: geen herhaling binnen een herhaling en hooguit drie keer + of *"));
                 ro.put(new JSONObject().put("veld", veld).put("patroon", pat).put("zet", zet));
             }
         }
         o.put("regels", ro);
         return o;
+    }
+
+    /**
+     * Een zoekpatroon dat eindeloos kan duren (Android kan een zoekopdracht niet afbreken): een herhaling van een groep
+     * die zelf herhaalt of kiest ((a+)+, (.*a){20}, (a|aa)*), of meer dan drie keer + of *.
+     */
+    static boolean riskant(String p) {
+        java.util.ArrayDeque<boolean[]> stapel = new java.util.ArrayDeque<>();
+        boolean[] groep = {false};
+        boolean naGroep = false, groepHerhaalt = false;
+        int open = 0;
+        for (int i = 0; i < p.length(); i++) {
+            char c = p.charAt(i);
+            boolean herhaal = c == '+' || c == '*' || c == '{';
+            if (herhaal && naGroep && groepHerhaalt) return true;
+            naGroep = false;
+            if (c == '\\') { i++; continue; }
+            if (c == '[') {
+                int j = i + 1;
+                if (j < p.length() && p.charAt(j) == '^') j++;
+                if (j < p.length() && p.charAt(j) == ']') j++;
+                while (j < p.length() && p.charAt(j) != ']') { if (p.charAt(j) == '\\') j++; j++; }
+                i = j;
+                continue;
+            }
+            if (c == '(') { stapel.push(groep); groep = new boolean[]{false}; continue; }
+            if (c == ')') {
+                naGroep = true; groepHerhaalt = groep[0];
+                groep = stapel.isEmpty() ? new boolean[]{false} : stapel.pop();
+                if (groepHerhaalt) groep[0] = true;
+                continue;
+            }
+            if (c == '+' || c == '*') open++;
+            if (herhaal || c == '|') groep[0] = true;
+        }
+        return open > 3;
     }
 
     static JSONArray checkLijst(JSONArray a) throws Exception {
@@ -165,6 +203,19 @@ final class Toiletten {
         for (int i = 0; i < a.length() && out.length() < MAX_BRONNEN; i++) {
             JSONObject b = normaal(a.getJSONObject(i));
             if (ids.add(b.getString("id"))) out.put(b);
+        }
+        return out;
+    }
+
+    /** Bij het lezen: een bron die niet (meer) klopt valt weg, de andere blijven. */
+    static JSONArray leesLijst(JSONArray a) {
+        JSONArray out = new JSONArray();
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        for (int i = 0; a != null && i < a.length() && out.length() < MAX_BRONNEN; i++) {
+            try {
+                JSONObject b = normaal(a.getJSONObject(i));
+                if (ids.add(b.getString("id"))) out.put(b);
+            } catch (Exception ignored) { }
         }
         return out;
     }
@@ -178,14 +229,17 @@ final class Toiletten {
     /** Ingesteld = Rene heeft de gegevens een keer opgehaald of een bron bewaard; pas dan plant de app zelf scans. */
     static boolean ingesteld(Context c) { return JsonFileStore.exists(bronnenFile(c)); }
 
-    /** De bronnen; vóór het instellen de sjablonen die standaard aan staan. */
-    static JSONArray bronnen(Context c) {
+    /** De bronnen; vóór het instellen de sjablonen die standaard aan staan. Onleesbaar bestand = fout: dan niets overschrijven. */
+    static JSONArray bewaardeBronnen(Context c) throws Exception {
         synchronized (LOCK) {
-            try {
-                if (ingesteld(c)) return checkLijst(new JSONObject(JsonFileStore.read(bronnenFile(c), Toiletten::checkBronnen)).optJSONArray("bronnen"));
-            } catch (Throwable e) { App.log(c, "TOILET", "bronnen onleesbaar: " + e.getClass().getSimpleName()); return new JSONArray(); }
-            return standaard(sjablonen(c));
+            if (!ingesteld(c)) return standaard(sjablonen(c));
+            return leesLijst(new JSONObject(JsonFileStore.read(bronnenFile(c), Toiletten::checkBronnen)).optJSONArray("bronnen"));
         }
+    }
+
+    static JSONArray bronnen(Context c) {
+        try { return bewaardeBronnen(c); }
+        catch (Throwable e) { App.log(c, "TOILET", "bronnen onleesbaar: " + e.getClass().getSimpleName()); return new JSONArray(); }
     }
 
     static JSONArray standaard(JSONArray sj) {
@@ -223,7 +277,7 @@ final class Toiletten {
         boolean nieuwe = in.optString("id", "").trim().isEmpty();
         JSONObject b = normaal(in);
         synchronized (LOCK) {
-            JSONArray oud = bronnen(c), nieuw = new JSONArray();
+            JSONArray oud = bewaardeBronnen(c), nieuw = new JSONArray();
             if (nieuwe) b.put("id", vrijId(oud, b.getString("id")));
             boolean gevonden = false;
             for (int i = 0; i < oud.length(); i++) {
@@ -241,7 +295,7 @@ final class Toiletten {
 
     static void verwijderBron(Context c, String id) throws Exception {
         synchronized (LOCK) {
-            JSONArray oud = bronnen(c), nieuw = new JSONArray();
+            JSONArray oud = bewaardeBronnen(c), nieuw = new JSONArray();
             for (int i = 0; i < oud.length(); i++) if (!oud.getJSONObject(i).getString("id").equals(id)) nieuw.put(oud.getJSONObject(i));
             bewaarLijst(c, nieuw);
             JSONObject t = toestand(c);
@@ -363,7 +417,10 @@ final class Toiletten {
         JSONObject was = new JSONObject().put("s", bron.optString("s")).put("f", bron.optInt("f")).put("n", bron.optString("n")).put("u", bron.optString("u"));
         JSONObject oud = w.optJSONObject(k);
         if (oud != null && oud.optJSONObject("was") != null && !in.optBoolean("houden")) was = oud.getJSONObject("was");
-        if (zelfde(v, was) && v.optString("notitie").isEmpty()) { w.remove(k); return k; }
+        int wf = was.optInt("f");
+        // "Meestal een toilet" (tankstation e.d.) blijft, tenzij Rene aangeeft dat er zeker een is
+        if ((wf & MEESTAL) != 0 && !in.optBoolean("zeker") && (v.getInt("f") & TOILET) != 0) v.put("f", v.getInt("f") | MEESTAL);
+        if (zelfde(v, was) && (v.getInt("f") & MEESTAL) == (wf & MEESTAL) && v.optString("notitie").isEmpty()) { w.remove(k); return k; }
         w.put(k, new JSONObject().put("la", bron.getDouble("la")).put("lo", bron.getDouble("lo")).put("s", bron.optString("s"))
                 .put("t", nu).put("v", v).put("was", was));
         eigen.getJSONObject("afgewezen").remove(k);

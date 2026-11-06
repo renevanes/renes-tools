@@ -34,7 +34,7 @@ import java.util.zip.GZIPOutputStream;
 final class ToilettenScan {
     private ToilettenScan() { }
 
-    static final long MAX = 30L * 1024 * 1024, MAX_UIT = 80L * 1024 * 1024;
+    static final long MAX = 30L * 1024 * 1024, MAX_UIT = 40L * 1024 * 1024;
     static final int MAX_PLEKKEN = 100_000, MAX_PAGINAS = 50;
 
     /** De fout zoals hij bewaard wordt (Nederlands; de brug vertaalt hem bij het tonen). */
@@ -46,6 +46,18 @@ final class ToilettenScan {
     static final String UA = "renes-tools-toiletten/1 (Android; +https://github.com/renevanes/renes-tools)";
     static final AtomicBoolean BEZIG = new AtomicBoolean();
     private static final Pattern GETAL = Pattern.compile("(\\d+)(?:[.,](\\d+))?");
+    private static final Map<String, Pattern> PATRONEN = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Zoekpatroon van een regel, één keer gecompileerd (een scan gaat over tienduizenden plekken). */
+    static boolean past(String patroon, String w) {
+        Pattern p = PATRONEN.get(patroon);
+        if (p == null) {
+            p = Pattern.compile(patroon, Pattern.CASE_INSENSITIVE);
+            if (PATRONEN.size() > 200) PATRONEN.clear();
+            PATRONEN.put(patroon, p);
+        }
+        return p.matcher(w.length() > 120 ? w.substring(0, 120) : w).find();
+    }
 
     // ================= lezen (zonder Android: getest in ToilettenTest) =================
 
@@ -137,7 +149,7 @@ final class ToilettenScan {
             String w = veld(props, r.optString("veld"));
             if (w.isEmpty()) continue;
             boolean past;
-            try { past = Pattern.compile(r.optString("patroon"), Pattern.CASE_INSENSITIVE).matcher(w.length() > 120 ? w.substring(0, 120) : w).find(); }
+            try { past = past(r.optString("patroon"), w); }
             catch (Exception e) { continue; }
             if (!past) continue;
             String zet = r.optString("zet");
@@ -182,7 +194,7 @@ final class ToilettenScan {
         if (records) fs = new JSONArray(t);
         else {
             JSONObject o = new JSONObject(t);
-            if (o.has("error")) throw new Exception("De bron geeft een fout: " + Toiletten.kort(o.optJSONObject("error") != null ? o.optJSONObject("error").optString("message") : o.optString("error"), 100));
+            if (o.has("error")) throw new Exception(Taal.fill(Taal.T("De bron geeft een fout: {fout}"), "fout", Toiletten.kort(o.optJSONObject("error") != null ? o.optJSONObject("error").optString("message") : o.optString("error"), 100)));
             fs = o.optJSONArray("features");
             if (fs == null) throw new Exception(Taal.T("Geen GeoJSON (er staat geen \"features\" in)"));
         }
@@ -350,7 +362,7 @@ final class ToilettenScan {
             int code = h.getResponseCode();
             if (!"https".equalsIgnoreCase(h.getURL().getProtocol())) throw new Exception(Taal.T("Alleen https"));
             if (code == 404) throw new Exception(Taal.T("Niet gevonden (404): klopt het adres nog?"));
-            if (code != 200) throw new Exception("De bron antwoordt met " + code);
+            if (code != 200) throw new Exception(Taal.fill(Taal.T("De bron antwoordt met {code}"), "code", code));
             long len = h.getContentLengthLong();
             if (len > max) throw new Exception(Taal.T("Bestand te groot"));
             try (InputStream in = h.getInputStream()) { return Facturen.lees(in, max); }
@@ -443,9 +455,15 @@ final class ToilettenScan {
         for (int i = 0; log != null && i < log.length() && nl.length() < 10; i++) nl.put(log.get(i));
         t.put("log", nl);
         synchronized (Toiletten.LOCK) {
-            alle = Toiletten.toestand(c);
-            alle.put(id, t);
-            Toiletten.bewaarToestand(c, alle);
+            if (Toiletten.bron(c, id) == null) {
+                // Tijdens het scannen weggehaald: niets achterlaten
+                //noinspection ResultOfMethodCallIgnored
+                cf.delete();
+            } else {
+                alle = Toiletten.toestand(c);
+                alle.put(id, t);
+                Toiletten.bewaarToestand(c, alle);
+            }
         }
         ToilettenSamen.wis();
         return r;

@@ -95,9 +95,9 @@ final class ToilettenOsm {
         StringBuilder b = new StringBuilder();
         String waar = osm == null || osm.isEmpty() ? "" : " (" + osm + ")";
         if ("afwijzing".equals(wat)) {
-            b.append("Het ").append(lidwoordloos(s)).append(" hier").append(waar).append(' ').append(reden(reden)).append('.');
+            b.append(deHet(s)).append(" hier").append(waar).append(' ').append(reden(reden)).append('.');
         } else if ("wijziging".equals(wat) && was != null) {
-            b.append("Het ").append(lidwoordloos(s)).append(" hier").append(waar).append(" klopt niet helemaal:");
+            b.append(deHet(s)).append(" hier").append(waar).append(" klopt niet helemaal:");
             int wf = was.optInt("f");
             if (!s.equals(was.optString("s"))) regel(b, "het is een " + soortTekst(s), soortTekst(was.optString("s")));
             if ((f & Toiletten.TOILET) != (wf & Toiletten.TOILET)) regel(b, (f & Toiletten.TOILET) != 0 ? "er is een toilet" : "er is geen toilet", null);
@@ -124,13 +124,46 @@ final class ToilettenOsm {
         return t.length() > 2000 ? t.substring(0, 2000) : t;
     }
 
-    private static String lidwoordloos(String s) { String t = soortTekst(s); return "openbaar toilet".equals(t) ? "openbare toilet" : t; }
+    /** Met het goede lidwoord: "Het openbare toilet", "De douche", "Het tankstation". */
+    static String deHet(String s) {
+        String t = soortTekst(s);
+        if ("openbaar toilet".equals(t)) return "Het openbare toilet";
+        boolean het = "tankstation".equals(t) || "station".equals(t) || "winkelcentrum".equals(t) || "ziekenhuis".equals(t) || "strand".equals(t);
+        return (het ? "Het " : "De ") + t;
+    }
     private static String leeg(String s) { return s == null || s.isEmpty() ? "(leeg)" : s; }
     private static void regel(StringBuilder b, String nu, String was) {
         b.append("\n- ").append(nu);
         if (was != null) b.append(" (stond: ").append(was).append(')');
     }
     /* taal-vast-eind */
+
+    /**
+     * De notitie voor een plek: {tekst, la, lo, wat, osm, voorstel}. af = de afwijzing (bij wat "afwijzing"), osm = het
+     * OpenStreetMap-object of leeg. Alleen opmerking (wat Rene op het scherm Doorgeven zelf invult) gaat mee als vrije
+     * tekst, nooit zijn eigen notitie bij de plek. voorstel: de toelichting van een afwijzing, om dat veld mee te vullen.
+     */
+    static JSONObject notitie(ToilettenSamen.Punt p, JSONObject af, String osm, String wat, String opmerking) throws Exception {
+        String tekst, voorstel = "";
+        double la, lo;
+        if ("afwijzing".equals(wat)) {
+            if (af == null) throw new Exception(Taal.T("Wijs de plek eerst af"));
+            if (osm.isEmpty()) throw new Exception(Taal.T("Deze plek staat niet in OpenStreetMap"));
+            la = af.optDouble("la"); lo = af.optDouble("lo");
+            voorstel = af.optString("tekst");
+            tekst = tekst(wat, new JSONObject().put("s", af.optString("s")).put("f", p == null ? 0 : p.f), null, osm, af.optString("reden"), opmerking);
+        } else {
+            if (p == null) throw new Exception(Taal.T("Deze plek staat er niet meer"));
+            la = p.la; lo = p.lo;
+            if ("wijziging".equals(wat)) {
+                if (!"aangepast".equals(p.eigen)) throw new Exception(Taal.T("Pas de plek eerst aan"));
+                if (osm.isEmpty()) wat = "toevoeging";
+            } else if (!"toevoeging".equals(wat)) throw new Exception(Taal.T("Onbekend"));
+            else if (!"toegevoegd".equals(p.eigen)) throw new Exception(Taal.T("Alleen je eigen plekken"));
+            tekst = tekst(wat, ToilettenSamen.waarden(p), p.uitBron, osm, "", opmerking);
+        }
+        return new JSONObject().put("tekst", tekst).put("la", la).put("lo", lo).put("wat", wat).put("osm", osm).put("voorstel", voorstel);
+    }
 
     static String formulier(double la, double lo, String tekst) throws Exception {
         return "lat=" + String.format(Locale.ROOT, "%.6f", la) + "&lon=" + String.format(Locale.ROOT, "%.6f", lo)
@@ -173,7 +206,7 @@ final class ToilettenOsm {
             int code = h.getResponseCode();
             if (code == 403) throw new Zone();
             if (code == 429) throw new Exception(Taal.T("Even te veel notities: probeer het later"));
-            if (code != 200) throw new Exception("OpenStreetMap antwoordt met " + code);
+            if (code != 200) throw new Exception(Taal.fill(Taal.T("OpenStreetMap antwoordt met {code}"), "code", code));
             try (java.io.InputStream in = h.getInputStream()) { return leesId(new String(Facturen.lees(in, 200_000), StandardCharsets.UTF_8)); }
         } finally { h.disconnect(); }
     }
@@ -186,7 +219,7 @@ final class ToilettenOsm {
             h.setRequestProperty("User-Agent", ToilettenScan.UA);
             int code = h.getResponseCode();
             if (code == 404 || code == 410) return "hidden";
-            if (code != 200) throw new Exception("OpenStreetMap antwoordt met " + code);
+            if (code != 200) throw new Exception(Taal.fill(Taal.T("OpenStreetMap antwoordt met {code}"), "code", code));
             try (java.io.InputStream in = h.getInputStream()) { return leesStatus(new String(Facturen.lees(in, 500_000), StandardCharsets.UTF_8)); }
         } finally { h.disconnect(); }
     }
@@ -211,11 +244,18 @@ final class ToilettenOsm {
         return n;
     }
 
+    /** Al doorgegeven en nog open: niet nog een keer (anders twee notities voor hetzelfde). */
+    static boolean open(JSONObject g, String k, String wat) {
+        JSONObject o = g.optJSONObject(k + "|" + wat);
+        return o != null && "open".equals(o.optString("status"));
+    }
+
     /** Notitie maken en bewaren. Geeft {ok, id, url}, of {zone: true, url} (dan via de website). */
     static JSONObject deel(Context c, String k, String wat, double la, double lo, String tekst) throws Exception {
         if (!Facturen.in(wat, WAT)) throw new Exception(Taal.T("Onbekend"));
         long nu = System.currentTimeMillis();
         JSONObject g = gedeeld(c);
+        if (open(g, k, wat)) throw new Exception(Taal.T("Dit staat al open bij OpenStreetMap"));
         if (vandaag(g, nu) >= MAX_PER_DAG) throw new Exception(Taal.T("Vandaag al 20 keer doorgegeven: morgen weer"));
         try {
             long id = maak(la, lo, tekst);

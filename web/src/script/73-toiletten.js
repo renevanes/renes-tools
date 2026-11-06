@@ -80,12 +80,25 @@ function enterWc(name, vorige){
   else if (name === 'wcbron') wcnStand();
   else if (name === 'wceigen') wceRender();
   else if (name === 'wcgedeeld') wcgRender();
+  wcBezigVolg();
 }
 function wcResume(){
   if (!WC_SCR.includes(current)) return;
   wcState();
   if (current === 'wc') wcRender(); else if (current === 'wcplek') wcpRender(); else if (current === 'wcset') wcsRender();
   else if (current === 'wcbronnen') wcbrRender(); else if (current === 'wcbron') wcnStand(); else if (current === 'wceigen') wceRender(); else if (current === 'wcgedeeld') wcgRender();
+  wcBezigVolg();
+}
+/** Een scan van de achtergrondtaak meldt zich niet bij het scherm: zolang er een loopt, af en toe kijken of hij klaar is. */
+let wcBezigT = 0;
+function wcBezigVolg(){
+  if (wcBezigT || !(wcSt && wcSt.bezig)) return;
+  wcBezigT = setTimeout(() => {
+    wcBezigT = 0;
+    if (!WC_SCR.includes(current)) return;
+    wcState();
+    if (wcSt.bezig) wcBezigVolg(); else wcResume();
+  }, 3000);
 }
 
 function wcRender(){
@@ -183,8 +196,9 @@ function wcMenu(){
   openSheet(t('Toiletten en douches'), '', [
     [t('Plek toevoegen'), () => wcToevoegen(), 'plus'],
     [t('Nu bijwerken'), () => wcScanAlles(), 'refresh'],
-    [t('Mijn wijzigingen'), () => show('wceigen'), 'edit']]);
+    [t('Mijn wijzigingen'), () => wcNaarEigen('wc'), 'edit']]);
 }
+function wcNaarEigen(van){ BACK.wceigen = van; show('wceigen'); }
 function wcToevoegen(){
   if (!wcPunt) { toast(t('Zoek eerst bij mij of tik op de kaart: daar komt de nieuwe plek.')); return; }
   wcNieuw(wcPunt.lat, wcPunt.lon);
@@ -263,11 +277,11 @@ function wcpEigen(p){
 function wcRoute(){ const p = wcP; if (p && !p.error) Android.openUrl('https://www.google.com/maps/dir/?api=1&travelmode=walking&destination=' + p.la + ',' + p.lo); }
 function wcGeo(){ const p = wcP; if (p && !p.error) Android.openUrl('geo:' + p.la + ',' + p.lo + '?q=' + p.la + ',' + p.lo + '(' + encodeURIComponent(p.n || wcSoortNaam(p.s)) + ')'); }
 function wcOsm(){ const p = wcP; if (p && p.osm) Android.openUrl(p.osm); }
+/** Wat je van deze plek kunt doorgeven; leeg als dat er niet is of al open staat bij OpenStreetMap. */
 function wcDeelWat(p){
-  if (p.af) return p.osm ? 'afwijzing' : '';
-  if (p.e === 'aangepast' && !p.weg) return 'wijziging';
-  if (p.e === 'toegevoegd' && !p.ib) return 'toevoeging';
-  return '';
+  const w = p.af ? (p.osm ? 'afwijzing' : '') : p.e === 'aangepast' && !p.weg ? 'wijziging' : p.e === 'toegevoegd' && !p.ib ? 'toevoeging' : '';
+  const als = w === 'wijziging' && !p.osm ? 'toevoeging' : w; // een aanpassing van iets wat niet in OpenStreetMap staat, gaat als nieuwe plek
+  return w && !(p.gedeeld || []).some(g => g.wat === als && g.status === 'open') ? w : '';
 }
 function wcpMenu(){
   const p = wcP; if (!p || p.error) return;
@@ -334,6 +348,9 @@ function wcBewerkOpen(p, la, lo){
   $('#wcb-verschoon').checked = !!(f & WC_B.verschoon);
   $('#wcb-altijd').checked = !!(f & WC_B.altijd);
   $('#wcb-klanten').checked = !!(f & WC_B.klanten);
+  const bronF = p && p.uitBron ? p.uitBron.f : f;
+  $('#wcb-zeker-r').hidden = nieuw || !(bronF & WC_B.meestal);
+  $('#wcb-zeker').checked = !nieuw && !!(bronF & WC_B.meestal) && !(f & WC_B.meestal);
   $('#wcb-geld').value = f & WC_B.gratis ? 'gratis' : f & WC_B.betaald ? 'betaald' : '';
   $('#wcb-plek').textContent = t('Plek: {coord}', { coord: lcFmt(la, lo) });
   if (current !== 'wcbewerk') BACK.wcbewerk = current;
@@ -352,7 +369,7 @@ function wcbBewaar(){
   const geld = $('#wcb-geld').value;
   if (geld === 'gratis') f |= WC_B.gratis; else if (geld === 'betaald') f |= WC_B.betaald;
   if (!(f & (WC_B.toilet | WC_B.douche))) { toast(t('Vink toilet, urinoir of douche aan')); return; }
-  const o = { k: wcBew.k, s: $('#wcb-s').value, f, n: $('#wcb-n').value.trim(), u: $('#wcb-u').value.trim(), notitie: $('#wcb-notitie').value.trim() };
+  const o = { k: wcBew.k, s: $('#wcb-s').value, f, n: $('#wcb-n').value.trim(), u: $('#wcb-u').value.trim(), notitie: $('#wcb-notitie').value.trim(), zeker: $('#wcb-zeker').checked };
   if (!wcBew.k) { o.la = wcBew.la; o.lo = wcBew.lo; }
   const r = rdJson(Android.wcBewaar(JSON.stringify(o)), {}) || {};
   if (r.error) { toast(r.error); return; }
@@ -369,19 +386,29 @@ function wcbBewaar(){
 
 /* ================= doorgeven aan OpenStreetMap (s-wcdeel) ================= */
 function wcDeelOpen(k, wat){
-  const n = rdJson(Android.wcNotitie(k, wat), {}) || {};
+  const n = rdJson(Android.wcNotitie(k, wat, ''), {}) || {};
   if (n.error) { toast(n.error); return; }
-  wcDeel = { k, wat: n.wat || wat, tekst: n.tekst, la: n.la, lo: n.lo };
-  $('#wcd-tekst').textContent = n.tekst;
-  $('#wcd-plek').textContent = t('Op de kaart: {coord}', { coord: lcFmt(n.la, n.lo) });
+  wcDeel = { k, wat };
+  $('#wcd-opm').value = n.voorstel || '';
+  if (!wcdVoorbeeld()) return;
   $('#wcd-ok').disabled = false;
   show('wcdeel');
+}
+/** De tekst opnieuw opbouwen met de opmerking zoals hij nu in het veld staat; false = lukt niet (melding getoond). */
+function wcdVoorbeeld(){
+  if (!wcDeel) return false;
+  const n = rdJson(Android.wcNotitie(wcDeel.k, wcDeel.wat, $('#wcd-opm').value.trim()), {}) || {};
+  if (n.error) { toast(n.error); return false; }
+  Object.assign(wcDeel, { tekst: n.tekst, la: n.la, lo: n.lo });
+  $('#wcd-tekst').textContent = n.tekst;
+  $('#wcd-plek').textContent = t('Op de kaart: {coord}', { coord: lcFmt(n.la, n.lo) });
+  return true;
 }
 function wcdDoorgeven(){
   if (!wcDeel) return;
   $('#wcd-ok').disabled = true;
-  const f = wcFout(Android.wcDoorgeven(wcDeel.k, wcDeel.wat));
-  if (f) { $('#wcd-ok').disabled = false; toast(f); }
+  const f = wcFout(Android.wcDoorgeven(wcDeel.k, wcDeel.wat, $('#wcd-opm').value.trim(), wcDeel.tekst));
+  if (f) { $('#wcd-ok').disabled = false; toast(f); wcdVoorbeeld(); }
 }
 window.onWcGedeeld = function(r){
   r = typeof r === 'string' ? rdJson(r, {}) : r || {};

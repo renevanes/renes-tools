@@ -413,21 +413,28 @@ in de buurt, ook plekken waar er meestal een is (tankstations, verzorgingsplaats
   open licentie mag aan, anders `aan: false` met de reden in `tip` (zoals Amsterdam). `ToilettenTest` controleert elk
   sjabloon met `Toiletten.normaal`. Rotterdam heeft (nov. 2026) geen bruikbare open laag.
 - **Momentopname**: `tools/toiletten/ophalen.py` met `regels.json` (welke OSM-tags wat betekenen) maakt elke week (workflow
-  `toiletten-gegevens.yml`, dinsdagnacht) `toiletten-nl.json.gz` en `meta.json` (datum, sha256, aantal) uit het
+  `toiletten-gegevens.yml`, dinsdagnacht; de taak die osmium draait heeft alleen leesrecht, een tweede taak controleert en
+  publiceert) `toiletten-nl.json.gz` en `meta.json` (datum, sha256, aantal) uit het
   Geofabrik-extract (osmium; `--overpass` alleen om te ontwikkelen) en zet ze in de release `toiletten-gegevens`. De app
   controleert het controlegetal. Ander formaat: `FORMAAT` in `Toiletten.java` en `formaat` in `regels.json` samen omhoog.
 - **Scannen** (`ToilettenJob`, job-id's 4701–4703): per bron een planning (dag/week/maand/uit, tijd in de app-zone,
   vanzelf alleen via wifi, opnieuw na een fout). Mislukt het, dan blijft de vorige versie (`toiletten-cache/`, gaat niet
-  mee in backups); de laatste 10 scans per bron in `toestand.json` (fouten Nederlands bewaard, de brug vertaalt ze).
+  mee in backups); de laatste 10 scans per bron in `toestand.json` (fouten Nederlands bewaard, de brug vertaalt ze met
+  `Taal.tx`, dus een waarde erin via een plaatshouder: `Taal.fill(Taal.T("De bron antwoordt met {code}"), "code", code)`).
+  Zoekpatronen die eindeloos kunnen duren (herhaling binnen een herhaling, meer dan drie keer + of *) weigert
+  `Toiletten.riskant` al bij het bewaren: Android kan een zoekopdracht niet afbreken.
 - **Samenvoegen** (`ToilettenSamen`, zuiver, `ToilettenSamenTest`): dezelfde plek uit twee bronnen (zelfde groep, hooguit
   25 m) wordt één plek; de eerste bron in de lijst gaat voor bij naam en tijden, kenmerken tellen op.
-- **Eigen laag** (`toiletten/eigen.json`, gaat mee in "Alle appgegevens"): aanpassingen (`wijzig`, met `was` = wat de bron
+- **Eigen laag** (`toiletten/eigen.json`, gaat mee in "Alle appgegevens", niet in de Android-backup): aanpassingen (`wijzig`, met `was` = wat de bron
   toen zei; zegt de bron later iets anders, dan Overnemen of Mijn versie houden), afwijzingen (reden `weg`/`dicht`/`prive`/
   `klanten`/`anders`, toelichting, Terugzetten) en eigen plekken (`eigen:<12 hex>`; staat er later een plek uit een bron
   binnen 25 m, dan biedt de app opruimen aan). Blijft over elke scan heen; een onleesbaar bestand wordt nooit overschreven.
+  Een aangepaste "meestal"-plek blijft "meestal", tenzij Rene aanvinkt dat er zeker een toilet is (`zeker`).
 - **Gemeenschap** (`ToilettenOsm`, `toiletten/gedeeld.json`): alleen als Rene het per plek kiest, een anonieme notitie bij
   OpenStreetMap (`api.openstreetmap.org/api/0.6/notes`). Eerst `s-wcdeel` met de precieze tekst en de zichtbare waarschuwing
-  "Openbaar; OpenStreetMap ziet je IP-adres". 403 (moderatiezone) = tekst op het klembord en de website op die plek.
+  "Openbaar; OpenStreetMap ziet je IP-adres". Vrije tekst gaat alleen mee uit het veld "Opmerking erbij (openbaar)" op dat
+  scherm, nooit de eigen notitie bij een plek; wat er gaat moet precies de getoonde tekst zijn (`wcDoorgeven` controleert
+  dat) en een notitie die nog open staat kan niet nog een keer. 403 (moderatiezone) = tekst op het klembord en de website op die plek.
   Hooguit 20 per dag; de status (open, opgelost, verborgen) wordt bij het scannen hooguit één keer per dag nagekeken. De
   tekst is vast Nederlands (`taal-vast`). Geen andere bestemmingen of accounts zonder Rene.
 - **Privacy**: alleen de kaartbeelden (tile.openstreetmap.org) zien welk stuk kaart Rene bekijkt; dat staat zichtbaar op

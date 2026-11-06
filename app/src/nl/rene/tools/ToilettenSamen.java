@@ -46,7 +46,7 @@ final class ToilettenSamen {
 
     /** Een plek na samenvoegen en de eigen laag. */
     static final class Punt {
-        String k, s, n, u, notitie = "", eigen = "", inBron = "", wijzigSleutel = "";
+        String k, s, n, u, notitie = "", eigen = "", inBron = "", wijzigSleutel = "", afSleutel = "";
         double la, lo;
         int f;
         boolean afgewezen, weg;
@@ -88,8 +88,10 @@ final class ToilettenSamen {
 
     private static volatile Index cache;
     private static final Object BOUW = new Object();
+    // Gewist tijdens het bouwen: dan is wat er gebouwd werd al oud en wordt het niet bewaard
+    private static final java.util.concurrent.atomic.AtomicLong GENERATIE = new java.util.concurrent.atomic.AtomicLong();
 
-    static void wis() { cache = null; }
+    static void wis() { GENERATIE.incrementAndGet(); cache = null; }
 
     static long sleutel(long cy, long cx) { return (cy + 9000) * 100_000L + (cx + 18000); }
     static long cel(double la, double lo) { return sleutel((long) Math.floor(la / CEL), (long) Math.floor(lo / CEL)); }
@@ -154,7 +156,7 @@ final class ToilettenSamen {
             JSONObject a = af.optJSONObject(k);
             if (a == null) continue;
             Punt p = vind(ix, k, a);
-            if (p != null) p.afgewezen = true;
+            if (p != null) { p.afgewezen = true; p.afSleutel = k; }
             try { ix.afgewezen.add(new JSONObject(a.toString()).put("k", k).put("gevonden", p != null)); } catch (Exception ignored) { }
         }
         for (Iterator<String> it = wz == null ? Collections.<String>emptyIterator() : wz.keys(); it.hasNext(); ) {
@@ -252,6 +254,7 @@ final class ToilettenSamen {
         if (ix != null) return ix;
         synchronized (BOUW) {
             if (cache != null) return cache;
+            long gen = GENERATIE.get();
             List<Bron> lijst = new ArrayList<>();
             JSONArray bs = Toiletten.bronnen(c);
             for (int i = 0; i < bs.length(); i++) {
@@ -260,8 +263,9 @@ final class ToilettenSamen {
                 lijst.add(new Bron(b.optString("id"), b.optString("naam"), ToilettenScan.leesCache(Toiletten.cacheFile(c, b.optString("id")))));
             }
             JSONObject e = Toiletten.eigen(c);
-            cache = bouw(lijst, e);
-            return cache;
+            Index nieuw = bouw(lijst, e);
+            if (GENERATIE.get() == gen) cache = nieuw;
+            return nieuw;
         }
     }
 

@@ -17,7 +17,7 @@
     <div class="card" id="wc-status">
       <p class="note" id="wc-sub" role="status" aria-live="polite" style="margin-top:0"></p>
       <button class="big" id="wc-hier" onclick="wcHier()"><span class="ui-icon" data-icon="pin" aria-hidden="true"></span><span id="wc-hier-t">Zoek bij mij</span></button>
-      <p class="hint" id="wc-privacy" style="margin-bottom:0">Je locatie blijft op je telefoon. Tools downloadt de bronnen in hun geheel, zonder je plek.</p>
+      <p class="hint" id="wc-privacy" style="margin-bottom:0">Je locatie gaat niet naar de bronnen: Tools downloadt ze in hun geheel en zoekt op je telefoon.</p>
     </div>
 
     <div class="chips wc-chips" id="wc-chips" role="group" aria-label="Wat zoek je?">
@@ -75,6 +75,7 @@
     <div class="card">
       <h2>Wat is er?</h2>
       <label class="chk"><input type="checkbox" id="wcb-toilet"> Toilet</label>
+      <label class="chk" id="wcb-zeker-r" hidden><input type="checkbox" id="wcb-zeker"> Er is hier zeker een toilet (in de gegevens staat: meestal)</label>
       <label class="chk"><input type="checkbox" id="wcb-urinoir"> Alleen een urinoir</label>
       <label class="chk"><input type="checkbox" id="wcb-douche"> Douche</label>
       <label class="chk"><input type="checkbox" id="wcb-rolstoel"> Rolstoeltoegankelijk</label>
@@ -105,6 +106,11 @@
       <p class="note" style="margin:4px 0 0">Dit wordt een openbare notitie op de kaart, zonder je naam. Vrijwilligers van OpenStreetMap lezen hem en passen de kaart aan; daarna komt het vanzelf in de lijst van iedereen.</p>
     </div>
     <div class="card">
+      <label class="f" for="wcd-opm">Opmerking erbij (openbaar, mag leeg)</label>
+      <textarea class="aein" id="wcd-opm" rows="2" maxlength="300" oninput="wcdVoorbeeld()"></textarea>
+      <p class="note" style="margin-bottom:0">Je eigen notitie bij de plek gaat niet mee.</p>
+    </div>
+    <div class="card">
       <h2>Dit gaat er precies naartoe</h2>
       <pre class="wc-tekst" id="wcd-tekst" translate="no"></pre>
       <p class="note" id="wcd-plek" style="margin-bottom:0"></p>
@@ -127,7 +133,7 @@
   <main>
     <div class="card stlist">
       <button class="strow" onclick="show('wcbronnen')"><span class="stic"><span class="ui-icon" data-icon="download" aria-hidden="true"></span></span><span class="sttxt"><b>Bronnen</b><small id="wcs-bronnen"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
-      <button class="strow" onclick="show('wceigen')"><span class="stic"><span class="ui-icon" data-icon="edit" aria-hidden="true"></span></span><span class="sttxt"><b>Mijn wijzigingen</b><small id="wcs-eigen"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" onclick="wcNaarEigen('wcset')"><span class="stic"><span class="ui-icon" data-icon="edit" aria-hidden="true"></span></span><span class="sttxt"><b>Mijn wijzigingen</b><small id="wcs-eigen"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" onclick="show('wcgedeeld')"><span class="stic"><span class="ui-icon" data-icon="globe" aria-hidden="true"></span></span><span class="sttxt"><b>Gedeeld met de gemeenschap</b><small id="wcs-gedeeld"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
     <div class="card">

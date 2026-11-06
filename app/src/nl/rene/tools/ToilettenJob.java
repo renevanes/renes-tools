@@ -25,7 +25,7 @@ public class ToilettenJob extends JobService {
         final Context ctx = getApplicationContext();
         if (!App.unlocked(ctx)) return false;
         final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
-        if (ToilettenScan.BEZIG.get()) { h.post(() -> schedule(ctx)); return false; }
+        if (ToilettenScan.BEZIG.get()) { h.post(() -> { try { schedule(ctx); } catch (Throwable ignored) { } }); return false; }
         new Thread(() -> {
             try { ToilettenScan.scan(ctx, "", true); }
             catch (Throwable ignored) { }
@@ -41,11 +41,11 @@ public class ToilettenJob extends JobService {
     public boolean onStopJob(JobParameters params) { return true; }
 
     /** Het eerstvolgende moment: {met elk internet, alleen wifi}; na een fout de volgende poging na "opnieuw" uur. */
-    static long[] volgende(Context c, long nu) {
+    static long[] volgende(Context c, long nu) { return volgende(Toiletten.bronnen(c), Toiletten.toestand(c), nu, Regio.zone(c)); }
+
+    /** Zonder Android (getest in ToilettenTest): bronnen, toestand per bron, nu en de app-zone. */
+    static long[] volgende(JSONArray l, JSONObject st, long nu, java.util.TimeZone tz) {
         long any = Long.MAX_VALUE, wifi = Long.MAX_VALUE;
-        java.util.TimeZone tz = Regio.zone(c);
-        JSONArray l = Toiletten.bronnen(c);
-        JSONObject st = Toiletten.toestand(c);
         for (int i = 0; i < l.length(); i++) {
             JSONObject b = l.optJSONObject(i);
             if (b == null || !b.optBoolean("aan", true) || "uit".equals(b.optString("schema"))) continue;
