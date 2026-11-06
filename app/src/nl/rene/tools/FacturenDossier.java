@@ -77,19 +77,26 @@ final class FacturenDossier {
     }
 
     /** Nieuwe factuur in het dossier (na het bewaren in de app). */
-    static void nieuw(Context c, JSONObject lev, Facturen.Pdf p, String naam, File f) {
+    static void nieuw(Context c, JSONObject lev, Facturen.Pdf p, String naam, File f) { nieuw(c, lev, p, naam, f, null, null); }
+
+    /**
+     * tekst = de tekst van de PDF als die al gelezen is (null: hier lezen). extra = velden erbij, bijv. bij facturen uit de
+     * mail {via: de mailbron, kenmerken: wat de afzender en de PDF zeggen (FacturenHerken)}.
+     */
+    static void nieuw(Context c, JSONObject lev, Facturen.Pdf p, String naam, File f, String tekst, JSONObject extra) {
         try {
             JSONObject bron = p.bron == null ? new JSONObject() : new JSONObject(p.bron.toString());
-            if (!bron.optBoolean("toegevoegd")) bron.put("soort", lev.optString("soort", "website"));
-            else bron.put("soort", "hand");
+            if (bron.optBoolean("toegevoegd")) bron.put("soort", "hand");
+            else bron.put("soort", Facturen.uitMail(lev) ? "mail" : lev.optString("soort", "website"));
             JSONObject s = new JSONObject()
                     .put("sha", p.sha).put("naam", naam).put("origineel", p.naam).put("grootte", p.data.length)
                     .put("leverancier", lev.optString("id")).put("leverancierNaam", lev.optString("naam"))
                     .put("opgehaald", System.currentTimeMillis()).put("bron", bron)
                     .put("plekken", new JSONObject().put("app", new JSONObject().put("pad", f.getAbsolutePath()).put("t", System.currentTimeMillis())))
                     .put("verzonden", new JSONObject());
+            if (extra != null) for (Iterator<String> it = extra.keys(); it.hasNext(); ) { String k = it.next(); s.put(k, extra.get(k)); }
             // Factuurgegevens uit de tekst van de PDF (Android 15+), anders uit de bestandsnaam
-            JSONObject meta = herken(tekst(f) + "\n" + naamZonderSha(p.naam, p.sha));
+            JSONObject meta = herken((tekst == null ? tekst(f) : tekst) + "\n" + naamZonderSha(p.naam, p.sha));
             meta.put("bron", meta.length() > 0 ? "herkend" : "");
             if (PdfDoc.canText()) meta.put("versie", HERKEN_VERSIE);
             s.put("meta", meta);

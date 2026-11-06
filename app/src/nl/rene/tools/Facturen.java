@@ -168,8 +168,10 @@ final class Facturen {
         o.put("id", id.isEmpty() ? veiligId(naam) : veiligId(id));
         o.put("sjabloon", veiligId(in.optString("sjabloon", "anders")));
         String soort = in.optString("soort", "website");
+        if (FacturenHerken.SOORT.equals(soort)) return uitMail(in, o, naam);
         if (!"website".equals(soort) && !"mail".equals(soort)) throw new Exception("Onbekende soort leverancier");
         o.put("soort", soort);
+        if (in.has("herken")) { JSONObject h = FacturenHerken.herkenNormaal(in.optJSONObject("herken")); if (h.length() > 0) o.put("herken", h); }
         boolean mail = "mail".equals(soort);
         o.put("startUrl", adres(tekst(in, "startUrl", 500, ""), !mail, "de inlogpagina"));
         if (mail) o.put("mail", FacturenMail.normaal(in.optJSONObject("mail")));
@@ -219,6 +221,39 @@ final class Facturen {
         }
         o.put("velden", vo);
         return o;
+    }
+
+    /**
+     * Een leverancier die Tools in de mail vond (soort uitmail): geen website en geen eigen planning (de mailbron haalt op),
+     * wel een eigen naam, herkenning, map en opslag. nieuw = Rene heeft hem nog niet bekeken; overslaan = geen facturen bewaren.
+     */
+    private static JSONObject uitMail(JSONObject in, JSONObject o, String naam) throws Exception {
+        o.put("sjabloon", FacturenHerken.SOORT).put("soort", FacturenHerken.SOORT).put("startUrl", "").put("schema", "uit");
+        o.put("herken", FacturenHerken.herkenNormaal(in.optJSONObject("herken")));
+        o.put("nieuw", in.optBoolean("nieuw", false)).put("overslaan", in.optBoolean("overslaan", false));
+        String vs = in.optString("voorstel", "").trim();
+        o.put("voorstel", vs.isEmpty() ? "" : veiligId(vs));
+        JSONArray b = new JSONArray();
+        JSONArray bi = in.optJSONArray("bronnen");
+        for (int i = 0; bi != null && i < bi.length() && b.length() < 5; i++) { String x = bi.optString(i, "").trim(); if (!x.isEmpty()) b.put(veiligId(x)); }
+        o.put("bronnen", b);
+        o.put("meldNieuw", in.optBoolean("meldNieuw", true));
+        o.put("map", in.optBoolean("map", true)).put("eigenCloud", in.optBoolean("eigenCloud", false))
+                .put("lokaal", in.optBoolean("lokaal", false)).put("drive", in.optBoolean("drive", false));
+        String sub = veiligeNaam(tekst(in, "submap", 60, naam)).replace('.', '_').trim();
+        o.put("submap", sub.isEmpty() ? veiligeNaam(naam).replace('.', '_') : sub);
+        o.put("periode", periode(null));
+        return o;
+    }
+
+    static boolean uitMail(JSONObject lev) { return lev != null && FacturenHerken.SOORT.equals(lev.optString("soort")); }
+
+    /** De mailbron (bijv. Facturen in Gmail) van een leverancier uit de mail: de eerste die er nog is, anders de eerste mailbron. */
+    static JSONObject mailBron(Context c, JSONObject lev) {
+        JSONArray l = lijst(c), b = lev.optJSONArray("bronnen");
+        for (int i = 0; b != null && i < b.length(); i++) { JSONObject x = leverancier(c, b.optString(i)); if (x != null && "mail".equals(x.optString("soort"))) return x; }
+        for (int i = 0; i < l.length(); i++) { JSONObject x = l.optJSONObject(i); if (x != null && "mail".equals(x.optString("soort"))) return x; }
+        return null;
     }
 
     /** Knoppen die meer facturen op dezelfde pagina laten zien (geen "volgende pagina": dan raakt de lijst weg). */
@@ -459,7 +494,13 @@ final class Facturen {
                 JSONObject x = oud.getJSONObject(i);
                 if (vervangen && x.optString("id").equals(vorigeId)) nieuw.put(o); else nieuw.put(x);
             }
-            if (!vervangen) { if (nieuw.length() >= 30) throw new Exception("Hooguit 30 leveranciers"); nieuw.put(o); }
+            if (!vervangen) {
+                // Zelf toegevoegd hooguit 30; uit de mail gevonden hooguit 300 (Gmail kan veel afzenders hebben)
+                int zelf = 0, uitMail = 0;
+                for (int i = 0; i < nieuw.length(); i++) { if (uitMail(nieuw.optJSONObject(i))) uitMail++; else zelf++; }
+                if (uitMail(o) ? uitMail >= 300 : zelf >= 30) throw new Exception(uitMail(o) ? "Hooguit 300 leveranciers uit de mail" : "Hooguit 30 leveranciers");
+                nieuw.put(o);
+            }
             JsonFileStore.write(levFile(c), new JSONObject().put("lijst", nieuw).toString(), Facturen::checkLijst);
             if (wachtwoord != null && !wachtwoord.isEmpty()) zetGeheim(c, "lev_" + o.getString("id"), wachtwoord);
             return o.getString("id");
