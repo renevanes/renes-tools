@@ -26,10 +26,11 @@ function enterFacturen(){
 }
 function faLaad(){ faSt = rdJson(Android.facturenState(), { leveranciers: [], sjablonen: [], ec: {} }); return faSt; }
 function faPoll(){
-  const was = faSt.bezig;
-  faLaad();
+  const was = faSt.bezig, wasIndelen = !!faSt.indelen, b = rdJson(Android.facturenBezig(), null);
+  if (!b || !('bezig' in b)) { faLaad(); faBezig(); if (was !== faSt.bezig) faRender(true); return; }
+  faSt.bezig = b.bezig; faSt.voortgang = b.voortgang; faSt.zichtbaar = b.zichtbaar;
   faBezig();
-  if (was !== faSt.bezig) faRender(true);
+  if (was !== b.bezig || wasIndelen !== !!b.indelen) faRender(); // alles opnieuw laden als er iets begon of klaar is
 }
 function faBezig(){
   const l = faSt.leveranciers.find(x => x.id === faSt.bezig);
@@ -70,7 +71,7 @@ function faStatus(l){ return faPeriode(l).tekst; }
 /* Leveranciers uit de mail (soort uitmail): elke afzender die Tools in de mail vindt, een eigen rij */
 const FA_NIET_HERKEND = 'niet-herkend';
 const faUit = l => !!l && l.soort === 'uitmail';
-function faNaam(l){ return l.id === FA_NIET_HERKEND ? t('Niet herkend') : l.naam; }
+function faNaam(l){ return l.id === FA_NIET_HERKEND && (!l.naam || l.naam === 'Niet herkend') ? t('Niet herkend') : l.naam; }
 let faUitOpen = false;
 function faUitAlles(){ faUitOpen = !faUitOpen; faRender(true); }
 /** Een website-leverancier (of een andere uit de mail) waar deze leverancier volgens de app bij hoort. */
@@ -254,7 +255,7 @@ function faSamenKies(l){
   const doel = faSt.leveranciers.filter(x => x.id !== l.id && x.soort !== 'mail' && !x.overslaan)
     .sort((a, b) => (faUit(a) ? 1 : 0) - (faUit(b) ? 1 : 0) || faNaam(a).localeCompare(faNaam(b)));
   if (!doel.length) { toast(t('Er is nog geen andere leverancier')); return; }
-  openSheet(t('{naam} samenvoegen met…', { naam: faNaam(l) }), t('Alle facturen en de herkenning gaan naar de leverancier die je kiest.'), doel.slice(0, 60).map(x => [faNaam(x) + (faUit(x) ? '' : ' · ' + t('website')), () => faSamen(l, x)]));
+  openSheet(t('{naam} samenvoegen met…', { naam: faNaam(l) }), t('Alle facturen en de herkenning gaan naar de leverancier die je kiest.'), doel.map(x => [faNaam(x) + (faUit(x) ? '' : ' · ' + t('website')), () => faSamen(l, x)]));
 }
 function faSamen(van, naar){
   askConfirm(t('Samenvoegen met {naam}?', { naam: faNaam(naar) }), t('De facturen van {van} gaan naar {naar}, ook in de app, en voortaan herkent Tools ze als {naar}. {van} verdwijnt uit de lijst. Kopieën in je backup-map, op Drive en in je mail blijven waar ze zijn.', { van: faNaam(van), naar: faNaam(naar) }), t('Samenvoegen'), () => {
@@ -272,8 +273,9 @@ function faOverslaan(l){
 function faTerugzetten(id){
   const r = rdJson(Android.facturenLevOverslaan(id, false, false), { error: t('Lukt niet') });
   if (r.error) { toast(r.error); return; }
-  const l = faSt.leveranciers.find(x => x.id === id);
-  toast(t('✓ {naam} staat weer in de lijst', { naam: l ? faNaam(l) : '' })); faLaad(); flOver();
+  const l = faSt.leveranciers.find(x => x.id === id), naam = l ? faNaam(l) : '';
+  toast(r.terug ? tn(r.terug, '✓ {naam} staat weer in de lijst; de overgeslagen factuur komt bij de volgende keer zoeken', '✓ {naam} staat weer in de lijst; {n} overgeslagen facturen komen bij de volgende keer zoeken', { naam })
+    : t('✓ {naam} staat weer in de lijst', { naam })); faLaad(); flOver();
 }
 function faOpen(id){
   const l = faSt.leveranciers.find(x => x.id === id); if (!l) return;
@@ -394,7 +396,8 @@ function flZoek(){
 function flOver(){
   const k = $('#fl-m-overkaart');
   if (!faEdit || faEdit.soort !== 'mail' || faEdit._nieuw) { k.hidden = true; return; }
-  const l = faSt.leveranciers.filter(x => faUit(x) && x.overslaan && (!(x.bronnen || []).length || x.bronnen.includes(faEdit.id)));
+  const bron = id => faSt.leveranciers.some(y => y.id === id && y.soort === 'mail');
+  const l = faSt.leveranciers.filter(x => faUit(x) && x.overslaan && ((x.bronnen || []).includes(faEdit.id) || !(x.bronnen || []).some(bron)));
   k.hidden = !l.length;
   $('#fl-m-over').innerHTML = l.map(x => '<div class="bkres"><b translate="no">' + esc(faNaam(x)) + '</b><span><button class="mini" style="float:none" data-id="' + esc(x.id) + '" onclick="faTerugzetten(this.dataset.id)" aria-label="' + esc(t('{naam} terugzetten', { naam: faNaam(x) })) + '">' + esc(t('Terugzetten')) + '</button></span></div>').join('');
 }
@@ -463,7 +466,7 @@ function flBewaar(){
     mail: { bron: $('#fl-m-bron').value, woorden: $('#fl-m-woorden').value, afzenders: $('#fl-m-afz').value, negeer: $('#fl-m-neg').value, extra: $('#fl-m-extra').value.trim(),
       max: Number($('#fl-m-max').value) || 50 },
     ...(herk ? { herken: { afzenders: $('#fl-h-afz').value, domeinen: $('#fl-h-dom').value, namen: $('#fl-h-namen').value, btw: $('#fl-h-btw').value, kvk: $('#fl-h-kvk').value, iban: $('#fl-h-iban').value } } : {}),
-    ...(uit ? { nieuw: false, overslaan: !!faEdit.overslaan, voorstel: faEdit.voorstel || '', bronnen: faEdit.bronnen || [] } : {}),
+    ...(uit ? { nieuw: false, overslaan: !!faEdit.overslaan, voorstel: '', bronnen: faEdit.bronnen || [] } : {}),
     naam: $('#fl-naam').value.trim(), startUrl: $('#fl-start').value.trim(), gebruiker: $('#fl-user').value.trim(), wachtwoord: $('#fl-pw').value,
     periode: flPeriodeWaarde(), meer: $('#fl-meer').value.trim(),
     facturenUrl: $('#fl-facturl').value.trim(), domeinen: $('#fl-domeinen').value.trim(), menu: $('#fl-menu').value.trim(), knoppen: $('#fl-knoppen').value.trim(), max: Number($('#fl-max').value) || 50,
@@ -738,7 +741,7 @@ function fdRender(laad){
   if (document.activeElement !== $('#fd-mnd')) $('#fd-mnd').value = inst.maand || fdVandaag().slice(0, 7);
   $('#fd-jaar').value = jaren.includes(inst.jaar) ? inst.jaar : jaren[0];
   const [pvan, ptot] = fdVanTot(inst.periode, inst.periode === 'mnd' ? $('#fd-mnd').value : inst.periode === 'kjaar' ? $('#fd-jaar').value : inst.van, inst.tot);
-  const sel = $('#fd-lev'), was = fdLevKeuze || sel.value, levs = [...new Map(items.map(s => [s.leverancier, s.leverancier === FA_NIET_HERKEND ? t('Niet herkend') : s.leverancierNaam || s.leverancier])).entries()];
+  const sel = $('#fd-lev'), was = fdLevKeuze || sel.value, levs = [...new Map(items.map(s => [s.leverancier, s.leverancier === FA_NIET_HERKEND && (!s.leverancierNaam || s.leverancierNaam === 'Niet herkend') ? t('Niet herkend') : s.leverancierNaam || s.leverancier])).entries()];
   fdLevKeuze = '';
   sel.innerHTML = '<option value="">Alle leveranciers</option>' + levs.map(([id, n]) => '<option value="' + esc(id) + '" translate="no">' + esc(n) + '</option>').join('');
   sel.value = levs.some(([id]) => id === was) ? was : '';
@@ -906,29 +909,37 @@ function fsTekst(){
 function fsOpen(){ const s = (faDos.items || []).find(x => x.sha === fsSha); if (s) Android.facturenOpen(s.leverancier, s.naam); }
 let fsDocs = [];
 function fsOpenDoc(i){ const s = fsDocs[i]; if (s) Android.facturenOpen(s.leverancier, s.naam); }
+/** Wat "Onthoud dit" vastlegt (zoals FacturenIndeling.regel): de naam bij een platform, het eigen adres, of alleen de nummers; "" = niets. */
+function fsOnthoudTekst(km){
+  const nrs = ['btw', 'kvk', 'iban'].some(s => (km[s] || []).length), alleenNrs = nrs ? t('Onthoud de nummers op deze factuur (KvK, btw, IBAN)') : '';
+  if (km.soort === 'platform') return km.naam ? t('Onthoud dit voor {naam}', { naam: km.naam }) : alleenNrs;
+  if (km.soort === 'eigen') return alleenNrs;
+  if (km.platform) return km.soort === 'domein' && km.domein ? t('Onthoud dit voor {adres}', { adres: km.domein }) : alleenNrs;
+  return km.adres ? t('Onthoud dit voor {adres}', { adres: km.adres }) : alleenNrs;
+}
 function fsLevKeuze(){
   const s = ((faDos || {}).items || []).find(x => x.sha === fsSha); if (!s) return;
-  const ander = $('#fs-levsel').value !== s.leverancier, km = s.kenmerken || {};
-  $('#fs-onthoudrij').hidden = !ander || !(km.adres || km.naam);
-  $('#fs-onthoud-t').textContent = km.soort === 'platform' && km.naam ? t('Onthoud dit voor {naam}', { naam: km.naam }) : km.adres && km.soort !== 'eigen' ? t('Onthoud dit voor {adres}', { adres: km.adres }) : t('Onthoud dit voor deze afzender');
+  const ander = $('#fs-levsel').value !== s.leverancier, wat = fsOnthoudTekst(s.kenmerken || {});
+  $('#fs-onthoudrij').hidden = !ander || !wat || $('#fs-levsel').value === FA_NIET_HERKEND;
+  $('#fs-onthoud-t').textContent = wat;
   $('#fs-lev-uitleg').textContent = ander ? t('Bij Bewaren gaat deze factuur (met de bijlagen uit dezelfde mail) naar de leverancier die je kiest.') : t('Uit je mail. Hoort hij bij een andere leverancier? Kies die hier.');
 }
 function fsBewaar(){
-  const s = ((faDos || {}).items || []).find(x => x.sha === fsSha);
-  let naam = $('#fs-lev').value.trim(), verplaatst = '';
-  if (s && s.via) {
+  const s = ((faDos || {}).items || []).find(x => x.sha === fsSha), uitMail = !!(s && s.via);
+  let verplaatst = '';
+  // Eerst de gegevens (die worden gecontroleerd), dan pas naar een andere leverancier: bij een fout blijft alles staan
+  const e = Android.facturenDossierMeta(fsSha, JSON.stringify({ leverancierNaam: uitMail ? '' : $('#fs-lev').value.trim(), nummer: $('#fs-nummer').value.trim(), datum: $('#fs-datum').value, bedrag: $('#fs-bedrag').value.trim(), btw: $('#fs-btw').value.trim(), vervaldatum: $('#fs-verval').value, betaald: $('#fs-betaald').value, categorie: $('#fs-cat').value.trim(), notitie: $('#fs-notitie').value.trim() }));
+  $('#fs-msg').textContent = e || '';
+  if (e) return;
+  if (uitMail) {
     const naar = $('#fs-levsel').value;
     if (naar && naar !== s.leverancier) {
       const r = rdJson(Android.facturenDossierLeverancier(fsSha, naar, $('#fs-onthoud').checked && !$('#fs-onthoudrij').hidden), { error: t('Verplaatsen lukt niet') });
-      if (r.error) { $('#fs-msg').textContent = r.error; return; }
+      if (r.error) { $('#fs-msg').textContent = r.error; fdLaad(); return; }
       const l = faSt.leveranciers.find(x => x.id === naar); verplaatst = l ? faNaam(l) : naar;
       faLaad();
     }
-    naam = ''; // de naam is die van de gekozen leverancier
   }
-  const e = Android.facturenDossierMeta(fsSha, JSON.stringify({ leverancierNaam: naam, nummer: $('#fs-nummer').value.trim(), datum: $('#fs-datum').value, bedrag: $('#fs-bedrag').value.trim(), btw: $('#fs-btw').value.trim(), vervaldatum: $('#fs-verval').value, betaald: $('#fs-betaald').value, categorie: $('#fs-cat').value.trim(), notitie: $('#fs-notitie').value.trim() }));
-  $('#fs-msg').textContent = e || '';
-  if (e) return;
   fdLaad(); toast(verplaatst ? t('✓ Verplaatst naar {naam}', { naam: verplaatst }) : t('✓ Bewaard')); fsToon(fsSha);
 }
 function fsOpnieuw(ontv){

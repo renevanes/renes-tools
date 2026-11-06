@@ -72,8 +72,10 @@ const { chromium } = require('playwright');
     await pg.click('#sheet button:has-text("Instellingen")'); await pg.waitForTimeout(200);
     ok(await pg.isVisible('#fl-m-overkaart') && (await tekst('#fl-m-over')).includes('Bakkerij Jansen B.V.'), 'Gmail: lijst met overgeslagen leveranciers');
     ok(!(await pg.$('#fl-m-per')) && await pg.isHidden('#fl-subrij'), 'geen "per afzender een eigen map" meer');
+    await pg.evaluate(() => { Android._fa.overgeslagen = { m1: 'bakkerij-jansen', m2: 'bakkerij-jansen', m3: 'eneco' }; });
     await pg.click('#fl-m-over button:has-text("Terugzetten")'); await pg.waitForTimeout(150);
     ok(!(await lev('bakkerij-jansen')).overslaan && await pg.isHidden('#fl-m-overkaart'), 'teruggezet');
+    ok((await tekst('#toast')).includes('2 overgeslagen facturen komen bij de volgende keer zoeken') && Object.keys((await fa()).overgeslagen).length === 1, 'terugzetten: de overgeslagen facturen komen alsnog: ' + await tekst('#toast'));
     // Je eigen nummers en adressen
     await pg.fill('#fl-e-nr', 'abc'); await pg.click('#fl-save'); await pg.waitForTimeout(150);
     ok((await tekst('#fl-msg')).includes('Geen KvK-, btw- of IBAN-nummer') && await pg.isVisible('#fl-e-nr'), 'fout eigen nummer: blijft op Zoeken');
@@ -90,6 +92,20 @@ const { chromium } = require('playwright');
     const st = Object.values((await fa()).dos).find(s => s.naam === 'Eneco jaarnota 2026.pdf');
     ok(st.leverancier === 'bakkerij-jansen' && (await lev('bakkerij-jansen')).herken.afzenders.includes('factuur@eneco.nl'), 'verplaatst en onthouden');
     ok(st.leverancierNaam === 'Bakkerij Jansen B.V.', 'de naam komt van de leverancier, niet uit het veld: ' + st.leverancierNaam);
+    // Via een platform (Moneybird): onthouden op de naam, nooit op het adres van het platform; naar Niet herkend: niets onthouden
+    await pg.evaluate(() => { const f = Android._fa; f.lev.push({ id: 'niet-herkend', naam: 'Niet herkend', soort: 'uitmail', sjabloon: 'uitmail', herken: {}, bronnen: ['gmail'] });
+      faLaad(); fdLaad(); fsToon(Object.values(f.dos).find(s => s.naam === 'Factuur 2026-0042.pdf').sha); }); await pg.waitForTimeout(150);
+    await pg.selectOption('#fs-levsel', 'eneco'); await pg.waitForTimeout(60);
+    ok(await pg.isVisible('#fs-onthoudrij') && (await tekst('#fs-onthoud-t')).includes('Bakkerij Jansen') && !(await tekst('#fs-onthoud-t')).includes('moneybird'), 'platform: onthouden voor de naam: ' + await tekst('#fs-onthoud-t'));
+    await pg.selectOption('#fs-levsel', 'niet-herkend'); await pg.waitForTimeout(60);
+    ok(await pg.isHidden('#fs-onthoudrij'), 'naar Niet herkend: niets te onthouden');
+    ok((await pg.$$eval('#fs-levsel option', l => l.map(o => o.textContent))).includes('Niet herkend'), 'Niet herkend staat in de keuzelijst');
+    // Fout in de gegevens: niets verplaatst
+    await pg.selectOption('#fs-levsel', 'eneco');
+    await pg.evaluate(() => { const m = Android.facturenDossierMeta; Android.facturenDossierMeta = () => 'Ongeldig bedrag'; window._herstel = () => { Android.facturenDossierMeta = m; }; });
+    await pg.click('#s-facstuk button.big:has-text("Bewaren")'); await pg.waitForTimeout(150);
+    ok((await tekst('#fs-msg')) === 'Ongeldig bedrag' && Object.values((await fa()).dos).find(s => s.naam === 'Factuur 2026-0042.pdf').leverancier === 'bakkerij-jansen', 'fout in de gegevens: blijft bij de oude leverancier');
+    await pg.evaluate(() => { window._herstel(); Android._fa.lev = Android._fa.lev.filter(l => l.id !== 'niet-herkend'); faLaad(); });
     await pg.evaluate(() => show('facturen')); await pg.waitForTimeout(150);
     // Leverancier toevoegen in het dossier: de mailbron zelf niet
     await pg.evaluate(() => fdToevoegen()); await pg.waitForTimeout(150);
