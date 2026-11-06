@@ -1,5 +1,5 @@
 /* Stamgegevens: uitsluitend vluchtig schermgeheugen; opslag, toegang en audit blijven native. */
-const cm={token:'',seq:0,pending:new Map(),records:[],recordsReady:false,edit:null,dirty:false,events:[],before:0,picker:null,view:'',generation:0,privateReady:false,unlocking:false,resetting:false,mutating:false,editorEpoch:0};
+const cm={tab:'',back:null,filter:'',keepNote:false,token:'',seq:0,pending:new Map(),records:[],recordsReady:false,edit:null,dirty:false,events:[],before:0,picker:null,view:'',generation:0,privateReady:false,unlocking:false,resetting:false,mutating:false,editorEpoch:0};
 // taal-vast: veldnamen worden bij het tekenen met t() vertaald
 const CM_TYPES={persoon:'Persoon',organisatie:'Organisatie',adres:'Adres',identiteit:'Identiteitsdocument',reis:'Reis',relatie:'Relatie',profiel:'App-profiel',formulier:'Vaste formuliergegevens'};
 // taal-vast: veldnamen worden bij het tekenen met t() vertaald
@@ -8,9 +8,25 @@ const CM_SCHEMA={persoon:['naam','voornamen','roepnaam','initialen','geboortedat
 // Verwijzingen in vaste formuliergegevens: veld → soort stamgegeven (zelfde regels als MasterFormProfile.reference).
 function cmRefType(type,key){if(['persoon','vanPersoon','naarPersoon'].includes(key))return 'persoon';if(type!=='formulier')return '';if(['kind','begeleider1','begeleider2','gever1','gever2'].includes(key))return 'persoon';if(/^(kind|begeleider[12]|gever[12])Document$/.test(key))return 'identiteit';if(/^gever[12]Instelling$/.test(key))return 'organisatie';return '';}
 const CM_SECRET=new Set(['bsn','document','geldig','afgifte']);
+/* Stamgegevens is één zone van schermen: binnen de zone blijft de kluis open, wie de zone verlaat vergrendelt. */
+const CM_SCR=['masterdata','cmedit','cmlog','cmwis'];
+function cmZone(name){return CM_SCR.includes(name);}
+// taal-vast: tabnamen worden bij het tekenen met tc('tab', …) vertaald
+const CM_TABS={persoon:[['naam','Naam',['naam','voornamen','roepnaam','initialen']],['geboorte','Geboorte',['geboortedatum','geboorteplaats','nationaliteit','bsn']],['contact','Contact',['adres','postcode','plaats','land','telefoon','email']],['relaties','Relaties',[]],['meer','Meer',['context']]],
+  relatie:[['relatie','Relatie',['vanPersoon','naarPersoon','relatie','status','delen']],['meer','Naam en toelichting',['toelichting']]],
+  adres:[['adres','Adres',['naam','adres','postcode','plaats']],['meer','Land en telefoon',['land','telefoon']]],
+  organisatie:[['gegevens','Gegevens',['naam','registratienummer']],['contact','Contact',['adres','postcode','plaats','land','telefoon','email']]],
+  identiteit:[['document','Document',['persoon','documentsoort','document','geldig']],['afgifte','Afgifte',['afgifte','afgifteplaats','uitgifteland','afgegevenDoor']],['fotos','Foto’s',[]]],
+  reis:[['reis','Reis',['van','tot','reisgegevens']],['begeleiding','Begeleiding',['alleen','tweedeBegeleider','tweedeGever']],['verblijf','Verblijf',['accommodatie','postcode','plaats','land','telefoon']]],
+  formulier:[['kind','Kind',['formulier','kind','kindDocument','alleen','bsnInvullen']],['begeleiders','Begeleiders',['begeleider1','begeleider1Document','begeleider1Relatie','begeleider2','begeleider2Document','begeleider2Relatie']],['toestemming','Toestemming',['gever1','gever1Document','gever1Instelling','gever2','gever2Document','gever2Instelling']]]};
+// Waar de naam in het overzicht staat als dat niet het eerste tabblad is (bij een relatie vult hij zich vanzelf)
+const CM_LABEL_TAB={relatie:'meer'};
+// taal-vast: filternamen worden bij het tekenen met t() vertaald
+const CM_FILTERS=[['persoon','Personen',['persoon']],['relatie','Relaties',['relatie']],['identiteit','Documenten',['identiteit']],['overig','Overig',['organisatie','adres','reis','profiel','formulier']]];
+const CM_ICONS={persoon:'user',relatie:'share',identiteit:'document',organisatie:'shop',adres:'pin',reis:'route',profiel:'smile',formulier:'clipboard'};
 function cmState(){try{return JSON.parse(Android.masterState());}catch(_){return {open:false};}}
 function cmOpen(){return !!cm.token&&cmState().open&&cm.privateReady;}
-function cmNote(message){$('#cm-status').textContent=message;$('#cm-pick-status').textContent=message;}
+function cmNote(message){document.querySelectorAll('.cm-status,#cm-pick-status').forEach(e=>e.textContent=message);}
 function cmEl(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
 function cmData(e){e.setAttribute('translate','no');return e;}
 function cmRequest(method,args,done,publicRequest=false,fail=null){
@@ -34,17 +50,24 @@ window.onMasterPrivacy=function(r){
   cmRenderState();Android.masterSafeFrame(cm.view,cm.generation);
 };
 function cmRenderState(){
-  const open=cmOpen();$('#cm-locked').hidden=open;$('#cm-open').hidden=!open;
+  const open=cmOpen();$('#cm-locked').hidden=open;$('#cm-open').hidden=!open;$('#cm-add').hidden=!open;$('#cm-lock-btn').hidden=!open;$('#cmi-profile-btn').hidden=!open;
   $('#cm-pick-unlock').hidden=open;$('#cm-pick-search').hidden=!open;
+  // Op slot tijdens bewerken of het logboek: terug naar het overzicht (na een lopende schermwissel)
+  if(!open&&['cmedit','cmlog'].includes(current))setTimeout(()=>{if(['cmedit','cmlog'].includes(current)&&!cmOpen())show('masterdata');},0);
 }
-function enterMasterdata(){cmClearCentral();cmPrivacy(true);cmNote(t('Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.'));}
+function enterMasterdata(name='masterdata',prev=''){
+  if(!cmZone(prev)){cmClearCentral();cmPrivacy(true);cmNote(t('Niet-bewaarde wijzigingen en overgenomen concepten worden bij vergrendelen gewist.'));}
+  if(['cmedit','cmlog'].includes(name)&&!cmOpen()){cmRenderState();return;}
+  if(name==='masterdata'&&cmZone(prev)&&prev!=='masterdata'&&cmOpen())cmListLoad();
+  if(name==='cmwis'){$('#cm-reset-word').value='';cmResetReady();}
+}
 function cmLeave(){if(typeof cmi!=='undefined')cmi.newType='';cmClearCentral();Android.masterLock();cmPrivacy(false);}
 function cmClearCentral(){
-  cm.records=[];cm.recordsReady=false;cm.events=[];cm.edit=null;cm.dirty=false;cm.before=0;cm.editorEpoch++;cmBusy(false);
-  ['cm-list','cm-fields','cm-audit','cm-pick-list','cm-pick-fields'].forEach(id=>$('#'+id).replaceChildren());
+  cm.records=[];cm.recordsReady=false;cm.events=[];cm.edit=null;cm.dirty=false;cm.before=0;cm.editorEpoch++;cm.back=null;cm.tab='';cm.filter='';cmBusy(false);
+  ['cm-list','cm-filter','cm-tabs','cm-fields','cm-audit','cm-pick-list','cm-pick-fields'].forEach(id=>$('#'+id).replaceChildren());
   ['cm-label','cm-search','cm-log-search','cm-pick-search','cm-reset-word'].forEach(id=>$('#'+id).value='');
-  $('#cm-show-secret').checked=false;$('#cm-editor').hidden=true;$('#cm-reset').disabled=true;
-  document.querySelectorAll('#s-masterdata [data-ui-edited],#cm-picker [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);
+  $('#cm-show-secret').checked=false;$('#cm-editor').hidden=true;$('#cm-savebar').hidden=true;$('#cm-filter').hidden=true;$('#cm-reset').disabled=true;cmEditorTitle('');
+  document.querySelectorAll(CM_SCR.map(n=>'#s-'+n+' [data-ui-edited]').join(',')+',#cm-picker [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);
 }
 function cmClearFormDOM(){
   $('#pff-velden').replaceChildren();$('#pff-samenvatting').replaceChildren();$('#pff-voorbeeld').removeAttribute('src');
@@ -60,7 +83,7 @@ function cmLockedUI(){
   cmRenderState();cmNote(t('Stamgegevens zijn vergrendeld. Niet-bewaarde gegevens zijn gewist.'));
 }
 window.onMasterLocked=function(generation){cm.generation=generation;cmLockedUI();Android.masterSafeFrame(cm.view,generation);};
-window.onMasterReset=function(){cm.unlocking=false;cm.resetting=false;cm.pending.clear();cmLockedUI();cmNote(t('Stamgegevens en activiteiten zijn gewist.'));};
+window.onMasterReset=function(){cm.unlocking=false;cm.resetting=false;cm.pending.clear();cmLockedUI();if(current==='cmwis')show('masterdata');cmNote(t('Stamgegevens en activiteiten zijn gewist.'));};
 function cmUnlock(){
   if(cm.unlocking||cm.resetting)return;if(!cmState().secure){cmNote(t('Stel eerst een schermvergrendeling in op je telefoon'));return;}cm.unlocking=true;cmNote(t('Bevestig op je telefoon.'));
   cmRequest('masterUnlock',[],r=>{cm.unlocking=false;if(!r.opened||!cmState().open)return;cm.token=r.token;cmRenderState();cmNote('');appIdentityRefresh();cmiPhotoAfterUnlock(r.photo);if(cm.picker)cmPickerLoad();else if(typeof fmq!=='undefined'&&fmq.open)fmqLoad();else cmListOpen();},true);
@@ -68,26 +91,60 @@ function cmUnlock(){
 function cmLock(){Android.masterLock();cmLockedUI();}
 function cmTouch(){if(cmOpen())Android.masterTouch(cm.token);}
 function cmDirty(){cm.dirty=true;cmTouch();}
+/* Naar het overzicht en de lijst opnieuw laden (na opslaan, verwijderen of sluiten). */
 function cmListOpen(){
-  if(!cmOpen()||cm.mutating)return;cm.recordsReady=false;document.querySelectorAll('#cm-list-card button').forEach(b=>b.disabled=true);cm.editorEpoch++;$('#cm-list-card').hidden=false;$('#cm-audit-card').hidden=true;$('#cm-editor').hidden=true;
-  cmRequest('masterList',['masterdata',''],r=>{cm.records=r.records;cm.recordsReady=true;cmRenderList();document.querySelectorAll('#cm-list-card button').forEach(b=>b.disabled=false);cmiAfterList();});
+  if(!cmOpen()||cm.mutating)return;
+  if(current!=='masterdata'){show('masterdata');return;}
+  cmListLoad();
+}
+function cmListLoad(after){
+  if(!cmOpen())return;cm.recordsReady=false;document.querySelectorAll('#cm-open button,#cm-add').forEach(b=>b.disabled=true);cm.editorEpoch++;
+  cmRequest('masterList',['masterdata',''],r=>{cm.records=r.records;cm.recordsReady=true;cmRenderList();document.querySelectorAll('#cm-open button,#cm-add').forEach(b=>b.disabled=false);if(after)after();else cmiAfterList();});
 }
 function cmRenderList(){
-  const box=$('#cm-list');box.replaceChildren();if(!cmOpen())return;const q=$('#cm-search').value.toLowerCase();
-  cm.records.filter(r=>r.label.toLowerCase().includes(q)).sort((a,b)=>a.label.localeCompare(b.label)).forEach(r=>{
-    const row=cmEl('div',undefined,'cm-entry'),b=cmData(cmEl('button',r.label,'big ghost'));b.onclick=()=>cmEdit(r.id);
-    row.append(b,cmEl('small',t(CM_TYPES[r.type])));box.append(row);
-  });if(!box.children.length)box.append(cmEl('p',t('Nog geen passende stamgegevens.'),'note'));
+  const box=$('#cm-list'),chips=$('#cm-filter');box.replaceChildren();chips.replaceChildren();if(!cmOpen())return;const q=$('#cm-search').value.toLowerCase();
+  const present=CM_FILTERS.filter(f=>cm.records.some(r=>f[2].includes(r.type)));if(!present.some(f=>f[0]===cm.filter))cm.filter='';
+  chips.hidden=present.length<2;
+  if(present.length>1)for(const [id,name] of [['','Alles'],...present]){const b=cmEl('button',t(name));b.type='button';b.classList.toggle('on',id===cm.filter);b.setAttribute('aria-pressed',String(id===cm.filter));b.onclick=()=>{cm.filter=id;cmRenderList();cmTouch();};chips.append(b);}
+  const types=(CM_FILTERS.find(f=>f[0]===cm.filter)||[0,0,null])[2];
+  cm.records.filter(r=>(!types||types.includes(r.type))&&r.label.toLowerCase().includes(q)).sort((a,b)=>a.label.localeCompare(b.label)).forEach(r=>{
+    const b=cmData(cmEl('button',undefined,'strow')),ic=cmEl('span',undefined,'stic'),txt=cmEl('span',undefined,'sttxt'),chev=cmEl('span',undefined,'ui-icon stchev');
+    b.type='button';ic.innerHTML=uiIcon(CM_ICONS[r.type]||'document');chev.dataset.icon='chevron-right';chev.setAttribute('aria-hidden','true');
+    txt.append(cmEl('b',r.label),cmEl('small',t(CM_TYPES[r.type])));b.append(ic,txt,chev);b.onclick=()=>cmEdit(r.id);box.append(b);
+  });
+  if(!box.children.length){if(cm.records.length)box.append(cmEl('p',t('Nog geen passende stamgegevens.'),'note cm-leeg'));else box.innerHTML=uiEmpty('shield',t('Nog geen stamgegevens. Begin met jezelf: Toevoegen → Persoon.'));}
 }
 function cmNew(){if(!cmOpen()||cm.mutating||!cm.recordsReady)return;cm.editorEpoch++;cm.edit={type:'persoon',label:'',fields:{},revision:0};cmEditor();}
-function cmEdit(id){if(cm.mutating)return;const epoch=++cm.editorEpoch;cmRequest('masterRead',[id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;cm.edit=r.record;cmEditor();});}
-function cmType(type){if(!cm.edit||cm.edit.id)return;cm.edit.type=type;cm.edit.fields=cmiDefaults(type);cm.dirty=true;cmEditorFields();}
-function cmEditor(){
-  $('#cm-editor').hidden=false;$('#cm-audit-card').hidden=true;$('#cm-kind').value=cm.edit.type;$('#cm-kind').disabled=!!cm.edit.id;
-  $('#cm-label').value=cm.edit.label;$('#cm-show-secret').checked=false;$('#cm-delete').hidden=!cm.edit.id;cm.dirty=false;cmEditorFields();$('#cm-label').focus();
+function cmEdit(id,tab){if(cm.mutating)return;const epoch=++cm.editorEpoch;cmRequest('masterRead',[id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;cm.edit=r.record;cmEditor(tab);});}
+function cmEditorTitle(r){const h=$('#cm-editor-title');if(r&&r.id){h.textContent=r.label;h.setAttribute('translate','no');}else{h.removeAttribute('translate');h.textContent=r?t('{soort} toevoegen',{soort:t(CM_TYPES[r.type])}):t('Stamgegeven bewerken');}}
+function cmEditor(tab){
+  const r=cm.edit;$('#cm-editor').hidden=false;$('#cm-savebar').hidden=false;if(!cm.keepNote)$('#cm-edit-status').textContent='';cm.keepNote=false;$('#cm-edit-menu').hidden=!r.id;cmEditorTitle(r);
+  $('#cm-label').value=r.label;$('#cm-show-secret').checked=false;cm.dirty=false;cm.tab=tab||'';cmTabsBuild();cmEditorFields();
+  const focus=()=>{if(!r.id&&cm.edit===r)$('#cm-label').focus();};
+  if(current!=='cmedit'){show('cmedit');setTimeout(focus,0);}else focus();
 }
+function cmTabs(r){return (CM_TABS[r.type]||[]).filter(([id])=>id!=='relaties'||!!r.id);}
+function cmTabsBuild(){
+  const bar=$('#cm-tabs'),tabs=cmTabs(cm.edit);bar.replaceChildren();bar.hidden=tabs.length<2;
+  if(!tabs.some(x=>x[0]===cm.tab))cm.tab=tabs[0]?tabs[0][0]:'';
+  for(const [id,name] of tabs){const b=cmEl('button',tc('tab',name));b.type='button';b.id='cm-tab-'+id;b.dataset.tab=id;b.setAttribute('role','tab');b.setAttribute('aria-controls','cm-editor-card');b.onclick=()=>cmTab(id);bar.append(b);}
+}
+function cmTab(id){if(!cm.edit||!cmTabs(cm.edit).some(x=>x[0]===id))return;cm.tab=id;cmTabRender();cmTouch();}
+function cmTabRender(){
+  const tabs=cmTabs(cm.edit),many=tabs.length>1;$('#cm-label-box').dataset.cmTab=CM_LABEL_TAB[cm.edit.type]||(tabs[0]?tabs[0][0]:'');
+  document.querySelectorAll('#cm-tabs [role=tab]').forEach(b=>{const on=b.dataset.tab===cm.tab;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;});
+  const card=$('#cm-editor-card');if(many){card.setAttribute('role','tabpanel');card.setAttribute('aria-labelledby','cm-tab-'+cm.tab);}else{card.removeAttribute('role');card.removeAttribute('aria-labelledby');}
+  document.querySelectorAll('#cm-editor [data-cm-tab]').forEach(e=>e.classList.toggle('cm-off',many&&e.dataset.cmTab!==cm.tab));
+  $('#cm-secret-row').classList.toggle('cm-off',![...CM_SECRET].some(k=>{const i=$('#cm-field-'+k);return i&&!i.closest('.cm-off');}));
+}
+$('#cm-tabs').addEventListener('keydown',e=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+  const tabs=[...e.currentTarget.querySelectorAll('[role=tab]')],at=tabs.indexOf(document.activeElement);if(at<0)return;
+  e.preventDefault();const i=e.key==='Home'?0:e.key==='End'?tabs.length-1:(at+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+  cmTab(tabs[i].dataset.tab);tabs[i].focus({preventScroll:true});
+});
 function cmEditorFields(){
-  const box=$('#cm-fields');box.replaceChildren();
+  const box=$('#cm-fields');box.replaceChildren();const tabs=cmTabs(cm.edit),groups={};
   for(const key of CM_SCHEMA[cm.edit.type]){
     if(cmiSkip(key))continue;
     const label=cmEl('label',t(cm.edit.type==='profiel'&&key==='persoon'?'Dit ben ik':CM_FIELDS[key]),'f');label.htmlFor='cm-field-'+key;
@@ -103,16 +160,33 @@ function cmEditorFields(){
       const old=cm.edit.fields[key];if(old&&!choices.some(c=>c[0]===old)){const o=cmData(cmEl('option',old));o.value=old;input.append(o);}
     }else{input.autocomplete='off';input.maxLength=key==='bsn'?9:240;if(!area)input.type=CM_SECRET.has(key)?'password':['geboortedatum','van','tot'].includes(key)?'date':key==='email'?'email':key==='telefoon'?'tel':'text';else input.rows=3;if(key==='bsn')input.inputMode='numeric';}
     input.value=cm.edit.fields[key]||'';input.addEventListener(person||choices?'change':'input',()=>{cm.edit.fields[key]=input.value;cmDirty();if(cm.edit.type==='formulier'&&ref==='persoon')cmiFormPerson(key);if(cm.edit.type==='relatie')cmiRelationChange(key);});
-    box.append(label,input);if(['geldig','afgifte'].includes(key))box.append(cmEl('small',t('Notatie: JJJJ-MM-DD')));
-  }cmiEditor();
+    const tab=(tabs.find(x=>x[2].includes(key))||tabs[0]||[''])[0];let group=groups[tab];
+    if(!group){group=groups[tab]=cmEl('div',undefined,'cm-group');group.dataset.cmTab=tab;box.append(group);}
+    group.append(label,input);if(['geldig','afgifte'].includes(key))group.append(cmEl('small',t('Notatie: JJJJ-MM-DD')));
+  }cmiEditor();cmTabRender();
 }
 function cmShowSecret(show){CM_SECRET.forEach(key=>{const input=$('#cm-field-'+key);if(input)input.type=show?'text':'password';});cmTouch();}
-function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-delete').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cmi-photos button,#cmi-person-actions button,#cmi-person-relations button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;$('#cm-kind').disabled=busy||!!(cm.edit&&cm.edit.id);}
-function cmSave(){if(!cmOpen()||!cm.edit||cm.mutating)return;cm.edit.label=$('#cm-label').value;cmBusy(true);cmRequest('masterSave',[JSON.stringify(cm.edit)],r=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmListOpen();cmNote(r.contextError?t(r.contextError):t('Stamgegeven opgeslagen.'));appIdentityRefresh();});}
-function cmClearEdited(){document.querySelectorAll('#s-masterdata [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);}
-function cmCancelEdit(){if(cm.mutating)return;cm.editorEpoch++;if(cm.dirty){askConfirm('Bewerking sluiten?','Niet-bewaarde wijzigingen gaan verloren.','Sluiten',()=>{cm.edit=null;cm.dirty=false;cmClearEdited();$('#cm-fields').replaceChildren();$('#cm-label').value='';$('#cm-editor').hidden=true;});return;}cm.edit=null;$('#cm-fields').replaceChildren();$('#cm-label').value='';$('#cm-editor').hidden=true;}
-function cmDelete(){if(!cmOpen()||!cm.edit||!cm.edit.id||cm.mutating)return;const r=cm.edit;askConfirm('Stamgegeven verwijderen?','De gegevens worden verwijderd. De weergavenaam en activiteiten blijven in het logboek staan.','Verwijderen',()=>{if(cmOpen()&&!cm.mutating){cmBusy(true);cmRequest('masterDelete',[r.id,r.revision],()=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmListOpen();});}});}
-function cmAuditOpen(){if(!cmOpen()||cm.mutating)return;cm.editorEpoch++;cm.events=[];cm.before=0;$('#cm-editor').hidden=true;$('#cm-list-card').hidden=true;$('#cm-audit-card').hidden=false;cmAuditMore();}
+function cmBusy(busy){cm.mutating=busy;$('#cm-save').disabled=busy;$('#cm-edit-menu').disabled=busy;document.querySelectorAll('#cm-fields input,#cm-fields select,#cm-fields textarea,#cmi-photos button,#cmi-person-actions button,#cmi-person-relations button').forEach(e=>e.disabled=busy);$('#cm-label').disabled=busy;}
+function cmSave(){if(!cmOpen()||!cm.edit||cm.mutating)return;cm.edit.label=$('#cm-label').value;if(!cm.edit.label.trim()&&$('#cm-label').closest('.cm-off'))cmTab($('#cm-label-box').dataset.cmTab);cmBusy(true);cmRequest('masterSave',[JSON.stringify(cm.edit)],r=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit();cmNote(r.contextError?t(r.contextError):t('Stamgegeven opgeslagen.'));appIdentityRefresh();});}
+function cmClearEdited(){document.querySelectorAll(CM_SCR.map(n=>'#s-'+n+' [data-ui-edited]').join(',')).forEach(e=>delete e.dataset.uiEdited);}
+/* Na opslaan, verwijderen of sluiten: terug naar de persoon waar je vandaan kwam (relatie), anders naar het overzicht. */
+function cmAfterEdit(){
+  const back=cm.back;cm.back=null;$('#cm-editor').hidden=true;$('#cm-savebar').hidden=true;$('#cm-fields').replaceChildren();$('#cm-label').value='';cmEditorTitle('');
+  if(back&&cmOpen()){cmListLoad(()=>{if(cm.records.some(r=>r.id===back.id)){cm.keepNote=true;cmEdit(back.id,back.tab);}else cmListOpen();});return;}
+  if(current==='cmedit')show('masterdata');else cmListOpen();
+}
+function cmEditBack(){if(!cm.mutating)cmCancelEdit();return true;}
+function cmCancelEdit(){if(cm.mutating)return;cm.editorEpoch++;const close=()=>{cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit();};if(cm.dirty){askConfirm('Bewerking sluiten?','Niet-bewaarde wijzigingen gaan verloren.','Sluiten',close);return;}close();}
+function cmDelete(){if(!cmOpen()||!cm.edit||!cm.edit.id||cm.mutating)return;const r=cm.edit;askConfirm('Stamgegeven verwijderen?','De gegevens worden verwijderd. De weergavenaam en activiteiten blijven in het logboek staan.','Verwijderen',()=>{if(cmOpen()&&!cm.mutating){cmBusy(true);cmRequest('masterDelete',[r.id,r.revision],()=>{cmBusy(false);cm.edit=null;cm.dirty=false;cmClearEdited();cmAfterEdit();cmNote(t('Stamgegeven verwijderd.'));});}});}
+function cmEditMenu(){if(!cmOpen()||!cm.edit?.id||cm.mutating)return;openSheet(t(CM_TYPES[cm.edit.type]),'',[[t('Stamgegeven verwijderen'),cmDelete,'trash']]);}
+function cmMenu(){const acts=[];if(cmOpen())acts.push([t('Activiteiten'),cmAuditOpen,'clock']);acts.push([t('Opnieuw beginnen'),()=>show('cmwis'),'trash']);openSheet(t('Stamgegevens'),'',acts);}
+function cmAddMenu(){
+  if(!cmOpen()||cm.mutating||!cm.recordsReady)return;
+  const acts=['persoon','relatie','identiteit','organisatie','adres','reis'].map(type=>[t(CM_TYPES[type]),()=>cmiNew(type),CM_ICONS[type]]);
+  if(typeof Android.masterFormProfile==='function')acts.push([t('Vaste gegevens reistoestemming'),()=>cmiNew('formulier'),CM_ICONS.formulier]);
+  openSheet(t('Wat wil je toevoegen?'),'',acts);
+}
+function cmAuditOpen(){if(!cmOpen()||cm.mutating)return;cm.editorEpoch++;cm.events=[];cm.before=0;$('#cm-audit').replaceChildren();$('#cm-log-search').value='';$('#cm-more').hidden=true;if(current!=='cmlog')show('cmlog');cmAuditMore();}
 function cmAuditMore(){if(!cmOpen())return;cmRequest('masterAudit',[cm.before],r=>{cm.events.unshift(...r.events);cm.before=r.before;$('#cm-more').hidden=!r.more;cmRenderAudit();});}
 function cmRenderAudit(){
   const names={unlock:t('Ontgrendeld'),list:t('Overzicht bekeken'),view:t('Gegevens bekeken'),create:t('Toegevoegd'),update:t('Gewijzigd'),delete:t('Verwijderd'),use:t('Velden overgenomen'),audit:t('Logboek bekeken'),export_release:t('Bestand vrijgegeven'),export_attempt:t('Bestand maken gestart'),export:t('Bestand gemaakt'),app_context:t('App-context vernieuwd'),photo_view:t('Kaartfoto bekeken'),photo_add:t('Kaartfoto toegevoegd'),photo_delete:t('Kaartfoto verwijderd'),relation_use:t('Relatie voor formulier bekeken')};
@@ -125,7 +199,7 @@ function cmRenderAudit(){
   });
 }
 function cmResetReady(){$('#cm-reset').disabled=$('#cm-reset-word').value!==t('WISSEN')||cm.resetting;}
-function cmReset(){if($('#cm-reset-word').value!==t('WISSEN')||cm.resetting)return;cm.resetting=true;cmNote(t('Bevestig het wissen op je telefoon.'));cmRequest('masterReset',['WISSEN'],()=>{cm.resetting=false;cmLockedUI();cmNote(t('Stamgegevens en activiteiten zijn gewist.'));},true);}
+function cmReset(){if($('#cm-reset-word').value!==t('WISSEN')||cm.resetting)return;cm.resetting=true;cmNote(t('Bevestig het wissen op je telefoon.'));cmRequest('masterReset',['WISSEN'],()=>{cm.resetting=false;cmLockedUI();if(current==='cmwis')show('masterdata');cmNote(t('Stamgegevens en activiteiten zijn gewist.'));},true);}
 function cmPick(source,role,mapping,apply){
   if(cm.picker)return;cm.picker={source,role,mapping,apply,record:null,fields:{},origin:current,focus:document.activeElement};
   $('#cm-picker').hidden=false;$('#cm-pick-target').textContent=t('Onderdeel: {naam}',{naam:source==='formulieren'?t('Formulieren invullen'):t('ID-kopie anonimiseren')});
@@ -173,11 +247,11 @@ function cmFormPick(){
   cmPick('formulieren',role,mapping,fields=>{for(const [key,value] of Object.entries(fields))if(mapping[key])fm.values[mapping[key].id]=value;fm.masterSensitive=true;fm.meer={};fmWijzig();fmRender();});
 }
 function cmIdPick(){if(idc.busy||idc.loading)return;cmPick('idcopy','ontvanger',{ontvanger:{current:()=>$('#id-recipient').value}},fields=>{idc.masterSensitive=true;$('#id-recipient').value=fields.ontvanger;idCopyWatermarkChanged();});}
-function cmNavigation(name){if(cm.picker)cmClosePicker();if(current==='masterdata'&&name!=='masterdata')cmLeave();else if(name!==current)cmPrivacy(name==='formulieren'&&!!fm.masterSensitive||name==='idcopy'&&!!idc.masterSensitive);}
+function cmNavigation(name){if(cm.picker)cmClosePicker();if(cmZone(current)&&!cmZone(name))cmLeave();else if(name!==current&&!(cmZone(current)&&cmZone(name)))cmPrivacy(name==='formulieren'&&!!fm.masterSensitive||name==='idcopy'&&!!idc.masterSensitive);}
 const cmFmInit=fmInit;fmInit=function(id){cmFmInit(id);fm.masterSensitive=false;Android.masterReleaseForm();};
 const cmIdReset=idCopyReset;idCopyReset=function(secure=true){idc.masterSensitive=false;cmIdReset(secure);};
 const cmFmRender=fmRender;fmRender=function(){if(fm.masterSensitive&&!cmState().open){cmLockedUI();return;}cmFmRender();const s=fmSecties()[fm.step];$('#cm-form-pick').hidden=!s||!s.fields.some(f=>/^(kind|begeleider[12]|gever[12])-/.test(f.id)||f.id==='accommodatie');$('#cm-form-pick').disabled=fm.busy;};
 const cmOnPrivacy=window.onMasterPrivacy;window.onMasterPrivacy=function(r){cmOnPrivacy(r);if(cm.picker&&cmOpen())cmPickerLoad();else if(current==='masterdata'&&cmOpen())cmListOpen();};
 $('#cm-picker').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cmClosePicker();}if(e.key==='Tab'){const nodes=[...$('#cm-picker').querySelectorAll('button,input,select,[tabindex="0"]')].filter(n=>!n.disabled&&n.getClientRects().length);if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
-document.addEventListener('input',e=>{if(e.target.closest('#s-masterdata,#cm-picker')||fm.masterSensitive&&e.target.closest('#s-formulieren')||idc.masterSensitive&&e.target.closest('#s-idcopy'))cmTouch();});
+document.addEventListener('input',e=>{if(e.target.closest(CM_SCR.map(n=>'#s-'+n).join(',')+',#cm-picker')||fm.masterSensitive&&e.target.closest('#s-formulieren')||idc.masterSensitive&&e.target.closest('#s-idcopy'))cmTouch();});
 window.addEventListener('pagehide',()=>{Android.masterLock();cmLockedUI();});

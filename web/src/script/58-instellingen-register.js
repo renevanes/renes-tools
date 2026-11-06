@@ -382,7 +382,7 @@ const SET_NEED = [['wa.leesbaar', /whatsapp|whats app|leesba|chats/], ['wa.', /w
 
 /* Schakelaars en keuzes die bewust niet in het register staan, met de reden */
 const SET_EXCLUDE = [
-  ['#s-masterdata input, #s-masterdata select, #cm-picker input', 'Centrale persoonsgegevens en expliciete vrijgave; geen toegang via de assistent'],
+  ['#s-masterdata input, #s-masterdata select, #s-cmedit input, #s-cmedit select, #s-cmedit textarea, #s-cmlog input, #s-cmwis input, #cm-picker input', 'Centrale persoonsgegevens en expliciete vrijgave; geen toegang via de assistent'],
   ['#s-idcopy input', 'Tijdelijke ID-afscherming en controle per pagina; deze keuzes maakt de gebruiker zelf, nooit de assistent'],
   ['#rp-time, #rp-days', 'Auto redial op een tijdstip hoort bij een nummer; dat plan je op het scherm (zie redial.planning)'],
   ['#wa-cats', 'De selectie van WhatsApp-mappen kies je op het scherm'],

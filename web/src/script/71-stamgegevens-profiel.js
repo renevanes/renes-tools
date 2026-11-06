@@ -14,7 +14,8 @@ function cmiStatusChoices(relation){
   if(CMI_OUDER_KIND.includes(relation))return [['',t('Niet ingevuld')],['gezag',t('Ouder heeft ouderlijk gezag')],['geengezag',t('Ouder heeft geen ouderlijk gezag')]];
   return null;
 }
-function cmiSkip(key){return cm.edit?.type==='relatie'&&key==='status'&&!cmiStatusChoices(cm.edit.fields.relatie);}
+// Een keuzelijst met maar één keuze (Formulier: alleen reistoestemming) laat niets te kiezen; de waarde staat al vast in cmiDefaults
+function cmiSkip(key){return cm.edit?.type==='relatie'&&key==='status'&&!cmiStatusChoices(cm.edit.fields.relatie)||cm.edit?.type==='formulier'&&key==='formulier'&&cm.edit.fields.formulier==='reistoestemming'&&cmiChoices(key).length===1;}
 function cmiChoices(key){
   if(cm.edit?.type==='formulier'){
     if(key==='formulier')return [['reistoestemming',t('Toestemming reizen met minderjarige')]];
@@ -43,6 +44,7 @@ window.onAppIdentity=function(){appIdentityRefresh();};
 function cmiSharedRender(){
   const self=appIdentity.self,people=appIdentity.people||[],box=$('#cmi-shared');box.replaceChildren();$('#cmi-home').hidden=!self;
   $('#cmi-home-name').textContent=self?t('Hallo {naam}',{naam:self.callname||self.name}):'';$('#cmi-home').setAttribute('aria-label',self?t('Hallo {naam}, naar Stamgegevens',{naam:self.callname||self.name}):t('Stamgegevens'));
+  const naam=self?self.callname||self.name:'';$('#cmi-shared-stand').textContent=!self?t('Niets gedeeld'):people.length?tn(people.length,'{naam} en één persoon','{naam} en {n} personen',{naam}):t('Alleen {naam}',{naam});
   if(!self){box.append(cmEl('p',t('Er is geen app-profiel gedeeld.'),'note'));$('#cmi-ai-summary').textContent=t('Er is geen app-profiel gedeeld.');return;}
   box.append(cmData(cmEl('p',t('Dit ben ik: {naam}',{naam:self.name}))));
   for(const text of [self.context,appIdentity.context])if(text)box.append(cmData(cmEl('p',text,'note')));
@@ -58,14 +60,14 @@ function cmiAfterListForm(){
 function cmiProfile(){if(!cmOpen()||cm.mutating||!cm.recordsReady)return;const r=cm.records.find(r=>r.type==='profiel');if(r)cmEdit(r.id);else cmiNew('profiel');}
 function cmiSelf(){
   if(!cmOpen()||!cm.edit?.id||cm.dirty||cm.mutating){cmNote(t('Sla je wijzigingen eerst op.'));return;}
-  const id=cm.edit.id,profile=cm.records.find(r=>r.type==='profiel');
+  const id=cm.edit.id,profile=cm.records.find(r=>r.type==='profiel');cm.back={id,tab:'relaties'};
   if(profile){const epoch=++cm.editorEpoch;cmRequest('masterRead',[profile.id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;cm.edit=r.record;cm.edit.fields.persoon=id;cmEditor();cmDirty();});}
   else{cmiNew('profiel');cm.edit.fields.persoon=id;cmEditor();cmDirty();}
 }
 function cmiRelation(){
   if(!cmOpen()||!cm.edit?.id||cm.dirty||cm.mutating){cmNote(t('Sla je wijzigingen eerst op.'));return;}
   const other=cm.edit.id,profile=cm.records.find(r=>r.type==='profiel');if(!profile){cmNote(t('Wijs jezelf eerst aan bij Mijn app-profiel.'));return;}
-  const epoch=++cm.editorEpoch;cmRequest('masterRead',[profile.id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;const me=r.record.fields.persoon;if(me===other){cmNote(t('Kies een andere persoon voor de relatie met jou.'));return;}cmiNew('relatie');cm.edit.fields={vanPersoon:me,naarPersoon:other,delen:'ja'};cmEditor();});
+  const epoch=++cm.editorEpoch;cmRequest('masterRead',[profile.id,'masterdata',''],r=>{if(epoch!==cm.editorEpoch)return;const me=r.record.fields.persoon;if(me===other){cmNote(t('Kies een andere persoon voor de relatie met jou.'));return;}cmiNew('relatie');cm.edit.fields={vanPersoon:me,naarPersoon:other,delen:'ja'};cm.back={id:other,tab:'relaties'};cmEditor();});
 }
 /* Relaties in gewone woorden: "{naar} is {relatie} van {van}". Namen zijn de weergavenamen uit het overzicht. */
 function cmiPersonName(id){const p=cm.records.find(r=>r.id===id&&r.type==='persoon');return p?p.label:'';}
@@ -91,14 +93,14 @@ function cmiRelationSentence(){const zin=cm.edit?.type==='relatie'?cmiRelationTe
 function cmiPersonRelations(){
   const id=cm.edit.id,box=$('#cmi-person-relation-list');box.replaceChildren();
   const rels=cm.records.filter(r=>r.type==='relatie'&&(r.van===id||r.naar===id)).map(r=>({id:r.id,zin:cmiRelationText({vanPersoon:r.van,naarPersoon:r.naar,relatie:r.relatie},'zin')||r.label})).sort((a,b)=>a.zin.localeCompare(b.zin));
-  for(const r of rels){const b=cmData(cmEl('button',r.zin,'big ghost'));b.onclick=()=>cmEdit(r.id);box.append(b);}
+  for(const r of rels){const b=cmData(cmEl('button',undefined,'strow')),ic=cmEl('span',undefined,'stic'),chev=cmEl('span',undefined,'ui-icon stchev');b.type='button';ic.innerHTML=uiIcon('share');chev.dataset.icon='chevron-right';chev.setAttribute('aria-hidden','true');b.append(ic,cmEl('span',r.zin,'sttxt'),chev);b.onclick=()=>{cm.back={id,tab:'relaties'};cmEdit(r.id);};box.append(b);}
   if(!rels.length)box.append(cmEl('p',t('Nog geen relaties.'),'note'));
 }
 /* Vanuit een opgeslagen persoon: "Kind toevoegen" = de gekozen persoon is kind van deze persoon, enzovoort. */
 function cmiRelationNew(relatie){
   if(!cmOpen()||!cm.edit?.id||cm.dirty||cm.mutating){cmNote(t('Sla je wijzigingen eerst op.'));return;}
   const me=cm.edit.id;if(!cm.records.some(r=>r.type==='persoon'&&r.id!==me)){cmNote(t('Voeg eerst de andere persoon toe als stamgegeven (soort Persoon).'));return;}
-  cmiNew('relatie');if(!cm.edit||cm.edit.id)return;cm.edit.fields={vanPersoon:me,naarPersoon:'',relatie,delen:'ja'};cmEditor();$('#cm-field-naarPersoon').focus();
+  cmiNew('relatie');if(!cm.edit||cm.edit.id)return;cm.edit.fields={vanPersoon:me,naarPersoon:'',relatie,delen:'ja'};cm.back={id:me,tab:'relaties'};cmEditor();$('#cm-field-naarPersoon').focus();
 }
 function cmiEditor(){
   const r=cm.edit;$('#cmi-profile-note').hidden=r.type!=='profiel';$('#cmi-form-note').hidden=r.type!=='formulier';$('#cmi-relation-note').hidden=r.type!=='relatie';$('#cmi-person-actions').hidden=r.type!=='persoon'||!r.id;
@@ -142,8 +144,6 @@ const cmiResume=window.onResumeApp;window.onResumeApp=function(){cmiResume();app
 const cmiDash=renderDash;renderDash=function(){cmiDash();appIdentityRefresh();};
 const cmiMasterReset=window.onMasterReset;window.onMasterReset=function(){cmiPhotoCancel();appIdentity={};cmiSharedRender();cmiMasterReset();};
 appIdentityRefresh();
-// Vaste formuliergegevens vragen de nieuwe APK (MasterFormProfile); anders de knop en soort verbergen.
-if(typeof Android.masterFormProfile!=='function'){$('#cmi-form-new').hidden=true;const o=$('#cm-kind option[value="formulier"]');if(o)o.remove();}
 
 /* Alleen relaties tussen expliciet gekozen formulierpersonen; nooit gezag of toestemming afleiden. */
 const cmiFormRelations={asked:new Set(),pending:new Set(),epoch:0};
