@@ -28,6 +28,13 @@ public class StatistiekTest {
 
         check(Statistiek.tag("BACKUP").equals("BACKUP") && Statistiek.tag("Jan belde").equals("ANDERS") && Statistiek.tag(null).equals("ANDERS")
                 && Statistiek.tag("0612345678").equals("ANDERS"), "alleen vaste namen als soort logregel");
+        boolean toiletLog = Statistiek.tag("TOILET").equals("TOILET");
+        for (String f : new String[]{"Toiletten", "ToilettenScan", "ToilettenSamen", "ToilettenOsm", "ToilettenBridge", "ToilettenJob"}) {
+            String src = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("app/src/nl/rene/tools/" + f + ".java")), java.nio.charset.StandardCharsets.UTF_8);
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("App\\.log\\(\\w+, \"(\\w+)\", (.*?)\\);").matcher(src);
+            while (m.find()) toiletLog &= m.group(1).equals("TOILET") && m.group(2).replaceAll("\"[^\"]*\"", "").replaceAll("e\\.getClass\\(\\)\\.getSimpleName\\(\\)|t\\.optInt\\(\"?\\w*\"?\\)|[ +]", "").isEmpty();
+        }
+        check(toiletLog, "Toiletten: logsoort TOILET (telt mee als aantal), regels zonder namen, plekken of adressen");
 
         check(Statistiek.validRepo("renevanes/renes-tools-statistiek") && !Statistiek.validRepo("renevanes") && !Statistiek.validRepo("a/../b")
                 && !Statistiek.validRepo("evil.com/x") && !Statistiek.validRepo("a/b?x=1") && !Statistiek.validRepo("a/b/c"), "repository: alleen eigenaar/naam");

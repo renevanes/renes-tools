@@ -127,7 +127,7 @@ final class AppData {
     /** Mappen en bestanden in getFilesDir() die meegaan. (De kluis gaat apart: ontsleuteld via geheim/kluis.) */
     static final List<String> FILE_ROOTS = Collections.unmodifiableList(Arrays.asList(
             "notes.json", "notes.json.bak", "music.json", "ai", "apparaten", "call-recordings", "checkin", "contacts", "facturen", "gebruik", "podcasts",
-            "shortcut-icons", "sleep", "spotify", "tracks", "transcripts"));
+            "shortcut-icons", "sleep", "spotify", "toiletten", "tracks", "transcripts"));
 
     /** Wat in getFilesDir() bewust niet meegaat, met de reden. */
     static final Map<String, String> FILE_SKIP;
@@ -139,6 +139,7 @@ final class AppData {
         m.put("wa", "leesbare kopie van de WhatsApp-backup: wordt opnieuw gemaakt uit de WhatsApp-backup");
         m.put("kluis", "gaat apart mee (ontsleuteld, versleuteld in het archief)");
         m.put("masterdata", "stamgegevens en lokaal activiteitenlog: alleen versleuteld op dit toestel; sleutel is toestelgebonden");
+        m.put("toiletten-cache", "gedownloade bronnen van Toiletten en douches: worden opnieuw opgehaald");
         m.put("bank", "Bankzaken: blijft bewust alleen op deze telefoon (versleuteld met een sleutel die de telefoon niet uit kan)");
         m.put("crash.log", "foutlogboek van deze installatie");
         m.put("notes.json.tmp", "tijdelijk bestand");

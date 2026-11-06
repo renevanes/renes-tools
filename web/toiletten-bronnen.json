@@ -1,0 +1,75 @@
+{
+  "uitleg": "Sjablonen voor bronnen van Toiletten en douches (Toiletten → Instellingen → Bronnen → Bron toevoegen). Een bron is alleen een instelling: soort tools (momentopname van Tools), geojson, arcgis of csv, met een https-adres, de licentie, wanneer scannen en voor geojson/arcgis/csv welke velden wat betekenen. Toiletten.normaal controleert elk sjabloon (ToilettenTest). Alleen gegevens met een duidelijke open licentie staan aan; de rest staat uit met de reden in tip.",
+  "sjablonen": [
+    {
+      "sjabloon": "osm-nl",
+      "standaard": true,
+      "naam": "OpenStreetMap Nederland",
+      "soort": "tools",
+      "url": "https://github.com/renevanes/renes-tools/releases/download/toiletten-gegevens/toiletten-nl.json.gz",
+      "metaUrl": "https://github.com/renevanes/renes-tools/releases/download/toiletten-gegevens/meta.json",
+      "info": "https://www.openstreetmap.org/copyright",
+      "licentie": "ODbL 1.0, © OpenStreetMap-bijdragers",
+      "schema": "week",
+      "weekdag": 3,
+      "tijd": "04:00",
+      "wifi": true,
+      "tip": "Elke week een nieuwe momentopname van alle toiletten en douches in Nederland uit OpenStreetMap, met tankstations, verzorgingsplaatsen, campings en dergelijke waar meestal een toilet is. Minder dan 1 MB."
+    },
+    {
+      "sjabloon": "den-haag-openbaar",
+      "naam": "Den Haag: openbare toiletten",
+      "soort": "geojson",
+      "url": "https://den-haag-opendata.opendatasoft.com/api/explore/v2.1/catalog/datasets/openbaretoiletten/exports/geojson",
+      "info": "https://data.overheid.nl/dataset/openbaretoiletten",
+      "licentie": "CC0 1.0, Gemeente Den Haag",
+      "schema": "maand",
+      "dag": 1,
+      "tijd": "04:00",
+      "wifi": true,
+      "plek": "toilet",
+      "velden": {"id": "globalid", "naam": "omschrijving|adres", "uren": "openingstijden", "rolstoel": "rolstoel_toegankelijk", "verschoon": "verschoontafel"},
+      "regels": [{"veld": "alleen_mannen", "patroon": "^ja$", "zet": "urinoir"}],
+      "tip": "De openbare en opengestelde toiletten van de gemeente Den Haag, met rolstoeltoegankelijkheid en openingstijden."
+    },
+    {
+      "sjabloon": "den-haag-toegankelijk",
+      "naam": "Den Haag: toegankelijke toiletten",
+      "soort": "geojson",
+      "url": "https://den-haag-opendata.opendatasoft.com/api/explore/v2.1/catalog/datasets/toegankelijkheidtoiletten/exports/geojson",
+      "info": "https://data.overheid.nl/dataset/toegankelijkheidtoiletten",
+      "licentie": "CC0 1.0, Gemeente Den Haag",
+      "schema": "maand",
+      "dag": 1,
+      "tijd": "04:00",
+      "wifi": true,
+      "plek": "toilet",
+      "velden": {"id": "globalid", "naam": "name", "prijs": "kosten", "rolstoel": "miva_toilet", "verschoon": "baby_verschoontafel"},
+      "regels": [],
+      "tip": "Toiletten in winkels, musea en zorginstellingen in Den Haag, beoordeeld op toegankelijkheid (MIVA = rolstoeltoegankelijk)."
+    },
+    {
+      "sjabloon": "amsterdam",
+      "naam": "Amsterdam: openbare toiletten",
+      "soort": "geojson",
+      "aan": false,
+      "url": "https://maps.amsterdam.nl/open_geodata/geojson_lnglat.php?KAARTLAAG=OPENBARE_TOILETTEN&THEMA=openbare_toiletten",
+      "info": "https://maps.amsterdam.nl/openbare_toiletten/",
+      "licentie": "Gemeente Amsterdam, Maps Data (gebruiksvoorwaarden; geen open licentie vermeld)",
+      "schema": "maand",
+      "dag": 1,
+      "tijd": "04:00",
+      "wifi": true,
+      "plek": "toilet",
+      "velden": {"naam": "Omschrijving|Soort", "uren": "Openingstijden", "prijs": "Prijs_per_gebruik"},
+      "regels": [
+        {"veld": "SELECTIE", "patroon": "^PARKEER$", "zet": "klanten"},
+        {"veld": "Omschrijving", "patroon": "alleen voor", "zet": "klanten"},
+        {"veld": "SELECTIE", "patroon": "^TOEGANG$", "zet": "rolstoel"},
+        {"veld": "SELECTIE", "patroon": "^(KRUL|URILIFT)$", "zet": "urinoir"},
+        {"veld": "Soort", "patroon": "urinoir", "zet": "urinoir"}
+      ],
+      "tip": "Staat uit: de gemeente noemt bij deze gegevens geen open licentie, alleen de gebruiksvoorwaarden van Maps Data. Voor eigen gebruik kun je hem aanzetten."
+    }
+  ]
+}
