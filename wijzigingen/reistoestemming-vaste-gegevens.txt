@@ -1,2 +1,0 @@
-Reistoestemming sneller invullen: stel één keer vaste gegevens in (kind, begeleider, toestemminggever en hun reisdocumenten, gekozen uit Stamgegevens); daarna vul je per reis alleen de reisdagen en de bestemming in via PDF → Formulieren invullen → Nieuwe reis invullen.
-Vaste gegevens verwijzen naar je stamgegevens: namen, adressen, relaties en documentnummers komen elke keer uit de actuele gegevens, dus een nieuw paspoort staat er vanzelf op.

@@ -1,15 +1,23 @@
 {
   "app": "Tools",
-  "versionName": "1.151",
-  "versionCode": 152,
-  "nativeLevel": 136,
+  "versionName": "1.152",
+  "versionCode": 153,
+  "nativeLevel": 137,
   "web": "index.html",
-  "webSha256": "a40349b364211e8c283dc1e3dd9b1995ce45ad8f47ce347db31a066864a53fb5",
+  "webSha256": "1bdbd782f396e7eaad5d2f4bbe67316f3425531041a847e5c69bb1fce7ebd6d6",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "284fe5fd3c9660ea28538b33571c49e9e08d520c815cb4c1554b91ca01515809",
+  "apkSha256": "1e18cb1c9cbc579ebdb6c2b2d5414e333f342966422fcc2e8583fd6bb98d6577",
   "changelog": [
+    {
+      "version": "1.152",
+      "date": "2026-11-06",
+      "changes": [
+        "Reistoestemming sneller invullen: stel één keer vaste gegevens in (kind, begeleider, toestemminggever en hun reisdocumenten, gekozen uit Stamgegevens); daarna vul je per reis alleen de reisdagen en de bestemming in via PDF → Formulieren invullen → Nieuwe reis invullen.",
+        "Vaste gegevens verwijzen naar je stamgegevens: namen, adressen, relaties en documentnummers komen elke keer uit de actuele gegevens, dus een nieuw paspoort staat er vanzelf op."
+      ]
+    },
     {
       "version": "1.151",
       "date": "2026-11-06",
@@ -1340,5 +1348,5 @@
       ]
     }
   ],
-  "webSig2": "lePtDEeMVEaj1JSmT5BRAXgUkL1l94FptLcjugrk5vPFbRbxC3rneiaie7PExR4il0CI+9K9f7D0ohgShfmrSZN+dhK8htL347uACWOCbww9b0T9AKs+5Cfj2HV5/qCftuoAmBYoUPMJ8DNML6kTlVcbkXFOjeqpq00vhdaYI+mWg0/ZQRR3qzh6SaNok5hQke7LjkBIlXO25+gtr6cxRiaowwzx9BPboN4rJi/BF8GGfMBYCnhcBLVpJ4mSHEiEg49BK0lCF1JD0rtjBGX6FJyptAzonwojHPhYFpjag4EQz39pS+NthJOHsJT5Xr2HJ+xCWj3QC8Vg9gcZwP5PtMIhRvvZtDfWiFDZmj5JX7e1QjSw7alo/3eSGUYm/yYxXHxlgVr4WQeeJOYFJ3cmROTtePodcfkmxBj8nLJv5pGrrgSd2FjnXcxIsflp30LERq7gGzMO8CCUPy86oyEoKL2MDSo6Vo4yaYor4+v+ZuHo+yE2NlPy7yizmfSmMmSz"
+  "webSig2": "PyvYB3wZCH/v5iV58LDC6a9VLBVehjRmIDTCeGwG1jNhBT/snLVkGcEWmIaQBHJTOvXppsBEKB/ZU1lIcGwGQGYKBEo0W/7tGp8ggJ22f2HVaWG6CVEtLp2ZH7tCw8i34Jw3Rl3vWSkHPZAU+K59oFxCeuplUGTeFda+NdJdtfbjy1VamTPvDjcCqzI8OnPhtPftQ169sphkGti5oKB93+sZoeC3P8U3p0JzdKfuMiyCSY3D4k+j3HvgULpS0nd5Art9qesMRLPR/gBEuWOjdDSHCm7gWP1DPLtNyHtftZdAa3w1Qdmqhi1GukVft6gMHiyWA0dNNoromm093FidF11y+qOQ868WHD6/XogsPnsol0LY3ujtlH8xA1nPXdZWM68O9NKXQGu6H32BWaWzqHNi1QHxPqu7Pf38JRqT97t6qWTYiqv6bhgHSgS7MIGJybDqweLXqp9w7YwY4yLH3fSnIQbIB4VQBfGVuL+1rjMIGysDwJEGh0GRnb5hoWcR"
 }
