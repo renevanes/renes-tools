@@ -265,29 +265,34 @@ final class FacturenIndeling {
             FacturenHerken.Kennis k = FacturenHerken.kennis(c);
             JSONArray nieuwe = new JSONArray();
             Map<String, JSONObject> perMail = new HashMap<>();
-            int n = 0;
+            int n = 0, mis = 0;
             for (JSONObject s0 : todo) {
                 if (FacturenRun.LOPEND.get() != null) return uit.put("aantal", n).put("leveranciers", nieuwe); // later verder
-                String sha = s0.optString("sha"), bronId = s0.optString("leverancier");
-                JSONObject bron = bronnen.get(bronId);
-                File f = FacturenAanlever.bestand(c, s0);
-                String tekst = f == null ? "" : FacturenDossier.tekst(f);
-                JSONObject km = FacturenHerken.kenmerken(s0.optJSONObject("bron"), tekst, k);
-                String mailId = FacturenDossier.mailId(s0);
-                JSONObject doel = Facturen.toewijzen(c, bron, km, k, perMail.get(mailId), nieuwe);
-                if (!mailId.isEmpty()) perMail.put(mailId, doel);
-                k.tel(km);
-                synchronized (Facturen.LOCK) {
-                    JSONObject all = FacturenDossier.alle(c), s = all.optJSONObject(sha);
-                    if (s == null || !s.optString("via").isEmpty()) continue;
-                    s.put("via", bronId).put("kenmerken", km);
-                    JSONObject t = Facturen.toestand(c);
-                    if (doel != bron) zetBij(c, all, t, sha, doel);
-                    FacturenDossier.bewaar(c, all);
-                    Facturen.bewaarToestand(c, t);
+                try {
+                    String sha = s0.optString("sha"), bronId = s0.optString("leverancier");
+                    JSONObject bron = bronnen.get(bronId);
+                    File f = FacturenAanlever.bestand(c, s0);
+                    String tekst = f == null ? "" : FacturenDossier.tekst(f);
+                    JSONObject km = FacturenHerken.kenmerken(s0.optJSONObject("bron"), tekst, k);
+                    String mailId = FacturenDossier.mailId(s0);
+                    JSONObject doel = Facturen.toewijzen(c, bron, km, k, perMail.get(mailId), nieuwe);
+                    if (!mailId.isEmpty()) perMail.put(mailId, doel);
+                    k.tel(km);
+                    synchronized (Facturen.LOCK) {
+                        JSONObject all = FacturenDossier.alle(c), s = all.optJSONObject(sha);
+                        if (s == null || !s.optString("via").isEmpty()) continue;
+                        s.put("via", bronId).put("kenmerken", km);
+                        JSONObject t = Facturen.toestand(c);
+                        if (doel != bron) zetBij(c, all, t, sha, doel);
+                        FacturenDossier.bewaar(c, all);
+                        Facturen.bewaarToestand(c, t);
+                    }
+                    n++;
+                } catch (Throwable e) {
+                    mis++; // blijft bij de mailbron staan; met de hand te verplaatsen
                 }
-                n++;
             }
+            if (mis > 0) App.log(c, "FACTUREN", "herindelen: " + mis + " niet gelukt");
             Facturen.prefs(c).edit().putInt("indeling", VERSIE).apply();
             uit.put("aantal", n).put("leveranciers", nieuwe).put("klaar", true);
             if (n > 0) melding(c, n, nieuwe.length());

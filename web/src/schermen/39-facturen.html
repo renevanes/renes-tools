@@ -15,8 +15,14 @@
       <h2 id="fa-maand-h">Deze maand</h2>
       <div id="fa-maand-lijst"></div>
     </div>
+    <p class="note" id="fa-indelen" role="status" aria-live="polite" hidden>De facturen uit je mail worden per leverancier ingedeeld…</p>
     <div class="flabel" style="margin:4px 2px 8px">Leveranciers</div>
     <div class="card stations" id="fa-lijst"></div>
+    <div id="fa-uit-blok" hidden>
+      <div class="flabel" role="heading" aria-level="2" style="margin:14px 2px 8px" id="fa-uit-h">Gevonden in je mail</div>
+      <div class="card stations" id="fa-uit"></div>
+      <button class="big ghost" id="fa-uit-meer" onclick="faUitAlles()" hidden></button>
+    </div>
     <button class="big" id="fa-nieuw" onclick="faNieuw()">Leverancier toevoegen</button>
     <div class="flabel stgl" role="heading" aria-level="2" style="margin-top:18px">Meer</div>
     <div class="card stlist">
@@ -174,7 +180,7 @@
   </div>
   <main>
     <div class="gb-seg fl-tabs" role="tablist" aria-label="Onderdelen">
-      <button role="tab" data-tab="inlog" onclick="flTab('inlog')">Inloggen</button><button role="tab" data-tab="zoek" onclick="flTab('zoek')">Zoeken</button><button role="tab" data-tab="plan" onclick="flTab('plan')">Planning</button><button role="tab" data-tab="opslag" onclick="flTab('opslag')" data-taal="plek">Opslaan</button><button role="tab" data-tab="adv" onclick="flTab('adv')">Meer</button>
+      <button role="tab" data-tab="inlog" onclick="flTab('inlog')">Inloggen</button><button role="tab" data-tab="zoek" onclick="flTab('zoek')">Zoeken</button><button role="tab" data-tab="herk" onclick="flTab('herk')">Herkennen</button><button role="tab" data-tab="plan" onclick="flTab('plan')">Planning</button><button role="tab" data-tab="opslag" onclick="flTab('opslag')" data-taal="plek">Opslaan</button><button role="tab" data-tab="adv" onclick="flTab('adv')">Meer</button>
     </div>
     <div class="card">
       <p class="note" style="margin-top:0" id="fl-tip"></p>
@@ -218,7 +224,6 @@
         <input class="aein" id="fl-m-afz" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="bijv. kpn.com, ziggo.nl">
         <div class="flabel" style="margin-top:8px"><label for="fl-m-neg">Afzenders overslaan</label></div>
         <input class="aein" id="fl-m-neg" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="bijv. nieuwsbrief@winkel.nl">
-        <label class="chk"><input type="checkbox" id="fl-m-per"> Per afzender een eigen map</label>
         <details class="rinfo" style="margin-top:6px"><summary>Meer zoekopties</summary>
           <div class="flabel" style="margin-top:8px"><label for="fl-m-extra">Extra Gmail-zoekopdracht</label></div>
           <input class="aein" id="fl-m-extra" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="bijv. label:administratie -in:spam">
@@ -226,6 +231,43 @@
           <input class="aein" id="fl-m-max" type="number" min="1" max="200" inputmode="numeric">
         </details>
         <p class="note" id="fl-m-vraag" style="overflow-wrap:anywhere"></p>
+      </div>
+      <div class="card">
+        <h2>Elke leverancier apart</h2>
+        <p class="hint">Elke leverancier die Tools in je mail vindt, krijgt een eigen rij, een eigen map en een eigen regel in het overzicht.</p>
+        <details class="help in"><summary data-icon="info">Hoe herkent Tools een leverancier?</summary><div class="help-body">
+          <p>Eerst je eigen regels (bij een leverancier: Herkennen). Daarna het btw-, KvK- of IBAN-nummer in de PDF (vanaf Android 15), dan het domein van de afzender (mail.kpn.com telt als kpn.com). Bij een factuurplatform (zoals Moneybird), een gratis mailadres of een doorgestuurde mail kijkt Tools naar de naam of de oorspronkelijke afzender.</p>
+          <p>Alles gebeurt op je telefoon; Tools zoekt niets op internet op. Een nieuwe leverancier krijgt het label Nieuw: tik erop om na te kijken of het klopt, samen te voegen of over te slaan.</p>
+        </div></details>
+        <div class="flabel" style="margin-top:8px"><label for="fl-e-nr">Je eigen KvK-, btw- en IBAN-nummers</label></div>
+        <input class="aein" id="fl-e-nr" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="bijv. 12345678, NL91ABNA0417164300">
+        <div class="flabel" style="margin-top:8px"><label for="fl-e-adr">Je eigen mailadressen</label></div>
+        <input class="aein" id="fl-e-adr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="bijv. rene@voorbeeld.nl">
+        <p class="note" style="margin:4px 0 0">Die staan ook op facturen aan jou, dus Tools gebruikt ze nooit om een leverancier te herkennen. Je Google-adres en je adres in Eigen Cloud tellen vanzelf mee.</p>
+      </div>
+      <div class="card" id="fl-m-overkaart" hidden>
+        <h2>Overgeslagen leveranciers</h2>
+        <p class="hint">Facturen van deze leveranciers bewaart Tools niet.</p>
+        <div id="fl-m-over"></div>
+      </div>
+    </div>
+
+    <div class="fl-paneel" data-tab="herk" role="tabpanel">
+      <div class="card">
+        <p class="note" style="margin-top:0" id="fl-h-bron"></p>
+        <div class="flabel"><label for="fl-h-afz">Afzenders <small>(mailadres of domein)</small></label></div>
+        <input class="aein" id="fl-h-afz" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="bijv. factuur@eneco.nl, eneco.nl">
+        <div class="flabel" style="margin-top:8px"><label for="fl-h-dom">Domeinen</label></div>
+        <input class="aein" id="fl-h-dom" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="bijv. eneco.nl">
+        <div class="flabel" style="margin-top:8px"><label for="fl-h-namen">Namen bij een factuurplatform <small>(bijv. "Bakkerij Jansen via Moneybird")</small></label></div>
+        <input class="aein" id="fl-h-namen" autocomplete="off" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="fl-h-btw">Btw-nummers</label></div>
+        <input class="aein" id="fl-h-btw" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="fl-h-kvk">KvK-nummers</label></div>
+        <input class="aein" id="fl-h-kvk" autocomplete="off" inputmode="numeric" spellcheck="false">
+        <div class="flabel" style="margin-top:8px"><label for="fl-h-iban">IBAN</label></div>
+        <input class="aein" id="fl-h-iban" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <p class="note" id="fl-h-uitleg">Meer dan één? Scheid ze met een komma. Facturen in je mail met een van deze gegevens komen bij deze leverancier.</p>
       </div>
     </div>
 
@@ -265,8 +307,11 @@
         <label class="chk"><input type="checkbox" id="fl-map"> In je backup-map (map Facturen)</label>
         <label class="chk"><input type="checkbox" id="fl-gd"> In Google Drive (map Facturen)</label>
         <label class="chk"><input type="checkbox" id="fl-ec"> Naar je mail in Eigen Cloud</label>
-        <div class="flabel" style="margin-top:8px"><label for="fl-sub">Mapnaam</label></div>
-        <input class="aein" id="fl-sub" maxlength="60" autocomplete="off">
+        <div id="fl-subrij">
+          <div class="flabel" style="margin-top:8px"><label for="fl-sub">Mapnaam</label></div>
+          <input class="aein" id="fl-sub" maxlength="60" autocomplete="off">
+        </div>
+        <p class="note" id="fl-opslag-mail" hidden>Elke leverancier uit je mail krijgt een eigen map met zijn naam. Nieuwe leveranciers krijgen deze keuzes mee; daarna pas je ze per leverancier aan.</p>
         <p class="note" id="fl-opslag-msg"></p>
       </div>
     </div>
@@ -368,8 +413,16 @@
     <div class="card">
       <h2>Factuurgegevens</h2>
       <p class="note" style="margin-top:0" id="fs-bron"></p>
-      <div class="flabel"><label for="fs-lev">Leverancier</label></div>
-      <input class="aein" id="fs-lev" maxlength="80" autocomplete="off">
+      <div id="fs-levnaam">
+        <div class="flabel"><label for="fs-lev">Leverancier</label></div>
+        <input class="aein" id="fs-lev" maxlength="80" autocomplete="off">
+      </div>
+      <div id="fs-levrij" hidden>
+        <div class="flabel"><label for="fs-levsel">Leverancier</label></div>
+        <select class="sel search" id="fs-levsel" onchange="fsLevKeuze()"></select>
+        <label class="chk" id="fs-onthoudrij" hidden><input type="checkbox" id="fs-onthoud"> <span id="fs-onthoud-t" translate="no"></span></label>
+        <p class="note" id="fs-lev-uitleg" style="margin:4px 0 0"></p>
+      </div>
       <div class="flabel" style="margin-top:8px"><label for="fs-nummer">Factuurnummer</label></div>
       <input class="aein" id="fs-nummer" maxlength="80" autocomplete="off">
       <div class="fs-grid">

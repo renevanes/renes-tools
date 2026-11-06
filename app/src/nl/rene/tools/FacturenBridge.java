@@ -17,6 +17,8 @@ public class FacturenBridge extends GebruikBridge {
 
     FacturenBridge(MainActivity act) { super(act); }
 
+    private static long indelenT;
+
     /** Alles voor het scherm: leveranciers (zonder wachtwoorden), toestand, Eigen Cloud, sjablonen. */
     @JavascriptInterface public String facturenState() {
         try {
@@ -59,7 +61,9 @@ public class FacturenBridge extends GebruikBridge {
             }
             SharedPreferences p = Facturen.prefs(ctx);
             FacturenRun r = FacturenRun.LOPEND.get();
-            boolean indelen = FacturenIndeling.nodig(ctx) && r == null && !FacturenIndeling.BEZIG.get();
+            long nuT = System.currentTimeMillis();
+            boolean indelen = FacturenIndeling.nodig(ctx) && r == null && !FacturenIndeling.BEZIG.get() && nuT - indelenT > 600_000L; // het scherm vraagt elke seconde
+            if (indelen) indelenT = nuT;
             if (indelen) new Thread(() -> { // eenmalig: de facturen uit de mail per leverancier (meldt zich via onFacturenIngedeeld)
                 try {
                     JSONObject u = FacturenIndeling.herindelen(ctx);
