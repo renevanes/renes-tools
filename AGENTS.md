@@ -343,10 +343,13 @@ achtergrond (`FacturenJob`, onzichtbare WebView) of terwijl Rene meekijkt (`Fact
   doorgestuurde mail (lijsten `mailPlatforms` en `freemail` in `web/facturen-leveranciers.json`), anders een nieuwe leverancier.
   Rene's eigen nummers en adressen (`facturen/herkennen.json`, Zoeken-tab van de mailbron) en nummers die bij 3 of meer
   afzenders staan tellen niet. Het dossier noteert `via` (de mailbron) en `kenmerken` per factuur; in `toestand.json` staat per
-  mail `l` (bij welke leverancier). `FacturenIndeling` doet de acties: Klopt, Overslaan (terugzetten bij de mailbron),
-  een factuur verplaatsen in het dossier (met "Onthoud dit voor deze afzender" = regel), Samenvoegen (ook "Hoort bij …"; neemt
+  mail `l` (bij welke leverancier). `FacturenIndeling` doet de acties: Klopt, Overslaan (terugzetten bij de mailbron: die
+  zoekt de overgeslagen facturen dan opnieuw), een factuur verplaatsen in het dossier (met "Onthoud dit" = regel: het adres,
+  bij een platform de naam of het domein van het antwoordadres, nooit het adres van het platform zelf; plus de nummers), Samenvoegen (ook "Hoort bij …"; neemt
   herkenning, facturen en aanleverontvangers mee) en het eenmalig herindelen van oude mailfacturen (`indeling` in de prefs,
-  `VERSIE`). Bestanden buiten de app (backup-map, Drive, mail) blijven waar ze zijn. Aanleveren: de mailbron aanvinken = alles
+  `VERSIE`). Deze acties lopen nooit tegelijk met ophalen, aanleveren of het dossier leegmaken (`FacturenIndeling.BEZIG`
+  naast `FacturenRun.LOPEND`, `FacturenAanlever.BEZIG` en `FacturenDossier.WEGHALEN`: eerst de eigen vlag zetten, dan de
+  andere controleren). Bestanden buiten de app (backup-map, Drive, mail) blijven waar ze zijn. Aanleveren: de mailbron aanvinken = alles
   wat via die bron binnenkwam, ook leveranciers die er later bij komen. Herkennen gebeurt alleen op de telefoon: geen
   opzoekdiensten, en geen namen, nummers of adressen in het logboek of in Statistieken. Interfacetest:
   `tests/ui/facturen-mail-leveranciers.test.js`.
