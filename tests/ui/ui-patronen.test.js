@@ -12,7 +12,8 @@ const BACK_D = 'M15 18l-6-6 6-6'; // de SVG-chevron van de terugknop
 const DETAIL = ['cversions', 'cversion', 'vpnedit', 'autoed', 'chats', 'ralarm', 'herstel', 'chat', 'smschat', 'track', 'txd', 'contact', 'note',
   'podcast', 'podlijst', 'podspotify', 'models', 'carset', 'gebruikset', 'gebruikontgr', 'apset', 'apdev', 'aiset', 'aisetvoice', 'aisetdata', 'aichats',
   'sleepset', 'sleepnight', 'checkined', 'checkinq', 'checkincmp', 'setnotif', 'setlook', 'setregio', 'setcrash', 'facstuk', 'facgoogle', 'idcopy', 'formulieren',
-  'pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade', 'bkparts', 'bkset', 'bkrestore', 'wasel', 'waauto', 'warestore'];
+  'pdfedit', 'pdfimg', 'pdfsplit', 'pdftext', 'pdfmade', 'bkparts', 'bkset', 'bkrestore', 'wasel', 'waauto', 'warestore',
+  'wcplek', 'wcbewerk', 'wcdeel', 'wcset', 'wcbronnen', 'wcbron', 'wceigen', 'wcgedeeld'];
 // Meer dan één gevulde hoofdknop: bewust (met de reden)
 const MEER_PRIMAIR = {
 };

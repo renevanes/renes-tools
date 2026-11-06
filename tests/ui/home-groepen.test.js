@@ -34,7 +34,7 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     let g = await home(pg);
     ok(g.map(x => x.split(':')[0]).join('|') === NIEUW.join('|'), 'nieuwe groepen: ' + g.map(x => x.split(':')[0]).join(', '));
     ok(g.includes('Documenten & geld:pdf,kluis,facturen,bank,masterdata') && g.includes('Dag & gezondheid:checkin,sleep,gebruik') &&
-      g.includes('Onderweg:tracks,car,loc,vpn') && g.includes('Slim:ai,notes,auto,apparaten,skin'), 'Handig verdeeld, skin in Slim');
+      g.includes('Onderweg:tracks,car,wc,loc,vpn') && g.includes('Slim:ai,notes,auto,apparaten,skin'), 'Handig verdeeld, skin in Slim');
     ok(await pg.evaluate(() => { const all = [].concat(...HOME_DEFAULT.groups.map(x => x.tools)); return Object.values(TILE_TOOL).every(tk => all.filter(x => x === tk).length === 1) && all.length === Object.keys(TILE_TOOL).length; }), 'elke tool staat precies één keer in de standaardindeling');
 
     // ---------- homeMigrate: zuiver ----------
@@ -52,7 +52,9 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
       const half = cp(OUD); half.groups[4].tools = half.groups[4].tools.slice(0, 12); half.groups.shift();
       r.half = lay(homeMigrate(half, K)) === nieuw;
       // Zelf aangepast: blijft precies zo
-      const keep = c => { const x = homeMigrate(cp(c), K); return lay(x) === lay(c) && names(x) === names(c); };
+      // Tools die er na indeling 2 bij kwamen, zet homeMigrate er vanzelf bij; de rest blijft precies zo
+      const LATER = ['wc'], zonder = c => ({ groups: c.groups.map(x => ({ name: x.name, tools: x.tools.filter(tk => !LATER.includes(tk)) })) });
+      const keep = c => { const x = homeMigrate(cp(c), K); return lay(zonder(x)) === lay(c) && names(x) === names(c) && LATER.every(tk => [].concat(...x.groups.map(g => g.tools)).includes(tk)); };
       const swap = cp(OUD); swap.groups[1].tools = ['calls', 'redial', 'contacts', 'recorder', 'transcripts'];
       const hid = cp(OUD); hid.hidden = ['sms'];
       const ren = cp(OUD); ren.groups[3].name = 'Muziek';
@@ -63,7 +65,7 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
       r.eigen = { swap: keep(swap), verborgen: keep(hid) && homeMigrate(cp(hid), K).hidden.join() === 'sms', hernoemd: keep(ren), verplaatst: keep(mov), groepvolgorde: keep(ord), staart: keep(tail), al2: keep(v2) };
       // Nieuwe tools in een eigen indeling: naar hun standaardgroep (zelfde naam, anders waar de meeste uit die groep staan, anders een nieuwe groep)
       const e = homeMigrate(cp(EIGEN), K), grp = n => (e.groups.find(x => x.name === n) || { tools: [] }).tools;
-      r.nieuweTools = grp('Handig').slice(-2).join() === 'bank,gebruik' && e.groups.length === 4 && e.hidden.join() === 'music' &&
+      r.nieuweTools = grp('Handig').slice(-3).join() === 'bank,gebruik,wc' && e.groups.length === 4 && e.hidden.join() === 'music' &&
         grp('Bellen & contacten').join() === 'calls,redial,contacts,recorder,transcripts' && grp('Mijn muziek').join() === 'radio,podcasts,spotify,music,skin';
       const metNaam = homeMigrate({ groups: [{ name: 'Alles', tools: K.filter(x => x !== 'bank' && x !== 'kluis') }, { name: 'Documenten & geld', tools: ['kluis'] }, { name: 'Laatste', tools: [] }] }, K);
       r.zelfdeNaam = metNaam.groups[1].tools.join() === 'kluis,bank' && !metNaam.groups[2].tools.length;
@@ -144,7 +146,7 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     await pg.evaluate(() => homeV1Restore()); await pg.waitForTimeout(150);
     await pg.reload(); await pg.waitForTimeout(300);
     g = await home(pg);
-    ok(g.map(x => x.split(':')[0]).join('|') === '★ Favorieten|Telefoon|Bellen & contacten|Berichten & backup|Muziek & radio|Handig' && g[5].endsWith('masterdata,gebruik') && !(await pg.isVisible('#home-new')),
+    ok(g.map(x => x.split(':')[0]).join('|') === '★ Favorieten|Telefoon|Bellen & contacten|Berichten & backup|Muziek & radio|Handig' && g[5].endsWith('masterdata,gebruik,wc') && !(await pg.isVisible('#home-new')),
       'vorige indeling terug en blijft zo na herladen; kaart weg (' + g.map(x => x.split(':')[0]) + ')');
     ok(await pg.evaluate(() => homeCfg().compact === true && homeCfg().fav.join() === 'notes'), 'favorieten en compact blijven bij terugzetten');
     // En via Startscherm aanpassen weer naar de nieuwe (Standaard herstellen) en terug (Vorige indeling terugzetten)
@@ -173,7 +175,7 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     await pg.evaluate(o => { localStorage.setItem('rt.home', JSON.stringify(o)); }, EIGEN); await pg.reload(); await pg.waitForTimeout(300);
     g = await home(pg);
     ok(g.map(x => x.split(':')[0]).join('|') === 'Handig|Mijn muziek|Bellen & contacten|Berichten & backup', 'eigen indeling bewaard → na starten precies zo (' + g.map(x => x.split(':')[0]) + ')');
-    ok(g[0].endsWith('facturen,masterdata,bank,gebruik') && g[1] === 'Mijn muziek:radio,podcasts,spotify,skin' && g[2].startsWith('Bellen & contacten:calls,redial'), 'nieuwe tools erbij in hun groep, verborgen blijft verborgen');
+    ok(g[0].endsWith('facturen,masterdata,bank,gebruik,wc') && g[1] === 'Mijn muziek:radio,podcasts,spotify,skin' && g[2].startsWith('Bellen & contacten:calls,redial'), 'nieuwe tools erbij in hun groep, verborgen blijft verborgen');
     // Opslaan na een wijziging bewaart indeling 2: later niet opnieuw omgezet
     await pg.evaluate(() => heSet('compact', true)); await pg.reload(); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => store.get('home').v === 2 && homeCfg().groups[0].name === 'Handig'), 'bewaard als indeling 2, eigen groepen blijven');
