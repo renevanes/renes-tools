@@ -15,7 +15,7 @@ final class MasterSchema {
     static final String[] IDENTITY={"persoon","documentsoort","document","geldig","afgifte","afgifteplaats","uitgifteland","afgegevenDoor"};
     static final String[] TRIP={"van","tot","alleen","tweedeBegeleider","tweedeGever","accommodatie","postcode","plaats","land","telefoon","reisgegevens"};
     static final String[] PROFILE={"persoon","delen","context"};
-    static final String[] RELATION={"vanPersoon","naarPersoon","relatie","toelichting","delen"};
+    static final String[] RELATION={"vanPersoon","naarPersoon","relatie","status","toelichting","delen"};
     static boolean sensitive(String key){return "bsn".equals(key)||"document".equals(key)||"geldig".equals(key)||"afgifte".equals(key);}
     static String[] fields(String type)throws Exception{
         if("persoon".equals(type))return PERSON;if("organisatie".equals(type))return ORGANISATION;if("adres".equals(type))return ADDRESS;if("identiteit".equals(type))return IDENTITY;if("reis".equals(type))return TRIP;if("profiel".equals(type))return PROFILE;if("relatie".equals(type))return RELATION;if("formulier".equals(type))return MasterFormProfile.FIELDS;
@@ -46,6 +46,7 @@ final class MasterSchema {
         if(("identiteit".equals(type)||"profiel".equals(type))&&out.optString("persoon").isEmpty())throw new MasterError(Taal.T("Kies een gekoppelde persoon"));
         if("relatie".equals(type)&&(out.optString("vanPersoon").isEmpty()||out.optString("naarPersoon").isEmpty()||out.optString("relatie").isEmpty()))throw new MasterError(Taal.T("Kies beide personen en hun relatie"));
         if("relatie".equals(type)&&out.getString("vanPersoon").equals(out.getString("naarPersoon")))throw new MasterError(Taal.T("Een relatie hoort bij twee verschillende personen"));
+        if("relatie".equals(type)&&out.has("status")&&!MasterIdentity.statuses(out.getString("relatie")).contains(out.getString("status")))throw new MasterError(Taal.T("Kies een status die bij deze relatie past"));
         if("identiteit".equals(type)&&out.has("afgifte")&&out.has("geldig")&&out.getString("afgifte").compareTo(out.getString("geldig"))>0)throw new MasterError(Taal.T("De afgiftedatum moet voor de vervaldatum liggen"));
         if("formulier".equals(type)&&!MasterFormProfile.FORMS.contains(out.optString("formulier")))throw new MasterError(Taal.T("Kies voor welk formulier deze vaste gegevens zijn"));
         if("reis".equals(type)&&out.has("van")&&out.has("tot")&&out.getString("van").compareTo(out.getString("tot"))>0)throw new MasterError(Taal.T("De laatste reisdag moet op of na de eerste reisdag vallen."));

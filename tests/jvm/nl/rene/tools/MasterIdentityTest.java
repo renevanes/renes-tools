@@ -34,6 +34,30 @@ public final class MasterIdentityTest {
         String familyPrompt=MasterIdentity.prompt(large,1200);JSONObject data=new JSONObject(familyPrompt.substring(familyPrompt.indexOf('{')));
         check(data.getJSONArray("people").length()==8,"alle gezinsnamen en relaties krijgen voorrang op lange context");check(data.toString().length()<=1200&&!data.toString().contains("uuid-"),"begrensde AI-context zonder onnodige identifiers");
         String small=MasterIdentity.prompt(large,350);JSONObject limited=new JSONObject(small.substring(small.indexOf('{')));check(limited.getJSONArray("people").length()+limited.getInt("more")==8,"onvolledige gezinslijst expliciet aangeduid");
+        // Meer vaste relaties en hun omgekeerde betekenis (nooit geslacht of ontbrekende kennis raden)
+        check(MasterIdentity.inverse("opa").equals("kleinkind")&&MasterIdentity.inverse("kleindochter").equals("grootouder")&&MasterIdentity.inverse("broer").equals("broerzus")
+                &&MasterIdentity.inverse("schoonouder").equals("schoonkind")&&MasterIdentity.inverse("expartner").equals("expartner")&&MasterIdentity.inverse("oomtante").equals("neefnicht"),"nieuwe relaties hebben een omgekeerde betekenis");
+        check(MasterIdentity.inverse("neefnicht").isEmpty(),"neef of nicht: andersom niet raden (oom, tante of ook neef of nicht)");
+        for(String code:new String[]{"expartner","broer","zus","opa","oma","kleinzoon","kleindochter","oomtante","neefnicht","schoonouder","schoonkind","zwagerschoonzus","buur","huisgenoot"})check(MasterIdentity.RELATIONS.contains(code),"vaste relatie "+code);
+        // Status: alleen een vaste waarde die bij de relatie past
+        rel.getJSONObject("fields").put("naarPersoon",kid);
+        JSONObject partner=new JSONObject(rel.getJSONObject("fields").toString()).put("relatie","partner").put("status","gehuwd");
+        check(MasterSchema.clean(new JSONObject().put("type","relatie").put("label","p").put("fields",partner)).getJSONObject("fields").getString("status").equals("gehuwd"),"partner met status gehuwd");
+        JSONObject ouder=new JSONObject(rel.getJSONObject("fields").toString()).put("relatie","kind").put("status","gezag");
+        check(MasterSchema.clean(new JSONObject().put("type","relatie").put("label","k").put("fields",ouder)).getJSONObject("fields").getString("status").equals("gezag"),"ouder en kind met ouderlijk gezag");
+        for(String[] fout:new String[][]{{"partner","gezag"},{"vriend","gehuwd"},{"kind","gehuwd"},{"partner","getrouwd"}}){
+            boolean geweigerd=false;try{MasterSchema.clean(new JSONObject().put("type","relatie").put("label","x").put("fields",new JSONObject(rel.getJSONObject("fields").toString()).put("relatie",fout[0]).put("status",fout[1])));}catch(MasterError e){geweigerd=true;}
+            check(geweigerd,"status "+fout[1]+" past niet bij "+fout[0]);
+        }
+        // De status blijft in de kluis: niet in de gedeelde app-context of de AI-context
+        rel.getJSONObject("fields").put("relatie","partner").put("status","samenwonend");
+        String gedeeld=MasterIdentity.app(records).toString();check(gedeeld.contains("partner")&&!gedeeld.contains("samenwonend"),"status niet in de gedeelde app-context");
+        check(!MasterIdentity.prompt(MasterIdentity.app(records),4000).contains("samenwonend"),"status niet in de AI-context");
+        // Overzicht van Stamgegevens: bij een relatie wie met wie en welke relatie, niet de status of toelichting; andere onderdelen zien dat niet
+        JSONObject sum=MasterStore.listed(rel.put("revision",3),"masterdata");
+        check(sum.getString("van").equals(me)&&sum.getString("naar").equals(kid)&&sum.getString("relatie").equals("partner")&&!sum.toString().contains("samenwonend")&&!sum.toString().contains("Woont bij mij"),"relatie in het overzicht zonder status en toelichting");
+        check(!MasterStore.listed(rel,"formulieren").has("van")&&!MasterStore.summary(rel).has("relatie"),"relatievelden alleen in het overzicht van Stamgegevens, niet bij lezen of in andere onderdelen");
+        check(!MasterStore.listed(self.put("revision",1),"masterdata").has("van"),"persoon in het overzicht zonder relatievelden");
         System.out.println("Profiel, delen, gerichte relaties en veilige AI-context gecontroleerd");
     }
 }
