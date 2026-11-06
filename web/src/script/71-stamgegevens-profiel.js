@@ -133,7 +133,8 @@ function cmiPhotoDelete(side){
   if(!cmiPhotoCanChange()||!cm.edit.images?.[side])return;const r=cm.edit;
   askConfirm('Kaartfoto verwijderen?','De versleutelde kopie van deze zijde wordt verwijderd.','Verwijderen',()=>{if(!cmOpen()||cm.edit!==r||cm.mutating)return;cmBusy(true);cmRequest('masterPhotoDelete',[r.id,r.revision,side],out=>{cmBusy(false);r.revision=out.revision;r.images[side]=false;cmiEditor();cmNote(t('Kaartfoto verwijderd.'));});});
 }
-const cmiClearCentral=cmClearCentral;cmClearCentral=function(){cmiPhotoClear();cmiClearCentral();};
+function cmiRelationsClear(){cmi.labelFor=null;cmi.autoLabel='';$('#cmi-person-relation-list').replaceChildren();$('#cmi-relation-zin').textContent='';$('#cmi-relation-zin').hidden=true;}
+const cmiClearCentral=cmClearCentral;cmClearCentral=function(){cmiPhotoClear();cmiRelationsClear();cmiClearCentral();};
 const cmiLock=cmLock;cmLock=function(){cmiPhotoCancel();cmiLock();};
 const cmiLeave=cmLeave;cmLeave=function(){cmiPhotoCancel();cmiLeave();};
 const cmiCancelEdit=cmCancelEdit;cmCancelEdit=function(){cmiCancelEdit();if(!cm.dirty)cmiPhotoClear();};

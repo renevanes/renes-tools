@@ -1,5 +1,11 @@
 // Stamgegevens → een opgeslagen persoon: relaties zien en toevoegen (kind, ouder, partner, andere), vaste relaties en status.
-const {chromium}=require('playwright');const assert=require('node:assert/strict');const path=require('path');
+const {chromium}=require('playwright');const assert=require('node:assert/strict');const path=require('path');const fs=require('fs');
+// Vaste relaties en de relaties met ouderlijk gezag: interface en MasterIdentity.java hetzelfde, elke relatie in precies één groep
+{const js=fs.readFileSync(path.join(__dirname,'../../web/src/script/71-stamgegevens-profiel.js'),'utf8'),java=fs.readFileSync(path.join(__dirname,'../../app/src/nl/rene/tools/MasterIdentity.java'),'utf8');
+ const codes=re=>[...java.match(re)[0].matchAll(/"(\w+)"/g)].map(m=>m[1]);
+ const names=Object.keys(Function('return '+js.match(/const CMI_RELATIONS=(\{[^;]*\});/)[1])()),groups=Function('return '+js.match(/const CMI_RELATION_GROUPS=(\[[^;]*\]);/)[1])().flatMap(g=>g[1]);
+ assert.deepEqual([...names].sort(),codes(/RELATIONS=[^;]*;/).sort(),'CMI_RELATIONS = MasterIdentity.RELATIONS');assert.deepEqual([...groups].sort(),[...names].sort(),'elke relatie in precies één groep');
+ assert.deepEqual(Function('return '+js.match(/const CMI_OUDER_KIND=(\[[^;]*\]);/)[1])(),codes(/OUDER_KIND=[^;]*;/),'CMI_OUDER_KIND = MasterIdentity.OUDER_KIND');}
 (async()=>{const browser=await chromium.launch(),errors=[];
 for(const colorScheme of ['light','dark']){
  const p=await browser.newPage({viewport:{width:390,height:844},colorScheme});p.on('pageerror',e=>errors.push(e.message));await p.goto('file://'+path.join(__dirname,'ui/index.html'));
@@ -78,6 +84,12 @@ for(const colorScheme of ['light','dark']){
  assert.equal(await p.evaluate(()=>$('#cm-field-relatie optgroup').label),'Immediate family');
  assert.equal(await p.evaluate(()=>$('#cm-field-status option[value="latrelatie"]').textContent),'Living apart together');
  await p.selectOption('#cm-field-status','gehuwd');assert.equal(await zin(),'Sam is the partner of Rene (married).');
+
+ // Vergrendelen wist ook de relatiezin en de relatielijst (alleen vluchtig schermgeheugen)
+ assert.equal(await p.evaluate(()=>!$('#cmi-relation-zin').hidden&&$('#cmi-person-relation-list').children.length>0&&!!cmi.labelFor),true);
+ await p.evaluate(()=>cmLock());await p.waitForFunction(()=>!cm.token);
+ assert.equal(await p.evaluate(()=>cmi.labelFor===null&&!cmi.autoLabel&&$('#cmi-relation-zin').hidden&&!$('#cmi-relation-zin').textContent&&!$('#cmi-person-relation-list').children.length),true);
+ assert.equal(await p.evaluate(()=>/\b(Anna|Kees|Sam|Rene)\b/.test($('#cm-open').innerHTML)),false,'geen namen meer in het verborgen scherm');
  await p.evaluate(()=>rgSave({lang:'nl'}));
  assert.equal(await p.evaluate(()=>Object.keys(localStorage).some(k=>/stam|identity|profiel|relati/.test(k))),false);
  await p.close();
