@@ -59,7 +59,7 @@ function fmqGo(){
     if(!Android.masterApplied(cm.token,r.grant)){fmqNote(t('Ontgrendel de stamgegevens opnieuw'));return;}
     const known=new Set(fmDef().sections.flatMap(s=>s.fields.map(f=>f.id)));
     for(const [key,value] of Object.entries(r.values||{}))if(known.has(key)&&typeof value==='string')fm.values[key]=value;
-    for(const [role,code] of Object.entries(r.relations||{}))if(known.has(role+'-relatie'))fm.values[role+'-relatie']=cmiRelationName(code);
+    for(const [role,code] of Object.entries(r.relations||{}))if(known.has(role+'-relatie'))fm.values[role+'-relatie']=cmiRelationName(code); // taal-vast: veld-id, geen tekst
     for(const [key,target] of Object.entries(FM_VAST[id]))if(reis[key])fm.values[target]=reis[key];
     fm.masterSensitive=true;
     const kind=(fm.values['kind-voornamen']||'').split(/\s+/)[0];
