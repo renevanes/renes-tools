@@ -329,11 +329,27 @@ achtergrond (`FacturenJob`, onzichtbare WebView) of terwijl Rene meekijkt (`Fact
   Robot en sjablonen zitten in de APK (assets): een wijziging daarin komt pas met een nieuwe APK. Test de robot met
   `tests/ui/facturen-robot.test.js` (nagebootste leverancier) en de beslislogica/regels met `FacturenTest`.
 - **Facturen uit de mail** (soort `mail`): `FacturenMail` is het raamwerk, een mailbron is een `FacturenMail.Bron` (eerste:
-  `FacturenGmail`, Gmail-API met alleen-lezen-rechten via de Google-koppeling in `FacturenDrive`). Instellingen per leverancier
-  in `mail` (zoekwoorden, afzenders, overslaan, extra zoekopdracht, terugkijken, per afzender een map). **Nieuwe bron**
+  `FacturenGmail`, Gmail-API met alleen-lezen-rechten via de Google-koppeling in `FacturenDrive`). Instellingen van de mailbron
+  in `mail` (zoekwoorden, afzenders, overslaan, extra zoekopdracht, terugkijken) plus planning en opslag. **Nieuwe bron**
   (bijv. Outlook via Microsoft Graph): een klasse die `Bron` doet, toevoegen in `FacturenMail.BRONNEN` en `bron()`, een
   eigen koppeling (OAuth zoals `FacturenDrive`, eigen geheimen in `facturen_geheim`), een optie in `#fl-m-bron`, een rij op
   het scherm Koppelingen, en tests (zoekopdracht en bijlagen) in `FacturenTest`.
+- **Elke leverancier uit de mail apart:** de mailbron is alleen de bron; elke afzender die Tools herkent wordt een eigen rij
+  van soort `uitmail` (`FacturenHerken.SOORT`: vanzelf aangemaakt met `nieuw` en het label Nieuw, `bronnen` = de mailbron(nen),
+  `herken` = waaraan hij herkend wordt, `voorstel` = een website-leverancier met hetzelfde domein; eigen map
+  `Facturen/<leverancier>/`, opslag overgenomen van de mailbron; geen ophalen of planning van zichzelf). `FacturenHerken`
+  (zuiver, getest in `FacturenHerkenTest`) herkent in deze volgorde: eigen regels (`herken` van een rij), btw-/KvK-nummer uit
+  de PDF, IBAN, domein (subdomeinen tellen bij het hoofddomein), naam of oorspronkelijke afzender bij platforms, gratis mail en
+  doorgestuurde mail (lijsten `mailPlatforms` en `freemail` in `web/facturen-leveranciers.json`), anders een nieuwe leverancier.
+  Rene's eigen nummers en adressen (`facturen/herkennen.json`, Zoeken-tab van de mailbron) en nummers die bij 3 of meer
+  afzenders staan tellen niet. Het dossier noteert `via` (de mailbron) en `kenmerken` per factuur; in `toestand.json` staat per
+  mail `l` (bij welke leverancier). `FacturenIndeling` doet de acties: Klopt, Overslaan (terugzetten bij de mailbron),
+  een factuur verplaatsen in het dossier (met "Onthoud dit voor deze afzender" = regel), Samenvoegen (ook "Hoort bij …"; neemt
+  herkenning, facturen en aanleverontvangers mee) en het eenmalig herindelen van oude mailfacturen (`indeling` in de prefs,
+  `VERSIE`). Bestanden buiten de app (backup-map, Drive, mail) blijven waar ze zijn. Aanleveren: de mailbron aanvinken = alles
+  wat via die bron binnenkwam, ook leveranciers die er later bij komen. Herkennen gebeurt alleen op de telefoon: geen
+  opzoekdiensten, en geen namen, nummers of adressen in het logboek of in Statistieken. Interfacetest:
+  `tests/ui/facturen-mail-leveranciers.test.js`.
 - **Dossier** (`FacturenDossier`, `facturen/dossier.json`, scherm `s-facdos`/`s-facstuk`): per factuur (sleutel = SHA-256)
   de bron (website of mail: afzender, onderwerp, datum), herkende factuurgegevens (nummer, datum, bedrag, btw; Rene kan ze
   aanpassen), alle plekken waar hij staat (`Facturen.aflever` noteert ze met `FacturenDossier.plek`) en aan wie hij is
