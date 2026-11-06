@@ -16,6 +16,13 @@ for(const colorScheme of ['light','dark']){
       rec(6,'relatie','Papa – Zoë',{vanPersoon:id(3),naarPersoon:id(1),relatie:'dochter',delen:'ja'}),
       rec(7,'organisatie','Instelling',{naam:'Jeugdzorg BV'})];
   });
+  // 0. Nog geen vaste gegevens: het venster biedt ook Zelf invullen.
+  await p.evaluate(()=>{openTool('pdf');});await p.getByRole('button',{name:'Formulieren invullen',exact:true}).click();
+  await p.click('#fmq-start');if(await p.isVisible('#fmq-ontgrendel'))await p.click('#fmq-ontgrendel');
+  await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-geen').hidden);
+  await p.locator('#fmq-geen button',{hasText:'Zelf invullen'}).click();
+  assert.equal(await p.evaluate(()=>!fmq.open&&fm.view+' '+fm.step),'stap 0','Zelf invullen opent de eerste stap');
+  await p.evaluate(()=>{goBack();Android.masterLock();});await p.waitForFunction(()=>!cmOpen());
   // 1. Eenmalig instellen vanuit Formulieren: naar Stamgegevens, nieuwe vaste gegevens.
   await p.evaluate(()=>{openTool('pdf');});await p.getByRole('button',{name:'Formulieren invullen',exact:true}).click();
   assert.equal(await p.isVisible('#fmq-start'),true,'Nieuwe reis invullen is de hoofdknop');assert.equal(await p.isVisible('#pff-start-knop'),false);
@@ -40,7 +47,8 @@ for(const colorScheme of ['light','dark']){
   await p.waitForFunction(()=>$('#cm-status').textContent.includes('vaste formuliergegevens'));
   // 2. Nieuwe reis: alleen reisdagen en bestemming. Na het verlaten van Stamgegevens is alles vergrendeld;
   // het venster vraagt direct om te ontgrendelen (vingerafdruk), zonder extra tik.
-  await p.evaluate(()=>show('formulieren'));await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
+  assert.equal(await p.evaluate(()=>goBack()&&current),'formulieren','terug uit Stamgegevens gaat naar Formulieren');
+  await p.click('#fmq-start');await p.waitForFunction(()=>fmq.open&&cmOpen()&&!$('#fmq-open').hidden&&fmq.records.length===1);
   assert.equal(await p.evaluate(()=>$('#s-formulieren').inert),true,'scherm eronder niet bedienbaar');
   assert.equal(await p.evaluate(()=>getComputedStyle($('#fmq')).position),'fixed','venster over het hele scherm');
   assert.equal(await p.isChecked('#fmq-id'),false,'identiteitsgegevens niet standaard');

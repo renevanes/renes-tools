@@ -17,6 +17,12 @@ const path=require('path');
     await p.click('#pff-menu');assert.deepEqual(await p.$$eval('#sheet-acts button',x=>x.map(e=>e.textContent)),['Officiële bron openen'],'leegmaken pas als er iets is ingevuld');
     await p.evaluate(()=>closeSheet());
     await p.click('#pff-zelf');assert.equal(await p.evaluate(()=>fm.view),'stap');assert.match(await p.textContent('#pff-titel'),/^Reis$/);
+    // Per weergave hooguit één gevulde knop.
+    const gevuld=()=>p.evaluate(()=>{
+      const probe=document.createElement('div');probe.style.background='var(--primary)';document.body.append(probe);const prim=getComputedStyle(probe).backgroundColor;probe.remove();
+      return [...document.querySelectorAll('#s-formulieren button')].filter(e=>e.getClientRects().length&&getComputedStyle(e).backgroundColor===prim).map(e=>e.textContent.trim());
+    });
+    assert.deepEqual(await gevuld(),['Volgende stap']);
     await p.click('#pff-volgende');assert.equal(await p.evaluate(()=>fm.step),0,'verplichte velden blokkeren doorgaan');
     const fill=async(id,value)=>p.fill('#pff-v-'+id,value);
     assert.equal(await p.evaluate(()=>$('#pff-meer').open),false,'optionele velden ingeklapt');
@@ -25,6 +31,7 @@ const path=require('path');
     await fill('tot','2027-07-30');await p.click('#pff-volgende');assert.match(await p.textContent('#pff-titel'),/^Kind$/);
     // Terug naar de start bewaart het concept; de rij zegt waar je was.
     assert.equal(await p.evaluate(()=>goBack()),true);assert.equal(await p.evaluate(()=>current+' '+fm.view),'formulieren start');
+    assert.equal(await p.evaluate(()=>document.activeElement.id),'pff-zelf','focus terug op de rij');
     assert.match(await p.textContent('#pff-zelf-stand'),/Verder bij stap 2 van 5: Kind/);
     await p.click('#pff-zelf');assert.equal(await p.evaluate(()=>fm.step),1);assert.equal(await p.evaluate(()=>fm.values.land),'Frankrijk');
     await fill('kind-naam','René <akkoord>');await fill('kind-voornamen','Zoë');await fill('kind-geboortedatum','2015-02-03');
@@ -40,6 +47,7 @@ const path=require('path');
     assert.match(await p.textContent('#pff-titel'),/Controleren/);
     await p.waitForFunction(()=>!document.querySelector('#pff-maak').disabled);
     assert.equal(await p.evaluate(()=>$('#pff-alles').open),false,'samenvatting ingeklapt onder het voorbeeld');
+    assert.deepEqual(await gevuld(),['Ingevulde PDF maken']);
     assert.equal(await p.locator('#pff-samenvatting akkoord').count(),0,'persoonsgegevens blijven tekst');
     assert.match(await p.textContent('#pff-samenvatting'),/René <akkoord>/);
     // Controleer de tekenopdrachten, inclusief vaste PDF-datum en gesplitste postcode.
@@ -51,8 +59,11 @@ const path=require('path');
     });
     let text=await ink();assert.ok(text.some(x=>x[0]==='15-07-2027'));assert.ok(text.some(x=>x[0]==='1234'));assert.ok(text.some(x=>x[0]==='AB'));assert.ok(text.some(x=>x[0]==='Frankrijk'));
     await p.click('#pff-pagina-volgende');await p.waitForFunction(()=>fm.page===1&&!document.querySelector('#pff-maak').disabled);
-    await p.fill('#pff-naam','Reistoestemming Zoë');await p.click('#pff-maak');await p.waitForFunction(()=>!fm.busy);
+    await p.fill('#pff-naam','Reistoestemming Zoë');
+    assert.deepEqual(await p.evaluate(()=>{fmMaak();return [fm.busy,goBack(),fm.view,fmMenuActs().map(a=>a[0]).join('|')];}),[true,true,'stap','Officiële bron openen'],'tijdens het maken blijft de stap staan en kun je niet leegmaken');
+    await p.waitForFunction(()=>!fm.busy);
     assert.equal(await p.isVisible('#pff-resultaat'),true);
+    assert.deepEqual(await gevuld(),['Opslaan als…'],'na het maken is Opslaan als… de hoofdknop');
     const exported=await p.evaluate(()=>Android._pdf.form);assert.equal(exported.id,'reistoestemming');assert.deepEqual(exported.layers.map(x=>x.page),[0,1]);
     assert.ok(exported.layers.every(x=>x.png.startsWith('data:image/png;base64,')));
     fs.writeFileSync(path.join(__dirname,'shots','formulier-lagen-'+colorScheme+'.json'),JSON.stringify(exported));
@@ -90,7 +101,9 @@ const path=require('path');
     // Leegmaken via het menu, met bevestiging; daarna weer de start.
     const leeg=async()=>{await p.click('#pff-menu');await p.locator('#sheet-acts button',{hasText:'Formulier leegmaken'}).click();};
     await leeg();await p.locator('#modal-cancel').click();assert.equal(await p.evaluate(()=>fm.values['kind-voornamen']),'Zoë');
+    await p.evaluate(()=>{fm.step=fmSecties().length;fmRender();$('#pff-alles').open=true;});
     await leeg();await p.locator('#modal-ok').click();assert.equal(await p.evaluate(()=>fm.values['kind-voornamen']+'|'+fm.view),'|start');
+    assert.equal(await p.evaluate(()=>$('#pff-alles').open+' '+$('#pff-samenvatting').childElementCount),'false 0','leegmaken klapt de samenvatting dicht en wist hem');
     await p.screenshot({path:path.join(__dirname,'shots','formulieren-start-'+colorScheme+'.png'),fullPage:true});
     // Een tweede definitie gebruikt dezelfde invuller, zonder aanpassingen aan de engine; nu is er een keuzelijst.
     await p.evaluate(()=>{PDF_FORMULIEREN.proef=()=>({id:'proef',title:t('Titel'),description:'',source:'https://example.org',pages:[{width:595.276,height:841.89}],instruction:'',sections:[{title:t('Titel'),fields:[{id:'proef-tekst',label:t('Tekst'),required:true,pdf:[{page:0,x:40,y:40,w:300,h:12}]}]}]});enterFormulieren();});

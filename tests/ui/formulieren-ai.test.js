@@ -26,10 +26,12 @@ const path=require('path');
    await p.click('#cm-apply');await p.waitForFunction(()=>!cm.picker);
   };
   // Stap Reis: een vaste reis vult reisdagen en bestemming, maar vervangt bestaande keuzes niet vanzelf.
+  await p.click('#pff-meer summary');await p.click('#pff-meer summary');assert.equal(await p.evaluate(()=>$('#pff-meer').open),false);
   await choose('reis','Zomerreis België');await p.click('#pff-hulp-vast');assert.ok(await p.locator('#pff-hulp-voorstellen input').count()>=5);
   assert.equal(await p.isChecked('#pff-hulp-voorstellen input[data-field="alleen"]'),false,'bestaande keuzes worden niet automatisch vervangen');
   await p.click('#pff-hulp-overnemen');assert.equal(await p.inputValue('#pff-v-van'),'2027-07-12');assert.equal(await p.inputValue('#pff-v-land'),'België');
   assert.equal(await p.inputValue('#pff-v-accommodatie'),'Familie');assert.equal(await p.inputValue('#pff-v-alleen'),'nee');
+  assert.equal(await p.evaluate(()=>$('#pff-meer').open),true,'overgenomen optionele gegevens blijven niet verborgen');
   await p.click('#pff-volgende');assert.match(await p.textContent('#pff-titel'),/^Kind$/);assert.equal(await p.isVisible('#pff-hulp'),true,'invulhulp blijft open bij de volgende stap');
   // Stap Kind: persoon en document als bron; een document hoort bij de gekozen persoon.
   await choose('kind','Kind <b>Zoë</b>');
@@ -63,6 +65,7 @@ const path=require('path');
   await p.click('#pff-hulp-ai');await p.click('#pff-hulp-stop');assert.equal(await p.evaluate(()=>fmh.busy),false);assert.match(await p.textContent('#pff-hulp-status'),/gestopt/);
   await p.click('#pff-hulp-ai');const leaving=await p.evaluate(()=>({request:fmh.request,token:cm.token}));
   assert.equal(await p.isDisabled('#cm-form-pick'),true,'geen tweede gegevenskiezer tijdens een antwoord');
+  assert.equal(await p.evaluate(()=>fmMenuActs().some(a=>a[1]===fmWissen)),false,'niet leegmaken tijdens een antwoord');
   await p.evaluate(()=>show('home'));assert.equal(await p.evaluate(()=>fmh.busy),false,'scherm verlaten beëindigt de eigen AI-vraag');
   await p.evaluate(r=>onPdfFormAi({...r,fields:[{id:'kind-geboorteplaats',value:'Oud',source:'Oud'}]}),leaving);
   await p.evaluate(()=>show('formulieren'));await p.waitForFunction(()=>cmOpen());assert.equal(await p.isDisabled('#pff-hulp-ai'),false,'terugkeren blijft bedienbaar');
@@ -70,11 +73,18 @@ const path=require('path');
   await p.evaluate(()=>{Android._pdf.formAiError='';show('home');});assert.equal(await p.evaluate(()=>uiCanReload()),false,'gekozen bronnen en toelichting worden beschermd');
   await p.evaluate(()=>{show('formulieren');Android.masterLock();});await p.waitForFunction(()=>!cm.token&&!fmh.sources.length);
   assert.equal(await p.inputValue('#pff-hulp-tekst'),'');assert.equal(await p.locator('#pff-hulp-voorstellen input').count(),0);assert.equal(await p.evaluate(()=>fm.values['kind-naam']),'');
-  assert.equal(await p.evaluate(()=>fm.view+' '+$('#pff-hulp').hidden),'start true','vergrendelen sluit de invulhulp en gaat terug naar de start');
+  assert.equal(await p.evaluate(()=>fm.view+' '+fmh.shown),'start false','vergrendelen sluit de invulhulp en gaat terug naar de start');
   assert.equal(await p.evaluate(()=>Object.values(localStorage).join('').includes('123456782')),false,'geen brondata in webopslag');
   // De reis bestaat na vergrendelen nog in de native dataset en kan opnieuw gekozen worden.
-  await p.click('#pff-zelf');await openHulp();
-  await choose('reis','Zomerreis België');await p.click('#pff-hulp-vast');await p.click('#pff-hulp-overnemen');assert.equal(await p.inputValue('#pff-v-land'),'België');assert.equal(await p.inputValue('#pff-v-accommodatie'),'Familie');
+  // Op de stap Reis kiest "Overnemen uit stamgegevens" een reis (geen adres).
+  await p.click('#pff-zelf');await p.click('#cm-form-pick');if(await p.isVisible('#cm-pick-unlock'))await p.click('#cm-pick-unlock');
+  await p.getByRole('button',{name:'Zomerreis België',exact:true}).click();await p.waitForSelector('#cm-pick-fields input[data-field]');
+  await p.click('#cm-apply');await p.waitForFunction(()=>!cm.picker);
+  assert.equal(await p.inputValue('#pff-v-land'),'België');assert.equal(await p.inputValue('#pff-v-accommodatie'),'Familie');assert.equal(await p.evaluate(()=>$('#pff-meer').open),true);
+  // Invulhulp sluiten wist de bronnen en zet de focus op de stap.
+  await openHulp();await choose('reis','Zomerreis België');
+  await p.click('#pff-hulp-sluit');assert.equal(await p.evaluate(()=>document.activeElement.id+' '+fmh.shown+' '+fmh.sources.length+' '+$('#pff-hulp').hidden),'pff-titel false 0 true');
+  await openHulp();await choose('reis','Zomerreis België');
   // Terug naar de start sluit de invulhulp en wist de gekozen bronnen.
   await p.evaluate(()=>goBack());assert.equal(await p.evaluate(()=>fm.view+' '+fmh.sources.length+' '+fmh.shown),'start 0 false');
   await p.screenshot({path:path.join(__dirname,'shots','formulieren-ai-'+colorScheme+'.png'),fullPage:true});
@@ -83,7 +93,7 @@ const path=require('path');
  }
  const en=await browser.newPage({viewport:{width:360,height:800}});
  await en.goto('file://'+path.join(__dirname,'ui/index.html'));await en.evaluate(()=>{rgSave({lang:'en'});show('formulieren');});
- await en.click('#pff-zelf');await en.click('#pff-menu');await en.locator('#sheet-acts button',{hasText:'Fill-in help with local AI'}).click();await en.waitForFunction(()=>!$('#pff-hulp').hidden);
+ await en.click('#pff-zelf');await en.click('#pff-menu');await en.locator('#sheet-acts button',{hasText:'Form assistance with local AI'}).click();await en.waitForFunction(()=>!$('#pff-hulp').hidden);
  assert.match(await en.textContent('#pff-hulp summary'),/local AI/);
  assert.match(await en.getAttribute('#pff-hulp-tekst','placeholder'),/accompanying adult/);
  await en.evaluate(()=>{Android._cm.records.push({id:crypto.randomUUID(),type:'reis',label:'Instellingen',revision:1,fields:{van:'2027-07-12'}});});
