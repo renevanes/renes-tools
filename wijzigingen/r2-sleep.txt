@@ -1,2 +1,0 @@
-Slaappraat: het hoofdscherm toont alleen beginnen, proberen en je nachten; alle instellingen staan nu achter het schuifjes-icoon rechtsboven, met de opname-afstelling (stukjes, opslag, accu, spraakmodel) ingeklapt onder Geavanceerd.
-Slaappraat: keuzes als keuzelijst in plaats van rijen knopjes, en "Goed om te weten" ingeklapt; wat er bewaard wordt en waar staat in één regel onder de knoppen.
