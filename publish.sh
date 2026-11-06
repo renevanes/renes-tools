@@ -70,14 +70,14 @@ fi
 
 # 2. Publicatieslot: een branch die alleen vooruit gaat. Nemen en vrijgeven zijn gewone pushes met
 #    --force-with-lease als controle (compare-and-swap); de branch wordt nooit verwijderd.
-SLOT_TIP=""; DIRTY=""
+SLOT_TIP=""; SLOT_ERR=""; DIRTY=""
 restore(){ git checkout -q HEAD -- VERSION changelog.json update 2>/dev/null || true; git checkout -q HEAD -- wijzigingen 2>/dev/null || true; }
 slot_read(){ git fetch -q origin "+$LOCK:refs/remotes/origin/publiceren-slot" 2>/dev/null && git rev-parse -q --verify refs/remotes/origin/publiceren-slot || true; }
 slot_push(){ # $1 = verwachte tip ("" = bestaat nog niet), $2 = boodschap; zet SLOT_TIP bij succes
   local parent=() c
   [ -n "$1" ] && parent=(-p "$1")
   c=$(git "${GIT_ID[@]}" commit-tree "$EMPTY_TREE" "${parent[@]}" -m "$2")
-  git push -q origin "$c:$LOCK" --force-with-lease="$LOCK:$1" 2>/dev/null && SLOT_TIP=$c
+  SLOT_ERR=$(git push -q origin "$c:$LOCK" --force-with-lease="$LOCK:$1" 2>&1) && SLOT_TIP=$c
 }
 slot_take(){
   local start=$(date +%s) tip msg="" since fails=0
@@ -86,8 +86,9 @@ slot_take(){
     tip=$(slot_read); msg=$([ -n "$tip" ] && git log -1 --format=%s "$tip" || echo vrij)
     if [[ "$msg" == *"[$TOKEN]"* ]]; then SLOT_TIP=$tip; echo "Publicatieslot genomen"; return 0; fi # eigen push kwam toch aan
     since=$(sed -n 's/^bezet \([0-9]*\) .*/\1/p' <<<"$msg"); since=${since:-0}
-    # Een publicatie duurt 10-25 minuten en de workflow stopt na 60; een slot dat al 45 minuten bezet is,
-    # is achtergebleven (bijv. vrijgeven mislukt) en wordt overgenomen.
+    # Eén poging (samenvoegen, bouwen, testen, publiceren) duurt 10-25 minuten; bij elke poging wordt de tijd in het
+    # slot vernieuwd (slot_refresh). Een slot dat al 45 minuten niet vernieuwd is, is achtergebleven (bijv. vrijgeven
+    # mislukt of de workflow gestopt) en wordt overgenomen.
     if [[ "$msg" == vrij* ]] || [ $(( $(date +%s) - since )) -gt 2700 ]; then
       [[ "$msg" == vrij* ]] || echo "Het slot staat al meer dan 45 minuten bezet ($msg): overnemen"
       if slot_push "$tip" "bezet $(date -u +%s) door $WHO [$TOKEN]"; then echo "Publicatieslot genomen"; return 0; fi
@@ -105,17 +106,27 @@ slot_free(){ # een paar keer proberen; alleen vrijgeven zolang het slot nog van 
   for i in 1 2 3 4 5; do
     if slot_push "$SLOT_TIP" "vrij $(date -u +%s)"; then echo "Publicatieslot vrijgegeven"; SLOT_TIP=""; return 0; fi
     tip=$(slot_read)
-    if [ -n "$tip" ] && [ "$tip" != "$SLOT_TIP" ]; then echo "Publicatieslot is intussen van een ander; niet vrijgegeven"; SLOT_TIP=""; return 0; fi
-    sleep $((i * 5))
+    if [ -n "$tip" ] && [ "$tip" != "$SLOT_TIP" ]; then
+      # de push kwam toch aan (vrij, met ons slot als ouder), of iemand anders nam het slot over
+      if [[ "$(git log -1 --format=%s "$tip")" == vrij* ]] && [ "$(git log -1 --format=%P "$tip")" = "$SLOT_TIP" ]; then echo "Publicatieslot vrijgegeven"
+      else echo "Publicatieslot is intussen van een ander; niet vrijgegeven"; fi
+      SLOT_TIP=""; return 0
+    fi
+    [ "$i" -lt 5 ] && sleep $((i * 5))
   done
-  echo "::warning::Publicatieslot vrijgeven mislukt; een volgende publicatie neemt het na 45 minuten over"
+  echo "::warning::Publicatieslot vrijgeven mislukt (${SLOT_ERR//$'\n'/ }); een volgende publicatie neemt het na 45 minuten over"
   SLOT_TIP=""
 }
-cleanup(){ local rc=$?; [ -n "$DIRTY" ] && restore; slot_free || true; exit $rc; }
+slot_refresh(){ # bij elke poging de tijd in het slot vernieuwen, zodat een lange publicatie niet wordt overgenomen
+  [ -n "$SLOT_TIP" ] || return 0
+  slot_push "$SLOT_TIP" "bezet $(date -u +%s) door $WHO [$TOKEN]" || echo "Publicatieslot niet vernieuwd (${SLOT_ERR//$'\n'/ }); ga door (de push naar main controleert zelf)"
+}
+cleanup(){ local rc=$?; [ -n "$DIRTY" ] && restore; slot_free || true; exit "$rc"; }
 trap cleanup EXIT
 slot_take
 
 for try in 1 2 3 4 5; do
+  slot_refresh
   # 3. Nieuwste main samenvoegen
   git fetch -q origin main
   BASE=$(git rev-parse FETCH_HEAD)
