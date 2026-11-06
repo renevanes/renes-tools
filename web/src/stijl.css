@@ -1194,7 +1194,7 @@ details.cm-fold[open]>summary{margin-bottom:8px}
 .fab.cm-add{width:auto;min-width:150px;padding:0 20px;font-size:17px;font-weight:700}
 .cm-tabs{position:sticky;top:64px;z-index:12;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;background:var(--bg);padding:6px 0 10px}
 .cm-tabs::-webkit-scrollbar{display:none}
-.cm-tabs button{flex:1 0 auto;min-height:44px;padding:8px;border-radius:16px;background:var(--hi);color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
+.cm-tabs button{flex:1 0 auto;min-height:44px;padding:8px 4px;border-radius:16px;background:var(--hi);color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
 .cm-tabs button[aria-selected=true]{background:var(--primary);color:var(--on-primary)}
 .cm-off{display:none!important}
 #cm-editor-card>:first-child .f:first-child{margin-top:0}
