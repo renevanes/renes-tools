@@ -1,0 +1,3 @@
+PDF → Formulieren invullen is eenvoudiger: eerst een startscherm met één knop "Nieuwe reis invullen", en rijen voor Vaste gegevens en Zelf invullen.
+Reistoestemming zelf invullen gaat nu in de volgorde Reis, Kind, Begeleider, Toestemminggever; zelden nodige velden (BSN, accommodatie, ondertekening) staan ingeklapt onder "Meer gegevens (optioneel)".
+Controleren toont eerst het voorbeeld van de PDF; alle ingevulde gegevens staan ingeklapt eronder. De invulhulp met lokale AI zit nu in het menu ⋯.
