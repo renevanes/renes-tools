@@ -162,7 +162,7 @@ function gsOpen(el){
   else if (k === 'app') {
     const it = gsIndex && gsIndex[x.i]; if (!it) return;
     jumpTo(it.scr);
-    if (it.el) setTimeout(() => { it.el.scrollIntoView({block: 'start', behavior: 'smooth'}); it.el.classList.add('gsflash'); setTimeout(() => it.el.classList.remove('gsflash'), 1600); }, 120);
+    if (it.el) setTimeout(() => { uiOpenTo(it.el); it.el.scrollIntoView({block: 'start', behavior: 'smooth'}); it.el.classList.add('gsflash'); setTimeout(() => it.el.classList.remove('gsflash'), 1600); }, 120);
   }
 }
 function gsMoreCalls(num){

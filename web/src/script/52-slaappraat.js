@@ -5,7 +5,16 @@ const SL_SENS_NOTE = { '1': 'Pakt ook zacht gemompel op (en dus vaker een geluid
 /* Alleen vervangen als er echt iets anders staat: dan blijft een tik of de focus van TalkBack gewoon werken */
 function slHtml(el, html){ if (el && el._h !== html) { el.innerHTML = html; el._h = html; } }
 function slLoad(){ slSt = rdJson(Android.sleepState(), {}); return slSt; }
-function enterSleep(){ slLoad(); slRender(); slPoll(); }
+function enterSleep(){ slBkLoad(); slLoad(); slRender(); slPoll(); }
+/* Gaat Slaappraat mee in Alles back-uppen (zelf aan te zetten, met of zonder geluid)? Eén keer per keer openen,
+ * niet bij elke tik van het pollen: de volledige stand rekent ook de grootte uit. */
+let slBk = { on: false, audio: false };
+function slBkLoad(){ try { const b = typeof bkState === 'function' ? bkState(true) : {}; slBk = { on: (b.parts || {}).sleep === true, audio: !!b.sleepAudio }; } catch (e) { slBk = { on: false, audio: false }; } }
+/* Een spraakmodel downloaden: bij Gesprekken uitschrijven (kaart Spraakmodel); terug komt weer hier */
+function slModelDownload(){
+  jumpTo('transcripts');
+  setTimeout(() => { const c = $('#tx-setup'); if (c && c.offsetParent) { c.scrollIntoView({ block: 'start', behavior: 'smooth' }); c.classList.add('setflash'); setTimeout(() => c.classList.remove('setflash'), 1800); } }, 150);
+}
 function stopSleepPoll(){ clearTimeout(slPollT); slPollT = null; }
 /* Zolang het scherm open is: elke seconde (tijdens luisteren voor de meter), anders niet */
 function slPoll(){
@@ -66,42 +75,20 @@ function slRender(){
     btn.textContent = 'Begin met luisteren'; btn.classList.remove('ghost'); meter.style.display = 'none';
   }
   $('#sl-probe').style.display = s.phase ? 'none' : '';
+  // Wat er bewaard wordt en waar (zichtbaar: privacy), en of er een spraakmodel is
+  const termijn = slKeepName(set.keep);
+  $('#sl-note').textContent = !slBk.on ? t('Bewaart alleen wat er te horen is, op je telefoon (niet in backups); na {termijn} gaat het vanzelf weg. Slaapt er iemand naast je, zeg het dan even.', { termijn })
+    : slBk.audio ? t('Bewaart alleen wat er te horen is, op je telefoon; na {termijn} gaat het hier vanzelf weg. Tekst en geluid gaan ook mee in Alles back-uppen; die kopieën blijven bewaard. Slaapt er iemand naast je, zeg het dan even.', { termijn })
+    : t('Bewaart alleen wat er te horen is, op je telefoon; na {termijn} gaat het hier vanzelf weg. De tekst gaat ook mee in Alles back-uppen; die kopieën blijven bewaard. Slaapt er iemand naast je, zeg het dan even.', { termijn });
+  $('#sl-model-hint').style.display = set.transcribe !== false && !s.model && !s.phase ? 'flex' : 'none';
   // Accu: gemiddeld per uur in nachten zonder lader
   const bh = (s.nights || []).map(n => slBatPerHour(n)).filter(v => v >= 0);
   $('#sl-bat').textContent = bh.length ? tn(bh.length, 'Zonder lader kostte Slaappraat gemiddeld {pct}% accu per uur ({n} nacht).', 'Zonder lader kostte Slaappraat gemiddeld {pct}% accu per uur ({n} nachten).', { pct: fmtNum(bh.reduce((a, b) => a + b, 0) / bh.length, 1) }) : '';
   $('#sl-bat').style.display = bh.length ? '' : 'none';
   $('#sl-stopbat').textContent = String(set.stopBat || 15);
-  const ro = !!set.remindAt, rt = $('#sl-rem');
-  if (document.activeElement !== rt) rt.value = set.remindAt || '22:30';
-  $('#sl-remrow').style.display = ro ? '' : 'none';
-  const rb = $('#sl-rem-on'); rb.classList.toggle('on', ro); rb.setAttribute('aria-checked', ro ? 'true' : 'false');
-  $('#sl-rem-n').textContent = ro ? t('Elke avond rond {tijd} een melding om Slaappraat aan te zetten', { tijd: fmtHm(set.remindAt) }) : t('Een melding om Slaappraat aan te zetten');
-  // Instellingen
-  const on = !!set.stopAt;
-  const tt = $('#sl-stop'); if (document.activeElement !== tt) tt.value = set.stopAt || '07:30';
-  tt.disabled = !on; $('#sl-stoprow').style.display = on ? '' : 'none';
-  const so = $('#sl-stop-on'); so.classList.toggle('on', on); so.setAttribute('aria-checked', on ? 'true' : 'false');
-  $('#sl-stop-n').textContent = on ? "'s Ochtends om deze tijd" : 'Uit: luistert tot je stopt (hooguit 13 uur)';
-  [['sl-sens', String(set.sens || 2)], ['sl-keep', String(set.keep || 14)]].forEach(([id, v]) => document.querySelectorAll('#' + id + ' button').forEach(b => { const x = b.dataset.v === v; b.classList.toggle('on', x); b.setAttribute('aria-checked', x ? 'true' : 'false'); }));
-  $('#sl-sens-n').textContent = SL_SENS_NOTE[String(set.sens || 2)] || '';
-  const tx = $('#sl-tx'); tx.classList.toggle('on', set.transcribe !== false); tx.setAttribute('aria-checked', set.transcribe !== false ? 'true' : 'false');
-  $('#sl-tx-n').textContent = s.model ? t('Op je telefoon, met {model}: je leest wat je zei', { model: t(s.model) }) : t('Er is nog geen spraakmodel: download het bij Gesprekken uitschrijven');
-  const dOn = set.direct !== false, dr = $('#sl-direct');
-  dr.classList.toggle('on', dOn); dr.setAttribute('aria-checked', dOn ? 'true' : 'false');
-  $('#sl-directrow').style.display = set.transcribe !== false && s.model ? '' : 'none';
-  $('#sl-direct-n').textContent = dOn ? t('Aan: al tijdens de nacht, dus je ziet meteen wat je zei. Kost accu en kan de telefoon wat warm maken; {wanneer} Wat overblijft gebeurt na het luisteren.', { wanneer: slWhenShort(set) })
-    : 'Uit: pas na het luisteren uitschrijven.';
   // Hoeveel ruimte Slaappraat inneemt
   const tot = s.bytes || 0;
   $('#sl-size').textContent = (s.nights || []).length ? tn(s.nights.length, 'Slaappraat gebruikt {grootte} op je telefoon ({n} nacht).', 'Slaappraat gebruikt {grootte} op je telefoon ({n} nachten).', { grootte: fmtB(tot) }) : '';
-  const noise = set.keepNoise !== false;
-  const no = $('#sl-noise'); no.classList.toggle('on', noise); no.setAttribute('aria-checked', noise ? 'true' : 'false');
-  $('#sl-noise-n').textContent = noise ? 'Aan: ook het geluid van snurken en andere geluiden blijft bewaard' : 'Uit: van wat geen praten blijkt, blijft alleen het tijdstip bewaard';
-  const quiet = set.quiet !== false;
-  const qu = $('#sl-quiet'); qu.classList.toggle('on', quiet); qu.setAttribute('aria-checked', quiet ? 'true' : 'false');
-  $('#sl-quietrow').style.display = quiet ? '' : 'none';
-  $('#sl-quiet-n').textContent = quiet ? "Aan: de melding is stil, niet op het vergrendelscherm en zonder tijdteller; 's ochtends geen melding (kijk hier wat er gehoord is)"
-    : "Uit: een gewone, stille melding met tijdteller en stopknop, en 's ochtends een melding als er iets gehoord is";
   // Nachten
   const ns = s.nights || [];
   slHtml($('#sl-nights'), ns.map((n, i) => {
@@ -111,8 +98,9 @@ function slRender(){
       (n.bytes > 65536 ? ' · ' + fmtB(n.bytes) : '');
     return '<button class="strow" onclick="slOpen(' + i + ')"><span class="stic">' + uiIcon('moon') + '</span><span class="sttxt"><b>' + esc(slNightName(n.start)) + '</b><small>' + esc(sum) + '</small>' +
       (first ? '<small class="sl-first">"' + esc(first) + '"</small>' : '') + '</span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>';
-  }).join('') || '<p class="note" style="padding:14px 16px">Nog geen nachten. Tik vanavond op Begin met luisteren.</p>');
+  }).join('') || uiEmpty('moon', t('Nog geen nachten. Tik vanavond op Begin met luisteren.')));
 }
+function slKeepName(k){ k = +k || 14; return t(k === 7 ? '1 week' : k === 30 ? '30 dagen' : '2 weken'); }
 
 /* Meteen uitschrijven terwijl hij luistert: wat er al uitgeschreven is, het laatste wat je zei, en waarom het wacht */
 function slDirectOn(s){ const set = s.set || {}; return set.transcribe !== false && set.direct !== false && !!s.model; }
@@ -194,12 +182,12 @@ function slnRender(){
   if (/^t:/.test(slFocusClip)) { const tt = +slFocusClip.slice(2), k = clips.find(x => x.t === tt); slFocusClip = k ? k.id : ''; }
   if (slFocusClip) { const el = document.querySelector('#sln-list [data-clip="' + slFocusClip + '"]'); slFocusClip = ''; if (el) setTimeout(() => { el.scrollIntoView({ block: 'center' }); el.classList.add('gsflash'); setTimeout(() => el.classList.remove('gsflash'), 1600); }, 80); }
 }
-/* Waarom het geluid van een stukje niet bewaard is (zie Meer instellingen → Opslag) */
+/* Waarom het geluid van een stukje niet bewaard is (zie de instellingen: Geavanceerd → Opslag) */
 function slNotKept(k){
   return k.why === 'plaats' ? 'Geluid weggedaan om plaats te maken voor iets nieuws (maximum van de nacht bereikt)'
     : k.why === 'ruimte' ? 'Niet bewaard: te weinig opslag vrij op je telefoon'
     : k.why === 'opslaan' ? 'Niet bewaard: opslaan lukte niet'
-    : k.why === 'max' ? 'Niet bewaard: het maximum aan geluid voor deze nacht was bereikt (zie Meer instellingen)'
+    : k.why === 'max' ? 'Niet bewaard: het maximum aan geluid voor deze nacht was bereikt (zie de instellingen, onder Geavanceerd)'
     : 'Niet bewaard (maximum van de nacht bereikt)';
 }
 function slnPlay(clip){
@@ -237,17 +225,65 @@ function slnMenu(){
   openSheet(slNightName(n.start), '', acts);
 }
 
-/* ---------- meer instellingen ---------- */
+/* ---------- instellingen (schuifjes in de kop): bovenaan wat je vaak kiest, de opname-afstelling onder Geavanceerd ---------- */
 const SL_MBH = { aac: 14.4, wav: 115 }; // MB per uur geluid (AAC 32 kbit/s, WAV 16 kHz mono)
 function slWhenShort(set){
   const w = set.directWhen || 'accu';
   return w === 'lader' ? t('alleen aan de lader.') : w === 'altijd' ? t('ook zonder lader (tot hij stopt bij {pct}% accu).', { pct: set.stopBat || 15 }) : t('aan de lader altijd, zonder lader vanaf {pct}% accu.', { pct: set.directBat || 40 });
 }
-function slChips(id, v){ document.querySelectorAll('#' + id + ' button').forEach(b => { const x = b.dataset.v === String(v); b.classList.toggle('on', x); b.setAttribute('aria-checked', x ? 'true' : 'false'); }); }
-function enterSleepSet(){ slLoad(); slsRender(); }
+/* Een keuze zetten: keuzelijst (select) of knopjes (radiogroup) */
+function slChips(id, v){
+  const el = document.getElementById(id); if (!el) return;
+  if (el.tagName === 'SELECT') { el.value = String(v); return; }
+  el.querySelectorAll('button').forEach(b => { const x = b.dataset.v === String(v); b.classList.toggle('on', x); b.setAttribute('aria-checked', x ? 'true' : 'false'); });
+}
+function slTg(id, on){ const b = $('#' + id); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
+function enterSleepSet(){ slBkLoad(); slLoad(); slsRender(); }
+/* Nachten korter bewaren wist de oudere nachten: eerst vragen */
+function slKeepSet(v){
+  const cur = +((slSt.set || {}).keep || 14);
+  if (+v >= cur) { slSet('keep', v); return; }
+  askConfirm(t('Nachten korter bewaren?'), t(+v === 7 ? 'Nachten ouder dan een week worden dan gewist.' : 'Nachten ouder dan 2 weken worden dan gewist.'), t('Korter bewaren'), () => slSet('keep', v), () => slsRender());
+}
 function slsRender(){
   const s = slSt, set = s.set || {}, w = set.directWhen || 'accu';
   if (!$('#sls-when')) return;
+  // Wanneer: herinnering en vanzelf stoppen
+  const ro = !!set.remindAt, rt = $('#sl-rem');
+  if (document.activeElement !== rt) rt.value = set.remindAt || '22:30';
+  $('#sl-remrow').style.display = ro ? '' : 'none';
+  slTg('sl-rem-on', ro);
+  $('#sl-rem-n').textContent = ro ? t('Elke avond rond {tijd} een melding om Slaappraat aan te zetten', { tijd: fmtHm(set.remindAt) }) : t('Een melding om Slaappraat aan te zetten');
+  const on = !!set.stopAt, tt = $('#sl-stop');
+  if (document.activeElement !== tt) tt.value = set.stopAt || '07:30';
+  tt.disabled = !on; $('#sl-stoprow').style.display = on ? '' : 'none';
+  slTg('sl-stop-on', on);
+  $('#sl-stop-n').textContent = on ? t("'s Ochtends om deze tijd") : t('Uit: luistert tot je stopt (hooguit 13 uur)');
+  // Wat er bewaard wordt
+  slChips('sl-sens', set.sens || 2); slChips('sl-keep', set.keep || 14);
+  $('#sl-sens-n').textContent = t(SL_SENS_NOTE[String(set.sens || 2)] || '');
+  $('#sl-keep-n').textContent = slBk.on ? t('Daarna worden ze hier vanzelf gewist; wat al in Alles back-uppen zit, blijft daar bewaard.') : t('Daarna worden ze vanzelf gewist. Ze blijven op je telefoon, niet in backups.');
+  const noise = set.keepNoise !== false;
+  slTg('sl-noise', noise);
+  $('#sl-noise-n').textContent = noise ? t('Aan: ook het geluid van snurken en andere geluiden blijft bewaard') : t('Uit: van wat geen praten blijkt, blijft alleen het tijdstip bewaard');
+  // Uitschrijven
+  slTg('sl-tx', set.transcribe !== false);
+  $('#sl-model-dl').style.display = s.model ? 'none' : '';
+  $('#sl-tx-n').textContent = s.model ? t('Op je telefoon, met {model}: je leest wat je zei', { model: t(s.model) }) : t('Er is nog geen spraakmodel: download het bij Gesprekken uitschrijven');
+  const dOn = set.direct !== false;
+  slTg('sl-direct', dOn);
+  $('#sl-directrow').style.display = set.transcribe !== false && s.model ? '' : 'none';
+  $('#sl-direct-n').textContent = dOn ? t('Aan: al tijdens de nacht, dus je ziet meteen wat je zei. Kost accu en kan de telefoon wat warm maken; {wanneer} Wat overblijft gebeurt na het luisteren.', { wanneer: slWhenShort(set) })
+    : t('Uit: pas na het luisteren uitschrijven.');
+  // Melding (onopvallend is de standaard)
+  const quiet = set.quiet !== false;
+  slTg('sl-quiet', quiet);
+  $('#sl-quietrow').style.display = quiet ? '' : 'none';
+  $('#sl-quiet-n').textContent = quiet ? t("Aan: de melding is stil, niet op het vergrendelscherm en zonder tijdteller; 's ochtends geen melding (kijk hier wat er gehoord is)")
+    : t("Uit: een gewone, stille melding met tijdteller en stopknop, en 's ochtends een melding als er iets gehoord is");
+  // Geavanceerd: kort de stand op de kop
+  const fh = set.maxAudio == null ? 8 : set.maxAudio;
+  $('#sls-adv-n').textContent = [fh ? t('Hooguit {n} uur geluid per nacht', { n: fh }) : t('Onbeperkt geluid per nacht'), set.format === 'wav' ? 'WAV' : 'AAC', t('stopt bij {pct}% accu', { pct: set.stopBat || 15 })].join(' · ');
   slChips('sls-when', w); slChips('sls-dbat', set.directBat || 40); slChips('sls-model', set.txModel || '');
   slChips('sls-max', set.maxAudio == null ? 8 : set.maxAudio); slChips('sls-full', set.whenFull || 'geluid'); slChips('sls-free', set.minFree || 500);
   slChips('sls-fmt', set.format || 'aac'); slChips('sls-clip', set.clipMax || 60); slChips('sls-hang', set.hang || 1500); slChips('sls-pre', set.pre || 2); slChips('sls-stop', set.stopBat || 15);
@@ -268,8 +304,8 @@ function slsRender(){
     : 'Pas als het echt vol is: iets nieuws dat op praten lijkt, neemt de plaats in van het oudste geluid dat al uitgeschreven is en geen woorden had. Gepraat en wat nog niet uitgeschreven is, gaan nooit weg; is er zulk geluid niet meer, dan wordt van nieuwe stukjes alleen het tijdstip bewaard.';
   $('#sls-fmt-n').textContent = fmt === 'wav' ? '±115 MB per uur geluid (8 keer zo groot als AAC): alleen als je het onbewerkte geluid wilt.' : '±14 MB per uur geluid; goed genoeg om terug te luisteren en uit te schrijven.';
   const ns = s.nights || [];
-  $('#sls-size').textContent = tn(ns.length, 'Nu: {grootte} in {n} nacht', 'Nu: {grootte} in {n} nachten', { grootte: fmtB(s.bytes || 0) }) + (ns.length ? ' ' + t('(grootste nacht {grootte})', { grootte: fmtB(Math.max(...ns.map(n => n.bytes || 0))) }) : '') + '. ' + t('Oude nachten gaan vanzelf weg na {termijn}.', { termijn: t((set.keep || 14) === 7 ? '1 week' : (set.keep || 14) === 30 ? '30 dagen' : '2 weken') });
+  $('#sls-size').textContent = tn(ns.length, 'Nu: {grootte} in {n} nacht', 'Nu: {grootte} in {n} nachten', { grootte: fmtB(s.bytes || 0) }) + (ns.length ? ' ' + t('(grootste nacht {grootte})', { grootte: fmtB(Math.max(...ns.map(n => n.bytes || 0))) }) : '') + '. ' + t('Oude nachten gaan vanzelf weg na {termijn}.', { termijn: slKeepName(set.keep) });
 }
 function slsReset(){
-  askConfirm('Terug naar standaard?', 'Alle instellingen op dit scherm gaan terug naar hoe ze standaard staan. Je nachten blijven.', 'Terugzetten', () => { slSet('reset', ''); toast('Terug naar standaard'); });
+  askConfirm(t('Geavanceerd terug naar standaard?'), t('Alles onder Geavanceerd gaat terug naar hoe het standaard staat. Je nachten en de instellingen daarboven blijven.'), t('Terugzetten'), () => { slSet('reset', ''); toast(t('Terug naar standaard')); });
 }

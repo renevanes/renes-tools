@@ -59,6 +59,10 @@ const MEER_PRIMAIR = {
     ok(await pg.evaluate(() => current === 'carset'), tag + ': Mijn auto → schuifjes → instellingen');
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(80 * W);
     ok(await pg.evaluate(() => current === 'car'), tag + ': terug naar Mijn auto');
+    await naar(pg, 'sleep'); await pg.click('#s-sleep .hset'); await pg.waitForTimeout(120 * W);
+    ok(await pg.evaluate(() => current === 'sleepset'), tag + ': Slaappraat → schuifjes → instellingen');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(80 * W);
+    ok(await pg.evaluate(() => current === 'sleep'), tag + ': terug naar Slaappraat');
 
     // ---------- 1. Hoe werkt dit?: ingeklapt, met toetsenbord te openen, de schermlezer hoort de stand ----------
     await naar(pg, 'recorder');
@@ -154,7 +158,7 @@ const MEER_PRIMAIR = {
 
     // Geen tekst buiten het scherm op de vernieuwde schermen
     const breed = [];
-    for (const id of ['info', 'recorder', 'history', 'models', 'car', 'carset', 'gebruikset', 'gebruikontgr', 'apset', 'aisetvoice', 'aisetdata', 'facstuk', 'ralarm', 'redial']) {
+    for (const id of ['info', 'recorder', 'history', 'models', 'car', 'carset', 'gebruikset', 'gebruikontgr', 'apset', 'aisetvoice', 'aisetdata', 'facstuk', 'ralarm', 'redial', 'sleep', 'sleepset']) {
       await naar(pg, id);
       if (await pg.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) breed.push(id);
     }
