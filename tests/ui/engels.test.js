@@ -77,6 +77,9 @@ const toegestaan = s => TOEGESTAAN.some(([x]) => s.includes(x));
     // Nederlands vooraf vastleggen (een steekproef, om straks te vergelijken)
     const PROEF = ['home', 'settings', 'setregio', 'notes', 'backup', 'wa', 'sms', 'calls', 'aiset', 'checkin', 'apparaten', 'gebruik', 'sleep', 'facturen', 'auto', 'vpn', 'podcasts', 'facopslag'].filter(x => ids.includes(x));
     const voor = {};
+    // Recent gebruikt blijft aan, maar vast: het rondlopen langs de schermen verandert die rij anders (ook vóór "na" weer zo)
+    const vastRecent = () => pg.evaluate(() => store.set('homeRecent', ['pdf', 'notes', 'radio', 'car']));
+    await vastRecent();
     for (const id of PROEF) { await naar(pg, id); voor[id] = await tekstVan(pg, id); }
 
     // Omschakelen zoals Rene het doet: Instellingen → Regio en taal → Taal
@@ -160,7 +163,9 @@ const toegestaan = s => TOEGESTAAN.some(([x]) => s.includes(x));
     ok(engelsVerborgen[0] === 'Everything stays on your phone' && verborgen[0] === 'Alles blijft op je telefoon' && /^Nog niets · vraagt eerst$|ding/.test(verborgen[1]) && !verborgen[2].length, 'verborgen schermen (nog niet opnieuw getekend) ook terug in het Nederlands: ' + JSON.stringify(verborgen));
     ok(await pg.evaluate(() => document.documentElement.lang === 'nl' && !TAAL.on && !TAAL.obs && JSON.parse(Android._regioCfg || '{}').lang === 'nl'), 'terug naar Nederlands: lang="nl", observer weg, Java weet het');
     const diff = [];
+    await vastRecent();
     for (const id of PROEF) { await naar(pg, id); const na = await tekstVan(pg, id); if (na !== voor[id]) { let i = 0; while (i < na.length && na[i] === voor[id][i]) i++; diff.push(id + ': "' + voor[id].slice(Math.max(0, i - 20), i + 40) + '" ≠ "' + na.slice(Math.max(0, i - 20), i + 40) + '"'); } }
+    ok(PROEF[0] === 'home' && voor.home.includes('RECENT GEBRUIKT') && voor.home.includes('Mijn auto'), 'Recent gebruikt in de vergelijking van het startscherm');
     ok(!diff.length, 'Nederlands na het terugschakelen precies gelijk op ' + PROEF.length + ' schermen' + (diff.length ? ': ' + diff.join(' | ') : ''));
     await ctx.close();
   }

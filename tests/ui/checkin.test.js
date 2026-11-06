@@ -11,7 +11,7 @@ const { chromium } = require('playwright');
     // Een tijd die nu open staat (een uur geleden, open tot over twee uur), wat de klok ook is
     const open = await pg.evaluate(() => { const p = n => String(n).padStart(2, '0'), a = new Date(Date.now() - 36e5), u = new Date(Date.now() + 2 * 36e5); return [p(a.getHours()) + ':' + p(a.getMinutes()), p(u.getHours()) + ':' + p(u.getMinutes())]; });
     ok(await pg.isVisible('#tile-checkin') && (await pg.textContent('#tile-checkin-sub')) === 'Even kort je score bijhouden', 'tegel op het startscherm');
-    ok(await pg.evaluate(() => homeCfg().groups.find(g => g.name === 'Handig').tools.includes('checkin')), 'tegel staat in de groep Handig');
+    ok(await pg.evaluate(() => homeCfg().groups.find(g => g.name === 'Dag & gezondheid').tools.includes('checkin')), 'tegel staat in de groep Dag & gezondheid');
     await pg.click('#tile-checkin'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => current === 'checkin'), 'scherm Check-in');
     // Voorstellen: staan uit, er wordt niets gepland
