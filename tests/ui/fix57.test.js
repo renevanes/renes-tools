@@ -57,7 +57,7 @@ const assert = require('node:assert');
     await pg.evaluate(() => goBack());
 
     // ---- WhatsApp-sleutel: niet twee keer tegelijk, niet wegspringen
-    await pg.evaluate(() => { window.__keys = 0; const o = Android.waSetKey; Android.waSetKey = function(h){ window.__keys++; return o.call(this, h); }; Android.waInfo = () => JSON.stringify({ filesAccess: true }); show('wa'); });
+    await pg.evaluate(() => { window.__keys = 0; const o = Android.waSetKey; Android.waSetKey = function(h){ window.__keys++; return o.call(this, h); }; Android.waInfo = () => JSON.stringify({ filesAccess: true }); show('chats'); });
     await pg.evaluate(() => { $('#rd-key').value = 'a'.repeat(64); rdSaveKey(); rdSaveKey(); });
     assert.strictEqual(await pg.evaluate(() => window.__keys), 1, 'één controle tegelijk');
     await pg.evaluate(() => show('notes'));

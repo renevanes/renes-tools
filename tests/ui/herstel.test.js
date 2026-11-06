@@ -134,6 +134,7 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => { Android._bk.auto = null; enterBackup(); }); await pg.waitForTimeout(80);
     ok(/wachtwoorden, VPN/.test(await pg.textContent('#bk-app-note')), 'versleuteld: wat er mee gaat');
     await pg.screenshot({ path: __dirname + '/shots/herstel-backup-' + scheme + '.png', fullPage: true });
+    await pg.click('#bk-row-restore'); await pg.waitForTimeout(150);
     await pg.click('#bk-herstel-btn'); await pg.waitForTimeout(150);
     ok(await cur(pg) === 'herstel' && await vis(pg, '#hs-warn-top'), 'handmatig: waarschuwing dat alles vervangen wordt');
     ok((await pg.textContent('#hs-skip')) === 'Annuleren' && await vis(pg, '#hs-same'), 'Annuleren, en zoeken in de huidige map');
@@ -153,7 +154,9 @@ const { chromium } = require('playwright');
     await pg.click('#hs-pick'); await pg.waitForTimeout(300);
     ok(await vis(pg, '#hs-none') && await vis(pg, '#hs-plain') && !(await vis(pg, '#hs-next')), 'geen versleutelde backup: losse onderdelen aangeboden');
     await pg.click('#hs-plain-btn'); await pg.waitForTimeout(200);
-    ok(await cur(pg) === 'backup', 'naar Terugzetten bij Alles back-uppen');
+    ok(await cur(pg) === 'bkrestore' && await vis(pg, '#bk-restore-list [data-k="notes"]'), 'naar Terugzetten bij Alles back-uppen (één plek voor losse onderdelen)');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(150);
+    ok(await cur(pg) === 'herstel', 'terug: weer bij Gegevens terugzetten');
     await pg.close();
 
     // ---------- oudere backup (zonder appgegevens) ----------

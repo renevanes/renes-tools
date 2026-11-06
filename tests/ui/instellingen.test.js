@@ -22,9 +22,9 @@ const { chromium } = require('playwright');
     ok((await pg.evaluate(() => window.testPrivacyUrl)).endsWith('/privacybeleid.md'), 'privacybeleid opent de openbare pagina');
     // Elk onderwerp opent zijn eigen scherm, terug = het overzicht
     const subs = [['Meldingen', 'setnotif', '#st-notif-mute'], ['Weergave', 'setlook', '#st-zoom'], ['Regio en taal', 'setregio', '#rg-clock'], ['Telefoon-skin', 'setskin', '#st-home-btn'], ['App-slot', 'setlock', '#st-lock-btn'],
-      ['Losse apps', 'setsolo', '#st-solo-list'], ['Toestemmingen', 'setperm', '#st-perms'], ['Backup-map', 'setbackup', '#st-dest'], ['Muziek herkennen', 'setmusic', '#st-audd', 'AudD-sleutel'], ['Foutrapport en statistieken', 'setcrash', '#st-crash']];
+      ['Losse apps', 'setsolo', '#st-solo-list'], ['Toestemmingen', 'setperm', '#st-perms'], ['Backup-map', 'bkset', '#st-dest', 'Automatisch en versleutelen'], ['Muziek herkennen', 'setmusic', '#st-audd', 'AudD-sleutel'], ['Foutrapport en statistieken', 'setcrash', '#st-crash']];
     for (const [t, scr, el, h1] of subs) {
-      await pg.click('#s-settings .strow:has-text("' + t + '")'); await pg.waitForTimeout(120);
+      await pg.click('#s-settings .strow:has(.sttxt b:text-is("' + t + '"))'); await pg.waitForTimeout(120);
       const good = await pg.evaluate(s => current === s, scr) && await pg.isVisible(el) && (await pg.textContent('#s-' + scr + ' h1')) === (h1 || t);
       await pg.evaluate(() => goBack()); await pg.waitForTimeout(120);
       ok(good && await pg.evaluate(() => current === 'settings'), t + ': eigen scherm, terug naar het overzicht');

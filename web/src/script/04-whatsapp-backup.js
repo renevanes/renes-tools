@@ -2,6 +2,8 @@
 const WA_CATS = [['chats','Chats','backup van al je berichten'],['images',"Foto's"],['video',"Video's"],['voice','Spraakberichten'],
   ['audio','Audio'],['documents','Documenten'],['stickers',"Stickers en GIF's"],['other','Overig','profielfoto\'s, achtergronden'],['statuses','Statussen','van anderen, verdwijnen na 24 uur']];
 const WA_ALL = ['chats','images','video','voice','audio','documents','stickers','other'];
+/* Het overzicht en zijn eigen schermen (Leesbare chats is het scherm chats) */
+const WA_SCR = ['wa', 'wasel', 'waauto', 'warestore'];
 let waPoll = null, waInfoC = {}, waSizesC = null, waSel = new Set(), waLastKey = '', waWasRunning = false;
 function fmtB(b){ return fmtSize(b); } // opslag: Regio en taal (1024 of 1000 per stap)
 function fmtD(ms){ const d = new Date(ms);
@@ -10,7 +12,7 @@ function fmtD(ms){ const d = new Date(ms);
   if (rgIsYesterday(d)) return t('gisteren {tijd}', { tijd: hm });
   return fmtDate(d, {day:'numeric', month:'short'}) + ' ' + hm; }
 function waInfo(){ try { return JSON.parse(Android.waInfo()); } catch(e){ return {}; } }
-function enterWa(){ renderWa(true); stopWaPoll(); waPoll = setInterval(waPollOnce, 700); waPollOnce(); }
+function enterWa(name){ renderWa(!name || name === 'wa' || name === 'wasel'); stopWaPoll(); waPoll = setInterval(waPollOnce, 700); waPollOnce(); }
 function stopWaPoll(){ if (waPoll) { clearInterval(waPoll); waPoll = null; } }
 window.onWaChanged = function(){ renderWa(true); };
 window.onWaSizes = function(sz){ waSizesC = sz; renderWaCats(); };
@@ -22,6 +24,14 @@ function renderWa(rescan){
   $('#wa-nosrc').style.display = i.filesAccess && !(i.sources||[]).length ? 'block' : 'none';
   $('#wa-dest').textContent = i.dest ? (i.destName || 'Gekozen map') : 'Nog niet gekozen';
   $('#wa-dest-btn').textContent = i.dest ? 'Andere map' : 'Kies map';
+  // Terugzetten: uit welke map, en of de app er wel bij kan (anders eerst toegang of een map)
+  $('#wa-rs-dest').textContent = i.dest ? (i.destName || t('Gekozen map')) : t('Nog niet gekozen');
+  $('#wa-rs-btn').textContent = t(!i.filesAccess ? 'Toegang geven' : i.dest ? 'Andere map' : 'Map kiezen');
+  $('#wa-rs-warn').hidden = !!(i.filesAccess && i.dest);
+  $('#wa-rs-warn').textContent = !i.filesAccess ? t('Zonder toegang tot alle bestanden kan de app niets in de WhatsApp-map terugzetten.') : !i.dest ? t('Kies eerst de map waarin de backup staat.') : '';
+  $('#wa-restore-btn').disabled = !(i.filesAccess && i.dest);
+  $('#wa-last').textContent = i.lastOk ? fmtD(i.lastOk) : t('Nog niet gemaakt');
+  $('#wa-sum-auto').textContent = i.auto ? t((i.autoMode || 'all') === 'selection' ? 'Elke nacht · mijn selectie' : 'Elke nacht · alles') + (i.autoCharging !== false ? ' · ' + t('tijdens opladen') : '') : t('Uit');
   $('#wa-auto').classList.toggle('on', !!i.auto);
   $('#wa-charging').classList.toggle('on', i.autoCharging !== false);
   const am = $('#wa-automode'); am.innerHTML = '';
@@ -54,6 +64,7 @@ function renderWaCats(){
     b.onclick = () => { waSel.has(k) ? waSel.delete(k) : waSel.add(k); Android.vibrate(10); waSave(); renderWaCats(); };
     el.appendChild(b);
   });
+  $('#wa-sum-sel').textContent = t('{n} van {totaal}', { n: WA_CATS.filter(c => waSel.has(c[0])).length, totaal: WA_CATS.length });
   $('#wa-all-size').textContent = t('Chats en alle media, zonder statussen') + (waSizesC ? ' · ' + t('{grootte} in {n} bestanden', { grootte: fmtB(all), n: fmtNum(allF) }) : '');
 }
 function waSave(){
@@ -65,13 +76,17 @@ function waStart(mode){
   const cats = mode === 'all' ? WA_ALL.join(',') : WA_CATS.map(c=>c[0]).filter(k=>waSel.has(k)).join(',');
   const err = Android.waStart(mode, cats);
   if (err) { toast(err); if (err.indexOf('map') >= 0 && !waInfoC.dest) Android.waPickFolder(); return; }
-  waLastKey = ''; $('#wa-result').className = 'result'; Android.vibrate(25); setTimeout(waPollOnce, 200);
+  waLastKey = ''; $('#wa-result').className = 'result'; Android.vibrate(25); waToHub(); setTimeout(waPollOnce, 200);
 }
+/* Terugzetten: eerst toegang tot bestanden, dan de map (eigen hulpfunctie: ook in de losse app bruikbaar) */
+function waRestoreFix(){ if (!waInfoC.filesAccess) Android.waRequestFilesAccess(); else Android.waPickFolder(); }
+/* De voortgang staat op het overzicht: vanaf Selectie of Terugzetten daarheen */
+function waToHub(){ if (current !== 'wa' && WA_SCR.includes(current)) show('wa'); }
 function waRestore(){
   askConfirm('Backup terugzetten?', 'Ontbrekende en afwijkende bestanden worden naar de WhatsApp-map op deze telefoon gezet. Doe dit voordat je WhatsApp installeert of opnieuw instelt.', 'Terugzetten', () => {
     const err = Android.waRestore();
     if (err) { toast(err); return; }
-    waLastKey = ''; $('#wa-result').className = 'result'; setTimeout(waPollOnce, 200);
+    waLastKey = ''; $('#wa-result').className = 'result'; waToHub(); setTimeout(waPollOnce, 200);
   });
 }
 function waPollOnce(){
@@ -80,7 +95,7 @@ function waPollOnce(){
   if (waWasRunning && !run) renderWa(true);
   waWasRunning = run;
   $('#wa-run').style.display = run ? 'block' : 'none';
-  $('#wa-setup').style.display = run ? 'none' : 'block';
+  $('#wa-status').style.display = run ? 'none' : ''; // de rijen blijven zichtbaar onder de voortgang
   if (run) {
     $('#wa-run-title').textContent = s.mode === 'restore' ? 'Terugzetten bezig' : s.mode === 'auto' ? 'Automatische backup bezig' : 'Backup bezig';
     const ph = {scan:'Bestanden zoeken…', compare:'Vergelijken met de backup…', copy:'Kopiëren…'}[s.phase] || '';

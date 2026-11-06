@@ -334,6 +334,14 @@ details.rinfo dl{margin:8px 0 0}
 .note.bad,.note .bad{color:var(--bad)}
 .note.warn{color:var(--warn)}.bk-privh{border-top:1px solid var(--line);padding-top:10px;margin-top:6px}.bk-sub{padding-left:32px}.bk-sub .chk{padding:4px 0}.bk-sub .note{margin:0 0 6px}
 .bkres{display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14px}.bkres:first-child{border-top:0}.bkres b{flex:1;font-weight:600}.bkres .bad{color:var(--bad)}.bkres .good{color:var(--ok)}
+/* Alles back-uppen en WhatsApp backup: statuskaart bovenaan, stand op de rijen niet afgekapt (beveiliging) */
+.bkst-top{display:flex;align-items:center;gap:14px;margin-bottom:6px}.bkst-top .sttxt small{white-space:normal}
+.bkst #bk-herstel-st{margin:6px 0 4px}.bkst .big{margin-top:10px}.bkst .chk{font-size:14px}.bkst .dest{margin:4px 0 2px}
+button.bkres{width:100%;align-items:center;text-align:left;min-height:44px;color:inherit}.bkres>.ui-icon{width:18px;height:18px;color:var(--muted);flex:none}
+.sttxt small.bk-sumwrap{white-space:normal}.bkres>.bk-sp{width:18px;flex:none}.note.good{color:var(--ok)}.sttxt small .bk-warn{color:var(--warn);font-weight:600}
+h2.bk-privh{display:flex;align-items:center;gap:8px;border-top:0;padding-top:0;margin-top:0}h2.bk-privh .ui-icon{width:20px;height:20px;color:var(--primary)}
+label.sw{cursor:pointer}
+.dest>span{flex:1;min-width:0}.dest>span small{display:block;color:var(--muted);font-size:13px}
 .altime{color-scheme:light;font:inherit;font-size:40px;font-weight:700;padding:6px 12px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%;text-align:center}
 @media (prefers-color-scheme: dark){.altime{color-scheme:dark}}
 .nrem{color:var(--brand-2);font-weight:600}
@@ -844,7 +852,7 @@ body.has-plbar .aicomp{bottom:calc(84px + env(safe-area-inset-bottom))}
 .stchev{width:20px;height:20px;color:var(--muted);flex:none}
 /* In het eigen scherm staat de titel al bovenaan: de kop van de kaart is dan dubbel */
 #s-setnotif main>.card>h2:first-child,#s-setlook main>.card>h2:first-child,#s-setskin main>.card>h2:first-child,#s-setlock main>.card>h2:first-child,#s-setsolo main>.card>h2:first-child,
-#s-setperm main>.card>h2:first-child,#s-setbackup main>.card>h2:first-child,#s-setmusic main>.card>h2:first-child,#s-setcrash main>.card:first-child>h2:first-child{display:none}
+#s-setperm main>.card>h2:first-child,#s-setmusic main>.card>h2:first-child,#s-setcrash main>.card:first-child>h2:first-child{display:none}
 /* Assistent: inspreken */
 .aimic{width:48px;height:48px;flex:none;border-radius:24px;display:grid;place-items:center;background:var(--card);color:var(--ink)}
 .aimic .ui-icon{width:22px;height:22px}.aimic:disabled{opacity:.45}

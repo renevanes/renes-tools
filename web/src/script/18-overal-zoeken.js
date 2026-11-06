@@ -14,7 +14,7 @@ const GS = {
   history:  ['🔔', 'Meldingsgeschiedenis', 'history', 'history-search', () => { historyLimit = 200; loadHistory(); }]
 };
 /* ---------- zoeken in de app zelf: schermen, kaarten en instellingen ---------- */
-const GS_SYN = {'pdf bekijken': 'pdf lezen viewer openen afdrukken', formulieren: 'formulier toestemming reistoestemming invulhulp', 'tekst naar pdf': 'e-mail mail eml bericht', 'id-kopie': 'identiteitsbewijs identiteitskaart idkaart id-kaart paspoort BSN documentnummer afschermen anonimiseren watermerk identity passport redact redaction watermark', meldingen: 'notificaties melding geluid trillen stil dempen uitzetten', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
+const GS_SYN = {'leesbare chats': 'whatsapp sleutel 64 cijfers versleuteld lezen', 'pdf bekijken': 'pdf lezen viewer openen afdrukken', formulieren: 'formulier toestemming reistoestemming invulhulp', 'tekst naar pdf': 'e-mail mail eml bericht', 'id-kopie': 'identiteitsbewijs identiteitskaart idkaart id-kaart paspoort BSN documentnummer afschermen anonimiseren watermerk identity passport redact redaction watermark', meldingen: 'notificaties melding geluid trillen stil dempen uitzetten', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
   backup: 'reservekopie back-up opslaan bewaren', 'telefoon-skin': 'startscherm launcher thuisscherm skin', weergave: 'tekstgrootte letters groot thema donker dark mode licht nachtmodus',
   foutrapport: 'fout crash probleem bug', modellen: 'taalmodel spraakmodel zoekmodel ai opslag ruimte downloaden verwijderen wifi', slaappraat: 'slapen slaap praten nacht snurken dromen microfoon', apparaten: 'bluetooth wifi airtag tracker smarttag tile scanner zoeken kwijt oortjes netwerk router apparaat buurt', 'check-in': 'checkin stemming humeur gevoel score cijfer dagboek bijhouden vraag werk hoe voel', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
 let gsIndex = null;
@@ -30,8 +30,12 @@ function gsBuildIndex(){
     if (typeof playWeg === 'function' && playWeg(scr)) return;
     if (scr === 'home' || scr === 'search' || DETAIL.includes(scr)) return;
     const h1 = sec.querySelector('.hdr h1'), screen = h1 ? h1.textContent.trim() : scr;
-    const own = {scr, el: null, title: screen, sub: BACK[scr] === 'settings' ? 'Instellingen' : 'Openen', key: fold(screen + ' ' + scr + ' ' + Object.keys(GS_SYN).filter(k => fold(screen).includes(k)).map(k => GS_SYN[k]).join(' '))};
+    // Eigen scherm van een tool (bijv. Terugzetten bij Alles back-uppen en bij WhatsApp backup): de naam van die tool eronder, zodat twee gelijke namen te onderscheiden zijn
+    const ph = BACK[scr] && BACK[scr] !== 'home' && document.querySelector('#s-' + BACK[scr] + ' .hdr h1');
+    const own = {scr, el: null, title: screen, sub: ph ? ph.textContent.trim() : 'Openen', key: fold(screen + ' ' + scr + ' ' + Object.keys(GS_SYN).filter(k => fold(screen).includes(k)).map(k => GS_SYN[k]).join(' '))};
     gsIndex.push(own);
+    // Rijen op dit scherm (bijv. de losse onderdelen bij Terugzetten): hun namen horen bij dit scherm
+    sec.querySelectorAll('.stlist .strow .sttxt b').forEach(b => { if (!b.closest('.play-weg')) own.key += ' ' + fold(b.textContent); });
     sec.querySelectorAll('.card').forEach(card => {
       if (card.classList.contains('play-weg')) return;
       const h = card.querySelector('h2, h3'); if (!h) return;
@@ -50,11 +54,18 @@ function gsBuildIndex(){
       const syn = Object.keys(GS_SYN).filter(k => fold(title).includes(k)).map(k => GS_SYN[k]).join(' ');
       tiles.push({to: m[1], title, sub: screen, key: fold(title + ' ' + (small ? small.textContent : '') + ' ' + screen + ' ' + syn)});
     });
+    // Rijen van een overzicht (hub) naar een eigen scherm: de naam van de rij (niet de stand eronder) hoort bij dat scherm
+    sec.querySelectorAll('.stlist .strow[onclick]').forEach(row => {
+      const m = /\b(?:show|jumpTo)\(['"]([a-z]+)['"]\)/.exec(row.getAttribute('onclick') || ''), b = row.querySelector('.sttxt b');
+      if (!m || !b || m[1] === scr || row.classList.contains('play-weg') || (typeof playWeg === 'function' && playWeg(m[1]))) return;
+      const title = b.textContent.trim(), syn = Object.keys(GS_SYN).filter(k => fold(title).includes(k)).map(k => GS_SYN[k]).join(' ');
+      tiles.push({to: m[1], title, sub: screen, row: true, key: fold(title + ' ' + screen + ' ' + syn)});
+    });
   });
   // Heeft het scherm van de tegel al een eigen treffer, dan krijgt die de woorden erbij; anders (bijv. ID-kopie) een treffer voor de tegel
   for (const x of tiles) {
     const own = gsIndex.find(i => i.scr === x.to && !i.el);
-    if (own) own.key += ' ' + x.key; else gsIndex.push({scr: x.to, el: null, title: x.title, sub: x.sub, key: x.key});
+    if (own) own.key += ' ' + x.key; else if (!x.row) gsIndex.push({scr: x.to, el: null, title: x.title, sub: x.sub, key: x.key});
   }
 }
 function norm2(s){ return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }

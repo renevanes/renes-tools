@@ -44,7 +44,7 @@ const { chromium } = require('playwright');
       assert.match(await page.textContent('#history-count'), /0 van 0/);
       await page.uncheck('#history-enabled');
       assert.equal(await page.evaluate(() => Android._historyEnabled), false);
-      await page.evaluate(() => show('backup'));
+      await page.evaluate(() => show('bkparts'));
       assert.equal(await page.isChecked('#bk-parts input[data-p="notifications"]'), false);
       await page.check('#bk-parts input[data-p="notifications"]');
       await page.evaluate(() => show('history'));

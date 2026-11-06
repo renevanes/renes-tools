@@ -139,12 +139,13 @@ const { chromium } = require('playwright');
     await pg.evaluate(() => Android.checkinDelete('voel'));
     ok(await pg.evaluate(() => !Android._ci.rem.some(r => r.q === 'voel')), 'vraag verwijderd: opmerkingen ook weg');
     // 10. Alles back-uppen: in het overzicht en bij terugzetten; opmerkingen die niet te lezen waren: gemeld
-    await pg.evaluate(() => { Android._wa.info.dest = true; show('backup'); }); await pg.waitForTimeout(200);
+    await pg.evaluate(() => { Android._wa.info.dest = true; show('bkparts'); }); await pg.waitForTimeout(200);
     ok((await pg.textContent('#bk-private')).includes('3 opmerkingen') && (await pg.textContent('#bk-private')).includes('labels en opmerkingen') && !(await pg.$('#bk-ci-rbroken')), 'backup: telt de opmerkingen');
     await pg.evaluate(() => { Android._bk.extra.ciRBroken = true; bkPrivRender(bkState(true)); }); await pg.waitForTimeout(50);
     ok(await pg.isVisible('#bk-ci-rbroken') && (await pg.textContent('#bk-ci-rbroken')).includes('Vragen en antwoorden gaan gewoon mee'), 'opmerkingen apart gezet: melding, de rest gaat mee');
     await pg.evaluate(() => { delete Android._bk.extra.ciRBroken; });
-    await pg.click('#s-backup button[onclick*="restorePick(\'checkin\')"]'); await pg.waitForTimeout(250);
+    await pg.evaluate(() => show('bkrestore')); await pg.waitForTimeout(150);
+    await pg.click('#bk-restore-list [data-k="checkin"]'); await pg.waitForTimeout(250);
     ok((await pg.textContent('#modal-text')).includes('Opmerkingen: 4 nieuw, 2 staan er al'), 'terugzetten: opmerkingen in het overzicht');
     await pg.click('#modal-cancel'); await pg.waitForTimeout(100);
     await pg.close();

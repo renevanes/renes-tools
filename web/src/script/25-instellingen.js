@@ -1,6 +1,6 @@
 /* ---------- Instellingen ----------
  * Een overzicht in groepen (met per onderwerp een korte stand van zaken) en per onderwerp een eigen scherm. */
-const ST_SUBS = ['setnotif', 'setlook', 'setregio', 'setskin', 'setlock', 'setsolo', 'setperm', 'setbackup', 'setmusic', 'setcrash'];
+const ST_SUBS = ['setnotif', 'setlook', 'setregio', 'setskin', 'setlock', 'setsolo', 'setperm', 'setmusic', 'setcrash'];
 const stOn = () => current === 'settings' || ST_SUBS.includes(current);
 function stJson(s){ try { return JSON.parse(s); } catch(e){ return {}; } }
 function stSum(id, tt){ const e = $('#st-sum-' + id); if (e) e.textContent = tt; }
@@ -16,7 +16,7 @@ function stSummaries(i){
   stSum('solo', so ? tn(so, '{n} tool als losse app', '{n} tools als losse app') : t('Geen'));
   const ps = i.perms || [], miss = ps.filter(p => !p.ok).length;
   stSum('perm', !ps.length ? '' : miss ? t('{n} van {totaal} nog niet toegestaan', { n: miss, totaal: ps.length }) : '✓ Alles toegestaan');
-  stSum('backup', i.dest ? (i.destName || 'Gekozen') : 'Nog niet gekozen');
+  stSum('backup', bkSetSumText(bkState(true))); // Backup: map, nachtelijk en versleutelen staan bij Alles back-uppen → Automatisch en versleutelen
   // AI alleen in het overzicht (vraagt wat meer werk)
   if (current === 'settings' && typeof Android.aiState === 'function') { const a = stJson(Android.aiState()), m = (a.models || []).filter(x => x.state === 'ready');
     stSum('ai', m.length ? m.map(x => x.label).join(' · ') : 'Nog geen model gedownload'); }
