@@ -640,18 +640,25 @@ final class Facturen {
         if (heel) for (Iterator<String> it = verwerkt.keys(); it.hasNext(); ) { JSONObject r = verwerkt.optJSONObject(it.next()); if (r != null && r.optBoolean("buiten")) it.remove(); }
         long grens = grens(lev, t.optLong("lastOk"), nu0, Regio.zone(c)); // met de marge over de jaarwisseling, ook bij inhalen
         java.util.List<String> nieuweSha = new java.util.ArrayList<>();
+        boolean mail = "mail".equals(lev.optString("soort"));
         File d = pdfDir(c, id);
         if (!d.isDirectory() && !d.mkdirs()) throw new Exception("Opslagmap maken lukt niet");
-        // Al eerder: alleen opnieuw afleveren wat toen mislukte (backup-map of Eigen Cloud)
+        // Al eerder: alleen opnieuw afleveren wat toen mislukte (backup-map of Eigen Cloud); uit de mail bij de leverancier (rec.l)
         for (Pdf p : pdfs) {
             JSONObject rec = verwerkt.optJSONObject(p.sha);
-            if (rec == null || rec.optBoolean("buiten")) continue;
-            File f = new File(d, rec.optString("n"));
+            if (rec == null || rec.optBoolean("buiten") || rec.optBoolean("overgeslagen")) continue;
+            JSONObject doel = rec.optString("l").isEmpty() ? lev : leverancier(c, rec.optString("l"));
+            if (doel == null || doel.optBoolean("overslaan")) continue;
+            File f = new File(pdfDir(c, doel.optString("id")), rec.optString("n"));
             if (!f.isFile()) continue;
-            if (aflever(c, lev, rec.optString("n"), f, p, rec, fouten)) werkBij(c, id, new JSONObject().put("verwerkt", verwerkt));
+            if (aflever(c, doel, rec.optString("n"), f, p, rec, fouten)) werkBij(c, id, new JSONObject().put("verwerkt", verwerkt));
         }
         Set<String> namenGehad = new java.util.HashSet<>();
         for (Iterator<String> it = verwerkt.keys(); it.hasNext(); ) { JSONObject r = verwerkt.optJSONObject(it.next()); if (r != null && !r.optString("o").isEmpty()) namenGehad.add(r.optString("o")); }
+        FacturenHerken.Kennis kennis = mail ? FacturenHerken.kennis(c) : null;
+        java.util.Map<String, JSONObject> perMail = new java.util.HashMap<>(); // bijlagen uit één mail bij dezelfde leverancier
+        JSONArray nieuweLev = new JSONArray();
+        int overgeslagen = 0;
         for (Pdf p : pdfs) {
             if (verwerkt.has(p.sha)) continue;
             // Zelfde factuur, andere bytes (sommige websites zetten het downloadmoment in de PDF): op naam herkennen
@@ -661,7 +668,7 @@ final class Facturen {
             File f = new File(d, naam);
             for (int n = 2; f.exists(); n++) { naam = p.naam.replaceAll("\\.pdf$", "") + " (" + n + ").pdf"; f = new File(d, naam); }
             try (FileOutputStream o = new FileOutputStream(f)) { o.write(p.data); o.getFD().sync(); }
-            if (!"mail".equals(lev.optString("soort")) && voorPeriode(grens, f, FacturenDossier.naamZonderSha(p.naam, p.sha), Regio.zone(c))) { // van vóór de gekozen periode: niet bewaren
+            if (!mail && voorPeriode(grens, f, FacturenDossier.naamZonderSha(p.naam, p.sha), Regio.zone(c))) { // van vóór de gekozen periode: niet bewaren
                 f.delete();
                 verwerkt.put(p.sha, new JSONObject().put("n", "").put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis()).put("buiten", true));
                 if (eigenNaam) namenGehad.add(p.naam);
@@ -669,10 +676,35 @@ final class Facturen {
                 werkBij(c, id, new JSONObject().put("verwerkt", verwerkt));
                 continue;
             }
-            FacturenDossier.nieuw(c, lev, p, naam, f);
+            JSONObject doel = lev, extra = null;
+            String tekst = null;
+            if (mail) { // welke leverancier (of een nieuwe); daar komt hij te staan, met zijn eigen map en opslag
+                tekst = FacturenDossier.tekst(f);
+                JSONObject km = FacturenHerken.kenmerken(p.bron, tekst, kennis);
+                String mailId = p.bron == null ? "" : p.bron.optString("mailId");
+                doel = toewijzen(c, lev, km, kennis, perMail.get(mailId), nieuweLev);
+                if (!mailId.isEmpty()) perMail.put(mailId, doel);
+                kennis.tel(km);
+                if (doel.optBoolean("overslaan")) { // Rene wil van deze leverancier geen facturen
+                    f.delete();
+                    verwerkt.put(p.sha, new JSONObject().put("n", "").put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis()).put("overgeslagen", true).put("l", doel.optString("id")));
+                    if (eigenNaam) namenGehad.add(p.naam);
+                    overgeslagen++;
+                    werkBij(c, id, new JSONObject().put("verwerkt", verwerkt));
+                    continue;
+                }
+                if (doel != lev) {
+                    String basis = p.bron == null ? "" : p.bron.optString("basis", "");
+                    f = verplaats(f, pdfDir(c, doel.optString("id")), basis.isEmpty() ? naam : bestandsnaam(basis, null, doel.optString("naam"), p.sha));
+                    naam = f.getName();
+                }
+                extra = new JSONObject().put("via", id).put("kenmerken", km);
+            }
+            FacturenDossier.nieuw(c, doel, p, naam, f, tekst, extra);
             JSONObject rec = new JSONObject().put("n", naam).put("o", eigenNaam ? p.naam : "").put("t", System.currentTimeMillis());
+            if (doel != lev) rec.put("l", doel.optString("id"));
             if (p.sub != null) rec.put("s", p.sub);
-            aflever(c, lev, naam, f, p, rec, fouten);
+            aflever(c, doel, naam, f, p, rec, fouten);
             verwerkt.put(p.sha, rec);
             if (eigenNaam) namenGehad.add(p.naam);
             namen.put(naam);
@@ -683,7 +715,60 @@ final class Facturen {
         // Tellen in facturen, niet in documenten: bijlagen en specificaties horen bij hun factuur
         int facturen = nieuw == 0 ? 0 : FacturenDossier.aantalNieuw(FacturenDossier.alle(c), nieuweSha);
         return new JSONObject().put("nieuw", facturen).put("documenten", nieuw).put("gevonden", pdfs.size()).put("buiten", buiten).put("namen", namen).put("fouten", fouten)
-                .put("heel", heel).put("vanaf", vanaf(lev, nu0, Regio.zone(c)));
+                .put("heel", heel).put("vanaf", vanaf(lev, nu0, Regio.zone(c))).put("nieuweLeveranciers", nieuweLev).put("overgeslagen", overgeslagen);
+    }
+
+    /**
+     * De leverancier van een factuur uit de mail: een bekende (FacturenHerken.kies; die leert er meteen van), anders die
+     * van een andere bijlage uit dezelfde mail, anders een nieuwe (in nieuwe genoteerd). Lukt bewaren niet (bijv. al 300),
+     * dan "Niet herkend" of de mailbron zelf.
+     */
+    static JSONObject toewijzen(Context c, JSONObject bron, JSONObject km, FacturenHerken.Kennis k, JSONObject zelfdeMail, JSONArray nieuwe) {
+        try {
+            JSONArray levs = lijst(c);
+            JSONObject keuze = FacturenHerken.kies(levs, km, k);
+            JSONObject doel = keuze.has("id") ? zoek(levs, keuze.optString("id")) : null;
+            if (doel == null && zelfdeMail != null && zelfdeMail != bron) doel = zoek(levs, zelfdeMail.optString("id"));
+            if (doel != null) {
+                boolean bij = FacturenHerken.leer(doel, km, levs, k);
+                if (uitMail(doel)) {
+                    JSONArray b = doel.optJSONArray("bronnen");
+                    if (b == null) { b = new JSONArray(); doel.put("bronnen", b); }
+                    if (!FacturenHerken.lijst(b).contains(bron.optString("id"))) { b.put(bron.optString("id")); bij = true; }
+                }
+                if (bij) bewaar(c, doel, null);
+                return doel;
+            }
+            JSONObject n = FacturenHerken.nieuw(km, bron, levs, k, keuze.optString("voorstel"));
+            JSONObject nh = zoek(levs, FacturenHerken.NIET_HERKEND);
+            if (FacturenHerken.NIET_HERKEND.equals(n.optString("id")) && nh != null) return nh;
+            try {
+                JSONObject l = leverancier(c, bewaar(c, n, null));
+                if (l != null) { nieuwe.put(l.optString("naam")); return l; }
+            } catch (Exception e) { App.log(c, "FACTUREN", "nieuwe leverancier uit de mail niet bewaard"); }
+            return nh != null ? nh : bron;
+        } catch (Exception e) { return bron; }
+    }
+
+    static JSONObject zoek(JSONArray levs, String id) {
+        for (int i = 0; levs != null && i < levs.length(); i++) { JSONObject l = levs.optJSONObject(i); if (l != null && l.optString("id").equals(id)) return l; }
+        return null;
+    }
+
+    /** Een bestand naar een andere map in de app (unieke naam); geeft het nieuwe bestand. */
+    static File verplaats(File f, File dir, String naam) throws Exception {
+        if (!dir.isDirectory() && !dir.mkdirs()) throw new Exception("Opslagmap maken lukt niet");
+        if (dir.equals(f.getParentFile()) && f.getName().equals(naam)) return f;
+        File n = new File(dir, naam);
+        for (int i = 2; n.exists(); i++) n = new File(dir, naam.replaceAll("(?i)\\.pdf$", "") + " (" + i + ").pdf");
+        if (f.renameTo(n)) return n;
+        try (InputStream in = new java.io.FileInputStream(f); FileOutputStream o = new FileOutputStream(n)) {
+            byte[] b = new byte[16384]; int r;
+            while ((r = in.read(b)) != -1) o.write(b, 0, r);
+            o.getFD().sync();
+        }
+        if (!f.delete() && f.exists()) { n.delete(); throw new Exception("Verplaatsen lukt niet"); }
+        return n;
     }
 
     /** Naar elke gekozen plek die nog niet gelukt is (backup-map, map op de telefoon, Google Drive, Eigen Cloud). Geeft true als er iets bij kwam. */
@@ -917,6 +1002,7 @@ final class Facturen {
             String naam = lev.optString("naam"), id = lev.optString("id");
             String titel, tekst;
             String open = "facturen";
+            boolean vast = false;
             if (r.optBoolean("ok")) {
                 int n = r.optInt("nieuw");
                 if (n == 0 && r.optJSONArray("fouten") != null && r.optJSONArray("fouten").length() == 0) return; // niets nieuws: stil
@@ -925,6 +1011,15 @@ final class Facturen {
                 titel = n == 0 ? naam + ": niet alles afgeleverd" : n + (n == 1 ? " nieuwe factuur van " : " nieuwe facturen van ") + naam;
                 JSONArray f = r.optJSONArray("fouten");
                 tekst = f != null && f.length() > 0 ? f.optString(0) : r.optJSONArray("namen") == null ? "" : r.optJSONArray("namen").optString(0);
+                JSONArray nl = r.optJSONArray("nieuweLeveranciers");
+                if (n > 0 && nl != null && nl.length() > 0 && (f == null || f.length() == 0)) { // één melding per ronde, met de nieuwe leveranciers erin
+                    StringBuilder s = new StringBuilder();
+                    for (int i = 0; i < Math.min(5, nl.length()); i++) s.append(i > 0 ? ", " : "").append(nl.optString(i));
+                    if (nl.length() > 5) s.append(", …");
+                    tekst = Taal.tn(c, nl.length(), "Nieuwe leverancier in je mail: {namen}. Tik om na te kijken of het klopt.",
+                            "{n} nieuwe leveranciers in je mail: {namen}. Tik om na te kijken of het klopt.", "namen", s.toString());
+                    vast = true;
+                }
             } else if (!lev.optBoolean("meldFout", true)) {
                 return;
             } else if (r.optBoolean("koppelNodig")) {
@@ -942,6 +1037,7 @@ final class Facturen {
             Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, NotifCenter.ch(c, CHANNEL)) : new Notification.Builder(c);
             Intent i = new Intent(c, MainActivity.class).putExtra("open", open).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             int nr = 4400 + (Math.abs(id.hashCode()) % 90);
+            if (vast) Taal.keep(b, Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT);
             NotifCenter.post(c, nr, b.setSmallIcon(R.drawable.ic_backup).setContentTitle(titel).setContentText(tekst)
                     .setStyle(new Notification.BigTextStyle().bigText(tekst)).setAutoCancel(true)
                     .setContentIntent(PendingIntent.getActivity(c, nr, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT)).build());

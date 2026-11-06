@@ -87,7 +87,7 @@ final class FacturenDossier {
         try {
             JSONObject bron = p.bron == null ? new JSONObject() : new JSONObject(p.bron.toString());
             if (bron.optBoolean("toegevoegd")) bron.put("soort", "hand");
-            else bron.put("soort", Facturen.uitMail(lev) ? "mail" : lev.optString("soort", "website"));
+            else bron.put("soort", Facturen.uitMail(lev) || extra != null && extra.has("via") ? "mail" : lev.optString("soort", "website"));
             JSONObject s = new JSONObject()
                     .put("sha", p.sha).put("naam", naam).put("origineel", p.naam).put("grootte", p.data.length)
                     .put("leverancier", lev.optString("id")).put("leverancierNaam", lev.optString("naam"))

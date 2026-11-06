@@ -44,6 +44,8 @@ public class FacturenHerkenTest {
         check(FacturenHerken.adres(FacturenHerken.doorgestuurdVan(outlookDoor)).equals("factuur@eneco.nl"), "doorgestuurd (Outlook, mailto)");
         check(FacturenHerken.adres(FacturenHerken.doorgestuurdVan(apple)).equals("noreply@vattenfall.nl"), "doorgestuurd (Apple Mail)");
         check(FacturenHerken.doorgestuurdVan("Van: iemand@x.nl\nGewoon een mail").isEmpty() && FacturenHerken.doorgestuurdVan(null).isEmpty(), "geen doorgestuurde mail: niets");
+        String html = "<div>Zie bijlage</div><div>---------- Forwarded message ---------<br>From: <strong>KPN</strong> &lt;<a href=\"mailto:noreply@kpn.com\">noreply@kpn.com</a>&gt;<br>Date: ma</div>";
+        check(FacturenHerken.adres(FacturenHerken.doorgestuurdVan(FacturenGmail.html(html))).equals("noreply@kpn.com"), "doorgestuurd in een html-mail (Gmail)");
 
         // ---------- nummers ----------
         check(FacturenHerken.btw("Btw-nummer: NL 0092.92.056.B01").equals(Collections.singletonList("NL009292056B01")), "btw-nummer NL met spaties en punten");
