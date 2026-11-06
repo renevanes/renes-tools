@@ -22,6 +22,13 @@ public class FacturenBridge extends GebruikBridge {
         try {
             JSONArray l = Facturen.leveranciers(ctx);
             JSONObject all = Facturen.toestand(ctx), dossier = FacturenDossier.alle(ctx);
+            java.util.Map<String, Long> laatste = new java.util.HashMap<>(); // per leverancier: wanneer de laatste factuur binnenkwam
+            for (java.util.Iterator<String> it = dossier.keys(); it.hasNext(); ) {
+                JSONObject s = dossier.optJSONObject(it.next());
+                if (s == null) continue;
+                Long v = laatste.get(s.optString("leverancier"));
+                if (v == null || s.optLong("opgehaald") > v) laatste.put(s.optString("leverancier"), s.optLong("opgehaald"));
+            }
             JSONArray out = new JSONArray();
             if (l != null) for (int i = 0; i < l.length(); i++) {
                 JSONObject o = new JSONObject(l.getJSONObject(i).toString());
@@ -33,7 +40,7 @@ public class FacturenBridge extends GebruikBridge {
                 JSONObject maanden = FacturenDossier.maanden(dossier, id);
                 java.text.SimpleDateFormat ym = new java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US);
                 ym.setTimeZone(Regio.zone(ctx)); // per maand in de app-zone
-                if (maanden.length() == 0 && vw != null) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) {
+                if (maanden.length() == 0 && vw != null && !"mail".equals(o.optString("soort"))) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) {
                     JSONObject r = vw.optJSONObject(it.next());
                     if (r == null || r.optLong("t") == 0 || r.optBoolean("buiten")) continue; // buiten de periode: niet binnengekomen
                     String m = ym.format(new java.util.Date(r.optLong("t")));
@@ -46,11 +53,25 @@ public class FacturenBridge extends GebruikBridge {
                 o.put("toestand", t).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "lev_" + id))
                         .put("aantal", Facturen.bestanden(ctx, id).length()).put("facturen", FacturenDossier.aantalVan(dossier, id))
                         .put("heelPeriode", Facturen.heelPeriode(o, t, nu, Regio.zone(ctx)));
+                Long lt = laatste.get(id);
+                if (lt != null) o.put("laatste", lt);
                 out.put(o);
             }
             SharedPreferences p = Facturen.prefs(ctx);
             FacturenRun r = FacturenRun.LOPEND.get();
+            boolean indelen = FacturenIndeling.nodig(ctx) && r == null && !FacturenIndeling.BEZIG.get();
+            if (indelen) new Thread(() -> { // eenmalig: de facturen uit de mail per leverancier (meldt zich via onFacturenIngedeeld)
+                try {
+                    JSONObject u = FacturenIndeling.herindelen(ctx);
+                    if (u.optInt("aantal") > 0) a.js("onFacturenIngedeeld", u.toString());
+                } catch (Throwable ignored) { }
+            }, "facturen-indelen").start();
+            JSONObject eigen = FacturenHerken.eigen(ctx);
             return new JSONObject().put("leveranciers", out).put("onleesbaar", l == null)
+                    .put("indelen", indelen || FacturenIndeling.BEZIG.get())
+                    .put("herkennen", new JSONObject().put("nummers", eigen.optJSONArray("nummers") == null ? new JSONArray() : eigen.optJSONArray("nummers"))
+                            .put("adressen", eigen.optJSONArray("adressen") == null ? new JSONArray() : eigen.optJSONArray("adressen")))
+                    .put("pdfTekst", PdfDoc.canText())
                     .put("bezig", r == null ? "" : r.id).put("voortgang", r == null ? "" : r.voortgang).put("zichtbaar", r != null && r.zichtbaar)
                     .put("ec", new JSONObject().put("url", p.getString("ecUrl", "")).put("gebruiker", p.getString("ecGebruiker", ""))
                             .put("adres", p.getString("ecAdres", "")).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "ec")))
@@ -91,12 +112,44 @@ public class FacturenBridge extends GebruikBridge {
         } catch (Exception e) { return e.getMessage() == null ? "Verwijderen lukt niet" : e.getMessage(); }
     }
 
+    // ----- leveranciers uit de mail -----
+
+    /** Klopt: de nieuwe leverancier uit de mail is goed zo. Geeft "" of een fout. */
+    @JavascriptInterface public String facturenLevKlopt(String id) {
+        try { FacturenIndeling.klopt(ctx, id == null ? "" : id); return ""; }
+        catch (Exception e) { return e.getMessage() == null ? "Lukt niet" : e.getMessage(); }
+    }
+
+    /** Samenvoegen (ook "Hoort bij" een website-leverancier): alles van van gaat naar naar. Geeft {aantal} of {error}. */
+    @JavascriptInterface public String facturenLevSamen(String van, String naar) {
+        try { return new JSONObject().put("aantal", FacturenIndeling.samenvoegen(ctx, van == null ? "" : van, naar == null ? "" : naar)).toString(); }
+        catch (Exception e) { return err(e, "Samenvoegen lukt niet"); }
+    }
+
+    /** Een leverancier uit de mail overslaan (aan) of terugzetten; ookUitDossier = wat er al is ook weghalen. Geeft {weg} of {error}. */
+    @JavascriptInterface public String facturenLevOverslaan(String id, boolean aan, boolean ookUitDossier) {
+        try { return new JSONObject().put("weg", FacturenIndeling.overslaan(ctx, id == null ? "" : id, aan, ookUitDossier)).toString(); }
+        catch (Exception e) { return err(e, "Lukt niet"); }
+    }
+
+    /** Een factuur uit de mail bij een andere leverancier zetten; onthoud = voortaan ook voor deze afzender. Geeft {aantal} of {error}. */
+    @JavascriptInterface public String facturenDossierLeverancier(String sha, String levId, boolean onthoud) {
+        try { return new JSONObject().put("aantal", FacturenIndeling.verplaats(ctx, sha == null ? "" : sha, levId == null ? "" : levId, onthoud)).toString(); }
+        catch (Exception e) { return err(e, "Verplaatsen lukt niet"); }
+    }
+
+    /** Je eigen nummers (KvK, btw, IBAN) en mailadressen, die nooit een leverancier aanwijzen: {nummers, adressen}. Geeft "" of een fout. */
+    @JavascriptInterface public String facturenHerkennen(String json) {
+        try { FacturenHerken.bewaarEigen(ctx, new JSONObject(json == null ? "{}" : json)); return ""; }
+        catch (Exception e) { return e.getMessage() == null ? "Bewaren lukt niet" : e.getMessage(); }
+    }
+
     /** Nu ophalen. Meekijken = in beeld (FacturenActivity). Uitkomst via onFacturenKlaar({id, ok, msg, nieuw …}). */
     @JavascriptInterface public String facturenNu(String id, boolean meekijken) {
         if (FacturenRun.LOPEND.get() != null) return "Er worden al facturen opgehaald";
         JSONObject lev = Facturen.leverancier(ctx, id);
         if (lev == null) return "Leverancier niet gevonden";
-        if (meekijken && !"mail".equals(lev.optString("soort"))) { // facturen uit de mail: niets om naar te kijken
+        if (meekijken && !"mail".equals(lev.optString("soort")) && !Facturen.uitMail(lev)) { // facturen uit de mail: niets om naar te kijken
             a.h.post(() -> {
                 try { a.startActivity(new Intent(a, FacturenActivity.class).putExtra("id", id)); }
                 catch (Exception e) { Toast.makeText(a, Taal.tx(a, "Openen lukt niet"), Toast.LENGTH_SHORT).show(); }
