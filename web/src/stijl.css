@@ -1168,7 +1168,7 @@ body.talk-on #s-ai main{padding-bottom:200px}
 #cm-picker, #fmq { position:fixed; inset:0; z-index:1900; background:var(--bg); padding:16px; overflow:auto; }
 .cm-pick-box { max-width:680px; margin:auto; }
 #cm-picker[hidden], #fmq[hidden] { display:none; }
-#fmq [hidden] { display:none !important; }
+#fmq [hidden], #cm-picker [hidden] { display:none !important; }
 #fmq .fmq-meer { margin:12px 0; }
 #fmq .fmq-meer summary { min-height:44px; display:flex; align-items:center; color:var(--primary); font-weight:600; cursor:pointer; }
 .cm-event { padding:12px 0; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
