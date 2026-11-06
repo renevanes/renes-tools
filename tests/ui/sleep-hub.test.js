@@ -66,6 +66,49 @@ const FOLD = 844;
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(100 * W);
     ok(await pg.evaluate(() => current === 'sleep'), tag + ': terug naar Slaappraat');
 
+    // ---------- Onopvallend luisteren: echt de standaard ----------
+    if (!en) {
+      await naar(pg, 'sleepset');
+      ok((await pg.getAttribute('#sl-quiet', 'aria-checked')) === 'true' && await pg.isVisible('#sl-quietrow') && await pg.evaluate(() => Android._sl.set.quiet === true), tag + ': onopvallend luisteren staat standaard aan, met Melding verder wegstoppen');
+      // Elke keuzelijst heeft een eigen naam en wijst naar zijn uitleg; de schakelaar en de lijst van Meteen uitschrijven heten anders
+      await pg.evaluate(() => uiOpenTo(document.querySelector('#sls-when')));
+      ok(await pg.getByRole('switch', { name: 'Meteen uitschrijven', exact: true }).count() === 1 && await pg.getByRole('combobox', { name: 'Meteen uitschrijven: wanneer', exact: true }).count() === 1
+        && await pg.getByRole('combobox', { name: 'Meteen uitschrijven', exact: true }).count() === 0, tag + ': Meteen uitschrijven: schakelaar en "Meteen uitschrijven: wanneer" hebben elk een eigen naam');
+      const desc = await pg.evaluate(() => [...document.querySelectorAll('#s-sleepset select')].filter(s => { const d = document.getElementById(s.getAttribute('aria-describedby') || ''); return !d || !d.textContent.trim(); }).map(s => s.id));
+      ok(!desc.length, tag + ': elke keuzelijst wijst met aria-describedby naar zijn uitleg' + (desc.length ? ' (niet: ' + desc + ')' : ''));
+      await pg.evaluate(() => { document.querySelector('#sls-adv').open = false; });
+
+      // ---------- Zonder spraakmodel: naar de plek waar je hem downloadt, en terug ----------
+      await pg.evaluate(() => { Android._sl.model = ''; Android._sl.set.transcribe = true; });
+      await naar(pg, 'sleep');
+      ok(await pg.isVisible('#sl-model-hint'), tag + ': geen spraakmodel: balk op Slaappraat');
+      await pg.click('#sl-model-hint'); await pg.waitForTimeout(250 * W);
+      ok(await pg.evaluate(() => current === 'transcripts') && await pg.isVisible('#tx-setup'), tag + ': balk opent Gesprekken uitschrijven bij de kaart Spraakmodel');
+      await pg.evaluate(() => goBack()); await pg.waitForTimeout(120 * W);
+      ok(await pg.evaluate(() => current === 'sleep'), tag + ': terug: Slaappraat');
+      await naar(pg, 'sleepset');
+      ok(await pg.isVisible('#sl-model-dl') && await pg.evaluate(() => document.querySelector('#sl-model-dl').classList.contains('tonal')) && (await primair(pg)).length === 0, tag + ': instellingen: tonale knop Spraakmodel downloaden');
+      await pg.click('#sl-model-dl'); await pg.waitForTimeout(250 * W);
+      ok(await pg.evaluate(() => current === 'transcripts'), tag + ': de knop opent Gesprekken uitschrijven');
+      await pg.evaluate(() => goBack()); await pg.waitForTimeout(120 * W);
+      ok(await pg.evaluate(() => current === 'sleepset'), tag + ': terug: de instellingen');
+      await pg.evaluate(() => { Android._sl.model = 'Snel (57 MB)'; slLoad(); slsRender(); });
+      ok(!(await pg.isVisible('#sl-model-dl')), tag + ': met spraakmodel: geen downloadknop');
+
+      // ---------- Wat er bewaard wordt, eerlijk over backups (Alles back-uppen is zelf aan te zetten) ----------
+      const tekst = async () => { await naar(pg, 'sleep'); const a = await pg.textContent('#sl-note'); await naar(pg, 'sleepset'); return [a, await pg.textContent('#sl-keep-n')]; };
+      let [nt, kp] = await tekst();
+      ok(/niet in backups/.test(nt) && /niet in backups/.test(kp), tag + ': backup van Slaappraat uit: "niet in backups" ("' + nt + '" / "' + kp + '")');
+      await pg.evaluate(() => { Android._bk.parts = { sleep: true }; Android._bk.sleepAudio = false; });
+      [nt, kp] = await tekst();
+      ok(!/niet in backups/.test(nt) && /De tekst gaat ook mee in Alles back-uppen/.test(nt) && /blijven bewaard/.test(nt) && /Alles back-uppen/.test(kp) && !/niet in backups/.test(kp), tag + ': backup aan (tekst): zegt dat de tekst meegaat en dat die kopieën blijven ("' + nt + '")');
+      await pg.evaluate(() => { Android._bk.sleepAudio = true; });
+      [nt] = await tekst();
+      ok(/Tekst en geluid gaan ook mee/.test(nt), tag + ': backup aan met geluid: zegt dat ook het geluid meegaat');
+      ok(/zelf aanzet bij Alles back-uppen/.test(await pg.evaluate(() => document.querySelector('#sl-help').textContent)) && !/\(niet in backups\) en wordt/.test(await pg.evaluate(() => document.querySelector('#sl-help').textContent)), tag + ': Goed om te weten: alleen in backups als je het zelf aanzet');
+      await pg.evaluate(() => { Android._bk.parts = {}; Android._bk.sleepAudio = false; });
+    }
+
     // ---------- Geavanceerd in- en uitklappen ----------
     await naar(pg, 'sleepset');
     const sum = pg.locator('#sls-adv > summary');
@@ -102,6 +145,7 @@ const FOLD = 844;
         else if (e.type === 'tijd') { doel = voor === '06:15' ? '05:45' : '06:15'; await pg.fill('#s-sleepset ' + e.ctl, doel); await pg.dispatchEvent('#s-sleepset ' + e.ctl, 'change'); }
         else { doel = voor === 'aan' ? 'uit' : 'aan'; await pg.click('#s-sleepset ' + e.ctl); }
         await pg.waitForTimeout(60 * W);
+        if (await pg.isVisible('#modal-ok')) { await pg.click('#modal-ok'); await pg.waitForTimeout(60 * W); } // korter bewaren: eerst vragen
         // Opnieuw openen: het scherm leest alles weer uit Android
         await naar(pg, 'sleep'); await naar(pg, 'sleepset');
         const na = await pg.evaluate(id => setEntry(id).get(), id);
@@ -110,13 +154,34 @@ const FOLD = 844;
         if (na !== doel || !domOk) mis.push(id + ' (' + voor + ' → ' + doel + ': ' + na + ', scherm ' + dom + ')');
       }
       ok(!mis.length, tag + ': elke instelling bewaart en staat er na opnieuw openen weer' + (mis.length ? ': ' + mis.join('; ') : ' (' + ids.length + ')'));
-      // Terug naar standaard: alleen Geavanceerd
+      // Terug naar standaard: precies wat onder Geavanceerd staat (SleepTalk.ADVANCED = de standaard van de testbrug)
+      const voorReset = await pg.evaluate(() => JSON.parse(JSON.stringify(Android._sl.set)));
+      ok(voorReset.quiet === false, tag + ': (onopvallend luisteren staat na de lus uit)');
       await pg.evaluate(c => uiOpenTo(document.querySelector('#sls-reset')));
       await pg.click('#sls-reset'); await pg.click('#modal-ok'); await pg.waitForTimeout(120 * W);
-      ok(await pg.evaluate(() => { const S = Android._sl.set; return S.clipMax === 60 && S.pre === 2 && S.format === 'aac' && S.directWhen === 'accu' && S.sens !== 2; }), tag + ': Geavanceerd terug naar standaard laat de rest staan');
-      // Onopvallend luisteren blijft de standaard (en werkt): weer aan
-      await pg.evaluate(() => { Android._sl.set.quiet = true; slLoad(); slsRender(); });
-      ok((await pg.getAttribute('#sl-quiet', 'aria-checked')) === 'true' && await pg.isVisible('#sl-quietrow'), tag + ': onopvallend luisteren aan, met Melding verder wegstoppen');
+      const reset = await pg.evaluate(v => { const S = Android._sl.set, D = Android._sl._slDef, adv = Object.keys(D);
+        return { adv: adv.filter(k => S[k] !== D[k]), rest: Object.keys(v).filter(k => !adv.includes(k) && JSON.stringify(S[k]) !== JSON.stringify(v[k])) }; }, voorReset);
+      ok(!reset.adv.length, tag + ': reset: alles onder Geavanceerd terug naar standaard' + (reset.adv.length ? ' (niet: ' + reset.adv + ')' : ''));
+      ok(!reset.rest.length, tag + ': reset: de andere instellingen blijven zoals ze waren' + (reset.rest.length ? ' (veranderd: ' + reset.rest + ')' : ''));
+      ok((await pg.getAttribute('#sl-quiet', 'aria-checked')) === 'false' && !(await pg.isVisible('#sl-quietrow')), tag + ': reset laat onopvallend luisteren met rust');
+
+      // ---------- Nachten korter bewaren: eerst vragen (oudere nachten gaan weg) ----------
+      await pg.selectOption('#sl-keep', '30'); await pg.waitForTimeout(60 * W);
+      ok(!(await pg.isVisible('#modal-ok')) && await pg.evaluate(() => Android._sl.set.keep === 30), tag + ': langer bewaren: zonder vragen');
+      await pg.selectOption('#sl-keep', '7'); await pg.waitForTimeout(80 * W);
+      ok(await pg.isVisible('#modal-ok') && /week/.test(await pg.textContent('#modal-text')), tag + ': korter bewaren: eerst vragen ("' + await pg.textContent('#modal-text') + '")');
+      await pg.click('#modal-cancel'); await pg.waitForTimeout(80 * W);
+      ok(await pg.evaluate(() => Android._sl.set.keep === 30) && (await pg.inputValue('#sl-keep')) === '30', tag + ': annuleren: blijft 30 dagen, ook in de lijst');
+      await pg.selectOption('#sl-keep', '7'); await pg.waitForTimeout(80 * W); await pg.click('#modal-ok'); await pg.waitForTimeout(80 * W);
+      ok(await pg.evaluate(() => Android._sl.set.keep === 7) && (await pg.inputValue('#sl-keep')) === '7', tag + ': bevestigen: 1 week');
+
+      // ---------- De assistent wijst een rij aan, en niets als de rij verborgen is ----------
+      await naar(pg, 'sleep'); await pg.evaluate(() => setOpen('slaap.gevoeligheid')); await pg.waitForTimeout(400 * W);
+      ok(await pg.evaluate(() => { const f = document.querySelector('#s-sleepset .setflash'); return current === 'sleepset' && !!f && f.classList.contains('sl-opt') && !!f.querySelector('#sl-sens'); }), tag + ': assistent: Gevoeligheid knippert als rij');
+      await pg.waitForTimeout(1900 * W);
+      await pg.evaluate(() => { Android.sleepSet('directWhen', 'lader'); slLoad(); slsRender(); show('sleep'); setOpen('slaap.meteen.accu'); }); await pg.waitForTimeout(400 * W);
+      ok(await pg.evaluate(() => current === 'sleepset' && !document.querySelector('.setflash')) && !(await pg.isVisible('#sls-dbat')), tag + ': assistent: verborgen rij (alleen aan de lader) wordt niet aangewezen');
+      await pg.evaluate(() => { Android.sleepSet('directWhen', 'accu'); slLoad(); slsRender(); });
 
       // ---------- De assistent wijst een instelling onder Geavanceerd aan ----------
       await naar(pg, 'sleep'); await pg.evaluate(() => { document.querySelector('#sls-adv').open = false; setOpen('slaap.voorloop'); }); await pg.waitForTimeout(450 * W);
