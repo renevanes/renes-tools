@@ -307,7 +307,7 @@ function wcTerugDo(k, wat){
 }
 function wcHouden(){
   const p = wcP; if (!p || p.error) return;
-  const r = rdJson(Android.wcBewaar(JSON.stringify({ k: p.k, s: p.s, f: p.f, n: p.n, u: p.u, notitie: p.notitie || '', houden: true })), {}) || {};
+  const r = rdJson(Android.wcBewaar(JSON.stringify({ k: p.k, s: p.s, f: p.f, n: p.n, u: p.u, notitie: p.notitie || '', zeker: !(p.f & WC_B.meestal), houden: true })), {}) || {};
   if (r.error) { toast(r.error); return; }
   toast(t('Je versie blijft staan'));
   wcNaWijziging();
@@ -391,7 +391,6 @@ function wcDeelOpen(k, wat){
   wcDeel = { k, wat };
   $('#wcd-opm').value = n.voorstel || '';
   if (!wcdVoorbeeld()) return;
-  $('#wcd-ok').disabled = false;
   show('wcdeel');
 }
 /** De tekst opnieuw opbouwen met de opmerking zoals hij nu in het veld staat; false = lukt niet (melding getoond). */
@@ -402,6 +401,8 @@ function wcdVoorbeeld(){
   Object.assign(wcDeel, { tekst: n.tekst, la: n.la, lo: n.lo });
   $('#wcd-tekst').textContent = n.tekst;
   $('#wcd-plek').textContent = t('Op de kaart: {coord}', { coord: lcFmt(n.la, n.lo) });
+  $('#wcd-leeg').hidden = !n.leeg;
+  $('#wcd-ok').disabled = !!n.leeg;
   return true;
 }
 function wcdDoorgeven(){

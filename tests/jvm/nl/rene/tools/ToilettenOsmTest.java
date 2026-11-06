@@ -61,7 +61,19 @@ public class ToilettenOsmTest {
         aangepast.notitie = "prive"; aangepast.eigen = "aangepast"; aangepast.uitBron = new JSONObject().put("s", "toilet").put("f", T | B).put("n", "Plein").put("u", "");
         check(ToilettenOsm.notitie(aangepast, null, "", "wijziging", "").getString("wat").equals("toevoeging"), "aanpassing van iets wat niet in OpenStreetMap staat: als nieuwe plek");
         JSONObject n3 = ToilettenOsm.notitie(aangepast, null, "https://www.openstreetmap.org/node/7", "wijziging", "");
-        check(n3.getString("wat").equals("wijziging") && n3.getString("tekst").contains("gratis (stond: betaald)") && !n3.getString("tekst").contains("prive"), "wijziging zonder eigen notitie");
+        check(n3.getString("wat").equals("wijziging") && n3.getString("tekst").contains("gratis (stond: betaald)") && !n3.getString("tekst").contains("prive") && !n3.getBoolean("leeg"), "wijziging zonder eigen notitie");
+        // Alleen de eigen notitie anders: de openbare notitie zou niets zeggen, dus niet versturen (tenzij met een opmerking)
+        int M = Toiletten.MEESTAL;
+        ToilettenSamen.Punt tp = new ToilettenSamen.Punt();
+        tp.k = "osm-nl:n9"; tp.la = 52.0; tp.lo = 4.0; tp.s = "tank"; tp.f = T | M; tp.n = "Shell"; tp.u = "";
+        tp.notitie = "naast de shop"; tp.eigen = "aangepast"; tp.uitBron = new JSONObject().put("s", "tank").put("f", T | M).put("n", "Shell").put("u", "");
+        String osm9 = "https://www.openstreetmap.org/node/9";
+        check(ToilettenOsm.notitie(tp, null, osm9, "wijziging", "").getBoolean("leeg") && !ToilettenOsm.notitie(tp, null, osm9, "wijziging", "Code bij de kassa").getBoolean("leeg"), "alleen de eigen notitie anders: leeg, met een opmerking niet");
+        tp.f = T;
+        JSONObject n5 = ToilettenOsm.notitie(tp, null, osm9, "wijziging", "");
+        check(!n5.getBoolean("leeg") && n5.getString("tekst").contains("\n- er is zeker een toilet"), "'zeker een toilet' staat in de notitie\n" + n5.getString("tekst"));
+        tp.f = T | M | Toiletten.ALTIJD;
+        check(ToilettenOsm.notitie(tp, null, osm9, "wijziging", "").getString("tekst").contains("\n- dag en nacht open"), "dag en nacht open staat in de notitie");
         JSONObject afw = new JSONObject().put("la", 52.07).put("lo", 4.31).put("s", "toilet").put("reden", "dicht").put("tekst", "al maanden dicht");
         JSONObject n4 = ToilettenOsm.notitie(aangepast, afw, "https://www.openstreetmap.org/node/7", "afwijzing", "");
         check(!n4.getString("tekst").contains("al maanden") && n4.getString("voorstel").equals("al maanden dicht"), "afwijzing: toelichting alleen als voorstel voor het veld, niet vanzelf in de tekst");

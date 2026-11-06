@@ -100,6 +100,7 @@ final class ToilettenOsm {
             b.append(deHet(s)).append(" hier").append(waar).append(" klopt niet helemaal:");
             int wf = was.optInt("f");
             if (!s.equals(was.optString("s"))) regel(b, "het is een " + soortTekst(s), soortTekst(was.optString("s")));
+            if ((wf & Toiletten.MEESTAL) != 0 && (f & Toiletten.MEESTAL) == 0 && (f & Toiletten.TOILET) != 0) regel(b, "er is zeker een toilet", null);
             if ((f & Toiletten.TOILET) != (wf & Toiletten.TOILET)) regel(b, (f & Toiletten.TOILET) != 0 ? "er is een toilet" : "er is geen toilet", null);
             if ((f & Toiletten.DOUCHE) != (wf & Toiletten.DOUCHE)) regel(b, (f & Toiletten.DOUCHE) != 0 ? "er is een douche" : "er is geen douche", null);
             if (!betalen(f).equals(betalen(wf))) regel(b, betalen(f), betalen(wf));
@@ -107,6 +108,7 @@ final class ToilettenOsm {
             if ((f & Toiletten.VERSCHOON) != (wf & Toiletten.VERSCHOON)) regel(b, (f & Toiletten.VERSCHOON) != 0 ? "met verschoontafel" : "geen verschoontafel", null);
             if ((f & Toiletten.KLANTEN) != (wf & Toiletten.KLANTEN)) regel(b, (f & Toiletten.KLANTEN) != 0 ? "alleen voor klanten" : "voor iedereen", null);
             if ((f & Toiletten.URINOIR) != (wf & Toiletten.URINOIR)) regel(b, (f & Toiletten.URINOIR) != 0 ? "alleen een urinoir" : "niet alleen een urinoir", null);
+            if ((f & Toiletten.ALTIJD) != (wf & Toiletten.ALTIJD)) regel(b, (f & Toiletten.ALTIJD) != 0 ? "dag en nacht open" : "niet dag en nacht open", null);
             if (!nu.optString("n").equals(was.optString("n"))) regel(b, "naam: " + leeg(nu.optString("n")), leeg(was.optString("n")));
             if (!nu.optString("u").equals(was.optString("u"))) regel(b, "openingstijden: " + leeg(nu.optString("u")), leeg(was.optString("u")));
         } else {
@@ -142,6 +144,7 @@ final class ToilettenOsm {
      * De notitie voor een plek: {tekst, la, lo, wat, osm, voorstel}. af = de afwijzing (bij wat "afwijzing"), osm = het
      * OpenStreetMap-object of leeg. Alleen opmerking (wat Rene op het scherm Doorgeven zelf invult) gaat mee als vrije
      * tekst, nooit zijn eigen notitie bij de plek. voorstel: de toelichting van een afwijzing, om dat veld mee te vullen.
+     * leeg: een aanpassing waarvan de notitie niets zegt (alleen de eigen notitie anders, geen opmerking): niet versturen.
      */
     static JSONObject notitie(ToilettenSamen.Punt p, JSONObject af, String osm, String wat, String opmerking) throws Exception {
         String tekst, voorstel = "";
@@ -162,7 +165,8 @@ final class ToilettenOsm {
             else if (!"toegevoegd".equals(p.eigen)) throw new Exception(Taal.T("Alleen je eigen plekken"));
             tekst = tekst(wat, ToilettenSamen.waarden(p), p.uitBron, osm, "", opmerking);
         }
-        return new JSONObject().put("tekst", tekst).put("la", la).put("lo", lo).put("wat", wat).put("osm", osm).put("voorstel", voorstel);
+        boolean leeg = "wijziging".equals(wat) && p.uitBron != null && !tekst.contains("\n- ") && (opmerking == null || opmerking.trim().isEmpty());
+        return new JSONObject().put("tekst", tekst).put("la", la).put("lo", lo).put("wat", wat).put("osm", osm).put("voorstel", voorstel).put("leeg", leeg);
     }
 
     static String formulier(double la, double lo, String tekst) throws Exception {

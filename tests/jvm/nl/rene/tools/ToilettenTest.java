@@ -190,6 +190,10 @@ public class ToilettenTest {
         check(!e3.getJSONObject("wijzig").has("osm-nl:n3"), "zonder notitie en verder gelijk: geen aanpassing meer");
         Toiletten.bewaarPlek(e3, new JSONObject().put("k", "osm-nl:n3").put("s", "tank").put("f", Toiletten.TOILET | Toiletten.KLANTEN).put("n", "Shell").put("zeker", true), tank, 3);
         check(e3.getJSONObject("wijzig").has("osm-nl:n3") && (e3.getJSONObject("wijzig").getJSONObject("osm-nl:n3").getJSONObject("v").getInt("f") & M) == 0, "zeker een toilet: niet meer 'meestal', en dat is een aanpassing");
+        JSONObject tank2 = new JSONObject(tank.toString()).put("n", "Shell Express");
+        Toiletten.bewaarPlek(e3, new JSONObject().put("k", "osm-nl:n3").put("s", "tank").put("f", Toiletten.TOILET | Toiletten.KLANTEN).put("n", "Shell").put("zeker", true).put("houden", true), tank2, 5);
+        JSONObject w3 = e3.getJSONObject("wijzig").getJSONObject("osm-nl:n3");
+        check((w3.getJSONObject("v").getInt("f") & M) == 0 && w3.getJSONObject("was").getString("n").equals("Shell Express"), "mijn versie houden na 'zeker een toilet': blijft zeker");
         Toiletten.bewaarPlek(e3, new JSONObject().put("k", "osm-nl:n4").put("s", "toilet").put("f", Toiletten.TOILET | M).put("n", "x"), bronW, 4);
         check((e3.getJSONObject("wijzig").getJSONObject("osm-nl:n4").getJSONObject("v").getInt("f") & M) == 0, "'meestal' komt nooit uit wat Rene invult");
 
@@ -203,10 +207,10 @@ public class ToilettenTest {
                 && err(() -> Toiletten.normaal(new JSONObject().put("naam", "x").put("licentie", "CC0"))).equals("Vul het adres van de gegevens in"), "meldingen als hele zinnen (vertaalbaar)");
 
         // Een zoekpatroon dat eindeloos kan duren, wordt niet bewaard (Android kan een zoekopdracht niet afbreken)
-        for (String p : new String[]{"(a+)+$", "(.*a){20}$", "(a|aa)*$", "(\\w+\\s?)*$", "((ab)*c)+", "a*b*c*d*", "(x+)*"})
+        for (String p : new String[]{"(a+)+$", "(.*a){20}$", "(a|aa)*$", "(\\w+\\s?)*$", "((ab)*c)+", "a*b*c*d*", "(x+)*", "(a?){25}a{25}"})
             check(Toiletten.riskant(p) && err(() -> Toiletten.normaal(new JSONObject().put("naam", "x").put("soort", "geojson").put("url", "https://a.nl").put("licentie", "CC0")
                     .put("regels", new JSONArray().put(new JSONObject().put("veld", "naam").put("patroon", p).put("zet", "klanten"))))).contains("traag"), "riskant zoekpatroon geweigerd: " + p);
-        for (String p : new String[]{"^ja$", "^(heren|dames)$", "gratis|free", "\\d+[.,]\\d+", "(ja)?", "[(+*]+", "\\(a+\\)+", "^(a|b)c{2}$"})
+        for (String p : new String[]{"^ja$", "^(heren|dames)$", "gratis|free", "\\d+[.,]\\d+", "(ja)?", "[(+*]+", "\\(a+\\)+", "^(a|b)c{2}$", "(wc|toilet)s?", "(heren|dames)?", "^(\\d{1,2}):(\\d{2})", "(?:wc)+"})
             check(!Toiletten.riskant(p), "gewoon zoekpatroon mag: " + p);
         check(ToilettenScan.past("^ja$", "JA") && !ToilettenScan.past("^ja$", "nee"), "gewoon zoekpatroon werkt (hoofdletters maken niet uit)");
 

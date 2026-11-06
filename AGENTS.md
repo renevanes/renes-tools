@@ -416,7 +416,8 @@ in de buurt, ook plekken waar er meestal een is (tankstations, verzorgingsplaats
   `toiletten-gegevens.yml`, dinsdagnacht; de taak die osmium draait heeft alleen leesrecht, een tweede taak controleert en
   publiceert) `toiletten-nl.json.gz` en `meta.json` (datum, sha256, aantal) uit het
   Geofabrik-extract (osmium; `--overpass` alleen om te ontwikkelen) en zet ze in de release `toiletten-gegevens`. De app
-  controleert het controlegetal. Ander formaat: `FORMAAT` in `Toiletten.java` en `formaat` in `regels.json` samen omhoog.
+  controleert het controlegetal. Ander formaat: `FORMAAT` in `Toiletten.java`, `formaat` in `regels.json` en de controle in
+  `toiletten-gegevens.yml` samen omhoog.
 - **Scannen** (`ToilettenJob`, job-id's 4701–4703): per bron een planning (dag/week/maand/uit, tijd in de app-zone,
   vanzelf alleen via wifi, opnieuw na een fout). Mislukt het, dan blijft de vorige versie (`toiletten-cache/`, gaat niet
   mee in backups); de laatste 10 scans per bron in `toestand.json` (fouten Nederlands bewaard, de brug vertaalt ze met

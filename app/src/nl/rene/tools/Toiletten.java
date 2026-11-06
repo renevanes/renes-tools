@@ -163,7 +163,7 @@ final class Toiletten {
 
     /**
      * Een zoekpatroon dat eindeloos kan duren (Android kan een zoekopdracht niet afbreken): een herhaling van een groep
-     * die zelf herhaalt of kiest ((a+)+, (.*a){20}, (a|aa)*), of meer dan drie keer + of *.
+     * die zelf herhaalt of kiest ((a+)+, (.*a){20}, (a|aa)*, (a?){25}), of meer dan drie keer + of *.
      */
     static boolean riskant(String p) {
         java.util.ArrayDeque<boolean[]> stapel = new java.util.ArrayDeque<>();
@@ -192,7 +192,8 @@ final class Toiletten {
                 continue;
             }
             if (c == '+' || c == '*') open++;
-            if (herhaal || c == '|') groep[0] = true;
+            boolean keuze = c == '|' || (c == '?' && i > 0 && p.charAt(i - 1) != '(');
+            if (herhaal || keuze) groep[0] = true;
         }
         return open > 3;
     }
@@ -233,7 +234,8 @@ final class Toiletten {
     static JSONArray bewaardeBronnen(Context c) throws Exception {
         synchronized (LOCK) {
             if (!ingesteld(c)) return standaard(sjablonen(c));
-            return leesLijst(new JSONObject(JsonFileStore.read(bronnenFile(c), Toiletten::checkBronnen)).optJSONArray("bronnen"));
+            try { return leesLijst(new JSONObject(JsonFileStore.read(bronnenFile(c), Toiletten::checkBronnen)).optJSONArray("bronnen")); }
+            catch (Exception e) { throw new Exception(Taal.T("De bronnen zijn niet leesbaar; er is niets overschreven"), e); }
         }
     }
 

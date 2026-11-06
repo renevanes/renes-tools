@@ -106,7 +106,10 @@ public class ToilettenBridge extends MasterBridge {
             if (p.bronNu != null) o.put("bronNu", p.bronNu);
             JSONObject g = ToilettenOsm.gedeeld(ctx);
             JSONArray gd = new JSONArray();
-            for (String w : ToilettenOsm.WAT) { JSONObject x = g.optJSONObject(k + "|" + w); if (x != null) gd.put(new JSONObject(x.toString()).put("url", ToilettenOsm.notitieUrl(x.optLong("id"))).put("sleutel", k + "|" + w)); }
+            for (String s : sleutels(p, k)) for (String w : ToilettenOsm.WAT) {
+                JSONObject x = g.optJSONObject(s + "|" + w);
+                if (x != null) gd.put(new JSONObject(x.toString()).put("url", ToilettenOsm.notitieUrl(x.optLong("id"))).put("sleutel", s + "|" + w));
+            }
             o.put("gedeeld", gd);
             JSONObject e = Toiletten.eigen(ctx);
             String af = p.afSleutel.isEmpty() ? k : p.afSleutel;
@@ -231,6 +234,14 @@ public class ToilettenBridge extends MasterBridge {
 
     // ================= gemeenschap (OpenStreetMap-notities) =================
 
+    /** Alle sleutels van een plek (na samenvoegen kan de eerste een andere bron zijn dan toen hij werd doorgegeven). */
+    private static java.util.Set<String> sleutels(ToilettenSamen.Punt p, String k) {
+        java.util.Set<String> l = new java.util.LinkedHashSet<>();
+        l.add(k);
+        if (p != null) l.addAll(p.keys);
+        return l;
+    }
+
     /** De notitie zoals hij naar OpenStreetMap gaat (Rene ziet hem eerst); zie ToilettenOsm.notitie. */
     private JSONObject notitie(String k, String wat, String opmerking) throws Exception {
         JSONObject e = eigenOfFout();
@@ -243,7 +254,8 @@ public class ToilettenBridge extends MasterBridge {
         }
         JSONObject af = e.optJSONObject("afgewezen").optJSONObject(p != null && !p.afSleutel.isEmpty() ? p.afSleutel : k);
         JSONObject n = ToilettenOsm.notitie(p, "afwijzing".equals(wat) ? af : null, osm, wat, opmerking);
-        if (ToilettenOsm.open(ToilettenOsm.gedeeld(ctx), k, n.getString("wat"))) throw new Exception(Taal.T("Dit staat al open bij OpenStreetMap"));
+        JSONObject g = ToilettenOsm.gedeeld(ctx);
+        for (String s : sleutels(p, k)) if (ToilettenOsm.open(g, s, n.getString("wat"))) throw new Exception(Taal.T("Dit staat al open bij OpenStreetMap"));
         return n;
     }
 
@@ -259,6 +271,7 @@ public class ToilettenBridge extends MasterBridge {
         final JSONObject n;
         try { n = notitie(k, wat, opmerking); } catch (Throwable e) { return fout(e, Taal.T("Lukt niet")); }
         if (!n.optString("tekst").equals(getoond)) return fout(new Exception(Taal.T("De tekst is intussen veranderd: bekijk hem opnieuw")), "");
+        if (n.optBoolean("leeg")) return fout(new Exception(Taal.T("Er is niets om door te geven: schrijf in de opmerking wat er niet klopt")), "");
         new Thread(() -> {
             String r;
             try {

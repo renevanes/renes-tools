@@ -79,14 +79,18 @@ jobs:
       - name: Controleren (formaat, grootte, aantal en controlegetal)
         run: |
           python3 - <<'PY'
-          import gzip, hashlib, json, os, sys
+          import hashlib, json, os, sys, zlib
           gz = open("uit/toiletten-nl.json.gz", "rb").read()
           meta = json.load(open("uit/meta.json", encoding="utf-8"))
           fout = []
           if len(gz) > 30 * 1024 * 1024: fout.append("bestand groter dan 30 MB")
           if os.path.getsize("uit/meta.json") > 100_000: fout.append("meta.json te groot")
           if meta.get("sha256") != hashlib.sha256(gz).hexdigest(): fout.append("sha256 klopt niet")
-          data = json.loads(gzip.decompress(gz))
+          # zelfde grenzen als de app (ToilettenScan.MAX en MAX_UIT), anders weigert elke telefoon hem
+          d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+          ruw = d.decompress(gz, 40 * 1024 * 1024 + 1)
+          if len(ruw) > 40 * 1024 * 1024 or d.unconsumed_tail: sys.exit("Niet vrijgegeven: uitgepakt groter dan 40 MB")
+          data = json.loads(ruw)
           if data.get("formaat") != meta.get("formaat") or meta.get("formaat") != 1: fout.append("onbekend formaat")
           n = len(data.get("plekken") or [])
           if not 1000 <= n <= 100_000 or n != meta.get("aantal"): fout.append(f"onverwacht aantal plekken: {n}")

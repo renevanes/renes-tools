@@ -1332,10 +1332,12 @@ if (!window.Android) window.Android = (function(){
       if (wat === 'wijziging' && p.e !== 'aangepast') return { error: 'Pas de plek eerst aan' };
       if (wat === 'toevoeging' && p.e !== 'toegevoegd') return { error: 'Alleen je eigen plekken' };
       if (wat === 'wijziging' && !osm) wat = 'toevoeging';
-      return { tekst: (wat === 'wijziging' ? 'Klopt niet meer: ' + (p.n || 'toilet') + '\nNu: ' : 'Hier is een toilet dat nog niet op de kaart staat.\n') + (p.n ? 'Naam: ' + p.n + '\n' : '') + (osm ? 'Object: ' + osm + '\n' : '') + slot, la: p.la, lo: p.lo, wat, osm, voorstel: '' }; },
+      const b = p.uitBron || {}, leeg = wat === 'wijziging' && !opm && p.s === b.s && p.f === b.f && (p.n || '') === (b.n || '') && (p.u || '') === (b.u || '');
+      return { tekst: (wat === 'wijziging' ? 'Klopt niet meer: ' + (p.n || 'toilet') + '\nNu: ' : 'Hier is een toilet dat nog niet op de kaart staat.\n') + (p.n ? 'Naam: ' + p.n + '\n' : '') + (osm ? 'Object: ' + osm + '\n' : '') + slot, la: p.la, lo: p.lo, wat, osm, voorstel: '', leeg }; },
     wcNotitie(k, wat, opm){ return JSON.stringify(this._wcNotitie(k, wat, opm)); },
     wcDoorgeven(k, wat, opm, getoond){ const W = this._wc, n = this._wcNotitie(k, wat, opm); if (n.error) return JSON.stringify(n);
-      if (n.tekst !== getoond) return JSON.stringify({ error: 'De tekst is intussen veranderd: bekijk hem opnieuw' }); W.calls.push(['doorgeven', k, n.wat, n.tekst]);
+      if (n.tekst !== getoond) return JSON.stringify({ error: 'De tekst is intussen veranderd: bekijk hem opnieuw' });
+      if (n.leeg) return JSON.stringify({ error: 'Er is niets om door te geven: schrijf in de opmerking wat er niet klopt' }); W.calls.push(['doorgeven', k, n.wat, n.tekst]);
       setTimeout(() => { if (W.zone) { W.klembord = n.tekst; onWcGedeeld({ zone: true, url: 'https://www.openstreetmap.org/note/new#map=19/' + n.la + '/' + n.lo, k }); return; }
         const id = 4000000 + (++W.t); W.gedeeld[k + '|' + n.wat] = { k, wat: n.wat, id, t: Date.now(), status: 'open', gecontroleerd: Date.now(), la: n.la, lo: n.lo };
         onWcGedeeld({ ok: true, id, url: 'https://www.openstreetmap.org/note/' + id, k }); }, 80); return ''; },
