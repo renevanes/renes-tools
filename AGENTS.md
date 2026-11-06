@@ -20,7 +20,7 @@ Telefoons werken zichzelf bij vanaf `update/` op main (ondertekende `update.json
   `kop.html`, `stijl.css` (Material 3-kleurrollen: `--bg --card --hi --ink --muted --line --outline --primary --on-primary --tonal --chip --on-chip …`),
   `schermen/NN-*.html` (één `<section class="screen" id="s-naam">` per scherm), `script/NN-*.js`, `vensters.html` (dialogen, tabbalk).
 - `web/src/script/01-testbrug.js` — de nagebootste Android-brug voor de tests (in de app zelf weggelaten).
-- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends FeatureBridge`.
+- `app/src/nl/rene/tools/` — Java. De JS-brug: `MainActivity.Bridge extends ToilettenBridge extends MasterBridge extends BankBridge extends FacturenBridge extends GebruikBridge extends LocBridge extends VpnBridge extends SpotifyBridge extends PlayerBridge extends PodcastBridge extends AiBridge extends SleepBridge extends CheckinBridge extends ApparatenBridge extends FeatureBridge`.
 - `web/start.html` — de Telefoon-skin (eigen startscherm); `tests/` — Java- en interfacetests; `tools/` — hulpscripts.
 
 ## Regels voor de code
@@ -241,6 +241,7 @@ alles kunnen lezen, dat controleert Bouwen en testen):
 | Node en Java (alleen CI-gereedschap) | `node-version`/`java-version` in de workflows | Onderhoud: Node-schema, Adoptium | agent, naar de nieuwste LTS |
 | AI-modellen (Qwen3/Qwen3.5 GGUF) | `LocalAi.java` (vaste commit + SHA-256) | Onderhoud: Hugging Face (zelfde maker, zelfde grootte) | agent voegt een nieuw `Model` toe na overleg met Rene (1–3 GB); Rene kiest zelf of hij downloadt |
 | Spraakmodellen (whisper ggml) | `Transcribe.java` (vaste SHA-256) | niet automatisch: het formaat verandert zelden | alleen op verzoek van Rene |
+| Toiletten-momentopname (OpenStreetMap, ODbL) | release `toiletten-gegevens` (workflow `toiletten-gegevens.yml`, `tools/toiletten/`; Geofabrik-extract met osmium) | Onderhoud: datum in `meta.json` (ouder dan 10 dagen = melding) | vanzelf elke week; agent: als de workflow faalt (oorzaak oplossen, met de hand starten) |
 
 Nieuwe APK nodig (Rene installeert die zelf): bij alles in `app/` (whisper, llama, Java), dus niet bij Actions,
 Playwright, Node of Java van de CI.
@@ -399,6 +400,41 @@ Rene's inkomsten en uitgaven. **Niets mag de telefoon verlaten** (wens van Rene)
   mee als beide kanten in beeld zijn (`bkSoort`). Eigen regels hebben `s` (soort) zodat dezelfde winkel privé en zakelijk anders kan.
 - **Lokale AI:** `LocalAi.privateChat` (geen geheugen, leren, acties of opgeslagen gesprek) via `bankAi`; de interface
   stuurt alleen een samenvatting met cijfers. Antwoorden altijd als tekst tonen (`textContent`), nooit als HTML.
+
+## Toiletten en douches (bronnen, scannen, eigen wijzigingen, gemeenschap)
+Toiletten en douches (scherm `s-wc`, `web/src/script/73-toiletten.js`, `Toiletten*.java`) zoekt openbare toiletten en douches
+in de buurt, ook plekken waar er meestal een is (tankstations, verzorgingsplaatsen, campings e.d., bit `MEESTAL`).
+**Rene's plek verlaat de telefoon niet**: bronnen worden in hun geheel gedownload en het zoeken gebeurt op de telefoon.
+- **Bronnen** (`Toiletten`, `toiletten/bronnen.json`): een bron is een bestand op internet (`ToilettenScan`: `tools` = de
+  eigen momentopname, `geojson`, `arcgis` (met pagina's) of `csv`), met veldnamen (`velden`, meer namen met `|`), vaste
+  kenmerken (`extra`) en regels (`regels`: veld + patroon → kenmerk of overslaan). Sjablonen staan in
+  `web/toiletten-bronnen.json` (in de APK; `standaard: true` = vanzelf aan bij Gegevens ophalen). **Nieuwe bron** = een blok
+  met `sjabloon`, `naam`, `soort`, `url` (https), `licentie` (verplicht), `info`, `velden`/`regels` en een `tip`; alleen een
+  open licentie mag aan, anders `aan: false` met de reden in `tip` (zoals Amsterdam). `ToilettenTest` controleert elk
+  sjabloon met `Toiletten.normaal`. Rotterdam heeft (nov. 2026) geen bruikbare open laag.
+- **Momentopname**: `tools/toiletten/ophalen.py` met `regels.json` (welke OSM-tags wat betekenen) maakt elke week (workflow
+  `toiletten-gegevens.yml`, dinsdagnacht) `toiletten-nl.json.gz` en `meta.json` (datum, sha256, aantal) uit het
+  Geofabrik-extract (osmium; `--overpass` alleen om te ontwikkelen) en zet ze in de release `toiletten-gegevens`. De app
+  controleert het controlegetal. Ander formaat: `FORMAAT` in `Toiletten.java` en `formaat` in `regels.json` samen omhoog.
+- **Scannen** (`ToilettenJob`, job-id's 4701–4703): per bron een planning (dag/week/maand/uit, tijd in de app-zone,
+  vanzelf alleen via wifi, opnieuw na een fout). Mislukt het, dan blijft de vorige versie (`toiletten-cache/`, gaat niet
+  mee in backups); de laatste 10 scans per bron in `toestand.json` (fouten Nederlands bewaard, de brug vertaalt ze).
+- **Samenvoegen** (`ToilettenSamen`, zuiver, `ToilettenSamenTest`): dezelfde plek uit twee bronnen (zelfde groep, hooguit
+  25 m) wordt één plek; de eerste bron in de lijst gaat voor bij naam en tijden, kenmerken tellen op.
+- **Eigen laag** (`toiletten/eigen.json`, gaat mee in "Alle appgegevens"): aanpassingen (`wijzig`, met `was` = wat de bron
+  toen zei; zegt de bron later iets anders, dan Overnemen of Mijn versie houden), afwijzingen (reden `weg`/`dicht`/`prive`/
+  `klanten`/`anders`, toelichting, Terugzetten) en eigen plekken (`eigen:<12 hex>`; staat er later een plek uit een bron
+  binnen 25 m, dan biedt de app opruimen aan). Blijft over elke scan heen; een onleesbaar bestand wordt nooit overschreven.
+- **Gemeenschap** (`ToilettenOsm`, `toiletten/gedeeld.json`): alleen als Rene het per plek kiest, een anonieme notitie bij
+  OpenStreetMap (`api.openstreetmap.org/api/0.6/notes`). Eerst `s-wcdeel` met de precieze tekst en de zichtbare waarschuwing
+  "Openbaar; OpenStreetMap ziet je IP-adres". 403 (moderatiezone) = tekst op het klembord en de website op die plek.
+  Hooguit 20 per dag; de status (open, opgelost, verborgen) wordt bij het scannen hooguit één keer per dag nagekeken. De
+  tekst is vast Nederlands (`taal-vast`). Geen andere bestemmingen of accounts zonder Rene.
+- **Privacy**: alleen de kaartbeelden (tile.openstreetmap.org) zien welk stuk kaart Rene bekijkt; dat staat zichtbaar op
+  het scherm en de kaart kan uit (Instellingen → Kaart tonen). Logsoort `TOILET` alleen met aantallen, nooit plekken,
+  namen of adressen.
+- Tests: `tests/ui/toiletten.test.js`, `toiletten-bronnen.test.js`, `toiletten-eigen.test.js`; Java: `ToilettenTest`,
+  `ToilettenSamenTest`, `ToilettenOsmTest`.
 
 ## Berichten aan Rene
 Kort en in het Nederlands: wat er nu anders is, waar hij het vindt en of hij iets moet doen (bijv. een nieuwe APK

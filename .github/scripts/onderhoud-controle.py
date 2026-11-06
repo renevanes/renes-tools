@@ -8,6 +8,7 @@ Dependabot kent deze niet (geen package.json of Gradle), dus dit script doet het
   - Playwright-versie in publiceren.yml            → npm-register
   - Android build-tools, android.jar/targetSdk, aapt2, zig, Node en Java → nieuwste versies (Google, npm, PyPI, Node-schema, Adoptium)
   - AI-modellen in LocalAi.java (Hugging Face)     → nieuwere modellen van dezelfde maker in dezelfde grootte
+  - toiletten-momentopname (GitHub-release)         → ouder dan 10 dagen = de wekelijkse workflow loopt niet
 
 Schrijft een Markdown-rapport naar stdout. Afsluitcode 0 = alles bij, 10 = er is iets te doen, 1 = fout.
 Alleen standaardbibliotheek; GITHUB_TOKEN (optioneel) voorkomt limieten op de GitHub-API.
@@ -88,9 +89,12 @@ ZIG = ("tools/whisper-build.sh", r'ZIG_VERSION="(\d+\.\d+\.\d+)"')
 # De AI-modellen: new Model("id", Taal.T("label"), Taal.T("desc"), "repo", "commit", "bestand", …) (Taal.T mag ook ontbreken)
 MODELLEN = ("app/src/nl/rene/tools/LocalAi.java",
             r'new Model\("(\w+)",\s*(?:Taal\.T\()?"[^"]*"\)?,\s*(?:Taal\.T\()?"[^"]*"\)?,\s*"([^"]+)",\s*"([0-9a-f]{40})",\s*"([^"]+\.gguf)"')
+# De wekelijkse momentopname van Toiletten en douches (workflow toiletten-gegevens): meta.json van de release
+TOILETTEN = ("web/toiletten-bronnen.json", r'"metaUrl"\s*:\s*"(https://github\.com/[^"]+/meta\.json)"')
+TOILETTEN_MAX_DAGEN = 10
 ALLE = {"Leaflet": LEAFLET, "jsQR": JSQR, "Playwright": PLAYWRIGHT, "whisper.cpp": WHISPER,
         "llama.cpp": LLAMA, "build-tools": BUILDTOOLS, "aapt2": AAPT2, "android-platform": PLATFORM,
-        "targetSdk": TARGET, "zig": ZIG, "zig (llm)": ("tools/llm-build.sh", ZIG[1])}
+        "targetSdk": TARGET, "zig": ZIG, "zig (llm)": ("tools/llm-build.sh", ZIG[1]), "toiletten-momentopname": TOILETTEN}
 
 
 def modellen():
@@ -300,6 +304,21 @@ def main():
     for mid, repo, commit, beter, opm in nieuwere_modellen():
         # Niet bereikbaar: ook als iets om te doen melden (met de hand nakijken), niet stil "bij"
         item(f"AI-model {mid}", repo, commit[:12], beter or commit[:12], (), opm, verouderd=beter is not None or "niet bereikbaar" in opm)
+
+    # Toiletten en douches: de momentopname moet elke week vernieuwd worden (workflow toiletten-gegevens)
+    url = lees(*TOILETTEN)
+    try:
+        meta = http_json(url)
+        datum = str(meta.get("datum", ""))
+        dagen = int((time.time() - time.mktime(time.strptime(datum, "%Y-%m-%d"))) // 86400)
+        item("Toiletten-momentopname (OpenStreetMap)", "release toiletten-gegevens", datum, None, (),
+             f"{dagen} dagen oud, {meta.get('aantal', '?')} plekken" + (f"; ouder dan {TOILETTEN_MAX_DAGEN} dagen: kijk waarom de "
+             "workflow toiletten-gegevens niet slaagt (Actions) en start hem met de hand" if dagen > TOILETTEN_MAX_DAGEN else ""),
+             verouderd=dagen > TOILETTEN_MAX_DAGEN)
+    except Exception as e:
+        item("Toiletten-momentopname (OpenStreetMap)", "release toiletten-gegevens", "?", None, (),
+             f"meta.json niet op te halen ({e}); staat de release er al? Anders de workflow toiletten-gegevens één keer starten",
+             verouderd=True)
 
     te_doen = [i for i in items if i["verouderd"] or i["kwetsbaar"]]
     if "--json" in sys.argv:
