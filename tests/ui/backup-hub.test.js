@@ -48,7 +48,7 @@ const FOLD = 844;
     ok(await pg.evaluate(() => document.querySelectorAll('#s-backup .card.stlist .strow').length) === 3, tag + ': drie rijen');
     // De stand op de rijen; versleutelen staat er altijd bij, niet afgekapt
     const sumParts = await pg.textContent('#bk-sum-parts'), sumSet = await pg.textContent('#bk-sum-set');
-    ok(/^\d+ van 14 · privé uit$/.test(sumParts), tag + ': Wat gaat er mee: stand "' + sumParts + '"');
+    ok(/^\d+ van 11 onderdelen · privé uit$/.test(sumParts), tag + ': Wat gaat er mee: stand "' + sumParts + '"');
     ok(/niet versleuteld/.test(sumSet) && /USB-stick/.test(sumSet), tag + ': Automatisch en versleutelen: stand "' + sumSet + '"');
     ok(await pg.evaluate(() => { const e = document.querySelector('#bk-sum-set'); return getComputedStyle(e).whiteSpace === 'normal' && e.scrollWidth <= e.clientWidth + 1; }), tag + ': stand van versleutelen niet afgekapt');
     // Wat ontbreekt voor herinstallatie: een tik brengt je naar de plek waar je het regelt
@@ -155,6 +155,58 @@ const FOLD = 844;
       const hits = await zoek(q);
       ok(hits.includes(scr), tag + ': zoeken "' + q + '" vindt ' + scr + ' (' + hits.join(', ') + ')');
     }
+    // Zoeken: twee schermen met dezelfde naam zijn te onderscheiden; de losse onderdelen van Terugzetten zijn te vinden
+    const subs = await pg.evaluate(() => { gsIndex = null; return gsApp('terugzetten').items.filter(x => !gsIndex[x.i].el).map(x => gsIndex[x.i].scr + ':' + x.sub); });
+    ok(subs.includes('bkrestore:Alles back-uppen') && subs.includes('warestore:WhatsApp backup'), tag + ': zoeken "terugzetten": met de tool eronder (' + subs.join(', ') + ')');
+    ok((await zoek('herkende muziek terugzetten')).includes('bkrestore') && (await zoek('check-in terugzetten')).includes('bkrestore'), tag + ': zoeken vindt de losse onderdelen bij Terugzetten');
+
+    // ---------- De lichte stand (backupState(false)) heeft geen map, nachtelijk of onderdelen: niets mag daarop vertrouwen ----------
+    ok(await pg.evaluate(() => { const l = JSON.parse(Android.backupState(false)); return !('dest' in l) && !('auto' in l) && !('parts' in l) && 'busy' in l && 'encrypted' in l; }), tag + ': testbrug: lichte stand zoals Java');
+    // Assistent: alleen tijdens opladen aanzetten laat de nachtelijke backup aan, en de antwoorden kloppen
+    await pg.evaluate(() => { Android._bk.auto = true; Android._bk.charging = false; });
+    ok(await pg.evaluate(() => setEntry('backup.nacht').get()) === 'aan' && await pg.evaluate(() => setEntry('backup.opladen').get()) === 'uit', tag + ': assistent leest elke nacht aan en opladen uit');
+    await pg.evaluate(() => setEntry('backup.opladen').set('aan'));
+    ok(await pg.evaluate(() => Android._bk.auto === true && Android._bk.charging === true), tag + ': alleen tijdens opladen aan: elke nacht blijft aan');
+    ok(await pg.evaluate(() => setEntry('backup.opladen').get() === 'aan' && setEntry('backup.nacht').get() === 'aan' && setEntry('backup.deel.sms').get() === 'aan'), tag + ': antwoorden daarna kloppen (nacht, opladen, onderdeel)');
+    await pg.evaluate(() => setEntry('backup.nacht').set('uit'));
+    ok(await pg.evaluate(() => Android._bk.auto === false && Android._bk.charging === true), tag + ': elke nacht uit laat opladen staan');
+    await pg.evaluate(() => { Android._bk.auto = null; });
+    // Nu alles back-uppen: tijdens de backup bezig (ook op Automatisch en versleutelen), daarna weer te gebruiken
+    await naar(pg, 'backup');
+    await pg.click('#bk-run'); await pg.waitForTimeout(350 * W);
+    ok(await pg.isDisabled('#bk-run') && /Bezig/.test(await pg.textContent('#bk-run')), tag + ': tijdens de backup: bezig');
+    await naar(pg, 'bkset'); await pg.waitForTimeout(250 * W);
+    ok(await pg.isVisible('#bk-set-busy') && await pg.isDisabled('#bk-enc-btn') && await pg.isDisabled('#bk-rotate-btn') && await pg.isDisabled('#bk-dest-btn'), tag + ': Automatisch en versleutelen: regel "bezig", wachtwoord, opruimen en map even niet');
+    await naar(pg, 'backup'); await pg.waitForTimeout(1500 * W);
+    ok(!(await pg.isDisabled('#bk-run')) && (await pg.textContent('#bk-run')) === 'Nu alles back-uppen', tag + ': na de backup is Nu alles back-uppen weer te gebruiken');
+    await naar(pg, 'bkset');
+    ok(!(await pg.isVisible('#bk-set-busy')) && !(await pg.isDisabled('#bk-enc-btn')) && !(await pg.isDisabled('#bk-rotate-btn')), tag + ': daarna alles weer aan te passen');
+    // Instellingen: de rij Backup-map met de echte stand (map en nachtelijk komen uit de volledige stand)
+    await naar(pg, 'settings');
+    ok(/USB-stick/.test(await pg.textContent('#st-sum-backup')) && !/geen backup-map/.test(await pg.textContent('#st-sum-backup')), tag + ': Instellingen: Backup-map toont de map (' + await pg.textContent('#st-sum-backup') + ')');
+    // Privé mee zonder versleutelen: zichtbaar op het overzicht
+    await pg.evaluate(() => { Android._bk.parts.sleep = true; Android._sec.on = false; }); await naar(pg, 'backup');
+    ok(await pg.isVisible('#bk-sum-plain') && /privé: 1 aan · onversleuteld/.test(await pg.textContent('#bk-sum-parts')) &&
+      await pg.evaluate(() => getComputedStyle(document.querySelector('#bk-sum-plain')).color !== getComputedStyle(document.querySelector('#bk-sum-parts')).color), tag + ': privé zonder versleutelen: "onversleuteld" in waarschuwingskleur op de rij');
+    ok(/^\d+ van 11 onderdelen/.test(await pg.textContent('#bk-sum-parts')) && await pg.evaluate(() => { const n = parseInt(document.querySelector('#bk-sum-parts').textContent); return n === Object.keys(BK_PARTS).filter(k => k !== 'app' && bkPartOn(bkState(true), k)).length; }), tag + ': Alle appgegevens telt zonder versleutelen niet mee');
+    await pg.evaluate(() => { Android._bk.parts.sleep = false; });
+
+    // ---------- WhatsApp: rijen zichtbaar tijdens een backup; Terugzetten zegt uit welke map ----------
+    await naar(pg, 'wa'); await pg.click('#wa-all'); await pg.waitForTimeout(400 * W);
+    ok(await pg.isVisible('#wa-run') && await pg.isVisible('#wa-row-sel') && !(await pg.isVisible('#wa-all')), tag + ': tijdens de WhatsApp-backup: voortgang en de rijen, geen tweede startknop');
+    await pg.evaluate(() => Android.waCancel()); await pg.waitForTimeout(900 * W);
+    await naar(pg, 'warestore');
+    ok(/USB-stick Rene/.test(await pg.textContent('#wa-rs-dest')) && !(await pg.isVisible('#wa-rs-warn')) && !(await pg.isDisabled('#wa-restore-btn')), tag + ': Terugzetten: de map waaruit, en de knop werkt');
+    await pg.evaluate(() => { Android._wa.info.filesAccess = false; renderWa(false); });
+    ok(await pg.isVisible('#wa-rs-warn') && (await pg.textContent('#wa-rs-btn')) === 'Toegang geven' && await pg.isDisabled('#wa-restore-btn'), tag + ': zonder toegang: melding en Toegang geven');
+    await pg.click('#wa-rs-btn'); await pg.waitForTimeout(250 * W);
+    ok(await pg.evaluate(() => Android._wa.info.filesAccess) && !(await pg.isVisible('#wa-rs-warn')), tag + ': Toegang geven werkt vanaf Terugzetten');
+    // Leesbare chats → Nu bijwerken: voortgang, knop even uit, uitkomst
+    await naar(pg, 'chats');
+    await pg.click('#rd-refresh'); await pg.waitForTimeout(350 * W);
+    ok(await pg.isVisible('#rd-run') && /Bezig met leesbaar maken/.test(await pg.textContent('#rd-run')) && await pg.isDisabled('#rd-refresh'), tag + ': Nu bijwerken: voortgang en de knop even uit (' + await pg.textContent('#rd-run') + ')');
+    await pg.waitForTimeout(1900 * W);
+    ok(/^✓ Klaar: 5 chats leesbaar gemaakt/.test(await pg.textContent('#rd-run')) && !(await pg.isDisabled('#rd-refresh')), tag + ': daarna de uitkomst (' + await pg.textContent('#rd-run') + ')');
     await ctx.close();
 
     // ---------- 360 px: niets breder dan het scherm ----------
@@ -173,7 +225,7 @@ const FOLD = 844;
     await en.pg.evaluate(() => { Android._wa.info.dest = true; Android._wa.info.filesAccess = true; });
     await naar(en.pg, 'backup');
     const t1 = await en.pg.evaluate(() => [document.querySelector('#s-backup h1').textContent, document.querySelector('#bk-row-set b').textContent, document.querySelector('#bk-sum-parts').textContent, document.querySelector('#bk-sum-set').textContent]);
-    ok(t1[1] === 'Automatic and encryption' && /^\d+ of 14 · private off$/.test(t1[2]) && /not encrypted/.test(t1[3]), 'en ' + tag + ': Alles back-uppen in het Engels (' + t1.join(' | ') + ')');
+    ok(t1[1] === 'Schedule and encryption' && /^\d+ of 11 parts · private off$/.test(t1[2]) && /not encrypted/.test(t1[3]), 'en ' + tag + ': Alles back-uppen in het Engels (' + t1.join(' | ') + ')');
     ok((await hoog(en.pg)) <= 1.5 * FOLD, 'en ' + tag + ': ≤ 1,5 scherm');
     await naar(en.pg, 'wa');
     const t2 = await en.pg.evaluate(() => [document.querySelector('#wa-row-sel b').textContent, document.querySelector('#wa-sum-sel').textContent, document.querySelector('#wa-sum-rd').textContent, document.querySelector('#wa-sum-restore').textContent]);

@@ -49,7 +49,28 @@ function rdRefresh(){
   if (!plainOk('Elke chat', rdRefresh)) return;
   const err = Android.waMakeReadable();
   if (err) { toast(err); return; }
-  toast('Chats bijwerken…'); setTimeout(waPollOnce, 200);
+  toast('Chats bijwerken…'); rdWatch();
+}
+/* Voortgang en uitkomst van leesbaar maken op het scherm Leesbare chats zelf (ook als het na een backup vanzelf loopt) */
+let rdRunPoll = null;
+function rdWatch(){ if (!rdRunPoll) rdRunPoll = setInterval(rdRunRender, 600); rdRunRender(); }
+function rdRunRender(){
+  let s; try { s = JSON.parse(Android.waStatus()); } catch(e){ return; }
+  const el = $('#rd-run'), btn = $('#rd-refresh'), run = !!s.running;
+  btn.disabled = run;
+  if (run && s.mode === 'readable') {
+    el.hidden = false; el.className = 'note';
+    el.textContent = s.phase === 'export' && s.filesTotal ? t('Bezig met leesbaar maken: {n} van {totaal}', { n: fmtNum(s.filesDone || 0), totaal: fmtNum(s.filesTotal) }) : t('Bezig met ontsleutelen…');
+    return;
+  }
+  if (run) return; // een gewone backup loopt: daarna kan het weer
+  clearInterval(rdRunPoll); rdRunPoll = null;
+  if (s.mode === 'readable' && s.phase === 'done' && el.dataset.at !== String(s.finishedAt)) {
+    el.dataset.at = String(s.finishedAt); el.hidden = false;
+    el.className = 'note' + (s.result === 'ok' ? ' good' : ' bad');
+    el.textContent = s.result === 'ok' ? t('✓ Klaar: {wat}', { wat: t(s.message || '') }) : t('Mislukt: {wat}', { wat: t(s.message || '') });
+    if (current === 'chats') enterChats();
+  }
 }
 
 let chatCur = null, chatOldest = 0, chatLoading = false, chatGroup = false;
@@ -58,6 +79,7 @@ function enterChats(){
   const r = readInfo();
   $('#chat-contacts').style.display = r.contacts ? 'none' : 'block';
   $('#chat-search').value = ''; $('#search-results').innerHTML = '';
+  try { if (JSON.parse(Android.waStatus()).running) rdWatch(); else $('#rd-refresh').disabled = false; } catch(e){}
   loadChatList();
 }
 function loadChatList(){

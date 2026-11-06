@@ -16,7 +16,7 @@ function stSummaries(i){
   stSum('solo', so ? tn(so, '{n} tool als losse app', '{n} tools als losse app') : t('Geen'));
   const ps = i.perms || [], miss = ps.filter(p => !p.ok).length;
   stSum('perm', !ps.length ? '' : miss ? t('{n} van {totaal} nog niet toegestaan', { n: miss, totaal: ps.length }) : '✓ Alles toegestaan');
-  stSum('backup', bkSetSumText(bkState(false))); // Backup: map, nachtelijk en versleutelen staan bij Alles back-uppen → Automatisch en versleutelen
+  stSum('backup', bkSetSumText(bkState(true))); // Backup: map, nachtelijk en versleutelen staan bij Alles back-uppen → Automatisch en versleutelen
   // AI alleen in het overzicht (vraagt wat meer werk)
   if (current === 'settings' && typeof Android.aiState === 'function') { const a = stJson(Android.aiState()), m = (a.models || []).filter(x => x.state === 'ready');
     stSum('ai', m.length ? m.map(x => x.label).join(' · ') : 'Nog geen model gedownload'); }

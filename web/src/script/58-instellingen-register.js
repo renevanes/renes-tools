@@ -19,7 +19,7 @@ function setHash(tt){ let h = 5381; const s = String(tt); for (let i = 0; i < s.
 /* Herinnering op bedtijd: net als op het scherm eerst toestemming voor meldingen */
 function setSlNotif(on){ slLoad(); if (on && slSt.notifOk === false) { Android.permRequest('notif'); return 'Sta eerst meldingen toe voor de app en probeer het dan opnieuw'; } return ''; }
 function setSl(){ return (rdJson(Android.sleepState(), {}) || {}).set || {}; }
-function setBk(){ return rdJson(Android.backupState(false), {}) || {}; }
+function setBk(){ return rdJson(Android.backupState(true), {}) || {}; } // volledig: auto, charging en parts staan niet in de lichte stand
 function setCar(){ carLoad(); return carSt || {}; }
 function setCarSave(o){ const c = setCar(); Android.carSet(c.addr || '', c.name || '', o.trips != null ? o.trips : !!c.trips, o.def || c.defType || 'prive'); setIf(['car', 'carset'], enterCar); return ''; }
 function setVp(){ return rdJson(Android.vpnState(), {}) || {}; }

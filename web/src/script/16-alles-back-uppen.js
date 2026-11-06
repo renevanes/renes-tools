@@ -51,10 +51,15 @@ function enterBackup(){
     (k === 'app' ? '<div class=bk-sub><p class="note' + (st.encrypted ? '' : ' warn') + '" id=bk-app-note>' + bkAppNote(st.encrypted) + '</p></div>' : '')).join('');
   $('#bk-auto').checked = !!st.auto; $('#bk-charging').checked = st.charging !== false;
   $('#bk-next').textContent = st.auto && st.next ? t('Volgende backup: {wanneer}', { wanneer: fmtDT(st.next, {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) }) : '';
-  $('#bk-restore-list').innerHTML = BK_RESTORE.map(([k, label, icon, sub]) => '<button class="strow" data-k="' + k + '" onclick="Android.restorePick(\'' + k + '\')"><span class="stic">' + uiIcon(icon) + '</span><span class="sttxt"><b>' + esc(t(label)) + '</b><small class=bk-sumwrap>' + esc(t(sub)) + '</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>').join('');
+  bkRestoreList();
   bkRenderLast(st); bkRenderSecure(st); bkRenderHerstel(st); bkSums(st);
   stopBkPoll(); bkPoll = setInterval(bkPollOnce, 1000);
 }
+/* Losse onderdelen terugzetten: ook al bij het laden, zodat zoeken ze vindt */
+function bkRestoreList(){
+  $('#bk-restore-list').innerHTML = BK_RESTORE.map(([k, label, icon, sub]) => '<button class="strow" data-k="' + k + '" onclick="Android.restorePick(\'' + k + '\')"><span class="stic">' + uiIcon(icon) + '</span><span class="sttxt"><b>' + esc(t(label)) + '</b><small class=bk-sumwrap>' + esc(t(sub)) + '</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>').join('');
+}
+bkRestoreList();
 function bkPartOn(st, k){ const p = st.parts || {}; return p[k] === true || (k !== 'notifications' && !(k in BK_PRIV) && p[k] !== false); }
 /* De stand op de rijen van het overzicht (en bij Instellingen → Backup-map) */
 function bkSetSumText(st){
@@ -64,8 +69,11 @@ function bkSetSumText(st){
 }
 function bkSums(st){
   st = st || bkState(true);
-  const keys = Object.keys(BK_LABEL), on = keys.filter(k => bkPartOn(st, k)), priv = Object.keys(BK_PRIV).filter(k => bkPartOn(st, k));
-  const p = $('#bk-sum-parts'); if (p) p.textContent = t('{n} van {totaal}', { n: on.length, totaal: keys.length }) + ' · ' + (priv.length ? t('privé: {n} aan', { n: priv.length }) : t('privé uit'));
+  // Gewone onderdelen tellen (Alle appgegevens alleen als hij ook echt meegaat: versleuteld); privé apart, met een waarschuwing als het onversleuteld gaat
+  const keys = Object.keys(BK_PARTS), on = keys.filter(k => bkPartOn(st, k) && (k !== 'app' || st.encrypted)), priv = Object.keys(BK_PRIV).filter(k => bkPartOn(st, k));
+  const p = $('#bk-sum-parts');
+  if (p) p.innerHTML = esc(t('{n} van {totaal} onderdelen', { n: on.length, totaal: keys.length }) + ' · ' + (priv.length ? t('privé: {n} aan', { n: priv.length }) : t('privé uit'))) +
+    (priv.length && !st.encrypted ? ' · <span class="bk-warn" id="bk-sum-plain">' + esc(t('onversleuteld')) + '</span>' : '');
   // Mislukte maandelijkse controle (melding of startscherm opent het overzicht): op de rij, zodat je ziet waar het staat
   let chk = {}; try { chk = JSON.parse(Android.backupCheckLast()) || {}; } catch(e){}
   const s = $('#bk-sum-set'); if (s) s.textContent = bkSetSumText(st) + (chk.t && !chk.ok ? ' · ' + t('controle: er is iets mis') : '');
@@ -85,7 +93,7 @@ function bkRenderHerstel(st){
       '<button class="big tonal" id=bk-blocked-btn onclick="' + (terug ? 'herstelStart()' : 'bkEncSet()') + '">' + t(terug ? 'Gegevens terugzetten' : 'Wachtwoord instellen') + '</button>' +
       (/wachtwoord van je backup/.test(blk) ? '<button class="big ghost" style="margin-top:8px" id=bk-plain-btn onclick="bkPlainOk()">' + t('Zonder versleutelen verder') + '</button>' : '') : '') +
     (h.ok ? '' : rows.filter(r => !r[1]).map(r => r[2] ? '<button class="bkres bkfix" onclick="show(\'' + r[2] + '\')"><b>' + t(r[0]) + '</b><span class=bad>' + t('✗ ontbreekt') + '</span>' + uiIcon('chevron-right') + '</button>'
-      : '<div class=bkres><b>' + t(r[0]) + '</b><span class=bad>' + t('✗ ontbreekt') + '</span></div>').join('')) +
+      : '<div class=bkres><b>' + t(r[0]) + '</b><span class=bad>' + t('✗ ontbreekt') + '</span><span class=bk-sp aria-hidden=true></span></div>').join('')) +
     (h.stopped ? '<p class="note warn" id=bk-herstel-stopped>' + t('De laatste nachtelijke backup werd door Android gestopt voordat alle appgegevens erin zaten. Maak hem één keer met Nu alles back-uppen en laat de app open tot hij klaar is.') + '</p>' : '') +
     // Grootte: elke nacht een volledig archief erbij. Opruimen kiest Rene zelf.
     (h.part && h.enc && !h.rotate ? '<p class=note id=bk-herstel-size>' + (h.appBytes ? t('Elke nacht komt er een volledige backup bij (de appgegevens waren de laatste keer ongeveer {grootte}). Oude backups worden niet vanzelf weggehaald, dus je backup-map groeit elke nacht.', { grootte: fmtB(h.appBytes) }) : t('Elke nacht komt er een volledige backup bij. Oude backups worden niet vanzelf weggehaald, dus je backup-map groeit elke nacht.')) +
@@ -98,10 +106,20 @@ function bkPlainOk(){
 }
 function bkRotateOn(){ Android.backupSetRotate(true); toast('Na elke gelukte backup worden oude backups opgeruimd (de laatste 14 dagen en de nieuwste per maand blijven)'); enterBackup(); }
 function stopBkPoll(){ if (bkPoll) { clearInterval(bkPoll); bkPoll = null; } }
+/* Tijdens een backup: wat Java niet tegenhoudt (wachtwoord, versleutelen uit, opruimen, map) even niet, met een regel waarom */
+function bkBusyUi(){
+  const b = $('#bk-set-busy'); if (b) b.hidden = !bkBusy;
+  ['#bk-enc-off', '#bk-rotate-btn', '#bk-dest-btn'].forEach(id => { const e = $(id); if (e) e.disabled = bkBusy; });
+  const e = $('#bk-enc-btn'); if (e) e.disabled = bkBusy || (typeof bkEncBusy !== 'undefined' && bkEncBusy);
+}
+let bkHasDest = false;
+/* st mag de lichte stand zijn (backupState(false): busy, current, encrypted, last); de map staat alleen in de volledige */
 function bkRenderLast(st){
   const l = st.last;
   bkBusy = !!st.busy;
-  $('#bk-run').disabled = bkBusy || !st.dest;
+  if ('dest' in st) bkHasDest = !!st.dest;
+  $('#bk-run').disabled = bkBusy || !bkHasDest;
+  bkBusyUi();
   $('#bk-run').textContent = bkBusy ? t('Bezig: {wat}', { wat: t(BK_LABEL[st.current] || '…') }) : t('Nu alles back-uppen');
   if (!l || !l.t) { $('#bk-last').textContent = t('Nog niet gemaakt'); uiHtml($('#bk-parts-res'), ''); return; }
   $('#bk-last').textContent = (l.auto ? t('Automatisch') + ', ' : '') + fmtDT(l.t, {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
@@ -113,12 +131,12 @@ function bkRenderLast(st){
   uiHtml($('#bk-parts-res'), bad.map(row).join('') + (l.all ? '<div class=bkres><span class=bad>' + esc(l.all.msg || '') + '</span></div>' : '') +
     (good.length || extra ? uiHelp(bad.length ? tn(good.length, '{n} onderdeel gelukt', '{n} onderdelen gelukt') : tn(good.length, '✓ {n} onderdeel gelukt', '✓ Alle {n} onderdelen gelukt'), good.map(row).join('') + extra, true, 'bk-res') : ''));
 }
-function bkPollOnce(){ const st = bkState(); if (st.busy !== bkBusy || st.busy) bkRenderLast(st); const tt = $('#tile-backup-sub'); if (tt) tt.textContent = st.busy ? t('Bezig met back-uppen…') : (st.last && st.last.t ? t('Laatst: {wat}', { wat: fmtD(st.last.t) }) : t('Alles in één keer bewaren')); }
+function bkPollOnce(){ let st = bkState(); if (st.busy !== bkBusy && bkOn()) { st = bkState(true); bkRenderLast(st); bkRenderHerstel(st); bkSums(st); } else if (st.busy) bkRenderLast(st); const tt = $('#tile-backup-sub'); if (tt) tt.textContent = st.busy ? t('Bezig met back-uppen…') : (st.last && st.last.t ? t('Laatst: {wat}', { wat: fmtD(st.last.t) }) : t('Alles in één keer bewaren')); }
 function bkRun(){ const e = Android.backupStart($('#bk-wa').checked); if (e) toast(e); setTimeout(bkPollOnce, 200); }
 window.onBackupDone = function(r){
   const failed = Object.keys(r || {}).filter(k => r[k] && r[k].ok === false).length;
   toast(failed ? tn(failed, 'Backup klaar, {n} onderdeel mislukt', 'Backup klaar, {n} onderdelen mislukt') : t('✓ Alles is back-upt'));
-  if (bkOn()) { bkRenderLast(bkState()); bkSums(); } bkPollOnce();
+  if (bkOn()) { const st = bkState(true); bkRenderLast(st); bkRenderHerstel(st); bkSums(st); } bkPollOnce();
 };
 function bkCount(v, one, more){ v = v || 0; return fmtNum(v) + ' ' + t(v === 1 ? one : more); }
 function bkPrivRender(st){
@@ -139,7 +157,7 @@ function bkPrivRender(st){
     '<label class=chk><input type=checkbox data-p="checkin"' + (on('checkin') ? ' checked' : '') + ' onchange="bkPrivSet(this)"> Check-in (vragen, antwoorden, notities, labels en opmerkingen)</label>' +
     '<div class=bk-sub><p class=note>' + esc(ciInfo) + '</p>' + ciWarn + '</div>' +
     (on('ai') || on('sleep') || on('checkin') ? (st.encrypted ? '<p class=note id=bk-priv-enc>' + uiIcon('lock') + ' Gaat versleuteld mee, in het archief van Alles back-uppen.</p>'
-      : '<p class="note warn" id=bk-priv-warn>Let op: versleutelen staat uit. Dit komt als leesbaar bestand in je backup-map, te lezen door iedereen die bij die map kan (bijv. via OneDrive). Zet Versleutelen aan om het te beschermen.</p><button class="big tonal" id=bk-priv-enc-btn onclick="show(\'bkset\')">' + t('Naar Versleutelen') + '</button>') : '');
+      : '<p class="note warn" id=bk-priv-warn>Let op: versleutelen staat uit. Dit komt als leesbaar bestand in je backup-map, te lezen door iedereen die bij die map kan (bijv. via OneDrive). Zet Versleutelen aan om het te beschermen.</p><button class="big tonal" id=bk-priv-enc-btn onclick="jumpTo(\'bkset\')">' + t('Naar Versleutelen') + '</button>') : '');
 }
 function bkPrivSet(el){
   const k = el.dataset.p;

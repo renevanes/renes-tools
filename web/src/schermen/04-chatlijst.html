@@ -16,14 +16,15 @@
         <textarea class="key" id="rd-key" rows="3" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="abcd 1234 …"></textarea>
         <button class="big tonal" id="rd-perm" style="margin-top:10px;display:none" onclick="Android.waRequestFilesAccess()">Toegang tot bestanden geven</button>
         <button class="big" id="rd-save" style="margin-top:10px" onclick="rdSaveKey()">Controleer sleutel en maak leesbaar</button>
-        <p class="note">De sleutel blijft alleen op je telefoon, in deze app. Bewaar hem ook zelf goed.</p>
+        <p class="note">De sleutel blijft alleen op je telefoon, in deze app. Bewaar hem ook zelf goed. De leesbare webpagina's in je backup-map zijn niet versleuteld.</p>
       </div>
       <div id="rd-ready" style="display:none">
         <div class="sw"><span>Automatisch bijwerken<small>Na elke backup de chats opnieuw leesbaar maken</small></span><button class="tg on" id="rd-auto" onclick="togUi(this); Android.waSetReadableAuto(this.classList.contains('on'))"></button></div>
         <p class="note" style="margin-top:0">De webpagina's in de backup-map zijn niet versleuteld; staat versleutelen aan, dan worden ze alleen in de app bijgewerkt.</p>
         <p class="note" id="rd-from"></p>
+        <p class="note" id="rd-run" role="status" hidden></p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="big ghost" style="flex:1" onclick="rdRefresh()">Nu bijwerken</button>
+          <button class="big ghost" style="flex:1" id="rd-refresh" onclick="rdRefresh()">Nu bijwerken</button>
           <button class="big ghost" style="flex:1" onclick="rdForget()">Sleutel wissen</button>
         </div>
       </div>

@@ -24,6 +24,12 @@ function renderWa(rescan){
   $('#wa-nosrc').style.display = i.filesAccess && !(i.sources||[]).length ? 'block' : 'none';
   $('#wa-dest').textContent = i.dest ? (i.destName || 'Gekozen map') : 'Nog niet gekozen';
   $('#wa-dest-btn').textContent = i.dest ? 'Andere map' : 'Kies map';
+  // Terugzetten: uit welke map, en of de app er wel bij kan (anders eerst toegang of een map)
+  $('#wa-rs-dest').textContent = i.dest ? (i.destName || t('Gekozen map')) : t('Nog niet gekozen');
+  $('#wa-rs-btn').textContent = t(!i.filesAccess ? 'Toegang geven' : i.dest ? 'Andere map' : 'Map kiezen');
+  $('#wa-rs-warn').hidden = !!(i.filesAccess && i.dest);
+  $('#wa-rs-warn').textContent = !i.filesAccess ? t('Zonder toegang tot alle bestanden kan de app niets in de WhatsApp-map terugzetten.') : !i.dest ? t('Kies eerst de map waarin de backup staat.') : '';
+  $('#wa-restore-btn').disabled = !(i.filesAccess && i.dest);
   $('#wa-last').textContent = i.lastOk ? fmtD(i.lastOk) : t('Nog niet gemaakt');
   $('#wa-sum-auto').textContent = i.auto ? t((i.autoMode || 'all') === 'selection' ? 'Elke nacht · mijn selectie' : 'Elke nacht · alles') + (i.autoCharging !== false ? ' · ' + t('tijdens opladen') : '') : t('Uit');
   $('#wa-auto').classList.toggle('on', !!i.auto);
@@ -72,6 +78,8 @@ function waStart(mode){
   if (err) { toast(err); if (err.indexOf('map') >= 0 && !waInfoC.dest) Android.waPickFolder(); return; }
   waLastKey = ''; $('#wa-result').className = 'result'; Android.vibrate(25); waToHub(); setTimeout(waPollOnce, 200);
 }
+/* Terugzetten: eerst toegang tot bestanden, dan de map (eigen hulpfunctie: ook in de losse app bruikbaar) */
+function waRestoreFix(){ if (!waInfoC.filesAccess) Android.waRequestFilesAccess(); else Android.waPickFolder(); }
 /* De voortgang staat op het overzicht: vanaf Selectie of Terugzetten daarheen */
 function waToHub(){ if (current !== 'wa' && WA_SCR.includes(current)) show('wa'); }
 function waRestore(){
@@ -87,7 +95,7 @@ function waPollOnce(){
   if (waWasRunning && !run) renderWa(true);
   waWasRunning = run;
   $('#wa-run').style.display = run ? 'block' : 'none';
-  $('#wa-setup').style.display = run ? 'none' : 'block';
+  $('#wa-status').style.display = run ? 'none' : ''; // de rijen blijven zichtbaar onder de voortgang
   if (run) {
     $('#wa-run-title').textContent = s.mode === 'restore' ? 'Terugzetten bezig' : s.mode === 'auto' ? 'Automatische backup bezig' : 'Backup bezig';
     const ph = {scan:'Bestanden zoeken…', compare:'Vergelijken met de backup…', copy:'Kopiëren…'}[s.phase] || '';

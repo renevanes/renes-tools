@@ -26,7 +26,7 @@
     </div>
 
     <div id="wa-setup">
-      <div class="card bkst">
+      <div class="card bkst" id="wa-status">
         <div class="bkst-top">
           <span class="stic"><span class="ui-icon" data-icon="backup" aria-hidden="true"></span></span>
           <span class="sttxt"><b>Laatste backup</b><small id="wa-last">Nog niet gemaakt</small></span>
@@ -35,6 +35,7 @@
         <button class="big" id="wa-all" onclick="waStart('all')">Alles back-uppen</button>
         <div class="sub" id="wa-all-size">Chats en alle media, zonder statussen</div>
         <p class="hint">Alleen nieuwe en gewijzigde bestanden worden gekopieerd. In de backup wordt nooit iets verwijderd.</p>
+        <p class="hint" id="wa-plain-hint">Foto's, video's en documenten staan onversleuteld in je backup-map.</p>
       </div>
 
       <div class="card stlist" id="wa-rows">
@@ -95,10 +96,14 @@
     <h1 tabindex="-1">Terugzetten</h1>
   </div>
   <main>
+    <div class="card" id="wa-rs-src">
+      <div class="dest"><span><small>Terugzetten uit</small><b id="wa-rs-dest">Nog niet gekozen</b></span><button id="wa-rs-btn" onclick="waRestoreFix()">Map kiezen</button></div>
+      <p class="note warn" id="wa-rs-warn" hidden></p>
+    </div>
     <div class="card">
       <h2>Op een (nieuwe) telefoon</h2>
       <ol class="steps">
-        <li>Installeer Tools en kies bij WhatsApp backup de map waarin de backup staat.</li>
+        <li>Installeer Tools en kies hierboven de map waarin de backup staat.</li>
         <li>Tik hieronder op <b>Backup terugzetten</b>. De bestanden gaan terug naar de WhatsApp-map.</li>
         <li>Installeer daarna pas WhatsApp en registreer met hetzelfde nummer.</li>
         <li>Kies <b>Herstellen</b> als WhatsApp een backup vindt.</li>

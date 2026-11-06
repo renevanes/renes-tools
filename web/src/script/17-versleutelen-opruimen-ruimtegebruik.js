@@ -24,6 +24,7 @@ function bkRenderSecure(st){
   if (st.parts && bkOn() && $('#bk-app-note')) { const n = $('#bk-app-note'); n.className = 'note' + (on ? '' : ' warn'); n.innerHTML = bkAppNote(on); }
   if (st.herstel) bkRenderHerstel(st);
   if (st.space) bkRenderSpace(st.space);
+  bkBusyUi();
 }
 let bkEncBusy = false;
 function bkEncSet(){

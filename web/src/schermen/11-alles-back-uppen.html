@@ -22,7 +22,7 @@
       <p class="note" id="bk-dest"></p>
     </div>
     <div class="card stlist" id="bk-rows">
-      <button class="strow" id="bk-row-parts" onclick="show('bkparts')"><span class="stic"><span class="ui-icon" data-icon="check" aria-hidden="true"></span></span><span class="sttxt"><b>Wat gaat er mee</b><small id="bk-sum-parts"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" id="bk-row-parts" onclick="show('bkparts')"><span class="stic"><span class="ui-icon" data-icon="check" aria-hidden="true"></span></span><span class="sttxt"><b>Wat gaat er mee</b><small class="bk-sumwrap" id="bk-sum-parts"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" id="bk-row-set" onclick="show('bkset')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Automatisch en versleutelen</b><small class="bk-sumwrap" id="bk-sum-set"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" id="bk-row-restore" onclick="show('bkrestore')"><span class="stic"><span class="ui-icon" data-icon="download" aria-hidden="true"></span></span><span class="sttxt"><b>Terugzetten</b><small id="bk-sum-restore">Losse onderdelen of alles</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
@@ -65,6 +65,7 @@
     <h1 tabindex="-1">Automatisch en versleutelen</h1>
   </div>
   <main>
+    <p class="note warn" id="bk-set-busy" role="status" hidden>Er loopt nu een backup. Map, wachtwoord en opruimen kun je weer aanpassen als hij klaar is.</p>
     <div class="card">
       <h2>Backup-map</h2>
       <p class="note" style="margin:0 0 10px" id="st-dest">Nog niet gekozen</p>
@@ -92,7 +93,7 @@
     <div class="card">
       <h2>Oude backups opruimen</h2>
       <label class="sw"><span>Na elke gelukte backup opruimen<small>De laatste 14 dagen blijven, en daarvoor de nieuwste per maand</small></span><input type="checkbox" class="switch" role="switch" id="bk-rotate" onchange="Android.backupSetRotate(this.checked); bkSums()"></label>
-      <button class="big ghost" onclick="bkRotate()">Nu opruimen</button>
+      <button class="big ghost" id="bk-rotate-btn" onclick="bkRotate()">Nu opruimen</button>
       <details class="help in"><summary data-icon="info">Wat wordt er opgeruimd?</summary><div class="help-body">
         <p>De gedateerde sms-, oproepen- en contactbestanden en de versleutelde backups. De nieuwste blijft altijd staan, en je ziet eerst hoeveel er weg gaat.</p>
       </div></details>
@@ -123,7 +124,7 @@
       <button class="big tonal" id="bk-herstel-btn" onclick="herstelStart()">Alle appgegevens terugzetten</button>
     </div>
     <div class="flabel stgl" role="heading" aria-level="2">Losse onderdelen</div>
-    <p class="hint">Er wordt alleen toegevoegd wat er nog niet is; er wordt niets overschreven of verwijderd.</p>
+    <p class="hint">Er wordt alleen toegevoegd wat er nog niet is; er wordt niets overschreven of verwijderd, behalve bij het startscherm (de huidige indeling wordt eerst bewaard).</p>
     <div class="card stlist" id="bk-restore-list"></div>
     <div class="card stlist">
       <button class="strow" id="bk-arc-btn" onclick="Android.archivePick()"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Versleutelde backup openen</b><small class="bk-sumwrap">Kies een onderdeel uit het archief, of pak het uit</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>

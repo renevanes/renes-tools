@@ -30,8 +30,12 @@ function gsBuildIndex(){
     if (typeof playWeg === 'function' && playWeg(scr)) return;
     if (scr === 'home' || scr === 'search' || DETAIL.includes(scr)) return;
     const h1 = sec.querySelector('.hdr h1'), screen = h1 ? h1.textContent.trim() : scr;
-    const own = {scr, el: null, title: screen, sub: BACK[scr] === 'settings' ? 'Instellingen' : 'Openen', key: fold(screen + ' ' + scr + ' ' + Object.keys(GS_SYN).filter(k => fold(screen).includes(k)).map(k => GS_SYN[k]).join(' '))};
+    // Eigen scherm van een tool (bijv. Terugzetten bij Alles back-uppen en bij WhatsApp backup): de naam van die tool eronder, zodat twee gelijke namen te onderscheiden zijn
+    const ph = BACK[scr] && BACK[scr] !== 'home' && document.querySelector('#s-' + BACK[scr] + ' .hdr h1');
+    const own = {scr, el: null, title: screen, sub: ph ? ph.textContent.trim() : 'Openen', key: fold(screen + ' ' + scr + ' ' + Object.keys(GS_SYN).filter(k => fold(screen).includes(k)).map(k => GS_SYN[k]).join(' '))};
     gsIndex.push(own);
+    // Rijen op dit scherm (bijv. de losse onderdelen bij Terugzetten): hun namen horen bij dit scherm
+    sec.querySelectorAll('.stlist .strow .sttxt b').forEach(b => { if (!b.closest('.play-weg')) own.key += ' ' + fold(b.textContent); });
     sec.querySelectorAll('.card').forEach(card => {
       if (card.classList.contains('play-weg')) return;
       const h = card.querySelector('h2, h3'); if (!h) return;
