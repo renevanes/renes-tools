@@ -340,13 +340,13 @@ final class FacturenDossier {
             JSONObject all = alle(c), s = all.optJSONObject(sha);
             if (s == null) throw new Exception("Factuur niet gevonden in het dossier");
             FacturenRun r = FacturenRun.LOPEND.get();
-            if (r != null && r.id.equals(s.optString("leverancier"))) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
+            if (r != null && (r.id.equals(s.optString("leverancier")) || r.id.equals(s.optString("via")))) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
             onthoudVerzonden(c, new JSONObject().put(sha, s));
             File f = FacturenAanlever.bestand(c, s);
             if (f != null && !f.delete() && f.exists()) throw new Exception("Het bestand weghalen lukt niet");
             all.remove(sha);
             bewaar(c, all);
-            String lev = s.optString("leverancier");
+            String lev = s.optString("via", "").isEmpty() ? s.optString("leverancier") : s.optString("via"); // uit de mail: de mailbron onthoudt wat hij had
             if (opnieuw && !lev.isEmpty() && !HANDMATIG.equals(lev)) {
                 JSONObject t = Facturen.toestand(c, lev), vw = t.optJSONObject("verwerkt");
                 if (vw != null && vw.has(sha)) { vw.remove(sha); Facturen.werkBij(c, lev, new JSONObject().put("verwerkt", vw)); }
@@ -510,15 +510,19 @@ final class FacturenDossier {
             for (Iterator<String> j = vw.keys(); j.hasNext(); ) {
                 String sha = j.next();
                 JSONObject r = vw.optJSONObject(sha);
-                if (r == null || r.optBoolean("buiten")) continue; // buiten de periode: niet bewaard
-                File f = new File(Facturen.pdfDir(c, id), r.optString("n"));
+                if (r == null || r.optBoolean("buiten") || r.optBoolean("overgeslagen")) continue; // buiten de periode of overgeslagen: niet bewaard
+                String bij = r.optString("l", id); // uit de mail: bij de leverancier waar hij hoort
+                JSONObject levBij = bij.equals(id) ? lev : Facturen.leverancier(c, bij);
+                File f = new File(Facturen.pdfDir(c, bij), r.optString("n"));
                 JSONObject plekken = new JSONObject();
                 if (f.isFile()) plekken.put("app", new JSONObject().put("pad", f.getAbsolutePath()).put("t", r.optLong("t")));
                 for (String k : new String[]{"map", "lok", "gd", "ec"}) if (r.optBoolean(k)) plekken.put(k, new JSONObject().put("t", r.optLong("t")));
-                items.put(sha, new JSONObject().put("sha", sha).put("naam", r.optString("n")).put("origineel", r.optString("o", r.optString("n")))
-                        .put("grootte", f.isFile() ? f.length() : 0).put("leverancier", id).put("leverancierNaam", lev == null ? id : lev.optString("naam"))
+                JSONObject s = new JSONObject().put("sha", sha).put("naam", r.optString("n")).put("origineel", r.optString("o", r.optString("n")))
+                        .put("grootte", f.isFile() ? f.length() : 0).put("leverancier", bij).put("leverancierNaam", levBij == null ? bij : levBij.optString("naam"))
                         .put("opgehaald", r.optLong("t")).put("bron", new JSONObject().put("soort", lev == null ? "" : lev.optString("soort", "website")))
-                        .put("plekken", plekken).put("verzonden", new JSONObject()).put("meta", herken(r.optString("n")).put("bron", "herkend")));
+                        .put("plekken", plekken).put("verzonden", new JSONObject()).put("meta", herken(r.optString("n")).put("bron", "herkend"));
+                if (!bij.equals(id)) s.put("via", id);
+                items.put(sha, s);
             }
         }
         return items;

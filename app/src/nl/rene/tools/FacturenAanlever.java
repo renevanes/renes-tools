@@ -204,9 +204,9 @@ final class FacturenAanlever {
     static boolean open(JSONObject ontv, JSONObject stuk) {
         if (stuk == null) return false;
         JSONArray lev = ontv.optJSONArray("leveranciers");
-        if (lev != null && lev.length() > 0) {
+        if (lev != null && lev.length() > 0) { // de mailbron aangevinkt = alles uit die mail, ook leveranciers die er later bij komen
             boolean ja = false;
-            for (int i = 0; i < lev.length(); i++) if (lev.optString(i).equals(stuk.optString("leverancier"))) ja = true;
+            for (int i = 0; i < lev.length(); i++) if (lev.optString(i).equals(stuk.optString("leverancier")) || lev.optString(i).equals(stuk.optString("via"))) ja = true;
             if (!ja) return false;
         }
         JSONObject v = stuk.optJSONObject("verzonden"), x = v == null ? null : v.optJSONObject(ontv.optString("id"));

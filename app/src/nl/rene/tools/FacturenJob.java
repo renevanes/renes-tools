@@ -33,11 +33,14 @@ public class FacturenJob extends JobService {
         if (beurt.isEmpty()) {
             // Niets op te halen: dan aanleveren aan de accountant/boekhouder als dat aan de beurt is
             final List<String> ontv = FacturenAanlever.aanDeBeurt(ctx, System.currentTimeMillis());
-            if (ontv.isEmpty() || FacturenAanlever.BEZIG.get()) { h.post(() -> schedule(ctx)); return false; }
+            final boolean leveren = !ontv.isEmpty() && !FacturenAanlever.BEZIG.get();
+            final boolean indelen = FacturenIndeling.nodig(ctx) && !FacturenIndeling.BEZIG.get(); // eenmalig: facturen uit de mail per leverancier
+            if (!leveren && !indelen) { h.post(() -> schedule(ctx)); return false; }
             gestopt = false;
             new Thread(() -> {
                 try {
-                    for (String id : ontv) {
+                    if (indelen) FacturenIndeling.herindelen(ctx);
+                    if (leveren) for (String id : ontv) {
                         if (gestopt) break;
                         JSONObject r = FacturenAanlever.stuurNu(ctx, id, false, true);
                         JSONObject o = FacturenAanlever.ontvanger(ctx, id);

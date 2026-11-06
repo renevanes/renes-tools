@@ -507,6 +507,19 @@ final class Facturen {
         }
     }
 
+    /** De hele lijst in één keer bewaren (na samenvoegen of een regel onthouden); elke leverancier wordt gecontroleerd. */
+    static void bewaarAlle(Context c, JSONArray levs) throws Exception {
+        synchronized (LOCK) {
+            JSONArray n = new JSONArray();
+            for (int i = 0; i < levs.length(); i++) {
+                JSONObject x = levs.getJSONObject(i), o = normaal(x);
+                o.put("id", x.optString("id")); // de id blijft wat hij was
+                n.put(o);
+            }
+            JsonFileStore.write(levFile(c), new JSONObject().put("lijst", n).toString(), Facturen::checkLijst);
+        }
+    }
+
     static void verwijder(Context c, String id) throws Exception {
         synchronized (LOCK) {
             JSONArray oud = leveranciers(c);

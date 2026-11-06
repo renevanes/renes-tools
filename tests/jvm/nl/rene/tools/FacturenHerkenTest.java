@@ -156,6 +156,28 @@ public class FacturenHerkenTest {
         check(sm.getJSONArray("domeinen").length() == 2 && sm.getJSONArray("kvk").length() == 1, "samenvoegen: alles van beide, niets dubbel");
         check(FacturenHerken.regelPast("kpn.com", "a@mail.kpn.com") && !FacturenHerken.regelPast("kpn.com", "a@notkpn.com") && FacturenHerken.regelPast("a@b.nl", "a@b.nl") && !FacturenHerken.regelPast("a@b.nl", "x@b.nl"), "eigen regels: domein of heel adres");
 
+        // ---------- onthouden (factuur bij een andere leverancier) ----------
+        JSONArray rl = new JSONArray()
+                .put(uitmail("oud", "Oud", new JSONObject().put("afzenders", new JSONArray().put("piet@gmail.com")).put("kvk", new JSONArray().put("44445555"))))
+                .put(uitmail("piet", "Piet Klus", new JSONObject().put("namen", new JSONArray().put("piet klus"))).put("nieuw", true))
+                .put(new JSONObject().put("id", "kpn").put("naam", "KPN").put("soort", "website"));
+        JSONObject rkm = FacturenHerken.kenmerken(bron("Piet <piet@gmail.com>"), "KvK 44445555", k);
+        check(FacturenIndeling.regel(rl, "piet", rkm), "onthouden: er verandert iets");
+        JSONObject rh = rl.getJSONObject(1).getJSONObject("herken");
+        check(rh.getJSONArray("afzenders").getString(0).equals("piet@gmail.com") && rh.getJSONArray("kvk").getString(0).equals("44445555") && !rl.getJSONObject(1).optBoolean("nieuw"), "onthouden: adres en nummer bij de gekozen leverancier, niet meer nieuw");
+        check(rl.getJSONObject(0).getJSONObject("herken").getJSONArray("afzenders").length() == 0 && rl.getJSONObject(0).getJSONObject("herken").getJSONArray("kvk").length() == 0, "onthouden: weg bij de vorige (anders wint de oude regel)");
+        check(!FacturenIndeling.regel(rl, "piet", rkm), "onthouden: twee keer = niets nieuws");
+        check(FacturenHerken.kies(rl, FacturenHerken.kenmerken(bron("<piet@gmail.com>"), "", k), k).optString("id").equals("piet"), "onthouden: de volgende factuur komt vanzelf goed");
+        JSONObject pkm = FacturenHerken.kenmerken(bron("Bakkerij Jansen <noreply@moneybird.com>"), "", k);
+        check(FacturenIndeling.regel(rl, "kpn", pkm) && rl.getJSONObject(2).getJSONObject("herken").getJSONArray("namen").getString(0).equals("bakkerij jansen")
+                && !rl.getJSONObject(2).getJSONObject("herken").has("afzenders"), "onthouden via een platform: de naam, niet het gedeelde adres");
+
+        // ---------- samenvoegen: keuzes bij Aanleveren ----------
+        JSONArray ids = new JSONArray().put("a").put("van").put("naar");
+        check(FacturenIndeling.vervang(ids, "van", "naar") && ids.length() == 2 && ids.getString(0).equals("a") && ids.getString(1).equals("naar"), "samenvoegen: aangevinkt blijft aangevinkt, niet dubbel");
+        JSONArray ids2 = new JSONArray().put("van");
+        check(FacturenIndeling.vervang(ids2, "van", "naar") && ids2.length() == 1 && ids2.getString(0).equals("naar") && !FacturenIndeling.vervang(ids2, "van", "naar") && !FacturenIndeling.vervang(null, "a", "b"), "samenvoegen: vervangen, en niets als hij er niet in staat");
+
         System.out.println(fails == 0 ? "Alles goed" : fails + " mislukt");
         if (fails > 0) System.exit(1);
     }
