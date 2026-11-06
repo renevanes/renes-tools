@@ -1,15 +1,26 @@
 {
   "app": "Tools",
-  "versionName": "1.152",
-  "versionCode": 153,
-  "nativeLevel": 137,
+  "versionName": "1.153",
+  "versionCode": 154,
+  "nativeLevel": 138,
   "web": "index.html",
-  "webSha256": "1bdbd782f396e7eaad5d2f4bbe67316f3425531041a847e5c69bb1fce7ebd6d6",
+  "webSha256": "5df1e190b6eb77012b5457557d359986c40344103649a5ace5fdfc18ba3f8e79",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "1e18cb1c9cbc579ebdb6c2b2d5414e333f342966422fcc2e8583fd6bb98d6577",
+  "apkSha256": "3cb8de8da3f0263fbefddb5c18e32d77275ab9657d485813e03375987166fa49",
   "changelog": [
+    {
+      "version": "1.153",
+      "date": "2026-11-06",
+      "changes": [
+        "Facturen uit je mail: elke leverancier staat nu apart. Tools herkent de afzender (en het btw-, KvK- of IBAN-nummer op de factuur) en zet nieuwe leveranciers onder \"Gevonden in je mail\" met het label Nieuw; met Klopt, Samenvoegen, \"Hoort bij …\" of Overslaan bepaal je zelf hoe het blijft (Overslaan zet je terug bij Facturen in Gmail → Instellingen; de overgeslagen facturen komen dan alsnog).",
+        "Elke leverancier uit je mail heeft een eigen map (Facturen/<leverancier>), een eigen rij in het overzicht per maand en een eigen vinkje bij Aanleveren; \"Alles uit Gmail\" aanvinken neemt ook leveranciers mee die er later bij komen.",
+        "In het dossier zet je een factuur uit je mail bij een andere leverancier; met \"Onthoud dit\" gaat dat voortaan vanzelf. Herkent Tools een afzender verkeerd, pas het dan aan bij de leverancier → Naam en opslag aanpassen → Herkennen.",
+        "Je eigen KvK-, btw- en IBAN-nummer en je eigen mailadres stel je in bij Facturen in Gmail → Instellingen → Zoeken, zodat Tools niet jezelf als leverancier ziet. Herkennen gebeurt helemaal op je telefoon.",
+        "Facturen die al uit je mail kwamen, deelt Tools één keer opnieuw in bij hun eigen leverancier; kopieën in je backup-map, op Drive en in je mail blijven waar ze zijn."
+      ]
+    },
     {
       "version": "1.152",
       "date": "2026-11-06",
@@ -1348,5 +1359,5 @@
       ]
     }
   ],
-  "webSig2": "PyvYB3wZCH/v5iV58LDC6a9VLBVehjRmIDTCeGwG1jNhBT/snLVkGcEWmIaQBHJTOvXppsBEKB/ZU1lIcGwGQGYKBEo0W/7tGp8ggJ22f2HVaWG6CVEtLp2ZH7tCw8i34Jw3Rl3vWSkHPZAU+K59oFxCeuplUGTeFda+NdJdtfbjy1VamTPvDjcCqzI8OnPhtPftQ169sphkGti5oKB93+sZoeC3P8U3p0JzdKfuMiyCSY3D4k+j3HvgULpS0nd5Art9qesMRLPR/gBEuWOjdDSHCm7gWP1DPLtNyHtftZdAa3w1Qdmqhi1GukVft6gMHiyWA0dNNoromm093FidF11y+qOQ868WHD6/XogsPnsol0LY3ujtlH8xA1nPXdZWM68O9NKXQGu6H32BWaWzqHNi1QHxPqu7Pf38JRqT97t6qWTYiqv6bhgHSgS7MIGJybDqweLXqp9w7YwY4yLH3fSnIQbIB4VQBfGVuL+1rjMIGysDwJEGh0GRnb5hoWcR"
+  "webSig2": "YJGgYYMBjwtf3j84C5mq0Qgrxfr+boKc87mureRAohLoXaN9R6cFOEo50vlXHKYq4LcxslG2HQirHjuGpwWkh2u1ilpQIzed1H7/LGh8Y4bSJvgMqM4tABSyTg3KX/pZQAoKbPbUT3rfQKrdYxw4ossouTZYq+svFjZHNBqLWmXPtc71ifDR+oRenHXY25AvhrWJqTZprCFHq5uygbqDpb44ub5JjHoiUTv6UcQTqI5Jqm9V5QJRdC1kL0I/oRHJfSqXLIMyJz3sb8fMR6bzY/MkvC+b2f0wqio7efQJw3FgCTpKJqKQWfJ9ME9R0NIlNhbCv/+ZGSYJ/Tkl7Ir4p0EvAaZ3G7q5nW2oDvXOWlgw+pvKWKE16pGZME/tPugb7zve0Ryv6C0hhjq7yunky4Td+DOrAXIhIpzWo4yeVRx4LGJv3gAGEoSSj+xozRGpzfuw1wdHH6vRfVrGT7e3LV8G+Vy+AUM5PbXhp8lcb1JSSxsp/kZxZaXQ/yjNy7Ja"
 }
