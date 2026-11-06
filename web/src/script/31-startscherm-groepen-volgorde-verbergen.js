@@ -97,7 +97,7 @@ function renderHome(){
   if (c.grouped) { if (fav.length) mk('★ Favorieten', fav); c.groups.forEach(g => mk(g.name, g.tools.filter(notFav))); }
   else mk('', fav.concat([].concat(...c.groups.map(g => g.tools)).filter(notFav)));
   pool.style.display = 'none';
-  renderRecent();
+  renderHomeRecent();
 }
 /* ---------- Recent gebruikt: de laatste vier tools die Rene opende ----------
  * Alleen welke tool (bijv. "pdf"), geen tijden of wat erin gebeurde; in de interface-instellingen (localStorage, gaat mee
@@ -111,7 +111,7 @@ function homeRecentAdd(tk){
   const r = homeRecentList(); if (r[0] === tk) return;
   store.set('homeRecent', homeRecentPush(r, tk, HOME_RECENT_MAX));
 }
-function renderRecent(){
+function renderHomeRecent(){
   const box = $('#home-recent'), list = $('#home-recent-list'); if (!box || !list) return;
   const c = homeCfg(), r = c.recent === false ? [] : homeRecentList().filter(tk => !c.hidden.includes(tk) && !playWeg(tk));
   box.hidden = !r.length;
@@ -126,12 +126,12 @@ function heRecent(on){ const c = homeCfg(); c.recent = !!on; if (!on) store.set(
   const inner = show;
   show = function(name){
     const r = inner.apply(this, arguments);
-    try { if (current === name) { if (name === 'home') renderRecent(); else homeRecentAdd(name); } } catch (e) { }
+    try { if (current === name) { if (name === 'home') renderHomeRecent(); else homeRecentAdd(name); } } catch (e) { }
     return r;
   };
   try { if (current !== 'home') homeRecentAdd(current); } catch (e) { } // al geopend bij het starten (snelkoppeling, widget)
 })();
-addEventListener('taalchange', () => { try { renderRecent(); } catch (e) { } });
+addEventListener('taalchange', () => { try { renderHomeRecent(); } catch (e) { } });
 /* ---------- Startscherm aanpassen ----------
  * Groepen in een eigen volgorde (pijlen bij de groep), tools slepen (ook naar een andere groep), of via ⋯:
  * naar een groep, omhoog/omlaag, verbergen. "Tool toevoegen" onder een groep haalt een tool uit een andere groep. */

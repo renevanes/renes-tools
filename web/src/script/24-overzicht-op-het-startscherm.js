@@ -38,7 +38,7 @@ function homeOvSync(){
 }
 function renderDash(){
   renderNotePins();
-  if (typeof renderRecent === 'function') renderRecent();
+  if (typeof renderHomeRecent === 'function') renderHomeRecent();
   if (isPlay()) { $('#home-night').style.display = 'none'; $('#home-dash').style.display = 'none'; homeOvSync(); return; }
   renderNight();
   const box = $('#home-dash'); if (!box) return;
