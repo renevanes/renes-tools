@@ -54,9 +54,8 @@ function rdRefresh(){
 
 let chatCur = null, chatOldest = 0, chatLoading = false, chatGroup = false;
 function enterChats(){
-  waInfoC = waInfo(); renderReadable();
+  waInfoC = waInfo(); renderReadable(); // zonder sleutel staat de lijst verborgen (#chat-body) en is eenmalig instellen open
   const r = readInfo();
-  if (!r.hasKey) { $('#chat-list').innerHTML = ''; return; }
   $('#chat-contacts').style.display = r.contacts ? 'none' : 'block';
   $('#chat-search').value = ''; $('#search-results').innerHTML = '';
   loadChatList();

@@ -18,8 +18,8 @@ function enterHerstel(){
   $('#hs-same').style.display = s.dest ? '' : 'none';
   $('#hs-skip').textContent = s.pending ? 'Overslaan' : 'Annuleren';
 }
-/* Vanuit Alles back-uppen (kan ook op een telefoon met gegevens: dan eerst een duidelijke waarschuwing) */
-/* Vanuit Alles back-uppen → Terugzetten: terug brengt je daar weer (bij een nieuwe installatie blijft terug eerst vragen) */
+/* Vanuit Alles back-uppen → Terugzetten (kan ook op een telefoon met gegevens: dan eerst een duidelijke waarschuwing).
+   Terug of Annuleren brengt je daar weer; bij een nieuwe installatie blijft terug eerst vragen. */
 function herstelStart(){ hsManual = true; if (hsState().pending) show('herstel'); else jumpTo('herstel'); }
 function hsPick(){ Android.herstelPickFolder(); }
 function hsScanNow(){ hsStep('hs-bezig'); $('#hs-bezig-t').textContent = 'Backups zoeken…'; $('#hs-bezig-s').textContent = 'In je backup-map, map Versleuteld.'; $('#hs-prog').removeAttribute('value'); Android.herstelScan(); }
