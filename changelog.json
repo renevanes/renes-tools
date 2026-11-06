@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.154",
+    "date": "2026-11-06",
+    "changes": [
+      "PDF → Formulieren invullen is eenvoudiger: eerst een startscherm met één knop \"Nieuwe reis invullen\", en rijen voor Vaste gegevens en Zelf invullen.",
+      "Reistoestemming zelf invullen gaat nu in de volgorde Reis, Kind, Begeleider, Toestemminggever; zelden nodige velden (BSN, accommodatie, ondertekening) staan ingeklapt onder \"Meer gegevens (optioneel)\".",
+      "Controleren toont eerst het voorbeeld van de PDF; alle ingevulde gegevens staan ingeklapt eronder. De invulhulp met lokale AI zit nu in het menu ⋯.",
+      "Gegevens kiezen uit Stamgegevens (bij formulieren en ID-kopie): de knop \"Ontgrendelen om te kiezen\" verdwijnt nu als de gegevens al open zijn, zodat je niet nog een keer hoeft te ontgrendelen en een keuze niet meer verloren gaat."
+    ]
+  },
+  {
     "version": "1.153",
     "date": "2026-11-06",
     "changes": [

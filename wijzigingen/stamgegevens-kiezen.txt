@@ -1,1 +1,0 @@
-Gegevens kiezen uit Stamgegevens (bij formulieren en ID-kopie): de knop "Ontgrendelen om te kiezen" verdwijnt nu als de gegevens al open zijn, zodat je niet nog een keer hoeft te ontgrendelen en een keuze niet meer verloren gaat.

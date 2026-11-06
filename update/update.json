@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.153",
-  "versionCode": 154,
+  "versionName": "1.154",
+  "versionCode": 155,
   "nativeLevel": 138,
   "web": "index.html",
-  "webSha256": "5df1e190b6eb77012b5457557d359986c40344103649a5ace5fdfc18ba3f8e79",
+  "webSha256": "71e9cd593345a1d0468eb25f761a569acbfd65b322478d4c7cc37aed1b9fac76",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "3cb8de8da3f0263fbefddb5c18e32d77275ab9657d485813e03375987166fa49",
+  "apkSha256": "660b1e58bca6352079d3cb357054e217f73e1be9a04fb836c083b813154a96eb",
   "changelog": [
+    {
+      "version": "1.154",
+      "date": "2026-11-06",
+      "changes": [
+        "PDF → Formulieren invullen is eenvoudiger: eerst een startscherm met één knop \"Nieuwe reis invullen\", en rijen voor Vaste gegevens en Zelf invullen.",
+        "Reistoestemming zelf invullen gaat nu in de volgorde Reis, Kind, Begeleider, Toestemminggever; zelden nodige velden (BSN, accommodatie, ondertekening) staan ingeklapt onder \"Meer gegevens (optioneel)\".",
+        "Controleren toont eerst het voorbeeld van de PDF; alle ingevulde gegevens staan ingeklapt eronder. De invulhulp met lokale AI zit nu in het menu ⋯.",
+        "Gegevens kiezen uit Stamgegevens (bij formulieren en ID-kopie): de knop \"Ontgrendelen om te kiezen\" verdwijnt nu als de gegevens al open zijn, zodat je niet nog een keer hoeft te ontgrendelen en een keuze niet meer verloren gaat."
+      ]
+    },
     {
       "version": "1.153",
       "date": "2026-11-06",
@@ -1359,5 +1369,5 @@
       ]
     }
   ],
-  "webSig2": "YJGgYYMBjwtf3j84C5mq0Qgrxfr+boKc87mureRAohLoXaN9R6cFOEo50vlXHKYq4LcxslG2HQirHjuGpwWkh2u1ilpQIzed1H7/LGh8Y4bSJvgMqM4tABSyTg3KX/pZQAoKbPbUT3rfQKrdYxw4ossouTZYq+svFjZHNBqLWmXPtc71ifDR+oRenHXY25AvhrWJqTZprCFHq5uygbqDpb44ub5JjHoiUTv6UcQTqI5Jqm9V5QJRdC1kL0I/oRHJfSqXLIMyJz3sb8fMR6bzY/MkvC+b2f0wqio7efQJw3FgCTpKJqKQWfJ9ME9R0NIlNhbCv/+ZGSYJ/Tkl7Ir4p0EvAaZ3G7q5nW2oDvXOWlgw+pvKWKE16pGZME/tPugb7zve0Ryv6C0hhjq7yunky4Td+DOrAXIhIpzWo4yeVRx4LGJv3gAGEoSSj+xozRGpzfuw1wdHH6vRfVrGT7e3LV8G+Vy+AUM5PbXhp8lcb1JSSxsp/kZxZaXQ/yjNy7Ja"
+  "webSig2": "cvs5uIGNh7yX8K5FhGQ7EXGLmntfMRg2OvzctBys+4m6Oj+kdsCLYuoreSfhPB74gRNVRnJHtmh21OmFXd/M6cHUKZIGn2qU3mtfYKbNc/M2/hrjunPfG6HIwga+DVmqb6GPu4RACEV/c6StlXcrKVJkisKXM3Jh49kUTsJOl90Y/AjksF0Yv3HgbX6WGzLpZ+aDucl+h5DkTs8v6rAD3AaZC0nabwZ1NmMVi+D20AcmgVbuQrMg2zBzvPI/LdKlWnY/RzazoMAXvtM3ZxWa9YmqRWtcuqk0krTstN1seWrACS+0TYGIOAjEZKigXBCmK0DaVeIXvTNq6msNMnz+PypEsC480Mq5SNVDHQVM7VXJk3vJmxqkmHAddPPuUIhKGKnUjuaunITgNewGrinrR1vYn+4MSwx00tD5k607r8K/k8ljfTY+A3UCVJjmw8mCeA6LS2BD4aXJ+o0CyR5brCndQ8GPGmiA+CVSioakqxYni0gmm4PVvjNQ6f0ZB6Iw"
 }
