@@ -24,7 +24,7 @@ const BK_SCR = ['backup', 'bkparts', 'bkset', 'bkrestore'];
 const bkOn = () => BK_SCR.includes(current);
 /* Losse onderdelen terugzetten: één rij per onderdeel (soort, naam, pictogram, waar het vandaan komt) */
 const BK_RESTORE = [['contacts', 'Contacten', 'user', 'Uit een vCard-bestand (.vcf)'], ['notes', 'Notities', 'notes', 'Uit notities.json'],
-  ['launcher', 'Startscherm (skin)', 'grid', 'Vervangt de indeling; de huidige wordt eerst bewaard'], ['settings', 'Instellingen, automatiseringen en zenders', 'settings', 'Uit instellingen.json; wat er staat, blijft'],
+  ['launcher', 'Startscherm (skin)', 'grid', 'Vervangt de indeling; de huidige wordt eerst bewaard'], ['settings', 'Instellingen, automatiseringen en zenders', 'settings', 'Voegt toe wat ontbreekt; wat er staat, blijft'],
   ['transcripts', 'Uitgeschreven gesprekken', 'transcript', 'Uit transcripties.json'], ['music', 'Herkende muziek', 'music', 'Uit herkende-nummers.json'],
   ['route', 'Route (GPX)', 'route', 'Uit een GPX-bestand in Routes/'], ['ai', 'Geheugen en gesprekken van de assistent', 'sparkle', 'Uit assistent.json'],
   ['sleep', 'Slaappraat', 'moon', 'Uit slaappraat.json (geluid uit de map Slaappraat)'], ['checkin', 'Check-in', 'smile', 'Uit checkin.json']];
