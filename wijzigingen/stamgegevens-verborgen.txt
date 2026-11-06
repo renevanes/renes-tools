@@ -1,0 +1,1 @@
+Stamgegevens: "Dit ben ik" en "Relatie met mij toevoegen" staan alleen nog bij een opgeslagen persoon, en "Oudere activiteiten laden" alleen als er nog oudere activiteiten zijn.

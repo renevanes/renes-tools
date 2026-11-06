@@ -40,7 +40,7 @@
       </div>
       <div class="card" id="cm-audit-card" hidden>
         <h2>Activiteitenlogboek</h2><p class="note">Je ziet wat wanneer is bekeken, gewijzigd of vrijgegeven aan een onderdeel. Het logboek bevat weergavenamen en veldnamen, geen kopieën van veldwaarden. Dit logboek gaat niet naar statistieken of een server.</p>
-        <label class="f" for="cm-log-search">Zoeken in geladen activiteiten</label><input class="search" id="cm-log-search" type="search" oninput="cmRenderAudit()"><div id="cm-audit" translate="no"></div><button class="big ghost" id="cm-more" onclick="cmAuditMore()">Oudere activiteiten laden</button>
+        <label class="f" for="cm-log-search">Zoeken in geladen activiteiten</label><input class="search" id="cm-log-search" type="search" oninput="cmRenderAudit()"><div id="cm-audit" translate="no"></div><button class="big ghost" id="cm-more" onclick="cmAuditMore()" hidden>Oudere activiteiten laden</button>
       </div>
     </div>
     <div class="card" id="cmi-shared-card"><h2>Gedeeld app-profiel</h2><p class="note">Dit is de beperkte context die de app en lokale AI mogen gebruiken, ook wanneer Stamgegevens is vergrendeld.</p><div id="cmi-shared" translate="no"></div></div>
