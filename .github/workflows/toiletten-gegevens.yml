@@ -1,0 +1,58 @@
+# Wekelijkse momentopname van toiletten en douches in Nederland uit OpenStreetMap (ODbL), voor de tool
+# "Toiletten en douches". Haalt het Nederland-extract van Geofabrik, filtert het met osmium (tools/toiletten/ophalen.py
+# + regels.json) en zet toiletten-nl.json.gz en meta.json in de GitHub-release "toiletten-gegevens". De telefoons
+# halen het daar zelf op (Toiletten → Bronnen → OpenStreetMap Nederland), alleen het bestand, nooit met hun locatie.
+# Geen geheimen en geen environment: deze workflow raakt de app en de ondertekeningssleutel niet.
+name: Toiletten-gegevens
+
+on:
+  schedule:
+    - cron: '23 2 * * 2'   # dinsdag 02:23 UTC (Geofabrik heeft het extract van maandag dan klaar)
+  workflow_dispatch:
+
+permissions:
+  contents: write   # alleen om de release-bestanden bij te werken
+
+concurrency:
+  group: toiletten-gegevens
+  cancel-in-progress: false
+
+jobs:
+  ophalen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      TAG: toiletten-gegevens
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: osmium-tool installeren
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
+
+      - name: Nederland-extract van Geofabrik (met controle)
+        run: |
+          set -euo pipefail
+          url=https://download.geofabrik.de/europe/netherlands-latest.osm.pbf
+          curl -fsSL --retry 3 -A "renes-tools-toiletten/1 (+https://github.com/$REPO)" -o nl.osm.pbf "$url"
+          curl -fsSL --retry 3 -o nl.osm.pbf.md5 "$url.md5"
+          echo "$(cut -d' ' -f1 nl.osm.pbf.md5)  nl.osm.pbf" | md5sum -c -
+
+      - name: Testplekken kloppen nog met de regels
+        run: python3 tools/toiletten/ophalen.py --voorbeeld tools/toiletten/voorbeeld.json
+
+      - name: Momentopname maken
+        run: |
+          python3 tools/toiletten/ophalen.py --pbf nl.osm.pbf --uit uit
+          cat uit/meta.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Release bijwerken (eerst het bestand, dan meta.json)
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" -R "$REPO" > /dev/null 2>&1; then
+            gh release create "$TAG" -R "$REPO" --latest=false --title "Toiletten en douches (OpenStreetMap)" \
+              --notes "Wekelijkse momentopname voor de tool Toiletten en douches. Gegevens: © OpenStreetMap-bijdragers, ODbL 1.0 (https://www.openstreetmap.org/copyright). Gemaakt door .github/workflows/toiletten-gegevens.yml."
+          fi
+          gh release upload "$TAG" -R "$REPO" --clobber uit/toiletten-nl.json.gz
+          gh release upload "$TAG" -R "$REPO" --clobber uit/meta.json

@@ -1,0 +1,67 @@
+{
+  "uitleg": "Welke OpenStreetMap-objecten in de momentopname komen (tools/toiletten/ophalen.py). Bevestigd = de plek zegt zelf dat er een toilet of douche is. Meestal = soort plek waar bijna altijd een toilet is (tankstation met winkel, verzorgingsplaats, bibliotheek, ...); de app laat die alleen zien als je 'Ook tankstations e.d.' aanzet.",
+  "formaat": 1,
+  "bits": {
+    "toilet": 1, "douche": 2, "meestal": 4, "gratis": 8, "betaald": 16, "rolstoel": 32,
+    "rolstoelBeperkt": 64, "verschoon": 128, "klanten": 256, "urinoir": 512, "altijd": 1024
+  },
+  "soorten": [
+    {"tag": "amenity=toilets", "soort": "toilet"},
+    {"tag": "amenity=shower", "soort": "douche"},
+    {"tag": "amenity=fuel", "soort": "tank"},
+    {"tag": "highway=services", "soort": "verzorg"},
+    {"tag": "highway=rest_area", "soort": "rust"},
+    {"tag": "tourism=camp_site", "soort": "camping"},
+    {"tag": "tourism=caravan_site", "soort": "camping"},
+    {"tag": "leisure=marina", "soort": "haven"},
+    {"tag": "railway=station", "soort": "station"},
+    {"tag": "public_transport=station", "soort": "station"},
+    {"tag": "amenity=library", "soort": "biblio"},
+    {"tag": "shop=mall", "soort": "winkel"},
+    {"tag": "shop=department_store", "soort": "winkel"},
+    {"tag": "amenity=hospital", "soort": "zorg"},
+    {"tag": "amenity=fast_food", "soort": "horeca"},
+    {"tag": "amenity=restaurant", "soort": "horeca"},
+    {"tag": "amenity=cafe", "soort": "horeca"},
+    {"tag": "amenity=bar", "soort": "horeca"},
+    {"tag": "amenity=pub", "soort": "horeca"},
+    {"tag": "leisure=sports_centre", "soort": "sport"},
+    {"tag": "leisure=swimming_pool", "soort": "sport"},
+    {"tag": "leisure=beach_resort", "soort": "strand"},
+    {"tag": "natural=beach", "soort": "strand"}
+  ],
+  "meestal": [
+    {"soort": "tank", "klanten": true, "uitleg": "Tankstation met winkel: meestal een toilet voor klanten"},
+    {"soort": "verzorg", "uitleg": "Verzorgingsplaats aan de snelweg: meestal een toilet"},
+    {"soort": "biblio", "uitleg": "Bibliotheek: meestal een toilet voor bezoekers"},
+    {"soort": "winkel", "tag": "shop=mall", "uitleg": "Winkelcentrum (overdekt): meestal een toilet"},
+    {"soort": "zorg", "uitleg": "Ziekenhuis: meestal een toilet in de hal"},
+    {"soort": "camping", "klanten": true, "douche": true, "uitleg": "Camping: toilet en douche voor gasten"},
+    {"soort": "haven", "klanten": true, "douche": true, "uitleg": "Jachthaven: toilet en douche voor gasten"},
+    {"soort": "horeca", "merken": ["McDonald's", "Burger King", "KFC"], "klanten": true, "uitleg": "Grote fastfoodketen: toilet voor klanten"}
+  ],
+  "onbemand": {
+    "uitleg": "Tankstations zonder winkel of personeel: geen toilet. Deze komen niet in de lijst 'meestal'.",
+    "merken": ["Tango", "TinQ", "Tinq", "Firezone", "Avia Xpress", "Esso Express", "Shell Express", "Texaco Express", "Q8 Easy", "Tamoil Express", "Gulf Express", "Fieten"],
+    "tags": ["automated=yes", "self_service=only", "shop=no"]
+  },
+  "nietOpenbaar": ["private", "no", "military", "delivery", "agricultural", "forestry"],
+  "osmiumFilter": [
+    "nwr/amenity=toilets,shower,fuel,library,hospital,fast_food",
+    "nwr/toilets", "nwr/shower",
+    "nwr/highway=services,rest_area",
+    "nwr/tourism=camp_site,caravan_site",
+    "nwr/leisure=marina",
+    "nwr/shop=mall"
+  ],
+  "overpass": [
+    "nwr[\"amenity\"~\"^(toilets|shower|fuel|library|hospital)$\"](area.nl);",
+    "nwr[\"amenity\"=\"fast_food\"][\"brand\"~\"^(McDonald's|Burger King|KFC)$\"](area.nl);",
+    "nwr[\"toilets\"](area.nl);",
+    "nwr[\"shower\"](area.nl);",
+    "nwr[\"highway\"~\"^(services|rest_area)$\"](area.nl);",
+    "nwr[\"tourism\"~\"^(camp_site|caravan_site)$\"](area.nl);",
+    "nwr[\"leisure\"=\"marina\"](area.nl);",
+    "nwr[\"shop\"=\"mall\"](area.nl);"
+  ]
+}
