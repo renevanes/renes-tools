@@ -924,6 +924,7 @@ details.sl-adv>summary:active{background:var(--hi)}
 details.sl-adv[open]>summary{margin-bottom:16px}details.sl-adv[open] .sl-advchev{transform:rotate(180deg)}
 .sl-hintbar{width:100%;text-align:left;margin:0 0 16px;cursor:pointer;color:inherit;font:inherit}
 #sls-reset{margin:0}
+.sl-dl{margin:6px 0 10px}
 #sl-quietrow{flex-direction:column;align-items:flex-start;gap:6px}#sl-quietrow .mini{margin:0}
 /* ---------- Check-in ---------- */
 /* Kleuren per vraag: een rol per kleur, met een eigen tint in donker (net als --primary) */

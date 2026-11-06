@@ -252,7 +252,7 @@ if (!window.Android) window.Android = (function(){
     _sl: { phase: '', night: '', since: 0, stopAt: 0, heard: 0, level: -60, floor: -64, txDone: 0, txTotal: 0, message: '', mic: true, notif: true, model: 'Snel (57 MB)',
       set: { sens: 2, stopAt: '07:30', transcribe: true, direct: true, keepNoise: true, keep: 14, remindAt: '', quiet: true,
         directWhen: 'accu', directBat: 40, stopBat: 15, maxAudio: 8, minFree: 500, whenFull: 'geluid', clipMax: 60, hang: 1500, pre: 2, format: 'aac', txModel: '' },
-      // Zoals SleepTalk: de vaste keuzes van Meer instellingen (en de standaard, voor reset)
+      // Zoals SleepTalk: de vaste keuzes onder Geavanceerd (Slaappraat-instellingen) en de standaard, voor reset
       _slOk: { directWhen: ['altijd', 'lader', 'accu'], whenFull: ['stop', 'geluid', 'oudste'], format: ['aac', 'wav'], txModel: ['', 'base', 'small'], directBat: [20, 30, 40, 50, 60, 80], stopBat: [5, 10, 15, 20, 30],
         maxAudio: [1, 2, 4, 8, 0], minFree: [250, 500, 1000, 2000], clipMax: [30, 60, 120, 300], hang: [1000, 1500, 2000, 3000], pre: [1, 2, 3, 5] },
       _slDef: { directWhen: 'accu', directBat: 40, stopBat: 15, maxAudio: 8, minFree: 500, whenFull: 'geluid', clipMax: 60, hang: 1500, pre: 2, format: 'aac', txModel: '' },

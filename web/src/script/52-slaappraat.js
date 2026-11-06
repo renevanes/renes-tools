@@ -5,7 +5,16 @@ const SL_SENS_NOTE = { '1': 'Pakt ook zacht gemompel op (en dus vaker een geluid
 /* Alleen vervangen als er echt iets anders staat: dan blijft een tik of de focus van TalkBack gewoon werken */
 function slHtml(el, html){ if (el && el._h !== html) { el.innerHTML = html; el._h = html; } }
 function slLoad(){ slSt = rdJson(Android.sleepState(), {}); return slSt; }
-function enterSleep(){ slLoad(); slRender(); slPoll(); }
+function enterSleep(){ slBkLoad(); slLoad(); slRender(); slPoll(); }
+/* Gaat Slaappraat mee in Alles back-uppen (zelf aan te zetten, met of zonder geluid)? Eén keer per keer openen,
+ * niet bij elke tik van het pollen: de volledige stand rekent ook de grootte uit. */
+let slBk = { on: false, audio: false };
+function slBkLoad(){ try { const b = typeof bkState === 'function' ? bkState(true) : {}; slBk = { on: (b.parts || {}).sleep === true, audio: !!b.sleepAudio }; } catch (e) { slBk = { on: false, audio: false }; } }
+/* Een spraakmodel downloaden: bij Gesprekken uitschrijven (kaart Spraakmodel); terug komt weer hier */
+function slModelDownload(){
+  jumpTo('transcripts');
+  setTimeout(() => { const c = $('#tx-setup'); if (c && c.offsetParent) { c.scrollIntoView({ block: 'start', behavior: 'smooth' }); c.classList.add('setflash'); setTimeout(() => c.classList.remove('setflash'), 1800); } }, 150);
+}
 function stopSleepPoll(){ clearTimeout(slPollT); slPollT = null; }
 /* Zolang het scherm open is: elke seconde (tijdens luisteren voor de meter), anders niet */
 function slPoll(){
@@ -67,7 +76,10 @@ function slRender(){
   }
   $('#sl-probe').style.display = s.phase ? 'none' : '';
   // Wat er bewaard wordt en waar (zichtbaar: privacy), en of er een spraakmodel is
-  $('#sl-note').textContent = t('Bewaart alleen wat er te horen is, op je telefoon; na {termijn} gaat het vanzelf weg. Slaapt er iemand naast je, zeg het dan even.', { termijn: slKeepName(set.keep) });
+  const termijn = slKeepName(set.keep);
+  $('#sl-note').textContent = !slBk.on ? t('Bewaart alleen wat er te horen is, op je telefoon (niet in backups); na {termijn} gaat het vanzelf weg. Slaapt er iemand naast je, zeg het dan even.', { termijn })
+    : slBk.audio ? t('Bewaart alleen wat er te horen is, op je telefoon; na {termijn} gaat het hier vanzelf weg. Tekst en geluid gaan ook mee in Alles back-uppen; die kopieën blijven bewaard. Slaapt er iemand naast je, zeg het dan even.', { termijn })
+    : t('Bewaart alleen wat er te horen is, op je telefoon; na {termijn} gaat het hier vanzelf weg. De tekst gaat ook mee in Alles back-uppen; die kopieën blijven bewaard. Slaapt er iemand naast je, zeg het dan even.', { termijn });
   $('#sl-model-hint').style.display = set.transcribe !== false && !s.model && !s.phase ? 'flex' : 'none';
   // Accu: gemiddeld per uur in nachten zonder lader
   const bh = (s.nights || []).map(n => slBatPerHour(n)).filter(v => v >= 0);
@@ -222,11 +234,17 @@ function slWhenShort(set){
 /* Een keuze zetten: keuzelijst (select) of knopjes (radiogroup) */
 function slChips(id, v){
   const el = document.getElementById(id); if (!el) return;
-  if (el.tagName === 'SELECT') { if (document.activeElement !== el) el.value = String(v); return; }
+  if (el.tagName === 'SELECT') { el.value = String(v); return; }
   el.querySelectorAll('button').forEach(b => { const x = b.dataset.v === String(v); b.classList.toggle('on', x); b.setAttribute('aria-checked', x ? 'true' : 'false'); });
 }
 function slTg(id, on){ const b = $('#' + id); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
-function enterSleepSet(){ slLoad(); slsRender(); }
+function enterSleepSet(){ slBkLoad(); slLoad(); slsRender(); }
+/* Nachten korter bewaren wist de oudere nachten: eerst vragen */
+function slKeepSet(v){
+  const cur = +((slSt.set || {}).keep || 14);
+  if (+v >= cur) { slSet('keep', v); return; }
+  askConfirm(t('Nachten korter bewaren?'), t(+v === 7 ? 'Nachten ouder dan een week worden dan gewist.' : 'Nachten ouder dan 2 weken worden dan gewist.'), t('Korter bewaren'), () => slSet('keep', v), () => slsRender());
+}
 function slsRender(){
   const s = slSt, set = s.set || {}, w = set.directWhen || 'accu';
   if (!$('#sls-when')) return;
@@ -244,11 +262,13 @@ function slsRender(){
   // Wat er bewaard wordt
   slChips('sl-sens', set.sens || 2); slChips('sl-keep', set.keep || 14);
   $('#sl-sens-n').textContent = t(SL_SENS_NOTE[String(set.sens || 2)] || '');
+  $('#sl-keep-n').textContent = slBk.on ? t('Daarna worden ze hier vanzelf gewist; wat al in Alles back-uppen zit, blijft daar bewaard.') : t('Daarna worden ze vanzelf gewist. Ze blijven op je telefoon, niet in backups.');
   const noise = set.keepNoise !== false;
   slTg('sl-noise', noise);
   $('#sl-noise-n').textContent = noise ? t('Aan: ook het geluid van snurken en andere geluiden blijft bewaard') : t('Uit: van wat geen praten blijkt, blijft alleen het tijdstip bewaard');
   // Uitschrijven
   slTg('sl-tx', set.transcribe !== false);
+  $('#sl-model-dl').style.display = s.model ? 'none' : '';
   $('#sl-tx-n').textContent = s.model ? t('Op je telefoon, met {model}: je leest wat je zei', { model: t(s.model) }) : t('Er is nog geen spraakmodel: download het bij Gesprekken uitschrijven');
   const dOn = set.direct !== false;
   slTg('sl-direct', dOn);
@@ -284,7 +304,7 @@ function slsRender(){
     : 'Pas als het echt vol is: iets nieuws dat op praten lijkt, neemt de plaats in van het oudste geluid dat al uitgeschreven is en geen woorden had. Gepraat en wat nog niet uitgeschreven is, gaan nooit weg; is er zulk geluid niet meer, dan wordt van nieuwe stukjes alleen het tijdstip bewaard.';
   $('#sls-fmt-n').textContent = fmt === 'wav' ? '±115 MB per uur geluid (8 keer zo groot als AAC): alleen als je het onbewerkte geluid wilt.' : '±14 MB per uur geluid; goed genoeg om terug te luisteren en uit te schrijven.';
   const ns = s.nights || [];
-  $('#sls-size').textContent = tn(ns.length, 'Nu: {grootte} in {n} nacht', 'Nu: {grootte} in {n} nachten', { grootte: fmtB(s.bytes || 0) }) + (ns.length ? ' ' + t('(grootste nacht {grootte})', { grootte: fmtB(Math.max(...ns.map(n => n.bytes || 0))) }) : '') + '. ' + t('Oude nachten gaan vanzelf weg na {termijn}.', { termijn: t((set.keep || 14) === 7 ? '1 week' : (set.keep || 14) === 30 ? '30 dagen' : '2 weken') });
+  $('#sls-size').textContent = tn(ns.length, 'Nu: {grootte} in {n} nacht', 'Nu: {grootte} in {n} nachten', { grootte: fmtB(s.bytes || 0) }) + (ns.length ? ' ' + t('(grootste nacht {grootte})', { grootte: fmtB(Math.max(...ns.map(n => n.bytes || 0))) }) : '') + '. ' + t('Oude nachten gaan vanzelf weg na {termijn}.', { termijn: slKeepName(set.keep) });
 }
 function slsReset(){
   askConfirm(t('Geavanceerd terug naar standaard?'), t('Alles onder Geavanceerd gaat terug naar hoe het standaard staat. Je nachten en de instellingen daarboven blijven.'), t('Terugzetten'), () => { slSet('reset', ''); toast(t('Terug naar standaard')); });

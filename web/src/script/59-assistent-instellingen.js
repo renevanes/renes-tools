@@ -460,7 +460,7 @@ function setOpen(id){
   setTimeout(() => {
     const el = document.querySelector('#s-' + e.scr + ' ' + e.ctl.split(',')[0].trim()) || document.querySelector(e.ctl.split(',')[0].trim());
     uiOpenTo(el);
-    const tt = el && (el.closest('.sw, .setrow, .aicfg, label.chk, .row, .card') || el);
+    const tt = el && (el.closest('.sw, .setrow, .aicfg, .sl-opt, label.chk, .row, .card') || el);
     if (!tt || !tt.offsetParent) return;
     tt.scrollIntoView({ block: 'center', behavior: 'smooth' });
     tt.classList.add('setflash'); setTimeout(() => tt.classList.remove('setflash'), 1800);

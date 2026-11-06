@@ -12,7 +12,7 @@
       <button class="big tonal" id="sl-probe" onclick="slProbe()">Probeer 30 seconden</button>
       <p class="hint" id="sl-note"></p>
     </div>
-    <button class="bar1 warn sl-hintbar" id="sl-model-hint" style="display:none" onclick="show('sleepset')"><span><b>Nog geen spraakmodel</b><small>Je kunt terugluisteren, maar niet lezen wat je zei. Tik om het te regelen.</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+    <button class="bar1 warn sl-hintbar" id="sl-model-hint" style="display:none" onclick="slModelDownload()"><span><b>Nog geen spraakmodel</b><small>Je kunt terugluisteren, maar niet lezen wat je zei. Tik om er een te downloaden.</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
 
     <div class="flabel stgl" role="heading" aria-level="2">Nachten</div>
     <div class="card stlist" id="sl-nights"></div>
@@ -30,7 +30,7 @@
           <li>Per nacht blijft standaard hooguit 8 uur geluid bewaard (genoeg voor een hele nacht, ook met snurken). Is het vol, dan maakt nieuw gepraat plaats en gaat het oudste geluid weg dat al uitgeschreven is en geen woorden had. Dat, en hoeveel ruimte er vrij moet blijven, kies je bij de instellingen, onder Geavanceerd.</li>
           <li>Helemaal zonder melding kan niet: Android toont altijd iets zolang een app op de achtergrond de microfoon gebruikt (en het groene microfoonpuntje). Met Onopvallend luisteren is hij stil en niet op het vergrendelscherm; met Melding verder wegstoppen maak je hem in Android nog kleiner.</li>
           <li>Een ventilator of verwarming went vanzelf: na een paar seconden telt dat als stilte.</li>
-          <li>Alles blijft op je telefoon (niet in backups) en wordt na de gekozen tijd vanzelf gewist. Slaapt er iemand naast je, vertel het dan even: de microfoon hoort diegene ook.</li>
+          <li>Alles blijft op je telefoon en wordt na de gekozen tijd vanzelf gewist. In je backups komt het alleen als je Slaappraat zelf aanzet bij Alles back-uppen (de tekst, en het geluid als je dat kiest); die kopieën blijven daar bewaard. Slaapt er iemand naast je, vertel het dan even: de microfoon hoort diegene ook.</li>
         </ul>
       </div>
     </details>
@@ -67,14 +67,15 @@
 
     <div class="card">
       <h2><span class="ui-icon" data-icon="mic" aria-hidden="true"></span>Wat er bewaard wordt</h2>
-      <div class="sl-opt"><div class="sl-optrow"><label for="sl-sens">Gevoeligheid</label><select class="sel" id="sl-sens" onchange="slSet('sens', this.value)"><option value="1">Ook gefluister</option><option value="2">Normaal</option><option value="3">Alleen duidelijk</option></select></div><p class="hint" id="sl-sens-n"></p></div>
+      <div class="sl-opt"><div class="sl-optrow"><label for="sl-sens">Gevoeligheid</label><select class="sel" id="sl-sens" aria-describedby="sl-sens-n" onchange="slSet('sens', this.value)"><option value="1">Ook gefluister</option><option value="2">Normaal</option><option value="3">Alleen duidelijk</option></select></div><p class="hint" id="sl-sens-n"></p></div>
       <div class="sw"><span>Ook snurken en andere geluiden bewaren<small id="sl-noise-n">Aan: ook het geluid van snurken en andere geluiden blijft bewaard</small></span><button class="tg on" id="sl-noise" role="switch" aria-checked="true" aria-label="Ook snurken en andere geluiden bewaren" aria-describedby="sl-noise-n" onclick="slSwitch('keepNoise')"></button></div>
-      <div class="sl-opt"><div class="sl-optrow"><label for="sl-keep">Nachten bewaren</label><select class="sel" id="sl-keep" onchange="slSet('keep', this.value)"><option value="7">1 week</option><option value="14">2 weken</option><option value="30">30 dagen</option></select></div><p class="hint">Daarna worden ze vanzelf gewist. Alles blijft op je telefoon.</p></div>
+      <div class="sl-opt"><div class="sl-optrow"><label for="sl-keep">Nachten bewaren</label><select class="sel" id="sl-keep" aria-describedby="sl-keep-n" onchange="slKeepSet(this.value)"><option value="7">1 week</option><option value="14">2 weken</option><option value="30">30 dagen</option></select></div><p class="hint" id="sl-keep-n"></p></div>
     </div>
 
     <div class="card">
       <h2><span class="ui-icon" data-icon="transcript" aria-hidden="true"></span>Uitschrijven</h2>
       <div class="sw"><span>Daarna uitschrijven<small id="sl-tx-n"></small></span><button class="tg" id="sl-tx" role="switch" aria-checked="true" aria-label="Daarna uitschrijven" aria-describedby="sl-tx-n" onclick="slSwitch('transcribe')"></button></div>
+      <button class="big tonal sl-dl" id="sl-model-dl" data-taal="knop" style="display:none" onclick="slModelDownload()">Spraakmodel downloaden</button>
       <div class="sw" id="sl-directrow"><span>Meteen uitschrijven<small id="sl-direct-n"></small></span><button class="tg on" id="sl-direct" role="switch" aria-checked="true" aria-label="Meteen uitschrijven" aria-describedby="sl-direct-n" onclick="slSwitch('direct')"></button></div>
     </div>
 
@@ -89,31 +90,31 @@
 
       <div class="card">
         <h2><span class="ui-icon" data-icon="transcript" aria-hidden="true"></span>Meteen uitschrijven en spraakmodel</h2>
-        <div class="sl-opt"><div class="sl-optrow wide"><label for="sls-when">Meteen uitschrijven</label><select class="sel" id="sls-when" onchange="slSet('directWhen', this.value)"><option value="accu">Lader of genoeg accu</option><option value="lader">Alleen aan de lader</option><option value="altijd">Altijd</option></select></div><p class="hint" id="sls-when-n"></p></div>
-        <div class="sl-opt" id="sls-dbatrow"><div class="sl-optrow"><label for="sls-dbat">Zonder lader vanaf</label><select class="sel" id="sls-dbat" onchange="slSet('directBat', this.value)"><option value="20">20%</option><option value="30">30%</option><option value="40">40%</option><option value="50">50%</option><option value="60">60%</option><option value="80">80%</option></select></div><p class="hint">Daaronder wacht het tot je stopt met luisteren.</p></div>
-        <div class="sl-opt"><div class="sl-optrow wide"><label for="sls-model">Spraakmodel</label><select class="sel" id="sls-model" onchange="slSet('txModel', this.value)"><option value="">Zoals Gesprekken uitschrijven</option><option value="base">Snel</option><option value="small">Nauwkeurig</option></select></div><p class="hint" id="sls-model-n"></p></div>
+        <div class="sl-opt"><div class="sl-optrow wide"><label for="sls-when">Meteen uitschrijven: wanneer</label><select class="sel" id="sls-when" aria-describedby="sls-when-n" onchange="slSet('directWhen', this.value)"><option value="accu">Lader of genoeg accu</option><option value="lader">Alleen aan de lader</option><option value="altijd">Altijd</option></select></div><p class="hint" id="sls-when-n"></p></div>
+        <div class="sl-opt" id="sls-dbatrow"><div class="sl-optrow"><label for="sls-dbat">Zonder lader vanaf</label><select class="sel" id="sls-dbat" aria-describedby="sls-dbat-n" onchange="slSet('directBat', this.value)"><option value="20">20%</option><option value="30">30%</option><option value="40">40%</option><option value="50">50%</option><option value="60">60%</option><option value="80">80%</option></select></div><p class="hint" id="sls-dbat-n">Daaronder wacht het tot je stopt met luisteren.</p></div>
+        <div class="sl-opt"><div class="sl-optrow wide"><label for="sls-model">Spraakmodel</label><select class="sel" id="sls-model" aria-describedby="sls-model-n" onchange="slSet('txModel', this.value)"><option value="">Zoals Gesprekken uitschrijven</option><option value="base">Snel</option><option value="small">Nauwkeurig</option></select></div><p class="hint" id="sls-model-n"></p></div>
       </div>
 
       <div class="card">
         <h2><span class="ui-icon" data-icon="folder" aria-hidden="true"></span>Opslag</h2>
         <p class="note" id="sls-size"></p>
-        <div class="sl-opt"><div class="sl-optrow"><label for="sls-max">Hooguit geluid per nacht</label><select class="sel" id="sls-max" onchange="slSet('maxAudio', this.value)"><option value="1">1 uur</option><option value="2">2 uur</option><option value="4">4 uur</option><option value="8">8 uur</option><option value="0">Onbeperkt</option></select></div><p class="hint" id="sls-max-n"></p></div>
-        <div class="sl-opt"><div class="sl-optrow wide"><label for="sls-full">Als het vol is</label><select class="sel" id="sls-full" onchange="slSet('whenFull', this.value)"><option value="geluid">Oudste geluid weg voor gepraat</option><option value="oudste">Oudste weg</option><option value="stop">Stoppen met bewaren</option></select></div><p class="hint" id="sls-full-n"></p></div>
-        <div class="sl-opt"><div class="sl-optrow"><label for="sls-free">Altijd vrij laten op de telefoon</label><select class="sel" id="sls-free" onchange="slSet('minFree', this.value)"><option value="250">250 MB</option><option value="500">500 MB</option><option value="1000">1 GB</option><option value="2000">2 GB</option></select></div><p class="hint">Is er minder vrij, dan bewaart hij van een stukje alleen het tijdstip.</p></div>
-        <div class="sl-opt"><div class="sl-optrow"><label for="sls-fmt">Bewaren als</label><select class="sel" id="sls-fmt" onchange="slSet('format', this.value)"><option value="aac">AAC (klein)</option><option value="wav">WAV (onbewerkt)</option></select></div><p class="hint" id="sls-fmt-n"></p></div>
+        <div class="sl-opt"><div class="sl-optrow"><label for="sls-max">Hooguit geluid per nacht</label><select class="sel" id="sls-max" aria-describedby="sls-max-n" onchange="slSet('maxAudio', this.value)"><option value="1">1 uur</option><option value="2">2 uur</option><option value="4">4 uur</option><option value="8">8 uur</option><option value="0">Onbeperkt</option></select></div><p class="hint" id="sls-max-n"></p></div>
+        <div class="sl-opt"><div class="sl-optrow wide"><label for="sls-full">Als het vol is</label><select class="sel" id="sls-full" aria-describedby="sls-full-n" onchange="slSet('whenFull', this.value)"><option value="geluid">Oudste geluid weg voor gepraat</option><option value="oudste">Oudste weg</option><option value="stop">Stoppen met bewaren</option></select></div><p class="hint" id="sls-full-n"></p></div>
+        <div class="sl-opt"><div class="sl-optrow"><label for="sls-free">Altijd vrij laten op de telefoon</label><select class="sel" id="sls-free" aria-describedby="sls-free-n" onchange="slSet('minFree', this.value)"><option value="250">250 MB</option><option value="500">500 MB</option><option value="1000">1 GB</option><option value="2000">2 GB</option></select></div><p class="hint" id="sls-free-n">Is er minder vrij, dan bewaart hij van een stukje alleen het tijdstip.</p></div>
+        <div class="sl-opt"><div class="sl-optrow"><label for="sls-fmt">Bewaren als</label><select class="sel" id="sls-fmt" aria-describedby="sls-fmt-n" onchange="slSet('format', this.value)"><option value="aac">AAC (klein)</option><option value="wav">WAV (onbewerkt)</option></select></div><p class="hint" id="sls-fmt-n"></p></div>
       </div>
 
       <div class="card">
         <h2><span class="ui-icon" data-icon="mic" aria-hidden="true"></span>Opnemen</h2>
         <p class="hint">Geldt vanaf de volgende keer dat je begint met luisteren; elke nacht onthoudt met welke instellingen hij is opgenomen.</p>
-        <div class="sl-opt"><div class="sl-optrow"><label for="sls-clip">Langste stukje</label><select class="sel" id="sls-clip" onchange="slSet('clipMax', this.value)"><option value="30">30 s</option><option value="60">1 min</option><option value="120">2 min</option><option value="300">5 min</option></select></div><p class="hint">Wat langer duurt, wordt in stukken geknipt. Langere stukken zijn langzamer uit te schrijven.</p></div>
-        <div class="sl-opt"><div class="sl-optrow"><label for="sls-hang">Stilte voor het einde van een stukje</label><select class="sel" id="sls-hang" onchange="slSet('hang', this.value)"><option value="1000">1 s</option><option value="1500">1,5 s</option><option value="2000">2 s</option><option value="3000">3 s</option></select></div><p class="hint">Langer: een zin met pauzes blijft bij elkaar, maar een stukje snurken ook.</p></div>
-        <div class="sl-opt"><div class="sl-optrow"><label for="sls-pre">Voorloop</label><select class="sel" id="sls-pre" onchange="slSet('pre', this.value)"><option value="1">1 s</option><option value="2">2 s</option><option value="3">3 s</option><option value="5">5 s</option></select></div><p class="hint">Zoveel van vóór het geluid gaat mee, zodat het eerste woord er heel in staat.</p></div>
+        <div class="sl-opt"><div class="sl-optrow"><label for="sls-clip">Langste stukje</label><select class="sel" id="sls-clip" aria-describedby="sls-clip-n" onchange="slSet('clipMax', this.value)"><option value="30">30 s</option><option value="60">1 min</option><option value="120">2 min</option><option value="300">5 min</option></select></div><p class="hint" id="sls-clip-n">Wat langer duurt, wordt in stukken geknipt. Langere stukken zijn langzamer uit te schrijven.</p></div>
+        <div class="sl-opt"><div class="sl-optrow"><label for="sls-hang">Stilte voor het einde van een stukje</label><select class="sel" id="sls-hang" aria-describedby="sls-hang-n" onchange="slSet('hang', this.value)"><option value="1000">1 s</option><option value="1500">1,5 s</option><option value="2000">2 s</option><option value="3000">3 s</option></select></div><p class="hint" id="sls-hang-n">Langer: een zin met pauzes blijft bij elkaar, maar een stukje snurken ook.</p></div>
+        <div class="sl-opt"><div class="sl-optrow"><label for="sls-pre">Voorloop</label><select class="sel" id="sls-pre" aria-describedby="sls-pre-n" onchange="slSet('pre', this.value)"><option value="1">1 s</option><option value="2">2 s</option><option value="3">3 s</option><option value="5">5 s</option></select></div><p class="hint" id="sls-pre-n">Zoveel van vóór het geluid gaat mee, zodat het eerste woord er heel in staat.</p></div>
       </div>
 
       <div class="card">
         <h2><span class="ui-icon" data-icon="battery" aria-hidden="true"></span>Accu</h2>
-        <div class="sl-opt"><div class="sl-optrow"><label for="sls-stop">Stoppen zonder lader bij</label><select class="sel" id="sls-stop" onchange="slSet('stopBat', this.value)"><option value="5">5%</option><option value="10">10%</option><option value="15">15%</option><option value="20">20%</option><option value="30">30%</option></select></div><p class="hint">Dan stopt het luisteren, zodat je telefoon 's ochtends niet leeg is.</p></div>
+        <div class="sl-opt"><div class="sl-optrow"><label for="sls-stop">Stoppen zonder lader bij</label><select class="sel" id="sls-stop" aria-describedby="sls-stop-n" onchange="slSet('stopBat', this.value)"><option value="5">5%</option><option value="10">10%</option><option value="15">15%</option><option value="20">20%</option><option value="30">30%</option></select></div><p class="hint" id="sls-stop-n">Dan stopt het luisteren, zodat je telefoon 's ochtends niet leeg is.</p></div>
       </div>
 
       <button class="big ghost" id="sls-reset" onclick="slsReset()">Geavanceerd terug naar standaard</button>
