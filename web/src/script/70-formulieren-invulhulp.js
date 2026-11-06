@@ -34,7 +34,7 @@ function fmHelpControls(){
 function fmHelpRender(){
   if(!fm.id)return;const context=fmHelpContext();
   if(fmh.context&&context!==fmh.context){fmHelpDiscard();$('#pff-hulp-tekst').value='';fmHelpNote('');}
-  fmh.context=context;$('#pff-hulp').hidden=!fmh.shown||!fmHelpFields().length;
+  fmh.context=context;$('#pff-hulp').hidden=!fmh.shown||!fmHelpCan();
   $('#pff-hulp-tekst').placeholder=t('Bijvoorbeeld: de begeleider is de vader. Datum ondertekening: 12-07-2027.');
   const select=$('#pff-hulp-rol'),old=select.value;select.replaceChildren();
   const roles=[...new Set(fmHelpFields().flatMap(f=>(f.sources||[]).map(b=>b.role)))];
@@ -51,7 +51,7 @@ function fmHelpRender(){
 /* Het paneel staat niet standaard in beeld: je opent het via het menu ⋯ van een stap. Sluiten wist bronnen en toelichting. */
 function fmHelpCan(){return fm.view==='stap'&&fmHelpFields().some(f=>(f.sources||[]).length);}
 function fmHelpToon(on){
-  if(!on){fmHelpClear();fmRender();return;}
+  if(!on){const inside=$('#pff-hulp').contains(document.activeElement);fmHelpClear();fmRender();if(inside)$('#pff-titel').focus();return;}
   if(!fmHelpCan())return;fmh.shown=true;fmRender();const panel=$('#pff-hulp');panel.open=true;panel.querySelector('summary').focus();
 }
 function fmHelpPick(){
@@ -128,12 +128,12 @@ function fmHelpApply(){
   const chosen=new Set([...document.querySelectorAll('#pff-hulp-voorstellen input:checked')].map(e=>e.dataset.field));
   if(!chosen.size)return;
   for(const row of fmh.rows)if(chosen.has(row.id))fm.values[row.id]=row.value;
-  fmWijzig();fmRender();fmHelpNote(t('Gekozen voorstellen overgenomen. Controleer het formulier voordat je een PDF maakt.'));cmTouch();
+  fm.meer={};fmWijzig();fmRender();fmHelpNote(t('Gekozen voorstellen overgenomen. Controleer het formulier voordat je een PDF maakt.'));cmTouch();
 }
 const fmHelpBaseInit=fmInit;fmInit=function(id){fmHelpClear();fmHelpBaseInit(id);};
 const fmHelpBaseWijzig=fmWijzig;fmWijzig=function(){fmHelpDiscard();fmHelpBaseWijzig();};
 const fmHelpBaseRender=fmRender;fmRender=function(){fmHelpBaseRender();fmHelpRender();};
-const fmHelpBaseActs=fmMenuActs;fmMenuActs=function(){const acts=fmHelpBaseActs();if(fmHelpCan())acts.unshift(fmh.shown?[t('Invulhulp met lokale AI sluiten'),()=>fmHelpToon(false),'close']:[t('Invulhulp met lokale AI'),()=>fmHelpToon(true),'edit']);return acts;};
+const fmHelpBaseActs=fmMenuActs;fmMenuActs=function(){const acts=fmHelpBaseActs().filter(a=>!fmh.busy||a[1]!==fmWissen);if(fmHelpCan())acts.unshift(fmh.shown?[t('Invulhulp met lokale AI sluiten'),()=>fmHelpToon(false),'close']:[t('Invulhulp met lokale AI'),()=>fmHelpToon(true),'edit']);return acts;};
 const fmHelpBaseOverzicht=fmOverzicht;fmOverzicht=function(){fmHelpClear();fmHelpBaseOverzicht();};
 const fmHelpBaseLocked=window.onMasterLocked;window.onMasterLocked=function(generation){fmHelpClear();fmHelpBaseLocked(generation);};
 const fmHelpBaseReset=window.onMasterReset;window.onMasterReset=function(){fmHelpClear();fmHelpBaseReset();};

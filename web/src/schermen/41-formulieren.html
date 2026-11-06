@@ -38,7 +38,7 @@
         <details id="pff-hulp" class="pff-hulp" hidden>
           <summary>Invulhulp met lokale AI</summary>
           <p class="note">Kies zelf beheerde personen of een reis uit Stamgegevens. Alleen de gekozen velden en je toelichting worden gebruikt. Controleer de voorstellen voordat je ze overneemt.</p>
-          <button class="mini" onclick="show('masterdata')">Personen en reizen beheren</button>
+          <button class="mini" onclick="jumpTo('masterdata')">Personen en reizen beheren</button>
           <label class="f" for="pff-hulp-rol">Gegevens kiezen voor</label>
           <select class="search" id="pff-hulp-rol"></select>
           <button class="big ghost" id="pff-hulp-kies" onclick="fmHelpPick()">Gegevens kiezen uit Stamgegevens</button>
@@ -109,6 +109,7 @@
       <div id="fmq-geen" hidden>
         <p class="note">Je hebt nog geen vaste gegevens voor dit formulier.</p>
         <button type="button" class="big ghost" onclick="fmqSetup()">Vaste gegevens instellen</button>
+        <button type="button" class="big ghost" onclick="fmqZelf()">Zelf invullen</button>
       </div>
       <label class="f" for="fmq-van">Eerste reisdag *</label>
       <input class="search" id="fmq-van" type="date" required>

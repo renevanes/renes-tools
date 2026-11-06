@@ -3,7 +3,7 @@
 const fm = {id:'',values:{},step:0,page:0,view:'start',meer:{},previews:{},token:0,previewToken:'',exportToken:'',busy:false,bestand:''};
 function fmDef(){ return PDF_FORMULIEREN[fm.id](); }
 function fmDirty(){return fm.busy || !!fm.id && JSON.stringify(fm.values)!==fm.initial;}
-function fmWijzig(){fm.previewToken='';fm.bestand='';$('#pff-resultaat').hidden=true;$('#pff-melding').textContent='';}
+function fmWijzig(){fm.previewToken='';fm.bestand='';$('#pff-resultaat').hidden=true;$('#pff-melding').textContent='';$('#pff-maak').classList.remove('tonal');}
 function fmActief(when){ return !when || Object.entries(when).every(([key,value]) => fm.values[key] === value); }
 function fmSecties(){ return fmDef().sections.filter(s => fmActief(s.when)); }
 function fmVelden(s){ return s.fields.filter(f => fmActief(f.when)); }
@@ -13,7 +13,7 @@ function fmInit(id){
   fm.initial=JSON.stringify(fm.values);
   $('#pff-naam').value=fmDef().title;
   document.querySelectorAll('#s-formulieren [data-ui-edited]').forEach(e=>delete e.dataset.uiEdited);
-  $('#pff-resultaat').hidden=true;$('#pff-melding').textContent='';
+  $('#pff-resultaat').hidden=true;$('#pff-melding').textContent='';$('#pff-alles').open=false;$('#pff-samenvatting').replaceChildren();
 }
 function enterFormulieren(){
   if (!fm.id) fmInit(Object.keys(PDF_FORMULIEREN)[0]);
@@ -36,7 +36,7 @@ function fmBron(){ Android.openUrl(fmDef().source); }
  * wissen en afschermen gekoppeld aan het ene scherm "formulieren". */
 function fmStart(){if(!fm.id)return;fm.view='stap';fmRender();$('#pff-titel').focus();}
 function fmOverzicht(){fm.view='start';fmRender();const rows=!$('#pff-start-rijen').hidden;(rows?$('#pff-zelf'):$('#pff-start-knop')).focus();}
-function fmTerugNaarStart(){if(fm.view!=='stap')return false;fmOverzicht();return true;}
+function fmTerugNaarStart(){if(fm.view!=='stap')return false;if(!fm.busy)fmOverzicht();return true;}
 function fmMenuActs(){
   const acts=[[t('Officiële bron openen'),fmBron,'external']];
   if(!fm.busy&&(fmDirty()||fm.bestand))acts.push([t('Formulier leegmaken'),fmWissen,'trash']);
@@ -97,7 +97,7 @@ function fmRender(){
   $('#pff-controle').hidden=!review;$('#pff-alles').hidden=!review;
   $('#pff-volgende').hidden=review;$('#pff-maak').hidden=!review;
   $('#pff-vorige').disabled=fm.busy||fm.step===0;$('#pff-volgende').disabled=fm.busy;
-  $('#pff-maak').disabled=fm.busy;$('#pff-naam').disabled=fm.busy;
+  $('#pff-maak').disabled=fm.busy;$('#pff-maak').classList.toggle('tonal',!!fm.bestand);$('#pff-naam').disabled=fm.busy;
   if(review){fmSamenvatting();if(!start)fmPreview();}
 }
 function fmSamenvatting(){
@@ -126,7 +126,8 @@ function fmGeldig(all){
   }
   for(const rule of fmDef().rules||[]){
     const a=fm.values[rule.from],b=fm.values[rule.to];
-    if(a&&b&&a>b){fm.step=sections.findIndex(s=>s.fields.some(f=>f.id===rule.to));const s=sections[fm.step];if(s.fields.some(f=>f.id===rule.to&&f.more))fm.meer[fmMeerSleutel(s)]=true;fmRender();$('#pff-v-'+rule.to).focus();$('#pff-melding').textContent=rule.message;return false;}
+    const index=sections.findIndex(s=>s.fields.some(f=>f.id===rule.to));
+    if(a&&b&&a>b&&index>=0){fm.step=index;const s=sections[index];if(s.fields.some(f=>f.id===rule.to&&f.more))fm.meer[fmMeerSleutel(s)]=true;fmRender();$('#pff-v-'+rule.to).focus();$('#pff-melding').textContent=rule.message;return false;}
   }
   return true;
 }
@@ -197,10 +198,10 @@ function fmMaak(){
 }
 window.onPdfFormMade=function(r){
   if(!r||r.request!==fm.exportToken||r.id!==fm.id||!fm.busy)return;
-  fm.busy=false;fmRender();
+  fm.busy=false;if(!r.error&&r.name)fm.bestand=r.name;fmRender();
   if(r.error){$('#pff-melding').textContent=t(r.error);return;}
   if(!r.name){$('#pff-melding').textContent=t('De PDF kan niet worden gemaakt. Probeer opnieuw.');return;}
-  fm.bestand=r.name;$('#pff-bestand').textContent=r.name;$('#pff-klaar').textContent=fmDef().instruction;fmStartRender(fmDef(),fmSecties());
+  $('#pff-bestand').textContent=r.name;$('#pff-klaar').textContent=fmDef().instruction;
   $('#pff-resultaat').hidden=false;$('#pff-melding').textContent=t('De PDF is gemaakt. Bewaar hem en print hem uit om te ondertekenen.');
   if(current==='formulieren')$('#pff-resultaat').scrollIntoView({block:'start'});
 };

@@ -166,9 +166,9 @@ function cmClosePicker(){
 }
 function cmFormPick(){
   if(fm.busy)return;const s=fmSecties()[fm.step];if(!s)return;const first=s.fields.find(f=>/^(kind|begeleider[12]|gever[12])-/.test(f.id));
-  const role=first?first.id.split('-')[0]:s.fields.some(f=>f.id==='accommodatie')?'bestemming':'';if(!role)return;
-  const mapping={};for(const f of s.fields){let key=f.id.startsWith(role+'-')?f.id.slice(role.length+1):f.id;if(role==='bestemming'&&key.startsWith('bestemming-'))key=key.slice(11);mapping[key]={id:f.id,current:()=>fm.values[f.id]};}
-  cmPick('formulieren',role,mapping,fields=>{for(const [key,value] of Object.entries(fields))if(mapping[key])fm.values[mapping[key].id]=value;fm.masterSensitive=true;fmWijzig();fmRender();});
+  const role=first?first.id.split('-')[0]:s.fields.some(f=>f.id==='van')?'reis':s.fields.some(f=>f.id==='accommodatie')?'bestemming':'';if(!role)return;
+  const mapping={};for(const f of s.fields){let key=f.id.startsWith(role+'-')?f.id.slice(role.length+1):f.id;if((role==='bestemming'||role==='reis')&&key.startsWith('bestemming-'))key=key.slice(11);mapping[key]={id:f.id,current:()=>fm.values[f.id]};}
+  cmPick('formulieren',role,mapping,fields=>{for(const [key,value] of Object.entries(fields))if(mapping[key])fm.values[mapping[key].id]=value;fm.masterSensitive=true;fm.meer={};fmWijzig();fmRender();});
 }
 function cmIdPick(){if(idc.busy||idc.loading)return;cmPick('idcopy','ontvanger',{ontvanger:{current:()=>$('#id-recipient').value}},fields=>{idc.masterSensitive=true;$('#id-recipient').value=fields.ontvanger;idCopyWatermarkChanged();});}
 function cmNavigation(name){if(cm.picker)cmClosePicker();if(current==='masterdata'&&name!=='masterdata')cmLeave();else if(name!==current)cmPrivacy(name==='formulieren'&&!!fm.masterSensitive||name==='idcopy'&&!!idc.masterSensitive);}

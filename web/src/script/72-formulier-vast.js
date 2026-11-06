@@ -77,8 +77,9 @@ function fmqGo(){
   },false,e=>{if(epoch!==fmq.epoch)return;fmq.busy=false;$('#fmq-ga').disabled=!fmq.records.length;fmqNote(e&&e.error?t(e.error):'');});
 }
 function fmqSetup(){
-  if(fm.busy)return;fmqClose();cmi.newType='formulier';show('masterdata');
+  if(fm.busy)return;fmqClose();cmi.newType='formulier';jumpTo('masterdata');
 }
+function fmqZelf(){fmqClose();fmStart();}
 // Koppelingen met de bestaande stamgegevens- en formulierlogica.
 const fmqBaseRender=fmRender;fmRender=function(){fmqBaseRender();fmqKaart();};
 const fmqBaseLocked=cmLockedUI;cmLockedUI=function(){fmqBaseLocked();if(fmq.open){fmq.busy=false;fmqClearInput();fmqRenderState();}};

@@ -14,7 +14,7 @@ function soloOk(name){
 }
 // Functies die een scherm van een andere tool openen
 const SOLO_FN = { ctOpen: 'contact', openNote: 'note', openSms: 'smschat', openChat: 'chat', txOpen: 'txd', callsForPerson: 'calls',
-  gsMoreCalls: 'calls', gsMore: 'search', gsOpen: 'search', pinTool: 'home', toolMenu: 'home', homeOpen: 'home', tabGo: 'home', muOpen: 'music', waPickFolder: 'settings' };
+  gsMoreCalls: 'calls', gsMore: 'search', gsOpen: 'search', pinTool: 'home', toolMenu: 'home', homeOpen: 'home', tabGo: 'home', muOpen: 'music', waPickFolder: 'settings', fmqSetup: 'masterdata' };
 /** Leidt deze code (een onclick of een menu-keuze) alleen naar schermen van deze tool? */
 function soloSrcOk(src){
   if (!SOLO) return true;
