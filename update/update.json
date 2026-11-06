@@ -1,15 +1,24 @@
 {
   "app": "Tools",
-  "versionName": "1.156",
-  "versionCode": 157,
-  "nativeLevel": 139,
+  "versionName": "1.157",
+  "versionCode": 158,
+  "nativeLevel": 140,
   "web": "index.html",
-  "webSha256": "3f364dd941e1493df9b1a461c92656540264c5545eb5415bbf64b73982349e1b",
+  "webSha256": "077490f8792854d118ad3f84938e79cb8e5325f328fde53f7824371f6876f79d",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "f53fbca55d0ec4c4a446b21bb2c0da67797875928b7eb3a4beff4b76cd738281",
+  "apkSha256": "d44b61316a18368354c6125dcdcee0fb6cb3065bbecd81768f0b78de051d46df",
   "changelog": [
+    {
+      "version": "1.157",
+      "date": "2026-11-06",
+      "changes": [
+        "Stamgegevens: kortere schermen op de telefoon. Het overzicht heeft zoeken, een filter op soort en een knop Toevoegen; bewerken gaat op een eigen scherm met tabbladen (bij een persoon Naam, Geboorte, Contact, Relaties en Meer) en Opslaan staat altijd onderaan. Activiteiten en Opnieuw beginnen vind je onder ⋯ rechtsboven.",
+        "Stamgegevens: open je een persoon, dan zie je onder \"Relaties\" met wie hij of zij een relatie heeft, en voeg je met één knop een kind, ouder, partner of andere relatie toe. De relatie staat er als zin bij (\"Anna is kind van Rene\"), zodat je de richting ziet.",
+        "Stamgegevens: meer vaste relaties (ex-partner, broer, zus, opa, oma, kleinzoon, kleindochter, oom of tante, neef of nicht, schoonouder, schoonkind, zwager of schoonzus, buurman of buurvrouw, huisgenoot) en een vaste status: bij een partner gehuwd, geregistreerd partnerschap, samenwonend of latrelatie, bij ouder en kind of de ouder ouderlijk gezag heeft. De status blijft in de kluis en gaat niet naar de app of de lokale AI."
+      ]
+    },
     {
       "version": "1.156",
       "date": "2026-11-06",
@@ -1386,5 +1395,5 @@
       ]
     }
   ],
-  "webSig2": "s4sAvdu8V7sRlJgcaW3DB7noaGp+i+gKHnUtGB5uoKhtbg/bW5l8QDQMYh/dIdgLu1FCJ6Kj0/ZB5lOzpzUMSI3iFyPjIiUhmalzBWsVdhftzigtDFd5NPy9vUC3E/iz/6OeoAlB9O4wFSMluMmaV+0nUkO8IPLd3xzr3nTLyUINOFfL3u+SH6j9Z+l6cooYIvX4WdjJa54YBogem/zKUrchjGbxm1v6AVea7bTQaQpQQRfZG+gZoZKObBL438ImI21ptCfU1kcqd2z4KN2k0cCNg5x6AHePPHgD/Cr68IHU291jzh50JmoxGHGqmk1gNwNDn0vYgfRYnUB/Pj50CfsmOe11mpGXtgdG2jSryHMV6OneVGrCP9Z0abmPJcpUZ6udcE5EbaVJUIqH/wTu3va9EOhxPV3XLd7lICUc2Au9HtO8Pb/kHURO0nCPAttjLhgFznF5vR2DfDneAjSGoVS0HTdRtVMD628ijSVgPUydhqDSt267onf1nv/HYcZg"
+  "webSig2": "fHpIMgqAPn78/ESv/XmX/WJ200sbAQqxs5vJEx6OSr7OAuMIvf/d9niwMTQ1jqx9sMwoSnrKheYSRCisUNKDtN53K6T93JG3mzWUvS7wYrZWqFmwni2y3Kt9M/G2+df0qC+ucTxFaqUgG9fUWl8ORibOh+crm1pDTI3fxut6l47q/SWp+SO58Q1k0wN+ZFtmtw17r6zcsczzuSxmdGFsA5KO393kE0OKmuqD7ykvZEYI8Y/EO+5bTZEFaB65UI7TkyBmRmmRYvuemWIx5RkRQj94+jymB6Njy0/dP3sWk7iau88UWpeNmaVjlu4aEdUrueeh1nPfIf5+5uVwPJqsiJNFLUMHfVa32lhJZUy/rFPZajGM+dGx7VhcBrvW+sRw1An614LF6Yz5Rvv0X3DIYncT3tJEyLfn6Ilbi+BNrkyoCefDt4GfGLx6FPhrRkIZw2rx4j7VRDDCqSnWqdZCWdJ6xbhSIu6Q9Jj8fsWgiyb5/FnoAaqf4IDQ7oIpwBdM"
 }

@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.157",
+    "date": "2026-11-06",
+    "changes": [
+      "Stamgegevens: kortere schermen op de telefoon. Het overzicht heeft zoeken, een filter op soort en een knop Toevoegen; bewerken gaat op een eigen scherm met tabbladen (bij een persoon Naam, Geboorte, Contact, Relaties en Meer) en Opslaan staat altijd onderaan. Activiteiten en Opnieuw beginnen vind je onder ⋯ rechtsboven.",
+      "Stamgegevens: open je een persoon, dan zie je onder \"Relaties\" met wie hij of zij een relatie heeft, en voeg je met één knop een kind, ouder, partner of andere relatie toe. De relatie staat er als zin bij (\"Anna is kind van Rene\"), zodat je de richting ziet.",
+      "Stamgegevens: meer vaste relaties (ex-partner, broer, zus, opa, oma, kleinzoon, kleindochter, oom of tante, neef of nicht, schoonouder, schoonkind, zwager of schoonzus, buurman of buurvrouw, huisgenoot) en een vaste status: bij een partner gehuwd, geregistreerd partnerschap, samenwonend of latrelatie, bij ouder en kind of de ouder ouderlijk gezag heeft. De status blijft in de kluis en gaat niet naar de app of de lokale AI."
+    ]
+  },
+  {
     "version": "1.156",
     "date": "2026-11-06",
     "changes": [
