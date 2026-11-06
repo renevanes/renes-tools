@@ -350,7 +350,9 @@ const SET_REG = [
   { id: 'gebruik.foto.na', scr: 'gebruikontgr', ctl: '#gb-pafter', type: 'keuze', vals: [['1', '1'], ['2', '2'], ['3', '3'], ['5', '5']], label: 'Gebruik: foto na dit aantal mislukte pogingen', desc: 'Na hoeveel mislukte pogingen achter elkaar er een foto gemaakt wordt.', syn: 'gebruik foto pogingen aantal mislukt',
     get: () => String(gbSet().photoAfter || 3), set: v => { gbSaveOne('photoAfter', +v); setIf(['gebruikset', 'gebruikontgr'], enterGebruikSet); return ''; } },
   { id: 'gebruik.foto.bewaren', scr: 'gebruikontgr', ctl: '#gb-pkeep', type: 'keuze', vals: [['7', '1 week'], ['30', '30 dagen'], ['90', '90 dagen']], label: 'Gebruik: foto\'s bewaren', desc: 'Hoe lang de foto\'s bij ontgrendelen bewaard blijven.', syn: 'gebruik foto bewaren dagen week',
-    get: () => String(gbSet().photoKeep || 30), set: v => { gbSaveOne('photoKeep', +v); setIf(['gebruikset', 'gebruikontgr'], enterGebruikSet); return ''; } }
+    get: () => String(gbSet().photoKeep || 30), set: v => { gbSaveOne('photoKeep', +v); setIf(['gebruikset', 'gebruikontgr'], enterGebruikSet); return ''; } },
+  { id: 'toiletten.kaart', scr: 'wcset', ctl: '#wcs-kaart', label: 'Toiletten en douches: kaart tonen', desc: 'De kaart met toiletten en douches tonen; de kaartbeelden komen van OpenStreetMap. Uit: alleen de lijst.', syn: 'toiletten douches wc kaart tonen kaartbeelden openstreetmap', synEn: 'toilets toilet showers shower loo restroom map',
+    get: () => setB(wcKaartAan()), set: v => { store.set('wcKaart', setOnV(v)); setIf('wcset', wcsRender); return ''; } }
 ];
 
 const SET_SRC_PRIV = ['sms', 'wa', 'calls', 'contacts', 'tx', 'sleep', 'checkin', 'gebruik', 'apparaten'];
@@ -378,7 +380,7 @@ const SET_GEN = [
 const SET_NEED = [['wa.leesbaar', /whatsapp|whats app|leesba|chats/], ['wa.', /whatsapp|whats app|\bwa\b/], ['redial.', /redial|bellen|beller|pogingen/], ['slaap.', /slaap|slapen|bedtijd|snurk|nachten/],
   ['spotify.', /spotify/], ['vpn.', /vpn|tunnel/], ['auto.ritten', /auto|rit/], ['auto.rittype', /auto|rit/], ['auto.bluetooth', /auto|bluetooth|carkit/], ['tx.', /uitschrijv|transcri|spraak|whisper|taal|gesprek/],
   ['meldingen.geschiedenis', /geschiedenis|bewaren|bewaar/], ['wekker.', /wekker|alarm/], ['opnemen.', /opnem|opname/], ['locatie.', /locatie|gps|plek/], ['start.', /startscherm|tegel|home|groep|compact|overzicht/],
-  ['ai.wifi', /model|download/], ['radio.', /radio|terugspoel|pauzeer|buffer/], ['podcast.', /podcast|afspeel/], ['backup.deel.', /backup|back-up|back up|mee/], ['backup.prive.', /backup|back-up|back up|privé|prive/]];
+  ['ai.wifi', /model|download/], ['radio.', /radio|terugspoel|pauzeer|buffer/], ['podcast.', /podcast|afspeel/], ['toiletten.', /toilet|douche|\bwc\b/], ['backup.deel.', /backup|back-up|back up|mee/], ['backup.prive.', /backup|back-up|back up|privé|prive/]];
 
 /* Schakelaars en keuzes die bewust niet in het register staan, met de reden */
 const SET_EXCLUDE = [
@@ -409,5 +411,8 @@ const SET_EXCLUDE = [
   ['#ciq-view, #s-checkincmp select, #s-checkincmp [role=radiogroup], #s-checkincmp .chips', 'Weergave van de grafieken van Check-in'],
   ['#car-months', 'Maandkeuze in de rittenlijst'],
   ['#s-calls input[type=date]', 'Filter in de oproepenlijst'],
-  ['#history-search, #gs-q', 'Zoekveld']
+  ['#history-search, #gs-q', 'Zoekveld'],
+  ['#wc-chips', 'Filters in Toiletten en douches, geen instelling'],
+  ['#s-wcbewerk select, #s-wcbewerk input', 'Hoort bij één plek van Toiletten en douches (aanpassen of toevoegen); bewaard met Bewaren'],
+  ['#s-wcbron .tg, #s-wcbron select, #s-wcbron input', 'Hoort bij één bron van Toiletten en douches; je stelt het in en bewaart het op het scherm van die bron']
 ];
