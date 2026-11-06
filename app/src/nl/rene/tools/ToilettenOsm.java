@@ -21,7 +21,7 @@ final class ToilettenOsm {
     private ToilettenOsm() { }
 
     static final String API = "https://api.openstreetmap.org/api/0.6/notes";
-    static final int MAX_PER_DAG = 20;
+    static final int MAX_PER_DAG = 20; // ook in de melding "Vandaag al 20 keer doorgegeven"
     static final String[] WAT = {"toevoeging", "wijziging", "afwijzing"};
 
     /** Hier mag alleen iemand met een account een notitie maken: dan via de website. */
@@ -216,7 +216,7 @@ final class ToilettenOsm {
         if (!Facturen.in(wat, WAT)) throw new Exception(Taal.T("Onbekend"));
         long nu = System.currentTimeMillis();
         JSONObject g = gedeeld(c);
-        if (vandaag(g, nu) >= MAX_PER_DAG) throw new Exception("Vandaag al " + MAX_PER_DAG + " keer doorgegeven: morgen weer");
+        if (vandaag(g, nu) >= MAX_PER_DAG) throw new Exception(Taal.T("Vandaag al 20 keer doorgegeven: morgen weer"));
         try {
             long id = maak(la, lo, tekst);
             synchronized (Toiletten.LOCK) {

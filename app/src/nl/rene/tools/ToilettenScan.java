@@ -36,6 +36,13 @@ final class ToilettenScan {
 
     static final long MAX = 30L * 1024 * 1024, MAX_UIT = 80L * 1024 * 1024;
     static final int MAX_PLEKKEN = 100_000, MAX_PAGINAS = 50;
+
+    /** De fout zoals hij bewaard wordt (Nederlands; de brug vertaalt hem bij het tonen). */
+    static String kort(Throwable e) {
+        if (e instanceof java.net.UnknownHostException || e instanceof java.net.SocketTimeoutException || e instanceof java.net.ConnectException)
+            return Taal.T("Geen verbinding");
+        return Facturen.kort(e);
+    }
     static final String UA = "renes-tools-toiletten/1 (Android; +https://github.com/renevanes/renes-tools)";
     static final AtomicBoolean BEZIG = new AtomicBoolean();
     private static final Pattern GETAL = Pattern.compile("(\\d+)(?:[.,](\\d+))?");
@@ -425,8 +432,8 @@ final class ToilettenScan {
             }
             App.log(c, "TOILET", "scan: " + t.optInt("aantal") + " plekken, " + t.optInt("nieuw") + " nieuw, " + t.optInt("weg") + " weg");
         } catch (Throwable e) {
-            t.put("fout", Facturen.kort(e));
-            r.put("ok", false).put("fout", Facturen.kort(e));
+            t.put("fout", kort(e));
+            r.put("ok", false).put("fout", kort(e));
             App.log(c, "TOILET", "scan mislukt: " + e.getClass().getSimpleName());
         }
         JSONArray log = t.optJSONArray("log");

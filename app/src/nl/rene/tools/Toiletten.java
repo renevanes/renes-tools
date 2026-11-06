@@ -38,7 +38,7 @@ final class Toiletten {
     static final String[] ZET = {"klanten", "rolstoel", "urinoir", "gratis", "betaald", "verschoon", "douche", "overslaan"};
     static final String[] EXTRA = {"rolstoel", "gratis", "douche", "toilet", "klanten", "verschoon"};
     static final String[] REDEN = {"weg", "dicht", "prive", "klanten", "anders"};
-    static final int MAX_TEKST = 120, MAX_BRONNEN = 20, MAX_EIGEN = 2000;
+    static final int MAX_TEKST = 120, MAX_BRONNEN = 20, MAX_EIGEN = 2000; // ook in de meldingen "Hooguit 20 bronnen" en "Hooguit 2000 eigen wijzigingen"
 
     static File dir(Context c) { return new File(c.getFilesDir(), "toiletten"); }
     static File cacheDir(Context c) { return new File(c.getFilesDir(), "toiletten-cache"); }
@@ -231,7 +231,7 @@ final class Toiletten {
                 if (x.getString("id").equals(b.getString("id"))) { nieuw.put(b); gevonden = true; } else nieuw.put(x);
             }
             if (!gevonden) {
-                if (nieuw.length() >= MAX_BRONNEN) throw new Exception("Hooguit " + MAX_BRONNEN + " bronnen");
+                if (nieuw.length() >= MAX_BRONNEN) throw new Exception(Taal.T("Hooguit 20 bronnen"));
                 nieuw.put(b);
             }
             bewaarLijst(c, nieuw);
@@ -345,7 +345,7 @@ final class Toiletten {
         if (k.isEmpty() || k.startsWith("eigen:")) {
             JSONObject t = eigen.getJSONObject("toegevoegd");
             if (k.isEmpty()) {
-                if (aantal(eigen) >= MAX_EIGEN) throw new Exception("Hooguit " + MAX_EIGEN + " eigen wijzigingen");
+                if (aantal(eigen) >= MAX_EIGEN) throw new Exception(Taal.T("Hooguit 2000 eigen wijzigingen"));
                 k = nieuwId();
             } else if (!t.has(k)) throw new Exception(Taal.T("Deze plek bestaat niet meer"));
             JSONObject oud = t.optJSONObject(k);
@@ -359,7 +359,7 @@ final class Toiletten {
         if (bron == null) throw new Exception(Taal.T("Deze plek staat niet meer in de bron"));
         if (!k.matches("[a-z0-9-]{1,40}:[^\\s]{1,80}")) throw new Exception(Taal.T("Onbekende plek"));
         JSONObject w = eigen.getJSONObject("wijzig");
-        if (!w.has(k) && aantal(eigen) >= MAX_EIGEN) throw new Exception("Hooguit " + MAX_EIGEN + " eigen wijzigingen");
+        if (!w.has(k) && aantal(eigen) >= MAX_EIGEN) throw new Exception(Taal.T("Hooguit 2000 eigen wijzigingen"));
         JSONObject was = new JSONObject().put("s", bron.optString("s")).put("f", bron.optInt("f")).put("n", bron.optString("n")).put("u", bron.optString("u"));
         JSONObject oud = w.optJSONObject(k);
         if (oud != null && oud.optJSONObject("was") != null && !in.optBoolean("houden")) was = oud.getJSONObject("was");
@@ -380,7 +380,7 @@ final class Toiletten {
         if (k.startsWith("eigen:")) throw new Exception(Taal.T("Je eigen plek kun je weghalen"));
         if (plek == null) throw new Exception(Taal.T("Deze plek staat niet meer in de bron"));
         JSONObject a = eigen.getJSONObject("afgewezen");
-        if (!a.has(k) && aantal(eigen) >= MAX_EIGEN) throw new Exception("Hooguit " + MAX_EIGEN + " eigen wijzigingen");
+        if (!a.has(k) && aantal(eigen) >= MAX_EIGEN) throw new Exception(Taal.T("Hooguit 2000 eigen wijzigingen"));
         a.put(k, new JSONObject().put("la", plek.getDouble("la")).put("lo", plek.getDouble("lo")).put("s", plek.optString("s"))
                 .put("n", kort(plek.optString("n"), 80)).put("reden", reden).put("tekst", kort(tekst, 300)).put("t", nu));
     }

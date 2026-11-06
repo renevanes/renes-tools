@@ -12,6 +12,17 @@ import java.util.List;
 public class ToilettenBridge extends MasterBridge {
     ToilettenBridge(MainActivity act) { super(act); }
 
+    /** De bewaarde fouten van een scan in de taal van de app (bewaard blijven ze Nederlands). */
+    private JSONObject vertaald(JSONObject t) throws Exception {
+        if (!t.optString("fout").isEmpty()) t.put("fout", Taal.t(ctx, t.getString("fout")));
+        JSONArray log = t.optJSONArray("log");
+        for (int i = 0; log != null && i < log.length(); i++) {
+            JSONObject x = log.optJSONObject(i);
+            if (x != null && !x.optString("fout").isEmpty()) x.put("fout", Taal.t(ctx, x.getString("fout")));
+        }
+        return t;
+    }
+
     private String fout(Throwable e, String fb) {
         String m = Taal.t(ctx, e.getMessage() == null ? fb : e.getMessage());
         try { return new JSONObject().put("error", m).toString(); } catch (Exception x) { return "{\"error\":\"\"}"; }
@@ -35,7 +46,7 @@ public class ToilettenBridge extends MasterBridge {
             for (int i = 0; i < bs.length(); i++) {
                 JSONObject b = new JSONObject(bs.getJSONObject(i).toString());
                 JSONObject t = st.optJSONObject(b.getString("id"));
-                b.put("toestand", t == null ? new JSONObject() : t);
+                b.put("toestand", t == null ? new JSONObject() : vertaald(t));
                 b.put("volgende", "uit".equals(b.optString("schema")) || !b.optBoolean("aan", true) ? 0 : Facturen.gepland(b, System.currentTimeMillis(), true, Regio.zone(ctx)));
                 if (t != null) laatste = Math.max(laatste, t.optLong("lastOk"));
                 lijst.put(b);
@@ -123,6 +134,7 @@ public class ToilettenBridge extends MasterBridge {
             String r;
             try {
                 JSONArray l = ToilettenScan.scan(ctx, id == null ? "" : id, false);
+                if (l != null) for (int i = 0; i < l.length(); i++) vertaald(l.getJSONObject(i));
                 r = l == null ? new JSONObject().put("bezig", true).toString() : new JSONObject().put("id", id == null ? "" : id).put("resultaat", l).toString();
             } catch (Throwable e) { r = fout(e, Taal.T("Scannen lukt niet")); }
             a.js("onWcScan", r);
