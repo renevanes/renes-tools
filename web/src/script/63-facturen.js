@@ -178,7 +178,7 @@ function faMaandRender(){
     const binnen = n ? '✓ ' + tn(n, '{n} factuur van deze maand', '{n} facturen van deze maand') : faUit(x) ? t('Nog niets binnen') : p.soort === 'ok' ? t('Opgehaald; nog geen factuur met een datum in deze maand') : p.soort === 'mis' ? t('✗ Nog niet: mislukt') : x.schema !== 'uit' && x.volgende && faMaandSleutel(x.volgende) === dezeMaand && !(x.vorige && faMaandSleutel(x.vorige) === dezeMaand) ? t('Gepland {wanneer}', { wanneer: faMoment(x.volgende) }) : t(x.schema === 'uit' ? 'Alleen met de hand' : 'Nog niets binnen');
     return '<div class="bkres"><b translate="no">' + esc(faNaam(x)) + '</b><span class="' + (n ? 'good' : p.soort === 'mis' ? 'bad' : '') + '">' + esc(binnen) + '</span></div>';
   };
-  const boven = l.filter(x => aantal(x) || fout(x)), rest = l.filter(x => !faUit(x) && !boven.includes(x)), uitRest = l.filter(x => faUit(x) && !boven.includes(x)).length;
+  const boven = l.filter(x => aantal(x) || fout(x)), rest = l.filter(x => !faUit(x) && x.soort !== 'mail' && !boven.includes(x)), uitRest = l.filter(x => faUit(x) && !boven.includes(x)).length;
   uiHtml($('#fa-maand-lijst'), (boven.map(rij).join('') || '<p class="note">' + esc(t('Nog geen facturen van deze maand.')) + '</p>') +
     (rest.length || uitRest ? '<details class="fa-rest" data-k="rest"><summary>' + esc(tn(rest.length + uitRest, 'Nog niets van 1 andere leverancier', 'Nog niets van {n} andere leveranciers')) + '</summary>' + rest.map(rij).join('') +
       (uitRest ? '<p class="note">' + esc(tn(uitRest, 'En 1 leverancier uit je mail.', 'En {n} leveranciers uit je mail.')) + '</p>' : '') + '</details>' : ''));

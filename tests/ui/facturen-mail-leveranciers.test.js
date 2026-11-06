@@ -31,6 +31,7 @@ const { chromium } = require('playwright');
     ok((await pg.$$('#fa-lijst .srow')).length === 2 && (await tekst('#fa-lijst')).includes('3 leveranciers gevonden'), 'websites en mailbron apart; de mailbron telt wat hij vond');
     ok((await tekst(rij('KPN'))).includes('Hoort dit bij KPN Zakelijk?'), 'KPN uit de mail: voorstel bij de website KPN Zakelijk');
     ok((await tekst('#fa-maand-lijst')).includes('Eneco') && (await tekst('#fa-maand-lijst')).includes('1 factuur van deze maand'), 'deze maand: Eneco met een factuur');
+    ok((await tekst('#fa-maand-lijst .fa-rest summary')).includes('1 andere leverancier') && !(await tekst('#fa-maand-lijst')).includes('Facturen in Gmail'), 'deze maand: de mailbron zelf staat er niet bij: ' + await tekst('#fa-maand-lijst .fa-rest summary'));
     const dos = Object.values((await fa()).dos);
     ok(dos.length === 3 && dos.every(s => s.via === 'gmail' && s.leverancier !== 'gmail'), 'dossier: elke factuur bij zijn eigen leverancier, via Gmail');
     await pg.screenshot({ path: __dirname + '/shots/facturen-mail-' + scheme + '.png', fullPage: true });
