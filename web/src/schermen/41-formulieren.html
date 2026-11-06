@@ -2,85 +2,98 @@
   <div class="hdr sm">
     <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <h1 tabindex="-1">Formulieren invullen</h1>
+    <button class="icon-btn" id="pff-menu" onclick="fmMenu()" aria-label="Meer"><span class="ui-icon" data-icon="more" aria-hidden="true"></span></button>
   </div>
   <main>
-    <div class="card">
-      <label class="f" for="pff-keuze">Formulier</label>
-      <select class="search" id="pff-keuze" onchange="fmKies(this.value)"></select>
-      <p class="note" id="pff-uitleg"></p>
-      <p class="note">Je invoer blijft alleen in het geheugen tot je de app sluit of het formulier leegmaakt. Een gemaakte PDF staat tijdelijk onder PDF → Gemaakt. Bewaar hem zelf via Opslaan als…</p>
-      <button class="mini" id="pff-bron" onclick="fmBron()">Officiële bron openen</button>
-    </div>
-    <div class="card" id="fmq-kaart" hidden>
-      <h2>Snel invullen met vaste gegevens</h2>
-      <p class="hint">Stel één keer in wie er reist, wie meegaat en wie toestemming geeft. Daarna vul je per reis alleen de reisdagen en de bestemming in.</p>
-      <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
-        <p>De vaste gegevens staan als stamgegeven in je versleutelde Stamgegevens. Ze verwijzen naar de personen, reisdocumenten en relaties die je daar al hebt. Namen, geboortegegevens, adressen en documentnummers worden bij elke nieuwe reis opnieuw uit de actuele stamgegevens gehaald. Wijzig je bijvoorbeeld een paspoort, dan staat het nieuwe nummer de volgende keer vanzelf op het formulier.</p>
-        <p>Heb je meer kinderen, maak dan per kind vaste gegevens. De datum en plaats van ondertekening blijven leeg: die vult ieder zelf in bij het tekenen.</p>
-      </div></details>
-      <div class="row pff-navigatie">
-        <button class="big tonal" id="fmq-start" onclick="fmqOpen()">Nieuwe reis invullen</button>
-        <button class="big ghost" id="fmq-instellen" onclick="fmqSetup()">Vaste gegevens instellen</button>
+    <div id="pff-start">
+      <div class="card">
+        <div id="pff-keuze-rij" hidden>
+          <label class="f" for="pff-keuze">Formulier</label>
+          <select class="sel" id="pff-keuze" onchange="fmKies(this.value)"></select>
+        </div>
+        <h2 id="pff-form-titel"></h2>
+        <p class="hint" id="pff-uitleg"></p>
+        <p class="hint">Je invoer blijft alleen in het geheugen op je telefoon.</p>
+        <button class="big" id="fmq-start" onclick="fmqOpen()" hidden>Nieuwe reis invullen</button>
+        <button class="big" id="pff-start-knop" onclick="fmStart()"></button>
+        <details class="help in"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+          <p id="pff-omschrijving"></p>
+          <div id="fmq-uitleg" hidden>
+            <p>Stel één keer in wie er reist, wie meegaat en wie toestemming geeft. Daarna vul je per reis alleen de reisdagen en de bestemming in.</p>
+            <p>De vaste gegevens staan als stamgegeven in je versleutelde Stamgegevens. Ze verwijzen naar de personen, reisdocumenten en relaties die je daar al hebt. Namen, geboortegegevens, adressen en documentnummers worden bij elke nieuwe reis opnieuw uit de actuele stamgegevens gehaald. Wijzig je bijvoorbeeld een paspoort, dan staat het nieuwe nummer de volgende keer vanzelf op het formulier.</p>
+            <p>Heb je meer kinderen, maak dan per kind vaste gegevens. De datum en plaats van ondertekening blijven leeg: die vult ieder zelf in bij het tekenen.</p>
+          </div>
+          <p>Je invoer blijft alleen in het geheugen tot je de app sluit of het formulier leegmaakt. Een gemaakte PDF staat tijdelijk onder PDF → Gemaakt. Bewaar hem zelf via Opslaan als…</p>
+        </div></details>
+      </div>
+      <div class="card stlist" id="pff-start-rijen" hidden>
+        <button class="strow" id="fmq-instellen" onclick="fmqSetup()"><span class="stic"><span class="ui-icon" data-icon="user" aria-hidden="true"></span></span><span class="sttxt"><b>Vaste gegevens</b><small>Wie reist, wie meegaat en wie toestemming geeft</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+        <button class="strow" id="pff-zelf" onclick="fmStart()"><span class="stic"><span class="ui-icon" data-icon="edit" aria-hidden="true"></span></span><span class="sttxt"><b>Zelf invullen</b><small id="pff-zelf-stand" translate="no"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       </div>
     </div>
-    <div class="card">
-      <p class="note" id="pff-stap" role="status" aria-live="polite"></p>
-      <h2 id="pff-titel" tabindex="-1"></h2>
-      <details id="pff-hulp" class="pff-hulp">
-        <summary>Invulhulp met vaste gegevens en lokale AI</summary>
-        <p class="note">Kies zelf beheerde personen of een reis uit Stamgegevens. Alleen de gekozen velden en je toelichting worden gebruikt. Controleer de voorstellen voordat je ze overneemt.</p>
-        <button class="mini" onclick="show('masterdata')">Personen en reizen beheren</button>
-        <label class="f" for="pff-hulp-rol">Gegevens kiezen voor</label>
-        <select class="search" id="pff-hulp-rol"></select>
-        <button class="big ghost" id="pff-hulp-kies" onclick="fmHelpPick()">Vaste gegevens kiezen</button>
-        <div id="pff-hulp-bronnen" translate="no"></div>
-        <label class="f" for="pff-hulp-tekst">Toelichting voor de lokale AI</label>
-        <textarea class="search" id="pff-hulp-tekst" maxlength="2000" rows="3" autocomplete="off" translate="no" placeholder="Bijvoorbeeld: de begeleider is de vader. Datum ondertekening: 12-07-2027."></textarea>
-        <p class="note">De AI werkt op je telefoon met je geïnstalleerde taalmodel. Je vraag en het antwoord worden niet als gesprek of AI-geheugen bewaard.</p>
-        <button class="mini" onclick="jumpTo('models')">Taalmodel kiezen</button>
+    <div id="pff-werk" hidden>
+      <div class="card">
+        <p class="note" id="pff-stap" role="status" aria-live="polite"></p>
+        <h2 id="pff-titel" tabindex="-1"></h2>
+        <details id="pff-hulp" class="pff-hulp" hidden>
+          <summary>Invulhulp met lokale AI</summary>
+          <p class="note">Kies zelf beheerde personen of een reis uit Stamgegevens. Alleen de gekozen velden en je toelichting worden gebruikt. Controleer de voorstellen voordat je ze overneemt.</p>
+          <button class="mini" onclick="show('masterdata')">Personen en reizen beheren</button>
+          <label class="f" for="pff-hulp-rol">Gegevens kiezen voor</label>
+          <select class="search" id="pff-hulp-rol"></select>
+          <button class="big ghost" id="pff-hulp-kies" onclick="fmHelpPick()">Gegevens kiezen uit Stamgegevens</button>
+          <div id="pff-hulp-bronnen" translate="no"></div>
+          <label class="f" for="pff-hulp-tekst">Toelichting voor de lokale AI</label>
+          <textarea class="search" id="pff-hulp-tekst" maxlength="2000" rows="3" autocomplete="off" translate="no" placeholder="Bijvoorbeeld: de begeleider is de vader. Datum ondertekening: 12-07-2027."></textarea>
+          <p class="note">De AI werkt op je telefoon met je geïnstalleerde taalmodel. Je vraag en het antwoord worden niet als gesprek of AI-geheugen bewaard.</p>
+          <button class="mini" onclick="jumpTo('models')">Taalmodel kiezen</button>
+          <div class="row pff-navigatie">
+            <button class="big ghost" id="pff-hulp-vast" onclick="fmHelpFixed()">Voorstel zonder AI</button>
+            <button class="big tonal" id="pff-hulp-ai" onclick="fmHelpAi()">Voorstel met lokale AI</button>
+            <button class="mini" id="pff-hulp-stop" onclick="fmHelpCancel()" hidden>Stoppen</button>
+          </div>
+          <p class="note" id="pff-hulp-status" role="status" aria-live="polite"></p>
+          <div id="pff-hulp-voorstellen" translate="no"></div>
+          <button class="big tonal" id="pff-hulp-overnemen" onclick="fmHelpApply()" hidden>Gekozen voorstellen overnemen</button>
+          <button class="mini" id="pff-hulp-sluit" onclick="fmHelpToon(false)">Invulhulp sluiten</button>
+        </details>
+        <button class="big ghost" id="cm-form-pick" onclick="cmFormPick()" hidden>Overnemen uit stamgegevens</button>
+        <form id="pff-velden" autocomplete="off" novalidate translate="no" onsubmit="event.preventDefault();fmVerder()"></form>
+        <div id="pff-controle" hidden>
+          <p class="note" id="pff-instructie"></p>
+          <div class="row pff-navigatie">
+            <button class="mini" id="pff-pagina-vorige" onclick="fmPagina(-1)" aria-label="Vorige pagina">‹</button>
+            <span class="note" id="pff-pagina-nummer"></span>
+            <button class="mini" id="pff-pagina-volgende" onclick="fmPagina(1)" aria-label="Volgende pagina">›</button>
+          </div>
+          <p class="note" id="pff-preview-status" role="status" aria-live="polite"></p>
+          <div class="pff-papier" id="pff-papier" hidden>
+            <img id="pff-voorbeeld" alt="Voorbeeld van het ingevulde formulier">
+            <canvas id="pff-laag" aria-hidden="true"></canvas>
+          </div>
+          <label class="f" for="pff-naam">Naam van de nieuwe PDF</label>
+          <input class="search" id="pff-naam" maxlength="60" translate="no" autocomplete="off">
+        </div>
+        <p class="note" id="pff-melding" role="status" aria-live="polite"></p>
         <div class="row pff-navigatie">
-          <button class="big ghost" id="pff-hulp-vast" onclick="fmHelpFixed()">Voorstel uit vaste gegevens</button>
-          <button class="big tonal" id="pff-hulp-ai" onclick="fmHelpAi()">Voorstel met lokale AI</button>
-          <button class="mini" id="pff-hulp-stop" onclick="fmHelpCancel()" hidden>Stoppen</button>
+          <button class="big ghost" id="pff-vorige" onclick="fmTerug()">Vorige stap</button>
+          <button class="big" id="pff-volgende" onclick="fmVerder()">Volgende stap</button>
+          <button class="big" id="pff-maak" onclick="fmMaak()" hidden>Ingevulde PDF maken</button>
         </div>
-        <p class="note" id="pff-hulp-status" role="status" aria-live="polite"></p>
-        <div id="pff-hulp-voorstellen" translate="no"></div>
-        <button class="big" id="pff-hulp-overnemen" onclick="fmHelpApply()" hidden>Gekozen voorstellen overnemen</button>
-      </details>
-      <button class="big ghost" id="cm-form-pick" onclick="cmFormPick()" hidden>Overnemen uit stamgegevens</button>
-      <form id="pff-velden" autocomplete="off" novalidate translate="no" onsubmit="event.preventDefault();fmVerder()"></form>
-      <div id="pff-controle" hidden>
-        <p class="note" id="pff-instructie"></p>
-        <div id="pff-samenvatting" translate="no"></div>
+        <details class="pff-alles" id="pff-alles" hidden>
+          <summary>Alle ingevulde gegevens</summary>
+          <div id="pff-samenvatting" translate="no"></div>
+        </details>
+      </div>
+      <div class="card" id="pff-resultaat" hidden>
+        <h2>Ingevulde PDF</h2>
+        <p class="note" id="pff-klaar"></p>
+        <p id="pff-bestand" translate="no"></p>
         <div class="row pff-navigatie">
-          <button class="mini" id="pff-pagina-vorige" onclick="fmPagina(-1)" aria-label="Vorige pagina">‹</button>
-          <span class="note" id="pff-pagina-nummer"></span>
-          <button class="mini" id="pff-pagina-volgende" onclick="fmPagina(1)" aria-label="Volgende pagina">›</button>
+          <button class="big ghost" onclick="Android.pdfOpen(fm.bestand)">Bekijken en afdrukken</button>
+          <button class="big" onclick="Android.pdfSave(fm.bestand)">Opslaan als…</button>
+          <button class="big ghost" onclick="Android.pdfShare(JSON.stringify([fm.bestand]))">Delen</button>
         </div>
-        <p class="note" id="pff-preview-status" role="status" aria-live="polite"></p>
-        <div class="pff-papier" id="pff-papier" hidden>
-          <img id="pff-voorbeeld" alt="Voorbeeld van het ingevulde formulier">
-          <canvas id="pff-laag" aria-hidden="true"></canvas>
-        </div>
-        <label class="f" for="pff-naam">Naam van de nieuwe PDF</label>
-        <input class="search" id="pff-naam" maxlength="60" translate="no" autocomplete="off">
-      </div>
-      <p class="note" id="pff-melding" role="status" aria-live="polite"></p>
-      <div class="row pff-navigatie">
-        <button class="big ghost" id="pff-vorige" onclick="fmTerug()">Vorige stap</button>
-        <button class="big" id="pff-volgende" onclick="fmVerder()">Volgende stap</button>
-        <button class="big" id="pff-maak" onclick="fmMaak()" hidden>Ingevulde PDF maken</button>
-      </div>
-      <button class="mini" id="pff-wissen" onclick="fmWissen()" style="margin-top:16px">Formulier leegmaken</button>
-    </div>
-    <div class="card" id="pff-resultaat" hidden>
-      <h2>Ingevulde PDF</h2>
-      <p class="note" id="pff-klaar"></p>
-      <p id="pff-bestand" translate="no"></p>
-      <div class="row pff-navigatie">
-        <button class="big ghost" onclick="Android.pdfOpen(fm.bestand)">Bekijken en afdrukken</button>
-        <button class="big" onclick="Android.pdfSave(fm.bestand)">Opslaan als…</button>
-        <button class="big ghost" onclick="Android.pdfShare(JSON.stringify([fm.bestand]))">Delen</button>
       </div>
     </div>
   </main>

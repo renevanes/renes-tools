@@ -70,25 +70,26 @@ const FM_REIS_POS = {
   "begeleider2-tekenplaats": [{"page":1,"x":306.508,"y":570.189,"w":158.74,"h":11.339}],
 };
 
-function fmReisVeld(id, label, type, required){
+function fmReisVeld(id, label, type, required, more){
   const postcode = id==='gever1-postcode'||id==='gever2-postcode';
   const match=/^(kind|begeleider[12]|gever[12])-(.+)$/.exec(id);
   const key=id.startsWith('bestemming-')?id.slice(11):id;
   const sources=match?[{role:match[1],key:match[2]}]:[{role:'reis',key}];
   if(id==='accommodatie'||id==='land'||id.startsWith('bestemming-'))sources.push({role:'bestemming',key});
-  return {id, label, type:type || 'text', required:!!required, pdf:FM_REIS_POS[id] || [], compact:postcode,
+  return {id, label, type:type || 'text', required:!!required, more:!!more, pdf:FM_REIS_POS[id] || [], compact:postcode,
     pattern:postcode?'[0-9]{4}\\s?[A-Za-z]{2}':undefined,sources};
 }
 function fmReisPersoon(prefix, gever){
-  const v = (key,label,type,required) => fmReisVeld(prefix + '-' + key,label,type,required);
+  const v = (key,label,type,required,more) => fmReisVeld(prefix + '-' + key,label,type,required,more);
   const fields = [v('naam',t('Achternaam'),'',true), v('initialen',t('Voorletter(s)')),
     v('geboortedatum',t('Geboortedatum'),'date'), v('geboorteplaats',t('Geboorteplaats')),
-    v('bsn',t('BSN (optioneel)'),'bsn'), v('nationaliteit',t('Nationaliteit(en)')),
+    v('nationaliteit',t('Nationaliteit(en)')),
     v('document',t('Documentnummer paspoort of identiteitskaart')), v('geldig',t('Reisdocument geldig tot'),'date')];
   if (gever) fields.push(v('adres',t('Adres')), v('postcode',t('Postcode')), v('plaats',t('Woonplaats')),
-    v('instelling',t('Naam instelling (indien van toepassing)')), v('telefoon',t('Telefoonnummer(s)'),'tel'));
+    v('telefoon',t('Telefoonnummer(s)'),'tel'), v('instelling',t('Naam instelling (indien van toepassing)'),'',false,true));
   else fields.push(v('relatie',t('Relatie tot het kind')));
-  fields.push(v('datum',t('Datum ondertekening'),'date'), v('tekenplaats',t('Plaats ondertekening')));
+  fields.push(v('bsn',t('BSN (optioneel)'),'bsn',false,true),
+    v('datum',t('Datum ondertekening'),'date',false,true), v('tekenplaats',t('Plaats ondertekening'),'',false,true));
   return fields;
 }
 function fmReistoestemming(){
@@ -100,24 +101,26 @@ function fmReistoestemming(){
   const tweede = keuze('tweedeBegeleider',t('Een tweede begeleider invullen?')); tweede.when = begeleid;
   return {
     id:'reistoestemming', title:t('Toestemming reizen met minderjarige'),
+    intro:t('Voor één kind per formulier. Je print de PDF en laat hem ondertekenen.'),
     description:t('Voor één kind per formulier. Vul de gegevens in zoals op het reisdocument. De achterblijvende persoon of personen met gezag geven toestemming.'),
     source:'https://www.rijksoverheid.nl/documenten/2014/02/06/formulier-toestemming-reizen-met-minderjarige-naar-het-buitenland',
     pages:[{width:595.276,height:841.89},{width:595.276,height:841.89}],
     instruction:t('Controleer beide pagina’s. Print de PDF en laat de juiste personen ondertekenen. Neem een kopie van hun identiteitsbewijs en de benodigde documenten over het gezag mee. Kijk voor jouw situatie op de officiële bron.'),
     sections:[
-      {title:t('Reis en kind'),fields:[v('van',t('Eerste reisdag'),'date',true),v('tot',t('Laatste reisdag'),'date',true),
-        v('kind-naam',t('Achternaam kind'),'',true),v('kind-voornamen',t('Voornaam/-namen kind'),'',true),
+      {title:t('Reis'),fields:[v('van',t('Eerste reisdag'),'date',true),v('tot',t('Laatste reisdag'),'date',true),
+        v('land',t('Land bestemming'),'',true),v('bestemming-plaats',t('Plaats bestemming')),
+        alleen,tweede,keuze('tweedeGever',t('Een tweede toestemminggever invullen?')),
+        v('accommodatie',t('Naam familie of accommodatie'),'',false,true),v('bestemming-postcode',t('Postcode bestemming'),'',false,true),
+        v('bestemming-telefoon',t('Telefoonnummer bestemming'),'tel',false,true),v('reisgegevens',t('Reisgegevens (bijvoorbeeld vluchtnummer)'),'',false,true)]},
+      {title:tc('formulier','Kind'),fields:[v('kind-naam',t('Achternaam kind'),'',true),v('kind-voornamen',t('Voornaam/-namen kind'),'',true),
         v('kind-geboortedatum',t('Geboortedatum kind'),'date',true),v('kind-geboorteplaats',t('Geboorteplaats kind')),
-        v('kind-bsn',t('BSN (optioneel)'),'bsn'),v('kind-nationaliteit',t('Nationaliteit(en)')),
+        v('kind-nationaliteit',t('Nationaliteit(en)')),
         v('kind-document',t('Documentnummer paspoort of identiteitskaart')),v('kind-geldig',t('Reisdocument geldig tot'),'date'),
-        alleen,tweede,keuze('tweedeGever',t('Een tweede toestemminggever invullen?'))]},
+        v('kind-bsn',t('BSN (optioneel)'),'bsn',false,true)]},
       {title:t('Begeleider 1'),when:begeleid,fields:fmReisPersoon('begeleider1',false)},
       {title:t('Begeleider 2'),when:tweeBegeleiders,fields:fmReisPersoon('begeleider2',false)},
       {title:t('Toestemminggever 1 (reist niet mee)'),fields:fmReisPersoon('gever1',true)},
-      {title:t('Toestemminggever 2 (reist niet mee)'),when:tweeGevers,fields:fmReisPersoon('gever2',true)},
-      {title:t('Bestemming'),fields:[v('accommodatie',t('Naam familie of accommodatie')),v('bestemming-postcode',t('Postcode bestemming')),
-        v('bestemming-plaats',t('Plaats bestemming')),v('land',t('Land bestemming'),'',true),
-        v('bestemming-telefoon',t('Telefoonnummer bestemming'),'tel'),v('reisgegevens',t('Reisgegevens (bijvoorbeeld vluchtnummer)'))]}
+      {title:t('Toestemminggever 2 (reist niet mee)'),when:tweeGevers,fields:fmReisPersoon('gever2',true)}
     ],
     rules:[{from:'van',to:'tot',message:t('De laatste reisdag moet op of na de eerste reisdag vallen.')}]
   };

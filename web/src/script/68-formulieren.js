@@ -1,6 +1,6 @@
 /* Algemene invuller: definities bepalen stappen, voorwaarden, controles en PDF-posities.
  * Concepten blijven uitsluitend in het geheugen. Exporteer alleen zichtbare, actieve velden. */
-const fm = {id:'',values:{},step:0,page:0,previews:{},token:0,previewToken:'',exportToken:'',busy:false,bestand:''};
+const fm = {id:'',values:{},step:0,page:0,view:'start',meer:{},previews:{},token:0,previewToken:'',exportToken:'',busy:false,bestand:''};
 function fmDef(){ return PDF_FORMULIEREN[fm.id](); }
 function fmDirty(){return fm.busy || !!fm.id && JSON.stringify(fm.values)!==fm.initial;}
 function fmWijzig(){fm.previewToken='';fm.bestand='';$('#pff-resultaat').hidden=true;$('#pff-melding').textContent='';}
@@ -8,7 +8,7 @@ function fmActief(when){ return !when || Object.entries(when).every(([key,value]
 function fmSecties(){ return fmDef().sections.filter(s => fmActief(s.when)); }
 function fmVelden(s){ return s.fields.filter(f => fmActief(f.when)); }
 function fmInit(id){
-  fm.id=id;fm.values={};fm.step=0;fm.page=0;fm.previews={};fm.previewToken='';fm.bestand='';
+  fm.id=id;fm.values={};fm.step=0;fm.page=0;fm.view='start';fm.meer={};fm.previews={};fm.previewToken='';fm.bestand='';
   for (const s of fmDef().sections) for (const f of s.fields) fm.values[f.id]=f.value || '';
   fm.initial=JSON.stringify(fm.values);
   $('#pff-naam').value=fmDef().title;
@@ -19,7 +19,7 @@ function enterFormulieren(){
   if (!fm.id) fmInit(Object.keys(PDF_FORMULIEREN)[0]);
   const select=$('#pff-keuze');select.replaceChildren();
   Object.entries(PDF_FORMULIEREN).forEach(([id,make]) => { const o=document.createElement('option');o.value=id;o.textContent=make().title;select.appendChild(o); });
-  select.value=fm.id;fmRender();
+  select.value=fm.id;$('#pff-keuze-rij').hidden=select.options.length<2;fmRender();
 }
 function fmKies(id){
   $('#pff-keuze').value=fm.id;
@@ -32,40 +32,73 @@ function fmWissen(){
   askConfirm('Formulier leegmaken?','Alle invoer in dit formulier wordt gewist. Een al gemaakte PDF blijft onder PDF → Gemaakt staan.','Leegmaken',()=>{fmInit(fm.id);fmRender();});
 }
 function fmBron(){ Android.openUrl(fmDef().source); }
+/* Twee weergaven op één scherm: de start (hoofdknop en rijen) en de stappen. Zo blijven vergrendelen,
+ * wissen en afschermen gekoppeld aan het ene scherm "formulieren". */
+function fmStart(){if(!fm.id)return;fm.view='stap';fmRender();$('#pff-titel').focus();}
+function fmOverzicht(){fm.view='start';fmRender();const rows=!$('#pff-start-rijen').hidden;(rows?$('#pff-zelf'):$('#pff-start-knop')).focus();}
+function fmTerugNaarStart(){if(fm.view!=='stap')return false;fmOverzicht();return true;}
+function fmMenuActs(){
+  const acts=[[t('Officiële bron openen'),fmBron,'external']];
+  if(!fm.busy&&(fmDirty()||fm.bestand))acts.push([t('Formulier leegmaken'),fmWissen,'trash']);
+  return acts;
+}
+function fmMenu(){if(fm.id)openSheet(fmDef().title,'',fmMenuActs());}
+function fmStartRender(def,sections){
+  const dirty=fmDirty();
+  $('#pff-form-titel').textContent=def.title;
+  $('#pff-uitleg').textContent=def.intro||def.description;
+  $('#pff-omschrijving').textContent=def.description;
+  $('#pff-zelf-stand').textContent=fm.bestand?t('PDF gemaakt: {naam}',{naam:fm.bestand})
+    :!dirty?t('Alle velden, stap voor stap')
+    :fm.step>=sections.length?t('Klaar om de PDF te maken')
+    :t('Verder bij stap {n} van {totaal}: {stap}',{n:fm.step+1,totaal:sections.length+1,stap:sections[fm.step].title});
+  $('#pff-start-knop').textContent=dirty?t('Verder met invullen'):t('Formulier invullen');
+  $('#pff-keuze').disabled=fm.busy;
+}
+function fmInvoer(f){
+  const label=document.createElement('label');label.className='f';label.htmlFor='pff-v-'+f.id;label.textContent=f.label+(f.required?' *':'');
+  const input=document.createElement(f.type==='select'?'select':'input');input.id=label.htmlFor;input.className='search';input.name=f.id;
+  input.setAttribute('translate','no');input.required=!!f.required;
+  if(f.type==='select')for(const [value,text] of f.options){const o=document.createElement('option');o.value=value;o.textContent=text;input.appendChild(o);}
+  else{
+    input.type=['date','tel'].includes(f.type)?f.type:'text';input.autocomplete='off';input.maxLength=200;
+    if(f.type==='bsn'){input.inputMode='numeric';input.pattern='[0-9]{8,9}';input.maxLength=9;}
+    if(f.pattern)input.pattern=f.pattern;
+  }
+  input.value=fm.values[f.id]||'';
+  input.addEventListener(f.type==='select'?'change':'input',()=>{
+    fm.values[f.id]=input.value;fmWijzig();
+    if(f.type==='select'){fmRender();const el=$('#pff-v-'+f.id);if(el)el.focus();}
+  });
+  return [label,input];
+}
+function fmMeerSleutel(s){return s.fields[0].id;}
 function fmRender(){
   const def=fmDef(),sections=fmSecties();fm.step=Math.min(fm.step,sections.length);
-  const review=fm.step===sections.length;
-  $('#pff-uitleg').textContent=def.description;
+  const review=fm.step===sections.length,start=fm.view!=='stap';
+  $('#pff-start').hidden=!start;$('#pff-werk').hidden=start;
+  fmStartRender(def,sections);
   $('#pff-stap').textContent=t('Stap {n} van {totaal}',{n:fm.step+1,totaal:sections.length+1});
   $('#pff-titel').textContent=review?t('Controleren en PDF maken'):sections[fm.step].title;
   const box=$('#pff-velden');box.replaceChildren();box.hidden=review;
   if(!review){
-    const note=document.createElement('p');note.className='note';note.textContent=t('Velden met * zijn verplicht. Overige gegevens vul je in voor zover van toepassing.');box.appendChild(note);
-    fmVelden(sections[fm.step]).forEach(f=>{
-      const label=document.createElement('label');label.className='f';label.htmlFor='pff-v-'+f.id;label.textContent=f.label+(f.required?' *':'');
-      const input=document.createElement(f.type==='select'?'select':'input');input.id=label.htmlFor;input.className='search';input.name=f.id;
-      input.setAttribute('translate','no');input.required=!!f.required;
-      if(f.type==='select')for(const [value,text] of f.options){const o=document.createElement('option');o.value=value;o.textContent=text;input.appendChild(o);}
-      else{
-        input.type=['date','tel'].includes(f.type)?f.type:'text';input.autocomplete='off';input.maxLength=200;
-        if(f.type==='bsn'){input.inputMode='numeric';input.pattern='[0-9]{8,9}';input.maxLength=9;}
-        if(f.pattern)input.pattern=f.pattern;
-      }
-      input.value=fm.values[f.id]||'';
-      input.addEventListener(f.type==='select'?'change':'input',()=>{
-        fm.values[f.id]=input.value;fmWijzig();
-        if(f.type==='select'){fmRender();const el=$('#pff-v-'+f.id);if(el)el.focus();}
-      });
-      box.append(label,input);
-    });
+    const note=document.createElement('p');note.className='note';note.textContent=t('Velden met * zijn verplicht.');box.appendChild(note);
+    const fields=fmVelden(sections[fm.step]),meer=fields.filter(f=>f.more);
+    fields.filter(f=>!f.more).forEach(f=>box.append(...fmInvoer(f)));
+    if(meer.length){
+      // Optionele velden ingeklapt; open als er al iets in staat of als je ze zelf opende.
+      const key=fmMeerSleutel(sections[fm.step]),details=document.createElement('details'),summary=document.createElement('summary');
+      details.className='pff-meer';details.id='pff-meer';summary.textContent=t('Meer gegevens (optioneel)');
+      details.open=key in fm.meer?fm.meer[key]:meer.some(f=>fm.values[f.id]);
+      details.addEventListener('toggle',()=>{fm.meer[key]=details.open;});
+      details.append(summary);meer.forEach(f=>details.append(...fmInvoer(f)));box.append(details);
+    }
   }
-  $('#pff-controle').hidden=!review;
-  $('#pff-vorige').disabled=fm.busy||fm.step===0;
+  $('#pff-controle').hidden=!review;$('#pff-alles').hidden=!review;
   $('#pff-volgende').hidden=review;$('#pff-maak').hidden=!review;
-  $('#pff-keuze').disabled=fm.busy;$('#pff-wissen').disabled=fm.busy;
   $('#pff-vorige').disabled=fm.busy||fm.step===0;$('#pff-volgende').disabled=fm.busy;
   $('#pff-maak').disabled=fm.busy;$('#pff-naam').disabled=fm.busy;
-  if(review){fmSamenvatting();fmPreview();}
+  if(review){fmSamenvatting();if(!start)fmPreview();}
 }
 function fmSamenvatting(){
   $('#pff-instructie').textContent=fmDef().instruction;
@@ -88,12 +121,12 @@ function fmGeldig(all){
     for(const f of fmVelden(sections[index])){
       const value=(fm.values[f.id]||'').trim();
       const invalid=(f.required&&!value)||(value&&f.type==='bsn'&&!/^[0-9]{8,9}$/.test(value))||(value&&f.pattern&&!new RegExp('^(?:'+f.pattern+')$').test(value));
-      if(invalid){fm.step=index;fmRender();const input=$('#pff-v-'+f.id);input.focus();input.reportValidity();$('#pff-melding').textContent=t('Controleer het veld: {veld}',{veld:f.label});return false;}
+      if(invalid){fm.step=index;if(f.more)fm.meer[fmMeerSleutel(sections[index])]=true;fmRender();const input=$('#pff-v-'+f.id);input.focus();input.reportValidity();$('#pff-melding').textContent=t('Controleer het veld: {veld}',{veld:f.label});return false;}
     }
   }
   for(const rule of fmDef().rules||[]){
     const a=fm.values[rule.from],b=fm.values[rule.to];
-    if(a&&b&&a>b){fm.step=sections.findIndex(s=>s.fields.some(f=>f.id===rule.to));fmRender();$('#pff-v-'+rule.to).focus();$('#pff-melding').textContent=rule.message;return false;}
+    if(a&&b&&a>b){fm.step=sections.findIndex(s=>s.fields.some(f=>f.id===rule.to));const s=sections[fm.step];if(s.fields.some(f=>f.id===rule.to&&f.more))fm.meer[fmMeerSleutel(s)]=true;fmRender();$('#pff-v-'+rule.to).focus();$('#pff-melding').textContent=rule.message;return false;}
   }
   return true;
 }
@@ -167,7 +200,7 @@ window.onPdfFormMade=function(r){
   fm.busy=false;fmRender();
   if(r.error){$('#pff-melding').textContent=t(r.error);return;}
   if(!r.name){$('#pff-melding').textContent=t('De PDF kan niet worden gemaakt. Probeer opnieuw.');return;}
-  fm.bestand=r.name;$('#pff-bestand').textContent=r.name;$('#pff-klaar').textContent=fmDef().instruction;
+  fm.bestand=r.name;$('#pff-bestand').textContent=r.name;$('#pff-klaar').textContent=fmDef().instruction;fmStartRender(fmDef(),fmSecties());
   $('#pff-resultaat').hidden=false;$('#pff-melding').textContent=t('De PDF is gemaakt. Bewaar hem en print hem uit om te ondertekenen.');
   if(current==='formulieren')$('#pff-resultaat').scrollIntoView({block:'start'});
 };

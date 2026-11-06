@@ -1,5 +1,5 @@
 /* Alleen expliciet vrijgegeven bronvelden. AI-antwoorden zijn voorstellen; geen automatische wijzigingen. */
-const fmh={sources:[],rows:[],snapshot:'',context:'',busy:false,request:'',seq:0};
+const fmh={sources:[],rows:[],snapshot:'',context:'',busy:false,request:'',seq:0,shown:false};
 function fmHelpFields(){const s=fmSecties()[fm.step];return s?fmVelden(s):[];}
 function fmHelpContext(){const s=fmSecties()[fm.step];return fm.id+'|'+(s?s.fields[0].id:'review');}
 function fmHelpSnapshot(){return JSON.stringify([fm.id,fm.step,fm.values]);}
@@ -13,7 +13,7 @@ function fmHelpCancel(){
   if(wasBusy)fmHelpNote(t('Invulhulp gestopt.'));
 }
 function fmHelpDiscard(){fmHelpCancel();fmh.rows=[];fmh.snapshot='';$('#pff-hulp-voorstellen').replaceChildren();$('#pff-hulp-overnemen').hidden=true;fmHelpNote('');}
-function fmHelpClear(){fmHelpDiscard();fmh.sources=[];fmh.context='';$('#pff-hulp-tekst').value='';$('#pff-hulp-bronnen').replaceChildren();fmHelpNote('');}
+function fmHelpClear(){fmHelpDiscard();fmh.shown=false;fmh.sources=[];fmh.context='';$('#pff-hulp-tekst').value='';$('#pff-hulp-bronnen').replaceChildren();fmHelpNote('');}
 function fmHelpRelevant(){
   const fields=fmHelpFields();return fmh.sources.map(s=>{
     const values={};for(const f of fields)for(const b of f.sources||[])if(b.role===s.role&&s.fields[b.key])values[b.key]=s.fields[b.key];
@@ -28,13 +28,13 @@ function fmHelpControls(){
   ['pff-hulp-kies','pff-hulp-vast','pff-hulp-ai','pff-hulp-rol'].forEach(id=>$('#'+id).disabled=busy);
   $('#pff-hulp-stop').hidden=!fmh.busy;
   $('#pff-hulp-overnemen').disabled=busy||!document.querySelector('#pff-hulp-voorstellen input:checked');
-  $('#pff-volgende').disabled=busy;$('#pff-vorige').disabled=busy||fm.step===0;$('#pff-keuze').disabled=busy;$('#pff-wissen').disabled=busy;
+  $('#pff-volgende').disabled=busy;$('#pff-vorige').disabled=busy||fm.step===0;$('#pff-keuze').disabled=busy;
   $('#cm-form-pick').disabled=busy;
 }
 function fmHelpRender(){
   if(!fm.id)return;const context=fmHelpContext();
   if(fmh.context&&context!==fmh.context){fmHelpDiscard();$('#pff-hulp-tekst').value='';fmHelpNote('');}
-  fmh.context=context;$('#pff-hulp').hidden=!fmHelpFields().length;
+  fmh.context=context;$('#pff-hulp').hidden=!fmh.shown||!fmHelpFields().length;
   $('#pff-hulp-tekst').placeholder=t('Bijvoorbeeld: de begeleider is de vader. Datum ondertekening: 12-07-2027.');
   const select=$('#pff-hulp-rol'),old=select.value;select.replaceChildren();
   const roles=[...new Set(fmHelpFields().flatMap(f=>(f.sources||[]).map(b=>b.role)))];
@@ -47,6 +47,12 @@ function fmHelpRender(){
     const button=cmEl('button',t('Bron verwijderen'),'mini');button.disabled=fmh.busy;button.onclick=()=>fmHelpDrop(source);row.append(label,button);box.append(row);
   }
   fmHelpControls();
+}
+/* Het paneel staat niet standaard in beeld: je opent het via het menu ⋯ van een stap. Sluiten wist bronnen en toelichting. */
+function fmHelpCan(){return fm.view==='stap'&&fmHelpFields().some(f=>(f.sources||[]).length);}
+function fmHelpToon(on){
+  if(!on){fmHelpClear();fmRender();return;}
+  if(!fmHelpCan())return;fmh.shown=true;fmRender();const panel=$('#pff-hulp');panel.open=true;panel.querySelector('summary').focus();
 }
 function fmHelpPick(){
   if(fm.busy||fmh.busy)return;fmHelpDiscard();const role=$('#pff-hulp-rol').value,context=fmHelpContext(),mapping={};
@@ -127,6 +133,8 @@ function fmHelpApply(){
 const fmHelpBaseInit=fmInit;fmInit=function(id){fmHelpClear();fmHelpBaseInit(id);};
 const fmHelpBaseWijzig=fmWijzig;fmWijzig=function(){fmHelpDiscard();fmHelpBaseWijzig();};
 const fmHelpBaseRender=fmRender;fmRender=function(){fmHelpBaseRender();fmHelpRender();};
+const fmHelpBaseActs=fmMenuActs;fmMenuActs=function(){const acts=fmHelpBaseActs();if(fmHelpCan())acts.unshift(fmh.shown?[t('Invulhulp met lokale AI sluiten'),()=>fmHelpToon(false),'close']:[t('Invulhulp met lokale AI'),()=>fmHelpToon(true),'edit']);return acts;};
+const fmHelpBaseOverzicht=fmOverzicht;fmOverzicht=function(){fmHelpClear();fmHelpBaseOverzicht();};
 const fmHelpBaseLocked=window.onMasterLocked;window.onMasterLocked=function(generation){fmHelpClear();fmHelpBaseLocked(generation);};
 const fmHelpBaseReset=window.onMasterReset;window.onMasterReset=function(){fmHelpClear();fmHelpBaseReset();};
 const fmHelpBaseNavigation=cmNavigation;cmNavigation=function(name){if(current==='formulieren'&&name!=='formulieren')fmHelpDiscard();fmHelpBaseNavigation(name);};

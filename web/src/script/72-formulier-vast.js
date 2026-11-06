@@ -6,7 +6,12 @@ const fmq={open:false,records:[],busy:false,focus:null,ask:false,epoch:0};
 const FM_VAST={reistoestemming:{van:'van',tot:'tot',land:'land',plaats:'bestemming-plaats',accommodatie:'accommodatie',postcode:'bestemming-postcode',telefoon:'bestemming-telefoon',reisgegevens:'reisgegevens'}};
 const FMQ_REIS=['van','tot','land','plaats','accommodatie','postcode','telefoon','reisgegevens'];
 function fmqNote(text){$('#fmq-status').textContent=text;}
-function fmqKaart(){const card=$('#fmq-kaart');if(!card)return;card.hidden=!FM_VAST[fm.id]||typeof Android.masterFormProfile!=='function';$('#fmq-start').disabled=fm.busy;$('#fmq-instellen').disabled=fm.busy;}
+// Met vaste gegevens is "Nieuwe reis invullen" de hoofdknop en staat "Zelf invullen" als rij eronder.
+function fmqKaart(){
+  const vast=!!FM_VAST[fm.id]&&typeof Android.masterFormProfile==='function';
+  $('#fmq-start').hidden=!vast;$('#pff-start-knop').hidden=vast;$('#pff-start-rijen').hidden=!vast;$('#fmq-uitleg').hidden=!vast;
+  $('#fmq-start').disabled=fm.busy;$('#fmq-instellen').disabled=fm.busy;
+}
 function fmqRenderState(){
   if(!fmq.open)return;const open=cmOpen();
   $('#fmq-ontgrendel').hidden=open;$('#fmq-annuleer-dicht').hidden=open;$('#fmq-open').hidden=!open;
@@ -64,7 +69,7 @@ function fmqGo(){
     fm.masterSensitive=true;
     const kind=(fm.values['kind-voornamen']||'').split(/\s+/)[0];
     $('#pff-naam').value=kind?t('Reistoestemming {naam} {datum}',{naam:kind,datum:reis.van}):t('{titel} {datum}',{titel:fmDef().title,datum:reis.van});
-    fmqClose();fm.step=fmSecties().length;fmWijzig();fmRender();
+    fmqClose();fm.step=fmSecties().length;fm.view='stap';fmWijzig();fmRender();
     if(fmGeldig(true)){
       $('#pff-titel').focus();
       $('#pff-melding').textContent=r.omitted?t('Ingevuld. Documentnummers en BSN zijn weggelaten; vul ze zelf in of kies Nieuwe reis invullen opnieuw met het vinkje aan.'):t('Ingevuld met je vaste gegevens. Controleer beide pagina’s en maak de PDF.');
