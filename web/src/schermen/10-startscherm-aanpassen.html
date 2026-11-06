@@ -10,12 +10,14 @@
       <div class="sw"><span>In groepen<small>Tools onder een kopje per groep, in de volgorde hieronder</small></span><button class="tg" id="he-grouped" role="switch" aria-checked="false" aria-label="In groepen" onclick="heSet('grouped', !this.classList.contains('on'))"></button></div>
       <div class="sw"><span>Compact<small>Kleinere tegels, drie naast elkaar</small></span><button class="tg" id="he-compact" role="switch" aria-checked="false" aria-label="Compact" onclick="heSet('compact', !this.classList.contains('on'))"></button></div>
       <div class="sw"><span>Overzicht bovenaan<small>Backup, wekker en herinneringen</small></span><button class="tg" id="he-dash" role="switch" aria-checked="false" aria-label="Overzicht bovenaan" onclick="heSet('dash', !this.classList.contains('on'))"></button></div>
+      <div class="sw"><span>Recent gebruikt<small>De laatste vier tools die je opende, onder het overzicht. Uit = niets bijhouden.</small></span><button class="tg" id="he-recent" role="switch" aria-checked="false" aria-label="Recent gebruikt" onclick="heRecent(!this.classList.contains('on'))"></button></div>
     </div>
     <p class="note he-how">Sleep een tool aan <span aria-hidden="true">⠿</span> naar een andere plek, ook naar een andere groep. Of tik op <b>⋯</b> bij een tool: verplaatsen naar een groep, omhoog of omlaag, verbergen. Met de pijlen bij een groep zet je de groepen in een andere volgorde.</p>
     <div class="card" id="he-fav"></div>
     <div id="he-groups"></div>
     <button class="big ghost" onclick="heAddGroup()">Groep toevoegen</button>
     <button class="big ghost" style="margin-top:8px" onclick="heReset()">Standaard herstellen</button>
+    <button class="big ghost" id="he-v1" style="margin-top:8px;display:none" onclick="homeV1Restore()">Vorige indeling terugzetten</button>
     <p class="note">Met ☆ zet je een tool bij je favorieten: die staan bovenaan (en zijn de eerste keuzes als je het app-icoon ingedrukt houdt). Verborgen tools blijven bereikbaar via hun snelkoppeling en Zoeken; zet ze terug met ⋯ → Tonen. Houd je een tegel op het startscherm ingedrukt, dan kun je hem daar ook naar een andere groep verplaatsen.</p>
   </main>
 </section>

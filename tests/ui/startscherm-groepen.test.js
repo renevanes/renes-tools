@@ -24,8 +24,8 @@ const { chromium } = require('playwright');
     // Tool toevoegen aan een groep (haalt hem uit zijn oude groep), en het menu blijft open voor nog een
     await pg.click('#he-groups .hegroup:has(.hegname:has-text("Muziek & radio")) .headd'); await pg.waitForTimeout(150);
     ok((await pg.textContent('#sheet-title')).includes('Toevoegen aan Muziek & radio'), 'toevoegen-menu');
-    await pg.click('#sheet-acts button:has-text("Slaappraat (uit Handig)")'); await pg.waitForTimeout(400);
-    ok((await grp('Muziek & radio')).includes('sleep') && !(await grp('Handig')).includes('sleep'), 'Slaappraat naar Muziek & radio');
+    await pg.click('#sheet-acts button:has-text("Slaappraat (uit Dag & gezondheid)")'); await pg.waitForTimeout(400);
+    ok((await grp('Muziek & radio')).includes('sleep') && !(await grp('Dag & gezondheid')).includes('sleep'), 'Slaappraat naar Muziek & radio');
     ok(await pg.isVisible('#sheet.on') && (await pg.textContent('#sheet-title')).includes('Toevoegen aan'), 'menu weer open voor nog een');
     await pg.click('#sheet-acts button:has-text("Klaar")'); await pg.waitForTimeout(100);
 
