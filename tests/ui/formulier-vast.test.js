@@ -18,7 +18,8 @@ for(const colorScheme of ['light','dark']){
   });
   // 1. Eenmalig instellen vanuit Formulieren: naar Stamgegevens, nieuwe vaste gegevens.
   await p.evaluate(()=>{openTool('pdf');});await p.getByRole('button',{name:'Formulieren invullen',exact:true}).click();
-  assert.equal(await p.isVisible('#fmq-kaart'),true,'kaart voor snel invullen');
+  assert.equal(await p.isVisible('#fmq-start'),true,'Nieuwe reis invullen is de hoofdknop');assert.equal(await p.isVisible('#pff-start-knop'),false);
+  assert.equal(await p.isVisible('#fmq-instellen'),true,'rij Vaste gegevens');assert.equal(await p.isVisible('#pff-werk'),false,'stappen pas na een keuze');
   await p.click('#fmq-instellen');assert.equal(await p.evaluate(()=>current),'masterdata');
   await p.click('#cm-unlock');await p.waitForFunction(()=>cmOpen()&&cm.edit&&cm.edit.type==='formulier');
   assert.equal(await p.isVisible('#cmi-form-note'),true);
@@ -47,7 +48,7 @@ for(const colorScheme of ['light','dark']){
   await p.fill('#fmq-van','2027-07-15');await p.fill('#fmq-tot','2027-07-01');await p.fill('#fmq-land','Frankrijk');await p.click('#fmq-ga');
   assert.match(await p.textContent('#fmq-status'),/laatste reisdag/);
   await p.fill('#fmq-tot','2027-07-30');await p.fill('#fmq-plaats','Nice');await p.click('#fmq-ga');
-  await p.waitForFunction(()=>!fmq.open&&fm.step===fmSecties().length);
+  await p.waitForFunction(()=>!fmq.open&&fm.step===fmSecties().length&&fm.view==='stap');
   const v=await p.evaluate(()=>fm.values);
   assert.equal(v['kind-naam'],'Jansen');assert.equal(v['kind-voornamen'],'Zoë Anna');assert.equal(v['van'],'2027-07-15');assert.equal(v['tot'],'2027-07-30');
   assert.equal(v['land'],'Frankrijk');assert.equal(v['bestemming-plaats'],'Nice');assert.equal(v['begeleider1-naam'],'Jansen');assert.equal(v['begeleider1-initialen'],'R.');
@@ -57,6 +58,9 @@ for(const colorScheme of ['light','dark']){
   assert.equal(await p.inputValue('#pff-naam'),'Reistoestemming Zoë 2027-07-15');
   await p.waitForFunction(()=>!document.querySelector('#pff-maak').disabled);
   assert.match(await p.textContent('#pff-samenvatting'),/Frankrijk/);
+  // Terug naar de start: het formulier blijft staan en de rij zegt hoe ver het is.
+  assert.equal(await p.evaluate(()=>goBack()),true);assert.equal(await p.evaluate(()=>fm.view+' '+current),'start formulieren');
+  assert.match(await p.textContent('#pff-zelf-stand'),/Klaar om de PDF te maken/);assert.equal(await p.evaluate(()=>fm.values.land),'Frankrijk');
   // Nog een keer, nu met documentgegevens: vervangt het formulier na bevestiging.
   await p.click('#fmq-start');await p.waitForFunction(()=>$('#modal-ok').getClientRects().length>0);await p.click('#modal-ok');
   await p.waitForFunction(()=>fmq.open&&fmq.records.length===1);
@@ -71,7 +75,7 @@ for(const colorScheme of ['light','dark']){
   assert.ok(log.includes('vast:Reistoestemming Zoë <b>')&&log.includes('kind:Paspoort Zoë')&&log.includes('gever1:Instelling'),'gebruik in het logboek');
   assert.ok(await p.evaluate(()=>Android._cm.events.some(e=>e.action==='relation_use'&&e.role==='begeleider1')),'gelezen relatie in het logboek');
   // Een laat antwoord na sluiten wordt genegeerd (geen oude reis of oude toestemming).
-  await p.evaluate(()=>{fm.values.land='Behouden';});
+  await p.evaluate(()=>{fm.values.land='Behouden';goBack();});
   await p.click('#fmq-start');await p.click('#modal-ok');await p.waitForFunction(()=>fmq.open&&fmq.records.length===1);
   await p.evaluate(()=>{Android._cm.replyDelay=150;});await p.fill('#fmq-van','2027-09-01');await p.fill('#fmq-tot','2027-09-02');await p.fill('#fmq-land','Italië');await p.check('#fmq-id');await p.click('#fmq-ga');
   assert.equal(await p.evaluate(()=>goBack()),true,'terugknop sluit eerst het venster');assert.equal(await p.evaluate(()=>fmq.open||current!=='formulieren'),false);
