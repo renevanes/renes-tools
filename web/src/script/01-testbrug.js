@@ -710,9 +710,10 @@ if (!window.Android) window.Android = (function(){
     facturenState(){ const f = this._fa, laatste = {}; Object.values(f.dos || {}).forEach(s => { laatste[s.leverancier] = Math.max(laatste[s.leverancier] || 0, s.opgehaald || 0); });
       return JSON.stringify({ leveranciers: f.lev.map(l => ({ ...l, toestand: f.toestand[l.id] || {}, heeftWachtwoord: !!f.pw[l.id], aantal: (f.pdf[l.id] || []).length, ...(laatste[l.id] ? { laatste: laatste[l.id] } : {}),
         maanden: f.maanden && f.maanden[l.id] || {}, vorige: l.schema === 'uit' ? 0 : (this._faVorige || Date.now() - 2 * 864e5), volgende: l.schema === 'uit' ? 0 : faVolgende(l, Date.now()) })),
-      indelen: false, herkennen: f.herkennen || { nummers: [], adressen: [] }, pdfTekst: !this._faGeenTekst,
+      indelen: !!f.indelen, herkennen: f.herkennen || { nummers: [], adressen: [] }, pdfTekst: !this._faGeenTekst,
       bezig: f.bezig, voortgang: f.voortgang, zichtbaar: false, ec: f.ec, smtp: f.smtp || { host: '', poort: 587, beveiliging: 'starttls', gebruiker: '', van: '', naam: '', heeftWachtwoord: false },
       ontvangers: (f.ontv || []).length, dossier: Object.keys(f.dos || {}).length, lokaal: f.lokaal || '', drive: f.drive || { gekoppeld: false, gebruiker: '', clientId: '', heeftGeheim: false }, map: !!this._wa.info.dest, sms: !!this._sms.perm, sjablonen: this._faSjablonen }); },
+    facturenBezig(){ const f = this._fa; return JSON.stringify({ bezig: f.bezig || '', voortgang: f.voortgang || '', zichtbaar: false, indelen: !!f.indelen }); },
     facturenBewaar(json){ const o = JSON.parse(json), f = this._fa; f.calls.push(['bewaar', JSON.parse(json)]);
       if (!o.naam) return JSON.stringify({ error: 'Geef de leverancier een naam' });
       if (o.soort !== 'mail' && o.soort !== 'uitmail' && !/^https:\/\//i.test(o.startUrl || '')) return JSON.stringify({ error: 'De inlogpagina moet beginnen met https://' });
@@ -761,7 +762,7 @@ if (!window.Android) window.Android = (function(){
           const m = faMaandSleutel(now); f.maanden[doel.id] = { ...(f.maanden[doel.id] || {}), [m]: ((f.maanden[doel.id] || {})[m] || 0) + 1 };
           f.dos[sha] = { sha, naam: v.pdf, origineel: v.pdf, grootte: p.grootte, leverancier: doel.id, leverancierNaam: doel.naam, via: id, opgehaald: now - i * 1000,
             bron: { soort: 'mail', afzender: v.afzender, onderwerp: 'Je factuur', mailId: 'mail' + i, datum: now - i * 864e5 },
-            kenmerken: { adres: v.adres, domein: v.domein, naam: v.naam, soort: v.soort, btw: [], kvk: v.kvk ? [v.kvk] : [], iban: [] },
+            kenmerken: { adres: v.adres, domein: v.domein, naam: v.naam, soort: v.soort, ...(v.soort === 'platform' ? { platform: true } : {}), btw: [], kvk: v.kvk ? [v.kvk] : [], iban: [] },
             plekken: { app: { pad: '/data/user/0/nl.rene.tools/files/facturen/pdf/' + doel.id + '/' + v.pdf, t: now } }, verzonden: {}, meta: { nummer: '2026-00' + (40 + i), datum: '2026-10-0' + (i + 1), bedrag: v.bedrag, btw: '', bron: 'herkend' } }; });
         const r = { id, naam: bron.naam, ok: true, nieuw: n, gevonden: n + over, namen, fouten: [], nieuweLeveranciers: nieuwe, overgeslagen: over, msg: n === 1 ? '1 nieuwe factuur' : n + ' nieuwe facturen' };
         const oud = f.toestand[id] || {}; f.toestand[id] = { ...oud, lastTry: now, ok: true, msg: r.msg, lastOk: now, nieuw: n, log: [{ t: now, ok: true, msg: r.msg, nieuw: n, namen, auto: false }].concat(oud.log || []) };
@@ -783,12 +784,14 @@ if (!window.Android) window.Android = (function(){
     facturenLevOverslaan(id, aan, ook){ const f = this._fa, l = f.lev.find(x => x.id === id); if (!l) return JSON.stringify({ error: 'Leverancier niet gevonden' });
       if (l.soort !== 'uitmail') return JSON.stringify({ error: 'Dit kan alleen bij een leverancier uit je mail' });
       l.overslaan = !!aan; l.nieuw = false; let weg = 0; if (aan && ook) { Object.keys(f.dos || {}).forEach(k => { if (f.dos[k].leverancier === id) { delete f.dos[k]; weg++; } }); delete f.pdf[id]; }
-      f.calls.push(['overslaan', id, !!aan, !!ook]); return JSON.stringify({ weg }); },
+      f.calls.push(['overslaan', id, !!aan, !!ook]);
+      if (aan) return JSON.stringify({ weg });
+      let terug = 0; Object.keys(f.overgeslagen || {}).forEach(k => { if (f.overgeslagen[k] === id) { delete f.overgeslagen[k]; terug++; } }); return JSON.stringify({ terug }); },
     facturenDossierLeverancier(sha, levId, onthoud){ const f = this._fa, s = (f.dos || {})[sha], w = f.lev.find(x => x.id === levId);
       if (!s) return JSON.stringify({ error: 'Factuur niet gevonden in het dossier' }); if (!s.via) return JSON.stringify({ error: 'Alleen facturen uit je mail kunnen naar een andere leverancier' });
       if (!w || w.soort === 'mail') return JSON.stringify({ error: 'Leverancier niet gevonden' });
       const van = s.leverancier; s.leverancier = levId; s.leverancierNaam = w.naam; const i = (f.pdf[van] || []).findIndex(p => p.naam === s.naam); if (i >= 0) (f.pdf[levId] = f.pdf[levId] || []).push(...f.pdf[van].splice(i, 1));
-      if (onthoud && s.kenmerken) { const km = s.kenmerken, k = km.soort === 'platform' ? 'namen' : 'afzenders', x = km.soort === 'platform' ? km.naam.toLowerCase() : km.adres;
+      if (onthoud && s.kenmerken && levId !== 'niet-herkend' && s.kenmerken.soort !== 'eigen' && !(s.kenmerken.soort === 'platform' && !s.kenmerken.naam)) { const km = s.kenmerken, k = km.soort === 'platform' ? 'namen' : 'afzenders', x = km.soort === 'platform' ? km.naam.toLowerCase() : km.adres;
         f.lev.forEach(l => { if (l.herken && l.herken[k]) l.herken[k] = l.herken[k].filter(y => y !== x); }); w.herken = { ...(w.herken || {}), [k]: [...new Set([...((w.herken || {})[k] || []), x])] }; if (w.soort === 'uitmail') w.nieuw = false; }
       f.calls.push(['dosLev', sha, levId, !!onthoud]); return JSON.stringify({ aantal: 1 }); },
     facturenHerkennen(json){ const o = JSON.parse(json), lijst = x => (Array.isArray(x) ? x : String(x || '').split(/[,;\n]+/)).map(y => y.trim()).filter(Boolean);
@@ -831,7 +834,8 @@ if (!window.Android) window.Android = (function(){
       s.meta = { ...m, bron: 'zelf' }; this._fa.calls.push(['meta', sha, m]); return ''; },
     facturenDossierOpnieuw(sha, ontv){ const s = (this._fa.dos || {})[sha]; if (!s) return 'Factuur niet gevonden in het dossier'; s.verzonden[ontv] = { ok: false, opnieuw: true, t: Date.now() }; return ''; },
     facturenDossierCsv(){ this._fa.calls.push(['csv']); setTimeout(() => onFacturenCsv(this._fa.lokaal || this._wa.info.dest ? { waar: 'de map op je telefoon (dossier.csv)' } : { error: 'Kies eerst een map op je telefoon of een backup-map' }), 150); },
-    _foOpen(o){ return Object.values(this._fa.dos || {}).filter(s => (!o.leveranciers.length || o.leveranciers.includes(s.leverancier) || (s.via && o.leveranciers.includes(s.via))) && (s.verzonden[o.id] ? !s.verzonden[o.id].ok : s.opgehaald >= o.vanaf)); },
+    _foOpen(o){ const over = new Set(this._fa.lev.filter(l => l.soort === 'uitmail' && l.overslaan).map(l => l.id));
+      return Object.values(this._fa.dos || {}).filter(s => (o.leveranciers.includes(s.leverancier) || ((!o.leveranciers.length || (s.via && o.leveranciers.includes(s.via))) && !over.has(s.leverancier))) && (s.verzonden[o.id] ? !s.verzonden[o.id].ok : s.opgehaald >= o.vanaf)); },
     _foMist(o){ const f = this._fa; return o.via === 'smtp' ? (f.smtp && f.smtp.host ? '' : 'Stel eerst je mailserver in (Facturen → Koppelingen → Mailserver)') : o.via === 'gmail' ? ((f.drive || {}).rechtGmailSend ? '' : 'Geef Tools het recht om met Gmail te versturen (Facturen → Koppelingen → Google)') : (f.ec.url && f.ec.heeftWachtwoord ? '' : 'Koppel eerst Eigen Cloud (Facturen → Koppelingen)'); },
     facturenOntvangers(){ const f = this._fa;
       return JSON.stringify({ lijst: (f.ontv || []).map(o => ({ ...o, toestand: (f.otoe || {})[o.id] || {}, open: this._foOpen(o).length, volgende: o.schema === 'uit' || o.schema === 'direct' ? 0 : faVolgende(o, Date.now()), mist: this._foMist(o) })),

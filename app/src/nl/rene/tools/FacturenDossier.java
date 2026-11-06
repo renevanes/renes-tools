@@ -218,6 +218,43 @@ final class FacturenDossier {
         return uit;
     }
 
+    /**
+     * Voor het overzicht, alle leveranciers in één keer (het scherm vraagt dit vaak): per leverancier {maanden, facturen,
+     * laatste}, geteld zoals maanden() en aantalVan(). Zuiver (getest).
+     */
+    static java.util.Map<String, JSONObject> perLeverancier(JSONObject items) {
+        java.util.Map<String, JSONObject> uit = new java.util.HashMap<>();
+        try {
+            java.util.Map<String, String> g = groepen(items);
+            java.util.Map<String, java.util.Map<String, String>> maandVan = new java.util.HashMap<>(), metBedrag = new java.util.HashMap<>();
+            java.util.Map<String, java.util.Set<String>> facturen = new java.util.HashMap<>();
+            java.util.Map<String, Long> laatste = new java.util.HashMap<>();
+            for (Iterator<String> it = items.keys(); it.hasNext(); ) {
+                String k = it.next(); JSONObject s = items.optJSONObject(k);
+                if (s == null) continue;
+                String lev = s.optString("leverancier"), key = g.containsKey(k) ? g.get(k) : "s|" + k;
+                if (!facturen.containsKey(lev)) { facturen.put(lev, new java.util.HashSet<String>()); maandVan.put(lev, new java.util.HashMap<String, String>()); metBedrag.put(lev, new java.util.HashMap<String, String>()); }
+                facturen.get(lev).add(key);
+                Long l = laatste.get(lev);
+                if (l == null || s.optLong("opgehaald") > l) laatste.put(lev, s.optLong("opgehaald"));
+                String d = dag(s); if (d.length() < 7) continue;
+                String m = d.substring(0, 7);
+                JSONObject meta = s.optJSONObject("meta");
+                boolean bedrag = meta != null && !meta.optString("bedrag", "").isEmpty() && !meta.optString("datum", "").isEmpty();
+                java.util.Map<String, String> mv = bedrag ? metBedrag.get(lev) : maandVan.get(lev);
+                if (!mv.containsKey(key) || m.compareTo(mv.get(key)) < 0) mv.put(key, m);
+            }
+            for (String lev : facturen.keySet()) {
+                java.util.Map<String, String> mv = maandVan.get(lev);
+                mv.putAll(metBedrag.get(lev));
+                JSONObject maanden = new JSONObject();
+                for (String m : mv.values()) maanden.put(m, maanden.optInt(m) + 1);
+                uit.put(lev, new JSONObject().put("maanden", maanden).put("facturen", facturen.get(lev).size()).put("laatste", laatste.get(lev)));
+            }
+        } catch (Exception ignored) { }
+        return uit;
+    }
+
     /** Waar een factuur staat (map, lok, gd, ec): {pad of id, link, t}. */
     static void plek(Context c, String sha, String plek, JSONObject info) {
         try { info.put("t", System.currentTimeMillis()); werkBij(c, sha, new JSONObject().put("plekken", new JSONObject().put(plek, info))); } catch (Exception ignored) { }
@@ -403,6 +440,7 @@ final class FacturenDossier {
         try {
             if (FacturenRun.LOPEND.get() != null) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
             if (FacturenAanlever.BEZIG.get()) throw new Exception("Er wordt nu aangeleverd; probeer het straks nog een keer");
+            if (FacturenIndeling.BEZIG.get()) throw new Exception("De facturen uit je mail worden nu ingedeeld; probeer het straks nog een keer");
             JSONArray d;
             synchronized (Facturen.LOCK) { d = doelen(alle(c)); }
             int weg = 0, mislukt = 0, niet = 0;
@@ -456,6 +494,7 @@ final class FacturenDossier {
         synchronized (Facturen.LOCK) {
             if (FacturenRun.LOPEND.get() != null) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
             if (FacturenAanlever.BEZIG.get()) throw new Exception("Er wordt nu aangeleverd; probeer het straks nog een keer");
+            if (FacturenIndeling.BEZIG.get()) throw new Exception("De facturen uit je mail worden nu ingedeeld; probeer het straks nog een keer");
             JSONObject alles = alle(c);
             n = alles.length();
             onthoudVerzonden(c, alles); // wat al bij de accountant is, gaat na opnieuw ophalen niet nog een keer

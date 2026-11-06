@@ -30,9 +30,23 @@ final class FacturenIndeling {
     static final int VERSIE = 1;
     static final AtomicBoolean BEZIG = new AtomicBoolean(false);
 
-    private static void nietNu() throws Exception {
-        if (FacturenRun.LOPEND.get() != null) throw new Exception("Er worden nu facturen opgehaald; probeer het straks nog een keer");
-        if (BEZIG.get()) throw new Exception("De facturen uit je mail worden nu ingedeeld; probeer het straks nog een keer");
+    /**
+     * Iets aan de indeling veranderen: nooit tegelijk met ophalen, aanleveren, het dossier leegmaken of een andere indeling
+     * (die controleren BEZIG na hun eigen vlag). Na afloop BEZIG vrijgeven.
+     */
+    private static void begin() throws Exception {
+        if (!BEZIG.compareAndSet(false, true)) throw new Exception("De facturen uit je mail worden nu ingedeeld; probeer het straks nog een keer");
+        String fout = FacturenRun.LOPEND.get() != null ? "Er worden nu facturen opgehaald; probeer het straks nog een keer"
+                : FacturenAanlever.BEZIG.get() ? "Er wordt nu aangeleverd; probeer het straks nog een keer"
+                : FacturenDossier.WEGHALEN.get() ? "Het dossier wordt nu leeggemaakt; probeer het straks nog een keer" : null;
+        if (fout != null) { BEZIG.set(false); throw new Exception(fout); }
+    }
+
+    /** De leveranciers, of een fout als het bestand onleesbaar is (dan nooit een lege lijst wegschrijven). */
+    private static JSONArray leveranciers(Context c) throws Exception {
+        JSONArray levs = Facturen.leveranciers(c);
+        if (levs == null) throw new Exception("De opgeslagen leveranciers zijn niet leesbaar");
+        return levs;
     }
 
     private static JSONObject uitMail(JSONArray levs, String id) throws Exception {
@@ -51,22 +65,47 @@ final class FacturenIndeling {
         }
     }
 
-    /** Overslaan (aan) of terugzetten (uit). ookUitDossier: de facturen die er al zijn ook uit het dossier en de app halen. */
+    /**
+     * Overslaan (aan) of terugzetten (uit). ookUitDossier: de facturen die er al zijn ook uit het dossier en de app halen.
+     * Geeft bij overslaan hoeveel er weg zijn, bij terugzetten hoeveel overgeslagen facturen de volgende keer alsnog komen.
+     */
     static int overslaan(Context c, String id, boolean aan, boolean ookUitDossier) throws Exception {
-        nietNu();
-        int weg = 0;
-        synchronized (Facturen.LOCK) {
-            JSONObject l = uitMail(Facturen.lijst(c), id);
-            l.put("overslaan", aan).put("nieuw", false);
-            Facturen.bewaar(c, l, null);
-            if (aan && ookUitDossier) {
-                JSONObject all = FacturenDossier.alle(c);
-                List<String> shas = new ArrayList<>();
-                for (Iterator<String> it = all.keys(); it.hasNext(); ) { String k = it.next(); JSONObject s = all.optJSONObject(k); if (s != null && id.equals(s.optString("leverancier"))) shas.add(k); }
-                for (String sha : shas) { FacturenDossier.verwijder(c, sha, false); weg++; } // niet opnieuw ophalen: de mailbron onthoudt ze
+        begin();
+        try {
+            int n = 0;
+            synchronized (Facturen.LOCK) {
+                JSONObject l = uitMail(leveranciers(c), id);
+                l.put("overslaan", aan).put("nieuw", false);
+                Facturen.bewaar(c, l, null);
+                if (aan && ookUitDossier) {
+                    JSONObject all = FacturenDossier.alle(c);
+                    List<String> shas = new ArrayList<>();
+                    for (Iterator<String> it = all.keys(); it.hasNext(); ) { String k = it.next(); JSONObject s = all.optJSONObject(k); if (s != null && id.equals(s.optString("leverancier"))) shas.add(k); }
+                    for (String sha : shas) { FacturenDossier.verwijder(c, sha, false); n++; } // niet opnieuw ophalen: de mailbron onthoudt ze
+                }
+                if (!aan) { JSONObject t = Facturen.toestand(c); n = terug(t, id); if (n > 0) Facturen.bewaarToestand(c, t); }
             }
+            return n;
+        } finally { BEZIG.set(false); }
+    }
+
+    /**
+     * Terugzetten: de mailbronnen vergeten wat ze van deze leverancier oversloegen en zoeken de volgende keer de hele
+     * periode af (wat al binnen is, komt niet dubbel). Weggehaalde facturen blijven weg. Zuiver (getest); geeft het aantal.
+     */
+    static int terug(JSONObject t, String id) throws Exception {
+        int n = 0;
+        for (Iterator<String> it = t.keys(); it.hasNext(); ) {
+            JSONObject tb = t.optJSONObject(it.next()), vw = tb == null ? null : tb.optJSONObject("verwerkt");
+            if (vw == null) continue;
+            int was = n;
+            for (Iterator<String> j = vw.keys(); j.hasNext(); ) {
+                JSONObject r = vw.optJSONObject(j.next());
+                if (r != null && r.optBoolean("overgeslagen") && id.equals(r.optString("l"))) { j.remove(); n++; }
+            }
+            if (n > was) tb.put("lastOk", 0).put("mailSinds", 0).put("mailMeer", false).put("heelPogingen", 0);
         }
-        return weg;
+        return n;
     }
 
     /**
@@ -77,10 +116,10 @@ final class FacturenIndeling {
         JSONObject s = all.optJSONObject(sha);
         if (s == null) return;
         String naarId = naar.optString("id");
-        s.put("leverancier", naarId).put("leverancierNaam", naar.optString("naam"));
         File f = FacturenAanlever.bestand(c, s), nf = null;
-        if (f != null) {
-            nf = Facturen.verplaats(f, Facturen.pdfDir(c, naarId), f.getName());
+        if (f != null) nf = Facturen.verplaats(f, Facturen.pdfDir(c, naarId), f.getName()); // eerst het bestand: lukt dat niet, dan blijft alles zoals het was
+        s.put("leverancier", naarId).put("leverancierNaam", naar.optString("naam"));
+        if (nf != null) {
             s.getJSONObject("plekken").getJSONObject("app").put("pad", nf.getAbsolutePath());
             s.put("naam", nf.getName());
         }
@@ -99,11 +138,15 @@ final class FacturenIndeling {
      * facturen van deze afzender ook daar (een regel: het adres, of bij een platform de naam; de nummers uit de PDF gaan mee).
      */
     static int verplaats(Context c, String sha, String naarId, boolean onthoud) throws Exception {
-        nietNu();
+        begin();
+        try { return verplaatsNu(c, sha, naarId, onthoud); } finally { BEZIG.set(false); }
+    }
+
+    private static int verplaatsNu(Context c, String sha, String naarId, boolean onthoud) throws Exception {
         JSONObject km;
         int n = 0;
         synchronized (Facturen.LOCK) {
-            JSONArray levs = Facturen.lijst(c);
+            JSONArray levs = leveranciers(c);
             JSONObject naar = Facturen.zoek(levs, naarId);
             if (naar == null || "mail".equals(naar.optString("soort"))) throw new Exception("Leverancier niet gevonden");
             JSONObject all = FacturenDossier.alle(c), s = all.optJSONObject(sha);
@@ -119,26 +162,35 @@ final class FacturenIndeling {
                 JSONObject x = all.optJSONObject(k);
                 if (k.equals(sha) || groep != null && groep.equals(g.get(k)) && x != null && van.equals(x.optString("leverancier")) && !x.optString("via").isEmpty()) shas.add(k);
             }
+            // De regel eerst controleren (zoals bij bewaren): gaat die mis, dan is er nog niets verplaatst
+            JSONArray lijst = onthoud && km != null && regel(levs, naarId, km, FacturenHerken.platforms(c)) ? Facturen.normaalAlle(levs) : null;
             JSONObject t = Facturen.toestand(c);
-            for (String k : shas) { zetBij(c, all, t, k, naar); n++; }
-            FacturenDossier.bewaar(c, all);
+            Exception fout = null;
+            for (String k : shas) { try { zetBij(c, all, t, k, naar); n++; } catch (Exception e) { fout = e; break; } }
+            FacturenDossier.bewaar(c, all); // ook als het halverwege misging: wat verplaatst is, klopt in het dossier
             Facturen.bewaarToestand(c, t);
-            if (onthoud && km != null && regel(levs, naarId, km)) Facturen.bewaarAlle(c, levs);
+            if (fout != null) throw fout;
+            if (lijst != null) Facturen.schrijfAlle(c, lijst);
         }
         return n;
     }
 
     /**
-     * De regel "deze afzender hoort bij naar": het adres (bij een platform: de naam) en de nummers uit de PDF bij naar,
-     * en weg bij de andere leveranciers (anders wint daar een oude regel). Zuiver (getest). Geeft true als er iets veranderde.
+     * De regel "deze afzender hoort bij naar": het adres (bij een platform de naam, of het domein van het antwoordadres;
+     * nooit het adres van het platform zelf, dat delen alle winkels daar) en de nummers uit de PDF bij naar, en weg bij de
+     * andere leveranciers (anders wint daar een oude regel). platforms = de maildomeinen van platforms. Zuiver (getest).
+     * Geeft true als er iets veranderde.
      */
-    static boolean regel(JSONArray levs, String naarId, JSONObject km) throws Exception {
+    static boolean regel(JSONArray levs, String naarId, JSONObject km, java.util.Set<String> platforms) throws Exception {
         JSONObject naar = Facturen.zoek(levs, naarId);
-        if (naar == null || km == null) return false;
+        if (naar == null || km == null || FacturenHerken.NIET_HERKEND.equals(naarId)) return false;
         List<String[]> wat = new ArrayList<>();
-        String soort = km.optString("soort"), adres = km.optString("adres"), naam = km.optString("naam").toLowerCase(Locale.ROOT);
-        if ("platform".equals(soort) && !naam.isEmpty()) wat.add(new String[]{"namen", naam});
-        else if (!"eigen".equals(soort) && !adres.isEmpty()) wat.add(new String[]{"afzenders", adres});
+        String soort = km.optString("soort"), adres = km.optString("adres"), domein = km.optString("domein"), naam = km.optString("naam").toLowerCase(Locale.ROOT);
+        boolean platform = km.optBoolean("platform") || platforms.contains(FacturenHerken.domein(adres));
+        if ("platform".equals(soort)) { if (!naam.isEmpty()) wat.add(new String[]{"namen", naam}); }
+        else if ("eigen".equals(soort)) { } // Rene's eigen adres: alleen de nummers
+        else if (platform) { if ("domein".equals(soort) && !domein.isEmpty() && !platforms.contains(domein)) wat.add(new String[]{"domeinen", domein}); }
+        else if (!adres.isEmpty()) wat.add(new String[]{"afzenders", adres});
         for (String s : FacturenHerken.NUMMERS) for (String x : FacturenHerken.lijst(km.optJSONArray(s))) wat.add(new String[]{s, x});
         boolean bij = false;
         for (int i = 0; i < levs.length(); i++) {
@@ -157,7 +209,7 @@ final class FacturenIndeling {
         for (String[] w : wat) {
             JSONArray a = h.optJSONArray(w[0]);
             if (a == null) { a = new JSONArray(); h.put(w[0], a); }
-            if (FacturenHerken.lijst(a).contains(w[1]) || a.length() >= ("afzenders".equals(w[0]) ? 30 : FacturenHerken.MAX)) continue;
+            if (FacturenHerken.lijst(a).contains(w[1]) || a.length() >= ("afzenders".equals(w[0]) ? 30 : "domeinen".equals(w[0]) ? 20 : FacturenHerken.MAX)) continue;
             a.put(w[1]);
             bij = true;
         }
@@ -187,12 +239,15 @@ final class FacturenIndeling {
      * Herkenning, dossier, bestanden in de app, wat de mailbron onthoudt en de keuzes bij Aanleveren gaan mee; van verdwijnt.
      */
     static int samenvoegen(Context c, String vanId, String naarId) throws Exception {
-        nietNu();
         if (vanId.equals(naarId)) throw new Exception("Kies een andere leverancier");
+        begin();
+        try { return samenvoegenNu(c, vanId, naarId); } finally { BEZIG.set(false); }
+    }
+
+    private static int samenvoegenNu(Context c, String vanId, String naarId) throws Exception {
         int n = 0;
         synchronized (Facturen.LOCK) {
-            JSONArray levs = Facturen.leveranciers(c);
-            if (levs == null) throw new Exception("De opgeslagen leveranciers zijn niet leesbaar");
+            JSONArray levs = leveranciers(c);
             JSONObject van = uitMail(levs, vanId), naar = Facturen.zoek(levs, naarId);
             if (naar == null || "mail".equals(naar.optString("soort"))) throw new Exception("Leverancier niet gevonden");
             JSONObject h = FacturenHerken.samen(FacturenHerken.herken(naar), FacturenHerken.herken(van));
@@ -203,11 +258,26 @@ final class FacturenIndeling {
                 for (String x : FacturenHerken.lijst(van.optJSONArray("bronnen"))) if (!FacturenHerken.lijst(b).contains(x)) b.put(x);
                 if (vanId.equals(naar.optString("voorstel"))) naar.put("voorstel", "");
             }
+            // De nieuwe lijst (van weg, voorstellen die naar van wezen naar naar) eerst controleren: dan gaat niets half
+            JSONArray rest = new JSONArray();
+            for (int i = 0; i < levs.length(); i++) {
+                JSONObject l = levs.optJSONObject(i);
+                if (l == null || l == van) continue;
+                if (vanId.equals(l.optString("voorstel"))) l.put("voorstel", l == naar ? "" : naarId);
+                rest.put(l);
+            }
+            JSONArray lijst = Facturen.normaalAlle(rest);
             // dossier en bestanden in de app
             JSONObject all = FacturenDossier.alle(c), t = Facturen.toestand(c);
             List<String> shas = new ArrayList<>();
             for (Iterator<String> it = all.keys(); it.hasNext(); ) { String k = it.next(); JSONObject s = all.optJSONObject(k); if (s != null && vanId.equals(s.optString("leverancier"))) shas.add(k); }
-            for (String k : shas) { zetBij(c, all, t, k, naar); n++; }
+            Exception fout = null;
+            for (String k : shas) { try { zetBij(c, all, t, k, naar); n++; } catch (Exception e) { fout = e; break; } }
+            if (fout != null) { // wat verplaatst is, klopt; van blijft staan met de rest (nog een keer proberen)
+                FacturenDossier.bewaar(c, all);
+                Facturen.bewaarToestand(c, t);
+                throw fout;
+            }
             // wat de mailbronnen onthouden (ook overgeslagen facturen)
             for (Iterator<String> it = t.keys(); it.hasNext(); ) {
                 JSONObject tb = t.optJSONObject(it.next()), vw = tb == null ? null : tb.optJSONObject("verwerkt");
@@ -223,15 +293,7 @@ final class FacturenIndeling {
             boolean ontv = false;
             for (int i = 0; ol != null && i < ol.length(); i++) { JSONObject o = ol.optJSONObject(i); if (o != null) ontv |= vervang(o.optJSONArray("leveranciers"), vanId, naarId); }
             if (ontv) FacturenAanlever.bewaarData(c, a);
-            // de lijst: van weg, voorstellen die naar van wezen naar naar
-            JSONArray rest = new JSONArray();
-            for (int i = 0; i < levs.length(); i++) {
-                JSONObject l = levs.optJSONObject(i);
-                if (l == null || l == van) continue;
-                if (vanId.equals(l.optString("voorstel"))) l.put("voorstel", l == naar ? "" : naarId);
-                rest.put(l);
-            }
-            Facturen.bewaarAlle(c, rest);
+            Facturen.schrijfAlle(c, lijst);
             File d = Facturen.pdfDir(c, vanId);
             File[] over = d.listFiles();
             if (over == null || over.length == 0) d.delete();
@@ -245,63 +307,78 @@ final class FacturenIndeling {
 
     /**
      * Facturen uit de mail die nog onder de mailbron staan (van vóór deze indeling): elk naar zijn eigen leverancier,
-     * zoals bij nieuw ophalen. Eén keer; stopt als er opgehaald wordt (de volgende keer verder). Geeft {aantal, leveranciers}.
+     * zoals bij nieuw ophalen. Eén keer (niet als er opgehaald, aangeleverd of weggehaald wordt: dan de volgende keer).
+     * Zelf toegevoegde facturen blijven waar ze zijn. Geeft {aantal, leveranciers, klaar}.
      */
     static JSONObject herindelen(Context c) {
         JSONObject uit = new JSONObject();
         if (!nodig(c) || !BEZIG.compareAndSet(false, true)) return uit;
         try {
-            if (FacturenRun.LOPEND.get() != null) return uit;
+            if (FacturenRun.LOPEND.get() != null || FacturenAanlever.BEZIG.get() || FacturenDossier.WEGHALEN.get()) return uit;
             JSONArray levs = Facturen.lijst(c);
             Map<String, JSONObject> bronnen = new HashMap<>();
             for (int i = 0; i < levs.length(); i++) { JSONObject l = levs.optJSONObject(i); if (l != null && "mail".equals(l.optString("soort"))) bronnen.put(l.optString("id"), l); }
             JSONObject items = FacturenDossier.alle(c);
             List<JSONObject> todo = new ArrayList<>();
             for (Iterator<String> it = items.keys(); it.hasNext(); ) {
-                JSONObject s = items.optJSONObject(it.next());
-                if (s != null && bronnen.containsKey(s.optString("leverancier")) && s.optString("via").isEmpty()) todo.add(s);
+                JSONObject s = items.optJSONObject(it.next()), b = s == null ? null : s.optJSONObject("bron");
+                if (s == null || b == null || b.optBoolean("toegevoegd") || b.optString("afzender").isEmpty()) continue; // zelf toegevoegd: geen afzender
+                if (bronnen.containsKey(s.optString("leverancier")) && s.optString("via").isEmpty()) todo.add(s);
             }
             java.util.Collections.sort(todo, (x, y) -> Long.compare(x.optLong("opgehaald"), y.optLong("opgehaald")));
             FacturenHerken.Kennis k = FacturenHerken.kennis(c);
             JSONArray nieuwe = new JSONArray();
             Map<String, JSONObject> perMail = new HashMap<>();
-            int n = 0, mis = 0;
-            for (JSONObject s0 : todo) {
-                if (FacturenRun.LOPEND.get() != null) return uit.put("aantal", n).put("leveranciers", nieuwe); // later verder
+            List<Object[]> stap = new ArrayList<>(); // {sha, bronId, kenmerken, doel}; per 25 weggeschreven
+            int[] tel = {0, 0}; // ingedeeld, niet gelukt
+            for (int i = 0; i < todo.size(); i++) {
+                JSONObject s0 = todo.get(i);
                 try {
-                    String sha = s0.optString("sha"), bronId = s0.optString("leverancier");
-                    JSONObject bron = bronnen.get(bronId);
+                    String bronId = s0.optString("leverancier");
                     File f = FacturenAanlever.bestand(c, s0);
-                    String tekst = f == null ? "" : FacturenDossier.tekst(f);
-                    JSONObject km = FacturenHerken.kenmerken(s0.optJSONObject("bron"), tekst, k);
+                    JSONObject km = FacturenHerken.kenmerken(s0.optJSONObject("bron"), f == null ? "" : FacturenDossier.tekst(f), k);
                     String mailId = FacturenDossier.mailId(s0);
-                    JSONObject doel = Facturen.toewijzen(c, bron, km, k, perMail.get(mailId), nieuwe);
+                    JSONObject doel = Facturen.toewijzen(c, bronnen.get(bronId), km, k, perMail.get(mailId), nieuwe);
                     if (!mailId.isEmpty()) perMail.put(mailId, doel);
                     k.tel(km);
-                    synchronized (Facturen.LOCK) {
-                        JSONObject all = FacturenDossier.alle(c), s = all.optJSONObject(sha);
-                        if (s == null || !s.optString("via").isEmpty()) continue;
-                        s.put("via", bronId).put("kenmerken", km);
-                        JSONObject t = Facturen.toestand(c);
-                        if (doel != bron) zetBij(c, all, t, sha, doel);
-                        FacturenDossier.bewaar(c, all);
-                        Facturen.bewaarToestand(c, t);
-                    }
-                    n++;
-                } catch (Throwable e) {
-                    mis++; // blijft bij de mailbron staan; met de hand te verplaatsen
-                }
+                    stap.add(new Object[]{s0.optString("sha"), bronId, km, doel});
+                } catch (Throwable e) { tel[1]++; } // blijft bij de mailbron staan; met de hand te verplaatsen
+                if (stap.size() >= 25 || i == todo.size() - 1) { schrijf(c, stap, tel); stap.clear(); }
             }
-            if (mis > 0) App.log(c, "FACTUREN", "herindelen: " + mis + " niet gelukt");
+            if (tel[1] > 0) App.log(c, "FACTUREN", "herindelen: " + tel[1] + " niet gelukt");
             Facturen.prefs(c).edit().putInt("indeling", VERSIE).apply();
-            uit.put("aantal", n).put("leveranciers", nieuwe).put("klaar", true);
-            if (n > 0) melding(c, n, nieuwe.length());
+            uit.put("aantal", tel[0]).put("leveranciers", nieuwe).put("klaar", true);
+            if (tel[0] > 0) melding(c, tel[0], nieuwe.length());
         } catch (Throwable e) {
             App.log(c, "FACTUREN", "herindelen mislukt");
         } finally {
             BEZIG.set(false);
         }
         return uit;
+    }
+
+    /** Een stap van het herindelen wegschrijven: dossier en toestand één keer lezen en schrijven. */
+    private static void schrijf(Context c, List<Object[]> stap, int[] tel) {
+        if (stap.isEmpty()) return;
+        synchronized (Facturen.LOCK) {
+            try {
+                JSONObject all = FacturenDossier.alle(c), t = Facturen.toestand(c);
+                int n = 0;
+                for (Object[] x : stap) {
+                    String sha = (String) x[0], bronId = (String) x[1];
+                    JSONObject km = (JSONObject) x[2], doel = (JSONObject) x[3], s = all.optJSONObject(sha);
+                    if (s == null || !s.optString("via").isEmpty()) continue;
+                    try {
+                        if (!bronId.equals(doel.optString("id"))) zetBij(c, all, t, sha, doel);
+                        s.put("via", bronId).put("kenmerken", km);
+                        n++;
+                    } catch (Throwable e) { tel[1]++; }
+                }
+                FacturenDossier.bewaar(c, all);
+                Facturen.bewaarToestand(c, t);
+                tel[0] += n;
+            } catch (Throwable e) { tel[1] += stap.size(); }
+        }
     }
 
     private static void melding(Context c, int facturen, int leveranciers) {

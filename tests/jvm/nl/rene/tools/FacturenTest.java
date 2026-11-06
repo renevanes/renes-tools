@@ -269,6 +269,15 @@ public class FacturenTest {
             check(mk.optInt("2026-01") == 1 && mk.optInt("2026-02") == 1 && mk.length() == 2, "overzicht per maand op factuurdatum: " + mk);
             JSONObject mg = FacturenDossier.maanden(items, "gm");
             check(mg.optInt("2026-03") == 1 && mg.optInt("2026-04") == 1 && mg.length() == 2, "mail zonder herkende datum: datum van de mail: " + mg);
+            java.util.Map<String, JSONObject> per = FacturenDossier.perLeverancier(items2);
+            boolean gelijk = per.size() == 2;
+            for (String lev : new String[]{"kpn", "gm"}) {
+                JSONObject p = per.get(lev);
+                gelijk &= p != null && p.optInt("facturen") == FacturenDossier.aantalVan(items2, lev)
+                        && p.getJSONObject("maanden").toString().length() == FacturenDossier.maanden(items2, lev).toString().length();
+                for (String m : new String[]{"2026-01", "2026-02", "2026-03", "2026-04"}) gelijk &= p != null && p.getJSONObject("maanden").optInt(m) == FacturenDossier.maanden(items2, lev).optInt(m);
+            }
+            check(gelijk && per.get("kpn").optLong("laatste") == 1_790_000_000_000L, "overzicht in één keer telt hetzelfde als per leverancier: " + per);
         }
 
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }

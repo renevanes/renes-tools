@@ -35,6 +35,7 @@ public class FacturenHerkenTest {
         check(FacturenHerken.schoneNaam("Bakkerij Jansen via Moneybird").equals("Bakkerij Jansen") && FacturenHerken.schoneNaam("Eneco - Facturen").equals("Eneco")
                 && FacturenHerken.schoneNaam("noreply").isEmpty() && FacturenHerken.schoneNaam("Facturen").isEmpty() && FacturenHerken.schoneNaam("Billing").isEmpty()
                 && FacturenHerken.schoneNaam("Facturatie | Ziggo").equals("Ziggo") && FacturenHerken.schoneNaam("Stand by Me B.V.").equals("Stand by Me B.V."), "nette naam: zonder 'via …', zonder '- Facturen', leeg bij alleen 'noreply'");
+        check(FacturenHerken.schoneNaam("Jansen, Piet").equals("Jansen Piet") && FacturenHerken.schoneNaam("Eneco; Facturen").equals("Eneco"), "nette naam: geen komma of puntkomma (die scheidt de herkenning)");
 
         // ---------- doorgestuurd ----------
         String gmailDoor = "Zie bijlage\n\n---------- Forwarded message ---------\nFrom: KPN <noreply@kpn.com>\nDate: ma 3 nov 2026\nSubject: Uw factuur\n";
@@ -149,6 +150,7 @@ public class FacturenHerkenTest {
         check(fout(new JSONObject().put("kvk", "1234")).contains("8 cijfers") && fout(new JSONObject().put("iban", "NL00ABNA0000000000")).contains("IBAN")
                 && fout(new JSONObject().put("btw", "NL123")).contains("btw") && fout(new JSONObject().put("afzenders", "geen adres")).contains("mailadres"), "foute herkenning: uitleg");
         check(FacturenHerken.herkenNormaal(null).length() == 0 && FacturenHerken.herkenNormaal(new JSONObject()).length() == 0, "geen herkenning: leeg");
+        check(FacturenHerken.herkenNormaal(new JSONObject().put("afzenders", "a/b@x-y.nl, o'brien@ierland.ie")).getJSONArray("afzenders").length() == 2, "afzenders: elk geldig mailadres (ook met / of ')");
         JSONObject en = FacturenHerken.eigenNormaal(new JSONObject().put("nummers", "12345678, NL91 ABNA 0417 1643 00").put("adressen", "Rene@Esape.nl"));
         check(en.getJSONArray("nummers").length() == 2 && en.getJSONArray("adressen").getString(0).equals("rene@esape.nl"), "eigen nummers en adressen");
         check(eigenFout(new JSONObject().put("nummers", "abc")).contains("KvK") && eigenFout(new JSONObject().put("adressen", "Rene <r@x.nl>")).contains("mailadres"), "foute eigen gegevens: uitleg");
@@ -162,15 +164,53 @@ public class FacturenHerkenTest {
                 .put(uitmail("piet", "Piet Klus", new JSONObject().put("namen", new JSONArray().put("piet klus"))).put("nieuw", true))
                 .put(new JSONObject().put("id", "kpn").put("naam", "KPN").put("soort", "website"));
         JSONObject rkm = FacturenHerken.kenmerken(bron("Piet <piet@gmail.com>"), "KvK 44445555", k);
-        check(FacturenIndeling.regel(rl, "piet", rkm), "onthouden: er verandert iets");
+        check(FacturenIndeling.regel(rl, "piet", rkm, k.platforms), "onthouden: er verandert iets");
         JSONObject rh = rl.getJSONObject(1).getJSONObject("herken");
         check(rh.getJSONArray("afzenders").getString(0).equals("piet@gmail.com") && rh.getJSONArray("kvk").getString(0).equals("44445555") && !rl.getJSONObject(1).optBoolean("nieuw"), "onthouden: adres en nummer bij de gekozen leverancier, niet meer nieuw");
         check(rl.getJSONObject(0).getJSONObject("herken").getJSONArray("afzenders").length() == 0 && rl.getJSONObject(0).getJSONObject("herken").getJSONArray("kvk").length() == 0, "onthouden: weg bij de vorige (anders wint de oude regel)");
-        check(!FacturenIndeling.regel(rl, "piet", rkm), "onthouden: twee keer = niets nieuws");
+        check(!FacturenIndeling.regel(rl, "piet", rkm, k.platforms), "onthouden: twee keer = niets nieuws");
         check(FacturenHerken.kies(rl, FacturenHerken.kenmerken(bron("<piet@gmail.com>"), "", k), k).optString("id").equals("piet"), "onthouden: de volgende factuur komt vanzelf goed");
         JSONObject pkm = FacturenHerken.kenmerken(bron("Bakkerij Jansen <noreply@moneybird.com>"), "", k);
-        check(FacturenIndeling.regel(rl, "kpn", pkm) && rl.getJSONObject(2).getJSONObject("herken").getJSONArray("namen").getString(0).equals("bakkerij jansen")
+        check(FacturenIndeling.regel(rl, "kpn", pkm, k.platforms) && rl.getJSONObject(2).getJSONObject("herken").getJSONArray("namen").getString(0).equals("bakkerij jansen")
                 && !rl.getJSONObject(2).getJSONObject("herken").has("afzenders"), "onthouden via een platform: de naam, niet het gedeelde adres");
+        JSONArray rl2 = new JSONArray().put(uitmail("webshop", "Webshop", new JSONObject())).put(uitmail("ander", "Ander", new JSONObject()))
+                .put(uitmail(FacturenHerken.NIET_HERKEND, "Niet herkend", new JSONObject()));
+        JSONObject stripe = FacturenHerken.kenmerken(new JSONObject().put("afzender", "Webshop <invoice@stripe.com>").put("antwoordAan", "info@webshop.nl").put("onderwerp", "Je factuur"), "", k);
+        check(stripe.optBoolean("platform") && stripe.optString("soort").equals("domein") && FacturenIndeling.regel(rl2, "webshop", stripe, k.platforms)
+                && rl2.getJSONObject(0).getJSONObject("herken").getJSONArray("domeinen").getString(0).equals("webshop.nl") && !rl2.getJSONObject(0).getJSONObject("herken").has("afzenders"),
+                "onthouden via een platform met een antwoordadres: dat domein, niet het adres van het platform");
+        JSONObject zonderVlag = new JSONObject(stripe.toString()); zonderVlag.remove("platform"); zonderVlag.put("domein", "winkel.nl");
+        FacturenIndeling.regel(rl2, "ander", zonderVlag, k.platforms);
+        check(!rl2.getJSONObject(1).getJSONObject("herken").has("afzenders"), "onthouden: het adres van een platform nooit, ook zonder vlag in de kenmerken");
+        JSONObject mbZonder = FacturenHerken.kenmerken(bron("<noreply@moneybird.com>"), "KvK 55556666", k);
+        check(FacturenIndeling.regel(rl2, "ander", mbZonder, k.platforms) && !rl2.getJSONObject(1).getJSONObject("herken").has("afzenders") && !rl2.getJSONObject(1).getJSONObject("herken").has("namen")
+                && rl2.getJSONObject(1).getJSONObject("herken").getJSONArray("kvk").getString(0).equals("55556666"), "platform zonder naam: alleen de nummers");
+        JSONObject eigenKm = FacturenHerken.kenmerken(bron("Rene <rene@esape.nl>"), "KvK 77778888", k);
+        check(FacturenIndeling.regel(rl2, "webshop", eigenKm, k.platforms) && !rl2.getJSONObject(0).getJSONObject("herken").has("afzenders")
+                && rl2.getJSONObject(0).getJSONObject("herken").getJSONArray("kvk").getString(0).equals("77778888"), "eigen adres: alleen de nummers, nooit Rene's adres");
+        check(!FacturenIndeling.regel(rl2, FacturenHerken.NIET_HERKEND, rkm, k.platforms) && rl2.getJSONObject(2).getJSONObject("herken").length() == 0, "naar Niet herkend: niets onthouden");
+
+        // ---------- Niet herkend leert niets en wordt nooit vanzelf gekozen ----------
+        JSONObject nh = uitmail(FacturenHerken.NIET_HERKEND, "Niet herkend", new JSONObject().put("kvk", new JSONArray().put("99990000")));
+        JSONArray metNh = new JSONArray(levs.toString()).put(nh);
+        boolean nhDoel = false; for (JSONObject d : FacturenHerken.doelen(metNh)) nhDoel |= d.optString("id").equals(FacturenHerken.NIET_HERKEND);
+        check(!nhDoel && !FacturenHerken.leer(new JSONObject(nh.toString()), pietKm, metNh, k), "Niet herkend: geen doel en leert niets bij");
+        check(!FacturenHerken.kies(metNh, FacturenHerken.kenmerken(bron("<x@onbekend99.nl>"), "KvK 99990000", k), k).optString("id").equals(FacturenHerken.NIET_HERKEND), "een nummer bij Niet herkend kiest die niet");
+        JSONObject alleenNr = FacturenHerken.nieuw(FacturenHerken.kenmerken(bron("<noreply@moneybird.com>"), "KvK 66667777", k), bronLev, levs, k, "");
+        check(alleenNr.getString("naam").equals("KvK 66667777") && !alleenNr.optString("id").equals(FacturenHerken.NIET_HERKEND), "nieuw met alleen een nummer (platform zonder naam): heet naar dat nummer");
+        JSONObject eigenNr = FacturenHerken.nieuw(eigenKm, bronLev, levs, k, "");
+        check(eigenNr.getString("naam").equals("KvK 77778888") && eigenNr.getJSONObject("herken").getJSONArray("kvk").length() == 1, "doorgestuurd vanaf je eigen adres met een KvK: een leverancier op dat nummer");
+
+        // ---------- terugzetten na overslaan ----------
+        JSONObject tz = new JSONObject()
+                .put("gmail", new JSONObject().put("lastOk", 5).put("mailSinds", 7).put("mailMeer", true).put("verwerkt", new JSONObject()
+                        .put("m1", new JSONObject().put("overgeslagen", true).put("l", "ziggo")).put("m2", new JSONObject().put("overgeslagen", true).put("l", "eneco"))
+                        .put("m3", new JSONObject().put("n", "a.pdf").put("l", "ziggo"))))
+                .put("werk", new JSONObject().put("lastOk", 9).put("verwerkt", new JSONObject().put("m9", new JSONObject().put("overgeslagen", true).put("l", "eneco"))));
+        check(FacturenIndeling.terug(tz, "ziggo") == 1 && !tz.getJSONObject("gmail").getJSONObject("verwerkt").has("m1") && tz.getJSONObject("gmail").getJSONObject("verwerkt").has("m3")
+                && tz.getJSONObject("gmail").getLong("lastOk") == 0 && !tz.getJSONObject("gmail").getBoolean("mailMeer") && tz.getJSONObject("werk").getLong("lastOk") == 9,
+                "terugzetten: alleen de overgeslagen mails van die leverancier opnieuw, en alleen die mailbron zoekt de hele periode af");
+        check(FacturenIndeling.terug(tz, "ziggo") == 0 && FacturenIndeling.terug(tz, "eneco") == 2, "terugzetten: per mailbron, niets dubbel");
 
         // ---------- samenvoegen: keuzes bij Aanleveren ----------
         JSONArray ids = new JSONArray().put("a").put("van").put("naar");

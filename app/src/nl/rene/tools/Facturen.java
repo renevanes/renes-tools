@@ -508,16 +508,22 @@ final class Facturen {
     }
 
     /** De hele lijst in één keer bewaren (na samenvoegen of een regel onthouden); elke leverancier wordt gecontroleerd. */
-    static void bewaarAlle(Context c, JSONArray levs) throws Exception {
-        synchronized (LOCK) {
-            JSONArray n = new JSONArray();
-            for (int i = 0; i < levs.length(); i++) {
-                JSONObject x = levs.getJSONObject(i), o = normaal(x);
-                o.put("id", x.optString("id")); // de id blijft wat hij was
-                n.put(o);
-            }
-            JsonFileStore.write(levFile(c), new JSONObject().put("lijst", n).toString(), Facturen::checkLijst);
+    static void bewaarAlle(Context c, JSONArray levs) throws Exception { schrijfAlle(c, normaalAlle(levs)); }
+
+    /** De hele lijst gecontroleerd (fout = Nederlandse uitleg), zonder iets te schrijven. Zuiver. */
+    static JSONArray normaalAlle(JSONArray levs) throws Exception {
+        JSONArray n = new JSONArray();
+        for (int i = 0; i < levs.length(); i++) {
+            JSONObject x = levs.getJSONObject(i), o = normaal(x);
+            o.put("id", x.optString("id")); // de id blijft wat hij was
+            n.put(o);
         }
+        return n;
+    }
+
+    /** Een lijst uit normaalAlle wegschrijven. */
+    static void schrijfAlle(Context c, JSONArray n) throws Exception {
+        synchronized (LOCK) { JsonFileStore.write(levFile(c), new JSONObject().put("lijst", n).toString(), Facturen::checkLijst); }
     }
 
     static void verwijder(Context c, String id) throws Exception {
@@ -525,10 +531,21 @@ final class Facturen {
             JSONArray oud = leveranciers(c);
             if (oud == null) throw new Exception("De opgeslagen leveranciers zijn niet leesbaar");
             JSONArray nieuw = new JSONArray();
-            for (int i = 0; i < oud.length(); i++) if (!oud.getJSONObject(i).optString("id").equals(id)) nieuw.put(oud.getJSONObject(i));
+            boolean mailbron = false;
+            for (int i = 0; i < oud.length(); i++) {
+                if (!oud.getJSONObject(i).optString("id").equals(id)) nieuw.put(oud.getJSONObject(i));
+                else mailbron = "mail".equals(oud.getJSONObject(i).optString("soort"));
+            }
             JsonFileStore.write(levFile(c), new JSONObject().put("lijst", nieuw).toString(), Facturen::checkLijst);
             geheim(c).edit().remove("lev_" + id).apply();
-            JSONObject t = toestand(c); t.remove(id); bewaarToestand(c, t);
+            JSONObject t = toestand(c), was = t.optJSONObject(id), vw = was == null ? null : was.optJSONObject("verwerkt");
+            t.remove(id);
+            if (mailbron && vw != null) { // wat bij leveranciers uit deze mail staat (of overgeslagen is): onthouden, dan komt het bij opnieuw toevoegen niet dubbel
+                JSONObject blijft = new JSONObject();
+                for (Iterator<String> it = vw.keys(); it.hasNext(); ) { String k = it.next(); JSONObject r = vw.optJSONObject(k); if (r != null && !r.optString("l").isEmpty()) blijft.put(k, r); }
+                if (blijft.length() > 0) t.put(id, new JSONObject().put("verwerkt", blijft));
+            }
+            bewaarToestand(c, t);
             // De facturen in de app gaan mee weg; de kopieën in je backup-map en in Eigen Cloud blijven staan (en in het dossier).
             FacturenDossier.appWeg(c, id);
             File d = pdfDir(c, id);
@@ -734,14 +751,21 @@ final class Facturen {
     /**
      * De leverancier van een factuur uit de mail: een bekende (FacturenHerken.kies; die leert er meteen van), anders die
      * van een andere bijlage uit dezelfde mail, anders een nieuwe (in nieuwe genoteerd). Lukt bewaren niet (bijv. al 300),
-     * dan "Niet herkend" of de mailbron zelf.
+     * dan de mailbron zelf.
      */
     static JSONObject toewijzen(Context c, JSONObject bron, JSONObject km, FacturenHerken.Kennis k, JSONObject zelfdeMail, JSONArray nieuwe) {
+        synchronized (LOCK) { // lezen, leren en bewaren in één keer (Rene kan tegelijk een leverancier aanpassen)
+            return toewijzenNu(c, bron, km, k, zelfdeMail, nieuwe);
+        }
+    }
+
+    private static JSONObject toewijzenNu(Context c, JSONObject bron, JSONObject km, FacturenHerken.Kennis k, JSONObject zelfdeMail, JSONArray nieuwe) {
         try {
             JSONArray levs = lijst(c);
             JSONObject keuze = FacturenHerken.kies(levs, km, k);
             JSONObject doel = keuze.has("id") ? zoek(levs, keuze.optString("id")) : null;
-            if (doel == null && zelfdeMail != null && zelfdeMail != bron) doel = zoek(levs, zelfdeMail.optString("id"));
+            if (doel == null && zelfdeMail != null && zelfdeMail != bron && !FacturenHerken.NIET_HERKEND.equals(zelfdeMail.optString("id")))
+                doel = zoek(levs, zelfdeMail.optString("id"));
             if (doel != null) {
                 boolean bij = FacturenHerken.leer(doel, km, levs, k);
                 if (uitMail(doel)) {
@@ -759,7 +783,7 @@ final class Facturen {
                 JSONObject l = leverancier(c, bewaar(c, n, null));
                 if (l != null) { nieuwe.put(l.optString("naam")); return l; }
             } catch (Exception e) { App.log(c, "FACTUREN", "nieuwe leverancier uit de mail niet bewaard"); }
-            return nh != null ? nh : bron;
+            return bron; // herkend, maar niet te bewaren (bijv. al 300): bij de mailbron, nooit bij een overgeslagen Niet herkend
         } catch (Exception e) { return bron; }
     }
 
@@ -1027,7 +1051,7 @@ final class Facturen {
                 JSONArray nl = r.optJSONArray("nieuweLeveranciers");
                 if (n > 0 && nl != null && nl.length() > 0 && (f == null || f.length() == 0)) { // één melding per ronde, met de nieuwe leveranciers erin
                     StringBuilder s = new StringBuilder();
-                    for (int i = 0; i < Math.min(5, nl.length()); i++) s.append(i > 0 ? ", " : "").append(nl.optString(i));
+                    for (int i = 0; i < Math.min(5, nl.length()); i++) { String x = nl.optString(i); s.append(i > 0 ? ", " : "").append(FacturenHerken.NIET_HERKEND_NAAM.equals(x) ? Taal.t(c, x) : x); }
                     if (nl.length() > 5) s.append(", …");
                     tekst = Taal.tn(c, nl.length(), "Nieuwe leverancier in je mail: {namen}. Tik om na te kijken of het klopt.",
                             "{n} nieuwe leveranciers in je mail: {namen}. Tik om na te kijken of het klopt.", "namen", s.toString());
@@ -1067,6 +1091,11 @@ final class Facturen {
     }
 
     /** De facturen in de app van één leverancier (nieuwste eerst). */
+    static int aantalBestanden(Context c, String id) {
+        File[] fs = pdfDir(c, id).listFiles((d, n) -> n.endsWith(".pdf"));
+        return fs == null ? 0 : fs.length;
+    }
+
     static JSONArray bestanden(Context c, String id) throws Exception {
         File[] fs = pdfDir(c, id).listFiles((d, n) -> n.endsWith(".pdf"));
         JSONArray out = new JSONArray();

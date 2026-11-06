@@ -38,7 +38,7 @@ final class FacturenHerken {
     private FacturenHerken() { }
 
     static final String SOORT = "uitmail";
-    static final String NIET_HERKEND = "niet-herkend";
+    static final String NIET_HERKEND = "niet-herkend", NIET_HERKEND_NAAM = "Niet herkend";
     static final String[] NUMMERS = {"btw", "kvk", "iban"};
     static final int MAX = 10;
     static final int GEDEELD = 3;
@@ -87,9 +87,7 @@ final class FacturenHerken {
 
     /** Alles uit de app: de lijsten (assets), herkennen.json, de adressen van de koppelingen en het dossier. */
     static Kennis kennis(Context c) {
-        JSONObject asset = null;
-        try (InputStream in = c.getAssets().open(Facturen.ASSET)) { asset = new JSONObject(new String(Facturen.lees(in, 1_000_000), StandardCharsets.UTF_8)); }
-        catch (Exception ignored) { }
+        JSONObject asset = asset(c);
         JSONObject eigen = eigen(c);
         JSONArray adr = eigen.optJSONArray("adressen");
         if (adr == null) adr = new JSONArray();
@@ -98,6 +96,14 @@ final class FacturenHerken {
         try { eigen.put("adressen", adr); } catch (Exception ignored) { }
         return kennis(asset, eigen, FacturenDossier.alle(c));
     }
+
+    private static JSONObject asset(Context c) {
+        try (InputStream in = c.getAssets().open(Facturen.ASSET)) { return new JSONObject(new String(Facturen.lees(in, 1_000_000), StandardCharsets.UTF_8)); }
+        catch (Exception e) { return null; }
+    }
+
+    /** De maildomeinen van platforms (Moneybird, Stripe e.d.): een adres daar zegt niet wie de leverancier is. */
+    static Set<String> platforms(Context c) { return kennis(asset(c), null, null).platforms; }
 
     /** Rene's eigen KvK-, btw- en IBAN-nummers en mailadressen: {nummers: [], adressen: []}. */
     static JSONObject eigen(Context c) {
@@ -155,7 +161,7 @@ final class FacturenHerken {
             if (v.equals(s)) break;
             s = v;
         }
-        s = s.replaceAll("^[\"'\\s]+|[\"'\\s]+$", "");
+        s = s.replaceAll("\\s*[,;]+\\s*", " ").replaceAll("^[\"'\\s]+|[\"'\\s]+$", "");
         if (s.isEmpty() || ALGEMEEN.matcher(s).matches() || !s.matches(".*\\p{L}.*")) return "";
         return s.length() > 60 ? s.substring(0, 60).trim() : s;
     }
@@ -310,9 +316,10 @@ final class FacturenHerken {
                 van = door; adres = adres(door); doorgestuurd = true;
             }
             String domein = domein(adres), naam = schoneNaam(naam(van)), soort;
+            boolean platform = false;
             if (adres.isEmpty() || k.adressen.contains(adres)) { soort = "eigen"; naam = ""; }
             else if (k.platforms.contains(domein)) {
-                soort = "platform";
+                soort = "platform"; platform = true;
                 String antw = adres(bron == null ? "" : bron.optString("antwoordAan", "")), ad = domein(antw);
                 if (!doorgestuurd && !antw.isEmpty() && !k.adressen.contains(antw) && !k.platforms.contains(ad) && !k.freemail.contains(ad)) { soort = "domein"; domein = ad; }
             }
@@ -320,6 +327,7 @@ final class FacturenHerken {
             else soort = "domein";
             km.put("adres", adres).put("domein", domein).put("naam", naam).put("soort", soort);
             if (doorgestuurd) km.put("doorgestuurd", true);
+            if (platform) km.put("platform", true); // het adres is dat van het platform, niet van de leverancier
             String t = pdfTekst == null ? "" : pdfTekst;
             km.put("btw", schoon(btw(t), k)).put("kvk", schoon(kvk(t), k)).put("iban", schoon(iban(t), k));
         } catch (Exception ignored) { }
@@ -366,7 +374,7 @@ final class FacturenHerken {
         List<JSONObject> d = new ArrayList<>();
         for (int i = 0; levs != null && i < levs.length(); i++) {
             JSONObject l = levs.optJSONObject(i);
-            if (l == null || "mail".equals(l.optString("soort"))) continue;
+            if (l == null || "mail".equals(l.optString("soort")) || NIET_HERKEND.equals(l.optString("id"))) continue;
             if (SOORT.equals(l.optString("soort")) || herken(l).length() > 0) d.add(l);
         }
         return d;
@@ -445,6 +453,7 @@ final class FacturenHerken {
      * nog niet waren). Geeft true als er iets bij kwam. Een regel van Rene zelf blijft staan.
      */
     static boolean leer(JSONObject l, JSONObject km, JSONArray levs, Kennis k) {
+        if (NIET_HERKEND.equals(l.optString("id"))) return false;
         try {
             JSONObject h = l.optJSONObject("herken");
             if (h == null) { h = new JSONObject(); l.put("herken", h); }
@@ -480,13 +489,17 @@ final class FacturenHerken {
         else if ("platform".equals(soort) && !naam.isEmpty()) voegToe(h, "namen", naam.toLowerCase(Locale.ROOT));
         for (String s : NUMMERS) for (String n : lijst(km.optJSONArray(s))) if (k.telt(n) && !ietsAnders(levs, "", s, n)) voegToe(h, s, n);
         boolean leeg = h.length() == 0;
-        String titel = leeg ? "Niet herkend" : !naam.isEmpty() ? naam : "domein".equals(soort) && !domein.isEmpty() ? domein : !adres.isEmpty() ? adres : "Niet herkend";
+        String nr = ""; // zegt de afzender niets, dan het nummer op de factuur
+        for (String s : NUMMERS) { List<String> l = lijst(h.optJSONArray(s)); if (nr.isEmpty() && !l.isEmpty()) nr = "kvk".equals(s) ? "KvK " + l.get(0) : "iban".equals(s) ? "IBAN " + l.get(0) : l.get(0); }
+        String titel = leeg ? NIET_HERKEND_NAAM : !naam.isEmpty() ? naam : "domein".equals(soort) && !domein.isEmpty() ? domein
+                : "freemail".equals(soort) && !adres.isEmpty() ? adres : !nr.isEmpty() ? nr : NIET_HERKEND_NAAM;
+        if (titel.equals(NIET_HERKEND_NAAM)) { leeg = true; h = new JSONObject(); }
         String vs = voorstel == null ? "" : voorstel;
         if (!leeg) for (int i = 0; levs != null && i < levs.length(); i++) {
             JSONObject l = levs.optJSONObject(i);
             if (l == null || "mail".equals(l.optString("soort")) || !l.optString("naam").equalsIgnoreCase(titel)) continue;
             if (vs.isEmpty()) vs = l.optString("id");
-            String wat = domein.isEmpty() ? adres : domein;
+            String wat = "domein".equals(soort) ? domein : "freemail".equals(soort) ? adres : "";
             if (!wat.isEmpty() && !wat.equalsIgnoreCase(titel)) titel = titel + " (" + wat + ")";
             break;
         }
@@ -529,7 +542,7 @@ final class FacturenHerken {
         JSONArray afz = new JSONArray(), dom = new JSONArray(), nm = new JSONArray(), btw = new JSONArray(), kvk = new JSONArray(), iban = new JSONArray();
         for (String x : delen(in.opt("afzenders"))) {
             String v = x.toLowerCase(Locale.ROOT).replaceAll("^mailto:|^@", "");
-            boolean ok = v.contains("@") ? adres(v).equals(v) : v.matches(DOMEIN);
+            boolean ok = v.contains("@") ? adres("<" + v + ">").equals(v) : v.matches(DOMEIN);
             if (!ok) throw new Exception("Geen geldig mailadres of domein: " + kort(x));
             if (!lijst(afz).contains(v)) afz.put(v);
         }

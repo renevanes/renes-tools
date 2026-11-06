@@ -24,13 +24,9 @@ public class FacturenBridge extends GebruikBridge {
         try {
             JSONArray l = Facturen.leveranciers(ctx);
             JSONObject all = Facturen.toestand(ctx), dossier = FacturenDossier.alle(ctx);
-            java.util.Map<String, Long> laatste = new java.util.HashMap<>(); // per leverancier: wanneer de laatste factuur binnenkwam
-            for (java.util.Iterator<String> it = dossier.keys(); it.hasNext(); ) {
-                JSONObject s = dossier.optJSONObject(it.next());
-                if (s == null) continue;
-                Long v = laatste.get(s.optString("leverancier"));
-                if (v == null || s.optLong("opgehaald") > v) laatste.put(s.optString("leverancier"), s.optLong("opgehaald"));
-            }
+            java.util.Map<String, JSONObject> per = FacturenDossier.perLeverancier(dossier); // {maanden, facturen, laatste}
+            java.text.SimpleDateFormat ym = new java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US);
+            ym.setTimeZone(Regio.zone(ctx)); // per maand in de app-zone
             JSONArray out = new JSONArray();
             if (l != null) for (int i = 0; i < l.length(); i++) {
                 JSONObject o = new JSONObject(l.getJSONObject(i).toString());
@@ -38,10 +34,8 @@ public class FacturenBridge extends GebruikBridge {
                 JSONObject t = all.optJSONObject(id);
                 if (t == null) t = new JSONObject();
                 // Per maand: hoeveel facturen, op factuurdatum (bijlagen tellen niet apart); zonder dossier op de dag van ophalen
-                JSONObject vw = t.optJSONObject("verwerkt");
-                JSONObject maanden = FacturenDossier.maanden(dossier, id);
-                java.text.SimpleDateFormat ym = new java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US);
-                ym.setTimeZone(Regio.zone(ctx)); // per maand in de app-zone
+                JSONObject vw = t.optJSONObject("verwerkt"), pl = per.get(id);
+                JSONObject maanden = pl == null ? new JSONObject() : pl.getJSONObject("maanden");
                 if (maanden.length() == 0 && vw != null && !"mail".equals(o.optString("soort"))) for (java.util.Iterator<String> it = vw.keys(); it.hasNext(); ) {
                     JSONObject r = vw.optJSONObject(it.next());
                     if (r == null || r.optLong("t") == 0 || r.optBoolean("buiten")) continue; // buiten de periode: niet binnengekomen
@@ -53,10 +47,9 @@ public class FacturenBridge extends GebruikBridge {
                 long volgende = Facturen.gepland(o, nu, true, Regio.zone(ctx)), vorige = Facturen.gepland(o, nu, false, Regio.zone(ctx));
                 o.put("maanden", maanden).put("volgende", volgende == Long.MAX_VALUE ? 0 : volgende).put("vorige", vorige == Long.MIN_VALUE ? 0 : vorige);
                 o.put("toestand", t).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "lev_" + id))
-                        .put("aantal", Facturen.bestanden(ctx, id).length()).put("facturen", FacturenDossier.aantalVan(dossier, id))
+                        .put("aantal", Facturen.aantalBestanden(ctx, id)).put("facturen", pl == null ? 0 : pl.optInt("facturen"))
                         .put("heelPeriode", Facturen.heelPeriode(o, t, nu, Regio.zone(ctx)));
-                Long lt = laatste.get(id);
-                if (lt != null) o.put("laatste", lt);
+                if (pl != null) o.put("laatste", pl.optLong("laatste"));
                 out.put(o);
             }
             SharedPreferences p = Facturen.prefs(ctx);
@@ -88,7 +81,7 @@ public class FacturenBridge extends GebruikBridge {
                     .put("smtp", new JSONObject().put("host", p.getString("smtpHost", "")).put("poort", p.getInt("smtpPoort", 587))
                             .put("beveiliging", p.getString("smtpBeveiliging", "starttls")).put("gebruiker", p.getString("smtpGebruiker", ""))
                             .put("van", p.getString("smtpVan", "")).put("naam", p.getString("smtpNaam", "")).put("heeftWachtwoord", Facturen.heeftGeheim(ctx, "smtp")))
-                    .put("ontvangers", FacturenAanlever.lijst(ctx).length()).put("dossier", FacturenDossier.alle(ctx).length())
+                    .put("ontvangers", FacturenAanlever.lijst(ctx).length()).put("dossier", dossier.length())
                     .put("sms", ctx.checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED)
                     .put("sjablonen", Facturen.sjablonen(ctx)).toString();
         } catch (Exception e) { return "{\"leveranciers\":[],\"sjablonen\":[],\"ec\":{},\"error\":\"Laden lukt niet\"}"; }
@@ -110,6 +103,7 @@ public class FacturenBridge extends GebruikBridge {
         try {
             FacturenRun r = FacturenRun.LOPEND.get();
             if (r != null && r.id.equals(id)) return "Even wachten: deze leverancier wordt nu opgehaald";
+            if (FacturenIndeling.BEZIG.get()) return "De facturen uit je mail worden nu ingedeeld; probeer het straks nog een keer";
             Facturen.verwijder(ctx, id);
             FacturenJob.schedule(ctx);
             return "";
@@ -130,9 +124,9 @@ public class FacturenBridge extends GebruikBridge {
         catch (Exception e) { return err(e, "Samenvoegen lukt niet"); }
     }
 
-    /** Een leverancier uit de mail overslaan (aan) of terugzetten; ookUitDossier = wat er al is ook weghalen. Geeft {weg} of {error}. */
+    /** Een leverancier uit de mail overslaan (aan) of terugzetten; ookUitDossier = wat er al is ook weghalen. Geeft {weg}, bij terugzetten {terug} (hoeveel er alsnog komen), of {error}. */
     @JavascriptInterface public String facturenLevOverslaan(String id, boolean aan, boolean ookUitDossier) {
-        try { return new JSONObject().put("weg", FacturenIndeling.overslaan(ctx, id == null ? "" : id, aan, ookUitDossier)).toString(); }
+        try { int n = FacturenIndeling.overslaan(ctx, id == null ? "" : id, aan, ookUitDossier); return new JSONObject().put(aan ? "weg" : "terug", n).toString(); }
         catch (Exception e) { return err(e, "Lukt niet"); }
     }
 
@@ -182,6 +176,15 @@ public class FacturenBridge extends GebruikBridge {
             }
             return "";
         } catch (Exception e) { return e.getMessage() == null ? "Lukt niet" : e.getMessage(); }
+    }
+
+    /** Alleen wat er nu gebeurt (het scherm vraagt dit elke seconde; de rest via facturenState): {bezig, voortgang, zichtbaar, indelen}. */
+    @JavascriptInterface public String facturenBezig() {
+        try {
+            FacturenRun r = FacturenRun.LOPEND.get();
+            return new JSONObject().put("bezig", r == null ? "" : r.id).put("voortgang", r == null ? "" : r.voortgang).put("zichtbaar", r != null && r.zichtbaar)
+                    .put("indelen", FacturenIndeling.BEZIG.get()).toString();
+        } catch (Exception e) { return "{}"; }
     }
 
     @JavascriptInterface public void facturenStop() { FacturenRun r = FacturenRun.LOPEND.get(); if (r != null) r.stoppen(); }
@@ -333,8 +336,10 @@ public class FacturenBridge extends GebruikBridge {
 
     /** Een factuur uit het dossier weghalen (opnieuw = de leverancier mag hem weer ophalen). Geeft "" of een fout. */
     @JavascriptInterface public String facturenDossierWeg(String sha, boolean opnieuw) {
-        try { FacturenDossier.verwijder(ctx, sha, opnieuw); return ""; }
-        catch (Exception e) { return e.getMessage() == null ? "Weghalen lukt niet" : e.getMessage(); }
+        try {
+            if (FacturenIndeling.BEZIG.get()) return "De facturen uit je mail worden nu ingedeeld; probeer het straks nog een keer";
+            FacturenDossier.verwijder(ctx, sha, opnieuw); return "";
+        } catch (Exception e) { return e.getMessage() == null ? "Weghalen lukt niet" : e.getMessage(); }
     }
 
     /** Echt alles weghalen, ook de opgeslagen kopieën; antwoord via onFacturenAllesWeg({aantal, weg, mislukt, mail} of {error}). */
