@@ -201,15 +201,23 @@ final class FacturenAanlever {
     // ================= wat moet er nog heen =================
 
     /** Valt dit stuk onder deze ontvanger (leverancier, vanaf) en is het nog niet aangeleverd? (zonder Android) */
-    static boolean open(JSONObject ontv, JSONObject stuk) {
+    static boolean open(JSONObject ontv, JSONObject stuk) { return open(ontv, stuk, java.util.Collections.<String>emptySet()); }
+
+    /** overgeslagen = leveranciers uit de mail die Rene overslaat: die gaan alleen nog mee als hij ze zelf aanvinkte. */
+    static boolean open(JSONObject ontv, JSONObject stuk, java.util.Set<String> overgeslagen) {
         if (stuk == null) return false;
         JSONArray lev = ontv.optJSONArray("leveranciers");
-        if (lev != null && lev.length() > 0) {
+        boolean zelf = false;
+        if (lev != null && lev.length() > 0) { // de mailbron aangevinkt = alles uit die mail, ook leveranciers die er later bij komen
             boolean ja = false;
-            for (int i = 0; i < lev.length(); i++) if (lev.optString(i).equals(stuk.optString("leverancier"))) ja = true;
+            for (int i = 0; i < lev.length(); i++) {
+                if (lev.optString(i).equals(stuk.optString("leverancier"))) { ja = true; zelf = true; }
+                else if (lev.optString(i).equals(stuk.optString("via"))) ja = true;
+            }
             if (!ja) return false;
         }
         JSONObject v = stuk.optJSONObject("verzonden"), x = v == null ? null : v.optJSONObject(ontv.optString("id"));
+        if (!zelf && overgeslagen.contains(stuk.optString("leverancier")) && !(x != null && x.optBoolean("opnieuw"))) return false; // "Opnieuw aanleveren" in het dossier telt wel
         if (x != null) return !x.optBoolean("ok") && x.optInt("pogingen") < MAX_POGINGEN; // na 5 keer mislukt alleen nog via Opnieuw in het dossier // al eens geprobeerd (of "opnieuw aanleveren"): open tot het lukt
         if (stuk.optLong("opgehaald") < ontv.optLong("vanaf")) return false;
         // Oude facturen die later alsnog zijn opgehaald (de hele periode inhalen): niet vanzelf meesturen; dat kan met de hand
@@ -237,9 +245,12 @@ final class FacturenAanlever {
     static List<JSONObject> openStukken(Context c, JSONObject ontv) {
         List<JSONObject> out = new ArrayList<>();
         JSONObject all = FacturenDossier.alle(c);
+        java.util.Set<String> over = new java.util.HashSet<>();
+        JSONArray levs = Facturen.lijst(c);
+        for (int i = 0; i < levs.length(); i++) { JSONObject l = levs.optJSONObject(i); if (l != null && Facturen.uitMail(l) && l.optBoolean("overslaan")) over.add(l.optString("id")); }
         for (Iterator<String> it = all.keys(); it.hasNext(); ) {
             JSONObject s = all.optJSONObject(it.next());
-            if (open(ontv, s) && bestand(c, s) != null) out.add(s);
+            if (open(ontv, s, over) && bestand(c, s) != null) out.add(s);
         }
         java.util.Collections.sort(out, (x, y) -> Long.compare(x.optLong("opgehaald"), y.optLong("opgehaald")));
         return out;
@@ -318,6 +329,7 @@ final class FacturenAanlever {
         JSONObject r = new JSONObject();
         if (!BEZIG.compareAndSet(false, true)) { try { r.put("bezig", true); } catch (Exception ignored) { } return zet(r, false, "Er wordt al aangeleverd; even wachten"); }
         if (FacturenDossier.WEGHALEN.get()) { BEZIG.set(false); return zet(r, false, "Het dossier wordt nu leeggemaakt; probeer het straks nog een keer"); }
+        if (!proef && FacturenIndeling.BEZIG.get()) { BEZIG.set(false); return zet(r, false, "De facturen uit je mail worden nu ingedeeld; probeer het straks nog een keer"); }
         try {
             JSONObject ontv = ontvanger(c, id);
             if (ontv == null) return zet(r, false, "Ontvanger niet gevonden");

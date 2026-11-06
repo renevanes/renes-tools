@@ -705,22 +705,31 @@ if (!window.Android) window.Android = (function(){
     _faSjablonen: [
       { sjabloon: 'kpn-zakelijk', naam: 'KPN Zakelijk', omschrijving: 'MijnKPN Zakelijk: facturen van je zakelijke abonnementen', startUrl: 'https://mijnkpnzakelijk.kpn.com', facturenUrl: '', menu: 'facturen|factuur', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, schema: 'maand', dag: 5, tijd: '08:00', code: { bron: 'sms', afzender: 'KPN', patroon: '' }, tip: 'KPN stuurt na je wachtwoord een code per sms of mail.' },
       { sjabloon: 'ziggo-zakelijk', naam: 'Ziggo Zakelijk', omschrijving: 'Mijn Ziggo Zakelijk: facturen van je zakelijke internet, telefonie en tv', startUrl: 'https://www.ziggo.nl/mijn-ziggo/welkom/', domeinen: 'vodafone.nl, vodafoneziggo.nl', facturenUrl: '', menu: 'facturen|factuur|factuur en betalen|invoices', knoppen: 'download|\\bpdf\\b|\\.pdf|bekijk factuur', max: 12, schema: 'maand', dag: 5, tijd: '08:00', code: { bron: 'sms', afzender: 'Ziggo', patroon: '' }, tip: 'Ziggo stuurt bij elke keer inloggen een code van 6 cijfers per sms.' },
-      { sjabloon: 'gmail', soort: 'mail', naam: 'Facturen in Gmail', omschrijving: 'Zoekt facturen (PDF-bijlagen) in je Gmail; alleen lezen', startUrl: '', schema: 'dag', dag: 5, tijd: '07:00', mail: { bron: 'gmail', woorden: 'factuur, invoice, rekening, nota', afzenders: '', negeer: '', extra: '', dagen: 90, max: 50, perAfzender: true }, tip: 'Koppel eerst Google met toegang tot Gmail.' },
+      { sjabloon: 'gmail', soort: 'mail', naam: 'Facturen in Gmail', omschrijving: 'Zoekt facturen (PDF-bijlagen) in je Gmail; alleen lezen', startUrl: '', schema: 'dag', dag: 5, tijd: '07:00', mail: { bron: 'gmail', woorden: 'factuur, invoice, rekening, nota', afzenders: '', negeer: '', extra: '', dagen: 90, max: 50 }, tip: 'Koppel eerst Google met toegang tot Gmail. Elke leverancier die Tools in je mail vindt, krijgt een eigen rij en een eigen map.' },
       { sjabloon: 'anders', naam: '', omschrijving: 'Een andere website met facturen: vul zelf de inlogpagina in', startUrl: '', facturenUrl: '', menu: 'facturen|factuur|invoices|documenten', knoppen: 'download|\\bpdf\\b|\\.pdf', max: 12, schema: 'maand', dag: 5, tijd: '08:00', code: { bron: 'geen', afzender: '', patroon: '' }, tip: 'Kijk de eerste keer mee.' }],
-    facturenState(){ const f = this._fa; return JSON.stringify({ leveranciers: f.lev.map(l => ({ ...l, toestand: f.toestand[l.id] || {}, heeftWachtwoord: !!f.pw[l.id], aantal: (f.pdf[l.id] || []).length,
+    facturenState(){ const f = this._fa, laatste = {}; Object.values(f.dos || {}).forEach(s => { laatste[s.leverancier] = Math.max(laatste[s.leverancier] || 0, s.opgehaald || 0); });
+      return JSON.stringify({ leveranciers: f.lev.map(l => ({ ...l, toestand: f.toestand[l.id] || {}, heeftWachtwoord: !!f.pw[l.id], aantal: (f.pdf[l.id] || []).length, ...(laatste[l.id] ? { laatste: laatste[l.id] } : {}),
         maanden: f.maanden && f.maanden[l.id] || {}, vorige: l.schema === 'uit' ? 0 : (this._faVorige || Date.now() - 2 * 864e5), volgende: l.schema === 'uit' ? 0 : faVolgende(l, Date.now()) })),
+      indelen: !!f.indelen, herkennen: f.herkennen || { nummers: [], adressen: [] }, pdfTekst: !this._faGeenTekst,
       bezig: f.bezig, voortgang: f.voortgang, zichtbaar: false, ec: f.ec, smtp: f.smtp || { host: '', poort: 587, beveiliging: 'starttls', gebruiker: '', van: '', naam: '', heeftWachtwoord: false },
       ontvangers: (f.ontv || []).length, dossier: Object.keys(f.dos || {}).length, lokaal: f.lokaal || '', drive: f.drive || { gekoppeld: false, gebruiker: '', clientId: '', heeftGeheim: false }, map: !!this._wa.info.dest, sms: !!this._sms.perm, sjablonen: this._faSjablonen }); },
+    facturenBezig(){ const f = this._fa; return JSON.stringify({ bezig: f.bezig || '', voortgang: f.voortgang || '', zichtbaar: false, indelen: !!f.indelen }); },
     facturenBewaar(json){ const o = JSON.parse(json), f = this._fa; f.calls.push(['bewaar', JSON.parse(json)]);
       if (!o.naam) return JSON.stringify({ error: 'Geef de leverancier een naam' });
-      if (o.soort !== 'mail' && !/^https:\/\//i.test(o.startUrl || '')) return JSON.stringify({ error: 'De inlogpagina moet beginnen met https://' });
+      if (o.soort !== 'mail' && o.soort !== 'uitmail' && !/^https:\/\//i.test(o.startUrl || '')) return JSON.stringify({ error: 'De inlogpagina moet beginnen met https://' });
+      if (o.herken) { const h = {}; Object.entries(o.herken).forEach(([k, v]) => { const a = (Array.isArray(v) ? v : String(v || '').split(/[,;\n]+/)).map(x => x.trim()).filter(Boolean)
+        .map(x => /^(btw|kvk|iban)$/.test(k) ? x.replace(/[\s.\-]/g, '').toUpperCase() : x.toLowerCase()); if (a.length) h[k] = a; }); o.herken = h; }
+      if (o.herken && (o.herken.kvk || []).some(x => !/^\d{8}$/.test(x))) return JSON.stringify({ error: 'Een KvK-nummer heeft 8 cijfers' });
       const pw = o.wachtwoord; delete o.wachtwoord;
       let id = o.id; if (!id) { id = o.naam.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); let n = 2, b = id; while (f.lev.some(l => l.id === id)) id = b + '-' + n++; }
       o.id = id; o.submap = o.submap || o.naam; const i = f.lev.findIndex(l => l.id === id); if (i >= 0) f.lev[i] = o; else f.lev.push(o);
       if (pw) f.pw[id] = true; return JSON.stringify({ id }); },
     facturenVerwijder(id){ const f = this._fa; if (f.bezig === id) return 'Even wachten: deze leverancier wordt nu opgehaald'; f.lev = f.lev.filter(l => l.id !== id); delete f.pdf[id]; return ''; },
     facturenNu(id, meekijken){ const f = this._fa; if (f.bezig) return 'Er worden al facturen opgehaald'; f.calls.push(['nu', id, !!meekijken]); if (meekijken) { this._faMeekijken = id; return ''; }
-      f.bezig = id; f.voortgang = 'Inloggen…'; const l = f.lev.find(x => x.id === id);
+      let l = f.lev.find(x => x.id === id);
+      if (l && l.soort === 'uitmail') { id = (l.bronnen || [])[0] || ''; l = f.lev.find(x => x.id === id); if (!l) return 'Deze leverancier komt uit je mail; zoek opnieuw in de mail (Facturen)'; }
+      if (l && l.soort === 'mail' && !this._faFout) return this._faMailNu(id, l);
+      f.bezig = id; f.voortgang = 'Inloggen…';
       setTimeout(() => { f.voortgang = 'Factuur 1 van 2 ophalen…'; }, 500);
       setTimeout(() => { f.bezig = ''; const now = Date.now();
         const r = this._faFout ? { id, naam: l.naam, ok: false, msg: this._faFout, inlogNodig: !!this._faInlog } : { id, naam: l.naam, ok: true, nieuw: 2, gevonden: 2, namen: ['KPN Zakelijk Factuur 2026-09.pdf', 'KPN Zakelijk Factuur 2026-10.pdf'], fouten: [], msg: '2 nieuwe facturen' };
@@ -732,6 +741,64 @@ if (!window.Android) window.Android = (function(){
           if (!f.dos[sha]) f.dos[sha] = { sha, naam: p.naam, origineel: p.naam, grootte: p.grootte, leverancier: id, leverancierNaam: l.naam, opgehaald: now - i * 1000, bron: { soort: l.soort || 'website', site: 'kpn.com' },
             plekken: { app: { pad: '/data/user/0/nl.rene.tools/files/facturen/pdf/' + id + '/' + p.naam, t: now } }, verzonden: {}, meta: { nummer: '80012345' + i, datum: i ? '2026-09-05' : '2026-10-05', bedrag: i ? '45,10' : '48,37', btw: '', vervaldatum: i ? '2026-09-19' : '2099-10-19', bron: 'herkend' } }; }); }
         onFacturenKlaar(r); }, 1200); return ''; },
+    /* Zoeken in de mail (nagebootst): _faVondsten = de mails die "gevonden" worden; elke afzender wordt een eigen leverancier */
+    _faVondsten: [
+      { afzender: 'Eneco <factuur@eneco.nl>', adres: 'factuur@eneco.nl', domein: 'eneco.nl', naam: 'Eneco', soort: 'domein', pdf: 'Eneco jaarnota 2026.pdf', bedrag: '112,40', kvk: '24365554' },
+      { afzender: 'Bakkerij Jansen via Moneybird <noreply@moneybird.com>', adres: 'noreply@moneybird.com', domein: 'moneybird.com', naam: 'Bakkerij Jansen', soort: 'platform', pdf: 'Factuur 2026-0042.pdf', bedrag: '23,50' },
+      { afzender: 'KPN <noreply@kpn.com>', adres: 'noreply@kpn.com', domein: 'kpn.com', naam: 'KPN', soort: 'domein', pdf: 'KPN factuur oktober.pdf', bedrag: '48,37' }],
+    _faHoort(l, v){ const h = l.herken || {}; return (h.afzenders || []).some(a => a === v.adres || (!a.includes('@') && (v.adres.endsWith('@' + a) || v.adres.endsWith('.' + a))))
+        || (v.soort === 'domein' && (h.domeinen || []).includes(v.domein)) || (v.soort !== 'domein' && (h.namen || []).includes(v.naam.toLowerCase())) || (v.kvk && (h.kvk || []).includes(v.kvk)); },
+    _faMailNu(id, bron){ const f = this._fa; f.bezig = id; f.voortgang = 'Zoeken in je mail…';
+      setTimeout(() => { f.bezig = ''; const now = Date.now(), namen = [], nieuwe = []; let n = 0, over = 0; f.dos = f.dos || {}; f.maanden = f.maanden || {};
+        this._faVondsten.forEach((v, i) => { const sha = ('m' + v.pdf).replace(/[^a-z0-9]/gi, '').toLowerCase().padEnd(64, '0').slice(0, 64);
+          if (f.dos[sha] || (f.overgeslagen || {})[sha]) return;
+          let doel = f.lev.find(l => (l.soort === 'uitmail' || l.herken) && this._faHoort(l, v));
+          if (!doel) { const sid = v.naam.toLowerCase().replace(/[^a-z0-9]+/g, '-'), web = f.lev.find(l => l.soort !== 'mail' && l.soort !== 'uitmail' && ((l.startUrl || '').match(/^https:\/\/([^/]+)/) || ['', ''])[1].endsWith(v.domein));
+            doel = { id: f.lev.some(l => l.id === sid) ? sid + '-2' : sid, naam: v.naam, soort: 'uitmail', sjabloon: 'uitmail', nieuw: true, voorstel: web ? web.id : '', bronnen: [id], schema: 'uit', submap: v.naam, map: !!bron.map, lokaal: !!bron.lokaal,
+              herken: v.soort === 'platform' ? { namen: [v.naam.toLowerCase()] } : { domeinen: [v.domein], ...(v.kvk ? { kvk: [v.kvk] } : {}) } };
+            f.lev.push(doel); nieuwe.push(v.naam); }
+          if (doel.overslaan) { (f.overgeslagen = f.overgeslagen || {})[sha] = doel.id; over++; return; }
+          const p = { naam: v.pdf, t: now - i * 1000, grootte: 40000 + i }; (f.pdf[doel.id] = f.pdf[doel.id] || []).unshift(p); namen.push(v.pdf); n++;
+          const m = faMaandSleutel(now); f.maanden[doel.id] = { ...(f.maanden[doel.id] || {}), [m]: ((f.maanden[doel.id] || {})[m] || 0) + 1 };
+          f.dos[sha] = { sha, naam: v.pdf, origineel: v.pdf, grootte: p.grootte, leverancier: doel.id, leverancierNaam: doel.naam, via: id, opgehaald: now - i * 1000,
+            bron: { soort: 'mail', afzender: v.afzender, onderwerp: 'Je factuur', mailId: 'mail' + i, datum: now - i * 864e5 },
+            kenmerken: { adres: v.adres, domein: v.domein, naam: v.naam, soort: v.soort, ...(v.soort === 'platform' ? { platform: true } : {}), btw: [], kvk: v.kvk ? [v.kvk] : [], iban: [] },
+            plekken: { app: { pad: '/data/user/0/nl.rene.tools/files/facturen/pdf/' + doel.id + '/' + v.pdf, t: now } }, verzonden: {}, meta: { nummer: '2026-00' + (40 + i), datum: '2026-10-0' + (i + 1), bedrag: v.bedrag, btw: '', bron: 'herkend' } }; });
+        const r = { id, naam: bron.naam, ok: true, nieuw: n, gevonden: n + over, namen, fouten: [], nieuweLeveranciers: nieuwe, overgeslagen: over, msg: n === 1 ? '1 nieuwe factuur' : n + ' nieuwe facturen' };
+        const oud = f.toestand[id] || {}; f.toestand[id] = { ...oud, lastTry: now, ok: true, msg: r.msg, lastOk: now, nieuw: n, log: [{ t: now, ok: true, msg: r.msg, nieuw: n, namen, auto: false }].concat(oud.log || []) };
+        onFacturenKlaar(r); }, 600); return ''; },
+    facturenLevKlopt(id){ const l = this._fa.lev.find(x => x.id === id); if (!l) return 'Leverancier niet gevonden'; if (l.soort !== 'uitmail') return 'Dit kan alleen bij een leverancier uit je mail';
+      l.nieuw = false; l.voorstel = ''; this._fa.calls.push(['klopt', id]); return ''; },
+    facturenLevSamen(van, naar){ const f = this._fa, v = f.lev.find(x => x.id === van), w = f.lev.find(x => x.id === naar);
+      if (f.bezig) return JSON.stringify({ error: 'Er worden nu facturen opgehaald; probeer het straks nog een keer' });
+      if (!v || !w || w.soort === 'mail') return JSON.stringify({ error: 'Leverancier niet gevonden' }); if (v.soort !== 'uitmail') return JSON.stringify({ error: 'Dit kan alleen bij een leverancier uit je mail' });
+      if (van === naar) return JSON.stringify({ error: 'Kies een andere leverancier' });
+      const h = { ...(w.herken || {}) }; Object.entries(v.herken || {}).forEach(([k, a]) => { h[k] = [...new Set([...(h[k] || []), ...a])]; }); w.herken = h;
+      if (w.soort === 'uitmail') { w.bronnen = [...new Set([...(w.bronnen || []), ...(v.bronnen || [])])]; if (w.voorstel === van) w.voorstel = ''; }
+      let n = 0; Object.values(f.dos || {}).forEach(s => { if (s.leverancier === van) { s.leverancier = naar; s.leverancierNaam = w.naam; n++; } });
+      f.pdf[naar] = (f.pdf[naar] || []).concat(f.pdf[van] || []); delete f.pdf[van];
+      if (f.maanden && f.maanden[van]) { const m = f.maanden[naar] = f.maanden[naar] || {}; Object.entries(f.maanden[van]).forEach(([k, x]) => { m[k] = (m[k] || 0) + x; }); delete f.maanden[van]; }
+      (f.ontv || []).forEach(o => { if ((o.leveranciers || []).includes(van)) o.leveranciers = [...new Set(o.leveranciers.map(x => x === van ? naar : x))]; });
+      f.lev = f.lev.filter(x => x.id !== van); f.lev.forEach(x => { if (x.voorstel === van) x.voorstel = x.id === naar ? '' : naar; });
+      f.calls.push(['samen', van, naar]); return JSON.stringify({ aantal: n }); },
+    facturenLevOverslaan(id, aan, ook){ const f = this._fa, l = f.lev.find(x => x.id === id); if (!l) return JSON.stringify({ error: 'Leverancier niet gevonden' });
+      if (l.soort !== 'uitmail') return JSON.stringify({ error: 'Dit kan alleen bij een leverancier uit je mail' });
+      l.overslaan = !!aan; l.nieuw = false; let weg = 0; if (aan && ook) { Object.keys(f.dos || {}).forEach(k => { if (f.dos[k].leverancier === id) { delete f.dos[k]; weg++; } }); delete f.pdf[id]; }
+      f.calls.push(['overslaan', id, !!aan, !!ook]);
+      if (aan) return JSON.stringify({ weg });
+      let terug = 0; Object.keys(f.overgeslagen || {}).forEach(k => { if (f.overgeslagen[k] === id) { delete f.overgeslagen[k]; terug++; } }); return JSON.stringify({ terug }); },
+    facturenDossierLeverancier(sha, levId, onthoud){ const f = this._fa, s = (f.dos || {})[sha], w = f.lev.find(x => x.id === levId);
+      if (!s) return JSON.stringify({ error: 'Factuur niet gevonden in het dossier' }); if (!s.via) return JSON.stringify({ error: 'Alleen facturen uit je mail kunnen naar een andere leverancier' });
+      if (!w || w.soort === 'mail') return JSON.stringify({ error: 'Leverancier niet gevonden' });
+      const van = s.leverancier; s.leverancier = levId; s.leverancierNaam = w.naam; const i = (f.pdf[van] || []).findIndex(p => p.naam === s.naam); if (i >= 0) (f.pdf[levId] = f.pdf[levId] || []).push(...f.pdf[van].splice(i, 1));
+      if (onthoud && s.kenmerken && levId !== 'niet-herkend' && s.kenmerken.soort !== 'eigen' && !(s.kenmerken.soort === 'platform' && !s.kenmerken.naam)) { const km = s.kenmerken, k = km.soort === 'platform' ? 'namen' : 'afzenders', x = km.soort === 'platform' ? km.naam.toLowerCase() : km.adres;
+        f.lev.forEach(l => { if (l.herken && l.herken[k]) l.herken[k] = l.herken[k].filter(y => y !== x); }); w.herken = { ...(w.herken || {}), [k]: [...new Set([...((w.herken || {})[k] || []), x])] }; if (w.soort === 'uitmail') w.nieuw = false; }
+      f.calls.push(['dosLev', sha, levId, !!onthoud]); return JSON.stringify({ aantal: 1 }); },
+    facturenHerkennen(json){ const o = JSON.parse(json), lijst = x => (Array.isArray(x) ? x : String(x || '').split(/[,;\n]+/)).map(y => y.trim()).filter(Boolean);
+      const nummers = lijst(o.nummers).map(x => x.replace(/[\s.\-]/g, '').toUpperCase()), adressen = lijst(o.adressen).map(x => x.toLowerCase());
+      const fout = nummers.find(x => !/^(\d{8}|[A-Z]{2}\d{2}[A-Z0-9]{10,30}|NL\d{9}B\d{2})$/.test(x)); if (fout) return 'Geen KvK-, btw- of IBAN-nummer: ' + fout;
+      const fa = adressen.find(x => !/^[^@\s<>]+@[^@\s<>]+\.[a-z]{2,}$/.test(x)); if (fa) return 'Geen mailadres: ' + fa;
+      this._fa.herkennen = { nummers, adressen }; this._fa.calls.push(['herkennen', { nummers, adressen }]); return ''; },
     facturenOpnieuw(id){ const f = this._fa; f.calls.push(['opnieuw', id]); if (!f.lev.some(l => l.id === id)) return 'Leverancier niet gevonden'; if (f.bezig) return 'Er worden al facturen opgehaald; probeer het straks nog een keer'; f.toestand[id] = { ...(f.toestand[id] || {}), lastOk: 0 }; return ''; },
     facturenStop(){ this._fa.calls.push(['stop']); },
     facturenKiesMap(){ this._fa.calls.push(['kiesmap']); setTimeout(() => { this._fa.lokaal = 'Documents/Facturen'; onFacturenMap(''); }, 150); },
@@ -767,7 +834,8 @@ if (!window.Android) window.Android = (function(){
       s.meta = { ...m, bron: 'zelf' }; this._fa.calls.push(['meta', sha, m]); return ''; },
     facturenDossierOpnieuw(sha, ontv){ const s = (this._fa.dos || {})[sha]; if (!s) return 'Factuur niet gevonden in het dossier'; s.verzonden[ontv] = { ok: false, opnieuw: true, t: Date.now() }; return ''; },
     facturenDossierCsv(){ this._fa.calls.push(['csv']); setTimeout(() => onFacturenCsv(this._fa.lokaal || this._wa.info.dest ? { waar: 'de map op je telefoon (dossier.csv)' } : { error: 'Kies eerst een map op je telefoon of een backup-map' }), 150); },
-    _foOpen(o){ return Object.values(this._fa.dos || {}).filter(s => (!o.leveranciers.length || o.leveranciers.includes(s.leverancier)) && (s.verzonden[o.id] ? !s.verzonden[o.id].ok : s.opgehaald >= o.vanaf)); },
+    _foOpen(o){ const over = new Set(this._fa.lev.filter(l => l.soort === 'uitmail' && l.overslaan).map(l => l.id));
+      return Object.values(this._fa.dos || {}).filter(s => (o.leveranciers.includes(s.leverancier) || ((!o.leveranciers.length || (s.via && o.leveranciers.includes(s.via))) && !over.has(s.leverancier))) && (s.verzonden[o.id] ? !s.verzonden[o.id].ok : s.opgehaald >= o.vanaf)); },
     _foMist(o){ const f = this._fa; return o.via === 'smtp' ? (f.smtp && f.smtp.host ? '' : 'Stel eerst je mailserver in (Facturen → Koppelingen → Mailserver)') : o.via === 'gmail' ? ((f.drive || {}).rechtGmailSend ? '' : 'Geef Tools het recht om met Gmail te versturen (Facturen → Koppelingen → Google)') : (f.ec.url && f.ec.heeftWachtwoord ? '' : 'Koppel eerst Eigen Cloud (Facturen → Koppelingen)'); },
     facturenOntvangers(){ const f = this._fa;
       return JSON.stringify({ lijst: (f.ontv || []).map(o => ({ ...o, toestand: (f.otoe || {})[o.id] || {}, open: this._foOpen(o).length, volgende: o.schema === 'uit' || o.schema === 'direct' ? 0 : faVolgende(o, Date.now()), mist: this._foMist(o) })),

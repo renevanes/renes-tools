@@ -119,9 +119,15 @@ final class FacturenRun {
         try {
             JSONObject lev = Facturen.leverancier(c, id);
             if (lev == null) return "Leverancier niet gevonden";
+            if (Facturen.uitMail(lev)) { // geen eigen website: zoeken in de mail waar hij vandaan komt
+                lev = Facturen.mailBron(c, lev);
+                if (lev == null) return "Deze leverancier komt uit je mail; zoek opnieuw in de mail (Facturen)";
+                id = lev.getString("id");
+            }
             FacturenRun r = new FacturenRun(c, lev, Facturen.geheim(c, "lev_" + id), zicht, k);
             if (!LOPEND.compareAndSet(null, r)) { if (r.eigenWv && r.wv != null) r.wv.destroy(); return "Er worden al facturen opgehaald"; }
             if (FacturenDossier.WEGHALEN.get()) { LOPEND.compareAndSet(r, null); if (r.eigenWv && r.wv != null) r.wv.destroy(); return "Het dossier wordt nu leeggemaakt; probeer het straks nog een keer"; }
+            if (FacturenIndeling.BEZIG.get()) { LOPEND.compareAndSet(r, null); if (r.eigenWv && r.wv != null) r.wv.destroy(); return "De facturen uit je mail worden nu ingedeeld; probeer het straks nog een keer"; }
             try { r.start(); } catch (Throwable e) { LOPEND.compareAndSet(r, null); throw e; }
             Facturen.werkBij(c, id, new JSONObject().put("bezigSinds", r.start));
             return "";

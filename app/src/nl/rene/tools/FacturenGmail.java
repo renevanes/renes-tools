@@ -75,6 +75,29 @@ final class FacturenGmail implements FacturenMail.Bron {
         return "";
     }
 
+    /** De tekst van de mail zelf (text/plain, anders html zonder opmaak), hooguit 20.000 tekens: om een doorgestuurde afzender te vinden. */
+    static String tekst(JSONObject payload) {
+        String t = deelTekst(payload, "text/plain");
+        if (t.isEmpty()) t = html(deelTekst(payload, "text/html"));
+        return t.length() > 20_000 ? t.substring(0, 20_000) : t;
+    }
+
+    static String html(String h) {
+        return h.replaceAll("(?is)<(script|style)[^>]*>.*?</\\1>", " ").replaceAll("(?i)<br\\s*/?>|</p>|</div>|</tr>", "\n").replaceAll("<[^>]+>", " ")
+                .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&nbsp;", " ").replace("&amp;", "&");
+    }
+
+    private static String deelTekst(JSONObject deel, String mime) {
+        if (deel == null) return "";
+        JSONObject body = deel.optJSONObject("body");
+        if (mime.equalsIgnoreCase(deel.optString("mimeType")) && deel.optString("filename", "").isEmpty() && body != null && !body.optString("data").isEmpty()) {
+            try { return new String(base64url(body.optString("data")), java.nio.charset.StandardCharsets.UTF_8); } catch (Throwable e) { return ""; }
+        }
+        JSONArray parts = deel.optJSONArray("parts");
+        for (int i = 0; parts != null && i < parts.length(); i++) { String s = deelTekst(parts.optJSONObject(i), mime); if (!s.isEmpty()) return s; }
+        return "";
+    }
+
     static byte[] base64url(String s) { return android.util.Base64.decode(s, android.util.Base64.URL_SAFE | android.util.Base64.NO_WRAP | android.util.Base64.NO_PADDING); }
 
     @Override
@@ -112,6 +135,7 @@ final class FacturenGmail implements FacturenMail.Bron {
                 JSONObject m = FacturenDrive.api(c, "GET", API + "/messages/" + id + "?format=full", null);
                 JSONObject payload = m.optJSONObject("payload");
                 String afzender = FacturenMail.afzenderNaam(kop(payload, "From"));
+                String door = null; // de oorspronkelijke afzender als de mail is doorgestuurd (pas lezen als er een PDF is)
                 long t = m.optLong("internalDate", System.currentTimeMillis());
                 laatste = Math.max(laatste, t);
                 for (JSONObject b : bijlagen(payload, null)) {
@@ -127,9 +151,13 @@ final class FacturenGmail implements FacturenMail.Bron {
                     // Zonder nummer of datum in de naam: de datum van de mail ervoor (anders heten alle facturen "factuur.pdf")
                     String basis = Facturen.uniekeNaam(origineel) ? origineel : dag.format(new java.util.Date(t)) + " " + origineel;
                     String naam = Facturen.bestandsnaam(basis, null, afzender, sha);
+                    if (door == null) door = FacturenHerken.doorgestuurdVan(tekst(payload));
                     JSONObject bron = new JSONObject().put("mailbron", "gmail").put("afzender", kop(payload, "From")).put("afzenderNaam", afzender)
-                        .put("onderwerp", kop(payload, "Subject")).put("maildatum", t).put("mailId", id).put("bijlage", origineel);
-                uit.add(new Facturen.Pdf(data, naam, sha, mail.optBoolean("perAfzender", true) ? afzender : null, bron));
+                        .put("onderwerp", kop(payload, "Subject")).put("maildatum", t).put("mailId", id).put("bijlage", origineel).put("basis", basis);
+                    String antw = kop(payload, "Reply-To");
+                    if (!antw.isEmpty()) bron.put("antwoordAan", antw);
+                    if (!door.isEmpty()) bron.put("doorgestuurdVan", door);
+                    uit.add(new Facturen.Pdf(data, naam, sha, null, bron));
                 }
             } catch (Exception e) {
                 fouten++;

@@ -145,9 +145,20 @@ public class FacturenTest {
         check(fout(new JSONObject().put("naam", "X").put("soort", "fax")).contains("soort"), "onbekende soort geweigerd");
         check(fout(new JSONObject().put("naam", "X").put("soort", "mail").put("mail", new JSONObject().put("bron", "duifpost"))).contains("mailbron"), "onbekende mailbron geweigerd");
         check(fout(new JSONObject().put("naam", "X")).contains("inlogpagina"), "website zonder inlogpagina: geweigerd");
+        // leverancier uit de mail (soort uitmail): geen website, geen eigen planning, wel herkenning en opslag
+        JSONObject um = Facturen.normaal(new JSONObject().put("naam", "Vattenfall").put("soort", "uitmail").put("schema", "dag").put("startUrl", "https://x.nl")
+                .put("herken", new JSONObject().put("domeinen", "vattenfall.nl").put("kvk", "3333 3333")).put("nieuw", true).put("voorstel", "KPN Zakelijk")
+                .put("bronnen", new JSONArray().put("facturen-in-gmail")).put("drive", true));
+        check(um.getString("soort").equals("uitmail") && um.getString("schema").equals("uit") && um.getString("startUrl").isEmpty() && um.getBoolean("nieuw") && !um.getBoolean("overslaan"), "uit de mail: geen website, nooit zelf gepland");
+        check(um.getJSONObject("herken").getJSONArray("domeinen").getString(0).equals("vattenfall.nl") && um.getJSONObject("herken").getJSONArray("kvk").getString(0).equals("33333333"), "uit de mail: herkenning genormaliseerd");
+        check(um.getString("voorstel").equals("kpn-zakelijk") && um.getJSONArray("bronnen").getString(0).equals("facturen-in-gmail") && um.getBoolean("drive") && um.getString("submap").equals("Vattenfall"), "uit de mail: voorstel, bron, opslag en map");
+        check(!Facturen.aanDeBeurt(um, 0, 0, System.currentTimeMillis(), java.util.TimeZone.getTimeZone("UTC")) && Facturen.uitMail(um) && !Facturen.uitMail(kpn), "uit de mail: nooit zelf aan de beurt");
+        check(fout(new JSONObject().put("naam", "X").put("soort", "uitmail").put("herken", new JSONObject().put("iban", "NL00 GEEN"))).contains("IBAN"), "uit de mail: fout in de herkenning geweigerd");
+        JSONObject kpnH = Facturen.normaal(new JSONObject(lijst.getJSONObject(0).toString()).put("herken", new JSONObject().put("afzenders", "kpn.com")));
+        check(kpnH.getJSONObject("herken").getJSONArray("afzenders").getString(0).equals("kpn.com") && !kpn.has("herken"), "website met herkenning uit de mail (Hoort bij): blijft bewaard");
         JSONObject mm = FacturenMail.normaal(new JSONObject().put("woorden", "factuur; invoice,  factuur ,\"(x)\"").put("afzenders", "kpn.com, Ziggo NL").put("dagen", 5000).put("max", 0));
         check(mm.getString("woorden").equals("factuur, invoice, x"), "zoekwoorden opgeschoond: " + mm.getString("woorden"));
-        check(mm.getInt("dagen") == 730 && mm.getInt("max") == 1 && mm.getBoolean("perAfzender"), "grenzen en standaard per afzender");
+        check(mm.getInt("dagen") == 730 && mm.getInt("max") == 1 && !mm.has("perAfzender"), "grenzen; geen mappen per afzender meer (elke leverancier een eigen rij)");
         String q = FacturenGmail.zoekvraag(mm.put("negeer", "nieuws@winkel.nl").put("extra", "-in:spam"), 1_700_000_000_000L);
         check(q.equals("has:attachment filename:pdf (factuur OR filename:factuur OR invoice OR filename:invoice OR x OR filename:x) from:(kpn.com OR \"Ziggo NL\") -from:nieuws@winkel.nl -in:spam after:1700000000"), "Gmail-zoekopdracht: " + q);
         check(FacturenGmail.zoekvraag(new JSONObject().put("woorden", "").put("afzenders", ""), 0).equals("has:attachment filename:pdf"), "zonder woorden: alleen PDF-bijlagen");
@@ -258,6 +269,15 @@ public class FacturenTest {
             check(mk.optInt("2026-01") == 1 && mk.optInt("2026-02") == 1 && mk.length() == 2, "overzicht per maand op factuurdatum: " + mk);
             JSONObject mg = FacturenDossier.maanden(items, "gm");
             check(mg.optInt("2026-03") == 1 && mg.optInt("2026-04") == 1 && mg.length() == 2, "mail zonder herkende datum: datum van de mail: " + mg);
+            java.util.Map<String, JSONObject> per = FacturenDossier.perLeverancier(items2);
+            boolean gelijk = per.size() == 2;
+            for (String lev : new String[]{"kpn", "gm"}) {
+                JSONObject p = per.get(lev);
+                gelijk &= p != null && p.optInt("facturen") == FacturenDossier.aantalVan(items2, lev)
+                        && p.getJSONObject("maanden").toString().length() == FacturenDossier.maanden(items2, lev).toString().length();
+                for (String m : new String[]{"2026-01", "2026-02", "2026-03", "2026-04"}) gelijk &= p != null && p.getJSONObject("maanden").optInt(m) == FacturenDossier.maanden(items2, lev).optInt(m);
+            }
+            check(gelijk && per.get("kpn").optLong("laatste") == 1_790_000_000_000L, "overzicht in één keer telt hetzelfde als per leverancier: " + per);
         }
 
         if (fails > 0) { System.out.println(fails + " mislukt"); System.exit(1); }

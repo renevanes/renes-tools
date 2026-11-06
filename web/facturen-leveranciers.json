@@ -1,5 +1,13 @@
 {
-  "uitleg": "Sjablonen voor Facturen ophalen. Soort website (inloggen en downloaden) of mail (PDF-bijlagen zoeken in een mailbox, bron gmail; later bijv. outlook). Alles is in de app aan te passen. Een nieuwe leverancier toevoegen = hier een blok bij (zie AGENTS.md, Facturen).",
+  "uitleg": "Sjablonen voor Facturen ophalen. Soort website (inloggen en downloaden) of mail (PDF-bijlagen zoeken in een mailbox, bron gmail; later bijv. outlook). Alles is in de app aan te passen. Een nieuwe leverancier toevoegen = hier een blok bij (zie AGENTS.md, Facturen). mailPlatforms: domeinen die facturen versturen namens anderen (daar zegt de naam van de afzender wie het is); freemail: gratis mailadressen (daar zegt het hele adres het). Zie FacturenHerken.",
+  "mailPlatforms": ["moneybird.com", "moneybird.nl", "e-boekhouden.nl", "exactonline.nl", "exactonline.be", "exact.com", "snelstart.nl", "informer.nl", "jortt.nl",
+    "rompslomp.nl", "tellow.nl", "yuki.nl", "wefact.nl", "wefact.com", "factuursturen.nl", "twinfield.com", "visma.com", "visma.net", "teamleader.eu", "billit.be",
+    "stripe.com", "paypal.com", "paypal.nl", "mollie.com", "mollie.nl", "sumup.com", "paddle.com", "fastspring.com", "chargebee.com", "recurly.com",
+    "xero.com", "quickbooks.com", "intuit.com", "freshbooks.com", "zoho.com", "zoho.eu", "invoiceninja.com", "sevdesk.de", "lexoffice.de",
+    "sendgrid.net", "amazonses.com", "mailgun.org", "mandrillapp.com", "mcsv.net", "postmarkapp.com", "sparkpostmail.com", "mailjet.com", "brevo.com", "sendinblue.com"],
+  "freemail": ["gmail.com", "googlemail.com", "hotmail.com", "hotmail.nl", "outlook.com", "outlook.nl", "live.com", "live.nl", "msn.com", "yahoo.com", "yahoo.nl",
+    "icloud.com", "me.com", "mac.com", "aol.com", "gmx.com", "gmx.net", "gmx.de", "web.de", "protonmail.com", "proton.me", "pm.me", "zoho.in", "mail.com",
+    "kpnmail.nl", "planet.nl", "home.nl", "hetnet.nl", "chello.nl", "upcmail.nl", "xs4all.nl", "zeelandnet.nl", "telfort.nl", "tele2.nl", "online.nl", "skynet.be", "telenet.be"],
   "sjablonen": [
     {
       "sjabloon": "kpn-zakelijk",
@@ -84,10 +92,9 @@
         "afzenders": "",
         "negeer": "",
         "extra": "",
-        "max": 50,
-        "perAfzender": true
+        "max": 50
       },
-      "tip": "Koppel eerst Google met toegang tot Gmail (Facturen → Koppelingen → Google). Tools leest alleen; het verandert niets in je mail. Elke afzender krijgt een eigen map.",
+      "tip": "Koppel eerst Google met toegang tot Gmail (Facturen → Koppelingen → Google). Tools leest alleen; het verandert niets in je mail. Elke leverancier die Tools in je mail vindt, krijgt een eigen rij en een eigen map.",
       "periode": {
         "soort": "jaar"
       }

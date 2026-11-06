@@ -33,11 +33,14 @@ public class FacturenJob extends JobService {
         if (beurt.isEmpty()) {
             // Niets op te halen: dan aanleveren aan de accountant/boekhouder als dat aan de beurt is
             final List<String> ontv = FacturenAanlever.aanDeBeurt(ctx, System.currentTimeMillis());
-            if (ontv.isEmpty() || FacturenAanlever.BEZIG.get()) { h.post(() -> schedule(ctx)); return false; }
+            final boolean leveren = !ontv.isEmpty() && !FacturenAanlever.BEZIG.get();
+            final boolean indelen = FacturenIndeling.nodig(ctx) && !FacturenIndeling.BEZIG.get(); // eenmalig: facturen uit de mail per leverancier
+            if (!leveren && !indelen) { h.post(() -> schedule(ctx)); return false; }
             gestopt = false;
             new Thread(() -> {
                 try {
-                    for (String id : ontv) {
+                    if (indelen) FacturenIndeling.herindelen(ctx);
+                    if (leveren) for (String id : ontv) {
                         if (gestopt) break;
                         JSONObject r = FacturenAanlever.stuurNu(ctx, id, false, true);
                         JSONObject o = FacturenAanlever.ontvanger(ctx, id);
@@ -108,7 +111,7 @@ public class FacturenJob extends JobService {
         try { android.net.ConnectivityManager cm = (android.net.ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE); betaald = cm == null || cm.isActiveNetworkMetered(); } catch (Throwable ignored) { }
         for (int i = 0; i < l.length(); i++) {
             JSONObject lev = l.optJSONObject(i);
-            if (lev == null) continue;
+            if (lev == null || Facturen.uitMail(lev)) continue; // uit de mail: de mailbron haalt op
             if (lev.optBoolean("wifi") && betaald) continue; // wacht op wifi (de dagelijkse controle haalt het in)
             JSONObject t = Facturen.toestand(c, lev.optString("id"));
             boolean verder = t.optBoolean("mailMeer") && nu - t.optLong("lastTry") >= 3_600_000L; // mail: nog meer op te halen
@@ -133,7 +136,7 @@ public class FacturenJob extends JobService {
         JSONArray l = Facturen.lijst(c);
         for (int i = 0; i < l.length(); i++) {
             JSONObject lev = l.optJSONObject(i);
-            if (lev == null || "uit".equals(lev.optString("schema"))) continue;
+            if (lev == null || "uit".equals(lev.optString("schema")) || Facturen.uitMail(lev)) continue;
             long m = Facturen.gepland(lev, nu, true, tz);
             JSONObject t = Facturen.toestand(c, lev.optString("id"));
             if (t.optBoolean("mailMeer")) m = Math.min(m, Math.max(nu + 60_000L, t.optLong("lastTry") + 3_600_000L)); // de rest van de mail over een uur

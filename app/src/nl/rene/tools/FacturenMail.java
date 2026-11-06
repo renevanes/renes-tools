@@ -50,7 +50,6 @@ final class FacturenMail {
         o.put("extra", extra);
         o.put("dagen", Math.max(1, Math.min(730, in.optInt("dagen", 90))));
         o.put("max", Math.max(1, Math.min(200, in.optInt("max", 50))));
-        o.put("perAfzender", in.optBoolean("perAfzender", true));
         return o;
     }
 

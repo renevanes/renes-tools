@@ -130,6 +130,15 @@ public class FacturenAanleverTest {
         check(FacturenAanlever.open(ontv, opn), "opnieuw aanleveren: open, ook van vóór de ontvanger");
         JSONObject alleenKpn = new JSONObject(ontv.toString()).put("leveranciers", new JSONArray().put("kpn"));
         check(FacturenAanlever.open(alleenKpn, stuk("x", "kpn", 1000, "", "")) && !FacturenAanlever.open(alleenKpn, stuk("x", "ziggo", 1000, "", "")), "filter op leverancier");
+        JSONObject alleGmail = new JSONObject(ontv.toString()).put("leveranciers", new JSONArray().put("gmail"));
+        JSONObject uitGmail = stuk("x", "eneco", 1000, "", "").put("via", "gmail");
+        check(FacturenAanlever.open(alleGmail, uitGmail) && !FacturenAanlever.open(alleGmail, stuk("x", "eneco", 1000, "", "")), "mailbron aangevinkt: alles uit die mail, ook leveranciers die er later bij kwamen");
+        check(FacturenAanlever.open(new JSONObject(ontv.toString()).put("leveranciers", new JSONArray().put("eneco")), uitGmail), "één leverancier uit de mail aangevinkt");
+        java.util.Set<String> over = new java.util.HashSet<>(Arrays.asList("eneco"));
+        check(!FacturenAanlever.open(alleGmail, uitGmail, over) && !FacturenAanlever.open(ontv, uitGmail, over), "overgeslagen leverancier uit de mail: niet meer vanzelf mee (ook niet via de mailbron of 'alles')");
+        check(FacturenAanlever.open(new JSONObject(ontv.toString()).put("leveranciers", new JSONArray().put("eneco")), uitGmail, over), "overgeslagen maar zelf aangevinkt: wel");
+        JSONObject uitGmailOpn = new JSONObject(uitGmail.toString()); uitGmailOpn.getJSONObject("verzonden").put(ontv.getString("id"), new JSONObject().put("ok", false).put("opnieuw", true));
+        check(FacturenAanlever.open(alleGmail, uitGmailOpn, over), "overgeslagen, maar in het dossier 'Opnieuw aanleveren' gekozen: wel");
 
         // ---------- zendingen ----------
         List<JSONObject> l = new ArrayList<>();
