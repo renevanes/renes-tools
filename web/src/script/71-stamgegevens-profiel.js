@@ -15,7 +15,7 @@ function appIdentityRefresh(){try{appIdentity=JSON.parse(Android.appIdentity())|
 window.onAppIdentity=function(){appIdentityRefresh();};
 function cmiSharedRender(){
   const self=appIdentity.self,people=appIdentity.people||[],box=$('#cmi-shared');box.replaceChildren();$('#cmi-home').hidden=!self;
-  $('#cmi-home-name').textContent=self?t('Hallo {naam}',{naam:self.callname||self.name}):'';
+  $('#cmi-home-name').textContent=self?t('Hallo {naam}',{naam:self.callname||self.name}):'';$('#cmi-home').setAttribute('aria-label',self?t('Hallo {naam}, naar Stamgegevens',{naam:self.callname||self.name}):t('Stamgegevens'));
   if(!self){box.append(cmEl('p',t('Er is geen app-profiel gedeeld.'),'note'));$('#cmi-ai-summary').textContent=t('Er is geen app-profiel gedeeld.');return;}
   box.append(cmData(cmEl('p',t('Dit ben ik: {naam}',{naam:self.name}))));
   for(const text of [self.context,appIdentity.context])if(text)box.append(cmData(cmEl('p',text,'note')));

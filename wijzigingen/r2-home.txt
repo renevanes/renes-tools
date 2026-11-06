@@ -1,3 +1,3 @@
-Tools-overzicht: "Handig" verdeeld over Documenten & geld, Dag & gezondheid, Onderweg en Slim; de Telefoon-skin staat nu bij Slim. Heb je je startscherm zelf ingedeeld, dan blijft die indeling precies zoals hij is.
+Tools-overzicht: "Handig" verdeeld over Documenten & geld, Dag & gezondheid, Onderweg en Slim; de Telefoon-skin staat nu bij Slim. Je eigen indeling blijft behouden; de vorige indeling kun je terugzetten bij Startscherm aanpassen.
 Tools-overzicht: nieuwe rij "Recent gebruikt" met de laatste vier tools die je opende (uit te zetten bij Startscherm aanpassen).
 Tools-overzicht: compacter bovenaan (één overzichtskaart, "Hallo" in de kopbalk) en lagere tegels, zodat je meer tools in één keer ziet.

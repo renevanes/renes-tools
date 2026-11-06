@@ -44,7 +44,7 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
       r.leeg = lay(homeMigrate(null, K)) === nieuw && homeMigrate(null, K).v === 2;
       const m = homeMigrate(cp(OUD), K);
       r.oud = lay(m) === nieuw && m.compact === true && m.fav.join() === 'notes' && m.dash === false && m.v === 2 && !m.hidden.length;
-      r.oudZuiver = JSON.stringify(OUD) === JSON.stringify(OUD) && (() => { const o = cp(OUD); homeMigrate(o, K); return JSON.stringify(o) === JSON.stringify(OUD); })();
+      r.oudZuiver = (() => { const o = cp(OUD), voor = JSON.stringify(o); homeMigrate(o, K); return JSON.stringify(o) === voor && JSON.stringify(cp(OUD)) === voor; })();
       // Ook oude standaarden van eerdere versies (zonder Telefoon, met wat de app er toen vanzelf achteraan zette)
       const vroeg = { grouped: true, hidden: [], groups: [{ name: 'Bellen & contacten', tools: ['redial', 'calls', 'contacts', 'transcripts', 'recorder'] }, { name: 'Berichten & backup', tools: ['backup', 'wa', 'sms', 'history'] },
         { name: 'Muziek & radio', tools: ['radio', 'music', 'podcasts', 'spotify'] }, { name: 'Handig', tools: ['notes', 'tracks', 'auto', 'car', 'pdf', 'kluis'] }] };
@@ -71,6 +71,12 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
       r.nieuweGroep = geen.groups.length === 3 && geen.groups[2].name === 'Dag & gezondheid' && geen.groups[2].tools.join() === 'checkin,sleep,gebruik' && !geen.groups[1].tools.length;
       const vreemd = homeMigrate({ groups: [{ name: 'A', tools: ['bestaatniet', 'notes', 'notes'] }], hidden: ['ookniet'], fav: ['notes', 'x', 'notes'] }, K);
       r.opgeruimd = vreemd.groups[0].tools[0] === 'notes' && vreemd.groups[0].tools.filter(x => x === 'notes').length === 1 && !vreemd.hidden.length && vreemd.fav.join() === 'notes' && [].concat(...vreemd.groups.map(x => x.tools)).length === K.length;
+      // Tussen twee versies bewaard: wat er vanzelf bij kwam staat niet in de volgorde van de tegels of van de standaard
+      const tussen = cp(OUD); tussen.groups[4].tools = ['ai', 'notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'loc', 'auto', 'sleep', 'checkin', 'apparaten', 'facturen', 'bank', 'gebruik', 'masterdata'];
+      r.tussen = lay(homeMigrate(tussen, K)) === nieuw;
+      // Zelf zo neergezet, maar precies gelijk aan een oude standaard: wordt omgezet (daarom: Vorige indeling terugzetten)
+      const gelijk = cp(OUD); gelijk.groups[4].tools = ['ai', 'notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'loc', 'auto', 'sleep', 'checkin', 'apparaten', 'gebruik', 'facturen', 'bank', 'masterdata'];
+      r.gelijk = homeIsOld(gelijk, K);
       r.recent = homeRecentPush(['a', 'b', 'c', 'd'], 'c', 4).join() === 'c,a,b,d' && homeRecentPush(['a', 'b', 'c', 'd'], 'e', 4).join() === 'e,a,b,c';
       return r;
     }, [OUD, EIGEN]);
@@ -78,6 +84,44 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     ok(u.oud, 'oude standaard → nieuwe groepen; compact, favorieten en Overzicht blijven');
     ok(u.oudZuiver, 'homeMigrate verandert de invoer niet');
     ok(u.vroeg && u.half, 'ook oude standaarden van eerdere versies (zonder Telefoon, minder tools) gaan over');
+    ok(u.tussen, 'oude standaard bewaard tussen versies (Handig eindigt op bank, gebruik, masterdata) gaat over');
+    ok(u.gelijk, 'een zelf gemaakte volgorde die precies een oude standaard is, telt als oude standaard (terugzetten kan)');
+
+    // ---------- homeIsOld tegen de echte geschiedenis: elke oude standaard, op willekeurige momenten bewaard ----------
+    // Simuleert de oude homeCfg per uitgebrachte versie (1.17 … 1.149) en bewaart op 1, 2 of 3 momenten (alle combinaties)
+    // plus 3000 willekeurige reeksen (vaste startwaarde). Geen enkele mag als "eigen indeling" gezien worden.
+    const sim = await pg.evaluate(() => {
+      const K = Object.keys(TOOL_TILE), V = [], cp = o => JSON.parse(JSON.stringify(o));
+      let st = { tools: ['redial', 'wa', 'tracks', 'sms', 'calls', 'notes', 'contacts', 'transcripts', 'radio', 'music', 'backup'], B: ['redial', 'calls', 'contacts', 'transcripts'], R: ['backup', 'wa', 'sms'], M: ['radio', 'music'], H: ['notes', 'tracks'], tel: false, unshift: false };
+      const push = ch => { st = Object.assign({}, st, ch); st.tools = st.tools.concat(ch.add || []); V.push(st); };
+      push({ add: [] }); push({ add: ['skin'], unshift: true }); push({ add: ['auto'], H: ['notes', 'tracks', 'auto'] });
+      push({ add: ['history'], R: ['backup', 'wa', 'sms', 'history'] }); push({ add: ['recorder'], B: ['redial', 'calls', 'contacts', 'recorder', 'transcripts'] });
+      push({ add: ['car'], H: ['notes', 'tracks', 'car', 'auto'] }); push({ add: ['kluis'], H: ['notes', 'tracks', 'car', 'kluis', 'auto'] });
+      push({ add: ['pdf'], H: ['notes', 'pdf', 'tracks', 'car', 'kluis', 'auto'] }); push({ add: ['podcasts'], M: ['radio', 'podcasts', 'music'] });
+      push({ add: ['spotify'], M: ['radio', 'podcasts', 'spotify', 'music'] }); push({ add: ['vpn'], H: ['notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'auto'] });
+      push({ add: ['loc'], H: ['notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'loc', 'auto'] }); push({ add: ['ai'], H: ['ai', 'notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'loc', 'auto'] });
+      push({ add: ['sleep'], H: ['ai', 'notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'loc', 'auto', 'sleep'] }); push({ add: [], tel: true });
+      push({ add: ['checkin'], H: st.H.concat('checkin') }); push({ add: ['apparaten'], H: st.H.concat('apparaten') }); push({ add: ['gebruik'] });
+      push({ add: ['facturen'], H: st.H.concat('facturen') }); push({ add: ['bank'], H: st.H.concat('bank') }); push({ add: ['masterdata'], H: st.H.concat('masterdata') });
+      const def = v => ({ grouped: true, compact: false, hidden: [], groups: (v.tel ? [{ name: 'Telefoon', tools: ['skin'] }] : []).concat([
+        { name: 'Bellen & contacten', tools: v.B }, { name: 'Berichten & backup', tools: v.R }, { name: 'Muziek & radio', tools: v.M }, { name: 'Handig', tools: v.H }]) });
+      const oudeCfg = (stored, v) => { // de homeCfg van toen
+        const D = def(v); const c = stored ? cp(stored) : cp(D);
+        const known = K.filter(x => v.tools.includes(x)), seen = new Set();
+        c.groups.forEach(g => { g.tools = (g.tools || []).filter(tk => known.includes(tk) && !seen.has(tk) && seen.add(tk)); });
+        if (v.unshift && !seen.has('skin')) { c.groups.unshift({ name: 'Telefoon', tools: ['skin'] }); seen.add('skin'); }
+        known.forEach(tk => { if (!seen.has(tk)) { const d = D.groups.find(g => g.tools.includes(tk)); const g = d && c.groups.find(x => x.name === d.name) || c.groups[c.groups.length - 1]; g.tools.push(tk); } });
+        return c;
+      };
+      let total = 0; const mis = [];
+      const check = saves => { total++; let s = null; saves.forEach(i => { s = oudeCfg(s, V[i]); }); if (!homeIsOld(s, K) && mis.length < 3) mis.push(saves.join('-') + ' → ' + s.groups.map(g => g.name + ':' + g.tools).join(' | ')); };
+      const n = V.length;
+      for (let i = 0; i < n; i++) { check([i]); for (let j = i + 1; j < n; j++) { check([i, j]); for (let k = j + 1; k < n; k++) check([i, j, k]); } }
+      let seed = 12345; const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+      for (let r = 0; r < 3000; r++) { const s = []; for (let i = 0; i < n; i++) if (rnd() < 0.3) s.push(i); if (s.length) check(s); }
+      return { n, total, mis };
+    });
+    ok(sim.n === 21 && sim.total > 4000 && !sim.mis.length, 'geschiedenis: ' + sim.total + ' bewaarmomenten over ' + sim.n + ' versies, alle als oude standaard herkend' + (sim.mis.length ? ' (gemist: ' + sim.mis.join(' || ') + ')' : ''));
     Object.entries(u.eigen).forEach(([k, v]) => ok(v, 'eigen indeling blijft precies zo: ' + k));
     ok(u.nieuweTools, 'nieuwe tools in een eigen indeling: bij de groep met hun groepsgenoten, de rest onveranderd');
     ok(u.zelfdeNaam, 'nieuwe tool naar de groep met de naam van zijn standaardgroep, niet naar de laatste');
@@ -90,6 +134,36 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     g = await home(pg);
     ok(g[0] === '★ Favorieten:notes' && g.slice(1).map(x => x.split(':')[0]).join('|') === NIEUW.join('|'), 'oude standaard bewaard → na starten de nieuwe groepen, favoriet blijft');
     ok(await pg.evaluate(() => $('#home-groups').classList.contains('compact') && !homeCfg().hidden.length), 'compact blijft aan');
+    ok(await pg.evaluate(o => store.get('home').v === 2 && JSON.stringify(store.get('homeV1').cfg) === JSON.stringify(o) && store.get('homeV1').kaart === true, OUD), 'overstap bewaard (indeling 2), de vorige indeling apart in rt.homeV1');
+    ok(await pg.isVisible('#home-new') && (await pg.textContent('#home-new')).includes('Vorige terugzetten'), 'kaart "Nieuwe indeling" met Vorige terugzetten');
+    // Vorige terugzetten vanaf de kaart: precies de groepen van toen, als eigen indeling (na herladen niet opnieuw omgezet)
+    await pg.click('#home-new button:has-text("Vorige terugzetten")'); await pg.waitForTimeout(150);
+    ok((await pg.textContent('#undo-t')) === 'Vorige indeling teruggezet' && (await home(pg)).some(x => x.startsWith('Handig:')), 'teruggezet, met een melding om het ongedaan te maken');
+    await pg.click('#undo-b'); await pg.waitForTimeout(150);
+    ok((await home(pg)).slice(1).map(x => x.split(':')[0]).join('|') === NIEUW.join('|'), 'ongedaan maken: weer de nieuwe indeling');
+    await pg.evaluate(() => homeV1Restore()); await pg.waitForTimeout(150);
+    await pg.reload(); await pg.waitForTimeout(300);
+    g = await home(pg);
+    ok(g.map(x => x.split(':')[0]).join('|') === '★ Favorieten|Telefoon|Bellen & contacten|Berichten & backup|Muziek & radio|Handig' && g[5].endsWith('masterdata,gebruik') && !(await pg.isVisible('#home-new')),
+      'vorige indeling terug en blijft zo na herladen; kaart weg (' + g.map(x => x.split(':')[0]) + ')');
+    ok(await pg.evaluate(() => homeCfg().compact === true && homeCfg().fav.join() === 'notes'), 'favorieten en compact blijven bij terugzetten');
+    // En via Startscherm aanpassen weer naar de nieuwe (Standaard herstellen) en terug (Vorige indeling terugzetten)
+    await pg.evaluate(() => show('homeedit')); await pg.waitForTimeout(150);
+    ok(await pg.isVisible('#he-v1'), 'Startscherm aanpassen: knop Vorige indeling terugzetten');
+    await pg.evaluate(() => heReset()); await pg.click('#modal-ok'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => homeCfg().groups.map(x => x.name).join('|') === HOME_DEFAULT.groups.map(x => x.name).join('|') && homeCfg().compact === true), 'Standaard herstellen: nieuwe groepen, compact blijft');
+    await pg.click('#he-v1'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => homeCfg().groups.map(x => x.name).join('|') === 'Telefoon|Bellen & contacten|Berichten & backup|Muziek & radio|Handig'), 'Vorige indeling terugzetten vanuit Startscherm aanpassen');
+    await pg.evaluate(() => goBack()); await pg.waitForTimeout(100);
+    // Kaart wegklikken (Prima zo): blijft weg, de nieuwe indeling blijft
+    await pg.evaluate(o => { localStorage.removeItem('rt.homeV1'); localStorage.setItem('rt.home', JSON.stringify(o)); }, OUD); await pg.reload(); await pg.waitForTimeout(300);
+    await pg.click('#home-new button:has-text("Prima zo")'); await pg.waitForTimeout(100);
+    await pg.reload(); await pg.waitForTimeout(300);
+    ok(!(await pg.isVisible('#home-new')) && (await home(pg)).slice(1).map(x => x.split(':')[0]).join('|') === NIEUW.join('|'), 'Prima zo: kaart blijft weg, nieuwe indeling blijft');
+    // Een eigen indeling krijgt geen kaart en geen kopie
+    await pg.evaluate(o => { localStorage.removeItem('rt.homeV1'); localStorage.setItem('rt.home', JSON.stringify(o)); }, EIGEN); await pg.reload(); await pg.waitForTimeout(300);
+    ok(!(await pg.isVisible('#home-new')) && !(await pg.evaluate(() => store.get('homeV1', null))), 'eigen indeling: geen kaart, niets apart gezet');
+    await pg.evaluate(o => { localStorage.removeItem('rt.homeV1'); localStorage.setItem('rt.home', JSON.stringify(o)); }, OUD); await pg.reload(); await pg.waitForTimeout(300);
     await pg.evaluate(() => show('homeedit')); await pg.waitForTimeout(150);
     ok((await pg.$$eval('#he-groups .hegname', x => x.map(e => e.firstChild.textContent))).join('|') === NIEUW.join('|'), 'Startscherm aanpassen toont de nieuwe groepen');
     await pg.click('#he-groups .hegroup:has(.hegname:has-text("Onderweg")) .headd'); await pg.waitForTimeout(150);
@@ -103,16 +177,18 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     // Opslaan na een wijziging bewaart indeling 2: later niet opnieuw omgezet
     await pg.evaluate(() => heSet('compact', true)); await pg.reload(); await pg.waitForTimeout(300);
     ok(await pg.evaluate(() => store.get('home').v === 2 && homeCfg().groups[0].name === 'Handig'), 'bewaard als indeling 2, eigen groepen blijven');
-    // Standaard herstellen: de nieuwe standaard, favorieten en de keuze voor Recent blijven
-    await pg.evaluate(() => { const c = homeCfg(); c.fav = ['pdf']; c.recent = false; homeSave(c); show('homeedit'); heReset(); }); await pg.click('#modal-ok'); await pg.waitForTimeout(150);
-    ok(await pg.evaluate(() => homeCfg().groups.map(x => x.name).join('|') === HOME_DEFAULT.groups.map(x => x.name).join('|') && homeCfg().fav.join() === 'pdf' && homeCfg().recent === false), 'Standaard herstellen: nieuwe groepen, favoriet en Recent-keuze blijven');
-    await pg.evaluate(() => { localStorage.removeItem('rt.home'); localStorage.removeItem('rt.homeRecent'); }); await pg.reload(); await pg.waitForTimeout(300);
+    // Standaard herstellen: de nieuwe standaard; favorieten en de weergave (compact, groepen, Overzicht, Recent) blijven
+    await pg.evaluate(() => { const c = homeCfg(); c.fav = ['pdf']; c.recent = false; c.dash = false; c.grouped = false; homeSave(c); show('homeedit'); heReset(); }); await pg.click('#modal-ok'); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => { const c = homeCfg(); return c.groups.map(x => x.name).join('|') === HOME_DEFAULT.groups.map(x => x.name).join('|') && c.fav.join() === 'pdf' && c.recent === false && c.dash === false && c.grouped === false && c.compact === true; }), 'Standaard herstellen: nieuwe groepen; favoriet, compact, groepen, Overzicht en Recent blijven');
+    await pg.evaluate(() => goBack());
+    await pg.evaluate(() => { ['home', 'homeRecent', 'homeV1'].forEach(k => localStorage.removeItem('rt.' + k)); }); await pg.reload(); await pg.waitForTimeout(300);
 
     // ---------- de eerste tegel hoog op het scherm (390×844), ook met een profiel en "Sinds gisteravond" ----------
     await pg.evaluate(() => { window._idOud = Android.appIdentity; Android.appIdentity = () => JSON.stringify({ self: { name: 'Rene van Es', callname: 'Rene' } }); appIdentityRefresh(); show('home'); }); await pg.waitForTimeout(150);
     const top = await pg.evaluate(() => ({ tile: Math.round(document.querySelector('#home-groups .tile').getBoundingClientRect().top), night: getComputedStyle($('#home-night')).display !== 'none', hello: $('#cmi-home').getBoundingClientRect().top, recent: !$('#home-recent').hidden }));
     ok(top.tile <= 350 && top.night && !top.recent, 'eerste tegel op y=' + top.tile + ' (≤ 350), met Sinds gisteravond');
     ok(top.hello < 60 && (await pg.textContent('#cmi-home')).includes('Hallo Rene'), '"Hallo Rene" in de kopbalk');
+    ok((await pg.getAttribute('#cmi-home', 'aria-label')) === 'Hallo Rene, naar Stamgegevens', 'knop zegt waar hij heen gaat (aria-label)');
     await pg.click('#cmi-home'); await pg.waitForTimeout(150);
     ok(await pg.evaluate(() => current === 'masterdata'), 'Hallo Rene opent Stamgegevens');
     await pg.evaluate(() => { Android.appIdentity = window._idOud; appIdentityRefresh(); show('home'); }); await pg.waitForTimeout(100);
@@ -120,6 +196,7 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     await pg.evaluate(() => { store.set('homeRecent', []); show('home'); }); // Stamgegevens hierboven telde als gebruikt
     // Overzicht in één kaart; met alles uit (Gezien, Overzicht uit) geen lege kaart
     ok(await pg.evaluate(() => $('#home-ov').contains($('#home-night')) && $('#home-ov').contains($('#home-dash')) && !$('#home-ov').hidden), 'Sinds gisteravond en het overzicht in één kaart');
+    ok(await pg.evaluate(() => { const d = $('#home-dash').getBoundingClientRect(), n = $('#home-night').getBoundingClientRect(), h = $('#home-night .ovhead').getBoundingClientRect(); return d.height > 0 && d.bottom <= n.top + 1 && h.top >= d.bottom; }), 'eerst het overzicht, daaronder Sinds gisteravond met eigen kop (Gezien hoort alleen daarbij)');
     await pg.click('#home-night button:has-text("Gezien")'); await pg.evaluate(() => heSet('dash', false)); await pg.waitForTimeout(100);
     ok(!(await pg.isVisible('#home-ov')), 'niets te melden: geen kaart');
     await pg.evaluate(() => heSet('dash', true));
@@ -134,6 +211,10 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     const first = await pg.evaluate(() => Math.round(document.querySelector('#home-recent .hrtool').getBoundingClientRect().top));
     ok(first <= 350, 'eerste tool (Recent) op y=' + first);
     ok(await pg.evaluate(() => [...document.querySelectorAll('#home-recent .hrtool')].every(e => e.getBoundingClientRect().height >= 44 && e.getBoundingClientRect().width >= 44)), 'tikvlakken minstens 44×44');
+    ok(await pg.evaluate(() => WS_SKIP.test('homeRecent') && !WS_SKIP.test('home')), 'Recent gebruikt niet in de interface-instellingen voor backups (WS_SKIP), de indeling wel');
+    await pg.click('#home-recent .hrtool[data-t="radio"]', { button: 'right' }); await pg.waitForTimeout(150);
+    ok((await pg.textContent('#sheet-title')) === 'Radio' && (await pg.textContent('#sheet-acts')).includes('Snelkoppeling op startscherm') && await pg.evaluate(() => current === 'home'), 'lang indrukken op Recent: hetzelfde menu als een tegel');
+    await pg.evaluate(() => closeSheet());
     await pg.evaluate(() => { show('carset'); show('notes'); show('home'); }); await pg.waitForTimeout(100);
     ok((await rec()) === 'notes,ai,pdf,car', 'een subscherm (instellingen van Mijn auto) telt niet, de tool zelf wel: ' + await rec());
     await pg.reload(); await pg.waitForTimeout(300);
@@ -170,6 +251,19 @@ const EIGEN = { grouped: true, hidden: ['music'], fav: [], groups: [
     await pg.screenshot({ path: __dirname + '/shots/home-groepen-edit-en-' + scheme + '.png', fullPage: true });
     await pg.evaluate(() => rgSave({ lang: 'nl' })); await pg.waitForTimeout(200);
     await pg.evaluate(() => show('home'));
+
+    // ---------- Recent: elke tool past, ook lange namen, 360 en 390 px, Nederlands en Engels; nooit midden in een woord ----------
+    for (const [w, taal] of [[360, 'nl'], [390, 'nl'], [360, 'en'], [390, 'en']]) {
+      await pg.setViewportSize({ width: w, height: 844 }); await pg.evaluate(t => rgSave({ lang: t }), taal); await pg.waitForTimeout(200);
+      const mis = await pg.evaluate(async () => { const all = Object.keys(TOOL_TILE).filter(x => x !== 'skin'), bad = [];
+        for (let i = 0; i < all.length; i += 4) { store.set('homeRecent', all.slice(i, i + 4)); show('home'); await new Promise(r => setTimeout(r, 30));
+          document.querySelectorAll('#home-recent .hrtool').forEach(e => { const b = e.querySelector('b'); if (e.scrollWidth > e.clientWidth + 1 || b.scrollWidth > b.clientWidth + 1 || getComputedStyle(b).overflowWrap === 'anywhere') bad.push(e.dataset.t); }); }
+        return bad; });
+      ok(!mis.length, 'Recent ' + w + ' px, ' + taal + ': alle namen passen' + (mis.length ? ' (niet: ' + mis + ')' : ''));
+    }
+    await pg.evaluate(() => { rgSave({ lang: 'nl' }); store.set('homeRecent', ['masterdata', 'transcripts', 'history', 'auto']); show('home'); }); await pg.setViewportSize({ width: 360, height: 780 }); await pg.waitForTimeout(150);
+    ok(await pg.evaluate(() => getComputedStyle($('#home-recent-list')).gridTemplateColumns.split(' ').length === 2), '360 px: Recent in twee kolommen, pictogram naast de naam');
+    await pg.screenshot({ path: __dirname + '/shots/home-groepen-recent-360-' + scheme + '.png' });
 
     // ---------- 360 px breed: geen tekst buiten beeld ----------
     await pg.setViewportSize({ width: 360, height: 780 }); await pg.waitForTimeout(150);

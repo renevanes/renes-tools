@@ -12,20 +12,41 @@ const HOME_DEFAULT = { v: HOME_LAYOUT, grouped: true, compact: false, hidden: []
   { name: 'Onderweg', tools: ['tracks', 'car', 'loc', 'vpn'] },
   { name: 'Slim', tools: ['ai', 'notes', 'auto', 'apparaten', 'skin'] } ] };
 /* De oude standaardindeling (indeling 1, tot en met versie 1.149), met per groep de lijsten die de app ooit als standaard
- * had (uit de geschiedenis van dit bestand). Gebruik stond er nooit in en kwam vanzelf achteraan in Handig. */
+ * had (uit de geschiedenis van dit bestand). Gebruik stond er nooit in en kwam vanzelf achteraan in Handig.
+ * in: per tool die later bij die groep kwam het volgnummer van de versie waarin hij verscheen (1.17 = 0), zodat
+ * homeIsOld weet in welke volgorde de oude app ze er vanzelf achteraan zette. */
 const HOME_OLD = [
-  { name: 'Bellen & contacten', tools: ['redial', 'calls', 'contacts', 'recorder', 'transcripts'], was: [['redial', 'calls', 'contacts', 'transcripts']] },
-  { name: 'Berichten & backup', tools: ['backup', 'wa', 'sms', 'history'], was: [['backup', 'wa', 'sms']] },
-  { name: 'Muziek & radio', tools: ['radio', 'podcasts', 'spotify', 'music'], was: [['radio', 'music'], ['radio', 'podcasts', 'music']] },
+  { name: 'Bellen & contacten', tools: ['redial', 'calls', 'contacts', 'recorder', 'transcripts'], was: [['redial', 'calls', 'contacts', 'transcripts']], in: { recorder: 4 } },
+  { name: 'Berichten & backup', tools: ['backup', 'wa', 'sms', 'history'], was: [['backup', 'wa', 'sms']], in: { history: 3 } },
+  { name: 'Muziek & radio', tools: ['radio', 'podcasts', 'spotify', 'music'], was: [['radio', 'music'], ['radio', 'podcasts', 'music']], in: { podcasts: 8, spotify: 9 } },
   { name: 'Handig', tools: HOME_OLD_HANDIG,
     was: [['notes', 'tracks'], ['notes', 'tracks', 'auto'], ['notes', 'tracks', 'car', 'auto'], ['notes', 'tracks', 'car', 'kluis', 'auto'], ['notes', 'pdf', 'tracks', 'car', 'kluis', 'auto'],
-      ['notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'auto'], ['notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'loc', 'auto']].concat([9, 10, 11, 12, 13, 14, 15].map(n => HOME_OLD_HANDIG.slice(0, n))) } ];
+      ['notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'auto'], ['notes', 'pdf', 'tracks', 'car', 'kluis', 'vpn', 'loc', 'auto']].concat([9, 10, 11, 12, 13, 14, 15].map(n => HOME_OLD_HANDIG.slice(0, n))),
+    in: { auto: 2, car: 5, kluis: 6, pdf: 7, vpn: 10, loc: 11, ai: 12, sleep: 13, checkin: 15, apparaten: 16, gebruik: 17, facturen: 18, bank: 19, masterdata: 20 } } ];
 const TOOL_TILE = {}; Object.keys(TILE_TOOL).forEach(id => TOOL_TILE[TILE_TOOL[id]] = id);
 const homeCopy = o => JSON.parse(JSON.stringify(o));
+/** Konden deze extra tools achteraan een groep zo vanzelf ontstaan? De oude app zette nieuwe tools bij elk bewaren
+ * achteraan (per keer in de volgorde van de tegels); een latere keer bevat alleen tools die later verschenen dan alles
+ * van de keren ervoor. Dus: is extra op te delen in zulke opeenvolgende stukken? */
+function homeBatchesOk(intro, extra){
+  const ti = tk => Object.values(TILE_TOOL).indexOf(tk), at = tk => intro[tk] == null ? -1 : intro[tk], ok = [true];
+  for (let j = 1; j <= extra.length; j++) {
+    ok[j] = false;
+    for (let i = 0; i < j && !ok[j]; i++) {
+      if (!ok[i]) continue;
+      const run = extra.slice(i, j);
+      if (!run.every((tk, k) => !k || ti(run[k - 1]) < ti(tk))) continue;
+      const first = Math.min(...run.map(at));
+      if (extra.slice(0, i).every(tk => at(tk) < first)) ok[j] = true;
+    }
+  }
+  return ok[extra.length];
+}
 /** Is deze bewaarde indeling (nog) de oude standaard? Dan heeft Rene groepen, volgorde en verborgen tools nooit aangepast.
  * Wat de oude homeCfg zelf deed telt niet als aanpassing: de groep Telefoon die er vanzelf bovenaan bij kwam, en per groep
- * een standaardlijst van toen met daarachter de tools die er later vanzelf bij kwamen (in de volgorde van de tegels of van
- * de standaard). Bij twijfel: niet de oude standaard (dan blijft alles zoals het is; Standaard herstellen kan altijd). */
+ * een standaardlijst van toen met daarachter de tools die er later vanzelf bij kwamen (homeBatchesOk). Bij twijfel: niet
+ * de oude standaard (dan blijft alles zoals het is; Standaard herstellen kan altijd). Andersom kan een zelf gemaakte volgorde
+ * er precies zo uitzien: daarom bewaart homeCfg de vorige indeling (rt.homeV1) en kan Rene die terugzetten. */
 function homeIsOld(s, known){
   if (!s || !Array.isArray(s.groups) || (s.v || 1) >= HOME_LAYOUT) return false;
   const kn = tk => known.includes(tk);
@@ -33,14 +54,13 @@ function homeIsOld(s, known){
   let gs = s.groups.map(g => ({ name: g && g.name, tools: (g && Array.isArray(g.tools) ? g.tools : []).filter(kn) }));
   if (gs.length && gs[0].name === 'Telefoon' && gs[0].tools.every(tk => tk === 'skin')) gs = gs.slice(1);
   if (gs.length !== HOME_OLD.length || gs.some((g, i) => g.name !== HOME_OLD[i].name)) return false;
-  const tiles = Object.values(TILE_TOOL);
   return gs.every((g, i) => {
     const o = HOME_OLD[i];
     return [o.tools].concat(o.was).some(h => {
       h = h.filter(kn);
       if (g.tools.length < h.length || h.some((tk, j) => g.tools[j] !== tk)) return false;
-      const extra = g.tools.slice(h.length), sorted = order => extra.every((tk, j) => !j || order.indexOf(extra[j - 1]) < order.indexOf(tk));
-      return extra.every(tk => o.tools.includes(tk)) && (sorted(o.tools) || sorted(tiles));
+      const extra = g.tools.slice(h.length);
+      return extra.every(tk => o.tools.includes(tk)) && homeBatchesOk(o.in, extra);
     });
   });
 }
@@ -77,6 +97,28 @@ function homeMigrate(s, known){
   return c;
 }
 function homeCfg(){ return homeMigrate(store.get('home', null), Object.keys(TOOL_TILE)); }
+/* ---------- De vorige indeling (indeling 1) bewaren en terugzetten ----------
+ * Een zelf gemaakte volgorde kan er precies uitzien als een oude standaard en wordt dan ook omgezet. Daarom: bij de overstap
+ * de bewaarde indeling apart zetten (rt.homeV1: { cfg, kaart }) en de nieuwe meteen bewaren; op het startscherm één keer
+ * een kaart "Nieuwe indeling" met Vorige terugzetten, en in Startscherm aanpassen blijft Vorige indeling terugzetten staan. */
+function homeV1Store(){
+  const s = store.get('home', null);
+  if (!s || !Array.isArray(s.groups) || (s.v || 1) >= HOME_LAYOUT || !homeIsOld(s, Object.keys(TOOL_TILE))) return;
+  if (!store.get('homeV1', null)) store.set('homeV1', { cfg: s, kaart: true });
+  store.set('home', homeCfg());
+}
+function homeV1(){ const o = store.get('homeV1', null); return o && o.cfg && Array.isArray(o.cfg.groups) ? o : null; }
+/** De groepen, volgorde en verborgen tools van toen terug (als je eigen indeling, v: 2: niet opnieuw omzetten); je
+ *  favorieten en weergave blijven zoals ze nu zijn. Ongedaan maken kan meteen. */
+function homeV1Restore(){
+  const o = homeV1(); if (!o) return;
+  const nu = homeCfg(), terug = Object.assign(homeCopy(nu), { groups: homeCopy(o.cfg.groups), hidden: Array.isArray(o.cfg.hidden) ? homeCopy(o.cfg.hidden) : [], v: HOME_LAYOUT });
+  store.set('homeV1', Object.assign(o, { kaart: false }));
+  heSaveEdit(homeMigrate(terug, Object.keys(TOOL_TILE)));
+  undoToast(t('Vorige indeling teruggezet'), () => heSaveEdit(nu));
+}
+function homeV1Dismiss(){ const o = homeV1(); if (o) store.set('homeV1', Object.assign(o, { kaart: false })); renderHomeNew(); }
+function renderHomeNew(){ const el = $('#home-new'); if (el) el.hidden = !(homeV1() && homeV1().kaart); }
 function homeSave(c){ store.set('home', c); renderHome(); renderDash(); }
 function renderHome(){
   const c = homeCfg(), box = $('#home-groups'), pool = $('#tile-pool');
@@ -98,10 +140,12 @@ function renderHome(){
   else mk('', fav.concat([].concat(...c.groups.map(g => g.tools)).filter(notFav)));
   pool.style.display = 'none';
   renderHomeRecent();
+  renderHomeNew();
 }
 /* ---------- Recent gebruikt: de laatste vier tools die Rene opende ----------
- * Alleen welke tool (bijv. "pdf"), geen tijden of wat erin gebeurde; in de interface-instellingen (localStorage, gaat mee
- * met de interface-instellingen in Alles back-uppen). Uit in Startscherm aanpassen = niets meer bijhouden en de lijst wissen. */
+ * Alleen welke tool (bijv. "pdf"), geen tijden of wat erin gebeurde; alleen in deze WebView (localStorage rt.homeRecent).
+ * Het is gebruik, geen instelling: niet in de interface-instellingen voor Alles back-uppen (WS_SKIP in 02-kern.js).
+ * Uit in Startscherm aanpassen = niets meer bijhouden en de lijst wissen. Lang indrukken: hetzelfde menu als een tegel. */
 const HOME_RECENT_MAX = 4;
 function homeRecentList(){ const r = store.get('homeRecent', []); return Array.isArray(r) ? r.filter((tk, i, a) => TOOL_TILE[tk] && tk !== 'skin' && a.indexOf(tk) === i).slice(0, HOME_RECENT_MAX) : []; }
 /** Zuiver: tk vooraan, zonder dubbele, hooguit max. */
@@ -118,8 +162,12 @@ function renderHomeRecent(){
   const key = r.join() + '|' + taalId();
   if (list.dataset.k === key) return;
   list.dataset.k = key;
-  list.innerHTML = r.map(tk => '<button class="hrtool" data-t="' + tk + '" onclick="show(this.dataset.t)"><span class="ic">' + uiToolIcon(tk) + '</span><b>' + esc(t(TOOLS[tk][0])) + '</b></button>').join('');
+  list.innerHTML = r.map(tk => '<button class="hrtool" data-t="' + tk + '" onclick="show(this.dataset.t)"><span class="ic">' + uiToolIcon(tk) + '</span><b>' + esc(homeShy(t(TOOLS[tk][0]))) + '</b></button>').join('');
+  list.querySelectorAll('.hrtool').forEach(el => toolPress(el, el.dataset.t));
 }
+/* Lange namen in de smalle knoppen: alleen op een nette plek afbreken (zacht afbreekstreepje), nooit midden in een woord. */
+const HOME_SHY = { Meldingsgeschiedenis: 'Meldings\u00adgeschiedenis', Automatiseringen: 'Automati\u00adseringen', Stamgegevens: 'Stam\u00adgegevens' };
+function homeShy(s){ return String(s).split(' ').map(w => HOME_SHY[w] || w).join(' '); }
 function heRecent(on){ const c = homeCfg(); c.recent = !!on; if (!on) store.set('homeRecent', []); homeSave(c); if (current === 'homeedit') enterHomeEdit(); }
 // Elk scherm van een tool dat echt open gaat (ook via zoeken, een snelkoppeling of de assistent) telt als gebruikt
 (function(){
@@ -148,6 +196,7 @@ function heRow(c, tk, fav){
 }
 function enterHomeEdit(){
   const c = homeCfg();
+  $('#he-v1').style.display = homeV1() ? '' : 'none';
   ['grouped', 'compact', 'dash', 'recent'].forEach(k => { const on = k === 'dash' || k === 'recent' ? c[k] !== false : !!c[k], b = $('#he-' + k); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
   $('#he-fav').innerHTML = '<h2>★ Favorieten</h2>' + (c.fav.length ? '<div class="helist" data-fav="1" role="list" aria-label="Favorieten">' + c.fav.map(tk => heRow(c, tk, true)).join('') + '</div>'
     : '<p class=note style="margin:0">Tik op ☆ bij een tool (hieronder, of houd de tegel ingedrukt) om hem bovenaan te zetten.</p>');
@@ -259,7 +308,7 @@ function heDelGroup(gi){
   if (!g.tools.length) { go(); return; }
   askConfirm(t('Groep {naam} weghalen?', { naam: t(g.name) }), tn(g.tools.length, 'De {n} tool gaat naar {groep}.', 'De {n} tools gaan naar {groep}.', { groep: t(c.groups[to].name) }), 'Weghalen', go);
 }
-function heReset(){ askConfirm('Standaard herstellen?', 'Groepen, volgorde en verborgen tools gaan terug naar de standaardindeling. Je favorieten blijven.', 'Herstellen', () => { const was = homeCfg(); store.set('home', Object.assign(homeCopy(HOME_DEFAULT), { fav: was.fav, recent: was.recent })); /* je keuze voor Recent gebruikt blijft ook */ renderHome(); renderDash(); setDynamicShortcuts(); enterHomeEdit(); }); }
+function heReset(){ askConfirm('Standaard herstellen?', 'Groepen, volgorde en verborgen tools gaan terug naar de standaardindeling. Je favorieten blijven.', 'Herstellen', () => { const was = homeCfg(); store.set('home', Object.assign(homeCopy(HOME_DEFAULT), { fav: was.fav, recent: was.recent, compact: was.compact, grouped: was.grouped, dash: was.dash })); /* je weergave (compact, groepen, Overzicht, Recent) blijft ook */ renderHome(); renderDash(); setDynamicShortcuts(); enterHomeEdit(); }); }
 
 /* ---------- slepen (aan ⠿): binnen de favorieten, of tussen alle groepen ---------- */
 (function(){
@@ -332,6 +381,7 @@ function heReset(){ askConfirm('Standaard herstellen?', 'Groepen, volgorde en ve
   document.addEventListener('pointerup', end);
   document.addEventListener('pointercancel', end);
 })();
+homeV1Store();
 renderHome();
 setTimeout(renderDash, 50);
 
