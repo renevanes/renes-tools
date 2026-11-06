@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.155",
-  "versionCode": 156,
-  "nativeLevel": 138,
+  "versionName": "1.156",
+  "versionCode": 157,
+  "nativeLevel": 139,
   "web": "index.html",
-  "webSha256": "aef348faf37b40257ade5647cda1c09b48376915ad6bca79938f231aa255dfb2",
+  "webSha256": "3f364dd941e1493df9b1a461c92656540264c5545eb5415bbf64b73982349e1b",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "b6378d7737f604ac1fbdf0d28126c64f9fe53c800d4d4700ec4221df13227223",
+  "apkSha256": "f53fbca55d0ec4c4a446b21bb2c0da67797875928b7eb3a4beff4b76cd738281",
   "changelog": [
+    {
+      "version": "1.156",
+      "date": "2026-11-06",
+      "changes": [
+        "Nieuw: Toiletten en douches (startscherm, Onderweg). Zoek een openbaar toilet of een douche bij je in de buurt, op de kaart of in een lijst, met filters voor gratis en rolstoeltoegankelijk; tankstations, verzorgingsplaatsen en campings kun je erbij zetten. Je locatie gaat niet naar de bronnen: Tools zoekt op je telefoon.",
+        "Toiletten en douches: de gegevens komen uit OpenStreetMap (elke week bijgewerkt, via wifi) en uit open gegevens van gemeenten zoals Den Haag. Bronnen kun je zelf toevoegen, aan- en uitzetten en per bron laten bijwerken wanneer je wilt (Instellingen → Bronnen).",
+        "Toiletten en douches: pas een plek aan, wijs hem af met een reden of voeg zelf een plek toe (kaart lang indrukken). Dat blijft op je telefoon, ook na het bijwerken; zegt de bron later iets anders, dan kies je Overnemen of Mijn versie houden.",
+        "Toiletten en douches: geef een fout of een nieuwe plek door aan OpenStreetMap, zodat iedereen er iets aan heeft. Je ziet eerst precies wat er naartoe gaat (je eigen notitie bij een plek gaat nooit mee); de notitie is openbaar (zonder je naam) en Tools kijkt later of hij is opgelost."
+      ]
+    },
     {
       "version": "1.155",
       "date": "2026-11-06",
@@ -1376,5 +1386,5 @@
       ]
     }
   ],
-  "webSig2": "RuGHeK1l8qLAi67rS8vI9A/h0hET1pGOtD6mSPdKZGXBqh+3eQS2LbgPuR5YNeNNNyP5bltAmdIjIWb39JtacViQp5+KhMHHSe31w6ea3Wyf3EE9YWIlWC04243xe8xzX41MfVsI+ppemjxHdwSYQf1qwpNubhSNwJzFgkIMmMQmnv5CY7ZJFVMViZ+3TPXQzpltdcRoEgFlZc6io6qlx53qunOy/8XohrjMW5FkblU8K4SOrFFJMmsSC59id7ulnD07VZmB6ovb11kFxghd5bS91kHieqPCg9VyGY7lnR12vBb6uTlpZLkzRIAIT0z+9hLmH9wJ5T8NjpCWpg1ubo2MWc9rbhiBo+4H5U595pytGjEmwumqN+s0VBUNm/XhOGxrT2EmYQufcede6m7v3EUMdeTPfrWS9FpgH+DfnjZakLUm1ovwFKWiKwi20u9Ld+djCNYt08tTbk1lbVTOkqhnisUpq2dfE7Lbfjhyzqw2pJDCzdwq5x+CmLKbwX65"
+  "webSig2": "s4sAvdu8V7sRlJgcaW3DB7noaGp+i+gKHnUtGB5uoKhtbg/bW5l8QDQMYh/dIdgLu1FCJ6Kj0/ZB5lOzpzUMSI3iFyPjIiUhmalzBWsVdhftzigtDFd5NPy9vUC3E/iz/6OeoAlB9O4wFSMluMmaV+0nUkO8IPLd3xzr3nTLyUINOFfL3u+SH6j9Z+l6cooYIvX4WdjJa54YBogem/zKUrchjGbxm1v6AVea7bTQaQpQQRfZG+gZoZKObBL438ImI21ptCfU1kcqd2z4KN2k0cCNg5x6AHePPHgD/Cr68IHU291jzh50JmoxGHGqmk1gNwNDn0vYgfRYnUB/Pj50CfsmOe11mpGXtgdG2jSryHMV6OneVGrCP9Z0abmPJcpUZ6udcE5EbaVJUIqH/wTu3va9EOhxPV3XLd7lICUc2Au9HtO8Pb/kHURO0nCPAttjLhgFznF5vR2DfDneAjSGoVS0HTdRtVMD628ijSVgPUydhqDSt267onf1nv/HYcZg"
 }
