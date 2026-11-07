@@ -188,13 +188,14 @@ log.insert(0, {'version': '$NAME', 'date': datetime.date.today().isoformat(), 'c
 json.dump(log, open('changelog.json', 'w'), ensure_ascii=False, indent=2)"
   git rm -q --cached --ignore-unmatch -- 'wijzigingen/*.txt' >/dev/null; rm -f wijzigingen/*.txt
   echo "Versie $NAME (code $CODE, native $NAT) door $WHO"
-  [ -n "$VOORBEREIDEN" ] && voorbereid "$(vingerafdruk)"
+  AFDRUK=$(vingerafdruk)
+  [ -n "$VOORBEREIDEN" ] && voorbereid "$AFDRUK"
 
   # 5. Bouwen en testen (bij een fout zet de opruimfunctie VERSION, changelog en wijzigingen terug)
   ./build.sh > build/publish-build.log 2>&1 || { tail -30 build/publish-build.log; echo "Bouwen mislukt: niet gepubliceerd"; exit 1; }
   if [ "${SKIP_TESTS:-}" != "1" ]; then
     ./tests/run-jvm.sh > build/publish-jvm.log 2>&1 || { grep -v "^✓" build/publish-jvm.log | tail -20; echo "Java-tests mislukt: niet gepubliceerd"; exit 1; }
-    if [ -n "${UI_GETEST:-}" ] && [ "$UI_GETEST" = "$(vingerafdruk)" ]; then
+    if [ -n "${UI_GETEST:-}" ] && [ "$UI_GETEST" = "$AFDRUK" ]; then
       echo "Interfacetests: al geslaagd op precies deze bron, versie en wijzigingslog ($UI_GETEST)"
     else
       [ -n "${UI_GETEST:-}" ] && echo "Bron, versie of wijzigingslog anders dan bij de interfacetests ernaast: hier opnieuw"
