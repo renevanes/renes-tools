@@ -32,3 +32,11 @@ Voor het invullen van officiële formulieren: zie [PDF-formulieren](formulieren.
 - Routedetail toont de route op een echte kaart (Leaflet + OpenStreetMap-tegels, meegeleverd in de assets en geserveerd via de `/vendor/`-route van `MediaClient`). Knop "Openen in Google Maps" opent de route (start→eind) in Google Maps.
 - Nodig: locatietoestemming en `FOREGROUND_SERVICE_LOCATION`.
 
+
+## E-reader
+
+Open **E-reader** onder **Documenten & geld** en tik op **Boek toevoegen**. Kies een EPUB zonder versleutelde onderdelen of een UTF-8-tekstbestand (maximaal 20 MB). De tekst wordt per hoofdstuk getoond; afbeeldingen en oorspronkelijke opmaak worden niet overgenomen. Alles wordt op de telefoon gelezen, zonder internet.
+
+Tools bewaart de leespositie, ook binnen een hoofdstuk. Kies een hoofdstuk uit de lijst of gebruik Vorig/Volgend hoofdstuk. Tekstgrootte en lettertype zijn aan te passen. Via het menu bij een geopend boek verwijder je de kopie en leespositie; je oorspronkelijke bestand blijft staan. Boeken en leesposities gaan mee in **Alles back-uppen → Alle appgegevens**.
+
+Met **PDF openen** op het e-readerscherm kies je een PDF voor de bestaande PDF-lezer van Tools. Als je de PDF sluit, kom je terug bij de e-reader.

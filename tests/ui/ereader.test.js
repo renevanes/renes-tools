@@ -1,0 +1,73 @@
+const { chromium } = require('playwright');
+const path = require('path');
+(async () => {
+  const browser = await chromium.launch(), errors = [];
+  for (const colorScheme of ['light', 'dark']) {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 }, colorScheme });
+    page.on('pageerror', e => errors.push(e.message));
+    const ok = (v, m) => { console.log((v ? '✓ ' : '✗ ') + m); if (!v) errors.push(colorScheme + ': ' + m); };
+    await page.goto('file://' + path.join(__dirname, 'ui/index.html'));
+    await page.waitForTimeout(200);
+    await page.click('#tile-ereader');
+    ok(await page.locator('#er-list').innerText().then(s => s.includes('Nog geen boeken')), 'lege boekenlijst');
+    await page.evaluate(() => { Android.pdfViewPick = () => { window._erPdfOpened = true; }; });
+    await page.click('#er-pdf');
+    ok(await page.evaluate(() => window._erPdfOpened && current === 'ereader'), 'PDF openen vanuit de e-reader via de bestaande PDF-lezer');
+    await page.click('#er-add'); await page.waitForTimeout(150);
+    ok(await page.locator('#er-add').isEnabled() && await page.locator('#er-status').isHidden(), 'bestandskeuze annuleren');
+    await page.evaluate(() => {
+      Android._erBooks = [{ id: 'testboek', title: 'Instellingen', author: 'Opslaan', chapters: ['Een begin', 'Tweede hoofdstuk'], chapter: 0, offset: 0, last: 1 }];
+      Android._erTexts.testboek = [Array(120).fill('Een alinea met café en een lange regel.').join('\n\n') + '\n<img src=x onerror=alert(1)>', 'De tweede tekst.'];
+      enterEreader();
+    });
+    await page.fill('#er-search', 'onbekend');
+    ok((await page.locator('#er-list').innerText()).includes('Geen boeken'), 'zoeken zonder resultaat');
+    await page.fill('#er-search', 'opslaan');
+    await page.click('#er-list .strow');
+    ok(await page.evaluate(() => current === 'erbook' && !document.querySelector('#er-text img')), 'boek veilig als tekst openen');
+    ok(await page.locator('#er-prev').isDisabled() && await page.locator('#er-next').isEnabled(), 'hoofdstukgrenzen');
+    await page.evaluate(() => { const e = document.getElementById('er-text'); e.scrollTop = (e.scrollHeight-e.clientHeight)*0.45; erSave(); });
+    const offset = await page.evaluate(() => Android._erBooks[0].offset);
+    await page.selectOption('#er-size', '32'); await page.selectOption('#er-font', 'sans-serif');
+    ok(await page.evaluate(() => Math.abs(erOffset()-0.45)<0.02 && store.get('erSize')===32), 'tekstgrootte en lettertype behouden leespositie');
+    await page.evaluate(() => goBack());
+    await page.click('#er-list .strow');
+    ok(await page.evaluate(p => Math.abs(erOffset()-p)<0.02, offset), 'leespositie binnen hoofdstuk hervat');
+    await page.click('#er-next');
+    ok((await page.locator('#er-text').innerText()) === 'De tweede tekst.' && await page.locator('#er-next').isDisabled(), 'volgend hoofdstuk');
+    await page.selectOption('#er-chapters', '0');
+    ok(await page.evaluate(() => erIndex===0 && erOffset()===0), 'hoofdstuk kiezen');
+    await page.evaluate(() => { Android.ereaderChapter = () => JSON.stringify({error:'Kan dit hoofdstuk niet openen'}); });
+    await page.selectOption('#er-chapters', '1');
+    ok(await page.evaluate(() => erIndex===0 && document.getElementById('er-chapters').value==='0'), 'leespositie behouden bij een leesfout');
+    // Vertalen mag geen boektitel, auteur of boekinhoud wijzigen.
+    await page.evaluate(() => { erSave(); show('setregio'); }); await page.selectOption('#rg-lang', 'en');
+    await page.evaluate(() => { Android.ereaderChapter = (id,i) => JSON.stringify({text:Android._erTexts[id][i]}); show('ereader'); erOpen('testboek'); });
+    await page.waitForTimeout(150);
+    ok(await page.locator('#er-title').innerText()==='Instellingen' && await page.locator('#er-author').innerText()==='Opslaan' && (await page.locator('#er-progress').innerText()).includes('Chapter'), 'Engelse bediening, eigen teksten behouden');
+    ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'past op telefoon');
+    await page.screenshot({path:path.join(__dirname,'shots','ereader-'+colorScheme+'.png'),fullPage:true});
+    await page.click('#s-erbook .icon-btn'); await page.click('#sheet-acts button');
+    await page.click('#modal-cancel');
+    ok(await page.evaluate(() => Android._erBooks.length===1), 'verwijderen annuleren');
+    await page.click('#s-erbook .icon-btn'); await page.click('#sheet-acts button'); await page.click('#modal-ok');
+    ok(await page.evaluate(() => current==='ereader' && Android._erBooks.length===0 && !document.getElementById('er-text').textContent), 'verwijderen en terug naar lijst');
+    await page.evaluate(() => { Android._erPick = {error:'Bestand is beschadigd'}; });
+    await page.click('#er-add'); await page.waitForTimeout(150);
+    ok(await page.locator('#er-add').isEnabled() && (await page.locator('#er-status').innerText()).includes('beschadigd'), 'importfout zichtbaar, opnieuw kiezen mogelijk');
+    await page.evaluate(() => {
+      const book = {id:'nieuw',title:'Nieuw boek',author:'',chapters:[''],chapter:0,offset:0};
+      Android._erBooks.push(book); Android._erTexts.nieuw = ['Nieuwe tekst.']; Android._erPick = {book};
+      document.getElementById('er-search').value = '';
+    });
+    await page.click('#er-add'); await page.waitForTimeout(150);
+    ok(await page.evaluate(() => current==='erbook' && document.getElementById('er-text').textContent==='Nieuwe tekst.'), 'toegevoegd boek direct geopend');
+    await page.close();
+  }
+  const shortcut = await browser.newPage(); shortcut.on('pageerror', e => errors.push(e.message));
+  await shortcut.addInitScript(() => { window.__testOpen = 'ereader'; });
+  await shortcut.goto('file://' + path.join(__dirname, 'ui/index.html'));
+  if (!(await shortcut.evaluate(() => current==='ereader'))) errors.push('e-reader openen via snelkoppeling');
+  await shortcut.close();
+  await browser.close(); console.log('errors', JSON.stringify(errors)); if (errors.length) process.exitCode = 1;
+})();

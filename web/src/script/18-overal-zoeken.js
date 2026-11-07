@@ -14,7 +14,7 @@ const GS = {
   history:  ['🔔', 'Meldingsgeschiedenis', 'history', 'history-search', () => { historyLimit = 200; loadHistory(); }]
 };
 /* ---------- zoeken in de app zelf: schermen, kaarten en instellingen ---------- */
-const GS_SYN = {toiletten: 'wc toilet plassen urinoir douche douchen openbaar tankstation verzorgingsplaats camping rolstoel invalidentoilet hoge nood', 'leesbare chats': 'whatsapp sleutel 64 cijfers versleuteld lezen', 'pdf bekijken': 'pdf lezen viewer openen afdrukken', formulieren: 'formulier toestemming reistoestemming invulhulp', 'tekst naar pdf': 'e-mail mail eml bericht', 'id-kopie': 'identiteitsbewijs identiteitskaart idkaart id-kaart paspoort BSN documentnummer afschermen anonimiseren watermerk identity passport redact redaction watermark', meldingen: 'notificaties melding geluid trillen stil dempen uitzetten', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
+const GS_SYN = {'e-reader': 'epub ebook eboek e-boek boeken lezen tekst reader bibliotheek',toiletten: 'wc toilet plassen urinoir douche douchen openbaar tankstation verzorgingsplaats camping rolstoel invalidentoilet hoge nood', 'leesbare chats': 'whatsapp sleutel 64 cijfers versleuteld lezen', 'pdf bekijken': 'pdf lezen viewer openen afdrukken', formulieren: 'formulier toestemming reistoestemming invulhulp', 'tekst naar pdf': 'e-mail mail eml bericht', 'id-kopie': 'identiteitsbewijs identiteitskaart idkaart id-kaart paspoort BSN documentnummer afschermen anonimiseren watermerk identity passport redact redaction watermark', meldingen: 'notificaties melding geluid trillen stil dempen uitzetten', 'app-slot': 'vingerafdruk pincode slot vergrendelen beveiliging wachtwoord',
   backup: 'reservekopie back-up opslaan bewaren', 'telefoon-skin': 'startscherm launcher thuisscherm skin', weergave: 'tekstgrootte letters groot thema donker dark mode licht nachtmodus',
   foutrapport: 'fout crash probleem bug', modellen: 'taalmodel spraakmodel zoekmodel ai opslag ruimte downloaden verwijderen wifi', slaappraat: 'slapen slaap praten nacht snurken dromen microfoon', apparaten: 'bluetooth wifi airtag tracker smarttag tile scanner zoeken kwijt oortjes netwerk router apparaat buurt', 'check-in': 'checkin stemming humeur gevoel score cijfer dagboek bijhouden vraag werk hoe voel', versleutel: 'wachtwoord encryptie geheim', batterij: 'accu energie stroom'};
 let gsIndex = null;
@@ -22,7 +22,7 @@ function gsBuildIndex(){
   gsIndex = [];
   const fold = tt => norm2(tt);
   // Detailschermen (één notitie, chat, route …) hebben iets nodig om te tonen: die niet los openen
-  const DETAIL = ['note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'podlijst', 'sleepnight', 'checkined', 'checkinq', 'apdev'];
+  const DETAIL = ['erbook', 'note', 'chat', 'smschat', 'track', 'txd', 'contact', 'cversion', 'autoed', 'podcast', 'podlijst', 'sleepnight', 'checkined', 'checkinq', 'apdev'];
   const tiles = []; // tegels op een overzicht (bijv. PDF): {to, title, key, sub}
   document.querySelectorAll('section.screen[id^="s-"]').forEach(sec => {
     const scr = sec.id.slice(2);

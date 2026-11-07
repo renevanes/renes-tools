@@ -11,6 +11,12 @@ if (!window.Android) window.Android = (function(){
     st.nextAt = t0 + (a-1)*per + per; st.now = Date.now();
   };
   return {
+    _erBooks: [], _erTexts: {},
+    ereaderList(){ return JSON.stringify({ books: this._erBooks }); },
+    ereaderChapter(id, chapter){ const texts = this._erTexts[id]; return JSON.stringify(texts && texts[chapter] != null ? { text: texts[chapter] } : { error: "Boek openen lukt niet" }); },
+    ereaderPosition(id, chapter, offset){ const b = this._erBooks.find(x => x.id === id); if (b) Object.assign(b, { chapter, offset, last: Date.now() }); return ""; },
+    ereaderDelete(id){ this._erBooks = this._erBooks.filter(x => x.id !== id); delete this._erTexts[id]; return ""; },
+    ereaderPick(){ setTimeout(() => onEreaderImport(this._erPick || { cancelled: true }), 100); },
     version:()=>JSON.stringify({appName:VERSION_NAME,appCode:VERSION_CODE,nativeLevel:1,webName:VERSION_NAME,webCode:VERSION_CODE,android:'test',sdk:0,play:!!window.__testPlay,playTools:['notes','pdf','radio','podcasts','masterdata']}),
     lastManifest:()=>'null', checkUpdates:()=>setTimeout(()=>onUpdateStatus({state:'uptodate',kind:'web',manual:true,versionName:VERSION_NAME}),400),
     reloadUi(){ if (window.prepareUiReload && window.prepareUiReload()) { this._uiReloads = (this._uiReloads || 0) + 1; document.body.inert = false; } },
@@ -218,7 +224,7 @@ if (!window.Android) window.Android = (function(){
     radioSaveClip(s){ this._clip = s; setTimeout(() => onRadioClip(''), 50); },
     musicSaveFromRadio(a, t, s){ this._saved = [a, t, s]; return ''; },
     radioMoveFav(){}, radioMoveFavTo(a, b){ const f = this._rd.favs || []; if (a >= 0 && a < f.length && b >= 0 && b < f.length) f.splice(b, 0, f.splice(a, 1)[0]); },
-    radioPlay(j){ if (this._cast && this._cast.active) { const st = JSON.parse(j); Object.assign(this._cast, { src: 'radio', title: st.name, key: st.url, station: st, ep: undefined, pos: 0, dur: 0, playing: true, status: 'playing' }); return; } this._take('radio'); const r=this._rd; r.st={status:'connecting',station:JSON.parse(j),title:'',info:{},recent:[]}; setTimeout(()=>{ r.st.status='playing'; if(this._ts) r.st.shift={behind:6,back:600,clip:1500}; r.st.title='Doe Maar - De Bom'; r.st.info={name:'NPO Radio 2',desc:'Gouden Uur met Gijs Staverman',genre:'Pop',site:'https://www.nporadio2.nl',br:'192',title:'Doe Maar - De Bom',artist:'Doe Maar',song:'De Bom'}; r.st.recent=[{t:Date.now(),title:'Doe Maar - De Bom'},{t:Date.now()-24e4,title:'Golden Earring - Radar Love'}]; },600); },
+    radioPlay(j){ if (this._cast && this._cast.active) { const st = JSON.parse(j); Object.assign(this._cast, { src: 'radio', title: st.name, key: st.url, station: st, ep: undefined, pos: 0, dur: 0, playing: true, status: 'playing' }); return; } this._take('radio'); const r=this._rd; r.st={status:'connecting',station:JSON.parse(j),title:'',info:{},recent:[]}; const playing=r.st; setTimeout(()=>{ if(r.st!==playing)return; r.st.status='playing'; if(this._ts) r.st.shift={behind:6,back:600,clip:1500}; r.st.title='Doe Maar - De Bom'; r.st.info={name:'NPO Radio 2',desc:'Gouden Uur met Gijs Staverman',genre:'Pop',site:'https://www.nporadio2.nl',br:'192',title:'Doe Maar - De Bom',artist:'Doe Maar',song:'De Bom'}; r.st.recent=[{t:Date.now(),title:'Doe Maar - De Bom'},{t:Date.now()-24e4,title:'Golden Earring - Radar Love'}]; },600); },
     radioPause(){ this._rd.st.status='paused'; }, radioResume(){ if(this._rd.st.station) { this._take('radio'); this._rd.st.status='playing'; } },
     radioStop(){ this._rd.st={status:'stopped',title:'',last:this._rd.st.station}; }, radioSleep(m){ this._rd.st.sleepAt=m?Date.now()+m*6e4:0; },
     radioState(){ return JSON.stringify(this._rd.st); },
