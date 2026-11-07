@@ -90,6 +90,15 @@ final class BackupMap {
         return null;
     }
 
+    /** Zoals busy(), maar zonder onze eigen vlag (tijdens het opruimen staat AllBackup.busy voor ons aan). */
+    static String busyOther() {
+        if (WaBackup.busy) return "wa";
+        if (Spotify.BUSY.get()) return "spotify";
+        if (FacturenRun.LOPEND.get() != null) return "facturen";
+        if (HerstelLos.BUSY.get()) return "herstel";
+        return null;
+    }
+
     /** Uitkomst. */
     static final class Report {
         int dirs, files, dupDirs, dupFiles, temps, merged, removed, renamed, cleaned, errors;
@@ -153,7 +162,8 @@ final class BackupMap {
     }
 
     static boolean halt(Report r, long deadline) {
-        if (stop || AllBackup.stop || System.currentTimeMillis() > deadline) { r.stopped = true; return true; }
+        // AllBackup.stop telt alleen bij opruimen (dan zette tryBegin hem net terug); bij alleen controleren kan hij van een vorige nacht zijn
+        if (stop || (r.repair && AllBackup.stop) || System.currentTimeMillis() > deadline) { r.stopped = true; return true; }
         return false;
     }
 
@@ -188,13 +198,14 @@ final class BackupMap {
                 try {
                     if (keep.dir && x.dir) {
                         r.dupDirs++;
+                        boolean merged = false;
                         if (repair) {
                             WaBackup.FOLDER_LOCK.lock(); // niemand maakt intussen mappen in wat we samenvoegen
-                            try { if (mergeDir(dest, sub(dest, keep, p), x, p, r, deadline)) r.merged++; }
+                            try { merged = mergeDir(dest, sub(dest, keep, p), x, p, r, deadline); if (merged) r.merged++; }
                             finally { WaBackup.FOLDER_LOCK.unlock(); }
                             changed = true;
                         }
-                        r.item(p, Taal.T("Dubbele map"), repair && !r.stopped);
+                        r.item(p, Taal.T("Dubbele map"), merged);
                     } else if (!keep.dir && !x.dir) {
                         r.dupFiles++;
                         if (repair) {
@@ -222,10 +233,12 @@ final class BackupMap {
             if (ch.dir || !ours(path, name)) continue;
             String real = realName(name);
             if (real == null || ch.mod <= 0 || ch.mod > old) continue;
+            if (d.kids.containsKey(real + ".rt-old") && d.kids.containsKey(real + ".rt-tmp")) continue; // herstelt de app zelf (zie fixTemp)
             try {
                 r.temps++;
-                if (repair) { fixTemp(dest, d, name, ch, real); r.cleaned++; tmpChanged = true; }
-                r.item(join(path, name), Taal.T(name.endsWith(".rt-old") ? "Oude versie van een afgebroken backup" : "Tijdelijk bestand van een afgebroken backup"), repair);
+                boolean did = repair && fixTemp(dest, d, name, ch, real);
+                if (did) { r.cleaned++; tmpChanged = true; }
+                r.item(join(path, name), Taal.T(name.endsWith(".rt-old") ? "Oude versie van een afgebroken backup" : "Tijdelijk bestand van een afgebroken backup"), did);
             } catch (Exception ex) { r.errors++; }
         }
         if (tmpChanged) dest.list(d);
@@ -253,16 +266,20 @@ final class BackupMap {
      * - x.rt-tmp / x.rt-part met x ernaast: x is de echte; het tijdelijke bestand weg. Zonder x: bewaard als x~datum
      *   (kan compleet zijn; de backup maakt x vanzelf opnieuw).
      */
-    static void fixTemp(WaBackup.Dest dest, WaBackup.DestDir d, String name, WaBackup.Child ch, String real) throws Exception {
+    /** Geeft true als er echt iets veranderde. */
+    static boolean fixTemp(WaBackup.Dest dest, WaBackup.DestDir d, String name, WaBackup.Child ch, String real) throws Exception {
+        // x, x.rt-tmp en x.rt-old samen: de backup stopte midden in het vervangen. Dan niets aanraken; dat herstelt de
+        // app zelf goed bij de volgende backup van dat onderdeel (Sms.open: het onvolledige x weg, het oude terug).
+        if (d.kids.containsKey(real + ".rt-old") && d.kids.containsKey(real + ".rt-tmp")) return false;
         boolean hasReal = d.kids.containsKey(real) && !d.kids.get(real).dir;
         if (name.endsWith(".rt-old")) {
-            if (d.kids.containsKey(real + ".rt-tmp")) return;
             if (!hasReal) { if (WaBackup.rename(dest, doc(dest, ch.docId), real) == null) throw new Exception("hernoemen"); }
             else renameAside(dest, d, ch, real);
-            return;
+            return true;
         }
         if (hasReal) delete(dest, ch);
         else renameAside(dest, d, ch, real);
+        return true;
     }
 
     /** Alles uit de dubbele map 'from' naar 'into'; daarna de lege map weg. Geeft true als alles over is. */
@@ -295,6 +312,8 @@ final class BackupMap {
             dest.list(src);
             if (!src.kids.isEmpty()) { r.errors++; r.item(path, Taal.T("Dubbele map niet helemaal leeg te krijgen"), false); return false; }
         }
+        // Begon intussen iets anders te schrijven? Dan de (lege) map laten staan; de volgende keer weg
+        if (busyOther() != null) return false;
         delete(dest, from);
         return true;
     }

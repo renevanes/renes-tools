@@ -472,6 +472,7 @@ final class WaBackup {
         try {
             Uri tree = destUri(c);
             if (tree == null) throw new Exception("Kies eerst een backup-map");
+            if (BackupMap.RUNNING.get()) throw new Exception("De backup-map wordt opgeruimd; de WhatsApp-backup volgt straks");
             Dest dest = new Dest(c.getContentResolver(), tree);
             dest.root();
 

@@ -108,6 +108,13 @@ final class ToolData {
         return !r.toLowerCase(java.util.Locale.ROOT).matches(".*(geheim|secret|token|wachtwoord|password).*");
     }
 
+    /** Lager = eerder mee: eigen invoer (eigen plekken, dossier, apparaten, auto) voor logboeken en versies. */
+    static int priority(String rel) {
+        if (rel.startsWith("toiletten/") || rel.startsWith("facturen/") || rel.startsWith("apparaten/")) return 0;
+        if (rel.endsWith(".jsonl") || rel.contains("/versies/") || rel.contains("/pl/")) return 2;
+        return 1;
+    }
+
     static boolean text(String name) {
         String n = name.toLowerCase(java.util.Locale.ROOT);
         for (String e : new String[]{".json", ".jsonl", ".txt", ".csv", ".vcf", ".xml", ".gpx", ".trk", ".md", ".html"}) if (n.endsWith(e)) return true;
@@ -137,6 +144,12 @@ final class ToolData {
         File root = c.getFilesDir().getCanonicalFile();
         File[] tops = root.listFiles();
         if (tops != null) { Arrays.sort(tops); for (File t : tops) collect(root, t, t.getName(), 0, files); }
+        // Wat Rene zelf invoerde eerst, en kleine bestanden voor grote: past niet alles, dan vallen grote logboeken af
+        Collections.sort(files, (x, y) -> {
+            int px = priority(x), py = priority(y);
+            if (px != py) return px - py;
+            return Long.compare(new File(root, x).length(), new File(root, y).length());
+        });
         WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
         WaBackup.DestDir dir = dest.dir(DIR, true);
         JSONArray skipped = new JSONArray();
@@ -153,7 +166,7 @@ final class ToolData {
                 try { b = read(f, MAX_FILE); } catch (Exception e) { skipped.put(rel); continue; }
                 boolean asText = text(rel) && utf8(b);
                 long cost = asText ? b.length + b.length / 8 : (b.length + 2) / 3 * 4; // ongeveer wat het in het bestand kost
-                if (cost > MAX_FILE * 2 || total + cost > MAX_TOTAL) { skipped.put(rel); continue; }
+                if (total + cost > MAX_TOTAL) { skipped.put(rel); continue; }
                 total += cost;
                 JSONObject o = new JSONObject().put("path", rel).put("t", f.lastModified());
                 if (asText) o.put("text", new String(b, StandardCharsets.UTF_8));
