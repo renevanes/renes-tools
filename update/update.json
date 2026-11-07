@@ -1,15 +1,25 @@
 {
   "app": "Tools",
-  "versionName": "1.160",
-  "versionCode": 161,
-  "nativeLevel": 142,
+  "versionName": "1.161",
+  "versionCode": 162,
+  "nativeLevel": 143,
   "web": "index.html",
-  "webSha256": "63774df938614073f9a140232f0fe751c77448c061e6334f3f1aa1e3829389d5",
+  "webSha256": "62122e46f8d49047436af055b7a976311d761619f92eaefea2cc0d6398afb7bf",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "ffaf038920a021ebbdc5792dc7f9dee6920e8818b7f8a71c01f1aca62b982d18",
+  "apkSha256": "e33630a9605c24ba90fba9b556dc7817ec0022205cc4c0425b020709545202e4",
   "changelog": [
+    {
+      "version": "1.161",
+      "date": "2026-11-07",
+      "changes": [
+        "Stamgegevens: paspoort en identiteitskaart staan nu bij de persoon (tabblad ID), met hoe lang ze geldig zijn; een nieuw document voeg je daar toe en het krijgt vanzelf een naam zoals \"Paspoort Zoë\".",
+        "Stamgegevens: in het overzicht zie je bij een persoon als een document verlopen is of binnenkort verloopt; \"Geldig tot\" is nu een gewoon datumveld (het documentnummer blijft afgeschermd).",
+        "Stamgegevens: geslacht (Man, Vrouw of X, zoals op het identiteitsbewijs) bij Geboorte. Het gaat niet naar de assistent en alleen naar formulieren die erom vragen.",
+        "Reistoestemming: bij Nieuwe reis invullen een waarschuwing als een reisdocument vóór of binnen zes maanden na de laatste reisdag verloopt."
+      ]
+    },
     {
       "version": "1.160",
       "date": "2026-11-07",
@@ -1421,5 +1431,5 @@
       ]
     }
   ],
-  "webSig2": "Wfk69fl/c0cS/2tM9H3VI6ahdetbvcLLCz/I+F0YhxuNqd6FG6XTTXyhU9+p9ig/XOA8ylIcLwHiFmXoOkpH/7mbN3a31nbn93B4ZglGtNcT9jlVYFZh5Mas1ZynjeU3YpbjfxLlsiPSmLH2oWWfcQj8D/jxcEUKEoVSU4Mnnf4/TyHbPJAb0O33BYCUJj2QfuZg2oqpFsFnoq6va3/ed92Tui5VMs7qDGJabEMl4TvWYWMJ+ks61jj00QD33lQJD8xAxTmucaJkFZXYA71LaSGKZcLk70mspxWmHNjNs1hCqma1hOVyhq650p8SOEtL7BQrkTNF94nugXAkt7BTiQ5DNlfHgYoYkgoXQTMAwQokCSI6s2FLlg1r/bzBcljfdTUgKZuSnyYBukJ1EI2vLtQIcFGFvKKkGJlgvPE/EYHa75l5YyUtvZoHfUZAVIymX2XRvSYKmHhj4dXZ6deDExeweHJih9H3k39rsRj9qSctooWWLzlWXa037FDzocuF"
+  "webSig2": "ekUnZWzGE3hPoNa666FeI+o6O2ADgBN2TReFRZT9eXh2p4IKOb0MxPegLhNXAyUigWWzW/65QXBurzINfzxOJfywoLFfDAelvuIjvF8EjqNAwD10weerU34a67zqKk2r3JnlnhvngdYEAkpua4yor/54ZyfCG8ogkf339iPCzVjCYTUdtqsYb/cTuSlUdv3B5aYfkimnbS86eXehLFSW3dDQG+68o4kbVlG1lP625QsGSKm+0lKCK0HoidwtV7AZbvdYiNrlN3UpNGqBNrXuaBMUkhkydqRqUH671KTw3I7e/RrYpulW3UzMj3Z31KOnne7MIO+ktOjbARL3OuRaG0L3NpRPwRcGCtRsjzrlo9RHwv8Ll0S9t03OkL/IvED16rt6XbcdAm8+BTSquWYCasUb2asCJUBHP7EPqc+uujp9buHqvbY0m1ih3IHCNsF6dPLb25sCx+hq7PoQD9bmb419vfrjCxPTd3REXp5HTsxSRnWwn1QbnLGvVnqLoyL8"
 }

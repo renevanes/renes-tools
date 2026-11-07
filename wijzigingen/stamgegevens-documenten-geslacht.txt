@@ -1,4 +1,0 @@
-Stamgegevens: paspoort en identiteitskaart staan nu bij de persoon (tabblad ID), met hoe lang ze geldig zijn; een nieuw document voeg je daar toe en het krijgt vanzelf een naam zoals "Paspoort Zoë".
-Stamgegevens: in het overzicht zie je bij een persoon als een document verlopen is of binnenkort verloopt; "Geldig tot" is nu een gewoon datumveld (het documentnummer blijft afgeschermd).
-Stamgegevens: geslacht (Man, Vrouw of X, zoals op het identiteitsbewijs) bij Geboorte. Het gaat niet naar de assistent en alleen naar formulieren die erom vragen.
-Reistoestemming: bij Nieuwe reis invullen een waarschuwing als een reisdocument vóór of binnen zes maanden na de laatste reisdag verloopt.
