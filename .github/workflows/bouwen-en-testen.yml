@@ -51,7 +51,10 @@ jobs:
         run: python3 .github/scripts/opruim-scan.py > /dev/null
 
       - name: Toiletten-momentopname maakt van de testplekken wat de regels zeggen
-        run: python3 tools/toiletten/ophalen.py --voorbeeld tools/toiletten/voorbeeld.json --uit "$RUNNER_TEMP/toiletten"
+        run: |
+          python3 -m unittest discover -s tests/toiletten -v
+          python3 tools/toiletten/ophalen.py --voorbeeld tools/toiletten/voorbeeld.json --uit "$RUNNER_TEMP/toiletten"
+          python3 tools/toiletten/controleren.py "$RUNNER_TEMP/toiletten" --min 1
 
       - name: Publicatie mag alleen geteste bron gebruiken
         run: |

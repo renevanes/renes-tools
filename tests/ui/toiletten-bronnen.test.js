@@ -1,6 +1,7 @@
 // Toiletten en douches: bronnen beheren (sjablonen, velden en regels, planning), scannen, fouten, samenvoegen, verwijderen
 const { chromium } = require('playwright');
 const path = require('path');
+const sjablonen = require('../../web/toiletten-bronnen.json').sjablonen;
 const W = +process.env.UI_WACHT || 1;
 (async () => {
   const b = await chromium.launch();
@@ -15,6 +16,7 @@ const W = +process.env.UI_WACHT || 1;
     const toast = () => pg.textContent('#toast');
     const cur = () => pg.evaluate(() => current);
     const wc = () => pg.evaluate(() => Android._wc);
+    ok(JSON.stringify((await wc()).sjablonen) === JSON.stringify(sjablonen), 'testbrug gebruikt alle echte broninstellingen, ook Den Haag toegankelijk');
 
     await pg.click('#tile-wc'); await pg.waitForTimeout(200 * W);
     await pg.click('#wc-ophalen'); await pg.waitForTimeout(350 * W);
@@ -65,7 +67,7 @@ const W = +process.env.UI_WACHT || 1;
     await pg.click('#s-wcbronnen button:has-text("Bron toevoegen")'); await pg.waitForTimeout(150 * W);
     ok(await cur() === 'wcbron' && await txt('#wcn-h1') === 'Bron toevoegen' && await vis('#wcn-sjabloonkaart') && !(await vis('#wcn-menu')), 'nieuwe bron: sjabloon kiezen');
     const opties = await pg.$$eval('#wcn-sjabloon option', o => o.map(x => x.textContent));
-    ok(/OpenStreetMap Nederland \(staat er al\)/.test(opties[0]) && opties.includes('Zelf invullen') && opties.length === 4, 'sjablonen: ' + opties.join(' | '));
+    ok(/OpenStreetMap Nederland \(staat er al\)/.test(opties[0]) && opties.includes('Zelf invullen') && opties.length === sjablonen.length + 1, 'sjablonen: ' + opties.join(' | '));
     ok(await pg.inputValue('#wcn-sjabloon') === 'den-haag-openbaar' && await pg.inputValue('#wcn-naam') === 'Den Haag: openbare toiletten', 'eerste nog niet gebruikte sjabloon vooraf gekozen');
     ok(/gemeente Den Haag/.test(await txt('#wcn-tip')), 'uitleg bij het sjabloon');
     ok(await vis('#wcn-veldenkaart') && await pg.inputValue('#wcn-v-id') === 'globalid' && await pg.inputValue('#wcn-v-naam') === 'omschrijving|adres', 'velden van het sjabloon');

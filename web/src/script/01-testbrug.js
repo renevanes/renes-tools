@@ -1242,16 +1242,7 @@ if (!window.Android) window.Android = (function(){
     bankAiCancel(){ this._bank.calls.push(['aiStop']); },
     // Toiletten en douches: bronnen, scannen, zoeken dichtbij, de eigen laag en OpenStreetMap-notities
     _wc: { ingesteld: false, calls: [], zone: false, scanFout: '', ophaalFout: '', t: 0,
-      sjablonen: [
-        { sjabloon: 'osm-nl', standaard: true, naam: 'OpenStreetMap Nederland', soort: 'tools', url: 'https://github.com/renevanes/renes-tools/releases/download/toiletten-gegevens/toiletten-nl.json.gz',
-          metaUrl: 'https://github.com/renevanes/renes-tools/releases/download/toiletten-gegevens/meta.json', info: 'https://www.openstreetmap.org/copyright', licentie: 'ODbL 1.0, © OpenStreetMap-bijdragers',
-          schema: 'week', weekdag: 3, dag: 1, tijd: '04:00', opnieuw: 6, wifi: true, aan: true, plek: 'toilet', velden: {}, regels: [], tip: 'Elke week een nieuwe momentopname van alle toiletten en douches in Nederland uit OpenStreetMap.' },
-        { sjabloon: 'den-haag-openbaar', naam: 'Den Haag: openbare toiletten', soort: 'geojson', url: 'https://den-haag-opendata.opendatasoft.com/api/explore/v2.1/catalog/datasets/openbaretoiletten/exports/geojson',
-          info: 'https://data.overheid.nl/dataset/openbaretoiletten', licentie: 'CC0 1.0, Gemeente Den Haag', schema: 'maand', weekdag: 2, dag: 1, tijd: '04:00', opnieuw: 6, wifi: true, aan: true, plek: 'toilet',
-          velden: { id: 'globalid', naam: 'omschrijving|adres', uren: 'openingstijden', rolstoel: 'rolstoel_toegankelijk' }, regels: [{ veld: 'alleen_mannen', patroon: '^ja$', zet: 'urinoir' }], tip: 'De openbare toiletten van de gemeente Den Haag.' },
-        { sjabloon: 'amsterdam', naam: 'Amsterdam: openbare toiletten', soort: 'geojson', aan: false, url: 'https://maps.amsterdam.nl/open_geodata/geojson_lnglat.php?KAARTLAAG=OPENBARE_TOILETTEN&THEMA=openbare_toiletten',
-          info: 'https://maps.amsterdam.nl/openbare_toiletten/', licentie: 'Gemeente Amsterdam, Maps Data (gebruiksvoorwaarden; geen open licentie vermeld)', schema: 'maand', weekdag: 2, dag: 1, tijd: '04:00', opnieuw: 6, wifi: true, plek: 'toilet',
-          velden: { naam: 'Omschrijving|Soort', uren: 'Openingstijden' }, regels: [], tip: 'Staat uit: de gemeente noemt bij deze gegevens geen open licentie.' }],
+      sjablonen: /* TOILETTEN_SJABLONEN */ [],
       bronnen: null, toestand: {}, cache: {},
       data: {
         'osm-nl': [['n101', 51.92310, 4.48700, 'toilet', 1 | 8 | 32, 'Toilet Binnenrotte', 'Mo-Su 08:00-20:00'], ['n102', 51.92000, 4.47600, 'toilet', 1 | 8 | 512, '', ''],

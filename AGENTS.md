@@ -424,6 +424,11 @@ in de buurt, ook plekken waar er meestal een is (tankstations, verzorgingsplaats
   Geofabrik-extract (osmium; `--overpass` alleen om te ontwikkelen) en zet ze in de release `toiletten-gegevens`. De app
   controleert het controlegetal. Ander formaat: `FORMAAT` in `Toiletten.java`, `formaat` in `regels.json` en de controle in
   `toiletten-gegevens.yml` samen omhoog.
+  De workflow start ook bij bronwijzigingen op main: een nieuwe installatie hoeft niet op de eerste dinsdag te wachten.
+  `tools/toiletten/controleren.py` controleert vóór vrijgave ook rijen, coördinaten, licentie en gzip-volledigheid.
+  Taak `bronnen` controleert de sjabloonadressen en veldkoppelingen; het rapport staat in de Actions-samenvatting en het
+  artifact `bronnencontrole`. Neem dat bij het wekelijkse onderhoud door. Aanvulproces en herstel van een ontbrekende
+  release: `docs/toiletten-en-douches.md`. De testbrug krijgt de echte sjablonen via `tools/web-samenvoegen.py`.
 - **Scannen** (`ToilettenJob`, job-id's 4701–4703): per bron een planning (dag/week/maand/uit, tijd in de app-zone,
   vanzelf alleen via wifi, opnieuw na een fout). Mislukt het, dan blijft de vorige versie (`toiletten-cache/`, gaat niet
   mee in backups); de laatste 10 scans per bron in `toestand.json` (fouten Nederlands bewaard, de brug vertaalt ze met
