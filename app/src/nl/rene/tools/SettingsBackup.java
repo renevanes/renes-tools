@@ -205,12 +205,30 @@ final class SettingsBackup {
                 pl.fresh++; any = true;
                 if (pl.sample.length() < 8) pl.sample.put("🎧 " + s.optString("title"));
             }
+            // Waar je was en wat je beluisterde: nieuw als hier een aflevering ontbreekt
+            JSONObject prog = pc.optJSONObject("progress");
+            if (prog != null && prog.length() > 0) {
+                pl.total++;
+                for (java.util.Iterator<String> it = prog.keys(); it.hasNext(); ) if (Podcasts.progressOf(c, it.next()) == null) { pl.fresh++; any = true; break; }
+            }
+            // Verder luisteren, Hierna, downloadinstellingen en de laatste aflevering: alleen nieuw als ze hier ontbreken
+            if (pc.optJSONArray("recent") != null && pc.optJSONArray("recent").length() > 0) { pl.total++; if (Podcasts.recent(c).length() == 0) { pl.fresh++; any = true; } }
+            if (pc.optJSONArray("queue") != null && pc.optJSONArray("queue").length() > 0) { pl.total++; if (Podcasts.queue(c).length() == 0) { pl.fresh++; any = true; } }
+            if (pc.has("last")) { pl.total++; if (!Podcasts.prefs(c).contains("last")) { pl.fresh++; any = true; } }
+            if (pc.optJSONObject("dl") != null) { pl.total++; if (!PodcastDownloads.prefs(c).contains("wifiOnly")) { pl.fresh++; any = true; } }
             if (any) pl.podcasts = pc;
         }
         pl.radio = o.optJSONObject("radio");
+        if (pl.radio != null && pl.radio.optJSONObject("last") != null) { pl.total++; if (!Radio.prefs(c).contains("last")) pl.fresh++; }
         // Interface-instellingen: altijd aanbieden; de interface neemt alleen over wat daar ontbreekt
         JSONObject ws = prefs.optJSONObject("webstore");
-        if (ws != null && ws.optJSONObject("all") != null) { pl.webstore = ws.getJSONObject("all").optString("v", ""); pl.total++; pl.fresh++; }
+        if (ws != null && ws.optJSONObject("all") != null) {
+            pl.webstore = ws.getJSONObject("all").optString("v", "");
+            pl.total++;
+            // Alleen als nieuw tellen als de interface hier nog niets bewaarde (de interface neemt toch alleen ontbrekende over)
+            String curWs = c.getSharedPreferences("webstore", Context.MODE_PRIVATE).getString("all", "");
+            if (curWs == null || curWs.length() < 3) pl.fresh++;
+        }
         long now = System.currentTimeMillis();
         // Losse instellingen: alleen als ze hier nog niet bestaan
         for (String[] k : KEEP) {

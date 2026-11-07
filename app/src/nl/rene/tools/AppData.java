@@ -60,7 +60,7 @@ final class AppData {
 
     /** Instellingen die meegaan (en teruggezet mogen worden). Elke naam in de code staat hier of in PREFS_SKIP. */
     static final List<String> PREFS_KEEP = Collections.unmodifiableList(Arrays.asList(
-            "allbackup", "alarm", "apparaten", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "gebruik", "launcher",
+            "allbackup", "alarm", "apparaten", "backupmap", "auto", "call_recordings", "calls", "car", "care", "checkin", "contacts", "facturen", "gebruik", "launcher",
             "localai", "lock", "mockloc", "models", "music", "notepins", "notification_history", "notifcenter", "pdf",
             "pdfview", "pinned_shortcuts", "player", "podcast", "podcast_dl", "radio", "redial", "redialplan", "regio", "reminders",
             "sleeptalk", "sms", "solo", "spotify", "tracks", "transcribe", "txdur", "txmeta", "ui", "vpn", "wabackup",
@@ -91,6 +91,7 @@ final class AppData {
     static {
         Map<String, Set<String>> k = new HashMap<>();
         k.put("allbackup", set("next"));
+        k.put("backupmap", set("last", "doneVersion")); // uitkomst van de controle van deze backup-map
         k.put("transcribe", set("status", "dlModel"));
         k.put("lock", set("fails", "waitUntil", "waitElapsed", "waitBoot", "waitServed", "lastTry", "keyMismatch", "bioRenew"));
         // De backup-map is net opnieuw gekozen; de leesbare WhatsApp-database gaat niet mee (wordt opnieuw gemaakt)

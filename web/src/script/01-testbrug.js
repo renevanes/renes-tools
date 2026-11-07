@@ -1023,12 +1023,20 @@ if (!window.Android) window.Android = (function(){
     herstelSkip(){ if(this._hs.state==='nieuw') this._hs.state='overgeslagen'; this._hs.skipped=true; },
     herstelPickFolder(){ Object.assign(this._wa.info,{dest:true,destName:'USB-stick Rene'}); setTimeout(()=>onHerstelFolder(''),80); },
     herstelScan(){ const h=this._hs; setTimeout(()=>onHerstelScan(h.scanError?{error:h.scanError}:{dest:true,destName:'USB-stick Rene',archives:h.archives,recommended:(h.archives.find(a=>!a.deels)||h.archives[0]||{}).name,plain:h.plain}),80); },
+    /* Backup-map controleren en opruimen, zoals BackupMap */
+    _bm:{running:false,auto:true,last:null,runs:[]},
+    backupMapState(){ const m=this._bm; return JSON.stringify({running:m.running,current:m.running?'WhatsApp backup/Media':'',auto:m.auto,dest:!!this._wa.info.dest,version:1,done:!!(m.last&&m.last.repair),last:m.last}); },
+    backupMapAuto(on){ this._bm.auto=on; }, backupMapStop(){ this._bm.stopped=true; },
+    backupMapRun(rep){ const m=this._bm; m.runs.push(rep); m.running=true; setTimeout(()=>{ m.running=false; if(m.error){ onBackupMap({error:m.error}); return; }
+      m.last=rep?{t:Date.now(),repair:true,dirs:412,files:9310,dupDirs:3,dupFiles:12,temps:2,merged:3,removed:10,renamed:2,cleaned:2,errors:0,problems:17,items:[{path:'Notities',what:'Dubbele map',done:true}],unknown:['Oude foto\'s']}
+        :{t:Date.now(),repair:false,dirs:412,files:9310,dupDirs:3,dupFiles:12,temps:2,merged:0,removed:0,renamed:0,cleaned:0,errors:0,problems:17,items:[{path:'Notities',what:'Dubbele map',done:false},{path:'Instellingen/instellingen.json',what:'Dubbel bestand',done:false}],unknown:['Oude foto\'s']};
+      onBackupMap(m.last); },150); },
     /* Alles uit de backup-map (gewone onderdelen), zoals HerstelLos */
     _los:{parts:[{kind:'settings',total:41,fresh:23,t:Date.now()-864e5,file:'instellingen.json'},{kind:'notes',total:12,fresh:12,file:'notities.json'},{kind:'contacts',total:0,fresh:0,needPerm:true,file:'contacten-2026-11-06.vcf'},{kind:'route',total:14,fresh:14,file:'14 bestanden'},{kind:'music',total:30,fresh:0,file:'herkende-nummers.json'}],
       info:[{kind:'sms',msg:"Sms'jes terugzetten kan alleen de standaard-sms-app; de backup blijft leesbaar in je map"}]},
     herstelLosScan(){ const l=this._los; l.scans=(l.scans||0)+1; setTimeout(()=>onHerstelLosScan(l.scanError?{error:l.scanError}:{dest:true,destName:'USB-stick Rene',parts:l.parts,info:l.info,fresh:l.parts.reduce((n,p)=>n+(p.fresh||0),0),contactsPerm:!l.parts.some(p=>p.needPerm)}),80); },
     herstelLosApply(){ const l=this._los; l.applied=(l.applied||0)+1; setTimeout(()=>{ if(l.applyError) return onHerstelLosDone({error:l.applyError}); l.parts.forEach((p,i)=>onHerstelLosStep(p.kind+','+i+','+l.parts.length)); onHerstelLosStep(','+l.parts.length+','+l.parts.length);
-      const parts=l.parts.map(p=>p.needPerm?{kind:p.kind,ok:false,count:0,msg:'Geef eerst toestemming voor contacten; daarna nog een keer'}:{kind:p.kind,ok:true,count:p.fresh}); if(this._hs.state==='nieuw') this._hs.state='klaar';
+      const parts=l.parts.map(p=>p.needPerm?{kind:p.kind,ok:false,count:0,msg:'Geef eerst toestemming voor contacten; daarna nog een keer'}:{kind:p.kind,ok:true,count:p.fresh}); if(this._hs.state==='nieuw'&&parts.every(p=>p.ok)) this._hs.state='klaar';
       onHerstelLosDone({parts,ok:parts.every(p=>p.ok)}); },120); },
     herstelOpen(n,pw){ const h=this._hs; h.opened=n; h.tries=(h.tries||[]).concat([pw]); setTimeout(()=>{
       if(!pw) return onHerstelOpened({needPw:true}); if(pw!==h.pwd) return onHerstelOpened({error:'Verkeerd wachtwoord',wrongPw:true}); if(h.old) return onHerstelOpened({old:true,name:n});

@@ -1,0 +1,343 @@
+package nl.rene.tools;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.net.Uri;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Toolgegevens: alles van de tools dat niet al een eigen onderdeel van Alles back-uppen heeft, als één leesbaar
+ * bestand in de backup-map (Toolgegevens/toolgegevens.json). Mijn auto (parkeren, ritten), Facturen (leveranciers,
+ * dossier, aanleveren), Apparaten, Toiletten (eigen laag), versies van contacten, Spotify, Gebruik, gespreksopnames en
+ * de instellingen van alle tools (regio en taal, lokale AI, Slaappraat, uitschrijven, losse apps …).
+ *
+ * Volgt de lijsten van {@link AppData}: een nieuwe tool die daar is ingedeeld, gaat vanzelf mee. Nooit mee: geheimen
+ * (wachtwoorden, sleutels, tokens, de app-code, VPN), wat alleen versleuteld mag (kluis, foto's van Gebruik), de privé-
+ * onderdelen met een eigen vinkje (assistent, Slaappraat-nachten, Check-in), Bankzaken en stamgegevens.
+ * Terugzetten voegt alleen toe wat er nog niet is: bestaande instellingen en bestanden worden nooit overschreven.
+ */
+final class ToolData {
+
+    private ToolData() { }
+
+    static final String DIR = "Toolgegevens", FILE = "toolgegevens.json", FORMAT = "renes-tools-tooldata";
+    static final int VERSION = 1;
+
+    /** Instellingenbestanden die nooit leesbaar mee mogen (geheimen, of zonder geheimen onbruikbaar). */
+    static final Set<String> PREFS_NEVER = new HashSet<>(Arrays.asList(
+            "lock",       // de app-code (hash en zout) en het slot: opnieuw instellen
+            "vpn",        // tunnels zijn zonder hun (versleutelde) sleutels onbruikbaar
+            "webstore", "allbackup", "radio", "alarm", "auto", "redialplan", "reminders", "notifcenter", "mockloc",
+            "podcast", "player", "podcast_dl", // hebben al een eigen plek in Instellingen/instellingen.json
+            "pinned_shortcuts" // vastgezette snelkoppelingen moet je na een herinstallatie opnieuw plaatsen
+    ));
+
+    /** Losse sleutels die nooit leesbaar mee mogen. */
+    static boolean secretKey(String file, String key) {
+        String k = key.toLowerCase(java.util.Locale.ROOT);
+        if (k.contains("token") || k.contains("secret") || k.contains("passw") || k.contains("wachtw") || k.contains("hash")
+                || k.contains("salt") || k.contains("cred") || k.contains("refresh") || k.contains("apikey") || k.contains("api_key")) return true;
+        if ("music".equals(file) && "token".equals(key)) return true;        // AudD-sleutel
+        if ("spotify".equals(file) && ("access_token".equals(key) || "refresh".equals(key))) return true;
+        return false;
+    }
+
+    /** Mappen in getFilesDir() die al een eigen onderdeel hebben, of alleen met toestemming mee gaan. */
+    static final Set<String> FILES_OWN = new HashSet<>(Arrays.asList(
+            "notes.json", "notes.json.bak", // Notities
+            "music.json",                    // Herkende muziek
+            "transcripts",                   // Uitgeschreven gesprekken
+            "tracks",                        // Routes (GPX)
+            "podcasts",                      // abonnementen en voortgang in Instellingen; de rest is opnieuw op te halen
+            "ai", "sleep", "checkin"         // privé: eigen onderdeel met eigen toestemming
+    ));
+
+    static final long MAX_FILE = 4L * 1024 * 1024, MAX_TOTAL = 18L * 1024 * 1024;
+
+    /** Gaat dit instellingenbestand mee? */
+    static boolean keepPrefsFile(String f) { return AppData.keepPrefsFile(f) && !PREFS_NEVER.contains(f); }
+
+    /** Gaat deze instelling mee? */
+    static boolean keepPref(String f, String k) { return keepPrefsFile(f) && AppData.keepPref(f, k) && !secretKey(f, k); }
+
+    /** Gaat dit bestand (pad binnen getFilesDir()) mee? */
+    static boolean keepFile(String rel) {
+        String r = AppData.safeRel(rel);
+        if (r == null || AppData.fileRule(r) != null) return false;
+        int slash = r.indexOf('/');
+        String top = slash < 0 ? r : r.substring(0, slash);
+        if (FILES_OWN.contains(top)) return false;
+        return !r.toLowerCase(java.util.Locale.ROOT).matches(".*(geheim|secret|token|wachtwoord|password).*");
+    }
+
+    static boolean text(String name) {
+        String n = name.toLowerCase(java.util.Locale.ROOT);
+        for (String e : new String[]{".json", ".jsonl", ".txt", ".csv", ".vcf", ".xml", ".gpx", ".trk", ".md", ".html"}) if (n.endsWith(e)) return true;
+        return false;
+    }
+
+    // ---------- maken ----------
+
+    /** Schrijft Toolgegevens/toolgegevens.json; geeft het aantal instellingen + bestanden, -1 als er niets is. */
+    static int export(Context c) throws Exception {
+        Uri tree = WaBackup.destUri(c);
+        if (tree == null) throw new Exception("Kies eerst een backup-map");
+        JSONObject prefs = new JSONObject();
+        int n = 0;
+        for (String f : AppData.PREFS_KEEP) {
+            if (!keepPrefsFile(f)) continue;
+            SharedPreferences p = c.getSharedPreferences(f, Context.MODE_PRIVATE);
+            JSONObject o = new JSONObject();
+            for (Map.Entry<String, ?> e : p.getAll().entrySet()) {
+                if (!keepPref(f, e.getKey())) continue;
+                JSONObject v = AppBackup.typed(e.getValue());
+                if (v != null) { o.put(e.getKey(), v); n++; }
+            }
+            if (o.length() > 0) prefs.put(f, o);
+        }
+        List<String> files = new ArrayList<>();
+        File root = c.getFilesDir().getCanonicalFile();
+        File[] tops = root.listFiles();
+        if (tops != null) { Arrays.sort(tops); for (File t : tops) collect(root, t, t.getName(), 0, files); }
+        WaBackup.Dest dest = new WaBackup.Dest(c.getContentResolver(), tree);
+        WaBackup.DestDir dir = dest.dir(DIR, true);
+        JSONArray skipped = new JSONArray();
+        long total = 0;
+        try (Sms.Out w = Sms.open(dest, dir, FILE, "application/json")) {
+            w.write("{\"format\":" + JSONObject.quote(FORMAT) + ",\"version\":" + VERSION + ",\"exportedAt\":" + System.currentTimeMillis()
+                    + ",\"app\":" + JSONObject.quote(Version.NAME) + ",\"prefs\":" + prefs.toString() + ",\"files\":[");
+            boolean first = true;
+            for (String rel : files) {
+                File f = new File(root, rel);
+                long len = f.length();
+                if (len > MAX_FILE || total + len > MAX_TOTAL) { skipped.put(rel); continue; }
+                byte[] b;
+                try { b = read(f, MAX_FILE); } catch (Exception e) { skipped.put(rel); continue; }
+                total += b.length;
+                JSONObject o = new JSONObject().put("path", rel).put("t", f.lastModified());
+                if (text(rel) && utf8(b)) o.put("text", new String(b, StandardCharsets.UTF_8));
+                else o.put("b64", AppData.b64(b));
+                w.write((first ? "" : ",") + o.toString());
+                first = false;
+                n++;
+            }
+            w.write("],\"skipped\":" + skipped.toString() + "}");
+            w.done();
+        }
+        if (skipped.length() > 0) App.log(c, "BACKUP", "toolgegevens: " + skipped.length() + " te grote bestanden niet mee");
+        return n == 0 ? -1 : n;
+    }
+
+    static void collect(File root, File f, String rel, int depth, List<String> out) throws Exception {
+        if (depth > AppData.MAX_DEPTH || out.size() > 20000) return;
+        if (!f.getCanonicalFile().getPath().startsWith(root.getPath() + File.separator)) return; // geen koppelingen naar buiten
+        if (f.isDirectory()) {
+            if (depth == 0 && !keepFile(rel)) return;
+            File[] kids = f.listFiles();
+            if (kids == null) return;
+            Arrays.sort(kids);
+            for (File k : kids) collect(root, k, rel + "/" + k.getName(), depth + 1, out);
+        } else if (f.isFile() && keepFile(rel)) out.add(rel);
+    }
+
+    static byte[] read(File f, long max) throws Exception {
+        try (InputStream in = new FileInputStream(f)) {
+            java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[1 << 16];
+            int r;
+            while ((r = in.read(buf)) > 0) { b.write(buf, 0, r); if (b.size() > max) throw new Exception("te groot"); }
+            return b.toByteArray();
+        }
+    }
+
+    static boolean utf8(byte[] b) {
+        try {
+            java.nio.charset.CharsetDecoder d = StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT).onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT);
+            d.decode(java.nio.ByteBuffer.wrap(b));
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    // ---------- terugzetten ----------
+
+    /** Wat er toegevoegd zou worden: alleen ontbrekende instellingen en bestanden. */
+    static final class Plan {
+        int total, fresh;
+        final JSONObject prefs = new JSONObject(); // bestand → {sleutel: {t, v}}
+        final List<JSONObject> files = new ArrayList<>();
+        final JSONArray sample = new JSONArray();
+        final Set<String> tools = new java.util.TreeSet<>();
+    }
+
+    static JSONObject parse(String text) throws Exception {
+        JSONObject o;
+        try { o = new JSONObject(text.trim()); } catch (Exception e) { throw new Exception("Dit is geen backup van toolgegevens (toolgegevens.json)"); }
+        if (!FORMAT.equals(o.optString("format"))) throw new Exception("Dit is geen backup van toolgegevens (toolgegevens.json)");
+        if (o.optInt("version", 0) > VERSION) throw new Exception("Deze backup komt uit een nieuwere versie van Tools; werk de app eerst bij");
+        return o;
+    }
+
+    /** Herkenbare naam voor het overzicht (welke tools krijgen iets terug). */
+    static String toolName(String key) {
+        switch (key) {
+            case "car": return "Mijn auto";
+            case "facturen": return "Facturen";
+            case "apparaten": return "Apparaten";
+            case "toiletten": return "Toiletten en douches";
+            case "contacts": return "Contacten (versies)";
+            case "spotify": return "Spotify";
+            case "gebruik": return "Gebruik";
+            case "call-recordings": case "call_recordings": return "Gespreksopnames";
+            case "regio": return "Regio en taal";
+            case "localai": case "models": return "Lokale AI";
+            case "sleeptalk": return "Slaappraat";
+            case "transcribe": case "txdur": case "txmeta": return "Gesprekken uitschrijven";
+            case "solo": return "Losse apps";
+            case "launcher": case "workspace": case "pinned_shortcuts": case "shortcut-icons": return "Startscherm";
+            default: return "Overige instellingen";
+        }
+    }
+
+    /**
+     * Plan opstellen. has(file, key) = staat deze instelling er al; exists(rel) = staat dit bestand er al.
+     * Zuiver (zonder Android), zodat het te testen is.
+     */
+    static Plan plan(JSONObject o, PrefsHas has, FileHas exists) throws Exception {
+        Plan pl = new Plan();
+        JSONObject prefs = o.optJSONObject("prefs");
+        if (prefs != null) for (Iterator<String> fi = prefs.keys(); fi.hasNext(); ) {
+            String f = fi.next();
+            JSONObject in = prefs.optJSONObject(f);
+            if (in == null || !keepPrefsFile(f)) continue;
+            JSONObject add = new JSONObject();
+            for (Iterator<String> ki = in.keys(); ki.hasNext(); ) {
+                String k = ki.next();
+                JSONObject v = in.optJSONObject(k);
+                if (v == null || !keepPref(f, k) || !validTyped(v)) continue;
+                pl.total++;
+                if (has.has(f, k)) continue;
+                add.put(k, v); pl.fresh++;
+            }
+            if (add.length() > 0) { pl.prefs.put(f, add); pl.tools.add(toolName(f)); }
+        }
+        JSONArray files = o.optJSONArray("files");
+        Set<String> seen = new HashSet<>();
+        if (files != null) for (int i = 0; i < files.length(); i++) {
+            JSONObject f = files.optJSONObject(i);
+            if (f == null) continue;
+            String rel = AppData.safeRel(f.optString("path"));
+            if (rel == null || !keepFile(rel) || !seen.add(rel)) continue;
+            if (!f.has("text") && !f.has("b64")) continue;
+            pl.total++;
+            if (exists.exists(rel)) continue;
+            pl.files.add(f); pl.fresh++;
+            int slash = rel.indexOf('/');
+            pl.tools.add(toolName(slash < 0 ? rel : rel.substring(0, slash)));
+        }
+        for (String t : pl.tools) if (pl.sample.length() < 8) pl.sample.put(t);
+        return pl;
+    }
+
+    interface PrefsHas { boolean has(String file, String key); }
+    interface FileHas { boolean exists(String rel); }
+
+    static boolean validTyped(JSONObject v) {
+        String t = v.optString("t");
+        Object x = v.opt("v");
+        switch (t) {
+            case "b": return x instanceof Boolean;
+            case "i": case "l": case "f": return x instanceof Number;
+            case "s": return x instanceof String;
+            case "S": return x instanceof JSONArray;
+            default: return false;
+        }
+    }
+
+    static Plan plan(Context c, JSONObject o) throws Exception {
+        File root = c.getFilesDir();
+        return plan(o, (f, k) -> c.getSharedPreferences(f, Context.MODE_PRIVATE).contains(k), rel -> new File(root, rel).exists());
+    }
+
+    static JSONObject preview(Context c, String text) throws Exception {
+        Plan p = plan(c, parse(text));
+        return new JSONObject().put("kind", "tooldata").put("total", p.total).put("fresh", p.fresh).put("dup", p.total - p.fresh).put("sample", p.sample);
+    }
+
+    /** Voegt toe wat ontbreekt. Geeft het aantal toegevoegde instellingen en bestanden. */
+    static int apply(Context c, String text) throws Exception {
+        Plan pl = plan(c, parse(text));
+        int n = 0;
+        for (Iterator<String> fi = pl.prefs.keys(); fi.hasNext(); ) {
+            String f = fi.next();
+            JSONObject add = pl.prefs.getJSONObject(f);
+            SharedPreferences.Editor e = c.getSharedPreferences(f, Context.MODE_PRIVATE).edit();
+            for (Iterator<String> ki = add.keys(); ki.hasNext(); ) {
+                String k = ki.next();
+                JSONObject v = add.getJSONObject(k);
+                switch (v.optString("t")) {
+                    case "b": e.putBoolean(k, v.optBoolean("v")); break;
+                    case "i": e.putInt(k, v.optInt("v")); break;
+                    case "l": e.putLong(k, v.optLong("v")); break;
+                    case "f": e.putFloat(k, (float) v.optDouble("v")); break;
+                    case "s": e.putString(k, v.optString("v")); break;
+                    case "S": {
+                        Set<String> s = new HashSet<>();
+                        JSONArray a = v.optJSONArray("v");
+                        for (int i = 0; a != null && i < a.length(); i++) s.add(a.optString(i));
+                        e.putStringSet(k, s); break;
+                    }
+                    default: continue;
+                }
+                n++;
+            }
+            e.commit();
+        }
+        File root = c.getFilesDir().getCanonicalFile();
+        for (JSONObject f : pl.files) {
+            String rel = AppData.safeRel(f.optString("path"));
+            if (rel == null) continue;
+            File out = new File(root, rel);
+            if (!out.getCanonicalFile().getPath().startsWith(root.getPath() + File.separator) || out.exists()) continue;
+            byte[] b;
+            try { b = f.has("text") ? f.optString("text").getBytes(StandardCharsets.UTF_8) : AppData.unb64(f.optString("b64")); }
+            catch (Exception e) { continue; }
+            File parent = out.getParentFile();
+            if (parent != null && !parent.isDirectory() && !parent.mkdirs()) continue;
+            File tmp = new File(out.getPath() + ".tmp");
+            try (OutputStream o = new FileOutputStream(tmp)) { o.write(b); }
+            if (!tmp.renameTo(out)) { tmp.delete(); continue; }
+            long t = f.optLong("t");
+            if (t > 0) out.setLastModified(t);
+            n++;
+        }
+        // Wat de tools bij opstarten plannen, opnieuw inplannen
+        try { Herstel.rearmFile(c).createNewFile(); Herstel.afterRestart(c); } catch (Throwable ignored) { }
+        return n;
+    }
+
+    /** Welke mappen en instellingen er mee gaan (voor de uitleg en de test). */
+    static List<String> prefsFiles() {
+        List<String> l = new ArrayList<>();
+        for (String f : AppData.PREFS_KEEP) if (keepPrefsFile(f)) l.add(f);
+        Collections.sort(l);
+        return l;
+    }
+}

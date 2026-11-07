@@ -33,6 +33,8 @@ public class AllBackupJob extends JobService {
         new Thread(() -> {
             JSONObject r = AllBackup.run(ctx, true);
             if (r.optBoolean("stopped")) return; // Android stopte de taak; die herhaalt hem later zelf
+            // Daarna de backup-map netjes houden (dubbele mappen en bestanden, achtergebleven tijdelijke bestanden)
+            if (!AllBackup.stop) BackupMap.nightly(ctx);
             AllBackup.prefs(ctx).edit().putLong("lastAutoDay", System.currentTimeMillis()).apply();
             notifyIfFailed(ctx, r);
             jobFinished(params, false);

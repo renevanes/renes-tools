@@ -27,7 +27,7 @@ final class Restore {
     static String pendingKind = null;
     static List<ContactsDiff.Rec> pendingContacts;
     static JSONArray pendingNotes;
-    static String pendingLauncher, pendingSettings, pendingRoute;
+    static String pendingLauncher, pendingSettings, pendingRoute, pendingTool;
 
     static String read(Context c, Uri u) throws Exception {
         try (InputStream in = c.getContentResolver().openInputStream(u)) {
@@ -105,6 +105,7 @@ final class Restore {
             JSONObject r = SettingsBackup.preview(c, text);
             pendingSettings = text; pendingKind = kind; return r;
         }
+        if ("tooldata".equals(kind)) { JSONObject r = ToolData.preview(c, text); pendingTool = text; pendingKind = kind; return r; }
         if ("transcripts".equals(kind)) { JSONObject r = SettingsBackup.previewTranscripts(c, text); pendingKind = kind; return r; }
         if ("music".equals(kind)) { JSONObject r = SettingsBackup.previewMusic(c, text); pendingKind = kind; return r; }
         if ("route".equals(kind)) { JSONObject r = Tracks.previewGpx(text); pendingRoute = text; pendingKind = kind; return r; }
@@ -181,6 +182,7 @@ final class Restore {
             return n;
         }
         if ("settings".equals(kind) && pendingSettings != null) { int n = SettingsBackup.apply(c, pendingSettings); pendingSettings = null; return n; }
+        if ("tooldata".equals(kind) && pendingTool != null) { String t = pendingTool; pendingTool = null; return ToolData.apply(c, t); }
         if ("transcripts".equals(kind)) return SettingsBackup.applyTranscripts(c);
         if ("music".equals(kind)) return SettingsBackup.applyMusic(c);
         if ("route".equals(kind) && pendingRoute != null) { int n = Tracks.importGpx(c, pendingRoute); pendingRoute = null; return n; }

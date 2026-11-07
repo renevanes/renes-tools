@@ -67,6 +67,8 @@ public class App extends Application {
         new Thread(() -> AlarmReceiver.ensureArmed(c), "rearm").start();
         // Ontsleuteld Slaappraat-geluid van een afgebroken terugzetten niet in de cache laten staan
         new Thread(() -> { try { AiSleepBackup.clearStage(c); } catch (Throwable ignored) { } }, "restore-stage").start();
+        // De backup-map eenmalig opruimen na een update met een nieuwe indeling (dubbele mappen en bestanden)
+        if (unlocked(c)) { try { BackupMap.startOnce(c); } catch (Throwable ignored) { } }
     }
 
     /** Draait dit in het proces van HerstartActivity (":herstart")? */

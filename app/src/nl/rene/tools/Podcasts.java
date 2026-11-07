@@ -736,7 +736,7 @@ final class Podcasts {
         try {
             if (e == null || !validKey(e.optString("key")) || !httpUrl(e.optString("url"))) return null;
             JSONObject o = new JSONObject();
-            for (String k : new String[]{"key", "guid", "title", "url", "type", "image", "desc"}) if (e.has(k)) o.put(k, FeedText.clip(e.optString(k), "desc".equals(k) ? 20000 : 2000));
+            for (String k : new String[]{"key", "guid", "title", "url", "type", "image", "desc"}) if (e.has(k)) o.put(k, FeedText.clip(e.optString(k), "desc".equals(k) ? 1500 : 2000));
             for (String k : new String[]{"date", "dur", "n", "s"}) if (e.opt(k) instanceof Number) o.put(k, ((Number) e.opt(k)).longValue());
             if (!o.optString("image").isEmpty() && !httpUrl(o.optString("image"))) o.put("image", "");
             return o;
@@ -797,7 +797,9 @@ final class Podcasts {
         if (!hid.isEmpty()) {
             List<String> l = new ArrayList<>();
             for (String k : prefs(c).getString("latestHidden", "").split(",")) if (validKey(k) && !l.contains(k)) l.add(k);
-            for (String k : hid.split(",")) if (validKey(k) && !l.contains(k)) l.add(0, k); // de oude achteraan het "oudst"-eind
+            List<String> old = new ArrayList<>();
+            for (String k : hid.split(",")) if (validKey(k) && !l.contains(k) && !old.contains(k)) old.add(k);
+            l.addAll(0, old); // de teruggezette vooraan (= het oudste eind), in hun eigen volgorde
             while (l.size() > 400) l.remove(0);
             prefs(c).edit().putString("latestHidden", android.text.TextUtils.join(",", l)).apply();
         }
@@ -811,7 +813,7 @@ final class Podcasts {
         if (!last.isEmpty() && !prefs(c).contains("last")) {
             try {
                 JSONObject l = new JSONObject(last), ep = cleanEp(l.optJSONObject("ep"));
-                if (ep != null) { JSONObject x = new JSONObject(l.toString()).put("ep", ep).put("pod", cleanPod(l.optJSONObject("pod"))); pe.putString("last", x.toString()); pch = true; }
+                if (ep != null) { pe.putString("last", new JSONObject().put("ep", ep).put("pod", cleanPod(l.optJSONObject("pod"))).toString()); pch = true; }
             } catch (Exception ignored) { }
         }
         if (pch) pe.apply();

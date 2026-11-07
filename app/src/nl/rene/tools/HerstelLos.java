@@ -27,6 +27,7 @@ final class HerstelLos {
     /** Onderdeel → map en bestand in de backup-map. Volgorde = volgorde van terugzetten (instellingen eerst). */
     static final String[][] PARTS = {
             {"settings", SettingsBackup.DIR, SettingsBackup.FILE},
+            {"tooldata", ToolData.DIR, ToolData.FILE},
             {"notes", Notes.DIR, "notities.json"},
             {"contacts", Contacts.DIR, ""},             // nieuwste contacten-JJJJ-MM-DD.vcf
             {"launcher", LauncherBackup.DIR, LauncherBackup.FILE},
@@ -82,6 +83,8 @@ final class HerstelLos {
     static List<Found> find(Context c, WaBackup.Dest dest) throws Exception {
         List<Found> out = new ArrayList<>();
         for (String[] p : PARTS) {
+            // Het startscherm terugzetten vervangt de indeling: in één keer alleen als hier nog geen eigen indeling staat
+            if ("launcher".equals(p[0]) && WsStore.prefs(c).contains("ws")) continue;
             WaBackup.DestDir d = dest.dir(p[1], false);
             if (d == null) continue;
             Found f = new Found(p[0]);
@@ -107,21 +110,6 @@ final class HerstelLos {
         return new WaBackup.Dest(c.getContentResolver(), tree);
     }
 
-    /** Nieuw in een route-backup? (Zelfde begintijdstip als een bewaarde route = al aanwezig.) */
-    static boolean routeIsNew(List<Long> have, String xml) {
-        List<Tracks.Pt> pts = Tracks.parseGpx(xml);
-        if (pts.size() < 2) return false;
-        long start = pts.get(0).t;
-        for (long t : have) if (Math.abs(t - start) < 60_000L) return false;
-        return true;
-    }
-
-    static List<Long> routeStarts(Context c) {
-        List<Long> l = new ArrayList<>();
-        for (File f : Tracks.saved(c)) l.add(Tracks.tsOf(f));
-        return l;
-    }
-
     /** Netjes vergeten wat een overzicht klaarzette (er verandert niets). */
     static void forget(Context c) {
         Restore.pendingKind = null;
@@ -134,6 +122,8 @@ final class HerstelLos {
      * Er verandert nog niets.
      */
     static JSONObject scan(Context c) throws Exception {
+        if (AllBackup.busy) throw new Exception(Taal.T("Er loopt een backup; probeer het zo opnieuw"));
+        if (Restore.pendingKind != null) throw new Exception(Taal.T("Rond eerst het terugzetten van het losse onderdeel af"));
         if (!BUSY.compareAndSet(false, true)) throw new Exception(Taal.T("Er wordt al teruggezet; even geduld"));
         try {
             WaBackup.Dest dest = dest(c);
@@ -142,23 +132,30 @@ final class HerstelLos {
             int fresh = 0;
             for (Found f : find(c, dest)) {
                 JSONObject r = new JSONObject().put("kind", f.kind).put("t", f.mod)
-                        .put("file", f.names.size() == 1 ? f.names.get(0) : f.names.size() + " bestanden");
+                        .put("file", f.names.get(0)).put("files", f.names.size());
                 try {
                     if ("contacts".equals(f.kind) && !contactsOk(c)) {
                         r.put("total", 0).put("fresh", 0).put("needPerm", true); // zonder toestemming niet te zien wat er al is
                     } else if ("route".equals(f.kind)) {
-                        List<Long> have = routeStarts(c);
+                        // Op naam vergelijken (snel, zonder elke route te lezen); terugzetten kijkt daarna echt naar het begintijdstip
+                        java.util.Set<String> have = new java.util.HashSet<>();
+                        for (File t : Tracks.saved(c)) have.add(Tracks.gpxName(t));
                         int n = 0;
-                        for (Uri u : f.uris) { try { if (routeIsNew(have, Restore.read(c, u))) n++; } catch (Exception ignored) { } }
+                        for (String nm : f.names) if (!have.contains(nm)) n++;
                         r.put("total", f.uris.size()).put("fresh", n);
                     } else {
-                        JSONObject p = Restore.previewText(c, f.kind, Restore.read(c, f.uris.get(0)));
-                        r.put("total", p.optInt("total")).put("fresh", p.optInt("fresh"));
-                        if (p.has("sample")) r.put("sample", p.optJSONArray("sample"));
+                        String text = Restore.read(c, f.uris.get(0));
+                        synchronized (Restore.class) {
+                            try {
+                                JSONObject p = Restore.previewText(c, f.kind, text);
+                                r.put("total", p.optInt("total")).put("fresh", p.optInt("fresh"));
+                                if (p.has("sample")) r.put("sample", p.optJSONArray("sample"));
+                            } finally { forget(c); }
+                        }
                     }
                 } catch (Throwable e) {
                     r.put("error", e instanceof OutOfMemoryError ? Taal.T("Bestand is te groot voor deze telefoon") : AppData.safeMsg(e, "Niet te lezen"));
-                } finally { forget(c); }
+                }
                 fresh += r.optInt("fresh");
                 parts.put(r);
             }
@@ -181,6 +178,7 @@ final class HerstelLos {
     static JSONObject apply(Context c, Progress pr) throws Exception {
         String busy = Herstel.busyReason();
         if (busy != null) throw new Exception(busy);
+        if (Restore.pendingKind != null) throw new Exception(Taal.T("Rond eerst het terugzetten van het losse onderdeel af"));
         if (!BUSY.compareAndSet(false, true)) throw new Exception(Taal.T("Er wordt al teruggezet; even geduld"));
         if (!AllBackup.tryBegin()) { BUSY.set(false); throw new Exception("Er loopt een backup; probeer het zo opnieuw"); }
         try {
@@ -197,17 +195,21 @@ final class HerstelLos {
                         r.put("ok", false).put("count", 0).put("msg", Taal.T("Geef eerst toestemming voor contacten; daarna nog een keer"));
                         allOk = false; parts.put(r); continue;
                     }
-                    int n = 0;
+                    int n = 0, bad = 0;
                     if ("route".equals(f.kind)) {
                         for (Uri u : f.uris) {
-                            try { n += Tracks.importGpx(c, Restore.read(c, u)); } catch (Exception ignored) { } // een kapotte route slaat de rest niet over
+                            try { n += Tracks.importGpx(c, Restore.read(c, u)); } catch (Exception e) { bad++; } // een kapotte route slaat de rest niet over
                         }
                     } else {
-                        JSONObject p = Restore.previewText(c, f.kind, Restore.read(c, f.uris.get(0)));
-                        if (p.optInt("fresh") > 0) n = Restore.apply(c);
-                        else forget(c);
+                        String text = Restore.read(c, f.uris.get(0));
+                        synchronized (Restore.class) { // niemand anders tussen overzicht en toevoegen
+                            JSONObject p = Restore.previewText(c, f.kind, text);
+                            if (p.optInt("fresh") > 0) n = Restore.apply(c);
+                            else forget(c);
+                        }
                     }
-                    r.put("ok", true).put("count", n);
+                    r.put("ok", bad == 0).put("count", n);
+                    if (bad > 0) { allOk = false; r.put("msg", Taal.fill(Taal.T("{n} routes niet te lezen"), "n", bad)); }
                 } catch (Throwable e) {
                     forget(c);
                     allOk = false;
@@ -217,9 +219,10 @@ final class HerstelLos {
                 parts.put(r);
             }
             if (pr != null) pr.step("", all.size(), all.size());
-            // Een nieuwe installatie: nu is er iets teruggezet, dus de nachtelijke backups mogen weer
-            if (Herstel.NEW.equals(Herstel.state(c))) Herstel.setState(c, Herstel.DONE);
             try { Herstel.rearmFile(c).createNewFile(); Herstel.afterRestart(c); } catch (Throwable ignored) { }
+            // Een nieuwe installatie: pas als alles gelukt is mogen de nachtelijke backups weer (anders zou een backup
+            // de bestanden die je nog nodig hebt, overschrijven). Anders kun je het opnieuw proberen of Overslaan kiezen.
+            if (allOk && !all.isEmpty() && Herstel.NEW.equals(Herstel.state(c))) Herstel.setState(c, Herstel.DONE);
             App.log(c, "HERSTEL", "losse onderdelen teruggezet: " + parts.length());
             return new JSONObject().put("parts", parts).put("ok", allOk);
         } finally {

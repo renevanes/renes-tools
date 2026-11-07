@@ -853,7 +853,10 @@ public class MainActivity extends Activity {
             if ("archive".equals(kind)) { pendingArchive = u; Secure.forget(); js("onArchivePicked", ""); return; }
             new Thread(() -> {
                 String r;
-                try { r = Restore.preview(getApplicationContext(), kind, u).toString(); }
+                try {
+                    if (HerstelLos.BUSY.get()) throw new Exception("Er wordt al teruggezet; even geduld");
+                    r = Restore.preview(getApplicationContext(), kind, u).toString();
+                }
                 catch (Throwable e) {
                     try { r = new JSONObject().put("error", e.getMessage() == null ? "Bestand niet te lezen" : e.getMessage()).toString(); }
                     catch (Exception e2) { r = "{\"error\":\"Bestand niet te lezen\"}"; }
@@ -2352,10 +2355,11 @@ public class MainActivity extends Activity {
 
         /** Contacten of notities uit het geopende archief: daarna hetzelfde overzicht als bij gewoon terugzetten. */
         @JavascriptInterface public void archiveRestore(String kind, String entry) {
-            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music", "ai", "sleep", "checkin").contains(kind)) return;
+            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "tooldata", "transcripts", "music", "ai", "sleep", "checkin").contains(kind)) return;
             new Thread(() -> {
                 String r;
                 try {
+                    if (HerstelLos.BUSY.get()) throw new Exception("Er wordt al teruggezet; even geduld");
                     String text = Secure.readEntry(ctx, entry);
                     // Slaappraat: het geluid komt ook uit het archief (nu, want daarna is de sleutel weg)
                     r = ("sleep".equals(kind) ? Restore.previewSleepArchive(ctx, text) : Restore.previewText(ctx, kind, text)).toString();
@@ -2420,12 +2424,30 @@ public class MainActivity extends Activity {
             }, "herstel-scan").start();
         }
 
+        // ----- Backup-map controleren en opruimen -----
+
+        @JavascriptInterface public String backupMapState() { return BackupMap.stateJson(ctx); }
+
+        @JavascriptInterface public void backupMapAuto(boolean on) { BackupMap.prefs(ctx).edit().putBoolean("auto", on).apply(); }
+
+        @JavascriptInterface public void backupMapStop() { BackupMap.stop = true; }
+
+        /** Controleren (repair false) of opruimen (true); uitkomst via onBackupMap. */
+        @JavascriptInterface public void backupMapRun(boolean repair) {
+            new Thread(() -> {
+                String r;
+                try { r = BackupMap.run(ctx, repair, false).toString(); }
+                catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(e instanceof Exception && WaBackup.accessErr((Exception) e) ? WaBackup.folderMsg(ctx, (Exception) e) : AppData.safeMsg(e, "Controleren mislukt")) + "}"; }
+                a.js("onBackupMap", r);
+            }, "backupmap").start();
+        }
+
         /** Alle gewone onderdelen in de backup-map opzoeken en tellen wat er nieuw is (er verandert niets); uitkomst via onHerstelLosScan. */
         @JavascriptInterface public void herstelLosScan() {
             new Thread(() -> {
                 String r;
                 try { r = HerstelLos.scan(ctx).toString(); }
-                catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(e instanceof Exception && WaBackup.destUri(ctx) != null ? WaBackup.folderMsg(ctx, (Exception) e) : AppData.safeMsg(e, "Map niet te lezen")) + "}"; }
+                catch (Throwable e) { r = "{\"error\":" + JSONObject.quote(e instanceof Exception && WaBackup.accessErr((Exception) e) ? WaBackup.folderMsg(ctx, (Exception) e) : AppData.safeMsg(e, "Map niet te lezen")) + "}"; }
                 a.js("onHerstelLosScan", r);
             }, "herstel-los-scan").start();
         }
@@ -2546,7 +2568,7 @@ public class MainActivity extends Activity {
 
         /** Kies een backupbestand om terug te zetten (contacts = vCard, notes = notities.json). */
         @JavascriptInterface public void restorePick(String kind) {
-            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "transcripts", "music", "route", "ai", "sleep", "checkin").contains(kind)) return;
+            if (!java.util.Arrays.asList("contacts", "notes", "launcher", "settings", "tooldata", "transcripts", "music", "route", "ai", "sleep", "checkin").contains(kind)) return;
             a.importKind = kind;
             a.h.post(() -> {
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
@@ -2567,6 +2589,7 @@ public class MainActivity extends Activity {
 
         /** Terugzetten op de achtergrond; uitkomst via window.onRestoreDone("ok:N" of foutmelding). */
         @JavascriptInterface public String restoreApply() {
+            if (HerstelLos.BUSY.get()) return "Er wordt al teruggezet; even geduld";
             if ("contacts".equals(Restore.pendingKind) && ctx.checkSelfPermission(Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED)
                 return "Geef eerst toestemming om contacten te wijzigen";
             new Thread(() -> {

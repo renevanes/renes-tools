@@ -144,7 +144,33 @@ final class WaBackup {
     static final class Child { final String docId; final long size; final long mod; final boolean dir;
         Child(String i, long s, long m, boolean d) { docId = i; size = s; mod = m; dir = d; } }
 
-    static final class DestDir { Uri uri; String path = ""; final Map<String, Child> kids = new HashMap<>(); }
+    static final class DestDir {
+        Uri uri; String path = "";
+        final Map<String, Child> kids = new HashMap<>();
+        /** Namen die meer dan één keer in deze map staan (kan op Google Drive): alle exemplaren, voor het opruimen. */
+        final Map<String, List<Child>> dups = new HashMap<>();
+    }
+
+    /**
+     * Eén slot voor het maken van mappen in de backup-map (en voor het opruimen ervan): de nachtelijke taken lopen
+     * tegelijk, en twee taken die dezelfde map maken, gaven op Google Drive twee mappen met dezelfde naam.
+     */
+    static final java.util.concurrent.locks.ReentrantLock FOLDER_LOCK = new java.util.concurrent.locks.ReentrantLock();
+
+    /**
+     * Welke van twee items met dezelfde naam telt. Bestand boven map (een bestand heeft de echte naam als de map daar
+     * per ongeluk naast staat, dat lost het opruimen op); daarna bij bestanden de nieuwste, bij mappen de map met de
+     * meeste inhoud (die telt het opruimen vooraf); gelijk: de laagste document-id (altijd dezelfde keuze).
+     */
+    static boolean better(Child a, Child b, Map<String, Integer> sizes) {
+        if (a.dir != b.dir) return !a.dir;
+        if (!a.dir) { if (a.mod != b.mod) return a.mod > b.mod; }
+        else if (sizes != null) {
+            int sa = sizes.containsKey(a.docId) ? sizes.get(a.docId) : -1, sb = sizes.containsKey(b.docId) ? sizes.get(b.docId) : -1;
+            if (sa != sb) return sa > sb;
+        }
+        return a.docId.compareTo(b.docId) < 0;
+    }
 
     /** Doelmap met cache: één opvraging per map. */
     static final class Dest {
@@ -173,12 +199,51 @@ final class WaBackup {
             try (Cursor c = cr.query(q, new String[]{Document.COLUMN_DOCUMENT_ID, Document.COLUMN_DISPLAY_NAME,
                     Document.COLUMN_SIZE, Document.COLUMN_LAST_MODIFIED, Document.COLUMN_MIME_TYPE}, null, null, null)) {
                 if (c == null) throw new Exception("Backup-map niet leesbaar");
+                d.kids.clear(); d.dups.clear();
                 while (c.moveToNext()) {
                     boolean isDir = Document.MIME_TYPE_DIR.equals(c.getString(4));
-                    d.kids.put(c.getString(1), new Child(c.getString(0),
-                            c.isNull(2) ? -1 : c.getLong(2), c.isNull(3) ? 0 : c.getLong(3), isDir));
+                    String name = c.getString(1);
+                    if (name == null) continue;
+                    Child ch = new Child(c.getString(0), c.isNull(2) ? -1 : c.getLong(2), c.isNull(3) ? 0 : c.getLong(3), isDir);
+                    Child had = d.kids.get(name);
+                    if (had == null) { d.kids.put(name, ch); continue; }
+                    List<Child> all = d.dups.get(name);
+                    if (all == null) { all = new ArrayList<>(); all.add(had); d.dups.put(name, all); }
+                    all.add(ch);
                 }
             }
+            // Dubbele namen: altijd dezelfde keuze (bij mappen de map met de meeste inhoud)
+            for (Map.Entry<String, List<Child>> e : d.dups.entrySet()) {
+                Map<String, Integer> sizes = null;
+                for (Child x : e.getValue()) if (x.dir) { sizes = countKids(e.getValue()); break; }
+                Child best = null;
+                for (Child x : e.getValue()) if (best == null || better(x, best, sizes)) best = x;
+                d.kids.put(e.getKey(), best);
+            }
+        }
+
+        /** De map met deze naam (ook als er per ongeluk een bestand met dezelfde naam naast staat). */
+        Child dirChild(DestDir parent, String name) throws Exception {
+            Child ch = parent.kids.get(name);
+            if (ch == null || ch.dir) return ch;
+            List<Child> all = parent.dups.get(name);
+            if (all == null) return ch;
+            Map<String, Integer> sizes = countKids(all);
+            Child best = null;
+            for (Child x : all) if (x.dir && (best == null || better(x, best, sizes))) best = x;
+            return best == null ? ch : best;
+        }
+
+        /** Hoeveel er in elke (dubbele) map staat. */
+        Map<String, Integer> countKids(List<Child> l) {
+            Map<String, Integer> m = new HashMap<>();
+            for (Child x : l) {
+                if (!x.dir) continue;
+                Uri q = DocumentsContract.buildChildDocumentsUriUsingTree(tree, x.docId);
+                try (Cursor c = cr.query(q, new String[]{Document.COLUMN_DOCUMENT_ID}, null, null, null)) { m.put(x.docId, c == null ? 0 : c.getCount()); }
+                catch (Exception e) { m.put(x.docId, 0); }
+            }
+            return m;
         }
 
         /** Map op relatief pad; null als hij niet bestaat en create false is. */
@@ -190,16 +255,14 @@ final class WaBackup {
             DestDir parent = i < 0 ? root() : dir(rel.substring(0, i), create);
             if (parent == null) return null;
             String name = i < 0 ? rel : rel.substring(i + 1);
-            Child ch = parent.kids.get(name);
+            Child ch = dirChild(parent, name);
             d = new DestDir();
+            if (ch == null && create) ch = createDir(this, parent, name);
             if (ch != null && ch.dir) {
                 d.uri = DocumentsContract.buildDocumentUriUsingTree(tree, ch.docId);
                 list(d);
             } else if (create) {
-                Uri u = create(this, parent.uri, Document.MIME_TYPE_DIR, name);
-                if (u == null) throw new Exception("Map maken lukt niet: " + name);
-                d.uri = u;
-                parent.kids.put(name, new Child(DocumentsContract.getDocumentId(u), 0, 0, true));
+                throw new Exception("Map maken lukt niet: " + name);
             } else {
                 return null;
             }
@@ -207,6 +270,32 @@ final class WaBackup {
             cache.put(rel, d);
             return d;
         }
+    }
+
+    /**
+     * Map maken zonder dubbelen: onder het slot de bovenliggende map opnieuw inlezen (een andere taak, of Google Drive met
+     * vertraging, kan hem intussen al gemaakt hebben), pas dan maken, en daarna nakijken. Staan er toch twee, dan blijft
+     * de gekozen map en gaat een lege die wij net maakten meteen weer weg.
+     */
+    static Child createDir(Dest dest, DestDir parent, String name) throws Exception {
+        FOLDER_LOCK.lock();
+        try {
+            dest.list(parent);
+            Child ch = dest.dirChild(parent, name);
+            if (ch != null && ch.dir) return ch;
+            Uri u = create(dest, parent.uri, Document.MIME_TYPE_DIR, name);
+            if (u == null) throw new Exception("Map maken lukt niet: " + name);
+            String mine = DocumentsContract.getDocumentId(u);
+            dest.list(parent);
+            ch = dest.dirChild(parent, name);
+            if (ch == null || !ch.dir) { ch = new Child(mine, 0, 0, true); parent.kids.put(name, ch); }
+            else if (!mine.equals(ch.docId)) {
+                // Een andere taak (of een eerdere, nog niet zichtbare map) was ons voor: onze lege map weer weg
+                try { DocumentsContract.deleteDocument(dest.cr, DocumentsContract.buildDocumentUriUsingTree(dest.tree, mine)); dest.list(parent); Child again = dest.dirChild(parent, name); if (again != null && again.dir) ch = again; }
+                catch (Exception ignored) { }
+            }
+            return ch;
+        } finally { FOLDER_LOCK.unlock(); }
     }
 
     /** Bestandsnaam die ook op USB-sticks en SD-kaarten (FAT) kan. */

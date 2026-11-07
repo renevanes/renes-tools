@@ -14,7 +14,8 @@ import java.util.Date;
 import java.util.Locale;
 
 /**
- * Alles back-uppen: sms, oproepen, contacten, notities, gesprekken, herkende muziek, routes en instellingen in één keer
+ * Alles back-uppen: sms, oproepen, contacten, notities, gesprekken, herkende muziek, routes, instellingen en de overige
+ * toolgegevens (Mijn auto, Facturen, Apparaten …) in één keer
  * (en als je dat aanvinkt: meldingen, het geheugen en de gesprekken van de assistent, Slaappraat en Check-in)
  * naar de backup-map, met per onderdeel de uitkomst. Draait op verzoek of elke nacht (AllBackupJob).
  * WhatsApp heeft een eigen nachtelijke backup en wordt alleen bij handmatig starten meegenomen.
@@ -23,7 +24,7 @@ final class AllBackup {
 
     private AllBackup() { }
 
-    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "launcher", "transcripts", "music", "settings", "routes", "ai", "sleep", "checkin", "kluis", "app"};
+    static final String[] PARTS = {"sms", "calls", "notifications", "contacts", "notes", "launcher", "transcripts", "music", "settings", "tooldata", "routes", "ai", "sleep", "checkin", "kluis", "app"};
 
     /** Privé: alleen versleuteld mee, of onversleuteld na uitdrukkelijke toestemming (plain_…). */
     static final String[] PRIVATE = {"ai", "sleep", "checkin"};
@@ -232,6 +233,8 @@ final class AllBackup {
                 return SettingsBackup.export(c);
             case "routes":
                 return SettingsBackup.exportRoutes(c);
+            case "tooldata":
+                return ToolData.export(c); // alles van de tools zonder eigen onderdeel (zonder geheimen)
             case "kluis":
                 return Kluis.export(c); // alleen in een versleutelde backup
             case "music":

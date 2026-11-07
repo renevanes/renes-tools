@@ -1,5 +1,5 @@
 /* ---------- Alles back-uppen ---------- */
-const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', launcher: 'Startscherm (skin)', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek', settings: 'Instellingen, automatiseringen en zenders', routes: 'Routes (GPX)', app: 'Alle appgegevens (voor herinstallatie)' };
+const BK_PARTS = { sms: 'Sms-berichten', calls: 'Oproepen', notifications: 'Meldingsgeschiedenis', contacts: 'Contacten', notes: 'Notities', launcher: 'Startscherm (skin)', transcripts: 'Uitgeschreven gesprekken', music: 'Herkende muziek', settings: 'Instellingen, automatiseringen en zenders', tooldata: 'Overige toolgegevens (Mijn auto, Facturen, Apparaten …)', routes: 'Routes (GPX)', app: 'Alle appgegevens (voor herinstallatie)' };
 /* Privé: staan standaard uit; zonder versleutelen een duidelijke waarschuwing */
 const BK_PRIV = { ai: 'Geheugen en gesprekken van de assistent', sleep: 'Slaappraat', checkin: 'Check-in' };
 const BK_LABEL = Object.assign({}, BK_PARTS, BK_PRIV);
@@ -20,11 +20,12 @@ function bkPrivNoLonger(priv){
 }
 let bkPoll = null, bkBusy = false;
 /* Het overzicht en zijn eigen schermen: samen één tool (zelfde gegevens, zelfde pollen) */
-const BK_SCR = ['backup', 'bkparts', 'bkset', 'bkrestore'];
+const BK_SCR = ['backup', 'bkparts', 'bkset', 'bkrestore', 'bkmap'];
 const bkOn = () => BK_SCR.includes(current);
 /* Losse onderdelen terugzetten: één rij per onderdeel (soort, naam, pictogram, waar het vandaan komt) */
 const BK_RESTORE = [['contacts', 'Contacten', 'user', 'Uit een vCard-bestand (.vcf)'], ['notes', 'Notities', 'notes', 'Uit notities.json'],
   ['launcher', 'Startscherm (skin)', 'grid', 'Vervangt de indeling; de huidige wordt eerst bewaard'], ['settings', 'Instellingen, automatiseringen en zenders', 'settings', 'Voegt toe wat ontbreekt; wat er staat, blijft'],
+  ['tooldata', 'Overige toolgegevens', 'folder', 'Mijn auto, Facturen, Apparaten, Toiletten … uit toolgegevens.json'],
   ['transcripts', 'Uitgeschreven gesprekken', 'transcript', 'Uit transcripties.json'], ['music', 'Herkende muziek', 'music', 'Uit herkende-nummers.json'],
   ['route', 'Route (GPX)', 'route', 'Uit een GPX-bestand in Routes/'], ['ai', 'Geheugen en gesprekken van de assistent', 'sparkle', 'Uit assistent.json'],
   ['sleep', 'Slaappraat', 'moon', 'Uit slaappraat.json (geluid uit de map Slaappraat)'], ['checkin', 'Check-in', 'smile', 'Uit checkin.json']];
@@ -53,6 +54,7 @@ function enterBackup(){
   $('#bk-next').textContent = st.auto && st.next ? t('Volgende backup: {wanneer}', { wanneer: fmtDT(st.next, {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) }) : '';
   bkRestoreList();
   bkRenderLast(st); bkRenderSecure(st); bkRenderHerstel(st); bkSums(st);
+  if (typeof bmRender === 'function') bmRender();
   stopBkPoll(); bkPoll = setInterval(bkPollOnce, 1000);
 }
 /* Losse onderdelen terugzetten: ook al bij het laden, zodat zoeken ze vindt */
@@ -224,7 +226,7 @@ window.onRestorePreview = function(d){
     }, () => Android.restoreCancel()); // niet doen: ontsleuteld geluid meteen uit de cache
     return;
   }
-  const what = { contacts: 'contacten', notes: 'notities', settings: 'instellingen', transcripts: 'uitgeschreven gesprekken', music: 'herkende nummers' }[d.kind] || 'onderdelen';
+  const what = { contacts: 'contacten', notes: 'notities', settings: 'instellingen', transcripts: 'uitgeschreven gesprekken', music: 'herkende nummers', tooldata: 'instellingen en bestanden van tools' }[d.kind] || 'onderdelen';
   if (d.kind === 'settings' && d.fresh) {
     const parts = [d.rules ? tn(d.rules, '{n} automatisering', '{n} automatiseringen') : '', d.favs ? tn(d.favs, '{n} zender', '{n} zenders') : '', d.alarm ? t('radiowekker') : '', d.plan ? t('geplande Auto redial') : '', d.reminders ? tn(d.reminders, '{n} herinnering', '{n} herinneringen') : ''].filter(Boolean);
     askConfirm('Instellingen terugzetten?', (parts.length ? t('Toegevoegd wordt wat hier nog ontbreekt: {wat}.', { wat: parts.join(', ') }) : t('Toegevoegd wordt wat hier nog ontbreekt.')) + ' ' + t('Bestaande instellingen blijven zoals ze zijn.'), 'Terugzetten', () => {

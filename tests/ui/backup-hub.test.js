@@ -45,7 +45,7 @@ const FOLD = 844;
     ok(JSON.stringify(await prim(pg)) === '["Nu alles back-uppen"]', tag + ': Alles back-uppen: één hoofdknop (' + (await prim(pg)).join(' | ') + ')');
     ok(await pg.evaluate(() => { const r = document.querySelector('#bk-run').getBoundingClientRect(); return r.bottom <= innerHeight && r.top > 0; }), tag + ': Nu alles back-uppen boven de vouw');
     ok(await pg.isVisible('#bk-herstel-st') && /Nog niet compleet/.test(await pg.textContent('#bk-herstel-st')), tag + ': status voor herinstallatie staat in de statuskaart');
-    ok(await pg.evaluate(() => document.querySelectorAll('#s-backup .card.stlist .strow').length) === 3, tag + ': drie rijen');
+    ok(await pg.evaluate(() => document.querySelectorAll('#s-backup .card.stlist .strow').length) === 4, tag + ': vier rijen');
     // De stand op de rijen; versleutelen staat er altijd bij, niet afgekapt
     const sumParts = await pg.textContent('#bk-sum-parts'), sumSet = await pg.textContent('#bk-sum-set');
     ok(/^\d+ van 11 onderdelen · privé uit$/.test(sumParts), tag + ': Wat gaat er mee: stand "' + sumParts + '"');
@@ -57,7 +57,7 @@ const FOLD = 844;
     await pg.evaluate(() => goBack()); await pg.waitForTimeout(120 * W);
 
     // Rij → eigen scherm (kleine kop) → terug; de stand werkt bij
-    for (const [row, scr] of [['#bk-row-parts', 'bkparts'], ['#bk-row-set', 'bkset'], ['#bk-row-restore', 'bkrestore']]) {
+    for (const [row, scr] of [['#bk-row-parts', 'bkparts'], ['#bk-row-set', 'bkset'], ['#bk-row-restore', 'bkrestore'], ['#bk-row-map', 'bkmap']]) {
       await pg.click(row); await pg.waitForTimeout(150 * W);
       const sm = await pg.evaluate(s => document.querySelector('#s-' + s + ' .hdr').classList.contains('sm'), scr);
       ok(await cur(pg) === scr && sm, tag + ': ' + row + ' opent ' + scr + ' (kleine kop)');
@@ -74,7 +74,7 @@ const FOLD = 844;
         await pg.click('#bk-auto'); await pg.waitForTimeout(150 * W);
       }
       if (scr === 'bkrestore') {
-        ok(await pg.evaluate(() => document.querySelectorAll('#bk-restore-list .strow').length) === 10, tag + ': tien losse onderdelen, één rij per onderdeel');
+        ok(await pg.evaluate(() => document.querySelectorAll('#bk-restore-list .strow').length) === 11, tag + ': elf losse onderdelen, één rij per onderdeel');
         ok(await pg.isVisible('#bk-herstel-btn') && /Vervangt alles in Tools/.test(await pg.textContent('#s-bkrestore .card .note.warn')), tag + ': Alle appgegevens terugzetten, met zichtbare waarschuwing');
       }
       await pg.evaluate(() => goBack()); await pg.waitForTimeout(150 * W);

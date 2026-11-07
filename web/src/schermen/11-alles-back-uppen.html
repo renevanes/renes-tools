@@ -25,6 +25,7 @@
       <button class="strow" id="bk-row-parts" onclick="show('bkparts')"><span class="stic"><span class="ui-icon" data-icon="check" aria-hidden="true"></span></span><span class="sttxt"><b>Wat gaat er mee</b><small class="bk-sumwrap" id="bk-sum-parts"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" id="bk-row-set" onclick="show('bkset')"><span class="stic"><span class="ui-icon" data-icon="lock" aria-hidden="true"></span></span><span class="sttxt"><b>Automatisch en versleutelen</b><small class="bk-sumwrap" id="bk-sum-set"></small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
       <button class="strow" id="bk-row-restore" onclick="show('bkrestore')"><span class="stic"><span class="ui-icon" data-icon="download" aria-hidden="true"></span></span><span class="sttxt"><b>Terugzetten</b><small id="bk-sum-restore">Losse onderdelen of alles</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
+      <button class="strow" id="bk-row-map" onclick="show('bkmap')"><span class="stic"><span class="ui-icon" data-icon="folder" aria-hidden="true"></span></span><span class="sttxt"><b>Backup-map controleren</b><small class="bk-sumwrap" id="bk-sum-map">Dubbele mappen en bestanden opruimen</small></span><span class="ui-icon stchev" data-icon="chevron-right" aria-hidden="true"></span></button>
     </div>
     <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
       <p>Alles back-uppen zet in één keer een kopie van je sms'jes, oproepen, contacten, notities, instellingen en meer in je backup-map. Met versleutelen wordt dat één versleuteld bestand; zonder versleutelen zijn het gewone, leesbare bestanden.</p>
@@ -118,13 +119,13 @@
     <h1 tabindex="-1">Terugzetten</h1>
   </div>
   <main>
-    <div class="card" id="bk-los">
+    <div class="card" id="bklos">
       <h2>Alles uit je backup-map</h2>
       <p class="hint" style="margin-top:0">Zoekt in je backup-map alle gewone onderdelen (instellingen met zenders en podcasts, notities, contacten, routes …) en zet ze in één keer terug. Alleen wat ontbreekt wordt toegevoegd.</p>
-      <div id="bk-los-res"></div>
-      <button class="big tonal" id="bk-los-perm" onclick="bkLosAskPerm()" style="display:none">Toestemming voor contacten geven</button>
-      <button class="big" id="bk-los-go" onclick="bkLosApply()" style="display:none">Alles terugzetten</button>
-      <button class="big ghost" id="bk-los-scan" onclick="bkLosScan()">Backup-map doorzoeken</button>
+      <div id="bklos-res"></div>
+      <button class="big tonal" id="bklos-perm" onclick="bkLosAskPerm()" style="display:none">Toestemming voor contacten geven</button>
+      <button class="big" id="bklos-go" onclick="bkLosApply()" style="display:none">Alles terugzetten</button>
+      <button class="big ghost" id="bklos-scan" onclick="bkLosScan()">Backup-map doorzoeken</button>
     </div>
     <div class="card">
       <h2>Alles na herinstallatie</h2>
@@ -141,6 +142,33 @@
       <p>Je kiest het bestand in de backup-map, bijv. Contacten backup/…vcf, Notities/notities.json, Instellingen/instellingen.json, Gesprekken/transcripties.json, Muziek/herkende-nummers.json, Assistent/assistent.json, Slaappraat/slaappraat.json, Check-in/checkin.json of een route in Routes/. Het geluid van Slaappraat komt dan uit de map Slaappraat in je backup-map.</p>
       <p>Het startscherm terugzetten vervangt de indeling van de skin (de huidige wordt eerst bewaard). Widgets en vastgezette snelkoppelingen kunnen niet mee terug.</p>
       <p>Sms'jes en oproepen zet je terug met de app "SMS Backup &amp; Restore"; WhatsApp via WhatsApp backup → Terugzetten.</p>
+    </div></details>
+  </main>
+</section>
+
+<!-- ============ ALLES BACK-UPPEN → BACKUP-MAP CONTROLEREN ============ -->
+<section class="screen" id="s-bkmap">
+  <div class="hdr sm">
+    <button class="back" onclick="goBack()" aria-label="Terug"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 tabindex="-1">Backup-map controleren</h1>
+  </div>
+  <main>
+    <div class="card">
+      <h2>Stand</h2>
+      <p class="note" id="bm-state" style="margin-top:0">Nog niet gecontroleerd.</p>
+      <div id="bm-res"></div>
+      <button class="big" id="bm-fix" onclick="bmRun(true)" style="display:none">Nu opruimen</button>
+      <button class="big ghost" id="bm-check" onclick="bmRun(false)">Nu controleren</button>
+      <button class="big ghost" id="bm-stop" onclick="Android.backupMapStop()" style="display:none">Stoppen</button>
+    </div>
+    <div class="card">
+      <label class="row" style="gap:12px"><span style="flex:1"><b>Elke nacht vanzelf opruimen</b><small class="note" style="display:block;margin:0">Na de nachtelijke backup. Er gaat nooit iets weg wat nergens anders staat.</small></span>
+        <button class="tg" role="switch" aria-checked="true" id="bm-auto" onclick="bmAuto()" aria-label="Elke nacht vanzelf opruimen"></button></label>
+    </div>
+    <details class="help"><summary data-icon="info">Hoe werkt dit?</summary><div class="help-body">
+      <p>Google Drive staat twee mappen of bestanden met dezelfde naam in één map toe. Daardoor kon je backup verspreid raken over bijvoorbeeld twee mappen "Notities".</p>
+      <p>Opruimen voegt dubbele mappen samen tot één map. Twee bestanden met precies dezelfde inhoud worden er één; is de inhoud anders, dan houdt de nieuwste de naam en blijft de andere staan als naam~datum. Achtergebleven tijdelijke bestanden van een afgebroken backup (ouder dan een dag) gaan weg.</p>
+      <p>Mappen die de app niet zelf maakt, worden alleen genoemd en nooit aangeraakt. Bovenin de map komt backup-map.json: daarin staat welke indeling de map heeft, zodat een latere versie van de app hem netjes kan bijwerken.</p>
     </div></details>
   </main>
 </section>
