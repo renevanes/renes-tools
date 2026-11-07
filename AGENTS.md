@@ -146,8 +146,9 @@ het ergens anders wilt), Java 17+ (javac; CI gebruikt 25), Python 3, Node 22+ (C
   testsleutel zoals in `.github/workflows/bouwen-en-testen.yml`. `./publish.sh` weigert die (vingerafdruk-controle).
   `./build.sh` schrijft ook in `update/`: zet dat na het testen terug met `git checkout -- update` en commit het nooit.
 - `./tests/run-jvm.sh` — Java-logicatests (na `./build.sh`).
-- `./tests/run-ui.sh` — alle interfacetests (Playwright, licht en donker), een paar tegelijk (`UI_JOBS`, standaard het aantal
-  processors, max 4; ±10 min op 2 kernen). Een mislukte test krijgt één herkansing met twee keer zo lange wachttijden
+- `./tests/run-ui.sh` — alle interfacetests (Playwright, licht en donker), veel tegelijk (`UI_JOBS`, standaard 3 per
+  processorkern, max 12: de tests wachten vooral; ±4 min op 4 kernen), de langste eerst (`tests/ui/duur.txt`; na een
+  flinke verandering bijwerken met `UI_DUUR_BIJWERKEN=1 ./tests/run-ui.sh`). Een mislukte test krijgt één herkansing met twee keer zo lange wachttijden
   (`UI_WACHT`, via `tests/ui/_traag.js`); slaagt hij dan wel, dan staat er `↻ naam` in de uitvoer (wankel: graag
   repareren, de publicatie gaat wel door). `✗ naam` = echt mislukt.
 - `./tests/ui-een.sh calls spotify2` — één of enkele interfacetests (naam zonder `.test.js`).
@@ -182,6 +183,10 @@ Actions, of `gh api repos/renevanes/renes-tools/actions/runs`) en meld Rene de n
    het), voegt de nieuwste main samen (merge), bepaalt het versienummer vanaf main (`NATIVE_LEVEL` gaat vanzelf omhoog
    als `app/` veranderde), schrijft het wijzigingslog, bouwt, draait alle tests en pusht "Versie X.Y" naar main.
    Botst je werk met main, dan stopt het: los de merge op, test en publiceer opnieuw.
+   Op GitHub draaien de interfacetests naast de telefoontest (`interfacetests.yml`, met `VOORBEREIDEN=…
+   ./publish.sh`: dezelfde merge, versie en wijzigingslog, zonder sleutel of push). De taak publiceren slaat ze alleen
+   over als de vingerafdruk (bron, `VERSION`, `changelog.json`) precies gelijk is, anders draait hij ze zelf; de
+   Java-tests draait hij altijd (`WebSigTest` controleert de echte handtekening). `tests/publicatie-voorbereiden.sh` bewaakt dat.
 5. **Kun je zelf niet pushen** (bijv. Codex in de cloud): open een pull request met je wijziging en een bestand in
    `wijzigingen/`, zonder `VERSION`, `changelog.json` of `update/` (de CI keurt dat af). Na het samenvoegen publiceert
    de workflow het vanzelf. **Kun je wel pushen** (ook Cursor-agents in de cloud), dan is een pull request niet genoeg:
