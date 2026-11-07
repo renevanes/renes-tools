@@ -184,9 +184,12 @@ Actions, of `gh api repos/renevanes/renes-tools/actions/runs`) en meld Rene de n
    als `app/` veranderde), schrijft het wijzigingslog, bouwt, draait alle tests en pusht "Versie X.Y" naar main.
    Botst je werk met main, dan stopt het: los de merge op, test en publiceer opnieuw.
    Op GitHub draaien de interfacetests naast de telefoontest (`interfacetests.yml`, met `VOORBEREIDEN=…
-   ./publish.sh`: dezelfde merge, versie en wijzigingslog, zonder sleutel of push). De taak publiceren slaat ze alleen
+   ./publish.sh`: dezelfde merge, versie en wijzigingslog, zonder sleutel of push; daarna bouwen met een testsleutel,
+   Java-tests en interfacetests, in dezelfde volgorde als `publish.sh`). De taak publiceren slaat de interfacetests alleen
    over als de vingerafdruk (bron, `VERSION`, `changelog.json`) precies gelijk is, anders draait hij ze zelf; de
    Java-tests draait hij altijd (`WebSigTest` controleert de echte handtekening). `tests/publicatie-voorbereiden.sh` bewaakt dat.
+   Een interfacetest die iets van de Java-tests nodig heeft (archieven in `herstel`, `sec`) slaat lokaal over als dat
+   ontbreekt, maar faalt in CI (`process.env.CI`): daar draaien de Java-tests altijd eerst.
 5. **Kun je zelf niet pushen** (bijv. Codex in de cloud): open een pull request met je wijziging en een bestand in
    `wijzigingen/`, zonder `VERSION`, `changelog.json` of `update/` (de CI keurt dat af). Na het samenvoegen publiceert
    de workflow het vanzelf. **Kun je wel pushen** (ook Cursor-agents in de cloud), dan is een pull request niet genoeg:
