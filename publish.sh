@@ -199,8 +199,11 @@ json.dump(log, open('changelog.json', 'w'), ensure_ascii=False, indent=2)"
     # De vingerafdruk gaat over HEAD^{tree}: verder mag de werkmap alleen de versie, het wijzigingslog, update/ (bouwen)
     # en de weggehaalde wijzigingsregels anders hebben, anders hier opnieuw testen
     ANDERS=""
-    [ -n "${UI_GETEST:-}" ] && ANDERS=$(git status --porcelain | grep -Ev '^.. (VERSION|changelog\.json|update/.*|wijzigingen/.*)$' || true)
-    if [ -n "${UI_GETEST:-}" ] && [ "$UI_GETEST" = "$AFDRUK" ] && [ -z "$ANDERS" ]; then
+    if [ -n "${UI_GETEST:-}" ]; then
+      ST=$(git status --porcelain --no-renames -unormal 2>/dev/null) || ST="?? (git status mislukt)"
+      ANDERS=$(printf '%s\n' "$ST" | grep -Ev '^(.. (VERSION|changelog\.json|update/.*|wijzigingen/.*))?$' || true)
+    fi
+    if [ -n "${UI_GETEST:-}" ] && [ "$UI_GETEST" = "$AFDRUK" ] && [ "$AFDRUK" = "$(vingerafdruk)" ] && [ -z "$ANDERS" ]; then
       echo "Interfacetests: al geslaagd op precies deze bron, versie en wijzigingslog ($UI_GETEST)"
     else
       if [ -n "$ANDERS" ]; then echo "Werkmap anders dan de geteste bron ($(echo "$ANDERS" | head -3 | tr '\n' ' ')): hier opnieuw"
