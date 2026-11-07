@@ -1,15 +1,27 @@
 {
   "app": "Tools",
-  "versionName": "1.157",
-  "versionCode": 158,
-  "nativeLevel": 140,
+  "versionName": "1.158",
+  "versionCode": 159,
+  "nativeLevel": 141,
   "web": "index.html",
-  "webSha256": "077490f8792854d118ad3f84938e79cb8e5325f328fde53f7824371f6876f79d",
+  "webSha256": "d3715ad92125acac827c675e7cef9ebee53cd9aafa7973d2ede7397ce37eb06a",
   "start": "start.html",
   "startSha256": "666d782c9b634c8a6b98128d6b66c58e70efee5b5736339e1eac8794bf1bb4ad",
   "apk": "Renes-Tools.apk",
-  "apkSha256": "d44b61316a18368354c6125dcdcee0fb6cb3065bbecd81768f0b78de051d46df",
+  "apkSha256": "23ce963a9a52b98fc2e214a3483a1c0979329f42bb5a04e3677132b55459b3d4",
   "changelog": [
+    {
+      "version": "1.158",
+      "date": "2026-11-07",
+      "changes": [
+        "Nieuw: Alles back-uppen → Backup-map controleren. Zoekt dubbele mappen en bestanden met dezelfde naam (kan op Google Drive) en achtergebleven tijdelijke bestanden, en ruimt ze op: dubbele mappen worden samengevoegd, dubbele bestanden met dezelfde inhoud worden er één. Er gaat nooit iets weg wat nergens anders staat. Gebeurt na deze update één keer vanzelf en daarna elke nacht na de backup (uit te zetten).",
+        "Backups maken voortaan geen dubbele mappen meer, ook niet als meerdere backups tegelijk lopen of Google Drive een nieuwe map nog niet laat zien.",
+        "Nieuw backup-onderdeel \"Overige toolgegevens\": Mijn auto (parkeren, ritten), Facturen (leveranciers, dossier, aanleveren), Apparaten, Toiletten (eigen plekken), versies van contacten, Spotify, Gebruik, gespreksopnames en de instellingen van alle tools gaan nu ook mee in de gewone backup, zonder wachtwoorden en sleutels. Ook terug te zetten met \"Alles uit je backup-map\".",
+        "Terugzetten: nieuwe knop \"Alles uit je backup-map\" zoekt alle gewone onderdelen (instellingen met zenders en podcasts, notities, contacten, startscherm, routes, gesprekken, herkende muziek …) en zet ze in één keer terug; alleen wat ontbreekt wordt toegevoegd. Na een herinstallatie zonder versleutelde backup kom je er meteen.",
+        "Backup van podcasts uitgebreid: naast abonnementen en wat je beluisterde gaan nu ook Verder luisteren, Hierna, vanzelf downloaden per podcast, weggehaalde nieuwe afleveringen, de laatst gespeelde aflevering en de downloadinstellingen mee.",
+        "Backup van de radio uitgebreid: naast favorieten en de radiowekker gaat nu ook de laatst gespeelde zender mee."
+      ]
+    },
     {
       "version": "1.157",
       "date": "2026-11-06",
@@ -1395,5 +1407,5 @@
       ]
     }
   ],
-  "webSig2": "fHpIMgqAPn78/ESv/XmX/WJ200sbAQqxs5vJEx6OSr7OAuMIvf/d9niwMTQ1jqx9sMwoSnrKheYSRCisUNKDtN53K6T93JG3mzWUvS7wYrZWqFmwni2y3Kt9M/G2+df0qC+ucTxFaqUgG9fUWl8ORibOh+crm1pDTI3fxut6l47q/SWp+SO58Q1k0wN+ZFtmtw17r6zcsczzuSxmdGFsA5KO393kE0OKmuqD7ykvZEYI8Y/EO+5bTZEFaB65UI7TkyBmRmmRYvuemWIx5RkRQj94+jymB6Njy0/dP3sWk7iau88UWpeNmaVjlu4aEdUrueeh1nPfIf5+5uVwPJqsiJNFLUMHfVa32lhJZUy/rFPZajGM+dGx7VhcBrvW+sRw1An614LF6Yz5Rvv0X3DIYncT3tJEyLfn6Ilbi+BNrkyoCefDt4GfGLx6FPhrRkIZw2rx4j7VRDDCqSnWqdZCWdJ6xbhSIu6Q9Jj8fsWgiyb5/FnoAaqf4IDQ7oIpwBdM"
+  "webSig2": "r6lSYWHOyibbCYss2lqXMI4u6qwmZVSTHMWGzJmJHdSq1Yl5UcCf9xsNMZmdmkd16cWTnfKpcr8uChttIYxLSrEDnGVqcN+S/uP1XFO67xtLBCqb/6+CAPQLKyq/ZwcXIg4CeBqA0oCHoXUX+hUp3wjv1eHORregMvDv9CkTshkk3jaFQPQ+dCOs4rv4/1VM/lS2tCIlki+wfpYU4oqBZBLME6RY3Y2Um+4+q9KJStKsaZnxQXSzlQ+FXEOF5rSGFDFrAJ1war8d2SZuhOlxmUbCZ/ehHc+T/tx16U6V8EtvLm9qcF5646V2bzXGTpvbhU05fF8wLnpVywURQnFv4an/RgCdcPS1xt8MGLFZV0+gWfO6z5D6Yr8dAdcceg/Fj1GHirZYH4TfH+f6EzxHtX3Ht1dqwGy7gfuMw8ltLOgDC8EvCBeiHk2X2M2J1lz7/EwFedTgLQeBGjb7MkVVV89kuxPSx/1zf42IsvIq7rdvJC+FcxW2d4rdld7M5fug"
 }

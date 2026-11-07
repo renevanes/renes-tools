@@ -1,3 +1,0 @@
-Terugzetten: nieuwe knop "Alles uit je backup-map" zoekt alle gewone onderdelen (instellingen met zenders en podcasts, notities, contacten, startscherm, routes, gesprekken, herkende muziek …) en zet ze in één keer terug; alleen wat ontbreekt wordt toegevoegd. Na een herinstallatie zonder versleutelde backup kom je er meteen.
-Backup van podcasts uitgebreid: naast abonnementen en wat je beluisterde gaan nu ook Verder luisteren, Hierna, vanzelf downloaden per podcast, weggehaalde nieuwe afleveringen, de laatst gespeelde aflevering en de downloadinstellingen mee.
-Backup van de radio uitgebreid: naast favorieten en de radiowekker gaat nu ook de laatst gespeelde zender mee.
