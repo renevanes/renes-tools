@@ -200,7 +200,7 @@ json.dump(log, open('changelog.json', 'w'), ensure_ascii=False, indent=2)"
       echo "Interfacetests: al geslaagd op precies deze bron, versie en wijzigingslog ($UI_GETEST)"
     else
       [ -n "${UI_GETEST:-}" ] && echo "Bron, versie of wijzigingslog anders dan bij de interfacetests ernaast: hier opnieuw"
-      ./tests/run-ui.sh > build/publish-ui.log 2>&1 || { grep -Ev "^(✓|· )" build/publish-ui.log | tail -30; echo "Interfacetests mislukt: niet gepubliceerd"; exit 1; }
+      ./tests/run-ui.sh > build/publish-ui.log 2>&1 || { grep -Ev "^(✓|· |    eerste poging:)" build/publish-ui.log | tail -30; echo "Interfacetests mislukt: niet gepubliceerd"; exit 1; }
       grep -E '^(↻|    eerste poging:|Interfacetests:)' build/publish-ui.log || true # wankele tests (pas bij de tweede poging) zichtbaar in het logboek
     fi
   fi
