@@ -128,8 +128,8 @@ const W = +process.env.UI_WACHT || 1;
     ok(!(await wc()).cache['den-haag-openbaar'], 'gedownloade plekken van de bron weg');
 
     // ---------- alles bijwerken ----------
-    await pg.click('#wcbr-scan'); await pg.waitForTimeout(30 * W);
-    ok(await pg.isDisabled('#wcbr-scan') && /Bezig/.test(await txt('#wcbr-st')), 'alles bijwerken: bezig');
+    const bezig = await pg.evaluate(() => { const b = document.getElementById('wcbr-scan'); b.click(); return [b.disabled, document.getElementById('wcbr-st').textContent]; });
+    ok(bezig[0] && /Bezig/.test(bezig[1]), 'alles bijwerken: bezig');
     await pg.waitForTimeout(300 * W);
     ok(!(await pg.isDisabled('#wcbr-scan')) && (await txt('#wcbr-st')) === '', 'alles bijgewerkt');
     await pg.screenshot({ path: path.join(__dirname, 'shots', 'toiletten-bronnen-' + scheme + '.png'), fullPage: true });

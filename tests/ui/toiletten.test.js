@@ -20,8 +20,9 @@ const W = +process.env.UI_WACHT || 1;
     ok(await pg.evaluate(() => current === 'wc'), 'scherm Toiletten en douches open');
     ok(await vis('#wc-setup') && await vis('#wc-ophalen') && !(await vis('#wc-hier')), 'nog geen gegevens: alleen eenmalig instellen');
     ok(!(await vis('#wc-map')), 'zonder gegevens geen kaart (geen kaartbeelden ophalen)');
-    await pg.click('#wc-ophalen'); await pg.waitForTimeout(40 * W);
-    ok(await pg.isDisabled('#wc-ophalen') && /Bezig/.test(await pg.textContent('#wc-setup-st')), 'ophalen: bezig');
+    // de nagebootste scan is na 120 ms klaar: de stand in de pagina zelf lezen, meteen na de klik
+    const bezig = await pg.evaluate(() => { const b = document.getElementById('wc-ophalen'); b.click(); return [b.disabled, document.getElementById('wc-setup-st').textContent]; });
+    ok(bezig[0] && /Bezig/.test(bezig[1]), 'ophalen: bezig');
     await pg.waitForTimeout(300 * W);
     ok(!(await vis('#wc-setup')) && await vis('#wc-hier'), 'opgehaald: eenmalig instellen weg, Zoek bij mij zichtbaar');
     ok(/Bijgewerkt/.test(await pg.textContent('#toast')), 'melding: bijgewerkt (' + await pg.textContent('#toast') + ')');
