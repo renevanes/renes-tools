@@ -196,7 +196,8 @@ const { chromium } = require('playwright');
   const fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process');
   for (const f of ['rt-app-test.rtb', 'rt-app-test64.rtb']) {
     const rtb = path.join(os.tmpdir(), f), errs = [];
-    if (!fs.existsSync(rtb)) { console.log(f, 'overgeslagen (eerst AppDataTest)', 'errors', []); continue; }
+    // in CI draaien de Java-tests altijd eerst: een ontbrekend archief is daar een fout, geen reden om over te slaan
+    if (!fs.existsSync(rtb)) { console.log(f, 'overgeslagen (eerst AppDataTest)', 'errors', process.env.CI ? ['✗ ' + f + ' ontbreekt: eerst ./tests/run-jvm.sh'] : []); continue; }
     const ok = (c, m) => { if (!c) errs.push('✗ ' + m); };
     const pg = await b.newPage({ acceptDownloads: true }); pg.on('pageerror', e => errs.push(e.message));
     await pg.goto('file://' + path.join(__dirname, '..', '..', 'web', 'ontsleutelen.html'));

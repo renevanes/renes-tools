@@ -26,10 +26,14 @@ echo "Nieuw: iets" > wijzigingen/iets.txt
 git add -A && git commit -qm "Werk" && git push -q origin HEAD:main
 bron=$(git rev-parse HEAD)
 
-voorbereiden(){ # $1 = map; voert publish.sh uit zoals de taak interface op GitHub
-  rm -rf "$1" && git clone -q "$tmp/origin.git" "$1" 2>/dev/null
-  (cd "$1" && git checkout -q "$bron" && GITHUB_ACTIONS=true AGENT=GitHub AUTO_NOTES=1 TESTED_SOURCE_SHA="$bron" \
-    VOORBEREIDEN=build/voorbereid.txt ./publish.sh > "$1.log" 2>&1) || { cat "$1.log"; fout "voorbereiden mislukt"; }
+probeer(){ # $1 = map, daarna extra omgeving (MAJOR=1); voert publish.sh uit zoals de taak interface op GitHub
+  local map=$1; shift
+  rm -rf "$map" && git clone -q "$tmp/origin.git" "$map" 2>/dev/null
+  (cd "$map" && git checkout -q "$bron" && env "$@" GITHUB_ACTIONS=true AGENT=GitHub AUTO_NOTES=1 TESTED_SOURCE_SHA="$bron" \
+    VOORBEREIDEN=build/voorbereid.txt ./publish.sh > "$map.log" 2>&1)
+}
+voorbereiden(){
+  probeer "$@" || { cat "$1.log"; fout "voorbereiden mislukt"; }
   cat "$1/build/voorbereid.txt"
 }
 
@@ -49,6 +53,14 @@ git commit -qam "Andere regel" && git push -q origin HEAD:main
 bron=$(git rev-parse HEAD)
 c=$(voorbereiden "$tmp/c")
 [ "$a" != "$c" ] || fout "een andere wijzigingsregel gaf dezelfde vingerafdruk"
+m=$(voorbereiden "$tmp/m" MAJOR=1)
+grep -q '^VERSION_NAME=2.0$' "$tmp/m/VERSION" || fout "MAJOR=1 zette geen hoofdversie klaar"
+[ "$m" != "$c" ] || fout "MAJOR=1 gaf dezelfde vingerafdruk"
+
+echo drie >> app/bron.txt  # main gaat verder met een andere bron dan die getest wordt
+git commit -qam "Ander werk" && git push -q origin HEAD:main
+if probeer "$tmp/verder"; then fout "voorbereiden ging door terwijl main een andere bron kreeg"; fi
+grep -q "De bron is sinds de telefoontest veranderd" "$tmp/verder.log" || { cat "$tmp/verder.log"; fout "main verder: verkeerde melding"; }
 
 echo "uitleg" > LEESMIJ.txt
 git add -A && git commit -qm "Versie 1.11" && git push -q origin HEAD:main  # alsof er net gepubliceerd is: update/ onveranderd,

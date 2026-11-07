@@ -8,7 +8,8 @@
 #   AGENT=Codex ./publish.sh        wie publiceert (komt in de commit); Claude-sessies geven CLAUDE_SESSION_URL mee
 #   SKIP_TESTS=1 / ALLOW_GROW=1     tests overslaan / een flink grotere APK toestaan (alleen als je weet waarom)
 #   VOORBEREIDEN=bestand            alleen samenvoegen en versie en wijzigingslog klaarzetten zoals bij publiceren (zonder
-#                                   sleutel, slot of push); in het bestand komt de vingerafdruk (of "geen"). Zo draait
+#                                   sleutel, slot of push; alleen in een wegwerp-checkout: de werkmap blijft
+#                                   samengevoegd en met de nieuwe versie achter); in het bestand komt de vingerafdruk (of "geen"). Zo draait
 #                                   Publiceren de interfacetests naast de telefoontest; UI_GETEST=<vingerafdruk> slaat
 #                                   ze daarna over, alleen als bron, versie en wijzigingslog precies gelijk zijn
 #

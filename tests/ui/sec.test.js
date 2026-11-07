@@ -85,6 +85,6 @@ const assert = require('node:assert/strict');
     const out = await dl.path(); console.log('decrypt ok', dl.suggestedFilename(), JSON.stringify(fs.readFileSync(out, 'utf8')), await pg.textContent('#msg'));
     console.log('errors', errs);
     assert.deepEqual(errs, []);
-  } else console.log('decrypt skipped (run LogicTest first)', 'errors', []);
+  } else console.log('decrypt skipped (run LogicTest first)', 'errors', process.env.CI ? ['✗ rt-test.rtb ontbreekt: in CI draaien de Java-tests altijd eerst'] : []);
   await b.close();
 })();

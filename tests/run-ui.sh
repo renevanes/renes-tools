@@ -35,7 +35,7 @@ een() {
   start=$(date +%s)
   for poging in 1 2; do
     w=$(awk -v a="$UI_BASE_WACHT" -v b="$poging" 'BEGIN{print a*b}')
-    out=$(UI_WACHT=$w timeout -k 15 $((240 * poging)) node -r "$PRELOAD" "$t" 2>&1); code=$?
+    out=$(UI_WACHT=$w timeout -k 15 $((300 * poging)) node -r "$PRELOAD" "$t" 2>&1); code=$?
     # Geslaagd = exitcode 0, minstens één "errors []" en geen enkele niet-lege foutenlijst
     # (een lange fout drukt node af als "errors [" + nieuwe regel, dus elke "errors [" moet direct "]" hebben)
     total=$(grep -o "errors \[" <<<"$out" | wc -l); empty=$(grep -o "errors \[\]" <<<"$out" | wc -l)

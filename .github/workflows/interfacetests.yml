@@ -1,8 +1,10 @@
 # Interfacetests voor Publiceren, naast de telefoontest in plaats van erna: op de bron zoals hij gepubliceerd wordt,
 # dus samengevoegd met main en met de nieuwe VERSION en changelog.json (./publish.sh met VOORBEREIDEN). Zonder sleutel
-# en zonder schrijfrechten; Playwright en Chromium draaien zo niet in de taak met de sleutel. De taak publiceren slaat
-# ze alleen over als de vingerafdruk van bron, versie en wijzigingslog daar precies gelijk is (UI_GETEST); anders
-# draait hij ze zelf opnieuw. Verandert er niets aan de app, dan zegt het voorbereiden "geen" en draait er niets.
+# en zonder schrijfrechten, in dezelfde volgorde als in publish.sh: bouwen (met een tijdelijke testsleutel), Java-tests
+# (die schrijven de archieven die herstel en sec ontsleutelen), dan de interfacetests. Playwright en Chromium draaien
+# zo meestal niet in de taak met de sleutel: de taak publiceren slaat ze alleen over als de vingerafdruk van bron,
+# versie en wijzigingslog daar precies gelijk is (UI_GETEST); anders draait hij ze zelf opnieuw. Verandert er niets aan
+# de app, dan zegt het voorbereiden "geen" en draait er niets.
 name: Interfacetests
 
 on:
@@ -32,6 +34,7 @@ jobs:
     outputs:
       getest: ${{ steps.klaar.outputs.getest }}
     env:
+      TOOLS: ${{ github.workspace }}/../toolchain
       TESTED_SOURCE_SHA: ${{ inputs.source_sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -49,12 +52,36 @@ jobs:
           VOORBEREIDEN: build/voorbereid.txt
         run: |
           ./publish.sh
-          echo "vingerafdruk=$(cat build/voorbereid.txt)" >> "$GITHUB_OUTPUT"
+          v=$(cat build/voorbereid.txt)
+          [[ $v =~ ^([0-9a-f]{64}|geen)$ ]] || { echo "::error::Onverwachte vingerafdruk"; exit 1; }
+          echo "vingerafdruk=$v" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        if: steps.voorbereid.outputs.vingerafdruk != 'geen'
+        with:
+          distribution: temurin
+          java-version: '25'
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.voorbereid.outputs.vingerafdruk != 'geen'
         with:
           node-version: '26'
+
+      - name: Bouwen met een tijdelijke testsleutel
+        if: steps.voorbereid.outputs.vingerafdruk != 'geen'
+        run: |
+          ./setup-tools.sh
+          echo "testsleutel-alleen-voor-ci" > keys/keystore.pass
+          keytool -genkeypair -keystore keys/release.p12 -storetype PKCS12 -alias release \
+            -storepass testsleutel-alleen-voor-ci -keypass testsleutel-alleen-voor-ci \
+            -keyalg RSA -keysize 2048 -validity 30 -dname "CN=CI-test"
+          ./build.sh
+
+      - name: Logica-tests (Java)
+        if: steps.voorbereid.outputs.vingerafdruk != 'geen'
+        run: |
+          set -o pipefail
+          ./tests/run-jvm.sh 2>&1 | tee build/publish-jvm.log
 
       - name: Playwright installeren
         if: steps.voorbereid.outputs.vingerafdruk != 'geen'
@@ -80,13 +107,14 @@ jobs:
         run: |
           python3 - <<'PY'
           import pathlib, re
-          path = pathlib.Path('build/publish-ui.log')
-          if path.is_file():
-              for line in path.read_text(errors='replace').splitlines():
-                  if m := re.match(r'↻ ([A-Za-z0-9_.-]{1,128}) ', line):
-                      print('::warning title=Wankele test::' + m[1])
-                  elif m := re.fullmatch(r'✗ ([A-Za-z0-9_.-]{1,128})', line):
-                      print('::error title=Mislukte test::' + m[1])
+          for name in ('publish-jvm.log', 'publish-ui.log'):
+              path = pathlib.Path('build') / name
+              if path.is_file():
+                  for line in path.read_text(errors='replace').splitlines():
+                      if m := re.match(r'↻ ([A-Za-z0-9_.-]{1,128}) ', line):
+                          print('::warning title=Wankele test::' + m[1])
+                      elif m := re.fullmatch(r'✗ ([A-Za-z0-9_.-]{1,128})', line):
+                          print('::error title=Mislukte test::' + m[1])
           PY
 
       - name: Schermafdrukken en logboek bij een fout
@@ -95,6 +123,8 @@ jobs:
         with:
           name: interfacetests-logboek
           path: |
+            build/publish-jvm.log
             build/publish-ui.log
             tests/ui/shots/*.png
+          if-no-files-found: ignore
           retention-days: 7
