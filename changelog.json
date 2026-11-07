@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.160",
+    "date": "2026-11-07",
+    "changes": [
+      "E-reader: lees EPUB- en tekstbestanden op je telefoon, met hoofdstukken, instelbare letters en een bewaarde leespositie. Open ook PDF's vanuit de e-reader."
+    ]
+  },
+  {
     "version": "1.159",
     "date": "2026-11-07",
     "changes": [
